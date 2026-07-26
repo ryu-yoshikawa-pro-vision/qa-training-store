@@ -1,0 +1,57 @@
+# Project-scoped Codex config baseline.
+# Codex loads this file only after the project is trusted. The wrappers still pass
+# explicit sandbox/approval flags and block unsafe overrides.
+
+sandbox_mode = "workspace-write"
+approval_policy = "untrusted"
+web_search = "cached"
+allow_login_shell = false
+
+[sandbox_workspace_write]
+network_access = false
+writable_roots = []
+
+[shell_environment_policy]
+inherit = "core"
+
+[features]
+codex_hooks = true
+
+[agents]
+max_threads = 4
+max_depth = 1
+
+[[hooks.PreToolUse]]
+matcher = "Bash|Shell|PowerShell|apply_patch|Edit|Write"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "pwsh -NoProfile -ExecutionPolicy Bypass -File .codex/hooks/pre_tool_use_policy.ps1"
+timeout = 30
+statusMessage = "Checking destructive command policy"
+
+[profiles.repo_safe]
+sandbox_mode = "workspace-write"
+approval_policy = "untrusted"
+web_search = "cached"
+allow_login_shell = false
+
+[profiles.repo_safe.sandbox_workspace_write]
+network_access = false
+writable_roots = []
+
+[profiles.repo_auto_net]
+sandbox_mode = "workspace-write"
+approval_policy = "never"
+web_search = "cached"
+allow_login_shell = false
+
+[profiles.repo_auto_net.sandbox_workspace_write]
+network_access = true
+writable_roots = []
+
+[profiles.repo_readonly]
+sandbox_mode = "read-only"
+approval_policy = "untrusted"
+web_search = "cached"
+allow_login_shell = false

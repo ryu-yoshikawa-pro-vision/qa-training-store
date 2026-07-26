@@ -1,0 +1,488 @@
+#!/usr/bin/env bash
+set -u -o pipefail
+
+strict_harness=0
+
+usage() {
+  cat <<'EOF'
+usage: bash scripts/verify [--strict-harness]
+
+Options:
+  --strict-harness   Run source-repo maintainer checks in addition to the consumer-facing template contract.
+  --help, -h         Show this help.
+EOF
+}
+
+while (($#)); do
+  case "$1" in
+    --strict-harness)
+      strict_harness=1
+      shift
+      ;;
+    --help|-h)
+      usage
+      exit 0
+      ;;
+    *)
+      echo "Unknown option: $1" >&2
+      usage >&2
+      exit 1
+      ;;
+  esac
+done
+
+repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+source_repo_root="$(cd "$repo_root/.." && pwd -P)"
+cd "$repo_root"
+
+pass_count=0
+fail_count=0
+skip_count=0
+
+log_pass() {
+  echo "PASS: $1"
+  pass_count=$((pass_count + 1))
+}
+
+log_fail() {
+  echo "FAIL: $1"
+  fail_count=$((fail_count + 1))
+}
+
+log_skip() {
+  echo "SKIP: $1"
+  skip_count=$((skip_count + 1))
+}
+
+run_check() {
+  local name="$1"
+  shift
+  if "$@"; then
+    log_pass "$name"
+  else
+    log_fail "$name"
+  fi
+}
+
+decision_from_json() {
+  local output="$1"
+  local decision
+  decision="${output##*\"decision\":\"}"
+  decision="${decision%%\"*}"
+  [[ -n "$decision" && "$decision" != "$output" ]] || return 1
+  printf '%s' "$decision"
+}
+
+contains() {
+  local pattern="$1"
+  local path="$2"
+  if command -v rg >/dev/null 2>&1 && rg --version >/dev/null 2>&1; then
+    rg -Fq -- "$pattern" "$path"
+  else
+    grep -Fq -- "$pattern" "$path"
+  fi
+}
+
+has_change_scope_catalog() {
+  if [[ -f "spec/change-scope-policy.json" ]]; then
+    return 0
+  fi
+
+  if [[ -d "$source_repo_root/spec" && -d "$source_repo_root/template" ]]; then
+    [[ -f "$source_repo_root/spec/change-scope-policy.json" ]]
+    return
+  fi
+
+  return 0
+}
+
+check_template_contract() {
+  [[ -f AGENTS.md ]] || return 1
+  [[ -f PLANS.md ]] || return 1
+  [[ -f CODE_REVIEW.md ]] || return 1
+  [[ -f MIGRATION.md ]] || return 1
+  [[ -f codex-project.toml ]] || return 1
+  [[ -f .codex/config.toml ]] || return 1
+  [[ -f .codex/requirements.toml ]] || return 1
+  [[ -f .codex/agents/code_researcher.toml ]] || return 1
+  [[ -f .codex/agents/implementation_researcher.toml ]] || return 1
+  [[ -f .codex/agents/implementation_worker.toml ]] || return 1
+  [[ -f .codex/agents/test_investigator.toml ]] || return 1
+  [[ -f .codex/hooks/pre_tool_use_policy.py ]] || return 1
+  [[ -f .codex/hooks/pre_tool_use_policy.ps1 ]] || return 1
+  [[ -f .codex/templates/PLAN.md ]] || return 1
+  [[ -f .codex/templates/RUN_MANIFEST.json ]] || return 1
+  [[ -f .codex/templates/EVALUATION.md ]] || return 1
+  [[ -f .codex/templates/evaluation.schema.json ]] || return 1
+  [[ -f .codex/templates/hook-observation.schema.json ]] || return 1
+  [[ -f .codex/templates/subagent-run.schema.json ]] || return 1
+  [[ -f .codex/rules/10-readonly-allow.rules ]] || return 1
+  [[ -f .codex/rules-auto-net/10-auto-net-allow.rules ]] || return 1
+  [[ -f .codex/rules-auto-net/20-auto-net-risky-forbidden.rules ]] || return 1
+  [[ -f .codex/rules-auto-net/30-auto-net-forbidden.rules ]] || return 1
+  [[ -f .codex/hooks/observe.sh ]] || return 1
+  [[ -f .codex/hooks/observe.ps1 ]] || return 1
+  [[ -f scripts/codex-task.ps1 ]] || return 1
+  [[ -f scripts/codex-task.sh ]] || return 1
+  [[ -f scripts/codex-sandbox.ps1 ]] || return 1
+  [[ -f scripts/codex-sandbox.sh ]] || return 1
+  [[ -f scripts/new-run.ps1 ]] || return 1
+  [[ -f scripts/new-run.sh ]] || return 1
+  [[ -f scripts/cleanup-runs.ps1 ]] || return 1
+  [[ -f scripts/cleanup-runs.sh ]] || return 1
+  [[ -f scripts/init-project.ps1 ]] || return 1
+  [[ -f scripts/init-project.sh ]] || return 1
+  [[ -f scripts/validate-output-schema.py ]] || return 1
+  [[ -f .agents/skills/feature-plan/references/planning-workflow.md ]] || return 1
+  [[ -f .agents/skills/code-review/references/review-workflow.md ]] || return 1
+  [[ -f .agents/skills/repair-loop/SKILL.md ]] || return 1
+  [[ -f .agents/skills/repair-loop/references/repair-workflow.md ]] || return 1
+  [[ -f .agents/skills/harness-improvement/SKILL.md ]] || return 1
+  [[ -f .agents/skills/harness-improvement/references/improvement-workflow.md ]] || return 1
+  [[ -f docs/reference/codex-safety-harness.md ]] || return 1
+  [[ -f docs/reference/codex-implementation-harness.md ]] || return 1
+  [[ -f docs/reference/run-artifacts.md ]] || return 1
+  [[ -f docs/reference/failure-taxonomy.md ]] || return 1
+  [[ -f docs/reference/evaluation.md ]] || return 1
+  [[ -f docs/reference/change-scope-policy.md ]] || return 1
+  [[ -f docs/reference/hook-observation.md ]] || return 1
+  [[ -f docs/reference/subagent-observation.md ]] || return 1
+  [[ -f docs/reference/repair-loop.md ]] || return 1
+  [[ -f docs/reference/harness-improvement-loop.md ]] || return 1
+  [[ -f docs/guides/consumer-update.md ]] || return 1
+  [[ -f examples/repair-loop/README.md ]] || return 1
+  [[ -f examples/repair-loop/iteration-1-evaluation.json ]] || return 1
+  [[ -f examples/repair-loop/iteration-2-evaluation.json ]] || return 1
+  [[ -f examples/repair-loop/repair-summary.md ]] || return 1
+  [[ -f examples/harness-improvement/README.md ]] || return 1
+  [[ -f examples/harness-improvement/harness-improvement-candidates.json ]] || return 1
+  [[ -f examples/harness-improvement/harness-improvement-review.md ]] || return 1
+  has_change_scope_catalog || return 1
+  contains ".agents/skills/feature-plan/SKILL.md" AGENTS.md || return 1
+  contains ".agents/skills/code-review/SKILL.md" AGENTS.md || return 1
+  contains ".agents/skills/repair-loop/SKILL.md" AGENTS.md || return 1
+  contains ".agents/skills/harness-improvement/SKILL.md" AGENTS.md || return 1
+  contains "docs/reference/repair-loop.md" AGENTS.md || return 1
+  contains "docs/reference/harness-improvement-loop.md" AGENTS.md || return 1
+  contains "docs/reference/codex-safety-harness.md" AGENTS.md || return 1
+  contains "docs/reference/codex-implementation-harness.md" AGENTS.md || return 1
+  contains "scripts/new-run.sh" AGENTS.md || return 1
+  contains "scripts/new-run.ps1" AGENTS.md || return 1
+  contains "run.json" AGENTS.md || return 1
+  contains "Report file" AGENTS.md || return 1
+  contains "command-based deletion" AGENTS.md || return 1
+  contains "implementation_worker" AGENTS.md || return 1
+  contains "writable subagent" AGENTS.md || return 1
+  contains "親 agent が計画、対象ファイル、変更範囲、禁止事項を確定した後" AGENTS.md || return 1
+  contains "親 agent が明示した対象ファイルだけを最小差分で編集する" AGENTS.md || return 1
+  contains "ファイル削除、rename、移動" AGENTS.md || return 1
+  contains "迷う場合は実装せず、親 agent に確認事項を返す" AGENTS.md || return 1
+  contains "read-only 調査 subagent に限って委譲する" AGENTS.md || return 1
+  contains ".agents/skills/feature-plan/SKILL.md" PLANS.md || return 1
+  contains ".agents/skills/feature-plan/references/planning-workflow.md" PLANS.md || return 1
+  contains "docs/plans/TEMPLATE.md" PLANS.md || return 1
+  contains "Current understanding" PLANS.md || return 1
+  contains "Non-goals" PLANS.md || return 1
+  contains "Validation plan" PLANS.md || return 1
+  contains "Open questions" PLANS.md || return 1
+  contains "Ambiguity handling" PLANS.md || return 1
+  contains "mandatory-question" PLANS.md || return 1
+  contains "Blocking questions" PLANS.md || return 1
+  contains "Assumptions allowed" PLANS.md || return 1
+  contains "Follow-up notes" PLANS.md || return 1
+  contains ".agents/skills/code-review/SKILL.md" CODE_REVIEW.md || return 1
+  contains ".agents/skills/code-review/references/review-workflow.md" CODE_REVIEW.md || return 1
+  contains "findings-first" CODE_REVIEW.md || return 1
+  contains "Why it matters" CODE_REVIEW.md || return 1
+  contains "Suggested fix" CODE_REVIEW.md || return 1
+  contains "Verdict" CODE_REVIEW.md || return 1
+  contains "confidence" CODE_REVIEW.md || return 1
+  contains "review-only" CODE_REVIEW.md || return 1
+  contains "repo mapping" .agents/skills/feature-plan/references/planning-workflow.md || return 1
+  contains "Do not use" .agents/skills/feature-plan/references/planning-workflow.md || return 1
+  contains "Main flow" .agents/skills/feature-plan/references/planning-workflow.md || return 1
+  contains "Key abstractions" .agents/skills/feature-plan/references/planning-workflow.md || return 1
+  contains "Safe change surface" .agents/skills/feature-plan/references/planning-workflow.md || return 1
+  contains "Validation candidates" .agents/skills/feature-plan/references/planning-workflow.md || return 1
+  contains "Failure modes" .agents/skills/feature-plan/references/planning-workflow.md || return 1
+  contains "Ambiguity handling" .agents/skills/feature-plan/references/planning-workflow.md || return 1
+  contains "mandatory-question" .agents/skills/feature-plan/references/planning-workflow.md || return 1
+  contains "Report file generation policy" .agents/skills/feature-plan/references/planning-workflow.md || return 1
+  contains "diff triage" .agents/skills/code-review/references/review-workflow.md || return 1
+  contains "Diff classification" .agents/skills/code-review/references/review-workflow.md || return 1
+  contains "High-risk areas" .agents/skills/code-review/references/review-workflow.md || return 1
+  contains "Potential missing tests" .agents/skills/code-review/references/review-workflow.md || return 1
+  contains "Open questions" .agents/skills/code-review/references/review-workflow.md || return 1
+  contains "Failure modes" .agents/skills/code-review/references/review-workflow.md || return 1
+  contains "Report file generation policy" .agents/skills/code-review/references/review-workflow.md || return 1
+  contains "使う場面" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Do not use" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Inputs" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Entry conditions" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Iteration model" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Finding triage" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Repair planning" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Scope control" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Validation per iteration" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Stop conditions" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Escalation to human decision" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Evaluation connection" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Failure taxonomy connection" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Observation / subagent evidence" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Report file generation policy" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Failure modes" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "使う場面" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Do not use" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Inputs" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Candidate model" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Evidence requirements" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Target areas" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Classification" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Prioritization" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Safety strictness" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Separation from implementation work" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Output format" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Review requirements" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Examples" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Failure modes" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "sandbox_mode = \"workspace-write\"" .codex/config.toml || return 1
+  contains "approval_policy = \"untrusted\"" .codex/config.toml || return 1
+  contains "web_search = \"cached\"" .codex/config.toml || return 1
+  contains "network_access = false" .codex/config.toml || return 1
+  contains "[profiles.repo_auto_net]" .codex/config.toml || return 1
+  contains "network_access = true" .codex/config.toml || return 1
+  contains "codex_hooks = true" .codex/config.toml || return 1
+  contains "pre_tool_use_policy.ps1" .codex/config.toml || return 1
+  contains "name = \"implementation_worker\"" .codex/agents/implementation_worker.toml || return 1
+  contains "model = \"gpt-5.4-mini\"" .codex/agents/implementation_worker.toml || return 1
+  contains "sandbox_mode = \"workspace-write\"" .codex/agents/implementation_worker.toml || return 1
+  contains "親 agent が明示した計画" .codex/agents/implementation_worker.toml || return 1
+  contains "親 agent が指定していないファイルを編集しない" .codex/agents/implementation_worker.toml || return 1
+  contains "command-based deletion is forbidden" .codex/agents/implementation_worker.toml || return 1
+  contains "スコープ遵守確認" .codex/agents/implementation_worker.toml || return 1
+  contains "指定外ファイルを変更していないことの確認" .codex/agents/implementation_worker.toml || return 1
+  contains "削除 / rename / git mutation を行っていないことの確認" .codex/agents/implementation_worker.toml || return 1
+  contains "run.json" docs/reference/run-artifacts.md || return 1
+  contains "evaluation.json" docs/reference/run-artifacts.md || return 1
+  contains "codex-task" docs/reference/run-artifacts.md || return 1
+  contains "Source-of-Truth" docs/reference/run-artifacts.md || return 1
+  contains "hook-observation JSONL" docs/reference/run-artifacts.md || return 1
+  contains "subagent-run.json" docs/reference/run-artifacts.md || return 1
+  contains "collect-run-artifacts" docs/reference/run-artifacts.md || return 1
+  contains "--allowed-files" scripts/codex-task.sh || return 1
+  contains "--allowed-dirs" scripts/codex-task.sh || return 1
+  contains "--allowed-globs" scripts/codex-task.sh || return 1
+  contains "--expected-changed-files" scripts/codex-task.sh || return 1
+  contains "--expected-missing" scripts/codex-task.sh || return 1
+  contains "--evaluation-template" scripts/codex-task.sh || return 1
+  contains "--require-evaluation" scripts/codex-task.sh || return 1
+  contains "--require-clean-git" scripts/codex-task.sh || return 1
+  contains "--require-run-id" scripts/codex-task.sh || return 1
+  contains "--max-iterations" scripts/codex-task.sh || return 1
+  contains "AllowedFiles" scripts/codex-task.ps1 || contains "--allowed-files" scripts/codex-task.ps1 || return 1
+  contains "AllowedDirs" scripts/codex-task.ps1 || contains "--allowed-dirs" scripts/codex-task.ps1 || return 1
+  contains "AllowedGlobs" scripts/codex-task.ps1 || contains "--allowed-globs" scripts/codex-task.ps1 || return 1
+  contains "ExpectedChangedFiles" scripts/codex-task.ps1 || contains "--expected-changed-files" scripts/codex-task.ps1 || return 1
+  contains "ExpectedMissing" scripts/codex-task.ps1 || contains "--expected-missing" scripts/codex-task.ps1 || return 1
+  contains "EvaluationTemplate" scripts/codex-task.ps1 || contains "--evaluation-template" scripts/codex-task.ps1 || return 1
+  contains "RequireEvaluation" scripts/codex-task.ps1 || contains "--require-evaluation" scripts/codex-task.ps1 || return 1
+  contains "RequireCleanGit" scripts/codex-task.ps1 || contains "--require-clean-git" scripts/codex-task.ps1 || return 1
+  contains "RequireRunId" scripts/codex-task.ps1 || contains "--require-run-id" scripts/codex-task.ps1 || return 1
+  contains "MaxIterations" scripts/codex-task.ps1 || contains "--max-iterations" scripts/codex-task.ps1 || return 1
+  [[ -f scripts/collect-run-artifacts.sh ]] || return 1
+  [[ -f scripts/collect-run-artifacts.ps1 ]] || return 1
+  [[ -f scripts/collect-run-artifacts.py ]] || return 1
+  contains "allowed_dirs" docs/reference/change-scope-policy.md || return 1
+  contains "allowed_globs" docs/reference/change-scope-policy.md || return 1
+  contains "expected_missing" docs/reference/change-scope-policy.md || return 1
+  contains "must_be_subset_of_allowed_scope" docs/reference/change-scope-policy.md || return 1
+  contains "--run-id" docs/reference/change-scope-policy.md || return 1
+  contains "--record-run-manifest" docs/reference/change-scope-policy.md || return 1
+  contains "run.json" docs/reference/change-scope-policy.md || return 1
+  contains "--require-evaluation" docs/reference/run-artifacts.md || return 1
+  contains "evaluation_path" docs/reference/run-artifacts.md || return 1
+  contains "primary_failure_category" docs/reference/run-artifacts.md || return 1
+  contains "--require-clean-git" docs/reference/run-artifacts.md || return 1
+  contains "--require-run-id" docs/reference/run-artifacts.md || return 1
+  contains "--max-iterations" docs/reference/run-artifacts.md || return 1
+  contains "repair loop" docs/reference/run-artifacts.md || return 1
+  contains "primary_failure_category" docs/reference/failure-taxonomy.md || return 1
+  contains "failure_categories" docs/reference/failure-taxonomy.md || return 1
+  contains "artifact_contract_gap" docs/reference/failure-taxonomy.md || return 1
+  contains "rating + evidence" docs/reference/evaluation.md || return 1
+  contains "improvement_candidates" docs/reference/evaluation.md || return 1
+  contains "not_evaluated" docs/reference/evaluation.md || return 1
+  contains "allowed_files" docs/reference/change-scope-policy.md || return 1
+  contains "expected_changed_files" docs/reference/change-scope-policy.md || return 1
+  contains "allowed_dirs" docs/reference/change-scope-policy.md || return 1
+  contains "allowed_globs" docs/reference/change-scope-policy.md || return 1
+  contains ".codex/runs/" docs/reference/change-scope-policy.md || return 1
+  contains "repo root" docs/reference/change-scope-policy.md || return 1
+  contains "scope check" docs/reference/change-scope-policy.md || return 1
+  contains "--require-clean-git" docs/reference/change-scope-policy.md || return 1
+  contains "spec/change-scope-policy.json" docs/reference/change-scope-policy.md || return 1
+  contains "scripts/new-run.sh" docs/reference/codex-implementation-harness.md || return 1
+  contains "scripts/new-run.ps1" docs/reference/codex-implementation-harness.md || return 1
+  contains "Existing run directories are never overwritten" scripts/new-run.sh || return 1
+  contains "Run directory already exists and will not be overwritten" scripts/new-run.ps1 || return 1
+  contains "scripts/cleanup-runs.sh" docs/reference/run-artifacts.md || return 1
+  contains "scripts/cleanup-runs.ps1" docs/reference/run-artifacts.md || return 1
+  contains "--confirm-delete-generated-runs" docs/reference/run-artifacts.md || return 1
+  contains "plan-consumer-update" docs/guides/consumer-update.md || return 1
+  contains "--exclude-protected" docs/guides/consumer-update.md || return 1
+  contains "--strict-harness" docs/reference/codex-implementation-harness.md || return 1
+  contains "-StrictHarness" docs/reference/codex-implementation-harness.md || return 1
+  contains "--allowed-dirs" docs/reference/codex-implementation-harness.md || return 1
+  contains "--allowed-globs" docs/reference/codex-implementation-harness.md || return 1
+  contains "--expected-missing" docs/reference/codex-implementation-harness.md || return 1
+  contains "passed_with_warnings" docs/reference/codex-implementation-harness.md || return 1
+  contains "JSONL" docs/reference/hook-observation.md || return 1
+  contains "CODEX_OBSERVATION_LOG" docs/reference/hook-observation.md || return 1
+  contains "blocking" docs/reference/hook-observation.md || return 1
+  contains "SubagentStart" docs/reference/hook-observation.md || return 1
+  contains "Observation hook must not weaken safety hooks." docs/reference/hook-observation.md || return 1
+  contains "Observation hook failure must not stop Codex execution." docs/reference/hook-observation.md || return 1
+  contains "Observation events are not the source of truth for evaluation decisions." docs/reference/hook-observation.md || return 1
+  contains "run.json.hook_observations" docs/reference/hook-observation.md || return 1
+  contains "implementation_worker" docs/reference/subagent-observation.md || return 1
+  contains "allowed_files" docs/reference/subagent-observation.md || return 1
+  contains "changed_files" docs/reference/subagent-observation.md || return 1
+  contains "parent_decision" docs/reference/subagent-observation.md || return 1
+  contains "used_in_final_plan" docs/reference/subagent-observation.md || return 1
+  contains "Subagent logs are evidence, not final evaluation judgement." docs/reference/subagent-observation.md || return 1
+  contains "run.json.subagents.records" docs/reference/subagent-observation.md || return 1
+  contains "evidence_refs" docs/reference/evaluation.md || return 1
+  contains "evidence_refs" .codex/templates/EVALUATION.md || return 1
+  contains "Review -> Repair -> Validate" docs/reference/repair-loop.md || return 1
+  contains "max iteration" docs/reference/repair-loop.md || return 1
+  contains "stop condition" docs/reference/repair-loop.md || return 1
+  contains "allowed_files" docs/reference/repair-loop.md || return 1
+  contains "unsafe" docs/reference/repair-loop.md || return 1
+  contains "scope violation" docs/reference/repair-loop.md || return 1
+  contains "evaluation.json" docs/reference/repair-loop.md || return 1
+  contains "failure taxonomy" docs/reference/repair-loop.md || return 1
+  contains "harness improvement" docs/reference/harness-improvement-loop.md || return 1
+  contains "improvement candidate" docs/reference/harness-improvement-loop.md || return 1
+  contains "expected_impact" docs/reference/harness-improvement-loop.md || return 1
+  contains "strictness" docs/reference/harness-improvement-loop.md || return 1
+  contains "safety layer" docs/reference/harness-improvement-loop.md || return 1
+  contains "separate follow-up" docs/reference/harness-improvement-loop.md || return 1
+  contains "evaluation.json" docs/reference/harness-improvement-loop.md || return 1
+  contains "failure taxonomy" docs/reference/harness-improvement-loop.md || return 1
+}
+
+check_strict_harness_contract() {
+  [[ -f "$source_repo_root/README.md" ]] || return 1
+  [[ -f "$source_repo_root/CHANGELOG.md" ]] || return 1
+  [[ -f "$source_repo_root/MIGRATION.md" ]] || return 1
+  [[ -f "$source_repo_root/tools/validate-spec.sh" ]] || return 1
+  [[ -f "$source_repo_root/tools/validate-spec.ps1" ]] || return 1
+  [[ -f "$source_repo_root/tools/plan-consumer-update.sh" ]] || return 1
+  [[ -f "$source_repo_root/tools/plan-consumer-update.ps1" ]] || return 1
+  [[ -f "$source_repo_root/tests/integration/test-cleanup-runs.sh" ]] || return 1
+  [[ -f "$source_repo_root/tests/integration/Test-CleanupRuns.ps1" ]] || return 1
+  [[ -f "$source_repo_root/tests/integration/test-plan-consumer-update.sh" ]] || return 1
+  [[ -f "$source_repo_root/tests/integration/Test-PlanConsumerUpdate.ps1" ]] || return 1
+  [[ -f "$source_repo_root/.github/workflows/validate-template.yml" ]] || return 1
+  contains "verify --strict-harness" "$source_repo_root/README.md" || return 1
+  contains "plan-consumer-update" "$source_repo_root/README.md" || return 1
+  contains "cleanup-runs" "$source_repo_root/README.md" || return 1
+  contains "template/scripts/verify --strict-harness" "$source_repo_root/.github/workflows/validate-template.yml" || return 1
+  contains "tests/integration/test-cleanup-runs.sh" "$source_repo_root/.github/workflows/validate-template.yml" || return 1
+  contains "tests/integration/test-plan-consumer-update.sh" "$source_repo_root/.github/workflows/validate-template.yml" || return 1
+  bash "$source_repo_root/tools/validate-spec.sh"
+}
+
+check_execpolicy_baseline() {
+  local rule_args=(
+    --rules .codex/rules/10-readonly-allow.rules
+    --rules .codex/rules/20-risky-prompt.rules
+    --rules .codex/rules/30-destructive-forbidden.rules
+  )
+
+  local out decision
+  local git_bin="g""it"
+  local add_subcmd="a""dd"
+  local reset_subcmd="re""set"
+  local hard_flag="--h""ard"
+  local clean_subcmd="cl""ean"
+  local remove_bin="r""m"
+
+  out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" status)" || return 1
+  decision="$(decision_from_json "$out")" || return 1
+  [[ "$decision" == "allow" ]] || return 1
+
+  out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$add_subcmd" .)" || return 1
+  decision="$(decision_from_json "$out")" || return 1
+  [[ "$decision" == "forbidden" ]] || return 1
+
+  out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$reset_subcmd" "$hard_flag" HEAD~1)" || return 1
+  decision="$(decision_from_json "$out")" || return 1
+  [[ "$decision" == "forbidden" ]] || return 1
+
+  out="$(codex execpolicy check "${rule_args[@]}" -- "$remove_bin" file.txt)" || return 1
+  decision="$(decision_from_json "$out")" || return 1
+  [[ "$decision" == "forbidden" ]] || return 1
+
+  out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$remove_bin" file.txt)" || return 1
+  decision="$(decision_from_json "$out")" || return 1
+  [[ "$decision" == "forbidden" ]] || return 1
+
+  out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$clean_subcmd" -fdx)" || return 1
+  decision="$(decision_from_json "$out")" || return 1
+  [[ "$decision" == "forbidden" ]] || return 1
+
+  return 0
+}
+
+check_codex_available() {
+  command -v codex >/dev/null 2>&1 && codex --version >/dev/null 2>&1
+}
+
+check_bash_wrapper_preflight() {
+  bash scripts/codex-safe.sh --preflight-only >/tmp/codex-safe-preflight.log 2>&1
+}
+
+check_powershell_has_codex() {
+  powershell.exe -NoProfile -Command "if (Get-Command codex -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }" >/dev/null 2>&1
+}
+
+check_powershell_wrapper_preflight() {
+  powershell.exe -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly >/tmp/codex-safe-ps-preflight.log 2>&1
+}
+
+run_check "template contract files" check_template_contract
+
+if (( strict_harness )); then
+  run_check "strict harness source-repo contract" check_strict_harness_contract
+fi
+
+if ! check_codex_available; then
+  log_skip "execpolicy checks (codex command not executable)"
+else
+  run_check "execpolicy baseline decisions" check_execpolicy_baseline
+fi
+
+if [[ -f scripts/codex-safe.sh ]] && check_codex_available; then
+  run_check "bash wrapper preflight" check_bash_wrapper_preflight
+else
+  log_skip "bash wrapper preflight (codex command not executable or wrapper not found)"
+fi
+
+if command -v powershell.exe >/dev/null 2>&1; then
+  if check_powershell_has_codex; then
+    run_check "PowerShell wrapper preflight" check_powershell_wrapper_preflight
+  else
+    log_skip "PowerShell wrapper preflight (codex not found in PowerShell PATH)"
+  fi
+else
+  log_skip "PowerShell wrapper preflight (powershell.exe not available)"
+fi
+
+echo "Summary: PASS=$pass_count FAIL=$fail_count SKIP=$skip_count"
+
+if (( fail_count > 0 )); then
+  exit 1
+fi
+
+exit 0

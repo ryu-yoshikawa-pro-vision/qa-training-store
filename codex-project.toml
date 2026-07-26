@@ -1,0 +1,83 @@
+schema_version = 1
+name = "codex-project"
+template_version = "0.11.0"
+timezone = "Asia/Tokyo"
+default_run_root = ".codex/runs"
+
+[paths]
+project_context = "docs/PROJECT_CONTEXT.md"
+agents = "AGENTS.md"
+plans = "docs/plans"
+reports = "docs/reports"
+history = "docs/history"
+adr = "docs/adr"
+run_templates = ".codex/templates"
+
+[report_policy]
+durable_reports_dir = "docs/reports"
+run_report = ".codex/runs/<run_id>/REPORT.md"
+allowed = [
+  "explicit user request to save a report",
+  "report file listed in the plan definition of done",
+  "durable investigation, audit, or verification result"
+]
+not_allowed = [
+  "review-only answer",
+  "plan-only work",
+  "status update",
+  "lightweight check",
+  "routine evidence command output",
+  "run progress log",
+  "chat-complete evaluation"
+]
+default_when_unclear = "do not create a docs/reports file"
+
+[safety]
+reads_without_approval = true
+writes_without_approval = true
+command_based_deletion = "forbidden"
+apply_patch_file_edits = "allowed_in_safe_and_auto_net"
+apply_patch_creates = "allowed_in_safe_and_auto_net"
+apply_patch_deletes = "forbidden_in_readonly_and_auto_net; safe_requires_explicit_intent_and_reviewable_diff"
+apply_patch_renames = "forbidden_in_readonly_and_auto_net; safe_requires_review_and_migration_reason"
+default_sandbox_mode = "workspace-write"
+default_approval_policy = "untrusted"
+web_search = "cached"
+network_access_in_workspace_write = false
+
+[workflow_levels.lightweight]
+use_run_artifacts = true
+requires_saved_plan = false
+requires_durable_report = false
+tasks_can_be_simplified = true
+report_can_be_final_block = true
+run_manifest = "optional"
+requires_evaluation = false
+scope_expectation = "optional"
+escalate_to_standard_when = [
+  "external communication is required",
+  "delete or rename is requested",
+  "migration is involved",
+  "security or permission behavior changes",
+  "public contract changes"
+]
+
+[workflow_levels.standard]
+use_run_artifacts = true
+requires_saved_plan = true
+requires_durable_report = false
+tasks_can_be_simplified = false
+report_can_be_final_block = false
+run_manifest = "recommended"
+requires_evaluation = false
+scope_expectation = "recommended"
+
+[workflow_levels.strict]
+use_run_artifacts = true
+requires_saved_plan = true
+requires_durable_report = "only_if_explicit_or_dod"
+tasks_can_be_simplified = false
+report_can_be_final_block = false
+run_manifest = "required"
+requires_evaluation = true
+scope_expectation = "required"

@@ -1,0 +1,146 @@
+# Explicitly forbidden high-risk command prefixes.
+
+prefix_rule(
+  pattern = ["git", "reset", "--hard"],
+  decision = "forbidden",
+  match = ["git reset --hard HEAD~1"],
+)
+
+prefix_rule(
+  pattern = ["git", "clean", "-fdx"],
+  decision = "forbidden",
+  match = ["git clean -fdx"],
+)
+
+prefix_rule(
+  pattern = ["git", "push", ["--force", "-f"]],
+  decision = "forbidden",
+  match = ["git push --force"],
+)
+
+prefix_rule(
+  pattern = ["git", ["add", "commit", "push"]],
+  decision = "forbidden",
+  match = ["git add .", "git commit -m test", "git push origin main"],
+)
+
+prefix_rule(
+  pattern = ["npm", ["publish", "unpublish", "version"]],
+  decision = "forbidden",
+  match = ["npm publish", "npm unpublish package", "npm version patch"],
+)
+
+prefix_rule(
+  pattern = [["pip", "pip3"], ["uninstall"]],
+  decision = "forbidden",
+  match = ["pip uninstall package"],
+)
+
+prefix_rule(
+  pattern = [["python", "python3", "py"], ["-c", "-"]],
+  decision = "forbidden",
+  match = ["python -c 'import os'", "python -"],
+)
+
+prefix_rule(
+  pattern = [["rm", "del", "erase", "Remove-Item", "rmdir", "unlink"]],
+  decision = "forbidden",
+  match = [
+    "rm file.txt",
+    "del file.txt",
+    "erase file.txt",
+    "Remove-Item file.txt",
+    "rmdir tmp",
+    "unlink file.txt",
+  ],
+)
+
+prefix_rule(
+  pattern = ["git", "rm"],
+  decision = "forbidden",
+  match = ["git rm file.txt"],
+)
+
+# Additional destructive patterns are covered by the PreToolUse hook because
+# prefix rules cannot safely express contains-style checks:
+# find ... -delete, rsync --delete, robocopy /MIR, mv -f,
+# Move-Item -Force, Rename-Item -Force.
+
+
+prefix_rule(
+  pattern = [["dd", "mkfs", "fdisk", "parted", "diskpart", "format", "Format-Volume"]],
+  decision = "forbidden",
+  match = ["dd if=/dev/zero of=/dev/sda", "diskpart /s script.txt"],
+)
+
+prefix_rule(
+  pattern = [["shutdown", "reboot", "halt", "Stop-Computer", "Restart-Computer"]],
+  decision = "forbidden",
+  match = ["shutdown /r /t 0", "reboot"],
+)
+
+prefix_rule(
+  pattern = [["iex", "Invoke-Expression"]],
+  decision = "forbidden",
+  match = ["Invoke-Expression whoami", "iex whoami"],
+)
+
+prefix_rule(
+  pattern = ["docker", "system", "prune"],
+  decision = "forbidden",
+  match = ["docker system prune -a --volumes"],
+)
+
+prefix_rule(
+  pattern = ["docker", ["volume", "network", "image"], "prune"],
+  decision = "forbidden",
+  match = ["docker volume prune -f", "docker image prune -a"],
+)
+
+prefix_rule(
+  pattern = ["kubectl", "delete"],
+  decision = "forbidden",
+  match = ["kubectl delete pod x"],
+)
+
+prefix_rule(
+  pattern = ["kubectl", "apply"],
+  decision = "forbidden",
+  match = ["kubectl apply -f deploy.yaml"],
+)
+
+prefix_rule(
+  pattern = ["helm", "uninstall"],
+  decision = "forbidden",
+  match = ["helm uninstall app"],
+)
+
+prefix_rule(
+  pattern = ["terraform", "destroy"],
+  decision = "forbidden",
+  match = ["terraform destroy -auto-approve"],
+)
+
+prefix_rule(
+  pattern = ["terraform", "apply"],
+  decision = "forbidden",
+  match = ["terraform apply -auto-approve"],
+)
+
+prefix_rule(
+  pattern = ["aws", "s3", "rm"],
+  decision = "forbidden",
+  match = ["aws s3 rm s3://bucket --recursive"],
+)
+
+prefix_rule(
+  pattern = ["az", "group", "delete"],
+  decision = "forbidden",
+  match = ["az group delete -n rg-name -y"],
+)
+
+prefix_rule(
+  pattern = ["gcloud", "projects", "delete"],
+  decision = "forbidden",
+  match = ["gcloud projects delete my-project"],
+)

@@ -1,0 +1,22 @@
+name = "repo-codex-safety-baseline"
+version = "0.1.0"
+description = "Repository safety baseline for Codex runs. Prefer sandboxed execution, approvals, and project execpolicy rules."
+
+custom_instructions = """
+Use the repository safety harness when available (`scripts/codex-safe.ps1`).
+Use `scripts/codex-task.ps1` or `scripts/codex-task.sh` for non-interactive `codex exec` runs that need stable output/report files.
+Treat `scripts/codex-sandbox.*` as an experimental Docker-only path that requires explicit environment setup.
+Do not use dangerous bypass flags or unreviewed destructive commands.
+Prefer read-only inspection first, then ask for approval before mutating operations.
+Project-local file reads and writes are allowed for normal work, but command-based file deletion is forbidden without explicit approval. Use deliberate apply_patch diffs for edits.
+Do not create docs/reports files for review-only, plan-only, status updates, lightweight checks, routine evidence, or run progress.
+"""
+
+links = [
+  "docs/reference/codex-safety-harness.md",
+  "docs/reference/codex-implementation-harness.md",
+]
+
+[meta]
+owner = "repo"
+notes = "Activation of requirements.toml depends on Codex deployment mode / managed policy configuration. Wrapper+rules remain the primary enforcement in this repository, and Docker sandbox is opt-in."
