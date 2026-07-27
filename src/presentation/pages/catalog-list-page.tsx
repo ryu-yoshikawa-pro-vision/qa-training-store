@@ -1,6 +1,7 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocalSearchParams, usePathname, useRouter, type Href } from "expo-router";
 import type { ProductSearchRequest, ProductSort } from "@/application/contracts";
+import { Icon } from "@/presentation/components/icon";
 import { ProductCard } from "@/presentation/components/product-card";
 import { StatePanel } from "@/presentation/components/states";
 import { Pagination } from "@/presentation/patterns/admin-patterns";
@@ -40,6 +41,9 @@ export function CatalogListPage({ mode, categoryId }: CatalogListPageProps) {
 }
 
 function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
+  const [filtersOpen, setFiltersOpen] = useState(
+    () => typeof window === "undefined" || window.innerWidth >= 900,
+  );
   const params = useLocalSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -208,99 +212,114 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
         </form>
       )}
       <div className="catalog-layout">
-        <aside className="catalog-filters">
-          <h2>絞り込み</h2>
-          {categoryId === undefined && (
+        <details
+          className="catalog-filters"
+          open={filtersOpen}
+          onToggle={(event) => setFiltersOpen(event.currentTarget.open)}
+        >
+          <summary>
+            <span>
+              <Icon name="settings" size={19} />
+              絞り込み
+            </span>
+            <small>
+              {activeFilters.length > 0 ? `${activeFilters.length}件適用中` : "条件を指定"}
+            </small>
+          </summary>
+          <div className="catalog-filters__content">
+            <h2>絞り込み</h2>
+            {categoryId === undefined && (
+              <fieldset>
+                <legend>カテゴリ</legend>
+                {value.facets.categories.map((facet) => (
+                  <label key={facet.id}>
+                    <input
+                      type="checkbox"
+                      checked={request.categoryIds.includes(facet.id)}
+                      disabled={facet.count === 0 && !request.categoryIds.includes(facet.id)}
+                      onChange={() => {
+                        const ids = request.categoryIds.includes(facet.id)
+                          ? request.categoryIds.filter((id) => id !== facet.id)
+                          : [...request.categoryIds, facet.id];
+                        replaceQuery({
+                          category: ids.join(",") || null,
+                          page: null,
+                        });
+                      }}
+                    />
+                    {facet.name}（{facet.count}）
+                  </label>
+                ))}
+              </fieldset>
+            )}
             <fieldset>
-              <legend>カテゴリ</legend>
-              {value.facets.categories.map((facet) => (
+              <legend>ブランド</legend>
+              {value.facets.brands.map((facet) => (
                 <label key={facet.id}>
                   <input
                     type="checkbox"
-                    checked={request.categoryIds.includes(facet.id)}
-                    disabled={facet.count === 0 && !request.categoryIds.includes(facet.id)}
+                    checked={request.brandIds.includes(facet.id)}
+                    disabled={facet.count === 0 && !request.brandIds.includes(facet.id)}
                     onChange={() => {
-                      const ids = request.categoryIds.includes(facet.id)
-                        ? request.categoryIds.filter((id) => id !== facet.id)
-                        : [...request.categoryIds, facet.id];
-                      replaceQuery({
-                        category: ids.join(",") || null,
-                        page: null,
-                      });
+                      const ids = request.brandIds.includes(facet.id)
+                        ? request.brandIds.filter((id) => id !== facet.id)
+                        : [...request.brandIds, facet.id];
+                      replaceQuery({ brand: ids.join(",") || null, page: null });
                     }}
                   />
                   {facet.name}（{facet.count}）
                 </label>
               ))}
             </fieldset>
-          )}
-          <fieldset>
-            <legend>ブランド</legend>
-            {value.facets.brands.map((facet) => (
-              <label key={facet.id}>
+            <fieldset>
+              <legend>商品の状態</legend>
+              <label>
                 <input
                   type="checkbox"
-                  checked={request.brandIds.includes(facet.id)}
-                  disabled={facet.count === 0 && !request.brandIds.includes(facet.id)}
-                  onChange={() => {
-                    const ids = request.brandIds.includes(facet.id)
-                      ? request.brandIds.filter((id) => id !== facet.id)
-                      : [...request.brandIds, facet.id];
-                    replaceQuery({ brand: ids.join(",") || null, page: null });
-                  }}
+                  checked={request.inStockOnly}
+                  onChange={() =>
+                    replaceQuery({
+                      inStock: request.inStockOnly ? null : "true",
+                      page: null,
+                    })
+                  }
                 />
-                {facet.name}（{facet.count}）
+                在庫あり（{value.facets.inStockCount}）
               </label>
-            ))}
-          </fieldset>
-          <fieldset>
-            <legend>商品の状態</legend>
-            <label>
-              <input
-                type="checkbox"
-                checked={request.inStockOnly}
-                onChange={() =>
-                  replaceQuery({
-                    inStock: request.inStockOnly ? null : "true",
-                    page: null,
-                  })
-                }
-              />
-              在庫あり（{value.facets.inStockCount}）
-            </label>
-            <label>
-              <input
-                type="checkbox"
-                checked={request.onSaleOnly}
-                onChange={() =>
-                  replaceQuery({
-                    onSale: request.onSaleOnly ? null : "true",
-                    page: null,
-                  })
-                }
-              />
-              Sale中（{value.facets.onSaleCount}）
-            </label>
-          </fieldset>
-          <label htmlFor="rating-filter">最低評価</label>
-          <select
-            id="rating-filter"
-            value={request.minimumRating ?? ""}
-            onChange={(event) =>
-              replaceQuery({
-                minRating: event.target.value || null,
-                page: null,
-              })
-            }
-          >
-            <option value="">指定なし</option>
-            {value.facets.ratings.map((facet) => (
-              <option value={facet.minimumRating} key={facet.minimumRating}>
-                ★{facet.minimumRating}以上（{facet.count}）
-              </option>
-            ))}
-          </select>
-        </aside>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={request.onSaleOnly}
+                  onChange={() =>
+                    replaceQuery({
+                      onSale: request.onSaleOnly ? null : "true",
+                      page: null,
+                    })
+                  }
+                />
+                Sale中（{value.facets.onSaleCount}）
+              </label>
+            </fieldset>
+            <label htmlFor="rating-filter">最低評価</label>
+            <select
+              id="rating-filter"
+              value={request.minimumRating ?? ""}
+              onChange={(event) =>
+                replaceQuery({
+                  minRating: event.target.value || null,
+                  page: null,
+                })
+              }
+            >
+              <option value="">指定なし</option>
+              {value.facets.ratings.map((facet) => (
+                <option value={facet.minimumRating} key={facet.minimumRating}>
+                  ★{facet.minimumRating}以上（{facet.count}）
+                </option>
+              ))}
+            </select>
+          </div>
+        </details>
         <section className="catalog-results" aria-label="商品検索結果">
           <div className="catalog-toolbar">
             <div className="applied-filters">

@@ -3,6 +3,7 @@ import { useForm } from "react-hook-form";
 import type { CurrentUserDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import { RouteGuard } from "@/presentation/guards/route-guard";
+import { AccountNavigation } from "@/presentation/components/account-navigation";
 import { StatePanel } from "@/presentation/components/states";
 import { LogoutButton } from "@/presentation/components/logout-button";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
@@ -48,6 +49,7 @@ function ProfileContent() {
   }
   return (
     <div className="account-page">
+      <AccountNavigation current="profile" />
       <header className="account-page__header">
         <div>
           <p className="eyebrow">アカウント</p>

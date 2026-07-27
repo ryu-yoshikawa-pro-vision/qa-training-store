@@ -3,7 +3,10 @@ import { Link, type Href } from "expo-router";
 import type { BrandAdminListItem, CategoryAdminListItem } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
+import { Icon, type IconName } from "@/presentation/components/icon";
 import { StatePanel } from "@/presentation/components/states";
+import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
+import { labels } from "@/presentation/content/dictionary";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
@@ -39,16 +42,19 @@ function AdminOverviewContent() {
       <PageHeader title="管理概要" description="本日の優先作業とストア全体の状態を確認できます。" />
       <section className="admin-metrics" aria-label="主要指標">
         <MetricCard
+          icon="orders"
           label="発送準備待ち"
           value={overview.ordersAwaitingPreparationCount}
           href="/admin/orders?status=paid"
         />
         <MetricCard
+          icon="inventory"
           label="低在庫SKU（1〜5）"
           value={overview.lowStockSkuCount}
           href="/admin/inventories?stock=low"
         />
         <MetricCard
+          icon="reviews"
           label="非公開Review"
           value={overview.hiddenReviewCount}
           href="/admin/reviews?status=hidden"
@@ -80,7 +86,9 @@ function AdminOverviewContent() {
                 {order.orderNumber}
               </Link>,
               order.userEmail,
-              order.status,
+              <StatusBadge key="status" tone={statusTone(order.status)}>
+                {labels.order(order.status)}
+              </StatusBadge>,
               formatYen(order.totalAmount),
               new Date(order.createdAt).toLocaleString("ja-JP"),
             ],
@@ -91,12 +99,28 @@ function AdminOverviewContent() {
   );
 }
 
-function MetricCard({ label, value, href }: { label: string; value: number; href: Href }) {
+function MetricCard({
+  icon,
+  label,
+  value,
+  href,
+}: {
+  icon: IconName;
+  label: string;
+  value: number;
+  href: Href;
+}) {
   return (
     <Link href={href} className="metric-card">
-      <span>{label}</span>
+      <span className="metric-card__icon" aria-hidden="true">
+        <Icon name={icon} size={21} />
+      </span>
+      <span className="metric-card__label">{label}</span>
       <strong>{value}</strong>
-      <span>確認する →</span>
+      <span className="metric-card__link">
+        確認する
+        <Icon name="arrow" size={16} />
+      </span>
     </Link>
   );
 }
@@ -285,7 +309,9 @@ function CategoryTable({
           <InlineNameEditor key="name" value={item.name} onSave={(name) => onSave(item, name)} />,
           item.sortOrder,
           item.publishedProductCount,
-          item.isActive ? "有効" : "無効",
+          <StatusBadge key="status" tone={item.isActive ? "success" : "neutral"}>
+            {item.isActive ? "有効" : "無効"}
+          </StatusBadge>,
           <ConfirmDialog
             key="toggle"
             triggerLabel={item.isActive ? "無効化" : "有効化"}
@@ -469,7 +495,9 @@ function AdminBrandsContent() {
                 }
               />,
               item.publishedProductCount,
-              item.isActive ? "有効" : "無効",
+              <StatusBadge key="status" tone={item.isActive ? "success" : "neutral"}>
+                {item.isActive ? "有効" : "無効"}
+              </StatusBadge>,
               <ConfirmDialog
                 key="toggle"
                 triggerLabel={item.isActive ? "無効化" : "有効化"}

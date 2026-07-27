@@ -2,6 +2,8 @@ import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "expo-router";
 import type { AdminReviewListItem, ReviewResultDto, UserAdminDto } from "@/application/contracts";
 import { StatePanel } from "@/presentation/components/states";
+import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
+import { labels } from "@/presentation/content/dictionary";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
@@ -25,6 +27,23 @@ function Guard({
   children: ReactNode;
 }) {
   return <RouteGuard access={access}>{children}</RouteGuard>;
+}
+
+function ReviewStatusBadge({ status }: { status: "published" | "hidden" | "deleted" }) {
+  return <StatusBadge tone={statusTone(status)}>{labels.review(status)}</StatusBadge>;
+}
+
+function UserRoleBadge({ role }: { role: "customer" | "operator" | "admin" }) {
+  return <StatusBadge tone={statusTone(role)}>{labels.role(role)}</StatusBadge>;
+}
+
+function MembershipRankBadge({ rank }: { rank: "regular" | "gold" | "platinum" | null }) {
+  if (rank === null) return <>—</>;
+  return <StatusBadge tone={statusTone(rank)}>{labels.rank(rank)}</StatusBadge>;
+}
+
+function AccountStatusBadge({ status }: { status: "active" | "suspended" | "withdrawn" }) {
+  return <StatusBadge tone={statusTone(status)}>{labels.account(status)}</StatusBadge>;
 }
 
 export function CustomerReviewPage({ orderItemId }: { orderItemId: string }) {
@@ -255,9 +274,9 @@ function AdminReviewsContent() {
             }}
           >
             <option value="all">すべて</option>
-            <option value="published">公開</option>
-            <option value="hidden">非公開</option>
-            <option value="deleted">削除済み</option>
+            <option value="published">{labels.review("published")}</option>
+            <option value="hidden">{labels.review("hidden")}</option>
+            <option value="deleted">{labels.review("deleted")}</option>
           </select>
         </label>
         <label>
@@ -340,7 +359,7 @@ function AdminReviewsContent() {
                     <br />
                     {item.body}
                   </span>,
-                  item.status,
+                  <ReviewStatusBadge key="status" status={item.status} />,
                   <div key="actions" className="table-actions">
                     {item.status === "published" && (
                       <button onClick={() => void change(item, "hidden")}>非公開</button>
@@ -375,7 +394,8 @@ function AdminReviewsContent() {
             <ol>
               {detail.value?.histories.map((history) => (
                 <li key={history.id}>
-                  {history.fromStatus ?? "新規"} → {history.toStatus}（{history.createdAt}）
+                  {history.fromStatus ?? "新規"} → {history.toStatus}（
+                  {labels.review(history.toStatus)}）
                 </li>
               ))}
             </ol>
@@ -415,7 +435,7 @@ function AdminUsersContent() {
       <Breadcrumbs items={[{ label: "管理概要", href: "/admin" }, { label: "ユーザー管理" }]} />
       <PageHeader
         title="ユーザー管理"
-        description="Role、会員ランク、利用状態を安全制約付きで管理します。"
+        description="役割、会員ランク、利用状態を安全制約付きで管理します。"
       />
       <FilterBar>
         <label>
@@ -429,12 +449,12 @@ function AdminUsersContent() {
           />
         </label>
         <label>
-          Role
+          役割
           <select value={role} onChange={(event) => setRole(event.target.value as typeof role)}>
             <option value="all">すべて</option>
-            <option value="customer">customer</option>
-            <option value="operator">operator</option>
-            <option value="admin">admin</option>
+            <option value="customer">{labels.role("customer")}</option>
+            <option value="operator">{labels.role("operator")}</option>
+            <option value="admin">{labels.role("admin")}</option>
           </select>
         </label>
         <label>
@@ -444,9 +464,9 @@ function AdminUsersContent() {
             onChange={(event) => setStatus(event.target.value as typeof status)}
           >
             <option value="all">すべて</option>
-            <option value="active">active</option>
-            <option value="suspended">suspended</option>
-            <option value="withdrawn">withdrawn</option>
+            <option value="active">{labels.account("active")}</option>
+            <option value="suspended">{labels.account("suspended")}</option>
+            <option value="withdrawn">{labels.account("withdrawn")}</option>
           </select>
         </label>
       </FilterBar>
@@ -461,7 +481,7 @@ function AdminUsersContent() {
           <>
             <ResourceTable
               caption="ユーザー一覧"
-              columns={["ユーザー", "Role", "ランク", "状態", "Version"]}
+              columns={["ユーザー", "役割", "会員ランク", "利用状態", "Version"]}
               rows={state.value.items.map((item) => ({
                 id: item.userId,
                 cells: [
@@ -470,9 +490,9 @@ function AdminUsersContent() {
                     <br />
                     {item.email}
                   </Link>,
-                  item.role,
-                  item.membershipRank ?? "—",
-                  item.accountStatus,
+                  <UserRoleBadge key="role" role={item.role} />,
+                  <MembershipRankBadge key="rank" rank={item.membershipRank} />,
+                  <AccountStatusBadge key="status" status={item.accountStatus} />,
                   item.version,
                 ],
               }))}
@@ -520,7 +540,7 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
       setMutation((value) => value + 1);
     } catch {
       setMessage(
-        "変更できませんでした。自己変更、最後のadmin、Role、状態、Versionを確認してください。",
+        "変更できませんでした。自己変更、最後の管理者、役割、利用状態、Versionを確認してください。",
       );
     }
   };
@@ -540,23 +560,29 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
         </p>
       )}
       <dl className="definition-grid">
-        <dt>Role</dt>
-        <dd>{user.role}</dd>
+        <dt>役割</dt>
+        <dd>
+          <UserRoleBadge role={user.role} />
+        </dd>
         <dt>会員ランク</dt>
-        <dd>{user.membershipRank ?? "—"}</dd>
-        <dt>状態</dt>
-        <dd>{user.accountStatus}</dd>
+        <dd>
+          <MembershipRankBadge rank={user.membershipRank} />
+        </dd>
+        <dt>利用状態</dt>
+        <dd>
+          <AccountStatusBadge status={user.accountStatus} />
+        </dd>
       </dl>
-      {readOnly && <p className="notice">withdrawnユーザーは読取専用です。</p>}
+      {readOnly && <p className="notice">退会済みユーザーは読取専用です。</p>}
       {user.role === "customer" && !readOnly && (
         <section className="admin-detail-card">
           <h2>会員ランク</h2>
           <label>
             ランク
             <select value={rank} onChange={(event) => setRank(event.target.value as typeof rank)}>
-              <option value="regular">regular</option>
-              <option value="gold">gold</option>
-              <option value="platinum">platinum</option>
+              <option value="regular">{labels.rank("regular")}</option>
+              <option value="gold">{labels.rank("gold")}</option>
+              <option value="platinum">{labels.rank("platinum")}</option>
             </select>
           </label>
           <button
@@ -575,12 +601,12 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
       )}
       {(user.role === "operator" || user.role === "admin") && !readOnly && (
         <section className="admin-detail-card">
-          <h2>管理Role</h2>
+          <h2>管理役割</h2>
           <label>
-            Role
+            役割
             <select value={role} onChange={(event) => setRole(event.target.value as typeof role)}>
-              <option value="operator">operator</option>
-              <option value="admin">admin</option>
+              <option value="operator">{labels.role("operator")}</option>
+              <option value="admin">{labels.role("admin")}</option>
             </select>
           </label>
           <button
@@ -615,7 +641,7 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           >
             {user.accountStatus === "active" ? "利用停止" : "利用再開"}
           </button>
-          <p>Role・Status変更では対象ユーザーの全Sessionを無効化します。</p>
+          <p>役割・利用状態の変更では対象ユーザーの全Sessionを無効化します。</p>
         </section>
       )}
     </div>

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, type Href } from "expo-router";
 import { ComboBox, Input, Label, ListBox, ListBoxItem, Popover } from "react-aria-components";
+import { Icon } from "@/presentation/components/icon";
 
 export interface SearchSuggestion {
   id: string;
@@ -77,6 +78,9 @@ export function SearchCombobox({
       menuTrigger="input"
     >
       <Label className="sr-only">{label}</Label>
+      <span className="search-combobox__icon" aria-hidden="true">
+        <Icon name="search" size={18} />
+      </span>
       <Input
         className="search-combobox__input"
         placeholder="商品名、カテゴリ、ブランドで検索"

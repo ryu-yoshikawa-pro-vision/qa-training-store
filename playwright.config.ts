@@ -65,5 +65,32 @@ export default defineConfig({
       testMatch: /smoke\.spec\.ts/,
       use: { ...devices["Desktop Safari"] },
     },
+    {
+      name: "ui-review-desktop",
+      testMatch: /ui-review\.spec\.ts$/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1440, height: 1000 },
+        deviceScaleFactor: 1,
+      },
+    },
+    {
+      name: "ui-review-tablet",
+      testMatch: /ui-review\.spec\.ts$/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 1024, height: 900 },
+        deviceScaleFactor: 1,
+      },
+    },
+    {
+      name: "ui-review-mobile",
+      testMatch: /ui-review\.spec\.ts$/,
+      use: {
+        ...devices["Pixel 7"],
+        viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 1,
+      },
+    },
   ],
 });

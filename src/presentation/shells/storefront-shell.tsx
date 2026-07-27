@@ -2,6 +2,7 @@ import { useCallback, type ReactNode } from "react";
 import { Link, usePathname } from "expo-router";
 import type { CurrentUserDto } from "@/application/contracts";
 import { content } from "@/presentation/content/dictionary";
+import { Icon, type IconName } from "@/presentation/components/icon";
 import { SearchCombobox, type SearchSuggestion } from "@/presentation/components/search-combobox";
 import { LogoutButton } from "@/presentation/components/logout-button";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
@@ -46,26 +47,44 @@ export function StorefrontShell({ currentUser, children }: StorefrontShellProps)
         <div className="storefront-header__inner">
           <Link href="/" className="wordmark" aria-label="Scenario Shop ホーム">
             <span aria-hidden="true" className="wordmark__symbol">
-              □
+              <Icon name="bag" size={18} />
             </span>
             {content.brand.storeName}
           </Link>
           <SearchCombobox loadSuggestions={loadSuggestions} />
           <nav aria-label="主要ナビゲーション" className="desktop-navigation">
-            <Link href="/products">{content.navigation.products}</Link>
+            <Link href="/products">
+              <Icon name="products" size={17} />
+              {content.navigation.products}
+            </Link>
             {isStaff ? (
-              <Link href="/admin">{content.navigation.admin}</Link>
+              <Link href="/admin">
+                <Icon name="settings" size={17} />
+                {content.navigation.admin}
+              </Link>
             ) : (
               <>
-                <Link href="/orders">{content.navigation.orders}</Link>
-                <Link href="/account/profile">{content.navigation.account}</Link>
-                <Link href="/cart">{content.navigation.cart}</Link>
+                <Link href="/orders">
+                  <Icon name="orders" size={17} />
+                  {content.navigation.orders}
+                </Link>
+                <Link href="/account/profile">
+                  <Icon name="account" size={17} />
+                  {content.navigation.account}
+                </Link>
+                <Link href="/cart">
+                  <Icon name="cart" size={17} />
+                  {content.navigation.cart}
+                </Link>
               </>
             )}
             {currentUser !== null && <LogoutButton />}
           </nav>
           {isTestApiBuild() && (
-            <span className="test-mode-badge">{content.environment.testMode}</span>
+            <span className="test-mode-badge">
+              <span className="test-mode-badge__dot" aria-hidden="true" />
+              {content.environment.testMode}
+            </span>
           )}
         </div>
         <p className="learning-notice">{content.notice.training}</p>
@@ -74,12 +93,55 @@ export function StorefrontShell({ currentUser, children }: StorefrontShellProps)
         {children}
       </main>
       <footer className="storefront-footer">
-        <nav aria-label="法的情報">
-          <Link href="/legal/terms">利用規約</Link>
-          <Link href="/legal/privacy">プライバシーポリシー</Link>
-          <Link href="/legal/commerce">模擬取引表示</Link>
-        </nav>
-        <small>© 2026 Scenario Shop — 学習専用の模擬ストア</small>
+        <div className="storefront-footer__inner">
+          <section className="storefront-footer__brand" aria-labelledby="footer-brand-heading">
+            <Link href="/" className="footer-wordmark" id="footer-brand-heading">
+              <span aria-hidden="true" className="wordmark__symbol">
+                <Icon name="bag" size={18} />
+              </span>
+              {content.brand.storeName}
+            </Link>
+            <p>商品選びから運用まで、ECの主要シナリオを安心して学べる模擬ストアです。</p>
+            <span className="footer-trust-mark">
+              <Icon name="shield" size={18} />
+              学習専用・実取引なし
+            </span>
+          </section>
+          <nav aria-label="フッターナビゲーション" className="storefront-footer__navigation">
+            <section>
+              <h2>ショップ</h2>
+              <Link href="/products">商品一覧</Link>
+              <Link href="/search">商品を検索</Link>
+            </section>
+            <section>
+              <h2>サポート</h2>
+              <Link href="/legal/commerce">模擬取引について</Link>
+              <Link href="/legal/privacy">データの取扱い</Link>
+            </section>
+            <section>
+              <h2>アカウント</h2>
+              {isStaff ? (
+                <Link href="/admin">管理コンソール</Link>
+              ) : (
+                <>
+                  <Link href="/orders">注文履歴</Link>
+                  <Link href="/account/profile">プロフィール</Link>
+                  <Link href="/cart">カート</Link>
+                </>
+              )}
+            </section>
+            <section>
+              <h2>法的情報</h2>
+              <Link href="/legal/terms">利用規約</Link>
+              <Link href="/legal/privacy">プライバシーポリシー</Link>
+              <Link href="/legal/commerce">模擬取引表示</Link>
+            </section>
+          </nav>
+        </div>
+        <div className="storefront-footer__bottom">
+          <small>© 2026 Scenario Shop. 学習専用の模擬ストアです。</small>
+          <small>実際の注文・決済・配送は行われません。</small>
+        </div>
       </footer>
       {isStaff && currentUser !== null && (
         <div className="staff-mobile-actions">
@@ -93,15 +155,15 @@ export function StorefrontShell({ currentUser, children }: StorefrontShellProps)
         <nav aria-label="モバイルナビゲーション" className="mobile-navigation">
           {(
             [
-              ["/", content.navigation.home],
-              ["/search", content.navigation.search],
-              ["/cart", content.navigation.cart],
-              ["/orders", "注文"],
-              ["/account/profile", content.navigation.account],
+              ["/", content.navigation.home, "home"],
+              ["/search", content.navigation.search, "search"],
+              ["/cart", content.navigation.cart, "cart"],
+              ["/orders", "注文", "orders"],
+              ["/account/profile", content.navigation.account, "account"],
             ] as const
-          ).map(([href, label]) => (
+          ).map(([href, label, icon]) => (
             <Link href={href} key={href} aria-current={pathname === href ? "page" : undefined}>
-              <span aria-hidden="true">○</span>
+              <Icon name={icon as IconName} size={20} />
               {label}
             </Link>
           ))}

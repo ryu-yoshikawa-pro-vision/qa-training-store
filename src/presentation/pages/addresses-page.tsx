@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import type { UserAddress } from "@/domain/contracts";
 import { ApplicationError } from "@/application/errors";
+import { AccountNavigation } from "@/presentation/components/account-navigation";
 import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { StatePanel } from "@/presentation/components/states";
@@ -77,6 +78,7 @@ function AddressesContent() {
   };
   return (
     <div className="account-page account-page--wide">
+      <AccountNavigation current="addresses" />
       <header className="account-page__header">
         <div>
           <p className="eyebrow">アカウント</p>

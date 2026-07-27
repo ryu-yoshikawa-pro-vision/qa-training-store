@@ -4,6 +4,8 @@ import type { AdminOrderDetailDto, InventoryItem } from "@/application/contracts
 import type { OrderStatus } from "@/domain/contracts";
 import { ProductImage } from "@/presentation/components/product-image";
 import { StatePanel } from "@/presentation/components/states";
+import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
+import { labels } from "@/presentation/content/dictionary";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
@@ -18,6 +20,26 @@ import { formatYen } from "@/presentation/components/product-card";
 
 function StaffPage({ children }: { children: ReactNode }) {
   return <RouteGuard access="staff">{children}</RouteGuard>;
+}
+
+function ActiveBadge({ active }: { active: boolean }) {
+  return (
+    <StatusBadge tone={statusTone(active ? "active" : "inactive")}>
+      {active ? "有効" : "無効"}
+    </StatusBadge>
+  );
+}
+
+function OrderStatusBadge({ status }: { status: OrderStatus }) {
+  return <StatusBadge tone={statusTone(status)}>{labels.order(status)}</StatusBadge>;
+}
+
+function PaymentStatusBadge({ status }: { status: "processing" | "succeeded" | "failed" }) {
+  return <StatusBadge tone={statusTone(status)}>{labels.payment(status)}</StatusBadge>;
+}
+
+function ShipmentStatusBadge({ status }: { status: "pending" | "shipped" | "delivered" }) {
+  return <StatusBadge tone={statusTone(status)}>{labels.shipment(status)}</StatusBadge>;
 }
 
 export function AdminInventoriesPage() {
@@ -115,8 +137,8 @@ function AdminInventoriesContent() {
             onChange={(event) => setActive(event.target.value as typeof active)}
           >
             <option value="all">すべて</option>
-            <option value="active">active</option>
-            <option value="inactive">inactive</option>
+            <option value="active">有効</option>
+            <option value="inactive">無効</option>
           </select>
         </label>
         <label>
@@ -144,7 +166,7 @@ function AdminInventoriesContent() {
                 item.sku,
                 `${item.productCode} — ${item.productName}`,
                 item.optionValue ?? "—",
-                item.isActive ? "active" : "inactive",
+                <ActiveBadge key="status" active={item.isActive} />,
                 item.stockQuantity,
                 item.version,
                 <button
@@ -248,6 +270,14 @@ function AdminOrdersContent() {
     "created_desc",
   );
   const [page, setPage] = useState(1);
+  const orderStatuses: OrderStatus[] = [
+    "pending_payment",
+    "payment_failed",
+    "paid",
+    "preparing",
+    "shipped",
+    "delivered",
+  ];
   const state = useAsyncValue(
     () =>
       adminOperations.searchOrders({
@@ -292,11 +322,11 @@ function AdminOrdersContent() {
             onChange={(event) => setStatus(event.target.value as typeof status)}
           >
             <option value="all">すべて</option>
-            {["pending_payment", "payment_failed", "paid", "preparing", "shipped", "delivered"].map(
-              (item) => (
-                <option key={item}>{item}</option>
-              ),
-            )}
+            {orderStatuses.map((item) => (
+              <option key={item} value={item}>
+                {labels.order(item)}
+              </option>
+            ))}
           </select>
         </label>
         <label>
@@ -359,7 +389,7 @@ function AdminOrdersContent() {
                   {order.orderNumber}
                 </Link>,
                 order.userEmail,
-                order.status,
+                <OrderStatusBadge key="status" status={order.status} />,
                 order.itemCount,
                 formatYen(order.totalAmount),
                 new Date(order.createdAt).toLocaleString("ja-JP"),
@@ -414,7 +444,7 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
       />
       <PageHeader
         title={order.orderNumber}
-        description={`${order.orderStatus}・Action Version ${order.orderActionVersion}`}
+        description={`${labels.order(order.orderStatus)}・Action Version ${order.orderActionVersion}`}
       />
       {message && (
         <p role="status" className="operation-message">
@@ -459,14 +489,31 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
             </article>
           ))}
           <p>
-            <strong>合計 {formatYen(order.totalAmount)}</strong>（会員Rank Snapshot:{" "}
-            {order.membershipRankSnapshot}）
+            <strong>合計 {formatYen(order.totalAmount)}</strong>（会員ランク Snapshot:{" "}
+            {labels.rank(order.membershipRankSnapshot)}）
           </p>
         </section>
         <section className="summary-card">
-          <h2>Payment / Shipment</h2>
-          <p>Payment Attempts: {order.paymentAttempts.length}</p>
-          <p>Shipment: {order.shipment?.status ?? "未作成"}</p>
+          <h2>支払 / 配送</h2>
+          <p>支払試行: {order.paymentAttempts.length}</p>
+          <ol>
+            {order.paymentAttempts.map((attempt) => (
+              <li key={attempt.attemptNumber}>
+                #{attempt.attemptNumber} <PaymentStatusBadge status={attempt.status} />
+              </li>
+            ))}
+          </ol>
+          <p>
+            配送:{" "}
+            {order.shipment?.status ? (
+              <ShipmentStatusBadge status={order.shipment.status} />
+            ) : (
+              "未作成"
+            )}
+          </p>
+          {order.shipment?.status && (
+            <p className="admin-resource-code">Shipment: {order.shipment.status}</p>
+          )}
           {order.shipment?.carrierName && (
             <p>
               {order.shipment.carrierName} / {order.shipment.trackingNumber}

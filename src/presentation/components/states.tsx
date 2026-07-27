@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { Link } from "expo-router";
 import { content } from "@/presentation/content/dictionary";
+import { Icon, type IconName } from "@/presentation/components/icon";
 
 export type StateKind =
   | "loading"
@@ -51,6 +52,8 @@ const defaultCopy: Record<StateKind, { title: string; body: string }> = {
 
 export function StatePanel({ kind, title, body, action }: StatePanelProps) {
   const copy = defaultCopy[kind];
+  const icon: IconName =
+    kind === "loading" ? "refresh" : kind === "empty" || kind === "filter-empty" ? "box" : "alert";
   return (
     <section
       className={`state-panel state-panel--${kind}`}
@@ -58,6 +61,9 @@ export function StatePanel({ kind, title, body, action }: StatePanelProps) {
       aria-live={kind === "loading" ? "polite" : undefined}
       aria-busy={kind === "loading" ? true : undefined}
     >
+      <span className="state-panel__icon" aria-hidden="true">
+        <Icon name={icon} size={28} />
+      </span>
       <h1>{title ?? copy.title}</h1>
       <p>{body ?? copy.body}</p>
       {action ?? (

@@ -12,6 +12,8 @@ import type { MembershipRank, ProductStatus } from "@/domain/contracts";
 import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { ProductImage } from "@/presentation/components/product-image";
 import { StatePanel } from "@/presentation/components/states";
+import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
+import { labels } from "@/presentation/content/dictionary";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
@@ -26,6 +28,10 @@ import { formatYen } from "@/presentation/components/product-card";
 
 function StaffPage({ children }: { children: ReactNode }) {
   return <RouteGuard access="staff">{children}</RouteGuard>;
+}
+
+function ProductStatusBadge({ status }: { status: ProductStatus }) {
+  return <StatusBadge tone={statusTone(status)}>{labels.product(status)}</StatusBadge>;
 }
 
 export function AdminProductsPage() {
@@ -119,20 +125,24 @@ function AdminProductsContent() {
             onChange={(event) => setStatus(event.target.value as typeof status)}
           >
             <option value="all">すべて</option>
-            <option value="draft">draft</option>
-            <option value="published">published</option>
-            <option value="unpublished">unpublished</option>
-            <option value="discontinued">discontinued</option>
+            <option value="draft">{labels.product("draft")}</option>
+            <option value="published">{labels.product("published")}</option>
+            <option value="unpublished">{labels.product("unpublished")}</option>
+            <option value="discontinued">{labels.product("discontinued")}</option>
           </select>
         </label>
         <label>
-          Rank
-          <select value={rank} onChange={(event) => setRank(event.target.value as typeof rank)}>
+          会員ランク
+          <select
+            aria-label="Rank"
+            value={rank}
+            onChange={(event) => setRank(event.target.value as typeof rank)}
+          >
             <option value="all">すべて</option>
             <option value="none">制限なし</option>
-            <option value="regular">regular</option>
-            <option value="gold">gold</option>
-            <option value="platinum">platinum</option>
+            <option value="regular">{labels.rank("regular")}</option>
+            <option value="gold">{labels.rank("gold")}</option>
+            <option value="platinum">{labels.rank("platinum")}</option>
           </select>
         </label>
         <label>
@@ -198,7 +208,7 @@ function AdminProductsContent() {
         <>
           <ResourceTable
             caption="商品一覧"
-            columns={["選択", "商品", "状態", "Category / Brand", "価格", "active SKU / 在庫"]}
+            columns={["選択", "商品", "状態", "Category / Brand", "価格", "有効SKU / 在庫"]}
             rows={state.value.items.map((item) => ({
               id: item.productId,
               cells: [
@@ -219,7 +229,7 @@ function AdminProductsContent() {
                 <Link href={`/admin/products/${item.productId}`} key="product">
                   {item.productCode} — {item.name}
                 </Link>,
-                item.status,
+                <ProductStatusBadge key="status" status={item.status} />,
                 `${item.categoryName} / ${item.brandName}`,
                 item.minimumCurrentEffectivePrice === item.maximumCurrentEffectivePrice
                   ? formatYen(item.minimumCurrentEffectivePrice)
@@ -389,7 +399,7 @@ function AdminProductEditContent({ productId }: { productId: string }) {
       />
       <PageHeader
         title={edit.product.name}
-        description={`${edit.product.productCode}・${edit.product.status}`}
+        description={`${edit.product.productCode}・${labels.product(edit.product.status)}`}
         action={
           <div className="inline-actions">
             <button
@@ -433,6 +443,9 @@ function AdminProductEditContent({ productId }: { productId: string }) {
           </div>
         }
       />
+      <p className="admin-resource-code">
+        {edit.product.productCode}・{edit.product.status}
+      </p>
       {deleteMessage !== null && (
         <p role="alert" className="operation-error">
           {deleteMessage}
@@ -444,7 +457,9 @@ function AdminProductEditContent({ productId }: { productId: string }) {
         </p>
       )}
       {edit.product.status === "discontinued" && (
-        <p className="operation-message">discontinuedは終端状態です。状態変更はできません。</p>
+        <p className="operation-message">
+          {labels.product("discontinued")}は終端状態です。状態変更はできません。
+        </p>
       )}
       <ProductEditor
         key={`${productId}-${mutation}`}
@@ -660,7 +675,7 @@ function ProductEditor({
             </select>
           </label>
           <label>
-            必須Rank
+            必須会員ランク
             <select
               value={value.product.requiredRank ?? "none"}
               onChange={(event) =>
@@ -671,9 +686,9 @@ function ProductEditor({
               }
             >
               <option value="none">制限なし</option>
-              <option value="regular">regular</option>
-              <option value="gold">gold</option>
-              <option value="platinum">platinum</option>
+              <option value="regular">{labels.rank("regular")}</option>
+              <option value="gold">{labels.rank("gold")}</option>
+              <option value="platinum">{labels.rank("platinum")}</option>
             </select>
           </label>
           <label>
@@ -767,7 +782,7 @@ function ProductEditor({
                         }))
                       }
                     />{" "}
-                    active
+                    有効
                   </label>
                 )}
                 <button
@@ -820,7 +835,7 @@ function ProductEditor({
                     onChange={() => toggleImage(asset)}
                   />
                   {asset.assetId}
-                  {!asset.isActive ? "（inactive・既存維持のみ）" : ""}
+                  {!asset.isActive ? "（無効・既存維持のみ）" : ""}
                 </label>
                 {selected && (
                   <>

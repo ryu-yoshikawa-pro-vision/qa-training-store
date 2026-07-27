@@ -1,5 +1,6 @@
 import { Link } from "expo-router";
 import type { ProductListItem } from "@/application/contracts";
+import { Icon } from "./icon";
 import { ProductImage } from "./product-image";
 
 export function formatYen(value: number): string {
@@ -32,6 +33,10 @@ export function ProductCard({ product }: { product: ProductListItem }) {
       <p className="product-card__rating" aria-label={`評価 ${product.ratingAverage}`}>
         ★ {product.ratingAverage.toFixed(1)}（{product.publishedReviewCount}件）
       </p>
+      <span className="product-card__action" aria-hidden="true">
+        詳細を見る
+        <Icon name="arrow" size={16} />
+      </span>
     </article>
   );
 }

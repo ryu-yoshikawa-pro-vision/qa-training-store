@@ -35,6 +35,10 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByLabel("検索語").fill("シャツ");
     await page.getByRole("button", { name: "検索" }).click();
     await expect(page).toHaveURL(/q=/);
+    const filters = page.locator("details.catalog-filters");
+    if ((await filters.getAttribute("open")) === null) {
+      await filters.locator("summary").click();
+    }
     await page.getByLabel("最低評価").selectOption("4");
     const productLink = page.getByRole("link", { name: "ベーシックTシャツ", exact: true });
     await expect(productLink).toBeVisible();

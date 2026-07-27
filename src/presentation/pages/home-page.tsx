@@ -1,6 +1,7 @@
 import { Link } from "expo-router";
 import { ProductCard } from "@/presentation/components/product-card";
 import { ProductImage } from "@/presentation/components/product-image";
+import { Icon, type IconName } from "@/presentation/components/icon";
 import { StatePanel } from "@/presentation/components/states";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
@@ -40,9 +41,15 @@ function HomeContent() {
           <p className="eyebrow">ECテスト自動化学習アプリ</p>
           <h1>決定的なシナリオで、確かなテストを。</h1>
           <p>商品検索から注文、管理操作までを安全な模擬環境で練習できます。</p>
-          <Link href="/products" className="button button--primary">
-            商品を見る
-          </Link>
+          <div className="home-hero__actions">
+            <Link href="/products" className="button button--primary">
+              商品を見る
+              <Icon name="arrow" size={18} />
+            </Link>
+            <Link href="/login" className="button button--secondary">
+              会員としてはじめる
+            </Link>
+          </div>
         </div>
         <div className="home-hero__visual" aria-hidden="true">
           {value.newProducts.slice(0, 3).map((product, index) => (
@@ -54,6 +61,26 @@ function HomeContent() {
             />
           ))}
         </div>
+      </section>
+      <section className="benefit-bar" aria-label="安心して学べる理由">
+        {(
+          [
+            ["truck", "配送フローを再現", "注文から配送完了まで確認"],
+            ["shield", "安全な模擬決済", "実際の請求は発生しません"],
+            ["refresh", "何度でもリセット", "同じ条件を決定的に再現"],
+            ["support", "学習をサポート", "主要なEC操作を一通り練習"],
+          ] as [IconName, string, string][]
+        ).map(([icon, title, description]) => (
+          <div className="benefit-bar__item" key={title}>
+            <span className="benefit-bar__icon" aria-hidden="true">
+              <Icon name={icon} size={22} />
+            </span>
+            <span>
+              <strong>{title}</strong>
+              <small>{description}</small>
+            </span>
+          </div>
+        ))}
       </section>
       <section className="home-section">
         <div className="section-heading">
@@ -70,15 +97,23 @@ function HomeContent() {
               key={category.categoryId}
               className="category-card"
             >
-              <span>{category.name}</span>
+              <span>
+                {category.name}
+                <Icon name="arrow" size={18} />
+              </span>
               <small>{category.visibleProductCount}件</small>
             </Link>
           ))}
         </div>
       </section>
-      <ProductSection title="新着商品" products={value.newProducts} />
+      <ProductSection
+        eyebrow="おすすめ"
+        title="おすすめ商品"
+        products={value.newProducts.slice(0, 4)}
+      />
+      <ProductSection eyebrow="新着商品" title="新着商品" products={value.newProducts.slice(4)} />
       {value.saleProducts.length > 0 && (
-        <ProductSection title="セール商品" products={value.saleProducts} sale />
+        <ProductSection eyebrow="期間限定" title="セール商品" products={value.saleProducts} sale />
       )}
       <section className="membership-panel">
         <div>
@@ -107,10 +142,12 @@ function HomeContent() {
 }
 
 function ProductSection({
+  eyebrow,
   title,
   products,
   sale = false,
 }: {
+  eyebrow: string;
   title: string;
   products: import("@/application/contracts").ProductListItem[];
   sale?: boolean;
@@ -119,7 +156,7 @@ function ProductSection({
     <section className={`home-section ${sale ? "home-section--sale" : ""}`}>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">{sale ? "期間限定" : "新着商品"}</p>
+          <p className="eyebrow">{eyebrow}</p>
           <h2>{title}</h2>
         </div>
         <Link href={sale ? "/products?onSale=true" : "/products"}>一覧を見る</Link>

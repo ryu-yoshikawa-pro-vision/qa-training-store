@@ -3,13 +3,15 @@ import { Link, useLocalSearchParams, useRouter, type Href } from "expo-router";
 import type { CheckoutConfirmationDto, OrderDetailDto } from "@/application/contracts";
 import { PAYMENT_METHODS } from "@/application/use-cases/checkout-order-use-cases";
 import type { PaymentMethodCode, UserAddress } from "@/domain/contracts";
+import { AccountNavigation } from "@/presentation/components/account-navigation";
 import { formatYen } from "@/presentation/components/product-card";
 import { ProductImage } from "@/presentation/components/product-image";
 import { StatePanel } from "@/presentation/components/states";
+import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
-import { content } from "@/presentation/content/dictionary";
+import { content, labels } from "@/presentation/content/dictionary";
 
 const paymentLabels: Record<PaymentMethodCode, string> = {
   "TEST-SUCCESS": "テスト決済（成功）",
@@ -540,6 +542,7 @@ function OrdersContent() {
   if (state.error !== null || state.value === null) return <StatePanel kind="error" />;
   return (
     <div className="orders-page">
+      <AccountNavigation current="orders" />
       <h1>注文履歴</h1>
       {state.value.items.length === 0 ? (
         <StatePanel kind="empty" title="注文履歴はありません" />
@@ -557,7 +560,10 @@ function OrdersContent() {
                   <Link href={`/orders/${order.orderId}`}>{order.orderNumber}</Link>
                 </h2>
                 <p>
-                  {orderStatusLabels[order.status]}・{formatYen(order.totalAmount)}
+                  <StatusBadge tone={statusTone(order.status)}>
+                    {orderStatusLabels[order.status]}
+                  </StatusBadge>
+                  <strong>{formatYen(order.totalAmount)}</strong>
                 </p>
               </div>
               <Link href={`/orders/${order.orderId}`} className="button button--secondary">
@@ -587,6 +593,7 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
   const order = state.value;
   return (
     <div className="order-detail-page">
+      <AccountNavigation current="orders" />
       <nav className="breadcrumbs" aria-label="パンくず">
         <ol>
           <li>
@@ -599,8 +606,10 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
         <p className="eyebrow">Order detail</p>
         <h1>{order.orderNumber}</h1>
         <p>
-          {orderStatusLabels[order.orderStatus]}・
-          {new Date(order.createdAt).toLocaleString("ja-JP")}
+          <StatusBadge tone={statusTone(order.orderStatus)}>
+            {orderStatusLabels[order.orderStatus]}
+          </StatusBadge>
+          <span>{new Date(order.createdAt).toLocaleString("ja-JP")}</span>
         </p>
       </header>
       <div className="order-detail-grid">
@@ -648,7 +657,10 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
           <ol>
             {order.paymentAttempts.map((attempt) => (
               <li key={attempt.attemptNumber}>
-                #{attempt.attemptNumber} {paymentLabels[attempt.methodCode]} — {attempt.status}
+                #{attempt.attemptNumber} {paymentLabels[attempt.methodCode]} — {attempt.status}{" "}
+                <StatusBadge tone={statusTone(attempt.status)}>
+                  {labels.payment(attempt.status)}
+                </StatusBadge>
               </li>
             ))}
           </ol>
@@ -670,7 +682,7 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
           <ol className="order-timeline">
             {order.timeline.map((item, index) => (
               <li key={`${item.createdAt}-${index}`}>
-                <strong>{orderStatusLabels[item.status]}</strong>
+                <strong>{orderStatusLabels[item.status]}になりました</strong>
                 <span>{new Date(item.createdAt).toLocaleString("ja-JP")}</span>
               </li>
             ))}
