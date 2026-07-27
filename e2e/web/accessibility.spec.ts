@@ -30,6 +30,16 @@ async function scanPage(page: Page, testInfo: TestInfo, target: AccessibilityTar
   ).toEqual([]);
 }
 
+async function expectPageScrolls(page: Page) {
+  await expect
+    .poll(() =>
+      page.evaluate(() => (document.scrollingElement?.scrollHeight ?? 0) > window.innerHeight),
+    )
+    .toBe(true);
+  await page.mouse.wheel(0, 1200);
+  await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
+}
+
 test.describe("Accessibility smoke", () => {
   test("Public／Guest代表画面", async ({ page, scenario }, testInfo) => {
     await scenario("default");
@@ -59,6 +69,9 @@ test.describe("Accessibility smoke", () => {
       },
     ] satisfies AccessibilityTarget[]) {
       await scanPage(page, testInfo, target);
+      if (target.path === "/") {
+        await expectPageScrolls(page);
+      }
     }
   });
 
