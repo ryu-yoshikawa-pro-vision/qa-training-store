@@ -1,10 +1,12 @@
 import Dexie from "dexie";
 import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
 import { AdminOperationsUseCases } from "@/application/use-cases/admin-operations-use-cases";
+import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { createScenarioDataset } from "@/seeds/scenarios";
+const FIXED_TIME = "2026-07-15T03:00:00.000Z";
 
 class SessionStore implements CurrentSessionStore {
   constructor(private value: string | null) {}
@@ -43,6 +45,7 @@ describe("admin inventory, order, and shipment integration", () => {
       database,
       transactionRunner: new DexieApplicationTransactionRunner(database),
       currentSessionStore: new SessionStore("operator-session"),
+      clock: new TestClock(FIXED_TIME),
       idGenerator: new Ids(),
     });
   });
@@ -79,6 +82,7 @@ describe("admin inventory, order, and shipment integration", () => {
       afterQuantity: before.stockQuantity + 3,
       reasonCode: "MANUAL_INCREASE",
       reasonText: "撮影用在庫の戻し",
+      createdAt: FIXED_TIME,
     });
   });
 
@@ -162,7 +166,7 @@ describe("admin inventory, order, and shipment integration", () => {
         status: "shipped",
         carrierName: "テスト運輸",
         trackingNumber: "TRACK-001",
-        shippedAt: "2026-07-01T03:00:00.000Z",
+        shippedAt: FIXED_TIME,
       },
     });
     const delivered = await useCases.completeDelivery({
@@ -174,7 +178,7 @@ describe("admin inventory, order, and shipment integration", () => {
       orderActionVersion: shipped.orderActionVersion + 1,
       shipment: {
         status: "delivered",
-        deliveredAt: "2026-07-01T03:00:00.000Z",
+        deliveredAt: FIXED_TIME,
       },
     });
     expect(delivered.timeline.map((item) => item.status)).toEqual(

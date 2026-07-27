@@ -83,14 +83,16 @@ describe("auth and account pages", () => {
 
   it("submits Login and exposes fixed fixture account guidance", async () => {
     render(<LoginPage />);
+    expect(screen.getByRole("heading", { name: "ログイン" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "固定テストアカウント" })).toBeVisible();
+    expect(screen.getByText("パスワードはすべて「testpass1」です。")).toBeVisible();
     fireEvent.change(screen.getByLabelText("Email"), {
       target: { value: "regular@example.com" },
     });
-    fireEvent.change(screen.getByLabelText("Password"), {
+    fireEvent.change(screen.getByLabelText("パスワード"), {
       target: { value: "testpass1" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Login" }));
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
     await waitFor(() =>
       expect(auth.login).toHaveBeenCalledWith({
         email: "regular@example.com",
@@ -109,10 +111,10 @@ describe("auth and account pages", () => {
     fireEvent.change(screen.getByLabelText("表示名"), {
       target: { value: "新規会員" },
     });
-    fireEvent.change(screen.getByLabelText("Password"), {
+    fireEvent.change(screen.getByLabelText("パスワード"), {
       target: { value: "testpass1" },
     });
-    fireEvent.change(screen.getByLabelText("Password（確認）"), {
+    fireEvent.change(screen.getByLabelText("パスワード（確認）"), {
       target: { value: "testpass1" },
     });
     fireEvent.click(screen.getByRole("button", { name: "登録する" }));
@@ -138,7 +140,7 @@ describe("auth and account pages", () => {
         actionVersion: 7,
       }),
     );
-    expect(await screen.findByText("Profileを更新しました。")).toBeVisible();
+    expect(await screen.findByText("プロフィールを更新しました。")).toBeVisible();
   });
 
   it("shows address count, create form, and deterministic default action", async () => {

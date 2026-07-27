@@ -1,6 +1,5 @@
 import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
-import { SystemClock } from "@/infrastructure/clock/clocks";
 import { CryptoIdGenerator } from "@/infrastructure/id-generator/crypto-id-generator";
 import {
   BrowserCurrentSessionStore,
@@ -14,7 +13,6 @@ import { AccountUseCases } from "./use-cases/account-use-cases";
 import { CatalogUseCases } from "./use-cases/catalog-use-cases";
 import { CartUseCases } from "./use-cases/cart-use-cases";
 import { CheckoutOrderUseCases } from "./use-cases/checkout-order-use-cases";
-import { MockPaymentGateway } from "@/infrastructure/payment/mock-payment-gateway";
 import { AdminMasterUseCases } from "./use-cases/admin-master-use-cases";
 import { AdminProductUseCases } from "./use-cases/admin-product-use-cases";
 import { AdminOperationsUseCases } from "./use-cases/admin-operations-use-cases";
@@ -23,19 +21,21 @@ import {
   AdminUserUseCases,
   CustomerReviewUseCases,
 } from "./use-cases/review-user-use-cases";
+import type { Clock, PaymentGateway } from "@/application/ports";
 
-export function createApplicationServices(database: ScenarioShopDatabase) {
-  const clock = new SystemClock();
+interface ApplicationServiceOptions {
+  clock: Clock;
+  paymentGateway: PaymentGateway;
+}
+
+export function createApplicationServices(
+  database: ScenarioShopDatabase,
+  { clock, paymentGateway }: ApplicationServiceOptions,
+) {
   const idGenerator = new CryptoIdGenerator();
   const currentSessionStore = new BrowserCurrentSessionStore();
   const guestIdentityStore = new BrowserGuestIdentityStore(idGenerator);
   const transactionRunner = new DexieApplicationTransactionRunner(database);
-  const paymentGateway = new MockPaymentGateway(async () => {
-    const setting = await database.app_settings.get("test-control");
-    if (setting === undefined) return 500;
-    const value = JSON.parse(setting.valueJson) as { paymentDelayMs?: unknown };
-    return typeof value.paymentDelayMs === "number" ? value.paymentDelayMs : 500;
-  });
   return {
     auth: new AuthUseCases({
       database,
@@ -57,12 +57,14 @@ export function createApplicationServices(database: ScenarioShopDatabase) {
     catalog: new CatalogUseCases({
       database,
       currentSessionStore,
+      clock,
     }),
     cart: new CartUseCases({
       database,
       transactionRunner,
       currentSessionStore,
       guestIdentityStore,
+      clock,
       idGenerator,
     }),
     checkout: new CheckoutOrderUseCases({
@@ -77,36 +79,42 @@ export function createApplicationServices(database: ScenarioShopDatabase) {
       database,
       transactionRunner,
       currentSessionStore,
+      clock,
       idGenerator,
     }),
     adminProducts: new AdminProductUseCases({
       database,
       transactionRunner,
       currentSessionStore,
+      clock,
       idGenerator,
     }),
     adminOperations: new AdminOperationsUseCases({
       database,
       transactionRunner,
       currentSessionStore,
+      clock,
       idGenerator,
     }),
     reviews: new CustomerReviewUseCases({
       database,
       transactionRunner,
       currentSessionStore,
+      clock,
       idGenerator,
     }),
     adminReviews: new AdminReviewUseCases({
       database,
       transactionRunner,
       currentSessionStore,
+      clock,
       idGenerator,
     }),
     adminUsers: new AdminUserUseCases({
       database,
       transactionRunner,
       currentSessionStore,
+      clock,
       idGenerator,
     }),
   };

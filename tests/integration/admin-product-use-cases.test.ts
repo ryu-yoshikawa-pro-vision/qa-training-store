@@ -2,10 +2,12 @@ import Dexie from "dexie";
 import type { CreateProductRequest } from "@/application/contracts";
 import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
 import { AdminProductUseCases } from "@/application/use-cases/admin-product-use-cases";
+import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { createScenarioDataset } from "@/seeds/scenarios";
+const FIXED_TIME = "2026-07-15T03:00:00.000Z";
 
 class SessionStore implements CurrentSessionStore {
   constructor(private value: string | null) {}
@@ -71,6 +73,7 @@ describe("admin product aggregate application integration", () => {
       database,
       transactionRunner: new DexieApplicationTransactionRunner(database),
       currentSessionStore: new SessionStore("operator-session"),
+      clock: new TestClock(FIXED_TIME),
       idGenerator: new Ids(),
     });
   });
@@ -87,8 +90,8 @@ describe("admin product aggregate application integration", () => {
       productCode: "P-NEW",
       status: "draft",
       publishedAt: null,
-      createdAt: "2026-07-01T03:00:00.000Z",
-      updatedAt: "2026-07-01T03:00:00.000Z",
+      createdAt: FIXED_TIME,
+      updatedAt: FIXED_TIME,
     });
     expect(created.variants).toHaveLength(1);
     expect(created.variants[0]).toMatchObject({ stockQuantity: 8, isActive: true });
@@ -190,7 +193,7 @@ describe("admin product aggregate application integration", () => {
         targetStatus: "published",
         expectedVersion: updated.product.version,
       }),
-    ).toMatchObject({ status: "published", publishedAt: "2026-07-01T03:00:00.000Z" });
+    ).toMatchObject({ status: "published", publishedAt: FIXED_TIME });
   });
 
   it("preserves existing stock on edit and permits an existing inactive asset only", async () => {

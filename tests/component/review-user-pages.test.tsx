@@ -26,6 +26,7 @@ const testControlService = vi.hoisted(() => ({
   setClock: vi.fn(),
   setPaymentDelay: vi.fn(),
 }));
+const reloadBrowserPage = vi.hoisted(() => vi.fn());
 
 vi.mock("expo-router", () => ({
   Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
@@ -44,6 +45,7 @@ vi.mock("@/presentation/providers/app-runtime-provider", () => ({
   useAppRuntime: () => ({ currentUser: { id: "user-admin" } }),
 }));
 vi.mock("@/bootstrap/browser-runtime.web", () => ({ testControlService }));
+vi.mock("@/presentation/browser/reload-page.web", () => ({ reloadBrowserPage }));
 
 import {
   AdminReviewsPage,
@@ -157,13 +159,14 @@ describe("review, user, and test-control pages", () => {
     testControlService.getMetadata.mockResolvedValue({
       appVersion: "0.1.0",
       schemaVersion: 1,
-      seedVersion: 10,
+      seedVersion: 11,
       buildSha: "local",
       scenario: "default",
       clock: "2026-07-01T03:00:00.000Z",
       paymentDelayMs: 500,
     });
     testControlService.setPaymentDelay.mockResolvedValue({});
+    testControlService.reset.mockResolvedValue({});
   });
 
   it("offers a keyboard-native rating radio group and creates a review", async () => {
@@ -225,5 +228,17 @@ describe("review, user, and test-control pages", () => {
     fireEvent.change(screen.getByLabelText("遅延（0〜30000ms）"), { target: { value: "1200" } });
     fireEvent.click(screen.getByRole("button", { name: "遅延を設定" }));
     await waitFor(() => expect(testControlService.setPaymentDelay).toHaveBeenCalledWith(1200));
+  });
+
+  it("reloads the web page after a successful Test Control reset", async () => {
+    render(<AdminTestControlPage />);
+    await screen.findByText("0.1.0");
+
+    fireEvent.click(screen.getByRole("button", { name: "ScenarioをReset" }));
+
+    await waitFor(() =>
+      expect(testControlService.reset).toHaveBeenCalledWith({ scenario: "default" }),
+    );
+    expect(reloadBrowserPage).toHaveBeenCalledOnce();
   });
 });

@@ -1,10 +1,12 @@
 import Dexie from "dexie";
 import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
 import { AdminMasterUseCases } from "@/application/use-cases/admin-master-use-cases";
+import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { createScenarioDataset } from "@/seeds/scenarios";
+const FIXED_TIME = "2026-07-15T03:00:00.000Z";
 
 class SessionStore implements CurrentSessionStore {
   constructor(private value: string | null) {}
@@ -43,6 +45,7 @@ describe("admin overview and master application integration", () => {
       database,
       transactionRunner: new DexieApplicationTransactionRunner(database),
       currentSessionStore: new SessionStore("operator-session"),
+      clock: new TestClock(FIXED_TIME),
       idGenerator: new Ids(),
     });
   });

@@ -1,10 +1,10 @@
 import { useEffect, useState } from "react";
-import { useRouter } from "expo-router";
 import { useForm } from "react-hook-form";
 import type { CurrentUserDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { StatePanel } from "@/presentation/components/states";
+import { LogoutButton } from "@/presentation/components/logout-button";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAppRuntime } from "@/presentation/providers/app-runtime-provider";
 
@@ -22,9 +22,8 @@ export function ProfilePage() {
 }
 
 function ProfileContent() {
-  const { account, auth } = useApplicationServices();
+  const { account } = useApplicationServices();
   const { refreshIdentity } = useAppRuntime();
-  const router = useRouter();
   const [profile, setProfile] = useState<CurrentUserDto | null>(null);
   const [loadError, setLoadError] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
@@ -52,21 +51,10 @@ function ProfileContent() {
       <header className="account-page__header">
         <div>
           <p className="eyebrow">アカウント</p>
-          <h1>Profile</h1>
+          <h1>プロフィール</h1>
           <p>{profile.email}</p>
         </div>
-        <button
-          type="button"
-          className="button button--secondary"
-          onClick={() => {
-            void auth.logout().then(async () => {
-              await refreshIdentity();
-              router.replace("/login");
-            });
-          }}
-        >
-          Logout
-        </button>
+        <LogoutButton />
       </header>
       {message !== null && (
         <p className="success-message" role="status">
@@ -89,12 +77,12 @@ function ProfileContent() {
               phone: updated.phone ?? "",
             });
             await refreshIdentity();
-            setMessage("Profileを更新しました。");
+            setMessage("プロフィールを更新しました。");
           } catch (caught) {
             setMessage(
               caught instanceof ApplicationError && caught.code === "CONFLICT"
                 ? "ほかの操作で更新されています。ページを再読み込みしてください。"
-                : "Profileを更新できませんでした。",
+                : "プロフィールを更新できませんでした。",
             );
           }
         })}

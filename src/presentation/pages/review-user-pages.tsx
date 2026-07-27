@@ -14,6 +14,7 @@ import {
 } from "@/presentation/patterns/admin-patterns";
 import { useAppRuntime } from "@/presentation/providers/app-runtime-provider";
 import { testControlService } from "@/bootstrap/browser-runtime.web";
+import { reloadBrowserPage } from "@/presentation/browser/reload-page.web";
 import { PHASE_ONE_SCENARIOS, type PhaseOneScenario } from "@/seeds/metadata";
 
 function Guard({
@@ -694,10 +695,10 @@ function AdminTestControlContent() {
             </label>
             <button
               onClick={() =>
-                void apply(
-                  () => testControlService.reset({ scenario }),
-                  "ScenarioをResetしました。再読込してください。",
-                )
+                void apply(async () => {
+                  await testControlService.reset({ scenario });
+                  reloadBrowserPage();
+                }, "ScenarioをResetしました。")
               }
             >
               ScenarioをReset

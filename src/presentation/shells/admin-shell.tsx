@@ -2,6 +2,7 @@ import type { ReactNode } from "react";
 import { Link, usePathname } from "expo-router";
 import type { CurrentUserDto } from "@/application/contracts";
 import { content } from "@/presentation/content/dictionary";
+import { LogoutButton } from "@/presentation/components/logout-button";
 import { isTestApiBuild } from "@/test-controls/test-api.web";
 
 interface AdminShellProps {
@@ -37,7 +38,9 @@ export function AdminShell({ currentUser, children }: AdminShellProps) {
         <Link href="/admin" className="admin-wordmark">
           {content.brand.adminName}
         </Link>
-        <span className="test-mode-badge">{content.environment.testMode}</span>
+        {isTestApiBuild() && (
+          <span className="test-mode-badge">{content.environment.testMode}</span>
+        )}
         <nav aria-label="管理ナビゲーション">
           {navigation.map(([href, label]) => (
             <Link
@@ -57,7 +60,10 @@ export function AdminShell({ currentUser, children }: AdminShellProps) {
             </Link>
           ))}
         </nav>
-        <Link href="/">ストアへ戻る</Link>
+        <Link href="/" className="admin-sidebar__footer-link">
+          ストアへ戻る
+        </Link>
+        <LogoutButton />
       </aside>
       <div className="admin-viewport-warning" role="status">
         <h1>管理画面はデスクトップで利用してください</h1>

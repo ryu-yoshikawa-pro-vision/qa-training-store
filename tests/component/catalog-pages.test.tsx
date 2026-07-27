@@ -118,10 +118,16 @@ describe("storefront catalog pages", () => {
       ),
       saleProducts: [],
     });
-    render(<HomePage />);
+    const { container } = render(<HomePage />);
     expect(await screen.findByRole("heading", { name: "カテゴリから探す" })).toBeVisible();
     expect(screen.getAllByRole("article")).toHaveLength(8);
-    expect(screen.queryByRole("heading", { name: "Sale商品" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "セール商品" })).not.toBeInTheDocument();
+    const heroImages = container.querySelectorAll(".home-hero__visual img");
+    expect(heroImages).toHaveLength(3);
+    for (const image of heroImages) {
+      expect(image).toHaveAttribute("alt", "");
+      expect(image).toHaveAttribute("src", expect.stringMatching(/^\/images\/products\//));
+    }
   });
 
   it("renders exactly 12 variation buttons at the boundary", async () => {

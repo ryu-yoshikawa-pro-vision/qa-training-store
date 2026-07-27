@@ -8,7 +8,7 @@ export interface ProductImageAssetManifest {
 
 export const productImageManifest = {
   "version": 1,
-  "generatedAt": "2026-07-01T03:00:00.000Z",
+  "generatedAt": "2026-07-27T05:20:00.000Z",
   "assets": [
     {
       "assetId": "asset-shirt-front",
@@ -73,6 +73,70 @@ export const productImageManifest = {
       "height": 720,
       "bytes": 47994,
       "sha256": "b3e6a4bf698cbabc6007e7b3a31d3e46164be35f153aedcf3ead47afcfbae4a6"
+    },
+    {
+      "assetId": "asset-premium-bag",
+      "path": "/images/products/premium-bag.webp",
+      "defaultAltText": "トープ色のプレミアムバッグ",
+      "tags": [
+        "ファッション",
+        "バッグ",
+        "トープ"
+      ],
+      "isActive": true,
+      "mimeType": "image/webp",
+      "width": 720,
+      "height": 720,
+      "bytes": 41466,
+      "sha256": "268ec82d357920e495dc1de1ba8c691561c60850fb71f8ae33a20c782f3aa7b7"
+    },
+    {
+      "assetId": "asset-compact-towel",
+      "path": "/images/products/compact-towel.webp",
+      "defaultAltText": "シーグリーンのコンパクトタオル",
+      "tags": [
+        "ホーム",
+        "タオル",
+        "シーグリーン"
+      ],
+      "isActive": true,
+      "mimeType": "image/webp",
+      "width": 720,
+      "height": 720,
+      "bytes": 32048,
+      "sha256": "9ae06daa68417247c94c1e00a8f5c676877e3c2b2626737f90c6b55e4a084d08"
+    },
+    {
+      "assetId": "asset-color-pouch",
+      "path": "/images/products/color-pouch.webp",
+      "defaultAltText": "12色展開のカラーポーチ",
+      "tags": [
+        "ファッション",
+        "ポーチ",
+        "カラー"
+      ],
+      "isActive": true,
+      "mimeType": "image/webp",
+      "width": 720,
+      "height": 720,
+      "bytes": 35606,
+      "sha256": "39183dcc877de4dcd23983f8522bced1824cda496498a2aa85d1487d16d5ae25"
+    },
+    {
+      "assetId": "asset-training-wear",
+      "path": "/images/products/training-wear.webp",
+      "defaultAltText": "ネイビーのトレーニングウェア",
+      "tags": [
+        "スポーツ",
+        "ウェア",
+        "ネイビー"
+      ],
+      "isActive": true,
+      "mimeType": "image/webp",
+      "width": 720,
+      "height": 720,
+      "bytes": 20738,
+      "sha256": "6c11401033595b4905155d16aa84249e8f15eecda9de6a1bf6868f20fd5b00b6"
     },
     {
       "assetId": "asset-placeholder-retired",

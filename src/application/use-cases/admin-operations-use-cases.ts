@@ -12,7 +12,7 @@ import type {
 } from "@/application/contracts";
 import { ApplicationError, conflictError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
-import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
+import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import type { InventoryHistory, Order, Shipment } from "@/domain/contracts";
 import { DexieInventoryRepository } from "@/infrastructure/database/dexie/product-repositories";
@@ -23,6 +23,7 @@ interface AdminOperationsDependencies {
   database: ScenarioShopDatabase;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
+  clock: Clock;
   idGenerator: IdGenerator;
 }
 
@@ -280,12 +281,7 @@ export class AdminOperationsUseCases {
   }
 
   private async now(): Promise<string> {
-    const setting = await this.dependencies.database.app_settings.get("test-control");
-    if (setting !== undefined) {
-      const value = JSON.parse(setting.valueJson) as { clock?: unknown };
-      if (typeof value.clock === "string") return value.clock;
-    }
-    return new Date().toISOString();
+    return this.dependencies.clock.now();
   }
 
   private invalidTransition(): ApplicationError {

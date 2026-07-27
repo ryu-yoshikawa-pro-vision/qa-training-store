@@ -8,6 +8,7 @@ import type {
 } from "@/application/contracts";
 import type { CurrentSessionStore, GuestIdentityStore } from "@/application/ports";
 import { DATABASE_NAME, ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import type { ControllableClock } from "@/infrastructure/clock/clocks";
 import { DEFAULT_GUEST_ID, isPhaseOneScenario, type PhaseOneScenario } from "@/seeds/metadata";
 import { createScenarioDataset } from "@/seeds/scenarios";
 import { loadSeedDataset } from "@/seeds/load-seed";
@@ -23,6 +24,7 @@ interface TestControlServiceOptions {
   databaseName?: string;
   currentSessionStore: CurrentSessionStore;
   guestIdentityStore: GuestIdentityStore;
+  clock: ControllableClock;
   buildSha?: string;
   databaseFactory?: (name: string) => ScenarioShopDatabase;
   deleteDatabase?: (name: string) => Promise<void>;
@@ -33,6 +35,7 @@ export class TestControlService {
   private readonly databaseName: string;
   private readonly currentSessionStore: CurrentSessionStore;
   private readonly guestIdentityStore: GuestIdentityStore;
+  private readonly clock: ControllableClock;
   private readonly buildSha: string;
   private readonly databaseFactory: (name: string) => ScenarioShopDatabase;
   private readonly deleteDatabase: (name: string) => Promise<void>;
@@ -41,6 +44,7 @@ export class TestControlService {
     this.databaseName = options.databaseName ?? DATABASE_NAME;
     this.currentSessionStore = options.currentSessionStore;
     this.guestIdentityStore = options.guestIdentityStore;
+    this.clock = options.clock;
     this.buildSha = options.buildSha ?? "local";
     this.databaseFactory = options.databaseFactory ?? ((name) => new ScenarioShopDatabase(name));
     this.deleteDatabase = options.deleteDatabase ?? (async (name) => Dexie.delete(name));
@@ -56,7 +60,9 @@ export class TestControlService {
       await loadSeedDataset(this.database, createScenarioDataset(scenario), scenario);
       await this.restoreSeedIdentity();
     }
-    return this.getMetadata();
+    const metadata = await this.getMetadata();
+    this.clock.setFixedTime(metadata.clock);
+    return metadata;
   }
 
   async reset(input: { scenario: string }): Promise<TestMetadata> {
@@ -81,7 +87,9 @@ export class TestControlService {
     this.database = this.databaseFactory(this.databaseName);
     await loadSeedDataset(this.database, createScenarioDataset(input.scenario), input.scenario);
     await this.restoreSeedIdentity();
-    return this.getMetadata();
+    const metadata = await this.getMetadata();
+    this.clock.setFixedTime(metadata.clock);
+    return metadata;
   }
 
   async setClock(iso: string | null): Promise<TestMetadata> {
@@ -92,6 +100,7 @@ export class TestControlService {
     }
     const setting = await this.getControlSetting();
     await this.putControlSetting({ ...setting, clock: iso });
+    this.clock.setFixedTime(iso);
     return this.getMetadata();
   }
 

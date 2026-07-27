@@ -3,7 +3,9 @@ import { Link, usePathname } from "expo-router";
 import type { CurrentUserDto } from "@/application/contracts";
 import { content } from "@/presentation/content/dictionary";
 import { SearchCombobox, type SearchSuggestion } from "@/presentation/components/search-combobox";
+import { LogoutButton } from "@/presentation/components/logout-button";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
+import { isTestApiBuild } from "@/test-controls/test-api.web";
 
 interface StorefrontShellProps {
   currentUser: CurrentUserDto | null;
@@ -60,8 +62,11 @@ export function StorefrontShell({ currentUser, children }: StorefrontShellProps)
                 <Link href="/cart">{content.navigation.cart}</Link>
               </>
             )}
+            {currentUser !== null && <LogoutButton />}
           </nav>
-          <span className="test-mode-badge">{content.environment.testMode}</span>
+          {isTestApiBuild() && (
+            <span className="test-mode-badge">{content.environment.testMode}</span>
+          )}
         </div>
         <p className="learning-notice">{content.notice.training}</p>
       </header>

@@ -15,7 +15,7 @@ import type {
 } from "@/application/contracts";
 import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
-import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
+import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import { DexieAdminOverviewRepository } from "@/infrastructure/database/dexie/order-review-repositories";
 import {
@@ -28,6 +28,7 @@ interface AdminMasterDependencies {
   database: ScenarioShopDatabase;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
+  clock: Clock;
   idGenerator: IdGenerator;
 }
 
@@ -232,12 +233,7 @@ export class AdminMasterUseCases {
   }
 
   private async now(): Promise<string> {
-    const setting = await this.dependencies.database.app_settings.get("test-control");
-    if (setting !== undefined) {
-      const value = JSON.parse(setting.valueJson) as { clock?: unknown };
-      if (typeof value.clock === "string") return value.clock;
-    }
-    return new Date().toISOString();
+    return this.dependencies.clock.now();
   }
 }
 

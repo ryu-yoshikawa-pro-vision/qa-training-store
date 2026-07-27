@@ -1,5 +1,6 @@
 import { Link } from "expo-router";
 import { ProductCard } from "@/presentation/components/product-card";
+import { ProductImage } from "@/presentation/components/product-image";
 import { StatePanel } from "@/presentation/components/states";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
@@ -44,9 +45,14 @@ function HomeContent() {
           </Link>
         </div>
         <div className="home-hero__visual" aria-hidden="true">
-          <span>SCENARIO</span>
-          <strong>SHOP</strong>
-          <small>TEST AUTOMATION LAB</small>
+          {value.newProducts.slice(0, 3).map((product, index) => (
+            <ProductImage
+              key={product.productId}
+              src={product.primaryImage.path}
+              alt=""
+              className={`home-hero__product home-hero__product--${index + 1}`}
+            />
+          ))}
         </div>
       </section>
       <section className="home-section">
@@ -72,12 +78,12 @@ function HomeContent() {
       </section>
       <ProductSection title="新着商品" products={value.newProducts} />
       {value.saleProducts.length > 0 && (
-        <ProductSection title="Sale商品" products={value.saleProducts} sale />
+        <ProductSection title="セール商品" products={value.saleProducts} sale />
       )}
       <section className="membership-panel">
         <div>
-          <p className="eyebrow">Membership</p>
-          <h2>会員Rankでお得に購入</h2>
+          <p className="eyebrow">会員特典</p>
+          <h2>会員ランクでお得に購入</h2>
         </div>
         <ul>
           <li>

@@ -131,7 +131,7 @@ const PRODUCT_DEFINITIONS: ProductDefinition[] = [
     regularPrice: 12000,
     stock: 2,
     salePrice: null,
-    assetId: "asset-shirt-front",
+    assetId: "asset-premium-bag",
   },
   {
     id: "product-low-stock",
@@ -147,7 +147,7 @@ const PRODUCT_DEFINITIONS: ProductDefinition[] = [
     regularPrice: 900,
     stock: 3,
     salePrice: null,
-    assetId: "asset-shirt-back",
+    assetId: "asset-compact-towel",
   },
   {
     id: "product-out-of-stock",
@@ -227,7 +227,7 @@ const PRODUCT_DEFINITIONS: ProductDefinition[] = [
     regularPrice: 1800,
     stock: 5,
     salePrice: 1500,
-    assetId: "asset-shirt-back",
+    assetId: "asset-color-pouch",
   },
   {
     id: "product-variation-13",
@@ -243,7 +243,7 @@ const PRODUCT_DEFINITIONS: ProductDefinition[] = [
     regularPrice: 3500,
     stock: 5,
     salePrice: null,
-    assetId: "asset-shirt-front",
+    assetId: "asset-training-wear",
   },
 ];
 

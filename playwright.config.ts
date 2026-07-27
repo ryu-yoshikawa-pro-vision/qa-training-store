@@ -29,7 +29,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      testMatch: /phase1-required\.spec\.ts/,
+      testMatch: [/phase1-required\.spec\.ts/, /accessibility\.spec\.ts/],
       use: { ...devices["Desktop Chrome"] },
     },
     {

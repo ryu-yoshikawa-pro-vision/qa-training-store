@@ -1,11 +1,14 @@
 import Dexie from "dexie";
 import type { CurrentSessionStore, GuestIdentityStore, IdGenerator } from "@/application/ports";
 import { CartUseCases } from "@/application/use-cases/cart-use-cases";
+import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
 import { createScenarioDataset } from "@/seeds/scenarios";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { DEFAULT_GUEST_ID } from "@/seeds/metadata";
+
+const FIXED_TIME = "2026-07-15T03:00:00.000Z";
 
 class MemorySessionStore implements CurrentSessionStore {
   constructor(public value: string | null = null) {}
@@ -65,6 +68,7 @@ describe("cart application integration", () => {
       transactionRunner: new DexieApplicationTransactionRunner(database),
       currentSessionStore: session,
       guestIdentityStore: new MemoryGuestStore(),
+      clock: new TestClock(FIXED_TIME),
       idGenerator: new SequenceIds(ids),
     });
   }
@@ -85,7 +89,13 @@ describe("cart application integration", () => {
     expect(await database.carts.get("guest-cart")).toMatchObject({
       ownerType: "guest",
       guestId: DEFAULT_GUEST_ID,
+      createdAt: FIXED_TIME,
+      updatedAt: FIXED_TIME,
       version: 2,
+    });
+    expect(await database.cart_items.get("guest-item")).toMatchObject({
+      createdAt: FIXED_TIME,
+      updatedAt: FIXED_TIME,
     });
   });
 

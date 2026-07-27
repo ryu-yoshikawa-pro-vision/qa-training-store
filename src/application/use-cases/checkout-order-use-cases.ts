@@ -549,11 +549,6 @@ export class CheckoutOrderUseCases {
   }
 
   private async now(): Promise<string> {
-    const setting = await this.dependencies.database.app_settings.get("test-control");
-    if (setting !== undefined) {
-      const value = JSON.parse(setting.valueJson) as { clock?: unknown };
-      if (typeof value.clock === "string") return value.clock;
-    }
     return this.dependencies.clock.now();
   }
 
@@ -580,7 +575,7 @@ function localDateInTokyo(iso: string): string {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).formatToParts(new Date(iso));
+  }).formatToParts(Date.parse(iso));
   const value = Object.fromEntries(parts.map((part) => [part.type, part.value]));
   return `${value.year}${value.month}${value.day}`;
 }

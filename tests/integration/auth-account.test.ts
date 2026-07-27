@@ -13,6 +13,8 @@ import { createScenarioDataset } from "@/seeds/scenarios";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { DEFAULT_GUEST_ID } from "@/seeds/metadata";
 
+const FIXED_TIME = "2026-07-15T03:00:00.000Z";
+
 class MemorySessionStore implements CurrentSessionStore {
   value: string | null = null;
   failSet = false;
@@ -88,7 +90,7 @@ describe("auth and account application integration", () => {
       guestIdentityStore: guestStore,
       emailNormalizer: new DefaultEmailNormalizer(),
       passwordHasher: new WebPbkdf2PasswordHasher(),
-      clock: new TestClock("2026-07-01T03:00:00.000Z"),
+      clock: new TestClock(FIXED_TIME),
       idGenerator: new SequenceIdGenerator(ids),
     });
   }
@@ -106,6 +108,7 @@ describe("auth and account application integration", () => {
       expect(result.cartMerge === null).toBe(!mergesCart);
       expect(await database.sessions.get(result.sessionId)).toMatchObject({
         userId: result.user.id,
+        createdAt: FIXED_TIME,
       });
       expect(sessionStore.value).toBe(result.sessionId);
     },
@@ -212,6 +215,10 @@ describe("auth and account application integration", () => {
       role: "customer",
       membershipRank: "regular",
     });
+    expect(await database.users.get("new-user")).toMatchObject({
+      createdAt: FIXED_TIME,
+      updatedAt: FIXED_TIME,
+    });
     expect(
       await new WebPbkdf2PasswordHasher().verify(
         "secure-pass",
@@ -229,7 +236,7 @@ describe("auth and account application integration", () => {
     const account = new AccountUseCases({
       database,
       currentSessionStore: sessionStore,
-      clock: new TestClock("2026-07-01T03:00:00.000Z"),
+      clock: new TestClock(FIXED_TIME),
       idGenerator: new SequenceIdGenerator(["address-b", "address-a", "address-c"]),
       addressLookup: new BundledStaticAddressLookup(),
     });
@@ -247,6 +254,7 @@ describe("auth and account application integration", () => {
       });
     const first = await create("自宅", false);
     expect(first.isDefault).toBe(true);
+    expect(first.createdAt).toBe(FIXED_TIME);
     const second = await create("勤務先", false);
     const third = await create("実家", true);
     expect((await account.listAddresses()).filter((address) => address.isDefault)).toEqual([
@@ -263,6 +271,15 @@ describe("auth and account application integration", () => {
     expect(await account.suggestAddress("100-0001")).toMatchObject({
       prefecture: "東京都",
       city: "千代田区千代田",
+    });
+    const profile = await account.getProfile();
+    await account.updateProfile({
+      displayName: "固定時刻更新",
+      phone: null,
+      actionVersion: profile.actionVersion,
+    });
+    expect(await database.users.get(profile.id)).toMatchObject({
+      updatedAt: FIXED_TIME,
     });
   });
 });

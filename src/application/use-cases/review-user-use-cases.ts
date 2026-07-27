@@ -19,7 +19,7 @@ import type {
 } from "@/application/contracts";
 import { ApplicationError, conflictError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
-import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
+import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import type { ProductReviewSummary, Review, User } from "@/domain/contracts";
 import { canTransitionAccount, canTransitionReview } from "@/domain/policies/state-transitions";
@@ -32,6 +32,7 @@ interface Dependencies {
   database: ScenarioShopDatabase;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
+  clock: Clock;
   idGenerator: IdGenerator;
 }
 
@@ -277,10 +278,7 @@ export class CustomerReviewUseCases {
   }
 
   private async now(): Promise<string> {
-    const setting = await this.dependencies.database.app_settings.get("test-control");
-    const value =
-      setting === undefined ? null : (JSON.parse(setting.valueJson) as { clock?: unknown });
-    return typeof value?.clock === "string" ? value.clock : new Date().toISOString();
+    return this.dependencies.clock.now();
   }
 
   private notFound(): ApplicationError {
@@ -454,10 +452,7 @@ export class AdminReviewUseCases {
   }
 
   private async now(): Promise<string> {
-    const setting = await this.dependencies.database.app_settings.get("test-control");
-    const value =
-      setting === undefined ? null : (JSON.parse(setting.valueJson) as { clock?: unknown });
-    return typeof value?.clock === "string" ? value.clock : new Date().toISOString();
+    return this.dependencies.clock.now();
   }
 
   private notFound(): ApplicationError {
@@ -646,10 +641,7 @@ export class AdminUserUseCases {
   }
 
   private async now(): Promise<string> {
-    const setting = await this.dependencies.database.app_settings.get("test-control");
-    const value =
-      setting === undefined ? null : (JSON.parse(setting.valueJson) as { clock?: unknown });
-    return typeof value?.clock === "string" ? value.clock : new Date().toISOString();
+    return this.dependencies.clock.now();
   }
 
   private invalidRole(): ApplicationError {

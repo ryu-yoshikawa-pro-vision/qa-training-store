@@ -10,7 +10,7 @@ import type {
 } from "@/application/contracts";
 import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
-import type { CurrentSessionStore } from "@/application/ports";
+import type { Clock, CurrentSessionStore } from "@/application/ports";
 import { DexieReviewRepository } from "@/infrastructure/database/dexie/order-review-repositories";
 import {
   DexieProductQueryRepository,
@@ -22,6 +22,7 @@ import type { Page } from "@/application/contracts";
 interface CatalogUseCaseDependencies {
   database: ScenarioShopDatabase;
   currentSessionStore: CurrentSessionStore;
+  clock: Clock;
 }
 
 export class CatalogUseCases {
@@ -109,13 +110,6 @@ export class CatalogUseCases {
   }
 
   private async now(): Promise<string> {
-    const setting = await this.dependencies.database.app_settings.get("test-control");
-    if (setting !== undefined) {
-      const value = JSON.parse(setting.valueJson) as { clock?: unknown };
-      if (typeof value.clock === "string") {
-        return value.clock;
-      }
-    }
-    return new Date().toISOString();
+    return this.dependencies.clock.now();
   }
 }

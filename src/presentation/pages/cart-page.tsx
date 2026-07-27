@@ -11,7 +11,7 @@ import { content } from "@/presentation/content/dictionary";
 
 const issueLabels: Record<CartLineIssueCode, string> = {
   UNPUBLISHED: "商品が非公開になりました。カートから削除してください。",
-  RANK_REQUIRED: "現在の会員Rankでは購入できません。",
+  RANK_REQUIRED: "現在の会員ランクでは購入できません。",
   INACTIVE: "選択したSKUは利用できません。カートから削除してください。",
   OUT_OF_STOCK: "在庫切れです。カートから削除してください。",
   INSUFFICIENT_STOCK: "在庫が不足しています。数量を減らしてください。",

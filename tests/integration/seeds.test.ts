@@ -1,11 +1,13 @@
 import Dexie from "dexie";
 import { ApplicationError } from "@/application/errors";
 import type { CurrentSessionStore, GuestIdentityStore } from "@/application/ports";
+import { RuntimeClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DEFAULT_GUEST_ID, PHASE_ONE_SCENARIOS, type PhaseOneScenario } from "@/seeds/metadata";
 import { createScenarioDataset } from "@/seeds/scenarios";
 import { loadSeedDataset, readSeedDataset } from "@/seeds/load-seed";
 import { validateSeedDataset } from "@/seeds/validation";
+import { installTestApi } from "@/test-controls/test-api.web";
 import { TestControlService } from "@/test-controls/test-control-service";
 
 class MemorySessionStore implements CurrentSessionStore {
@@ -58,6 +60,7 @@ describe("seed integration", () => {
         await Dexie.delete(name);
       }
     },
+    10_000,
   );
 
   it("keeps the documented default boundaries and load volume", () => {
@@ -93,44 +96,51 @@ describe("test control integration", () => {
     service: TestControlService;
     session: MemorySessionStore;
     guest: MemoryGuestStore;
+    clock: RuntimeClock;
   } {
     const name = `test-control-${crypto.randomUUID()}`;
     databaseNames.push(name);
     const session = new MemorySessionStore();
     const guest = new MemoryGuestStore();
+    const clock = new RuntimeClock();
     return {
       service: new TestControlService({
         databaseName: name,
         currentSessionStore: session,
         guestIdentityStore: guest,
+        clock,
         buildSha: "integration",
         ...(deleteDatabase === undefined ? {} : { deleteDatabase }),
       }),
       session,
       guest,
+      clock,
     };
   }
 
   it("resets the database and restores only the seed identities", async () => {
-    const { service, session, guest } = createService();
+    const { service, session, guest, clock } = createService();
     const metadata = await service.reset({ scenario: "gold-member" });
     expect(metadata).toMatchObject({
       scenario: "gold-member",
-      seedVersion: 10,
+      seedVersion: 11,
       buildSha: "integration",
     });
     expect(session.value).toBe("session-user-customer-gold");
     expect(guest.value).toBe(DEFAULT_GUEST_ID);
+    expect(clock.getFixedTime()).toBe(metadata.clock);
     expect(await service.getDatabase().products.count()).toBe(11);
   });
 
   it("limits mutable controls and returns fixed inspection DTOs", async () => {
-    const { service } = createService();
+    const { service, clock } = createService();
     await service.reset({ scenario: "default" });
     expect(await service.setClock("2026-07-02T03:00:00.000Z")).toMatchObject({
       clock: "2026-07-02T03:00:00.000Z",
     });
+    expect(clock.getFixedTime()).toBe("2026-07-02T03:00:00.000Z");
     expect(await service.setClock(null)).toMatchObject({ clock: null });
+    expect(clock.getFixedTime()).toBeNull();
     expect(await service.setPaymentDelay(1200)).toMatchObject({
       paymentDelayMs: 1200,
     });
@@ -157,6 +167,26 @@ describe("test control integration", () => {
       rating4Count: 1,
       rating5Count: 1,
     });
+  });
+
+  it("synchronizes the seeded clock during initialization and rejects invalid clock values", async () => {
+    const { service, clock } = createService();
+
+    const metadata = await service.initialize("expired-sale");
+
+    expect(clock.getFixedTime()).toBe(metadata.clock);
+    await expect(service.setClock("not-an-iso-date")).rejects.toMatchObject({
+      code: "VALIDATION",
+    });
+    expect(clock.getFixedTime()).toBe(metadata.clock);
+  });
+
+  it("does not expose the integrated Test Control service in production builds", () => {
+    const { service } = createService();
+    delete window.__TEST_API__;
+
+    expect(installTestApi(service, "production")).toBeNull();
+    expect(window.__TEST_API__).toBeUndefined();
   });
 
   it("maps a failed database deletion to RESET_BLOCKED_BY_OPEN_PAGE", async () => {

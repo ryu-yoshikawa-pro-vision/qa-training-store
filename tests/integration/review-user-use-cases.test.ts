@@ -5,10 +5,12 @@ import {
   AdminUserUseCases,
   CustomerReviewUseCases,
 } from "@/application/use-cases/review-user-use-cases";
+import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { createScenarioDataset } from "@/seeds/scenarios";
+const FIXED_TIME = "2026-07-15T03:00:00.000Z";
 
 class SessionStore implements CurrentSessionStore {
   constructor(private value: string | null) {}
@@ -45,6 +47,7 @@ function dependencies(database: ScenarioShopDatabase, currentSessionStore: Curre
     database,
     transactionRunner: new DexieApplicationTransactionRunner(database),
     currentSessionStore,
+    clock: new TestClock(FIXED_TIME),
     idGenerator: new Ids(),
   };
 }
@@ -79,7 +82,13 @@ describe("review and user administration integration", () => {
       title: "配送後レビュー",
       body: "Keyboardでも入力できるレビューです。",
     });
-    expect(created).toMatchObject({ status: "published", rating: 3, version: 1 });
+    expect(created).toMatchObject({
+      status: "published",
+      rating: 3,
+      createdAt: FIXED_TIME,
+      updatedAt: FIXED_TIME,
+      version: 1,
+    });
     expect((await database.product_review_summaries.get(chosen.productId))!.publishedCount).toBe(
       before!.publishedCount + 1,
     );

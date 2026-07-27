@@ -1,6 +1,6 @@
 export const APP_VERSION = "0.1.0";
 export const SCHEMA_VERSION = 1;
-export const SEED_VERSION = 10;
+export const SEED_VERSION = 11;
 export const IMAGE_MANIFEST_VERSION = 1;
 export const BASE_CLOCK = "2026-07-01T03:00:00.000Z";
 export const DEFAULT_GUEST_ID = "guest-default-001";

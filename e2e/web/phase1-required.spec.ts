@@ -10,6 +10,26 @@ import {
 test.describe("Phase 1 required E2E", () => {
   test("01 Guestの商品検索・Filter・商品詳細・Cart追加", async ({ page, scenario }) => {
     await scenario("default");
+    await page.goto("/");
+    const heroImages = page.locator(".home-hero__visual img");
+    await expect(heroImages).toHaveCount(3);
+    await expect
+      .poll(() =>
+        heroImages.evaluateAll((images) =>
+          images.every((image) => image instanceof HTMLImageElement && image.naturalWidth > 0),
+        ),
+      )
+      .toBe(true);
+    for (const imagePath of [
+      "/images/products/premium-bag.webp",
+      "/images/products/compact-towel.webp",
+      "/images/products/color-pouch.webp",
+      "/images/products/training-wear.webp",
+    ]) {
+      const response = await page.request.get(imagePath);
+      expect(response.ok()).toBe(true);
+      expect(response.headers()["content-type"]).toContain("image/webp");
+    }
     await page.goto("/search");
     await page.getByLabel("検索語").fill("シャツ");
     await page.getByRole("button", { name: "検索" }).click();
@@ -180,7 +200,7 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByLabel("増減数量").fill("1");
     await page.getByLabel("理由詳細").fill("E2E棚卸し");
     await page.getByRole("button", { name: /Version \d+で更新/ }).click();
-    await expect(page.getByRole("status")).toContainText("在庫と履歴");
+    await expect(page.getByText("在庫と履歴を同時に更新しました。")).toBeVisible();
     await page.goto("/admin/orders/order-paid");
     await page.getByRole("button", { name: "発送準備を開始" }).click();
     await expect(page.getByRole("status")).toContainText("Action Version");
@@ -200,11 +220,42 @@ test.describe("Phase 1 required E2E", () => {
     await expect(page.getByRole("status")).toContainText("利用停止にしました");
     await page.goto("/login");
     await page.getByLabel("Email").fill("regular@example.com");
-    await page.getByLabel("Password").fill("testpass1");
-    await page.getByRole("button", { name: "Login" }).click();
+    await page.getByLabel("パスワード").fill("testpass1");
+    await page.getByRole("button", { name: "ログイン" }).click();
     await expect(page.getByRole("alert")).toContainText("利用停止中");
     await page.goto("/admin/users/user-admin");
     await expect(page.getByRole("button", { name: "Roleを変更" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "利用停止" })).toBeDisabled();
+  });
+
+  test("13 customer Logout後はSessionが消え保護Routeへ入れない", async ({ page, scenario }) => {
+    await scenario("default");
+    await login(page, "regular@example.com");
+    await page.goto("/account/profile");
+
+    await page.locator("#main-content").getByRole("button", { name: "ログアウト" }).click();
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("scenario-shop.session-id")))
+      .toBeNull();
+    await page.goto("/orders");
+    await expect(page).toHaveURL(/\/login$/);
+  });
+
+  test("14 admin Logout後は管理Routeへ入れない", async ({ page, scenario }, testInfo) => {
+    await scenario("default");
+    await login(page, "admin@example.com");
+    await page.goto("/admin");
+    if (await expectAdminMobileBoundary(page, testInfo)) return;
+
+    await page.getByRole("button", { name: "ログアウト" }).click();
+
+    await expect(page).toHaveURL(/\/$/);
+    await expect
+      .poll(() => page.evaluate(() => localStorage.getItem("scenario-shop.session-id")))
+      .toBeNull();
+    await page.goto("/admin");
+    await expect(page).toHaveURL(/\/login$/);
   });
 });

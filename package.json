@@ -16,7 +16,10 @@
     "test:repository": "vitest run tests/repository-contract",
     "test:component": "vitest run tests/component",
     "test:contracts": "vitest run tests/contracts",
-    "test:e2e:chromium": "playwright test --project=chromium",
+    "test": "pnpm run test:unit && pnpm run test:integration && pnpm run test:repository && pnpm run test:component && pnpm run test:contracts",
+    "test:e2e": "pnpm run test:e2e:chromium",
+    "test:e2e:chromium": "playwright test e2e/web/phase1-required.spec.ts --project=chromium",
+    "test:a11y": "playwright test e2e/web/accessibility.spec.ts --project=chromium",
     "test:e2e:mobile": "playwright test --project=mobile-chromium",
     "test:e2e:cross-role": "playwright test --project=cross-role-chromium",
     "test:e2e:smoke:firefox": "playwright test --project=firefox-smoke",
@@ -26,7 +29,7 @@
     "generate:image-manifest": "tsx scripts/generate-image-manifest.ts",
     "validate:image-manifest": "tsx scripts/validate-image-manifest.ts",
     "build:web": "pnpm run generate:image-manifest && pnpm run validate:image-manifest && expo export --platform web",
-    "verify": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run test:unit && pnpm run test:integration && pnpm run test:repository && pnpm run test:component && pnpm run test:contracts && pnpm run build:web"
+    "verify": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web"
   },
   "dependencies": {
     "@expo/metro-runtime": "57.0.7",
@@ -47,12 +50,13 @@
     "zod": "4.4.3"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@playwright/test": "1.62.0",
     "@testing-library/jest-dom": "7.0.0",
     "@testing-library/react": "16.3.2",
-    "@typescript-eslint/eslint-plugin": "8.65.0",
     "@types/node": "26.1.1",
     "@types/react": "19.2.17",
+    "@typescript-eslint/eslint-plugin": "8.65.0",
     "@vitest/coverage-v8": "4.1.10",
     "eslint": "9.39.2",
     "eslint-config-expo": "57.0.0",
