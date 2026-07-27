@@ -1,0 +1,128 @@
+import { Link } from "expo-router";
+import { ProductCard } from "@/presentation/components/product-card";
+import { StatePanel } from "@/presentation/components/states";
+import { RouteGuard } from "@/presentation/guards/route-guard";
+import { useApplicationServices } from "@/presentation/hooks/use-application-services";
+import { useAsyncValue } from "@/presentation/hooks/use-async-value";
+import { content } from "@/presentation/content/dictionary";
+
+export function HomePage() {
+  return (
+    <RouteGuard access="public">
+      <HomeContent />
+    </RouteGuard>
+  );
+}
+
+function HomeContent() {
+  const { catalog } = useApplicationServices();
+  const { value, error, retry } = useAsyncValue(() => catalog.getHome(), [catalog]);
+  if (error !== null) {
+    return (
+      <StatePanel
+        kind="error"
+        action={
+          <button className="button button--primary" onClick={retry}>
+            再試行
+          </button>
+        }
+      />
+    );
+  }
+  if (value === null) {
+    return <StatePanel kind="loading" />;
+  }
+  return (
+    <div className="home-page">
+      <section className="home-hero">
+        <div>
+          <p className="eyebrow">ECテスト自動化学習アプリ</p>
+          <h1>決定的なシナリオで、確かなテストを。</h1>
+          <p>商品検索から注文、管理操作までを安全な模擬環境で練習できます。</p>
+          <Link href="/products" className="button button--primary">
+            商品を見る
+          </Link>
+        </div>
+        <div className="home-hero__visual" aria-hidden="true">
+          <span>SCENARIO</span>
+          <strong>SHOP</strong>
+          <small>TEST AUTOMATION LAB</small>
+        </div>
+      </section>
+      <section className="home-section">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">Category</p>
+            <h2>カテゴリから探す</h2>
+          </div>
+          <Link href="/products">すべての商品</Link>
+        </div>
+        <div className="category-grid">
+          {value.categories.slice(0, 6).map((category) => (
+            <Link
+              href={`/categories/${category.categoryId}`}
+              key={category.categoryId}
+              className="category-card"
+            >
+              <span>{category.name}</span>
+              <small>{category.visibleProductCount}件</small>
+            </Link>
+          ))}
+        </div>
+      </section>
+      <ProductSection title="新着商品" products={value.newProducts} />
+      {value.saleProducts.length > 0 && (
+        <ProductSection title="Sale商品" products={value.saleProducts} sale />
+      )}
+      <section className="membership-panel">
+        <div>
+          <p className="eyebrow">Membership</p>
+          <h2>会員Rankでお得に購入</h2>
+        </div>
+        <ul>
+          <li>
+            <strong>一般会員</strong> ¥5,000以上で送料無料
+          </li>
+          <li>
+            <strong>ゴールド会員</strong> 商品価格から5%割引
+          </li>
+          <li>
+            <strong>プラチナ会員</strong> 10%割引・いつでも送料無料
+          </li>
+        </ul>
+      </section>
+      <section className="home-learning-panel">
+        <h2>これは学習用の模擬ストアです</h2>
+        <p>{content.notice.training}</p>
+        <Link href="/legal/commerce">模擬取引について詳しく見る</Link>
+      </section>
+    </div>
+  );
+}
+
+function ProductSection({
+  title,
+  products,
+  sale = false,
+}: {
+  title: string;
+  products: import("@/application/contracts").ProductListItem[];
+  sale?: boolean;
+}) {
+  return (
+    <section className={`home-section ${sale ? "home-section--sale" : ""}`}>
+      <div className="section-heading">
+        <div>
+          <p className="eyebrow">{sale ? "Limited offer" : "New arrivals"}</p>
+          <h2>{title}</h2>
+        </div>
+        <Link href={sale ? "/products?onSale=true" : "/products"}>一覧を見る</Link>
+      </div>
+      <div className="product-grid">
+        {products.map((product) => (
+          <ProductCard key={product.productId} product={product} />
+        ))}
+      </div>
+    </section>
+  );
+}

@@ -1,0 +1,86 @@
+{
+  "version": 1,
+  "generatedAt": "2026-07-01T03:00:00.000Z",
+  "assets": [
+    {
+      "assetId": "asset-shirt-front",
+      "path": "/images/products/basic-shirt-front.a1b2c3.webp",
+      "defaultAltText": "ネイビーのベーシックTシャツ正面",
+      "tags": [
+        "ファッション",
+        "Tシャツ",
+        "ネイビー"
+      ],
+      "isActive": true,
+      "mimeType": "image/webp",
+      "width": 720,
+      "height": 720,
+      "bytes": 9382,
+      "sha256": "779ef98e34d928f5493ac5123edc834368a464388770a7258eaca9fb894bcd48"
+    },
+    {
+      "assetId": "asset-shirt-back",
+      "path": "/images/products/basic-shirt-back.d4e5f6.webp",
+      "defaultAltText": "ネイビーのベーシックTシャツ背面",
+      "tags": [
+        "ファッション",
+        "Tシャツ",
+        "ネイビー"
+      ],
+      "isActive": true,
+      "mimeType": "image/webp",
+      "width": 720,
+      "height": 720,
+      "bytes": 9036,
+      "sha256": "506d7b20bfeb50cdce4c46837574b3e36c5e5083aa08f19311f4b998fecb5b85"
+    },
+    {
+      "assetId": "asset-mug",
+      "path": "/images/products/mug.11aa22.webp",
+      "defaultAltText": "白いセラミックマグ",
+      "tags": [
+        "ホーム",
+        "キッチン",
+        "マグ"
+      ],
+      "isActive": true,
+      "mimeType": "image/webp",
+      "width": 720,
+      "height": 720,
+      "bytes": 5652,
+      "sha256": "8975b6765e99199e9542f8c8c445a2d3aac00e284a1a314e9962a4e090a4ebf2"
+    },
+    {
+      "assetId": "asset-running-shoes",
+      "path": "/images/products/running-shoes.33bb44.webp",
+      "defaultAltText": "ネイビーとコーラルのランニングシューズ",
+      "tags": [
+        "スポーツ",
+        "シューズ",
+        "ランニング"
+      ],
+      "isActive": true,
+      "mimeType": "image/webp",
+      "width": 720,
+      "height": 720,
+      "bytes": 47994,
+      "sha256": "b3e6a4bf698cbabc6007e7b3a31d3e46164be35f153aedcf3ead47afcfbae4a6"
+    },
+    {
+      "assetId": "asset-placeholder-retired",
+      "path": "/images/products/retired.55cc66.webp",
+      "defaultAltText": "グレーのスポーツボトル",
+      "tags": [
+        "スポーツ",
+        "ボトル",
+        "廃止"
+      ],
+      "isActive": false,
+      "mimeType": "image/webp",
+      "width": 720,
+      "height": 720,
+      "bytes": 4870,
+      "sha256": "d9e0d0aa1b6aa4992268f5cd7edbc3214bba9d07426240acc9e9047eccae32c9"
+    }
+  ]
+}
