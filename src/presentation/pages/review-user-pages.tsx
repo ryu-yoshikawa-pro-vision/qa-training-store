@@ -100,7 +100,7 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
     }
   };
   return (
-    <main className="storefront-main narrow-form">
+    <div className="storefront-main narrow-form">
       <Breadcrumbs items={[{ label: "注文履歴", href: "/orders" }, { label: "レビュー" }]} />
       <PageHeader
         title={existing === null ? "レビューを投稿" : "レビューを編集"}
@@ -161,7 +161,7 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
           )}
         </div>
       </form>
-    </main>
+    </div>
   );
 }
 

@@ -65,10 +65,17 @@ export function AdminShell({ currentUser, children }: AdminShellProps) {
         </Link>
         <LogoutButton />
       </aside>
-      <div className="admin-viewport-warning" role="status">
-        <h1>管理画面はデスクトップで利用してください</h1>
-        <p>編集操作には1,024px以上の画面幅が必要です。</p>
-        <Link href="/">ストアへ戻る</Link>
+      <div className="admin-viewport-warning">
+        <div role="status">
+          <h1>管理画面はデスクトップで利用してください</h1>
+          <p>編集操作には1,024px以上の画面幅が必要です。</p>
+        </div>
+        <div className="admin-viewport-warning__actions">
+          <Link href="/" className="button button--secondary">
+            ストアへ戻る
+          </Link>
+          {currentUser !== null && <LogoutButton />}
+        </div>
       </div>
       <main id="admin-main" className="admin-main" tabIndex={-1}>
         {children}

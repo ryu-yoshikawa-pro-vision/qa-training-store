@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import type { CurrentUserDto } from "@/application/contracts";
 
 const routerReplace = vi.fn();
@@ -48,6 +48,14 @@ const admin = {
   email: "admin@example.com",
   displayName: "管理者",
   role: "admin",
+} as CurrentUserDto;
+
+const operator = {
+  ...customer,
+  id: "user-operator",
+  email: "operator@example.com",
+  displayName: "運用担当者",
+  role: "operator",
 } as CurrentUserDto;
 
 describe("LogoutButton and shell placement", () => {
@@ -116,14 +124,67 @@ describe("LogoutButton and shell placement", () => {
     expect(screen.queryByRole("button", { name: "ログアウト" })).not.toBeInTheDocument();
   });
 
-  it("shows Logout in the Admin sidebar and hides the production badge", () => {
-    render(
+  it("renders the Storefront mobile staff action only for operator and admin", () => {
+    const { container, rerender } = render(
+      <StorefrontShell currentUser={operator}>
+        <p>本文</p>
+      </StorefrontShell>,
+    );
+    const operatorAction = container.querySelector<HTMLElement>(".staff-mobile-actions");
+    expect(operatorAction).not.toBeNull();
+    expect(within(operatorAction!).getByRole("link", { name: "管理画面" })).toHaveAttribute(
+      "href",
+      "/admin",
+    );
+    expect(within(operatorAction!).getByRole("button", { name: "ログアウト" })).toBeVisible();
+
+    rerender(
+      <StorefrontShell currentUser={admin}>
+        <p>本文</p>
+      </StorefrontShell>,
+    );
+    expect(container.querySelector(".staff-mobile-actions")).not.toBeNull();
+
+    rerender(
+      <StorefrontShell currentUser={customer}>
+        <p>本文</p>
+      </StorefrontShell>,
+    );
+    expect(container.querySelector(".staff-mobile-actions")).toBeNull();
+
+    rerender(
+      <StorefrontShell currentUser={null}>
+        <p>本文</p>
+      </StorefrontShell>,
+    );
+    expect(container.querySelector(".staff-mobile-actions")).toBeNull();
+  });
+
+  it("shows Logout in the Admin sidebar and viewport warning for signed-in staff", () => {
+    const { container, rerender } = render(
       <AdminShell currentUser={admin}>
         <p>管理本文</p>
       </AdminShell>,
     );
 
-    expect(screen.getByRole("button", { name: "ログアウト" })).toBeVisible();
+    expect(screen.getAllByRole("button", { name: "ログアウト" })).toHaveLength(2);
+    const warning = container.querySelector<HTMLElement>(".admin-viewport-warning");
+    expect(warning).not.toBeNull();
+    expect(within(warning!).getByRole("button", { name: "ログアウト" })).toBeVisible();
     expect(screen.queryByText("テスト環境")).not.toBeInTheDocument();
+
+    rerender(
+      <AdminShell currentUser={operator}>
+        <p>管理本文</p>
+      </AdminShell>,
+    );
+    expect(within(warning!).getByRole("button", { name: "ログアウト" })).toBeVisible();
+
+    rerender(
+      <AdminShell currentUser={null}>
+        <p>管理本文</p>
+      </AdminShell>,
+    );
+    expect(within(warning!).queryByRole("button", { name: "ログアウト" })).not.toBeInTheDocument();
   });
 });

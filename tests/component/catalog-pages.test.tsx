@@ -120,6 +120,8 @@ describe("storefront catalog pages", () => {
     });
     const { container } = render(<HomePage />);
     expect(await screen.findByRole("heading", { name: "カテゴリから探す" })).toBeVisible();
+    expect(screen.getByText("カテゴリ", { selector: ".eyebrow" })).toBeVisible();
+    expect(screen.getByText("新着商品", { selector: ".eyebrow" })).toBeVisible();
     expect(screen.getAllByRole("article")).toHaveLength(8);
     expect(screen.queryByRole("heading", { name: "セール商品" })).not.toBeInTheDocument();
     const heroImages = container.querySelectorAll(".home-hero__visual img");
@@ -128,6 +130,20 @@ describe("storefront catalog pages", () => {
       expect(image).toHaveAttribute("alt", "");
       expect(image).toHaveAttribute("src", expect.stringMatching(/^\/images\/products\//));
     }
+  });
+
+  it("uses the Japanese limited-offer eyebrow for Sale products", async () => {
+    catalog.getHome.mockResolvedValue({
+      categories: [],
+      brands: [],
+      newProducts: [],
+      saleProducts: [product("sale-product", "セール対象商品")],
+    });
+
+    render(<HomePage />);
+
+    expect(await screen.findByText("期間限定", { selector: ".eyebrow" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "セール商品" })).toBeVisible();
   });
 
   it("renders exactly 12 variation buttons at the boundary", async () => {

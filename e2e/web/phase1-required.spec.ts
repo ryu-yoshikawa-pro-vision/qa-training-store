@@ -219,7 +219,7 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByRole("button", { name: "利用停止" }).click();
     await expect(page.getByRole("status")).toContainText("利用停止にしました");
     await page.goto("/login");
-    await page.getByLabel("Email").fill("regular@example.com");
+    await page.getByLabel("メールアドレス").fill("regular@example.com");
     await page.getByLabel("パスワード").fill("testpass1");
     await page.getByRole("button", { name: "ログイン" }).click();
     await expect(page.getByRole("alert")).toContainText("利用停止中");
@@ -247,7 +247,11 @@ test.describe("Phase 1 required E2E", () => {
     await scenario("default");
     await login(page, "admin@example.com");
     await page.goto("/admin");
-    if (await expectAdminMobileBoundary(page, testInfo)) return;
+    if (testInfo.project.name === "mobile-chromium") {
+      await expect(
+        page.getByRole("heading", { name: "管理画面はデスクトップで利用してください" }),
+      ).toBeVisible();
+    }
 
     await page.getByRole("button", { name: "ログアウト" }).click();
 

@@ -10,13 +10,13 @@ import { useApplicationServices } from "@/presentation/hooks/use-application-ser
 import { useAppRuntime } from "@/presentation/providers/app-runtime-provider";
 
 const loginSchema = z.object({
-  email: z.email("Emailの形式で入力してください"),
+  email: z.email("メールアドレスの形式で入力してください"),
   password: z.string().min(1, "パスワードを入力してください"),
 });
 
 const signupSchema = z
   .object({
-    email: z.email("Emailの形式で入力してください"),
+    email: z.email("メールアドレスの形式で入力してください"),
     password: z
       .string()
       .min(8, "パスワードは8文字以上で入力してください")
@@ -45,10 +45,10 @@ function useAuthError() {
     capture: (caught: unknown) => {
       if (caught instanceof ApplicationError) {
         const messages: Partial<Record<ApplicationError["code"], string>> = {
-          AUTHENTICATION_FAILED: "Emailまたはパスワードが正しくありません。",
+          AUTHENTICATION_FAILED: "メールアドレスまたはパスワードが正しくありません。",
           ACCOUNT_SUSPENDED: "このアカウントは利用停止中です。管理者へ確認してください。",
           ACCOUNT_WITHDRAWN: "このアカウントは退会済みです。",
-          EMAIL_ALREADY_EXISTS: "このEmailはすでに登録されています。",
+          EMAIL_ALREADY_EXISTS: "このメールアドレスはすでに登録されています。",
           STORAGE_WRITE_FAILED:
             "ブラウザへログイン状態を保存できませんでした。設定を確認してください。",
           LOGIN_TRANSACTION_FAILED:
@@ -107,7 +107,7 @@ export function LoginPage() {
           })}
           noValidate
         >
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">メールアドレス</label>
           <input
             id="email"
             type="email"
@@ -215,7 +215,7 @@ export function SignupPage() {
           })}
           noValidate
         >
-          <label htmlFor="email">Email</label>
+          <label htmlFor="email">メールアドレス</label>
           <input id="email" type="email" {...register("email")} />
           <label htmlFor="displayName">表示名</label>
           <input id="displayName" {...register("displayName")} />

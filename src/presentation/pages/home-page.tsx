@@ -58,7 +58,7 @@ function HomeContent() {
       <section className="home-section">
         <div className="section-heading">
           <div>
-            <p className="eyebrow">Category</p>
+            <p className="eyebrow">カテゴリ</p>
             <h2>カテゴリから探す</h2>
           </div>
           <Link href="/products">すべての商品</Link>
@@ -119,7 +119,7 @@ function ProductSection({
     <section className={`home-section ${sale ? "home-section--sale" : ""}`}>
       <div className="section-heading">
         <div>
-          <p className="eyebrow">{sale ? "Limited offer" : "New arrivals"}</p>
+          <p className="eyebrow">{sale ? "期間限定" : "新着商品"}</p>
           <h2>{title}</h2>
         </div>
         <Link href={sale ? "/products?onSale=true" : "/products"}>一覧を見る</Link>

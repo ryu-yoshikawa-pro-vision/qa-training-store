@@ -82,7 +82,7 @@ export { expect };
 
 export async function login(page: Page, email: string) {
   await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
+  await page.getByLabel("メールアドレス").fill(email);
   await page.getByLabel("パスワード").fill("testpass1");
   await page.getByRole("button", { name: "ログイン" }).click();
   await expect(page).toHaveURL(/\/$/);

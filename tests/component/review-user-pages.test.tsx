@@ -1,11 +1,16 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { CurrentUserDto } from "@/application/contracts";
+import { StorefrontShell } from "@/presentation/shells/storefront-shell";
 
 const reviews = {
   getEligibility: vi.fn(),
   create: vi.fn(),
   update: vi.fn(),
   delete: vi.fn(),
+};
+const catalog = {
+  suggest: vi.fn(async () => []),
 };
 const adminReviews = {
   search: vi.fn(),
@@ -34,9 +39,11 @@ vi.mock("expo-router", () => ({
       {children}
     </a>
   ),
+  usePathname: () => "/reviews/item-1",
+  useRouter: () => ({ push: vi.fn(), replace: vi.fn() }),
 }));
 vi.mock("@/presentation/hooks/use-application-services", () => ({
-  useApplicationServices: () => ({ reviews, adminReviews, adminUsers }),
+  useApplicationServices: () => ({ reviews, adminReviews, adminUsers, catalog }),
 }));
 vi.mock("@/presentation/guards/route-guard", () => ({
   RouteGuard: ({ children }: { children: ReactNode }) => children,
@@ -184,6 +191,21 @@ describe("review, user, and test-control pages", () => {
         body: "配送後の感想です。",
       }),
     );
+  });
+
+  it("keeps a single main landmark when Customer Review is rendered in StorefrontShell", async () => {
+    const customer = {
+      id: "user-customer",
+      role: "customer",
+    } as CurrentUserDto;
+    const { container } = render(
+      <StorefrontShell currentUser={customer}>
+        <CustomerReviewPage orderItemId="item-1" />
+      </StorefrontShell>,
+    );
+
+    expect(await screen.findByRole("heading", { name: "レビューを投稿" })).toBeVisible();
+    expect(container.querySelectorAll("main")).toHaveLength(1);
   });
 
   it("filters and hides an admin review, and exposes its history", async () => {

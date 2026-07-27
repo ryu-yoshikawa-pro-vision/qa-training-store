@@ -86,7 +86,7 @@ describe("auth and account pages", () => {
     expect(screen.getByRole("heading", { name: "ログイン" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "固定テストアカウント" })).toBeVisible();
     expect(screen.getByText("パスワードはすべて「testpass1」です。")).toBeVisible();
-    fireEvent.change(screen.getByLabelText("Email"), {
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
       target: { value: "regular@example.com" },
     });
     fireEvent.change(screen.getByLabelText("パスワード"), {
@@ -105,7 +105,7 @@ describe("auth and account pages", () => {
 
   it("keeps Signup submission blocked until the notice is accepted", async () => {
     render(<SignupPage />);
-    fireEvent.change(screen.getByLabelText("Email"), {
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
       target: { value: "new@example.com" },
     });
     fireEvent.change(screen.getByLabelText("表示名"), {

@@ -24,7 +24,6 @@ jobs:
       EXPO_PUBLIC_BUILD_KIND: automation
       EXPO_PUBLIC_TEST_MODE: "true"
       EXPO_PUBLIC_DEFAULT_SEED: default
-      DEPLOYED_BASE_URL: ${{ vars.DEPLOYED_BASE_URL }}
 
     steps:
       - name: Check Cloudflare availability
@@ -118,9 +117,13 @@ jobs:
         if: ${{ github.event_name != 'pull_request' }}
         run: pnpm run test:e2e:smoke:webkit
 
-      - name: Deployed smoke
-        if: ${{ env.DEPLOYED_BASE_URL != '' }}
-        run: pnpm run test:smoke
+      - name: Production web build validation
+        env:
+          EXPO_PUBLIC_APP_ENV: production
+          EXPO_PUBLIC_BUILD_KIND: production
+          EXPO_PUBLIC_TEST_MODE: "false"
+          EXPO_PUBLIC_DEFAULT_SEED: default
+        run: pnpm run build:web
 
       - name: Upload Playwright artifacts on failure
         if: ${{ failure() }}
@@ -168,11 +171,20 @@ jobs:
         run: pnpm run build:web
 
       - name: Deploy Cloudflare Preview
+        id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=ec-training-automation --branch=${{ github.head_ref }}
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Smoke deployed preview
+        env:
+          DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: pnpm run test:smoke
 
   deploy-production:
     needs: validate
@@ -213,8 +225,17 @@ jobs:
         run: pnpm run build:web
 
       - name: Deploy Cloudflare Production
+        id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=ec-training-automation --branch=main
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Smoke deployed production
+        env:
+          DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: pnpm run test:smoke

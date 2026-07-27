@@ -81,6 +81,14 @@ export function StorefrontShell({ currentUser, children }: StorefrontShellProps)
         </nav>
         <small>© 2026 Scenario Shop — 学習専用の模擬ストア</small>
       </footer>
+      {isStaff && currentUser !== null && (
+        <div className="staff-mobile-actions">
+          <Link href="/admin" className="button button--secondary">
+            管理画面
+          </Link>
+          <LogoutButton />
+        </div>
+      )}
       {!isStaff && (
         <nav aria-label="モバイルナビゲーション" className="mobile-navigation">
           {(
