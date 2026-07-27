@@ -97,6 +97,9 @@ jobs:
       - name: Accessibility smoke
         run: pnpm run test:a11y
 
+      - name: Mobile staff boundary E2E
+        run: pnpm run test:e2e:mobile-boundary
+
       - name: Install extended browsers
         if: ${{ github.event_name != 'pull_request' }}
         run: pnpm exec playwright install --with-deps firefox webkit
@@ -178,6 +181,15 @@ jobs:
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=ec-training-automation --branch=${{ github.head_ref }}
 
+      - name: Validate preview deployment URL
+        env:
+          DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          if [[ -z "$DEPLOYED_BASE_URL" ]]; then
+            echo "Cloudflare preview deployment URL was not returned."
+            exit 1
+          fi
+
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
 
@@ -231,6 +243,15 @@ jobs:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
           command: pages deploy dist --project-name=ec-training-automation --branch=main
+
+      - name: Validate production deployment URL
+        env:
+          DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          if [[ -z "$DEPLOYED_BASE_URL" ]]; then
+            echo "Cloudflare production deployment URL was not returned."
+            exit 1
+          fi
 
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium

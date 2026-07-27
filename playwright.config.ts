@@ -1,7 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const localBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:8081";
-const deployedBaseUrl = process.env.DEPLOYED_BASE_URL ?? localBaseUrl;
+const deployedBaseUrl = process.env.DEPLOYED_BASE_URL;
+const usesDeployedTarget = deployedBaseUrl !== undefined && deployedBaseUrl.trim() !== "";
 
 export default defineConfig({
   testDir: "./e2e/web",
@@ -20,12 +21,16 @@ export default defineConfig({
     screenshot: "only-on-failure",
     video: "retain-on-failure",
   },
-  webServer: {
-    command: "pnpm exec expo start --web --port 8081",
-    url: localBaseUrl,
-    reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
-  },
+  ...(usesDeployedTarget
+    ? {}
+    : {
+        webServer: {
+          command: "pnpm exec expo start --web --port 8081",
+          url: localBaseUrl,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+        },
+      }),
   projects: [
     {
       name: "chromium",
@@ -34,7 +39,7 @@ export default defineConfig({
     },
     {
       name: "mobile-chromium",
-      testMatch: /phase1-required\.spec\.ts/,
+      testMatch: [/phase1-required\.spec\.ts/, /mobile-boundary\.spec\.ts/],
       use: { ...devices["Pixel 7"] },
     },
     {
@@ -47,7 +52,7 @@ export default defineConfig({
       testMatch: /smoke\.spec\.ts/,
       use: {
         ...devices["Desktop Chrome"],
-        baseURL: deployedBaseUrl,
+        baseURL: usesDeployedTarget ? (deployedBaseUrl ?? localBaseUrl) : localBaseUrl,
       },
     },
     {

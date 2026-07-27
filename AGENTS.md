@@ -41,6 +41,39 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 * Run Artifactの作成を省略、削除、移動してよいのは、ユーザーが`.codex/runs/`または対象Runを明示して指示した場合に限る。
 * Git操作が禁止されている場合でも、Run Artifactの作成・更新は通常のファイル編集として実施する。ただし、禁止された`git add`、`git commit`、`git push`等は実行しない。
 
+### 長期保存する標準Run Artifact
+
+- `PLAN.md`
+- `TASKS.md`
+- `REPORT.md`
+- Workflow Levelで必要な`run.json`
+- Workflow Levelで必要な`evaluation.json`
+- ユーザーまたはDoDが保存を要求した補足資料
+
+標準Run Artifactは正式なリポジトリ成果物として扱い、通常のcleanup、成果物整理、コード以外のファイル整理を理由に削除しない。
+
+### 長期保存しない一時ファイル
+
+以下は標準Run Artifactに含めない。
+
+- `shims/`
+- cache
+- `node_modules`
+- browser binaries
+- 一時的なPATH設定用ファイル
+- OSや実行端末固有の絶対パスを含むファイル
+- 再生成可能な一時ログ
+- credential、token、secretを含む可能性があるファイル
+- 一時的なdownload、build、test output
+
+一時ファイルをRun Directory内に生成した場合は、作業完了前に標準Run Artifactと分離する。
+
+### 過去Runの変更ルール
+
+- 過去Runの標準Run Artifactは、事実誤認や形式破損の修正を除き、原則として変更しない。
+- 過去Runの不足を補う必要がある場合は、履歴を失わない追記とし、今回の作業内容は新規Runへ記録する。
+- 標準Run Artifactの削除、移動、置換は、ユーザーが対象Pathを明示した場合に限る。
+
 ## 2. 実行ループ
 1) `.codex/runs/<run_id>/TASKS.md` のタスクを上から順に実行する。  
 2) 各タスク完了後に次を行う。  
@@ -78,6 +111,7 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 
 ## 7. 安全性 / スコープ
 - 関連のないファイルは変更しない。
+- `.codex/runs/`配下の標準Run Artifactは削除候補として扱わない。一時ファイルと標準Run Artifactを区別し、標準Run Artifactをcleanup対象に含めない。
 - プロジェクト配下の読み書きは許可する。ただし shell / PowerShell / git などの command によるファイル削除、履歴破壊、配布対象除去は明示承認なしに行わない。command-based deletion is forbidden.
 - command-based deletion is forbidden.
 - `apply_patch` は差分単位で意図を確認できる通常の編集手段として許可する。

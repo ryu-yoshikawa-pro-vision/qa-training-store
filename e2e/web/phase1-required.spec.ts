@@ -3,6 +3,7 @@ import {
   completeCheckout,
   expect,
   expectAdminMobileBoundary,
+  expectSessionIdCleared,
   login,
   test,
 } from "./fixtures";
@@ -236,9 +237,7 @@ test.describe("Phase 1 required E2E", () => {
     await page.locator("#main-content").getByRole("button", { name: "ログアウト" }).click();
 
     await expect(page).toHaveURL(/\/$/);
-    await expect
-      .poll(() => page.evaluate(() => localStorage.getItem("scenario-shop.session-id")))
-      .toBeNull();
+    await expectSessionIdCleared(page);
     await page.goto("/orders");
     await expect(page).toHaveURL(/\/login$/);
   });
@@ -256,9 +255,7 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByRole("button", { name: "ログアウト" }).click();
 
     await expect(page).toHaveURL(/\/$/);
-    await expect
-      .poll(() => page.evaluate(() => localStorage.getItem("scenario-shop.session-id")))
-      .toBeNull();
+    await expectSessionIdCleared(page);
     await page.goto("/admin");
     await expect(page).toHaveURL(/\/login$/);
   });

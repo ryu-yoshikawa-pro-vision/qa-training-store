@@ -88,6 +88,12 @@ export async function login(page: Page, email: string) {
   await expect(page).toHaveURL(/\/$/);
 }
 
+export async function expectSessionIdCleared(page: Page) {
+  await expect
+    .poll(() => page.evaluate(() => localStorage.getItem("scenario-shop.session-id")))
+    .toBeNull();
+}
+
 export async function addDefaultAddress(page: Page) {
   await page.goto("/account/addresses");
   if (await page.getByText("E2E配送先").count()) {
