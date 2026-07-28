@@ -1,4 +1,5 @@
 import { Slot } from "expo-router";
+import "@/presentation/styles/fonts.css";
 import "@/presentation/styles/global.css";
 import { AppFrame } from "@/presentation/shells/app-frame";
 import { AppRuntimeProvider } from "@/presentation/providers/app-runtime-provider";

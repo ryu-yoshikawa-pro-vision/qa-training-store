@@ -330,7 +330,15 @@ function AdminReviewsContent() {
           <>
             <ResourceTable
               caption="レビュー一覧"
-              columns={["選択", "商品・投稿者", "評価", "内容", "状態", "操作"]}
+              rowHeaderColumnIndex={1}
+              columns={[
+                { label: "選択", align: "center" },
+                { label: "商品・投稿者", align: "start" },
+                { label: "評価", align: "end" },
+                { label: "内容", align: "start" },
+                { label: "状態", align: "center" },
+                { label: "操作", align: "end" },
+              ]}
               rows={state.value.items.map((item) => ({
                 id: item.reviewId,
                 cells: [
@@ -481,7 +489,13 @@ function AdminUsersContent() {
           <>
             <ResourceTable
               caption="ユーザー一覧"
-              columns={["ユーザー", "役割", "会員ランク", "利用状態", "Version"]}
+              columns={[
+                { label: "ユーザー", align: "start" },
+                { label: "役割", align: "center" },
+                { label: "会員ランク", align: "center" },
+                { label: "利用状態", align: "center" },
+                { label: "Version", align: "end" },
+              ]}
               rows={state.value.items.map((item) => ({
                 id: item.userId,
                 cells: [

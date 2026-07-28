@@ -117,4 +117,42 @@ describe("presentation foundation", () => {
     expect(screen.getByRole("columnheader", { name: "状態" })).toBeVisible();
     expect(screen.getByRole("rowheader", { name: "ベーシックTシャツ" })).toBeVisible();
   });
+
+  it("supports an explicit row header column and shared column alignment", () => {
+    render(
+      <ResourceTable
+        caption="商品一覧"
+        rowHeaderColumnIndex={1}
+        columns={[
+          { label: "選択", align: "center" },
+          { label: "商品", align: "start" },
+          { label: "価格", align: "end" },
+        ]}
+        rows={[
+          {
+            id: "product-1",
+            cells: [
+              <input key="select" type="checkbox" aria-label="ベーシックTシャツを選択" />,
+              "ベーシックTシャツ",
+              "¥3,980",
+            ],
+          },
+        ]}
+      />,
+    );
+
+    expect(screen.getByRole("rowheader", { name: "ベーシックTシャツ" })).toBeVisible();
+    expect(screen.getByRole("rowheader").querySelector("input")).toBeNull();
+    const checkbox = screen.getByRole("checkbox", { name: "ベーシックTシャツを選択" });
+    expect(checkbox).toBeVisible();
+    expect(checkbox.closest("td")).toHaveClass("resource-table__cell--center");
+    expect(screen.getByRole("columnheader", { name: "選択" })).toHaveClass(
+      "resource-table__cell--center",
+    );
+    expect(screen.getByRole("columnheader", { name: "価格" })).toHaveClass(
+      "resource-table__cell--end",
+    );
+    expect(screen.getByRole("rowheader")).toHaveClass("resource-table__cell--start");
+    expect(screen.getByRole("cell", { name: "¥3,980" })).toHaveClass("resource-table__cell--end");
+  });
 });

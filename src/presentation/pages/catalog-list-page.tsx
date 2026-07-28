@@ -14,6 +14,7 @@ interface CatalogListPageProps {
   categoryId?: string;
 }
 
+const CATALOG_FILTER_DESKTOP_QUERY = "(min-width: 900px)";
 const SORTS: readonly ProductSort[] = ["newest", "price_asc", "price_desc", "rating_desc"];
 
 function first(value: string | string[] | undefined): string | undefined {
@@ -41,9 +42,13 @@ export function CatalogListPage({ mode, categoryId }: CatalogListPageProps) {
 }
 
 function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
-  const [filtersOpen, setFiltersOpen] = useState(
-    () => typeof window === "undefined" || window.innerWidth >= 900,
-  );
+  const [filtersOpen, setFiltersOpen] = useState(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return true;
+    }
+
+    return window.matchMedia(CATALOG_FILTER_DESKTOP_QUERY).matches;
+  });
   const params = useLocalSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -84,6 +89,19 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
         : catalog.getCategoryName(categoryId),
     [catalog, categoryId],
   );
+  useEffect(() => {
+    if (typeof window === "undefined" || typeof window.matchMedia !== "function") {
+      return;
+    }
+
+    const mediaQuery = window.matchMedia(CATALOG_FILTER_DESKTOP_QUERY);
+    const synchronize = (matches: boolean) => setFiltersOpen(matches);
+    synchronize(mediaQuery.matches);
+    const handleChange = (event: MediaQueryListEvent) => synchronize(event.matches);
+
+    mediaQuery.addEventListener("change", handleChange);
+    return () => mediaQuery.removeEventListener("change", handleChange);
+  }, []);
   useEffect(() => {
     const saved = sessionStorage.getItem(`catalog-scroll:${pathname}?${requestKey}`);
     if (saved !== null) {

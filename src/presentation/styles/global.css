@@ -4093,6 +4093,19 @@ progress {
   vertical-align: middle;
 }
 
+.resource-table__cell--start {
+  text-align: start;
+}
+
+.resource-table__cell--center {
+  text-align: center;
+}
+
+.resource-table__cell--end {
+  text-align: end;
+  font-variant-numeric: tabular-nums;
+}
+
 .resource-table thead th {
   top: 0;
   border-top: 0;
@@ -4111,6 +4124,7 @@ progress {
   background: #fafaf8;
 }
 
+.resource-table th > a,
 .resource-table td > a {
   color: #111827;
   font-weight: 700;
@@ -4125,7 +4139,7 @@ progress {
 }
 
 .table-actions .button {
-  min-height: 40px;
+  min-height: 44px;
   padding: 7px 12px;
 }
 
@@ -4188,12 +4202,6 @@ progress {
   border: 1px solid var(--color-border);
   border-radius: 16px;
   box-shadow: 0 12px 36px rgb(15 23 42 / 7%);
-}
-
-@media (min-width: 900px) {
-  .catalog-filters:not([open]) .catalog-filters__content {
-    display: block;
-  }
 }
 
 @media (max-width: 1180px) {

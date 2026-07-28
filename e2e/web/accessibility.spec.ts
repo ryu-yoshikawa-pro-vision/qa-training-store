@@ -40,6 +40,25 @@ async function expectPageScrolls(page: Page) {
   await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
 }
 
+async function expectBundledFonts(page: Page) {
+  await page.evaluate(() => document.fonts.ready);
+  const fontState = await page.evaluate(() => ({
+    inter: document.fonts.check('16px "Inter"', "Scenario Shop"),
+    notoSansJp: document.fonts.check('16px "Noto Sans JP"', "日本語"),
+    status: document.fonts.status,
+  }));
+  expect(fontState.inter, JSON.stringify(fontState)).toBe(true);
+  expect(fontState.notoSansJp, JSON.stringify(fontState)).toBe(true);
+}
+
+async function expectTableActionTouchTarget(page: Page) {
+  const action = page.getByRole("button", { name: "調整・履歴" }).first();
+  await expect(action).toBeVisible();
+  const box = await action.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box?.height ?? 0).toBeGreaterThanOrEqual(44);
+}
+
 test.describe("Accessibility smoke", () => {
   test("Public／Guest代表画面", async ({ page, scenario }, testInfo) => {
     await scenario("default");
@@ -69,6 +88,9 @@ test.describe("Accessibility smoke", () => {
       },
     ] satisfies AccessibilityTarget[]) {
       await scanPage(page, testInfo, target);
+      if (target.path === "/") {
+        await expectBundledFonts(page);
+      }
       if (target.path === "/") {
         await expectPageScrolls(page);
       }
@@ -118,6 +140,9 @@ test.describe("Accessibility smoke", () => {
       },
     ] satisfies AccessibilityTarget[]) {
       await scanPage(page, testInfo, target);
+      if (target.path === "/admin/inventories") {
+        await expectTableActionTouchTarget(page);
+      }
     }
   });
 });

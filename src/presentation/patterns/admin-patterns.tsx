@@ -124,24 +124,45 @@ export function ContextualSaveBar({
   );
 }
 
+export type ResourceTableColumn =
+  | string
+  | {
+      label: string;
+      align?: "start" | "center" | "end";
+    };
+
+interface ResourceTableProps {
+  caption: string;
+  columns: ResourceTableColumn[];
+  rows: Array<{ id: string; cells: ReactNode[] }>;
+  rowHeaderColumnIndex?: number | null;
+}
+
 export function ResourceTable({
   caption,
   columns,
   rows,
-}: {
-  caption: string;
-  columns: string[];
-  rows: Array<{ id: string; cells: ReactNode[] }>;
-}) {
+  rowHeaderColumnIndex = 0,
+}: ResourceTableProps) {
+  const normalizedColumns = columns.map((column) =>
+    typeof column === "string"
+      ? { label: column, align: "start" as const }
+      : { label: column.label, align: column.align ?? "start" },
+  );
+
   return (
     <div className="resource-table-scroll">
       <table className="resource-table">
         <caption>{caption}</caption>
         <thead>
           <tr>
-            {columns.map((column) => (
-              <th key={column} scope="col">
-                {column}
+            {normalizedColumns.map((column, index) => (
+              <th
+                key={`${column.label}-${index}`}
+                scope="col"
+                className={`resource-table__cell--${column.align}`}
+              >
+                {column.label}
               </th>
             ))}
           </tr>
@@ -149,15 +170,20 @@ export function ResourceTable({
         <tbody>
           {rows.map((row) => (
             <tr key={row.id}>
-              {row.cells.map((cell, index) =>
-                index === 0 ? (
-                  <th key={index} scope="row">
+              {row.cells.map((cell, index) => {
+                const align = normalizedColumns[index]?.align ?? "start";
+                const className = `resource-table__cell--${align}`;
+
+                return rowHeaderColumnIndex === index ? (
+                  <th key={index} scope="row" className={className}>
                     {cell}
                   </th>
                 ) : (
-                  <td key={index}>{cell}</td>
-                ),
-              )}
+                  <td key={index} className={className}>
+                    {cell}
+                  </td>
+                );
+              })}
             </tr>
           ))}
         </tbody>

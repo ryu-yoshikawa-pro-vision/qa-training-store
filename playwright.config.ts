@@ -25,7 +25,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: "pnpm exec expo start --web --port 8081",
+          command: "pnpm run prepare:font-assets && pnpm exec expo start --web --port 8081",
           url: localBaseUrl,
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,

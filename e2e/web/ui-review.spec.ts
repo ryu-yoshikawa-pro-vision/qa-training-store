@@ -1,4 +1,4 @@
-import { mkdir } from "node:fs/promises";
+import { mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 import { expect, login, addDefaultAddress, test } from "./fixtures";
 import type { Locator, Page, TestInfo } from "@playwright/test";
@@ -14,10 +14,27 @@ interface CaptureRoute {
   prepare: (page: Page) => Promise<void>;
 }
 
-const reviewStage = sanitizeFolderName(process.env.UI_REVIEW_STAGE?.trim() || "before");
+const reviewStage = resolveReviewStage();
 
 function sanitizeFolderName(value: string) {
-  return value.replace(/[^a-zA-Z0-9._-]+/g, "-") || "before";
+  return value.replace(/[^a-zA-Z0-9._-]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function resolveReviewStage() {
+  const rawStage = process.env.UI_REVIEW_STAGE?.trim();
+
+  if (!rawStage) {
+    throw new Error(
+      "UI_REVIEW_STAGE is required. Use a unique stage such as after or ci-<run-id>.",
+    );
+  }
+
+  const sanitized = sanitizeFolderName(rawStage);
+  if (!sanitized || sanitized === "." || sanitized === "..") {
+    throw new Error("UI_REVIEW_STAGE does not contain a usable folder name.");
+  }
+
+  return sanitized;
 }
 
 function viewportLabel(projectName: string): ViewportKind {
@@ -78,6 +95,21 @@ async function screenshotPath(viewport: ViewportKind, fileName: string) {
   const dir = path.resolve("output", "ui-review", reviewStage, viewport);
   await mkdir(dir, { recursive: true });
   return path.join(dir, `${fileName}.png`);
+}
+
+async function ensureViewportFolderAvailable(viewport: ViewportKind) {
+  const dir = path.resolve("output", "ui-review", reviewStage, viewport);
+  await mkdir(dir, { recursive: true });
+  const entries = await readdir(dir, { withFileTypes: true });
+  const hasPng = entries.some(
+    (entry) => entry.isFile() && entry.name.toLowerCase().endsWith(".png"),
+  );
+
+  if (hasPng) {
+    throw new Error(
+      `UI review stage "${reviewStage}" already contains screenshots:\n${dir}\nUse a new UI_REVIEW_STAGE.`,
+    );
+  }
 }
 
 async function captureRoute(page: Page, testInfo: TestInfo, route: CaptureRoute) {
@@ -285,6 +317,11 @@ function routesForViewport(viewport: ViewportKind): CaptureRoute[] {
 }
 
 test.describe("UI review screenshots", () => {
+  test.beforeEach(async ({ page }, testInfo) => {
+    void page;
+    await ensureViewportFolderAvailable(viewportLabel(testInfo.project.name));
+  });
+
   test("captures the requested viewport routes", async ({ page, scenario }, testInfo) => {
     test.setTimeout(300_000);
     const viewport = viewportLabel(testInfo.project.name);

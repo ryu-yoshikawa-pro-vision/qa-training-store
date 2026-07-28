@@ -11,6 +11,8 @@ dist/
 .corepack-cache/
 .pnpm-store/
 output/
+public/_expo/
+public/files/
 playwright-report/
 test-results/
 .playwright-cli

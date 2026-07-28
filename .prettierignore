@@ -10,6 +10,8 @@ node_modules
 output
 playwright-report
 public/images/product-image-manifest.json
+public/_expo/
+public/files/
 src/generated/product-image-manifest.ts
 test-results
 expo-env.d.ts

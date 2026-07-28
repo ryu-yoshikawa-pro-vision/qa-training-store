@@ -36,3 +36,36 @@ test.describe("Mobile staff Logout boundary", () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 });
+
+test.describe("Catalog filter responsive boundary", () => {
+  test("keeps filter state synchronized when crossing the 900px breakpoint", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("default");
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await page.goto("/products", { waitUntil: "domcontentloaded" });
+
+    const filters = page.locator("details.catalog-filters");
+    await expect(filters).toHaveAttribute("open", "");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(filters).not.toHaveAttribute("open", "");
+
+    await filters.locator("summary").click();
+    await expect(filters).toHaveAttribute("open", "");
+
+    await page.setViewportSize({ width: 1024, height: 900 });
+    await expect(filters).toHaveAttribute("open", "");
+
+    await page.setViewportSize({ width: 390, height: 844 });
+    await expect(filters).not.toHaveAttribute("open", "");
+    await expect
+      .poll(() =>
+        page.evaluate(
+          () => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        ),
+      )
+      .toBe(true);
+  });
+});

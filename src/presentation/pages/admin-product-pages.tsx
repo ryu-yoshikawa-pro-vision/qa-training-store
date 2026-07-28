@@ -208,7 +208,15 @@ function AdminProductsContent() {
         <>
           <ResourceTable
             caption="商品一覧"
-            columns={["選択", "商品", "状態", "Category / Brand", "価格", "有効SKU / 在庫"]}
+            rowHeaderColumnIndex={1}
+            columns={[
+              { label: "選択", align: "center" },
+              { label: "商品", align: "start" },
+              { label: "状態", align: "center" },
+              { label: "Category / Brand", align: "start" },
+              { label: "価格", align: "end" },
+              { label: "有効SKU / 在庫", align: "end" },
+            ]}
             rows={state.value.items.map((item) => ({
               id: item.productId,
               cells: [

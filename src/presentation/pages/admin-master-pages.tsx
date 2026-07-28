@@ -78,7 +78,13 @@ function AdminOverviewContent() {
         <h2>最近の注文</h2>
         <ResourceTable
           caption="最近の注文5件"
-          columns={["注文番号", "顧客", "状態", "合計", "作成日時"]}
+          columns={[
+            { label: "注文番号", align: "start" },
+            { label: "顧客", align: "start" },
+            { label: "状態", align: "center" },
+            { label: "合計", align: "end" },
+            { label: "作成日時", align: "start" },
+          ]}
           rows={overview.recentOrders.map((order) => ({
             id: order.orderId,
             cells: [
@@ -302,7 +308,13 @@ function CategoryTable({
   return (
     <ResourceTable
       caption="Category一覧"
-      columns={["Category", "順序", "公開商品", "状態", "操作"]}
+      columns={[
+        { label: "Category", align: "start" },
+        { label: "順序", align: "end" },
+        { label: "公開商品", align: "end" },
+        { label: "状態", align: "center" },
+        { label: "操作", align: "end" },
+      ]}
       rows={items.map((item) => ({
         id: item.categoryId,
         cells: [
@@ -475,7 +487,12 @@ function AdminBrandsContent() {
       ) : (
         <ResourceTable
           caption="Brand一覧（名称順）"
-          columns={["Brand", "公開商品", "状態", "操作"]}
+          columns={[
+            { label: "Brand", align: "start" },
+            { label: "公開商品", align: "end" },
+            { label: "状態", align: "center" },
+            { label: "操作", align: "end" },
+          ]}
           rows={state.value.items.map((item: BrandAdminListItem) => ({
             id: item.brandId,
             cells: [

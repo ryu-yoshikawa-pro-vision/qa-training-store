@@ -159,7 +159,15 @@ function AdminInventoriesContent() {
         <>
           <ResourceTable
             caption="SKU在庫一覧"
-            columns={["SKU", "商品", "Option", "状態", "在庫", "Version", "操作"]}
+            columns={[
+              { label: "SKU", align: "start" },
+              { label: "商品", align: "start" },
+              { label: "Option", align: "start" },
+              { label: "状態", align: "center" },
+              { label: "在庫", align: "end" },
+              { label: "Version", align: "end" },
+              { label: "操作", align: "end" },
+            ]}
             rows={state.value.items.map((item) => ({
               id: item.variantId,
               cells: [
@@ -230,7 +238,14 @@ function AdminInventoriesContent() {
           {detail.value && (
             <ResourceTable
               caption={`${selected.sku}の在庫履歴`}
-              columns={["日時", "理由", "増減", "変更前", "変更後", "詳細"]}
+              columns={[
+                { label: "日時", align: "start" },
+                { label: "理由", align: "start" },
+                { label: "増減", align: "end" },
+                { label: "変更前", align: "end" },
+                { label: "変更後", align: "end" },
+                { label: "詳細", align: "start" },
+              ]}
               rows={detail.value.histories.map((history) => ({
                 id: history.id,
                 cells: [
@@ -381,7 +396,14 @@ function AdminOrdersContent() {
         <>
           <ResourceTable
             caption="Admin注文一覧"
-            columns={["注文番号", "顧客", "状態", "商品数", "合計", "作成日時"]}
+            columns={[
+              { label: "注文番号", align: "start" },
+              { label: "顧客", align: "start" },
+              { label: "状態", align: "center" },
+              { label: "商品数", align: "end" },
+              { label: "合計", align: "end" },
+              { label: "作成日時", align: "start" },
+            ]}
             rows={state.value.items.map((order) => ({
               id: order.orderId,
               cells: [
