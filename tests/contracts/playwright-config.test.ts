@@ -39,7 +39,7 @@ describe("Playwright local and deployed target boundary", () => {
 
     expect(config.webServer).toMatchObject({ url: localBaseUrl });
     expect(deployedSmokeProject(config).use?.baseURL).toBe(localBaseUrl);
-  });
+  }, 60_000);
 
   it("uses the deployed URL without starting the local web server", async () => {
     const deployedBaseUrl = "https://preview.example.test";

@@ -6,7 +6,7 @@ test.describe("Cross-role weekly lifecycle", () => {
 
     await login(page, "admin@example.com");
     await page.goto("/admin/products/new");
-    await page.getByLabel("商品Code").fill("P-WEEKLY-001");
+    await page.getByLabel("商品コード").fill("P-WEEKLY-001");
     await page.getByLabel("商品名").fill("横断E2E商品");
     await page.getByLabel("短い説明").fill("役割横断E2E用の商品です");
     await page
@@ -19,12 +19,12 @@ test.describe("Cross-role weekly lifecycle", () => {
     const assetChoices = page.locator('.asset-picker input[type="checkbox"]:enabled');
     expect(await assetChoices.count()).toBeGreaterThan(0);
     await assetChoices.first().check();
-    await page.getByRole("button", { name: "draftを保存" }).click();
+    await page.getByRole("button", { name: "下書きで保存" }).click();
     await expect(page).toHaveURL(/\/admin\/products\/.+/);
     const productId = new URL(page.url()).pathname.split("/").at(-1);
     expect(productId).toBeTruthy();
     await page.getByRole("button", { name: "公開" }).click();
-    await expect(page.getByText("P-WEEKLY-001・published", { exact: true })).toBeVisible();
+    await expect(page.getByText("P-WEEKLY-001・公開中", { exact: true })).toBeVisible();
 
     await login(page, "regular@example.com");
     await page.goto("/search");
@@ -45,7 +45,7 @@ test.describe("Cross-role weekly lifecycle", () => {
     await page.getByLabel("追跡番号").fill("WEEKLY-TRACK-001");
     await page.getByRole("button", { name: "発送済みにする" }).click();
     await page.getByRole("button", { name: "配達完了にする" }).click();
-    await expect(page.getByText("Shipment: delivered", { exact: true })).toBeVisible();
+    await expect(page.getByText("配送完了", { exact: true })).toBeVisible();
 
     await login(page, "regular@example.com");
     await page.goto(`/orders/${orderId}`);

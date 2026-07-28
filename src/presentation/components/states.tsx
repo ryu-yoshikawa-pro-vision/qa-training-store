@@ -16,7 +16,7 @@ interface StatePanelProps {
   kind: StateKind;
   title?: string;
   body?: string;
-  action?: ReactNode;
+  action?: ReactNode | null;
 }
 
 const defaultCopy: Record<StateKind, { title: string; body: string }> = {
@@ -54,6 +54,14 @@ export function StatePanel({ kind, title, body, action }: StatePanelProps) {
   const copy = defaultCopy[kind];
   const icon: IconName =
     kind === "loading" ? "refresh" : kind === "empty" || kind === "filter-empty" ? "box" : "alert";
+  const resolvedAction =
+    action === undefined && kind !== "loading" ? (
+      <Link href="/" className="button button--secondary">
+        {content.action.backHome}
+      </Link>
+    ) : (
+      action
+    );
   return (
     <section
       className={`state-panel state-panel--${kind}`}
@@ -66,11 +74,7 @@ export function StatePanel({ kind, title, body, action }: StatePanelProps) {
       </span>
       <h1>{title ?? copy.title}</h1>
       <p>{body ?? copy.body}</p>
-      {action ?? (
-        <Link href="/" className="button button--secondary">
-          {content.action.backHome}
-        </Link>
-      )}
+      {resolvedAction}
     </section>
   );
 }

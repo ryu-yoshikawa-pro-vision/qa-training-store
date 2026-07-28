@@ -13,6 +13,30 @@ interface StorefrontShellProps {
   children: ReactNode;
 }
 
+function isWithin(pathname: string, prefix: string) {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+function isNavigationCurrent(pathname: string, href: string) {
+  switch (href) {
+    case "/":
+      return pathname === "/";
+    case "/products":
+    case "/search":
+      return ["/products", "/search", "/categories"].some((prefix) => isWithin(pathname, prefix));
+    case "/cart":
+      return isWithin(pathname, "/cart") || isWithin(pathname, "/checkout");
+    case "/orders":
+      return isWithin(pathname, "/orders") || isWithin(pathname, "/reviews");
+    case "/account/profile":
+      return isWithin(pathname, "/account");
+    case "/admin":
+      return isWithin(pathname, "/admin");
+    default:
+      return pathname === href;
+  }
+}
+
 export function StorefrontShell({ currentUser, children }: StorefrontShellProps) {
   const pathname = usePathname();
   const { catalog } = useApplicationServices();
@@ -53,26 +77,43 @@ export function StorefrontShell({ currentUser, children }: StorefrontShellProps)
           </Link>
           <SearchCombobox loadSuggestions={loadSuggestions} />
           <nav aria-label="主要ナビゲーション" className="desktop-navigation">
-            <Link href="/products">
+            <Link
+              href="/products"
+              aria-current={isNavigationCurrent(pathname, "/products") ? "page" : undefined}
+            >
               <Icon name="products" size={17} />
               {content.navigation.products}
             </Link>
             {isStaff ? (
-              <Link href="/admin">
+              <Link
+                href="/admin"
+                aria-current={isNavigationCurrent(pathname, "/admin") ? "page" : undefined}
+              >
                 <Icon name="settings" size={17} />
                 {content.navigation.admin}
               </Link>
             ) : (
               <>
-                <Link href="/orders">
+                <Link
+                  href="/orders"
+                  aria-current={isNavigationCurrent(pathname, "/orders") ? "page" : undefined}
+                >
                   <Icon name="orders" size={17} />
                   {content.navigation.orders}
                 </Link>
-                <Link href="/account/profile">
+                <Link
+                  href="/account/profile"
+                  aria-current={
+                    isNavigationCurrent(pathname, "/account/profile") ? "page" : undefined
+                  }
+                >
                   <Icon name="account" size={17} />
                   {content.navigation.account}
                 </Link>
-                <Link href="/cart">
+                <Link
+                  href="/cart"
+                  aria-current={isNavigationCurrent(pathname, "/cart") ? "page" : undefined}
+                >
                   <Icon name="cart" size={17} />
                   {content.navigation.cart}
                 </Link>
@@ -162,7 +203,11 @@ export function StorefrontShell({ currentUser, children }: StorefrontShellProps)
               ["/account/profile", content.navigation.account, "account"],
             ] as const
           ).map(([href, label, icon]) => (
-            <Link href={href} key={href} aria-current={pathname === href ? "page" : undefined}>
+            <Link
+              href={href}
+              key={href}
+              aria-current={isNavigationCurrent(pathname, href) ? "page" : undefined}
+            >
               <Icon name={icon as IconName} size={20} />
               {label}
             </Link>

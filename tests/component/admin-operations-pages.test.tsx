@@ -163,7 +163,7 @@ describe("admin inventory and order pages", () => {
     expect(await screen.findByText("初期在庫")).toBeVisible();
     fireEvent.change(screen.getByLabelText("増減数量"), { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("理由詳細"), { target: { value: "棚卸し訂正" } });
-    fireEvent.click(screen.getByRole("button", { name: "Version 1で更新" }));
+    fireEvent.click(screen.getByRole("button", { name: "バージョン 1で更新" }));
     await waitFor(() =>
       expect(adminOperations.adjustInventory).toHaveBeenCalledWith({
         variantId: "variant",
@@ -193,8 +193,8 @@ describe("admin inventory and order pages", () => {
   it("builds a shipment action from orderActionVersion and returns the new Version", async () => {
     render(<AdminOrderDetailPage orderId="order-paid" />);
     expect(await screen.findByRole("heading", { name: "ORD-20260701-0002" })).toBeVisible();
-    expect(screen.getByText(/Action Version 1/)).toBeVisible();
-    expect(screen.getByRole("heading", { name: "配送先Snapshot" }).parentElement).toHaveTextContent(
+    expect(screen.getByText(/操作バージョン 1/)).toBeVisible();
+    expect(screen.getByRole("heading", { name: "注文時の配送先" }).parentElement).toHaveTextContent(
       "東京都千代田区1-1",
     );
     fireEvent.click(screen.getByRole("button", { name: "発送準備を開始" }));
@@ -204,6 +204,6 @@ describe("admin inventory and order pages", () => {
         orderActionVersion: 1,
       }),
     );
-    expect(await screen.findByRole("status")).toHaveTextContent("新しいAction Version: 2");
+    expect(await screen.findByRole("status")).toHaveTextContent("新しい操作バージョン: 2");
   });
 });

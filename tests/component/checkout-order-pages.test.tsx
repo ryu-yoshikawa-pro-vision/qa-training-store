@@ -47,6 +47,8 @@ vi.mock("@/presentation/guards/route-guard", () => ({
 import {
   CheckoutAddressPage,
   CheckoutConfirmPage,
+  CheckoutFailedPage,
+  CheckoutPaymentPage,
   CheckoutProcessingPage,
   OrderDetailPage,
 } from "@/presentation/pages/checkout-order-pages";
@@ -184,6 +186,7 @@ describe("checkout and order pages", () => {
       blockingIssues: [],
     });
     checkout.start.mockResolvedValue({ session, result: "created" });
+    checkout.getActive.mockResolvedValue({ ...session, unlockedStep: "payment", version: 2 });
     account.listAddresses.mockResolvedValue([
       {
         id: "address",
@@ -239,6 +242,24 @@ describe("checkout and order pages", () => {
     expect(routerReplace).toHaveBeenCalledWith("/checkout/processing?orderId=order-new");
   });
 
+  it("explains each deterministic payment outcome before selection", async () => {
+    render(<CheckoutPaymentPage />);
+    expect(await screen.findByRole("heading", { name: "支払方法" })).toBeVisible();
+    expect(screen.getByText("支払い完了を再現します。")).toBeVisible();
+    expect(screen.getByText("利用拒否による支払い失敗を再現します。")).toBeVisible();
+    expect(screen.getByText("残高不足による支払い失敗を再現します。")).toBeVisible();
+    expect(screen.getByText("認証失敗による支払い失敗を再現します。")).toBeVisible();
+  });
+
+  it("keeps payment retry primary and order detail secondary after a failure", async () => {
+    render(<CheckoutFailedPage />);
+    expect(
+      await screen.findByRole("heading", { name: "支払いを完了できませんでした" }),
+    ).toBeVisible();
+    expect(screen.getByRole("button", { name: "支払いを再試行" })).toHaveClass("button--primary");
+    expect(screen.getByRole("link", { name: "注文詳細" })).toHaveClass("button--secondary");
+  });
+
   it("resumes processing and routes from the deterministic result", async () => {
     checkout.resumePayment.mockResolvedValue({
       orderId: "order-new",
@@ -256,7 +277,9 @@ describe("checkout and order pages", () => {
     render(<OrderDetailPage orderId="order-new" />);
     expect(await screen.findByRole("heading", { name: "ORD-20260701-0006" })).toBeVisible();
     expect(screen.getByText("ベーシックTシャツ")).toBeVisible();
-    expect(screen.getByText(/#1 テスト決済（成功） — succeeded/)).toBeVisible();
+    expect(screen.getByText(/#1 テスト決済（成功）/)).toBeVisible();
+    expect(screen.queryByText("succeeded")).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "支払い履歴" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "配送先" }).parentElement).toHaveTextContent(
       "東京都千代田区1-1",
     );

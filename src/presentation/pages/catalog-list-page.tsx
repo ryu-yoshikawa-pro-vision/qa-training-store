@@ -187,6 +187,13 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
           },
         ]),
   ];
+  const showUnfilteredEmptyState =
+    mode === "products" &&
+    request.page === 1 &&
+    request.keyword === null &&
+    activeFilters.length === 0 &&
+    request.minimumPrice === null &&
+    request.maximumPrice === null;
   return (
     <div className="catalog-page">
       <nav className="breadcrumbs" aria-label="パンくず">
@@ -405,17 +412,28 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
             </label>
           </div>
           {value.items.length === 0 ? (
-            <StatePanel
-              kind="filter-empty"
-              action={
-                <button
-                  className="button button--primary"
-                  onClick={() => router.replace((mode === "search" ? "/search" : pathname) as Href)}
-                >
-                  条件をすべて解除
-                </button>
-              }
-            />
+            showUnfilteredEmptyState ? (
+              <StatePanel
+                kind="empty"
+                title="現在、表示できる商品はありません"
+                body="商品が公開されると、ここに一覧が表示されます。"
+                action={null}
+              />
+            ) : (
+              <StatePanel
+                kind="filter-empty"
+                action={
+                  <button
+                    className="button button--primary"
+                    onClick={() =>
+                      router.replace((mode === "search" ? "/search" : pathname) as Href)
+                    }
+                  >
+                    条件をすべて解除
+                  </button>
+                }
+              />
+            )
           ) : (
             <div className="product-grid">
               {value.items.map((product) => (

@@ -115,7 +115,7 @@ describe("admin overview and master pages", () => {
     expect(await screen.findByRole("heading", { name: "管理概要" })).toBeVisible();
     expect(screen.getByText("発送準備待ち").parentElement).toHaveTextContent("2");
     expect(screen.getByText("低在庫SKU（1〜5）").parentElement).toHaveTextContent("3");
-    expect(screen.getByText("非公開Review").parentElement).toHaveTextContent("1");
+    expect(screen.getByText("非公開レビュー").parentElement).toHaveTextContent("1");
     expect(screen.getByRole("link", { name: "商品を登録" })).toHaveAttribute(
       "href",
       "/admin/products/new",
@@ -125,7 +125,7 @@ describe("admin overview and master pages", () => {
 
   it("creates at the end and saves a keyboard-reordered complete Category list", async () => {
     render(<AdminCategoriesPage />);
-    expect(await screen.findByRole("heading", { name: "Category管理" })).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "カテゴリ管理" })).toBeVisible();
     fireEvent.click(await screen.findByRole("button", { name: "ホームを上へ" }));
     fireEvent.click(screen.getByRole("button", { name: "表示順を保存" }));
     await waitFor(() =>
@@ -134,7 +134,7 @@ describe("admin overview and master pages", () => {
         expectedVersions: { "category-a": 1, "category-b": 1 },
       }),
     );
-    fireEvent.change(screen.getByLabelText("新しいCategory名"), {
+    fireEvent.change(screen.getByLabelText("新しいカテゴリ名"), {
       target: { value: "新着" },
     });
     fireEvent.click(screen.getByRole("button", { name: "末尾に追加" }));
@@ -143,10 +143,10 @@ describe("admin overview and master pages", () => {
 
   it("keeps Brand management name-sorted without a reorder control", async () => {
     render(<AdminBrandsPage />);
-    expect(await screen.findByRole("heading", { name: "Brand管理" })).toBeVisible();
-    expect(screen.getByText("Brand一覧（名称順）")).toBeVisible();
+    expect(await screen.findByRole("heading", { name: "ブランド管理" })).toBeVisible();
+    expect(screen.getByText("ブランド一覧（名称順）")).toBeVisible();
     expect(screen.queryByRole("button", { name: /上へ|下へ|表示順/ })).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText("新しいBrand名"), {
+    fireEvent.change(screen.getByLabelText("新しいブランド名"), {
       target: { value: "B Brand" },
     });
     fireEvent.click(screen.getByRole("button", { name: "追加" }));

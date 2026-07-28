@@ -163,6 +163,17 @@ describe("review, user, and test-control pages", () => {
       createdAt: "2026-07-01T03:00:00.000Z",
       updatedAt: "2026-07-01T03:00:00.000Z",
     });
+    adminUsers.changeSuspension.mockResolvedValue({
+      userId: "user-customer-regular",
+      email: "regular@example.com",
+      displayName: "一般テスト会員",
+      role: "customer",
+      version: 2,
+      membershipRank: "regular",
+      accountStatus: "suspended",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+    });
     testControlService.getMetadata.mockResolvedValue({
       appVersion: "0.1.0",
       schemaVersion: 1,
@@ -206,6 +217,30 @@ describe("review, user, and test-control pages", () => {
 
     expect(await screen.findByRole("heading", { name: "レビューを投稿" })).toBeVisible();
     expect(container.querySelectorAll("main")).toHaveLength(1);
+    expect(container.querySelectorAll('a[href="/orders"][aria-current="page"]')).toHaveLength(2);
+  });
+
+  it("requires confirmation before deleting an existing customer review", async () => {
+    reviews.getEligibility.mockResolvedValue({
+      orderItemId: "item-1",
+      eligible: true,
+      reason: null,
+      existingReview: publishedReview,
+    });
+    reviews.delete.mockResolvedValue(undefined);
+
+    render(<CustomerReviewPage orderItemId="item-1" />);
+    fireEvent.click(await screen.findByRole("button", { name: "レビューを削除" }));
+    expect(screen.getByRole("alertdialog", { name: "レビューを削除しますか" })).toBeVisible();
+    expect(reviews.delete).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "削除する" }));
+    await waitFor(() =>
+      expect(reviews.delete).toHaveBeenCalledWith({
+        reviewId: "review-1",
+        expectedVersion: 1,
+      }),
+    );
   });
 
   it("filters and hides an admin review, and exposes its history", async () => {
@@ -220,7 +255,7 @@ describe("review, user, and test-control pages", () => {
       }),
     );
     fireEvent.click(screen.getByRole("button", { name: "履歴" }));
-    expect(await screen.findByText(/新規 → published/)).toBeVisible();
+    expect(await screen.findByText(/新規 → 公開中/)).toBeVisible();
   });
 
   it("links the user list to detail and changes a customer rank with Version", async () => {
@@ -243,20 +278,38 @@ describe("review, user, and test-control pages", () => {
     );
   });
 
+  it("confirms a user suspension before invalidating sessions", async () => {
+    render(<AdminUserDetailPage userId="user-customer-regular" />);
+    fireEvent.click(await screen.findByRole("button", { name: "利用停止" }));
+    expect(
+      screen.getByRole("alertdialog", { name: "このユーザーを利用停止にしますか" }),
+    ).toBeVisible();
+    expect(adminUsers.changeSuspension).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "利用停止にする" }));
+    await waitFor(() =>
+      expect(adminUsers.changeSuspension).toHaveBeenCalledWith({
+        userId: "user-customer-regular",
+        accountStatus: "suspended",
+        expectedVersion: 1,
+      }),
+    );
+  });
+
   it("shows build metadata and applies the Test API payment-delay constraint", async () => {
     render(<AdminTestControlPage />);
     expect(await screen.findByText("0.1.0")).toBeVisible();
-    expect(screen.getByText("Schema Version")).toBeVisible();
+    expect(screen.getByText("スキーマバージョン")).toBeVisible();
     fireEvent.change(screen.getByLabelText("遅延（0〜30000ms）"), { target: { value: "1200" } });
     fireEvent.click(screen.getByRole("button", { name: "遅延を設定" }));
     await waitFor(() => expect(testControlService.setPaymentDelay).toHaveBeenCalledWith(1200));
   });
 
-  it("reloads the web page after a successful Test Control reset", async () => {
+  it("reloads the web page after a successful test-control reset", async () => {
     render(<AdminTestControlPage />);
     await screen.findByText("0.1.0");
 
-    fireEvent.click(screen.getByRole("button", { name: "ScenarioをReset" }));
+    fireEvent.click(screen.getByRole("button", { name: "シナリオを初期化" }));
 
     await waitFor(() =>
       expect(testControlService.reset).toHaveBeenCalledWith({ scenario: "default" }),

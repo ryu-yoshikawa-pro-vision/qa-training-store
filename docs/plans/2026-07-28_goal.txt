@@ -1,0 +1,1516 @@
+/goal
+
+# QA Training Store UI/UX Continuous Excellence Goal
+
+このリポジトリに実装されているECアプリケーションの全画面を自律的に探索・分析・改善し、Storefront、customer向け画面、管理画面のすべてを、世界最高水準のUI/UX品質へ引き上げてください。
+
+単発の見た目調整で終了せず、以下の反復プロセスを自律的に繰り返してください。
+
+1. 現在の実装と既存仕様を理解する
+2. 全画面を実際に操作・撮影する
+3. UI/UX上の問題を抽出する
+4. 優先順位を付ける
+5. 必要最小限の変更を実装する
+6. Desktop、Tablet、Mobileで再撮影する
+7. 改善前後を比較する
+8. 新たな問題や一貫性の崩れがないか再評価する
+9. 品質基準を満たすまで改善を繰り返す
+10. 回帰テストと最終Visual Reviewを実施する
+
+ただし、終わりのない主観的な修正を続けてはいけません。後述の完了基準を満たし、追加変更の効果が小さくなった時点で終了してください。
+
+---
+
+# 1. 最初に理解すること
+
+作業開始前に、以下を必ず確認してください。
+
+* Repository全体の構成
+* `README.md`
+* `docs/**`
+* `docs/plans/**`
+* 既存のDesign Reference画像
+* Storefront、customer、AdminのRoute一覧
+* Presentation Component
+* Design Token
+* Global CSS
+* Playwright設定
+* Seed、Scenario、認証Fixture
+* 既存E2E、Accessibility、Component Test
+* 直近の変更内容
+* 現在のUI Review Screenshot生成方法
+
+特に、次の設計上の境界を理解してから実装してください。
+
+* Presentation
+* Application
+* Domain
+* Infrastructure
+* 認証と権限
+* Guest、customer、operator、adminの違い
+* Seedによって再現される商品、注文、在庫、レビューの状態
+* Desktop専用の管理画面とMobileでのBoundary
+
+コードを読み終える前に、推測だけでUIを書き換えないでください。
+
+---
+
+# 2. 最重要原則
+
+## 2.1 UIだけでなくUXを改善する
+
+見た目を華やかにすることが目的ではありません。
+
+以下を総合的に改善してください。
+
+* 情報を理解しやすい
+* 次に何をすればよいか迷わない
+* 操作結果が明確
+* 誤操作を防げる
+* 重要情報を見落とさない
+* 商品を比較しやすい
+* 購入までの流れが自然
+* 管理業務を素早く処理できる
+* 状態、権限、エラーを理解しやすい
+* Desktop、Tablet、Mobileで破綻しない
+* Keyboard、Screen Readerでも利用できる
+
+## 2.2 世界最高水準の意味
+
+「世界最高水準」は、派手さや独創性ではなく、以下の品質を高いレベルで同時に満たす状態です。
+
+* 明確なVisual Hierarchy
+* 一貫したSpacing
+* 一貫したTypography
+* 一貫したComponent Behavior
+* 高い可読性
+* 適切な情報密度
+* 操作の予測可能性
+* 状態変化の分かりやすさ
+* 洗練された余白
+* 高品質な商品訴求
+* 高いAccessibility
+* 高速で迷いのない操作
+* 全Route間の一貫性
+* Mobileでの自然な操作
+* Adminでの高い業務効率
+* 不要な装飾がない
+* 見た目と機能が矛盾しない
+
+## 2.3 参考とする品質特性
+
+特定サービスをそのまま模倣せず、次のような高品質プロダクトの設計特性を参考にしてください。
+
+* Apple：余白、商品訴求、Typography、写真の扱い
+* Stripe：情報構造、説明の明確さ、Form品質
+* Shopify：ECとしての操作性、商品管理、購入導線
+* Linear：情報密度、Keyboard操作、Admin UI
+* Airbnb：検索、Filter、状態表現、Mobile UX
+* Notion：一貫性、自然なInteraction
+* Vercel：簡潔さ、状態表示、管理画面
+* 高品質な日本国内EC：日本語の可読性、価格表示、配送・在庫表示
+
+見た目をコピーせず、原則だけを取り入れてください。
+
+---
+
+# 3. 絶対に守る制約
+
+以下は変更してはいけません。
+
+* Domain Logic
+* Application Use Case
+* Database構造
+* IndexedDB／Dexieの責務
+* 商品価格計算
+* 割引計算
+* 送料計算
+* 在庫処理
+* 注文状態遷移
+* Payment処理
+* Review集計
+* Seed Datasetの意味
+* Test Clock
+* Test Control
+* Route URL
+* 認証仕様
+* Roleと権限制御
+* customer、operator、adminの責務
+* 既存の主要User Flow
+* 既存E2Eの意味
+* Production Build方式
+* Cloudflare Deploy条件
+
+UI改善のためにDomainやApplication層を変更しないでください。
+
+Presentationから不足データが見える場合も、架空のDataやMockを作って補わないでください。現在利用可能なDTOとUse Caseの範囲内で、最善のUIを構成してください。
+
+---
+
+# 4. 禁止事項
+
+以下は禁止です。
+
+* 全画面を確認せず、一部画面だけを修正して完了する
+* Screenshotを見ずにCSSだけを変更する
+* Testをskipする
+* Assertionを弱くする
+* Accessibility Ruleを無効化する
+* UIに合わせて業務仕様を変更する
+* 架空の機能を追加する
+* 実際には動かないButtonやLinkを置く
+* 表示専用の偽Chartや偽数値を追加する
+* 外部APIや外部決済を追加する
+* 大規模UI Frameworkを新規導入する
+* 不要なAnimationを大量に追加する
+* Glassmorphismを乱用する
+* Gradientを乱用する
+* Shadowを多用する
+* Goldを広範囲に使用する
+* 小さい文字で情報を詰め込む
+* Iconだけで意味を伝える
+* MobileでDesktop UIを縮小表示する
+* Admin TableをCardへ過剰変換する
+* Form LabelをPlaceholderだけで代替する
+* Error MessageをToastだけで済ませる
+* 既存のBefore Screenshotを上書きする
+* Git Commit、Push、PR操作
+* Cloudflare Deploy
+* UI改善と関係のないRefactor
+* CSS Architecture全体の作り直し
+* 抽象化のための抽象化
+* 新しいDesign System Libraryへの全面移行
+
+---
+
+# 5. 改善対象
+
+全Routeを対象としてください。
+
+## 5.1 Storefront・公開画面
+
+少なくとも以下を確認してください。
+
+* Home
+* 商品一覧
+* 検索結果
+* Category一覧
+* 商品詳細
+* Cart
+* Login
+* 新規登録
+* 権限不足
+* Not Found
+* 利用規約
+* Privacy Policy
+* 模擬取引表示
+
+## 5.2 customer画面
+
+少なくとも以下を確認してください。
+
+* Checkout開始
+* 配送先選択
+* 支払方法選択
+* 注文確認
+* 決済処理
+* 注文完了
+* 支払失敗
+* 注文一覧
+* 注文詳細
+* Review投稿・編集
+* Profile
+* 配送先管理
+
+## 5.3 Admin画面
+
+少なくとも以下を確認してください。
+
+* Overview
+* 商品一覧
+* 商品登録
+* 商品編集
+* SKU管理
+* 商品画像管理
+* Category管理
+* Brand管理
+* 在庫一覧
+* 在庫調整
+* 在庫履歴
+* 注文一覧
+* 注文詳細
+* Review管理
+* User管理
+
+実際のRoute定義を検索し、上記以外の画面も漏れなく含めてください。
+
+---
+
+# 6. 画面探索方法
+
+Playwrightを使って、すべての主要状態を実際に確認してください。
+
+## 6.1 Viewport
+
+最低限、以下で確認してください。
+
+```text
+Desktop: 1440 × 1000
+Tablet: 1024 × 900
+Mobile: 390 × 844
+```
+
+必要に応じて以下も確認してください。
+
+```text
+Small Mobile: 320 × 700
+Wide Desktop: 1920 × 1080
+```
+
+## 6.2 Role
+
+以下を分けて確認してください。
+
+* Guest
+* customer
+* operator
+* admin
+
+## 6.3 状態
+
+各画面で、利用可能な範囲で以下を確認してください。
+
+* 通常状態
+* Loading
+* Empty
+* Search Result Empty
+* Validation Error
+* Business Error
+* Conflict
+* Not Found
+* Permission Denied
+* Disabled
+* Out of Stock
+* Sale
+* Member Price
+* Long Text
+* Long Product Name
+* Multiple Cart Items
+* Payment Failure
+* Order Status Difference
+* Hidden Review
+* Suspended User
+
+SeedとScenarioを優先して使用してください。
+
+---
+
+# 7. 最初のVisual Audit
+
+実装を変更する前に、現在の状態を保存してください。
+
+一意なStage名を使用してください。
+
+例：
+
+```bash
+UI_REVIEW_STAGE=goal-baseline-<timestamp>
+```
+
+全対象RouteをDesktop、Tablet、Mobileで撮影してください。
+
+Baselineを生成した後、以下を画面単位で評価してください。
+
+* 第一印象
+* 視線の流れ
+* 主目的の明確さ
+* Primary Actionの明確さ
+* 情報の優先順位
+* 余白
+* Typography
+* Color Contrast
+* Component Consistency
+* Alignment
+* Image Ratio
+* Content Width
+* Responsive Behavior
+* Overflow
+* Touch Target
+* Form Usability
+* Error Recovery
+* Empty State
+* Loading State
+* Table Usability
+* Navigation
+* Footer
+* Accessibility
+* 不要な情報
+* 不足している説明
+* 操作後のFeedback
+
+Audit結果を、重大度付きで整理してください。
+
+```text
+Critical
+High
+Medium
+Low
+```
+
+ただし、細かい好みを大量にLowとして列挙するのではなく、User Experienceへ実質的な影響がある問題を優先してください。
+
+---
+
+# 8. 優先順位
+
+以下の順で改善してください。
+
+## Priority 1：利用不能・誤操作
+
+* ButtonやLinkが見つからない
+* 操作できない
+* Textが切れる
+* Overlap
+* Horizontal Overflow
+* Modalから戻れない
+* Focusが失われる
+* Mobileで操作不能
+* Error内容が理解できない
+* Formを修正できない
+* Table操作対象を識別できない
+
+## Priority 2：重要導線
+
+* 商品検索
+* 商品比較
+* 商品詳細
+* Cart
+* Checkout
+* Payment Failure Recovery
+* 注文確認
+* Adminの商品、在庫、注文操作
+* Navigation
+* Primary CTA
+
+## Priority 3：理解と判断
+
+* 価格
+* Sale
+* Member Price
+* 在庫
+* 配送
+* 注文状態
+* User状態
+* Review状態
+* Filter条件
+* Form Help
+* Warning
+
+## Priority 4：一貫性
+
+* Spacing
+* Typography
+* Border Radius
+* Button
+* Input
+* Badge
+* Card
+* Table
+* Dialog
+* Empty State
+* Breadcrumb
+* Page Header
+
+## Priority 5：仕上げ
+
+* Hover
+* Focus
+* Transition
+* Skeleton
+* Microcopy
+* Icon Alignment
+* Image Crop
+* Divider
+* Subtle Shadow
+* Section Rhythm
+
+---
+
+# 9. Design Direction
+
+現在のDesign Systemを土台として改善してください。
+
+## 9.1 Color
+
+基本方針：
+
+* Background：Whiteまたは温かみのあるOff White
+* Primary Text：Dark NavyまたはCharcoal
+* Secondary Text：Muted Gray
+* Accent：限定的なGold
+* Admin Navigation：Dark Navy
+* Error：明確なRed
+* Success：落ち着いたGreen
+* Warning：Amber
+* Information：Blue
+
+Goldは以下に限定してください。
+
+* Premium感を示す小さなAccent
+* 会員価格
+* 選択状態の補助
+* 重要な装飾
+* Brand Identity
+
+次には広範囲に使用しないでください。
+
+* 長文
+* Large Background
+* Table全体
+* すべてのButton
+* すべてのBorder
+
+## 9.2 Typography
+
+* 日本語本文を読みやすくする
+* Headingの階層を明確にする
+* Bodyは最低16pxを基本とする
+* 補足情報も原則14px未満へ下げない
+* Line Heightを確保する
+* 価格は一目で見つけられる
+* 数値は桁を比較しやすくする
+* Text Line Lengthを長くしすぎない
+* 不必要なBoldを減らす
+  -英数字と日本語のFontの違和感を減らす
+
+## 9.3 Spacing
+
+4pxまたは8px系のSpacing Scaleを基準にしてください。
+
+次を揃えてください。
+
+* Page Side Padding
+* Section Gap
+* Card Padding
+* Form Field Gap
+* LabelとInput
+* Table Cell
+* Dialog
+* Header
+* Footer
+* Mobile Bottom Navigation
+
+余白不足を埋めるために、すべてを広げるのではなく、情報の関係性に応じて近接と分離を使い分けてください。
+
+## 9.4 Border、Radius、Shadow
+
+* Borderは情報構造の補助に使う
+* Cardをすべて浮かせない
+* Shadowは階層が必要な場所だけ
+* RadiusはComponent種類ごとに統一
+* Tableに過剰なCard表現を使わない
+* Modal、Popover、Dropdownには必要なElevationを与える
+
+## 9.5 Animation
+
+Animationは以下の場合だけ使用してください。
+
+* 状態変化の理解
+* MenuやDialogの開閉
+* Cart追加のFeedback
+* LoadingからContentへの遷移
+* HoverやFocusの補助
+
+原則として150〜250ms程度とし、`prefers-reduced-motion`へ対応してください。
+
+装飾目的の大きなParallaxや長時間Animationは追加しないでください。
+
+---
+
+# 10. Storefront改善基準
+
+## 10.1 Home
+
+Homeは「商品を探し始められること」を最優先にしてください。
+
+確認項目：
+
+* Heroの目的が明確
+* CTAが曖昧でない
+* 商品画像が主役
+* Categoryが理解しやすい
+* おすすめ、新着、Saleの違いが分かる
+* 会員特典が過剰に主張しない
+* 学習用アプリであることが必要な範囲で伝わる
+* Section数が多すぎない
+* 同じ商品Cardが連続しすぎない
+* Footerへ自然につながる
+
+## 10.2 商品一覧
+
+確認項目：
+
+* 商品数
+* Sort
+* Filter
+* Active Filter
+* Filter解除
+* Mobile Filter
+* Empty Result
+* 検索条件
+* Cardの比較しやすさ
+* Image Ratio
+* 価格
+* Sale
+* Member Price
+* 在庫
+* Rating
+* Paginationまたは表示範囲
+* 戻った時の文脈維持
+
+MobileではFilterが画面を占有しすぎず、現在の絞り込み状態が分かるようにしてください。
+
+## 10.3 商品Card
+
+Card全体を過剰に装飾せず、次の順序で理解できるようにしてください。
+
+1. 商品画像
+2. BrandまたはCategory
+3. 商品名
+4. Price
+5. Sale／Member Price
+6. Rating
+7. Stock
+
+状態Badgeを増やしすぎないでください。
+
+商品名の長さが異なっても、Gridが極端に崩れないようにしてください。
+
+## 10.4 商品詳細
+
+確認項目：
+
+* Gallery
+* Thumbnail
+* 商品名
+* Brand
+* Price
+* Sale Price
+* Member Price
+* Variation
+* Stock
+* Quantity
+* Add to Cart
+* 配送情報
+* 商品説明
+* Review Summary
+* Review一覧
+* Empty Review
+* Mobile Sticky CTAの必要性
+* Sold Out時の代替表示
+
+Add to Cartは画面内で最も明確なActionにしてください。
+
+Sale Price、通常価格、会員価格を混同しない表現にしてください。
+
+## 10.5 Cart
+
+確認項目：
+
+* 商品識別
+* Variation
+* 単価
+* 数量
+* 小計
+* 削除
+* 在庫不足
+* 価格変更
+* Order Summary
+* Checkout CTA
+* Empty Cart
+* 商品一覧へ戻る導線
+
+Desktopでは商品一覧とSummaryの関係を明確にし、MobileではCTAへ到達しやすくしてください。
+
+---
+
+# 11. Checkout改善基準
+
+Checkoutでは装飾よりも、安心感、進捗、エラー回復を優先してください。
+
+確認項目：
+
+* 現在のStep
+* 完了済みStep
+* 配送先
+* 支払方法
+* 注文内容
+* 注文合計
+* 戻る操作
+* 入力Error
+* Business Error
+* Payment Processing
+* Payment Failure
+* Retry
+* 二重送信防止
+* 注文完了
+* 次のAction
+
+各Stepで、Primary Actionは原則1つにしてください。
+
+Payment Failure時は以下を明確にしてください。
+
+* 何が失敗したか
+* 注文が作成されたか
+* 在庫がどうなっているか
+* 再試行できるか
+* 次に押すButton
+* 問い合わせが必要か
+
+実際の業務仕様で判定できない情報は表示しないでください。
+
+---
+
+# 12. Account画面改善基準
+
+確認項目：
+
+* Page Title
+* 現在地
+* Navigation
+* Profile情報
+* Address
+* Order
+* Review
+* Status
+* Empty State
+* Edit Form
+* Save Feedback
+* Validation Error
+* Unsaved Changeの扱い
+
+同じ情報を複数箇所で過剰に表示しないでください。
+
+注文一覧では、以下が一目で理解できるようにしてください。
+
+* Order Number
+* Order Date
+* Status
+* Total
+* 商品概要
+* 詳細へのAction
+
+注文詳細では、状態の変化と現在状態が理解できるようにしてください。
+
+---
+
+# 13. Admin改善基準
+
+AdminはStorefrontよりも情報密度を高めて構いません。
+
+ただし、単に情報を詰め込まず、業務判断と操作速度を優先してください。
+
+## 13.1 Navigation
+
+* 現在地が明確
+* Groupingが自然
+* Labelが短く理解しやすい
+* Storefrontへ戻れる
+* UserとRoleが分かる
+* Logoutが見つかる
+* Collapseが必要な場合も操作可能
+* Focus順序が自然
+
+## 13.2 Overview
+
+現在利用可能なDataだけで構成してください。
+
+確認項目：
+
+* 今日何を確認すべきか
+* 異常があるか
+* 在庫不足
+* 注文処理待ち
+* Review対応
+* User状態
+* 次のAction
+
+Dataが存在しないChartを作らないでください。
+
+Chartがなくても、優先タスク、KPI、一覧、Statusで業務判断できるUIにしてください。
+
+## 13.3 Table
+
+すべての管理Tableで確認してください。
+
+* Caption
+* Column Header
+* Row Header
+* 数値右寄せ
+* Action列
+* Checkbox
+* Sort
+* Filter
+* Search
+* Empty State
+* Horizontal Scroll
+* Sticky Headerの必要性
+* Long Text
+* Status Badge
+* Row Hover
+* Keyboard Focus
+* Button Touch Target
+* Actionの意味
+* Dangerous Action
+* Mobile Boundary
+
+Table内Buttonを小さくしすぎないでください。
+
+操作数が多い場合は、すべてを常時表示せず、Primary ActionとSecondary Actionを整理してください。ただし、Menu化によって操作が見つけづらくなる場合は、無理に隠さないでください。
+
+## 13.4 Form
+
+* Required
+* Optional
+* Label
+* Help Text
+* Example
+* Error
+* Input Type
+* Unit
+* Character Count
+* Save
+* Cancel
+* Destructive Action
+* Unsaved Change
+* Disabled
+* Loading
+
+Formを1枚の巨大Cardへ詰め込まず、意味のあるSectionへ分けてください。
+
+## 13.5 StatusとDangerous Action
+
+公開、非公開、販売終了、発送、配送完了、停止などは、状態の意味と結果が分かるようにしてください。
+
+Dangerous Actionでは以下を明確にしてください。
+
+* 何が変わるか
+* 元に戻せるか
+* 影響範囲
+* 対象名
+* Confirm Button
+
+Genericな「本当によろしいですか」だけで済ませないでください。
+
+---
+
+# 14. Form UX基準
+
+すべてのFormで確認してください。
+
+* Visible Label
+* Required表示
+* Field Description
+* Example
+* Input Format
+* Validation Timing
+* Error Message
+* Error Summary
+* Focus移動
+* Save中
+* Save成功
+* Save失敗
+* Cancel
+* Reset
+* Disabled
+* Readonly
+* Keyboard操作
+* Autofill
+* Mobile Keyboard Type
+
+Error Messageは「入力内容が正しくありません」だけにせず、修正方法が分かる文章にしてください。
+
+ただし、Domain Errorの内容をPresentation側で別の意味へ変換しないでください。
+
+---
+
+# 15. 状態表現
+
+以下の状態をComponent間で統一してください。
+
+* Loading
+* Empty
+* Search Empty
+* Success
+* Error
+* Warning
+* Conflict
+* Not Found
+* Permission Denied
+* Disabled
+* Processing
+
+## Loading
+
+* 必要な場所だけSkeleton
+* Button処理中はLabelまたはSpinner
+* Layout Shiftを抑える
+* 何を待っているか分かる
+
+## Empty
+
+* なぜ空か
+* 次に何ができるか
+* Filterが原因か
+* Dataが存在しないか
+
+## Error
+
+* 何が起きたか
+* ユーザーが修正できるか
+* 再試行できるか
+* Dataが保存されたか
+* 次のAction
+
+## Success
+
+Toastだけに依存せず、必要に応じて画面上の状態変化でも成功を示してください。
+
+---
+
+# 16. Navigation改善基準
+
+確認項目：
+
+* LogoからHomeへ戻れる
+* Global Navigation
+* Search
+* Cart
+* Login／Account
+* Admin入口
+* Breadcrumb
+* Mobile Bottom Navigation
+* Back操作
+* Footer Navigation
+* Current Page
+* Keyboard Focus
+* Screen Reader Name
+
+Mobile Bottom Navigationは項目数を絞り、現在地が明確で、Contentを隠さないようにしてください。
+
+Header、Bottom Navigation、Sticky CTAが同時に存在する場合、画面を圧迫していないか確認してください。
+
+---
+
+# 17. Accessibility基準
+
+最低限WCAG 2.2 AA相当を目標にしてください。
+
+確認項目：
+
+* Text Contrast
+* UI Component Contrast
+* Visible Focus
+* Keyboard Navigation
+* Focus Order
+* Dialog Focus Trap
+* Focus Restore
+* Skip Link
+* Heading Hierarchy
+* Landmark
+* Label
+* Description
+* Error Association
+* Table Semantics
+* Button Name
+* Link Name
+* Icon Accessibility
+* Image Alt
+* Live Region
+* Reduced Motion
+* Touch Target
+* Zoom
+* Reflow
+* Colorだけに依存しない状態表現
+
+Touch Targetは原則44px以上にしてください。
+
+自動Axe Testだけで問題なしと判断せず、Keyboard操作と画面表示も実際に確認してください。
+
+---
+
+# 18. Responsive基準
+
+## Desktop
+
+* Contentが横に広がりすぎない
+* Large Screenで間延びしない
+* Tableが読みやすい
+* SidebarとContentの比率が自然
+* Product Gridの列数が適切
+
+## Tablet
+
+TabletをDesktopの縮小版として扱わないでください。
+
+* Navigation
+* Filter
+* Grid
+* Form
+* Table
+* Modal
+* Page Padding
+
+を独立して確認してください。
+
+## Mobile
+
+* Horizontal Overflowなし
+* Text切れなし
+* Fixed UIがContentを隠さない
+* Buttonが押しやすい
+* Inputが小さすぎない
+* CTAへ到達しやすい
+* Filterが操作しやすい
+* Product Imageが小さすぎない
+* Priceが見つかる
+* DialogがViewport内に収まる
+* Keyboard表示時も操作可能
+* Safe Areaへ配慮する
+
+管理画面は既存仕様どおり、必要に応じてDesktop利用案内を維持してください。無理に全Admin機能をMobile対応しないでください。
+
+---
+
+# 19. Component改善
+
+既存Componentを優先して使用してください。
+
+同じUI Patternが複数画面で繰り返される場合は、既存Componentへ自然に統合してください。
+
+候補：
+
+* Button
+* Icon
+* Badge
+* Status Badge
+* Page Header
+* Section Header
+* Product Card
+* Price Display
+* Form Field
+* Error Summary
+* State Panel
+* Resource Table
+* Confirm Dialog
+* Search Combobox
+* Breadcrumb
+* Empty State
+* Order Summary
+
+ただし、利用箇所が1つしかなく、抽象化によって読みにくくなる場合はComponent化しないでください。
+
+Propsを増やしすぎず、Componentが複数の無関係な責務を持たないようにしてください。
+
+---
+
+# 20. Microcopy改善
+
+UI上の文言を、短く、具体的で、自然な日本語へ改善してください。
+
+確認項目：
+
+* Button
+* Heading
+* Label
+* Help Text
+* Error
+* Empty State
+* Confirm Dialog
+* Toast
+* Warning
+* Status
+* Filter
+* Navigation
+
+避ける表現：
+
+* 処理に失敗しました
+* エラーが発生しました
+* 実行
+* 確定
+* OK
+* 本当によろしいですか
+* データがありません
+
+文脈に応じて、何が起きたか、次に何をするか分かる表現にしてください。
+
+ただし、業務用語やDomain上のStatus名を勝手に変更しないでください。
+
+---
+
+# 21. 実装の進め方
+
+一度に全体を書き換えないでください。
+
+以下のWaveで進めてください。
+
+## Wave 1：基盤
+
+* Design Token
+* Typography
+* Spacing
+* Button
+* Form
+* Badge
+* State
+* Focus
+* Layout
+* Responsive Foundation
+
+## Wave 2：Storefront
+
+* Header
+* Footer
+* Home
+* Product List
+* Product Card
+* Product Detail
+* Cart
+
+## Wave 3：CheckoutとAccount
+
+* Checkout Step
+* Order Summary
+* Payment State
+* Order List
+* Order Detail
+* Profile
+* Address
+* Review
+
+## Wave 4：Admin
+
+* Shell
+* Navigation
+* Overview
+* Table
+* Search
+* Filter
+* Form
+* Dialog
+* Inventory
+* Order
+* User
+* Review
+* Master Data
+
+## Wave 5：Edge State
+
+* Loading
+* Empty
+* Error
+* Permission
+* Not Found
+* Conflict
+* Long Content
+* Small Viewport
+
+各Wave終了時に、必ずScreenshotを撮影し、次のWaveへ進む前に一貫性とRegressionを確認してください。
+
+---
+
+# 22. 各改善Iterationの手順
+
+各Iterationで次を実施してください。
+
+## Step 1：問題を選ぶ
+
+重大度と影響範囲から、今回修正する問題を選択してください。
+
+関連性の低い問題を同じIterationへ詰め込まないでください。
+
+## Step 2：修正方針
+
+実装前に内部的に次を整理してください。
+
+* 問題
+* 原因
+* 影響Route
+* 修正Component
+* 既存Patternへの影響
+* Test方法
+* 非対象
+
+## Step 3：実装
+
+最小限のコード差分で修正してください。
+
+## Step 4：Test
+
+対象に応じて以下を実行してください。
+
+* Component Test
+* E2E
+* Accessibility
+* Responsive Test
+* Build
+* Typecheck
+* Lint
+
+## Step 5：Visual Review
+
+一意なStage名でScreenshotを撮影してください。
+
+例：
+
+```text
+goal-wave1-after-<timestamp>
+goal-wave2-after-<timestamp>
+goal-final-<timestamp>
+```
+
+同じStageを再利用しないでください。
+
+## Step 6：比較
+
+Baselineと比較し、以下を確認してください。
+
+* 問題が解決したか
+* 別画面を壊していないか
+* Componentの一貫性が上がったか
+* 情報密度が適切か
+* Mobileで悪化していないか
+* Accessibilityを損なっていないか
+
+## Step 7：次の判断
+
+改善効果が高い問題が残る場合は、次のIterationへ進んでください。
+
+残る問題が主観的な好み、低影響、または大規模仕様変更を必要とする場合は、無理に対応しないでください。
+
+---
+
+# 23. Visual Reviewの品質
+
+Screenshotを生成しただけで完了しないでください。
+
+各画像を実際に確認し、少なくとも以下を見てください。
+
+* First View
+* Above the Fold
+* Page End
+* Sticky Element
+* Modal
+* Dropdown
+* Table
+* Form
+* Product Image
+* Empty State
+* Error State
+* Navigation
+* Footer
+* Mobile Bottom Navigation
+
+画像が大きすぎて判断しづらい場合は、必要な領域の追加Screenshotを生成してください。
+
+BeforeとAfterでViewport、Seed、Role、Route、Scroll Positionを揃えてください。
+
+---
+
+# 24. テスト追加方針
+
+UI/UX改善によって壊れやすくなった重要部分にはTestを追加してください。
+
+優先対象：
+
+* Responsive Navigation
+* Mobile Filter
+* Sticky CTA
+* Dialog
+* Focus Restore
+* Form Error
+* Table Semantics
+* Touch Target
+* Horizontal Overflow
+* Checkout Step
+* Payment Failure Recovery
+* Admin Dangerous Action
+* Font Loading
+* Empty State
+* Long Text
+
+ただし、CSSの具体的なPixel値を大量にSnapshot Testするのは禁止です。
+
+Behavior、Accessibility、Layout BoundaryをTestしてください。
+
+---
+
+# 25. 必須検証コマンド
+
+Repository内の実際のScript名を確認したうえで、少なくとも以下に相当する検証を実行してください。
+
+```bash
+pnpm install --frozen-lockfile
+pnpm run format
+pnpm run format:check
+pnpm run lint
+pnpm run typecheck
+pnpm run test:unit
+pnpm run test:integration
+pnpm run test:repository
+pnpm run test:component
+pnpm run test:contracts
+pnpm run build:web
+pnpm run test:e2e:chromium
+pnpm run test:a11y
+pnpm run test:e2e:mobile-boundary
+```
+
+利用可能であれば、以下も実行してください。
+
+```bash
+pnpm run test:e2e:firefox
+pnpm run test:e2e:webkit
+pnpm run test:e2e:cross-role
+```
+
+実行できなかったTestは成功扱いにしないでください。
+
+既存失敗がある場合は、今回の変更による失敗かを切り分けてください。
+
+---
+
+# 26. 自律的な判断基準
+
+細かな修正ごとにユーザーへ確認を求めず、自律的に進めてください。
+
+ただし、以下の場合は実装せず、最終報告へ記載してください。
+
+* Domain変更が必要
+* Route変更が必要
+* Database変更が必要
+* 新しいUse Caseが必要
+* 架空Dataが必要
+* 外部Serviceが必要
+* 既存仕様と矛盾する
+* 大規模なScope拡大になる
+* Design Reference同士が矛盾する
+* UI変更によって既存テストの意味を変える必要がある
+
+軽微なDesign判断は、既存Design System、一貫性、Accessibility、操作性を基準に自律的に決定してください。
+
+---
+
+# 27. 完了基準
+
+次をすべて満たすまで完了としないでください。
+
+## 全体
+
+* [ ] 全Routeを確認した
+* [ ] Guest、customer、operator、adminを確認した
+* [ ] Desktop、Tablet、Mobileを確認した
+* [ ] CriticalなUI問題がない
+* [ ] HighなUI問題がない
+* [ ] 修正可能なMedium問題を解消した
+* [ ] UI Componentが一貫している
+* [ ] Design Directionが統一されている
+* [ ] StorefrontとAdminの役割の違いが明確
+* [ ] 不要な装飾がない
+* [ ] 既存機能が維持されている
+
+## Storefront
+
+* [ ] 商品を探しやすい
+* [ ] 商品を比較しやすい
+* [ ] 商品詳細で購入判断しやすい
+* [ ] CartとCheckoutの導線が明確
+* [ ] Price、Sale、Member Priceを混同しない
+* [ ] Mobileで主要CTAへ到達しやすい
+
+## customer
+
+* [ ] Checkout Stepが分かる
+* [ ] Errorから回復できる
+* [ ] Payment Failure時の次のActionが明確
+* [ ] 注文状態が理解しやすい
+* [ ] ProfileとAddressを編集しやすい
+
+## Admin
+
+* [ ] Navigationが分かりやすい
+* [ ] Overviewで優先対応を判断できる
+* [ ] Tableを素早く読める
+* [ ] SearchとFilterが分かりやすい
+* [ ] FormのSection構造が自然
+* [ ] Dangerous Actionが明確
+* [ ] 商品、在庫、注文、ユーザー管理を効率的に操作できる
+
+## Accessibility
+
+* [ ] Keyboard操作できる
+* [ ] Focusが見える
+* [ ] Headingが適切
+* [ ] Form Labelがある
+* [ ] ErrorがFieldと関連付く
+* [ ] Table Semanticsが適切
+* [ ] Contrastが基準を満たす
+* [ ] Touch Targetが44px以上
+* [ ] AxeのCritical／Serious Violationがない
+* [ ] Reduced Motionへ対応している
+
+## Responsive
+
+* [ ] Horizontal Overflowがない
+* [ ] Text切れがない
+* [ ] Fixed UIがContentを隠さない
+* [ ] Tablet固有の崩れがない
+* [ ] MobileでButtonを押しやすい
+* [ ] 320px幅でも主要Flowを完了できる
+* [ ] AdminのDesktop Boundaryが正常
+
+## Regression
+
+* [ ] Format成功
+* [ ] Lint成功
+* [ ] Typecheck成功
+* [ ] Unit Test成功
+* [ ] Integration Test成功
+* [ ] Repository Test成功
+* [ ] Component Test成功
+* [ ] Contract Test成功
+* [ ] Production Build成功
+* [ ] Chromium E2E成功
+* [ ] Accessibility E2E成功
+* [ ] Mobile Boundary E2E成功
+
+---
+
+# 28. 終了判断
+
+以下を満たしたら、追加の装飾変更を続けず終了してください。
+
+* Critical、Highが0件
+* 対応可能なMediumが0件
+* 主要User Flowに迷いがない
+* 全画面のVisual Languageが統一されている
+* Desktop、Tablet、Mobileで破綻がない
+* Accessibility基準を満たす
+* 既存Regression Testが成功する
+* 直近2回のVisual Reviewで、新しい重要問題が発見されない
+* 追加変更が主観的な好みの差に留まる
+* 変更による改善よりRegression Riskが大きくなる
+
+「さらに洗練できる」という理由だけで、無限に変更を続けないでください。
+
+---
+
+# 29. 最終報告
+
+最終報告は以下の形式にしてください。
+
+```markdown
+# UI/UX Improvement Report
+
+## 1. 結論
+
+- 完了／一部未完了
+- 現在のUI/UX品質の評価
+- 完了基準を満たしたか
+
+## 2. 実施したWave
+
+- Wave 1
+- Wave 2
+- Wave 3
+- Wave 4
+- Wave 5
+
+## 3. 主な改善
+
+### Storefront
+
+- 問題
+- 対応
+- 効果
+
+### Checkout・Account
+
+- 問題
+- 対応
+- 効果
+
+### Admin
+
+- 問題
+- 対応
+- 効果
+
+### Accessibility・Responsive
+
+- 問題
+- 対応
+- 効果
+
+## 4. 変更ファイル
+
+| ファイル | 変更内容 |
+|---|---|
+
+## 5. 追加・更新したTest
+
+| Test | 検証内容 |
+|---|---|
+
+## 6. Visual Review
+
+| Stage | Viewport | Screenshot Path | 結果 |
+|---|---|---|---|
+
+## 7. 検証結果
+
+| コマンド | 結果 |
+|---|---|
+| format:check | PASS / FAIL |
+| lint | PASS / FAIL |
+| typecheck | PASS / FAIL |
+| unit | PASS / FAIL |
+| integration | PASS / FAIL |
+| repository | PASS / FAIL |
+| component | PASS / FAIL |
+| contracts | PASS / FAIL |
+| build:web | PASS / FAIL |
+| e2e:chromium | PASS / FAIL |
+| a11y | PASS / FAIL |
+| mobile-boundary | PASS / FAIL |
+
+## 8. 残存課題
+
+| 重要度 | 課題 | 対応しなかった理由 |
+|---|---|---|
+
+## 9. 非変更領域
+
+- Domain
+- Application Use Case
+- Database
+- Route
+- Permission
+- Seed
+- Test Control
+```
+
+実行していないTestをPASSと記載しないでください。
+
+---
+
+# 30. 最終指示
+
+これは単なるCSS調整タスクではありません。
+
+実際の画面、操作、状態、Role、Viewportを確認し、ユーザーが迷う理由、管理者が作業しづらい理由、商品の魅力が伝わらない理由、画面間で統一感が失われる理由を特定してください。
+
+そのうえで、既存仕様と機能を維持しながら、最小限かつ効果の高い改善を反復してください。
+
+見た目の派手さではなく、明確さ、一貫性、操作性、信頼感、Accessibility、情報設計の完成度によって、世界最高水準を目指してください。

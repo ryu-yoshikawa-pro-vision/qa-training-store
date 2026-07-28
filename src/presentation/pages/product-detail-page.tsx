@@ -177,11 +177,13 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
               {formatYen(selectedVariant?.viewerUnitPrice ?? 0)}
             </p>
           </div>
-          <p className="shipping-message">
-            {(selectedVariant?.viewerUnitPrice ?? 0) >= 5000
-              ? "送料無料"
-              : `あと${formatYen(5000 - (selectedVariant?.viewerUnitPrice ?? 0))}で送料無料`}
-          </p>
+          {(selectedVariant?.stockQuantity ?? 0) > 0 && (
+            <p className="shipping-message">
+              {(selectedVariant?.viewerUnitPrice ?? 0) >= 5000
+                ? "送料無料"
+                : `あと${formatYen(5000 - (selectedVariant?.viewerUnitPrice ?? 0))}で送料無料`}
+            </p>
+          )}
           {product.variationName !== null && (
             <fieldset className="variation-selector">
               <legend>{product.variationName}</legend>
@@ -244,6 +246,7 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
             <select
               id="product-quantity"
               value={quantity}
+              disabled={(selectedVariant?.stockQuantity ?? 0) === 0}
               onChange={(event) => setQuantity(Number(event.target.value))}
             >
               {Array.from(

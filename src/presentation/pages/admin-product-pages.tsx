@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Link, useRouter } from "expo-router";
 import type {
   CreateProductRequest,
@@ -32,6 +32,12 @@ function StaffPage({ children }: { children: ReactNode }) {
 
 function ProductStatusBadge({ status }: { status: ProductStatus }) {
   return <StatusBadge tone={statusTone(status)}>{labels.product(status)}</StatusBadge>;
+}
+
+function productBulkFailureLabel(reason: string) {
+  return reason === "products.publishability.invalid"
+    ? "公開条件を満たしていません"
+    : "状態を変更できません";
 }
 
 export function AdminProductsPage() {
@@ -83,7 +89,9 @@ function AdminProductsContent() {
     setBulkMessage(
       `成功 ${result.succeededIds.length}件／失敗 ${result.failures.length}件` +
         (result.failures.length > 0
-          ? `（${result.failures.map((failure) => `${failure.productId}: ${failure.reason}`).join("、")}）`
+          ? `（${result.failures
+              .map((failure) => `${failure.productId}: ${productBulkFailureLabel(failure.reason)}`)
+              .join("、")}）`
           : ""),
     );
     setSelected(new Set());
@@ -94,7 +102,7 @@ function AdminProductsContent() {
       <Breadcrumbs items={[{ label: "管理概要", href: "/admin" }, { label: "商品管理" }]} />
       <PageHeader
         title="商品管理"
-        description="商品Aggregateと公開状態を管理します。"
+        description="商品情報と公開状態を管理します。"
         action={
           <Link href="/admin/products/new" className="button button--primary">
             商品を登録
@@ -134,7 +142,7 @@ function AdminProductsContent() {
         <label>
           会員ランク
           <select
-            aria-label="Rank"
+            aria-label="会員ランク"
             value={rank}
             onChange={(event) => setRank(event.target.value as typeof rank)}
           >
@@ -177,7 +185,7 @@ function AdminProductsContent() {
           <select value={sort} onChange={(event) => setSort(event.target.value as typeof sort)}>
             <option value="updated_desc">更新日</option>
             <option value="name_asc">名称</option>
-            <option value="product_code_asc">商品Code</option>
+            <option value="product_code_asc">商品コード</option>
             <option value="minimum_price_asc">価格が低い順</option>
             <option value="minimum_price_desc">価格が高い順</option>
           </select>
@@ -213,7 +221,7 @@ function AdminProductsContent() {
               { label: "選択", align: "center" },
               { label: "商品", align: "start" },
               { label: "状態", align: "center" },
-              { label: "Category / Brand", align: "start" },
+              { label: "カテゴリ / ブランド", align: "start" },
               { label: "価格", align: "end" },
               { label: "有効SKU / 在庫", align: "end" },
             ]}
@@ -345,7 +353,7 @@ function AdminProductNewContent() {
       <Breadcrumbs
         items={[{ label: "商品管理", href: "/admin/products" }, { label: "商品登録" }]}
       />
-      <PageHeader title="商品登録" description="保存時は必ずdraftとして作成されます。" />
+      <PageHeader title="商品登録" description="保存すると下書きとして作成されます。" />
       <ProductEditor
         initial={initial}
         categories={options.value.categories.map((item) => ({
@@ -354,7 +362,7 @@ function AdminProductNewContent() {
         }))}
         brands={options.value.brands.map((item) => ({ id: item.brandId, name: item.name }))}
         assets={options.value.assets}
-        submitLabel="draftを保存"
+        submitLabel="下書きで保存"
         onPreview={(value) =>
           services.adminProducts.preview({ aggregate: value, previewMembershipRank: null })
         }
@@ -451,9 +459,6 @@ function AdminProductEditContent({ productId }: { productId: string }) {
           </div>
         }
       />
-      <p className="admin-resource-code">
-        {edit.product.productCode}・{edit.product.status}
-      </p>
       {deleteMessage !== null && (
         <p role="alert" className="operation-error">
           {deleteMessage}
@@ -513,8 +518,8 @@ function AdminProductEditContent({ productId }: { productId: string }) {
       />
       {edit.product.status === "draft" && (
         <ConfirmDialog
-          triggerLabel="draftを削除"
-          title="draft Aggregateを削除しますか"
+          triggerLabel="下書きを削除"
+          title="下書き商品を削除しますか"
           confirmLabel="削除"
           danger
           onConfirm={() =>
@@ -523,12 +528,12 @@ function AdminProductEditContent({ productId }: { productId: string }) {
               .then(() => router.replace("/admin/products"))
               .catch(() =>
                 setDeleteMessage(
-                  "参照があるdraftは削除できません。Cart・Order・Review・在庫履歴を確認してください。",
+                  "参照がある下書き商品は削除できません。カート・注文・レビュー・在庫履歴を確認してください。",
                 ),
               )
           }
         >
-          Cart・Order・Reviewなどの参照がある場合は削除できません。Asset Binaryは削除されません。
+          カート・注文・レビューなどの参照がある場合は削除できません。アセットバイナリは削除されません。
         </ConfirmDialog>
       )}
     </div>
@@ -634,7 +639,7 @@ function ProductEditor({
         <legend>商品情報</legend>
         <div className="form-grid">
           <label>
-            商品Code
+            商品コード
             <input
               required
               value={value.product.productCode}
@@ -657,7 +662,7 @@ function ProductEditor({
             />
           </label>
           <label>
-            Category
+            カテゴリ
             <select
               value={value.product.categoryId}
               onChange={(event) => setProduct("categoryId", event.target.value)}
@@ -670,7 +675,7 @@ function ProductEditor({
             </select>
           </label>
           <label>
-            Brand
+            ブランド
             <select
               value={value.product.brandId}
               onChange={(event) => setProduct("brandId", event.target.value)}
@@ -700,11 +705,11 @@ function ProductEditor({
             </select>
           </label>
           <label>
-            Variation名
+            バリエーション名
             <input
               value={value.product.variationName ?? ""}
               onChange={(event) => setProduct("variationName", event.target.value || null)}
-              placeholder="Variationなしは空欄"
+              placeholder="バリエーションなしは空欄"
             />
           </label>
           <label className="form-grid__wide">
@@ -733,7 +738,7 @@ function ProductEditor({
                   />
                 </label>
                 <label>
-                  Option
+                  選択肢
                   <input
                     value={variant.optionValue ?? ""}
                     onChange={(event) =>
@@ -776,7 +781,7 @@ function ProductEditor({
                   />
                 </label>
                 {existing && (
-                  <label>
+                  <label className="variant-editor__active">
                     <input
                       type="checkbox"
                       checked={existing.isActive}
@@ -795,7 +800,7 @@ function ProductEditor({
                 )}
                 <button
                   type="button"
-                  className="button button--tertiary"
+                  className="button button--tertiary variant-editor__remove"
                   disabled={value.variants.length <= 1}
                   onClick={() => removeVariant(index)}
                 >
@@ -848,7 +853,7 @@ function ProductEditor({
                 {selected && (
                   <>
                     <label>
-                      Alt Text
+                      代替テキスト
                       <input
                         value={selected.altText}
                         onChange={(event) =>
@@ -878,7 +883,7 @@ function ProductEditor({
                           }))
                         }
                       />
-                      Primary
+                      メイン画像
                     </label>
                   </>
                 )}
@@ -894,18 +899,18 @@ function ProductEditor({
           onClick={() =>
             void onPreview(value)
               .then(setPreview)
-              .catch(() => setMessage("Previewに必要な入力が不足しています。"))
+              .catch(() => setMessage("プレビューに必要な入力が不足しています。"))
           }
         >
-          未保存内容をPreview
+          未保存内容をプレビュー
         </button>
         <button className="button button--primary" disabled={saving}>
           {saving ? "保存中…" : submitLabel}
         </button>
       </div>
       {preview && (
-        <section className="product-preview" aria-label="商品Preview">
-          <h2>未保存Preview</h2>
+        <section className="product-preview" aria-label="商品プレビュー">
+          <h2>未保存プレビュー</h2>
           <p>
             <strong>
               {preview.productCode} — {preview.name}
@@ -914,7 +919,7 @@ function ProductEditor({
           <p>
             {formatYen(preview.minimumViewerUnitPrice)}〜{formatYen(preview.maximumViewerUnitPrice)}
           </p>
-          <p>DBには保存されていません。</p>
+          <p>データベースには保存されていません。</p>
         </section>
       )}
     </form>

@@ -82,6 +82,10 @@ export function Pagination({
   totalPages: number;
   onChange: (page: number) => void;
 }) {
+  if (totalPages <= 1) {
+    return null;
+  }
+
   return (
     <nav className="pagination" aria-label="ページ送り">
       <button type="button" disabled={page <= 1} onClick={() => onChange(page - 1)}>
@@ -151,7 +155,13 @@ export function ResourceTable({
   );
 
   return (
-    <div className="resource-table-scroll">
+    <div
+      className="resource-table-scroll"
+      role="region"
+      aria-label={`${caption}。左右にスクロールできます`}
+      tabIndex={0}
+    >
+      <p className="resource-table-scroll__hint">左右にスクロールして全列を確認できます。</p>
       <table className="resource-table">
         <caption>{caption}</caption>
         <thead>

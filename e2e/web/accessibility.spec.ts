@@ -86,6 +86,25 @@ test.describe("Accessibility smoke", () => {
         path: "/login",
         ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "ログイン" }),
       },
+      {
+        path: "/signup",
+        ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "新規登録" }),
+      },
+      {
+        path: "/forbidden",
+        ready: (targetPage: Page) =>
+          targetPage.getByRole("heading", { name: "このページを表示する権限がありません" }),
+      },
+      {
+        path: "/phase1/accessibility-missing-route",
+        ready: (targetPage: Page) =>
+          targetPage.getByRole("heading", { name: "ページが見つかりません" }),
+      },
+      {
+        path: "/legal/privacy",
+        ready: (targetPage: Page) =>
+          targetPage.getByRole("heading", { name: "プライバシーポリシー" }),
+      },
     ] satisfies AccessibilityTarget[]) {
       await scanPage(page, testInfo, target);
       if (target.path === "/") {
@@ -108,6 +127,14 @@ test.describe("Accessibility smoke", () => {
       {
         path: "/orders",
         ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "注文履歴" }),
+      },
+      {
+        path: "/orders/order-delivered",
+        ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "ORD-20260701-0005" }),
+      },
+      {
+        path: "/account/addresses",
+        ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "配送先管理" }),
       },
     ] satisfies AccessibilityTarget[]) {
       await scanPage(page, testInfo, target);
@@ -138,11 +165,74 @@ test.describe("Accessibility smoke", () => {
         path: "/admin/inventories",
         ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "在庫管理" }),
       },
+      {
+        path: "/admin/products/product-basic-shirt",
+        ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "ベーシックTシャツ" }),
+      },
+      {
+        path: "/admin/reviews",
+        ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "レビュー管理" }),
+      },
+      {
+        path: "/admin/users",
+        ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "ユーザー管理" }),
+      },
+      {
+        path: "/admin/users/user-customer-regular",
+        ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "一般テスト会員" }),
+      },
+      {
+        path: "/admin/test-control",
+        ready: (targetPage: Page) => targetPage.getByRole("heading", { name: "テスト制御" }),
+      },
     ] satisfies AccessibilityTarget[]) {
       await scanPage(page, testInfo, target);
       if (target.path === "/admin/inventories") {
         await expectTableActionTouchTarget(page);
       }
     }
+  });
+
+  test("Keyboardで本文へ移動し、Dialogを閉じるとFocusが戻る", async ({ page, scenario }) => {
+    await scenario("default");
+    await page.goto("/", { waitUntil: "domcontentloaded" });
+
+    const storefrontSkipLink = page.getByRole("link", { name: "本文へ移動" });
+    await page.keyboard.press("Tab");
+    await expect(storefrontSkipLink).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#main-content")).toBeFocused();
+
+    await page.goto("/products/product-basic-shirt", { waitUntil: "domcontentloaded" });
+    const imageTrigger = page.getByRole("button", { name: /画像を拡大/ });
+    await imageTrigger.focus();
+    await page.keyboard.press("Enter");
+    await expect(page.getByRole("dialog", { name: "ベーシックTシャツの商品画像" })).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(page.getByRole("dialog", { name: "ベーシックTシャツの商品画像" })).toBeHidden();
+    await expect(imageTrigger).toBeFocused();
+
+    await login(page, "admin@example.com");
+    await page.goto("/admin", { waitUntil: "domcontentloaded" });
+    const adminSkipLink = page.getByRole("link", { name: "本文へ移動" });
+    await page.keyboard.press("Tab");
+    await expect(adminSkipLink).toBeFocused();
+    await page.keyboard.press("Enter");
+    await expect(page.locator("#admin-main")).toBeFocused();
+
+    await page.goto("/admin/users/user-customer-regular", {
+      waitUntil: "domcontentloaded",
+    });
+    const suspensionTrigger = page.getByRole("button", { name: "利用停止" });
+    await suspensionTrigger.focus();
+    await page.keyboard.press("Enter");
+    await expect(
+      page.getByRole("alertdialog", { name: "このユーザーを利用停止にしますか" }),
+    ).toBeVisible();
+    await page.keyboard.press("Escape");
+    await expect(
+      page.getByRole("alertdialog", { name: "このユーザーを利用停止にしますか" }),
+    ).toBeHidden();
+    await expect(suspensionTrigger).toBeFocused();
   });
 });

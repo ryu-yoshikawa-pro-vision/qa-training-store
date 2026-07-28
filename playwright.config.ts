@@ -24,12 +24,12 @@ export default defineConfig({
   ...(usesDeployedTarget
     ? {}
     : {
-        webServer: {
-          command: "pnpm run prepare:font-assets && pnpm exec expo start --web --port 8081",
-          url: localBaseUrl,
-          reuseExistingServer: !process.env.CI,
-          timeout: 120_000,
-        },
+      webServer: {
+        command: "pnpm run build:web && pnpm exec tsx scripts/serve-web-dist.ts",
+        url: localBaseUrl,
+        reuseExistingServer: !process.env.CI,
+        timeout: 120_000,
+      },
       }),
   projects: [
     {
@@ -89,6 +89,15 @@ export default defineConfig({
       use: {
         ...devices["Pixel 7"],
         viewport: { width: 390, height: 844 },
+        deviceScaleFactor: 1,
+      },
+    },
+    {
+      name: "ui-review-small-mobile",
+      testMatch: /ui-review\.spec\.ts$/,
+      use: {
+        ...devices["Desktop Chrome"],
+        viewport: { width: 320, height: 700 },
         deviceScaleFactor: 1,
       },
     },

@@ -181,26 +181,26 @@ describe("admin product pages", () => {
     expect(await screen.findByRole("heading", { name: "商品管理" })).toBeVisible();
     expect(screen.getByLabelText("最低価格")).toBeVisible();
     expect(screen.getByLabelText("最高価格")).toBeVisible();
-    expect(screen.getByLabelText("Rank")).toBeVisible();
+    expect(screen.getByLabelText("会員ランク")).toBeVisible();
     fireEvent.click(screen.getByLabelText("下書き商品を選択"));
     fireEvent.click(screen.getByRole("button", { name: "選択を公開" }));
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "成功 0件／失敗 1件（product-draft: products.publishability.invalid）",
+      "成功 0件／失敗 1件（product-draft: 公開条件を満たしていません）",
     );
   });
 
   it("previews an unsaved aggregate and creates it as a draft", async () => {
     render(<AdminProductNewPage />);
     expect(await screen.findByRole("heading", { name: "商品登録" })).toBeVisible();
-    fireEvent.change(screen.getByLabelText("商品Code"), { target: { value: "P-NEW" } });
+    fireEvent.change(screen.getByLabelText("商品コード"), { target: { value: "P-NEW" } });
     fireEvent.change(screen.getByLabelText("商品名"), { target: { value: "新商品" } });
     fireEvent.change(screen.getByLabelText("SKU"), { target: { value: "P-NEW-ONE" } });
     fireEvent.change(screen.getByLabelText("通常価格"), { target: { value: "1200" } });
-    fireEvent.click(screen.getByRole("button", { name: "未保存内容をPreview" }));
-    expect(await screen.findByRole("region", { name: "商品Preview" })).toHaveTextContent(
-      "DBには保存されていません。",
+    fireEvent.click(screen.getByRole("button", { name: "未保存内容をプレビュー" }));
+    expect(await screen.findByRole("region", { name: "商品プレビュー" })).toHaveTextContent(
+      "データベースには保存されていません。",
     );
-    fireEvent.click(screen.getByRole("button", { name: "draftを保存" }));
+    fireEvent.click(screen.getByRole("button", { name: "下書きで保存" }));
     await waitFor(() => expect(adminProducts.create).toHaveBeenCalled());
     expect(routerReplace).toHaveBeenCalledWith("/admin/products/product-draft");
   });

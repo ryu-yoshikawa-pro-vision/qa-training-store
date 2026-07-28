@@ -116,8 +116,8 @@ export async function completeCheckout(
 ) {
   const paymentLabel =
     paymentMethod === "TEST-SUCCESS"
-      ? "テスト決済（成功） 学習用の決定的な模擬結果を返します。"
-      : "テスト決済（利用拒否） 学習用の決定的な模擬結果を返します。";
+      ? "テスト決済（成功） 支払い完了を再現します。"
+      : "テスト決済（利用拒否） 利用拒否による支払い失敗を再現します。";
   await page.goto("/checkout/address");
   await expect(page.getByRole("heading", { name: "配送先を選択" })).toBeVisible();
   await page.locator('input[name="address"]').check();

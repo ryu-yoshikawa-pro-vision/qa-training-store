@@ -157,7 +157,7 @@ test.describe("Phase 1 required E2E", () => {
     await login(page, "admin@example.com");
     await page.goto("/admin/products/new");
     if (await expectAdminMobileBoundary(page, testInfo)) return;
-    await page.getByLabel("商品Code").fill("P-E2E-001");
+    await page.getByLabel("商品コード").fill("P-E2E-001");
     await page.getByLabel("商品名").fill("E2Eシナリオ商品");
     await page.getByLabel("短い説明").fill("E2E用の商品です");
     await page
@@ -168,12 +168,12 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByLabel("購入上限").fill("5");
     await page.getByLabel("初期在庫").fill("10");
     await page.locator('.asset-picker input[type="checkbox"]:enabled').first().check();
-    await page.getByRole("button", { name: "未保存内容をPreview" }).click();
-    await expect(page.getByRole("region", { name: "商品Preview" })).toContainText("P-E2E-001");
-    await page.getByRole("button", { name: "draftを保存" }).click();
+    await page.getByRole("button", { name: "未保存内容をプレビュー" }).click();
+    await expect(page.getByRole("region", { name: "商品プレビュー" })).toContainText("P-E2E-001");
+    await page.getByRole("button", { name: "下書きで保存" }).click();
     await expect(page).toHaveURL(/\/admin\/products\/.+/);
     await page.getByRole("button", { name: "公開" }).click();
-    await expect(page.getByText(/published/)).toBeVisible();
+    await expect(page.getByText(/・公開中$/)).toBeVisible();
   });
 
   test("10 商品編集・SKU画像変更・非公開・draft削除制約", async ({ page, scenario }, testInfo) => {
@@ -187,13 +187,13 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByRole("button", { name: "変更を保存" }).click();
     await expect(page.getByRole("status")).toContainText("保存しました");
     await page.getByRole("button", { name: "非公開" }).click();
-    await expect(page.getByText(/unpublished/)).toBeVisible();
+    await expect(page.getByText(/・非公開$/)).toBeVisible();
     await scenario("product-delete-blocked");
     await login(page, "admin@example.com");
     await page.goto("/admin/products/product-draft");
-    await page.getByRole("button", { name: "draftを削除" }).click();
+    await page.getByRole("button", { name: "下書きを削除" }).click();
     await page.getByRole("button", { name: "削除", exact: true }).click();
-    await expect(page.getByRole("alert")).toContainText("参照があるdraftは削除できません");
+    await expect(page.getByRole("alert")).toContainText("参照がある下書き商品は削除できません");
   });
 
   test("11 在庫調整・Order準備開始・発送・配送完了", async ({ page, scenario }, testInfo) => {
@@ -204,16 +204,16 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByRole("button", { name: "調整・履歴" }).first().click();
     await page.getByLabel("増減数量").fill("1");
     await page.getByLabel("理由詳細").fill("E2E棚卸し");
-    await page.getByRole("button", { name: /Version \d+で更新/ }).click();
+    await page.getByRole("button", { name: /バージョン \d+で更新/ }).click();
     await expect(page.getByText("在庫と履歴を同時に更新しました。")).toBeVisible();
     await page.goto("/admin/orders/order-paid");
     await page.getByRole("button", { name: "発送準備を開始" }).click();
-    await expect(page.getByRole("status")).toContainText("Action Version");
+    await expect(page.getByRole("status")).toContainText("新しい操作バージョン");
     await page.getByLabel("配送会社").fill("E2E配送");
     await page.getByLabel("追跡番号").fill("E2E-TRACK-001");
     await page.getByRole("button", { name: "発送済みにする" }).click();
     await page.getByRole("button", { name: "配達完了にする" }).click();
-    await expect(page.getByText("Shipment: delivered", { exact: true })).toBeVisible();
+    await expect(page.getByText("配送完了", { exact: true })).toBeVisible();
   });
 
   test("12 User停止・Login拒否・最後のadmin保護", async ({ page, scenario }, testInfo) => {
@@ -222,6 +222,7 @@ test.describe("Phase 1 required E2E", () => {
     await page.goto("/admin/users/user-customer-regular");
     if (await expectAdminMobileBoundary(page, testInfo)) return;
     await page.getByRole("button", { name: "利用停止" }).click();
+    await page.getByRole("button", { name: "利用停止にする" }).click();
     await expect(page.getByRole("status")).toContainText("利用停止にしました");
     await page.goto("/login");
     await page.getByLabel("メールアドレス").fill("regular@example.com");
@@ -229,7 +230,7 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByRole("button", { name: "ログイン" }).click();
     await expect(page.getByRole("alert")).toContainText("利用停止中");
     await page.goto("/admin/users/user-admin");
-    await expect(page.getByRole("button", { name: "Roleを変更" })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "役割を変更" })).toBeDisabled();
     await expect(page.getByRole("button", { name: "利用停止" })).toBeDisabled();
   });
 

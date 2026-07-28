@@ -7,6 +7,7 @@ import {
   Modal,
   ModalOverlay,
 } from "react-aria-components";
+import { content } from "@/presentation/content/dictionary";
 
 interface ConfirmDialogProps {
   triggerLabel: string;
@@ -27,7 +28,9 @@ export function ConfirmDialog({
 }: ConfirmDialogProps) {
   return (
     <DialogTrigger>
-      <AriaButton className="button button--secondary">{triggerLabel}</AriaButton>
+      <AriaButton className={`button button--${danger ? "danger" : "secondary"}`}>
+        {triggerLabel}
+      </AriaButton>
       <ModalOverlay className="dialog-overlay" isDismissable>
         <Modal className="dialog-modal">
           <Dialog className="dialog" role="alertdialog">
@@ -57,5 +60,3 @@ export function ConfirmDialog({
     </DialogTrigger>
   );
 }
-
-import { content } from "@/presentation/content/dictionary";

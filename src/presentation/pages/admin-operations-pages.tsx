@@ -42,6 +42,19 @@ function ShipmentStatusBadge({ status }: { status: "pending" | "shipped" | "deli
   return <StatusBadge tone={statusTone(status)}>{labels.shipment(status)}</StatusBadge>;
 }
 
+function inventoryReasonLabel(reasonCode: string) {
+  switch (reasonCode) {
+    case "MANUAL_INCREASE":
+      return "手動増加";
+    case "MANUAL_DECREASE":
+      return "手動減少";
+    case "CORRECTION":
+      return "訂正";
+    default:
+      return "その他";
+  }
+}
+
 export function AdminInventoriesPage() {
   return (
     <StaffPage>
@@ -97,7 +110,7 @@ function AdminInventoriesContent() {
       setSelected(null);
       setMutation((value) => value + 1);
     } catch {
-      setMessage("在庫を更新できませんでした。数量、理由、最新Versionを確認してください。");
+      setMessage("在庫を更新できませんでした。数量、理由、最新バージョンを確認してください。");
     }
   };
   return (
@@ -147,7 +160,7 @@ function AdminInventoriesContent() {
             <option value="updated_desc">更新日</option>
             <option value="stock_asc">在庫昇順</option>
             <option value="stock_desc">在庫降順</option>
-            <option value="product_code_asc">商品Code</option>
+            <option value="product_code_asc">商品コード</option>
           </select>
         </label>
       </FilterBar>
@@ -162,10 +175,10 @@ function AdminInventoriesContent() {
             columns={[
               { label: "SKU", align: "start" },
               { label: "商品", align: "start" },
-              { label: "Option", align: "start" },
+              { label: "選択肢", align: "start" },
               { label: "状態", align: "center" },
               { label: "在庫", align: "end" },
-              { label: "Version", align: "end" },
+              { label: "バージョン", align: "end" },
               { label: "操作", align: "end" },
             ]}
             rows={state.value.items.map((item) => ({
@@ -229,7 +242,7 @@ function AdminInventoriesContent() {
           </div>
           <div className="inline-actions">
             <button className="button button--primary" onClick={() => void adjust()}>
-              Version {selected.version}で更新
+              バージョン {selected.version}で更新
             </button>
             <button className="button button--tertiary" onClick={() => setSelected(null)}>
               閉じる
@@ -250,7 +263,7 @@ function AdminInventoriesContent() {
                 id: history.id,
                 cells: [
                   new Date(history.createdAt).toLocaleString("ja-JP"),
-                  history.reasonCode,
+                  inventoryReasonLabel(history.reasonCode),
                   history.changeQuantity,
                   history.beforeQuantity,
                   history.afterQuantity,
@@ -320,7 +333,7 @@ function AdminOrdersContent() {
   return (
     <div className="admin-page">
       <Breadcrumbs items={[{ label: "管理概要", href: "/admin" }, { label: "注文管理" }]} />
-      <PageHeader title="注文管理" description="注文Snapshotと配送進捗を検索します。" />
+      <PageHeader title="注文管理" description="注文時点の情報と配送進捗を検索します。" />
       <FilterBar>
         <label>
           注文番号・顧客
@@ -395,7 +408,7 @@ function AdminOrdersContent() {
       ) : (
         <>
           <ResourceTable
-            caption="Admin注文一覧"
+            caption="管理用注文一覧"
             columns={[
               { label: "注文番号", align: "start" },
               { label: "顧客", align: "start" },
@@ -453,10 +466,10 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
   const mutate = async (work: () => Promise<AdminOrderDetailDto>) => {
     try {
       const updated = await work();
-      setMessage(`更新しました。新しいAction Version: ${updated.orderActionVersion}`);
+      setMessage(`更新しました。新しい操作バージョン: ${updated.orderActionVersion}`);
       setMutation((value) => value + 1);
     } catch {
-      setMessage("更新できませんでした。状態またはAction Versionを確認してください。");
+      setMessage("更新できませんでした。状態または操作バージョンを確認してください。");
     }
   };
   return (
@@ -466,7 +479,7 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
       />
       <PageHeader
         title={order.orderNumber}
-        description={`${labels.order(order.orderStatus)}・Action Version ${order.orderActionVersion}`}
+        description={`${labels.order(order.orderStatus)}・操作バージョン ${order.orderActionVersion}`}
       />
       {message && (
         <p role="status" className="operation-message">
@@ -480,10 +493,10 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
             <strong>{order.customer.displayName}</strong>
           </p>
           <p>{order.customer.email}</p>
-          <p>User ID: {order.customer.userId}</p>
+          <p>ユーザーID: {order.customer.userId}</p>
         </section>
         <section className="summary-card">
-          <h2>配送先Snapshot</h2>
+          <h2>注文時の配送先</h2>
           <address>
             〒{order.shippingAddress.postalCode}
             <br />
@@ -495,7 +508,7 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
           </address>
         </section>
         <section className="summary-card admin-detail-grid__wide">
-          <h2>注文Snapshot</h2>
+          <h2>注文時の商品</h2>
           {order.items.map((item) => (
             <article className="confirmation-line" key={item.orderItemId}>
               <ProductImage src={item.image.path} alt={item.image.altText} />
@@ -511,13 +524,13 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
             </article>
           ))}
           <p>
-            <strong>合計 {formatYen(order.totalAmount)}</strong>（会員ランク Snapshot:{" "}
+            <strong>合計 {formatYen(order.totalAmount)}</strong>（注文時の会員ランク:{" "}
             {labels.rank(order.membershipRankSnapshot)}）
           </p>
         </section>
         <section className="summary-card">
-          <h2>支払 / 配送</h2>
-          <p>支払試行: {order.paymentAttempts.length}</p>
+          <h2>支払い・配送</h2>
+          <p>支払い履歴: {order.paymentAttempts.length}件</p>
           <ol>
             {order.paymentAttempts.map((attempt) => (
               <li key={attempt.attemptNumber}>
@@ -533,9 +546,6 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
               "未作成"
             )}
           </p>
-          {order.shipment?.status && (
-            <p className="admin-resource-code">Shipment: {order.shipment.status}</p>
-          )}
           {order.shipment?.carrierName && (
             <p>
               {order.shipment.carrierName} / {order.shipment.trackingNumber}

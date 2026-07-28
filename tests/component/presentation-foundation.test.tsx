@@ -16,7 +16,7 @@ import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { FormErrorSummary } from "@/presentation/components/form-error-summary";
 import { SearchCombobox } from "@/presentation/components/search-combobox";
 import { StatePanel } from "@/presentation/components/states";
-import { ResourceTable } from "@/presentation/patterns/admin-patterns";
+import { Pagination, ResourceTable } from "@/presentation/patterns/admin-patterns";
 
 describe("presentation foundation", () => {
   beforeEach(() => {
@@ -27,6 +27,7 @@ describe("presentation foundation", () => {
     const { rerender } = render(<StatePanel kind="loading" />);
     expect(screen.getByRole("status")).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("heading", { name: "読み込んでいます" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "ホームへ戻る" })).not.toBeInTheDocument();
     rerender(<StatePanel kind="filter-empty" />);
     expect(screen.getByRole("heading", { name: "条件に一致するデータがありません" })).toBeVisible();
     rerender(<StatePanel kind="conflict" />);
@@ -37,6 +38,11 @@ describe("presentation foundation", () => {
     ).toBeVisible();
     rerender(<StatePanel kind="not-found" />);
     expect(screen.getByRole("heading", { name: "ページが見つかりません" })).toBeVisible();
+  });
+
+  it("allows callers to suppress the default state action explicitly", () => {
+    render(<StatePanel kind="empty" action={null} />);
+    expect(screen.queryByRole("link", { name: "ホームへ戻る" })).not.toBeInTheDocument();
   });
 
   it("focuses an error summary and links each message to its field", () => {
@@ -88,11 +94,13 @@ describe("presentation foundation", () => {
         title="本当にResetしますか"
         confirmLabel="Resetする"
         onConfirm={() => {}}
+        danger
       >
         現在のデータは初期化されます。
       </ConfirmDialog>,
     );
     const trigger = screen.getByRole("button", { name: "Resetを確認" });
+    expect(trigger).toHaveClass("button--danger");
     trigger.focus();
     fireEvent.click(trigger);
     expect(await screen.findByRole("alertdialog", { name: "本当にResetしますか" })).toBeVisible();
@@ -113,6 +121,10 @@ describe("presentation foundation", () => {
         ]}
       />,
     );
+    expect(
+      screen.getByRole("region", { name: "商品一覧。左右にスクロールできます" }),
+    ).toHaveAttribute("tabindex", "0");
+    expect(screen.getByText("左右にスクロールして全列を確認できます。")).toBeVisible();
     expect(screen.getByRole("table", { name: "商品一覧" })).toBeVisible();
     expect(screen.getByRole("columnheader", { name: "状態" })).toBeVisible();
     expect(screen.getByRole("rowheader", { name: "ベーシックTシャツ" })).toBeVisible();
@@ -154,5 +166,13 @@ describe("presentation foundation", () => {
     );
     expect(screen.getByRole("rowheader")).toHaveClass("resource-table__cell--start");
     expect(screen.getByRole("cell", { name: "¥3,980" })).toHaveClass("resource-table__cell--end");
+  });
+
+  it("omits pagination when every result fits on one page", () => {
+    const onChange = vi.fn();
+    const { rerender } = render(<Pagination page={1} totalPages={1} onChange={onChange} />);
+    expect(screen.queryByRole("navigation", { name: "ページ送り" })).not.toBeInTheDocument();
+    rerender(<Pagination page={1} totalPages={2} onChange={onChange} />);
+    expect(screen.getByRole("navigation", { name: "ページ送り" })).toBeVisible();
   });
 });

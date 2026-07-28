@@ -55,13 +55,13 @@ function AdminOverviewContent() {
         />
         <MetricCard
           icon="reviews"
-          label="非公開Review"
+          label="非公開レビュー"
           value={overview.hiddenReviewCount}
           href="/admin/reviews?status=hidden"
         />
       </section>
       <section className="admin-quick-actions">
-        <h2>Quick Actions</h2>
+        <h2>クイック操作</h2>
         <div className="inline-actions">
           <Link href="/admin/products/new" className="button button--primary">
             商品を登録
@@ -70,7 +70,7 @@ function AdminOverviewContent() {
             在庫を調整
           </Link>
           <Link href="/admin/categories" className="button button--secondary">
-            Categoryを管理
+            カテゴリを管理
           </Link>
         </div>
       </section>
@@ -176,8 +176,8 @@ function AdminCategoriesContent() {
   };
   return (
     <div className="admin-page">
-      <Breadcrumbs items={[{ label: "管理概要", href: "/admin" }, { label: "Category管理" }]} />
-      <PageHeader title="Category管理" description="表示順とStorefrontでの利用可否を管理します。" />
+      <Breadcrumbs items={[{ label: "管理概要", href: "/admin" }, { label: "カテゴリ管理" }]} />
+      <PageHeader title="カテゴリ管理" description="表示順とストア画面での利用可否を管理します。" />
       {message && (
         <p className="operation-message" role="status">
           {message}
@@ -189,13 +189,13 @@ function AdminCategoriesContent() {
           event.preventDefault();
           void mutate(
             () => adminMaster.createCategory({ name: newName }),
-            "Categoryを追加しました。",
+            "カテゴリを追加しました。",
           );
           setNewName("");
         }}
       >
         <label>
-          新しいCategory名
+          新しいカテゴリ名
           <input
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
@@ -272,7 +272,9 @@ function AdminCategoriesContent() {
       )}
       <section className="reorder-panel">
         <h2>表示順を編集</h2>
-        <p>上へ・下へボタンはDrag操作のKeyboard代替です。保存時に全IDを10刻みで再採番します。</p>
+        <p>
+          上へ・下へボタンは、ドラッグ操作をキーボードで行うための代替手段です。保存時にすべての識別子を10刻みで再採番します。
+        </p>
         {reorder.value && (
           <CategoryReorderList
             key={mutation}
@@ -307,9 +309,9 @@ function CategoryTable({
 }) {
   return (
     <ResourceTable
-      caption="Category一覧"
+      caption="カテゴリ一覧"
       columns={[
-        { label: "Category", align: "start" },
+        { label: "カテゴリ", align: "start" },
         { label: "順序", align: "end" },
         { label: "公開商品", align: "end" },
         { label: "状態", align: "center" },
@@ -334,7 +336,7 @@ function CategoryTable({
           >
             {item.isActive && item.publishedProductCount > 0
               ? "公開中の商品がある場合は変更が拒否されます。"
-              : "Storefrontでの利用可否が変わります。"}
+              : "ストア画面での利用可否が変わります。"}
           </ConfirmDialog>,
         ],
       }))}
@@ -444,8 +446,8 @@ function AdminBrandsContent() {
   };
   return (
     <div className="admin-page">
-      <Breadcrumbs items={[{ label: "管理概要", href: "/admin" }, { label: "Brand管理" }]} />
-      <PageHeader title="Brand管理" description="Brandは名称順で固定表示されます。" />
+      <Breadcrumbs items={[{ label: "管理概要", href: "/admin" }, { label: "ブランド管理" }]} />
+      <PageHeader title="ブランド管理" description="ブランドは名称順で固定表示されます。" />
       {message && (
         <p className="operation-message" role="status">
           {message}
@@ -455,12 +457,12 @@ function AdminBrandsContent() {
         className="admin-create-form"
         onSubmit={(event) => {
           event.preventDefault();
-          void mutate(() => adminMaster.createBrand({ name: newName }), "Brandを追加しました。");
+          void mutate(() => adminMaster.createBrand({ name: newName }), "ブランドを追加しました。");
           setNewName("");
         }}
       >
         <label>
-          新しいBrand名
+          新しいブランド名
           <input
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
@@ -486,9 +488,9 @@ function AdminBrandsContent() {
         <StatePanel kind="error" />
       ) : (
         <ResourceTable
-          caption="Brand一覧（名称順）"
+          caption="ブランド一覧（名称順）"
           columns={[
-            { label: "Brand", align: "start" },
+            { label: "ブランド", align: "start" },
             { label: "公開商品", align: "end" },
             { label: "状態", align: "center" },
             { label: "操作", align: "end" },

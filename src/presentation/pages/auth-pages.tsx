@@ -216,15 +216,43 @@ export function SignupPage() {
           noValidate
         >
           <label htmlFor="email">メールアドレス</label>
-          <input id="email" type="email" {...register("email")} />
+          <input
+            id="email"
+            type="email"
+            autoComplete="email"
+            aria-invalid={errors.email !== undefined}
+            {...register("email")}
+          />
           <label htmlFor="displayName">表示名</label>
-          <input id="displayName" {...register("displayName")} />
+          <input
+            id="displayName"
+            autoComplete="name"
+            aria-invalid={errors.displayName !== undefined}
+            {...register("displayName")}
+          />
           <label htmlFor="password">パスワード</label>
-          <input id="password" type="password" {...register("password")} />
+          <input
+            id="password"
+            type="password"
+            autoComplete="new-password"
+            aria-invalid={errors.password !== undefined}
+            {...register("password")}
+          />
           <label htmlFor="confirmation">パスワード（確認）</label>
-          <input id="confirmation" type="password" {...register("confirmation")} />
+          <input
+            id="confirmation"
+            type="password"
+            autoComplete="new-password"
+            aria-invalid={errors.confirmation !== undefined}
+            {...register("confirmation")}
+          />
           <label className="checkbox-field" htmlFor="noticeAccepted">
-            <input id="noticeAccepted" type="checkbox" {...register("noticeAccepted")} />
+            <input
+              id="noticeAccepted"
+              type="checkbox"
+              aria-invalid={errors.noticeAccepted !== undefined}
+              {...register("noticeAccepted")}
+            />
             学習用環境の注意事項を確認しました
           </label>
           <button

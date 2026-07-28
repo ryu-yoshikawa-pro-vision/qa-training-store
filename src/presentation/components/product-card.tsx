@@ -4,7 +4,7 @@ import { Icon } from "./icon";
 import { ProductImage } from "./product-image";
 
 export function formatYen(value: number): string {
-  return `¥${value.toLocaleString("ja-JP")}`;
+  return `¥${Number(value).toLocaleString("ja-JP")}`;
 }
 
 export function ProductCard({ product }: { product: ProductListItem }) {

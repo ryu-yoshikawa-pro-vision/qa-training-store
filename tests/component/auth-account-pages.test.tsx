@@ -105,6 +105,13 @@ describe("auth and account pages", () => {
 
   it("keeps Signup submission blocked until the notice is accepted", async () => {
     render(<SignupPage />);
+    expect(screen.getByLabelText("メールアドレス")).toHaveAttribute("autocomplete", "email");
+    expect(screen.getByLabelText("表示名")).toHaveAttribute("autocomplete", "name");
+    expect(screen.getByLabelText("パスワード")).toHaveAttribute("autocomplete", "new-password");
+    expect(screen.getByLabelText("パスワード（確認）")).toHaveAttribute(
+      "autocomplete",
+      "new-password",
+    );
     fireEvent.change(screen.getByLabelText("メールアドレス"), {
       target: { value: "new@example.com" },
     });
@@ -123,6 +130,10 @@ describe("auth and account pages", () => {
         name: "学習用環境の注意事項を確認してください",
       }),
     ).toHaveAttribute("href", "#noticeAccepted");
+    expect(screen.getByLabelText("学習用環境の注意事項を確認しました")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
     expect(auth.register).not.toHaveBeenCalled();
   });
 
@@ -165,7 +176,7 @@ describe("auth and account pages", () => {
     render(<AddressesPage />);
     expect(await screen.findByRole("heading", { name: "登録済み配送先（1/5）" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "配送先を追加" })).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Defaultにする" }));
+    fireEvent.click(screen.getByRole("button", { name: "既定にする" }));
     await waitFor(() =>
       expect(account.updateAddress).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -175,5 +186,6 @@ describe("auth and account pages", () => {
         }),
       ),
     );
+    expect(await screen.findByRole("status")).toHaveTextContent("既定の配送先を変更しました。");
   });
 });

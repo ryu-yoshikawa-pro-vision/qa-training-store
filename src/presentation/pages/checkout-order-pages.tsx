@@ -20,6 +20,13 @@ const paymentLabels: Record<PaymentMethodCode, string> = {
   "TEST-AUTH-FAILED": "テスト決済（認証失敗）",
 };
 
+const paymentMethodDescriptions: Record<PaymentMethodCode, string> = {
+  "TEST-SUCCESS": "支払い完了を再現します。",
+  "TEST-DECLINED": "利用拒否による支払い失敗を再現します。",
+  "TEST-INSUFFICIENT": "残高不足による支払い失敗を再現します。",
+  "TEST-AUTH-FAILED": "認証失敗による支払い失敗を再現します。",
+};
+
 const orderStatusLabels: Record<OrderDetailDto["orderStatus"], string> = {
   pending_payment: "支払い処理中",
   payment_failed: "支払い失敗",
@@ -239,7 +246,7 @@ function CheckoutPaymentContent() {
               />
               <span>
                 <strong>{paymentLabels[code]}</strong>
-                <span>学習用の決定的な模擬結果を返します。</span>
+                <span>{paymentMethodDescriptions[code]}</span>
               </span>
             </label>
           ))}
@@ -435,7 +442,7 @@ function CheckoutProcessingContent() {
     <section className="payment-result-page" aria-live="polite">
       <div className="processing-spinner" aria-hidden="true" />
       <h1>支払いを処理しています</h1>
-      <p>画面を閉じても、同じ支払いAttemptから安全に再開できます。</p>
+      <p>画面を閉じても、同じ支払い試行から安全に再開できます。</p>
     </section>
   );
 }
@@ -491,6 +498,11 @@ function OrderResultContent({ kind }: { kind: "complete" | "failed" }) {
         注文番号 <strong>{state.value.orderNumber}</strong>
       </p>
       <p>合計 {formatYen(state.value.totalAmount)}</p>
+      <p>
+        {kind === "complete"
+          ? "注文詳細から配送状況を確認できます。"
+          : "注文は作成されています。支払方法を選び直して再試行できます。"}
+      </p>
       {kind === "failed" && (
         <div className="retry-payment">
           <label>
@@ -516,7 +528,10 @@ function OrderResultContent({ kind }: { kind: "complete" | "failed" }) {
         </div>
       )}
       <div className="inline-actions">
-        <Link href={`/orders/${state.value.orderId}`} className="button button--primary">
+        <Link
+          href={`/orders/${state.value.orderId}`}
+          className={`button button--${kind === "complete" ? "primary" : "secondary"}`}
+        >
           注文詳細
         </Link>
         <Link href="/products" className="button button--secondary">
@@ -603,7 +618,7 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
         </ol>
       </nav>
       <header>
-        <p className="eyebrow">Order detail</p>
+        <p className="eyebrow">注文詳細</p>
         <h1>{order.orderNumber}</h1>
         <p>
           <StatusBadge tone={statusTone(order.orderStatus)}>
@@ -624,7 +639,9 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
                   {item.sku}・数量 {item.quantity}
                 </p>
                 {order.orderStatus === "delivered" && (
-                  <Link href={`/reviews/${item.orderItemId}`}>レビューを投稿・編集</Link>
+                  <Link href={`/reviews/${item.orderItemId}`} className="order-review-link">
+                    レビューを投稿・編集
+                  </Link>
                 )}
               </div>
               <strong>{formatYen(item.lineTotalAmount)}</strong>
@@ -653,11 +670,11 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
               </dd>
             </div>
           </dl>
-          <h3>Payment Attempts</h3>
+          <h3>支払い履歴</h3>
           <ol>
             {order.paymentAttempts.map((attempt) => (
               <li key={attempt.attemptNumber}>
-                #{attempt.attemptNumber} {paymentLabels[attempt.methodCode]} — {attempt.status}{" "}
+                #{attempt.attemptNumber} {paymentLabels[attempt.methodCode]}{" "}
                 <StatusBadge tone={statusTone(attempt.status)}>
                   {labels.payment(attempt.status)}
                 </StatusBadge>

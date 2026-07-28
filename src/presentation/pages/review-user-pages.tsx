@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "expo-router";
-import type { AdminReviewListItem, ReviewResultDto, UserAdminDto } from "@/application/contracts";
+import type { AdminReviewListItem, UserAdminDto } from "@/application/contracts";
+import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { StatePanel } from "@/presentation/components/states";
 import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
 import { labels } from "@/presentation/content/dictionary";
@@ -75,7 +76,16 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
   }, [state.value]);
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null)
-    return <StatePanel kind="error" action={<button onClick={state.retry}>再読込</button>} />;
+    return (
+      <StatePanel
+        kind="error"
+        action={
+          <button className="button button--secondary" onClick={state.retry}>
+            再読込
+          </button>
+        }
+      />
+    );
   if (state.value === null) return <StatePanel kind="not-found" />;
   if (!state.value.eligible) {
     const reason = {
@@ -90,32 +100,19 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
   const save = async () => {
     setMessage(null);
     try {
-      const saved: ReviewResultDto =
-        existing === null
-          ? await reviews.create({ orderItemId, rating, title: title || null, body })
-          : await reviews.update({
-              reviewId: existing.reviewId,
-              rating,
-              title: title || null,
-              body,
-              expectedVersion: existing.version,
-            });
-      setMessage(
-        `レビューを${existing === null ? "投稿" : "更新"}しました（Version ${saved.version}）。`,
-      );
+      await (existing === null
+        ? reviews.create({ orderItemId, rating, title: title || null, body })
+        : reviews.update({
+            reviewId: existing.reviewId,
+            rating,
+            title: title || null,
+            body,
+            expectedVersion: existing.version,
+          }));
+      setMessage(`レビューを${existing === null ? "投稿" : "更新"}しました。`);
       setMutation((value) => value + 1);
     } catch {
-      setMessage("保存できませんでした。入力内容または最新Versionを確認してください。");
-    }
-  };
-  const remove = async () => {
-    if (existing === null) return;
-    try {
-      await reviews.delete({ reviewId: existing.reviewId, expectedVersion: existing.version });
-      setMessage("レビューを削除しました。再投稿はできません。");
-      setMutation((value) => value + 1);
-    } catch {
-      setMessage("削除できませんでした。最新情報を読み込んでください。");
+      setMessage("保存できませんでした。入力内容を確認してください。");
     }
   };
   return (
@@ -150,8 +147,8 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
                   checked={rating === value}
                   onChange={() => setRating(value)}
                 />
+                <span aria-hidden="true">{value}</span>
                 <span aria-hidden="true">★</span>
-                <span className="sr-only">{value}つ星</span>
               </label>
             ))}
           </div>
@@ -174,9 +171,28 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
             {existing === null ? "投稿する" : "更新する"}
           </button>
           {existing !== null && (
-            <button className="button button--danger" type="button" onClick={() => void remove()}>
-              削除する
-            </button>
+            <ConfirmDialog
+              triggerLabel="レビューを削除"
+              title="レビューを削除しますか"
+              confirmLabel="削除する"
+              danger
+              onConfirm={() => {
+                void (async () => {
+                  try {
+                    await reviews.delete({
+                      reviewId: existing.reviewId,
+                      expectedVersion: existing.version,
+                    });
+                    setMessage("レビューを削除しました。再投稿はできません。");
+                    setMutation((value) => value + 1);
+                  } catch {
+                    setMessage("削除できませんでした。再読込してからもう一度お試しください。");
+                  }
+                })();
+              }}
+            >
+              この操作は元に戻せません。削除後は同じレビューを再投稿できません。
+            </ConfirmDialog>
           )}
         </div>
       </form>
@@ -231,7 +247,7 @@ function AdminReviewsContent() {
       setMessage(`レビューを${targetStatus === "hidden" ? "非公開" : "再公開"}にしました。`);
       setMutation((value) => value + 1);
     } catch {
-      setMessage("状態を変更できませんでした。最新Versionを確認してください。");
+      setMessage("状態を変更できませんでした。最新の更新番号を確認してください。");
     }
   };
   const bulk = async (targetStatus: "published" | "hidden") => {
@@ -307,10 +323,18 @@ function AdminReviewsContent() {
         </label>
       </FilterBar>
       <div className="button-row" aria-label="一括操作">
-        <button type="button" onClick={() => void bulk("hidden")}>
+        <button
+          type="button"
+          className="button button--secondary"
+          onClick={() => void bulk("hidden")}
+        >
           選択を非公開
         </button>
-        <button type="button" onClick={() => void bulk("published")}>
+        <button
+          type="button"
+          className="button button--tertiary"
+          onClick={() => void bulk("published")}
+        >
           選択を再公開
         </button>
       </div>
@@ -370,12 +394,27 @@ function AdminReviewsContent() {
                   <ReviewStatusBadge key="status" status={item.status} />,
                   <div key="actions" className="table-actions">
                     {item.status === "published" && (
-                      <button onClick={() => void change(item, "hidden")}>非公開</button>
+                      <button
+                        className="button button--tertiary"
+                        onClick={() => void change(item, "hidden")}
+                      >
+                        非公開
+                      </button>
                     )}
                     {item.status === "hidden" && (
-                      <button onClick={() => void change(item, "published")}>再公開</button>
+                      <button
+                        className="button button--tertiary"
+                        onClick={() => void change(item, "published")}
+                      >
+                        再公開
+                      </button>
                     )}
-                    <button onClick={() => setDetailId(item.reviewId)}>履歴</button>
+                    <button
+                      className="button button--secondary"
+                      onClick={() => setDetailId(item.reviewId)}
+                    >
+                      履歴
+                    </button>
                   </div>,
                 ],
               }))}
@@ -392,7 +431,9 @@ function AdminReviewsContent() {
         <section className="admin-detail-card" aria-label="レビュー履歴">
           <div className="split-heading">
             <h2>状態履歴</h2>
-            <button onClick={() => setDetailId(null)}>閉じる</button>
+            <button className="button button--secondary" onClick={() => setDetailId(null)}>
+              閉じる
+            </button>
           </div>
           {!detail.loaded ? (
             <p>読み込み中...</p>
@@ -402,8 +443,8 @@ function AdminReviewsContent() {
             <ol>
               {detail.value?.histories.map((history) => (
                 <li key={history.id}>
-                  {history.fromStatus ?? "新規"} → {history.toStatus}（
-                  {labels.review(history.toStatus)}）
+                  {history.fromStatus === null ? "新規" : labels.review(history.fromStatus)} →{" "}
+                  {labels.review(history.toStatus)}
                 </li>
               ))}
             </ol>
@@ -494,7 +535,7 @@ function AdminUsersContent() {
                 { label: "役割", align: "center" },
                 { label: "会員ランク", align: "center" },
                 { label: "利用状態", align: "center" },
-                { label: "Version", align: "end" },
+                { label: "更新番号", align: "end" },
               ]}
               rows={state.value.items.map((item) => ({
                 id: item.userId,
@@ -550,11 +591,11 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
   const mutate = async (operation: () => Promise<UserAdminDto>, success: string) => {
     try {
       const updated = await operation();
-      setMessage(`${success}（Version ${updated.version}）。`);
+      setMessage(`${success}（更新番号 ${updated.version}）。`);
       setMutation((value) => value + 1);
     } catch {
       setMessage(
-        "変更できませんでした。自己変更、最後の管理者、役割、利用状態、Versionを確認してください。",
+        "変更できませんでした。自己変更、最後の管理者、役割、利用状態、更新番号を確認してください。",
       );
     }
   };
@@ -566,7 +607,7 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
       />
       <PageHeader
         title={user.displayName}
-        description={`${user.email} / Version ${user.version}`}
+        description={`${user.email}・更新番号 ${user.version}`}
       />
       {message && (
         <p role="status" className="operation-message">
@@ -600,6 +641,7 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
             </select>
           </label>
           <button
+            className="button button--primary"
             onClick={() =>
               void mutate(
                 () =>
@@ -610,7 +652,7 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           >
             ランクを変更
           </button>
-          <p>Active Checkoutはabandonedになります。Cartは保持されます。</p>
+          <p>進行中の購入手続きは破棄されます。カートの内容は保持されます。</p>
         </section>
       )}
       {(user.role === "operator" || user.role === "admin") && !readOnly && (
@@ -623,39 +665,60 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
               <option value="admin">{labels.role("admin")}</option>
             </select>
           </label>
-          <button
-            disabled={currentUser?.id === userId}
-            onClick={() =>
-              void mutate(
-                () => adminUsers.changeRole({ userId, role, expectedVersion: user.version }),
-                "Roleを変更しました",
-              )
-            }
-          >
-            Roleを変更
-          </button>
+          {currentUser?.id === userId ? (
+            <button className="button button--secondary" disabled>
+              役割を変更
+            </button>
+          ) : (
+            <ConfirmDialog
+              triggerLabel="役割を変更"
+              title="管理役割を変更しますか"
+              confirmLabel="変更する"
+              onConfirm={() => {
+                void mutate(
+                  () => adminUsers.changeRole({ userId, role, expectedVersion: user.version }),
+                  "役割を変更しました",
+                );
+              }}
+            >
+              役割を変更すると、対象ユーザーのすべてのセッションが無効になります。
+            </ConfirmDialog>
+          )}
         </section>
       )}
       {!readOnly && (
         <section className="admin-detail-card">
           <h2>利用状態</h2>
-          <button
-            disabled={currentUser?.id === userId}
-            onClick={() =>
-              void mutate(
-                () =>
-                  adminUsers.changeSuspension({
-                    userId,
-                    accountStatus: user.accountStatus === "active" ? "suspended" : "active",
-                    expectedVersion: user.version,
-                  }),
-                user.accountStatus === "active" ? "利用停止にしました" : "利用を再開しました",
-              )
-            }
-          >
-            {user.accountStatus === "active" ? "利用停止" : "利用再開"}
-          </button>
-          <p>役割・利用状態の変更では対象ユーザーの全Sessionを無効化します。</p>
+          {currentUser?.id === userId ? (
+            <button className="button button--secondary" disabled>
+              {user.accountStatus === "active" ? "利用停止" : "利用再開"}
+            </button>
+          ) : (
+            <ConfirmDialog
+              triggerLabel={user.accountStatus === "active" ? "利用停止" : "利用再開"}
+              title={
+                user.accountStatus === "active"
+                  ? "このユーザーを利用停止にしますか"
+                  : "このユーザーの利用を再開しますか"
+              }
+              confirmLabel={user.accountStatus === "active" ? "利用停止にする" : "利用を再開する"}
+              danger={user.accountStatus === "active"}
+              onConfirm={() => {
+                void mutate(
+                  () =>
+                    adminUsers.changeSuspension({
+                      userId,
+                      accountStatus: user.accountStatus === "active" ? "suspended" : "active",
+                      expectedVersion: user.version,
+                    }),
+                  user.accountStatus === "active" ? "利用停止にしました" : "利用を再開しました",
+                );
+              }}
+            >
+              利用状態を変更すると、対象ユーザーのすべてのセッションが無効になります。
+            </ConfirmDialog>
+          )}
+          <p>役割・利用状態の変更では対象ユーザーの全セッションを無効化します。</p>
         </section>
       )}
     </div>
@@ -683,15 +746,15 @@ function AdminTestControlContent() {
       setMessage(success);
       setMutation((value) => value + 1);
     } catch {
-      setMessage("操作できませんでした。値とTest API制約を確認してください。");
+      setMessage("操作できませんでした。値とテストAPIの制約を確認してください。");
     }
   };
   return (
     <div className="admin-page">
       <Breadcrumbs items={[{ label: "管理概要", href: "/admin" }, { label: "テスト制御" }]} />
       <PageHeader
-        title="Test Control"
-        description="Automation build専用。Test APIと同じ制約でScenarioと時計を制御します。"
+        title="テスト制御"
+        description="自動化ビルド専用。テストAPIと同じ制約でシナリオと基準時刻を制御します。"
       />
       {message && (
         <p role="status" className="operation-message">
@@ -699,31 +762,31 @@ function AdminTestControlContent() {
         </p>
       )}
       {!metadata.loaded ? (
-        <StatePanel kind="loading" body="Metadataを読み込んでいます。" />
+        <StatePanel kind="loading" body="メタデータを読み込んでいます。" />
       ) : metadata.error !== null || metadata.value === null ? (
         <StatePanel kind="error" />
       ) : (
         <>
           <dl className="definition-grid">
-            <dt>App Version</dt>
+            <dt>アプリバージョン</dt>
             <dd>{metadata.value.appVersion}</dd>
-            <dt>Schema Version</dt>
+            <dt>スキーマバージョン</dt>
             <dd>{metadata.value.schemaVersion}</dd>
-            <dt>Seed Version</dt>
+            <dt>シードバージョン</dt>
             <dd>{metadata.value.seedVersion}</dd>
-            <dt>Build SHA</dt>
+            <dt>ビルドSHA</dt>
             <dd>{metadata.value.buildSha}</dd>
-            <dt>Scenario</dt>
+            <dt>シナリオ</dt>
             <dd>{metadata.value.scenario}</dd>
-            <dt>Clock</dt>
-            <dd>{metadata.value.clock ?? "System Clock"}</dd>
-            <dt>Payment Delay</dt>
+            <dt>基準時刻</dt>
+            <dd>{metadata.value.clock ?? "システム時刻"}</dd>
+            <dt>支払い遅延</dt>
             <dd>{metadata.value.paymentDelayMs}ms</dd>
           </dl>
           <section className="admin-detail-card form-stack">
-            <h2>Scenario Reset</h2>
+            <h2>シナリオ初期化</h2>
             <label>
-              Scenario
+              シナリオ
               <select
                 value={scenario}
                 onChange={(event) => setScenario(event.target.value as PhaseOneScenario)}
@@ -738,14 +801,15 @@ function AdminTestControlContent() {
                 void apply(async () => {
                   await testControlService.reset({ scenario });
                   reloadBrowserPage();
-                }, "ScenarioをResetしました。")
+                }, "シナリオを初期化しました。")
               }
+              className="button button--primary"
             >
-              ScenarioをReset
+              シナリオを初期化
             </button>
           </section>
           <section className="admin-detail-card form-stack">
-            <h2>Clock</h2>
+            <h2>基準時刻</h2>
             <label>
               ISO日時
               <input
@@ -759,23 +823,25 @@ function AdminTestControlContent() {
                 onClick={() =>
                   void apply(
                     () => testControlService.setClock(clock || null),
-                    "Clockを更新しました。",
+                    "基準時刻を更新しました。",
                   )
                 }
+                className="button button--primary"
               >
-                Clockを設定
+                基準時刻を設定
               </button>
               <button
                 onClick={() =>
-                  void apply(() => testControlService.setClock(null), "System Clockへ戻しました。")
+                  void apply(() => testControlService.setClock(null), "システム時刻へ戻しました。")
                 }
+                className="button button--secondary"
               >
-                Clockを解除
+                システム時刻へ戻す
               </button>
             </div>
           </section>
           <section className="admin-detail-card form-stack">
-            <h2>Payment Delay</h2>
+            <h2>支払い遅延</h2>
             <label>
               遅延（0〜30000ms）
               <input
@@ -790,9 +856,10 @@ function AdminTestControlContent() {
               onClick={() =>
                 void apply(
                   () => testControlService.setPaymentDelay(delay),
-                  "Payment Delayを更新しました。",
+                  "支払い遅延を更新しました。",
                 )
               }
+              className="button button--primary"
             >
               遅延を設定
             </button>

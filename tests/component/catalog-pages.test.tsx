@@ -1,9 +1,18 @@
 import type { ReactNode } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
-import type { HomeCatalogDto, ProductDetail, ProductListItem } from "@/application/contracts";
+import type {
+  HomeCatalogDto,
+  ProductDetail,
+  ProductListItem,
+  ProductSearchResult,
+} from "@/application/contracts";
+import { CatalogListPage } from "@/presentation/pages/catalog-list-page";
+import { HomePage } from "@/presentation/pages/home-page";
+import { ProductDetailView } from "@/presentation/pages/product-detail-page";
 
 const catalog = {
   getHome: vi.fn<() => Promise<HomeCatalogDto>>(),
+  search: vi.fn<() => Promise<ProductSearchResult>>(),
   listReviews: vi.fn(async () => ({
     items: [],
     page: 1,
@@ -11,6 +20,11 @@ const catalog = {
     total: 0,
   })),
 };
+const routerState = vi.hoisted(() => ({
+  pathname: "/products",
+  params: {} as Record<string, string | string[] | undefined>,
+  replace: vi.fn(),
+}));
 
 vi.mock("expo-router", () => ({
   Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
@@ -19,6 +33,9 @@ vi.mock("expo-router", () => ({
     </a>
   ),
   Redirect: ({ href }: { href: string }) => <span>Redirect: {href}</span>,
+  useLocalSearchParams: () => routerState.params,
+  usePathname: () => routerState.pathname,
+  useRouter: () => ({ replace: routerState.replace }),
 }));
 
 vi.mock("@/presentation/hooks/use-application-services", () => ({
@@ -28,9 +45,6 @@ vi.mock("@/presentation/hooks/use-application-services", () => ({
 vi.mock("@/presentation/guards/route-guard", () => ({
   RouteGuard: ({ children }: { children: ReactNode }) => children,
 }));
-
-import { HomePage } from "@/presentation/pages/home-page";
-import { ProductDetailView } from "@/presentation/pages/product-detail-page";
 
 function product(id: string, name = id): ProductListItem {
   return {
@@ -92,15 +106,34 @@ function detail(variantCount: number): ProductDetail {
   };
 }
 
+function searchResult(items: ProductListItem[] = []): ProductSearchResult {
+  return {
+    items,
+    page: 1,
+    pageSize: 20,
+    total: items.length,
+    facets: {
+      categories: [],
+      brands: [],
+      ratings: [],
+      inStockCount: 0,
+      onSaleCount: 0,
+    },
+  };
+}
+
 describe("storefront catalog pages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    routerState.pathname = "/products";
+    routerState.params = {};
     catalog.listReviews.mockResolvedValue({
       items: [],
       page: 1,
       pageSize: 20,
       total: 0,
     });
+    catalog.search.mockResolvedValue(searchResult());
   });
 
   it("renders Home categories, 8 newest products, and hides an empty Sale section", async () => {
@@ -146,6 +179,37 @@ describe("storefront catalog pages", () => {
     expect(screen.getByRole("heading", { name: "セール商品" })).toBeVisible();
   });
 
+  it("shows an empty state for unfiltered products with no action", async () => {
+    catalog.search.mockResolvedValue(searchResult());
+
+    render(<CatalogListPage mode="products" />);
+
+    expect(await screen.findByText("現在、表示できる商品はありません")).toBeVisible();
+    expect(screen.getByText("商品が公開されると、ここに一覧が表示されます。")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "条件をすべて解除" })).not.toBeInTheDocument();
+  });
+
+  it("keeps the filter-empty CTA for search results with zero hits", async () => {
+    routerState.pathname = "/search";
+    routerState.params = { q: "マグ" };
+    catalog.search.mockResolvedValue(searchResult());
+
+    render(<CatalogListPage mode="search" />);
+
+    expect(await screen.findByText("条件に一致するデータがありません")).toBeVisible();
+    expect(screen.getByRole("button", { name: "条件をすべて解除" })).toBeVisible();
+  });
+
+  it("keeps the filter-empty CTA for price-filtered products with zero hits", async () => {
+    routerState.params = { minPrice: "5000", page: "1" };
+    catalog.search.mockResolvedValue(searchResult());
+
+    render(<CatalogListPage mode="products" />);
+
+    expect(await screen.findByText("条件に一致するデータがありません")).toBeVisible();
+    expect(screen.getByRole("button", { name: "条件をすべて解除" })).toBeVisible();
+  });
+
   it("renders exactly 12 variation buttons at the boundary", async () => {
     render(<ProductDetailView product={detail(12)} />);
     const group = screen.getByRole("group", { name: "種類" });
@@ -166,6 +230,8 @@ describe("storefront catalog pages", () => {
     unavailable.hasPurchasableStock = false;
     render(<ProductDetailView product={unavailable} />);
     expect(screen.getByText("在庫切れ")).toBeVisible();
+    expect(screen.getByLabelText("数量")).toBeDisabled();
+    expect(screen.queryByText(/送料無料/)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "カートに追加" })).toBeDisabled();
   });
 });

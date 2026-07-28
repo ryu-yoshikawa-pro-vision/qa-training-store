@@ -44,7 +44,7 @@ function AddressesContent() {
   const { account } = useApplicationServices();
   const [addresses, setAddresses] = useState<UserAddress[] | null>(null);
   const [editing, setEditing] = useState<UserAddress | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [message, setMessage] = useState<{ text: string; tone: "success" | "error" } | null>(null);
   const [loadError, setLoadError] = useState(false);
   const { register, handleSubmit, reset, getValues, setValue, formState } = useForm<AddressForm>({
     defaultValues: EMPTY_ADDRESS,
@@ -87,8 +87,11 @@ function AddressesContent() {
         </div>
       </header>
       {message !== null && (
-        <p className="success-message" role="status">
-          {message}
+        <p
+          className={message.tone === "success" ? "success-message" : "operation-error"}
+          role={message.tone === "success" ? "status" : "alert"}
+        >
+          {message.text}
         </p>
       )}
       <div className="address-layout">
@@ -99,7 +102,7 @@ function AddressesContent() {
               kind="empty"
               title="配送先が登録されていません"
               body="右のフォームから最初の配送先を登録してください。"
-              action={<span />}
+              action={null}
             />
           ) : (
             <div className="address-list">
@@ -108,7 +111,7 @@ function AddressesContent() {
                   <header>
                     <h3>{address.label}</h3>
                     {address.isDefault && (
-                      <span className="status-badge status-badge--info">Default</span>
+                      <span className="status-badge status-badge--info">既定</span>
                     )}
                   </header>
                   <p>{address.recipientName}</p>
@@ -132,18 +135,27 @@ function AddressesContent() {
                         type="button"
                         className="button button--tertiary"
                         onClick={() => {
-                          void account
-                            .updateAddress({
-                              ...address,
-                              addressId: address.id,
-                              expectedVersion: address.version,
-                              makeDefault: true,
-                            })
-                            .then(reload)
-                            .then(() => setMessage("Default配送先を変更しました。"));
+                          void (async () => {
+                            setMessage(null);
+                            try {
+                              await account.updateAddress({
+                                ...address,
+                                addressId: address.id,
+                                expectedVersion: address.version,
+                                makeDefault: true,
+                              });
+                              await reload();
+                              setMessage({ text: "既定の配送先を変更しました。", tone: "success" });
+                            } catch {
+                              setMessage({
+                                text: "既定の配送先を変更できませんでした。入力内容を確認してください。",
+                                tone: "error",
+                              });
+                            }
+                          })();
                         }}
                       >
-                        Defaultにする
+                        既定にする
                       </button>
                     )}
                     <ConfirmDialog
@@ -152,16 +164,25 @@ function AddressesContent() {
                       confirmLabel="削除する"
                       danger
                       onConfirm={() => {
-                        void account
-                          .deleteAddress({
-                            addressId: address.id,
-                            expectedVersion: address.version,
-                          })
-                          .then(reload)
-                          .then(() => setMessage("配送先を削除しました。"));
+                        void (async () => {
+                          setMessage(null);
+                          try {
+                            await account.deleteAddress({
+                              addressId: address.id,
+                              expectedVersion: address.version,
+                            });
+                            await reload();
+                            setMessage({ text: "配送先を削除しました。", tone: "success" });
+                          } catch {
+                            setMessage({
+                              text: "配送先を削除できませんでした。入力内容を確認してください。",
+                              tone: "error",
+                            });
+                          }
+                        })();
                       }}
                     >
-                      Default配送先を削除した場合は、残っている最も古い配送先が新しいDefaultになります。
+                      既定の配送先を削除した場合は、残っている最も古い配送先が新しい既定になります。
                     </ConfirmDialog>
                   </div>
                 </article>
@@ -194,13 +215,18 @@ function AddressesContent() {
                 await reload();
                 setEditing(null);
                 reset(EMPTY_ADDRESS);
-                setMessage(editing === null ? "配送先を登録しました。" : "配送先を更新しました。");
+                setMessage({
+                  text: editing === null ? "配送先を登録しました。" : "配送先を更新しました。",
+                  tone: "success",
+                });
               } catch (caught) {
-                setMessage(
-                  caught instanceof ApplicationError && caught.messageKey === "addresses.limit"
-                    ? "配送先は5件までです。"
-                    : "配送先を保存できませんでした。入力内容を確認してください。",
-                );
+                setMessage({
+                  text:
+                    caught instanceof ApplicationError && caught.messageKey === "addresses.limit"
+                      ? "配送先は5件までです。"
+                      : "配送先を保存できませんでした。入力内容を確認してください。",
+                  tone: "error",
+                });
               }
             })}
           >
@@ -221,16 +247,31 @@ function AddressesContent() {
                 type="button"
                 className="button button--secondary"
                 onClick={() => {
-                  void account.suggestAddress(getValues("postalCode")).then((suggestion) => {
-                    if (suggestion !== null) {
-                      setValue("prefecture", suggestion.prefecture);
-                      setValue("city", suggestion.city);
-                      setValue("addressLine1", suggestion.addressLine1);
-                      setMessage("住所候補を入力しました。内容を確認して保存してください。");
-                    } else {
-                      setMessage("この郵便番号の住所候補はありません。");
+                  void (async () => {
+                    setMessage(null);
+                    try {
+                      const suggestion = await account.suggestAddress(getValues("postalCode"));
+                      if (suggestion !== null) {
+                        setValue("prefecture", suggestion.prefecture);
+                        setValue("city", suggestion.city);
+                        setValue("addressLine1", suggestion.addressLine1);
+                        setMessage({
+                          text: "住所候補を入力しました。内容を確認して保存してください。",
+                          tone: "success",
+                        });
+                      } else {
+                        setMessage({
+                          text: "この郵便番号の住所候補はありません。",
+                          tone: "error",
+                        });
+                      }
+                    } catch {
+                      setMessage({
+                        text: "住所候補を取得できませんでした。入力内容を確認してください。",
+                        tone: "error",
+                      });
                     }
-                  });
+                  })();
                 }}
               >
                 住所候補を利用
@@ -249,7 +290,7 @@ function AddressesContent() {
             <p className="field-help">配送連絡に使用します。</p>
             <label className="checkbox-field" htmlFor="makeDefault">
               <input id="makeDefault" type="checkbox" {...register("makeDefault")} />
-              Default配送先にする
+              既定の配送先にする
             </label>
             <div className="form-actions">
               <button
