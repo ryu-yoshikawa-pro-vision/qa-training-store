@@ -10,9 +10,9 @@
 - [x] 7. Wave 3（Checkout／Account）を実装・検証・撮影・比較する
 - [x] 8. Wave 4（Admin）を実装・検証・撮影・比較する
 - [x] 9. Wave 5（Edge State）を実装・検証・撮影・比較する
-- [ ] 10. 全必須・利用可能な追加Regression Testを実行し、失敗を切り分ける
-- [ ] 11. 最終Visual Reviewを2回実施し、全Route／Role／Viewport／完了基準を監査する
-- [ ] 12. 差分・非変更領域・Run Artifactを確定し、指定形式の最終報告を完成させる
+- [x] 10. 全必須・利用可能な追加Regression Testを実行し、失敗を切り分ける
+- [x] 11. 最終Visual Reviewを2回実施し、全Route／Role／Viewport／完了基準を監査する
+- [x] 12. 差分・非変更領域・Run Artifactを確定し、指定形式の最終報告を完成させる
 
 ## Discovered
 
@@ -36,4 +36,4 @@
   - 指定された`# UI/UX Improvement Report`形式で、全検証結果・Visual Stage・残存課題を報告する。
   - 全完了後にのみGoalをcompleteへ更新する。
 
-Progress: 75% (9/12)
+Progress: 100% (12/12)

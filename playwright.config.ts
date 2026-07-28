@@ -24,12 +24,12 @@ export default defineConfig({
   ...(usesDeployedTarget
     ? {}
     : {
-      webServer: {
-        command: "pnpm run build:web && pnpm exec tsx scripts/serve-web-dist.ts",
-        url: localBaseUrl,
-        reuseExistingServer: !process.env.CI,
-        timeout: 120_000,
-      },
+        webServer: {
+          command: "pnpm run build:web && pnpm exec tsx scripts/serve-web-dist.ts",
+          url: localBaseUrl,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120_000,
+        },
       }),
   projects: [
     {

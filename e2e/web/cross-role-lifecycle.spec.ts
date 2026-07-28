@@ -20,7 +20,7 @@ test.describe("Cross-role weekly lifecycle", () => {
     expect(await assetChoices.count()).toBeGreaterThan(0);
     await assetChoices.first().check();
     await page.getByRole("button", { name: "下書きで保存" }).click();
-    await expect(page).toHaveURL(/\/admin\/products\/.+/);
+    await expect(page).toHaveURL(/\/admin\/products\/[0-9a-f-]{36,}/);
     const productId = new URL(page.url()).pathname.split("/").at(-1);
     expect(productId).toBeTruthy();
     await page.getByRole("button", { name: "公開" }).click();
