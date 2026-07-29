@@ -40,6 +40,15 @@ afterEach(() => {
   vi.resetModules();
 });
 
+// Warm-up import so the first test doesn't pay the cold-start penalty of
+// loading @playwright/test via ESM dynamic import.
+beforeAll(async () => {
+  process.env.PLAYWRIGHT_BASE_URL = localBaseUrl;
+  delete process.env.DEPLOYED_BASE_URL;
+  vi.resetModules();
+  await import("../../playwright.config");
+});
+
 describe("Playwright local and deployed target boundary", () => {
   it("starts the local web server when DEPLOYED_BASE_URL is not set", async () => {
     const config = await loadPlaywrightConfig(undefined);
@@ -55,7 +64,7 @@ describe("Playwright local and deployed target boundary", () => {
       expect(ws!.reuseExistingServer).toBe(true);
     }
     expect(deployedSmokeProject(config).use?.baseURL).toBe(localBaseUrl);
-  }, 20_000);
+  });
 
   it("uses the deployed URL without starting the local web server", async () => {
     const deployedBaseUrl = "https://preview.example.test";

@@ -35,6 +35,7 @@
     "e2e/web/ui-review.spec.ts",
     "playwright.config.ts",
     "scripts/serve-web-dist.ts",
+    ".github/workflows/ci.yml",
     "src/presentation/components/confirm-dialog.tsx",
     "src/presentation/components/product-card.tsx",
     "src/presentation/components/states.tsx",
@@ -63,34 +64,32 @@
     "vitest.config.ts"
   ],
   "validation": {
-    "status": "pass",
+    "status": "fail",
     "commands": [
+      "pnpm install --frozen-lockfile",
       "pnpm run format:check",
-      "pnpm run lint",
-      "pnpm run typecheck",
-      "pnpm run validate:image-manifest",
-      "pnpm run security:check",
-      "pnpm run test:unit",
-      "pnpm run test:integration",
-      "pnpm run test:repository",
-      "pnpm run test:component",
-      "pnpm run test:contracts",
-      "pnpm run build:web",
-      "pnpm run test:e2e:chromium",
-      "pnpm run test:a11y",
-      "pnpm run test:e2e:mobile-boundary",
-      "pnpm run test:e2e:mobile",
-      "pnpm run test:e2e:cross-role",
-      "pnpm run test:e2e:smoke:firefox",
-      "pnpm run test:e2e:smoke:webkit",
-      "git diff --check"
+      "pnpm run lint"
     ],
     "warnings": [
-      "GitHub Actions run 30347857116 failed at Typecheck. Root cause could not be reproduced locally with TS 6.0.3 and current config.",
-      "pnpm run verify (aggregate): skipped on Windows due to build:web file-locking EPERM. Individual stages all passed.",
-      "bash scripts/verify: not run - requires bash with pipefail support (Windows environment limitation)",
-      "Visual Review: Stage C and D not re-run locally. Static server / contract test changes do not affect UI rendering.",
-      "WebKit/Mobile E2E intermittent EPERM on build:web reuse - pre-existing Expo/Windows issue"
+      "GitHub Actions run 30411938495 failed at e2e/web/ui-review.spec.ts(29,11) with TS7006. Later CI stages were skipped.",
+      "Local tests passed before the TS7006 fix, but CI has not been re-run. All results below are local only.",
+      "pnpm run typecheck: CI FAIL (TS7006), local FIXED (see current changes)",
+      "validate:image-manifest: LOCAL PASS",
+      "security:check: LOCAL PASS",
+      "test:unit 22/22: LOCAL PASS",
+      "test:integration 89/89: LOCAL PASS",
+      "test:repository 13/13: LOCAL PASS",
+      "test:component 56/56: LOCAL PASS",
+      "test:contracts 44/44: LOCAL PASS",
+      "build:web: LOCAL PASS",
+      "test:e2e:chromium 14/14: LOCAL PASS",
+      "test:a11y 4/4: LOCAL PASS",
+      "test:e2e:mobile-boundary 4/4: LOCAL PASS",
+      "test:e2e:mobile 14/14: LOCAL PASS",
+      "test:e2e:cross-role 1/1: LOCAL PASS",
+      "test:e2e:smoke:firefox 1/1: LOCAL PASS",
+      "test:e2e:smoke:webkit 1/1: LOCAL PASS",
+      "git diff --check: LOCAL PASS"
     ]
   },
   "safety": {
@@ -185,6 +184,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "pass",
-  "primary_failure_category": null
+  "status": "pending",
+  "primary_failure_category": "typecheck"
 }

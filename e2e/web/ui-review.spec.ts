@@ -23,8 +23,11 @@ interface ViewportCaptureRoute {
 }
 
 const reviewStage = resolveReviewStage();
+const rawRequestedRoutes =
+  typeof process.env.UI_REVIEW_ROUTES === "string" ? process.env.UI_REVIEW_ROUTES : "";
+
 const requestedFileNames = new Set(
-  (process.env.UI_REVIEW_ROUTES ?? "")
+  rawRequestedRoutes
     .split(",")
     .map((value) => value.trim())
     .filter(Boolean),

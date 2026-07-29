@@ -10,15 +10,21 @@
 - [x] 7. Wave 3（Checkout／Account）を実装・検証・撮影・比較する
 - [x] 8. Wave 4（Admin）を実装・検証・撮影・比較する
 - [x] 9. Wave 5（Edge State）を実装・検証・撮影・比較する
-- [x] 10. 全必須・利用可能な追加Regression Testを実行し、失敗を切り分ける
-- [x] 11. 最終Visual Reviewを2回実施し、全Route／Role／Viewport／完了基準を監査する
-- [x] 12. 差分・非変更領域・Run Artifactを確定し、指定形式の最終報告を完成させる
+- [ ] 10. 全必須・利用可能な追加Regression Testを実行し、失敗を切り分ける
+- [ ] 11. 最終Visual Reviewを2回実施し、全Route／Role／Viewport／完了基準を監査する
+- [ ] 12. 差分・非変更領域・Run Artifactを確定し、指定形式の最終報告を完成させる
 
-## Discovered
+## Current blockers
 
-## Blocked
+- GitHub Actions run 30411938495
+- Typecheck failed:
+  `e2e/web/ui-review.spec.ts(29,11) TS7006`
 
-## Paused（2026-07-28 15:34 JST、ユーザー指示）
+## Execution history
+
+### Paused — 2026-07-28 15:34 JST
+
+過去の停止時点の残タスクを記録する。
 
 - Task 10:
   - 最終差分に対する`format`／`format:check`／全体`lint`／`typecheck`を再実行する。
@@ -36,4 +42,13 @@
   - 指定された`# UI/UX Improvement Report`形式で、全検証結果・Visual Stage・残存課題を報告する。
   - 全完了後にのみGoalをcompleteへ更新する。
 
-Progress: 100% (12/12)
+### Resumed — 2026-07-28 19:00 JST
+
+- Static ServerとContract Testを修正
+- Local Regressionを実行
+- Push後のCIでTypecheck Errorが再発
+  - GitHub Actions run 30411938495: TS7006 at e2e/web/ui-review.spec.ts(29,11)
+  - Format/Lint PASS, Typecheck FAIL
+  - Later stages SKIPPED
+
+Progress: 75% (9/12)

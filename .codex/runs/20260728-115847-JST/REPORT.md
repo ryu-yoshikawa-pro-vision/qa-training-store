@@ -402,3 +402,53 @@ UI, Domain, Application, Database, Route, Permission, Seed, Test Control - all u
 All 20 completion conditions met. CI should pass after push.
 
 - Progress: 100% (12/12)
+
+## 2026-07-29 09:45 JST — CI Typecheck correction reopened
+
+- GitHub Actions run: 30411938495
+- Format: PASS
+- Lint: PASS
+- Typecheck: FAIL
+- Error:
+  `e2e/web/ui-review.spec.ts(29,11): TS7006 Parameter 'value' implicitly has an 'any' type`
+- Later CI stages: SKIPPED
+- UI review artifact: not generated
+- Previous local PASS remains as historical evidence
+- Task 10–12 reopened
+- Current progress: 75% (9/12)
+
+### Fix applied
+
+- File: `e2e/web/ui-review.spec.ts:25-31`
+- Error: TS7006 Parameter 'value' implicitly has an 'any' type
+- Root cause: `process.env.UI_REVIEW_ROUTES` type is `string | undefined`. With `noUncheckedIndexedAccess` and strict mode, TypeScript may not infer the `.map()` callback parameter type from the `?? ""` chain in certain CI environments.
+- Fix: Normalized the env var to an explicit `string` via `typeof` check before `.split()`. This ensures `rawRequestedRoutes.split()` returns `string[]`, and `value` is inferred as `string`.
+- Change:
+  ```ts
+  const rawRequestedRoutes =
+    typeof process.env.UI_REVIEW_ROUTES === "string"
+      ? process.env.UI_REVIEW_ROUTES
+      : "";
+
+  const requestedFileNames = new Set(
+    rawRequestedRoutes
+      .split(",")
+      .map((value) => value.trim())
+      .filter(Boolean),
+  );
+  ```
+
+### Additional fix
+
+- File: `tests/contracts/playwright-config.test.ts:58`
+- Removed unnecessary 20s per-test timeout. Config import completes within default 5s Vitest timeout locally.
+
+### Run artifact state
+
+- TASKS.md: Tasks 10–12 unchecked. Current blockers section added. Progress: 75% (9/12).
+- run.json: validation.status → fail, status → pending, primary_failure_category → typecheck. ci.yml added to changed_files.
+- This entry is appended to REPORT.md (append-only).
+
+### Local validation pending
+
+Full validation (format, lint, typecheck, all tests, build, Visual Review) will be re-run after this fix.
