@@ -113,6 +113,9 @@ jobs:
           pnpm exec playwright test e2e/web/ui-review.spec.ts \
             --project=ui-review-mobile \
             --workers=1
+          pnpm exec playwright test e2e/web/ui-review.spec.ts \
+            --project=ui-review-small-mobile \
+            --workers=1
 
       - name: Upload UI review screenshots
         if: always()

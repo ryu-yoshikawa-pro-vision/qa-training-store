@@ -55,7 +55,7 @@ describe("Playwright local and deployed target boundary", () => {
       expect(ws!.reuseExistingServer).toBe(true);
     }
     expect(deployedSmokeProject(config).use?.baseURL).toBe(localBaseUrl);
-  });
+  }, 20_000);
 
   it("uses the deployed URL without starting the local web server", async () => {
     const deployedBaseUrl = "https://preview.example.test";

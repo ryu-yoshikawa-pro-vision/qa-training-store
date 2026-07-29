@@ -2,6 +2,7 @@ import { createReadStream, existsSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
+import type { ServerResponse } from "node:http";
 
 const loopbackHosts = new Set(["127.0.0.1", "localhost", "::1"]);
 
@@ -67,28 +68,28 @@ function resolvePathSafe(requestPath: string): string | null {
   return candidate;
 }
 
-async function send404(response: import("node:http").ServerResponse) {
+function send404(response: ServerResponse): void {
   response.statusCode = 404;
   response.setHeader("Content-Type", "text/plain; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
   response.end("Not Found");
 }
 
-async function send400(response: import("node:http").ServerResponse) {
+function send400(response: ServerResponse): void {
   response.statusCode = 400;
   response.setHeader("Content-Type", "text/plain; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
   response.end("Bad Request");
 }
 
-async function sendMethodNotAllowed(response: import("node:http").ServerResponse) {
+function send405(response: ServerResponse): void {
   response.statusCode = 405;
   response.setHeader("Content-Type", "text/plain; charset=utf-8");
   response.setHeader("Cache-Control", "no-store");
   response.end("Method Not Allowed");
 }
 
-function sendHead(response: import("node:http").ServerResponse, fileSize: number, mime: string) {
+function sendHead(response: ServerResponse, fileSize: number, mime: string): void {
   response.statusCode = 200;
   response.setHeader("Content-Length", fileSize);
   response.setHeader("Content-Type", mime);
@@ -96,12 +97,19 @@ function sendHead(response: import("node:http").ServerResponse, fileSize: number
   response.end();
 }
 
+function send500(response: ServerResponse): void {
+  response.statusCode = 500;
+  response.setHeader("Content-Type", "text/plain; charset=utf-8");
+  response.setHeader("Cache-Control", "no-store");
+  response.end("Internal Server Error");
+}
+
 function sendFile(
-  response: import("node:http").ServerResponse,
+  response: ServerResponse,
   filePath: string,
   fileSize: number,
   mime: string,
-) {
+): void {
   response.statusCode = 200;
   response.setHeader("Content-Length", fileSize);
   response.setHeader("Content-Type", mime);
@@ -110,19 +118,14 @@ function sendFile(
   stream.on("error", () => {
     if (!response.headersSent) {
       send500(response);
+      return;
     }
+    response.destroy();
   });
   stream.pipe(response);
 }
 
-async function send500(response: import("node:http").ServerResponse) {
-  response.statusCode = 500;
-  response.setHeader("Content-Type", "text/plain; charset=utf-8");
-  response.setHeader("Cache-Control", "no-store");
-  response.end("Internal Server Error");
-}
-
-function sendIndex(response: import("node:http").ServerResponse, method: string) {
+function sendIndex(response: ServerResponse, method: string): void {
   if (!existsSync(fallbackFile)) {
     console.error("dist/index.html was not found. Run pnpm run build:web first.");
     response.statusCode = 500;
@@ -145,63 +148,78 @@ function sendIndex(response: import("node:http").ServerResponse, method: string)
     });
 }
 
-const server = createServer(async (request, response) => {
+const server = createServer((request, response) => {
   const method = request.method ?? "GET";
 
   if (method !== "GET" && method !== "HEAD") {
-    await sendMethodNotAllowed(response);
+    send405(response);
     return;
   }
 
   let pathname: string;
   try {
-    pathname = decodeURIComponent(request.url ?? "/");
+    const hostHeader = request.headers.host ?? `${host}:${port}`;
+    const requestUrl = new URL(request.url ?? "/", `http://${hostHeader}`);
+    pathname = decodeURIComponent(requestUrl.pathname);
   } catch {
-    await send400(response);
+    send400(response);
     return;
   }
 
-  const urlPath = pathname;
-
-  const resolved = resolvePathSafe(urlPath);
+  const resolved = resolvePathSafe(pathname);
   if (resolved === null) {
     if (method === "HEAD") {
-      await send404(response);
+      send404(response);
       return;
     }
-    await send404(response);
+    send404(response);
     return;
   }
 
-  try {
-    const fileStat = await stat(resolved);
-    if (fileStat.isFile()) {
-      const mime = contentTypes[extname(resolved)] ?? "application/octet-stream";
-      if (method === "HEAD") {
-        sendHead(response, fileStat.size, mime);
+  stat(resolved)
+    .then((fileStat) => {
+      if (fileStat.isFile()) {
+        const mime = contentTypes[extname(resolved)] ?? "application/octet-stream";
+        if (method === "HEAD") {
+          sendHead(response, fileStat.size, mime);
+          return;
+        }
+        sendFile(response, resolved, fileStat.size, mime);
         return;
       }
-      sendFile(response, resolved, fileStat.size, mime);
-      return;
-    }
-  } catch {
-    // File not found or stat failure – fall through to SPA or 404.
-  }
 
-  if (isSpaRoute(urlPath)) {
-    sendIndex(response, method);
-    return;
-  }
+      if (isSpaRoute(pathname)) {
+        sendIndex(response, method);
+        return;
+      }
 
-  if (method === "HEAD") {
-    await send404(response);
-    return;
-  }
-  await send404(response);
+      if (method === "HEAD") {
+        send404(response);
+        return;
+      }
+      send404(response);
+    })
+    .catch(() => {
+      if (isSpaRoute(pathname)) {
+        sendIndex(response, method);
+        return;
+      }
+
+      if (method === "HEAD") {
+        send404(response);
+        return;
+      }
+      send404(response);
+    });
 });
 
 server.listen(port, host, () => {
   console.log(`Static web server listening on http://${host}:${port}`);
+});
+
+server.on("error", (error: Error) => {
+  console.error("Static web server failed:", error.message);
+  process.exitCode = 1;
 });
 
 process.on("SIGINT", () => server.close());
