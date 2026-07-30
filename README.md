@@ -91,7 +91,7 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 - Cloudflare Pages
 - pnpm
 
-依存Packageの正確なVersionは[`package.json`](./package.json)を参照してください。
+依存PackageのVersion指定は[`package.json`](./package.json)、実際に解決されるVersionは[`pnpm-lock.yaml`](./pnpm-lock.yaml)を参照してください。
 
 ## セットアップ
 
