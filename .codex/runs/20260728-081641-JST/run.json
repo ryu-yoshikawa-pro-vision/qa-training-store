@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "run_id": "20260728-081641-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": ["code_researcher", "implementation_researcher", "test_investigator"],
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    ".github/workflows/ci.yml",
+    ".gitignore",
+    ".prettierignore",
+    "app/_layout.tsx",
+    "e2e/web/accessibility.spec.ts",
+    "e2e/web/mobile-boundary.spec.ts",
+    "e2e/web/ui-review.spec.ts",
+    "package.json",
+    "playwright.config.ts",
+    "pnpm-lock.yaml",
+    "scripts/prepare-font-assets.ts",
+    "src/presentation/pages/admin-master-pages.tsx",
+    "src/presentation/pages/admin-operations-pages.tsx",
+    "src/presentation/pages/admin-product-pages.tsx",
+    "src/presentation/pages/catalog-list-page.tsx",
+    "src/presentation/pages/review-user-pages.tsx",
+    "src/presentation/patterns/admin-patterns.tsx",
+    "src/presentation/styles/fonts.css",
+    "src/presentation/styles/global.css",
+    "tests/component/presentation-foundation.test.tsx"
+  ],
+  "validation": {
+    "status": "pass",
+    "commands": [
+      "pnpm install --frozen-lockfile --ignore-scripts",
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run test:unit",
+      "pnpm run test:integration",
+      "pnpm run test:repository",
+      "pnpm run test:component",
+      "pnpm run test:contracts",
+      "pnpm run build:web",
+      "CI=1 pnpm run test:e2e:chromium",
+      "CI=1 pnpm run test:a11y",
+      "CI=1 pnpm run test:e2e:mobile-boundary",
+      "UI_REVIEW_STAGE=review-fix-final-20260728-v3 CI=1 playwright test --project=ui-review-desktop --workers=1",
+      "UI_REVIEW_STAGE=review-fix-final-20260728-v3 CI=1 playwright test --project=ui-review-tablet --workers=1",
+      "UI_REVIEW_STAGE=review-fix-final-20260728-v3 CI=1 playwright test --project=ui-review-mobile --workers=1",
+      "git diff --check"
+    ],
+    "warnings": [
+      "lintは0 errors / 66 warningsで終了した。warningは既存箇所で、今回の大規模warning cleanupは行っていない。",
+      "Integration testのDexie stderrに既存のAnother connection wants to delete databaseメッセージがあるが、89/89 PASS。",
+      "bash scripts/verifyは既存スクリプトのCRLFによりWSLで実行不能（set: pipefail\\r）。個別の必須検証は完了した。",
+      "UI Review stage未指定の検証は期待どおりfail-fast。既存output/ui-review/beforeは変更していない。"
+    ]
+  },
+  "safety": {"network": false, "delete_attempt_blocked": false, "git_mutation_attempt_blocked": false, "scope_violation": false},
+  "artifact_summary": {"codex_task_report_count": 0, "hook_event_count": 0, "subagent_run_count": 0, "evaluation_present": false},
+  "hook_observations": {"log_paths": [], "event_counts": {}, "blocking_event_count": 0, "safety_blocked_count": 0, "observation_error_count": 0},
+  "subagents": {
+    "records": [
+      {"task": "repo_mapping", "role": "code_researcher", "mode": "read-only", "used_in_final_plan": true},
+      {"task": "change_strategy", "role": "implementation_researcher", "mode": "read-only", "used_in_final_plan": true},
+      {"task": "test_mapping", "role": "test_investigator", "mode": "read-only", "used_in_final_plan": true}
+    ],
+    "summary": {"total": 3, "read_only": 3, "writable": 0, "scope_violations": 0, "used_in_final_plan": 3}
+  },
+  "evaluation_path": null,
+  "status": "pass",
+  "primary_failure_category": null
+}

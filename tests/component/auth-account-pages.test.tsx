@@ -1,0 +1,191 @@
+import type { ReactNode } from "react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { UserAddress } from "@/domain/contracts";
+
+const routerReplace = vi.fn();
+const refreshIdentity = vi.fn(async () => {});
+const auth = {
+  login: vi.fn(async () => ({
+    sessionId: "session",
+    user: {},
+    cartMerge: null,
+  })),
+  register: vi.fn(async () => ({
+    sessionId: "session",
+    user: {},
+    cartMerge: null,
+  })),
+  logout: vi.fn(async () => {}),
+};
+const account = {
+  getProfile: vi.fn(async () => ({
+    id: "user",
+    email: "regular@example.com",
+    displayName: "一般テスト会員",
+    phone: "09000000000",
+    role: "customer",
+    membershipRank: "regular",
+    accountStatus: "active",
+    actionVersion: 7,
+  })),
+  updateProfile: vi.fn(async (request: { displayName: string; phone: string | null }) => ({
+    id: "user",
+    email: "regular@example.com",
+    displayName: request.displayName,
+    phone: request.phone,
+    role: "customer",
+    membershipRank: "regular",
+    accountStatus: "active",
+    actionVersion: 8,
+  })),
+  listAddresses: vi.fn(async (): Promise<UserAddress[]> => []),
+  createAddress: vi.fn(async () => ({})),
+  updateAddress: vi.fn(async () => ({})),
+  deleteAddress: vi.fn(async () => ({})),
+  suggestAddress: vi.fn(async () => ({
+    postalCode: "1000001",
+    prefecture: "東京都",
+    city: "千代田区千代田",
+    addressLine1: "",
+  })),
+};
+
+vi.mock("expo-router", () => ({
+  Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
+    <a href={href} {...props}>
+      {children}
+    </a>
+  ),
+  useRouter: () => ({ replace: routerReplace }),
+}));
+
+vi.mock("@/presentation/hooks/use-application-services", () => ({
+  useApplicationServices: () => ({ auth, account }),
+}));
+
+vi.mock("@/presentation/providers/app-runtime-provider", () => ({
+  useAppRuntime: () => ({ refreshIdentity }),
+}));
+
+vi.mock("@/presentation/guards/route-guard", () => ({
+  RouteGuard: ({ children }: { children: ReactNode }) => children,
+}));
+
+import { LoginPage, SignupPage } from "@/presentation/pages/auth-pages";
+import { ProfilePage } from "@/presentation/pages/profile-page";
+import { AddressesPage } from "@/presentation/pages/addresses-page";
+
+describe("auth and account pages", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    account.listAddresses.mockResolvedValue([]);
+  });
+
+  it("submits Login and exposes fixed fixture account guidance", async () => {
+    render(<LoginPage />);
+    expect(screen.getByRole("heading", { name: "ログイン" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "固定テストアカウント" })).toBeVisible();
+    expect(screen.getByText("パスワードはすべて「testpass1」です。")).toBeVisible();
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "regular@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "testpass1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+    await waitFor(() =>
+      expect(auth.login).toHaveBeenCalledWith({
+        email: "regular@example.com",
+        password: "testpass1",
+      }),
+    );
+    expect(refreshIdentity).toHaveBeenCalled();
+    expect(routerReplace).toHaveBeenCalledWith("/");
+  });
+
+  it("keeps Signup submission blocked until the notice is accepted", async () => {
+    render(<SignupPage />);
+    expect(screen.getByLabelText("メールアドレス")).toHaveAttribute("autocomplete", "email");
+    expect(screen.getByLabelText("表示名")).toHaveAttribute("autocomplete", "name");
+    expect(screen.getByLabelText("パスワード")).toHaveAttribute("autocomplete", "new-password");
+    expect(screen.getByLabelText("パスワード（確認）")).toHaveAttribute(
+      "autocomplete",
+      "new-password",
+    );
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "new@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("表示名"), {
+      target: { value: "新規会員" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "testpass1" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード（確認）"), {
+      target: { value: "testpass1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "登録する" }));
+    expect(
+      await screen.findByRole("link", {
+        name: "学習用環境の注意事項を確認してください",
+      }),
+    ).toHaveAttribute("href", "#noticeAccepted");
+    expect(screen.getByLabelText("学習用環境の注意事項を確認しました")).toHaveAttribute(
+      "aria-invalid",
+      "true",
+    );
+    expect(auth.register).not.toHaveBeenCalled();
+  });
+
+  it("updates Profile with the hidden actionVersion", async () => {
+    render(<ProfilePage />);
+    expect(await screen.findByDisplayValue("一般テスト会員")).toBeVisible();
+    fireEvent.change(screen.getByLabelText("表示名"), {
+      target: { value: "更新後会員" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "保存" }));
+    await waitFor(() =>
+      expect(account.updateProfile).toHaveBeenCalledWith({
+        displayName: "更新後会員",
+        phone: "09000000000",
+        actionVersion: 7,
+      }),
+    );
+    expect(await screen.findByText("プロフィールを更新しました。")).toBeVisible();
+  });
+
+  it("shows address count, create form, and deterministic default action", async () => {
+    account.listAddresses.mockResolvedValue([
+      {
+        id: "address-home",
+        userId: "user",
+        label: "自宅",
+        recipientName: "一般テスト会員",
+        postalCode: "1000001",
+        prefecture: "東京都",
+        city: "千代田区千代田",
+        addressLine1: "1-1",
+        addressLine2: null,
+        phone: "09000000000",
+        isDefault: false,
+        createdAt: "2026-07-01T03:00:00.000Z",
+        updatedAt: "2026-07-01T03:00:00.000Z",
+        version: 3,
+      },
+    ]);
+    render(<AddressesPage />);
+    expect(await screen.findByRole("heading", { name: "登録済み配送先（1/5）" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "配送先を追加" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "既定にする" }));
+    await waitFor(() =>
+      expect(account.updateAddress).toHaveBeenCalledWith(
+        expect.objectContaining({
+          addressId: "address-home",
+          expectedVersion: 3,
+          makeDefault: true,
+        }),
+      ),
+    );
+    expect(await screen.findByRole("status")).toHaveTextContent("既定の配送先を変更しました。");
+  });
+});

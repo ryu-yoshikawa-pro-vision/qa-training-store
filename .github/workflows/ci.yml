@@ -1,0 +1,288 @@
+name: Phase 1 CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+  schedule:
+    - cron: "0 18 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    outputs:
+      cloudflare_available: ${{ steps.cloudflare-availability.outputs.available }}
+    env:
+      CI: "true"
+      EXPO_PUBLIC_APP_ENV: automation
+      EXPO_PUBLIC_BUILD_KIND: automation
+      EXPO_PUBLIC_TEST_MODE: "true"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+
+    steps:
+      - name: Check Cloudflare availability
+        id: cloudflare-availability
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          if [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.10.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Format
+        run: pnpm run format:check
+
+      - name: Lint
+        run: pnpm run lint
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+      - name: Validate image manifest
+        run: pnpm run validate:image-manifest
+
+      - name: Credential and runtime security check
+        run: pnpm run security:check
+
+      - name: Unit tests
+        run: pnpm run test:unit
+
+      - name: Application integration tests
+        run: pnpm run test:integration
+
+      - name: Dexie repository contract tests
+        run: pnpm run test:repository
+
+      - name: Component tests
+        run: pnpm run test:component
+
+      - name: Contract tests
+        run: pnpm run test:contracts
+
+      - name: Web build
+        run: pnpm run build:web
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Chromium required E2E
+        run: pnpm run test:e2e:chromium
+
+      - name: Accessibility smoke
+        run: pnpm run test:a11y
+
+      - name: Mobile staff boundary E2E
+        run: pnpm run test:e2e:mobile-boundary
+
+      - name: Capture UI review screenshots
+        env:
+          UI_REVIEW_STAGE: ci-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          pnpm exec playwright test e2e/web/ui-review.spec.ts \
+            --project=ui-review-desktop \
+            --workers=1
+          pnpm exec playwright test e2e/web/ui-review.spec.ts \
+            --project=ui-review-tablet \
+            --workers=1
+          pnpm exec playwright test e2e/web/ui-review.spec.ts \
+            --project=ui-review-mobile \
+            --workers=1
+          pnpm exec playwright test e2e/web/ui-review.spec.ts \
+            --project=ui-review-small-mobile \
+            --workers=1
+
+      - name: Upload UI review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-review-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/ui-review/ci-${{ github.run_id }}-${{ github.run_attempt }}
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Install extended browsers
+        if: ${{ github.event_name != 'pull_request' }}
+        run: pnpm exec playwright install --with-deps firefox webkit
+
+      - name: Mobile Chromium E2E
+        if: ${{ github.event_name != 'pull_request' }}
+        run: pnpm run test:e2e:mobile
+
+      - name: Cross-role lifecycle
+        if: ${{ github.event_name != 'pull_request' }}
+        run: pnpm run test:e2e:cross-role
+
+      - name: Firefox smoke
+        if: ${{ github.event_name != 'pull_request' }}
+        run: pnpm run test:e2e:smoke:firefox
+
+      - name: WebKit smoke
+        if: ${{ github.event_name != 'pull_request' }}
+        run: pnpm run test:e2e:smoke:webkit
+
+      - name: Production web build validation
+        env:
+          EXPO_PUBLIC_APP_ENV: production
+          EXPO_PUBLIC_BUILD_KIND: production
+          EXPO_PUBLIC_TEST_MODE: "false"
+          EXPO_PUBLIC_DEFAULT_SEED: default
+        run: pnpm run build:web
+
+      - name: Upload Playwright artifacts on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-artifacts-${{ github.run_id }}
+          path: output/playwright
+          if-no-files-found: warn
+
+  deploy-preview:
+    needs: validate
+    if: >-
+      ${{
+        github.event_name == 'pull_request' &&
+        needs.validate.outputs.cloudflare_available == 'true'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPO_PUBLIC_APP_ENV: automation
+      EXPO_PUBLIC_BUILD_KIND: automation
+      EXPO_PUBLIC_TEST_MODE: "true"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.10.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build automation preview
+        run: pnpm run build:web
+
+      - name: Deploy Cloudflare Preview
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=ec-training-automation --branch=${{ github.head_ref }}
+
+      - name: Validate preview deployment URL
+        env:
+          DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          if [[ -z "$DEPLOYED_BASE_URL" ]]; then
+            echo "Cloudflare preview deployment URL was not returned."
+            exit 1
+          fi
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Smoke deployed preview
+        env:
+          DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: pnpm run test:smoke
+
+  deploy-production:
+    needs: validate
+    if: >-
+      ${{
+        github.event_name == 'push' &&
+        github.ref == 'refs/heads/main' &&
+        needs.validate.outputs.cloudflare_available == 'true'
+      }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPO_PUBLIC_APP_ENV: production
+      EXPO_PUBLIC_BUILD_KIND: production
+      EXPO_PUBLIC_TEST_MODE: "false"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9.10.0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build production
+        run: pnpm run build:web
+
+      - name: Deploy Cloudflare Production
+        id: deploy
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist --project-name=ec-training-automation --branch=main
+
+      - name: Validate production deployment URL
+        env:
+          DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: |
+          if [[ -z "$DEPLOYED_BASE_URL" ]]; then
+            echo "Cloudflare production deployment URL was not returned."
+            exit 1
+          fi
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Smoke deployed production
+        env:
+          DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
+        run: pnpm run test:smoke

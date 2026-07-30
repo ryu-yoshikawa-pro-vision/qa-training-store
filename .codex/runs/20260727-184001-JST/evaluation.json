@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "run_id": "20260727-184001-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "指定11タスクを実装し、必須Static/Vitest/Build/E2Eと任意browser E2Eを全件PASSした。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260727-184001-JST/run.json",
+          "selector": "validation",
+          "summary": "全検証コマンドと最終status=passを記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はRun policy/artifact、Mobile E2E、Playwright/CI、Contract Testへ限定し、対象外のUI/domain/routeを変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260727-184001-JST/run.json",
+          "selector": "changed_files",
+          "summary": "計画した変更対象だけを列挙している。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "Vitest 190件、Chromium 14件、a11y 11画面、Mobile境界2件、full Mobile 14件、cross-role/Firefox/WebKitを実測した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260727-184001-JST/REPORT.md",
+          "selector": "2026-07-27 19:27",
+          "summary": "suite別の件数とPASS結果を記録している。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "許可されたJSON 2件のread-only git show以外のGit/gh、file deletion/rename、Cloudflare deployを行わず、一時shimはrepository外へ分離した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260727-184001-JST/run.json",
+          "selector": "safety",
+          "summary": "delete/git mutation/scope violationはいずれもfalse。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "正式Plan、taskごとのJST記録、repair iteration、検証結果、PR本文案を新規Runへ集約した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260727-184001-JST/REPORT.md",
+          "summary": "判断、実行結果、残タスク、Progressを追跡できる。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存fixtureへsession確認だけを共通化し、Playwright/CIの境界を局所Contract Testで固定して過剰な抽象化を避けた。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "e2e/web/fixtures.ts",
+          "selector": "expectSessionIdCleared",
+          "summary": "既存/new logout E2Eで同じsession確認を再利用する。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "lockfile固定install、package scripts、CI step、Playwright config contract、実行コマンドと環境変数を記録した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260727-184001-JST/run.json",
+          "selector": "validation.commands",
+          "summary": "再実行可能な検証コマンドを列挙している。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

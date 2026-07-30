@@ -1,0 +1,239 @@
+import Dexie from "dexie";
+import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
+import {
+  AdminReviewUseCases,
+  AdminUserUseCases,
+  CustomerReviewUseCases,
+} from "@/application/use-cases/review-user-use-cases";
+import { TestClock } from "@/infrastructure/clock/clocks";
+import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
+import { loadSeedDataset } from "@/seeds/load-seed";
+import { createScenarioDataset } from "@/seeds/scenarios";
+const FIXED_TIME = "2026-07-15T03:00:00.000Z";
+
+class SessionStore implements CurrentSessionStore {
+  constructor(private value: string | null) {}
+  async getSessionId() {
+    return this.value;
+  }
+  async setSessionId(id: string) {
+    this.value = id;
+  }
+  async clear() {
+    this.value = null;
+  }
+}
+
+class Ids implements IdGenerator {
+  private value = 0;
+  generate() {
+    this.value += 1;
+    return `wave12-${this.value}`;
+  }
+}
+
+async function signIn(database: ScenarioShopDatabase, userId: string) {
+  await database.sessions.put({
+    id: `${userId}-session`,
+    userId,
+    createdAt: "2026-07-01T03:00:00.000Z",
+  });
+  return new SessionStore(`${userId}-session`);
+}
+
+function dependencies(database: ScenarioShopDatabase, currentSessionStore: CurrentSessionStore) {
+  return {
+    database,
+    transactionRunner: new DexieApplicationTransactionRunner(database),
+    currentSessionStore,
+    clock: new TestClock(FIXED_TIME),
+    idGenerator: new Ids(),
+  };
+}
+
+describe("review and user administration integration", () => {
+  let database: ScenarioShopDatabase;
+
+  afterEach(async () => {
+    const name = database.name;
+    database.close();
+    await Dexie.delete(name);
+  });
+
+  it("creates, updates, and deletes one delivered owned review with aggregate changes", async () => {
+    database = new ScenarioShopDatabase(`reviews-${crypto.randomUUID()}`);
+    await loadSeedDataset(
+      database,
+      createScenarioDataset("reviewable-orders"),
+      "reviewable-orders",
+    );
+    const session = await signIn(database, "user-customer-regular");
+    const useCases = new CustomerReviewUseCases(dependencies(database, session));
+    const delivered = await database.orders.where("status").equals("delivered").first();
+    expect(delivered).toBeDefined();
+    const items = await database.order_items.where("orderId").equals(delivered!.id).toArray();
+    const chosen = items.at(-1)!;
+    expect(await database.reviews.where("orderItemId").equals(chosen.id).first()).toBeUndefined();
+    const before = await database.product_review_summaries.get(chosen.productId);
+    const created = await useCases.create({
+      orderItemId: chosen.id,
+      rating: 3,
+      title: "配送後レビュー",
+      body: "Keyboardでも入力できるレビューです。",
+    });
+    expect(created).toMatchObject({
+      status: "published",
+      rating: 3,
+      createdAt: FIXED_TIME,
+      updatedAt: FIXED_TIME,
+      version: 1,
+    });
+    expect((await database.product_review_summaries.get(chosen.productId))!.publishedCount).toBe(
+      before!.publishedCount + 1,
+    );
+
+    const updated = await useCases.update({
+      reviewId: created.reviewId,
+      rating: 5,
+      title: "更新レビュー",
+      body: "評価を更新しました。",
+      expectedVersion: created.version,
+    });
+    expect(updated).toMatchObject({ rating: 5, version: 2 });
+
+    const deleted = await useCases.delete({
+      reviewId: created.reviewId,
+      expectedVersion: updated.version,
+    });
+    expect(deleted.status).toBe("deleted");
+    expect((await useCases.getEligibility(chosen.id)).reason).toBe("REVIEW_DELETED");
+    expect((await database.product_review_summaries.get(chosen.productId))!.publishedCount).toBe(
+      before!.publishedCount,
+    );
+  });
+
+  it("rejects a review for an undelivered order and a deleted review repost", async () => {
+    database = new ScenarioShopDatabase(`review-eligibility-${crypto.randomUUID()}`);
+    await loadSeedDataset(database, createScenarioDataset("default"), "default");
+    const session = await signIn(database, "user-customer-regular");
+    const useCases = new CustomerReviewUseCases(dependencies(database, session));
+    const paid = await database.orders.where("status").equals("paid").first();
+    const paidItem = await database.order_items.where("orderId").equals(paid!.id).first();
+    expect((await useCases.getEligibility(paidItem!.id)).reason).toBe("ORDER_NOT_DELIVERED");
+    expect((await useCases.getEligibility("order-delivered-item-deleted")).reason).toBe(
+      "REVIEW_DELETED",
+    );
+  });
+
+  it("searches reviews and changes visibility with history and summary atomically", async () => {
+    database = new ScenarioShopDatabase(`admin-reviews-${crypto.randomUUID()}`);
+    await loadSeedDataset(database, createScenarioDataset("default"), "default");
+    const session = await signIn(database, "user-admin");
+    const useCases = new AdminReviewUseCases(dependencies(database, session));
+    const search = await useCases.search({ statuses: ["published"], ratings: [5], pageSize: 50 });
+    const target = search.items[0]!;
+    const before = await database.product_review_summaries.get(target.productId);
+    const hidden = await useCases.changeVisibility({
+      reviewId: target.reviewId,
+      targetStatus: "hidden",
+      expectedVersion: target.version,
+    });
+    expect(hidden.status).toBe("hidden");
+    expect(hidden.histories[0]).toMatchObject({ fromStatus: "published", toStatus: "hidden" });
+    expect((await database.product_review_summaries.get(target.productId))!.publishedCount).toBe(
+      before!.publishedCount - 1,
+    );
+  });
+
+  it("limits review bulk operations to the current page maximum of 50", async () => {
+    database = new ScenarioShopDatabase(`bulk-reviews-${crypto.randomUUID()}`);
+    await loadSeedDataset(database, createScenarioDataset("default"), "default");
+    const session = await signIn(database, "user-operator");
+    const useCases = new AdminReviewUseCases(dependencies(database, session));
+    await expect(
+      useCases.bulkChangeVisibility({
+        targetIds: Array.from({ length: 51 }, (_, index) => `review-${index}`),
+        expectedVersions: {},
+        targetStatus: "hidden",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+  });
+
+  it("changes customer rank, abandons checkout, and keeps the cart", async () => {
+    database = new ScenarioShopDatabase(`rank-${crypto.randomUUID()}`);
+    await loadSeedDataset(database, createScenarioDataset("checkout-resume"), "checkout-resume");
+    const session = await signIn(database, "user-admin");
+    const useCases = new AdminUserUseCases(dependencies(database, session));
+    const before = await useCases.getDetail("user-customer-regular");
+    const active = await database.checkout_sessions
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    expect(active).toBeDefined();
+    const updated = await useCases.changeMembershipRank({
+      userId: before.userId,
+      rank: "gold",
+      expectedVersion: before.version,
+    });
+    expect(updated.membershipRank).toBe("gold");
+    expect((await database.checkout_sessions.get(active!.id))!.status).toBe("abandoned");
+    expect(await database.carts.get(active!.cartId)).toBeDefined();
+  });
+
+  it("invalidates all sessions when role or status changes", async () => {
+    database = new ScenarioShopDatabase(`access-${crypto.randomUUID()}`);
+    await loadSeedDataset(database, createScenarioDataset("default"), "default");
+    const session = await signIn(database, "user-admin");
+    await database.sessions.bulkPut([
+      { id: "operator-one", userId: "user-operator", createdAt: "2026-07-01T03:00:00.000Z" },
+      { id: "operator-two", userId: "user-operator", createdAt: "2026-07-01T03:00:00.000Z" },
+    ]);
+    const useCases = new AdminUserUseCases(dependencies(database, session));
+    const operator = await useCases.getDetail("user-operator");
+    const promoted = await useCases.changeRole({
+      userId: operator.userId,
+      role: "admin",
+      expectedVersion: operator.version,
+    });
+    expect(promoted.role).toBe("admin");
+    expect(await database.sessions.where("userId").equals("user-operator").count()).toBe(0);
+    const suspended = await useCases.changeSuspension({
+      userId: promoted.userId,
+      accountStatus: "suspended",
+      expectedVersion: promoted.version,
+    });
+    expect(suspended.accountStatus).toBe("suspended");
+  });
+
+  it("protects self-change, the last admin, withdrawn users, and customer role", async () => {
+    database = new ScenarioShopDatabase(`protections-${crypto.randomUUID()}`);
+    await loadSeedDataset(database, createScenarioDataset("default"), "default");
+    const session = await signIn(database, "user-admin");
+    const useCases = new AdminUserUseCases(dependencies(database, session));
+    const admin = await useCases.getDetail("user-admin");
+    await expect(
+      useCases.changeRole({
+        userId: admin.userId,
+        role: "operator",
+        expectedVersion: admin.version,
+      }),
+    ).rejects.toMatchObject({ code: "SELF_CHANGE_FORBIDDEN" });
+    const customer = await useCases.getDetail("user-customer-regular");
+    await expect(
+      useCases.changeRole({
+        userId: customer.userId,
+        role: "operator",
+        expectedVersion: customer.version,
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_ROLE" });
+    const withdrawn = await useCases.getDetail("user-customer-withdrawn");
+    await expect(
+      useCases.changeSuspension({
+        userId: withdrawn.userId,
+        accountStatus: "active",
+        expectedVersion: withdrawn.version,
+      }),
+    ).rejects.toMatchObject({ code: "INVALID_STATE" });
+  });
+});

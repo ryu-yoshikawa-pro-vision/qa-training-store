@@ -1,0 +1,59 @@
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src:
+    url("/_expo/static/css/files/inter-latin-400-normal.woff2") format("woff2"),
+    url("/_expo/static/css/files/inter-latin-400-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src:
+    url("/_expo/static/css/files/inter-latin-600-normal.woff2") format("woff2"),
+    url("/_expo/static/css/files/inter-latin-600-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: Inter;
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src:
+    url("/_expo/static/css/files/inter-latin-700-normal.woff2") format("woff2"),
+    url("/_expo/static/css/files/inter-latin-700-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Noto Sans JP";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src:
+    url("/_expo/static/css/files/noto-sans-jp-japanese-400-normal.woff2") format("woff2"),
+    url("/_expo/static/css/files/noto-sans-jp-japanese-400-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Noto Sans JP";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src:
+    url("/_expo/static/css/files/noto-sans-jp-japanese-600-normal.woff2") format("woff2"),
+    url("/_expo/static/css/files/noto-sans-jp-japanese-600-normal.woff") format("woff");
+}
+
+@font-face {
+  font-family: "Noto Sans JP";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src:
+    url("/_expo/static/css/files/noto-sans-jp-japanese-700-normal.woff2") format("woff2"),
+    url("/_expo/static/css/files/noto-sans-jp-japanese-700-normal.woff") format("woff");
+}
