@@ -29,7 +29,7 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 | Platform | Desktop / Mobile Web |
 | Storefront | Home、商品一覧、検索、Category、商品詳細、Cart |
 | Customer | Account、配送先、Checkout、注文履歴、Review |
-| Admin | Overview、商品、Category、Brand、在庫、注文、Review、User管理 |
+| Admin console | Overview、商品、Category、Brand、在庫、注文、Review、User管理 |
 | Database | IndexedDB + Dexie |
 | Payment | 決定的なLocal Mock |
 | E2E | Playwright |
@@ -57,7 +57,7 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 - 決済成功、利用拒否、再試行
 - Checkout再開とCart Version不一致の検出
 - 注文一覧、注文詳細
-- Review投稿・編集
+- Review投稿・編集・削除
 
 ### Operator / Admin
 
@@ -68,9 +68,15 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 - 在庫調整と在庫履歴
 - 注文準備、発送、配達完了
 - Review公開状態の管理
-- User、Role、会員Rank、Account Statusの管理
+
+### Admin
+
+- User一覧・詳細
+- customerの会員Rank変更
+- operatorとadmin間のRole変更
+- Userの利用停止・再開
 - 最後のAdminを保護する制約
-- Automation Build専用のTest Control
+- Local / Automation BuildでのTest Control
 
 ## 技術スタック
 
@@ -108,13 +114,17 @@ pnpm run start:web
 
 Expoが表示するURLをブラウザで開いてください。
 
-### Production Build
+### Web Build
+
+現在のRuntime Environment設定でWeb Buildを生成します。
 
 ```bash
 pnpm run build:web
 ```
 
 Font Asset準備、商品画像Manifest生成・検証、Expo Web Exportを順に実行し、`dist/`へ出力します。
+
+Production Buildは、CI/CDでProduction用の環境変数を設定して実行します。
 
 ## テストアカウント
 
@@ -175,14 +185,18 @@ LocalおよびAutomation Buildでは、`window.__TEST_API__`を利用できま�
 主な操作は次のとおりです。
 
 - `reset({ scenario })`
-- `setClock(isoString)`
-- `setPaymentDelay(milliseconds)`
+- `setClock(isoString | null)`  
+  固定時刻を設定します。`null`で固定時刻を解除します。
+- `setPaymentDelay(milliseconds)`  
+  決済遅延を0〜30,000ミリ秒の整数で設定します。
 - `getMetadata()`
 - `inspectOrder(orderId)`
 - `inspectVariant(variantId)`
 - `inspectReviewSummary(productId)`
 
 Production BuildにはTest APIを公開しません。
+
+LocalまたはAutomation BuildでadminとしてLoginすると、`/admin/test-control`からScenario、基準時刻、決済遅延を変更できます。
 
 ### Reset後のReload
 
@@ -226,10 +240,16 @@ pnpm run test
 
 ### Playwright
 
-初回はChromiumをInstallします。
+Chromiumのみを使用する場合は、ChromiumをInstallします。
 
 ```bash
 pnpm exec playwright install chromium
+```
+
+Firefox・WebKitを含むすべてのPlaywright Testを実行する場合は、すべてのBrowserをInstallします。
+
+```bash
+pnpm exec playwright install chromium firefox webkit
 ```
 
 主なTest Commandは次のとおりです。
@@ -306,13 +326,14 @@ Pull Requestでは主に次を検証します。
 - 商品画像Manifest
 - CredentialとRuntime Securityの静的検証
 - Unit、Integration、Repository Contract、Component、Contract Test
-- Web Build
+- Automation設定のWeb Build
+- Production設定のWeb Build
 - Chromium E2E
 - Accessibility
 - Mobile管理画面境界
 - Desktop、Tablet、Mobile、Small MobileのUI Review Screenshot
 
-mainへのPush、定期実行、手動実行では、Mobile Chromium、Role横断Flow、Firefox、WebKit、Production Buildも追加で検証します。
+mainへのPush、定期実行、手動実行では、Mobile Chromium、Role横断Flow、Firefox、WebKitの検証も追加します。
 
 CloudflareのSecretが設定されている場合は、Pull Request PreviewとmainへのProduction Deployを実行します。
 
