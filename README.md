@@ -62,7 +62,8 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 ### Operator / Admin
 
 - 管理Overview
-- 商品、SKU、商品画像の登録・編集
+- 商品、SKUの登録・編集
+- 静的Image Assetの商品への関連付け・並べ替え
 - 商品公開・非公開と削除制約
 - Category、Brand管理
 - 在庫調整と在庫履歴
@@ -198,17 +199,18 @@ Production BuildにはTest APIを公開しません。
 
 LocalまたはAutomation BuildでadminとしてLoginすると、`/admin/test-control`からScenario、基準時刻、決済遅延を変更できます。
 
-### Reset後のReload
+### Reset時の注意
 
 Database ResetではIndexedDBを削除し、新しいDatabase Instanceを作成します。
 
-Reset後は、Application Serviceが新しいDatabase Instanceを参照するようにページをReloadしてください。Playwrightの`scenario` FixtureはReset後のReloadまで自動で実行します。
+- 管理画面のTest Controlは、Reset後にページを自動でReloadします
+- Playwrightの`scenario` Fixtureは、同じBrowser Contextの余分なPageを閉じ、Reset後のReloadまで自動で実行します
+- `window.__TEST_API__.reset()`を直接呼び出す場合は、Reset後にページをReloadしてください
+- Resetは1つのBrowser Contextで1つのPageを開いた状態を前提とします。Reset前に同じContextの別Tab・別Pageを閉じてください
 
 ```ts
 await scenario("payment-declined");
 ```
-
-E2EからTest APIを直接操作する場合も、`reset()`後にReloadが必要です。
 
 ## テストと検証
 
@@ -348,6 +350,7 @@ CloudflareのSecretが設定されている場合は、Pull Request Previewとma
 - 外部Payment、Email、配送APIは使用しません
 - 複数端末・複数Browser間のData同期はありません
 - Backend API、Network障害、Server-side認可の学習は対象外です
+- 商品画像はリポジトリに同梱された静的Assetから選択します。管理画面からの画像Uploadには対応していません
 - Guest Checkout、Coupon、Point、Wishlist、返品、返金は対象外です
 - 管理画面は1024px以上を対象とします
 
