@@ -1,176 +1,363 @@
-# ECテスト自動化学習アプリ 設計ドキュメント
+# Scenario Shop
 
-- Document Version: `v15`
-- Seed Version: `10`
+Playwrightを中心としたテスト自動化を学習・検証するための模擬EC Webアプリです。
 
-## 1. 位置付け
+商品検索、カート、購入、決済失敗、在庫競合、注文配送、レビュー、商品・在庫・ユーザー管理まで、ECサイトとSaaS型管理画面の主要な操作を再現しています。
 
-Web・Android・iOSへ拡張可能な、テスト自動化学習用の模擬ECアプリの設計正本です。実際の販売・決済・配送は行いません。
+テストを安定して繰り返せるように、固定Seed、Database Reset、Test Clock、決済遅延、内部状態Inspection APIを備えています。
 
-Phase 1は**Web EC＋Playwright**へ限定し、一般的なECとSaaS管理画面で定着している情報設計・操作パターンを取り入れます。見た目の装飾より、商品を探す、比較する、購入する、管理対象を見つけて処理する流れを優先します。
+> [!IMPORTANT]
+> このアプリは学習・検証用です。実際の販売、決済、配送、外部API通信は行いません。
 
-## 2. Phase 1の正式方針
+## このアプリで学べること
 
-| 項目 | 決定 |
+- PlaywrightによるStorefrontと管理画面のE2Eテスト
+- Guest、customer、operator、adminの権限別テスト
+- 商品検索、Filter、Cart、Checkout、注文配送の状態遷移
+- 価格変更、在庫不足、Version競合などの境界値テスト
+- 決済成功、利用拒否、再試行、処理再開のテスト
+- Seed、Reset、Test Clockによる決定的なテスト
+- UI表示とIndexedDB内部状態を組み合わせた検証
+- Accessibility、Keyboard操作、Mobile境界の検証
+
+## 対象範囲
+
+現在の実装はPhase 1としてWebを対象としています。
+
+| 項目 | 内容 |
 |---|---|
-| Frontend | Expo、Expo Router、TypeScript |
-| Phase 1 Platform | Desktop/Mobile Web |
-| Storefront | Home、商品一覧、検索、カテゴリ、商品詳細を分離 |
-| Admin | Side Navigationを持つSaaS型Admin Shell |
-| Web DB | IndexedDB + Dexie |
-| Payment | 決定的なLocal Mock。成功・明確失敗のみ |
-| Web Hosting | Cloudflare Pages 1 Project（Automation用途） |
-| Web E2E | Playwright。PRはChromiumを必須 |
-| 管理画面 | Desktop Webのみ |
-| 購入可能Role | customerのみ |
-| Testability | Seed、Reset、Clock、処理Delay |
-| 商品画像 | GitHub Repository内の静的Asset Catalogを正本とし、管理UIでは関連付けだけを変更 |
-| Native | 共通Domainを維持し、実装・配布・MaestroはPhase 2 |
+| Platform | Desktop / Mobile Web |
+| Storefront | Home、商品一覧、検索、Category、商品詳細、Cart |
+| Customer | Account、配送先、Checkout、注文履歴、Review |
+| Admin console | Overview、商品、Category、Brand、在庫、注文、Review、User管理 |
+| Database | IndexedDB + Dexie |
+| Payment | 決定的なLocal Mock |
+| E2E | Playwright |
+| Hosting | Cloudflare Pages |
+| 管理画面 | 1024px以上のDesktop Web |
+| 購入可能Role | activeなcustomer |
 
-## 3. 仕様優先順位
+## 主な機能
 
-1. `13_decisions/decision_log.md`
-2. `00_overview/project_scope.md`、`00_overview/implementation_phases.md`
-3. `01_requirements/*`
-4. `03_domain/*`
-5. `04_data/*`
-6. `05_ui/*`、`06_flows/*`
-7. Testing・Deployment・Operations
+### Storefront
 
-競合を発見した場合は実装で推測せず、Decision Logと関連する正本文書を同一変更で修正します。
+- Home
+- 商品一覧、検索、検索候補
+- Category、Brand、価格、評価、SaleによるFilter
+- 商品詳細、画像Gallery、Variation選択
+- Guest Cart
+- Login、新規会員登録
+- 利用規約、Privacy、特定商取引法表示
 
-## 4. 正本の分担
+### Customer
 
-| 内容 | 正本 |
+- Profile編集
+- 配送先の登録・編集・削除
+- Checkoutの入力、確認、処理中、完了、失敗
+- 決済成功、利用拒否、再試行
+- Checkout再開とCart Version不一致の検出
+- 注文一覧、注文詳細
+- Review投稿・編集・削除
+
+### Operator / Admin
+
+- 管理Overview
+- 商品、SKUの登録・編集
+- 静的Image Assetの商品への関連付け・並べ替え
+- 商品公開・非公開と削除制約
+- Category、Brand管理
+- 在庫調整と在庫履歴
+- 注文準備、発送、配達完了
+- Review公開状態の管理
+
+### Admin
+
+- User一覧・詳細
+- customerの会員Rank変更
+- operatorとadmin間のRole変更
+- Userの利用停止・再開
+- 最後のAdminを保護する制約
+- Local / Automation BuildでのTest Control
+
+## 技術スタック
+
+- Expo / Expo Router
+- React / React Native Web
+- TypeScript
+- IndexedDB / Dexie
+- React Hook Form / Zod
+- Vitest / Testing Library
+- Playwright / axe-core
+- Cloudflare Pages
+- pnpm
+
+依存PackageのVersion指定は[`package.json`](./package.json)、実際に解決されるVersionは[`pnpm-lock.yaml`](./pnpm-lock.yaml)を参照してください。
+
+## セットアップ
+
+### 前提環境
+
+- Node.js 24
+- pnpm 9.10.0
+
+### Install
+
+```bash
+corepack enable
+pnpm install --frozen-lockfile
+```
+
+## ローカル起動
+
+```bash
+pnpm run start:web
+```
+
+Expoが表示するURLをブラウザで開いてください。
+
+### Web Build
+
+現在のRuntime Environment設定でWeb Buildを生成します。
+
+```bash
+pnpm run build:web
+```
+
+Font Asset準備、商品画像Manifest生成・検証、Expo Web Exportを順に実行し、`dist/`へ出力します。
+
+Production Buildは、CI/CDでProduction用の環境変数を設定して実行します。
+
+## テストアカウント
+
+初期アカウントの共通パスワードは次の値です。
+
+```text
+testpass1
+```
+
+| 用途 | Email | Role | Rank / Status |
+|---|---|---|---|
+| 一般会員 | `regular@example.com` | customer | regular / active |
+| ゴールド会員 | `gold@example.com` | customer | gold / active |
+| プラチナ会員 | `platinum@example.com` | customer | platinum / active |
+| 利用停止会員 | `suspended@example.com` | customer | regular / suspended |
+| 退会済み会員 | `withdrawn@example.com` | customer | regular / withdrawn |
+| 店舗担当者 | `operator@example.com` | operator | active |
+| 管理者 | `admin@example.com` | admin | active |
+
+`suspended`と`withdrawn`のcustomerは、Login拒否のテストに使用します。
+
+## Seed Scenario
+
+Test ControlまたはPlaywright Fixtureから、目的に応じた初期状態へDatabaseをResetできます。
+
+代表的なScenarioは次のとおりです。
+
+| Scenario | 主な用途 |
 |---|---|
-| Scope・Phase | `project_scope.md`、`implementation_phases.md` |
-| 正式判断 | `decision_log.md` |
-| 機能の必要性 | `functional_requirements.md` |
-| 業務計算・制約 | `business_rules.md` |
-| 状態 | `state_transitions.md` |
-| Entity・DB | `data_model.md`、`domain_types.md`、`application_contracts.md`、`repository_interfaces.md`、`indexeddb_schema.md` |
-| 商品画像Asset | `image_asset_catalog.md` |
-| Route | `screen_list.md` |
-| Page構造・操作 | `page_patterns.md`、`ui_specifications.md` |
-| Visual Token | `design_system.md` |
-| UI文言・状態名 | `ui_content_dictionary.md` |
-| Seed期待値 | `seed_catalog.md` |
-| Test方針 | `test_strategy.md`、`e2e_design.md` |
+| `default` | 標準状態 |
+| `empty-catalog` | 商品0件 |
+| `many-products` | 大量商品とPagination |
+| `out-of-stock` | 在庫切れ |
+| `low-stock` | 低在庫 |
+| `sale-active` | Sale期間中 |
+| `expired-sale` | Sale期間終了 |
+| `regular-member` | 一般会員Session |
+| `gold-member` | ゴールド会員Session |
+| `platinum-member` | プラチナ会員Session |
+| `suspended-user` | 利用停止User |
+| `cart-with-invalid-items` | 価格変更・在庫切れを含むCart |
+| `payment-declined` | 決済利用拒否 |
+| `payment-processing` | 決済処理中 |
+| `checkout-resume` | Checkout再開 |
+| `cart-version-invalidates-checkout` | Cart Version不一致 |
+| `product-aggregate-edit` | 商品Aggregate編集 |
+| `cross-role-product-lifecycle` | Admin作成から購入・ReviewまでのRole横断Flow |
+| `product-delete-blocked` | 商品削除拒否 |
+| `admin-bulk-partial-failure` | 一括操作の部分失敗 |
+| `storage-write-failure` | Storage書込み失敗 |
 
-他文書では詳細を重複記載せず、可能な限り正本を参照します。
+完全なScenario一覧は[`src/seeds/metadata.ts`](./src/seeds/metadata.ts)を参照してください。
 
-## 5. ドキュメント一覧
+## Test API
 
-| Directory | 内容 |
+LocalおよびAutomation Buildでは、`window.__TEST_API__`を利用できます。
+
+主な操作は次のとおりです。
+
+- `reset({ scenario })`
+- `setClock(isoString | null)`  
+  固定時刻を設定します。`null`で固定時刻を解除します。
+- `setPaymentDelay(milliseconds)`  
+  決済遅延を0〜30,000ミリ秒の整数で設定します。
+- `getMetadata()`
+- `inspectOrder(orderId)`
+- `inspectVariant(variantId)`
+- `inspectReviewSummary(productId)`
+
+Production BuildにはTest APIを公開しません。
+
+LocalまたはAutomation BuildでadminとしてLoginすると、`/admin/test-control`からScenario、基準時刻、決済遅延を変更できます。
+
+### Reset時の注意
+
+Database ResetではIndexedDBを削除し、新しいDatabase Instanceを作成します。
+
+- 管理画面のTest Controlは、Reset後にページを自動でReloadします
+- Playwrightの`scenario` Fixtureは、同じBrowser Contextの余分なPageを閉じ、Reset後のReloadまで自動で実行します
+- `window.__TEST_API__.reset()`を直接呼び出す場合は、Reset後にページをReloadしてください
+- Resetは1つのBrowser Contextで1つのPageを開いた状態を前提とします。Reset前に同じContextの別Tab・別Pageを閉じてください
+
+```ts
+await scenario("payment-declined");
+```
+
+## テストと検証
+
+### Format・静的検証
+
+```bash
+pnpm run format:check
+pnpm run lint
+pnpm run typecheck
+pnpm run validate:image-manifest
+pnpm run security:check
+```
+
+### Vitest
+
+```bash
+pnpm run test:unit
+pnpm run test:integration
+pnpm run test:repository
+pnpm run test:component
+pnpm run test:contracts
+```
+
+すべてのVitestを実行する場合は次を使用します。
+
+```bash
+pnpm run test
+```
+
+### Playwright
+
+Chromiumのみを使用する場合は、ChromiumをInstallします。
+
+```bash
+pnpm exec playwright install chromium
+```
+
+Firefox・WebKitを含むすべてのPlaywright Testを実行する場合は、すべてのBrowserをInstallします。
+
+```bash
+pnpm exec playwright install chromium firefox webkit
+```
+
+主なTest Commandは次のとおりです。
+
+```bash
+pnpm run test:e2e
+pnpm run test:a11y
+pnpm run test:e2e:mobile
+pnpm run test:e2e:mobile-boundary
+pnpm run test:e2e:cross-role
+pnpm run test:e2e:smoke:firefox
+pnpm run test:e2e:smoke:webkit
+```
+
+### 一括検証
+
+```bash
+pnpm run verify
+```
+
+`verify`はFormat、Lint、Typecheck、画像Manifest、Security Check、Vitest、Web Buildを実行します。Playwright E2Eは含まれないため、目的に応じて別途実行してください。
+
+## アーキテクチャ
+
+```text
+app/
+  Expo RouterのRoute
+
+src/presentation/
+  Page、Shell、Component、Route Guard
+
+src/application/
+  Use Case、DTO、Port、Application Transaction
+
+src/domain/
+  Entity、Policy、価格計算、状態遷移
+
+src/infrastructure/
+  Dexie、Session、Clock、Mock Payment、画像Asset
+
+src/seeds/
+  Default DatasetとScenario Dataset
+
+src/test-controls/
+  Reset、Clock、Delay、Inspection API
+```
+
+PresentationからIndexedDBを直接更新せず、Application Use Caseを経由します。複数Repositoryを更新する処理はApplication Transaction内で実行します。
+
+## 主要ディレクトリ
+
+| Path | 内容 |
 |---|---|
-| `00_overview` | 目的、Scope、Phase計画 |
-| `01_requirements` | 機能・非機能要件とPhase |
-| `02_architecture` | Layer、Module、Use Case |
-| `03_domain` | Role、業務Rule、状態、Policy |
-| `04_data` | 論理・物理Data、Application/DTO契約、Repository、GitHub画像Asset Catalog |
-| `05_ui` | Route、Page Pattern、画面仕様、文言、Validation、Wireframe |
-| `06_flows` | User/Sequence Flow |
-| `07_testability` | Seed、Reset、Clock、Fault |
-| `08_testing` | Phase 1 Test戦略・Playwright。Maestroは将来資料 |
-| `09_deployment` | Phase 1のCloudflare配信 |
-| `10_operations` | CI/CD、Release |
-| `11_security` | 疑似SecurityとPrivacy |
-| `12_quality` | 受入、Error、Traceability |
-| `13_decisions` | 最優先Decision Log |
-| `future/phase2` | Phase 2開始時に再設計する非正本資料 |
-| `CHANGELOG.md` | 版ごとの変更要約 |
+| `app/` | Expo Router Route |
+| `src/presentation/` | UI、Shell、Route Guard |
+| `src/application/` | Use Case、DTO、Port |
+| `src/domain/` | Domain Model、Policy、Service |
+| `src/infrastructure/` | DexieなどのAdapter |
+| `src/seeds/` | Seed DatasetとScenario |
+| `src/test-controls/` | Test API |
+| `tests/` | Vitest Test |
+| `e2e/web/` | Playwright Test |
+| `scripts/` | Build・Security・Asset検証Script |
+| `public/` | 静的AssetとCloudflare Header設定 |
+| `docs/` | Project運用、ADR、計画、Report |
 
-## 6. Phase 1実装順
+AI Agentによる作業ルールは[`AGENTS.md`](./AGENTS.md)と[`docs/PROJECT_CONTEXT.md`](./docs/PROJECT_CONTEXT.md)を参照してください。
 
-1. Domain: Price、Permission、商品・Order State
-2. Domain Entity/Application DTO契約、IndexedDB Schema、Repository Contract、Seed/Reset/Clock
-3. Storefront Shell、Home、商品一覧、検索、商品詳細
-4. Auth、Cart、Checkout Session、決定的Payment、Order
-5. Admin Shell、Overview、商品・在庫・Order管理
-6. Review、User管理、限定Bulk Action
-7. Accessibility、Playwright Chromium、Cloudflare Deploy
-8. Phase 1完了レビュー後にPhase 2を再設計
+## CI/CD
 
-## 7. 今回のUI・機能ブラッシュアップ
+Pull Requestでは主に次を検証します。
 
-- Home、全商品、検索結果、カテゴリ一覧を別Routeへ分離
-- Search Suggestion、適用Filter、Rating/Sale Filter、Mobile Filterを追加
-- 商品詳細へGallery、価格階層、Variation Button、送料案内、Review分布を追加
-- Checkoutへ1列Form、Sticky/折りたたみSummary、金額入りCTAを追加
-- StorefrontとAdminのLayoutを分離
-- Admin Overview、Resource Index、Resource Details、Contextual Save Barを標準化
-- UI表示文言とStatus表示を日本語辞書へ集約
-- Drag操作の代替、Search Combobox、Error Summary FocusなどAccessibilityを具体化
-- 商品Aggregate、SKU・画像の追加変更削除、Cart統合、Checkout再開の境界条件を確定
-- 商品画像はGitHub Repository内の静的Asset Catalogを正本とし、Release済みAssetはappend-onlyで物理削除しない
-- Guest Cart Route、Cart Version、Payment処理中Route、Transaction境界を実行時契約まで具体化
-- Cross-Repository更新はApplicationTransactionRunnerへ統一
-- `/cart`をGuest対応し、Cart VersionとPayment処理中Routeの復元契約を確定
-- Wishlist、Recommendation、Coupon、Point、売上Chartは追加しない
+- Format、Lint、TypeScript
+- 商品画像Manifest
+- CredentialとRuntime Securityの静的検証
+- Unit、Integration、Repository Contract、Component、Contract Test
+- Automation設定のWeb Build
+- Production設定のWeb Build
+- Chromium E2E
+- Accessibility
+- Mobile管理画面境界
+- Desktop、Tablet、Mobile、Small MobileのUI Review Screenshot
 
+mainへのPush、定期実行、手動実行では、Mobile Chromium、Role横断Flow、Firefox、WebKitの検証も追加します。
 
+CloudflareのSecretが設定されている場合は、Pull Request PreviewとmainへのProduction Deployを実行します。
 
-## 8.5 v15 Freeze最終補正
+## 制約
 
-- Home新着期待値へ公開中の在庫切れ商品を含め、Storefront表示RuleとSeed期待値を一致
-- 管理商品一覧の在庫Filterをactive SKU合計在庫で判定する方式へ固定
-- Review平均は`ratingTotal / publishedCount`を未丸めで保存し、表示時だけ小数第1位へ丸める方式へ統一
-- Review平均期待値変更に伴いSeed Versionを10へ更新
+このアプリはテスト自動化学習用です。
 
-## 8.4 v14 Freeze前最終整合修正
+- 実際の販売、決済、配送は行いません
+- Backend Serverはありません
+- Database、Session、Guest Identityはブラウザ内に保存されます
+- 認証と権限制御は実サービス相当のSecurityを提供しません
+- 外部Payment、Email、配送APIは使用しません
+- 複数端末・複数Browser間のData同期はありません
+- Backend API、Network障害、Server-side認可の学習は対象外です
+- 商品画像はリポジトリに同梱された静的Assetから選択します。管理画面からの画像Uploadには対応していません
+- Guest Checkout、Coupon、Point、Wishlist、返品、返金は対象外です
+- 管理画面は1024px以上を対象とします
 
-- 低在庫を在庫1～5、在庫切れを0、在庫ありを1以上としてFilter・Overview・要件で統一
-- Cart変更時はCart Versionだけを更新し、既存Checkoutは次回のRoute Guard・確認・注文確定で不一致を検出する方式へ統一
-- Runtime Manifest Recoveryを廃止し、Manifest不整合はBuild失敗、個別画像読込失敗はPlaceholder表示へ限定
-- CI/CD文書のSeed Version重複記載を廃止し、Build Metadataの`SEED_VERSION`参照へ統一
+実サービスのSecurity、Backend、外部連携を含むテスト教材としては使用できません。主な対象は、Web UI、Client-side状態、業務Rule、Role別操作、Accessibilityの自動テストです。
 
-## 8.3 v13最終整合修正
+## Native対応について
 
-- `empty-catalog`を参照整合性のある完全な空Catalog Scenarioへ修正し、欠損Variant ScenarioをPhase 1対象外として削除
-- Search Suggestionの種別ごとの遷移先を商品詳細、Category一覧、Brand絞り込みへ固定
-- Test APIを許可済み書込み操作と固定Read-only Inspectionへ明確に分離
-- 0件Review Summaryは商品作成・削除時だけ扱い、通常の商品更新では変更しない契約へ統一
+Android・iOSアプリは現在の対象外です。
 
-## 8.2 v12実装開始前の最終契約修正
-
-- 商品Aggregate作成・更新CommandへApplication Clockの単一時刻を追加
-- 初回Cart追加ではCart VersionをPresentationへ要求せず、active Cart取得・作成と明細加算を同一Transactionで実行
-- 新規Categoryは既存最大sortOrderの末尾へ10刻みで追加
-- 機能要件に残っていたCart要件の重複行を削除
-
-## 8.1 v11最終整合修正
-
-- 会員割引をSKU単価単位で切り捨て、明細割引合計を注文割引額とする規則へ統一
-- customer停止時にSession無効化とactive Checkout abandonedを同一Transactionで処理
-- Cloudflare Buildを`pnpm run build:web`へ統一し、画像Manifest生成・検証を必須化
-- Payment処理日時をApplicationのClockへ一本化し、Mock Gatewayから時刻を除外
-
-## 8. v08実装準備・正本整理
-
-- Home、Category、Brandを取得するStorefront Catalog Query/DTOを追加
-- Admin商品・在庫・Order・Review一覧のFilter/Sort/List DTOを画面仕様へ一致
-- Cart価格SnapshotをSale適用後・会員割引前の単価へ固定
-- 会員ランク変更時にactive Checkout Sessionをabandonedへ変更
-- Payment processing再開を同一Attemptで冪等化
-- Checkout各段階、注文確認、商品Preview、限定Bulk、Category/Brand管理のUse Case契約を追加
-- Clock、ID、Session、Guest Identity、Email Normalizer、Application Errorを共通Portとして確定
-- 入力上限を共有定数として正本化
-- Phase 1必須Playwright E2Eを12本へ整理
-- SQLite・Native資料を`future/phase2`へ移動し、Phase 1正本から分離
-- 過去の修正サマリーを`CHANGELOG.md`へ統合
-## 9. v09 信頼境界・画像・正本簡素化
-
-- Presentation RequestとApplication内部Commandを型で分離しました。
-- 商品画像ManifestをRuntime FetchせずBuild生成ModuleとしてBundleへ含めます。
-- Categoryを1階層へ簡略化し、Brandは名称順固定として手動並べ替えを廃止しました。
-- IndexedDBの住所SnapshotをTyped Objectで保存します。
-- Decision Logを高影響判断だけへ縮小し、実装開始後はTypeScriptコードを契約の正本とします。
-- Resetは1 Browser Context・1 Pageを対応条件とし、複数Tab原子性を保証しません。
-## 10. v10 実装接続契約の最終補正
-
-- active customer/operator/adminのLogin分岐を確定し、管理RoleはSession作成だけを行います。
-- Profile、Checkout、Order、Review編集でUIが必要なAction Versionと既存DataをDTOへ追加しました。
-- Catalog系QueryへTest Clock時刻を明示的に伝播します。
-- 注文作成Transaction内で価格を再検証し、差異時はOrderを作成しません。
-- Sequence、ER図、Category Flow、Reset手順の旧記述を正本へ合わせました。
-
+Domain ModelとApplication Contractの再利用を想定していますが、Native対応ではPresentation、Storage、Session、E2E環境の再設計が必要です。現在のWeb UIがそのままAndroid・iOSで動作することは保証しません。
