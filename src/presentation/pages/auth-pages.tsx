@@ -65,6 +65,8 @@ function useAuthError() {
           EMAIL_ALREADY_EXISTS: "このメールアドレスはすでに登録されています。",
           STORAGE_WRITE_FAILED:
             "ブラウザへログイン状態を保存できませんでした。設定を確認してください。",
+          STORAGE_READ_FAILED:
+            "ブラウザからログイン状態を読み込めませんでした。設定を確認してください。",
           LOGIN_TRANSACTION_FAILED:
             "ログイン処理を完了できませんでした。カートは変更されていません。",
         };
@@ -128,8 +130,16 @@ export function LoginPage() {
                     try {
                       await checkout.getActive(step);
                       return true;
-                    } catch {
-                      return false;
+                    } catch (caught) {
+                      if (
+                        caught instanceof ApplicationError &&
+                        (caught.code === "CHECKOUT_STEP_INCOMPLETE" ||
+                          caught.code === "CHECKOUT_EXPIRED" ||
+                          caught.code === "CART_VERSION_CHANGED")
+                      ) {
+                        return false;
+                      }
+                      throw caught;
                     }
                   },
                 );

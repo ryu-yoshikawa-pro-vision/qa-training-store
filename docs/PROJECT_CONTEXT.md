@@ -48,6 +48,13 @@
 - `/guide` は固定Account、Role、Rank Benefit、Scenario Metadata、注意事項の学習入口であり、HomeはSession Role別CTAと公開商品0件の単一Empty Stateを持つ。Customer Account Navigationは390px/320pxで3列Gridを維持し、管理操作は従来どおり1024px以上の境界を維持する。
 - UI/UXの回帰入口は `e2e/web/ui-ux-improvements.spec.ts` のFlow A〜J（Chromium 10 tests）で、Phase 1と合わせて `test:e2e:chromium` に収集する。Cross-role、Accessibility、Mobile boundary、4 viewport UI Reviewも既存CIスクリプトへ接続している。
 
+## PR #4レビュー修正後の状態（2026-08-02）
+
+- Scenario ResetはDatabase Resetの成否とNotice保存を分離する。Reset成功後のNotice保存失敗はReset失敗として表示せず、必ずMetadataのsafeResetPathへハード遷移する。ConfirmDialogは非同期Confirm中の再実行を防止する。
+- Product Previewは削除予定を除いたeffective VariantをForm値から組み立て、有効SKU・必須入力・Main Imageを公開可否判定へ含める。Previewは永続化せず、既存SKUのDB現在庫と未保存Form状態を別表示する。
+- Shipmentの表示ラベルはOrder StatusとShipment Statusの組合せをPresentationの共通mappingで変換し、Admin／Customerで同じ文言を使う。Login後Checkout fallbackは想定された3つの状態Errorだけを対象とし、Storage／予期しないErrorは握り潰さない。
+- Cart統合の`adjustedItemCount`は部分調整だけを数え、完全除外は`fullyExcludedItemCount`だけで数える。Guideは利用者向け分類とラベルを表示し、内部Property名やDB用語を露出させない。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

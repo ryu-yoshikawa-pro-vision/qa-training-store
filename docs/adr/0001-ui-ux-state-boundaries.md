@@ -20,3 +20,9 @@
 - NoticeやMetadataの変更は共有入口に集約される一方、表示文言の追加はUnion/Metadataの型と既存テストを更新する必要がある。
 - Customer DTOとPreview DTOが増えるため、DTO変換とIntegration/Component/E2E検証を維持する必要がある。
 - Test Controlは学習用の明示操作を保ち、通常のRuntimeやProduction向け画面へReset副作用を持ち込まない。
+
+## Addendum: 2026-08-02 PR #4レビュー修正
+
+5. Reset成功後のNotice処理はDatabase Resetの成功判定から分離し、Noticeの保存可否にかかわらずsafeResetPathへハード遷移する。Confirm中は同一Reset Promiseを二重起動しない。
+6. Previewの公開可否は、削除予定を除いたForm由来のeffective Variantと既存DB現在庫を入力にする。Previewは永続化を行わず、公開不可理由はDictionary経由で利用者向けに変換する。
+7. Shipment表示とCheckout Login fallbackは、Presentationで許可した状態mappingだけを表示／Fallback対象とし、Storage Errorや予期しないApplication Errorを汎用状態へ変換しない。

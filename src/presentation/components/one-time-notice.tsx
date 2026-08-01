@@ -1,3 +1,4 @@
+import { Link, type Href } from "expo-router";
 import type { CartMergeItemResult } from "@/application/contracts";
 import type { OneTimeNotice as OneTimeNoticeValue } from "@/presentation/browser/one-time-notice.web";
 
@@ -12,6 +13,19 @@ function excludedReasonLabel(reason: NonNullable<CartMergeItemResult["excludedRe
   return labels[reason];
 }
 
+function isSafeInternalPath(path: string): boolean {
+  if (path === "/") return true;
+  if (!path.startsWith("/") || path.startsWith("//")) return false;
+  if (path.includes("://") || path.includes("..") || path.includes("\\") || /\s/.test(path)) {
+    return false;
+  }
+  return /^[A-Za-z0-9/_-]+$/.test(path.slice(1));
+}
+
+function renderRoute(path: string) {
+  return isSafeInternalPath(path) ? <Link href={path as Href}>{path}</Link> : <span>{path}</span>;
+}
+
 export function OneTimeNotice({
   notice,
   onClose,
@@ -21,12 +35,29 @@ export function OneTimeNotice({
 }) {
   if (notice === null) return null;
   if (notice.type === "scenario-reset") {
+    const routes = notice.routes;
     return (
       <section className="one-time-notice one-time-notice--reset" role="status">
-        <div>
+        <div className="one-time-notice__content">
           <strong>シナリオを初期化しました</strong>
-          <p>{notice.scenarioName}</p>
-          <p>{notice.initialSessionLabel}</p>
+          <dl className="definition-grid">
+            <dt>シナリオ名</dt>
+            <dd>{notice.scenarioName}</dd>
+            <dt>初期セッション</dt>
+            <dd>{notice.initialSessionLabel}</dd>
+            <dt>推奨アカウント</dt>
+            <dd>{notice.recommendedAccounts.join(" / ")}</dd>
+            <dt>主要確認Route</dt>
+            <dd>
+              <ul>
+                {routes.map((route, index) => (
+                  <li key={`${route}-${index}`}>
+                    {index === 0 ? "主要" : "確認"}: {renderRoute(route)}
+                  </li>
+                ))}
+              </ul>
+            </dd>
+          </dl>
         </div>
         <button type="button" className="button button--tertiary" onClick={onClose}>
           閉じる
@@ -48,6 +79,13 @@ export function OneTimeNotice({
             ? "ログイン前のカートを統合しました。数量を確認してください。"
             : "ログイン前のカートを購入手続きへ引き継ぎました。"}
         </p>
+        {adjusted && (
+          <p>
+            集計: 追加 {notice.result.addedItemCount}件 / 調整あり {notice.result.adjustedItemCount}
+            件（うち完全除外 {notice.result.fullyExcludedItemCount}件） / 追加数量{" "}
+            {notice.result.addedQuantity}点 / 超過数量 {notice.result.overflowQuantity}点
+          </p>
+        )}
         {adjusted && (
           <ul>
             {notice.result.items.map((item) => (

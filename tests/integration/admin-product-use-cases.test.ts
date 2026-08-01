@@ -319,4 +319,54 @@ describe("admin product aggregate application integration", () => {
     ).toBe(true);
     expect(await database.products.count()).toBe(before);
   });
+
+  it("uses unsaved inactive variants for Preview publishability and preserves DB stock", async () => {
+    const edit = await useCases.getEdit("product-basic-shirt");
+    const before = await database.product_variants
+      .where("productId")
+      .equals("product-basic-shirt")
+      .toArray();
+    const preview = await useCases.preview({
+      aggregate: {
+        productId: edit.product.id,
+        productExpectedVersion: edit.product.version,
+        product: edit.product,
+        createVariants: [],
+        updateVariants: edit.variants.map((variant) => ({
+          variantId: variant.id,
+          sku: variant.sku,
+          optionValue: variant.optionValue,
+          regularPrice: variant.regularPrice,
+          salePrice: variant.salePrice,
+          saleStartAt: variant.saleStartAt,
+          saleEndAt: variant.saleEndAt,
+          purchaseLimit: variant.purchaseLimit,
+          isActive: false,
+          expectedVersion: variant.version,
+        })),
+        removeVariantIds: [],
+        images: edit.images.map((image) => ({
+          relationshipId: image.id,
+          assetId: image.assetId,
+          altText: image.altText,
+          sortOrder: image.sortOrder,
+          isPrimary: image.isPrimary,
+        })),
+      },
+      previewMembershipRank: null,
+    });
+    expect(preview.publishabilityIssues).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ messageKey: "products.publishability.activeVariantRequired" }),
+      ]),
+    );
+    expect(preview.variants).toHaveLength(before.length);
+    expect(preview.variants.every((variant) => variant.isActive === false)).toBe(true);
+    expect(preview.variants.map((variant) => variant.stockQuantity)).toEqual(
+      before.map((variant) => variant.stockQuantity),
+    );
+    expect(
+      await database.product_variants.where("productId").equals("product-basic-shirt").toArray(),
+    ).toEqual(before);
+  });
 });

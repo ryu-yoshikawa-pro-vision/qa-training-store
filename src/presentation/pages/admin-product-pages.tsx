@@ -14,7 +14,7 @@ import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { ProductImage } from "@/presentation/components/product-image";
 import { StatePanel } from "@/presentation/components/states";
 import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
-import { labels } from "@/presentation/content/dictionary";
+import { applicationErrorMessage, labels } from "@/presentation/content/dictionary";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
@@ -1057,7 +1057,7 @@ function ProductEditor({
           {previewIssues.length > 0 && (
             <ul className="operation-error" role="alert">
               {previewIssues.map((issue, index) => (
-                <li key={`${issue.code}-${index}`}>{issue.messageKey}</li>
+                <li key={`${issue.code}-${index}`}>{applicationErrorMessage(issue)}</li>
               ))}
             </ul>
           )}

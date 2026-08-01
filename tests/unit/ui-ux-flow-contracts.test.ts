@@ -10,6 +10,7 @@ import {
   writeOneTimeNotice,
 } from "@/presentation/browser/one-time-notice.web";
 import { mergeAddressSuggestion } from "@/presentation/browser/address-suggestion";
+import { shipmentDisplayLabel } from "@/presentation/content/dictionary";
 import { PHASE_ONE_SCENARIOS, SCENARIO_METADATA } from "@/seeds/metadata";
 
 describe("UI/UX flow contracts", () => {
@@ -96,5 +97,15 @@ describe("UI/UX flow contracts", () => {
       const definition = SCENARIO_METADATA[scenario];
       expect(definition.e2eHasSession).toBe(definition.initialSession.kind !== "guest");
     }
+  });
+
+  it.each([
+    ["paid", null, "発送準備待ち"],
+    ["paid", "pending", "発送準備待ち"],
+    ["preparing", "pending", "発送準備中"],
+    ["shipped", "shipped", "発送済み"],
+    ["delivered", "delivered", "配送完了"],
+  ] as const)("maps shipment display for %s + %s", (orderStatus, shipmentStatus, expected) => {
+    expect(shipmentDisplayLabel(orderStatus, shipmentStatus)).toBe(expected);
   });
 });

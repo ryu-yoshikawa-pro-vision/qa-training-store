@@ -15,7 +15,7 @@ import { StatusBadge, statusTone } from "@/presentation/components/status-badge"
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
-import { content, labels } from "@/presentation/content/dictionary";
+import { content, labels, shipmentDisplayLabel } from "@/presentation/content/dictionary";
 import { claimCheckoutNotice } from "@/presentation/browser/one-time-notice.web";
 import { useRouteHeadingFocus } from "@/presentation/hooks/use-route-heading-focus";
 
@@ -767,11 +767,7 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
           <h2>配送状況</h2>
           <p>
             <StatusBadge tone={statusTone(order.shipment?.status ?? "pending")}>
-              {order.orderStatus === "preparing" && order.shipment?.status === "pending"
-                ? "発送準備中"
-                : order.shipment === null
-                  ? "発送準備前"
-                  : labels.shipment(order.shipment.status)}
+              {shipmentDisplayLabel(order.orderStatus, order.shipment?.status ?? null)}
             </StatusBadge>
           </p>
           {order.shipment?.carrierName && <p>配送会社：{order.shipment.carrierName}</p>}

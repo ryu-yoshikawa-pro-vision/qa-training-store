@@ -409,7 +409,7 @@ export class DexieCartRepository implements CartRepository {
       items: results,
       addedItemCount: results.filter((item) => item.addedQuantity > 0).length,
       adjustedItemCount: results.filter(
-        (item) => item.overflowQuantity > 0 || item.excludedReason !== null,
+        (item) => item.overflowQuantity > 0 && item.excludedReason === null,
       ).length,
       fullyExcludedItemCount: results.filter(
         (item) => item.addedQuantity === 0 && item.excludedReason !== null,

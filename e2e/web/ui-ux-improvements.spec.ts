@@ -12,6 +12,7 @@ test.describe("UI/UX improvement flows A-J", () => {
     await expect(page.getByRole("heading", { name: "セラミックマグ" })).toBeVisible();
     await expect(page.getByText(/在庫(切れ| \d+点)|残り\d+点/).first()).toBeVisible();
     await page.getByRole("button", { name: "カートに追加" }).click();
+    await expect(page.getByRole("status")).toContainText("カートへ追加しました");
     await page.goto("/checkout/address");
     await expect(page).toHaveURL(/\/login\?returnTo=%2Fcheckout%2Faddress$/);
     await page.getByLabel("メールアドレス").fill("regular@example.com");
@@ -50,6 +51,7 @@ test.describe("UI/UX improvement flows A-J", () => {
     await expect(page).toHaveURL(/\/cart$/);
     const summary = page.locator(".one-time-notice--summary");
     await expect(summary).toBeVisible();
+    await expect(summary).toContainText("集計");
     for (const label of ["Guest", "既存", "追加", "超過", "最終"]) {
       await expect(summary).toContainText(label);
     }
@@ -114,6 +116,9 @@ test.describe("UI/UX improvement flows A-J", () => {
   test("Flow E: Role別Home CTA、Guide、Empty Catalog", async ({ page, scenario }) => {
     await scenario("default");
     await page.goto("/");
+    await expect(page.getByRole("link", { name: "商品を見る", exact: true })).toHaveClass(
+      /button--primary/,
+    );
     await expect(page.getByRole("link", { name: "ログインして購入" })).toBeVisible();
     await page.goto("/guide");
     await expect(page.getByRole("heading", { name: /Role差分/ })).toBeVisible();
@@ -121,10 +126,16 @@ test.describe("UI/UX improvement flows A-J", () => {
     await expect(page.getByRole("link", { name: "Test Control を開く" })).toHaveCount(0);
     await login(page, "regular@example.com");
     await page.goto("/");
+    await expect(page.getByRole("link", { name: "商品を見る", exact: true })).toHaveClass(
+      /button--primary/,
+    );
     await expect(page.getByRole("link", { name: "マイページ" })).toBeVisible();
     await scenario("default");
     await login(page, "admin@example.com", "/admin");
     await page.goto("/");
+    await expect(page.getByRole("link", { name: "商品を見る", exact: true })).toHaveClass(
+      /button--primary/,
+    );
     await expect(page.getByRole("link", { name: "管理画面へ" })).toBeVisible();
     await page.goto("/guide");
     await expect(page.getByRole("link", { name: "Test Control を開く" }).first()).toBeVisible();
@@ -132,6 +143,8 @@ test.describe("UI/UX improvement flows A-J", () => {
     await page.goto("/");
     await expect(page.getByText("表示できる商品がありません")).toBeVisible();
     await expect(page.locator(".state-panel")).toHaveCount(1);
+    await expect(page.getByRole("link", { name: "学習Guideを見る" })).toBeVisible();
+    await expect(page.getByText("テスト制御で別シナリオ")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "カテゴリから探す" })).toHaveCount(0);
   });
 
@@ -165,12 +178,32 @@ test.describe("UI/UX improvement flows A-J", () => {
     await expect(preview).toContainText("データベースには保存されていません");
   });
 
+  test("Flow F-2: 全既存SKU無効PreviewとDB不変", async ({ page, scenario }) => {
+    await scenario("product-aggregate-edit");
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/products");
+    await page.locator("table tbody a[href^='/admin/products/']").first().click();
+    const activeCheckboxes = page.getByRole("checkbox", { name: "有効" });
+    const activeCount = await activeCheckboxes.count();
+    expect(activeCount).toBeGreaterThan(0);
+    for (const checkbox of await activeCheckboxes.all()) {
+      if (await checkbox.isChecked()) await checkbox.uncheck();
+    }
+    await page.getByRole("button", { name: "未保存内容をプレビュー" }).click();
+    const preview = page.getByRole("region", { name: "商品プレビュー" });
+    await expect(preview).not.toContainText("公開条件を満たします");
+    await expect(preview).toContainText("有効なSKUが1件以上必要です");
+    await page.reload();
+    const reloadedCheckboxes = page.getByRole("checkbox", { name: "有効" });
+    await expect(reloadedCheckboxes.first()).toBeChecked();
+  });
+
   test("Flow G: Shipment同期とUser操作不可理由", async ({ page, scenario }) => {
     await scenario("orders-phase1-statuses");
     await login(page, "admin@example.com", "/admin");
     await page.goto("/admin/orders/order-paid");
     await page.getByRole("button", { name: "発送準備を開始" }).click();
-    await expect(page.getByText(/発送準備中/)).toBeVisible();
+    await expect(page.getByText("発送準備中", { exact: true })).toBeVisible();
     await login(page, "regular@example.com");
     await page.goto("/orders/order-paid");
     const customerPreparationLabels = page.getByText("発送準備中", { exact: true });
@@ -198,10 +231,28 @@ test.describe("UI/UX improvement flows A-J", () => {
     await dialog.getByRole("button", { name: "初期化して移動" }).click();
     await expect(page).toHaveURL(/\/$/);
     await expect(page.getByText("シナリオを初期化しました")).toBeVisible();
-    await expect(page.getByRole("status")).toContainText("一般会員");
+    const customerResetNotice = page.locator(".one-time-notice--reset");
+    await expect(customerResetNotice).toContainText("一般会員");
+    await expect(customerResetNotice).toContainText("推奨アカウント");
+    await expect(customerResetNotice).toContainText("主要確認Route");
+    await page.reload();
+    await expect(page.getByText("シナリオを初期化しました")).toHaveCount(0);
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/test-control");
+    await page
+      .getByRole("combobox", { name: "シナリオ" })
+      .selectOption({ label: "商品Aggregate編集" });
+    await page.getByRole("button", { name: "シナリオを初期化" }).click();
+    await page.getByRole("alertdialog").getByRole("button", { name: "初期化して移動" }).click();
+    await expect(page).toHaveURL(/\/admin$/);
+    const adminResetNotice = page.locator(".one-time-notice--reset");
+    await expect(adminResetNotice).toContainText("初期アカウント：admin@example.com");
+    await expect(adminResetNotice).toContainText("主要確認Route");
+    await page.reload();
+    await expect(page.getByText("シナリオを初期化しました")).toHaveCount(0);
   });
 
-  test("Flow I: 支払い処理中OrderとProcessing遷移", async ({ page, scenario }) => {
+  test("Flow I-1: 既存支払い処理中Orderの状態確認", async ({ page, scenario }) => {
     await scenario("payment-processing");
     await login(page, "regular@example.com");
     await page.goto("/orders");
@@ -215,6 +266,33 @@ test.describe("UI/UX improvement flows A-J", () => {
     ).toBe(0);
   });
 
+  test("Flow I-2: 通常CheckoutからProcessingへ進み見出しFocusを確認", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("default");
+    await login(page, "regular@example.com");
+    await page.evaluate(() => window.__TEST_API__!.setPaymentDelay(3000));
+    try {
+      await page.goto("/products/product-basic-shirt");
+      await page.getByRole("button", { name: "カートに追加" }).click();
+      await addDefaultAddress(page);
+      await page.goto("/checkout/address");
+      await page.getByRole("radio", { name: /E2E配送先/ }).check();
+      await page.getByRole("button", { name: "この配送先を使用" }).click();
+      await expect(page).toHaveURL(/\/checkout\/payment$/);
+      await page.getByRole("radio", { name: /テスト決済（成功）/ }).check();
+      await page.getByRole("button", { name: /を確認する$/ }).click();
+      await expect(page).toHaveURL(/\/checkout\/confirm$/);
+      await page.getByRole("button", { name: /を支払う$/ }).click();
+      await expect(page).toHaveURL(/\/checkout\/processing\?orderId=/);
+      await expect(page.getByRole("heading", { name: "支払いを処理しています" })).toBeFocused();
+      await expect(page).toHaveURL(/\/checkout\/(complete|failed)\?orderId=/);
+    } finally {
+      await scenario("default");
+    }
+  });
+
   test("Flow J: Cross-role inventory、Review、Shipmentの反映", async ({ page, scenario }) => {
     await scenario("cross-role-product-lifecycle");
     await login(page, "admin@example.com", "/admin");
@@ -223,7 +301,7 @@ test.describe("UI/UX improvement flows A-J", () => {
     await page.goto("/admin/orders/order-paid");
     if (await page.getByRole("button", { name: "発送準備を開始" }).count()) {
       await page.getByRole("button", { name: "発送準備を開始" }).click();
-      await expect(page.getByText(/発送準備中/)).toBeVisible();
+      await expect(page.getByText("発送準備中", { exact: true })).toBeVisible();
     }
     await login(page, "regular@example.com");
     await page.goto("/orders/order-paid");

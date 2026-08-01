@@ -8,6 +8,7 @@ import type {
   ShipmentStatus,
   UserRole,
 } from "@/domain/contracts";
+import type { ApplicationErrorShape } from "@/application/contracts";
 
 export const content = {
   brand: {
@@ -131,3 +132,28 @@ export const labels = {
   shipment: (value: ShipmentStatus) => shipmentLabels[value],
   review: (value: ReviewStatus) => reviewLabels[value],
 };
+
+const applicationErrorMessages: Record<string, string> = {
+  "products.publishability.requiredFields":
+    "商品コード、商品名、カテゴリ、ブランドを確認してください。",
+  "products.publishability.variantRequired": "公開にはSKUが1件以上必要です。",
+  "products.publishability.activeVariantRequired": "公開には有効なSKUが1件以上必要です。",
+  "products.publishability.imageRequired": "公開にはメイン画像が必要です。",
+  "products.variant.invalid": "SKU、価格、購入上限を確認してください。",
+};
+
+export function applicationErrorMessage(error: Pick<ApplicationErrorShape, "code" | "messageKey">) {
+  return applicationErrorMessages[error.messageKey] ?? "公開条件を確認してください。";
+}
+
+export function shipmentDisplayLabel(
+  orderStatus: OrderStatus,
+  shipmentStatus: ShipmentStatus | null,
+): string {
+  if (orderStatus === "preparing") return "発送準備中";
+  if (orderStatus === "shipped") return "発送済み";
+  if (orderStatus === "delivered") return "配送完了";
+  if (shipmentStatus === "shipped") return "発送済み";
+  if (shipmentStatus === "delivered") return "配送完了";
+  return "発送準備待ち";
+}

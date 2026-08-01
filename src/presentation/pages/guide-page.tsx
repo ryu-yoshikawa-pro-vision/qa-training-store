@@ -1,4 +1,4 @@
-import { Link } from "expo-router";
+import { Link, type Href } from "expo-router";
 import { formatYen } from "@/presentation/components/product-card";
 import { content, labels } from "@/presentation/content/dictionary";
 import { RouteGuard } from "@/presentation/guards/route-guard";
@@ -9,17 +9,97 @@ import {
   PHASE_ONE_SCENARIOS,
   SCENARIO_METADATA,
   type ScenarioInitialSession,
+  type PhaseOneScenario,
 } from "@/seeds/metadata";
+
+const GUIDE_GROUPS: readonly {
+  title: string;
+  scenarios: readonly PhaseOneScenario[];
+}[] = [
+  {
+    title: "商品・検索",
+    scenarios: [
+      "default",
+      "empty-catalog",
+      "many-products",
+      "out-of-stock",
+      "low-stock",
+      "sale-active",
+      "expired-sale",
+    ],
+  },
+  {
+    title: "Cart・Checkout",
+    scenarios: [
+      "regular-member",
+      "gold-member",
+      "platinum-member",
+      "cart-with-invalid-items",
+      "guest-cart-merge-overflow",
+      "checkout-resume",
+      "checkout-replaced",
+      "cart-version-invalidates-checkout",
+    ],
+  },
+  {
+    title: "決済",
+    scenarios: ["payment-declined", "payment-processing"],
+  },
+  {
+    title: "注文・配送",
+    scenarios: ["orders-phase1-statuses"],
+  },
+  {
+    title: "Review",
+    scenarios: ["reviewable-orders", "hidden-reviews"],
+  },
+  {
+    title: "Admin操作",
+    scenarios: [
+      "inactive-image-existing-link",
+      "product-aggregate-edit",
+      "cross-role-product-lifecycle",
+      "product-delete-blocked",
+      "admin-bulk-partial-failure",
+    ],
+  },
+  {
+    title: "Error・制約",
+    scenarios: ["suspended-user", "storage-write-failure"],
+  },
+];
 
 function formatPercent(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
 
+function isSafeInternalPath(path: string): boolean {
+  if (path === "/") return true;
+  if (!path.startsWith("/") || path.startsWith("//")) return false;
+  if (path.includes("://") || path.includes("..") || path.includes("\\") || /\s/.test(path)) {
+    return false;
+  }
+  return /^[A-Za-z0-9/_-]+$/.test(path.slice(1));
+}
+
+function describeAccount(email: string): string {
+  const account = content.guide.accounts.find((item) => item.email === email);
+  return account === undefined ? email : `${account.label} (${account.email})`;
+}
+
 function describeInitialSession(session: ScenarioInitialSession): string {
   if (session.kind === "guest") {
-    return "Guest Session";
+    return "ゲスト";
   }
-  return `${labels.role(session.kind)}: ${session.email}`;
+  return `${labels.role(session.kind)} (${session.email})`;
+}
+
+function renderRoute(route: string) {
+  return isSafeInternalPath(route) ? (
+    <Link href={route as Href}>{route}</Link>
+  ) : (
+    <span>{route}</span>
+  );
 }
 
 export function GuidePage() {
@@ -125,10 +205,12 @@ function GuideContent() {
         <h2>安全な初期化の手順</h2>
         <ol>
           <li>Test API が使える環境かつ admin のときだけ、Test Control を開きます。</li>
-          <li>シナリオを選んで初期化します。DB と認証状態は既存の制御に従って安全に戻ります。</li>
           <li>
-            初期化後は表示された安全な戻り先に戻ります。各シナリオの
-            <code>safeResetPath</code> を確認してください。
+            シナリオを選んで初期化します。学習データと認証状態は既存の制御に従って安全に戻ります。
+          </li>
+          <li>
+            初期化後は表示された安全な戻り先に戻ります。各シナリオの安全な戻り先を確認して
+            ください。
           </li>
         </ol>
         {showTestControl ? (
@@ -152,40 +234,53 @@ function GuideContent() {
         <div className="section-heading">
           <div>
             <p className="eyebrow">シナリオ一覧</p>
-            <h2>SCENARIO_METADATA / PHASE_ONE_SCENARIOS</h2>
+            <h2>目的別に、表示名・開始時の状態・推奨アカウント・確認画面をまとめています</h2>
           </div>
-          <small>{PHASE_ONE_SCENARIOS.length}件</small>
+          <small>全 {PHASE_ONE_SCENARIOS.length} 件</small>
         </div>
-        <div className="form-stack">
-          {PHASE_ONE_SCENARIOS.map((scenario) => {
-            const definition = SCENARIO_METADATA[scenario];
-            return (
-              <article className="admin-detail-card" key={scenario}>
-                <div className="split-heading">
-                  <div>
-                    <p className="eyebrow">{scenario}</p>
-                    <h3>{definition.displayName}</h3>
-                  </div>
-                </div>
-                <p>{definition.guide}</p>
-                <dl className="definition-grid">
-                  <dt>目的</dt>
-                  <dd>{definition.purpose}</dd>
-                  <dt>推奨アカウント</dt>
-                  <dd>{definition.recommendedAccounts.join(" / ")}</dd>
-                  <dt>routes</dt>
-                  <dd>{definition.routes.join(" / ")}</dd>
-                  <dt>initialSession</dt>
-                  <dd>{describeInitialSession(definition.initialSession)}</dd>
-                  <dt>safeResetPath</dt>
-                  <dd>
-                    <code>{definition.safeResetPath}</code>
-                  </dd>
-                </dl>
-              </article>
-            );
-          })}
-        </div>
+        {GUIDE_GROUPS.map((group) => (
+          <section className="home-learning-panel" key={group.title}>
+            <div className="section-heading">
+              <h3>{group.title}</h3>
+              <small>{group.scenarios.length}件</small>
+            </div>
+            <div className="form-stack">
+              {group.scenarios.map((scenario) => {
+                const definition = SCENARIO_METADATA[scenario];
+                return (
+                  <article className="admin-detail-card" key={scenario}>
+                    <div className="split-heading">
+                      <div>
+                        <h4>{definition.displayName}</h4>
+                        <small>シナリオID: {scenario}</small>
+                      </div>
+                    </div>
+                    <dl className="definition-grid">
+                      <dt>確認すること</dt>
+                      <dd>{definition.purpose}</dd>
+                      <dt>推奨アカウント</dt>
+                      <dd>{definition.recommendedAccounts.map(describeAccount).join(" / ")}</dd>
+                      <dt>確認画面</dt>
+                      <dd>
+                        <ul>
+                          {definition.routes.map((route) => (
+                            <li key={route}>{renderRoute(route)}</li>
+                          ))}
+                        </ul>
+                      </dd>
+                      <dt>開始時のログイン状態</dt>
+                      <dd>{describeInitialSession(definition.initialSession)}</dd>
+                      <dt>初期化後に表示する画面</dt>
+                      <dd>
+                        <code>{definition.safeResetPath}</code>
+                      </dd>
+                    </dl>
+                  </article>
+                );
+              })}
+            </div>
+          </section>
+        ))}
       </section>
     </div>
   );

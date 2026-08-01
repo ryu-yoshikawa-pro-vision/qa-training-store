@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "expo-router";
 import type { AdminReviewListItem, UserAdminDto } from "@/application/contracts";
+import { ApplicationError } from "@/application/errors";
 import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { StatePanel } from "@/presentation/components/states";
 import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
@@ -637,10 +638,20 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
       const updated = await operation();
       setMessage(`${success}（更新番号 ${updated.version}）。`);
       setMutation((value) => value + 1);
-    } catch {
-      setMessage(
-        "変更できませんでした。自己変更、最後の管理者、役割、利用状態、更新番号を確認してください。",
-      );
+    } catch (caught) {
+      if (caught instanceof ApplicationError) {
+        const messages: Partial<Record<ApplicationError["code"], string>> = {
+          LAST_ADMIN_PROTECTED: "最後の管理者は変更できません。先に別の管理者を設定してください。",
+          SELF_CHANGE_FORBIDDEN: "自分自身の役割または利用状態は変更できません。",
+          CONFLICT: "ほかの操作でユーザー情報が更新されました。最新情報を読み込んでください。",
+        };
+        setMessage(
+          messages[caught.code] ??
+            "変更できませんでした。役割、利用状態、更新番号を確認してください。",
+        );
+      } else {
+        setMessage("変更できませんでした。役割、利用状態、更新番号を確認してください。");
+      }
     }
   };
   const readOnly = user.accountStatus === "withdrawn";
@@ -829,18 +840,29 @@ function AdminTestControlContent() {
     }
   };
   const resetScenario = async () => {
+    if (resetting) return;
     setResetting(true);
     setMessage(null);
+    let resetSucceeded = false;
     try {
       await testControlService.reset({ scenario });
+      resetSucceeded = true;
+    } catch {
+      setMessage("シナリオを初期化できませんでした。画面遷移は行っていません。");
+      return;
+    } finally {
+      if (!resetSucceeded) setResetting(false);
+    }
+
+    const definition = SCENARIO_METADATA[scenario];
+    const session = definition.initialSession;
+    const initialSessionLabel =
+      session.kind === "guest"
+        ? "Guest Session で開始します。"
+        : "初期アカウント：" + session.email;
+    try {
       clearOneTimeNoticeStorage();
       clearCheckoutNoticeHistory();
-      const definition = SCENARIO_METADATA[scenario];
-      const session = definition.initialSession;
-      const initialSessionLabel =
-        session.kind === "guest"
-          ? "Guest Session で開始します。"
-          : "初期アカウント：" + session.email;
       writeOneTimeNotice({
         type: "scenario-reset",
         scenarioId: scenario,
@@ -849,12 +871,10 @@ function AdminTestControlContent() {
         recommendedAccounts: definition.recommendedAccounts,
         routes: definition.routes,
       });
-      setMessage("シナリオを初期化しました。");
-      reloadBrowserPage(definition.safeResetPath);
     } catch {
-      setMessage("シナリオを初期化できませんでした。画面遷移は行っていません。");
+      // Reset済みのRuntimeを使い続けないため、Notice保存失敗でも必ず遷移する。
     } finally {
-      setResetting(false);
+      reloadBrowserPage(definition.safeResetPath);
     }
   };
   return (
@@ -935,7 +955,8 @@ function AdminTestControlContent() {
               title="シナリオを初期化しますか"
               confirmLabel="初期化して移動"
               danger
-              onConfirm={() => void resetScenario()}
+              disabled={resetting}
+              onConfirm={resetScenario}
             >
               学習データ、Cart、Checkout、注文、商品、在庫、Review、入力途中の内容を初期状態へ戻します。
               Sessionも置き換わり、この操作は元に戻せません。

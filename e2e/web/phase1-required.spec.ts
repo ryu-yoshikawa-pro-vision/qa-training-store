@@ -69,6 +69,7 @@ test.describe("Phase 1 required E2E", () => {
     await scenario("default");
     await page.goto("/products/product-mug");
     await page.getByRole("button", { name: "カートに追加" }).click();
+    await expect(page.getByRole("status")).toContainText("カートへ追加しました");
     await login(page, "regular@example.com");
     await page.goto("/cart");
     await expect(page.getByRole("heading", { name: "ベーシックTシャツ" })).toBeVisible();
@@ -128,7 +129,8 @@ test.describe("Phase 1 required E2E", () => {
     const detail = page.getByRole("link", { name: "ORD-20260701-0002" });
     await expect(detail).toBeVisible();
     await detail.click();
-    await expect(page.getByText("発送準備待ち", { exact: true })).toBeVisible();
+    const shipment = page.getByRole("heading", { name: "配送状況" }).locator("..");
+    await expect(shipment.getByText("発送準備待ち", { exact: true })).toBeVisible();
     await page.goto("/checkout/processing?orderId=order-paid");
     await page.reload();
     await expect(page).toHaveURL(/\/checkout\/complete\?orderId=order-paid/);

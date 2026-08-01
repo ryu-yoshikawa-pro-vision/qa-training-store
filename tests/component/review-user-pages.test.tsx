@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { CurrentUserDto } from "@/application/contracts";
+import { ApplicationError } from "@/application/errors";
 import { StorefrontShell } from "@/presentation/shells/storefront-shell";
 
 const reviews = {
@@ -61,6 +62,7 @@ import {
   AdminUsersPage,
   CustomerReviewPage,
 } from "@/presentation/pages/review-user-pages";
+import { ONE_TIME_NOTICE_STORAGE_KEY } from "@/presentation/browser/one-time-notice.web";
 
 const publishedReview = {
   reviewId: "review-1",
@@ -78,6 +80,7 @@ const publishedReview = {
 describe("review, user, and test-control pages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     reviews.getEligibility.mockResolvedValue({
       orderItemId: "item-1",
       eligible: true,
@@ -296,6 +299,38 @@ describe("review, user, and test-control pages", () => {
     );
   });
 
+  it("shows the specific Last Active Admin error without a generic-only message", async () => {
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-admin-secondary",
+      email: "admin-secondary@example.com",
+      displayName: "別の管理者",
+      role: "admin",
+      membershipRank: null,
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+    adminUsers.changeRole.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "LAST_ADMIN_PROTECTED",
+        messageKey: "users.lastAdmin",
+        retryable: false,
+      }),
+    );
+    render(<AdminUserDetailPage userId="user-admin-secondary" />);
+    await screen.findByRole("heading", { name: "別の管理者" });
+    fireEvent.change(screen.getByLabelText("役割"), { target: { value: "operator" } });
+    fireEvent.click(screen.getByRole("button", { name: "役割を変更" }));
+    fireEvent.click(screen.getByRole("button", { name: "変更する" }));
+    expect(
+      await screen.findByText("最後の管理者は変更できません。先に別の管理者を設定してください。"),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("変更できませんでした。自己変更、最後の管理者"),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows build metadata and applies the Test API payment-delay constraint", async () => {
     render(<AdminTestControlPage />);
     expect(await screen.findByText("0.1.0")).toBeVisible();
@@ -316,5 +351,50 @@ describe("review, user, and test-control pages", () => {
       expect(testControlService.reset).toHaveBeenCalledWith({ scenario: "default" }),
     );
     expect(reloadBrowserPage).toHaveBeenCalledOnce();
+  });
+
+  it("does not run Scenario Reset twice during a repeated Confirm operation", async () => {
+    let resolveReset!: () => void;
+    testControlService.reset.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (resolveReset = resolve)),
+    );
+    render(<AdminTestControlPage />);
+    await screen.findByText("0.1.0");
+    fireEvent.click(screen.getByRole("button", { name: "シナリオを初期化" }));
+    const confirm = await screen.findByRole("button", { name: "初期化して移動" });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+    await waitFor(() => expect(testControlService.reset).toHaveBeenCalledTimes(1));
+    resolveReset();
+    await waitFor(() => expect(reloadBrowserPage).toHaveBeenCalledOnce());
+  });
+
+  it("stays on the page when Scenario Reset fails", async () => {
+    testControlService.reset.mockRejectedValueOnce(new Error("reset failed"));
+    render(<AdminTestControlPage />);
+    await screen.findByText("0.1.0");
+    fireEvent.click(screen.getByRole("button", { name: "シナリオを初期化" }));
+    fireEvent.click(await screen.findByRole("button", { name: "初期化して移動" }));
+    expect(
+      await screen.findByText("シナリオを初期化できませんでした。画面遷移は行っていません。"),
+    ).toBeVisible();
+    expect(reloadBrowserPage).not.toHaveBeenCalled();
+  });
+
+  it("hard-navigates after a successful reset even if the notice cannot be saved", async () => {
+    const originalSetItem = Storage.prototype.setItem;
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation((key, value) => {
+      if (key === ONE_TIME_NOTICE_STORAGE_KEY) throw new Error("notice storage failed");
+      originalSetItem.call(sessionStorage, key, value);
+    });
+    render(<AdminTestControlPage />);
+    await screen.findByText("0.1.0");
+    fireEvent.click(screen.getByRole("button", { name: "シナリオを初期化" }));
+    fireEvent.click(await screen.findByRole("button", { name: "初期化して移動" }));
+    await waitFor(() => expect(reloadBrowserPage).toHaveBeenCalledOnce());
+    expect(
+      screen.queryByText("シナリオを初期化できませんでした。画面遷移は行っていません。"),
+    ).not.toBeInTheDocument();
+    setItem.mockRestore();
   });
 });

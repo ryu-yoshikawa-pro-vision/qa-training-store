@@ -41,7 +41,7 @@ function HomeContent() {
     (sum, category) => sum + category.visibleProductCount,
     0,
   );
-  const primaryAction: {
+  const roleAction: {
     href: "/login" | "/account/profile" | "/admin";
     label: string;
   } =
@@ -58,11 +58,11 @@ function HomeContent() {
           <h1>決定的なシナリオで、確かなテストを。</h1>
           <p>商品検索から注文、管理操作までを安全な模擬環境で練習できます。</p>
           <div className="home-hero__actions">
-            <Link href={primaryAction.href} className="button button--primary">
-              {primaryAction.label}
-            </Link>
-            <Link href="/products" className="button button--secondary">
+            <Link href="/products" className="button button--primary">
               商品を見る
+            </Link>
+            <Link href={roleAction.href} className="button button--secondary">
+              {roleAction.label}
             </Link>
           </div>
         </div>
@@ -101,11 +101,16 @@ function HomeContent() {
         <StatePanel
           kind="empty"
           title="表示できる商品がありません"
-          body="現在は公開されている商品がありません。テスト制御で別シナリオを適用するか、再試行してください。"
+          body="現在は公開されている商品がありません。学習Guideで確認できる操作を見直すか、時間を置いて再試行してください。"
           action={
-            <button className="button button--primary" onClick={retry}>
-              再試行
-            </button>
+            <div className="button-row">
+              <Link href="/guide" className="button button--secondary">
+                学習Guideを見る
+              </Link>
+              <button className="button button--primary" onClick={retry}>
+                再試行
+              </button>
+            </div>
           }
         />
       ) : (
@@ -119,19 +124,22 @@ function HomeContent() {
               <Link href="/products">すべての商品</Link>
             </div>
             <div className="category-grid">
-              {value.categories.slice(0, 6).map((category) => (
-                <Link
-                  href={`/categories/${category.categoryId}`}
-                  key={category.categoryId}
-                  className="category-card"
-                >
-                  <span>
-                    {category.name}
-                    <Icon name="arrow" size={18} />
-                  </span>
-                  <small>{category.visibleProductCount}件</small>
-                </Link>
-              ))}
+              {value.categories
+                .filter((category) => category.visibleProductCount > 0)
+                .slice(0, 6)
+                .map((category) => (
+                  <Link
+                    href={`/categories/${category.categoryId}`}
+                    key={category.categoryId}
+                    className="category-card"
+                  >
+                    <span>
+                      {category.name}
+                      <Icon name="arrow" size={18} />
+                    </span>
+                    <small>{category.visibleProductCount}件</small>
+                  </Link>
+                ))}
             </div>
           </section>
           <ProductSection

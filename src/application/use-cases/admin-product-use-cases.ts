@@ -1,6 +1,7 @@
 import type {
   AdminProductListItem,
   AdminProductSearchRequest,
+  ApplicationErrorShape,
   BulkChangeProductStatusRequest,
   ChangeProductStatusRequest,
   CreateProductRequest,
@@ -279,7 +280,6 @@ export class AdminProductUseCases {
           ],
           images: aggregate.images,
         };
-    this.validateMinimum(createShape);
     const now = await this.now();
     const assets = await this.assets.listByIds(createShape.images.map((image) => image.assetId));
     const assetMap = new Map(assets.map((asset) => [asset.assetId, asset]));
@@ -323,6 +323,8 @@ export class AdminProductUseCases {
       ),
     );
     const rank = request.previewMembershipRank;
+    const viewerPrices =
+      prices.length === 0 ? [0] : prices.map((price) => viewerUnitPrice(price, rank));
     const primary = createShape.images.find((image) => image.isPrimary) ?? null;
     const primaryAsset = primary === null ? null : assetMap.get(primary.assetId);
     const brand = await this.dependencies.database.brands.get(createShape.product.brandId);
@@ -345,8 +347,8 @@ export class AdminProductUseCases {
               path: primaryAsset.path,
               altText: primary.altText,
             },
-      minimumViewerUnitPrice: Math.min(...prices.map((price) => viewerUnitPrice(price, rank))),
-      maximumViewerUnitPrice: Math.max(...prices.map((price) => viewerUnitPrice(price, rank))),
+      minimumViewerUnitPrice: Math.min(...viewerPrices),
+      maximumViewerUnitPrice: Math.max(...viewerPrices),
       hasPurchasableStock: previewVariants.some(
         (variant) => variant.isActive && variant.stockQuantity > 0,
       ),
@@ -411,16 +413,11 @@ export class AdminProductUseCases {
         rating4Count: 0,
         rating5Count: 0,
       },
-      publishabilityIssues:
-        createShape.images.length === 0
-          ? [
-              {
-                code: "INVALID_STATE",
-                messageKey: "products.publishability.imageRequired",
-                retryable: false,
-              },
-            ]
-          : [],
+      publishabilityIssues: previewPublishabilityIssues({
+        product: createShape.product,
+        variants: previewVariants,
+        hasPrimaryImage: primary !== null && primaryAsset !== undefined,
+      }),
     };
   }
 
@@ -496,6 +493,69 @@ export class AdminProductUseCases {
       retryable: false,
     });
   }
+}
+
+function previewPublishabilityIssues(input: {
+  product: CreateProductRequest["product"];
+  variants: Array<{
+    sku: string;
+    regularPrice: number;
+    purchaseLimit: number;
+    isActive: boolean;
+  }>;
+  hasPrimaryImage: boolean;
+}): ApplicationErrorShape[] {
+  const issues: ApplicationErrorShape[] = [];
+  const product = normalizedProduct(input.product);
+  if (
+    product.productCode.length === 0 ||
+    product.name.length === 0 ||
+    product.categoryId.length === 0 ||
+    product.brandId.length === 0
+  ) {
+    issues.push({
+      code: "VALIDATION",
+      messageKey: "products.publishability.requiredFields",
+      retryable: false,
+    });
+  }
+  if (input.variants.length === 0) {
+    issues.push({
+      code: "INVALID_STATE",
+      messageKey: "products.publishability.variantRequired",
+      retryable: false,
+    });
+  } else if (!input.variants.some((variant) => variant.isActive)) {
+    issues.push({
+      code: "INVALID_STATE",
+      messageKey: "products.publishability.activeVariantRequired",
+      retryable: false,
+    });
+  }
+  if (!input.hasPrimaryImage) {
+    issues.push({
+      code: "INVALID_STATE",
+      messageKey: "products.publishability.imageRequired",
+      retryable: false,
+    });
+  }
+  if (
+    input.variants.some(
+      (variant) =>
+        variant.sku.trim().length === 0 ||
+        !Number.isInteger(variant.regularPrice) ||
+        variant.regularPrice < 0 ||
+        !Number.isInteger(variant.purchaseLimit) ||
+        variant.purchaseLimit < 1,
+    )
+  ) {
+    issues.push({
+      code: "VALIDATION",
+      messageKey: "products.variant.invalid",
+      retryable: false,
+    });
+  }
+  return issues;
 }
 
 function withoutClientKey(variant: ProductVariantCreateRequest) {

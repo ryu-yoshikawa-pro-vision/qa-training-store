@@ -189,6 +189,47 @@ describe("storefront catalog pages", () => {
     expect(screen.getByRole("heading", { name: "セール商品" })).toBeVisible();
   });
 
+  it("keeps only the first six categories with visible products", async () => {
+    catalog.getHome.mockResolvedValue({
+      categories: [
+        { categoryId: "category-empty", name: "空カテゴリ", visibleProductCount: 0 },
+        ...Array.from({ length: 7 }, (_, index) => ({
+          categoryId: `category-${index + 1}`,
+          name: `カテゴリ${index + 1}`,
+          visibleProductCount: index + 1,
+        })),
+      ],
+      brands: [],
+      newProducts: [product("home-product", "ホーム商品")],
+      saleProducts: [],
+    });
+
+    const { container } = render(<HomePage />);
+
+    expect(await screen.findByRole("heading", { name: "カテゴリから探す" })).toBeVisible();
+    expect(container.querySelectorAll(".category-card")).toHaveLength(6);
+    expect(screen.queryByText("空カテゴリ")).not.toBeInTheDocument();
+    expect(screen.queryByText("カテゴリ7")).not.toBeInTheDocument();
+  });
+
+  it("shows one empty catalog state with a Guide link", async () => {
+    catalog.getHome.mockResolvedValue({
+      categories: [{ categoryId: "category-empty", name: "空カテゴリ", visibleProductCount: 0 }],
+      brands: [],
+      newProducts: [],
+      saleProducts: [],
+    });
+
+    render(<HomePage />);
+
+    expect(await screen.findByText("表示できる商品がありません")).toBeVisible();
+    expect(screen.getByRole("link", { name: "学習Guideを見る" })).toBeVisible();
+    expect(document.querySelectorAll(".state-panel")).toHaveLength(1);
+    expect(screen.queryByRole("heading", { name: "カテゴリから探す" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "商品を見る" })).toHaveClass("button--primary");
+    expect(screen.getByRole("link", { name: "ログインして購入" })).toHaveClass("button--secondary");
+  });
+
   it("shows an empty state for unfiltered products with no action", async () => {
     catalog.search.mockResolvedValue(searchResult());
 
