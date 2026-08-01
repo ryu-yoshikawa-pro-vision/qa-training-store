@@ -6,7 +6,7 @@ PR #3の探索結果をもとに、確認されたUI・UX上の問題を同一�
 
 単なる見た目の調整ではなく、次を実現する。
 
-- Guestの商品探索からLogin、Cart、Checkout、注文完了まで、操作意図が途切れない
+- Guestの商品探索からLogin、Cart、Checkout、注文完了まで操作意図が途切れない
 - 商品、在庫、価格、Cart、Checkout、注文、Reviewの状態変化を画面上で理解できる
 - 学習用アプリの説明とTest Account情報を、各操作画面の主目的を妨げない場所へ整理する
 - Customer、Operator、Adminの各画面で、操作結果、制約、未保存状態、破壊的操作の影響が分かる
@@ -30,6 +30,7 @@ PR #3の探索結果をもとに、確認されたUI・UX上の問題を同一�
 - 原因が再現できない問題へ、推測修正、無限Polling、待機時間の増加を入れない
 - UI上で到達しない状態のためだけに、事前Capability DTOや重複Queryを追加しない
 - User操作制約は既存Domain／Application側のMutation防御を維持する
+- 文言、Rank Benefit、Scenario、Test Accountは、既存定数または今回追加する共通定義から生成し、画面ごとに重複Hardcodeしない
 
 ---
 
@@ -63,6 +64,7 @@ CheckoutのRoute遷移後に前画面のScroll位置が残り、現在Stepや注
 - Focus対象は各画面の`h1`へ統一する
 - `h1`へ`tabIndex={-1}`を設定する
 - Focus対象へ`scroll-margin-top`相当を設定し、Sticky Headerに隠れないようにする
+- HookはFocus開始条件を引数で受け取れるようにし、各画面へ重複実装しない
 - Focus処理は対象画面ごとに次のタイミングで1回実行する
   - `/checkout/address`：データ読込後、実Contentの`h1`がMountされた時点
   - `/checkout/payment`：データ読込後、実Contentの`h1`がMountされた時点
@@ -72,7 +74,6 @@ CheckoutのRoute遷移後に前画面のScroll位置が残り、現在Stepや注
   - `/checkout/failed`：注文詳細読込後、実Contentの`h1`がMountされた時点
 - Loading PanelにはFocusを移さない
 - Browser BackでForm入力やCheckout Sessionを破棄しない
-- HookはFocus開始条件を引数で受け取れるようにし、各画面へ重複実装しない
 
 ### 検証条件
 
@@ -122,7 +123,7 @@ Query StringとHashは引き継がず、Pathだけを扱う。
 
 Login後のCart統合結果とScenario Reset結果を、遷移先で1回だけ表示するためのWeb向けHelperを追加する。
 
-### 実装内容
+### 保存形式
 
 - `sessionStorage`を使用する
 - 保存可能な値をDiscriminated Unionで限定する
@@ -132,22 +133,29 @@ Login後のCart統合結果とScenario Reset結果を、遷移先で1回だけ�
 - JSON Parse失敗、型不一致、不正値は例外にせず削除する
 - Password、個人情報、任意URL、内部Error Stackは保存しない
 - Native Buildを壊さないようWeb固有実装を分離する
-- Global Notification Frameworkへ拡張しない
+- Global Notification FrameworkやEvent Busへ拡張しない
 
-### 表示位置と消費
+### 表示と消費
 
-- Noticeの読出しと表示はStorefront Shell／Admin Shellへ重複実装しない
-- `AppFrame`直下に共通の`OneTimeNoticePresenter`を配置する
-- 読み出したNoticeはPresenterのReact Stateへ保持する
+- Noticeの読出し、型検証、消費はStorefront Shell／Admin Shellへ重複実装しない
+- `AppFrame`がNotice Stateを所有する
+- `AppFrame`は`usePathname()`でPath変更を検知し、初回Mount時とPath変更時に未消費Noticeを読み出す
+- 読み出したNoticeはReact Stateへ保持する
+- 正常にStateへ取り込んだ直後に`sessionStorage`から削除する
 - Shell切替やGuard Redirectが発生しても、同一Page Load内でNoticeを失わない
-- `sessionStorage`からは正常にStateへ取り込んだ直後に削除する
-- Reload後に同じNoticeを再表示しない
+- `AppFrame`は現在選択したShellの`children`先頭へ共通Notice Componentを差し込む
+- 表示後にReloadしても同じNoticeを再表示しない
+- 同じPathで再Renderしただけでは再消費しない
+
+### Path別表示
+
+- `/cart`で`cart-merge`を受け取った場合：商品別の詳細Summaryを表示する
+- CheckoutまたはHomeで`cart-merge`を受け取った場合：短いSuccess Noticeを表示する
+- `scenario-reset`：遷移先がStorefront／Adminのどちらでも同じ初期化結果を表示する
 
 ### Checkout再開通知の重複防止
 
 `resumed`と`replaced`はAddress画面を開くたびに返る可能性があるため、Checkout Session ID単位で表示済みを記録する。
-
-例：
 
 ```text
 checkout:<sessionId>:resumed
@@ -182,10 +190,12 @@ Return先の付与はCart Buttonだけに限定せず、`RouteGuard`のCustomer 
 
 ### Login成功後
 
+- Login Use Caseの実際の戻り値を使用し、成功した場合だけ遷移する
 - Customerは検証済みReturn先へ移動する
 - Return先がないCustomerは`/`へ移動する
 - Operator／AdminはReturn先を無視し`/admin`へ移動する
 - Login失敗時は入力値とReturn先を保持する
+- Cart Merge Noticeは保存してから`router.replace()`する
 - `/checkout/payment`または`/checkout/confirm`が未解放の場合は、既存Checkout Guard／Load Errorで前Stepへ戻す
 
 ### 検証条件
@@ -194,6 +204,7 @@ Return先の付与はCart Buttonだけに限定せず、`RouteGuard`のCustomer 
 - Checkout URLへの直接アクセスでもReturn先が保持される
 - Staff AccountがCustomer Checkoutへ誤遷移しない
 - 外部URLへRedirectできない
+- Login失敗時にHomeへ遷移しない
 
 ---
 
@@ -204,8 +215,6 @@ Return先の付与はCart Buttonだけに限定せず、`RouteGuard`のCustomer 
 既存のCart Merge処理を利用し、結果表示に必要な範囲だけDTOを拡張する。
 
 ### DTO
-
-`CartMergeItemResult`へ次を持たせる。
 
 ```ts
 interface CartMergeItemResult {
@@ -230,6 +239,18 @@ interface CartMergeItemResult {
 - `NOT_FOUND`では`productName`を`null`とし、画面では`利用できない商品`と表示する
 - Presentation側でRepositoryを再参照しない
 - Merge時に判定済みの値を結果へ含める
+
+### 数量の定義
+
+- `guestQuantity`：Guest Cartに存在した数量
+- `previousUserQuantity`：Login前からUser Cartに存在した数量。存在しない場合は0
+- `addedQuantity`：実際にUser Cartへ追加できた数量
+- `overflowQuantity`：Guest数量のうち追加できなかった数量
+- `finalQuantity`：統合処理後のUser Cart数量
+- 完全除外時は次にする
+  - `addedQuantity = 0`
+  - `overflowQuantity = guestQuantity`
+  - `finalQuantity = previousUserQuantity`
 
 ### 調整ありの判定
 
@@ -296,19 +317,16 @@ const hasAdjustment = cartMerge.items.some(
 
 ### 表示ルール
 
-- `created`
-  - Messageを表示しない
-- `resumed`
-  - `前回の購入手続きを再開しました。配送先、支払方法、注文内容を確認してください。`
-- `replaced`
-  - `カートが更新されたため、以前の購入手続きを置き換えました。最新の商品、数量、価格を確認してください。`
+- `created`：Messageを表示しない
+- `resumed`：`前回の購入手続きを再開しました。配送先、支払方法、注文内容を確認してください。`
+- `replaced`：`カートが更新されたため、以前の購入手続きを置き換えました。最新の商品、数量、価格を確認してください。`
 
 ### 実装内容
 
 - Address画面のStepperと`h1`の直後へ表示する
 - Checkout Session ID単位で1回だけ表示する
 - 内部Version番号は表示しない
-- `replaced`後は最新Cartを元に商品、数量、金額が表示されることを確認する
+- `replaced`後は最新Cartを元に商品、数量、金額を表示する
 
 ### 検証条件
 
@@ -388,9 +406,15 @@ min(stockQuantity, purchaseLimit)
 
 対象：UX-002
 
-- `390px`と`320px`で横Scrollに依存しない3列Gridまたは折返しLayoutへ変更する
+- `390px`と`320px`の両方で3列Gridへ変更する
+
+```css
+grid-template-columns: repeat(3, minmax(0, 1fr));
+```
+
 - `プロフィール`、`配送先`、`注文履歴`を常時表示する
-- Touch Targetを44px以上維持する
+- Labelは必要に応じて折り返す
+- 各項目の最小高さを44px以上にする
 - `aria-current="page"`を維持する
 - DocumentとNavigation内に不要な横Overflowを発生させない
 
@@ -414,8 +438,6 @@ min(stockQuantity, purchaseLimit)
 
 対象：UX-008
 
-### 実装内容
-
 郵便番号から候補を取得できた場合は次のとおり更新する。
 
 - `prefecture`：候補値へ更新する
@@ -424,7 +446,7 @@ min(stockQuantity, purchaseLimit)
   - 空欄なら候補値を設定する
   - 入力済みなら既存値を保持する
 - 候補がない場合は一切変更しない
-- 入力済み`addressLine1`を保持した場合は、次の確認Messageを表示する
+- 入力済み`addressLine1`を保持した場合は次を表示する
   - `番地は入力済みの内容を保持しました。郵便番号と住所の組み合わせを確認してください。`
 - 新規登録と既存配送先編集で同じ挙動にする
 - FormはDirtyのまま維持する
@@ -446,10 +468,13 @@ Profile上部へ次を表示する。
 - 現在の会員Rank
 - Account状態
 - Rank Benefit
-  - 一般会員：5,000円以上で送料無料
-  - Gold：5%割引
-  - Platinum：10%割引・送料無料
 - GuideへのLink
+
+Rank Benefitは価格計算の定数・関数と共通の定義から生成する。
+
+- 一般会員：5,000円以上で送料無料
+- Gold：5%割引
+- Platinum：10%割引・送料無料
 
 内部Enumは表示せず、既存Label変換を利用する。
 
@@ -487,7 +512,7 @@ Review Form上部へ次を表示する。
 
 ## 8.2 Customer注文詳細DTO
 
-共有の`OrderItemDto`へCustomer固有のReview状態を追加しない。次のCustomer専用DTOを追加する。
+共有の`OrderItemDto`へCustomer固有のReview状態を追加しない。
 
 ```ts
 interface CustomerOrderItemDto extends OrderItemDto {
@@ -499,8 +524,7 @@ interface CustomerOrderItemDto extends OrderItemDto {
     | "NOT_ELIGIBLE";
 }
 
-interface CustomerOrderDetailDto
-  extends Omit<OrderDetailDto, "items"> {
+interface CustomerOrderDetailDto extends Omit<OrderDetailDto, "items"> {
   items: CustomerOrderItemDto[];
 }
 ```
@@ -567,15 +591,10 @@ Admin注文詳細は既存の`AdminOrderDetailDto`を維持し、Customer固有�
 
 ### BuildとRoleによるTest Control表示
 
-- Automation Build
-  - Test Controlの説明を表示する
-- Production Build
-  - Test ControlへのLinkを表示しない
-  - Scenario機能は自動化環境で利用できる旨だけを記載する
-- Guest／Customer／Operator
-  - Admin専用Test Controlへ直接誘導しない
-- AdminかつAutomation Build
-  - Test Controlへの直接Linkを表示する
+- Automation Build：Test Controlの説明を表示する
+- Production Build：Test ControlへのLinkを表示せず、自動化環境で利用可能であることだけを記載する
+- Guest／Customer／Operator：Admin専用Test Controlへ直接誘導しない
+- AdminかつAutomation Build：Test Controlへの直接Linkを表示する
 
 ---
 
@@ -640,7 +659,18 @@ notice: {
 
 対象：UX-018
 
-- 公開商品総数が0の場合、商品SectionとCategory Sectionをまとめて非表示にする
+公開商品総数はCategoryの`visibleProductCount`から算出する。
+
+```ts
+const visibleProductTotal = categories.reduce(
+  (sum, category) => sum + category.visibleProductCount,
+  0,
+);
+```
+
+同一商品が複数Categoryに所属しない既存契約を維持する。
+
+- `visibleProductTotal === 0`の場合、商品SectionとCategory Sectionをまとめて非表示にする
 - Home上へEmpty Stateを1つだけ表示する
 - 表示内容
   - 現在公開中の商品がない
@@ -672,12 +702,24 @@ notice: {
 対象：Sidebar、Breadcrumb、画面内Link、Browser Back。
 
 - Expo Routerが利用するNavigationの離脱防止機構を使用する
-- Dirty時だけ確認する
+- Dirty時だけNavigationを阻止する
+- 阻止した元のNavigation Actionを保持する
 - Actionは次の2つに統一する
   - `変更を破棄して移動`
   - `編集に戻る`
-- `編集に戻る`では入力を保持する
-- `変更を破棄して移動`では遷移を続行する
+
+`変更を破棄して移動`では次の順番を守る。
+
+1. Bypass用Refを有効化する
+2. Dirtyを解除する
+3. 保持した元のNavigation Actionを1回だけ再実行する
+4. Bypass用Refを解除する
+
+- 固定Pathへ置き換えない
+- Browser Backも保持したActionを1回だけ再実行する
+- `編集に戻る`ではActionを破棄し、入力を保持する
+- 保存成功後のNavigationも同じBypass経路を使用する
+- 再実行したNavigationをGuardが再度阻止してLoopさせない
 
 ### Browser離脱
 
@@ -686,11 +728,12 @@ notice: {
 - Webの`beforeunload`を使用する
 - Browser標準Dialogを使用し、独自文言が表示されることを前提にしない
 - Dirtyでない場合はListenerを登録しない
+- Router内遷移の再開処理と混在させない
 
 ### 保存成功後の遷移
 
-- 保存成功時はDirtyを解除してから成功後Navigationを実行する
 - 親の`onSubmit`内でDirty解除前に`router.replace()`しない
+- 保存成功後は最新Snapshotへ更新し、Dirtyを解除してからNavigationする
 - 保存失敗時はDirtyを維持する
 
 ### Form外の操作
@@ -735,6 +778,7 @@ Dirty中は次をDisabledにする。
 - 保存済み状態では警告されない
 - Previewを開いてもDirtyが解除されない
 - 保存成功後の正常な遷移をGuardが妨げない
+- `変更を破棄して移動`で元のLinkまたはBack操作へ1回だけ進む
 - Dirty中にForm外の状態変更操作を実行できない
 
 ---
@@ -743,6 +787,43 @@ Dirty中は次をDisabledにする。
 
 対象：UX-012
 
+### Preview専用DTO
+
+```ts
+interface ProductPreviewVariantDto extends ProductVariantForViewer {
+  stockSource: "CURRENT" | "INITIAL";
+  isActive: boolean;
+}
+
+interface ProductPreviewDto {
+  // 既存のPreview表示項目
+  statusAfterSave: ProductStatus;
+  variants: ProductPreviewVariantDto[];
+  publishabilityIssues: ApplicationErrorShape[];
+}
+```
+
+実際の定義では既存`ProductPreviewDto`を拡張して構わないが、通常の`ProductDetail`へPreview固有情報を混在させない。
+
+### Preview Use Case
+
+#### 新規商品
+
+- `statusAfterSave`は`draft`
+- Variant在庫は`initialStockQuantity`を使用する
+- `stockSource`は`INITIAL`
+- `isActive`は作成時の有効状態として`true`
+
+#### 編集商品
+
+- 現在の商品Statusを取得し`statusAfterSave`へ設定する
+- 既存VariantはDBの現在庫を取得する
+- 既存Variantの`isActive`を保持する
+- 既存Variantの`stockSource`は`CURRENT`
+- 新規追加Variantは`initialStockQuantity`を使用し`stockSource`を`INITIAL`にする
+- 削除予定VariantはPreviewへ含めない
+- 既存Variantを`initialStockQuantity: 0`へ変換して在庫0として扱わない
+
 ### 表示内容
 
 - Main Image
@@ -750,8 +831,6 @@ Dirty中は次をDisabledにする。
 - 商品名
 - Short Description
 - 保存後の状態
-  - 新規商品：`下書き`
-  - 編集商品：現在の公開状態を維持
 - 会員Rank制限
 - Variant一覧の要約
 - SKUごとの有効／無効
@@ -766,9 +845,17 @@ Dirty中は次をDisabledにする。
 
 - Storefrontの商品詳細を完全複製しない
 - 既存の`ProductImage`、`StatusBadge`、価格Formatterを再利用する
-- 既存の`ProductPreviewDto.publishabilityIssues`をユーザー向け文言へ変換して表示する
+- `publishabilityIssues`をユーザー向け文言へ変換して表示する
 - Preview DTOへ不足する表示情報だけを追加する
 - Databaseへ副作用を発生させない
+
+### 検証条件
+
+- 編集Previewで既存SKUの在庫が0へ変わらない
+- 無効SKUを識別できる
+- 新規SKUの初期在庫と既存SKUの現在庫を区別できる
+- 削除予定SKUが表示されない
+- Previewを実行してもDatabaseが変更されない
 
 ---
 
@@ -838,11 +925,10 @@ Disabled Controlと理由説明は`aria-describedby`で関連付ける。
 
 対象：UX-016
 
-Scenario一覧と説明を同じMetadata定義から生成する。
+Scenario Metadataを唯一のScenario ID定義元にする。
 
 ```ts
-interface ScenarioMetadata {
-  id: PhaseOneScenario;
+interface ScenarioMetadataDefinition {
   displayName: string;
   purpose: string;
   recommendedAccounts: readonly string[];
@@ -854,12 +940,28 @@ interface ScenarioMetadata {
     | { kind: "admin"; email: string };
   summary: string;
 }
+
+export const SCENARIO_METADATA = {
+  default: {
+    // ...
+  },
+  "empty-catalog": {
+    // ...
+  },
+} as const satisfies Record<string, ScenarioMetadataDefinition>;
+
+export type PhaseOneScenario = keyof typeof SCENARIO_METADATA;
+
+export const PHASE_ONE_SCENARIOS = Object.keys(
+  SCENARIO_METADATA,
+) as PhaseOneScenario[];
 ```
+
+`ScenarioMetadataDefinition`から`PhaseOneScenario`を参照しない。型と配列の循環定義を作らない。
 
 ### 実装内容
 
-- `PHASE_ONE_SCENARIOS`と説明定義を別々に保守しない
-- MetadataからScenario ID一覧と表示情報を生成する
+- Scenario ID、型、表示情報を`SCENARIO_METADATA`から生成する
 - 複数Roleを使うScenarioでは`recommendedAccounts`へ複数Accountを設定する
 - Test Controlでは選択中Scenarioだけを表示する
 - 詳細はGuideへLinkする
@@ -873,7 +975,7 @@ interface ScenarioMetadata {
 - `initialSession`のEmailとRoleが生成Datasetの初期Sessionに一致する
 - `guest`指定ではSessionが存在しない
 - `routes`が空ではない
-- Scenario IDと表示名が一致して管理される
+- Scenario IDと表示名が同じ定義から生成される
 
 ---
 
@@ -951,23 +1053,35 @@ Testは既存の`e2e/web/accessibility.spec.ts`へ追加する。
 
 Production CodeへPollingやTimeoutを追加する前に、通常のPlaywright E2Eで再現する。
 
-## 14.1 再現手順
+## 14.1 注文詳細の再現手順
 
 1. `payment-processing`へResetする
 2. `regular@example.com`でLoginする
-3. 注文一覧を開く
-4. `支払い処理中`の注文を選ぶ
-5. 注文詳細で次を5秒以内に確認する
+3. 注文一覧で`支払い待ち`の対象注文を開く
+4. 注文詳細で次を5秒以内に確認する
    - `h1`
    - 注文番号
-   - `支払い処理中`の状態
-6. Loading Panelが消える
-7. Console ErrorとPage Errorが0件
-8. Browser BackとHomeへの移動が可能
+   - Order Status：`支払い待ち`
+   - Payment Status：`支払い処理中`
+5. Loading Panelが消える
+6. Console ErrorとPage Errorが0件
+7. Browser BackとHomeへの移動が可能
 
-探索時に使用した直接URLが特定できる場合は、同じ注文詳細URLへの直接アクセスも別Caseで確認する。
+注文一覧へPayment Statusを新規追加しない。
 
-## 14.2 再現した場合の切り分け
+## 14.2 Processing画面のFocus Test
+
+Processing画面は通常500msで遷移するため、注文詳細の再現Testと分離する。
+
+1. Test ControlまたはTest APIでPayment Delayを`3000ms`へ設定する
+2. Checkout Confirmから支払いを開始する
+3. Processing画面のMount後に`h1`へFocusされることを確認する
+4. 処理完了後にCompleteまたはFailedへ遷移することを確認する
+5. Test終了後はScenario Resetで決定的な初期状態へ戻す
+
+待機時間を延ばす目的ではなく、Focus対象が表示されている時間を決定的に確保するためだけに既存Payment Delay機能を使う。
+
+## 14.3 再現した場合の切り分け
 
 1. App RuntimeがReadyにならない
 2. Route Guardが待機し続ける
@@ -976,7 +1090,7 @@ Production CodeへPollingやTimeoutを追加する前に、通常のPlaywright E
 5. Scenario Reset直後のSession参照が不整合
 6. Playwright MCPだけで発生し通常E2Eでは再現しない
 
-## 14.3 修正条件
+## 14.4 修正条件
 
 - Promiseが解決しない：根本のQueryまたはTransactionを修正する
 - Reset後のRuntime再初期化が停止する：Reset／Hard Navigation後の初期化処理を修正する
@@ -1001,8 +1115,8 @@ Production CodeへPollingやTimeoutを追加する前に、通常のPlaywright E
 
 - Return先Allowlistと拒否条件
 - Role別Login後遷移
-- Cart Merge DTOの各数量、調整判定、集計、理由変換
-- One-time Noticeの型検証と1回限りの読出し
+- Cart Merge DTOの各数量、完全除外時の値、調整判定、集計、理由変換
+- One-time Noticeの型検証、初回MountとPath変更時の消費、1回限りの表示
 - Guard RedirectがあってもReset Noticeを失わないこと
 - Checkoutの`created／resumed／replaced`表示済み判定
 - 在庫数と購入上限の表示ルール
@@ -1013,8 +1127,8 @@ Production CodeへPollingやTimeoutを追加する前に、通常のPlaywright E
 - UserのSELF／WITHDRAWN表示
 - Last Active Admin Mutation Errorの文言変換
 - Reset成功・失敗、Notice保存、安全Pathへの遷移
-- Product EditorのDirty判定、破棄、保存後解除
-- Product Previewの公開条件表示
+- Product EditorのDirty判定、破棄、元Navigation Actionの再実行、保存後解除
+- Product Previewの既存在庫、新規在庫、SKU有効状態、保存後Status、公開条件表示
 - Order／Shipment組合せ表示
 
 ## 15.2 Playwright E2Eの配置
@@ -1028,6 +1142,7 @@ e2e/web/ui-ux-improvements.spec.ts
 次を含める。
 
 - GuestからLoginしてCheckout復帰
+- Client-side Login遷移後のCart Merge Notice
 - Guest Cart Overflowの数量内訳
 - Checkout再開・置換
 - Invalid Cart
@@ -1035,12 +1150,13 @@ e2e/web/ui-ux-improvements.spec.ts
 - ProfileとReview状態
 - GuideとRole別Home CTA
 - Empty Catalog
-- 商品Formの未保存離脱とForm外操作
+- 商品Formの未保存離脱、元Navigation再開、Form外操作
 - 商品Preview
 - Shipment状態同期
 - User操作不可理由
 - Scenario Reset確認とReset後Notice
-- `payment-processing`
+- `payment-processing`注文詳細
+- Processing画面Focus
 
 ### Cross-role Flow
 
@@ -1056,6 +1172,15 @@ PR CIで次を必ず実行する。
 
 3. Adminが発送準備開始  
    → Customerの注文詳細で`発送準備中`を確認
+
+各Cross-role Testは次を守る。
+
+- Test開始時に対象ScenarioへResetする
+- 前のTestのDB状態へ依存しない
+- 1つのTest内でRoleを切り替える間はResetしない
+- Test終了後の状態を次のTestが利用しない
+- Serial実行を前提にしない
+- Browser Contextごとに独立したStorageを使用する
 
 既存Cross-role SuiteがPR CIで実行されないため、今回必要なFlowは`ui-ux-improvements.spec.ts`へ含める。
 
@@ -1157,6 +1282,7 @@ Adminの管理操作は既存どおり1024px以上を前提とし、Mobileへ管
 
 - Login後に購入導線へ自然に復帰できる
 - 外部URLへのOpen Redirectができない
+- Client-side Login遷移でもCart統合Noticeが表示される
 - Cart統合結果にGuest数量、既存数量、追加数量、超過数量、最終数量が表示される
 - Cart統合結果とCheckout再開／置換結果が1回だけ表示される
 - Checkout遷移後に現在画面の`h1`がFocusされ、重要情報がViewport内にある
@@ -1171,17 +1297,22 @@ Adminの管理操作は既存どおり1024px以上を前提とし、Mobileへ管
 - `empty-catalog`でEmpty Stateが1つだけ表示される
 - 商品Formの未保存変更を誤って失わない
 - 保存成功後の遷移を未保存Guardが妨げない
+- 破棄後に元のNavigation Actionを1回だけ再実行できる
 - Dirty中に商品状態変更などのForm外操作を実行できない
-- 商品Previewで主要変更と公開不能理由を保存前に判断できる
+- 商品Previewで既存在庫、新規在庫、SKU状態、保存後Status、公開不能理由を正しく判断できる
+- Previewで既存SKUが誤って在庫0にならない
 - Admin注文詳細の注文状態と配送欄表示が整合する
 - 自分自身と退会済みUserの操作不可理由が明示される
 - Last Active Admin制約はMutation側で維持され、具体的Errorが表示される
 - Test ControlでScenario目的とReset影響が分かる
 - Reset後に安全なPathへ遷移し、Scenarioの初期Session状態を1回案内する
+- Scenario Metadataが唯一のScenario ID定義元である
 - Scenario Metadataが実際のSeed Account、Role、初期Sessionと一致する
 - Status BadgeのAccessibilityをTestで確認している
+- `payment-processing`の注文詳細でOrder StatusとPayment Statusを区別して確認できる
+- Processing画面のFocusを既存Payment Delayで決定的に検証できる
 - `payment-processing`は通常E2Eの再現結果に基づいて必要な修正だけを行っている
-- Admin変更がStorefront／Customerへ反映されるCross-role FlowをPR CIで確認している
+- Admin変更がStorefront／Customerへ反映されるCross-role Flowを独立したTestとしてPR CIで確認している
 - 新規E2EがPR CIで実行される
 - Desktop、Tablet、Mobile、Small Mobileの主要Flowを確認している
 - 既存正常系と既存Scenarioを壊していない
