@@ -330,8 +330,15 @@ export interface ProductPreviewRequest {
   previewMembershipRank: MembershipRank | null;
 }
 
-export type ProductPreviewDto = Omit<ProductDetail, "primaryImage"> & {
+export interface ProductPreviewVariantDto extends ProductVariantForViewer {
+  stockSource: "CURRENT" | "INITIAL";
+  isActive: boolean;
+}
+
+export type ProductPreviewDto = Omit<ProductDetail, "primaryImage" | "variants"> & {
   primaryImage: ImageSnapshotDto | null;
+  statusAfterSave: ProductStatus;
+  variants: ProductPreviewVariantDto[];
   publishabilityIssues: import("./common").ApplicationErrorShape[];
 };
 

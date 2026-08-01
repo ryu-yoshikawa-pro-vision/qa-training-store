@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "run_id": "20260801-210228-JST",
+  "task_type": "implementation",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [
+    "code_researcher",
+    "implementation_researcher",
+    "test_investigator",
+    "implementation_worker"
+  ],
+  "repo": "C:/Users/sella/Documents/qa-training-store",
+  "branch": "feat/ui-ux-user-journey-improvements",
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    "src/presentation/browser/return-to.web.ts",
+    "src/presentation/browser/one-time-notice.web.ts",
+    "src/presentation/components/one-time-notice.tsx",
+    "src/presentation/hooks/use-route-heading-focus.ts",
+    "src/presentation/shells/app-frame.tsx",
+    "src/seeds/metadata.ts",
+    "src/seeds/scenarios.ts",
+    "src/presentation/pages/admin-product-pages.tsx",
+    "src/presentation/pages/review-user-pages.tsx",
+    "e2e/web/ui-ux-improvements.spec.ts",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/adr/0001-ui-ux-state-boundaries.md"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run validate:image-manifest",
+      "pnpm run security:check",
+      "pnpm run test:unit",
+      "pnpm run test:integration",
+      "pnpm run test:repository",
+      "pnpm run test:component",
+      "pnpm run test:contracts",
+      "pnpm run build:web",
+      "pnpm exec playwright test --project=chromium --list",
+      "pnpm run test:e2e:chromium",
+      "pnpm run test:a11y",
+      "pnpm run test:e2e:mobile-boundary",
+      "pnpm run test:e2e:cross-role",
+      "pnpm exec playwright test e2e/web/ui-review.spec.ts --project=ui-review-desktop --workers=1",
+      "pnpm exec playwright test e2e/web/ui-review.spec.ts --project=ui-review-tablet --workers=1",
+      "pnpm exec playwright test e2e/web/ui-review.spec.ts --project=ui-review-mobile --workers=1",
+      "pnpm exec playwright test e2e/web/ui-review.spec.ts --project=ui-review-small-mobile --workers=1"
+    ],
+    "warnings": [
+      "lintは既存警告61件、エラー0件",
+      "並列test:contractsはhook timeoutになったが直列再実行で44/44成功"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 4,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      { "name": "code_researcher", "mode": "read-only", "adopted": true },
+      { "name": "implementation_researcher", "mode": "read-only", "adopted": true },
+      { "name": "test_investigator", "mode": "read-only", "adopted": true },
+      { "name": "implementation_worker", "mode": "workspace-write", "adopted": true }
+    ],
+    "summary": {
+      "total": 4,
+      "read_only": 3,
+      "writable": 1,
+      "scope_violations": 0,
+      "used_in_final_plan": 4
+    }
+  },
+  "evaluation_path": ".codex/runs/20260801-210228-JST/evaluation.json",
+  "status": "complete",
+  "primary_failure_category": null
+}

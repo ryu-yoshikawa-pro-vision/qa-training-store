@@ -307,6 +307,10 @@ export class DexieCartRepository implements CartRepository {
         userCartId: userCart.id,
         items: [],
         addedItemCount: 0,
+        adjustedItemCount: 0,
+        fullyExcludedItemCount: 0,
+        addedQuantity: 0,
+        overflowQuantity: 0,
         excludedItemCount: 0,
       };
     }
@@ -322,6 +326,8 @@ export class DexieCartRepository implements CartRepository {
         variantRecord === undefined
           ? undefined
           : await this.db.products.get(variantRecord.productId);
+      const existing = userByVariant.get(guestItem.variantId);
+      const previousUserQuantity = existing?.quantity ?? 0;
       let excludedReason: CartMergeItemResult["excludedReason"] = null;
       if (variantRecord === undefined || product === undefined) {
         excludedReason = "NOT_FOUND";
@@ -340,14 +346,18 @@ export class DexieCartRepository implements CartRepository {
       if (excludedReason !== null) {
         results.push({
           variantId: guestItem.variantId,
+          productName: product?.name ?? null,
+          optionValue: variantRecord?.optionValue ?? null,
+          guestQuantity: guestItem.quantity,
+          previousUserQuantity,
           addedQuantity: 0,
           overflowQuantity: guestItem.quantity,
+          finalQuantity: previousUserQuantity,
           excludedReason,
         });
         continue;
       }
       const variant = fromVariantRecord(requireEntity(variantRecord, "errors.variant.notFound"));
-      const existing = userByVariant.get(guestItem.variantId);
       const merge = mergeCartQuantity({
         userQuantity: existing?.quantity ?? 0,
         guestQuantity: guestItem.quantity,
@@ -373,8 +383,13 @@ export class DexieCartRepository implements CartRepository {
       await this.db.cart_items.put(item);
       results.push({
         variantId: guestItem.variantId,
+        productName: product?.name ?? null,
+        optionValue: variant.optionValue,
+        guestQuantity: guestItem.quantity,
+        previousUserQuantity,
         addedQuantity: merge.addedQuantity,
         overflowQuantity: merge.overflowQuantity,
+        finalQuantity: merge.mergedQuantity,
         excludedReason: null,
       });
     }
@@ -393,6 +408,14 @@ export class DexieCartRepository implements CartRepository {
       userCartId: userCart.id,
       items: results,
       addedItemCount: results.filter((item) => item.addedQuantity > 0).length,
+      adjustedItemCount: results.filter(
+        (item) => item.overflowQuantity > 0 || item.excludedReason !== null,
+      ).length,
+      fullyExcludedItemCount: results.filter(
+        (item) => item.addedQuantity === 0 && item.excludedReason !== null,
+      ).length,
+      addedQuantity: results.reduce((total, item) => total + item.addedQuantity, 0),
+      overflowQuantity: results.reduce((total, item) => total + item.overflowQuantity, 0),
       excludedItemCount: results.filter(
         (item) => item.excludedReason !== null || item.overflowQuantity > 0,
       ).length,

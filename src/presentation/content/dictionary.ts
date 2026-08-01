@@ -21,6 +21,17 @@ export const content = {
     training: "このサイトはテスト自動化学習用です。実際の注文・決済・配送は行われません。",
     personalData: "実在する氏名・住所・電話番号・カード情報を入力しないでください。",
   },
+  guide: {
+    fixedPassword: "testpass1",
+    accounts: [
+      { email: "regular@example.com", label: "一般会員" },
+      { email: "gold@example.com", label: "ゴールド会員" },
+      { email: "platinum@example.com", label: "プラチナ会員" },
+      { email: "operator@example.com", label: "運用担当者" },
+      { email: "admin@example.com", label: "管理者" },
+      { email: "suspended@example.com", label: "利用停止ユーザー" },
+    ],
+  },
   navigation: {
     home: "ホーム",
     products: "商品",

@@ -19,7 +19,7 @@ import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
-import type { MembershipRank, ProductVariant } from "@/domain/contracts";
+import type { MembershipRank } from "@/domain/contracts";
 import { effectiveUnitPrice, viewerUnitPrice } from "@/domain/services/pricing";
 import { StaticManifestRepository } from "@/infrastructure/image-assets/static-manifest-repository";
 import {
@@ -256,32 +256,62 @@ export class AdminProductUseCases {
   async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {
     await this.requireStaff();
     const aggregate = request.aggregate;
-    const createShape: CreateProductRequest =
-      "variants" in aggregate
-        ? aggregate
-        : {
-            product: aggregate.product,
-            variants: [
-              ...aggregate.createVariants,
-              ...aggregate.updateVariants.map((variant) => ({
-                clientKey: variant.variantId,
-                sku: variant.sku,
-                optionValue: variant.optionValue,
-                regularPrice: variant.regularPrice,
-                salePrice: variant.salePrice,
-                saleStartAt: variant.saleStartAt,
-                saleEndAt: variant.saleEndAt,
-                purchaseLimit: variant.purchaseLimit,
-                initialStockQuantity: 0,
-              })),
-            ],
-            images: aggregate.images,
-          };
+    const isCreate = "variants" in aggregate;
+    const current = isCreate ? null : await this.products.getAggregateForAdmin(aggregate.productId);
+    if (!isCreate && current === null) throw this.notFound();
+    const createShape: CreateProductRequest = isCreate
+      ? aggregate
+      : {
+          product: aggregate.product,
+          variants: [
+            ...aggregate.createVariants,
+            ...aggregate.updateVariants.map((variant) => ({
+              clientKey: variant.variantId,
+              sku: variant.sku,
+              optionValue: variant.optionValue,
+              regularPrice: variant.regularPrice,
+              salePrice: variant.salePrice,
+              saleStartAt: variant.saleStartAt,
+              saleEndAt: variant.saleEndAt,
+              purchaseLimit: variant.purchaseLimit,
+              initialStockQuantity: 0,
+            })),
+          ],
+          images: aggregate.images,
+        };
     this.validateMinimum(createShape);
     const now = await this.now();
     const assets = await this.assets.listByIds(createShape.images.map((image) => image.assetId));
     const assetMap = new Map(assets.map((asset) => [asset.assetId, asset]));
-    const prices = createShape.variants.map((variant) =>
+    const currentVariants = new Map(
+      (current?.variants ?? []).map((variant) => [variant.id, variant]),
+    );
+    const previewVariants = isCreate
+      ? aggregate.variants.map((variant) => ({
+          ...variant,
+          variantId: variant.clientKey,
+          stockQuantity: variant.initialStockQuantity,
+          stockSource: "INITIAL" as const,
+          isActive: true,
+        }))
+      : [
+          ...aggregate.createVariants.map((variant) => ({
+            ...variant,
+            variantId: variant.clientKey,
+            stockQuantity: variant.initialStockQuantity,
+            stockSource: "INITIAL" as const,
+            isActive: true,
+          })),
+          ...aggregate.updateVariants
+            .filter((variant) => !aggregate.removeVariantIds.includes(variant.variantId))
+            .map((variant) => ({
+              ...variant,
+              variantId: variant.variantId,
+              stockQuantity: currentVariants.get(variant.variantId)?.stockQuantity ?? 0,
+              stockSource: "CURRENT" as const,
+            })),
+        ];
+    const prices = previewVariants.map((variant) =>
       effectiveUnitPrice(
         {
           regularPrice: variant.regularPrice,
@@ -296,8 +326,14 @@ export class AdminProductUseCases {
     const primary = createShape.images.find((image) => image.isPrimary) ?? null;
     const primaryAsset = primary === null ? null : assetMap.get(primary.assetId);
     const brand = await this.dependencies.database.brands.get(createShape.product.brandId);
+    const category = await this.dependencies.database.categories.get(
+      createShape.product.categoryId,
+    );
+    const reviewSummary = current
+      ? await this.dependencies.database.product_review_summaries.get(current.product.id)
+      : null;
     return {
-      productId: "preview",
+      productId: current?.product.id ?? "preview",
       productCode: createShape.product.productCode,
       name: createShape.product.name,
       brandName: brand?.name ?? "",
@@ -311,8 +347,10 @@ export class AdminProductUseCases {
             },
       minimumViewerUnitPrice: Math.min(...prices.map((price) => viewerUnitPrice(price, rank))),
       maximumViewerUnitPrice: Math.max(...prices.map((price) => viewerUnitPrice(price, rank))),
-      hasPurchasableStock: createShape.variants.some((variant) => variant.initialStockQuantity > 0),
-      hasActiveSale: createShape.variants.some(
+      hasPurchasableStock: previewVariants.some(
+        (variant) => variant.isActive && variant.stockQuantity > 0,
+      ),
+      hasActiveSale: previewVariants.some(
         (variant) =>
           variant.salePrice !== null &&
           effectiveUnitPrice(
@@ -325,14 +363,15 @@ export class AdminProductUseCases {
             now,
           ) === variant.salePrice,
       ),
-      ratingAverage: 0,
-      publishedReviewCount: 0,
+      ratingAverage: reviewSummary?.ratingAverage ?? 0,
+      publishedReviewCount: reviewSummary?.publishedCount ?? 0,
       shortDescription: createShape.product.shortDescription,
       description: createShape.product.description,
-      categoryBreadcrumb: [],
+      categoryBreadcrumb: category === undefined ? [] : [{ id: category.id, name: category.name }],
       requiredRank: createShape.product.requiredRank,
       variationName: createShape.product.variationName,
-      variants: createShape.variants.map((variant) => {
+      statusAfterSave: current?.product.status ?? "draft",
+      variants: previewVariants.map((variant) => {
         const effective = effectiveUnitPrice(
           {
             regularPrice: variant.regularPrice,
@@ -343,14 +382,16 @@ export class AdminProductUseCases {
           now,
         );
         return {
-          variantId: variant.clientKey,
+          variantId: variant.variantId,
           sku: variant.sku,
           optionValue: variant.optionValue,
           regularPrice: variant.regularPrice,
           activeSalePrice: effective === variant.salePrice ? variant.salePrice : null,
           viewerUnitPrice: viewerUnitPrice(effective, rank),
-          stockQuantity: variant.initialStockQuantity,
+          stockQuantity: variant.stockQuantity,
           purchaseLimit: variant.purchaseLimit,
+          stockSource: variant.stockSource,
+          isActive: variant.isActive,
         };
       }),
       images: createShape.images.map((image, index) => ({

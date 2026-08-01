@@ -1,6 +1,7 @@
 import type {
   CheckoutConfirmationDto,
   CheckoutStartResult,
+  CustomerOrderDetailDto,
   CreateOrderForPaymentRequest,
   MyOrderSearchQuery,
   OrderDetailDto,
@@ -348,6 +349,30 @@ export class CheckoutOrderUseCases {
     const detail = await this.orders.getDetail(orderId);
     if (detail === null) throw this.notFound("order");
     return detail;
+  }
+
+  async getMyCustomerOrder(orderId: string): Promise<CustomerOrderDetailDto> {
+    const detail = await this.getMyOrder(orderId);
+    const items = await Promise.all(
+      detail.items.map(async (item) => {
+        const review = await this.dependencies.database.reviews
+          .where("orderItemId")
+          .equals(item.orderItemId)
+          .first();
+        const reviewState: CustomerOrderDetailDto["items"][number]["reviewState"] =
+          review === undefined
+            ? detail.orderStatus === "delivered"
+              ? "NOT_POSTED"
+              : "NOT_ELIGIBLE"
+            : review.status === "deleted"
+              ? "DELETED"
+              : review.status === "hidden"
+                ? "HIDDEN"
+                : "PUBLISHED";
+        return { ...item, reviewState };
+      }),
+    );
+    return { ...detail, items };
   }
 
   private async finalizePayment(

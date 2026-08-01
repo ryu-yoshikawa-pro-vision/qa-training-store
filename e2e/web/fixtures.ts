@@ -1,22 +1,12 @@
 import { expect, test as base, type Page, type TestInfo } from "@playwright/test";
 import type { TestMetadata } from "@/application/contracts";
-import type { PhaseOneScenario } from "@/seeds/metadata";
+import { SCENARIO_METADATA, type PhaseOneScenario } from "@/seeds/metadata";
 
 type ScenarioController = (scenario: PhaseOneScenario) => Promise<TestMetadata>;
 
 interface Fixtures {
   scenario: ScenarioController;
 }
-
-const sessionScenarios = new Set<PhaseOneScenario>([
-  "regular-member",
-  "gold-member",
-  "platinum-member",
-  "suspended-user",
-  "checkout-resume",
-  "checkout-replaced",
-  "cart-version-invalidates-checkout",
-]);
 
 export const test = base.extend<Fixtures>({
   scenario: async ({ page, context }, use, testInfo) => {
@@ -27,6 +17,9 @@ export const test = base.extend<Fixtures>({
       if (message.type() === "error") {
         consoleMessages.push(message.text());
       }
+    });
+    page.on("pageerror", (error) => {
+      consoleMessages.push("pageerror: " + error.message);
     });
     const reset: ScenarioController = async (scenario) => {
       selectedScenario = scenario;
@@ -50,7 +43,7 @@ export const test = base.extend<Fixtures>({
         sessionId: localStorage.getItem("scenario-shop.session-id"),
       }));
       expect(identity.guestId).toBe("guest-default-001");
-      if (sessionScenarios.has(scenario)) {
+      if (SCENARIO_METADATA[scenario].e2eHasSession) {
         expect(identity.sessionId).not.toBeNull();
       } else {
         expect(identity.sessionId).toBeNull();
@@ -80,12 +73,16 @@ export const test = base.extend<Fixtures>({
 
 export { expect };
 
-export async function login(page: Page, email: string) {
+export async function login(page: Page, email: string, expectedPath: "/" | "/admin" = "/") {
   await page.goto("/login");
   await page.getByLabel("メールアドレス").fill(email);
   await page.getByLabel("パスワード").fill("testpass1");
   await page.getByRole("button", { name: "ログイン" }).click();
-  await expect(page).toHaveURL(/\/$/);
+  if (expectedPath === "/") {
+    await expect(page).toHaveURL(/\/$/);
+  } else {
+    await expect(page).toHaveURL(/\/admin$/);
+  }
 }
 
 export async function expectSessionIdCleared(page: Page) {

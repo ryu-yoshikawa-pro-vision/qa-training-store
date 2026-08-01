@@ -16,6 +16,7 @@ interface ConfirmDialogProps {
   confirmLabel: string;
   onConfirm: () => void;
   danger?: boolean;
+  disabled?: boolean;
 }
 
 export function ConfirmDialog({
@@ -25,10 +26,14 @@ export function ConfirmDialog({
   confirmLabel,
   onConfirm,
   danger = false,
+  disabled = false,
 }: ConfirmDialogProps) {
   return (
     <DialogTrigger>
-      <AriaButton className={`button button--${danger ? "danger" : "secondary"}`}>
+      <AriaButton
+        className={`button button--${danger ? "danger" : "secondary"}`}
+        isDisabled={disabled}
+      >
         {triggerLabel}
       </AriaButton>
       <ModalOverlay className="dialog-overlay" isDismissable>

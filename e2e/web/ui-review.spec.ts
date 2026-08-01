@@ -220,11 +220,11 @@ async function loginRegular(page: Page) {
 }
 
 async function loginOperator(page: Page) {
-  await login(page, operatorEmail);
+  await login(page, operatorEmail, "/admin");
 }
 
 async function loginAdmin(page: Page) {
-  await login(page, adminEmail);
+  await login(page, adminEmail, "/admin");
 }
 
 async function addProductToCart(page: Page) {

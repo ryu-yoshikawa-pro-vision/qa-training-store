@@ -160,6 +160,17 @@ export interface OrderItemDto {
   image: ImageSnapshotDto;
 }
 
+export type CustomerReviewState =
+  | "NOT_POSTED"
+  | "PUBLISHED"
+  | "HIDDEN"
+  | "DELETED"
+  | "NOT_ELIGIBLE";
+
+export interface CustomerOrderItemDto extends OrderItemDto {
+  reviewState: CustomerReviewState;
+}
+
 export interface PaymentAttemptDto {
   attemptNumber: number;
   methodCode: PaymentMethodCode;
@@ -195,6 +206,10 @@ export interface OrderDetailDto extends OrderResultDto {
   paymentAttempts: PaymentAttemptDto[];
   shipment: ShipmentDto | null;
   timeline: OrderTimelineItemDto[];
+}
+
+export interface CustomerOrderDetailDto extends Omit<OrderDetailDto, "items"> {
+  items: CustomerOrderItemDto[];
 }
 
 export interface AdminOrderDetailDto extends OrderDetailDto {

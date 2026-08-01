@@ -20,10 +20,10 @@ async function expectNoHorizontalOverflow(page: import("@playwright/test").Page)
 test.describe("Mobile staff Logout boundary", () => {
   test("operatorのStorefront Mobile Logout後は管理Routeへ入れない", async ({ page, scenario }) => {
     await scenario("default");
-    await login(page, "operator@example.com");
+    await login(page, "operator@example.com", "/admin");
     await page.goto("/");
 
-    await expect(page.getByRole("link", { name: "管理画面" })).toBeVisible();
+    await expect(page.getByRole("link", { name: "管理画面", exact: true })).toBeVisible();
     const logoutButton = page.getByRole("button", { name: "ログアウト" });
     await expect(logoutButton).toBeVisible();
     await logoutButton.click();
@@ -36,7 +36,7 @@ test.describe("Mobile staff Logout boundary", () => {
 
   test("adminのViewport Warning Logout後は管理Routeへ入れない", async ({ page, scenario }) => {
     await scenario("default");
-    await login(page, "admin@example.com");
+    await login(page, "admin@example.com", "/admin");
     await page.goto("/admin");
 
     await expect(

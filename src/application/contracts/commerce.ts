@@ -55,8 +55,13 @@ export interface MergeGuestCartCommand {
 
 export interface CartMergeItemResult {
   variantId: string;
+  productName: string | null;
+  optionValue: string | null;
+  guestQuantity: number;
+  previousUserQuantity: number;
   addedQuantity: number;
   overflowQuantity: number;
+  finalQuantity: number;
   excludedReason:
     | "NOT_FOUND"
     | "UNPUBLISHED"
@@ -70,6 +75,11 @@ export interface CartMergeResult {
   userCartId: string;
   items: CartMergeItemResult[];
   addedItemCount: number;
+  adjustedItemCount: number;
+  fullyExcludedItemCount: number;
+  addedQuantity: number;
+  overflowQuantity: number;
+  /** @deprecated Use adjustedItemCount and fullyExcludedItemCount for presentation. */
   excludedItemCount: number;
 }
 

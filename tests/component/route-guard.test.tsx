@@ -6,6 +6,7 @@ let currentUser: CurrentUserDto | null;
 
 vi.mock("expo-router", () => ({
   Redirect: ({ href }: { href: string }) => <p>redirect:{href}</p>,
+  usePathname: () => "/orders",
 }));
 
 vi.mock("@/presentation/providers/app-runtime-provider", () => ({

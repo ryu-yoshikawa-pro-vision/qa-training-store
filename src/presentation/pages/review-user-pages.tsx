@@ -18,7 +18,12 @@ import {
 import { useAppRuntime } from "@/presentation/providers/app-runtime-provider";
 import { testControlService } from "@/bootstrap/browser-runtime.web";
 import { reloadBrowserPage } from "@/presentation/browser/reload-page.web";
-import { PHASE_ONE_SCENARIOS, type PhaseOneScenario } from "@/seeds/metadata";
+import { PHASE_ONE_SCENARIOS, SCENARIO_METADATA, type PhaseOneScenario } from "@/seeds/metadata";
+import {
+  clearCheckoutNoticeHistory,
+  clearOneTimeNoticeStorage,
+  writeOneTimeNotice,
+} from "@/presentation/browser/one-time-notice.web";
 
 function Guard({
   access,
@@ -87,6 +92,37 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
       />
     );
   if (state.value === null) return <StatePanel kind="not-found" />;
+  const reviewStateLabels = {
+    NOT_POSTED: "未投稿",
+    PUBLISHED: "公開中",
+    HIDDEN: "非公開",
+    DELETED: "削除済み",
+    NOT_ELIGIBLE: "投稿対象外",
+  } as const;
+  const context = (
+    <section className="review-order-context" aria-label="購入時の商品情報">
+      <h2>購入商品</h2>
+      <dl className="definition-grid">
+        <dt>注文番号</dt>
+        <dd>{state.value.orderNumber ?? "—"}</dd>
+        <dt>購入日時</dt>
+        <dd>
+          {state.value.orderCreatedAt === null
+            ? "—"
+            : new Date(state.value.orderCreatedAt).toLocaleString("ja-JP")}
+        </dd>
+        <dt>商品名</dt>
+        <dd>{state.value.productName ?? "—"}</dd>
+        <dt>バリエーション</dt>
+        <dd>
+          {[state.value.variationName, state.value.optionValue].filter(Boolean).join(" / ") ||
+            "単一SKU"}
+        </dd>
+        <dt>レビュー状態</dt>
+        <dd>{reviewStateLabels[state.value.reviewState]}</dd>
+      </dl>
+    </section>
+  );
   if (!state.value.eligible) {
     const reason = {
       ORDER_NOT_DELIVERED: "配達完了後に投稿できます。",
@@ -94,7 +130,13 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
       ALREADY_REVIEWED: "レビューは商品ごとに1件です。",
       REVIEW_DELETED: "削除済みレビューは再投稿できません。",
     }[state.value.reason ?? "NOT_OWNER"];
-    return <StatePanel kind="forbidden" title="レビューを投稿できません" body={reason} />;
+    return (
+      <div className="storefront-main narrow-form">
+        <Breadcrumbs items={[{ label: "注文履歴", href: "/orders" }, { label: "レビュー" }]} />
+        {context}
+        <StatePanel kind="forbidden" title="レビューを投稿できません" body={reason} />
+      </div>
+    );
   }
   const existing = state.value.existingReview;
   const save = async () => {
@@ -122,6 +164,7 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
         title={existing === null ? "レビューを投稿" : "レビューを編集"}
         description="配達済みの購入商品について、1商品につき1件投稿できます。"
       />
+      {context}
       {message && (
         <p role="status" className="operation-message">
           {message}
@@ -588,6 +631,7 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null) return <StatePanel kind="not-found" />;
   const user: UserAdminDto = state.value;
+  const isSelf = currentUser?.id === userId;
   const mutate = async (operation: () => Promise<UserAdminDto>, success: string) => {
     try {
       const updated = await operation();
@@ -634,7 +678,12 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           <h2>会員ランク</h2>
           <label>
             ランク
-            <select value={rank} onChange={(event) => setRank(event.target.value as typeof rank)}>
+            <select
+              value={rank}
+              disabled={isSelf}
+              aria-describedby={isSelf ? "user-edit-constraint" : undefined}
+              onChange={(event) => setRank(event.target.value as typeof rank)}
+            >
               <option value="regular">{labels.rank("regular")}</option>
               <option value="gold">{labels.rank("gold")}</option>
               <option value="platinum">{labels.rank("platinum")}</option>
@@ -642,6 +691,7 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           </label>
           <button
             className="button button--primary"
+            disabled={isSelf || rank === user.membershipRank}
             onClick={() =>
               void mutate(
                 () =>
@@ -652,7 +702,11 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           >
             ランクを変更
           </button>
-          <p>進行中の購入手続きは破棄されます。カートの内容は保持されます。</p>
+          <p id={isSelf ? "user-edit-constraint" : undefined}>
+            {isSelf
+              ? "自分自身の設定は変更できません。"
+              : "進行中の購入手続きは破棄されます。カートの内容は保持されます。"}
+          </p>
         </section>
       )}
       {(user.role === "operator" || user.role === "admin") && !readOnly && (
@@ -660,20 +714,33 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           <h2>管理役割</h2>
           <label>
             役割
-            <select value={role} onChange={(event) => setRole(event.target.value as typeof role)}>
+            <select
+              value={role}
+              disabled={isSelf}
+              aria-describedby={isSelf ? "user-edit-constraint" : undefined}
+              onChange={(event) => setRole(event.target.value as typeof role)}
+            >
               <option value="operator">{labels.role("operator")}</option>
               <option value="admin">{labels.role("admin")}</option>
             </select>
           </label>
           {currentUser?.id === userId ? (
-            <button className="button button--secondary" disabled>
-              役割を変更
-            </button>
+            <>
+              <button
+                className="button button--secondary"
+                disabled
+                aria-describedby="user-edit-constraint"
+              >
+                役割を変更
+              </button>
+              <p id="user-edit-constraint">自分自身の役割は変更できません。</p>
+            </>
           ) : (
             <ConfirmDialog
               triggerLabel="役割を変更"
               title="管理役割を変更しますか"
               confirmLabel="変更する"
+              disabled={isSelf || role === user.role}
               onConfirm={() => {
                 void mutate(
                   () => adminUsers.changeRole({ userId, role, expectedVersion: user.version }),
@@ -681,7 +748,11 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
                 );
               }}
             >
-              役割を変更すると、対象ユーザーのすべてのセッションが無効になります。
+              {isSelf
+                ? "自分自身の役割は変更できません。"
+                : role === user.role
+                  ? "現在と同じ役割が選択されています。"
+                  : "役割を変更すると、対象ユーザーのすべてのセッションが無効になります。"}
             </ConfirmDialog>
           )}
         </section>
@@ -690,9 +761,16 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
         <section className="admin-detail-card">
           <h2>利用状態</h2>
           {currentUser?.id === userId ? (
-            <button className="button button--secondary" disabled>
-              {user.accountStatus === "active" ? "利用停止" : "利用再開"}
-            </button>
+            <>
+              <button
+                className="button button--secondary"
+                disabled
+                aria-describedby="user-status-constraint"
+              >
+                {user.accountStatus === "active" ? "利用停止" : "利用再開"}
+              </button>
+              <p id="user-status-constraint">自分自身の利用状態は変更できません。</p>
+            </>
           ) : (
             <ConfirmDialog
               triggerLabel={user.accountStatus === "active" ? "利用停止" : "利用再開"}
@@ -740,6 +818,7 @@ function AdminTestControlContent() {
   const [clock, setClock] = useState("");
   const [delay, setDelay] = useState(500);
   const [message, setMessage] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
   const apply = async (operation: () => Promise<unknown>, success: string) => {
     try {
       await operation();
@@ -749,12 +828,46 @@ function AdminTestControlContent() {
       setMessage("操作できませんでした。値とテストAPIの制約を確認してください。");
     }
   };
+  const resetScenario = async () => {
+    setResetting(true);
+    setMessage(null);
+    try {
+      await testControlService.reset({ scenario });
+      clearOneTimeNoticeStorage();
+      clearCheckoutNoticeHistory();
+      const definition = SCENARIO_METADATA[scenario];
+      const session = definition.initialSession;
+      const initialSessionLabel =
+        session.kind === "guest"
+          ? "Guest Session で開始します。"
+          : "初期アカウント：" + session.email;
+      writeOneTimeNotice({
+        type: "scenario-reset",
+        scenarioId: scenario,
+        scenarioName: definition.displayName,
+        initialSessionLabel,
+        recommendedAccounts: definition.recommendedAccounts,
+        routes: definition.routes,
+      });
+      setMessage("シナリオを初期化しました。");
+      reloadBrowserPage(definition.safeResetPath);
+    } catch {
+      setMessage("シナリオを初期化できませんでした。画面遷移は行っていません。");
+    } finally {
+      setResetting(false);
+    }
+  };
   return (
     <div className="admin-page">
       <Breadcrumbs items={[{ label: "管理概要", href: "/admin" }, { label: "テスト制御" }]} />
       <PageHeader
         title="テスト制御"
         description="自動化ビルド専用。テストAPIと同じ制約でシナリオと基準時刻を制御します。"
+        action={
+          <Link href="/guide" className="button button--secondary">
+            学習Guide
+          </Link>
+        }
       />
       {message && (
         <p role="status" className="operation-message">
@@ -792,21 +905,41 @@ function AdminTestControlContent() {
                 onChange={(event) => setScenario(event.target.value as PhaseOneScenario)}
               >
                 {PHASE_ONE_SCENARIOS.map((item) => (
-                  <option key={item}>{item}</option>
+                  <option key={item} value={item}>
+                    {SCENARIO_METADATA[item].displayName}
+                  </option>
                 ))}
               </select>
             </label>
-            <button
-              onClick={() =>
-                void apply(async () => {
-                  await testControlService.reset({ scenario });
-                  reloadBrowserPage();
-                }, "シナリオを初期化しました。")
-              }
-              className="button button--primary"
+            <div className="scenario-summary" aria-live="polite">
+              <h3>{SCENARIO_METADATA[scenario].displayName}</h3>
+              <p>{SCENARIO_METADATA[scenario].purpose}</p>
+              <p>{SCENARIO_METADATA[scenario].guide}</p>
+              <dl className="definition-grid">
+                <dt>初期Session</dt>
+                <dd>
+                  {SCENARIO_METADATA[scenario].initialSession.kind === "guest"
+                    ? "Guest"
+                    : SCENARIO_METADATA[scenario].initialSession.email}
+                </dd>
+                <dt>推奨アカウント</dt>
+                <dd>{SCENARIO_METADATA[scenario].recommendedAccounts.join("、")}</dd>
+                <dt>安全な移動先</dt>
+                <dd>{SCENARIO_METADATA[scenario].safeResetPath}</dd>
+                <dt>確認ルート</dt>
+                <dd>{SCENARIO_METADATA[scenario].routes.join("、")}</dd>
+              </dl>
+            </div>
+            <ConfirmDialog
+              triggerLabel={resetting ? "初期化中…" : "シナリオを初期化"}
+              title="シナリオを初期化しますか"
+              confirmLabel="初期化して移動"
+              danger
+              onConfirm={() => void resetScenario()}
             >
-              シナリオを初期化
-            </button>
+              学習データ、Cart、Checkout、注文、商品、在庫、Review、入力途中の内容を初期状態へ戻します。
+              Sessionも置き換わり、この操作は元に戻せません。
+            </ConfirmDialog>
           </section>
           <section className="admin-detail-card form-stack">
             <h2>基準時刻</h2>

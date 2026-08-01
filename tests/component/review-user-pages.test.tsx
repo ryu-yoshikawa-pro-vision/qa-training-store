@@ -310,6 +310,7 @@ describe("review, user, and test-control pages", () => {
     await screen.findByText("0.1.0");
 
     fireEvent.click(screen.getByRole("button", { name: "シナリオを初期化" }));
+    fireEvent.click(await screen.findByRole("button", { name: "初期化して移動" }));
 
     await waitFor(() =>
       expect(testControlService.reset).toHaveBeenCalledWith({ scenario: "default" }),

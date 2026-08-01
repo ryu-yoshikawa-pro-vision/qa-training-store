@@ -1,5 +1,9 @@
-export function reloadBrowserPage(): void {
+export function reloadBrowserPage(path?: "/" | "/admin"): void {
   if (typeof window !== "undefined") {
-    window.location.reload();
+    if (path === undefined) {
+      window.location.reload();
+    } else {
+      window.location.assign(path);
+    }
   }
 }

@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { StatePanel } from "@/presentation/components/states";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
+import { mergeAddressSuggestion } from "@/presentation/browser/address-suggestion";
 
 interface AddressForm {
   label: string;
@@ -101,7 +102,7 @@ function AddressesContent() {
             <StatePanel
               kind="empty"
               title="配送先が登録されていません"
-              body="右のフォームから最初の配送先を登録してください。"
+              body="登録フォームから最初の配送先を登録してください。"
               action={null}
             />
           ) : (
@@ -252,11 +253,21 @@ function AddressesContent() {
                     try {
                       const suggestion = await account.suggestAddress(getValues("postalCode"));
                       if (suggestion !== null) {
-                        setValue("prefecture", suggestion.prefecture);
-                        setValue("city", suggestion.city);
-                        setValue("addressLine1", suggestion.addressLine1);
+                        const merged = mergeAddressSuggestion(
+                          {
+                            prefecture: getValues("prefecture"),
+                            city: getValues("city"),
+                            addressLine1: getValues("addressLine1"),
+                          },
+                          suggestion,
+                        );
+                        setValue("prefecture", merged.prefecture);
+                        setValue("city", merged.city);
+                        setValue("addressLine1", merged.addressLine1);
                         setMessage({
-                          text: "住所候補を入力しました。内容を確認して保存してください。",
+                          text: merged.addressLine1Retained
+                            ? "住所候補を入力しました。入力済みの番地は保持しています。内容を確認して保存してください。"
+                            : "住所候補を入力しました。内容を確認して保存してください。",
                           tone: "success",
                         });
                       } else {

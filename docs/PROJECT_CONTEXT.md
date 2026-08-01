@@ -38,6 +38,16 @@
 - 共通の視覚実装は `src/presentation/design/tokens.ts`、`src/presentation/styles/global.css`、Storefront／Admin shell、共有Componentへ集約し、Domain、Use Case、Seed、Route、権限制御から分離する。
 - 同一条件のVisual Reviewは `e2e/web/ui-review.spec.ts` と `ui-review-*` Playwright projectで取得し、`output/ui-review/<stage>/<viewport>/` に保存する。
 
+## UI/UX改善実装後の状態（2026-08-01）
+
+- WebのOne-time Noticeは `src/presentation/shells/app-frame.tsx` が単一のStateと消費Pathを所有し、Storefront/Admin Shellは表示だけを担当する。Cart統合、Checkout再開・置換、Scenario ResetのNoticeは `sessionStorage` の検証済みUnionを介して伝播し、Reloadでは再表示しない。
+- Loginの内部Return先は `src/presentation/browser/return-to.web.ts` のCustomer向けAllowlistに限定する。Checkoutの各実ContentとPayment Processing/Complete/Failedは `use-route-heading-focus` で `h1` にFocusする。
+- Scenarioの正本は `src/seeds/metadata.ts` の `SCENARIO_METADATA` / `PHASE_ONE_SCENARIOS` であり、Seedの初期Session、安全な戻り先、Guide表示、E2E収集可否を同じ定義から導出する。Test Control UIのResetだけがNotice保存と安全Pathへの遷移を行い、Test API ResetはDB/Session/ClockのResetとMetadata返却に限定する。
+- Customer注文画面のReview表示はAdmin向けOrder Item DTOから分離したCustomer DTOを使い、購入時Snapshotに基づく `未投稿`、`公開中`、`非公開`、`削除済み（再投稿不可）` を表示する。Admin User Detailは自分自身のRole/状態変更と退会済みUserのMutationをUI上でも説明付きで拒否する。
+- Admin Product Previewは保存前のForm値と既存DBの現在庫を分けて表示し、新規SKUだけ初期在庫を表示する。Product EditorはDirty状態をBreadcrumb/Sidebar/同一Origin遷移で共通確認し、PreviewはDBへ書き込まない。Shipment mutation後は最新Order/Shipmentを再取得して同時更新を表示する。
+- `/guide` は固定Account、Role、Rank Benefit、Scenario Metadata、注意事項の学習入口であり、HomeはSession Role別CTAと公開商品0件の単一Empty Stateを持つ。Customer Account Navigationは390px/320pxで3列Gridを維持し、管理操作は従来どおり1024px以上の境界を維持する。
+- UI/UXの回帰入口は `e2e/web/ui-ux-improvements.spec.ts` のFlow A〜J（Chromium 10 tests）で、Phase 1と合わせて `test:e2e:chromium` に収集する。Cross-role、Accessibility、Mobile boundary、4 viewport UI Reviewも既存CIスクリプトへ接続している。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

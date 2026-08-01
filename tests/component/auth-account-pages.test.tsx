@@ -81,11 +81,10 @@ describe("auth and account pages", () => {
     account.listAddresses.mockResolvedValue([]);
   });
 
-  it("submits Login and exposes fixed fixture account guidance", async () => {
+  it("submits Login and links fixed fixture account guidance to Guide", async () => {
     render(<LoginPage />);
     expect(screen.getByRole("heading", { name: "ログイン" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "固定テストアカウント" })).toBeVisible();
-    expect(screen.getByText("パスワードはすべて「testpass1」です。")).toBeVisible();
+    expect(screen.getByRole("link", { name: "学習Guide" })).toHaveAttribute("href", "/guide");
     fireEvent.change(screen.getByLabelText("メールアドレス"), {
       target: { value: "regular@example.com" },
     });

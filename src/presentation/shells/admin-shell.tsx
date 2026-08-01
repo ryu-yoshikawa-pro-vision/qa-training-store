@@ -8,6 +8,7 @@ import { isTestApiBuild } from "@/test-controls/test-api.web";
 
 interface AdminShellProps {
   currentUser: CurrentUserDto | null;
+  notice?: ReactNode;
   children: ReactNode;
 }
 
@@ -21,7 +22,7 @@ const baseNavigation = [
   ["/admin/reviews", "レビュー", "reviews"],
 ] as const;
 
-export function AdminShell({ currentUser, children }: AdminShellProps) {
+export function AdminShell({ currentUser, notice = null, children }: AdminShellProps) {
   const pathname = usePathname();
   const navigation = [
     ...baseNavigation,
@@ -104,6 +105,7 @@ export function AdminShell({ currentUser, children }: AdminShellProps) {
         </div>
       </div>
       <main id="admin-main" className="admin-main" tabIndex={-1}>
+        {notice}
         {children}
       </main>
     </div>

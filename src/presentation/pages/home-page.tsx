@@ -1,5 +1,5 @@
 import { Link } from "expo-router";
-import { ProductCard } from "@/presentation/components/product-card";
+import { ProductCard, formatYen } from "@/presentation/components/product-card";
 import { ProductImage } from "@/presentation/components/product-image";
 import { Icon, type IconName } from "@/presentation/components/icon";
 import { StatePanel } from "@/presentation/components/states";
@@ -7,6 +7,8 @@ import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
 import { content } from "@/presentation/content/dictionary";
+import { useAppRuntime } from "@/presentation/providers/app-runtime-provider";
+import { FREE_SHIPPING_THRESHOLD, membershipDiscountRate } from "@/domain/services/pricing";
 
 export function HomePage() {
   return (
@@ -18,6 +20,7 @@ export function HomePage() {
 
 function HomeContent() {
   const { catalog } = useApplicationServices();
+  const { currentUser } = useAppRuntime();
   const { value, error, retry } = useAsyncValue(() => catalog.getHome(), [catalog]);
   if (error !== null) {
     return (
@@ -34,6 +37,19 @@ function HomeContent() {
   if (value === null) {
     return <StatePanel kind="loading" />;
   }
+  const visibleProductCount = value.categories.reduce(
+    (sum, category) => sum + category.visibleProductCount,
+    0,
+  );
+  const primaryAction: {
+    href: "/login" | "/account/profile" | "/admin";
+    label: string;
+  } =
+    currentUser === null
+      ? { href: "/login", label: "ログインして購入" }
+      : currentUser.role === "customer"
+        ? { href: "/account/profile", label: "マイページ" }
+        : { href: "/admin", label: "管理画面へ" };
   return (
     <div className="home-page">
       <section className="home-hero">
@@ -42,12 +58,11 @@ function HomeContent() {
           <h1>決定的なシナリオで、確かなテストを。</h1>
           <p>商品検索から注文、管理操作までを安全な模擬環境で練習できます。</p>
           <div className="home-hero__actions">
-            <Link href="/products" className="button button--primary">
-              商品を見る
-              <Icon name="arrow" size={18} />
+            <Link href={primaryAction.href} className="button button--primary">
+              {primaryAction.label}
             </Link>
-            <Link href="/login" className="button button--secondary">
-              会員としてはじめる
+            <Link href="/products" className="button button--secondary">
+              商品を見る
             </Link>
           </div>
         </div>
@@ -82,38 +97,62 @@ function HomeContent() {
           </div>
         ))}
       </section>
-      <section className="home-section">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">カテゴリ</p>
-            <h2>カテゴリから探す</h2>
-          </div>
-          <Link href="/products">すべての商品</Link>
-        </div>
-        <div className="category-grid">
-          {value.categories.slice(0, 6).map((category) => (
-            <Link
-              href={`/categories/${category.categoryId}`}
-              key={category.categoryId}
-              className="category-card"
-            >
-              <span>
-                {category.name}
-                <Icon name="arrow" size={18} />
-              </span>
-              <small>{category.visibleProductCount}件</small>
-            </Link>
-          ))}
-        </div>
-      </section>
-      <ProductSection
-        eyebrow="おすすめ"
-        title="おすすめ商品"
-        products={value.newProducts.slice(0, 4)}
-      />
-      <ProductSection eyebrow="新着商品" title="新着商品" products={value.newProducts.slice(4)} />
-      {value.saleProducts.length > 0 && (
-        <ProductSection eyebrow="期間限定" title="セール商品" products={value.saleProducts} sale />
+      {visibleProductCount === 0 ? (
+        <StatePanel
+          kind="empty"
+          title="表示できる商品がありません"
+          body="現在は公開されている商品がありません。テスト制御で別シナリオを適用するか、再試行してください。"
+          action={
+            <button className="button button--primary" onClick={retry}>
+              再試行
+            </button>
+          }
+        />
+      ) : (
+        <>
+          <section className="home-section">
+            <div className="section-heading">
+              <div>
+                <p className="eyebrow">カテゴリ</p>
+                <h2>カテゴリから探す</h2>
+              </div>
+              <Link href="/products">すべての商品</Link>
+            </div>
+            <div className="category-grid">
+              {value.categories.slice(0, 6).map((category) => (
+                <Link
+                  href={`/categories/${category.categoryId}`}
+                  key={category.categoryId}
+                  className="category-card"
+                >
+                  <span>
+                    {category.name}
+                    <Icon name="arrow" size={18} />
+                  </span>
+                  <small>{category.visibleProductCount}件</small>
+                </Link>
+              ))}
+            </div>
+          </section>
+          <ProductSection
+            eyebrow="おすすめ"
+            title="おすすめ商品"
+            products={value.newProducts.slice(0, 4)}
+          />
+          <ProductSection
+            eyebrow="新着商品"
+            title="新着商品"
+            products={value.newProducts.slice(4)}
+          />
+          {value.saleProducts.length > 0 && (
+            <ProductSection
+              eyebrow="期間限定"
+              title="セール商品"
+              products={value.saleProducts}
+              sale
+            />
+          )}
+        </>
       )}
       <section className="membership-panel">
         <div>
@@ -122,19 +161,22 @@ function HomeContent() {
         </div>
         <ul>
           <li>
-            <strong>一般会員</strong> ¥5,000以上で送料無料
+            <strong>一般会員</strong> {formatYen(FREE_SHIPPING_THRESHOLD)}以上で送料無料
           </li>
           <li>
-            <strong>ゴールド会員</strong> 商品価格から5%割引
+            <strong>ゴールド会員</strong> 商品価格から
+            {Math.round(membershipDiscountRate("gold") * 100)}%割引
           </li>
           <li>
-            <strong>プラチナ会員</strong> 10%割引・いつでも送料無料
+            <strong>プラチナ会員</strong> {Math.round(membershipDiscountRate("platinum") * 100)}
+            %割引・いつでも送料無料
           </li>
         </ul>
       </section>
       <section className="home-learning-panel">
         <h2>これは学習用の模擬ストアです</h2>
         <p>{content.notice.training}</p>
+        <Link href="/guide">固定アカウント・Role・シナリオを学習Guideで確認する</Link>
         <Link href="/legal/commerce">模擬取引について詳しく見る</Link>
       </section>
     </div>

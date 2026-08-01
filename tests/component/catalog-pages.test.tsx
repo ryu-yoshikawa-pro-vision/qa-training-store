@@ -46,6 +46,10 @@ vi.mock("@/presentation/guards/route-guard", () => ({
   RouteGuard: ({ children }: { children: ReactNode }) => children,
 }));
 
+vi.mock("@/presentation/providers/app-runtime-provider", () => ({
+  useAppRuntime: () => ({ currentUser: null }),
+}));
+
 function product(id: string, name = id): ProductListItem {
   return {
     productId: id,
@@ -167,7 +171,13 @@ describe("storefront catalog pages", () => {
 
   it("uses the Japanese limited-offer eyebrow for Sale products", async () => {
     catalog.getHome.mockResolvedValue({
-      categories: [],
+      categories: [
+        {
+          categoryId: "category-sale",
+          name: "セール",
+          visibleProductCount: 1,
+        },
+      ],
       brands: [],
       newProducts: [],
       saleProducts: [product("sale-product", "セール対象商品")],

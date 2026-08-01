@@ -9,7 +9,12 @@ import type {
 import type { CurrentSessionStore, GuestIdentityStore } from "@/application/ports";
 import { DATABASE_NAME, ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import type { ControllableClock } from "@/infrastructure/clock/clocks";
-import { DEFAULT_GUEST_ID, isPhaseOneScenario, type PhaseOneScenario } from "@/seeds/metadata";
+import {
+  DEFAULT_GUEST_ID,
+  isPhaseOneScenario,
+  SCENARIO_METADATA,
+  type PhaseOneScenario,
+} from "@/seeds/metadata";
 import { createScenarioDataset } from "@/seeds/scenarios";
 import { loadSeedDataset } from "@/seeds/load-seed";
 
@@ -125,6 +130,7 @@ export class TestControlService {
       seedVersion: Number(metadata.get("seedVersion") ?? 0),
       buildSha: this.buildSha,
       scenario: setting.scenario,
+      scenarioMetadata: SCENARIO_METADATA[setting.scenario],
       clock: setting.clock,
       paymentDelayMs: setting.paymentDelayMs,
     };
