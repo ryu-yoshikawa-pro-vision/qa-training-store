@@ -28,6 +28,7 @@ PR #3の探索結果をもとに、確認されたUI・UX上の問題を同一�
 - 原因が再現できない問題へ、推測修正、無限Polling、待機時間の増加を入れない
 - UI上で到達しない状態のためだけに、Capability DTOや重複Queryを追加しない
 - User操作制約は既存Domain／Application側のMutation防御を維持する
+- Test Control画面、Test API、Test Control Serviceの責務を混在させない
 
 ---
 
@@ -97,10 +98,18 @@ Query StringとHashは引き継がず、Pathだけを扱う。
 
 不正な場合はRole別の既定RouteへFallbackする。
 
+### 最終遷移先の解決
+
+- Return先の検証後、既存Checkout Guardと同じ条件で実際にアクセス可能なStepへ解決する
+- `/checkout/payment`または`/checkout/confirm`が未解放の場合は`/checkout/address`を最終遷移先とする
+- One-time Noticeの`targetPath`には、要求されたReturn先ではなく、この最終遷移先を保存する
+- Login処理、Notice保存、`router.replace()`で異なるPath判定を重複実装しない
+
 ### Test
 
 - 許可Pathが保持される
 - 外部URL、Protocol-relative URL、循環Path、未知Pathが拒否される
+- 未解放Checkout StepはAddressへ解決される
 - Open Redirectが発生しない
 
 ---
@@ -143,12 +152,26 @@ type OneTimeNotice = CartMergeNotice | ScenarioResetNotice;
 - Native Buildを壊さないようWeb固有実装を分離する
 - Global Notification FrameworkやEvent Busへ拡張しない
 
+### Cart Noticeの表示形式
+
+- `presentation: "summary"`
+  - Cart統合で数量調整または完全除外が発生した場合だけ使用する
+  - `targetPath`は必ず`/cart`とする
+  - Cart上部へ商品別の詳細Summaryを表示する
+- `presentation: "success"`
+  - 調整なしで統合できた場合だけ使用する
+  - Home、Cart、Checkoutのいずれでも表示できる
+  - 短いSuccess Noticeを表示する
+- `targetPath`は`router.replace()`へ渡す最終Pathと同じ値にする
+- Checkout Step不整合やReturn先Fallbackが発生した場合は、Fallback後のPathを保存する
+
 ### 表示と消費
 
 - Noticeの読出し、型検証、消費をStorefront Shell／Admin Shellへ重複実装しない
 - `AppFrame`がNotice Stateと、Noticeを取り込んだ`consumedPath`を所有する
 - `AppFrame`は`usePathname()`でPath変更を検知し、初回Mount時とPath変更時に未消費Noticeを読み出す
 - `targetPath`が現在Pathと一致するCart Noticeだけを取り込む
+- Scenario Reset Noticeはハード遷移後の最初の安全なPathで取り込む
 - 正常にReact Stateへ取り込んだ直後に`sessionStorage`から削除する
 - 同一Path内の再RenderではStateを維持する
 - `consumedPath`から別Pathへ移動した場合はStateを`null`にする
@@ -156,12 +179,6 @@ type OneTimeNotice = CartMergeNotice | ScenarioResetNotice;
 - Shell切替やGuard Redirectが発生しても、同一Page Load内でNoticeを失わない
 - 表示後にReloadしても同じNoticeを再表示しない
 - Successは`role="status"`、調整や注意を含むSummaryは内容に応じて`role="status"`または`role="alert"`を使用する
-
-### 表示形式
-
-- `presentation: "summary"`：Cart上部へ商品別の詳細Summaryを表示する
-- `presentation: "success"`：HomeまたはCheckoutへ短いSuccess Noticeを表示する
-- `scenario-reset`：Storefront／Adminのどちらでも同じ初期化結果を表示する
 
 ### Checkout再開通知の表示済み履歴
 
@@ -176,25 +193,39 @@ checkout:<sessionId>:replaced
 - Scenario Reset成功時は、`checkout:`で始まる表示済みKeyをすべて削除する
 - Reset失敗時は削除しない
 
-表示済みKeyの削除は共通Web Helperへ実装し、次の両方から呼び出す。
+### Reset関連の責務
 
-- Test Control画面からのReset成功時
-- `window.__TEST_API__.reset()`のWrapperからのReset成功時
+#### `TestControlService.reset()`
 
-実行順は次のとおりとする。
+- Database、Current Session、Guest Identity、固定ClockのResetだけを行う
+- `sessionStorage`を操作しない
+- One-time Noticeを保存しない
+- 画面遷移しない
 
-1. Reset成功
-2. Checkout通知履歴を削除
-3. `scenario-reset` Noticeを保存
-4. 安全なPathへハード遷移
+#### Test Control画面からのReset
+
+1. `TestControlService.reset()`を実行する
+2. 成功した場合だけ、既存のOne-time Notice保存Keyと`checkout:`履歴を削除する
+3. `scenario-reset` Noticeを保存する
+4. Scenario Metadataの初期Roleに応じた安全なPathへハード遷移する
+
+#### `window.__TEST_API__.reset()`
+
+1. `TestControlService.reset()`を実行する
+2. 成功した場合だけ、既存のOne-time Notice保存Keyと`checkout:`履歴を削除する
+3. Metadataを返す
+4. Scenario Reset Noticeは保存しない
+5. 自動遷移しない
+
+Test API Reset後はApplication Runtimeをそのまま使い続けず、E2E Fixture側でReloadしてRuntimeとDexie接続を再初期化する。
 
 ### Reset再実行Test
 
 同一Browser Contextで次を確認する。
 
-1. `checkout-resume`へReset
-2. 再開Messageを確認
-3. 同じScenarioへ再Reset
+1. E2Eの`scenario("checkout-resume")`FixtureでResetする
+2. 再開Messageを確認する
+3. 同じFixtureで同じScenarioへ再Resetする
 4. 再び再開Messageが表示される
 
 ---
@@ -215,17 +246,17 @@ Return先の付与はCart Buttonだけに限定せず、`RouteGuard`のCustomer 
 ### Login成功後
 
 - Login Use Caseの戻り値を使用し、成功した場合だけ遷移する
-- Customerは検証済みReturn先へ移動する
+- Customerは解決済みの最終遷移先へ移動する
 - Return先がないCustomerは`/`へ移動する
 - Operator／AdminはReturn先を無視し`/admin`へ移動する
 - Login失敗時は入力値とReturn先を保持する
-- Cart Merge Noticeは保存してから`router.replace()`する
-- Payment／Confirmが未解放の場合は既存GuardまたはLoad Errorで前Stepへ戻す
+- Cart Merge Noticeは最終遷移先の決定後、`router.replace()`の前に保存する
 
 ### 検証条件
 
 - GuestがCartからLoginした後、購入導線へ復帰する
 - Checkout URLへの直接アクセスでもReturn先が保持される
+- 未解放StepはAddressへ戻る
 - StaffがCustomer Checkoutへ誤遷移しない
 - Login失敗時にHomeへ遷移しない
 
@@ -290,7 +321,7 @@ const hasAdjustment = cartMerge.items.some(
 
 ### 遷移
 
-- 調整なし：検証済みReturn先へ移動し、`presentation: "success"`を表示する
+- 調整なし：解決済みの最終遷移先へ移動し、`presentation: "success"`を表示する
 - 調整あり：`/cart`へ移動し、`presentation: "summary"`を表示する
 - `cartMerge === null`、Itemなし、追加・超過・完全除外がすべて0の場合は通知しない
 
@@ -538,20 +569,26 @@ Product、Variant、Image、`removedVariantIds`、Preview、Form Messageを初�
 
 ### DTO
 
+既存`ProductDetail`由来のFieldを維持し、Preview固有情報だけを追加する。
+
 ```ts
-interface ProductPreviewVariantDto extends ProductVariantForViewer {
+export type ProductPreviewVariantDto = ProductVariantForViewer & {
   stockSource: "CURRENT" | "INITIAL";
   isActive: boolean;
-}
+};
 
-interface ProductPreviewDto {
+export type ProductPreviewDto = Omit<
+  ProductDetail,
+  "primaryImage" | "variants"
+> & {
+  primaryImage: ImageSnapshotDto | null;
   statusAfterSave: ProductStatus;
   variants: ProductPreviewVariantDto[];
   publishabilityIssues: ApplicationErrorShape[];
-}
+};
 ```
 
-通常の`ProductDetail`へPreview固有情報を混在させない。
+商品名、説明、画像、価格、Review Summaryなど、現在のPreview DTOが持つFieldを削除しない。通常の`ProductDetail`へPreview固有情報を混在させない。
 
 ### 値の取得元
 
@@ -583,6 +620,7 @@ Main Image、商品名、Short Description、保存後Status、Rank制限、SKU�
 
 ### Test
 
+- 既存DTOの表示Fieldが失われない
 - 既存SKUが誤って在庫0にならない
 - 有効→無効、無効→有効の未保存変更がPreviewへ反映される
 - 削除予定SKUが表示されない
@@ -653,6 +691,29 @@ export const PHASE_ONE_SCENARIOS = Object.keys(
 
 `ScenarioMetadataDefinition`から`PhaseOneScenario`を参照せず、循環定義を作らない。
 
+### 利用箇所
+
+次をすべて`SCENARIO_METADATA`から取得し、別のScenario一覧やSession Scenario一覧をHardcodeしない。
+
+- `PhaseOneScenario`型と`PHASE_ONE_SCENARIOS`
+- Test Controlの表示名、目的、推奨Account、確認Route
+- Reset後の安全な遷移先
+- GuideのScenario情報
+- E2E FixtureのReset後Session有無
+- Contract Testの期待値
+
+既存E2E Fixtureの`sessionScenarios`Setは削除し、次のように判定する。
+
+```ts
+const initialSession = SCENARIO_METADATA[scenario].initialSession;
+
+if (initialSession.kind === "guest") {
+  expect(identity.sessionId).toBeNull();
+} else {
+  expect(identity.sessionId).not.toBeNull();
+}
+```
+
 Contract Testで全ScenarioのAccount存在、Role、初期Session、Guest、Route、ID重複・漏れを検証する。
 
 ## 12.2 Scenario Reset
@@ -663,13 +724,15 @@ Contract Testで全ScenarioのAccount存在、Role、初期Session、Guest、Rou
 
 `Databaseを削除する`や`必ず再Loginが必要`とは表示しない。
 
-### 処理
+### Test Control画面の処理
 
 - Reset中は二重実行を防ぐ
 - 失敗時は遷移せずErrorを表示する
-- 成功時はCheckout通知履歴を削除し、Scenario Reset Noticeを保存する
+- 成功時だけ既存NoticeとCheckout通知履歴を削除し、Scenario Reset Noticeを保存する
 - Guest／Customerは`/`、Operator／Adminは`/admin`へ`window.location.assign()`相当でハード遷移する
 - `/admin/test-control`をそのままReloadしない
+
+Test APIはNotice保存と画面遷移を行わない。
 
 ---
 
@@ -695,26 +758,28 @@ Contract Testで全ScenarioのAccount存在、Role、初期Session、Guest、Rou
 
 ## 14.1 注文詳細の再現
 
-1. `payment-processing`へReset
-2. regular CustomerでLogin
+1. E2Eの`scenario("payment-processing")`FixtureでResetする
+2. regular CustomerでLoginする
 3. 注文一覧の`支払い待ち`注文を開く
-4. 注文詳細でOrder Statusが`支払い待ち`、Payment Statusが`支払い処理中`であることを5秒以内に確認
-5. Loading Panel消失、Console Error 0、Page Error 0を確認
-6. Browser BackとHome移動を確認
+4. 注文詳細でOrder Statusが`支払い待ち`、Payment Statusが`支払い処理中`であることを5秒以内に確認する
+5. Loading Panel消失、Console Error 0、Page Error 0を確認する
+6. Browser BackとHome移動を確認する
 
 注文一覧へPayment Statusは追加しない。
 
 ## 14.2 Processing画面Focus
 
-E2EではTest Control UIを使用せず、Test APIへ固定する。
+Test Control UIを経由せず、既存E2E FixtureとTest APIを組み合わせる。
 
-1. `window.__TEST_API__.reset({ scenario: "default" })`
-2. regular CustomerでLogin
-3. `window.__TEST_API__.setPaymentDelay(3000)`
+1. `scenario("default")`FixtureでResetとReloadを完了する
+2. regular CustomerでLoginする
+3. `window.__TEST_API__.setPaymentDelay(3000)`を実行する
 4. Checkout Confirmまで進む
-5. 支払い開始後、Processingの`h1`へFocusされることを確認
-6. CompleteまたはFailedへの遷移を確認
-7. Test終了後に`window.__TEST_API__.reset({ scenario: "default" })`
+5. 支払い開始後、Processingの`h1`へFocusされることを確認する
+6. CompleteまたはFailedへの遷移を確認する
+7. Test終了後に`scenario("default")`FixtureでResetとReloadを行う
+
+Test内で`window.__TEST_API__.reset()`を直接呼び、Reloadせずに同じRuntimeを利用し続けない。
 
 Payment DelayはFocus対象の表示時間を決定的に確保するためだけに使う。
 
@@ -730,21 +795,50 @@ Payment DelayはFocus対象の表示時間を決定的に確保するためだ�
 
 最低限、次を追加または更新する。
 
-- Return先AllowlistとRole別Login遷移
+- Return先Allowlist、最終Checkout Step解決、Role別Login遷移
 - Cart Merge DTO、完全除外時の値、集計、理由変換
 - One-time Noticeの型検証、Path変更時消費、終了条件、Target Path、表示形式
+- Test Control画面、Test API、Test Control ServiceのReset責務
 - Reset成功時のCheckout通知履歴削除とReset失敗時の維持
+- Test API ResetでScenario Noticeと自動遷移が発生しないこと
 - 同じCheckout Scenarioへ再Resetした場合の再表示
 - Checkoutの`created／resumed／replaced`
 - 在庫数、購入上限、住所候補、Home CTA
 - Customer Review DTOと判定順
 - Scenario MetadataとSeed整合
+- E2E FixtureがScenario Metadataから初期Session有無を判定すること
 - User制約とLast Active Admin Error変換
 - Product EditorのDirty判定、破棄、元Navigation再実行
-- Product PreviewのDB在庫、Form `isActive`、新規在庫、Status、公開条件
+- Product Previewの既存Field維持、DB在庫、Form `isActive`、新規在庫、Status、公開条件
 - Order／Shipment組合せ
 
-## 15.2 新規E2E
+## 15.2 E2E Login Helper
+
+Login後のRole別遷移に合わせ、既存共通Helperを更新する。
+
+```ts
+export async function login(
+  page: Page,
+  email: string,
+  expectedPath: "/" | "/admin" = "/",
+) {
+  await page.goto("/login");
+  await page.getByLabel("メールアドレス").fill(email);
+  await page.getByLabel("パスワード").fill("testpass1");
+  await page.getByRole("button", { name: "ログイン" }).click();
+  await expect
+    .poll(() => new URL(page.url()).pathname)
+    .toBe(expectedPath);
+}
+```
+
+- Customer：`login(page, "regular@example.com")`
+- Admin：`login(page, "admin@example.com", "/admin")`
+- Operator：`login(page, "operator@example.com", "/admin")`
+- 既存Spec内のすべてのStaff Login呼び出しを更新する
+- Return先を検証するTestでは共通Helperの既定値に依存せず、Checkoutの期待Pathを明示する
+
+## 15.3 新規E2E
 
 `e2e/web/ui-ux-improvements.spec.ts`へ次を含める。
 
@@ -758,7 +852,7 @@ Payment DelayはFocus対象の表示時間を決定的に確保するためだ�
 - Reset確認、Reset後Notice
 - `payment-processing`注文詳細とProcessing Focus
 
-## 15.3 Cross-role
+## 15.4 Cross-role
 
 各Test開始時にScenario Resetし、同一Test内だけでRoleを切り替える。前TestのDB状態へ依存せず、Browser ContextごとにStorageを独立させる。
 
@@ -766,7 +860,7 @@ Payment DelayはFocus対象の表示時間を決定的に確保するためだ�
 - Customer Review投稿→Admin非公開→Customer表示確認
 - Admin発送準備→Customer注文詳細確認
 
-## 15.4 Playwright ConfigとScript
+## 15.5 Playwright ConfigとScript
 
 新規SpecをChromium Projectの収集対象へ追加する。
 
@@ -798,7 +892,7 @@ pnpm exec playwright test --project=chromium --list
 
 Mobile固有Caseは`mobile-boundary.spec.ts`、Accessibilityは`accessibility.spec.ts`、Guide Screenshotは`ui-review.spec.ts`へ追加する。
 
-## 15.5 必須実行
+## 15.6 必須実行
 
 ```text
 pnpm run format:check
@@ -846,26 +940,31 @@ Admin管理操作は既存どおり1024px以上を前提とし、Mobile用の管
 - Admin Mobile境界案内
 - Test API、Seed Scenario、固定Clock、Payment Delay
 - Scenario初期Session復元とDefault Scenarioの決定性
+- Test API Reset後にE2E FixtureがRuntimeを再初期化する既存動作
 - Last Active AdminのMutation防御
-- Product Previewの非永続性
+- Product Previewの非永続性と既存表示Field
 
 ---
 
 # 18. 完了条件
 
 - Login後に購入導線へ復帰でき、Open Redirectがない
+- CustomerとStaffのLogin後遷移がRole別に正しく、既存E2E Helperも一致している
 - Client-side Login遷移でもCart Noticeが正しく一度だけ表示され、別Path移動または閉じる操作で消える
+- CartのSummaryとSuccessが用途別に分かれ、実際の最終遷移先で表示される
 - Cart統合数量と理由が正しく表示される
+- Test Control画面、Test API、Test Control ServiceのReset責務が分離されている
 - Scenario Reset後にCheckout通知履歴が消え、同じScenarioでも再び通知される
+- Test API Reset後はE2E FixtureがReloadし、古いRuntimeを使い続けない
 - Checkout各画面の`h1`が適切なタイミングでFocusされる
 - Invalid Cart、商品在庫、住所候補、Profile、Reviewの状態が理解できる
 - Guide、Login、Home、模擬環境説明が整理されている
 - Empty CatalogでEmpty Stateが1つだけ表示される
 - 商品Formの未保存変更を失わず、元Navigationを1回だけ再開できる
-- PreviewでDB現在庫とFormの未保存`isActive`を正しく使い分ける
+- Previewが既存Fieldを維持し、DB現在庫とFormの未保存`isActive`を正しく使い分ける
 - Admin注文、Shipment、User制約の表示が実状態と一致する
-- Scenario Metadataが唯一のID定義元で、Seedと一致する
-- `payment-processing`を通常E2Eで切り分け、Processing FocusをTest APIで決定的に検証する
+- Scenario Metadataが唯一のID定義元で、E2E Fixtureを含む利用箇所がSeedと一致する
+- `payment-processing`を通常E2Eで切り分け、Processing FocusをFixtureとTest APIで決定的に検証する
 - `ui-ux-improvements.spec.ts`がPlaywrightのChromium Projectに収集され、PR CIで実行される
 - Cross-role Flowが独立したTestとして実行される
 - 4Viewportで主要Flowを確認する
