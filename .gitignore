@@ -16,4 +16,5 @@ public/files/
 playwright-report/
 test-results/
 .playwright-cli
+.playwright-mcp
 .codex/tmp/
