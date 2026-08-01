@@ -11,21 +11,23 @@ PR #3の探索結果をもとに、確認されたUI・UX上の問題を同一�
 - 学習用アプリの説明とTest Account情報を、各操作画面の主目的を妨げない場所へ整理する
 - Customer、Operator、Adminの各画面で、操作結果、制約、未保存状態、破壊的操作の影響が分かる
 - DesktopとMobileで主要な情報と操作を見失わない
-- 既存の正常系、Seed Scenario、Test API、決定的なテスト条件を壊さない
+- 既存の正常系、Seed Scenario、Test API、固定Clock、決定的なテスト条件を壊さない
 
 ---
 
 ## 2. 実装方針
 
 - すべての修正を同一の実装範囲で行う
+- 実装開始時に現行コードと既存Testを確認し、既に解消済みの問題は重複修正しない
 - 指摘IDごとに場当たり的な分岐を増やさず、同じ原因を持つ問題は共通処理で解消する
 - 既存のApplication／Domain契約を利用できる場合は、Presentation側で情報を捨てずに表示する
-- 新しい依存関係は追加しない
-- 新しい状態管理Libraryは導入しない
+- Presentation側だけでは正しく判定できない制約は、Application DTOへ表示用Capabilityを追加する
+- 新しい依存関係と新しい状態管理Libraryは追加しない
 - 自動保存、外部決済、実配送、Backendなど、今回の問題解決に不要な機能は追加しない
 - Test Account、Scenario、会員Rankごとに個別の説明画面を増やさない
-- 学習説明は1つのGuide画面とContextual Helpへ集約する
+- 学習説明は1つのGuide画面と必要最小限のContextual Helpへ集約する
 - 既存のProduct／SKU／Inventory分離、Checkout Stepper、Payment履歴、Review履歴、Admin Mobile境界表示は維持する
+- 原因が再現できない問題へ推測修正、無限Polling、待機時間の増加を入れない
 
 ---
 
@@ -33,31 +35,35 @@ PR #3の探索結果をもとに、確認されたUI・UX上の問題を同一�
 
 依存関係を考慮し、次の順番で実装する。
 
-1. 共通の画面遷移、Focus、1回限りの通知基盤
+1. 共通の画面Focus、内部Return先検証、One-time Notice
 2. Login、Guest Cart統合、Checkout再開・置換
-3. Cart、住所、商品詳細、Profile、Review
-4. 学習Guide、Home、Login、Test Controlの情報整理
-5. Adminの商品編集、注文状態、User制約、Reset確認
+3. Cart、商品詳細、配送先、Profile、Review
+4. Guide、Home、Login、模擬環境説明、Empty State
+5. Admin商品編集、注文状態、User Capability、Test Control
 6. Accessibilityと`payment-processing`のFocused Test
-7. 全体回帰テスト
+7. Responsive確認と全体回帰
 
-各段階でTypeScript Errorを残したまま次へ進まないこと。
+各段階でTypeScript Errorと関連Test失敗を残したまま次へ進まないこと。
 
 ---
 
-# 4. 共通の画面遷移と通知
+# 4. 共通処理
 
-## 4.1 ページ遷移後のFocusとScrollを統一する
+## 4.1 Checkout画面の見出しFocusとScroll
 
 対象：UX-001
 
-Checkoutの各Routeで、前画面のScroll位置が次画面へ引き継がれ、見出しや注文完了結果が画面外へ残らないようにする。
+CheckoutのRoute遷移後に前画面のScroll位置が残り、現在Stepや注文結果が画面外になる問題を解消する。
 
 ### 実装内容
 
-- Route表示時にページ先頭または`h1`へFocusを移す共通処理を追加する
-- Focus対象には`tabIndex={-1}`を設定する
-- Focus時に画面先頭または見出しがViewport内へ入るようにする
+- Web向けの小さな共通HookまたはComponentを追加する
+- Focus対象は各画面の`h1`へ統一する
+- `h1`へ`tabIndex={-1}`を設定する
+- Data Load完了後、実Contentの`h1`がMountされた時点で1回実行する
+- Loading PanelにはFocusを移さない
+- Focus時に見出しがViewport内へ入るようScrollする
+- Sticky Headerに隠れないよう、Focus対象へ`scroll-margin-top`相当を設定する
 - 次の画面へ適用する
   - `/checkout/address`
   - `/checkout/payment`
@@ -65,327 +71,402 @@ Checkoutの各Routeで、前画面のScroll位置が次画面へ引き継がれ�
   - `/checkout/processing`
   - `/checkout/complete`
   - `/checkout/failed`
-- 注文完了画面では、注文番号、合計、注文詳細への導線が初期Viewport内に入ることを優先する
-- Focus処理を各ページへ重複実装せず、小さな共通HookまたはComponentとして実装する
-- Browser Back時に既存のForm入力やCheckout状態を破棄しない
+- Browser Backで既存Form入力やCheckout Sessionを破棄しない
 
-### 完了条件
+### 検証条件
 
-- `390×844`でCheckoutの各Stepへ進んだ直後に、現在Stepと見出しを確認できる
-- 注文完了直後に注文番号と次のActionを確認できる
-- Keyboard利用時にFocus位置を認識できる
-- Desktopで不要な大きなScroll移動が発生しない
+- `390×844`で各Stepへ進んだ直後、`document.activeElement`が現在画面の`h1`になる
+- 見出しのBounding BoxがViewport内にある
+- 注文完了直後に注文番号、合計、注文詳細への導線を確認できる
+- Desktopで不必要な大幅Scrollが発生しない
 
 ---
 
-## 4.2 1回限りの操作結果を安全に引き継ぐ
+## 4.2 内部Return先の検証
 
-Login後のCart統合結果やScenario Reset結果を、遷移先で1回だけ表示できる仕組みを追加する。
+Login後の遷移先は、共通Helperで検証する。
+
+### 許可するReturn先
+
+- `/cart`
+- `/checkout/address`
+- `/checkout/payment`
+- `/checkout/confirm`
+
+Query StringやHashは引き継がず、Pathだけを扱う。
+
+### 拒否する値
+
+- `http://`または`https://`から始まる値
+- `//`から始まる値
+- Backslashを含む値
+- `/login`、`/signup`、認証循環を起こすPath
+- Allowlist外のPath
+- 空文字、不正なEncoding、複数値
+
+不正な場合はRole別の既定RouteへFallbackする。
+
+### Test
+
+- 許可Pathが保持される
+- 外部URL、Protocol-relative URL、循環Path、未知Pathが拒否される
+- Open Redirectが発生しない
+
+---
+
+## 4.3 One-time Notice
+
+Login後のCart統合結果とScenario Reset結果を、遷移先で1回だけ表示するためのWeb向けHelperを追加する。
 
 ### 実装内容
 
-- `sessionStorage`を利用したWeb向けの小さなOne-time Notice Helperを追加する
-- 保存できる値を用途別の型で限定する
-- JSON Parse失敗や不正値があっても画面を壊さず破棄する
-- 読み出した通知は直後に削除し、再読み込みで繰り返し表示しない
-- 個人情報、Password、任意URLは保存しない
-- 次の用途だけに使用する
-  - Login後のGuest Cart統合Summary
-  - Test Control Reset完了後の案内
+- `sessionStorage`を使用する
+- 保存可能な値をDiscriminated Unionで限定する
+- 用途は次の2種類だけにする
+  - `cart-merge`
+  - `scenario-reset`
+- JSON Parse失敗、型不一致、不正値は例外にせず削除する
+- 読み出した通知は直後に削除し、Reloadで再表示しない
+- Password、個人情報、任意URL、内部Error Stackは保存しない
+- Native Buildを壊さないようWeb固有実装を分離する
+- Global Notification Frameworkへ拡張しない
 
-大規模なGlobal Storeや汎用Notification Frameworkにはしないこと。
+### Checkout再開通知の重複防止
+
+`resumed`と`replaced`はAddress画面を開くたびに返る可能性があるため、Checkout Session ID単位で表示済みを記録する。
+
+例：
+
+```text
+checkout:<sessionId>:resumed
+checkout:<sessionId>:replaced
+```
+
+- 同じSessionでは1回だけ表示する
+- Browser Reloadで再表示しない
+- 新しいCheckout Sessionでは表示可能にする
 
 ---
 
 # 5. Login、Cart統合、Checkout復帰
 
-## 5.1 Login後に元の購入導線へ戻す
+## 5.1 未LoginのCustomer専用RouteからLoginへ遷移する
 
 対象：UX-005
 
+Return先の付与はCart Buttonだけに限定せず、`RouteGuard`のCustomer Accessで処理する。
+
 ### 実装内容
 
-- Login画面で内部Return先を受け取れるようにする
-- Cartから未Login状態で「購入手続きへ」を選んだ場合は、Loginへ次を渡す
+- 未Loginで`customer` Routeへアクセスした場合、現在Pathを共通Helperで検証する
+- 許可Pathの場合は次へRedirectする
 
 ```text
-/login?returnTo=/checkout/address
+/login?returnTo=<許可された内部Path>
 ```
 
-- `returnTo`は内部Pathだけを許可する
-- 次を拒否してFallbackへ戻す
-  - `http://`または`https://`から始まる値
-  - `//`から始まる値
-  - Login／Signupへ循環する値
-  - 空文字または不正な値
-- CustomerのLogin成功後は、原則として元のReturn先へ戻す
-- Operator／AdminでLoginした場合は、Customer専用Return先へ移動せず`/admin`へ移動する
-- Return先がない場合はRoleごとの自然な既定Routeへ移動する
-  - Customer：`/`
-  - Operator／Admin：`/admin`
+- 許可Pathでない場合は通常の`/login`へRedirectする
+- `staff`、`admin`、`automation-admin`にはCustomer用Return先を付与しない
 
-### Cart統合を伴う場合
+### Login成功後
 
-Login結果の`cartMerge`を捨てずに利用する。
+- Customerは検証済みReturn先へ移動する
+- Return先がないCustomerは`/`へ移動する
+- Operator／AdminはReturn先を無視し`/admin`へ移動する
+- Login失敗時は入力値とReturn先を保持する
+- `/checkout/payment`または`/checkout/confirm`が現在Sessionで未解放の場合は、既存Checkout Guard／Load Errorにより前Stepへ戻せる状態を維持する
 
-- 統合で除外、数量上限超過、数量調整が発生していない場合
-  - One-time Noticeを保存する
-  - 元のCheckoutへ進む
-- 統合で除外または数量調整が発生した場合
-  - `/cart`へ戻す
-  - 統合結果を表示する
-  - ユーザーがCart内容を確認してからCheckoutを再開できるようにする
+### 検証条件
 
-### 完了条件
-
-- GuestがCartからLoginした後、購入フローを最初から探し直す必要がない
-- Staff AccountでCustomer Checkoutへ誤遷移しない
-- 外部URLへのOpen Redirectができない
-- Login失敗時は入力内容とReturn先を保持する
+- GuestがCartからCheckoutを選びLoginした後、元の購入導線へ戻る
+- Checkout URLへの直接アクセスでもReturn先が保持される
+- Staff AccountがCustomer Checkoutへ誤遷移しない
+- 外部URLへRedirectできない
 
 ---
 
-## 5.2 Guest Cart統合結果を表示する
+## 5.2 Guest Cart統合結果
 
 対象：UX-006
 
-既存の`CartMergeResult`を使用し、統合結果をユーザー向けに表示する。
+既存の`CartMergeResult`を使用する。
 
-### 表示内容
+### 調整ありの判定
 
-- 統合した商品数
-- Cartへ追加できた数量
-- 購入上限または在庫上限で除外された数量
-- 統合できなかった商品数
-- 除外理由をユーザー向け文言へ変換した内容
-  - 商品が存在しない
-  - 非公開
-  - 会員Rank不足
-  - SKU無効
-  - 在庫切れ
+```ts
+const hasAdjustment = cartMerge.items.some(
+  (item) => item.overflowQuantity > 0 || item.excludedReason !== null,
+);
+```
 
-内部IDやEnum値は直接表示しない。
+### 集計値
 
-### 表示場所
+- 追加数量合計：`sum(items.addedQuantity)`
+- 上限超過数量合計：`sum(items.overflowQuantity)`
+- 追加商品数：`addedItemCount`
+- 除外商品数：`excludedItemCount`
 
-- 調整なし：遷移先で短いSuccess Noticeを1回表示
-- 調整あり：Cart上部にSummaryを1回表示
-- Cart Item自体の現在状態は既存のItem表示を利用する
+### 通知しない条件
 
-### 完了条件
+- `cartMerge === null`
+- `cartMerge.items.length === 0`
+- 追加数量、上限超過数量、除外数がすべて0
 
-`guest-cart-merge-overflow`で、3個と4個が上限5個に統合された理由と結果を理解できる。
+### 遷移と表示
+
+- 調整なし
+  - 検証済みReturn先へ進む
+  - 短いSuccess Noticeを1回表示する
+- 調整あり
+  - `/cart`へ移動する
+  - Cart上部へ詳細Summaryを1回表示する
+  - Cart内容を確認してからCheckoutを再開できるようにする
+
+### 除外理由
+
+内部Enumを直接表示せず、次へ変換する。
+
+- `NOT_FOUND`：商品が見つからない
+- `UNPUBLISHED`：商品が非公開
+- `RANK_REQUIRED`：会員Rank条件を満たさない
+- `INACTIVE`：SKUが無効
+- `OUT_OF_STOCK`：在庫切れ
+
+### 検証条件
+
+`guest-cart-merge-overflow`で、統合前数量、追加数量、上限超過数量、最終数量、上限調整の理由を理解できる。
 
 ---
 
-## 5.3 Checkoutの再開・置換を説明する
+## 5.3 Checkoutの再開・置換
 
 対象：UX-021
 
-`checkout.start()`が返している`created | resumed | replaced`を画面で使用する。
+`checkout.start()`の`created | resumed | replaced`を使用する。
+
+### 表示ルール
+
+- `created`
+  - Messageを表示しない
+- `resumed`
+  - 「前回の購入手続きを再開しました。配送先、支払方法、注文内容を確認してください。」
+- `replaced`
+  - 「カートが更新されたため、以前の購入手続きを置き換えました。最新の商品、数量、価格を確認してください。」
 
 ### 実装内容
 
-- `created`
-  - 通常開始として追加Messageは表示しない
-- `resumed`
-  - 「前回の購入手続きを再開しました。配送先、支払方法、注文内容を確認してください。」を表示する
-- `replaced`
-  - 「カートが更新されたため、以前の購入手続きを置き換えました。最新の商品、数量、価格を確認してください。」を警告として表示する
-- 内部のCart Version番号は表示しない
-- MessageはCheckout Address画面のStepperと見出しの近くに表示する
-- 置換後は最新Cartを元に金額と商品が表示されていることを確認する
+- Address画面のStepperと`h1`の直後へ表示する
+- Checkout Session ID単位で1回だけ表示する
+- 内部Version番号は表示しない
+- `replaced`後は最新Cartを元に商品、数量、金額が表示されることを確認する
 
-### 完了条件
+### 検証条件
 
-- `checkout-resume`で再開理由が分かる
-- `checkout-replaced`と`cart-version-invalidates-checkout`で置換理由が分かる
-- 古いCheckout内容をそのまま注文したように見えない
+- `checkout-resume`で再開Messageが1回表示される
+- `checkout-replaced`と`cart-version-invalidates-checkout`で置換Messageが1回表示される
+- Reloadしても同じMessageを繰り返さない
 
 ---
 
-# 6. Cartと商品購入情報
+# 6. Cartと商品詳細
 
-## 6.1 価格変更同意とInvalid Itemの関係を明確にする
+## 6.1 価格変更同意とBlocking Issue
 
 対象：UX-019
 
-### 実装内容
+### 表示ルール
 
-Cartに`PRICE_CHANGED`以外の購入阻害要因がある場合、価格同意Buttonを実行してGeneric Errorを発生させない。
-
-- `PRICE_CHANGED`だけの場合
-  - 現在価格への同意Buttonを有効にする
-  - 成功後に価格Warningを消す
-  - 更新後のCartを表示する
-- 非公開、SKU無効、在庫切れ、在庫不足、Rank不足が混在する場合
-  - 価格同意Buttonを無効にするか表示順を下げる
+- `PRICE_CHANGED`以外のBlocking Issueが1件以上ある
+  - 価格同意Panelは表示する
+  - 同意ButtonはDisabledにする
   - 「購入できない商品を先に修正または削除してください。その後、現在価格へ同意できます。」と表示する
-  - Item単位の問題表示と削除／数量変更を優先する
-- Application ErrorをすべてGeneric Errorへまとめない
-- Conflict時は最新Cartの再読込Actionを表示する
+- Blocking Issueを解消し、`PRICE_CHANGED`だけになった
+  - 同意ButtonをEnabledにする
+- 同意成功後
+  - Cartを再描画し、価格Warningを消す
 
-### 完了条件
+### Error処理
 
-- `cart-with-invalid-items`で、次に何を修正すべきか判断できる
-- 価格変更だけのCartでは同意処理が成功する
-- 同意Buttonを何度押しても同じGeneric Errorになる状態を残さない
+- Conflict：最新Cartを再読込するActionを表示する
+- Quantity／Stock／Rank等の既知Error：原因に対応する文言を表示する
+- 原因が特定できない場合だけGeneric Errorを使用する
+
+### 検証条件
+
+- `cart-with-invalid-items`で最初に修正すべきItemが分かる
+- 問題Itemを解消した後に価格同意できる
+- 同じGeneric Errorを繰り返す状態を残さない
 
 ---
 
-## 6.2 商品詳細へ正確な現在在庫数を表示する
+## 6.2 商品詳細の正確な在庫数
 
 対象：UX-022
-
-商品詳細で、選択中SKUの正確な在庫数を常に確認できるようにする。
 
 ### 表示ルール
 
 - 0点：`在庫切れ`
 - 1〜5点：`残りN点`
 - 6点以上：`在庫 N点`
+- `purchaseLimit < stockQuantity`：`1回の購入上限はM点です`を追加
+- `purchaseLimit >= stockQuantity`：購入上限の補足を表示しない
+
+数量Selectの最大値は必ず次にする。
+
+```text
+min(stockQuantity, purchaseLimit)
+```
 
 ### 実装内容
 
-- Variant変更時に表示を即時更新する
-- 購入可能数量Selectの上限と表示在庫数を一致させる
-- 購入上限が在庫数より小さい場合は、在庫と購入上限を混同しないよう必要に応じて補足する
-- 商品一覧は現在の簡潔な在庫状態を維持し、具体数を全Cardへ追加しない
-- Admin在庫変更後、再読込した商品詳細に正しい在庫数が表示されることを確認する
+- Variant変更時に在庫数、購入上限、数量Selectを即時更新する
+- 在庫と購入上限を同じ意味に見せない
+- 商品一覧Cardには具体在庫数を追加しない
+- Admin在庫変更後、再読込した商品詳細へ正しい値を反映する
 
-### 完了条件
+### 検証条件
 
-- 在庫が6点以上でも具体数が分かる
-- Variantごとの在庫差を確認できる
+- `low-stock`、`out-of-stock`、通常在庫で表示ルールが一致する
+- Variantごとの在庫差が分かる
 - 在庫0のVariantは引き続き選択不能である
 
 ---
 
-# 7. Customer Accountと入力Form
+# 7. Customer Accountと配送先
 
-## 7.1 MobileのAccount Navigationを全項目表示する
+## 7.1 Mobile Account Navigation
 
 対象：UX-002
 
-### 実装内容
-
-- `390px`および`320px`で横Scrollへ依存しない構成へ変更する
-- 3項目をGridまたは折り返しで表示する
-- `プロフィール`、`配送先`、`注文履歴`を常に視認できるようにする
-- 各項目のTouch Targetを44px以上維持する
-- 現在ページの`aria-current="page"`を維持する
-- Document全体にもNavigation内部にも不要な横Overflowを発生させない
+- `390px`と`320px`で横Scrollに依存しない3列Gridまたは折返しLayoutへ変更する
+- `プロフィール`、`配送先`、`注文履歴`を常時表示する
+- Touch Targetを44px以上維持する
+- `aria-current="page"`を維持する
+- DocumentとNavigation内に不要な横Overflowを発生させない
 
 ---
 
-## 7.2 配送先Empty Stateの文言を修正する
+## 7.2 配送先Empty State
 
 対象：UX-003
 
-`右のフォームから最初の配送先を登録してください。`を、Viewportに依存しない文言へ変更する。
-
-推奨文言：
+次の文言へ変更する。
 
 ```text
 登録フォームから最初の配送先を登録してください。
 ```
 
-新しいLayoutや画面は追加しない。
+新しい画面やLayoutは追加しない。
 
 ---
 
-## 7.3 住所候補適用時に入力済み番地を消さない
+## 7.3 住所候補適用時の既存値保持
 
 対象：UX-008
 
 ### 実装内容
 
-- 郵便番号から取得した都道府県、市区町村、住所候補を適用する際、既に入力済みの値を無条件に空または候補値へ置換しない
-- 特に`addressLine1`の入力値を失わない
-- 最小実装として、入力済みFieldは保持し、空Fieldだけを補完する
-- 補完後のMessageで、入力済み内容を保持したことが分かるようにする
-- FormをDirtyのまま維持し、保存前に内容を確認できるようにする
-- 新規登録と既存配送先編集の両方で同じ挙動にする
-
-### 完了条件
-
-- 郵便番号と番地を入力後に住所候補を利用しても、入力済み番地が消えない
+- 郵便番号から取得した値は、空Fieldだけへ補完する
+- 入力済みの`prefecture`、`city`、`addressLine1`は上書きしない
+- 特に入力済み番地を消さない
 - 候補がない場合は既存入力を変更しない
-- 補完後にどのFieldを確認すべきか分かる
+- 補完したField名を成功Messageで示す
+- 入力済みFieldを保持した場合は、内容確認を促す
+- 新規登録と既存配送先編集で同じ挙動にする
+- FormはDirtyのまま維持する
+
+### 検証条件
+
+- 郵便番号と番地を入力後に住所候補を利用しても番地が残る
+- 空の都道府県・市区町村だけが補完される
+- 候補なしの場合に値が変わらない
 
 ---
 
-## 7.4 Profileへ会員情報を表示する
+## 7.4 Profileの会員情報
 
 対象：UX-007
 
-### 実装内容
-
-Profile上部に次を表示する。
+Profile上部へ次を表示する。
 
 - 現在の会員Rank
 - Account状態
-- Rankによる短いBenefit
+- Rank Benefit
   - 一般会員：5,000円以上で送料無料
   - Gold：5%割引
   - Platinum：10%割引・送料無料
-- 詳しい説明はGuideへのLinkにする
+- GuideへのLink
 
-既存のProfile編集Formへ長い制度説明を入れない。
-
-### 完了条件
-
-- regular、gold、platinumで正しいRankが表示される
-- 商品詳細、Cart、Checkoutの割引表示と矛盾しない
-- Account状態は内部Enumではなく日本語で表示される
+内部Enumは表示せず、既存Label変換を利用する。
 
 ---
 
 # 8. Reviewの対象と状態
 
-## 8.1 Review Formへ対象商品情報を表示する
-
 対象：UX-010
 
-### 実装内容
+## 8.1 Review Eligibility DTO
 
-Review EligibilityまたはReview表示用DTOへ、画面表示に必要な範囲で次を追加する。
+`ReviewEligibilityDto`へ次を追加する。
+
+```ts
+productName: string;
+variationName: string | null;
+optionValue: string | null;
+orderNumber: string;
+orderCreatedAt: string;
+```
+
+Review Use CaseでOrder Item、Order、Product Snapshotから取得し、Presentation側でRepositoryを直接参照しない。
+
+Review Form上部へ次を表示する。
 
 - 商品名
-- Variant名または選択肢
-- 注文番号または注文日
+- `variationName`と`optionValue`
+- 注文番号
+- 注文日
 - 既存Review状態
 
-Review Form上部へ対象商品を表示し、ユーザーが何をReviewしているか確認できるようにする。
+内部IDは主表示にしない。
 
-内部のProduct ID、Order Item IDは主表示にしない。
+## 8.2 注文詳細のReview状態
 
-## 8.2 注文詳細のReview Actionを状態別にする
+Customer用の注文商品表示DTOへ次を追加する。
 
-状態に応じてActionと説明を変える。
+```ts
+reviewState:
+  | "NOT_POSTED"
+  | "PUBLISHED"
+  | "HIDDEN"
+  | "DELETED"
+  | "NOT_ELIGIBLE";
+```
 
-- 未投稿：`レビューを書く`
-- 公開中：`レビューを編集`
-- 非公開：`非公開レビューを編集`
-- 削除済み：Buttonを表示せず`削除済み・再投稿できません`
-- 配達前：Review Actionを表示しない、または投稿可能条件を説明する
+Application層でReviewとOrder状態を結合して決定する。
 
-### 完了条件
+### Action表示
 
-- 同じ注文に複数商品があっても対象を取り違えない
-- 投稿済みかどうか注文詳細で分かる
-- 非公開・削除済みの状態をユーザー向けに理解できる
-- AdminのReview公開状態とCustomer表示が矛盾しない
+- `NOT_POSTED`：`レビューを書く`
+- `PUBLISHED`：`レビューを編集`
+- `HIDDEN`：`非公開レビューを編集`
+- `DELETED`：Buttonを表示せず`削除済み・再投稿できません`
+- `NOT_ELIGIBLE`：Buttonを表示せず、配達完了後に投稿可能であることを表示する
+
+### 検証条件
+
+- 複数商品を含む注文でも対象を取り違えない
+- Adminの公開状態とCustomer表示が一致する
+- 削除済みReviewを再投稿できるように見せない
 
 ---
 
 # 9. 学習Guideと情報配置
 
-## 9.1 学習Guideを1画面追加する
+## 9.1 `/guide`
 
-Login用、Scenario用、Rank用に複数画面を作らず、公開Routeの`/guide`へ集約する。
+公開Routeの`/guide`を1画面追加する。
 
-### Guideへ記載する内容
+### 内容
 
 - アプリの目的
 - 実際の注文、決済、配送が行われないこと
@@ -393,7 +474,7 @@ Login用、Scenario用、Rank用に複数画面を作らず、公開Routeの`/gu
 - Customer、Operator、Adminの違い
 - 固定Test AccountとPassword
 - 会員RankとBenefit
-- Test Scenarioの使い方
+- Test Scenarioの概要
 - Test Control Resetの影響
 - 主要な確認フロー
   - 商品探索から注文
@@ -403,40 +484,44 @@ Login用、Scenario用、Rank用に複数画面を作らず、公開Routeの`/gu
 
 ### 実装方針
 
-- 既存のContent Dictionary、Account情報、Scenario情報を再利用する
-- Account情報やScenario説明を複数画面へHardcodeしない
-- Guideは公開Routeとし、Login前に閲覧できるようにする
-- HeaderまたはFooter、Login、Test ControlからGuideへ移動できるようにする
-- 長大な操作マニュアルにはせず、各機能へ進む入口を示す
+- Account、Rank、Scenario情報は共通定義から生成する
+- LoginやTest Controlへ同じ情報を重複Hardcodeしない
+- HeaderまたはFooter、Login、Test Controlから移動できるようにする
+- 長大な操作マニュアルにせず、RoleとScenarioを選ぶ入口として構成する
+
+### BuildとRoleによるTest Control表示
+
+- Automation Build
+  - Test Controlの説明を表示する
+- Production Build
+  - Test ControlへのLinkを表示しない
+  - Scenario機能は自動化環境で利用できる旨だけを記載する
+- Guest／Customer／Operator
+  - Admin専用Test Controlへ直接誘導しない
+- AdminかつAutomation Build
+  - Test Controlへの直接Linkを表示する
 
 ---
 
-## 9.2 固定Test AccountをLogin画面からGuideへ移す
+## 9.2 Login画面の固定Account一覧
 
-対象：Login画面の情報過多
-
-### 実装内容
-
-- Login画面の常時展開された固定Account一覧を削除する
-- Login画面には次の短い案内だけを残す
+- 常時展開されている固定Account一覧とPassword表示を削除する
+- 次の短い案内とLinkだけを残す
 
 ```text
 テスト用アカウントは学習ガイドで確認できます。
 ```
 
-- `学習ガイドを見る`Linkを表示する
-- PasswordをLogin画面へ常時表示しない
 - Login Form、Error、Signup導線を主情報として維持する
-
-Test Account自体は削除しない。
+- Test Account自体は削除しない
 
 ---
 
-## 9.3 Home CTAをLogin状態とRoleに合わせる
+## 9.3 Home CTA
 
 対象：UX-004
 
-HomeのSecondary CTAを現在Sessionに応じて変更する。
+Secondary CTAをSessionとRoleに応じて変更する。
 
 - Guest：`ログインして購入` → `/login`
 - Customer：`マイページ` → `/account/profile`
@@ -444,231 +529,254 @@ HomeのSecondary CTAを現在Sessionに応じて変更する。
 
 Primary CTAの`商品を見る`は全Roleで維持する。
 
-Login済みユーザーをLogin Formへ戻さない。
-
 ---
 
-## 9.4 模擬環境説明の役割を整理する
+## 9.4 模擬環境説明
 
 対象：UX-009
 
-安全告知は削除せず、同じ説明の重複を減らす。
-
-### 表示方針
-
 - Global Header：`学習用・実取引なし`の短い常時表示
 - Guide：詳細説明
-- Login／Signup：個人情報とTest Account利用に必要な注意
+- Login／Signup：個人情報とTest Account利用の注意
 - Checkout：実在住所・Card情報を入力しない注意
 - Cart／商品詳細：同じ一般説明を繰り返さない
 - Footer：GuideとLegalへの導線
+- Homeの学習Panel：Guideへの簡潔な導線として残す
 
-### 実装内容
-
-- Cart上部の一般的な学習環境説明は削除または短縮する
-- Checkoutでは一般説明ではなく入力上の注意に限定する
-- 商品詳細下部の重複説明はGlobal告知と役割が重なる場合は削除する
-- Homeの学習PanelはGuideへの導線として簡潔に残す
+安全上必要な注意は削除せず、重複だけを減らす。
 
 ---
 
-## 9.5 Homeの商品0件Stateを追加する
+## 9.5 HomeのEmpty Catalog
 
 対象：UX-018
 
-### 実装内容
-
-- 公開商品が0件の場合、`おすすめ商品`と`新着商品`の空Sectionを見出しだけで表示しない
-- 重複したEmpty Stateを複数表示せず、Home上で1つの明確なEmpty Stateへまとめる
+- 公開商品が0件の場合、空の`おすすめ商品`と`新着商品`Sectionを表示しない
+- 重複したEmpty Stateを複数表示せず、Home上で1つにまとめる
 - 表示内容
-  - 現在公開中の商品がないこと
-  - 読込失敗ではないこと
-  - 商品一覧またはGuideへの導線
+  - 現在公開中の商品がない
+  - 読込失敗ではない
+  - Guideまたは商品一覧への導線
 - Categoryが0件の場合も空Gridだけを表示しない
 - 通常Catalogでは現在のHome構成を維持する
 
 ---
 
-# 10. Adminの商品編集
+# 10. Admin商品編集
 
-## 10.1 未保存変更を保護する
+## 10.1 未保存変更の保護
 
 対象：UX-011
 
-### 実装内容
+### Dirty判定
 
-- Product Editorの初期値と現在値を比較し、Dirty状態を管理する
-- 既存の`ContextualSaveBar`を利用し、未保存変更があることを表示する
-- 次の場合に離脱確認を行う
-  - Admin Sidebarの内部Link
-  - Breadcrumb
-  - 画面内の別Route Link
-  - Browser Reload／Tab Close
-  - Browser Back
-- 確認内容
+- `ProductEditor`の初期値をSnapshotとして保持する
+- 現在のProduct値、Variant値、Image選択、`removedVariantIds`を正規化して比較する
+- Preview表示有無とMessageはDirty判定へ含めない
+- 保存成功後は新しい初期値で再MountまたはSnapshotを更新し、Dirtyを解除する
+
+### Router内遷移
+
+対象：Sidebar、Breadcrumb、画面内Link、Browser Back。
+
+- Expo Routerが利用するNavigationの離脱防止機構を使用する
+- Dirty時だけ確認する
+- Actionは次の2つに統一する
   - `変更を破棄して移動`
   - `編集に戻る`
-- 保存成功後と明示的な破棄後はDirty状態を解除する
-- Previewを開くだけではDirty状態を解除しない
-- 自動保存やDraft永続化は追加しない
-- 新しいNavigation Libraryは追加しない
+- `編集に戻る`では入力を保持する
+- `変更を破棄して移動`では遷移を続行する
 
-### 実装上の注意
+### Browser離脱
 
-- Web向けの離脱Guardを小さなHookまたはProviderとして実装する
-- Product Editor以外へ不必要に適用しない
-- Native向けBuildを壊さないようWeb固有処理を分離する
+対象：Reload、Tab Close、外部URL移動。
 
-### 完了条件
+- Webの`beforeunload`を使用する
+- Browser標準Dialogを使用し、独自文言が表示されることを前提にしない
+- Dirtyでない場合は登録しない
 
-- 未保存状態でSidebar、Breadcrumb、Browser Back、Reloadを実行すると警告される
+### 明示的な破棄
+
+`ContextualSaveBar`の破棄操作では次を初期状態へ戻す。
+
+- Product値
+- Variant値
+- Image選択
+- `removedVariantIds`
+- Preview
+- Form Message
+
+### 対象外
+
+- 自動保存
+- Draftの永続化
+- Product Editor以外へのGuard適用
+- 新しいNavigation Libraryの追加
+
+### 検証条件
+
+- Sidebar、Breadcrumb、Browser Back、Reloadで警告される
+- Cancel後に入力値が残る
 - 保存済み状態では警告されない
-- Cancelすると入力内容が残る
+- Previewを開いてもDirtyが解除されない
 
 ---
 
-## 10.2 商品Previewを実用的にする
+## 10.2 商品Preview
 
 対象：UX-012
-
-現在の商品コード、商品名、価格だけの表示を、保存前確認として意味のある内容へ拡張する。
 
 ### 表示内容
 
 - Main Image
 - 商品名
 - Short Description
-- 公開状態または保存後の初期状態
+- 保存後の初期状態
 - 会員Rank制限
-- 代表VariantまたはVariant一覧の要約
+- Variant一覧の要約
 - 最小〜最大価格
 - 在庫状態
-- `未保存の内容です`という明示
+- `未保存の内容です`
 
 ### 実装方針
 
 - Storefrontの商品詳細を完全複製しない
 - 既存の`ProductImage`、`StatusBadge`、価格Formatterを再利用する
-- Preview DTOに不足する情報だけを追加する
-- 保存処理やDatabaseへ副作用を発生させない
-
-### 完了条件
-
-商品名と価格以外の変更も、保存前に判断できる。
+- Preview DTOへ不足する表示情報だけを追加する
+- Databaseへ副作用を発生させない
 
 ---
 
 # 11. Admin注文とUser管理
 
-## 11.1 Shipment状態表示を同期する
+## 11.1 Shipment状態の同期
 
 対象：UX-013
 
-### 実装内容
-
-- 発送準備開始、発送、配送完了の操作後に注文詳細を再取得する
-- 見出し、Status Badge、配送欄、操作Buttonを同じ取得結果から描画する
-- 一部だけLocal Stateで先行更新し、他の欄が古い状態のまま残る構成をなくす
-- 更新中は対象Actionを無効化する
+- 発送準備開始、発送、配送完了のMutation成功後に注文詳細を再取得する
+- 見出し、注文Status Badge、配送欄、Action Buttonを同じ再取得結果から描画する
+- 一部だけLocal Stateで先行更新しない
+- 更新中は対象ActionをDisabledにする
 - Success Messageは再取得完了後に表示する
-- Conflict時は最新状態の再読込を促す
+- Conflict時は最新状態の再読込Actionを表示する
 
-### 完了条件
+### 検証条件
 
-- 発送準備開始直後に、見出しと配送欄が両方`発送準備中`になる
+- 発送準備開始直後に注文状態と配送欄が同期する
 - Reload前後で状態が変わらない
-- Customer注文詳細の状態と矛盾しない
+- Customer注文詳細と矛盾しない
 
 ---
 
-## 11.2 最後のAdminを変更できない理由を表示する
+## 11.2 User Capability
 
 対象：UX-015
 
-### 実装内容
+Presentation側でAdmin人数を数えず、`UserAdminDto`へApplication層で判定したCapabilityを追加する。
 
-最後のAdminのRole変更または利用停止ControlがDisabledの場合、理由をControlの近くへ表示する。
-
-推奨文言：
-
-```text
-最後の管理者は役割変更または利用停止できません。先に別の管理者を設定してください。
+```ts
+interface UserAdminCapabilities {
+  canChangeRole: boolean;
+  canChangeAccountStatus: boolean;
+  roleChangeRestriction:
+    | "SELF"
+    | "LAST_ACTIVE_ADMIN"
+    | "WITHDRAWN"
+    | null;
+  accountStatusRestriction:
+    | "SELF"
+    | "LAST_ACTIVE_ADMIN"
+    | "WITHDRAWN"
+    | null;
+}
 ```
 
-- `aria-describedby`でDisabled Controlと説明を関連付ける
-- 自己変更、退会済み、権限不足など別理由の場合は、実際の理由と混同しない
-- Generic Errorだけに依存しない
+`UserAdminDto`へ`capabilities`を追加する。
+
+### 判定責務
+
+- Application Use Caseが現在Actorと対象Userを考慮して判定する
+- `LAST_ACTIVE_ADMIN`は、対象AdminをRole変更または利用停止するとActive Adminが0人になる場合
+- PresentationはCapabilityを使ってDisabled状態と説明を描画する
+- Mutation側の既存Domain制約は維持し、Capabilityだけに依存して保護しない
+
+### 表示文言
+
+- `SELF`：自分自身の管理役割または利用状態は変更できない
+- `LAST_ACTIVE_ADMIN`：最後の管理者は変更できない。先に別の管理者を設定する
+- `WITHDRAWN`：退会済みUserは読取専用
+
+Disabled Controlと説明を`aria-describedby`で関連付ける。
 
 ---
 
 # 12. Test Control
 
-## 12.1 Scenario説明Metadataを追加する
+## 12.1 Scenario Metadata
 
 対象：UX-016
 
-既存のScenario一覧と同じ定義元で、各Scenarioの説明を管理する。
+既存Scenario一覧と同じ定義元で、各Scenarioへ次を持たせる。
 
-### 各Scenarioへ持たせる情報
-
+- ID
 - 表示名
 - 目的
 - 推奨Account
 - 主な確認Route
+- 初期Session状態
 - 初期状態の短い説明
 
-### 実装方針
+`PHASE_ONE_SCENARIOS`と説明定義を別々に保守せず、同じMetadataからScenario ID一覧と表示情報を生成する。
 
-- `PHASE_ONE_SCENARIOS`と別々に内容がずれないよう、同じMetadataから一覧と説明を生成する
-- Test Controlでは選択中Scenarioの説明だけを表示する
-- 全Scenarioの詳細を同時展開しない
-- 詳しい操作方法はGuideへLinkする
+Test Controlでは選択中Scenarioだけを表示し、詳細はGuideへLinkする。
 
 ---
 
-## 12.2 Scenario Reset前に確認する
+## 12.2 Scenario Reset確認
 
 対象：UX-017
 
-### 実装内容
+### 確認Dialog
 
-`シナリオを初期化`を押しただけで即時Resetしない。
+既存Confirm Dialogを使用し、次を説明する。
 
-既存のConfirm Dialogを利用し、次を説明する。
-
-- 現在のSessionが解除される
-- Cart、Checkout、注文、商品、在庫、Reviewなどが選択Scenarioの初期状態へ戻る
-- 入力中、未保存、処理途中の内容は失われる
-- 初期化後は再Loginが必要になる
+- 現在のDatabaseが削除される
+- Cart、Checkout、注文、商品、在庫、Review、入力途中の内容が選択Scenarioの初期状態へ戻る
+- 現在のSessionは破棄され、選択Scenarioの初期Sessionへ置き換わる
+- ScenarioによってはGuest状態、Customer Login済み状態、特定Role Login済み状態になる
 - 操作は元に戻せない
 
-### Reset後
+「初期化後は必ず再Loginが必要」とは記載しない。
 
-- Reset完了結果をOne-time Noticeへ保存する
-- Reload後のLogin画面で、初期化したScenario名と再Loginが必要なことを1回表示する
-- 一時的な`Forbidden`を成功結果のように見せない
+### Reset処理
+
+- Reset中はButtonをDisabledにする
+- 二重実行を防止する
 - Reset失敗時はReloadせず、Test Control上でErrorを表示する
-- Reset中はButtonを無効化し二重実行を防ぐ
+- Reset成功時は`scenario-reset` One-time Noticeを保存してからReloadする
 
-### 完了条件
+### Reset後の通知
 
-- 誤ってReset Buttonを押しても確認なしにデータが消えない
-- Reset後にLogin画面へ移動した理由が分かる
-- 選択Scenarioの目的と利用Accountを確認できる
+Login画面に限定せず、現在表示されるStorefront ShellまたはAdmin Shellの共通領域で表示する。
+
+表示内容：
+
+- 初期化したScenario名
+- 適用された初期Session状態
+- 推奨Account
+- 主な確認Route
+
+一時的なForbiddenを成功結果として扱わない。現在Roleで表示できないRouteにいる場合は、既存Guardに従って安全な画面へ移動し、その画面でNoticeを表示する。
 
 ---
 
-# 13. AccessibilityのFocused Test
+# 13. Accessibility Focused Test
 
 対象：UX-014
 
-現行の`StatusBadge`は文字列をDOMへ出しているため、推測で`aria-label`を追加しない。
+現行`StatusBadge`は文字列をDOMへ出しているため、Test失敗を確認する前に`aria-label`を追加しない。
 
-### 実装内容
-
-代表的な管理Tableで、Status／Role／RankをAccessible Nameとして取得できることをTestする。
-
-最低限の対象：
+### 対象
 
 - 商品一覧の公開状態
 - 注文一覧の注文状態
@@ -678,157 +786,144 @@ Login済みユーザーをLogin Formへ戻さない。
 
 ### 判定
 
-- `getByRole('cell', { name: ... })`等で取得できる場合
-  - Production Codeは変更しない
+- `getByRole('cell', { name: ... })`等で取得できる
+  - Production Markupは変更しない
   - Focused Testだけ追加する
-- 取得できない場合
-  - 空Cellになる実際のDOM原因を特定する
+- 取得できない
+  - 空CellになるDOM原因を特定する
   - 状態TextをCell内のAccessible Textとして提供する
-  - Decorative Dotだけを`aria-hidden`のまま維持する
-  - 二重読み上げになる不要な`aria-label`は追加しない
+  - Decorative Dotは`aria-hidden`のまま維持する
+  - 二重読み上げになる`aria-label`を追加しない
 
-実際のTest失敗を確認せず、Accessibility対応という名目でMarkupを変更しないこと。
+Testは既存の`e2e/web/accessibility.spec.ts`へ追加する。
 
 ---
 
-# 14. `payment-processing`の再現確認と修正
+# 14. `payment-processing`
 
 対象：UX-020
 
-PollingやTimeoutを先に追加しない。通常のPlaywright Testで再現条件を確定してから、同じ実装内で必要な修正を行う。
+Production CodeへPollingやTimeoutを追加する前に、通常のPlaywright E2Eで再現する。
 
-## 14.1 Focused E2Eを追加する
+## 14.1 再現手順
 
-- `payment-processing`ScenarioへResetする
-- regular CustomerでLoginする
-- 対象の注文一覧または注文詳細へ移動する
-- 一定時間内にLoadingが終了するか確認する
-- `支払い処理中`、注文番号、Payment状態を確認する
-- 画面操作が不能にならないことを確認する
-- Console ErrorとPage Errorを記録する
+1. `payment-processing`へResetする
+2. `regular@example.com`でLoginする
+3. 注文一覧を開く
+4. `支払い処理中`の注文を選ぶ
+5. 注文詳細で次を5秒以内に確認する
+   - `h1`
+   - 注文番号
+   - `支払い処理中`の状態
+6. Loading Panelが消える
+7. Console ErrorとPage Errorが0件
+8. Browser BackとHomeへの移動が可能
+
+探索時に使用した直接URLが特定できる場合は、同じ注文詳細URLへの直接アクセスも別Caseで確認する。
 
 ## 14.2 再現した場合の切り分け
 
-次を順番に確認する。
-
-1. App RuntimeがReadyにならないのか
-2. Route Guardが待機し続けるのか
-3. `getMyOrder()`が解決しないのか
-4. Dexie QueryまたはTransactionがBlockedなのか
-5. Scenario Reset直後のSession参照が不整合なのか
-6. Playwright MCPだけの問題で、通常のBrowser／Testでは再現しないのか
+1. App RuntimeがReadyにならない
+2. Route Guardが待機し続ける
+3. `getMyOrder()`が解決しない
+4. Dexie QueryまたはTransactionがBlocked
+5. Scenario Reset直後のSession参照が不整合
+6. Playwright MCPだけで発生し通常E2Eでは再現しない
 
 ## 14.3 修正条件
 
-- Repository／Use CaseのPromiseが解決しない場合
-  - 根本のQueryまたはTransactionを修正する
-- Reset後のRuntime再初期化が停止する場合
-  - Reset／Reload後の初期化処理を修正する
-- 注文は取得できるがProcessing状態の説明だけ不足する場合
-  - 注文詳細に`支払い処理中`と次のActionを表示する
-- 通常のPlaywright Testで安定して再現しない場合
-  - Production Codeへ推測修正を入れない
-  - 再発防止のFocused Testだけ残す
+- Promiseが解決しない：根本のQueryまたはTransactionを修正する
+- Reset後のRuntime再初期化が停止する：Reset／Reload後の初期化処理を修正する
+- 注文は取得できるが説明不足：注文詳細へ処理中状態と次のActionを表示する
+- 通常E2Eで安定再現しない：Production Codeは変更せずFocused Testだけ残す
 
 ### 禁止事項
 
-- 原因不明のまま無限Pollingを追加しない
-- 一律30秒TimeoutでErrorへ変換しない
-- Paymentを強制成功または失敗へ変更しない
-- Scenario固有のHardcodeを画面へ追加しない
+- 原因不明の無限Polling
+- 一律30秒TimeoutでError化
+- Paymentの強制成功・失敗
+- Scenario固有Hardcode
 
 ---
 
-# 15. Test実装
+# 15. Test実装とCI
 
-修正した機能には、既存Testの更新だけでなく、問題を再現するFocused Testを追加する。
+## 15.1 Unit／Component／Integration
 
-## 15.1 Component／Unit Test
+最低限、次を追加または更新する。
 
-最低限、次を確認する。
-
-- Return先のValidation
-- Role別のLogin後遷移
-- Cart Merge Resultの表示文言
-- Cart Merge Resultの除外理由変換
-- Checkoutの`created／resumed／replaced`表示
-- 在庫数表示ルール
-- 住所候補適用時の既存値保持
+- Return先Allowlistと拒否条件
+- Role別Login後遷移
+- Cart Mergeの調整あり判定、集計、理由変換
+- One-time Noticeの型検証と1回限りの読出し
+- Checkoutの`created／resumed／replaced`表示済み判定
+- 在庫数と購入上限の表示ルール
+- 住所候補の空Fieldだけ補完
 - Home CTAのRole別表示
-- Review状態別Action
-- Scenario Metadataの対応漏れ
-- Last Admin制約説明
-- One-time Noticeの1回限りの読出し
+- Review DTOとReview状態別Action
+- Scenario Metadataの全ID対応
+- User Capabilityの`SELF／LAST_ACTIVE_ADMIN／WITHDRAWN`
+- Reset成功・失敗とNotice保存
 
-## 15.2 Playwright E2E
+## 15.2 Playwright E2Eの配置
 
-最低限、次のFlowを追加または更新する。
+### 新規Spec
 
-### Guestから注文
+```text
+e2e/web/ui-ux-improvements.spec.ts
+```
 
-1. Guestで商品をCartへ追加
-2. Checkoutを選択
-3. Login
-4. Login後の復帰先を確認
-5. Cart統合結果を確認
-6. Checkoutを完了
-7. 各Stepで見出しがViewport内にある
-8. 注文完了で注文番号がViewport内にある
+次を含める。
 
-### Guest Cart Overflow
+- GuestからLoginしてCheckout復帰
+- Guest Cart Overflow
+- Checkout再開・置換
+- Invalid Cart
+- 商品詳細の在庫数
+- ProfileとReview状態
+- GuideとRole別Home CTA
+- 商品Formの未保存離脱
+- Shipment状態同期
+- User Capability表示
+- Scenario Reset確認とReset後Notice
+- `payment-processing`
 
-- `guest-cart-merge-overflow`
-- 統合前後数量と上限調整の説明を確認
+### 既存Specへ追加
 
-### Checkout再開・置換
+- Accessibility：`e2e/web/accessibility.spec.ts`
+- Mobile Account Navigation、Checkout見出しFocus、注文完了Viewport：`e2e/web/mobile-boundary.spec.ts`
+- Guideの主要Viewport Screenshot：`e2e/web/ui-review.spec.ts`
 
-- `checkout-resume`
-- `checkout-replaced`
-- `cart-version-invalidates-checkout`
-- 表示Messageと最新内容を確認
+## 15.3 package.json
 
-### Invalid Cart
+`test:e2e:chromium`で新規SpecがPR CI上でも実行されるようにする。
 
-- `cart-with-invalid-items`
-- Generic Errorではなく、先に修正すべきItemが分かる
-- 問題Item削除後に価格同意できる
+```json
+"test:e2e:chromium": "playwright test e2e/web/phase1-required.spec.ts e2e/web/ui-ux-improvements.spec.ts --project=chromium"
+```
 
-### 商品在庫
+Mobile固有Caseは、PR CIですでに実行される`mobile-boundary.spec.ts`へ追加する。
 
-- `low-stock`
-- `out-of-stock`
-- 通常在庫
-- Variant切替時の具体数と数量上限を確認
+## 15.4 必須実行
 
-### Customer Account
+```text
+pnpm run format:check
+pnpm run lint
+pnpm run typecheck
+pnpm run validate:image-manifest
+pnpm run security:check
+pnpm run test:unit
+pnpm run test:integration
+pnpm run test:repository
+pnpm run test:component
+pnpm run test:contracts
+pnpm run build:web
+pnpm run test:e2e:chromium
+pnpm run test:a11y
+pnpm run test:e2e:mobile-boundary
+```
 
-- Mobile Account Navigation
-- 住所候補で入力済み番地を保持
-- Rank／Account状態表示
-- Review対象商品と状態表示
-
-### Home／Guide
-
-- Guest、Customer、Operator、AdminのCTA
-- Login画面から固定Account一覧がなくなりGuideへ移動できる
-- `empty-catalog`で明確なEmpty Stateが表示される
-
-### Admin
-
-- 商品Formの未保存離脱確認
-- Previewの表示内容
-- 発送準備開始後のStatus同期
-- Last Admin制約理由
-- Scenario説明
-- Reset確認、Reset後のLogin案内
-
-### Accessibility
-
-- 代表的なAdmin TableのStatus CellをRoleとNameで取得できる
-
-### Payment Processing
-
-- 前節のFocused E2Eを実行する
+`pnpm run verify`だけではPlaywright E2Eを実行しないため、E2Eを別途実行する。
 
 ---
 
@@ -841,7 +936,7 @@ PollingやTimeoutを先に追加しない。通常のPlaywright Testで再現条
 - Mobile：`390×844`
 - Small Mobile：`320×700`
 
-主要確認画面：
+主要画面：
 
 - Home
 - Guide
@@ -856,7 +951,7 @@ PollingやTimeoutを先に追加しない。通常のPlaywright Testで再現条
 - Admin商品編集
 - Test Control
 
-Adminの管理操作自体は既存どおり1024px以上を前提とし、MobileへTable操作を追加しない。
+Adminの管理操作は既存どおり1024px以上を前提とし、Mobileへ管理Table操作を新規実装しない。
 
 ---
 
@@ -878,6 +973,7 @@ Adminの管理操作自体は既存どおり1024px以上を前提とし、Mobile
 - Reviewの公開、非公開、再公開履歴
 - Admin Mobileの1024px境界案内
 - Test API、Seed Scenario、固定Clock、Payment Delay
+- Scenarioごとの初期Session復元
 - `default`Scenarioの決定的な初期状態
 
 ---
@@ -887,25 +983,28 @@ Adminの管理操作自体は既存どおり1024px以上を前提とし、Mobile
 次をすべて満たした時点で実装完了とする。
 
 - Login後に購入導線へ自然に復帰できる
-- Cart統合結果とCheckout再開／置換結果が理解できる
-- Checkout遷移後に重要情報が画面外へ残らない
+- 外部URLへのOpen Redirectができない
+- Cart統合結果とCheckout再開／置換結果が1回だけ表示される
+- Checkout遷移後に現在画面の`h1`がFocusされ、重要情報がViewport内にある
 - Invalid Cartで次のActionを判断できる
-- 商品詳細で選択中SKUの正確な在庫数が分かる
-- 住所候補利用で入力済み番地を失わない
+- 商品詳細で正確な在庫数と購入上限の違いが分かる
+- 住所候補利用で入力済み値を失わない
 - Profileで会員RankとAccount状態を確認できる
-- Review対象商品と現在状態を確認できる
+- Review対象商品、注文、現在状態を確認できる
 - Login画面のTest Account情報がGuideへ整理されている
 - Home CTAがRoleとLogin状態に一致する
 - Empty Catalogを読込失敗と誤認しない
 - 商品Formの未保存変更を誤って失わない
-- 商品Previewで主要な変更内容を判断できる
+- 商品Previewで主要変更を保存前に判断できる
 - Admin注文詳細の状態表示が同期する
-- Last Admin制約の理由が分かる
-- Test ControlのScenario目的とReset影響が分かる
+- User操作不可理由がCapabilityと一致する
+- Test ControlでScenario目的とReset影響が分かる
+- Reset後にScenarioの初期Session状態を正しく案内する
 - Status BadgeのAccessibilityをTestで確認している
-- `payment-processing`の再現結果に基づいて必要な修正だけを行っている
+- `payment-processing`は通常E2Eの再現結果に基づいて必要な修正だけを行っている
+- 新規E2EがPR CIで実行される
 - Desktop、Mobile、Small Mobileの主要Flowを確認している
 - 既存正常系と既存Scenarioを壊していない
-- Format、Lint、Typecheck、Unit／Component Test、必要なPlaywright E2Eがすべて成功する
+- Format、Lint、Typecheck、Unit／Integration／Repository／Component／Contract Test、Build、必要なPlaywright E2Eがすべて成功する
 
 問題を隠すためにTestを弱めたり、待機時間だけを増やしたりしないこと。
