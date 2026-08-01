@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "run_id": "20260801-121924-JST",
+  "task_type": "investigation",
+  "workflow_level": "standard",
+  "preset": "readonly",
+  "runtime": "host",
+  "agents_used": [
+    "019fbb56-b23a-7c10-b7df-93217acd4b71",
+    "019fbb56-b2f2-7612-8d9a-74ddeebd1e09"
+  ],
+  "repo": "qa-training-store",
+  "branch": "main",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [],
+  "validation": {
+    "status": "pass",
+    "commands": [
+      "Playwright MCP Browserで実画面探索（Screenshot / Accessibility Snapshot / UI操作）",
+      "git diff --name-only",
+      "git diff --stat"
+    ],
+    "warnings": [
+      "Browser操作でscroll gesture、captureScreenshot、expectNavigationのtimeoutが発生したが、代替確認を実施した。",
+      "Screenshotはリポジトリへ永続保存していない。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+    "total": 2,
+    "read_only": 2,
+      "writable": 0,
+      "scope_violations": 0,
+    "used_in_final_plan": 1
+    }
+  },
+  "evaluation_path": null,
+  "status": "completed",
+  "primary_failure_category": null
+}
