@@ -4,62 +4,109 @@
 
 - 依頼内容: Phase 2後半として、前半で完成したNative基盤とSQLiteを利用し、会員購入Flow、注文・Review、Maestro、EAS Build、Native向けCIと運用を完成させる。
 - 背景: 認証後の購入FlowとNative自動化・配布を前半へ混ぜると、SQLite/Platform基盤の問題と業務Flowの問題を切り分けにくい。前半の確定契約を利用し、後半で機能完成と品質ゲートを行う。
-- 期待成果: Android/iOSでLoginから購入、注文確認、Reviewまで操作でき、EAS Preview BuildとMaestro主要Flowを再現可能な状態。
+- 期待成果: Android/iOSでLoginから購入、注文確認、Reviewまで操作でき、EAS Preview Buildと決定的なMaestro主要Flowを再現可能な状態。
 
-## 1. ゴール / 完了条件
+## 1. ゴール
 
-### ゴール
+前半で確定したPlatform別Root Layout、Native Composition Root、SQLite Customer Repository、Session、Seed/Reset、Deep Link、Storefront、Cartを土台として、会員向け主要Flowを完成させる。
 
-前半で確定したNative Runtime、SQLite、Session、Seed/Reset、Storefront、Cartを土台として、会員向け主要Flowを完成させる。Android/iOSの内部検証BuildとMaestroによる決定的なNative E2Eを成立させ、Phase 2を完了する。
+AndroidではMaestro必須Flow、iOSではSimulator上の主要購入Flowを成立させ、EAS Build、Native CI、検証手順まで整備してPhase 2を完了する。
 
-### 完了条件（DoD）
-
-- 前半のPlatform/Repository契約を不要に変更していない。
-- Login、Logout、Session復元、利用停止/退会済みLogin拒否が動作する。
-- Profileと配送先管理が動作する。
-- CartからLoginを経て会員Cartへ統合できる。
-- Checkoutの配送先、支払方法、確認、処理中、完了、失敗、再試行が動作する。
-- Order一覧・詳細・状態表示が動作する。
-- delivered Orderに対するReview投稿・編集・削除が動作する。
-- Seed、Reset、Clock、Payment DelayがNative自動化から利用できる。
-- Maestro主要FlowがAndroidで成功する。
-- iOS Simulatorまたは利用可能なiOS環境で、合意した主要Flowを検証する。
-- Android Preview APKとiOS Simulator/Internal Buildを生成できる。
-- Production相当BuildでTest Controlが無効になる。
-- Native Build/TestのCIまたは手動起動入口が明確である。
-- Web版の既存動作・Web CI・Cloudflare Deploy契約を壊していない。
-- Phase 2の実装・検証・運用Docsが最新化されている。
-- Phase 3へ送る課題が明確になっている。
+画面数を増やすことではなく、WebとNativeで同じ業務契約と失敗状態を決定的に検証できることを優先する。
 
 ## 2. 開始条件
 
-- Phase 2前半PRがmainへマージ済みである。
-- 最新mainで前半のAndroid Build、SQLite Contract Test、Guest購入前Flowが成功する。
-- 前半最終報告に記載された未確認事項と確定契約を確認している。
+次を満たさない場合、この`/goal`を開始しない。
+
+- Phase 2前半PRが`main`へマージ済みである。
+- 最新`main`で前半Gate A〜Gが成功する。
+- Android Preview APKを生成・起動できる。
+- iOS Simulator Buildを生成・起動できる。
+- Android/iOSでGuestの商品探索からCartまで操作できる。
+- SQLite Customer Repository Contract Testが成功する。
 - 前半のCritical/High不具合が残っていない。
-- Android package、iOS bundleIdentifier、EAS Project、Credential方針について、後半実装に必要な判断が完了している。
+- 前半の確定契約と未確認事項がDocsへ記録されている。
+- Maestroを実行できるAndroid環境がある。
+- iOS主要Flowを確認できるSimulatorまたは同等環境がある。
+- EAS TokenをGitHub Actionsで使用するかが決まっている。
+- Native Buildの実行頻度と費用上限が決まっている。
 
-開始条件を満たさない場合、後半へ前半修正を大量に混ぜない。前半の修正が必要なら、理由と影響範囲を先に明示する。
+開始条件を満たさない場合、前半の基盤修正を後半へ大量に混ぜない。前半修正が必要なら、先に影響範囲と修正理由を明示して対応する。
 
-## 3. 現状理解と前提
+## 3. 完了条件（DoD）
 
-### Current understanding
+### Auth・Account
 
-- Domain/Application/Repository ContractはWebとNativeで共通利用する。
-- Native Adminは対象外で、管理操作は引き続きWeb版を使用する。
-- Paymentは外部Gatewayを呼ばない決定的なMockである。
-- Native E2EはPlaywrightではなくMaestroを使用する。
-- Phase 2の配布目的は開発・内部検証であり、Store公開ではない。
+- Login、Logout、Session復元がAndroid/iOSで動作する。
+- `active customer`だけが購入Flowへ進める。
+- `suspended`と`withdrawn`のLogin拒否がWebと同じ意味で動作する。
+- `operator`と`admin`はNative対象外画面へ遷移し、Logoutだけを利用できる。
+- Guest Cartから会員Cartへの統合結果が既存契約と一致する。
+- Profileと配送先の表示、追加、編集、削除、Default変更が動作する。
+- NativeのKeyboard、Safe Area、Back操作、未保存変更保護が成立する。
 
-### Assumptions
+### Checkout・Order・Review
 
-- 前半でNative Bootstrap、SQLite、Session/Crypto基盤、Seed/Reset、Storefront、Cartが完成している。
-- 前半のRepository Contractを後半の都合で変更しない。
-- MaestroからDeep Linkまたは専用Test Control入口を利用してScenarioを初期化する。
-- EAS Development/Preview Buildを主な検証対象とする。
-- Production相当ProfileはBuild契約確認までとし、Store提出は行わない。
+- CartからLoginを経て元のCheckout導線へ復帰できる。
+- Checkoutの配送先、支払方法、確認、処理中、完了が動作する。
+- Payment失敗と同一Orderからの再試行が動作する。
+- Cart Version、価格、在庫の再検証が既存契約と一致する。
+- App再起動とBackground/Foreground後もSessionとCheckout状態が整合する。
+- Order一覧、Order詳細、Payment/Shipment状態表示が動作する。
+- delivered Orderに対するReview投稿、編集、削除が動作する。
+- Review Flowは専用Seed Scenarioから開始し、Native Adminや任意DB書換えを必要としない。
 
-### Non-goals
+### Testability・Automation
+
+- Deep LinkからScenario Reset、Clock、Payment Delayを指定できる。
+- Maestro Flow同士が前回実行状態へ依存しない。
+- Test ID/Accessibility Labelが安定した業務概念へ付与されている。
+- Androidで必須Maestro Flowが連続成功する。
+- iOS SimulatorでLogin、Checkout成功、Order詳細、Payment失敗からの再試行を確認する。
+- iOS Maestroを実行できる場合は主要Flowを実行し、実行できない場合は手動確認結果を記録する。
+
+### Build・CI
+
+- Android Preview APKを生成できる。
+- iOS Simulator Buildを生成できる。
+- `development`と`preview`ではTest Controlが有効である。
+- `production`ではTest ControlのRoute、Handler、UIを利用できない。
+- Native静的検証とTestをPRで実行できる。
+- EAS Buildを`workflow_dispatch`から実行できる。
+- Android/iOSのBuild結果が分離されている。
+- Web CIとCloudflare DeployがNative EAS Build完了待ちにならない。
+- SecretやCredentialがRepository、Bundle、Artifact、Logへ露出していない。
+
+### 回帰・文書
+
+- Web版のFormat、Lint、Typecheck、Test、Build、Playwright主要Flowが成功する。
+- Android/iOSの主要購入Flowが成立する。
+- Critical/Highの既知不具合が残っていない。
+- Phase 2の実装、検証、Build、Maestro、運用手順が最新化されている。
+- Phase 3へ送る課題が整理されている。
+
+## 4. 対象と対象外
+
+### 対象
+
+- Native Auth/Session UI
+- Native対象外Role画面
+- Guest Cart統合
+- Account、Profile、配送先
+- Checkout、Mock Payment、Order、Review
+- Native Validation、Keyboard、Safe Area、Back操作、未保存変更保護
+- Deep Link Test Controlの完成
+- Payment Delay
+- Review用Seed Scenario
+- React Native Testing LibraryによるNative Component Test
+- Maestro主要Flow
+- EAS Development/Preview/Production相当Profile
+- Android Preview APK
+- iOS Simulator Build
+- GitHub ActionsのNative静的検証と手動EAS Build入口
+- Native開発・Build・検証手順
+
+### 対象外
 
 - Native Admin
 - Store公開、EAS Submit
@@ -68,100 +115,141 @@
 - Cancel、Return、Refund
 - Audit Log
 - Payment timeout/unknown、Reconciliation
-- Migration Recovery、Crash Point
-- Phase 3の障害・運用教材
+- Migration Recovery、Crash Point、Integrity Check
+- App Store/Google Play Release Gate
+- Phase 3機能
 
-## 4. 影響範囲
+## 5. 前半から維持する契約
 
-### 主な確認対象
+後半の都合で次を不要に変更しない。
 
-- 前半で追加されたNative Bootstrap/Adapter/SQLite実装
-- `app/`のAuth、Account、Checkout、Order、Review Route
-- `src/application/use-cases/`
-- `src/presentation/pages/`
-- `src/presentation/guards/`
-- `src/infrastructure/session/`
-- `src/infrastructure/payment/`
-- `src/seeds/`
-- `src/test-controls/`
-- `eas.json`
-- `app.config.ts`
-- Maestro Flow格納先
-- GitHub Actions Workflow
-- README、PROJECT_CONTEXT、Native運用Docs
+- Platform別Root LayoutとShell
+- Native Composition Rootの注入構造
+- SQLite Schema Version
+- Customer Repository InterfaceとTransaction境界
+- Session ID、Guest ID、Password Hashの保存形式
+- Native Asset Map形式
+- Deep Link Test Controlの基本形式
+- Stable Test ID規約
+- EAS Development/Previewの基本Profile
 
-### 変更候補
+変更が避けられない場合は、実装前に次を記録する。
 
-- Native Auth/Session UI
-- Native Account/Profile/Address UI
-- Native Checkout/Payment/Order/Review UI
-- Native Navigation/Focus/Keyboard/Safe Area補正
-- Test Control Deep LinkまたはAutomation入口
-- Maestro FlowとHelper
-- EAS Profileの完成
-- Native Build/Test用CIまたは手動Workflow
-- Native開発・検証手順
-- Phase 2完了ADR/Docs
+- 変更が必要な具体的理由
+- 前半で予測できなかった根拠
+- Web、SQLite、Android、iOS、Testへの影響
+- Migrationが不要である根拠、またはPhase 2内で扱える最小対応
+- ADRと回帰Test
 
-## 5. 実装方針
+## 6. 実装方針
 
-### 5.1 Auth・Session
+### 6.1 Auth・Session
 
 - 固定Accountと既存Auth Use Caseを再利用する。
-- active customerだけが購入Flowへ進める既存契約を維持する。
-- operator/adminはNative管理画面へ遷移させず、Native対象外であることを明確に表示または安全なRouteへ戻す。
-- suspended/withdrawnのLogin拒否をWebと同じ意味で実装する。
+- active customerだけが購入Flowへ進める。
+- suspended/withdrawnのLogin拒否をWebと同じApplication Errorで扱う。
+- operator/adminはNative対象外画面へ遷移させ、管理機能を追加しない。
 - App再起動後のSession復元を確認する。
-- Guest Cartと会員Cartの統合、完全除外、部分調整、Checkout無効化を既存契約どおり処理する。
+- Guest Cart統合は既存Application Use Caseを利用する。
+- Cart統合の完全統合、数量調整、除外、Checkout無効化を既存契約どおり表示する。
 
-### 5.2 Account・配送先
+### 6.2 Account・配送先
 
 - Profile表示・編集をNativeで操作可能にする。
 - 配送先の追加、編集、削除、Default変更を実装する。
-- 入力Validation、Error Summary相当、Keyboard、Safe Area、Scroll、Back操作をNative向けに確認する。
-- 未保存変更保護はNative Navigationに適した方法で実装し、Web実装をそのままコピーしない。
+- Validation Messageの意味をWebと一致させる。
+- NativeではKeyboard Avoidance、Scroll、Safe Area、Back操作を確認する。
+- 未保存変更保護はNative Navigationへ適合させ、Web DOM Eventを流用しない。
 
-### 5.3 Checkout・Payment
+### 6.3 Checkout・Payment
 
-対象Flow:
+必須Flow:
 
 1. CartからCheckout開始
-2. 未Login時のLogin誘導と復帰
-3. 配送先選択
-4. 支払方法選択
-5. 注文確認
-6. Payment処理中
-7. 注文完了
-8. Payment失敗
-9. 同一Orderから再試行
-10. App再起動時の処理中/再開契約
+2. 未Login時のLogin誘導
+3. Login成功後に元のCheckoutへ復帰
+4. 配送先選択
+5. 支払方法選択
+6. 注文確認
+7. Payment処理中
+8. 注文完了
+9. Payment失敗
+10. 同一Orderから再試行
+11. App再起動時のSession/Checkout復元
+12. Background/Foreground復帰
 
-既存のCart Version、価格・在庫再検証、Checkout Session再開/破棄、Payment冪等性、Order Snapshot、在庫減算を変更しない。
+次の既存契約を変更しない。
 
-Native UIでは、処理中の二重送信、戻る操作、Background/Foreground復帰を確認する。ただし高度なCrash RecoveryはPhase 3へ送る。
+- Cart Version
+- 価格・在庫再検証
+- Checkout Session start/resume/abandon
+- Payment冪等性
+- Order/Order Item Snapshot
+- 在庫減算
+- Payment失敗後の同一Order再試行
 
-### 5.4 Order・Review
+二重送信と戻る操作を防ぎつつ、高度なCrash RecoveryはPhase 3へ送る。
+
+### 6.4 Order・Review
 
 - Order一覧と詳細を実装する。
-- Order、Payment、Shipmentの組合せから既存Presentation文言を表示する。
-- 商品・価格・画像・配送先Snapshotを利用する。
+- Order、Payment、Shipmentの既存状態から表示文言を決定する。
+- 商品、価格、画像、配送先Snapshotを利用する。
 - delivered Orderの商品だけReview可能とする。
-- Review投稿、編集、削除、非公開/削除済み表示を既存Customer DTO契約どおり実装する。
-- Nativeから管理操作は行わない。
+- Review投稿、編集、削除、非公開/削除済み状態を既存契約どおり表示する。
+- NativeからOrder状態変更やReview管理操作を行わない。
 
-### 5.5 Native Test Control
+Review Automationは次の固定方式とする。
 
-- Maestroから決定的なScenarioへResetできる入口を提供する。
-- Deep Linkまたは起動引数を第一候補とし、任意DB書換えAPIを追加しない。
-- ClockとPayment Delayを設定できる。
-- Test Control UIを用意する場合もDevelopment/Previewだけで有効にする。
-- Production相当Profileで入口がBundle/Runtimeから無効であることをTestする。
+- delivered OrderとReview未投稿Order Itemを持つ専用Seed Scenarioを追加または既存Scenarioから選定する。
+- Deep Link ResetでScenarioを選択する。
+- SQLite直接更新Helperを作らない。
+- 任意DB変更Test APIを追加しない。
+- Review Eligibilityを弱めない。
 
-### 5.6 Maestro
+### 6.5 Native Test Control
 
-主要Flowを絞り、Web E2E全件を機械的に移植しない。
+Deep Linkを唯一の外部Automation入口とする。
 
-必須候補:
+許可操作:
+
+- Scenario Reset
+- Clock設定/解除
+- Payment Delay設定
+
+禁止操作:
+
+- 任意Entity作成・更新
+- 任意SQL実行
+- 任意Status変更
+- Review Eligibilityの迂回
+
+Development/Previewだけで有効にし、Production相当ProfileではRoute、Handler、UIのいずれからも利用できないことをTestする。
+
+### 6.6 Native Component Test
+
+React Native Testing Libraryを使用する。
+
+最低限の対象:
+
+- Login成功/拒否表示
+- Role対象外画面
+- Guest Cart統合Notice
+- Profile/Address Validation
+- Checkout StepとButton状態
+- Payment Processing/Failure
+- Order Empty/List/Detail
+- Review EligibilityとForm
+- Keyboard/Backに関するPlatform非依存挙動
+- Accessibility Label/Test ID
+
+Domain、Application、SQLiteはVitestを継続する。
+
+### 6.7 Maestro
+
+Web Playwright全件を機械的に移植しない。Nativeで学習価値が高く、Platform統合を検証できるFlowへ限定する。
+
+Android必須Flow:
 
 1. Guestの商品閲覧とCart操作
 2. LoginとGuest Cart統合
@@ -170,66 +258,132 @@ Native UIでは、処理中の二重送信、戻る操作、Background/Foregroun
 5. App再起動後のSession/Checkout復元
 6. delivered OrderへのReview投稿
 
-必要に応じて、Android/iOS差分をFlow内条件またはPlatform別Flowへ分離する。座標依存を避け、Accessibility Label/Test IDを適切に使用する。
+原則:
 
-### 5.7 EAS Build・内部配布
+- 各Flowの先頭でDeep Link Resetを実行する。
+- 前回Flowの状態へ依存しない。
+- 座標Tapを避ける。
+- Stable Test IDまたはAccessibility Labelを使用する。
+- 表示文言だけへ過度に依存しない。
+- RetryでFlakyを隠さない。
+- 同じFlowを複数回連続実行して安定性を確認する。
 
-推奨Profile:
+iOSでは利用可能なら同じ主要FlowをMaestroで確認する。Maestroを実行できない場合も、SimulatorでLogin、Checkout成功、Order詳細、Payment失敗からの再試行を手動確認する。
+
+### 6.8 EAS Build
+
+固定Profile:
 
 - `development`: Development Client、Test Control有効
-- `preview`: 内部検証、Test Control有効、Android APK、iOS Simulator/Internal
-- `production`: Test Control無効、Store提出は行わない
+- `preview`: 内部検証、Test Control有効、Android APK、iOS Simulator Build
+- `production`: Test Control無効、Store提出なし
 
 実施内容:
 
 - Android Preview APK生成
-- iOS Simulatorまたは合意した内部Build生成
+- iOS Simulator Build生成
 - Build Metadata確認
+- App Version、Schema Version、Seed Version、Build SHA確認
 - CredentialとSecretの管理手順
-- Build URL/Artifactの確認方法
-- Local BuildとCloud Buildの使い分け
+- Build URL/Artifact確認手順
+- Local BuildとEAS Cloud Buildの使い分け
+- Production相当ProfileのTest Control無効化検証
 
-### 5.8 CI
+### 6.9 CI
 
-Native BuildはWeb CIへ無条件で毎回追加しない。EAS費用と実行時間を考慮し、次のいずれかを現状に合わせて選択する。
+Native BuildはWeb CIへ無条件で追加しない。
 
-- PRではTypecheck/Unit/ContractとNative静的検証、mainまたは手動でEAS Build
-- Native関連Path変更時だけMaestro/Buildを実行
-- Scheduledまたはworkflow_dispatchでAndroid/iOS Buildを実行
+固定方針:
 
-CI設計では次を守る。
+- Pull Request
+  - Format
+  - Lint
+  - Typecheck
+  - Unit/Application/Repository Contract
+  - Native Component Test
+  - Native Bundle/Config静的検証
+  - Web既存CI
+- `workflow_dispatch`
+  - Android EAS Preview Build
+  - iOS EAS Simulator Build
+  - 必要に応じたAndroid Maestro
+- Web Cloudflare Deploy
+  - Native EAS Buildへ依存させない
 
-- Web CIとCloudflare Deployを不必要に待たせない。
-- EAS TokenなどをRepositoryへ保存しない。
-- Build未実行を成功済みと誤表示しない。
-- Android/iOS結果を分離する。
-- EASの外部非同期Build完了待ちをWorkflowで扱う場合、Timeoutと失敗判定を明確にする。
+CIでは次を守る。
 
-## 6. 実施順序
+- Android/iOS Jobと結果を分ける。
+- Build未実行を成功済みと表示しない。
+- EAS TokenをRepositoryへ保存しない。
+- SecretをLogへ出力しない。
+- 外部Build完了待ちにはTimeoutと失敗判定を設定する。
+- 同一Branchの不要な重複Buildを抑制する。
 
-1. 最新mainと前半成果の再調査
-2. 後半Scopeと前半確定契約の確認
-3. Auth/Session/Cart統合
-4. Account/Profile/Address
-5. Checkout/Payment
-6. Order
-7. Review
-8. Test Control/Deep Link
-9. Android Maestro主要Flow
-10. iOS Maestroまたは同等実操作確認
-11. EAS Development/Preview/Production相当Profile確認
-12. Native CI/手動Workflow
-13. Android/iOS総合回帰
-14. Web総合回帰
-15. 自己レビューとCritical/High修正
-16. Docs、ADR、Run Artifact更新
-17. Phase 2完了判定
+## 7. Test Scenario割当
 
-この順序は一つの後半計画内の作業順であり、別フェーズや別PRへ細分化しない。
+各主要Flowは開始状態をSeed名で説明できるようにする。
 
-## 7. 検証方法
+最低限必要なScenario:
 
-### Application/Repository
+- active customerのLogin
+- suspended/withdrawnのLogin拒否
+- Guest Cart統合
+- Checkout成功
+- Payment失敗
+- Payment処理中/Checkout再開
+- Cart Version不一致
+- delivered Order＋Review未投稿
+- Order/Review Empty
+
+既存Scenarioで不足する場合だけ追加する。WebとNativeで同じScenario名と意味を維持する。
+
+## 8. 内部品質ゲート
+
+これらは別フェーズや別PRではない。同一`/goal`内で順番に通過する。Gateが失敗している状態で次へ進まない。
+
+| Gate | 到達条件 |
+|---|---|
+| A: Auth | Login、拒否、Session復元、Role対象外、Guest Cart統合がAndroid/iOSで成立する |
+| B: Account | ProfileとAddress CRUD、Validation、Back/未保存変更保護が成立する |
+| C: Purchase | Checkout成功、Payment失敗/再試行、Order一覧/詳細が成立する |
+| D: Review | 専用SeedからReview投稿/編集/削除が成立する |
+| E: Automation | Deep Link ResetとAndroid Maestro必須Flowが連続成功する |
+| F: Build/CI | EAS Profile、Android/iOS Build、Production Test Control無効化、手動Workflowが成立する |
+| G: 最終回帰 | Android/iOS主要Flow、全Native Test、Web Test/Build/Playwrightが成功する |
+
+各Gate終了時にRun Artifactへ次を記録する。
+
+- 使用Scenario
+- 実施内容
+- 成功した検証
+- 失敗と修正
+- Android/iOS差分
+- 未確認事項
+- 次Gateへ進める根拠
+
+## 9. 実施順序
+
+1. 最新`main`と前半成果の再調査
+2. 開始条件と前半確定契約の確認
+3. 後半詳細計画とScenario割当の確定
+4. Gate A: Auth、Session、Role対象外、Guest Cart統合
+5. Gate B: Account、Profile、Address
+6. Gate C: Checkout、Payment、Order
+7. Gate D: Reviewと専用Seed
+8. Native Component Test拡充
+9. Deep Link Test ControlとPayment Delay完成
+10. Gate E: Android Maestro必須Flow
+11. iOS主要FlowのMaestroまたは手動確認
+12. Gate F: EAS Profile、Android/iOS Build、Native手動Workflow
+13. Gate G: Android/iOS/Web総合回帰
+14. 自己レビューとCritical/High修正
+15. Docs、ADR、Run Artifact、Phase 3課題更新
+16. Phase 2完了判定
+17. 停止してユーザーへ報告
+
+## 10. 検証方法
+
+### Application/SQLite
 
 - Auth成功・拒否
 - Guest Cart統合
@@ -245,11 +399,12 @@ CI設計では次を守る。
 
 ### Native UI
 
-Android/iOSで次を確認する。
+Android/iOSで確認する。
 
 - Login/Logout
+- Role対象外
 - Keyboard、Scroll、Safe Area
-- Back操作
+- Back操作と未保存変更
 - Session復元
 - Guest Cart統合Notice
 - Checkout各Step
@@ -258,25 +413,25 @@ Android/iOSで次を確認する。
 - Order一覧/詳細
 - Review投稿/編集/削除
 - App再起動とForeground復帰
-- Error/Empty/Loading状態
+- Error/Empty/Loading
 
 ### Maestro
 
-- Scenario Resetから開始できる。
+- Deep Link Resetから開始する。
 - Flow同士が前回状態へ依存しない。
-- Test ID/Accessibility Labelが安定している。
+- Stable Test ID/Accessibility Labelを使用する。
 - Android必須Flowが連続成功する。
-- iOSは実行可能環境で主要Flowを確認し、未実行項目を明示する。
+- Flaky時にRetryだけで解決しない。
 
-### Build
+### Build/Security
 
 - Development Build
 - Android Preview APK
-- iOS Simulator/Internal Build
+- iOS Simulator Build
 - Production相当Build設定
-- Test ControlのProfile別公開条件
+- Profile別Test Control公開条件
 - Build Metadata
-- Secret非混入
+- Secret/Credential非混入
 
 ### Web回帰
 
@@ -285,61 +440,53 @@ Android/iOSで次を確認する。
 - Web Build
 - Playwright主要Flow
 - Cloudflare用Production Build契約
-- Test API公開条件
+- Web Test API公開条件
 
-## 8. リスクと対応
+## 11. 成果物
 
-| リスク | 対応 |
-|---|---|
-| 後半で前半基盤を大きく変更 | 前半確定契約を開始時に明文化し、変更時は理由と影響を記録する |
-| Native UI実装がWeb仕様を変える | Domain/Application契約を正本とし、PresentationだけPlatform適応する |
-| Maestroが座標・文言へ過度依存 | Test ID/Accessibility LabelとScenario Resetを使う |
-| EAS Build費用・時間増大 | PR必須範囲を絞り、main/手動/Path条件を使う |
-| iOS確認不足 | Build、起動、操作、Maestroを別々に記録する |
-| Background復帰でPayment不整合 | 既存冪等性を利用し、高度Crash RecoveryはPhase 3へ送る |
-| Native CIがWeb Deployを阻害 | Workflow/Job依存を分離する |
-| Scope拡大 | Password変更、退会、Guest Checkout、返品・返金を追加しない |
-
-## 9. 成果物
-
-- Native Auth/Session/Account UI
+- Native Auth/Session/Role対象外UI
+- Native Account/Profile/Address UI
 - Native Checkout/Payment/Order/Review UI
-- Native Test Control/Deep Link
-- Maestro主要Flow
+- Review用Seed Scenario
+- Native Component Test
+- Deep Link Test ControlとPayment Delay
+- Android Maestro必須Flow
 - EAS Build Profile完成
-- Android APKとiOS検証Build
-- Native CIまたは手動実行Workflow
+- Android Preview APK
+- iOS Simulator Build
+- Native静的検証と手動EAS Build Workflow
 - Native開発・Build・検証手順
 - Phase 2完了ADR
 - 更新済みREADME/PROJECT_CONTEXT
-- 履歴文書
-- Run Artifact
+- 履歴文書とRun Artifact
 - Phase 3へ送る課題一覧
 
-## 10. Phase 2最終完了判定
+## 12. Phase 2最終完了判定
 
-次を区別して報告する。
+次を分けて報告する。
 
 ### コード上の完了
 
-- Android/iOS共通コード
-- SQLite
-- 購入者Flow
+- Android/iOS共通Domain/Application契約
+- SQLite Customer Adapter
+- Native購入者Flow
+- Native Component Test
 - Maestro Flow
 - EAS/CI設定
-- Test
+- Test Control
 - Docs
 
 ### 実環境での完了
 
 - Android Build
-- Android起動・操作
+- Android起動・主要操作
 - Android Maestro
-- iOS Build
-- iOS起動・操作
-- iOS Maestroまたは合意した代替確認
-- 内部配布確認
+- iOS Simulator Build
+- iOS起動・商品探索・Cart
+- iOS Login・Checkout成功・Order詳細
+- iOS Payment失敗・再試行
+- 内部Build確認
 
-実行していない項目をPASSとしない。外部環境不足で残った項目は、Phase 2の未完了または明示的に合意された運用上の残課題として記録する。
+実行していない項目をPASSとしない。iOS実環境検証が不足する場合、Phase 2を完全完了とせず「コード完了・iOS検証未完了」と記録する。
 
-Phase 2完了後も、Phase 3実装へ自動で進まない。最終報告でPhase 3候補と優先度を提示して停止する。
+Phase 2完了後もPhase 3へ自動で進まない。最終報告でPhase 3候補、優先度、依存関係を提示して停止する。
