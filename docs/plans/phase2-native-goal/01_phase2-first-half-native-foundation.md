@@ -14,27 +14,26 @@
 6. 本書
 7. `docs/future/phase2/`は参考資料としてのみ使用
 
-Run開始時にタイムスタンプ付きRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateとDoDをRun Taskへ展開します。
+Run開始時にタイムスタンプ付きRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateとDoDをRun Taskへ展開します。矛盾時はMaster Planを優先します。
 
 ## 1. ゴール
 
 最新Web実装のDomain、Application Use Case、業務ルール、DTO、Validation、Seedの意味を再利用し、次を完成させます。
 
 - Web/Nativeで分離されたRoute、Root Layout、Shell、Composition Root
-- Customer/Adminを分離したRepository Capability
+- Customer/Adminを分離したRepository CapabilityとTransaction Scope
 - Application層からInfrastructure具象型への直接依存除去
 - Native用`expo-sqlite` Customer Adapter
 - 実Android/iOS Runtimeで動くRepository Contract Test Harness
 - Web互換PBKDF2 Password Hasher
 - Native Session、Guest Identity、Seed、Reset、Test Clock
-- Deep Link Test Control
+- Deep Link Test Control Protocol Version 1
 - Native商品Asset Map
 - Android/iOS向けHome、商品一覧、検索、Category、商品詳細、Cart
 - Android Preview APKとiOS Simulator Build
+- Native Build/Testを実行するEAS Workflowsの前半基盤
 
 前半完了時には、Android/iOSでGuestが固定Seedの商品を探索し、商品詳細を確認し、Cartへ追加・変更・削除できる状態にします。
-
-Native画面の完成だけを目的にしません。WebとNativeで同じApplication結果を確認でき、SeedとResetで状態を決定的に再現できる学習用SUTにします。
 
 ## 2. 開始条件
 
@@ -49,27 +48,35 @@ Native画面の完成だけを目的にしません。WebとNativeで同じAppli
 - iOS Simulator Buildを生成、インストール、起動する方法が決まっている。
 - SecretとCredentialをRepositoryへ保存しない運用が決まっている。
 - `expo-dev-client`とNative Crypto Moduleの導入を許容している。
+- EAS Workflowsを利用できるか、利用不能時のAndroid/iOS実行環境が決まっている。
+- Native Buildの費用上限と実行頻度が決まっている。
 
-開始時にExpo SDK、Expo Router、`expo-sqlite`、EAS CLI、`react-native-quick-crypto`の公式または一次資料を確認します。Master Planの既定方針を変更する必要がある場合は、コード変更前に技術的根拠と影響をADRへ記録します。
+開始時にExpo SDK 57、Expo Router、`expo-sqlite`、EAS Workflows、`react-native-quick-crypto`の一次資料を確認します。既定方針を変更する必要がある場合は、コード変更前にADRへ記録します。
 
 ## 3. 完了条件（DoD）
 
-### 3.1 Architecture
+### 3.1 Route / Presentation
 
-- `app/_layout.web.tsx`と`app/_layout.native.tsx`が存在する。
-- Web ShellとNative Shellが分離されている。
+- Native標準Root Layoutとして`app/_layout.tsx`が存在する。
+- Web専用Root Layoutとして`app/_layout.web.tsx`が存在する。
+- `app/_layout.native.tsx`を必須構成としていない。
 - 全`app/` RouteがRoute Inventoryへ分類されている。
 - Route Fileは薄いWrapperで、Platform別Screen Moduleを呼び出す。
 - Native Route ModuleがWeb専用Screen ModuleをImportしていない。
 - Native BundleがCSS、DOM、React Aria、Dexie、Browser Storage、Browser Test API、`*.web.ts(x)`へ依存していない。
-- Nativeで`/admin/*`へ遷移してもWeb ModuleをLoadせず、対象外画面または安全なRedirectになる。
+- Nativeで`/admin/*`へ遷移してもWeb ModuleをLoadしない。
 - Webの既存URL契約が維持されている。
-- Web用Composition RootとNative用Composition Rootが分離されている。
-- Native Composition RootはCustomer Use Caseだけを生成する。
-- Application Use CaseとIdentity ResolverからInfrastructure具象Importが除去されている。
-- Architecture TestまたはStatic CheckがApplication→Infrastructure直接依存を検出する。
+- Native後半対象Routeは安全な準備中/対象外画面を返し、Web ModuleをImportしない。
 
-### 3.2 Repository Capability
+### 3.2 Dependency Direction
+
+- `src/application/**`から`src/infrastructure/**`への直接Importが除去されている。
+- `src/domain/**`からApplication/Infrastructureへの逆依存がない。
+- Use Case Constructorが具象Databaseを受け取らない。
+- `SessionIdentityResolver`を含むIdentity解決がRepository Capabilityへ依存する。
+- Architecture TestまたはStatic Checkが依存違反を検出する。
+
+### 3.3 Repository Capability
 
 - Customer/Adminが混在するRepository Interfaceが必要なCapabilityへ分離されている。
 - Customer Use CaseはCustomer Capabilityだけへ依存する。
@@ -77,68 +84,101 @@ Native画面の完成だけを目的にしません。WebとNativeで同じAppli
 - Web Dexie Adapterは既存Customer/Admin機能を維持している。
 - Interface分離によってDomainルール、Application Error、DTOの意味が変わっていない。
 
-最低限、次の責務が分離されていること。
+最低限、次が分離されていること。
 
-- Customer UserとAdmin User Search/Management
+- Customer User/AuthとAdmin User Search/Management
 - Customer Product ReadとAdmin Product Mutation
-- Customer Inventory Read/Order更新とAdmin Inventory Management
+- Customer Inventory Read/Order MutationとAdmin Inventory Management
 - Customer ReviewとAdmin Review Moderation
 
-### 3.3 SQLite
+### 3.4 Transaction Scope
+
+- `CustomerTransactionScopeMap`と`AdminTransactionScopeMap`、または同等の型境界がある。
+- Native Composition RootはCustomer Transaction Runnerだけを生成する。
+- Native側にAdmin Transaction Scopeのダミー実装がない。
+- Customer Use CaseがAdmin Scopeを参照しない。
+- Web側はCustomer/Admin双方の既存操作を維持する。
+- Architecture/Type TestがScope境界を検証する。
+
+### 3.5 Transaction Runner
+
+- SQLite書込みは`withExclusiveTransactionAsync()`を使用する。
+- Transaction内のQueryはTransaction Objectだけで実行される。
+- Transaction RepositoryをCallback外へ持ち出さない。
+- Callback結果はCommit成功後だけApplicationへ返る。
+- Commit失敗時にCallback結果を返さない。
+- 正当な`undefined`と未完了を区別する。
+- Mutation QueueとLock待機に上限がある。
+- 非冪等Mutationを自動Retryしない。
+- `database is locked`を無限Retryしない。
+
+### 3.6 SQLite
 
 - `expo-sqlite`を利用している。
 - `android/`と`ios/`がRepositoryへCommitされていない。
 - Native購入者版の最終Flowに必要なTable、Index、Constraintが前半で作成されている。
 - Customer Repository CapabilityがSQLite Adapterで実装されている。
 - Admin専用QueryとAdmin Use CaseをNative Composition Rootへ組み込んでいない。
-- `withExclusiveTransactionAsync()`を使用している。
-- Transaction内のQueryはTransaction Objectだけで実行される。
 - Commit/Rollback、Unique、Foreign Key、Version Conflict、Sort、Page、Facet、Snapshotが検証されている。
-- Mutation同時実行の直列化方針が実装されている。
-- `database is locked`を無限Retryしない。
 - WebとNativeのSchema Versionが分離されている。
-- 後半でSchemaとCustomer Repository Interfaceを原則変更せず利用できる。
+- 後半でSchemaとCustomer Capabilityを原則変更せず利用できる。
 
-### 3.4 Repository Contract Test
+### 3.7 Repository Contract Test
 
 - Adapter Factoryを受け取るCustomer Repository共通Contract Suiteがある。
 - DexieとSQLiteで同じFixture、Seed、期待値を利用する。
 - Dexie SuiteはVitestで成功する。
 - SQLiteのSchema/Mapper/SQL TestはNode/PRで成功する。
-- 実SQLite Contract SuiteはAndroid Development/Preview Buildで成功する。
+- 実SQLite Contract SuiteはAndroid Build上で成功する。
 - iOS Simulatorでも実SQLiteの主要Contract Smokeが成功する。
 - MockやNode代替結果を実SQLite成功として記録していない。
 - Platform差がある場合は除外表と根拠がある。
 
-### 3.5 Password Hash
+### 3.8 Password Hash / Crypto隔離
 
-- Native Password Hasherが`react-native-quick-crypto`で実装されている。
+- `password-hasher.web.ts`が既存Web Crypto APIを維持している。
+- `password-hasher.native.ts`がNative CryptoのPBKDF2 APIだけを直接利用している。
+- Encoded Format ParserとTest VectorがPlatform非依存Moduleに分離されている。
+- `react-native-quick-crypto`が共有Entry PointへImportされていない。
+- Global `install()`とMetro全体の`crypto` Aliasを原則使用していない。
+- Config Plugin、Autolinking、Native Dependencyが正しく設定されている。
+- `expo-doctor`が成功する。
+- Web BundleへNative Cryptoが混入していない。
 - 次の既存形式を維持している。
   - `pbkdf2-sha256`
   - 210,000 iterations
   - 16-byte salt
   - 32-byte hash
-  - 既存Base64 encoded format
+  - 既存Base64形式
 - Web/Android/iOSの固定Test Vectorが成功する。
 - 既存Seed HashをAndroid/iOSでVerifyできる。
 - Android/iOSで生成したHashをWebでVerifyできる。
-- Hash/Verify時間をAndroid/iOSで計測し、操作不能にならない。
-- 互換実装が成立しない場合、Hash形式を変更せずGoalをBlockしている。
+- Hash/Verify性能が操作不能な水準ではない。
 
-### 3.6 Testability
+### 3.9 Testability
 
 - 既存Scenarioの意味を維持してNative SQLiteへSeedできる。
 - Reset時にDatabase、Session、Guest Identity、Clock、Payment Delayが決定的に初期化される。
-- Test Control Deep Link Protocol Version 1が実装されている。
+- Test Control Protocol Version 1が実装されている。
 - Scenario Allowlist、ISO Clock、Payment Delay上限がValidationされる。
 - Reset処理がMutexで直列化される。
 - 二重Requestが明示的に拒否される。
 - Reset完了後にScenario既定Routeへ移動する。
 - `test-runtime-ready`と`test-runtime-error`のStable Test IDがある。
 - Arbitrary SQL、任意Entity更新、任意Status変更が追加されていない。
-- Production-validation BuildでTest Controlを利用できない。
+- Production-validationでTest Control Deep Link、Service、UI、Handlerを利用できない。
 
-### 3.7 Guest購入前Flow
+### 3.10 Native Contract Harness
+
+- Development/Preview専用のHarness画面またはRouteがある。
+- Harnessは状態変更APIではなく、定義済みContract Suiteの実行入口である。
+- MaestroからUI操作で実行できる。
+- Arbitrary SQLや任意Test選択を許可しない。
+- `native-contract-running`、`native-contract-passed`、`native-contract-failed`がある。
+- Failure時にSuite名と非機密Error Codeを表示する。
+- Production-validationではHarnessを利用できない。
+
+### 3.11 Guest購入前Flow
 
 Android/iOSで次が動作する。
 
@@ -160,9 +200,9 @@ Android/iOSで次が動作する。
 - Not Found
 - App再起動後のGuest IdentityとCart復元
 
-Empty、Not Found、在庫切れ、購入上限、価格変更などの主要状態をSeedで決定的に再現できます。
+主要状態をSeedで決定的に再現できます。
 
-### 3.8 Asset
+### 3.12 Asset
 
 - Native Asset MapがBuild Scriptで生成される。
 - Asset Mapは静的`require`または静的Importを含む。
@@ -171,14 +211,16 @@ Empty、Not Found、在庫切れ、購入上限、価格変更などの主要状
 - PlaceholderがNative Bundleへ同梱されている。
 - Product/Order Snapshot PathとNative Image Sourceが分離されている。
 
-### 3.9 Build/Test
+### 3.13 Build / CI
 
 - `expo-dev-client`が導入されている。
 - Development/Preview/Production-validation ProfileがMaster Planどおり定義されている。
+- `.eas/workflows/`に前半用Build/Test Workflowがある。
 - Android Preview APKを生成、インストール、起動できる。
 - AndroidでHomeからCartまで操作できる。
 - iOS Simulator Buildを生成、インストール、起動できる。
 - iOS SimulatorでHomeからCart追加まで操作できる。
+- EAS Workflowsまたは明示した代替実行環境で実SQLite Harnessを実行できる。
 - React Native Testing LibraryのNative Component Testが成功する。
 - Web Format、Lint、Typecheck、Unit、Integration、Repository、Component、Contract、Build、Playwright主要Flowが成功する。
 - Critical/Highの既知不具合が残っていない。
@@ -186,9 +228,11 @@ Empty、Not Found、在庫切れ、購入上限、価格変更などの主要状
 ## 4. 対象
 
 - Route InventoryとPlatform Route分離
-- Platform別Root Layout、Shell、Screen Module
+- `app/_layout.tsx`と`app/_layout.web.tsx`
+- Platform別Shell/Screen Module
 - Application/Infrastructure依存方向修正
 - Repository Capability分離
+- Customer/Admin Transaction Scope分離
 - Web/Native Composition Root
 - Native Session、Guest Identity、Password Hash、ID、Clock、Notice、Reload相当
 - `expo-sqlite` Adapter
@@ -201,6 +245,7 @@ Empty、Not Found、在庫切れ、購入上限、価格変更などの主要状
 - Native対象外Role画面
 - React Native Testing Library
 - EAS Development/Preview/Production-validation初期設定
+- 前半用EAS Workflow
 - Android Preview APK
 - iOS Simulator Build
 - ADR、PROJECT_CONTEXT、Native設計・検証文書
@@ -210,10 +255,9 @@ Empty、Not Found、在庫切れ、購入上限、価格変更などの主要状
 - Login UIの完成
 - Account、Profile、配送先UI
 - Checkout、Payment、Order、Review UI
-- Maestro本格Flow
-- Native CI完成
-- Native Admin
+- 業務FlowのMaestro本格実装
 - Store公開、EAS Submit
+- Native Admin
 - Password変更、退会、Guest Checkout
 - Cancel、Return、Refund
 - Migration Recovery、Crash Point、Phase 3機能
@@ -228,12 +272,14 @@ Empty、Not Found、在庫切れ、購入上限、価格変更などの主要状
 | Route | Web | Native前半 | Native後半 | Native対象外 | Wrapper方式 | 備考 |
 |---|---:|---:|---:|---:|---|---|
 
-実装規則:
+規則:
 
+- `app/_layout.tsx`をNative標準Root Layoutとする。
+- `app/_layout.web.tsx`をWeb専用Root Layoutとする。
 - Route Fileへ業務ロジックを置かない。
-- Web専用Routeは`.web.tsx`またはWeb Screen Moduleだけを参照する。
+- Web専用RouteはWeb Screen Moduleだけを参照する。
 - Native RouteはNative Screen Moduleだけを参照する。
-- Native後半対象Routeは前半で安全な準備中/対象外画面を返してよいが、Web ModuleをImportしない。
+- Native後半対象Routeは安全な準備中/対象外画面を返す。
 - Admin RouteはNative対象外画面かRedirectとする。
 - Not FoundとDeep Link失敗時の復帰先を定義する。
 
@@ -249,18 +295,11 @@ Native Screen -> *.web.ts(x)
 Native Screen -> Dexie/Browser API
 ```
 
-Application Constructorへ具象Databaseを渡さず、必要なRepository Capabilityを個別またはまとまりのあるDependency Objectで渡します。
+Application Constructorへ具象Databaseを渡さず、必要なCapabilityとPortを渡します。
 
-過剰な小粒Interface乱立を避けます。分離基準は次です。
+### 6.3 Repository Capability
 
-- CustomerとAdminの責務が異なる
-- Nativeで実装不要なMethodを要求している
-- Transaction境界が異なる
-- Read Modelが異なる
-
-### 6.3 Customer Repository Capability
-
-最低限必要なCapability:
+最低限必要なCustomer Capability:
 
 - Customer User/Auth
 - Session
@@ -278,13 +317,28 @@ Application Constructorへ具象Databaseを渡さず、必要なRepository Capab
 - Review Summary
 - Settings/Test Metadata/Test Inspection
 
-ProductやInventoryのEntity RepositoryをAdminと完全に二重化するのではなく、Customer Use Caseが必要なMethodを独立Capabilityとして提供します。
-
 Web Dexieは既存Admin機能を維持しつつ、新しいCapabilityへ適合させます。
 
-### 6.4 SQLite Schema
+### 6.4 Transaction Scope
 
-最新TypeScript Domain/Repository Contractを正とし、`docs/future/phase2/sqlite_schema.md`は参考に留めます。
+Customer/Admin Scopeを分離し、Native RunnerへCustomer Scopeだけを注入します。
+
+Customer側の最低対象:
+
+- register-and-merge-cart
+- login-and-merge-cart
+- cart-mutation
+- merge-guest-cart
+- start-checkout
+- create-order
+- finalize-payment-success
+- finalize-payment-failure
+- retry-payment
+- review-change
+
+Shipmentの管理操作などAdmin/Operation ScopeはNative Runnerへ含めません。
+
+### 6.5 SQLite Schema
 
 必須Table:
 
@@ -312,20 +366,18 @@ Web Dexieは既存Admin機能を維持しつつ、新しいCapabilityへ適合�
 - app_settings
 - schema_metadata
 
-必須方針:
+方針:
 
 - Foreign Keyを明示する。
 - Unique制約をDexie契約と同じ意味にする。
 - Booleanは0/1へMapperで変換する。
 - DateはISO stringへ統一する。
-- JSON保存対象を限定し、Mapperへ閉じ込める。
+- JSON保存対象を限定する。
 - Enum値をValidationする。
 - QueryのSort tie-breakを固定する。
 - Paginationは安定Sortを前提とする。
 
-### 6.5 Transaction Runner
-
-Application Transaction Scopeごとに、Transaction Objectへ紐づくRepository Setを生成します。
+### 6.6 Transaction Runner
 
 ```text
 runner.run(scope, async repositories => {
@@ -333,18 +385,19 @@ runner.run(scope, async repositories => {
 })
 ```
 
+実装契約:
+
 - `withExclusiveTransactionAsync`を使う。
+- Callback結果をRunner内で保持する。
+- Commit完了後だけ結果を返す。
+- 完了Flagと結果値を分離し、`undefined`を正しく扱う。
 - Callback外のDB QueryをTransactionへ混入させない。
-- 同じMutation Scopeの並列実行をQueueで直列化する。
+- Transaction RepositoryをCallback外へ返さない。
 - Queue待ちを無制限にしない。
 - Timeout/locked時はApplication Errorへ変換する。
-- Retryは最大回数を固定し、非冪等Mutationを自動再実行しない。
+- 非冪等MutationをRetryしない。
 
-### 6.6 Shared Contract Suite
-
-共通SuiteはPlatform非依存な契約記述とFixtureを持ちます。
-
-例:
+### 6.7 Shared Contract Suite
 
 ```ts
 createCustomerRepositoryContractSuite({
@@ -354,7 +407,7 @@ createCustomerRepositoryContractSuite({
 });
 ```
 
-Suiteが扱う範囲:
+対象:
 
 - CRUD
 - Unique/Foreign Key
@@ -369,35 +422,32 @@ Suiteが扱う範囲:
 
 Dexie用RunnerとNative SQLite用Runnerは同じSuiteを呼び出します。
 
-Native Harness:
+### 6.8 Native Contract Harness
 
 - Development/Previewだけで有効
-- Harness起動RouteまたはDev Menu入口を持つ
-- Arbitrary Test選択ではなく定義済みSuiteだけを実行
-- `native-contract-running`
-- `native-contract-passed`
-- `native-contract-failed`
-- Failure時はSuite名と非機密Error Codeを表示
+- 専用画面またはDevelopment-only Route
+- Maestroから画面操作で起動
+- 定義済みSuiteだけを実行
+- Stable Signalを表示
 - 構造化ResultをApp内で確認可能
+- Production-validationでは無効
 
-### 6.7 PBKDF2
+### 6.9 PBKDF2
 
-`react-native-quick-crypto`を利用します。
+実装構成:
 
-実装時に次を作成します。
+```text
+src/infrastructure/security/password-hash-format.ts
+src/infrastructure/security/password-hasher.web.ts
+src/infrastructure/security/password-hasher.native.ts
+```
 
-- `NativePbkdf2PasswordHasher`
-- 共通Encoded Format Parser
-- 共通Test Vector Fixture
-- Web/Native Compatibility Test
-- Seed Hash Verify Test
-- Performance Smoke
+Native実装は`react-native-quick-crypto`のPBKDF2 APIだけを直接Importします。共有Entry PointでGlobal Cryptoを置換しません。
 
 Test Vectorには少なくとも次を含めます。
 
 - ASCII password
 - 日本語/Unicode password
-- Emptyに近い境界はDomain Validationに従う
 - 固定Salt
 - 不正Algorithm
 - 不正Iteration
@@ -406,18 +456,16 @@ Test Vectorには少なくとも次を含めます。
 
 Hash値やPasswordをLogへ出力しません。
 
-### 6.8 Session/Guest Identity
+### 6.10 Session/Guest Identity
 
 - Session IDとGuest IDはNative向け永続Storageへ保存する。
 - Storage KeyをVersion付きで固定する。
 - Resetで両方を削除/再作成できる。
 - App再起動後に復元できる。
 - Web Storage Formatへ依存しない。
-- 同じ固定AccountへWeb/Native双方からLoginできるHash互換性を維持する。
+- Web/NativeのHash互換性を維持する。
 
-前半ではLogin UIを作りませんが、後半でAdapter、Storage Key、Hash Contractを作り直さない状態まで実装・Testします。
-
-### 6.9 Asset Map
+### 6.11 Asset Map
 
 Build Scriptが次を生成します。
 
@@ -427,18 +475,7 @@ assetId -> static require/import -> Native Image Source
 
 生成物はTypeScript Moduleとし、手動編集しません。
 
-Contract Test:
-
-- ManifestとAsset MapのID集合一致
-- 重複IDなし
-- File存在
-- Placeholder存在
-- inactive Assetの扱い一致
-- Snapshot Pathと表示Sourceの混同なし
-
-### 6.10 Test Control Protocol
-
-固定形式:
+### 6.12 Test Control Protocol
 
 ```text
 scenario-shop://test-control/reset?version=1&scenario=<id>&clock=<iso>&paymentDelayMs=<ms>
@@ -450,7 +487,7 @@ scenario-shop://test-control/reset?version=1&scenario=<id>&clock=<iso>&paymentDe
 - Scenario
 - Clock
 
-`paymentDelayMs`のParser/Storage Contractは前半で実装してよいですが、購入Flowでの使用完成は後半です。
+`paymentDelayMs`のParser/Storage契約は前半で実装し、購入Flowでの利用完成は後半です。
 
 Reset処理順:
 
@@ -467,9 +504,22 @@ Reset処理順:
 11. Ready Signal表示
 12. Mutex解放
 
-失敗時は中途半端なReady状態にしません。
+失敗時はReady状態にしません。
 
-### 6.11 Guest購入前UI
+### 6.13 Production-validation
+
+次を検証します。
+
+- Test Control Deep Linkを受理しない。
+- Test Control ServiceをComposition Rootへ登録しない。
+- Test Control UIを表示しない。
+- Reset Handlerへ到達できない。
+- Harnessを実行できない。
+- 安全なNot FoundまたはDisabled結果になる。
+
+Bundleからの物理的除外は望ましいですが必須にしません。
+
+### 6.14 Guest購入前UI
 
 Webと同じ見た目ではなく、次を優先します。
 
@@ -482,25 +532,45 @@ Webと同じ見た目ではなく、次を優先します。
 - Stable Test ID
 - Accessibility Label
 
-React AriaやDOM ComponentをNativeへ移植しません。
-
-### 6.12 CNG/EAS
+### 6.15 CNG/EAS
 
 - `expo-dev-client`を導入する。
 - `app.config.ts`にpackage/bundleIdentifierを設定する。
 - Native Schema VersionとBuild Kindを`extra`へ明示する。
 - Master Planの6 Profileを定義する。
-- `android/`/`ios/`は生成してもCommitしない。
-- Prebuild後にNative Moduleが正しくLinkされることをBuildで確認する。
+- `android/`/`ios/`はCommitしない。
+- Native Crypto Config PluginとAutolinkingをBuildで確認する。
+- Xcode/EAS Imageは検証済み値を使用する。
+
+### 6.16 EAS Workflows
+
+前半で最低限次を作成します。
+
+```text
+.e eas/workflows/phase2-native-foundation.yml
+```
+
+実際のPathは`.eas/workflows/phase2-native-foundation.yml`とします。
+
+Workflow責務:
+
+- Android Preview Build
+- iOS Simulator Build
+- AndroidでNative Contract Harness実行
+- iOSで主要Contract Smoke実行
+- Android/iOSのVertical Slice Smoke
+- Production-validation BuildのTest Control無効確認
+
+EAS WorkflowsのMaestro Jobが利用不能の場合は、開始時に決めた代替実行環境を使います。Build成功だけでHarness成功と扱いません。
 
 ## 7. Test方針
 
-### PR/Node
+### PR / GitHub Actions
 
 - Format/Lint/Typecheck
 - Domain/Application Test
 - Architecture Dependency Test
-- Repository Capability Type Test
+- Repository Capability/Transaction Scope Type Test
 - Dexie Shared Contract Suite
 - SQLite Schema/Mapper/SQL Test
 - Seed Dataset Test
@@ -510,7 +580,7 @@ React AriaやDOM ComponentをNativeへ移植しません。
 - Production Test Control Static Check
 - Web既存Test/Build/Playwright
 
-### Android Development/Preview
+### Android Build Runtime
 
 - Native Bundle
 - PBKDF2 Compatibility
@@ -520,7 +590,7 @@ React AriaやDOM ComponentをNativeへ移植しません。
 - Home〜Cart Vertical Slice
 - App再起動後保持
 
-### iOS Simulator
+### iOS Simulator Runtime
 
 - Native Bundle
 - PBKDF2 Compatibility
@@ -531,53 +601,47 @@ React AriaやDOM ComponentをNativeへ移植しません。
 
 ## 8. 内部品質ゲート
 
-Gateは同一`/goal`内の実行制御です。別フェーズや別PRにはしません。
+Gateは同一`/goal`内の実行制御です。
 
-### Gate A: Route/Native Bundle
-
-完了条件:
+### Gate A: Route / Native Bundle
 
 - Route Inventory完成
-- Platform別Root Layout/Shell完成
+- `app/_layout.tsx` / `app/_layout.web.tsx`完成
 - Native最小ScreenがAndroid/iOS向けにBundle可能
 - Native Route Dependency Check成功
 - `/admin/*`がWeb ModuleをLoadしない
 
-### Gate B: Dependency/Capability/PBKDF2
-
-完了条件:
+### Gate B: Dependency / Capability / Transaction / PBKDF2
 
 - Application→Infrastructure直接依存除去
 - Customer/Admin Capability分離
+- Customer/Admin Transaction Scope分離
 - Web Composition Root回帰成功
 - Native Composition Root生成可能
 - Session/Guest/Clock/ID Adapter Test成功
+- Native CryptoのWeb隔離確認
 - PBKDF2 Test VectorがAndroid/iOSで成功
 
-### Gate C: SQLite/Contract
-
-完了条件:
+### Gate C: SQLite / Contract
 
 - Schema/Mapper/Transaction Runner完成
+- Transaction戻り値契約Test成功
 - Dexie Shared Contract成功
 - Android実SQLite Contract Suite成功
 - iOS実SQLite主要Contract Smoke成功
 - Seed/Reset成功
 - Schema Version分離確認
 
-### Gate D: Asset/Test Control
-
-完了条件:
+### Gate D: Asset / Test Control / Harness
 
 - Native Asset Map生成/Contract成功
 - Deep Link Reset Protocol成功
 - Mutex/二重Request拒否成功
 - Ready/Error Signal成功
-- Production-validationでTest Control無効
+- Contract Harness成功
+- Production-validationでTest Control/Harness無効
 
 ### Gate E: Android Vertical Slice
-
-完了条件:
 
 - Preview APK生成/起動
 - Home、検索/一覧、商品詳細、Cart追加/変更/削除
@@ -586,8 +650,6 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRにはし�
 
 ### Gate F: iOS Vertical Slice
 
-完了条件:
-
 - Simulator Build生成/起動
 - Home、検索/一覧、商品詳細、Cart追加
 - Resetと再起動保持
@@ -595,26 +657,18 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRにはし�
 
 ### Gate G: 総合回帰
 
-完了条件:
-
 - 全Native Test成功
 - Web全Test/Build/Playwright成功
+- EAS Workflowまたは代替経路の結果記録
 - CNG方針確認
 - `android/`/`ios/`未Commit
 - Critical/High解消
 
-各Gate終了時にRun Artifactへ次を記録します。
-
-- 実施内容
-- 成功した検証
-- 失敗と修正
-- Android/iOS差分
-- 未確認事項
-- 次Gateへ進める根拠
+各Gate終了時にRun Artifactへ、実施内容、成功した検証、失敗と修正、Android/iOS差分、未確認事項、次Gateへ進める根拠を記録します。
 
 ## 9. 実施順序
 
-1. 最新コード、Docs、公式仕様の調査
+1. 最新コード、Docs、一次資料の調査
 2. 外部開始条件の確認
 3. Run初期化とTask展開
 4. Route Inventoryと依存関係調査
@@ -626,33 +680,36 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRにはし�
 10. Native Home、商品一覧、検索、Category、商品詳細
 11. Native Cart
 12. Native Component Test
-13. Gate E
-14. Gate F
-15. Gate G
-16. 自己レビュー
-17. Critical/High修正と再検証
-18. Docs、ADR、PROJECT_CONTEXT、History、Run Artifact更新
-19. 後半開始条件と確定契約一覧作成
-20. 停止してユーザーへ報告
+13. EAS Workflow/代替実行経路整備
+14. Gate E
+15. Gate F
+16. Gate G
+17. 自己レビュー
+18. Critical/High修正と再検証
+19. Docs、ADR、PROJECT_CONTEXT、History、Run Artifact更新
+20. 後半開始条件と確定契約一覧作成
+21. 停止してユーザーへ報告
 
 ## 10. 後半へ引き渡す確定契約
 
 - Route InventoryとPlatform Route方式
-- Platform別Root LayoutとShell
+- `app/_layout.tsx` / `app/_layout.web.tsx`
+- Platform別Shell
 - Application依存方向
 - Customer/Admin Repository Capability
+- Customer/Admin Transaction Scope
 - Native Composition Root注入契約
 - SQLite Schema Version
-- Customer Repository実装状況
-- Transaction Runner契約
+- Transaction Runner契約と戻り値契約
 - Shared Contract Suite/Harness形式
 - Session/Guest Storage Keyと形式
-- PBKDF2 Library、Format、Test Vector
+- PBKDF2 Library、隔離方式、Format、Test Vector
 - Deep Link Protocol Version 1
 - Native Asset Map形式
 - Stable Test ID規約
 - CNG方針
 - EAS Profile
+- EAS Workflowまたは代替実行経路
 - 後半で原則変更してはいけない契約
 - 未確認事項と残課題
 
@@ -660,9 +717,11 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRにはし�
 
 - Platform/Route/Composition Root ADR
 - SQLite/Transaction/Test Strategy ADR
-- Platform別Root Layout/Shell/Screen Module
+- `app/_layout.tsx` / `app/_layout.web.tsx`
+- Platform別Shell/Screen Module
 - Application依存方向修正
 - Customer/Admin Repository Capability
+- Customer/Admin Transaction Scope
 - Web/Native Composition Root
 - SQLite Customer Adapter
 - Shared Customer Contract Suite
@@ -673,6 +732,7 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRにはし�
 - Native Storefront/Product/Cart
 - Native Component Test
 - EAS Profileと`expo-dev-client`
+- 前半用EAS Workflow
 - Android Preview APK
 - iOS Simulator Build
 - 更新済みREADME/PROJECT_CONTEXT/Native手順
@@ -681,7 +741,7 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRにはし�
 
 ## 12. 停止条件
 
-前半DoDとGate A〜Gを満たしても、Login UI、Account、Checkout、Order、Review、Maestro、Native CI完成へ進みません。
+前半DoDとGate A〜Gを満たしても、Login UI、Account、Checkout、Order、Review、業務Flow Maestro、後半CIへ進みません。
 
 最終報告で次を区別して記録し、停止します。
 
@@ -689,9 +749,10 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRにはし�
 - iOS Build/起動/操作結果
 - 実SQLite Contract結果
 - Dexie Shared Contract結果
-- PBKDF2互換結果
+- PBKDF2互換/隔離結果
 - Native Component Test結果
-- Deep Link/Test Control結果
+- Deep Link/Test Control/Harness結果
+- EAS Workflowまたは代替経路結果
 - Web回帰結果
 - CNG/EAS設定結果
 - 未確認事項
