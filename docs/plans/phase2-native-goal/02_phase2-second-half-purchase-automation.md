@@ -28,15 +28,17 @@ Run開始時にタイムスタンプ付きRun Planと`.codex/runs/<run_id>/`を�
 - Customer/Admin Repository Capability
 - Customer/Admin Transaction Scope
 - Native Composition Root
-- SQLite Customer AdapterとTransaction Runner
-- Shared Contract SuiteとNative SQLite Test Harness
-- Session/Guest Identity/PBKDF2
+- SQLite Customer Adapter、Foreign Key初期化、Transaction Runner
+- Shared Contract Suiteと専用DB/KVを使うNative SQLite Test Harness
+- `expo-sqlite/kv-store`によるSession/Guest/Clock/Delay Storage
+- Platform分離されたPBKDF2
+- JestベースNative Component Test基盤
 - Seed/Reset/Test Clock
 - Deep Link Test Control Protocol Version 1
 - Native Asset Map
 - Storefront/Product/Cart
-- CNG/EAS Profile
-- EAS Workflowsまたは承認済み代替実行経路
+- CNG/EAS Profile env
+- `.eas/workflows/phase2-native-foundation.yml`
 
 完成対象:
 
@@ -51,7 +53,8 @@ Run開始時にタイムスタンプ付きRun Planと`.codex/runs/<run_id>/`を�
 - Payment Delayを含むTest Control
 - Android Maestro必須Flow
 - iOS Simulator主要Flow
-- Native Build/Test EAS Workflows
+- 購入系Contract Harness
+- `.eas/workflows/phase2-native-purchase.yml`
 - Native開発・検証・運用手順
 
 画面数を増やすことではなく、WebとNativeで同じ業務契約、状態遷移、失敗状態を決定的に検証できることを優先します。
@@ -72,10 +75,16 @@ Run開始時にタイムスタンプ付きRun Planと`.codex/runs/<run_id>/`を�
 - Android/iOSでGuestの商品探索からCartまで操作できる。
 - Android実SQLite Customer Contract Suiteが成功する。
 - iOS実SQLite主要Contract Smokeが成功する。
+- 全Application/Harness ConnectionでForeign Key Enforcementが有効である。
+- Harness専用DB/KV隔離とCleanupが成功する。
+- Harness前後でApplication DB/KVが変化しない。
 - Web/Android/iOSのPBKDF2互換Testが成功する。
 - Native CryptoがWeb Bundleから隔離されている。
+- Native Component TestがJest専用環境で成功する。
+- `expo-sqlite/kv-store`のSession/Guest復元が成功する。
 - Deep Link Reset Protocol Version 1が成功する。
-- Native Contract Harnessの実行経路が成立している。
+- `.eas/workflows/phase2-native-foundation.yml`または承認済み代替経路が成功する。
+- Production-validation Metadataが`production / production / false`である。
 - 前半のCritical/High不具合が残っていない。
 - 前半の確定契約と未確認事項がDocsへ記録されている。
 - Maestroを実行できるAndroid環境がある。
@@ -99,25 +108,30 @@ Run開始時にタイムスタンプ付きRun Planと`.codex/runs/<run_id>/`を�
 - Native Composition Rootの注入構造
 - `NATIVE_DATABASE_SCHEMA_VERSION`
 - Customer Repository InterfaceとTransaction境界
+- Connection初期化とForeign Key契約
+- Foreign Key Action
 - `withExclusiveTransactionAsync`の利用
 - Transaction Callback結果をCommit後だけ返す契約
 - Shared Customer Contract Suite
+- Harness専用Database名、Cleanup、Application DB不変確認
+- Harness専用KV Namespace
 - Native SQLite Test Harness
-- Session ID/Guest ID Storage Keyと保存形式
+- Session/Guest/Clock/DelayのKV Keyと保存形式
 - PBKDF2 Library、Platform隔離、Encoded Format、Test Vector
+- Native Component Jest設定
 - Native Asset Map形式
 - Deep Link Protocol Version 1
 - Stable Test ID規約
 - CNG方針
-- EAS Profile名と役割
-- EAS Workflowsまたは承認済み代替実行経路
+- EAS Profile名、`EXPO_PUBLIC_*` env、Metadata契約
+- `.eas/workflows/phase2-native-foundation.yml`
 
 変更が避けられない場合は、実装前に次を記録します。
 
 - 変更が必要な具体的理由
 - 前半で予測できなかった根拠
 - Web、SQLite、Android、iOS、Testへの影響
-- Schema変更の有無
+- Schema/FK/Storage変更の有無
 - Migrationが不要である根拠、またはPhase 2内で許容できる最小対応
 - ADR
 - 回帰Test
@@ -134,8 +148,8 @@ Run開始時にタイムスタンプ付きRun Planと`.codex/runs/<run_id>/`を�
 - `active customer`だけが購入Flowへ進める。
 - `suspended`と`withdrawn`のLogin拒否がWebと同じApplication Errorで動作する。
 - `operator`と`admin`はNative対象外画面へ遷移し、Logoutだけを利用できる。
-- App再起動後にSessionが復元される。
-- Session期限/不正Session時に安全にGuestへ戻る。
+- App再起動後にKV StoreからSessionが復元される。
+- Session期限/不正Session時にKV Keyが削除され、安全にGuestへ戻る。
 - Native CryptoをWeb Entry PointへImportしていない。
 
 ### 4.2 Guest Cart統合
@@ -155,6 +169,7 @@ Run開始時にタイムスタンプ付きRun Planと`.codex/runs/<run_id>/`を�
 - Native Keyboard Avoidance、Scroll、Safe Areaが成立する。
 - Back操作と未保存変更保護が成立する。
 - Address MutationがSQLite Transactionで整合する。
+- Address Foreign KeyとDefault制約が実Native Contractで成功する。
 
 ### 4.4 Checkout / Payment
 
@@ -168,6 +183,7 @@ Run開始時にタイムスタンプ付きRun Planと`.codex/runs/<run_id>/`を�
 - Payment失敗後、同一Orderから再試行できる。
 - Payment冪等性が維持される。
 - Transaction Callback結果がCommit成功後だけUIへ返る。
+- Foreign Key/Unique/Version Conflictが実Connectionで有効である。
 - App再起動とBackground/Foreground後もSession/Checkout/Payment状態が整合する。
 - 高度なCrash Recoveryを実装していない。
 
@@ -205,11 +221,15 @@ Run開始時にタイムスタンプ付きRun Planと`.codex/runs/<run_id>/`を�
 - MaestroからDevelopment-only画面を操作して起動できる。
 - Arbitrary SQL、任意Entity変更、任意Status変更を許可しない。
 - 購入系Mutationを追加した後の実SQLite Contractが成功する。
+- 専用Test DBと専用KV Namespaceだけを使う。
+- Harness前後でApplication DBのSchema/Seed VersionとFingerprintが変化しない。
+- 成功/失敗時にTest DBとConnectionがCleanupされる。
+- Cleanup失敗がHarness失敗になる。
 - Production-validationではHarnessを利用できない。
 
 ### 4.8 Native Component Test
 
-React Native Testing Libraryで最低限次を検証します。
+Jest、`@react-native/jest-preset`、React Native Testing Libraryで最低限次を検証します。
 
 - Login成功/拒否表示
 - Role対象外画面
@@ -222,6 +242,8 @@ React Native Testing Libraryで最低限次を検証します。
 - Platform非依存のBack/未保存変更ロジック
 - Accessibility Label/Test ID
 
+Native TestでDOM/jsdomを使わず、SQLite/PBKDF2の実Native検証をComponent Testで代替しません。
+
 ### 4.9 Maestro
 
 Android必須Flow:
@@ -232,7 +254,7 @@ Android必須Flow:
 4. Payment失敗と再試行
 5. App再起動後のSession/Checkout復元
 6. delivered OrderへのReview投稿
-7. Native Contract Harness実行
+7. Native Contract Harness購入系Suite実行
 8. Production-validationでTest Control/Harness無効確認
 
 原則:
@@ -253,14 +275,33 @@ iOSではEAS Workflowsまたは承認済み代替経路で次を確認します�
 - Contract Harness主要Smoke
 - Production-validation無効確認
 
-### 4.10 Build / CI
+### 4.10 Build / EAS / CI
+
+Development/Preview Profileのenv:
+
+```text
+EXPO_PUBLIC_APP_ENV=automation
+EXPO_PUBLIC_BUILD_KIND=automation
+EXPO_PUBLIC_TEST_MODE=true
+EXPO_PUBLIC_DEFAULT_SEED=default
+```
+
+Production-validation Profileのenv:
+
+```text
+EXPO_PUBLIC_APP_ENV=production
+EXPO_PUBLIC_BUILD_KIND=production
+EXPO_PUBLIC_TEST_MODE=false
+EXPO_PUBLIC_DEFAULT_SEED=default
+```
 
 - Android Preview APKを生成できる。
 - iOS Simulator Buildを生成できる。
 - Development/PreviewでTest Controlが有効である。
+- Production-validation Metadataが`production / production / false`である。
 - Production-validationでTest Control/Harnessを実行できない。
 - GitHub ActionsでNode/Web検証を実行できる。
-- `.eas/workflows/`からAndroid/iOS BuildとMaestroを実行できる。
+- `.eas/workflows/phase2-native-purchase.yml`からAndroid/iOS BuildとMaestroを実行できる。
 - Build成果物が後続Maestro Jobへ渡される。
 - Android/iOSのBuild/Test結果が分離されている。
 - Web CIとCloudflare DeployがNative Workflow完了待ちにならない。
@@ -286,11 +327,11 @@ iOSではEAS Workflowsまたは承認済み代替経路で次を確認します�
 - Deep Link Test Controlの完成
 - Payment Delay
 - Review用Seed Scenario
-- Native Component Test
+- JestベースNative Component Test拡充
 - Android/iOS Maestro主要Flow
-- Native Contract Harnessの購入系回帰
+- 専用DB/KVを使うNative Contract Harness購入系回帰
 - EAS Development/Preview/Production-validation Profile
-- Native Build/Test EAS Workflows
+- `.eas/workflows/phase2-native-purchase.yml`
 - Android Preview APK
 - iOS Simulator Build
 - GitHub ActionsのNode/Web検証
@@ -321,6 +362,7 @@ iOSではEAS Workflowsまたは承認済み代替経路で次を確認します�
 - Guest Cart統合は既存Application Use CaseとCustomer Transaction Scopeを利用する。
 - Web PBKDF2を変更しない。
 - Native PBKDF2はPlatform別Moduleからだけ利用する。
+- Session/Guest/Clock/Delayは前半のKV Key契約を維持する。
 
 ### 7.2 Account / 配送先
 
@@ -329,6 +371,7 @@ iOSではEAS Workflowsまたは承認済み代替経路で次を確認します�
 - Validation Messageの意味をWebと一致させる。
 - Keyboard Avoidance、Scroll、Safe Area、Back操作を確認する。
 - 未保存変更保護はNative Navigationへ適合させる。
+- Foreign KeyとDefault Address制約を実SQLiteで検証する。
 
 ### 7.3 Checkout / Payment
 
@@ -358,6 +401,7 @@ iOSではEAS Workflowsまたは承認済み代替経路で次を確認します�
 - Payment失敗後の同一Order再試行
 - Customer Transaction Scope
 - Commit成功後だけ結果を返すRunner契約
+- Foreign Key Enforcement
 
 ### 7.4 Order / Review
 
@@ -388,10 +432,12 @@ Test Control許可操作:
 Harness許可操作:
 
 - 定義済みContract Suite実行
+- 専用Test DB/KV内のFixture操作
 - 結果表示
 
 禁止操作:
 
+- Application DB/KVの直接変更
 - 任意Entity作成・更新
 - 任意SQL実行
 - 任意Status変更
@@ -399,24 +445,15 @@ Harness許可操作:
 
 ### 7.6 Native Component Test
 
-Domain/Application/SQLiteはVitestとNative Harnessを継続し、UIはReact Native Testing Libraryで検証します。
+Native UIはJest専用ConfigとReact Native Testing Libraryで検証します。Web Component TestのVitest設定へNative MockやPresetを混入させません。
 
 ### 7.7 Maestro
 
 Web Playwright全件を機械的に移植しません。Nativeで学習価値が高く、Platform統合を検証できるFlowへ限定します。
 
-### 7.8 EAS Profile
+### 7.8 EAS Profile / Metadata
 
-Master Planの6 Profileを維持します。
-
-- development-android
-- development-ios-simulator
-- preview-android
-- preview-ios-simulator
-- production-validation-android
-- production-validation-ios-simulator
-
-Store提出用Profileは作りません。
+Master Planの6 Profileと`EXPO_PUBLIC_*` envを維持します。Test Controlの有効/無効はenvと`app.config.ts`の解決結果を正本とし、文字列上のON/OFF表記だけで判定しません。
 
 ### 7.9 GitHub Actions
 
@@ -429,6 +466,7 @@ Pull Requestで実行:
 - Architecture/Capability/Transaction Scope Test
 - Dexie Contract
 - SQLite Node側Test
+- Web Component Test
 - Native Component Test
 - Native Route/Dependency Static Check
 - Web既存CI
@@ -437,7 +475,7 @@ Cloudflare DeployはNative Workflowへ依存させません。
 
 ### 7.10 EAS Workflows
 
-`.eas/workflows/phase2-native-purchase.yml`をNative Build/Testの正本とします。
+`.eas/workflows/phase2-native-purchase.yml`を購入系Native Build/Testの正本とします。
 
 Workflow構成例:
 
@@ -462,6 +500,8 @@ build_ios_production_validation
 - Build成果物を後続Jobへ渡す。
 - Android EmulatorとiOS Simulatorの結果を分ける。
 - Native Contract HarnessをBuild後に実行する。
+- Harnessは専用DB/KVだけを使用する。
+- Production-validation Metadataを確認する。
 - Production-validationでTest Control/Harnessが無効であることを実行確認する。
 - Workflow URLとBuild IDをRun Artifactへ記録する。
 - 同一Branchの不要な重複実行を抑制する。
@@ -490,40 +530,46 @@ EAS Maestro Jobが利用不能の場合は、開始時に承認された代替�
 
 - Login、拒否、Session復元、Role対象外、Guest Cart統合がAndroid/iOSで成立する。
 - PBKDF2互換とWeb隔離が維持される。
+- KV Storage復元/削除契約が成立する。
 - Customer Transaction ScopeだけでCart統合が動作する。
+- Native Component TestがJest環境で成功する。
 
 ### Gate B: Account
 
 - ProfileとAddress CRUD、Validation、Back/未保存変更保護が成立する。
-- Address Transactionが実SQLiteで成功する。
+- Address TransactionとForeign Keyが実SQLiteで成功する。
 
 ### Gate C: Purchase
 
 - Checkout成功、Payment失敗/再試行、Order一覧/詳細が成立する。
 - Customer Transaction Scope、Commit後結果返却、冪等性が成立する。
-- 実SQLite Contract Harnessの購入系Suiteが成功する。
+- 実SQLite Contract Harnessの購入系Suiteが専用DB/KVで成功する。
+- Application DB/KV不変確認が成功する。
 
 ### Gate D: Review
 
 - 専用SeedからReview投稿/編集/削除が成立する。
-- Review Summary Transactionが成功する。
+- Review Summary TransactionとForeign Keyが成功する。
 
 ### Gate E: Automation
 
 - Deep Link ResetとAndroid Maestro必須Flowが連続成功する。
 - Native Contract HarnessがMaestroから成功する。
+- Harness CleanupとApplication DB/KV不変確認が成功する。
 - iOS主要FlowがMaestroまたは承認済み代替経路で成功する。
 
 ### Gate F: Build / CI
 
-- EAS ProfileとEAS Workflowsが成立する。
+- EAS Profile envとEAS Workflowsが成立する。
 - Android/iOS Build結果が分離される。
+- Production-validation Metadataが`production / production / false`である。
 - Production-validationでTest Control/Harness無効化が実行確認される。
 - GitHub ActionsとCloudflare DeployがNative Workflowに依存しない。
 
 ### Gate G: 最終回帰
 
 - Android/iOS主要Flow、全Native Test、Web Test/Build/Playwrightが成功する。
+- Foreign Key Enforcement、Harness隔離、KV契約が回帰で維持される。
 - Critical/Highが残っていない。
 
 各Gate終了時に、使用Scenario、実施内容、成功した検証、失敗と修正、Android/iOS差分、Workflow/Build ID、未確認事項、次Gateへ進める根拠を記録します。
@@ -540,7 +586,7 @@ EAS Maestro Jobが利用不能の場合は、開始時に承認された代替�
 8. Native Component Test拡充
 9. Deep Link Test ControlとPayment Delay完成
 10. Native Contract Harness購入系Suite拡充
-11. EAS Workflow整備
+11. `.eas/workflows/phase2-native-purchase.yml`整備
 12. Gate E
 13. Gate F
 14. Gate G
@@ -565,8 +611,10 @@ EAS Maestro Jobが利用不能の場合は、開始時に承認された代替�
 - Review Eligibility/Summary
 - SQLite Transaction Rollback
 - Transaction Callback結果とCommit失敗
+- Foreign Key Enforcement/Check
+- Harness専用DB/KVとApplication不変確認
 
-### Native UI
+### Native UI / Component
 
 - Login/Logout
 - Role対象外
@@ -581,6 +629,7 @@ EAS Maestro Jobが利用不能の場合は、開始時に承認された代替�
 - Review投稿/編集/削除
 - App再起動とForeground復帰
 - Error/Empty/Loading
+- Jest環境がDOM/jsdomに依存していないこと
 
 ### Build / Security
 
@@ -588,6 +637,8 @@ EAS Maestro Jobが利用不能の場合は、開始時に承認された代替�
 - Android Preview APK
 - iOS Simulator Build
 - Production-validation Build
+- `EXPO_PUBLIC_*` env解決結果
+- Production-validation Metadata
 - Test Control/Harness公開条件
 - Build Metadata
 - Secret/Credential非混入
@@ -608,9 +659,9 @@ EAS Maestro Jobが利用不能の場合は、開始時に承認された代替�
 - Native Account/Profile/Address UI
 - Native Checkout/Payment/Order/Review UI
 - Review用Seed Scenario
-- Native Component Test
+- Native Component Jest Test
 - Deep Link Test ControlとPayment Delay
-- Native Contract Harness購入系Suite
+- 専用DB/KVを使うNative Contract Harness購入系Suite
 - Android/iOS Maestro主要Flow
 - EAS Build Profile完成
 - `.eas/workflows/phase2-native-purchase.yml`
@@ -629,9 +680,10 @@ EAS Maestro Jobが利用不能の場合は、開始時に承認された代替�
 
 - Android/iOS共通Domain/Application契約
 - Customer Repository/Transaction Scope
-- SQLite Customer Adapter
+- SQLite Customer AdapterとForeign Key初期化
 - Native購入者Flow
-- Native Component Test
+- Native KV Storage
+- Native Component Jest Test
 - Maestro Flow
 - EAS Workflows
 - Test Control/Harness
@@ -648,7 +700,9 @@ EAS Maestro Jobが利用不能の場合は、開始時に承認された代替�
 - iOS Login・Checkout成功・Order詳細
 - iOS Payment失敗・再試行
 - iOS Contract Smoke
-- Production-validation無効確認
+- Harness DB/KV隔離とCleanup
+- Application DB/KV不変確認
+- Production-validation Metadata/無効確認
 
 実行していない項目をPASSとしません。EAS Workflows利用不能時は承認済み代替経路の結果を記録します。iOS実環境検証が不足する場合、Phase 2を完全完了とせず「コード完了・iOS検証未完了」と記録します。
 
