@@ -14,11 +14,16 @@ import type {
 import { toVariantRecord } from "@/infrastructure/database/dexie/mappers";
 import { productImageManifest } from "@/generated/product-image-manifest";
 import { createDefaultDataset } from "./default-dataset";
-import type { PhaseOneScenario } from "./metadata";
-import { BASE_CLOCK } from "./metadata";
+import { BASE_CLOCK, SCENARIO_METADATA, type PhaseOneScenario } from "./metadata";
 import type { SeedDataset } from "./types";
 
 export function createScenarioDataset(scenario: PhaseOneScenario): SeedDataset {
+  const dataset = createScenarioDatasetWithoutInitialSession(scenario);
+  applyInitialSession(dataset, SCENARIO_METADATA[scenario].initialSession);
+  return dataset;
+}
+
+function createScenarioDatasetWithoutInitialSession(scenario: PhaseOneScenario): SeedDataset {
   if (scenario === "many-products") {
     return createManyProductsDataset();
   }
@@ -113,6 +118,29 @@ export function createScenarioDataset(scenario: PhaseOneScenario): SeedDataset {
       setExtraControl(dataset, { failNextWrite: true });
       return dataset;
   }
+}
+
+function applyInitialSession(
+  dataset: SeedDataset,
+  initialSession: (typeof SCENARIO_METADATA)[PhaseOneScenario]["initialSession"],
+): void {
+  if (initialSession.kind === "guest") {
+    dataset.sessions = [];
+    return;
+  }
+  const user = dataset.users.find((candidate) => candidate.email === initialSession.email);
+  if (user === undefined) {
+    dataset.sessions = [];
+    return;
+  }
+  const existing = dataset.sessions.find((session) => session.userId === user.id);
+  dataset.sessions = [
+    existing ?? {
+      id: "session-" + user.id,
+      userId: user.id,
+      createdAt: BASE_CLOCK,
+    },
+  ];
 }
 
 function emptyCatalog(dataset: SeedDataset): SeedDataset {

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "expo-router";
 import { useForm } from "react-hook-form";
 import type { CurrentUserDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
@@ -8,6 +9,8 @@ import { StatePanel } from "@/presentation/components/states";
 import { LogoutButton } from "@/presentation/components/logout-button";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAppRuntime } from "@/presentation/providers/app-runtime-provider";
+import { FREE_SHIPPING_THRESHOLD, membershipDiscountRate } from "@/domain/services/pricing";
+import { labels } from "@/presentation/content/dictionary";
 
 interface ProfileForm {
   displayName: string;
@@ -63,6 +66,26 @@ function ProfileContent() {
           {message}
         </p>
       )}
+      <section className="account-benefit-summary" aria-labelledby="account-benefit-title">
+        <div className="split-heading">
+          <h2 id="account-benefit-title">会員ランクと特典</h2>
+          <Link href="/guide">学習Guideで詳しく見る</Link>
+        </div>
+        <dl className="definition-grid">
+          <dt>アカウント状態</dt>
+          <dd>{labels.account(profile.accountStatus)}</dd>
+          <dt>会員ランク</dt>
+          <dd>{profile.membershipRank === null ? "—" : labels.rank(profile.membershipRank)}</dd>
+          <dt>会員割引</dt>
+          <dd>{Math.round(membershipDiscountRate(profile.membershipRank) * 100)}%</dd>
+          <dt>送料特典</dt>
+          <dd>
+            {profile.membershipRank === "platinum"
+              ? "いつでも送料無料"
+              : `商品小計${FREE_SHIPPING_THRESHOLD.toLocaleString("ja-JP")}円以上で送料無料`}
+          </dd>
+        </dl>
+      </section>
       <form
         className="account-form"
         onSubmit={handleSubmit(async (value) => {

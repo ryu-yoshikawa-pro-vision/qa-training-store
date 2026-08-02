@@ -1,6 +1,10 @@
-import { useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Link, useLocalSearchParams, useRouter, type Href } from "expo-router";
-import type { CheckoutConfirmationDto, OrderDetailDto } from "@/application/contracts";
+import type {
+  CheckoutConfirmationDto,
+  CustomerOrderDetailDto,
+  OrderDetailDto,
+} from "@/application/contracts";
 import { PAYMENT_METHODS } from "@/application/use-cases/checkout-order-use-cases";
 import type { PaymentMethodCode, UserAddress } from "@/domain/contracts";
 import { AccountNavigation } from "@/presentation/components/account-navigation";
@@ -11,7 +15,9 @@ import { StatusBadge, statusTone } from "@/presentation/components/status-badge"
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
-import { content, labels } from "@/presentation/content/dictionary";
+import { content, labels, shipmentDisplayLabel } from "@/presentation/content/dictionary";
+import { claimCheckoutNotice } from "@/presentation/browser/one-time-notice.web";
+import { useRouteHeadingFocus } from "@/presentation/hooks/use-route-heading-focus";
 
 const paymentLabels: Record<PaymentMethodCode, string> = {
   "TEST-SUCCESS": "テスト決済（成功）",
@@ -34,6 +40,11 @@ const orderStatusLabels: Record<OrderDetailDto["orderStatus"], string> = {
   preparing: "発送準備中",
   shipped: "発送済み",
   delivered: "配達完了",
+};
+
+const orderListStatusLabels: Record<OrderDetailDto["orderStatus"], string> = {
+  ...orderStatusLabels,
+  pending_payment: "支払い待ち",
 };
 
 function CustomerPage({ children }: { children: ReactNode }) {
@@ -111,6 +122,25 @@ function CheckoutAddressContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lifecycleNotice, setLifecycleNotice] = useState<string | null>(null);
+  const headingRef = useRouteHeadingFocus(
+    state.loaded && state.error === null && state.value !== null,
+  );
+  useEffect(() => {
+    const checkout = state.value?.checkout;
+    if (
+      checkout === undefined ||
+      (checkout.result !== "resumed" && checkout.result !== "replaced") ||
+      !claimCheckoutNotice(checkout.session.id, checkout.result)
+    ) {
+      return;
+    }
+    setLifecycleNotice(
+      checkout.result === "resumed"
+        ? "以前の購入手続きを再開しました。"
+        : "カートの更新により、購入手続きを最新の内容へ置き換えました。",
+    );
+  }, [state.value]);
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null)
     return <CheckoutLoadError retry={state.retry} />;
@@ -138,7 +168,14 @@ function CheckoutAddressContent() {
   return (
     <div className="checkout-page">
       <CheckoutSteps current="address" />
-      <h1>配送先を選択</h1>
+      <h1 ref={headingRef} tabIndex={-1}>
+        配送先を選択
+      </h1>
+      {lifecycleNotice !== null && (
+        <p className="operation-message" role="status">
+          {lifecycleNotice}
+        </p>
+      )}
       <TrainingNotice />
       {error && (
         <p role="alert" className="operation-error">
@@ -212,6 +249,9 @@ function CheckoutPaymentContent() {
   }, [services]);
   const [method, setMethod] = useState<PaymentMethodCode>("TEST-SUCCESS");
   const [submitting, setSubmitting] = useState(false);
+  const headingRef = useRouteHeadingFocus(
+    state.loaded && state.error === null && state.value !== null,
+  );
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null) {
     return <CheckoutLoadError href="/checkout/address" />;
@@ -232,7 +272,9 @@ function CheckoutPaymentContent() {
   return (
     <div className="checkout-page">
       <CheckoutSteps current="payment" />
-      <h1>支払方法</h1>
+      <h1 ref={headingRef} tabIndex={-1}>
+        支払方法
+      </h1>
       <TrainingNotice />
       <div className="checkout-layout">
         <section className="selection-list" aria-label="テスト支払方法">
@@ -276,6 +318,9 @@ function CheckoutConfirmContent() {
   const state = useAsyncValue(() => services.checkout.getConfirmation(), [services]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const headingRef = useRouteHeadingFocus(
+    state.loaded && state.error === null && state.value !== null,
+  );
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null) {
     return <CheckoutLoadError href="/checkout/payment" retry={state.retry} />;
@@ -297,7 +342,9 @@ function CheckoutConfirmContent() {
   return (
     <div className="checkout-page">
       <CheckoutSteps current="confirm" />
-      <h1>注文内容を確認</h1>
+      <h1 ref={headingRef} tabIndex={-1}>
+        注文内容を確認
+      </h1>
       <TrainingNotice />
       {error && (
         <p role="alert" className="operation-error">
@@ -425,6 +472,7 @@ function CheckoutProcessingContent() {
     );
     return result;
   }, [orderId, services, router]);
+  const headingRef = useRouteHeadingFocus(state.error === null);
   if (state.error !== null) {
     return (
       <StatePanel
@@ -441,7 +489,9 @@ function CheckoutProcessingContent() {
   return (
     <section className="payment-result-page" aria-live="polite">
       <div className="processing-spinner" aria-hidden="true" />
-      <h1>支払いを処理しています</h1>
+      <h1 ref={headingRef} tabIndex={-1}>
+        支払いを処理しています
+      </h1>
       <p>画面を閉じても、同じ支払い試行から安全に再開できます。</p>
     </section>
   );
@@ -473,6 +523,9 @@ function OrderResultContent({ kind }: { kind: "complete" | "failed" }) {
   }, [orderId, services]);
   const [method, setMethod] = useState<PaymentMethodCode>("TEST-SUCCESS");
   const [submitting, setSubmitting] = useState(false);
+  const headingRef = useRouteHeadingFocus(
+    state.loaded && state.error === null && state.value !== null,
+  );
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null) return <StatePanel kind="not-found" />;
   const retry = async () => {
@@ -493,7 +546,9 @@ function OrderResultContent({ kind }: { kind: "complete" | "failed" }) {
       <p className="result-symbol" aria-hidden="true">
         {kind === "complete" ? "✓" : "!"}
       </p>
-      <h1>{kind === "complete" ? "ご注文が完了しました" : "支払いを完了できませんでした"}</h1>
+      <h1 ref={headingRef} tabIndex={-1}>
+        {kind === "complete" ? "ご注文が完了しました" : "支払いを完了できませんでした"}
+      </h1>
       <p>
         注文番号 <strong>{state.value.orderNumber}</strong>
       </p>
@@ -576,7 +631,7 @@ function OrdersContent() {
                 </h2>
                 <p>
                   <StatusBadge tone={statusTone(order.status)}>
-                    {orderStatusLabels[order.status]}
+                    {orderListStatusLabels[order.status]}
                   </StatusBadge>
                   <strong>{formatYen(order.totalAmount)}</strong>
                 </p>
@@ -602,7 +657,10 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
 
 function OrderDetailContent({ orderId }: { orderId: string }) {
   const services = useApplicationServices();
-  const state = useAsyncValue(() => services.checkout.getMyOrder(orderId), [orderId, services]);
+  const state = useAsyncValue<CustomerOrderDetailDto>(
+    () => services.checkout.getMyCustomerOrder(orderId),
+    [orderId, services],
+  );
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null) return <StatePanel kind="not-found" />;
   const order = state.value;
@@ -638,10 +696,18 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
                 <p>
                   {item.sku}・数量 {item.quantity}
                 </p>
-                {order.orderStatus === "delivered" && (
+                {item.reviewState === "NOT_POSTED" && (
                   <Link href={`/reviews/${item.orderItemId}`} className="order-review-link">
-                    レビューを投稿・編集
+                    レビューを投稿
                   </Link>
+                )}
+                {item.reviewState === "PUBLISHED" || item.reviewState === "HIDDEN" ? (
+                  <Link href={`/reviews/${item.orderItemId}`} className="order-review-link">
+                    レビューを編集（{item.reviewState === "HIDDEN" ? "非公開" : "公開中"}）
+                  </Link>
+                ) : null}
+                {item.reviewState === "DELETED" && (
+                  <span className="field-help">削除済み（再投稿不可）</span>
                 )}
               </div>
               <strong>{formatYen(item.lineTotalAmount)}</strong>
@@ -693,6 +759,18 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
             <br />
             {order.shippingAddress.recipientName} 様
           </address>
+        </section>
+        <section className="summary-card">
+          <h2>配送状況</h2>
+          <p>
+            <StatusBadge tone={statusTone(order.shipment?.status ?? "pending")}>
+              {shipmentDisplayLabel(order.orderStatus, order.shipment?.status ?? null)}
+            </StatusBadge>
+          </p>
+          {order.shipment?.carrierName && <p>配送会社：{order.shipment.carrierName}</p>}
+          {order.shipment?.trackingNumber && (
+            <p>お問い合わせ番号：{order.shipment.trackingNumber}</p>
+          )}
         </section>
         <section className="summary-card">
           <h2>進捗</h2>

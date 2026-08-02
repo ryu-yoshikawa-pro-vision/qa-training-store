@@ -10,6 +10,7 @@ import {
 } from "react-aria-components";
 import type { ProductDetail, ReviewListItem, ReviewListQuery } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
+import { FREE_SHIPPING_THRESHOLD } from "@/domain/services/pricing";
 import { ProductImage } from "@/presentation/components/product-image";
 import { formatYen } from "@/presentation/components/product-card";
 import { StatePanel } from "@/presentation/components/states";
@@ -88,6 +89,9 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
     product.images.find((image) => image.assetId === selectedImageId) ?? product.images[0];
   const selectedVariant =
     product.variants.find((variant) => variant.variantId === selectedVariantId) ?? initialVariant;
+  const stockQuantity = selectedVariant?.stockQuantity ?? 0;
+  const purchaseLimit = selectedVariant?.purchaseLimit ?? 1;
+  const maximumQuantity = Math.min(stockQuantity, purchaseLimit);
   const effectivePrice = selectedVariant?.activeSalePrice ?? selectedVariant?.regularPrice ?? 0;
   const hasMemberDiscount =
     selectedVariant !== undefined && selectedVariant.viewerUnitPrice < effectivePrice;
@@ -177,11 +181,11 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
               {formatYen(selectedVariant?.viewerUnitPrice ?? 0)}
             </p>
           </div>
-          {(selectedVariant?.stockQuantity ?? 0) > 0 && (
+          {stockQuantity > 0 && (
             <p className="shipping-message">
-              {(selectedVariant?.viewerUnitPrice ?? 0) >= 5000
+              {(selectedVariant?.viewerUnitPrice ?? 0) >= FREE_SHIPPING_THRESHOLD
                 ? "送料無料"
-                : `あと${formatYen(5000 - (selectedVariant?.viewerUnitPrice ?? 0))}で送料無料`}
+                : `あと${formatYen(FREE_SHIPPING_THRESHOLD - (selectedVariant?.viewerUnitPrice ?? 0))}で送料無料`}
             </p>
           )}
           {product.variationName !== null && (
@@ -228,49 +232,37 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
               )}
             </fieldset>
           )}
-          <p
-            className={
-              selectedVariant?.stockQuantity === 0
-                ? "stock-message stock-message--out"
-                : "stock-message"
-            }
-          >
-            {selectedVariant?.stockQuantity === 0
+          <p className={stockQuantity === 0 ? "stock-message stock-message--out" : "stock-message"}>
+            {stockQuantity === 0
               ? "在庫切れ"
-              : (selectedVariant?.stockQuantity ?? 0) <= 5
-                ? `残り${selectedVariant?.stockQuantity}点`
-                : "在庫あり"}
+              : stockQuantity <= 5
+                ? "残り" + stockQuantity + "点"
+                : "在庫 " + stockQuantity + "点"}
           </p>
+          {stockQuantity > purchaseLimit && (
+            <p className="purchase-limit-message">1回の購入上限は{purchaseLimit}点です。</p>
+          )}
           <div className="quantity-row">
             <label htmlFor="product-quantity">数量</label>
             <select
               id="product-quantity"
               value={quantity}
-              disabled={(selectedVariant?.stockQuantity ?? 0) === 0}
+              disabled={stockQuantity === 0}
               onChange={(event) => setQuantity(Number(event.target.value))}
             >
-              {Array.from(
-                {
-                  length: Math.max(
-                    1,
-                    Math.min(
-                      selectedVariant?.stockQuantity ?? 0,
-                      selectedVariant?.purchaseLimit ?? 1,
-                    ),
-                  ),
-                },
-                (_, index) => index + 1,
-              ).map((quantity) => (
-                <option value={quantity} key={quantity}>
-                  {quantity}
-                </option>
-              ))}
+              {Array.from({ length: Math.max(1, maximumQuantity) }, (_, index) => index + 1).map(
+                (quantity) => (
+                  <option value={quantity} key={quantity}>
+                    {quantity}
+                  </option>
+                ),
+              )}
             </select>
           </div>
           <button
             className="button button--primary add-to-cart-button"
             type="button"
-            disabled={selectedVariant?.stockQuantity === 0 || adding}
+            disabled={stockQuantity === 0 || adding}
             onClick={() => {
               if (selectedVariant === undefined) {
                 return;

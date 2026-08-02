@@ -7,6 +7,7 @@ import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { StatePanel } from "@/presentation/components/states";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
+import { mergeAddressSuggestion } from "@/presentation/browser/address-suggestion";
 
 interface AddressForm {
   label: string;
@@ -101,7 +102,7 @@ function AddressesContent() {
             <StatePanel
               kind="empty"
               title="配送先が登録されていません"
-              body="右のフォームから最初の配送先を登録してください。"
+              body="登録フォームから最初の配送先を登録してください。"
               action={null}
             />
           ) : (
@@ -163,23 +164,21 @@ function AddressesContent() {
                       title={`${address.label}を削除しますか`}
                       confirmLabel="削除する"
                       danger
-                      onConfirm={() => {
-                        void (async () => {
-                          setMessage(null);
-                          try {
-                            await account.deleteAddress({
-                              addressId: address.id,
-                              expectedVersion: address.version,
-                            });
-                            await reload();
-                            setMessage({ text: "配送先を削除しました。", tone: "success" });
-                          } catch {
-                            setMessage({
-                              text: "配送先を削除できませんでした。入力内容を確認してください。",
-                              tone: "error",
-                            });
-                          }
-                        })();
+                      onConfirm={async () => {
+                        setMessage(null);
+                        try {
+                          await account.deleteAddress({
+                            addressId: address.id,
+                            expectedVersion: address.version,
+                          });
+                          await reload();
+                          setMessage({ text: "配送先を削除しました。", tone: "success" });
+                        } catch {
+                          setMessage({
+                            text: "配送先を削除できませんでした。入力内容を確認してください。",
+                            tone: "error",
+                          });
+                        }
                       }}
                     >
                       既定の配送先を削除した場合は、残っている最も古い配送先が新しい既定になります。
@@ -252,11 +251,21 @@ function AddressesContent() {
                     try {
                       const suggestion = await account.suggestAddress(getValues("postalCode"));
                       if (suggestion !== null) {
-                        setValue("prefecture", suggestion.prefecture);
-                        setValue("city", suggestion.city);
-                        setValue("addressLine1", suggestion.addressLine1);
+                        const merged = mergeAddressSuggestion(
+                          {
+                            prefecture: getValues("prefecture"),
+                            city: getValues("city"),
+                            addressLine1: getValues("addressLine1"),
+                          },
+                          suggestion,
+                        );
+                        setValue("prefecture", merged.prefecture);
+                        setValue("city", merged.city);
+                        setValue("addressLine1", merged.addressLine1);
                         setMessage({
-                          text: "住所候補を入力しました。内容を確認して保存してください。",
+                          text: merged.addressLine1Retained
+                            ? "住所候補を入力しました。入力済みの番地は保持しています。内容を確認して保存してください。"
+                            : "住所候補を入力しました。内容を確認して保存してください。",
                           tone: "success",
                         });
                       } else {

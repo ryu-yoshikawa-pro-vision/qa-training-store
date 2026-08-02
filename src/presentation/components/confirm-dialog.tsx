@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import {
   Button as AriaButton,
   Dialog,
@@ -14,8 +14,9 @@ interface ConfirmDialogProps {
   title: string;
   children: ReactNode;
   confirmLabel: string;
-  onConfirm: () => void;
+  onConfirm: () => void | Promise<void>;
   danger?: boolean;
+  disabled?: boolean;
 }
 
 export function ConfirmDialog({
@@ -25,10 +26,17 @@ export function ConfirmDialog({
   confirmLabel,
   onConfirm,
   danger = false,
+  disabled = false,
 }: ConfirmDialogProps) {
+  const [confirming, setConfirming] = useState(false);
+  const confirmingRef = useRef(false);
+
   return (
     <DialogTrigger>
-      <AriaButton className={`button button--${danger ? "danger" : "secondary"}`}>
+      <AriaButton
+        className={`button button--${danger ? "danger" : "secondary"}`}
+        isDisabled={disabled || confirming}
+      >
         {triggerLabel}
       </AriaButton>
       <ModalOverlay className="dialog-overlay" isDismissable>
@@ -41,14 +49,30 @@ export function ConfirmDialog({
                 <div className="dialog__actions">
                   <AriaButton
                     className={`button button--${danger ? "danger" : "primary"}`}
+                    isDisabled={disabled || confirming}
                     onPress={() => {
-                      onConfirm();
-                      close();
+                      if (confirmingRef.current) return;
+                      confirmingRef.current = true;
+                      setConfirming(true);
+                      void Promise.resolve()
+                        .then(() => onConfirm())
+                        .then(
+                          () => close(),
+                          () => undefined,
+                        )
+                        .finally(() => {
+                          confirmingRef.current = false;
+                          setConfirming(false);
+                        });
                     }}
                   >
                     {confirmLabel}
                   </AriaButton>
-                  <AriaButton className="button button--secondary" onPress={close}>
+                  <AriaButton
+                    className="button button--secondary"
+                    isDisabled={confirming}
+                    onPress={close}
+                  >
                     {content.action.close}
                   </AriaButton>
                 </div>

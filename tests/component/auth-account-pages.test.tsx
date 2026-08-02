@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { ApplicationError } from "@/application/errors";
 import type { UserAddress } from "@/domain/contracts";
 
 const routerReplace = vi.fn();
@@ -16,6 +17,9 @@ const auth = {
     cartMerge: null,
   })),
   logout: vi.fn(async () => {}),
+};
+const checkout = {
+  getActive: vi.fn(async () => ({ unlockedStep: "payment" })),
 };
 const account = {
   getProfile: vi.fn(async () => ({
@@ -60,7 +64,7 @@ vi.mock("expo-router", () => ({
 }));
 
 vi.mock("@/presentation/hooks/use-application-services", () => ({
-  useApplicationServices: () => ({ auth, account }),
+  useApplicationServices: () => ({ auth, account, checkout }),
 }));
 
 vi.mock("@/presentation/providers/app-runtime-provider", () => ({
@@ -78,14 +82,15 @@ import { AddressesPage } from "@/presentation/pages/addresses-page";
 describe("auth and account pages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    window.history.replaceState({}, "", "/");
     account.listAddresses.mockResolvedValue([]);
+    checkout.getActive.mockResolvedValue({ unlockedStep: "payment" });
   });
 
-  it("submits Login and exposes fixed fixture account guidance", async () => {
+  it("submits Login and links fixed fixture account guidance to Guide", async () => {
     render(<LoginPage />);
     expect(screen.getByRole("heading", { name: "ログイン" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "固定テストアカウント" })).toBeVisible();
-    expect(screen.getByText("パスワードはすべて「testpass1」です。")).toBeVisible();
+    expect(screen.getByRole("link", { name: "学習Guide" })).toHaveAttribute("href", "/guide");
     fireEvent.change(screen.getByLabelText("メールアドレス"), {
       target: { value: "regular@example.com" },
     });
@@ -102,6 +107,65 @@ describe("auth and account pages", () => {
     expect(refreshIdentity).toHaveBeenCalled();
     expect(routerReplace).toHaveBeenCalledWith("/");
   });
+
+  it("does not hide a checkout storage error as an address fallback", async () => {
+    window.history.replaceState({}, "", "/login?returnTo=%2Fcheckout%2Fpayment");
+    auth.login.mockResolvedValueOnce({
+      sessionId: "session",
+      user: { role: "customer" },
+      cartMerge: null,
+    });
+    checkout.getActive.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "STORAGE_READ_FAILED",
+        messageKey: "storage.read.failed",
+        retryable: true,
+      }),
+    );
+    render(<LoginPage />);
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "regular@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "testpass1" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+    expect(
+      await screen.findByText(
+        "ブラウザからログイン状態を読み込めませんでした。設定を確認してください。",
+      ),
+    ).toBeVisible();
+    expect(routerReplace).not.toHaveBeenCalled();
+  });
+
+  it.each(["CHECKOUT_STEP_INCOMPLETE", "CHECKOUT_EXPIRED", "CART_VERSION_CHANGED"] as const)(
+    "falls back to the address step for the expected checkout state error: %s",
+    async (code) => {
+      window.history.replaceState({}, "", "/login?returnTo=%2Fcheckout%2Fpayment");
+      auth.login.mockResolvedValueOnce({
+        sessionId: "session",
+        user: { role: "customer" },
+        cartMerge: null,
+      });
+      checkout.getActive.mockRejectedValueOnce(
+        new ApplicationError({
+          code,
+          messageKey: `checkout.${code.toLowerCase()}`,
+          retryable: false,
+        }),
+      );
+      render(<LoginPage />);
+      fireEvent.change(screen.getByLabelText("メールアドレス"), {
+        target: { value: "regular@example.com" },
+      });
+      fireEvent.change(screen.getByLabelText("パスワード"), {
+        target: { value: "testpass1" },
+      });
+      fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+
+      await waitFor(() => expect(routerReplace).toHaveBeenCalledWith("/checkout/address"));
+    },
+  );
 
   it("keeps Signup submission blocked until the notice is accepted", async () => {
     render(<SignupPage />);

@@ -1,6 +1,7 @@
 import type {
   AdminProductListItem,
   AdminProductSearchRequest,
+  ApplicationErrorShape,
   BulkChangeProductStatusRequest,
   ChangeProductStatusRequest,
   CreateProductRequest,
@@ -12,6 +13,7 @@ import type {
   ProductImageSelectionRequest,
   ProductPreviewDto,
   ProductPreviewRequest,
+  ProductReviewSummaryDto,
   ProductVariantCreateRequest,
   UpdateProductRequest,
 } from "@/application/contracts";
@@ -19,7 +21,7 @@ import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
-import type { MembershipRank, ProductVariant } from "@/domain/contracts";
+import type { MembershipRank, ProductReviewSummary } from "@/domain/contracts";
 import { effectiveUnitPrice, viewerUnitPrice } from "@/domain/services/pricing";
 import { StaticManifestRepository } from "@/infrastructure/image-assets/static-manifest-repository";
 import {
@@ -256,32 +258,61 @@ export class AdminProductUseCases {
   async preview(request: ProductPreviewRequest): Promise<ProductPreviewDto> {
     await this.requireStaff();
     const aggregate = request.aggregate;
-    const createShape: CreateProductRequest =
-      "variants" in aggregate
-        ? aggregate
-        : {
-            product: aggregate.product,
-            variants: [
-              ...aggregate.createVariants,
-              ...aggregate.updateVariants.map((variant) => ({
-                clientKey: variant.variantId,
-                sku: variant.sku,
-                optionValue: variant.optionValue,
-                regularPrice: variant.regularPrice,
-                salePrice: variant.salePrice,
-                saleStartAt: variant.saleStartAt,
-                saleEndAt: variant.saleEndAt,
-                purchaseLimit: variant.purchaseLimit,
-                initialStockQuantity: 0,
-              })),
-            ],
-            images: aggregate.images,
-          };
-    this.validateMinimum(createShape);
+    const isCreate = "variants" in aggregate;
+    const current = isCreate ? null : await this.products.getAggregateForAdmin(aggregate.productId);
+    if (!isCreate && current === null) throw this.notFound();
+    const createShape: CreateProductRequest = isCreate
+      ? aggregate
+      : {
+          product: aggregate.product,
+          variants: [
+            ...aggregate.createVariants,
+            ...aggregate.updateVariants.map((variant) => ({
+              clientKey: variant.variantId,
+              sku: variant.sku,
+              optionValue: variant.optionValue,
+              regularPrice: variant.regularPrice,
+              salePrice: variant.salePrice,
+              saleStartAt: variant.saleStartAt,
+              saleEndAt: variant.saleEndAt,
+              purchaseLimit: variant.purchaseLimit,
+              initialStockQuantity: 0,
+            })),
+          ],
+          images: aggregate.images,
+        };
     const now = await this.now();
     const assets = await this.assets.listByIds(createShape.images.map((image) => image.assetId));
     const assetMap = new Map(assets.map((asset) => [asset.assetId, asset]));
-    const prices = createShape.variants.map((variant) =>
+    const currentVariants = new Map(
+      (current?.variants ?? []).map((variant) => [variant.id, variant]),
+    );
+    const previewVariants = isCreate
+      ? aggregate.variants.map((variant) => ({
+          ...variant,
+          variantId: variant.clientKey,
+          stockQuantity: variant.initialStockQuantity,
+          stockSource: "INITIAL" as const,
+          isActive: true,
+        }))
+      : [
+          ...aggregate.createVariants.map((variant) => ({
+            ...variant,
+            variantId: variant.clientKey,
+            stockQuantity: variant.initialStockQuantity,
+            stockSource: "INITIAL" as const,
+            isActive: true,
+          })),
+          ...aggregate.updateVariants
+            .filter((variant) => !aggregate.removeVariantIds.includes(variant.variantId))
+            .map((variant) => ({
+              ...variant,
+              variantId: variant.variantId,
+              stockQuantity: currentVariants.get(variant.variantId)?.stockQuantity ?? 0,
+              stockSource: "CURRENT" as const,
+            })),
+        ];
+    const prices = previewVariants.map((variant) =>
       effectiveUnitPrice(
         {
           regularPrice: variant.regularPrice,
@@ -293,11 +324,19 @@ export class AdminProductUseCases {
       ),
     );
     const rank = request.previewMembershipRank;
+    const viewerPrices =
+      prices.length === 0 ? [0] : prices.map((price) => viewerUnitPrice(price, rank));
     const primary = createShape.images.find((image) => image.isPrimary) ?? null;
     const primaryAsset = primary === null ? null : assetMap.get(primary.assetId);
     const brand = await this.dependencies.database.brands.get(createShape.product.brandId);
+    const category = await this.dependencies.database.categories.get(
+      createShape.product.categoryId,
+    );
+    const reviewSummary = current
+      ? await this.dependencies.database.product_review_summaries.get(current.product.id)
+      : null;
     return {
-      productId: "preview",
+      productId: current?.product.id ?? "preview",
       productCode: createShape.product.productCode,
       name: createShape.product.name,
       brandName: brand?.name ?? "",
@@ -309,10 +348,12 @@ export class AdminProductUseCases {
               path: primaryAsset.path,
               altText: primary.altText,
             },
-      minimumViewerUnitPrice: Math.min(...prices.map((price) => viewerUnitPrice(price, rank))),
-      maximumViewerUnitPrice: Math.max(...prices.map((price) => viewerUnitPrice(price, rank))),
-      hasPurchasableStock: createShape.variants.some((variant) => variant.initialStockQuantity > 0),
-      hasActiveSale: createShape.variants.some(
+      minimumViewerUnitPrice: Math.min(...viewerPrices),
+      maximumViewerUnitPrice: Math.max(...viewerPrices),
+      hasPurchasableStock: previewVariants.some(
+        (variant) => variant.isActive && variant.stockQuantity > 0,
+      ),
+      hasActiveSale: previewVariants.some(
         (variant) =>
           variant.salePrice !== null &&
           effectiveUnitPrice(
@@ -325,14 +366,15 @@ export class AdminProductUseCases {
             now,
           ) === variant.salePrice,
       ),
-      ratingAverage: 0,
-      publishedReviewCount: 0,
+      ratingAverage: reviewSummary?.ratingAverage ?? 0,
+      publishedReviewCount: reviewSummary?.publishedCount ?? 0,
       shortDescription: createShape.product.shortDescription,
       description: createShape.product.description,
-      categoryBreadcrumb: [],
+      categoryBreadcrumb: category === undefined ? [] : [{ id: category.id, name: category.name }],
       requiredRank: createShape.product.requiredRank,
       variationName: createShape.product.variationName,
-      variants: createShape.variants.map((variant) => {
+      statusAfterSave: current?.product.status ?? "draft",
+      variants: previewVariants.map((variant) => {
         const effective = effectiveUnitPrice(
           {
             regularPrice: variant.regularPrice,
@@ -343,14 +385,16 @@ export class AdminProductUseCases {
           now,
         );
         return {
-          variantId: variant.clientKey,
+          variantId: variant.variantId,
           sku: variant.sku,
           optionValue: variant.optionValue,
           regularPrice: variant.regularPrice,
           activeSalePrice: effective === variant.salePrice ? variant.salePrice : null,
           viewerUnitPrice: viewerUnitPrice(effective, rank),
-          stockQuantity: variant.initialStockQuantity,
+          stockQuantity: variant.stockQuantity,
           purchaseLimit: variant.purchaseLimit,
+          stockSource: variant.stockSource,
+          isActive: variant.isActive,
         };
       }),
       images: createShape.images.map((image, index) => ({
@@ -360,26 +404,12 @@ export class AdminProductUseCases {
         sortOrder: (index + 1) * 10,
         isPrimary: image.isPrimary,
       })),
-      reviewSummary: {
-        publishedCount: 0,
-        ratingTotal: 0,
-        ratingAverage: 0,
-        rating1Count: 0,
-        rating2Count: 0,
-        rating3Count: 0,
-        rating4Count: 0,
-        rating5Count: 0,
-      },
-      publishabilityIssues:
-        createShape.images.length === 0
-          ? [
-              {
-                code: "INVALID_STATE",
-                messageKey: "products.publishability.imageRequired",
-                retryable: false,
-              },
-            ]
-          : [],
+      reviewSummary: toPreviewReviewSummary(reviewSummary),
+      publishabilityIssues: previewPublishabilityIssues({
+        product: createShape.product,
+        variants: previewVariants,
+        hasPrimaryImage: primary !== null && primaryAsset !== undefined,
+      }),
     };
   }
 
@@ -455,6 +485,84 @@ export class AdminProductUseCases {
       retryable: false,
     });
   }
+}
+
+function toPreviewReviewSummary(
+  summary: ProductReviewSummary | null | undefined,
+): ProductReviewSummaryDto {
+  return {
+    publishedCount: summary?.publishedCount ?? 0,
+    ratingTotal: summary?.ratingTotal ?? 0,
+    ratingAverage: summary?.ratingAverage ?? 0,
+    rating1Count: summary?.rating1Count ?? 0,
+    rating2Count: summary?.rating2Count ?? 0,
+    rating3Count: summary?.rating3Count ?? 0,
+    rating4Count: summary?.rating4Count ?? 0,
+    rating5Count: summary?.rating5Count ?? 0,
+  };
+}
+
+function previewPublishabilityIssues(input: {
+  product: CreateProductRequest["product"];
+  variants: Array<{
+    sku: string;
+    regularPrice: number;
+    purchaseLimit: number;
+    isActive: boolean;
+  }>;
+  hasPrimaryImage: boolean;
+}): ApplicationErrorShape[] {
+  const issues: ApplicationErrorShape[] = [];
+  const product = normalizedProduct(input.product);
+  if (
+    product.productCode.length === 0 ||
+    product.name.length === 0 ||
+    product.categoryId.length === 0 ||
+    product.brandId.length === 0
+  ) {
+    issues.push({
+      code: "VALIDATION",
+      messageKey: "products.publishability.requiredFields",
+      retryable: false,
+    });
+  }
+  if (input.variants.length === 0) {
+    issues.push({
+      code: "INVALID_STATE",
+      messageKey: "products.publishability.variantRequired",
+      retryable: false,
+    });
+  } else if (!input.variants.some((variant) => variant.isActive)) {
+    issues.push({
+      code: "INVALID_STATE",
+      messageKey: "products.publishability.activeVariantRequired",
+      retryable: false,
+    });
+  }
+  if (!input.hasPrimaryImage) {
+    issues.push({
+      code: "INVALID_STATE",
+      messageKey: "products.publishability.imageRequired",
+      retryable: false,
+    });
+  }
+  if (
+    input.variants.some(
+      (variant) =>
+        variant.sku.trim().length === 0 ||
+        !Number.isInteger(variant.regularPrice) ||
+        variant.regularPrice < 0 ||
+        !Number.isInteger(variant.purchaseLimit) ||
+        variant.purchaseLimit < 1,
+    )
+  ) {
+    issues.push({
+      code: "VALIDATION",
+      messageKey: "products.variant.invalid",
+      retryable: false,
+    });
+  }
+  return issues;
 }
 
 function withoutClientKey(variant: ProductVariantCreateRequest) {

@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "run_id": "20260802-114553-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "CIで失敗した未配達Review URLの日時表示をUTC/JST差なく修正し、対象test、Component suite、full verify、Chromium E2Eを成功させた。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "summary": "注文日時表示へAsia/Tokyo timezoneを明示"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260802-114553-JST/REPORT.md",
+          "selector": "Iteration 1 validation",
+          "summary": "UTC再現と再検証の結果"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "修正はallowed fileのsource 1ファイルに限定し、テスト期待値・既存契約・Git履歴を変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260802-114553-JST/REPORT.md",
+          "selector": "changed_files",
+          "summary": "Iteration 1の変更範囲"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "UTC環境で対象Component、Component全体73件、full verify、Chromium 27件を成功させた。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260802-114553-JST/REPORT.md",
+          "selector": "validation_commands",
+          "summary": "Repair Loopの検証結果"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "削除、rename、Git mutation、依存変更、外部公開を行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260802-114553-JST/REPORT.md",
+          "selector": "Notes/Decisions",
+          "summary": "安全境界の記録"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Root cause、allowed files、iteration、validation、deferしたwarningをRun reportへ記録した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260802-114553-JST/run.json",
+          "summary": "Repair run manifest"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存の表示処理にIntl timezone optionだけを追加し、日時の意味をJSTシナリオ契約として明示した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "src/presentation/pages/review-user-pages.tsx",
+          "summary": "最小差分のtimezone固定"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "TZ=UTCでfailureを再現し、同じTZ=UTCで対象test、全Component、full verify、E2Eを再検証した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260802-114553-JST/REPORT.md",
+          "selector": "Root cause evidence / validation_commands",
+          "summary": "環境差の再現可能な証跡"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

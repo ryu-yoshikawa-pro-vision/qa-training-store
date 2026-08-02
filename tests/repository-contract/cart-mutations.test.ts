@@ -61,4 +61,46 @@ describe("cart mutation repository contract", () => {
       quantity: item!.quantity,
     });
   });
+
+  it("counts adjusted and fully excluded merge items without overlap", async () => {
+    await loadSeedDataset(
+      database,
+      createScenarioDataset("guest-cart-merge-overflow"),
+      "guest-cart-merge-overflow",
+    );
+    const excludedVariant = await database.product_variants
+      .where("productId")
+      .equals("product-draft")
+      .first();
+    expect(excludedVariant).toBeDefined();
+    await database.cart_items.add({
+      id: "guest-fully-excluded",
+      cartId: "cart-guest-overflow",
+      variantId: excludedVariant!.id,
+      quantity: 2,
+      unitEffectivePriceAtAdd: 4000,
+      createdAt: BASE_CLOCK,
+      updatedAt: BASE_CLOCK,
+      version: 1,
+    });
+
+    const result = await carts.mergeGuestIntoUser({
+      guestId: DEFAULT_GUEST_ID,
+      userId: "user-customer-regular",
+      now: BASE_CLOCK,
+    });
+
+    expect(result.adjustedItemCount).toBe(1);
+    expect(result.fullyExcludedItemCount).toBe(1);
+    expect(result.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ overflowQuantity: 2, excludedReason: null }),
+        expect.objectContaining({
+          addedQuantity: 0,
+          overflowQuantity: 2,
+          excludedReason: "UNPUBLISHED",
+        }),
+      ]),
+    );
+  });
 });

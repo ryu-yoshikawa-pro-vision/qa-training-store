@@ -17,6 +17,7 @@ const checkout = {
   retryPayment: vi.fn(),
   listMyOrders: vi.fn(),
   getMyOrder: vi.fn(),
+  getMyCustomerOrder: vi.fn(),
 };
 const cart = {
   getCart: vi.fn(),
@@ -214,6 +215,10 @@ describe("checkout and order pages", () => {
       paymentStatus: "processing",
     });
     checkout.getMyOrder.mockResolvedValue(detail);
+    checkout.getMyCustomerOrder.mockResolvedValue({
+      ...detail,
+      items: detail.items.map((item) => ({ ...item, reviewState: "NOT_POSTED" as const })),
+    });
   });
 
   it("selects a registered address and advances with a snapshot", async () => {
@@ -287,4 +292,33 @@ describe("checkout and order pages", () => {
       "発送準備待ち",
     );
   });
+
+  it.each([
+    ["NOT_POSTED", "レビューを投稿"],
+    ["PUBLISHED", "レビューを編集（公開中）"],
+    ["HIDDEN", "レビューを編集（非公開）"],
+    ["DELETED", "削除済み（再投稿不可）"],
+    ["NOT_ELIGIBLE", null],
+  ] as const)(
+    "renders the %s review state from the customer order service",
+    async (state, label) => {
+      checkout.getMyCustomerOrder.mockResolvedValue({
+        ...detail,
+        orderStatus: "delivered",
+        items: detail.items.map((item) => ({ ...item, reviewState: state })),
+      });
+      const { unmount } = render(<OrderDetailPage orderId="order-new" />);
+      expect(await screen.findByRole("heading", { name: "ORD-20260701-0006" })).toBeVisible();
+      expect(checkout.getMyCustomerOrder).toHaveBeenCalledWith("order-new");
+      expect(checkout.getMyOrder).not.toHaveBeenCalled();
+      if (label === null) {
+        expect(screen.queryByRole("link", { name: /レビュー/ })).not.toBeInTheDocument();
+      } else if (state === "DELETED") {
+        expect(screen.getByText(label)).toBeVisible();
+      } else {
+        expect(screen.getByRole("link", { name: label })).toBeVisible();
+      }
+      unmount();
+    },
+  );
 });

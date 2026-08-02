@@ -18,7 +18,7 @@
     "test:contracts": "vitest run tests/contracts",
     "test": "pnpm run test:unit && pnpm run test:integration && pnpm run test:repository && pnpm run test:component && pnpm run test:contracts",
     "test:e2e": "pnpm run test:e2e:chromium",
-    "test:e2e:chromium": "playwright test e2e/web/phase1-required.spec.ts --project=chromium",
+    "test:e2e:chromium": "playwright test e2e/web/phase1-required.spec.ts e2e/web/ui-ux-improvements.spec.ts --project=chromium",
     "test:a11y": "playwright test e2e/web/accessibility.spec.ts --project=chromium",
     "test:e2e:mobile": "playwright test e2e/web/phase1-required.spec.ts --project=mobile-chromium",
     "test:e2e:mobile-boundary": "playwright test e2e/web/mobile-boundary.spec.ts --project=mobile-chromium",

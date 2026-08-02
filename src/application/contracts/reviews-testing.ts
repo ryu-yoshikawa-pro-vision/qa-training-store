@@ -7,9 +7,10 @@ import type {
   ReviewStatusHistory,
   ShipmentStatus,
 } from "@/domain/contracts";
-import type { AdminOrderListItem } from "./orders";
+import type { AdminOrderListItem, CustomerReviewState } from "./orders";
 import type { ApplicationErrorShape, PageNumber } from "./common";
 import type { ProductReviewSummaryDto } from "./catalog";
+import type { ScenarioMetadataDefinition } from "@/seeds/metadata";
 
 export interface ReviewSearchQuery {
   keyword: string | null;
@@ -55,6 +56,12 @@ export interface ReviewEligibilityDto {
   eligible: boolean;
   reason: "ORDER_NOT_DELIVERED" | "NOT_OWNER" | "ALREADY_REVIEWED" | "REVIEW_DELETED" | null;
   existingReview: ReviewResultDto | null;
+  productName: string | null;
+  variationName: string | null;
+  optionValue: string | null;
+  orderNumber: string | null;
+  orderCreatedAt: IsoDateTime | null;
+  reviewState: CustomerReviewState;
 }
 
 export interface CreateReviewRequest {
@@ -130,6 +137,7 @@ export interface TestMetadata {
   seedVersion: number;
   buildSha: string;
   scenario: string;
+  scenarioMetadata?: ScenarioMetadataDefinition;
   clock: IsoDateTime | null;
   paymentDelayMs: number;
 }

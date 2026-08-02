@@ -27,7 +27,11 @@ vi.mock("expo-router", () => ({
       {children}
     </a>
   ),
+  useNavigation: () => ({ addListener: () => () => undefined, dispatch: vi.fn() }),
   useRouter: () => ({ replace: routerReplace, push: routerPush }),
+}));
+vi.mock("expo-router/build/react-navigation/core", () => ({
+  usePreventRemove: () => undefined,
 }));
 vi.mock("@/presentation/hooks/use-application-services", () => ({
   useApplicationServices: () => services,
@@ -217,5 +221,26 @@ describe("admin product pages", () => {
       variants: [{ sku: "", initialStockQuantity: 0 }],
     });
     expect(routerPush).toHaveBeenCalledWith("/admin/products/new?duplicate=1");
+  });
+
+  it("uses an accessible dirty-navigation modal and restores focus after Escape", async () => {
+    render(<AdminProductEditPage productId="product-draft" />);
+    expect(await screen.findByRole("heading", { name: "下書き商品" })).toBeVisible();
+    const nameInput = screen.getByLabelText("商品名");
+    fireEvent.change(nameInput, { target: { value: "下書き商品（変更）" } });
+    const productsLink = screen.getByRole("link", { name: "商品管理" });
+    fireEvent.click(productsLink);
+
+    const dialog = await screen.findByRole("alertdialog", { name: "未保存の変更があります" });
+    await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
+
+    fireEvent.keyDown(dialog, { key: "Escape" });
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    await waitFor(() => expect(productsLink).toHaveFocus());
+    expect(nameInput).toHaveValue("下書き商品（変更）");
+
+    fireEvent.click(productsLink);
+    fireEvent.click(await screen.findByRole("button", { name: "変更を破棄して移動" }));
+    await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/admin/products"));
   });
 });

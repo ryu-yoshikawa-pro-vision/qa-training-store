@@ -1,8 +1,9 @@
 import type { ReactNode } from "react";
-import { Redirect } from "expo-router";
+import { Redirect, usePathname, type Href } from "expo-router";
 import { isTestApiBuild } from "@/test-controls/test-api.web";
 import { StatePanel } from "@/presentation/components/states";
 import { useAppRuntime } from "@/presentation/providers/app-runtime-provider";
+import { buildLoginHref } from "@/presentation/browser/return-to.web";
 
 export type RouteAccess =
   | "public"
@@ -14,6 +15,7 @@ export type RouteAccess =
 
 export function RouteGuard({ access, children }: { access: RouteAccess; children: ReactNode }) {
   const { ready, error, currentUser } = useAppRuntime();
+  const pathname = usePathname();
   if (!ready) {
     return <StatePanel kind="loading" />;
   }
@@ -31,7 +33,9 @@ export function RouteGuard({ access, children }: { access: RouteAccess; children
     return children;
   }
   if (currentUser === null) {
-    return <Redirect href="/login" />;
+    return (
+      <Redirect href={(access === "customer" ? buildLoginHref(pathname) : "/login") as Href} />
+    );
   }
   const active = currentUser.accountStatus === "active";
   const staff = active && (currentUser.role === "operator" || currentUser.role === "admin");

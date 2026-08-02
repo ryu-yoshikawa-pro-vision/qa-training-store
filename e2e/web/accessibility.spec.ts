@@ -150,7 +150,7 @@ test.describe("Accessibility smoke", () => {
 
   test("admin代表画面", async ({ page, scenario }, testInfo) => {
     await scenario("default");
-    await login(page, "admin@example.com");
+    await login(page, "admin@example.com", "/admin");
 
     for (const target of [
       {
@@ -212,7 +212,7 @@ test.describe("Accessibility smoke", () => {
     await expect(page.getByRole("dialog", { name: "ベーシックTシャツの商品画像" })).toBeHidden();
     await expect(imageTrigger).toBeFocused();
 
-    await login(page, "admin@example.com");
+    await login(page, "admin@example.com", "/admin");
     await page.goto("/admin", { waitUntil: "domcontentloaded" });
     const adminSkipLink = page.getByRole("link", { name: "本文へ移動" });
     await page.keyboard.press("Tab");

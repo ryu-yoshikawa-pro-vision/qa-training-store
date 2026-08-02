@@ -9,7 +9,7 @@
 - Changes:
   - `.codex/runs/20260727-134412-JST/` の初期 artifact を追加。
 - Commands:
-  - `Get-Content -Raw <pasted-text-1.txt>` => 成功、Phase 1 修正仕様を確認。
+  - `Get-Content -Raw <attachment>/pasted-text.txt` => 成功、Phase 1 修正仕様を確認。
   - `Get-Content`（必須文書・skill・template）=> 成功。
   - `Get-ChildItem docs/adr,.codex/runs,.codex/agents` => ADR は README のみ、既存 run なし、custom agent 4 件を確認。
 - Notes/Decisions:

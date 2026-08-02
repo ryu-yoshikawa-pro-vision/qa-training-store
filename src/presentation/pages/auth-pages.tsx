@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link, useRouter } from "expo-router";
+import { Link, useRouter, type Href } from "expo-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -8,6 +8,14 @@ import { content } from "@/presentation/content/dictionary";
 import { FormErrorSummary } from "@/presentation/components/form-error-summary";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAppRuntime } from "@/presentation/providers/app-runtime-provider";
+import {
+  createCartMergeNotice,
+  writeOneTimeNotice,
+} from "@/presentation/browser/one-time-notice.web";
+import {
+  defaultLoginDestination,
+  resolveCustomerLoginDestination,
+} from "@/presentation/browser/return-to.web";
 
 const loginSchema = z.object({
   email: z.email("メールアドレスの形式で入力してください"),
@@ -37,6 +45,12 @@ const signupSchema = z
 type LoginForm = z.infer<typeof loginSchema>;
 type SignupForm = z.infer<typeof signupSchema>;
 
+function currentReturnTo(): string | string[] | undefined {
+  if (typeof window === "undefined") return undefined;
+  const values = new URL(window.location.href).searchParams.getAll("returnTo");
+  return values.length === 1 ? values[0] : values.length > 1 ? values : undefined;
+}
+
 function useAuthError() {
   const [operationError, setOperationError] = useState<string | null>(null);
   return {
@@ -51,6 +65,8 @@ function useAuthError() {
           EMAIL_ALREADY_EXISTS: "このメールアドレスはすでに登録されています。",
           STORAGE_WRITE_FAILED:
             "ブラウザへログイン状態を保存できませんでした。設定を確認してください。",
+          STORAGE_READ_FAILED:
+            "ブラウザからログイン状態を読み込めませんでした。設定を確認してください。",
           LOGIN_TRANSACTION_FAILED:
             "ログイン処理を完了できませんでした。カートは変更されていません。",
         };
@@ -63,7 +79,7 @@ function useAuthError() {
 }
 
 export function LoginPage() {
-  const { auth } = useApplicationServices();
+  const { auth, checkout } = useApplicationServices();
   const { refreshIdentity } = useAppRuntime();
   const router = useRouter();
   const authError = useAuthError();
@@ -98,9 +114,45 @@ export function LoginPage() {
           onSubmit={handleSubmit(async (value) => {
             authError.clear();
             try {
-              await auth.login(value);
+              const result = await auth.login(value);
+              const requestedReturnTo = currentReturnTo();
+              let destination:
+                | "/"
+                | "/admin"
+                | "/cart"
+                | "/checkout/address"
+                | "/checkout/payment"
+                | "/checkout/confirm";
+              if (result.user.role === "customer") {
+                const customerDestination = await resolveCustomerLoginDestination(
+                  requestedReturnTo,
+                  async (step) => {
+                    try {
+                      await checkout.getActive(step);
+                      return true;
+                    } catch (caught) {
+                      if (
+                        caught instanceof ApplicationError &&
+                        (caught.code === "CHECKOUT_STEP_INCOMPLETE" ||
+                          caught.code === "CHECKOUT_EXPIRED" ||
+                          caught.code === "CART_VERSION_CHANGED")
+                      ) {
+                        return false;
+                      }
+                      throw caught;
+                    }
+                  },
+                );
+                const notice = createCartMergeNotice(result.cartMerge, customerDestination);
+                destination = notice?.targetPath ?? customerDestination;
+                if (notice !== null) writeOneTimeNotice(notice);
+              } else if (result.user.role === "operator" || result.user.role === "admin") {
+                destination = defaultLoginDestination(result.user.role);
+              } else {
+                destination = "/";
+              }
               await refreshIdentity();
-              router.replace("/");
+              router.replace(destination as Href);
             } catch (caught) {
               authError.capture(caught);
             }
@@ -134,29 +186,11 @@ export function LoginPage() {
         <p>
           初めて利用する場合は<Link href="/signup">新規登録</Link>
         </p>
+        <p>
+          固定アカウント、Role、シナリオの説明は<Link href="/guide">学習Guide</Link>
+          で確認できます。
+        </p>
       </section>
-      <aside className="fixture-account-panel">
-        <h2>固定テストアカウント</h2>
-        <p>パスワードはすべて「testpass1」です。</p>
-        <dl>
-          <div>
-            <dt>一般会員</dt>
-            <dd>regular@example.com</dd>
-          </div>
-          <div>
-            <dt>ゴールド会員</dt>
-            <dd>gold@example.com</dd>
-          </div>
-          <div>
-            <dt>運用担当者</dt>
-            <dd>operator@example.com</dd>
-          </div>
-          <div>
-            <dt>管理者</dt>
-            <dd>admin@example.com</dd>
-          </div>
-        </dl>
-      </aside>
     </div>
   );
 }

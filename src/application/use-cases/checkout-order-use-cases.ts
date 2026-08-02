@@ -1,6 +1,7 @@
 import type {
   CheckoutConfirmationDto,
   CheckoutStartResult,
+  CustomerOrderDetailDto,
   CreateOrderForPaymentRequest,
   MyOrderSearchQuery,
   OrderDetailDto,
@@ -17,6 +18,7 @@ import { ApplicationError, conflictError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator, PaymentGateway } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
+import { deriveCustomerReviewState } from "@/application/use-cases/customer-review-state";
 import type {
   CheckoutSession,
   CheckoutStep,
@@ -348,6 +350,21 @@ export class CheckoutOrderUseCases {
     const detail = await this.orders.getDetail(orderId);
     if (detail === null) throw this.notFound("order");
     return detail;
+  }
+
+  async getMyCustomerOrder(orderId: string): Promise<CustomerOrderDetailDto> {
+    const detail = await this.getMyOrder(orderId);
+    const items = await Promise.all(
+      detail.items.map(async (item) => {
+        const review = await this.dependencies.database.reviews
+          .where("orderItemId")
+          .equals(item.orderItemId)
+          .first();
+        const reviewState = deriveCustomerReviewState(review, detail.orderStatus);
+        return { ...item, reviewState };
+      }),
+    );
+    return { ...detail, items };
   }
 
   private async finalizePayment(

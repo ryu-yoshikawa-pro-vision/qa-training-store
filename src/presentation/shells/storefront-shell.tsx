@@ -10,6 +10,7 @@ import { isTestApiBuild } from "@/test-controls/test-api.web";
 
 interface StorefrontShellProps {
   currentUser: CurrentUserDto | null;
+  notice?: ReactNode;
   children: ReactNode;
 }
 
@@ -37,7 +38,7 @@ function isNavigationCurrent(pathname: string, href: string) {
   }
 }
 
-export function StorefrontShell({ currentUser, children }: StorefrontShellProps) {
+export function StorefrontShell({ currentUser, notice = null, children }: StorefrontShellProps) {
   const pathname = usePathname();
   const { catalog } = useApplicationServices();
   const loadSuggestions = useCallback(
@@ -131,6 +132,7 @@ export function StorefrontShell({ currentUser, children }: StorefrontShellProps)
         <p className="learning-notice">{content.notice.training}</p>
       </header>
       <main id="main-content" tabIndex={-1}>
+        {notice}
         {children}
       </main>
       <footer className="storefront-footer">
@@ -156,6 +158,7 @@ export function StorefrontShell({ currentUser, children }: StorefrontShellProps)
             </section>
             <section>
               <h2>サポート</h2>
+              <Link href="/guide">学習Guide</Link>
               <Link href="/legal/commerce">模擬取引について</Link>
               <Link href="/legal/privacy">データの取扱い</Link>
             </section>

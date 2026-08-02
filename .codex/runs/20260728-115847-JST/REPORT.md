@@ -52,7 +52,7 @@
   - `rg --files app src/presentation e2e tests docs output` => Route、Design、Test、Visual artifactをmapping。
   - `git show --stat 2b15e6a 61d52d3` => 直前のDesign統合とUI review補正を確認。
   - `view_image`で参考6画像と現行Desktop／Mobile代表画面を実見。
-  - `node --version` => FAIL（WSL PATHにnodeなし）。`node.exe`は`/mnt/c/Program Files/nodejs/node.exe`に存在。
+  - `node --version` => FAIL（WSL PATHにnodeなし）。Windows Node.js installationには`node.exe`が存在。
 - Notes/Decisions:
   - UI非変更のHarness拡張後に新規Baselineを生成するため、Before/After比較のUI起点は維持される。
   - 1024×900はStage名上Tablet、Admin契約上は利用可能境界として評価する。

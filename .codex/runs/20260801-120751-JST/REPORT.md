@@ -5,28 +5,28 @@
 - Completed:
   - `docs/PROJECT_CONTEXT.md`、`docs/adr/README.md`、`AGENTS.md`、直近Runを再確認した。
   - リポジトリにPlaywright Test設定はあるが、MCP server定義はないことを確認した。
-  - Windows側`/mnt/c/Users/sella/.codex/config.toml:167-174`に以下のMCP定義を確認した。
+  - Windows側`<local-user>/.codex/config.toml:167-174`に以下のMCP定義を確認した。
     - `command = "npx"`
     - `@playwright/mcp@latest`
     - `--browser chromium`
     - `--isolated`
-  - WSL側`/home/sella/.codex/config.toml`に`mcp_servers.playwright`がないことを確認した。
+  - WSL側`<local-user>/.codex/config.toml`に`mcp_servers.playwright`がないことを確認した。
   - 現在のセッションの登録ツールを確認し、Playwright／Browser系ツール名が0件であることを確認した。
-  - `npx`自体はWSLから`/mnt/c/Program Files/nodejs/npx`、Windowsから`C:\Program Files\nodejs\npx(.cmd)`として解決できることを確認した。
+  - `npx`自体はWSLとWindowsのNode.js installationから解決できることを確認した（実体Pathは匿名化）。
   - 関連プロセスを確認し、Playwright／MCP serverの常駐プロセスは見つからなかった。Codex app-serverはWSL側Linuxバイナリで起動している。
   - Windows側Browser plugin cacheは存在し、Browser pluginの資材とPlaywright関連ドキュメントがあることを確認した。
 - Changes:
   - 製品ファイル、Codex設定、依存関係、Gitは変更していない。Run Artifactのみ作成した。
 - Commands:
-  - `rg -n -i 'mcp_servers|playwright|browser' /home/sella/.codex/config.toml /mnt/c/Users/sella/.codex/config.toml` => Windows側のみPlaywright MCP定義を検出。
-  - `nl -ba /mnt/c/Users/sella/.codex/config.toml | sed -n '147,174p'` => 定義と`--isolated`を確認。
+  - `rg -n -i 'mcp_servers|playwright|browser' <local-user>/.codex/config.toml <repo-root>/.codex/config.toml` => Windows側のみPlaywright MCP定義を検出。
+  - `nl -ba <local-user>/.codex/config.toml | sed -n '147,174p'` => 定義と`--isolated`を確認。
   - `ALL_TOOLS.filter(...)` => Playwright 0件、Browser 0件。
-  - `command -v npx; npx --version` => `/mnt/c/Program Files/nodejs/npx`、11.6.2。
-  - `cmd.exe /c where npx` => `C:\Program Files\nodejs\npx` と `.cmd`を確認。
+  - `command -v npx; npx --version` => Windows Node.js installation、11.6.2。
+  - `cmd.exe /c where npx` => Windows Node.js installationの`npx`と`.cmd`を確認。
   - `ps -ef | rg -i 'codex|app-server|node_repl|playwright|mcp'` => WSL側Codex app-serverは稼働、Playwright／MCP serverは未検出。
   - `git status --short --branch` => 製品差分なし。既存untrackedの前回Run／指定指示書のみ。
 - Findings:
-  - 最有力原因は、Windows側`C:\Users\sella\.codex\config.toml`と、今回のWSL/VS Code側app-serverが参照する`/home/sella/.codex/config.toml`の不一致。
+  - 最有力原因は、Windows側`<local-user>/.codex/config.toml`と、今回のWSL/VS Code側app-serverが参照する`<local-user>/.codex/config.toml`の不一致。
   - 設定内容自体は正しい。`--isolated`により独立Browser Contextを意図している。
   - `@playwright/mcp@latest`は起動時にnpxの解決・ネットワーク・MCP再接続が必要になるため、設定が読み込まれても起動ログ確認は必要。
 - Notes/Decisions:

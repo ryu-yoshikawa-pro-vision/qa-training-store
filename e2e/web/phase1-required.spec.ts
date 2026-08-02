@@ -69,6 +69,7 @@ test.describe("Phase 1 required E2E", () => {
     await scenario("default");
     await page.goto("/products/product-mug");
     await page.getByRole("button", { name: "カートに追加" }).click();
+    await expect(page.getByRole("status")).toContainText("カートへ追加しました");
     await login(page, "regular@example.com");
     await page.goto("/cart");
     await expect(page.getByRole("heading", { name: "ベーシックTシャツ" })).toBeVisible();
@@ -128,7 +129,8 @@ test.describe("Phase 1 required E2E", () => {
     const detail = page.getByRole("link", { name: "ORD-20260701-0002" });
     await expect(detail).toBeVisible();
     await detail.click();
-    await expect(page.getByText("発送準備待ち", { exact: true })).toBeVisible();
+    const shipment = page.getByRole("heading", { name: "配送状況" }).locator("..");
+    await expect(shipment.getByText("発送準備待ち", { exact: true })).toBeVisible();
     await page.goto("/checkout/processing?orderId=order-paid");
     await page.reload();
     await expect(page).toHaveURL(/\/checkout\/complete\?orderId=order-paid/);
@@ -154,7 +156,7 @@ test.describe("Phase 1 required E2E", () => {
 
   test("09 管理者の商品Aggregate登録・Preview・公開", async ({ page, scenario }, testInfo) => {
     await scenario("default");
-    await login(page, "admin@example.com");
+    await login(page, "admin@example.com", "/admin");
     await page.goto("/admin/products/new");
     if (await expectAdminMobileBoundary(page, testInfo)) return;
     await page.getByLabel("商品コード").fill("P-E2E-001");
@@ -178,7 +180,7 @@ test.describe("Phase 1 required E2E", () => {
 
   test("10 商品編集・SKU画像変更・非公開・draft削除制約", async ({ page, scenario }, testInfo) => {
     await scenario("default");
-    await login(page, "admin@example.com");
+    await login(page, "admin@example.com", "/admin");
     await page.goto("/admin/products/product-mug");
     if (await expectAdminMobileBoundary(page, testInfo)) return;
     await page.getByLabel("短い説明").fill("E2Eで更新した説明");
@@ -189,7 +191,7 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByRole("button", { name: "非公開" }).click();
     await expect(page.getByText(/・非公開$/)).toBeVisible();
     await scenario("product-delete-blocked");
-    await login(page, "admin@example.com");
+    await login(page, "admin@example.com", "/admin");
     await page.goto("/admin/products/product-draft");
     await page.getByRole("button", { name: "下書きを削除" }).click();
     await page.getByRole("button", { name: "削除", exact: true }).click();
@@ -198,7 +200,7 @@ test.describe("Phase 1 required E2E", () => {
 
   test("11 在庫調整・Order準備開始・発送・配送完了", async ({ page, scenario }, testInfo) => {
     await scenario("orders-phase1-statuses");
-    await login(page, "operator@example.com");
+    await login(page, "operator@example.com", "/admin");
     await page.goto("/admin/inventories");
     if (await expectAdminMobileBoundary(page, testInfo)) return;
     await page.getByRole("button", { name: "調整・履歴" }).first().click();
@@ -218,7 +220,7 @@ test.describe("Phase 1 required E2E", () => {
 
   test("12 User停止・Login拒否・最後のadmin保護", async ({ page, scenario }, testInfo) => {
     await scenario("default");
-    await login(page, "admin@example.com");
+    await login(page, "admin@example.com", "/admin");
     await page.goto("/admin/users/user-customer-regular");
     if (await expectAdminMobileBoundary(page, testInfo)) return;
     await page.getByRole("button", { name: "利用停止" }).click();
@@ -249,7 +251,7 @@ test.describe("Phase 1 required E2E", () => {
 
   test("14 admin Logout後は管理Routeへ入れない", async ({ page, scenario }, testInfo) => {
     await scenario("default");
-    await login(page, "admin@example.com");
+    await login(page, "admin@example.com", "/admin");
     await page.goto("/admin");
     if (testInfo.project.name === "mobile-chromium") {
       await expect(

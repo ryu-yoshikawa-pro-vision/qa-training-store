@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "expo-router";
 import type { AdminReviewListItem, UserAdminDto } from "@/application/contracts";
+import { ApplicationError } from "@/application/errors";
 import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { StatePanel } from "@/presentation/components/states";
 import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
@@ -18,7 +19,12 @@ import {
 import { useAppRuntime } from "@/presentation/providers/app-runtime-provider";
 import { testControlService } from "@/bootstrap/browser-runtime.web";
 import { reloadBrowserPage } from "@/presentation/browser/reload-page.web";
-import { PHASE_ONE_SCENARIOS, type PhaseOneScenario } from "@/seeds/metadata";
+import { PHASE_ONE_SCENARIOS, SCENARIO_METADATA, type PhaseOneScenario } from "@/seeds/metadata";
+import {
+  clearCheckoutNoticeHistory,
+  clearOneTimeNoticeStorage,
+  writeOneTimeNotice,
+} from "@/presentation/browser/one-time-notice.web";
 
 function Guard({
   access,
@@ -87,6 +93,39 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
       />
     );
   if (state.value === null) return <StatePanel kind="not-found" />;
+  const reviewStateLabels = {
+    NOT_POSTED: "未投稿",
+    PUBLISHED: "公開中",
+    HIDDEN: "非公開",
+    DELETED: "削除済み",
+    NOT_ELIGIBLE: "投稿対象外",
+  } as const;
+  const context = (
+    <section className="review-order-context" aria-label="購入時の商品情報">
+      <h2>購入商品</h2>
+      <dl className="definition-grid">
+        <dt>注文番号</dt>
+        <dd>{state.value.orderNumber ?? "—"}</dd>
+        <dt>購入日時</dt>
+        <dd>
+          {state.value.orderCreatedAt === null
+            ? "—"
+            : new Date(state.value.orderCreatedAt).toLocaleString("ja-JP", {
+                timeZone: "Asia/Tokyo",
+              })}
+        </dd>
+        <dt>商品名</dt>
+        <dd>{state.value.productName ?? "—"}</dd>
+        <dt>バリエーション</dt>
+        <dd>
+          {[state.value.variationName, state.value.optionValue].filter(Boolean).join(" / ") ||
+            "単一SKU"}
+        </dd>
+        <dt>レビュー状態</dt>
+        <dd>{reviewStateLabels[state.value.reviewState]}</dd>
+      </dl>
+    </section>
+  );
   if (!state.value.eligible) {
     const reason = {
       ORDER_NOT_DELIVERED: "配達完了後に投稿できます。",
@@ -94,7 +133,13 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
       ALREADY_REVIEWED: "レビューは商品ごとに1件です。",
       REVIEW_DELETED: "削除済みレビューは再投稿できません。",
     }[state.value.reason ?? "NOT_OWNER"];
-    return <StatePanel kind="forbidden" title="レビューを投稿できません" body={reason} />;
+    return (
+      <div className="storefront-main narrow-form">
+        <Breadcrumbs items={[{ label: "注文履歴", href: "/orders" }, { label: "レビュー" }]} />
+        {context}
+        <StatePanel kind="forbidden" title="レビューを投稿できません" body={reason} />
+      </div>
+    );
   }
   const existing = state.value.existingReview;
   const save = async () => {
@@ -122,6 +167,7 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
         title={existing === null ? "レビューを投稿" : "レビューを編集"}
         description="配達済みの購入商品について、1商品につき1件投稿できます。"
       />
+      {context}
       {message && (
         <p role="status" className="operation-message">
           {message}
@@ -176,19 +222,17 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
               title="レビューを削除しますか"
               confirmLabel="削除する"
               danger
-              onConfirm={() => {
-                void (async () => {
-                  try {
-                    await reviews.delete({
-                      reviewId: existing.reviewId,
-                      expectedVersion: existing.version,
-                    });
-                    setMessage("レビューを削除しました。再投稿はできません。");
-                    setMutation((value) => value + 1);
-                  } catch {
-                    setMessage("削除できませんでした。再読込してからもう一度お試しください。");
-                  }
-                })();
+              onConfirm={async () => {
+                try {
+                  await reviews.delete({
+                    reviewId: existing.reviewId,
+                    expectedVersion: existing.version,
+                  });
+                  setMessage("レビューを削除しました。再投稿はできません。");
+                  setMutation((value) => value + 1);
+                } catch {
+                  setMessage("削除できませんでした。再読込してからもう一度お試しください。");
+                }
               }}
             >
               この操作は元に戻せません。削除後は同じレビューを再投稿できません。
@@ -574,29 +618,62 @@ export function AdminUserDetailPage({ userId }: { userId: string }) {
 
 function AdminUserDetailContent({ userId }: { userId: string }) {
   const { adminUsers } = useApplicationServices();
-  const { currentUser } = useAppRuntime();
   const [mutation, setMutation] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const state = useAsyncValue(() => adminUsers.getDetail(userId), [adminUsers, userId, mutation]);
-  const [rank, setRank] = useState<"regular" | "gold" | "platinum">("regular");
-  const [role, setRole] = useState<"operator" | "admin">("operator");
-  useEffect(() => {
-    if (state.value?.membershipRank) setRank(state.value.membershipRank);
-    if (state.value?.role === "operator" || state.value?.role === "admin")
-      setRole(state.value.role);
-  }, [state.value]);
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null) return <StatePanel kind="not-found" />;
-  const user: UserAdminDto = state.value;
+  return (
+    <AdminUserDetailForm
+      key={`${state.value.userId}-${state.value.version}`}
+      user={state.value}
+      message={message}
+      onMessage={setMessage}
+      onMutation={() => setMutation((value) => value + 1)}
+    />
+  );
+}
+
+function AdminUserDetailForm({
+  user,
+  message,
+  onMessage,
+  onMutation,
+}: {
+  user: UserAdminDto;
+  message: string | null;
+  onMessage: (message: string | null) => void;
+  onMutation: () => void;
+}) {
+  const { adminUsers } = useApplicationServices();
+  const { currentUser } = useAppRuntime();
+  const [rank, setRank] = useState<"regular" | "gold" | "platinum">(
+    user.membershipRank ?? "regular",
+  );
+  const [role, setRole] = useState<"operator" | "admin">(
+    user.role === "admin" ? "admin" : "operator",
+  );
+  const userId = user.userId;
+  const isSelf = currentUser?.id === userId;
   const mutate = async (operation: () => Promise<UserAdminDto>, success: string) => {
     try {
       const updated = await operation();
-      setMessage(`${success}（更新番号 ${updated.version}）。`);
-      setMutation((value) => value + 1);
-    } catch {
-      setMessage(
-        "変更できませんでした。自己変更、最後の管理者、役割、利用状態、更新番号を確認してください。",
-      );
+      onMessage(`${success}（更新番号 ${updated.version}）。`);
+      onMutation();
+    } catch (caught) {
+      if (caught instanceof ApplicationError) {
+        const messages: Partial<Record<ApplicationError["code"], string>> = {
+          LAST_ADMIN_PROTECTED: "最後の管理者は変更できません。先に別の管理者を設定してください。",
+          SELF_CHANGE_FORBIDDEN: "自分自身の役割または利用状態は変更できません。",
+          CONFLICT: "ほかの操作でユーザー情報が更新されました。最新情報を読み込んでください。",
+        };
+        onMessage(
+          messages[caught.code] ??
+            "変更できませんでした。役割、利用状態、更新番号を確認してください。",
+        );
+      } else {
+        onMessage("変更できませんでした。役割、利用状態、更新番号を確認してください。");
+      }
     }
   };
   const readOnly = user.accountStatus === "withdrawn";
@@ -634,7 +711,12 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           <h2>会員ランク</h2>
           <label>
             ランク
-            <select value={rank} onChange={(event) => setRank(event.target.value as typeof rank)}>
+            <select
+              value={rank}
+              disabled={isSelf}
+              aria-describedby={isSelf ? "user-edit-constraint" : undefined}
+              onChange={(event) => setRank(event.target.value as typeof rank)}
+            >
               <option value="regular">{labels.rank("regular")}</option>
               <option value="gold">{labels.rank("gold")}</option>
               <option value="platinum">{labels.rank("platinum")}</option>
@@ -642,6 +724,7 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           </label>
           <button
             className="button button--primary"
+            disabled={isSelf || rank === user.membershipRank}
             onClick={() =>
               void mutate(
                 () =>
@@ -652,7 +735,11 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           >
             ランクを変更
           </button>
-          <p>進行中の購入手続きは破棄されます。カートの内容は保持されます。</p>
+          <p id={isSelf ? "user-edit-constraint" : undefined}>
+            {isSelf
+              ? "自分自身の設定は変更できません。"
+              : "進行中の購入手続きは破棄されます。カートの内容は保持されます。"}
+          </p>
         </section>
       )}
       {(user.role === "operator" || user.role === "admin") && !readOnly && (
@@ -660,28 +747,43 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           <h2>管理役割</h2>
           <label>
             役割
-            <select value={role} onChange={(event) => setRole(event.target.value as typeof role)}>
+            <select
+              value={role}
+              disabled={isSelf}
+              aria-describedby={isSelf ? "user-edit-constraint" : undefined}
+              onChange={(event) => setRole(event.target.value as typeof role)}
+            >
               <option value="operator">{labels.role("operator")}</option>
               <option value="admin">{labels.role("admin")}</option>
             </select>
           </label>
           {currentUser?.id === userId ? (
-            <button className="button button--secondary" disabled>
-              役割を変更
-            </button>
+            <>
+              <button
+                className="button button--secondary"
+                disabled
+                aria-describedby="user-edit-constraint"
+              >
+                役割を変更
+              </button>
+              <p id="user-edit-constraint">自分自身の役割は変更できません。</p>
+            </>
           ) : (
             <ConfirmDialog
               triggerLabel="役割を変更"
               title="管理役割を変更しますか"
               confirmLabel="変更する"
-              onConfirm={() => {
-                void mutate(
+              disabled={role === user.role}
+              onConfirm={() =>
+                mutate(
                   () => adminUsers.changeRole({ userId, role, expectedVersion: user.version }),
                   "役割を変更しました",
-                );
-              }}
+                )
+              }
             >
-              役割を変更すると、対象ユーザーのすべてのセッションが無効になります。
+              {role === user.role
+                ? "現在と同じ役割が選択されています。"
+                : "役割を変更すると、対象ユーザーのすべてのセッションが無効になります。"}
             </ConfirmDialog>
           )}
         </section>
@@ -690,9 +792,16 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
         <section className="admin-detail-card">
           <h2>利用状態</h2>
           {currentUser?.id === userId ? (
-            <button className="button button--secondary" disabled>
-              {user.accountStatus === "active" ? "利用停止" : "利用再開"}
-            </button>
+            <>
+              <button
+                className="button button--secondary"
+                disabled
+                aria-describedby="user-status-constraint"
+              >
+                {user.accountStatus === "active" ? "利用停止" : "利用再開"}
+              </button>
+              <p id="user-status-constraint">自分自身の利用状態は変更できません。</p>
+            </>
           ) : (
             <ConfirmDialog
               triggerLabel={user.accountStatus === "active" ? "利用停止" : "利用再開"}
@@ -703,8 +812,8 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
               }
               confirmLabel={user.accountStatus === "active" ? "利用停止にする" : "利用を再開する"}
               danger={user.accountStatus === "active"}
-              onConfirm={() => {
-                void mutate(
+              onConfirm={() =>
+                mutate(
                   () =>
                     adminUsers.changeSuspension({
                       userId,
@@ -712,8 +821,8 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
                       expectedVersion: user.version,
                     }),
                   user.accountStatus === "active" ? "利用停止にしました" : "利用を再開しました",
-                );
-              }}
+                )
+              }
             >
               利用状態を変更すると、対象ユーザーのすべてのセッションが無効になります。
             </ConfirmDialog>
@@ -740,6 +849,7 @@ function AdminTestControlContent() {
   const [clock, setClock] = useState("");
   const [delay, setDelay] = useState(500);
   const [message, setMessage] = useState<string | null>(null);
+  const [resetting, setResetting] = useState(false);
   const apply = async (operation: () => Promise<unknown>, success: string) => {
     try {
       await operation();
@@ -749,12 +859,55 @@ function AdminTestControlContent() {
       setMessage("操作できませんでした。値とテストAPIの制約を確認してください。");
     }
   };
+  const resetScenario = async () => {
+    if (resetting) return;
+    setResetting(true);
+    setMessage(null);
+    let resetSucceeded = false;
+    try {
+      await testControlService.reset({ scenario });
+      resetSucceeded = true;
+    } catch {
+      setMessage("シナリオを初期化できませんでした。画面遷移は行っていません。");
+      return;
+    } finally {
+      if (!resetSucceeded) setResetting(false);
+    }
+
+    const definition = SCENARIO_METADATA[scenario];
+    const session = definition.initialSession;
+    const initialSessionLabel =
+      session.kind === "guest"
+        ? "Guest Session で開始します。"
+        : "初期アカウント：" + session.email;
+    try {
+      clearOneTimeNoticeStorage();
+      clearCheckoutNoticeHistory();
+      writeOneTimeNotice({
+        type: "scenario-reset",
+        scenarioId: scenario,
+        scenarioName: definition.displayName,
+        initialSessionLabel,
+        recommendedAccounts: definition.recommendedAccounts,
+        routes: definition.routes,
+      });
+    } catch {
+      // Reset済みのRuntimeを使い続けないため、Notice保存失敗でも必ず遷移する。
+    } finally {
+      reloadBrowserPage(definition.safeResetPath);
+    }
+  };
   return (
     <div className="admin-page">
       <Breadcrumbs items={[{ label: "管理概要", href: "/admin" }, { label: "テスト制御" }]} />
       <PageHeader
         title="テスト制御"
         description="自動化ビルド専用。テストAPIと同じ制約でシナリオと基準時刻を制御します。"
+        action={
+          <Link href="/guide" className="button button--secondary">
+            学習Guide
+          </Link>
+        }
       />
       {message && (
         <p role="status" className="operation-message">
@@ -792,21 +945,42 @@ function AdminTestControlContent() {
                 onChange={(event) => setScenario(event.target.value as PhaseOneScenario)}
               >
                 {PHASE_ONE_SCENARIOS.map((item) => (
-                  <option key={item}>{item}</option>
+                  <option key={item} value={item}>
+                    {SCENARIO_METADATA[item].displayName}
+                  </option>
                 ))}
               </select>
             </label>
-            <button
-              onClick={() =>
-                void apply(async () => {
-                  await testControlService.reset({ scenario });
-                  reloadBrowserPage();
-                }, "シナリオを初期化しました。")
-              }
-              className="button button--primary"
+            <div className="scenario-summary" aria-live="polite">
+              <h3>{SCENARIO_METADATA[scenario].displayName}</h3>
+              <p>{SCENARIO_METADATA[scenario].purpose}</p>
+              <p>{SCENARIO_METADATA[scenario].guide}</p>
+              <dl className="definition-grid">
+                <dt>初期Session</dt>
+                <dd>
+                  {SCENARIO_METADATA[scenario].initialSession.kind === "guest"
+                    ? "Guest"
+                    : SCENARIO_METADATA[scenario].initialSession.email}
+                </dd>
+                <dt>推奨アカウント</dt>
+                <dd>{SCENARIO_METADATA[scenario].recommendedAccounts.join("、")}</dd>
+                <dt>安全な移動先</dt>
+                <dd>{SCENARIO_METADATA[scenario].safeResetPath}</dd>
+                <dt>確認ルート</dt>
+                <dd>{SCENARIO_METADATA[scenario].routes.join("、")}</dd>
+              </dl>
+            </div>
+            <ConfirmDialog
+              triggerLabel={resetting ? "初期化中…" : "シナリオを初期化"}
+              title="シナリオを初期化しますか"
+              confirmLabel="初期化して移動"
+              danger
+              disabled={resetting}
+              onConfirm={resetScenario}
             >
-              シナリオを初期化
-            </button>
+              学習データ、Cart、Checkout、注文、商品、在庫、Review、入力途中の内容を初期状態へ戻します。
+              Sessionも置き換わり、この操作は元に戻せません。
+            </ConfirmDialog>
           </section>
           <section className="admin-detail-card form-stack">
             <h2>基準時刻</h2>

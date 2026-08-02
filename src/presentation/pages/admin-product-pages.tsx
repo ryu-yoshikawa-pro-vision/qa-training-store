@@ -1,5 +1,7 @@
-import { useMemo, useState, type ReactNode } from "react";
-import { Link, useRouter } from "expo-router";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { Link, useNavigation, useRouter, type Href } from "expo-router";
+import { usePreventRemove } from "expo-router/build/react-navigation/core";
+import { Button as AriaButton, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import type {
   CreateProductRequest,
   ImageAssetListItem,
@@ -7,18 +9,20 @@ import type {
   ProductImageSelectionRequest,
   ProductPreviewDto,
   ProductVariantCreateRequest,
+  UpdateProductRequest,
 } from "@/application/contracts";
 import type { MembershipRank, ProductStatus } from "@/domain/contracts";
 import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { ProductImage } from "@/presentation/components/product-image";
 import { StatePanel } from "@/presentation/components/states";
 import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
-import { labels } from "@/presentation/content/dictionary";
+import { applicationErrorMessage, labels } from "@/presentation/content/dictionary";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
 import {
   Breadcrumbs,
+  ContextualSaveBar,
   FilterBar,
   PageHeader,
   Pagination,
@@ -269,6 +273,37 @@ type ProductFormValue = CreateProductRequest & {
   existingVariantIds: Record<string, { version: number; isActive: boolean; stockQuantity: number }>;
 };
 
+function formToUpdateRequest(
+  productId: string,
+  productExpectedVersion: number,
+  value: ProductFormValue,
+  removedVariantIds: string[],
+): UpdateProductRequest {
+  const existingIds = new Set(Object.keys(value.existingVariantIds));
+  return {
+    productId,
+    productExpectedVersion,
+    product: value.product,
+    createVariants: value.variants.filter((variant) => !existingIds.has(variant.clientKey)),
+    updateVariants: value.variants
+      .filter((variant) => existingIds.has(variant.clientKey))
+      .map((variant) => ({
+        variantId: variant.clientKey,
+        sku: variant.sku,
+        optionValue: variant.optionValue,
+        regularPrice: variant.regularPrice,
+        salePrice: variant.salePrice,
+        saleStartAt: variant.saleStartAt,
+        saleEndAt: variant.saleEndAt,
+        purchaseLimit: variant.purchaseLimit,
+        isActive: value.existingVariantIds[variant.clientKey]!.isActive,
+        expectedVersion: value.existingVariantIds[variant.clientKey]!.version,
+      })),
+    removeVariantIds: removedVariantIds,
+    images: value.images,
+  };
+}
+
 const emptyForm: ProductFormValue = {
   product: {
     productCode: "",
@@ -389,6 +424,7 @@ function AdminProductEditContent({ productId }: { productId: string }) {
   const [mutation, setMutation] = useState(0);
   const [deleteMessage, setDeleteMessage] = useState<string | null>(null);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
   const state = useAsyncValue(async () => {
     const [edit, assets] = await Promise.all([
       services.adminProducts.getEdit(productId),
@@ -420,6 +456,7 @@ function AdminProductEditContent({ productId }: { productId: string }) {
           <div className="inline-actions">
             <button
               className="button button--secondary"
+              disabled={dirty}
               onClick={() => {
                 void services.adminProducts.duplicate(productId).then((draft) => {
                   sessionStorage.setItem("product-duplicate-draft", JSON.stringify(draft));
@@ -432,6 +469,7 @@ function AdminProductEditContent({ productId }: { productId: string }) {
             {(edit.product.status === "draft" || edit.product.status === "unpublished") && (
               <button
                 className="button button--primary"
+                disabled={dirty}
                 onClick={() => void changeStatus("published")}
               >
                 公開
@@ -440,6 +478,7 @@ function AdminProductEditContent({ productId }: { productId: string }) {
             {edit.product.status === "published" && (
               <button
                 className="button button--secondary"
+                disabled={dirty}
                 onClick={() => void changeStatus("unpublished")}
               >
                 非公開
@@ -451,7 +490,8 @@ function AdminProductEditContent({ productId }: { productId: string }) {
                 title="販売終了にしますか"
                 confirmLabel="販売終了"
                 danger
-                onConfirm={() => void changeStatus("discontinued")}
+                disabled={dirty}
+                onConfirm={() => changeStatus("discontinued")}
               >
                 販売終了は元に戻せません。
               </ConfirmDialog>
@@ -481,40 +521,26 @@ function AdminProductEditContent({ productId }: { productId: string }) {
         brands={edit.brandOptions}
         assets={mergeSelectedAssets(state.value.assets, edit)}
         submitLabel="変更を保存"
-        onPreview={(value) =>
+        onPreview={(value, removedVariantIds) =>
           services.adminProducts.preview({
-            aggregate: value,
+            aggregate: formToUpdateRequest(
+              productId,
+              edit.product.version,
+              value,
+              removedVariantIds,
+            ),
             previewMembershipRank: edit.product.requiredRank,
           })
         }
         onSubmit={async (value, removedVariantIds) => {
           setSaveMessage(null);
-          const existingIds = new Set(edit.variants.map((variant) => variant.id));
-          await services.adminProducts.update({
-            productId,
-            productExpectedVersion: edit.product.version,
-            product: value.product,
-            createVariants: value.variants.filter((variant) => !existingIds.has(variant.clientKey)),
-            updateVariants: value.variants
-              .filter((variant) => existingIds.has(variant.clientKey))
-              .map((variant) => ({
-                variantId: variant.clientKey,
-                sku: variant.sku,
-                optionValue: variant.optionValue,
-                regularPrice: variant.regularPrice,
-                salePrice: variant.salePrice,
-                saleStartAt: variant.saleStartAt,
-                saleEndAt: variant.saleEndAt,
-                purchaseLimit: variant.purchaseLimit,
-                isActive: value.existingVariantIds[variant.clientKey]?.isActive ?? true,
-                expectedVersion: value.existingVariantIds[variant.clientKey]!.version,
-              })),
-            removeVariantIds: removedVariantIds,
-            images: value.images,
-          });
+          await services.adminProducts.update(
+            formToUpdateRequest(productId, edit.product.version, value, removedVariantIds),
+          );
           setSaveMessage("保存しました。");
           setMutation((current) => current + 1);
         }}
+        onDirtyChange={setDirty}
       />
       {edit.product.status === "draft" && (
         <ConfirmDialog
@@ -522,8 +548,9 @@ function AdminProductEditContent({ productId }: { productId: string }) {
           title="下書き商品を削除しますか"
           confirmLabel="削除"
           danger
+          disabled={dirty}
           onConfirm={() =>
-            void services.adminProducts
+            services.adminProducts
               .deleteDraft(productId, edit.product.version)
               .then(() => router.replace("/admin/products"))
               .catch(() =>
@@ -548,6 +575,7 @@ function ProductEditor({
   submitLabel,
   onSubmit,
   onPreview,
+  onDirtyChange,
 }: {
   initial: ProductFormValue;
   categories: Array<{ id: string; name: string }>;
@@ -555,13 +583,132 @@ function ProductEditor({
   assets: ImageAssetListItem[];
   submitLabel: string;
   onSubmit: (value: ProductFormValue, removedVariantIds: string[]) => Promise<void>;
-  onPreview: (value: CreateProductRequest) => Promise<ProductPreviewDto>;
+  onPreview: (value: ProductFormValue, removedVariantIds: string[]) => Promise<ProductPreviewDto>;
+  onDirtyChange?: (dirty: boolean) => void;
 }) {
   const [value, setValue] = useState(initial);
   const [removedVariantIds, setRemovedVariantIds] = useState<string[]>([]);
   const [preview, setPreview] = useState<ProductPreviewDto | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pendingNavigation, setPendingNavigation] = useState<"back" | string | null>(null);
+  const navigationTriggerRef = useRef<HTMLElement | null>(null);
+  const protectedNavigationRef = useRef<{ url: string; state: unknown } | null>(null);
+  const pendingNavigationActionRef = useRef<unknown>(null);
+  const confirmedNavigationRef = useRef<
+    { kind: "back"; action: unknown } | { kind: "link"; href: string } | null
+  >(null);
+  const navigationConfirmingRef = useRef(false);
+  const [navigationConfirming, setNavigationConfirming] = useState(false);
+  const router = useRouter();
+  const navigation = useNavigation<{ dispatch: (action: unknown) => void }>();
+  const dirty = useMemo(
+    () => JSON.stringify(value) !== JSON.stringify(initial) || removedVariantIds.length > 0,
+    [initial, removedVariantIds, value],
+  );
+  usePreventRemove(dirty && !saving, ({ data }) => {
+    const protectedNavigation = protectedNavigationRef.current;
+    if (protectedNavigation !== null && window.location.href !== protectedNavigation.url) {
+      window.history.pushState(protectedNavigation.state, "", protectedNavigation.url);
+    }
+    navigationTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    pendingNavigationActionRef.current = data.action;
+    setPendingNavigation("back");
+  });
+  useEffect(() => {
+    onDirtyChange?.(dirty);
+  }, [dirty, onDirtyChange]);
+  useEffect(() => {
+    if (!dirty || typeof window === "undefined") return;
+    protectedNavigationRef.current = {
+      url: window.location.href,
+      state: window.history.state,
+    };
+    const beforeUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    const clickGuard = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) return;
+      const target = event.target instanceof Element ? event.target.closest("a[href]") : null;
+      if (!(target instanceof HTMLAnchorElement)) return;
+      if (
+        target.target === "_blank" ||
+        target.download ||
+        target.origin !== window.location.origin ||
+        target.href === window.location.href
+      ) {
+        return;
+      }
+      event.preventDefault();
+      event.stopPropagation();
+      navigationTriggerRef.current = target;
+      setPendingNavigation(target.href);
+    };
+    window.addEventListener("beforeunload", beforeUnload);
+    document.addEventListener("click", clickGuard, true);
+    return () => {
+      window.removeEventListener("beforeunload", beforeUnload);
+      document.removeEventListener("click", clickGuard, true);
+      protectedNavigationRef.current = null;
+    };
+  }, [dirty]);
+  useEffect(() => {
+    if (pendingNavigation !== null || navigationTriggerRef.current === null) return;
+    const trigger = navigationTriggerRef.current;
+    navigationTriggerRef.current = null;
+    navigationConfirmingRef.current = false;
+    setNavigationConfirming(false);
+    requestAnimationFrame(() => {
+      if (trigger.isConnected) trigger.focus();
+    });
+  }, [pendingNavigation]);
+  const discardChanges = () => {
+    pendingNavigationActionRef.current = null;
+    setValue(initial);
+    setRemovedVariantIds([]);
+    setPreview(null);
+    setPendingNavigation(null);
+  };
+  const cancelNavigation = () => {
+    pendingNavigationActionRef.current = null;
+    setPendingNavigation(null);
+  };
+  const confirmNavigation = () => {
+    if (navigationConfirmingRef.current) return;
+    const destination = pendingNavigation;
+    if (destination === null) return;
+    navigationConfirmingRef.current = true;
+    setNavigationConfirming(true);
+    if (destination === "back") {
+      confirmedNavigationRef.current = {
+        kind: "back",
+        action: pendingNavigationActionRef.current,
+      };
+      discardChanges();
+      return;
+    }
+    confirmedNavigationRef.current = { kind: "link", href: destination };
+    discardChanges();
+  };
+  useEffect(() => {
+    if (dirty || confirmedNavigationRef.current === null) return;
+    const confirmedNavigation = confirmedNavigationRef.current;
+    confirmedNavigationRef.current = null;
+    if (confirmedNavigation.kind === "back") {
+      if (confirmedNavigation.action !== null) {
+        navigation.dispatch(confirmedNavigation.action);
+      } else {
+        router.back();
+      }
+      return;
+    }
+    const url = new URL(confirmedNavigation.href, window.location.origin);
+    router.push((url.pathname + url.search + url.hash) as Href);
+  }, [dirty, navigation, router]);
+  const previewIssues = preview?.publishabilityIssues ?? [];
+  const previewVariants = preview?.variants ?? [];
   const setProduct = (field: keyof ProductFormValue["product"], fieldValue: unknown) =>
     setValue((current) => ({ ...current, product: { ...current.product, [field]: fieldValue } }));
   const updateVariant = (index: number, patch: Partial<ProductVariantCreateRequest>) =>
@@ -630,6 +777,12 @@ function ProductEditor({
         void submit();
       }}
     >
+      <ContextualSaveBar
+        dirty={dirty}
+        onDiscard={discardChanges}
+        onSave={() => void submit()}
+        saving={saving}
+      />
       {message && (
         <p role="status" className="operation-message">
           {message}
@@ -897,7 +1050,7 @@ function ProductEditor({
           type="button"
           className="button button--secondary"
           onClick={() =>
-            void onPreview(value)
+            void onPreview(value, removedVariantIds)
               .then(setPreview)
               .catch(() => setMessage("プレビューに必要な入力が不足しています。"))
           }
@@ -911,17 +1064,91 @@ function ProductEditor({
       {preview && (
         <section className="product-preview" aria-label="商品プレビュー">
           <h2>未保存プレビュー</h2>
-          <p>
-            <strong>
-              {preview.productCode} — {preview.name}
-            </strong>
-          </p>
+          <div className="product-preview__identity">
+            {preview.primaryImage ? (
+              <ProductImage src={preview.primaryImage.path} alt={preview.primaryImage.altText} />
+            ) : (
+              <div className="product-preview__image-empty">画像なし</div>
+            )}
+            <div>
+              <p>
+                <strong>
+                  {preview.productCode} — {preview.name}
+                </strong>
+              </p>
+              <p>{preview.shortDescription}</p>
+            </div>
+          </div>
+          <p>{preview.description}</p>
           <p>
             {formatYen(preview.minimumViewerUnitPrice)}〜{formatYen(preview.maximumViewerUnitPrice)}
           </p>
+          <dl className="definition-grid">
+            <dt>保存後の状態</dt>
+            <dd>
+              <ProductStatusBadge status={preview.statusAfterSave ?? "draft"} />
+            </dd>
+            <dt>必須会員ランク</dt>
+            <dd>{preview.requiredRank == null ? "制限なし" : labels.rank(preview.requiredRank)}</dd>
+            <dt>公開可否</dt>
+            <dd>{previewIssues.length === 0 ? "公開条件を満たします" : "要確認"}</dd>
+          </dl>
+          <h3>SKU・在庫</h3>
+          <ul className="product-preview__variants">
+            {previewVariants.map((variant) => (
+              <li key={variant.variantId}>
+                <strong>{variant.sku}</strong>
+                {variant.optionValue ? `（${variant.optionValue}）` : ""}：
+                {variant.isActive ? "有効" : "無効"}・在庫 {variant.stockQuantity}点 （
+                {variant.stockSource === "CURRENT" ? "DB現在庫" : "初期在庫"}）
+              </li>
+            ))}
+          </ul>
+          {previewIssues.length > 0 && (
+            <ul className="operation-error" role="alert">
+              {previewIssues.map((issue, index) => (
+                <li key={`${issue.code}-${index}`}>{applicationErrorMessage(issue)}</li>
+              ))}
+            </ul>
+          )}
           <p>データベースには保存されていません。</p>
         </section>
       )}
+      <ModalOverlay
+        className="dialog-overlay"
+        isOpen={pendingNavigation !== null}
+        isDismissable
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !navigationConfirmingRef.current) cancelNavigation();
+        }}
+      >
+        <Modal className="dialog-modal">
+          <Dialog
+            className="dirty-navigation-dialog dialog"
+            role="alertdialog"
+            aria-describedby="dirty-navigation-description"
+          >
+            <Heading slot="title">未保存の変更があります</Heading>
+            <p id="dirty-navigation-description">この画面を離れると、入力中の変更は失われます。</p>
+            <div className="dialog__actions">
+              <AriaButton
+                className="button button--danger"
+                onPress={confirmNavigation}
+                isDisabled={navigationConfirming}
+              >
+                変更を破棄して移動
+              </AriaButton>
+              <AriaButton
+                className="button button--secondary"
+                onPress={cancelNavigation}
+                isDisabled={navigationConfirming}
+              >
+                編集に戻る
+              </AriaButton>
+            </div>
+          </Dialog>
+        </Modal>
+      </ModalOverlay>
     </form>
   );
 }

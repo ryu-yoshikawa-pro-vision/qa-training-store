@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import type { CurrentUserDto } from "@/application/contracts";
+import { ApplicationError } from "@/application/errors";
 import { StorefrontShell } from "@/presentation/shells/storefront-shell";
 
 const reviews = {
@@ -61,6 +62,7 @@ import {
   AdminUsersPage,
   CustomerReviewPage,
 } from "@/presentation/pages/review-user-pages";
+import { ONE_TIME_NOTICE_STORAGE_KEY } from "@/presentation/browser/one-time-notice.web";
 
 const publishedReview = {
   reviewId: "review-1",
@@ -78,6 +80,7 @@ const publishedReview = {
 describe("review, user, and test-control pages", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    sessionStorage.clear();
     reviews.getEligibility.mockResolvedValue({
       orderItemId: "item-1",
       eligible: true,
@@ -204,6 +207,30 @@ describe("review, user, and test-control pages", () => {
     );
   });
 
+  it("shows order context on the undelivered Review URL", async () => {
+    reviews.getEligibility.mockResolvedValue({
+      orderItemId: "item-1",
+      eligible: false,
+      reason: "ORDER_NOT_DELIVERED",
+      existingReview: null,
+      productName: "ベーシックTシャツ",
+      variationName: "サイズ",
+      optionValue: "M",
+      orderNumber: "ORD-20260701-0001",
+      orderCreatedAt: "2026-07-01T03:00:00.000Z",
+      reviewState: "NOT_ELIGIBLE",
+    });
+
+    render(<CustomerReviewPage orderItemId="item-1" />);
+
+    expect(await screen.findByRole("heading", { name: "レビューを投稿できません" })).toBeVisible();
+    expect(screen.getByText("ベーシックTシャツ")).toBeVisible();
+    expect(screen.getByText("ORD-20260701-0001")).toBeVisible();
+    expect(screen.getByText("2026/7/1 12:00:00")).toBeVisible();
+    expect(screen.getByText("サイズ / M")).toBeVisible();
+    expect(screen.getByText("配達完了後に投稿できます。")).toBeVisible();
+  });
+
   it("keeps a single main landmark when Customer Review is rendered in StorefrontShell", async () => {
     const customer = {
       id: "user-customer",
@@ -259,6 +286,28 @@ describe("review, user, and test-control pages", () => {
   });
 
   it("links the user list to detail and changes a customer rank with Version", async () => {
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-customer-regular",
+      email: "regular@example.com",
+      displayName: "一般テスト会員",
+      role: "customer",
+      membershipRank: "regular",
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-customer-regular",
+      email: "regular@example.com",
+      displayName: "一般テスト会員",
+      role: "customer",
+      membershipRank: "gold",
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 2,
+    });
     const { unmount } = render(<AdminUsersPage />);
     expect(await screen.findByRole("link", { name: /一般テスト会員/ })).toHaveAttribute(
       "href",
@@ -267,7 +316,11 @@ describe("review, user, and test-control pages", () => {
     unmount();
     render(<AdminUserDetailPage userId="user-customer-regular" />);
     expect(await screen.findByRole("heading", { name: "一般テスト会員" })).toBeVisible();
-    fireEvent.change(screen.getByLabelText("ランク"), { target: { value: "gold" } });
+    const rankSelect = screen.getByLabelText("ランク");
+    await waitFor(() => expect(rankSelect).toHaveValue("regular"));
+    expect(screen.getByRole("button", { name: "ランクを変更" })).toBeDisabled();
+    fireEvent.change(rankSelect, { target: { value: "gold" } });
+    await waitFor(() => expect(rankSelect).toHaveValue("gold"));
     fireEvent.click(screen.getByRole("button", { name: "ランクを変更" }));
     await waitFor(() =>
       expect(adminUsers.changeMembershipRank).toHaveBeenCalledWith({
@@ -276,6 +329,118 @@ describe("review, user, and test-control pages", () => {
         expectedVersion: 1,
       }),
     );
+    await waitFor(() => expect(screen.getByLabelText("ランク")).toHaveValue("gold"));
+    expect(screen.getByRole("button", { name: "ランクを変更" })).toBeDisabled();
+  });
+
+  it("initializes an admin role without enabling an unchanged mutation", async () => {
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-admin-secondary",
+      email: "admin-secondary@example.com",
+      displayName: "別の管理者",
+      role: "admin",
+      membershipRank: null,
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-admin-secondary",
+      email: "admin-secondary@example.com",
+      displayName: "別の管理者",
+      role: "operator",
+      membershipRank: null,
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 2,
+    });
+    adminUsers.changeRole.mockResolvedValueOnce({
+      userId: "user-admin-secondary",
+      email: "admin-secondary@example.com",
+      displayName: "別の管理者",
+      role: "operator",
+      membershipRank: null,
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 2,
+    });
+
+    render(<AdminUserDetailPage userId="user-admin-secondary" />);
+
+    const roleSelect = await screen.findByLabelText("役割");
+    expect(roleSelect).toHaveValue("admin");
+    expect(screen.getByRole("button", { name: "役割を変更" })).toBeDisabled();
+    expect(adminUsers.changeRole).not.toHaveBeenCalled();
+
+    fireEvent.change(roleSelect, { target: { value: "operator" } });
+    fireEvent.click(screen.getByRole("button", { name: "役割を変更" }));
+    fireEvent.click(screen.getByRole("button", { name: "変更する" }));
+    await waitFor(() =>
+      expect(adminUsers.changeRole).toHaveBeenCalledWith({
+        userId: "user-admin-secondary",
+        role: "operator",
+        expectedVersion: 1,
+      }),
+    );
+    await waitFor(() => expect(screen.getByLabelText("役割")).toHaveValue("operator"));
+    expect(screen.getByRole("button", { name: "役割を変更" })).toBeDisabled();
+  });
+
+  it("initializes a gold customer rank without enabling an unchanged mutation", async () => {
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-customer-gold",
+      email: "gold@example.com",
+      displayName: "ゴールド会員",
+      role: "customer",
+      membershipRank: "gold",
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+
+    render(<AdminUserDetailPage userId="user-customer-gold" />);
+
+    const rankSelect = await screen.findByLabelText("ランク");
+    expect(rankSelect).toHaveValue("gold");
+    expect(screen.getByRole("button", { name: "ランクを変更" })).toBeDisabled();
+    expect(adminUsers.changeMembershipRank).not.toHaveBeenCalled();
+  });
+
+  it("reinitializes the form when the viewed user changes", async () => {
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-admin-secondary",
+      email: "admin-secondary@example.com",
+      displayName: "別の管理者",
+      role: "admin",
+      membershipRank: null,
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-customer-gold",
+      email: "gold@example.com",
+      displayName: "ゴールド会員",
+      role: "customer",
+      membershipRank: "gold",
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+    const { rerender } = render(<AdminUserDetailPage userId="user-admin-secondary" />);
+    expect(await screen.findByLabelText("役割")).toHaveValue("admin");
+
+    rerender(<AdminUserDetailPage userId="user-customer-gold" />);
+
+    const rankSelect = await screen.findByLabelText("ランク");
+    expect(rankSelect).toHaveValue("gold");
+    expect(screen.queryByLabelText("役割")).not.toBeInTheDocument();
   });
 
   it("confirms a user suspension before invalidating sessions", async () => {
@@ -296,6 +461,38 @@ describe("review, user, and test-control pages", () => {
     );
   });
 
+  it("shows the specific Last Active Admin error without a generic-only message", async () => {
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-admin-secondary",
+      email: "admin-secondary@example.com",
+      displayName: "別の管理者",
+      role: "admin",
+      membershipRank: null,
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+    adminUsers.changeRole.mockRejectedValueOnce(
+      new ApplicationError({
+        code: "LAST_ADMIN_PROTECTED",
+        messageKey: "users.lastAdmin",
+        retryable: false,
+      }),
+    );
+    render(<AdminUserDetailPage userId="user-admin-secondary" />);
+    await screen.findByRole("heading", { name: "別の管理者" });
+    fireEvent.change(screen.getByLabelText("役割"), { target: { value: "operator" } });
+    fireEvent.click(screen.getByRole("button", { name: "役割を変更" }));
+    fireEvent.click(screen.getByRole("button", { name: "変更する" }));
+    expect(
+      await screen.findByText("最後の管理者は変更できません。先に別の管理者を設定してください。"),
+    ).toBeVisible();
+    expect(
+      screen.queryByText("変更できませんでした。自己変更、最後の管理者"),
+    ).not.toBeInTheDocument();
+  });
+
   it("shows build metadata and applies the Test API payment-delay constraint", async () => {
     render(<AdminTestControlPage />);
     expect(await screen.findByText("0.1.0")).toBeVisible();
@@ -310,10 +507,56 @@ describe("review, user, and test-control pages", () => {
     await screen.findByText("0.1.0");
 
     fireEvent.click(screen.getByRole("button", { name: "シナリオを初期化" }));
+    fireEvent.click(await screen.findByRole("button", { name: "初期化して移動" }));
 
     await waitFor(() =>
       expect(testControlService.reset).toHaveBeenCalledWith({ scenario: "default" }),
     );
     expect(reloadBrowserPage).toHaveBeenCalledOnce();
+  });
+
+  it("does not run Scenario Reset twice during a repeated Confirm operation", async () => {
+    let resolveReset!: () => void;
+    testControlService.reset.mockImplementationOnce(
+      () => new Promise<void>((resolve) => (resolveReset = resolve)),
+    );
+    render(<AdminTestControlPage />);
+    await screen.findByText("0.1.0");
+    fireEvent.click(screen.getByRole("button", { name: "シナリオを初期化" }));
+    const confirm = await screen.findByRole("button", { name: "初期化して移動" });
+    fireEvent.click(confirm);
+    fireEvent.click(confirm);
+    await waitFor(() => expect(testControlService.reset).toHaveBeenCalledTimes(1));
+    resolveReset();
+    await waitFor(() => expect(reloadBrowserPage).toHaveBeenCalledOnce());
+  });
+
+  it("stays on the page when Scenario Reset fails", async () => {
+    testControlService.reset.mockRejectedValueOnce(new Error("reset failed"));
+    render(<AdminTestControlPage />);
+    await screen.findByText("0.1.0");
+    fireEvent.click(screen.getByRole("button", { name: "シナリオを初期化" }));
+    fireEvent.click(await screen.findByRole("button", { name: "初期化して移動" }));
+    expect(
+      await screen.findByText("シナリオを初期化できませんでした。画面遷移は行っていません。"),
+    ).toBeVisible();
+    expect(reloadBrowserPage).not.toHaveBeenCalled();
+  });
+
+  it("hard-navigates after a successful reset even if the notice cannot be saved", async () => {
+    const originalSetItem = Storage.prototype.setItem;
+    const setItem = vi.spyOn(Storage.prototype, "setItem").mockImplementation((key, value) => {
+      if (key === ONE_TIME_NOTICE_STORAGE_KEY) throw new Error("notice storage failed");
+      originalSetItem.call(sessionStorage, key, value);
+    });
+    render(<AdminTestControlPage />);
+    await screen.findByText("0.1.0");
+    fireEvent.click(screen.getByRole("button", { name: "シナリオを初期化" }));
+    fireEvent.click(await screen.findByRole("button", { name: "初期化して移動" }));
+    await waitFor(() => expect(reloadBrowserPage).toHaveBeenCalledOnce());
+    expect(
+      screen.queryByText("シナリオを初期化できませんでした。画面遷移は行っていません。"),
+    ).not.toBeInTheDocument();
+    setItem.mockRestore();
   });
 });

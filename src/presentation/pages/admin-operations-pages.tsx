@@ -1,11 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "expo-router";
 import type { AdminOrderDetailDto, InventoryItem } from "@/application/contracts";
-import type { OrderStatus } from "@/domain/contracts";
+import type { OrderStatus, ShipmentStatus } from "@/domain/contracts";
 import { ProductImage } from "@/presentation/components/product-image";
 import { StatePanel } from "@/presentation/components/states";
 import { StatusBadge, statusTone } from "@/presentation/components/status-badge";
-import { labels } from "@/presentation/content/dictionary";
+import { labels, shipmentDisplayLabel } from "@/presentation/content/dictionary";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
@@ -38,8 +38,18 @@ function PaymentStatusBadge({ status }: { status: "processing" | "succeeded" | "
   return <StatusBadge tone={statusTone(status)}>{labels.payment(status)}</StatusBadge>;
 }
 
-function ShipmentStatusBadge({ status }: { status: "pending" | "shipped" | "delivered" }) {
-  return <StatusBadge tone={statusTone(status)}>{labels.shipment(status)}</StatusBadge>;
+function ShipmentStatusBadge({
+  orderStatus,
+  status,
+}: {
+  orderStatus: OrderStatus;
+  status: ShipmentStatus | null;
+}) {
+  return (
+    <StatusBadge tone={statusTone(status ?? "pending")}>
+      {shipmentDisplayLabel(orderStatus, status)}
+    </StatusBadge>
+  );
 }
 
 function inventoryReasonLabel(reasonCode: string) {
@@ -540,11 +550,10 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
           </ol>
           <p>
             配送:{" "}
-            {order.shipment?.status ? (
-              <ShipmentStatusBadge status={order.shipment.status} />
-            ) : (
-              "未作成"
-            )}
+            <ShipmentStatusBadge
+              orderStatus={order.orderStatus}
+              status={order.shipment?.status ?? null}
+            />
           </p>
           {order.shipment?.carrierName && (
             <p>

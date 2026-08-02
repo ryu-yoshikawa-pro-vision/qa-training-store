@@ -46,7 +46,8 @@ function CartContent() {
       setError(
         caught instanceof ApplicationError && caught.code === "QUANTITY_LIMIT_EXCEEDED"
           ? "在庫または購入上限を超える数量には変更できません。"
-          : caught instanceof ApplicationError && caught.code === "CONFLICT"
+          : caught instanceof ApplicationError &&
+              (caught.code === "CONFLICT" || caught.code === "CART_VERSION_CHANGED")
             ? "ほかの操作でカートが更新されました。最新情報を読み込んでください。"
             : "カートを更新できませんでした。",
       );
@@ -91,6 +92,7 @@ function CartContent() {
     );
   }
   const priceChangedItems = cart.items.filter((item) => item.issues.includes("PRICE_CHANGED"));
+  const nonPriceBlockingIssues = cart.blockingIssues.filter((issue) => issue !== "PRICE_CHANGED");
   return (
     <div className="cart-page">
       <nav className="breadcrumbs" aria-label="パンくず">
@@ -123,9 +125,15 @@ function CartContent() {
         <section className="price-change-panel">
           <h2>価格が変更されています</h2>
           <p>現在価格を確認し、同意してから購入手続きへ進んでください。</p>
+          {nonPriceBlockingIssues.length > 0 && (
+            <p role="alert">
+              購入できない商品を先に修正または削除してください。その後、現在価格へ同意できます。
+            </p>
+          )}
           <button
             type="button"
             className="button button--primary"
+            disabled={nonPriceBlockingIssues.length > 0 || processingItem === "price-change"}
             onClick={() =>
               void mutate("price-change", () =>
                 cartUseCases.acceptPriceChanges({

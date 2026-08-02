@@ -5,6 +5,10 @@ import type {
   VariantInspection,
 } from "@/application/contracts";
 import type { TestControlService } from "./test-control-service";
+import {
+  clearCheckoutNoticeHistory,
+  clearOneTimeNoticeStorage,
+} from "@/presentation/browser/one-time-notice.web";
 
 export interface TestApi {
   reset(input: { scenario: string }): Promise<TestMetadata>;
@@ -30,7 +34,12 @@ export function installTestApi(
     return null;
   }
   const api: TestApi = {
-    reset: (input) => service.reset(input),
+    reset: async (input) => {
+      const metadata = await service.reset(input);
+      clearOneTimeNoticeStorage();
+      clearCheckoutNoticeHistory();
+      return metadata;
+    },
     setClock: (iso) => service.setClock(iso),
     setPaymentDelay: (milliseconds) => service.setPaymentDelay(milliseconds),
     getMetadata: () => service.getMetadata(),
