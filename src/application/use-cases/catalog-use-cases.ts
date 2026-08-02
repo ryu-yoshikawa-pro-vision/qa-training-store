@@ -1,5 +1,6 @@
 import type {
   HomeCatalogDto,
+  Page,
   ProductDetail,
   ProductReviewsQuery,
   ProductSearchRequest,
@@ -11,34 +12,43 @@ import type {
 import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore } from "@/application/ports";
-import { DexieReviewRepository } from "@/infrastructure/database/dexie/order-review-repositories";
-import {
-  DexieProductQueryRepository,
-  DexieStorefrontCatalogQueryRepository,
-} from "@/infrastructure/database/dexie/storefront-repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
-import type { Page } from "@/application/contracts";
+import type {
+  CategoryRepository,
+  ProductQueryRepository,
+  ProductRepository,
+  ReviewRepository,
+  SessionRepository,
+  StorefrontCatalogQueryRepository,
+  UserRepository,
+} from "@/domain/repositories";
 
 interface CatalogUseCaseDependencies {
-  database: ScenarioShopDatabase;
+  users: UserRepository;
+  sessions: SessionRepository;
+  catalog: StorefrontCatalogQueryRepository;
+  products: ProductQueryRepository;
+  productRecords: ProductRepository;
+  categories: CategoryRepository;
+  reviews: ReviewRepository;
   currentSessionStore: CurrentSessionStore;
   clock: Clock;
 }
 
 export class CatalogUseCases {
   private readonly identity: SessionIdentityResolver;
-  private readonly catalog: DexieStorefrontCatalogQueryRepository;
-  private readonly products: DexieProductQueryRepository;
-  private readonly reviews: DexieReviewRepository;
+  private readonly catalog: StorefrontCatalogQueryRepository;
+  private readonly products: ProductQueryRepository;
+  private readonly reviews: ReviewRepository;
 
   constructor(private readonly dependencies: CatalogUseCaseDependencies) {
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
-    this.catalog = new DexieStorefrontCatalogQueryRepository(dependencies.database);
-    this.products = new DexieProductQueryRepository(dependencies.database);
-    this.reviews = new DexieReviewRepository(dependencies.database);
+    this.catalog = dependencies.catalog;
+    this.products = dependencies.products;
+    this.reviews = dependencies.reviews;
   }
 
   async getHome(): Promise<HomeCatalogDto> {
@@ -66,8 +76,8 @@ export class CatalogUseCases {
     if (detail !== null) {
       return detail;
     }
-    const existing = await this.dependencies.database.products.get(productId);
-    if (existing !== undefined) {
+    const existing = await this.dependencies.productRecords.getById(productId);
+    if (existing !== null) {
       throw new ApplicationError({
         code: "PERMISSION_DENIED",
         messageKey: "products.view.forbidden",
@@ -78,7 +88,7 @@ export class CatalogUseCases {
   }
 
   async getCategoryName(categoryId: string): Promise<string | null> {
-    return (await this.dependencies.database.categories.get(categoryId))?.name ?? null;
+    return (await this.dependencies.categories.getById(categoryId))?.name ?? null;
   }
 
   async listReviews(input: ProductReviewsQuery): Promise<Page<ReviewListItem>> {

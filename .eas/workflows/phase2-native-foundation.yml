@@ -1,0 +1,83 @@
+name: Phase 2 Native Foundation
+
+on:
+  workflow_dispatch:
+
+jobs:
+  local-primary-notice:
+    name: Local build is the primary path
+    type: doc
+    params:
+      md: |
+        Local Windows/macOS Build and device/Simulator verification are the primary Phase 2 path.
+        This workflow is optional static/future EAS coverage only; it is not run by default.
+
+  android-preview:
+    name: Android Preview APK (optional EAS)
+    type: build
+    needs: [local-primary-notice]
+    params:
+      platform: android
+      profile: preview
+
+  android-storefront-cart-smoke:
+    name: Android Storefront and Cart Smoke (optional EAS)
+    type: maestro
+    needs: [android-preview]
+    environment: preview
+    runs_on: linux-medium-nested-virtualization
+    params:
+      build_id: ${{ needs.android-preview.outputs.build_id }}
+      flow_path: ./maestro/phase2-native-storefront-cart.yaml
+
+  android-contract-harness-notice:
+    name: Android Native Contract Harness handoff
+    type: doc
+    needs: [android-preview]
+    params:
+      md: |
+        The authoritative Android SQLite/KV/Harness smoke is run against the local Native Build.
+        Node contract tests remain a separate non-native regression check.
+
+  ios-preview:
+    name: iOS Preview Simulator Build (optional EAS)
+    type: build
+    needs: [local-primary-notice]
+    params:
+      platform: ios
+      profile: preview
+
+  ios-storefront-cart-smoke:
+    name: iOS Storefront and Cart Smoke (optional EAS)
+    type: maestro
+    needs: [ios-preview]
+    environment: preview
+    runs_on: macos-medium
+    params:
+      build_id: ${{ needs.ios-preview.outputs.build_id }}
+      flow_path: ./maestro/phase2-native-storefront-cart.yaml
+
+  android-production-validation:
+    name: Android Production Validation (optional EAS)
+    type: build
+    needs: [local-primary-notice]
+    params:
+      platform: android
+      profile: production-validation
+
+  ios-production-validation:
+    name: iOS Production Validation (optional EAS)
+    type: build
+    needs: [local-primary-notice]
+    params:
+      platform: ios
+      profile: production-validation
+
+  production-guard-notice:
+    name: Production guard handoff
+    type: doc
+    needs: [android-production-validation, ios-production-validation]
+    params:
+      md: |
+        Production validation must confirm test-control and contract-harness routes/services are unavailable.
+        The local Release artifact and resolved Expo Config are the authoritative evidence for this check.

@@ -21,11 +21,7 @@ import type {
   User,
   UserRole,
 } from "@/domain/contracts";
-import {
-  toBrandRecord,
-  toCategoryRecord,
-  toVariantRecord,
-} from "@/infrastructure/database/dexie/mappers";
+import { toBrandRecord, toCategoryRecord, toVariantRecord } from "@/domain/record-mappers";
 import { productImageManifest } from "@/generated/product-image-manifest";
 import type { SeedDataset } from "./types";
 import {

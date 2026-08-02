@@ -15,12 +15,18 @@ import { SessionIdentityResolver } from "@/application/identity/session-identity
 import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import type { InventoryHistory, Order, Shipment } from "@/domain/contracts";
-import { DexieInventoryRepository } from "@/infrastructure/database/dexie/product-repositories";
-import { DexieOrderRepository } from "@/infrastructure/database/dexie/order-review-repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import type {
+  InventoryRepository,
+  OrderRepository,
+  SessionRepository,
+  UserRepository,
+} from "@/domain/repositories";
 
 interface AdminOperationsDependencies {
-  database: ScenarioShopDatabase;
+  users: UserRepository;
+  sessions: SessionRepository;
+  inventory: InventoryRepository;
+  orders: OrderRepository;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
   clock: Clock;
@@ -34,16 +40,17 @@ export interface InventoryDetail {
 
 export class AdminOperationsUseCases {
   private readonly identity: SessionIdentityResolver;
-  private readonly inventory: DexieInventoryRepository;
-  private readonly orders: DexieOrderRepository;
+  private readonly inventory: InventoryRepository;
+  private readonly orders: OrderRepository;
 
   constructor(private readonly dependencies: AdminOperationsDependencies) {
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
-    this.inventory = new DexieInventoryRepository(dependencies.database);
-    this.orders = new DexieOrderRepository(dependencies.database);
+    this.inventory = dependencies.inventory;
+    this.orders = dependencies.orders;
   }
 
   async searchInventory(query: Partial<InventorySearchQuery> = {}): Promise<Page<InventoryItem>> {
@@ -60,8 +67,8 @@ export class AdminOperationsUseCases {
 
   async getInventoryDetail(variantId: string): Promise<InventoryDetail> {
     await this.requireStaff();
-    const variant = await this.dependencies.database.product_variants.get(variantId);
-    if (variant === undefined) throw this.notFound("variant");
+    const variant = await this.inventory.getVariant(variantId);
+    if (variant === null) throw this.notFound("variant");
     const page = await this.inventory.search({
       keyword: variant.sku,
       stockState: "all",
@@ -72,10 +79,7 @@ export class AdminOperationsUseCases {
     });
     const item = page.items.find((candidate) => candidate.variantId === variantId);
     if (item === undefined) throw this.notFound("variant");
-    const histories = await this.dependencies.database.inventory_histories
-      .where("variantId")
-      .equals(variantId)
-      .sortBy("createdAt");
+    const histories = await this.inventory.listHistory(variantId);
     return { item, histories: histories.reverse() };
   }
 
@@ -126,8 +130,8 @@ export class AdminOperationsUseCases {
       this.orders.getDetail(orderId),
     ]);
     if (order === null || detail === null) throw this.notFound("order");
-    const user = await this.dependencies.database.users.get(order.userId);
-    if (user === undefined) throw this.notFound("user");
+    const user = await this.dependencies.users.getById(order.userId);
+    if (user === null) throw this.notFound("user");
     return {
       ...detail,
       customer: {
@@ -243,7 +247,7 @@ export class AdminOperationsUseCases {
   }
 
   private async requireOrderVersion(
-    orders: Pick<DexieOrderRepository, "getById">,
+    orders: Pick<OrderRepository, "getById">,
     orderId: string,
     version: number,
   ): Promise<Order> {

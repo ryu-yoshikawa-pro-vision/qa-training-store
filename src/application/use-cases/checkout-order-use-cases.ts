@@ -28,16 +28,24 @@ import type {
   PaymentErrorCode,
   PaymentMethodCode,
 } from "@/domain/contracts";
-import type { OrderRepository, PaymentRepository } from "@/domain/repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
-import { DexieCheckoutSessionRepository } from "@/infrastructure/database/dexie/cart-checkout-repositories";
 import {
-  DexieOrderRepository,
-  DexiePaymentRepository,
-} from "@/infrastructure/database/dexie/order-review-repositories";
+  CartRepository,
+  CheckoutSessionRepository,
+  OrderRepository,
+  PaymentRepository,
+  ReviewRepository,
+  SessionRepository,
+  UserRepository,
+} from "@/domain/repositories";
 
 interface CheckoutOrderDependencies {
-  database: ScenarioShopDatabase;
+  users: UserRepository;
+  sessions: SessionRepository;
+  carts: CartRepository;
+  checkouts: CheckoutSessionRepository;
+  orders: OrderRepository;
+  payments: PaymentRepository;
+  reviews: ReviewRepository;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
   paymentGateway: PaymentGateway;
@@ -55,18 +63,19 @@ const STEP_ORDER: Record<CheckoutStep, number> = {
 
 export class CheckoutOrderUseCases {
   private readonly identity: SessionIdentityResolver;
-  private readonly checkouts: DexieCheckoutSessionRepository;
-  private readonly orders: DexieOrderRepository;
-  private readonly payments: DexiePaymentRepository;
+  private readonly checkouts: CheckoutSessionRepository;
+  private readonly orders: OrderRepository;
+  private readonly payments: PaymentRepository;
 
   constructor(private readonly dependencies: CheckoutOrderDependencies) {
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
-    this.checkouts = new DexieCheckoutSessionRepository(dependencies.database);
-    this.orders = new DexieOrderRepository(dependencies.database);
-    this.payments = new DexiePaymentRepository(dependencies.database);
+    this.checkouts = dependencies.checkouts;
+    this.orders = dependencies.orders;
+    this.payments = dependencies.payments;
   }
 
   async expireActiveSessions(): Promise<number> {
@@ -356,10 +365,7 @@ export class CheckoutOrderUseCases {
     const detail = await this.getMyOrder(orderId);
     const items = await Promise.all(
       detail.items.map(async (item) => {
-        const review = await this.dependencies.database.reviews
-          .where("orderItemId")
-          .equals(item.orderItemId)
-          .first();
+        const review = await this.dependencies.reviews.findByOrderItem(item.orderItemId);
         const reviewState = deriveCustomerReviewState(review, detail.orderStatus);
         return { ...item, reviewState };
       }),
@@ -549,8 +555,8 @@ export class CheckoutOrderUseCases {
   }
 
   private async assertCartVersion(session: CheckoutSession): Promise<void> {
-    const cart = await this.dependencies.database.carts.get(session.cartId);
-    if (cart === undefined || cart.version !== session.cartVersion) throw this.cartChanged();
+    const cart = await this.dependencies.carts.getById(session.cartId);
+    if (cart === null || cart.version !== session.cartVersion) throw this.cartChanged();
   }
 
   private async requireCustomer() {

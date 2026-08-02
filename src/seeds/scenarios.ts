@@ -11,7 +11,7 @@ import type {
   ProductVariant,
   Review,
 } from "@/domain/contracts";
-import { toVariantRecord } from "@/infrastructure/database/dexie/mappers";
+import { toVariantRecord } from "@/domain/record-mappers";
 import { productImageManifest } from "@/generated/product-image-manifest";
 import { createDefaultDataset } from "./default-dataset";
 import { BASE_CLOCK, SCENARIO_METADATA, type PhaseOneScenario } from "./metadata";

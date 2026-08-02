@@ -19,14 +19,11 @@ import {
   toCurrentUserDto,
 } from "@/application/identity/session-identity-resolver";
 import type { User } from "@/domain/contracts";
-import {
-  DexieSessionRepository,
-  DexieUserRepository,
-} from "@/infrastructure/database/dexie/basic-repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import type { SessionRepository, UserRepository } from "@/domain/repositories";
 
 interface AuthUseCaseDependencies {
-  database: ScenarioShopDatabase;
+  users: UserRepository;
+  sessions: SessionRepository;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
   guestIdentityStore: GuestIdentityStore;
@@ -37,15 +34,16 @@ interface AuthUseCaseDependencies {
 }
 
 export class AuthUseCases {
-  private readonly users: DexieUserRepository;
-  private readonly sessions: DexieSessionRepository;
+  private readonly users: UserRepository;
+  private readonly sessions: SessionRepository;
   private readonly identity: SessionIdentityResolver;
 
   constructor(private readonly dependencies: AuthUseCaseDependencies) {
-    this.users = new DexieUserRepository(dependencies.database);
-    this.sessions = new DexieSessionRepository(dependencies.database);
+    this.users = dependencies.users;
+    this.sessions = dependencies.sessions;
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
   }

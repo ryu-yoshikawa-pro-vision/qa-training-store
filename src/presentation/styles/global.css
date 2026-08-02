@@ -32,6 +32,8 @@
   --content-max: 1280px;
   --admin-max: 1440px;
   --control-height: 44px;
+  --product-card-image-ratio: 4 / 5;
+  --product-detail-image-ratio-mobile: 6 / 5;
 }
 
 * {
@@ -3260,7 +3262,7 @@ textarea:focus {
 }
 
 .product-card .product-image {
-  aspect-ratio: 4 / 5;
+  aspect-ratio: var(--product-card-image-ratio);
   border-radius: 12px;
   background: var(--color-soft);
 }
@@ -4790,7 +4792,7 @@ progress {
   }
 
   .product-gallery__main .product-image {
-    aspect-ratio: 6 / 5;
+    aspect-ratio: var(--product-detail-image-ratio-mobile);
   }
 
   .product-gallery__main .product-image img {

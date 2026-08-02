@@ -25,12 +25,20 @@ import { deriveCustomerReviewState } from "@/application/use-cases/customer-revi
 import type { ProductReviewSummary, Review, User } from "@/domain/contracts";
 import { canTransitionAccount, canTransitionReview } from "@/domain/policies/state-transitions";
 import { applyPublishedReviewDelta } from "@/domain/services/reviews";
-import { DexieUserRepository } from "@/infrastructure/database/dexie/basic-repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
-import { DexieReviewRepository } from "@/infrastructure/database/dexie/order-review-repositories";
+import type {
+  OrderRepository,
+  ProductRepository,
+  ReviewRepository,
+  SessionRepository,
+  UserRepository,
+} from "@/domain/repositories";
 
 interface Dependencies {
-  database: ScenarioShopDatabase;
+  users: UserRepository;
+  sessions: SessionRepository;
+  reviews: ReviewRepository;
+  orders: OrderRepository;
+  productRecords: ProductRepository;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
   clock: Clock;
@@ -39,22 +47,23 @@ interface Dependencies {
 
 export class CustomerReviewUseCases {
   private readonly identity: SessionIdentityResolver;
-  private readonly reviews: DexieReviewRepository;
+  private readonly reviews: ReviewRepository;
 
   constructor(private readonly dependencies: Dependencies) {
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
-    this.reviews = new DexieReviewRepository(dependencies.database);
+    this.reviews = dependencies.reviews;
   }
 
   async getEligibility(orderItemId: string): Promise<ReviewEligibilityDto> {
     const actor = await this.requireCustomer();
-    const item = await this.dependencies.database.order_items.get(orderItemId);
-    if (item === undefined) return this.ineligible(orderItemId, "NOT_OWNER");
-    const order = await this.dependencies.database.orders.get(item.orderId);
-    if (order === undefined || order.userId !== actor.id) {
+    const item = await this.dependencies.orders.getItemById(orderItemId);
+    if (item === null) return this.ineligible(orderItemId, "NOT_OWNER");
+    const order = await this.dependencies.orders.getById(item.orderId);
+    if (order === null || order.userId !== actor.id) {
       return this.ineligible(orderItemId, "NOT_OWNER");
     }
     const context = {
@@ -103,8 +112,8 @@ export class CustomerReviewUseCases {
         retryable: false,
       });
     }
-    const item = await this.dependencies.database.order_items.get(request.orderItemId);
-    if (item === undefined) throw this.notFound();
+    const item = await this.dependencies.orders.getItemById(request.orderItemId);
+    if (item === null) throw this.notFound();
     const now = await this.now();
     const values = this.validate(request);
     const result = await this.dependencies.transactionRunner.run(
@@ -325,14 +334,15 @@ export class CustomerReviewUseCases {
 
 export class AdminReviewUseCases {
   private readonly identity: SessionIdentityResolver;
-  private readonly reviews: DexieReviewRepository;
+  private readonly reviews: ReviewRepository;
 
   constructor(private readonly dependencies: Dependencies) {
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
-    this.reviews = new DexieReviewRepository(dependencies.database);
+    this.reviews = dependencies.reviews;
   }
 
   async search(query: Partial<ReviewSearchQuery> = {}): Promise<Page<AdminReviewListItem>> {
@@ -353,8 +363,8 @@ export class AdminReviewUseCases {
     const review = await this.reviews.getById(reviewId);
     if (review === null) throw this.notFound();
     const [user, product] = await Promise.all([
-      this.dependencies.database.users.get(review.userId),
-      this.dependencies.database.products.get(review.productId),
+      this.dependencies.users.getById(review.userId),
+      this.dependencies.productRecords.getById(review.productId),
     ]);
     return {
       reviewId: review.id,
@@ -491,14 +501,15 @@ export class AdminReviewUseCases {
 
 export class AdminUserUseCases {
   private readonly identity: SessionIdentityResolver;
-  private readonly users: DexieUserRepository;
+  private readonly users: UserRepository;
 
   constructor(private readonly dependencies: Dependencies) {
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
-    this.users = new DexieUserRepository(dependencies.database);
+    this.users = dependencies.users;
   }
 
   async search(query: Partial<UserSearchQuery> = {}): Promise<Page<UserAdminListItem>> {

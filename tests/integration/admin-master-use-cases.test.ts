@@ -4,6 +4,7 @@ import { AdminMasterUseCases } from "@/application/use-cases/admin-master-use-ca
 import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
+import { createDexieApplicationRepositories } from "@/infrastructure/database/dexie/application-repositories";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { createScenarioDataset } from "@/seeds/scenarios";
 const FIXED_TIME = "2026-07-15T03:00:00.000Z";
@@ -42,7 +43,7 @@ describe("admin overview and master application integration", () => {
       createdAt: "2026-07-01T03:00:00.000Z",
     });
     useCases = new AdminMasterUseCases({
-      database,
+      ...createDexieApplicationRepositories(database),
       transactionRunner: new DexieApplicationTransactionRunner(database),
       currentSessionStore: new SessionStore("operator-session"),
       clock: new TestClock(FIXED_TIME),

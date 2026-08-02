@@ -2,7 +2,7 @@ import { ApplicationError } from "@/application/errors";
 import type { CurrentUserDto, ProductViewer } from "@/application/contracts";
 import type { CurrentActorResolver, CurrentSessionStore } from "@/application/ports";
 import type { User } from "@/domain/contracts";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import type { SessionRepository, UserRepository } from "@/domain/repositories";
 
 export function toCurrentUserDto(user: User): CurrentUserDto {
   return {
@@ -19,7 +19,8 @@ export function toCurrentUserDto(user: User): CurrentUserDto {
 
 export class SessionIdentityResolver implements CurrentActorResolver {
   constructor(
-    private readonly database: ScenarioShopDatabase,
+    private readonly users: UserRepository,
+    private readonly sessions: SessionRepository,
     private readonly sessionStore: CurrentSessionStore,
   ) {}
 
@@ -28,9 +29,9 @@ export class SessionIdentityResolver implements CurrentActorResolver {
     if (sessionId === null) {
       return null;
     }
-    const session = await this.database.sessions.get(sessionId);
-    const user = session === undefined ? undefined : await this.database.users.get(session.userId);
-    if (session === undefined || user === undefined) {
+    const session = await this.sessions.get(sessionId);
+    const user = session === null ? null : await this.users.getById(session.userId);
+    if (session === null || user === null) {
       await this.sessionStore.clear();
       return null;
     }

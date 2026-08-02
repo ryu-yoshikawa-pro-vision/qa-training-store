@@ -517,7 +517,7 @@ describe("review, user, and test-control pages", () => {
     await waitFor(() =>
       expect(testControlService.reset).toHaveBeenCalledWith({ scenario: "default" }),
     );
-    expect(reloadBrowserPage).toHaveBeenCalledOnce();
+    expect(reloadBrowserPage).toHaveBeenCalledTimes(1);
   });
 
   it("does not run Scenario Reset twice during a repeated Confirm operation", async () => {
@@ -533,7 +533,7 @@ describe("review, user, and test-control pages", () => {
     fireEvent.click(confirm);
     await waitFor(() => expect(testControlService.reset).toHaveBeenCalledTimes(1));
     resolveReset();
-    await waitFor(() => expect(reloadBrowserPage).toHaveBeenCalledOnce());
+    await waitFor(() => expect(reloadBrowserPage).toHaveBeenCalledTimes(1));
   });
 
   it("stays on the page when Scenario Reset fails", async () => {
@@ -558,7 +558,7 @@ describe("review, user, and test-control pages", () => {
     await screen.findByText("0.1.0");
     fireEvent.click(screen.getByRole("button", { name: "シナリオを初期化" }));
     fireEvent.click(await screen.findByRole("button", { name: "初期化して移動" }));
-    await waitFor(() => expect(reloadBrowserPage).toHaveBeenCalledOnce());
+    await waitFor(() => expect(reloadBrowserPage).toHaveBeenCalledTimes(1));
     expect(
       screen.queryByText("シナリオを初期化できませんでした。画面遷移は行っていません。"),
     ).not.toBeInTheDocument();

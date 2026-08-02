@@ -15,6 +15,7 @@ export const tokens = {
     actionSecondary: "#334155",
     accent: "#c6a15b",
     accentDark: "#7a5b22",
+    accentOnDark: "#d8bd83",
     focus: "#2563eb",
     sale: "#b91c1c",
     saleBackground: "#fef2f2",
@@ -41,6 +42,9 @@ export const tokens = {
     adminSideNavWidth: 248,
     controlHeight: 44,
     minimumTouchTarget: 44,
+    productCardImageAspectRatio: 4 / 5,
+    productDetailImageAspectRatio: 6 / 5,
+    productThumbnailSize: 96,
   },
   typography: {
     display: { fontSize: 44, lineHeight: 53, fontWeight: 700 },

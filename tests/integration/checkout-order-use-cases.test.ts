@@ -4,6 +4,7 @@ import type { Clock, CurrentSessionStore, IdGenerator, PaymentGateway } from "@/
 import { CheckoutOrderUseCases } from "@/application/use-cases/checkout-order-use-cases";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
+import { createDexieApplicationRepositories } from "@/infrastructure/database/dexie/application-repositories";
 import { createScenarioDataset } from "@/seeds/scenarios";
 import { loadSeedDataset } from "@/seeds/load-seed";
 
@@ -78,7 +79,7 @@ describe("checkout and customer order application integration", () => {
       "2026-07-01T04:00:03.000Z",
     ]);
     useCases = new CheckoutOrderUseCases({
-      database,
+      ...createDexieApplicationRepositories(database),
       transactionRunner: new DexieApplicationTransactionRunner(database),
       currentSessionStore: new MemorySessionStore("regular-session"),
       paymentGateway: gateway,

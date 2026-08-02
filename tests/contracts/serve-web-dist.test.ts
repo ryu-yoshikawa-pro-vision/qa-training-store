@@ -269,7 +269,7 @@ afterAll(async () => {
   }
 
   if (tmpDir) {
-    rmSync(tmpDir, { recursive: true, force: true });
+    rmSync(tmpDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
 }, 10_000);
 

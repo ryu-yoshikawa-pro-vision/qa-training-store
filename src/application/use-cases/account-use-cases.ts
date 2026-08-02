@@ -17,14 +17,12 @@ import {
   toCurrentUserDto,
 } from "@/application/identity/session-identity-resolver";
 import type { UserAddress } from "@/domain/contracts";
-import {
-  DexieAddressRepository,
-  DexieUserRepository,
-} from "@/infrastructure/database/dexie/basic-repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import type { AddressRepository, SessionRepository, UserRepository } from "@/domain/repositories";
 
 interface AccountUseCaseDependencies {
-  database: ScenarioShopDatabase;
+  users: UserRepository;
+  sessions: SessionRepository;
+  addresses: AddressRepository;
   currentSessionStore: CurrentSessionStore;
   clock: Clock;
   idGenerator: IdGenerator;
@@ -33,16 +31,17 @@ interface AccountUseCaseDependencies {
 
 export class AccountUseCases {
   private readonly identity: SessionIdentityResolver;
-  private readonly users: DexieUserRepository;
-  private readonly addresses: DexieAddressRepository;
+  private readonly users: UserRepository;
+  private readonly addresses: AddressRepository;
 
   constructor(private readonly dependencies: AccountUseCaseDependencies) {
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
-    this.users = new DexieUserRepository(dependencies.database);
-    this.addresses = new DexieAddressRepository(dependencies.database);
+    this.users = dependencies.users;
+    this.addresses = dependencies.addresses;
   }
 
   async getProfile() {

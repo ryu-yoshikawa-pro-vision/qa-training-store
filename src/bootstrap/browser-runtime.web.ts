@@ -6,13 +6,19 @@ import {
 import { isPhaseOneScenario, type PhaseOneScenario } from "@/seeds/metadata";
 import { installTestApi } from "@/test-controls/test-api.web";
 import { TestControlService } from "@/test-controls/test-control-service";
-import { DexieCheckoutSessionRepository } from "@/infrastructure/database/dexie/cart-checkout-repositories";
 import { createApplicationServices } from "@/application/create-application-services";
 import { RuntimeClock } from "@/infrastructure/clock/clocks";
 import { MockPaymentGateway } from "@/infrastructure/payment/mock-payment-gateway";
+import { createDexieApplicationRepositories } from "@/infrastructure/database/dexie/application-repositories";
+import { DexieCheckoutSessionRepository } from "@/infrastructure/database/dexie/cart-checkout-repositories";
+import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
+import { DefaultEmailNormalizer } from "@/infrastructure/normalization/normalizers";
+import { WebPbkdf2PasswordHasher } from "@/infrastructure/security/password-hasher.web";
+import { BundledStaticAddressLookup } from "@/infrastructure/address-lookup/static-address-lookup";
 
 const sessionStore = new BrowserCurrentSessionStore();
-const guestIdentityStore = new BrowserGuestIdentityStore(new CryptoIdGenerator());
+const idGenerator = new CryptoIdGenerator();
+const guestIdentityStore = new BrowserGuestIdentityStore(idGenerator);
 const runtimeClock = new RuntimeClock();
 
 export const testControlService = new TestControlService({
@@ -26,9 +32,23 @@ const paymentGateway = new MockPaymentGateway(
   async () => (await testControlService.getMetadata()).paymentDelayMs,
 );
 
-export const applicationServices = createApplicationServices(testControlService.getDatabase(), {
-  clock: runtimeClock,
-  paymentGateway,
+const database = testControlService.getDatabase();
+const repositories = createDexieApplicationRepositories(database);
+const transactionRunner = new DexieApplicationTransactionRunner(database);
+
+export const applicationServices = createApplicationServices({
+  repositories,
+  ports: {
+    clock: runtimeClock,
+    idGenerator,
+    currentSessionStore: sessionStore,
+    guestIdentityStore,
+    emailNormalizer: new DefaultEmailNormalizer(),
+    passwordHasher: new WebPbkdf2PasswordHasher(),
+    addressLookup: new BundledStaticAddressLookup(),
+    paymentGateway,
+    transactionRunner,
+  },
 });
 
 let initialization: Promise<void> | null = null;

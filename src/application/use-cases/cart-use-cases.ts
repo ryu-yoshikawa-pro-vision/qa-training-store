@@ -16,11 +16,12 @@ import type {
   IdGenerator,
 } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
-import { DexieCartRepository } from "@/infrastructure/database/dexie/cart-checkout-repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import type { CartRepository, SessionRepository, UserRepository } from "@/domain/repositories";
 
 interface CartUseCaseDependencies {
-  database: ScenarioShopDatabase;
+  users: UserRepository;
+  sessions: SessionRepository;
+  carts: CartRepository;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
   guestIdentityStore: GuestIdentityStore;
@@ -35,14 +36,15 @@ interface ResolvedOwner {
 
 export class CartUseCases {
   private readonly identity: SessionIdentityResolver;
-  private readonly carts: DexieCartRepository;
+  private readonly carts: CartRepository;
 
   constructor(private readonly dependencies: CartUseCaseDependencies) {
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
-    this.carts = new DexieCartRepository(dependencies.database);
+    this.carts = dependencies.carts;
   }
 
   async getCart(): Promise<CartDto> {

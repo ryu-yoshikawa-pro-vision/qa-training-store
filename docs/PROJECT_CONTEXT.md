@@ -73,6 +73,21 @@
 - Production デプロイは `cloudflare-production` の Job concurrency により同時実行しない。Cloudflare Secret 不足はデプロイ対象 Job 内の認証確認 Stepで明示的に失敗させ、認証情報はその確認 StepとWrangler Action Inputに限定する。全 Checkout は `persist-credentials: false` とする。UI Review Artifact は `UI_REVIEW_STAGE` をUpload pathへ再利用し、Preview branch名は許可文字を検証する。
 - forkリポジトリからのPull Requestは、Cloudflare Preview用Secretを利用できず、必須のPreviewデプロイおよび公開URL Smokeを実行できないため、現在のCI/CD運用ではサポート対象外とする。同一リポジトリ内の通常PRでSecretが不足する場合は明示的に失敗し、fork PRを通すためにPreview必須条件を弱めたり `pull_request_target` を追加したりしない。
 
+## Phase 2前半 Native Foundation（2026-08-02）
+
+- WebとNativeのRoot／Route／Shellを分離した。Webは既存のApp FrameとDexie Runtimeを継続し、Nativeは`NativeAppRuntimeProvider`、Native Shell、Native Customer SQLiteを使う。全Routeの分類は[`docs/plans/2026-08-02_215142_route-inventory.md`](./plans/2026-08-02_215142_route-inventory.md)に記録する。
+- Native前半の実装範囲はGuest Home、Catalog、Search、Category、Product、Variation、Cart、Guide／Legalである。Login、Account、Checkout、Payment、Order、Review、AdminはNative placeholderとし、後半へ引き継ぐ。
+- Native DBは`expo-sqlite`のCustomer-only schema、FK enforcement、WAL、exclusive transaction、seed versionを使用する。Native KVは`expo-sqlite/kv-store`、Password HashはPBKDF2-SHA256 adapter、Assetは静的生成Mapを使用する。
+- Test Controlは`scenario-shop://test-control/reset`のVersion 1 Deep Link、Scenario／Clock／Delay validation、Reset mutex、Ready／Error signalを持つ。local／automation buildだけ有効で、production buildでは無効である。Native contract harnessは専用DB／KV namespaceとfinally cleanupを持つ。
+- Application層はInfrastructure／Dexieをimportせず、Web Dexie Composition RootとNative Customer Composition Rootがportへadapterを注入する。`pnpm run check:native-route-dependencies`、`typecheck:native-tests`、Native Jestを検証入口とする。
+- Native BuildはローカルWindows／macOSを正式な主経路とする。Androidは`expo prebuild`→Android Studio／Gradle Release／署名済みAPK→Emulator／端末Install、iOSは`expo prebuild`→Xcode／`expo run:ios` Release Simulator Build→Simulator Installを行う。個人iPhoneはDevelopment Signingの任意確認に限定し、Distribution IPA／Store提出は行わない。生成された`android/`／`ios/`、APK／App、署名鍵／CredentialはRepository成果物にしない。
+- Native UIはWeb DOM／CSS／React Ariaを再利用せず、`src/presentation/design/tokens.ts`の色、8px Grid、Radius、Typography、Touch Target、商品画像比率をNative primitivesへ接続する。Home／Catalog／Product／Cartの情報順と画像比率をWebと揃え、390×844、追加で320×700のWeb／Native比較を行う。Android／iOS差分はPlatform Header／Navigation等の必要差に限定する。
+- `eas.json`と`.eas/workflows/phase2-native-foundation.yml`はProfile／Environment mappingと将来の手動Workflowを静的に保持する。`pnpm run validate:eas:config`をローカル静的検証入口とし、EAS Cloud Build／Workflow／Maestro／Submitは通常経路として実行しない。
+- 2026-08-02時点の実行環境にはAndroid SDK／`adb`／EmulatorとiOS `xcrun`／Simulatorがないため、実Native Build／Install／起動／操作／実SQLite Smokeは未確認である。Node／Web検証と実Native検証を混同しない。
+- Node.js 24の組み込み`node:sqlite`でNative Customer SQLite Adapterの実SQL／FK／Seed／Catalog／Cart Shared Contractを検証するSuiteを追加した。これはAndroid／iOSの`expo-sqlite`実行検証とは分離して扱う。
+- Native Guest Identityは初回だけseed既定値を設定し、以後はNative KVの保存値を再起動後も保持する。Guest Cartの初回作成も`withExclusiveTransactionAsync`内で行う。
+- Native前半UIはCatalogの在庫／Sale／Rating filter、商品詳細のSale価格・在庫・購入上限・Review Summary・在庫切れVariation、二重追加防止を備える。ProductionのTest Control buildKindは解決済みExpo Configを優先する。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

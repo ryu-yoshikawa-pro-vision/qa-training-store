@@ -7,6 +7,14 @@ expo-env.d.ts
 
 node_modules/
 dist/
+android/
+ios/
+*.apk
+*.aab
+*.ipa
+*.keystore
+*.jks
+*.mobileprovision
 .expo/
 .corepack-cache/
 .pnpm-store/
@@ -15,6 +23,7 @@ public/_expo/
 public/files/
 playwright-report/
 test-results/
+DerivedData/
 .playwright-cli
 .playwright-mcp
 .codex/tmp/

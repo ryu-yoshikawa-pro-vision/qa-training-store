@@ -72,8 +72,8 @@ describe("LogoutButton and shell placement", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "ログアウト" }));
 
-    await waitFor(() => expect(logout).toHaveBeenCalledOnce());
-    expect(refreshIdentity).toHaveBeenCalledOnce();
+    await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
+    expect(refreshIdentity).toHaveBeenCalledTimes(1);
     expect(routerReplace).toHaveBeenCalledWith("/");
   });
 

@@ -228,18 +228,19 @@ Android/iOSで次が動作する。
 
 ### 3.12 Build / EAS / CI
 
-EAS ProfileはMaster PlanのProfile、`environment`、`EXPO_PUBLIC_*` envを使用する。
+Local Native Buildを正式な主経路とする。EASはProfile／Environment mappingと手動Workflowの静的・将来用構成だけを保持し、Cloud Build／Workflow／Submitは通常の完了条件に含めない。
 
-- `.eas/workflows/phase2-native-foundation.yml`がある。
-- Preview Build/Maestro Jobは`environment: preview`を使う。
-- Production-validation Jobは`environment: production`を使う。
-- Android Preview APKを生成、インストール、起動できる。
+- `eas.json`と`.eas/workflows/phase2-native-foundation.yml`があり、`pnpm run validate:eas:config`が成功する。
+- Preview／Production-validationのEAS Jobは将来用に`environment: preview`／`environment: production`を保持する。
+- Windows Androidは`expo prebuild`→Android Studio／Gradle Dev・Release→ローカル署名APK→Emulator／device Installを行う。
+- Androidの署名鍵／passwordはローカル管理とし、Repositoryへ保存しない。
 - AndroidでHomeからCartまで操作できる。
-- iOS Preview Simulator Buildを生成、インストール、起動できる。
+- macOS iOSは`expo prebuild`→Xcode／`expo run:ios` Release Simulator Build→Simulator Installを行う。
+- 個人iPhoneはDevelopment Signingの任意確認に限定し、Distribution IPA／Store提出は作成しない。
 - iOSでHomeからCart追加まで操作できる。
 - Android Production-validation BuildでTest Control/Harness無効を確認する。
 - iOS Production設定のBundle/Config静的検証が成功する。
-- iOS Production-validation実BuildはPlatform固有差分がある場合だけ実施する。
+- 実Native Build／Install／起動／操作／実SQLite Smokeを、Node／Web検証だけで代替しない。
 - Production-validation Metadataが次と一致する。
 
 ```text
@@ -251,6 +252,13 @@ extra.testMode === "false"
 - `typecheck:app`と`typecheck:native-tests`が成功する。
 - Native Component TestとWeb既存Test/Build/Playwrightが成功する。
 - Critical/Highの既知不具合が残っていない。
+
+### 3.13 Web / Native Visual Contract
+
+- NativeはWeb DOM／CSS／React Aria Componentを再利用せず、`src/presentation/design/tokens.ts`のColor、8px Spacing、Radius、Typography、44px以上Touch TargetをNative styles／primitivesへ接続する。
+- Home／Catalog／Product／Cartの情報順、Price／Sale／Stock／Reviewの階層、Product image ratioをWebと揃える。Catalogは4/5、Product detail mobileは6/5を共有Tokenで管理する。
+- Web比較は390×844を標準、320×700を追加Viewportとし、Native screenshotは実Android／iOS環境がある場合だけ完了扱いにする。
+- Android／iOS固有差はSafe Area、Header、Bottom Navigation、Press状態などPlatform UIに必要な範囲だけ許容し、比較結果と未検証画面をRun Artifactへ記録する。
 
 ## 4. 対象
 
@@ -269,7 +277,7 @@ extra.testMode === "false"
 - Home、商品一覧、検索、Category、商品詳細、Cart
 - Native対象外Role画面
 - `jest-expo`ベースNative Component Testと専用TypeScript設定
-- EAS Profileと前半Workflow
+- EAS Profile／Environmentと前半Workflowの静的契約
 - Android Preview APK、iOS Preview Simulator Build
 - ADR、PROJECT_CONTEXT、Native手順
 
@@ -368,14 +376,14 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 
 ### Gate E: Android Vertical Slice
 
-- Preview APKを生成、起動できる。
+- ローカルRelease APKを生成、署名、起動できる。
 - Home、検索/一覧、商品詳細、Cart追加/変更/削除が動作する。
 - Empty、Not Found、在庫不足、上限を確認できる。
 - Resetと再起動保持が成立する。
 
 ### Gate F: iOS Vertical Slice
 
-- Preview Simulator Buildを生成、起動できる。
+- ローカルRelease Simulator Buildを生成、起動できる。
 - Home、検索/一覧、商品詳細、Cart追加が動作する。
 - Resetと再起動保持が成立する。
 - 実SQLite/PBKDF2/Storage Smokeが成功する。
@@ -385,7 +393,7 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 - 全Native Test成功
 - Web全Test/Build/Playwright成功
 - `typecheck:app`と`typecheck:native-tests`成功
-- 前半EAS Workflowまたは代替経路の結果記録
+- Local Native Build／device・Simulator validation／EAS static validation／EAS Cloud executionの結果を分離記録
 - `android/`/`ios/`未Commit
 - Critical/High解消
 

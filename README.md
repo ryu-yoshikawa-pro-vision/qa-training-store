@@ -22,7 +22,7 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 
 ## 対象範囲
 
-現在の実装はPhase 1としてWebを対象としています。
+現在の実装はWebのPhase 1と、NativeのPhase 2前半（Guest Storefront／Cart基盤）を対象としています。Nativeの後半機能は対象外画面として明示しています。
 
 | 項目 | 内容 |
 |---|---|
@@ -36,6 +36,9 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 | Hosting | Cloudflare Pages |
 | 管理画面 | 1024px以上のDesktop Web |
 | 購入可能Role | activeなcustomer |
+| Native前半 | Guest Home、Catalog、Search、Category、Product、Variation、Cart |
+| Native DB | SQLite Customer-only schema + Native KV |
+| Native識別子 | Android `com.ryuyoshikawa.scenarioshop` / iOS `com.ryuyoshikawa.scenarioshop` |
 
 ## 主な機能
 
@@ -126,6 +129,75 @@ pnpm run build:web
 Font Asset準備、商品画像Manifest生成・検証、Expo Web Exportを順に実行し、`dist/`へ出力します。
 
 Production Buildは、CI/CDでProduction用の環境変数を設定して実行します。
+
+### Native local Build
+
+Native BuildはローカルWindows／macOS経路を正式な主経路とします。EAS Cloud Build／Workflowは日常のBuild・検証・Submitには使いません。`expo prebuild`で生成される`android/`と`ios/`、APK／Simulator App／署名鍵などの成果物・CredentialはRepositoryへ追加しません。
+
+```bash
+pnpm run generate:native-assets
+pnpm run check:native-route-dependencies
+pnpm exec expo prebuild
+```
+
+#### Windows／Android
+
+Android Studio、JDK、Android SDK、Platform Tools、Emulatorまたは実機を用意し、`com.ryuyoshikawa.scenarioshop`を対象にDev／ReleaseをローカルBuildします。
+
+```powershell
+pnpm run build:native:android
+pnpm run build:native:android:release
+cd android
+.\gradlew.bat assembleRelease
+cd ..
+adb install -r android\app\build\outputs\apk\release\app-release.apk
+```
+
+Release APKは端末側で管理するGradle signing config／keystoreを使って署名します。Expoの生成テンプレートは未設定時にdebug keystoreを使うため、正式なRelease署名の確認ではAndroid Studio／Gradleへローカルkeystoreを設定してください。keystore、password、`*.jks`／`*.keystore`はRepositoryへ保存しません。`expo run:android --variant release`が生成するInstall用Artifactと、署名済み`assembleRelease` APKの確認結果は別々に記録します。
+
+#### macOS／iOS
+
+Xcode、Command Line Tools、CocoaPods、iOS Simulatorを用意し、`com.ryuyoshikawa.scenarioshop`を対象にDev／Release Simulator Buildをローカル実行します。
+
+```bash
+pnpm run build:native:ios
+pnpm run build:native:ios:release
+```
+
+必要に応じてXcodeから個人所有iPhoneへRunします。個人端末検証はDevelopment Signingの範囲に限定し、Distribution IPA／Store提出は作成しません。
+
+#### Native実環境の確認順
+
+Android／iOSともに、Install・起動後に次を実操作します。
+
+1. Home → 商品一覧／検索／Category → Product → Variation選択 → `カートに追加`
+2. Cartで数量変更・削除・Empty Stateを確認
+3. 再起動後にGuest IdentityとCartが復元されることを確認
+4. local／automation BuildではTest Control Deep LinkとReady／Error Signalを確認
+5. production validationではTest Control／Harnessが利用不能であることを確認
+
+Web／Nativeの比較対象は標準`390×844`、追加で`320×700`です。Home／Catalog／Product／Cartの情報順、商品画像比率、色・Spacing・Radius・Typographyは共有Tokenを使い、Platform固有のHeader／Navigation／Native Component差だけを許容します。Native UIはWebのDOM／CSS／React Aria Componentを再利用しません。
+
+`pnpm run test:repository`にはNode.js 24の組み込みSQLiteを使うNative Customer Adapterの実SQL／FK／Seed／Catalog／Cart Contractが含まれます。これはAndroid／iOSの`expo-sqlite`実行確認の代替ではありません。
+
+Test Controlはlocal／automation buildだけで利用できます。
+
+```text
+scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03:00:00.000Z&paymentDelayMs=0
+```
+
+Production buildではTest Controlを有効化しません。EAS Build、EAS Workflow、EAS Submit、Store公開はこのRepositoryのNative手順に含めません。
+
+#### EASの位置づけ（静的／将来用）
+
+`eas.json`と`.eas/workflows/phase2-native-foundation.yml`は、Profile／Environment mappingと将来の手動Workflow構成を静的に保持するためだけに置きます。Workflowは`workflow_dispatch`のみで、Cloud Build／Maestro／SubmitはこのRunでは実行しません。
+
+```bash
+pnpm run validate:eas:config
+pnpm dlx eas-cli@latest workflow:validate .eas/workflows/phase2-native-foundation.yml --non-interactive
+```
+
+後者はExpo認証が必要なため、認証のない環境では`An Expo user account is required`で停止します。その場合も、ローカルvalidatorのPASSと未実行のCloud検証を混同しません。
 
 ## テストアカウント
 
@@ -358,6 +430,6 @@ CloudflareのSecretが設定されている場合は、Pull Request Previewとma
 
 ## Native対応について
 
-Android・iOSアプリは現在の対象外です。
+NativeはPhase 2前半として、GuestのHome、Catalog、Search、Category、Product、Variation、Cart、Guide／Legalを実装しています。Login、Account、Checkout、Payment、Order、Review、Adminは後半対象のplaceholderです。
 
-Domain ModelとApplication Contractの再利用を想定していますが、Native対応ではPresentation、Storage、Session、E2E環境の再設計が必要です。現在のWeb UIがそのままAndroid・iOSで動作することは保証しません。
+NativeはWebとは別のRoot／Route／Shell、Customer-only SQLite、Native KV、PBKDF2 adapterを使用します。色、8px Grid、Radius、Typography、Touch Target、商品画像比率は`src/presentation/design/tokens.ts`を共有契約とし、Nativeのstyle／primitiveへ接続しています。実Android／iOSのローカルBuild、Install、起動、操作、実SQLite Smokeは、Android SDK／adb／EmulatorおよびXcode／Simulatorが利用できる環境で確認します。EASは静的設定確認のみで、Cloud Build／Workflow／Submitは実行しません。

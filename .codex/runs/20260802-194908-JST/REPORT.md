@@ -1,0 +1,411 @@
+# Report (append-only)
+- 行動のたびに追記する（調査/編集/判断も含む）
+- コマンドや確認結果は必ず記録する
+
+## Evidence Record (optional)
+- Record ID:
+- Round:
+- Query:
+- Source:
+- Supports/Refutes:
+- Confidence:
+- Decision:
+- Rationale:
+- Open Issues:
+- Next Action:
+
+## YYYY-MM-DD HH:MM (JST)
+- Summary:
+- Completed:
+- Changes:
+- Commands:
+  - `...` => result
+- Notes/Decisions:
+- New tasks:
+- Remaining:
+- Progress: NN% (done/total)
+
+## Deletion candidates
+- Codex はファイルやディレクトリを削除しない。
+- 不要に見えるファイルは、ユーザーが手動確認できるようにここへ記録する。
+
+| Path | Reason | Suggested action |
+|---|---|---|
+|  |  |  |
+
+## 2026-08-02 20:07 JST 開始条件確認・実装停止
+
+- Summary:
+  - 添付Goal全文、Repository規約、Phase 2正本計画、現行コード/Tests/Config/CIを確認した。
+  - Strict Run `20260802-194908-JST`、保存用計画書、evaluationを作成した。
+  - 外部開始条件が未達のため、コード変更・依存追加・Native Build・EAS Workflow実行は行っていない。
+- Completed:
+  - 添付ファイルは1928行を分割して全文確認した。
+  - `AGENTS.md`、`PLANS.md`、`.agents/skills/feature-plan/SKILL.md`、planning reference、`docs/PROJECT_CONTEXT.md`、最新ADR、直近Run、Phase 2前半/後半計画、`docs/future/phase2/**`を確認した。
+  - Branch/HEAD/作業ツリーをread-only確認した。Branchは`feature/01_phase2-first-half-native-foundation`、HEADは`ebc3671adb8dc9e287b3ac91cc43ba4183de4d81`、初期状態はclean。
+  - `code_researcher`、`implementation_researcher`、`test_investigator`をread-onlyで起動し、結果を親Agentが実コードと照合した。
+  - Expo SDK 57のSQLite、`withExclusiveTransactionAsync`、`expo-sqlite/kv-store`、EAS Profile/Environment/Workflowを公式一次資料で確認した。
+- Commands / Results:
+  - `node --version` => `v24.12.0`。
+  - `pnpm --version` => `9.10.0`。
+  - `pnpm exec expo --version` => `57.0.10`。
+  - `pnpm exec expo config --json`（preview/automation/test mode）=> SDK `57.0.0`、Scheme `scenario-shop`、既存Metadataのみ。Android package/iOS bundleIdentifierは未設定。
+  - `Get-Command adb/emulator/sdkmanager/avdmanager/maestro/xcrun/simctl/xcodebuild/pod/gh` => 全てunavailable。
+  - `pnpm dlx eas-cli@latest --version` => `eas-cli/21.4.0`。一時dlx実行中に`dtrace-provider`のVisual Studio未検出ログが出たが、Repositoryは変更していない。
+  - `pnpm dlx eas-cli@latest whoami` => `Not logged in`。
+  - `pnpm dlx eas-cli@latest project:info --json` => Expo user account requiredで失敗。
+  - `git branch --show-current; git rev-parse HEAD; git status --short --branch` => 非mainの作業Branch、初期clean。
+- Current code facts:
+  - `app/_layout.tsx`はCSS/Web Shell/Browser Runtimeへ接続し、`app/_layout.web.tsx`とNative route/screenは未存在。
+  - `src/application/create-application-services.ts`とUse Case群がDexie具象/Infrastructureへ直接依存している。
+  - `package.json`/lockfileに`expo-sqlite`、`expo-dev-client`、`react-native-quick-crypto`、`jest-expo`、Native Testing Libraryの直接導入はない。
+  - 既存TestsはVitest/jsdom、Dexie、Web Component、Playwright browser emulation中心で、実Native SQLite/KV/Component/Android/iOS検証は未整備。
+  - `eas.json`と`.eas/workflows/`は未存在。
+- Subagents:
+  - `code_researcher`: Route Inventory、Web専用Import経路、Composition Root、既存契約を確認。read-only、変更なし。
+  - `implementation_researcher`: Platform分離、SQLite/KV/PBKDF2/Harness/Asset/Native Test/EASの対象と順序を整理。read-only、変更なし。
+  - `test_investigator`: 既存Test、共有Fixture、Native/SQLite/KV/FK/Cleanup/実環境の未整備領域を確認。read-only、変更なし。
+- Changes:
+  - `docs/plans/2026-08-02_194908_phase2-native-foundation-goal.md`
+  - `.codex/runs/20260802-194908-JST/PLAN.md`
+  - `.codex/runs/20260802-194908-JST/TASKS.md`
+  - `.codex/runs/20260802-194908-JST/REPORT.md`
+  - `.codex/runs/20260802-194908-JST/run.json`
+  - `.codex/runs/20260802-194908-JST/evaluation.json`
+  - Application/Presentation/Infrastructure/Tests/Config/Lockfileは変更していない。
+- Blocking:
+  - EAS Account/Organization/Project/認証が未確定。EAS Buildを誤Accountや未承認Projectで開始できない。
+  - Android実操作環境（adb/Emulator/Maestro）がない。
+  - iOS実操作環境（xcrun/Simulator/Xcode）がない。WindowsからSimulator起動経路も未確定。
+  - Build費用上限、Credential利用範囲、EAS Workflow不能時の承認済み代替経路が未確定。
+  - Phase 1 Web CI/Cloudflare外部成功Runは本Runでは確認していない。
+- Decision:
+  - 添付Goalの「Blocking項目がある場合は実装に着手しない」に従い、Gate A実装前で停止する。
+  - `update_goal`のblocked判定は同一条件の3回反復が必要なため、この1回目ではGoal状態を変更しない。
+- Next:
+  - ユーザーまたは外部環境側でAccount/Project、費用/Credential、Android/iOS実行経路、代替経路を確定する。
+  - 条件確定後は同じRunを再利用し、Gate AのRoute Inventory/Root分離から再開する。
+- Progress: 8% (3/36)
+
+## 2026-08-02 22:11 JST Gate A〜D実装・静的検証の進捗
+
+- Summary:
+  - Gate A〜Dのコード実装と、Route Inventory、Platform/Composition Root ADR、SQLite/Transaction/Test Strategy ADR、Project Context履歴、README Native手順を追加した。
+  - Web／NativeのComponent Testを分離し、Web実テスト76件とNative Jest 4件を個別に実行できるようにした。
+  - EASは実行していない。ローカルNative toolchainがないため、実Android/iOS Build・Install・操作・実SQLite Smokeは未確認のまま残した。
+- Commands / Results:
+  - `pnpm run typecheck` => app/native-testsとも成功。
+  - `pnpm run test:unit -- --reporter=dot` => 11 files / 48 tests passed。
+  - `pnpm run test:integration -- --reporter=dot` => 9 files / 91 tests passed。
+  - `pnpm run test:repository -- --reporter=dot` => 4 files / 17 tests passed。
+  - `pnpm run test:component:web -- --reporter=dot` => 11 files / 76 tests passed。既存のReact `act(...)` warningは残るが失敗なし。
+  - `pnpm run test:component:native -- --runInBand` => 2 suites / 4 tests passed。
+  - `pnpm exec vitest run tests/contracts/architecture.test.ts --reporter=dot` => 3 tests passed。
+  - `pnpm run check:native-route-dependencies` => 38 native routes passed。
+  - `pnpm run security:check` => 218 runtime files / 251 credential-scan files passed。
+  - `pnpm run generate:native-assets`、`pnpm run validate:image-manifest` => 9 assets、manifest validation passed。
+  - `pnpm exec expo config --json` => package/bundle ID、scheme、schema/seed metadataを確認。
+  - `pnpm exec expo export --platform android` => Android JS bundle 1件をexport成功。Native APKではない。
+  - `pnpm exec expo export --platform ios` => iOS JS bundle 1件をexport成功。Simulator Buildではない。
+  - `Get-Command adb,xcrun,pod,maestro,eas,expo-doctor` => すべて未検出。
+  - `git diff --check` => 差分エラーなし（GitのLF/CRLF warningのみ）。
+- Decisions:
+  - `test:component:web`は`tests/component/native`をexcludeし、VitestとJestの実行境界を分離した。
+  - `browser-runtime.web.ts`はDexie repository factoryを使うComposition Rootへ整理した。
+  - production Test Control guardはpure protocolへ移し、local／automationだけを有効化する契約テストを追加した。
+- Unverified / Remaining:
+  - `pnpm run format:check`は今回の変更外を含む既存123ファイルのformat warningで失敗するため、全Repositoryのformat PASSとは判定していない。今回触った対象は個別Prettierで整形済み。
+  - `pnpm run test:contracts`は再実行時に既存Playwright configのhook timeoutとWindows temp directory cleanup EPERMで2 suiteが失敗した。追加したArchitecture/SQLite/Asset契約は個別に確認済みで、full contractは再検証が必要。
+  - Android/iOSの実Native Build、Install、起動、Guest Storefront／Cart、再起動復元、Deep Link、実SQLite/PBKDF2/KV/FK smokeは未実施。EASは対象外。
+- Progress: 47% (17/36)
+
+## 2026-08-02 20:15 JST 開始条件の3回目監査
+
+- Summary:
+  - 同一Goal継続の3回目として、EAS認証・Project参照・Native実行コマンド・作業ツリーを再確認した。
+  - 前2回と同じ外部開始条件未達が継続している。
+- Commands / Results:
+  - `pnpm dlx eas-cli@latest whoami` => `Not logged in`。
+  - `pnpm dlx eas-cli@latest project:info --json` => Expo user account requiredで失敗。
+  - `Get-Command adb,xcrun,eas,gh` => 全てunavailable。
+  - `git status --short --branch` => コード変更なし。Run成果物と保存用計画書のみ未追跡。
+- Decision:
+  - Account/Organization/Project、費用・Credential、Android/iOS実行経路、EAS代替経路がなお未確定であり、添付Goalの「Blocking項目がある場合は実装に着手しない」に該当する。
+  - 同一ブロッカーが3回連続で確認されたため、Goal状態を`blocked`へ更新する。コード実装は開始しない。
+- Next:
+  - 外部条件が変更された後、Goalを再開し、同じRunのGate A Task 5から再監査・再実装する。
+- Progress: 8% (3/36)
+
+## 2026-08-02 20:24 JST ユーザー方針変更による再開
+
+- Summary:
+  - ユーザーが「Buildはローカルで実行し、EASは使わない」と明示した。
+  - EAS Account/Organization/Project、費用、Credential、Profile、Workflow、外部Buildを本Runの開始条件・実装対象から除外した。
+  - コードは未実装（Tasks 3/36完了）であるため、Goalを再開し、Gate A Task 5から実装する。
+- Decision:
+  - Android/iOSのローカルtoolchainが現環境にないことはコード実装のBlockerにしない。
+  - ローカルNative Build・実機操作が実行できない項目は、実装・静的検証と分離して未確認と記録する。未実施をPASSにしない。
+  - EAS設定・認証・Project作成・Workflow・Build・Submitは行わない。
+- Changes:
+  - 保存用計画書、Run PLAN、TASKSをローカルBuild方針へ更新した。
+  - Gate A〜Dの実装と、利用可能なローカル環境でのGate E/F検証を開始する。
+- Next:
+  - Gate AのRoute Inventory、Native/Web Root分離、Platform別Screen/Shell/Providerの実装。
+- Progress: 8% (3/36)
+
+## 2026-08-02 20:14 JST 継続時の開始条件再確認
+
+- Summary:
+  - 継続Runの現行状態、作業ツリー、添付Goalの行数、およびEAS認証・Project情報を再確認した。
+  - 外部開始条件は前回確認時から変化していないため、実装・依存追加・設定変更は行っていない。
+- Commands / Results:
+  - `git status --short --branch` => `feature/01_phase2-first-half-native-foundation`、Run成果物と保存用計画書のみ未追跡。コード差分なし。
+  - `pnpm dlx eas-cli@latest whoami` => `Not logged in`。
+  - `pnpm dlx eas-cli@latest project:info --json` => `An Expo user account is required to proceed`で失敗。
+  - `pnpm exec expo config --json`（preview/test環境変数）=> SDK `57.0.0`、Scheme `scenario-shop`。Account/Organization/Project ID、Android package、iOS bundle identifierの解決結果は未設定。
+  - `Get-Command adb,xcrun,eas,gh` => 全てunavailable。
+  - 添付Goalの行数確認 => `1928`行。
+- Decision:
+  - Account/Organization/Project、費用・Credential、Android/iOS実行経路、EAS代替経路が未確定のため、Goal指定の開始条件を満たさない。Gate A〜Gは未着手のままとする。
+  - 同一条件のblocked判定はまだ必要回数に達していないため、Goal状態は変更しない。
+- Next:
+  - 外部条件の確定後、同じRun `20260802-194908-JST`を再利用し、Gate A Task 5から再開する。
+- Progress: 8% (3/36)
+
+## 2026-08-02 22:12 JST 追記
+
+- Previous 22:11 blockの内容を現時点の実装・検証結果として確定する。Task 5〜12、14〜16、18〜20を完了扱いに更新し、Progressは47%（17/36）とした。
+- EASは使わず、Android/iOSのローカルツール不在を実Native検証の未確認条件として保持する。実装完了と実環境完了を分離する。
+
+## 2026-08-02 22:19 JST Gate D production validation追記
+
+- `pnpm run test:contracts -- --reporter=dot` => 11 files / 62 tests passed（Windowsのtemp cleanup競合を避ける単一worker設定）。
+- `pnpm run test:unit -- --reporter=dot` => 13 files / 53 tests passed。Native KV／Native Test Control Service mutex／production protocol契約を含む。
+- production env (`EXPO_PUBLIC_APP_ENV=production`, `EXPO_PUBLIC_BUILD_KIND=production`, `EXPO_PUBLIC_TEST_MODE=false`) で `pnpm exec expo config --json` を実行し、`testMode=false`、Android/iOS identifierを確認した。
+- 同production envで `pnpm exec expo export --platform android` と `pnpm exec expo export --platform ios` を実行し、両JS Bundle exportに成功した。これはAPK／Simulator Buildではなく、Test Control guardを含むBundle静的確認である。
+- Gate D Task 21/22を完了扱いに更新した。EAS Profile/Workflow/Build/Submitは引き続き対象外。
+- Progress: 53% (19/36)
+
+## 2026-08-02 22:28 JST Gate G Web回帰追記
+
+- `pnpm run build:web` => Web export成功（Metro 2290 modules、JS/CSS bundle、dist）。
+- `pnpm run test:e2e:chromium` => 27 tests passed。
+- `pnpm run test:a11y` => 4 tests passed。
+- `pnpm run test:e2e:mobile-boundary` => 4 tests passed。
+- `pnpm run test:e2e:mobile` => 14 tests passed。
+- Web Storefront／Cart、Accessibility、Mobile boundary、URL／既存CI contract回帰を確認したためTask 35を完了扱いに更新した。
+- Progress: 56% (20/36)
+
+## 2026-08-02 22:33 JST 全テスト回帰
+
+- `pnpm run test` => Unit 13 files / 53 tests、Integration 9 / 91、Repository 4 / 17、Web Component 11 / 76、Native Jest 2 suites / 4、Contracts 11 / 62がすべて成功した。
+- `test:contracts`は単一worker設定で安定実行でき、前回のWindows temp cleanup競合は再現しなかった。
+- Node／Web側のNative基盤契約（SQLite schema／mapper／transaction、KV、PBKDF2 adapter mock、Harness cleanup、Test Control mutex）は回帰済み。実Android/iOS module実装の代替にはしない。
+- Task 34を完了扱いに更新した。
+- Progress: 58% (21/36)
+
+## 2026-08-02 22:38 JST Gate B／最終静的検証追記
+
+- Gate B自己レビューを完了した。Architecture契約3件、TypeScript app／Native tests、Native Component、PBKDF2／KV、Web Bundleを確認し、Task 13を完了扱いに更新した。
+- `pnpm run lint` => 0 errors / 63 warnings。警告は既存の型表記、Dexie import、test import順序などで、今回の実装を止めるErrorはない。
+- 変更・追加ファイル130件に対する個別Prettier確認 => 全件PASS。リポジトリ全体の`pnpm run format:check`は、今回の変更外を含む既存123件のwarningがあるため、全体PASSとは扱わない。
+- `pnpm run typecheck`、`pnpm run security:check`、`pnpm run check:native-route-dependencies`、`pnpm run validate:image-manifest`、`git diff --check`は成功した（GitのLF/CRLF warningのみ）。
+- `Get-Command adb,xcrun,pod,maestro,eas,expo-doctor`は利用可能なコマンドなし、`android/`／`ios/`は不在。Production config／Android・iOS JS exportは確認済みだが、APK／Simulator Build、Install、起動、実操作、実SQLite Smokeは未確認のままとした。
+- README末尾の旧Native対象外記述を、Phase 2前半実装済み・後半placeholder・実Native環境待ちの現状へ更新した。EAS Build／Workflow／Submitは引き続き実施しない。
+- Task 36を「環境不在とproduction設定・生成物不在の最終確認」として完了扱いに更新した。実Native検証をPASSにしたものではない。
+- Progress: 63% (23/36)
+
+## 2026-08-02 22:40 JST 最終handoff整理
+
+- `docs/PROJECT_CONTEXT.md`、`docs/history/2026-08-02_215142_native-foundation.md`、ADR-0003／0004、Route Inventory、計画書、README、`run.json`、`evaluation.json`を確認し、Phase 2前半の実装範囲と後半引継ぎ契約を揃えた。
+- コード実装としては、Gate A〜DのNative基盤（Web／Native分離、Customer SQLite／KV／PBKDF2、Guest Storefront／Cart、Asset Map、Test Control、Production Guard）が完了している。未完了は実Android／iOS環境でのみ成立するBuild／Install／操作／実SQLite検証であり、EAS項目ではない。
+- EAS設定、EAS Workflow、EAS Build、EAS Submit、Store公開は追加せず、READMEとRun Artifactに「使用しない」方針を明記した。
+- Task 37を完了扱いに更新した。後半機能（Login／Account／Checkout／Payment／Order／Review／Admin Native）はplaceholderのまま、Phase 2前半の後半引継ぎ対象として残した。
+- Progress: 66% (24/36)
+
+## 2026-08-02 23:16 JST Goal要件監査・Nativeコード補強追記
+
+- 添付GoalのGate E／F／UI要件を現行コードへ再突合し、実環境を必要としない不足を修正した。Guest IDは初回のみseed既定値を設定し、再起動時のKV値を保持する。`getCart`の初回Cart作成は`withExclusiveTransactionAsync`内へ移動した。
+- Native Catalogへ`inStockOnly`／`onSaleOnly`／最低RatingのFilterを追加した。Native Product DetailへSale／通常価格、Rating／Review Summary、在庫／購入上限、在庫切れVariation、追加中状態、placeholder fallbackを追加した。
+- `tests/unit/native-stores.test.ts`へ初回ID保持契約、`tests/contracts/native-sqlite-transactions.test.ts`へRepository直接書込み禁止契約を追加した。Node.js 24組み込み`node:sqlite`の`tests/repository-contract/native-customer-shared.test.ts`を追加し、Native Customer Adapterの実SQL／FK／Seed／Catalog／Cart Shared Contractを検証した。
+- `tests/contracts/serve-web-dist.test.ts`のWindows cleanupは`rmSync`の限定的retryでEPERM競合を解消した。
+- 検証結果: `pnpm run test`（Unit 54、Integration 91、Repository 21、Web Component 76、Native Jest 4、Contract 63）、`pnpm run typecheck`、`pnpm run build:web`、Chromium 27、a11y 4、Mobile boundary 4、Mobile 14、Android／iOS JS exportが成功。`pnpm run lint`は0 errors／63 warnings、変更対象PrettierはPASS。
+- Production configは`testMode=false`、Android package／iOS bundleIdentifier／scheme／Native schema／seed metadataを確認済み。Native Test Control Bridgeは解決済みExpo ConfigのbuildKindを優先する。実Native Build／Install／起動／操作／実SQLiteは引き続き未確認であり、EASは使用しない。
+- 追加修正後もTask 17、23〜33は実Native環境または全体Format baselineが必要なため未完了。実装・Node/Web検証は前進したが、Phase 2前半完全完了にはしない。
+- Progress: 66% (24/36)
+
+## 2026-08-02 23:22 JST Gate別最終監査
+
+### Gate A
+
+- 実装: Web／Native Root・Route・Shell分離、Native Guest route、後半placeholder、Route Inventory、Dependency Check。
+- 検証: `pnpm run check:native-route-dependencies`（38 routes）、Android／iOS JS export、Web Build、Chromium／URL回帰。
+- 判定: コード／静的検証は完了。実Native最小BundleのInstall・起動は未確認。
+
+### Gate B
+
+- 実装: Application依存方向、Customer Capability、Native KV、PBKDF2、Native Jest、Guest ID／Session復元、Native UI Filter／Detail補強。
+- 検証: `pnpm run typecheck`、Architecture、Unit、Native Jest、Security、変更対象Prettier。
+- 判定: コード／Node検証は完了。実Android／iOS Crypto・KV・`expo-doctor`は未確認。
+
+### Gate C
+
+- 実装: Customer-only SQLite Schema、FK、Seed、Exclusive Transaction、Harness、Shared Contract。
+- 検証: `pnpm run test:repository` 5 files／21 tests。Node.js 24 `node:sqlite`で実SQL／FK違反／Catalog／Cart add-update-removeを実行。
+- 判定: Node／コード側は完了。Android／iOS `expo-sqlite`実SQLite Contract、Harness実Cleanupは未確認。
+
+### Gate D
+
+- 実装: Static Native Asset Map、Deep Link Test Control v1、Ready／Error／Harness signal、Production guard。
+- 検証: Asset／Production config、Android／iOS JS export、buildKind解決、EASなし方針。
+- 判定: コード／静的検証は完了。実Production Native artifactでの無効化は未確認。EAS Profile／Workflowはユーザー方針により対象外。
+
+### Gate E
+
+- 判定: 未完了。Android SDK／Java／Gradle／adb／Emulatorが利用できず、APK Build ID、Install、起動、Guest操作、実SQLite結果は未取得。
+
+### Gate F
+
+- 判定: 未完了。Windows環境にXcode／Simulator／xcrunがなく、iOS Build ID、Install、起動、操作、Contract Smokeは未取得。
+
+### Gate G
+
+- 検証: `pnpm run test`（Unit 54、Integration 91、Repository 21、Web Component 76、Native Jest 4、Contract 63）、Web Build、Chromium 27、a11y 4、Mobile boundary 4、Mobile 14、Lint 0 errors／63 warnings、Security、Route、Asset。
+- 判定: Node／Web総合回帰は完了。Gate E／F未完了のためGate GおよびPhase 2前半完全完了は未完了。
+
+### Build／環境識別情報
+
+- HEAD SHA: `ebc3671adb8dc9e287b3ac91cc43ba4183de4d81`。未Commit差分あり（実装・Run Artifact・Docs）。
+- Android Build ID: 未生成（ローカルToolchain不在）。
+- iOS Build ID: 未生成（Windows上でXcode／Simulator不在）。
+- EAS Workflow Run ID／URL: 対象外・未実施。EAS Build／Workflow／Submitは行わない。
+- Profile／Environment: Node／Webはlocal、Production configは`production`／`testMode=false`を解決確認。Native Preview／Production artifactは未生成。
+- `android/`／`ios/`: 不在。EAS設定／Workflowも作成していない。
+
+## 2026-08-02 23:31 JST Goal継続監査・再開条件
+
+- 添付Goalの最終完了条件を再確認し、Android／iOSの実Native Build・Install・起動・Guest Storefront／Cart操作・実SQLite Smokeが、コード検証やNode `node:sqlite`の結果だけでは代替できないことを確認した。
+- 現行コードの再監査では、`expo run:android`／`expo run:ios`のローカル手順、固定識別子、CNG方針、Guest ID／Cart復元、Test Control、Production Guardが既存Runの記録と整合している。追加のコード不足は検出しなかった。
+- `winget`で利用可能なパッケージ検索は行ったが、JDK／Android SDKのインストールはユーザーの明示承認なしに実施していない。iOS検証にはmacOS／Xcode／Simulatorが必要で、現Windows環境では実施できない。
+- 再開条件は、AndroidについてJDK・Android SDK・adb・Emulatorまたは端末を備えたローカル環境、iOSについてmacOS・Xcode・Simulatorを備えた環境を提供すること。EASは引き続き使用しない。
+- Goalは未完了のまま維持する。コード実装はGate A〜D／Node／Web範囲で完了、実Native検証は未完了であり、未実施項目をPASSに変更しない。
+- Progress: 66% (24/36)
+
+## 2026-08-03 00:20 JST Build方針変更・Native Visual Contract追補
+
+### Summary
+
+- ユーザー添付方針を反映し、Native Buildの正式主経路をローカルWindows／macOSへ変更した。EAS Cloud Build／Workflow／Submitは実行しない。
+- `eas.json`、`.eas/workflows/phase2-native-foundation.yml`、`maestro/phase2-native-storefront-cart.yaml`、`scripts/validate-eas-static-config.ts`を、Profile／Environment mappingと将来の手動Workflowの静的成果物として追加した。
+- Native UIを共有`src/presentation/design/tokens.ts`へ接続し、Webの情報順・ブランド・商品画像比率・44px Touch TargetをNative styles／primitive／screenへ反映した。
+- WebのHome／Catalog／Product／Cartを390×844／320×700で実表示・撮影・目視確認した。Native screenshotは実Native環境提供後に取得する。
+
+### Delegation
+
+- 追加の読み取り専用調査agentへEAS／Expo Config／local buildの静的確認を委譲した。採用した要約は、`eas.json`とWorkflowは静的に整合し、`pnpm run validate:eas:config`はPASS、`eas workflow:validate`は認証要求で停止、Android SDK／adbとWindows上のiOS toolchain不足が実Buildの原因、というもの。ファイル編集は委譲していない。
+
+### Changes
+
+- Native UI: `native-components.tsx`の独自Colorをtokensへ置換し、shared spacing／radius／typography／status／touch target／image ratioを利用。`native-screens.tsx`のHome／Catalog／Product／CartをWebの情報順（brand→name→price→Sale→stock→review）へ調整。`native-shell.tsx`のHeader／Bottom Navigationも44px以上へ調整。
+- Shared visual contract: `tokens.ts`へCatalog 4/5、Product detail 6/5、thumbnail 96のlayout tokenを追加。Web CSSは同じ比率をCSS variableで参照。
+- Test: `tests/contracts/eas-static-config.test.ts`、`tests/contracts/native-visual-contract.test.ts`、Native primitiveのTouch Target／画像比率テストを追加。
+- Config／dependencies: Expo SDK互換7 packageを`expo install --fix`で更新し、`expo-system-ui`を追加。`pnpm` overrideで`expo-constants` duplicateを解消した。`expo-doctor`は20/20 checks passed。
+- Documentation: README、PROJECT_CONTEXT、ADR-0005、History、保存用計画をローカル主経路／EAS静的／Credential非保存／Web-Native比較契約へ更新した。
+- Generated artifacts: `android/`は`expo prebuild --platform android --no-install`で生成済みだが`.gitignore`対象。`ios/`、APK／AAB／IPA、署名鍵／Credentialは保存していない。
+
+### Evidence
+
+- `pnpm run test`: Unit 13 files／54 tests、Integration 9／91、Repository 5／21、Web Component 11／76、Native Jest 2 suites／5、Contract 13／67が成功。
+- `pnpm run typecheck`: app／native-testsとも成功。
+- `pnpm run lint`: 0 errors／63 warnings。警告は既存型表記、Dexie import、test import order等。
+- `pnpm dlx expo-doctor@latest`: 20/20 checks passed。
+- `pnpm run check:native-route-dependencies`: 38 native routes passed。
+- `pnpm run validate:eas:config`: `profiles=development,preview,production-validation, workflow=manual-only, cloudRun=not-run`。
+- `pnpm run build:web`: Web export成功。
+- `pnpm run test:e2e:chromium`: 27 passed。`pnpm run test:a11y`: 4 passed。`pnpm run test:e2e:mobile-boundary`: 4 passed。`pnpm run test:e2e:mobile`: 14 passed。
+- `pnpm exec expo config --json`: local/local/true、automation/automation/true、production/production/false、scheme／Android package／iOS bundle identifierを確認。
+- `$env:CI='1'; pnpm exec expo prebuild --platform android --no-install`: 成功。Config Plugin適用とAndroid project generationを確認。
+- `pnpm run build:native:android:release`: Android SDK／`ANDROID_HOME`／`adb`がないため失敗。`pnpm run build:native:ios:release`: Windows上のためiOS Build不可で失敗。EASを代替実行していない。
+- Web UI Review: `UI_REVIEW_STAGE=20260802-local-native-visual-contract`、`UI_REVIEW_ROUTES=home,products,products-product-basic-shirt,cart`、`--project=ui-review-mobile --project=ui-review-small-mobile`で2 tests passed。画像は`output/ui-review/20260802-local-native-visual-contract/{mobile,small-mobile}/`。
+- `pnpm dlx eas-cli@latest workflow:validate .eas/workflows/phase2-native-foundation.yml --non-interactive`: Expo account authentication requiredで停止。Cloud executionは未実施・未必要。
+
+### Gate判定
+
+- Code／static implementation: 完了。Local build scripts、CNG、Profile mapping、Production guard、Visual Contract、Web comparison evidenceを揃えた。
+- Local Native Build: incomplete。Android SDK／JDK／adb／Emulatorまたはdeviceがない。iOSはWindowsでXcode／Simulatorがない。
+- Local device／Simulator validation: incomplete。Guest／Cart操作、再起動復元、実SQLite／PBKDF2／KV／Harness、Production artifact、Native screenshotは未確認。
+- EAS config/workflow static validation: complete（repository validator／Contract Test PASS）。EAS CLIの完全なWorkflow validationは認証不足で未実施。
+- EAS Cloud execution: not performed／not needed。EASを主経路へ戻さない。
+- Progress: 66% (24/36)
+
+### Next
+
+- Android環境（JDK、Android Studio／SDK、Platform Tools、Emulatorまたは端末、必要ならローカルkeystore）でTask 23〜27を実施する。
+- macOS環境（Xcode、Simulator、CocoaPods）でTask 28〜32を実施する。
+- Native screenshotをWebの390×844／320×700と比較し、Android／iOS間のPlatform差分と未検証画面を記録する。
+
+## 2026-08-03 00:26 JST 最終静的再確認
+
+- `pnpm run typecheck`: 成功。
+- `pnpm dlx expo-doctor@latest`: 20/20 checks passed。
+- `pnpm run validate:eas:config`: 成功。EAS Cloudは未実行。
+- `pnpm run security:check`: 218 runtime files／252 credential-scan files passed。
+- `pnpm run validate:image-manifest`: 成功。`git diff --check`: 差分エラーなし（WindowsのLF/CRLF warningのみ）。
+- `pnpm run format:check`: 既存・今回対象外を含む53 filesのwarningで失敗。今回の変更対象は個別Prettier check PASSであり、無関係な全体format修正は行っていない。
+- `run.json`／`evaluation.json`はJSONとして再読込でき、Run statusは`in_progress`。実Native未確認のためGoalを完了扱いにしない。
+
+## 2026-08-03 00:34 JST Native Hero Visual Contract補正
+
+### Summary
+
+- Web UI Review画像で確認したHome HeroのDark Navy背景、Gold CTA、明るい補助CTAをNativeへ反映した。
+- `accentOnDark`を共有Design Tokenへ追加し、Native Buttonの`accent`／`inverse` variant、Heroのdark text stylesをToken経由で実装した。
+- Hero見出し・本文は既存の共有TypographyをStyle配列で維持し、色だけをHero背景向けに上書きする形へ補正した。
+
+### Evidence
+
+- `pnpm exec prettier --check src/presentation/design/tokens.ts src/presentation/native/native-components.tsx src/presentation/native/native-screens.tsx tests/contracts/native-visual-contract.test.ts` => PASS。
+- `pnpm run typecheck` => app／native-testsともPASS。
+- `pnpm run test:component:native` => 2 suites／5 tests PASS。
+- `pnpm exec vitest run tests/contracts/native-visual-contract.test.ts --no-file-parallelism --maxWorkers=1` => 1 file／2 tests PASS。
+- `pnpm run lint` => 0 errors／63 warnings。今回の補正に起因するErrorなし。
+- `pnpm run test:contracts` => 13 files／67 tests PASS、`pnpm run validate:eas:config` => profiles／manual-only workflow／cloudRun未実行の静的契約PASS。
+
+### Gate判定
+
+- Code／shared visual contract: 完了。Native HeroのWeb情報階層・ブランド面・Touch Target・商品画像比率を共有Token／Primitive／Screenへ接続した。
+- Local Native Build: incomplete。Android SDK／JDK／adb／Emulatorまたはdeviceがない。iOSはWindowsでXcode／Simulatorがない。
+- Local device／Simulator validation: incomplete。Native screenshot、Guest／Cart実操作、再起動復元、実SQLite／PBKDF2／KV／Harness、Production artifactは未確認。
+- EAS config/workflow static validation: complete。EAS Cloud execution: not performed／not needed。
+- Progress: 66% (24/36)
+
+## 2026-08-03 06:06 JST Format Check実行
+
+- `pnpm run format:check`を実行した。
+- 結果は失敗（exit code 1）。Prettierが53ファイルの既存・今回の対象外ファイルを検出した。
+- 今回変更したNative／Design Token／Visual Contract対象ファイルは、個別の`prettier --check`でPASS済み。
+- 無関係な53ファイルを一括整形する変更は行わず、Task 33は未完了のまま維持する。
+
+## 2026-08-03 06:11 JST 全体Format実行
+
+### Summary
+
+- ユーザー指示により、Prettier対象のリポジトリ全体へ`pnpm run format`を実行した。
+- 以前検出されていた53ファイルを含む対象ファイルを整形し、`pnpm run format:check`がPASSした。
+- 整形後の型チェック、Lint、差分検査も成功した。Lintは既存warning 63件のみでErrorはない。
+
+### Evidence
+
+- `pnpm run format` => exit code 0。
+- `pnpm run format:check` => `All matched files use Prettier code style!`、exit code 0。
+- `pnpm run typecheck` => app／native-testsとも成功。
+- `pnpm run lint` => 0 errors／63 warnings。
+- `git diff --check` => 差分エラーなし（WindowsのLF/CRLF warningのみ）。
+
+### Gate判定
+
+- Static format／type／lint: 完了。Task 33を完了扱いに更新した。
+- Local Native Build: incomplete。Android SDK／JDK／adb／Emulatorまたはdeviceがない。iOSはWindowsでXcode／Simulatorがない。
+- Local device／Simulator validation: incomplete。Native screenshot、Guest／Cart実操作、再起動復元、実SQLite／PBKDF2／KV／Harness、Production artifactは未確認。
+- EAS config/workflow static validation: complete。EAS Cloud execution: not performed／not needed。
+- Progress: 69% (25/36)

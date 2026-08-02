@@ -554,6 +554,10 @@ export class DexieInventoryRepository implements InventoryRepository {
     return record === undefined ? null : fromVariantRecord(record);
   }
 
+  async listHistory(variantId: string): Promise<InventoryHistory[]> {
+    return this.db.inventory_histories.where("variantId").equals(variantId).sortBy("createdAt");
+  }
+
   async updateQuantity(input: InventoryAdjustmentCommand): Promise<ProductVariant> {
     const current = requireEntity(
       await this.db.product_variants.get(input.variantId),
