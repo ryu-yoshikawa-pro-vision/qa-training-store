@@ -14,13 +14,30 @@
 
 記述が矛盾する場合は、次の順に優先します。
 
-1. 本書
-2. 対象フェーズの詳細計画
-3. Phase 2実装中に承認された最新ADR
-4. 対象RunのPlan
-5. `docs/future/phase2/`
+1. `AGENTS.md`、`PLANS.md`などRepository規約
+2. 本書
+3. 対象フェーズの詳細計画
+4. 承認済みADR
+5. 対象RunのPlan
+6. `docs/future/phase2/`
 
-上位契約の変更が必要な場合は、コード変更前に理由、代替案、影響、検証方法をADRとRun Artifactへ記録します。
+ADRは、単に新しいという理由だけで上位計画を変更しません。ADRが次をすべて満たす場合だけ、`Supersedes`で明記した範囲について上位計画を置き換えます。
+
+```text
+Status: Accepted
+Supersedes:
+  - docs/plans/phase2-native-goal/00_master-roadmap.md#対象見出し
+  - docs/plans/phase2-native-goal/01_phase2-first-half-native-foundation.md#対象見出し
+Approved-by: user
+```
+
+- `Status`が`Accepted`である。
+- 置換対象の文書と見出しを`Supersedes`へ明記している。
+- ユーザー承認を記録している。
+- 理由、代替案、影響、回帰方法を記録している。
+- 明記していない範囲は置き換えない。
+
+上位契約の変更が必要な場合は、コード変更前にADRとRun Artifactを更新します。条件を満たさないADRやRun Planで上位契約を回避してはいけません。
 
 ## 1. Phase 2全体の目的
 
@@ -176,8 +193,12 @@ src/presentation/routes/product-detail.native.tsx
 - Commit失敗時に結果を返さない。
 - `undefined`と未完了を区別する。
 - Transaction RepositoryをCallback外へ持ち出さない。
-- Queue待機とLock待機に上限を設ける。
+- UIで二重送信を防止する。
+- Reset処理だけは専用Mutexで排他する。
+- `database is locked`等のLock ErrorをApplication Errorへ変換する。
 - 非冪等Mutationを自動Retryしない。
+- 独自のGlobal Mutation Queueは標準実装にしない。
+- 実Native Contract Testで同時Mutationによる再現可能な失敗が確認された場合だけ、原因と対象Scopeを限定して最小の直列化を追加する。
 
 ### 6.4 SQLiteとForeign Key
 
@@ -234,7 +255,8 @@ Harness DB:
 - Application RuntimeのRepository/Connectionを再利用しない。
 - 成功・失敗を問わずConnectionを閉じ、Test DBを削除する。
 - Cleanup失敗はHarness失敗とする。
-- Harness前後でApplication DBのDatabase名、Schema Version、Seed Version、固定Sentinel 1件が変化していないことを確認する。
+- Harness前後でApplication DBのDatabase名、Schema Version、Seed Version、既存Seedに必ず含まれる既知レコード1件が変化していないことを確認する。
+- 確認用レコードのために専用Table、Domain Entity、Repository、Use Caseを追加しない。
 - 全Table Fingerprintや全件数比較は実装しない。
 - Harnessは専用KV Namespaceを使う。
 
@@ -282,7 +304,7 @@ hash: 32 bytes
 
 Web/Android/iOSの固定Test Vector、既存Seed Verify、Native生成HashのWeb Verify、Unicode、性能Smokeを必須とします。
 
-### 6.8 Native Component Test
+### 6.8 Native Component TestとTypeScript型境界
 
 WebとNativeのTest Runnerを分離します。
 
@@ -304,6 +326,7 @@ Jest + jest-expo
 
 - `jest`
 - `jest-expo`
+- `@types/jest`
 - `@testing-library/react-native`
 
 規則:
@@ -313,6 +336,23 @@ Jest + jest-expo
 - Native TestでDOM/jsdomを使わない。
 - Expo Moduleの追加Mockは`jest-expo`で不足するものだけにする。
 - SQLite/PBKDF2の実Native検証をComponent Testで代替しない。
+- `expo install`でSDK互換Versionを解決し、LockfileとPeer Dependencyを確認する。
+- `--force`、Peer Dependency無視、恒久的Overrideを標準対応にしない。
+
+Test配置とTypeScript型を分離します。
+
+```text
+tests/component/web/**
+  Vitest
+
+tests/component/native/**
+  Jest + jest-expo
+```
+
+- Root `tsconfig.json`ではVitest/Web/Appの型を維持し、`tests/component/native`を除外する。
+- `tsconfig.native-tests.json`を追加し、`types`を`jest`と`node`へ限定する。
+- Native Test用tsconfigへ必要な`src/**`と`tests/component/native/**`だけを含める。
+- VitestとJestのGlobal型を同じTypeScript Programへ混在させない。
 
 Scriptを分けます。
 
@@ -320,6 +360,10 @@ Scriptを分けます。
 test:component:web
 test:component:native
 test:component = web + native
+
+typecheck:app
+typecheck:native-tests
+typecheck = app + native-tests
 ```
 
 ### 6.9 Test Control
@@ -417,7 +461,7 @@ Store提出用Profileは作成しません。
 
 Node/Webで完結する検証を担当します。
 
-- Format、Lint、Typecheck
+- Format、Lint、`typecheck:app`、`typecheck:native-tests`
 - Unit/Application Test
 - Architecture/Capability/Scope Test
 - Dexie Contract
@@ -474,18 +518,19 @@ Build成果物を後続Maestro Jobへ渡します。EAS Workflowsが利用不能
 7. Android/iOSのBuild、起動、操作、E2E、実SQLite Testを個別に記録する。
 8. 実施していない検証をPASSと記録しない。
 9. WebのDomain/Application契約をNative UI都合で変更しない。
-10. 未使用の抽象化、独自Test Framework、全DB Fingerprint基盤を追加しない。
-11. NativeでAdmin Capability/Transaction Scopeのダミー実装を作らない。
-12. Maestro Flowは前回実行結果へ依存させない。
-13. Test IDは安定した業務概念へ付与する。
-14. Phase 3機能を先取りしない。
+10. 未使用の抽象化、独自Test Framework、全DB Fingerprint基盤、Sentinel専用基盤を追加しない。
+11. 独自Mutation Queueは再現可能な失敗が確認されるまで追加しない。
+12. NativeでAdmin Capability/Transaction Scopeのダミー実装を作らない。
+13. Maestro Flowは前回実行結果へ依存させない。
+14. Test IDは安定した業務概念へ付与する。
+15. Phase 3機能を先取りしない。
 
 ## 8. ブランチ・PR境界
 
 ### Phase 2 前半
 
 - 推奨ブランチ: `feat/phase2-native-foundation-storefront`
-- PR範囲: Route、依存方向、Repository/Transaction Scope、SQLite、Foreign Key、Harness隔離、KV Storage、PBKDF2、Native Component Test基盤、Asset、Storefront、Cart、EAS Profile、前半Workflow
+- PR範囲: Route、依存方向、Repository/Transaction Scope、SQLite、Foreign Key、Harness隔離、KV Storage、PBKDF2、Native Component Test基盤、TypeScript型境界、Asset、Storefront、Cart、EAS Profile、前半Workflow
 
 ### Phase 2 後半
 
@@ -508,6 +553,7 @@ Build成果物を後続Maestro Jobへ渡します。EAS Workflowsが利用不能
 - iOSで主要Flowを確認する。
 - 実Native SQLite Contract Testが成功する。
 - Native Component Testが`jest-expo`環境で成功する。
+- VitestとJestのTypeScript型境界が分離され、両Typecheckが成功する。
 - Production-validation Metadataが`"production" / "production" / "false"`である。
 - Production-validationでTest Control/Harnessを実行できない。
 - Native Adminを含まない。
