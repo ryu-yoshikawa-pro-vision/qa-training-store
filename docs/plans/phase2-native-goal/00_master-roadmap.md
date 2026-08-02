@@ -34,7 +34,7 @@ Web版で確立したDomain、Application Use Case、業務ルール、Validatio
 - AndroidでMaestroの必須Flowが安定して成功する。
 - iOS SimulatorでBuild、起動、主要購入Flowの実操作確認が完了する。
 - EAS BuildでDevelopment/Preview用の内部検証Buildを生成できる。
-- Production-validation BuildではTest Controlを実行できない。
+- Production-validation BuildではTest ControlとContract Harnessを実行できない。
 - Web版、Cloudflare Deploy、Playwrightの既存契約を壊さない。
 
 Native化や画面数の増加そのものを目的にしません。WebとNativeで同じ業務契約を、決定的な状態と自動テストで学習できるSUTにすることを最優先とします。
@@ -118,7 +118,9 @@ Phase 2 後半
 - CredentialをAI Agentへ直接渡さずにBuildする運用
 - SecretをRepository、Bundle、Artifact、Logへ保存しない方針
 - `expo-dev-client`とNative Crypto Moduleの導入許可
+- Jest系Native Component Test依存の導入許可
 - EAS Workflowsを利用できるか、利用不能時の代替Native実行環境
+- Native Buildの費用上限と実行頻度
 
 ### 固定するScheme
 
@@ -138,6 +140,7 @@ Deep Link prefix: scenario-shop://
 - Android実`expo-sqlite` Customer Contract Suite成功
 - iOS実SQLite主要Contract Smoke成功
 - Web/Android/iOSのPBKDF2互換Test成功
+- Native Component Test成功
 - Maestroを実行できるAndroid環境
 - iOS主要Flowを確認できるSimulator環境
 - EAS Workflowsの利用可否、費用上限、実行頻度の決定
@@ -254,8 +257,6 @@ CustomerReviewRepository / AdminReviewRepository
 
 Repository CapabilityだけでなくTransaction ScopeもCustomerとAdminへ分離します。
 
-推奨構造:
-
 ```text
 CustomerTransactionScopeMap
   register-and-merge-cart
@@ -290,8 +291,6 @@ AdminTransactionScopeMap
 ### 6.5 Transaction Runnerの戻り値
 
 `withExclusiveTransactionAsync()`の戻り値に依存せず、Application Callbackの結果をRunnerが保持します。
-
-必須契約:
 
 - Callback結果はTransaction Commit成功後だけ返す。
 - Callback成功後にCommitが失敗した場合は結果を返さない。
@@ -331,6 +330,25 @@ AdminTransactionScopeMap
 - Review、Review Status History
 - Sequence、Settings、Schema Metadata、Test Metadata/Inspection
 
+#### Connection初期化とForeign Key
+
+すべてのApplication DB ConnectionとContract Harness DB Connectionで、Repositoryを生成する前に次を実行します。
+
+```sql
+PRAGMA foreign_keys = ON;
+PRAGMA foreign_keys;
+```
+
+`PRAGMA foreign_keys`の戻り値が`1`でない場合はDatabase初期化失敗とします。
+
+- PRAGMAはTransaction開始前に実行する。
+- Connectionを開くたびに実行する。
+- Harness専用Connectionにも適用する。
+- Seed投入後とContract Suite内で`PRAGMA foreign_key_check`を実行する。
+- Foreign Key違反が実際に失敗するContract Testを用意する。
+- `CASCADE`、`RESTRICT`、`SET NULL`等のActionをTableごとにSchema文書へ記録する。
+- Actionは既存Domain契約を変更するために選ばず、削除・履歴保持の意味に合わせる。
+
 #### Transaction
 
 - 書込みTransactionは`withExclusiveTransactionAsync()`を使用する。
@@ -349,28 +367,7 @@ SEED_VERSION
 
 Phase 2ではNative Migration Recoveryを実装せず、Version 1の初期作成とVersion不一致の明示的失敗までを扱います。
 
-### 6.8 Repository Contract Test
-
-二層へ分けます。
-
-#### Node/PR
-
-- Domain/Application Test
-- SQL Builder、Schema、Mapper
-- Boolean/Date/JSON/Enum変換
-- Seed Dataset
-- Dexie Contract Suite
-- Shared Fixtureと期待値
-
-#### 実Native Runtime
-
-- 実`expo-sqlite`接続
-- DDL、Foreign Key、Unique
-- Commit/Rollback、Version Conflict
-- Search/Sort/Page/Facet
-- 複数Repository Transaction
-- Seed/Reset/Database再生成
-- Customer Repository Contract Suite
+### 6.8 Repository Contract TestとHarness DB隔離
 
 Contract SuiteはAdapter Factoryを受け取る共通仕様にします。
 
@@ -378,9 +375,56 @@ Contract SuiteはAdapter Factoryを受け取る共通仕様にします。
 createCustomerRepositoryContractSuite(adapterFactory)
 ```
 
-MockやNode代替結果を実SQLite成功として記録しません。
+Node/PRではSchema、Mapper、SQL、Fixture、Dexie Contractを検証し、実Native Runtimeでは実`expo-sqlite`接続、DDL、Constraint、Transaction、Seed/Reset、Customer Contractを検証します。
 
-### 6.9 Password HashとNative Crypto隔離
+Native Contract Harnessは通常アプリのDatabaseを絶対に使用しません。
+
+```text
+Application DB:
+  scenario-shop-v1.db
+
+Contract Harness DB:
+  scenario-shop-contract-<sanitized-run-id>.db
+```
+
+必須契約:
+
+- Adapter FactoryへDatabase名を注入する。
+- Run IDはBuild/Workflow ID等から生成し、Filenameとして安全な文字だけへ正規化する。
+- Harness開始前に同名Test DBを削除する。
+- Harnessは専用Connectionと専用Test DBだけを使用する。
+- App RuntimeのRepository InstanceとConnectionを再利用しない。
+- 成功・失敗を問わずConnectionを閉じる。
+- 終了後にTest DBを削除する。
+- Cleanup失敗はHarness失敗として扱う。
+- Harness前後でApplication DBのSchema Version、Seed Version、主要Table件数またはFingerprintが変化していないことを確認する。
+- Android/iOSで同じ分離契約を使用する。
+- MockやNode代替結果を実SQLite成功として記録しない。
+
+### 6.9 Native Session、Guest Identity、Clock、Delay Storage
+
+Nativeの小規模Key-Value状態は`expo-sqlite/kv-store`へ固定します。Globalな`localStorage` Polyfillは導入しません。
+
+固定Key:
+
+```text
+scenario-shop.native.session-id.v1
+scenario-shop.native.guest-id.v1
+scenario-shop.native.test-clock.v1
+scenario-shop.native.payment-delay.v1
+```
+
+必須契約:
+
+- KV StoreはPlatform Port Adapter内部からだけ利用する。
+- Application/Presentationから直接Importしない。
+- Resetで上記Keyをすべて削除し、Scenario値を再設定する。
+- App再起動後にSessionとGuest IDを復元できる。
+- Storage Errorを握り潰さず、Application Errorまたは安全なGuest復帰へ変換する。
+- 不正Sessionは削除してGuestへ安全に戻す。
+- Contract Harnessは通常アプリと異なるKey Namespaceを使い、通常Keyを変更しない。
+
+### 6.10 Password HashとNative Crypto隔離
 
 Native Password Hasherは`react-native-quick-crypto`を既定候補として利用します。ただしWebへの影響を避けるため、Platform別実装を厳格に分離します。
 
@@ -395,12 +439,9 @@ password-hash-format.ts
   Encoded Format Parser、共通Validation、Test Vector
 ```
 
-必須条件:
-
 - `react-native-quick-crypto`を共有Entry PointからImportしない。
 - Global `install()`やGlobal Crypto Polyfillは原則使用しない。
 - Metro全体の`crypto` Aliasは原則追加しない。
-- Native PBKDF2 APIだけを直接利用する。
 - 必要なConfig PluginとNative Dependencyを`app.config.ts`/Lockfileへ反映する。
 - Prebuild後のAutolinkingを確認する。
 - `expo-doctor`でDependency整合を確認する。
@@ -417,9 +458,43 @@ hash: 32 bytes
 
 Web/Android/iOSの固定Test Vector、既存Seed Verify、Native生成HashのWeb Verify、Unicode、性能Smokeを必須とします。
 
-既定候補が現在のExpo SDK/CNGで成立しない場合、Hash形式を変更せずGoalをBlockし、代替候補を報告します。
+### 6.11 Native Component Test Runner
 
-### 6.10 商品画像
+Native Component TestはWebのVitest/jsdomへ混在させません。
+
+```text
+Vitest
+  Domain/Application
+  Dexie
+  SQLite Node側
+  Web Component
+  Contract Fixture
+
+Jest + @react-native/jest-preset
+  Native Component
+  Native Hook
+  Native Presentation
+```
+
+必須依存と契約:
+
+- `jest`
+- `@react-native/jest-preset`
+- `@testing-library/react-native`
+- 導入時の互換表で必要な場合は`react-test-renderer`をReactと完全一致するVersionで追加する。
+- Native TestでDOM/jsdomを使わない。
+- Web TestからNative Moduleを読み込まない。
+- Native Module Mockは必要最小限とし、SQLite/PBKDF2の実Native検証をComponent Testで代替しない。
+
+Scriptは責務を分けます。
+
+```text
+test:component:web
+test:component:native
+test:component = web + native
+```
+
+### 6.12 商品画像
 
 - `assetId`とMetadataはWeb/Nativeで共通利用する。
 - Webは既存公開Pathを利用する。
@@ -428,7 +503,7 @@ Web/Android/iOSの固定Test Vector、既存Seed Verify、Native生成HashのWeb
 - Web ManifestとNative Asset MapのAsset ID集合をContract Testで一致させる。
 - Product/Order Snapshot PathとNative Image Sourceを分離する。
 
-### 6.11 Test ControlとContract Harness
+### 6.13 Test ControlとContract Harness
 
 #### Test Control
 
@@ -454,30 +529,23 @@ scenario-shop://test-control/reset
 
 #### Native Contract Harness
 
-Contract Harnessは状態変更APIではなく、定義済みContract Suiteの実行入口として別扱いにします。
-
 - Development/Preview専用の画面またはRoute
 - MaestroからUI操作で実行
-- Arbitrary TestやSQLを選択できない
 - 定義済みSuiteだけを実行
+- 専用Test DBと専用KV Namespaceだけを使用
 - `native-contract-running` / `passed` / `failed`
 - Failure時はSuite名と非機密Error Codeだけを表示
 
-「Deep Linkだけが唯一の入口」という表現は、業務状態変更入口に限定します。
-
 #### Production-validation
-
-Production-validationでは次を必須とします。
 
 - Test Control Deep Linkを受理しない。
 - Test Control ServiceをComposition Rootへ登録しない。
 - Test Control UIを表示しない。
 - Reset Handlerへ到達できない。
-- 実行を試みると安全なNot FoundまたはDisabled結果になる。
+- Contract Harnessを実行できない。
+- 試行時は安全なNot FoundまたはDisabled結果になる。
 
-Tree ShakingでBundleから物理的に除外できることは望ましいですが、必須DoDにはしません。
-
-### 6.12 CNGとEAS Profile
+### 6.14 CNGとEAS Profile
 
 Phase 2ではCNGを維持します。
 
@@ -487,44 +555,64 @@ Phase 2ではCNGを維持します。
 
 `expo-dev-client`を導入します。
 
+#### Development/Preview Profile共通env
+
+```text
+EXPO_PUBLIC_APP_ENV=automation
+EXPO_PUBLIC_BUILD_KIND=automation
+EXPO_PUBLIC_TEST_MODE=true
+EXPO_PUBLIC_DEFAULT_SEED=default
+```
+
+#### Production-validation Profile共通env
+
+```text
+EXPO_PUBLIC_APP_ENV=production
+EXPO_PUBLIC_BUILD_KIND=production
+EXPO_PUBLIC_TEST_MODE=false
+EXPO_PUBLIC_DEFAULT_SEED=default
+```
+
 固定Profile:
 
 ```text
 development-android
   developmentClient: true
   distribution: internal
-  Test Control: ON
 
 development-ios-simulator
   developmentClient: true
   distribution: internal
   ios.simulator: true
-  Test Control: ON
 
 preview-android
   distribution: internal
   android.buildType: apk
-  Test Control: ON
 
 preview-ios-simulator
   ios.simulator: true
-  Test Control: ON
 
 production-validation-android
   distribution: internal
   android.buildType: apk
-  BUILD_KIND: production
-  Test Control: OFF
 
 production-validation-ios-simulator
   ios.simulator: true
-  BUILD_KIND: production
-  Test Control: OFF
+```
+
+Test ControlのON/OFFは説明用の独立設定ではなく、Profileの`env`を`app.config.ts`が解決した結果を正本とします。
+
+Production-validation BuildではMetadataを検証します。
+
+```text
+extra.appEnvironment == production
+extra.buildKind == production
+extra.testMode == false
 ```
 
 Store提出用Profileは作成・実行しません。
 
-### 6.13 CI/CDの責務
+### 6.15 CI/CDの責務とWorkflow境界
 
 #### GitHub Actions
 
@@ -535,6 +623,7 @@ WebとNodeで完結する検証を担当します。
 - Architecture/Capability/Scope Test
 - Dexie Contract
 - SQLite Node側Schema/Mapper/SQL Test
+- Web Component Test
 - Native Component Test
 - Native Route/Dependency Static Check
 - Web既存CI
@@ -542,28 +631,31 @@ WebとNodeで完結する検証を担当します。
 
 Cloudflare DeployはNative Buildへ依存させません。
 
-#### EAS Workflows
+#### Phase 2前半のEAS Workflows
 
-Native BuildとEmulator/Simulator上の検証の第一経路とします。
+`.eas/workflows/phase2-native-foundation.yml`を作成します。
 
-- Android Build
+- Android Preview Build
 - iOS Simulator Build
-- Android Maestro
-- iOS Maestro
-- Native SQLite Contract Harness実行
-- Production-validation Build
+- Android Native Contract Harness
+- iOS Contract Smoke
+- Storefront/Cart Vertical Slice Smoke
+- Production-validationのTest Control/Harness無効確認の基礎
+
+#### Phase 2後半のEAS Workflows
+
+`.eas/workflows/phase2-native-purchase.yml`を作成します。
+
+- Auth/Account/Checkout/Order/Review Maestro
+- Payment Failure/Retry
+- App再起動・復元
+- 購入系Contract Harness
+- Android/iOS最終Production-validation
+- Phase 2全体のNative CI完成
 
 Build Jobの成果物を後続Maestro Jobへ渡し、同じWorkflow内でBuildと実行を接続します。`.eas/workflows/`をNative CIの正本とします。
 
-手動実行入口は`eas workflow:run`を基本とし、結果URLをRun Artifactへ記録します。
-
-EAS WorkflowsのMaestro JobがAlphaまたは利用不能、費用上限超過の場合は、実装開始前に次の代替を一つ明示します。
-
-- AndroidローカルEmulator + Maestro
-- macOS上のiOS Simulator + Maestro/手動Smoke
-- EAS Build成果物を取得して管理された実行環境で検証
-
-利用不能を理由にBuild成功だけでNative Test成功と扱ってはいけません。
+EAS WorkflowsのMaestro Jobが利用不能、費用上限超過の場合は、実装開始前に承認した代替環境で同等確認を行います。Build成功だけでNative Test成功と扱いません。
 
 ## 7. 共通実施原則
 
@@ -579,39 +671,45 @@ EAS WorkflowsのMaestro JobがAlphaまたは利用不能、費用上限超過の
 10. Nativeのためだけに未使用の抽象化を増やさない。
 11. ApplicationからInfrastructureへの直接依存を残さない。
 12. NativeでAdmin Capability/Transaction Scopeのダミー実装を作らない。
-13. 各主要Flowは使用するSeed Scenarioを説明できる状態にする。
-14. Maestro Flowは前回実行結果へ依存させない。
-15. Test IDは画面位置や文言ではなく、安定した業務概念へ付与する。
-16. Phase 3機能を先取りしない。
+13. Contract HarnessからApplication DBとApplication KV Namespaceを変更しない。
+14. 各主要Flowは使用するSeed Scenarioを説明できる状態にする。
+15. Maestro Flowは前回実行結果へ依存させない。
+16. Test IDは画面位置や文言ではなく、安定した業務概念へ付与する。
+17. Phase 3機能を先取りしない。
 
 ## 8. ブランチ・PR境界
 
 ### Phase 2 前半
 
 - 推奨ブランチ: `feat/phase2-native-foundation-storefront`
-- PR範囲: Route/依存方向、Repository/Transaction Scope、Composition Root、SQLite、Seed/Reset、PBKDF2、Asset、Storefront、商品、Cart、Android/iOS Preview Build、Native Test基盤
+- PR範囲: Route/依存方向、Repository/Transaction Scope、Composition Root、SQLite、Foreign Key初期化、専用Harness DB、KV Storage、Seed/Reset、PBKDF2、Native Component Test基盤、Asset、Storefront、商品、Cart、EAS Profile、`.eas/workflows/phase2-native-foundation.yml`
 
 ### Phase 2 後半
 
 - 推奨ブランチ: `feat/phase2-native-purchase-automation`
-- PR範囲: Auth、Account、Checkout、Order、Review、Payment Delay、Maestro、EAS Workflows、最終Docs
+- PR範囲: Auth、Account、Checkout、Order、Review、Payment Delay、購入系Maestro、購入系Harness、`.eas/workflows/phase2-native-purchase.yml`、最終Docs
 
 一つのPRへ前半と後半を混在させません。内部GateはPR分割ではなく、同一Goal内の停止・検証点です。
+
+各PRではGate単位で意図が追えるCommitを推奨します。ただしCommit数を増やすこと自体を目的にせず、切り戻しとレビュー可能性を基準にまとめます。
 
 ## 9. Phase 2全体の完了条件
 
 - Android/iOSで購入者向け主要画面が起動する。
 - SQLite AdapterがNative購入者版に必要なCustomer Capabilityを満たす。
 - Customer Transaction ScopeがAdmin Scopeから分離されている。
+- 全ConnectionでForeign Key Enforcementが有効である。
+- Contract HarnessがApplication DB/KVを変更しない。
+- Session、Guest Identity、Clock、Delayが固定KV契約で永続化される。
 - Seed、Reset、Clock、Payment DelayがNativeで決定的に動作する。
 - 商品探索、Cart、Login、Account、Checkout、Order、Reviewが成立する。
-- Review Flowを専用Seed Scenarioから再現できる。
-- Android Preview APKを生成し、起動・主要操作を確認できる。
-- iOS Simulator Buildを生成し、起動・商品探索・Cart・Login・Checkout成功・Order詳細を確認できる。
+- Android Preview APKとiOS Simulator Buildを生成・起動できる。
 - AndroidでMaestro必須Flowが成功する。
 - iOSではMaestroまたは明示した代替経路で主要Flowを確認する。
 - 実Native SQLite Contract Testが成功する。
-- Production-validationでTest Controlを実行できない。
+- Native Component Testが専用Jest環境で成功する。
+- Production-validation Metadataがproduction/production/falseである。
+- Production-validationでTest Control/Harnessを実行できない。
 - Native Adminが含まれていない。
 - Web版の既存動作、Web CI、Cloudflare Deploy契約を壊していない。
 - 実行できなかった検証がある場合、完全完了とせずコード完了と実環境検証未完了を分けて報告する。
