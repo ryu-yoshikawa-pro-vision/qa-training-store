@@ -15,7 +15,7 @@
 7. 前半PRの最終Report、ADR、Run Artifact
 8. 本書
 
-Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateとDoDをTaskへ展開します。矛盾時はMaster Plan、前半で承認されたADR、本書の順に優先します。
+Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateとDoDをTaskへ展開します。文書の優先順位とADRによる置換条件はMaster Planに従います。前半ADRは、Master Planの`Accepted`、`Supersedes`、ユーザー承認条件を満たす範囲だけ上位計画を置き換えます。
 
 ## 1. ゴール
 
@@ -54,9 +54,11 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 - iOS実SQLite主要Contract Smokeが成功する。
 - 全Application/Harness ConnectionでForeign Key Enforcementが有効である。
 - Harness専用DB/KV隔離とCleanupが成功する。
-- Harness前後でApplication DBのDatabase名、Schema Version、Seed Version、Sentinelが変化しない。
+- Harness前後でApplication DBのDatabase名、Schema Version、Seed Version、既存Seedの既知レコードが変化しない。
+- Sentinel専用Table、Domain Entity、Repository、Use Caseが追加されていない。
 - Web/Android/iOSのPBKDF2互換Testが成功する。
 - `jest-expo`環境のNative Component Testが成功する。
+- Vitest/Jestの型境界が分離され、`typecheck:app`と`typecheck:native-tests`が成功する。
 - `expo-sqlite/kv-store`のSession/Guest復元が成功する。
 - Deep Link Reset Version 1が成功する。
 - `.eas/workflows/phase2-native-foundation.yml`または承認済み代替経路が成功する。
@@ -79,11 +81,16 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 - Customer Repository InterfaceとTransaction境界
 - Foreign Key初期化とTable別FK Action
 - `withExclusiveTransactionAsync()`とCommit後結果返却
+- UI二重送信防止、Reset Mutex、Lock Error変換
+- 独自Global Mutation Queueを標準実装しない方針
 - Shared Customer Contract Suite
-- Harness専用DB/KV、Cleanup、Sentinel確認
+- Harness専用DB/KV、Cleanup、既存Seedレコード確認
+- Sentinel専用基盤を追加しない方針
 - Session/Guest/Clock/DelayのKV Keyと形式
 - PBKDF2 Library、Platform隔離、Encoded Format、Test Vector
 - `jest-expo`設定
+- `tsconfig.native-tests.json`とVitest/Jestの型境界
+- `typecheck:app`、`typecheck:native-tests`、統合`typecheck`
 - Native Asset Map形式
 - Deep Link Protocol Version 1
 - Stable Test ID規約
@@ -91,7 +98,7 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 - EAS Profile名、Environment、`EXPO_PUBLIC_*` env、Metadata契約
 - `.eas/workflows/phase2-native-foundation.yml`
 
-変更が避けられない場合は、コード変更前に理由、影響、Schema/FK/Storage変更の有無、回帰TestをADRとRun Artifactへ記録します。変更が広範囲なら後半Goalを継続せず、前半修正として扱うかを報告します。
+変更が避けられない場合は、Master Planの条件を満たすADRをコード変更前に作成し、理由、影響、Schema/FK/Storage変更の有無、回帰Testを記録します。変更が広範囲なら後半Goalを継続せず、前半修正として扱うかを報告します。
 
 ## 4. 完了条件（DoD）
 
@@ -130,12 +137,15 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 - 未Login時にLoginへ誘導し、成功後にCheckoutへ復帰する。
 - Checkout Sessionのstart/resume/abandonが既存契約と一致する。
 - 配送先、支払方法、注文確認を操作できる。
-- Payment処理中の二重送信を防止する。
+- UIでPaymentの二重送信を防止する。
 - Cart Version、価格、在庫を注文確定前に再検証する。
 - Payment成功でOrder、Order Item、Payment、Inventoryが整合する。
 - Payment失敗後、同一Orderから再試行できる。
 - Payment冪等性を維持する。
 - Transaction結果はCommit成功後だけUIへ返る。
+- Lock ErrorをApplication Errorとして扱い、非冪等処理を自動Retryしない。
+- 独自Mutation Queueなしで安定動作することを実Native Testで確認する。
+- 同時Mutationによる再現可能な失敗が確認された場合だけ、対象Scopeを限定した最小の直列化を追加する。
 - App再起動とBackground/Foreground後もSession、Checkout、Payment状態が整合する。
 - 高度なCrash Recoveryは実装しない。
 
@@ -160,10 +170,11 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 - Ready/Error SignalをMaestroから判定できる。
 - Arbitrary SQL、任意Entity/Status変更、Review Eligibility迂回がない。
 - Harnessは定義済みContract Suiteだけを専用DB/KVで実行する。
-- Harness CleanupとApplication DB Sentinel確認が成功する。
+- Harness Cleanupと既存SeedレコードによるApplication DB不変確認が成功する。
+- 確認用レコードのための専用Table、Entity、Repository、Use Caseがない。
 - Production-validationでTest ControlとHarnessを利用できない。
 
-### 4.7 Native Component Test
+### 4.7 Native Component Test / TypeScript型境界
 
 `jest-expo`とReact Native Testing Libraryで最低限次を検証する。
 
@@ -178,7 +189,13 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 - Back/未保存変更ロジック
 - Accessibility Label/Test ID
 
-Native TestでDOM/jsdomを使わず、SQLite/PBKDF2の実Native検証をComponent Testで代替しない。
+追加条件:
+
+- Native TestでDOM/jsdomを使わず、SQLite/PBKDF2の実Native検証をComponent Testで代替しない。
+- Root `tsconfig.json`と`tsconfig.native-tests.json`の型境界を維持する。
+- VitestとJestのGlobal型を同じTypeScript Programへ混在させない。
+- `typecheck:app`と`typecheck:native-tests`が成功する。
+- 後半でNative Testを追加してもWeb/Vitest側の型設定を変更しない。
 
 ### 4.8 Maestro
 
@@ -232,6 +249,7 @@ extra.testMode === "false"
 ```
 
 - Production-validationでTest Control/Harnessを利用できない。
+- `typecheck:app`と`typecheck:native-tests`が成功する。
 - Web CIとCloudflare DeployがNative Workflow完了待ちにならない。
 - SecretやCredentialをRepository、Bundle、Artifact、Logへ露出しない。
 
@@ -269,6 +287,8 @@ extra.testMode === "false"
 - App Store/Google Play Release Gate
 - Phase 3機能
 - 新しいStorage、独自Test Framework、全DB Fingerprint基盤
+- Sentinel専用Table、Entity、Repository、Use Case
+- 再現可能な必要性がない独自Mutation Queue
 
 ## 7. 実装順序と内部品質ゲート
 
@@ -280,6 +300,7 @@ extra.testMode === "false"
 - PBKDF2互換とKV復元/削除契約を維持する。
 - Customer Transaction ScopeだけでCart統合が動作する。
 - Native Component Testが`jest-expo`環境で成功する。
+- `typecheck:app`と`typecheck:native-tests`が成功する。
 
 ### Gate B: Account / Address
 
@@ -294,9 +315,12 @@ extra.testMode === "false"
 完了条件:
 
 - Checkout成功、Payment失敗/再試行、Order一覧/詳細が成立する。
-- Commit後結果返却と冪等性が成立する。
+- UI二重送信防止、Commit後結果返却、冪等性が成立する。
+- Lock ErrorがApplication Errorへ変換され、非冪等処理を自動Retryしない。
+- 独自Mutation Queueなしで購入系Contract Suiteが安定する。
 - 購入系Contract Suiteが専用DB/KVで成功する。
-- Application DB Sentinel確認が成功する。
+- 既存SeedレコードによるApplication DB不変確認が成功する。
+- Sentinel専用基盤が追加されていない。
 
 ### Gate D: Review
 
@@ -311,7 +335,7 @@ extra.testMode === "false"
 
 - Deep Link ResetとAndroid Maestro必須Flowが連続成功する。
 - Native Contract HarnessがMaestroから成功する。
-- Harness CleanupとSentinel確認が成功する。
+- Harness Cleanupと既存Seedレコード確認が成功する。
 - iOS主要FlowがMaestroまたは承認済み代替経路で成功する。
 
 ### Gate F: Build / Production-validation
@@ -322,6 +346,7 @@ extra.testMode === "false"
 - Android/iOS Build結果を分離して記録する。
 - Production-validation Metadataが`"production" / "production" / "false"`である。
 - Android/iOSでTest Control/Harness無効化を確認する。
+- `typecheck:app`と`typecheck:native-tests`が成功する。
 - GitHub ActionsとCloudflare DeployがNative Workflowに依存しない。
 
 ### Gate G: 最終回帰
@@ -329,7 +354,7 @@ extra.testMode === "false"
 完了条件:
 
 - Android/iOS主要Flow、全Native Test、Web Test/Build/Playwrightが成功する。
-- Foreign Key、Harness隔離、KV契約が維持される。
+- Vitest/Jest型境界、Foreign Key、Harness隔離、KV契約が維持される。
 - Critical/Highが残っていない。
 
 各Gate終了時に、使用Scenario、検証結果、失敗と修正、Android/iOS差分、Workflow/Build ID、未確認事項、次Gateへ進める根拠をRun Artifactへ記録します。
@@ -377,6 +402,7 @@ extra.testMode === "false"
 - Native購入者Flow
 - Native KV Storage
 - `jest-expo` Native Component Test
+- Vitest/JestのTypeScript型境界
 - Maestro Flow
 - EAS Workflows
 - Test Control/Harness
@@ -386,7 +412,7 @@ extra.testMode === "false"
 
 - Android Build、起動、主要操作、Maestro、実SQLite Harness
 - iOS Simulator Build、起動、商品探索、Cart、Login、Checkout、Order、Payment再試行、Contract Smoke
-- Harness DB/KV隔離、Cleanup、Sentinel確認
+- Harness DB/KV隔離、Cleanup、既存Seedレコード確認
 - Android/iOS Production-validation Metadataと無効確認
 
 実行していない項目をPASSとしません。iOS実環境検証が不足する場合、Phase 2を完全完了とせず「コード完了・iOS検証未完了」と記録します。
