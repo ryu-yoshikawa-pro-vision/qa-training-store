@@ -3,6 +3,7 @@ import { deriveCustomerReviewState } from "@/application/use-cases/customer-revi
 describe("deriveCustomerReviewState", () => {
   it.each([
     ["delivered", undefined, "NOT_POSTED"],
+    ["delivered", null, "NOT_POSTED"],
     ["paid", undefined, "NOT_ELIGIBLE"],
     ["delivered", { status: "published" }, "PUBLISHED"],
     ["delivered", { status: "hidden" }, "HIDDEN"],

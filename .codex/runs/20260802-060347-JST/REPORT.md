@@ -33,7 +33,7 @@
 |---|---|---|
 |  |  |  |
 
-## 2026-08-01 06:04 (JST)
+## 2026-08-02 06:04 (JST)
 - Summary: PR #4 の指定項目を read-only で照合し、関連ファイルと現在の実装位置を特定した。
 - Completed: `Scenario Reset`、`ConfirmDialog`、`Product Preview`、`Last Active Admin`、`Checkout login後のgetActive fallback`、`Shipment表示mapping` の所在と現行挙動を確認した。
 - Changes: なし。

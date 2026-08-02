@@ -76,6 +76,13 @@ describe("review and user administration integration", () => {
     const chosen = items.at(-1)!;
     expect(await database.reviews.where("orderItemId").equals(chosen.id).first()).toBeUndefined();
     const before = await database.product_review_summaries.get(chosen.productId);
+    expect(await useCases.getEligibility(chosen.id)).toMatchObject({
+      orderItemId: chosen.id,
+      eligible: true,
+      reason: null,
+      existingReview: null,
+      reviewState: "NOT_POSTED",
+    });
     const created = await useCases.create({
       orderItemId: chosen.id,
       rating: 3,
@@ -124,6 +131,12 @@ describe("review and user administration integration", () => {
     const beforeItem = await database.order_items.get(paidItem!.id);
     const beforeReviews = await database.reviews.toArray();
     const beforeSummary = await database.product_review_summaries.get(paidItem!.productId);
+    expect(await useCases.getEligibility("order-delivered-item-1")).toMatchObject({
+      eligible: true,
+      reason: null,
+      existingReview: { status: "published" },
+      reviewState: "PUBLISHED",
+    });
     expect(await useCases.getEligibility(paidItem!.id)).toMatchObject({
       orderItemId: paidItem!.id,
       eligible: false,
@@ -143,6 +156,13 @@ describe("review and user administration integration", () => {
     expect((await useCases.getEligibility("order-delivered-item-deleted")).reason).toBe(
       "REVIEW_DELETED",
     );
+
+    expect(await useCases.getEligibility("order-delivered-item-hidden")).toMatchObject({
+      eligible: true,
+      reason: null,
+      existingReview: { status: "hidden" },
+      reviewState: "HIDDEN",
+    });
   });
 
   it("searches reviews and changes visibility with history and summary atomically", async () => {

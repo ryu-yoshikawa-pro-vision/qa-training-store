@@ -286,6 +286,28 @@ describe("review, user, and test-control pages", () => {
   });
 
   it("links the user list to detail and changes a customer rank with Version", async () => {
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-customer-regular",
+      email: "regular@example.com",
+      displayName: "一般テスト会員",
+      role: "customer",
+      membershipRank: "regular",
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-customer-regular",
+      email: "regular@example.com",
+      displayName: "一般テスト会員",
+      role: "customer",
+      membershipRank: "gold",
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 2,
+    });
     const { unmount } = render(<AdminUsersPage />);
     expect(await screen.findByRole("link", { name: /一般テスト会員/ })).toHaveAttribute(
       "href",
@@ -296,6 +318,7 @@ describe("review, user, and test-control pages", () => {
     expect(await screen.findByRole("heading", { name: "一般テスト会員" })).toBeVisible();
     const rankSelect = screen.getByLabelText("ランク");
     await waitFor(() => expect(rankSelect).toHaveValue("regular"));
+    expect(screen.getByRole("button", { name: "ランクを変更" })).toBeDisabled();
     fireEvent.change(rankSelect, { target: { value: "gold" } });
     await waitFor(() => expect(rankSelect).toHaveValue("gold"));
     fireEvent.click(screen.getByRole("button", { name: "ランクを変更" }));
@@ -306,6 +329,118 @@ describe("review, user, and test-control pages", () => {
         expectedVersion: 1,
       }),
     );
+    await waitFor(() => expect(screen.getByLabelText("ランク")).toHaveValue("gold"));
+    expect(screen.getByRole("button", { name: "ランクを変更" })).toBeDisabled();
+  });
+
+  it("initializes an admin role without enabling an unchanged mutation", async () => {
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-admin-secondary",
+      email: "admin-secondary@example.com",
+      displayName: "別の管理者",
+      role: "admin",
+      membershipRank: null,
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-admin-secondary",
+      email: "admin-secondary@example.com",
+      displayName: "別の管理者",
+      role: "operator",
+      membershipRank: null,
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 2,
+    });
+    adminUsers.changeRole.mockResolvedValueOnce({
+      userId: "user-admin-secondary",
+      email: "admin-secondary@example.com",
+      displayName: "別の管理者",
+      role: "operator",
+      membershipRank: null,
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 2,
+    });
+
+    render(<AdminUserDetailPage userId="user-admin-secondary" />);
+
+    const roleSelect = await screen.findByLabelText("役割");
+    expect(roleSelect).toHaveValue("admin");
+    expect(screen.getByRole("button", { name: "役割を変更" })).toBeDisabled();
+    expect(adminUsers.changeRole).not.toHaveBeenCalled();
+
+    fireEvent.change(roleSelect, { target: { value: "operator" } });
+    fireEvent.click(screen.getByRole("button", { name: "役割を変更" }));
+    fireEvent.click(screen.getByRole("button", { name: "変更する" }));
+    await waitFor(() =>
+      expect(adminUsers.changeRole).toHaveBeenCalledWith({
+        userId: "user-admin-secondary",
+        role: "operator",
+        expectedVersion: 1,
+      }),
+    );
+    await waitFor(() => expect(screen.getByLabelText("役割")).toHaveValue("operator"));
+    expect(screen.getByRole("button", { name: "役割を変更" })).toBeDisabled();
+  });
+
+  it("initializes a gold customer rank without enabling an unchanged mutation", async () => {
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-customer-gold",
+      email: "gold@example.com",
+      displayName: "ゴールド会員",
+      role: "customer",
+      membershipRank: "gold",
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+
+    render(<AdminUserDetailPage userId="user-customer-gold" />);
+
+    const rankSelect = await screen.findByLabelText("ランク");
+    expect(rankSelect).toHaveValue("gold");
+    expect(screen.getByRole("button", { name: "ランクを変更" })).toBeDisabled();
+    expect(adminUsers.changeMembershipRank).not.toHaveBeenCalled();
+  });
+
+  it("reinitializes the form when the viewed user changes", async () => {
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-admin-secondary",
+      email: "admin-secondary@example.com",
+      displayName: "別の管理者",
+      role: "admin",
+      membershipRank: null,
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+    adminUsers.getDetail.mockResolvedValueOnce({
+      userId: "user-customer-gold",
+      email: "gold@example.com",
+      displayName: "ゴールド会員",
+      role: "customer",
+      membershipRank: "gold",
+      accountStatus: "active",
+      createdAt: "2026-07-01T03:00:00.000Z",
+      updatedAt: "2026-07-01T03:00:00.000Z",
+      version: 1,
+    });
+    const { rerender } = render(<AdminUserDetailPage userId="user-admin-secondary" />);
+    expect(await screen.findByLabelText("役割")).toHaveValue("admin");
+
+    rerender(<AdminUserDetailPage userId="user-customer-gold" />);
+
+    const rankSelect = await screen.findByLabelText("ランク");
+    expect(rankSelect).toHaveValue("gold");
+    expect(screen.queryByLabelText("役割")).not.toBeInTheDocument();
   });
 
   it("confirms a user suspension before invalidating sessions", async () => {

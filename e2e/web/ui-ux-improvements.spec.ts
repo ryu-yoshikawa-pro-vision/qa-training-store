@@ -186,6 +186,9 @@ test.describe("UI/UX improvement flows A-J", () => {
     const activeCheckboxes = page.getByRole("checkbox", { name: "有効" });
     await expect(page.getByRole("group", { name: "SKU・価格・在庫" })).toContainText("有効");
     await expect(activeCheckboxes).toHaveCount(3);
+    const beforeStates = await activeCheckboxes.evaluateAll((items) =>
+      items.map((item) => (item as HTMLInputElement).checked),
+    );
     for (const checkbox of await activeCheckboxes.all()) {
       if (await checkbox.isChecked()) await checkbox.uncheck();
     }
@@ -195,7 +198,11 @@ test.describe("UI/UX improvement flows A-J", () => {
     await expect(preview).toContainText("有効なSKUが1件以上必要です");
     await page.reload();
     const reloadedCheckboxes = page.getByRole("checkbox", { name: "有効" });
-    await expect(reloadedCheckboxes.first()).toBeChecked();
+    await expect(reloadedCheckboxes).toHaveCount(beforeStates.length);
+    const afterStates = await reloadedCheckboxes.evaluateAll((items) =>
+      items.map((item) => (item as HTMLInputElement).checked),
+    );
+    expect(afterStates).toEqual(beforeStates);
   });
 
   test("Flow F-3: Dirty NavigationのFocus trapとBrowser Back", async ({ page, scenario }) => {

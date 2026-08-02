@@ -19,7 +19,7 @@
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260802-085639-JST/REPORT.md",
-          "selector": "2026-08-02 10:44",
+          "selector": "2026-08-02 10:45",
           "summary": "最終検証とMCP確認の記録"
         }
       ]
@@ -31,7 +31,7 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260802-085639-JST/REPORT.md",
-          "selector": "git diff --check / git status",
+          "selector": "git diff --check",
           "summary": "最終差分とscope監査"
         }
       ]
@@ -104,7 +104,7 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260802-085639-JST/REPORT.md",
-          "selector": "Issues Found During Verification",
+          "selector": "2026-08-02 10:44",
           "summary": "初回失敗と再検証の根拠"
         }
       ]

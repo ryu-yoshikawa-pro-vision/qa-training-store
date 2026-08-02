@@ -618,26 +618,48 @@ export function AdminUserDetailPage({ userId }: { userId: string }) {
 
 function AdminUserDetailContent({ userId }: { userId: string }) {
   const { adminUsers } = useApplicationServices();
-  const { currentUser } = useAppRuntime();
   const [mutation, setMutation] = useState(0);
   const [message, setMessage] = useState<string | null>(null);
   const state = useAsyncValue(() => adminUsers.getDetail(userId), [adminUsers, userId, mutation]);
-  const [rank, setRank] = useState<"regular" | "gold" | "platinum">("regular");
-  const [role, setRole] = useState<"operator" | "admin">("operator");
-  useEffect(() => {
-    if (state.value?.membershipRank) setRank(state.value.membershipRank);
-    if (state.value?.role === "operator" || state.value?.role === "admin")
-      setRole(state.value.role);
-  }, [state.value]);
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null) return <StatePanel kind="not-found" />;
-  const user: UserAdminDto = state.value;
+  return (
+    <AdminUserDetailForm
+      key={`${state.value.userId}-${state.value.version}`}
+      user={state.value}
+      message={message}
+      onMessage={setMessage}
+      onMutation={() => setMutation((value) => value + 1)}
+    />
+  );
+}
+
+function AdminUserDetailForm({
+  user,
+  message,
+  onMessage,
+  onMutation,
+}: {
+  user: UserAdminDto;
+  message: string | null;
+  onMessage: (message: string | null) => void;
+  onMutation: () => void;
+}) {
+  const { adminUsers } = useApplicationServices();
+  const { currentUser } = useAppRuntime();
+  const [rank, setRank] = useState<"regular" | "gold" | "platinum">(
+    user.membershipRank ?? "regular",
+  );
+  const [role, setRole] = useState<"operator" | "admin">(
+    user.role === "admin" ? "admin" : "operator",
+  );
+  const userId = user.userId;
   const isSelf = currentUser?.id === userId;
   const mutate = async (operation: () => Promise<UserAdminDto>, success: string) => {
     try {
       const updated = await operation();
-      setMessage(`${success}（更新番号 ${updated.version}）。`);
-      setMutation((value) => value + 1);
+      onMessage(`${success}（更新番号 ${updated.version}）。`);
+      onMutation();
     } catch (caught) {
       if (caught instanceof ApplicationError) {
         const messages: Partial<Record<ApplicationError["code"], string>> = {
@@ -645,12 +667,12 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
           SELF_CHANGE_FORBIDDEN: "自分自身の役割または利用状態は変更できません。",
           CONFLICT: "ほかの操作でユーザー情報が更新されました。最新情報を読み込んでください。",
         };
-        setMessage(
+        onMessage(
           messages[caught.code] ??
             "変更できませんでした。役割、利用状態、更新番号を確認してください。",
         );
       } else {
-        setMessage("変更できませんでした。役割、利用状態、更新番号を確認してください。");
+        onMessage("変更できませんでした。役割、利用状態、更新番号を確認してください。");
       }
     }
   };

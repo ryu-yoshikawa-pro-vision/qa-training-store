@@ -21,6 +21,7 @@ import { ApplicationError, conflictError, validationError } from "@/application/
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
+import { deriveCustomerReviewState } from "@/application/use-cases/customer-review-state";
 import type { ProductReviewSummary, Review, User } from "@/domain/contracts";
 import { canTransitionAccount, canTransitionReview } from "@/domain/policies/state-transitions";
 import { applyPublishedReviewDelta } from "@/domain/services/reviews";
@@ -64,40 +65,31 @@ export class CustomerReviewUseCases {
       orderCreatedAt: order.createdAt,
     };
     const existing = await this.reviews.findByOrderItem(orderItemId);
-    if (existing?.status === "deleted") {
+    const reviewState = deriveCustomerReviewState(existing, order.status);
+    if (reviewState === "DELETED" && existing !== null) {
       return {
         orderItemId,
         eligible: false,
         reason: "REVIEW_DELETED",
         existingReview: this.toResult(existing),
         ...context,
-        reviewState: "DELETED",
+        reviewState,
       };
     }
-    if (existing !== null) {
-      return {
-        orderItemId,
-        eligible: true,
-        reason: null,
-        existingReview: this.toResult(existing),
-        ...context,
-        reviewState: existing.status === "hidden" ? "HIDDEN" : "PUBLISHED",
-      };
-    }
-    if (order.status !== "delivered") {
+    if (reviewState === "NOT_ELIGIBLE") {
       return {
         ...this.ineligible(orderItemId, "ORDER_NOT_DELIVERED"),
         ...context,
-        reviewState: "NOT_ELIGIBLE",
+        reviewState,
       };
     }
     return {
       orderItemId,
       eligible: true,
       reason: null,
-      existingReview: null,
+      existingReview: existing === null ? null : this.toResult(existing),
       ...context,
-      reviewState: "NOT_POSTED",
+      reviewState,
     };
   }
 
