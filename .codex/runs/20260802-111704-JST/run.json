@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "run_id": "20260802-111704-JST",
+  "task_type": "investigation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "feat/ui-ux-user-journey-improvements",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [],
+  "validation": {
+    "status": "passed_with_warnings",
+    "commands": [
+      "pnpm run verify",
+      "pnpm exec vitest run tests/component/review-user-pages.test.tsx -t \"shows the specific Last Active Admin error\"",
+      "pnpm run test:component",
+      "bash scripts/verify",
+      "LF-normalized in-memory bash scripts/verify",
+      "LF-normalized in-memory bash scripts/verify --strict-harness",
+      "pnpm run test:e2e:chromium",
+      "pnpm run test:a11y",
+      "pnpm run test:e2e:mobile-boundary",
+      "pnpm run test:e2e:cross-role",
+      "git diff --check"
+    ],
+    "warnings": [
+      "初回pnpm run verifyでComponent 73件中1件が一過性失敗したが、対象test単独・Component suite・verify再実行は成功",
+      "lintは既存warning 63件、error 0件",
+      "Windows上の直接bash scripts/verifyはCRLFで起動できず、LF正規化の非変更実行では通常harness gateが成功",
+      "strict harnessは親ディレクトリのsource-repo専用ファイル不足でFAIL。consumer repoには適用外"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": null,
+  "status": "complete",
+  "primary_failure_category": null
+}

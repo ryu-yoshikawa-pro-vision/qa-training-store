@@ -110,7 +110,9 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
         <dd>
           {state.value.orderCreatedAt === null
             ? "—"
-            : new Date(state.value.orderCreatedAt).toLocaleString("ja-JP")}
+            : new Date(state.value.orderCreatedAt).toLocaleString("ja-JP", {
+                timeZone: "Asia/Tokyo",
+              })}
         </dd>
         <dt>商品名</dt>
         <dd>{state.value.productName ?? "—"}</dd>
