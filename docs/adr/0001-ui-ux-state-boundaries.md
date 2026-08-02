@@ -10,7 +10,7 @@
 ## Decision
 
 1. WebのOne-time Noticeは `AppFrame` がStateと消費Pathを所有する。Storefront/Admin Shellは同じNotice Componentを表示し、`sessionStorage` の読出し・型検証・消費・削除をShellごとに複製しない。
-2. `SCENARIO_METADATA` をScenario ID、表示名、初期Session、安全な戻り先、Guide/E2E情報の正本とする。Test Control UIのResetだけが表示用Reset Noticeと画面遷移を担当し、Test API Resetは副作用のない制御APIとして維持する。
+2. `SCENARIO_METADATA` をScenario ID、表示名、初期Session、安全な戻り先、Guide/E2E情報の正本とする。Test Control UIのResetだけが表示用Reset Noticeと画面遷移を担当し、Test API ResetはUI NoticeやUI遷移を行わず、DB・Session・ClockのResetとMetadata返却だけを担当する。
 3. Customer注文画面はCustomer専用のReview表示DTOを使い、Admin向けの操作・集計DTOを直接流用しない。購入時SnapshotとReview stateをApplication境界で確定して表示する。
 4. Product Previewは既存SKUの現在庫（DB）と未保存Formの初期在庫を明示的に区別し、Preview処理から永続化を行わない。Dirty Navigation確認はPresentation側で共通化し、保存・複製・公開・削除の既存Application契約を変更しない。
 

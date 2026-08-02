@@ -86,8 +86,8 @@ export class CustomerReviewUseCases {
     }
     if (order.status !== "delivered") {
       return {
-        ...context,
         ...this.ineligible(orderItemId, "ORDER_NOT_DELIVERED"),
+        ...context,
         reviewState: "NOT_ELIGIBLE",
       };
     }

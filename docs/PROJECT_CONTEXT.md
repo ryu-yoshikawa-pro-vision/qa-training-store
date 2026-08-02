@@ -55,6 +55,15 @@
 - Shipmentの表示ラベルはOrder StatusとShipment Statusの組合せをPresentationの共通mappingで変換し、Admin／Customerで同じ文言を使う。Login後Checkout fallbackは想定された3つの状態Errorだけを対象とし、Storage／予期しないErrorは握り潰さない。
 - Cart統合の`adjustedItemCount`は部分調整だけを数え、完全除外は`fullyExcludedItemCount`だけで数える。Guideは利用者向け分類とラベルを表示し、内部Property名やDB用語を露出させない。
 
+## PR #4追加修正後の状態（2026-08-02）
+
+- Test Control UIのResetだけがNotice保存とsafeResetPathへの画面遷移を所有し、Test API ResetはUI Notice／UI遷移を行わず、DB・Session・ClockのResetとMetadata返却だけを行う。
+- GuideとReset NoticeのRoute表示は`src/presentation/routing/guide-routes.ts`のlinkable-route allowlistを共有する。`/orders`と`/admin/reviews`などの静的Routeはリンク化し、動的な`/reviews`、決済結果Route、外部／Protocol-relative／親相対Pathは文字列表示に留める。
+- Customer Review状態の5値（`NOT_ELIGIBLE`、`NOT_POSTED`、`PUBLISHED`、`HIDDEN`、`DELETED`）は`deriveCustomerReviewState`で導出する。未配達のReview Eligibilityは商品・Variation・Option・注文番号・注文日時のSnapshotを保持し、Read処理でDBを変更しない。
+- Admin Product Previewの`reviewSummary`は既存商品のDB集計を全項目DTOへ明示変換し、新規Previewは全項目0とする。Customer注文詳細は`getMyCustomerOrder`を直接利用し、送料表示は`FREE_SHIPPING_THRESHOLD`を正本とする。
+- CIのCross-role lifecycleはPRでも専用Playwright projectのまま実行する。Scenario DatasetのGuest／非Guest Session整合と、非同期ConfirmDialogのPromise返却をUnit／Component／Contractで検証する。
+- Dirty NavigationはReact AriaのModal／DialogとExpo Routerの`usePreventRemove`を組み合わせ、戻る操作の履歴状態を復元してから確認する。破棄後は保存中の遷移ガードを解除して元の遷移Actionを遅延Dispatchし、保存中は確認を出さない。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

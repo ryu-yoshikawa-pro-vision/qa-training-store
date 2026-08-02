@@ -13,6 +13,7 @@ import type {
   ProductImageSelectionRequest,
   ProductPreviewDto,
   ProductPreviewRequest,
+  ProductReviewSummaryDto,
   ProductVariantCreateRequest,
   UpdateProductRequest,
 } from "@/application/contracts";
@@ -20,7 +21,7 @@ import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
-import type { MembershipRank } from "@/domain/contracts";
+import type { MembershipRank, ProductReviewSummary } from "@/domain/contracts";
 import { effectiveUnitPrice, viewerUnitPrice } from "@/domain/services/pricing";
 import { StaticManifestRepository } from "@/infrastructure/image-assets/static-manifest-repository";
 import {
@@ -403,16 +404,7 @@ export class AdminProductUseCases {
         sortOrder: (index + 1) * 10,
         isPrimary: image.isPrimary,
       })),
-      reviewSummary: {
-        publishedCount: 0,
-        ratingTotal: 0,
-        ratingAverage: 0,
-        rating1Count: 0,
-        rating2Count: 0,
-        rating3Count: 0,
-        rating4Count: 0,
-        rating5Count: 0,
-      },
+      reviewSummary: toPreviewReviewSummary(reviewSummary),
       publishabilityIssues: previewPublishabilityIssues({
         product: createShape.product,
         variants: previewVariants,
@@ -493,6 +485,21 @@ export class AdminProductUseCases {
       retryable: false,
     });
   }
+}
+
+function toPreviewReviewSummary(
+  summary: ProductReviewSummary | null | undefined,
+): ProductReviewSummaryDto {
+  return {
+    publishedCount: summary?.publishedCount ?? 0,
+    ratingTotal: summary?.ratingTotal ?? 0,
+    ratingAverage: summary?.ratingAverage ?? 0,
+    rating1Count: summary?.rating1Count ?? 0,
+    rating2Count: summary?.rating2Count ?? 0,
+    rating3Count: summary?.rating3Count ?? 0,
+    rating4Count: summary?.rating4Count ?? 0,
+    rating5Count: summary?.rating5Count ?? 0,
+  };
 }
 
 function previewPublishabilityIssues(input: {

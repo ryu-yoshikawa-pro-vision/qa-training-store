@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "run_id": "20260802-085639-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "PR #4追加修正のmust-fix、回帰テスト、Run Artifact、Playwright-MCP実動確認、4 viewport UI Reviewを完了した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260802-085639-JST/run.json",
+          "summary": "完了済みStrict repair run manifest"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260802-085639-JST/REPORT.md",
+          "selector": "2026-08-02 10:44",
+          "summary": "最終検証とMCP確認の記録"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "指定Branch上で関連するsource、test、e2e、CI、docs、Run Artifact補助ファイルだけを変更し、commit、push、PR、merge、削除、renameを行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260802-085639-JST/REPORT.md",
+          "selector": "git diff --check / git status",
+          "summary": "最終差分とscope監査"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "format、lint、typecheck、security、unit／integration／repository／component／contract、build、Chromium 27件、a11y 4件、mobile boundary 4件、cross-role 4件、4 viewport UI Reviewが成功した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260802-085639-JST/REPORT.md",
+          "selector": "Commands",
+          "summary": "必須自動検証の結果"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "既存のReset／Preview／Processing／Cross-role／Shipment／Cart／Guide契約を維持し、危険なGit操作・削除・外部公開を行わなかった。Chrome確認後はviewportを復元し、agent tabを保持しない状態で終了した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260802-085639-JST/REPORT.md",
+          "selector": "Playwright-MCP",
+          "summary": "UI確認と最終ブラウザ状態の記録"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "変更判断、subagent委譲、回帰テスト、UI review stage、MCPスクリーンショット、既知warningを日本語Run reportへ記録した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/PROJECT_CONTEXT.md",
+          "summary": "Living documentの更新"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/history/2026-08-02_104500_dirty-navigation-guard.md",
+          "summary": "Dirty Navigation判断の履歴"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Review状態、Route allowlist、Pricing thresholdを共有境界へ集約し、Preview DTO、Dirty modal、Confirm Promiseの契約を既存構造に沿って補強した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "src/application/use-cases/customer-review-state.ts",
+          "summary": "Customer Review状態の純粋関数"
+        },
+        {
+          "kind": "changed_file",
+          "path": "src/presentation/routing/guide-routes.ts",
+          "summary": "表示可能Route allowlist"
+        },
+        {
+          "kind": "changed_file",
+          "path": "src/presentation/pages/admin-product-pages.tsx",
+          "summary": "Accessible Dirty Navigation"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "初回のDataset narrowing、Dirty Back、F-2 readiness、保存中Dirty guard、並列hook timeoutを原因別に修正し、直列テストと最終Chromiumで再確認した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260802-085639-JST/REPORT.md",
+          "selector": "Issues Found During Verification",
+          "summary": "初回失敗と再検証の根拠"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "初回の並列test:contractsでPlaywright configのcold-start hook timeoutが発生した。",
+      "detail": "ソース修正後の直列pnpm run testは6 files / 45 testsを含めて成功し、Chromium 27件も成功した。製品コードの未解決問題ではない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260802-085639-JST/REPORT.md",
+          "selector": "test:contracts",
+          "summary": "並列失敗と直列成功の比較"
+        }
+      ]
+    }
+  ],
+  "improvement_candidates": []
+}

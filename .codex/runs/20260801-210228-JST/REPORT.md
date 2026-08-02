@@ -33,6 +33,42 @@
 |---|---|---|
 |  |  |  |
 
+## 2026-08-01 21:02 (JST) 開始記録
+
+- Summary：添付された UI/UX 改善実装指示と正本プランを確認し、Strict workflow の新規 Run を開始した。
+- Completed：必須コンテキスト（PROJECT_CONTEXT、ADR、直近Run、AGENTS）、添付指示、正本プラン、PLANS.md、feature-plan skill を読了。開始時の Git 差分は製品ファイルなし。
+- Changes：`.codex/runs/20260801-210228-JST/` の標準 Run Artifact を作成し、PLAN/TASKS を今回の実装計画へ更新した。製品コードは未変更。
+- Commands：
+  - `Get-Content docs/PROJECT_CONTEXT.md`, `docs/adr`, `.codex/runs` => 必須コンテキストを確認。
+  - `Get-Content <attachment>/pasted-text.txt` => Wave 1〜4、必須検証、MCP確認条件を確認。
+  - `Get-Content docs/plans/2026-08-01_ui-ux-improvement-implementation-plan.md` => 正本プランを確認。
+  - `git status --short --branch`, `git diff --stat` => 開始時の製品差分なし。
+  - `scripts/new-run.ps1 -TaskType implementation -WorkflowLevel strict -Preset safe` => Run初期化成功。
+- Notes/Decisions：既存の保存済みプランを正本として利用し、追加の仕様質問なしで既存契約に沿って実装する。Git commit/push/PRは行わない。`code_researcher`、`implementation_researcher`、`test_investigator` に read-only 調査を委譲中。
+- New tasks：なし。
+- Remaining：Wave 1〜4、テスト、MCP実動確認、最終ドキュメント。
+- Progress: 20% (2/10)
+
+## Subagent delegation
+
+- `code_researcher`：Wave 1〜4の既存コード、DTO、Scenario、Shell、Adminを横断調査。
+- `implementation_researcher`：既存契約を壊さない変更箇所、依存順、実装方針を調査。
+- `test_investigator`：既存テスト、E2E Fixture、CI、Windows/Playwright制約、追加検証を調査。
+- いずれも read-only。製品ファイルを変更しない前提で委譲した。
+
+## 2026-08-01 21:42 (JST) Home / Guide 実装
+
+- Summary：公開 `Guide` ページを追加し、`Home` に Role 別 CTA と空商品時の単一空状態を入れた。
+- Completed：`app/guide.tsx`、`src/presentation/pages/guide-page.tsx`、`src/presentation/pages/home-page.tsx` を更新した。固定テストアカウントの共通パスワード `testpass1`、Role 差分、会員ランク/割引、`SCENARIO_METADATA` / `PHASE_ONE_SCENARIOS` のシナリオ一覧、`safeResetPath`、`guide`、`initialSession` を表示する Guide を追加した。`Test API` が有効かつ admin の場合のみ `Test Control` リンクを表示するようにした。
+- Changes：Home の主 CTA を Guest / Customer / Operator / Admin で切り替え、商品一覧への既存導線は維持した。会員特典表示は `FREE_SHIPPING_THRESHOLD` と `membershipDiscountRate` を使うように更新した。visible product 合計が 0 の場合はカテゴリ/商品セクションを隠し、`StatePanel` の空状態 1 つだけを出すようにした。
+- Commands：
+  - `pnpm run typecheck` => 既存の型エラーで失敗。今回の差分以外の既知エラーとして `src/application/contracts/index.ts`、`src/application/use-cases/admin-product-use-cases.ts`、`src/application/use-cases/checkout-order-use-cases.ts`、`src/presentation/pages/auth-pages.tsx`、`src/presentation/pages/checkout-order-pages.tsx` が残っていた。
+  - `pnpm exec eslint src/presentation/pages/home-page.tsx src/presentation/pages/guide-page.tsx app/guide.tsx` => 成功。
+- Notes/Decisions：`Test Control` の露出は `isTestApiBuild()` と `currentUser.role === "admin"` の組み合わせで判定した。Guide には固定パスワードを置いたが、他画面へは追加していない。
+- New tasks：なし。
+- Remaining：Wave 3 以降の未完了タスク、全体 typecheck 既知エラー、E2E / Playwright 実機確認。
+- Progress: 20% (2/10)
+
 ## 2026-08-01 23:31 (JST) 実装・検証完了記録
 
 - Summary：添付指示の Wave 1〜4、関連テスト、Chromium/Cross-role/Responsive/UI Review、Playwright-MCP実動確認を完了した。標準ScenarioとPayment Delay 500msへ復元済みである。
@@ -98,39 +134,3 @@
 - Remaining：なし。Playwright-MCP未利用の代替報告ではなく、A〜Jを実ブラウザで完了した。
 - Git：commit、push、PR、merge、reset、checkout、delete、renameは実行していない。既存のユーザー差分を保持し、今回のRun Artifactと実装差分だけを確認対象とした。
 - Progress: 100% (10/10)
-
-## 2026-08-01 21:02 (JST) 開始記録
-
-- Summary：添付された UI/UX 改善実装指示と正本プランを確認し、Strict workflow の新規 Run を開始した。
-- Completed：必須コンテキスト（PROJECT_CONTEXT、ADR、直近Run、AGENTS）、添付指示、正本プラン、PLANS.md、feature-plan skill を読了。開始時の Git 差分は製品ファイルなし。
-- Changes：`.codex/runs/20260801-210228-JST/` の標準 Run Artifact を作成し、PLAN/TASKS を今回の実装計画へ更新した。製品コードは未変更。
-- Commands：
-  - `Get-Content docs/PROJECT_CONTEXT.md`, `docs/adr`, `.codex/runs` => 必須コンテキストを確認。
-  - `Get-Content C:\Users\sella\.codex\attachments\...\pasted-text.txt` => Wave 1〜4、必須検証、MCP確認条件を確認。
-  - `Get-Content docs/plans/2026-08-01_ui-ux-improvement-implementation-plan.md` => 正本プランを確認。
-  - `git status --short --branch`, `git diff --stat` => 開始時の製品差分なし。
-  - `scripts/new-run.ps1 -TaskType implementation -WorkflowLevel strict -Preset safe` => Run初期化成功。
-- Notes/Decisions：既存の保存済みプランを正本として利用し、追加の仕様質問なしで既存契約に沿って実装する。Git commit/push/PRは行わない。`code_researcher`、`implementation_researcher`、`test_investigator` に read-only 調査を委譲中。
-- New tasks：なし。
-- Remaining：Wave 1〜4、テスト、MCP実動確認、最終ドキュメント。
-- Progress: 20% (2/10)
-
-## Subagent delegation
-
-- `code_researcher`：Wave 1〜4の既存コード、DTO、Scenario、Shell、Adminを横断調査。
-- `implementation_researcher`：既存契約を壊さない変更箇所、依存順、実装方針を調査。
-- `test_investigator`：既存テスト、E2E Fixture、CI、Windows/Playwright制約、追加検証を調査。
-- いずれも read-only。製品ファイルを変更しない前提で委譲した。
-
-## 2026-08-01 21:42 (JST) Home / Guide 実装
-
-- Summary：公開 `Guide` ページを追加し、`Home` に Role 別 CTA と空商品時の単一空状態を入れた。
-- Completed：`app/guide.tsx`、`src/presentation/pages/guide-page.tsx`、`src/presentation/pages/home-page.tsx` を更新した。固定テストアカウントの共通パスワード `testpass1`、Role 差分、会員ランク/割引、`SCENARIO_METADATA` / `PHASE_ONE_SCENARIOS` のシナリオ一覧、`safeResetPath`、`guide`、`initialSession` を表示する Guide を追加した。`Test API` が有効かつ admin の場合のみ `Test Control` リンクを表示するようにした。
-- Changes：Home の主 CTA を Guest / Customer / Operator / Admin で切り替え、商品一覧への既存導線は維持した。会員特典表示は `FREE_SHIPPING_THRESHOLD` と `membershipDiscountRate` を使うように更新した。visible product 合計が 0 の場合はカテゴリ/商品セクションを隠し、`StatePanel` の空状態 1 つだけを出すようにした。
-- Commands：
-  - `pnpm run typecheck` => 既存の型エラーで失敗。今回の差分以外の既知エラーとして `src/application/contracts/index.ts`、`src/application/use-cases/admin-product-use-cases.ts`、`src/application/use-cases/checkout-order-use-cases.ts`、`src/presentation/pages/auth-pages.tsx`、`src/presentation/pages/checkout-order-pages.tsx` が残っていた。
-  - `pnpm exec eslint src/presentation/pages/home-page.tsx src/presentation/pages/guide-page.tsx app/guide.tsx` => 成功。
-- Notes/Decisions：`Test Control` の露出は `isTestApiBuild()` と `currentUser.role === "admin"` の組み合わせで判定した。Guide には固定パスワードを置いたが、他画面へは追加していない。
-- New tasks：なし。
-- Remaining：Wave 3 以降の未完了タスク、全体 typecheck 既知エラー、E2E / Playwright 実機確認。
-- Progress: 20% (2/10)

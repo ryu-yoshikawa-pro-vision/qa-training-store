@@ -4,7 +4,7 @@
 - Summary: 添付のUIレビュー修正指示を確認し、Standard Runを手動初期化した。
 - Completed:
   - `docs/PROJECT_CONTEXT.md`、`docs/adr/`、直近Run、`AGENTS.md`、`PLANS.md`、`feature-plan`スキルを確認。
-  - `/mnt/c/Users/sella/Downloads/修正指示.txt`を最後まで確認。
+  - `<attachment>/修正指示.txt`を最後まで確認。
   - `.codex/runs/20260728-081641-JST/`を作成。
 - Changes:
   - `.codex/runs/20260728-081641-JST/PLAN.md`

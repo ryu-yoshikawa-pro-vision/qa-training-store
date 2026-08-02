@@ -40,6 +40,17 @@ describe("Phase 1 CI deployment boundaries", () => {
     );
   });
 
+  it("runs the Cross-role lifecycle step on pull requests without reusing the Chromium required job gate", () => {
+    const crossRoleStep = stepBlock(validate, "Cross-role lifecycle");
+
+    expect(crossRoleStep).toContain("run: pnpm run test:e2e:cross-role");
+    expect(crossRoleStep).not.toContain("if:");
+    expect(validate.indexOf("Cross-role lifecycle")).toBeGreaterThan(
+      validate.indexOf("Install Chromium"),
+    );
+    expect(validate.match(/Cross-role lifecycle/g) ?? []).toHaveLength(1);
+  });
+
   it("smokes the exact preview deployment after the deploy step", () => {
     expect(preview).toContain("github.event_name == 'pull_request'");
     expect(preview).toContain("needs.validate.outputs.cloudflare_available == 'true'");

@@ -745,11 +745,7 @@ a {
 }
 
 .dirty-navigation-dialog {
-  position: fixed;
-  z-index: 110;
-  right: 16px;
-  bottom: 16px;
-  width: min(100% - 32px, 520px);
+  width: min(100%, 520px);
   padding: 20px;
   border: 2px solid #b45309;
   border-radius: 12px;

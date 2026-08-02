@@ -207,6 +207,30 @@ describe("review, user, and test-control pages", () => {
     );
   });
 
+  it("shows order context on the undelivered Review URL", async () => {
+    reviews.getEligibility.mockResolvedValue({
+      orderItemId: "item-1",
+      eligible: false,
+      reason: "ORDER_NOT_DELIVERED",
+      existingReview: null,
+      productName: "ベーシックTシャツ",
+      variationName: "サイズ",
+      optionValue: "M",
+      orderNumber: "ORD-20260701-0001",
+      orderCreatedAt: "2026-07-01T03:00:00.000Z",
+      reviewState: "NOT_ELIGIBLE",
+    });
+
+    render(<CustomerReviewPage orderItemId="item-1" />);
+
+    expect(await screen.findByRole("heading", { name: "レビューを投稿できません" })).toBeVisible();
+    expect(screen.getByText("ベーシックTシャツ")).toBeVisible();
+    expect(screen.getByText("ORD-20260701-0001")).toBeVisible();
+    expect(screen.getByText("2026/7/1 12:00:00")).toBeVisible();
+    expect(screen.getByText("サイズ / M")).toBeVisible();
+    expect(screen.getByText("配達完了後に投稿できます。")).toBeVisible();
+  });
+
   it("keeps a single main landmark when Customer Review is rendered in StorefrontShell", async () => {
     const customer = {
       id: "user-customer",
@@ -270,7 +294,10 @@ describe("review, user, and test-control pages", () => {
     unmount();
     render(<AdminUserDetailPage userId="user-customer-regular" />);
     expect(await screen.findByRole("heading", { name: "一般テスト会員" })).toBeVisible();
-    fireEvent.change(screen.getByLabelText("ランク"), { target: { value: "gold" } });
+    const rankSelect = screen.getByLabelText("ランク");
+    await waitFor(() => expect(rankSelect).toHaveValue("regular"));
+    fireEvent.change(rankSelect, { target: { value: "gold" } });
+    await waitFor(() => expect(rankSelect).toHaveValue("gold"));
     fireEvent.click(screen.getByRole("button", { name: "ランクを変更" }));
     await waitFor(() =>
       expect(adminUsers.changeMembershipRank).toHaveBeenCalledWith({

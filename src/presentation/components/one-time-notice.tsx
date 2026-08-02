@@ -1,6 +1,7 @@
 import { Link, type Href } from "expo-router";
 import type { CartMergeItemResult } from "@/application/contracts";
 import type { OneTimeNotice as OneTimeNoticeValue } from "@/presentation/browser/one-time-notice.web";
+import { isPresentationRouteLink } from "@/presentation/routing/guide-routes";
 
 function excludedReasonLabel(reason: NonNullable<CartMergeItemResult["excludedReason"]>) {
   const labels: Record<NonNullable<CartMergeItemResult["excludedReason"]>, string> = {
@@ -13,17 +14,12 @@ function excludedReasonLabel(reason: NonNullable<CartMergeItemResult["excludedRe
   return labels[reason];
 }
 
-function isSafeInternalPath(path: string): boolean {
-  if (path === "/") return true;
-  if (!path.startsWith("/") || path.startsWith("//")) return false;
-  if (path.includes("://") || path.includes("..") || path.includes("\\") || /\s/.test(path)) {
-    return false;
-  }
-  return /^[A-Za-z0-9/_-]+$/.test(path.slice(1));
-}
-
 function renderRoute(path: string) {
-  return isSafeInternalPath(path) ? <Link href={path as Href}>{path}</Link> : <span>{path}</span>;
+  return isPresentationRouteLink(path) ? (
+    <Link href={path as Href}>{path}</Link>
+  ) : (
+    <span>{path}</span>
+  );
 }
 
 export function OneTimeNotice({
@@ -81,8 +77,8 @@ export function OneTimeNotice({
         </p>
         {adjusted && (
           <p>
-            集計: 追加 {notice.result.addedItemCount}件 / 調整あり {notice.result.adjustedItemCount}
-            件（うち完全除外 {notice.result.fullyExcludedItemCount}件） / 追加数量{" "}
+            集計: 追加 {notice.result.addedItemCount}件 / 数量調整 {notice.result.adjustedItemCount}
+            件 / 完全除外 {notice.result.fullyExcludedItemCount}件 / 追加数量{" "}
             {notice.result.addedQuantity}点 / 超過数量 {notice.result.overflowQuantity}点
           </p>
         )}

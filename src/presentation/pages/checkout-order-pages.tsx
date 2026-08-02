@@ -658,10 +658,7 @@ export function OrderDetailPage({ orderId }: { orderId: string }) {
 function OrderDetailContent({ orderId }: { orderId: string }) {
   const services = useApplicationServices();
   const state = useAsyncValue<CustomerOrderDetailDto>(
-    () =>
-      services.checkout.getMyCustomerOrder !== undefined
-        ? services.checkout.getMyCustomerOrder(orderId)
-        : (services.checkout.getMyOrder(orderId) as Promise<CustomerOrderDetailDto>),
+    () => services.checkout.getMyCustomerOrder(orderId),
     [orderId, services],
   );
   if (!state.loaded) return <StatePanel kind="loading" />;

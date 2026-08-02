@@ -120,7 +120,26 @@ describe("review and user administration integration", () => {
     const useCases = new CustomerReviewUseCases(dependencies(database, session));
     const paid = await database.orders.where("status").equals("paid").first();
     const paidItem = await database.order_items.where("orderId").equals(paid!.id).first();
-    expect((await useCases.getEligibility(paidItem!.id)).reason).toBe("ORDER_NOT_DELIVERED");
+    const beforeOrder = await database.orders.get(paid!.id);
+    const beforeItem = await database.order_items.get(paidItem!.id);
+    const beforeReviews = await database.reviews.toArray();
+    const beforeSummary = await database.product_review_summaries.get(paidItem!.productId);
+    expect(await useCases.getEligibility(paidItem!.id)).toMatchObject({
+      orderItemId: paidItem!.id,
+      eligible: false,
+      reason: "ORDER_NOT_DELIVERED",
+      reviewState: "NOT_ELIGIBLE",
+      productName: paidItem!.productNameSnapshot,
+      variationName: paidItem!.variationNameSnapshot,
+      optionValue: paidItem!.optionValueSnapshot,
+      orderNumber: paid!.orderNumber,
+      orderCreatedAt: paid!.createdAt,
+      existingReview: null,
+    });
+    expect(await database.orders.get(paid!.id)).toEqual(beforeOrder);
+    expect(await database.order_items.get(paidItem!.id)).toEqual(beforeItem);
+    expect(await database.reviews.toArray()).toEqual(beforeReviews);
+    expect(await database.product_review_summaries.get(paidItem!.productId)).toEqual(beforeSummary);
     expect((await useCases.getEligibility("order-delivered-item-deleted")).reason).toBe(
       "REVIEW_DELETED",
     );

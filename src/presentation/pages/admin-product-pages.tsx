@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { Link, useRouter, type Href } from "expo-router";
+import { Link, useNavigation, useRouter, type Href } from "expo-router";
+import { usePreventRemove } from "expo-router/build/react-navigation/core";
+import { Button as AriaButton, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import type {
   CreateProductRequest,
   ImageAssetListItem,
@@ -489,7 +491,7 @@ function AdminProductEditContent({ productId }: { productId: string }) {
                 confirmLabel="販売終了"
                 danger
                 disabled={dirty}
-                onConfirm={() => void changeStatus("discontinued")}
+                onConfirm={() => changeStatus("discontinued")}
               >
                 販売終了は元に戻せません。
               </ConfirmDialog>
@@ -548,7 +550,7 @@ function AdminProductEditContent({ productId }: { productId: string }) {
           danger
           disabled={dirty}
           onConfirm={() =>
-            void services.adminProducts
+            services.adminProducts
               .deleteDraft(productId, edit.product.version)
               .then(() => router.replace("/admin/products"))
               .catch(() =>
@@ -590,18 +592,39 @@ function ProductEditor({
   const [message, setMessage] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [pendingNavigation, setPendingNavigation] = useState<"back" | string | null>(null);
+  const navigationTriggerRef = useRef<HTMLElement | null>(null);
+  const protectedNavigationRef = useRef<{ url: string; state: unknown } | null>(null);
+  const pendingNavigationActionRef = useRef<unknown>(null);
+  const confirmedNavigationRef = useRef<
+    { kind: "back"; action: unknown } | { kind: "link"; href: string } | null
+  >(null);
+  const navigationConfirmingRef = useRef(false);
+  const [navigationConfirming, setNavigationConfirming] = useState(false);
   const router = useRouter();
-  const allowHistoryNavigation = useRef(false);
+  const navigation = useNavigation<{ dispatch: (action: unknown) => void }>();
   const dirty = useMemo(
     () => JSON.stringify(value) !== JSON.stringify(initial) || removedVariantIds.length > 0,
     [initial, removedVariantIds, value],
   );
+  usePreventRemove(dirty && !saving, ({ data }) => {
+    const protectedNavigation = protectedNavigationRef.current;
+    if (protectedNavigation !== null && window.location.href !== protectedNavigation.url) {
+      window.history.pushState(protectedNavigation.state, "", protectedNavigation.url);
+    }
+    navigationTriggerRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    pendingNavigationActionRef.current = data.action;
+    setPendingNavigation("back");
+  });
   useEffect(() => {
     onDirtyChange?.(dirty);
   }, [dirty, onDirtyChange]);
   useEffect(() => {
     if (!dirty || typeof window === "undefined") return;
-    const protectedUrl = window.location.href;
+    protectedNavigationRef.current = {
+      url: window.location.href,
+      state: window.history.state,
+    };
     const beforeUnload = (event: BeforeUnloadEvent) => {
       event.preventDefault();
       event.returnValue = "";
@@ -620,43 +643,70 @@ function ProductEditor({
       }
       event.preventDefault();
       event.stopPropagation();
+      navigationTriggerRef.current = target;
       setPendingNavigation(target.href);
-    };
-    const popStateGuard = () => {
-      if (allowHistoryNavigation.current) {
-        allowHistoryNavigation.current = false;
-        return;
-      }
-      window.history.pushState(null, "", protectedUrl);
-      setPendingNavigation("back");
     };
     window.addEventListener("beforeunload", beforeUnload);
     document.addEventListener("click", clickGuard, true);
-    window.addEventListener("popstate", popStateGuard);
     return () => {
       window.removeEventListener("beforeunload", beforeUnload);
       document.removeEventListener("click", clickGuard, true);
-      window.removeEventListener("popstate", popStateGuard);
+      protectedNavigationRef.current = null;
     };
   }, [dirty]);
+  useEffect(() => {
+    if (pendingNavigation !== null || navigationTriggerRef.current === null) return;
+    const trigger = navigationTriggerRef.current;
+    navigationTriggerRef.current = null;
+    navigationConfirmingRef.current = false;
+    setNavigationConfirming(false);
+    requestAnimationFrame(() => {
+      if (trigger.isConnected) trigger.focus();
+    });
+  }, [pendingNavigation]);
   const discardChanges = () => {
+    pendingNavigationActionRef.current = null;
     setValue(initial);
     setRemovedVariantIds([]);
     setPreview(null);
     setPendingNavigation(null);
   };
-  const confirmNavigation = () => {
-    const destination = pendingNavigation;
+  const cancelNavigation = () => {
+    pendingNavigationActionRef.current = null;
     setPendingNavigation(null);
+  };
+  const confirmNavigation = () => {
+    if (navigationConfirmingRef.current) return;
+    const destination = pendingNavigation;
     if (destination === null) return;
+    navigationConfirmingRef.current = true;
+    setNavigationConfirming(true);
     if (destination === "back") {
-      allowHistoryNavigation.current = true;
-      window.history.back();
+      confirmedNavigationRef.current = {
+        kind: "back",
+        action: pendingNavigationActionRef.current,
+      };
+      discardChanges();
       return;
     }
-    const url = new URL(destination, window.location.origin);
-    router.push((url.pathname + url.search + url.hash) as Href);
+    confirmedNavigationRef.current = { kind: "link", href: destination };
+    discardChanges();
   };
+  useEffect(() => {
+    if (dirty || confirmedNavigationRef.current === null) return;
+    const confirmedNavigation = confirmedNavigationRef.current;
+    confirmedNavigationRef.current = null;
+    if (confirmedNavigation.kind === "back") {
+      if (confirmedNavigation.action !== null) {
+        navigation.dispatch(confirmedNavigation.action);
+      } else {
+        router.back();
+      }
+      return;
+    }
+    const url = new URL(confirmedNavigation.href, window.location.origin);
+    router.push((url.pathname + url.search + url.hash) as Href);
+  }, [dirty, navigation, router]);
   const previewIssues = preview?.publishabilityIssues ?? [];
   const previewVariants = preview?.variants ?? [];
   const setProduct = (field: keyof ProductFormValue["product"], fieldValue: unknown) =>
@@ -1064,24 +1114,41 @@ function ProductEditor({
           <p>データベースには保存されていません。</p>
         </section>
       )}
-      {pendingNavigation !== null && (
-        <div className="dirty-navigation-dialog" role="alertdialog" aria-modal="true">
-          <h2>未保存の変更があります</h2>
-          <p>この画面を離れると、入力中の変更は失われます。</p>
-          <div className="dialog__actions">
-            <button type="button" className="button button--danger" onClick={confirmNavigation}>
-              変更を破棄して移動
-            </button>
-            <button
-              type="button"
-              className="button button--secondary"
-              onClick={() => setPendingNavigation(null)}
-            >
-              編集に戻る
-            </button>
-          </div>
-        </div>
-      )}
+      <ModalOverlay
+        className="dialog-overlay"
+        isOpen={pendingNavigation !== null}
+        isDismissable
+        onOpenChange={(isOpen) => {
+          if (!isOpen && !navigationConfirmingRef.current) cancelNavigation();
+        }}
+      >
+        <Modal className="dialog-modal">
+          <Dialog
+            className="dirty-navigation-dialog dialog"
+            role="alertdialog"
+            aria-describedby="dirty-navigation-description"
+          >
+            <Heading slot="title">未保存の変更があります</Heading>
+            <p id="dirty-navigation-description">この画面を離れると、入力中の変更は失われます。</p>
+            <div className="dialog__actions">
+              <AriaButton
+                className="button button--danger"
+                onPress={confirmNavigation}
+                isDisabled={navigationConfirming}
+              >
+                変更を破棄して移動
+              </AriaButton>
+              <AriaButton
+                className="button button--secondary"
+                onPress={cancelNavigation}
+                isDisabled={navigationConfirming}
+              >
+                編集に戻る
+              </AriaButton>
+            </div>
+          </Dialog>
+        </Modal>
+      </ModalOverlay>
     </form>
   );
 }

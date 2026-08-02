@@ -38,7 +38,7 @@
 - Completed: 依頼本文、AGENTS、PROJECT_CONTEXT、ADR、直近完了Run、Repair Loop/Planning手順を確認。Branchとsource worktreeの初期状態を確認。
 - Changes: `docs/plans/2026-08-02_055639_pr4-review-repair.md` を作成。Run PLAN/TASKSを今回の11指摘に合わせて更新。
 - Commands:
-  - `Get-Content <添付pasted-text.txt>` => PR #4修正指示11項目と必須検証を取得。
+  - `Get-Content <attachment>/pasted-text.txt` => PR #4修正指示11項目と必須検証を取得。
   - `git status --short; git branch --show-current` => source worktree clean、Branch `feat/ui-ux-user-journey-improvements`。
   - `scripts/new-run.ps1 -TaskType repair -WorkflowLevel strict -Preset safe` => Run `20260802-055639-JST` を初期化。
   - `rg` / `Get-Content` 対象コード・テスト => Reset/Preview/Flow I/Cross-role/Cart/Notice/Home/Guide/Shipment/Authの未解消候補を確認。

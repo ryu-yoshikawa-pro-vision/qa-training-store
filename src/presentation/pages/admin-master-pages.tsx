@@ -305,7 +305,7 @@ function CategoryTable({
 }: {
   items: CategoryAdminListItem[];
   onSave: (item: CategoryAdminListItem, name: string) => void;
-  onToggle: (item: CategoryAdminListItem) => void;
+  onToggle: (item: CategoryAdminListItem) => Promise<void>;
 }) {
   return (
     <ResourceTable
@@ -524,7 +524,7 @@ function AdminBrandsContent() {
                 confirmLabel="状態を変更"
                 danger={item.isActive}
                 onConfirm={() =>
-                  void mutate(
+                  mutate(
                     () =>
                       adminMaster.changeBrandActiveState({
                         brandId: item.brandId,

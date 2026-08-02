@@ -184,8 +184,8 @@ test.describe("UI/UX improvement flows A-J", () => {
     await page.goto("/admin/products");
     await page.locator("table tbody a[href^='/admin/products/']").first().click();
     const activeCheckboxes = page.getByRole("checkbox", { name: "有効" });
-    const activeCount = await activeCheckboxes.count();
-    expect(activeCount).toBeGreaterThan(0);
+    await expect(page.getByRole("group", { name: "SKU・価格・在庫" })).toContainText("有効");
+    await expect(activeCheckboxes).toHaveCount(3);
     for (const checkbox of await activeCheckboxes.all()) {
       if (await checkbox.isChecked()) await checkbox.uncheck();
     }
@@ -196,6 +196,38 @@ test.describe("UI/UX improvement flows A-J", () => {
     await page.reload();
     const reloadedCheckboxes = page.getByRole("checkbox", { name: "有効" });
     await expect(reloadedCheckboxes.first()).toBeChecked();
+  });
+
+  test("Flow F-3: Dirty NavigationのFocus trapとBrowser Back", async ({ page, scenario }) => {
+    await scenario("product-aggregate-edit");
+    await login(page, "admin@example.com", "/admin");
+    await page.goto("/admin/products");
+    await page.locator("table tbody a[href^='/admin/products/']").first().click();
+    const nameInput = page.getByLabel("商品名");
+    await nameInput.fill((await nameInput.inputValue()) + "戻る確認");
+    await expect(page.getByRole("region", { name: "未保存の変更" })).toBeVisible();
+    await nameInput.focus();
+
+    await page.evaluate(() => window.history.back());
+    const dialog = page.getByRole("alertdialog", { name: "未保存の変更があります" });
+    await expect(dialog).toBeVisible();
+    await expect(page).toHaveURL(/\/admin\/products\/[^/]+$/);
+    await expect(dialog).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dialog.getByRole("button", { name: "変更を破棄して移動" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dialog.getByRole("button", { name: "編集に戻る" })).toBeFocused();
+    await page.keyboard.press("Tab");
+    await expect(dialog.getByRole("button", { name: "変更を破棄して移動" })).toBeFocused();
+
+    await page.keyboard.press("Escape");
+    await expect(dialog).toHaveCount(0);
+    await expect(nameInput).toHaveValue(/戻る確認$/);
+    await expect(nameInput).toBeFocused();
+
+    await page.getByRole("link", { name: "商品管理" }).click();
+    await page.getByRole("button", { name: "変更を破棄して移動" }).click();
+    await expect(page).toHaveURL(/\/admin\/products$/);
   });
 
   test("Flow G: Shipment同期とUser操作不可理由", async ({ page, scenario }) => {

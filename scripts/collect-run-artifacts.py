@@ -37,7 +37,7 @@ def repo_relative(repo_root: Path, path: Path) -> str:
     try:
         return path.resolve().relative_to(repo_root.resolve()).as_posix()
     except ValueError:
-        return path.resolve().as_posix()
+        return f"<external>/{path.name}"
 
 
 def normalize_repo_path(value):

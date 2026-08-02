@@ -135,7 +135,6 @@ jobs:
         run: pnpm run test:e2e:mobile
 
       - name: Cross-role lifecycle
-        if: ${{ github.event_name != 'pull_request' }}
         run: pnpm run test:e2e:cross-role
 
       - name: Firefox smoke

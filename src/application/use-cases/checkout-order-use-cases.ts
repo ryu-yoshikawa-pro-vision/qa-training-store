@@ -18,6 +18,7 @@ import { ApplicationError, conflictError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator, PaymentGateway } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
+import { deriveCustomerReviewState } from "@/application/use-cases/customer-review-state";
 import type {
   CheckoutSession,
   CheckoutStep,
@@ -359,16 +360,7 @@ export class CheckoutOrderUseCases {
           .where("orderItemId")
           .equals(item.orderItemId)
           .first();
-        const reviewState: CustomerOrderDetailDto["items"][number]["reviewState"] =
-          review === undefined
-            ? detail.orderStatus === "delivered"
-              ? "NOT_POSTED"
-              : "NOT_ELIGIBLE"
-            : review.status === "deleted"
-              ? "DELETED"
-              : review.status === "hidden"
-                ? "HIDDEN"
-                : "PUBLISHED";
+        const reviewState = deriveCustomerReviewState(review, detail.orderStatus);
         return { ...item, reviewState };
       }),
     );

@@ -6,7 +6,7 @@
   "preset": "safe",
   "runtime": "host",
   "agents_used": [],
-  "repo": null,
+  "repo": "qa-training-store",
   "branch": null,
   "base_branch": null,
   "codex_task_reports": [],

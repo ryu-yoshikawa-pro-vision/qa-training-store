@@ -10,6 +10,7 @@ import {
 } from "react-aria-components";
 import type { ProductDetail, ReviewListItem, ReviewListQuery } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
+import { FREE_SHIPPING_THRESHOLD } from "@/domain/services/pricing";
 import { ProductImage } from "@/presentation/components/product-image";
 import { formatYen } from "@/presentation/components/product-card";
 import { StatePanel } from "@/presentation/components/states";
@@ -182,9 +183,9 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
           </div>
           {stockQuantity > 0 && (
             <p className="shipping-message">
-              {(selectedVariant?.viewerUnitPrice ?? 0) >= 5000
+              {(selectedVariant?.viewerUnitPrice ?? 0) >= FREE_SHIPPING_THRESHOLD
                 ? "送料無料"
-                : `あと${formatYen(5000 - (selectedVariant?.viewerUnitPrice ?? 0))}で送料無料`}
+                : `あと${formatYen(FREE_SHIPPING_THRESHOLD - (selectedVariant?.viewerUnitPrice ?? 0))}で送料無料`}
             </p>
           )}
           {product.variationName !== null && (

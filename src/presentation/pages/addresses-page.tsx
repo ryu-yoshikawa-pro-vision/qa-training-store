@@ -164,23 +164,21 @@ function AddressesContent() {
                       title={`${address.label}を削除しますか`}
                       confirmLabel="削除する"
                       danger
-                      onConfirm={() => {
-                        void (async () => {
-                          setMessage(null);
-                          try {
-                            await account.deleteAddress({
-                              addressId: address.id,
-                              expectedVersion: address.version,
-                            });
-                            await reload();
-                            setMessage({ text: "配送先を削除しました。", tone: "success" });
-                          } catch {
-                            setMessage({
-                              text: "配送先を削除できませんでした。入力内容を確認してください。",
-                              tone: "error",
-                            });
-                          }
-                        })();
+                      onConfirm={async () => {
+                        setMessage(null);
+                        try {
+                          await account.deleteAddress({
+                            addressId: address.id,
+                            expectedVersion: address.version,
+                          });
+                          await reload();
+                          setMessage({ text: "配送先を削除しました。", tone: "success" });
+                        } catch {
+                          setMessage({
+                            text: "配送先を削除できませんでした。入力内容を確認してください。",
+                            tone: "error",
+                          });
+                        }
                       }}
                     >
                       既定の配送先を削除した場合は、残っている最も古い配送先が新しい既定になります。

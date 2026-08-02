@@ -220,19 +220,17 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
               title="レビューを削除しますか"
               confirmLabel="削除する"
               danger
-              onConfirm={() => {
-                void (async () => {
-                  try {
-                    await reviews.delete({
-                      reviewId: existing.reviewId,
-                      expectedVersion: existing.version,
-                    });
-                    setMessage("レビューを削除しました。再投稿はできません。");
-                    setMutation((value) => value + 1);
-                  } catch {
-                    setMessage("削除できませんでした。再読込してからもう一度お試しください。");
-                  }
-                })();
+              onConfirm={async () => {
+                try {
+                  await reviews.delete({
+                    reviewId: existing.reviewId,
+                    expectedVersion: existing.version,
+                  });
+                  setMessage("レビューを削除しました。再投稿はできません。");
+                  setMutation((value) => value + 1);
+                } catch {
+                  setMessage("削除できませんでした。再読込してからもう一度お試しください。");
+                }
               }}
             >
               この操作は元に戻せません。削除後は同じレビューを再投稿できません。
@@ -751,19 +749,17 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
               triggerLabel="役割を変更"
               title="管理役割を変更しますか"
               confirmLabel="変更する"
-              disabled={isSelf || role === user.role}
-              onConfirm={() => {
-                void mutate(
+              disabled={role === user.role}
+              onConfirm={() =>
+                mutate(
                   () => adminUsers.changeRole({ userId, role, expectedVersion: user.version }),
                   "役割を変更しました",
-                );
-              }}
+                )
+              }
             >
-              {isSelf
-                ? "自分自身の役割は変更できません。"
-                : role === user.role
-                  ? "現在と同じ役割が選択されています。"
-                  : "役割を変更すると、対象ユーザーのすべてのセッションが無効になります。"}
+              {role === user.role
+                ? "現在と同じ役割が選択されています。"
+                : "役割を変更すると、対象ユーザーのすべてのセッションが無効になります。"}
             </ConfirmDialog>
           )}
         </section>
@@ -792,8 +788,8 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
               }
               confirmLabel={user.accountStatus === "active" ? "利用停止にする" : "利用を再開する"}
               danger={user.accountStatus === "active"}
-              onConfirm={() => {
-                void mutate(
+              onConfirm={() =>
+                mutate(
                   () =>
                     adminUsers.changeSuspension({
                       userId,
@@ -801,8 +797,8 @@ function AdminUserDetailContent({ userId }: { userId: string }) {
                       expectedVersion: user.version,
                     }),
                   user.accountStatus === "active" ? "利用停止にしました" : "利用を再開しました",
-                );
-              }}
+                )
+              }
             >
               利用状態を変更すると、対象ユーザーのすべてのセッションが無効になります。
             </ConfirmDialog>

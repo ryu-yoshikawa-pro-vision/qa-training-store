@@ -3,6 +3,7 @@ import { formatYen } from "@/presentation/components/product-card";
 import { content, labels } from "@/presentation/content/dictionary";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useAppRuntime } from "@/presentation/providers/app-runtime-provider";
+import { isPresentationRouteLink } from "@/presentation/routing/guide-routes";
 import { FREE_SHIPPING_THRESHOLD, membershipDiscountRate } from "@/domain/services/pricing";
 import { isTestApiBuild } from "@/test-controls/test-api.web";
 import {
@@ -73,15 +74,6 @@ function formatPercent(rate: number): string {
   return `${Math.round(rate * 100)}%`;
 }
 
-function isSafeInternalPath(path: string): boolean {
-  if (path === "/") return true;
-  if (!path.startsWith("/") || path.startsWith("//")) return false;
-  if (path.includes("://") || path.includes("..") || path.includes("\\") || /\s/.test(path)) {
-    return false;
-  }
-  return /^[A-Za-z0-9/_-]+$/.test(path.slice(1));
-}
-
 function describeAccount(email: string): string {
   const account = content.guide.accounts.find((item) => item.email === email);
   return account === undefined ? email : `${account.label} (${account.email})`;
@@ -95,7 +87,7 @@ function describeInitialSession(session: ScenarioInitialSession): string {
 }
 
 function renderRoute(route: string) {
-  return isSafeInternalPath(route) ? (
+  return isPresentationRouteLink(route) ? (
     <Link href={route as Href}>{route}</Link>
   ) : (
     <span>{route}</span>

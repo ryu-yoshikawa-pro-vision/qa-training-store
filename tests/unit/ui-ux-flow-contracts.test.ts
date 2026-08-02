@@ -11,7 +11,12 @@ import {
 } from "@/presentation/browser/one-time-notice.web";
 import { mergeAddressSuggestion } from "@/presentation/browser/address-suggestion";
 import { shipmentDisplayLabel } from "@/presentation/content/dictionary";
+import {
+  isPresentationRouteLink,
+  PRESENTATION_ROUTE_LINKS,
+} from "@/presentation/routing/guide-routes";
 import { PHASE_ONE_SCENARIOS, SCENARIO_METADATA } from "@/seeds/metadata";
+import { createScenarioDataset } from "@/seeds/scenarios";
 
 describe("UI/UX flow contracts", () => {
   it("accepts only the customer checkout return paths", async () => {
@@ -96,6 +101,62 @@ describe("UI/UX flow contracts", () => {
     for (const scenario of PHASE_ONE_SCENARIOS) {
       const definition = SCENARIO_METADATA[scenario];
       expect(definition.e2eHasSession).toBe(definition.initialSession.kind !== "guest");
+    }
+  });
+
+  it("keeps scenario datasets aligned with metadata sessions", () => {
+    for (const scenario of PHASE_ONE_SCENARIOS) {
+      const definition = SCENARIO_METADATA[scenario];
+      const dataset = createScenarioDataset(scenario);
+      const initialSession = definition.initialSession;
+
+      if (!("email" in initialSession)) {
+        expect(dataset.sessions).toHaveLength(0);
+        continue;
+      }
+
+      const user = dataset.users.filter((candidate) => candidate.email === initialSession.email);
+      expect(user).toHaveLength(1);
+      expect(dataset.sessions).toHaveLength(1);
+      expect(dataset.sessions[0]?.userId).toBe(user[0]?.id);
+      expect(definition.e2eHasSession).toBe(true);
+    }
+  });
+
+  it("links only the shared guide and notice route allowlist", () => {
+    expect(PRESENTATION_ROUTE_LINKS).toEqual([
+      "/",
+      "/products",
+      "/search",
+      "/cart",
+      "/login",
+      "/checkout/address",
+      "/checkout/payment",
+      "/checkout/confirm",
+      "/orders",
+      "/account/profile",
+      "/account/addresses",
+      "/admin",
+      "/admin/products",
+      "/admin/inventories",
+      "/admin/orders",
+      "/admin/reviews",
+      "/admin/users",
+      "/guide",
+    ]);
+    for (const path of PRESENTATION_ROUTE_LINKS) {
+      expect(isPresentationRouteLink(path)).toBe(true);
+    }
+    for (const path of [
+      "/reviews",
+      "/checkout/failed",
+      "/checkout/processing",
+      "/checkout/complete",
+      "https://example.com",
+      "//evil.example",
+      "../admin",
+    ]) {
+      expect(isPresentationRouteLink(path)).toBe(false);
     }
   });
 
