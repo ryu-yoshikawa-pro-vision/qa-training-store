@@ -12,50 +12,35 @@ on:
 permissions:
   contents: read
 
+env:
+  CI: "true"
+  NODE_VERSION: "24"
+  PNPM_VERSION: "9.10.0"
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
-  validate:
+  quality:
     runs-on: ubuntu-latest
-    timeout-minutes: 45
-    outputs:
-      cloudflare_available: ${{ steps.cloudflare-availability.outputs.available }}
-    env:
-      CI: "true"
-      EXPO_PUBLIC_APP_ENV: automation
-      EXPO_PUBLIC_BUILD_KIND: automation
-      EXPO_PUBLIC_TEST_MODE: "true"
-      EXPO_PUBLIC_DEFAULT_SEED: default
-
+    timeout-minutes: 20
     steps:
-      - name: Check Cloudflare availability
-        id: cloudflare-availability
-        env:
-          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: |
-          if [[ -n "$CLOUDFLARE_API_TOKEN" && -n "$CLOUDFLARE_ACCOUNT_ID" ]]; then
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "available=false" >> "$GITHUB_OUTPUT"
-          fi
+      - uses: actions/checkout@v4
 
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
-          version: 9.10.0
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Format
+      - name: Format check
         run: pnpm run format:check
 
       - name: Lint
@@ -67,107 +52,41 @@ jobs:
       - name: Validate image manifest
         run: pnpm run validate:image-manifest
 
-      - name: Credential and runtime security check
+      - name: Security check
         run: pnpm run security:check
 
-      - name: Unit tests
-        run: pnpm run test:unit
+  vitest:
+    name: Vitest (${{ matrix.suite }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        suite:
+          - unit
+          - integration
+          - repository
+          - component
+          - contracts
+    steps:
+      - uses: actions/checkout@v4
 
-      - name: Application integration tests
-        run: pnpm run test:integration
-
-      - name: Dexie repository contract tests
-        run: pnpm run test:repository
-
-      - name: Component tests
-        run: pnpm run test:component
-
-      - name: Contract tests
-        run: pnpm run test:contracts
-
-      - name: Web build
-        run: pnpm run build:web
-
-      - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
-
-      - name: Chromium required E2E
-        run: pnpm run test:e2e:chromium
-
-      - name: Accessibility smoke
-        run: pnpm run test:a11y
-
-      - name: Mobile staff boundary E2E
-        run: pnpm run test:e2e:mobile-boundary
-
-      - name: Capture UI review screenshots
-        env:
-          UI_REVIEW_STAGE: ci-${{ github.run_id }}-${{ github.run_attempt }}
-        run: |
-          pnpm exec playwright test e2e/web/ui-review.spec.ts \
-            --project=ui-review-desktop \
-            --workers=1
-          pnpm exec playwright test e2e/web/ui-review.spec.ts \
-            --project=ui-review-tablet \
-            --workers=1
-          pnpm exec playwright test e2e/web/ui-review.spec.ts \
-            --project=ui-review-mobile \
-            --workers=1
-          pnpm exec playwright test e2e/web/ui-review.spec.ts \
-            --project=ui-review-small-mobile \
-            --workers=1
-
-      - name: Upload UI review screenshots
-        if: always()
-        uses: actions/upload-artifact@v4
+      - uses: pnpm/action-setup@v4
         with:
-          name: ui-review-${{ github.run_id }}-${{ github.run_attempt }}
-          path: output/ui-review/ci-${{ github.run_id }}-${{ github.run_attempt }}
-          if-no-files-found: warn
-          retention-days: 14
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Install extended browsers
-        if: ${{ github.event_name != 'pull_request' }}
-        run: pnpm exec playwright install --with-deps firefox webkit
-
-      - name: Mobile Chromium E2E
-        if: ${{ github.event_name != 'pull_request' }}
-        run: pnpm run test:e2e:mobile
-
-      - name: Cross-role lifecycle
-        run: pnpm run test:e2e:cross-role
-
-      - name: Firefox smoke
-        if: ${{ github.event_name != 'pull_request' }}
-        run: pnpm run test:e2e:smoke:firefox
-
-      - name: WebKit smoke
-        if: ${{ github.event_name != 'pull_request' }}
-        run: pnpm run test:e2e:smoke:webkit
-
-      - name: Production web build validation
-        env:
-          EXPO_PUBLIC_APP_ENV: production
-          EXPO_PUBLIC_BUILD_KIND: production
-          EXPO_PUBLIC_TEST_MODE: "false"
-          EXPO_PUBLIC_DEFAULT_SEED: default
-        run: pnpm run build:web
-
-      - name: Upload Playwright artifacts on failure
-        if: ${{ failure() }}
-        uses: actions/upload-artifact@v4
+      - uses: actions/setup-node@v4
         with:
-          name: playwright-artifacts-${{ github.run_id }}
-          path: output/playwright
-          if-no-files-found: warn
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
 
-  deploy-preview:
-    needs: validate
-    if: >-
-      ${{
-        github.event_name == 'pull_request' &&
-        needs.validate.outputs.cloudflare_available == 'true'
-      }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run Vitest suite
+        run: pnpm run test:${{ matrix.suite }}
+
+  build-automation:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
@@ -175,28 +94,398 @@ jobs:
       EXPO_PUBLIC_BUILD_KIND: automation
       EXPO_PUBLIC_TEST_MODE: "true"
       EXPO_PUBLIC_DEFAULT_SEED: default
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      EXPO_PUBLIC_BUILD_SHA: ${{ github.sha }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
-          version: 9.10.0
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Build automation preview
+      - name: Build automation web
         run: pnpm run build:web
+
+      - name: Verify automation artifact
+        run: test -f dist/index.html
+
+      - name: Upload automation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-automation
+          path: dist
+          if-no-files-found: error
+          retention-days: 3
+
+  build-production:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      EXPO_PUBLIC_APP_ENV: production
+      EXPO_PUBLIC_BUILD_KIND: production
+      EXPO_PUBLIC_TEST_MODE: "false"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+      EXPO_PUBLIC_BUILD_SHA: ${{ github.sha }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Build production web
+        run: pnpm run build:web
+
+      - name: Verify production artifact
+        run: test -f dist/index.html
+
+      - name: Upload production artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: web-dist-production
+          path: dist
+          if-no-files-found: error
+          retention-days: 3
+
+  e2e-chromium:
+    name: Chromium E2E (${{ matrix.name }})
+    needs: build-automation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - name: required
+            command: pnpm run test:e2e:chromium
+          - name: accessibility
+            command: pnpm run test:a11y
+          - name: mobile-boundary
+            command: pnpm run test:e2e:mobile-boundary
+          - name: cross-role
+            command: pnpm run test:e2e:cross-role
+    env:
+      PLAYWRIGHT_USE_PREBUILT_DIST: "true"
+      EXPO_PUBLIC_APP_ENV: automation
+      EXPO_PUBLIC_BUILD_KIND: automation
+      EXPO_PUBLIC_TEST_MODE: "true"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download automation artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist-automation
+          path: dist
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Run Chromium E2E
+        run: ${{ matrix.command }}
+
+      - name: Upload Playwright artifacts on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-${{ matrix.name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/playwright
+          if-no-files-found: warn
+          retention-days: 14
+
+  ui-review:
+    name: UI Review (${{ matrix.project }})
+    needs: build-automation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 4
+      matrix:
+        include:
+          - project: ui-review-desktop
+            viewport: desktop
+          - project: ui-review-tablet
+            viewport: tablet
+          - project: ui-review-mobile
+            viewport: mobile
+          - project: ui-review-small-mobile
+            viewport: small-mobile
+    env:
+      PLAYWRIGHT_USE_PREBUILT_DIST: "true"
+      UI_REVIEW_STAGE: ci-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download automation artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist-automation
+          path: dist
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Capture UI review screenshots
+        run: pnpm exec playwright test e2e/web/ui-review.spec.ts --project="${{ matrix.project }}" --workers=1
+
+      - name: Upload UI review screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ui-review-${{ matrix.project }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/ui-review/ci-${{ github.run_id }}-${{ github.run_attempt }}/${{ matrix.viewport }}
+          if-no-files-found: warn
+          retention-days: 14
+
+  production-smoke:
+    needs: build-production
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_USE_PREBUILT_DIST: "true"
+      EXPO_PUBLIC_APP_ENV: production
+      EXPO_PUBLIC_BUILD_KIND: production
+      EXPO_PUBLIC_TEST_MODE: "false"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download production artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist-production
+          path: dist
+
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Smoke production artifact locally
+        run: pnpm run test:smoke
+
+      - name: Upload Playwright artifacts on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-production-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/playwright
+          if-no-files-found: warn
+          retention-days: 14
+
+  extended-e2e:
+    if: github.event_name != 'pull_request'
+    name: Extended E2E (${{ matrix.name }})
+    needs: build-automation
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      max-parallel: 3
+      matrix:
+        include:
+          - name: mobile-chromium
+            browser: chromium
+            command: pnpm run test:e2e:mobile
+          - name: firefox
+            browser: firefox
+            command: pnpm run test:e2e:smoke:firefox
+          - name: webkit
+            browser: webkit
+            command: pnpm run test:e2e:smoke:webkit
+    env:
+      PLAYWRIGHT_USE_PREBUILT_DIST: "true"
+      EXPO_PUBLIC_APP_ENV: automation
+      EXPO_PUBLIC_BUILD_KIND: automation
+      EXPO_PUBLIC_TEST_MODE: "true"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download automation artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist-automation
+          path: dist
+
+      - name: Install ${{ matrix.browser }}
+        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+
+      - name: Run extended E2E
+        run: ${{ matrix.command }}
+
+      - name: Upload Playwright artifacts on failure
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-${{ matrix.name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/playwright
+          if-no-files-found: warn
+          retention-days: 14
+
+  validate:
+    needs:
+      - quality
+      - vitest
+      - build-automation
+      - build-production
+      - e2e-chromium
+      - ui-review
+      - production-smoke
+      - extended-e2e
+    if: always()
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate required job results
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          QUALITY_RESULT: ${{ needs.quality.result }}
+          VITEST_RESULT: ${{ needs.vitest.result }}
+          BUILD_AUTOMATION_RESULT: ${{ needs.build-automation.result }}
+          BUILD_PRODUCTION_RESULT: ${{ needs.build-production.result }}
+          E2E_CHROMIUM_RESULT: ${{ needs.e2e-chromium.result }}
+          UI_REVIEW_RESULT: ${{ needs.ui-review.result }}
+          PRODUCTION_SMOKE_RESULT: ${{ needs.production-smoke.result }}
+          EXTENDED_E2E_RESULT: ${{ needs.extended-e2e.result }}
+        run: |
+          set -euo pipefail
+
+          require_success() {
+            local job_name="$1"
+            local result="$2"
+
+            if [[ "$result" != "success" ]]; then
+              echo "::error title=Required CI job failed::${job_name} result was ${result}"
+              exit 1
+            fi
+          }
+
+          require_success "quality" "$QUALITY_RESULT"
+          require_success "vitest" "$VITEST_RESULT"
+          require_success "build-automation" "$BUILD_AUTOMATION_RESULT"
+          require_success "build-production" "$BUILD_PRODUCTION_RESULT"
+          require_success "e2e-chromium" "$E2E_CHROMIUM_RESULT"
+          require_success "ui-review" "$UI_REVIEW_RESULT"
+          require_success "production-smoke" "$PRODUCTION_SMOKE_RESULT"
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            if [[ "$EXTENDED_E2E_RESULT" != "success" && "$EXTENDED_E2E_RESULT" != "skipped" ]]; then
+              echo "::error title=Invalid extended E2E result::extended-e2e result was ${EXTENDED_E2E_RESULT}"
+              exit 1
+            fi
+          else
+            require_success "extended-e2e" "$EXTENDED_E2E_RESULT"
+          fi
+
+          echo "All required CI jobs completed successfully."
+
+  deploy-preview:
+    if: github.event_name == 'pull_request'
+    needs:
+      - validate
+      - build-automation
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      PLAYWRIGHT_USE_PREBUILT_DIST: "true"
+      EXPO_PUBLIC_APP_ENV: automation
+      EXPO_PUBLIC_BUILD_KIND: automation
+      EXPO_PUBLIC_TEST_MODE: "true"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Download automation artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist-automation
+          path: dist
+
+      - name: Require Cloudflare credentials
+        run: |
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            echo "::error title=Missing Cloudflare credentials::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are required for Preview deployment."
+            exit 1
+          fi
 
       - name: Deploy Cloudflare Preview
         id: deploy
@@ -204,14 +493,17 @@ jobs:
         with:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=ec-test-automation-store --branch=${{ github.head_ref }}
+          command: >-
+            pages deploy dist
+            --project-name=ec-test-automation-store
+            --branch=${{ github.head_ref }}
 
       - name: Validate preview deployment URL
         env:
           DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
         run: |
           if [[ -z "$DEPLOYED_BASE_URL" ]]; then
-            echo "Cloudflare preview deployment URL was not returned."
+            echo "::error title=Missing preview deployment URL::Cloudflare did not return a deployment URL."
             exit 1
           fi
 
@@ -223,17 +515,32 @@ jobs:
           DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
         run: pnpm run test:smoke
 
+  pr-gate:
+    name: PR Gate
+    if: github.event_name == 'pull_request'
+    needs:
+      - validate
+      - deploy-preview
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Confirm PR gate
+        run: echo "Required validation and Preview Smoke Test succeeded."
+
   deploy-production:
-    needs: validate
     if: >-
-      ${{
-        github.event_name == 'push' &&
-        github.ref == 'refs/heads/main' &&
-        needs.validate.outputs.cloudflare_available == 'true'
-      }}
+      github.event_name == 'push' &&
+      github.ref == 'refs/heads/main'
+    needs:
+      - validate
+      - build-production
+    concurrency:
+      group: cloudflare-production
+      cancel-in-progress: false
     runs-on: ubuntu-latest
     timeout-minutes: 20
     env:
+      PLAYWRIGHT_USE_PREBUILT_DIST: "true"
       EXPO_PUBLIC_APP_ENV: production
       EXPO_PUBLIC_BUILD_KIND: production
       EXPO_PUBLIC_TEST_MODE: "false"
@@ -241,25 +548,32 @@ jobs:
       CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
       CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Set up pnpm
-        uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v4
         with:
-          version: 9.10.0
+          version: ${{ env.PNPM_VERSION }}
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
-      - name: Build production
-        run: pnpm run build:web
+      - name: Download production artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: web-dist-production
+          path: dist
+
+      - name: Require Cloudflare credentials
+        run: |
+          if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
+            echo "::error title=Missing Cloudflare credentials::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are required for Production deployment."
+            exit 1
+          fi
 
       - name: Deploy Cloudflare Production
         id: deploy
@@ -267,14 +581,17 @@ jobs:
         with:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=ec-test-automation-store --branch=main
+          command: >-
+            pages deploy dist
+            --project-name=ec-test-automation-store
+            --branch=main
 
       - name: Validate production deployment URL
         env:
           DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
         run: |
           if [[ -z "$DEPLOYED_BASE_URL" ]]; then
-            echo "Cloudflare production deployment URL was not returned."
+            echo "::error title=Missing production deployment URL::Cloudflare did not return a deployment URL."
             exit 1
           fi
 

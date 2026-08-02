@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "run_id": "20260802-170105-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [
+    "code_researcher",
+    "implementation_researcher",
+    "test_investigator",
+    "implementation_worker"
+  ],
+  "repo": "qa-training-store",
+  "branch": "fix/2026-08-02",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".github/workflows/ci.yml",
+    "playwright.config.ts",
+    "docs/plans/2026-08-02_170105_github-actions-artifact-ci.md",
+    "docs/adr/0002-ci-artifact-pipeline.md",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/history/2026-08-02_170105_project-context-before-ci-artifact.md",
+    "AGENTS.md",
+    ".codex/runs/20260802-170105-JST/PLAN.md",
+    ".codex/runs/20260802-170105-JST/TASKS.md",
+    ".codex/runs/20260802-170105-JST/REPORT.md",
+    ".codex/runs/20260802-170105-JST/run.json"
+  ],
+  "validation": {
+    "status": "partial",
+    "commands": [
+      "pnpm exec prettier --check .github/workflows/ci.yml playwright.config.ts",
+      "python YAML parse and dependency cycle check",
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run validate:image-manifest",
+      "pnpm run security:check",
+      "pnpm run test",
+      "pnpm run test:contracts",
+      "pnpm exec vitest run tests/contracts/playwright-config.test.ts",
+      "Automation/Production pnpm run build:web with dist/index.html check",
+      "Prebuilt and default pnpm run test:smoke",
+      "pnpm run test:e2e:chromium",
+      "pnpm run test:a11y",
+      "pnpm run test:e2e:mobile-boundary",
+      "pnpm run test:e2e:cross-role"
+    ],
+    "warnings": [
+      "pnpm run format:check は既存 repo baseline の60ファイル未整形で失敗。今回変更したWorkflow／Playwrightは対象ファイル単独checkで成功。",
+      "pnpm run test:contracts は tests/contracts/ci-workflow.test.ts の旧単一Job／Cloudflare availability期待値5件で失敗。ユーザー指示によりテストは変更していない。",
+      "pnpm run test の初回全体実行では上記5件に加え Playwright contract の beforeAll hook timeout が発生したが、単独実行では5/5成功。",
+      "GitHub Actions上の実際のMatrix並列、Artifact Upload/Download、Cloudflare Preview/Production、PR Gate、Production concurrencyは未検証。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 4,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "name": "code_researcher",
+        "mode": "read-only",
+        "adopted": true
+      },
+      {
+        "name": "implementation_researcher",
+        "mode": "read-only",
+        "adopted": true
+      },
+      {
+        "name": "test_investigator",
+        "mode": "read-only",
+        "adopted": true
+      },
+      {
+        "name": "implementation_worker",
+        "mode": "workspace-write",
+        "adopted": true
+      }
+    ],
+    "summary": {
+      "total": 4,
+      "read_only": 3,
+      "writable": 1,
+      "scope_violations": 0,
+      "used_in_final_plan": 4
+    }
+  },
+  "evaluation_path": null,
+  "status": "blocked",
+  "primary_failure_category": "existing-contract-tests-conflict"
+}

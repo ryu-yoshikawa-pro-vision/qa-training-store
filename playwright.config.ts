@@ -2,7 +2,11 @@ import { defineConfig, devices } from "@playwright/test";
 
 const localBaseUrl = process.env.PLAYWRIGHT_BASE_URL ?? "http://127.0.0.1:8081";
 const deployedBaseUrl = process.env.DEPLOYED_BASE_URL;
+const usePrebuiltDist = process.env.PLAYWRIGHT_USE_PREBUILT_DIST === "true";
 const usesDeployedTarget = deployedBaseUrl !== undefined && deployedBaseUrl.trim() !== "";
+const webServerCommand = usePrebuiltDist
+  ? "pnpm exec tsx scripts/serve-web-dist.ts"
+  : "pnpm run build:web && pnpm exec tsx scripts/serve-web-dist.ts";
 
 export default defineConfig({
   testDir: "./e2e/web",
@@ -25,7 +29,7 @@ export default defineConfig({
     ? {}
     : {
         webServer: {
-          command: "pnpm run build:web && pnpm exec tsx scripts/serve-web-dist.ts",
+          command: webServerCommand,
           url: localBaseUrl,
           reuseExistingServer: !process.env.CI,
           timeout: 120_000,

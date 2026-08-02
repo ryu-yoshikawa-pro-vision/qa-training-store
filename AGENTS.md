@@ -21,6 +21,8 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 ## 1. Run 初期化
 - `run_id = YYYYMMDD-HHMMSS-JST` を使う。
 - 現在の会話に active run がない場合は `.codex/runs/<run_id>/` を作る。
+- 同じ会話セッション内で同一タスクを継続する場合は、既存の active run と同じ `run_id`／Run Directory（`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`）を再利用し、新しい Run を作成しない。進捗、判断、検証結果は既存 Artifact へ追記・更新する。
+- 同じ会話セッション内でも、ユーザーが別タスクの開始を明示した場合は新しい Run を作成してよい。会話セッションが変わった場合も、active run の引継ぎが明示されない限り新しい Run を作成する。
 - `standard` / `strict` では `scripts/new-run.sh` または `scripts/new-run.ps1` を優先して run を初期化する。
 - `lightweight` でも run artifact は残す。手動作成してよいが、迷う場合は `new-run` を使う。
 - `new-run` を使わず手動初期化する場合は以下をコピーする。
@@ -34,6 +36,7 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 
 * `.codex/runs/<run_id>/` 配下の成果物は、一時的な作業ファイルではなく、作業履歴、判断経緯、検証結果、未完了事項を引き継ぐための正式なリポジトリ成果物として扱う。
 * 作業完了後も Run Directory を保存し、今後の調査、レビュー、修正、再発防止に利用できるよう蓄積する。
+* 同一会話セッション内の継続作業では、既存 Run Artifact を同じものとして使い、`REPORT.md` は append-only で追記し、`PLAN.md`／`TASKS.md`／`run.json` は履歴を失わない範囲で更新する。active run があるのに新しい Run Directory を作成して履歴を分散させない。
 * 過去の Run Directory や `PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json` を、通常のcleanupや成果物整理を理由に削除しない。
 * 過去Runの内容は原則として上書きせず、修正作業では新しいRunを作成する。既存Runへ補足が必要な場合は、履歴を失わない形で追記する。
 * `.codex/runs/`を`.gitignore`へ追加しない。
