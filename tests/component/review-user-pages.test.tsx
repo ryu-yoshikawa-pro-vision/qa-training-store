@@ -320,7 +320,10 @@ describe("review, user, and test-control pages", () => {
     await waitFor(() => expect(rankSelect).toHaveValue("regular"));
     expect(screen.getByRole("button", { name: "ランクを変更" })).toBeDisabled();
     fireEvent.change(rankSelect, { target: { value: "gold" } });
-    await waitFor(() => expect(rankSelect).toHaveValue("gold"));
+    await waitFor(() => {
+      expect(screen.getByLabelText("ランク")).toHaveValue("gold");
+      expect(screen.getByRole("button", { name: "ランクを変更" })).toBeEnabled();
+    });
     fireEvent.click(screen.getByRole("button", { name: "ランクを変更" }));
     await waitFor(() =>
       expect(adminUsers.changeMembershipRank).toHaveBeenCalledWith({
@@ -329,8 +332,10 @@ describe("review, user, and test-control pages", () => {
         expectedVersion: 1,
       }),
     );
-    await waitFor(() => expect(screen.getByLabelText("ランク")).toHaveValue("gold"));
-    expect(screen.getByRole("button", { name: "ランクを変更" })).toBeDisabled();
+    await waitFor(() => {
+      expect(screen.getByLabelText("ランク")).toHaveValue("gold");
+      expect(screen.getByRole("button", { name: "ランクを変更" })).toBeDisabled();
+    });
   });
 
   it("initializes an admin role without enabling an unchanged mutation", async () => {
