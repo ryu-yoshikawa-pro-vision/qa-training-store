@@ -204,7 +204,7 @@ jobs:
         with:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=ec-training-automation --branch=${{ github.head_ref }}
+          command: pages deploy dist --project-name=ec-test-automation-store --branch=${{ github.head_ref }}
 
       - name: Validate preview deployment URL
         env:
@@ -267,7 +267,7 @@ jobs:
         with:
           apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
-          command: pages deploy dist --project-name=ec-training-automation --branch=main
+          command: pages deploy dist --project-name=ec-test-automation-store --branch=main
 
       - name: Validate production deployment URL
         env:
