@@ -12,9 +12,11 @@
   "codex_task_reports": [],
   "changed_files": [],
   "validation": {
-    "status": "not_run",
+    "status": "superseded",
     "commands": [],
-    "warnings": []
+    "warnings": [
+      "同一タスクの実装・検証は 20260802-170105-JST へ統合されたため、このRunでは追加実装・検証を行っていない。"
+    ]
   },
   "safety": {
     "network": false,
@@ -46,6 +48,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "pending",
-  "primary_failure_category": null
+  "status": "superseded",
+  "primary_failure_category": "duplicate-run"
 }

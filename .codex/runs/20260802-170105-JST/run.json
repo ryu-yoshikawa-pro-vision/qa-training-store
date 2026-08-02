@@ -17,19 +17,23 @@
   "codex_task_reports": [],
   "changed_files": [
     ".github/workflows/ci.yml",
+    "tests/contracts/ci-workflow.test.ts",
     "playwright.config.ts",
     "docs/plans/2026-08-02_170105_github-actions-artifact-ci.md",
     "docs/adr/0002-ci-artifact-pipeline.md",
     "docs/PROJECT_CONTEXT.md",
     "docs/history/2026-08-02_170105_project-context-before-ci-artifact.md",
     "AGENTS.md",
+    ".codex/runs/20260802-171344-JST/run.json",
+    ".codex/runs/20260802-171344-JST/TASKS.md",
+    ".codex/runs/20260802-171344-JST/REPORT.md",
     ".codex/runs/20260802-170105-JST/PLAN.md",
     ".codex/runs/20260802-170105-JST/TASKS.md",
     ".codex/runs/20260802-170105-JST/REPORT.md",
     ".codex/runs/20260802-170105-JST/run.json"
   ],
   "validation": {
-    "status": "partial",
+    "status": "passed_with_warnings",
     "commands": [
       "pnpm exec prettier --check .github/workflows/ci.yml playwright.config.ts",
       "python YAML parse and dependency cycle check",
@@ -46,13 +50,21 @@
       "pnpm run test:e2e:chromium",
       "pnpm run test:a11y",
       "pnpm run test:e2e:mobile-boundary",
-      "pnpm run test:e2e:cross-role"
+      "pnpm run test:e2e:cross-role",
+      "pnpm exec vitest run tests/contracts/ci-workflow.test.ts",
+      "pnpm run test:contracts",
+      "pnpm run test",
+      "pnpm exec prettier --check .github/workflows/ci.yml tests/contracts/ci-workflow.test.ts docs/adr/0002-ci-artifact-pipeline.md docs/PROJECT_CONTEXT.md docs/plans/2026-08-02_170105_github-actions-artifact-ci.md",
+      "YAML parse, job ID, needs cycle, and final validate truth-table audit",
+      "legacy CI/CD documentation scan",
+      "active／duplicate run.json JSON and requested artifact existence audit",
+      "current workflow contract scan"
     ],
     "warnings": [
-      "pnpm run format:check は既存 repo baseline の60ファイル未整形で失敗。今回変更したWorkflow／Playwrightは対象ファイル単独checkで成功。",
-      "pnpm run test:contracts は tests/contracts/ci-workflow.test.ts の旧単一Job／Cloudflare availability期待値5件で失敗。ユーザー指示によりテストは変更していない。",
-      "pnpm run test の初回全体実行では上記5件に加え Playwright contract の beforeAll hook timeout が発生したが、単独実行では5/5成功。",
-      "GitHub Actions上の実際のMatrix並列、Artifact Upload/Download、Cloudflare Preview/Production、PR Gate、Production concurrencyは未検証。"
+      "pnpm run format:check は既存 repo baseline の59ファイル未整形で失敗。今回変更対象はtargeted Prettier checkで成功。",
+      "lint は0 errors／63 warnings。今回追加した契約テスト由来のwarningは残していない。",
+      "初回の旧契約テスト5件失敗はPR #6修正で解消し、最終 test:contracts は6 files／46 tests passed。",
+      "GitHub Actions上の実際のMatrix並列、Artifact Upload/Download、Cloudflare Preview/Production、Required Check表示、Production concurrencyは未検証。"
     ]
   },
   "safety": {
@@ -64,7 +76,7 @@
   "artifact_summary": {
     "codex_task_report_count": 0,
     "hook_event_count": 0,
-    "subagent_run_count": 4,
+    "subagent_run_count": 5,
     "evaluation_present": false
   },
   "hook_observations": {
@@ -95,17 +107,23 @@
         "name": "implementation_worker",
         "mode": "workspace-write",
         "adopted": true
+      },
+      {
+        "name": "test_investigator",
+        "mode": "read-only",
+        "adopted": true,
+        "summary": "PR #6のjobBlock、fail-closed、Artifact、URL Smoke、Secret契約を調査し、契約テスト再設計案を提示。"
       }
     ],
     "summary": {
-      "total": 4,
-      "read_only": 3,
+      "total": 5,
+      "read_only": 4,
       "writable": 1,
       "scope_violations": 0,
-      "used_in_final_plan": 4
+      "used_in_final_plan": 5
     }
   },
   "evaluation_path": null,
-  "status": "blocked",
-  "primary_failure_category": "existing-contract-tests-conflict"
+  "status": "complete",
+  "primary_failure_category": null
 }

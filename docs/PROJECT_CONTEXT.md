@@ -66,10 +66,10 @@
 
 ## CI/CD構成（2026-08-02）
 
-- Quality、Vitest、Build、Playwright 検証は独立 Job／Matrix として実行し、独立した検証を可能な範囲で並列化する。集約 Job の ID は Required Check 移行互換性のため `validate` を維持する。
+- Quality、Vitest、Build、Playwright 検証は独立 Job／Matrix として実行し、独立した検証を可能な範囲で並列化する。上流検証を集約する内部 Job ID は `verify` とし、既存 Required Check 互換性のため最終 Job ID `validate` を維持する。
 - Automation／Production の `dist/` はそれぞれ一度だけ Build し、`web-dist-automation`／`web-dist-production` Artifact として後続の E2E、Smoke、デプロイ Job へ共有する。
 - Playwright は `PLAYWRIGHT_USE_PREBUILT_DIST=true` のとき Download 済みの `dist/` を静的サーバーで配信し、Job 内の `build:web` 再実行を抑止する。環境変数が未指定の場合はローカルの従来どおり Build 後に配信する。
-- PR は必須検証、Automation Artifact による Preview デプロイ、固有 Preview URL の Smoke Test を順に通過した後、`PR Gate` を成功させる。main Push は全必須検証と Production Artifact の Local Smoke 後に Production デプロイと公開 URL Smoke Test を行う。
+- PR は `verify`、Automation Artifact による Preview デプロイ、固有 Preview URL の Smoke Test を順に通過した後、最終 `validate` を成功させる。Preview デプロイまたは Smoke が失敗・Skip した場合、`validate` は `always()` の結果判定で失敗する。main Push では `deploy-preview` を Skip として扱い、`verify` と Preview Skip を確認した最終 `validate` の成功後に Production デプロイと公開 URL Smoke Test を行う。
 - Production デプロイは `cloudflare-production` の Job concurrency により同時実行しない。Cloudflare Secret 不足はデプロイ対象 Job 内で明示的に失敗させ、検証集約で黙って Skip しない。
 
 ## メモ

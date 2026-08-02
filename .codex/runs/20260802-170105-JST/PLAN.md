@@ -2,11 +2,12 @@
 
 ## Objective
 - GitHub Actions の検証並列化、Build Artifact 共有、Playwright Prebuilt Dist、Cloudflare デプロイゲートを実装する。
-- 初回確認では別作業のテスト修正が main に未反映だったが、ユーザーが続行を明示したため、テスト修正を変更せず CI/CD 構造の実装を進める。
+- PR #6 修正として、Workflow 契約テストを新構造へ追従させ、`verify` と最終 `validate` の fail-closed ゲートを成立させる。
+- 初回確認では別作業のテスト修正が main に未反映だったが、ユーザーが続行を明示したため CI/CD 構造の実装を進めた。今回の修正ではユーザーが契約テスト変更を明示的に許可した。
 
 ## Scope
-- In: `.github/workflows/ci.yml`、`playwright.config.ts`、実装前計画、CI/CD ADR、`PROJECT_CONTEXT.md` と履歴、今回の Run Artifact。
-- Out: テスト修正、アプリケーションコード、package／依存変更、Workflow 分割、Composite Action／Container、新規 Rollback、Git 操作、GitHub／Cloudflare 管理画面操作。
+- In: `.github/workflows/ci.yml`、`tests/contracts/ci-workflow.test.ts`、CI/CD ADR、`PROJECT_CONTEXT.md` と履歴、計画、active Run Artifact、重複 Run `20260802-171344-JST` の終了状態。
+- Out: `playwright.config.ts` の追加変更、アプリケーションコード、`tests/component/review-user-pages.test.tsx`、E2E テスト本体、package／依存変更、Workflow 分割、Composite Action／Container、新規 Rollback、Git 操作、GitHub／Cloudflare 管理画面操作。
 
 ## Assumptions
 - 添付指示の Job 名、Matrix、Artifact 名、イベント条件、Secret 名を既定仕様として採用する。
@@ -31,17 +32,30 @@
 
 ## Approach
 - 現在の branch／main 参照と直近 Run を確認し、初回ゲート未達の事実を記録する。
-- ユーザーの続行許可を受け、`docs/plans/2026-08-02_170105_github-actions-artifact-ci.md` に保存した手順で Workflow／Playwright を実装する。
-- 実装後に文書、構造、静的検証、可能な E2E を実行し、既存契約テストとの衝突はテスト変更なしで切り分ける。
-- 標準フロー: `PLAN -> TASKS -> 前提確認 -> 実装 -> 検証 -> REPORT`
+- ユーザーの続行許可を受け、Artifact 共有型 Workflow／Playwright Prebuilt Dist を実装する。
+- PR #6 の validation failure を must_fix として、`verify`（検証集約）→ `deploy-preview`（Preview URL Smoke）→ `validate`（最終 Required Check）へ依存グラフを修正する。
+- Job単位の文字列 Helperを持つ契約テストで、依存関係、fail-closed結果判定、Artifact同一性、再Build禁止、URL検証順、Secret明示失敗を固定する。
+- 重複 Run は削除せず `superseded` 状態と追記ログで終了し、ADR／Context／計画／Run Artifactを実装へ同期する。
+- 標準フロー: `PLAN -> TASKS -> 前提確認 -> 修正 -> targeted validation -> full validation -> REPORT`
 
 ## Definition of Done
-- 今回の Run: ユーザーの続行許可を踏まえ、CI/CD 構造を実装・検証し、未検証の GitHub 上項目を記録する。
-- 実装再開時: 添付指示の CI／Playwright／文書 DoD と、ローカル／GitHub で確認可能な検証結果をすべて満たす。
+- PR #6 の新しい Workflow 契約テストが成功し、`verify` と最終 `validate` の責務が分離される。
+- PR では Preview デプロイ／Smoke の失敗・Skipを最終 `validate` が失敗として集約し、main Pushでは Preview Skipを許可して `validate` 成功後にProductionへ進む。
+- Artifact Upload／Download、デプロイ前URL検証、再Build禁止、Secret明示失敗、文書同期、重複Run終了状態を検証する。
+- GitHub Actions 実Runnerでしか確認できない項目は未検証として明記し、GitHub／Git mutationは行わない。
 
 ## Risks / Unknowns
-- main 未反映のテスト修正を前提に CI 構造を変更すると、別作業の失敗と今回の変更を切り分けにくい。テスト／アプリコードを変更せず、失敗を分類して記録する。
-- GitHub 上の既存 CI 成功、Artifact、Deploy はこの環境だけでは未確認。Push／Git 操作を行わず、ユーザー側の main 反映後に再開する。
+- `always()` のJobでも依存結果を判定しないと上流失敗がSkipに隠れるため、`verify`／最終 `validate` の結果比較を契約テストで固定する。
+- GitHub 上の実Runner、Artifact、Cloudflare Deploy、Required Check はこの環境だけでは未確認。Push／GitHub操作を行わず、未検証項目として記録する。
+
+## Repair Iteration 1 (PR #6)
+
+- `iteration_number`: 1
+- `input_findings`: 旧 `tests/contracts/ci-workflow.test.ts` の5件失敗、`validate` が検証集約と最終ゲートを兼務、`PR Gate` が上流失敗時に Skip される、重複 Run `20260802-171344-JST` が pending。
+- Triage: `must_fix`＝Workflow依存グラフ、最終validate fail-closed、契約テスト更新、文書同期、重複Run終了。`should_fix`＝契約テストの過度な文字列固定回避。`defer`＝GitHub実Runner／Cloudflare実デプロイ確認。`reject`／`needs_human`＝なし。
+- `allowed_files`: `.github/workflows/ci.yml`, `tests/contracts/ci-workflow.test.ts`, `docs/adr/0002-ci-artifact-pipeline.md`, `docs/PROJECT_CONTEXT.md`, `docs/plans/2026-08-02_170105_github-actions-artifact-ci.md`, `.codex/runs/20260802-170105-JST/*`, `.codex/runs/20260802-171344-JST/*`。
+- `expected_changed_files`: `.github/workflows/ci.yml`, `tests/contracts/ci-workflow.test.ts`, 指定CI/CD文書、active Run、重複Run。
+- `max_iterations`: 1。今回の修正と必須検証を1 iterationとして扱い、同じfailure categoryの無制限再試行はしない。
 
 ## Thinking Log
 - 2026-08-02 17:01 JST: 添付指示を読み、作業開始条件を最優先のゲートとして設定した。

@@ -1,85 +1,163 @@
 import { readFileSync } from "node:fs";
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
-const validate = workflow.slice(
-  workflow.indexOf("  validate:"),
-  workflow.indexOf("  deploy-preview:"),
-);
-const preview = workflow.slice(
-  workflow.indexOf("  deploy-preview:"),
-  workflow.indexOf("  deploy-production:"),
-);
-const production = workflow.slice(workflow.indexOf("  deploy-production:"));
+
+function jobBlock(jobName: string, nextJobName?: string) {
+  const start = workflow.indexOf(`  ${jobName}:`);
+  expect(start).toBeGreaterThanOrEqual(0);
+
+  if (nextJobName === undefined) {
+    return workflow.slice(start);
+  }
+
+  const end = workflow.indexOf(`  ${nextJobName}:`, start + 1);
+  expect(end).toBeGreaterThan(start);
+  return workflow.slice(start, end);
+}
 
 function stepBlock(job: string, stepName: string) {
   const start = job.indexOf(`      - name: ${stepName}`);
+  expect(start).toBeGreaterThanOrEqual(0);
   const next = job.indexOf("\n      - name:", start + 1);
   return job.slice(start, next === -1 ? undefined : next);
 }
 
 describe("Phase 1 CI deployment boundaries", () => {
-  it("keeps deployed smoke out of validate and validates a production build after automation E2E", () => {
-    expect(validate).not.toContain("DEPLOYED_BASE_URL");
-    expect(validate).not.toContain("Deployed smoke");
-    expect(validate).toContain("Production web build validation");
-    expect(validate.indexOf("Production web build validation")).toBeGreaterThan(
-      validate.indexOf("Accessibility smoke"),
-    );
-  });
+  it("splits verification, preview deployment, and the final validate gate", () => {
+    const verify = jobBlock("verify", "deploy-preview");
+    const preview = jobBlock("deploy-preview", "validate");
+    const validate = jobBlock("validate", "deploy-production");
+    const production = jobBlock("deploy-production");
 
-  it("runs the focused Mobile staff boundary E2E for pull requests and every validate event", () => {
-    const boundaryStep = stepBlock(validate, "Mobile staff boundary E2E");
+    expect(verify).toContain("if: always()");
+    for (const dependency of [
+      "quality",
+      "vitest",
+      "build-automation",
+      "build-production",
+      "e2e-chromium",
+      "ui-review",
+      "production-smoke",
+      "extended-e2e",
+    ]) {
+      expect(verify).toContain(`      - ${dependency}`);
+    }
+    expect(verify).not.toContain("pnpm run");
 
-    expect(boundaryStep).toContain("run: pnpm run test:e2e:mobile-boundary");
-    expect(boundaryStep).not.toContain("if:");
-    expect(validate.indexOf("Mobile staff boundary E2E")).toBeGreaterThan(
-      validate.indexOf("Accessibility smoke"),
-    );
-    expect(stepBlock(validate, "Mobile Chromium E2E")).toContain(
-      "if: ${{ github.event_name != 'pull_request' }}",
-    );
-  });
-
-  it("runs the Cross-role lifecycle step on pull requests without reusing the Chromium required job gate", () => {
-    const crossRoleStep = stepBlock(validate, "Cross-role lifecycle");
-
-    expect(crossRoleStep).toContain("run: pnpm run test:e2e:cross-role");
-    expect(crossRoleStep).not.toContain("if:");
-    expect(validate.indexOf("Cross-role lifecycle")).toBeGreaterThan(
-      validate.indexOf("Install Chromium"),
-    );
-    expect(validate.match(/Cross-role lifecycle/g) ?? []).toHaveLength(1);
-  });
-
-  it("smokes the exact preview deployment after the deploy step", () => {
-    expect(preview).toContain("github.event_name == 'pull_request'");
-    expect(preview).toContain("needs.validate.outputs.cloudflare_available == 'true'");
-    expect(preview).toContain("id: deploy");
-    expect(preview).toContain("steps.deploy.outputs.deployment-url");
-    expect(preview.indexOf("Validate preview deployment URL")).toBeGreaterThan(
-      preview.indexOf("Deploy Cloudflare Preview"),
-    );
-    expect(preview.indexOf("Smoke deployed preview")).toBeGreaterThan(
-      preview.indexOf("Validate preview deployment URL"),
-    );
-    expect(stepBlock(preview, "Validate preview deployment URL")).toContain(
-      'if [[ -z "$DEPLOYED_BASE_URL" ]]',
-    );
-  });
-
-  it("smokes the exact production deployment after a production build and deploy", () => {
+    expect(preview).toContain("      - verify");
+    expect(preview).toContain("      - build-automation");
+    expect(preview).toContain("if: github.event_name == 'pull_request'");
+    expect(validate).toContain("if: always()");
+    expect(validate).toContain("      - verify");
+    expect(validate).toContain("      - deploy-preview");
+    expect(production).toContain("      - validate");
+    expect(production).toContain("      - build-production");
+    expect(production).toContain("github.event_name == 'push'");
     expect(production).toContain("github.ref == 'refs/heads/main'");
-    expect(production).toContain("needs.validate.outputs.cloudflare_available == 'true'");
-    expect(production).toContain("EXPO_PUBLIC_BUILD_KIND: production");
-    expect(production).toContain("steps.deploy.outputs.deployment-url");
-    expect(production.indexOf("Validate production deployment URL")).toBeGreaterThan(
-      production.indexOf("Deploy Cloudflare Production"),
+    expect(workflow).not.toContain("  pr-gate:");
+    expect(workflow).not.toContain("PR Gate");
+  });
+
+  it("keeps the final validate gate fail-closed for PR and non-PR events", () => {
+    const validate = jobBlock("validate", "deploy-production");
+
+    expect(validate).toContain("VERIFY_RESULT: ${{ needs.verify.result }}");
+    expect(validate).toContain("DEPLOY_PREVIEW_RESULT: ${{ needs.deploy-preview.result }}");
+    expect(validate).toContain('require_success "verify" "$VERIFY_RESULT"');
+    expect(validate).toContain('if [[ "$EVENT_NAME" == "pull_request" ]]; then');
+    expect(validate).toContain('require_success "deploy-preview" "$DEPLOY_PREVIEW_RESULT"');
+    expect(validate).toContain('elif [[ "$DEPLOY_PREVIEW_RESULT" != "skipped" ]]; then');
+    expect(validate).toContain(
+      'echo "::error title=Unexpected Preview result::deploy-preview result was ${DEPLOY_PREVIEW_RESULT}"',
     );
-    expect(production.indexOf("Smoke deployed production")).toBeGreaterThan(
-      production.indexOf("Validate production deployment URL"),
-    );
-    expect(stepBlock(production, "Validate production deployment URL")).toContain(
-      'if [[ -z "$DEPLOYED_BASE_URL" ]]',
-    );
+  });
+
+  it("keeps Automation and Production artifacts identical across consumers", () => {
+    expect(jobBlock("build-automation", "build-production")).toContain("name: web-dist-automation");
+    const automationConsumers = [
+      ["e2e-chromium", "ui-review"],
+      ["ui-review", "production-smoke"],
+      ["deploy-preview", "validate"],
+    ] as const;
+    for (const [jobName, nextJobName] of automationConsumers) {
+      expect(jobBlock(jobName, nextJobName)).toContain("name: web-dist-automation");
+    }
+
+    expect(jobBlock("build-production", "e2e-chromium")).toContain("name: web-dist-production");
+    expect(jobBlock("production-smoke", "extended-e2e")).toContain("name: web-dist-production");
+    expect(jobBlock("deploy-production")).toContain("name: web-dist-production");
+  });
+
+  it("prevents deployment and smoke jobs from rebuilding downloaded artifacts", () => {
+    for (const jobName of [
+      "e2e-chromium",
+      "ui-review",
+      "production-smoke",
+      "extended-e2e",
+      "deploy-preview",
+      "deploy-production",
+    ]) {
+      const job = jobBlock(
+        jobName,
+        jobName === "deploy-preview"
+          ? "validate"
+          : jobName === "deploy-production"
+            ? undefined
+            : jobName === "production-smoke"
+              ? "extended-e2e"
+              : jobName === "extended-e2e"
+                ? "verify"
+                : jobName === "ui-review"
+                  ? "production-smoke"
+                  : "ui-review",
+      );
+      expect(job).toContain('PLAYWRIGHT_USE_PREBUILT_DIST: "true"');
+      expect(job).not.toContain("pnpm run build:web");
+    }
+  });
+
+  it("validates each deployment URL before passing it to the matching smoke test", () => {
+    const preview = jobBlock("deploy-preview", "validate");
+    const production = jobBlock("deploy-production");
+
+    const deploymentJobs = [
+      [
+        preview,
+        "Deploy Cloudflare Preview",
+        "Validate preview deployment URL",
+        "Smoke deployed preview",
+      ],
+      [
+        production,
+        "Deploy Cloudflare Production",
+        "Validate production deployment URL",
+        "Smoke deployed production",
+      ],
+    ] as const;
+
+    for (const [job, deployName, urlName, smokeName] of deploymentJobs) {
+      expect(job).toContain("id: deploy");
+      expect(job).toContain("steps.deploy.outputs.deployment-url");
+      expect(job.indexOf(urlName)).toBeGreaterThan(job.indexOf(deployName));
+      expect(job.indexOf(smokeName)).toBeGreaterThan(job.indexOf(urlName));
+      expect(stepBlock(job, urlName)).toContain('if [[ -z "$DEPLOYED_BASE_URL" ]]');
+      expect(stepBlock(job, smokeName)).toContain(
+        "DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}",
+      );
+    }
+  });
+
+  it("fails explicitly when Cloudflare credentials are missing", () => {
+    const preview = jobBlock("deploy-preview", "validate");
+    const production = jobBlock("deploy-production");
+
+    for (const job of [preview, production]) {
+      const credentials = stepBlock(job, "Require Cloudflare credentials");
+      expect(credentials).toContain("CLOUDFLARE_API_TOKEN");
+      expect(credentials).toContain("CLOUDFLARE_ACCOUNT_ID");
+      expect(credentials).toContain("exit 1");
+    }
+    expect(workflow).not.toContain("cloudflare_available");
+    expect(workflow).not.toContain("needs.validate.outputs");
   });
 });

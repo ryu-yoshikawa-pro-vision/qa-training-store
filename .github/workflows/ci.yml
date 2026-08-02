@@ -387,7 +387,7 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
 
-  validate:
+  verify:
     needs:
       - quality
       - vitest
@@ -447,7 +447,7 @@ jobs:
   deploy-preview:
     if: github.event_name == 'pull_request'
     needs:
-      - validate
+      - verify
       - build-automation
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -515,17 +515,42 @@ jobs:
           DEPLOYED_BASE_URL: ${{ steps.deploy.outputs.deployment-url }}
         run: pnpm run test:smoke
 
-  pr-gate:
-    name: PR Gate
-    if: github.event_name == 'pull_request'
+  validate:
+    if: always()
     needs:
-      - validate
+      - verify
       - deploy-preview
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Confirm PR gate
-        run: echo "Required validation and Preview Smoke Test succeeded."
+      - name: Validate final workflow results
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          VERIFY_RESULT: ${{ needs.verify.result }}
+          DEPLOY_PREVIEW_RESULT: ${{ needs.deploy-preview.result }}
+        run: |
+          set -euo pipefail
+
+          require_success() {
+            local job_name="$1"
+            local result="$2"
+
+            if [[ "$result" != "success" ]]; then
+              echo "::error title=Required CI job failed::${job_name} result was ${result}"
+              exit 1
+            fi
+          }
+
+          require_success "verify" "$VERIFY_RESULT"
+
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            require_success "deploy-preview" "$DEPLOY_PREVIEW_RESULT"
+          elif [[ "$DEPLOY_PREVIEW_RESULT" != "skipped" ]]; then
+            echo "::error title=Unexpected Preview result::deploy-preview result was ${DEPLOY_PREVIEW_RESULT}"
+            exit 1
+          fi
+
+          echo "All required validation and deployment checks completed successfully."
 
   deploy-production:
     if: >-

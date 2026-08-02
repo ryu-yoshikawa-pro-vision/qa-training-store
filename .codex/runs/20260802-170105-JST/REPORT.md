@@ -142,3 +142,129 @@
   - `REPORT.md` は append-only とし、履歴を上書きしない。
 - Remaining: なし（今回の Run Artifact 運用ルール追記について）。
 - Progress: 100% (5/5)
+
+## 2026-08-02 18:15 (JST) Repair Iteration 1 — PR #6 修正
+- iteration_number: 1
+- Summary:
+  - 旧 Workflow 契約テスト5件の失敗と、上流失敗時に `PR Gate` が Skip される構造を must_fix として修正した。
+- Input findings:
+  - `validate` が Quality／Vitest／Build／E2E／Smoke の集約とRequired Check最終ゲートを兼務していた。
+  - `deploy-preview` が旧 `validate` に依存し、`pr-gate` が別Jobとして残っていた。
+  - `tests/contracts/ci-workflow.test.ts` が旧 `validate` 内Build／E2E／`cloudflare_available`を期待していた。
+  - `20260802-171344-JST` が同一タスクで重複作成されたまま pending だった。
+- Triage:
+  - must_fix: `verify`／最終 `validate` の依存グラフ、fail-closed結果判定、契約テスト更新、文書同期、重複Run終了。
+  - should_fix: Job単位の`jobBlock` Helperによる過度な文字列固定の低減。
+  - defer: GitHub実RunnerでのMatrix並列、Artifact Upload／Download、Cloudflare実デプロイ、Required Check表示。
+  - reject／needs_human: なし。
+- Repair plan:
+  - `verify`を上流検証の`always()`集約Jobへ変更する。
+  - PRの`deploy-preview`を`verify`＋`build-automation`後に実行し、最終`validate`をPreview Smoke後に`always()`で実行する。
+  - main Pushでは`deploy-preview`の`skipped`だけを許可し、最終`validate`成功後にProductionへ進める。
+  - 契約テストでJob依存、結果判定、Artifact同一性、再Build禁止、URL検証順、Secret明示失敗を固定する。
+- allowed_files:
+  - `.github/workflows/ci.yml`
+  - `tests/contracts/ci-workflow.test.ts`
+  - `docs/adr/0002-ci-artifact-pipeline.md`
+  - `docs/PROJECT_CONTEXT.md`
+  - `docs/plans/2026-08-02_170105_github-actions-artifact-ci.md`
+  - `.codex/runs/20260802-170105-JST/*`
+  - `.codex/runs/20260802-171344-JST/*`
+- changed_files:
+  - `.github/workflows/ci.yml`
+  - `tests/contracts/ci-workflow.test.ts`
+  - `docs/adr/0002-ci-artifact-pipeline.md`
+  - `docs/PROJECT_CONTEXT.md`
+  - `docs/plans/2026-08-02_170105_github-actions-artifact-ci.md`
+  - active／duplicate Run Artifact
+  - `playwright.config.ts`、package／lockfile、アプリケーションコード、E2E本体は今回変更していない。
+- Changes:
+  - `ci.yml`: `validate`（旧集約）を`verify`へ変更し、`deploy-preview`を`verify`＋`build-automation`へ接続。`pr-gate`を削除し、`verify`＋`deploy-preview`後の最終`validate`を追加。Productionは最終`validate`＋`build-production`依存を維持。
+  - `tests/contracts/ci-workflow.test.ts`: `jobBlock`／`stepBlock`を導入し、6テストで依存関係、fail-closed、Artifact、再Build禁止、URL Smoke順序、Secret明示失敗を検証。
+  - ADR／Context／計画書を`verify`・Preview Smoke後の最終`validate`・mainのProduction依存へ同期。
+  - duplicate Run `20260802-171344-JST`を削除せず`superseded`／`duplicate-run`として終了し、実装・検証の移管先をREPORTへ追記。
+- Delegation:
+  - `test_investigator`（Harvey）は read-only で、jobBlock設計、旧契約との不整合、Artifact／URL／Secret契約の調査結果を返した。提案を採用し、ファイル編集・削除・Git mutationは行っていない。
+- Validation commands:
+  - `pnpm exec vitest run tests/contracts/ci-workflow.test.ts` => 6 passed。
+  - `pnpm run test:contracts` => 6 files／46 tests passed。
+  - `pnpm run test` => unit 39、integration 91、repository 14、component 76、contracts 46、全成功。
+  - `pnpm run typecheck` => 初回は契約テストの未注釈tupleで失敗。型を`ReadonlyArray<readonly [string, string, string, string]>`へ限定修正後、成功。
+  - `pnpm run lint` => 成功、0 errors／63 warnings（既存warning）。
+  - `pnpm run validate:image-manifest` => 成功。
+  - `pnpm run security:check` => 成功。
+  - `pnpm run format:check` => 既存repo baselineの59ファイル未整形で失敗。今回の変更対象はtargeted Prettier checkで成功。
+  - `pnpm exec prettier --check .github/workflows/ci.yml tests/contracts/ci-workflow.test.ts docs/adr/0002-ci-artifact-pipeline.md docs/PROJECT_CONTEXT.md docs/plans/2026-08-02_170105_github-actions-artifact-ci.md` => 成功。
+  - YAML parse／Job ID／依存循環／final validate truth table audit => YAML valid、12 Job、循環なし、PRのPreview failure／cancelled／skippedは失敗、非PRのPreview skippedは成功。
+  - legacy documentation scan => 指定文書に旧`PR Gate`成功フロー／`cloudflare_available`の現行説明なし。REPORT内の旧記録はappend-only履歴として保持。
+- remaining_delta:
+  - GitHub Actions上の実Matrix並列、Artifact Upload／Download、Cloudflare Secret／Deploy、公開URL Smoke、Required Checkの表示とBranch Protection連携は未検証。
+  - `pnpm run format:check`の既存59ファイルbaseline failureは無関係なため修正していない。
+- decision: continue
+- Progress: 73% (8/11)
+
+## 2026-08-02 18:21 (JST) Repair Iteration 1 — 最終判定
+- Summary:
+  - PR #6 の修正対象を完了した。旧Workflow契約テスト5件を新設計の6契約テストへ置き換え、全Vitest／全契約テストをGreenにした。
+  - active Run `20260802-170105-JST` を継続利用し、重複 Run `20260802-171344-JST` は `superseded` として保存終了した。
+- Changed files:
+  - `.github/workflows/ci.yml`
+  - `tests/contracts/ci-workflow.test.ts`
+  - `docs/adr/0002-ci-artifact-pipeline.md`
+  - `docs/PROJECT_CONTEXT.md`
+  - `docs/plans/2026-08-02_170105_github-actions-artifact-ci.md`
+  - `.codex/runs/20260802-170105-JST/{PLAN.md,TASKS.md,REPORT.md,run.json}`
+  - `.codex/runs/20260802-171344-JST/{TASKS.md,REPORT.md,run.json}`
+  - `playwright.config.ts`、package／lockfile、アプリケーションコード、E2E本体はPR #6修正で変更していない。
+- Final dependency graph:
+  - `quality`／`vitest`／`build-automation`／`build-production`／`e2e-chromium`／`ui-review`／`production-smoke`／条件付き`extended-e2e` → `verify`
+  - PR: `verify`＋`build-automation` → `deploy-preview`（Artifact deploy＋Preview URL Smoke）→ `validate`
+  - main Push等: `verify`＋`deploy-preview=skipped` → `validate` → `deploy-production`（Production URL Smoke）
+- Responsibility split:
+  - `verify`: 上流検証Jobの結果を`always()`で集約し、PRでは`extended-e2e=skipped`を許可する。Test／Build／E2Eの再実行はしない。
+  - `validate`: 既存Required Check IDを維持する最終ゲート。PRでは`verify`とPreview deploy／Smokeの`success`を必須にし、非PRではPreviewの`skipped`だけを許可する。
+- Contract tests:
+  - Job存在・依存関係・`verify`／最終`validate`の`always()`
+  - PR／非PRのPreview result fail-closed判定
+  - Automation／Production ArtifactのUpload／Download同一性
+  - Prebuilt Distとdeploy／smoke Job内の再Build禁止
+  - Deployment URL検証後に該当URLでSmokeする順序
+  - Cloudflare Secret不足の明示失敗、旧`cloudflare_available`／`pr-gate`不在
+- Validation:
+  - `pnpm exec vitest run tests/contracts/ci-workflow.test.ts` => 6 passed。
+  - `pnpm run test:contracts` => 6 files／46 tests passed。
+  - `pnpm run test` => unit 39、integration 91、repository 14、component 76、contracts 46、成功。
+  - `pnpm run lint` => 0 errors／63 existing warnings。
+  - `pnpm run typecheck` => 成功。
+  - `pnpm run validate:image-manifest` => 成功。
+  - `pnpm run security:check` => 成功。
+  - 対象5文書＋Workflow／契約テストのPrettier check => 成功。
+  - YAML／Job ID／依存循環／final validate truth table audit => 成功。
+  - `pnpm run format:check` => 既存repo baselineの59ファイル未整形で失敗。無関係なFormat修正は禁止されているため変更していない。
+- Unverified:
+  - GitHub Actions実Runner上のMatrix並列、Artifact Upload／Download、Cloudflare Preview／Production、実URL Smoke、Required Check／Branch Protection連携、Production concurrencyの実動作。
+  - GitHub Ruleset、Secrets、Cloudflare管理画面は変更・検証していない。
+- Git / GitHub:
+  - `git add`／`commit`／`push`／`reset`／`clean`／branch操作、PR更新、Ruleset／Secret変更は行っていない。
+- PR title suggestion:
+  - `CIのArtifact再利用とfail-closed最終validateを契約化`
+- PR body suggestion:
+  - `verify`に検証結果を集約し、PRではPreview URL Smoke後に既存Required Check `validate`を成功させる構成へ修正。
+  - 契約テストをJob依存、Artifact同一性、再Build禁止、URL検証順、Secret明示失敗へ更新。`PR Gate`と`cloudflare_available`依存は削除。
+  - Local validation: `pnpm run test`、`pnpm run test:contracts`、typecheck、lint、manifest、security、targeted Prettier pass。
+  - GitHub Actions実行とCloudflare実デプロイは未検証。
+- remaining_delta:
+  - 既存59ファイルの全体Format baseline failure、およびGitHub上でのみ確認できる外部統合検証。
+- decision: stop_success
+- Progress: 100% (11/11)
+
+## 2026-08-02 18:22 (JST) 最終Artifact／Workflow監査
+- Commands:
+  - PowerShell `ConvertFrom-Json`でactive／duplicate `run.json`を検証 => activeは`complete`／`passed_with_warnings`、duplicateは`superseded`／`duplicate-run`。
+  - 指定された実装ファイル・文書・両Run Directoryの存在確認 => 全Path存在。
+  - 現行文書の旧`validate成功後Preview`／`PR Gate最終`／`cloudflare_available`説明検索 => 該当なし。
+  - Workflow contract scan => `pr-gate`不在、`cloudflare_available`不在、Preview→verify、最終validate、Production→validateの各条件true。
+- Notes:
+  - 旧PR Gate／旧契約テスト失敗の記録はappend-onlyの過去履歴として残し、現行設計と混同しないよう最終ブロックで修正後の正本を明示した。
+- decision: stop_success
+- Progress: 100% (11/11)

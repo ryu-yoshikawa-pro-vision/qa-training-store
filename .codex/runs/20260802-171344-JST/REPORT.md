@@ -42,3 +42,22 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-08-02 18:05 (JST) 重複Runの終了
+- Summary:
+  - `20260802-171344-JST` は、同一会話・同一CI/CDタスクに対して重複作成されたRunであることを確認した。
+- Completed:
+  - 実装・検証の正本を active Run `20260802-170105-JST` へ統合した。
+  - `run.json` を `status: superseded`、`validation.status: superseded`、`primary_failure_category: duplicate-run` に更新した。
+  - 未完了タスクは完了扱いにせず、移管済み・本Runでは実施しない旨を `TASKS.md` に追記した。
+- Changes:
+  - このRunでは追加実装・追加検証を行っていない。
+  - Run Directory は削除していない。
+- Commands:
+  - `apply_patch` => `run.json`、`TASKS.md`、`REPORT.md` を追記・更新。
+  - `20260802-170105-JST` の targeted contract test は 6/6 passed（実装・検証の記録は active Run 側）。
+- Notes/Decisions:
+  - `superseded_by` は既存Run manifestの明示スキーマがないため追加せず、`run.json` の状態・failure category と REPORTで移管先を表現した。
+- Remaining:
+  - このRunに残タスクはない。active Runで全体検証と最終判定を継続する。
+- Progress: 0% (0/4)
