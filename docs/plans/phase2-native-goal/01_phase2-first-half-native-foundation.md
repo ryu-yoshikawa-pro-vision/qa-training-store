@@ -14,7 +14,7 @@
 6. 本書
 7. `docs/future/phase2/`は参考資料としてのみ使用
 
-Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateとDoDをTaskへ展開します。矛盾時はMaster Planを優先します。
+Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateとDoDをTaskへ展開します。文書の優先順位とADRによる置換条件はMaster Planに従います。
 
 ## 1. ゴール
 
@@ -30,7 +30,7 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 - `expo-sqlite/kv-store`を使うSession/Guest/Clock/Delay Storage
 - Seed、Reset、Test Clock、Deep Link Test Control Version 1
 - Native商品Asset Map
-- `jest-expo`ベースのNative Component Test基盤
+- `jest-expo`ベースのNative Component Test基盤とVitest/JestのTypeScript型境界
 - Android/iOS向けHome、商品一覧、検索、Category、商品詳細、Cart
 - Android Preview APKとiOS Preview Simulator Build
 - `.eas/workflows/phase2-native-foundation.yml`
@@ -49,11 +49,11 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 - iOS Simulator Buildを生成、インストール、起動する方法が決まっている。
 - SecretとCredentialをRepositoryへ保存しない運用が決まっている。
 - `expo-dev-client`とNative Crypto Moduleの導入を許容している。
-- `jest`、`jest-expo`、`@testing-library/react-native`の導入を許容している。
+- `jest`、`jest-expo`、`@types/jest`、`@testing-library/react-native`の導入を許容している。
 - EAS Workflowsの利用可否と、利用不能時のAndroid/iOS代替実行環境が決まっている。
 - Native Buildの費用上限と実行頻度が決まっている。
 
-開始時にExpo SDK 57、Expo Router、`expo-sqlite`、EAS Workflows、`jest-expo`、`react-native-quick-crypto`の一次資料を再確認します。既定方針を変更する場合は、コード変更前にADRへ記録します。
+開始時にExpo SDK 57、Expo Router、`expo-sqlite`、EAS Workflows、`jest-expo`、`react-native-quick-crypto`の一次資料を再確認します。既定方針を変更する場合は、Master Planの条件を満たすADRをコード変更前に作成します。
 
 ## 3. 完了条件（DoD）
 
@@ -88,9 +88,13 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 - Commit失敗時に結果を返さない。
 - 正当な`undefined`と未完了を区別する。
 - Transaction RepositoryをCallback外へ持ち出さない。
-- Queue待機とLock待機に上限がある。
+- UIで二重送信を防止する。
+- Reset処理だけは専用Mutexで排他する。
+- Lock ErrorをApplication Errorへ変換する。
 - 非冪等Mutationを自動Retryしない。
 - `database is locked`を無限Retryしない。
+- 独自のGlobal Mutation Queueを標準実装にしていない。
+- 同時Mutationの再現可能な失敗が実Native Contract Testで確認された場合だけ、対象Scopeを限定した最小の直列化を追加する。
 
 ### 3.4 SQLite / Foreign Key
 
@@ -120,7 +124,8 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 - HarnessはApplication RuntimeのRepository/Connectionを再利用しない。
 - 成功/失敗を問わずConnectionを閉じ、Test DBを削除する。
 - Cleanup失敗をHarness失敗として扱う。
-- Harness前後でApplication DBのDatabase名、Schema Version、Seed Version、固定Sentinel 1件が変化していない。
+- Harness前後でApplication DBのDatabase名、Schema Version、Seed Version、既存Seedの既知レコード1件が変化していない。
+- 確認用レコードのために専用Table、Domain Entity、Repository、Use Caseを追加していない。
 - 全Table Fingerprintや全件数比較を実装していない。
 - Harnessは通常アプリKV Namespaceを変更しない。
 
@@ -164,16 +169,23 @@ scenario-shop.native.payment-delay.v1
 - Storage Errorを握り潰さない。
 - Harnessは別Namespaceを使う。
 
-### 3.8 Native Component Test
+### 3.8 Native Component Test / TypeScript型境界
 
-- `jest`、`jest-expo`、`@testing-library/react-native`を使用する。
+- `jest`、`jest-expo`、`@types/jest`、`@testing-library/react-native`を使用する。
 - `preset: "jest-expo"`を使用する。
 - `react-test-renderer`を導入していない。
 - Native TestでDOM/jsdomを使わない。
 - Web Component TestはVitestを継続する。
 - Expo Moduleの追加Mockは必要最小限である。
 - SQLite/PBKDF2の実Native検証をComponent Testで代替していない。
+- SDK互換Versionを`expo install`で解決し、LockfileとPeer Dependencyを確認している。
+- `--force`、Peer Dependency無視、恒久的Overrideを標準対応にしていない。
+- Web Testを`tests/component/web/**`、Native Testを`tests/component/native/**`へ分離している。
+- Root `tsconfig.json`が`tests/component/native`を除外している。
+- `tsconfig.native-tests.json`がJest型とNative Testだけを含む。
+- VitestとJestのGlobal型を同じTypeScript Programへ混在させていない。
 - `test:component:web`、`test:component:native`、統合`test:component`が定義される。
+- `typecheck:app`、`typecheck:native-tests`、統合`typecheck`が定義される。
 
 ### 3.9 Test Control / Harness
 
@@ -236,6 +248,7 @@ extra.buildKind === "production"
 extra.testMode === "false"
 ```
 
+- `typecheck:app`と`typecheck:native-tests`が成功する。
 - Native Component TestとWeb既存Test/Build/Playwrightが成功する。
 - Critical/Highの既知不具合が残っていない。
 
@@ -255,7 +268,7 @@ extra.testMode === "false"
 - Native商品Asset Map
 - Home、商品一覧、検索、Category、商品詳細、Cart
 - Native対象外Role画面
-- `jest-expo`ベースNative Component Test
+- `jest-expo`ベースNative Component Testと専用TypeScript設定
 - EAS Profileと前半Workflow
 - Android Preview APK、iOS Preview Simulator Build
 - ADR、PROJECT_CONTEXT、Native手順
@@ -272,6 +285,8 @@ extra.testMode === "false"
 - Migration Recovery、Crash Point、Phase 3機能
 - `android/`/`ios/`のCommit
 - 全DB Fingerprint基盤
+- Sentinel専用Table、Entity、Repository、Use Case
+- 再現可能な必要性がない独自Mutation Queue
 
 ## 6. 実装順序と内部品質ゲート
 
@@ -302,6 +317,7 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 - PBKDF2 Platform分離
 - KV Storage Adapter
 - `jest-expo`環境
+- Native Test専用tsconfigとTypecheck Script
 
 完了条件:
 
@@ -311,6 +327,7 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 - PBKDF2固定Test Vector成功
 - KV Storage Adapter Test成功
 - Native Component Test基盤成功
+- Vitest/Jestの型競合がなく、`typecheck:app`と`typecheck:native-tests`が成功
 
 ### Gate C: SQLite / Contract
 
@@ -325,10 +342,13 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 
 - Foreign Key Enforcementと`foreign_key_check`成功
 - Transaction戻り値契約Test成功
+- UI二重送信防止とReset Mutexが成立
+- 独自Mutation Queueなしで実Native Contractが安定
 - Dexie Shared Contract成功
 - Android実SQLite Contract成功
 - iOS主要Contract Smoke成功
-- Harness CleanupとApplication DB Sentinel確認成功
+- Harness Cleanupと既存Seedレコード確認成功
+- Sentinel専用基盤が追加されていない
 
 ### Gate D: Asset / Test Control / Production-validation基礎
 
@@ -364,6 +384,7 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 
 - 全Native Test成功
 - Web全Test/Build/Playwright成功
+- `typecheck:app`と`typecheck:native-tests`成功
 - 前半EAS Workflowまたは代替経路の結果記録
 - `android/`/`ios/`未Commit
 - Critical/High解消
@@ -378,11 +399,11 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 - Customer/Admin Repository CapabilityとTransaction Scope
 - Native Composition Root注入契約
 - SQLite Schema Version、FK Action、Connection初期化
-- Transaction Runner契約
-- Shared Contract Suite、Harness DB/KV形式、Sentinel確認
+- Transaction Runner契約と、独自Mutation Queueを標準実装しない方針
+- Shared Contract Suite、Harness DB/KV形式、既存Seedレコードによる隔離確認
 - Session/Guest/Clock/Delay Keyと形式
 - PBKDF2 Library、隔離方式、Format、Test Vector
-- `jest-expo`設定
+- `jest-expo`設定、`tsconfig.native-tests.json`、Typecheck Script
 - Deep Link Protocol Version 1
 - Native Asset Map形式
 - Stable Test ID規約
@@ -405,6 +426,7 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 - Native Asset Map生成処理
 - Native Storefront/Product/Cart
 - Native Component Test設定とTest
+- `tsconfig.native-tests.json`とTypecheck Script
 - EAS Profile、`.eas/workflows/phase2-native-foundation.yml`
 - Android Preview APK、iOS Preview Simulator Build
 - 更新済みREADME/PROJECT_CONTEXT/Native手順
@@ -418,11 +440,11 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 
 - Android/iOS Build・起動・操作結果
 - 実SQLite Contract結果
-- Harness隔離・Cleanup・Sentinel結果
+- Harness隔離・Cleanup・既存Seedレコード確認結果
 - Foreign Key Enforcement結果
 - PBKDF2互換結果
 - Native KV Storage結果
-- Native Component Test結果
+- Native Component TestとTypeScript型境界の結果
 - Test Control/Harness結果
 - EAS Profile/Environment/Metadata結果
 - Web回帰結果
