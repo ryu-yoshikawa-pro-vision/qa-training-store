@@ -226,6 +226,25 @@ NATIVE_DATABASE_SCHEMA_VERSION
 SEED_VERSION
 ```
 
+既存Web Metadataとの互換を維持します。
+
+```ts
+const WEB_DATABASE_SCHEMA_VERSION = 1;
+const NATIVE_DATABASE_SCHEMA_VERSION = 1;
+
+extra: {
+  schemaVersion: WEB_DATABASE_SCHEMA_VERSION,
+  webDatabaseSchemaVersion: WEB_DATABASE_SCHEMA_VERSION,
+  nativeDatabaseSchemaVersion: NATIVE_DATABASE_SCHEMA_VERSION,
+  seedVersion: SEED_VERSION,
+}
+```
+
+- `extra.schemaVersion`はPhase 2で削除せず、既存どおりWeb Database Schema Versionを表す。
+- Native Runtimeは`nativeDatabaseSchemaVersion`を参照する。
+- 互換Fieldの廃止はPhase 3以降の別タスクとする。
+- 独自のVersion管理基盤は追加しない。
+
 Phase 2ではMigration Recoveryを実装せず、Version 1の初期作成とVersion不一致の明示的失敗までを扱います。
 
 ### 6.5 Shared Contract SuiteとHarness隔離
@@ -258,7 +277,22 @@ Harness DB:
 - Harness前後でApplication DBのDatabase名、Schema Version、Seed Version、既存Seedに必ず含まれる既知レコード1件が変化していないことを確認する。
 - 確認用レコードのために専用Table、Domain Entity、Repository、Use Caseを追加しない。
 - 全Table Fingerprintや全件数比較は実装しない。
-- Harnessは専用KV Namespaceを使う。
+- HarnessはApplication用KV Keyを使用しない。
+
+Harness KVは物理Databaseを追加せず、Runtime UUIDを含む専用Prefixで分離します。
+
+```text
+scenario-shop.contract.<runtime-uuid>.session-id
+scenario-shop.contract.<runtime-uuid>.guest-id
+scenario-shop.contract.<runtime-uuid>.test-clock
+scenario-shop.contract.<runtime-uuid>.payment-delay
+```
+
+- Harness開始前に対象Prefixの既知Keyが存在しないことを確認する。
+- 成功・失敗を問わず`finally`でHarness用の既知Keyを削除する。
+- KV Cleanup失敗はHarness失敗として記録する。
+- Application用Keyへ触れない。
+- Harness KV専用Databaseや追加Connection管理は実装しない。
 
 ### 6.6 Native KV Storage
 
@@ -275,7 +309,7 @@ scenario-shop.native.payment-delay.v1
 - Port Adapter内部からだけ利用する。
 - Resetで対象Keyを削除し、Scenario値を再設定する。
 - 不正Sessionは削除し、安全にGuestへ戻す。
-- Harnessは別Namespaceを使う。
+- Harnessは6.5の専用Prefixを使う。
 
 ### 6.7 Password HashとNative Crypto隔離
 
@@ -349,21 +383,42 @@ tests/component/native/**
   Jest + jest-expo
 ```
 
-- Root `tsconfig.json`ではVitest/Web/Appの型を維持し、`tests/component/native`を除外する。
-- `tsconfig.native-tests.json`を追加し、`types`を`jest`と`node`へ限定する。
-- Native Test用tsconfigへ必要な`src/**`と`tests/component/native/**`だけを含める。
-- VitestとJestのGlobal型を同じTypeScript Programへ混在させない。
+Root `tsconfig.json`ではVitest/Web/Appの型を維持し、`tests/component/native`を除外します。Native Test用設定は次を基準にします。
 
-Scriptを分けます。
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node"],
+    "noEmit": true
+  },
+  "include": [
+    "tests/component/native/**/*.ts",
+    "tests/component/native/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+- 派生Configで`exclude`を明示し、Root ConfigのNative Test除外を上書きする。
+- `src/**`全件を`include`せず、Native TestからImportされたSourceだけを推移的に検査する。
+- VitestとJestのGlobal型を同じTypeScript Programへ混在させない。
+- TypeScript Project Referencesや別Package化は追加しない。
+
+Scriptは次を基準にします。
+
+```json
+{
+  "typecheck:app": "tsc --noEmit -p tsconfig.json",
+  "typecheck:native-tests": "tsc --noEmit -p tsconfig.native-tests.json",
+  "typecheck": "pnpm run typecheck:app && pnpm run typecheck:native-tests"
+}
+```
 
 ```text
 test:component:web
 test:component:native
 test:component = web + native
-
-typecheck:app
-typecheck:native-tests
-typecheck = app + native-tests
 ```
 
 ### 6.9 Test Control
@@ -505,7 +560,24 @@ Production-validation Job:
   environment: production
 ```
 
-Build成果物を後続Maestro Jobへ渡します。EAS Workflowsが利用不能または費用上限超過の場合は、開始前に承認した代替環境で同等確認を行います。Build成功だけでNative Test成功と扱いません。
+Phase 2ではEAS Workflowを手動実行します。
+
+- `push`、`pull_request`による自動Triggerは追加しない。
+- 実行前に`eas workflow:validate <workflow-file>`を実行する。
+- Git操作が禁止されているGoalでも、現在のローカル作業ツリーを手動Uploadして検証してよい。
+- Run Artifactへ現在のHEAD SHA、未Commit差分の有無、Workflow Run ID/URL、Profile、Environment、Android/iOS Build IDを記録する。
+- Push後の再現確認が必要な場合だけ、`--ref <pushed-commit-sha>`を指定する。
+- Build成功だけでNative Test成功と扱わない。
+
+```bash
+eas workflow:validate .eas/workflows/phase2-native-foundation.yml
+
+eas workflow:run \
+  .eas/workflows/phase2-native-foundation.yml \
+  --wait
+```
+
+Build成果物を後続Maestro Jobへ渡します。EAS Workflowsが利用不能または費用上限超過の場合は、開始前に承認した代替環境で同等確認を行います。
 
 ## 7. 共通実施原則
 
@@ -546,6 +618,7 @@ Build成果物を後続Maestro Jobへ渡します。EAS Workflowsが利用不能
 - Customer Transaction ScopeがAdmin Scopeから分離されている。
 - 全ConnectionでForeign Key Enforcementが有効である。
 - Contract HarnessがApplication DB/KVを変更しない。
+- Harness用KV Keyが成功・失敗を問わず削除される。
 - Session、Guest、Clock、Delayが固定KV契約で永続化される。
 - 商品探索、Cart、Login、Account、Checkout、Order、Reviewが成立する。
 - Android Preview APKとiOS Simulator Buildを生成・起動できる。
@@ -554,6 +627,7 @@ Build成果物を後続Maestro Jobへ渡します。EAS Workflowsが利用不能
 - 実Native SQLite Contract Testが成功する。
 - Native Component Testが`jest-expo`環境で成功する。
 - VitestとJestのTypeScript型境界が分離され、両Typecheckが成功する。
+- `extra.schemaVersion`の既存Web互換を維持し、Native Schema Versionを別Fieldで公開している。
 - Production-validation Metadataが`"production" / "production" / "false"`である。
 - Production-validationでTest Control/Harnessを実行できない。
 - Native Adminを含まない。
