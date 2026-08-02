@@ -258,6 +258,78 @@
 - decision: stop_success
 - Progress: 100% (11/11)
 
+## 2026-08-02 19:00 JST Repair Iteration 2 — ローカル修正・検証完了、外部成功待ち
+
+- Summary: PR #6追加修正を同一 Active Runへ追記し、Skip伝播防止、Secret scope、Checkout保護、UI Review path、branch検証、fork方針、Run ArtifactのMarkdown指摘を反映した。ローカル検証は完了したが、GitHub ActionsへのPush／手動再実行は禁止されているため、修正後の外部成功Runは未確認である。
+- Changed files:
+  - `.github/workflows/ci.yml`
+  - `tests/contracts/ci-workflow.test.ts`
+  - `docs/adr/0002-ci-artifact-pipeline.md`
+  - `docs/PROJECT_CONTEXT.md`
+  - `docs/plans/2026-08-02_170105_github-actions-artifact-ci.md`
+  - `docs/history/2026-08-02_185000_ci-skip-propagation.md`
+  - `.codex/runs/20260802-170105-JST/{PLAN.md,TASKS.md,REPORT.md,run.json}`
+  - `.codex/runs/20260802-171344-JST/{PLAN.md,TASKS.md,REPORT.md}`（`run.json`の`superseded`状態は維持）
+  - `.codex/runs/20260802-163908-JST/{PLAN.md,TASKS.md,REPORT.md}`（見出し・空プレースホルダーの最小修正）
+  - `playwright.config.ts`、アプリケーションコード、E2E本体、package／lockfile、Job Matrix、Secret／Rulesetは変更していない。
+- Workflow changes:
+  - `deploy-preview`: `always()`、PR条件、`needs.verify.result == 'success'`、`needs.build-automation.result == 'success'`を併用。`extended-e2e=skipped`は`verify`で許可されるが、上流失敗時はPreviewを開始しない。
+  - `deploy-production`: `always()`、main Push条件、`needs.validate.result == 'success'`、`needs.build-production.result == 'success'`を併用。main Pushの意図的なPreview Skipを伝播させず、validate／Production Build失敗時は開始しない。`cloudflare-production` concurrencyは維持。
+  - 最終`validate`のPR fail-closed（Preview success必須）と非PR Preview skip許可は変更していない。
+- Security／operability:
+  - Cloudflare SecretはJob-level `env`から削除し、認証確認StepとWrangler Action Inputへ限定した。Checkout、install、Artifact download、Chromium install、SmokeへSecretは渡していない。
+  - 全10個の`actions/checkout@v4`へ`persist-credentials: false`を設定した。
+  - Preview branch名を`^[A-Za-z0-9._/-]+$`で別Step検証し、UI Review Uploadは`env.UI_REVIEW_STAGE`を参照するようにした。
+  - fork PRはCloudflare Preview Secretを利用できず、必須Previewデプロイ／公開URL Smokeを実行できないため、現行CI/CD運用のサポート対象外と文書化した。`pull_request_target`やPreview必須条件の弱体化は行っていない。
+- Contract tests: Job-level `always()`＋依存成功条件、Job needs、PR／mainの意図的Skip、上流失敗時の非デプロイ、validate fail-closed、Secret wiring／scope、全Checkout、branch validation、UI Review pathを9 tests／49 tests全体契約へ固定した。
+- Validation:
+  - `pnpm exec vitest run tests/contracts/ci-workflow.test.ts` => 1 file／9 tests passed。
+  - `pnpm run test:contracts` => 6 files／49 tests passed。
+  - `pnpm run test` => unit 39、integration 91、repository 14、component 76、contracts 49、全成功。初回は既存Playwright contract `beforeAll`の10秒hook timeoutで失敗したが、Playwright contract単独5/5後の再実行で成功した。
+  - `pnpm run lint` => 0 errors／63 warnings（既存 warning）。
+  - `pnpm run typecheck` => 成功。
+  - `pnpm run validate:image-manifest` => 成功。
+  - `pnpm run security:check` => 成功。
+  - 対象5文書＋Workflow／契約テストのPrettier check => 成功。追加履歴のPrettier checkも成功。
+  - `pnpm run format:check` => 既存repo baselineの59ファイル未整形で失敗。無関係な全体整形は行っていない。
+  - YAML parse／Job ID／needs循環／condition truth table／Secret scope／再Build禁止／Checkout監査 => 成功。
+  - Run Artifact Markdown heading／placeholder監査、active／duplicate `run.json` JSON監査 => 成功。
+  - `git diff --check` => 空白エラーなし。CRLF変換警告のみ。
+- External remaining delta:
+  - 修正前Run `30741740232` の失敗結果は上記18:30ブロックに記録済み。修正後のPR Runで `verify=success`、`deploy-preview=success`、Preview URL／Smoke=success、`validate=success` を確認できていない。
+  - main Pushの `deploy-preview=skipped` → `validate=success` → `deploy-production=success`、Production URL／Smoke、Required Check／Branch Protection、実Artifact／Cloudflare concurrencyも未確認。
+  - active `run.json`: `status=blocked`、`validation.status=partial`、`primary_failure_category=github-actions-skip-propagation`を維持する。
+- Decision: `stop_needs_human`。外部GitHub Actions成功Runの確認が必要だが、指示によりPush／手動再実行／GitHub書き込みは行わない。
+- Next: ユーザー側で修正内容をPush後、PR Runとmain Push Runの完了条件を確認する。成功結果を受領した場合のみActive Runを`complete`へ更新する。
+- Progress: 94% (16/17)
+
+## 2026-08-02 18:30 JST Repair Iteration 2 — 最新 GitHub Actions 失敗の記録
+
+- Summary: 最新の GitHub Actions Run `30741740232` で判明した Job Skip 伝播を追加修正の入力 finding として受領した。同一会話の Active Run `20260802-170105-JST` を継続利用し、新しい Run Directory は作成していない。
+- GitHub Actions Run:
+  - `quality`: success
+  - `vitest`: success
+  - `build-automation`: success
+  - `build-production`: success
+  - `e2e-chromium`: success
+  - `ui-review`: success
+  - `production-smoke`: success
+  - `extended-e2e`: skipped
+  - `verify`: success
+  - `deploy-preview`: skipped
+  - `validate`: failure
+  - `deploy-production`: skipped
+- Root cause:
+  - PRでは `extended-e2e` が意図的に Skip される。
+  - `verify` は `always()` により結果を集約して success になった。
+  - `deploy-preview` 自身に Job-level `always()` がなく、依存チェーン内の Skip が伝播して Job 条件が評価される前に Skip された。
+  - 最終 `validate` は `DEPLOY_PREVIEW_RESULT=skipped` を fail-closed で正しく failure として検出した。
+- Run state: GitHub Actions が失敗しているため、active `run.json` を `status: blocked`、`primary_failure_category: github-actions-skip-propagation`、`validation.status: partial` へ更新した。修正後の GitHub Actions 成功 Run を確認するまで `complete` へ戻さない。
+- Delegation: 追加の `test_investigator`（read-only）へ UI Review stage/path、Checkout、Artifact download、Cloudflare Secret wiring の契約テスト不足を調査依頼した。編集・作成・削除・Git/GitHub mutationは行わせず、UI Review path と deploy wiring を契約へ追加する判断を採用した。
+- Changes: これから Workflow、契約テスト、文書、Run Artifactを追加修正する。GitHubへのPush／手動再実行は行わない。
+- Decision: continue
+- Progress: 82% (14/17)
+
 ## 2026-08-02 18:22 (JST) 最終Artifact／Workflow監査
 - Commands:
   - PowerShell `ConvertFrom-Json`でactive／duplicate `run.json`を検証 => activeは`complete`／`passed_with_warnings`、duplicateは`superseded`／`duplicate-run`。
@@ -268,3 +340,16 @@
   - 旧PR Gate／旧契約テスト失敗の記録はappend-onlyの過去履歴として残し、現行設計と混同しないよう最終ブロックで修正後の正本を明示した。
 - decision: stop_success
 - Progress: 100% (11/11)
+
+## 2026-08-02 19:02 JST 追記 — 最新状態の正本
+
+- 18:22までの監査記録はPR #6追加修正前の履歴として保持し、削除・並べ替えを行っていない。
+- 最新の正本は19:00のRepair Iteration 2ブロックであり、ローカル修正・検証は成功、修正後のGitHub Actions成功Runのみ未確認である。
+- Active Runは`blocked`／`partial`、Progressは`94% (16/17)`。未完了は外部GitHub Actions成功Runの確認1件だけである。
+
+## 2026-08-02 19:03 JST 最終再確認
+
+- `pnpm exec vitest run tests/contracts/ci-workflow.test.ts` => 1 file／9 tests passed。
+- active `run.json` => `blocked`／`partial`／`github-actions-skip-propagation`、duplicate `run.json` => `superseded`／`superseded`／`duplicate-run`。
+- Decision: `stop_needs_human` を維持する。コード・文書・ローカル検証は完了したが、GitHub Actions成功Runの確認までは完了扱いにしない。
+- Progress: 94% (16/17)

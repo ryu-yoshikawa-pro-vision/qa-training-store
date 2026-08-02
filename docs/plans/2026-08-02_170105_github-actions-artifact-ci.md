@@ -106,3 +106,11 @@
 - Git 操作、ファイル削除、移動、rename、GitHub への Push は行わない。
 - 初回の開始条件確認後、ユーザーの明示許可により実装・検証フェーズへ進む。テスト修正の未反映状態は Run Report に残す。
 - 初回実装後判定: CI/CD 構造、Prebuilt Dist、Build、主要 E2E は確認できたが、旧 Workflow 契約テスト5件が失敗した。PR #6 修正で契約テストを新構造へ更新し、`verify`／最終 `validate` の fail-closed 構成へ修正する。
+
+## 10. PR #6 追加修正（2026-08-02）
+
+- 最新 GitHub Actions Run `30741740232` では、PR の `extended-e2e=skipped`、`verify=success` にもかかわらず `deploy-preview=skipped` となり、最終 `validate` が fail-closed で失敗した。原因は `deploy-preview` 自身に Job-level `always()` がなく、依存チェーンの Skip によって条件評価前に Skip されたことである。
+- `deploy-preview` は `always()`、Pull Request 条件、`verify`／`build-automation` の成功条件を併用する。`deploy-production` も `always()`、main Push 条件、`validate`／`build-production` の成功条件を併用し、意図的な Preview Skip の伝播を防ぐ。
+- Cloudflare Secret は Job-level `env` から除去し、認証確認 Step と Wrangler Action Inputだけへ限定する。全 Checkout は `persist-credentials: false` とし、Preview branch名を安全な文字集合で検証する。UI Review Upload は `UI_REVIEW_STAGE` を参照する。
+- forkリポジトリからのPull RequestはCloudflare Preview用Secretを利用できず、必須のPreviewデプロイおよび公開URL Smokeを実行できないため、現在のCI/CD運用ではサポート対象外とする。fork PRを通すためにPreview必須条件を弱めたり、`pull_request_target` を追加したりしない。
+- 修正後の実 GitHub Actions 成功 Run は Push／再実行を禁止しているため未確認であり、Active Run は外部失敗の事実に合わせて `blocked` として維持する。ローカル検証成功だけで `complete` に戻さない。

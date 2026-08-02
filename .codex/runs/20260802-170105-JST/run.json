@@ -23,6 +23,7 @@
     "docs/adr/0002-ci-artifact-pipeline.md",
     "docs/PROJECT_CONTEXT.md",
     "docs/history/2026-08-02_170105_project-context-before-ci-artifact.md",
+    "docs/history/2026-08-02_185000_ci-skip-propagation.md",
     "AGENTS.md",
     ".codex/runs/20260802-171344-JST/run.json",
     ".codex/runs/20260802-171344-JST/TASKS.md",
@@ -30,10 +31,13 @@
     ".codex/runs/20260802-170105-JST/PLAN.md",
     ".codex/runs/20260802-170105-JST/TASKS.md",
     ".codex/runs/20260802-170105-JST/REPORT.md",
-    ".codex/runs/20260802-170105-JST/run.json"
+    ".codex/runs/20260802-170105-JST/run.json",
+    ".codex/runs/20260802-163908-JST/PLAN.md",
+    ".codex/runs/20260802-163908-JST/TASKS.md",
+    ".codex/runs/20260802-163908-JST/REPORT.md"
   ],
   "validation": {
-    "status": "passed_with_warnings",
+    "status": "partial",
     "commands": [
       "pnpm exec prettier --check .github/workflows/ci.yml playwright.config.ts",
       "python YAML parse and dependency cycle check",
@@ -58,13 +62,22 @@
       "YAML parse, job ID, needs cycle, and final validate truth-table audit",
       "legacy CI/CD documentation scan",
       "active／duplicate run.json JSON and requested artifact existence audit",
-      "current workflow contract scan"
+      "current workflow contract scan",
+      "GitHub Actions Run 30741740232 result audit",
+      "pnpm exec vitest run tests/contracts/ci-workflow.test.ts (9 tests)",
+      "Markdown heading and placeholder audit for specified Run Artifacts",
+      "active／duplicate run.json JSON validation after repair",
+      "git diff --check",
+      "pnpm exec prettier --check docs/history/2026-08-02_185000_ci-skip-propagation.md"
     ],
     "warnings": [
       "pnpm run format:check は既存 repo baseline の59ファイル未整形で失敗。今回変更対象はtargeted Prettier checkで成功。",
       "lint は0 errors／63 warnings。今回追加した契約テスト由来のwarningは残していない。",
       "初回の旧契約テスト5件失敗はPR #6修正で解消し、最終 test:contracts は6 files／46 tests passed。",
-      "GitHub Actions上の実際のMatrix並列、Artifact Upload/Download、Cloudflare Preview/Production、Required Check表示、Production concurrencyは未検証。"
+      "全体 pnpm run test の初回は既存 Playwright contract beforeAll の10秒hook timeoutで失敗したが、Playwright contract単独5/5後の再実行は全成功。",
+      "GitHub Actions上の実際のMatrix並列、Artifact Upload/Download、Cloudflare Preview/Production、Required Check表示、Production concurrencyは未検証。",
+      "GitHub Actions Run 30741740232 で deploy-preview=skipped、validate=failure、deploy-production=skipped。Skip伝播修正後の成功Runは未確認。",
+      "active Runは外部成功Run未確認のため status=blocked／validation.status=partial を維持。"
     ]
   },
   "safety": {
@@ -76,7 +89,7 @@
   "artifact_summary": {
     "codex_task_report_count": 0,
     "hook_event_count": 0,
-    "subagent_run_count": 5,
+    "subagent_run_count": 6,
     "evaluation_present": false
   },
   "hook_observations": {
@@ -113,17 +126,23 @@
         "mode": "read-only",
         "adopted": true,
         "summary": "PR #6のjobBlock、fail-closed、Artifact、URL Smoke、Secret契約を調査し、契約テスト再設計案を提示。"
+      },
+      {
+        "name": "test_investigator",
+        "mode": "read-only",
+        "adopted": true,
+        "summary": "追加修正として、UI Review stage/path、Checkout、Artifact download、Cloudflare Secret wiringの契約テスト不足を確認。"
       }
     ],
     "summary": {
-      "total": 5,
-      "read_only": 4,
+      "total": 6,
+      "read_only": 5,
       "writable": 1,
       "scope_violations": 0,
-      "used_in_final_plan": 5
+      "used_in_final_plan": 6
     }
   },
   "evaluation_path": null,
-  "status": "complete",
-  "primary_failure_category": null
+  "status": "blocked",
+  "primary_failure_category": "github-actions-skip-propagation"
 }

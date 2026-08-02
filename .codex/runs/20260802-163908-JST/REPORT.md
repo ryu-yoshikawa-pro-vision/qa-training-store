@@ -1,31 +1,35 @@
-# Report (append-only)
+# 作業報告（追記専用）
+
 - 行動のたびに追記する（調査/編集/判断も含む）
 - コマンドや確認結果は必ず記録する
 
-## Evidence Record (optional)
-- Record ID:
-- Round:
-- Query:
-- Source:
-- Supports/Refutes:
-- Confidence:
-- Decision:
-- Rationale:
-- Open Issues:
-- Next Action:
+## 根拠記録（任意）
 
-## YYYY-MM-DD HH:MM (JST)
-- Summary:
-- Completed:
-- Changes:
-- Commands:
+- 記録ID:
+- ラウンド:
+- 質問:
+- 情報源:
+- 支持／反証:
+- 確信度:
+- 判断:
+- 理由:
+- 未解決事項:
+- 次のアクション:
+
+## YYYY-MM-DD HH:MM（JST）
+
+- 概要:
+- 完了事項:
+- 変更:
+- コマンド:
   - `...` => result
-- Notes/Decisions:
-- New tasks:
-- Remaining:
+- 注記／判断:
+- 新しいタスク:
+- 残り:
 - Progress: NN% (done/total)
 
-## Deletion candidates
+## 削除候補
+
 - Codex はファイルやディレクトリを削除しない。
 - 不要に見えるファイルは、ユーザーが手動確認できるようにここへ記録する。
 
@@ -33,7 +37,8 @@
 |---|---|---|
 |  |  |  |
 
-## 2026-08-02 16:45 (JST)
+## 2026-08-02 16:45（JST）
+
 - Summary: 添付の Component Test failure を `must_fix` として triage し、repair scope と根因仮説を確定した。
 - Completed: `AGENTS.md`、PROJECT_CONTEXT、直近 ADR／Run、repair-loop skill と references、CODE_REVIEW entry point、対象実装・テスト・`useAsyncValue`・直近履歴を確認した。新規 run `20260802-163908-JST` を初期化した。
 - Changes: `PLAN.md` と `TASKS.md` を今回の failure、allowed scope、DoD に合わせて更新した。製品コードとテストコードは未変更。
@@ -52,7 +57,8 @@
 - Remaining: 対象テスト assertion の修正、対象／全体検証、最終差分監査。
 - Progress: 40% (2/5)
 
-## 2026-08-02 16:50 (JST)
+## 2026-08-02 16:50（JST）
+
 - Summary: repair iteration 1 の計画に従い、再取得完了を待たない Component Test の race を最小差分で修正した。
 - Completed: 3つの read-only subagent の調査結果を統合した。現行 `AdminUserDetail` の `mutation` 再取得、`userId-version` key による Form 再マウント、`disabled={rank === user.membershipRank}` は仕様どおりで、製品コード変更不要と判断した。
 - Changes: `tests/component/review-user-pages.test.tsx` の該当ケースで、変更前は最新 `screen` DOM の rank／button が enabled になるまで待ち、変更後は最新 rank と disabled を同じ `waitFor` 内で確認するよう更新した。固定 Wait、Retry、期待値弱体化は追加していない。
@@ -77,7 +83,8 @@
 - Remaining: 全体コマンドの再確認、format/typecheck、最終差分監査。
 - Progress: 60% (3/5)
 
-## 2026-08-02 16:54 (JST) 最終検証・完了
+## 2026-08-02 16:54（JST）最終検証・完了
+
 - Summary: 添付 failure の repair を完了した。Component Test は2回連続で全件成功し、変更はテスト1ファイルと標準 Run Artifact に限定された。
 - Completed:
   - `tests/component/review-user-pages.test.tsx` の mutation 後 assertion を最新 DOM の `waitFor` に変更した。
@@ -116,7 +123,8 @@
 - Remaining: なし（今回 finding に関して）。
 - Progress: 100% (5/5)
 
-## 2026-08-02 16:50 (JST) 検証1
+## 2026-08-02 16:50（JST）検証1
+
 - Summary: 修正後の対象テストとユーザー指定の Component Test 全体が成功した。
 - Completed: mutation 前後の最新 DOM 待機条件を含む rank変更ケースを実行し、全 Component Test へ拡張して確認した。
 - Changes: なし（検証のみ）。
@@ -128,7 +136,8 @@
 - Remaining: 全体コマンドの再確認、format/typecheck、最終差分監査。
 - Progress: 60% (3/5)
 
-## 2026-08-02 16:55 (JST) 追補・最終確定
+## 2026-08-02 16:55（JST）追補・最終確定
+
 - Summary: 先行検証記録後の全体再実行、静的確認、JSON／scope 監査を完了し、今回の repair finding を確定した。
 - Completed: `pnpm run test:component` 2回目、typecheck、lint、format baseline 切り分け、`git diff --check`、run.json の JSON 構文、TASKS の完了状態を確認した。
 - Changes: 追加の製品ファイル変更はない。最終的な製品差分は `tests/component/review-user-pages.test.tsx` の assertion 待機条件だけである。

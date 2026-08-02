@@ -65,3 +65,13 @@
 - 2026-08-02 17:06 JST: ユーザーが続行を明示したため、開始ゲートを上書きし、テスト／アプリコードを変更せず CI/CD 構造の実装へ進む判断を採用した。
 - 2026-08-02 17:39 JST: 構造監査、Build、Prebuilt／従来 Smoke、主要 Chromium 系 E2E、静的検証を完了した。既存 CI 契約テスト5件は新構造と旧期待値が衝突するため、テスト変更禁止の条件下で blocked と判定した。
 - 2026-08-02 17:45 JST: ユーザー要望により、同一会話セッション内では active run を再利用し、既存 Run Artifact へ追記する運用を `AGENTS.md` に追加する。今回も新規 Run は作成せず、本 Run へ追記する。
+
+## Repair Iteration 2（PR #6 追加修正）
+
+- `iteration_number`: 2
+- `input_findings`: GitHub Actions Run `30741740232` で `verify=success`、`deploy-preview=skipped`、`validate=failure`、`deploy-production=skipped`。原因は `deploy-preview` の Job-level `always()` 欠如による依存 Skip の伝播であり、修正後の外部成功 Run は未確認。
+- Triage: `must_fix`＝Preview／Production の Skip 伝播防止、上流成功条件、Secret scope、全 Checkout 保護、契約テスト、fork 方針、Run 状態。`should_fix`＝UI Review stage 再利用、Preview branch 文字検証、指定 Run Artifact の Markdown 修正。`defer`＝GitHubへのPush／手動再実行なしで実際の Actions 成功を確認すること。`reject`／`needs_human`＝なし。
+- `allowed_files`: `.github/workflows/ci.yml`, `tests/contracts/ci-workflow.test.ts`, `docs/adr/0002-ci-artifact-pipeline.md`, `docs/PROJECT_CONTEXT.md`, `docs/plans/2026-08-02_170105_github-actions-artifact-ci.md`, `.codex/runs/20260802-170105-JST/*`, `.codex/runs/20260802-171344-JST/*`, `.codex/runs/20260802-163908-JST/{PLAN.md,TASKS.md,REPORT.md}`。
+- `expected_changed_files`: 上記 Workflow、契約テスト、CI/CD 文書、指定 Run Artifact、および同一会話の Active Run。
+- `max_iterations`: 2。追加修正をこの iteration に限定し、外部成功 Runがない状態で `complete` へ戻さない。
+- `repair_plan`: Job-level `always()` と直接依存 Job の `success` 条件を Preview／Productionへ追加し、Cloudflare Secretを認証 Step／Action Inputへ限定する。全 Checkoutへ `persist-credentials: false`、Preview branch検証、UI Review path再利用、契約テスト、fork方針、Run失敗証跡を同期する。

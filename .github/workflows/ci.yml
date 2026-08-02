@@ -27,6 +27,8 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -70,6 +72,8 @@ jobs:
           - contracts
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -97,6 +101,8 @@ jobs:
       EXPO_PUBLIC_BUILD_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -135,6 +141,8 @@ jobs:
       EXPO_PUBLIC_BUILD_SHA: ${{ github.sha }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -188,6 +196,8 @@ jobs:
       EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -245,6 +255,8 @@ jobs:
       UI_REVIEW_STAGE: ci-${{ github.run_id }}-${{ github.run_attempt }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -275,7 +287,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: ui-review-${{ matrix.project }}-${{ github.run_id }}-${{ github.run_attempt }}
-          path: output/ui-review/ci-${{ github.run_id }}-${{ github.run_attempt }}/${{ matrix.viewport }}
+          path: output/ui-review/${{ env.UI_REVIEW_STAGE }}/${{ matrix.viewport }}
           if-no-files-found: warn
           retention-days: 14
 
@@ -291,6 +303,8 @@ jobs:
       EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -353,6 +367,8 @@ jobs:
       EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -445,7 +461,11 @@ jobs:
           echo "All required CI jobs completed successfully."
 
   deploy-preview:
-    if: github.event_name == 'pull_request'
+    if: >-
+      always() &&
+      github.event_name == 'pull_request' &&
+      needs.verify.result == 'success' &&
+      needs.build-automation.result == 'success'
     needs:
       - verify
       - build-automation
@@ -457,10 +477,10 @@ jobs:
       EXPO_PUBLIC_BUILD_KIND: automation
       EXPO_PUBLIC_TEST_MODE: "true"
       EXPO_PUBLIC_DEFAULT_SEED: default
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -480,10 +500,23 @@ jobs:
           name: web-dist-automation
           path: dist
 
+      - name: Validate Preview branch name
+        env:
+          PR_HEAD_REF: ${{ github.head_ref }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$PR_HEAD_REF" =~ ^[A-Za-z0-9._/-]+$ ]]; then
+            echo "::error title=Invalid Preview branch name::Unsupported characters were found."
+            exit 1
+          fi
+
       - name: Require Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
-            echo "::error title=Missing Cloudflare credentials::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are required for Preview deployment."
+            echo "::error title=Missing Cloudflare credentials::Cloudflare credentials are required."
             exit 1
           fi
 
@@ -491,8 +524,8 @@ jobs:
         id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: >-
             pages deploy dist
             --project-name=ec-test-automation-store
@@ -554,8 +587,11 @@ jobs:
 
   deploy-production:
     if: >-
+      always() &&
       github.event_name == 'push' &&
-      github.ref == 'refs/heads/main'
+      github.ref == 'refs/heads/main' &&
+      needs.validate.result == 'success' &&
+      needs.build-production.result == 'success'
     needs:
       - validate
       - build-production
@@ -570,10 +606,10 @@ jobs:
       EXPO_PUBLIC_BUILD_KIND: production
       EXPO_PUBLIC_TEST_MODE: "false"
       EXPO_PUBLIC_DEFAULT_SEED: default
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
 
       - uses: pnpm/action-setup@v4
         with:
@@ -594,9 +630,12 @@ jobs:
           path: dist
 
       - name: Require Cloudflare credentials
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
           if [[ -z "${CLOUDFLARE_API_TOKEN:-}" || -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]]; then
-            echo "::error title=Missing Cloudflare credentials::CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID are required for Production deployment."
+            echo "::error title=Missing Cloudflare credentials::Cloudflare credentials are required."
             exit 1
           fi
 
@@ -604,8 +643,8 @@ jobs:
         id: deploy
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ env.CLOUDFLARE_API_TOKEN }}
-          accountId: ${{ env.CLOUDFLARE_ACCOUNT_ID }}
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: >-
             pages deploy dist
             --project-name=ec-test-automation-store

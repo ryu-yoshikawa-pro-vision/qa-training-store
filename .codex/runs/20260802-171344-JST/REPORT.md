@@ -1,20 +1,23 @@
-# Report (append-only)
+# 作業報告（追記専用）
+
 - 行動のたびに追記する（調査/編集/判断も含む）
 - コマンドや確認結果は必ず記録する
 
-## Evidence Record (optional)
-- Record ID:
-- Round:
-- Query:
-- Source:
-- Supports/Refutes:
-- Confidence:
-- Decision:
-- Rationale:
-- Open Issues:
-- Next Action:
+## 根拠記録（任意）
 
-## 2026-08-02 17:13 (JST)
+- 記録ID:
+- ラウンド:
+- 質問:
+- 情報源:
+- 支持／反証:
+- 確信度:
+- 判断:
+- 理由:
+- 未解決事項:
+- 次のアクション:
+
+## 2026-08-02 17:13（JST）
+
 - Summary:
   - run artifact を作成し、対象2ファイルの現状確認を完了した。
 - Completed:
@@ -36,14 +39,16 @@
   - 実装、簡易検証、最終報告
 - Progress: 0% (0/4)
 
-## Deletion candidates
+## 削除候補
+
 - Codex はファイルやディレクトリを削除しない。
 
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
 
-## 2026-08-02 18:05 (JST) 重複Runの終了
+## 2026-08-02 18:05（JST）重複Runの終了
+
 - Summary:
   - `20260802-171344-JST` は、同一会話・同一CI/CDタスクに対して重複作成されたRunであることを確認した。
 - Completed:
