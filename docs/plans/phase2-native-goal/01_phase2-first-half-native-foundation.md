@@ -544,13 +544,11 @@ Webと同じ見た目ではなく、次を優先します。
 
 ### 6.16 EAS Workflows
 
-前半で最低限次を作成します。
+前半で次を作成します。
 
 ```text
-.e eas/workflows/phase2-native-foundation.yml
+.eas/workflows/phase2-native-foundation.yml
 ```
-
-実際のPathは`.eas/workflows/phase2-native-foundation.yml`とします。
 
 Workflow責務:
 
