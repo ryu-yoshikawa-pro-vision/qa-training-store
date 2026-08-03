@@ -98,6 +98,17 @@
 - `.github/workflows/native-ci.yml`はPR／手動起動、Native変更時にUbuntu `ubuntu-24.04`／Android API 34 Emulator／compile SDK 36でDeep Link、Harness、Maestro Storefront／Cartを実行し、`native-ci / verify`へ集約する。`.github/workflows/native-ios-ci.yml`は`macos-26`／Xcode 26.4.1以上の手動Workflowで、初期段階ではRequired Checkへ含めない。
 - 2026-08-03時点で、上記CIは定義済みだがGitHub Actions Runは未実施である。Windows上のAndroid SDK／`adb`／EmulatorおよびiOS Xcode／Simulatorも未提供のため、実Native Build／Install／操作／実`expo-sqlite` Smoke／Native screenshotは未確認である。Node／Web／生成Bundleの成功と実Native成功を混同しない。
 
+## PR #8再レビュー修正（2026-08-03）
+
+- GitHub Actions Native CI run `30775548618`の実態は、Detect／Native Static／Production Bundle Guardが成功、Android Jobが既存Workflowの`sdkmanager: command not found`で失敗、`native-ci / verify`も失敗である。これは修正後Workflowの成功実績ではない。
+- Android Workflowは`ANDROID_SDK_ROOT`→`ANDROID_HOME`→`/usr/local/lib/android/sdk`の順でSDK Rootを解決し、`cmdline-tools`からsdkmanager絶対Pathを取得して、`ANDROID_HOME`／`ANDROID_SDK_ROOT`／PATHを後続Stepへ渡す。BuildはDebugではなくAutomation Release APKを使用し、OS boot完了とpackage service準備をTimeout付きで待つ。
+- Native変更検知は共有Application／Domain／Seed／Config／Design Token／Generated／Manifest／Asset生成／Production Guardを含み、最終VerifyはDetect JobのResult、Native変更Output、Static／Production／AndroidのResultをFail-safeに確認する。
+- Native RuntimeのPresentation公開型は前半対応MethodだけのFacade（Catalog: Home／Search／Detail／Category、Cart: Get／Add／Update／Remove）とし、`suggest`、`listReviews`、`acceptPriceChanges`を公開しない。Native SQLiteのGuest閲覧制限商品は`PERMISSION_DENIED`、不存在は`null`とする。
+- Test Control ResetはSQLite Seed commit後にNative Control KV削除、Seed Identity復元、Clock、Payment Delayを更新する。Seed失敗時にKV／Identity／Clock／Delayを変更せず、Error Signalだけを通知する。
+- Native Cartはload／mutation開始時にErrorをクリアし、Mutation中はCart全明細の数量変更／削除Buttonを無効にする。Component Testで再試行復旧と全Button無効化を固定する。
+- MaestroはRestart Persistence、Dirty State Reset、Out-of-stock、Low-stock、Purchase Limitを独立Flowとして追加し、Screenshotは専用`--test-output-dir`へ収集する。iOS Workflowはmanual-onlyのRelease Simulator Buildへ揃える。
+- 上記修正後WorkflowのGitHub Actions再実行、Windows Android Emulator、macOS iOS Simulator、実`expo-sqlite`証跡は、Commit／Push禁止またはToolchain不在のため未実施である。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

@@ -38,7 +38,25 @@
     "tests/component/native/native-variation-selection.test.ts",
     "tests/contracts/native-production-module-resolution.test.ts",
     "maestro/native-contract-harness.yaml",
-    "maestro/native-not-found.yaml"
+    "maestro/native-not-found.yaml",
+    "docs/plans/2026-08-03_101500_pr8-rereview-repair.md",
+    "docs/history/2026-08-03_113500_pr8-rereview-repair.md",
+    "src/bootstrap/native-runtime.ts",
+    "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+    "src/test-controls/native-test-control.native.ts",
+    "src/presentation/native/native-screens.tsx",
+    "tests/unit/native-test-control-service.test.ts",
+    "tests/repository-contract/native-customer-shared.test.ts",
+    "tests/contracts/native-runtime-service-surface.test.ts",
+    "tests/contracts/native-ci-workflow.test.ts",
+    "tests/component/native/native-cart-screen.test.tsx",
+    "maestro/native-storefront.yaml",
+    "maestro/native-cart.yaml",
+    "maestro/native-restart-persistence.yaml",
+    "maestro/native-reset-dirty-state.yaml",
+    "maestro/native-out-of-stock.yaml",
+    "maestro/native-low-stock.yaml",
+    "maestro/native-purchase-limit.yaml"
   ],
   "validation": {
     "status": "in_progress",
@@ -89,11 +107,18 @@
       "pnpm run test",
       "pnpm run validate:native-production-bundle",
       "pnpm dlx expo-doctor@1.17.6",
+      "pnpm run build:web",
+      "pnpm run test:e2e:chromium",
+      "pnpm run test:a11y",
+      "pnpm run test:e2e:mobile-boundary",
       "pnpm run test:contracts",
       "pnpm run validate:image-manifest",
       "pnpm run generate:native-assets",
       "git diff --exit-code -- src/generated/native-product-assets.ts",
       "pnpm exec vitest run tests/unit/native-contract-harness.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm exec vitest run tests/unit/native-test-control-service.test.ts tests/repository-contract/native-customer-shared.test.ts tests/contracts/native-runtime-service-surface.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm exec jest --config jest.config.cjs tests/component/native/native-cart-screen.test.tsx --runInBand",
+      "GitHub read-only: run 30775548618 / Android job 91570459824 / Verify job 91570596205",
       "git diff --check",
       "node -e JSON.parse(run.json/evaluation.json)"
     ],
@@ -106,7 +131,10 @@
       "EAS Cloud Build/Workflow/SubmitとPR本文更新はユーザー指示により未実施",
       "Web Buildは初回にexpo-sqlite WASMのWeb混入を検出して失敗したが、Metroのweb解決をdisabled entryへ限定後に成功",
       "Node SQLite/Contract、Native Component、Production Bundle Guard、Format/Lint/Typecheck、Web E2E/A11y/Mobile回帰は成功",
-      "expo-doctor@1.17.6は17/17 checks passed"
+      "expo-doctor@1.17.6は17/17 checks passed",
+      "GitHub Native CI run 30775548618: Detect／Static／Production success、Android sdkmanager command not found failure、Verify failure",
+      "修正後GitHub Actions runはCommit／Push禁止のため未実施",
+      "最終検証: 全Test、Production Bundle Guard、Web Build、Chromium 27、A11y 4、Mobile boundary 4、Format check、差分checkは成功"
     ]
   },
   "safety": {

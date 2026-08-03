@@ -138,3 +138,18 @@ Route Inventory、Root/Shell、依存方向、Capability/Scope、Native Composit
 - 正式Deep Link、Native前半Scenario Allowlist、Guest Mutation、shared Application Use Case、Customer-only Schema、Reset Exclusive Transaction、実行可能Harness、Production Module Resolution、Variation、Native Asset CI、Android/iOS CIを対象とする。
 - Android/iOS実Native確認、GitHub Actions Run、EAS Cloud実行、GitHubへのCommit／Push／PR更新は本Runでは完了扱いにしない。
 - 同一Runを再利用し、修正IterationはREPORTへ追記する。ユーザー確認が必要な外部環境項目はNextへ残す。
+
+## 21. 2026-08-03 PR #8再レビュー修正計画
+
+- 添付の再レビュー指示を入力として、GitHub Actions run `30775548618`の失敗ログ（`sdkmanager: command not found`）と最新コードを照合する。
+- Android WorkflowをSDK Root優先解決、sdkmanager絶対Path、Release APK、OS boot／package service待機、専用Maestro Artifact、Detect／Verify fail-safeへ修正する。
+- Native Service公開型、閲覧制限Error、Test Control Reset順序、Cart Error／busy状態を修正し、Unit／Component／Contract Testを追加する。
+- Restart／Dirty Reset／在庫／購入上限のMaestro FlowとiOS Release manual Workflowを追加・補強する。
+- 修正後のGitHub Actions再実行はCommit／Push禁止のため実施せず、静的検証結果と未実施境界を既存Runへ追記する。
+
+## 22. 2026-08-03 PR #8再レビュー修正 最終判定
+
+- コード、Workflow定義、Maestro定義、対象Test、README／PROJECT_CONTEXT／ADR／Phase 2計画／Historyの更新を完了した。
+- Format、Lint、Typecheck、全Test、Asset／Security／Route／EAS static、Production Bundle Guard、Web Build、Chromium／A11y／Mobile E2E、Expo Doctorを実行し、すべて成功した。
+- 修正後GitHub Actionsの再実行と、Windows上で未提供のAndroid／iOS実Native環境によるBuild・Install・操作・実SQLiteは完了条件から除外せず、未確認として残す。
+- 次の実施条件は、Commit／Pushが許可された後のGitHub Actions再実行、またはAndroid SDK／adb／EmulatorとmacOS／Xcode／Simulatorの提供である。

@@ -628,3 +628,9 @@ Build成果物はGitHub ActionsまたはローカルToolchainから後続Maestro
 
 - [Phase 2 前半: Native基盤・SQLite・Guest購入前Flow](./01_phase2-first-half-native-foundation.md)
 - [Phase 2 後半: 会員購入Flow・Maestro・EAS/CI仕上げ](./02_phase2-second-half-purchase-automation.md)
+
+## 11. PR #8再レビュー修正の記録（2026-08-03）
+
+- 既存GitHub Actions run `30775548618`はDetect／Native Static／Production Bundle Guardが成功、Android Jobが`sdkmanager: command not found`で失敗、最終Verifyも失敗した。これは修正後の成功結果ではない。
+- 修正WorkflowはSDK Rootの優先解決、sdkmanager絶対Path、Automation Release APK、Emulator OS boot／package service待機、共有層を含む変更検知、Detect Resultを含むFail-safe Verify、専用Maestro Artifact出力を契約とする。
+- 修正後Workflowの再実行はCommit／Push禁止により未実施。Android Emulator／iOS Simulator／実SQLiteも実行環境がないため未実施である。

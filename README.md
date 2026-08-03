@@ -358,16 +358,18 @@ pnpm run verify
 - Deep Link Pure Function、Native Scenario Allowlist、Guest Mutation拒否、Reset rollback、Harness signal順序、Variation未選択のUnit／Contract／Component Test
 - Native Application Use Case共有配線、Production Module Resolution、生成BundleのProduction Bundle Guard
 - Native Asset生成差分、Format、Lint、Typecheck、Node SQLite／Web回帰（個別の実行結果はRun Artifactを参照）
-- Android／iOS CI Workflow定義の追加（GitHub Actionsの実行結果ではなく、Workflow／Job／Artifact契約の実装）
+- Android／iOS CI Workflow定義とWorkflow契約Test（GitHub Actionsの実行結果ではなく、Workflow／Job／Artifact契約の実装）
 
 #### 実施済み・失敗
 
 - このWindows環境でのローカルAndroid Release Buildは、Android SDK／`ANDROID_HOME`／`adb`不足により失敗。
 - このWindows環境でのローカルiOS Buildは、Xcode／SimulatorがWindows上にないため実行不可。
+- GitHub Actions Native CI run `30775548618`は、Detect／Native Static／Production Bundle Guardが成功したが、Android Jobは既存Workflowの`sdkmanager: command not found`で失敗し、`native-ci / verify`も失敗。
 
 #### 未実施
 
-- GitHub ActionsのAndroid Emulator CI／iOS手動CIの実行、APK／Maestro／Harness Artifactの取得
+- 修正後WorkflowのGitHub Actions再実行、APK／Maestro／Harness Artifactの取得（Commit／Push禁止のため未実施）
+- iOS手動CIの実行
 - Android Emulator／実機、iOS Simulator上のDeep Link、Contract Harness、Storefront／Cart、再起動復元、実`expo-sqlite`確認
 - EAS Cloud Build／Workflow／Submit、Store公開、PR本文更新
 

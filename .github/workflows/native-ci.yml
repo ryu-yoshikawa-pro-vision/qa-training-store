@@ -38,13 +38,23 @@ jobs:
           fi
           if git diff --quiet "${{ github.event.pull_request.base.sha }}" "${{ github.event.pull_request.head.sha }}" -- \
             'app/**/*.native.tsx' \
+            'src/application/**' \
+            'src/domain/**' \
+            'src/seeds/**' \
+            'src/config/**' \
+            'src/presentation/design/**' \
+            'src/generated/**' \
+            'config/**' \
+            'public/images/product-image-manifest.json' \
+            'scripts/generate-native-asset-map.ts' \
+            'scripts/validate-native-production-bundle.ts' \
             'src/**/*.native.ts' \
             'src/**/*.native.tsx' \
             'src/bootstrap/native-runtime.ts' \
             'src/infrastructure/database/sqlite/**' \
             'src/infrastructure/session/native-stores.ts' \
             'src/infrastructure/security/password-hasher.native.ts' \
-            'src/test-controls/native-*' \
+            'src/test-controls/**' \
             'src/presentation/native/**' \
             'app.config.ts' \
             'metro.config.*' \
@@ -137,22 +147,73 @@ jobs:
       - run: pnpm run generate:native-assets
       - run: git diff --exit-code -- src/generated/native-product-assets.ts
       - run: pnpm exec expo prebuild --clean --platform android --no-install
+      - name: Resolve Android SDK and sdkmanager
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK_ROOT"
+          test -d "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | sort | tail -n 1)"
+          test -n "$SDKMANAGER"
+          test -x "$SDKMANAGER"
+          export ANDROID_HOME="$SDK_ROOT"
+          export ANDROID_SDK_ROOT="$SDK_ROOT"
+          export PATH="$SDK_ROOT/platform-tools:$SDK_ROOT/emulator:$(dirname "$SDKMANAGER"):$PATH"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/emulator" >> "$GITHUB_PATH"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          echo "Resolved Android SDK: $SDK_ROOT"
+          echo "Resolved sdkmanager: $SDKMANAGER"
       - name: Install Android SDK components
         shell: bash
         run: |
-          yes | sdkmanager --licenses >/dev/null || true
-          sdkmanager "platform-tools" "platforms;android-${ANDROID_COMPILE_API_LEVEL}" "build-tools;36.0.0" "emulator" "system-images;android-${ANDROID_API_LEVEL};google_apis;x86_64"
-      - name: Build debug APK
+          set -euo pipefail
+          test -x "$SDKMANAGER"
+          yes | "$SDKMANAGER" --licenses >/dev/null || true
+          "$SDKMANAGER" \
+            "platform-tools" \
+            "platforms;android-${ANDROID_COMPILE_API_LEVEL}" \
+            "build-tools;36.0.0" \
+            "emulator" \
+            "system-images;android-${ANDROID_API_LEVEL};google_apis;x86_64"
+      - name: Verify Android toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v adb
+          command -v emulator
+          command -v avdmanager
+          adb version
+          emulator -version
+      - name: Build Automation Release APK
         working-directory: android
-        run: ./gradlew assembleDebug --no-daemon --stacktrace
+        run: ./gradlew assembleRelease --no-daemon --stacktrace
+      - name: Verify Automation Release APK
+        shell: bash
+        run: test -f android/app/build/outputs/apk/release/app-release.apk
       - name: Start Android Emulator with KVM
         shell: bash
         run: |
+          set -euo pipefail
           test -e /dev/kvm
           sudo chmod 666 /dev/kvm
           echo no | avdmanager create avd -n native-api34 -k "system-images;android-${ANDROID_API_LEVEL};google_apis;x86_64" --force
-          emulator -avd native-api34 -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect >"$RUNNER_TEMP/emulator.log" 2>&1 &
-          adb wait-for-device
+          emulator \
+            -avd native-api34 \
+            -no-window \
+            -no-audio \
+            -no-boot-anim \
+            -no-snapshot \
+            -wipe-data \
+            -gpu swiftshader_indirect \
+            >"$RUNNER_TEMP/emulator.log" 2>&1 &
+          timeout 180 adb wait-for-device
+          timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" == "1" ]]; do sleep 2; done'
+          timeout 180 bash -c 'until adb shell service check package 2>/dev/null | grep -q "found"; do sleep 2; done'
           adb shell settings put global window_animation_scale 0
           adb shell settings put global transition_animation_scale 0
           adb shell settings put global animator_duration_scale 0
@@ -160,8 +221,14 @@ jobs:
       - name: Install and launch APK
         shell: bash
         run: |
-          adb install -r android/app/build/outputs/apk/debug/app-debug.apk
-          adb shell am start -a android.intent.action.MAIN -c android.intent.category.LAUNCHER com.ryuyoshikawa.scenarioshop
+          set -euo pipefail
+          adb install -r android/app/build/outputs/apk/release/app-release.apk
+          adb shell pm list packages | grep -F 'com.ryuyoshikawa.scenarioshop'
+          adb shell monkey \
+            -p com.ryuyoshikawa.scenarioshop \
+            -c android.intent.category.LAUNCHER \
+            1
+          timeout 60 bash -c 'until adb shell pidof com.ryuyoshikawa.scenarioshop 2>/dev/null | grep -q .; do sleep 2; done'
       - name: Install pinned Maestro CLI
         shell: bash
         run: |
@@ -171,32 +238,70 @@ jobs:
           echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
       - name: Reset Test Control by Deep Link
         shell: bash
-        run: adb shell am start -a android.intent.action.VIEW -d 'scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0' com.ryuyoshikawa.scenarioshop
+        run: |
+          adb shell am start \
+            -W \
+            -a android.intent.action.VIEW \
+            -d 'scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0' \
+            com.ryuyoshikawa.scenarioshop
       - name: Run Test Control and Contract Harness flows
         shell: bash
         run: |
-          maestro test maestro/native-test-control.yaml --format junit --output "$RUNNER_TEMP/maestro-test-control.xml"
-          maestro test maestro/native-contract-harness.yaml --format junit --output "$RUNNER_TEMP/maestro-contract-harness.xml"
-          maestro test maestro/native-not-found.yaml --format junit --output "$RUNNER_TEMP/maestro-not-found.xml"
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/maestro-artifacts"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-test-control.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/test-control" \
+            --format junit --output "$RUNNER_TEMP/maestro-test-control.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-contract-harness.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/contract-harness" \
+            --format junit --output "$RUNNER_TEMP/maestro-contract-harness.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-not-found.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/not-found" \
+            --format junit --output "$RUNNER_TEMP/maestro-not-found.xml"
       - name: Run Native Storefront and Cart flows
         shell: bash
         run: |
-          maestro test maestro/native-storefront.yaml --format junit --output "$RUNNER_TEMP/maestro-storefront.xml"
-          maestro test maestro/native-cart.yaml --format junit --output "$RUNNER_TEMP/maestro-cart.xml"
+          set -euo pipefail
+          maestro test "$GITHUB_WORKSPACE/maestro/native-storefront.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/storefront" \
+            --format junit --output "$RUNNER_TEMP/maestro-storefront.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-cart.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/cart" \
+            --format junit --output "$RUNNER_TEMP/maestro-cart.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-restart-persistence.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/restart-persistence" \
+            --format junit --output "$RUNNER_TEMP/maestro-restart-persistence.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-reset-dirty-state.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/reset-dirty-state" \
+            --format junit --output "$RUNNER_TEMP/maestro-reset-dirty-state.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-out-of-stock.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/out-of-stock" \
+            --format junit --output "$RUNNER_TEMP/maestro-out-of-stock.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-low-stock.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/low-stock" \
+            --format junit --output "$RUNNER_TEMP/maestro-low-stock.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-purchase-limit.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/purchase-limit" \
+            --format junit --output "$RUNNER_TEMP/maestro-purchase-limit.xml"
       - name: Collect Android evidence
         if: always()
         shell: bash
         run: |
           mkdir -p "$RUNNER_TEMP/native-evidence"
           adb logcat -d > "$RUNNER_TEMP/native-evidence/adb-logcat.txt" || true
-          cp android/app/build/outputs/apk/debug/app-debug.apk "$RUNNER_TEMP/native-evidence/app-debug.apk" || true
+          cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/native-evidence/app-release.apk" || true
           cp "$RUNNER_TEMP/maestro-test-control.xml" "$RUNNER_TEMP/native-evidence/maestro-test-control.xml" || true
           cp "$RUNNER_TEMP/maestro-contract-harness.xml" "$RUNNER_TEMP/native-evidence/maestro-contract-harness.xml" || true
           cp "$RUNNER_TEMP/maestro-not-found.xml" "$RUNNER_TEMP/native-evidence/maestro-not-found.xml" || true
           cp "$RUNNER_TEMP/maestro-storefront.xml" "$RUNNER_TEMP/native-evidence/maestro-storefront.xml" || true
           cp "$RUNNER_TEMP/maestro-cart.xml" "$RUNNER_TEMP/native-evidence/maestro-cart.xml" || true
+          cp "$RUNNER_TEMP/maestro-restart-persistence.xml" "$RUNNER_TEMP/native-evidence/maestro-restart-persistence.xml" || true
+          cp "$RUNNER_TEMP/maestro-reset-dirty-state.xml" "$RUNNER_TEMP/native-evidence/maestro-reset-dirty-state.xml" || true
+          cp "$RUNNER_TEMP/maestro-out-of-stock.xml" "$RUNNER_TEMP/native-evidence/maestro-out-of-stock.xml" || true
+          cp "$RUNNER_TEMP/maestro-low-stock.xml" "$RUNNER_TEMP/native-evidence/maestro-low-stock.xml" || true
+          cp "$RUNNER_TEMP/maestro-purchase-limit.xml" "$RUNNER_TEMP/native-evidence/maestro-purchase-limit.xml" || true
           cp "$RUNNER_TEMP/emulator.log" "$RUNNER_TEMP/native-evidence/emulator.log" || true
-          find . -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) -not -path './node_modules/*' -exec cp --parents {} "$RUNNER_TEMP/native-evidence/" \; || true
+          cp -R "$RUNNER_TEMP/maestro-artifacts" "$RUNNER_TEMP/native-evidence/maestro-artifacts" || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -213,11 +318,18 @@ jobs:
       - name: Require stable Native CI result
         shell: bash
         env:
+          DETECT_RESULT: ${{ needs.detect.result }}
           NATIVE_CHANGED: ${{ needs.detect.outputs.native_changed }}
           STATIC_RESULT: ${{ needs.static.result }}
           PRODUCTION_RESULT: ${{ needs.production-bundle-guard.result }}
           ANDROID_RESULT: ${{ needs.android.result }}
         run: |
+          test "$DETECT_RESULT" = success
+          test -n "$NATIVE_CHANGED"
+          case "$NATIVE_CHANGED" in
+            true|false) ;;
+            *) echo "Unexpected native_changed output: $NATIVE_CHANGED" >&2; exit 1 ;;
+          esac
           test "$STATIC_RESULT" = success
           if [[ "$NATIVE_CHANGED" == "true" ]]; then
             test "$PRODUCTION_RESULT" = success

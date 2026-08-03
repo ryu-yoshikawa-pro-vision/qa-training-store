@@ -75,12 +75,27 @@
 - [x] D11. ADR、上位計画、README、PROJECT_CONTEXT、History、修正計画、Run Artifactを実態に更新する。
 - [x] D12. Format、Lint、Typecheck、全Test、Web Build／E2E／A11y／Mobile、Security、Asset、Route、EAS static、Production Bundleを検証する。
 - [ ] D13. GitHub Actions Run、ローカルAndroid Emulator／実機、iOS Simulator／実SQLiteを実行し、実環境証跡を保存する。
+- [x] D14. PR #8再レビュー添付、最新GitHub Actions run／Job／失敗ログをread-onlyで再確認する。
+- [x] D15. Android WorkflowのSDK Root／sdkmanager絶対Path、Release APK、Emulator OS boot／package service待機、Package／Process確認を修正する。
+- [x] D16. Native変更検知、Detect Resultを含む最終Verify、専用Maestro Artifact収集を修正する。
+- [x] D17. Native Application Service公開範囲と閲覧制限商品のError契約を修正し、Contract Testを追加する。
+- [x] D18. Test Control ResetのSQLite→KV順序とSeed失敗時のKV不変／成功時順序Testを追加する。
+- [x] D19. Cart Error再試行復旧と全Mutation Button無効化を実装し、Native Component Testを追加する。
+- [x] D20. MaestroをFlow責務単位で独立させ、Restart／Dirty Reset／在庫／購入上限Flowを追加する。
+- [x] D21. iOS Workflowをmanual-only Release Simulator Buildへ変更し、専用Artifact出力へ揃える。
+- [x] D22. 再レビュー修正後の全静的／Unit／Component／Contract／Web回帰検証を実行する。
+- [x] D23. 再レビュー修正の結果、既存Run Artifact、README、PROJECT_CONTEXT、ADR、Phase 2計画、Historyを実態に更新する。
 
 ## Resolved / Follow-up
 
 - B1（解消）. ユーザーがEASを使わずローカルBuildを使う方針を確定したため、EAS Account/Project/費用/Credential/Workflowは開始条件から除外した。Android `adb`/Emulator/MaestroとiOS `xcrun`/Simulator/Xcodeは現環境にないため、該当する実操作は未確認として記録し、Task 5（Gate A実装）へ進む。
 
 Progress: 73% (33/45)
+
+## 2026-08-03 PR #8再レビュー追補
+
+- D14〜D21は修正済み。D22の全検証とD23の最終Artifact反映後に進捗を再計算する。
+- D13（修正後GitHub Actions／ローカルAndroid Emulator／iOS Simulator／実SQLite）は、Commit／Push禁止または実行環境不在のため未完了のまま保持する。
 
 ## 2026-08-03 00:20 JST 追補判定
 
@@ -93,3 +108,10 @@ Progress: 73% (33/45)
 - リポジトリ全体へ`pnpm run format`を実行し、Prettier対象ファイルを整形した。
 - `pnpm run format:check`がPASSしたため、Task 33のFormat条件を完了扱いに更新した。
 - Progress: 69% (25/36)
+
+## 2026-08-03 11:59 JST 最終検証
+
+- D22／D23の再レビュー修正後検証とRun／Docs反映を完了した。
+- D13の修正後GitHub Actions Run、ローカルAndroid／iOS実環境、実SQLite証跡は未実施として保持する。
+
+Progress: 78% (43/55)

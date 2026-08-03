@@ -404,6 +404,14 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 
 各Gate終了時に、実施内容、検証結果、失敗と修正、Android/iOS差分、未確認事項、次Gateへ進める根拠をRun Artifactへ記録します。
 
+## 6.1 PR #8再レビュー修正の追加契約（2026-08-03）
+
+- Android CIは`ANDROID_SDK_ROOT`→`ANDROID_HOME`→標準SDK Rootを解決し、cmdline-tools内のsdkmanager絶対PathでSDKを準備する。`assembleRelease`でAutomation APKを生成し、boot完了とpackage service準備をTimeout付きで待つ。
+- Native RuntimeのPresentation公開ServiceはPhase 2前半のCatalog／Cart Methodだけへ限定する。閲覧制限商品は`PERMISSION_DENIED`、不存在は`null`とする。
+- Test ControlはSQLite Seed commit後にKVを変更する。Seed失敗時にKV／Identity／Clock／Delayへ変更を加えず、Error Signalを通知する。
+- CartはError再試行で復旧し、Mutation中はCart内全Mutation Buttonを無効化する。専用Maestro Flowは前回Flowの状態に依存させない。
+- iOS CIはmanual-onlyのRelease Simulator Buildとし、修正後のGitHub Actions／実Native実行結果がない限り未実施と記録する。
+
 ## 7. 後半へ引き渡す確定契約
 
 - Route InventoryとPlatform Route方式

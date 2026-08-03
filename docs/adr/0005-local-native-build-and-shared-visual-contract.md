@@ -32,3 +32,10 @@ WebとNativeは同じ商品・Cart情報を扱うため、Platform UIを別実�
 - Nativeの実機／Simulator検証が未実施の場合、コード実装完了とPhase 2前半全体の完了を分けて報告する必要がある。
 - Platform差の受け入れ範囲をHeader／Navigation等に限定し、Visual ReviewでWeb／Android／iOSの未検証画面を明示する。
 - GitHub ActionsはローカルBuildを置き換えるものではなく、再現可能な標準Runner上の補助検証である。iOS Workflowは安定成功を確認するまでRequired Checkへ昇格しない。
+
+## PR #8再レビュー時の運用補足（2026-08-03）
+
+- Android補助CIはRunner既定のPATHを前提にせず、`ANDROID_SDK_ROOT`、`ANDROID_HOME`、標準SDK Rootの順に解決したsdkmanagerを使用する。Automation APKはRelease Bundleを使い、Production用恒久Keystore／Credentialは追加しない。
+- Native変更検知は共有Application／Domain／Seed／Config／Design Token／Generated Assetまで含める。最終VerifyはDetect Job自体の成功とNative変更Outputの存在を確認し、Native変更時のProduction Guard／Android結果を必須とする。
+- MaestroのスクリーンショットはRepository全体のAssetを収集せず、専用Test Output DirectoryからJUnitとともにArtifact化する。
+- この補足でWorkflowの成功を宣言するものではない。修正後GitHub Actions Run、Windows Android Emulator、macOS iOS Simulatorは、実行結果が取得されるまで未実施として扱う。

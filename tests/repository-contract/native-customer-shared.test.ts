@@ -8,6 +8,7 @@ import {
 } from "@/infrastructure/database/sqlite/database";
 import { CUSTOMER_SCHEMA_SQL } from "@/infrastructure/database/sqlite/schema";
 import { NativeCustomerSQLiteRepository } from "@/infrastructure/database/sqlite/native-customer-repositories";
+import { ApplicationError } from "@/application/errors";
 import { createCustomerRepositoryContractSuite } from "../contracts/shared-customer-repository-suite";
 
 vi.mock("expo-sqlite", () => ({}));
@@ -70,6 +71,33 @@ async function createNativeContractHandle() {
 createCustomerRepositoryContractSuite(createNativeContractHandle);
 
 describe("Native SQLite Node runtime contract", () => {
+  it("distinguishes forbidden existing products from missing products", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("default"),
+    );
+    const repository = new NativeCustomerSQLiteRepository(database as unknown as SQLiteDatabase);
+
+    await expect(
+      repository.getProductDetail({
+        productId: "product-running-shoes",
+        now: "2026-07-01T03:00:00.000Z",
+      }),
+    ).rejects.toMatchObject<Partial<ApplicationError>>({
+      code: "PERMISSION_DENIED",
+      messageKey: "products.view.forbidden",
+    });
+    await expect(
+      repository.getProductDetail({
+        productId: "product-does-not-exist",
+        now: "2026-07-01T03:00:00.000Z",
+      }),
+    ).resolves.toBeNull();
+    database.close();
+  });
+
   it("enforces foreign keys against the seeded customer schema", async () => {
     const database = new NodeSQLiteDatabase();
     await database.execAsync(CUSTOMER_SCHEMA_SQL);

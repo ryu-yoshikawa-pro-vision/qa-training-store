@@ -255,7 +255,14 @@ export class NativeCustomerSQLiteRepository
 
   async getProductDetail(input: { productId: string; now: string }): Promise<ProductDetail | null> {
     const product = await this.getProduct(input.productId);
-    if (product === null || !isGuestVisibleProduct(product)) return null;
+    if (product === null) return null;
+    if (!isGuestVisibleProduct(product)) {
+      throw new ApplicationError({
+        code: "PERMISSION_DENIED",
+        messageKey: "products.view.forbidden",
+        retryable: false,
+      });
+    }
     const [item, variants, images, summary, category, brand] = await Promise.all([
       this.toProductListItem(product, input.now),
       this.getVariants(product.id),

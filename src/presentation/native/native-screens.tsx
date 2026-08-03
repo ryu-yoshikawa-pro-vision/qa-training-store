@@ -478,6 +478,7 @@ export function NativeCartScreen() {
   const [busy, setBusy] = useState<string | null>(null);
   const load = useCallback(() => {
     if (services === null) return;
+    setError(null);
     void services.cart
       .getCart()
       .then(setCart)
@@ -495,6 +496,7 @@ export function NativeCartScreen() {
     );
   if (cart === null) return <NativeStatePanel title="読み込み中…" />;
   const mutate = (itemId: string, operation: () => Promise<CartDto>) => {
+    setError(null);
     setBusy(itemId);
     void operation()
       .then(setCart)
@@ -531,7 +533,7 @@ export function NativeCartScreen() {
                   <NativeButton
                     label="−"
                     variant="ghost"
-                    disabled={busy === item.itemId || item.quantity <= 1}
+                    disabled={busy !== null || item.quantity <= 1}
                     onPress={() =>
                       mutate(item.itemId, () =>
                         services.cart.updateQuantity({
@@ -548,7 +550,7 @@ export function NativeCartScreen() {
                   <NativeButton
                     label="＋"
                     variant="ghost"
-                    disabled={busy === item.itemId || item.quantity >= item.maximumQuantity}
+                    disabled={busy !== null || item.quantity >= item.maximumQuantity}
                     onPress={() =>
                       mutate(item.itemId, () =>
                         services.cart.updateQuantity({
@@ -565,7 +567,7 @@ export function NativeCartScreen() {
                 <NativeButton
                   label="削除"
                   variant="danger"
-                  disabled={busy === item.itemId}
+                  disabled={busy !== null}
                   onPress={() =>
                     mutate(item.itemId, () =>
                       services.cart.removeItem({

@@ -485,6 +485,155 @@ continue
 
 Progress: 73% (33/45)
 
+## 2026-08-03 11:59 JST PR #8再レビュー修正 Iteration 2 最終検証
+
+### 完了確認
+
+- 再レビュー指摘に対するWorkflow、Native Service Surface、閲覧制限Error、Reset順序、Cart状態、Maestro Flow、iOS Release Workflowの修正を完了した。
+- D22（再レビュー修正後の全静的／Unit／Component／Contract／Web回帰検証）を完了した。
+- D23（Run Artifact、README、PROJECT_CONTEXT、ADR、Phase 2計画、Historyの実態反映）を完了した。
+- D13（修正後GitHub Actions Run、ローカルAndroid／iOS実環境、実SQLite証跡）は、Commit／Push禁止および実行環境不在のため未完了のまま保持した。
+
+### validation
+
+- `pnpm install --frozen-lockfile` => PASS（Lockfile up to date）。
+- `pnpm run format`／`pnpm run format:check` => PASS（All matched files use Prettier code style）。
+- `pnpm run lint` => PASS（0 errors／既存warning 64件）。
+- `pnpm run typecheck` => PASS（app／native-tests）。
+- `pnpm run test` => PASS（Unit 13 files／64 tests、Integration 9／91、Repository 5／28、Web Component 11／76、Native Jest 4 suites／9、Contract 16／79）。
+- `pnpm run generate:native-assets` + `git diff --exit-code -- src/generated/native-product-assets.ts` => PASS（9 assets、生成差分なし）。
+- `pnpm run validate:image-manifest`、`pnpm run security:check`、`pnpm run check:native-route-dependencies`、`pnpm run validate:eas:config` => PASS（Security 228 runtime／265 credential-scan、Native Route 38、EAS cloudRun=not-run）。
+- `pnpm run validate:native-production-bundle` => PASS（Automation marker／Harness markerは存在、Production Bundleから両markerと`NativeTestControlService`を除外）。
+- `pnpm run build:web` => PASS。
+- `pnpm run test:e2e:chromium` => PASS（27 tests）。
+- `pnpm run test:a11y` => PASS（4 tests）。
+- `pnpm run test:e2e:mobile-boundary` => PASS（4 tests）。
+- `pnpm dlx expo-doctor@1.17.6` => PASS（17/17 checks）。
+- `git diff --check` => 差分エラーなし（WindowsのLF/CRLF warningのみ）。Run Artifactの`run.json`／`evaluation.json`はJSON parse PASS。
+- 静的検証の並列実行はリソース競合で128秒のwrapper timeoutとなったため、該当コマンドを個別に再実行した。Production Bundle Guardを含む個別結果はPASSである。
+
+### evidence
+
+- 変更Workflow: `.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`
+- 追加／更新Test: `tests/contracts/native-ci-workflow.test.ts`、`tests/contracts/native-runtime-service-surface.test.ts`、`tests/component/native/native-cart-screen.test.tsx`、`tests/unit/native-test-control-service.test.ts`
+- Maestro: `maestro/native-restart-persistence.yaml`、`maestro/native-reset-dirty-state.yaml`、`maestro/native-out-of-stock.yaml`、`maestro/native-low-stock.yaml`、`maestro/native-purchase-limit.yaml`
+- 既存GitHub read-only証跡: Native CI run `30775548618`、Android job `91570459824`、Verify job `91570596205`。これは修正前の`sdkmanager: command not found`失敗であり、修正後Runの成功証跡ではない。
+
+### remaining_delta
+
+- 修正後GitHub Actionsの再実行、Android Release APK／Emulator／Maestro Artifact、`native-ci / verify`成功結果は未取得。Commit／Push禁止のため、本Runからは実行していない。
+- Windows環境にAndroid SDK／adb／Emulator、macOS環境にXcode／iOS Simulatorがないため、ローカルNative Build／Install／操作／実SQLite／Native screenshotは未確認。
+- EAS Cloud Build／Workflow／Submit、GitHubへのCommit／Push／PR本文更新は実施していない。
+
+### decision
+
+continue（コード・Workflow・静的／Web検証は完了。実GitHub／実Native環境の証跡待ち）
+
+Progress: 78% (43/55)
+
+## 2026-08-03 11:35 JST PR #8再レビュー修正 Iteration 2
+
+### iteration_number
+
+2
+
+### input_findings
+
+- 添付のPR #8再レビュー指示を正本とした。
+- GitHub read-only確認では、PR #8 head `dcc8983857fd7a7db1481d1037cf28c9794f9991`、Native CI run `30775548618`、Android job `91570459824`、Verify job `91570596205`を確認した。
+- Detect Native Changes／Native Static／Production Bundle Guardはsuccessだったが、Android jobは既存Workflowの`Install Android SDK components`で`sdkmanager: command not found`、APK Build以降はskip、`native-ci / verify`もfailureだった。
+- PR review threadは0件で、CodeRabbitは対象ファイル数超過でskipだったため、添付指示の有効性を最新コードと失敗ログで再確認した。
+
+### repair_plan
+
+- Android SDK Rootを`ANDROID_SDK_ROOT`→`ANDROID_HOME`→`/usr/local/lib/android/sdk`の順で解決し、cmdline-toolsからsdkmanager絶対Pathを取得する。
+- Debug APKをAutomation Release APKへ変更し、`adb`／`emulator`／`avdmanager`検証、OS boot／package service待機、Package／Process確認、専用Maestro Artifact収集を追加する。
+- Detect Pathへ共有Application／Domain／Seed／Config／Design Token／Generated／Manifest／Asset／Production Guardを追加し、VerifyへDetect ResultとOutput検証を追加する。
+- Native Runtimeを前半対応Service Facadeへ限定し、Native閲覧制限商品のError契約を固定する。
+- ResetのDB→KV順序、Cart Error／busy状態を修正し、対象Testを追加する。
+- 独立Maestro FlowとiOS Release manual Workflowを追加・補強する。
+
+### allowed_files
+
+- `.github/workflows/native*.yml`
+- `src/bootstrap/**`
+- `src/application/**`
+- `src/infrastructure/database/sqlite/**`
+- `src/presentation/native/**`
+- `src/test-controls/**`
+- `tests/**`
+- `maestro/**`
+- `README.md`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/**`
+- `docs/adr/0005*`
+- `docs/plans/**`
+- `.codex/runs/20260802-194908-JST/**`
+
+### delegation
+
+- 既存のread-only `code_researcher`、`implementation_researcher`、`test_investigator`の完了結果を確認した。初期調査には修正前の記述が含まれていたため、Deep Link等の既修正項目は再採用せず、今回の失敗ログと現行コードを親Agentが再照合した。
+- 採用した判断は、Workflow sdkmanager／Release／boot／Verify／Artifact、Native Service Surface、Reset順序、Cart state、Maestro／iOS定義が今回も有効な修正対象であるという分類である。writable subagentは使用していない。
+
+### changed_files
+
+- `.github/workflows/native-ci.yml`
+- `.github/workflows/native-ios-ci.yml`
+- `src/bootstrap/native-runtime.ts`
+- `src/infrastructure/database/sqlite/native-customer-repositories.ts`
+- `src/test-controls/native-test-control.native.ts`
+- `src/presentation/native/native-screens.tsx`
+- `tests/unit/native-test-control-service.test.ts`
+- `tests/repository-contract/native-customer-shared.test.ts`
+- `tests/contracts/native-runtime-service-surface.test.ts`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `tests/component/native/native-cart-screen.test.tsx`
+- `maestro/native-storefront.yaml`
+- `maestro/native-cart.yaml`
+- `maestro/native-not-found.yaml`
+- `maestro/native-contract-harness.yaml`
+- `maestro/native-restart-persistence.yaml`
+- `maestro/native-reset-dirty-state.yaml`
+- `maestro/native-out-of-stock.yaml`
+- `maestro/native-low-stock.yaml`
+- `maestro/native-purchase-limit.yaml`
+- `README.md`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/2026-08-03_113500_pr8-rereview-repair.md`
+- `docs/adr/0005-local-native-build-and-shared-visual-contract.md`
+- `docs/plans/phase2-native-goal/00_master-roadmap.md`
+- `docs/plans/phase2-native-goal/01_phase2-first-half-native-foundation.md`
+- `docs/plans/2026-08-03_101500_pr8-rereview-repair.md`
+- `.codex/runs/20260802-194908-JST/PLAN.md`
+- `.codex/runs/20260802-194908-JST/TASKS.md`
+
+### validation
+
+- `pnpm exec vitest run tests/unit/native-test-control-service.test.ts tests/repository-contract/native-customer-shared.test.ts tests/contracts/native-runtime-service-surface.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1` => 4 files／18 tests PASS。
+- `pnpm exec jest --config jest.config.cjs tests/component/native/native-cart-screen.test.tsx --runInBand` => 1 suite／2 tests PASS。React test rendererの既存act環境warningは出たが、Testは成功した。
+- `pnpm run typecheck` => app／native-testsともPASS。
+- Maestro公式CLI契約を確認し、`--test-output-dir`でScreenshot等を専用Directoryへ出力する方式を採用した。
+
+### result
+
+- Android WorkflowはSDK解決、Release APK、boot待機、Package／Process確認、Deep Link、追加Maestro Flow、専用Artifact収集へ修正した。
+- iOS Workflowはmanual-onlyを維持し、Release Simulator Build、Release app path、専用Artifact収集へ修正した。
+- Native RuntimeはPresentationへ前半対応Methodのみを公開するFacadeへ変更した。Native SQLiteの閲覧制限商品は`PERMISSION_DENIED`、不存在は`null`とするTestを追加した。
+- ResetはSQLite Seed commit後にKVを更新する順序へ変更した。Seed失敗時にclear／identity／clock／delayを実行しないTestと成功時順序Testを追加した。
+- Cartはload／mutation開始時にErrorをclearし、Cart全体のMutation Buttonをbusy中disableする実装とComponent Testを追加した。
+
+### remaining_delta
+
+- 修正後のGitHub Actions Run、Android Release APK、Emulator、Maestro／Harness Artifact、`native-ci / verify`成功結果は未取得。Commit／Push禁止のため、既存remote runを修正Workflowで再実行できない。
+- WindowsローカルAndroid SDK／adb／Emulator、macOS iOS Simulator、実`expo-sqlite`証跡は未実施。
+- 全体Format／Lint／Test／Web回帰はこのIterationのコード整形後に実行予定。
+
+### decision
+
+continue
+
+Progress: 75% (41/55)
+
 ## 2026-08-03 09:38 JST PR #8レビュー修正 Iteration 1 続報
 
 ### 変更

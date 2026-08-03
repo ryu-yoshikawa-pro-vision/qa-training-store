@@ -18,9 +18,23 @@ import { openNativeCustomerDatabase } from "@/infrastructure/database/sqlite/dat
 import { ensureNativeSeed, resolveNativeScenario } from "@/infrastructure/database/sqlite/seed";
 import { DEFAULT_GUEST_ID } from "@/seeds/metadata";
 
+export interface NativeCatalogService {
+  getHome: CatalogUseCases["getHome"];
+  search: CatalogUseCases["search"];
+  getProductDetail: CatalogUseCases["getProductDetail"];
+  getCategoryName: CatalogUseCases["getCategoryName"];
+}
+
+export interface NativeCartService {
+  getCart: CartUseCases["getCart"];
+  addItem: CartUseCases["addItem"];
+  updateQuantity: CartUseCases["updateQuantity"];
+  removeItem: CartUseCases["removeItem"];
+}
+
 export interface NativeApplicationServices {
-  catalog: CatalogUseCases;
-  cart: CartUseCases;
+  catalog: NativeCatalogService;
+  cart: NativeCartService;
   database: SQLiteDatabase;
   storage: NativeKeyValueStore;
   clock: NativePersistedClock;
@@ -62,19 +76,31 @@ export function initializeNativeRuntime(): Promise<NativeApplicationServices> {
     // Initialize the deterministic seed identity only on first launch. The
     // store must retain a user-created/persisted Guest ID across restarts.
     await guestIdentityStore.getOrCreateGuestId();
+    const catalogUseCases = new CatalogUseCases({
+      identity: actor,
+      customerGateway: createNativeCustomerCatalogGateway(repository),
+      clock,
+    });
+    const cartUseCases = new CartUseCases({
+      identity: actor,
+      customerGateway: createNativeCustomerCartGateway(repository),
+      guestIdentityStore,
+      idGenerator,
+      clock,
+    });
     return {
-      catalog: new CatalogUseCases({
-        identity: actor,
-        customerGateway: createNativeCustomerCatalogGateway(repository),
-        clock,
-      }),
-      cart: new CartUseCases({
-        identity: actor,
-        customerGateway: createNativeCustomerCartGateway(repository),
-        guestIdentityStore,
-        idGenerator,
-        clock,
-      }),
+      catalog: {
+        getHome: () => catalogUseCases.getHome(),
+        search: (request) => catalogUseCases.search(request),
+        getProductDetail: (productId) => catalogUseCases.getProductDetail(productId),
+        getCategoryName: (categoryId) => catalogUseCases.getCategoryName(categoryId),
+      },
+      cart: {
+        getCart: () => cartUseCases.getCart(),
+        addItem: (request) => cartUseCases.addItem(request),
+        updateQuantity: (request) => cartUseCases.updateQuantity(request),
+        removeItem: (request) => cartUseCases.removeItem(request),
+      },
       database,
       storage,
       clock,

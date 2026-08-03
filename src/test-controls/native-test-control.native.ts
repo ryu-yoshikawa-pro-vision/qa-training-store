@@ -45,11 +45,13 @@ export class NativeTestControlService {
     try {
       const scenario = input.scenario as PhaseOneScenario;
       const clock = nativeResetDefaultClock(input.clock);
-      await clearNativeControlKeys(this.runtime.storage);
       // seedNativeDataset deletes the existing customer data and inserts the
       // requested scenario in one exclusive SQLite transaction. Do not split
       // clear and seed: a failed seed must roll back to the previous dataset.
       await seedNativeDataset(this.runtime.database, createScenarioDataset(scenario));
+      // SQLite has committed before any control KV is changed. If the seed
+      // fails, the previous session, Guest ID, clock, and delay remain intact.
+      await clearNativeControlKeys(this.runtime.storage);
       await this.restoreSeedIdentity();
       await this.runtime.clock.setFixedTime(clock);
       await this.runtime.storage.set(NATIVE_PAYMENT_DELAY_KEY, String(input.paymentDelayMs));

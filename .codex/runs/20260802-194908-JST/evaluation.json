@@ -3,15 +3,15 @@
   "run_id": "20260802-194908-JST",
   "objective": "Phase 2前半のNative基盤・SQLite・Guest購入前FlowをGate A〜Gまで実装・検証する",
   "status": "in_progress",
-  "phase": "PR #8レビュー修正のコード・CI・静的検証完了、Gate E/F実Native環境待ち",
+  "phase": "PR #8再レビュー修正のコード・Workflow・対象Test・静的／Web検証完了、GitHub／実Native実行待ち",
   "gate_results": {
     "A": "コード・静的検証完了、実Native未確認",
     "B": "コード・Node検証完了、lintは0 errors/64 warnings、typecheckとNative Component Test成功。実Nativeは未確認",
     "C": "コード・Node実SQLite契約とReset rollback/Harness isolation完了、Android/iOS実SQLite未確認",
-    "D": "Deep Link Pure Function、Native Allowlist、Production Module Resolution、生成Bundle Guard、Asset差分、固定Version CI定義を確認。実Native artifact未確認",
+    "D": "Deep Link Pure Function、Native Allowlist、Production Module Resolution、生成Bundle Guard、Asset差分、SDK解決／Release APK／boot待機／VerifyのWorkflow契約を確認。実Native artifact未確認",
     "E": "未実施（ローカルAndroid Toolchain不在）",
     "F": "未実施（Windows上でiOS Toolchain不在）",
-    "G": "Node/Web回帰・Format/Lint/Typecheck・Web 390x844/320x700 UI Review完了、実Native操作未確認"
+    "G": "Node/Web回帰・Format/Lint/Typecheck・Asset/Security/Route/EAS static/Production Bundle・Web 390x844/320x700 UI Review完了、実Native操作未確認"
   },
   "blocking_conditions": [
     "AndroidのJDK・Android SDK・adb・Emulatorまたは端末が現環境にないため、ローカルAPK Build／Install／操作／実SQLiteを実施できない",
@@ -21,11 +21,11 @@
     "Android adb/Emulator/Maestroが現環境にないため実Android操作は未確認",
     "iOS xcrun/Simulator/Xcodeが現環境にないため実iOS操作は未確認"
   ],
-  "code_changes": "PR #8指摘のDeep Link、Allowlist、Guest Mutation、shared Use Case、Reset transaction、実行可能Harness、Production Bundle分離、Variation、Native CI、ADR/計画/Docsを更新",
+  "code_changes": "PR #8指摘のDeep Link、Allowlist、Guest Mutation、shared Use Case、Reset transaction、実行可能Harness、Production Bundle分離、Variation、Native CIを修正し、再レビューのSDK／Release／boot／Verify／Service Surface／Cart／Maestro／iOS指摘を追加修正",
   "validation": {
     "status": "partial",
     "native_builds": "実Native Build未実施。Android/iOS JS exportは成功",
-    "web_regression": "Unit 13 files/63 tests、Integration 9/91、Repository 5/27、Web Component 11/76、Native Jest 3 suites/7、Contract 14/72、Web Build、Chromium 27、A11y 4、Mobile boundary 4が成功"
+    "web_regression": "Unit 13 files/64 tests、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 4 suites/9、Contract 16/79、Production Bundle Guard、Web Build、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17が成功"
   },
   "repair_iterations": [
     {
@@ -33,6 +33,13 @@
       "input": "PR #8添付レビュー指摘。GitHub未解決threadは0、CodeRabbitは対象ファイル数超過でskip",
       "result": "Deep Link/Allowlist/Guest Mutation/Use Case共有/Reset transaction/Harness/Production Bundle/Variation/CI/Docsを修正し、静的・Node・Web検証を成功",
       "remaining_delta": "Windows上のAndroid/iOS実Native Build・Install・操作・GitHub Actions Runは未実施",
+      "decision": "continue"
+    },
+    {
+      "iteration_number": 2,
+      "input": "PR #8再レビュー添付指示とGitHub Native CI run 30775548618のAndroid sdkmanager failure",
+      "result": "Android SDK／Release／boot／Verify／Artifact Workflow、Native Service Surface、閲覧制限Error、Reset順序、Cart state、Maestro Flow、iOS Release Workflowを修正し、対象Test、全Test、静的検証、Production Bundle Guard、Web Build、Chromium／A11y／Mobile回帰、Expo Doctorを成功",
+      "remaining_delta": "修正後GitHub Actions Android／Verify、Windows Android Emulator、macOS iOS Simulator、実expo-sqlite証跡は未実施。Commit／Pushは禁止",
       "decision": "continue"
     }
   ],

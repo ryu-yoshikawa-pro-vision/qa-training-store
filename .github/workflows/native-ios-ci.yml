@@ -65,7 +65,14 @@ jobs:
           WORKSPACE: ${{ steps.xcode.outputs.workspace }}
           SCHEME: ${{ steps.xcode.outputs.scheme }}
         run: |
-          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -sdk iphonesimulator -configuration Debug -derivedDataPath "$RUNNER_TEMP/derived" CODE_SIGNING_ALLOWED=NO build
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -sdk iphonesimulator \
+            -configuration Release \
+            -derivedDataPath "$RUNNER_TEMP/derived" \
+            CODE_SIGNING_ALLOWED=NO \
+            build
       - name: Boot iOS Simulator and install app
         shell: bash
         run: |
@@ -73,7 +80,7 @@ jobs:
           test -n "$DEVICE"
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
-          APP_PATH=$(find "$RUNNER_TEMP/derived/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name '*.app' -print -quit)
+          APP_PATH=$(find "$RUNNER_TEMP/derived/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' -print -quit)
           test -n "$APP_PATH"
           xcrun simctl install "$DEVICE" "$APP_PATH"
           xcrun simctl launch "$DEVICE" com.ryuyoshikawa.scenarioshop
@@ -87,14 +94,41 @@ jobs:
       - name: Reset Test Control and run iOS smoke
         shell: bash
         run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/maestro-artifacts"
           DEVICE=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')
           test -n "$DEVICE"
           xcrun simctl openurl "$DEVICE" 'scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0'
-          maestro test maestro/native-test-control.yaml --format junit --output "$RUNNER_TEMP/maestro-test-control.xml"
-          maestro test maestro/native-contract-harness.yaml --format junit --output "$RUNNER_TEMP/maestro-contract-harness.xml"
-          maestro test maestro/native-not-found.yaml --format junit --output "$RUNNER_TEMP/maestro-not-found.xml"
-          maestro test maestro/native-storefront.yaml --format junit --output "$RUNNER_TEMP/maestro-storefront.xml"
-          maestro test maestro/native-cart.yaml --format junit --output "$RUNNER_TEMP/maestro-cart.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-test-control.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/test-control" \
+            --format junit --output "$RUNNER_TEMP/maestro-test-control.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-contract-harness.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/contract-harness" \
+            --format junit --output "$RUNNER_TEMP/maestro-contract-harness.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-not-found.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/not-found" \
+            --format junit --output "$RUNNER_TEMP/maestro-not-found.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-storefront.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/storefront" \
+            --format junit --output "$RUNNER_TEMP/maestro-storefront.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-cart.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/cart" \
+            --format junit --output "$RUNNER_TEMP/maestro-cart.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-restart-persistence.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/restart-persistence" \
+            --format junit --output "$RUNNER_TEMP/maestro-restart-persistence.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-reset-dirty-state.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/reset-dirty-state" \
+            --format junit --output "$RUNNER_TEMP/maestro-reset-dirty-state.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-out-of-stock.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/out-of-stock" \
+            --format junit --output "$RUNNER_TEMP/maestro-out-of-stock.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-low-stock.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/low-stock" \
+            --format junit --output "$RUNNER_TEMP/maestro-low-stock.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-purchase-limit.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/purchase-limit" \
+            --format junit --output "$RUNNER_TEMP/maestro-purchase-limit.xml"
       - name: Collect iOS evidence
         if: always()
         shell: bash
@@ -106,7 +140,12 @@ jobs:
           cp "$RUNNER_TEMP/maestro-not-found.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-not-found.xml" || true
           cp "$RUNNER_TEMP/maestro-storefront.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-storefront.xml" || true
           cp "$RUNNER_TEMP/maestro-cart.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-cart.xml" || true
-          find . -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) -not -path './node_modules/*' -exec cp --parents {} "$RUNNER_TEMP/native-ios-evidence/" \; || true
+          cp "$RUNNER_TEMP/maestro-restart-persistence.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-restart-persistence.xml" || true
+          cp "$RUNNER_TEMP/maestro-reset-dirty-state.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-reset-dirty-state.xml" || true
+          cp "$RUNNER_TEMP/maestro-out-of-stock.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-out-of-stock.xml" || true
+          cp "$RUNNER_TEMP/maestro-low-stock.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-low-stock.xml" || true
+          cp "$RUNNER_TEMP/maestro-purchase-limit.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-purchase-limit.xml" || true
+          cp -R "$RUNNER_TEMP/maestro-artifacts" "$RUNNER_TEMP/native-ios-evidence/maestro-artifacts" || true
       - uses: actions/upload-artifact@v4
         if: always()
         with:
