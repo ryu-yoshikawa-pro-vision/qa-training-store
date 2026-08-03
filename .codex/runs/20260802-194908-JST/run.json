@@ -62,7 +62,9 @@
     "tests/component/native/native-product-detail-screen.test.tsx",
     "tests/component/native/native-runtime-provider.test.tsx",
     "docs/plans/2026-08-03_131358_pr8-native-ci-rereview-repair.md",
-    "docs/history/2026-08-03_133600_pr8-native-ci-rereview-repair.md"
+    "docs/history/2026-08-03_133600_pr8-native-ci-rereview-repair.md",
+    "tests/component/native/native-runtime-cleanup.test.ts",
+    "docs/history/2026-08-03_140716_pr8-native-ci-cleanup.md"
   ],
   "validation": {
     "status": "in_progress",
@@ -150,7 +152,30 @@
       "pnpm dlx expo-doctor@1.17.6",
       "git diff --check",
       "node -e JSON.parse(run.json/evaluation.json)",
-      "maestro/native-out-of-stock.yaml final assertion consistency review"
+      "maestro/native-out-of-stock.yaml final assertion consistency review",
+      "GitHub read-only: run 30785304641 / head be27f8ff5b9ec5395cb9ce4e6a1f56a61cc2f8e3",
+      "pnpm install --frozen-lockfile",
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run test:component:native",
+      "pnpm run test:contracts",
+      "pnpm run test:repository",
+      "pnpm run generate:native-assets",
+      "git diff --exit-code -- src/generated/native-product-assets.ts",
+      "pnpm run validate:image-manifest",
+      "pnpm run security:check",
+      "pnpm run check:native-route-dependencies",
+      "pnpm run validate:eas:config",
+      "pnpm run validate:native-production-bundle",
+      "pnpm run build:web",
+      "pnpm run test:e2e:chromium",
+      "pnpm run test:a11y",
+      "pnpm run test:e2e:mobile-boundary",
+      "pnpm dlx expo-doctor@1.17.6",
+      "pnpm run test",
+      "git diff --name-only -- android ios",
+      "Run／Evaluation JSON parse"
     ],
     "warnings": [
       "Android adb/Emulator/Maestro未導入のため実Android操作は未確認",
@@ -168,7 +193,12 @@
       "GitHub Native CI run 30780990538: SDK解決／Install success、emulator -versionがlibpulse.so.0不足でfailure、Evidenceがadb logcat待機後にRunner shutdown",
       "今回の修正後GitHub Actions run、Android／iOS実Native Build／Install／操作／実SQLiteは未確認",
       "Web E2Eは共有WebServer並列競合で一度失敗したが、Mobile boundaryを単独再実行して4 tests PASS",
-      "Native Componentは6 suites/12 tests、Contractは16 files/80 tests PASS。既存act／SQLite ExperimentalWarningあり"
+      "Native Componentは6 suites/12 tests、Contractは16 files/80 tests PASS。既存act／SQLite ExperimentalWarningあり",
+      "GitHub Native CI run 30785304641: Resolve StepがSDK Component導入前のADB／EMULATOR／AVDMANAGER test -xでfailure、Evidence success Artifact 8845071206、Install以降skip",
+      "今回の修正後GitHub Actions、Android／iOS実Native Build／Install／操作／実SQLite、Commit／Push、EAS Cloudは未実施",
+      "Native Cleanup初回TestはJest Native KV mock不足で失敗したが、テスト内mock追加後にPASS",
+      "Contract Test初回typecheckはIndexのundefined可能性で失敗したが、non-null assertion追加後にPASS",
+      "最終検証: Native Jest 7 suites/15 tests、Contract 16 files/81 tests、Web Build、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17、全Test成功"
     ]
   },
   "safety": {
@@ -180,7 +210,7 @@
   "artifact_summary": {
     "codex_task_report_count": 0,
     "hook_event_count": 0,
-    "subagent_run_count": 3,
+    "subagent_run_count": 6,
     "evaluation_present": true
   },
   "hook_observations": {
@@ -209,14 +239,32 @@
           "mode": "read-only",
           "adopted": true,
           "summary": "既存Test、共有Fixture、Native/SQLite/KV/FK/Cleanup/実環境の未整備領域を確認"
+        },
+        {
+          "name": "code_researcher",
+          "mode": "read-only",
+          "adopted": true,
+          "summary": "RuntimeのDatabase lifecycle、closeAsync境界、既存Cleanup面を確認"
+        },
+        {
+          "name": "implementation_researcher",
+          "mode": "read-only",
+          "adopted": true,
+          "summary": "Native CIのResolve／Install／Verify／Build Step順序と最小Contract境界を確認"
+        },
+        {
+          "name": "test_investigator",
+          "mode": "read-only",
+          "adopted": true,
+          "summary": "Jest／Vitest分離とRuntime Cleanupの成功／失敗／元Error保持Test戦略を確認"
         }
       ],
-    "summary": {
-      "total": 3,
-      "read_only": 3,
+      "summary": {
+      "total": 6,
+      "read_only": 6,
       "writable": 0,
       "scope_violations": 0,
-      "used_in_final_plan": 0
+      "used_in_final_plan": 3
     }
   },
   "evaluation_path": ".codex/runs/20260802-194908-JST/evaluation.json",

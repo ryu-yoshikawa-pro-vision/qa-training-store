@@ -38,6 +38,42 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).not.toMatch(/(^|\n)\s*sdkmanager\s+--licenses/m);
   });
 
+  it("installs Android SDK components before verifying installed tools", () => {
+    const stepIndices = [
+      "Resolve Android SDK and sdkmanager",
+      "Install Android SDK components",
+      "Verify Android SDK paths",
+      "Verify adb",
+      "Verify avdmanager",
+      "Inspect emulator binary",
+      "Build Automation Release APK",
+    ].map((stepName) => nativeWorkflow.indexOf(`- name: ${stepName}`));
+
+    stepIndices.forEach((stepIndex, index) => {
+      expect(stepIndex).toBeGreaterThanOrEqual(0);
+      if (index > 0) {
+        expect(stepIndex).toBeGreaterThan(stepIndices[index - 1]!);
+      }
+    });
+
+    const resolveIndex = stepIndices[0]!;
+    const installIndex = stepIndices[1]!;
+    const verifyIndex = stepIndices[2]!;
+    const buildIndex = stepIndices[6]!;
+
+    const resolveSection = nativeWorkflow.slice(resolveIndex, installIndex);
+    const verifySection = nativeWorkflow.slice(verifyIndex, buildIndex);
+
+    expect(resolveSection).not.toContain('test -x "$ADB"');
+    expect(resolveSection).not.toContain('test -x "$EMULATOR"');
+    expect(resolveSection).not.toContain('test -x "$AVDMANAGER"');
+    expect(resolveSection).toContain('test -x "$SDKMANAGER"');
+    expect(resolveSection.indexOf('echo "ADB=$ADB" >> "$GITHUB_ENV"')).toBeGreaterThanOrEqual(0);
+    expect(verifySection).toContain('test -x "$ADB"');
+    expect(verifySection).toContain('test -x "$EMULATOR"');
+    expect(verifySection).toContain('test -x "$AVDMANAGER"');
+  });
+
   it("builds and verifies a Metro-free Automation Release APK", () => {
     expect(nativeWorkflow).toContain("./gradlew assembleRelease --no-daemon --stacktrace");
     expect(nativeWorkflow).toContain("android/app/build/outputs/apk/release/app-release.apk");

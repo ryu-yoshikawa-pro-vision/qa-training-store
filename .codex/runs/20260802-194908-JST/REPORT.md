@@ -485,6 +485,105 @@ continue
 
 Progress: 73% (33/45)
 
+## 2026-08-03 14:23 JST PR #8 Native CI処理順序・Runtime Cleanup修正 Iteration 5
+
+### iteration_number
+
+5
+
+### input_findings
+
+- 添付指示の最新CI Runは`30785304641`、Commitは`be27f8ff5b9ec5395cb9ce4e6a1f56a61cc2f8e3`。
+- Detect／Native Static／Production Bundle Guard／Android runtime dependencies／Expo Prebuild／Evidenceは成功したが、`Resolve Android SDK and sdkmanager`でSDK Component導入前の`test -x "$ADB"`／`test -x "$EMULATOR"`／`test -x "$AVDMANAGER"`が失敗し、Install以降がSkipされた。
+- RuntimeはDatabaseを開いた後の`clock.initialize`、Seed、Session、Guest Identity、Repository／Use Case構築が失敗した場合にDatabaseを閉じる契約が未実装だった。
+
+### triage
+
+- `must_fix`: Android Workflowの処理順序、Workflow Contract、Runtime SQLite Cleanup、Cleanup Test。
+- `defer`: ユーザーPush後のGitHub Actions成功、Windows Android／macOS iOS実Native、実`expo-sqlite`証跡（D13）。
+- `reject`: 既存Native UI／Maestro／Evidence定義の変更。今回の指示でも維持対象と明記されており、現行実装に残存不整合は確認しなかった。
+
+### repair_plan
+
+- Resolve StepからADB／Emulator／AVD Managerの存在確認だけを削除し、Pathの`GITHUB_ENV`／`GITHUB_PATH`保存をPath生成直後に置く。
+- Install後のVerify Stepへ3 Toolの実在確認を限定し、Resolve→Install→Verify paths→Verify adb→Verify avdmanager→Inspect emulator→Buildの順序をContractで固定する。
+- `createNativeRuntime`からDatabase Open後の処理をprivate helperへ分離し、途中失敗時だけ`closeAsync`を試行する。Cleanup失敗で元Errorを上書きしない。
+- Providerの既存再試行設計、Native UI、Maestro、Evidence、EAS static設定は変更しない。
+
+### allowed_files
+
+- `.github/workflows/native-ci.yml`
+- `src/bootstrap/native-runtime.ts`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `tests/component/native/native-runtime-cleanup.test.ts`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/2026-08-03_140716_pr8-native-ci-cleanup.md`
+- `.codex/runs/20260802-194908-JST/**`
+
+### delegation
+
+- `code_researcher`（019fc600-a13d-72e2-9591-c46caca4e005）: RuntimeのDB lifecycleと既存Cleanup面をread-only調査。採用判断はbootstrap private helperへCleanupを置くこと。
+- `implementation_researcher`（019fc600-a2c5-7353-986e-9b6a95586782）: Workflow Step範囲と最小順序Contractをread-only調査。採用判断は既存Workflowを保ち、Contract Testへ順序とSection境界を追加すること。
+- `test_investigator`（019fc600-a485-7522-92f2-afe424ae9799）: Jest／Vitest分離と既存Cleanup Testをread-only調査。採用判断はNative JestでRuntime初期化をモックし、Production APIを増やさないこと。
+- 3 agentとも編集／作成／削除／Git操作なし。writable subagentは使用していない。
+
+### changed_files
+
+- `.github/workflows/native-ci.yml`
+- `src/bootstrap/native-runtime.ts`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `tests/component/native/native-runtime-cleanup.test.ts`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/2026-08-03_140716_pr8-native-ci-cleanup.md`
+- `.codex/runs/20260802-194908-JST/PLAN.md`
+- `.codex/runs/20260802-194908-JST/TASKS.md`
+- `.codex/runs/20260802-194908-JST/REPORT.md`
+- `.codex/runs/20260802-194908-JST/run.json`
+- `.codex/runs/20260802-194908-JST/evaluation.json`
+
+### validation_commands
+
+- `pnpm install --frozen-lockfile` => PASS（Lockfile up to date）。
+- `pnpm run format:check` => PASS。
+- `pnpm run lint` => PASS（0 errors／64 existing warnings）。
+- `pnpm run typecheck` => PASS（app／native-tests）。途中でContract TestのIndex型エラーを1件検出し、non-null assertionを追加後に再実行してPASS。
+- `pnpm run test:component:native` => PASS（7 suites／15 tests）。最初のCleanup TestはJest Native KVの未モックにより`NativeDatabase is not a constructor`となったため、テスト内のKV／Session Store mockを追加し再実行してPASS。
+- `pnpm run test:contracts` => PASS（16 files／81 tests）。
+- `pnpm run test:repository` => PASS（5 files／28 tests）。
+- `pnpm run generate:native-assets` + `git diff --exit-code -- src/generated/native-product-assets.ts` => PASS（9 assets／生成差分なし）。
+- `pnpm run validate:image-manifest` => PASS。
+- `pnpm run security:check` => PASS（228 runtime／265 credential-scan）。
+- `pnpm run check:native-route-dependencies` => PASS（38 native routes）。
+- `pnpm run validate:eas:config` => PASS（cloudRun=not-run）。
+- `pnpm run validate:native-production-bundle` => PASS（Automation markerあり、Production marker／NativeTestControlServiceなし）。
+- `pnpm run build:web` => PASS。
+- `pnpm run test:e2e:chromium` => PASS（27 tests）。
+- `pnpm run test:a11y` => PASS（4 tests）。
+- `pnpm run test:e2e:mobile-boundary` => PASS（4 tests）。共有Web Serverを使うE2Eは並列実行していない。
+- `pnpm dlx expo-doctor@1.17.6` => PASS（17/17）。
+- `pnpm run test` => PASS（Unit 13／64、Integration 9／91、Repository 5／28、Web Component 11／76、Native Jest 7／15、Contract 16／81）。既存のReact `act` warningとNode SQLite ExperimentalWarningあり。
+- `git diff --check` => PASS（WindowsのLF／CRLF warningのみ）。
+- `git diff --name-only -- android ios` => 出力なし。
+- Run／Evaluation JSON parse => PASS。
+
+### validation_result
+
+- コード、Workflow定義、Contract、Runtime Cleanup、ローカル静的／Node／Web検証は成功。
+- `Resolve`内にADB／Emulator／AVD Manager検証はなく、`Verify Android SDK paths`以降にのみ存在することをContract Testで確認した。
+- 正常RuntimeのDatabaseは未Close、初期化失敗時は`closeAsync`を1回試行、Cleanup失敗時も元初期化Errorを保持することをTestで確認した。
+
+### remaining_delta
+
+- 修正後GitHub ActionsはCommit／Push禁止のため未実行。ユーザーPush後に`Install Android SDK components`、`Verify Android SDK paths`、`Verify adb`、`Verify avdmanager`まで到達することを最初に確認する。
+- Android Release APK／Emulator／APK Install・Launch／Test Control／Contract Harness／Maestro／`native-ci / verify`は未確認。
+- Windows Android SDK／adb／Emulator、macOS iOS Simulator／Xcode、実`expo-sqlite` Smokeは未確認。EAS Cloud／PR本文更新も未実施。
+
+### decision
+
+continue（実装修正とローカル検証は完了。Remote CI／実Native環境の証跡待ち）
+
+Progress: 83% (57/69)
+
 ## 2026-08-03 13:36 JST PR #8 Native CI再失敗修正 Iteration 3
 
 ### iteration_number

@@ -127,3 +127,15 @@ Progress: 78% (43/55)
 - [x] D30. Out-of-stock Maestro Flowの選択後UIアサーションを実装と一致させ、構文／差分を再確認する。
 
 Progress: 81% (50/62)
+
+## 2026-08-03 PR #8 Native CI処理順序・Runtime Cleanup修正 Iteration 5
+
+- [x] D31. Run `30785304641`、Head `be27f8ff...`、失敗Step、Artifact状態を指示書と照合する。
+- [x] D32. ResolveからSDK Component導入前のADB／Emulator／AVD Manager存在確認を削除し、Install後Verifyへ責務を移す。
+- [x] D33. Resolve→Install→Verify paths→Verify adb→Verify avdmanager→Inspect emulator→BuildのWorkflow順序Contractを追加する。
+- [x] D34. Native RuntimeのDatabase Open後初期化失敗時に`closeAsync` Cleanupを追加し、成功時未Closeと元Error保持を実装する。
+- [x] D35. Runtime Cleanupの失敗／成功／Cleanup失敗3ケースをNative Jestへ追加する。
+- [x] D36. 指示書のローカル検証、全Test、Web回帰、差分、`android/`／`ios/`境界を再確認する。
+- [x] D37. Run Artifact、PROJECT_CONTEXT、History、Iteration記録、未確認境界を更新する。
+
+Progress: 83% (57/69)

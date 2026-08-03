@@ -160,3 +160,10 @@ Route Inventory、Root/Shell、依存方向、Capability/Scope、Native Composit
 - Android Workflowを`libpulse0`、絶対Path、分割Verify、Release APK／Gradle Log、3分Evidence Timeoutへ修正した。
 - Variation未選択／在庫0／在庫あり、Out-of-stock選択・追加不可、Low-stock／Purchase-limit境界、Runtime初期化再試行を実装し、対応TestとMaestro Flowを更新した。
 - 実修正後のGitHub Actions、Android／iOS実環境、実SQLiteはCommit／Push禁止または環境不足のため未確認として残す。
+
+## 24. 2026-08-03 PR #8 Native CI処理順序・Runtime Cleanup修正計画
+
+- Run `30785304641`（Head `be27f8ff5b9ec5395cb9ce4e6a1f56a61cc2f8e3`）の失敗原因を、SDK Component導入前のADB／Emulator／AVD Manager確認として確定する。
+- allowed filesは`.github/workflows/native-ci.yml`、`src/bootstrap/native-runtime.ts`、該当Contract／Native Jest Test、PROJECT_CONTEXT／History、既存Run Artifactに限定し、Native UI／Maestro／Evidence定義は変更しない。
+- Resolveの責務をPath解決へ戻し、Install後のTool検証とStep順序をContractで固定する。RuntimeはDatabase Open後だけをtry/catch対象にし、成功Databaseを閉じない。
+- ローカル検証は指示書のコマンドを実行し、Remote CI／実Native／EAS／Git操作は未実施として報告する。

@@ -54,6 +54,21 @@ export function initializeNativeRuntime(): Promise<NativeApplicationServices> {
 
 async function createNativeRuntime(): Promise<NativeApplicationServices> {
   const database = await openNativeCustomerDatabase();
+  try {
+    return await createNativeRuntimeServices(database);
+  } catch (caught: unknown) {
+    try {
+      await database.closeAsync();
+    } catch {
+      // Preserve the initialization failure when cleanup also fails.
+    }
+    throw caught;
+  }
+}
+
+async function createNativeRuntimeServices(
+  database: SQLiteDatabase,
+): Promise<NativeApplicationServices> {
   const storage = new NativeKeyValueStore();
   const clock = new NativePersistedClock(storage);
   await clock.initialize();

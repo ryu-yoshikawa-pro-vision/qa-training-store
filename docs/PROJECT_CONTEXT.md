@@ -117,6 +117,13 @@
 - Native Product Detailは未選択時に`Variationを選択すると在庫を確認できます。`を表示し、在庫0／在庫ありを選択後だけ表示する。Out-of-stock Variationは選択できるがAddはdisabledとし、CartのLow-stock／Purchase-limit上限は同じdisabled／案内契約を使う。
 - Native Runtimeは初期化Reject時に保持Promiseを解除し、Providerは同時初期化を防ぎながら再試行できる。実GitHub Actions再実行、Windows Android Emulator、macOS iOS Simulator、実`expo-sqlite`は未確認である。
 
+## PR #8 Native CI処理順序・Runtime Cleanup修正（2026-08-03）
+
+- 最新確認Runは`30785304641`（Commit `be27f8ff5b9ec5395cb9ce4e6a1f56a61cc2f8e3`）。Detect／Native Static／Production Bundle Guard／Android runtime dependencies／Expo Prebuild／Evidenceは成功したが、`Resolve Android SDK and sdkmanager`でSDK Component導入前の`ADB`／`EMULATOR`／`AVDMANAGER`存在確認が終了コード1となり、Install以降は未実施だった。
+- Android ResolveはSDK Root、cmdline-tools、sdkmanagerの確認とPath生成／`GITHUB_ENV`／`GITHUB_PATH`保存だけを担当し、`ADB`／`EMULATOR`／`AVDMANAGER`の実在確認は`Install Android SDK components`後の`Verify Android SDK paths`へ限定する。Contract TestでResolve→Install→Verify paths→Verify adb→Verify avdmanager→Inspect emulator→Buildの順序と、Resolve内にTool検証がないことを固定する。
+- Native RuntimeはDatabaseを開いた後の初期化処理を専用private helperで囲み、途中失敗時だけ`database.closeAsync()`を1回試行する。Cleanup失敗は握り潰して元の初期化Errorを再送出し、正常に返すRuntimeのDatabaseは閉じない。Jestで失敗／成功／Cleanup失敗の3契約を検証する。
+- ローカルのformat／lint／typecheck／全Test／Native Contract／Repository／Asset／Security／Route／EAS static／Production Bundle／Web Build／Chromium／A11y／Mobile boundary／Expo Doctorは成功した。EAS Cloud、Commit／Push、修正後GitHub Actions、Windows Android実Native、macOS iOS実Native、実`expo-sqlite`は未実施のまま分離して扱う。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。
