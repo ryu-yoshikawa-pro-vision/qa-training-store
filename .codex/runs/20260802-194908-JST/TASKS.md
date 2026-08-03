@@ -139,3 +139,14 @@ Progress: 81% (50/62)
 - [x] D37. Run Artifact、PROJECT_CONTEXT、History、Iteration記録、未確認境界を更新する。
 
 Progress: 83% (57/69)
+
+## 2026-08-03 PR #8 AVD永続化・PBKDF2契約修正 Iteration 6
+
+- [x] D38. 最新Head `50411a63...`とNative CI Run `30787501472`の実ログを確認し、AVD作成時の停止原因を確定する。
+- [x] D39. `ANDROID_AVD_HOME`固定、AVD作成Path、`-list-avds`照合、Emulator PID／早期終了／boot待機、診断EvidenceをWorkflowへ実装する。
+- [x] D40. Native Contract Harnessへseed password_hash取得、Native PBKDF2の正誤／Unicode検証、Cleanup後Signal条件を実装する。
+- [x] D41. AVD処理順序、Runtime Signal順序、PBKDF2契約のContract／Unit／Native Jest Testを追加・更新する。
+- [x] D42. Format、Lint、Typecheck、分割全Test、静的Guard、Bundle／Web Build、Chromium／A11y／Mobile、Expo Doctor、差分境界を検証する。
+- [x] D43. 今回の実態、未確認境界、委譲結果、検証証跡をPROJECT_CONTEXT／History／Run Artifactへ追記する。
+
+Progress: 84% (63/75)

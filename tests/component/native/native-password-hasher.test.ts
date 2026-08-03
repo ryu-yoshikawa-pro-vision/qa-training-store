@@ -35,10 +35,16 @@ describe("Native PBKDF2 adapter", () => {
     expect(await hasher.verify("testpass1", SEED_PASSWORD_HASHES["user-customer-regular"]!)).toBe(
       true,
     );
+    expect(await hasher.verify("wrongpass1", SEED_PASSWORD_HASHES["user-customer-regular"]!)).toBe(
+      false,
+    );
 
-    const salt = Uint8Array.from({ length: 16 }, (_, index) => index);
-    const encoded = await hasher.hashWithSalt("日本語🔒パスワード", salt);
+    const encoded = await hasher.hash("日本語🔒パスワード");
     expect(await hasher.verify("日本語🔒パスワード", encoded)).toBe(true);
     expect(await hasher.verify("別のパスワード", encoded)).toBe(false);
+
+    const salt = Uint8Array.from({ length: 16 }, (_, index) => index);
+    const encodedWithSalt = await hasher.hashWithSalt("日本語🔒パスワード", salt);
+    expect(await hasher.verify("日本語🔒パスワード", encodedWithSalt)).toBe(true);
   });
 });

@@ -485,6 +485,88 @@ continue
 
 Progress: 73% (33/45)
 
+## 2026-08-03 PR #8 AVD永続化・PBKDF2契約修正 Iteration 6
+
+### iteration_number
+
+6
+
+### input_findings
+
+- ユーザー添付のPR #8修正指示を入力とした。
+- 現行Headは`50411a63e643000a024d929b8869b240936ef56e`。
+- 最新Native CI Run `30787501472`は、Detect／Native Static／Production Bundle Guard／Android SDK／Release APK生成までは成功し、`Start Android Emulator with KVM`で失敗していた。
+- 実ログでは`avdmanager create avd`がCustom hardware profile入力待ちになり、180秒後に終了コード124となっていた。AVDファイル生成前の停止であり、APK生成やSDK installの失敗ではない。
+
+### triage
+
+- `avdmanager`の暗黙の`$HOME/.android/avd`とEmulatorの探索先の揺れ、およびCustom hardware profile promptを原因候補として確定した。
+- Android公式資料で、`avdmanager -p`が保存先を指定し、Emulatorが`ANDROID_AVD_HOME`を優先してAVDを探索することを確認した。
+- HarnessではApplication DB不変確認だけでなく、実DBのseed `password_hash`を使うNative PBKDF2 smokeと、Cleanup完了後のみ成功Signalを出す順序が必要と分類した。
+
+### repair_plan
+
+- `ANDROID_AVD_HOME=$RUNNER_TEMP/android-avd`へ作成先と探索先を固定し、`-p`、AVD files、`-list-avds`完全一致を起動前に検証する。
+- Emulator PIDを保持し、ADB／`sys.boot_completed`／SDK／ABI／package serviceを段階的に待ち、待機中の早期終了を即時検出する。失敗時Evidenceは常に回収する。
+- Native Contract Harnessへseed hash取得、`NativePbkdf2PasswordHasher`の正誤／Unicode検証、`checks.passwordHashing`、Cleanup後Signalを追加する。
+
+### delegation
+
+- `code_researcher`（read-only）: WorkflowのAVD_HOME／`-p`欠落とAndroid公式の探索順を確認。明示PathとContract Testを採用した。
+- `implementation_researcher`（read-only）: Harness callbackをDB cleanup前に実行し、Application invariant→PBKDF2→cleanup→success Signalの順にする方針を確認。採用した。
+- `test_investigator`（read-only）: AVD処理順序、PID／boot、Signalイベント順の静的／Unit Test観点を整理。採用した。
+- writable subagentは使用していない。既存の調査agentは継続記録のため再起動せず、新規agentもread-only 3件に限定した。
+
+### changed_files
+
+- `.github/workflows/native-ci.yml`
+- `src/test-controls/native-contract-harness.native.ts`
+- `src/test-controls/native-contract-harness-runner.native.ts`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `tests/contracts/native-contract-harness.test.ts`
+- `tests/unit/native-contract-harness.test.ts`
+- `tests/component/native/native-password-hasher.test.ts`
+- `.codex/runs/20260802-194908-JST/PLAN.md`
+- `.codex/runs/20260802-194908-JST/TASKS.md`
+- `.codex/runs/20260802-194908-JST/REPORT.md`
+- `.codex/runs/20260802-194908-JST/run.json`
+- `.codex/runs/20260802-194908-JST/evaluation.json`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/2026-08-03_160448_pr8-avd-pbkdf2-repair.md`
+
+### validation
+
+- `pnpm run format:check` => PASS。
+- `pnpm run lint` => PASS、0 errors／64 warnings（既存警告を含む）。
+- `pnpm run typecheck` => app／native-testsともPASS。
+- `pnpm run test:unit` => 13 files／66 tests PASS。
+- `pnpm run test:integration` => 9 files／91 tests PASS。
+- `pnpm run test:repository` => 5 files／28 tests PASS。
+- `pnpm run test:component:web` => 11 files／76 tests PASS。
+- `pnpm run test:component:native` => 7 suites／15 tests PASS（既存React act warningあり）。
+- `pnpm run test:contracts` => 17 files／84 tests PASS。
+- `pnpm run test`は初回の124秒上限ではtimeoutしたが、300秒上限で再実行し、Unit 13/66、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 7/15、Contract 17/84を含めPASSした。
+- `pnpm run generate:native-assets`＋生成差分確認、`validate:image-manifest`、`security:check`、`check:native-route-dependencies`、`validate:eas:config`、`validate:native-production-bundle` => PASS。
+- `pnpm run build:web`、Chromium 27、A11y 4、Mobile boundary 4、`pnpm dlx expo-doctor@1.17.6` 17/17 => PASS。
+- `git diff --check` => 差分エラーなし（WindowsのLF／CRLF warningのみ）。`android/`／`ios/`差分なし。
+
+### remaining_delta
+
+- 修正後のGitHub Actions Run、Android Emulator／APK install／Maestro／Harness Artifact、`native-ci / verify`成功結果は未取得。Commit／Push／PR更新は行わない指示のため、remote acceptanceは未完了である。
+- WindowsローカルにはAndroid SDK／adb／Emulator／Maestroがなく、macOS／Xcode／Simulatorもないため、実Native Build／Install／操作／実`expo-sqlite`／Native screenshotは未確認である。
+- EAS Cloud Build／Workflow／Submitは実行していない。EAS profileの静的検証のみ実施した。
+
+### decision
+
+continue
+
+Progress: 84% (63/75)
+
+## 2026-08-03 16:13 JST 検証追補
+
+- 初回の`pnpm run test`は120秒実行上限に達したが、timeout 300000で再実行し、集約スクリプト全体がPASSした。
+- Run／Evaluation JSON parse、`pnpm run format:check`、`git diff --check`を追補確認し、全てPASSした。CRLF warningのみで差分エラーはない。
+
 ## 2026-08-03 14:23 JST PR #8 Native CI処理順序・Runtime Cleanup修正 Iteration 5
 
 ### iteration_number

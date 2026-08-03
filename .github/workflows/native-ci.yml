@@ -250,14 +250,74 @@ jobs:
           set -euo pipefail
           test -f "$APK_PATH"
           test -s "$APK_PATH"
+          if ! unzip -l "$APK_PATH" | grep -Eq 'assets/.*\.(bundle|hbc)'; then
+            echo "Automation Release APK does not contain a JavaScript bundle." >&2
+            unzip -l "$APK_PATH" | tail -n 40 >&2
+            exit 1
+          fi
           ls -lh "$APK_PATH"
       - name: Start Android Emulator with KVM
         shell: bash
         run: |
           set -euo pipefail
-          test -e /dev/kvm
+          ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"
+          mkdir -p "$ANDROID_AVD_HOME"
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"
+          export ANDROID_AVD_HOME
+          echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME"
+          echo "ANDROID_PREFS_ROOT=${ANDROID_PREFS_ROOT:-<unset>}"
+          echo "HOME=${HOME:-<unset>}"
+
+          fail_emulator() {
+            echo "$1" >&2
+            echo "ANDROID_AVD_HOME=${ANDROID_AVD_HOME:-<unset>}" >&2
+            echo "ANDROID_PREFS_ROOT=${ANDROID_PREFS_ROOT:-<unset>}" >&2
+            echo "HOME=${HOME:-<unset>}" >&2
+            echo "emulator -list-avds:" >&2
+            if [[ -f "$RUNNER_TEMP/avd-list.txt" ]]; then
+              cat "$RUNNER_TEMP/avd-list.txt" >&2
+            else
+              echo "<not captured>" >&2
+            fi
+            echo "AVD files:" >&2
+            if [[ -d "${ANDROID_AVD_HOME:-}" ]]; then
+              find "$ANDROID_AVD_HOME" -maxdepth 3 -print >&2
+            else
+              echo "<missing>" >&2
+            fi
+            if [[ -f "$RUNNER_TEMP/emulator.log" ]]; then
+              echo "emulator.log (tail):" >&2
+              tail -n 200 "$RUNNER_TEMP/emulator.log" >&2
+            fi
+            exit 1
+          }
+
+          if [[ -e /dev/kvm ]]; then
+            ls -l /dev/kvm
+          else
+            fail_emulator "/dev/kvm is not available."
+          fi
           sudo chmod 666 /dev/kvm
-          echo no | "$AVDMANAGER" create avd -n native-api34 -k "system-images;android-${ANDROID_API_LEVEL};google_apis;x86_64" --force
+          if ! printf 'no\n' | timeout 120 "$AVDMANAGER" create avd \
+            -n native-api34 \
+            -k "system-images;android-${ANDROID_API_LEVEL};google_apis;x86_64" \
+            -p "$ANDROID_AVD_HOME/native-api34.avd" \
+            --device "pixel_2" \
+            --force; then
+            fail_emulator "Android AVD creation failed."
+          fi
+          find "$ANDROID_AVD_HOME" -maxdepth 3 -type f -print \
+            | tee "$RUNNER_TEMP/avd-files.txt"
+          if [[ ! -f "$ANDROID_AVD_HOME/native-api34.ini" || ! -d "$ANDROID_AVD_HOME/native-api34.avd" ]]; then
+            fail_emulator "AVD files were not created in ANDROID_AVD_HOME."
+          fi
+          set +e
+          "$EMULATOR" -list-avds | tee "$RUNNER_TEMP/avd-list.txt"
+          avd_list_status=${PIPESTATUS[0]}
+          set -e
+          if [[ "$avd_list_status" -ne 0 ]] || ! grep -Fxq "native-api34" "$RUNNER_TEMP/avd-list.txt"; then
+            fail_emulator "Android Emulator did not recognize native-api34."
+          fi
           "$EMULATOR" \
             -avd native-api34 \
             -no-window \
@@ -267,9 +327,62 @@ jobs:
             -wipe-data \
             -gpu swiftshader_indirect \
             >"$RUNNER_TEMP/emulator.log" 2>&1 &
-          timeout 180 "$ADB" wait-for-device
-          timeout 180 bash -c 'until [[ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" == "1" ]]; do sleep 2; done'
-          timeout 180 bash -c 'until "$ADB" shell service check package 2>/dev/null | grep -q "found"; do sleep 2; done'
+          EMULATOR_PID=$!
+          echo "EMULATOR_PID=$EMULATOR_PID" | tee "$RUNNER_TEMP/emulator-pid.txt"
+          echo "EMULATOR_PID=$EMULATOR_PID" >> "$GITHUB_ENV"
+
+          adb_ready=false
+          for _ in $(seq 1 90); do
+            if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
+              fail_emulator "Android Emulator terminated before ADB became available."
+            fi
+            if "$ADB" get-state >/dev/null 2>&1; then
+              adb_ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$adb_ready" != true ]]; then
+            fail_emulator "Android Emulator did not become available through ADB."
+          fi
+          "$ADB" get-state
+          "$ADB" devices -l
+
+          boot_completed=false
+          for _ in $(seq 1 150); do
+            if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
+              fail_emulator "Android Emulator terminated before Android boot completed."
+            fi
+            boot_state=""
+            if boot_state=$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d "\r"); then
+              if [[ "$boot_state" == "1" ]]; then
+                boot_completed=true
+                break
+              fi
+            fi
+            sleep 2
+          done
+          if [[ "$boot_completed" != true ]]; then
+            fail_emulator "Android Emulator did not report sys.boot_completed=1."
+          fi
+          "$ADB" shell getprop sys.boot_completed
+          "$ADB" shell getprop ro.build.version.sdk
+          "$ADB" shell getprop ro.product.cpu.abi
+
+          package_service_ready=false
+          for _ in $(seq 1 90); do
+            if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then
+              fail_emulator "Android Emulator terminated before the package service became available."
+            fi
+            if "$ADB" shell service check package 2>/dev/null | grep -q "found"; then
+              package_service_ready=true
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$package_service_ready" != true ]]; then
+            fail_emulator "Android package service did not become available."
+          fi
           "$ADB" shell settings put global window_animation_scale 0
           "$ADB" shell settings put global transition_animation_scale 0
           "$ADB" shell settings put global animator_duration_scale 0
@@ -278,13 +391,19 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          "$ADB" logcat -c
           "$ADB" install -r "$APK_PATH"
-          "$ADB" shell pm list packages | grep -F 'com.ryuyoshikawa.scenarioshop'
+          "$ADB" shell pm path com.ryuyoshikawa.scenarioshop | grep -F 'package:'
           "$ADB" shell monkey \
             -p com.ryuyoshikawa.scenarioshop \
             -c android.intent.category.LAUNCHER \
             1
           timeout 60 bash -c 'until "$ADB" shell pidof com.ryuyoshikawa.scenarioshop 2>/dev/null | grep -q .; do sleep 2; done'
+          "$ADB" logcat -d > "$RUNNER_TEMP/app-launch-logcat.txt"
+          if grep -Eiq 'unable to resolve host|could not connect to development server|unable to load script' "$RUNNER_TEMP/app-launch-logcat.txt"; then
+            cat "$RUNNER_TEMP/app-launch-logcat.txt" >&2
+            exit 1
+          fi
       - name: Install pinned Maestro CLI
         shell: bash
         run: |
@@ -346,16 +465,67 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/native-evidence"
+
+          capture_command() {
+            local output="$1"
+            shift
+            set +e
+            timeout 15 "$@" > "$output" 2>&1
+            local status=$?
+            set -e
+            if [[ "$status" -ne 0 ]]; then
+              echo "command exit code: $status" >> "$output"
+            fi
+          }
+
+          {
+            echo "ANDROID_AVD_HOME=${ANDROID_AVD_HOME:-<unset>}"
+            echo "ANDROID_PREFS_ROOT=${ANDROID_PREFS_ROOT:-<unset>}"
+            echo "HOME=${HOME:-<unset>}"
+          } > "$RUNNER_TEMP/native-evidence/android-environment.txt"
+
+          if [[ -n "${ANDROID_AVD_HOME:-}" && -d "$ANDROID_AVD_HOME" ]]; then
+            find "$ANDROID_AVD_HOME" -maxdepth 3 -print \
+              > "$RUNNER_TEMP/native-evidence/avd-files.txt"
+          else
+            echo "AVD directory was not created." \
+              > "$RUNNER_TEMP/native-evidence/avd-files.txt"
+          fi
+          if [[ -f "$RUNNER_TEMP/avd-list.txt" ]]; then
+            cp "$RUNNER_TEMP/avd-list.txt" "$RUNNER_TEMP/native-evidence/avd-list.txt"
+          else
+            echo "emulator -list-avds was not completed." \
+              > "$RUNNER_TEMP/native-evidence/avd-list.txt"
+          fi
+          if [[ -f "$RUNNER_TEMP/emulator-pid.txt" ]]; then
+            cp "$RUNNER_TEMP/emulator-pid.txt" "$RUNNER_TEMP/native-evidence/emulator-pid.txt"
+          fi
+
           if [[ -n "${ADB:-}" && -x "${ADB:-}" ]]; then
             if timeout 5 "$ADB" get-state >/dev/null 2>&1; then
-              timeout 15 "$ADB" logcat -d \
-                > "$RUNNER_TEMP/native-evidence/adb-logcat.txt" \
-                2>&1 || true
+              capture_command "$RUNNER_TEMP/native-evidence/adb-get-state.txt" "$ADB" get-state
+              capture_command "$RUNNER_TEMP/native-evidence/adb-devices.txt" "$ADB" devices -l
+              capture_command "$RUNNER_TEMP/native-evidence/sys-boot-completed.txt" "$ADB" shell getprop sys.boot_completed
+              capture_command "$RUNNER_TEMP/native-evidence/android-build-properties.txt" "$ADB" shell getprop ro.build.version.sdk
+              capture_command "$RUNNER_TEMP/native-evidence/android-abi.txt" "$ADB" shell getprop ro.product.cpu.abi
+              capture_command "$RUNNER_TEMP/native-evidence/package-path.txt" "$ADB" shell pm path com.ryuyoshikawa.scenarioshop
+              capture_command "$RUNNER_TEMP/native-evidence/package-process.txt" "$ADB" shell pidof com.ryuyoshikawa.scenarioshop
+              capture_command "$RUNNER_TEMP/native-evidence/dumpsys-package.txt" "$ADB" shell dumpsys package com.ryuyoshikawa.scenarioshop
+              capture_command "$RUNNER_TEMP/native-evidence/dumpsys-activity.txt" "$ADB" shell dumpsys activity activities
+              capture_command "$RUNNER_TEMP/native-evidence/adb-logcat.txt" "$ADB" logcat -d
             else
+              echo "Android device was not started or was unavailable." \
+                > "$RUNNER_TEMP/native-evidence/adb-get-state.txt"
+              echo "Android device was not started or was unavailable." \
+                > "$RUNNER_TEMP/native-evidence/adb-devices.txt"
               echo "Android device was not started or was unavailable." \
                 > "$RUNNER_TEMP/native-evidence/adb-logcat.txt"
             fi
           else
+            echo "Android adb executable was not resolved." \
+              > "$RUNNER_TEMP/native-evidence/adb-get-state.txt"
+            echo "Android adb executable was not resolved." \
+              > "$RUNNER_TEMP/native-evidence/adb-devices.txt"
             echo "Android adb executable was not resolved." \
               > "$RUNNER_TEMP/native-evidence/adb-logcat.txt"
           fi
@@ -367,6 +537,9 @@ jobs:
           fi
           if [[ -n "${APK_PATH:-}" && -f "$APK_PATH" ]]; then
             cp "$APK_PATH" "$RUNNER_TEMP/native-evidence/app-release.apk"
+            capture_command "$RUNNER_TEMP/native-evidence/apk-info.txt" bash -c \
+              'ls -lh "$1"; file "$1"; unzip -l "$1" | grep -E "AndroidManifest.xml|assets/.*\\.(bundle|hbc)"' \
+              bash "$APK_PATH"
           else
             echo "Automation Release APK was not generated." \
               > "$RUNNER_TEMP/native-evidence/apk-status.txt"
@@ -382,6 +555,10 @@ jobs:
             cp "$RUNNER_TEMP/emulator-version.txt" \
               "$RUNNER_TEMP/native-evidence/emulator-version.txt"
           fi
+          if [[ -f "$RUNNER_TEMP/app-launch-logcat.txt" ]]; then
+            cp "$RUNNER_TEMP/app-launch-logcat.txt" \
+              "$RUNNER_TEMP/native-evidence/app-launch-logcat.txt"
+          fi
           shopt -s nullglob
           for junit_path in "$RUNNER_TEMP"/maestro-*.xml; do
             cp "$junit_path" "$RUNNER_TEMP/native-evidence/"
@@ -390,6 +567,19 @@ jobs:
             mkdir -p "$RUNNER_TEMP/native-evidence/maestro-artifacts"
             cp -R "$RUNNER_TEMP/maestro-artifacts/." \
               "$RUNNER_TEMP/native-evidence/maestro-artifacts/"
+            set +e
+            grep -R -h -E 'native-(test-runtime-ready|contract-(running|passed|failed))' \
+              "$RUNNER_TEMP/maestro-artifacts" \
+              > "$RUNNER_TEMP/native-evidence/test-control-contract-signals.txt"
+            signal_status=$?
+            set -e
+            if [[ "$signal_status" -ne 0 ]]; then
+              echo "No Test Control or Contract Harness signal text was captured." \
+                > "$RUNNER_TEMP/native-evidence/test-control-contract-signals.txt"
+            fi
+          else
+            echo "Maestro artifact directory was not created." \
+              > "$RUNNER_TEMP/native-evidence/test-control-contract-signals.txt"
           fi
       - uses: actions/upload-artifact@v4
         if: always()

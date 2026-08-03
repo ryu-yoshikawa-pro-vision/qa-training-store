@@ -3,12 +3,12 @@
   "run_id": "20260802-194908-JST",
   "objective": "Phase 2前半のNative基盤・SQLite・Guest購入前FlowをGate A〜Gまで実装・検証する",
   "status": "in_progress",
-  "phase": "PR #8 Native CI処理順序・Runtime Cleanup修正のコード・Workflow・対象Test・静的／Web検証完了、GitHub／実Native実行待ち",
+  "phase": "PR #8 AVD永続化・PBKDF2契約修正のコード・Workflow・対象Test・静的／Web検証完了、GitHub／実Native実行待ち",
   "gate_results": {
     "A": "コード・静的検証完了、実Native未確認",
     "B": "コード・Node検証完了、lintは0 errors/64 warnings、typecheckとNative Component Test成功。実Nativeは未確認",
     "C": "コード・Node実SQLite契約とReset rollback/Harness isolation完了、Android/iOS実SQLite未確認",
-    "D": "Deep Link Pure Function、Native Allowlist、Production Module Resolution、生成Bundle Guard、Asset差分、SDK絶対Path／SDK Install前後のVerify順序／Release APK／boot待機／Evidence timeout、Runtime SQLite CleanupのWorkflow／Test契約を確認。実Native artifact未確認",
+    "D": "Deep Link Pure Function、Native Allowlist、Production Module Resolution、生成Bundle Guard、Asset差分、SDK絶対Path／SDK Install前後のVerify順序／Release APK／AVD_HOME／AVD作成Path／list-avds／Emulator PID／boot待機／Evidence、Runtime SQLite Cleanup、Native PBKDF2 smoke／Signal順序のWorkflow／Test契約を確認。実Native artifact未確認",
     "E": "未実施（ローカルAndroid Toolchain不在）",
     "F": "未実施（Windows上でiOS Toolchain不在）",
     "G": "Node/Web回帰・Format/Lint/Typecheck・Asset/Security/Route/EAS static/Production Bundle・Web 390x844/320x700 UI Review完了、実Native操作未確認"
@@ -25,7 +25,7 @@
   "validation": {
     "status": "partial",
     "native_builds": "実Native Build未実施。Android/iOS JS exportは成功",
-    "web_regression": "Unit 13 files/64 tests、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 7 suites/15、Contract 16/81、Production Bundle Guard、Web Build、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17が成功"
+    "web_regression": "Unit 13 files/66 tests、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 7 suites/15、Contract 17/84、Production Bundle Guard、Web Build、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17が成功。集約pnpm run testも300秒上限の再実行で成功"
   },
   "repair_iterations": [
     {
@@ -61,6 +61,13 @@
       "input": "添付のRun 30785304641でResolve StepがSDK Component導入前にADB／Emulator／AVD Managerをtest -xして失敗。Runtime初期化途中のSQLite closeAsync契約とTestが不足",
       "result": "Resolveから3 Toolの存在確認を削除し、GITHUB_ENV／GITHUB_PATH保存を維持。Install後Verifyへ確認を限定し、Resolve→Install→Verify paths→Verify adb→Verify avdmanager→Inspect emulator→Buildの順序、Resolve／Verify Section境界をContractで固定。Runtime Database Open後処理をprivate helperへ分離し、失敗時closeAsync、成功時未Close、Cleanup失敗時の元Error保持をNative Jest 3 testsで検証。指示書の全ローカル検証とWeb回帰はPASS",
       "remaining_delta": "修正後GitHub ActionsのAndroid SDK Install／Verify／Release APK／Emulator／Maestro／native-ci verify、Windows Android実環境、macOS iOS実環境、実expo-sqlite、Commit／Pushは未実施",
+      "decision": "continue"
+    },
+    {
+      "iteration_number": 6,
+      "input": "PR #8修正指示とHead 50411a63e643000a024d929b8869b240936ef56e、Native CI Run 30787501472の実ログ。avdmanager create avdがCustom hardware profile入力待ちで終了コード124となった",
+      "result": "ANDROID_AVD_HOME固定、avdmanager -p、固定device、AVD files／emulator -list-avds完全一致、Emulator PID／早期終了／sys.boot_completed／SDK／ABI／package service待機、失敗時Evidenceを実装。Native Contract Harnessへseed password_hash、Native PBKDF2正誤／Unicode、checks.passwordHashing、Cleanup後Signal順序を実装。Contract／Unit／Native Jestを追加・更新し、Node／Web／静的検証を成功",
+      "remaining_delta": "修正後GitHub Actions、Android Emulator／Maestro／実expo-sqlite、iOS Simulatorは未確認。Commit／Push／PR更新／EAS Cloudは未実施",
       "decision": "continue"
     }
   ],

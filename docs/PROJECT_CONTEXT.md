@@ -124,6 +124,15 @@
 - Native RuntimeはDatabaseを開いた後の初期化処理を専用private helperで囲み、途中失敗時だけ`database.closeAsync()`を1回試行する。Cleanup失敗は握り潰して元の初期化Errorを再送出し、正常に返すRuntimeのDatabaseは閉じない。Jestで失敗／成功／Cleanup失敗の3契約を検証する。
 - ローカルのformat／lint／typecheck／全Test／Native Contract／Repository／Asset／Security／Route／EAS static／Production Bundle／Web Build／Chromium／A11y／Mobile boundary／Expo Doctorは成功した。EAS Cloud、Commit／Push、修正後GitHub Actions、Windows Android実Native、macOS iOS実Native、実`expo-sqlite`は未実施のまま分離して扱う。
 
+## PR #8 AVD永続化・PBKDF2契約修正（2026-08-03）
+
+- 最新確認Headは`50411a63e643000a024d929b8869b240936ef56e`、Native CI Runは`30787501472`。SDK導入、APK生成、Bundle確認までは成功したが、Android Emulator Stepで`avdmanager create avd`がCustom hardware profile入力待ちになり、終了コード124で停止した。APK／SDK破損ではない。
+- Android Workflowは`ANDROID_AVD_HOME=$RUNNER_TEMP/android-avd`を明示して作成・exportし、`avdmanager -p "$ANDROID_AVD_HOME/native-api34.avd"`、API 34／`google_apis;x86_64`、固定device profileを使う。作成後のAVDファイル列挙と`emulator -list-avds`の`native-api34`完全一致を起動前に要求する。
+- EmulatorはPIDを保存し、ADB待機、`sys.boot_completed=1`、SDK／ABI確認、package service待機を分離し、各待機中にプロセス早期終了を検出する。失敗時もAVD home、AVD list、AVD files、emulator.log、ADB／boot／dumpsys／logcat／APK／Maestro／Signal証跡を回収する。
+- Native Contract Harnessは専用DBのseed userから`password_hash`を取得し、`NativePbkdf2PasswordHasher`で`testpass1`の正誤、Unicode passwordの正誤を検証する。Application DB不変確認→PBKDF2→DB／KV cleanupの完了後にのみ`Native contract passed`を通知し、結果へ`checks.passwordHashing`を含める。password／hash値はログへ出さない。
+- 今回のローカル検証ではUnit 13/66、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 7/15、Contract 17/84、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17、静的Guard／Web Buildが成功した。Lintは0 errors／64 warnings。
+- 修正後のGitHub Actions Run、Android SDK／adb／Emulator／Maestroによる実操作、iOS Simulator、実`expo-sqlite`は未実施である。EAS Cloud、Commit、Push、PR更新、`android/`／`ios/`のRepository追加は行わない。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

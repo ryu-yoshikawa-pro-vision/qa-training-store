@@ -12,6 +12,7 @@
   ],
   "repo": "qa-training-store",
   "branch": "feature/01_phase2-first-half-native-foundation",
+  "head_sha": "50411a63e643000a024d929b8869b240936ef56e",
   "base_branch": "main",
   "codex_task_reports": [],
   "changed_files": [
@@ -64,7 +65,12 @@
     "docs/plans/2026-08-03_131358_pr8-native-ci-rereview-repair.md",
     "docs/history/2026-08-03_133600_pr8-native-ci-rereview-repair.md",
     "tests/component/native/native-runtime-cleanup.test.ts",
-    "docs/history/2026-08-03_140716_pr8-native-ci-cleanup.md"
+    "docs/history/2026-08-03_140716_pr8-native-ci-cleanup.md",
+    "src/test-controls/native-contract-harness.native.ts",
+    "tests/component/native/native-password-hasher.test.ts",
+    "tests/contracts/native-contract-harness.test.ts",
+    "tests/unit/native-contract-harness.test.ts",
+    "docs/history/2026-08-03_160448_pr8-avd-pbkdf2-repair.md"
   ],
   "validation": {
     "status": "in_progress",
@@ -175,7 +181,29 @@
       "pnpm dlx expo-doctor@1.17.6",
       "pnpm run test",
       "git diff --name-only -- android ios",
-      "Run／Evaluation JSON parse"
+      "Run／Evaluation JSON parse",
+      "pnpm run test:unit",
+      "pnpm run test:integration",
+      "pnpm run test:repository",
+      "pnpm run test:component:web",
+      "pnpm run test:component:native",
+      "pnpm run test:contracts",
+      "pnpm run generate:native-assets",
+      "git diff --exit-code -- src/generated/native-product-assets.ts",
+      "pnpm run validate:image-manifest",
+      "pnpm run security:check",
+      "pnpm run check:native-route-dependencies",
+      "pnpm run validate:eas:config",
+      "pnpm run validate:native-production-bundle",
+      "pnpm run build:web",
+      "pnpm run test:e2e:chromium",
+      "pnpm run test:a11y",
+      "pnpm run test:e2e:mobile-boundary",
+      "pnpm dlx expo-doctor@1.17.6",
+      "git diff --check",
+      "git diff --name-only -- android ios",
+      "Run／Evaluation JSON parse (Iteration 6)",
+      "pnpm run test (timeout 300000)"
     ],
     "warnings": [
       "Android adb/Emulator/Maestro未導入のため実Android操作は未確認",
@@ -198,7 +226,14 @@
       "今回の修正後GitHub Actions、Android／iOS実Native Build／Install／操作／実SQLite、Commit／Push、EAS Cloudは未実施",
       "Native Cleanup初回TestはJest Native KV mock不足で失敗したが、テスト内mock追加後にPASS",
       "Contract Test初回typecheckはIndexのundefined可能性で失敗したが、non-null assertion追加後にPASS",
-      "最終検証: Native Jest 7 suites/15 tests、Contract 16 files/81 tests、Web Build、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17、全Test成功"
+      "最終検証: Native Jest 7 suites/15 tests、Contract 16 files/81 tests、Web Build、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17、全Test成功",
+      "Native CI run 30787501472: SDK／Release APKは成功、avdmanager create avdがCustom hardware profile入力待ちで終了コード124",
+      "pnpm run testは初回124秒上限ではtimeoutしたが、timeout 300000で再実行し全Suite PASS",
+      "Iteration 6: Unit 13/66、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 7/15、Contract 17/84",
+      "Iteration 6: Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17、静的Guard／Web BuildはPASS",
+      "Lintは0 errors／64 warnings。WindowsのLF／CRLF warningは差分エラーではない",
+      "YAML専用node moduleは未導入だったため、Workflow YAMLはPrettier checkで確認した",
+      "gh CLIは未導入のため、GitHub connectorでread-onlyのPR／Actions／失敗ログ確認を実施した"
     ]
   },
   "safety": {
@@ -210,7 +245,7 @@
   "artifact_summary": {
     "codex_task_report_count": 0,
     "hook_event_count": 0,
-    "subagent_run_count": 6,
+    "subagent_run_count": 9,
     "evaluation_present": true
   },
   "hook_observations": {
@@ -257,14 +292,32 @@
           "mode": "read-only",
           "adopted": true,
           "summary": "Jest／Vitest分離とRuntime Cleanupの成功／失敗／元Error保持Test戦略を確認"
+        },
+        {
+          "name": "code_researcher",
+          "mode": "read-only",
+          "adopted": true,
+          "summary": "Native CIのAVD_HOME／avdmanager -p欠落とAndroid EmulatorのAVD探索順を確認"
+        },
+        {
+          "name": "implementation_researcher",
+          "mode": "read-only",
+          "adopted": true,
+          "summary": "Native Contract Harnessのseed hash／PBKDF2／Cleanup／成功Signalの実装順を確認"
+        },
+        {
+          "name": "test_investigator",
+          "mode": "read-only",
+          "adopted": true,
+          "summary": "AVD処理順序、PID／boot監視、Harness Signalイベント順のTest観点を確認"
         }
       ],
       "summary": {
-      "total": 6,
-      "read_only": 6,
+      "total": 9,
+      "read_only": 9,
       "writable": 0,
       "scope_violations": 0,
-      "used_in_final_plan": 3
+      "used_in_final_plan": 6
     }
   },
   "evaluation_path": ".codex/runs/20260802-194908-JST/evaluation.json",

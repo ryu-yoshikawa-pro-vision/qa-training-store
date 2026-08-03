@@ -167,3 +167,21 @@ Route Inventory、Root/Shell、依存方向、Capability/Scope、Native Composit
 - allowed filesは`.github/workflows/native-ci.yml`、`src/bootstrap/native-runtime.ts`、該当Contract／Native Jest Test、PROJECT_CONTEXT／History、既存Run Artifactに限定し、Native UI／Maestro／Evidence定義は変更しない。
 - Resolveの責務をPath解決へ戻し、Install後のTool検証とStep順序をContractで固定する。RuntimeはDatabase Open後だけをtry/catch対象にし、成功Databaseを閉じない。
 - ローカル検証は指示書のコマンドを実行し、Remote CI／実Native／EAS／Git操作は未実施として報告する。
+
+## 25. 2026-08-03 PR #8 AVD永続化・PBKDF2契約修正計画
+
+### 仮説
+
+- 最新Native CI Run `30787501472`のAndroid失敗はAPK生成やSDK導入ではなく、AVDの保存先とEmulatorの探索先が暗黙値のまま、`avdmanager create avd`がCustom hardware profile入力待ちで終了したことが主因である。
+- HarnessがApplication DB不変確認だけでなく、実DBのseed `password_hash`を使ったNative PBKDF2正誤・Unicode検証をCleanup前に完了し、Cleanup完了後だけ成功Signalを出す必要がある。
+
+### 実施方針
+
+- `ANDROID_AVD_HOME=$RUNNER_TEMP/android-avd`を作成・exportし、`avdmanager -p`、AVDファイル検査、`emulator -list-avds`完全一致をEmulator起動前に行う。KVMは必須とし、PID監視、ADB、`sys.boot_completed`、package serviceを段階的に待つ。
+- Native Contract Harnessはseed userのhashをDBから取得し、`NativePbkdf2PasswordHasher`で固定password／wrong password／Unicodeの正誤を検証する。Application DB不変確認、PBKDF2、DB／KV cleanup、成功Signalの順序をTestで固定する。
+- 変更はNative CI Workflow、Native Contract Harness／runner、対象Contract／Unit／Native Jest Test、Run／PROJECT_CONTEXT／Historyへ限定する。EAS、Commit、Push、PR更新、`android/`／`ios/`のRepository追加は行わない。
+
+### 判定境界
+
+- ローカルのNode／Web／静的検証とコード実装は完了扱いにできる。
+- 修正後のGitHub Actions成功Run、Android Emulator／Maestro／実`expo-sqlite`、iOS Simulatorは未確認のまま残し、Acceptance完了とは分離する。

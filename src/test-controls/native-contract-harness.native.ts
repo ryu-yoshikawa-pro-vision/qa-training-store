@@ -25,6 +25,7 @@ export interface NativeContractHarnessResources {
   deleteDatabase(): Promise<void> | void;
   removeKvKey(key: string): Promise<void>;
   verifyApplicationDatabase?(): Promise<void>;
+  verifyPasswordHashing?(): Promise<void>;
 }
 
 export interface NativeContractHarnessApplicationState {
@@ -44,6 +45,7 @@ export interface NativeContractHarnessResult {
     cartMutation: boolean;
     foreignKeyEnforcement: boolean;
     applicationDatabaseUnchanged: boolean;
+    passwordHashing: boolean;
   };
 }
 
@@ -79,6 +81,8 @@ export async function withNativeContractHarness<T>(
   let workCompleted = false;
   try {
     result = await work(scope);
+    await resources.verifyApplicationDatabase?.();
+    await resources.verifyPasswordHashing?.();
     workCompleted = true;
   } catch (caught: unknown) {
     workError = caught;
@@ -100,11 +104,6 @@ export async function withNativeContractHarness<T>(
       } catch (caught: unknown) {
         cleanupErrors.push(caught);
       }
-    }
-    try {
-      await resources.verifyApplicationDatabase?.();
-    } catch (caught: unknown) {
-      cleanupErrors.push(caught);
     }
     if (cleanupErrors.length > 0 && workError === null) {
       const firstCleanupError = cleanupErrors[0];

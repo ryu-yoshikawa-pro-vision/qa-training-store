@@ -15,7 +15,7 @@ vi.mock("@/test-controls/native-signals", () => ({
 
 describe("Native contract harness isolation", () => {
   beforeEach(() => {
-    signalMock.mockClear();
+    signalMock.mockReset();
   });
 
   it("uses a runtime UUID for the DB and KV namespace", () => {
@@ -62,6 +62,9 @@ describe("Native contract harness isolation", () => {
           verifyApplicationDatabase: async () => {
             calls.push("verify-application-db");
           },
+          verifyPasswordHashing: async () => {
+            calls.push("verify-password-hashing");
+          },
         },
         async (scope) => {
           calls.push(scope.databaseName);
@@ -71,12 +74,80 @@ describe("Native contract harness isolation", () => {
       ),
     ).resolves.toBe("passed");
     expect(calls[0]).toBe("scenario-shop-contract-runtime-456.db");
-    expect(calls.slice(1, 3)).toEqual(["close", "delete"]);
-    expect(calls).toHaveLength(8);
-    expect(calls.at(-1)).toBe("verify-application-db");
+    expect(calls.slice(1, 5)).toEqual([
+      "verify-application-db",
+      "verify-password-hashing",
+      "close",
+      "delete",
+    ]);
+    expect(calls).toHaveLength(9);
     expect(signalMock.mock.calls.map(([name]) => name)).toEqual([
       "native-contract-running",
       "native-contract-passed",
+    ]);
+  });
+
+  it("emits the success signal only after checks and cleanup complete", async () => {
+    const events: string[] = [];
+    signalMock.mockImplementation((name: string) => events.push(name));
+
+    await withNativeContractHarness(
+      {
+        closeDatabase: () => {
+          events.push("close");
+        },
+        deleteDatabase: () => {
+          events.push("delete");
+        },
+        removeKvKey: async () => {
+          events.push("remove-kv");
+        },
+        verifyApplicationDatabase: async () => {
+          events.push("verify-application-db");
+        },
+        verifyPasswordHashing: async () => {
+          events.push("verify-password-hashing");
+        },
+      },
+      async () => {
+        events.push("contract-checks");
+      },
+      "runtime-signal-order",
+    );
+
+    expect(events).toEqual([
+      "native-contract-running",
+      "contract-checks",
+      "verify-application-db",
+      "verify-password-hashing",
+      "close",
+      "delete",
+      "remove-kv",
+      "remove-kv",
+      "remove-kv",
+      "remove-kv",
+      "native-contract-passed",
+    ]);
+  });
+
+  it("does not emit passed when the PBKDF2 check fails", async () => {
+    await expect(
+      withNativeContractHarness(
+        {
+          closeDatabase: () => undefined,
+          deleteDatabase: () => undefined,
+          removeKvKey: async () => undefined,
+          verifyPasswordHashing: async () => {
+            throw new Error("PBKDF2 check failed");
+          },
+        },
+        async () => "checked",
+        "runtime-pbkdf2-failed",
+      ),
+    ).rejects.toThrow("PBKDF2 check failed");
+    expect(signalMock.mock.calls.map(([name]) => name)).toEqual([
+      "native-contract-running",
+      "native-contract-failed",
     ]);
   });
 

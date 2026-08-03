@@ -88,20 +88,61 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain('tee "$RUNNER_TEMP/gradle-assemble-release.log"');
     expect(nativeWorkflow).not.toContain("assembleDebug");
     expect(nativeWorkflow).not.toContain("app-debug.apk");
-    expect(nativeWorkflow).toContain('"$ADB" shell pm list packages | grep -F');
+    expect(nativeWorkflow).toContain(
+      '"$ADB" shell pm path com.ryuyoshikawa.scenarioshop | grep -F',
+    );
     expect(nativeWorkflow).toContain('"$ADB" shell monkey');
     expect(nativeWorkflow).toContain('"$ADB" shell pidof com.ryuyoshikawa.scenarioshop');
   });
 
-  it("waits for Android OS and package service readiness with a timeout", () => {
+  it("uses an explicit AVD home and verifies the AVD before starting the emulator", () => {
+    const startIndex = nativeWorkflow.indexOf("- name: Start Android Emulator with KVM");
+    const installIndex = nativeWorkflow.indexOf("- name: Install and launch APK");
+    expect(startIndex).toBeGreaterThanOrEqual(0);
+    expect(installIndex).toBeGreaterThan(startIndex);
+
+    const startSection = nativeWorkflow.slice(startIndex, installIndex);
+    const avdHomeIndex = startSection.indexOf('ANDROID_AVD_HOME="$RUNNER_TEMP/android-avd"');
+    const createIndex = startSection.indexOf('"$AVDMANAGER" create avd');
+    const listIndex = startSection.indexOf('"$EMULATOR" -list-avds');
+    const launchIndex = startSection.indexOf('"$EMULATOR" \\\n            -avd native-api34');
+    const bootIndex = startSection.indexOf("sys.boot_completed");
+
+    expect(avdHomeIndex).toBeGreaterThanOrEqual(0);
+    expect(startSection).toContain('mkdir -p "$ANDROID_AVD_HOME"');
+    expect(startSection).toContain('echo "ANDROID_AVD_HOME=$ANDROID_AVD_HOME" >> "$GITHUB_ENV"');
+    expect(startSection).toContain('-p "$ANDROID_AVD_HOME/native-api34.avd"');
+    expect(startSection).toContain('find "$ANDROID_AVD_HOME" -maxdepth 3 -type f -print');
+    expect(startSection).toContain(
+      'if [[ ! -f "$ANDROID_AVD_HOME/native-api34.ini" || ! -d "$ANDROID_AVD_HOME/native-api34.avd" ]]; then',
+    );
+    expect(startSection).toContain('grep -Fxq "native-api34" "$RUNNER_TEMP/avd-list.txt"');
+    expect(createIndex).toBeGreaterThan(avdHomeIndex);
+    expect(listIndex).toBeGreaterThan(createIndex);
+    expect(launchIndex).toBeGreaterThan(listIndex);
+    expect(bootIndex).toBeGreaterThan(launchIndex);
+    expect(startSection).toContain("EMULATOR_PID=$!");
+    expect(startSection).toContain('kill -0 "$EMULATOR_PID"');
+    expect(startSection).toContain('"$ADB" get-state');
+    expect(startSection).toContain('"$ADB" devices -l');
+    expect(startSection).toContain('"$ADB" shell getprop ro.build.version.sdk');
+    expect(startSection).toContain('"$ADB" shell getprop ro.product.cpu.abi');
+  });
+
+  it("waits for Android OS and package service readiness with process checks", () => {
     expect(nativeWorkflow).toContain("-no-snapshot");
     expect(nativeWorkflow).toContain("-wipe-data");
     expect(nativeWorkflow).toContain("sys.boot_completed");
     expect(nativeWorkflow).toContain("service check package");
-    expect(nativeWorkflow).toContain('timeout 180 "$ADB" wait-for-device');
-    expect(nativeWorkflow).toContain("timeout 180 bash -c");
+    expect(nativeWorkflow).toContain("for _ in $(seq 1 90)");
+    expect(nativeWorkflow).toContain("for _ in $(seq 1 150)");
+    expect(nativeWorkflow).toContain('if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then');
     expect(nativeWorkflow).toContain('"$AVDMANAGER" create avd');
     expect(nativeWorkflow).toContain('"$EMULATOR" \\');
+    expect(nativeWorkflow).toContain('"$ADB" install -r "$APK_PATH"');
+    expect(nativeWorkflow.indexOf("sys.boot_completed")).toBeLessThan(
+      nativeWorkflow.indexOf('"$ADB" install -r "$APK_PATH"'),
+    );
     expect(nativeWorkflow).not.toMatch(/^\s+adb\s/m);
     expect(nativeWorkflow).not.toMatch(/^\s+emulator\s/m);
     expect(nativeWorkflow).not.toMatch(/^\s+avdmanager\s/m);
@@ -111,7 +152,12 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain("timeout-minutes: 50");
     expect(nativeWorkflow).toContain("timeout-minutes: 3");
     expect(nativeWorkflow).toContain('timeout 5 "$ADB" get-state');
-    expect(nativeWorkflow).toContain('timeout 15 "$ADB" logcat -d');
+    expect(nativeWorkflow).toContain("capture_command");
+    expect(nativeWorkflow).toContain("avd-list.txt");
+    expect(nativeWorkflow).toContain("dumpsys-package.txt");
+    expect(nativeWorkflow).toContain("dumpsys-activity.txt");
+    expect(nativeWorkflow).toContain("sys-boot-completed.txt");
+    expect(nativeWorkflow).toContain("test-control-contract-signals.txt");
     expect(nativeWorkflow).toContain("Android device was not started or was unavailable.");
     expect(nativeWorkflow).toContain("Emulator was not started.");
     expect(nativeWorkflow).toContain("Gradle Release build log was not generated.");

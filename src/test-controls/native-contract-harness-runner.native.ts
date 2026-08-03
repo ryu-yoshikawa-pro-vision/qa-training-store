@@ -11,6 +11,7 @@ import {
 } from "@/infrastructure/session/native-stores";
 import { BASE_CLOCK } from "@/seeds/metadata";
 import { createScenarioDataset } from "@/seeds/scenarios";
+import { NativePbkdf2PasswordHasher } from "@/infrastructure/security/password-hasher.native";
 import {
   assertNativeContractHarnessApplicationStateUnchanged,
   type NativeContractHarnessApplicationState,
@@ -69,6 +70,12 @@ export async function runNativeContractHarness(
         const after = await readNativeContractHarnessApplicationState(services);
         assertNativeContractHarnessApplicationStateUnchanged(before, after);
       },
+      verifyPasswordHashing: async () => {
+        if (harnessDatabase === null) {
+          throw new Error("Native contract PBKDF2 database is unavailable");
+        }
+        await verifyNativePbkdf2Smoke(harnessDatabase);
+      },
     },
     async (scope) => {
       activeScope = scope;
@@ -87,8 +94,41 @@ export async function runNativeContractHarness(
 
   return {
     ...result,
-    checks: { ...result.checks, applicationDatabaseUnchanged: true },
+    checks: {
+      ...result.checks,
+      applicationDatabaseUnchanged: true,
+      passwordHashing: true,
+    },
   };
+}
+
+async function verifyNativePbkdf2Smoke(database: SQLiteDatabase): Promise<void> {
+  const seededUser = await database.getFirstAsync<{ password_hash: string }>(
+    "SELECT password_hash FROM users WHERE id = ?",
+    "user-customer-regular",
+  );
+  if (seededUser?.password_hash === undefined) {
+    throw new Error("Native contract seed user password hash is unavailable");
+  }
+
+  const hasher = new NativePbkdf2PasswordHasher();
+  const seedPassword = "testpass1";
+  const seedPasswordMatches = await hasher.verify(seedPassword, seededUser.password_hash);
+  const wrongSeedPasswordMatches = await hasher.verify("wrongpass1", seededUser.password_hash);
+
+  const unicodePassword = "日本語🔒パスワード";
+  const unicodeHash = await hasher.hash(unicodePassword);
+  const unicodePasswordMatches = await hasher.verify(unicodePassword, unicodeHash);
+  const wrongUnicodePasswordMatches = await hasher.verify("日本語🔑パスワード", unicodeHash);
+
+  if (
+    !seedPasswordMatches ||
+    wrongSeedPasswordMatches ||
+    !unicodePasswordMatches ||
+    wrongUnicodePasswordMatches
+  ) {
+    throw new Error("Native contract PBKDF2 check failed");
+  }
 }
 
 async function runNativeCustomerContracts(
@@ -170,6 +210,7 @@ async function runNativeCustomerContracts(
       cartMutation: true,
       foreignKeyEnforcement,
       applicationDatabaseUnchanged: false,
+      passwordHashing: false,
     },
   };
 }
