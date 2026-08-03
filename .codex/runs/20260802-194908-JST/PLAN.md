@@ -185,3 +185,21 @@ Route Inventory、Root/Shell、依存方向、Capability/Scope、Native Composit
 
 - ローカルのNode／Web／静的検証とコード実装は完了扱いにできる。
 - 修正後のGitHub Actions成功Run、Android Emulator／Maestro／実`expo-sqlite`、iOS Simulatorは未確認のまま残し、Acceptance完了とは分離する。
+
+## 26. 2026-08-03 PR #8 CI復旧・Android CI高速化計画
+
+### 仮説
+
+- 最新Run `30795820475`のAndroid失敗はAPK生成、SDK、Emulator起動ではなく、旧WorkflowのApp process確認中に発生したJS runtimeの自己参照によるstack overflowである。
+- Android CIの待ち時間と証跡停止は、Native Staticとの直列依存、毎回の重複生成、条件なしSDK／apt導入、個別Maestro起動、失敗時に偏ったEvidence収集で増幅している。
+
+### 実施方針
+
+- `native-signals.native.ts`がplatform-neutralなsignal定数ファイルだけを参照するようにし、直接Native Jestとmodule Contractで再発を防ぐ。
+- Androidを`detect`だけに依存させ、Gradle／Maestro cache、条件付き導入、`--no-install` prebuild、x86_64 Release APK、2つのMaestro group、bounded Evidenceへ変更する。
+- AVD snapshotは実測が得られるまで変更せず、成功・失敗・Skip・未実行とtimeoutをHistoryへ記録する。
+
+### 判定境界
+
+- コード、Workflow、Contract、ローカル検証は今回の作業範囲で完了した。
+- 修正後GitHub Actions Run、実Android／iOS操作、実`expo-sqlite`は未確認であり、Remote acceptanceは未完了として残す。EAS CloudとGit操作は行わない。

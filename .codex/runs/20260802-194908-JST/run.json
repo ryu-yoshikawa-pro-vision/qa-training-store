@@ -12,7 +12,7 @@
   ],
   "repo": "qa-training-store",
   "branch": "feature/01_phase2-first-half-native-foundation",
-  "head_sha": "50411a63e643000a024d929b8869b240936ef56e",
+  "head_sha": "17d9d538a27058dcf81893d4d6f118cf36d52abf",
   "base_branch": "main",
   "codex_task_reports": [],
   "changed_files": [
@@ -70,7 +70,14 @@
     "tests/component/native/native-password-hasher.test.ts",
     "tests/contracts/native-contract-harness.test.ts",
     "tests/unit/native-contract-harness.test.ts",
-    "docs/history/2026-08-03_160448_pr8-avd-pbkdf2-repair.md"
+    "docs/history/2026-08-03_160448_pr8-avd-pbkdf2-repair.md",
+    "src/test-controls/native-signal-names.ts",
+    "src/test-controls/native-signals.ts",
+    "src/test-controls/native-signals.native.ts",
+    "tests/component/native/native-signals.test.ts",
+    "tests/contracts/native-signal-module.test.ts",
+    "tests/contracts/playwright-config.test.ts",
+    "docs/history/2026-08-03_203822_pr8-native-ci-recovery.md"
   ],
   "validation": {
     "status": "in_progress",
@@ -203,7 +210,19 @@
       "git diff --check",
       "git diff --name-only -- android ios",
       "Run／Evaluation JSON parse (Iteration 6)",
-      "pnpm run test (timeout 300000)"
+      "pnpm run test (timeout 300000)",
+      "GitHub read-only: run 30795820475 / Android job 91629376320 / Verify job 91636751031",
+      "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts tests/contracts/native-signal-module.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run test:component:native",
+      "pnpm run test:contracts",
+      "pnpm run validate:native-production-bundle",
+      "pnpm run check:native-route-dependencies",
+      "pnpm run validate:eas:config",
+      "node --eval Run/Evaluation JSON parse",
+      "git diff --check"
     ],
     "warnings": [
       "Android adb/Emulator/Maestro未導入のため実Android操作は未確認",
@@ -233,7 +252,12 @@
       "Iteration 6: Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17、静的Guard／Web BuildはPASS",
       "Lintは0 errors／64 warnings。WindowsのLF／CRLF warningは差分エラーではない",
       "YAML専用node moduleは未導入だったため、Workflow YAMLはPrettier checkで確認した",
-      "gh CLIは未導入のため、GitHub connectorでread-onlyのPR／Actions／失敗ログ確認を実施した"
+      "gh CLIは未導入のため、GitHub connectorでread-onlyのPR／Actions／失敗ログ確認を実施した",
+      "Native CI run 30795820475: 旧WorkflowのInstall／launchでpidof待機がexit 124、Evidence upload success、Maestro skip、Verify failure。Artifact logcatでnative-signals.native.ts自己参照によるRangeErrorを確認",
+      "修正後WorkflowのGitHub Actions、Android／iOS実Native、実expo-sqlite、EAS Cloud、Commit／Push／PR更新は未実施",
+      "Native signal constants were split into a platform-neutral module; Native Jest 8 suites／16 tests and Contract 18 files／86 tests passed",
+      "Playwright contract warm-up beforeAll was extended to 60 seconds to prevent Windows cold ESM import timeout",
+      "Evidence collection was hardened with bounded capture_command and copy/status fallbacks so missing or failed evidence files do not stop artifact upload"
     ]
   },
   "safety": {

@@ -133,6 +133,14 @@
 - 今回のローカル検証ではUnit 13/66、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 7/15、Contract 17/84、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17、静的Guard／Web Buildが成功した。Lintは0 errors／64 warnings。
 - 修正後のGitHub Actions Run、Android SDK／adb／Emulator／Maestroによる実操作、iOS Simulator、実`expo-sqlite`は未実施である。EAS Cloud、Commit、Push、PR更新、`android/`／`ios/`のRepository追加は行わない。
 
+## PR #8 CI復旧・Android CI高速化（2026-08-03）
+
+- 最新確認Runは`30795820475`（Head `17d9d538a27058dcf81893d4d6f118cf36d52abf`）。Native Static／Production Bundle Guard／APK生成／Emulator起動／Evidence uploadは成功し、Android Jobは旧Workflowの`Install and launch APK`で`pidof`待機がexit 124となった。`native-ci / verify`はAndroid結果を受けて失敗し、Maestroは未実行である。Artifact `native-android-evidence-30795820475`（ID `8849743993`）のlogcatで、`NativeAutomationBridge`→`NativeTestControlRuntimeBridge`→`NativeAppRuntimeProvider`中の`RangeError: Maximum call stack size exceeded`を確認した。
+- 原因はMetroのAndroid platform resolutionで`src/test-controls/native-signals.native.ts`から`./native-signals`を読み込む自己参照である。`native-signal-names.ts`へ定数／型を分離し、native／web双方がそこだけを参照する構造へ修正した。Native Jestの直接signal emission回帰Testと、native moduleが自己参照しないContract Testを追加した。
+- Android Workflowは`android.needs: [detect]`としてNative Staticと並列化し、Production Bundle Guardは`[detect, static]`、最終Verifyは`[detect, static, production-bundle-guard, android]`を維持する。Gradle cache、条件付き`libpulse0`／SDK component導入、`prebuild --no-install`、x86_64専用Release APK、APK／ABI検査、Maestro cache、2つの責務別JUnit実行、成功時軽量／失敗時詳細Evidenceを定義した。AVD snapshot cacheは実測がないため採用せず、`-no-snapshot`を維持する。
+- ローカルのformat／型チェック／Lint／Native Jest 8 suites・16 tests／今回のWorkflow・signal Contract 11 testsは成功した。VitestでNative Jest対象を直接起動する方法はReact Native Flow構文を扱えないため使用せず、`jest.config.cjs`を正式入口とする。既存Lint warningとReact `act` warningは残存するがerrorはない。
+- 修正後WorkflowのGitHub Actions Run、Android Emulator／Maestro／Harness実証、WindowsローカルAndroid toolchain、macOS iOS toolchain、実`expo-sqlite`は未確認である。Commit／Push／PR更新／EAS Cloud実行は行わない。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

@@ -55,7 +55,17 @@ function productDetail(): ProductDetail {
         regularPrice: 2000,
         activeSalePrice: null,
         viewerUnitPrice: 2000,
-        stockQuantity: 4,
+        stockQuantity: 3,
+        purchaseLimit: 5,
+      },
+      {
+        variantId: "variant-xl",
+        sku: "P-0001-04",
+        optionValue: "XL",
+        regularPrice: 2000,
+        activeSalePrice: null,
+        viewerUnitPrice: 2000,
+        stockQuantity: 6,
         purchaseLimit: 5,
       },
     ],
@@ -110,7 +120,14 @@ describe("NativeProductDetailScreen", () => {
     fireEvent.press(screen.getByTestId("native-variant-variant-l"));
 
     await waitFor(() =>
-      expect(screen.getByTestId("native-product-stock").props.children).toBe("残り4点"),
+      expect(screen.getByTestId("native-product-stock").props.children).toBe("残り3点"),
+    );
+    expect(screen.getByTestId("native-add-to-cart").props.accessibilityState.disabled).toBe(false);
+
+    fireEvent.press(screen.getByTestId("native-variant-variant-xl"));
+
+    await waitFor(() =>
+      expect(screen.getByTestId("native-product-stock").props.children).toBe("在庫 6点"),
     );
     expect(screen.getByTestId("native-add-to-cart").props.accessibilityState.disabled).toBe(false);
   });

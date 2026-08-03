@@ -3,7 +3,7 @@
   "run_id": "20260802-194908-JST",
   "objective": "Phase 2前半のNative基盤・SQLite・Guest購入前FlowをGate A〜Gまで実装・検証する",
   "status": "in_progress",
-  "phase": "PR #8 AVD永続化・PBKDF2契約修正のコード・Workflow・対象Test・静的／Web検証完了、GitHub／実Native実行待ち",
+  "phase": "PR #8 CI復旧・Android CI高速化のコード・Workflow・対象Test・静的／Web検証完了、GitHub／実Native実行待ち",
   "gate_results": {
     "A": "コード・静的検証完了、実Native未確認",
     "B": "コード・Node検証完了、lintは0 errors/64 warnings、typecheckとNative Component Test成功。実Nativeは未確認",
@@ -21,11 +21,11 @@
     "Android adb/Emulator/Maestroが現環境にないため実Android操作は未確認",
     "iOS xcrun/Simulator/Xcodeが現環境にないため実iOS操作は未確認"
   ],
-  "code_changes": "PR #8指摘のDeep Link、Allowlist、Guest Mutation、shared Use Case、Reset transaction、実行可能Harness、Production Bundle分離、Variation、Native CIを修正し、再レビュー再失敗のlibpulse／絶対Path／分割Verify／Evidence timeout／在庫境界／上限境界／Runtime再試行に加え、SDK Install前後の処理順序とRuntime SQLite Cleanupを追加修正",
+  "code_changes": "PR #8指摘のDeep Link、Allowlist、Guest Mutation、shared Use Case、Reset transaction、実行可能Harness、Production Bundle分離、Variation、Native CIを修正し、再レビュー再失敗のlibpulse／絶対Path／分割Verify／Evidence timeout／在庫境界／上限境界／Runtime再試行に加え、SDK Install前後の処理順序、Runtime SQLite Cleanup、Native signal module自己参照解消、Android CI並列化／cache／Maestro grouping／Evidence分岐を追加修正",
   "validation": {
     "status": "partial",
     "native_builds": "実Native Build未実施。Android/iOS JS exportは成功",
-    "web_regression": "Unit 13 files/66 tests、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 7 suites/15、Contract 17/84、Production Bundle Guard、Web Build、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17が成功。集約pnpm run testも300秒上限の再実行で成功"
+    "web_regression": "Unit 13 files/66 tests、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 8 suites/16、Contract 18/86、Production Bundle Guard、Web Build、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17が成功。集約pnpm run testは300秒上限の再実行で成功し、今回の標準pnpm run test:contractsも成功"
   },
   "repair_iterations": [
     {
@@ -68,6 +68,13 @@
       "input": "PR #8修正指示とHead 50411a63e643000a024d929b8869b240936ef56e、Native CI Run 30787501472の実ログ。avdmanager create avdがCustom hardware profile入力待ちで終了コード124となった",
       "result": "ANDROID_AVD_HOME固定、avdmanager -p、固定device、AVD files／emulator -list-avds完全一致、Emulator PID／早期終了／sys.boot_completed／SDK／ABI／package service待機、失敗時Evidenceを実装。Native Contract Harnessへseed password_hash、Native PBKDF2正誤／Unicode、checks.passwordHashing、Cleanup後Signal順序を実装。Contract／Unit／Native Jestを追加・更新し、Node／Web／静的検証を成功",
       "remaining_delta": "修正後GitHub Actions、Android Emulator／Maestro／実expo-sqlite、iOS Simulatorは未確認。Commit／Push／PR更新／EAS Cloudは未実施",
+      "decision": "continue"
+    },
+    {
+      "iteration_number": 7,
+      "input": "PR #8 CI復旧・Android CI高速化指示とRun 30795820475の実ログ。旧Workflowのlaunch process timeout、native-signals.native.ts自己参照、Android直列／重複処理、bounded Evidence不足を確認",
+      "result": "Native signal moduleを分離し、Android並列化、Gradle／Maestro cache、条件付き依存導入、--no-install prebuild、x86_64 APK検査、2グループMaestro、成功／失敗Evidenceを実装。Playwright warm-up timeoutを修正し、format／lint／typecheck／Native Jest 8/16／Contract 18/86を成功",
+      "remaining_delta": "修正後GitHub ActionsのAndroid／Maestro／Harness／Evidence／verify、実Android／iOS、実expo-sqliteは未確認。Commit／Push／PR更新／EAS Cloudは未実施",
       "decision": "continue"
     }
   ],

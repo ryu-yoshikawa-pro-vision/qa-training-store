@@ -150,3 +150,14 @@ Progress: 83% (57/69)
 - [x] D43. 今回の実態、未確認境界、委譲結果、検証証跡をPROJECT_CONTEXT／History／Run Artifactへ追記する。
 
 Progress: 84% (63/75)
+
+## 2026-08-03 PR #8 CI復旧・Android CI高速化 Iteration 7
+
+- [x] D44. 最新Run `30795820475`のJob／Step／Artifact／logcatをread-only確認し、旧Workflowのlaunch failureとNative signal自己参照原因を確定する。
+- [x] D45. Native signal定数をplatform-neutral moduleへ分離し、native module自己参照のContract／Native Jest回帰Testを追加する。
+- [x] D46. Android並列化、Gradle／Maestro cache、条件付きSDK／libpulse導入、`--no-install` prebuild、x86_64 APK、2グループMaestro、成功／失敗EvidenceをWorkflowへ実装する。
+- [x] D47. Format、型チェック、Lint、Native Jest全体、Workflow／signal Contractを検証する。
+- [x] D48. PROJECT_CONTEXT、History、PLAN、TASKS、REPORTへ今回の実態・timing・未確認境界を追記する。
+- [ ] D49. 修正後WorkflowのGitHub ActionsでAPK／Emulator／10 Maestro Flow／Harness／Evidence／`native-ci / verify`成功を確認する。
+
+Progress: 84% (68/81)

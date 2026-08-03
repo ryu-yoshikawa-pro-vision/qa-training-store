@@ -485,6 +485,82 @@ continue
 
 Progress: 73% (33/45)
 
+## 2026-08-03 20:45 JST PR #8 CI復旧・Android CI高速化 Iteration 7
+
+### iteration_number
+
+7
+
+### input_findings
+
+- ユーザー添付の「PR #8 CI復旧・Android CI高速化・残存不具合修正指示」を入力とした。
+- GitHub read-onlyでHead `17d9d538a27058dcf81893d4d6f118cf36d52abf`の最新Run `30795820475`を確認した。Native Static、Production Bundle Guard、SDK／APK／Emulator起動、Evidence uploadはsuccess、Android Job `91629376320`は`Install and launch APK`でfailure、`native-ci / verify` `91636751031`もfailureだった。
+- Android Artifact `native-android-evidence-30795820475`（ID `8849743993`）の`adb-logcat.txt`で`RangeError: Maximum call stack size exceeded`、`NativeAutomationBridge`→`NativeTestControlRuntimeBridge`→`NativeAppRuntimeProvider`を確認した。`src/test-controls/native-signals.native.ts`の`./native-signals`自己参照がMetro native resolutionで再帰する原因だった。
+
+### triage
+
+- `must_fix`: Native signal module自己参照、Android／Native Static処理順序、条件付き依存導入、x86_64 APK検査、Maestro grouping/cache、成功／失敗Evidence、Playwright Contract warm-up timeout。
+- `defer`: 修正後GitHub Actions Run、実Android／iOS操作、実`expo-sqlite`、AVD snapshot測定。Commit／Push／PR更新／EAS Cloudはユーザー指示により実施しない。
+- `reject`: AVD snapshotの先行導入。測定可能な成功Runがなく、今回は`-no-snapshot`を維持する。
+
+### repair_plan
+
+- signal定数／型を`native-signal-names.ts`へ分離し、native／web entryが同じplatform-neutral moduleだけを参照する。直接Native Jestとmodule Contractで固定する。
+- Androidを`needs: [detect]`へ変更し、Gradle cache、条件付き`libpulse0`／SDK component、`--no-install` prebuild、x86_64 Release、Maestro cache／2グループ、bounded Evidenceを実装する。
+- 旧Playwright warm-upの10秒上限だけを60秒へ広げ、標準`pnpm run test:contracts`をWindowsでも安定させる。
+
+### delegation
+
+- 既存read-only `code_researcher`／`implementation_researcher`／`test_investigator`のAVD、Harness、Workflow調査記録を再利用した。
+- 今Iterationでの新規custom agent spawnはthread limitにより失敗したため実施せず、親Agentが既存記録と最新GitHub／コード／Testを直接照合した。writable subagentは使用していない。
+
+### changed_files
+
+- `.github/workflows/native-ci.yml`
+- `src/test-controls/native-signal-names.ts`
+- `src/test-controls/native-signals.ts`
+- `src/test-controls/native-signals.native.ts`
+- `tests/component/native/native-signals.test.ts`
+- `tests/component/native/native-product-detail-screen.test.tsx`
+- `tests/contracts/native-signal-module.test.ts`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `tests/contracts/playwright-config.test.ts`
+- `maestro/native-test-control.yaml`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/2026-08-03_203822_pr8-native-ci-recovery.md`
+- `.codex/runs/20260802-194908-JST/PLAN.md`
+- `.codex/runs/20260802-194908-JST/TASKS.md`
+- `.codex/runs/20260802-194908-JST/REPORT.md`
+- `.codex/runs/20260802-194908-JST/run.json`
+- `.codex/runs/20260802-194908-JST/evaluation.json`
+
+### validation
+
+- `pnpm run format:check` => PASS。
+- `pnpm run lint` => PASS、0 errors／64 warnings。今回追加したNative signalの警告は解消済み。
+- `pnpm run typecheck` => app／native-testsともPASS。
+- `pnpm run test:component:native` => 8 suites／16 tests PASS。既存React `act` warningあり。
+- `pnpm run test:contracts` => 18 files／86 tests PASS。Playwright warm-up timeoutを60秒へ修正後、標準コマンドで成功した。
+- `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts tests/contracts/native-signal-module.test.ts --no-file-parallelism --maxWorkers=1` => 2 files／11 tests PASS。
+- `git diff --check` => 差分エラーなし（WindowsのLF／CRLF warningのみ）。
+- GitHub read-only `github_fetch_commit_workflow_runs`／`github_fetch_workflow_run_jobs` => Run `30795820475`の実stepとEvidence upload成功を再確認した。GitHubへの再実行／書込みは行っていない。
+
+### timing_and_evidence
+
+- Android Job timeoutは50分、install 180秒、monkey 30秒、process waitは外側60秒／probe 10秒、Evidence command 15秒、Evidence Step 3分とした。
+- Success時はADB基本状態、APK size／SHA256／filtered APK info、Gradle tail、Maestro JUnit／artifactを残し、failure時はdumpsys／logcat／AVD／APK／Gradle／emulator logを追加収集する。未生成ファイルは説明statusを残し、Evidence Stepとuploadを止めない。
+
+### remaining_delta
+
+- 修正後WorkflowのGitHub Actions成功Run、10 Maestro Flow、Harness signal、JUnit、軽量／詳細Evidence、`native-ci / verify`成功は未取得。最新のremote Runは修正前Workflowである。
+- Windows Android SDK／adb／Emulator／Maestro、macOS Xcode／Simulator、実`expo-sqlite`は未確認。EAS Cloud、Commit、Push、PR更新も未実施。
+
+### decision
+
+continue（コード／Workflow／Contract／ローカル検証は完了。Remote acceptanceと実Native環境は未確認）
+
+Progress: 84% (68/81)
+
 ## 2026-08-03 PR #8 AVD永続化・PBKDF2契約修正 Iteration 6
 
 ### iteration_number
@@ -970,3 +1046,12 @@ Progress: 75% (41/55)
 continue
 
 Progress: 73% (33/45)
+
+## 2026-08-03 20:53 JST Iteration 7 検証追補
+
+- Evidence処理をbounded helper中心へ補強した。AVD列挙、APK size／SHA256／zip一覧、Gradle tail、Emulator／JUnit／Maestro artifact copyは、失敗時にStep全体を止めずstatusファイルまたはcommand exit codeを残す。
+- `pnpm run test:contracts` => 18 files／86 tests PASS、`pnpm run format:check` => PASS。
+- `pnpm run validate:native-production-bundle`、`pnpm run check:native-route-dependencies`、`pnpm run validate:eas:config`、Run／Evaluation JSON parse => PASS。
+- GitHub Actions再実行、実Android／iOS、EAS Cloud、Commit／Pushは未実施。Evidenceの実Run確認はユーザー側のPush後に行う。
+
+Progress: 84% (68/81)

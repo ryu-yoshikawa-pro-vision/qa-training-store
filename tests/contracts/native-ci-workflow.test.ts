@@ -25,7 +25,7 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain('test -x "$EMULATOR"');
     expect(nativeWorkflow).toContain('test -x "$AVDMANAGER"');
     expect(nativeWorkflow).toContain('"$SDKMANAGER" --licenses');
-    expect(nativeWorkflow).toContain('"$SDKMANAGER" \\');
+    expect(nativeWorkflow).toContain('"$SDKMANAGER" "${missing_components[@]}"');
     expect(nativeWorkflow).toContain('echo "ADB=$ADB" >> "$GITHUB_ENV"');
     expect(nativeWorkflow).toContain('echo "EMULATOR=$EMULATOR" >> "$GITHUB_ENV"');
     expect(nativeWorkflow).toContain('echo "AVDMANAGER=$AVDMANAGER" >> "$GITHUB_ENV"');
@@ -75,7 +75,11 @@ describe("Native CI workflow contracts", () => {
   });
 
   it("builds and verifies a Metro-free Automation Release APK", () => {
-    expect(nativeWorkflow).toContain("./gradlew assembleRelease --no-daemon --stacktrace");
+    expect(nativeWorkflow).toContain("./gradlew :app:assembleRelease");
+    expect(nativeWorkflow).toContain("-PreactNativeArchitectures=x86_64");
+    expect(nativeWorkflow).toContain("--build-cache");
+    expect(nativeWorkflow).toContain("--parallel");
+    expect(nativeWorkflow).toContain("gradle/actions/setup-gradle@v4");
     expect(nativeWorkflow).toContain("android/app/build/outputs/apk/release/app-release.apk");
     expect(
       nativeWorkflow.match(/android\/app\/build\/outputs\/apk\/release\/app-release\.apk/g),
@@ -84,15 +88,17 @@ describe("Native CI workflow contracts", () => {
       'APK_PATH="$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/app-release.apk"',
     );
     expect(nativeWorkflow).toContain('test -s "$APK_PATH"');
+    expect(nativeWorkflow).toContain("lib/x86_64/.*\\.so");
+    expect(nativeWorkflow).toContain("lib/(arm64-v8a|armeabi-v7a|x86)/.*\\.so");
     expect(nativeWorkflow).toContain("set -o pipefail");
     expect(nativeWorkflow).toContain('tee "$RUNNER_TEMP/gradle-assemble-release.log"');
     expect(nativeWorkflow).not.toContain("assembleDebug");
     expect(nativeWorkflow).not.toContain("app-debug.apk");
     expect(nativeWorkflow).toContain(
-      '"$ADB" shell pm path com.ryuyoshikawa.scenarioshop | grep -F',
+      'timeout 15 "$ADB" shell pm path com.ryuyoshikawa.scenarioshop | grep -F',
     );
-    expect(nativeWorkflow).toContain('"$ADB" shell monkey');
-    expect(nativeWorkflow).toContain('"$ADB" shell pidof com.ryuyoshikawa.scenarioshop');
+    expect(nativeWorkflow).toContain('timeout 30 "$ADB" shell monkey');
+    expect(nativeWorkflow).toContain('timeout 10 "$ADB" shell pidof com.ryuyoshikawa.scenarioshop');
   });
 
   it("uses an explicit AVD home and verifies the AVD before starting the emulator", () => {
@@ -139,13 +145,33 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain('if ! kill -0 "$EMULATOR_PID" 2>/dev/null; then');
     expect(nativeWorkflow).toContain('"$AVDMANAGER" create avd');
     expect(nativeWorkflow).toContain('"$EMULATOR" \\');
-    expect(nativeWorkflow).toContain('"$ADB" install -r "$APK_PATH"');
+    expect(nativeWorkflow).toContain('timeout 180 "$ADB" install -r "$APK_PATH"');
     expect(nativeWorkflow.indexOf("sys.boot_completed")).toBeLessThan(
-      nativeWorkflow.indexOf('"$ADB" install -r "$APK_PATH"'),
+      nativeWorkflow.indexOf('timeout 180 "$ADB" install -r "$APK_PATH"'),
     );
     expect(nativeWorkflow).not.toMatch(/^\s+adb\s/m);
     expect(nativeWorkflow).not.toMatch(/^\s+emulator\s/m);
     expect(nativeWorkflow).not.toMatch(/^\s+avdmanager\s/m);
+  });
+
+  it("runs Android independently from Native Static and avoids repeated setup work", () => {
+    const androidStart = nativeWorkflow.indexOf("  android:\n");
+    const androidSection = nativeWorkflow.slice(androidStart);
+
+    expect(nativeWorkflow).toContain(
+      "production-bundle-guard:\n    name: Production Bundle Guard\n    needs: [detect, static]",
+    );
+    expect(androidSection).toContain("needs: [detect]");
+    expect(androidSection).toContain(
+      "if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'",
+    );
+    expect(androidSection).not.toContain("needs.static.result == 'success'");
+    expect(androidSection).toContain("dpkg-query -W -f='${Status}' libpulse0");
+    expect(androidSection).toContain("skipping apt-get update");
+    expect(androidSection).toContain("missing_components=()");
+    expect(androidSection).toContain('"$SDKMANAGER" --list_installed');
+    expect(androidSection).not.toContain("pnpm run generate:native-assets");
+    expect(androidSection).not.toContain("--clean --platform android");
   });
 
   it("keeps emulator diagnostics and evidence bounded when no device exists", () => {
@@ -158,8 +184,15 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain("dumpsys-activity.txt");
     expect(nativeWorkflow).toContain("sys-boot-completed.txt");
     expect(nativeWorkflow).toContain("test-control-contract-signals.txt");
+    expect(nativeWorkflow).toContain(
+      'capture_command "$RUNNER_TEMP/native-evidence/avd-files.txt"',
+    );
+    expect(nativeWorkflow).toContain(
+      'capture_command "$RUNNER_TEMP/native-evidence/apk-sha256.txt"',
+    );
+    expect(nativeWorkflow).toContain("Maestro artifact copy failed.");
     expect(nativeWorkflow).toContain("Android device was not started or was unavailable.");
-    expect(nativeWorkflow).toContain("Emulator was not started.");
+    expect(nativeWorkflow).toContain("Emulator was not started; no emulator log was generated.");
     expect(nativeWorkflow).toContain("Gradle Release build log was not generated.");
   });
 
@@ -185,12 +218,45 @@ describe("Native CI workflow contracts", () => {
   });
 
   it("keeps Maestro screenshots in dedicated output directories", () => {
-    expect(nativeWorkflow).toContain('--test-output-dir="$RUNNER_TEMP/maestro-artifacts/');
+    expect(nativeWorkflow).toContain("actions/cache@v4");
+    expect(nativeWorkflow).toContain("maestro-${{ runner.os }}-${{ env.MAESTRO_VERSION }}");
+    expect(nativeWorkflow).toContain("path: ~/.cache/maestro/${{ env.MAESTRO_VERSION }}");
+    expect(nativeWorkflow).toContain(
+      '--test-output-dir="$RUNNER_TEMP/maestro-artifacts/runtime-smoke"',
+    );
+    expect(nativeWorkflow).toContain(
+      '--test-output-dir="$RUNNER_TEMP/maestro-artifacts/persistence-boundary"',
+    );
+    expect(nativeWorkflow).toContain("maestro-runtime-smoke.xml");
+    expect(nativeWorkflow).toContain("maestro-persistence-boundary.xml");
+    expect(nativeWorkflow).not.toContain("Reset Test Control by Deep Link");
     expect(nativeWorkflow).toContain("native-restart-persistence.yaml");
     expect(nativeWorkflow).toContain("native-reset-dirty-state.yaml");
     expect(nativeWorkflow).toContain("native-out-of-stock.yaml");
     expect(nativeWorkflow).toContain("native-low-stock.yaml");
     expect(nativeWorkflow).toContain("native-purchase-limit.yaml");
+    for (const flow of [
+      "native-test-control.yaml",
+      "native-contract-harness.yaml",
+      "native-not-found.yaml",
+      "native-storefront.yaml",
+      "native-cart.yaml",
+      "native-restart-persistence.yaml",
+      "native-reset-dirty-state.yaml",
+      "native-out-of-stock.yaml",
+      "native-low-stock.yaml",
+      "native-purchase-limit.yaml",
+    ]) {
+      expect(readFileSync(resolve(process.cwd(), "maestro", flow), "utf8")).toContain(
+        "scenario-shop://test-control/reset",
+      );
+    }
+    expect(nativeWorkflow).toContain(
+      "Full dumpsys and logcat are omitted for a successful Android job.",
+    );
+    expect(nativeWorkflow).toContain(
+      "Full emulator log is collected only after a failed Android job.",
+    );
     expect(nativeWorkflow).not.toContain("find . -type f");
   });
 });
