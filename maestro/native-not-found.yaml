@@ -1,0 +1,6 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp
+- openLink: "scenario-shop://products/not-found-product"
+- assertVisible: "商品が見つかりません"
+- takeScreenshot: native-not-found

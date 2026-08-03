@@ -8,7 +8,7 @@ import type {
   Page,
   ProductViewer,
 } from "./contracts";
-import type { EntityId, IsoDateTime } from "@/domain/contracts";
+import type { EntityId, IsoDateTime, User } from "@/domain/contracts";
 
 export interface Clock {
   now(): IsoDateTime;
@@ -39,6 +39,7 @@ export interface SearchTextNormalizer {
 }
 
 export interface CurrentActorResolver {
+  getCurrentEntity(): Promise<User | null>;
   requireCurrentUser(): Promise<CurrentUserDto>;
   getViewer(): Promise<ProductViewer>;
 }

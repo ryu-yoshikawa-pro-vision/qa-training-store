@@ -5,14 +5,9 @@ import { useEffect } from "react";
 import type { NativeApplicationServices } from "@/bootstrap/native-runtime";
 import { NativeTestControlService } from "@/test-controls/native-test-control.native";
 import {
-  defaultNativeTestControlRequest,
   isNativeTestControlBuild,
+  parseNativeTestControlLink,
 } from "@/test-controls/native-test-control-protocol";
-
-function queryValue(value: string | string[] | null | undefined): string | null {
-  if (Array.isArray(value)) return value[0] ?? null;
-  return value ?? null;
-}
 
 export function NativeTestControlBridge({
   services,
@@ -26,14 +21,8 @@ export function NativeTestControlBridge({
     const service = new NativeTestControlService(services);
     const handleUrl = (url: string) => {
       const parsed = Linking.parse(url);
-      if (parsed.scheme !== "scenario-shop" || parsed.path !== "test-control/reset") return;
-      const query = parsed.queryParams ?? {};
-      const request = defaultNativeTestControlRequest({
-        version: queryValue(query.version),
-        scenario: queryValue(query.scenario),
-        clock: queryValue(query.clock),
-        paymentDelayMs: queryValue(query.paymentDelayMs),
-      });
+      const request = parseNativeTestControlLink(parsed);
+      if (request === null) return;
       void service
         .reset(request)
         .then((result) => router.replace(result.defaultRoute))

@@ -100,7 +100,10 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 
 - `expo-sqlite`を利用している。
 - `android/`と`ios/`をCommitしていない。
-- Native購入者版の最終Flowに必要なTable、Index、Constraintを前半で作成している。
+- 前半はGuest Storefront／Cartに必要なCustomer-only Table、Index、Constraintだけを確定する。
+- 後半で会員購入Flowに必要なTableを追加できる。追加時は変更内容をレビューし、`NATIVE_DATABASE_SCHEMA_VERSION`を更新する。
+- Store公開前のDevelopment BuildではDB再作成を許容し、Store公開後を想定したMigration Recoveryは前半の対象外とする。
+- 前半で後半用の未使用Tableを先行追加しない。
 - Customer Repository CapabilityをSQLite Adapterで実装している。
 - Admin QueryとAdmin Use CaseをNative Composition Rootへ組み込んでいない。
 - 全Application/Harness Connectionで`PRAGMA foreign_keys = ON`を実行する。
@@ -240,6 +243,8 @@ Local Native Buildを正式な主経路とする。EASはProfile／Environment m
 - iOSでHomeからCart追加まで操作できる。
 - Android Production-validation BuildでTest Control/Harness無効を確認する。
 - iOS Production設定のBundle/Config静的検証が成功する。
+- `.github/workflows/native-ci.yml`はPR／手動起動し、Native変更時にUbuntu標準RunnerのAndroid API 34 Emulator、Deep Link、Contract Harness、Storefront／Cart Maestroを実行する。Native変更がないPRでも`native-ci / verify`を生成する。
+- `.github/workflows/native-ios-ci.yml`は初期段階では手動起動し、macOS標準RunnerのXcode／iOS Simulator Build、Install、Deep Link、Contract Harness、Storefront／Cart Smokeを実行する。安定成功まではRequired Checkへ含めない。
 - 実Native Build／Install／起動／操作／実SQLite Smokeを、Node／Web検証だけで代替しない。
 - Production-validation Metadataが次と一致する。
 
@@ -277,8 +282,8 @@ extra.testMode === "false"
 - Home、商品一覧、検索、Category、商品詳細、Cart
 - Native対象外Role画面
 - `jest-expo`ベースNative Component Testと専用TypeScript設定
-- EAS Profile／Environmentと前半Workflowの静的契約
-- Android Preview APK、iOS Preview Simulator Build
+- EAS Profile／Environmentと前半Workflowの静的契約（Cloud実行なし）
+- ローカルAndroid Build手順、Android Emulator CI定義、手動iOS Simulator CI定義
 - ADR、PROJECT_CONTEXT、Native手順
 
 ## 5. 対象外
@@ -290,7 +295,7 @@ extra.testMode === "false"
 - Store公開、EAS Submit、Native Admin
 - Password変更、退会、Guest Checkout
 - Cancel、Return、Refund
-- Migration Recovery、Crash Point、Phase 3機能
+- Store公開後向けMigration Recovery、Crash Point、Phase 3機能
 - `android/`/`ios/`のCommit
 - 全DB Fingerprint基盤
 - Sentinel専用Table、Entity、Repository、Use Case

@@ -180,6 +180,8 @@ Web／Nativeの比較対象は標準`390×844`、追加で`320×700`です。Hom
 
 `pnpm run test:repository`にはNode.js 24の組み込みSQLiteを使うNative Customer Adapterの実SQL／FK／Seed／Catalog／Cart Contractが含まれます。これはAndroid／iOSの`expo-sqlite`実行確認の代替ではありません。
 
+Automation／Development Buildの`/admin/test-control`には、専用DB／KV Namespaceで定義済みCustomer Contract、FK違反、Cart add／update／remove、Application DB不変確認を実行するNative Contract Harnessがあります。`Native contract passed`はCleanupとApplication DB確認が成功した後だけ表示されます。Production BuildではTest Control／Harness画面と実装をModule Resolutionで除外します。
+
 Test Controlはlocal／automation buildだけで利用できます。
 
 ```text
@@ -194,10 +196,10 @@ Production buildではTest Controlを有効化しません。EAS Build、EAS Wor
 
 ```bash
 pnpm run validate:eas:config
-pnpm dlx eas-cli@latest workflow:validate .eas/workflows/phase2-native-foundation.yml --non-interactive
+pnpm run validate:native-production-bundle
 ```
 
-後者はExpo認証が必要なため、認証のない環境では`An Expo user account is required`で停止します。その場合も、ローカルvalidatorのPASSと未実行のCloud検証を混同しません。
+`validate:native-production-bundle`はAutomation／Productionの生成Android Bundle（Hermes `.hbc`を含む）を検査します。EAS CloudのWorkflow検証・実行はこの経路では行いません。
 
 ## テストアカウント
 
@@ -294,6 +296,9 @@ pnpm run lint
 pnpm run typecheck
 pnpm run validate:image-manifest
 pnpm run security:check
+pnpm run generate:native-assets
+git diff --exit-code -- src/generated/native-product-assets.ts
+pnpm run validate:native-production-bundle
 ```
 
 ### Vitest
@@ -345,6 +350,26 @@ pnpm run verify
 ```
 
 `verify`はFormat、Lint、Typecheck、画像Manifest、Security Check、Vitest、Web Buildを実行します。Playwright E2Eは含まれないため、目的に応じて別途実行してください。
+
+### Native検証状態（PR #8対応時点）
+
+#### 実施済み・成功
+
+- Deep Link Pure Function、Native Scenario Allowlist、Guest Mutation拒否、Reset rollback、Harness signal順序、Variation未選択のUnit／Contract／Component Test
+- Native Application Use Case共有配線、Production Module Resolution、生成BundleのProduction Bundle Guard
+- Native Asset生成差分、Format、Lint、Typecheck、Node SQLite／Web回帰（個別の実行結果はRun Artifactを参照）
+- Android／iOS CI Workflow定義の追加（GitHub Actionsの実行結果ではなく、Workflow／Job／Artifact契約の実装）
+
+#### 実施済み・失敗
+
+- このWindows環境でのローカルAndroid Release Buildは、Android SDK／`ANDROID_HOME`／`adb`不足により失敗。
+- このWindows環境でのローカルiOS Buildは、Xcode／SimulatorがWindows上にないため実行不可。
+
+#### 未実施
+
+- GitHub ActionsのAndroid Emulator CI／iOS手動CIの実行、APK／Maestro／Harness Artifactの取得
+- Android Emulator／実機、iOS Simulator上のDeep Link、Contract Harness、Storefront／Cart、再起動復元、実`expo-sqlite`確認
+- EAS Cloud Build／Workflow／Submit、Store公開、PR本文更新
 
 ## アーキテクチャ
 

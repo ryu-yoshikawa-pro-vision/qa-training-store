@@ -1,0 +1,115 @@
+name: Native iOS CI
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-ios-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: 24
+  PNPM_VERSION: 9.10.0
+  MAESTRO_VERSION: 1.39.15
+  EXPO_PUBLIC_APP_ENV: automation
+  EXPO_PUBLIC_BUILD_KIND: automation
+  EXPO_PUBLIC_TEST_MODE: "true"
+  EXPO_PUBLIC_DEFAULT_SEED: default
+
+jobs:
+  ios:
+    name: iOS Simulator Build / Smoke
+    runs-on: macos-26
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Select Xcode 26.4.1 or newer
+        shell: bash
+        run: |
+          XCODE_APP=$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' | sort | tail -n 1)
+          test -n "$XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm run generate:native-assets
+      - run: git diff --exit-code -- src/generated/native-product-assets.ts
+      - run: pnpm exec expo prebuild --clean --platform ios --no-install
+      - name: Install CocoaPods
+        working-directory: ios
+        run: pod install
+      - name: Resolve generated workspace and scheme
+        id: xcode
+        shell: bash
+        run: |
+          WORKSPACE=$(find ios -maxdepth 1 -name '*.xcworkspace' -print -quit)
+          test -n "$WORKSPACE"
+          SCHEME=$(xcodebuild -list -json -workspace "$WORKSPACE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);process.stdout.write(j.workspace.schemes[0]||"")})')
+          test -n "$SCHEME"
+          echo "workspace=$WORKSPACE" >> "$GITHUB_OUTPUT"
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+      - name: Build iOS Simulator app without signing
+        shell: bash
+        env:
+          WORKSPACE: ${{ steps.xcode.outputs.workspace }}
+          SCHEME: ${{ steps.xcode.outputs.scheme }}
+        run: |
+          xcodebuild -workspace "$WORKSPACE" -scheme "$SCHEME" -sdk iphonesimulator -configuration Debug -derivedDataPath "$RUNNER_TEMP/derived" CODE_SIGNING_ALLOWED=NO build
+      - name: Boot iOS Simulator and install app
+        shell: bash
+        run: |
+          DEVICE=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')
+          test -n "$DEVICE"
+          xcrun simctl boot "$DEVICE" || true
+          xcrun simctl bootstatus "$DEVICE" -b
+          APP_PATH=$(find "$RUNNER_TEMP/derived/Build/Products/Debug-iphonesimulator" -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$APP_PATH"
+          xcrun simctl install "$DEVICE" "$APP_PATH"
+          xcrun simctl launch "$DEVICE" com.ryuyoshikawa.scenarioshop
+      - name: Install pinned Maestro CLI
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/maestro"
+          curl --fail --location --retry 3 "https://github.com/mobile-dev-inc/maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip" --output "$RUNNER_TEMP/maestro.zip"
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP/maestro"
+          echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
+      - name: Reset Test Control and run iOS smoke
+        shell: bash
+        run: |
+          DEVICE=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')
+          test -n "$DEVICE"
+          xcrun simctl openurl "$DEVICE" 'scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0'
+          maestro test maestro/native-test-control.yaml --format junit --output "$RUNNER_TEMP/maestro-test-control.xml"
+          maestro test maestro/native-contract-harness.yaml --format junit --output "$RUNNER_TEMP/maestro-contract-harness.xml"
+          maestro test maestro/native-not-found.yaml --format junit --output "$RUNNER_TEMP/maestro-not-found.xml"
+          maestro test maestro/native-storefront.yaml --format junit --output "$RUNNER_TEMP/maestro-storefront.xml"
+          maestro test maestro/native-cart.yaml --format junit --output "$RUNNER_TEMP/maestro-cart.xml"
+      - name: Collect iOS evidence
+        if: always()
+        shell: bash
+        run: |
+          mkdir -p "$RUNNER_TEMP/native-ios-evidence"
+          xcrun simctl diagnose "$RUNNER_TEMP/native-ios-evidence/simctl-diagnose.tar.gz" || true
+          cp "$RUNNER_TEMP/maestro-test-control.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-test-control.xml" || true
+          cp "$RUNNER_TEMP/maestro-contract-harness.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-contract-harness.xml" || true
+          cp "$RUNNER_TEMP/maestro-not-found.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-not-found.xml" || true
+          cp "$RUNNER_TEMP/maestro-storefront.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-storefront.xml" || true
+          cp "$RUNNER_TEMP/maestro-cart.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-cart.xml" || true
+          find . -type f \( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' \) -not -path './node_modules/*' -exec cp --parents {} "$RUNNER_TEMP/native-ios-evidence/" \; || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-ios-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-ios-evidence
+          retention-days: 7

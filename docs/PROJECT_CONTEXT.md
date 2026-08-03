@@ -88,6 +88,16 @@
 - Native Guest Identityは初回だけseed既定値を設定し、以後はNative KVの保存値を再起動後も保持する。Guest Cartの初回作成も`withExclusiveTransactionAsync`内で行う。
 - Native前半UIはCatalogの在庫／Sale／Rating filter、商品詳細のSale価格・在庫・購入上限・Review Summary・在庫切れVariation、二重追加防止を備える。ProductionのTest Control buildKindは解決済みExpo Configを優先する。
 
+## PR #8レビュー修正後の状態（2026-08-03）
+
+- Native Test Controlの正式URLは`scenario-shop://test-control/reset`であり、Pure Functionが`scheme`／`hostname=test-control`／`path=reset`を検証する。Native前半Scenarioは`src/seeds/metadata.ts`の`NATIVE_FOUNDATION_SCENARIOS`（8件）だけを受理する。
+- Native Runtimeは既存の`CatalogUseCases`／`CartUseCases`へCustomer Catalog／Cart Gateway、Guest Actor、Native SQLite／Clock／KV Adapterを注入する。Native専用Use Caseの業務Validationを正本にしない。
+- Native SQLite Resetは削除、Seed、Schema Metadata、Native Schema Version、`foreign_key_check`を一つのExclusive Transactionで実行し、失敗時に旧状態を残す。前半はCustomer-only Schemaに限定し、後半のTable追加時に`NATIVE_DATABASE_SCHEMA_VERSION`を更新する。Store公開前のDB再作成を許容し、Migration Recoveryは前半対象外とする。
+- Contract Harnessは`scenario-shop-contract-<uuid>.db`と専用KV Prefixを使い、固定Customer Contract、FK違反、Cart add／update／remove、Application DBの必要最小限の不変確認を実行する。全Cleanupと不変確認が成功した後だけ`Native contract passed`を通知する。画面へ任意Exception／SQLは表示しない。
+- ProductionではMetroの限定ResolverがAutomation／ProductionのNative Automation BridgeとHarness Screenを分離する。生成Android Hermes Bundle（`.hbc`）でAutomation Markerあり、Production Marker／`NativeTestControlService`なしを検査する。
+- `.github/workflows/native-ci.yml`はPR／手動起動、Native変更時にUbuntu `ubuntu-24.04`／Android API 34 Emulator／compile SDK 36でDeep Link、Harness、Maestro Storefront／Cartを実行し、`native-ci / verify`へ集約する。`.github/workflows/native-ios-ci.yml`は`macos-26`／Xcode 26.4.1以上の手動Workflowで、初期段階ではRequired Checkへ含めない。
+- 2026-08-03時点で、上記CIは定義済みだがGitHub Actions Runは未実施である。Windows上のAndroid SDK／`adb`／EmulatorおよびiOS Xcode／Simulatorも未提供のため、実Native Build／Install／操作／実`expo-sqlite` Smoke／Native screenshotは未確認である。Node／Web／生成Bundleの成功と実Native成功を混同しない。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

@@ -1,9 +1,10 @@
 import type { SQLiteDatabase } from "expo-sqlite";
+import { GuestActorResolver } from "@/application/identity/guest-actor-resolver";
+import { CatalogUseCases } from "@/application/use-cases/catalog-use-cases";
+import { CartUseCases } from "@/application/use-cases/cart-use-cases";
 import {
-  NativeGuestCatalogUseCases as CatalogUseCases,
-  NativeGuestCartUseCases as CartUseCases,
-  type NativeGuestCatalogUseCases,
-  type NativeGuestCartUseCases,
+  createNativeCustomerCatalogGateway,
+  createNativeCustomerCartGateway,
 } from "@/application/native/guest-storefront";
 import { NativePersistedClock } from "@/infrastructure/clock/native-clock";
 import { NativeIdGenerator } from "@/infrastructure/id-generator/native-id-generator";
@@ -18,8 +19,8 @@ import { ensureNativeSeed, resolveNativeScenario } from "@/infrastructure/databa
 import { DEFAULT_GUEST_ID } from "@/seeds/metadata";
 
 export interface NativeApplicationServices {
-  catalog: NativeGuestCatalogUseCases;
-  cart: NativeGuestCartUseCases;
+  catalog: CatalogUseCases;
+  cart: CartUseCases;
   database: SQLiteDatabase;
   storage: NativeKeyValueStore;
   clock: NativePersistedClock;
@@ -40,6 +41,7 @@ export function initializeNativeRuntime(): Promise<NativeApplicationServices> {
     const currentSessionStore = new NativeCurrentSessionStore(storage);
     const guestIdentityStore = new NativeGuestIdentityStore(idGenerator, storage, DEFAULT_GUEST_ID);
     const repository = new NativeCustomerSQLiteRepository(database);
+    const actor = new GuestActorResolver();
     const persistedSessionId = await currentSessionStore.getSessionId();
     if (persistedSessionId !== null) {
       const persistedSession = await database.getFirstAsync<{ id: string }>(
@@ -61,8 +63,18 @@ export function initializeNativeRuntime(): Promise<NativeApplicationServices> {
     // store must retain a user-created/persisted Guest ID across restarts.
     await guestIdentityStore.getOrCreateGuestId();
     return {
-      catalog: new CatalogUseCases(repository, clock),
-      cart: new CartUseCases(repository, guestIdentityStore, idGenerator, clock),
+      catalog: new CatalogUseCases({
+        identity: actor,
+        customerGateway: createNativeCustomerCatalogGateway(repository),
+        clock,
+      }),
+      cart: new CartUseCases({
+        identity: actor,
+        customerGateway: createNativeCustomerCartGateway(repository),
+        guestIdentityStore,
+        idGenerator,
+        clock,
+      }),
       database,
       storage,
       clock,

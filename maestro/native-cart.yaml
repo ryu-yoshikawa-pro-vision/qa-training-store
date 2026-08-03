@@ -1,0 +1,11 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- tapOn: "カート"
+- assertVisible: "カート"
+- tapOn: "＋"
+- assertVisible: "2"
+- tapOn: "−"
+- assertVisible: "1"
+- tapOn: "削除"
+- assertVisible: "カートは空です"
+- takeScreenshot: native-cart-empty

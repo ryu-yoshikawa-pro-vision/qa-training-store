@@ -6,6 +6,8 @@ import {
   NATIVE_CONTRACT_RUNNING,
 } from "./native-signals";
 
+export const NATIVE_CONTRACT_HARNESS_MARKER = "__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__";
+
 export interface NativeContractHarnessScope {
   runtimeId: string;
   databaseName: string;
@@ -22,6 +24,27 @@ export interface NativeContractHarnessResources {
   closeDatabase(): Promise<void> | void;
   deleteDatabase(): Promise<void> | void;
   removeKvKey(key: string): Promise<void>;
+  verifyApplicationDatabase?(): Promise<void>;
+}
+
+export interface NativeContractHarnessApplicationState {
+  databaseName: string;
+  nativeSchemaVersion: string | null;
+  seedVersion: string | null;
+  knownProduct: { id: string; name: string; status: string } | null;
+  guestId: string | null;
+  sessionId: string | null;
+}
+
+export interface NativeContractHarnessResult {
+  runtimeId: string;
+  databaseName: string;
+  checks: {
+    catalog: boolean;
+    cartMutation: boolean;
+    foreignKeyEnforcement: boolean;
+    applicationDatabaseUnchanged: boolean;
+  };
 }
 
 export function createNativeContractHarnessScope(
@@ -52,17 +75,13 @@ export async function withNativeContractHarness<T>(
     databaseName: scope.databaseName,
   });
   let workError: unknown = null;
+  let result!: T;
+  let workCompleted = false;
   try {
-    const result = await work(scope);
-    emitNativeTestSignal(NATIVE_CONTRACT_PASSED, { runtimeId: scope.runtimeId });
-    return result;
+    result = await work(scope);
+    workCompleted = true;
   } catch (caught: unknown) {
     workError = caught;
-    emitNativeTestSignal(NATIVE_CONTRACT_FAILED, {
-      runtimeId: scope.runtimeId,
-      message: caught instanceof Error ? caught.message : "Native contract failed",
-    });
-    throw caught;
   } finally {
     const cleanupErrors: unknown[] = [];
     try {
@@ -82,11 +101,61 @@ export async function withNativeContractHarness<T>(
         cleanupErrors.push(caught);
       }
     }
+    try {
+      await resources.verifyApplicationDatabase?.();
+    } catch (caught: unknown) {
+      cleanupErrors.push(caught);
+    }
     if (cleanupErrors.length > 0 && workError === null) {
-      throw new Error(`Native contract cleanup failed (${cleanupErrors.length} errors)`);
+      const firstCleanupError = cleanupErrors[0];
+      const detail = firstCleanupError instanceof Error ? `: ${firstCleanupError.message}` : "";
+      const cleanupError = new Error(
+        `Native contract cleanup failed or application invariant failed (${cleanupErrors.length} errors)${detail}`,
+      );
+      emitNativeTestSignal(NATIVE_CONTRACT_FAILED, {
+        runtimeId: scope.runtimeId,
+        message: cleanupError.message,
+      });
+      throw cleanupError;
     }
     if (cleanupErrors.length > 0) {
-      throw new Error("Native contract work and cleanup both failed");
+      // Preserve the original contract failure as the thrown error. Cleanup
+      // failure is still observable through the failed signal and its count.
+      emitNativeTestSignal(NATIVE_CONTRACT_FAILED, {
+        runtimeId: scope.runtimeId,
+        message: workError instanceof Error ? workError.message : "Native contract failed",
+        cleanupErrorCount: cleanupErrors.length,
+      });
+      throw workError;
     }
+  }
+  if (workError !== null || !workCompleted) {
+    emitNativeTestSignal(NATIVE_CONTRACT_FAILED, {
+      runtimeId: scope.runtimeId,
+      message: workError instanceof Error ? workError.message : "Native contract failed",
+    });
+    throw workError ?? new Error("Native contract did not complete");
+  }
+  emitNativeTestSignal(NATIVE_CONTRACT_PASSED, { runtimeId: scope.runtimeId });
+  return result;
+}
+
+export function assertNativeContractHarnessApplicationStateUnchanged(
+  before: NativeContractHarnessApplicationState,
+  after: NativeContractHarnessApplicationState,
+): void {
+  const fields: Array<keyof NativeContractHarnessApplicationState> = [
+    "databaseName",
+    "nativeSchemaVersion",
+    "seedVersion",
+    "knownProduct",
+    "guestId",
+    "sessionId",
+  ];
+  const changed = fields.filter(
+    (field) => JSON.stringify(before[field]) !== JSON.stringify(after[field]),
+  );
+  if (changed.length > 0) {
+    throw new Error(`Native application state changed: ${changed.join(", ")}`);
   }
 }

@@ -1,0 +1,11 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp
+- openLink: "scenario-shop://admin/test-control"
+- assertVisible: "Native Contract Harness"
+- assertVisible: "Native contract idle"
+- tapOn: "Run native contract"
+- extendedWaitUntil:
+    visible: "Native contract passed"
+    timeout: 30000
+- takeScreenshot: native-contract-passed

@@ -343,6 +343,9 @@ export class NativeCustomerSQLiteRepository
         if (product === null || product.status !== "published") {
           throw this.cartError("PERMISSION_DENIED", "cart.product.unpublished");
         }
+        if (product.required_rank !== null) {
+          throw this.cartError("PERMISSION_DENIED", "cart.product.rankRestricted");
+        }
         if (variant.is_active !== 1 || variant.stock_quantity <= 0) {
           throw this.cartError("OUT_OF_STOCK", "cart.variant.unavailable");
         }

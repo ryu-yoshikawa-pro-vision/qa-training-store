@@ -1,6 +1,6 @@
 import type {
-  AddCartItemRequest,
   CartDto,
+  CartMutationOwner,
   ProductDetail,
   ProductSearchRequest,
   ProductSearchResult,
@@ -8,7 +8,11 @@ import type {
   UpdateCartItemQuantityRequest,
   RemoveCartItemRequest,
 } from "@/application/contracts";
-import type { Clock, GuestIdentityStore, IdGenerator } from "@/application/ports";
+import { ApplicationError } from "@/application/errors";
+import type {
+  CustomerCatalogGateway,
+  CustomerCartGateway,
+} from "@/application/customer-capabilities";
 
 export interface NativeCustomerCatalogRepository {
   getHome(input: { now: string }): Promise<HomeCatalogDto>;
@@ -39,72 +43,76 @@ export interface NativeCustomerCartRepository {
   }): Promise<CartDto>;
 }
 
-export class NativeGuestCatalogUseCases {
-  constructor(
-    private readonly repository: NativeCustomerCatalogRepository,
-    private readonly clock: Clock,
-  ) {}
+/**
+ * Compatibility names for the shared repository contract. The Native
+ * Foundation no longer owns a second Catalog/Cart use-case implementation;
+ * bootstrap adapts these repository ports to the shared Application classes.
+ */
+export type { CustomerCatalogGateway, CustomerCartGateway };
 
-  getHome(): Promise<HomeCatalogDto> {
-    return this.repository.getHome({ now: this.clock.now() });
-  }
+export function createNativeCustomerCatalogGateway(
+  repository: NativeCustomerCatalogRepository,
+): CustomerCatalogGateway {
+  return {
+    getHome: ({ viewer, now }) => {
+      assertGuest(viewer.kind);
+      return repository.getHome({ now });
+    },
+    search: ({ viewer, now, ...request }) => {
+      assertGuest(viewer.kind);
+      return repository.search({ ...request, now });
+    },
+    getProductDetail: ({ viewer, productId, now }) => {
+      assertGuest(viewer.kind);
+      return repository.getProductDetail({ productId, now });
+    },
+    getCategoryName: (categoryId) => repository.getCategoryName(categoryId),
+  };
+}
 
-  search(request: ProductSearchRequest): Promise<ProductSearchResult> {
-    return this.repository.search({ ...request, now: this.clock.now() });
-  }
+export function createNativeCustomerCartGateway(
+  repository: NativeCustomerCartRepository,
+): CustomerCartGateway {
+  return {
+    getCart: ({ owner, viewer, now }) => {
+      assertGuestOwner(owner, viewer.kind);
+      return repository.getCart({ guestId: owner.guestId, now });
+    },
+    addItem: ({ owner, viewer, request, cartId, itemId, now }) => {
+      assertGuestOwner(owner, viewer.kind);
+      return repository.addItem({
+        guestId: owner.guestId,
+        variantId: request.variantId,
+        addQuantity: request.addQuantity,
+        cartId,
+        itemId,
+        now,
+      });
+    },
+    updateQuantity: ({ owner, viewer, request, now }) => {
+      assertGuestOwner(owner, viewer.kind);
+      return repository.updateQuantity({ guestId: owner.guestId, request, now });
+    },
+    removeItem: ({ owner, viewer, request, now }) => {
+      assertGuestOwner(owner, viewer.kind);
+      return repository.removeItem({ guestId: owner.guestId, request, now });
+    },
+  };
+}
 
-  getProductDetail(productId: string): Promise<ProductDetail | null> {
-    return this.repository.getProductDetail({ productId, now: this.clock.now() });
-  }
-
-  getCategoryName(categoryId: string): Promise<string | null> {
-    return this.repository.getCategoryName(categoryId);
+function assertGuest(kind: string): asserts kind is "guest" {
+  if (kind !== "guest") {
+    throw new ApplicationError({
+      code: "PERMISSION_DENIED",
+      messageKey: "cart.customerOnly",
+      retryable: false,
+    });
   }
 }
 
-export class NativeGuestCartUseCases {
-  constructor(
-    private readonly repository: NativeCustomerCartRepository,
-    private readonly guestIdentityStore: GuestIdentityStore,
-    private readonly idGenerator: IdGenerator,
-    private readonly clock: Clock,
-  ) {}
-
-  async getCart(): Promise<CartDto> {
-    return this.repository.getCart({
-      guestId: await this.guestIdentityStore.getOrCreateGuestId(),
-      now: this.clock.now(),
-    });
-  }
-
-  async addItem(request: AddCartItemRequest): Promise<CartDto> {
-    return this.repository.addItem({
-      guestId: await this.guestIdentityStore.getOrCreateGuestId(),
-      variantId: request.variantId,
-      addQuantity: request.addQuantity,
-      cartId: this.idGenerator.generate(),
-      itemId: this.idGenerator.generate(),
-      now: this.clock.now(),
-    });
-  }
-
-  async updateQuantity(request: UpdateCartItemQuantityRequest): Promise<CartDto> {
-    const guestId = await this.guestIdentityStore.getOrCreateGuestId();
-    if (request.quantity === 0) {
-      return this.removeItem({
-        itemId: request.itemId,
-        cartExpectedVersion: request.cartExpectedVersion,
-        itemExpectedVersion: request.itemExpectedVersion,
-      });
-    }
-    return this.repository.updateQuantity({ guestId, request, now: this.clock.now() });
-  }
-
-  async removeItem(request: RemoveCartItemRequest): Promise<CartDto> {
-    return this.repository.removeItem({
-      guestId: await this.guestIdentityStore.getOrCreateGuestId(),
-      request,
-      now: this.clock.now(),
-    });
-  }
+function assertGuestOwner(
+  owner: CartMutationOwner,
+  viewerKind: string,
+): asserts owner is Extract<CartMutationOwner, { ownerType: "guest" }> {
+  if (owner.ownerType !== "guest" || viewerKind !== "guest") assertGuest("customer");
 }

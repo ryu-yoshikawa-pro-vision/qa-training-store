@@ -1,17 +1,21 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import { NATIVE_DATABASE_SCHEMA_VERSION, SEED_VERSION } from "@/config/versions";
 import { createScenarioDataset } from "@/seeds/scenarios";
-import { isPhaseOneScenario, type PhaseOneScenario } from "@/seeds/metadata";
+import { isNativeFoundationScenario, type NativeFoundationScenario } from "@/seeds/metadata";
 import type { SeedDataset } from "@/seeds/types";
-import { assertForeignKeysEnabled, runNativeExclusiveTransaction } from "./database";
+import {
+  assertForeignKeyCheck,
+  assertForeignKeysEnabled,
+  runNativeExclusiveTransaction,
+} from "./database";
 
-export function resolveNativeScenario(value: string | undefined): PhaseOneScenario {
-  return value !== undefined && isPhaseOneScenario(value) ? value : "default";
+export function resolveNativeScenario(value: string | undefined): NativeFoundationScenario {
+  return value !== undefined && isNativeFoundationScenario(value) ? value : "default";
 }
 
 export async function ensureNativeSeed(
   database: SQLiteDatabase,
-  scenario: PhaseOneScenario = "default",
+  scenario: NativeFoundationScenario = "default",
 ): Promise<void> {
   const metadata = await database.getFirstAsync<{ value: string }>(
     "SELECT value FROM schema_metadata WHERE key = 'seedVersion'",
@@ -229,6 +233,9 @@ export async function seedNativeDataset(
       String(NATIVE_DATABASE_SCHEMA_VERSION),
       dataset.schemaMetadata[0]?.updatedAt ?? new Date().toISOString(),
     );
+    // Check the transaction view before the exclusive transaction commits so
+    // a malformed seed cannot leave a committed partial reset behind.
+    await assertForeignKeyCheck(transaction);
     return true;
   });
   await assertForeignKeysEnabled(database);

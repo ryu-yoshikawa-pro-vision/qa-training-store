@@ -2,12 +2,10 @@ import { ApplicationError } from "@/application/errors";
 import { NativeTestControlService } from "@/test-controls/native-test-control.native";
 
 const clearNativeControlKeysMock = vi.hoisted(() => vi.fn(async () => undefined));
-const clearNativeCustomerDataMock = vi.hoisted(() => vi.fn(async () => undefined));
 const seedNativeDatasetMock = vi.hoisted(() => vi.fn(async () => undefined));
 const createScenarioDatasetMock = vi.hoisted(() => vi.fn(() => ({ scenario: "default" })));
 
 vi.mock("@/infrastructure/database/sqlite/seed", () => ({
-  clearNativeCustomerData: clearNativeCustomerDataMock,
   seedNativeDataset: seedNativeDatasetMock,
 }));
 vi.mock("@/infrastructure/session/native-stores", () => ({
@@ -51,7 +49,6 @@ describe("Native Test Control service", () => {
       defaultRoute: "/",
     });
     expect(clearNativeControlKeysMock).toHaveBeenCalledTimes(1);
-    expect(clearNativeCustomerDataMock).toHaveBeenCalledTimes(1);
     expect(seedNativeDatasetMock).toHaveBeenCalledTimes(1);
   });
 

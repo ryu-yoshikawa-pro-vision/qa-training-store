@@ -20,6 +20,10 @@ import {
   nativeSpacing,
   styles,
 } from "./native-components";
+import {
+  isNativeVariantSelectable,
+  resolveInitialNativeVariantId,
+} from "./native-variation-selection";
 
 export function NativeHomeScreen() {
   const { ready, error } = useNativeRuntime();
@@ -291,15 +295,12 @@ export function NativeProductDetailScreen() {
     if (services === null || productId === undefined) return;
     setLoaded(false);
     setError(null);
+    setSelectedVariantId(null);
     void services.catalog
       .getProductDetail(productId)
       .then((next) => {
         setProduct(next);
-        setSelectedVariantId(
-          next?.variants.find((variant) => variant.stockQuantity > 0)?.variantId ??
-            next?.variants[0]?.variantId ??
-            null,
-        );
+        setSelectedVariantId(next === null ? null : resolveInitialNativeVariantId(next.variants));
       })
       .catch((caught: unknown) => setError(asError(caught)))
       .finally(() => setLoaded(true));
@@ -322,9 +323,7 @@ export function NativeProductDetailScreen() {
         body="公開状態の商品ではない可能性があります。"
       />
     );
-  const selected =
-    product.variants.find((variant) => variant.variantId === selectedVariantId) ??
-    product.variants[0];
+  const selected = product.variants.find((variant) => variant.variantId === selectedVariantId);
   const stockQuantity = selected?.stockQuantity ?? 0;
   const purchaseLimit = selected?.purchaseLimit ?? 1;
   const regularPrice = selected?.regularPrice ?? product.minimumViewerUnitPrice;
@@ -371,14 +370,14 @@ export function NativeProductDetailScreen() {
                   disabled: variant.stockQuantity <= 0,
                   selected: selectedVariantId === variant.variantId,
                 }}
-                disabled={variant.stockQuantity <= 0}
+                disabled={!isNativeVariantSelectable(variant)}
                 onPress={() => setSelectedVariantId(variant.variantId)}
                 style={[
                   styles.chip,
                   selectedVariantId === variant.variantId && {
                     backgroundColor: nativeColors.primary,
                   },
-                  variant.stockQuantity <= 0 && styles.disabledChip,
+                  !isNativeVariantSelectable(variant) && styles.disabledChip,
                 ]}
                 testID={`native-variant-${variant.variantId}`}
               >
@@ -394,6 +393,11 @@ export function NativeProductDetailScreen() {
               </Pressable>
             ))}
           </View>
+          {selected === undefined && (
+            <Text style={styles.body} testID="native-variation-selection-required">
+              カートに追加するにはVariationを選択してください。
+            </Text>
+          )}
         </>
       )}
       <Text
@@ -415,7 +419,7 @@ export function NativeProductDetailScreen() {
       <View style={[styles.actionRow, { marginTop: nativeSpacing.lg }]}>
         <NativeButton
           label={adding ? "追加中…" : "カートに追加"}
-          disabled={adding || selected === undefined || selected.stockQuantity <= 0}
+          disabled={adding || !isNativeVariantSelectable(selected)}
           onPress={() => {
             if (selected === undefined) return;
             setAdding(true);

@@ -370,6 +370,28 @@ export type PhaseOneScenario = keyof typeof SCENARIO_METADATA;
 
 export const PHASE_ONE_SCENARIOS = Object.keys(SCENARIO_METADATA) as PhaseOneScenario[];
 
+/**
+ * Scenarios that the Native Foundation can seed and exercise end-to-end.
+ * Keep this separate from the Web/Phase 1 catalog: later member, checkout,
+ * review, and admin scenarios must not be accepted by Native Test Control.
+ */
+export const NATIVE_FOUNDATION_SCENARIOS = [
+  "default",
+  "empty-catalog",
+  "many-products",
+  "out-of-stock",
+  "low-stock",
+  "sale-active",
+  "expired-sale",
+  "cart-with-invalid-items",
+] as const satisfies readonly PhaseOneScenario[];
+
+export type NativeFoundationScenario = (typeof NATIVE_FOUNDATION_SCENARIOS)[number];
+
 export function isPhaseOneScenario(value: string): value is PhaseOneScenario {
   return Object.prototype.hasOwnProperty.call(SCENARIO_METADATA, value);
+}
+
+export function isNativeFoundationScenario(value: string): value is NativeFoundationScenario {
+  return (NATIVE_FOUNDATION_SCENARIOS as readonly string[]).includes(value);
 }

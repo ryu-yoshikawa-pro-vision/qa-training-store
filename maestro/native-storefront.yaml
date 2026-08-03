@@ -1,0 +1,24 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Scenario Shop"
+- assertVisible: "ホーム"
+- tapOn:
+    id: "native-category-category-apparel"
+- assertVisible: "カテゴリの商品"
+- tapOn: "ホーム"
+- assertVisible: "ホーム"
+- tapOn: "商品一覧"
+- assertVisible: "商品一覧"
+- tapOn: "商品名・コードで検索"
+- inputText: "Tシャツ"
+- tapOn: "検索"
+- assertVisible: "ベーシックTシャツ"
+- tapOn: "ベーシックTシャツ"
+- assertVisible: "サイズを選択"
+- assertVisible: "カートに追加"
+- tapOn: "M"
+- tapOn: "カートに追加"
+- assertVisible: "カートに追加しました"
+- takeScreenshot: native-storefront-cart-added

@@ -20,7 +20,25 @@
     ".codex/runs/20260802-194908-JST/TASKS.md",
     ".codex/runs/20260802-194908-JST/REPORT.md",
     ".codex/runs/20260802-194908-JST/run.json",
-    ".codex/runs/20260802-194908-JST/evaluation.json"
+    ".codex/runs/20260802-194908-JST/evaluation.json",
+    "docs/plans/2026-08-03_080856_pr8-review-repair.md",
+    "docs/adr/0005-local-native-build-and-shared-visual-contract.md",
+    "docs/plans/phase2-native-goal/00_master-roadmap.md",
+    "docs/plans/phase2-native-goal/01_phase2-first-half-native-foundation.md",
+    "README.md",
+    "docs/PROJECT_CONTEXT.md",
+    ".github/workflows/native-ci.yml",
+    ".github/workflows/native-ios-ci.yml",
+    "metro.config.cjs",
+    "scripts/validate-native-production-bundle.ts",
+    "src/test-controls/native-contract-harness-runner.native.ts",
+    "src/presentation/native/native-contract-harness-screen.enabled.tsx",
+    "src/presentation/native/native-contract-harness-screen.disabled.tsx",
+    "src/presentation/native/native-variation-selection.ts",
+    "tests/component/native/native-variation-selection.test.ts",
+    "tests/contracts/native-production-module-resolution.test.ts",
+    "maestro/native-contract-harness.yaml",
+    "maestro/native-not-found.yaml"
   ],
   "validation": {
     "status": "in_progress",
@@ -64,15 +82,31 @@
       "pnpm run validate:image-manifest",
       "pnpm exec expo export --platform android",
       "pnpm exec expo export --platform ios",
-      "git diff --check"
+      "git diff --check",
+      "pnpm install --frozen-lockfile",
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run test",
+      "pnpm run validate:native-production-bundle",
+      "pnpm dlx expo-doctor@1.17.6",
+      "pnpm run test:contracts",
+      "pnpm run validate:image-manifest",
+      "pnpm run generate:native-assets",
+      "git diff --exit-code -- src/generated/native-product-assets.ts",
+      "pnpm exec vitest run tests/unit/native-contract-harness.test.ts --no-file-parallelism --maxWorkers=1",
+      "git diff --check",
+      "node -e JSON.parse(run.json/evaluation.json)"
     ],
     "warnings": [
       "Android adb/Emulator/Maestro未導入のため実Android操作は未確認",
       "iOS xcrun/Simulator/Xcode未導入のため実iOS操作は未確認",
       "Android/iOSの実Native Build・Install・操作・実SQLite Smokeはtoolchain不在のため未確認",
-      "full format checkは今回の変更外を含む既存123ファイルのwarningで未PASS",
-      "full contractはWindowsの並列実行競合を避ける単一worker設定で13 files/67 testsが成功。Node.js 24組み込みSQLiteのNative Customer Contractは5 files/21 testsが成功",
-      "Expo Doctorは20/20 checks passed。Android SDK/adbとWindows上のiOS toolchainがないためNative Release Build/Install/実操作は未確認"
+      "Windows上のAndroid SDK/adb/EmulatorとiOS Xcode/Simulatorがないため、実Native Build/Install/操作/実expo-sqliteは未確認",
+      "GitHub Actions native-ci / native-ios-ciは定義・固定Version・Artifact契約を追加したが、Runは未実施",
+      "EAS Cloud Build/Workflow/SubmitとPR本文更新はユーザー指示により未実施",
+      "Web Buildは初回にexpo-sqlite WASMのWeb混入を検出して失敗したが、Metroのweb解決をdisabled entryへ限定後に成功",
+      "Node SQLite/Contract、Native Component、Production Bundle Guard、Format/Lint/Typecheck、Web E2E/A11y/Mobile回帰は成功",
+      "expo-doctor@1.17.6は17/17 checks passed"
     ]
   },
   "safety": {

@@ -2,6 +2,7 @@ import type {
   NativeCustomerCartRepository,
   NativeCustomerCatalogRepository,
 } from "@/application/native/guest-storefront";
+import { ApplicationError } from "@/application/errors";
 import type { ProductSearchRequest } from "@/application/contracts";
 import { BASE_CLOCK, DEFAULT_GUEST_ID } from "@/seeds/metadata";
 
@@ -111,6 +112,53 @@ export function createCustomerRepositoryContractSuite(
         now: BASE_CLOCK,
       });
       expect(removed.items.some((item) => item.itemId === updatedItem.itemId)).toBe(false);
+    });
+
+    it("keeps the Guest cart unchanged when a restricted product mutation is rejected", async () => {
+      const before = await handle.adapter.cart.getCart({
+        guestId: DEFAULT_GUEST_ID,
+        now: BASE_CLOCK,
+      });
+      await expect(
+        handle.adapter.cart.addItem({
+          guestId: DEFAULT_GUEST_ID,
+          variantId: "variant-running-shoes-one",
+          addQuantity: 1,
+          cartId: "restricted-cart",
+          itemId: "restricted-item",
+          now: BASE_CLOCK,
+        }),
+      ).rejects.toMatchObject<Partial<ApplicationError>>({ code: "PERMISSION_DENIED" });
+      const after = await handle.adapter.cart.getCart({
+        guestId: DEFAULT_GUEST_ID,
+        now: BASE_CLOCK,
+      });
+      expect(after).toEqual(before);
+    });
+
+    it.each([
+      ["variant-out-of-stock-one", "OUT_OF_STOCK"],
+      ["variant-unpublished-one", "PERMISSION_DENIED"],
+    ] as const)("keeps the Guest cart unchanged for %s", async (variantId, code) => {
+      const before = await handle.adapter.cart.getCart({
+        guestId: DEFAULT_GUEST_ID,
+        now: BASE_CLOCK,
+      });
+      await expect(
+        handle.adapter.cart.addItem({
+          guestId: DEFAULT_GUEST_ID,
+          variantId,
+          addQuantity: 1,
+          cartId: `blocked-${variantId}`,
+          itemId: `blocked-item-${variantId}`,
+          now: BASE_CLOCK,
+        }),
+      ).rejects.toMatchObject<Partial<ApplicationError>>({ code });
+      const after = await handle.adapter.cart.getCart({
+        guestId: DEFAULT_GUEST_ID,
+        now: BASE_CLOCK,
+      });
+      expect(after).toEqual(before);
     });
   });
 }

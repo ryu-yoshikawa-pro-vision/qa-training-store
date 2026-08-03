@@ -2,7 +2,7 @@ import { ApplicationError } from "@/application/errors";
 import type { NativeApplicationServices } from "@/bootstrap/native-runtime";
 import { DEFAULT_GUEST_ID, SCENARIO_METADATA, type PhaseOneScenario } from "@/seeds/metadata";
 import { createScenarioDataset } from "@/seeds/scenarios";
-import { clearNativeCustomerData, seedNativeDataset } from "@/infrastructure/database/sqlite/seed";
+import { seedNativeDataset } from "@/infrastructure/database/sqlite/seed";
 import {
   clearNativeControlKeys,
   NATIVE_PAYMENT_DELAY_KEY,
@@ -46,7 +46,9 @@ export class NativeTestControlService {
       const scenario = input.scenario as PhaseOneScenario;
       const clock = nativeResetDefaultClock(input.clock);
       await clearNativeControlKeys(this.runtime.storage);
-      await clearNativeCustomerData(this.runtime.database);
+      // seedNativeDataset deletes the existing customer data and inserts the
+      // requested scenario in one exclusive SQLite transaction. Do not split
+      // clear and seed: a failed seed must roll back to the previous dataset.
       await seedNativeDataset(this.runtime.database, createScenarioDataset(scenario));
       await this.restoreSeedIdentity();
       await this.runtime.clock.setFixedTime(clock);

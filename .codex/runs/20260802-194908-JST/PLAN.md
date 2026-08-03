@@ -131,3 +131,10 @@ Route Inventory、Root/Shell、依存方向、Capability/Scope、Native Composit
 - Web Homeの実画像で確認したDark Navy Hero、Gold CTA、明るい補助CTAをNative Homeへ反映する。
 - Hero見出し・本文は既存の共有Typographyを維持し、色だけをDark背景向けに重ねる。Native screenshotが取得できる環境ではWeb 390×844／320×700と比較する。
 - この補正はコード／静的検証の範囲であり、実Android／iOS Build・Install・操作の未確認条件は変わらない。
+
+## 20. 2026-08-03 PR #8レビュー修正計画
+
+- GitHub PR #8の実レビューthreadは0件で、CodeRabbitは対象ファイル数超過によりskipだったため、添付レビュー文書を入力として最新コードを再確認する。
+- 正式Deep Link、Native前半Scenario Allowlist、Guest Mutation、shared Application Use Case、Customer-only Schema、Reset Exclusive Transaction、実行可能Harness、Production Module Resolution、Variation、Native Asset CI、Android/iOS CIを対象とする。
+- Android/iOS実Native確認、GitHub Actions Run、EAS Cloud実行、GitHubへのCommit／Push／PR更新は本Runでは完了扱いにしない。
+- 同一Runを再利用し、修正IterationはREPORTへ追記する。ユーザー確認が必要な外部環境項目はNextへ残す。

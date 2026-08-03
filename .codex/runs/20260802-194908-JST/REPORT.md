@@ -409,3 +409,109 @@
 - Local device／Simulator validation: incomplete。Native screenshot、Guest／Cart実操作、再起動復元、実SQLite／PBKDF2／KV／Harness、Production artifactは未確認。
 - EAS config/workflow static validation: complete。EAS Cloud execution: not performed／not needed。
 - Progress: 69% (25/36)
+
+## 2026-08-03 09:27 JST PR #8レビュー修正 Iteration 1
+
+### iteration_number
+
+1
+
+### input_findings
+
+- 添付レビュー文書の19項目を入力とした。GitHub PR #8はopen／mergeableで、実Review Threadは0件、CodeRabbitは対象ファイル数超過でReview skippedだった。
+- 初期コードで有効だった主な問題は、Formal Deep Linkのhostname/path判定、Web全ScenarioのNative受理、Guest rank制限Mutation漏れ、Native専用Use Case業務入口の二重化、Reset DB削除／Seed分離、HarnessのPASS先行通知、Variation先頭自動選択、Productionの実生成Bundle検査不足、Native CI未定義、上位計画／ADRのEAS主経路表現だった。
+- 最新コードで既に成立していた項目（Customer-only SQLite schema、FK、Native KV、Asset Map等）は、追加Tableや独自Cross-store Transactionを増やさず、既存契約を補強した。
+
+### repair_plan
+
+- Pure Function／Allowlist／Guest Mutation／Variationを先に修正し、既存Web／Node契約を維持する。
+- Native Runtimeを既存`CatalogUseCases`／`CartUseCases`へCustomer Gateway、Guest Actor、Native Adapterとして接続する。
+- Resetを一つのExclusive Transactionへまとめ、`foreign_key_check`とrollbackを追加する。
+- 専用DB／KV Prefixで定義済みCustomer Contract、FK違反、Cart add/update/remove、Application DB最小不変確認を実行するHarnessを追加し、Cleanup後だけSignal／画面Statusを更新する。
+- Metroの対象Module限定Resolverと生成Hermes Bundle Guard、Asset差分、Android PR CI、iOS手動CI、責務別Maestro／Artifactを追加する。
+- ADR、上位計画、README、PROJECT_CONTEXT、History、Run Artifactを実態に更新する。EAS Cloud、GitHub write、`android/`／`ios/`のCommitは行わない。
+
+### allowed_files
+
+- `src/application/**`、`src/bootstrap/**`、`src/infrastructure/database/sqlite/**`、`src/infrastructure/session/**`、`src/seeds/**`、`src/presentation/native/**`、`src/test-controls/**`
+- `tests/**`、`scripts/validate-native-production-bundle.ts`、`metro.config.cjs`、`.github/workflows/native*.yml`、`maestro/**`
+- `README.md`、`docs/PROJECT_CONTEXT.md`、`docs/history/**`、`docs/adr/0005*`、`docs/plans/**`、既存Run Artifact
+
+### delegation
+
+- 既存のread-only `code_researcher`、`implementation_researcher`、`test_investigator`を再利用した。新規writable subagentは起動せず、既存agentの初期調査結果は最新コードで親Agentが再確認した。
+- 採用した判断は、Deep LinkとVariationは有効な指摘、Allowlist／Guest Mutation／Reset／Harnessは実装補強が必要、Production Bundle／CI／Asset差分／計画整合は不足、という分類である。
+
+### changed_files
+
+- Formal Deep Link／Scenario Allowlist: `src/test-controls/native-test-control-protocol.ts`、`src/presentation/native/native-test-control-bridge.tsx`、`src/seeds/metadata.ts`、protocol tests
+- Shared Application Use Case／Guest Adapter: `src/application/customer-capabilities.ts`、`src/application/identity/guest-actor-resolver.ts`、`src/application/native/guest-storefront.ts`、`src/application/use-cases/{catalog,cart}-use-cases.ts`、`src/bootstrap/native-runtime.ts`
+- SQLite／Reset／Mutation: `src/infrastructure/database/sqlite/{database,seed,native-customer-repositories}.ts`、`src/test-controls/native-test-control.native.ts`、repository／transaction tests
+- Harness／Production／Variation: `src/test-controls/native-contract-harness*.ts`、`src/presentation/native/native-contract-harness-screen*.tsx`、`src/presentation/native/native-automation-bridge*.tsx`、`metro.config.cjs`、`scripts/validate-native-production-bundle.ts`、Variation tests
+- CI／Maestro: `.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、`maestro/native-*.yaml`
+- Docs／Run: `README.md`、`docs/PROJECT_CONTEXT.md`、`docs/history/2026-08-03_085900_pr8-review-repair.md`、ADR、Phase 2 plans、repair plan、Run PLAN／TASKS／REPORT／evaluation／run.json
+
+### validation
+
+- `pnpm install --frozen-lockfile` => PASS（Lockfile up to date）。
+- `pnpm run format`／`pnpm run format:check` => PASS（All matched files use Prettier code style）。
+- `pnpm run lint` => PASS（0 errors／既存warning 64件）。
+- `pnpm run typecheck` => PASS（app／native-tests）。
+- `pnpm run test` => PASS（Unit 13/63、Integration 9/91、Repository 5/27、Web Component 11/76、Native Jest 3 suites/7、Contract 14/72）。初回はarchitecture assertionの旧期待値だけが失敗し、Production route splitに合わせて更新後PASS。
+- `pnpm run validate:image-manifest`、`pnpm run generate:native-assets`、`git diff --exit-code -- src/generated/native-product-assets.ts`、`pnpm run security:check`、`pnpm run check:native-route-dependencies`、`pnpm run validate:eas:config` => PASS（Security 228 runtime／265 scan、Native Route 38、EAS cloudRun=not-run）。
+- `pnpm run build:web` => 初回は新Harness runnerがWebへ混入し`expo-sqlite` WASM解決で失敗。Metro Resolverをwebではdisabled entryへ限定後、2291 modulesのWeb exportがPASS。
+- `pnpm run build:web`、`pnpm run test:e2e:chromium`（27）、`pnpm run test:a11y`（4）、`pnpm run test:e2e:mobile-boundary`（4）=> PASS。
+- `pnpm dlx expo-doctor@1.17.6` => 17/17 checks passed。
+- `pnpm run validate:native-production-bundle` => PASS。Automation Android Hermes `.hbc`へAutomation／Harness markerが存在し、Production Bundleには両markerと`NativeTestControlService`が存在しない。初回検査は`.hbc`未収集で失敗したため、検査対象へ追加後に再実行した。
+- `tests/unit/native-contract-harness.test.ts`（6）、`tests/contracts/native-production-module-resolution.test.ts`（4）、Native Variation Component（2）=> PASS。
+- Windows環境の`adb`／Android SDK／Emulator、`xcrun`／Xcode／iOS Simulatorは未提供。GitHub ActionsのAndroid／iOS Workflowも未実行。EAS Cloudは未実行。
+
+### result
+
+- PR #8のコード／Unit／Contract／Web／Bundle／CI定義上のCritical／High相当の指摘は修正した。
+- Production Bundle Guardは実生成Android Hermes Bundleで確認できる状態になった。
+- Native Contract Harnessは専用画面から固定Contractを実行できる実装になったが、実`expo-sqlite`上の実行結果はCI／Native環境未提供のため未確認である。
+- Android／iOS CIはWorkflow定義と最終集約Checkを追加したが、GitHub Actions Run結果は未取得である。
+
+### remaining_delta
+
+- Android Emulator CI／iOS手動CIの実Run、APK／Maestro／Harness Artifact、Android API 34／iOS Simulator情報は未取得。
+- WindowsローカルAndroid APK Build／Install／操作、macOSローカルiOS Build／Install／操作、実Native SQLite／PBKDF2／KV／再起動復元、Native screenshotは未確認。
+- PR本文はGitHub write禁止のため更新していない。Run／README／PROJECT_CONTEXTへ実態を記録した。
+
+### decision
+
+continue
+
+Progress: 73% (33/45)
+
+## 2026-08-03 09:38 JST PR #8レビュー修正 Iteration 1 続報
+
+### 変更
+
+- Native Static CIへ`pnpm run validate:image-manifest`を明示追加した。
+- Android／iOSのMaestro Flowへ責務別スクリーンショット取得を追加し、JUnit、logcat／simctl diagnose、APK、スクリーンショットをArtifactへ回収する定義を整えた。
+- Native CIの変更検知対象へ、手動iOS Workflow自身も追加した。
+
+### validation
+
+- `pnpm run format` => PASS（全対象ファイルunchanged）。
+- `pnpm run format:check` => PASS（All matched files use Prettier code style）。
+- `pnpm run lint` => PASS、0 errors／64 warnings。
+- `pnpm run test:contracts` => 14 files／72 tests PASS。
+- `pnpm run validate:image-manifest` => PASS。
+- `pnpm run generate:native-assets` + `git diff --exit-code -- src/generated/native-product-assets.ts` => PASS（9 assets、生成差分なし）。
+- `pnpm exec vitest run tests/unit/native-contract-harness.test.ts --no-file-parallelism --maxWorkers=1` => 1 file／6 tests PASS。
+- `git diff --check` => 差分エラーなし（WindowsのLF/CRLF warningのみ）。
+- `run.json`／`evaluation.json` => JSON parse PASS。
+
+### remaining_delta
+
+- GitHub Actionsの実Run、Android Emulator／APK／Maestro、iOS Simulator／実SQLiteは未実施のまま。スクリーンショット取得はWorkflow定義へ追加したが、Artifact実物は未取得。
+- ローカルWindowsではAndroid SDK／adb／Emulator、iOSではXcode／Simulatorがないため、D13は未完了。
+
+### decision
+
+continue
+
+Progress: 73% (33/45)

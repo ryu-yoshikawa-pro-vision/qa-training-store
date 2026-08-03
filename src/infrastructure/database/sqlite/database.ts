@@ -22,6 +22,12 @@ export async function assertForeignKeysEnabled(database: SQLiteDatabase): Promis
   if (result?.foreign_keys !== 1) {
     throw new Error("Native SQLite foreign_keys pragma is not enabled");
   }
+  await assertForeignKeyCheck(database);
+}
+
+export async function assertForeignKeyCheck(
+  database: Pick<SQLiteDatabase, "getAllAsync"> | NativeSQLiteTransaction,
+): Promise<void> {
   const violations = await database.getAllAsync<{
     table: string;
     rowid: number;

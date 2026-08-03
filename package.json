@@ -32,6 +32,7 @@
     "test:smoke": "playwright test e2e/web/smoke.spec.ts --project=deployed-smoke",
     "security:check": "tsx scripts/security-static-check.ts",
     "validate:eas:config": "tsx scripts/validate-eas-static-config.ts",
+    "validate:native-production-bundle": "tsx scripts/validate-native-production-bundle.ts",
     "check:native-route-dependencies": "tsx scripts/check-native-route-dependencies.ts",
     "prepare:font-assets": "tsx scripts/prepare-font-assets.ts",
     "generate:image-manifest": "tsx scripts/generate-image-manifest.ts",

@@ -4,7 +4,7 @@ import {
   useNativeRuntime,
 } from "@/presentation/native/native-runtime-provider";
 import { NativeShell } from "@/presentation/native/native-shell";
-import { NativeTestControlBridge } from "@/presentation/native/native-test-control-bridge";
+import { NativeAutomationBridge } from "@/presentation/native/native-automation-bridge";
 
 export default function NativeRootLayout() {
   return (
@@ -19,5 +19,5 @@ export default function NativeRootLayout() {
 
 function NativeTestControlRuntimeBridge() {
   const { services } = useNativeRuntime();
-  return <NativeTestControlBridge services={services} />;
+  return <NativeAutomationBridge services={services} />;
 }

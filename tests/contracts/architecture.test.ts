@@ -61,7 +61,18 @@ describe("architecture boundaries", () => {
     expect(protocol).toContain('buildKind === "local" || buildKind === "automation"');
     expect(bridge).toContain("!isNativeTestControlBuild(buildKind)");
     expect(source(join(projectRoot, "app", "admin", "test-control.native.tsx"))).toContain(
-      "NativeUnsupportedScreen",
+      "native-contract-harness-screen",
     );
+    expect(
+      source(
+        join(
+          projectRoot,
+          "src",
+          "presentation",
+          "native",
+          "native-contract-harness-screen.disabled.tsx",
+        ),
+      ),
+    ).toContain("NativeUnsupportedScreen");
   });
 });

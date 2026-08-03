@@ -3,12 +3,12 @@
   "run_id": "20260802-194908-JST",
   "objective": "Phase 2前半のNative基盤・SQLite・Guest購入前FlowをGate A〜Gまで実装・検証する",
   "status": "in_progress",
-  "phase": "Local Native主経路の静的実装・Web/Native Visual Contract完了・Gate E/F実Native環境待ち",
+  "phase": "PR #8レビュー修正のコード・CI・静的検証完了、Gate E/F実Native環境待ち",
   "gate_results": {
     "A": "コード・静的検証完了、実Native未確認",
-    "B": "コード・Node検証完了、実Native/doctor未確認。変更対象PrettierはPASS、lintは0 errors/63 warnings。Guest ID復元・Native UI Filter/Detail要件を補強",
-    "C": "コード・Node実SQLite契約完了（Native Customer 5 files/21 tests）、Android/iOS実SQLite未確認",
-    "D": "コード・静的Guard・EAS static config/workflow・Visual Contract完了、Production config／Android・iOS JS export確認、実Native artifact未確認。Bridgeは解決済みConfigのbuildKindを優先",
+    "B": "コード・Node検証完了、lintは0 errors/64 warnings、typecheckとNative Component Test成功。実Nativeは未確認",
+    "C": "コード・Node実SQLite契約とReset rollback/Harness isolation完了、Android/iOS実SQLite未確認",
+    "D": "Deep Link Pure Function、Native Allowlist、Production Module Resolution、生成Bundle Guard、Asset差分、固定Version CI定義を確認。実Native artifact未確認",
     "E": "未実施（ローカルAndroid Toolchain不在）",
     "F": "未実施（Windows上でiOS Toolchain不在）",
     "G": "Node/Web回帰・Format/Lint/Typecheck・Web 390x844/320x700 UI Review完了、実Native操作未確認"
@@ -21,11 +21,20 @@
     "Android adb/Emulator/Maestroが現環境にないため実Android操作は未確認",
     "iOS xcrun/Simulator/Xcodeが現環境にないため実iOS操作は未確認"
   ],
-  "code_changes": "Gate A〜D実装、Route/ADR/Context/README更新、ローカルJS Bundle確認",
+  "code_changes": "PR #8指摘のDeep Link、Allowlist、Guest Mutation、shared Use Case、Reset transaction、実行可能Harness、Production Bundle分離、Variation、Native CI、ADR/計画/Docsを更新",
   "validation": {
     "status": "partial",
     "native_builds": "実Native Build未実施。Android/iOS JS exportは成功",
-    "web_regression": "Unit/Integration/Repository/Web Component/Native Jest/Contract、Web Build、Playwright、a11y、mobile回帰が成功。Contractは単一worker設定で13 files/67 tests、Node SQLite repositoryは5 files/21 testsが成功。Web UI Reviewは390x844/320x700で取得"
+    "web_regression": "Unit 13 files/63 tests、Integration 9/91、Repository 5/27、Web Component 11/76、Native Jest 3 suites/7、Contract 14/72、Web Build、Chromium 27、A11y 4、Mobile boundary 4が成功"
   },
+  "repair_iterations": [
+    {
+      "iteration_number": 1,
+      "input": "PR #8添付レビュー指摘。GitHub未解決threadは0、CodeRabbitは対象ファイル数超過でskip",
+      "result": "Deep Link/Allowlist/Guest Mutation/Use Case共有/Reset transaction/Harness/Production Bundle/Variation/CI/Docsを修正し、静的・Node・Web検証を成功",
+      "remaining_delta": "Windows上のAndroid/iOS実Native Build・Install・操作・GitHub Actions Runは未実施",
+      "decision": "continue"
+    }
+  ],
   "critical_high_findings": []
 }

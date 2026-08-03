@@ -66,10 +66,21 @@
 - D2. Android/iOSローカル実行環境の実在を確認し、未導入ならコード検証と実Native操作を分離して記録する。
 - D3. Native UIの共有Visual Contract（tokens、Web情報順、画像比率、44px Touch Target）を検証可能にする。
 - D4. EASをCloud実行せず、Profile／Environment／manual Workflowの静的契約だけを保持する。
+- [x] D5. GitHub PR #8のReview Thread／CodeRabbit状態と添付レビュー指摘を再確認する。
+- [x] D6. Formal Deep Link、Native Foundation Scenario Allowlist、Guest Mutation、Variation未選択を修正・テストする。
+- [x] D7. Shared Application Use Case、Customer-only Schema方針、Reset Exclusive Transaction、rollbackを修正・テストする。
+- [x] D8. 実行可能な専用Contract Harness、Application DB不変確認、Cleanup後Signal、Accessibility状態表示を実装・テストする。
+- [x] D9. Production Module Resolution／生成Bundle Guard、Native Asset生成差分、Production route exclusionを実装・検証する。
+- [x] D10. Android Emulator CI、iOS手動CI、責務別Maestro Flow、Artifact／Final Verifyを追加する。
+- [x] D11. ADR、上位計画、README、PROJECT_CONTEXT、History、修正計画、Run Artifactを実態に更新する。
+- [x] D12. Format、Lint、Typecheck、全Test、Web Build／E2E／A11y／Mobile、Security、Asset、Route、EAS static、Production Bundleを検証する。
+- [ ] D13. GitHub Actions Run、ローカルAndroid Emulator／実機、iOS Simulator／実SQLiteを実行し、実環境証跡を保存する。
 
 ## Resolved / Follow-up
 
 - B1（解消）. ユーザーがEASを使わずローカルBuildを使う方針を確定したため、EAS Account/Project/費用/Credential/Workflowは開始条件から除外した。Android `adb`/Emulator/MaestroとiOS `xcrun`/Simulator/Xcodeは現環境にないため、該当する実操作は未確認として記録し、Task 5（Gate A実装）へ進む。
+
+Progress: 73% (33/45)
 
 ## 2026-08-03 00:20 JST 追補判定
 
