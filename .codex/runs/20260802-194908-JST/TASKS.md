@@ -115,3 +115,15 @@ Progress: 73% (33/45)
 - D13の修正後GitHub Actions Run、ローカルAndroid／iOS実環境、実SQLite証跡は未実施として保持する。
 
 Progress: 78% (43/55)
+
+## 2026-08-03 PR #8 Native CI再失敗修正 Iteration 3
+
+- [x] D24. Run `30780990538`の最新Job／Step／ログをread-only確認し、Verify失敗とEvidence停止の原因を確定する。
+- [x] D25. Android Workflowをlibpulse依存、絶対Path、分割Verify、APK集約、Gradle Log、Evidence Timeoutへ修正しContract Testを更新する。
+- [x] D26. Variation在庫表示、Out-of-stock選択・追加不可、Low-stock／Purchase-limit上限を実装し、Component／Maestro Flowを更新する。
+- [x] D27. Native Runtime初期化Reject時のPromise解除とProvider再試行UI／in-flight guardを実装しComponent Testを追加する。
+- [x] D28. Format／Lint／Typecheck／全Test／静的検証／Web Build／Chromium／A11y／Mobile／Expo Doctorを再実行する。
+- [x] D29. 修正内容、Run `30780990538`の実態、未実施境界を既存Run／PROJECT_CONTEXT／Historyへ追記する。
+- [x] D30. Out-of-stock Maestro Flowの選択後UIアサーションを実装と一致させ、構文／差分を再確認する。
+
+Progress: 81% (50/62)

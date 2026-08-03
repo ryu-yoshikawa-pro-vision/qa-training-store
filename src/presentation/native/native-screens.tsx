@@ -21,12 +21,13 @@ import {
   styles,
 } from "./native-components";
 import {
+  isNativeVariantAddable,
   isNativeVariantSelectable,
   resolveInitialNativeVariantId,
 } from "./native-variation-selection";
 
 export function NativeHomeScreen() {
-  const { ready, error } = useNativeRuntime();
+  const { ready, error, retry } = useNativeRuntime();
   const services = useNativeApplicationServicesIfReady();
   const [home, setHome] = useState<HomeCatalogDto | null>(null);
   const [loadError, setLoadError] = useState<Error | null>(null);
@@ -41,9 +42,15 @@ export function NativeHomeScreen() {
   }, [services]);
 
   useEffect(load, [load]);
-  if (!ready) return <NativeStatePanel title="読み込み中…" />;
   if (error !== null)
-    return <NativeStatePanel title="Native初期化に失敗しました" body={error.message} />;
+    return (
+      <NativeStatePanel
+        title="Native初期化に失敗しました"
+        body={error.message}
+        action={<NativeButton label="再試行" onPress={retry} testID="native-runtime-retry" />}
+      />
+    );
+  if (!ready) return <NativeStatePanel title="読み込み中…" />;
   if (loadError !== null)
     return (
       <NativeStatePanel
@@ -324,11 +331,11 @@ export function NativeProductDetailScreen() {
       />
     );
   const selected = product.variants.find((variant) => variant.variantId === selectedVariantId);
-  const stockQuantity = selected?.stockQuantity ?? 0;
-  const purchaseLimit = selected?.purchaseLimit ?? 1;
+  const stockQuantity = selected?.stockQuantity ?? null;
   const regularPrice = selected?.regularPrice ?? product.minimumViewerUnitPrice;
   const hasSale = selected?.activeSalePrice !== null && selected?.activeSalePrice !== undefined;
-  const maximumQuantity = Math.min(stockQuantity, purchaseLimit);
+  const maximumQuantity =
+    selected === undefined ? null : Math.min(selected.stockQuantity, selected.purchaseLimit);
   return (
     <ScrollView contentContainerStyle={styles.scroll} testID="native-product-detail-screen">
       <NativeProductImage
@@ -367,7 +374,7 @@ export function NativeProductDetailScreen() {
                 key={variant.variantId}
                 accessibilityRole="button"
                 accessibilityState={{
-                  disabled: variant.stockQuantity <= 0,
+                  disabled: !isNativeVariantSelectable(variant),
                   selected: selectedVariantId === variant.variantId,
                 }}
                 disabled={!isNativeVariantSelectable(variant)}
@@ -388,7 +395,9 @@ export function NativeProductDetailScreen() {
                   ]}
                 >
                   {variant.optionValue ?? variant.sku}
-                  {variant.stockQuantity <= 0 ? "（在庫切れ）" : ""}
+                  {selectedVariantId === variant.variantId && variant.stockQuantity <= 0
+                    ? "（在庫切れ）"
+                    : ""}
                 </Text>
               </Pressable>
             ))}
@@ -401,25 +410,27 @@ export function NativeProductDetailScreen() {
         </>
       )}
       <Text
-        style={[styles.stockMessage, stockQuantity <= 0 && styles.stockMessageOut]}
+        style={[styles.stockMessage, stockQuantity === 0 && styles.stockMessageOut]}
         testID="native-product-stock"
       >
-        {stockQuantity <= 0
-          ? "在庫切れ"
-          : stockQuantity <= 5
-            ? `残り${stockQuantity}点`
-            : `在庫 ${stockQuantity}点`}
+        {stockQuantity === null
+          ? "Variationを選択すると在庫を確認できます。"
+          : stockQuantity === 0
+            ? "在庫切れ"
+            : stockQuantity <= 5
+              ? `残り${stockQuantity}点`
+              : `在庫 ${stockQuantity}点`}
       </Text>
-      {stockQuantity > purchaseLimit && (
-        <Text style={styles.body}>1回の購入上限は{purchaseLimit}点です。</Text>
+      {selected !== undefined && selected.stockQuantity > selected.purchaseLimit && (
+        <Text style={styles.body}>1回の購入上限は{selected.purchaseLimit}点です。</Text>
       )}
-      {stockQuantity > 0 && (
+      {selected !== undefined && selected.stockQuantity > 0 && maximumQuantity !== null && (
         <Text style={styles.body}>今回の最大購入可能数は{maximumQuantity}点です。</Text>
       )}
       <View style={[styles.actionRow, { marginTop: nativeSpacing.lg }]}>
         <NativeButton
           label={adding ? "追加中…" : "カートに追加"}
-          disabled={adding || !isNativeVariantSelectable(selected)}
+          disabled={adding || !isNativeVariantAddable(selected)}
           onPress={() => {
             if (selected === undefined) return;
             setAdding(true);
@@ -580,6 +591,11 @@ export function NativeCartScreen() {
                   testID={`native-cart-remove-${item.itemId}`}
                 />
               </View>
+              {item.quantity >= item.maximumQuantity && (
+                <Text style={styles.body} testID={`native-cart-limit-${item.itemId}`}>
+                  購入可能な上限に達しました。
+                </Text>
+              )}
               {item.issues.length > 0 && (
                 <Text
                   style={[

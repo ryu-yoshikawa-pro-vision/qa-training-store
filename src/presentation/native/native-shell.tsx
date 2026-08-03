@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, Text, View } from "react-native";
 import type { ReactNode } from "react";
 import { useNativeRuntime } from "./native-runtime-provider";
 import {
+  NativeButton,
+  NativeStatePanel,
   nativeColors,
   nativeFontWeight,
   nativeSpacing,
@@ -12,7 +14,7 @@ import {
 
 export function NativeShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { ready } = useNativeRuntime();
+  const { ready, error, retry } = useNativeRuntime();
   return (
     <SafeAreaView style={shellStyles.safeArea}>
       <View style={shellStyles.header}>
@@ -35,7 +37,17 @@ export function NativeShell({ children }: { children: ReactNode }) {
           </Pressable>
         </Link>
       </View>
-      <View style={shellStyles.content}>{children}</View>
+      <View style={shellStyles.content}>
+        {error !== null ? (
+          <NativeStatePanel
+            title="Native初期化に失敗しました"
+            body={error.message}
+            action={<NativeButton label="再試行" onPress={retry} testID="native-runtime-retry" />}
+          />
+        ) : (
+          children
+        )}
+      </View>
       {ready && (
         <View style={shellStyles.bottomNav}>
           <NativeNavLink

@@ -120,7 +120,7 @@ jobs:
     needs: [detect, static]
     if: needs.static.result == 'success' && (needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch')
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     env:
       EXPO_PUBLIC_APP_ENV: automation
       EXPO_PUBLIC_BUILD_KIND: automation
@@ -143,6 +143,12 @@ jobs:
         with:
           distribution: temurin
           java-version: "17"
+      - name: Install Android emulator runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install --yes libpulse0
       - run: pnpm install --frozen-lockfile
       - run: pnpm run generate:native-assets
       - run: git diff --exit-code -- src/generated/native-product-assets.ts
@@ -157,12 +163,24 @@ jobs:
           SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | sort | tail -n 1)"
           test -n "$SDKMANAGER"
           test -x "$SDKMANAGER"
+          ADB="$SDK_ROOT/platform-tools/adb"
+          EMULATOR="$SDK_ROOT/emulator/emulator"
+          AVDMANAGER="$(dirname "$SDKMANAGER")/avdmanager"
+          APK_PATH="$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/app-release.apk"
+          test -x "$ADB"
+          test -x "$EMULATOR"
+          test -x "$AVDMANAGER"
           export ANDROID_HOME="$SDK_ROOT"
           export ANDROID_SDK_ROOT="$SDK_ROOT"
           export PATH="$SDK_ROOT/platform-tools:$SDK_ROOT/emulator:$(dirname "$SDKMANAGER"):$PATH"
+          echo "SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "ADB=$ADB" >> "$GITHUB_ENV"
+          echo "EMULATOR=$EMULATOR" >> "$GITHUB_ENV"
+          echo "AVDMANAGER=$AVDMANAGER" >> "$GITHUB_ENV"
+          echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
           echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
           echo "$SDK_ROOT/emulator" >> "$GITHUB_PATH"
           echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
@@ -180,29 +198,70 @@ jobs:
             "build-tools;36.0.0" \
             "emulator" \
             "system-images;android-${ANDROID_API_LEVEL};google_apis;x86_64"
-      - name: Verify Android toolchain
+      - name: Verify Android SDK paths
         shell: bash
         run: |
           set -euo pipefail
-          command -v adb
-          command -v emulator
-          command -v avdmanager
-          adb version
-          emulator -version
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "SDKMANAGER=$SDKMANAGER"
+          echo "ADB=$ADB"
+          echo "EMULATOR=$EMULATOR"
+          echo "AVDMANAGER=$AVDMANAGER"
+          test -d "$ANDROID_HOME"
+          test -x "$SDKMANAGER"
+          test -x "$ADB"
+          test -x "$EMULATOR"
+          test -x "$AVDMANAGER"
+          ls -la "$ANDROID_HOME/platform-tools"
+          ls -la "$ANDROID_HOME/emulator"
+          ls -la "$(dirname "$SDKMANAGER")"
+      - name: Verify adb
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$ADB" version
+      - name: Verify avdmanager
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$AVDMANAGER" list target
+      - name: Inspect emulator binary
+        shell: bash
+        run: |
+          set -u -o pipefail
+          version_log="$RUNNER_TEMP/emulator-version.txt"
+          set +e
+          timeout 15 "$EMULATOR" -version > "$version_log" 2>&1
+          version_status=$?
+          set -e
+          cat "$version_log"
+          echo "emulator -version exit code: $version_status"
+          if [[ "$version_status" -ne 0 ]]; then
+            echo "emulator -version is diagnostic; the Emulator start step is authoritative."
+          fi
       - name: Build Automation Release APK
         working-directory: android
-        run: ./gradlew assembleRelease --no-daemon --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew assembleRelease --no-daemon --stacktrace \
+            2>&1 | tee "$RUNNER_TEMP/gradle-assemble-release.log"
       - name: Verify Automation Release APK
         shell: bash
-        run: test -f android/app/build/outputs/apk/release/app-release.apk
+        run: |
+          set -euo pipefail
+          test -f "$APK_PATH"
+          test -s "$APK_PATH"
+          ls -lh "$APK_PATH"
       - name: Start Android Emulator with KVM
         shell: bash
         run: |
           set -euo pipefail
           test -e /dev/kvm
           sudo chmod 666 /dev/kvm
-          echo no | avdmanager create avd -n native-api34 -k "system-images;android-${ANDROID_API_LEVEL};google_apis;x86_64" --force
-          emulator \
+          echo no | "$AVDMANAGER" create avd -n native-api34 -k "system-images;android-${ANDROID_API_LEVEL};google_apis;x86_64" --force
+          "$EMULATOR" \
             -avd native-api34 \
             -no-window \
             -no-audio \
@@ -211,24 +270,24 @@ jobs:
             -wipe-data \
             -gpu swiftshader_indirect \
             >"$RUNNER_TEMP/emulator.log" 2>&1 &
-          timeout 180 adb wait-for-device
-          timeout 180 bash -c 'until [[ "$(adb shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" == "1" ]]; do sleep 2; done'
-          timeout 180 bash -c 'until adb shell service check package 2>/dev/null | grep -q "found"; do sleep 2; done'
-          adb shell settings put global window_animation_scale 0
-          adb shell settings put global transition_animation_scale 0
-          adb shell settings put global animator_duration_scale 0
-          adb shell input keyevent 82
+          timeout 180 "$ADB" wait-for-device
+          timeout 180 bash -c 'until [[ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d "\r")" == "1" ]]; do sleep 2; done'
+          timeout 180 bash -c 'until "$ADB" shell service check package 2>/dev/null | grep -q "found"; do sleep 2; done'
+          "$ADB" shell settings put global window_animation_scale 0
+          "$ADB" shell settings put global transition_animation_scale 0
+          "$ADB" shell settings put global animator_duration_scale 0
+          "$ADB" shell input keyevent 82
       - name: Install and launch APK
         shell: bash
         run: |
           set -euo pipefail
-          adb install -r android/app/build/outputs/apk/release/app-release.apk
-          adb shell pm list packages | grep -F 'com.ryuyoshikawa.scenarioshop'
-          adb shell monkey \
+          "$ADB" install -r "$APK_PATH"
+          "$ADB" shell pm list packages | grep -F 'com.ryuyoshikawa.scenarioshop'
+          "$ADB" shell monkey \
             -p com.ryuyoshikawa.scenarioshop \
             -c android.intent.category.LAUNCHER \
             1
-          timeout 60 bash -c 'until adb shell pidof com.ryuyoshikawa.scenarioshop 2>/dev/null | grep -q .; do sleep 2; done'
+          timeout 60 bash -c 'until "$ADB" shell pidof com.ryuyoshikawa.scenarioshop 2>/dev/null | grep -q .; do sleep 2; done'
       - name: Install pinned Maestro CLI
         shell: bash
         run: |
@@ -239,7 +298,7 @@ jobs:
       - name: Reset Test Control by Deep Link
         shell: bash
         run: |
-          adb shell am start \
+          "$ADB" shell am start \
             -W \
             -a android.intent.action.VIEW \
             -d 'scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0' \
@@ -285,23 +344,56 @@ jobs:
             --format junit --output "$RUNNER_TEMP/maestro-purchase-limit.xml"
       - name: Collect Android evidence
         if: always()
+        timeout-minutes: 3
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p "$RUNNER_TEMP/native-evidence"
-          adb logcat -d > "$RUNNER_TEMP/native-evidence/adb-logcat.txt" || true
-          cp android/app/build/outputs/apk/release/app-release.apk "$RUNNER_TEMP/native-evidence/app-release.apk" || true
-          cp "$RUNNER_TEMP/maestro-test-control.xml" "$RUNNER_TEMP/native-evidence/maestro-test-control.xml" || true
-          cp "$RUNNER_TEMP/maestro-contract-harness.xml" "$RUNNER_TEMP/native-evidence/maestro-contract-harness.xml" || true
-          cp "$RUNNER_TEMP/maestro-not-found.xml" "$RUNNER_TEMP/native-evidence/maestro-not-found.xml" || true
-          cp "$RUNNER_TEMP/maestro-storefront.xml" "$RUNNER_TEMP/native-evidence/maestro-storefront.xml" || true
-          cp "$RUNNER_TEMP/maestro-cart.xml" "$RUNNER_TEMP/native-evidence/maestro-cart.xml" || true
-          cp "$RUNNER_TEMP/maestro-restart-persistence.xml" "$RUNNER_TEMP/native-evidence/maestro-restart-persistence.xml" || true
-          cp "$RUNNER_TEMP/maestro-reset-dirty-state.xml" "$RUNNER_TEMP/native-evidence/maestro-reset-dirty-state.xml" || true
-          cp "$RUNNER_TEMP/maestro-out-of-stock.xml" "$RUNNER_TEMP/native-evidence/maestro-out-of-stock.xml" || true
-          cp "$RUNNER_TEMP/maestro-low-stock.xml" "$RUNNER_TEMP/native-evidence/maestro-low-stock.xml" || true
-          cp "$RUNNER_TEMP/maestro-purchase-limit.xml" "$RUNNER_TEMP/native-evidence/maestro-purchase-limit.xml" || true
-          cp "$RUNNER_TEMP/emulator.log" "$RUNNER_TEMP/native-evidence/emulator.log" || true
-          cp -R "$RUNNER_TEMP/maestro-artifacts" "$RUNNER_TEMP/native-evidence/maestro-artifacts" || true
+          if [[ -n "${ADB:-}" && -x "${ADB:-}" ]]; then
+            if timeout 5 "$ADB" get-state >/dev/null 2>&1; then
+              timeout 15 "$ADB" logcat -d \
+                > "$RUNNER_TEMP/native-evidence/adb-logcat.txt" \
+                2>&1 || true
+            else
+              echo "Android device was not started or was unavailable." \
+                > "$RUNNER_TEMP/native-evidence/adb-logcat.txt"
+            fi
+          else
+            echo "Android adb executable was not resolved." \
+              > "$RUNNER_TEMP/native-evidence/adb-logcat.txt"
+          fi
+          if [[ -f "$RUNNER_TEMP/emulator.log" ]]; then
+            cp "$RUNNER_TEMP/emulator.log" "$RUNNER_TEMP/native-evidence/emulator.log"
+          else
+            echo "Emulator was not started." \
+              > "$RUNNER_TEMP/native-evidence/emulator.log"
+          fi
+          if [[ -n "${APK_PATH:-}" && -f "$APK_PATH" ]]; then
+            cp "$APK_PATH" "$RUNNER_TEMP/native-evidence/app-release.apk"
+          else
+            echo "Automation Release APK was not generated." \
+              > "$RUNNER_TEMP/native-evidence/apk-status.txt"
+          fi
+          if [[ -f "$RUNNER_TEMP/gradle-assemble-release.log" ]]; then
+            cp "$RUNNER_TEMP/gradle-assemble-release.log" \
+              "$RUNNER_TEMP/native-evidence/gradle-assemble-release.log"
+          else
+            echo "Gradle Release build log was not generated." \
+              > "$RUNNER_TEMP/native-evidence/gradle-status.txt"
+          fi
+          if [[ -f "$RUNNER_TEMP/emulator-version.txt" ]]; then
+            cp "$RUNNER_TEMP/emulator-version.txt" \
+              "$RUNNER_TEMP/native-evidence/emulator-version.txt"
+          fi
+          shopt -s nullglob
+          for junit_path in "$RUNNER_TEMP"/maestro-*.xml; do
+            cp "$junit_path" "$RUNNER_TEMP/native-evidence/"
+          done
+          if [[ -d "$RUNNER_TEMP/maestro-artifacts" ]]; then
+            mkdir -p "$RUNNER_TEMP/native-evidence/maestro-artifacts"
+            cp -R "$RUNNER_TEMP/maestro-artifacts/." \
+              "$RUNNER_TEMP/native-evidence/maestro-artifacts/"
+          fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:

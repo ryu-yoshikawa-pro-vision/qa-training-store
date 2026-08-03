@@ -7,5 +7,11 @@ export function resolveInitialNativeVariantId(variants: ProductDetail["variants"
 export function isNativeVariantSelectable(
   variant: ProductDetail["variants"][number] | undefined,
 ): boolean {
+  return variant !== undefined;
+}
+
+export function isNativeVariantAddable(
+  variant: ProductDetail["variants"][number] | undefined,
+): boolean {
   return variant !== undefined && variant.stockQuantity > 0;
 }

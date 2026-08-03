@@ -485,6 +485,131 @@ continue
 
 Progress: 73% (33/45)
 
+## 2026-08-03 13:36 JST PR #8 Native CI再失敗修正 Iteration 3
+
+### iteration_number
+
+3
+
+### input_findings
+
+- 添付の「PR #8 Native CI再失敗および残存指摘の修正指示」を正本とした。
+- PR #8の最新HEAD／ローカルHEADは`ebf7c452baf66141c41905b536607d9f530b6527`で一致している。
+- GitHub read-only確認ではRun `30780990538`のDetect／Native Static／Production Bundle Guard／SDK解決／SDK component installがsuccess、Android Jobが`Verify Android toolchain`でfailure、`Collect Android evidence`もfailure、`native-ci / verify`がfailureだった。
+- Androidログでは`adb`と`avdmanager`は成功し、`emulator -version`が`libpulse.so.0`不足で終了コード127となっていた。旧Evidenceの`adb logcat -d`はDevice未接続のまま約39分後にRunner shutdownで終了していた。
+
+### repair_plan
+
+- `libpulse0`を導入し、SDK Rootから`ADB`／`EMULATOR`／`AVDMANAGER`とRelease `APK_PATH`を絶対Pathで解決して`GITHUB_ENV`へ保存する。
+- SDK Path／adb／avdmanager／emulator診断を分割し、AVD／Emulator／ADB／APK／Deep Linkを絶対Pathへ統一する。Job Timeoutを50分、Evidence Stepを3分にし、Device確認・logcat timeout・状態Artifactを追加する。
+- Variation未選択時の在庫案内、選択済み在庫0／在庫あり、Out-of-stock選択・Add disabled、Cart上限案内／disabledを追加する。
+- Native RuntimeのReject済みPromise解除、Providerのin-flight guard付き再試行、Shell再試行UIとComponent／Contract Testを追加する。
+
+### allowed_files
+
+- `.github/workflows/native*.yml`
+- `src/bootstrap/**`
+- `src/presentation/native/**`
+- `tests/**`
+- `maestro/**`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/**`
+- `docs/plans/**`
+- `.codex/runs/20260802-194908-JST/**`
+
+### changed_files
+
+- `.github/workflows/native-ci.yml`
+- `src/bootstrap/native-runtime.ts`
+- `src/presentation/native/native-runtime-provider.tsx`
+- `src/presentation/native/native-shell.tsx`
+- `src/presentation/native/native-screens.tsx`
+- `src/presentation/native/native-variation-selection.ts`
+- `tests/component/native/native-cart-screen.test.tsx`
+- `tests/component/native/native-product-detail-screen.test.tsx`
+- `tests/component/native/native-runtime-provider.test.tsx`
+- `tests/component/native/native-variation-selection.test.ts`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `tests/contracts/native-runtime-service-surface.test.ts`
+- `maestro/native-out-of-stock.yaml`
+- `maestro/native-low-stock.yaml`
+- `maestro/native-purchase-limit.yaml`
+- `docs/plans/2026-08-03_131358_pr8-native-ci-rereview-repair.md`
+- `docs/history/2026-08-03_133600_pr8-native-ci-rereview-repair.md`
+- `docs/PROJECT_CONTEXT.md`
+
+### validation_commands
+
+- `pnpm install --frozen-lockfile` => PASS。
+- `pnpm run format`／`pnpm run format:check` => PASS。
+- `pnpm run lint` => PASS、0 errors／64 existing warnings。
+- `pnpm run typecheck` => PASS（app／native-tests）。
+- Native Component => 6 suites／12 tests PASS。Provider再試行、Product Detailの在庫状態、Cart上限disabledを含む。既存React test rendererの`act` warningあり。
+- `pnpm run test` => PASS（Unit 13/64、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 6/12、Contract 16/80）。Node SQLite ExperimentalWarningあり。
+- `pnpm run generate:native-assets`＋`git diff --exit-code -- src/generated/native-product-assets.ts` => PASS（9 assets、生成差分なし）。
+- `pnpm run validate:image-manifest`／`security:check`／`check:native-route-dependencies`／`validate:eas:config` => PASS。EASは`cloudRun=not-run`。
+- `pnpm run validate:native-production-bundle` => PASS（Automation markerあり、Production marker／`NativeTestControlService`なし）。
+- `pnpm run build:web` => PASS。
+- `pnpm run test:e2e:chromium` => PASS（27 tests）。`pnpm run test:a11y` => PASS（4 tests）。
+- 並列実行時の共有WebServer競合で一度失敗した`pnpm run test:e2e:mobile-boundary`は単独再実行しPASS（4 tests）。
+- `pnpm dlx expo-doctor@1.17.6` => PASS（17/17 checks）。`git diff --check` => 差分エラーなし（WindowsのLF/CRLF warningのみ）。
+- Maestroの`assertNotVisible`／`enabled` selector構文は公式API Referenceを確認し、Out-of-stock Flowへ反映した。
+
+### result
+
+- `Verify Android toolchain`の一括PATH確認を廃止し、SDK／adb／avdmanager／emulatorの個別判定と診断ログを追加した。後続Androidコマンドは絶対Pathとなった。
+- `libpulse0`、50分Android Job、Release APK Path集約、Gradle Log、3分Evidence timeout、ADB Device分岐を追加した。
+- Variation未選択時の在庫切れ誤表示を修正し、Out-of-stock Variationは選択後に在庫切れ表示、Add disabled、Cart不変を確認するFlow／Component Testを追加した。Low-stock／Purchase-limitは上限案内とdisabledを確認する。
+- Native RuntimeはReject時にキャッシュPromiseを解除し、再試行時にerror／ready／servicesを初期状態へ戻し、同時初期化を防止する。
+
+### remaining_delta
+
+- 修正後のGitHub Actions Run、`Verify Android SDK paths`以降の実Release APK／Emulator／Install／Launch／Harness／Maestro／Evidence Artifact／`native-ci / verify`は未取得。ユーザーPush後に確認する。
+- Windows上のAndroid SDK／adb／Emulator、macOS iOS Simulator／Xcode、実`expo-sqlite` Smokeは未実施。D13は未完了のまま保持する。
+- EAS Cloud Build／Workflow／Submit、Commit／Push、PR本文更新は未実施。
+
+### decision
+
+continue
+
+Progress: 80% (49/61)
+
+## 2026-08-03 13:41 JST PR #8 Native CI再失敗修正 Iteration 4
+
+### input_findings
+
+- 最終点検で、`maestro/native-out-of-stock.yaml`がM Variation選択後にも「カートに追加するにはVariationを選択してください。」を要求していた。
+- 現行Native Product DetailはVariation選択後にこの案内を非表示にするため、Flowのアサーションが実装状態と矛盾していた。
+
+### repair
+
+- Out-of-stock Flowから矛盾するアサーションを削除した。
+- 選択前の在庫確認案内、在庫切れVariation選択、在庫切れ表示、`native-add-to-cart` disabled、Cart空状態の確認は維持した。
+
+### validation
+
+- `git diff --check` => 差分エラーなし（WindowsのLF/CRLF warningのみ）。
+- 最終の`pnpm run format:check`、Native Workflow／Runtime Contract Test、Run Artifact JSON parseはこのIteration後に再実行する。
+
+### remaining_delta
+
+- 修正後GitHub Actions Run、Release APK／Emulator／Install／Launch／Harness／Maestro／Evidence Artifact、`native-ci / verify`は未取得。ユーザーPush後に確認する。
+- Windows上のAndroid SDK／adb／Emulator、macOS iOS Simulator／Xcode、実`expo-sqlite` Smokeは未実施。D13は未完了のまま保持する。
+- EAS Cloud Build／Workflow／Submit、Commit／Push、PR本文更新は未実施。
+
+### decision
+
+continue（コード・Workflow・静的／Web検証は完了。実GitHub／実Native環境の証跡待ち）
+
+Progress: 81% (50/62)
+
+### final_validation
+
+- `pnpm run format:check` => PASS（All matched files use Prettier code style）。
+- `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts tests/contracts/native-runtime-service-surface.test.ts --no-file-parallelism --maxWorkers=1` => 2 files／8 tests PASS。
+- `run.json`／`evaluation.json` JSON parse => PASS。
+- `git diff --check` => 差分エラーなし（WindowsのLF/CRLF warningのみ）。`android/`／`ios/`の差分なし。
+
 ## 2026-08-03 11:59 JST PR #8再レビュー修正 Iteration 2 最終検証
 
 ### 完了確認

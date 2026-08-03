@@ -1,11 +1,24 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import type { NativeApplicationServices } from "@/bootstrap/native-runtime";
-import { initializeNativeRuntime } from "@/bootstrap/native-runtime";
+import {
+  initializeNativeRuntime,
+  resetNativeRuntimeInitialization,
+} from "@/bootstrap/native-runtime";
 
 interface NativeRuntimeValue {
   ready: boolean;
   error: Error | null;
   services: NativeApplicationServices | null;
+  retry: () => void;
 }
 
 const NativeRuntimeContext = createContext<NativeRuntimeValue | null>(null);
@@ -14,30 +27,51 @@ export function NativeAppRuntimeProvider({ children }: { children: ReactNode }) 
   const [services, setServices] = useState<NativeApplicationServices | null>(null);
   const [error, setError] = useState<Error | null>(null);
   const [ready, setReady] = useState(false);
+  const initializing = useRef(false);
+  const mounted = useRef(false);
 
-  useEffect(() => {
-    let active = true;
+  const initialize = useCallback(() => {
+    if (initializing.current) return;
+    initializing.current = true;
+    setError(null);
+    setReady(false);
+    setServices(null);
     void initializeNativeRuntime()
       .then((next) => {
-        if (active) {
+        if (mounted.current) {
           setServices(next);
           setReady(true);
         }
       })
       .catch((caught: unknown) => {
-        if (active) {
+        if (mounted.current) {
           setError(
             caught instanceof Error ? caught : new Error("Native runtime initialization failed"),
           );
-          setReady(true);
+          setReady(false);
+          setServices(null);
         }
+      })
+      .finally(() => {
+        initializing.current = false;
       });
-    return () => {
-      active = false;
-    };
   }, []);
 
-  const value = useMemo(() => ({ ready, error, services }), [error, ready, services]);
+  useEffect(() => {
+    mounted.current = true;
+    initialize();
+    return () => {
+      mounted.current = false;
+    };
+  }, [initialize]);
+
+  const retry = useCallback(() => {
+    if (initializing.current) return;
+    resetNativeRuntimeInitialization();
+    initialize();
+  }, [initialize]);
+
+  const value = useMemo(() => ({ ready, error, services, retry }), [error, ready, retry, services]);
   return <NativeRuntimeContext.Provider value={value}>{children}</NativeRuntimeContext.Provider>;
 }
 

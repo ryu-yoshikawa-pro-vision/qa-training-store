@@ -18,24 +18,43 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain('test -d "$SDK_ROOT"');
     expect(nativeWorkflow).toContain('find "$SDK_ROOT/cmdline-tools"');
     expect(nativeWorkflow).toContain('test -x "$SDKMANAGER"');
+    expect(nativeWorkflow).toContain('ADB="$SDK_ROOT/platform-tools/adb"');
+    expect(nativeWorkflow).toContain('EMULATOR="$SDK_ROOT/emulator/emulator"');
+    expect(nativeWorkflow).toContain('AVDMANAGER="$(dirname "$SDKMANAGER")/avdmanager"');
+    expect(nativeWorkflow).toContain('test -x "$ADB"');
+    expect(nativeWorkflow).toContain('test -x "$EMULATOR"');
+    expect(nativeWorkflow).toContain('test -x "$AVDMANAGER"');
     expect(nativeWorkflow).toContain('"$SDKMANAGER" --licenses');
     expect(nativeWorkflow).toContain('"$SDKMANAGER" \\');
+    expect(nativeWorkflow).toContain('echo "ADB=$ADB" >> "$GITHUB_ENV"');
+    expect(nativeWorkflow).toContain('echo "EMULATOR=$EMULATOR" >> "$GITHUB_ENV"');
+    expect(nativeWorkflow).toContain('echo "AVDMANAGER=$AVDMANAGER" >> "$GITHUB_ENV"');
     expect(nativeWorkflow).toContain('echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"');
     expect(nativeWorkflow).toContain('echo "$SDK_ROOT/emulator" >> "$GITHUB_PATH"');
-    expect(nativeWorkflow).toContain("command -v adb");
-    expect(nativeWorkflow).toContain("command -v emulator");
-    expect(nativeWorkflow).toContain("command -v avdmanager");
+    expect(nativeWorkflow).toContain("Verify Android SDK paths");
+    expect(nativeWorkflow).toContain("Verify adb");
+    expect(nativeWorkflow).toContain("Verify avdmanager");
+    expect(nativeWorkflow).toContain("Inspect emulator binary");
     expect(nativeWorkflow).not.toMatch(/(^|\n)\s*sdkmanager\s+--licenses/m);
   });
 
   it("builds and verifies a Metro-free Automation Release APK", () => {
     expect(nativeWorkflow).toContain("./gradlew assembleRelease --no-daemon --stacktrace");
     expect(nativeWorkflow).toContain("android/app/build/outputs/apk/release/app-release.apk");
+    expect(
+      nativeWorkflow.match(/android\/app\/build\/outputs\/apk\/release\/app-release\.apk/g),
+    ).toHaveLength(1);
+    expect(nativeWorkflow).toContain(
+      'APK_PATH="$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/app-release.apk"',
+    );
+    expect(nativeWorkflow).toContain('test -s "$APK_PATH"');
+    expect(nativeWorkflow).toContain("set -o pipefail");
+    expect(nativeWorkflow).toContain('tee "$RUNNER_TEMP/gradle-assemble-release.log"');
     expect(nativeWorkflow).not.toContain("assembleDebug");
     expect(nativeWorkflow).not.toContain("app-debug.apk");
-    expect(nativeWorkflow).toContain("adb shell pm list packages | grep -F");
-    expect(nativeWorkflow).toContain("adb shell monkey");
-    expect(nativeWorkflow).toContain("pidof com.ryuyoshikawa.scenarioshop");
+    expect(nativeWorkflow).toContain('"$ADB" shell pm list packages | grep -F');
+    expect(nativeWorkflow).toContain('"$ADB" shell monkey');
+    expect(nativeWorkflow).toContain('"$ADB" shell pidof com.ryuyoshikawa.scenarioshop');
   });
 
   it("waits for Android OS and package service readiness with a timeout", () => {
@@ -43,8 +62,23 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain("-wipe-data");
     expect(nativeWorkflow).toContain("sys.boot_completed");
     expect(nativeWorkflow).toContain("service check package");
-    expect(nativeWorkflow).toContain("timeout 180 adb wait-for-device");
+    expect(nativeWorkflow).toContain('timeout 180 "$ADB" wait-for-device');
     expect(nativeWorkflow).toContain("timeout 180 bash -c");
+    expect(nativeWorkflow).toContain('"$AVDMANAGER" create avd');
+    expect(nativeWorkflow).toContain('"$EMULATOR" \\');
+    expect(nativeWorkflow).not.toMatch(/^\s+adb\s/m);
+    expect(nativeWorkflow).not.toMatch(/^\s+emulator\s/m);
+    expect(nativeWorkflow).not.toMatch(/^\s+avdmanager\s/m);
+  });
+
+  it("keeps emulator diagnostics and evidence bounded when no device exists", () => {
+    expect(nativeWorkflow).toContain("timeout-minutes: 50");
+    expect(nativeWorkflow).toContain("timeout-minutes: 3");
+    expect(nativeWorkflow).toContain('timeout 5 "$ADB" get-state');
+    expect(nativeWorkflow).toContain('timeout 15 "$ADB" logcat -d');
+    expect(nativeWorkflow).toContain("Android device was not started or was unavailable.");
+    expect(nativeWorkflow).toContain("Emulator was not started.");
+    expect(nativeWorkflow).toContain("Gradle Release build log was not generated.");
   });
 
   it("detects shared Native dependencies and fail-closes the final Verify job", () => {

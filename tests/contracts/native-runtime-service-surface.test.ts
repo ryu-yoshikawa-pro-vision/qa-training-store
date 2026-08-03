@@ -16,5 +16,7 @@ describe("Native application service surface", () => {
     expect(source).not.toContain("acceptPriceChanges");
     expect(source).not.toContain("listReviews");
     expect(source).not.toContain("suggest");
+    expect(source).toContain("createNativeRuntime().catch");
+    expect(source).toContain("initialization = null");
   });
 });

@@ -15,7 +15,7 @@ jest.mock("@/presentation/native/native-runtime-provider", () => ({
 
 const useNativeRuntimeMock = jest.mocked(useNativeRuntime);
 
-function line(itemId: string, quantity: number): CartLineDto {
+function line(itemId: string, quantity: number, maximumQuantity = 5): CartLineDto {
   return {
     itemId,
     itemVersion: 1,
@@ -26,7 +26,7 @@ function line(itemId: string, quantity: number): CartLineDto {
     optionValue: "M",
     image: { assetId: "asset-shirt-front", path: "/images/shirt.svg", altText: "商品画像" },
     quantity,
-    maximumQuantity: 5,
+    maximumQuantity,
     unitEffectivePriceAtAdd: 2000,
     currentUnitEffectivePrice: 2000,
     currentViewerUnitPrice: 2000,
@@ -56,6 +56,7 @@ function setRuntime(cartService: Record<string, jest.Mock>): void {
   useNativeRuntimeMock.mockReturnValue({
     ready: true,
     error: null,
+    retry: jest.fn(),
     services: { catalog: {}, cart: cartService } as never,
   });
 }
@@ -141,5 +142,29 @@ describe("NativeCartScreen", () => {
         false,
       );
     });
+  });
+
+  it("disables quantity increase and preserves the quantity at the maximum", async () => {
+    const atLimit = cart([line("limit", 3, 3)]);
+    const updateQuantity = jest.fn();
+    setRuntime({
+      getCart: jest.fn().mockResolvedValue(atLimit),
+      updateQuantity,
+      removeItem: jest.fn(),
+      addItem: jest.fn(),
+    });
+
+    const screen = await render(<NativeCartScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-cart-increase-limit")).toBeTruthy());
+
+    expect(screen.getByTestId("native-cart-increase-limit").props.accessibilityState.disabled).toBe(
+      true,
+    );
+    expect(screen.getByTestId("native-cart-limit-limit")).toBeTruthy();
+
+    fireEvent.press(screen.getByTestId("native-cart-increase-limit"));
+
+    expect(screen.getByTestId("native-cart-quantity-limit").props.children).toBe(3);
+    expect(updateQuantity).not.toHaveBeenCalled();
   });
 });

@@ -15,4 +15,9 @@ appId: com.ryuyoshikawa.scenarioshop
 - tapOn: "＋"
 - tapOn: "＋"
 - assertVisible: "3"
+- assertVisible: "購入可能な上限に達しました。"
+- assertVisible:
+    text: "＋"
+    enabled: false
+- assertVisible: "3"
 - takeScreenshot: native-low-stock

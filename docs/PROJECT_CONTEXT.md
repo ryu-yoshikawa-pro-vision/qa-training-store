@@ -109,6 +109,14 @@
 - MaestroはRestart Persistence、Dirty State Reset、Out-of-stock、Low-stock、Purchase Limitを独立Flowとして追加し、Screenshotは専用`--test-output-dir`へ収集する。iOS Workflowはmanual-onlyのRelease Simulator Buildへ揃える。
 - 上記修正後WorkflowのGitHub Actions再実行、Windows Android Emulator、macOS iOS Simulator、実`expo-sqlite`証跡は、Commit／Push禁止またはToolchain不在のため未実施である。
 
+## PR #8 Native CI再失敗修正（2026-08-03）
+
+- 最新確認Runは`30780990538`。SDK解決／Installは成功したが、`Verify Android toolchain`で`emulator -version`が`libpulse.so.0`不足となり、Evidenceの旧`adb logcat -d`が接続待ちのままRunner shutdownまで停止した。
+- `.github/workflows/native-ci.yml`は`libpulse0`を導入し、`ADB`／`EMULATOR`／`AVDMANAGER`／`APK_PATH`をSDK Rootから絶対Pathで解決して`GITHUB_ENV`へ保存する。SDK Path／adb／avdmanager／emulator診断を分割し、後続のAVD／Emulator／ADB／APK操作も絶対Pathへ統一する。
+- Release APKは`APK_PATH`に集約し、Gradle出力を`gradle-assemble-release.log`へ保存する。EvidenceはADB Device確認、`logcat`のTimeout、Emulator／APK／JUnit／Maestro専用Artifactの存在分岐と3分Step Timeoutを持つ。Job Timeoutは50分とする。
+- Native Product Detailは未選択時に`Variationを選択すると在庫を確認できます。`を表示し、在庫0／在庫ありを選択後だけ表示する。Out-of-stock Variationは選択できるがAddはdisabledとし、CartのLow-stock／Purchase-limit上限は同じdisabled／案内契約を使う。
+- Native Runtimeは初期化Reject時に保持Promiseを解除し、Providerは同時初期化を防ぎながら再試行できる。実GitHub Actions再実行、Windows Android Emulator、macOS iOS Simulator、実`expo-sqlite`は未確認である。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

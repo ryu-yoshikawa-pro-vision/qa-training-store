@@ -8,8 +8,15 @@ appId: com.ryuyoshikawa.scenarioshop
     timeout: 30000
 - openLink: "scenario-shop://products/product-basic-shirt"
 - assertVisible: "ベーシックTシャツ"
-- assertVisible: "在庫切れ"
+- assertVisible: "Variationを選択すると在庫を確認できます。"
+- assertNotVisible: "在庫切れ"
+- tapOn: "M"
 - assertVisible: "M（在庫切れ）"
-- assertVisible: "カートに追加"
-- assertVisible: "カートに追加するにはVariationを選択してください。"
+- assertVisible: "在庫切れ"
+- assertVisible:
+    id: "native-add-to-cart"
+    enabled: false
+- tapOn: "カートを見る"
+- assertVisible: "カート"
+- assertVisible: "カートは空です"
 - takeScreenshot: native-out-of-stock
