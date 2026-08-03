@@ -13,7 +13,8 @@ concurrency:
 env:
   NODE_VERSION: 24
   PNPM_VERSION: 9.10.0
-  MAESTRO_VERSION: 1.39.15
+  MAESTRO_VERSION: 2.8.0
+  MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip
   EXPO_PUBLIC_APP_ENV: automation
   EXPO_PUBLIC_BUILD_KIND: automation
   EXPO_PUBLIC_TEST_MODE: "true"
@@ -88,9 +89,11 @@ jobs:
         shell: bash
         run: |
           mkdir -p "$RUNNER_TEMP/maestro"
-          curl --fail --location --retry 3 "https://github.com/mobile-dev-inc/maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip" --output "$RUNNER_TEMP/maestro.zip"
+          curl --fail --location --retry 3 "$MAESTRO_DOWNLOAD_URL" --output "$RUNNER_TEMP/maestro.zip"
           unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP/maestro"
-          echo "$RUNNER_TEMP/maestro/bin" >> "$GITHUB_PATH"
+          test -x "$RUNNER_TEMP/maestro/maestro/bin/maestro"
+          "$RUNNER_TEMP/maestro/maestro/bin/maestro" --version
+          echo "$RUNNER_TEMP/maestro/maestro/bin" >> "$GITHUB_PATH"
       - name: Reset Test Control and run iOS smoke
         shell: bash
         run: |
@@ -98,7 +101,6 @@ jobs:
           mkdir -p "$RUNNER_TEMP/maestro-artifacts"
           DEVICE=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')
           test -n "$DEVICE"
-          xcrun simctl openurl "$DEVICE" 'scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0'
           maestro test "$GITHUB_WORKSPACE/maestro/native-test-control.yaml" \
             --test-output-dir="$RUNNER_TEMP/maestro-artifacts/test-control" \
             --format junit --output "$RUNNER_TEMP/maestro-test-control.xml"

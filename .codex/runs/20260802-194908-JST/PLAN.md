@@ -224,3 +224,24 @@ Route Inventory、Root/Shell、依存方向、Capability/Scope、Native Composit
 - ReleaseのHTTP／zip構造確認、コード／Workflow／Contract、ローカルNode検証は完了扱いにできる。
 - WindowsにJava／Android SDK／adb／Emulatorがないため、ローカル`maestro --version`、APK Install／操作、10 Flowは未確認とする。Cache Miss／Hit、Remote Verify、Native CI全体時間はユーザー側の実Run待ちである。
 - Commit、Push、branch変更、PR本文更新、EAS Cloud Build／Submitは実施しない。
+
+## 28. 2026-08-04 PR #8 Native Test Control起動競合・受入テスト修正計画
+
+### 入力と根本原因
+
+- 添付指示の実ログと現行コードを照合し、`NativeTestControlBridge`が`Linking.getInitialURL()`を先に開始し、`Linking.addEventListener("url", ...)`登録完了を親UIへ通知していないため、Cold Start直後のReset URLを受信できない競合を確認する。
+- 画面表示を`DeviceEventEmitter`のready／error Signalに依存させず、Bridgeの直接Callbackで`booting`／`listening`／`resetting`／`ready`／`error`を更新する。
+
+### 実施方針
+
+- `NativeTestControlBridge`はlistener登録→`listening`通知→`getInitialURL()`確認の順にし、active guard、in-flight URL Set、解析／Reset失敗のerror遷移、Unmount後のNavigation／Status更新抑止を実装する。Serviceの既存Mutex／ready／error Signalは変更しない。
+- `NativeAutomationBridge`は型安全なstatus label mappingを使い、初期状態を`booting`として子BridgeのCallbackを表示へ接続する。
+- 10 Maestro FlowはCold Start後に`Scenario Shop`→`Native test runtime listening`→Reset URL→`Native test runtime ready`の順へ統一する。固定Sleepや単純なtimeout延長は追加しない。
+- iOS Workflowの直接`simctl openurl`を削除し、Reset責務をMaestro Flowへ統一する。iOS Maestro CLIも実Assetのnested pathと固定cli-2.8.0へ合わせる。
+- Bridge Component Test 8ケース以上と、Flow内index／command順序を検証するMaestro Contract Testを追加する。Reset後の画面Stateは実Nativeで古いStateが観測されるまで`dataRevision`を追加しない。
+
+### 判定境界
+
+- ローカルコード、静的Contract、Node／Jest／Web検証、Android prebuildは完了扱いにできる。
+- Java／Android SDK／adb／Emulator／Maestro／macOS Xcode／Simulatorが現環境にないため、実Android 10 Flow、実SQLite、iOS Manual Workflow、Reset後の画面再読込は未確認とする。
+- Commit、Push、PR更新、EAS Cloud Build／Submitは実施しない。修正後Remote CIのCache Miss／Hit、10 Flow、`native-ci / verify`はユーザーのPush後に確認する。

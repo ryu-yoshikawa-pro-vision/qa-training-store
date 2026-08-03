@@ -680,6 +680,107 @@ stop_needs_human（コード／Workflow／Contract／ローカル検証は完了
 
 Progress: 81% (76/93)
 
+## 2026-08-04 08:10 JST PR #8 Native Test Control起動競合・受入テスト修正 Iteration 9
+
+### iteration_number
+
+- 9
+
+### input_findings
+
+- 添付指示は、Cold Start直後にReset Deep LinkがReact Native／Linking listener登録前へ送信される起動競合を根本原因としている。固定Sleepやready timeout延長だけでは解決しない。
+- 現行コードは`getInitialURL()`をlistener登録より先に開始し、Runtime表示は`DeviceEventEmitter`のready／error Signalに依存していた。`listening`の観測可能な契約、Reset中表示、in-flight URL管理、Unmount guardが不足していた。
+- iOS WorkflowにはMaestro Flow内Resetと重複する`xcrun simctl openurl`が残り、CLIも旧`1.39.15`固定だった。
+
+### triage
+
+- `must_fix`: listener登録順序、5状態Runtime表示、直接Callback、URL二重処理防止、Unmount／Promise保護、10 Flowの順序、iOS重複Reset削除、Bridge／Maestro Contract Test。
+- `should_fix`: URL parse例外のerror遷移、iOS CLIを確認済みcli-2.8.0／nested binへ統一、Production disabled entryの境界Contract。
+- `defer`: Reset後の`dataRevision`／`resetGeneration`。実Native Flowで古いStateが観測されていないため、状態管理基盤を先行追加しない。Remote Cache Miss／Hitと10 Flow実行。
+- `reject`: 固定Sleep追加、ready timeoutだけの延長、Reset／Scenario assertion／Flowのskip、CI allow-failure。今回の差分には採用していない。
+
+### repair_plan
+
+- `NativeTestControlBridge`で、services／buildKind確認→listener登録→`listening`通知→`getInitialURL()`確認→cleanupの順序を固定する。
+- valid URLだけをin-flight Setへ登録して`resetting`→Service reset→route replace→`ready`へ遷移し、解析／Reset失敗は`error`、Unmount後はStatus／Navigationを更新しない。
+- `NativeAutomationBridge`は`booting`初期値と型安全な5状態label mappingを使い、子Bridge Callbackを表示へ接続する。既存Service Signalは削除しない。
+- 10 Flowをindex検証可能な順序へ修正し、iOS Workflowから直接Deep Linkを削除する。
+
+### allowed_files
+
+- `src/presentation/native/native-automation-bridge.enabled.tsx`
+- `src/presentation/native/native-test-control-bridge.tsx`
+- `src/presentation/native/native-test-runtime-status.ts`
+- `tests/component/native/native-test-control-bridge.test.tsx`
+- `tests/contracts/native-test-control-maestro.test.ts`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `maestro/native-*.yaml`（対象10 Flow）
+- `.github/workflows/native-ios-ci.yml`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/2026-08-04_081038_pr8-native-test-control-repair.md`
+- `.codex/runs/20260802-194908-JST/PLAN.md`
+- `.codex/runs/20260802-194908-JST/TASKS.md`
+- `.codex/runs/20260802-194908-JST/REPORT.md`
+- `.codex/runs/20260802-194908-JST/run.json`
+- `.codex/runs/20260802-194908-JST/evaluation.json`
+
+### delegation
+
+- 実装前に`code_researcher`、`implementation_researcher`、`test_investigator`のread-only調査agentを3件起動しようとしたが、agent thread limitによりspawnできなかった。ファイル編集／作成／削除／Git操作は発生していない。
+- 親Agentが現行コード、既存Test、Workflow、Maestro Flowを直接再調査し、変更範囲と検証方法を確定した。writable subagentは使用していない。
+
+### changed_files
+
+- `.github/workflows/native-ios-ci.yml`: Maestro cli-2.8.0／固定Download URL／nested executable検証へ更新し、`simctl openurl`による重複Resetを削除。
+- `src/presentation/native/native-test-runtime-status.ts`: 5状態Unionとlabel mappingを追加。
+- `src/presentation/native/native-automation-bridge.enabled.tsx`: `booting`初期状態、直接Callback接続、label mapping表示へ変更。DeviceEventEmitterによるUI状態購読を削除。
+- `src/presentation/native/native-test-control-bridge.tsx`: listener先行登録、`listening`通知、initial URL、`resetting`／`ready`／`error`、active guard、in-flight URL、cleanupを実装。
+- `tests/component/native/native-test-control-bridge.test.tsx`: 初期化前、listener順序、valid／対象外URL、parse／Reset失敗、Unmount、initial URL、重複配信の9 testsを追加。
+- `tests/contracts/native-test-control-maestro.test.ts`: 10 Flowのindex順序、5 label、Bridge処理順、Production disabled entry、iOS重複Reset／CLI契約を追加。
+- `maestro/native-cart.yaml`、`native-contract-harness.yaml`、`native-not-found.yaml`、`native-storefront.yaml`、`native-restart-persistence.yaml`、`native-reset-dirty-state.yaml`、`native-out-of-stock.yaml`、`native-low-stock.yaml`、`native-purchase-limit.yaml`、`native-test-control.yaml`: Cold Startを`launchApp → Scenario Shop → listening待機 → openLink → ready待機`へ統一。
+
+### validation_commands
+
+- `pnpm exec jest --config jest.config.cjs tests/component/native/native-test-control-bridge.test.tsx --runInBand` => 1 suite／9 tests PASS。
+- `pnpm exec vitest run tests/contracts/native-test-control-maestro.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1` => 2 files／24 tests PASS。
+- `pnpm run format:check` => PASS。
+- `pnpm run lint` => PASS、0 errors／既存64 warnings。
+- `pnpm run typecheck` => app／native-tests PASS。
+- `pnpm run test:unit` => 13 files／66 tests PASS。
+- `pnpm run test:integration` => 9 files／91 tests PASS。
+- `pnpm run test:repository` => 5 files／28 tests PASS。
+- `pnpm run test:component:native -- --runInBand` => 9 suites／25 tests PASS。既存React `act` warningあり。
+- `pnpm run test:contracts` => 19 files／100 tests PASS。Node SQLite ExperimentalWarningあり。
+- `pnpm run check:native-route-dependencies` => 38 native routes PASS。
+- `pnpm run validate:image-manifest` => PASS。
+- `pnpm run validate:eas:config` => PASS、`cloudRun=not-run`。EAS Cloudは実行していない。
+- `pnpm run validate:native-production-bundle` => PASS、Automation marker present／Production marker absent。
+- `pnpm run test` => Unit／Integration／Repository／Web Component／Native Jest／Contractを含めPASS。
+- `pnpm run build:web` => PASS、Web export完了。
+- `pnpm run verify` => PASS。
+- `pnpm exec expo prebuild --platform android --no-install` => PASS。生成`android/`はignoredでRepository差分なし。
+- `git diff --check` => whitespace errorなし。Windows LF／CRLF warningのみ。
+- `git diff --name-only -- android ios` => 空。生成Native ProjectをRepositoryへ追加していない。
+- `Get-Command java/adb/emulator/maestro/xcrun/xcodebuild/pod` => 全てunavailable。実Native操作は実行していない。
+
+### validation_result
+
+- Code／Workflow／Static／Node／Jest／Web検証はPASS。
+- `NativeTestControlBridge`の8必須ケースを含む9 Component Test、10 Flowの順序Contract、iOS重複Reset削除Contract、Production disabled entry ContractはPASS。
+- Maestro CLIの実行、Android APK Install／Emulator／10 Flow／実SQLite／Reset後画面再読込、iOS Simulator／Manual WorkflowはNOT RUN。環境不在であり、PASSとは記録しない。
+
+### remaining_delta
+
+- 最新修正をremoteへ反映するCommit／Pushを行っていないため、修正後GitHub ActionsのCache Miss／Cache Hit、Android Native CI 10 Flow、Harness、Evidence、`native-ci / verify`は未確認。
+- Java／Android SDK／adb／Emulator／Maestroがないため、ローカルMaestro `--version`、APK Build／Install／操作、実`expo-sqlite`、Reset後Scenario／Cart再読込は未確認。
+- Windows環境のため、iOS Xcode／Simulator／`xcrun simctl` Manual Workflowと実iOS SQLite／Persistenceは未確認。
+
+### decision
+
+- `stop_needs_human`。コードとローカル検証の修正ループは成功したが、受入条件のRemote CI／実Android／実iOSはCommit／Pushまたはtoolchain提供が必要で、ユーザー判断・外部状態に依存する。無制限再試行は行わない。
+
+Progress: 81% (81/99)
+
 ## 2026-08-03 PR #8 AVD永続化・PBKDF2契約修正 Iteration 6
 
 ### iteration_number

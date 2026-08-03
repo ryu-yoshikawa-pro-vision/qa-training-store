@@ -8,35 +8,82 @@ import {
   isNativeTestControlBuild,
   parseNativeTestControlLink,
 } from "@/test-controls/native-test-control-protocol";
+import type { NativeTestRuntimeStatus } from "./native-test-runtime-status";
+
+export interface NativeTestControlBridgeProps {
+  services: NativeApplicationServices | null;
+  buildKind?: string;
+  onStatusChange?: (status: NativeTestRuntimeStatus) => void;
+}
 
 export function NativeTestControlBridge({
   services,
   buildKind = resolveNativeBuildKind(),
-}: {
-  services: NativeApplicationServices | null;
-  buildKind?: string;
-}) {
+  onStatusChange,
+}: NativeTestControlBridgeProps) {
   useEffect(() => {
-    if (services === null || !isNativeTestControlBuild(buildKind)) return undefined;
+    if (services === null || !isNativeTestControlBuild(buildKind)) {
+      onStatusChange?.("booting");
+      return undefined;
+    }
+
     const service = new NativeTestControlService(services);
-    const handleUrl = (url: string) => {
-      const parsed = Linking.parse(url);
-      const request = parseNativeTestControlLink(parsed);
+    let active = true;
+    const inFlightUrls = new Set<string>();
+
+    const handleUrl = async (url: string): Promise<void> => {
+      if (!active || inFlightUrls.has(url)) return;
+
+      let request: ReturnType<typeof parseNativeTestControlLink>;
+      try {
+        const parsed = Linking.parse(url);
+        request = parseNativeTestControlLink(parsed);
+      } catch {
+        if (active) onStatusChange?.("error");
+        return;
+      }
       if (request === null) return;
-      void service
-        .reset(request)
-        .then((result) => router.replace(result.defaultRoute))
-        .catch(() => {
-          // The service emits the detailed test-runtime-error signal. Keep the
-          // Linking event handler from producing an unhandled rejection.
-        });
+
+      inFlightUrls.add(url);
+      onStatusChange?.("resetting");
+      try {
+        const result = await service.reset(request);
+        if (!active) return;
+        router.replace(result.defaultRoute);
+        onStatusChange?.("ready");
+      } catch {
+        if (active) onStatusChange?.("error");
+      } finally {
+        inFlightUrls.delete(url);
+      }
     };
-    void Linking.getInitialURL().then((url) => {
-      if (url !== null) handleUrl(url);
-    });
-    const subscription = Linking.addEventListener("url", ({ url }) => handleUrl(url));
-    return () => subscription.remove();
-  }, [buildKind, services]);
+
+    let subscription: ReturnType<typeof Linking.addEventListener>;
+    try {
+      subscription = Linking.addEventListener("url", ({ url }) => {
+        void handleUrl(url);
+      });
+    } catch {
+      active = false;
+      onStatusChange?.("error");
+      return undefined;
+    }
+
+    onStatusChange?.("listening");
+
+    void Linking.getInitialURL()
+      .then((url) => {
+        if (active && url !== null) void handleUrl(url);
+      })
+      .catch(() => {
+        if (active) onStatusChange?.("error");
+      });
+
+    return () => {
+      active = false;
+      subscription.remove();
+    };
+  }, [buildKind, onStatusChange, services]);
 
   return null;
 }

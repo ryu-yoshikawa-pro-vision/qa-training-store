@@ -150,6 +150,16 @@
 - ローカルのFormat／Lint（0 errors／64 warnings）／Typecheck／Native Component 8 suites・16 tests／Repository 5 files・28 tests／Contract 18 files・86 tests／Route 38／Production Bundle Guard／Workflow Bash構文は成功した。WindowsのJava／Android SDK／adb／Emulator不在により、ローカルMaestro`--version`、実APK操作、Maestro 10 Flowは未確認である。
 - 修正後Remote Cache Miss／Hit、Maestro全Flow、Harness Signal、Evidence、`native-ci / verify`、Native CI全体時間は未確認である。Commit／Push／PR本文更新／EAS Cloud実行は行わない。
 
+## PR #8 Native Test Control起動競合・受入テスト修正（2026-08-04）
+
+- Native Runtimeの画面状態は`src/presentation/native/native-test-runtime-status.ts`の`NativeTestRuntimeStatus`と`RUNTIME_STATUS_LABELS`を正本とし、`booting`／`listening`／`resetting`／`ready`／`error`の固定文字列を使う。既存のService Signal（ready／error／contract）は診断・Contract互換性のため維持する。
+- `NativeTestControlBridge`は`Linking.addEventListener("url", ...)`登録後に直接Callbackで`listening`を通知し、その後`Linking.getInitialURL()`を確認する。valid URLだけを処理中Setで排他し、Reset成功後に`router.replace()`、`ready`通知、失敗時`error`通知を行う。Unmount後はStatus／Navigationを更新しない。同一URLは処理完了後に再実行可能である。
+- `NativeAutomationBridge`はDeviceEventEmitterのlistener登録順に依存せず、Bridge Callbackを直接画面へ接続する。Production disabled entryは従来どおりTest Control／Harnessをimportしない。
+- Native Maestro 10 FlowはCold Start後に`launchApp`、`Scenario Shop`、`Native test runtime listening`待機、Reset `openLink`、`Native test runtime ready`待機の順序を持つ。固定Sleepや単純なtimeout延長は追加しない。`native-reset-dirty-state`の2回目Resetは既存listenerを使い、ready待機を維持する。
+- iOS Manual WorkflowはFlow実行前の`xcrun simctl openurl`を削除し、Reset責務をMaestroへ統一した。Maestro CLIは確認済みのcli-2.8.0／`maestro.zip`／nested `maestro/bin/maestro`へ固定する。
+- Bridge Component Testは9 tests、Maestro／iOS／Production境界Contractを追加した。実Nativeで古い画面Stateが観測されていないため、`dataRevision`／`resetGeneration`は未追加である。
+- 2026-08-04のローカル検証はformat／lint（0 errors・64 warnings）／typecheck、Unit 66、Integration 91、Repository 28、Web Component 76、Native Jest 25、Contract 100、Route 38、Image／EAS static／Production Bundle、`test`、`build:web`、`verify`、Android `expo prebuild --no-install`が成功した。Java／Android SDK／adb／Emulator／Maestro／Xcode／Simulatorは未導入のため、実Android／iOS操作とRemote CIは未確認である。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

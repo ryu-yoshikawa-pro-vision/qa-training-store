@@ -178,3 +178,14 @@ Progress: 84% (68/81)
 - [ ] D61. 高速化後のNative CI全体時間をRemote Runで測定し、既存14分29秒／短縮11分06秒との差を記録する。
 
 Progress: 81% (76/93)
+
+## 2026-08-04 PR #8 Native Test Control起動競合・受入テスト修正 Iteration 9
+
+- [x] D62. 添付指示、現行Native Bridge／Maestro／iOS Workflowを照合し、起動競合の根本原因とallowed filesを確定する。
+- [x] D63. Runtime Status 5状態、listener先行登録、直接Callback、in-flight URL、Unmount／解析／Reset失敗保護を実装する。
+- [x] D64. 10 Maestro Flowの`launchApp → listening → openLink → ready`順序とiOS重複Deep Linkを修正する。
+- [x] D65. Native Test Control Bridge Component TestとMaestro／iOS／Production境界Contract Testを追加・更新する。
+- [x] D66. 指示書のformat／lint／typecheck／unit／integration／repository／component／contract／static／Web Build／verify、Android prebuildを実行する。
+- [ ] D67. PROJECT_CONTEXT、History、REPORT、evaluation、run manifestへ今回の実態と未確認境界を追記し、Git statusを最終確認する。
+
+Progress: 81% (81/99)

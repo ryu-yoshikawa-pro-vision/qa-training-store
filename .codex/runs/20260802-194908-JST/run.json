@@ -12,7 +12,7 @@
   ],
   "repo": "qa-training-store",
   "branch": "feature/01_phase2-first-half-native-foundation",
-  "head_sha": "5fc9c14c7dc2975b6516e6fd2331cd1c7e0cc5b5",
+  "head_sha": "a506fca50d10a535565763461dbca5cafb965a5c",
   "base_branch": "main",
   "codex_task_reports": [],
   "changed_files": [
@@ -78,7 +78,13 @@
     "tests/contracts/native-signal-module.test.ts",
     "tests/contracts/playwright-config.test.ts",
     "docs/history/2026-08-03_203822_pr8-native-ci-recovery.md",
-    "docs/history/2026-08-03_224828_pr8-maestro-cli-repair.md"
+    "docs/history/2026-08-03_224828_pr8-maestro-cli-repair.md",
+    "src/presentation/native/native-test-runtime-status.ts",
+    "src/presentation/native/native-automation-bridge.enabled.tsx",
+    "src/presentation/native/native-test-control-bridge.tsx",
+    "tests/component/native/native-test-control-bridge.test.tsx",
+    "tests/contracts/native-test-control-maestro.test.ts",
+    "docs/history/2026-08-04_081038_pr8-native-test-control-repair.md"
   ],
   "validation": {
     "status": "in_progress",
@@ -237,7 +243,27 @@
       "pnpm run check:native-route-dependencies",
       "pnpm run validate:native-production-bundle",
       "Git Bash bash -n: Install and launch APK / Install pinned Maestro CLI",
-      "git diff --check"
+      "git diff --check",
+      "pnpm exec jest --config jest.config.cjs tests/component/native/native-test-control-bridge.test.tsx --runInBand",
+      "pnpm exec vitest run tests/contracts/native-test-control-maestro.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run test:unit",
+      "pnpm run test:integration",
+      "pnpm run test:repository",
+      "pnpm run test:component:native -- --runInBand",
+      "pnpm run test:contracts",
+      "pnpm run check:native-route-dependencies",
+      "pnpm run validate:image-manifest",
+      "pnpm run validate:eas:config",
+      "pnpm run validate:native-production-bundle",
+      "pnpm run test",
+      "pnpm run build:web",
+      "pnpm run verify",
+      "pnpm exec expo prebuild --platform android --no-install",
+      "Get-Command java/adb/emulator/maestro/xcrun/xcodebuild/pod",
+      "git diff --name-only -- android ios"
     ],
     "warnings": [
       "Android adb/Emulator/Maestro未導入のため実Android操作は未確認",
@@ -277,7 +303,11 @@
       "Maestro cli-2.8.0 official asset was confirmed with HTTP 200 and extracted path maestro/bin/maestro; local --version/Flow execution remains unconfirmed because Java／Android toolchain is unavailable",
       "Application Launch now checks PID for 60s plus 6 samples over 10s and scopes fatal log detection to the target package／ReactNativeJS",
       "Evidence signal regex now matches test-runtime-ready／error and native-contract-running／passed／failed",
-      "Iteration 8 delegation spawn failed because the agent thread limit was reached; no subagent file mutation occurred"
+      "Iteration 8 delegation spawn failed because the agent thread limit was reached; no subagent file mutation occurred",
+      "Iteration 9: Native Test Control Bridge 9 tests、Maestro／iOS Contract、10 Flow順序、5状態Lifecycleを追加・修正",
+      "Iteration 9: pnpm run test／build:web／verify、Static検証、Android prebuildがPASS。実Android／iOS／Remote CIは未確認",
+      "Iteration 9 delegation spawn was blocked by the agent thread limit; no subagent mutation occurred",
+      "Java／adb／emulator／maestro／xcrun／xcodebuild／pod are unavailable on the current Windows host"
     ]
   },
   "safety": {
