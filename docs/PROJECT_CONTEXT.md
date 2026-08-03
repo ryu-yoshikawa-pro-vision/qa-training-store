@@ -141,6 +141,15 @@
 - ローカルのformat／型チェック／Lint／Native Jest 8 suites・16 tests／今回のWorkflow・signal Contract 11 testsは成功した。VitestでNative Jest対象を直接起動する方法はReact Native Flow構文を扱えないため使用せず、`jest.config.cjs`を正式入口とする。既存Lint warningとReact `act` warningは残存するがerrorはない。
 - 修正後WorkflowのGitHub Actions Run、Android Emulator／Maestro／Harness実証、WindowsローカルAndroid toolchain、macOS iOS toolchain、実`expo-sqlite`は未確認である。Commit／Push／PR更新／EAS Cloud実行は行わない。
 
+## PR #8 Maestro CLI／Application Launch／Signal修正（2026-08-03）
+
+- 最新確認Runは`30811624722`（HEAD `5fc9c14c7dc2975b6516e6fd2331cd1c7e0cc5b5`）。Native Static、Production Bundle Guard、Gradle Release APK、Emulator、APK Install、Application Launch、Evidence uploadはsuccessだったが、Cache Miss後の`Install pinned Maestro CLI`が旧`MAESTRO_VERSION=1.39.15`のURL HTTP 404／curl exit 22で失敗し、Maestro 2 Groupはskip、`native-ci / verify`はfail-closeした。
+- GitHub公式Release APIと実Assetで、採用する固定Releaseを`cli-2.8.0`／`maestro.zip`、URLを`https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip`、HTTP 200と確認した。zipの実展開構造は`maestro/bin/maestro`のため、WorkflowのCache Hit検証、`--version`、PATHをその構造へ合わせた。Version／URL／Cache SchemaはWorkflow envへ集約し、Cache keyはOS／Version／Schema単位で分離する。
+- Application Launchは`PACKAGE_ID`を共通化し、PID出現を最大60秒待ち、出現後6回・2秒間隔で10秒以上の継続稼働を確認する。Logcatは`Process: <package>`または`ReactNativeJS`に絞り、Fatal Exception、JavaScript Exception、Stack Overflow、Metro接続／Scriptロード失敗を検知する。
+- Evidenceの正式Signal regexは`test-runtime-(ready|error)|native-contract-(running|passed|failed)`である。旧`native-test-runtime-ready`前提はContract Testで拒否する。
+- ローカルのFormat／Lint（0 errors／64 warnings）／Typecheck／Native Component 8 suites・16 tests／Repository 5 files・28 tests／Contract 18 files・86 tests／Route 38／Production Bundle Guard／Workflow Bash構文は成功した。WindowsのJava／Android SDK／adb／Emulator不在により、ローカルMaestro`--version`、実APK操作、Maestro 10 Flowは未確認である。
+- 修正後Remote Cache Miss／Hit、Maestro全Flow、Harness Signal、Evidence、`native-ci / verify`、Native CI全体時間は未確認である。Commit／Push／PR本文更新／EAS Cloud実行は行わない。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

@@ -203,3 +203,24 @@ Route Inventory、Root/Shell、依存方向、Capability/Scope、Native Composit
 
 - コード、Workflow、Contract、ローカル検証は今回の作業範囲で完了した。
 - 修正後GitHub Actions Run、実Android／iOS操作、実`expo-sqlite`は未確認であり、Remote acceptanceは未完了として残す。EAS CloudとGit操作は行わない。
+
+## 27. 2026-08-03 PR #8 Maestro CLI／Application Launch／Signal修正計画
+
+### 入力と仮説
+
+- 現在のHEAD `5fc9c14c7dc2975b6516e6fd2331cd1c7e0cc5b5`とRun `30811624722`を確認し、Android Job `91679536716`の`Install pinned Maestro CLI`だけが、`MAESTRO_VERSION=1.39.15`の配布URLHTTP 404／curl exit 22で失敗していることを確定する。
+- APK生成、Emulator起動、Install、Application Launch、Evidence uploadは成功しているが、旧Launch判定は単発PID確認であり、継続稼働と対象PackageのFatal Log検出が不足している。
+- GitHub公式Release APIで採用候補を確認し、`cli-2.8.0`、`maestro.zip`、HTTP 200、展開構造`maestro/bin/maestro`を確認する。Version／URLを推測せず固定する。
+
+### 実施方針
+
+- WorkflowのVersion／Download URL／Cache Schemaをenvへ集約し、Cache keyへOS・Version・Schemaを含める。実Releaseの一階層深いbin pathへInstall後検証とPATHを合わせる。
+- Application LaunchをPackage ID変数、PID出現最大60秒、6回・2秒間隔の10秒安定稼働、対象Package／ReactNativeJSのFatal Log検出へ拡張する。
+- EvidenceのSignal regexを`test-runtime-(ready|error)|native-contract-(running|passed|failed)`へ揃え、旧PatternをContract Testで拒否する。
+- 変更対象はWorkflow、Workflow Contract、PROJECT_CONTEXT、History、既存Run Artifactに限定し、既存のAndroid並列化・x86_64・Gradle／Maestro cache・SDK不足分導入・Evidence軽量化を維持する。
+
+### 判定境界
+
+- ReleaseのHTTP／zip構造確認、コード／Workflow／Contract、ローカルNode検証は完了扱いにできる。
+- WindowsにJava／Android SDK／adb／Emulatorがないため、ローカル`maestro --version`、APK Install／操作、10 Flowは未確認とする。Cache Miss／Hit、Remote Verify、Native CI全体時間はユーザー側の実Run待ちである。
+- Commit、Push、branch変更、PR本文更新、EAS Cloud Build／Submitは実施しない。

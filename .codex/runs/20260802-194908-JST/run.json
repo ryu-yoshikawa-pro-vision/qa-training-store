@@ -12,7 +12,7 @@
   ],
   "repo": "qa-training-store",
   "branch": "feature/01_phase2-first-half-native-foundation",
-  "head_sha": "17d9d538a27058dcf81893d4d6f118cf36d52abf",
+  "head_sha": "5fc9c14c7dc2975b6516e6fd2331cd1c7e0cc5b5",
   "base_branch": "main",
   "codex_task_reports": [],
   "changed_files": [
@@ -77,7 +77,8 @@
     "tests/component/native/native-signals.test.ts",
     "tests/contracts/native-signal-module.test.ts",
     "tests/contracts/playwright-config.test.ts",
-    "docs/history/2026-08-03_203822_pr8-native-ci-recovery.md"
+    "docs/history/2026-08-03_203822_pr8-native-ci-recovery.md",
+    "docs/history/2026-08-03_224828_pr8-maestro-cli-repair.md"
   ],
   "validation": {
     "status": "in_progress",
@@ -222,6 +223,20 @@
       "pnpm run check:native-route-dependencies",
       "pnpm run validate:eas:config",
       "node --eval Run/Evaluation JSON parse",
+      "git diff --check",
+      "GitHub read-only: run 30811624722 / Android job 91679536716 / Verify job 91683392198 / Artifact 8855456167",
+      "GitHub official Release API: Maestro cli-2.8.0 / maestro.zip / HTTP 200",
+      "Maestro asset download and zip structure check: maestro/bin/maestro",
+      "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run test:component:native",
+      "pnpm run test:repository",
+      "pnpm run test:contracts",
+      "pnpm run check:native-route-dependencies",
+      "pnpm run validate:native-production-bundle",
+      "Git Bash bash -n: Install and launch APK / Install pinned Maestro CLI",
       "git diff --check"
     ],
     "warnings": [
@@ -257,7 +272,12 @@
       "修正後WorkflowのGitHub Actions、Android／iOS実Native、実expo-sqlite、EAS Cloud、Commit／Push／PR更新は未実施",
       "Native signal constants were split into a platform-neutral module; Native Jest 8 suites／16 tests and Contract 18 files／86 tests passed",
       "Playwright contract warm-up beforeAll was extended to 60 seconds to prevent Windows cold ESM import timeout",
-      "Evidence collection was hardened with bounded capture_command and copy/status fallbacks so missing or failed evidence files do not stop artifact upload"
+      "Evidence collection was hardened with bounded capture_command and copy/status fallbacks so missing or failed evidence files do not stop artifact upload",
+      "Native CI run 30811624722: SDK／APK／Emulator／Install／Application Launch／Evidence success、Maestro cache miss後のCLI InstallがHTTP 404／curl 22、Maestro 2 Group skip、Verify failure",
+      "Maestro cli-2.8.0 official asset was confirmed with HTTP 200 and extracted path maestro/bin/maestro; local --version/Flow execution remains unconfirmed because Java／Android toolchain is unavailable",
+      "Application Launch now checks PID for 60s plus 6 samples over 10s and scopes fatal log detection to the target package／ReactNativeJS",
+      "Evidence signal regex now matches test-runtime-ready／error and native-contract-running／passed／failed",
+      "Iteration 8 delegation spawn failed because the agent thread limit was reached; no subagent file mutation occurred"
     ]
   },
   "safety": {

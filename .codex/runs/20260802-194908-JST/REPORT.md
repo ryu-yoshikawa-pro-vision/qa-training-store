@@ -561,6 +561,125 @@ continue（コード／Workflow／Contract／ローカル検証は完了。Remot
 
 Progress: 84% (68/81)
 
+## 2026-08-03 22:48 JST PR #8 Maestro CLI／Application Launch／Signal修正 Iteration 8
+
+### iteration_number
+
+8
+
+### input_findings
+
+- 添付指示のレビュー時点HEAD `5fc9c14c7dc2975b6516e6fd2331cd1c7e0cc5b5`と、作業開始時のローカルHEADが一致し、作業ツリーはクリーンだった。
+- GitHub read-only確認では、Native Static `91679491679`、Detect `91679491721`、Production Bundle Guard `91679844008`はsuccess。Android Job `91679536716`は、SDK／APK／Emulator／Install／Application Launch／Evidence uploadまでsuccessしたが、Cache Miss後の`Install pinned Maestro CLI`がfailure、Maestro 2 Groupはskipped、`native-ci / verify` Job `91683392198`はfailureだった。
+- 失敗ログの直接原因は、Cache key `maestro-Linux-1.39.15`のmiss後に、旧URLへcurlしたHTTP 404／exit code 22である。Artifact `native-android-evidence-30811624722`（ID `8855456167`）はupload成功している。
+- 受入指示上、Application Launchは単発PID確認であり、Process継続稼働と対象ApplicationのFatal Runtime Error検出が不足していた。EvidenceのSignal regexは正式Signal名と一致していなかった。
+
+### finding_triage
+
+- `must_fix`: Maestro固定Release／URL／Cache Schema／Install後検証、Application Launchの安定稼働・Fatal Log判定、正式Signal regex、対応Contract Test。
+- `should_fix`: 既存高速化を維持しながら、実Releaseの一階層深い`maestro/bin/maestro`構造へ最小限適応すること。
+- `defer`: Remote Cache Miss／Hit、Maestro全Flow、実Android操作、Native CI全体時間。Commit／Pushが禁止されているためRemote受入はユーザー側へ引き渡す。
+- `reject`: Maestro最新版を根拠なく採用すること、EAS Cloudを実行すること、既存高速化を元へ戻すこと。
+
+### repair_plan
+
+- GitHub公式Release APIで`cli-2.8.0`、Asset `maestro.zip`、URL `https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip`、HTTP 200、314,743,119 bytesを確認した。zipは201 entryで、展開後の実行ファイルは`maestro/bin/maestro`だった。
+- Workflow envへ`MAESTRO_VERSION=2.8.0`、確認済み`MAESTRO_DOWNLOAD_URL`、`MAESTRO_CACHE_SCHEMA=v1`を集約し、Cache keyへOS／Version／Schemaを含めた。Cache Hitでも`test -x`と`--version`を実行し、Cache Missでは固定URLから実Releaseを展開する。Cache破損時は検証失敗後に固定Assetで上書き再構築する。command-based deletion禁止のため削除コマンドは使っていない。
+- `Install and launch APK`へ`PACKAGE_ID`、最大60秒のPID出現待機、6回・2秒間隔の10秒安定稼働確認、`Process: <package>`／`ReactNativeJS`に絞ったFatal Pattern検出を追加した。`FATAL EXCEPTION`、`JavascriptException`、`Maximum call stack size exceeded`、Metro接続／Scriptロード失敗等を対象にする。
+- Evidence regexを`test-runtime-(ready|error)|native-contract-(running|passed|failed)`へ修正し、旧`native-test-runtime-ready`前提をContract Testで拒否した。Contract TestはVersion／URL集中、Cache key、nested bin、Install検証、Step順序、Launch安定判定を確認する。
+
+### allowed_files
+
+- `.github/workflows/native-ci.yml`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/**`
+- `.codex/runs/20260802-194908-JST/{PLAN.md,TASKS.md,REPORT.md,run.json,evaluation.json}`
+
+### delegation
+
+- `code_researcher`／`test_investigator`のread-only調査agent起動を2件試みたが、既存agent thread limitでspawnできなかった。ファイル変更、削除、git操作は発生していない。この失敗は本REPORTへ記録し、親Agentが現行Workflow、Remoteログ、実Release zip構造を直接照合して判断した。
+- 既存Runで蓄積済みのread-only調査結果は再利用した。Maestro ReleaseのVersion／Assetは推測せず、今回は公式Release APIと実Asset downloadで別途確認した。
+
+### changed_files
+
+- `.github/workflows/native-ci.yml`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/history/2026-08-03_224828_pr8-maestro-cli-repair.md`
+- `.codex/runs/20260802-194908-JST/PLAN.md`
+- `.codex/runs/20260802-194908-JST/TASKS.md`
+- `.codex/runs/20260802-194908-JST/REPORT.md`
+- `.codex/runs/20260802-194908-JST/run.json`
+- `.codex/runs/20260802-194908-JST/evaluation.json`
+
+### validation_commands
+
+- `gh auth status` => 実行不可（このWindows環境に`gh` CLIがない）。GitHub connectorのread-only APIでRun／Job／Step／ログ／Artifactを確認した。
+- `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1` => PASS（1 file／10 tests）。
+- `pnpm run format:check` => PASS。
+- `pnpm run lint` => PASS（0 errors／64 warnings。既存warning）。
+- `pnpm run typecheck` => PASS（app／native-tests）。
+- `pnpm run test:component:native` => PASS（8 suites／16 tests。既存React act warningあり）。
+- `pnpm run test:repository` => PASS（5 files／28 tests。Node SQLite ExperimentalWarningあり）。
+- `pnpm run test:contracts` => PASS（18 files／86 tests）。
+- `pnpm run check:native-route-dependencies` => PASS（38 native routes）。
+- `pnpm run validate:native-production-bundle` => PASS（Automation marker present、Production marker absent）。
+- `bash -n`相当（Git Bash）で`Install and launch APK`と`Install pinned Maestro CLI`のWorkflow scriptを検査 => PASS。
+- `git diff --check` => 差分エラーなし（WindowsのLF／CRLF warningのみ）。
+
+### remote_release_evidence
+
+- `Invoke-RestMethod https://api.github.com/repos/mobile-dev-inc/maestro/releases/latest` => `tag_name=cli-2.8.0`、`name=CLI 2.8.0`、Asset `maestro.zip`を確認。
+- `Invoke-WebRequest -Method Head <確認済みURL>` => HTTP 200、Content-Length 314743119。
+- 実Asset download／展開確認 => `maestro/bin/maestro`が存在し、旧想定の直下`bin/maestro`ではないことを確認した。
+- ローカル`maestro --version`はWindowsにJava／Linux実行環境がなく未実行。Release Assetの実CIでの`--version`、既存YAMLの実行可否はRemote CI待ちであり、PASS扱いにしていない。
+
+### remote_run_evidence
+
+| 項目 | Run 30811624722の結果 |
+|---|---|
+| Native Static | success |
+| Production Bundle Guard | success |
+| Gradle Release Build | success（指示書記載14m29s、修正前25m35s、短縮11m06s／約43.4%） |
+| Automation Release APK | success |
+| Android Emulator | success |
+| APK Install | success |
+| Application Launch | success。ただし当時は長時間のProcess継続判定と対象Fatal Log検出が不足 |
+| Maestro Cache | miss（`maestro-Linux-1.39.15`） |
+| Maestro CLI Install | failure（HTTP 404、curl exit 22） |
+| Runtime／Smoke、Persistence／Boundary | skipped |
+| Evidence upload | success（Artifact ID `8855456167`） |
+| `native-ci / verify` | failure（Android結果をfail-close） |
+
+### result
+
+- Maestro 404、Application Launch安定判定、Evidence Signal regex、Contract Testはコード／Workflow上で修正済みである。
+- 既存のStatic／Android並列、x86_64限定APK、Gradle／Maestro cache、SDK不足分導入、条件付きlibpulse、重複Native asset生成削除、prebuild`--no-install`、2 Group Maestro、成功時軽量／失敗時詳細Evidenceは維持した。
+- ローカルで実行可能なNode／静的検証は成功したが、Remote CIの新Workflowは未実行であるため、Run全体を成功扱いにしていない。
+
+### PR本文更新案
+
+- 曖昧な`購入系Maestro Flow`は`Checkout以降の購入完了Maestro Flow`へ置き換える。
+- 成功：ローカルFormat／Lint／Typecheck／Native Component／Repository／Contract／Route／Production Bundle Guard、Release Asset HTTP／zip構造確認。
+- 失敗：Run `30811624722`の旧Maestro Install（404／curl 22）、`native-ci / verify`。
+- Skip：同RunのRuntime／Smoke、Persistence／Boundary（CLI Install失敗によりSkip。Maestro Flow自身の失敗とは断定しない）。
+- 未確認：修正後Remote Cache Miss／Hit、CLI `--version`、10 Maestro Flow、Harness Signal、Evidence、`native-ci / verify`、Native CI全体時間、Windows実Android／macOS実iOS／実`expo-sqlite`。
+
+### remaining_delta
+
+- D58：ローカルMaestro `--version`／YAML実行はJava／Android環境不在のため未確認。
+- D59：修正後Remote Cache Miss Runは未実行。Commit／Push禁止のため実行しない。
+- D60：修正後Remote Cache Hit Runは未実行。
+- D61：修正後Native CI全体時間は未測定。
+- Commit、Push、branch変更、PR本文更新、EAS Cloud Build／Workflow／Submitは未実施。
+
+### decision
+
+stop_needs_human（コード／Workflow／Contract／ローカル検証は完了。Remote CI受入はユーザー側のPush／Run実行が必要であり、本AgentはGit操作を行わない）。
+
+Progress: 81% (76/93)
+
 ## 2026-08-03 PR #8 AVD永続化・PBKDF2契約修正 Iteration 6
 
 ### iteration_number
@@ -1055,3 +1174,16 @@ Progress: 73% (33/45)
 - GitHub Actions再実行、実Android／iOS、EAS Cloud、Commit／Pushは未実施。Evidenceの実Run確認はユーザー側のPush後に行う。
 
 Progress: 84% (68/81)
+
+## 2026-08-03 22:53 JST Iteration 8 検証追補（append-only）
+
+- 最終`pnpm run format:check` => PASS。
+- 最終Workflow Contract Test（1 file／10 tests）=> PASS。
+- `pnpm run validate:eas:config` => PASS（`cloudRun=not-run`。EAS Cloudは実行していない）。
+- 最終Run／Evaluation JSON parse => PASS。TASKSのcheckbox集計は`Progress: 81% (76/93)`。
+- `git diff --check` => 差分エラーなし。LF／CRLFはWindowsのwarningのみ。
+- Remote Cache Miss／Hitと実Native検証は未実行のため、コード／静的検証完了とRemote受入完了を分離したまま停止する。
+
+追補：Application Fatal Log判定は`Process: PACKAGE_ID`の前後12／24行へ絞り、Android全体の無関係なFatalを単純検索しないようにした。Git Bash `bash -n`（Launch／Maestro Install）は両方status 0、最終Workflow Contractは10 tests PASS。
+
+Progress: 81% (76/93)

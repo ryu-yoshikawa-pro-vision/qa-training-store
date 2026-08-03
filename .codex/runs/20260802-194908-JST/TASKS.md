@@ -161,3 +161,20 @@ Progress: 84% (63/75)
 - [ ] D49. 修正後WorkflowのGitHub ActionsでAPK／Emulator／10 Maestro Flow／Harness／Evidence／`native-ci / verify`成功を確認する。
 
 Progress: 84% (68/81)
+
+## 2026-08-03 PR #8 Maestro CLI／Application Launch／Signal修正 Iteration 8
+
+- [x] D50. 現在のHEAD `5fc9c14c...`、Run `30811624722`、Android Job／Step／Evidence Artifactをread-onlyで確認し、404の直接原因を確定する。
+- [x] D51. GitHub公式Maestro ReleaseのTag、Asset URL HTTP 200、zip展開構造`maestro/bin/maestro`を確認する。
+- [x] D52. Maestro Version／Download URL／Cache Schemaを集約し、実Release構造、Cache Hit検証、Install後`--version`、専用PATHへWorkflowを修正する。
+- [x] D53. Application LaunchへPackage ID変数、PID出現待機、10秒以上の継続稼働、対象Package／ReactNativeJS Fatal Log検出を追加する。
+- [x] D54. Evidence Signal regexを正式Signal名へ修正し、旧Pattern拒否とMaestro Version／URL／Cache／Step順序のContract Testを追加する。
+- [x] D55. Format、Lint、Typecheck、Native Component、Repository、Contractを実行する。
+- [x] D56. Route依存、Production Bundle Guard、Workflow Bash構文、差分checkを実行する。
+- [x] D57. PROJECT_CONTEXT、History、PLAN、TASKS、REPORT、run.json、evaluation.jsonへ成功・失敗・Skip・未確認を反映する。
+- [ ] D58. 現Windows環境でMaestro CLI `--version`と既存YAML実行可能性を実行確認する（Java／Android実環境提供後）。
+- [ ] D59. Remote Cache Miss Runで固定Maestro CLI Install、Runtime／Smoke、Persistence／Boundary、Evidence、`native-ci / verify`を成功確認する。
+- [ ] D60. 同一Version／Cache KeyのRemote Cache Hit RunでDownload省略、CLI検証、全Flow、Verifyを成功確認する。
+- [ ] D61. 高速化後のNative CI全体時間をRemote Runで測定し、既存14分29秒／短縮11分06秒との差を記録する。
+
+Progress: 81% (76/93)

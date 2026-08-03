@@ -94,11 +94,19 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain('tee "$RUNNER_TEMP/gradle-assemble-release.log"');
     expect(nativeWorkflow).not.toContain("assembleDebug");
     expect(nativeWorkflow).not.toContain("app-debug.apk");
-    expect(nativeWorkflow).toContain(
-      'timeout 15 "$ADB" shell pm path com.ryuyoshikawa.scenarioshop | grep -F',
-    );
+    expect(nativeWorkflow).toContain('PACKAGE_ID="com.ryuyoshikawa.scenarioshop"');
+    expect(nativeWorkflow).toContain('timeout 15 "$ADB" shell pm path "$PACKAGE_ID" | grep -F');
     expect(nativeWorkflow).toContain('timeout 30 "$ADB" shell monkey');
-    expect(nativeWorkflow).toContain('timeout 10 "$ADB" shell pidof com.ryuyoshikawa.scenarioshop');
+    expect(nativeWorkflow).toContain("timeout 60 bash -c");
+    expect(nativeWorkflow).toContain('timeout 10 "$ADB" shell pidof "$PACKAGE_ID"');
+    expect(nativeWorkflow).toContain("for check in $(seq 1 6)");
+    expect(nativeWorkflow).toContain(
+      "Android application terminated during startup stability check",
+    );
+    expect(nativeWorkflow).toContain("Maximum call stack size exceeded");
+    expect(nativeWorkflow).toContain("Process: ${PACKAGE_ID}");
+    expect(nativeWorkflow).toContain('grep -F -B 12 -A 24 "Process: ${PACKAGE_ID}"');
+    expect(nativeWorkflow).toContain("ReactNativeJS.*($app_fatal_pattern)");
   });
 
   it("uses an explicit AVD home and verifies the AVD before starting the emulator", () => {
@@ -218,9 +226,33 @@ describe("Native CI workflow contracts", () => {
   });
 
   it("keeps Maestro screenshots in dedicated output directories", () => {
+    expect(nativeWorkflow).toContain("MAESTRO_VERSION: 2.8.0");
+    expect(nativeWorkflow).toContain(
+      "MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip",
+    );
+    expect(nativeWorkflow).toContain("MAESTRO_CACHE_SCHEMA: v1");
     expect(nativeWorkflow).toContain("actions/cache@v4");
-    expect(nativeWorkflow).toContain("maestro-${{ runner.os }}-${{ env.MAESTRO_VERSION }}");
+    expect(nativeWorkflow).toContain(
+      "maestro-${{ runner.os }}-${{ env.MAESTRO_VERSION }}-${{ env.MAESTRO_CACHE_SCHEMA }}",
+    );
     expect(nativeWorkflow).toContain("path: ~/.cache/maestro/${{ env.MAESTRO_VERSION }}");
+    const installIndex = nativeWorkflow.indexOf("- name: Install pinned Maestro CLI");
+    const runtimeIndex = nativeWorkflow.indexOf("- name: Run Maestro Runtime and Smoke flows");
+    const persistenceIndex = nativeWorkflow.indexOf(
+      "- name: Run Maestro Persistence and Boundary flows",
+    );
+    const installSection = nativeWorkflow.slice(installIndex, runtimeIndex);
+    expect(installIndex).toBeGreaterThanOrEqual(0);
+    expect(runtimeIndex).toBeGreaterThan(installIndex);
+    expect(persistenceIndex).toBeGreaterThan(runtimeIndex);
+    expect(nativeWorkflow).toContain('MAESTRO_BIN="$MAESTRO_HOME/maestro/bin/maestro"');
+    expect(installSection).toContain("curl --fail --location --retry 3");
+    expect(installSection).toContain('"$MAESTRO_DOWNLOAD_URL"');
+    expect(installSection).toContain('test -x "$MAESTRO_BIN"');
+    expect(installSection).toContain('"$MAESTRO_BIN" --version');
+    expect(installSection).not.toContain(
+      "https://github.com/mobile-dev-inc/maestro/releases/download/",
+    );
     expect(nativeWorkflow).toContain(
       '--test-output-dir="$RUNNER_TEMP/maestro-artifacts/runtime-smoke"',
     );
@@ -256,6 +288,12 @@ describe("Native CI workflow contracts", () => {
     );
     expect(nativeWorkflow).toContain(
       "Full emulator log is collected only after a failed Android job.",
+    );
+    expect(nativeWorkflow).toContain(
+      "test-runtime-(ready|error)|native-contract-(running|passed|failed)",
+    );
+    expect(nativeWorkflow).not.toContain(
+      "native-(test-runtime-ready|contract-(running|passed|failed))",
     );
     expect(nativeWorkflow).not.toContain("find . -type f");
   });

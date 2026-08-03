@@ -15,7 +15,9 @@ env:
   NODE_VERSION: 24
   PNPM_VERSION: 9.10.0
   EXPO_DOCTOR_VERSION: 1.17.6
-  MAESTRO_VERSION: 1.39.15
+  MAESTRO_VERSION: 2.8.0
+  MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip
+  MAESTRO_CACHE_SCHEMA: v1
 
 jobs:
   detect:
@@ -437,28 +439,79 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          PACKAGE_ID="com.ryuyoshikawa.scenarioshop"
+          export PACKAGE_ID
           timeout 15 "$ADB" logcat -c
           timeout 180 "$ADB" install -r "$APK_PATH"
-          timeout 15 "$ADB" shell pm path com.ryuyoshikawa.scenarioshop | grep -F 'package:'
+          timeout 15 "$ADB" shell pm path "$PACKAGE_ID" | grep -F 'package:'
           timeout 30 "$ADB" shell monkey \
-            -p com.ryuyoshikawa.scenarioshop \
+            -p "$PACKAGE_ID" \
             -c android.intent.category.LAUNCHER \
             1
           set +e
-          timeout 60 bash -c 'until timeout 10 "$ADB" shell pidof com.ryuyoshikawa.scenarioshop 2>/dev/null | grep -q .; do sleep 2; done'
+          timeout 60 bash -c '
+            for _ in $(seq 1 30); do
+              package_pids="$(timeout 10 "$ADB" shell pidof "$PACKAGE_ID" 2>/dev/null)"
+              pid_status=$?
+              if [[ "$pid_status" -eq 0 && -n "${package_pids//[[:space:]]/}" ]]; then
+                printf "%s\n" "$package_pids"
+                exit 0
+              fi
+              sleep 2
+            done
+            exit 124
+          ' > "$RUNNER_TEMP/app-pid.txt"
           launch_status=$?
           set -e
+          stability_status=0
+          if [[ "$launch_status" -eq 0 ]]; then
+            for check in $(seq 1 6); do
+              set +e
+              package_pids="$(timeout 10 "$ADB" shell pidof "$PACKAGE_ID" 2>/dev/null)"
+              pid_status=$?
+              set -e
+              if [[ "$pid_status" -ne 0 || -z "${package_pids//[[:space:]]/}" ]]; then
+                echo "Android application terminated during startup stability check (sample $check/6)." >&2
+                stability_status=1
+                break
+              fi
+              echo "Android application process is alive (sample $check/6): $package_pids"
+              if [[ "$check" -lt 6 ]]; then
+                sleep 2
+              fi
+            done
+          fi
           set +e
           timeout 30 "$ADB" logcat -d > "$RUNNER_TEMP/app-launch-logcat.txt" 2>&1
           logcat_status=$?
           set -e
-          if [[ "$launch_status" -ne 0 ]]; then
-            echo "Android application process did not remain alive after launch (exit $launch_status)." >&2
+          if [[ "$launch_status" -ne 0 || "$stability_status" -ne 0 ]]; then
+            echo "Android application process did not remain alive after launch (wait=$launch_status, stability=$stability_status)." >&2
+            if [[ -f "$RUNNER_TEMP/app-pid.txt" ]]; then
+              cat "$RUNNER_TEMP/app-pid.txt" >&2
+            fi
             cat "$RUNNER_TEMP/app-launch-logcat.txt" >&2
-            exit "$launch_status"
+            if [[ "$launch_status" -ne 0 ]]; then
+              exit "$launch_status"
+            fi
+            exit 1
           fi
           test "$logcat_status" -eq 0
-          if grep -Eiq 'unable to resolve host|could not connect to development server|unable to load script' "$RUNNER_TEMP/app-launch-logcat.txt"; then
+          app_fatal_pattern='FATAL EXCEPTION|JavascriptException|Maximum call stack size exceeded|Unable to load script|Could not connect to development server|Unable to resolve host'
+          if grep -Fq "Process: ${PACKAGE_ID}" "$RUNNER_TEMP/app-launch-logcat.txt"; then
+            set +e
+            grep -F -B 12 -A 24 "Process: ${PACKAGE_ID}" "$RUNNER_TEMP/app-launch-logcat.txt" \
+              | grep -Eiq "$app_fatal_pattern"
+            app_fatal_status=$?
+            set -e
+            if [[ "$app_fatal_status" -eq 0 ]]; then
+              echo "Fatal logcat entry was detected for ${PACKAGE_ID}." >&2
+              cat "$RUNNER_TEMP/app-launch-logcat.txt" >&2
+              exit 1
+            fi
+          fi
+          if grep -Eiq "ReactNativeJS.*($app_fatal_pattern)" "$RUNNER_TEMP/app-launch-logcat.txt"; then
+            echo "Fatal React Native logcat entry was detected for ${PACKAGE_ID}." >&2
             cat "$RUNNER_TEMP/app-launch-logcat.txt" >&2
             exit 1
           fi
@@ -466,13 +519,14 @@ jobs:
         uses: actions/cache@v4
         with:
           path: ~/.cache/maestro/${{ env.MAESTRO_VERSION }}
-          key: maestro-${{ runner.os }}-${{ env.MAESTRO_VERSION }}
+          key: maestro-${{ runner.os }}-${{ env.MAESTRO_VERSION }}-${{ env.MAESTRO_CACHE_SCHEMA }}
       - name: Install pinned Maestro CLI
         shell: bash
         run: |
           set -euo pipefail
           MAESTRO_HOME="$HOME/.cache/maestro/$MAESTRO_VERSION"
-          MAESTRO_BIN="$MAESTRO_HOME/bin/maestro"
+          MAESTRO_BIN="$MAESTRO_HOME/maestro/bin/maestro"
+          MAESTRO_BIN_DIR="$MAESTRO_HOME/maestro/bin"
           mkdir -p "$MAESTRO_HOME"
           cache_valid=false
           if [[ -x "$MAESTRO_BIN" ]]; then
@@ -489,13 +543,13 @@ jobs:
           fi
           if [[ "$cache_valid" != true ]]; then
             curl --fail --location --retry 3 \
-              "https://github.com/mobile-dev-inc/maestro/releases/download/cli-${MAESTRO_VERSION}/maestro.zip" \
+              "$MAESTRO_DOWNLOAD_URL" \
               --output "$RUNNER_TEMP/maestro.zip"
             unzip -q -o "$RUNNER_TEMP/maestro.zip" -d "$MAESTRO_HOME"
           fi
           test -x "$MAESTRO_BIN"
           "$MAESTRO_BIN" --version
-          echo "$MAESTRO_HOME/bin" >> "$GITHUB_PATH"
+          echo "$MAESTRO_BIN_DIR" >> "$GITHUB_PATH"
       - name: Run Maestro Runtime and Smoke flows
         shell: bash
         run: |
@@ -686,7 +740,7 @@ jobs:
                 > "$RUNNER_TEMP/native-evidence/maestro-copy-status.txt"
             fi
             set +e
-            grep -R -h -E 'native-(test-runtime-ready|contract-(running|passed|failed))' \
+            grep -R -h -E 'test-runtime-(ready|error)|native-contract-(running|passed|failed)' \
               "$RUNNER_TEMP/maestro-artifacts" \
               > "$RUNNER_TEMP/native-evidence/test-control-contract-signals.txt"
             signal_status=$?
