@@ -18,6 +18,7 @@ ios/
 .expo/
 .corepack-cache/
 .pnpm-store/
+.artifacts/
 output/
 public/_expo/
 public/files/
