@@ -43,6 +43,16 @@
     "build:native:android:release": "expo run:android --variant release",
     "build:native:ios": "expo run:ios",
     "build:native:ios:release": "expo run:ios --configuration Release",
+    "native:android:doctor": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Doctor",
+    "native:android:prepare": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Prepare",
+    "native:android:build:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Build",
+    "native:android:install:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Install",
+    "native:android:smoke:local": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Smoke",
+    "native:android:test:control": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Test",
+    "native:android:test:runtime": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action RuntimeSuite",
+    "native:android:test:boundary": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action BoundarySuite",
+    "native:android:evidence": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Evidence",
+    "native:android:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action All",
     "verify": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web"
   },
   "dependencies": {
