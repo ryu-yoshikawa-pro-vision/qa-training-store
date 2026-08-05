@@ -58,6 +58,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     ],
     experiments: {
       typedRoutes: true,
+      autolinkingModuleResolution: true,
     },
     web: {
       bundler: "metro",
