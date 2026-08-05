@@ -39,3 +39,13 @@ WebとNativeは同じ商品・Cart情報を扱うため、Platform UIを別実�
 - Native変更検知は共有Application／Domain／Seed／Config／Design Token／Generated Assetまで含める。最終VerifyはDetect Job自体の成功とNative変更Outputの存在を確認し、Native変更時のProduction Guard／Android結果を必須とする。
 - MaestroのスクリーンショットはRepository全体のAssetを収集せず、専用Test Output DirectoryからJUnitとともにArtifact化する。
 - この補足でWorkflowの成功を宣言するものではない。修正後GitHub Actions Run、Windows Android Emulator、macOS iOS Simulatorは、実行結果が取得されるまで未実施として扱う。
+
+## Windows Android実機検証の運用正本（2026-08-06）
+
+詳細なSetup、Path長対策、Build、実機Install、Maestro Gate、証跡、停止条件は次を正本とする。
+
+- `docs/native/windows-android-local-validation.md`
+- `docs/native/windows-android-troubleshooting.md`
+- `scripts/native/windows/android-local.ps1`
+
+AIエージェント向けの入口は`.agents/skills/android-native-local-validation/SKILL.md`とし、SkillへRunbook本文を複製しない。
