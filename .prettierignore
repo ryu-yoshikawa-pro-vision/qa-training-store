@@ -1,6 +1,9 @@
 .agents
 .codex
 .expo
+.expo-local-export
+.artifacts
+android
 .corepack-cache
 .pnpm-store
 dist

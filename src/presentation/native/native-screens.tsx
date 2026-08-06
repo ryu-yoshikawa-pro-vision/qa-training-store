@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
 import type {
@@ -123,8 +123,10 @@ export function NativeCatalogScreen({ categoryId }: { categoryId?: string }) {
   const [minimumRating, setMinimumRating] = useState<ProductSearchRequest["minimumRating"]>(null);
   const [result, setResult] = useState<ProductSearchResult | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const requestSerial = useRef(0);
   const load = useCallback(() => {
     if (services === null) return;
+    const requestId = ++requestSerial.current;
     setError(null);
     void services.catalog
       .search({
@@ -140,8 +142,12 @@ export function NativeCatalogScreen({ categoryId }: { categoryId?: string }) {
         page: 1,
         pageSize: 20,
       })
-      .then(setResult)
-      .catch((caught: unknown) => setError(asError(caught)));
+      .then((next) => {
+        if (requestId === requestSerial.current) setResult(next);
+      })
+      .catch((caught: unknown) => {
+        if (requestId === requestSerial.current) setError(asError(caught));
+      });
   }, [categoryId, inStockOnly, keyword, minimumRating, onSaleOnly, services, sort]);
   useEffect(load, [load]);
 

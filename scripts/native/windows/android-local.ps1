@@ -31,26 +31,45 @@ function Require([string]$Name) {
 }
 
 function Run {
-  param([string]$File, [string[]]$Args = @(), [string]$Log, [switch]$AllowFailure)
-  if ($Log) {
-    Ensure-Directory (Split-Path -Parent $Log)
-    & $File @Args 2>&1 | Tee-Object -FilePath $Log | ForEach-Object { Write-Host $_ }
+  param([string]$File, [string[]]$Arguments = @(), [string]$Log, [switch]$AllowFailure)
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    # Windows PowerShell 5.1 surfaces native stderr (for example java -version)
+    # as a terminating NativeCommandError when the caller uses Stop.
+    $ErrorActionPreference = "Continue"
+    if ($Log) {
+      Ensure-Directory (Split-Path -Parent $Log)
+      & $File @Arguments 2>&1 | Tee-Object -FilePath $Log | ForEach-Object { Write-Host $_ }
+    }
+    else {
+      & $File @Arguments 2>&1 | ForEach-Object { Write-Host $_ }
+    }
+    $code = $LASTEXITCODE
   }
-  else {
-    & $File @Args 2>&1 | ForEach-Object { Write-Host $_ }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
   }
-  $code = $LASTEXITCODE
   if (-not $AllowFailure -and $code -ne 0) {
-    throw "Command failed ($code): $File $($Args -join ' ')"
+    throw "Command failed ($code): $File $($Arguments -join ' ')"
   }
   return $code
 }
 
 function Out {
-  param([string]$File, [string[]]$Args = @(), [switch]$AllowFailure)
-  $value = & $File @Args 2>&1
-  if (-not $AllowFailure -and $LASTEXITCODE -ne 0) {
-    throw "Command failed ($LASTEXITCODE): $File $($Args -join ' ')"
+  param([string]$File, [string[]]$Arguments = @(), [switch]$AllowFailure)
+  $previousErrorActionPreference = $ErrorActionPreference
+  try {
+    # Keep native stderr in the captured value without aborting Windows
+    # PowerShell 5.1 callers that intentionally inspect version output.
+    $ErrorActionPreference = "Continue"
+    $value = & $File @Arguments 2>&1
+    $code = $LASTEXITCODE
+  }
+  finally {
+    $ErrorActionPreference = $previousErrorActionPreference
+  }
+  if (-not $AllowFailure -and $code -ne 0) {
+    throw "Command failed ($code): $File $($Arguments -join ' ')"
   }
   return @($value)
 }
@@ -172,7 +191,7 @@ function Prepare {
   try {
     $store = ((Out "pnpm" @("config", "get", "virtual-store-dir")) -join "").Trim()
     if (-not $store -or $store -eq "undefined") { throw "pnpm virtual store setting was not applied." }
-    Run "pnpm" @("install", "--frozen-lockfile") (Join-Path $ArtifactRoot "build\pnpm-install.log")
+    Run "pnpm" @("install", "--frozen-lockfile", "--prod=false") (Join-Path $ArtifactRoot "build\pnpm-install.log")
     Run "pnpm" @("run", "generate:native-assets") (Join-Path $ArtifactRoot "build\native-assets.log")
     Run "pnpm" @("run", "validate:image-manifest") (Join-Path $ArtifactRoot "build\image-manifest.log")
     Run "pnpm" @("run", "check:native-route-dependencies") (Join-Path $ArtifactRoot "build\native-routes.log")
@@ -252,8 +271,8 @@ function Smoke {
   Run "adb" @("-s", $serial, "logcat", "-c") -AllowFailure | Out-Null
   Run "adb" @("-s", $serial, "shell", "monkey", "-p", $PackageId, "-c", "android.intent.category.LAUNCHER", "1") (Join-Path $ArtifactRoot "install\launch.log")
   Start-Sleep -Seconds 10
-  $pid = ((Out "adb" @("-s", $serial, "shell", "pidof", $PackageId) -AllowFailure) -join "").Trim()
-  if (-not $pid) { Evidence; throw "App process is not running." }
+  $processId = ((Out "adb" @("-s", $serial, "shell", "pidof", $PackageId) -AllowFailure) -join "").Trim()
+  if (-not $processId) { Evidence; throw "App process is not running." }
   $logcat = Out "adb" @("-s", $serial, "logcat", "-d") -AllowFailure
   $logcat | Set-Content -Encoding UTF8 (Join-Path $ArtifactRoot "install\logcat.txt")
   if (($logcat -join "`n") -match "FATAL EXCEPTION|JavascriptException|Unable to load script|Could not connect to development server") {

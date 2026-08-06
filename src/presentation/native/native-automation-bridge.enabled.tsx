@@ -1,5 +1,6 @@
 import { Text, View } from "react-native";
 import { useState } from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import type { NativeApplicationServices } from "@/bootstrap/native-runtime";
 import { NATIVE_CONTRACT_HARNESS_MARKER } from "@/test-controls/native-contract-harness.native";
 import { RUNTIME_STATUS_LABELS, type NativeTestRuntimeStatus } from "./native-test-runtime-status";
@@ -13,6 +14,7 @@ export function NativeAutomationBridge({
   services: NativeApplicationServices | null;
 }) {
   const [runtimeStatus, setRuntimeStatus] = useState<NativeTestRuntimeStatus>("booting");
+  const insets = useSafeAreaInsets();
 
   return (
     <>
@@ -23,9 +25,7 @@ export function NativeAutomationBridge({
         style={{ display: "none" }}
       />
       <View
-        accessible
-        accessibilityRole="text"
-        accessibilityLabel={RUNTIME_STATUS_LABELS[runtimeStatus]}
+        accessible={false}
         pointerEvents="none"
         style={{
           backgroundColor: "#FFFFFF",
@@ -34,12 +34,17 @@ export function NativeAutomationBridge({
           left: 4,
           paddingHorizontal: 4,
           position: "absolute",
-          top: 4,
+          top: insets.top + 4,
           zIndex: 100,
         }}
-        testID="native-test-runtime-status"
       >
-        <Text style={{ color: "#111827", fontSize: 10 }}>
+        <Text
+          accessible
+          accessibilityRole="text"
+          accessibilityLabel={RUNTIME_STATUS_LABELS[runtimeStatus]}
+          style={{ color: "#111827", fontSize: 10 }}
+          testID="native-test-runtime-status"
+        >
           {RUNTIME_STATUS_LABELS[runtimeStatus]}
         </Text>
       </View>

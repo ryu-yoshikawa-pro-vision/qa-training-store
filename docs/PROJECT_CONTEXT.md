@@ -160,6 +160,19 @@
 - Bridge Component Testは9 tests、Maestro／iOS／Production境界Contractを追加した。実Nativeで古い画面Stateが観測されていないため、`dataRevision`／`resetGeneration`は未追加である。
 - 2026-08-04のローカル検証はformat／lint（0 errors・64 warnings）／typecheck、Unit 66、Integration 91、Repository 28、Web Component 76、Native Jest 25、Contract 100、Route 38、Image／EAS static／Production Bundle、`test`、`build:web`、`verify`、Android `expo prebuild --no-install`が成功した。Java／Android SDK／adb／Emulator／Maestro／Xcode／Simulatorは未導入のため、実Android／iOS操作とRemote CIは未確認である。
 
+## PR #8 Native実機・Maestro再検証（2026-08-06）
+
+- Windows実機検証の正式rootは、リポジトリを指すNTFS Junction `C:\q` とする。Maestro 2.8.0、Android API 30のSHV48、Serial `354955112942476` を使用する。
+- `scripts/native/windows/android-local.ps1` はPowerShell `$Args`衝突、production install時のdevDependency prune、Smokeの自動変数`$PID`衝突を修正済み。Prepare／Build／Install／Smoke／Controlは正式経路でPASSした。
+- Native StatusはSafe Area内の単一accessible Textへ修正し、CIの`Native test runtime listening`可視性失敗を実画面／Hierarchy／logcatと照合した。Expo patch versionsはCI期待値へ揃え、`expo install --check`はPASSした。
+- Maestro Flowは固定表示textではなくNative testIDを優先する。商品詳細は長い画像のためvariant／add controlを`scrollUntilVisible`で先に可視化する。Catalog検索は`P-0001`入力後に`hideKeyboard`を行う。
+- SHV48の既定日本語IMEではformal Maestro CLIの`inputText`がASCII検索語を入力できず、`MaestroInputMethodService`もCLI経路では入力値を保持しない。標準LatinIME一時切替ではformal Storefront／Runtime／BoundaryがPASSする。検証後は元の日本語IMEへ復元する。Maestro MCP経由の同一Serial Flowは27 commands PASSしたが、Mobile MCP backendは未稼働として扱う。
+- `NativeCatalogScreen`には入力途中の非同期検索の古いレスポンス後勝ちを防ぐrequest serial guardを追加した。これはIME失敗の直接原因ではないが、keyword変更ごとの検索競合を防ぐ防御的修正である。
+- 2026-08-06実機結果はRuntime Suite 5/5、Boundary Suite 5/5 PASS。GitHub Actions再実行、`gh` CLI formal check、commit／push／PR更新は行わない。
+- Web主要回帰27/27、Accessibility 4/4、mobile-chromium boundary 4/4、Web Build、Production Bundle GuardはPASSした。全体Unit／Integration／Repository／Web Component／Native Component／Contractとtypecheckも、repo設定を変えずに`node_modules/.pnpm-local`へ依存を再解決した正式コマンドでPASSした。Expo Doctorはphysical rootで16/17、package checkのnpm config warningを残す。`verify`は生成物を含むformat check 294件で停止したため、生成物を一括整形しない。
+- Maestro MCPの`list_devices`は同一Serialを返すが、長時間のformal CLI後の`inspect_screen`はDevice server `UNAVAILABLE`となる場合がある。再起動直後に取得したMCP証跡と、最終判定用のformal CLI JUnit／Maestro artifactを分けて扱う。
+- `.prettierignore`は`.artifacts`、`android`、`.expo-local-export`を含む生成物を対象外とする。追加後の`pnpm run format:check`と`pnpm run verify`はPASSした。Expo Doctorのpackage checkに残るlocal npm config warningと、MCP Device serverの再起動要否は環境固有の未完了事項として扱う。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

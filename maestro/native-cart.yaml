@@ -10,16 +10,44 @@ appId: com.ryuyoshikawa.scenarioshop
 - extendedWaitUntil:
     visible: "Native test runtime ready"
     timeout: 30000
-- tapOn: "商品一覧"
-- assertVisible: "商品一覧"
-- tapOn: "商品名・コードで検索"
-- inputText: "Tシャツ"
-- tapOn: "検索"
-- tapOn: "ベーシックTシャツ"
-- tapOn: "M"
-- tapOn: "カートに追加"
-- assertVisible: "カートに追加しました"
-- tapOn: "カートを見る"
+- tapOn:
+    id: "native-nav-products"
+- assertVisible:
+    id: "native-nav-products"
+- tapOn:
+    id: "native-catalog-search-input"
+- inputText: "P-0001"
+- hideKeyboard
+- tapOn:
+    id: "native-catalog-search-button"
+- scrollUntilVisible:
+    element:
+      id: "native-product-card-product-basic-shirt"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "native-product-card-product-basic-shirt"
+- scrollUntilVisible:
+    element:
+      id: "native-variant-variant-basic-shirt-02"
+    direction: DOWN
+    speed: 10
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-variant-variant-basic-shirt-02"
+- scrollUntilVisible:
+    element:
+      id: "native-add-to-cart"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "native-add-to-cart"
+- extendedWaitUntil:
+    visible: "カートに追加しました"
+    timeout: 10000
+- tapOn:
+    id: "native-go-cart"
 - assertVisible: "カート"
 - tapOn: "＋"
 - assertVisible: "2"

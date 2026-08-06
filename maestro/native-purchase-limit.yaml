@@ -11,10 +11,29 @@ appId: com.ryuyoshikawa.scenarioshop
     visible: "Native test runtime ready"
     timeout: 30000
 - openLink: "scenario-shop://products/product-basic-shirt"
-- tapOn: "M"
+- extendedWaitUntil:
+    visible:
+      id: "native-product-detail-screen"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "native-variant-variant-basic-shirt-02"
+    direction: DOWN
+    speed: 10
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-variant-variant-basic-shirt-02"
 - assertVisible: "1回の購入上限は5点です。"
-- tapOn: "カートに追加"
-- tapOn: "カートを見る"
+- scrollUntilVisible:
+    element:
+      id: "native-add-to-cart"
+    direction: DOWN
+    timeout: 30000
+- tapOn:
+    id: "native-add-to-cart"
+- tapOn:
+    id: "native-go-cart"
 - tapOn: "＋"
 - tapOn: "＋"
 - tapOn: "＋"

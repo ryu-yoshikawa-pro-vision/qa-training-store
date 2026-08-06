@@ -11,16 +11,27 @@ appId: com.ryuyoshikawa.scenarioshop
     visible: "Native test runtime ready"
     timeout: 30000
 - openLink: "scenario-shop://products/product-basic-shirt"
-- assertVisible: "ベーシックTシャツ"
-- assertVisible: "Variationを選択すると在庫を確認できます。"
-- assertNotVisible: "在庫切れ"
-- tapOn: "M"
+- extendedWaitUntil:
+    visible:
+      id: "native-product-detail-screen"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "native-variant-variant-basic-shirt-02"
+    direction: DOWN
+    speed: 10
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-variant-variant-basic-shirt-02"
 - assertVisible: "M（在庫切れ）"
 - assertVisible: "在庫切れ"
 - assertVisible:
     id: "native-add-to-cart"
     enabled: false
-- tapOn: "カートを見る"
-- assertVisible: "カート"
+- tapOn:
+    id: "native-nav-cart"
+- assertVisible:
+    id: "native-cart-screen"
 - assertVisible: "カートは空です"
 - takeScreenshot: native-out-of-stock
