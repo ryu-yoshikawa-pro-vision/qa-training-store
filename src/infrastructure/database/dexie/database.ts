@@ -24,9 +24,11 @@ import type {
   User,
   UserAddressRecord,
 } from "@/domain/contracts";
+import { WEB_DATABASE_SCHEMA_VERSION } from "@/config/versions";
 
 export const DATABASE_NAME = "ec-automation-training";
-export const SCHEMA_VERSION = 1;
+export const SCHEMA_VERSION = WEB_DATABASE_SCHEMA_VERSION;
+export const WEB_DATABASE_SCHEMA_VERSION_CURRENT = WEB_DATABASE_SCHEMA_VERSION;
 
 export class ScenarioShopDatabase extends Dexie {
   users!: Table<User, string>;

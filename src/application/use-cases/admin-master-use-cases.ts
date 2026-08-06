@@ -17,15 +17,20 @@ import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
-import { DexieAdminOverviewRepository } from "@/infrastructure/database/dexie/order-review-repositories";
-import {
-  DexieBrandRepository,
-  DexieCategoryRepository,
-} from "@/infrastructure/database/dexie/basic-repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import type {
+  AdminOverviewQueryRepository,
+  BrandRepository,
+  CategoryRepository,
+  SessionRepository,
+  UserRepository,
+} from "@/domain/repositories";
 
 interface AdminMasterDependencies {
-  database: ScenarioShopDatabase;
+  users: UserRepository;
+  sessions: SessionRepository;
+  categories: CategoryRepository;
+  brands: BrandRepository;
+  overview: AdminOverviewQueryRepository;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
   clock: Clock;
@@ -34,18 +39,19 @@ interface AdminMasterDependencies {
 
 export class AdminMasterUseCases {
   private readonly identity: SessionIdentityResolver;
-  private readonly categories: DexieCategoryRepository;
-  private readonly brands: DexieBrandRepository;
-  private readonly overview: DexieAdminOverviewRepository;
+  private readonly categories: CategoryRepository;
+  private readonly brands: BrandRepository;
+  private readonly overview: AdminOverviewQueryRepository;
 
   constructor(private readonly dependencies: AdminMasterDependencies) {
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
-    this.categories = new DexieCategoryRepository(dependencies.database);
-    this.brands = new DexieBrandRepository(dependencies.database);
-    this.overview = new DexieAdminOverviewRepository(dependencies.database);
+    this.categories = dependencies.categories;
+    this.brands = dependencies.brands;
+    this.overview = dependencies.overview;
   }
 
   async getOverview(): Promise<AdminOverview> {

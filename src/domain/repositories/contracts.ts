@@ -183,6 +183,7 @@ export interface ReviewSummaryRepository extends VersionedRepository<ProductRevi
 
 export interface InventoryRepository {
   getVariant(id: string): Promise<ProductVariant | null>;
+  listHistory(variantId: string): Promise<InventoryHistory[]>;
   updateQuantity(input: InventoryAdjustmentCommand): Promise<ProductVariant>;
   appendHistory(history: InventoryHistory): Promise<void>;
   search(query: InventorySearchQuery): Promise<Page<InventoryItem>>;
@@ -230,6 +231,7 @@ export interface CheckoutSessionRepository extends VersionedRepository<CheckoutS
 
 export interface OrderRepository extends VersionedRepository<Order> {
   create(order: Order, items: OrderItem[]): Promise<Order>;
+  getItemById(orderItemId: string): Promise<OrderItem | null>;
   getDetail(orderId: string): Promise<OrderDetailDto | null>;
   listByUser(userId: string, query: MyOrderSearchQuery): Promise<Page<OrderListItem>>;
   search(query: OrderSearchQuery): Promise<Page<AdminOrderListItem>>;

@@ -19,19 +19,34 @@ import type {
 } from "@/application/contracts";
 import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
-import type { Clock, CurrentSessionStore, IdGenerator } from "@/application/ports";
+import type {
+  Clock,
+  CurrentSessionStore,
+  IdGenerator,
+  ProductImageManifestRepository,
+} from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import type { MembershipRank, ProductReviewSummary } from "@/domain/contracts";
 import { effectiveUnitPrice, viewerUnitPrice } from "@/domain/services/pricing";
-import { StaticManifestRepository } from "@/infrastructure/image-assets/static-manifest-repository";
-import {
-  DexieAdminProductQueryRepository,
-  DexieProductRepository,
-} from "@/infrastructure/database/dexie/product-repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import type {
+  AdminProductQueryRepository,
+  BrandRepository,
+  CategoryRepository,
+  ProductRepository,
+  ReviewSummaryRepository,
+  SessionRepository,
+  UserRepository,
+} from "@/domain/repositories";
 
 interface AdminProductDependencies {
-  database: ScenarioShopDatabase;
+  users: UserRepository;
+  sessions: SessionRepository;
+  products: ProductRepository;
+  query: AdminProductQueryRepository;
+  assets: ProductImageManifestRepository;
+  brands: BrandRepository;
+  categories: CategoryRepository;
+  reviewSummaries: ReviewSummaryRepository;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
   clock: Clock;
@@ -45,17 +60,19 @@ export interface BulkProductStatusResult {
 
 export class AdminProductUseCases {
   private readonly identity: SessionIdentityResolver;
-  private readonly products: DexieProductRepository;
-  private readonly query: DexieAdminProductQueryRepository;
-  private readonly assets = new StaticManifestRepository();
+  private readonly products: ProductRepository;
+  private readonly query: AdminProductQueryRepository;
+  private readonly assets: ProductImageManifestRepository;
 
   constructor(private readonly dependencies: AdminProductDependencies) {
     this.identity = new SessionIdentityResolver(
-      dependencies.database,
+      dependencies.users,
+      dependencies.sessions,
       dependencies.currentSessionStore,
     );
-    this.products = new DexieProductRepository(dependencies.database);
-    this.query = new DexieAdminProductQueryRepository(dependencies.database);
+    this.products = dependencies.products;
+    this.query = dependencies.query;
+    this.assets = dependencies.assets;
   }
 
   async search(
@@ -328,12 +345,10 @@ export class AdminProductUseCases {
       prices.length === 0 ? [0] : prices.map((price) => viewerUnitPrice(price, rank));
     const primary = createShape.images.find((image) => image.isPrimary) ?? null;
     const primaryAsset = primary === null ? null : assetMap.get(primary.assetId);
-    const brand = await this.dependencies.database.brands.get(createShape.product.brandId);
-    const category = await this.dependencies.database.categories.get(
-      createShape.product.categoryId,
-    );
+    const brand = await this.dependencies.brands.getById(createShape.product.brandId);
+    const category = await this.dependencies.categories.getById(createShape.product.categoryId);
     const reviewSummary = current
-      ? await this.dependencies.database.product_review_summaries.get(current.product.id)
+      ? await this.dependencies.reviewSummaries.getById(current.product.id)
       : null;
     return {
       productId: current?.product.id ?? "preview",
@@ -370,7 +385,7 @@ export class AdminProductUseCases {
       publishedReviewCount: reviewSummary?.publishedCount ?? 0,
       shortDescription: createShape.product.shortDescription,
       description: createShape.product.description,
-      categoryBreadcrumb: category === undefined ? [] : [{ id: category.id, name: category.name }],
+      categoryBreadcrumb: category === null ? [] : [{ id: category.id, name: category.name }],
       requiredRank: createShape.product.requiredRank,
       variationName: createShape.product.variationName,
       statusAfterSave: current?.product.status ?? "draft",

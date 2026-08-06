@@ -22,7 +22,7 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 
 ## 対象範囲
 
-現在の実装はPhase 1としてWebを対象としています。
+現在の実装はWebのPhase 1と、NativeのPhase 2前半（Guest Storefront／Cart基盤）を対象としています。Nativeの後半機能は対象外画面として明示しています。
 
 | 項目 | 内容 |
 |---|---|
@@ -36,6 +36,9 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 | Hosting | Cloudflare Pages |
 | 管理画面 | 1024px以上のDesktop Web |
 | 購入可能Role | activeなcustomer |
+| Native前半 | Guest Home、Catalog、Search、Category、Product、Variation、Cart |
+| Native DB | SQLite Customer-only schema + Native KV |
+| Native識別子 | Android `com.ryuyoshikawa.scenarioshop` / iOS `com.ryuyoshikawa.scenarioshop` |
 
 ## 主な機能
 
@@ -126,6 +129,77 @@ pnpm run build:web
 Font Asset準備、商品画像Manifest生成・検証、Expo Web Exportを順に実行し、`dist/`へ出力します。
 
 Production Buildは、CI/CDでProduction用の環境変数を設定して実行します。
+
+### Native local Build
+
+Native BuildはローカルWindows／macOS経路を正式な主経路とします。EAS Cloud Build／Workflowは日常のBuild・検証・Submitには使いません。`expo prebuild`で生成される`android/`と`ios/`、APK／Simulator App／署名鍵などの成果物・CredentialはRepositoryへ追加しません。
+
+```bash
+pnpm run generate:native-assets
+pnpm run check:native-route-dependencies
+pnpm exec expo prebuild
+```
+
+#### Windows／Android
+
+Android Studio、JDK、Android SDK、Platform Tools、Emulatorまたは実機を用意し、`com.ryuyoshikawa.scenarioshop`を対象にDev／ReleaseをローカルBuildします。
+
+```powershell
+pnpm run build:native:android
+pnpm run build:native:android:release
+cd android
+.\gradlew.bat assembleRelease
+cd ..
+adb install -r android\app\build\outputs\apk\release\app-release.apk
+```
+
+Release APKは端末側で管理するGradle signing config／keystoreを使って署名します。Expoの生成テンプレートは未設定時にdebug keystoreを使うため、正式なRelease署名の確認ではAndroid Studio／Gradleへローカルkeystoreを設定してください。keystore、password、`*.jks`／`*.keystore`はRepositoryへ保存しません。`expo run:android --variant release`が生成するInstall用Artifactと、署名済み`assembleRelease` APKの確認結果は別々に記録します。
+
+#### macOS／iOS
+
+Xcode、Command Line Tools、CocoaPods、iOS Simulatorを用意し、`com.ryuyoshikawa.scenarioshop`を対象にDev／Release Simulator Buildをローカル実行します。
+
+```bash
+pnpm run build:native:ios
+pnpm run build:native:ios:release
+```
+
+必要に応じてXcodeから個人所有iPhoneへRunします。個人端末検証はDevelopment Signingの範囲に限定し、Distribution IPA／Store提出は作成しません。
+
+#### Native実環境の確認順
+
+Android／iOSともに、Install・起動後に次を実操作します。
+
+1. Home → 商品一覧／検索／Category → Product → Variation選択 → `カートに追加`
+2. Cartで数量変更・削除・Empty Stateを確認
+3. 再起動後にGuest IdentityとCartが復元されることを確認
+4. local／automation BuildではTest Control Deep LinkとReady／Error Signalを確認
+5. production validationではTest Control／Harnessが利用不能であることを確認
+
+Web／Nativeの比較対象は標準`390×844`、追加で`320×700`です。Home／Catalog／Product／Cartの情報順、商品画像比率、色・Spacing・Radius・Typographyは共有Tokenを使い、Platform固有のHeader／Navigation／Native Component差だけを許容します。Native UIはWebのDOM／CSS／React Aria Componentを再利用しません。
+
+`pnpm run test:repository`にはNode.js 24の組み込みSQLiteを使うNative Customer Adapterの実SQL／FK／Seed／Catalog／Cart Contractが含まれます。これはAndroid／iOSの`expo-sqlite`実行確認の代替ではありません。
+
+Automation／Development Buildの`/admin/test-control`には、専用DB／KV Namespaceで定義済みCustomer Contract、FK違反、Cart add／update／remove、Application DB不変確認を実行するNative Contract Harnessがあります。`Native contract passed`はCleanupとApplication DB確認が成功した後だけ表示されます。Production BuildではTest Control／Harness画面と実装をModule Resolutionで除外します。
+
+Test Controlはlocal／automation buildだけで利用できます。
+
+```text
+scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03:00:00.000Z&paymentDelayMs=0
+```
+
+Production buildではTest Controlを有効化しません。EAS Build、EAS Workflow、EAS Submit、Store公開はこのRepositoryのNative手順に含めません。
+
+#### EASの位置づけ（静的／将来用）
+
+`eas.json`と`.eas/workflows/phase2-native-foundation.yml`は、Profile／Environment mappingと将来の手動Workflow構成を静的に保持するためだけに置きます。Workflowは`workflow_dispatch`のみで、Cloud Build／Maestro／SubmitはこのRunでは実行しません。
+
+```bash
+pnpm run validate:eas:config
+pnpm run validate:native-production-bundle
+```
+
+`validate:native-production-bundle`はAutomation／Productionの生成Android Bundle（Hermes `.hbc`を含む）を検査します。EAS CloudのWorkflow検証・実行はこの経路では行いません。
 
 ## テストアカウント
 
@@ -222,6 +296,9 @@ pnpm run lint
 pnpm run typecheck
 pnpm run validate:image-manifest
 pnpm run security:check
+pnpm run generate:native-assets
+git diff --exit-code -- src/generated/native-product-assets.ts
+pnpm run validate:native-production-bundle
 ```
 
 ### Vitest
@@ -273,6 +350,28 @@ pnpm run verify
 ```
 
 `verify`はFormat、Lint、Typecheck、画像Manifest、Security Check、Vitest、Web Buildを実行します。Playwright E2Eは含まれないため、目的に応じて別途実行してください。
+
+### Native検証状態（PR #8対応時点）
+
+#### 実施済み・成功
+
+- Deep Link Pure Function、Native Scenario Allowlist、Guest Mutation拒否、Reset rollback、Harness signal順序、Variation未選択のUnit／Contract／Component Test
+- Native Application Use Case共有配線、Production Module Resolution、生成BundleのProduction Bundle Guard
+- Native Asset生成差分、Format、Lint、Typecheck、Node SQLite／Web回帰（個別の実行結果はRun Artifactを参照）
+- Android／iOS CI Workflow定義とWorkflow契約Test（GitHub Actionsの実行結果ではなく、Workflow／Job／Artifact契約の実装）
+
+#### 実施済み・失敗
+
+- このWindows環境でのローカルAndroid Release Buildは、Android SDK／`ANDROID_HOME`／`adb`不足により失敗。
+- このWindows環境でのローカルiOS Buildは、Xcode／SimulatorがWindows上にないため実行不可。
+- GitHub Actions Native CI run `30775548618`は、Detect／Native Static／Production Bundle Guardが成功したが、Android Jobは既存Workflowの`sdkmanager: command not found`で失敗し、`native-ci / verify`も失敗。
+
+#### 未実施
+
+- 修正後WorkflowのGitHub Actions再実行、APK／Maestro／Harness Artifactの取得（Commit／Push禁止のため未実施）
+- iOS手動CIの実行
+- Android Emulator／実機、iOS Simulator上のDeep Link、Contract Harness、Storefront／Cart、再起動復元、実`expo-sqlite`確認
+- EAS Cloud Build／Workflow／Submit、Store公開、PR本文更新
 
 ## アーキテクチャ
 
@@ -358,6 +457,6 @@ CloudflareのSecretが設定されている場合は、Pull Request Previewとma
 
 ## Native対応について
 
-Android・iOSアプリは現在の対象外です。
+NativeはPhase 2前半として、GuestのHome、Catalog、Search、Category、Product、Variation、Cart、Guide／Legalを実装しています。Login、Account、Checkout、Payment、Order、Review、Adminは後半対象のplaceholderです。
 
-Domain ModelとApplication Contractの再利用を想定していますが、Native対応ではPresentation、Storage、Session、E2E環境の再設計が必要です。現在のWeb UIがそのままAndroid・iOSで動作することは保証しません。
+NativeはWebとは別のRoot／Route／Shell、Customer-only SQLite、Native KV、PBKDF2 adapterを使用します。色、8px Grid、Radius、Typography、Touch Target、商品画像比率は`src/presentation/design/tokens.ts`を共有契約とし、Nativeのstyle／primitiveへ接続しています。実Android／iOSのローカルBuild、Install、起動、操作、実SQLite Smokeは、Android SDK／adb／EmulatorおよびXcode／Simulatorが利用できる環境で確認します。EASは静的設定確認のみで、Cloud Build／Workflow／Submitは実行しません。

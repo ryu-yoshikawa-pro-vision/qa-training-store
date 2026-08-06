@@ -1,0 +1,57 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal",
+      "environment": "development",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "local",
+        "EXPO_PUBLIC_BUILD_KIND": "local",
+        "EXPO_PUBLIC_TEST_MODE": "true",
+        "EXPO_PUBLIC_DEFAULT_SEED": "default"
+      }
+    },
+    "preview": {
+      "distribution": "internal",
+      "environment": "preview",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "automation",
+        "EXPO_PUBLIC_BUILD_KIND": "automation",
+        "EXPO_PUBLIC_TEST_MODE": "true",
+        "EXPO_PUBLIC_DEFAULT_SEED": "default"
+      }
+    },
+    "production-validation": {
+      "distribution": "internal",
+      "environment": "production",
+      "android": {
+        "buildType": "apk"
+      },
+      "ios": {
+        "simulator": true
+      },
+      "env": {
+        "EXPO_PUBLIC_APP_ENV": "production",
+        "EXPO_PUBLIC_BUILD_KIND": "production",
+        "EXPO_PUBLIC_TEST_MODE": "false",
+        "EXPO_PUBLIC_DEFAULT_SEED": "default"
+      }
+    }
+  }
+}

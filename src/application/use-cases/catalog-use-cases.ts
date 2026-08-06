@@ -1,5 +1,6 @@
 import type {
   HomeCatalogDto,
+  Page,
   ProductDetail,
   ProductReviewsQuery,
   ProductSearchRequest,
@@ -10,64 +11,107 @@ import type {
 } from "@/application/contracts";
 import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
-import type { Clock, CurrentSessionStore } from "@/application/ports";
-import { DexieReviewRepository } from "@/infrastructure/database/dexie/order-review-repositories";
-import {
-  DexieProductQueryRepository,
-  DexieStorefrontCatalogQueryRepository,
-} from "@/infrastructure/database/dexie/storefront-repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
-import type { Page } from "@/application/contracts";
+import type { CustomerCatalogGateway } from "@/application/customer-capabilities";
+import type { Clock, CurrentActorResolver, CurrentSessionStore } from "@/application/ports";
+import type {
+  CategoryRepository,
+  ProductQueryRepository,
+  ProductRepository,
+  ReviewRepository,
+  SessionRepository,
+  StorefrontCatalogQueryRepository,
+  UserRepository,
+} from "@/domain/repositories";
 
-interface CatalogUseCaseDependencies {
-  database: ScenarioShopDatabase;
+interface CatalogRepositoryDependencies {
+  users: UserRepository;
+  sessions: SessionRepository;
+  catalog: StorefrontCatalogQueryRepository;
+  products: ProductQueryRepository;
+  productRecords: ProductRepository;
+  categories: CategoryRepository;
+  reviews: ReviewRepository;
   currentSessionStore: CurrentSessionStore;
   clock: Clock;
 }
 
+export type CatalogUseCaseDependencies =
+  | (CatalogRepositoryDependencies & { identity?: never; customerGateway?: never })
+  | {
+      identity: Pick<CurrentActorResolver, "getViewer">;
+      customerGateway: CustomerCatalogGateway;
+      clock: Clock;
+    };
+
 export class CatalogUseCases {
-  private readonly identity: SessionIdentityResolver;
-  private readonly catalog: DexieStorefrontCatalogQueryRepository;
-  private readonly products: DexieProductQueryRepository;
-  private readonly reviews: DexieReviewRepository;
+  private readonly identity: Pick<CurrentActorResolver, "getViewer">;
+  private readonly customerGateway: CustomerCatalogGateway | null;
+  private readonly catalog: StorefrontCatalogQueryRepository | null;
+  private readonly products: ProductQueryRepository | null;
+  private readonly reviews: ReviewRepository | null;
+  private readonly productRecords: ProductRepository | null;
+  private readonly categories: CategoryRepository | null;
 
   constructor(private readonly dependencies: CatalogUseCaseDependencies) {
-    this.identity = new SessionIdentityResolver(
-      dependencies.database,
-      dependencies.currentSessionStore,
-    );
-    this.catalog = new DexieStorefrontCatalogQueryRepository(dependencies.database);
-    this.products = new DexieProductQueryRepository(dependencies.database);
-    this.reviews = new DexieReviewRepository(dependencies.database);
+    if (dependencies.customerGateway !== undefined) {
+      this.identity = dependencies.identity;
+      this.customerGateway = dependencies.customerGateway;
+      this.catalog = null;
+      this.products = null;
+      this.reviews = null;
+      this.productRecords = null;
+      this.categories = null;
+    } else {
+      this.identity = new SessionIdentityResolver(
+        dependencies.users,
+        dependencies.sessions,
+        dependencies.currentSessionStore,
+      );
+      this.customerGateway = null;
+      this.catalog = dependencies.catalog;
+      this.products = dependencies.products;
+      this.reviews = dependencies.reviews;
+      this.productRecords = dependencies.productRecords;
+      this.categories = dependencies.categories;
+    }
   }
 
   async getHome(): Promise<HomeCatalogDto> {
     const [viewer, now] = await Promise.all([this.identity.getViewer(), this.now()]);
-    return this.catalog.getHome({ viewer, now });
+    if (this.customerGateway !== null) return this.customerGateway.getHome({ viewer, now });
+    return this.catalog!.getHome({ viewer, now });
   }
 
   async search(request: ProductSearchRequest): Promise<ProductSearchResult> {
     this.validateSearch(request);
     const [viewer, now] = await Promise.all([this.identity.getViewer(), this.now()]);
-    return this.products.search({ ...request, viewer, now });
+    if (this.customerGateway !== null) {
+      return this.customerGateway.search({ ...request, viewer, now });
+    }
+    return this.products!.search({ ...request, viewer, now });
   }
 
   async suggest(request: SearchSuggestionRequest): Promise<SearchSuggestion[]> {
     if (request.keyword.trim().length < 2) {
       return [];
     }
+    if (this.customerGateway !== null) return [];
     const [viewer, now] = await Promise.all([this.identity.getViewer(), this.now()]);
-    return this.products.suggest({ ...request, viewer, now });
+    return this.products!.suggest({ ...request, viewer, now });
   }
 
   async getProductDetail(productId: string): Promise<ProductDetail | null> {
     const [viewer, now] = await Promise.all([this.identity.getViewer(), this.now()]);
-    const detail = await this.products.getDetail({ productId, viewer, now });
+    const detail =
+      this.customerGateway !== null
+        ? await this.customerGateway.getProductDetail({ productId, viewer, now })
+        : await this.products!.getDetail({ productId, viewer, now });
     if (detail !== null) {
       return detail;
     }
-    const existing = await this.dependencies.database.products.get(productId);
-    if (existing !== undefined) {
+    if (this.customerGateway !== null) return null;
+    const existing = await this.productRecords!.getById(productId);
+    if (existing !== null) {
       throw new ApplicationError({
         code: "PERMISSION_DENIED",
         messageKey: "products.view.forbidden",
@@ -78,7 +122,8 @@ export class CatalogUseCases {
   }
 
   async getCategoryName(categoryId: string): Promise<string | null> {
-    return (await this.dependencies.database.categories.get(categoryId))?.name ?? null;
+    if (this.customerGateway !== null) return this.customerGateway.getCategoryName(categoryId);
+    return (await this.categories!.getById(categoryId))?.name ?? null;
   }
 
   async listReviews(input: ProductReviewsQuery): Promise<Page<ReviewListItem>> {
@@ -89,7 +134,10 @@ export class CatalogUseCases {
     ) {
       throw validationError("catalog.reviewQuery.invalid");
     }
-    return this.reviews.listPublished(input.productId, input.query);
+    if (this.customerGateway !== null) {
+      return { items: [], page: input.query.page, pageSize: input.query.pageSize, total: 0 };
+    }
+    return this.reviews!.listPublished(input.productId, input.query);
   }
 
   private validateSearch(request: ProductSearchRequest): void {

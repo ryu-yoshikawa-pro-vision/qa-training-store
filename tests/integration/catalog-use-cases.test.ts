@@ -3,6 +3,7 @@ import type { CurrentSessionStore } from "@/application/ports";
 import { CatalogUseCases } from "@/application/use-cases/catalog-use-cases";
 import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import { createDexieApplicationRepositories } from "@/infrastructure/database/dexie/application-repositories";
 import { BASE_CLOCK } from "@/seeds/metadata";
 import { createScenarioDataset } from "@/seeds/scenarios";
 import { loadSeedDataset } from "@/seeds/load-seed";
@@ -36,7 +37,7 @@ describe("catalog application integration", () => {
     database = new ScenarioShopDatabase(`catalog-use-case-${crypto.randomUUID()}`);
     await loadSeedDataset(database, createScenarioDataset(scenario), scenario);
     return new CatalogUseCases({
-      database,
+      ...createDexieApplicationRepositories(database),
       currentSessionStore: new MemorySessionStore(sessionId),
       clock: new TestClock(scenario === "expired-sale" ? "2026-07-02T03:00:00.000Z" : BASE_CLOCK),
     });

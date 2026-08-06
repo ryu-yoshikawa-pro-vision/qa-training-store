@@ -6,6 +6,7 @@ import { ApplicationError } from "@/application/errors";
 import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
+import { createDexieApplicationRepositories } from "@/infrastructure/database/dexie/application-repositories";
 import { DefaultEmailNormalizer } from "@/infrastructure/normalization/normalizers";
 import { WebPbkdf2PasswordHasher } from "@/infrastructure/security/password-hasher.web";
 import { BundledStaticAddressLookup } from "@/infrastructure/address-lookup/static-address-lookup";
@@ -84,7 +85,7 @@ describe("auth and account application integration", () => {
 
   function createAuth(ids: string[]): AuthUseCases {
     return new AuthUseCases({
-      database,
+      ...createDexieApplicationRepositories(database),
       transactionRunner: new DexieApplicationTransactionRunner(database),
       currentSessionStore: sessionStore,
       guestIdentityStore: guestStore,
@@ -234,7 +235,7 @@ describe("auth and account application integration", () => {
     await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
     sessionStore.value = "session-user-customer-regular";
     const account = new AccountUseCases({
-      database,
+      ...createDexieApplicationRepositories(database),
       currentSessionStore: sessionStore,
       clock: new TestClock(FIXED_TIME),
       idGenerator: new SequenceIdGenerator(["address-b", "address-a", "address-c"]),

@@ -47,7 +47,7 @@ beforeAll(async () => {
   delete process.env.DEPLOYED_BASE_URL;
   vi.resetModules();
   await import("../../playwright.config");
-});
+}, 60_000);
 
 describe("Playwright local and deployed target boundary", () => {
   it("starts the local web server when DEPLOYED_BASE_URL is not set", async () => {

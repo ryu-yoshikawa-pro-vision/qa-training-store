@@ -1,0 +1,15 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Scenario Shop"
+- extendedWaitUntil:
+    visible: "Native test runtime listening"
+    timeout: 30000
+- openLink: "scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0"
+- extendedWaitUntil:
+    visible: "Native test runtime ready"
+    timeout: 30000
+- openLink: "scenario-shop://products/not-found-product"
+- assertVisible: "商品が見つかりません"
+- takeScreenshot: native-not-found

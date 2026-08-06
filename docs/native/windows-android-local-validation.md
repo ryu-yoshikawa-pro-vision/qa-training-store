@@ -1,0 +1,352 @@
+# Windows Android 実機検証 Runbook
+
+## 1. 目的
+
+Windows 上で Scenario Shop の Automation Release APK を生成し、USB 接続した Android 実機へインストールして、CI と同じ Maestro Flow を実行する。
+
+対象範囲は次のとおり。
+
+- Windows Toolchain の検査
+- Windows のパス長対策
+- Native Asset 生成
+- Expo Prebuild
+- arm64 等の実機 ABI 向け Release APK Build
+- 実機 Install／起動確認
+- Maestro 単体 Flow
+- Runtime／Boundary Suite
+- 失敗時証跡
+
+Store 公開、Production keystore、AAB、EAS Cloud、Android Emulator は対象外とする。
+
+## 2. 固定契約
+
+| 項目 | 値 |
+|---|---|
+| Node.js | 24 |
+| pnpm | 9.10.0 |
+| Java | 17 |
+| Android compile API | 36 |
+| Android Build Tools | 36.0.0 |
+| minSdk | 24 |
+| Maestro | 2.8.0 |
+| Android package | `com.ryuyoshikawa.scenarioshop` |
+| Deep Link scheme | `scenario-shop` |
+| 標準 SDK Root | `C:\Android\Sdk` |
+| 標準 Repository Alias | `C:\q` |
+| 標準 pnpm Virtual Store | `C:\v\qts` |
+
+Version を無断で最新化しない。CI とローカルの差分を増やさないことを優先する。
+
+## 3. 一度だけ行うセットアップ
+
+### 3.1 JDK 17
+
+Temurin 等の JDK 17 をインストールし、`JAVA_HOME` と `Path` を設定する。
+
+```powershell
+java -version
+javac -version
+```
+
+両方が 17 であることを確認する。
+
+### 3.2 Android Command-line Tools
+
+正しい配置は次のとおり。
+
+```text
+C:\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat
+```
+
+必要な Component を確認する。
+
+```powershell
+& "C:\Android\Sdk\cmdline-tools\latest\bin\sdkmanager.bat" `
+  "--sdk_root=C:\Android\Sdk" `
+  --list_installed
+```
+
+最低限必要なもの:
+
+- `platform-tools`
+- `platforms;android-36`
+- `build-tools;36.0.0`
+- NDK／CMake は Gradle が要求する Version を利用する
+
+`cmdline-tools\latest-2` 警告が出る場合は、`latest` と `latest-2` の Version を確認した後、重複だけを整理する。Build の直接原因でない場合、先に Build を通す。
+
+### 3.3 ADB と実機
+
+Android 側で Developer options と USB debugging を有効にし、Data 通信可能な USB Cable で接続する。
+
+```powershell
+adb kill-server
+adb start-server
+adb devices -l
+```
+
+状態は `device` である必要がある。
+
+- `unauthorized`: 実機を Unlock し、PC の RSA Key を許可する
+- `offline`: Cable 再接続、USB Mode、ADB Server 再起動を確認する
+- 表示なし: Windows Device Manager と端末 Driver を確認する
+
+### 3.4 Maestro 2.8.0
+
+Java 17 以上を有効にした状態で Maestro 2.8.0 をインストールし、`bin`を `Path` へ追加する。
+
+```powershell
+maestro --version
+```
+
+CI と同じ `2.8.0` を使用する。
+
+## 4. Windows パス長対策
+
+### 4.1 物理移動はしない
+
+リポジトリの実体を移動せず、NTFS Junction を短い入口として使う。
+
+```text
+実体: C:\Users\<user>\Documents\qa-training-store
+入口: C:\q
+```
+
+スクリプトの `Prepare` が Junction を作成し、以後の pnpm／Expo／Gradle／Maestro は `C:\q` から実行する。
+
+`subst` は使用しない。React Native Autolinking 内部の `cmd` が仮想 Drive 上で失敗した実績がある。
+
+### 4.2 pnpm Virtual Store
+
+CMake／Ninja の Source Path を短縮するため、Virtual Store を `C:\v\qts` へ置く。
+
+設定は PowerShell Process の環境変数として渡す。個人 PC 固有の絶対パスを `.npmrc` へコミットしない。
+
+```text
+npm_config_virtual_store_dir=C:/v/qts
+npm_config_virtual_store_dir_max_length=20
+```
+
+Expo SDK 57 の `experiments.autolinkingModuleResolution` を有効にし、外部 Virtual Store でも Metro が Project の React／Native Module と一致するようにする。
+
+## 5. 標準コマンド
+
+Repository Root で実行する。
+
+### 5.1 Toolchain 検査
+
+```powershell
+pnpm run native:android:doctor
+```
+
+確認対象:
+
+- Node 24
+- pnpm 9.10.0
+- Java／javac 17
+- Android SDK Component
+- ADB
+- USB 接続実機
+- Maestro 2.8.0
+
+### 5.2 依存関係・Prebuild
+
+```powershell
+pnpm run native:android:prepare
+```
+
+実施内容:
+
+- `C:\q` Junction 作成／検証
+- `C:\v\qts` 作成
+- `pnpm install --frozen-lockfile`
+- Native Asset 生成・検証
+- Native Route 依存検証
+- `expo prebuild --clean --platform android --no-install`
+- `android/local.properties` 生成
+
+`android/` は CNG の生成物であり Repository へ追加しない。`--clean` は古い絶対 CMake Path を再利用しないために使用する。
+
+### 5.3 Release APK Build
+
+実機を接続した状態で実行する。
+
+```powershell
+pnpm run native:android:build:local
+```
+
+スクリプトは `ro.product.cpu.abilist` から ABI を判定し、8GB 環境を考慮して次の設定で Build する。
+
+```text
+:app:assembleRelease
+-PreactNativeArchitectures=<device ABI>
+--no-daemon
+--max-workers=1
+--build-cache
+--stacktrace
+```
+
+出力:
+
+```text
+android\app\build\outputs\apk\release\app-release.apk
+```
+
+成功条件:
+
+- APK が存在し、空でない
+- JavaScript Bundle または Hermes Bytecode を含む
+- 実機 ABI の `.so` を含む
+- SHA-256 とサイズを `.artifacts` へ保存する
+
+Native Cache を明示的に消したい場合:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File scripts/native/windows/android-local.ps1 `
+  -Action Build `
+  -CleanNative
+```
+
+常時 Clean Build にしない。AI エージェントが修正確認を繰り返す場合は Build Cache を再利用する。
+
+### 5.4 実機 Install と起動確認
+
+```powershell
+pnpm run native:android:install:local
+pnpm run native:android:smoke:local
+```
+
+`Install` は `adb install -r`、Package Path 確認を行う。`Smoke` は Launcher 起動、PID 維持、logcat の致命的 Error を確認する。
+
+`INSTALL_FAILED_UPDATE_INCOMPATIBLE` の場合、既存アプリと署名が異なる。データ消失を理解したうえで、手動で削除してから再 Install する。
+
+```powershell
+adb uninstall com.ryuyoshikawa.scenarioshop
+pnpm run native:android:install:local
+```
+
+スクリプトはデータ消失を伴う Uninstall を自動実行しない。
+
+## 6. Maestro Gate
+
+### Gate 1: 単体 Flow
+
+```powershell
+pnpm run native:android:test:control
+```
+
+対象:
+
+```text
+maestro/native-test-control.yaml
+```
+
+単体 Flow が失敗した場合、他の Flow を実行しない。失敗時は自動で証跡を収集する。
+
+Gate 1 の確認内容:
+
+1. `clearState: true` で起動
+2. `Scenario Shop` 表示
+3. `Native test runtime listening` 表示
+4. Reset Deep Link
+5. `Native test runtime ready` 表示
+6. Screenshot
+
+画面上に Text が見えていても、Maestro Accessibility Hierarchy で `visible` でなければ失敗である。
+
+### Gate 2: Runtime／Smoke 5 Flow
+
+```powershell
+pnpm run native:android:test:runtime
+```
+
+- `native-test-control.yaml`
+- `native-contract-harness.yaml`
+- `native-not-found.yaml`
+- `native-storefront.yaml`
+- `native-cart.yaml`
+
+### Gate 3: Persistence／Boundary 5 Flow
+
+```powershell
+pnpm run native:android:test:boundary
+```
+
+- `native-restart-persistence.yaml`
+- `native-reset-dirty-state.yaml`
+- `native-out-of-stock.yaml`
+- `native-low-stock.yaml`
+- `native-purchase-limit.yaml`
+
+### Setup から Gate 1 まで一括
+
+```powershell
+pnpm run native:android:all
+```
+
+`All` は Gate 1 で停止する。Gate 1 成功後に RuntimeSuite と BoundarySuite を別々に実行する。
+
+## 7. 証跡
+
+標準出力先:
+
+```text
+.artifacts/native-local/<timestamp>/
+├─ environment/
+├─ build/
+├─ install/
+├─ maestro/
+└─ evidence/
+```
+
+含めるもの:
+
+- Tool と Version
+- Gradle Build Log
+- APK Path／Size／SHA-256／ABI
+- ADB Install／起動 Log
+- Maestro Log／JUnit／Test Output
+- 端末 Screenshot
+- UIAutomator XML
+- Maestro Hierarchy
+- logcat
+- dumpsys activity／package
+
+`.artifacts/` は Repository へ追加しない。共有するときは秘密情報、Device Serial、個人 Path を確認する。
+
+手動取得:
+
+```powershell
+pnpm run native:android:evidence
+```
+
+## 8. AI エージェントの停止条件
+
+AI エージェントは次に従う。
+
+- 最初に `Doctor`
+- Build 済み APK が現在の変更を含む場合、不要な Build を繰り返さない
+- Maestro は単体 Flow から開始する
+- 最初の失敗で停止し、証跡を読む
+- Screenshot と Hierarchy を比較する
+- Timeout 延長、Assertion 削除、Flow Skip、CI Allow failure だけで成功扱いにしない
+- App 修正後は同じ Flow を再実行する
+- 単体成功後だけ 5 Flow＋5 Flow を実行する
+- 未実行を PASS と書かない
+- Git 操作はユーザーの明示依頼がない限り行わない
+
+## 9. 完了条件
+
+- Doctor PASS
+- Prepare PASS
+- Release APK Build PASS
+- APK Bundle／ABI 検査 PASS
+- 実機 Install PASS
+- 起動安定性 PASS
+- `native-test-control.yaml` PASS
+- Runtime 5 Flow PASS
+- Boundary 5 Flow PASS
+- 証跡保存
+
+Build 成功だけでは Native 実機検証完了ではない。

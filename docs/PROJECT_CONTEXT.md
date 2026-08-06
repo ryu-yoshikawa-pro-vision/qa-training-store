@@ -73,6 +73,106 @@
 - Production デプロイは `cloudflare-production` の Job concurrency により同時実行しない。Cloudflare Secret 不足はデプロイ対象 Job 内の認証確認 Stepで明示的に失敗させ、認証情報はその確認 StepとWrangler Action Inputに限定する。全 Checkout は `persist-credentials: false` とする。UI Review Artifact は `UI_REVIEW_STAGE` をUpload pathへ再利用し、Preview branch名は許可文字を検証する。
 - forkリポジトリからのPull Requestは、Cloudflare Preview用Secretを利用できず、必須のPreviewデプロイおよび公開URL Smokeを実行できないため、現在のCI/CD運用ではサポート対象外とする。同一リポジトリ内の通常PRでSecretが不足する場合は明示的に失敗し、fork PRを通すためにPreview必須条件を弱めたり `pull_request_target` を追加したりしない。
 
+## Phase 2前半 Native Foundation（2026-08-02）
+
+- WebとNativeのRoot／Route／Shellを分離した。Webは既存のApp FrameとDexie Runtimeを継続し、Nativeは`NativeAppRuntimeProvider`、Native Shell、Native Customer SQLiteを使う。全Routeの分類は[`docs/plans/2026-08-02_215142_route-inventory.md`](./plans/2026-08-02_215142_route-inventory.md)に記録する。
+- Native前半の実装範囲はGuest Home、Catalog、Search、Category、Product、Variation、Cart、Guide／Legalである。Login、Account、Checkout、Payment、Order、Review、AdminはNative placeholderとし、後半へ引き継ぐ。
+- Native DBは`expo-sqlite`のCustomer-only schema、FK enforcement、WAL、exclusive transaction、seed versionを使用する。Native KVは`expo-sqlite/kv-store`、Password HashはPBKDF2-SHA256 adapter、Assetは静的生成Mapを使用する。
+- Test Controlは`scenario-shop://test-control/reset`のVersion 1 Deep Link、Scenario／Clock／Delay validation、Reset mutex、Ready／Error signalを持つ。local／automation buildだけ有効で、production buildでは無効である。Native contract harnessは専用DB／KV namespaceとfinally cleanupを持つ。
+- Application層はInfrastructure／Dexieをimportせず、Web Dexie Composition RootとNative Customer Composition Rootがportへadapterを注入する。`pnpm run check:native-route-dependencies`、`typecheck:native-tests`、Native Jestを検証入口とする。
+- Native BuildはローカルWindows／macOSを正式な主経路とする。Androidは`expo prebuild`→Android Studio／Gradle Release／署名済みAPK→Emulator／端末Install、iOSは`expo prebuild`→Xcode／`expo run:ios` Release Simulator Build→Simulator Installを行う。個人iPhoneはDevelopment Signingの任意確認に限定し、Distribution IPA／Store提出は行わない。生成された`android/`／`ios/`、APK／App、署名鍵／CredentialはRepository成果物にしない。
+- Native UIはWeb DOM／CSS／React Ariaを再利用せず、`src/presentation/design/tokens.ts`の色、8px Grid、Radius、Typography、Touch Target、商品画像比率をNative primitivesへ接続する。Home／Catalog／Product／Cartの情報順と画像比率をWebと揃え、390×844、追加で320×700のWeb／Native比較を行う。Android／iOS差分はPlatform Header／Navigation等の必要差に限定する。
+- `eas.json`と`.eas/workflows/phase2-native-foundation.yml`はProfile／Environment mappingと将来の手動Workflowを静的に保持する。`pnpm run validate:eas:config`をローカル静的検証入口とし、EAS Cloud Build／Workflow／Maestro／Submitは通常経路として実行しない。
+- 2026-08-02時点の実行環境にはAndroid SDK／`adb`／EmulatorとiOS `xcrun`／Simulatorがないため、実Native Build／Install／起動／操作／実SQLite Smokeは未確認である。Node／Web検証と実Native検証を混同しない。
+- Node.js 24の組み込み`node:sqlite`でNative Customer SQLite Adapterの実SQL／FK／Seed／Catalog／Cart Shared Contractを検証するSuiteを追加した。これはAndroid／iOSの`expo-sqlite`実行検証とは分離して扱う。
+- Native Guest Identityは初回だけseed既定値を設定し、以後はNative KVの保存値を再起動後も保持する。Guest Cartの初回作成も`withExclusiveTransactionAsync`内で行う。
+- Native前半UIはCatalogの在庫／Sale／Rating filter、商品詳細のSale価格・在庫・購入上限・Review Summary・在庫切れVariation、二重追加防止を備える。ProductionのTest Control buildKindは解決済みExpo Configを優先する。
+
+## PR #8レビュー修正後の状態（2026-08-03）
+
+- Native Test Controlの正式URLは`scenario-shop://test-control/reset`であり、Pure Functionが`scheme`／`hostname=test-control`／`path=reset`を検証する。Native前半Scenarioは`src/seeds/metadata.ts`の`NATIVE_FOUNDATION_SCENARIOS`（8件）だけを受理する。
+- Native Runtimeは既存の`CatalogUseCases`／`CartUseCases`へCustomer Catalog／Cart Gateway、Guest Actor、Native SQLite／Clock／KV Adapterを注入する。Native専用Use Caseの業務Validationを正本にしない。
+- Native SQLite Resetは削除、Seed、Schema Metadata、Native Schema Version、`foreign_key_check`を一つのExclusive Transactionで実行し、失敗時に旧状態を残す。前半はCustomer-only Schemaに限定し、後半のTable追加時に`NATIVE_DATABASE_SCHEMA_VERSION`を更新する。Store公開前のDB再作成を許容し、Migration Recoveryは前半対象外とする。
+- Contract Harnessは`scenario-shop-contract-<uuid>.db`と専用KV Prefixを使い、固定Customer Contract、FK違反、Cart add／update／remove、Application DBの必要最小限の不変確認を実行する。全Cleanupと不変確認が成功した後だけ`Native contract passed`を通知する。画面へ任意Exception／SQLは表示しない。
+- ProductionではMetroの限定ResolverがAutomation／ProductionのNative Automation BridgeとHarness Screenを分離する。生成Android Hermes Bundle（`.hbc`）でAutomation Markerあり、Production Marker／`NativeTestControlService`なしを検査する。
+- `.github/workflows/native-ci.yml`はPR／手動起動、Native変更時にUbuntu `ubuntu-24.04`／Android API 34 Emulator／compile SDK 36でDeep Link、Harness、Maestro Storefront／Cartを実行し、`native-ci / verify`へ集約する。`.github/workflows/native-ios-ci.yml`は`macos-26`／Xcode 26.4.1以上の手動Workflowで、初期段階ではRequired Checkへ含めない。
+- 2026-08-03時点で、上記CIは定義済みだがGitHub Actions Runは未実施である。Windows上のAndroid SDK／`adb`／EmulatorおよびiOS Xcode／Simulatorも未提供のため、実Native Build／Install／操作／実`expo-sqlite` Smoke／Native screenshotは未確認である。Node／Web／生成Bundleの成功と実Native成功を混同しない。
+
+## PR #8再レビュー修正（2026-08-03）
+
+- GitHub Actions Native CI run `30775548618`の実態は、Detect／Native Static／Production Bundle Guardが成功、Android Jobが既存Workflowの`sdkmanager: command not found`で失敗、`native-ci / verify`も失敗である。これは修正後Workflowの成功実績ではない。
+- Android Workflowは`ANDROID_SDK_ROOT`→`ANDROID_HOME`→`/usr/local/lib/android/sdk`の順でSDK Rootを解決し、`cmdline-tools`からsdkmanager絶対Pathを取得して、`ANDROID_HOME`／`ANDROID_SDK_ROOT`／PATHを後続Stepへ渡す。BuildはDebugではなくAutomation Release APKを使用し、OS boot完了とpackage service準備をTimeout付きで待つ。
+- Native変更検知は共有Application／Domain／Seed／Config／Design Token／Generated／Manifest／Asset生成／Production Guardを含み、最終VerifyはDetect JobのResult、Native変更Output、Static／Production／AndroidのResultをFail-safeに確認する。
+- Native RuntimeのPresentation公開型は前半対応MethodだけのFacade（Catalog: Home／Search／Detail／Category、Cart: Get／Add／Update／Remove）とし、`suggest`、`listReviews`、`acceptPriceChanges`を公開しない。Native SQLiteのGuest閲覧制限商品は`PERMISSION_DENIED`、不存在は`null`とする。
+- Test Control ResetはSQLite Seed commit後にNative Control KV削除、Seed Identity復元、Clock、Payment Delayを更新する。Seed失敗時にKV／Identity／Clock／Delayを変更せず、Error Signalだけを通知する。
+- Native Cartはload／mutation開始時にErrorをクリアし、Mutation中はCart全明細の数量変更／削除Buttonを無効にする。Component Testで再試行復旧と全Button無効化を固定する。
+- MaestroはRestart Persistence、Dirty State Reset、Out-of-stock、Low-stock、Purchase Limitを独立Flowとして追加し、Screenshotは専用`--test-output-dir`へ収集する。iOS Workflowはmanual-onlyのRelease Simulator Buildへ揃える。
+- 上記修正後WorkflowのGitHub Actions再実行、Windows Android Emulator、macOS iOS Simulator、実`expo-sqlite`証跡は、Commit／Push禁止またはToolchain不在のため未実施である。
+
+## PR #8 Native CI再失敗修正（2026-08-03）
+
+- 最新確認Runは`30780990538`。SDK解決／Installは成功したが、`Verify Android toolchain`で`emulator -version`が`libpulse.so.0`不足となり、Evidenceの旧`adb logcat -d`が接続待ちのままRunner shutdownまで停止した。
+- `.github/workflows/native-ci.yml`は`libpulse0`を導入し、`ADB`／`EMULATOR`／`AVDMANAGER`／`APK_PATH`をSDK Rootから絶対Pathで解決して`GITHUB_ENV`へ保存する。SDK Path／adb／avdmanager／emulator診断を分割し、後続のAVD／Emulator／ADB／APK操作も絶対Pathへ統一する。
+- Release APKは`APK_PATH`に集約し、Gradle出力を`gradle-assemble-release.log`へ保存する。EvidenceはADB Device確認、`logcat`のTimeout、Emulator／APK／JUnit／Maestro専用Artifactの存在分岐と3分Step Timeoutを持つ。Job Timeoutは50分とする。
+- Native Product Detailは未選択時に`Variationを選択すると在庫を確認できます。`を表示し、在庫0／在庫ありを選択後だけ表示する。Out-of-stock Variationは選択できるがAddはdisabledとし、CartのLow-stock／Purchase-limit上限は同じdisabled／案内契約を使う。
+- Native Runtimeは初期化Reject時に保持Promiseを解除し、Providerは同時初期化を防ぎながら再試行できる。実GitHub Actions再実行、Windows Android Emulator、macOS iOS Simulator、実`expo-sqlite`は未確認である。
+
+## PR #8 Native CI処理順序・Runtime Cleanup修正（2026-08-03）
+
+- 最新確認Runは`30785304641`（Commit `be27f8ff5b9ec5395cb9ce4e6a1f56a61cc2f8e3`）。Detect／Native Static／Production Bundle Guard／Android runtime dependencies／Expo Prebuild／Evidenceは成功したが、`Resolve Android SDK and sdkmanager`でSDK Component導入前の`ADB`／`EMULATOR`／`AVDMANAGER`存在確認が終了コード1となり、Install以降は未実施だった。
+- Android ResolveはSDK Root、cmdline-tools、sdkmanagerの確認とPath生成／`GITHUB_ENV`／`GITHUB_PATH`保存だけを担当し、`ADB`／`EMULATOR`／`AVDMANAGER`の実在確認は`Install Android SDK components`後の`Verify Android SDK paths`へ限定する。Contract TestでResolve→Install→Verify paths→Verify adb→Verify avdmanager→Inspect emulator→Buildの順序と、Resolve内にTool検証がないことを固定する。
+- Native RuntimeはDatabaseを開いた後の初期化処理を専用private helperで囲み、途中失敗時だけ`database.closeAsync()`を1回試行する。Cleanup失敗は握り潰して元の初期化Errorを再送出し、正常に返すRuntimeのDatabaseは閉じない。Jestで失敗／成功／Cleanup失敗の3契約を検証する。
+- ローカルのformat／lint／typecheck／全Test／Native Contract／Repository／Asset／Security／Route／EAS static／Production Bundle／Web Build／Chromium／A11y／Mobile boundary／Expo Doctorは成功した。EAS Cloud、Commit／Push、修正後GitHub Actions、Windows Android実Native、macOS iOS実Native、実`expo-sqlite`は未実施のまま分離して扱う。
+
+## PR #8 AVD永続化・PBKDF2契約修正（2026-08-03）
+
+- 最新確認Headは`50411a63e643000a024d929b8869b240936ef56e`、Native CI Runは`30787501472`。SDK導入、APK生成、Bundle確認までは成功したが、Android Emulator Stepで`avdmanager create avd`がCustom hardware profile入力待ちになり、終了コード124で停止した。APK／SDK破損ではない。
+- Android Workflowは`ANDROID_AVD_HOME=$RUNNER_TEMP/android-avd`を明示して作成・exportし、`avdmanager -p "$ANDROID_AVD_HOME/native-api34.avd"`、API 34／`google_apis;x86_64`、固定device profileを使う。作成後のAVDファイル列挙と`emulator -list-avds`の`native-api34`完全一致を起動前に要求する。
+- EmulatorはPIDを保存し、ADB待機、`sys.boot_completed=1`、SDK／ABI確認、package service待機を分離し、各待機中にプロセス早期終了を検出する。失敗時もAVD home、AVD list、AVD files、emulator.log、ADB／boot／dumpsys／logcat／APK／Maestro／Signal証跡を回収する。
+- Native Contract Harnessは専用DBのseed userから`password_hash`を取得し、`NativePbkdf2PasswordHasher`で`testpass1`の正誤、Unicode passwordの正誤を検証する。Application DB不変確認→PBKDF2→DB／KV cleanupの完了後にのみ`Native contract passed`を通知し、結果へ`checks.passwordHashing`を含める。password／hash値はログへ出さない。
+- 今回のローカル検証ではUnit 13/66、Integration 9/91、Repository 5/28、Web Component 11/76、Native Jest 7/15、Contract 17/84、Chromium 27、A11y 4、Mobile boundary 4、Expo Doctor 17/17、静的Guard／Web Buildが成功した。Lintは0 errors／64 warnings。
+- 修正後のGitHub Actions Run、Android SDK／adb／Emulator／Maestroによる実操作、iOS Simulator、実`expo-sqlite`は未実施である。EAS Cloud、Commit、Push、PR更新、`android/`／`ios/`のRepository追加は行わない。
+
+## PR #8 CI復旧・Android CI高速化（2026-08-03）
+
+- 最新確認Runは`30795820475`（Head `17d9d538a27058dcf81893d4d6f118cf36d52abf`）。Native Static／Production Bundle Guard／APK生成／Emulator起動／Evidence uploadは成功し、Android Jobは旧Workflowの`Install and launch APK`で`pidof`待機がexit 124となった。`native-ci / verify`はAndroid結果を受けて失敗し、Maestroは未実行である。Artifact `native-android-evidence-30795820475`（ID `8849743993`）のlogcatで、`NativeAutomationBridge`→`NativeTestControlRuntimeBridge`→`NativeAppRuntimeProvider`中の`RangeError: Maximum call stack size exceeded`を確認した。
+- 原因はMetroのAndroid platform resolutionで`src/test-controls/native-signals.native.ts`から`./native-signals`を読み込む自己参照である。`native-signal-names.ts`へ定数／型を分離し、native／web双方がそこだけを参照する構造へ修正した。Native Jestの直接signal emission回帰Testと、native moduleが自己参照しないContract Testを追加した。
+- Android Workflowは`android.needs: [detect]`としてNative Staticと並列化し、Production Bundle Guardは`[detect, static]`、最終Verifyは`[detect, static, production-bundle-guard, android]`を維持する。Gradle cache、条件付き`libpulse0`／SDK component導入、`prebuild --no-install`、x86_64専用Release APK、APK／ABI検査、Maestro cache、2つの責務別JUnit実行、成功時軽量／失敗時詳細Evidenceを定義した。AVD snapshot cacheは実測がないため採用せず、`-no-snapshot`を維持する。
+- ローカルのformat／型チェック／Lint／Native Jest 8 suites・16 tests／今回のWorkflow・signal Contract 11 testsは成功した。VitestでNative Jest対象を直接起動する方法はReact Native Flow構文を扱えないため使用せず、`jest.config.cjs`を正式入口とする。既存Lint warningとReact `act` warningは残存するがerrorはない。
+- 修正後WorkflowのGitHub Actions Run、Android Emulator／Maestro／Harness実証、WindowsローカルAndroid toolchain、macOS iOS toolchain、実`expo-sqlite`は未確認である。Commit／Push／PR更新／EAS Cloud実行は行わない。
+
+## PR #8 Maestro CLI／Application Launch／Signal修正（2026-08-03）
+
+- 最新確認Runは`30811624722`（HEAD `5fc9c14c7dc2975b6516e6fd2331cd1c7e0cc5b5`）。Native Static、Production Bundle Guard、Gradle Release APK、Emulator、APK Install、Application Launch、Evidence uploadはsuccessだったが、Cache Miss後の`Install pinned Maestro CLI`が旧`MAESTRO_VERSION=1.39.15`のURL HTTP 404／curl exit 22で失敗し、Maestro 2 Groupはskip、`native-ci / verify`はfail-closeした。
+- GitHub公式Release APIと実Assetで、採用する固定Releaseを`cli-2.8.0`／`maestro.zip`、URLを`https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip`、HTTP 200と確認した。zipの実展開構造は`maestro/bin/maestro`のため、WorkflowのCache Hit検証、`--version`、PATHをその構造へ合わせた。Version／URL／Cache SchemaはWorkflow envへ集約し、Cache keyはOS／Version／Schema単位で分離する。
+- Application Launchは`PACKAGE_ID`を共通化し、PID出現を最大60秒待ち、出現後6回・2秒間隔で10秒以上の継続稼働を確認する。Logcatは`Process: <package>`または`ReactNativeJS`に絞り、Fatal Exception、JavaScript Exception、Stack Overflow、Metro接続／Scriptロード失敗を検知する。
+- Evidenceの正式Signal regexは`test-runtime-(ready|error)|native-contract-(running|passed|failed)`である。旧`native-test-runtime-ready`前提はContract Testで拒否する。
+- ローカルのFormat／Lint（0 errors／64 warnings）／Typecheck／Native Component 8 suites・16 tests／Repository 5 files・28 tests／Contract 18 files・86 tests／Route 38／Production Bundle Guard／Workflow Bash構文は成功した。WindowsのJava／Android SDK／adb／Emulator不在により、ローカルMaestro`--version`、実APK操作、Maestro 10 Flowは未確認である。
+- 修正後Remote Cache Miss／Hit、Maestro全Flow、Harness Signal、Evidence、`native-ci / verify`、Native CI全体時間は未確認である。Commit／Push／PR本文更新／EAS Cloud実行は行わない。
+
+## PR #8 Native Test Control起動競合・受入テスト修正（2026-08-04）
+
+- Native Runtimeの画面状態は`src/presentation/native/native-test-runtime-status.ts`の`NativeTestRuntimeStatus`と`RUNTIME_STATUS_LABELS`を正本とし、`booting`／`listening`／`resetting`／`ready`／`error`の固定文字列を使う。既存のService Signal（ready／error／contract）は診断・Contract互換性のため維持する。
+- `NativeTestControlBridge`は`Linking.addEventListener("url", ...)`登録後に直接Callbackで`listening`を通知し、その後`Linking.getInitialURL()`を確認する。valid URLだけを処理中Setで排他し、Reset成功後に`router.replace()`、`ready`通知、失敗時`error`通知を行う。Unmount後はStatus／Navigationを更新しない。同一URLは処理完了後に再実行可能である。
+- `NativeAutomationBridge`はDeviceEventEmitterのlistener登録順に依存せず、Bridge Callbackを直接画面へ接続する。Production disabled entryは従来どおりTest Control／Harnessをimportしない。
+- Native Maestro 10 FlowはCold Start後に`launchApp`、`Scenario Shop`、`Native test runtime listening`待機、Reset `openLink`、`Native test runtime ready`待機の順序を持つ。固定Sleepや単純なtimeout延長は追加しない。`native-reset-dirty-state`の2回目Resetは既存listenerを使い、ready待機を維持する。
+- iOS Manual WorkflowはFlow実行前の`xcrun simctl openurl`を削除し、Reset責務をMaestroへ統一した。Maestro CLIは確認済みのcli-2.8.0／`maestro.zip`／nested `maestro/bin/maestro`へ固定する。
+- Bridge Component Testは9 tests、Maestro／iOS／Production境界Contractを追加した。実Nativeで古い画面Stateが観測されていないため、`dataRevision`／`resetGeneration`は未追加である。
+- 2026-08-04のローカル検証はformat／lint（0 errors・64 warnings）／typecheck、Unit 66、Integration 91、Repository 28、Web Component 76、Native Jest 25、Contract 100、Route 38、Image／EAS static／Production Bundle、`test`、`build:web`、`verify`、Android `expo prebuild --no-install`が成功した。Java／Android SDK／adb／Emulator／Maestro／Xcode／Simulatorは未導入のため、実Android／iOS操作とRemote CIは未確認である。
+
+## PR #8 Native実機・Maestro再検証（2026-08-06）
+
+- Windows実機検証の正式rootは、リポジトリを指すNTFS Junction `C:\q` とする。Maestro 2.8.0、Android API 30のSHV48、Serial `354955112942476` を使用する。
+- `scripts/native/windows/android-local.ps1` はPowerShell `$Args`衝突、production install時のdevDependency prune、Smokeの自動変数`$PID`衝突を修正済み。Prepare／Build／Install／Smoke／Controlは正式経路でPASSした。
+- Native StatusはSafe Area内の単一accessible Textへ修正し、CIの`Native test runtime listening`可視性失敗を実画面／Hierarchy／logcatと照合した。Expo patch versionsはCI期待値へ揃え、`expo install --check`はPASSした。
+- Maestro Flowは固定表示textではなくNative testIDを優先する。商品詳細は長い画像のためvariant／add controlを`scrollUntilVisible`で先に可視化する。Catalog検索は`P-0001`入力後に`hideKeyboard`を行う。
+- SHV48の既定日本語IMEではformal Maestro CLIの`inputText`がASCII検索語を入力できず、`MaestroInputMethodService`もCLI経路では入力値を保持しない。標準LatinIME一時切替ではformal Storefront／Runtime／BoundaryがPASSする。検証後は元の日本語IMEへ復元する。Maestro MCP経由の同一Serial Flowは27 commands PASSしたが、Mobile MCP backendは未稼働として扱う。
+- `NativeCatalogScreen`には入力途中の非同期検索の古いレスポンス後勝ちを防ぐrequest serial guardを追加した。これはIME失敗の直接原因ではないが、keyword変更ごとの検索競合を防ぐ防御的修正である。
+- 2026-08-06実機結果はRuntime Suite 5/5、Boundary Suite 5/5 PASS。GitHub Actions再実行、`gh` CLI formal check、commit／push／PR更新は行わない。
+- Web主要回帰27/27、Accessibility 4/4、mobile-chromium boundary 4/4、Web Build、Production Bundle GuardはPASSした。全体Unit／Integration／Repository／Web Component／Native Component／Contractとtypecheckも、repo設定を変えずに`node_modules/.pnpm-local`へ依存を再解決した正式コマンドでPASSした。Expo Doctorはphysical rootで16/17、package checkのnpm config warningを残す。`verify`は生成物を含むformat check 294件で停止したため、生成物を一括整形しない。
+- Maestro MCPの`list_devices`は同一Serialを返すが、長時間のformal CLI後の`inspect_screen`はDevice server `UNAVAILABLE`となる場合がある。再起動直後に取得したMCP証跡と、最終判定用のformal CLI JUnit／Maestro artifactを分けて扱う。
+- `.prettierignore`は`.artifacts`、`android`、`.expo-local-export`を含む生成物を対象外とする。追加後の`pnpm run format:check`と`pnpm run verify`はPASSした。Expo Doctorのpackage checkに残るlocal npm config warningと、MCP Device serverの再起動要否は環境固有の未完了事項として扱う。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

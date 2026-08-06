@@ -4,6 +4,7 @@ import { CartUseCases } from "@/application/use-cases/cart-use-cases";
 import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
+import { createDexieApplicationRepositories } from "@/infrastructure/database/dexie/application-repositories";
 import { createScenarioDataset } from "@/seeds/scenarios";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { DEFAULT_GUEST_ID } from "@/seeds/metadata";
@@ -64,7 +65,7 @@ describe("cart application integration", () => {
 
   function useCases(ids: string[]) {
     return new CartUseCases({
-      database,
+      ...createDexieApplicationRepositories(database),
       transactionRunner: new DexieApplicationTransactionRunner(database),
       currentSessionStore: session,
       guestIdentityStore: new MemoryGuestStore(),

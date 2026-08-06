@@ -5,6 +5,7 @@ import { AdminProductUseCases } from "@/application/use-cases/admin-product-use-
 import { TestClock } from "@/infrastructure/clock/clocks";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { DexieApplicationTransactionRunner } from "@/infrastructure/database/dexie/transaction-runner";
+import { createDexieApplicationRepositories } from "@/infrastructure/database/dexie/application-repositories";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { createScenarioDataset } from "@/seeds/scenarios";
 const FIXED_TIME = "2026-07-15T03:00:00.000Z";
@@ -69,8 +70,10 @@ describe("admin product aggregate application integration", () => {
       userId: "user-operator",
       createdAt: "2026-07-01T03:00:00.000Z",
     });
+    const repositories = createDexieApplicationRepositories(database);
     useCases = new AdminProductUseCases({
-      database,
+      ...repositories,
+      products: repositories.productRecords,
       transactionRunner: new DexieApplicationTransactionRunner(database),
       currentSessionStore: new SessionStore("operator-session"),
       clock: new TestClock(FIXED_TIME),

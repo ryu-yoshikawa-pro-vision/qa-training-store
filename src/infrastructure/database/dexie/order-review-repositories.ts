@@ -55,6 +55,10 @@ export class DexieOrderRepository implements OrderRepository {
     return order;
   }
 
+  async getItemById(orderItemId: string): Promise<OrderItem | null> {
+    return (await this.db.order_items.get(orderItemId)) ?? null;
+  }
+
   async listItems(orderId: string): Promise<OrderItem[]> {
     return this.db.order_items.where("orderId").equals(orderId).sortBy("lineNumber");
   }

@@ -9,18 +9,21 @@ import type {
 } from "@/application/contracts";
 import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
+import type { CustomerCartGateway } from "@/application/customer-capabilities";
 import type {
   Clock,
+  CurrentActorResolver,
   CurrentSessionStore,
   GuestIdentityStore,
   IdGenerator,
 } from "@/application/ports";
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
-import { DexieCartRepository } from "@/infrastructure/database/dexie/cart-checkout-repositories";
-import type { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
+import type { CartRepository, SessionRepository, UserRepository } from "@/domain/repositories";
 
-interface CartUseCaseDependencies {
-  database: ScenarioShopDatabase;
+interface CartRepositoryDependencies {
+  users: UserRepository;
+  sessions: SessionRepository;
+  carts: CartRepository;
   transactionRunner: ApplicationTransactionRunner;
   currentSessionStore: CurrentSessionStore;
   guestIdentityStore: GuestIdentityStore;
@@ -28,39 +31,76 @@ interface CartUseCaseDependencies {
   idGenerator: IdGenerator;
 }
 
+export type CartUseCaseDependencies =
+  | (CartRepositoryDependencies & { identity?: never; customerGateway?: never })
+  | {
+      identity: Pick<CurrentActorResolver, "getCurrentEntity">;
+      customerGateway: CustomerCartGateway;
+      guestIdentityStore: GuestIdentityStore;
+      clock: Clock;
+      idGenerator: IdGenerator;
+    };
+
 interface ResolvedOwner {
   owner: CartMutationOwner;
   viewer: ProductViewer;
 }
 
 export class CartUseCases {
-  private readonly identity: SessionIdentityResolver;
-  private readonly carts: DexieCartRepository;
+  private readonly identity: Pick<CurrentActorResolver, "getCurrentEntity">;
+  private readonly customerGateway: CustomerCartGateway | null;
+  private readonly carts: CartRepository | null;
+  private readonly transactionRunner: ApplicationTransactionRunner | null;
+  private readonly guestIdentityStore: GuestIdentityStore;
+  private readonly idGenerator: IdGenerator;
+  private readonly clock: Clock;
 
   constructor(private readonly dependencies: CartUseCaseDependencies) {
-    this.identity = new SessionIdentityResolver(
-      dependencies.database,
-      dependencies.currentSessionStore,
-    );
-    this.carts = new DexieCartRepository(dependencies.database);
+    if (dependencies.customerGateway !== undefined) {
+      this.identity = dependencies.identity;
+      this.customerGateway = dependencies.customerGateway;
+      this.carts = null;
+      this.transactionRunner = null;
+      this.guestIdentityStore = dependencies.guestIdentityStore;
+      this.idGenerator = dependencies.idGenerator;
+      this.clock = dependencies.clock;
+    } else {
+      this.identity = new SessionIdentityResolver(
+        dependencies.users,
+        dependencies.sessions,
+        dependencies.currentSessionStore,
+      );
+      this.customerGateway = null;
+      this.carts = dependencies.carts;
+      this.transactionRunner = dependencies.transactionRunner;
+      this.guestIdentityStore = dependencies.guestIdentityStore;
+      this.idGenerator = dependencies.idGenerator;
+      this.clock = dependencies.clock;
+    }
   }
 
   async getCart(): Promise<CartDto> {
+    if (this.customerGateway !== null) {
+      const [resolved, now] = await Promise.all([this.resolveOwner(), this.now()]);
+      return this.customerGateway.getCart({
+        owner: resolved.owner,
+        viewer: resolved.viewer,
+        now,
+      });
+    }
     const [resolved, now] = await Promise.all([this.resolveOwner(), this.now()]);
-    const cart = await this.dependencies.transactionRunner.run(
-      "cart-mutation",
-      async ({ carts }) =>
-        resolved.owner.ownerType === "user"
-          ? carts.getOrCreateActiveByUser({
-              userId: resolved.owner.userId,
-              now,
-            })
-          : carts.getOrCreateActiveByGuest({
-              guestId: resolved.owner.guestId,
-              now,
-            }),
+    const cart = await this.transactionRunner!.run("cart-mutation", async ({ carts }) =>
+      resolved.owner.ownerType === "user"
+        ? carts.getOrCreateActiveByUser({
+            userId: resolved.owner.userId,
+            now,
+          })
+        : carts.getOrCreateActiveByGuest({
+            guestId: resolved.owner.guestId,
+            now,
+          }),
     );
-    return this.carts.getCartDto({
+    return this.carts!.getCartDto({
       cartId: cart.id,
       viewer: resolved.viewer,
       now,
@@ -72,9 +112,19 @@ export class CartUseCases {
       throw validationError("cart.quantity.invalid");
     }
     const [resolved, now] = await Promise.all([this.resolveOwner(), this.now()]);
-    const cartId = this.dependencies.idGenerator.generate();
-    const itemId = this.dependencies.idGenerator.generate();
-    const result = await this.dependencies.transactionRunner.run("cart-mutation", ({ carts }) =>
+    const cartId = this.idGenerator.generate();
+    const itemId = this.idGenerator.generate();
+    if (this.customerGateway !== null) {
+      return this.customerGateway.addItem({
+        owner: resolved.owner,
+        viewer: resolved.viewer,
+        request,
+        cartId,
+        itemId,
+        now,
+      });
+    }
+    const result = await this.transactionRunner!.run("cart-mutation", ({ carts }) =>
       carts.addQuantityToActiveCart({
         ...request,
         owner: resolved.owner,
@@ -83,7 +133,7 @@ export class CartUseCases {
         now,
       }),
     );
-    return this.carts.getCartDto({
+    return this.carts!.getCartDto({
       cartId: result.cart.id,
       viewer: resolved.viewer,
       now,
@@ -91,29 +141,43 @@ export class CartUseCases {
   }
 
   async updateQuantity(request: UpdateCartItemQuantityRequest): Promise<CartDto> {
-    const [resolved, now, cart] = await Promise.all([
-      this.resolveOwner(),
-      this.now(),
-      this.getOwnedActiveCart(),
-    ]);
+    const [resolved, now] = await Promise.all([this.resolveOwner(), this.now()]);
     if (request.quantity === 0) {
-      return this.removeItem({
+      const removeRequest = {
         itemId: request.itemId,
         cartExpectedVersion: request.cartExpectedVersion,
         itemExpectedVersion: request.itemExpectedVersion,
-      });
+      };
+      if (this.customerGateway !== null) {
+        return this.customerGateway.removeItem({
+          owner: resolved.owner,
+          viewer: resolved.viewer,
+          request: removeRequest,
+          now,
+        });
+      }
+      return this.removeItem(removeRequest);
     }
     if (!Number.isInteger(request.quantity) || request.quantity < 1) {
       throw validationError("cart.quantity.invalid");
     }
-    const result = await this.dependencies.transactionRunner.run("cart-mutation", ({ carts }) =>
+    if (this.customerGateway !== null) {
+      return this.customerGateway.updateQuantity({
+        owner: resolved.owner,
+        viewer: resolved.viewer,
+        request,
+        now,
+      });
+    }
+    const cart = await this.getOwnedActiveCart();
+    const result = await this.transactionRunner!.run("cart-mutation", ({ carts }) =>
       carts.setQuantityAndTouchCart({
         ...request,
         cartId: cart.id,
         now,
       }),
     );
-    return this.carts.getCartDto({
+    return this.carts!.getCartDto({
       cartId: result.cart.id,
       viewer: resolved.viewer,
       now,
@@ -121,19 +185,24 @@ export class CartUseCases {
   }
 
   async removeItem(request: RemoveCartItemRequest): Promise<CartDto> {
-    const [resolved, now, cart] = await Promise.all([
-      this.resolveOwner(),
-      this.now(),
-      this.getOwnedActiveCart(),
-    ]);
-    const result = await this.dependencies.transactionRunner.run("cart-mutation", ({ carts }) =>
+    const [resolved, now] = await Promise.all([this.resolveOwner(), this.now()]);
+    if (this.customerGateway !== null) {
+      return this.customerGateway.removeItem({
+        owner: resolved.owner,
+        viewer: resolved.viewer,
+        request,
+        now,
+      });
+    }
+    const cart = await this.getOwnedActiveCart();
+    const result = await this.transactionRunner!.run("cart-mutation", ({ carts }) =>
       carts.deleteItemAndTouchCart({
         ...request,
         cartId: cart.id,
         now,
       }),
     );
-    return this.carts.getCartDto({
+    return this.carts!.getCartDto({
       cartId: result.cart.id,
       viewer: resolved.viewer,
       now,
@@ -146,14 +215,14 @@ export class CartUseCases {
       this.now(),
       this.getOwnedActiveCart(),
     ]);
-    const result = await this.dependencies.transactionRunner.run("cart-mutation", ({ carts }) =>
+    const result = await this.transactionRunner!.run("cart-mutation", ({ carts }) =>
       carts.acceptPriceChangesAndTouchCart({
         ...request,
         cartId: cart.id,
         now,
       }),
     );
-    return this.carts.getCartDto({
+    return this.carts!.getCartDto({
       cartId: result.cart.id,
       viewer: resolved.viewer,
       now,
@@ -163,7 +232,7 @@ export class CartUseCases {
   private async resolveOwner(): Promise<ResolvedOwner> {
     const user = await this.identity.getCurrentEntity();
     if (user === null) {
-      const guestId = await this.dependencies.guestIdentityStore.getOrCreateGuestId();
+      const guestId = await this.guestIdentityStore.getOrCreateGuestId();
       return {
         owner: { ownerType: "guest", guestId },
         viewer: { kind: "guest" },
@@ -194,8 +263,8 @@ export class CartUseCases {
     const resolved = await this.resolveOwner();
     const cart =
       resolved.owner.ownerType === "user"
-        ? await this.carts.getActiveByUser(resolved.owner.userId)
-        : await this.carts.getActiveByGuest(resolved.owner.guestId);
+        ? await this.carts!.getActiveByUser(resolved.owner.userId)
+        : await this.carts!.getActiveByGuest(resolved.owner.guestId);
     if (cart === null) {
       throw new ApplicationError({
         code: "NOT_FOUND",
@@ -207,6 +276,6 @@ export class CartUseCases {
   }
 
   private async now(): Promise<string> {
-    return this.dependencies.clock.now();
+    return this.clock.now();
   }
 }

@@ -1,9 +1,11 @@
 import type { ConfigContext, ExpoConfig } from "expo/config";
 
 const APP_VERSION = "0.1.0";
-const SCHEMA_VERSION = 1;
+const WEB_DATABASE_SCHEMA_VERSION = 1;
+const NATIVE_DATABASE_SCHEMA_VERSION = 1;
 const SEED_VERSION = 11;
 const IMAGE_MANIFEST_VERSION = 1;
+const SCHEMA_VERSION = WEB_DATABASE_SCHEMA_VERSION;
 
 export function resolveRuntimeEnvironment(
   environment: Readonly<Record<string, string | undefined>>,
@@ -30,9 +32,34 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     scheme: "scenario-shop",
     orientation: "portrait",
     userInterfaceStyle: "light",
-    plugins: ["expo-router"],
+    android: {
+      ...(config.android ?? {}),
+      package: "com.ryuyoshikawa.scenarioshop",
+    },
+    ios: {
+      ...(config.ios ?? {}),
+      bundleIdentifier: "com.ryuyoshikawa.scenarioshop",
+    },
+    plugins: [
+      "expo-router",
+      [
+        "expo-build-properties",
+        {
+          android: {
+            minSdkVersion: 24,
+            compileSdkVersion: 36,
+            targetSdkVersion: 36,
+          },
+          ios: {
+            deploymentTarget: "16.4",
+          },
+        },
+      ],
+    ],
     experiments: {
       typedRoutes: true,
+      onDemandFilesystem: true,
+      autolinkingModuleResolution: true,
     },
     web: {
       bundler: "metro",
@@ -45,6 +72,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       defaultSeed,
       appVersion: APP_VERSION,
       schemaVersion: SCHEMA_VERSION,
+      webDatabaseSchemaVersion: WEB_DATABASE_SCHEMA_VERSION,
+      nativeDatabaseSchemaVersion: NATIVE_DATABASE_SCHEMA_VERSION,
       seedVersion: SEED_VERSION,
       imageManifestVersion: IMAGE_MANIFEST_VERSION,
       buildSha: process.env.EXPO_PUBLIC_BUILD_SHA ?? "local",

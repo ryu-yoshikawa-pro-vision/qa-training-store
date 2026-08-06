@@ -63,7 +63,7 @@ Phase 2は次の二つだけに分割します。
 | 順序 | 計画 | 主目的 | 完了状態 |
 |---:|---|---|---|
 | 1 | Phase 2 前半 | Native基盤・SQLite・Guest購入前Flow | Android/iOSで商品探索からCartまで操作できる |
-| 2 | Phase 2 後半 | 会員購入Flow・Maestro・EAS/CI仕上げ | Loginから購入、注文、Reviewまで動作し、自動検証が成立する |
+| 2 | Phase 2 後半 | 会員購入Flow・Maestro・CI仕上げ | Loginから購入、注文、Reviewまで動作し、自動検証が成立する |
 
 前半を基盤だけで終わらせず、商品探索とCartまで含めます。SQLite、Navigation、Asset、Presentation、Platform Adapterの統合問題を後半へ持ち越さないためです。
 
@@ -85,9 +85,9 @@ Phase 2は次の二つだけに分割します。
 - Checkout、Mock Payment、Order、Review
 - Native Component Test
 - Maestro主要Flow
-- EAS Development/Preview/Production-validation Build
-- Android Preview APK、iOS Simulator Build
-- GitHub ActionsとEAS Workflowsの責務分離
+- EAS Development/Preview/Production-validation Profile／Environmentの静的契約
+- Windows Android／macOS iOSのローカルBuild、Android Emulator CI、手動iOS Simulator CI
+- GitHub Actionsを主な補助検証経路とし、EAS Workflowは将来用の静的契約に限定
 - Native開発・Build・検証手順
 
 ### 対象外
@@ -109,14 +109,14 @@ Phase 2は次の二つだけに分割します。
 
 - Android package
 - iOS bundleIdentifier
-- Expo AccountとEAS Projectの利用方針
-- Android Development/Preview Buildを実行できる権限
+- Expo Account／EAS Projectを利用しない方針（EAS Cloudは本経路外）
+- Windows上でAndroid Development/Preview Buildを実行できる権限
 - iOS Simulator Buildを生成、インストール、起動する方法
 - SecretとCredentialをRepository、Bundle、Artifact、Logへ保存しない運用
 - `expo-dev-client`とNative Crypto Moduleの導入許可
 - Jest系Native Component Test依存の導入許可
-- EAS Workflowsの利用可否と、利用不能時の代替実行環境
-- Native Buildの費用上限と実行頻度
+- GitHub Actions標準Runnerを使うAndroid Emulator CIと、macOS iOS手動CIの実行条件
+- ローカルBuild／CIの実行頻度と、EAS Cloudを実行しない方針
 
 ### 後半開始前
 
@@ -126,7 +126,7 @@ Phase 2は次の二つだけに分割します。
 - iOS実SQLite主要Contract Smoke成功
 - Web/Android/iOSのPBKDF2互換Test成功
 - Native Component Test成功
-- 前半EAS Workflowまたは承認済み代替経路の成功
+- 前半Android Emulator CIまたは承認済みローカル代替経路の成功
 - Maestroを実行できるAndroid環境
 - iOS主要Flowを確認できるSimulator環境
 
@@ -449,6 +449,8 @@ Production-validationではTest Control Deep Link、Service、UI、Handler、Con
 
 `app.config.ts`、Config Plugin、Dependencyを正本とし、`expo-dev-client`を導入します。
 
+Native Buildの主経路はWindows Android／macOS iOSのローカルToolchainです。GitHub ActionsはローカルToolchain相当の補助検証、EAS Profile／Workflowは将来用の静的契約として扱い、EAS Cloud Build／Workflow／SubmitはPhase 2前半で実行しません。
+
 #### ProfileとEAS Environment
 
 ```text
@@ -528,17 +530,15 @@ Node/Webで完結する検証を担当します。
 
 Cloudflare DeployはNative Buildへ依存させません。
 
-#### 前半EAS Workflow
+#### 前半EAS Workflow（静的契約のみ）
 
 `.eas/workflows/phase2-native-foundation.yml`
 
-- Android Preview BuildとStorefront/Cart Smoke
-- iOS Preview Simulator BuildとStorefront/Cart Smoke
-- Android Native Contract Harness
-- iOS Contract Smoke
-- Android Production-validation BuildでTest Control/Harness無効確認
-- iOS Production設定のBundle/Config静的検証
-- iOS Production-validation実BuildはPlatform固有差分がある場合だけ実施
+- `eas.json`と`.eas/workflows/phase2-native-foundation.yml`のProfile／Environment mappingを保持する。
+- Cloud Build、EAS Workflow、Submitは実行しない。
+- Androidの実Build／Emulator／Maestroは`.github/workflows/native-ci.yml`とローカルToolchainで検証する。
+- iOSの実Build／Simulator／Maestroは`.github/workflows/native-ios-ci.yml`とmacOSローカルToolchainで検証する。
+- Production Bundle Guardは生成Bundleを検査し、Test Control／HarnessのModule Graph除外を確認する。
 
 #### 後半EAS Workflow
 
@@ -560,24 +560,13 @@ Production-validation Job:
   environment: production
 ```
 
-Phase 2ではEAS Workflowを手動実行します。
-
-- `push`、`pull_request`による自動Triggerは追加しない。
-- 実行前に`eas workflow:validate <workflow-file>`を実行する。
-- Git操作が禁止されているGoalでも、現在のローカル作業ツリーを手動Uploadして検証してよい。
-- Run Artifactへ現在のHEAD SHA、未Commit差分の有無、Workflow Run ID/URL、Profile、Environment、Android/iOS Build IDを記録する。
-- Push後の再現確認が必要な場合だけ、`--ref <pushed-commit-sha>`を指定する。
-- Build成功だけでNative Test成功と扱わない。
+Phase 2前半ではEAS Workflowを実行しません。`pnpm run validate:eas:config`で静的契約だけを確認し、実行していないCloud Run ID／Build IDを記録しません。GitHub Actionsを実行した場合はWorkflow Run ID／Artifact／Android・iOS環境をRun Artifactへ記録します。
 
 ```bash
-eas workflow:validate .eas/workflows/phase2-native-foundation.yml
-
-eas workflow:run \
-  .eas/workflows/phase2-native-foundation.yml \
-  --wait
+pnpm run validate:eas:config
 ```
 
-Build成果物を後続Maestro Jobへ渡します。EAS Workflowsが利用不能または費用上限超過の場合は、開始前に承認した代替環境で同等確認を行います。
+Build成果物はGitHub ActionsまたはローカルToolchainから後続Maestro確認へ渡します。EAS Workflowsが利用不能であることは、この前半では阻害条件ではありません。
 
 ## 7. 共通実施原則
 
@@ -621,7 +610,7 @@ Build成果物を後続Maestro Jobへ渡します。EAS Workflowsが利用不能
 - Harness用KV Keyが成功・失敗を問わず削除される。
 - Session、Guest、Clock、Delayが固定KV契約で永続化される。
 - 商品探索、Cart、Login、Account、Checkout、Order、Reviewが成立する。
-- Android Preview APKとiOS Simulator Buildを生成・起動できる。
+- ローカルAndroid Build／Android Emulator CIとiOS Simulator CIを、実行済み・失敗・未実施に分けて記録する。
 - AndroidでMaestro必須Flowが成功する。
 - iOSで主要Flowを確認する。
 - 実Native SQLite Contract Testが成功する。
@@ -639,3 +628,9 @@ Build成果物を後続Maestro Jobへ渡します。EAS Workflowsが利用不能
 
 - [Phase 2 前半: Native基盤・SQLite・Guest購入前Flow](./01_phase2-first-half-native-foundation.md)
 - [Phase 2 後半: 会員購入Flow・Maestro・EAS/CI仕上げ](./02_phase2-second-half-purchase-automation.md)
+
+## 11. PR #8再レビュー修正の記録（2026-08-03）
+
+- 既存GitHub Actions run `30775548618`はDetect／Native Static／Production Bundle Guardが成功、Android Jobが`sdkmanager: command not found`で失敗、最終Verifyも失敗した。これは修正後の成功結果ではない。
+- 修正WorkflowはSDK Rootの優先解決、sdkmanager絶対Path、Automation Release APK、Emulator OS boot／package service待機、共有層を含む変更検知、Detect Resultを含むFail-safe Verify、専用Maestro Artifact出力を契約とする。
+- 修正後Workflowの再実行はCommit／Push禁止により未実施。Android Emulator／iOS Simulator／実SQLiteも実行環境がないため未実施である。

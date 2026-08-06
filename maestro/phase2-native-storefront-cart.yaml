@@ -1,0 +1,15 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Scenario Shop"
+- tapOn: "商品を探す"
+- assertVisible: "商品一覧"
+- tapOn: "ベーシックTシャツ"
+- assertVisible: "ベーシックTシャツ"
+- tapOn: "カートに追加"
+- tapOn: "カートを見る"
+- assertVisible: "カート"
+- tapOn: "＋"
+- tapOn: "削除"
+- assertVisible: "カートは空です"

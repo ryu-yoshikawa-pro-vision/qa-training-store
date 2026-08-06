@@ -100,7 +100,10 @@ Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateと
 
 - `expo-sqlite`を利用している。
 - `android/`と`ios/`をCommitしていない。
-- Native購入者版の最終Flowに必要なTable、Index、Constraintを前半で作成している。
+- 前半はGuest Storefront／Cartに必要なCustomer-only Table、Index、Constraintだけを確定する。
+- 後半で会員購入Flowに必要なTableを追加できる。追加時は変更内容をレビューし、`NATIVE_DATABASE_SCHEMA_VERSION`を更新する。
+- Store公開前のDevelopment BuildではDB再作成を許容し、Store公開後を想定したMigration Recoveryは前半の対象外とする。
+- 前半で後半用の未使用Tableを先行追加しない。
 - Customer Repository CapabilityをSQLite Adapterで実装している。
 - Admin QueryとAdmin Use CaseをNative Composition Rootへ組み込んでいない。
 - 全Application/Harness Connectionで`PRAGMA foreign_keys = ON`を実行する。
@@ -228,18 +231,21 @@ Android/iOSで次が動作する。
 
 ### 3.12 Build / EAS / CI
 
-EAS ProfileはMaster PlanのProfile、`environment`、`EXPO_PUBLIC_*` envを使用する。
+Local Native Buildを正式な主経路とする。EASはProfile／Environment mappingと手動Workflowの静的・将来用構成だけを保持し、Cloud Build／Workflow／Submitは通常の完了条件に含めない。
 
-- `.eas/workflows/phase2-native-foundation.yml`がある。
-- Preview Build/Maestro Jobは`environment: preview`を使う。
-- Production-validation Jobは`environment: production`を使う。
-- Android Preview APKを生成、インストール、起動できる。
+- `eas.json`と`.eas/workflows/phase2-native-foundation.yml`があり、`pnpm run validate:eas:config`が成功する。
+- Preview／Production-validationのEAS Jobは将来用に`environment: preview`／`environment: production`を保持する。
+- Windows Androidは`expo prebuild`→Android Studio／Gradle Dev・Release→ローカル署名APK→Emulator／device Installを行う。
+- Androidの署名鍵／passwordはローカル管理とし、Repositoryへ保存しない。
 - AndroidでHomeからCartまで操作できる。
-- iOS Preview Simulator Buildを生成、インストール、起動できる。
+- macOS iOSは`expo prebuild`→Xcode／`expo run:ios` Release Simulator Build→Simulator Installを行う。
+- 個人iPhoneはDevelopment Signingの任意確認に限定し、Distribution IPA／Store提出は作成しない。
 - iOSでHomeからCart追加まで操作できる。
 - Android Production-validation BuildでTest Control/Harness無効を確認する。
 - iOS Production設定のBundle/Config静的検証が成功する。
-- iOS Production-validation実BuildはPlatform固有差分がある場合だけ実施する。
+- `.github/workflows/native-ci.yml`はPR／手動起動し、Native変更時にUbuntu標準RunnerのAndroid API 34 Emulator、Deep Link、Contract Harness、Storefront／Cart Maestroを実行する。Native変更がないPRでも`native-ci / verify`を生成する。
+- `.github/workflows/native-ios-ci.yml`は初期段階では手動起動し、macOS標準RunnerのXcode／iOS Simulator Build、Install、Deep Link、Contract Harness、Storefront／Cart Smokeを実行する。安定成功まではRequired Checkへ含めない。
+- 実Native Build／Install／起動／操作／実SQLite Smokeを、Node／Web検証だけで代替しない。
 - Production-validation Metadataが次と一致する。
 
 ```text
@@ -251,6 +257,13 @@ extra.testMode === "false"
 - `typecheck:app`と`typecheck:native-tests`が成功する。
 - Native Component TestとWeb既存Test/Build/Playwrightが成功する。
 - Critical/Highの既知不具合が残っていない。
+
+### 3.13 Web / Native Visual Contract
+
+- NativeはWeb DOM／CSS／React Aria Componentを再利用せず、`src/presentation/design/tokens.ts`のColor、8px Spacing、Radius、Typography、44px以上Touch TargetをNative styles／primitivesへ接続する。
+- Home／Catalog／Product／Cartの情報順、Price／Sale／Stock／Reviewの階層、Product image ratioをWebと揃える。Catalogは4/5、Product detail mobileは6/5を共有Tokenで管理する。
+- Web比較は390×844を標準、320×700を追加Viewportとし、Native screenshotは実Android／iOS環境がある場合だけ完了扱いにする。
+- Android／iOS固有差はSafe Area、Header、Bottom Navigation、Press状態などPlatform UIに必要な範囲だけ許容し、比較結果と未検証画面をRun Artifactへ記録する。
 
 ## 4. 対象
 
@@ -269,8 +282,8 @@ extra.testMode === "false"
 - Home、商品一覧、検索、Category、商品詳細、Cart
 - Native対象外Role画面
 - `jest-expo`ベースNative Component Testと専用TypeScript設定
-- EAS Profileと前半Workflow
-- Android Preview APK、iOS Preview Simulator Build
+- EAS Profile／Environmentと前半Workflowの静的契約（Cloud実行なし）
+- ローカルAndroid Build手順、Android Emulator CI定義、手動iOS Simulator CI定義
 - ADR、PROJECT_CONTEXT、Native手順
 
 ## 5. 対象外
@@ -282,7 +295,7 @@ extra.testMode === "false"
 - Store公開、EAS Submit、Native Admin
 - Password変更、退会、Guest Checkout
 - Cancel、Return、Refund
-- Migration Recovery、Crash Point、Phase 3機能
+- Store公開後向けMigration Recovery、Crash Point、Phase 3機能
 - `android/`/`ios/`のCommit
 - 全DB Fingerprint基盤
 - Sentinel専用Table、Entity、Repository、Use Case
@@ -368,14 +381,14 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 
 ### Gate E: Android Vertical Slice
 
-- Preview APKを生成、起動できる。
+- ローカルRelease APKを生成、署名、起動できる。
 - Home、検索/一覧、商品詳細、Cart追加/変更/削除が動作する。
 - Empty、Not Found、在庫不足、上限を確認できる。
 - Resetと再起動保持が成立する。
 
 ### Gate F: iOS Vertical Slice
 
-- Preview Simulator Buildを生成、起動できる。
+- ローカルRelease Simulator Buildを生成、起動できる。
 - Home、検索/一覧、商品詳細、Cart追加が動作する。
 - Resetと再起動保持が成立する。
 - 実SQLite/PBKDF2/Storage Smokeが成功する。
@@ -385,11 +398,19 @@ Gateは同一`/goal`内の実行制御です。別フェーズや別PRではあ�
 - 全Native Test成功
 - Web全Test/Build/Playwright成功
 - `typecheck:app`と`typecheck:native-tests`成功
-- 前半EAS Workflowまたは代替経路の結果記録
+- Local Native Build／device・Simulator validation／EAS static validation／EAS Cloud executionの結果を分離記録
 - `android/`/`ios/`未Commit
 - Critical/High解消
 
 各Gate終了時に、実施内容、検証結果、失敗と修正、Android/iOS差分、未確認事項、次Gateへ進める根拠をRun Artifactへ記録します。
+
+## 6.1 PR #8再レビュー修正の追加契約（2026-08-03）
+
+- Android CIは`ANDROID_SDK_ROOT`→`ANDROID_HOME`→標準SDK Rootを解決し、cmdline-tools内のsdkmanager絶対PathでSDKを準備する。`assembleRelease`でAutomation APKを生成し、boot完了とpackage service準備をTimeout付きで待つ。
+- Native RuntimeのPresentation公開ServiceはPhase 2前半のCatalog／Cart Methodだけへ限定する。閲覧制限商品は`PERMISSION_DENIED`、不存在は`null`とする。
+- Test ControlはSQLite Seed commit後にKVを変更する。Seed失敗時にKV／Identity／Clock／Delayへ変更を加えず、Error Signalを通知する。
+- CartはError再試行で復旧し、Mutation中はCart内全Mutation Buttonを無効化する。専用Maestro Flowは前回Flowの状態に依存させない。
+- iOS CIはmanual-onlyのRelease Simulator Buildとし、修正後のGitHub Actions／実Native実行結果がない限り未実施と記録する。
 
 ## 7. 後半へ引き渡す確定契約
 
