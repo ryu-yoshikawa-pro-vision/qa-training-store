@@ -129,6 +129,36 @@ npm_config_virtual_store_dir_max_length=20
 
 Expo SDK 57 の `experiments.autolinkingModuleResolution` を有効にし、外部 Virtual Store でも Metro が Project の React／Native Module と一致するようにする。
 
+### 4.3 Virtual Store 切替後の古い Native 生成状態
+
+`C:\v\qts` へ切り替えた直後でも、`node_modules/.modules.yaml`、Package の Junction、`android/build/generated/autolinking/autolinking.json`、Native Module の `.cxx` が前回の `.pnpm-local` Path を保持することがある。`gradlew clean`／`-CleanNative`だけでは、古い Path を参照する Clean 処理自体が失敗する場合があるため、次の順序を固定する。
+
+まず `Prepare` 後の状態を確認する。
+
+```powershell
+Get-Content node_modules\.modules.yaml |
+  Select-String -Pattern 'virtualStoreDir|virtualStoreDirMaxLength'
+Get-Item node_modules\react-native-nitro-modules -Force |
+  Select-Object FullName,LinkType,Target
+if (Test-Path android\build\generated\autolinking\autolinking.json) {
+  rg -n -m 5 'pnpm-local' android\build\generated\autolinking\autolinking.json
+}
+```
+
+期待値は Virtual Store が `C:/v/qts`（または同じ短い標準 Path）で、生成 Autolinking に `.pnpm-local` が残っていないことである。`rg` が一致なしで終了する場合は、出力がないことが正常である。
+
+古い参照が残る場合だけ、Repository Alias `C:\q` から次を実行する。
+
+```powershell
+$env:CI = 'true'
+$env:npm_config_virtual_store_dir = 'C:/v/qts'
+$env:npm_config_virtual_store_dir_max_length = '20'
+pnpm install --frozen-lockfile --virtual-store-dir=C:/v/qts
+pnpm exec expo prebuild --clean --platform android --no-install
+```
+
+`pnpm-lock.yaml`、生成された `autolinking.json`、CMake Cache を手編集しない。明示的な `--virtual-store-dir` で依存関係を再リンクした後、`expo prebuild --clean`で Android と Autolinking を再生成する。再確認で古い参照が消えてから、5.3 の Build を実行する。必要な場合でも `-CleanNative` はこの再生成後にだけ使用する。
+
 ## 5. 標準コマンド
 
 Repository Root で実行する。
@@ -166,6 +196,8 @@ pnpm run native:android:prepare
 - `android/local.properties` 生成
 
 `android/` は CNG の生成物であり Repository へ追加しない。`--clean` は古い絶対 CMake Path を再利用しないために使用する。
+
+`Prepare` が成功しても、4.3 の確認で `.pnpm-local` が残っていれば Build へ進まず、4.3 の復旧分岐を実行する。
 
 ### 5.3 Release APK Build
 
@@ -207,6 +239,8 @@ powershell -NoProfile -ExecutionPolicy Bypass `
   -Action Build `
   -CleanNative
 ```
+
+Virtual Store 切替後の古い Autolinking／CMake 参照を直す目的で、最初に `-CleanNative` だけを実行しない。古い参照が残っていると `gradlew clean` 自体が同じ CMake／Ninja エラーで失敗することがある。4.3 の依存再リンクと `expo prebuild --clean` を先に完了させる。
 
 常時 Clean Build にしない。AI エージェントが修正確認を繰り返す場合は Build Cache を再利用する。
 
@@ -266,6 +300,22 @@ pnpm run native:android:test:runtime
 - `native-not-found.yaml`
 - `native-storefront.yaml`
 - `native-cart.yaml`
+
+主要RuntimeのStorefront／Cartは、既知商品のProduct Deep Linkから商品詳細へ遷移する。検索欄の入力状態に依存しない。
+
+### Gate 2.5: Search Input 1 Flow（独立実行）
+
+検索入力自体のカバレッジは、主要Runtime／Boundaryの分母へ混ぜず、次のFlowで独立して確認する。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File scripts/native/windows/android-local.ps1 `
+  -Action Test `
+  -Flow maestro/native-search.yaml `
+  -RunId yyyyMMdd-HHmmss
+```
+
+`native-search.yaml`は`P-0001`を入力して商品カードを検出するため、物理端末の標準日本語IMEがASCII入力を保持しない場合は、その端末条件でPASSと扱わない。必要時は元のIMEと有効IME一覧を先に記録し、LatinIME等を一時的に有効化・選択してFlowを実行し、終了後に必ず元へ復元する。IME切替は検索専用Flowの実行条件であり、主要Runtime／Boundary Flowへ検索入力を戻す理由にはしない。
 
 ### Gate 3: Persistence／Boundary 5 Flow
 
@@ -353,6 +403,7 @@ AI エージェントは次に従う。
 - Timeout 延長、Assertion 削除、Flow Skip、CI Allow failure だけで成功扱いにしない
 - App 修正後は同じ Flow を再実行する
 - 単体成功後だけ 5 Flow＋5 Flow を実行する
+- 検索入力の確認はGate 2.5の専用Flowとして、主要Suiteとは別のIME条件で実行する
 - 未実行を PASS と書かない
 - Git 操作はユーザーの明示依頼がない限り行わない
 

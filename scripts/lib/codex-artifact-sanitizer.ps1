@@ -15,7 +15,7 @@ $script:CodexArtifactSanitizerExtensions = @('.md', '.json', '.jsonl', '.txt')
 $script:CodexArtifactResidualPatterns = @(
     [ordered]@{
         type = 'Windows file URI'
-        regex = '(?i)file:///[A-Z]:/(?:Users|Documents%20and%20Settings)/[^/\s"<>]+'
+        regex = '(?i)(?<![A-Za-z0-9])file:///[A-Z]:[\\/](?:[^\\/\s"<>?#]+[\\/])*[^\\/\s"<>?#]+'
     }
     [ordered]@{
         type = 'WSL user path'
@@ -24,6 +24,14 @@ $script:CodexArtifactResidualPatterns = @(
     [ordered]@{
         type = 'Windows user path'
         regex = '(?i)\b[A-Z]:[\/](?:Users|Documents and Settings)[\/][^\/\s"<>]+'
+    }
+    [ordered]@{
+        type = 'Windows absolute path'
+        regex = '(?i)(?<![A-Za-z0-9])[A-Z]:[\\/](?:[^\\/\s"<>?#]+[\\/])*[^\\/\s"<>?#]+'
+    }
+    [ordered]@{
+        type = 'Windows UNC path'
+        regex = '(?i)(?<![A-Za-z0-9])\\\\[^\\/\s"<>?#]+(?:[\\/][^\\/\s"<>?#]+)+'
     }
     [ordered]@{
         type = 'macOS user path'
@@ -424,7 +432,7 @@ function ConvertTo-CodexSanitizedText {
 
         $escapedSource = [System.Text.RegularExpressions.Regex]::Escape([string]$replacement.Source)
         $hasTrailingSeparator = [string]$replacement.Source -match '[\\/]$'
-        $boundary = if ($hasTrailingSeparator) { '' } else { '(?=$|[\\/\s"''<>),;:\]])' }
+        $boundary = if ($hasTrailingSeparator) { '' } else { '(?=$|[\\/\s"''<>),;:?#\]])' }
         $pattern = $escapedSource + $boundary
         $matchCount = [System.Text.RegularExpressions.Regex]::Matches($result, $pattern, $options).Count
         if ($matchCount -eq 0) {
@@ -493,7 +501,10 @@ function Get-CodexResidualMaskedMatch {
 
     switch ($PatternType) {
         'Windows file URI' {
-            return ($Match -replace '(?i)(file:///\w:/(?:Users|Documents%20and%20Settings)/)[^/\s"<>]+', '$1<redacted>')
+            if ($Match -match '(?i)^(file:///[A-Z]:[\\/](?:Users|Documents%20and%20Settings)[\\/])[^\\/\s"<>?#]+') {
+                return ($Match -replace '(?i)^(file:///[A-Z]:[\\/](?:Users|Documents%20and%20Settings)[\\/])[^\\/\s"<>?#]+', '$1<redacted>')
+            }
+            return '<local-path-redacted>'
         }
         'WSL user path' {
             return ($Match -replace '(?i)(/mnt/[a-z]/Users/)[^/\s"<>]+', '$1<redacted>')
@@ -501,6 +512,8 @@ function Get-CodexResidualMaskedMatch {
         'Windows user path' {
             return ($Match -replace '(?i)([A-Z]:[\\/](?:Users|Documents and Settings)[\\/])[^\\/\s"<>]+', '$1<redacted>')
         }
+        'Windows absolute path' { return '<local-path-redacted>' }
+        'Windows UNC path' { return '<local-path-redacted>' }
         'macOS user path' {
             return ($Match -replace '(/Users/)[^/\s"<>]+', '$1<redacted>')
         }
@@ -569,6 +582,30 @@ function Find-CodexArtifactResidualPath {
     }
 
     return [object[]]$findings.ToArray()
+}
+
+function ConvertTo-CodexFindingOutputText {
+    param(
+        [AllowNull()][string]$Text,
+        [Parameter(Mandatory = $true)]$Context,
+        [int]$MaximumLength = 300
+    )
+
+    if ($null -eq $Text) {
+        return ''
+    }
+
+    $sanitized = ConvertTo-CodexSanitizedText -Text $Text -Context $Context
+    $masked = (($sanitized -split "`n", -1 | ForEach-Object {
+                Get-CodexResidualMaskedLine -Line ([string]$_)
+            }) -join "`n")
+    if ($masked.Length -gt $MaximumLength) {
+        if ($MaximumLength -le 3) {
+            return $masked.Substring(0, $MaximumLength)
+        }
+        return $masked.Substring(0, $MaximumLength - 3) + '...'
+    }
+    return $masked
 }
 
 function Get-CodexArtifactTextFiles {

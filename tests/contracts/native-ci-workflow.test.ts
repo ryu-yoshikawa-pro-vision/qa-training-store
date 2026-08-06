@@ -238,13 +238,16 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain("path: ~/.cache/maestro/${{ env.MAESTRO_VERSION }}");
     const installIndex = nativeWorkflow.indexOf("- name: Install pinned Maestro CLI");
     const runtimeIndex = nativeWorkflow.indexOf("- name: Run Maestro Runtime and Smoke flows");
+    const searchIndex = nativeWorkflow.indexOf("- name: Run Maestro Search Input flow");
     const persistenceIndex = nativeWorkflow.indexOf(
       "- name: Run Maestro Persistence and Boundary flows",
     );
     const installSection = nativeWorkflow.slice(installIndex, runtimeIndex);
     expect(installIndex).toBeGreaterThanOrEqual(0);
     expect(runtimeIndex).toBeGreaterThan(installIndex);
+    expect(searchIndex).toBeGreaterThan(runtimeIndex);
     expect(persistenceIndex).toBeGreaterThan(runtimeIndex);
+    expect(persistenceIndex).toBeGreaterThan(searchIndex);
     expect(nativeWorkflow).toContain('MAESTRO_BIN="$MAESTRO_HOME/maestro/bin/maestro"');
     expect(installSection).toContain("curl --fail --location --retry 3");
     expect(installSection).toContain('"$MAESTRO_DOWNLOAD_URL"');
@@ -259,7 +262,11 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain(
       '--test-output-dir="$RUNNER_TEMP/maestro-artifacts/persistence-boundary"',
     );
+    expect(nativeWorkflow).toContain(
+      '--test-output-dir="$RUNNER_TEMP/maestro-artifacts/search-input"',
+    );
     expect(nativeWorkflow).toContain("maestro-runtime-smoke.xml");
+    expect(nativeWorkflow).toContain("maestro-search-input.xml");
     expect(nativeWorkflow).toContain("maestro-persistence-boundary.xml");
     expect(nativeWorkflow).not.toContain("Reset Test Control by Deep Link");
     expect(nativeWorkflow).toContain("native-restart-persistence.yaml");
@@ -273,6 +280,7 @@ describe("Native CI workflow contracts", () => {
       "native-not-found.yaml",
       "native-storefront.yaml",
       "native-cart.yaml",
+      "native-search.yaml",
       "native-restart-persistence.yaml",
       "native-reset-dirty-state.yaml",
       "native-out-of-stock.yaml",

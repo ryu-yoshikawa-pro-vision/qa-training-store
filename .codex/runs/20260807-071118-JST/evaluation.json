@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-071118-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "品質ゲートで検出した型エラー、Native Jestのworker競合、isolated linkerのVitest／Jest preset解決エラーを調査・修正し、通常のisolated linkerでpnpm run verifyを完走した。範囲外エラーも影響調査・修正する方針をAGENTS、Repair Loop、PROJECT_CONTEXT、履歴へ記録した。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": "run.json", "summary": "最終品質ゲートと追加Native／Harness検証の成功結果。"},
+        {"kind": "changed_file", "path": "AGENTS.md", "summary": "範囲外に見える品質ゲートエラーも影響調査し、安全なら修正する規約。"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "Repair Loopのallowed filesを先に宣言し、型修正、Jest／Vitest設定、依存解決、運用文書に限定した。削除、rename、commit、push、Remote操作は行っていない。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": "PLAN.md", "summary": "Repair allowed filesと範囲境界。"},
+        {"kind": "run_manifest", "path": "run.json", "summary": "変更ファイルとscope violationなしの記録。"}
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "通常のisolated linkerでFormat、Lint、Typecheck、Image Manifest、Security、Unit 66、Integration 91、Repository 28、Web Component 76、Native Component 26、Contract 113、Web Buildを含むpnpm run verifyがPASSした。Harness、EAS、Native route、Production bundleもPASSした。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": "run.json", "summary": "最終verifyと追加検証のコマンド結果。"},
+        {"kind": "evaluation_note", "path": "REPORT.md", "summary": "Baselineから各Repair Loop iteration、最終検証までの記録。"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "ユーザーの依頼範囲内でローカル修正と文書化だけを行い、破壊的操作、Git mutation、Remote CI再実行、端末固有情報の保存を行っていない。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": "run.json", "summary": "安全性フラグがすべてfalse。"}
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Baseline、2回のbounded Repair Loop iteration、read-only subagent調査、修正内容、検証結果、残余warning、未実行事項を日本語Run Artifactへ記録した。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": "REPORT.md", "summary": "iterationごとのinput、allowed scope、changed files、validation、decision。"},
+        {"kind": "subagent_run", "path": "run.json", "summary": "3名のread-only調査結果と親判断。"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "暗黙anyのロジックを変えず正本型を明示し、Native Jestの並列競合をtimeout延長なしで設定から安定化し、pnpm packageExtensionsとstandalone matcherで標準isolated installを再現可能にした。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "jest.config.cjs", "summary": "Native Jestを1 workerで安定実行。"},
+        {"kind": "changed_file", "path": "package.json", "summary": "React Native Jest presetのpeer解決補完。"},
+        {"kind": "changed_file", "path": "tests/setup.ts", "summary": "root Vitest expectへのstandalone matcher登録。"}
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "hoisted workaroundを最終状態に残さず、isolated linkerへ戻した後のNative Jest、Vitest、typecheck、完全verifyをPASSした。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": "run.json", "summary": "isolated linkerでの最終検証。"},
+        {"kind": "changed_file", "path": "pnpm-lock.yaml", "summary": "packageExtensions反映後にPrettier整形済みのlockfile。"}
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

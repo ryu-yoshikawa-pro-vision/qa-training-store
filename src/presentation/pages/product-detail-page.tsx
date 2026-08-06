@@ -7,6 +7,7 @@ import {
   Heading,
   Modal,
   ModalOverlay,
+  type DialogRenderProps,
 } from "react-aria-components";
 import type { ProductDetail, ReviewListItem, ReviewListQuery } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
@@ -128,7 +129,7 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
               <ModalOverlay className="dialog-overlay" isDismissable>
                 <Modal className="image-dialog-modal">
                   <Dialog className="dialog">
-                    {({ close }) => (
+                    {({ close }: DialogRenderProps) => (
                       <>
                         <Heading slot="title">{product.name}の商品画像</Heading>
                         <ProductImage src={selectedImage.path} alt={selectedImage.altText} />

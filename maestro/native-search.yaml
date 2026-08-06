@@ -1,0 +1,30 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Scenario Shop"
+- extendedWaitUntil:
+    visible: "Native test runtime listening"
+    timeout: 30000
+- openLink: "scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0"
+- extendedWaitUntil:
+    visible: "Native test runtime ready"
+    timeout: 30000
+- tapOn:
+    id: "native-nav-products"
+- assertVisible:
+    id: "native-nav-products"
+- tapOn:
+    id: "native-catalog-search-input"
+- inputText: "P-0001"
+- hideKeyboard
+- tapOn:
+    id: "native-catalog-search-button"
+- scrollUntilVisible:
+    element:
+      id: "native-product-card-product-basic-shirt"
+    direction: DOWN
+    timeout: 30000
+- assertVisible:
+    id: "native-product-card-product-basic-shirt"
+- takeScreenshot: native-search-product-found

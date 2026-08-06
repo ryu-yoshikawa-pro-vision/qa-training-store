@@ -14,19 +14,11 @@ appId: com.ryuyoshikawa.scenarioshop
     id: "native-nav-products"
 - assertVisible:
     id: "native-nav-products"
-- tapOn:
-    id: "native-catalog-search-input"
-- inputText: "P-0001"
-- hideKeyboard
-- tapOn:
-    id: "native-catalog-search-button"
-- scrollUntilVisible:
-    element:
-      id: "native-product-card-product-basic-shirt"
-    direction: DOWN
+- openLink: "scenario-shop://products/product-basic-shirt"
+- extendedWaitUntil:
+    visible:
+      id: "native-product-detail-screen"
     timeout: 30000
-- tapOn:
-    id: "native-product-card-product-basic-shirt"
 - scrollUntilVisible:
     element:
       id: "native-variant-variant-basic-shirt-02"

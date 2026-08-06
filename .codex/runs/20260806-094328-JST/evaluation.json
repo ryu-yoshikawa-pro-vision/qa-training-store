@@ -14,7 +14,7 @@
     "reproducibility": {"rating": "warn", "evidence": "Node／pnpm／Java／ADB／Maestro、実機Serial、APK hash、JUnit／Maestro artifactを保存。gh未導入、Mobile MCP未稼働、Maestro MCP inspectは現在UNAVAILABLE。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-094328-JST/REPORT.md", "summary": "Native実機の再現手順と未確認事項。"}]}
   },
   "findings": [
-    {"category": "flaky_or_env_issue", "severity": "medium", "evidence": "初期の外部virtual store `C:\\v\\qts`ではVitest／Jestが実行前にpackage resolutionで停止したが、`node_modules/.pnpm-local`をCLI指定した再解決後は全test／typecheckがPASS。", "detail": "repository設定や個人絶対Pathを変更せず、正式コマンドの前提として再現手順をREPORTへ記録した。"},
+    {"category": "flaky_or_env_issue", "severity": "medium", "evidence": "初期の外部virtual store `<PNPM_VIRTUAL_STORE>`ではVitest／Jestが実行前にpackage resolutionで停止したが、`node_modules/.pnpm-local`をCLI指定した再解決後は全test／typecheckがPASS。", "detail": "repository設定や個人絶対Pathを変更せず、正式コマンドの前提として再現手順をREPORTへ記録した。"},
     {"category": "artifact_contract_gap", "severity": "low", "evidence": "`.prettierignore`へ`.artifacts`、`android`、`.expo-local-export`を追加後、`pnpm run format:check`と`pnpm run verify`がPASS。", "detail": "生成物を一括整形せず、今回変更範囲内のtracked 2ファイルだけをPrettier整形した。"},
     {"category": "flaky_or_env_issue", "severity": "medium", "evidence": "C:\\q formal rootのexpo-doctorは15/17、physical rootは16/17。physicalではMetro projectRoot checkが通過する。", "detail": "Junction formal root固有差とproject `.npmrc`のnpm config warningを残す。metro.configや個人絶対Pathを変更していない。"},
     {"category": "missing_validation", "severity": "high", "evidence": "gh CLI未導入、Commit／Push／Workflow rerunは禁止。", "detail": "ローカル修正と同等gateは確認したが、Remote CIをPASSとは記載しない。"},

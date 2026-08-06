@@ -1164,16 +1164,19 @@ function Invoke-CodexRunArtifactSanitization {
                 }
             }
             Write-Warning 'Codex artifact sanitizer timed out after 60 seconds.'
+            Write-CodexSanitizerFailureDiagnostics -StdoutPath $stdoutPath -StderrPath $stderrPath -Reason 'timeout'
             return 1
         }
 
         $exitCode = [int]$process.ExitCode
         if ($exitCode -ne 0) {
             Write-Warning ('Codex artifact sanitizer exited with code ' + $exitCode + '.')
+            Write-CodexSanitizerFailureDiagnostics -StdoutPath $stdoutPath -StderrPath $stderrPath -Reason ('exit code ' + $exitCode)
         }
         return $exitCode
     }
     catch {
+        Write-CodexSanitizerFailureDiagnostics -StdoutPath $stdoutPath -StderrPath $stderrPath -Reason 'startup or process error'
         Write-Warning 'Could not start Codex artifact sanitizer.'
         return 1
     }
@@ -1187,6 +1190,37 @@ function Invoke-CodexRunArtifactSanitization {
                     Write-Warning 'Could not clean up sanitizer process output.'
                 }
             }
+        }
+    }
+}
+
+function Write-CodexSanitizerFailureDiagnostics {
+    param(
+        [AllowNull()][string]$StdoutPath,
+        [AllowNull()][string]$StderrPath,
+        [Parameter(Mandatory = $true)][string]$Reason,
+        [int]$MaximumLength = 300
+    )
+
+    foreach ($stream in @(
+            [pscustomobject]@{ Name = 'stdout'; Path = $StdoutPath },
+            [pscustomobject]@{ Name = 'stderr'; Path = $StderrPath }
+        )) {
+        if ([string]::IsNullOrWhiteSpace([string]$stream.Path) -or -not [System.IO.File]::Exists([string]$stream.Path)) {
+            continue
+        }
+
+        try {
+            $bytes = [System.IO.File]::ReadAllBytes([string]$stream.Path)
+            $encoding = [System.Text.UTF8Encoding]::new($false, $false)
+            $raw = $encoding.GetString($bytes)
+            $safe = ConvertTo-CodexFindingOutputText -Text $raw -Context $script:codexArtifactSanitizerContext -MaximumLength $MaximumLength
+            if (-not [string]::IsNullOrWhiteSpace($safe)) {
+                Write-Warning ('Codex artifact sanitizer ' + $stream.Name + ' (' + $Reason + '): ' + $safe)
+            }
+        }
+        catch {
+            Write-Warning ('Codex artifact sanitizer ' + $stream.Name + ' (' + $Reason + '): output could not be read safely.')
         }
     }
 }

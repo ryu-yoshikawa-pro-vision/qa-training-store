@@ -7,6 +7,7 @@ const flowNames = [
   "native-not-found.yaml",
   "native-storefront.yaml",
   "native-cart.yaml",
+  "native-search.yaml",
   "native-restart-persistence.yaml",
   "native-reset-dirty-state.yaml",
   "native-out-of-stock.yaml",
@@ -102,5 +103,25 @@ describe("Native Test Control Maestro contracts", () => {
       "MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip",
     );
     expect(source).toContain("$RUNNER_TEMP/maestro/maestro/bin/maestro");
+  });
+
+  it("keeps IME-dependent search input separate from known-product flows", () => {
+    const primaryFlowNames = [
+      "native-storefront.yaml",
+      "native-cart.yaml",
+      "native-restart-persistence.yaml",
+      "native-reset-dirty-state.yaml",
+    ] as const;
+
+    for (const flowName of primaryFlowNames) {
+      const source = readFlow(flowName);
+      expect(source).not.toContain('inputText: "P-0001"');
+      expect(source).toContain('openLink: "scenario-shop://products/product-basic-shirt"');
+    }
+
+    const searchSource = readFlow("native-search.yaml");
+    expect(searchSource).toContain('inputText: "P-0001"');
+    expect(searchSource).toContain('id: "native-product-card-product-basic-shirt"');
+    expect(searchSource).toContain('id: "native-catalog-search-input"');
   });
 });

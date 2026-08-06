@@ -22,7 +22,17 @@
 - [x] D1. PR #9の全未解決Review thread 24件をValid／Deferred／Out of scope／Rejectedとして最終表へ整理する
 - [x] D2. `gh` CLI未導入のためGitHub connectorでActions logを取得した事実を記録する
 - [x] D3. Native成果物規約を維持する訂正を反映し、関連文書・履歴・Run Artifactの内容を実変更と照合する
+- [x] D4. 実機のDoctor／Build／Install／Smoke／Maestroを実行し、Runtime Suiteの失敗証跡を保存してBoundary Suiteを停止する
+- [x] D5. Android Buildのstale Autolinking／CMake復旧手順をRunbook、Troubleshooting、Context、履歴へ追記する
+- [x] D6. `native-product-card-product-basic-shirt`未検出をローカル実機でIME条件別に調査し、LatinIMEで公式Test／Runtime Suiteを再検証する
+- [x] D7. Native主要FlowをProduct Deep Linkへ切り替え、検索入力専用FlowとCI実行を追加する
+- [x] D8. Native入力経路分離のRunbook／Troubleshooting／Context／ADR／履歴を整合させる
+- [x] D9. Flow契約、format、lint、typecheck、実機Runtime／Boundary／検索専用Flowを検証し、既存typecheck失敗を記録する
 
 ## ブロック
 
-- なし
+- Native CIの再実行とPhase 1／Native CI両方のsuccess確認（Push／Workflow手動再実行禁止のため未実行）
+- 検索専用Flowは標準日本語IME条件では入力互換性未達のため成功扱いにしない。LatinIME条件では1/1 PASSし、元のIMEと有効IME一覧を復元した。
+- 全体typecheckは今回変更外の既存6箇所のimplicit-anyでFAIL。Remote CIの更新後successもPush／Workflow再実行禁止のため未確認。
+
+- Progress: 100% (23/23)

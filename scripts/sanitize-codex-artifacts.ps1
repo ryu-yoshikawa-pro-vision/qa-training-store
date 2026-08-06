@@ -62,38 +62,6 @@ function Add-CodexKnownPathFindings {
     }
 }
 
-function ConvertTo-CodexFindingOutputText {
-    param(
-        [AllowNull()][string]$Text,
-        [Parameter(Mandatory = $true)]$Context,
-        [int]$MaximumLength = 300
-    )
-
-    if ($null -eq $Text) {
-        return ''
-    }
-
-    $sanitized = ConvertTo-CodexSanitizedText -Text $Text -Context $Context
-    $genericLocalPathPatterns = @(
-        '(?i)\b[A-Z]:[\\/][^\s"<>]+'
-        '(?i)\\\\[^\\/\s"<>]+(?:[\\/][^\\/\s"<>]+)*'
-        '(?<![A-Za-z0-9:])/(?:[^/\s"<>]+(?:/[^/\s"<>]+)*)'
-    )
-    foreach ($pattern in $genericLocalPathPatterns) {
-        $sanitized = [System.Text.RegularExpressions.Regex]::Replace(
-            $sanitized,
-            $pattern,
-            '<local-path-redacted>',
-            [System.Text.RegularExpressions.RegexOptions]::CultureInvariant
-        )
-    }
-
-    if ($sanitized.Length -gt $MaximumLength) {
-        return $sanitized.Substring(0, $MaximumLength) + '…'
-    }
-    return $sanitized
-}
-
 foreach ($file in $files) {
     $stats.files_scanned = [int]$stats.files_scanned + 1
     try {

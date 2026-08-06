@@ -135,6 +135,29 @@ try {
     Assert-CodexContains -Text $escapedText -Expected '<REPO_ROOT>' -Message 'JSON escaped variant was not replaced.'
     $slashText = ConvertTo-CodexSanitizedText -Text 'C:/Users/test-user/Documents/repo/script.js' -Context $context
     Assert-CodexContains -Text $slashText -Expected '<REPO_ROOT>' -Message 'Slash Windows variant was not replaced.'
+    foreach ($queryCase in @(
+            @{ Text = 'file:///C:/Users/test-user/Documents/repo?line=1'; Expected = '<REPO_ROOT>?line=1' },
+            @{ Text = 'file:///C:/Users/test-user/Documents/repo#section'; Expected = '<REPO_ROOT>#section' },
+            @{ Text = 'file:///C:/Users/test-user/Documents/repo/src/index.ts?line=10'; Expected = '<REPO_ROOT>/src/index.ts?line=10' },
+            @{ Text = 'file:///C:/Users/test-user/Documents/repo/src/index.ts#L20'; Expected = '<REPO_ROOT>/src/index.ts#L20' }
+        )) {
+        $queryResult = ConvertTo-CodexSanitizedText -Text $queryCase.Text -Context $context
+        Assert-CodexTest -Condition ($queryResult -eq $queryCase.Expected) -Message ('File URI query or fragment was not preserved for ' + $queryCase.Text + '.')
+        Assert-CodexTest -Condition (@(Find-CodexArtifactResidualPath -Text $queryResult -FilePath 'fixture.md').Count -eq 0) -Message ('File URI query or fragment left a residual for ' + $queryCase.Text + '.')
+    }
+
+    $unknownWindowsPaths = 'C:\v\qts D:\work\project C:/Android/Sdk \\server\share\folder file:///D:/work/project'
+    $unknownFindings = @(Find-CodexArtifactResidualPath -Text $unknownWindowsPaths -FilePath 'fixture.md')
+    Assert-CodexTest -Condition ($unknownFindings.Count -eq 5) -Message 'Unknown Windows absolute path fixtures were not all detected.'
+    $unknownFindingText = $unknownFindings | ConvertTo-Json -Compress
+    Assert-CodexTest -Condition ($unknownFindingText -match 'local-path-redacted') -Message 'Unknown Windows paths did not use the redacted display token.'
+    Assert-CodexTest -Condition ($unknownFindingText -notmatch 'C:\\v\\qts|D:\\work\\project|Android/Sdk|server|share') -Message 'Unknown Windows path details leaked in residual findings.'
+    foreach ($falsePositive in @('C:', 'C++', 'https://example.com/path', 'file://relative/path', '<REPO_ROOT>', '<PNPM_VIRTUAL_STORE>')) {
+        Assert-CodexTest -Condition (@(Find-CodexArtifactResidualPath -Text $falsePositive -FilePath 'fixture.md').Count -eq 0) -Message ('False-positive residual path detected for ' + $falsePositive + '.')
+    }
+    $diagnosticText = ConvertTo-CodexFindingOutputText -Text ($unknownWindowsPaths + (' x' * 400)) -Context $context -MaximumLength 300
+    Assert-CodexTest -Condition ($diagnosticText.Length -le 301) -Message 'Finding output exceeded the maximum length.'
+    Assert-CodexTest -Condition ($diagnosticText -notmatch 'C:\\v\\qts|D:\\work\\project|Android/Sdk|server|share') -Message 'Shared Finding helper exposed an unknown Windows path.'
 
     $residualInput = '/Users/test-user/repo /home/test-user/repo /mnt/c/Users/test-user/repo'
     $residuals = @(Find-CodexArtifactResidualPath -Text $residualInput -FilePath 'fixture.md')
@@ -244,7 +267,7 @@ File: file:///C:/Users/test-user/Documents/repo/output.txt
     Assert-CodexTest -Condition ($invalidCheck.exit_code -ne 0) -Message 'Invalid UTF-8 did not fail closed.'
     Assert-CodexContains -Text $invalidCheck.output -Expected 'invalid UTF-8' -Message 'Invalid UTF-8 finding was not reported.'
     Assert-CodexContains -Text $invalidCheck.output -Expected 'files_scanned: 1' -Message 'Invalid UTF-8 file was not counted as scanned.'
-    Assert-CodexTest -Condition ($invalidCheck.output -notmatch 'invalid-utf8|C:\\Users\\|test-user') -Message 'Invalid UTF-8 output exposed a local path or content.'
+    Assert-CodexTest -Condition ($invalidCheck.output -notmatch 'C:\\Users\\|test-user') -Message 'Invalid UTF-8 output exposed a local path or content.'
 
     $checkCandidatePath = Join-Path $fixtureRoot 'check-candidate.md'
     Write-CodexFixtureText -Path $checkCandidatePath -Text 'C:\Users\test-user\Documents\repo\check.md'

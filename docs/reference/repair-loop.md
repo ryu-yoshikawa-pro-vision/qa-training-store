@@ -10,6 +10,13 @@ Review -> Repair -> Validate の反復を、停止条件と証跡つきで扱う
 - `repair-loop` skill は findings を triage し、bounded な修正・検証・停止判断へ接続する。
 - review-only task では repair loop を始めない。
 
+## 品質ゲートの範囲外エラー
+
+- 品質ゲートの失敗が現在の依頼やPRの直接差分に含まれていない場合でも、`defer`へ直ちに分類しない。
+- Baseline、変更差分、共有依存、CI／テスト契約、実行環境を確認し、今回の変更が失敗へ影響している可能性を調査する。
+- 影響可能性がある、または安全な最小修正で解消できるものは`must_fix`または`should_fix`として本Repair Loopで対応する。型エラー、回帰テスト、契約、文書の修正も含む。
+- 真に無関係、環境依存、unsafe、または要件判断が必要な場合だけ`defer`／`needs_human`へ進める。根拠、影響評価、未実行検証、次アクションを`REPORT.md`と`evaluation.json`へ記録する。「既存」「範囲外」というラベル単独では保留理由にしない。
+
 ## Relationship to evaluation.json
 - `evaluation.json` は loop 前後の評価と残差の正本である。
 - `evaluation.result = partial | fail` は repair loop の入口候補になる。
@@ -25,6 +32,15 @@ Review -> Repair -> Validate の反復を、停止条件と証跡つきで扱う
 - `run.json` や report JSON がある場合は validation command と changed files の事実を参照する。
 - `--max-iterations` は repair-loop bound を文書化する reserved option であり、runner auto-loop ではない。
 - 作業完了前に `scripts/sanitize-codex-artifacts.ps1` の Write と Check を実行し、未サニタイズのローカル絶対パスが残るRunは完了扱いにしない。
+
+### REPORT.mdのAppend-only契約と安全性修正
+
+`REPORT.md`のAppend-only契約は、行動記録、判断、検証結果を
+削除、並べ替え、意味変更しないことを指す。
+
+ローカル絶対パスの共通トークン化、Credential Redaction、
+機密情報のマスキングなど、記録の意味を変えない安全性修正は
+Append-only契約の例外として許可する。
 
 ## Relationship to observation and subagent records
 - hook-observation JSONL は validation failure や blocked action の evidence に使う。

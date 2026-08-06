@@ -26,11 +26,15 @@ describe("Codex Run Artifact path sanitization contract", () => {
     expect(common).toContain("function Get-CodexArtifactPathVariants");
     expect(common).toContain("function ConvertTo-CodexSanitizedText");
     expect(common).toContain("function ConvertTo-CodexSanitizedValue");
+    expect(common).toContain("function ConvertTo-CodexFindingOutputText");
     expect(common).toContain("function Find-CodexArtifactResidualPath");
     expect(cli).toContain("lib/codex-artifact-sanitizer.ps1");
     expect(cli).toContain(".codex/runs/**");
+    expect(cli).not.toContain("function ConvertTo-CodexFindingOutputText");
+    expect(cli).toContain("ConvertTo-CodexFindingOutputText");
     expect(task).toContain("lib/codex-artifact-sanitizer.ps1");
     expect(task).toContain("ConvertTo-CodexSanitizedValue");
+    expect(task).toContain("ConvertTo-CodexFindingOutputText");
   });
 
   it("sanitizes Log, Report, Manifest, and Evaluation before JSON serialization", () => {
@@ -66,6 +70,7 @@ describe("Codex Run Artifact path sanitization contract", () => {
 
   it("defines the fixed replacement tokens and fail-closed residual scan", () => {
     const common = read("scripts/lib/codex-artifact-sanitizer.ps1");
+    const task = read("scripts/codex-task.ps1");
     for (const token of [
       "<REPO_ROOT>",
       "<USER_HOME>",
@@ -78,6 +83,10 @@ describe("Codex Run Artifact path sanitization contract", () => {
       expect(common).toContain(token);
     }
     expect(common).toContain("Windows file URI");
+    expect(common).toContain("Windows absolute path");
+    expect(common).toContain("Windows UNC path");
+    expect(common).toContain("file:///[A-Z]:[\\\\/]");
+    expect(common).toContain("?#");
     expect(common).toContain("WSL user path");
     expect(common).toContain("Windows user path");
     expect(common).toContain("macOS user path");
@@ -98,6 +107,11 @@ describe("Codex Run Artifact path sanitization contract", () => {
     expect(read("scripts/sanitize-codex-artifacts.ps1")).toContain(
       "ConvertTo-CodexFindingOutputText",
     );
+    expect(common).toContain("'.md', '.json', '.jsonl', '.txt'");
+    expect(common).toContain("ls-files");
+    expect(task).toContain("Write-CodexSanitizerFailureDiagnostics");
+    expect(task).toContain("RedirectStandardOutput");
+    expect(task).toContain("RedirectStandardError");
   });
 
   it("keeps the standard scope text-only and excludes binary extensions", () => {
@@ -133,5 +147,7 @@ describe("Codex Run Artifact path sanitization contract", () => {
     expect(agents).toContain("scripts/sanitize-codex-artifacts.ps1のWriteとCheck");
     expect(repairReference).toContain("scripts/sanitize-codex-artifacts.ps1");
     expect(repairSkill).toContain("scripts/sanitize-codex-artifacts.ps1");
+    expect(agents).toContain("`REPORT.md`のAppend-only契約");
+    expect(repairReference).toContain("`REPORT.md`のAppend-only契約");
   });
 });

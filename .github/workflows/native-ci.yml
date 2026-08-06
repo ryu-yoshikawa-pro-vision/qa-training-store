@@ -564,6 +564,15 @@ jobs:
             "$GITHUB_WORKSPACE/maestro/native-not-found.yaml" \
             "$GITHUB_WORKSPACE/maestro/native-storefront.yaml" \
             "$GITHUB_WORKSPACE/maestro/native-cart.yaml"
+      - name: Run Maestro Search Input flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          maestro test \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/search-input" \
+            --format junit \
+            --output "$RUNNER_TEMP/maestro-search-input.xml" \
+            "$GITHUB_WORKSPACE/maestro/native-search.yaml"
       - name: Run Maestro Persistence and Boundary flows
         shell: bash
         run: |

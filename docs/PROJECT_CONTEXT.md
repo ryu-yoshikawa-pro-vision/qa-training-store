@@ -155,24 +155,44 @@
 - Native Runtimeの画面状態は`src/presentation/native/native-test-runtime-status.ts`の`NativeTestRuntimeStatus`と`RUNTIME_STATUS_LABELS`を正本とし、`booting`／`listening`／`resetting`／`ready`／`error`の固定文字列を使う。既存のService Signal（ready／error／contract）は診断・Contract互換性のため維持する。
 - `NativeTestControlBridge`は`Linking.addEventListener("url", ...)`登録後に直接Callbackで`listening`を通知し、その後`Linking.getInitialURL()`を確認する。valid URLだけを処理中Setで排他し、Reset成功後に`router.replace()`、`ready`通知、失敗時`error`通知を行う。Unmount後はStatus／Navigationを更新しない。同一URLは処理完了後に再実行可能である。
 - `NativeAutomationBridge`はDeviceEventEmitterのlistener登録順に依存せず、Bridge Callbackを直接画面へ接続する。Production disabled entryは従来どおりTest Control／Harnessをimportしない。
-- Native Maestro 10 FlowはCold Start後に`launchApp`、`Scenario Shop`、`Native test runtime listening`待機、Reset `openLink`、`Native test runtime ready`待機の順序を持つ。固定Sleepや単純なtimeout延長は追加しない。`native-reset-dirty-state`の2回目Resetは既存listenerを使い、ready待機を維持する。
+- Nativeの主要Maestro 10 FlowはCold Start後に`launchApp`、`Scenario Shop`、`Native test runtime listening`待機、Reset `openLink`、`Native test runtime ready`待機の順序を持つ。固定Sleepや単純なtimeout延長は追加しない。`native-reset-dirty-state`の2回目Resetは既存listenerを使い、ready待機を維持する。検索入力の確認は別Flowの`native-search.yaml`で行う。
 - iOS Manual WorkflowはFlow実行前の`xcrun simctl openurl`を削除し、Reset責務をMaestroへ統一した。Maestro CLIは確認済みのcli-2.8.0／`maestro.zip`／nested `maestro/bin/maestro`へ固定する。
 - Bridge Component Testは9 tests、Maestro／iOS／Production境界Contractを追加した。実Nativeで古い画面Stateが観測されていないため、`dataRevision`／`resetGeneration`は未追加である。
 - 2026-08-04のローカル検証はformat／lint（0 errors・64 warnings）／typecheck、Unit 66、Integration 91、Repository 28、Web Component 76、Native Jest 25、Contract 100、Route 38、Image／EAS static／Production Bundle、`test`、`build:web`、`verify`、Android `expo prebuild --no-install`が成功した。Java／Android SDK／adb／Emulator／Maestro／Xcode／Simulatorは未導入のため、実Android／iOS操作とRemote CIは未確認である。
 
 ## PR #8 Native実機・Maestro再検証（2026-08-06）
 
-- Windows実機検証の正式rootは、リポジトリを指すNTFS Junction `C:\q` とする。Maestro 2.8.0、Android API 30のSHV48、Serial `354955112942476` を使用する。
+- Windows実機検証の正式rootは、リポジトリを指すNTFS Junction `C:\q` とする。Maestro 2.8.0、Android API 30の物理Android端末を使用する。端末SerialはRun Artifactや文書へ保存しない。
 - `scripts/native/windows/android-local.ps1` はPowerShell `$Args`衝突、production install時のdevDependency prune、Smokeの自動変数`$PID`衝突を修正済み。Prepare／Build／Install／Smoke／Controlは正式経路でPASSした。
 - Native StatusはSafe Area内の単一accessible Textへ修正し、CIの`Native test runtime listening`可視性失敗を実画面／Hierarchy／logcatと照合した。Expo patch versionsはCI期待値へ揃え、`expo install --check`はPASSした。
-- Maestro Flowは固定表示textではなくNative testIDを優先する。商品詳細は長い画像のためvariant／add controlを`scrollUntilVisible`で先に可視化する。Catalog検索は`P-0001`入力後に`hideKeyboard`を行う。
-- SHV48の既定日本語IMEではformal Maestro CLIの`inputText`がASCII検索語を入力できず、`MaestroInputMethodService`もCLI経路では入力値を保持しない。標準LatinIME一時切替ではformal Storefront／Runtime／BoundaryがPASSする。検証後は元の日本語IMEへ復元する。Maestro MCP経由の同一Serial Flowは27 commands PASSしたが、Mobile MCP backendは未稼働として扱う。
+- Maestro Flowは固定表示textではなくNative testIDを優先する。商品詳細は長い画像のためvariant／add controlを`scrollUntilVisible`で先に可視化する。既知商品の主要Storefront／Cart／Persistence FlowはProduct Deep Linkを使い、検索入力は`native-search.yaml`へ分離する。
+- SHV48の既定日本語IMEではformal Maestro CLIの`inputText`がASCII検索語を入力できず、`MaestroInputMethodService`もCLI経路では入力値を保持しない。検索専用FlowだけをLatinIME等の制御された入力方式で実行し、検証後は元のIMEと有効IME一覧へ復元する。Maestro MCP経由の同一端末Flowはformal CLIの代替成功根拠にしない。
 - `NativeCatalogScreen`には入力途中の非同期検索の古いレスポンス後勝ちを防ぐrequest serial guardを追加した。これはIME失敗の直接原因ではないが、keyword変更ごとの検索競合を防ぐ防御的修正である。
-- 2026-08-06実機結果はRuntime Suite 5/5、Boundary Suite 5/5 PASS。GitHub Actions再実行、`gh` CLI formal check、commit／push／PR更新は行わない。
+- 2026-08-06初回実機結果はRuntime Suite 3/5で、Storefront／Cartの商品カード未検出によりBoundary Suiteを停止した。2026-08-07にDeep Link化後の同じAPKを標準日本語IMEで再検証し、公式単体Gate 1/1、Runtime Suite 5/5、Boundary Suite 5/5を確認した。検索専用FlowはLatinIME条件で1/1を確認し、標準日本語IMEでは成功扱いにしない。主要FlowはDeep Link、検索入力は独立Flowへ分離する。更新後Remote CIは未確認であり、GitHub Actions再実行、`gh` CLI formal check、commit／push／PR更新は行わない。
 - Web主要回帰27/27、Accessibility 4/4、mobile-chromium boundary 4/4、Web Build、Production Bundle GuardはPASSした。全体Unit／Integration／Repository／Web Component／Native Component／Contractとtypecheckも、repo設定を変えずに`node_modules/.pnpm-local`へ依存を再解決した正式コマンドでPASSした。Expo Doctorはphysical rootで16/17、package checkのnpm config warningを残す。`verify`は生成物を含むformat check 294件で停止したため、生成物を一括整形しない。
-- Maestro MCPの`list_devices`は同一Serialを返すが、長時間のformal CLI後の`inspect_screen`はDevice server `UNAVAILABLE`となる場合がある。再起動直後に取得したMCP証跡と、最終判定用のformal CLI JUnit／Maestro artifactを分けて扱う。
+- Maestro MCPの`list_devices`は同一端末を返すが、長時間のformal CLI後の`inspect_screen`はDevice server `UNAVAILABLE`となる場合がある。再起動直後に取得したMCP証跡と、最終判定用のformal CLI JUnit／Maestro artifactを分けて扱う。端末Serialは記録しない。
 - `.prettierignore`は`.artifacts`、`android`、`.expo-local-export`を含む生成物を対象外とする。追加後の`pnpm run format:check`と`pnpm run verify`はPASSした。Expo Doctorのpackage checkに残るlocal npm config warningと、MCP Device serverの再起動要否は環境固有の未完了事項として扱う。
 - 人が確認・共有するモバイルネイティブのスクリーンショット、比較画像、選定した画面証跡は`output/mobile-native/`へ保存し、リポジトリ直下へ置かない。同一シナリオの再取得時はRun IDまたはJST timestampを名前へ含めて上書きを避ける。Maestro／ADB／Gradleの実行機械証跡は従来どおり`.artifacts/native-local/<timestamp>/`へ保存する。この運用の正本は[`docs/native/windows-android-local-validation.md`](./native/windows-android-local-validation.md)の7.2節とする。
+
+## Windows Android Build復旧手順の補足（2026-08-07）
+
+- 2026-08-06のPR #9修正後実機検証では、最初のRelease Buildで`react-native-nitro-modules`のCMake／Ninjaが`build.ninja`の`still dirty after 100 tries`で失敗した。`C:\v\qts`を使う設定へ切り替えた後も、`node_modules/.modules.yaml`、Package Link、生成済みAutolinkingに以前の`.pnpm-local`参照が残っていたことが観測された。
+- `Prepare`だけでは古い参照が残る場合がある。復旧時は、Runbook 4.3に従い、`pnpm install --frozen-lockfile --virtual-store-dir=C:/v/qts`で再リンクし、`pnpm exec expo prebuild --clean --platform android --no-install`で生成Android／Autolinkingを再作成してからBuildする。`gradlew clean`／`-CleanNative`を最初の対処にしない。
+- 上記の再生成後、最終Release Build、APK検査、Install、Smoke、`native-test-control.yaml`は成功した。Runtime Suiteは5 Flow中3成功／2失敗で、商品カードSelector未検出のため停止し、Boundary Suiteは実行していない。Build成功だけでNative検証全体をPASSと扱わない。
+- 今後の標準入口は`C:\q`、Virtual Storeは`C:\v\qts`とし、古い`.pnpm-local`参照の確認・復旧手順は[`docs/native/windows-android-local-validation.md`](./native/windows-android-local-validation.md)の4.3節、症状別の説明は[`docs/native/windows-android-troubleshooting.md`](./native/windows-android-troubleshooting.md)の9節を正本とする。生成Android、APK、ログ、端末固有情報はRepositoryへ追加しない。
+
+## Native Maestro入力経路分離（2026-08-07）
+
+- 既知商品の主要Storefront／Cart／Persistence／Reset Flowは`scenario-shop://products/product-basic-shirt`のProduct Deep Linkで商品詳細へ入り、物理端末のIMEへ依存させない。商品詳細の長い画像下にある固定表示TextをDeep Link直後にassertせず、商品詳細画面、variant、カート操作のNative testIDを検証する。
+- 検索入力の`P-0001`と`native-product-card-product-basic-shirt`検出は[`maestro/native-search.yaml`](../maestro/native-search.yaml)へ分離する。Android／iOS CIでも独立Stepとして実行し、JUnitと実行成果物を保存する。検索専用Flowは主要Runtime／Boundary Suiteの分母に含めない。
+- 物理端末の標準日本語IMEで検索入力が保持されない場合は成功扱いにしない。LatinIME等を一時的に選択して検索専用Flowを実行し、終了後に元のIMEと有効IME一覧を復元する。詳細はRunbookのGate 2.5、Troubleshooting 7.1、ADR-0007を参照する。
+- 2026-08-07のローカル結果は、標準日本語IMEでControl 1/1、Runtime 5/5、Boundary 5/5、LatinIME条件の検索専用Flow 1/1、`typecheck:native-tests` PASSである。全体typecheckには既存のimplicit-any 6件が残り、Remote CIは未実行である。
+
+## 品質ゲートエラーの影響調査方針（2026-08-07）
+
+- 品質ゲートで発生したエラーは、依頼やPRの直接変更範囲外に見えても、Baseline、変更差分、共有依存、CI／テスト契約、実行環境との因果を調査する。「既存エラー」「範囲外」というラベルだけで保留しない。
+- 影響可能性がある、または安全な最小修正で解消できるエラーは、型注釈、回帰テスト、契約、文書を含めて対応し、関連ゲートを再実行する。
+- 真に無関係、環境依存、unsafe、要件判断が必要なものだけをbounded Repair Loopの`defer`／`needs_human`として残す。根拠、影響評価、未実行検証、次アクションはRun Artifactと利用者向け報告へ記録する。今回の6件のimplicit-anyはこの方針に基づき、React Ariaの型を明示して修正した。
 
 ## Codex Run ArtifactのPath Sanitization（2026-08-06）
 

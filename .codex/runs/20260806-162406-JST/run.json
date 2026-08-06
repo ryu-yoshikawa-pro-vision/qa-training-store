@@ -32,7 +32,8 @@
     ],
     "warnings": [
       "PowerShell 7 FixtureはこのRunでは実行事実を確認できないため、evaluation.jsonの再現性主張をPowerShell 5.1へ限定した。",
-      "codex command missing probeによりRun全体のstatusはfailedを保持している。"
+      "codex command missing probeによりRun全体のstatusはfailedを保持している。",
+      "2026-08-06 22:35 JST追記: 開始時Branchはfeature/01_phase2-first-half-native-foundation。修正作業はfix/sanitize-codex-run-artifact-pathsへ移行し、移行時HEADは968cc35e492ca5736fb32ef1ada79b1da63b6253。PR #9修正を対象Branchで継続するための移行であり、branch fieldはRun開始時の観測値として維持した。"
     ]
   },
   "safety": {

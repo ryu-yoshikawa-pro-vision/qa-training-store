@@ -1,0 +1,105 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-071118-JST",
+  "task_type": "repair",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": ["code_researcher", "implementation_researcher", "test_investigator"],
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    "src/presentation/components/confirm-dialog.tsx",
+    "src/presentation/components/search-combobox.tsx",
+    "src/presentation/pages/admin-product-pages.tsx",
+    "src/presentation/pages/product-detail-page.tsx",
+    "jest.config.cjs",
+    "tests/setup.ts",
+    "package.json",
+    "pnpm-lock.yaml",
+    "AGENTS.md",
+    "docs/reference/repair-loop.md",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/history/2026-08-07_quality-gate-out-of-scope-policy.md"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm run verify (通常isolated linker; Format/Lint/Typecheck/Manifest/Security/Test/Build PASS)",
+      "pnpm run test:component:native (10 files, 26 tests PASS)",
+      "pnpm run test:contracts (21 files, 113 tests PASS)",
+      "pwsh -NoProfile -File scripts/verify.ps1 (PASS 3, FAIL 0, SKIP 0)",
+      "pnpm run validate:eas:config (PASS)",
+      "pnpm run check:native-route-dependencies (38 routes PASS)",
+      "pnpm run validate:native-production-bundle (PASS)",
+      "git diff --check (whitespace errorなし)",
+      "pnpm install --ignore-scripts --node-linker=isolated --virtual-store-dir=<PNPM_VIRTUAL_STORE> (packageExtensions反映)",
+      "pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260807-071118-JST -Write -Check"
+    ],
+    "warnings": [
+      "Lintの既存warning 64件（error 0件）",
+      "React Native Jestのact環境console warningとNode SQLite ExperimentalWarning",
+      "pnpmのdeprecated subdependencies 6件と既存peer warning 2件",
+      "Remote CI、今回の変更後の実機Maestroは未実行。前者はRemote操作禁止、後者は今回アプリ／Flowを変更していないため直前Runの実機証跡を参照。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 3,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "agent_id": "019fd924-63ba-7343-969d-0ffc9004ba18",
+        "agent": "code_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "4 source fileが今回差分外であること、React Aria／React／React Statelyの正本型、関連Presentationテストを確認した。"
+      },
+      {
+        "agent_id": "019fd8f0-2fc0-74f2-a4a6-2237c54fdd37",
+        "agent": "implementation_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "verifyとscripts/verifyの責務、Native追加チェック、今回差分の影響範囲を整理した。"
+      },
+      {
+        "agent_id": "019fd8f0-30af-7f52-bcb9-3d3398944356",
+        "agent": "test_investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "範囲外エラーも因果調査し、allowed scopeを上限としてboundedに修正する運用文案と停止条件を確認した。"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "read_only": 3,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 3
+    }
+  },
+  "evaluation_path": ".codex/runs/20260807-071118-JST/evaluation.json",
+  "status": "completed",
+  "primary_failure_category": null
+}

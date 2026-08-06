@@ -116,6 +116,9 @@ jobs:
           maestro test "$GITHUB_WORKSPACE/maestro/native-cart.yaml" \
             --test-output-dir="$RUNNER_TEMP/maestro-artifacts/cart" \
             --format junit --output "$RUNNER_TEMP/maestro-cart.xml"
+          maestro test "$GITHUB_WORKSPACE/maestro/native-search.yaml" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/search-input" \
+            --format junit --output "$RUNNER_TEMP/maestro-search-input.xml"
           maestro test "$GITHUB_WORKSPACE/maestro/native-restart-persistence.yaml" \
             --test-output-dir="$RUNNER_TEMP/maestro-artifacts/restart-persistence" \
             --format junit --output "$RUNNER_TEMP/maestro-restart-persistence.xml"
@@ -142,6 +145,7 @@ jobs:
           cp "$RUNNER_TEMP/maestro-not-found.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-not-found.xml" || true
           cp "$RUNNER_TEMP/maestro-storefront.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-storefront.xml" || true
           cp "$RUNNER_TEMP/maestro-cart.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-cart.xml" || true
+          cp "$RUNNER_TEMP/maestro-search-input.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-search-input.xml" || true
           cp "$RUNNER_TEMP/maestro-restart-persistence.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-restart-persistence.xml" || true
           cp "$RUNNER_TEMP/maestro-reset-dirty-state.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-reset-dirty-state.xml" || true
           cp "$RUNNER_TEMP/maestro-out-of-stock.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-out-of-stock.xml" || true

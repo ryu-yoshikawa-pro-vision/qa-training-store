@@ -212,3 +212,67 @@
 - remaining_delta: Push禁止のためRemote CIは未実行。今回の訂正では実機Maestroを再実行していない。`git ls-files -- *.png`に既存のproduct／design source PNGはあるが、Nativeテスト成果物ではない。
 - decision: `stop_success`
 - Progress: 100% (17/17)
+
+## 2026-08-06 23:30 (JST) 実機 Native 検証結果
+
+- 実施時刻: 2026-08-06 22:54頃から23:29頃（JST）。実機検証用のNative Run IDは`20260806-230738-JST`とした。既存のCodex Run Directoryは分散させず、今回の作業履歴はCurrent Runへ追記した。
+- 端末: ADBで認証済みの物理Android端末を検出した。DoctorはNode、pnpm、Maestro、Android API 30、`arm64-v8a`をPASSと判定した。個体識別子は長期Run Artifactへ記録していない。
+- Prepare: `android-local.ps1 -Action Prepare`、native asset生成、image manifest、native route dependency、Expo prebuildをPASSした。
+- Build復旧: 初回Buildと`-CleanNative`は、依存リンク切替前のautolinking／CMakeキャッシュが`.pnpm-local`の長いパスを参照して`ninja: error: manifest 'build.ninja' still dirty after 100 tries`で失敗した。その後、依存を`<PNPM_VIRTUAL_STORE>`へ明示的に再リンクし、`expo prebuild --clean --platform android --no-install`で生成済みautolinkingを再生成した。最終Buildは終了コード0、Release APK（57,569,450 bytes、SHA-256は機械証跡の`build/apk-info.txt`に保存）を生成した。
+- Install／Smoke: `android-local.ps1 -Action Install`は`Success`、`-Action Smoke`は終了コード0でPASSした。
+- 基本Maestro: `-Action Test`（`maestro/native-test-control.yaml`）は`1/1 Flow Passed`でPASSした。
+- Runtime Suite: `-Action RuntimeSuite`は5フロー中3成功、2失敗となった。成功は`native-test-control`、`native-contract-harness`、`native-not-found`。失敗は`native-storefront`と`native-cart`で、共通して`native-product-card-product-basic-shirt`を30秒以内に検出できなかった。失敗時の画面は商品一覧の途中で、取得UI hierarchyにも対象カードが存在しない。JUnit、Maestro log／step screenshot、ADB logcat、UIAutomator XML、Maestro hierarchyは`.artifacts/native-local/20260806-230738-JST/`へ保存した。
+- 停止判断: Runbookの失敗時停止条件に従い、Boundary Suiteは実行していない。今回の実機検証は部分成功であり、Native品質ゲート全体をPASSとは扱わない。Native画面やMaestro Flowの仕様変更は行っていない。
+- Native artifact handling: 今回生成されたAPK、logcat、JUnit、Hierarchy、UIAutomator、Gradle／Install logは`.artifacts/native-local/20260806-230738-JST/`に保存され、`output/mobile-native/`へ新規共有画像を追加していない。`output/`と`.artifacts/`はGit管理外で、`git ls-files`にも該当する再生成可能証跡はない。共有用成果物と実行ごとの機械証跡の責務分離は維持した。
+- Remote CI: 更新前に観測済みのPhase 1 success／Native CI failure（Native StaticのExpo Doctor patch mismatch）に変更はない。Push／Workflow手動再実行は禁止されているため、Expo patch更新後のRemote successは未確認であり、マージ可能とは記録しない。
+- 判断: `stop_needs_human`。実機Runtime Suiteの対象カード未検出の原因確認・再検証、および更新後Remote CIのsuccess確認が残っている。
+- Progress: 100% (18/18)
+
+## 2026-08-07 05:30 (JST) Android Build復旧手順の文書化
+
+- 今回の実機Buildで、外部Virtual Storeへ切り替えた後も`.pnpm-local`の古いAutolinking／CMake参照が残り、`ninja: error: manifest 'build.ninja' still dirty after 100 tries`となった事実を文書化した。
+- `docs/native/windows-android-local-validation.md`へ、`Prepare`後の`.modules.yaml`／Package Link／生成Autolinking確認、必要時の`pnpm install --frozen-lockfile --virtual-store-dir=<PNPM_VIRTUAL_STORE>`、`expo prebuild --clean --platform android --no-install`、再確認後のBuildという復旧順序を追加した。
+- `docs/native/windows-android-troubleshooting.md`へ症状一覧と詳細な復旧節を追加し、`-CleanNative`は古い生成参照の再作成ではないため初手にしないことを明記した。`docs/native/README.md`から該当節を参照できるようにした。
+- `docs/PROJECT_CONTEXT.md`と`docs/history/2026-08-07_053046_windows-android-build-recovery.md`へ、最終Build成功とRuntime Suite 3/5、Boundary未実行という実測を追記した。生成Android、APK、JUnit、logcat、端末固有情報は追加していない。
+- implementation_researcher（read-only）は、主な追記先をTroubleshooting／Runbook／Contextとし、ADR追加は不要と判断した。親Agentはこの判断を採用した。書込みsubagentは使用していない。
+- 検証: `pnpm run format:check` はPASS、`git diff --check` はwhitespace errorなし（既存のLF／CRLF変換warningのみ）。関連語句の`rg`確認もPASSした。
+- 残余: 実機Runtime Suiteの2フロー失敗、Boundary未実行、更新後Remote CI未確認は既存の未完了事項として維持する。今回の文書更新で実機全体PASSとは扱わない。
+- Progress: 100% (19/19)
+
+## 2026-08-07 06:03 (JST) Native商品カード未検出のローカル調査・再検証
+
+- Doctor（Native Run `20260807-055345-JST`）はPASSした。端末の標準入力方式は`jp.co.sharp.android.iwnnime.ml/.standardcommon.IWnnLanguageSwitcher`で、以前記録したSHV48のMaestro ASCII入力問題と一致した。
+- 既存失敗RunのHierarchyには`native-catalog-screen`と`native-product-card-product-mug`等が存在する一方、`native-product-card-product-basic-shirt`は存在しなかった。失敗後のMaestro／Accessibilityログでは検索欄のplaceholderが残っており、`inputText: P-0001`が検索欄へ保持された証拠がない。
+- ソース上はSeedに`product-basic-shirt`／`P-0001`があり、Native SQLite検索は商品名・商品Code・Brand名を検索対象にする。したがって、今回の失敗はデータ定義やCI専用状態より、実機IME経由の入力不成立が最有力である。
+- A/B再検証としてLatinIMEを一時有効化し、同じインストール済みAPKで`native-storefront.yaml`（Native Run `20260807-055734-JST`）を実行したところ58秒でPASSした。公式単体GateとRuntime Suite（Native Run `20260807-055922-JST`）もそれぞれ1/1、5/5 PASSした。
+- 検証終了後、標準日本語IMEを選択し、LatinIMEを無効化して元の有効IME一覧へ復元した。端末固有情報はRun Artifactへ記録していない。今回の追加証跡は`.artifacts/native-local/20260807-055734-JST/`と`.artifacts/native-local/20260807-055922-JST/`に保存され、Repositoryへ追加していない。
+- 判定: 原因調査とLatinIME条件での再検証はローカルで完了した。標準日本語IMEのままでは同じ入力問題が残るため、LatinIME切替を恒久修正とは扱わず、Flow／IME前提の運用固定または入力経路の改善を別途判断する。コード変更は行っていない。
+- Build／Install／Smokeは同じAPKで直前にPASS済み、今回コード変更なしのため再実行していない。Boundary Suiteと更新後Remote CIは未実行である。
+- Progress: 100% (20/20)
+
+## 2026-08-07 06:20 (JST) Native Maestro入力経路分離の計画・調査
+
+- ユーザー合意の方針に従い、既知商品を検証する主要FlowはProduct Deep Linkへ移し、検索入力は独立Flowとして維持する計画を作成した。保存先は[`docs/plans/2026-08-07_062000_native-input-flow-policy.md`](../../docs/plans/2026-08-07_062000_native-input-flow-policy.md)である。
+- implementation_researcher（Darwin）へ既存Deep Link、Maestro Flow、CI列挙、Native Routeの調査を委譲した。既存の`native-low-stock.yaml`等でProduct Deep Linkが利用済みであり、主要4 Flowの置換とCI／Contract更新が必要との報告を採用した。
+- test_investigator（Bernoulli）へカバレッジと失敗経路の調査を委譲した。検索専用Flowでも`P-0001`入力から商品カード可視化までを残し、検索経路の回帰検知を失わないこと、既存コンポーネントテストにNativeSearchScreen直撃がないことを確認した。今回はMaestro E2E専用Flowを追加し、アプリ本体のコンポーネント実装は変更しない判断とした。
+- Progress: 87% (20/23)
+
+## 2026-08-07 06:55 (JST) Native Maestro入力経路分離の実装・実機検証
+
+- 変更: `native-storefront.yaml`、`native-cart.yaml`、`native-restart-persistence.yaml`、`native-reset-dirty-state.yaml`の既知商品到達をProduct Deep Linkへ変更し、`maestro/native-search.yaml`へ`P-0001`検索と対象商品カードtestID検出を分離した。Android／iOS CIは検索専用Flowを別Maestro実行として追加した。
+- 追加契約: `native-test-control-maestro.test.ts`で主要4 Flowに`inputText: "P-0001"`を戻さないこと、検索専用Flowに入力・商品カードtestIDがあることを固定した。Native CI契約は検索専用実行とJUnit／Artifact出力を固定した。
+- 実機初回（Native Run `20260807-063600-JST`）: Doctor、ControlはPASS。Runtimeは3/5の後、Deep Link後の商品名Textが画面外であるためStorefront／Cartが失敗した。Evidenceは`.artifacts/native-local/20260807-063600-JST/`へ保存した。
+- 最小修正: 商品名Textのassertだけを4 Flowから削除した。商品詳細screen testID、Variant testID、Add／Cart操作は維持し、Timeout延長、Assertion全削除、Flow Skipは行っていない。
+- 実機再検証（Native Run `20260807-064200-JST`）: 標準日本語IMEのControl 1/1、Runtime 5/5、Boundary 5/5をPASSした。同じAPKで、Build／Install／SmokeはFlow／文書変更のみのため再実行していない。
+- 検索専用Flow（Native Run `20260807-065100-JST`）: LatinIMEを一時有効化・選択し、`native-search.yaml` 1/1をPASSした。`P-0001`入力と`native-product-card-product-basic-shirt`検出を確認し、終了後に標準日本語IMEと有効IME一覧を復元した。標準日本語IMEで検索専用Flowが成立しない可能性は文書どおり成功扱いにしていない。
+- 静的検証: Native関連Contract 30/30、`pnpm run format:check`、`pnpm run lint`（既存warning 64・error 0）、`pnpm run typecheck:native-tests`、`git diff --check`はPASS。`pnpm run typecheck`は今回変更外の既存6箇所のimplicit-anyでFAILした。
+- 成果物: APK、JUnit、Hierarchy、logcat、UIAutomator、端末SerialはRepositoryへ追加していない。共有画像は`output/mobile-native/`、実行証跡は`.artifacts/native-local/<timestamp>/`の規約を維持した。Remote CIは未実行。
+- 判定: `stop_needs_human`。今回の入力経路分離とローカルNative検証は完了したが、全体typecheck既存エラーと更新後Remote CI未確認が残る。
+- Progress: 100% (23/23)
+
+## 2026-08-07 06:57 (JST) 最終文書整合性確認
+
+- `docs/PROJECT_CONTEXT.md`へ、既知商品用のProduct Deep Link、検索専用Flow、IME復元、今回の実機結果と未確認事項を追記した。ADR、Runbook、Troubleshooting、履歴文書、Maestro／CI契約テストとの責務分離は維持した。
+- `pnpm run format:check`は全対象PASS、`git diff --check`はwhitespace errorなし（既存のLF／CRLF変換warningのみ）。
+- 今回の追記後も判定は`stop_needs_human`を維持する。未確認事項は更新後Remote CIと、今回変更外にある全体typecheckの既存6件である。
+- Progress: 100% (23/23)
