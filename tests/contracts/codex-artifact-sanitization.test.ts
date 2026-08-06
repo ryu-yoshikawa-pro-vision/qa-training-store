@@ -29,7 +29,7 @@ describe("Codex Run Artifact path sanitization contract", () => {
     expect(common).toContain("function Find-CodexArtifactResidualPath");
     expect(cli).toContain("lib/codex-artifact-sanitizer.ps1");
     expect(cli).toContain(".codex/runs/**");
-    expect(task).toContain("lib\\codex-artifact-sanitizer.ps1");
+    expect(task).toContain("lib/codex-artifact-sanitizer.ps1");
     expect(task).toContain("ConvertTo-CodexSanitizedValue");
   });
 
@@ -53,8 +53,15 @@ describe("Codex Run Artifact path sanitization contract", () => {
     const task = read("scripts/codex-task.ps1");
     expect(task).toContain("function Invoke-CodexRunArtifactSanitization");
     expect(task).toContain("finally {");
-    expect(task).toContain("-Write -Check");
+    expect(task).toContain("'-Write'");
+    expect(task).toContain("'-Check'");
+    expect(task).toContain("codexRunArtifactSanitizationExecuted");
+    expect(task).toContain("codexTaskCompletedNormally");
+    expect(task).toContain("codexTaskMainTryActive");
     expect(task).toContain("codexTaskTerminationCode");
+    expect(task).toContain("WaitForExit(60000)");
+    expect(task).toContain("sanitizer timed out after 60 seconds");
+    expect(task).toContain("sanitizer CLI is missing");
   });
 
   it("defines the fixed replacement tokens and fail-closed residual scan", () => {
@@ -75,7 +82,22 @@ describe("Codex Run Artifact path sanitization contract", () => {
     expect(common).toContain("Windows user path");
     expect(common).toContain("macOS user path");
     expect(common).toContain("Linux user path");
+    expect(common).toContain("$env:USERPROFILE");
+    expect(common).toContain("$env:HOME");
+    expect(common).toContain("$env:TEMP");
+    expect(common).toContain("$env:TMP");
+    expect(common).toContain("$env:TMPDIR");
+    expect(common).toContain("function Get-CodexMaestroHomeFromExecutable");
+    expect(common).toContain("function Move-CodexArtifactWithBackup");
+    expect(common).toContain(".codex-artifact-sanitizer-backup-");
+    expect(common).toContain("the original error is preserved");
+    expect(common).toContain("function Test-CodexGitRootWorkingDirectory");
+    expect(common).toContain("ls-files");
     expect(read("scripts/sanitize-codex-artifacts.ps1")).toContain("exit 1");
+    expect(read("scripts/sanitize-codex-artifacts.ps1")).toContain("invalid UTF-8");
+    expect(read("scripts/sanitize-codex-artifacts.ps1")).toContain(
+      "ConvertTo-CodexFindingOutputText",
+    );
   });
 
   it("keeps the standard scope text-only and excludes binary extensions", () => {
@@ -92,8 +114,11 @@ describe("Codex Run Artifact path sanitization contract", () => {
     const workflow = read(".github/workflows/ci.yml");
     const job = block(workflow, "  codex-artifact-sanitization:", "  vitest:");
     expect(job).toContain("fetch-depth: 0");
+    expect(job).toContain("ubuntu-latest");
+    expect(job).toContain("windows-latest");
     expect(job).toContain("scripts/tests/codex-artifact-sanitizer.test.ps1");
     expect(job).toContain("scripts/sanitize-codex-artifacts.ps1 -Path $files -Check");
+    expect(job).toContain("--diff-filter=ACMRTUXB");
     expect(job).not.toContain("scripts/sanitize-codex-artifacts.ps1 -Path $files -Write");
     expect(workflow).toContain("codex-artifact-sanitization");
     expect(read("scripts/tests/codex-artifact-sanitizer.test.ps1")).toContain(

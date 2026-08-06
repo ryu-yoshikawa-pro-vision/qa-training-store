@@ -187,14 +187,14 @@ function Get-CodexGitRepositoryRoot {
         return $null
     }
 
-    $args = @()
+    $gitArgs = @()
     if (-not [string]::IsNullOrWhiteSpace($WorkingDirectory)) {
-        $args += @('-C', $WorkingDirectory)
+        $gitArgs += @('-C', $WorkingDirectory)
     }
-    $args += @('rev-parse', '--show-toplevel')
+    $gitArgs += @('rev-parse', '--show-toplevel')
 
     try {
-        $output = & $git.Source @args 2>$null
+        $output = & $git.Source @gitArgs 2>$null
         if ($LASTEXITCODE -ne 0) {
             return $null
         }
@@ -279,6 +279,33 @@ function Get-CodexPnpmVirtualStoreDir {
     }
 }
 
+function Get-CodexMaestroHomeFromExecutable {
+    param([AllowNull()][string]$ExecutablePath)
+
+    if ([string]::IsNullOrWhiteSpace($ExecutablePath)) {
+        return $null
+    }
+
+    $normalized = $ExecutablePath.Trim().Replace('\', '/')
+    $binMarker = '/bin/'
+    $binIndex = $normalized.LastIndexOf($binMarker, [System.StringComparison]::OrdinalIgnoreCase)
+    if ($binIndex -lt 0) {
+        return $null
+    }
+
+    $suffix = $normalized.Substring($binIndex + $binMarker.Length)
+    if ([string]::IsNullOrWhiteSpace($suffix) -or $suffix.Contains('/')) {
+        return $null
+    }
+
+    $maestroHomePath = $normalized.Substring(0, $binIndex).TrimEnd('/')
+    if ([string]::IsNullOrWhiteSpace($maestroHomePath)) {
+        return $null
+    }
+
+    return $maestroHomePath
+}
+
 function New-CodexArtifactSanitizerContext {
     param(
         [string]$RepositoryRoot,
@@ -318,8 +345,9 @@ function New-CodexArtifactSanitizerContext {
         Add-CodexSanitizerPath -Context $context -Value $alias -Token '<REPO_ROOT>'
     }
 
-    $userHome = if ([System.IO.Path]::DirectorySeparatorChar -eq '\') { $env:USERPROFILE } else { $env:HOME }
-    Add-CodexSanitizerPath -Context $context -Value $userHome -Token '<USER_HOME>'
+    foreach ($candidate in @($env:USERPROFILE, $env:HOME)) {
+        Add-CodexSanitizerPath -Context $context -Value $candidate -Token '<USER_HOME>'
+    }
 
     foreach ($candidate in @($env:ANDROID_SDK_ROOT, $env:ANDROID_HOME, $AndroidSdkRoot)) {
         Add-CodexSanitizerPath -Context $context -Value $candidate -Token '<ANDROID_SDK_ROOT>'
@@ -339,10 +367,13 @@ function New-CodexArtifactSanitizerContext {
         Where-Object { $_.CommandType -eq 'Application' } |
         Select-Object -First 1
     if ($maestroCommand) {
-        Add-CodexSanitizerPath -Context $context -Value $maestroCommand.Source -Token '<MAESTRO_HOME>'
+        $maestroCommandHome = Get-CodexMaestroHomeFromExecutable -ExecutablePath $maestroCommand.Source
+        Add-CodexSanitizerPath -Context $context -Value $maestroCommandHome -Token '<MAESTRO_HOME>'
     }
 
-    Add-CodexSanitizerPath -Context $context -Value ([System.IO.Path]::GetTempPath()) -Token '<TEMP_ROOT>'
+    foreach ($candidate in @($env:TEMP, $env:TMP, $env:TMPDIR, [System.IO.Path]::GetTempPath())) {
+        Add-CodexSanitizerPath -Context $context -Value $candidate -Token '<TEMP_ROOT>'
+    }
     return $context
 }
 
@@ -392,14 +423,17 @@ function ConvertTo-CodexSanitizedText {
         }
 
         $escapedSource = [System.Text.RegularExpressions.Regex]::Escape([string]$replacement.Source)
-        $matchCount = [System.Text.RegularExpressions.Regex]::Matches($result, $escapedSource, $options).Count
+        $hasTrailingSeparator = [string]$replacement.Source -match '[\\/]$'
+        $boundary = if ($hasTrailingSeparator) { '' } else { '(?=$|[\\/\s"''<>),;:\]])' }
+        $pattern = $escapedSource + $boundary
+        $matchCount = [System.Text.RegularExpressions.Regex]::Matches($result, $pattern, $options).Count
         if ($matchCount -eq 0) {
             continue
         }
 
         $result = [System.Text.RegularExpressions.Regex]::Replace(
             $result,
-            $escapedSource,
+            $pattern,
             [string]$replacement.Replacement,
             $options
         )
@@ -484,9 +518,9 @@ function Get-CodexResidualMaskedLine {
 
     $masked = $Line
     foreach ($pattern in $script:CodexArtifactResidualPatterns) {
-        $matches = @([System.Text.RegularExpressions.Regex]::Matches($masked, [string]$pattern.regex))
-        for ($index = $matches.Count - 1; $index -ge 0; $index--) {
-            $match = $matches[$index]
+        $patternMatches = @([System.Text.RegularExpressions.Regex]::Matches($masked, [string]$pattern.regex))
+        for ($index = $patternMatches.Count - 1; $index -ge 0; $index--) {
+            $match = $patternMatches[$index]
             $replacement = Get-CodexResidualMaskedMatch -Match $match.Value -PatternType ([string]$pattern.type)
             $masked = $masked.Substring(0, $match.Index) + $replacement + $masked.Substring($match.Index + $match.Length)
         }
@@ -583,20 +617,69 @@ function Get-CodexArtifactTextFiles {
     }
 
     if ($ChangedOnly) {
+        if ([string]::IsNullOrWhiteSpace($RepositoryRoot) -or -not (Test-CodexGitRootWorkingDirectory -WorkingDirectory $RepositoryRoot)) {
+            throw 'ChangedOnly requires Git and a valid repository root.'
+        }
+
         $git = Get-Command git -ErrorAction SilentlyContinue |
             Where-Object { $_.CommandType -eq 'Application' } |
             Select-Object -First 1
-        if ($git -and -not [string]::IsNullOrWhiteSpace($RepositoryRoot)) {
-            $changed = @(& $git.Source -C $RepositoryRoot diff --name-only HEAD -- '.codex/runs' 2>$null)
-            $changedKeys = @{}
-            foreach ($changedPath in $changed) {
-                $candidatePath = [System.IO.Path]::GetFullPath((Join-Path $RepositoryRoot ([string]$changedPath)))
-                $changedKeys[$candidatePath.ToLowerInvariant()] = $true
-            }
-            foreach ($key in @($files.Keys)) {
-                if (-not $changedKeys.ContainsKey($key.ToLowerInvariant())) {
-                    $files.Remove($key)
+        if (-not $git) {
+            throw 'ChangedOnly requires Git and a valid repository root.'
+        }
+
+        $changed = New-Object System.Collections.Generic.List[string]
+        $gitCommands = @(
+            @('diff', '--name-only', 'HEAD'),
+            @('ls-files', '--others', '--exclude-standard'),
+            @('diff', '--name-only', '--cached')
+        )
+        $previousNativeErr = $null
+        $hasNativeErrPref = $null -ne (Get-Variable -Name PSNativeCommandUseErrorActionPreference -ErrorAction SilentlyContinue)
+        $previousErrorActionPreference = $ErrorActionPreference
+        $ErrorActionPreference = 'Continue'
+        if ($hasNativeErrPref) {
+            $previousNativeErr = $PSNativeCommandUseErrorActionPreference
+            $PSNativeCommandUseErrorActionPreference = $false
+        }
+        try {
+            foreach ($gitArgs in $gitCommands) {
+                $gitOutput = @(& $git.Source -C $RepositoryRoot @gitArgs 2>&1)
+                $gitExitCode = $LASTEXITCODE
+                $gitOutput = @($gitOutput | Where-Object {
+                        $_ -isnot [System.Management.Automation.ErrorRecord] -and
+                        ([string]$_ -notmatch '^(?:git\.exe : )?warning:|LF will be replaced|next time Git touches it')
+                    })
+                if ($gitExitCode -ne 0) {
+                    throw 'ChangedOnly could not resolve changed paths from Git.'
                 }
+                foreach ($changedPath in $gitOutput) {
+                    $relativePath = ([string]$changedPath).Trim()
+                    if (-not [string]::IsNullOrWhiteSpace($relativePath)) {
+                        $changed.Add([System.IO.Path]::GetFullPath((Join-Path $RepositoryRoot $relativePath)))
+                    }
+                }
+            }
+        }
+        finally {
+            $ErrorActionPreference = $previousErrorActionPreference
+            if ($hasNativeErrPref) {
+                $PSNativeCommandUseErrorActionPreference = $previousNativeErr
+            }
+        }
+
+        $changedKeys = @{}
+        foreach ($changedPath in $changed) {
+            $key = [System.IO.Path]::GetFullPath([string]$changedPath)
+            if (Test-CodexWindowsPath -Value $key) {
+                $key = $key.ToLowerInvariant()
+            }
+            $changedKeys[$key] = $true
+        }
+        foreach ($key in @($files.Keys)) {
+            $comparisonKey = [string]$key
+            if (-not $changedKeys.ContainsKey($comparisonKey)) {
+                $files.Remove($key)
             }
         }
     }
@@ -623,6 +706,62 @@ function Read-CodexArtifactText {
     }
 }
 
+function Move-CodexArtifactWithBackup {
+    param(
+        [Parameter(Mandatory = $true)][string]$SourcePath,
+        [Parameter(Mandatory = $true)][string]$DestinationPath,
+        [scriptblock]$MoveOperation
+    )
+
+    $directory = Split-Path -Parent $DestinationPath
+    $backupPath = $null
+    $moveSucceeded = $false
+    if ($null -eq $MoveOperation) {
+        $MoveOperation = {
+            param($source, $destination)
+            [System.IO.File]::Move($source, $destination)
+        }
+    }
+
+    try {
+        do {
+            $backupPath = Join-Path $directory ('.codex-artifact-sanitizer-backup-' + [System.IO.Path]::GetRandomFileName())
+        } while ([System.IO.File]::Exists($backupPath))
+
+        [System.IO.File]::Copy($DestinationPath, $backupPath, $false)
+        try {
+            [System.IO.File]::Delete($DestinationPath)
+            & $MoveOperation $SourcePath $DestinationPath
+            $moveSucceeded = $true
+        }
+        catch {
+            $moveError = $_.Exception
+            try {
+                if (-not [System.IO.File]::Exists($DestinationPath)) {
+                    [System.IO.File]::Copy($backupPath, $DestinationPath, $false)
+                }
+            }
+            catch {
+                $backupName = [System.IO.Path]::GetFileName($backupPath)
+                Write-Warning ('Could not restore the original artifact; backup retained as ' + $backupName + '.')
+                throw [System.IO.IOException]::new('Atomic artifact replacement failed and original restoration failed.', $_.Exception)
+            }
+            throw $moveError
+        }
+    }
+    finally {
+        if ($moveSucceeded -and $backupPath -and [System.IO.File]::Exists($backupPath)) {
+            try {
+                [System.IO.File]::Delete($backupPath)
+            }
+            catch {
+                $backupName = [System.IO.Path]::GetFileName($backupPath)
+                Write-Warning ('Sanitized artifact was written, but backup cleanup failed: ' + $backupName + '.')
+            }
+        }
+    }
+}
+
 function Write-CodexArtifactTextAtomic {
     param(
         [Parameter(Mandatory = $true)][string]$Path,
@@ -639,8 +778,7 @@ function Write-CodexArtifactTextAtomic {
                 [System.IO.File]::Replace($temporaryPath, $Path, $null)
             }
             catch {
-                [System.IO.File]::Delete($Path)
-                [System.IO.File]::Move($temporaryPath, $Path)
+                Move-CodexArtifactWithBackup -SourcePath $temporaryPath -DestinationPath $Path
             }
         }
         else {
@@ -649,7 +787,12 @@ function Write-CodexArtifactTextAtomic {
     }
     finally {
         if ([System.IO.File]::Exists($temporaryPath)) {
-            [System.IO.File]::Delete($temporaryPath)
+            try {
+                [System.IO.File]::Delete($temporaryPath)
+            }
+            catch {
+                Write-Warning 'Could not clean up the temporary artifact; the original error is preserved.'
+            }
         }
     }
 }

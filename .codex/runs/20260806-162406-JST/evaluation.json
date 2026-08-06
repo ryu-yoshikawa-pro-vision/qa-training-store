@@ -37,7 +37,7 @@
     },
     "reproducibility": {
       "rating": "pass",
-      "evidence": "PowerShell 5.1／7のFixtureとCLI Check、pnpm verifyを同一Workspaceで再実行し、同じ結果を得た。",
+      "evidence": "PowerShell 5.1のFixtureとCLI Check、pnpm verifyを同一Workspaceで再実行し、同じ結果を得た。PowerShell 7はこのRunの実行事実として確認できないため主張しない。",
       "evidence_refs": []
     }
   },

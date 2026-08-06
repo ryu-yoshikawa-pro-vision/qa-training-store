@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "run_id": "20260806-194500-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {"rating": "pass", "evidence": "必須修正、Fixture 39契約、Contract、CI、Run Artifact整合性、Native成果物規約の保存先・Git管理外・文書整合性確認を実施した。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-194500-JST/REPORT.md", "summary": "修正内容と完了判定を記録したRun Report。"}]},
+    "scope_control": {"rating": "pass", "evidence": "指定スクリプト、Fixture、Contract、CI、Path Sanitization docs、PR #9対象Runに加え、ユーザー明示のNative成果物規約を対象に含め、不要な削除・追跡変更は行っていない。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-194500-JST/PLAN.md", "summary": "対象範囲と対象外判断を記録したRun Plan。"}]},
+    "validation_confidence": {"rating": "pass", "evidence": "Windows PowerShell 5.1／PowerShell 7 Fixture各39契約、Parser、Contract 7件、format、lint、typecheck、全Contract、verifyが成功した。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-194500-JST/REPORT.md", "summary": "ローカル検証コマンドと結果を記録したRun Report。"}]},
+    "safety_compliance": {"rating": "pass", "evidence": "Branch／Commit／Push／Rebase／Merge／Review Resolve／Workflow再実行は行っていない。", "evidence_refs": []},
+    "reviewability": {"rating": "pass", "evidence": "Subagent、Validation、Review判定、Native成果物規約の訂正判定をRun Artifactへ記録した。", "evidence_refs": [{"kind": "run_manifest", "path": ".codex/runs/20260806-194500-JST/run.json", "summary": "使用Subagentと検証履歴を記録したRun Manifest。"}, {"kind": "evaluation_note", "path": ".codex/runs/20260806-194500-JST/REPORT.md", "summary": "Review判定とNative成果物規約の維持判断を記録したRun Report。"}]},
+    "maintainability": {"rating": "pass", "evidence": "Path置換、CLI、Atomic helper、codex-task終了処理を責務ごとに分離し、Fixtureで動作契約を確認した。", "evidence_refs": [{"kind": "changed_file", "path": "scripts/lib/codex-artifact-sanitizer.ps1", "summary": "共有サニタイザーとAtomic helperの実装。"}]},
+    "reproducibility": {"rating": "pass", "evidence": "Windows PowerShell 5.1とPowerShell 7で同じ39契約を再実行し、両方PASSした。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-194500-JST/REPORT.md", "summary": "PowerShell 5.1／7の再現検証結果を記録したRun Report。"}]}
+  },
+  "findings": [
+    {"category": "missing_validation", "severity": "medium", "evidence": "Push、Workflow手動再実行は禁止されているため、修正後Remote CIは未実行。", "detail": "ローカルでUbuntu相当のPowerShell 7 Fixture、変更Artifact Checkの実装、既存verify接続を確認した。"}
+  ],
+  "improvement_candidates": []
+}

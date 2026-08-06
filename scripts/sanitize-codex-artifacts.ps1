@@ -62,9 +62,52 @@ function Add-CodexKnownPathFindings {
     }
 }
 
+function ConvertTo-CodexFindingOutputText {
+    param(
+        [AllowNull()][string]$Text,
+        [Parameter(Mandatory = $true)]$Context,
+        [int]$MaximumLength = 300
+    )
+
+    if ($null -eq $Text) {
+        return ''
+    }
+
+    $sanitized = ConvertTo-CodexSanitizedText -Text $Text -Context $Context
+    $genericLocalPathPatterns = @(
+        '(?i)\b[A-Z]:[\\/][^\s"<>]+'
+        '(?i)\\\\[^\\/\s"<>]+(?:[\\/][^\\/\s"<>]+)*'
+        '(?<![A-Za-z0-9:])/(?:[^/\s"<>]+(?:/[^/\s"<>]+)*)'
+    )
+    foreach ($pattern in $genericLocalPathPatterns) {
+        $sanitized = [System.Text.RegularExpressions.Regex]::Replace(
+            $sanitized,
+            $pattern,
+            '<local-path-redacted>',
+            [System.Text.RegularExpressions.RegexOptions]::CultureInvariant
+        )
+    }
+
+    if ($sanitized.Length -gt $MaximumLength) {
+        return $sanitized.Substring(0, $MaximumLength) + '…'
+    }
+    return $sanitized
+}
+
 foreach ($file in $files) {
     $stats.files_scanned = [int]$stats.files_scanned + 1
-    $read = Read-CodexArtifactText -Path $file
+    try {
+        $read = Read-CodexArtifactText -Path $file
+    }
+    catch [System.Text.DecoderFallbackException] {
+        $findings.Add([pscustomobject]@{
+                file_path = $file
+                line_number = 1
+                pattern_type = 'invalid UTF-8'
+                content = '<redacted>'
+            })
+        continue
+    }
     $currentText = [string]$read.text
     $scanText = $currentText
 
@@ -88,7 +131,8 @@ foreach ($file in $files) {
                 })
         }
 
-        $expectedText = ConvertTo-CodexSanitizedText -Text $scanText -Context $context
+        $expectedStats = if (-not $Write) { $stats } else { $null }
+        $expectedText = ConvertTo-CodexSanitizedText -Text $scanText -Context $context -Stats $expectedStats
         Add-CodexKnownPathFindings -FilePath $file -CurrentText $scanText -SanitizedText $expectedText -Target $findings
 
         foreach ($finding in @(Find-CodexArtifactResidualPath -Text $scanText -FilePath $file)) {
@@ -114,9 +158,10 @@ foreach ($token in $stats.replacements_by_token.Keys) {
 Write-Output ('  residual_findings: ' + $stats.residual_findings)
 
 if ($findings.Count -gt 0) {
-    foreach ($finding in $findings) {
-        $displayPath = ConvertTo-CodexSanitizedText -Text ([string]$finding.file_path) -Context $context
-        Write-Output ($displayPath + ':' + $finding.line_number + ' ' + $finding.pattern_type + ' remains: ' + [string]$finding.content)
+        foreach ($finding in $findings) {
+        $displayPath = ConvertTo-CodexFindingOutputText -Text ([string]$finding.file_path) -Context $context -MaximumLength 300
+        $displayContent = ConvertTo-CodexFindingOutputText -Text ([string]$finding.content) -Context $context -MaximumLength 300
+        Write-Output ($displayPath + ':' + $finding.line_number + ' ' + $finding.pattern_type + ' remains: ' + $displayContent)
     }
     exit 1
 }

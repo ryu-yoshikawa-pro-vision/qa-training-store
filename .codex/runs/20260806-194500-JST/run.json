@@ -1,0 +1,131 @@
+{
+  "schema_version": 1,
+  "run_id": "20260806-194500-JST",
+  "task_type": "repair",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [
+    "code_researcher",
+    "implementation_researcher",
+    "test_investigator"
+  ],
+  "repo": "qa-training-store",
+  "branch": "fix/sanitize-codex-run-artifact-paths",
+  "base_branch": "main",
+  "codex_task_reports": [
+    ".codex/runs/20260806-194500-JST/reports/codex-task-20260806-203230.report.json"
+  ],
+  "changed_files": [
+    "scripts/lib/codex-artifact-sanitizer.ps1",
+    "scripts/sanitize-codex-artifacts.ps1",
+    "scripts/codex-task.ps1",
+    "scripts/tests/codex-artifact-sanitizer.test.ps1",
+    "tests/contracts/codex-artifact-sanitization.test.ts",
+    ".github/workflows/ci.yml",
+    "AGENTS.md",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/native/README.md",
+    "docs/native/windows-android-local-validation.md",
+    "docs/history/2026-08-06_143650_native-mobile-output-convention.md",
+    "docs/plans/2026-08-06_094328_pr8-native-local-maestro-ci-repair.md",
+    "docs/adr/0006-codex-run-artifact-path-sanitization.md",
+    "docs/history/2026-08-06_165500_codex-artifact-path-sanitization.md",
+    "docs/reference/repair-loop.md",
+    "output/mobile-native/native-storefront-cart-added.png",
+    ".codex/runs/20260806-094328-JST/",
+    ".codex/runs/20260806-162406-JST/",
+    ".codex/runs/20260806-162632-JST/",
+    ".codex/runs/20260806-194500-JST/"
+  ],
+  "validation": {
+    "status": "passed_with_warnings",
+    "commands": [
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tests/codex-artifact-sanitizer.test.ps1",
+      "pwsh -NoProfile -File scripts/tests/codex-artifact-sanitizer.test.ps1",
+      "PowerShell Parser 4 files (Windows PowerShell 5.1)",
+      "PowerShell Parser 4 files (PowerShell 7)",
+      "pnpm exec vitest run tests/contracts/codex-artifact-sanitization.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run test:contracts",
+      "pnpm run verify",
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/codex-task.ps1 -RunId 20260806-194500-JST -SkipPreflight -SkipVerify 'codex-task error preservation probe'",
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs -ChangedOnly -Check",
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260806-194500-JST -Write -Check",
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260806-194500-JST -Write -Check",
+      "git diff --check",
+      "python -X utf8 JSON parse check for current Run artifacts",
+      "python -X utf8 -m jsonschema -i .codex/runs/20260806-194500-JST/evaluation.json .codex/templates/evaluation.schema.json",
+      "git status --short",
+      "git ls-files -- output/** .artifacts/** *.apk *.aab *.png",
+      "git check-ignore -v output/mobile-native/native-storefront-cart-added.png .artifacts/native-local/example/evidence.txt",
+      "Native artifact location and document consistency check",
+      "python -X utf8 -m jsonschema -i .codex/runs/20260806-094328-JST/evaluation.json .codex/templates/evaluation.schema.json",
+      "python -X utf8 -m jsonschema -i .codex/runs/20260806-162406-JST/evaluation.json .codex/templates/evaluation.schema.json"
+    ],
+    "warnings": [
+      "lintは既存警告64件、エラー0件。",
+      "Remote CIはPush禁止のため未実行。",
+      "codex-task probeはCLI側のexit code 1を保持した。CLIは利用中モデル非対応のためAPI処理は完了しなかった。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 1,
+    "hook_event_count": 0,
+    "subagent_run_count": 3,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "agent_id": "019fd6ae-ce76-75e0-9cd1-dbbf3f0c145b",
+        "agent": "code_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "Sanitizer／CLI／codex-taskのHome、Temp、MAESTRO、ChangedOnly、UTF-8、終了処理の不足を調査した。"
+      },
+      {
+        "agent_id": "019fd6ae-cf9a-7ee0-948a-bc0922a8e86b",
+        "agent": "implementation_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "PowerShell 5.1／7互換、Backup fallback、ChangedOnly集合、子プロセスTimeoutの実装方針を調査した。"
+      },
+      {
+        "agent_id": "019fd6ae-d1e7-70e2-8267-0de2e76a3b9b",
+        "agent": "test_investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "Fixture／Contract／CIの不足契約とUbuntu pwsh失敗条件を調査した。"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "read_only": 3,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 3
+    }
+  },
+  "evaluation_path": ".codex/runs/20260806-194500-JST/evaluation.json",
+  "status": "completed",
+  "primary_failure_category": null
+}

@@ -7,14 +7,18 @@
   "runtime": "host",
   "agents_used": [],
   "repo": "qa-training-store",
-  "branch": null,
-  "base_branch": null,
+  "branch": "fix/sanitize-codex-run-artifact-paths",
+  "base_branch": "main",
   "codex_task_reports": [],
   "changed_files": [],
   "validation": {
-    "status": "not_run",
-    "commands": [],
-    "warnings": []
+    "status": "passed",
+    "commands": [
+      "pnpm run test:contracts"
+    ],
+    "warnings": [
+      "個別のContract validationは成功したが、Run全体の調査完了を意味しない。"
+    ]
   },
   "safety": {
     "network": false,

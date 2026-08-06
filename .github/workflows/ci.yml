@@ -58,9 +58,15 @@ jobs:
         run: pnpm run security:check
 
   codex-artifact-sanitization:
-    name: Codex artifact sanitization
-    runs-on: ubuntu-latest
+    name: Codex artifact sanitization (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
     timeout-minutes: 10
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - windows-latest
     steps:
       - uses: actions/checkout@v4
         with:
@@ -90,7 +96,7 @@ jobs:
           }
 
           $files = @(
-            git diff --name-only "$base...HEAD" -- ".codex/runs"
+            git diff --name-only --diff-filter=ACMRTUXB "$base...HEAD" -- ".codex/runs"
           ) | Where-Object {
             Test-Path -LiteralPath $_
           }
