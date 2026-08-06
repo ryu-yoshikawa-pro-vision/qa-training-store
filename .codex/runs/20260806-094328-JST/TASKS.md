@@ -17,6 +17,7 @@
 - [ ] D2. GitHub CLI 未導入のため connector 取得と `gh` 未確認を分離して記録する
 - [x] D3. Prepare の production NODE_ENV による devDependency prune を正式経路で修正する
 - [x] D4. Maestro Flow の offscreen／Android System UI selector 問題を証跡に基づき修正する
+- [x] D7. Nativeの共有用テスト成果物を `output/mobile-native/` に集約し、保存規約を文書化する
 - [ ] D5. Maestro／IME 入力と MCP の local／CI parity を確認する
 - [x] D6. Native商品検索のformal CLI入力経路（MaestroInputMethodService／LatinIME）を切り分け、実機formal単体をPASSさせる
 

@@ -57,6 +57,54 @@ jobs:
       - name: Security check
         run: pnpm run security:check
 
+  codex-artifact-sanitization:
+    name: Codex artifact sanitization
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Test Codex artifact sanitizer
+        shell: pwsh
+        run: ./scripts/tests/codex-artifact-sanitizer.test.ps1
+
+      - name: Check changed Codex artifacts
+        shell: pwsh
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.base_ref }}
+          EVENT_BEFORE: ${{ github.event.before }}
+        run: |
+          $ErrorActionPreference = "Stop"
+          if ($env:EVENT_NAME -eq "pull_request") {
+            $base = "origin/$env:BASE_REF"
+          }
+          else {
+            $base = $env:EVENT_BEFORE
+            if ([string]::IsNullOrWhiteSpace($base) -or $base -match "^0+$") {
+              $base = "HEAD^"
+            }
+          }
+
+          $files = @(
+            git diff --name-only "$base...HEAD" -- ".codex/runs"
+          ) | Where-Object {
+            Test-Path -LiteralPath $_
+          }
+
+          if ($files.Count -gt 0) {
+            ./scripts/sanitize-codex-artifacts.ps1 -Path $files -Check
+            if ($LASTEXITCODE -ne 0) {
+              exit $LASTEXITCODE
+            }
+          }
+          else {
+            Write-Output "No changed Codex Run Artifact files to check."
+          }
+
   vitest:
     name: Vitest (${{ matrix.suite }})
     runs-on: ubuntu-latest
@@ -409,6 +457,7 @@ jobs:
       - vitest
       - build-automation
       - build-production
+      - codex-artifact-sanitization
       - e2e-chromium
       - ui-review
       - production-smoke
@@ -421,6 +470,7 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           QUALITY_RESULT: ${{ needs.quality.result }}
+          CODEX_ARTIFACT_RESULT: ${{ needs.codex-artifact-sanitization.result }}
           VITEST_RESULT: ${{ needs.vitest.result }}
           BUILD_AUTOMATION_RESULT: ${{ needs.build-automation.result }}
           BUILD_PRODUCTION_RESULT: ${{ needs.build-production.result }}
@@ -442,6 +492,7 @@ jobs:
           }
 
           require_success "quality" "$QUALITY_RESULT"
+          require_success "codex-artifact-sanitization" "$CODEX_ARTIFACT_RESULT"
           require_success "vitest" "$VITEST_RESULT"
           require_success "build-automation" "$BUILD_AUTOMATION_RESULT"
           require_success "build-production" "$BUILD_PRODUCTION_RESULT"

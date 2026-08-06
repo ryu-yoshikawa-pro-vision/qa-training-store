@@ -24,6 +24,7 @@ Review -> Repair -> Validate の反復を、停止条件と証跡つきで扱う
 - `REPORT.md` に iteration ごとの判断を残す。
 - `run.json` や report JSON がある場合は validation command と changed files の事実を参照する。
 - `--max-iterations` は repair-loop bound を文書化する reserved option であり、runner auto-loop ではない。
+- 作業完了前に `scripts/sanitize-codex-artifacts.ps1` の Write と Check を実行し、未サニタイズのローカル絶対パスが残るRunは完了扱いにしない。
 
 ## Relationship to observation and subagent records
 - hook-observation JSONL は validation failure や blocked action の evidence に使う。

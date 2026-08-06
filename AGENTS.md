@@ -77,6 +77,18 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 - 過去Runの不足を補う必要がある場合は、履歴を失わない追記とし、今回の作業内容は新規Runへ記録する。
 - 標準Run Artifactの削除、移動、置換は、ユーザーが対象Pathを明示した場合に限る。
 
+### Run Artifact Path Sanitization
+
+Repositoryへ追加するCodex Run Artifactは、作業完了前に
+scripts/sanitize-codex-artifacts.ps1のWriteとCheckを実行する。
+
+未サニタイズのローカル絶対パスを含むRun Artifactは
+完了扱いにしない。
+
+生のCLIログ、MCPログ、ADB logcatなどは原則として
+Git管理対象外の`.artifacts`配下へ保存し、Run Artifactには
+必要な要約だけを記載する。
+
 ## 2. 実行ループ
 1) `.codex/runs/<run_id>/TASKS.md` のタスクを上から順に実行する。  
 2) 各タスク完了後に次を行う。  

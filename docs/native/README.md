@@ -24,6 +24,13 @@ Native Build は EAS Cloud ではなく、Windows／macOS のローカル Toolch
 
 単体 Flow が失敗した場合、後続 Suite は実行しない。スクリーンショット、Accessibility Hierarchy、logcat、JUnit、Maestro Output を保存し、失敗原因を確認してから修正する。
 
+## Native テスト成果物の保存先
+
+- 人が確認・共有するモバイルネイティブのスクリーンショット、比較画像、選定した画面証跡は `output/mobile-native/` に保存する。リポジトリ直下には置かない。
+- 同じシナリオを複数回保存する場合は、シナリオ名、検証段階、Run ID または JST timestamp をファイル名またはサブディレクトリに含め、既存成果物を上書きしない。
+- Maestro／ADB／Gradle のログ、JUnit、Hierarchy、APK 情報など実行ごとの機械証跡は、引き続き `.artifacts/native-local/<timestamp>/` に保存する。`output/mobile-native/` は共有・確認用の成果物、`.artifacts/` は実行証跡として役割を分ける。
+- `output/` は Git 管理外であるため、生成物を Repository に追加するための `.gitkeep` や個別の ignore 追加は行わない。
+
 ## CI との違い
 
 - GitHub Actions: API 34 の x86_64 Emulator

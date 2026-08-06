@@ -172,6 +172,14 @@
 - Web主要回帰27/27、Accessibility 4/4、mobile-chromium boundary 4/4、Web Build、Production Bundle GuardはPASSした。全体Unit／Integration／Repository／Web Component／Native Component／Contractとtypecheckも、repo設定を変えずに`node_modules/.pnpm-local`へ依存を再解決した正式コマンドでPASSした。Expo Doctorはphysical rootで16/17、package checkのnpm config warningを残す。`verify`は生成物を含むformat check 294件で停止したため、生成物を一括整形しない。
 - Maestro MCPの`list_devices`は同一Serialを返すが、長時間のformal CLI後の`inspect_screen`はDevice server `UNAVAILABLE`となる場合がある。再起動直後に取得したMCP証跡と、最終判定用のformal CLI JUnit／Maestro artifactを分けて扱う。
 - `.prettierignore`は`.artifacts`、`android`、`.expo-local-export`を含む生成物を対象外とする。追加後の`pnpm run format:check`と`pnpm run verify`はPASSした。Expo Doctorのpackage checkに残るlocal npm config warningと、MCP Device serverの再起動要否は環境固有の未完了事項として扱う。
+- 人が確認・共有するモバイルネイティブのスクリーンショット、比較画像、選定した画面証跡は`output/mobile-native/`へ保存し、リポジトリ直下へ置かない。同一シナリオの再取得時はRun IDまたはJST timestampを名前へ含めて上書きを避ける。Maestro／ADB／Gradleの実行機械証跡は従来どおり`.artifacts/native-local/<timestamp>/`へ保存する。この運用の正本は[`docs/native/windows-android-local-validation.md`](./native/windows-android-local-validation.md)の7.2節とする。
+
+## Codex Run ArtifactのPath Sanitization（2026-08-06）
+
+- Run Artifactへ個人PC固有のローカル絶対Pathを保存しない。共通実装は`scripts/lib/codex-artifact-sanitizer.ps1`、CLI入口は`scripts/sanitize-codex-artifacts.ps1`とする。
+- Repository、Android SDK、Java、pnpm virtual store、Maestro、Temp、User HomeをContextへ登録し、Windowsの大文字小文字、`\\`／`/`、JSON escaped backslash、file URI、末尾separatorを同一PathのVariantとして置換する。置換Tokenは`<REPO_ROOT>`などの安定した表記を使う。
+- `codex-task.ps1`はLog／Report／Manifest／Evaluationの書込み前にsanitized Valueを通し、Run終了時にWrite＋Checkをfinallyで実行する。CIはFixture Testと変更された`.codex/runs/**`のCheck-onlyを実行する。
+- 対象は`.md`、`.json`、`.jsonl`、`.txt`だけとし、Binaryは変更しない。Residual検査はfail-closedであり、過去Runは一括書換えせずCheck-onlyで状態を確認する。Secret Redactionは別責務である。
 
 ## メモ
 

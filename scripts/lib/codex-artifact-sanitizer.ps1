@@ -1,0 +1,683 @@
+Set-StrictMode -Version Latest
+
+$script:CodexArtifactSanitizerTokenPriority = [ordered]@{
+    '<REPO_ROOT>' = 10
+    '<ANDROID_SDK_ROOT>' = 20
+    '<JAVA_HOME>' = 30
+    '<PNPM_VIRTUAL_STORE>' = 40
+    '<MAESTRO_HOME>' = 50
+    '<TEMP_ROOT>' = 60
+    '<USER_HOME>' = 70
+}
+
+$script:CodexArtifactSanitizerExtensions = @('.md', '.json', '.jsonl', '.txt')
+
+$script:CodexArtifactResidualPatterns = @(
+    [ordered]@{
+        type = 'Windows file URI'
+        regex = '(?i)file:///[A-Z]:/(?:Users|Documents%20and%20Settings)/[^/\s"<>]+'
+    }
+    [ordered]@{
+        type = 'WSL user path'
+        regex = '(?i)/mnt/[a-z]/Users/[^/\s"<>]+'
+    }
+    [ordered]@{
+        type = 'Windows user path'
+        regex = '(?i)\b[A-Z]:[\/](?:Users|Documents and Settings)[\/][^\/\s"<>]+'
+    }
+    [ordered]@{
+        type = 'macOS user path'
+        regex = '/Users/[^/\s"<>]+'
+    }
+    [ordered]@{
+        type = 'Linux user path'
+        regex = '/home/[^/\s"<>]+'
+    }
+)
+
+function Test-CodexWindowsPath {
+    param([AllowNull()][string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $false
+    }
+
+    return $Value -match '^(?:[A-Za-z]:[\\/]|\\\\)'
+}
+
+function Get-CodexPathComparison {
+    param([Parameter(Mandatory = $true)][string]$Source)
+
+    if (Test-CodexWindowsPath -Value $Source) {
+        return [System.StringComparison]::OrdinalIgnoreCase
+    }
+
+    return [System.StringComparison]::Ordinal
+}
+
+function ConvertTo-CodexRegistrationPath {
+    param([AllowNull()][string]$Value)
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return $null
+    }
+
+    $candidate = $Value.Trim()
+    if ($candidate -match '^(?i)file://') {
+        $candidate = $candidate -replace '^(?i)file://', ''
+        if ($candidate -match '^/[A-Za-z]:/') {
+            $candidate = $candidate.Substring(1)
+        }
+        $candidate = $candidate -replace '%20', ' '
+    }
+
+    if (Test-CodexWindowsPath -Value $candidate) {
+        if ([System.IO.Path]::DirectorySeparatorChar -eq '\') {
+            try {
+                return [System.IO.Path]::GetFullPath($candidate)
+            }
+            catch {
+                return $candidate
+            }
+        }
+
+        return $candidate
+    }
+
+    if ($candidate.StartsWith('/', [System.StringComparison]::Ordinal)) {
+        try {
+            return [System.IO.Path]::GetFullPath($candidate)
+        }
+        catch {
+            return $candidate
+        }
+    }
+
+    try {
+        return [System.IO.Path]::GetFullPath($candidate)
+    }
+    catch {
+        return $candidate
+    }
+}
+
+function Remove-CodexTrailingSeparators {
+    param([Parameter(Mandatory = $true)][string]$Value)
+
+    if ($Value -eq '/' -or $Value -eq '\') {
+        return $Value
+    }
+
+    if ($Value -match '^[A-Za-z]:[\\/]$') {
+        return $Value
+    }
+
+    return $Value.TrimEnd([char[]]@('\', '/'))
+}
+
+function Add-CodexPathVariant {
+    param(
+        [Parameter(Mandatory = $true)]$Target,
+        [Parameter(Mandatory = $true)][string]$Source,
+        [Parameter(Mandatory = $true)][string]$Replacement,
+        [Parameter(Mandatory = $true)][string]$Token,
+        [Parameter(Mandatory = $true)][int]$Priority,
+        [Parameter(Mandatory = $true)][bool]$CaseInsensitive
+    )
+
+    if ([string]::IsNullOrEmpty($Source)) {
+        return
+    }
+
+    $key = $Source + "`0" + $Token + "`0" + $Replacement
+    if ($Target.Contains($key)) {
+        return
+    }
+
+    $Target[$key] = [pscustomobject]@{
+        Source = $Source
+        Replacement = $Replacement
+        Token = $Token
+        Priority = $Priority
+        CaseInsensitive = $CaseInsensitive
+    }
+}
+
+function Get-CodexArtifactPathVariants {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Token,
+        [Parameter(Mandatory = $true)][int]$Priority
+    )
+
+    $base = Remove-CodexTrailingSeparators -Value $Path
+    if ([string]::IsNullOrEmpty($base)) {
+        return @()
+    }
+
+    $windowsPath = Test-CodexWindowsPath -Value $base
+    $native = if ($windowsPath) { $base.Replace('/', '\') } else { $base.Replace('\', '/') }
+    $slash = $native.Replace('\', '/')
+    $caseInsensitive = $windowsPath
+    $variants = [ordered]@{}
+
+    Add-CodexPathVariant -Target $variants -Source $native -Replacement $Token -Token $Token -Priority $Priority -CaseInsensitive $caseInsensitive
+    Add-CodexPathVariant -Target $variants -Source ($native + '\') -Replacement ($Token + '/') -Token $Token -Priority $Priority -CaseInsensitive $caseInsensitive
+    Add-CodexPathVariant -Target $variants -Source $slash -Replacement $Token -Token $Token -Priority $Priority -CaseInsensitive $caseInsensitive
+    Add-CodexPathVariant -Target $variants -Source ($slash + '/') -Replacement ($Token + '/') -Token $Token -Priority $Priority -CaseInsensitive $caseInsensitive
+
+    $jsonEscapedNative = $native.Replace('\', '\\')
+    Add-CodexPathVariant -Target $variants -Source $jsonEscapedNative -Replacement $Token -Token $Token -Priority $Priority -CaseInsensitive $caseInsensitive
+    Add-CodexPathVariant -Target $variants -Source ($jsonEscapedNative + '\\') -Replacement ($Token + '/') -Token $Token -Priority $Priority -CaseInsensitive $caseInsensitive
+
+    $fileUri = if ($windowsPath) { 'file:///' + $slash } else { 'file://' + $slash }
+    Add-CodexPathVariant -Target $variants -Source $fileUri -Replacement $Token -Token $Token -Priority $Priority -CaseInsensitive $caseInsensitive
+    Add-CodexPathVariant -Target $variants -Source ($fileUri + '/') -Replacement ($Token + '/') -Token $Token -Priority $Priority -CaseInsensitive $caseInsensitive
+
+    return @($variants.Values)
+}
+
+function Get-CodexGitRepositoryRoot {
+    param([string]$WorkingDirectory)
+
+    $git = Get-Command git -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandType -eq 'Application' } |
+        Select-Object -First 1
+    if (-not $git) {
+        return $null
+    }
+
+    $args = @()
+    if (-not [string]::IsNullOrWhiteSpace($WorkingDirectory)) {
+        $args += @('-C', $WorkingDirectory)
+    }
+    $args += @('rev-parse', '--show-toplevel')
+
+    try {
+        $output = & $git.Source @args 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            return $null
+        }
+        return ([string]($output | Select-Object -First 1)).Trim()
+    }
+    catch {
+        return $null
+    }
+}
+
+function Test-CodexGitRootWorkingDirectory {
+    param([Parameter(Mandatory = $true)][string]$WorkingDirectory)
+
+    $git = Get-Command git -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandType -eq 'Application' } |
+        Select-Object -First 1
+    if (-not $git) {
+        return $false
+    }
+
+    try {
+        $prefix = & $git.Source -C $WorkingDirectory rev-parse --show-prefix 2>$null
+        return $LASTEXITCODE -eq 0 -and [string]::IsNullOrEmpty(([string]($prefix | Select-Object -First 1)).Trim())
+    }
+    catch {
+        return $false
+    }
+}
+
+function Add-CodexSanitizerPath {
+    param(
+        [Parameter(Mandatory = $true)]$Context,
+        [AllowNull()][string]$Value,
+        [Parameter(Mandatory = $true)][string]$Token
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Value)) {
+        return
+    }
+
+    $resolved = ConvertTo-CodexRegistrationPath -Value $Value
+    if ([string]::IsNullOrWhiteSpace($resolved)) {
+        return
+    }
+
+    $priority = [int]$script:CodexArtifactSanitizerTokenPriority[$Token]
+    $comparison = Get-CodexPathComparison -Source $resolved
+    $existing = @($Context.resolved_paths[$Token])
+    foreach ($item in $existing) {
+        if ([System.String]::Equals([string]$item, $resolved, $comparison)) {
+            return
+        }
+    }
+
+    $Context.resolved_paths[$Token] = @($existing + $resolved)
+    foreach ($variant in @(Get-CodexArtifactPathVariants -Path $resolved -Token $Token -Priority $priority)) {
+        $Context.replacements[$variant.Source + "`0" + $variant.Token + "`0" + $variant.Replacement] = $variant
+    }
+}
+
+function Get-CodexPnpmVirtualStoreDir {
+    $pnpm = Get-Command pnpm -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandType -eq 'Application' } |
+        Select-Object -First 1
+    if (-not $pnpm) {
+        return $null
+    }
+
+    try {
+        $value = & $pnpm.Source config get virtual-store-dir 2>$null
+        if ($LASTEXITCODE -ne 0) {
+            return $null
+        }
+        $text = ([string]($value | Select-Object -First 1)).Trim()
+        if ([string]::IsNullOrWhiteSpace($text) -or $text -in @('undefined', 'null')) {
+            return $null
+        }
+        return $text
+    }
+    catch {
+        return $null
+    }
+}
+
+function New-CodexArtifactSanitizerContext {
+    param(
+        [string]$RepositoryRoot,
+        [string[]]$RepositoryAlias,
+        [string]$VirtualStoreDir,
+        [string]$AndroidSdkRoot,
+        [string]$JavaHome,
+        [string]$MaestroHome
+    )
+
+    $currentDirectory = (Get-Location).Path
+    $gitRoot = Get-CodexGitRepositoryRoot -WorkingDirectory $currentDirectory
+    $root = if (-not [string]::IsNullOrWhiteSpace($RepositoryRoot)) { $RepositoryRoot } else { $gitRoot }
+    if ([string]::IsNullOrWhiteSpace($root)) {
+        throw 'Repository root could not be resolved from Git or -RepositoryRoot.'
+    }
+
+    $context = [ordered]@{
+        repository_root = ConvertTo-CodexRegistrationPath -Value $root
+        resolved_paths = [ordered]@{}
+        replacements = [ordered]@{}
+        tokens = [ordered]@{}
+    }
+    foreach ($token in $script:CodexArtifactSanitizerTokenPriority.Keys) {
+        $context.tokens[$token] = $token
+        $context.resolved_paths[$token] = @()
+    }
+
+    foreach ($candidate in @($gitRoot, $root)) {
+        Add-CodexSanitizerPath -Context $context -Value $candidate -Token '<REPO_ROOT>'
+    }
+
+    if (Test-CodexGitRootWorkingDirectory -WorkingDirectory $currentDirectory) {
+        Add-CodexSanitizerPath -Context $context -Value $currentDirectory -Token '<REPO_ROOT>'
+    }
+    foreach ($alias in @($RepositoryAlias)) {
+        Add-CodexSanitizerPath -Context $context -Value $alias -Token '<REPO_ROOT>'
+    }
+
+    $userHome = if ([System.IO.Path]::DirectorySeparatorChar -eq '\') { $env:USERPROFILE } else { $env:HOME }
+    Add-CodexSanitizerPath -Context $context -Value $userHome -Token '<USER_HOME>'
+
+    foreach ($candidate in @($env:ANDROID_SDK_ROOT, $env:ANDROID_HOME, $AndroidSdkRoot)) {
+        Add-CodexSanitizerPath -Context $context -Value $candidate -Token '<ANDROID_SDK_ROOT>'
+    }
+    foreach ($candidate in @($env:JAVA_HOME, $JavaHome)) {
+        Add-CodexSanitizerPath -Context $context -Value $candidate -Token '<JAVA_HOME>'
+    }
+
+    foreach ($candidate in @($VirtualStoreDir, $env:npm_config_virtual_store_dir, (Get-CodexPnpmVirtualStoreDir))) {
+        Add-CodexSanitizerPath -Context $context -Value $candidate -Token '<PNPM_VIRTUAL_STORE>'
+    }
+
+    foreach ($candidate in @($MaestroHome, $env:MAESTRO_HOME)) {
+        Add-CodexSanitizerPath -Context $context -Value $candidate -Token '<MAESTRO_HOME>'
+    }
+    $maestroCommand = Get-Command maestro -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandType -eq 'Application' } |
+        Select-Object -First 1
+    if ($maestroCommand) {
+        Add-CodexSanitizerPath -Context $context -Value $maestroCommand.Source -Token '<MAESTRO_HOME>'
+    }
+
+    Add-CodexSanitizerPath -Context $context -Value ([System.IO.Path]::GetTempPath()) -Token '<TEMP_ROOT>'
+    return $context
+}
+
+function Get-CodexArtifactReplacements {
+    param([Parameter(Mandatory = $true)]$Context)
+
+    return @(
+        $Context.replacements.Values |
+            Sort-Object -Property @(
+                @{ Expression = { $_.Source.Length }; Descending = $true },
+                @{ Expression = { $_.Priority }; Descending = $false },
+                @{ Expression = { $_.Token }; Descending = $false }
+            )
+    )
+}
+
+function New-CodexArtifactSanitizerStats {
+    $byToken = [ordered]@{}
+    foreach ($token in $script:CodexArtifactSanitizerTokenPriority.Keys) {
+        $byToken[$token] = 0
+    }
+    return [ordered]@{
+        files_scanned = 0
+        files_changed = 0
+        replacements_total = 0
+        replacements_by_token = $byToken
+        residual_findings = 0
+    }
+}
+
+function ConvertTo-CodexSanitizedText {
+    param(
+        [AllowNull()][string]$Text,
+        [Parameter(Mandatory = $true)]$Context,
+        [System.Collections.IDictionary]$Stats
+    )
+
+    if ($null -eq $Text) {
+        return $null
+    }
+
+    $result = $Text
+    foreach ($replacement in @(Get-CodexArtifactReplacements -Context $Context)) {
+        $options = [System.Text.RegularExpressions.RegexOptions]::CultureInvariant
+        if ($replacement.CaseInsensitive) {
+            $options = $options -bor [System.Text.RegularExpressions.RegexOptions]::IgnoreCase
+        }
+
+        $escapedSource = [System.Text.RegularExpressions.Regex]::Escape([string]$replacement.Source)
+        $matchCount = [System.Text.RegularExpressions.Regex]::Matches($result, $escapedSource, $options).Count
+        if ($matchCount -eq 0) {
+            continue
+        }
+
+        $result = [System.Text.RegularExpressions.Regex]::Replace(
+            $result,
+            $escapedSource,
+            [string]$replacement.Replacement,
+            $options
+        )
+
+        if ($null -ne $Stats) {
+            $Stats.replacements_total = [int]$Stats.replacements_total + $matchCount
+            $Stats.replacements_by_token[$replacement.Token] = [int]$Stats.replacements_by_token[$replacement.Token] + $matchCount
+        }
+    }
+
+    return $result
+}
+
+function ConvertTo-CodexSanitizedValue {
+    param(
+        [AllowNull()]$Value,
+        [Parameter(Mandatory = $true)]$Context,
+        [System.Collections.IDictionary]$Stats
+    )
+
+    if ($null -eq $Value) {
+        return $null
+    }
+    if ($Value -is [string]) {
+        return ConvertTo-CodexSanitizedText -Text ([string]$Value) -Context $Context -Stats $Stats
+    }
+    if ($Value -is [System.Collections.IDictionary]) {
+        $result = [ordered]@{}
+        foreach ($key in $Value.Keys) {
+            $result[$key] = ConvertTo-CodexSanitizedValue -Value $Value[$key] -Context $Context -Stats $Stats
+        }
+        return $result
+    }
+    if ($Value -is [System.Management.Automation.PSCustomObject]) {
+        $result = [ordered]@{}
+        foreach ($property in $Value.PSObject.Properties) {
+            $result[$property.Name] = ConvertTo-CodexSanitizedValue -Value $property.Value -Context $Context -Stats $Stats
+        }
+        return $result
+    }
+    if (($Value -is [System.Collections.IEnumerable]) -and -not ($Value -is [string])) {
+        $items = New-Object System.Collections.Generic.List[object]
+        foreach ($item in $Value) {
+            $items.Add((ConvertTo-CodexSanitizedValue -Value $item -Context $Context -Stats $Stats))
+        }
+        return [object[]]$items.ToArray()
+    }
+
+    return $Value
+}
+
+function Get-CodexResidualMaskedMatch {
+    param(
+        [Parameter(Mandatory = $true)][string]$Match,
+        [Parameter(Mandatory = $true)][string]$PatternType
+    )
+
+    switch ($PatternType) {
+        'Windows file URI' {
+            return ($Match -replace '(?i)(file:///\w:/(?:Users|Documents%20and%20Settings)/)[^/\s"<>]+', '$1<redacted>')
+        }
+        'WSL user path' {
+            return ($Match -replace '(?i)(/mnt/[a-z]/Users/)[^/\s"<>]+', '$1<redacted>')
+        }
+        'Windows user path' {
+            return ($Match -replace '(?i)([A-Z]:[\\/](?:Users|Documents and Settings)[\\/])[^\\/\s"<>]+', '$1<redacted>')
+        }
+        'macOS user path' {
+            return ($Match -replace '(/Users/)[^/\s"<>]+', '$1<redacted>')
+        }
+        'Linux user path' {
+            return ($Match -replace '(/home/)[^/\s"<>]+', '$1<redacted>')
+        }
+        default {
+            return '<redacted>'
+        }
+    }
+}
+
+function Get-CodexResidualMaskedLine {
+    param([Parameter(Mandatory = $true)][string]$Line)
+
+    $masked = $Line
+    foreach ($pattern in $script:CodexArtifactResidualPatterns) {
+        $matches = @([System.Text.RegularExpressions.Regex]::Matches($masked, [string]$pattern.regex))
+        for ($index = $matches.Count - 1; $index -ge 0; $index--) {
+            $match = $matches[$index]
+            $replacement = Get-CodexResidualMaskedMatch -Match $match.Value -PatternType ([string]$pattern.type)
+            $masked = $masked.Substring(0, $match.Index) + $replacement + $masked.Substring($match.Index + $match.Length)
+        }
+    }
+    return $masked
+}
+
+function Find-CodexArtifactResidualPath {
+    param(
+        [AllowNull()][string]$Text,
+        [Parameter(Mandatory = $true)][string]$FilePath
+    )
+
+    if ($null -eq $Text) {
+        return @()
+    }
+
+    $findings = New-Object System.Collections.Generic.List[object]
+    $lines = $Text -split "`n", -1
+    for ($lineIndex = 0; $lineIndex -lt $lines.Count; $lineIndex++) {
+        $line = $lines[$lineIndex].TrimEnd("`r")
+        $occupied = New-Object System.Collections.Generic.List[object]
+        foreach ($pattern in $script:CodexArtifactResidualPatterns) {
+            foreach ($match in [System.Text.RegularExpressions.Regex]::Matches($line, [string]$pattern.regex)) {
+                $overlap = $false
+                foreach ($existing in $occupied) {
+                    if ($match.Index -lt $existing.End -and $existing.Index -lt ($match.Index + $match.Length)) {
+                        $overlap = $true
+                        break
+                    }
+                }
+                if ($overlap) {
+                    continue
+                }
+
+                $occupied.Add([pscustomobject]@{ Index = $match.Index; End = $match.Index + $match.Length })
+                $masked = Get-CodexResidualMaskedLine -Line $line
+                $findings.Add([pscustomobject]@{
+                        file_path = $FilePath
+                        line_number = $lineIndex + 1
+                        pattern_type = [string]$pattern.type
+                        content = $masked
+                    })
+            }
+        }
+    }
+
+    return [object[]]$findings.ToArray()
+}
+
+function Get-CodexArtifactTextFiles {
+    param(
+        [Parameter(Mandatory = $true)][string[]]$Path,
+        [switch]$ChangedOnly,
+        [string]$RepositoryRoot
+    )
+
+    $files = [ordered]@{}
+    foreach ($rawPath in @($Path)) {
+        if ([string]::IsNullOrWhiteSpace($rawPath)) {
+            continue
+        }
+
+        $fullPath = if ([System.IO.Path]::IsPathRooted($rawPath) -or $rawPath -match '^[A-Za-z]:[\\/]') {
+            [System.IO.Path]::GetFullPath($rawPath)
+        }
+        else {
+            [System.IO.Path]::GetFullPath((Join-Path (Get-Location).Path $rawPath))
+        }
+
+        if (-not (Test-Path -LiteralPath $fullPath)) {
+            continue
+        }
+
+        $item = Get-Item -LiteralPath $fullPath -Force
+        $candidates = if ($item.PSIsContainer) {
+            Get-ChildItem -LiteralPath $fullPath -Recurse -File -Force
+        }
+        else {
+            @($item)
+        }
+
+        foreach ($candidate in @($candidates)) {
+            $extension = [System.IO.Path]::GetExtension($candidate.Name).ToLowerInvariant()
+            if ($script:CodexArtifactSanitizerExtensions -notcontains $extension) {
+                continue
+            }
+            $key = [System.IO.Path]::GetFullPath($candidate.FullName)
+            if (Test-CodexWindowsPath -Value $key) {
+                $key = $key.ToLowerInvariant()
+            }
+            $files[$key] = [System.IO.Path]::GetFullPath($candidate.FullName)
+        }
+    }
+
+    if ($ChangedOnly) {
+        $git = Get-Command git -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandType -eq 'Application' } |
+            Select-Object -First 1
+        if ($git -and -not [string]::IsNullOrWhiteSpace($RepositoryRoot)) {
+            $changed = @(& $git.Source -C $RepositoryRoot diff --name-only HEAD -- '.codex/runs' 2>$null)
+            $changedKeys = @{}
+            foreach ($changedPath in $changed) {
+                $candidatePath = [System.IO.Path]::GetFullPath((Join-Path $RepositoryRoot ([string]$changedPath)))
+                $changedKeys[$candidatePath.ToLowerInvariant()] = $true
+            }
+            foreach ($key in @($files.Keys)) {
+                if (-not $changedKeys.ContainsKey($key.ToLowerInvariant())) {
+                    $files.Remove($key)
+                }
+            }
+        }
+    }
+
+    return @($files.Values | Sort-Object)
+}
+
+function Read-CodexArtifactText {
+    param([Parameter(Mandatory = $true)][string]$Path)
+
+    $bytes = [System.IO.File]::ReadAllBytes($Path)
+    $offset = 0
+    $hasBom = $bytes.Length -ge 3 -and
+        $bytes[0] -eq 0xEF -and $bytes[1] -eq 0xBB -and $bytes[2] -eq 0xBF
+    if ($hasBom) {
+        $offset = 3
+    }
+
+    $utf8 = [System.Text.UTF8Encoding]::new($false, $true)
+    $text = if ($bytes.Length -eq $offset) { '' } else { $utf8.GetString($bytes, $offset, $bytes.Length - $offset) }
+    return [pscustomobject]@{
+        text = $text
+        has_bom = $hasBom
+    }
+}
+
+function Write-CodexArtifactTextAtomic {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Text
+    )
+
+    $directory = Split-Path -Parent $Path
+    $temporaryPath = Join-Path $directory ('.codex-artifact-sanitizer-' + [System.IO.Path]::GetRandomFileName())
+    $utf8 = [System.Text.UTF8Encoding]::new($false)
+    try {
+        [System.IO.File]::WriteAllText($temporaryPath, $Text, $utf8)
+        if ([System.IO.File]::Exists($Path)) {
+            try {
+                [System.IO.File]::Replace($temporaryPath, $Path, $null)
+            }
+            catch {
+                [System.IO.File]::Delete($Path)
+                [System.IO.File]::Move($temporaryPath, $Path)
+            }
+        }
+        else {
+            [System.IO.File]::Move($temporaryPath, $Path)
+        }
+    }
+    finally {
+        if ([System.IO.File]::Exists($temporaryPath)) {
+            [System.IO.File]::Delete($temporaryPath)
+        }
+    }
+}
+
+function Add-CodexArtifactTextLine {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][AllowEmptyString()][string]$Line
+    )
+
+    $existing = ''
+    $hasExisting = [System.IO.File]::Exists($Path)
+    if ($hasExisting) {
+        $existing = [string](Read-CodexArtifactText -Path $Path).text
+    }
+
+    $crlf = ([char]0x0D).ToString() + ([char]0x0A).ToString()
+    $lf = ([char]0x0A).ToString()
+    $lineEnding = if ($existing.Contains($crlf)) { $crlf } else { $lf }
+    $separator = if (
+        [string]::IsNullOrEmpty($existing) -or
+        $existing.EndsWith($crlf) -or
+        $existing.EndsWith($lf)
+    ) { '' } else { $lineEnding }
+
+    $parent = Split-Path -Parent $Path
+    if (-not [string]::IsNullOrWhiteSpace($parent) -and -not (Test-Path -LiteralPath $parent)) {
+        New-Item -ItemType Directory -Path $parent -Force | Out-Null
+    }
+    Write-CodexArtifactTextAtomic -Path $Path -Text ($existing + $separator + $Line + $lineEnding)
+}

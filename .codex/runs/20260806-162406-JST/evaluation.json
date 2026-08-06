@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "run_id": "20260806-162406-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "共通サニタイザー、CLI、codex-task統合、テスト、CI、文書化を完了した。",
+      "evidence_refs": []
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更対象を指定されたRun Artifact／wrapper／sanitizer／test／CI／運用文書に限定し、過去RunはCheck-onlyとした。",
+      "evidence_refs": []
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "Windows PowerShell 5.1 Fixture、Vitest Contract、Format、Lint、Typecheck、既存Contract、verifyが成功した。",
+      "evidence_refs": []
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Git mutation、削除、Push、Remote CI、過去RunのWriteを行わず、許可拡張子とfail-closed Checkを実装した。",
+      "evidence_refs": []
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "20件のFixture契約、7件のContract、CI接続、ADR、Project Context、Repair Loop文書で検証根拠を残した。",
+      "evidence_refs": []
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Context／Variant／再帰Value／Residual検査を共有PowerShellライブラリへ集約し、Write前処理と最終ゲートを同じCLIへ接続した。",
+      "evidence_refs": []
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "PowerShell 5.1／7のFixtureとCLI Check、pnpm verifyを同一Workspaceで再実行し、同じ結果を得た。",
+      "evidence_refs": []
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

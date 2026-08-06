@@ -5,7 +5,7 @@
 - PR #8 の Native 品質ゲート、Windows 実機 Maestro、最新 Native CI failure を原因根拠つきで修正・検証する。
 
 ## Scope
-- In: `scripts/native/windows/android-local.ps1`、指定された Expo package／lockfile、Native Status／Bridge／Flow／関連テスト、必要性が証明された CI、Run artifact。
+- In: `scripts/native/windows/android-local.ps1`、指定された Expo package／lockfile、Native Status／Bridge／Flow／関連テスト、必要性が証明された CI、Native検証の保存規約、Run artifact。
 - Out: Branch／Commit／Push／Rebase／Merge／Workflow 手動再実行、Web Presentation、Application／Domain／Repository／SQLite 契約、Production Test Control 混入。
 
 ## Assumptions
@@ -56,3 +56,4 @@
 - 2026-08-06 09:49 JST: `android-local.ps1` の `Out` が `$Args` を使い、PowerShell inline reproduction で `pnpm --version` が引数なしになり exit 1。H1 を支持する。
 - 2026-08-06 09:55 JST: `$Arguments` への改修と Windows PowerShell 5.1 の native stderr 保持を反映後、formal Doctor は PASS。単体 baseline は JUnit／Maestro output／Screenshot／Hierarchy／device logcat を生成したが、listening assertion で FAIL。
 - 2026-08-06 09:56 JST: Screenshot では Status が画面上部に表示。logcat では `native-test-runtime-status`、Bounds `[12,12][415,59]`、contentDescription は取得できたが `visible: false` として Maestro が除外。Status Bar／Safe Area領域への配置と Accessibility 統合を原因カテゴリ B と分類し、Flow selector の変更は保留する。
+- 2026-08-06 14:35 JST: Nativeの共有・確認用スクリーンショットは`output/mobile-native/`へ集約し、`.artifacts/native-local/<timestamp>/`は実行機械証跡として残す運用を採用する。既存のルート直下`native-storefront-cart-added.png`は同ディレクトリへ移し、Runbook／Project Contextへ記録する。

@@ -59,6 +59,15 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$codexArtifactSanitizerScript = Join-Path $PSScriptRoot "lib\codex-artifact-sanitizer.ps1"
+if (-not (Test-Path -LiteralPath $codexArtifactSanitizerScript)) {
+    throw "Shared Codex artifact sanitizer not found"
+}
+. $codexArtifactSanitizerScript
+
+$script:codexArtifactSanitizerContext = $null
+$script:codexTaskTerminationCode = 0
+
 function Get-RepoRoot {
     param([string]$ScriptDir)
     return (Resolve-Path (Join-Path $ScriptDir "..")).Path
@@ -466,7 +475,8 @@ function Write-TaskLog {
         }
     }
 
-    ($payload | ConvertTo-Json -Compress -Depth 8) | Add-Content -Path $Path
+    $sanitizedPayload = ConvertTo-CodexSanitizedValue -Value $payload -Context $script:codexArtifactSanitizerContext
+    Add-CodexArtifactTextLine -Path $Path -Line ($sanitizedPayload | ConvertTo-Json -Compress -Depth 8)
 }
 
 function Write-TaskReport {
@@ -480,7 +490,8 @@ function Write-TaskReport {
         New-Item -ItemType Directory -Path $parent -Force | Out-Null
     }
 
-    ($Report | ConvertTo-Json -Depth 6) | Set-Content -Path $Path
+    $sanitizedReport = ConvertTo-CodexSanitizedValue -Value $Report -Context $script:codexArtifactSanitizerContext
+    Write-CodexArtifactTextAtomic -Path $Path -Text ($sanitizedReport | ConvertTo-Json -Depth 6)
 }
 
 function Add-ValidationCommand {
@@ -645,7 +656,8 @@ function Write-RunManifest {
         }
     }
 
-    ($manifest | ConvertTo-Json -Depth 8) | Set-Content -Path $Path
+    $sanitizedManifest = ConvertTo-CodexSanitizedValue -Value $manifest -Context $script:codexArtifactSanitizerContext
+    Write-CodexArtifactTextAtomic -Path $Path -Text ($sanitizedManifest | ConvertTo-Json -Depth 8)
 
     $pythonCmd = Get-PythonCommand
     if (-not $pythonCmd) {
@@ -943,7 +955,8 @@ function Initialize-EvaluationTemplate {
         improvement_candidates = @()
     }
 
-    ($evaluation | ConvertTo-Json -Depth 8) | Set-Content -Path $State.evaluation_file_path
+    $sanitizedEvaluation = ConvertTo-CodexSanitizedValue -Value $evaluation -Context $script:codexArtifactSanitizerContext
+    Write-CodexArtifactTextAtomic -Path $State.evaluation_file_path -Text ($sanitizedEvaluation | ConvertTo-Json -Depth 8)
     Write-TaskLog -Path $State.log_path -Event "evaluation_template_created" -Data @{ path = $State.evaluation_path }
 }
 
@@ -1076,6 +1089,42 @@ function Invoke-RequiredEvaluationValidation {
     Write-TaskLog -Path $State.log_path -Event "evaluation_valid" -Data @{ path = $State.evaluation_path }
 }
 
+function Invoke-CodexRunArtifactSanitization {
+    param(
+        [AllowNull()][string]$RunRoot,
+        [Parameter(Mandatory = $true)][string]$RepoRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($RunRoot) -or -not (Test-Path -LiteralPath $RunRoot)) {
+        return 0
+    }
+
+    $sanitizerCli = Join-Path $RepoRoot "scripts\sanitize-codex-artifacts.ps1"
+    if (-not (Test-Path -LiteralPath $sanitizerCli)) {
+        return 1
+    }
+
+    $powerShell = Get-Command pwsh -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandType -eq 'Application' } |
+        Select-Object -First 1
+    if (-not $powerShell) {
+        $powerShell = Get-Command powershell.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandType -eq 'Application' } |
+            Select-Object -First 1
+    }
+    if (-not $powerShell) {
+        return 1
+    }
+
+    try {
+        & $powerShell.Source -NoProfile -ExecutionPolicy Bypass -File $sanitizerCli -Path $RunRoot -Write -Check
+        return [int]$LASTEXITCODE
+    }
+    catch {
+        return 1
+    }
+}
+
 function Fail-Task {
     param(
         [string]$Status,
@@ -1091,6 +1140,9 @@ function Fail-Task {
     if ($script:state -and $script:state.record_run_manifest -and $script:state.manifest_started -and -not [string]::IsNullOrWhiteSpace($script:state.manifest_path)) {
         $script:state.run_status = "failed"
         Write-RunManifest -Path $script:state.manifest_path -State $script:state -Report $Report -RepoRoot $script:repoRoot
+    }
+    if ($script:state -and -not [string]::IsNullOrWhiteSpace($script:state.run_root)) {
+        [void](Invoke-CodexRunArtifactSanitization -RunRoot $script:state.run_root -RepoRoot $script:repoRoot)
     }
     throw $Message
 }
@@ -1108,6 +1160,7 @@ function Block-UnsafeArgument {
 }
 
 $repoRoot = Get-RepoRoot -ScriptDir $PSScriptRoot
+$script:codexArtifactSanitizerContext = New-CodexArtifactSanitizerContext -RepositoryRoot $repoRoot
 $timestamp = (Get-Date).ToString("yyyyMMdd-HHmmss")
 $artifactsDir = Join-Path $repoRoot ".codex\\artifacts"
 $reportsDir = Join-Path $repoRoot ".codex\\reports"
@@ -1556,6 +1609,7 @@ if (-not $state.skip_preflight) {
     }
 }
 
+try {
 $sandboxMode = if ($state.preset -eq "readonly") { "read-only" } else { "workspace-write" }
 $approvalPolicy = "never"
 $profileName = switch ($state.preset) {
@@ -1660,6 +1714,7 @@ if ($report.codex_exit_code -ne 0) {
     if ($state.record_run_manifest) {
         Write-RunManifest -Path $state.manifest_path -State $state -Report $report -RepoRoot $repoRoot
     }
+    $script:codexTaskTerminationCode = [int]$report.codex_exit_code
     exit $report.codex_exit_code
 }
 
@@ -1685,6 +1740,7 @@ if ($state.output_schema) {
         if ($state.record_run_manifest) {
             Write-RunManifest -Path $state.manifest_path -State $state -Report $report -RepoRoot $repoRoot
         }
+        $script:codexTaskTerminationCode = 1
         exit 1
     }
 }
@@ -1734,6 +1790,7 @@ else {
             if ($state.record_run_manifest) {
                 Write-RunManifest -Path $state.manifest_path -State $state -Report $report -RepoRoot $repoRoot
             }
+            $script:codexTaskTerminationCode = [int]$report.verify_exit_code
             exit $report.verify_exit_code
         }
 
@@ -1749,4 +1806,12 @@ Write-TaskReport -Path $state.report_path -Report $report
 if ($state.record_run_manifest) {
     Write-RunManifest -Path $state.manifest_path -State $state -Report $report -RepoRoot $repoRoot
 }
-exit 0
+ $script:codexTaskTerminationCode = 0
+ exit 0
+}
+finally {
+    $sanitizationExitCode = Invoke-CodexRunArtifactSanitization -RunRoot $state.run_root -RepoRoot $repoRoot
+    if ($sanitizationExitCode -ne 0 -and [int]$script:codexTaskTerminationCode -eq 0) {
+        exit 1
+    }
+}

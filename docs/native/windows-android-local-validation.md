@@ -287,9 +287,11 @@ pnpm run native:android:all
 
 `All` は Gate 1 で停止する。Gate 1 成功後に RuntimeSuite と BoundarySuite を別々に実行する。
 
-## 7. 証跡
+## 7. 証跡と共有用成果物
 
-標準出力先:
+### 7.1 実行証跡
+
+標準実行証跡の出力先:
 
 ```text
 .artifacts/native-local/<timestamp>/
@@ -320,6 +322,24 @@ pnpm run native:android:all
 ```powershell
 pnpm run native:android:evidence
 ```
+
+### 7.2 モバイルネイティブの共有用テスト成果物
+
+人が確認・共有するスクリーンショット、比較画像、選定した画面証跡は、必ず次へ保存する。
+
+```text
+output/mobile-native/
+```
+
+例:
+
+```text
+output/mobile-native/native-storefront-cart-added.png
+```
+
+リポジトリ直下へ `native-*.png` などを置かない。同一シナリオを繰り返す場合は、シナリオ名・検証段階・Run ID または JST timestamp をファイル名またはサブディレクトリへ含め、既存成果物を上書きしない。
+
+`.artifacts/native-local/<timestamp>/` は Maestro／ADB／Gradle のログ、JUnit、Hierarchy、APK 情報など、実行ごとの機械証跡に限定する。`output/mobile-native/` は共有・確認用、`.artifacts/` は実行証跡として使い分ける。`output/` は既に Git 管理外なので、個別の ignore 追加や `.gitkeep` は不要である。
 
 ## 8. AI エージェントの停止条件
 

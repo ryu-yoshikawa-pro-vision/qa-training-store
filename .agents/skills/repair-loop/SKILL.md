@@ -11,3 +11,4 @@ description: Use when applying review findings, fixing validation failures, or r
 6. 各iterationで、変更内容、validation結果、残差、次アクションを記録する。
 7. 同じ failure が繰り返される、scope violation が出る、unsafe action が必要になる、または max iteration に達した場合は停止して人間判断へ戻す。
 8. repair結果は `evaluation.json` / failure taxonomy / REPORT.md に接続できる形でまとめる。
+9. 作業完了前に `scripts/sanitize-codex-artifacts.ps1` の Write と Check を実行し、未サニタイズのローカル絶対パスを残さない。

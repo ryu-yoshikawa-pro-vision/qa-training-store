@@ -329,3 +329,20 @@
   - `gh` CLI未導入のため、GitHub connector／既存ログ以外の`gh auth status`／`gh pr checks 8`は実行できない。Push／Remote workflow再実行はユーザー指示で行わない。
   - ルート直下の未追跡`native-storefront-cart-added.png`は実行時生成物候補だが、ユーザー所有変更の可能性があるため削除せず残した。
 - Progress: 69% (11/16)
+
+## 2026-08-06 14:36 (JST) Native共有成果物の保存先統一
+
+- User request:
+  - モバイルネイティブの共有・確認用テスト成果物を `output/mobile-native/` に保存し、次回以降も守れる規約として記載する。
+- Changes:
+  - `native-storefront-cart-added.png` を `output/mobile-native/native-storefront-cart-added.png` へ移動した。
+  - `docs/native/README.md` と `docs/native/windows-android-local-validation.md` に、共有成果物と `.artifacts/native-local/<timestamp>/` の実行機械証跡を分ける規約を追加した。
+  - `docs/PROJECT_CONTEXT.md` と history に運用判断を追記した。
+- Validation:
+  - `git check-ignore -v -- output/mobile-native/native-storefront-cart-added.png` => `.gitignore:22:output/` で管理外を確認。
+  - 移動後のファイル存在、ルート直下の元ファイル不存在、SHA-256 `77466F7DBEE1C19DE6F7C8D4D412D917E14B081040E56312B19DAA081D47DB6A` を確認。
+  - `pnpm run format:check` と `pnpm run verify` は直前の Repair Loop で PASS 済み。今回の変更は Markdown と Git 管理外 PNG の配置のみである。
+- Decision:
+  - `output/mobile-native/` は人が確認・共有する Native screenshot／比較画像の正規保存先とする。
+  - `.artifacts/native-local/<timestamp>/` はログ、JUnit、Hierarchy、APK 情報など実行ごとの機械証跡に限定する。
+- Progress: 82% (14/17)
