@@ -24,6 +24,8 @@ Native Build は EAS Cloud ではなく、Windows／macOS のローカル Toolch
 
 単体 Flow が失敗した場合、後続 Suite は実行しない。スクリーンショット、Accessibility Hierarchy、logcat、JUnit、Maestro Output を保存し、失敗原因を確認してから修正する。
 
+Build／Install／Test／Maestroの再実行前は、直近Runと失敗ログ、変更差分、成功条件を確認し、Runbook 5.1.1のpreflightと仮説テンプレートを使う。同一条件の無目的な再実行、上流失敗後の後続工程、Timeout延長やAssertion削除だけの成功扱いは禁止する。
+
 Persistence／BoundaryのCI実行は、次の5 Flowを1つずつ独立したStepとして実行する。各Stepは固有のJUnitと`maestro-artifacts/<flow-name>/`を持ち、先行Flowが失敗しても後段の証跡収集は`always`で実行する。
 
 - `native-restart-persistence.yaml`

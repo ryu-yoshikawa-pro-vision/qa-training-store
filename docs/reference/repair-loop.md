@@ -27,6 +27,7 @@ Review -> Repair -> Validate の反復を、停止条件と証跡つきで扱う
 - failure category は `spec/failure-taxonomy.json` に揃える。
 - repeated failure は evidence であり、blind retry の理由ではない。
 - 同じ category の反復は `repair_loop_stalled` を検討する。
+- Nativeの実行履歴で使う環境分類（`ENVIRONMENT_FAILURE`、`DEPENDENCY_FAILURE`、`CONFIGURATION_FAILURE`、`SOURCE_FAILURE`、`BUILD_CACHE_FAILURE`、`DEVICE_FAILURE`、`TEST_FAILURE`、`TRANSIENT_FAILURE`、`UNKNOWN`）は、実行事実を読みやすくする補助分類である。evaluationへ渡すfindingの`failure_category`は引き続き`spec/failure-taxonomy.json`の分類へ写像する。
 
 ## Relationship to run artifacts
 - `REPORT.md` に iteration ごとの判断を残す。
@@ -57,6 +58,8 @@ Append-only契約の例外として許可する。
 ## Stop conditions
 - max iteration に達した
 - 同じ failure category が2回以上繰り返された
+- 同じ工程で3回以上失敗した、または異なる対応後も最初のエラーが変わらない
+- 新しいログ、環境情報、仮説が増えないまま同一条件を再実行しようとしている
 - `allowed_files` を超えた
 - unsafe / destructive action が必要
 - validation が環境依存で再現不能

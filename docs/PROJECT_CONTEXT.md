@@ -180,7 +180,7 @@
 - `Prepare`だけでは古い参照が残る場合がある。復旧時は、Runbook 4.3に従い、`pnpm install --frozen-lockfile --virtual-store-dir=C:/v/qts`で再リンクし、`pnpm exec expo prebuild --clean --platform android --no-install`で生成Android／Autolinkingを再作成してからBuildする。`gradlew clean`／`-CleanNative`を最初の対処にしない。
 - 上記の再生成後、最終Release Build、APK検査、Install、Smoke、`native-test-control.yaml`は成功した。Runtime Suiteは5 Flow中3成功／2失敗で、商品カードSelector未検出のため停止し、Boundary Suiteは実行していない。Build成功だけでNative検証全体をPASSと扱わない。
 - 今後の標準入口は`C:\q`、Virtual Storeは`C:\v\qts`とし、古い`.pnpm-local`参照の確認・復旧手順は[`docs/native/windows-android-local-validation.md`](./native/windows-android-local-validation.md)の4.3節、症状別の説明は[`docs/native/windows-android-troubleshooting.md`](./native/windows-android-troubleshooting.md)の9節を正本とする。生成Android、APK、ログ、端末固有情報はRepositoryへ追加しない。
-- 2026-08-07の変更後Release Buildでは、Native `.so` コピー中の`MergeNativeLibsTask`／`copyReleaseJniLibsProjectOnly`が、システムドライブの空き約28MBで失敗した。`.pnpm-local`残留や古いAutolinking参照は見つからなかったため、コードではなく環境容量不足（`SETUP_FAILURE`）と分類する。今後はBuild前に10GB以上の空きを確認し、容量不足のまま再試行せず、Cache／Virtual Storeの整理はユーザー確認後に行う。
+- 2026-08-07の変更後Release Buildでは、Native `.so` コピー中の`MergeNativeLibsTask`／`copyReleaseJniLibsProjectOnly`が、システムドライブの空き約28MBで失敗した。`.pnpm-local`残留や古いAutolinking参照は見つからなかったため、コードではなく`ENVIRONMENT_FAILURE`（既存Runの細分類: `SETUP_FAILURE`）と分類する。今後はBuild前に10GB以上の空きを確認し、容量確保後の同一Build再実行は1回に限定し、Cache／Virtual Storeの整理はユーザー確認後に行う。
 
 ## Native Maestro入力経路分離（2026-08-07）
 
@@ -209,6 +209,14 @@
 - 追加成功メッセージへ`native-cart-add-message`を付け、Maestroで`scrollUntilVisible`後にassertし、Cart遷移前に`native-go-cart`を上方向へ再表示する最小修正を行った。修正後Runtime／Persistence／Boundaryは全て成功した。
 - `pnpm run verify`はformat、lint（0 errors／64 warnings）、typecheck、security、Unit 66、Integration 91、Repository 28、Web Component 76、Native Jest 27、Contract 121、Web Buildを含めexit 0となった。警告とReact `act` console warningは既存契約として残る。
 - Remote CIの再実行、commit、push、PR更新は行っていない。実行ごとのAPK、Maestro、ADB、Hierarchy、logcatは`.artifacts/native-local/<timestamp>/`へ保存し、Repositoryへ追加しない。
+
+## ローカルビルド失敗の振り返りと再発防止（2026-08-07）
+
+- 過去の失敗は、PowerShell／wrapper引数衝突、生成物を含むformat範囲、isolated依存解決、型検査、Native Jest worker競合、Virtual Store由来の古いCMake／Ninja参照、ホスト容量不足、IME入力経路、非同期検索、画面外要素のMaestro可視性に分かれる。最終行の`BUILD FAILED`、APK不存在、Install／Maestro停止は、上流失敗から生じた派生エラーとして扱う。詳細な時系列は[`docs/history/2026-08-07_local-build-failure-prevention.md`](./history/2026-08-07_local-build-failure-prevention.md)に保存する。
+- Build／Install／Test／Maestroの前に、直近RunのREPORT、関連生ログ、変更差分、Shell／Version／環境変数、APKと成功条件を確認し、Runbook 5.1.1のpreflightを同じShellで実行する。Java／Gradle、SDK／Build Tools、ADB、容量、appId／Profile、CIとの差異が不明な場合は開始しない。
+- 再実行は、目的、観測事実、最有力仮説、根拠、変更する一つの条件、成功条件、失敗時の次情報を記録してから行う。同一エラー2回連続、同じ工程3回失敗、最初のエラー不変、新しいログなし、仮説なしの場合は再試行を止め、原因調査へ戻る。Cache削除、Daemon停止、Timeout延長、Assertion削除、Flow skipだけで成功扱いにしない。
+- 生ログは`.artifacts/native-local/<attempt-id>/`へ保存し、実行ごとに一意なattempt-idを使う。Run Artifactには要約と相対参照だけを記載し、RunIdの再利用による失敗ログ上書きを避ける。runnerのattempt分離やBuild容量preflight自動化は、別Strictのharness improvement candidateとして扱う。
+- 成功ベースラインは、preflight後の正式wrapperによるRelease APK生成、APK／ABI確認、Install、Smoke、Control、Runtime 5/5、Boundary 5/5、検索専用Flowの制御IME条件PASS、`pnpm run verify` exit 0である。Remote CIの修正後結果は未確認であり、ローカル成功をCI成功とは記録しない。
 
 ## Codex Run ArtifactのPath Sanitization（2026-08-06）
 
