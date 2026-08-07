@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import type { CartDto, CartLineDto } from "@/application/contracts";
 import { NativeCartScreen } from "@/presentation/native/native-screens";
 import { useNativeRuntime } from "@/presentation/native/native-runtime-provider";
@@ -86,11 +86,16 @@ describe("NativeCartScreen", () => {
     const screen = await render(<NativeCartScreen />);
     await waitFor(() => expect(screen.getByText("カートを読み込めません")).toBeTruthy());
 
-    fireEvent.press(screen.getByText("再試行"));
+    await act(async () => {
+      fireEvent.press(screen.getByText("再試行"));
+    });
+
+    await waitFor(() => {
+      expect(getCart).toHaveBeenCalledTimes(2);
+    });
 
     await waitFor(() => expect(screen.getByText("カートは空です")).toBeTruthy());
     expect(screen.queryByText("カートを読み込めません")).toBeNull();
-    expect(getCart).toHaveBeenCalledTimes(2);
   });
 
   it("disables every cart mutation button while one mutation is pending", async () => {

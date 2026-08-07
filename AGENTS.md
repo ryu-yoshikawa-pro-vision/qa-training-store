@@ -92,9 +92,12 @@ Git管理対象外の`.artifacts`配下へ保存し、Run Artifactには
 `REPORT.md`のAppend-only契約は、行動記録、判断、検証結果を
 削除、並べ替え、意味変更しないことを指す。
 
-ローカル絶対パスの共通トークン化、Credential Redaction、
-機密情報のマスキングなど、記録の意味を変えない安全性修正は
-Append-only契約の例外として許可する。
+既存記録に含まれるローカル絶対Pathを`<REPO_ROOT>`、`<USER_HOME>`等の
+既定Tokenへ、記録の意味を変えずに置換する場合のみ、
+Append-only契約の安全性例外として許可する。
+
+Credential Redactionや汎用的な機密情報マスキングは、この例外に含めない。
+それらが必要になった場合は、別途契約・実装・テスト・承認を行う。
 
 ## 2. 実行ループ
 1) `.codex/runs/<run_id>/TASKS.md` のタスクを上から順に実行する。  
