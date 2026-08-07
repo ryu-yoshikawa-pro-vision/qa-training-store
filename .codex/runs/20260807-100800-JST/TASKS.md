@@ -11,7 +11,7 @@
 - [x] 7. Draft PRを作成して品質ゲートを開始する
 - [x] 8. 品質ゲートの失敗原因を確認する
 - [x] 9. Branch起因の失敗があれば最小修正する
-- [ ] 10. 最終検証結果をREPORTとrun.jsonへ反映する
+- [x] 10. 最終検証結果をREPORTとrun.jsonへ反映する
 
 ## Discovered
 
@@ -21,4 +21,4 @@
 
 ## Blocked
 
-- Local環境ではGitHub CLIと外部Networkを利用できないため、Local実行ではなくGitHub ActionsのPR品質ゲートを使用する。
+- なし
