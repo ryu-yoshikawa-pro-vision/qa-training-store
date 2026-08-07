@@ -45,18 +45,17 @@
 
 - 2026-08-06のPowerShell wrapper引数衝突、Native Status可視性、Virtual Store由来の古いCMake／Ninja参照、formal Maestroの検索カード未検出、Boundaryのoffscreen selector、format scope、isolated dependency解決が発生した。
 - 2026-08-07にはtypecheckのimplicit-any、Native Jest worker競合、システムドライブ空き約28MBでのNative `.so` copy失敗、画面外のCart追加成功メッセージ可視性失敗、実機IME入力経路差、wrapper path typoが発生した。
-- 詳細な時系列表は[`docs/history/2026-08-07_local-build-failure-prevention.md`](../../docs/history/2026-08-07_local-build-failure-prevention.md)の`## ローカル実行失敗履歴`にある。終了コードやShell Versionが保存されていない過去項目は未記録とした。
+- 詳細な時系列表は[`docs/history/2026-08-07_local-build-failure-prevention.md`](../../../docs/history/2026-08-07_local-build-failure-prevention.md)の`## ローカル実行失敗履歴`にある。終了コードやShell Versionが保存されていない過去項目は未記録とした。
 
 ### 原因分類
 
-- `ENVIRONMENT_FAILURE`: ホスト空き容量不足。
+- `ENVIRONMENT_FAILURE`: ホスト空き容量不足、Jest worker並列実行時のホスト資源競合。
 - `DEPENDENCY_FAILURE`: isolated Virtual Storeでのvitest／Jest依存解決。
 - `CONFIGURATION_FAILURE`: wrapper引数衝突、formatter除外不足、wrapper path typo。
 - `SOURCE_FAILURE`: 6件のimplicit-any。
 - `BUILD_CACHE_FAILURE`: `.pnpm-local`／Autolinkingの古い参照。
 - `DEVICE_FAILURE`: 実機IME／Maestro CLI入力経路差。
 - `TEST_FAILURE`: Native Status、商品カード／Boundary selector、画面外Cartメッセージ。
-- `TRANSIENT_FAILURE`: Native Jest worker競合。外部障害の証拠がない項目をこの分類へ寄せていない。
 - `UNKNOWN`: 終了コード・完全ログ不足の項目は、原因が確定していない部分を未記録として残した。
 
 ### 根本原因
@@ -129,3 +128,20 @@
 - 文書化・Run Artifact・評価・Sanitizerの今回タスクは完了。低容量Buildの完全な初回生ログは同一RunIdの後続成功ログで上書きされた可能性があり、復元できないため、履歴では未記録／REPORT要約を根拠として明示した。
 - 未確認: Remote CIの修正後Run、runnerへの自動容量preflight／attempt隔離実装。これらは今回のスコープ外であり、evaluationのproposed candidateとして残した。
 - Progress: 6/6 (100%)
+
+## 2026-08-07 22:03 (JST) — PR #9 最終ドキュメント整合性修正
+
+- Summary: 再レビューで残ったBoundarySuite記載、Native Jest worker競合の分類、履歴文書リンクの3点だけを最小修正した。
+- Completed: Android復旧後の順序を`RuntimeSuite`後の`BoundarySuite`まで正本と一致させ、worker競合を`ENVIRONMENT_FAILURE`へ統一し、`TRANSIENT_FAILURE`の厳格な定義は維持した。履歴文書への相対リンクは実在する`docs/history/`へ解決する形へ補正した。
+- Changes: `docs/native/windows-android-troubleshooting.md`、`docs/history/2026-08-07_local-build-failure-prevention.md`、本REPORTのみ。アプリコード、Maestro Flow、CI Workflow、Sanitizer、package設定、lockfileは変更していない。
+- Notes/Decisions: Git mutation、Android APK Build、Maestro全実行、Remote CIは行っていない。Markdownlint、英語見出し、Progress形式、Action SHA pinning等の指摘は今回の対象外として維持した。
+- Progress: 100% (3/3)
+
+## 2026-08-07 22:08 (JST) — 最終検証
+
+- `pnpm run format:check` => PASS。
+- `pnpm run test:contracts` => PASS（21 files／123 tests）。
+- `pnpm run verify` => PASS（exit 0、Lint 0 errors／64 warnings、全テスト、Contract 123、Web exportを含む）。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260807-175745-JST -Write -Check` => PASS（5 files scanned、0 files changed、0 residual findings）。
+- `git diff --check` => PASS。境界順序、worker分類、`TRANSIENT_FAILURE`定義維持、相対リンク解決、変更ファイル範囲の機械確認もPASSした。
+- Progress: 100% (3/3)
