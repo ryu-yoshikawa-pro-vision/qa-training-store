@@ -100,7 +100,7 @@ describe("NativeProductDetailScreen", () => {
       },
     } as never);
 
-    const screen = await render(<NativeProductDetailScreen />);
+    const screen = render(<NativeProductDetailScreen />);
 
     await waitFor(() =>
       expect(screen.getByTestId("native-product-stock").props.children).toBe(
@@ -112,23 +112,17 @@ describe("NativeProductDetailScreen", () => {
 
     fireEvent.press(screen.getByTestId("native-variant-variant-m"));
 
-    await waitFor(() =>
-      expect(screen.getByTestId("native-product-stock").props.children).toBe("在庫切れ"),
-    );
+    expect(screen.getByTestId("native-product-stock").props.children).toBe("在庫切れ");
     expect(screen.getByTestId("native-add-to-cart").props.accessibilityState.disabled).toBe(true);
 
     fireEvent.press(screen.getByTestId("native-variant-variant-l"));
 
-    await waitFor(() =>
-      expect(screen.getByTestId("native-product-stock").props.children).toBe("残り3点"),
-    );
+    expect(screen.getByTestId("native-product-stock").props.children).toBe("残り3点");
     expect(screen.getByTestId("native-add-to-cart").props.accessibilityState.disabled).toBe(false);
 
     fireEvent.press(screen.getByTestId("native-variant-variant-xl"));
 
-    await waitFor(() =>
-      expect(screen.getByTestId("native-product-stock").props.children).toBe("在庫 6点"),
-    );
+    expect(screen.getByTestId("native-product-stock").props.children).toBe("在庫 6点");
     expect(screen.getByTestId("native-add-to-cart").props.accessibilityState.disabled).toBe(false);
   });
 });
