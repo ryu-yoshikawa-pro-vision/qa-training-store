@@ -100,7 +100,7 @@ describe("NativeProductDetailScreen", () => {
       },
     } as never);
 
-    const screen = render(<NativeProductDetailScreen />);
+    const screen = await render(<NativeProductDetailScreen />);
 
     await waitFor(() =>
       expect(screen.getByTestId("native-product-stock").props.children).toBe(
