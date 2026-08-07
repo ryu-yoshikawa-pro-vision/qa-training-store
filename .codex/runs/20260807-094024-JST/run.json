@@ -38,7 +38,7 @@
     ".codex/runs/20260807-094024-JST/"
   ],
   "validation": {
-    "status": "passed",
+    "status": "partial",
     "commands": [
       "powershell -NoProfile -File scripts/tests/codex-artifact-sanitizer.test.ps1",
       "pwsh -NoProfile -File scripts/tests/codex-artifact-sanitizer.test.ps1",
@@ -71,7 +71,7 @@
   "artifact_summary": {
     "codex_task_report_count": 0,
     "hook_event_count": 0,
-    "subagent_run_count": 0,
+    "subagent_run_count": 3,
     "evaluation_present": true
   },
   "hook_observations": {
@@ -107,7 +107,7 @@
       "read_only": 3,
       "writable": 0,
       "scope_violations": 0,
-      "used_in_final_plan": 0
+      "used_in_final_plan": 3
     }
   },
   "evaluation_path": ".codex/runs/20260807-094024-JST/evaluation.json",

@@ -78,3 +78,10 @@
 - 現時点で特定できる追加の欠落はないが、切り詰め前に存在した可能性がある未知の欠落を否定できない。推測で行動記録を補完しない。
 - 再発防止として、実行ごとの生ログを`.artifacts/native-local/<attempt-id>/`へ分離し、Run Artifactはappend-onlyで扱い、完了前にサニタイザのWrite＋Checkを実行する既存運用を維持する。
 - この追補により、旧評価は完全なArtifact Integrity PASSではなく、`artifact_contract_gap`を含む警告状態として扱う。
+
+## 2026-08-07 22:29 JST — verify検証範囲の訂正
+
+- 2026-08-07 10:55 JSTの過去記録では、`pnpm run verify`でNative production bundle、route dependency、EAS configまで確認したように読める誤記があった。
+- `pnpm run verify`が実際に含む範囲は、`format:check`、`lint`、`typecheck`、`validate:image-manifest`、`security:check`、`test`、`build:web`である。
+- `pnpm run validate:native-production-bundle`、`pnpm run check:native-route-dependencies`、`pnpm run validate:eas:config`は、`verify`とは別コマンドとして個別に実行済みである。
+- Native production bundle、route dependency、EAS configの検証自体が未実施だったわけではなく、過去REPORTでのコマンドへの帰属だけが誤っていた。過去の記録行はappend-only契約に従い変更していない。
