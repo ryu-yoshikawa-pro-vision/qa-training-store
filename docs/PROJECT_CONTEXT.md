@@ -180,19 +180,35 @@
 - `Prepare`だけでは古い参照が残る場合がある。復旧時は、Runbook 4.3に従い、`pnpm install --frozen-lockfile --virtual-store-dir=C:/v/qts`で再リンクし、`pnpm exec expo prebuild --clean --platform android --no-install`で生成Android／Autolinkingを再作成してからBuildする。`gradlew clean`／`-CleanNative`を最初の対処にしない。
 - 上記の再生成後、最終Release Build、APK検査、Install、Smoke、`native-test-control.yaml`は成功した。Runtime Suiteは5 Flow中3成功／2失敗で、商品カードSelector未検出のため停止し、Boundary Suiteは実行していない。Build成功だけでNative検証全体をPASSと扱わない。
 - 今後の標準入口は`C:\q`、Virtual Storeは`C:\v\qts`とし、古い`.pnpm-local`参照の確認・復旧手順は[`docs/native/windows-android-local-validation.md`](./native/windows-android-local-validation.md)の4.3節、症状別の説明は[`docs/native/windows-android-troubleshooting.md`](./native/windows-android-troubleshooting.md)の9節を正本とする。生成Android、APK、ログ、端末固有情報はRepositoryへ追加しない。
+- 2026-08-07の変更後Release Buildでは、Native `.so` コピー中の`MergeNativeLibsTask`／`copyReleaseJniLibsProjectOnly`が、システムドライブの空き約28MBで失敗した。`.pnpm-local`残留や古いAutolinking参照は見つからなかったため、コードではなく環境容量不足（`SETUP_FAILURE`）と分類する。今後はBuild前に10GB以上の空きを確認し、容量不足のまま再試行せず、Cache／Virtual Storeの整理はユーザー確認後に行う。
 
 ## Native Maestro入力経路分離（2026-08-07）
 
 - 既知商品の主要Storefront／Cart／Persistence／Reset Flowは`scenario-shop://products/product-basic-shirt`のProduct Deep Linkで商品詳細へ入り、物理端末のIMEへ依存させない。商品詳細の長い画像下にある固定表示TextをDeep Link直後にassertせず、商品詳細画面、variant、カート操作のNative testIDを検証する。
-- 検索入力の`P-0001`と`native-product-card-product-basic-shirt`検出は[`maestro/native-search.yaml`](../maestro/native-search.yaml)へ分離する。Android／iOS CIでも独立Stepとして実行し、JUnitと実行成果物を保存する。検索専用Flowは主要Runtime／Boundary Suiteの分母に含めない。
+- 検索入力の`P-0001`、`native-product-card-product-basic-shirt`検出、カードタップ後の`native-product-detail-screen`確認は[`maestro/native-search.yaml`](../maestro/native-search.yaml)へ分離する。Android／iOS CIでも独立Stepとして実行し、JUnitと実行成果物を保存する。検索専用Flowは主要Runtime／Boundary Suiteの分母に含めない。
 - 物理端末の標準日本語IMEで検索入力が保持されない場合は成功扱いにしない。LatinIME等を一時的に選択して検索専用Flowを実行し、終了後に元のIMEと有効IME一覧を復元する。詳細はRunbookのGate 2.5、Troubleshooting 7.1、ADR-0007を参照する。
-- 2026-08-07のローカル結果は、標準日本語IMEでControl 1/1、Runtime 5/5、Boundary 5/5、LatinIME条件の検索専用Flow 1/1、`typecheck:native-tests` PASSである。全体typecheckには既存のimplicit-any 6件が残り、Remote CIは未実行である。
+- 2026-08-07のローカル結果は、標準日本語IMEでControl 1/1、Runtime 5/5、Boundary 5/5、LatinIME条件の検索・カードタップ・詳細確認Flow 1/1、全体typecheck PASSである。Remote CIは未実行である。
 
 ## 品質ゲートエラーの影響調査方針（2026-08-07）
 
 - 品質ゲートで発生したエラーは、依頼やPRの直接変更範囲外に見えても、Baseline、変更差分、共有依存、CI／テスト契約、実行環境との因果を調査する。「既存エラー」「範囲外」というラベルだけで保留しない。
-- 影響可能性がある、または安全な最小修正で解消できるエラーは、型注釈、回帰テスト、契約、文書を含めて対応し、関連ゲートを再実行する。
-- 真に無関係、環境依存、unsafe、要件判断が必要なものだけをbounded Repair Loopの`defer`／`needs_human`として残す。根拠、影響評価、未実行検証、次アクションはRun Artifactと利用者向け報告へ記録する。今回の6件のimplicit-anyはこの方針に基づき、React Ariaの型を明示して修正した。
+- 現在の変更が原因である、または現在の変更を正しく検証するために不可欠なエラーは、型注釈、回帰テスト、契約、文書を含めて最小修正し、関連ゲートを再実行する。安全に修正できることだけでは、現在のPRへ追加する根拠にならない。
+- 現在の差分と因果関係がなく、独立して修正可能な問題は、別PRまたはユーザー承認後の対応候補としてRun Artifactへ記録する。真に無関係、環境依存、unsafe、要件判断が必要なものだけをbounded Repair Loopの`defer`／`needs_human`として残し、根拠、因果関係の評価、未実行検証、次アクションをRun Artifactと利用者向け報告へ記録する。今回の6件のimplicit-anyは、Native/PR変更の型検証を阻害していたため前者として修正した。
+
+## Native永続化Flowの個別証跡とhydration境界（2026-08-07）
+
+- Android CIのPersistence／Boundaryは、`native-restart-persistence.yaml`、`native-reset-dirty-state.yaml`、`native-out-of-stock.yaml`、`native-low-stock.yaml`、`native-purchase-limit.yaml`を個別Stepで実行する。各Stepは固有の`$RUNNER_TEMP/maestro-artifacts/<flow-name>/`、JUnit、Screenshot、Hierarchy、Maestro Outputを持ち、最初の失敗後も証跡収集Stepを実行する。
+- `NativeCartScreen`はCart Repositoryの`getCart()`完了後に`native-persisted-state-ready`を表示し、Cart合計数量を`native-cart-badge-count`へ出す。商品・variant由来の`native-cart-item-<productId>-<variantId>`、`native-cart-quantity-<productId>-<variantId>`をMaestroの安定selectorとし、ランダムなcart item IDや画面上の汎用数量文字列に依存しない。
+- `native-restart-persistence.yaml`は初回だけ`clearState: true`で起動し、add前／add後／stop前／再起動後／hydration後／Cart画面／最終確認のcheckpointを保存する。再起動後はStorageを保持したままbadge、商品、quantityのIDと値を再確認する。
+- 下位契約ではNative SQLite Repositoryでadd後に新しいRepositoryインスタンスを作成してCartを読み戻し、product ID、variant ID、quantityが復元されることを確認する。UI側のhydration表示は別component testで確認する。
+
+## Native永続化Flowの実機再検証追補（2026-08-07）
+
+- ユーザーの容量確保後、Release Build、Install、Smoke、Maestro Control、Runtime Suite 5/5、Persistence／Boundaryの個別5/5、標準Boundary Suite 5/5を再実行し、すべて成功した。Build前に空き容量を確認し、容量不足時の自動cleanupは行わない。
+- 最初の修正APKでRuntime Suiteの`native-storefront`／`native-cart`が、追加成功メッセージの画面外配置により文字列`extendedWaitUntil`で失敗した。Hierarchyには要素が存在したため、画面遷移や永続化の失敗とは分類しなかった。
+- 追加成功メッセージへ`native-cart-add-message`を付け、Maestroで`scrollUntilVisible`後にassertし、Cart遷移前に`native-go-cart`を上方向へ再表示する最小修正を行った。修正後Runtime／Persistence／Boundaryは全て成功した。
+- `pnpm run verify`はformat、lint（0 errors／64 warnings）、typecheck、security、Unit 66、Integration 91、Repository 28、Web Component 76、Native Jest 27、Contract 121、Web Buildを含めexit 0となった。警告とReact `act` console warningは既存契約として残る。
+- Remote CIの再実行、commit、push、PR更新は行っていない。実行ごとのAPK、Maestro、ADB、Hierarchy、logcatは`.artifacts/native-local/<timestamp>/`へ保存し、Repositoryへ追加しない。
 
 ## Codex Run ArtifactのPath Sanitization（2026-08-06）
 

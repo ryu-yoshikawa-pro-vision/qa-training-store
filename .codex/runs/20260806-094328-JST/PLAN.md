@@ -9,7 +9,7 @@
 - Out: Branch／Commit／Push／Rebase／Merge／Workflow 手動再実行、Web Presentation、Application／Domain／Repository／SQLite 契約、Production Test Control 混入。
 
 ## Assumptions
-- C:\q Junction と指定 branch を維持する。
+- <REPO_ROOT> Junction と指定 branch を維持する。
 - Expo patch 更新は `expo`、`expo-constants`、`expo-linking`、`expo-router` に限定する。
 - Status 修正は baseline の実画面・Hierarchy証跡で根拠を得た後だけ行う。
 
@@ -49,7 +49,7 @@
 - 依存更新による native／Web bundle 回帰。
 
 ## Thinking Log
-- 2026-08-06 09:43 JST: 新規 Strict Run を作成。C:\q は正しい Junction、branch は指定どおり、開始時 source git status は clean。
+- 2026-08-06 09:43 JST: 新規 Strict Run を作成。<REPO_ROOT> は正しい Junction、branch は指定どおり、開始時 source git status は clean。
 - 2026-08-06 09:45 JST: Doctor は `Validate toolchain` で失敗。Node／pnpm／Java／ADB／Maestro／SDK component／実機は個別確認で存在。
 - 2026-08-06 09:46 JST: MCP 列挙で Maestro Tool 不在、Mobile MCP は mobilecli 不稼働。停止条件として記録し、CLI／CIの安全な調査を継続。
 - 2026-08-06 09:48 JST: 最新 head `13cf19b` の Native CI run `31059212122` Phase 1 success、`31059212026` Native CI failure。Native Static は expo-doctor 4 mismatch、Android は 5 flow 全て listening assertion failure。

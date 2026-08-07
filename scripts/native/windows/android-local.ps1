@@ -317,7 +317,10 @@ function MaestroSuite([string]$Name, [string[]]$Flows) {
   if ($code -ne 0) { Evidence; throw "Maestro failed: $Name" }
 }
 
-function Test { MaestroSuite "native-test-control" @($Flow) }
+function Test {
+  $flowName = [System.IO.Path]::GetFileNameWithoutExtension($Flow)
+  MaestroSuite $flowName @($Flow)
+}
 function RuntimeSuite { MaestroSuite "runtime-smoke" @("maestro/native-test-control.yaml", "maestro/native-contract-harness.yaml", "maestro/native-not-found.yaml", "maestro/native-storefront.yaml", "maestro/native-cart.yaml") }
 function BoundarySuite { MaestroSuite "persistence-boundary" @("maestro/native-restart-persistence.yaml", "maestro/native-reset-dirty-state.yaml", "maestro/native-out-of-stock.yaml", "maestro/native-low-stock.yaml", "maestro/native-purchase-limit.yaml") }
 

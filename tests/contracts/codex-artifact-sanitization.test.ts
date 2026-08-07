@@ -87,6 +87,7 @@ describe("Codex Run Artifact path sanitization contract", () => {
     expect(common).toContain("Windows UNC path");
     expect(common).toContain("file:///[A-Z]:[\\\\/]");
     expect(common).toContain("?#");
+    expect(common).toContain("?#|");
     expect(common).toContain("WSL user path");
     expect(common).toContain("Windows user path");
     expect(common).toContain("macOS user path");
@@ -138,6 +139,55 @@ describe("Codex Run Artifact path sanitization contract", () => {
     expect(read("scripts/tests/codex-artifact-sanitizer.test.ps1")).toContain(
       "Codex artifact sanitizer fixture tests: PASS",
     );
+  });
+
+  it("keeps line splitting and finding output fail-closed", () => {
+    const common = read("scripts/lib/codex-artifact-sanitizer.ps1");
+    const cli = read("scripts/sanitize-codex-artifacts.ps1");
+    const fixture = read("scripts/tests/codex-artifact-sanitizer.test.ps1");
+    const workflow = read(".github/workflows/ci.yml");
+    const findBlock = block(
+      common,
+      "function Find-CodexArtifactResidualPath",
+      "function ConvertTo-CodexFindingOutputText",
+    );
+    const outputBlock = block(
+      common,
+      "function ConvertTo-CodexFindingOutputText",
+      "function Get-CodexArtifactTextFiles",
+    );
+
+    expect(common).toContain("function Split-CodexArtifactLines");
+    expect(common).toContain("function ConvertTo-CodexRelativeArtifactPath");
+    expect(common).toContain("function ConvertTo-CodexBoundedFindingContext");
+    expect(common).toContain("CodexFindingContextMaximumLength = 160");
+    expect(findBlock).toContain("Split-CodexArtifactLines");
+    expect(outputBlock).toContain("Split-CodexArtifactLines");
+    expect(common).not.toContain("-split " + String.fromCharCode(96) + 'n", -1');
+    expect(common).not.toContain("-split '\\r?\\n', -1");
+    expect(cli).not.toContain("-split '\\r?\\n', -1");
+    expect(cli).toContain("pattern: ");
+    expect(cli).toContain("context: ");
+    expect(cli).toContain("ConvertTo-CodexRelativeArtifactPath");
+    expect(cli).not.toContain("remains: ");
+    expect(common).toContain("content = '<local-path-redacted>'");
+    expect(cli).toContain("content = '<local-path-redacted>'");
+    expect(cli).toContain("content = '<invalid-utf8-redacted>'");
+    expect(fixture).toContain("line_number -eq 3");
+    expect(fixture).toContain("line_number }) -join ','");
+    expect(fixture).toContain("Program Files|John Doe|My Projects");
+    expect(fixture).toContain("fixture heading");
+    expect(fixture).toContain("long-residual.md");
+    expect(fixture).toContain("long-residual.jsonl");
+    expect(fixture).toContain("final-newline");
+    expect(fixture).toContain("no-final-newline");
+    expect(fixture).toContain("repository root: C:\\q");
+    expect(fixture).toContain("Second Write changed the timestamp");
+    expect(workflow).toContain(".codex/runs/**/REPORT.md");
+    expect(common).toContain("'--cached'");
+    expect(common).toContain("'--others'");
+    expect(fixture).toContain("staged.md");
+    expect(fixture).toContain("untracked.md");
   });
 
   it("records the completion gate in the operator agreement", () => {

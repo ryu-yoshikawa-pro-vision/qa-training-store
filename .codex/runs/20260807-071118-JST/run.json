@@ -7,8 +7,8 @@
   "runtime": "host",
   "agents_used": ["code_researcher", "implementation_researcher", "test_investigator"],
   "repo": "qa-training-store",
-  "branch": null,
-  "base_branch": null,
+  "branch": "fix/sanitize-codex-run-artifact-paths",
+  "base_branch": "main",
   "codex_task_reports": [],
   "changed_files": [
     "src/presentation/components/confirm-dialog.tsx",

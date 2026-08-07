@@ -35,17 +35,44 @@ appId: com.ryuyoshikawa.scenarioshop
     timeout: 30000
 - tapOn:
     id: "native-add-to-cart"
-- extendedWaitUntil:
-    visible: "カートに追加しました"
+- scrollUntilVisible:
+    element:
+      id: "native-cart-add-message"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "native-cart-add-message"
+- scrollUntilVisible:
+    element:
+      id: "native-go-cart"
+    direction: UP
     timeout: 10000
 - tapOn:
     id: "native-go-cart"
+- extendedWaitUntil:
+    visible:
+      id: "native-persisted-state-ready"
+    timeout: 30000
+- assertVisible:
+    id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"
+- assertVisible:
+    id: "native-cart-badge-count"
+    text: "1"
+- tapOn:
+    id: "native-cart-increase-product-basic-shirt-variant-basic-shirt-02"
+- assertVisible:
+    id: "native-cart-quantity-product-basic-shirt-variant-basic-shirt-02"
+    text: "2"
+- tapOn:
+    id: "native-cart-decrease-product-basic-shirt-variant-basic-shirt-02"
+- assertVisible:
+    id: "native-cart-quantity-product-basic-shirt-variant-basic-shirt-02"
+    text: "1"
+- tapOn:
+    id: "native-cart-remove-product-basic-shirt-variant-basic-shirt-02"
 - assertVisible: "カート"
-- tapOn: "＋"
-- assertVisible: "2"
-- tapOn: "−"
-- assertVisible: "1"
-- tapOn: "削除"
-- assertVisible: "カート"
+- assertVisible:
+    id: "native-cart-badge-count"
+    text: "0"
 - assertVisible: "カートは空です"
 - takeScreenshot: native-cart-empty

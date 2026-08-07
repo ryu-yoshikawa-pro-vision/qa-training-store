@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-094024-JST",
+  "task_type": "repair",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": ["code_researcher", "implementation_researcher", "test_investigator"],
+  "repo": "qa-training-store",
+  "branch": "fix/sanitize-codex-run-artifact-paths",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".github/workflows/native-ci.yml",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/native/README.md",
+    "docs/native/windows-android-local-validation.md",
+    "docs/adr/0008-native-persistence-flow-evidence.md",
+    "docs/history/2026-08-07_native-persistence-flow-evidence.md",
+    "docs/plans/2026-08-07_094024_codex-artifact-sanitizer-native-persistence-repair.md",
+    "maestro/native-cart.yaml",
+    "maestro/native-low-stock.yaml",
+    "maestro/native-purchase-limit.yaml",
+    "maestro/native-reset-dirty-state.yaml",
+    "maestro/native-restart-persistence.yaml",
+    "maestro/native-storefront.yaml",
+    "scripts/lib/codex-artifact-sanitizer.ps1",
+    "scripts/native/windows/android-local.ps1",
+    "scripts/sanitize-codex-artifacts.ps1",
+    "scripts/tests/codex-artifact-sanitizer.test.ps1",
+    "src/presentation/native/native-screens.tsx",
+    "tests/component/native/native-cart-screen.test.tsx",
+    "tests/contracts/codex-artifact-sanitization.test.ts",
+    "tests/contracts/native-ci-workflow.test.ts",
+    "tests/contracts/native-sqlite-transactions.test.ts",
+    "tests/contracts/native-test-control-maestro.test.ts",
+    "tests/contracts/native-windows-local-validation.test.ts",
+    ".codex/runs/20260807-094024-JST/"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "powershell -NoProfile -File scripts/tests/codex-artifact-sanitizer.test.ps1",
+      "pwsh -NoProfile -File scripts/tests/codex-artifact-sanitizer.test.ps1",
+      "pnpm exec vitest run tests/contracts/codex-artifact-sanitization.test.ts --no-file-parallelism --maxWorkers=1",
+      "scripts/sanitize-codex-artifacts.ps1 -Write -Check (selected 6 Runs)",
+      "pnpm run native:android:doctor",
+      "android-local.ps1 -Action Build/Install/Smoke/Test",
+      "android-local.ps1 -Action RuntimeSuite",
+      "android-local.ps1 -Action BoundarySuite",
+      "individual Persistence/Boundary Maestro flows",
+      "pnpm run verify",
+      "pnpm run validate:native-production-bundle",
+      "pnpm run check:native-route-dependencies",
+      "pnpm run validate:eas:config",
+      "git diff --check"
+    ],
+    "warnings": [
+      "Remote CIの再実行結果は未確認。commit/push/PR更新は行っていない。",
+      "lintは0 errors／64 warnings。React Native Jestのact console warningとNode SQLite ExperimentalWarningが残る。",
+      "最初のNative component並列実行で1件timeoutしたが、単独再実行と最終verifyでは成功した。",
+      "初回Release Buildは空き容量約28MBでNative .so copyに失敗したが、容量確保後のBuildは成功した。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "agent": "code_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "summary": "Sanitizerのfinding/EOL/alias契約と既存CI・Native flowの影響範囲を調査した。"
+      },
+      {
+        "agent": "implementation_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "summary": "現行5 Native flowを個別CI stepへ分割する実装方針とlocal formal入口を整理した。"
+      },
+      {
+        "agent": "test_investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "summary": "NativeCartのhydration/badge/stable ID、SQLite read-back、Maestro assertion観点を確認した。"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "read_only": 3,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260807-094024-JST/evaluation.json",
+  "status": "completed",
+  "primary_failure_category": "remote_ci_unverified"
+}

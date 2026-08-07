@@ -24,12 +24,24 @@ Native Build は EAS Cloud ではなく、Windows／macOS のローカル Toolch
 
 単体 Flow が失敗した場合、後続 Suite は実行しない。スクリーンショット、Accessibility Hierarchy、logcat、JUnit、Maestro Output を保存し、失敗原因を確認してから修正する。
 
+Persistence／BoundaryのCI実行は、次の5 Flowを1つずつ独立したStepとして実行する。各Stepは固有のJUnitと`maestro-artifacts/<flow-name>/`を持ち、先行Flowが失敗しても後段の証跡収集は`always`で実行する。
+
+- `native-restart-persistence.yaml`
+- `native-reset-dirty-state.yaml`
+- `native-out-of-stock.yaml`
+- `native-low-stock.yaml`
+- `native-purchase-limit.yaml`
+
+再起動後のCart確認では、汎用的な数量文字列ではなく、`native-persisted-state-ready`、`native-cart-badge-count`、`native-cart-item-<productId>-<variantId>`、`native-cart-quantity-<productId>-<variantId>`を使う。`native-persisted-state-ready`はCart Repositoryの読み込み完了後だけ表示する。
+
+ScrollView内の成功メッセージや結果表示をMaestroで確認するときは、stableなtestIDを付け、`scrollUntilVisible`で可視領域へ移動してからassertする。表示要素が画面下端へ移動した後に次の上側の操作へ戻る場合は、対象IDを`direction: UP`で再表示する。画面外要素に対する文字列`extendedWaitUntil`だけで判定せず、assertion削除や固定Sleepで失敗を隠さない。
+
 Windows Android Build の Path／Autolinking 復旧は、Runbook 4.3 と [トラブルシューティング 9](./windows-android-troubleshooting.md#9-buildninja-が-still-dirty-after-100-tries-で失敗) を参照する。
 
 ## Maestro の入力経路
 
 - 既知商品の詳細、Variant、Cart、Persistenceを確認する主要Flowは、`scenario-shop://products/<productId>`のDeep Linkで商品を開く。主要FlowをIMEの入力状態に依存させない。
-- 検索欄への`inputText`と商品Code検索は、[`maestro/native-search.yaml`](../../maestro/native-search.yaml)に分離してカバレッジを維持する。これはRuntime／Boundaryの主要Flowとは別に実行する。
+- 検索欄への`inputText`、商品Code検索、検索結果カードのタップ、商品詳細画面の表示確認は、[`maestro/native-search.yaml`](../../maestro/native-search.yaml)に分離してカバレッジを維持する。これはRuntime／Boundaryの主要Flowとは別に実行する。
 - 物理端末の標準日本語IMEがASCII入力を保持しない場合、検索専用Flowを成功扱いにせず、LatinIME等の制御された入力方式へ一時切替してから実行する。終了後は元のIMEと有効IME一覧を必ず復元する。
 - 検索入力の失敗を理由に、既知商品の主要Flowへ検索操作を戻したり、`assertVisible`を削除したりしない。
 

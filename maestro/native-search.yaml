@@ -28,3 +28,10 @@ appId: com.ryuyoshikawa.scenarioshop
 - assertVisible:
     id: "native-product-card-product-basic-shirt"
 - takeScreenshot: native-search-product-found
+- tapOn:
+    id: "native-product-card-product-basic-shirt"
+- extendedWaitUntil:
+    visible:
+      id: "native-product-detail-screen"
+    timeout: 30000
+- takeScreenshot: native-search-product-detail

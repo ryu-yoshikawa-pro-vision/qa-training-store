@@ -11,6 +11,7 @@ $script:CodexArtifactSanitizerTokenPriority = [ordered]@{
 }
 
 $script:CodexArtifactSanitizerExtensions = @('.md', '.json', '.jsonl', '.txt')
+$script:CodexFindingContextMaximumLength = 160
 
 $script:CodexArtifactResidualPatterns = @(
     [ordered]@{
@@ -432,7 +433,7 @@ function ConvertTo-CodexSanitizedText {
 
         $escapedSource = [System.Text.RegularExpressions.Regex]::Escape([string]$replacement.Source)
         $hasTrailingSeparator = [string]$replacement.Source -match '[\\/]$'
-        $boundary = if ($hasTrailingSeparator) { '' } else { '(?=$|[\\/\s"''<>),;:?#\]])' }
+        $boundary = if ($hasTrailingSeparator) { '' } else { '(?=$|[\\/\s"''<>`),;:?#|\]])' }
         $pattern = $escapedSource + $boundary
         $matchCount = [System.Text.RegularExpressions.Regex]::Matches($result, $pattern, $options).Count
         if ($matchCount -eq 0) {
@@ -493,6 +494,50 @@ function ConvertTo-CodexSanitizedValue {
     return $Value
 }
 
+function Split-CodexArtifactLines {
+    param([AllowNull()][string]$Text)
+
+    if ($null -eq $Text) {
+        return @()
+    }
+
+    return @([System.Text.RegularExpressions.Regex]::Split(
+            $Text,
+            "\r\n|\n|\r"
+        ))
+}
+
+function ConvertTo-CodexRelativeArtifactPath {
+    param(
+        [AllowNull()][string]$FilePath,
+        [AllowNull()][string]$RepositoryRoot
+    )
+
+    if ([string]::IsNullOrWhiteSpace($FilePath)) {
+        return '<unknown-file>'
+    }
+
+    $fullPath = try { [System.IO.Path]::GetFullPath($FilePath) } catch { $null }
+    $fullRoot = try { [System.IO.Path]::GetFullPath($RepositoryRoot) } catch { $null }
+    if ([string]::IsNullOrWhiteSpace($fullPath) -or [string]::IsNullOrWhiteSpace($fullRoot)) {
+        return '<outside-repository>'
+    }
+
+    $comparison = Get-CodexPathComparison -Source $fullRoot
+    $normalizedPath = $fullPath.Replace('\', '/')
+    $root = (Remove-CodexTrailingSeparators -Value $fullRoot).Replace('\', '/').TrimEnd('/')
+    if ([string]::Equals($normalizedPath, $root, $comparison)) {
+        return '.'
+    }
+
+    $prefix = $root + '/'
+    if ($normalizedPath.StartsWith($prefix, $comparison)) {
+        return $normalizedPath.Substring($prefix.Length)
+    }
+
+    return '<outside-repository>/' + [System.IO.Path]::GetFileName($fullPath)
+}
+
 function Get-CodexResidualMaskedMatch {
     param(
         [Parameter(Mandatory = $true)][string]$Match,
@@ -541,10 +586,52 @@ function Get-CodexResidualMaskedLine {
     return $masked
 }
 
+function Test-CodexResidualPathLine {
+    param([Parameter(Mandatory = $true)][string]$Line)
+
+    foreach ($pattern in $script:CodexArtifactResidualPatterns) {
+        if ([System.Text.RegularExpressions.Regex]::IsMatch($Line, [string]$pattern.regex)) {
+            return $true
+        }
+    }
+    return $false
+}
+
+function ConvertTo-CodexBoundedFindingContext {
+    param(
+        [AllowNull()][string]$Line,
+        [Parameter(Mandatory = $true)]$Context,
+        [int]$MaximumLength = 160
+    )
+
+    if ([string]::IsNullOrWhiteSpace($Line)) {
+        return '<empty-line>'
+    }
+
+    $sanitized = ConvertTo-CodexSanitizedText -Text $Line -Context $Context
+    if (Test-CodexResidualPathLine -Line $sanitized) {
+        return '<local-path-redacted>'
+    }
+
+    $masked = Get-CodexResidualMaskedLine -Line $sanitized
+    $masked = [System.Text.RegularExpressions.Regex]::Replace($masked, '\s+', ' ').Trim()
+    if ([string]::IsNullOrWhiteSpace($masked)) {
+        return '<empty-line>'
+    }
+    if ($masked.Length -gt $MaximumLength) {
+        if ($MaximumLength -le 3) {
+            return $masked.Substring(0, $MaximumLength)
+        }
+        return $masked.Substring(0, $MaximumLength - 3) + '...'
+    }
+    return $masked
+}
+
 function Find-CodexArtifactResidualPath {
     param(
         [AllowNull()][string]$Text,
-        [Parameter(Mandatory = $true)][string]$FilePath
+        [Parameter(Mandatory = $true)][string]$FilePath,
+        $Context
     )
 
     if ($null -eq $Text) {
@@ -552,7 +639,7 @@ function Find-CodexArtifactResidualPath {
     }
 
     $findings = New-Object System.Collections.Generic.List[object]
-    $lines = $Text -split "`n", -1
+    $lines = @(Split-CodexArtifactLines -Text $Text)
     for ($lineIndex = 0; $lineIndex -lt $lines.Count; $lineIndex++) {
         $line = $lines[$lineIndex].TrimEnd("`r")
         $occupied = New-Object System.Collections.Generic.List[object]
@@ -570,12 +657,18 @@ function Find-CodexArtifactResidualPath {
                 }
 
                 $occupied.Add([pscustomobject]@{ Index = $match.Index; End = $match.Index + $match.Length })
-                $masked = Get-CodexResidualMaskedLine -Line $line
+                $findingContext = if ($null -ne $Context) {
+                    ConvertTo-CodexBoundedFindingContext -Line $line -Context $Context -MaximumLength $script:CodexFindingContextMaximumLength
+                }
+                else {
+                    '<local-path-redacted>'
+                }
                 $findings.Add([pscustomobject]@{
                         file_path = $FilePath
                         line_number = $lineIndex + 1
                         pattern_type = [string]$pattern.type
-                        content = $masked
+                        content = '<local-path-redacted>'
+                        context = $findingContext
                     })
             }
         }
@@ -596,8 +689,9 @@ function ConvertTo-CodexFindingOutputText {
     }
 
     $sanitized = ConvertTo-CodexSanitizedText -Text $Text -Context $Context
-    $masked = (($sanitized -split "`n", -1 | ForEach-Object {
-                Get-CodexResidualMaskedLine -Line ([string]$_)
+    $masked = ((@(Split-CodexArtifactLines -Text $sanitized) | ForEach-Object {
+                $line = [string]$_
+                ConvertTo-CodexBoundedFindingContext -Line $line -Context $Context -MaximumLength ([Math]::Min($MaximumLength, $script:CodexFindingContextMaximumLength))
             }) -join "`n")
     if ($masked.Length -gt $MaximumLength) {
         if ($MaximumLength -le 3) {

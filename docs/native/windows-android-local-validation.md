@@ -199,6 +199,16 @@ pnpm run native:android:prepare
 
 `Prepare` が成功しても、4.3 の確認で `.pnpm-local` が残っていれば Build へ進まず、4.3 の復旧分岐を実行する。
 
+### 4.4 Build 前のディスク容量
+
+Release APK Buildは、Virtual Store、Gradle Cache、CMake／Ninja中間生成物、APKを同時に保持する。Build前にシステムドライブの空き容量を確認し、10GB未満の場合はBuildを開始しない。
+
+```powershell
+Get-PSDrive -Name C | Select-Object Name, Used, Free
+```
+
+`MergeNativeLibsTask` または `copyReleaseJniLibsProjectOnly` がNative `.so` のコピー中に失敗し、Windows例外が文字化けしている場合でも、まず空き容量を確認する。空き容量が少ない場合は `SETUP_FAILURE（環境容量不足）` と分類し、同じBuildを繰り返さない。CacheやVirtual Storeの削除・移動はAIエージェントが自動実行せず、ユーザーが対象と再生成可否を確認してから行う。
+
 ### 5.3 Release APK Build
 
 実機を接続した状態で実行する。
@@ -289,6 +299,8 @@ Gate 1 の確認内容:
 
 画面上に Text が見えていても、Maestro Accessibility Hierarchy で `visible` でなければ失敗である。
 
+ScrollViewの下端に表示される成功メッセージや操作結果を確認する場合は、画面外の文字列へ直接`extendedWaitUntil`を行わない。表示要素へstableな`testID`を付け、`scrollUntilVisible`で可視領域へ移動してからIDをassertする。次の操作対象が上側へ移動した場合は、対象IDを`direction: UP`で再表示してからtapする。文字列assertionの削除、固定Sleep、Flow skipでこの状態を隠さない。
+
 ### Gate 2: Runtime／Smoke 5 Flow
 
 ```powershell
@@ -315,13 +327,35 @@ powershell -NoProfile -ExecutionPolicy Bypass `
   -RunId yyyyMMdd-HHmmss
 ```
 
-`native-search.yaml`は`P-0001`を入力して商品カードを検出するため、物理端末の標準日本語IMEがASCII入力を保持しない場合は、その端末条件でPASSと扱わない。必要時は元のIMEと有効IME一覧を先に記録し、LatinIME等を一時的に有効化・選択してFlowを実行し、終了後に必ず元へ復元する。IME切替は検索専用Flowの実行条件であり、主要Runtime／Boundary Flowへ検索入力を戻す理由にはしない。
+`native-search.yaml`は`P-0001`を入力して商品カードを検出し、カードをタップして商品詳細画面を確認するため、物理端末の標準日本語IMEがASCII入力を保持しない場合は、その端末条件でPASSと扱わない。必要時は元のIMEと有効IME一覧を先に記録し、LatinIME等を一時的に有効化・選択してFlowを実行し、終了後に必ず元へ復元する。IME切替は検索専用Flowの実行条件であり、主要Runtime／Boundary Flowへ検索入力を戻す理由にはしない。
 
 ### Gate 3: Persistence／Boundary 5 Flow
 
 ```powershell
 pnpm run native:android:test:boundary
 ```
+
+CIでは5 Flowを個別Stepとして実行する。ローカルで原因をFlow単位に切り分ける場合も、次のように同じ`Test`入口へ1 Flowずつ渡す。`Test`はFlowファイル名をMaestro出力名へ使うため、JUnit、Screenshot、Hierarchy、Maestro Outputを上書きしない。
+
+```powershell
+$runId = Get-Date -Format yyyyMMdd-HHmmss
+foreach ($flow in @(
+  'maestro/native-restart-persistence.yaml',
+  'maestro/native-reset-dirty-state.yaml',
+  'maestro/native-out-of-stock.yaml',
+  'maestro/native-low-stock.yaml',
+  'maestro/native-purchase-limit.yaml'
+)) {
+  powershell -NoProfile -ExecutionPolicy Bypass `
+    -File scripts/native/windows/android-local.ps1 `
+    -Action Test `
+    -Flow $flow `
+    -RunId $runId
+  if ($LASTEXITCODE -ne 0) { break }
+}
+```
+
+再起動Flowは初回の`launchApp clearState: true`だけで状態を初期化し、`stopApp`後の`launchApp`ではStorageを消去しない。Cart画面ではhydration完了ID、badge count、商品・variant由来のCart item IDとquantity ID、および数量値を確認する。失敗時は最後に成功したcheckpointのScreenshotと、`if: always()`相当で回収したMaestro Output／Hierarchy／JUnit／logcatを原因分類に使う。assertion削除、固定Sleep追加、Flow skipでPASS扱いにしない。
 
 - `native-restart-persistence.yaml`
 - `native-reset-dirty-state.yaml`
@@ -402,6 +436,7 @@ AI エージェントは次に従う。
 - Screenshot と Hierarchy を比較する
 - Timeout 延長、Assertion 削除、Flow Skip、CI Allow failure だけで成功扱いにしない
 - App 修正後は同じ Flow を再実行する
+- Buildが容量不足で失敗した場合は、空き容量を確保してから同じBuildを1回だけ再実行する。容量不足のまま無制限に再試行しない
 - 単体成功後だけ 5 Flow＋5 Flow を実行する
 - 検索入力の確認はGate 2.5の専用Flowとして、主要Suiteとは別のIME条件で実行する
 - 未実行を PASS と書かない

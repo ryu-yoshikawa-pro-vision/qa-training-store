@@ -45,8 +45,8 @@ function Add-CodexKnownPathFindings {
         return
     }
 
-    $currentLines = $CurrentText -split '\r?\n', -1
-    $sanitizedLines = $SanitizedText -split '\r?\n', -1
+    $currentLines = @(Split-CodexArtifactLines -Text $CurrentText)
+    $sanitizedLines = @(Split-CodexArtifactLines -Text $SanitizedText)
     $lineCount = [Math]::Max($currentLines.Count, $sanitizedLines.Count)
     for ($index = 0; $index -lt $lineCount; $index++) {
         $currentLine = if ($index -lt $currentLines.Count) { $currentLines[$index].TrimEnd([char]0x0D) } else { '' }
@@ -56,7 +56,8 @@ function Add-CodexKnownPathFindings {
                     file_path = $FilePath
                     line_number = $index + 1
                     pattern_type = 'known registered path'
-                    content = $sanitizedLine
+                    content = '<local-path-redacted>'
+                    context = ConvertTo-CodexBoundedFindingContext -Line $sanitizedLine -Context $context -MaximumLength $script:CodexFindingContextMaximumLength
                 })
         }
     }
@@ -72,7 +73,7 @@ foreach ($file in $files) {
                 file_path = $file
                 line_number = 1
                 pattern_type = 'invalid UTF-8'
-                content = '<redacted>'
+                content = '<invalid-utf8-redacted>'
             })
         continue
     }
@@ -103,7 +104,7 @@ foreach ($file in $files) {
         $expectedText = ConvertTo-CodexSanitizedText -Text $scanText -Context $context -Stats $expectedStats
         Add-CodexKnownPathFindings -FilePath $file -CurrentText $scanText -SanitizedText $expectedText -Target $findings
 
-        foreach ($finding in @(Find-CodexArtifactResidualPath -Text $scanText -FilePath $file)) {
+        foreach ($finding in @(Find-CodexArtifactResidualPath -Text $scanText -FilePath $file -Context $context)) {
             $findings.Add($finding)
         }
     }
@@ -126,10 +127,18 @@ foreach ($token in $stats.replacements_by_token.Keys) {
 Write-Output ('  residual_findings: ' + $stats.residual_findings)
 
 if ($findings.Count -gt 0) {
-        foreach ($finding in $findings) {
-        $displayPath = ConvertTo-CodexFindingOutputText -Text ([string]$finding.file_path) -Context $context -MaximumLength 300
-        $displayContent = ConvertTo-CodexFindingOutputText -Text ([string]$finding.content) -Context $context -MaximumLength 300
-        Write-Output ($displayPath + ':' + $finding.line_number + ' ' + $finding.pattern_type + ' remains: ' + $displayContent)
+    foreach ($finding in $findings) {
+        $displayPath = ConvertTo-CodexRelativeArtifactPath -FilePath ([string]$finding.file_path) -RepositoryRoot $repositoryRoot
+        $rawContext = if ($finding.PSObject.Properties.Name -contains 'context') {
+            [string]$finding.context
+        }
+        else {
+            [string]$finding.content
+        }
+        $displayContext = ConvertTo-CodexFindingOutputText -Text $rawContext -Context $context -MaximumLength $script:CodexFindingContextMaximumLength
+        Write-Output ($displayPath + ':' + $finding.line_number)
+        Write-Output ('pattern: ' + $finding.pattern_type)
+        Write-Output ('context: ' + $displayContext)
     }
     exit 1
 }

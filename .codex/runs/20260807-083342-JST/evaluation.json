@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-083342-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation",
+    "artifact_contract_gap",
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "サニタイザー、Fixture／Contract、Native検索Flow、方針文書、Run Artifactのローカル修正と指定ローカル検証を完了した。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はReviewer指示のサニタイザー、関連回帰契約、検索カード→詳細Flow、方針・記録文書に限定し、アプリ仕様変更やRemote／Git操作を行っていない。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "PowerShell 5.1／7、Focused Contract、Native Static相当、Verify、JSON／JSONL Parse、物理端末のLatinIME検索Flowは確認した。一方、Remote Phase 1／Native CIは本Runで未実行で、expo-doctorは環境依存の1件を残した。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Branch作成・切替、commit、push、rebase、merge、PR更新、Workflow再実行、reset、checkout、restore、削除を行っていない。Run Artifactと実機機械証跡はサニタイズ／ignore方針に従った。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "固定Redaction、行番号、EOL、空白Path、長文診断、Nativeカードタップ→詳細確認の回帰契約と、変更理由・検証結果をRun Artifactへ記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "行分割を共通Helperへ集約し、診断出力の固定Token契約と検索Flowの順序契約を追加した。品質ゲートの因果調査・bounded修正方針も正本文書へ反映した。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "ローカル検証コマンド、Run ID、Flow、IME復元、Artifact保存先を記録したが、Remote CIの修正後結果はPush後確認が必要である。"
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Reviewer提供のPhase 1 CI 31130388354でFixture 39 contractsはPASSしたが、Changed Artifact Checkがresidual_findings 9となり、Findingが1行目扱いで長い内容を出力した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260807-083342-JST/REPORT.md",
+          "selector": "Remote CI evidence supplied by reviewer",
+          "summary": "Phase 1 CIの失敗事実と修正内容"
+        }
+      ],
+      "detail": "PowerShellの負のMax-substrings指定を共通Regex分割へ置換し、固定Redactionと回帰Fixture／Contractを追加した。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "修正後のRemote Phase 1／Native CIはWorkflow再実行禁止のため本RunでNOT RUN。Reviewer提供のNative CI 31130388307は確認時点でin_progressだった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260807-083342-JST/REPORT.md",
+          "selector": "Remote Phase 1／Native CIは本RunではNOT RUN",
+          "summary": "Push後に確認すべきRemoteゲート"
+        }
+      ],
+      "detail": "Push後にWindows／Ubuntu sanitization、Native Static、Production Bundle Guard、Android Build／Emulator／Maestroの結果を確認する必要がある。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "標準日本語IMEでは検索入力が保持されずカードが不可視となったが、LatinIMEを一時選択した同一Flowは1/1でカードタップと商品詳細確認まで成功した。expo install --checkはPASSし、expo-doctorはpnpm virtual store設定に関連する1件を報告した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260807-083342-JST/REPORT.md",
+          "selector": "Physical Android validation",
+          "summary": "IME条件付き検索Flowの実機結果"
+        }
+      ],
+      "detail": "IME条件をアプリ不具合と混同せず、検索専用Flowだけを制御された入力方式で実行する。expo.install.excludeでDoctorの警告を隠さず、CI環境で再確認する。"
+    }
+  ],
+  "improvement_candidates": []
+}

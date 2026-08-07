@@ -85,11 +85,15 @@ try {
     $env:TMP = 'C:\Users\test-user\AppData\Local\Temp'
     $env:TMPDIR = '/home/test-user/tmp'
 
-    $context = New-CodexArtifactSanitizerContext -RepositoryRoot $repoRoot -RepositoryAlias @('C:\Users\test-user\Documents\repo', 'C:\q')
+    $context = New-CodexArtifactSanitizerContext -RepositoryRoot $repoRoot -RepositoryAlias @('C:\Users\test-user\Documents\repo', 'C:\q') -VirtualStoreDir 'C:\v\qts'
     $repoText = ConvertTo-CodexSanitizedText -Text ($repoRoot + '\src\presentation\native') -Context $context
     Assert-CodexContains -Text $repoText -Expected '<REPO_ROOT>' -Message 'Repository physical path was not replaced.'
     $aliasText = ConvertTo-CodexSanitizedText -Text 'C:\q\src\index.ts' -Context $context
     Assert-CodexContains -Text $aliasText -Expected '<REPO_ROOT>' -Message 'Repository alias was not replaced.'
+    $markedAliasText = ([char]0x60).ToString() + 'C:\q' + ([char]0x60).ToString() + ' ' + ([char]0x60).ToString() + 'C:\v\qts' + ([char]0x60).ToString()
+    $markedAliasResult = ConvertTo-CodexSanitizedText -Text $markedAliasText -Context $context
+    $expectedMarkedAlias = ([char]0x60).ToString() + '<REPO_ROOT>' + ([char]0x60).ToString() + ' ' + ([char]0x60).ToString() + '<PNPM_VIRTUAL_STORE>' + ([char]0x60).ToString()
+    Assert-CodexTest -Condition ($markedAliasResult -eq $expectedMarkedAlias) -Message 'Backtick-delimited aliases were not replaced.'
     $userText = ConvertTo-CodexSanitizedText -Text 'C:\USERS\TEST-USER\AppData\Local' -Context $context
     Assert-CodexContains -Text $userText -Expected '<USER_HOME>' -Message 'Windows User Home variant was not replaced.'
     $tempText = ConvertTo-CodexSanitizedText -Text 'C:\Users\test-user\AppData\Local\Temp\job.log' -Context $context
@@ -116,6 +120,7 @@ try {
     }
     foreach ($boundaryCase in @(
             @{ Text = 'C:\q'; Expected = '<REPO_ROOT>' },
+            @{ Text = 'C:\q\'; Expected = '<REPO_ROOT>/' },
             @{ Text = 'C:\q\src'; Expected = '<REPO_ROOT>' },
             @{ Text = 'C:/q'; Expected = '<REPO_ROOT>' },
             @{ Text = 'C:/q/src'; Expected = '<REPO_ROOT>' },
@@ -128,6 +133,18 @@ try {
     foreach ($nonBoundary in @('C:\qa', 'C:\quick', 'C:/query', '/repository')) {
         $unchanged = ConvertTo-CodexSanitizedText -Text $nonBoundary -Context $boundaryContext
         Assert-CodexTest -Condition ($unchanged -eq $nonBoundary) -Message ('Path alias prefix false-positive for ' + $nonBoundary + '.')
+    }
+    foreach ($aliasBoundaryCase in @(
+            @{ Text = 'C:\q formal root'; Expected = '<REPO_ROOT> formal root' },
+            @{ Text = 'repository root: C:\q'; Expected = 'repository root: <REPO_ROOT>' },
+            @{ Text = 'command="cd C:\q && pnpm test"'; Expected = 'command="cd <REPO_ROOT> && pnpm test"' },
+            @{ Text = 'trailing=C:\q\'; Expected = 'trailing=<REPO_ROOT>/' },
+            @{ Text = 'subpath=C:/q/packages/app'; Expected = 'subpath=<REPO_ROOT>/packages/app' },
+            @{ Text = 'json={"root":"C:\\q\\packages\\app"}'; Expected = 'json={"root":"<REPO_ROOT>/packages\\app"}' },
+            @{ Text = 'uri=file:///C:/q/packages/app'; Expected = 'uri=<REPO_ROOT>/packages/app' }
+        )) {
+        $aliasBoundaryResult = ConvertTo-CodexSanitizedText -Text $aliasBoundaryCase.Text -Context $context
+        Assert-CodexTest -Condition ($aliasBoundaryResult -eq $aliasBoundaryCase.Expected) -Message ('Alias boundary fixture did not preserve surrounding text for ' + $aliasBoundaryCase.Text + '.')
     }
     $uriText = ConvertTo-CodexSanitizedText -Text 'file:///C:/Users/test-user/Documents/repo/output.txt' -Context $context
     Assert-CodexContains -Text $uriText -Expected '<REPO_ROOT>' -Message 'File URI variant was not replaced.'
@@ -163,6 +180,105 @@ try {
     $residuals = @(Find-CodexArtifactResidualPath -Text $residualInput -FilePath 'fixture.md')
     Assert-CodexTest -Condition ($residuals.Count -eq 3) -Message 'macOS, Linux, and WSL residual paths were not all detected.'
     Assert-CodexTest -Condition (($residuals | ConvertTo-Json -Compress) -notmatch 'test-user') -Message 'Residual report exposed the user name.'
+    Assert-CodexTest -Condition (@($residuals | Where-Object { $_.content -ne '<local-path-redacted>' }).Count -eq 0) -Message 'Residual findings did not use the fixed redaction content.'
+
+    $lineEndingFixtures = @(
+        @{ Name = 'LF'; Newline = ([char]0x0A).ToString() },
+        @{ Name = 'CRLF'; Newline = ([char]0x0D).ToString() + ([char]0x0A).ToString() },
+        @{ Name = 'CR'; Newline = ([char]0x0D).ToString() }
+    )
+    foreach ($lineEndingFixture in $lineEndingFixtures) {
+        $lineEndingText = @(
+            'first line'
+            'second line'
+            'D:\work\secret-project'
+            'fourth line'
+        ) -join $lineEndingFixture.Newline
+        $lineEndingFindings = @(Find-CodexArtifactResidualPath -Text $lineEndingText -FilePath ($lineEndingFixture.Name + '.md'))
+        Assert-CodexTest -Condition ($lineEndingFindings.Count -eq 1) -Message ($lineEndingFixture.Name + ' fixture did not produce one finding.')
+        Assert-CodexTest -Condition ($lineEndingFindings[0].line_number -eq 3) -Message ($lineEndingFixture.Name + ' fixture reported the wrong line number.')
+        Assert-CodexTest -Condition ($lineEndingFindings[0].content -eq '<local-path-redacted>') -Message ($lineEndingFixture.Name + ' fixture did not use fixed redaction content.')
+        $lineEndingFindingText = $lineEndingFindings | ConvertTo-Json -Compress
+        Assert-CodexTest -Condition ($lineEndingFindingText -notmatch 'first line|second line|fourth line|secret-project') -Message ($lineEndingFixture.Name + ' fixture leaked surrounding or path content.')
+    }
+
+    $mixedEndingLines = @(Split-CodexArtifactLines -Text ('one' + ([char]0x0D).ToString() + ([char]0x0A).ToString() + 'two' + ([char]0x0D).ToString() + 'three' + ([char]0x0A).ToString() + 'four'))
+    Assert-CodexTest -Condition ($mixedEndingLines.Count -eq 4) -Message 'The shared line splitter did not preserve mixed line endings.'
+    Assert-CodexTest -Condition (($mixedEndingLines -join '|') -eq 'one|two|three|four') -Message 'The shared line splitter returned unexpected mixed-ending content.'
+    $lineSplitCases = @(
+        @{ Name = 'empty'; Text = ''; Expected = @('') },
+        @{ Name = 'final-newline'; Text = 'one' + ([char]0x0A).ToString(); Expected = @('one', '') },
+        @{ Name = 'no-final-newline'; Text = 'one'; Expected = @('one') },
+        @{ Name = 'blank-lines'; Text = 'one' + ([char]0x0A).ToString() + '' + ([char]0x0A).ToString() + 'three'; Expected = @('one', '', 'three') }
+    )
+    foreach ($lineSplitCase in $lineSplitCases) {
+        $splitResult = @(Split-CodexArtifactLines -Text $lineSplitCase.Text)
+        Assert-CodexTest -Condition (($splitResult -join '|') -eq ($lineSplitCase.Expected -join '|')) -Message ('Shared line splitter changed the ' + $lineSplitCase.Name + ' contract.')
+    }
+
+    $multiplePathText = @(
+        'heading'
+        'D:\first\secret'
+        'third line'
+        'fourth line'
+        'E:\second\secret'
+        'sixth line'
+        'seventh line'
+        'F:\third\secret'
+    ) -join ([char]0x0A).ToString()
+    $multiplePathFindings = @(Find-CodexArtifactResidualPath -Text $multiplePathText -FilePath 'multiple.md')
+    Assert-CodexTest -Condition ($multiplePathFindings.Count -eq 3) -Message 'Multiple-line fixture did not produce three findings.'
+    Assert-CodexTest -Condition ((@($multiplePathFindings | ForEach-Object { $_.line_number }) -join ',') -eq '2,5,8') -Message 'Multiple-line fixture reported unexpected line numbers.'
+    Assert-CodexTest -Condition (@($multiplePathFindings | Where-Object { $_.content -ne '<local-path-redacted>' }).Count -eq 0) -Message 'Multiple-line fixture leaked non-fixed finding content.'
+    $multiplePathFindingText = $multiplePathFindings | ConvertTo-Json -Compress
+    Assert-CodexTest -Condition ($multiplePathFindingText -notmatch 'heading|third line|fourth line|sixth line|seventh line|secret') -Message 'Multiple-line fixture leaked neighboring or path content.'
+
+    $sameLineFindings = @(Find-CodexArtifactResidualPath -Text 'source=D:\work\repo target=E:\temp\out' -FilePath 'same-line.md')
+    Assert-CodexTest -Condition ($sameLineFindings.Count -eq 2) -Message 'Same-line multiple-path fixture changed the existing overlap contract.'
+    Assert-CodexTest -Condition (@($sameLineFindings | Where-Object { $_.content -ne '<local-path-redacted>' }).Count -eq 0) -Message 'Same-line multiple-path fixture leaked finding content.'
+
+    $spacePathText = @(
+        'C:\Program Files\Java\bin'
+        'C:\Users\John Doe\Documents'
+        'D:\My Projects\Scenario Shop'
+    ) -join ([char]0x0A).ToString()
+    $spacePathFindings = @(Find-CodexArtifactResidualPath -Text $spacePathText -FilePath 'space-paths.md')
+    Assert-CodexTest -Condition ($spacePathFindings.Count -eq 3) -Message 'Whitespace path fixtures were not all detected.'
+    $spacePathFindingText = $spacePathFindings | ConvertTo-Json -Compress
+    Assert-CodexTest -Condition ($spacePathFindingText -notmatch 'Program Files|John Doe|My Projects|Scenario Shop|Java|Documents') -Message 'Whitespace path details leaked in residual findings.'
+    Assert-CodexTest -Condition (@($spacePathFindings | Where-Object { $_.pattern_type -notin @('Windows absolute path', 'Windows user path') }).Count -eq 0) -Message 'Whitespace path fixture returned an unexpected pattern type.'
+
+    $diagnosticText = ConvertTo-CodexFindingOutputText -Text ($spacePathText + ([char]0x0A).ToString() + ('safe diagnostic line' * 40)) -Context $context -MaximumLength 300
+    Assert-CodexTest -Condition ($diagnosticText.Length -le 300) -Message 'Finding output exceeded the maximum length.'
+    Assert-CodexTest -Condition ($diagnosticText -notmatch 'Program Files|John Doe|My Projects|Scenario Shop|Java|Documents') -Message 'Finding output exposed whitespace path details.'
+
+    $longMarkdownPath = Join-Path $fixtureRoot 'long-residual.md'
+    $longMarkdown = @(
+        '# fixture heading'
+        'text before the residual'
+        'context line 1'
+        'context line 2'
+        'D:\middle\secret-project'
+        'context line 3'
+        'context line 4'
+        'text after the residual'
+        '# fixture tail'
+    ) -join ([char]0x0A).ToString()
+    Write-CodexFixtureText -Path $longMarkdownPath -Text $longMarkdown
+    $longCheck = Invoke-CodexSanitizerCli -Paths @($longMarkdownPath) -Check
+    Assert-CodexTest -Condition ($longCheck.exit_code -ne 0) -Message 'Long Markdown residual fixture did not fail closed.'
+    Assert-CodexContains -Text $longCheck.output -Expected '<local-path-redacted>' -Message 'Long Markdown residual fixture did not use fixed redaction content.'
+    Assert-CodexTest -Condition ($longCheck.output -notmatch '# fixture heading|text before the residual|context line 1|context line 3|text after the residual|# fixture tail|secret-project') -Message 'Long Markdown residual fixture leaked file context into diagnostics.'
+
+    $longJsonlPath = Join-Path $fixtureRoot 'long-residual.jsonl'
+    $longJsonl = '{"event":"' + ('safe-jsonl-context-' * 180) + '","path":"D:/long-jsonl/secret-user-project/artifact.txt"}'
+    Write-CodexFixtureText -Path $longJsonlPath -Text $longJsonl
+    $longJsonlCheck = Invoke-CodexSanitizerCli -Paths @($longJsonlPath) -Check
+    Assert-CodexTest -Condition ($longJsonlCheck.exit_code -ne 0) -Message 'Long JSONL residual fixture did not fail closed.'
+    Assert-CodexContains -Text $longJsonlCheck.output -Expected 'pattern: Windows absolute path' -Message 'Long JSONL finding did not report its pattern type.'
+    Assert-CodexContains -Text $longJsonlCheck.output -Expected 'context: <local-path-redacted>' -Message 'Long JSONL finding did not use a bounded redacted context.'
+    Assert-CodexTest -Condition ($longJsonlCheck.output -notmatch 'safe-jsonl-context|long-jsonl|secret-user-project|D:/') -Message 'Long JSONL diagnostic leaked the source record or local path.'
+    Assert-CodexTest -Condition ($longJsonlCheck.output -match '<outside-repository>/long-residual\.jsonl:1') -Message 'Finding output did not use a repository-safe relative path.'
 
     $payload = [ordered]@{
         path = 'C:\q\payload.txt'
@@ -251,21 +367,25 @@ File: file:///C:/Users/test-user/Documents/repo/output.txt
     Assert-CodexTest -Condition ($checkOnly.exit_code -eq 0) -Message 'Check-only failed on sanitized fixtures.'
     Assert-CodexTest -Condition ($writeHashBefore -eq $writeHashAfterCheck) -Message 'Check-only changed a file.'
 
+    $writeTimestampBeforeSecondWrite = (Get-Item -LiteralPath (Join-Path $fixtureRoot 'write.md')).LastWriteTimeUtc.Ticks
     $secondWrite = Invoke-CodexSanitizerCli -Paths $safePaths -Write
     $writeHashAfterSecond = (Get-FileHash -LiteralPath (Join-Path $fixtureRoot 'write.md') -Algorithm SHA256).Hash
+    $writeTimestampAfterSecondWrite = (Get-Item -LiteralPath (Join-Path $fixtureRoot 'write.md')).LastWriteTimeUtc.Ticks
     Assert-CodexContains -Text $secondWrite.output -Expected 'files_changed: 0' -Message 'Second Write was not idempotent.'
     Assert-CodexContains -Text $secondWrite.output -Expected 'replacements_total: 0' -Message 'Second Write performed replacements.'
     Assert-CodexTest -Condition ($writeHashBefore -eq $writeHashAfterSecond) -Message 'Second Write changed already sanitized content.'
+    Assert-CodexTest -Condition ($writeTimestampBeforeSecondWrite -eq $writeTimestampAfterSecondWrite) -Message 'Second Write changed the timestamp of already sanitized content.'
 
     $residualCheck = Invoke-CodexSanitizerCli -Paths @((Join-Path $fixtureRoot 'mixed.md'), (Join-Path $fixtureRoot 'residual.md')) -Check
     Assert-CodexTest -Condition ($residualCheck.exit_code -ne 0) -Message 'Check did not fail closed for residual paths.'
-    Assert-CodexContains -Text $residualCheck.output -Expected '<redacted>' -Message 'Residual report did not mask the user segment.'
+    Assert-CodexContains -Text $residualCheck.output -Expected '<local-path-redacted>' -Message 'Residual report did not use the fixed redaction content.'
     Assert-CodexContains -Text $residualCheck.output -Expected '<local-path-redacted>' -Message 'Finding content did not mask an unrecognized local path.'
     Assert-CodexTest -Condition ($residualCheck.output -notmatch 'test-user|unknown-user|C:\\Users\\') -Message 'Residual report exposed a full user path.'
 
     $invalidCheck = Invoke-CodexSanitizerCli -Paths @($invalidUtf8Path) -Check
     Assert-CodexTest -Condition ($invalidCheck.exit_code -ne 0) -Message 'Invalid UTF-8 did not fail closed.'
     Assert-CodexContains -Text $invalidCheck.output -Expected 'invalid UTF-8' -Message 'Invalid UTF-8 finding was not reported.'
+    Assert-CodexContains -Text $invalidCheck.output -Expected '<invalid-utf8-redacted>' -Message 'Invalid UTF-8 output did not use fixed redaction content.'
     Assert-CodexContains -Text $invalidCheck.output -Expected 'files_scanned: 1' -Message 'Invalid UTF-8 file was not counted as scanned.'
     Assert-CodexTest -Condition ($invalidCheck.output -notmatch 'C:\\Users\\|test-user') -Message 'Invalid UTF-8 output exposed a local path or content.'
 
@@ -345,7 +465,7 @@ File: file:///C:/Users/test-user/Documents/repo/output.txt
     }
     Assert-CodexTest -Condition $gitAbsentThrown -Message 'ChangedOnly did not fail closed when Git repository resolution was unavailable.'
 
-    Write-Output 'Codex artifact sanitizer fixture tests: PASS (39 contracts)'
+    Write-Output 'Codex artifact sanitizer fixture tests: PASS (45 baseline contracts + regression coverage)'
     exit 0
 }
 finally {

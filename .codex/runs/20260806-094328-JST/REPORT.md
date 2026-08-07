@@ -36,7 +36,7 @@
 ## 2026-08-06 09:50 (JST) 初期化・Round 1
 - Summary:
   - 新規 Strict Run `20260806-094328-JST` と durable plan `docs/plans/2026-08-06_094328_pr8-native-local-maestro-ci-repair.md` を作成した。
-  - `C:\q` は正しい Junction、指定 branch、開始時 source git status clean を確認した。
+  - `<REPO_ROOT>` は正しい Junction、指定 branch、開始時 source git status clean を確認した。
   - Node 24.12.0、pnpm 9.10.0、Java 17.0.20、ADB、Maestro 2.8.0、実機 Serial `354955112942476` を確認した。
   - Maestro MCP Tool は一覧に存在せず、Mobile MCP は `mobilecli is not available`。MCP停止条件を Blocked に記録した。
 - Completed:
@@ -263,7 +263,7 @@
   - `pnpm run build:web` => PASS、Expo Web Bundleを`dist`へ出力。
   - `pnpm run format:check` => FAIL、294 files。生成Android output／既存`app.config.ts`／既存`tests/contracts/native-windows-local-validation.test.ts`などを含む。今回変更したlockfileは`pnpm exec prettier --write pnpm-lock.yaml`後に単体PASS。
   - `pnpm run verify` => format checkで停止、EXIT 1。format以降のgateは個別に実行済みで、test／typecheck／image／security／buildはPASS。
-  - `pnpm dlx expo-doctor@1.17.6`（physical root）=> 16/17。Metro projectRootは通過し、package checkだけがproject `.npmrc`の`virtual-store-dir`／`virtual-store-dir-max-length` npm warningとともにFAIL。`C:\q` formal rootでは15/17（Metro projectRoot差も加算）。
+  - `pnpm dlx expo-doctor@1.17.6`（physical root）=> 16/17。Metro projectRootは通過し、package checkだけがproject `.npmrc`の`virtual-store-dir`／`virtual-store-dir-max-length` npm warningとともにFAIL。`<REPO_ROOT>` formal rootでは15/17（Metro projectRoot差も加算）。
 
 - Notes:
   - `node_modules/.pnpm-local`は実行環境の生成物であり、Repository設定・`.npmrc`・lockfileへ個人absolute pathを追加していない。
@@ -301,18 +301,18 @@
   - Web主要回帰 `27/27`、Accessibility `4/4`、mobile-chromium boundary `4/4`、Native Component `10 suites / 26 tests` を確認した。
   - `build:web`、Native production bundle guard、EAS config、lint、security、image manifest、native test typecheck は既往確認どおりPASS。`expo install --check`も`Dependencies are up to date`でPASS。
   - `pnpm run verify` は先頭のformat checkで停止。生成された`.artifacts`／`.expo-local-export`／`android`出力を含む295ファイルが対象となり、生成物を一括整形していない。
-  - Vitest系のunit／integration／repository／contractは、テスト実行前に外部virtual store `C:\v\qts` の`@testing-library/jest-dom/vitest.mjs`から`vitest`を解決できず停止。Native Jest通常経路も`jest-expo`から同じ外部virtual store上の`@react-native/jest-preset`解決不整合で停止したが、`NODE_PATH=C:\q\node_modules`のprocess-only workaroundではNative 10 suites／26 testsがPASSした。
-  - Expo Doctorは15/17。失敗はJunction alias `C:\q`とphysical rootのMetro `projectRoot`差、および同じ外部virtual-store／npm config差。Patch mismatch（expo、expo-constants、expo-linking、expo-router）は解消済み。
+  - Vitest系のunit／integration／repository／contractは、テスト実行前に外部virtual store `<PNPM_VIRTUAL_STORE>` の`@testing-library/jest-dom/vitest.mjs`から`vitest`を解決できず停止。Native Jest通常経路も`jest-expo`から同じ外部virtual store上の`@react-native/jest-preset`解決不整合で停止したが、`NODE_PATH=<REPO_ROOT>/node_modules`のprocess-only workaroundではNative 10 suites／26 testsがPASSした。
+  - Expo Doctorは15/17。失敗はJunction alias `<REPO_ROOT>`とphysical rootのMetro `projectRoot`差、および同じ外部virtual-store／npm config差。Patch mismatch（expo、expo-constants、expo-linking、expo-router）は解消済み。
 
 - Commands:
   - `pnpm run verify` => FAIL（format check 295 filesで停止、EXIT 1）。
   - `pnpm run test:e2e:chromium` => PASS、27 tests。
   - `pnpm run test:a11y` => PASS、4 tests。
   - `pnpm run test:e2e:mobile-boundary` => PASS、4 tests。
-  - `pnpm run test:integration` => FAIL、9 suites／0 tests。`Cannot find package 'vitest' imported from C:\v\qts\...\@testing-library\jest-dom\dist\vitest.mjs`。
+  - `pnpm run test:integration` => FAIL、9 suites／0 tests。`Cannot find package 'vitest' imported from <PNPM_VIRTUAL_STORE>/...\@testing-library\jest-dom\dist\vitest.mjs`。
   - `pnpm run test:repository` => FAIL、5 suites／0 tests。同じvirtual-store解決エラー。
   - `pnpm run test:contracts` => FAIL、20 suites／0 tests。同じvirtual-store解決エラー。
-  - `pnpm run test:component:native -- --runInBand` => FAIL、`jest-expo`が`@react-native/jest-preset`を解決できない。`$env:NODE_PATH='C:\q\node_modules'; pnpm exec jest --config jest.config.cjs --runInBand` => PASS、10 suites／26 tests。既存のReact `act(...)` stderr warningあり。
+  - `pnpm run test:component:native -- --runInBand` => FAIL、`jest-expo`が`@react-native/jest-preset`を解決できない。`$env:NODE_PATH='<REPO_ROOT>/node_modules'; pnpm exec jest --config jest.config.cjs --runInBand` => PASS、10 suites／26 tests。既存のReact `act(...)` stderr warningあり。
   - `pnpm dlx expo-doctor@1.17.6` => 15/17、Metro projectRoot mismatchとpackage version checkの2件がFAIL。`pnpm exec expo install --check` => PASS。
   - `adb devices -l` => `354955112942476`のみ`device`。default IMEは`jp.co.sharp.android.iwnnime.ml/.standardcommon.IWnnLanguageSwitcher`へ復元、PID `17704`、Foreground Activityは`com.ryuyoshikawa.scenarioshop/.MainActivity`、直近400行の対象Fatal scanは空。
   - Maestro MCP `list_devices` => `354955112942476`（android／real／connected）を確認。長時間CLI実行後の`inspect_screen(device_id=354955112942476)`はDevice server `UNAVAILABLE`で再取得不能。再起動直後には同じSerialでHierarchy／Screenshot／Flowを取得済みであり、formal CLIのPASS判定は保存済みJUnit／logで行った。

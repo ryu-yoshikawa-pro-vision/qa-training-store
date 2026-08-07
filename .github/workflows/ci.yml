@@ -96,6 +96,7 @@ jobs:
           }
 
           $files = @(
+            # This scope includes .codex/runs/**/PLAN.md, .codex/runs/**/REPORT.md, and other text artifacts.
             git diff --name-only --diff-filter=ACMRTUXB "$base...HEAD" -- ".codex/runs"
           ) | Where-Object {
             Test-Path -LiteralPath $_
