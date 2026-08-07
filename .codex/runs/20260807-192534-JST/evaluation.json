@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-192534-JST",
+  "result": "partial",
+  "primary_failure_category": "remote_ci_unverified",
+  "failure_categories": ["remote_ci_unverified"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "指定5ファイルの最小修正、旧RunのArtifact完全性Gap追補、Focused／Native Component／全品質ゲート／実機個別Flow／Boundary Suiteを完了した。",
+      "evidence_refs": [
+        {"kind": "run_artifact", "path": ".codex/runs/20260807-192534-JST/REPORT.md", "summary": "修正、原因切り分け、全検証結果。"},
+        {"kind": "changed_file", "path": "maestro/native-low-stock.yaml", "summary": "追加完了待機とCart遷移順序。"},
+        {"kind": "changed_file", "path": "maestro/native-purchase-limit.yaml", "summary": "追加完了待機とCart遷移順序。"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "宣言した5 source filesとRun Artifactだけを変更し、既存Native成果物規約を維持した。Git mutation、削除、cache cleanupは行っていない。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260807-192534-JST/run.json", "summary": "changed_files、safety、subagent scope。"}
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "ローカルFocused／全品質ゲート／実機個別Flow／Boundary Suiteは成功したが、Remote CIの変更後結果は未確認である。",
+      "evidence_refs": [
+        {"kind": "run_artifact", "path": ".codex/runs/20260807-192534-JST/REPORT.md", "summary": "ローカル・実機の検証結果とRemote CI未実行。"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "読み取り専用GitHub API以外の外部操作、Git mutation、ファイル削除、cache／APK cleanupを行っていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "PLAN、TASKS、REPORT、run.json、evaluation.jsonに修正範囲、iteration、検証、未確認事項を相対Pathで記録し、現RunのSanitizer Write＋Checkを実行した。",
+      "evidence_refs": [
+        {"kind": "run_artifact", "path": ".codex/runs/20260807-192534-JST/PLAN.md", "summary": "scope、triage、DoD。"},
+        {"kind": "run_artifact", "path": ".codex/runs/20260807-192534-JST/TASKS.md", "summary": "全タスク完了状態。"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存のMaestro stable testID／scroll待機、index比較、try/finally記法に合わせ、Sleepやparser導入などの抽象化を追加していない。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "正式wrapperによるDoctor、個別Low Stock／Purchase Limit、Boundary Suiteとpnpm verifyを再実行したが、Remote CIは未実行である。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260807-192534-JST/run.json", "summary": "実行コマンド一覧。"}
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "remote_ci_unverified",
+      "severity": "medium",
+      "evidence": "PR #9のRemote CIはユーザー側のpush後に確認可能であり、今回の作業ではRemote操作を行っていない。",
+      "detail": "ローカル品質ゲートと接続実機の結果をRemote PASSとは扱わない。"
+    }
+  ],
+  "improvement_candidates": []
+}

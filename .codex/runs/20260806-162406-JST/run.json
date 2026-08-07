@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "run_id": "20260806-162406-JST",
+  "task_type": "repair",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [
+    "code_researcher",
+    "implementation_researcher",
+    "test_investigator"
+  ],
+  "repo": "qa-training-store",
+  "branch": "feature/01_phase2-first-half-native-foundation",
+  "base_branch": null,
+  "codex_task_reports": [
+    ".codex/runs/20260806-162406-JST/reports/codex-task-20260806-165641.report.json"
+  ],
+  "changed_files": [],
+  "validation": {
+    "status": "passed_with_warnings",
+    "commands": [
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tests/codex-artifact-sanitizer.test.ps1",
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260806-162406-JST -Check",
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run test:contracts",
+      "pnpm run verify",
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260806-162406-JST -Write -Check",
+      "git diff --check"
+    ],
+    "warnings": [
+      "PowerShell 7 FixtureはこのRunでは実行事実を確認できないため、evaluation.jsonの再現性主張をPowerShell 5.1へ限定した。",
+      "codex command missing probeによりRun全体のstatusはfailedを保持している。",
+      "2026-08-06 22:35 JST追記: 開始時Branchはfeature/01_phase2-first-half-native-foundation。修正作業はfix/sanitize-codex-run-artifact-pathsへ移行し、移行時HEADは968cc35e492ca5736fb32ef1ada79b1da63b6253。PR #9修正を対象Branchで継続するための移行であり、branch fieldはRun開始時の観測値として維持した。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 1,
+    "hook_event_count": 0,
+    "subagent_run_count": 3,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "agent_id": "019fd5f5-8393-7ad2-8fc4-3b513cca867a",
+        "agent": "code_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "wrapperのPath漏えい経路、collectorの部分正規化、sanitizer Fixture不足を調査した。"
+      },
+      {
+        "agent_id": "019fd5f5-84bb-79e3-b596-b0a19b570ecd",
+        "agent": "implementation_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "PowerShell 5.1／7互換のUTF-8 no BOMと同一Directory内Atomic Writeの実装境界を調査した。"
+      },
+      {
+        "agent_id": "019fd5f5-8731-7b11-89af-f01e7a29664b",
+        "agent": "test_investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "Contract、CI、PowerShell Fixtureの配置と検証コマンドを調査した。"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "read_only": 3,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 3
+    }
+  },
+  "evaluation_path": ".codex/runs/20260806-162406-JST/evaluation.json",
+  "status": "failed",
+  "primary_failure_category": null
+}

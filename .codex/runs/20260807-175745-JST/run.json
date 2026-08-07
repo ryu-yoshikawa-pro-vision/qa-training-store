@@ -1,0 +1,87 @@
+{
+    "schema_version":  1,
+    "run_id":  "20260807-175745-JST",
+    "task_type":  "harness-improvement",
+    "workflow_level":  "standard",
+    "preset":  "safe",
+    "runtime":  "host",
+    "agents_used":  [
+                        "code_researcher",
+                        "test_investigator",
+                        "implementation_researcher"
+                    ],
+    "repo":  "qa-training-store",
+    "branch":  null,
+    "base_branch":  null,
+    "codex_task_reports":  [
+
+                           ],
+    "changed_files":  [
+                         "docs/plans/2026-08-07_175745_local-build-failure-prevention.md",
+                         "AGENTS.md",
+                         "docs/native/windows-android-local-validation.md",
+                         ".agents/skills/android-native-local-validation/SKILL.md",
+                         "docs/native/README.md",
+                         "docs/PROJECT_CONTEXT.md",
+                         "docs/history/2026-08-07_local-build-failure-prevention.md",
+                         "docs/reference/repair-loop.md",
+                         "docs/reference/harness-improvement-loop.md",
+                         ".codex/runs/20260807-175745-JST/PLAN.md",
+                         ".codex/runs/20260807-175745-JST/TASKS.md",
+                         ".codex/runs/20260807-175745-JST/REPORT.md",
+                         ".codex/runs/20260807-175745-JST/evaluation.json"
+                      ],
+    "validation":  {
+                       "status":  "passed",
+                       "commands":  [
+                                      "Get-Content / Select-String で過去Run・artifact・文書を照合",
+                                      "文書相互参照とJSON parse",
+                                      "git diff --check",
+                                      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260807-175745-JST -Write -Check"
+                                    ],
+                       "warnings":  [
+                                      "Android Build／Install／Maestro／Remote CIは同一条件の再実行を避けるため未実行",
+                                      "Remote CIの修正後結果とrunnerのattempt分離は未確認／別Strict候補"
+                                    ]
+                   },
+    "safety":  {
+                   "network":  false,
+                   "delete_attempt_blocked":  false,
+                   "git_mutation_attempt_blocked":  false,
+                   "scope_violation":  false
+               },
+    "artifact_summary":  {
+                             "codex_task_report_count":  0,
+                             "hook_event_count":  0,
+                             "subagent_run_count":  3,
+                             "evaluation_present":  true
+                         },
+    "hook_observations":  {
+                              "log_paths":  [
+
+                                            ],
+                              "event_counts":  {
+
+                                               },
+                              "blocking_event_count":  0,
+                              "safety_blocked_count":  0,
+                              "observation_error_count":  0
+                          },
+    "subagents":  {
+                      "records":  [
+                                  "code_researcher: read-only native docs/wrapper gap analysis",
+                                  "test_investigator: read-only failure timeline and artifact evidence",
+                                  "implementation_researcher: read-only durable documentation and candidate scope"
+                              ],
+                      "summary":  {
+                                      "total":  3,
+                                      "read_only":  3,
+                                      "writable":  0,
+                                      "scope_violations":  0,
+                                      "used_in_final_plan":  3
+                                  }
+                  },
+    "evaluation_path":  ".codex/runs/20260807-175745-JST/evaluation.json",
+    "status":  "completed",
+    "primary_failure_category":  null
+}

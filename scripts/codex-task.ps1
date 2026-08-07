@@ -59,6 +59,18 @@ param(
 Set-StrictMode -Version Latest
 $ErrorActionPreference = "Stop"
 
+$codexArtifactSanitizerScript = Join-Path $PSScriptRoot "lib/codex-artifact-sanitizer.ps1"
+if (-not (Test-Path -LiteralPath $codexArtifactSanitizerScript)) {
+    throw "Shared Codex artifact sanitizer not found"
+}
+. $codexArtifactSanitizerScript
+
+$script:codexArtifactSanitizerContext = $null
+$script:codexRunArtifactSanitizationExecuted = $false
+$script:codexTaskCompletedNormally = $false
+$script:codexTaskMainTryActive = $false
+$script:codexTaskTerminationCode = 0
+
 function Get-RepoRoot {
     param([string]$ScriptDir)
     return (Resolve-Path (Join-Path $ScriptDir "..")).Path
@@ -466,7 +478,8 @@ function Write-TaskLog {
         }
     }
 
-    ($payload | ConvertTo-Json -Compress -Depth 8) | Add-Content -Path $Path
+    $sanitizedPayload = ConvertTo-CodexSanitizedValue -Value $payload -Context $script:codexArtifactSanitizerContext
+    Add-CodexArtifactTextLine -Path $Path -Line ($sanitizedPayload | ConvertTo-Json -Compress -Depth 8)
 }
 
 function Write-TaskReport {
@@ -480,7 +493,8 @@ function Write-TaskReport {
         New-Item -ItemType Directory -Path $parent -Force | Out-Null
     }
 
-    ($Report | ConvertTo-Json -Depth 6) | Set-Content -Path $Path
+    $sanitizedReport = ConvertTo-CodexSanitizedValue -Value $Report -Context $script:codexArtifactSanitizerContext
+    Write-CodexArtifactTextAtomic -Path $Path -Text ($sanitizedReport | ConvertTo-Json -Depth 6)
 }
 
 function Add-ValidationCommand {
@@ -645,7 +659,8 @@ function Write-RunManifest {
         }
     }
 
-    ($manifest | ConvertTo-Json -Depth 8) | Set-Content -Path $Path
+    $sanitizedManifest = ConvertTo-CodexSanitizedValue -Value $manifest -Context $script:codexArtifactSanitizerContext
+    Write-CodexArtifactTextAtomic -Path $Path -Text ($sanitizedManifest | ConvertTo-Json -Depth 8)
 
     $pythonCmd = Get-PythonCommand
     if (-not $pythonCmd) {
@@ -943,7 +958,8 @@ function Initialize-EvaluationTemplate {
         improvement_candidates = @()
     }
 
-    ($evaluation | ConvertTo-Json -Depth 8) | Set-Content -Path $State.evaluation_file_path
+    $sanitizedEvaluation = ConvertTo-CodexSanitizedValue -Value $evaluation -Context $script:codexArtifactSanitizerContext
+    Write-CodexArtifactTextAtomic -Path $State.evaluation_file_path -Text ($sanitizedEvaluation | ConvertTo-Json -Depth 8)
     Write-TaskLog -Path $State.log_path -Event "evaluation_template_created" -Data @{ path = $State.evaluation_path }
 }
 
@@ -1076,6 +1092,139 @@ function Invoke-RequiredEvaluationValidation {
     Write-TaskLog -Path $State.log_path -Event "evaluation_valid" -Data @{ path = $State.evaluation_path }
 }
 
+function Invoke-CodexRunArtifactSanitization {
+    param(
+        [AllowNull()][string]$RunRoot,
+        [Parameter(Mandatory = $true)][string]$RepoRoot
+    )
+
+    if ($script:codexRunArtifactSanitizationExecuted) {
+        return 0
+    }
+    $script:codexRunArtifactSanitizationExecuted = $true
+
+    if ([string]::IsNullOrWhiteSpace($RunRoot) -or -not (Test-Path -LiteralPath $RunRoot)) {
+        return 0
+    }
+
+    $sanitizerCli = Join-Path $RepoRoot "scripts/sanitize-codex-artifacts.ps1"
+    if (-not (Test-Path -LiteralPath $sanitizerCli)) {
+        Write-Warning 'Codex artifact sanitizer CLI is missing; run artifact sanitization failed.'
+        return 1
+    }
+
+    $powerShell = Get-Command pwsh -ErrorAction SilentlyContinue |
+        Where-Object { $_.CommandType -eq 'Application' } |
+        Select-Object -First 1
+    if (-not $powerShell) {
+        $powerShell = Get-Command powershell.exe -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandType -eq 'Application' } |
+            Select-Object -First 1
+    }
+    if (-not $powerShell) {
+        Write-Warning 'Neither pwsh nor Windows PowerShell is available; run artifact sanitization failed.'
+        return 1
+    }
+
+    $stdoutPath = $null
+    $stderrPath = $null
+    $process = $null
+    try {
+        $stdoutPath = [System.IO.Path]::GetTempFileName()
+        $stderrPath = [System.IO.Path]::GetTempFileName()
+        $argumentList = @(
+            '-NoProfile',
+            '-ExecutionPolicy', 'Bypass',
+            '-File', ('"' + $sanitizerCli + '"'),
+            '-Path', ('"' + $RunRoot + '"'),
+            '-Write',
+            '-Check'
+        )
+        $startParameters = @{
+            FilePath = $powerShell.Source
+            ArgumentList = $argumentList
+            WorkingDirectory = $RepoRoot
+            PassThru = $true
+            RedirectStandardOutput = $stdoutPath
+            RedirectStandardError = $stderrPath
+            ErrorAction = 'Stop'
+        }
+        if ([System.IO.Path]::DirectorySeparatorChar -eq '\') {
+            $startParameters.WindowStyle = 'Hidden'
+        }
+        $process = Start-Process @startParameters
+        if ($null -eq $process -or -not $process.WaitForExit(60000)) {
+            if ($process -and -not $process.HasExited) {
+                try {
+                    $process.Kill()
+                    $process.WaitForExit(5000) | Out-Null
+                }
+                catch {
+                    Write-Warning 'Timed-out Codex artifact sanitizer could not be stopped cleanly.'
+                }
+            }
+            Write-Warning 'Codex artifact sanitizer timed out after 60 seconds.'
+            Write-CodexSanitizerFailureDiagnostics -StdoutPath $stdoutPath -StderrPath $stderrPath -Reason 'timeout'
+            return 1
+        }
+
+        $exitCode = [int]$process.ExitCode
+        if ($exitCode -ne 0) {
+            Write-Warning ('Codex artifact sanitizer exited with code ' + $exitCode + '.')
+            Write-CodexSanitizerFailureDiagnostics -StdoutPath $stdoutPath -StderrPath $stderrPath -Reason ('exit code ' + $exitCode)
+        }
+        return $exitCode
+    }
+    catch {
+        Write-CodexSanitizerFailureDiagnostics -StdoutPath $stdoutPath -StderrPath $stderrPath -Reason 'startup or process error'
+        Write-Warning 'Could not start Codex artifact sanitizer.'
+        return 1
+    }
+    finally {
+        foreach ($temporaryOutput in @($stdoutPath, $stderrPath)) {
+            if ($temporaryOutput -and [System.IO.File]::Exists($temporaryOutput)) {
+                try {
+                    [System.IO.File]::Delete($temporaryOutput)
+                }
+                catch {
+                    Write-Warning 'Could not clean up sanitizer process output.'
+                }
+            }
+        }
+    }
+}
+
+function Write-CodexSanitizerFailureDiagnostics {
+    param(
+        [AllowNull()][string]$StdoutPath,
+        [AllowNull()][string]$StderrPath,
+        [Parameter(Mandatory = $true)][string]$Reason,
+        [int]$MaximumLength = 300
+    )
+
+    foreach ($stream in @(
+            [pscustomobject]@{ Name = 'stdout'; Path = $StdoutPath },
+            [pscustomobject]@{ Name = 'stderr'; Path = $StderrPath }
+        )) {
+        if ([string]::IsNullOrWhiteSpace([string]$stream.Path) -or -not [System.IO.File]::Exists([string]$stream.Path)) {
+            continue
+        }
+
+        try {
+            $bytes = [System.IO.File]::ReadAllBytes([string]$stream.Path)
+            $encoding = [System.Text.UTF8Encoding]::new($false, $false)
+            $raw = $encoding.GetString($bytes)
+            $safe = ConvertTo-CodexFindingOutputText -Text $raw -Context $script:codexArtifactSanitizerContext -MaximumLength $MaximumLength
+            if (-not [string]::IsNullOrWhiteSpace($safe)) {
+                Write-Warning ('Codex artifact sanitizer ' + $stream.Name + ' (' + $Reason + '): ' + $safe)
+            }
+        }
+        catch {
+            Write-Warning ('Codex artifact sanitizer ' + $stream.Name + ' (' + $Reason + '): output could not be read safely.')
+        }
+    }
+}
+
 function Fail-Task {
     param(
         [string]$Status,
@@ -1091,6 +1240,9 @@ function Fail-Task {
     if ($script:state -and $script:state.record_run_manifest -and $script:state.manifest_started -and -not [string]::IsNullOrWhiteSpace($script:state.manifest_path)) {
         $script:state.run_status = "failed"
         Write-RunManifest -Path $script:state.manifest_path -State $script:state -Report $Report -RepoRoot $script:repoRoot
+    }
+    if ($script:state -and -not $script:codexTaskMainTryActive -and -not [string]::IsNullOrWhiteSpace($script:state.run_root)) {
+        [void](Invoke-CodexRunArtifactSanitization -RunRoot $script:state.run_root -RepoRoot $script:repoRoot)
     }
     throw $Message
 }
@@ -1108,6 +1260,7 @@ function Block-UnsafeArgument {
 }
 
 $repoRoot = Get-RepoRoot -ScriptDir $PSScriptRoot
+$script:codexArtifactSanitizerContext = New-CodexArtifactSanitizerContext -RepositoryRoot $repoRoot
 $timestamp = (Get-Date).ToString("yyyyMMdd-HHmmss")
 $artifactsDir = Join-Path $repoRoot ".codex\\artifacts"
 $reportsDir = Join-Path $repoRoot ".codex\\reports"
@@ -1160,6 +1313,8 @@ $state = [ordered]@{
     changed_files = @()
     scope_violation = $false
 }
+$script:repoRoot = $repoRoot
+$script:state = $state
 
 $report = [ordered]@{
     runtime = $state.runtime
@@ -1556,6 +1711,8 @@ if (-not $state.skip_preflight) {
     }
 }
 
+$script:codexTaskMainTryActive = $true
+try {
 $sandboxMode = if ($state.preset -eq "readonly") { "read-only" } else { "workspace-write" }
 $approvalPolicy = "never"
 $profileName = switch ($state.preset) {
@@ -1660,6 +1817,7 @@ if ($report.codex_exit_code -ne 0) {
     if ($state.record_run_manifest) {
         Write-RunManifest -Path $state.manifest_path -State $state -Report $report -RepoRoot $repoRoot
     }
+    $script:codexTaskTerminationCode = [int]$report.codex_exit_code
     exit $report.codex_exit_code
 }
 
@@ -1685,6 +1843,7 @@ if ($state.output_schema) {
         if ($state.record_run_manifest) {
             Write-RunManifest -Path $state.manifest_path -State $state -Report $report -RepoRoot $repoRoot
         }
+        $script:codexTaskTerminationCode = 1
         exit 1
     }
 }
@@ -1734,6 +1893,7 @@ else {
             if ($state.record_run_manifest) {
                 Write-RunManifest -Path $state.manifest_path -State $state -Report $report -RepoRoot $repoRoot
             }
+            $script:codexTaskTerminationCode = [int]$report.verify_exit_code
             exit $report.verify_exit_code
         }
 
@@ -1749,4 +1909,14 @@ Write-TaskReport -Path $state.report_path -Report $report
 if ($state.record_run_manifest) {
     Write-RunManifest -Path $state.manifest_path -State $state -Report $report -RepoRoot $repoRoot
 }
-exit 0
+ $script:codexTaskTerminationCode = 0
+ $script:codexTaskCompletedNormally = $true
+ exit 0
+}
+finally {
+    $script:codexTaskMainTryActive = $false
+    $sanitizationExitCode = Invoke-CodexRunArtifactSanitization -RunRoot $state.run_root -RepoRoot $repoRoot
+    if ($sanitizationExitCode -ne 0 -and $script:codexTaskCompletedNormally -and [int]$script:codexTaskTerminationCode -eq 0) {
+        exit 1
+    }
+}

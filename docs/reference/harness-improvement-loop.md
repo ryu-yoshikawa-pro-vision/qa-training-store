@@ -68,6 +68,7 @@ If a task fixes product code and also discovers a harness issue, record the harn
 ## Relationship to repair loop
 - repair loop の停止理由や repeated failure は harness improvement candidate の入力になる。
 - loop で解決できない structural issue は `strict` か `blocked` の候補として分離する。
+- Nativeの同一工程反復、preflight不足、attempt別ログ上書き、上流失敗後の後続実行は、実行結果を隠すのではなく、反復Failureの具体的なevidenceとしてcandidate化する。runner／safety／schemaを変更する候補は`strict`として自動適用せず、今回のproduct／文書修正から分離する。
 
 ## Relationship to observation artifacts
 - hook observation は blocked action や validation behavior の evidence として使う。

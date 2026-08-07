@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-094024-JST",
+  "result": "partial",
+  "primary_failure_category": "remote_ci_unverified",
+  "failure_categories": ["remote_ci_unverified", "flaky_or_env_issue", "artifact_contract_gap"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "サニタイザ契約、Native CI 5 flow分割、stable testID、hydration、SQLite read-back、品質ゲート、実機Runtime／Persistence／Boundaryを完了した。",
+      "evidence_refs": [
+        {"kind": "run_artifact", "path": ".codex/runs/20260807-094024-JST/REPORT.md", "summary": "実装・原因分類・再検証結果。"},
+        {"kind": "changed_file", "path": ".github/workflows/native-ci.yml", "summary": "5 flowの個別CI step。"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "branch切替、commit、push、PR更新、削除、Remote CI再実行は行わず、対象コード・テスト・文書・Run Artifactに限定した。",
+      "evidence_refs": []
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "ローカル品質ゲートと実機ゲートは成功したが、Remote CIの変更後結果は未確認である。初回の容量不足と実機assertion失敗は原因調査・修正・再検証済み。",
+      "evidence_refs": [
+        {"kind": "run_artifact", "path": ".codex/runs/20260807-094024-JST/REPORT.md", "summary": "Build容量不足、Maestro失敗、修正後の全成功を記録。"},
+        {"kind": "artifact_dir", "path": ".artifacts/native-local/20260807-094024-JST/", "summary": "実行ごとのNative機械証跡。"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "削除・git mutation・Remote操作を行わず、APK／JUnit／Hierarchy／logcatはGit管理外のArtifactへ保存した。",
+      "evidence_refs": []
+    },
+    "reviewability": {
+      "rating": "warn",
+      "evidence": "主要なPLAN、TASKS、REPORT、run.json、evaluation.json、ADR、履歴、focused test、品質ゲート結果は追跡可能だが、REPORT.mdが一時的に0 bytesになり、切り詰め前との完全一致は保証できない。",
+      "evidence_refs": [
+        {"kind": "run_artifact", "path": ".codex/runs/20260807-094024-JST/PLAN.md", "summary": "仮説、範囲、完了条件。"},
+        {"kind": "run_artifact", "path": ".codex/runs/20260807-094024-JST/TASKS.md", "summary": "全タスク完了状態。"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "画面外要素をstable testIDとscroll assertionで検証する契約をNative文書へ追記し、Maestroのgeneric numeric assertionとfailure maskingを避けた。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "src/presentation/native/native-screens.tsx", "summary": "NativeCartと追加成功メッセージのstable ID。"},
+        {"kind": "changed_file", "path": "docs/native/windows-android-local-validation.md", "summary": "画面外要素のMaestro検証手順。"}
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Doctor、Build、Install、Smoke、Control、Runtime、Persistence／Boundary、品質ゲートを正式コマンドで再実行した。Remote CIだけは未実行である。",
+      "evidence_refs": [
+        {"kind": "run_artifact", "path": ".codex/runs/20260807-094024-JST/REPORT.md", "summary": "実行コマンドと結果。"}
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "remote_ci_unverified",
+      "severity": "medium",
+      "evidence": "Remote CIの変更後Runは未確認。",
+      "detail": "Remote操作は禁止・未承認のため実行せず、ローカル品質ゲートと実機結果をRemote PASSとは扱わない。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "初回Release Buildはシステムドライブ空き約28MBでNative .so copyに失敗し、NativeCart componentの並列実行でも一度timeoutした。",
+      "detail": "容量確保後のBuild成功と単独component再実行で切り分け、最終検証は単独正式入口で完了した。自動cleanupは行っていない。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "REPORT.mdが作業中に一時的に0 bytesになり、既知の行動記録・判断・検証結果を後から再構成した。",
+      "detail": "主要な履歴は再構成できたが、切り詰め前REPORTとの完全一致は保証できない。未知の欠落可能性を残すためreviewabilityはwarnとする。"
+    }
+  ],
+  "improvement_candidates": []
+}

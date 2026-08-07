@@ -467,6 +467,7 @@ export function NativeProductDetailScreen() {
               marginTop: nativeSpacing.xs,
             },
           ]}
+          testID="native-cart-add-message"
         >
           {message}
         </Text>
@@ -512,6 +513,7 @@ export function NativeCartScreen() {
       />
     );
   if (cart === null) return <NativeStatePanel title="読み込み中…" />;
+  const totalQuantity = cart.items.reduce((total, item) => total + item.quantity, 0);
   const mutate = (itemId: string, operation: () => Promise<CartDto>) => {
     setError(null);
     setBusy(itemId);
@@ -522,7 +524,15 @@ export function NativeCartScreen() {
   };
   return (
     <ScrollView contentContainerStyle={styles.scroll} testID="native-cart-screen">
-      <Text style={styles.heading}>カート</Text>
+      <View style={styles.row}>
+        <Text style={styles.heading}>カート</Text>
+        <Text style={styles.body} testID="native-cart-badge-count">
+          {totalQuantity}
+        </Text>
+      </View>
+      <Text style={styles.body} testID="native-persisted-state-ready">
+        カート状態の読み込み完了
+      </Text>
       {cart.items.length === 0 ? (
         <NativeStatePanel
           title="カートは空です"
@@ -532,7 +542,11 @@ export function NativeCartScreen() {
       ) : (
         <>
           {cart.items.map((item) => (
-            <View key={item.itemId} style={styles.card} testID={`native-cart-item-${item.itemId}`}>
+            <View
+              key={item.itemId}
+              style={styles.card}
+              testID={`native-cart-item-${item.productId}-${item.variantId}`}
+            >
               <View style={styles.row}>
                 <NativeProductImage
                   assetId={item.image.assetId}
@@ -561,9 +575,11 @@ export function NativeCartScreen() {
                         }),
                       )
                     }
-                    testID={`native-cart-decrease-${item.itemId}`}
+                    testID={`native-cart-decrease-${item.productId}-${item.variantId}`}
                   />
-                  <Text testID={`native-cart-quantity-${item.itemId}`}>{item.quantity}</Text>
+                  <Text testID={`native-cart-quantity-${item.productId}-${item.variantId}`}>
+                    {item.quantity}
+                  </Text>
                   <NativeButton
                     label="＋"
                     variant="ghost"
@@ -578,7 +594,7 @@ export function NativeCartScreen() {
                         }),
                       )
                     }
-                    testID={`native-cart-increase-${item.itemId}`}
+                    testID={`native-cart-increase-${item.productId}-${item.variantId}`}
                   />
                 </View>
                 <NativeButton
@@ -594,11 +610,14 @@ export function NativeCartScreen() {
                       }),
                     )
                   }
-                  testID={`native-cart-remove-${item.itemId}`}
+                  testID={`native-cart-remove-${item.productId}-${item.variantId}`}
                 />
               </View>
               {item.quantity >= item.maximumQuantity && (
-                <Text style={styles.body} testID={`native-cart-limit-${item.itemId}`}>
+                <Text
+                  style={styles.body}
+                  testID={`native-cart-limit-${item.productId}-${item.variantId}`}
+                >
                   購入可能な上限に達しました。
                 </Text>
               )}

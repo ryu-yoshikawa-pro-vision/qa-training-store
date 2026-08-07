@@ -1,0 +1,130 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-083342-JST",
+  "task_type": "repair",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": ["code_researcher", "implementation_researcher", "test_investigator"],
+  "repo": "qa-training-store",
+  "branch": "fix/sanitize-codex-run-artifact-paths",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".codex/runs/20260806-094328-JST/PLAN.md",
+    ".codex/runs/20260806-094328-JST/REPORT.md",
+    ".codex/runs/20260806-094328-JST/evaluation.json",
+    ".codex/runs/20260807-071118-JST/run.json",
+    ".codex/runs/20260807-083342-JST/PLAN.md",
+    ".codex/runs/20260807-083342-JST/TASKS.md",
+    ".codex/runs/20260807-083342-JST/REPORT.md",
+    ".codex/runs/20260807-083342-JST/run.json",
+    ".codex/runs/20260807-083342-JST/evaluation.json",
+    ".github/workflows/ci.yml",
+    "AGENTS.md",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/native/README.md",
+    "docs/native/windows-android-local-validation.md",
+    "docs/reference/repair-loop.md",
+    "docs/history/2026-08-07_native-search-detail-journey.md",
+    "docs/history/2026-08-07_pr9-quality-gate-scope-correction.md",
+    "maestro/native-search.yaml",
+    "scripts/lib/codex-artifact-sanitizer.ps1",
+    "scripts/sanitize-codex-artifacts.ps1",
+    "scripts/tests/codex-artifact-sanitizer.test.ps1",
+    "tests/contracts/codex-artifact-sanitization.test.ts",
+    "tests/contracts/native-test-control-maestro.test.ts"
+  ],
+  "validation": {
+    "status": "partial",
+    "commands": [
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/tests/codex-artifact-sanitizer.test.ps1",
+      "pwsh -NoProfile -File scripts/tests/codex-artifact-sanitizer.test.ps1",
+      "PowerShell parser check for 4 changed scripts under Windows PowerShell 5.1 and PowerShell 7",
+      "pnpm exec vitest run tests/contracts/codex-artifact-sanitization.test.ts tests/contracts/native-test-control-maestro.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm install --frozen-lockfile",
+      "pnpm run generate:native-assets",
+      "git diff --exit-code -- src/generated/native-product-assets.ts",
+      "pnpm run validate:image-manifest",
+      "pnpm run format:check",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run test:component:native",
+      "pnpm run test:repository",
+      "pnpm run test:contracts",
+      "pnpm run check:native-route-dependencies",
+      "pnpm run validate:eas:config",
+      "pnpm run validate:native-production-bundle",
+      "pnpm run verify",
+      "pnpm exec expo install --check",
+      "pnpm dlx expo-doctor@1.17.6",
+      "scripts/native/windows/android-local.ps1 -Action Doctor",
+      "scripts/native/windows/android-local.ps1 -Action Test -Flow maestro/native-search.yaml",
+      "scripts/sanitize-codex-artifacts.ps1 -Path selected Run directories -RepositoryAlias <REPO_ROOT> -VirtualStoreDir <PNPM_VIRTUAL_STORE> -Write -Check (first and idempotency rerun)",
+      "JSON/JSONL parse check for selected Run Artifact directories"
+    ],
+    "warnings": [
+      "Lintは0 errors／64 warnings。既存のReact Native act、Node SQLite ExperimentalWarning、pnpm/npm config warningがある。",
+      "expo-doctor@1.17.6は16/17。expo install --checkとExpo bundledNativeModules比較はPASSで、残りはプロジェクトnpm configに起因する環境依存のpackage check。",
+      "標準日本語IMEの検索Flowは入力保持失敗でFAIL。LatinIME一時選択では同一Flowが1/1 PASSし、IMEは復元済み。",
+      "Remote Phase 1／Native CIは本RunでNOT RUN。Reviewer提供時点のRemote状態はRun Artifactへ記録した。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 3,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "agent_id": "019fd72c-6dfd-71a2-bef9-d9e77f44abaf",
+        "agent": "code_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "サニタイザーのFind／Convert／既知Path検出にある負のsplitと診断出力経路、Alias境界を確認した。"
+      },
+      {
+        "agent_id": "019fd8f0-2fc0-74f2-a4a6-2237c54fdd37",
+        "agent": "test_investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "既存39 baseline contract、Windows／Ubuntu Fixture経路、PowerShell 5.1／7回帰観点と追加検証範囲を確認した。"
+      },
+      {
+        "agent_id": "019fd8f0-30af-7f52-bcb9-3d3398944356",
+        "agent": "implementation_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "Native検索Flowのカード→詳細不足、Contract／文書整合箇所、Run Artifact Branch／Base記録を確認した。"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "read_only": 3,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 3
+    }
+  },
+  "evaluation_path": ".codex/runs/20260807-083342-JST/evaluation.json",
+  "status": "completed",
+  "primary_failure_category": "missing_validation"
+}

@@ -238,13 +238,27 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain("path: ~/.cache/maestro/${{ env.MAESTRO_VERSION }}");
     const installIndex = nativeWorkflow.indexOf("- name: Install pinned Maestro CLI");
     const runtimeIndex = nativeWorkflow.indexOf("- name: Run Maestro Runtime and Smoke flows");
-    const persistenceIndex = nativeWorkflow.indexOf(
-      "- name: Run Maestro Persistence and Boundary flows",
+    const searchIndex = nativeWorkflow.indexOf("- name: Run Maestro Search Input flow");
+    const persistenceStepNames = [
+      "Run Maestro Restart Persistence flow",
+      "Run Maestro Reset Dirty State flow",
+      "Run Maestro Out of Stock boundary flow",
+      "Run Maestro Low Stock boundary flow",
+      "Run Maestro Purchase Limit boundary flow",
+    ];
+    const persistenceIndexes = persistenceStepNames.map((name) =>
+      nativeWorkflow.indexOf(`- name: ${name}`),
     );
     const installSection = nativeWorkflow.slice(installIndex, runtimeIndex);
     expect(installIndex).toBeGreaterThanOrEqual(0);
     expect(runtimeIndex).toBeGreaterThan(installIndex);
-    expect(persistenceIndex).toBeGreaterThan(runtimeIndex);
+    expect(searchIndex).toBeGreaterThan(runtimeIndex);
+    persistenceIndexes.forEach((persistenceIndex, index) => {
+      expect(persistenceIndex).toBeGreaterThan(searchIndex);
+      if (index > 0) {
+        expect(persistenceIndex).toBeGreaterThan(persistenceIndexes[index - 1]!);
+      }
+    });
     expect(nativeWorkflow).toContain('MAESTRO_BIN="$MAESTRO_HOME/maestro/bin/maestro"');
     expect(installSection).toContain("curl --fail --location --retry 3");
     expect(installSection).toContain('"$MAESTRO_DOWNLOAD_URL"');
@@ -257,10 +271,36 @@ describe("Native CI workflow contracts", () => {
       '--test-output-dir="$RUNNER_TEMP/maestro-artifacts/runtime-smoke"',
     );
     expect(nativeWorkflow).toContain(
-      '--test-output-dir="$RUNNER_TEMP/maestro-artifacts/persistence-boundary"',
+      '--test-output-dir="$RUNNER_TEMP/maestro-artifacts/search-input"',
     );
     expect(nativeWorkflow).toContain("maestro-runtime-smoke.xml");
-    expect(nativeWorkflow).toContain("maestro-persistence-boundary.xml");
+    expect(nativeWorkflow).toContain("maestro-search-input.xml");
+    for (const output of [
+      "persistence-restart",
+      "persistence-reset",
+      "boundary-out-of-stock",
+      "boundary-low-stock",
+      "boundary-purchase-limit",
+    ]) {
+      expect(nativeWorkflow).toContain(`$RUNNER_TEMP/maestro-artifacts/${output}`);
+    }
+    for (const junit of [
+      "maestro-persistence-restart.xml",
+      "maestro-persistence-reset.xml",
+      "maestro-boundary-out-of-stock.xml",
+      "maestro-boundary-low-stock.xml",
+      "maestro-boundary-purchase-limit.xml",
+    ]) {
+      expect(nativeWorkflow).toContain(junit);
+    }
+    expect(nativeWorkflow).not.toContain("Run Maestro Persistence and Boundary flows");
+    expect(nativeWorkflow).toContain('echo "start_utc=$(date -u');
+    expect(nativeWorkflow).toContain('echo "result=PASS"');
+    expect(nativeWorkflow).toContain('echo "result=FAIL"');
+    expect(nativeWorkflow).toContain('echo "exit_code=$flow_exit"');
+    expect(nativeWorkflow).toContain('echo "screenshots=$output_dir"');
+    expect(nativeWorkflow).toContain('echo "hierarchy=$output_dir"');
+    expect(nativeWorkflow).toContain('echo "maestro_output=$output_dir"');
     expect(nativeWorkflow).not.toContain("Reset Test Control by Deep Link");
     expect(nativeWorkflow).toContain("native-restart-persistence.yaml");
     expect(nativeWorkflow).toContain("native-reset-dirty-state.yaml");
@@ -273,6 +313,7 @@ describe("Native CI workflow contracts", () => {
       "native-not-found.yaml",
       "native-storefront.yaml",
       "native-cart.yaml",
+      "native-search.yaml",
       "native-restart-persistence.yaml",
       "native-reset-dirty-state.yaml",
       "native-out-of-stock.yaml",

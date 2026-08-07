@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import type { CartDto, CartLineDto } from "@/application/contracts";
 import { NativeCartScreen } from "@/presentation/native/native-screens";
 import { useNativeRuntime } from "@/presentation/native/native-runtime-provider";
@@ -35,6 +35,10 @@ function line(itemId: string, quantity: number, maximumQuantity = 5): CartLineDt
     lineTotalAmount: quantity * 2000,
     issues: [],
   };
+}
+
+function cartTestKey(itemId: string): string {
+  return `product-basic-shirt-variant-${itemId}`;
 }
 
 function cart(items: CartLineDto[]): CartDto {
@@ -82,11 +86,16 @@ describe("NativeCartScreen", () => {
     const screen = await render(<NativeCartScreen />);
     await waitFor(() => expect(screen.getByText("カートを読み込めません")).toBeTruthy());
 
-    fireEvent.press(screen.getByText("再試行"));
+    await act(async () => {
+      fireEvent.press(screen.getByText("再試行"));
+    });
+
+    await waitFor(() => {
+      expect(getCart).toHaveBeenCalledTimes(2);
+    });
 
     await waitFor(() => expect(screen.getByText("カートは空です")).toBeTruthy());
     expect(screen.queryByText("カートを読み込めません")).toBeNull();
-    expect(getCart).toHaveBeenCalledTimes(2);
   });
 
   it("disables every cart mutation button while one mutation is pending", async () => {
@@ -107,40 +116,38 @@ describe("NativeCartScreen", () => {
     });
 
     const screen = await render(<NativeCartScreen />);
-    await waitFor(() => expect(screen.getByTestId("native-cart-increase-a")).toBeTruthy());
+    await waitFor(() =>
+      expect(screen.getByTestId(`native-cart-increase-${cartTestKey("a")}`)).toBeTruthy(),
+    );
 
-    fireEvent.press(screen.getByTestId("native-cart-increase-a"));
+    fireEvent.press(screen.getByTestId(`native-cart-increase-${cartTestKey("a")}`));
 
     await waitFor(() => {
-      expect(screen.getByTestId("native-cart-decrease-a").props.accessibilityState.disabled).toBe(
-        true,
-      );
-      expect(screen.getByTestId("native-cart-increase-a").props.accessibilityState.disabled).toBe(
-        true,
-      );
-      expect(screen.getByTestId("native-cart-remove-a").props.accessibilityState.disabled).toBe(
-        true,
-      );
-      expect(screen.getByTestId("native-cart-decrease-b").props.accessibilityState.disabled).toBe(
-        true,
-      );
-      expect(screen.getByTestId("native-cart-increase-b").props.accessibilityState.disabled).toBe(
-        true,
-      );
-      expect(screen.getByTestId("native-cart-remove-b").props.accessibilityState.disabled).toBe(
-        true,
-      );
+      for (const itemId of ["a", "b"]) {
+        const key = cartTestKey(itemId);
+        expect(
+          screen.getByTestId(`native-cart-decrease-${key}`).props.accessibilityState.disabled,
+        ).toBe(true);
+        expect(
+          screen.getByTestId(`native-cart-increase-${key}`).props.accessibilityState.disabled,
+        ).toBe(true);
+        expect(
+          screen.getByTestId(`native-cart-remove-${key}`).props.accessibilityState.disabled,
+        ).toBe(true);
+      }
     });
 
     resolveMutation?.(updated);
 
     await waitFor(() => {
-      expect(screen.getByTestId("native-cart-increase-a").props.accessibilityState.disabled).toBe(
-        false,
-      );
-      expect(screen.getByTestId("native-cart-remove-b").props.accessibilityState.disabled).toBe(
-        false,
-      );
+      expect(
+        screen.getByTestId(`native-cart-increase-${cartTestKey("a")}`).props.accessibilityState
+          .disabled,
+      ).toBe(false);
+      expect(
+        screen.getByTestId(`native-cart-remove-${cartTestKey("b")}`).props.accessibilityState
+          .disabled,
+      ).toBe(false);
     });
   });
 
@@ -155,16 +162,37 @@ describe("NativeCartScreen", () => {
     });
 
     const screen = await render(<NativeCartScreen />);
-    await waitFor(() => expect(screen.getByTestId("native-cart-increase-limit")).toBeTruthy());
-
-    expect(screen.getByTestId("native-cart-increase-limit").props.accessibilityState.disabled).toBe(
-      true,
+    const limitKey = cartTestKey("limit");
+    await waitFor(() =>
+      expect(screen.getByTestId(`native-cart-increase-${limitKey}`)).toBeTruthy(),
     );
-    expect(screen.getByTestId("native-cart-limit-limit")).toBeTruthy();
 
-    fireEvent.press(screen.getByTestId("native-cart-increase-limit"));
+    expect(
+      screen.getByTestId(`native-cart-increase-${limitKey}`).props.accessibilityState.disabled,
+    ).toBe(true);
+    expect(screen.getByTestId(`native-cart-limit-${limitKey}`)).toBeTruthy();
 
-    expect(screen.getByTestId("native-cart-quantity-limit").props.children).toBe(3);
+    fireEvent.press(screen.getByTestId(`native-cart-increase-${limitKey}`));
+
+    expect(screen.getByTestId(`native-cart-quantity-${limitKey}`).props.children).toBe(3);
     expect(updateQuantity).not.toHaveBeenCalled();
+  });
+
+  it("exposes a hydration boundary, badge count, and stable product variant IDs", async () => {
+    const persisted = cart([line("persisted", 2)]);
+    setRuntime({
+      getCart: jest.fn().mockResolvedValue(persisted),
+      updateQuantity: jest.fn(),
+      removeItem: jest.fn(),
+      addItem: jest.fn(),
+    });
+
+    const screen = await render(<NativeCartScreen />);
+    const key = cartTestKey("persisted");
+
+    await waitFor(() => expect(screen.getByTestId("native-persisted-state-ready")).toBeTruthy());
+    expect(screen.getByTestId("native-cart-badge-count").props.children).toBe(2);
+    expect(screen.getByTestId(`native-cart-item-${key}`)).toBeTruthy();
+    expect(screen.getByTestId(`native-cart-quantity-${key}`).props.children).toBe(2);
   });
 });

@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-182312-JST",
+  "task_type": "repair",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "fix/sanitize-codex-run-artifact-paths",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".agents/skills/android-native-local-validation/SKILL.md"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm run verify",
+      "pnpm exec vitest run tests/contracts/native-windows-local-validation.test.ts --no-file-parallelism --maxWorkers=1",
+      "pwsh -NoProfile -File scripts/verify.ps1",
+      "pnpm run validate:eas:config",
+      "pnpm run check:native-route-dependencies",
+      "pnpm run validate:native-production-bundle",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260807-182312-JST -Write -Check"
+    ],
+    "warnings": [
+      "Lint warning 64件、React act warning、Node SQLite ExperimentalWarning、Node child-process deprecation warningは残存するが、ゲート失敗ではない。",
+      "Remote CI、Android実機Build／Install／Maestroは今回未実行。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260807-182312-JST/evaluation.json",
+  "status": "completed",
+  "primary_failure_category": null
+}

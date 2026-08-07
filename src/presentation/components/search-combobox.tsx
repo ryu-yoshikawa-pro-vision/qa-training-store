@@ -1,6 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
 import { useRouter, type Href } from "expo-router";
-import { ComboBox, Input, Label, ListBox, ListBoxItem, Popover } from "react-aria-components";
+import {
+  ComboBox,
+  Input,
+  Label,
+  ListBox,
+  ListBoxItem,
+  Popover,
+  type Key,
+} from "react-aria-components";
 import { Icon } from "@/presentation/components/icon";
 
 export interface SearchSuggestion {
@@ -67,7 +75,7 @@ export function SearchCombobox({
       items={items}
       inputValue={inputValue}
       onInputChange={setInputValue}
-      onSelectionChange={(key) => {
+      onSelectionChange={(key: Key | null) => {
         if (key !== null) {
           const selected = indexed.get(String(key));
           if (selected !== undefined) {
@@ -84,7 +92,7 @@ export function SearchCombobox({
       <Input
         className="search-combobox__input"
         placeholder="商品名、カテゴリ、ブランドで検索"
-        onKeyDown={(event) => {
+        onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
           if (
             event.key === "Enter" &&
             event.currentTarget.value.trim().length > 0 &&
@@ -96,7 +104,7 @@ export function SearchCombobox({
       />
       <Popover className="search-combobox__popover">
         <ListBox<SearchSuggestion> className="search-combobox__list">
-          {(item) => (
+          {(item: SearchSuggestion) => (
             <ListBoxItem id={item.id} textValue={item.label}>
               <span>{item.label}</span>
               <small>{item.description}</small>

@@ -33,14 +33,40 @@ appId: com.ryuyoshikawa.scenarioshop
     timeout: 30000
 - tapOn:
     id: "native-add-to-cart"
+- scrollUntilVisible:
+    element:
+      id: "native-cart-add-message"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "native-cart-add-message"
+- scrollUntilVisible:
+    element:
+      id: "native-go-cart"
+    direction: UP
+    timeout: 10000
 - tapOn:
     id: "native-go-cart"
-- tapOn: "＋"
-- tapOn: "＋"
-- assertVisible: "3"
+- extendedWaitUntil:
+    visible:
+      id: "native-persisted-state-ready"
+    timeout: 30000
+- assertVisible:
+    id: "native-cart-badge-count"
+    text: "1"
+- assertVisible:
+    id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"
+- tapOn:
+    id: "native-cart-increase-product-basic-shirt-variant-basic-shirt-02"
+- tapOn:
+    id: "native-cart-increase-product-basic-shirt-variant-basic-shirt-02"
+- assertVisible:
+    id: "native-cart-quantity-product-basic-shirt-variant-basic-shirt-02"
+    text: "3"
 - assertVisible: "購入可能な上限に達しました。"
 - assertVisible:
-    text: "＋"
+    id: "native-cart-increase-product-basic-shirt-variant-basic-shirt-02"
     enabled: false
-- assertVisible: "3"
+- assertVisible:
+    id: "native-cart-limit-product-basic-shirt-variant-basic-shirt-02"
 - takeScreenshot: native-low-stock
