@@ -40,3 +40,17 @@ Scenario Shopでは、TypeScript Strict設定、Architecture Contract、Platform
 - 未処理Promiseの検査
 
 Complexity、関数行数、File行数、JSDoc、Import順の細かな強制は、具体的な問題が確認されるまで追加しない。
+
+## 品質ゲートで判明した依存更新
+
+Draft PRのNative CIでは、Format、Lint、Typecheck、Native Component、Repository Contract、Contract Test、Native Route Dependency、EAS Static Configまで成功した後、Expo Doctorだけが失敗した。
+
+原因は、Expo SDK 57が要求するPatch Versionに対して、次の3 Packageが1 Patch古いことだった。
+
+- `expo`: `57.0.10`から`57.0.11`
+- `expo-build-properties`: `57.0.8`から`57.0.9`
+- `expo-router`: `57.0.10`から`57.0.11`
+
+品質ゲートを無効化したりExpo Doctorの対象外へ追加したりせず、要求Versionへ更新した。`pnpm-lock.yaml`はpnpm 9.10.0で再生成し、RepositoryのPrettier形式へ整形した。
+
+Lockfile生成のために一時Workflowを使用したが、生成完了後に削除し、恒久的な自動コミット処理は残していない。
