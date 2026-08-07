@@ -14,6 +14,8 @@
     "docs/CODING_STANDARDS.md",
     "CONTRIBUTING.md",
     "CODE_REVIEW.md",
+    "package.json",
+    "pnpm-lock.yaml",
     "docs/history/2026-08-07_100800_coding-standards.md",
     ".codex/runs/20260807-100800-JST/PLAN.md",
     ".codex/runs/20260807-100800-JST/TASKS.md",
@@ -23,10 +25,12 @@
   "validation": {
     "status": "pending",
     "commands": [
-      "GitHub Actions PR quality gate"
+      "GitHub Actions Phase 1 CI",
+      "GitHub Actions Native CI"
     ],
     "warnings": [
-      "Local GitHub CLI and external network are unavailable; validation uses the repository PR workflow."
+      "Local GitHub CLI and external network are unavailable; validation uses the repository PR workflow.",
+      "The first Native CI run failed only at Expo Doctor because three Expo packages were one patch behind the SDK requirement; versions and lockfile were updated and final rerun is pending."
     ]
   },
   "safety": {
