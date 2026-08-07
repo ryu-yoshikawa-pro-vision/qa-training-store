@@ -23,14 +23,13 @@
     ".codex/runs/20260807-100800-JST/run.json"
   ],
   "validation": {
-    "status": "pending",
+    "status": "passed",
     "commands": [
-      "GitHub Actions Phase 1 CI",
-      "GitHub Actions Native CI"
+      "GitHub Actions Phase 1 CI run 31137927062",
+      "GitHub Actions Native CI run 31137927035"
     ],
     "warnings": [
-      "Local GitHub CLI and external network are unavailable; validation uses the repository PR workflow.",
-      "The first Native CI run failed only at Expo Doctor because three Expo packages were one patch behind the SDK requirement; versions and lockfile were updated and final rerun is pending."
+      "Local GitHub CLI and external network were unavailable; validation used the repository PR workflows."
     ]
   },
   "safety": {
@@ -63,6 +62,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "in_progress",
+  "status": "completed",
   "primary_failure_category": null
 }
