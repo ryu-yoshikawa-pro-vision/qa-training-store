@@ -8,14 +8,16 @@
 - [x] 4. `CONTRIBUTING.md`を追加する
 - [x] 5. `CODE_REVIEW.md`へ規約Review観点を反映する
 - [x] 6. 規約策定のHistoryとRun Artifactを追加する
-- [ ] 7. Draft PRを作成して品質ゲートを開始する
-- [ ] 8. 品質ゲートの失敗原因を確認する
-- [ ] 9. Branch起因の失敗があれば最小修正する
+- [x] 7. Draft PRを作成して品質ゲートを開始する
+- [x] 8. 品質ゲートの失敗原因を確認する
+- [x] 9. Branch起因の失敗があれば最小修正する
 - [ ] 10. 最終検証結果をREPORTとrun.jsonへ反映する
 
 ## Discovered
 
-- なし
+- [x] D1. Expo Doctorが要求するPatch Versionへ`expo`、`expo-build-properties`、`expo-router`を更新する
+- [x] D2. pnpm 9.10.0でLockfileを再生成し、RepositoryのPrettier形式へ整形する
+- [x] D3. Lockfile生成用の一時Workflowを削除する
 
 ## Blocked
 
