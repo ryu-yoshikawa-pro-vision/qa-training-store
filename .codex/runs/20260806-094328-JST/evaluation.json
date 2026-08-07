@@ -2,23 +2,24 @@
   "schema_version": 1,
   "run_id": "20260806-094328-JST",
   "result": "partial",
-  "primary_failure_category": "expo_doctor_local_config_and_unverified_remote_ci",
-  "failure_categories": ["expo_doctor_local_config", "unverified_remote_ci", "mcp_device_server_unavailable"],
+  "primary_failure_category": "missing_validation",
+  "failure_categories": ["flaky_or_env_issue", "missing_validation", "artifact_contract_gap"],
   "dimensions": {
-    "task_completion": {"rating": "warn", "evidence": "Native実機の単体／Runtime 5本／Boundary 5本、全体test、typecheck、Web主要回帰／a11y／mobile boundary、Production Bundle、format check、verifyはPASS。Expo Doctor完全PASS、Maestro MCPの現行Hierarchy再取得、Remote CI確認が未完了。", "evidence_refs": [".codex/runs/20260806-094328-JST/REPORT.md"]},
+    "task_completion": {"rating": "warn", "evidence": "Native実機の単体／Runtime 5本／Boundary 5本、全体test、typecheck、Web主要回帰／a11y／mobile boundary、Production Bundle、format check、verifyはPASS。共有用Native成果物の保存先をoutput/mobile-nativeへ統一した。Expo Doctor完全PASS、Maestro MCPの現行Hierarchy再取得、Remote CI確認が未完了。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-094328-JST/REPORT.md", "summary": "Native実機検証と共有成果物規約を記録したRun Report。"}, {"kind": "changed_file", "path": "docs/native/windows-android-local-validation.md", "summary": "Native成果物保存規約の正本。"}]},
     "scope_control": {"rating": "pass", "evidence": "開始時の source git status は clean。初期段階では Run artifact と plan のみを作成した。", "evidence_refs": []},
-    "validation_confidence": {"rating": "warn", "evidence": "APK／JUnit／Runtime／Boundary／全体test／Web／format／verify証跡は取得済み。通常のtestはlocal virtual store再解決でPASS。Maestro MCP inspectは現行Device serverがUNAVAILABLE、Remote最新Checkはgh未導入のため未確認。", "evidence_refs": [".artifacts/native-local/20260806-123500/build/apk-info.txt", ".artifacts/native-local/20260806-124923/maestro/runtime-smoke.log", ".artifacts/native-local/20260806-130600/maestro/persistence-boundary.log"]},
+    "validation_confidence": {"rating": "warn", "evidence": "APK／JUnit／Runtime／Boundary／全体test／Web／format／verify証跡は取得済み。通常のtestはlocal virtual store再解決でPASS。Maestro MCP inspectは現行Device serverがUNAVAILABLE、Remote最新Checkはgh未導入のため未確認。", "evidence_refs": [{"kind": "evaluation_note", "path": ".artifacts/native-local/20260806-123500/build/apk-info.txt", "summary": "Native APK情報とSHA-256。"}, {"kind": "evaluation_note", "path": ".artifacts/native-local/20260806-124923/maestro/runtime-smoke.log", "summary": "Runtime SuiteのMaestroログ。"}, {"kind": "evaluation_note", "path": ".artifacts/native-local/20260806-130600/maestro/persistence-boundary.log", "summary": "Boundary SuiteのMaestroログ。"}]},
     "safety_compliance": {"rating": "pass", "evidence": "Branch／Commit／Push／Uninstall／Workflow再実行を行っていない。", "evidence_refs": []},
     "reviewability": {"rating": "pass", "evidence": "Plan、Tasks、Report、Evaluation を新規 Run に保存し、allowed scope を宣言した。", "evidence_refs": []},
-    "maintainability": {"rating": "pass", "evidence": "変更はallowed scope内のNative bridge／screens、Maestro flow、Windows formal script、Expo patch依存、component test、Run／docsに限定。既存Web presentation／domain／repository契約は変更していない。", "evidence_refs": [".codex/runs/20260806-094328-JST/PLAN.md"]},
-    "reproducibility": {"rating": "warn", "evidence": "Node／pnpm／Java／ADB／Maestro、実機Serial、APK hash、JUnit／Maestro artifactを保存。gh未導入、Mobile MCP未稼働、Maestro MCP inspectは現在UNAVAILABLE。", "evidence_refs": [".codex/runs/20260806-094328-JST/REPORT.md"]}
+    "maintainability": {"rating": "pass", "evidence": "変更はallowed scope内のNative bridge／screens、Maestro flow、Windows formal script、Expo patch依存、component test、Native成果物保存規約、Run／docsに限定。既存Web presentation／domain／repository契約は変更していない。", "evidence_refs": [{"kind": "run_manifest", "path": ".codex/runs/20260806-094328-JST/PLAN.md", "summary": "Native検証の対象範囲と判断。"}, {"kind": "changed_file", "path": "docs/native/windows-android-local-validation.md", "summary": "共有用と機械証跡の責務分離。"}]},
+    "reproducibility": {"rating": "warn", "evidence": "Node／pnpm／Java／ADB／Maestro、実機Serial、APK hash、JUnit／Maestro artifactを保存。gh未導入、Mobile MCP未稼働、Maestro MCP inspectは現在UNAVAILABLE。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-094328-JST/REPORT.md", "summary": "Native実機の再現手順と未確認事項。"}]}
   },
   "findings": [
-    {"category": "environment_virtual_store", "severity": "medium", "evidence": "初期の外部virtual store `C:\\v\\qts`ではVitest／Jestが実行前にpackage resolutionで停止したが、`node_modules/.pnpm-local`をCLI指定した再解決後は全test／typecheckがPASS。", "detail": "repository設定や個人絶対Pathを変更せず、正式コマンドの前提として再現手順をREPORTへ記録した。"},
-    {"category": "format_gate_generated_outputs", "severity": "pass", "evidence": "`.prettierignore`へ`.artifacts`、`android`、`.expo-local-export`を追加後、`pnpm run format:check`と`pnpm run verify`がPASS。", "detail": "生成物を一括整形せず、今回変更範囲内のtracked 2ファイルだけをPrettier整形した。"},
-    {"category": "environment_metro_project_root", "severity": "medium", "evidence": "C:\\q formal rootのexpo-doctorは15/17、physical rootは16/17。physicalではMetro projectRoot checkが通過する。", "detail": "Junction formal root固有差とproject `.npmrc`のnpm config warningを残す。metro.configや個人絶対Pathを変更していない。"},
-    {"category": "unverified_remote_ci", "severity": "high", "evidence": "gh CLI未導入、Commit／Push／Workflow rerunは禁止。", "detail": "ローカル修正と同等gateは確認したが、Remote CIをPASSとは記載しない。"},
-    {"category": "mcp_device_server_unavailable", "severity": "medium", "evidence": "Maestro MCP list_devicesは同一Serialを返すが、長時間CLI後のinspect_screenはDevice server UNAVAILABLE。", "detail": "再起動直後のinspect／Flowは成功済み。MCP server再起動権限を推測して操作せず、保存済みformal CLI artifactを正判定に使用した。"}
+    {"category": "flaky_or_env_issue", "severity": "medium", "evidence": "初期の外部virtual store `<PNPM_VIRTUAL_STORE>`ではVitest／Jestが実行前にpackage resolutionで停止したが、`node_modules/.pnpm-local`をCLI指定した再解決後は全test／typecheckがPASS。", "detail": "repository設定や個人絶対Pathを変更せず、正式コマンドの前提として再現手順をREPORTへ記録した。"},
+    {"category": "artifact_contract_gap", "severity": "low", "evidence": "`.prettierignore`へ`.artifacts`、`android`、`.expo-local-export`を追加後、`pnpm run format:check`と`pnpm run verify`がPASS。", "detail": "生成物を一括整形せず、今回変更範囲内のtracked 2ファイルだけをPrettier整形した。"},
+    {"category": "flaky_or_env_issue", "severity": "medium", "evidence": "<REPO_ROOT> formal rootのexpo-doctorは15/17、physical rootは16/17。physicalではMetro projectRoot checkが通過する。", "detail": "Junction formal root固有差とproject `.npmrc`のnpm config warningを残す。metro.configや個人絶対Pathを変更していない。"},
+    {"category": "missing_validation", "severity": "high", "evidence": "gh CLI未導入、Commit／Push／Workflow rerunは禁止。", "detail": "ローカル修正と同等gateは確認したが、Remote CIをPASSとは記載しない。"},
+    {"category": "flaky_or_env_issue", "severity": "medium", "evidence": "Maestro MCP list_devicesは同一Serialを返すが、長時間CLI後のinspect_screenはDevice server UNAVAILABLE。", "detail": "再起動直後のinspect／Flowは成功済み。MCP server再起動権限を推測して操作せず、保存済みformal CLI artifactを正判定に使用した。"},
+    {"category": "artifact_contract_gap", "severity": "low", "evidence": "共有用PNGをoutput/mobile-nativeへ移動し、git check-ignoreでoutput/管理外を確認。Runbook／README／Project Contextへ保存規約を記録した。", "detail": "共有・確認用成果物と、.artifacts/native-local配下の実行機械証跡を用途別に分離した。"}
   ],
   "improvement_candidates": []
 }

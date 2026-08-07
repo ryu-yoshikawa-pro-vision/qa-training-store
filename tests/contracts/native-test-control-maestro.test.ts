@@ -7,6 +7,7 @@ const flowNames = [
   "native-not-found.yaml",
   "native-storefront.yaml",
   "native-cart.yaml",
+  "native-search.yaml",
   "native-restart-persistence.yaml",
   "native-reset-dirty-state.yaml",
   "native-out-of-stock.yaml",
@@ -102,5 +103,96 @@ describe("Native Test Control Maestro contracts", () => {
       "MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip",
     );
     expect(source).toContain("$RUNNER_TEMP/maestro/maestro/bin/maestro");
+  });
+
+  it("keeps IME-dependent search input separate from known-product flows", () => {
+    const primaryFlowNames = [
+      "native-storefront.yaml",
+      "native-cart.yaml",
+      "native-restart-persistence.yaml",
+      "native-reset-dirty-state.yaml",
+    ] as const;
+
+    for (const flowName of primaryFlowNames) {
+      const source = readFlow(flowName);
+      expect(source).not.toContain('inputText: "P-0001"');
+      expect(source).toContain('openLink: "scenario-shop://products/product-basic-shirt"');
+    }
+
+    const searchSource = readFlow("native-search.yaml");
+    expect(searchSource).toContain('inputText: "P-0001"');
+    expect(searchSource).toContain('id: "native-product-card-product-basic-shirt"');
+    expect(searchSource).toContain('id: "native-catalog-search-input"');
+    expect(searchSource).toContain('id: "native-catalog-search-button"');
+    expect(searchSource).toContain('id: "native-product-detail-screen"');
+    expect(searchSource).toContain('- tapOn:\n    id: "native-product-card-product-basic-shirt"');
+    expect(searchSource).toContain("native-search-product-detail");
+    expect(searchSource.indexOf('inputText: "P-0001"')).toBeLessThan(
+      searchSource.indexOf('id: "native-product-card-product-basic-shirt"'),
+    );
+    expect(searchSource.indexOf('id: "native-product-card-product-basic-shirt"')).toBeLessThan(
+      searchSource.indexOf('- tapOn:\n    id: "native-product-card-product-basic-shirt"'),
+    );
+    expect(
+      searchSource.indexOf('- tapOn:\n    id: "native-product-card-product-basic-shirt"'),
+    ).toBeLessThan(searchSource.indexOf('id: "native-product-detail-screen"'));
+  });
+
+  it.each(["native-low-stock.yaml", "native-purchase-limit.yaml"] as const)(
+    "orders add, message, and go cart in %s",
+    (flowName) => {
+      const source = readFlow(flowName);
+      const addIndex = source.indexOf('id: "native-add-to-cart"');
+      const messageIndex = source.indexOf('id: "native-cart-add-message"');
+      const goCartIndex = source.indexOf('id: "native-go-cart"');
+
+      expect(addIndex).toBeGreaterThanOrEqual(0);
+      expect(messageIndex).toBeGreaterThan(addIndex);
+      expect(goCartIndex).toBeGreaterThan(messageIndex);
+    },
+  );
+
+  it.each([
+    "native-restart-persistence.yaml",
+    "native-reset-dirty-state.yaml",
+    "native-cart.yaml",
+    "native-low-stock.yaml",
+    "native-purchase-limit.yaml",
+  ])("uses stable cart IDs and avoids generic numeric assertions in %s", (flowName) => {
+    const source = readFlow(flowName as (typeof flowNames)[number]);
+    expect(source).toContain('id: "native-persisted-state-ready"');
+    expect(source).toContain('id: "native-cart-badge-count"');
+    expect(source).toContain("native-cart-item-product-basic-shirt-variant-basic-shirt-02");
+    expect(source).toContain("native-cart-quantity-product-basic-shirt-variant-basic-shirt-02");
+    if (
+      [
+        "native-restart-persistence.yaml",
+        "native-reset-dirty-state.yaml",
+        "native-cart.yaml",
+      ].includes(flowName)
+    ) {
+      expect(source).toContain('id: "native-cart-add-message"');
+    }
+    expect(source).not.toMatch(/assertVisible:\s*"\d+"/);
+  });
+
+  it("makes restart persistence stages and initial state isolation explicit", () => {
+    const source = readFlow("native-restart-persistence.yaml");
+    expect((source.match(/clearState:\s*true/g) ?? []).length).toBe(1);
+    for (const checkpoint of [
+      "native-restart-persistence-before-add",
+      "native-restart-persistence-after-add",
+      "native-restart-persistence-before-stop",
+      "native-restart-persistence-after-launch",
+      "native-restart-persistence-after-hydration",
+      "native-restart-persistence-cart-screen",
+      "native-restart-persistence-confirmed",
+    ]) {
+      expect(source).toContain(checkpoint);
+    }
+    expect(source).toContain("- stopApp");
+    expect(source).toContain("- launchApp");
+    expect(source).toContain('text: "1"');
+    expect(source).toContain('id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"');
   });
 });

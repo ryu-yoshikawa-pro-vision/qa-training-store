@@ -110,6 +110,13 @@
   "pnpm": {
     "overrides": {
       "expo-constants": "57.0.9"
+    },
+    "packageExtensions": {
+      "@react-native/jest-preset@0.86.2": {
+        "peerDependencies": {
+          "react-native": "*"
+        }
+      }
     }
   }
 }

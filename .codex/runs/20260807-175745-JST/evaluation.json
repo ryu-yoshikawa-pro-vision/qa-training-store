@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-175745-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [
+    "missing_validation",
+    "artifact_contract_gap",
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "過去の主要失敗を時系列・分類・根本／派生エラー・対応・成功条件へ整理し、Runbook、Skill、PROJECT_CONTEXT、history、current Runへ再発防止規則を反映した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/history/2026-08-07_local-build-failure-prevention.md",
+          "summary": "14件のローカル実行失敗履歴と成功条件。"
+        },
+        {
+          "kind": "run_artifact",
+          "path": ".codex/runs/20260807-175745-JST/REPORT.md",
+          "summary": "振り返り、無効／有効な試行、次回preflight、自己評価。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "文書・Run Artifact・評価のみを変更し、Android実行、Remote CI、Git mutation、runner自動実装は行わなかった。",
+      "evidence_refs": []
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "文書・JSON・差分・Sanitizer検証はPASSした。Remote CIとrunner変更は未確認／未実装であり、ローカル成功とは分離する。",
+      "evidence_refs": [
+        {
+          "kind": "run_artifact",
+          "path": ".codex/runs/20260807-175745-JST/PLAN.md",
+          "summary": "今回の検証対象を文書・JSON・Sanitizerへ限定。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "削除、rename、Git mutation、Remote操作を行わず、生ログをRun Artifactへ直接貼り付けていない。",
+      "evidence_refs": []
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "PLAN、TASKS、REPORT、run.json、evaluation、history、正本文書、read-only subagent調査結果を保存した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/native/windows-android-local-validation.md",
+          "summary": "preflight、仮説、分類、停止、ログ保存の正本。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".agents/skills/android-native-local-validation/SKILL.md",
+          "summary": "エージェント実行入口の規則。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "ユーザー分類とrepo taxonomyを分離し、runner変更をStrict candidateとして分離した。READMEは詳細を複製せずRunbookへ導線を置いた。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/reference/harness-improvement-loop.md",
+          "summary": "反復失敗をcandidate化し、auto-applyしない規則。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "次回実行用のpreflight・仮説・attempt-id規約は文書化したが、今回のRunでは同じBuild／Maestroを再実行していない。Remote CIの修正後結果も未確認である。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/history/2026-08-07_local-build-failure-prevention.md",
+          "summary": "成功ベースラインと次回の停止規則。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "過去のBuild前に容量・Toolchain・SDK・ADB・Gradleの事前確認が固定されておらず、Native `.so` copy失敗へ到達した。",
+      "detail": "今回Runでは文書とSkillへpreflightを追加した。wrapperへの自動ゲートは別Strict候補とする。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "同一RunIdのBuild出力先に成功ログが残り、先行する低容量失敗の完全ログを直接参照できない可能性がある。",
+      "detail": "今回Runではattempt-idと上書き禁止を文書化した。runnerの出力分離実装はauto-applyせずcandidateへ残す。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "Native Jest worker競合、容量不足、IME入力経路差が異なる条件で発生した。",
+      "detail": "同一条件のblind retryを禁止し、環境差と成功条件を事前記録する運用へ変換した。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "candidate_id": "HIC-20260807-001",
+      "target": "scripts/native/windows/android-local.ps1",
+      "failure_category": "missing_validation",
+      "source_runs": [
+        "20260806-094328-JST",
+        "20260807-094024-JST"
+      ],
+      "evidence": "低容量のままGradleへ進みNative `.so` copyで失敗した。Runbookには10GBゲートがあるがwrapper入口の実行ゲートではない。",
+      "expected_impact": "容量不足とToolchain不一致をBuild開始前に検出し、下流ログと再試行を減らす。",
+      "risk": "Thresholdや環境差によるfalse positive、wrapperの既存呼び出し契約への影響。",
+      "recommended_change": "Build入口へread-only preflight結果を保存する設計を別Strictで検討する。",
+      "strictness": "strict",
+      "status": "proposed",
+      "owner_decision": "not_reviewed"
+    },
+    {
+      "candidate_id": "HIC-20260807-002",
+      "target": "scripts/native/windows/android-local.ps1 artifact output contract",
+      "failure_category": "artifact_contract_gap",
+      "source_runs": [
+        "20260807-094024-JST"
+      ],
+      "evidence": "同一RunIdの`build/assemble-release.log`が後続成功ログになり、低容量失敗の完全ログがREPORT要約にしか残らない状態になった。",
+      "expected_impact": "attemptごとの失敗ログ、終了コード、環境条件を保持し、原因比較を可能にする。",
+      "risk": "既存CI／ローカルArtifact参照、容量、命名互換性。",
+      "recommended_change": "attempt-idをwrapperで強制し、既存出力を上書きせず、失敗時の完全ログとmanifestを別ディレクトリへ保存する設計を別Strictで検討する。",
+      "strictness": "strict",
+      "status": "proposed",
+      "owner_decision": "not_reviewed"
+    }
+  ]
+}

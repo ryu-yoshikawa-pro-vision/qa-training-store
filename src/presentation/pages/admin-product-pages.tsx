@@ -1118,7 +1118,7 @@ function ProductEditor({
         className="dialog-overlay"
         isOpen={pendingNavigation !== null}
         isDismissable
-        onOpenChange={(isOpen) => {
+        onOpenChange={(isOpen: boolean) => {
           if (!isOpen && !navigationConfirmingRef.current) cancelNavigation();
         }}
       >

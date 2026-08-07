@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-222748-JST",
+  "task_type": "repair",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": ["code_researcher", "implementation_researcher", "test_investigator"],
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    ".codex/runs/20260807-094024-JST/run.json",
+    ".codex/runs/20260807-094024-JST/REPORT.md",
+    "docs/reference/repair-loop.md",
+    ".codex/runs/20260807-222748-JST/PLAN.md",
+    ".codex/runs/20260807-222748-JST/TASKS.md",
+    ".codex/runs/20260807-222748-JST/REPORT.md",
+    ".codex/runs/20260807-222748-JST/run.json"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm run format:check",
+      "pnpm run test:contracts",
+      "pnpm run verify",
+      "git diff --check",
+      "run.json/evaluation.json JSON parse and consistency check",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260807-222748-JST -Write -Check"
+    ],
+    "warnings": [
+      "lintは0 errors／64 warnings。既存のLint warningとReact act／Node SQLite warningが残る。",
+      "Remote CIはユーザー指示どおり実行していない。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 3,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "agent": "code_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "summary": "094024 Run ArtifactのSubagent記録、集計、Validation状態を照合する。"
+      },
+      {
+        "agent": "implementation_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "summary": "verifyの定義、REPORT訂正位置、Append-only例外の最小修正範囲を確認する。"
+      },
+      {
+        "agent": "test_investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "summary": "指定品質ゲート、JSON parse、Run整合性、対象Run Sanitizerの検証入口を確認する。"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "read_only": 3,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 3
+    }
+  },
+  "evaluation_path": null,
+  "status": "completed",
+  "primary_failure_category": null
+}

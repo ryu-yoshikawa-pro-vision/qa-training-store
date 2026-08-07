@@ -1,0 +1,16 @@
+{
+  "runtime": "host",
+  "preset": "safe",
+  "mode": "safe",
+  "run_id": "20260806-162406-JST",
+  "cwd": "<REPO_ROOT>",
+  "git_branch": "feature/01_phase2-first-half-native-foundation",
+  "git_dirty": true,
+  "prompt_source": "inline",
+  "output_file": "<REPO_ROOT>/.codex\\\\runs\\20260806-162406-JST\\artifacts\\codex-task-20260806-165641.json",
+  "output_schema": null,
+  "log_path": "<REPO_ROOT>/.codex\\\\runs\\20260806-162406-JST\\logs\\codex-task-20260806-165641.jsonl",
+  "codex_exit_code": null,
+  "verify_exit_code": null,
+  "status": "codex_missing"
+}

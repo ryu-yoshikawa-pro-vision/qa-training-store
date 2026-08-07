@@ -1,0 +1,3 @@
+{"timestamp":"2026-08-06T16:56:43.0210164+09:00","event":"wrapper_start","runtime":"host","preset":"safe","run_id":"20260806-162406-JST"}
+{"timestamp":"2026-08-06T16:56:43.1355693+09:00","event":"evaluation_template_created","path":".codex/runs/20260806-162406-JST/evaluation.json"}
+{"timestamp":"2026-08-06T16:56:43.8829283+09:00","event":"task_failed","status":"codex_missing","message":"codex command not found in PATH"}

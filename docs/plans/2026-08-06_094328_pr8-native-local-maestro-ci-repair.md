@@ -7,7 +7,7 @@ PR #8 の Native 品質ゲートを、原因を特定した最小差分で修正
 ## Current understanding
 
 - ブランチは `feature/01_phase2-first-half-native-foundation`、HEAD は `13cf19bc842832bb1882f62e210f0c87325dc2ae`、作業ツリーは開始時点で clean。
-- `C:\q` は `C:\Users\sella\Documents\qa-training-store` を指す Junction である。
+- `C:\q` はリポジトリを指す標準 Junction alias である。
 - Node 24.12.0、pnpm 9.10.0、Java 17.0.20、ADB、Maestro CLI 2.8.0、認証済み Android 実機は存在する。
 - `pnpm run native:android:doctor` は `Validate toolchain` 中に `pnpm` の引数が渡らず失敗する。`android-local.ps1` の `Run`／`Out` が `$Args` をパラメーター名に使っているため、PowerShell の自動 `$Args` と衝突している可能性が高い。
 - 最新 PR head に紐づく Native CI run `31059212026` は Native Static が `expo-doctor@1.17.6` の Expo 4 package mismatch で失敗し、Android は Build／Install／Launch 成功後に 5 Flow 全てが最初の `Native test runtime listening` 可視 assertion で失敗している。

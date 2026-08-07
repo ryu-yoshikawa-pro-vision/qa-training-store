@@ -564,19 +564,170 @@ jobs:
             "$GITHUB_WORKSPACE/maestro/native-not-found.yaml" \
             "$GITHUB_WORKSPACE/maestro/native-storefront.yaml" \
             "$GITHUB_WORKSPACE/maestro/native-cart.yaml"
-      - name: Run Maestro Persistence and Boundary flows
+      - name: Run Maestro Search Input flow
         shell: bash
         run: |
           set -euo pipefail
           maestro test \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/persistence-boundary" \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/search-input" \
             --format junit \
-            --output "$RUNNER_TEMP/maestro-persistence-boundary.xml" \
-            "$GITHUB_WORKSPACE/maestro/native-restart-persistence.yaml" \
-            "$GITHUB_WORKSPACE/maestro/native-reset-dirty-state.yaml" \
-            "$GITHUB_WORKSPACE/maestro/native-out-of-stock.yaml" \
-            "$GITHUB_WORKSPACE/maestro/native-low-stock.yaml" \
-            "$GITHUB_WORKSPACE/maestro/native-purchase-limit.yaml"
+            --output "$RUNNER_TEMP/maestro-search-input.xml" \
+            "$GITHUB_WORKSPACE/maestro/native-search.yaml"
+      - name: Run Maestro Restart Persistence flow
+        shell: bash
+        run: |
+          set -uo pipefail
+          flow_name="native-restart-persistence"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/persistence-restart"
+          junit_path="$RUNNER_TEMP/maestro-persistence-restart.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-restart-persistence.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "junit=$junit_path"
+          echo "screenshots=$output_dir"
+          echo "hierarchy=$output_dir"
+          echo "maestro_output=$output_dir"
+          set +e
+          maestro test \
+            --test-output-dir="$output_dir" \
+            --format junit \
+            --output "$junit_path" \
+            "$flow_path"
+          flow_exit=$?
+          set -e
+          if [[ "$flow_exit" -eq 0 ]]; then
+            echo "result=PASS"
+          else
+            echo "result=FAIL"
+          fi
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
+      - name: Run Maestro Reset Dirty State flow
+        shell: bash
+        run: |
+          set -uo pipefail
+          flow_name="native-reset-dirty-state"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/persistence-reset"
+          junit_path="$RUNNER_TEMP/maestro-persistence-reset.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-reset-dirty-state.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "junit=$junit_path"
+          echo "screenshots=$output_dir"
+          echo "hierarchy=$output_dir"
+          echo "maestro_output=$output_dir"
+          set +e
+          maestro test \
+            --test-output-dir="$output_dir" \
+            --format junit \
+            --output "$junit_path" \
+            "$flow_path"
+          flow_exit=$?
+          set -e
+          if [[ "$flow_exit" -eq 0 ]]; then
+            echo "result=PASS"
+          else
+            echo "result=FAIL"
+          fi
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
+      - name: Run Maestro Out of Stock boundary flow
+        shell: bash
+        run: |
+          set -uo pipefail
+          flow_name="native-out-of-stock"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/boundary-out-of-stock"
+          junit_path="$RUNNER_TEMP/maestro-boundary-out-of-stock.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-out-of-stock.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "junit=$junit_path"
+          echo "screenshots=$output_dir"
+          echo "hierarchy=$output_dir"
+          echo "maestro_output=$output_dir"
+          set +e
+          maestro test \
+            --test-output-dir="$output_dir" \
+            --format junit \
+            --output "$junit_path" \
+            "$flow_path"
+          flow_exit=$?
+          set -e
+          if [[ "$flow_exit" -eq 0 ]]; then
+            echo "result=PASS"
+          else
+            echo "result=FAIL"
+          fi
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
+      - name: Run Maestro Low Stock boundary flow
+        shell: bash
+        run: |
+          set -uo pipefail
+          flow_name="native-low-stock"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/boundary-low-stock"
+          junit_path="$RUNNER_TEMP/maestro-boundary-low-stock.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-low-stock.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "junit=$junit_path"
+          echo "screenshots=$output_dir"
+          echo "hierarchy=$output_dir"
+          echo "maestro_output=$output_dir"
+          set +e
+          maestro test \
+            --test-output-dir="$output_dir" \
+            --format junit \
+            --output "$junit_path" \
+            "$flow_path"
+          flow_exit=$?
+          set -e
+          if [[ "$flow_exit" -eq 0 ]]; then
+            echo "result=PASS"
+          else
+            echo "result=FAIL"
+          fi
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
+      - name: Run Maestro Purchase Limit boundary flow
+        shell: bash
+        run: |
+          set -uo pipefail
+          flow_name="native-purchase-limit"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/boundary-purchase-limit"
+          junit_path="$RUNNER_TEMP/maestro-boundary-purchase-limit.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-purchase-limit.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "junit=$junit_path"
+          echo "screenshots=$output_dir"
+          echo "hierarchy=$output_dir"
+          echo "maestro_output=$output_dir"
+          set +e
+          maestro test \
+            --test-output-dir="$output_dir" \
+            --format junit \
+            --output "$junit_path" \
+            "$flow_path"
+          flow_exit=$?
+          set -e
+          if [[ "$flow_exit" -eq 0 ]]; then
+            echo "result=PASS"
+          else
+            echo "result=FAIL"
+          fi
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
       - name: Collect Android evidence
         if: always()
         timeout-minutes: 3

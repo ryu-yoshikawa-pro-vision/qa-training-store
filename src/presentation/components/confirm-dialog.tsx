@@ -6,6 +6,7 @@ import {
   Heading,
   Modal,
   ModalOverlay,
+  type DialogRenderProps,
 } from "react-aria-components";
 import { content } from "@/presentation/content/dictionary";
 
@@ -42,7 +43,7 @@ export function ConfirmDialog({
       <ModalOverlay className="dialog-overlay" isDismissable>
         <Modal className="dialog-modal">
           <Dialog className="dialog" role="alertdialog">
-            {({ close }) => (
+            {({ close }: DialogRenderProps) => (
               <>
                 <Heading slot="title">{title}</Heading>
                 <div>{children}</div>

@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "run_id": "20260806-194500-JST",
+  "result": "partial",
+  "primary_failure_category": "artifact_contract_gap",
+  "failure_categories": ["artifact_contract_gap", "missing_validation"],
+  "dimensions": {
+    "task_completion": {"rating": "warn", "evidence": "必須修正、Fixture 39契約、Contract、Run Artifact整合性、Native成果物規約の保存先・Git管理外・文書整合性確認を実施した。Windows Android Build復旧手順を文書化し、既知商品の主要Native FlowをProduct Deep Linkへ切り替え、検索入力を専用Flowへ分離した。実機はDoctor、修正後の標準IME Test 1/1、Runtime 5/5、Boundary 5/5、LatinIME条件の検索専用Flow 1/1を確認した。全体typecheckは今回変更外の既存6箇所のimplicit-anyでFAILし、更新後Remote CIは未確認。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-194500-JST/REPORT.md", "summary": "修正内容、実機Native検証、Android Build復旧文書、IME条件別のローカル再検証、既存typecheck失敗、Remote CIの未確認事項を記録したRun Report。"}]},
+    "scope_control": {"rating": "pass", "evidence": "指定スクリプト、Fixture、Contract、CI、Path Sanitization docs、PR #9対象Runに加え、ユーザー明示のNative成果物規約を対象に含め、不要な削除・追跡変更は行っていない。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-194500-JST/PLAN.md", "summary": "対象範囲と対象外判断を記録したRun Plan。"}]},
+    "validation_confidence": {"rating": "warn", "evidence": "Windows PowerShell 5.1／PowerShell 7 Fixture各39契約、Parser、Native関連Contract 30/30、format、lint、Native test typecheck、実機Doctor、標準IMEのTest 1/1・Runtime 5/5・Boundary 5/5、LatinIME条件の検索専用Flow 1/1を確認した。全体typecheckは既存6箇所のimplicit-anyでFAILし、更新後Remote CIは未確認。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-194500-JST/REPORT.md", "summary": "ローカル品質ゲート、IME非依存Flow変更、検索専用Flow、既存typecheck失敗、Remote未確認の境界を記録したRun Report。"}]},
+    "safety_compliance": {"rating": "pass", "evidence": "Branch／Commit／Push／Rebase／Merge／Review Resolve／Workflow再実行は行っていない。", "evidence_refs": []},
+    "reviewability": {"rating": "pass", "evidence": "Subagent、Validation、Review判定、Native成果物規約の訂正判定をRun Artifactへ記録した。", "evidence_refs": [{"kind": "run_manifest", "path": ".codex/runs/20260806-194500-JST/run.json", "summary": "使用Subagentと検証履歴を記録したRun Manifest。"}, {"kind": "evaluation_note", "path": ".codex/runs/20260806-194500-JST/REPORT.md", "summary": "Review判定とNative成果物規約の維持判断を記録したRun Report。"}]},
+    "maintainability": {"rating": "pass", "evidence": "Path置換、CLI、Atomic helper、codex-task終了処理を責務ごとに分離し、Fixtureで動作契約を確認した。", "evidence_refs": [{"kind": "changed_file", "path": "scripts/lib/codex-artifact-sanitizer.ps1", "summary": "共有サニタイザーとAtomic helperの実装。"}]},
+    "reproducibility": {"rating": "warn", "evidence": "Windows PowerShell 5.1とPowerShell 7で同じ39契約を再実行し、両方PASSした。Native関連Contract 30/30、標準IMEのRuntime／Boundary、LatinIME条件の検索専用Flowを再現可能な証跡とともに確認した。全体typecheckには既存エラーがあり、更新後Remote CIは未確認。", "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260806-194500-JST/REPORT.md", "summary": "PowerShell、Native Flow、IME条件、既存typecheck、Remote未確認の再現条件を記録したRun Report。"}]}
+  },
+  "findings": [
+    {"category": "artifact_contract_gap", "severity": "high", "evidence": "観測済みの最新Remote結果はPhase 1 CI success、Native CI failure（Native Staticのexpo-doctor Patch Version mismatch）。", "detail": "expo、expo-build-properties、expo-routerを指定Patchへ更新し、ローカルではexpo-doctor 17/17を確認したが、更新後Remote CIは再実行禁止のためNative CI successを確認できない。"},
+    {"category": "missing_validation", "severity": "medium", "evidence": "Push、Workflow手動再実行は禁止されているため、修正後Remote CIは未実行。検索専用Flowは標準日本語IMEでは入力条件未達として成功扱いにせず、LatinIME条件で1/1を確認した。全体typecheckは今回変更外の既存6箇所のimplicit-anyでFAILした。", "detail": "主要Native FlowのIME依存分離、標準IMEのRuntime／Boundary、LatinIME条件の検索専用Flowはローカルで確認済み。一方、既存typecheckの修正とPhase 1 CI／Native CIの更新後success確認は別途残るため、全品質ゲートをPASSとは扱わない。"}
+  ],
+  "improvement_candidates": []
+}
