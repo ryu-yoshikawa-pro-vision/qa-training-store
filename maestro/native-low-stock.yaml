@@ -33,6 +33,18 @@ appId: com.ryuyoshikawa.scenarioshop
     timeout: 30000
 - tapOn:
     id: "native-add-to-cart"
+- scrollUntilVisible:
+    element:
+      id: "native-cart-add-message"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "native-cart-add-message"
+- scrollUntilVisible:
+    element:
+      id: "native-go-cart"
+    direction: UP
+    timeout: 10000
 - tapOn:
     id: "native-go-cart"
 - extendedWaitUntil:

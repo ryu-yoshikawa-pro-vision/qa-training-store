@@ -3,7 +3,7 @@
   "run_id": "20260807-094024-JST",
   "result": "partial",
   "primary_failure_category": "remote_ci_unverified",
-  "failure_categories": ["remote_ci_unverified", "flaky_or_env_issue"],
+  "failure_categories": ["remote_ci_unverified", "flaky_or_env_issue", "artifact_contract_gap"],
   "dimensions": {
     "task_completion": {
       "rating": "pass",
@@ -32,8 +32,8 @@
       "evidence_refs": []
     },
     "reviewability": {
-      "rating": "pass",
-      "evidence": "PLAN、TASKS、REPORT、run.json、evaluation.json、ADR、履歴、focused test、品質ゲート結果を保存した。",
+      "rating": "warn",
+      "evidence": "主要なPLAN、TASKS、REPORT、run.json、evaluation.json、ADR、履歴、focused test、品質ゲート結果は追跡可能だが、REPORT.mdが一時的に0 bytesになり、切り詰め前との完全一致は保証できない。",
       "evidence_refs": [
         {"kind": "run_artifact", "path": ".codex/runs/20260807-094024-JST/PLAN.md", "summary": "仮説、範囲、完了条件。"},
         {"kind": "run_artifact", "path": ".codex/runs/20260807-094024-JST/TASKS.md", "summary": "全タスク完了状態。"}
@@ -67,6 +67,12 @@
       "severity": "medium",
       "evidence": "初回Release Buildはシステムドライブ空き約28MBでNative .so copyに失敗し、NativeCart componentの並列実行でも一度timeoutした。",
       "detail": "容量確保後のBuild成功と単独component再実行で切り分け、最終検証は単独正式入口で完了した。自動cleanupは行っていない。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "REPORT.mdが作業中に一時的に0 bytesになり、既知の行動記録・判断・検証結果を後から再構成した。",
+      "detail": "主要な履歴は再構成できたが、切り詰め前REPORTとの完全一致は保証できない。未知の欠落可能性を残すためreviewabilityはwarnとする。"
     }
   ],
   "improvement_candidates": []

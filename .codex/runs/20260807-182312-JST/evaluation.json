@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-182312-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [
+    "artifact_contract_gap"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "初回verifyで検出されたSkillとNative validation contractの文言不一致を最小修正し、Contract 4/4と完全verifyを再実行して終了コード0を確認した。",
+      "evidence_refs": [
+        {
+          "kind": "run_artifact",
+          "path": ".codex/runs/20260807-182312-JST/REPORT.md",
+          "summary": "Quality Gate iteration 1/2の失敗・修正・再検証。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "今回の修正は`.agents/skills/android-native-local-validation/SKILL.md`の契約文言だけに限定し、Git mutation、Remote CI、実機Native操作は行っていない。",
+      "evidence_refs": []
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "`pnpm run verify`、Safety Harness Verify、EAS config、Native route dependency、Native production bundleの全ローカルゲートが成功した。",
+      "evidence_refs": [
+        {
+          "kind": "artifact_dir",
+          "path": ".artifacts/quality-gate/20260807-182312-JST/",
+          "summary": "各ゲートの完全ログ。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "削除・Git mutation・Remote操作は行わず、生ログは`.artifacts`へ保存した。",
+      "evidence_refs": []
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "初回失敗の最初のエラー、原因、最小修正、Contract単体、完全verify、追加ゲートの結果をRun Artifactへ記録した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".agents/skills/android-native-local-validation/SKILL.md",
+          "summary": "既存Contractに合わせた文言修正。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存の契約テストを変更せず、Skill側の表記を正本契約へ戻した。",
+      "evidence_refs": [
+        {
+          "kind": "run_artifact",
+          "path": ".artifacts/quality-gate/20260807-182312-JST/contract-repair-1.log",
+          "summary": "Contract 4/4 PASS。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "初回失敗を別ログへ保存し、条件変更後にContract単体、完全verify、追加静的ゲートを再実行して再現可能な結果を確認した。",
+      "evidence_refs": [
+        {
+          "kind": "run_artifact",
+          "path": ".artifacts/quality-gate/20260807-182312-JST/verify-repair-1.log",
+          "summary": "完全verifyの終了コード0。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "low",
+      "evidence": "初回verifyのContract 1件が、Skillに必要な`単体 Flow が失敗したら後続 Suite を実行せず`を検出できなかった。",
+      "detail": "今回のSkill文言変更で空白を削ったことが原因。既存Contractを変更せず、Skillの表記を戻し、Contract 4/4と完全verifyをPASSさせた。"
+    }
+  ],
+  "improvement_candidates": []
+}

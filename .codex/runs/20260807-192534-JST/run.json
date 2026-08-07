@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "run_id": "20260807-192534-JST",
+  "task_type": "repair",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": ["code_researcher", "test_investigator", "implementation_researcher", "implementation_worker"],
+  "repo": "qa-training-store",
+  "branch": "fix/sanitize-codex-run-artifact-paths",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    "tests/contracts/native-windows-local-validation.test.ts",
+    "maestro/native-low-stock.yaml",
+    "maestro/native-purchase-limit.yaml",
+    "tests/contracts/native-test-control-maestro.test.ts",
+    "tests/contracts/native-sqlite-transactions.test.ts"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm exec vitest run tests/contracts/native-windows-local-validation.test.ts tests/contracts/native-test-control-maestro.test.ts tests/contracts/native-sqlite-transactions.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm run test:component:native",
+      "pnpm run format:check",
+      "pnpm run verify (initial host timeout at 304 seconds; no test failure observed)",
+      "pnpm exec vitest run tests/contracts --no-file-parallelism --maxWorkers=1 --reporter=verbose",
+      "pnpm run verify",
+      "pnpm run native:android:doctor",
+      "android-local.ps1 -Action Test -Flow maestro/native-low-stock.yaml -RunId 20260807-200021-low-stock",
+      "android-local.ps1 -Action Test -Flow maestro/native-purchase-limit.yaml -RunId 20260807-200021-purchase-limit",
+      "pnpm run native:android:test:boundary",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260807-192534-JST -Write -Check"
+    ],
+    "warnings": [
+      "Remote CIは未実行。commit、push、PR更新も行っていない。",
+      "初回pnpm run verifyはホスト実行上限304秒に到達したが、診断後の正式再実行はexit 0。",
+      "lintは0 errors／64 warnings。React act、Node SQLite、child-processの既存warningが残る。",
+      "今回の変更はFlow／Contract／テストのみでアプリNativeソースを変更していないため、既存Release APKを使用しBuildは未実行。"
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "agent": "code_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "summary": "対象5ファイルの現状、既存Maestro待機パターン、SQLite finally漏れ、最小修正箇所を調査した。"
+      },
+      {
+        "agent": "test_investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "summary": "既存Contractのindex比較記法、Focused／Native Component／verify入口、検証順序を調査した。"
+      },
+      {
+        "agent": "implementation_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "summary": "正式Native Flow入口、APK再Build条件、証跡保存先、PR Head読み取り確認方法を調査した。"
+      },
+      {
+        "agent": "implementation_worker",
+        "mode": "workspace_write",
+        "status": "completed",
+        "summary": "親Agentが指定した5ファイルだけを最小修正し、対象Contract 34 testsとPrettier checkをPASSした。"
+      }
+    ],
+    "summary": {
+      "total": 4,
+      "read_only": 3,
+      "writable": 1,
+      "scope_violations": 0,
+      "used_in_final_plan": 4
+    }
+  },
+  "evaluation_path": ".codex/runs/20260807-192534-JST/evaluation.json",
+  "status": "completed",
+  "primary_failure_category": "remote_ci_unverified"
+}

@@ -138,6 +138,20 @@ describe("Native Test Control Maestro contracts", () => {
     ).toBeLessThan(searchSource.indexOf('id: "native-product-detail-screen"'));
   });
 
+  it.each(["native-low-stock.yaml", "native-purchase-limit.yaml"] as const)(
+    "orders add, message, and go cart in %s",
+    (flowName) => {
+      const source = readFlow(flowName);
+      const addIndex = source.indexOf('id: "native-add-to-cart"');
+      const messageIndex = source.indexOf('id: "native-cart-add-message"');
+      const goCartIndex = source.indexOf('id: "native-go-cart"');
+
+      expect(addIndex).toBeGreaterThanOrEqual(0);
+      expect(messageIndex).toBeGreaterThan(addIndex);
+      expect(goCartIndex).toBeGreaterThan(messageIndex);
+    },
+  );
+
   it.each([
     "native-restart-persistence.yaml",
     "native-reset-dirty-state.yaml",

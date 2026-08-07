@@ -69,3 +69,12 @@
 - React `act` console warningと既存lint warningは残るが、quality gate errorではない。品質ゲートエラーを「範囲外」として保留せず、今回の一時timeoutと実機Maestro失敗は再現・原因分類・再検証まで完了した。
 - Remote CIの再実行、commit、push、PR更新は行っていない。未確認事項はRemote CI上の最終結果のみである。
 - Progress: 100% (8/8)
+
+## 2026-08-07 19:38 JST — REPORT切り詰め事象のArtifact完全性Gap追補
+
+- 事実として、本Runの`REPORT.md`は2026-08-07 11:00 JST時点で一時的に0 bytesになった。容量不足中のパッチ書き込み失敗後に確認し、既知の履歴を再構成して以後の追記を再開した。
+- 復旧に使用した証跡は、会話中に保持されていた作業情報、本Runの`PLAN.md`／`TASKS.md`／`run.json`／`evaluation.json`、復旧後の本`REPORT.md`、および実行ごとの`.artifacts/native-local/20260807-094024-JST/`にあるBuild／Install／Maestro証跡である。参照したものだけを復旧根拠とした。
+- 主要な作業記録、判断、検証結果は上記の根拠から再構成できた。ただし、0 bytesになる前のREPORTと現在のREPORTが完全一致することは証明できない。
+- 現時点で特定できる追加の欠落はないが、切り詰め前に存在した可能性がある未知の欠落を否定できない。推測で行動記録を補完しない。
+- 再発防止として、実行ごとの生ログを`.artifacts/native-local/<attempt-id>/`へ分離し、Run Artifactはappend-onlyで扱い、完了前にサニタイザのWrite＋Checkを実行する既存運用を維持する。
+- この追補により、旧評価は完全なArtifact Integrity PASSではなく、`artifact_contract_gap`を含む警告状態として扱う。
