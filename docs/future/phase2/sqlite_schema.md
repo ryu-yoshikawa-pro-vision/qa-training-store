@@ -357,7 +357,6 @@ CREATE TABLE schema_metadata (
 
 Triggerは使用せず、Use CaseとContract Testで検証します。
 
-
 ## 3. Web/SQLite Contract対応
 
 - SQLiteの`is_default/is_active`は0/1で保存し、Webの`isDefaultKey/isActiveKey`と同じ変換関数を使う。

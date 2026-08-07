@@ -7,10 +7,12 @@
 - rejected / deferred candidate も evidence と owner decision を残す。
 
 ## Included examples
+
 - docs / skill improvement: `strictness = normal`
 - validator / schema improvement: `strictness = strict`
 - unsafe or policy-bypass candidate: `strictness = blocked`
 
 ## Files
+
 - `harness-improvement-candidates.json`
 - `harness-improvement-review.md`

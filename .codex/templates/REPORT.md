@@ -1,8 +1,10 @@
 # Report (append-only)
+
 - 行動のたびに追記する（調査/編集/判断も含む）
 - コマンドや確認結果は必ず記録する
 
 ## Evidence Record (optional)
+
 - Record ID:
 - Round:
 - Query:
@@ -15,6 +17,7 @@
 - Next Action:
 
 ## YYYY-MM-DD HH:MM (JST)
+
 - Summary:
 - Completed:
 - Changes:
@@ -26,6 +29,7 @@
 - Progress: NN% (done/total)
 
 ## Deletion candidates
+
 - Codex はファイルやディレクトリを削除しない。
 - 不要に見えるファイルは、ユーザーが手動確認できるようにここへ記録する。
 

@@ -195,7 +195,7 @@ pnpm install --frozen-lockfile --virtual-store-dir=C:/v/qts
 pnpm exec expo prebuild --clean --platform android --no-install
 ```
 
-4. `autolinking.json` に古い `.pnpm-local` が残っていないことを確認し、`pnpm run native:android:build:local` を新しい Run ID で再実行する。
-5. APK が生成された場合だけ、通常の Install、Smoke、Test、RuntimeSuite、BoundarySuite の順へ戻る。Test または最初の Flow が失敗したら後続 Suite は実行しない。
+1. `autolinking.json` に古い `.pnpm-local` が残っていないことを確認し、`pnpm run native:android:build:local` を新しい Run ID で再実行する。
+2. APK が生成された場合だけ、通常の Install、Smoke、Test、RuntimeSuite、BoundarySuite の順へ戻る。Test または最初の Flow が失敗したら後続 Suite は実行しない。
 
 `pnpm-lock.yaml`、`autolinking.json`、CMake Cache を手編集しない。`-CleanNative` は生成状態を正しく再作成した後に Cache の再利用が妥当でない場合だけ使う。再リンクと Prebuild 後も同じエラーが続く場合は、ログの最後の `FAILED`／`Caused by` と `.artifacts/native-local/<timestamp>/build/assemble-release.log` を保存して停止する。

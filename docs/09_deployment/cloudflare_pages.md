@@ -89,7 +89,6 @@ Schema変更を含まない場合は直前の成功DeployへRollback可能です
 
 一般閲覧用URLが実際に必要になった場合だけPublic Projectを分離し、Test ModuleをBuild Graphから除外します。
 
-
 ## 商品画像配信
 
 `public/images/products/`と診断用`product-image-manifest.json`をExpo Exportへ含めます。RuntimeはBuild生成済み`src/generated/product-image-manifest.ts`をBundleから使用します。`pnpm run build:web`の先頭でManifest生成と検証を必ず実行し、File不存在・Hash不一致・500KB超過をDeploy失敗とします。GitHub APIへのClient書込みは行いません。

@@ -114,7 +114,6 @@ ECサイトに多い画面・権限・価格・在庫・注文状態を、決定
 - UIからDBを直接操作せず、Use CaseとRepository境界を維持する。
 - Phase 1の必須Playwright E2E 12本が安定し、細かな組合せ・境界値はUnit/Application/Component/Contract Testで担保する。
 
-
 ## 実装契約
 
 Phase 1実装は`04_data/domain_types.md`、`04_data/application_contracts.md`、`04_data/repository_interfaces.md`、`04_data/indexeddb_schema.md`の型・Transaction・Index契約に従います。実装者が別DTO、別Password Hash、別Admin Query方式を独自採用しません。`future/phase2`配下はPhase 1の正本ではありません。

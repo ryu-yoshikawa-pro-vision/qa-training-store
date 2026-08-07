@@ -12,6 +12,7 @@
 ```
 
 ## 補足
+
 - `.codex/runs/` と `.codex/logs/` は実行時に増える。
 - `.agents/skills/*/references/` は task-specific workflow の詳細手順。
 - `docs/reference/` は人間向けの補助文書。

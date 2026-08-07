@@ -91,6 +91,7 @@
 ### 1.8 Review集計
 
 `product_review_summaries`に公開Review件数、評価合計、平均、評価1～5別件数を保持します。Reviewの作成、評価変更、削除、非公開、再公開と同じTxで更新します。
+
 - 商品新規作成時に全値0のSummaryを同一Transactionで作成する。削除可能なdraft商品を削除する場合は、Reviewがないことを再確認してSummaryも同一Transactionで削除する。
 - 商品AggregateのCreate/UpdateではUse CaseがClockを1回だけ取得し、Product、Variant、ProductImage、INITIAL_STOCK履歴に同じ時刻を使用する。Create時は0件Review Summaryにも同じ時刻を使用する。Update時は既存Review Summaryを変更せず、Review Summaryの再集計はReview変更Use Caseだけが行う。Repositoryは実時計を直接取得しない。
 
@@ -254,7 +255,6 @@ pending_payment
 
 - Phase 2: Guest Checkout再評価、未発送Cancel、Cancel申請、Return、全額Refund、退会。
 - Phase 3: Payment Unknown、Gateway Ledger、Reconciliation、Migration/Import/Export。
-
 
 ## 11. 実装境界の補足
 

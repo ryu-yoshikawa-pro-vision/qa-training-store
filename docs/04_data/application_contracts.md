@@ -460,7 +460,6 @@ type BrandAdminSearchQuery = {
 };
 ```
 
-
 ```typescript
 type UserSearchQuery = {
   keyword: string | null;
@@ -952,7 +951,6 @@ type CompleteDeliveryRequest = StartOrderPreparationRequest;
 type CompleteDeliveryCommand = CompleteDeliveryRequest & { actorUserId: string; now: IsoDateTime };
 
 ```
-
 
 ```typescript
 type OrderListItem = {

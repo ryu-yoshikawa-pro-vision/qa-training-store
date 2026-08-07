@@ -1,6 +1,7 @@
 # Migration Notes
 
 ## auto-net preset
+
 This template keeps the project-level default conservative. Existing users should not see `approval_policy = "never"` or workspace network access unless they explicitly use the managed `auto-net` preset.
 
 To adopt the new mode:
@@ -13,9 +14,11 @@ To adopt the new mode:
 Do not migrate by enabling `danger-full-access`, raw `--full-auto`, or `--dangerously-bypass-approvals-and-sandbox`.
 
 ## Deletion policy
+
 Codex must not delete files or directories in this template. When cleanup is needed, add candidates to `.codex/runs/<run_id>/REPORT.md` under `Deletion candidates` and let the user delete them after review.
 
 ## Verification
+
 After migration, run:
 
 ```bash

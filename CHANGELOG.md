@@ -37,7 +37,6 @@
 - `build:web`へ画像Manifest生成・検証を組み込み、CloudflareとCIのBuild Commandを統一。
 - Payment Gatewayの結果から処理日時を除外し、Application ClockをPayment・Order履歴時刻の唯一の正本へ変更。
 
-
 ## v10
 
 - active customer/operator/adminのLogin分岐を確定し、管理RoleではGuest Cartを変更しない契約へ修正。

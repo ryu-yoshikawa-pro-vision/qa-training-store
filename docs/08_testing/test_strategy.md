@@ -108,8 +108,6 @@ many-productsを使いSearch Suggestion、Facet、一覧描画をBenchmarkしま
 - Deployed Smoke成功。
 - Critical/High未解決なし。
 
-
-
 ## 内部整合性とE2E
 
 在庫履歴、Order/Payment/Shipment、Review Summaryなどの内部整合性はApplication Integration TestとDexie Contract Testを正本とします。E2EはUIを優先し、必要な場合だけAutomation Buildの固定Read-only Inspection DTOを使用します。

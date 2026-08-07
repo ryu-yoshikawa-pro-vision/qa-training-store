@@ -48,11 +48,14 @@ Scenario Shopへ変更を加えるときの最小限の入口をまとめる。
 
 ```bash
 pnpm run format:check
+pnpm run lint:markdown
 pnpm run lint
 pnpm run typecheck
 pnpm run test
 pnpm run build:web
 ```
+
+Markdown文書を変更した場合は、通常の品質検証に加えて`pnpm run lint:markdown`を実行する。`pnpm run verify`にも同じMarkdown品質ゲートが含まれる。
 
 全体検証の標準入口は次とする。
 

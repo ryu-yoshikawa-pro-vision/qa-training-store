@@ -326,6 +326,8 @@ ApplicationおよびTestで、状態確認の代わりに固定時間を待た�
 
 Complexity、関数行数、File行数、JSDoc、Import順の細かな強制は、具体的な問題が確認されるまで追加しない。
 
+Markdown文書の構造・品質は、リポジトリ直下の`.markdownlint-cli2.jsonc`を正本とし、`pnpm run lint:markdown`で検査する。ルールの細則は本書へ重複記載しない。
+
 ### 10.2 例外
 
 Libraryの型定義やPlatform APIの制約により規約を適用できない場合は、次を満たす局所的な例外を認める。

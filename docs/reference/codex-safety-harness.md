@@ -1,10 +1,12 @@
 # Codex安全ハーネス運用ガイド
 
 ## 目的
+
 - リポジトリ内で Codex を使う際に、危険な実行オプションやコマンドを減らすための実務的なガードレールを提供する。
 - `AGENTS.md` のルールに加え、`execpolicy` ルールと wrapper で技術的制御を追加する。
 
 ## 構成
+
 - `scripts/codex-safe.ps1`
   - Codex 起動 wrapper
   - 危険 CLI 引数（`--dangerously-bypass-approvals-and-sandbox`, `-c/--config`, `--add-dir` など）を拒否
@@ -43,10 +45,12 @@
   - デフォルトで削除せず、明示 confirm がある場合だけ既知 artifact を削除する
 
 関連する上位ガイド:
+
 - `docs/reference/codex-implementation-harness.md`
   - `codex-safe` / `codex-task` / `codex-sandbox` の使い分け
 
 ## 推奨起動方法
+
 PowerShell から実行:
 
 ```powershell
@@ -92,6 +96,7 @@ bash scripts/codex-safe.sh --preset auto-net
 `auto-net` は明示指定時だけ有効です。wrapper default は `safe` のままです。
 
 ## 何をブロックするか（例）
+
 - `--dangerously-bypass-approvals-and-sandbox`
 - `-c` / `--config`
 - `--add-dir`
@@ -103,6 +108,7 @@ bash scripts/codex-safe.sh --preset auto-net
 - raw `--full-auto`
 
 ## 削除禁止
+
 - プロジェクト配下の読み取りとファイル作成・編集は、通常の作業では承認なしで行ってよい。
 - shell / PowerShell / git command による削除は禁止する。対象例は `rm`, `del`, `erase`, `Remove-Item`, `rmdir`, `unlink`, 通常の `git rm`。
 - `cleanup-runs` は generated run artifact の限定 cleanup 用例外 command だが、preview-only default、confirm 必須、repo root 外 / symlink candidate 拒否を満たす前提でのみ使う。
@@ -126,18 +132,21 @@ bash scripts/codex-safe.sh --preset auto-net
 判断に迷う場合は、delete / rename / move を実行せず、`REPORT.md` に削除候補または移動候補として記録する。
 
 ## Hook guard
+
 - `.codex/hooks/pre_tool_use_policy.ps1` は destructive command、remote script piping、delete / rename patch を補助的に検出する。
 - `.codex/hooks/pre_tool_use_policy.py` は Python が標準化された環境向けの同等 hook 実装として残す。
 - `.codex/config.toml` は PreToolUse hook を `pwsh` 経由で有効化する。`pwsh` がない環境や hooks 非対応の Codex CLI では hook が実行されない可能性があるため、execpolicy rules と shell wrapper 禁止を併用する。
 - Phase 1 では shell wrapper 系の `bash -lc`, `sh -c`, `pwsh -Command`, `cmd /c` は auto-net rules 側で forbidden 寄りに扱う。
 
 ## Report file generation policy
+
 - `docs/reports/` は durable な調査・監査・検証結果の置き場であり、通常のレビュー返答、進捗報告、軽い確認結果、run 内ログの既定保存先ではない。
 - Report file を生成してよいのは、ユーザーが保存を明示した場合、計画 DoD に report file がある場合、複数ソース調査・監査・検証結果を後で参照する必要がある場合のみ。
 - review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録、チャットで完結する評価では `docs/reports/` にファイルを作らない。
 - 判断に迷う場合は report file を作らず、チャット返答と `.codex/runs/<run_id>/REPORT.md` に留める。
 
 ## 運用メモ
+
 - ルール変更後は `-PreflightOnly` と `codex execpolicy check` で確認する。
 - 破壊系ルールの追加時は検証を行い、保存依頼または DoD がある場合だけ `docs/reports/` に durable report を残す。
 - consumer repo では `bash scripts/verify` を最初の確認コマンドとして使う。

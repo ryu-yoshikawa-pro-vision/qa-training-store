@@ -9,6 +9,7 @@
     "start:web": "expo start --web",
     "format": "prettier --write . --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .prettierignore",
+    "lint:markdown": "markdownlint-cli2",
     "lint": "eslint .",
     "typecheck:app": "tsc --noEmit --project tsconfig.json",
     "typecheck:native-tests": "tsc --noEmit --project tsconfig.native-tests.json",
@@ -53,7 +54,7 @@
     "native:android:test:boundary": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action BoundarySuite",
     "native:android:evidence": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Evidence",
     "native:android:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action All",
-    "verify": "pnpm run format:check && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web"
+    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web"
   },
   "dependencies": {
     "@expo/metro-runtime": "57.0.8",
@@ -101,6 +102,7 @@
     "jest": "29.7.0",
     "jest-expo": "57.0.3",
     "jsdom": "29.1.1",
+    "markdownlint-cli2": "0.23.2",
     "prettier": "3.8.1",
     "sharp": "0.35.3",
     "tsx": "4.23.1",
