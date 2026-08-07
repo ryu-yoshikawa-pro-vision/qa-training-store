@@ -69,3 +69,11 @@
 - 不明点の整理、選択肢比較、決定理由を簡潔に記録する。
 - 2026-08-07 19:25 JST: 現行コード確認で、5つのmust-fix（Contract空白、2 FlowのRace、Maestro順序Contract、SQLite finally、旧Run Artifact評価）が現存すると判断した。
 - 2026-08-07 19:25 JST: Native成果物は`.gitignore`の`output/`と`.artifacts/`、APK除外で追跡外であることを確認した。既存の整理文書は変更対象に含めない。
+
+## 2026-08-07 PR #9 最終メタデータ修正
+
+- Input finding: 最新Runの`artifact_summary.subagent_run_count`が、`agents_used`、`subagents.records`、`subagents.summary`の4件実態と不一致。
+- Triage: `artifact_summary.subagent_run_count`は`must_fix`。182312 RunのBranch/Baseは、実行時刻前後のGit履歴で確認できたため最小補正する。個別recordへの`used_in_final_plan`追加、Markdownlint、見出し日本語化、Docstring、Action SHA pin、Sanitizer性能改善、BOM仕様変更は`defer`。
+- Schema decision: `used_in_final_plan`は個別`subagent-run.json` Schemaの必須項目だが、集約Manifestの`subagents.records[]`は要約形式であり既存記録に同項目はないため追加しない。
+- Evidence: Run `20260807-182312-JST`の実行時刻は18:23:12 JST。直前のHEAD／branch記録は18:20:32 JSTの`81aae82`／`fix/sanitize-codex-run-artifact-paths`で、その後にcheckout記録はない。BaseはPR #9の`main`および`8705666`で確認した。
+- Allowed files: `.codex/runs/20260807-192534-JST/run.json`、`.codex/runs/20260807-182312-JST/run.json`、本RunのPLAN/TASKS/REPORTのみ。Git mutation、削除、cache cleanupは行わない。

@@ -108,3 +108,27 @@
 - ローカル／実機の必須検証は完了した。未確認事項はユーザーのpush後に確認可能なRemote CIのみであり、今回の作業ではPASS扱いしない。
 - decision: `stop_success`
 - Progress: 100% (5/5)
+
+## 2026-08-07 21:01 JST — PR #9 最終メタデータ修正（Iteration 1）
+
+- Input finding: 最新Run `20260807-192534-JST/run.json`の`artifact_summary.subagent_run_count=0`が、`agents_used.length=4`、`subagents.records.length=4`、`subagents.summary.total=4`と不一致。
+- Triage: `must_fix`はSubagent件数の整合。182312 RunのBranch/Baseは、当時のGit履歴から確定できるため`should_fix`として同時に最小補正する。Markdownlint、Run Artifact見出し日本語化、Docstring、Action SHA pin、Sanitizer性能、BOM、Artifact保持仕様の変更は`defer`。
+- Schema確認: `used_in_final_plan`は個別`subagent-run.json`の必須Schema項目だが、集約Manifestの`subagents.records[]`は要約形式であり、既存の4 recordにも存在しない。不要なSchema拡張は行わない。
+- Branch証拠: 182312 Runの識別時刻は18:23:12 JST。直前のHEADは18:20:32 JSTに`81aae82`として`fix/sanitize-codex-run-artifact-paths`上で記録され、18:23台までのcheckout記録はない。PR #9のBaseおよび当時のmain refは`main`／`8705666`。推測ではなくGit reflogとRun記録を突合した。
+- 修正: `20260807-192534-JST/run.json`の`artifact_summary.subagent_run_count`を4へ変更し、`20260807-182312-JST/run.json`の`branch`／`base_branch`を証拠どおり補正した。既存Native Flow、SQLite、REPORT artifact_contract_gap、Sanitizer方針は変更していない。
+- Subagent省略: 今回は既存JSONの2項目を事実へ合わせる限定修正で、対象・判断・検証方法が明確なため、新規Subagentは起動していない。
+- 変更後検証は次の記録ブロックへ追記する。
+- Progress: 5/6 (83%)
+
+## 2026-08-07 21:13 JST — 最終検証と停止判定
+
+- JSON parse／invariant check: active Runの`agents_used.length=4`、`subagents.records.length=4`、`subagents.summary.total=4`、`artifact_summary.subagent_run_count=4`、`read_only=3`、`writable=1`、`used_in_final_plan=4`を確認。182312 Runの`branch=fix/sanitize-codex-run-artifact-paths`、`base_branch=main`も確認した。
+- `pnpm run test:contracts` => 21 files／123 tests PASS、exit 0。ログは`.artifacts/quality-gate/20260807-192534-JST/final-metadata-contracts.log`。
+- `pnpm run format:check` => PASS、exit 0。ログは`.artifacts/quality-gate/20260807-192534-JST/final-metadata-format.log`。
+- `pnpm run verify` => PASS、exit 0。Format、Lint（0 errors／64 warnings）、Typecheck、Image manifest、Security、Unit 66、Integration 91、Repository 28、Web Component 76、Native Component 27、Contract 123、Web exportを確認した。ログは`.artifacts/quality-gate/20260807-192534-JST/final-metadata-verify.log`。
+- active／182312 RunのSanitizer Write＋Check => 各`files_scanned: 5`、`residual_findings: 0`、exit 0。追加したRun記録にも個人PC固有絶対Pathはない。
+- `git diff --check` => PASS。CRLF変換に関するGit warningのみで、空白エラーはない。`git status --short`は本修正対象のRun Artifactのみを示し、Git mutation／削除／cache cleanupは行っていない。
+- Remote CI after repair: NOT RUN。ユーザー指定のPhase 1／Native CI成功事実は修正前Headの既知情報として扱い、今回のローカル結果をRemote PASSへ置き換えていない。
+- D3完了。PRタイトル・本文の更新、Push後のRemote CI確認のみをRemainingとする。
+- decision: `stop_success`
+- Progress: 100% (6/6)

@@ -30,7 +30,12 @@
       "android-local.ps1 -Action Test -Flow maestro/native-low-stock.yaml -RunId 20260807-200021-low-stock",
       "android-local.ps1 -Action Test -Flow maestro/native-purchase-limit.yaml -RunId 20260807-200021-purchase-limit",
       "pnpm run native:android:test:boundary",
-      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260807-192534-JST -Write -Check"
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260807-192534-JST -Write -Check",
+      "JSON parse and Subagent metadata invariant check (PR #9 final repair)",
+      "pnpm run test:contracts (PR #9 final repair)",
+      "pnpm run format:check (PR #9 final repair)",
+      "pnpm run verify (PR #9 final repair)",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260807-182312-JST -Write -Check"
     ],
     "warnings": [
       "Remote CIは未実行。commit、push、PR更新も行っていない。",
@@ -48,7 +53,7 @@
   "artifact_summary": {
     "codex_task_report_count": 0,
     "hook_event_count": 0,
-    "subagent_run_count": 0,
+    "subagent_run_count": 4,
     "evaluation_present": true
   },
   "hook_observations": {

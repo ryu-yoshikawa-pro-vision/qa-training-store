@@ -10,6 +10,7 @@
 ## Discovered
 - D1. `gh` CLIが未導入であるため、PR Head確認方法を読み取り専用API／リモート情報へ切り替える。
 - D2. 旧Runの`evaluation.json`は`remote_ci_unverified`で既に`partial`だが、REPORT切り詰め事象のfindingは未記録である。
+- [x] D3. PR #9最終指示に基づきRun ArtifactのSubagent件数とBranchメタデータを整合し、必須ローカル検証を再実行する。
 
 ## Blocked
 - なし

@@ -7,8 +7,8 @@
   "runtime": "host",
   "agents_used": [],
   "repo": "qa-training-store",
-  "branch": null,
-  "base_branch": null,
+  "branch": "fix/sanitize-codex-run-artifact-paths",
+  "base_branch": "main",
   "codex_task_reports": [],
   "changed_files": [
     ".agents/skills/android-native-local-validation/SKILL.md"
