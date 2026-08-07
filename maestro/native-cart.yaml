@@ -40,12 +40,23 @@ appId: com.ryuyoshikawa.scenarioshop
     element:
       id: "native-add-to-cart"
     direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
     timeout: 30000
 - tapOn:
     id: "native-add-to-cart"
 - extendedWaitUntil:
     visible: "カートに追加しました"
     timeout: 10000
+- scrollUntilVisible:
+    element:
+      id: "native-go-cart"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 30000
 - tapOn:
     id: "native-go-cart"
 - assertVisible: "カート"
