@@ -17,7 +17,8 @@
 - `playwright.config.ts`
 - `output/playwright/`
 - `e2e/web/`
-- `e2e/web/fixtures.ts`
+
+Part 1-5と同様に、この段階では `e2e/web/fixtures.ts` の内部設計は読み解きません。Training Test HarnessがSeed Scenario Resetや必要なEvidence収集を提供する前提で、まずFailureを観測・分類・改善することに集中します。
 
 ## 実行コマンドの扱い
 
@@ -92,11 +93,11 @@ Trace、Screenshot、Videoは重複もあります。何でも永続保存すれ
 
 ## Lesson 5: Console Error
 
-既存 `e2e/web/fixtures.ts` ではConsole Errorと`pageerror`を収集しています。
+画面上の期待結果がPassしていても、Console ErrorやPage Errorが発生していれば品質上の問題が残る場合があります。
 
-画面上の期待結果がPassしていても、Console Errorが発生していれば品質上の問題が残る場合があります。
+Training Test Harnessでは、必要に応じてConsole ErrorをEvidenceとして確認できる構成を教材要件とします。
 
-なぜ既存Fixtureがテスト終了時にConsole Errorを検証しているかを考えます。
+この時点では「Console ErrorもFailure分析の情報になる」ことを理解できれば十分です。現在のScenario Shopがその収集をどのようにFixtureへ組み込んでいるかは、Part 1-8で `e2e/web/fixtures.ts` を読みながら確認します。
 
 ## Lesson 6: Flaky Test
 
@@ -183,7 +184,7 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 
 | 項目 | 内容 |
 | --- | --- |
-| Test ID | 対象ケース |
+| Test Case ID | 対象ケース |
 | Failure | 発生内容 |
 | 分類 | Product / Test / Env / Flakyなど |
 | Evidence | Trace / Screenshotなど |
@@ -197,8 +198,9 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 2. TraceとScreenshotの使い分けは何か。
 3. Retryを増やす前に確認すべきことは何か。
 4. Timeout延長でPassした場合でも問題が解決したとは限らないのはなぜか。
-5. Console ErrorをE2Eで検出する価値は何か。
+5. Console ErrorをE2EのFailure分析情報として扱う価値は何か。
 6. 既存Regression ScriptとTraining用Testの実行入口を分ける理由は何か。
+7. Failure分析の段階でFixture内部設計まで先に学ばない理由は何か。
 
 ## 完了条件
 
@@ -207,3 +209,4 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 - 固定待機または不安定Locatorを1件以上改善している。
 - RetryとTimeoutの利用判断を説明できる。
 - Training用Testと既存正式Suiteの実行目的を区別できる。
+- Failure Evidenceを利用できることと、その収集実装をFixtureで設計することを別の学習段階として区別できる。
