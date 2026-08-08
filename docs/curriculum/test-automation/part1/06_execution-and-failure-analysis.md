@@ -19,9 +19,11 @@
 - `e2e/web/`
 - `e2e/web/fixtures.ts`
 
-## Lesson 1: テストを目的別に実行する
+## 実行コマンドの扱い
 
-代表的な実行例を確認します。
+現行Repositoryには、正式Regressionを目的別に実行するScriptがあります。
+
+例:
 
 ```bash
 pnpm run test:e2e:chromium
@@ -30,7 +32,22 @@ pnpm run test:a11y
 pnpm run test:e2e:cross-role
 ```
 
+これらは**既存Suiteの構成を理解するための教材**です。
+
+Part 1で受講者自身が作成したTraining用specは、教材提供時に用意されるTraining専用の実行入口で実行します。現行Scriptが受講者の新規specを自動的に実行するものとは扱いません。
+
+## Lesson 1: テストを目的別に実行する
+
 すべてを毎回実行するのではなく、変更内容と調査目的に応じて実行対象を選びます。
+
+例えば次を区別します。
+
+- 自分が作成したTraining Testだけを再実行する。
+- DesktopとMobileを比較する。
+- Accessibility Suiteを確認する。
+- 既存Cross-role Regressionを読む・実行して挙動を比較する。
+
+「どのコマンドを暗記するか」ではなく、「今の調査目的に必要なTest Scopeは何か」を考えます。
 
 ## Lesson 2: Failureを分類する
 
@@ -62,6 +79,8 @@ Scenario Shopの設定ではFailure時のTraceを保持します。
 - URLは期待した状態だったか。
 - Assertion時の画面はどうなっていたか。
 - NetworkやConsoleに異常がなかったか。
+
+Training実行環境でも同等のEvidenceを取得できることを教材要件とします。
 
 ## Lesson 4: Screenshot / Video
 
@@ -139,7 +158,7 @@ Failure分類
 
 ## ハンズオン1: 意図的に失敗させる
 
-自分が作ったPlaywright TestのAssertionを意図的に誤らせます。
+Training用Playwright TestのAssertionを意図的に誤らせます。
 
 Failure後に次を確認します。
 
@@ -152,7 +171,7 @@ Failure後に次を確認します。
 
 ## ハンズオン2: Locator Failure
 
-不安定なLocatorを作り、よりsemanticなLocatorへ改善します。
+Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改善します。
 
 ## ハンズオン3: Timing Failure
 
@@ -179,6 +198,7 @@ Failure後に次を確認します。
 3. Retryを増やす前に確認すべきことは何か。
 4. Timeout延長でPassした場合でも問題が解決したとは限らないのはなぜか。
 5. Console ErrorをE2Eで検出する価値は何か。
+6. 既存Regression ScriptとTraining用Testの実行入口を分ける理由は何か。
 
 ## 完了条件
 
@@ -186,3 +206,4 @@ Failure後に次を確認します。
 - Failure分類を記録している。
 - 固定待機または不安定Locatorを1件以上改善している。
 - RetryとTimeoutの利用判断を説明できる。
+- Training用Testと既存正式Suiteの実行目的を区別できる。
