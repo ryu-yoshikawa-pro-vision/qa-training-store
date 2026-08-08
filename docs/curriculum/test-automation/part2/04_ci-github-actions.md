@@ -7,6 +7,7 @@
 - Trigger、Job、Step、Runnerの関係を理解できる。
 - Localで実行していたTest CommandをCIへ載せられる。
 - PR、main、schedule、manual実行の違いを理解できる。
+- Training CIと教材元のProduction Workflowを安全に分離できる理由を説明できる。
 - CI Failureを「Workflowが悪い」「Testが悪い」「Environmentが悪い」に切り分ける観点を持てる。
 
 ## 教材
@@ -19,15 +20,41 @@
 
 ## 演習Workflowの境界
 
-教材提供時には、Forkまたは演習用Copy上で、次の条件を満たすTraining用Workflowを用意します。
+Git / GitHubの基本演習ではForkも利用できますが、**GitHub ActionsのCIハンズオンでは、Production Workflowとの競合を避けるため、講師または組織が用意した演習用Copyを標準経路**とします。
 
+演習用Copyは、教材元のScenario Shopと同じコードベースを使用しながら、CI演習開始時に次の条件を満たすものとします。
+
+- Training用Workflowを実行できる。
+- 教材元から継承したProduction / Deploy Workflowが同時起動しない。
 - 本番向けCloudflare Deployを実行しない。
 - `CLOUDFLARE_API_TOKEN` など本番Secretを要求しない。
 - 最初はUnit Test / Quality Checkだけを対象にする。
 - 後続LessonでPlaywrightを追加できる。
 - 本体RepositoryのRequired CheckやProduction Workflowへ影響しない。
 
-この文書整備ではTraining用Workflow自体は追加しません。
+### Forkを使ってCI演習する場合
+
+個人Forkを利用する構成も可能ですが、Training Workflowを追加するだけでは安全な演習境界になりません。
+
+教材元には `pull_request` で起動する既存Workflowが含まれており、Cloudflare Previewなど本番向けSecretを必要とする経路もあります。そのため、ForkでActionsを利用する場合は、教材提供時の開始手順で少なくとも次を確認します。
+
+```text
+Fork作成
+↓
+ForkでGitHub Actionsを利用可能にする
+↓
+教材元から継承したProduction / Deploy Workflowを演習中は無効化する
+↓
+Training Workflowだけが意図したTriggerで起動することを確認する
+↓
+Training CI演習開始
+```
+
+ここでいう「無効化」は、教材実装時に採用した方法に従います。受講者へ本番Secretを配布して既存Workflowを無理に成功させる方法は採用しません。
+
+演習用CopyでもForkでも、**PRを作成したときにTraining Workflow以外の本番向けWorkflowが意図せず起動しないこと**を開始Gateとします。
+
+この文書整備ではTraining用Workflowや演習Repository自体は追加しません。
 
 現在の `ci.yml` は、最小構成を理解した後に「実案件ではどこまで発展するか」を読む比較教材とします。
 
@@ -108,6 +135,8 @@ jobs:
 
 この段階では「全部PRで回す」前提にしません。
 
+また、Repository内に複数Workflowがある場合、同じ`pull_request`で複数Workflowが起動し得ることも理解します。Training Workflowだけを設計しても、既存WorkflowのTriggerを確認しなければ演習環境全体は制御できません。
+
 ## Lesson 4: LocalとCIの差
 
 LocalでPassしてCIでFailする理由には次があります。
@@ -148,6 +177,8 @@ Training用Workflowでは本番Deploy Secretを必要としない構成から始
 
 「動かすために本番Secretを配る」という設計を避けます。
 
+既存WorkflowがSecretを要求する場合は、Training CIへSecretを追加して成功させるのではなく、演習環境からProduction Workflowを分離します。
+
 ## Lesson 7: Jobを分ける理由
 
 現在のScenario Shop CIでは、Style、Code Quality、Vitest、Build、E2Eなどが複数Jobへ分かれています。
@@ -174,18 +205,37 @@ Matrixは重複YAMLを減らせますが、何でもMatrixへ入れるのでは�
 
 Failure時は最低限次を確認します。
 
-1. Setupで落ちたか。
-2. Buildで落ちたか。
-3. Testで落ちたか。
-4. Environment / Secret不足か。
-5. Permission問題か。
-6. Artifactは残っているか。
+1. どのWorkflowが起動したか。
+2. Training Workflowか、意図しない既存Workflowか。
+3. Setupで落ちたか。
+4. Buildで落ちたか。
+5. Testで落ちたか。
+6. Environment / Secret不足か。
+7. Permission問題か。
+8. Artifactは残っているか。
 
-「Re-run jobs」を最初の操作にせず、LogからFailure Pointを確認します。
+「Re-run jobs」を最初の操作にせず、WorkflowとFailure Pointを確認します。
+
+Training CIが成功していても別の既存WorkflowがFailureしている場合は、Test Codeを修正する前に演習境界が正しいかを確認します。
+
+## ハンズオン0: CI演習環境を確認する
+
+Training Workflowを書く前に、演習Repositoryで次を確認します。
+
+- GitHub Actionsを利用できる。
+- 教材元から継承したProduction / Deploy Workflowが演習PRで起動しない。
+- Training Workflow用に本番Secretを追加する必要がない。
+- Training Branch / PRの変更が本体Repositoryへ影響しない。
+
+Forkを利用する場合は、教材で指定された方法で既存Production Workflowを無効化したことも確認します。
+
+このGateを満たしていない状態ではCIハンズオンへ進みません。
 
 ## ハンズオン1: Unit TestをCIへ載せる
 
-Forkまたは演習用CopyのTraining Workflowで `pnpm run test:unit` をPR時に実行します。
+安全なTraining環境で `pnpm run test:unit` をPR時に実行します。
+
+PRのChecksでは、意図したTraining Workflowだけが学習対象として動いていることも確認します。
 
 ## ハンズオン2: Quality Checkを追加する
 
@@ -202,7 +252,7 @@ Forkまたは演習用CopyのTraining Workflowで `pnpm run test:unit` をPR時�
 
 ## ハンズオン4: 現在の`ci.yml`を読む
 
-自分の最小Workflow完成後に、現在の `.github/workflows/ci.yml` を読みます。
+自分の最小Workflow完成後に、教材元の `.github/workflows/ci.yml` を読みます。
 
 確認すること:
 
@@ -210,22 +260,27 @@ Forkまたは演習用CopyのTraining Workflowで `pnpm run test:unit` をPR時�
 - なぜVitestがMatrixなのか。
 - なぜBuild Jobが分かれているか。
 - なぜ`verify`があるか。
-- なぜDeployにはSecretが必要か。
+- なぜPreview DeployにはSecretが必要か。
+- なぜPR時にPreview経路が起動するのか。
 - Training Workflowへ本番Deployを含めない理由は何か。
+- ForkでこのWorkflowをそのまま起動すると、Training CIと競合し得るのはなぜか。
 
 ## 確認問題
 
 1. CIを導入すると何が変わるか。
 2. Local Pass / CI Failが起きる代表例を3つ挙げる。
-3. Jobを分けすぎるデメリットは何か。
-4. Matrixが向く処理は何か。
-5. `workflow_dispatch`はどんな用途に向くか。
-6. Training CIで本番Secretを必要としない構成にする理由は何か。
+3. Repositoryに複数Workflowがある場合、Training Workflowだけ見ていてはいけない理由は何か。
+4. Jobを分けすぎるデメリットは何か。
+5. Matrixが向く処理は何か。
+6. `workflow_dispatch`はどんな用途に向くか。
+7. Training CIで本番Secretを必要としない構成にする理由は何か。
+8. Forkで既存Production Workflowを演習中に分離する必要があるのはなぜか。
 
 ## 完了条件
 
 - GitHub Actionsの基本構造を説明できる。
-- Forkまたは演習用CopyでScenario ShopのUnit TestまたはQuality CheckをCI実行できる。
+- Training CI開始前に、既存Production / Deploy Workflowが同時起動しない演習境界を確認している。
+- 演習用Copy、または安全に設定されたForkでScenario ShopのUnit TestまたはQuality CheckをCI実行できる。
 - PR / Push / Manual / Scheduleの違いを説明できる。
-- CI Failureの発生工程をLogから特定できる。
+- CI Failure時に、意図したWorkflowかどうかを含めて発生工程をLogから特定できる。
 - Training Workflowと本体の実運用Workflowを分ける理由を説明できる。
