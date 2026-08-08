@@ -30,20 +30,46 @@ Part 1のZIP / Local Copy
 ├ Training Playwright Test
 ├ Maestro Flow
 └ 学習成果物
-        ↓ 必要な成果物を引き継ぐ
+        ↓ 必要な成果物だけを引き継ぐ
 Git管理されたqa-training-store
 ├ mainとRepository History
+├ Part 2用作業Branch
 ├ Part 1成果物
 └ 以降のGit演習
 ```
+
+### 移行時の安全な手順
+
+教材提供時には、次の順序で移行できる手順を用意します。
+
+1. Git Historyを持つ `qa-training-store` の演習用Copyを取得する。
+   - 教材の配布方法が`git clone`の場合は、教材で指定されたRepositoryをcloneする。
+   - Remote / Forkの概念自体はPart 2-3で学ぶため、ここでは「教材元のHistoryを持つ作業Copyを取得する」ことを目的とする。
+2. `main` とRepository Historyを確認し、移行前のWorking TreeがCleanであることを確認する。
+3. Part 1成果物をコピーする**前に**、`main`を基準にPart 2用の作業Branchを作成する。
+4. Part 1から、教材で引継ぎ対象として指定された**受講者自身のTraining Test、Maestro Flow、分析・設計結果などの学習成果物だけ**をコピーする。
+5. `.git`、教材元の既存Regression、未指定のApplication Code、Config、Workflow、Package / LockfileなどをFolder単位で上書きしない。
+6. 同名Fileがすでに存在する場合は、そのまま上書きせずDiffを確認し、教材の指示に従って必要な変更だけを手動で統合する。
+7. `git status`、`git diff --stat`、必要に応じて`git diff`で、引き継いだ変更範囲が意図どおりであることを確認する。
+
+例えば作業Branchは次のように作成できます。
+
+```bash
+git switch -c training/git-basics
+```
+
+実際のclone先、Training用Path、引継ぎ対象File一覧は、後続の教材実装時にRepositoryの最新構成へ合わせて確定します。この文書では特定の未実装Pathや演習Repository URLを固定しません。
 
 教材提供時には、受講者が次を確認できる移行手順を用意します。
 
 - `git status` が実行できる。
 - `git log` で教材元のHistoryを確認できる。
 - `main` Branchが存在する。
-- Part 1で自分が作成したTraining Testや成果物が引き継がれている。
+- Part 2用の作業Branch上にいる。
+- Part 1で自分が作成したTraining Testや成果物だけが引き継がれている。
 - 既存Repositoryの完成済みRegressionへTraining Codeを混在させていない。
+- `.git`や未指定の教材元FileをPart 1 Folderから上書きしていない。
+- `git diff`で引継ぎ差分を説明できる。
 
 Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状態を標準経路にはしません。
 
@@ -118,7 +144,7 @@ git switch -c training/cart-e2e
 
 Branchにより、現在安定している状態と作業中の変更を分けて扱えます。
 
-Git演習でも、最初の変更・Commitを `main` 上で行ってからBranchを作る順序にはしません。まず現在のDiffを確認し、その後に作業Branchを作成してから変更・Stage・Commitを行います。
+Git演習でも、最初の変更・Commitを `main` 上で行ってからBranchを作る順序にはしません。Part 1からの移行時点で作業Branchを用意し、そのBranch上で変更・Stage・Commitを行います。
 
 ## Lesson 6: Diffを読む
 
@@ -163,26 +189,26 @@ Part 1から引き継いだTraining Testまたは学習成果物を1つ選びま
 - どのFileを自分が追加・変更したか。
 - `main` の状態との差分は何か。
 - Git Historyに含まれている既存Fileと、自分が追加した成果物を区別できるか。
+- `.git`や既存Regressionなど、引継ぎ対象外のFileを上書きしていないか。
 
 ZIPから移行した場合は、成果物を引き継いだ直後のDiffを確認します。
 
 この時点ではまだCommitしません。まず「現在どんな変更を持っているか」を把握します。
 
-## ハンズオン2: 作業Branchを作る
+## ハンズオン2: 作業Branchとmainの境界を確認する
 
-最初の演習Commitを作る前に、`main` から作業Branchを作成します。
-
-例:
+Part 1成果物の移行時に作成した作業Branchを確認します。
 
 ```bash
-git switch -c training/git-basics
+git branch --show-current
 ```
 
 次を確認します。
 
 - 現在のBranchが `main` ではない。
-- Part 1から引き継いだWorking Treeの変更が作業Branch上でも確認できる。
+- Part 1から引き継いだWorking Treeの変更が作業Branch上にある。
 - `main` を安定した基準として残したまま演習を続けられる。
+- `main` と現在のWorking Tree / Branchの差分を説明できる。
 
 Branchを作ること自体が目的ではなく、**変更とCommitをどの作業単位へ所属させるかを先に決める**ことを学びます。
 
@@ -240,12 +266,14 @@ commit
 6. Test Fileを巨大化するとGit運用上どんな問題が増えやすいか。
 7. Part 1をZIPで進めた場合、Part 2開始時にGit Historyを持つCopyへ移行する理由は何か。
 8. Part 1のFolderへ単純に `git init` するだけでは教材元のHistoryを学べないのはなぜか。
+9. Part 1 Folderを丸ごとGit管理済みCopyへ上書きしてはいけないのはなぜか。
 
 ## 完了条件
 
-- Part 1成果物をGit管理された `qa-training-store` へ引き継いでいる。
+- Part 1成果物をGit管理された `qa-training-store` へ安全に引き継いでいる。
 - 教材元のGit Historyと自分の変更を区別できる。
-- 最初の演習Commit前に作業Branchを作成している。
+- Part 1成果物をコピーする前に作業Branchを作成している。
+- `.git`、既存Regression、未指定の教材元Fileを上書きしていない。
 - `main` へ直接演習Commitを作らず、作業Branchで変更を管理できる。
 - 変更内容を`git diff`で確認できる。
 - 意図したFileだけをStageできる。
