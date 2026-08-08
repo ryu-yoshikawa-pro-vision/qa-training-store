@@ -5,7 +5,7 @@
 - Web UI自動化とNative UI自動化の違いを説明できる。
 - MaestroのFlow、Action、Assertionの基本を理解できる。
 - Scenario Shop Nativeアプリを対象に最小のMaestro Flowを作成できる。
-- Stable Test ID、Deep Link、Test Controlを利用して再現可能なNative Testを作れる。
+- Stable UI Test ID、Deep Link、Test Controlを利用して再現可能なNative Testを作れる。
 - Android / iOSで共通化できるBusiness FlowとPlatform差分を区別できる。
 - PlaywrightとMaestroを「どちらが優れているか」ではなく、対象Platformと目的から使い分けられる。
 
@@ -21,7 +21,7 @@
 - `maestro/native-test-control.yaml`
 - `maestro/native-restart-persistence.yaml`
 - `src/presentation/native/`
-- Native Stable Test ID
+- Native Stable UI Test ID
 - `scenario-shop://` Deep Link
 
 ## Part 1での標準実行環境
@@ -44,7 +44,7 @@ MaestroはMobile UIを操作するための自動化Toolです。
 
 PlaywrightがBrowser PageとDOMを中心に扱うのに対し、MaestroではNativeアプリの画面とUI要素を操作します。
 
-基本的なFlowはYAMLで記述します。
+基本的なMaestro FlowはYAMLで記述します。
 
 ```yaml
 appId: com.ryuyoshikawa.scenarioshop
@@ -74,7 +74,7 @@ PlaywrightとSyntaxは異なりますが、前提状態 → 操作 → 期待結
 
 NativeではDOM Locatorをそのまま使えません。
 
-Scenario Shopではstable Test IDを利用します。
+Scenario Shopではstable UI Test IDを利用します。
 
 例:
 
@@ -83,7 +83,9 @@ Scenario Shopではstable Test IDを利用します。
     id: "native-nav-products"
 ```
 
-Test IDは、自動化のためだけに無秩序に追加するのではなく、UIの意味と安定性を考えて設計します。
+UI Test IDは、自動化のためだけに無秩序に追加するのではなく、UIの意味と安定性を考えて設計します。
+
+`CART-001` のようなTest Case IDとは役割が異なります。Test Case IDは「何をテストするか」を追跡し、UI Test IDは「どのUI要素を操作・確認するか」を特定します。
 
 ## Lesson 4: Deep Link
 
@@ -101,7 +103,7 @@ Deep Linkにより、長い前段操作を毎回通らず、意図した状態�
 
 ただし、本来検証したいJourneyまでDeep Linkで飛ばしてしまわないようにします。
 
-## Lesson 5: Test ControlとScenario Reset
+## Lesson 5: Test ControlとSeed Scenario Reset
 
 既存Maestro Flowでは、Test Controlを使って初期状態をResetします。
 
@@ -120,7 +122,7 @@ Native Testでも、前回実行の状態へ依存しないことが重要です
 Android Emulator上で次を実装します。
 
 1. Appを起動する。
-2. Test Controlで`default`へResetする。
+2. Test Controlで`default` Seed ScenarioへResetする。
 3. 商品一覧へ移動する。
 4. 商品詳細を開く。
 5. Variationを選ぶ。
@@ -167,8 +169,8 @@ Part 1ではAndroidで実際に手を動かし、iOSは差分を理解すると�
 | --- | --- | --- |
 | 主対象 | Web Browser | Native Mobile |
 | 記述 | TypeScript | YAML |
-| 要素指定 | Role / Label / Locatorなど | Text / IDなど |
-| 初期化 | Test API / Fixture | Deep Link / Test Control |
+| 要素指定 | Role / Label / Locator / UI Test IDなど | Text / UI Test IDなど |
+| 初期化 | Test API / Fixture / Seed Scenario | Deep Link / Test Control / Seed Scenario |
 | Evidence | Trace / Screenshot / Video | Screenshot / JUnitなど |
 | 実行環境 | Browser | Emulator / Simulator / Device |
 
@@ -176,7 +178,7 @@ Part 1ではAndroidで実際に手を動かし、iOSは差分を理解すると�
 
 ## ハンズオン1: Native Cart Flow
 
-Playwrightで作成したCart Testのうち1件をAndroid上のMaestroへ実装します。
+Playwrightで作成したCart Test Caseのうち1件をAndroid上のMaestroへ実装します。
 
 WebとNativeで、共通するテスト条件と異なる操作を記録します。
 
@@ -201,17 +203,19 @@ Mac環境がある場合、Androidで実装したFlowをiOS Simulatorでも実�
 ## 確認問題
 
 1. PlaywrightのLocatorをそのままNativeへ使えない理由は何か。
-2. Stable Test IDのメリットと乱用Riskは何か。
-3. Deep Linkを使うとテストが速くなる一方、何を飛ばしすぎないよう注意すべきか。
-4. Android / iOSでFlowを機械的に複製しない理由は何か。
-5. PlaywrightとMaestroの共通概念を3つ挙げる。
-6. Part 1でAndroidを標準経路にする理由は何か。
+2. Stable UI Test IDのメリットと乱用Riskは何か。
+3. Test Case IDとUI Test IDの違いは何か。
+4. Deep Linkを使うとテストが速くなる一方、何を飛ばしすぎないよう注意すべきか。
+5. Android / iOSでFlowを機械的に複製しない理由は何か。
+6. PlaywrightとMaestroの共通概念を3つ挙げる。
+7. Part 1でAndroidを標準経路にする理由は何か。
 
 ## 完了条件
 
 - Android Emulator上でMaestro Flowを2本以上作成している。
-- Test IDを利用した操作を含む。
+- UI Test IDを利用した操作を含む。
 - Test ControlまたはDeep Linkを利用している。
 - PlaywrightとMaestroで同じBusiness Flowを1件以上比較している。
 - Native固有のテスト観点を1件以上説明できる。
+- Test Case IDとUI Test IDを区別できる。
 - Android / iOSで共用できるFlowとPlatform差分の考え方を説明できる。
