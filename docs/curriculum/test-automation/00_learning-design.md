@@ -113,12 +113,16 @@ Part 2ではGitHubを扱うため、GitHubアカウントを利用できるこ�
 
 ただし、受講者がこのRepository本体へのPush権限を持つことは前提にしません。
 
-教材提供時の標準経路は次のいずれかとします。
+Git / GitHubの基本演習では、教材提供時の標準経路として次のいずれかを利用できます。
 
 - 自分のGitHub AccountへForkする。
 - 講師または組織が用意した演習用Copyを使用する。
 
 既存Repositoryの本番向けCI/CDやCloudflare Secretsを直接利用することは演習の前提にしません。既存Workflowは完成例として読み、演習用Workflowは安全に分離された環境で扱います。
+
+**CIハンズオンでは、Production Workflowとの競合を避けるため、演習用Copyを標準経路とします。** Forkを使用してCIを学ぶ場合は、GitHub Actionsを利用可能にしたうえで、教材元から継承したProduction / Deploy Workflowが演習PRで同時起動しないように設定し、Training Workflowだけを意図どおり実行できることを開始Gateとします。
+
+本番Secretを受講者へ配布し、既存Production Workflowを無理に成功させる方法は採用しません。
 
 ### Part 1からPart 2への移行
 
