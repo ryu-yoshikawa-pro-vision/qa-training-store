@@ -40,7 +40,7 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 
 そのため各Lessonは、次の2種類を区別して記述します。
 
-- **現在のRepositoryで読む・観察する教材**: 既存Playwright、Maestro、CI/CD、Scenarioなど。
+- **現在のRepositoryで読む・観察する教材**: 既存Playwright、Maestro、CI/CD、Seed Scenarioなど。
 - **教材提供時に受講者が作成・実行する演習**: 既存Regressionや本番CI/CDと分離した学習用実行境界で行うもの。
 
 学習者が完成済みRegression Suiteへ直接練習コードを混在させたり、本番向けSecretを必要とするWorkflowを教材として直接変更したりすることは前提にしません。
@@ -73,7 +73,9 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 | Maestro Flow | MaestroのYAMLで記述する実行単位 |
 | Automation Flow | 複数Pageを跨ぐ共通業務操作をコード上で表現する構造 |
 
-文脈上単に「Scenario」「Flow」「Test ID」と書く場合もありますが、学習時にはどの意味を指しているかを区別します。
+教材本文では原則として上記の正式な呼称を使用し、単に「Test ID」「Scenario」「Flow」と省略して複数の意味を混在させません。
+
+ただし、既存コードのAPI名や変数名、外部Tool固有の名称を引用するときは、その実装上の名称をそのまま使用します。その場合も、教材上どの概念に対応するかを区別します。
 
 特に、**Test Case IDとUI Test ID、Seed ScenarioとUser Journey、Maestro FlowとAutomation Flowは同じものではありません。**
 
@@ -118,6 +120,30 @@ Part 2ではGitHubを扱うため、GitHubアカウントを利用できるこ�
 
 既存Repositoryの本番向けCI/CDやCloudflare Secretsを直接利用することは演習の前提にしません。既存Workflowは完成例として読み、演習用Workflowは安全に分離された環境で扱います。
 
+### Part 1からPart 2への移行
+
+Part 1を配布ZIPなどGit管理されていないCopyで進めた受講者もいるため、Part 2開始時に作業環境を明示的に切り替えます。
+
+標準的な移行は次の流れです。
+
+```text
+Part 1
+Scenario ShopのZIP / Local Copyで学習
+↓
+Part 2開始
+Git管理されたqa-training-storeの演習用Copyを用意
+↓
+Part 1で作成したTraining Testや学習成果物を引き継ぐ
+↓
+Gitで変更履歴を管理する
+↓
+GitHub Remote / Fork / Pull Requestへ進む
+```
+
+ここで別の教材アプリへ切り替えるわけではありません。**コードベースとテスト対象は同じScenario Shopのまま、変更管理できる作業環境へ移行します。**
+
+Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。教材提供時には、Git Historyを持つ演習用CopyへPart 1成果物を安全に引き継ぐ手順を用意します。
+
 ## ノーコード・ローコード経験との接続
 
 AutifyやMagicPodの経験は捨てず、共通概念へ置き換えます。
@@ -140,7 +166,7 @@ AutifyやMagicPodの経験は捨てず、共通概念へ置き換えます。
 
 Part 1では、まずテスト自動化の一連の流れを最後まで体験します。
 
-POM、Fixture、Flowなどの保守設計は後半に置きます。最初から高度な共通化を行うと、学習者が「なぜ必要なのか」を理解せずにパターンだけ模倣するためです。
+POM、Fixture、Automation Flowなどの保守設計は後半に置きます。最初から高度な共通化を行うと、学習者が「なぜ必要なのか」を理解せずにパターンだけ模倣するためです。
 
 次の順序を基本とします。
 
@@ -156,6 +182,8 @@ POM、Fixture、Flowなどの保守設計は後半に置きます。最初から
 10. テスト管理と保守上の問題を洗い出す。
 11. Helper / POM / Fixture / Automation Flow / Seed Scenarioなどを使って改善する。
 12. 総合演習を行う。
+
+Part 1前半では、Seed Scenario ResetやEvidence収集の仕組みは教材側が提供するTest Harnessとして利用し、Fixture内部の責務分解や共通化設計はまだ学びません。既存 `e2e/web/fixtures.ts` の内部設計を教材として読むのは、Maestroまで一巡した後のテスト管理・保守性改善モジュールからとします。
 
 ### Part 2
 
@@ -206,6 +234,8 @@ Scenario Shopにはすでに高度な自動化実装があります。
 - なぜRepository側ではその構造になっているか。
 - 自分の実装のままで問題になる条件は何か。
 - Repositoryの実装が常に正解とは限らない点は何か。
+
+`e2e/web/fixtures.ts` については、Part 1前半では内部を正解として読まず、後半の保守設計で初めて責務を分析します。
 
 ## 「正解」より判断基準を学ぶ
 
