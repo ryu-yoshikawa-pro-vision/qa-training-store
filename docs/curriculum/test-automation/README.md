@@ -28,6 +28,22 @@
 - Quality Gate、Build、Preview、Production、Deploy後Smokeまで含めたCI/CDの構成を理解できる。
 - Scenario Shopを題材に、案件へテスト自動化を導入するための実行基盤を設計できる。
 
+## この文書群のスコープ
+
+このディレクトリは、テスト自動化学習の**カリキュラム設計と教材要件**を定義するものです。
+
+この段階では、次の実装そのものは行いません。
+
+- 受講者専用のPlaywright ProjectやConfigの追加
+- 受講者専用のspec実行Scriptの追加
+- 演習用GitHub Actions Workflowの追加
+- Google SheetsへImportするCSVや実ファイルテンプレートの追加
+- Root READMEやApplication Codeの変更
+
+各モジュールに記載する「実装する」「実行する」という表現は、**カリキュラム提供時に必要な教材実行環境が用意されていることを前提とした学習行為**を表します。
+
+現行Repositoryの完成済みPlaywright / Maestro / CI/CDは、参照教材・比較教材として利用します。受講者向けの安全な実行境界をどのように用意するかは、このカリキュラム設計をもとに後続の教材実装で決定します。
+
 ## 教材
 
 **すべての教材・演習では、このリポジトリ `qa-training-store` のScenario Shopを使用します。**
@@ -61,6 +77,8 @@
 8. POMは必須パターンではなく、保守上の問題を解決する選択肢の一つとして扱います。
 9. Part 2ではGit/GitHub自体を目的化せず、一般的な開発プロセスと自動テストの接続を学びます。
 10. 最終演習では完成済みのCI構成を先に正解として見せず、自分で設計した後に現在のRepositoryと比較します。
+11. 教材実装では、学習用の変更が現在のRegression Suiteや本番向けCI/CDへ意図せず混入しない境界を用意します。
+12. 学習者がRepositoryへ直接Pushできることを前提にせず、Part 2ではForkや演習用Copyを利用できる構成にします。
 
 ## 全体構成
 
@@ -115,6 +133,19 @@ Part 2では、Part 1で作成した自動テストを「どのように開発�
 - GitHub Actions Workflow演習
 - CI実行結果とArtifact分析
 - Scenario ShopへのCI導入設計
+
+## 教材提供前に必要な後続実装
+
+このカリキュラムを実際の受講教材として提供する際は、別対応として最低限次を用意します。
+
+1. Part 1用のPlaywright演習コードを既存Regressionと分離して実行できる入口。
+2. Web起動、Playwright、Android Emulator、Maestroまでの環境準備手順と開始確認。
+3. Google Sheetsで利用するWorkbookテンプレート、または同等の複製可能なひな形。
+4. Part 2で既存本番向けCI/CDやSecretsへ影響せずGitHub Actionsを試せる演習境界。
+5. Repositoryへ直接Push権限がなくても進められるFork / Copy方式。
+6. 教材入口からこのカリキュラムへ迷わず到達できるナビゲーション。
+
+これらはカリキュラムの学習内容を成立させるための**教材実装要件**であり、この文書整備ブランチでは実装しません。
 
 ## 完成済みコードの扱い
 
