@@ -51,6 +51,7 @@ Phase 2完了時に、次を成立させます。
 - Android EmulatorでMaestro必須Flowが安定して成功する。
 - iOS SimulatorでBuild、Install、起動、主要購入Flow、実`expo-sqlite` Contract Harnessが成功する。
 - GitHub ActionsをPhase 2の正式Native CI Gateとし、Android EmulatorとiOS Simulatorを独立して検証する。
+- Development/Preview用の内部検証Buildを生成できる。
 - Production-validationではAndroid/iOSともTest ControlとContract Harnessを実行できない。
 - Web版、Cloudflare Deploy、Playwrightの既存契約を壊さない。
 
@@ -381,7 +382,37 @@ Jest + jest-expo
 - `expo install`でSDK互換Versionを解決し、LockfileとPeer Dependencyを確認する。
 - `--force`、Peer Dependency無視、恒久的Overrideを標準対応にしない。
 
-Root `tsconfig.json`ではVitest/Web/Appの型を維持し、`tests/component/native`を除外します。Native Testは`tsconfig.native-tests.json`で分離し、VitestとJestのGlobal型を同じTypeScript Programへ混在させません。
+Test配置とTypeScript型を分離します。
+
+```text
+tests/component/web/**
+  Vitest
+
+tests/component/native/**
+  Jest + jest-expo
+```
+
+Root `tsconfig.json`ではVitest/Web/Appの型を維持し、`tests/component/native`を除外します。Native Test用設定は次を基準にします。
+
+```json
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "types": ["jest", "node"],
+    "noEmit": true
+  },
+  "include": [
+    "tests/component/native/**/*.ts",
+    "tests/component/native/**/*.tsx"
+  ],
+  "exclude": ["node_modules", "dist"]
+}
+```
+
+- 派生Configで`exclude`を明示し、Root ConfigのNative Test除外を上書きする。
+- `src/**`全件を`include`せず、Native TestからImportされたSourceだけを推移的に検査する。
+- VitestとJestのGlobal型を同じTypeScript Programへ混在させない。
+- TypeScript Project Referencesや別Package化は追加しない。
 
 Scriptは次を基準にします。
 
@@ -391,6 +422,12 @@ Scriptは次を基準にします。
   "typecheck:native-tests": "tsc --noEmit -p tsconfig.native-tests.json",
   "typecheck": "pnpm run typecheck:app && pnpm run typecheck:native-tests"
 }
+```
+
+```text
+test:component:web
+test:component:native
+test:component = web + native
 ```
 
 ### 6.9 Test Control
@@ -419,7 +456,7 @@ Production-validationではTest Control Deep Link、Service、UI、Handler、Con
 
 ### 6.10 CNG、EAS Profile、Environment
 
-`app.config.ts`、Config Plugin、Dependencyを正本とし、CNGを維持します。
+`app.config.ts`、Config Plugin、Dependencyを正本とし、`expo-dev-client`を導入してCNGを維持します。
 
 Phase 2の実Build／実行検証の正式経路はGitHub Actionsです。Windows Android／macOS iOSのローカルToolchainはデバッグ、実機確認、CI障害切り分けの補助経路として維持します。
 
@@ -427,23 +464,45 @@ EAS Profileと`.eas/workflows/**`は将来利用可能性を保つための静�
 
 #### ProfileとEAS Environment
 
-Development/PreviewではAutomation機能を有効にします。
+現行`eas.json`のProfile名とEnvironment mappingを維持します。
 
 ```text
-EXPO_PUBLIC_APP_ENV=automation
-EXPO_PUBLIC_BUILD_KIND=automation
-EXPO_PUBLIC_TEST_MODE=true
-EXPO_PUBLIC_DEFAULT_SEED=default
+development
+  environment: development
+  developmentClient: true
+  distribution: internal
+  android.buildType: apk
+  ios.simulator: true
+  EXPO_PUBLIC_APP_ENV=local
+  EXPO_PUBLIC_BUILD_KIND=local
+  EXPO_PUBLIC_TEST_MODE=true
+  EXPO_PUBLIC_DEFAULT_SEED=default
+
+preview
+  environment: preview
+  distribution: internal
+  android.buildType: apk
+  ios.simulator: true
+  EXPO_PUBLIC_APP_ENV=automation
+  EXPO_PUBLIC_BUILD_KIND=automation
+  EXPO_PUBLIC_TEST_MODE=true
+  EXPO_PUBLIC_DEFAULT_SEED=default
+
+production-validation
+  environment: production
+  distribution: internal
+  android.buildType: apk
+  ios.simulator: true
+  EXPO_PUBLIC_APP_ENV=production
+  EXPO_PUBLIC_BUILD_KIND=production
+  EXPO_PUBLIC_TEST_MODE=false
+  EXPO_PUBLIC_DEFAULT_SEED=default
 ```
 
-Production-validationでは次を固定します。
-
-```text
-EXPO_PUBLIC_APP_ENV=production
-EXPO_PUBLIC_BUILD_KIND=production
-EXPO_PUBLIC_TEST_MODE=false
-EXPO_PUBLIC_DEFAULT_SEED=default
-```
+- `development`はローカル開発用であり、`APP_ENV`／`BUILD_KIND`を`automation`へ変更しない。
+- `preview`をAutomation用内部検証Profileとして扱う。
+- `production-validation`をStore提出ではなくProduction設定の検証Profileとして扱う。
+- `pnpm run validate:eas:config`がこのProfile／Environment mappingを検証する。
 
 Production-validation Metadataは次を確認します。
 
@@ -481,12 +540,26 @@ Detect Native Changes
 - Native変更がない場合は重いAndroid/iOS JobのSkipを許容する。
 - `.github/workflows/native-ios-ci.yml`はNative CIから呼び出せる構成とし、必要に応じた`workflow_dispatch`による単独実行も維持する。
 - iOSはGitHub-hosted macOS Runner上でRelease Simulator Appを署名なしでBuildし、SimulatorへInstall／LaunchしてMaestroを実行する。
+- iOS Automation BuildとProduction-validation Buildはいずれも`iphonesimulator`向けとし、`CODE_SIGNING_ALLOWED=NO`で署名を要求しない。
 - iOS Automation BuildとProduction-validation Buildの結果を区別する。
 - Android/iOSのJUnit、Maestro Evidence、Build情報をPlatform別Artifactとして保存する。
 - 成功時Evidenceは必要十分に抑え、失敗時はSimulator／Emulator診断、Hierarchy、Screenshot、Runtime Logを回収する。
 - Web CIとCloudflare DeployはNative CI完了待ちにしない。
 
-Node/Webで完結するFormat、Lint、Typecheck、Unit/Application、Contract、Native Component、Route／Dependency Static Check、Production Bundle GuardもGitHub Actionsで検証します。
+Node/Webで完結する検証もGitHub Actionsで継続します。
+
+- Format、Markdownlint、Lint、`typecheck:app`、`typecheck:native-tests`
+- Unit/Application Test
+- Architecture/Capability/Scope Test
+- Dexie Contract
+- SQLite Node側Test
+- Web Component Test
+- Native Component Test
+- Native Route/Dependency Static Check
+- Production Bundle Guard
+- Web既存CI、Cloudflare Deploy
+
+Cloudflare DeployはNative Buildへ依存させません。
 
 #### EAS Workflow（静的契約のみ）
 
@@ -495,6 +568,7 @@ Node/Webで完結するFormat、Lint、Typecheck、Unit/Application、Contract�
 - Phase 2後半の実行経路として新しいEAS Workflowを必須成果物にしない。
 - Auth、Checkout、Order、Review、Payment Failure/Retry、Contract Harness、Production-validationはGitHub Actions上のAndroid Emulator／iOS Simulatorで検証する。
 - EAS Cloud Run ID／Build IDをPhase 2完了証跡として要求しない。
+- Production Bundle Guardは生成Bundleを検査し、Test Control／HarnessのModule Graph除外を確認する。
 
 ## 7. 共通実施原則
 
