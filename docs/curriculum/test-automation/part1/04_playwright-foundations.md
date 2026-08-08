@@ -21,6 +21,26 @@
 
 既存の `phase1-required.spec.ts` は最初の演習後に比較対象として読みます。
 
+## 演習コードの扱い
+
+このカリキュラムでは、受講者が最初から既存 `phase1-required.spec.ts` や他の正式Regressionへ追記することを前提にしません。
+
+教材提供時には、受講者用Playwright Testを既存Regressionから分離して保存・実行できるTraining境界を用意します。
+
+例えば次のような概念上の分離を想定しますが、具体的なPath、Project名、Script名は教材実装時にRepositoryの最新構成へ合わせて確定します。
+
+```text
+既存Regression
+└ e2e/web/...
+
+Training用
+└ 受講者専用spec領域
+```
+
+現行 `playwright.config.ts` と `package.json` は既存Suiteを実行するための設定です。この文書整備だけでTraining用ProjectやScriptを追加したものとは扱いません。
+
+受講者は、用意されたTraining実行入口で自分のTestを実行し、演習完了後に既存Regressionと比較します。
+
 ## Lesson 1: Playwrightとは
 
 PlaywrightはBrowserを操作し、Web UIを自動テストするためのFrameworkです。
@@ -111,7 +131,7 @@ await expect(page.getByRole("status")).toContainText("カートへ追加しま�
 
 ## Lesson 5: 最初のテストを書く
 
-次を自分で実装します。
+Training用specへ次を自分で実装します。
 
 1. 商品詳細を開く。
 2. 商品名を確認する。
@@ -151,6 +171,8 @@ await expect(page.getByRole("status")).toContainText("カートへ追加しま�
 
 設定値を暗記するのではなく、「なぜこのRepositoryではその設定が必要か」を考えます。
 
+さらに、現行Projectの `testMatch` やPackage Scriptが既存Suiteを対象としていることを確認し、Training用実行境界を正式Regressionから分ける理由を理解します。
+
 ## ハンズオン1: 商品詳細
 
 Test ID `PRODUCT-001` を想定し、商品詳細表示を確認するテストを書きます。
@@ -170,10 +192,12 @@ Test ID `CART-001` を想定し、Variation選択からCart追加までを書き
 3. `waitForTimeout`を基本戦略にしない理由は何か。
 4. `toBeVisible`は何を保証し、何を保証しないか。
 5. Playwright Configの`retries`を増やせばFlaky問題は解決するか。
+6. Training用specと正式Regressionを分離する理由は何か。
 
 ## 完了条件
 
 - Scenario Shopを対象にPlaywright Testを2本以上書いている。
 - Role / Labelを使ったLocatorを利用している。
 - 固定待機に頼らずAssertionで状態を待てる。
+- Training用実行境界と既存Regressionの役割を説明できる。
 - 自分のコードと既存E2Eの違いを3点以上説明できる。
