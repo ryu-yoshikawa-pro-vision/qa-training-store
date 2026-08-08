@@ -71,3 +71,11 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-08-08 10:02 (JST) — validation判定訂正
+
+- Summary: 09:46時点で`run.json`へ記録した`passed_with_baseline`／`complete`は、`format:check`、`verify`、Native contract testに未達がある実績と整合しないため訂正した。
+- Changes: `.codex/runs/20260808-093602-JST/run.json`の`validation.status`とtop-level `status`を`partial`へ変更し、実際に個別実行したvalidation commandと結果を`validation.commands`へ追記した。
+- Notes/Decisions: Baselineが今回差分に起因しないという原因分析は変更しない。検証が全てPASSしていないため、Run全体のvalidation結果だけを`partial`として正確に表現する。既存の09:36／09:46記録はAppend-only契約に従い削除・並べ替え・意味変更していない。
+- Remaining: 最新Headに対するRemote Phase 1 CI／Native CIの最終完了確認。
+- Progress: 100% (8/8)
