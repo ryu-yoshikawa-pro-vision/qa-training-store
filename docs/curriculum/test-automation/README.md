@@ -80,6 +80,7 @@
 11. 教材実装では、学習用の変更が現在のRegression Suiteや本番向けCI/CDへ意図せず混入しない境界を用意します。
 12. 学習者がRepositoryへ直接Pushできることを前提にせず、Part 2ではForkや演習用Copyを利用できる構成にします。
 13. Part 1をZIPなどGit管理されていないCopyで進めた受講者は、Part 2開始時にGit Historyを持つ同じ `qa-training-store` の演習用Copyへ成果物を引き継ぎます。
+14. CIハンズオンでは、Training Workflowと教材元のProduction / Deploy Workflowが同時起動しないことを開始条件とし、本番Secretを配布して既存Workflowを通す方法は採用しません。
 
 ## 全体構成
 
@@ -119,6 +120,8 @@ Part 2では、Part 1で作成した自動テストを「どのように開発�
 
 Part 1を配布ZIPなどで実施した場合も、Part 2で別教材へ切り替えるわけではありません。Git Historyを持つ同じScenario Shopの演習用CopyへPart 1成果物を引き継いで続行します。
 
+Git / GitHubの基本操作ではForkも利用できますが、CIハンズオンはProduction Workflowとの競合を避けるため、安全に分離された演習用Copyを標準とします。ForkでCIを行う場合は、教材元から継承したProduction / Deploy Workflowが演習中に起動しないよう、教材提供時に明示的な開始手順を用意します。
+
 ## 学習成果物
 
 カリキュラムを通して、受講者は最低限次の成果物を作成します。
@@ -144,10 +147,11 @@ Part 1を配布ZIPなどで実施した場合も、Part 2で別教材へ切り�
 1. Part 1用のPlaywright演習コードを既存Regressionと分離して実行できる入口。
 2. Web起動、Playwright、Android Emulator、Maestroまでの環境準備手順と開始確認。
 3. Google Sheetsで利用するWorkbookテンプレート、または同等の複製可能なひな形。
-4. Part 2で既存本番向けCI/CDやSecretsへ影響せずGitHub Actionsを試せる演習境界。
-5. Repositoryへ直接Push権限がなくても進められるFork / Copy方式。
-6. Part 1をZIPなどで進めた受講者が、Git Historyを持つ演習用CopyへTraining Test・学習成果物を安全に引き継ぐ手順。
-7. 教材入口からこのカリキュラムへ迷わず到達できるナビゲーション。
+4. Part 2で既存本番向けCI/CDやSecretsへ影響せずGitHub Actionsを試せる演習用Copy、または同等に安全なTraining CI境界。
+5. ForkでCI演習を許可する場合、GitHub Actionsを利用可能にする手順と、教材元から継承したProduction / Deploy Workflowを演習中に無効化・除外し、Training Workflowだけを意図どおり起動させる手順。
+6. Repositoryへ直接Push権限がなくても進められるFork / Copy方式。
+7. Part 1をZIPなどで進めた受講者が、Git Historyを持つ演習用CopyへTraining Test・学習成果物を安全に引き継ぐ手順。
+8. 教材入口からこのカリキュラムへ迷わず到達できるナビゲーション。
 
 これらはカリキュラムの学習内容を成立させるための**教材実装要件**であり、この文書整備ブランチでは実装しません。
 
