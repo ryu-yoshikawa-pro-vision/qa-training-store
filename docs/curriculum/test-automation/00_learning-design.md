@@ -32,6 +32,19 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 
 別のサンプルアプリは使用しません。受講者は同じアプリを繰り返し観察し、Web、Native、テストデータ、テストコード、CI/CDを段階的に理解します。
 
+## この文書群と教材実装の関係
+
+このディレクトリでは、学習順序、教材内容、演習、到達条件を定義します。
+
+受講者専用のPlaywright Project、演習用GitHub Actions、Google Sheets実テンプレートなどの実装は、この設計をもとに後続対応で用意します。
+
+そのため各Lessonは、次の2種類を区別して記述します。
+
+- **現在のRepositoryで読む・観察する教材**: 既存Playwright、Maestro、CI/CD、Scenarioなど。
+- **教材提供時に受講者が作成・実行する演習**: 既存Regressionや本番CI/CDと分離した学習用実行境界で行うもの。
+
+学習者が完成済みRegression Suiteへ直接練習コードを混在させたり、本番向けSecretを必要とするWorkflowを教材として直接変更したりすることは前提にしません。
+
 ## 対象者
 
 主な対象は次の受講者です。
@@ -47,9 +60,42 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 
 Part 1ではGitHubアカウントを必須にしません。
 
-受講者が必要なのは、Scenario ShopとPlaywright/Maestroをローカルで扱える環境です。Repository取得方法はGit Cloneに限定せず、必要に応じて配布ZIPなども利用できます。
+受講者が必要なのは、Scenario ShopとPlaywrightをローカルで扱える環境です。Repository取得方法はGit Cloneに限定せず、必要に応じて配布ZIPなども利用できます。
+
+Maestroへ進む時点ではNative実行環境が追加で必要です。教材提供時には、少なくとも次の開始確認を用意します。
+
+### Web / Playwright開始Gate
+
+- 対応Node.js / pnpmを利用できる。
+- DependencyをInstallできる。
+- Scenario Shop Webを起動できる。
+- Chromiumを使ったPlaywrightの最小実行が成功する。
+
+### Native / Maestro開始Gate
+
+標準ハンズオンはAndroid Emulatorを基準とします。
+
+- JDK / Android SDKを利用できる。
+- Android Emulatorを起動できる。
+- Scenario Shop NativeアプリをBuild / Installできる。
+- Maestroから最小Flowを実行できる。
+
+Mac環境が利用できる場合はiOS Simulatorでも確認できますが、Part 1で全受講者へiOS環境を必須にしません。iOS CIの設計・実行環境はPart 2で扱います。
 
 Git、GitHub、Pull Request、GitHub ActionsはPart 2で扱います。
+
+## Part 2の前提
+
+Part 2ではGitHubを扱うため、GitHubアカウントを利用できることを前提とします。
+
+ただし、受講者がこのRepository本体へのPush権限を持つことは前提にしません。
+
+教材提供時の標準経路は次のいずれかとします。
+
+- 自分のGitHub AccountへForkする。
+- 講師または組織が用意した演習用Copyを使用する。
+
+既存Repositoryの本番向けCI/CDやCloudflare Secretsを直接利用することは演習の前提にしません。既存Workflowは完成例として読み、演習用Workflowは安全に分離された環境で扱います。
 
 ## ノーコード・ローコード経験との接続
 
@@ -99,7 +145,7 @@ Part 2では、Part 1で作成したテストを一般的な開発プロセス�
 4. CIの必要性を理解する。
 5. GitHub Actionsでテストを実行する。
 6. Playwright ReportやArtifactを管理する。
-7. MaestroをAndroid / iOS CIで実行する。
+7. MaestroをAndroid / iOS CIで実行する考え方を学ぶ。
 8. Quality Gate、Build、Deploy、Smokeを設計する。
 9. Scenario Shopを題材に導入設計演習を行う。
 
