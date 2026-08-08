@@ -118,6 +118,8 @@ git switch -c training/cart-e2e
 
 Branchにより、現在安定している状態と作業中の変更を分けて扱えます。
 
+Git演習でも、最初の変更・Commitを `main` 上で行ってからBranchを作る順序にはしません。まず現在のDiffを確認し、その後に作業Branchを作成してから変更・Stage・Commitを行います。
+
 ## Lesson 6: Diffを読む
 
 Commit前に必ずDiffを確認します。
@@ -164,9 +166,29 @@ Part 1から引き継いだTraining Testまたは学習成果物を1つ選びま
 
 ZIPから移行した場合は、成果物を引き継いだ直後のDiffを確認します。
 
-## ハンズオン2: Playwright Test変更をCommitする
+この時点ではまだCommitしません。まず「現在どんな変更を持っているか」を把握します。
 
-Part 1で作成したTestへ小さな改善を加えます。
+## ハンズオン2: 作業Branchを作る
+
+最初の演習Commitを作る前に、`main` から作業Branchを作成します。
+
+例:
+
+```bash
+git switch -c training/git-basics
+```
+
+次を確認します。
+
+- 現在のBranchが `main` ではない。
+- Part 1から引き継いだWorking Treeの変更が作業Branch上でも確認できる。
+- `main` を安定した基準として残したまま演習を続けられる。
+
+Branchを作ること自体が目的ではなく、**変更とCommitをどの作業単位へ所属させるかを先に決める**ことを学びます。
+
+## ハンズオン3: Playwright Test変更をCommitする
+
+作業Branch上で、Part 1で作成したTestへ小さな改善を加えます。
 
 例:
 
@@ -174,32 +196,58 @@ Part 1で作成したTestへ小さな改善を加えます。
 - Locator改善
 - Assertion追加
 
-その後、`status` → `diff` → `add` → `commit` の順で管理します。
+その後、次の順で確認・Commitします。
 
-## ハンズオン3: Branchを分ける
+```text
+status
+↓
+diff
+↓
+add
+↓
+diff --staged
+↓
+commit
+```
 
-新しいTest Case追加用Branchを作り、`main`との差分を確認します。
+最初の演習Commitを `main` へ直接作らないことも確認します。
 
 ## ハンズオン4: 意図しない変更を除外する
 
-演習用に別Fileへ無関係な変更を作り、Commit対象から外します。
+演習用に別Fileへ無関係な変更を作ります。
+
+`git status` と `git diff` で変更を確認した後、今回のCommitへ必要なFileだけをStageします。
+
+目的は「すべての変更を一括でCommitする」のではなく、意味のある変更単位を選べるようになることです。
+
+## ハンズオン5: mainとの差分とHistoryを確認する
+
+作業BranchでCommitした後、次を確認します。
+
+- `main` と作業Branchの差分
+- 作成したCommit
+- Part 1成果物と今回の改善の関係
+
+自分の変更がどのBranch・Commitに属しているか説明します。
 
 ## 確認問題
 
 1. Fileを保存した状態とCommitした状態の違いは何か。
 2. Staging Areaがあることで何ができるか。
 3. Branchを使う理由は何か。
-4. Commit前にDiffを見る理由は何か。
-5. Test Fileを巨大化するとGit運用上どんな問題が増えやすいか。
-6. Part 1をZIPで進めた場合、Part 2開始時にGit Historyを持つCopyへ移行する理由は何か。
-7. Part 1のFolderへ単純に `git init` するだけでは教材元のHistoryを学べないのはなぜか。
+4. 最初の変更・Commitより前に作業Branchを作る理由は何か。
+5. Commit前にDiffを見る理由は何か。
+6. Test Fileを巨大化するとGit運用上どんな問題が増えやすいか。
+7. Part 1をZIPで進めた場合、Part 2開始時にGit Historyを持つCopyへ移行する理由は何か。
+8. Part 1のFolderへ単純に `git init` するだけでは教材元のHistoryを学べないのはなぜか。
 
 ## 完了条件
 
 - Part 1成果物をGit管理された `qa-training-store` へ引き継いでいる。
 - 教材元のGit Historyと自分の変更を区別できる。
-- Branchを作成できる。
+- 最初の演習Commit前に作業Branchを作成している。
+- `main` へ直接演習Commitを作らず、作業Branchで変更を管理できる。
 - 変更内容を`git diff`で確認できる。
 - 意図したFileだけをStageできる。
-- 意味のあるCommit MessageでCommitできる。
-- `main`との差分を説明できる。
+- Staged Diffを確認してから意味のあるCommit MessageでCommitできる。
+- `main`との差分と、自分のCommitが持つ変更内容を説明できる。
