@@ -52,7 +52,7 @@ jobs:
             'public/images/placeholder.svg' \
             'android/app/build.gradle' \
             'android/app/proguard-rules.pro' \
-            'android/app/src/main/**' \
+            'android/app/src/**' \
             'android/build.gradle' \
             'android/settings.gradle' \
             'android/gradle.properties' \

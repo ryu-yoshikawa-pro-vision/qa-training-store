@@ -337,7 +337,7 @@ describe("Native CI workflow contracts", () => {
       "public/images/placeholder.svg",
       "android/app/build.gradle",
       "android/app/proguard-rules.pro",
-      "android/app/src/main/**",
+      "android/app/src/**",
       "android/build.gradle",
       "android/settings.gradle",
       "android/gradle.properties",
@@ -348,6 +348,7 @@ describe("Native CI workflow contracts", () => {
     ]) {
       expect(nativeWorkflow).toContain(`'${path}'`);
     }
+    expect(nativeWorkflow).not.toContain("'android/app/src/main/**'");
     for (const path of [
       "src/application/**",
       "src/domain/**",

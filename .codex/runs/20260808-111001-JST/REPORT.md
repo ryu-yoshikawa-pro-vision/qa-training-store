@@ -193,6 +193,67 @@
 - Remaining: Remote CIのみユーザーpush後に確認が必要。
 - Progress: 100% (20/20)
 
+## 2026-08-08 14:04 JST — PR #11 Repair Iteration 2（Strict再レビュー・実装開始）
+
+- Summary: 追加指示を再確認し、Iteration 1の`standard`判断を履歴として保持したまま撤回し、Current RunをStrictへ正規化する方針を確定した。Strictのevaluation schema、既存Strict Run、Run Artifact責務、failure taxonomyを確認した。
+- Completed:
+  - `.github/workflows/native-ci.yml`のNative detect Pathを`android/app/src/main/**`から`android/app/src/**`へ変更した。
+  - `tests/contracts/native-ci-workflow.test.ts`の期待Pathを更新し、`android/app/src/main/**`への限定を否定するContractを追加した。
+  - PLANへ「再レビューによりStrictへ訂正する」Iteration 2のscope、schema判断、DoDを追記した。
+  - TASKSへStrict正規化・追加検証タスク21〜29を追加した。
+- Notes/Decisions:
+  - Strictの正本確認対象は`AGENTS.md`、`.codex/templates/evaluation.schema.json`、既存Strict Run、`docs/reference/run-artifacts.md`、`docs/reference/failure-taxonomy.md`。
+  - 既存templateにscope専用Artifactはないため、`evaluation.json.dimensions.scope_control`をscope metadataとして使用し、存在しない`run.json.scope`等は追加しない。
+  - taxonomyに`format`／`formatting`／`quality_gate`はない。既存25ファイルのformat差分がWindows環境で最初に発生した事実は`flaky_or_env_issue`としてevaluation／manifestで統一する。
+- New tasks: 21〜29（Strict正規化、Path Contract、evaluation／scope metadata、manifest、再検証、最終Sanitizer）。
+- Remaining: `evaluation.json`作成、`run.json`更新、必須検証の再実行、最終Sanitizer。
+- Progress: 69% (20/29)
+
+## 2026-08-08 14:11 JST — Strict Artifact作成・検証結果
+
+- Summary: Native source set境界の修正とStrict Artifactの作成・manifest整合を完了した。Strict schema validationを通過し、full Contractは一時timeoutの切り分け後に132/132へ回復した。
+- Completed:
+  - `evaluation.json`を`.codex/templates/evaluation.schema.json`に適合する形で作成した。
+  - `run.json.workflow_level`を`strict`、`artifact_summary.evaluation_present`を`true`、`evaluation_path`をCurrent Runのevaluationへ更新した。
+  - `primary_failure_category`をtaxonomy既存値の`flaky_or_env_issue`へ設定した。`format`等の独自categoryは追加していない。
+  - scope専用Artifactの既存schemaがないため、evaluationの`dimensions.scope_control`へIteration 2の許可範囲とCurrent Run全体の実変更範囲を記録した。
+- Commands:
+  - `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1` => 15 passed / 15
+  - `pnpm exec vitest run tests/contracts/ci-workflow.test.ts tests/contracts/native-ci-workflow.test.ts tests/contracts/native-test-control-maestro.test.ts --no-file-parallelism --maxWorkers=1` => 52 passed / 52
+  - `pnpm run test:contracts`（初回）=> 131 passed / 132、`native-production-module-resolution`がtimeout
+  - `pnpm exec vitest run tests/contracts/native-production-module-resolution.test.ts --no-file-parallelism --maxWorkers=1` => 4 passed / 4
+  - `pnpm run test:contracts`（再実行）=> 132 passed / 132
+  - `pnpm run lint:markdown` => 0 issues
+  - `pnpm run lint` => 0 errors / 64 warnings
+  - `pnpm run typecheck` => pass
+  - `pnpm exec prettier --check`（対象ファイル）=> pass
+  - `node -e`の`fs.readFileSync`→`yaml.parse`（ci.yml / native-ci.yml）=> pass
+  - `python -X utf8 -m jsonschema -i .codex/runs/20260808-111001-JST/evaluation.json .codex/templates/evaluation.schema.json` => pass（CLI deprecation warningのみ）
+  - `pnpm run format:check` => fail（既存の無関係な25ファイル）
+  - `pnpm run verify` => fail（最初の`format:check`で停止）
+- Notes/Decisions:
+  - `format:check`／`verify`は成功扱いにしていない。今回変更対象のPrettier check、Contract、lint、typecheck、YAML parseは別コマンドで成功した。
+  - Android Release APK build、Maestro実機／エミュレータ、Remote CIは未実行。Remote CIはpush後にユーザーが確認する。
+- Remaining: Current Run Artifactの最終Sanitizer Write/Check。
+- Progress: 97% (28/29)
+
+## 2026-08-08 14:12 JST — Current Run最終Sanitizer
+
+- Summary: Current Runの全Standard Artifact更新後に指定Sanitizerを実行した。
+- Commands:
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-111001-JST -Write -Check` => exit 0; files_scanned=5、files_changed=0、replacements_total=0、residual_findings=0
+- Notes/Decisions: Sanitizer後にRun Artifactを更新したため、同じWrite/Checkをもう一度実行して最終状態を確定する。
+- Remaining: 最終Sanitizer再実行後、ユーザー報告。
+- Progress: 100% (29/29)
+
+## 2026-08-08 14:13 JST — Sanitizer最終再実行完了
+
+- Summary: 14:12 JSTのSanitizer後にREPORTを追記したため、指定Sanitizerを再実行してRun Artifactを最終確定した。
+- Commands:
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-111001-JST -Write -Check` => exit 0; files_scanned=5、files_changed=0、replacements_total=0、residual_findings=0
+- Remaining: なし（Remote CI、Android実機／エミュレータ検証はpush後の確認事項）。
+- Progress: 100% (29/29)
+
 ## 2026-08-08 13:11 (JST) — 最終読み取り確認
 
 - Summary: 最終Prettier後のfocused ContractとCurrent Runの構造確認を完了した。

@@ -105,7 +105,7 @@ PR #11の既存CI topologyを維持し、Native変更検出の不足、Android B
 - `.codex/runs/20260808-111001-JST/REPORT.md`
 - `.codex/runs/20260808-111001-JST/run.json`
 
-Run ArtifactはRepository規約によりscope比較から除外するが、指定Current Runのみ更新する。`evaluation.json`はstandard workflowでは必須ではなく、今回追加しない。
+Run ArtifactはRepository規約によりscope比較から除外するが、指定Current Runのみ更新する。Iteration 1では既存Workflow拡張として`standard`を選び、`evaluation.json`を追加しないと判断した。この判断は再レビューで撤回し、Iteration 2ではCI Job topology／Artifact／変更検出というStrict対象の契約変更として`strict`へ正規化する。
 
 ### Hypotheses
 
@@ -116,3 +116,43 @@ Run ArtifactはRepository規約によりscope比較から除外するが、指�
 ### Validation and stop condition
 
 Contract、lint、typecheck、format、YAML parse、可能ならverifyを実行する。同一failureの盲目的再試行はせず、同一failure categoryが2回、同一工程が3回、scope violation、unsafe action、requirement ambiguityのいずれかでrepair loopを停止する。最終停止判断は`stop_success`または根拠付きの`stop_needs_human`とする。
+
+## PR #11 Repair Iteration 2（2026-08-08）— Strict正規化
+
+### Goal
+
+Native変更検出をAndroidの全source set境界（`android/app/src/**`）へ修正し、Current Run `20260808-111001-JST`をRepositoryのStrict Workflow Level契約に合わせて正規化する。
+
+### 再レビューによる判断訂正
+
+- Iteration 1では「既存Workflowの拡張」であることを理由に`standard`と判断した。この判断を履歴として保持したまま撤回する。
+- CI Job topology、Job間Artifact、Native変更検出条件、APK Artifact、Runtime／Verify境界は、AGENTS.mdのStrict対象（external integration／public contract）に該当する。
+- Strictの正本として`AGENTS.md`、`.codex/templates/evaluation.schema.json`、既存Strict Run、`docs/reference/run-artifacts.md`、`docs/reference/failure-taxonomy.md`を確認した。
+
+### Iteration 2 scope
+
+- `.github/workflows/native-ci.yml`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `.codex/runs/20260808-111001-JST/` の指定Current Run Artifact
+- `docs/plans/2026-08-08_125146_pr11-repair.md`
+
+Run Artifactはsource scope比較から除外する既存規約に従う。scope専用Artifactの既存templateはないため、evaluation schemaの`dimensions.scope_control`をscope metadataとして保存し、推測の`run.json` fieldは追加しない。
+
+### Change strategy
+
+1. detect Pathを`android/app/src/main/**`から`android/app/src/**`へ変更し、Contractで広いsource-set境界とmain限定でないことを保証する。
+2. `run.json`を`strict`へ更新し、schemaに従う`evaluation.json`を作成する。
+3. `evaluation.json`で実際の変更範囲、Strict契約、成功／失敗／未実行検証、Remote CI未確認を記録する。
+4. 最初の品質ゲート失敗はtaxonomyに`format`カテゴリがないため、Windows環境に起因する既存format差分として`flaky_or_env_issue`へ分類し、`run.json`とevaluationで一致させる。
+5. REPORTは既存履歴を削除・書換えず、Strict訂正をappend-onlyで追記する。
+
+### Non-goals
+
+- Maestro Flow、Action SHA pinning、Build Tools env化、Production code、他の過去Run、Git操作は変更しない。
+
+### Definition of Done
+
+- `android/app/src/**`とContractが一致する。
+- Strict必須のPLAN／TASKS／REPORT／run.json／evaluationとscope metadataが揃い、manifest summaryが実体と一致する。
+- validation failureとprimary failure categoryがtaxonomy・evaluation・manifestで説明可能な形に揃う。
+- 指定検証、対象Prettier、YAML parse、Sanitizerの結果を事実どおり記録する。
