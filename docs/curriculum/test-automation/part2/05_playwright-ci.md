@@ -21,6 +21,16 @@
 - `.github/workflows/ci.yml`
 - `package.json`
 
+## 演習の前提
+
+このモジュールはPart 2-4で用意した**Secret不要・DeployなしのTraining Workflow**を拡張して進めます。
+
+受講者は本体Repositoryの `.github/workflows/ci.yml` を直接変更してPlaywright演習を行いません。
+
+また、Part 1で作成したTraining用Playwright TestをCIから明示的に実行できる入口が教材提供時に用意されていることを前提とします。現行 `playwright.config.ts` / `package.json` の正式Suiteへ演習specを混在させることは前提にしません。
+
+現在の `.github/workflows/ci.yml` は、自分の最小Playwright CIを動かした後に比較教材として読みます。
+
 ## Lesson 1: CIでPlaywrightを動かすために必要なもの
 
 Playwright TestだけをRunnerへ置いても実行できません。
@@ -59,7 +69,7 @@ Scenario ShopのPlaywright Configは、Localでは必要に応じてWeb Buildと
 
 一方、現在のCIではAutomation Buildを専用Jobで一度作り、ArtifactとしてE2E Jobへ渡します。
 
-まず学習用の単純構成を考えます。
+まずTraining Workflowで単純構成を考えます。
 
 ```text
 E2E Job
@@ -181,17 +191,19 @@ Scenario ShopではProduction ArtifactをLocal配信してSmoke Testします。
 
 Test APIなどAutomation専用機能がProductionへ混入していないことも重要な品質条件です。
 
-## ハンズオン1: Chromium E2EをCIへ追加する
+Training Workflowでは本番Deployや本番Secretを扱わず、Production Artifact Smokeの設計思想を既存CIから学びます。
 
-最小Workflowに次を追加します。
+## ハンズオン1: Chromium E2EをTraining CIへ追加する
+
+Training Workflowに次を追加します。
 
 1. Build
 2. Chromium Install
-3. Playwright E2E
+3. Training用Playwright E2E
 
 ## ハンズオン2: Failure Artifact
 
-Testを意図的にFailさせ、Trace / ScreenshotなどをArtifactとして取得します。
+Training用Testを意図的にFailさせ、Trace / ScreenshotなどをArtifactとして取得します。
 
 Artifactだけから原因を説明します。
 
@@ -208,7 +220,7 @@ Part 1で作成したTestを次へ仮分類します。
 
 ## ハンズオン4: 既存CI比較
 
-現在の `.github/workflows/ci.yml` を読み、自分の構成と比較します。
+現在の `.github/workflows/ci.yml` を読み、自分のTraining構成と比較します。
 
 最低限次を説明します。
 
@@ -217,6 +229,7 @@ Part 1で作成したTestを次へ仮分類します。
 - Chromium E2EをMatrix化している理由
 - Extended E2EをPRでSkipする理由
 - UI Reviewを独立させている理由
+- Preview / ProductionをTraining CIへそのまま含めない理由
 
 ## 確認問題
 
@@ -225,10 +238,12 @@ Part 1で作成したTestを次へ仮分類します。
 3. 全Browser全TestをPRごとに回さない判断があり得るのはなぜか。
 4. Failure Artifactが必要な理由は何か。
 5. Automation BuildとProduction Buildを分ける価値は何か。
+6. Training Playwright CIを本体のDeploy Workflowから分ける理由は何か。
 
 ## 完了条件
 
-- GitHub Actions上でScenario ShopのPlaywright Testを実行できる。
+- Training Workflow上でScenario ShopのPlaywright Testを実行できる。
 - Failure時にEvidence Artifactを取得できる。
 - PR / main / NightlyのTest配置案を作成している。
+- Training CIと実運用CIの責務差を説明できる。
 - 現在のScenario Shop Playwright CI構成の主要な設計理由を説明できる。
