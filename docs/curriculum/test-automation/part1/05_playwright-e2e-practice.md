@@ -22,6 +22,22 @@
 - `src/seeds/metadata.ts`
 - `window.__TEST_API__`
 
+## 演習実装の前提
+
+受講者が作るE2Eは、教材提供時に用意されるTraining用実行境界で管理します。
+
+既存の正式Regressionへ直接追加することは前提にしません。既存E2Eは、受講者が自分の実装を完成させた後に設計・品質の比較対象として使用します。
+
+Training環境には最低限、次が必要です。
+
+- Training用specを既存Regressionと分離して保存できる。
+- Training用specを明示的に実行できる。
+- Scenario ShopのAutomation Build / Test APIを利用できる。
+- Failure時にTrace、Screenshot、Videoなどを確認できる。
+- Training用変更が正式Regressionの必須Suiteへ意図せず混入しない。
+
+この文書整備では、そのConfigやScript自体は追加しません。
+
 ## Lesson 1: テスト設計からコードへ落とす
 
 スプレッドシートのTest Caseを、次の順序でコードへ変換します。
@@ -77,7 +93,7 @@ Scenario Shopには、テスト開始状態を再現するためのScenarioが�
 
 ## Lesson 3: 異常系と境界値
 
-次をPlaywrightで実装します。
+スプレッドシートで設計したケースから、次のような条件をPlaywrightへ実装します。
 
 - 在庫切れ
 - 購入上限
@@ -85,6 +101,8 @@ Scenario Shopには、テスト開始状態を再現するためのScenarioが�
 - Payment失敗
 
 重要なのはError Messageを確認するだけではなく、誤った状態へ遷移していないことも確認することです。
+
+境界値の全組み合わせをE2Eへ持ち込まず、UI Journeyとして価値の高い代表条件を選びます。
 
 ## Lesson 4: 状態遷移をE2Eにする
 
@@ -159,6 +177,8 @@ Playwright Projectを切り替え、Mobile Viewportでも主要Flowを確認し�
 
 DesktopでPassすることとMobileで使えることは同じではありません。
 
+Training用Mobile実行も、教材提供時に正式Suiteと分離した入口を用意します。
+
 ## Lesson 8: Accessibility
 
 `@axe-core/playwright` を利用した自動Accessibility Testと、Keyboard操作などの確認を学びます。
@@ -175,13 +195,15 @@ DesktopでPassすることとMobileで使えることは同じではありませ
 - 在庫切れまたは購入上限
 - 削除または数量変更
 
+各Caseについて、スプレッドシート上の設計根拠とコード上のAssertionが対応していることを確認します。
+
 ## ハンズオン2: Payment Failure
 
 Payment拒否からRetry成功までを実装します。
 
 ## ハンズオン3: Mobile確認
 
-作成したテストのうち1件をMobile Projectで実行し、Desktopとの差を記録します。
+作成したテストのうち1件をMobile向けTraining実行環境で実行し、Desktopとの差を記録します。
 
 ## ハンズオン4: 既存E2Eとの差分分析
 
@@ -201,6 +223,7 @@ Payment拒否からRetry成功までを実装します。
 3. Cross-role E2Eを巨大化しすぎると何が問題になるか。
 4. DesktopでPassしてもMobile Testが必要な理由は何か。
 5. Accessibility自動Scanだけで十分ではない理由は何か。
+6. Training用E2Eを正式Regressionから分離する理由は何か。
 
 ## 完了条件
 
@@ -209,3 +232,4 @@ Payment拒否からRetry成功までを実装します。
 - 正常、異常または境界の両方を含む。
 - PaymentまたはRole横断の状態遷移を1件以上扱っている。
 - MobileまたはAccessibilityの追加観点を1件以上実行している。
+- Training用E2Eと既存Regressionを混同せず、両者の役割を説明できる。
