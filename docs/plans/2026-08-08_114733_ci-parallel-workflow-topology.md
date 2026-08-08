@@ -81,7 +81,7 @@
 - Risks:
   - Branch Protection の Required Check 表示名変更（Job ID `quality` → `style-quality` / `code-quality`）。最終報告に明記する。
   - `overwrite: true` 非対応 action バージョンへの回帰時はリネーム方式へ切替。
-  - Native 未変更PRの skip 契約が誤ると `native-ci / verify` が fail-closin から外れる。Contract Test で fail-closed を固定した。
+  - Native 未変更PRの skip 契約が誤ると `native-ci / verify` が fail-closed から外れる。Contract Test で fail-closed を固定した。
 - Open questions: 実施後に残る問題は REPORT へ記録する。
 
 ## 8. 成果物

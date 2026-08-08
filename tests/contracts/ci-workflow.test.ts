@@ -23,7 +23,7 @@ function stepBlock(job: string, stepName: string) {
 }
 
 describe("Phase 1 CI deployment boundaries", () => {
-  it("keeps the Markdown quality gate before format in the style job", () => {
+  it("runs Format check before Markdown lint in the style job", () => {
     const style = jobBlock("style-quality", "code-quality");
     const format = stepBlock(style, "Format check");
     const markdown = stepBlock(style, "Markdown lint");

@@ -79,3 +79,40 @@
 - `overwrite: true` が利用するactionバージョンに対応していない場合: 別リネーム方式を検討。
 - Native Staticをskipにする場合のContract Test誤り: `verify` のfail-closed契約テストでスキップ許可を明示。
 - Timeout設定: 初回から過度に短くしない。
+
+## PR #11 Repair Iteration 1 (2026-08-08)
+
+### Goal
+
+PR #11の既存CI topologyを維持し、Native変更検出の不足、Android Build Evidenceの成功時重複保存、RuntimeのJava暗黙依存、関連Contract/docs/Current Runの不整合を修正する。
+
+### Input findings / triage
+
+- `must_fix`: `detect`のEAS／Native検証入力Path不足、成功時APK二重保存、成功時Gradle全文保存、Runtime Java 17未固定、該当Contractの逆契約。
+- `should_fix`: `ci-workflow`のテスト名、Runtime `jobBlock`境界、計画書の`fail-closin` typo、Current Runの履歴・Progress整合。
+- `defer`: Branch Protection Required Check表示名の確認、Remote CI再実行（Git操作禁止）。
+- `reject`: CI topology再設計、Actions更新、Production code／Maestro flowの変更。
+
+### Allowed files
+
+- `.github/workflows/native-ci.yml`
+- `tests/contracts/native-ci-workflow.test.ts`
+- `tests/contracts/ci-workflow.test.ts`
+- `docs/plans/2026-08-08_114733_ci-parallel-workflow-topology.md`
+- `docs/plans/2026-08-08_125146_pr11-repair.md`
+- `.codex/runs/20260808-111001-JST/PLAN.md`
+- `.codex/runs/20260808-111001-JST/TASKS.md`
+- `.codex/runs/20260808-111001-JST/REPORT.md`
+- `.codex/runs/20260808-111001-JST/run.json`
+
+Run ArtifactはRepository規約によりscope比較から除外するが、指定Current Runのみ更新する。`evaluation.json`はstandard workflowでは必須ではなく、今回追加しない。
+
+### Hypotheses
+
+- H1: EAS設定、検証スクリプト、Android project、Native asset実体をdetectへ追加すれば、Native Jobが必要な変更のskipを防げる。
+- H2: Build job statusがsuccessのときだけAPK本体／Gradle全文を省略し、failure時だけ保持すれば、正式APK Artifactを維持しつつEvidence転送量を減らせる。
+- H3: RuntimeへTemurin Java 17を追加すれば、MaestroのJava Runtimeがhost runner既定値から独立する。
+
+### Validation and stop condition
+
+Contract、lint、typecheck、format、YAML parse、可能ならverifyを実行する。同一failureの盲目的再試行はせず、同一failure categoryが2回、同一工程が3回、scope violation、unsafe action、requirement ambiguityのいずれかでrepair loopを停止する。最終停止判断は`stop_success`または根拠付きの`stop_needs_human`とする。

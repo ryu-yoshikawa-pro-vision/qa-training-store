@@ -23,7 +23,7 @@ function jobBlock(jobName: string, nextJobName?: string) {
 
 describe("Native CI workflow contracts", () => {
   it("resolves the Android SDK and sdkmanager without relying on PATH", () => {
-    const runtime = jobBlock("android-runtime");
+    const runtime = jobBlock("android-runtime", "verify");
     const build = jobBlock("android-build", "android-runtime");
 
     expect(runtime).toContain(
@@ -154,8 +154,12 @@ describe("Native CI workflow contracts", () => {
     expect(runtime).not.toContain("assembleRelease");
     expect(runtime).not.toContain("expo prebuild");
     expect(runtime).not.toContain("gradle/actions/setup-gradle");
+    expect(runtime).not.toContain("actions/setup-node@v4");
+    expect(runtime).not.toContain("pnpm/action-setup@v4");
     expect(runtime).not.toContain("pnpm run");
-    expect(runtime).not.toContain("setup-java");
+    expect(runtime).toContain("actions/setup-java@v4");
+    expect(runtime).toContain("distribution: temurin");
+    expect(runtime).toContain('java-version: "17"');
     expect(runtime).toContain("libpulse0");
     expect(runtime).toContain("system-images");
   });
@@ -299,6 +303,22 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain(
       'capture_command "$RUNNER_TEMP/native-runtime-evidence/apk-sha256.txt"',
     );
+    expect(nativeWorkflow).toContain("NATIVE_ANDROID_BUILD_JOB_STATUS: ${{ job.status }}");
+    expect(nativeWorkflow).toContain(
+      'tail -n 200 "$gradle_log" > "$RUNNER_TEMP/native-build-evidence/gradle-assemble-release.log"',
+    );
+    expect(nativeWorkflow).toContain(
+      'cp "$gradle_log" "$RUNNER_TEMP/native-build-evidence/gradle-assemble-release.log"',
+    );
+    expect(nativeWorkflow).toContain(
+      'if [[ "${NATIVE_ANDROID_BUILD_JOB_STATUS:-failure}" != "success" ]]; then',
+    );
+    expect(nativeWorkflow).toContain(
+      'if [[ "${NATIVE_ANDROID_BUILD_JOB_STATUS:-failure}" == "success" ]]; then',
+    );
+    expect(nativeWorkflow).toContain("apk_path=$APK_PATH");
+    expect(nativeWorkflow).toContain("apk-metadata.txt");
+    expect(nativeWorkflow).toContain("apk-copy-status.txt");
     expect(nativeWorkflow).toContain("Maestro artifact copy failed.");
     expect(nativeWorkflow).toContain("Android device was not started or was unavailable.");
     expect(nativeWorkflow).toContain("Emulator was not started; no emulator log was generated.");
@@ -309,6 +329,25 @@ describe("Native CI workflow contracts", () => {
   });
 
   it("detects shared Native dependencies and fail-closes the final Verify job", () => {
+    for (const path of [
+      "eas.json",
+      ".eas/workflows/**",
+      "scripts/validate-eas-static-config.ts",
+      "scripts/check-native-route-dependencies.ts",
+      "public/images/placeholder.svg",
+      "android/app/build.gradle",
+      "android/app/proguard-rules.pro",
+      "android/app/src/main/**",
+      "android/build.gradle",
+      "android/settings.gradle",
+      "android/gradle.properties",
+      "android/gradle/wrapper/**",
+      "android/gradlew",
+      "scripts/validate-image-manifest.ts",
+      "public/images/products/**",
+    ]) {
+      expect(nativeWorkflow).toContain(`'${path}'`);
+    }
     for (const path of [
       "src/application/**",
       "src/domain/**",

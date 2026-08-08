@@ -12,11 +12,19 @@
 - [x] 8. 可能なら `pnpm run verify` を実行する（ローカルCRLF環境でformat:checkが通らないため、実行可能なゲートのみで代替し記録）
 - [x] 9. `docs/plans/` へ計画書（2026-08-08_114733_ci-parallel-workflow-topology.md）、`docs/PROJECT_CONTEXT.md` と履歴を更新する
 - [x] 10. Run Artifactを確定し、`scripts/sanitize-codex-artifacts.ps1` の Write/Check を実行する
-- [x] 11. 発見: `tests/contracts/native-test-control-maestro.test.ts` の環境起因失敗（CRLF）を本PRで修正（ユーザー指示により実施）
+- [x] 12. PR #11修正指示のtriage、allowed_files、実装前計画書（`docs/plans/2026-08-08_125146_pr11-repair.md`）を確定する
+- [x] 13. Native detect Pathを補完し、重要入力PathのContractを追加する
+- [x] 14. Android Build成功時EvidenceからAPK本体・不要なGradle全文を除外し、失敗時診断を維持するContractを追加する
+- [x] 15. `android-runtime`へTemurin Java 17を追加し、Runtime Java契約とJob block境界を修正する
+- [x] 16. ci-workflow Contract Test名と既存計画書の`fail-closin` typoを修正する
+- [x] 17. Current Runの有効なYAML検証コマンド、Sanitizer証跡、REPORT訂正、workflow level判断を更新する
+- [x] 18. Current RunのTASKS分類／最終Progressとrun.jsonのvalidation・changed_filesを整合させる
+- [x] 19. Contract、lint、typecheck、format、YAML parse、可能ならverifyを実行し結果を記録する
+- [x] 20. Current RunへSanitizer Write/Checkを最終実行し、証跡を一致させて修正を完了する
 
 ## Discovered
 
-- 作業中に発見したタスクはここに追記する
+- [x] 11. 発見: `tests/contracts/native-test-control-maestro.test.ts` の環境起因失敗（CRLF）を本PRで修正（ユーザー指示により実施）
 
 ## Blocked
 

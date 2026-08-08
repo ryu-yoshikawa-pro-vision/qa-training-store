@@ -48,7 +48,22 @@ jobs:
             'src/generated/**' \
             'config/**' \
             'public/images/product-image-manifest.json' \
+            'public/images/products/**' \
+            'public/images/placeholder.svg' \
+            'android/app/build.gradle' \
+            'android/app/proguard-rules.pro' \
+            'android/app/src/main/**' \
+            'android/build.gradle' \
+            'android/settings.gradle' \
+            'android/gradle.properties' \
+            'android/gradle/wrapper/**' \
+            'android/gradlew' \
+            'eas.json' \
+            '.eas/workflows/**' \
             'scripts/generate-native-asset-map.ts' \
+            'scripts/validate-image-manifest.ts' \
+            'scripts/validate-eas-static-config.ts' \
+            'scripts/check-native-route-dependencies.ts' \
             'scripts/validate-native-production-bundle.ts' \
             'src/**/*.native.ts' \
             'src/**/*.native.tsx' \
@@ -284,27 +299,34 @@ jobs:
             echo "node_version=$(node --version 2>/dev/null || true)"
             echo "java_version=$(java -version 2>&1 | head -n 1 || true)"
           } > "$RUNNER_TEMP/native-build-evidence/android-build-environment.txt"
-          if [[ -f "$RUNNER_TEMP/gradle-assemble-release.log" ]]; then
-            if ! cp "$RUNNER_TEMP/gradle-assemble-release.log" \
-              "$RUNNER_TEMP/native-build-evidence/gradle-assemble-release.log"; then
-              echo "Gradle Release build log copy failed." \
-                > "$RUNNER_TEMP/native-build-evidence/gradle-copy-status.txt"
+          gradle_log="$RUNNER_TEMP/gradle-assemble-release.log"
+          if [[ -f "$gradle_log" ]]; then
+            if [[ "${NATIVE_ANDROID_BUILD_JOB_STATUS:-failure}" == "success" ]]; then
+              tail -n 200 "$gradle_log" > "$RUNNER_TEMP/native-build-evidence/gradle-assemble-release.log"
+            else
+              if ! cp "$gradle_log" "$RUNNER_TEMP/native-build-evidence/gradle-assemble-release.log"; then
+                echo "Gradle Release build log copy failed." \
+                  > "$RUNNER_TEMP/native-build-evidence/gradle-copy-status.txt"
+              fi
             fi
           else
             echo "Gradle Release build log was not generated." \
               > "$RUNNER_TEMP/native-build-evidence/gradle-status.txt"
           fi
           if [[ -n "${APK_PATH:-}" && -f "$APK_PATH" ]]; then
-            if ! cp "$APK_PATH" "$RUNNER_TEMP/native-build-evidence/app-release.apk"; then
-              echo "Automation Release APK copy failed." \
-                > "$RUNNER_TEMP/native-build-evidence/apk-copy-status.txt"
-            fi
             {
-              ls -lh "$APK_PATH" || true
+              echo "apk_path=$APK_PATH"
+              stat -c 'size_bytes=%s' "$APK_PATH"
               file "$APK_PATH" || true
               unzip -l "$APK_PATH" | grep -E "AndroidManifest.xml|assets/.*\\.(bundle|hbc)|lib/x86_64/.*\\.so" || true
               sha256sum "$APK_PATH" || true
-            } > "$RUNNER_TEMP/native-build-evidence/apk-info.txt"
+            } > "$RUNNER_TEMP/native-build-evidence/apk-metadata.txt"
+            if [[ "${NATIVE_ANDROID_BUILD_JOB_STATUS:-failure}" != "success" ]]; then
+              if ! cp "$APK_PATH" "$RUNNER_TEMP/native-build-evidence/app-release.apk"; then
+                echo "Automation Release APK copy failed." \
+                  > "$RUNNER_TEMP/native-build-evidence/apk-copy-status.txt"
+              fi
+            fi
           else
             echo "Automation Release APK was not generated." \
               > "$RUNNER_TEMP/native-build-evidence/apk-status.txt"
@@ -329,6 +351,10 @@ jobs:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
       - name: Install Android emulator runtime dependencies
         shell: bash
         run: |
