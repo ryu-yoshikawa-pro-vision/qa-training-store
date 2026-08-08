@@ -1,0 +1,78 @@
+{
+    "schema_version":  1,
+    "run_id":  "20260808-093602-JST",
+    "task_type":  "implementation",
+    "workflow_level":  "lightweight",
+    "preset":  "safe",
+    "runtime":  "host",
+    "agents_used":  [
+
+                    ],
+    "repo":  "qa-training-store",
+    "branch":  null,
+    "base_branch":  null,
+    "codex_task_reports":  [
+
+                           ],
+    "changed_files":  [
+                          "docs/CODING_STANDARDS.md"
+                      ],
+    "validation":  {
+                       "status":  "partial",
+                       "commands":  [
+                                        "pnpm run lint:markdown => PASS (160 files, 0 issues)",
+                                        "pnpm run format:check => FAIL (既存Baseline 30 files。docs/CODING_STANDARDS.md単体はPASS)",
+                                        "pnpm run verify => FAIL (format:checkの既存Baselineで停止)",
+                                        "pnpm run lint => PASS (0 errors, 64 warnings)",
+                                        "pnpm run typecheck => PASS",
+                                        "pnpm run validate:image-manifest => PASS",
+                                        "pnpm run security:check => PASS",
+                                        "pnpm run test => FAIL (Native契約4件のWindows CRLF/LF既存Baseline。その他suiteはPASS)",
+                                        "pnpm run build:web => PASS",
+                                        "scripts/sanitize-codex-artifacts.ps1 Write+Check => PASS"
+                                    ],
+                       "warnings":  [
+                                        "format:checkは既存Baseline（HEAD時点で未整形の30ファイル）でFAIL。docs/CODING_STANDARDS.md単体はPASS。",
+                                        "verifyはformat:checkの既存Baselineで最初に停止。lint、typecheck、image-manifest、security、test、build:webは個別に実行し、test以外はPASS。",
+                                        "test:contractsは既知のWindows CRLF/LF Baseline（Native契約4件）でFAIL、120 PASS。"
+                                    ]
+                   },
+    "safety":  {
+                   "network":  false,
+                   "delete_attempt_blocked":  false,
+                   "git_mutation_attempt_blocked":  false,
+                   "scope_violation":  false
+               },
+    "artifact_summary":  {
+                             "codex_task_report_count":  0,
+                             "hook_event_count":  0,
+                             "subagent_run_count":  0,
+                             "evaluation_present":  false
+                         },
+    "hook_observations":  {
+                              "log_paths":  [
+
+                                            ],
+                              "event_counts":  {
+
+                                               },
+                              "blocking_event_count":  0,
+                              "safety_blocked_count":  0,
+                              "observation_error_count":  0
+                          },
+    "subagents":  {
+                      "records":  [
+
+                                  ],
+                      "summary":  {
+                                      "total":  0,
+                                      "read_only":  0,
+                                      "writable":  0,
+                                      "scope_violations":  0,
+                                      "used_in_final_plan":  0
+                                  }
+                  },
+    "evaluation_path":  null,
+    "status":  "partial",
+    "primary_failure_category":  null
+}

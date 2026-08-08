@@ -8,12 +8,14 @@
 - `--max-iterations` は runner auto-loop ではなく workflow bound である。
 
 ## Flow
+
 1. review finding と validation gap を入力に triage する。
 2. iteration 1 で `must_fix` を修正し、validation を再実行する。
 3. 残差があるため `decision = continue` とする。
 4. iteration 2 で残差を解消し、`decision = stop_success` とする。
 
 ## Files
+
 - `iteration-1-evaluation.json`
 - `iteration-2-evaluation.json`
 - `repair-summary.md`

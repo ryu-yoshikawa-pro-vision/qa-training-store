@@ -23,6 +23,6 @@
 
 ## Addendum: 2026-08-02 PR #4レビュー修正
 
-5. Reset成功後のNotice処理はDatabase Resetの成功判定から分離し、Noticeの保存可否にかかわらずsafeResetPathへハード遷移する。Confirm中は同一Reset Promiseを二重起動しない。
-6. Previewの公開可否は、削除予定を除いたForm由来のeffective Variantと既存DB現在庫を入力にする。Previewは永続化を行わず、公開不可理由はDictionary経由で利用者向けに変換する。
-7. Shipment表示とCheckout Login fallbackは、Presentationで許可した状態mappingだけを表示／Fallback対象とし、Storage Errorや予期しないApplication Errorを汎用状態へ変換しない。
+1. Reset成功後のNotice処理はDatabase Resetの成功判定から分離し、Noticeの保存可否にかかわらずsafeResetPathへハード遷移する。Confirm中は同一Reset Promiseを二重起動しない。
+2. Previewの公開可否は、削除予定を除いたForm由来のeffective Variantと既存DB現在庫を入力にする。Previewは永続化を行わず、公開不可理由はDictionary経由で利用者向けに変換する。
+3. Shipment表示とCheckout Login fallbackは、Presentationで許可した状態mappingだけを表示／Fallback対象とし、Storage Errorや予期しないApplication Errorを汎用状態へ変換しない。

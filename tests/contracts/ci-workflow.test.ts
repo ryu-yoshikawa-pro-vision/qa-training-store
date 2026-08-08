@@ -23,6 +23,19 @@ function stepBlock(job: string, stepName: string) {
 }
 
 describe("Phase 1 CI deployment boundaries", () => {
+  it("runs the Markdown quality gate before code linting", () => {
+    const quality = jobBlock("quality", "codex-artifact-sanitization");
+    const format = stepBlock(quality, "Format check");
+    const markdown = stepBlock(quality, "Markdown lint");
+    const lint = stepBlock(quality, "Lint");
+
+    expect(format).toContain("pnpm run format:check");
+    expect(markdown).toContain("pnpm run lint:markdown");
+    expect(lint).toContain("pnpm run lint");
+    expect(quality.indexOf("Markdown lint")).toBeGreaterThan(quality.indexOf("Format check"));
+    expect(quality.indexOf("Lint")).toBeGreaterThan(quality.indexOf("Markdown lint"));
+  });
+
   it("splits verification, preview deployment, and the final validate gate", () => {
     const verify = jobBlock("verify", "deploy-preview");
     const preview = jobBlock("deploy-preview", "validate");

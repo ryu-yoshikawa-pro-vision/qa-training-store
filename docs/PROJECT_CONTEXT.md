@@ -225,6 +225,12 @@
 - `codex-task.ps1`はLog／Report／Manifest／Evaluationの書込み前にsanitized Valueを通し、Run終了時にWrite＋Checkをfinallyで実行する。CIはFixture Testと変更された`.codex/runs/**`のCheck-onlyを実行する。
 - 対象は`.md`、`.json`、`.jsonl`、`.txt`だけとし、Binaryは変更しない。Residual検査はfail-closedであり、過去Runは一括書換えせずCheck-onlyで状態を確認する。Secret Redactionは別責務である。
 
+## Markdown品質ゲート（2026-08-08）
+
+- 通常のMarkdown文書は、リポジトリ直下の`.markdownlint-cli2.jsonc`を設定正本として`pnpm run lint:markdown`で検査する。`.codex/runs/**`、依存・生成物ディレクトリは対象外とする。
+- `pnpm run verify`とPhase 1 CIの`quality` jobは同じ`pnpm run lint:markdown`を実行する。Prettierが対象外とするMarkdownの構造品質を、Markdownlintで別の品質ゲートとして扱う。
+- `.codex/templates/*.md`をRun Artifactの生成元としてMD022／MD029を満たす状態に保つ。過去の`.codex/runs/**`は一括整形・一括Lint・見出し日本語化を行わず、既存の機械契約とPath Sanitizationを維持する。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

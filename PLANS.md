@@ -1,6 +1,7 @@
 # Planning Entry Point
 
 ## 適用条件
+
 - 複雑な依頼
 - 複数ファイルや複数段階にまたがる依頼
 - 要件が曖昧な依頼
@@ -9,12 +10,14 @@
 - Plan Mode で扱う依頼
 
 ## 使い方
+
 1. `AGENTS.md` を確認する。
 2. `.agents/skills/feature-plan/SKILL.md` を読む。
 3. 必要に応じて `.agents/skills/feature-plan/references/planning-workflow.md` を読む。
 4. 実装へ進む前に、合意した計画を `docs/plans/TEMPLATE.md` ベースで `docs/plans/` に保存する。
 
 ## Planning rules
+
 - 既存 code / test / config / docs を読む前に設計を確定しない。
 - `Current understanding` には確認できた事実だけを書く。
 - `Assumptions` には崩れたら計画を見直す前提だけを書く。
@@ -23,6 +26,7 @@
 - 保存用計画書は `docs/plans/TEMPLATE.md` に落とし込む。
 
 ## Ambiguity handling
+
 - Contract marker: `mandatory-question`
 - Plan Mode では、AI が判断し切れない不透明点を推測で埋めてはいけない。
 - `Blocking questions`:
@@ -42,6 +46,7 @@
 - 未回答の重要質問が残る場合、実装には進まず `Open questions` に残す。ユーザーが「仮定して進めてよい」と明示した場合のみ、仮定を計画に記録して進める。
 
 ## Required plan output format
+
 1. Goal
 2. Current understanding
 3. Assumptions

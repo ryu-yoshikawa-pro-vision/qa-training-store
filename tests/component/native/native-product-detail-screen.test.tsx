@@ -1,4 +1,4 @@
-import { fireEvent, render, waitFor } from "@testing-library/react-native";
+import { render, userEvent, waitFor } from "@testing-library/react-native";
 import type { ProductDetail } from "@/application/contracts";
 import { NativeProductDetailScreen } from "@/presentation/native/native-screens";
 import { useNativeRuntime } from "@/presentation/native/native-runtime-provider";
@@ -89,6 +89,7 @@ describe("NativeProductDetailScreen", () => {
   });
 
   it("separates an unselected variation from selected stock states", async () => {
+    const user = userEvent.setup();
     const getProductDetail = jest.fn().mockResolvedValue(productDetail());
     useNativeRuntimeMock.mockReturnValue({
       ready: true,
@@ -110,25 +111,19 @@ describe("NativeProductDetailScreen", () => {
     expect(screen.queryByText("在庫切れ")).toBeNull();
     expect(screen.queryByText("今回の最大購入可能数は")).toBeNull();
 
-    fireEvent.press(screen.getByTestId("native-variant-variant-m"));
+    await user.press(screen.getByTestId("native-variant-variant-m"));
 
-    await waitFor(() =>
-      expect(screen.getByTestId("native-product-stock").props.children).toBe("在庫切れ"),
-    );
+    expect(screen.getByTestId("native-product-stock").props.children).toBe("在庫切れ");
     expect(screen.getByTestId("native-add-to-cart").props.accessibilityState.disabled).toBe(true);
 
-    fireEvent.press(screen.getByTestId("native-variant-variant-l"));
+    await user.press(screen.getByTestId("native-variant-variant-l"));
 
-    await waitFor(() =>
-      expect(screen.getByTestId("native-product-stock").props.children).toBe("残り3点"),
-    );
+    expect(screen.getByTestId("native-product-stock").props.children).toBe("残り3点");
     expect(screen.getByTestId("native-add-to-cart").props.accessibilityState.disabled).toBe(false);
 
-    fireEvent.press(screen.getByTestId("native-variant-variant-xl"));
+    await user.press(screen.getByTestId("native-variant-variant-xl"));
 
-    await waitFor(() =>
-      expect(screen.getByTestId("native-product-stock").props.children).toBe("在庫 6点"),
-    );
+    expect(screen.getByTestId("native-product-stock").props.children).toBe("在庫 6点");
     expect(screen.getByTestId("native-add-to-cart").props.accessibilityState.disabled).toBe(false);
   });
 });

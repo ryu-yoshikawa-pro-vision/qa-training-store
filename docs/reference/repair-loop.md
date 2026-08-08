@@ -6,6 +6,7 @@ Repair loop is a bounded workflow, not an instruction to keep trying indefinitel
 Review -> Repair -> Validate の反復を、停止条件と証跡つきで扱うための reference である。
 
 ## Relationship to code-review skill
+
 - `code-review` skill は findings を作る。
 - `repair-loop` skill は findings を triage し、bounded な修正・検証・停止判断へ接続する。
 - review-only task では repair loop を始めない。
@@ -19,17 +20,20 @@ Review -> Repair -> Validate の反復を、停止条件と証跡つきで扱う
 - 真に無関係、環境依存、unsafe、または要件判断が必要な場合だけ`defer`／`needs_human`へ進める。根拠、因果関係の評価、未実行検証、次アクションを`REPORT.md`と`evaluation.json`へ記録する。「既存」「範囲外」「安全に直せる」というラベル単独では現在のPRへ追加・保留の理由にしない。
 
 ## Relationship to evaluation.json
+
 - `evaluation.json` は loop 前後の評価と残差の正本である。
 - `evaluation.result = partial | fail` は repair loop の入口候補になる。
 - loop の停止理由と残差は `evaluation.json` に接続できる形で残す。
 
 ## Relationship to failure taxonomy
+
 - failure category は `spec/failure-taxonomy.json` に揃える。
 - repeated failure は evidence であり、blind retry の理由ではない。
 - 同じ category の反復は `repair_loop_stalled` を検討する。
 - Nativeの実行履歴で使う環境分類（`ENVIRONMENT_FAILURE`、`DEPENDENCY_FAILURE`、`CONFIGURATION_FAILURE`、`SOURCE_FAILURE`、`BUILD_CACHE_FAILURE`、`DEVICE_FAILURE`、`TEST_FAILURE`、`TRANSIENT_FAILURE`、`UNKNOWN`）は、実行事実を読みやすくする補助分類である。evaluationへ渡すfindingの`failure_category`は引き続き`spec/failure-taxonomy.json`の分類へ写像する。
 
 ## Relationship to run artifacts
+
 - `REPORT.md` に iteration ごとの判断を残す。
 - `run.json` や report JSON がある場合は validation command と changed files の事実を参照する。
 - `--max-iterations` は repair-loop bound を文書化する reserved option であり、runner auto-loop ではない。
@@ -48,17 +52,20 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 それらが必要になった場合は、別途契約・実装・テスト・承認を行う。
 
 ## Relationship to observation and subagent records
+
 - hook-observation JSONL は validation failure や blocked action の evidence に使う。
 - `subagent-run.json` は scope compliance や delegated investigation の evidence に使う。
 - どちらも evidence であり、最終判断の source of truth は `evaluation.json` である。
 
 ## Max iteration policy
+
 - `--max-iterations` が設定されている場合、agent はその上限で必ず止まる。
 - `codex-task` does not automatically re-run Codex.
 - max iteration 到達は `stop_max_iterations` として記録する。
 - stop condition を満たしたら loop を継続しない。
 
 ## Stop conditions
+
 - max iteration に達した
 - 同じ failure category が2回以上繰り返された
 - 同じ工程で3回以上失敗した、または異なる対応後も最初のエラーが変わらない
@@ -73,15 +80,18 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 Repeated failure is evidence, not a reason to continue blindly.
 
 ## Scope control
+
 - repair 前に `allowed_files` と expected scope を宣言する。
 - `docs/reference/change-scope-policy.md` を基準に changed files を確認する。
 - scope violation が出たら loop を継続しない。
 
 ## Unsafe action policy
+
 Unsafe or scope-violating repairs stop the loop.
 Unsafe or scope-violating findings must not be repaired by pushing through the loop.
 
 ## Required iteration record
+
 - `iteration_number`
 - `input_findings`
 - `repair_plan`
@@ -105,6 +115,7 @@ stop_needs_human
 ```
 
 ## Example workflow
+
 1. review finding または `evaluation.result = partial` を確認する。
 2. findings を `must_fix` / `should_fix` / `defer` / `reject` / `needs_human` に分ける。
 3. `allowed_files` を確定し、1 iteration 分の repair plan を作る。
@@ -112,6 +123,7 @@ stop_needs_human
 5. success、no progress、scope violation、unsafe、max iteration のいずれかで止める。
 
 ## Non-goals
+
 - 無制限 self-healing
 - runner-level automatic repair loop
 - safety layer を押し切る例外運用

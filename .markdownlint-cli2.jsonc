@@ -1,0 +1,37 @@
+{
+  // Markdown is validated through this repository-owned script so local and CI use one contract.
+  "globs": ["**/*.md"],
+  "ignores": [
+    "node_modules/**",
+    ".codex/runs/**",
+    ".codex/tmp/**",
+    ".artifacts/**",
+    "dist/**",
+    "android/**",
+    ".expo/**",
+    ".expo-local-export/**",
+    ".corepack-cache/**",
+    ".pnpm-store/**",
+    "output/**",
+    ".playwright-mcp/**",
+    "public/_expo/**",
+    "public/files/**",
+  ],
+  "config": {
+    "default": true,
+    // Japanese prose, URLs, tables, commands, and identifiers do not have a useful fixed width.
+    "MD013": false,
+    // Historical and wave-based documents intentionally repeat section headings.
+    "MD024": {
+      "siblings_only": true,
+    },
+    // Existing planning documents use multiple top-level sections as durable records.
+    "MD025": false,
+    // Domain contract tables use generic type notation such as Page<Item>.
+    "MD033": false,
+    // Skill files use front matter instead of a first-line Markdown H1.
+    "MD041": false,
+    // Existing tables use compact and mixed alignment; enforcing one style creates noisy diffs.
+    "MD060": false,
+  },
+}

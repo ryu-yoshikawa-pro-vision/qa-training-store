@@ -1,11 +1,13 @@
 # PR #4 残存不具合修正計画
 
 ## 0. 依頼概要
+
 - 依頼内容: PR #4に残る5件（Admin初期表示、Review状態共通化、Preview全SKU比較、Run Artifact 2件）を修正する。
 - 背景: 非同期取得前の暫定Form表示、状態導出の二重管理、Preview E2Eの先頭SKUのみの比較、Run証跡の不整合が残っている。
 - 期待成果: 現行契約を維持した最小差分と、対象テスト・全体品質ゲートで再現可能な完了証跡。
 
 ## 1. ゴール / 完了条件
+
 - ゴール: 5件を指定範囲内で修正する。
 - 完了条件（DoD）:
   - Admin User DetailがDTO取得後のみFormを描画し、初回Role／Rank、未変更Button、Mutation後・ユーザー切替を決定的にする。
@@ -15,6 +17,7 @@
   - 指定テスト、Admin Component 3回連続、全体品質ゲート、指定E2E、JSON・差分監査が成功する。
 
 ## 2. 現状理解と前提
+
 - Current understanding:
   - `AdminUserDetailContent`は`regular`／`operator`でStateを初期化し、`useEffect`で取得DTOへ同期している。
   - `CustomerReviewUseCases.getEligibility()`はReview状態を個別に判定し、共通Helperを使っていない。
@@ -29,11 +32,13 @@
   - Lint Warning 63件の一括解消、無関係なFormat・命名変更、Git操作、削除・rename
 
 ## 3. 質問 / 曖昧性
+
 - 必ず質問する不透明点: なし。
 - 仮定してよい細部: 既存UIの`null` rank fallbackは`regular`を維持する。
 - 未回答の重要質問: なし。
 
 ## 4. 影響範囲
+
 - Impacted areas: Admin User Detail Presentation、Customer Review Application、Preview E2E、Run Artifact証跡。
 - Files to inspect/change:
   - `src/presentation/pages/review-user-pages.tsx`
@@ -47,6 +52,7 @@
   - `.codex/runs/20260802-085639-JST/evaluation.json`
 
 ## 5. 変更方針
+
 - Change strategy:
   1. DTO取得完了・エラー判定を親に残し、取得済み`UserAdminDto`を`userId-version` key付きFormへ渡す。
   2. Form StateをDTOから直接初期化し、Mutation成功時は既存再取得を起動する。
@@ -61,6 +67,7 @@
   - [ ] 5. 対象・全体検証と最終監査
 
 ## 6. 検証方法
+
 - Validation plan:
   - `pnpm run format:check`
   - `pnpm run lint`
@@ -77,12 +84,15 @@
 - 成功判定: 指定テストと品質ゲートが成功し、変更ファイルが宣言範囲に限定され、JSONとRun証跡が整合する。
 
 ## 7. リスクと未解決論点
+
 - Risks: Async再取得によるForm State残留、E2E Reload直後の未ロード参照、既存Lint warning。
 - Open questions: なし。Lint warning 63件は添付指示どおり対象外。
 
 ## 8. 成果物
+
 - 変更ファイル: 上記の実装・テスト・E2E・指定Run Artifact、およびRun-local Artifact。
 - 付随ドキュメント: 本計画書。
 
 ## 9. 備考
+
 - commit、push、merge、rebase、reset、checkout、PR操作、削除・renameは行わない。

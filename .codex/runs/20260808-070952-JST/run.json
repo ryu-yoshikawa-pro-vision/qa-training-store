@@ -1,0 +1,145 @@
+{
+  "schema_version": 1,
+  "run_id": "20260808-070952-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": ["code_researcher", "implementation_researcher", "test_investigator"],
+  "repo": "qa-training-store",
+  "branch": "agent/coding-standards",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".agents/skills/code-review/references/review-workflow.md",
+    ".agents/skills/feature-plan/references/planning-workflow.md",
+    ".agents/skills/harness-improvement/references/improvement-workflow.md",
+    ".agents/skills/repair-loop/references/repair-workflow.md",
+    ".codex/templates/PLAN.md",
+    ".codex/templates/REPORT.md",
+    ".codex/templates/TASKS.md",
+    ".github/workflows/ci.yml",
+    ".markdownlint-cli2.jsonc",
+    "AGENTS.md",
+    "CHANGELOG.md",
+    "CODE_REVIEW.md",
+    "CONTRIBUTING.md",
+    "MIGRATION.md",
+    "PLANS.md",
+    "docs/00_overview/project_scope.md",
+    "docs/01_requirements/non_functional_requirements.md",
+    "docs/03_domain/business_rules.md",
+    "docs/04_data/application_contracts.md",
+    "docs/06_flows/user_flows.md",
+    "docs/07_testability/seed_catalog.md",
+    "docs/08_testing/test_strategy.md",
+    "docs/09_deployment/cloudflare_pages.md",
+    "docs/CODING_STANDARDS.md",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/adr/0001-ui-ux-state-boundaries.md",
+    "docs/future/phase2/sqlite_schema.md",
+    "docs/history/2026-08-08_073222_markdown-quality-gate.md",
+    "docs/native/windows-android-troubleshooting.md",
+    "docs/plans/2026-07-28_120758_ui-ux-continuous-excellence.md",
+    "docs/plans/2026-08-02_055639_pr4-review-repair.md",
+    "docs/plans/2026-08-02_140550_pr4-residual-bug-repair.md",
+    "docs/plans/README.md",
+    "docs/plans/TEMPLATE.md",
+    "docs/plans/2026-08-08_071732_pr10-markdown-quality-gate.md",
+    "docs/reference/codex-safety-harness.md",
+    "docs/reference/harness-improvement-loop.md",
+    "docs/reference/repair-loop.md",
+    "docs/reference/repository-layout.md",
+    "docs/reports/README.md",
+    "examples/harness-improvement/README.md",
+    "examples/harness-improvement/harness-improvement-review.md",
+    "examples/repair-loop/README.md",
+    "examples/repair-loop/repair-summary.md",
+    "package.json",
+    "pnpm-lock.yaml",
+    "tests/contracts/ci-workflow.test.ts",
+    ".codex/runs/20260808-070952-JST/"
+  ],
+  "validation": {
+    "status": "partial",
+    "commands": [
+      "pnpm install --frozen-lockfile --ignore-scripts => PASS",
+      "pnpm run lint:markdown => PASS (160 files, 0 issues)",
+      "pnpm exec vitest run tests/contracts/ci-workflow.test.ts --no-file-parallelism --maxWorkers=1 => PASS (10 tests)",
+      "pnpm run format:check => FAIL (今回変更外を含む23 files)",
+      "pnpm exec prettier --check .github/workflows/ci.yml .markdownlint-cli2.jsonc pnpm-lock.yaml package.json tests/contracts/ci-workflow.test.ts => PASS",
+      "pnpm run lint => PASS (0 errors, 64 warnings)",
+      "pnpm run typecheck => PASS",
+      "pnpm run validate:image-manifest => PASS",
+      "pnpm run security:check => PASS",
+      "pnpm run test:contracts => FAIL (120 passed, Native baseline 4 failures)",
+      "pnpm run build:web => PASS",
+      "pnpm run verify => FAIL (format:checkで停止)",
+      "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 => PASS (PASS=3, FAIL=0, SKIP=0)",
+      "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-070952-JST -Write -Check => PASS"
+    ],
+    "warnings": [
+      "pnpm run format:checkの失敗はPR #9由来の今回変更外ファイルを含むBaseline。今回変更の3対象ファイルは個別Prettier check PASS。",
+      "Native contract test 4件はNativeファイル未変更のWindows CRLF／LF固定文字列不一致。Native修正と再実行はしない。",
+      "Phase 1 CI／Native CI、Remote CI、Nativeローカルフルビルドはpush後確認または今回対象外のため未実行。",
+      "lintの既存warning 64件、pnpm install時の既存peer warning 2件。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 3,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "agent_id": "019fde45-f130-7a93-ab16-5e3a5e310c82",
+        "agent": "code_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "Run Artifactテンプレート、生成経路、英語見出しの機械契約、過去Run除外方針を確認した。"
+      },
+      {
+        "agent_id": "019fde45-f21d-70a2-8c06-6d1b12ff3e73",
+        "agent": "implementation_researcher",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "markdownlint-cli2 0.23.2、設定形式、verify／CI／Prettierの接続方針を確認した。"
+      },
+      {
+        "agent_id": "019fde45-f47e-7ab2-83c8-8b30dde052b2",
+        "agent": "test_investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "CI contract test、focused／full validation、Native失敗時の切り分け観点を確認した。"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "read_only": 3,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 3
+    }
+  },
+  "evaluation_path": null,
+  "status": "partial",
+  "primary_failure_category": null
+}

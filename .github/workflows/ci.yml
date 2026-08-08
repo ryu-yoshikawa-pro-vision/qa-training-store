@@ -45,6 +45,9 @@ jobs:
       - name: Format check
         run: pnpm run format:check
 
+      - name: Markdown lint
+        run: pnpm run lint:markdown
+
       - name: Lint
         run: pnpm run lint
 

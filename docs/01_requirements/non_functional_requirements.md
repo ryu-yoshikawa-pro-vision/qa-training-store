@@ -122,7 +122,6 @@ Benchmarkでは端末、OS、Browser、Data件数、Cold/Warm、計測範囲を�
 | NFR-OP-005 | Goal | Native・Public環境は必要になるまで運用対象へ追加しない |
 | NFR-OP-006 | Gate | Release済み商品画像Assetはappend-onlyとし、廃止はManifestのisActive=falseで管理する |
 
-
 ## 12. 実装技術
 
 | ID | 要件 |

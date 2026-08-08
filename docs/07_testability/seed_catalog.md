@@ -18,14 +18,13 @@ Seed中の相対日時はClock基準で生成し、実行日へ依存しませ�
 
 | ID | Email | Role/Rank/Status |
 |---|---|---|
-| user-customer-regular | regular@example.com | customer/regular/active |
-| user-customer-gold | gold@example.com | customer/gold/active |
-| user-customer-platinum | platinum@example.com | customer/platinum/active |
-| user-customer-suspended | suspended@example.com | customer/regular/suspended |
-| user-customer-withdrawn | withdrawn@example.com | customer/regular/withdrawn |
-| user-operator | operator@example.com | operator/-/active |
-| user-admin | admin@example.com | admin/-/active |
-
+| user-customer-regular | <regular@example.com> | customer/regular/active |
+| user-customer-gold | <gold@example.com> | customer/gold/active |
+| user-customer-platinum | <platinum@example.com> | customer/platinum/active |
+| user-customer-suspended | <suspended@example.com> | customer/regular/suspended |
+| user-customer-withdrawn | <withdrawn@example.com> | customer/regular/withdrawn |
+| user-operator | <operator@example.com> | operator/-/active |
+| user-admin | <admin@example.com> | admin/-/active |
 
 ### 2.1 Seed Password Hash
 
