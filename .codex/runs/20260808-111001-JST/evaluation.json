@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "run_id": "20260808-111001-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "今回のGoalであるandroid/app/src/**へのNative変更検出拡張と、Current RunのStrict正規化を実施した。Strictに必要なPLAN、TASKS、REPORT、run.json、evaluation.jsonを揃え、scope metadataはevaluation schemaのdimensions.scope_controlへ記録した。APK Artifactの成功／失敗Evidence、Java 17、Runtime境界、Final Verifyの既存契約は維持されている。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".github/workflows/native-ci.yml",
+          "summary": "Native detect Path、APK Evidence、Java 17、Runtime／Verify境界。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/native-ci-workflow.test.ts",
+          "summary": "android/app/src/**とNative CI構造のContract。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260808-111001-JST/run.json",
+          "summary": "Strict manifestとvalidation summary。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "Iteration 2の許可範囲は.github/workflows/native-ci.yml、tests/contracts/native-ci-workflow.test.ts、docs/plans/2026-08-08_125146_pr11-repair.md、指定Current Run .codex/runs/20260808-111001-JST/**である。Current Run全体のsource変更は.github/workflows/ci.yml、.github/workflows/native-ci.yml、tests/contracts/ci-workflow.test.ts、tests/contracts/native-ci-workflow.test.ts、tests/contracts/native-test-control-maestro.test.ts、docs/PROJECT_CONTEXT.md、docs/plans/2026-08-08_114733_ci-parallel-workflow-topology.md、docs/plans/2026-08-08_125146_pr11-repair.md、docs/history/2026-08-08_114733_ci-parallel-workflow-topology.mdに限定され、Production code、Maestro Flow、過去Runは変更していない。Run Artifactは既存規約どおりsource scope比較から除外した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260808-111001-JST/run.json",
+          "selector": "$.changed_files",
+          "summary": "Current Runのsource changed_files。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-08-08_125146_pr11-repair.md",
+          "summary": "Iteration 2の許可範囲とNon-goals。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "成功した検証はfocused Native Contract 15/15、focused 3-file Contract 52/52、full Contract 132/132（初回の既存module-resolution timeoutは単体再実行4/4後にfull rerunで成功）、Markdown lint 0 issues、lint 0 errors／64 warnings、typecheck、対象ファイルPrettier、Workflow YAML parse、Sanitizer Write／Check（files_scanned=5、files_changed=0、replacements_total=0、residual_findings=0）である。pnpm run format:checkは既存の無関係な25ファイルで失敗し、pnpm run verifyは最初のformat:checkで停止した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-111001-JST/run.json",
+          "selector": "$.validation.commands",
+          "summary": "実行済み検証コマンドと結果。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Git add／commit／push／pull／merge／rebase／reset／clean／checkout／switch、branch作成、PR更新、ファイル削除、Maestro Flow変更、Action SHA pinningを行っていない。外部Remote CIも実行していない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Iteration 1のstandard判断を履歴として残し、Iteration 2でStrictへ訂正した理由、scope、評価、検証、未実行事項をPLAN、TASKS、REPORT、run.json、evaluation.jsonへ相対Pathで追跡可能に記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Native source set境界だけをandroid/app/src/**へ拡張し、android/**全体には広げていない。既存Job topology、Action version、APK Artifact名、Maestro Flow、Production codeを変更していない。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "指定コマンド、YAML parse結果、schema、Run Artifact、失敗理由を保存した。Remote CI、Android Release APKの再build、Maestro実機／エミュレータ再実行はGit操作禁止と今回のscopeのため未実行で、push後に外部確認が必要である。"
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "pnpm run format:checkが今回変更外を含む25ファイルを報告し、pnpm run verifyも最初のformat:checkで停止した。Windows環境での既存format差分であり、今回変更対象のPrettier checkは成功した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-111001-JST/run.json",
+          "selector": "$.validation.commands",
+          "summary": "format:check／verifyのexit 1と対象25ファイル。"
+        }
+      ],
+      "detail": "failure taxonomyにformat専用カテゴリはないため、既存taxonomyのflaky_or_env_issueをprimary_failure_categoryとしてmanifestと一致させた。無関係な25ファイルの一括formatは行っていない。"
+    }
+  ],
+  "improvement_candidates": []
+}
