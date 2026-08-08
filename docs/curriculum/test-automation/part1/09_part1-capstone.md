@@ -112,10 +112,10 @@ Training用実行境界で最低3件をPlaywrightへ実装します。
 必須条件:
 
 - 正常系だけにしない。
-- Test IDとテスト設計を対応付ける。
+- Test Case IDとテスト設計を対応付ける。
 - 意味のあるLocatorとAssertionを使う。
 - 固定待機を基本戦略にしない。
-- 必要な場合はScenario / Resetを使用する。
+- 必要な場合はSeed Scenario / Resetを使用する。
 
 ## Phase 5: Maestro実装
 
@@ -125,7 +125,7 @@ Android Emulator上で最低2件をMaestroへ実装します。
 
 - Playwrightでも確認した共通Business条件を1件以上含む。
 - Native固有の操作または状態確認を1件以上含む。
-- Stable Test IDを利用する。
+- Stable UI Test IDを利用する。
 - 必要に応じてTest Control / Deep Linkを利用する。
 
 その後、WebとNativeで次を比較します。
@@ -157,16 +157,16 @@ PlaywrightとMaestroでEvidenceの種類が違うことも比較します。
 確認項目:
 
 - 重複処理
-- Locator / Test IDの重複
+- Locator / UI Test IDの重複
 - Test Data Setup重複
 - 長すぎるTest
 - Assertionが分かりにくい箇所
 - Flaky Risk
-- spec / Flow配置
+- spec / Maestro Flow配置
 - Naming
 - Web / Nativeで不要に重複しているCase
 
-必要ならHelper、POM、Component Object、Fixture、Flow、Scenarioを使って改善します。
+必要ならHelper、POM、Component Object、Fixture、Automation Flow、Seed Scenarioを使って改善します。
 
 ただし、抽象化すること自体を目的にしません。
 
@@ -178,7 +178,7 @@ PlaywrightとMaestroでEvidenceの種類が違うことも比較します。
 
 - Cartを確認する既存Playwright Test
 - 既存Fixture
-- 既存Scenario
+- 既存Seed Scenario
 - `maestro/native-cart.yaml`
 - Cartに関連する他のNative Flow
 
@@ -239,7 +239,7 @@ PlaywrightとMaestroでEvidenceの種類が違うことも比較します。
 ### テスト管理
 
 - 共通化しすぎていないか。
-- 問題に応じてHelper / POM / Fixture / Flowなどを選んでいるか。
+- 問題に応じてHelper / POM / Fixture / Automation Flowなどを選んでいるか。
 
 ## 完了条件
 
