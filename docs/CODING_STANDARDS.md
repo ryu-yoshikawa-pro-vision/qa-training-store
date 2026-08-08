@@ -48,8 +48,11 @@ export type ProductCardProps = {
 ```
 
 `interface`は、Module AugmentationやGlobal型拡張など、TypeScriptの仕様上宣言マージが必要な宣言ファイルに限って使用する。
+`declare global`によるGlobal Augmentationはmodule contextで定義する。
 
 ```ts
+export {};
+
 declare global {
   interface Window {
     scenarioShopTestApi: TestApi;
