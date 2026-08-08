@@ -56,6 +56,27 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 - CIで自動テストを回せるようになりたい人
 - 実案件で自動化基盤を設計できるようになりたい人
 
+プログラミング経験は必須前提にしません。Playwrightへ進む前に、テストコードを読み書きするために必要なJavaScript / TypeScriptの最小知識をPart 1で扱います。
+
+フルの言語学習を目的にはせず、Scenario Shopの自動テストを書くために必要な範囲へ絞ります。
+
+## 用語の使い分け
+
+自動化では同じ単語が異なる意味で使われやすいため、このカリキュラムでは次の呼称を基本とします。
+
+| 用語 | このカリキュラムでの意味 |
+| --- | --- |
+| Test Case ID | `CART-001` など、スプレッドシート上のテストケース識別子 |
+| UI Test ID / `testId` | PlaywrightやMaestroからUI要素を安定して特定する識別子 |
+| Seed Scenario | Scenario Shopを決定的な初期状態へResetするためのScenario |
+| Test Scenario / User Journey | 複数の条件・画面を跨いで確認する業務上のテストシナリオ |
+| Maestro Flow | MaestroのYAMLで記述する実行単位 |
+| Automation Flow | 複数Pageを跨ぐ共通業務操作をコード上で表現する構造 |
+
+文脈上単に「Scenario」「Flow」「Test ID」と書く場合もありますが、学習時にはどの意味を指しているかを区別します。
+
+特に、**Test Case IDとUI Test ID、Seed ScenarioとUser Journey、Maestro FlowとAutomation Flowは同じものではありません。**
+
 ## Part 1の前提
 
 Part 1ではGitHubアカウントを必須にしません。
@@ -103,12 +124,12 @@ AutifyやMagicPodの経験は捨てず、共通概念へ置き換えます。
 
 | 共通概念 | ノーコード・ローコード | Playwright / Maestro |
 | --- | --- | --- |
-| テストシナリオ | GUI上のScenario | spec / Flow |
+| テストシナリオ | GUI上のScenario | spec / Maestro Flow |
 | 操作 | Step | Action |
-| 要素指定 | Element指定 | Locator / Test ID |
+| 要素指定 | Element指定 | Locator / UI Test ID |
 | 検証 | Assertion Step | `expect` / `assertVisible` |
-| 前提状態 | 初期化設定 | Seed / Scenario / Reset |
-| 共通処理 | Group / Shared Step | Helper / POM / Fixture / Flow |
+| 前提状態 | 初期化設定 | Seed / Seed Scenario / Reset |
+| 共通処理 | Group / Shared Step | Helper / POM / Fixture / Automation Flow |
 | 実行結果 | Dashboard | Report / Trace / JUnit / Artifact |
 
 ツールが変わっても、テスト対象、前提条件、操作、期待結果、テストデータ、実行結果という基本構造は変わらないことを理解します。
@@ -127,13 +148,14 @@ POM、Fixture、Flowなどの保守設計は後半に置きます。最初から
 2. Scenario Shopを探索する。
 3. スプレッドシートでテスト分析・設計する。
 4. 自動化対象を決める。
-5. Playwrightで実装する。
-6. 実行結果を分析する。
-7. MaestroでNative自動化を行う。
-8. Web / Nativeの自動テストが増えた状態を体験する。
-9. テスト管理と保守上の問題を洗い出す。
-10. Helper / POM / Fixture / Flow / Scenarioなどを使って改善する。
-11. 総合演習を行う。
+5. Playwrightで必要なJavaScript / TypeScriptの最小知識を学ぶ。
+6. Playwrightで実装する。
+7. 実行結果を分析する。
+8. MaestroでNative自動化を行う。
+9. Web / Nativeの自動テストが増えた状態を体験する。
+10. テスト管理と保守上の問題を洗い出す。
+11. Helper / POM / Fixture / Automation Flow / Seed Scenarioなどを使って改善する。
+12. 総合演習を行う。
 
 ### Part 2
 
@@ -194,8 +216,8 @@ Scenario Shopにはすでに高度な自動化実装があります。
 - POMを使うか
 - Helperで十分か
 - Fixtureへ前提処理を入れるか
-- Flowを作るか
-- Test IDを使うか
+- Automation Flowを作るか
+- UI Test IDを使うか
 - Retryを使うか
 - PRでどこまでテストするか
 - Nightlyへ何を回すか
