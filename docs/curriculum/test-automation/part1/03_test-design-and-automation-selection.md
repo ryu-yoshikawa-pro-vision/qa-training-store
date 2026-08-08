@@ -6,13 +6,13 @@
 - 同値分割、境界値分析、デシジョンテーブル、状態遷移、Role差分をScenario Shopへ適用できる。
 - すべてをUI E2Eにせず、どの確認をどのテスト層へ置くか考えられる。
 - 自動化対象を頻度、Risk、再現性、判定可能性、保守コストから選定できる。
-- スプレッドシートのTest IDと後続のPlaywright / Maestro実装を紐付ける準備ができる。
+- スプレッドシートのTest Case IDと後続のPlaywright / Maestro実装を紐付ける準備ができる。
 
 ## 教材
 
 **このモジュールでは、このリポジトリのScenario Shopを使用します。**
 
-主にCart、Checkout、Payment、Role制御を題材にし、`src/seeds/metadata.ts` のScenarioと対応させます。
+主にCart、Checkout、Payment、Role制御を題材にし、`src/seeds/metadata.ts` のSeed Scenarioと対応させます。
 
 Workbookの列定義と各設計技法の詳細は `../01_spreadsheet-test-design.md` をReferenceとして使用します。このモジュールでは、技法を知ることではなく、Scenario Shopの仕様・状態へ適用してテストケースへ変換することを中心にします。
 
@@ -54,16 +54,22 @@ Cart数量や購入上限を題材に、入力範囲を同じ結果になるグ�
 
 購入可否、Login、Role制御など、複数条件の組み合わせで結果が変わるものを表にします。
 
+このとき、「active customerか」のように複数の意味を1条件へまとめすぎないことが重要です。Guest、suspended customer、operator、adminでは拒否理由や期待結果が異なるため、Login、Role、Account状態を分けます。
+
 例:
 
-| active customer | 在庫あり | 上限内 | 期待 |
-| --- | --- | --- | --- |
-| Yes | Yes | Yes | Checkout可能 |
-| No | Yes | Yes | Account状態で拒否 |
-| Yes | No | Yes | 在庫理由で拒否 |
-| Yes | Yes | No | 上限理由で拒否 |
+| Login済み | Role = customer | Account = active | 在庫あり | 上限内 | 期待 |
+| --- | --- | --- | --- | --- | --- |
+| Yes | Yes | Yes | Yes | Yes | Checkout可能 |
+| No | - | - | Yes | Yes | Loginが必要 |
+| Yes | No | - | Yes | Yes | Roleにより購入不可 |
+| Yes | Yes | No | Yes | Yes | Account状態により拒否 |
+| Yes | Yes | Yes | No | Yes | 在庫理由で拒否 |
+| Yes | Yes | Yes | Yes | No | 上限理由で拒否 |
 
-目的は組み合わせを全部E2E化することではありません。Ruleを可視化し、欠けている条件や重複したCaseを見つけます。
+`-` は、そのRuleでは結果へ影響しない条件です。
+
+目的は組み合わせを全部E2E化することではありません。Ruleを可視化し、欠けている条件、重複したCase、条件をまとめすぎて隠れている期待結果を見つけます。
 
 ## Lesson 4: 状態遷移を設計する
 
@@ -104,9 +110,9 @@ Happy Pathだけでなく、途中状態からの回復もTest Conditionとし�
 
 Role × 操作のMatrixを作り、すべての組み合わせではなく、権限境界とBusiness Impactが大きい組み合わせを選びます。
 
-## Lesson 6: Scenario / User Journeyを設計する
+## Lesson 6: Test Scenario / User Journeyを設計する
 
-複数画面を跨ぐ重要なBusiness Flowは、単画面Testとは別にScenarioとして考えます。
+複数画面を跨ぐ重要なBusiness Flowは、単画面Testとは別にTest Scenario / User Journeyとして考えます。
 
 例:
 
@@ -125,6 +131,8 @@ Order
 ```
 
 個々のValidationを全て1本へ詰め込むのではなく、「複数機能の連携が成立すること」を確認するJourneyとして設計します。
+
+ここでいうTest Scenario / User Journeyは、`default` や `out-of-stock` のようなSeed Scenarioとは別の概念です。
 
 ## Lesson 7: テストピラミッドを機械的に使わない
 
@@ -186,7 +194,7 @@ Part 1後半ではPlaywrightとMaestroを使いますが、この段階では次
 
 最低限、正常追加、削除、在庫切れ、低在庫または購入上限、Guest Cart統合を含めます。
 
-各Caseには、Test IDだけでなく「どのRisk / 設計技法から導出したか」を記録します。
+各Caseには、Test Case IDだけでなく「どのRisk / 設計技法から導出したか」を記録します。
 
 ## ハンズオン2: Checkout / Paymentの状態遷移
 
@@ -194,9 +202,16 @@ Payment成功・拒否・再試行を含む状態遷移図を作成します。
 
 その後、どこをUI E2Eで自動化し、どこを下位テストへ委ねるか決めます。
 
-## ハンズオン3: Role × 操作のデシジョン整理
+## ハンズオン3: Role / Account状態を分離したデシジョン整理
 
-Guest / customer / operator / adminについて、購入または管理操作を1つ選び、Roleごとの期待結果を表へ整理します。
+購入可否または管理操作を1つ選び、最低限次を独立条件として整理します。
+
+- Login状態
+- Role
+- Account状態
+- 対象データの状態
+
+「customerではない」「activeではない」のように異なる拒否理由を1条件へ潰さず、期待結果が異なるRuleを分けます。
 
 ## ハンズオン4: 自動化対象選定
 
@@ -208,15 +223,17 @@ Guest / customer / operator / adminについて、購入または管理操作を
 
 1. 同値分割と境界値分析を組み合わせる理由は何か。
 2. デシジョンテーブルはどんな仕様で有効か。
-3. 正常系だけをE2EにするとどんなRiskが残るか。
-4. UI E2Eへ置かなくてもよいテストの例を挙げる。
-5. 自動化可能でも自動化しない判断があるのはなぜか。
-6. Web / Android / iOSへ同じケースをすべて複製しない方がよい理由は何か。
+3. Login、Role、Account状態を1つの条件へまとめると何を見落としやすいか。
+4. 正常系だけをE2EにするとどんなRiskが残るか。
+5. UI E2Eへ置かなくてもよいテストの例を挙げる。
+6. 自動化可能でも自動化しない判断があるのはなぜか。
+7. Web / Android / iOSへ同じケースをすべて複製しない方がよい理由は何か。
 
 ## 完了条件
 
 - 10件以上のテストケースをスプレッドシートへ設計している。
 - 同値分割、境界値、デシジョンテーブル、状態遷移のうち3技法以上を適用している。
 - 正常、異常、Role、User Journeyの観点が含まれている。
+- デシジョンテーブルで複数条件を適切に分離し、異なる拒否理由を説明できる。
 - 各ケースのRisk / 設計根拠、自動化判断、理由を記録している。
 - 少なくとも1件についてUI E2Eではなく別テスト層を選ぶ理由を説明できる。
