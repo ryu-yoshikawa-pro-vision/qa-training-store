@@ -6,7 +6,7 @@
 - Google Sheetsなどのスプレッドシートを使い、案件へ持ち運びやすい形でテスト設計を管理できる。
 - 手順書ではなく、テスト条件・期待結果・リスク・自動化判断を管理できる。
 - 同値分割、境界値分析、デシジョンテーブル、状態遷移などを使ってテスト条件を体系的に導出できる。
-- Test Case IDとPlaywright / Maestro実装を紐付けられる。
+- Test Case IDとTest Layer、Tool、実装を紐付けられる。
 
 ## 教材
 
@@ -133,11 +133,14 @@
 | Column | 内容 |
 | --- | --- |
 | Test Case ID | テストケースとの紐付け |
+| Test Layer | Unit / Integration / Repository Contract / Component / Web E2E / Native E2E |
 | 自動化 | Yes / No / Later |
-| Tool候補 | Playwright / Maestro / Unitなど |
+| Tool候補 | Vitest / Jest / Playwright / Maestroなど |
 | 理由 | 頻度、再現性、重要度など |
 | 実行頻度 | PR / main / Nightly / Manual候補 |
 | 備考 | 自動化上の制約 |
+
+Test Layerは「どの層でRiskを確認するか」、Tool候補は「その層をどのFramework / Toolで実行するか」を表します。例えばUnitをTool名として記録せず、UnitをTest Layer、VitestなどをTool候補として分けます。
 
 Part 1では実行頻度は参考情報として扱い、PR / main / Nightlyの本格設計はPart 2で学びます。
 
@@ -146,11 +149,14 @@ Part 1では実行頻度は参考情報として扱い、PR / main / Nightlyの�
 | Column | 内容 |
 | --- | --- |
 | Test Case ID | `CART-001` |
-| Platform | Web / Android / iOS |
-| Tool | Playwright / Maestro |
-| 実装 | spec / YAML path |
+| Test Layer | Unit / Integration / Repository Contract / Component / Web E2E / Native E2E |
+| Platform | Shared / Web / Android / iOS |
+| Tool | Vitest / Jest / Playwright / Maestro / Other |
+| 実装 | spec / test / YAML path |
 | Status | Not Started / Automated / Needs Fix |
 | 備考 | 実装差分、制約など |
+
+`05_自動化候補`で選んだTest LayerとTool候補を、実装後もTest Case ID単位で追跡できるようにします。UI E2Eだけでなく、下位層へ配置したCaseも対応関係を失わないことが目的です。
 
 ### `07_実行結果`
 
