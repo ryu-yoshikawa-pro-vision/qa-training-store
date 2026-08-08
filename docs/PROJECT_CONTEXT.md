@@ -231,7 +231,10 @@
 - `pnpm run verify`とPhase 1 CIの`quality` jobは同じ`pnpm run lint:markdown`を実行する。Prettierが対象外とするMarkdownの構造品質を、Markdownlintで別の品質ゲートとして扱う。
 - `.codex/templates/*.md`をRun Artifactの生成元としてMD022／MD029を満たす状態に保つ。過去の`.codex/runs/**`は一括整形・一括Lint・見出し日本語化を行わず、既存の機械契約とPath Sanitizationを維持する。
 
-## メモ
+## CI並列Workflow最適化（2026-08-08）
 
-- この文書はプロジェクト固有の実態に合わせて上書きしてよい。
-- 標準経路は host 上の `codex-safe` / `codex-task --run-id <run_id>`。Docker sandbox は experimental かつ opt-in。
+- Phase 1 CIの`quality` jobは`style-quality`（format:check / lint:markdown）と`code-quality`（lint / typecheck / validate:image-manifest / security:check）へ2分割し、`verify`は両方の`needs.*.result == success`を要求する。Deployment（verify→deploy-preview→validate→deploy-production）の境界は維持する。
+- Native CIは`detect` → 並列の`native-static`／`production-bundle-guard`／`android-build` → `android-runtime`（Emulator + Maestro）→ final `verify`（表示名`native-ci / verify`）のトポロジへ再構成した。Guardは`validate:native-production-bundle.ts`が`expo export`を自己完結実行するためStatic非依存で、Detect後のみに依存して並列化する。
+- APKは`native-android-apk-${{ github.run_id }}`（`overwrite: true`、`retention-days: 3`）としてUpload→Downloadで受け渡す。Maestro Runtime/Smoke 5 Flow（test-control／contract-harness／not-found／storefront／cart）はRuntime job内の独立Stepへ分離する。
+- Native未変更PRではNative固有jobをskipし、final `verify`は`detect`の`native_changed`出力を正本に、trueなら全Job success必須（fail-closed）、falseなら全skipを成功扱いとする。
+- 構造契約は`tests/contracts/ci-workflow.test.ts`／`tests/contracts/native-ci-workflow.test.ts`に固定し、`tests/contracts/native-test-control-maestro.test.ts`はCRLF checkout環境でも契約検証できるよう読み取り時にLFへ正規化する（maestro・workflowファイルは`* text=auto`＋Windows autocrlfでCRLFになるため）。

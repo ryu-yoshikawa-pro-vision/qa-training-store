@@ -16,7 +16,7 @@ const flowNames = [
 ] as const;
 
 function readFlow(name: (typeof flowNames)[number]): string {
-  return readFileSync(join(process.cwd(), "maestro", name), "utf8");
+  return readFileSync(join(process.cwd(), "maestro", name), "utf8").replace(/\r\n/g, "\n");
 }
 
 function findAllIndexes(source: string, expression: RegExp): number[] {

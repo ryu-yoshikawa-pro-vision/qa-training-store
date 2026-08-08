@@ -23,17 +23,34 @@ function stepBlock(job: string, stepName: string) {
 }
 
 describe("Phase 1 CI deployment boundaries", () => {
-  it("runs the Markdown quality gate before code linting", () => {
-    const quality = jobBlock("quality", "codex-artifact-sanitization");
-    const format = stepBlock(quality, "Format check");
-    const markdown = stepBlock(quality, "Markdown lint");
-    const lint = stepBlock(quality, "Lint");
+  it("keeps the Markdown quality gate before format in the style job", () => {
+    const style = jobBlock("style-quality", "code-quality");
+    const format = stepBlock(style, "Format check");
+    const markdown = stepBlock(style, "Markdown lint");
 
     expect(format).toContain("pnpm run format:check");
     expect(markdown).toContain("pnpm run lint:markdown");
+    expect(style.indexOf("Markdown lint")).toBeGreaterThan(style.indexOf("Format check"));
+    expect(style).not.toMatch(/run: pnpm run lint$/m);
+    expect(style).not.toMatch(/run: pnpm run typecheck$/m);
+  });
+
+  it("runs code checks in the separate code-quality job", () => {
+    const code = jobBlock("code-quality", "codex-artifact-sanitization");
+    const lint = stepBlock(code, "Lint");
+    const typecheck = stepBlock(code, "Typecheck");
+    const manifest = stepBlock(code, "Validate image manifest");
+    const security = stepBlock(code, "Security check");
+
     expect(lint).toContain("pnpm run lint");
-    expect(quality.indexOf("Markdown lint")).toBeGreaterThan(quality.indexOf("Format check"));
-    expect(quality.indexOf("Lint")).toBeGreaterThan(quality.indexOf("Markdown lint"));
+    expect(typecheck).toContain("pnpm run typecheck");
+    expect(manifest).toContain("pnpm run validate:image-manifest");
+    expect(security).toContain("pnpm run security:check");
+    expect(code.indexOf("Typecheck")).toBeGreaterThan(code.indexOf("Lint"));
+    expect(code.indexOf("Validate image manifest")).toBeGreaterThan(code.indexOf("Typecheck"));
+    expect(code.indexOf("Security check")).toBeGreaterThan(code.indexOf("Validate image manifest"));
+    expect(code).not.toContain("pnpm run format:check");
+    expect(code).not.toContain("pnpm run lint:markdown");
   });
 
   it("splits verification, preview deployment, and the final validate gate", () => {
@@ -44,7 +61,8 @@ describe("Phase 1 CI deployment boundaries", () => {
 
     expect(verify).toContain("if: always()");
     for (const dependency of [
-      "quality",
+      "style-quality",
+      "code-quality",
       "vitest",
       "build-automation",
       "build-production",
@@ -69,6 +87,25 @@ describe("Phase 1 CI deployment boundaries", () => {
     expect(production).toContain("github.ref == 'refs/heads/main'");
     expect(workflow).not.toContain("  pr-gate:");
     expect(workflow).not.toContain("PR Gate");
+  });
+
+  it("requires both style-quality and code-quality in the final verify gate", () => {
+    const verify = jobBlock("verify", "deploy-preview");
+
+    expect(verify).toContain("      - style-quality");
+    expect(verify).toContain("      - code-quality");
+    expect(verify).toContain("STYLE_QUALITY_RESULT: ${{ needs.style-quality.result }}");
+    expect(verify).toContain("CODE_QUALITY_RESULT: ${{ needs.code-quality.result }}");
+    expect(verify).toContain('require_success "style-quality" "$STYLE_QUALITY_RESULT"');
+    expect(verify).toContain('require_success "code-quality" "$CODE_QUALITY_RESULT"');
+  });
+
+  it("never lets the final gate accept only one of the two quality jobs", () => {
+    const verify = jobBlock("verify", "deploy-preview");
+
+    expect(verify).not.toContain('require_success "quality"');
+    expect(verify).not.toContain("needs.quality.result");
+    expect(workflow).not.toContain("  quality:");
   });
 
   it("prevents intentional skips from propagating while blocking failed deploy prerequisites", () => {

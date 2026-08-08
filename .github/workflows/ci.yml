@@ -22,7 +22,8 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  quality:
+  style-quality:
+    name: Style Quality
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -47,6 +48,27 @@ jobs:
 
       - name: Markdown lint
         run: pnpm run lint:markdown
+
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
 
       - name: Lint
         run: pnpm run lint
@@ -463,7 +485,8 @@ jobs:
 
   verify:
     needs:
-      - quality
+      - style-quality
+      - code-quality
       - vitest
       - build-automation
       - build-production
@@ -479,7 +502,8 @@ jobs:
       - name: Validate required job results
         env:
           EVENT_NAME: ${{ github.event_name }}
-          QUALITY_RESULT: ${{ needs.quality.result }}
+          STYLE_QUALITY_RESULT: ${{ needs.style-quality.result }}
+          CODE_QUALITY_RESULT: ${{ needs.code-quality.result }}
           CODEX_ARTIFACT_RESULT: ${{ needs.codex-artifact-sanitization.result }}
           VITEST_RESULT: ${{ needs.vitest.result }}
           BUILD_AUTOMATION_RESULT: ${{ needs.build-automation.result }}
@@ -501,7 +525,8 @@ jobs:
             fi
           }
 
-          require_success "quality" "$QUALITY_RESULT"
+          require_success "style-quality" "$STYLE_QUALITY_RESULT"
+          require_success "code-quality" "$CODE_QUALITY_RESULT"
           require_success "codex-artifact-sanitization" "$CODEX_ARTIFACT_RESULT"
           require_success "vitest" "$VITEST_RESULT"
           require_success "build-automation" "$BUILD_AUTOMATION_RESULT"

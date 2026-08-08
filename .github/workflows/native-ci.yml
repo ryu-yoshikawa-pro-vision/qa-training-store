@@ -70,8 +70,10 @@ jobs:
             echo "native_changed=true" >> "$GITHUB_OUTPUT"
           fi
 
-  static:
+  native-static:
     name: Native Static
+    needs: detect
+    if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -84,24 +86,27 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run generate:native-assets
-      - run: git diff --exit-code -- src/generated/native-product-assets.ts
-      - run: pnpm run validate:image-manifest
-      - run: pnpm run format:check
-      - run: pnpm run lint
-      - run: pnpm run typecheck
-      - run: pnpm run test:component:native
-      - run: pnpm run test:repository
-      - run: pnpm run test:contracts
-      - run: pnpm run check:native-route-dependencies
-      - run: pnpm run validate:eas:config
-      - run: pnpm dlx expo-doctor@${{ env.EXPO_DOCTOR_VERSION }}
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Native assets
+        run: pnpm run generate:native-assets
+      - name: Verify generated Native assets
+        run: git diff --exit-code -- src/generated/native-product-assets.ts
+      - name: Validate image manifest
+        run: pnpm run validate:image-manifest
+      - name: Run Native component tests
+        run: pnpm run test:component:native
+      - name: Check Native route dependencies
+        run: pnpm run check:native-route-dependencies
+      - name: Validate EAS config
+        run: pnpm run validate:eas:config
+      - name: Run Expo Doctor
+        run: pnpm dlx expo-doctor@${{ env.EXPO_DOCTOR_VERSION }}
 
   production-bundle-guard:
     name: Production Bundle Guard
-    needs: [detect, static]
-    if: needs.static.result == 'success' && (needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch')
+    needs: detect
+    if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
@@ -114,21 +119,22 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run validate:native-production-bundle
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run Production Bundle Guard
+        run: pnpm run validate:native-production-bundle
 
-  android:
-    name: Android Build / Emulator / Maestro
-    needs: [detect]
+  android-build:
+    name: Android Build
+    needs: detect
     if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
-    timeout-minutes: 50
+    timeout-minutes: 40
     env:
       EXPO_PUBLIC_APP_ENV: automation
       EXPO_PUBLIC_BUILD_KIND: automation
       EXPO_PUBLIC_TEST_MODE: "true"
       EXPO_PUBLIC_DEFAULT_SEED: default
-      ANDROID_API_LEVEL: "34"
       ANDROID_COMPILE_API_LEVEL: "36"
     steps:
       - uses: actions/checkout@v4
@@ -149,18 +155,10 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
-      - name: Install Android emulator runtime dependencies
-        shell: bash
-        run: |
-          set -euo pipefail
-          if dpkg-query -W -f='${Status}' libpulse0 2>/dev/null | grep -q 'install ok installed'; then
-            echo "libpulse0 is already installed; skipping apt-get update."
-          else
-            sudo apt-get update
-            sudo apt-get install --yes --no-install-recommends libpulse0
-          fi
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm exec expo prebuild --platform android --no-install
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Run Expo prebuild
+        run: pnpm exec expo prebuild --platform android --no-install
       - name: Resolve Android SDK and sdkmanager
         shell: bash
         run: |
@@ -172,26 +170,21 @@ jobs:
           test -n "$SDKMANAGER"
           test -x "$SDKMANAGER"
           ADB="$SDK_ROOT/platform-tools/adb"
-          EMULATOR="$SDK_ROOT/emulator/emulator"
-          AVDMANAGER="$(dirname "$SDKMANAGER")/avdmanager"
           APK_PATH="$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/app-release.apk"
           echo "SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
           echo "ADB=$ADB" >> "$GITHUB_ENV"
-          echo "EMULATOR=$EMULATOR" >> "$GITHUB_ENV"
-          echo "AVDMANAGER=$AVDMANAGER" >> "$GITHUB_ENV"
           echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
           echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
-          echo "$SDK_ROOT/emulator" >> "$GITHUB_PATH"
           echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
           export ANDROID_HOME="$SDK_ROOT"
           export ANDROID_SDK_ROOT="$SDK_ROOT"
-          export PATH="$SDK_ROOT/platform-tools:$SDK_ROOT/emulator:$(dirname "$SDKMANAGER"):$PATH"
+          export PATH="$SDK_ROOT/platform-tools:$(dirname "$SDKMANAGER"):$PATH"
           echo "Resolved Android SDK: $SDK_ROOT"
           echo "Resolved sdkmanager: $SDKMANAGER"
-      - name: Install Android SDK components
+      - name: Install Android SDK build components
         shell: bash
         run: |
           set -euo pipefail
@@ -206,6 +199,183 @@ jobs:
           if [[ ! -x "$SDK_ROOT/build-tools/36.0.0/aapt" ]]; then
             missing_components+=("build-tools;36.0.0")
           fi
+          if ((${#missing_components[@]} == 0)); then
+            echo "All required Android SDK build components are already installed; skipping download."
+            exit 0
+          fi
+          printf 'Missing Android SDK build components:\n - %s\n' "${missing_components[@]}"
+          set +o pipefail
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          license_status=${PIPESTATUS[1]}
+          set -o pipefail
+          test "$license_status" -eq 0
+          "$SDKMANAGER" "${missing_components[@]}"
+      - name: Verify Android SDK build components
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo "ANDROID_HOME=$ANDROID_HOME"
+          echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
+          echo "SDKMANAGER=$SDKMANAGER"
+          echo "ADB=$ADB"
+          echo "APK_PATH=$APK_PATH"
+          test -d "$SDK_ROOT"
+          test -d "$ANDROID_HOME"
+          test -x "$SDKMANAGER"
+          test -f "$SDK_ROOT/platforms/android-${ANDROID_COMPILE_API_LEVEL}/android.jar"
+          test -x "$SDK_ROOT/build-tools/36.0.0/aapt"
+          ls -la "$ANDROID_HOME/platform-tools"
+          ls -la "$SDK_ROOT/platforms/android-${ANDROID_COMPILE_API_LEVEL}"
+          ls -la "$SDK_ROOT/build-tools/36.0.0"
+      - name: Build Automation Release APK
+        working-directory: android
+        shell: bash
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleRelease \
+            -PreactNativeArchitectures=x86_64 \
+            --build-cache \
+            --parallel \
+            --stacktrace \
+            2>&1 | tee "$RUNNER_TEMP/gradle-assemble-release.log"
+      - name: Verify Automation Release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f "$APK_PATH"
+          test -s "$APK_PATH"
+          if ! unzip -l "$APK_PATH" | grep -Eq 'assets/.*\.(bundle|hbc)'; then
+            echo "Automation Release APK does not contain a JavaScript bundle." >&2
+            unzip -l "$APK_PATH" | tail -n 40 >&2
+            exit 1
+          fi
+          if ! unzip -l "$APK_PATH" | grep -Eq 'lib/x86_64/.*\.so'; then
+            echo "Automation Release APK does not contain x86_64 native libraries." >&2
+            unzip -l "$APK_PATH" | grep -E '(^|/)lib/' | tail -n 40 >&2
+            exit 1
+          fi
+          if unzip -l "$APK_PATH" | grep -Eq 'lib/(arm64-v8a|armeabi-v7a|x86)/.*\.so'; then
+            echo "Automation Release APK contains a non-x86_64 native library." >&2
+            unzip -l "$APK_PATH" | grep -E '(^|/)lib/' | tail -n 40 >&2
+            exit 1
+          fi
+          ls -lh "$APK_PATH"
+      - name: Upload Automation Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-android-apk-${{ github.run_id }}
+          path: android/app/build/outputs/apk/release/app-release.apk
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 3
+      - name: Collect Android build evidence
+        if: always()
+        shell: bash
+        env:
+          NATIVE_ANDROID_BUILD_JOB_STATUS: ${{ job.status }}
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/native-build-evidence"
+          {
+            echo "job_status=${NATIVE_ANDROID_BUILD_JOB_STATUS:-unknown}"
+            echo "ANDROID_HOME=${ANDROID_HOME:-<unset>}"
+            echo "ANDROID_SDK_ROOT=${ANDROID_SDK_ROOT:-<unset>}"
+            echo "ANDROID_COMPILE_API_LEVEL=${ANDROID_COMPILE_API_LEVEL:-<unset>}"
+            echo "node_version=$(node --version 2>/dev/null || true)"
+            echo "java_version=$(java -version 2>&1 | head -n 1 || true)"
+          } > "$RUNNER_TEMP/native-build-evidence/android-build-environment.txt"
+          if [[ -f "$RUNNER_TEMP/gradle-assemble-release.log" ]]; then
+            if ! cp "$RUNNER_TEMP/gradle-assemble-release.log" \
+              "$RUNNER_TEMP/native-build-evidence/gradle-assemble-release.log"; then
+              echo "Gradle Release build log copy failed." \
+                > "$RUNNER_TEMP/native-build-evidence/gradle-copy-status.txt"
+            fi
+          else
+            echo "Gradle Release build log was not generated." \
+              > "$RUNNER_TEMP/native-build-evidence/gradle-status.txt"
+          fi
+          if [[ -n "${APK_PATH:-}" && -f "$APK_PATH" ]]; then
+            if ! cp "$APK_PATH" "$RUNNER_TEMP/native-build-evidence/app-release.apk"; then
+              echo "Automation Release APK copy failed." \
+                > "$RUNNER_TEMP/native-build-evidence/apk-copy-status.txt"
+            fi
+            {
+              ls -lh "$APK_PATH" || true
+              file "$APK_PATH" || true
+              unzip -l "$APK_PATH" | grep -E "AndroidManifest.xml|assets/.*\\.(bundle|hbc)|lib/x86_64/.*\\.so" || true
+              sha256sum "$APK_PATH" || true
+            } > "$RUNNER_TEMP/native-build-evidence/apk-info.txt"
+          else
+            echo "Automation Release APK was not generated." \
+              > "$RUNNER_TEMP/native-build-evidence/apk-status.txt"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-android-build-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-build-evidence
+          if-no-files-found: warn
+          retention-days: 7
+
+  android-runtime:
+    name: Android Runtime / Maestro
+    needs: [detect, native-static, production-bundle-guard, android-build]
+    if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    env:
+      ANDROID_API_LEVEL: "34"
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Install Android emulator runtime dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          if dpkg-query -W -f='${Status}' libpulse0 2>/dev/null | grep -q 'install ok installed'; then
+            echo "libpulse0 is already installed; skipping apt-get update."
+          else
+            sudo apt-get update
+            sudo apt-get install --yes --no-install-recommends libpulse0
+          fi
+      - name: Resolve Android SDK and sdkmanager
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          test -d "$SDK_ROOT"
+          test -d "$SDK_ROOT/cmdline-tools"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | sort | tail -n 1)"
+          test -n "$SDKMANAGER"
+          test -x "$SDKMANAGER"
+          ADB="$SDK_ROOT/platform-tools/adb"
+          EMULATOR="$SDK_ROOT/emulator/emulator"
+          AVDMANAGER="$(dirname "$SDKMANAGER")/avdmanager"
+          echo "SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "ADB=$ADB" >> "$GITHUB_ENV"
+          echo "EMULATOR=$EMULATOR" >> "$GITHUB_ENV"
+          echo "AVDMANAGER=$AVDMANAGER" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/emulator" >> "$GITHUB_PATH"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+          export ANDROID_HOME="$SDK_ROOT"
+          export ANDROID_SDK_ROOT="$SDK_ROOT"
+          export PATH="$SDK_ROOT/platform-tools:$SDK_ROOT/emulator:$(dirname "$SDKMANAGER"):$PATH"
+          echo "Resolved Android SDK: $SDK_ROOT"
+          echo "Resolved sdkmanager: $SDKMANAGER"
+      - name: Install Android SDK emulator components
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$SDKMANAGER"
+          missing_components=()
+          if [[ ! -x "$SDK_ROOT/platform-tools/adb" ]]; then
+            missing_components+=("platform-tools")
+          fi
           if [[ ! -x "$SDK_ROOT/emulator/emulator" ]]; then
             missing_components+=("emulator")
           fi
@@ -213,10 +383,10 @@ jobs:
             missing_components+=("system-images;android-${ANDROID_API_LEVEL};google_apis;x86_64")
           fi
           if ((${#missing_components[@]} == 0)); then
-            echo "All required Android SDK components are already installed; skipping download."
+            echo "All required Android SDK emulator components are already installed; skipping download."
             exit 0
           fi
-          printf 'Missing Android SDK components:\n - %s\n' "${missing_components[@]}"
+          printf 'Missing Android SDK emulator components:\n - %s\n' "${missing_components[@]}"
           set +o pipefail
           yes | "$SDKMANAGER" --licenses >/dev/null
           license_status=${PIPESTATUS[1]}
@@ -271,39 +441,25 @@ jobs:
           if [[ "$version_status" -ne 0 ]]; then
             echo "emulator -version is diagnostic; the Emulator start step is authoritative."
           fi
-      - name: Build Automation Release APK
-        working-directory: android
-        shell: bash
-        run: |
-          set -o pipefail
-          ./gradlew :app:assembleRelease \
-            -PreactNativeArchitectures=x86_64 \
-            --build-cache \
-            --parallel \
-            --stacktrace \
-            2>&1 | tee "$RUNNER_TEMP/gradle-assemble-release.log"
-      - name: Verify Automation Release APK
+      - name: Download Automation Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: native-android-apk-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-apk
+      - name: Verify downloaded Automation Release APK
         shell: bash
         run: |
           set -euo pipefail
+          APK_PATH="$RUNNER_TEMP/native-apk/app-release.apk"
           test -f "$APK_PATH"
           test -s "$APK_PATH"
           if ! unzip -l "$APK_PATH" | grep -Eq 'assets/.*\.(bundle|hbc)'; then
-            echo "Automation Release APK does not contain a JavaScript bundle." >&2
+            echo "Downloaded Automation Release APK does not contain a JavaScript bundle." >&2
             unzip -l "$APK_PATH" | tail -n 40 >&2
             exit 1
           fi
-          if ! unzip -l "$APK_PATH" | grep -Eq 'lib/x86_64/.*\.so'; then
-            echo "Automation Release APK does not contain x86_64 native libraries." >&2
-            unzip -l "$APK_PATH" | grep -E '(^|/)lib/' | tail -n 40 >&2
-            exit 1
-          fi
-          if unzip -l "$APK_PATH" | grep -Eq 'lib/(arm64-v8a|armeabi-v7a|x86)/.*\.so'; then
-            echo "Automation Release APK contains a non-x86_64 native library." >&2
-            unzip -l "$APK_PATH" | grep -E '(^|/)lib/' | tail -n 40 >&2
-            exit 1
-          fi
           ls -lh "$APK_PATH"
+          echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
       - name: Start Android Emulator with KVM
         shell: bash
         run: |
@@ -550,20 +706,161 @@ jobs:
           test -x "$MAESTRO_BIN"
           "$MAESTRO_BIN" --version
           echo "$MAESTRO_BIN_DIR" >> "$GITHUB_PATH"
-      - name: Run Maestro Runtime and Smoke flows
+      - name: Run Maestro Test Control flow
         shell: bash
         run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/maestro-artifacts"
+          set -uo pipefail
+          flow_name="native-test-control"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/test-control"
+          junit_path="$RUNNER_TEMP/maestro-test-control.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-test-control.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "junit=$junit_path"
+          echo "screenshots=$output_dir"
+          echo "hierarchy=$output_dir"
+          echo "maestro_output=$output_dir"
+          set +e
           maestro test \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/runtime-smoke" \
+            --test-output-dir="$output_dir" \
             --format junit \
-            --output "$RUNNER_TEMP/maestro-runtime-smoke.xml" \
-            "$GITHUB_WORKSPACE/maestro/native-test-control.yaml" \
-            "$GITHUB_WORKSPACE/maestro/native-contract-harness.yaml" \
-            "$GITHUB_WORKSPACE/maestro/native-not-found.yaml" \
-            "$GITHUB_WORKSPACE/maestro/native-storefront.yaml" \
-            "$GITHUB_WORKSPACE/maestro/native-cart.yaml"
+            --output "$junit_path" \
+            "$flow_path"
+          flow_exit=$?
+          set -e
+          if [[ "$flow_exit" -eq 0 ]]; then
+            echo "result=PASS"
+          else
+            echo "result=FAIL"
+          fi
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
+      - name: Run Maestro Contract Harness flow
+        shell: bash
+        run: |
+          set -uo pipefail
+          flow_name="native-contract-harness"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/contract-harness"
+          junit_path="$RUNNER_TEMP/maestro-contract-harness.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-contract-harness.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "junit=$junit_path"
+          echo "screenshots=$output_dir"
+          echo "hierarchy=$output_dir"
+          echo "maestro_output=$output_dir"
+          set +e
+          maestro test \
+            --test-output-dir="$output_dir" \
+            --format junit \
+            --output "$junit_path" \
+            "$flow_path"
+          flow_exit=$?
+          set -e
+          if [[ "$flow_exit" -eq 0 ]]; then
+            echo "result=PASS"
+          else
+            echo "result=FAIL"
+          fi
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
+      - name: Run Maestro Not Found flow
+        shell: bash
+        run: |
+          set -uo pipefail
+          flow_name="native-not-found"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/not-found"
+          junit_path="$RUNNER_TEMP/maestro-not-found.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-not-found.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "junit=$junit_path"
+          echo "screenshots=$output_dir"
+          echo "hierarchy=$output_dir"
+          echo "maestro_output=$output_dir"
+          set +e
+          maestro test \
+            --test-output-dir="$output_dir" \
+            --format junit \
+            --output "$junit_path" \
+            "$flow_path"
+          flow_exit=$?
+          set -e
+          if [[ "$flow_exit" -eq 0 ]]; then
+            echo "result=PASS"
+          else
+            echo "result=FAIL"
+          fi
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
+      - name: Run Maestro Storefront flow
+        shell: bash
+        run: |
+          set -uo pipefail
+          flow_name="native-storefront"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/storefront"
+          junit_path="$RUNNER_TEMP/maestro-storefront.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-storefront.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "junit=$junit_path"
+          echo "screenshots=$output_dir"
+          echo "hierarchy=$output_dir"
+          echo "maestro_output=$output_dir"
+          set +e
+          maestro test \
+            --test-output-dir="$output_dir" \
+            --format junit \
+            --output "$junit_path" \
+            "$flow_path"
+          flow_exit=$?
+          set -e
+          if [[ "$flow_exit" -eq 0 ]]; then
+            echo "result=PASS"
+          else
+            echo "result=FAIL"
+          fi
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
+      - name: Run Maestro Cart flow
+        shell: bash
+        run: |
+          set -uo pipefail
+          flow_name="native-cart"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/cart"
+          junit_path="$RUNNER_TEMP/maestro-cart.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-cart.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo "junit=$junit_path"
+          echo "screenshots=$output_dir"
+          echo "hierarchy=$output_dir"
+          echo "maestro_output=$output_dir"
+          set +e
+          maestro test \
+            --test-output-dir="$output_dir" \
+            --format junit \
+            --output "$junit_path" \
+            "$flow_path"
+          flow_exit=$?
+          set -e
+          if [[ "$flow_exit" -eq 0 ]]; then
+            echo "result=PASS"
+          else
+            echo "result=FAIL"
+          fi
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
       - name: Run Maestro Search Input flow
         shell: bash
         run: |
@@ -736,7 +1033,7 @@ jobs:
           NATIVE_ANDROID_JOB_STATUS: ${{ job.status }}
         run: |
           set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/native-evidence"
+          mkdir -p "$RUNNER_TEMP/native-runtime-evidence"
 
           capture_command() {
             local output="$1"
@@ -755,165 +1052,151 @@ jobs:
             echo "ANDROID_AVD_HOME=${ANDROID_AVD_HOME:-<unset>}"
             echo "ANDROID_PREFS_ROOT=${ANDROID_PREFS_ROOT:-<unset>}"
             echo "HOME=${HOME:-<unset>}"
-          } > "$RUNNER_TEMP/native-evidence/android-environment.txt"
+          } > "$RUNNER_TEMP/native-runtime-evidence/android-environment.txt"
 
           if [[ "${NATIVE_ANDROID_JOB_STATUS:-failure}" != "success" && -n "${ANDROID_AVD_HOME:-}" && -d "$ANDROID_AVD_HOME" ]]; then
-            capture_command "$RUNNER_TEMP/native-evidence/avd-files.txt" \
+            capture_command "$RUNNER_TEMP/native-runtime-evidence/avd-files.txt" \
               find "$ANDROID_AVD_HOME" -maxdepth 3 -print
           else
-            echo "Full AVD file listing is collected only after a failed Android job." \
-              > "$RUNNER_TEMP/native-evidence/avd-files.txt"
+            echo "Full AVD file listing is collected only after a failed Android runtime job." \
+              > "$RUNNER_TEMP/native-runtime-evidence/avd-files.txt"
           fi
           if [[ -f "$RUNNER_TEMP/avd-list.txt" ]]; then
-            if ! cp "$RUNNER_TEMP/avd-list.txt" "$RUNNER_TEMP/native-evidence/avd-list.txt"; then
-              echo "AVD list copy failed." > "$RUNNER_TEMP/native-evidence/avd-list.txt"
+            if ! cp "$RUNNER_TEMP/avd-list.txt" "$RUNNER_TEMP/native-runtime-evidence/avd-list.txt"; then
+              echo "AVD list copy failed." > "$RUNNER_TEMP/native-runtime-evidence/avd-list.txt"
             fi
           else
             echo "emulator -list-avds was not completed." \
-              > "$RUNNER_TEMP/native-evidence/avd-list.txt"
+              > "$RUNNER_TEMP/native-runtime-evidence/avd-list.txt"
           fi
           if [[ -f "$RUNNER_TEMP/emulator-pid.txt" ]]; then
-            if ! cp "$RUNNER_TEMP/emulator-pid.txt" "$RUNNER_TEMP/native-evidence/emulator-pid.txt"; then
-              echo "Emulator PID copy failed." > "$RUNNER_TEMP/native-evidence/emulator-pid.txt"
+            if ! cp "$RUNNER_TEMP/emulator-pid.txt" "$RUNNER_TEMP/native-runtime-evidence/emulator-pid.txt"; then
+              echo "Emulator PID copy failed." > "$RUNNER_TEMP/native-runtime-evidence/emulator-pid.txt"
             fi
           fi
 
           if [[ -n "${ADB:-}" && -x "${ADB:-}" ]]; then
             if timeout 5 "$ADB" get-state >/dev/null 2>&1; then
-              capture_command "$RUNNER_TEMP/native-evidence/adb-get-state.txt" "$ADB" get-state
-              capture_command "$RUNNER_TEMP/native-evidence/adb-devices.txt" "$ADB" devices -l
-              capture_command "$RUNNER_TEMP/native-evidence/sys-boot-completed.txt" "$ADB" shell getprop sys.boot_completed
-              capture_command "$RUNNER_TEMP/native-evidence/android-build-properties.txt" "$ADB" shell getprop ro.build.version.sdk
-              capture_command "$RUNNER_TEMP/native-evidence/android-abi.txt" "$ADB" shell getprop ro.product.cpu.abi
-              capture_command "$RUNNER_TEMP/native-evidence/package-path.txt" "$ADB" shell pm path com.ryuyoshikawa.scenarioshop
-              capture_command "$RUNNER_TEMP/native-evidence/package-process.txt" "$ADB" shell pidof com.ryuyoshikawa.scenarioshop
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/adb-get-state.txt" "$ADB" get-state
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/adb-devices.txt" "$ADB" devices -l
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/sys-boot-completed.txt" "$ADB" shell getprop sys.boot_completed
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/android-build-properties.txt" "$ADB" shell getprop ro.build.version.sdk
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/android-abi.txt" "$ADB" shell getprop ro.product.cpu.abi
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/package-path.txt" "$ADB" shell pm path com.ryuyoshikawa.scenarioshop
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/package-process.txt" "$ADB" shell pidof com.ryuyoshikawa.scenarioshop
               if [[ "${NATIVE_ANDROID_JOB_STATUS:-failure}" != "success" ]]; then
-                capture_command "$RUNNER_TEMP/native-evidence/dumpsys-package.txt" "$ADB" shell dumpsys package com.ryuyoshikawa.scenarioshop
-                capture_command "$RUNNER_TEMP/native-evidence/dumpsys-activity.txt" "$ADB" shell dumpsys activity activities
-                capture_command "$RUNNER_TEMP/native-evidence/adb-logcat.txt" "$ADB" logcat -d
+                capture_command "$RUNNER_TEMP/native-runtime-evidence/dumpsys-package.txt" "$ADB" shell dumpsys package com.ryuyoshikawa.scenarioshop
+                capture_command "$RUNNER_TEMP/native-runtime-evidence/dumpsys-activity.txt" "$ADB" shell dumpsys activity activities
+                capture_command "$RUNNER_TEMP/native-runtime-evidence/adb-logcat.txt" "$ADB" logcat -d
               else
-                echo "Full dumpsys and logcat are omitted for a successful Android job." \
-                  > "$RUNNER_TEMP/native-evidence/diagnostics-status.txt"
+                echo "Full dumpsys and logcat are omitted for a successful Android runtime job." \
+                  > "$RUNNER_TEMP/native-runtime-evidence/diagnostics-status.txt"
               fi
             else
               echo "Android device was not started or was unavailable." \
-                > "$RUNNER_TEMP/native-evidence/adb-get-state.txt"
+                > "$RUNNER_TEMP/native-runtime-evidence/adb-get-state.txt"
               echo "Android device was not started or was unavailable." \
-                > "$RUNNER_TEMP/native-evidence/adb-devices.txt"
+                > "$RUNNER_TEMP/native-runtime-evidence/adb-devices.txt"
               echo "Android device was not started or was unavailable." \
-                > "$RUNNER_TEMP/native-evidence/adb-logcat.txt"
+                > "$RUNNER_TEMP/native-runtime-evidence/adb-logcat.txt"
             fi
           else
             echo "Android adb executable was not resolved." \
-              > "$RUNNER_TEMP/native-evidence/adb-get-state.txt"
+              > "$RUNNER_TEMP/native-runtime-evidence/adb-get-state.txt"
             echo "Android adb executable was not resolved." \
-              > "$RUNNER_TEMP/native-evidence/adb-devices.txt"
+              > "$RUNNER_TEMP/native-runtime-evidence/adb-devices.txt"
             echo "Android adb executable was not resolved." \
-              > "$RUNNER_TEMP/native-evidence/adb-logcat.txt"
+              > "$RUNNER_TEMP/native-runtime-evidence/adb-logcat.txt"
           fi
           if [[ "${NATIVE_ANDROID_JOB_STATUS:-failure}" != "success" && -f "$RUNNER_TEMP/emulator.log" ]]; then
-            if ! cp "$RUNNER_TEMP/emulator.log" "$RUNNER_TEMP/native-evidence/emulator.log"; then
-              echo "Emulator log copy failed." > "$RUNNER_TEMP/native-evidence/emulator.log"
+            if ! cp "$RUNNER_TEMP/emulator.log" "$RUNNER_TEMP/native-runtime-evidence/emulator.log"; then
+              echo "Emulator log copy failed." > "$RUNNER_TEMP/native-runtime-evidence/emulator.log"
             fi
           elif [[ "${NATIVE_ANDROID_JOB_STATUS:-failure}" == "success" ]]; then
-            echo "Full emulator log is collected only after a failed Android job." \
-              > "$RUNNER_TEMP/native-evidence/emulator.log"
+            echo "Full emulator log is collected only after a failed Android runtime job." \
+              > "$RUNNER_TEMP/native-runtime-evidence/emulator.log"
           else
             echo "Emulator was not started; no emulator log was generated." \
-              > "$RUNNER_TEMP/native-evidence/emulator.log"
+              > "$RUNNER_TEMP/native-runtime-evidence/emulator.log"
           fi
           if [[ -n "${APK_PATH:-}" && -f "$APK_PATH" ]]; then
             if [[ "${NATIVE_ANDROID_JOB_STATUS:-failure}" != "success" ]]; then
-              if ! cp "$APK_PATH" "$RUNNER_TEMP/native-evidence/app-release.apk"; then
+              if ! cp "$APK_PATH" "$RUNNER_TEMP/native-runtime-evidence/app-release.apk"; then
                 echo "Automation Release APK copy failed." \
-                  > "$RUNNER_TEMP/native-evidence/apk-copy-status.txt"
+                  > "$RUNNER_TEMP/native-runtime-evidence/apk-copy-status.txt"
               fi
-              capture_command "$RUNNER_TEMP/native-evidence/apk-info.txt" bash -c \
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/apk-info.txt" bash -c \
                 'ls -lh "$1"; file "$1"; unzip -l "$1" | grep -E "AndroidManifest.xml|assets/.*\\.(bundle|hbc)|lib/x86_64/.*\\.so"' \
                 bash "$APK_PATH"
             else
-              capture_command "$RUNNER_TEMP/native-evidence/apk-size.txt" \
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/apk-size.txt" \
                 stat -c 'size_bytes=%s' "$APK_PATH"
-              capture_command "$RUNNER_TEMP/native-evidence/apk-sha256.txt" \
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/apk-sha256.txt" \
                 sha256sum "$APK_PATH"
-              capture_command "$RUNNER_TEMP/native-evidence/apk-info.txt" bash -c \
+              capture_command "$RUNNER_TEMP/native-runtime-evidence/apk-info.txt" bash -c \
                 'unzip -l "$1" | grep -E "AndroidManifest.xml|assets/.*\\.(bundle|hbc)|lib/x86_64/.*\\.so"' \
                 bash "$APK_PATH"
             fi
           else
-            echo "Automation Release APK was not generated." \
-              > "$RUNNER_TEMP/native-evidence/apk-status.txt"
-          fi
-          if [[ -f "$RUNNER_TEMP/gradle-assemble-release.log" ]]; then
-            if [[ "${NATIVE_ANDROID_JOB_STATUS:-failure}" != "success" ]]; then
-              if ! cp "$RUNNER_TEMP/gradle-assemble-release.log" \
-                "$RUNNER_TEMP/native-evidence/gradle-assemble-release.log"; then
-                echo "Gradle Release build log copy failed." \
-                  > "$RUNNER_TEMP/native-evidence/gradle-copy-status.txt"
-              fi
-            else
-              capture_command "$RUNNER_TEMP/native-evidence/gradle-assemble-release-summary.log" \
-                tail -n 160 "$RUNNER_TEMP/gradle-assemble-release.log"
-            fi
-          else
-            echo "Gradle Release build log was not generated." \
-              > "$RUNNER_TEMP/native-evidence/gradle-status.txt"
+            echo "Automation Release APK was not downloaded." \
+              > "$RUNNER_TEMP/native-runtime-evidence/apk-status.txt"
           fi
           if [[ -f "$RUNNER_TEMP/emulator-version.txt" ]]; then
             if ! cp "$RUNNER_TEMP/emulator-version.txt" \
-              "$RUNNER_TEMP/native-evidence/emulator-version.txt"; then
+              "$RUNNER_TEMP/native-runtime-evidence/emulator-version.txt"; then
               echo "Emulator version copy failed." \
-                > "$RUNNER_TEMP/native-evidence/emulator-version.txt"
+                > "$RUNNER_TEMP/native-runtime-evidence/emulator-version.txt"
             fi
           fi
           if [[ "${NATIVE_ANDROID_JOB_STATUS:-failure}" != "success" && -f "$RUNNER_TEMP/app-launch-logcat.txt" ]]; then
             if ! cp "$RUNNER_TEMP/app-launch-logcat.txt" \
-              "$RUNNER_TEMP/native-evidence/app-launch-logcat.txt"; then
+              "$RUNNER_TEMP/native-runtime-evidence/app-launch-logcat.txt"; then
               echo "Application launch logcat copy failed." \
-                > "$RUNNER_TEMP/native-evidence/app-launch-logcat-status.txt"
+                > "$RUNNER_TEMP/native-runtime-evidence/app-launch-logcat-status.txt"
             fi
           elif [[ "${NATIVE_ANDROID_JOB_STATUS:-failure}" == "success" ]]; then
-            echo "Application launch logcat is omitted for a successful Android job." \
-              > "$RUNNER_TEMP/native-evidence/app-launch-logcat-status.txt"
+            echo "Application launch logcat is omitted for a successful Android runtime job." \
+              > "$RUNNER_TEMP/native-runtime-evidence/app-launch-logcat-status.txt"
           fi
           shopt -s nullglob
           for junit_path in "$RUNNER_TEMP"/maestro-*.xml; do
-            if ! cp "$junit_path" "$RUNNER_TEMP/native-evidence/"; then
+            if ! cp "$junit_path" "$RUNNER_TEMP/native-runtime-evidence/"; then
               echo "JUnit copy failed: $junit_path" \
-                >> "$RUNNER_TEMP/native-evidence/junit-copy-status.txt"
+                >> "$RUNNER_TEMP/native-runtime-evidence/junit-copy-status.txt"
             fi
           done
           if [[ -d "$RUNNER_TEMP/maestro-artifacts" ]]; then
-            mkdir -p "$RUNNER_TEMP/native-evidence/maestro-artifacts"
+            mkdir -p "$RUNNER_TEMP/native-runtime-evidence/maestro-artifacts"
             if ! cp -R "$RUNNER_TEMP/maestro-artifacts/." \
-              "$RUNNER_TEMP/native-evidence/maestro-artifacts/"; then
+              "$RUNNER_TEMP/native-runtime-evidence/maestro-artifacts/"; then
               echo "Maestro artifact copy failed." \
-                > "$RUNNER_TEMP/native-evidence/maestro-copy-status.txt"
+                > "$RUNNER_TEMP/native-runtime-evidence/maestro-copy-status.txt"
             fi
             set +e
             grep -R -h -E 'test-runtime-(ready|error)|native-contract-(running|passed|failed)' \
               "$RUNNER_TEMP/maestro-artifacts" \
-              > "$RUNNER_TEMP/native-evidence/test-control-contract-signals.txt"
+              > "$RUNNER_TEMP/native-runtime-evidence/test-control-contract-signals.txt"
             signal_status=$?
             set -e
             if [[ "$signal_status" -ne 0 ]]; then
               echo "No Test Control or Contract Harness signal text was captured." \
-                > "$RUNNER_TEMP/native-evidence/test-control-contract-signals.txt"
+                > "$RUNNER_TEMP/native-runtime-evidence/test-control-contract-signals.txt"
             fi
           else
             echo "Maestro artifact directory was not created." \
-              > "$RUNNER_TEMP/native-evidence/test-control-contract-signals.txt"
+              > "$RUNNER_TEMP/native-runtime-evidence/test-control-contract-signals.txt"
           fi
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native-android-evidence-${{ github.run_id }}
-          path: ${{ runner.temp }}/native-evidence
+          name: native-android-runtime-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-runtime-evidence
+          if-no-files-found: warn
           retention-days: 7
 
   verify:
     name: native-ci / verify
-    needs: [detect, static, production-bundle-guard, android]
+    needs: [detect, native-static, production-bundle-guard, android-build, android-runtime]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -922,9 +1205,10 @@ jobs:
         env:
           DETECT_RESULT: ${{ needs.detect.result }}
           NATIVE_CHANGED: ${{ needs.detect.outputs.native_changed }}
-          STATIC_RESULT: ${{ needs.static.result }}
+          STATIC_RESULT: ${{ needs.native-static.result }}
           PRODUCTION_RESULT: ${{ needs.production-bundle-guard.result }}
-          ANDROID_RESULT: ${{ needs.android.result }}
+          ANDROID_BUILD_RESULT: ${{ needs.android-build.result }}
+          ANDROID_RUNTIME_RESULT: ${{ needs.android-runtime.result }}
         run: |
           test "$DETECT_RESULT" = success
           test -n "$NATIVE_CHANGED"
@@ -932,11 +1216,15 @@ jobs:
             true|false) ;;
             *) echo "Unexpected native_changed output: $NATIVE_CHANGED" >&2; exit 1 ;;
           esac
-          test "$STATIC_RESULT" = success
           if [[ "$NATIVE_CHANGED" == "true" ]]; then
+            test "$STATIC_RESULT" = success
             test "$PRODUCTION_RESULT" = success
-            test "$ANDROID_RESULT" = success
+            test "$ANDROID_BUILD_RESULT" = success
+            test "$ANDROID_RUNTIME_RESULT" = success
           else
-            test "$PRODUCTION_RESULT" = success || test "$PRODUCTION_RESULT" = skipped
-            test "$ANDROID_RESULT" = success || test "$ANDROID_RESULT" = skipped
+            test "$STATIC_RESULT" = skipped
+            test "$PRODUCTION_RESULT" = skipped
+            test "$ANDROID_BUILD_RESULT" = skipped
+            test "$ANDROID_RUNTIME_RESULT" = skipped
           fi
+          echo "All Native CI gates completed successfully."
