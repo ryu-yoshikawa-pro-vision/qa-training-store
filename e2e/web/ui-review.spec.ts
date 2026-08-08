@@ -349,6 +349,11 @@ const coreRoutes: CaptureRoute[] = [
   createPublicRoute("/legal/commerce", (page) =>
     page.getByRole("heading", { name: "模擬取引表示" }),
   ),
+  createPublicRoute("/guide", (page) =>
+    page.getByRole("heading", {
+      name: "安全な模擬環境で、Role差分と初期化手順を確認する",
+    }),
+  ),
   createPublicRoute(
     "/cart",
     (page) => page.getByRole("heading", { name: "カート", exact: true }),
@@ -557,19 +562,6 @@ const coreRoutes: CaptureRoute[] = [
   ),
 ];
 
-const smallMobileRoutePaths = new Set([
-  "/",
-  "/products",
-  "/products/product-basic-shirt",
-  "/cart",
-  "/login",
-  "/signup",
-  "/checkout/address",
-  "/checkout/payment",
-  "/checkout/confirm",
-  "/admin",
-]);
-
 const edgeRoutes: ViewportCaptureRoute[] = [
   {
     route: createPublicRoute(
@@ -671,10 +663,7 @@ function routesForViewport(viewport: ViewportKind) {
     .filter((entry) => entry.viewports.includes(viewport))
     .map((entry) => entry.route);
 
-  const routes =
-    viewport === "small-mobile"
-      ? [...coreRoutes.filter((route) => smallMobileRoutePaths.has(route.path)), ...applicableEdges]
-      : [...coreRoutes, ...applicableEdges];
+  const routes = [...coreRoutes, ...applicableEdges];
 
   if (requestedFileNames.size > 0) {
     return routes.filter((route) => requestedFileNames.has(route.fileName));

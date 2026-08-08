@@ -4924,6 +4924,19 @@ progress {
   .state-panel {
     padding: 32px 20px;
   }
+
+  .definition-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .definition-grid > * {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .definition-grid dd {
+    margin-inline-start: 0;
+  }
 }
 
 @media (max-width: 420px) {
