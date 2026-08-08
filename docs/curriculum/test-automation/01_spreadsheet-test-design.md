@@ -6,7 +6,7 @@
 - Google Sheetsなどのスプレッドシートを使い、案件へ持ち運びやすい形でテスト設計を管理できる。
 - 手順書ではなく、テスト条件・期待結果・リスク・自動化判断を管理できる。
 - 同値分割、境界値分析、デシジョンテーブル、状態遷移などを使ってテスト条件を体系的に導出できる。
-- テストケースIDとPlaywright / Maestro実装を紐付けられる。
+- Test Case IDとPlaywright / Maestro実装を紐付けられる。
 
 ## 教材
 
@@ -116,7 +116,7 @@
 
 | Column | 例 |
 | --- | --- |
-| Test ID | `CART-001` |
+| Test Case ID | `CART-001` |
 | 対象機能 | Cart追加 |
 | Risk ID | `RISK-CART-01` |
 | テスト条件 | 在庫あり商品をGuestが追加する |
@@ -132,7 +132,7 @@
 
 | Column | 内容 |
 | --- | --- |
-| Test ID | テストケースとの紐付け |
+| Test Case ID | テストケースとの紐付け |
 | 自動化 | Yes / No / Later |
 | Tool候補 | Playwright / Maestro / Unitなど |
 | 理由 | 頻度、再現性、重要度など |
@@ -145,7 +145,7 @@ Part 1では実行頻度は参考情報として扱い、PR / main / Nightlyの�
 
 | Column | 内容 |
 | --- | --- |
-| Test ID | `CART-001` |
+| Test Case ID | `CART-001` |
 | Platform | Web / Android / iOS |
 | Tool | Playwright / Maestro |
 | 実装 | spec / YAML path |
@@ -157,7 +157,7 @@ Part 1では実行頻度は参考情報として扱い、PR / main / Nightlyの�
 学習用の簡易実行記録として使用します。
 
 - 実行日
-- Test ID
+- Test Case ID
 - Platform
 - Result
 - Failure分類
@@ -211,14 +211,22 @@ Cartの数量上限が5だと仮定した場合の例:
 
 複数条件の組み合わせで結果が変わる場合に使います。
 
-例として購入可否を整理します。
+条件をまとめすぎるとRuleの違いが見えなくなるため、購入可否では「Login済みか」「Roleがcustomerか」「Accountがactiveか」のように独立した条件を分けます。
 
-| Active customer | 在庫あり | 購入上限内 | 期待 |
-| --- | --- | --- | --- |
-| Yes | Yes | Yes | Checkout可能 |
-| No | Yes | Yes | Login / Account状態で拒否 |
-| Yes | No | Yes | 在庫理由で拒否 |
-| Yes | Yes | No | 上限理由で拒否 |
+例:
+
+| Login済み | Role = customer | Account = active | 在庫あり | 購入上限内 | 期待 |
+| --- | --- | --- | --- | --- | --- |
+| Yes | Yes | Yes | Yes | Yes | Checkout可能 |
+| No | - | - | Yes | Yes | Loginが必要 |
+| Yes | No | - | Yes | Yes | Roleにより購入不可 |
+| Yes | Yes | No | Yes | Yes | Account状態により拒否 |
+| Yes | Yes | Yes | No | Yes | 在庫理由で拒否 |
+| Yes | Yes | Yes | Yes | No | 上限理由で拒否 |
+
+`-` は、そのRuleでは結果へ影響しない条件を表します。
+
+Guest、suspended customer、operator、adminを単に「active customerではない」と一括りにせず、**拒否理由や期待結果が異なる条件は分離して整理する**ことが重要です。
 
 組み合わせを機械的に全部E2E化するのではなく、Business RuleとRiskを理解するために使います。
 
@@ -256,7 +264,7 @@ Roleによって操作可否が変わる場合、Role × 操作を表にしま�
 
 ### 6. Scenario / Use-case Test
 
-複数画面を跨ぐBusiness Flowは、単画面テストとは別にScenarioとして考えます。
+複数画面を跨ぐBusiness Flowは、単画面テストとは別にTest Scenario / User Journeyとして考えます。
 
 例:
 
@@ -270,6 +278,8 @@ Guestで商品追加
 ```
 
 Business上重要な連携Riskを確認するために利用します。
+
+ここでいうTest Scenario / User Journeyは、Scenario Shopを特定の初期状態へResetするSeed Scenarioとは別の概念です。
 
 ### 発展: 組み合わせ削減
 
@@ -298,7 +308,7 @@ Scenario ShopのCartについて、コードを見る前に実際の画面を操
 
 例として次のようなケースを作ります。
 
-| Test ID | 条件 | 初期状態 | 設計根拠 | 期待結果 |
+| Test Case ID | 条件 | 初期状態 | 設計根拠 | 期待結果 |
 | --- | --- | --- | --- | --- |
 | CART-001 | 在庫あり商品を追加 | default | 正常系 | Cartへ追加される |
 | CART-002 | 在庫切れ商品を追加 | out-of-stock | 状態分割 | 追加できない |
@@ -321,7 +331,7 @@ Scenario ShopのCartについて、コードを見る前に実際の画面を操
 
 ## トレーサビリティ
 
-テストコードには可能な範囲でTest IDを対応付けます。
+テストコードには可能な範囲でTest Case IDを対応付けます。
 
 例:
 
@@ -333,7 +343,9 @@ test("在庫切れ商品はカートへ追加できない", async ({ page }) => 
 });
 ```
 
-Test IDをコードへ埋め込む方式、Test titleへ含める方式、Annotationを使う方式などは案件によって選択できます。
+Test Case IDをコードへ埋め込む方式、Test titleへ含める方式、Annotationを使う方式などは案件によって選択できます。
+
+一方、UI要素を特定するUI Test ID / `testId` は別の識別子です。Test Case IDと混同しません。
 
 重要なのは、スプレッドシートの設計と自動化コードの関係を追えることです。
 
@@ -342,10 +354,11 @@ Test IDをコードへ埋め込む方式、Test titleへ含める方式、Annota
 1. 詳細な操作手順を書きすぎると、自動化設計でどんな問題が起きるか。
 2. 同値分割と境界値分析はどう違うか。
 3. 複数のBusiness Ruleが組み合わさるとき、デシジョンテーブルが有効なのはなぜか。
-4. `out-of-stock` Scenarioはどのテスト条件を安定して再現するために使えるか。
-5. 重要なテストでも自動化しない判断があり得るのはなぜか。
-6. UI E2EではなくUnit / Integration Testへ寄せるべき条件は何か。
-7. テストケースIDとコードを紐付けるメリットは何か。
+4. Login、Role、Account状態を1条件へまとめるとどんなRuleを見落としやすいか。
+5. `out-of-stock` Seed Scenarioはどのテスト条件を安定して再現するために使えるか。
+6. 重要なテストでも自動化しない判断があり得るのはなぜか。
+7. UI E2EではなくUnit / Integration Testへ寄せるべき条件は何か。
+8. Test Case IDとコードを紐付けるメリットは何か。
 
 ## 完了条件
 
@@ -353,5 +366,6 @@ Test IDをコードへ埋め込む方式、Test titleへ含める方式、Annota
 - リスクとテスト観点を整理している。
 - 同値分割、境界値、デシジョンテーブル、状態遷移のうち3技法以上をScenario Shopへ適用している。
 - 5件以上のテストケースを作成している。
+- 複数条件のRuleをデシジョンテーブルで分離して説明できる。
 - 各ケースについて自動化可否と理由を書いている。
 - 少なくとも1件についてPlaywrightまたはMaestroへ落とす前提を説明できる。
