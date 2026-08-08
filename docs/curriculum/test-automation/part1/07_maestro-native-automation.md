@@ -110,7 +110,7 @@ Deep Linkにより、長い前段操作を毎回通らず、意図した状態�
 例:
 
 ```text
-scenario-shop://test-control/reset?version=1&scenario=default&...
+scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0
 ```
 
 その後、Ready Signalを待ってから操作します。
