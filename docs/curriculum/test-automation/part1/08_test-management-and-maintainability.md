@@ -99,6 +99,8 @@ POMはPageごとのUI操作やLocatorをまとめる方法の一つです。
 例:
 
 ```ts
+import type { Page } from "@playwright/test";
+
 class ProductPage {
   constructor(private readonly page: Page) {}
 
