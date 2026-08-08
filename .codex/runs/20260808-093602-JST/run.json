@@ -18,15 +18,22 @@
                           "docs/CODING_STANDARDS.md"
                       ],
     "validation":  {
-                       "status":  "passed_with_baseline",
+                       "status":  "partial",
                        "commands":  [
-                                        "pnpm run lint:markdown",
-                                        "pnpm run format:check",
-                                        "pnpm run verify"
+                                        "pnpm run lint:markdown => PASS (160 files, 0 issues)",
+                                        "pnpm run format:check => FAIL (既存Baseline 30 files。docs/CODING_STANDARDS.md単体はPASS)",
+                                        "pnpm run verify => FAIL (format:checkの既存Baselineで停止)",
+                                        "pnpm run lint => PASS (0 errors, 64 warnings)",
+                                        "pnpm run typecheck => PASS",
+                                        "pnpm run validate:image-manifest => PASS",
+                                        "pnpm run security:check => PASS",
+                                        "pnpm run test => FAIL (Native契約4件のWindows CRLF/LF既存Baseline。その他suiteはPASS)",
+                                        "pnpm run build:web => PASS",
+                                        "scripts/sanitize-codex-artifacts.ps1 Write+Check => PASS"
                                     ],
                        "warnings":  [
                                         "format:checkは既存Baseline（HEAD時点で未整形の30ファイル）でFAIL。docs/CODING_STANDARDS.md単体はPASS。",
-                                        "verifyはformat:checkの既存Baselineで最初に停止。lint、typecheck、image-manifest、security、test、build:webは個別にPASS。",
+                                        "verifyはformat:checkの既存Baselineで最初に停止。lint、typecheck、image-manifest、security、test、build:webは個別に実行し、test以外はPASS。",
                                         "test:contractsは既知のWindows CRLF/LF Baseline（Native契約4件）でFAIL、120 PASS。"
                                     ]
                    },
@@ -66,6 +73,6 @@
                                   }
                   },
     "evaluation_path":  null,
-    "status":  "complete",
+    "status":  "partial",
     "primary_failure_category":  null
 }
