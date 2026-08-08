@@ -48,10 +48,10 @@ Phase 2完了時に、次を成立させます。
 - Android/iOSで商品探索、Cart、Login、Account、Checkout、Order、Reviewを操作できる。
 - WebとNativeで同じ業務ルールとApplication結果を検証できる。
 - Seed、Reset、Test Clock、Payment Delayで状態を決定的に再現できる。
-- AndroidでMaestroの必須Flowが安定して成功する。
-- iOS SimulatorでBuild、起動、主要購入Flowを確認できる。
-- Development/Preview用の内部検証Buildを生成できる。
-- Production-validationではTest ControlとContract Harnessを実行できない。
+- Android EmulatorでMaestro必須Flowが安定して成功する。
+- iOS SimulatorでBuild、Install、起動、主要購入Flow、実`expo-sqlite` Contract Harnessが成功する。
+- GitHub ActionsをPhase 2の正式Native CI Gateとし、Android EmulatorとiOS Simulatorを独立して検証する。
+- Production-validationではAndroid/iOSともTest ControlとContract Harnessを実行できない。
 - Web版、Cloudflare Deploy、Playwrightの既存契約を壊さない。
 
 Native化や画面数の増加自体を目的にしません。テスト自動化教材として、同じ業務契約を決定的に検証できるSUTにすることを優先します。
@@ -63,7 +63,7 @@ Phase 2は次の二つだけに分割します。
 | 順序 | 計画 | 主目的 | 完了状態 |
 |---:|---|---|---|
 | 1 | Phase 2 前半 | Native基盤・SQLite・Guest購入前Flow | Android/iOSで商品探索からCartまで操作できる |
-| 2 | Phase 2 後半 | 会員購入Flow・Maestro・CI仕上げ | Loginから購入、注文、Reviewまで動作し、自動検証が成立する |
+| 2 | Phase 2 後半 | 会員購入Flow・Maestro・Native CI仕上げ | Loginから購入、注文、Reviewまで動作し、Android/iOS CIで自動検証が成立する |
 
 前半を基盤だけで終わらせず、商品探索とCartまで含めます。SQLite、Navigation、Asset、Presentation、Platform Adapterの統合問題を後半へ持ち越さないためです。
 
@@ -84,16 +84,20 @@ Phase 2は次の二つだけに分割します。
 - Login、Account、配送先
 - Checkout、Mock Payment、Order、Review
 - Native Component Test
-- Maestro主要Flow
+- Android/iOSの主要Maestro Flow
 - EAS Development/Preview/Production-validation Profile／Environmentの静的契約
-- Windows Android／macOS iOSのローカルBuild、Android Emulator CI、手動iOS Simulator CI
-- GitHub Actionsを主な補助検証経路とし、EAS Workflowは将来用の静的契約に限定
+- Windows Android／macOS iOSのローカルBuildを補助検証経路として維持
+- GitHub Actions上のAndroid Emulator CIとiOS Simulator CIを正式Native CI Gateとして運用
 - Native開発・Build・検証手順
 
 ### 対象外
 
 - Native Admin
 - App Store/Google Play公開、EAS Submit
+- EAS Cloud Build／EAS Workflowの実行
+- iOS物理端末をPhase 2完了条件にすること
+- iOS実機向け署名、Provisioning Profile、IPA、TestFlight
+- Self-hosted MacやDevice Farmの構築
 - Password変更、退会、Guest Checkout
 - Cancel、Return、Refund、Audit Log
 - Payment timeout/unknown、Reconciliation
@@ -109,28 +113,30 @@ Phase 2は次の二つだけに分割します。
 
 - Android package
 - iOS bundleIdentifier
-- Expo Account／EAS Projectを利用しない方針（EAS Cloudは本経路外）
+- Expo Account／EAS Projectを主要実行経路にしない方針
 - Windows上でAndroid Development/Preview Buildを実行できる権限
 - iOS Simulator Buildを生成、インストール、起動する方法
 - SecretとCredentialをRepository、Bundle、Artifact、Logへ保存しない運用
 - `expo-dev-client`とNative Crypto Moduleの導入許可
 - Jest系Native Component Test依存の導入許可
-- GitHub Actions標準Runnerを使うAndroid Emulator CIと、macOS iOS手動CIの実行条件
+- GitHub Actions標準Runnerを使うAndroid Emulator CIとmacOS iOS Simulator CIの実行条件
 - ローカルBuild／CIの実行頻度と、EAS Cloudを実行しない方針
 
 ### 後半開始前
 
-- 前半PRが`main`へマージ済み
-- Android/iOSでGuestの商品探索からCartまで操作可能
-- Android実SQLite Customer Contract Suite成功
-- iOS実SQLite主要Contract Smoke成功
-- Web/Android/iOSのPBKDF2互換Test成功
-- Native Component Test成功
-- 前半Android Emulator CIまたは承認済みローカル代替経路の成功
-- Maestroを実行できるAndroid環境
-- iOS主要Flowを確認できるSimulator環境
+- 前半PRが`main`へマージ済みである。
+- 最新`main`で前半の静的Gate、Native Component Test、Repository／Contract Testが成功する。
+- Route InventoryとPlatform Route方式が文書化されている。
+- Application→Infrastructure直接依存が除去されている。
+- Customer/Admin Repository CapabilityとTransaction Scope分離が完了している。
+- AndroidでGuestの商品探索からCartまで操作できる。
+- Android実SQLite Customer Contract Suiteが成功する。
+- Foreign Key、Harness専用DB/KV、Cleanup、Application DB不変確認の契約が成立している。
+- Web/Native PBKDF2互換Test、Native Component Test、TypeScript型境界が成功する。
+- `expo-sqlite/kv-store`のSession/Guest復元とDeep Link Reset Version 1が成立している。
+- 前半のCritical/High不具合が残っていない。
 
-条件を満たさない場合は該当Goalを開始せず、未確定事項を報告して停止します。
+iOS Simulator CIの成功はPhase 2後半の開始条件にしません。後半Runの初期Baselineで既存`.github/workflows/native-ios-ci.yml`を確認し、Build／Simulator／Maestroが失敗する場合は原因を分類して修正対象へ含めます。iOS経路が失敗しても独立して進められるAndroid／Web／静的検証は継続し、最終Native GateまでにiOSを必ず成功させます。
 
 ## 5. 固定Toolchain
 
@@ -142,7 +148,7 @@ Phase 2開始時に公式資料とLockfileを再確認し、次を基準とし�
 - Android minimum: Android 7以上
 - Android compile/target SDK: 36
 - iOS deployment target: 16.4以上
-- Xcode/EAS Image: Expo SDK 57互換の検証済み値
+- Xcode: GitHub Actions macOS Runner上でExpo SDK 57と互換性を確認できるVersion
 
 無条件に`latest`へ追従しません。Toolchain更新はPhase 2実装と分離します。
 
@@ -294,6 +300,8 @@ scenario-shop.contract.<runtime-uuid>.payment-delay
 - Application用Keyへ触れない。
 - Harness KV専用Databaseや追加Connection管理は実装しない。
 
+GitHub Actions上のiOS SimulatorでContract Harnessを実行する場合も、Node上のSQLite Testではなくビルド済みNative Appの実`expo-sqlite` Runtimeを使用します。これをPhase 2における「iOS実SQLite Contract Smoke」と定義し、物理iPhoneを要求しません。
+
 ### 6.6 Native KV Storage
 
 Session、Guest Identity、Test Clock、Payment Delayは`expo-sqlite/kv-store`へ固定します。
@@ -373,37 +381,7 @@ Jest + jest-expo
 - `expo install`でSDK互換Versionを解決し、LockfileとPeer Dependencyを確認する。
 - `--force`、Peer Dependency無視、恒久的Overrideを標準対応にしない。
 
-Test配置とTypeScript型を分離します。
-
-```text
-tests/component/web/**
-  Vitest
-
-tests/component/native/**
-  Jest + jest-expo
-```
-
-Root `tsconfig.json`ではVitest/Web/Appの型を維持し、`tests/component/native`を除外します。Native Test用設定は次を基準にします。
-
-```json
-{
-  "extends": "./tsconfig.json",
-  "compilerOptions": {
-    "types": ["jest", "node"],
-    "noEmit": true
-  },
-  "include": [
-    "tests/component/native/**/*.ts",
-    "tests/component/native/**/*.tsx"
-  ],
-  "exclude": ["node_modules", "dist"]
-}
-```
-
-- 派生Configで`exclude`を明示し、Root ConfigのNative Test除外を上書きする。
-- `src/**`全件を`include`せず、Native TestからImportされたSourceだけを推移的に検査する。
-- VitestとJestのGlobal型を同じTypeScript Programへ混在させない。
-- TypeScript Project Referencesや別Package化は追加しない。
+Root `tsconfig.json`ではVitest/Web/Appの型を維持し、`tests/component/native`を除外します。Native Testは`tsconfig.native-tests.json`で分離し、VitestとJestのGlobal型を同じTypeScript Programへ混在させません。
 
 Scriptは次を基準にします。
 
@@ -413,12 +391,6 @@ Scriptは次を基準にします。
   "typecheck:native-tests": "tsc --noEmit -p tsconfig.native-tests.json",
   "typecheck": "pnpm run typecheck:app && pnpm run typecheck:native-tests"
 }
-```
-
-```text
-test:component:web
-test:component:native
-test:component = web + native
 ```
 
 ### 6.9 Test Control
@@ -447,44 +419,15 @@ Production-validationではTest Control Deep Link、Service、UI、Handler、Con
 
 ### 6.10 CNG、EAS Profile、Environment
 
-`app.config.ts`、Config Plugin、Dependencyを正本とし、`expo-dev-client`を導入します。
+`app.config.ts`、Config Plugin、Dependencyを正本とし、CNGを維持します。
 
-Native Buildの主経路はWindows Android／macOS iOSのローカルToolchainです。GitHub ActionsはローカルToolchain相当の補助検証、EAS Profile／Workflowは将来用の静的契約として扱い、EAS Cloud Build／Workflow／SubmitはPhase 2前半で実行しません。
+Phase 2の実Build／実行検証の正式経路はGitHub Actionsです。Windows Android／macOS iOSのローカルToolchainはデバッグ、実機確認、CI障害切り分けの補助経路として維持します。
+
+EAS Profileと`.eas/workflows/**`は将来利用可能性を保つための静的契約です。Phase 2のDoDとしてEAS Cloud Build、EAS Workflow、EAS Submitを実行しません。
 
 #### ProfileとEAS Environment
 
-```text
-development-android
-  environment: development
-  developmentClient: true
-  distribution: internal
-
-development-ios-simulator
-  environment: development
-  developmentClient: true
-  distribution: internal
-  ios.simulator: true
-
-preview-android
-  environment: preview
-  distribution: internal
-  android.buildType: apk
-
-preview-ios-simulator
-  environment: preview
-  ios.simulator: true
-
-production-validation-android
-  environment: production
-  distribution: internal
-  android.buildType: apk
-
-production-validation-ios-simulator
-  environment: production
-  ios.simulator: true
-```
-
-Development/Preview Profileの`env`:
+Development/PreviewではAutomation機能を有効にします。
 
 ```text
 EXPO_PUBLIC_APP_ENV=automation
@@ -493,7 +436,7 @@ EXPO_PUBLIC_TEST_MODE=true
 EXPO_PUBLIC_DEFAULT_SEED=default
 ```
 
-Production-validation Profileの`env`:
+Production-validationでは次を固定します。
 
 ```text
 EXPO_PUBLIC_APP_ENV=production
@@ -502,7 +445,7 @@ EXPO_PUBLIC_TEST_MODE=false
 EXPO_PUBLIC_DEFAULT_SEED=default
 ```
 
-Production-validation Metadataは、現行`app.config.ts`の型に合わせて次を確認します。
+Production-validation Metadataは次を確認します。
 
 ```text
 extra.appEnvironment === "production"
@@ -516,75 +459,63 @@ Store提出用Profileは作成しません。
 
 #### GitHub Actions
 
-Node/Webで完結する検証を担当します。
+GitHub ActionsをPhase 2の正式Native CI Gateとします。
 
-- Format、Lint、`typecheck:app`、`typecheck:native-tests`
-- Unit/Application Test
-- Architecture/Capability/Scope Test
-- Dexie Contract
-- SQLite Node側Test
-- Web Component Test
-- Native Component Test
-- Native Route/Dependency Static Check
-- Web既存CI、Cloudflare Deploy
-
-Cloudflare DeployはNative Buildへ依存させません。
-
-#### 前半EAS Workflow（静的契約のみ）
-
-`.eas/workflows/phase2-native-foundation.yml`
-
-- `eas.json`と`.eas/workflows/phase2-native-foundation.yml`のProfile／Environment mappingを保持する。
-- Cloud Build、EAS Workflow、Submitは実行しない。
-- Androidの実Build／Emulator／Maestroは`.github/workflows/native-ci.yml`とローカルToolchainで検証する。
-- iOSの実Build／Simulator／Maestroは`.github/workflows/native-ios-ci.yml`とmacOSローカルToolchainで検証する。
-- Production Bundle Guardは生成Bundleを検査し、Test Control／HarnessのModule Graph除外を確認する。
-
-#### 後半EAS Workflow
-
-`.eas/workflows/phase2-native-purchase.yml`
-
-- Auth/Account/Checkout/Order/Review Maestro
-- Payment Failure/Retry、再起動・復元
-- 購入系Contract Harness
-- Android/iOS最終Production-validation
-- Phase 2全体のNative CI完成
-
-Workflow JobにもBuildと対応するEnvironmentを明示します。
+基本構成:
 
 ```text
-Preview Build/Maestro Job:
-  environment: preview
-
-Production-validation Job:
-  environment: production
+Detect Native Changes
+  ├─ Native Static
+  ├─ Production Bundle Guard
+  ├─ Android Build / Emulator / Maestro
+  └─ iOS Build / Simulator / Maestro
+                ↓
+         native-ci / verify
 ```
 
-Phase 2前半ではEAS Workflowを実行しません。`pnpm run validate:eas:config`で静的契約だけを確認し、実行していないCloud Run ID／Build IDを記録しません。GitHub Actionsを実行した場合はWorkflow Run ID／Artifact／Android・iOS環境をRun Artifactへ記録します。
+必須契約:
 
-```bash
-pnpm run validate:eas:config
-```
+- Native変更検知後、AndroidとiOSは互いに依存させず可能な限り並列で実行する。
+- Android失敗時もiOS、iOS失敗時もAndroid、静的検証、Web回帰など独立して進められる経路を途中停止させない。
+- 最終`native-ci / verify`はfail-closeし、Native変更時にStatic、Production Guard、Android、iOSの必須結果をすべて要求する。
+- Native変更がない場合は重いAndroid/iOS JobのSkipを許容する。
+- `.github/workflows/native-ios-ci.yml`はNative CIから呼び出せる構成とし、必要に応じた`workflow_dispatch`による単独実行も維持する。
+- iOSはGitHub-hosted macOS Runner上でRelease Simulator Appを署名なしでBuildし、SimulatorへInstall／LaunchしてMaestroを実行する。
+- iOS Automation BuildとProduction-validation Buildの結果を区別する。
+- Android/iOSのJUnit、Maestro Evidence、Build情報をPlatform別Artifactとして保存する。
+- 成功時Evidenceは必要十分に抑え、失敗時はSimulator／Emulator診断、Hierarchy、Screenshot、Runtime Logを回収する。
+- Web CIとCloudflare DeployはNative CI完了待ちにしない。
 
-Build成果物はGitHub ActionsまたはローカルToolchainから後続Maestro確認へ渡します。EAS Workflowsが利用不能であることは、この前半では阻害条件ではありません。
+Node/Webで完結するFormat、Lint、Typecheck、Unit/Application、Contract、Native Component、Route／Dependency Static Check、Production Bundle GuardもGitHub Actionsで検証します。
+
+#### EAS Workflow（静的契約のみ）
+
+- `eas.json`と既存`.eas/workflows/phase2-native-foundation.yml`のProfile／Environment mappingを維持する。
+- `pnpm run validate:eas:config`を静的品質ゲートとして維持する。
+- Phase 2後半の実行経路として新しいEAS Workflowを必須成果物にしない。
+- Auth、Checkout、Order、Review、Payment Failure/Retry、Contract Harness、Production-validationはGitHub Actions上のAndroid Emulator／iOS Simulatorで検証する。
+- EAS Cloud Run ID／Build IDをPhase 2完了証跡として要求しない。
 
 ## 7. 共通実施原則
 
 1. 各計画は一つの`/goal`として、実装、検証、自己レビュー、文書更新まで完了する。
 2. 前半と後半は別ブランチ・別PRにする。
-3. 内部Gateを順番に通過し、未解決Critical/Highがある状態で次へ進まない。
+3. 内部Gateを順番に通過し、未解決Critical/Highがある状態で最終完了へ進まない。
 4. 前半完了時に後半へ自動で進まない。
 5. 後半開始時は最新`main`と前半成果を再調査する。
 6. テスト失敗をskip、Assertion弱体化、Retry増加、`continue-on-error`で隠さない。
-7. Android/iOSのBuild、起動、操作、E2E、実SQLite Testを個別に記録する。
-8. 実施していない検証をPASSと記録しない。
-9. WebのDomain/Application契約をNative UI都合で変更しない。
-10. 未使用の抽象化、独自Test Framework、全DB Fingerprint基盤、Sentinel専用基盤を追加しない。
-11. 独自Mutation Queueは再現可能な失敗が確認されるまで追加しない。
-12. NativeでAdmin Capability/Transaction Scopeのダミー実装を作らない。
-13. Maestro Flowは前回実行結果へ依存させない。
-14. Test IDは安定した業務概念へ付与する。
-15. Phase 3機能を先取りしない。
+7. 一つのPlatform／Jobが失敗しても、依存しないPlatform／Job／実装を進められるところまで進める。
+8. Android/iOSのBuild、起動、操作、E2E、実SQLite Testを個別に記録する。
+9. 実施していない検証をPASSと記録しない。
+10. WebのDomain/Application契約をNative UI都合で変更しない。
+11. 未使用の抽象化、独自Test Framework、全DB Fingerprint基盤、Sentinel専用基盤を追加しない。
+12. 独自Mutation Queueは再現可能な失敗が確認されるまで追加しない。
+13. NativeでAdmin Capability/Transaction Scopeのダミー実装を作らない。
+14. Maestro Flowは前回実行結果へ依存させない。
+15. Test IDは安定した業務概念へ付与する。
+16. Phase 3機能を先取りしない。
+17. iOS物理端末、署名、IPA、TestFlight、App StoreをPhase 2完了条件へ戻さない。
+18. EAS Cloud実行をGitHub Actionsの代替必須経路にしない。
 
 ## 8. ブランチ・PR境界
 
@@ -596,7 +527,7 @@ Build成果物はGitHub ActionsまたはローカルToolchainから後続Maestro
 ### Phase 2 後半
 
 - 推奨ブランチ: `feat/phase2-native-purchase-automation`
-- PR範囲: Auth、Account、Checkout、Order、Review、Payment Delay、購入系Maestro/Harness、後半Workflow、最終Docs
+- PR範囲: Auth、Account、Checkout、Order、Review、Payment Delay、購入系Maestro/Harness、Android/iOS Native CI完成、Production-validation、最終Docs
 
 一つのPRへ前半と後半を混在させません。Gate単位で意図が追えるCommitを推奨しますが、Commit数を増やすこと自体を目的にしません。
 
@@ -610,27 +541,41 @@ Build成果物はGitHub ActionsまたはローカルToolchainから後続Maestro
 - Harness用KV Keyが成功・失敗を問わず削除される。
 - Session、Guest、Clock、Delayが固定KV契約で永続化される。
 - 商品探索、Cart、Login、Account、Checkout、Order、Reviewが成立する。
-- ローカルAndroid Build／Android Emulator CIとiOS Simulator CIを、実行済み・失敗・未実施に分けて記録する。
+- GitHub ActionsのAndroid Emulator CIとiOS Simulator CIが正式Native Gateとして成功する。
 - AndroidでMaestro必須Flowが成功する。
-- iOSで主要Flowを確認する。
-- 実Native SQLite Contract Testが成功する。
+- iOS Simulatorで主要購入Flowと購入系Contract Harnessが成功する。
+- iOS実SQLite確認は、Simulator上のビルド済みNative Appで実`expo-sqlite` Runtimeを使用して成功する。
 - Native Component Testが`jest-expo`環境で成功する。
 - VitestとJestのTypeScript型境界が分離され、両Typecheckが成功する。
 - `extra.schemaVersion`の既存Web互換を維持し、Native Schema Versionを別Fieldで公開している。
-- Production-validation Metadataが`"production" / "production" / "false"`である。
-- Production-validationでTest Control/Harnessを実行できない。
+- Android/iOS Production-validation Metadataが`"production" / "production" / "false"`である。
+- Android/iOS Production-validationでTest Control/Harnessを実行できない。
 - Native Adminを含まない。
 - Web版、Web CI、Cloudflare Deploy契約を壊していない。
+- iOS物理端末、署名、IPA、TestFlight、App Store、EAS Cloud実行を完了条件に含めない。
 - 実行できなかった検証は、コード完了と実環境検証未完了を分けて報告する。
 - Phase 3へ送る課題が整理されている。
 
 ## 10. 計画書
 
 - [Phase 2 前半: Native基盤・SQLite・Guest購入前Flow](./01_phase2-first-half-native-foundation.md)
-- [Phase 2 後半: 会員購入Flow・Maestro・EAS/CI仕上げ](./02_phase2-second-half-purchase-automation.md)
+- [Phase 2 後半: 会員購入Flow・Maestro・Native CI仕上げ](./02_phase2-second-half-purchase-automation.md)
 
 ## 11. PR #8再レビュー修正の記録（2026-08-03）
 
 - 既存GitHub Actions run `30775548618`はDetect／Native Static／Production Bundle Guardが成功、Android Jobが`sdkmanager: command not found`で失敗、最終Verifyも失敗した。これは修正後の成功結果ではない。
 - 修正WorkflowはSDK Rootの優先解決、sdkmanager絶対Path、Automation Release APK、Emulator OS boot／package service待機、共有層を含む変更検知、Detect Resultを含むFail-safe Verify、専用Maestro Artifact出力を契約とする。
-- 修正後Workflowの再実行はCommit／Push禁止により未実施。Android Emulator／iOS Simulator／実SQLiteも実行環境がないため未実施である。
+- その後の前半修正でAndroid Build／Emulator／MaestroをGitHub Actions上で成功させ、`.github/workflows/native-ios-ci.yml`にはRelease Simulator Build／Install／Maestroの手動Workflowを追加した。Phase 2後半では、このiOS経路を正式Native CI Gateへ昇格する。
+
+## 12. Phase 2後半CI方針の確定（2026-08-08）
+
+ユーザー承認により、Phase 2後半では次を正式方針とします。
+
+- GitHub ActionsをNativeの正式CI経路とする。
+- AndroidはGitHub-hosted Runner上のAndroid Emulator、iOSはGitHub-hosted macOS Runner上のiOS Simulatorを正式実行環境とする。
+- iOS Simulator上でBuild、Install、Launch、Maestro、実`expo-sqlite` Contract Harness、Production-validationまで完結させる。
+- AndroidとiOSは独立して実行し、一方の失敗で他方やWebの独立作業を途中停止しない。
+- 最終`native-ci / verify`だけはfail-closeし、Native変更時はAndroid/iOSの両方の必須結果を要求する。
+- iOS物理端末、署名、Provisioning Profile、IPA、TestFlight、App Store、Self-hosted Mac、Device FarmはPhase 2対象外とする。
+- EAS Profile／Workflowは静的契約として維持するが、EAS Cloud Build／Workflow／SubmitをPhase 2 DoDに含めない。
+- 実装時に`.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、CI Contract Test、Maestro Flow、関連文書をこの方針へ整合させる。
