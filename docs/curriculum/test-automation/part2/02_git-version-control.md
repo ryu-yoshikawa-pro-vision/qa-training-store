@@ -13,7 +13,41 @@
 
 **このモジュールでは、このリポジトリ `qa-training-store` をGit教材として使用します。**
 
-別の練習用Repositoryは作りません。Part 1で作成したPlaywright Testや教材用の小さな変更をGitで管理します。
+別の教材アプリや別コードベースへ切り替えません。Part 1で使用したScenario Shopと、Part 1で作成したPlaywright Testや学習成果物を引き続き使います。
+
+Forkや演習用Copyを利用する場合も、中身は同じ `qa-training-store` を基にします。
+
+## Part 1からの作業環境移行
+
+Part 1ではGitHubアカウントを必須にしていないため、配布ZIPなどGit Historyを持たないFolderで学習している場合があります。
+
+その場合、Part 2では最初に**Git Historyを持つ `qa-training-store` の演習用Copyへ移行**します。
+
+標準的な流れ:
+
+```text
+Part 1のZIP / Local Copy
+├ Training Playwright Test
+├ Maestro Flow
+└ 学習成果物
+        ↓ 必要な成果物を引き継ぐ
+Git管理されたqa-training-store
+├ mainとRepository History
+├ Part 1成果物
+└ 以降のGit演習
+```
+
+教材提供時には、受講者が次を確認できる移行手順を用意します。
+
+- `git status` が実行できる。
+- `git log` で教材元のHistoryを確認できる。
+- `main` Branchが存在する。
+- Part 1で自分が作成したTraining Testや成果物が引き継がれている。
+- 既存Repositoryの完成済みRegressionへTraining Codeを混在させていない。
+
+Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状態を標準経路にはしません。
+
+このモジュールではまずLocal Gitを学びます。GitHub上のFork、Remote、Push、Pull Requestは次のPart 2-3で扱います。
 
 ## Lesson 1: Gitとは
 
@@ -108,6 +142,8 @@ git log --oneline
 
 Historyから、「いつこのテストが追加されたか」「どの変更で挙動が変わったか」を追えることを理解します。
 
+Part 1をZIPで進めていた受講者にとっては、ここで初めて「自分が受け取ったSnapshot」と「Repositoryが持つ変更履歴」の違いを具体的に確認します。
+
 ## Lesson 8: Conflictの考え方
 
 複数の変更が同じ箇所へ入るとConflictが起きることがあります。
@@ -116,7 +152,19 @@ ConflictはGitの不具合ではなく、「どちらの変更を採用するか
 
 自動テストFileは複数人が触る可能性があり、巨大な1ファイルへ集約しすぎるとConflictが増えやすいことも考えます。
 
-## ハンズオン1: Playwright Test変更をCommitする
+## ハンズオン1: Part 1成果物をGit管理下で確認する
+
+Part 1から引き継いだTraining Testまたは学習成果物を1つ選びます。
+
+次を確認します。
+
+- どのFileを自分が追加・変更したか。
+- `main` の状態との差分は何か。
+- Git Historyに含まれている既存Fileと、自分が追加した成果物を区別できるか。
+
+ZIPから移行した場合は、成果物を引き継いだ直後のDiffを確認します。
+
+## ハンズオン2: Playwright Test変更をCommitする
 
 Part 1で作成したTestへ小さな改善を加えます。
 
@@ -128,11 +176,11 @@ Part 1で作成したTestへ小さな改善を加えます。
 
 その後、`status` → `diff` → `add` → `commit` の順で管理します。
 
-## ハンズオン2: Branchを分ける
+## ハンズオン3: Branchを分ける
 
 新しいTest Case追加用Branchを作り、`main`との差分を確認します。
 
-## ハンズオン3: 意図しない変更を除外する
+## ハンズオン4: 意図しない変更を除外する
 
 演習用に別Fileへ無関係な変更を作り、Commit対象から外します。
 
@@ -143,9 +191,13 @@ Part 1で作成したTestへ小さな改善を加えます。
 3. Branchを使う理由は何か。
 4. Commit前にDiffを見る理由は何か。
 5. Test Fileを巨大化するとGit運用上どんな問題が増えやすいか。
+6. Part 1をZIPで進めた場合、Part 2開始時にGit Historyを持つCopyへ移行する理由は何か。
+7. Part 1のFolderへ単純に `git init` するだけでは教材元のHistoryを学べないのはなぜか。
 
 ## 完了条件
 
+- Part 1成果物をGit管理された `qa-training-store` へ引き継いでいる。
+- 教材元のGit Historyと自分の変更を区別できる。
 - Branchを作成できる。
 - 変更内容を`git diff`で確認できる。
 - 意図したFileだけをStageできる。
