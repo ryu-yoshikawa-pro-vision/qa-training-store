@@ -24,6 +24,20 @@
 - Native Stable Test ID
 - `scenario-shop://` Deep Link
 
+## Part 1での標準実行環境
+
+Part 1のMaestroハンズオンは、全受講者が同じ手順を再現しやすいように**Android Emulatorを標準経路**とします。
+
+Mac環境を利用できる受講者は同じBusiness FlowをiOS Simulatorでも確認できますが、Part 1の完了条件としてiOS実行を必須にしません。
+
+理由は次です。
+
+- iOS SimulatorにはmacOS / Xcode環境が必要で、受講環境の制約が大きい。
+- Part 1の目的はNative UI自動化の基本概念を理解することであり、OS環境構築差分を主目的にしない。
+- Android / iOS両PlatformのCI設計とRunner CostはPart 2で扱う。
+
+教材提供時には、Android Build / Install / Emulator / Maestroの開始確認手順を別途用意します。この文書整備では環境構築ScriptやMaestro設定を追加しません。
+
 ## Lesson 1: Maestroとは
 
 MaestroはMobile UIを操作するための自動化Toolです。
@@ -103,7 +117,7 @@ Native Testでも、前回実行の状態へ依存しないことが重要です
 
 ## Lesson 6: 最初のMaestro Flow
 
-次を実装します。
+Android Emulator上で次を実装します。
 
 1. Appを起動する。
 2. Test Controlで`default`へResetする。
@@ -143,6 +157,8 @@ NativeアプリではApp Restart後の状態復元も重要です。
 
 「Android用とiOS用を最初から全件複製する」ことは避けます。
 
+Part 1ではAndroidで実際に手を動かし、iOSは差分を理解するところまでを標準とします。Part 2ではGitHub Actions上のAndroid Emulator / iOS Simulator実行を比較します。
+
 ## Lesson 10: Playwright vs Maestro
 
 比較観点:
@@ -160,7 +176,7 @@ NativeアプリではApp Restart後の状態復元も重要です。
 
 ## ハンズオン1: Native Cart Flow
 
-Playwrightで作成したCart Testのうち1件をMaestroへ実装します。
+Playwrightで作成したCart Testのうち1件をAndroid上のMaestroへ実装します。
 
 WebとNativeで、共通するテスト条件と異なる操作を記録します。
 
@@ -174,6 +190,14 @@ WebとNativeで、共通するテスト条件と異なる操作を記録しま�
 
 Cartへ商品を追加した後にAppを再起動し、状態復元を確認します。
 
+## 発展ハンズオン: iOS Simulator
+
+Mac環境がある場合、Androidで実装したFlowをiOS Simulatorでも実行し、次を記録します。
+
+- Flowを共用できた箇所
+- Platform差が出た箇所
+- iOS固有対応が本当に必要だった箇所
+
 ## 確認問題
 
 1. PlaywrightのLocatorをそのままNativeへ使えない理由は何か。
@@ -181,11 +205,13 @@ Cartへ商品を追加した後にAppを再起動し、状態復元を確認し�
 3. Deep Linkを使うとテストが速くなる一方、何を飛ばしすぎないよう注意すべきか。
 4. Android / iOSでFlowを機械的に複製しない理由は何か。
 5. PlaywrightとMaestroの共通概念を3つ挙げる。
+6. Part 1でAndroidを標準経路にする理由は何か。
 
 ## 完了条件
 
-- Maestro Flowを2本以上作成している。
+- Android Emulator上でMaestro Flowを2本以上作成している。
 - Test IDを利用した操作を含む。
 - Test ControlまたはDeep Linkを利用している。
 - PlaywrightとMaestroで同じBusiness Flowを1件以上比較している。
 - Native固有のテスト観点を1件以上説明できる。
+- Android / iOSで共用できるFlowとPlatform差分の考え方を説明できる。
