@@ -764,3 +764,27 @@
 - Iteration 20追記後、Run／Evaluation JSON parse、5件のRun Artifact Prettier check、`pnpm run lint:markdown`（174 files／0 issues）、`git diff --check`（exit 0、CRLF warningのみ）をPASSした。
 - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はfiles_scanned 5、files_changed 0、replacements_total 0、residual_findings 0でPASSした。
 - ローカル品質ゲートはPASS、iOS実Runtime／Remote CIは未実行のためRun result `partial`とProgress: 97% (29/30)を維持する。
+
+## 2026-08-09 07:33 JST — PR #14 Artifact受け渡し修正（Repair Loop Iteration 21）
+
+- GitHubのPR #14（head `dfee64c`）に紐づく既存Native CI run `31279181501`を確認した。Phase 1 CIはsuccessだったが、Native CIはAndroid RuntimeとiOS Buildがfailure、iOS Runtimeはskipped、final `native-ci / verify`はfailureだった。
+- Androidの最初の異常は、Buildが`native-automation.apk`を保存・uploadした後、Runtimeが`$RUNNER_TEMP/native-apk/app-release.apk`を確認していたArtifact producer／consumer名不一致だった。Production APK側は`native-production-validation.apk`へ揃っていたため、Automation側のRuntime確認・Evidence名を同じ固定名へ修正した。
+- iOSの最初の異常はArtifact upload前のscheme選択だった。Remote logではgenerated workspaceの`schemes[0]`が`EXConstants`となり、xcodebuildはPod targetをsuccessにしたが、アプリ`.app`を生成せず`Release-iphonesimulator`直下の検出で停止していた。workspace basename（`ScenarioShop`）と一致するschemeをJSON一覧で検証して選択するよう修正した。
+- `input_findings`: PR #14のRemote failureログで確認したAndroid APK path不一致と、iOS Pod scheme誤選択による`.app`未生成。
+- `classification`: `must_fix`。どちらもBuild成功後のRuntime到達を妨げる直接原因であり、既存範囲外として保留しない。
+- `repair_plan`: Android Automation／Productionの保存名、upload対象、download後確認path、install対象を固定する。iOS Automation／Productionは生成`.app`をRuntime用固定名へ保存し、親ディレクトリをArtifact化してbundle階層を保持し、download後の同一固定pathを存在確認・`simctl install`へ渡す。Runtime内の再Build、skip、continue-on-errorは追加しない。
+- `allowed_files`: `.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`、同Run Artifact。
+- `changed_files`: `.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`、`.codex/runs/20260808-165236-JST/PLAN.md`、`.codex/runs/20260808-165236-JST/TASKS.md`、`.codex/runs/20260808-165236-JST/REPORT.md`。
+- `validation_commands`／結果:
+  - `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`: 17/17 PASS。
+  - `pnpm run test:contracts`: 初回は既存`native-production-module-resolution`の5秒test timeoutで158/159となった。該当file単独4/4 PASS後、同コマンドをキャッシュ温存状態で1回再実行し、22 files／159 tests PASS。Artifact変更由来の失敗は再現しなかった。
+  - `pnpm exec prettier --check .github/workflows/native-ci.yml .github/workflows/native-ios-ci.yml tests/contracts/native-ci-workflow.test.ts`: PASS。
+  - `pnpm run verify`: exit 0。Format PASS、Markdownlint 174 files／0 issues、Lint 0 errors／63 warnings、Typecheck、Image Manifest、Security、Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 159、Web export 2294 modulesがPASS。既存React `act(...)` console warning以外の失敗なし。
+- `remaining_delta`: Windowsでは`xcodebuild`／`xcrun`／`simctl`がなく、今回修正後のiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production-validationをローカル実行できない。修正HeadをRemoteへ反映するgit mutationも行っていないため、PR #14の最新修正Headに対するGitHub-hosted Native CI／final `verify`は未実行である。旧Headの失敗結果を修正後PASSへ繰り上げない。
+- `decision`: `continue`。Artifact実装とContract／ローカル品質ゲートは解消したが、完了条件のRemote Android／iOS実Runtimeと最新Headのfinal `verify`が残る。Progress: 97% (30/31)。
+
+## 2026-08-09 07:35 JST — PR #14修正後のRun Artifact最終ゲート
+
+- Run／Evaluation JSON parse、5件のRun Artifact Prettier check、`pnpm run lint:markdown`（174 files／0 issues）、`git diff --check`（exit 0、CRLF変換warningのみ）をPASSした。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はfiles_scanned 5、files_changed 0、replacements_total 0、residual_findings 0でPASSした。
+- Run resultは、今回のArtifact修正後のローカル品質ゲート成功と、修正HeadのRemote Android／iOS実Runtime未実行を分離して`partial`を維持する。Progress: 97% (30/31)。

@@ -177,6 +177,10 @@ describe("Native CI workflow contracts", () => {
 
     expect(build).toContain("name: native-android-apk-${{ github.run_id }}");
     expect(build).toContain("path: ${{ runner.temp }}/native-apks/native-automation.apk");
+    expect(build).toContain('cp "$APK_PATH" "$RUNNER_TEMP/native-apks/native-automation.apk"');
+    expect(build).toContain(
+      'echo "AUTOMATION_APK_PATH=$RUNNER_TEMP/native-apks/native-automation.apk" >> "$GITHUB_ENV"',
+    );
     expect(build).toContain(
       "path: ${{ runner.temp }}/native-apks/native-production-validation.apk",
     );
@@ -187,13 +191,17 @@ describe("Native CI workflow contracts", () => {
     expect(runtime.indexOf("Download Automation Release APK")).toBeLessThan(
       runtime.indexOf("Start Android Emulator with KVM"),
     );
-    expect(runtime).toContain('APK_PATH="$RUNNER_TEMP/native-apk/app-release.apk"');
+    expect(runtime).toContain('APK_PATH="$RUNNER_TEMP/native-apk/native-automation.apk"');
+    expect(runtime).toContain('test -f "$APK_PATH"');
     expect(runtime).toContain('echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"');
+    expect(runtime).toContain('timeout 180 "$ADB" install -r "$APK_PATH"');
     expect(runtime).toContain("Download Production-validation Release APK");
     expect(runtime).toContain("native-android-production-apk-${{ github.run_id }}");
     expect(runtime).toContain(
       'PRODUCTION_APK_PATH="$RUNNER_TEMP/native-production-apk/native-production-validation.apk"',
     );
+    expect(runtime).toContain('test -f "$PRODUCTION_APK_PATH"');
+    expect(runtime).toContain('timeout 180 "$ADB" install -r "$PRODUCTION_APK_PATH"');
   });
 
   it("keeps the build job free of emulator dependencies and the runtime free of Gradle", () => {
@@ -645,6 +653,9 @@ describe("Native iOS CI workflow contracts", () => {
     expect(iosWorkflow).toContain("needs: ios-build");
     expect(iosWorkflow).toContain("name: iOS Production Validation / Bundle Guard");
     expect(iosWorkflow).toContain("Build Production-validation iOS Simulator app without signing");
+    expect(iosWorkflow).toContain('WORKSPACE_SCHEME=$(basename "$WORKSPACE" .xcworkspace)');
+    expect(iosWorkflow).toContain("Generated workspace does not contain app scheme");
+    expect(iosWorkflow).not.toContain("j.workspace.schemes[0]");
     expect(iosWorkflow).not.toContain("\n  ios-production-validation:");
     expect(iosWorkflow).toContain("native-purchase.yaml");
     expect(iosWorkflow).toContain("native-payment-retry.yaml");
@@ -661,6 +672,59 @@ describe("Native iOS CI workflow contracts", () => {
     expect(iosWorkflow).not.toContain("-configuration Debug");
     expect(iosWorkflow).not.toContain("Debug-iphonesimulator");
     expect(iosWorkflow).not.toContain("pull_request:");
+  });
+
+  it("keeps iOS automation and production app artifacts on one producer/consumer contract", () => {
+    const buildStart = iosWorkflow.indexOf("  ios-build:");
+    const runtimeStart = iosWorkflow.indexOf("  ios-runtime:");
+    expect(buildStart).toBeGreaterThanOrEqual(0);
+    expect(runtimeStart).toBeGreaterThan(buildStart);
+    const build = iosWorkflow.slice(buildStart, runtimeStart);
+    const runtime = iosWorkflow.slice(runtimeStart);
+
+    for (const contract of [
+      {
+        artifactName: "native-ios-app-${{ github.run_id }}",
+        savedPath: "$RUNNER_TEMP/native-ios-app/native-automation.app",
+        uploadPath: "${{ runner.temp }}/native-ios-app",
+        downloadPath: "${{ runner.temp }}/native-ios-app",
+        runtimePath: "$RUNNER_TEMP/native-ios-app/native-automation.app",
+        saveVariable: "RUNTIME_APP_PATH",
+        variable: "APP_PATH",
+        deviceVariable: "DEVICE",
+      },
+      {
+        artifactName: "native-ios-production-app-${{ github.run_id }}",
+        savedPath: "$RUNNER_TEMP/native-ios-production-app/native-production-validation.app",
+        uploadPath: "${{ runner.temp }}/native-ios-production-app",
+        downloadPath: "${{ runner.temp }}/native-ios-production-app",
+        runtimePath: "$RUNNER_TEMP/native-ios-production-app/native-production-validation.app",
+        saveVariable: "PRODUCTION_APP_PATH",
+        variable: "PRODUCTION_APP_PATH",
+        deviceVariable: "IOS_DEVICE",
+      },
+    ]) {
+      expect(build).toContain(`name: ${contract.artifactName}`);
+      expect(build).toContain(`${contract.saveVariable}="${contract.savedPath}"`);
+      expect(build).toContain(`path: ${contract.uploadPath}`);
+      expect(runtime).toContain(`name: ${contract.artifactName}`);
+      expect(runtime).toContain(`path: ${contract.downloadPath}`);
+      expect(runtime).toContain(`${contract.variable}="${contract.runtimePath}"`);
+      expect(runtime).toContain(`test -d "$${contract.variable}"`);
+      expect(runtime).toContain(
+        `xcrun simctl install "$${contract.deviceVariable}" "$${contract.variable}"`,
+      );
+    }
+
+    expect(build).toContain('RUNTIME_APP_PATH="$RUNNER_TEMP/native-ios-app/native-automation.app"');
+    expect(build).toContain('cp -R "$APP_PATH" "$RUNTIME_APP_PATH"');
+    expect(build).toContain(
+      'PRODUCTION_APP_PATH="$RUNNER_TEMP/native-ios-production-app/native-production-validation.app"',
+    );
+    expect(build).toContain('cp -R "$PRODUCTION_BUILD_APP_PATH" "$PRODUCTION_APP_PATH"');
+    expect(build).toContain(
+      'echo "PRODUCTION_BUILD_APP_PATH=$PRODUCTION_BUILD_APP_PATH" >> "$GITHUB_ENV"',
+    );
   });
 
   it("runs every required iOS purchase flow in one runtime without rebuilding", () => {

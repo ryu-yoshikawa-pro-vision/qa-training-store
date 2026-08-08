@@ -30,7 +30,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "変更後の全テスト（Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158）、Native SQLite mapper focused 4、Native Repository Contract focused 13、Harness focused 10、Iteration 9後のiOS／Native CI Workflow Contract 16、Web export／Chromium 27/27、bundle guard、Android Iteration 8 Automation／Runtime／Boundary実機、Iteration 16／17／18後のTypecheck／対象Prettier／型逃げ・強制変換scan／差分検査、修正後の`pnpm run verify`はPASSした。今回の5分wrapper未確定は15分extended rerunでexit 0を取得して解消した。iOS実Runtime／Remote CIは未実行である。",
+      "evidence": "変更後の全テスト（Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 159）、PR #14 Artifact producer／consumer Contract 17、Native SQLite mapper focused 4、Native Repository Contract focused 13、Harness focused 10、Web export／Chromium 27/27、bundle guard、Android Iteration 8 Automation／Runtime／Boundary実機、Iteration 16／17／18後のTypecheck／対象Prettier／型逃げ・強制変換scan／差分検査、PR #14修正後の`pnpm run verify`はPASSした。今回の5分wrapper未確定は15分extended rerunでexit 0を取得して解消した。iOS実Runtime／Remote CIは未実行である。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -193,6 +193,24 @@
           "path": ".codex/runs/20260808-165236-JST/REPORT.md",
           "selector": "2026-08-09 06:19 JST",
           "summary": "Iteration 20追記後のRun／Evaluation JSON、Prettier、Markdownlint 174 files、git diff --check、Sanitizer 5 files／0 residualをPASSした。"
+        },
+        {
+          "kind": "remote_validation",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 07:33 JST",
+          "summary": "PR #14旧Remote Native CI runのAndroid APK path不一致とiOS EXConstants scheme誤選択を確認し、修正対象を特定した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 07:33 JST",
+          "summary": "Artifact Contract修正後のWorkflow Contract 17/17、全Contract 159/159、pnpm run verify exit 0を記録した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 07:35 JST",
+          "summary": "Run／Evaluation JSON、Run Artifact Prettier、Markdownlint、git diff --check、Sanitizer 5 files／0 residualの最終ゲートをPASSした。"
         },
         {
           "kind": "evaluation_note",

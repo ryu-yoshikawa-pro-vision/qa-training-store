@@ -446,7 +446,7 @@ jobs:
               sha256sum "$APK_PATH" || true
             } > "$RUNNER_TEMP/native-build-evidence/apk-metadata.txt"
             if [[ "${NATIVE_ANDROID_BUILD_JOB_STATUS:-failure}" != "success" ]]; then
-              if ! cp "$APK_PATH" "$RUNNER_TEMP/native-build-evidence/app-release.apk"; then
+              if ! cp "$APK_PATH" "$RUNNER_TEMP/native-build-evidence/native-automation.apk"; then
                 echo "Automation Release APK copy failed." \
                   > "$RUNNER_TEMP/native-build-evidence/apk-copy-status.txt"
               fi
@@ -611,7 +611,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APK_PATH="$RUNNER_TEMP/native-apk/app-release.apk"
+          APK_PATH="$RUNNER_TEMP/native-apk/native-automation.apk"
           test -f "$APK_PATH"
           test -s "$APK_PATH"
           if ! unzip -l "$APK_PATH" | grep -Eq 'assets/.*\.(bundle|hbc)'; then
@@ -1357,7 +1357,7 @@ jobs:
           fi
           if [[ -n "${APK_PATH:-}" && -f "$APK_PATH" ]]; then
             if [[ "${NATIVE_ANDROID_JOB_STATUS:-failure}" != "success" ]]; then
-              if ! cp "$APK_PATH" "$RUNNER_TEMP/native-runtime-evidence/app-release.apk"; then
+              if ! cp "$APK_PATH" "$RUNNER_TEMP/native-runtime-evidence/native-automation.apk"; then
                 echo "Automation Release APK copy failed." \
                   > "$RUNNER_TEMP/native-runtime-evidence/apk-copy-status.txt"
               fi

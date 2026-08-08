@@ -180,7 +180,12 @@
         "Production direct Gradle attempts with missing SDK env and long physical path failed before Runtime; corrected Runbook short-path attempt passed",
         "全Test／Typecheck／Lintの並列wrapperはtimeoutとなったが、Test／Typecheck／Lintを単独実行してPASSを確認",
         "Production source->runtime APK copyの修正はWorkflow Contract／local static validationで確認済み。Remote Production build artifactは未取得",
-        "Quality Gate Iteration 20の初回5分wrapperは304秒で未確定となったが、コード変更なしの15分extended rerunがexit 0で完了"
+        "Quality Gate Iteration 20の初回5分wrapperは304秒で未確定となったが、コード変更なしの15分extended rerunがexit 0で完了",
+        "PR #14旧Remote Native CI run 31279181399/31279181501確認 => Phase 1 success、Android Runtime failure（native-automation.apkとapp-release.apkの不一致）、iOS Build failure（schemes[0]=EXConstants）、iOS Runtime skipped",
+        "PR #14 Artifact Contract修正後 focused Workflow Contract => 17/17 PASS",
+        "PR #14 Artifact Contract修正後 pnpm run test:contracts => 22 files／159 tests PASS",
+        "PR #14 Artifact Contract修正後 pnpm run verify => exit 0（Format、Markdownlint 174 files、Lint 0 errors／63 warnings、Typecheck、Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 159、Web export 2294 modules）",
+        "PR #14修正後Run Artifact final gate => Run／Evaluation JSON parse、5件Prettier、Markdownlint 174 files／0 issues、git diff --check、Sanitizer 5 files／0 replacements／0 residual PASS"
         ]
     },
     "safety":  {

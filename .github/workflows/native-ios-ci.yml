@@ -69,7 +69,8 @@ jobs:
           set -euo pipefail
           WORKSPACE=$(find ios -maxdepth 1 -name '*.xcworkspace' -print -quit)
           test -n "$WORKSPACE"
-          SCHEME=$(xcodebuild -list -json -workspace "$WORKSPACE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);process.stdout.write(j.workspace.schemes[0]||"")})')
+          WORKSPACE_SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          SCHEME=$(xcodebuild -list -json -workspace "$WORKSPACE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const expected=process.argv[1];if(!j.workspace.schemes.includes(expected))throw new Error(`Generated workspace does not contain app scheme ${expected}.`);process.stdout.write(expected)})' "$WORKSPACE_SCHEME")
           test -n "$SCHEME"
           echo "workspace=$WORKSPACE" >> "$GITHUB_OUTPUT"
           echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
@@ -96,10 +97,18 @@ jobs:
           test -n "$APP_PATH"
           test -d "$APP_PATH"
           echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
+      - name: Save Automation iOS Simulator app for Runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          RUNTIME_APP_PATH="$RUNNER_TEMP/native-ios-app/native-automation.app"
+          mkdir -p "$(dirname "$RUNTIME_APP_PATH")"
+          cp -R "$APP_PATH" "$RUNTIME_APP_PATH"
+          test -d "$RUNTIME_APP_PATH"
       - uses: actions/upload-artifact@v4
         with:
           name: native-ios-app-${{ github.run_id }}
-          path: ${{ runner.temp }}/derived/Build/Products/Release-iphonesimulator/*.app
+          path: ${{ runner.temp }}/native-ios-app
           if-no-files-found: error
           retention-days: 3
       - name: Collect iOS build evidence
@@ -155,7 +164,8 @@ jobs:
           set -euo pipefail
           WORKSPACE=$(find ios -maxdepth 1 -name '*.xcworkspace' -print -quit)
           test -n "$WORKSPACE"
-          SCHEME=$(xcodebuild -list -json -workspace "$WORKSPACE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);process.stdout.write(j.workspace.schemes[0]||"")})')
+          WORKSPACE_SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          SCHEME=$(xcodebuild -list -json -workspace "$WORKSPACE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);const expected=process.argv[1];if(!j.workspace.schemes.includes(expected))throw new Error(`Generated workspace does not contain app scheme ${expected}.`);process.stdout.write(expected)})' "$WORKSPACE_SCHEME")
           test -n "$SCHEME"
           echo "workspace=$WORKSPACE" >> "$GITHUB_OUTPUT"
           echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
@@ -193,16 +203,26 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          APP_PATH=$(find "$RUNNER_TEMP/production-derived/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' -print -quit)
-          test -n "$APP_PATH"
-          if grep -R -E '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService' "$APP_PATH"; then
+          PRODUCTION_BUILD_APP_PATH=$(find "$RUNNER_TEMP/production-derived/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$PRODUCTION_BUILD_APP_PATH"
+          test -d "$PRODUCTION_BUILD_APP_PATH"
+          if grep -R -E '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService' "$PRODUCTION_BUILD_APP_PATH"; then
             echo "Production iOS app contains Automation/Test Control markers." >&2
             exit 1
           fi
+          echo "PRODUCTION_BUILD_APP_PATH=$PRODUCTION_BUILD_APP_PATH" >> "$GITHUB_ENV"
+      - name: Save Production-validation iOS Simulator app for Runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCTION_APP_PATH="$RUNNER_TEMP/native-ios-production-app/native-production-validation.app"
+          mkdir -p "$(dirname "$PRODUCTION_APP_PATH")"
+          cp -R "$PRODUCTION_BUILD_APP_PATH" "$PRODUCTION_APP_PATH"
+          test -d "$PRODUCTION_APP_PATH"
       - uses: actions/upload-artifact@v4
         with:
           name: native-ios-production-app-${{ github.run_id }}
-          path: ${{ runner.temp }}/production-derived/Build/Products/Release-iphonesimulator/*.app
+          path: ${{ runner.temp }}/native-ios-production-app
           if-no-files-found: error
           retention-days: 3
       - name: Collect iOS production build evidence
@@ -249,8 +269,8 @@ jobs:
           test -n "$DEVICE"
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
-          APP_PATH=$(find "$RUNNER_TEMP/native-ios-app" -name '*.app' -print -quit)
-          test -n "$APP_PATH"
+          APP_PATH="$RUNNER_TEMP/native-ios-app/native-automation.app"
+          test -d "$APP_PATH"
           xcrun simctl install "$DEVICE" "$APP_PATH"
           xcrun simctl launch "$DEVICE" com.ryuyoshikawa.scenarioshop
           echo "IOS_DEVICE=$DEVICE" >> "$GITHUB_ENV"
@@ -309,8 +329,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          PRODUCTION_APP_PATH=$(find "$RUNNER_TEMP/native-ios-production-app" -name '*.app' -print -quit)
-          test -n "$PRODUCTION_APP_PATH"
+          PRODUCTION_APP_PATH="$RUNNER_TEMP/native-ios-production-app/native-production-validation.app"
+          test -d "$PRODUCTION_APP_PATH"
           xcrun simctl terminate "$IOS_DEVICE" com.ryuyoshikawa.scenarioshop || true
           xcrun simctl install "$IOS_DEVICE" "$PRODUCTION_APP_PATH"
           xcrun simctl launch "$IOS_DEVICE" com.ryuyoshikawa.scenarioshop

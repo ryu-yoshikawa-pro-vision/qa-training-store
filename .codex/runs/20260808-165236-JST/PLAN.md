@@ -230,3 +230,15 @@
 - Allowed files: `.codex/runs/20260808-165236-JST/REPORT.md`、`.codex/runs/20260808-165236-JST/run.json`、`.codex/runs/20260808-165236-JST/evaluation.json`。
 - Repair: 重複実行を避けて残存プロセスの終了を確認し、コード変更なしで`pnpm run verify`を15分上限で再実行した。終了コード0を取得したため、タイムアウトはコード失敗ではなく5分上限による未確定と分類する。
 - Validation: `pnpm run verify` extended rerun（Format、Markdownlint 174 files、Lint 0 errors／63 warnings、Typecheck、Image Manifest、Security、Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158、Web export 2294 modules）exit 0。iOS／Remote未実行境界は変わらない。
+
+## Repair decision（PR #14 Artifact受け渡し、Iteration 21）
+
+- `iteration_number`: 21。
+- `input_findings`: PR #14のRemote Native CIで、Android RuntimeがBuild／upload済みの`native-automation.apk`ではなく`app-release.apk`を確認して停止した。iOSはArtifact確認前に、generated workspaceの先頭scheme `EXConstants`をBuildしてアプリ`.app`を生成できず、Runtimeがskipされた。
+- `repair_plan`: Android Automation APKの保存名・upload path・download後の確認／install pathを`native-automation.apk`へ統一する。iOSはworkspace basenameと一致するアプリschemeを選択し、Automation／Productionの生成`.app`を固定名へ保存してuploadし、download後の固定pathを存在確認・`simctl install`へ渡す。既存のBuild／Runtime分離とfail-closeは維持する。Contract Testで4Artifactのproducer／consumer／install契約を固定する。
+- `allowed_files`: `.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`、同Run Artifact。
+- `changed_files`: `.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`。
+- `validation_commands`: iOS／Android Workflow Contract focused、全Contract、対象Prettier、`pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run verify`、Run Artifact JSON／Prettier／Sanitizer、可能ならPR #14 Remote Native CI。
+- `validation_result`: focused Workflow Contract 17/17、全Contract 22 files／159 tests、対象Prettier、`pnpm run verify` exit 0（Format、Markdownlint 174 files、Lint 0 errors／63 warnings、Typecheck、全Test、Web export 2294 modules）を確認した。初回全Contractの5秒timeoutは該当file単独4/4と全Contract再実行159/159で切り分けた。
+- `remaining_delta`: 現行Windowsでは`xcodebuild`／`xcrun`／`simctl`がなく、iOS実Runtimeをローカルでは実行できない。Remote再実行は修正HeadをPRへ反映した後に対象となる。
+- `decision`: `continue`。Artifact実装とローカル品質ゲートは解消したが、修正HeadのRemote Android／iOS Runtimeとfinal `native-ci / verify`が残る。
