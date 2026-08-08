@@ -268,8 +268,8 @@ Detect Native Changes
 
 - GitHub-hosted macOS Runnerを使用する。
 - Expo prebuild、CocoaPods、Xcode BuildをCI内で実行する。
-- `iphonesimulator`向けRelease Buildを生成する。
-- Automation Buildでは署名を要求しない。
+- Automation Build／Production-validation Buildはいずれも`iphonesimulator`向けRelease Buildを生成する。
+- Automation Build／Production-validation Buildはいずれも`CODE_SIGNING_ALLOWED=NO`とし、Apple署名、Provisioning Profileを要求しない。
 - SimulatorをBootし、`.app`をInstallして起動する。
 - Maestroで主要購入FlowとContract Harnessを実行する。
 - iOS WorkflowはNative CIから呼び出せる構成にし、単独の`workflow_dispatch`も必要に応じて維持する。
@@ -297,6 +297,7 @@ extra.testMode === "false"
 必須条件:
 
 - Android/iOS両方でProduction-validation Buildを生成できる。
+- iOS Production-validationも`iphonesimulator`向け・署名なしBuildとし、実機署名経路へ切り替えない。
 - Production-validation AppをEmulator／Simulatorで起動できる。
 - Test Control Deep Link、Service、UI、Handler、Contract Harnessが利用不能である。
 - Production Bundle Guardだけで実Runtime確認を代替しない。
@@ -305,6 +306,7 @@ extra.testMode === "false"
 #### EASの扱い
 
 - `eas.json`と既存EAS WorkflowのProfile／Environment mappingを静的契約として維持する。
+- `development`は`local/local/true`、`preview`は`automation/automation/true`、`production-validation`は`production/production/false`の`EXPO_PUBLIC_*`契約を維持する。
 - `pnpm run validate:eas:config`を維持する。
 - `.eas/workflows/phase2-native-purchase.yml`をPhase 2後半の必須成果物にしない。
 - EAS Cloud Build、EAS Workflow、EAS Submitを実行しない。
@@ -419,6 +421,7 @@ extra.testMode === "false"
 - Native変更時の最終`native-ci / verify`がStatic、Production Guard、Android、iOSをfail-closeで集約する。
 - Android/iOS Automation Build結果を分離して記録する。
 - Android/iOS Production-validation Metadataが`"production" / "production" / "false"`である。
+- iOS Production-validationはSimulator向け署名なしBuildとして実行し、Apple署名を要求しない。
 - Android/iOSの実RuntimeでTest Control/Harness無効化を確認する。
 - `typecheck:app`と`typecheck:native-tests`が成功する。
 - Web CIとCloudflare DeployがNative Workflowに依存しない。
