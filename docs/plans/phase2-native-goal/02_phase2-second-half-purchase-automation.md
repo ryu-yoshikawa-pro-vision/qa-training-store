@@ -15,7 +15,7 @@
 7. 前半PRの最終Report、ADR、Run Artifact
 8. 本書
 
-Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateとDoDをTaskへ展開します。文書の優先順位とADRによる置換条件はMaster Planに従います。
+Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateとDoDをTaskへ展開します。文書の優先順位とADRによる置換条件はMaster Planに従います。前半ADRは、Master Planの`Accepted`、`Supersedes`、ユーザー承認条件を満たす範囲だけ上位計画を置き換えます。
 
 Phase 2後半では、GitHub Actionsを正式Native CI経路とし、Android EmulatorとiOS Simulatorを正式実行環境とします。EAS Profile／Workflowは将来用の静的契約として維持しますが、EAS Cloud Build／Workflow／Submitを実行完了条件に含めません。
 
@@ -65,6 +65,8 @@ Phase 2後半は、前半成果が`main`へマージ済みであることを前�
 - `expo-sqlite/kv-store`のSession/Guest復元が成功する。
 - Deep Link Reset Version 1が成功する。
 - 前半のCritical/High不具合が残っていない。
+
+iOS Simulator CIに関するBaseline成功を除き、上記の前半基盤条件に未達がある場合は、その未達を後半機能実装へ黙って混在させません。前半契約の回帰・未完了として分類し、依存しない確認作業は継続しつつ、当該基盤へ依存する後半実装は保留して理由と影響をRun Artifactへ記録します。
 
 iOS Simulator Build／Maestro／実`expo-sqlite` Smokeの成功は、後半Goalを開始するための停止条件にしません。後半Runの最初に現行`.github/workflows/native-ios-ci.yml`をBaselineとして確認し、失敗する場合は原因を分類してPhase 2後半の修正対象に含めます。
 
@@ -261,6 +263,7 @@ Detect Native Changes
 - 最終`native-ci / verify`はfail-closeし、Native変更時にStatic、Production Guard、Android、iOSの必須結果をすべて要求する。
 - Native変更がない場合は重いAndroid/iOS JobのSkipを許容する。
 - Web CIとCloudflare DeployはNative CI完了待ちにしない。
+- SecretやCredentialをRepository、Bundle、Artifact、Logへ露出しない。
 
 #### iOS Simulator CI
 
