@@ -12,7 +12,15 @@ Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Maestro�
 
 **この総合演習では、このリポジトリ `qa-training-store` だけを使用します。**
 
-現在の `.github/workflows/ci.yml`、`native-ci.yml`、`native-ios-ci.yml` は完成例として存在しますが、最初から正解として読みません。
+現在の `.github/workflows/ci.yml`、`native-ci.yml`、`native-ios-ci.yml` は比較教材として存在しますが、最初から正解として読みません。
+
+また、3つのWorkflowは現在の役割が同じではありません。
+
+- Web `ci.yml`: PR / main / schedule / manualを含むWeb CI/CD。
+- Android `native-ci.yml`: PR / manualで動くNative CI。
+- iOS `native-ios-ci.yml`: 現時点では `workflow_dispatch` による手動実行のiOS CI baseline。
+
+特に、iOSが現在PR Required Gateへ自動的に入っていると誤解しないようにします。
 
 まず「CIがまだ存在しないScenario Shop」という前提で自分の設計を作り、その後で現在の実装と比較します。
 
@@ -132,7 +140,7 @@ Merge前の短時間Feedbackとして必要なもの。
 
 ## Phase 5: Native CIを設計する
 
-AndroidとiOSについて次を決めます。
+AndroidとiOSについて、現在のRepository Triggerを正解としてコピーせず、ゼロから次を決めます。
 
 - Build Trigger
 - Native変更判定
@@ -152,6 +160,10 @@ AndroidとiOSについて次を決めます。
 - AndroidとiOSを同じRequired条件にするか。
 - macOS Runner Costをどう考えるか。
 - PRで両Platformを毎回実行するか。
+- iOSはPR Required、PR Optional、main、Nightly、Manualのどこへ置くか。
+- AndroidとiOSで異なるTriggerを採用するなら、その理由は何か。
+
+Part 2-6でAndroidのTraining Native Workflowを実際に動かした経験を使い、Build / Emulator / MaestroのCostを具体的に考えます。
 
 ## Phase 6: Failure時の調査経路を設計する
 
@@ -181,7 +193,8 @@ Mergeを止めるRequired条件を定義します。
 
 - Required Test
 - Required Build
-- Native Required範囲
+- Android Required範囲
+- iOS Required範囲
 - Preview Smoke
 - Final Verify
 
@@ -193,6 +206,8 @@ Mergeを止めるRequired条件を定義します。
 - 原因不明のままRetry回数だけ増やす
 
 必要ならTest自体を改善するか、Required配置を見直します。
+
+Nativeについては「両PlatformをRequiredにすれば品質が高い」と短絡せず、Risk、実行時間、Runner Cost、Flakiness、代替Coverageから判断します。
 
 ## Phase 8: CI/CDを設計する
 
@@ -243,6 +258,8 @@ Preview
 Smoke
 ```
 
+AndroidとiOSを同じ枝へ置く必要はありません。実行タイミングを分けた場合は、その差も図に表します。
+
 ## Phase 10: 現在のScenario Shop CIと比較する
 
 自分の設計完成後、現在の次のFileを読みます。
@@ -255,16 +272,20 @@ Smoke
 
 次を比較します。
 
-1. Job構成
-2. Required範囲
-3. Test Suite配置
-4. Browser Strategy
-5. Artifact再利用
-6. Native変更判定
-7. Android Build / Runtime境界
-8. iOS Simulator経路
-9. Preview / Production
-10. Failure Evidence
+1. Trigger
+2. Job構成
+3. Required範囲
+4. Test Suite配置
+5. Browser Strategy
+6. Artifact再利用
+7. Native変更判定
+8. Android Build / Runtime境界
+9. iOS Simulator経路
+10. iOSが現在Manual baselineである理由と将来の配置候補
+11. Preview / Production
+12. Failure Evidence
+
+現在のiOS Workflowが `workflow_dispatch` であることも「差分」として扱います。自分の設計がiOSをPRやNightlyへ配置していた場合、どちらが妥当かを理由付きで評価します。
 
 ## Phase 11: 差分を評価する
 
@@ -275,6 +296,7 @@ Smoke
 - 現在のRepository設計の方がよい理由
 - 自分の設計の方が単純でよい可能性
 - 現在の規模だから必要な複雑性
+- 現在は過渡期・baselineであり、将来変更され得る構成
 - 別案件なら不要になり得る構成
 - 今後改善できる点
 
@@ -302,6 +324,7 @@ Smoke
 
 - すべてをPRで回す設計にしていないか。
 - 重要なRegressionをGateから外していないか。
+- AndroidとiOSの実行頻度を機械的に同一にしていないか。
 
 ### Cost
 
@@ -323,6 +346,7 @@ Smoke
 ### 設計判断
 
 - 「現在のRepositoryがそうなっているから」ではなく、理由を説明できるか。
+- 現在のWorkflow Triggerと、自分が設計した理想状態を区別できるか。
 
 ## Part 2完了条件
 
@@ -340,6 +364,7 @@ Smoke
 - Build Artifact
 - Preview / Production
 - Deploy後Smoke
+- Android / iOSの異なる実行戦略
 - Scenario Shopへ適したCI/CD全体構成
 
 最終到達点は、GitHub ActionsのYAMLを暗記することではありません。
