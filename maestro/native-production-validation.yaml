@@ -1,0 +1,15 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Scenario Shop"
+- assertNotVisible: "Native test runtime listening"
+- assertNotVisible:
+    id: "native-test-runtime-status"
+- openLink: "scenario-shop://admin/test-control"
+- extendedWaitUntil:
+    visible: "Contract HarnessはAutomation専用です"
+    timeout: 30000
+- assertNotVisible: "Native Contract Harness"
+- assertNotVisible: "Run native contract"
+- takeScreenshot: native-production-validation

@@ -13,6 +13,11 @@ const flowNames = [
   "native-out-of-stock.yaml",
   "native-low-stock.yaml",
   "native-purchase-limit.yaml",
+  "native-purchase.yaml",
+  "native-payment-retry.yaml",
+  "native-session-checkout-restart.yaml",
+  "native-review.yaml",
+  "native-production-validation.yaml",
 ] as const;
 
 function readFlow(name: (typeof flowNames)[number]): string {
@@ -24,30 +29,33 @@ function findAllIndexes(source: string, expression: RegExp): number[] {
 }
 
 describe("Native Test Control Maestro contracts", () => {
-  it.each(flowNames)("waits for Linking readiness before reset in %s", (flowName) => {
-    const source = readFlow(flowName);
-    const launchIndex = source.indexOf("- launchApp:");
-    const listeningIndex = source.indexOf('visible: "Native test runtime listening"');
-    const openLinkIndexes = findAllIndexes(
-      source,
-      /- openLink:\s+"scenario-shop:\/\/test-control\/reset/g,
-    );
-    const readyIndexes = findAllIndexes(source, /visible: "Native test runtime ready"/g);
+  it.each(flowNames.filter((flowName) => flowName !== "native-production-validation.yaml"))(
+    "waits for Linking readiness before reset in %s",
+    (flowName) => {
+      const source = readFlow(flowName);
+      const launchIndex = source.indexOf("- launchApp:");
+      const listeningIndex = source.indexOf('visible: "Native test runtime listening"');
+      const openLinkIndexes = findAllIndexes(
+        source,
+        /- openLink:\s+"scenario-shop:\/\/test-control\/reset/g,
+      );
+      const readyIndexes = findAllIndexes(source, /visible: "Native test runtime ready"/g);
 
-    expect(launchIndex).toBeGreaterThanOrEqual(0);
-    expect(listeningIndex).toBeGreaterThan(launchIndex);
-    expect(openLinkIndexes.length).toBeGreaterThan(0);
-    const firstOpenLinkIndex = openLinkIndexes[0];
-    expect(firstOpenLinkIndex).toBeDefined();
-    if (firstOpenLinkIndex === undefined) return;
-    expect(firstOpenLinkIndex).toBeGreaterThan(listeningIndex);
-    expect(readyIndexes.length).toBeGreaterThanOrEqual(openLinkIndexes.length);
+      expect(launchIndex).toBeGreaterThanOrEqual(0);
+      expect(listeningIndex).toBeGreaterThan(launchIndex);
+      expect(openLinkIndexes.length).toBeGreaterThan(0);
+      const firstOpenLinkIndex = openLinkIndexes[0];
+      expect(firstOpenLinkIndex).toBeDefined();
+      if (firstOpenLinkIndex === undefined) return;
+      expect(firstOpenLinkIndex).toBeGreaterThan(listeningIndex);
+      expect(readyIndexes.length).toBeGreaterThanOrEqual(openLinkIndexes.length);
 
-    for (const openLinkIndex of openLinkIndexes) {
-      expect(readyIndexes.some((readyIndex) => readyIndex > openLinkIndex)).toBe(true);
-    }
-    expect(source).not.toMatch(/^\s+- sleep:/m);
-  });
+      for (const openLinkIndex of openLinkIndexes) {
+        expect(readyIndexes.some((readyIndex) => readyIndex > openLinkIndex)).toBe(true);
+      }
+      expect(source).not.toMatch(/^\s+- sleep:/m);
+    },
+  );
 
   it("defines all five stable runtime labels in one type-safe mapping", () => {
     const source = readFileSync(
@@ -194,5 +202,51 @@ describe("Native Test Control Maestro contracts", () => {
     expect(source).toContain("- launchApp");
     expect(source).toContain('text: "1"');
     expect(source).toContain('id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"');
+  });
+
+  it.each([
+    "native-purchase.yaml",
+    "native-payment-retry.yaml",
+    "native-session-checkout-restart.yaml",
+    "native-review.yaml",
+  ] as const)("keeps customer purchase flow %s fail-close and testID-driven", (flowName) => {
+    const source = readFlow(flowName);
+    expect(source).toContain('visible: "Native test runtime listening"');
+    expect(source).toContain('visible: "Native test runtime ready"');
+    expect(source).not.toMatch(/^\s+- sleep:/m);
+    expect(source).toContain("native-header-account");
+    expect(source).toContain(
+      flowName === "native-review.yaml"
+        ? "native-review-screen"
+        : flowName === "native-session-checkout-restart.yaml"
+          ? "native-checkout-payment-screen"
+          : "native-checkout-complete-screen",
+    );
+    if (flowName === "native-review.yaml") {
+      expect(source).toContain("- hideKeyboard");
+      expect(source).toContain('id: "native-review-save"');
+      expect(source.indexOf("- hideKeyboard")).toBeLessThan(
+        source.indexOf('- tapOn:\n    id: "native-review-save"'),
+      );
+      expect(source.lastIndexOf("- hideKeyboard")).toBeLessThan(
+        source.indexOf('- tapOn:\n    id: "native-review-save"'),
+      );
+    }
+    if (flowName === "native-purchase.yaml") {
+      expect(source).toContain('id: "native-complete-order-id"');
+    }
+    if (flowName === "native-session-checkout-restart.yaml") {
+      expect(source).toContain('id: "native-checkout-session-started"');
+      expect(source).toContain('id: "native-checkout-session-resumed"');
+    }
+  });
+
+  it("checks Production validation without depending on Test Control or Harness", () => {
+    const source = readFlow("native-production-validation.yaml" as (typeof flowNames)[number]);
+    expect(source).toContain('assertNotVisible: "Native test runtime listening"');
+    expect(source).toContain('id: "native-test-runtime-status"');
+    expect(source).toContain("Contract HarnessはAutomation専用です");
+    expect(source).toContain('assertNotVisible: "Native Contract Harness"');
+    expect(source).not.toContain("scenario-shop://test-control/reset");
   });
 });

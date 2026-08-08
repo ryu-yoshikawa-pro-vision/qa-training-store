@@ -43,6 +43,9 @@ export interface NativeContractHarnessResult {
   checks: {
     catalog: boolean;
     cartMutation: boolean;
+    authRoleRejection: boolean;
+    purchaseFlow: boolean;
+    reviewMutation: boolean;
     foreignKeyEnforcement: boolean;
     applicationDatabaseUnchanged: boolean;
     passwordHashing: boolean;
@@ -77,17 +80,26 @@ export async function withNativeContractHarness<T>(
     databaseName: scope.databaseName,
   });
   let workError: unknown = null;
+  let verificationError: unknown = null;
   let result!: T;
   let workCompleted = false;
   try {
     result = await work(scope);
-    await resources.verifyApplicationDatabase?.();
-    await resources.verifyPasswordHashing?.();
     workCompleted = true;
   } catch (caught: unknown) {
     workError = caught;
   } finally {
     const cleanupErrors: unknown[] = [];
+    try {
+      // Verify isolation even when the contract itself failed. Otherwise a
+      // contract assertion could mask an Application DB mutation.
+      await resources.verifyApplicationDatabase?.();
+      if (workError === null) {
+        await resources.verifyPasswordHashing?.();
+      }
+    } catch (caught: unknown) {
+      verificationError = caught;
+    }
     try {
       await resources.closeDatabase();
     } catch (caught: unknown) {
@@ -105,7 +117,8 @@ export async function withNativeContractHarness<T>(
         cleanupErrors.push(caught);
       }
     }
-    if (cleanupErrors.length > 0 && workError === null) {
+    const primaryError = workError ?? verificationError;
+    if (cleanupErrors.length > 0 && primaryError === null) {
       const firstCleanupError = cleanupErrors[0];
       const detail = firstCleanupError instanceof Error ? `: ${firstCleanupError.message}` : "";
       const cleanupError = new Error(
@@ -122,18 +135,25 @@ export async function withNativeContractHarness<T>(
       // failure is still observable through the failed signal and its count.
       emitNativeTestSignal(NATIVE_CONTRACT_FAILED, {
         runtimeId: scope.runtimeId,
-        message: workError instanceof Error ? workError.message : "Native contract failed",
+        message: primaryError instanceof Error ? primaryError.message : "Native contract failed",
         cleanupErrorCount: cleanupErrors.length,
+        verificationErrorCount: verificationError === null ? 0 : 1,
       });
-      throw workError;
+      throw primaryError;
     }
   }
-  if (workError !== null || !workCompleted) {
+  if (workError !== null || verificationError !== null || !workCompleted) {
     emitNativeTestSignal(NATIVE_CONTRACT_FAILED, {
       runtimeId: scope.runtimeId,
-      message: workError instanceof Error ? workError.message : "Native contract failed",
+      message:
+        workError instanceof Error
+          ? workError.message
+          : verificationError instanceof Error
+            ? verificationError.message
+            : "Native contract failed",
+      verificationErrorCount: verificationError === null ? 0 : 1,
     });
-    throw workError ?? new Error("Native contract did not complete");
+    throw workError ?? verificationError ?? new Error("Native contract did not complete");
   }
   emitNativeTestSignal(NATIVE_CONTRACT_PASSED, { runtimeId: scope.runtimeId });
   return result;
@@ -143,7 +163,7 @@ export function assertNativeContractHarnessApplicationStateUnchanged(
   before: NativeContractHarnessApplicationState,
   after: NativeContractHarnessApplicationState,
 ): void {
-  const fields: Array<keyof NativeContractHarnessApplicationState> = [
+  const fields: (keyof NativeContractHarnessApplicationState)[] = [
     "databaseName",
     "nativeSchemaVersion",
     "seedVersion",

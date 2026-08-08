@@ -1,13 +1,30 @@
 import { DatabaseSync } from "node:sqlite";
 import type { SQLiteDatabase } from "expo-sqlite";
 import { createScenarioDataset } from "@/seeds/scenarios";
-import { seedNativeDataset } from "@/infrastructure/database/sqlite/seed";
+import { ensureNativeSeed, seedNativeDataset } from "@/infrastructure/database/sqlite/seed";
 import {
   assertForeignKeysEnabled,
+  runNativeExclusiveTransaction,
   type NativeSQLiteTransaction,
 } from "@/infrastructure/database/sqlite/database";
 import { CUSTOMER_SCHEMA_SQL } from "@/infrastructure/database/sqlite/schema";
 import { NativeCustomerSQLiteRepository } from "@/infrastructure/database/sqlite/native-customer-repositories";
+import { createNativeCustomerApplicationRepositories } from "@/infrastructure/database/sqlite/native-customer-application-repositories";
+import { AuthUseCases } from "@/application/use-cases/auth-use-cases";
+import { AccountUseCases } from "@/application/use-cases/account-use-cases";
+import { CartUseCases } from "@/application/use-cases/cart-use-cases";
+import { CheckoutOrderUseCases } from "@/application/use-cases/checkout-order-use-cases";
+import { CustomerReviewUseCases } from "@/application/use-cases/review-user-use-cases";
+import type {
+  Clock,
+  CurrentSessionStore,
+  GuestIdentityStore,
+  IdGenerator,
+} from "@/application/ports";
+import { DefaultEmailNormalizer } from "@/infrastructure/normalization/normalizers";
+import { BundledStaticAddressLookup } from "@/infrastructure/address-lookup/static-address-lookup";
+import { MockPaymentGateway } from "@/infrastructure/payment/mock-payment-gateway";
+import { WebPbkdf2PasswordHasher } from "@/infrastructure/security/password-hasher.web";
 import { ApplicationError } from "@/application/errors";
 import { createCustomerRepositoryContractSuite } from "../contracts/shared-customer-repository-suite";
 
@@ -112,6 +129,243 @@ describe("Native SQLite Node runtime contract", () => {
         "2026-07-01T03:00:00.000Z",
       ),
     ).rejects.toThrow();
+    database.close();
+  });
+
+  it("translates SQLite lock errors at the Native transaction boundary", async () => {
+    const lockedDatabase = {
+      withExclusiveTransactionAsync: async () => {
+        throw new Error("database is locked");
+      },
+    } as unknown as SQLiteDatabase;
+
+    await expect(
+      runNativeExclusiveTransaction(lockedDatabase, async () => undefined),
+    ).rejects.toMatchObject<Partial<ApplicationError>>({
+      code: "STORAGE_WRITE_FAILED",
+      messageKey: "storage.sqlite.locked",
+      retryable: true,
+    });
+  });
+
+  it("migrates the v1 Native schema metadata without resetting customer data", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("default"),
+    );
+    await database.runAsync(
+      "UPDATE users SET display_name = ? WHERE id = ?",
+      "Persisted before v2",
+      "user-customer-regular",
+    );
+    await database.runAsync(
+      "UPDATE schema_metadata SET value = ? WHERE key = ?",
+      "1",
+      "nativeDatabaseSchemaVersion",
+    );
+
+    await ensureNativeSeed(database as unknown as SQLiteDatabase, "default");
+
+    await expect(
+      database.getFirstAsync<{ value: string }>(
+        "SELECT value FROM schema_metadata WHERE key = ?",
+        "nativeDatabaseSchemaVersion",
+      ),
+    ).resolves.toEqual({ value: "2" });
+    await expect(
+      database.getFirstAsync<{ display_name: string }>(
+        "SELECT display_name FROM users WHERE id = ?",
+        "user-customer-regular",
+      ),
+    ).resolves.toEqual({ display_name: "Persisted before v2" });
+    await expect(
+      database.getFirstAsync<{ name: string }>(
+        "SELECT name FROM sqlite_master WHERE type = 'table' AND name = ?",
+        "checkout_sessions",
+      ),
+    ).resolves.toEqual({ name: "checkout_sessions" });
+    database.close();
+  });
+
+  it("persists the Native Customer auth, address, checkout, order, and review flow", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("reviewable-orders"),
+    );
+
+    class SessionStore implements CurrentSessionStore {
+      private value: string | null = null;
+
+      async getSessionId(): Promise<string | null> {
+        return this.value;
+      }
+
+      async setSessionId(id: string): Promise<void> {
+        this.value = id;
+      }
+
+      async clear(): Promise<void> {
+        this.value = null;
+      }
+    }
+
+    class GuestStore implements GuestIdentityStore {
+      constructor(private readonly id: string) {}
+
+      async getOrCreateGuestId(): Promise<string> {
+        return this.id;
+      }
+
+      async setGuestId(): Promise<void> {}
+
+      async clear(): Promise<void> {}
+    }
+
+    class FixedClock implements Clock {
+      now(): string {
+        return "2026-07-01T03:00:00.000Z";
+      }
+    }
+
+    class Ids implements IdGenerator {
+      private count = 0;
+
+      generate(): string {
+        this.count += 1;
+        return `native-repository-contract-${this.count}`;
+      }
+    }
+
+    const currentSessionStore = new SessionStore();
+    const guestIdentityStore = new GuestStore("guest-native-application-contract");
+    const clock = new FixedClock();
+    const idGenerator = new Ids();
+    const repositories = createNativeCustomerApplicationRepositories(
+      database as unknown as SQLiteDatabase,
+    );
+    const auth = new AuthUseCases({
+      users: repositories.users,
+      sessions: repositories.sessions,
+      transactionRunner: repositories.transactionRunner,
+      currentSessionStore,
+      guestIdentityStore,
+      emailNormalizer: new DefaultEmailNormalizer(),
+      passwordHasher: new WebPbkdf2PasswordHasher(),
+      clock,
+      idGenerator,
+    });
+    const account = new AccountUseCases({
+      users: repositories.users,
+      sessions: repositories.sessions,
+      addresses: repositories.addresses,
+      currentSessionStore,
+      clock,
+      idGenerator,
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    const cart = new CartUseCases({
+      users: repositories.users,
+      sessions: repositories.sessions,
+      carts: repositories.carts,
+      transactionRunner: repositories.transactionRunner,
+      currentSessionStore,
+      guestIdentityStore,
+      idGenerator,
+      clock,
+    });
+    const checkout = new CheckoutOrderUseCases({
+      users: repositories.users,
+      sessions: repositories.sessions,
+      carts: repositories.carts,
+      checkouts: repositories.checkouts,
+      orders: repositories.orders,
+      payments: repositories.payments,
+      reviews: repositories.reviews,
+      transactionRunner: repositories.transactionRunner,
+      currentSessionStore,
+      paymentGateway: new MockPaymentGateway(0),
+      clock,
+      idGenerator,
+    });
+    const reviews = new CustomerReviewUseCases({
+      users: repositories.users,
+      sessions: repositories.sessions,
+      reviews: repositories.reviews,
+      orders: repositories.orders,
+      productRecords: repositories.products,
+      transactionRunner: repositories.transactionRunner,
+      currentSessionStore,
+      clock,
+      idGenerator,
+    });
+
+    await expect(
+      auth.login({ email: "suspended@example.com", password: "testpass1" }),
+    ).rejects.toMatchObject({ code: "ACCOUNT_SUSPENDED" });
+    const guestCart = await cart.addItem({
+      variantId: "variant-basic-shirt-02",
+      addQuantity: 1,
+    });
+    expect(guestCart.items.length).toBeGreaterThan(0);
+    await auth.login({ email: "regular@example.com", password: "testpass1" });
+    const customerCart = await cart.getCart();
+    expect(customerCart.items.length).toBeGreaterThan(0);
+
+    const address = {
+      recipientName: "Native Repository Customer",
+      postalCode: "1000001",
+      prefecture: "東京都",
+      city: "千代田区千代田",
+      addressLine1: "1-1",
+      addressLine2: null,
+      phone: "09000000000",
+    } as const;
+    await account.createAddress({ label: "契約テスト", ...address, makeDefault: true });
+    const started = await checkout.start({ cartVersion: customerCart.cartVersion });
+    const addressed = await checkout.setAddress({
+      checkoutSessionId: started.session.id,
+      checkoutExpectedVersion: started.session.version,
+      address,
+    });
+    const payment = await checkout.setPayment({
+      checkoutSessionId: addressed.id,
+      checkoutExpectedVersion: addressed.version,
+      paymentMethodCode: "TEST-SUCCESS",
+    });
+    const confirmation = await checkout.getConfirmation(payment.id);
+    const processing = await checkout.beginOrder({
+      checkoutSessionId: confirmation.checkoutSessionId,
+      checkoutActionVersion: confirmation.checkoutActionVersion,
+    });
+    await expect(checkout.resumePayment(processing.orderId)).resolves.toMatchObject({
+      orderStatus: "paid",
+    });
+
+    const delivered = await checkout.getMyCustomerOrder("order-delivered");
+    const reviewableItem = delivered.items.find((item) => item.reviewState === "NOT_POSTED");
+    expect(reviewableItem).toBeDefined();
+    const eligibility = await reviews.getEligibility(reviewableItem!.orderItemId);
+    expect(eligibility.eligible).toBe(true);
+    const created = await reviews.create({
+      orderItemId: reviewableItem!.orderItemId,
+      rating: 5,
+      title: "契約テスト",
+      body: "Native SQLite application repository contract",
+    });
+    const updated = await reviews.update({
+      reviewId: created.reviewId,
+      rating: 4,
+      title: created.title,
+      body: created.body,
+      expectedVersion: created.version,
+    });
+    await expect(
+      reviews.delete({ reviewId: updated.reviewId, expectedVersion: updated.version }),
+    ).resolves.toMatchObject({ status: "deleted" });
     database.close();
   });
 });

@@ -222,6 +222,6 @@ describe("test control integration", () => {
 
   it("supports every scenario name through the public reset command type", () => {
     const scenarios: readonly PhaseOneScenario[] = PHASE_ONE_SCENARIOS;
-    expect(scenarios).toHaveLength(27);
+    expect(scenarios).toHaveLength(30);
   });
 });

@@ -1,6 +1,6 @@
 import { ApplicationError } from "@/application/errors";
 import type { NativeApplicationServices } from "@/bootstrap/native-runtime";
-import { DEFAULT_GUEST_ID, SCENARIO_METADATA, type PhaseOneScenario } from "@/seeds/metadata";
+import { DEFAULT_GUEST_ID, SCENARIO_METADATA, type NativeCustomerScenario } from "@/seeds/metadata";
 import { createScenarioDataset } from "@/seeds/scenarios";
 import { seedNativeDataset } from "@/infrastructure/database/sqlite/seed";
 import {
@@ -21,7 +21,7 @@ import {
 
 export interface NativeTestControlResetResult {
   version: 1;
-  scenario: PhaseOneScenario;
+  scenario: NativeCustomerScenario;
   clock: string;
   paymentDelayMs: number;
   defaultRoute: "/" | "/admin";
@@ -43,7 +43,7 @@ export class NativeTestControlService {
     validateNativeTestControlRequest(input);
     this.resetInProgress = true;
     try {
-      const scenario = input.scenario as PhaseOneScenario;
+      const scenario = input.scenario as NativeCustomerScenario;
       const clock = nativeResetDefaultClock(input.clock);
       // seedNativeDataset deletes the existing customer data and inserts the
       // requested scenario in one exclusive SQLite transaction. Do not split

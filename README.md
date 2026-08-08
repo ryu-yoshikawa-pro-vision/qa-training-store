@@ -22,7 +22,7 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 
 ## 対象範囲
 
-現在の実装はWebのPhase 1と、NativeのPhase 2前半（Guest Storefront／Cart基盤）を対象としています。Nativeの後半機能は対象外画面として明示しています。
+現在の実装はWebのPhase 1と、NativeのPhase 2（Guest Storefront／CartおよびCustomer購入Flow）を対象としています。Native AdminとGuest Checkoutは対象外です。
 
 | 項目 | 内容 |
 |---|---|
@@ -36,7 +36,7 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 | Hosting | Cloudflare Pages |
 | 管理画面 | 1024px以上のDesktop Web |
 | 購入可能Role | activeなcustomer |
-| Native前半 | Guest Home、Catalog、Search、Category、Product、Variation、Cart |
+| Native Customer | Guest Home、Catalog、Search、Category、Product、Variation、Cart、Login、Account、Address、Checkout、Payment、Order、Review |
 | Native DB | SQLite Customer-only schema + Native KV |
 | Native識別子 | Android `com.ryuyoshikawa.scenarioshop` / iOS `com.ryuyoshikawa.scenarioshop` |
 
@@ -201,6 +201,18 @@ pnpm run validate:native-production-bundle
 
 `validate:native-production-bundle`はAutomation／Productionの生成Android Bundle（Hermes `.hbc`を含む）を検査します。EAS CloudのWorkflow検証・実行はこの経路では行いません。
 
+Phase 2後半の購入Flowでは、Login／Session、Guest Cart統合、Profile／Address、Checkout／Mock Payment、Order、ReviewをNative Customer向けに提供します。購入系の実Runtimeは、Windows Android実機では [`docs/native/windows-android-local-validation.md`](docs/native/windows-android-local-validation.md)、macOS／GitHub Actions iOS Simulatorでは [`docs/plans/phase2-native-goal/02_phase2-second-half-purchase-automation.md`](docs/plans/phase2-native-goal/02_phase2-second-half-purchase-automation.md) と `.github/workflows/native-ios-ci.yml` を参照してください。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File scripts/native/windows/android-local.ps1 `
+  -Action Doctor
+
+powershell -NoProfile -ExecutionPolicy Bypass `
+  -File scripts/native/windows/android-local.ps1 `
+  -Action All
+```
+
 ## テストアカウント
 
 初期アカウントの共通パスワードは次の値です。
@@ -351,27 +363,24 @@ pnpm run verify
 
 `verify`はFormat、Lint、Typecheck、画像Manifest、Security Check、Vitest、Web Buildを実行します。Playwright E2Eは含まれないため、目的に応じて別途実行してください。
 
-### Native検証状態（PR #8対応時点）
+### Native検証状態（2026-08-09）
 
 #### 実施済み・成功
 
 - Deep Link Pure Function、Native Scenario Allowlist、Guest Mutation拒否、Reset rollback、Harness signal順序、Variation未選択のUnit／Contract／Component Test
-- Native Application Use Case共有配線、Production Module Resolution、生成BundleのProduction Bundle Guard
-- Native Asset生成差分、Format、Lint、Typecheck、Node SQLite／Web回帰（個別の実行結果はRun Artifactを参照）
-- Android／iOS CI Workflow定義とWorkflow契約Test（GitHub Actionsの実行結果ではなく、Workflow／Job／Artifact契約の実装）
+- Native Customer Application Use Case共有配線、Production Module Resolution、生成BundleのProduction Bundle Guard
+- Native Asset生成差分、Typecheck、Lint、Security、Node SQLite／Web／Native回帰（個別の実行結果はRun Artifactを参照）
+- Android／iOS CI Workflow定義、Build／Runtime／Artifact／final verifyのWorkflow契約Test
+- 現行Android実機では、変更後Automation APKのBuild `20260808-231500-android-postfix-build`、Install／Smoke、Guest Cart数量1→Login統合後数量2を含むPurchase 1/1、Payment retry、Checkout restart、Review、Runtime 5/5、Boundary 5/5を確認した。Postfix後の現行Production APKも短縮Workspace条件でBuild／marker guard／Install／Smoke／Production validation 1/1を確認した。Web Chromium Regressionは27/27 PASSした。
+- 最終自己レビューでは、Native SQLiteのRow／Enum／集計値をRuntime parserへ統一し、Customer Transaction ScopeのallowlistとAdmin placeholderのfail-close境界を追加した。全Test（Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158）、Typecheck、対象PrettierはPASSした。
 
-#### 実施済み・失敗
+#### 未実施・判定保留
 
-- このWindows環境でのローカルAndroid Release Buildは、Android SDK／`ANDROID_HOME`／`adb`不足により失敗。
-- このWindows環境でのローカルiOS Buildは、Xcode／SimulatorがWindows上にないため実行不可。
-- GitHub Actions Native CI run `30775548618`は、Detect／Native Static／Production Bundle Guardが成功したが、Android Jobは既存Workflowの`sdkmanager: command not found`で失敗し、`native-ci / verify`も失敗。
+- WindowsではXcode／iOS Simulatorがないため、iOS Simulator Build／Install／Maestro／実`expo-sqlite` Runtimeは未実行。WorkflowのiOS BuildはAutomation／Productionを同じBuild Jobで生成し、Runtimeは両Artifactを受け取る構成を静的確認した。
+- 現在の未commit差分はRemoteへpushしていないため、GitHub-hosted Native CI、最新Headの`native-ci / verify`、Remote Artifact取得は未実行。
+- EAS Cloud Build／Workflow／Submit、Store公開、PR本文更新はPhase 2の対象外。
 
-#### 未実施
-
-- 修正後WorkflowのGitHub Actions再実行、APK／Maestro／Harness Artifactの取得（Commit／Push禁止のため未実施）
-- iOS手動CIの実行
-- Android Emulator／実機、iOS Simulator上のDeep Link、Contract Harness、Storefront／Cart、再起動復元、実`expo-sqlite`確認
-- EAS Cloud Build／Workflow／Submit、Store公開、PR本文更新
+過去のGitHub Actions run `30775548618`の`sdkmanager: command not found`は修正前ベースラインであり、現行Workflowの成功結果を示すものではありません。コード／静的検証／Androidローカル検証は完了していますが、iOSとRemote CIが未実施のため、Phase 2全体は完了扱いにしません。
 
 ## アーキテクチャ
 
@@ -457,6 +466,6 @@ CloudflareのSecretが設定されている場合は、Pull Request Previewとma
 
 ## Native対応について
 
-NativeはPhase 2前半として、GuestのHome、Catalog、Search、Category、Product、Variation、Cart、Guide／Legalを実装しています。Login、Account、Checkout、Payment、Order、Review、Adminは後半対象のplaceholderです。
+NativeはPhase 2として、GuestのHome、Catalog、Search、Category、Product、Variation、Cart、Guide／Legalに加え、Customer向けのLogin／Session、Profile／Address、Checkout／Payment、Order、Reviewを実装しています。Native AdminとGuest Checkoutは対象外です。
 
-NativeはWebとは別のRoot／Route／Shell、Customer-only SQLite、Native KV、PBKDF2 adapterを使用します。色、8px Grid、Radius、Typography、Touch Target、商品画像比率は`src/presentation/design/tokens.ts`を共有契約とし、Nativeのstyle／primitiveへ接続しています。実Android／iOSのローカルBuild、Install、起動、操作、実SQLite Smokeは、Android SDK／adb／EmulatorおよびXcode／Simulatorが利用できる環境で確認します。EASは静的設定確認のみで、Cloud Build／Workflow／Submitは実行しません。
+NativeはWebとは別のRoot／Route／Shell、Customer-only SQLite、Native KV、PBKDF2 adapterを使用します。色、8px Grid、Radius、Typography、Touch Target、商品画像比率は`src/presentation/design/tokens.ts`を共有契約とし、Nativeのstyle／primitiveへ接続しています。現行RunではAndroid実機の購入系FlowとProduction validationを確認済みです。iOS SimulatorとGitHub-hosted Remote CIはWindows・未push条件のため未実行であり、最終完了判定には含めません。EASは静的設定確認のみで、Cloud Build／Workflow／Submitは実行しません。

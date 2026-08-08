@@ -1,0 +1,110 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Scenario Shop"
+- extendedWaitUntil:
+    visible: "Native test runtime listening"
+    timeout: 30000
+- openLink: "scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0"
+- extendedWaitUntil:
+    visible: "Native test runtime ready"
+    timeout: 30000
+- openLink: "scenario-shop://products/product-basic-shirt"
+- extendedWaitUntil:
+    visible:
+      id: "native-product-detail-screen"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "native-variant-variant-basic-shirt-02"
+    direction: DOWN
+    speed: 10
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-variant-variant-basic-shirt-02"
+- scrollUntilVisible:
+    element:
+      id: "native-add-to-cart"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-add-to-cart"
+- scrollUntilVisible:
+    element:
+      id: "native-cart-add-message"
+    direction: DOWN
+    timeout: 10000
+- assertVisible:
+    id: "native-cart-add-message"
+- openLink: "scenario-shop://cart"
+- extendedWaitUntil:
+    visible:
+      id: "native-persisted-state-ready"
+    timeout: 30000
+- assertVisible:
+    id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"
+- assertVisible:
+    id: "native-cart-badge-count"
+    text: "1"
+- openLink: "scenario-shop://login"
+- extendedWaitUntil:
+    visible:
+      id: "native-login-screen"
+    timeout: 30000
+- tapOn:
+    id: "native-login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "native-header-account"
+    timeout: 30000
+- openLink: "scenario-shop://cart"
+- extendedWaitUntil:
+    visible:
+      id: "native-persisted-state-ready"
+    timeout: 30000
+- assertVisible:
+    id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"
+- assertVisible:
+    id: "native-cart-badge-count"
+    text: "2"
+- tapOn:
+    id: "native-cart-checkout"
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-address-screen"
+    timeout: 30000
+- tapOn:
+    id: "native-checkout-address-next"
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-payment-screen"
+    timeout: 30000
+- tapOn:
+    id: "native-payment-method-TEST-SUCCESS"
+- tapOn:
+    id: "native-checkout-payment-next"
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-confirm-screen"
+    timeout: 30000
+- tapOn:
+    id: "native-checkout-confirm-submit"
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-complete-screen"
+    timeout: 30000
+- assertVisible: "注文完了"
+- assertVisible:
+    id: "native-complete-order-id"
+- openLink: "scenario-shop://orders"
+- extendedWaitUntil:
+    visible:
+      id: "native-orders-screen"
+    timeout: 30000
+- assertVisible: "注文一覧"
+- takeScreenshot: native-purchase-complete

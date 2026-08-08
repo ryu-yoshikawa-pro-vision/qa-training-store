@@ -1,6 +1,12 @@
 name: Native iOS CI
 
 on:
+  workflow_call:
+    inputs:
+      run_native:
+        required: false
+        type: boolean
+        default: true
   workflow_dispatch:
 
 permissions:
@@ -21,10 +27,11 @@ env:
   EXPO_PUBLIC_DEFAULT_SEED: default
 
 jobs:
-  ios:
-    name: iOS Simulator Build / Smoke
+  ios-build:
+    name: iOS Simulator Build
+    if: inputs.run_native || github.event_name == 'workflow_dispatch'
     runs-on: macos-26
-    timeout-minutes: 35
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
         with:
@@ -32,6 +39,7 @@ jobs:
       - name: Select Xcode 26.4.1 or newer
         shell: bash
         run: |
+          set -euo pipefail
           XCODE_APP=$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' | sort | tail -n 1)
           test -n "$XCODE_APP"
           sudo xcode-select -s "$XCODE_APP/Contents/Developer"
@@ -43,10 +51,14 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run generate:native-assets
-      - run: git diff --exit-code -- src/generated/native-product-assets.ts
-      - run: pnpm exec expo prebuild --clean --platform ios --no-install
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Native assets
+        run: pnpm run generate:native-assets
+      - name: Verify generated Native assets
+        run: git diff --exit-code -- src/generated/native-product-assets.ts
+      - name: Run Expo prebuild
+        run: pnpm exec expo prebuild --clean --platform ios --no-install
       - name: Install CocoaPods
         working-directory: ios
         run: pod install
@@ -54,6 +66,7 @@ jobs:
         id: xcode
         shell: bash
         run: |
+          set -euo pipefail
           WORKSPACE=$(find ios -maxdepth 1 -name '*.xcworkspace' -print -quit)
           test -n "$WORKSPACE"
           SCHEME=$(xcodebuild -list -json -workspace "$WORKSPACE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);process.stdout.write(j.workspace.schemes[0]||"")})')
@@ -66,6 +79,7 @@ jobs:
           WORKSPACE: ${{ steps.xcode.outputs.workspace }}
           SCHEME: ${{ steps.xcode.outputs.scheme }}
         run: |
+          set -o pipefail
           xcodebuild \
             -workspace "$WORKSPACE" \
             -scheme "$SCHEME" \
@@ -73,88 +87,288 @@ jobs:
             -configuration Release \
             -derivedDataPath "$RUNNER_TEMP/derived" \
             CODE_SIGNING_ALLOWED=NO \
-            build
-      - name: Boot iOS Simulator and install app
+            build 2>&1 | tee "$RUNNER_TEMP/ios-build.log"
+      - name: Verify iOS Simulator artifact
         shell: bash
         run: |
+          set -euo pipefail
+          APP_PATH=$(find "$RUNNER_TEMP/derived/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$APP_PATH"
+          test -d "$APP_PATH"
+          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-ios-app-${{ github.run_id }}
+          path: ${{ runner.temp }}/derived/Build/Products/Release-iphonesimulator/*.app
+          if-no-files-found: error
+          retention-days: 3
+      - name: Collect iOS build evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/native-ios-build-evidence"
+          xcodebuild -version > "$RUNNER_TEMP/native-ios-build-evidence/xcode-version.txt" || true
+          if [[ -f "$RUNNER_TEMP/ios-build.log" ]]; then
+            cp "$RUNNER_TEMP/ios-build.log" "$RUNNER_TEMP/native-ios-build-evidence/ios-build.log"
+          fi
+          if [[ -n "${APP_PATH:-}" && -d "$APP_PATH" ]]; then
+            find "$APP_PATH" -maxdepth 2 -type f -print | sort > "$RUNNER_TEMP/native-ios-build-evidence/app-files.txt"
+          else
+            echo "iOS Simulator app was not generated." > "$RUNNER_TEMP/native-ios-build-evidence/app-status.txt"
+          fi
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-ios-build-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-ios-build-evidence
+          if-no-files-found: warn
+          retention-days: 7
+
+      - name: Verify Automation runtime metadata
+        shell: bash
+        env:
+          EXPO_PUBLIC_APP_ENV: automation
+          EXPO_PUBLIC_BUILD_KIND: automation
+          EXPO_PUBLIC_TEST_MODE: "true"
+          EXPO_PUBLIC_DEFAULT_SEED: default
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json > "$RUNNER_TEMP/ios-automation-config.json"
+          node -e 'const fs = require("node:fs"); const extra = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).extra ?? {}; for (const [key, expected] of Object.entries({ appEnvironment: "automation", buildKind: "automation", testMode: "true" })) { if (extra[key] !== expected) throw new Error(`${key}=${extra[key] ?? "<missing>"}, expected ${expected}`); }' "$RUNNER_TEMP/ios-automation-config.json"
+
+      - name: Run Production-validation iOS prebuild
+        shell: bash
+        env:
+          EXPO_PUBLIC_APP_ENV: production
+          EXPO_PUBLIC_BUILD_KIND: production
+          EXPO_PUBLIC_TEST_MODE: "false"
+          EXPO_PUBLIC_DEFAULT_SEED: default
+        run: pnpm exec expo prebuild --clean --platform ios --no-install
+      - name: Install Production-validation CocoaPods
+        working-directory: ios
+        run: pod install
+      - name: Resolve Production-validation workspace and scheme
+        id: production-xcode
+        shell: bash
+        run: |
+          set -euo pipefail
+          WORKSPACE=$(find ios -maxdepth 1 -name '*.xcworkspace' -print -quit)
+          test -n "$WORKSPACE"
+          SCHEME=$(xcodebuild -list -json -workspace "$WORKSPACE" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const j=JSON.parse(s);process.stdout.write(j.workspace.schemes[0]||"")})')
+          test -n "$SCHEME"
+          echo "workspace=$WORKSPACE" >> "$GITHUB_OUTPUT"
+          echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
+      - name: Verify Production-validation runtime metadata
+        shell: bash
+        env:
+          EXPO_PUBLIC_APP_ENV: production
+          EXPO_PUBLIC_BUILD_KIND: production
+          EXPO_PUBLIC_TEST_MODE: "false"
+          EXPO_PUBLIC_DEFAULT_SEED: default
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json > "$RUNNER_TEMP/ios-production-config.json"
+          node -e 'const fs = require("node:fs"); const extra = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).extra ?? {}; for (const [key, expected] of Object.entries({ appEnvironment: "production", buildKind: "production", testMode: "false" })) { if (extra[key] !== expected) throw new Error(`${key}=${extra[key] ?? "<missing>"}, expected ${expected}`); }' "$RUNNER_TEMP/ios-production-config.json"
+      - name: Build Production-validation iOS Simulator app without signing
+        shell: bash
+        env:
+          EXPO_PUBLIC_APP_ENV: production
+          EXPO_PUBLIC_BUILD_KIND: production
+          EXPO_PUBLIC_TEST_MODE: "false"
+          EXPO_PUBLIC_DEFAULT_SEED: default
+          WORKSPACE: ${{ steps.production-xcode.outputs.workspace }}
+          SCHEME: ${{ steps.production-xcode.outputs.scheme }}
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -workspace "$WORKSPACE" \
+            -scheme "$SCHEME" \
+            -sdk iphonesimulator \
+            -configuration Release \
+            -derivedDataPath "$RUNNER_TEMP/production-derived" \
+            CODE_SIGNING_ALLOWED=NO \
+            build 2>&1 | tee "$RUNNER_TEMP/ios-production-build.log"
+      - name: iOS Production Validation / Bundle Guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH=$(find "$RUNNER_TEMP/production-derived/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' -print -quit)
+          test -n "$APP_PATH"
+          if grep -R -E '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService' "$APP_PATH"; then
+            echo "Production iOS app contains Automation/Test Control markers." >&2
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: native-ios-production-app-${{ github.run_id }}
+          path: ${{ runner.temp }}/production-derived/Build/Products/Release-iphonesimulator/*.app
+          if-no-files-found: error
+          retention-days: 3
+      - name: Collect iOS production build evidence
+        if: always()
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/native-ios-production-evidence"
+          if [[ -f "$RUNNER_TEMP/ios-production-build.log" ]]; then
+            cp "$RUNNER_TEMP/ios-production-build.log" "$RUNNER_TEMP/native-ios-production-evidence/ios-production-build.log"
+          fi
+          xcodebuild -version > "$RUNNER_TEMP/native-ios-production-evidence/xcode-version.txt" || true
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-ios-production-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-ios-production-evidence
+          if-no-files-found: warn
+          retention-days: 7
+
+  ios-runtime:
+    name: iOS Simulator Runtime / Maestro
+    needs: ios-build
+    if: inputs.run_native || github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-ios-app-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-ios-app
+      - uses: actions/download-artifact@v4
+        with:
+          name: native-ios-production-app-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-ios-production-app
+      - name: Boot iOS Simulator and install artifact
+        shell: bash
+        run: |
+          set -euo pipefail
           DEVICE=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')
           test -n "$DEVICE"
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
-          APP_PATH=$(find "$RUNNER_TEMP/derived/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' -print -quit)
+          APP_PATH=$(find "$RUNNER_TEMP/native-ios-app" -name '*.app' -print -quit)
           test -n "$APP_PATH"
           xcrun simctl install "$DEVICE" "$APP_PATH"
           xcrun simctl launch "$DEVICE" com.ryuyoshikawa.scenarioshop
+          echo "IOS_DEVICE=$DEVICE" >> "$GITHUB_ENV"
+          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
       - name: Install pinned Maestro CLI
         shell: bash
         run: |
+          set -euo pipefail
           mkdir -p "$RUNNER_TEMP/maestro"
           curl --fail --location --retry 3 "$MAESTRO_DOWNLOAD_URL" --output "$RUNNER_TEMP/maestro.zip"
           unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP/maestro"
           test -x "$RUNNER_TEMP/maestro/maestro/bin/maestro"
           "$RUNNER_TEMP/maestro/maestro/bin/maestro" --version
           echo "$RUNNER_TEMP/maestro/maestro/bin" >> "$GITHUB_PATH"
-      - name: Reset Test Control and run iOS smoke
+      - name: Run iOS Native Customer Maestro flows
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/maestro-artifacts"
-          DEVICE=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')
-          test -n "$DEVICE"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-test-control.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/test-control" \
-            --format junit --output "$RUNNER_TEMP/maestro-test-control.xml"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-contract-harness.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/contract-harness" \
-            --format junit --output "$RUNNER_TEMP/maestro-contract-harness.xml"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-not-found.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/not-found" \
-            --format junit --output "$RUNNER_TEMP/maestro-not-found.xml"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-storefront.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/storefront" \
-            --format junit --output "$RUNNER_TEMP/maestro-storefront.xml"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-cart.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/cart" \
-            --format junit --output "$RUNNER_TEMP/maestro-cart.xml"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-search.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/search-input" \
-            --format junit --output "$RUNNER_TEMP/maestro-search-input.xml"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-restart-persistence.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/restart-persistence" \
-            --format junit --output "$RUNNER_TEMP/maestro-restart-persistence.xml"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-reset-dirty-state.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/reset-dirty-state" \
-            --format junit --output "$RUNNER_TEMP/maestro-reset-dirty-state.xml"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-out-of-stock.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/out-of-stock" \
-            --format junit --output "$RUNNER_TEMP/maestro-out-of-stock.xml"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-low-stock.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/low-stock" \
-            --format junit --output "$RUNNER_TEMP/maestro-low-stock.xml"
-          maestro test "$GITHUB_WORKSPACE/maestro/native-purchase-limit.yaml" \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/purchase-limit" \
-            --format junit --output "$RUNNER_TEMP/maestro-purchase-limit.xml"
-      - name: Collect iOS evidence
+          run_flow() {
+            local name="$1"
+            local flow="$2"
+            local output_dir="$RUNNER_TEMP/maestro-artifacts/$name"
+            local junit="$RUNNER_TEMP/maestro-$name.xml"
+            mkdir -p "$output_dir"
+            echo "flow=$name"
+            echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            set +e
+            maestro test "$GITHUB_WORKSPACE/maestro/$flow" \
+              --device "$IOS_DEVICE" \
+              --test-output-dir="$output_dir" \
+              --format junit --output "$junit"
+            local status=$?
+            set -e
+            echo "result=$([[ "$status" -eq 0 ]] && echo PASS || echo FAIL)"
+            echo "exit_code=$status"
+            echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            test "$status" -eq 0
+          }
+          run_flow test-control native-test-control.yaml
+          run_flow contract-harness native-contract-harness.yaml
+          run_flow not-found native-not-found.yaml
+          run_flow storefront native-storefront.yaml
+          run_flow cart native-cart.yaml
+          run_flow search-input native-search.yaml
+          run_flow restart-persistence native-restart-persistence.yaml
+          run_flow reset-dirty-state native-reset-dirty-state.yaml
+          run_flow boundary-out-of-stock native-out-of-stock.yaml
+          run_flow boundary-low-stock native-low-stock.yaml
+          run_flow boundary-purchase-limit native-purchase-limit.yaml
+          run_flow purchase native-purchase.yaml
+          run_flow payment-retry native-payment-retry.yaml
+          run_flow session-checkout-restart native-session-checkout-restart.yaml
+          run_flow review native-review.yaml
+      - name: Install and launch Production-validation Simulator app
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCTION_APP_PATH=$(find "$RUNNER_TEMP/native-ios-production-app" -name '*.app' -print -quit)
+          test -n "$PRODUCTION_APP_PATH"
+          xcrun simctl terminate "$IOS_DEVICE" com.ryuyoshikawa.scenarioshop || true
+          xcrun simctl install "$IOS_DEVICE" "$PRODUCTION_APP_PATH"
+          xcrun simctl launch "$IOS_DEVICE" com.ryuyoshikawa.scenarioshop
+      - name: Run iOS Production-validation Maestro flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          flow_name="production-validation"
+          output_dir="$RUNNER_TEMP/maestro-artifacts/$flow_name"
+          junit_path="$RUNNER_TEMP/maestro-$flow_name.xml"
+          flow_path="$GITHUB_WORKSPACE/maestro/native-production-validation.yaml"
+          mkdir -p "$output_dir"
+          echo "flow=$flow_name"
+          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          set +e
+          maestro test "$flow_path" \
+            --device "$IOS_DEVICE" \
+            --test-output-dir="$output_dir" \
+            --format junit \
+            --output "$junit_path"
+          flow_exit=$?
+          set -e
+          echo "result=$([[ "$flow_exit" -eq 0 ]] && echo PASS || echo FAIL)"
+          echo "exit_code=$flow_exit"
+          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          exit "$flow_exit"
+      - name: Collect iOS runtime evidence
         if: always()
         shell: bash
         run: |
-          mkdir -p "$RUNNER_TEMP/native-ios-evidence"
-          xcrun simctl diagnose "$RUNNER_TEMP/native-ios-evidence/simctl-diagnose.tar.gz" || true
-          cp "$RUNNER_TEMP/maestro-test-control.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-test-control.xml" || true
-          cp "$RUNNER_TEMP/maestro-contract-harness.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-contract-harness.xml" || true
-          cp "$RUNNER_TEMP/maestro-not-found.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-not-found.xml" || true
-          cp "$RUNNER_TEMP/maestro-storefront.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-storefront.xml" || true
-          cp "$RUNNER_TEMP/maestro-cart.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-cart.xml" || true
-          cp "$RUNNER_TEMP/maestro-search-input.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-search-input.xml" || true
-          cp "$RUNNER_TEMP/maestro-restart-persistence.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-restart-persistence.xml" || true
-          cp "$RUNNER_TEMP/maestro-reset-dirty-state.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-reset-dirty-state.xml" || true
-          cp "$RUNNER_TEMP/maestro-out-of-stock.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-out-of-stock.xml" || true
-          cp "$RUNNER_TEMP/maestro-low-stock.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-low-stock.xml" || true
-          cp "$RUNNER_TEMP/maestro-purchase-limit.xml" "$RUNNER_TEMP/native-ios-evidence/maestro-purchase-limit.xml" || true
-          cp -R "$RUNNER_TEMP/maestro-artifacts" "$RUNNER_TEMP/native-ios-evidence/maestro-artifacts" || true
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/native-ios-runtime-evidence"
+          xcodebuild -version > "$RUNNER_TEMP/native-ios-runtime-evidence/xcode-version.txt" || true
+          xcrun simctl list runtimes > "$RUNNER_TEMP/native-ios-runtime-evidence/simulator-runtimes.txt" || true
+          xcrun simctl list devices available > "$RUNNER_TEMP/native-ios-runtime-evidence/simulator-devices.txt" || true
+          printf 'device_id=%s\n' "${IOS_DEVICE:-<unset>}" \
+            > "$RUNNER_TEMP/native-ios-runtime-evidence/selected-device.txt"
+           if [[ -n "${IOS_DEVICE:-}" ]]; then
+             xcrun simctl listapps "$IOS_DEVICE" \
+               > "$RUNNER_TEMP/native-ios-runtime-evidence/installed-apps.txt" || true
+           else
+             echo "Simulator device was not resolved." \
+               > "$RUNNER_TEMP/native-ios-runtime-evidence/installed-apps.txt"
+           fi
+           mkdir -p "$RUNNER_TEMP/native-ios-runtime-evidence/simctl-diagnose"
+           xcrun simctl diagnose \
+             --output "$RUNNER_TEMP/native-ios-runtime-evidence/simctl-diagnose" \
+             --no-archive || true
+          if [[ -d "$RUNNER_TEMP/maestro-artifacts" ]]; then
+            cp -R "$RUNNER_TEMP/maestro-artifacts" "$RUNNER_TEMP/native-ios-runtime-evidence/maestro-artifacts"
+          fi
+          for junit in "$RUNNER_TEMP"/maestro-*.xml; do
+            [[ -f "$junit" ]] && cp "$junit" "$RUNNER_TEMP/native-ios-runtime-evidence/"
+          done
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: native-ios-evidence-${{ github.run_id }}
-          path: ${{ runner.temp }}/native-ios-evidence
+          name: native-ios-runtime-evidence-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-ios-runtime-evidence
+          if-no-files-found: warn
           retention-days: 7

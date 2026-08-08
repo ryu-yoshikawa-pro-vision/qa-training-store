@@ -61,6 +61,21 @@ Windows Android Build の Path／Autolinking 復旧は、Runbook 4.3 と [トラ
 - CI とローカルは主要Runtime／Boundaryで同じ Maestro Flow を使い、検索入力Flowは独立した実行として扱う
 - APK は ABI が異なるため、CI Artifact を実機用として流用しない
 
+## Phase 2後半 Native Customer 購入検証
+
+- Native Customer は、Login／Session、Profile／Address、Guest Cart統合、Checkout／Mock Payment、Order、Reviewを共有Application Use Caseと実SQLite adapterで実行する。Native Adminは対象外である。
+- 購入系の主要Flowは [`maestro/native-purchase.yaml`](../../maestro/native-purchase.yaml) と [`maestro/native-review.yaml`](../../maestro/native-review.yaml) である。各FlowはTest Control Resetと安定testIDを使い、購入Flow失敗後にReview Flowを実行しない。
+- Node `node:sqlite`のRepository ContractはSQL／FK／transactionの高速確認であり、Android／iOSの実`expo-sqlite` runtime証跡の代替ではない。
+- Androidローカルは本Runbookの単体Flowから開始する。iOSはmacOS上のReusable WorkflowでBuild／Runtimeを分離し、署名なしRelease Simulator AppをArtifactで受け渡す。
+- Native変更時の最終 `native-ci / verify` は、Detect、Static、Production Bundle Guard、Android Build／Runtime、iOS Build／Runtimeをfail-closeで要求する。Remote CI未実行時はPASSと扱わない。
+
+### 2026-08-08 現行ソース検証メモ
+
+- 現行Android実機では、変更後Automation Release APKのBuild `20260808-231500-android-postfix-build`、Install `20260808-231900-android-postfix-install`、Smoke `20260808-231920-android-postfix-smoke`を確認した。Purchase `20260808-231940-android-postfix-purchase-merge`はGuest Cart数量1、Login後の統合数量2、Checkout成功を含む1/1である。
+- 同じ変更後APKでRuntime `20260808-232100-android-postfix-runtime`とBoundary `20260808-232400-android-postfix-boundary`は各5/5、Payment retry `20260808-232800-android-postfix-payment-retry`、Checkout restart `20260808-232900-android-postfix-session-restart`、Review `20260808-233000-android-postfix-review`は各1/1である。
+- Productionは、JS bundleのtargeted `--rerun-tasks`後に短縮Workspace条件で通常`assembleRelease`を行い、現行Postfix APKのProduction marker 0件、Install／Smoke、`native-production-validation.yaml` 1/1を確認した。Attempt `20260808-235600-android-postfix-production-current-shortpath`と`20260808-235900-android-postfix-production-install`に証跡を保存し、全`assemble --rerun-tasks`の無目的な再実行は行わない。
+- iOS WorkflowはAutomation／ProductionのRuntime Metadataを`expo config --json`で検査し、両Simulator Appを同じBuild JobからArtifact化してRuntimeへ渡す。WindowsではiOS SimulatorとRemote GitHub Actionsは未実行であり、静的Workflow契約のPASSとは分離して記録する。
+
 ## Repository へ追加しないもの
 
 - `android/`、`ios/`

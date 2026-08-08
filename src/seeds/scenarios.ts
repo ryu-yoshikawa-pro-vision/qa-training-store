@@ -62,12 +62,38 @@ function createScenarioDatasetWithoutInitialSession(scenario: PhaseOneScenario):
         },
       ];
       return dataset;
+    case "withdrawn-user":
+      dataset.sessions = [
+        {
+          id: "session-withdrawn",
+          userId: "user-customer-withdrawn",
+          createdAt: BASE_CLOCK,
+        },
+      ];
+      return dataset;
     case "cart-with-invalid-items":
       return invalidCart(dataset);
     case "payment-declined":
       return dataset;
     case "payment-processing":
       return paymentProcessing(dataset);
+    case "orders-empty":
+      dataset.checkoutSessions = [];
+      dataset.orders = [];
+      dataset.orderItems = [];
+      dataset.sequences = [];
+      dataset.orderHistories = [];
+      dataset.payments = [];
+      dataset.shipments = [];
+      dataset.reviews = [];
+      dataset.reviewHistories = [];
+      rebuildReviewSummaries(dataset);
+      return dataset;
+    case "reviews-empty":
+      dataset.reviews = [];
+      dataset.reviewHistories = [];
+      rebuildReviewSummaries(dataset);
+      return dataset;
     case "reviewable-orders":
       dataset.reviews = dataset.reviews.slice(0, 6);
       dataset.reviewHistories = dataset.reviewHistories.filter((history) =>

@@ -101,7 +101,7 @@ describe("Native CI workflow contracts", () => {
     expect(buildVerifySection).toContain("aapt");
   });
 
-  it("builds and verifies a Metro-free Automation Release APK in the build job", () => {
+  it("builds and verifies Automation and Production-validation Release APKs in the build job", () => {
     const build = jobBlock("android-build", "android-runtime");
 
     expect(build).toContain("./gradlew :app:assembleRelease");
@@ -114,7 +114,52 @@ describe("Native CI workflow contracts", () => {
     );
     expect(
       build.match(/android\/app\/build\/outputs\/apk\/release\/app-release\.apk/g),
-    ).toHaveLength(2);
+    ).not.toBeNull();
+    expect(build).toContain("Build Production-validation Release APK");
+    expect(build).toContain("EXPO_PUBLIC_BUILD_KIND: production");
+    const productionBundleIndex = build.indexOf(
+      "- name: Regenerate Production-validation JavaScript bundle",
+    );
+    const productionBuildIndex = build.indexOf("- name: Build Production-validation Release APK");
+    const productionSaveIndex = build.indexOf(
+      "- name: Save Production-validation Release APK for Runtime",
+    );
+    expect(productionBundleIndex).toBeGreaterThanOrEqual(0);
+    expect(productionBuildIndex).toBeGreaterThan(productionBundleIndex);
+    expect(productionSaveIndex).toBeGreaterThan(productionBuildIndex);
+    expect(build).toContain("createBundleReleaseJsAndAssets");
+    expect(build).toContain("--rerun-tasks");
+    expect(build).toContain("Verify Automation runtime metadata");
+    expect(build).toContain("Verify Production-validation runtime metadata");
+    expect(build).toContain("android-production-config.json");
+    const productionVerifyIndex = build.indexOf(
+      "- name: Verify Production-validation Release APK",
+      productionBuildIndex,
+    );
+    expect(productionBuildIndex).toBeGreaterThanOrEqual(0);
+    expect(productionVerifyIndex).toBeGreaterThan(productionSaveIndex);
+    const productionSaveSection = build.slice(productionSaveIndex, productionVerifyIndex);
+    expect(productionSaveSection).toContain(
+      'PRODUCTION_BUILD_APK="$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/app-release.apk"',
+    );
+    expect(productionSaveSection).toContain('test -f "$PRODUCTION_BUILD_APK"');
+    expect(productionSaveSection).toContain('cp "$PRODUCTION_BUILD_APK" "$PRODUCTION_APK_PATH"');
+    expect(productionSaveSection).toContain(
+      'echo "PRODUCTION_APK_PATH=$PRODUCTION_APK_PATH" >> "$GITHUB_ENV"',
+    );
+    expect(productionVerifyIndex).toBeGreaterThan(productionBuildIndex);
+    expect(build.slice(productionBuildIndex, productionVerifyIndex)).not.toContain("--rerun-tasks");
+    const productionVerifyEnd = build.indexOf(
+      "- name: Upload Automation Release APK",
+      productionVerifyIndex,
+    );
+    expect(productionVerifyEnd).toBeGreaterThan(productionVerifyIndex);
+    const productionVerifySection = build.slice(productionVerifyIndex, productionVerifyEnd);
+    expect(productionVerifySection).toContain('test -f "$PRODUCTION_APK_PATH"');
+    expect(productionVerifySection).toContain('unzip -l "$PRODUCTION_APK_PATH"');
+    expect(productionVerifySection).not.toContain('test -f "$APK_PATH"');
+    expect(productionVerifySection).not.toContain('cp "$APK_PATH" "$PRODUCTION_APK_PATH"');
+    expect(build).toContain("native-android-production-apk-${{ github.run_id }}");
     expect(build).toContain('test -s "$APK_PATH"');
     expect(build).toContain("lib/x86_64/.*\\.so");
     expect(build).toContain("lib/(arm64-v8a|armeabi-v7a|x86)/.*\\.so");
@@ -131,7 +176,10 @@ describe("Native CI workflow contracts", () => {
     const runtime = jobBlock("android-runtime", "verify");
 
     expect(build).toContain("name: native-android-apk-${{ github.run_id }}");
-    expect(build).toContain("path: android/app/build/outputs/apk/release/app-release.apk");
+    expect(build).toContain("path: ${{ runner.temp }}/native-apks/native-automation.apk");
+    expect(build).toContain(
+      "path: ${{ runner.temp }}/native-apks/native-production-validation.apk",
+    );
     expect(build).toContain("overwrite: true");
     expect(build).toContain("retention-days: 3");
     expect(runtime).toContain("Download Automation Release APK");
@@ -141,6 +189,11 @@ describe("Native CI workflow contracts", () => {
     );
     expect(runtime).toContain('APK_PATH="$RUNNER_TEMP/native-apk/app-release.apk"');
     expect(runtime).toContain('echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"');
+    expect(runtime).toContain("Download Production-validation Release APK");
+    expect(runtime).toContain("native-android-production-apk-${{ github.run_id }}");
+    expect(runtime).toContain(
+      'PRODUCTION_APK_PATH="$RUNNER_TEMP/native-production-apk/native-production-validation.apk"',
+    );
   });
 
   it("keeps the build job free of emulator dependencies and the runtime free of Gradle", () => {
@@ -244,8 +297,12 @@ describe("Native CI workflow contracts", () => {
     const guardJob = jobBlock("production-bundle-guard", "android-build");
     const buildJob = jobBlock("android-build", "android-runtime");
     const runtimeJob = jobBlock("android-runtime", "verify");
+    const iosJob = nativeWorkflow.slice(
+      nativeWorkflow.indexOf("  native-ios:\n"),
+      nativeWorkflow.indexOf("  verify:\n"),
+    );
 
-    for (const job of [staticJob, guardJob, buildJob, runtimeJob]) {
+    for (const job of [staticJob, guardJob, buildJob, runtimeJob, iosJob]) {
       expect(job).toContain(
         "if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'",
       );
@@ -360,6 +417,13 @@ describe("Native CI workflow contracts", () => {
       "public/images/product-image-manifest.json",
       "scripts/generate-native-asset-map.ts",
       "scripts/validate-native-production-bundle.ts",
+      "src/infrastructure/normalization/normalizers.ts",
+      "src/infrastructure/address-lookup/static-address-lookup.ts",
+      "src/infrastructure/payment/mock-payment-gateway.ts",
+      "tests/component/native/**",
+      "tests/contracts/native-*.test.ts",
+      "tests/contracts/native-ci-workflow.test.ts",
+      "src/presentation/return-to.ts",
     ]) {
       expect(nativeWorkflow).toContain(`'${path}'`);
     }
@@ -369,13 +433,14 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain("STATIC_RESULT: ${{ needs.native-static.result }}");
     expect(nativeWorkflow).toContain("ANDROID_BUILD_RESULT: ${{ needs.android-build.result }}");
     expect(nativeWorkflow).toContain("ANDROID_RUNTIME_RESULT: ${{ needs.android-runtime.result }}");
+    expect(nativeWorkflow).toContain("IOS_RESULT: ${{ needs.native-ios.result }}");
   });
 
   it("keeps Native changes fail-closed and allows full skip otherwise", () => {
     const verify = jobBlock("verify");
 
-    expect(verify).toContain(
-      "needs: [detect, native-static, production-bundle-guard, android-build, android-runtime]",
+    expect(verify.replace(/\s+/g, " ")).toContain(
+      "needs: [detect, native-static, production-bundle-guard, android-build, android-runtime, native-ios]",
     );
     expect(verify).toContain("if: always()");
 
@@ -384,6 +449,7 @@ describe("Native CI workflow contracts", () => {
       "production-bundle-guard",
       "android-build",
       "android-runtime",
+      "native-ios",
     ]) {
       expect(verify).toContain("${{ needs." + jobName + ".result }}");
     }
@@ -391,10 +457,12 @@ describe("Native CI workflow contracts", () => {
     expect(verify).toContain('test "$PRODUCTION_RESULT" = success');
     expect(verify).toContain('test "$ANDROID_BUILD_RESULT" = success');
     expect(verify).toContain('test "$ANDROID_RUNTIME_RESULT" = success');
+    expect(verify).toContain('test "$IOS_RESULT" = success');
     expect(verify).toContain('test "$STATIC_RESULT" = skipped');
     expect(verify).toContain('test "$PRODUCTION_RESULT" = skipped');
     expect(verify).toContain('test "$ANDROID_BUILD_RESULT" = skipped');
     expect(verify).toContain('test "$ANDROID_RUNTIME_RESULT" = skipped');
+    expect(verify).toContain('test "$IOS_RESULT" = skipped');
     expect(verify).not.toContain("needs.android.result");
   });
 
@@ -460,6 +528,10 @@ describe("Native CI workflow contracts", () => {
       "native-not-found",
       "native-storefront",
       "native-cart",
+      "native-purchase",
+      "native-payment-retry",
+      "native-session-checkout-restart",
+      "native-review",
     ]) {
       expect(runtime).toContain(`"$GITHUB_WORKSPACE/maestro/${flow}.yaml"`);
     }
@@ -480,6 +552,11 @@ describe("Native CI workflow contracts", () => {
       "maestro-not-found.xml",
       "maestro-storefront.xml",
       "maestro-cart.xml",
+      "maestro-purchase.xml",
+      "maestro-payment-retry.xml",
+      "maestro-session-checkout-restart.xml",
+      "maestro-review.xml",
+      "maestro-production-validation.xml",
     ]) {
       expect(runtime).toContain(junit);
     }
@@ -494,6 +571,11 @@ describe("Native CI workflow contracts", () => {
       "boundary-out-of-stock",
       "boundary-low-stock",
       "boundary-purchase-limit",
+      "purchase",
+      "payment-retry",
+      "session-checkout-restart",
+      "review",
+      "production-validation",
     ]) {
       expect(runtime).toContain(`$RUNNER_TEMP/maestro-artifacts/${output}`);
     }
@@ -502,6 +584,13 @@ describe("Native CI workflow contracts", () => {
     expect(runtime).toContain("native-out-of-stock.yaml");
     expect(runtime).toContain("native-low-stock.yaml");
     expect(runtime).toContain("native-purchase-limit.yaml");
+    expect(runtime).toContain("native-purchase.yaml");
+    expect(runtime).toContain("native-payment-retry.yaml");
+    expect(runtime).toContain("native-session-checkout-restart.yaml");
+    expect(runtime).toContain("native-review.yaml");
+    expect(runtime).toContain("native-production-validation.yaml");
+    expect(runtime).toContain("Install and launch Production-validation APK");
+    expect(runtime).toContain("Run Maestro Native Production-validation flow");
     for (const flow of [
       "native-test-control.yaml",
       "native-contract-harness.yaml",
@@ -514,6 +603,10 @@ describe("Native CI workflow contracts", () => {
       "native-out-of-stock.yaml",
       "native-low-stock.yaml",
       "native-purchase-limit.yaml",
+      "native-purchase.yaml",
+      "native-payment-retry.yaml",
+      "native-session-checkout-restart.yaml",
+      "native-review.yaml",
     ]) {
       expect(readFileSync(resolve(process.cwd(), "maestro", flow), "utf8")).toContain(
         "scenario-shop://test-control/reset",
@@ -536,13 +629,90 @@ describe("Native CI workflow contracts", () => {
 });
 
 describe("Native iOS CI workflow contracts", () => {
-  it("is manual-only and builds a Release Simulator app without signing", () => {
-    expect(iosWorkflow).toContain("on:\n  workflow_dispatch:");
+  it("supports reusable/manual invocation and builds a Release Simulator app without signing", () => {
+    expect(iosWorkflow).toContain("workflow_call:");
+    expect(iosWorkflow).toContain("workflow_dispatch:");
+    expect(iosWorkflow).toContain("run_native:");
+    expect(iosWorkflow).toContain("name: iOS Simulator Build");
+    expect(iosWorkflow).toContain("name: iOS Simulator Runtime / Maestro");
+    expect(iosWorkflow).toContain("name: iOS Production Validation");
     expect(iosWorkflow).toContain("-configuration Release");
     expect(iosWorkflow).toContain("Release-iphonesimulator");
     expect(iosWorkflow).toContain("CODE_SIGNING_ALLOWED=NO");
+    expect(iosWorkflow).toContain("native-ios-app-${{ github.run_id }}");
+    expect(iosWorkflow).toContain("native-ios-production-app-${{ github.run_id }}");
+    expect(iosWorkflow).toContain("actions/download-artifact@v4");
+    expect(iosWorkflow).toContain("needs: ios-build");
+    expect(iosWorkflow).toContain("name: iOS Production Validation / Bundle Guard");
+    expect(iosWorkflow).toContain("Build Production-validation iOS Simulator app without signing");
+    expect(iosWorkflow).not.toContain("\n  ios-production-validation:");
+    expect(iosWorkflow).toContain("native-purchase.yaml");
+    expect(iosWorkflow).toContain("native-payment-retry.yaml");
+    expect(iosWorkflow).toContain("native-session-checkout-restart.yaml");
+    expect(iosWorkflow).toContain("native-review.yaml");
+    expect(iosWorkflow).toContain("native-production-validation.yaml");
+    expect(iosWorkflow).toContain('flow_name="production-validation"');
+    expect(iosWorkflow).toContain('exit "$flow_exit"');
+    expect(iosWorkflow).not.toContain(
+      "run_flow production-validation native-production-validation.yaml",
+    );
+    expect(iosWorkflow).toContain("Install and launch Production-validation Simulator app");
+    expect(iosWorkflow).toContain("iOS Production Validation / Bundle Guard");
     expect(iosWorkflow).not.toContain("-configuration Debug");
     expect(iosWorkflow).not.toContain("Debug-iphonesimulator");
     expect(iosWorkflow).not.toContain("pull_request:");
+  });
+
+  it("runs every required iOS purchase flow in one runtime without rebuilding", () => {
+    const runtimeStart = iosWorkflow.indexOf("  ios-runtime:");
+    expect(runtimeStart).toBeGreaterThanOrEqual(0);
+    const runtime = iosWorkflow.slice(runtimeStart);
+    for (const [name, flow] of [
+      ["test-control", "native-test-control.yaml"],
+      ["contract-harness", "native-contract-harness.yaml"],
+      ["storefront", "native-storefront.yaml"],
+      ["cart", "native-cart.yaml"],
+      ["purchase", "native-purchase.yaml"],
+      ["payment-retry", "native-payment-retry.yaml"],
+      ["session-checkout-restart", "native-session-checkout-restart.yaml"],
+      ["review", "native-review.yaml"],
+    ]) {
+      expect(runtime).toContain(`run_flow ${name} ${flow}`);
+    }
+    expect(runtime).toContain("$GITHUB_WORKSPACE/maestro/native-production-validation.yaml");
+    for (const flow of [
+      "native-test-control.yaml",
+      "native-contract-harness.yaml",
+      "native-storefront.yaml",
+      "native-cart.yaml",
+      "native-purchase.yaml",
+      "native-payment-retry.yaml",
+      "native-session-checkout-restart.yaml",
+      "native-review.yaml",
+    ]) {
+      expect(readFileSync(resolve(process.cwd(), "maestro", flow), "utf8")).toContain(
+        "scenario-shop://test-control/reset",
+      );
+    }
+
+    expect(runtime).toContain("actions/download-artifact@v4");
+    expect(runtime).toContain("native-ios-app-${{ github.run_id }}");
+    expect(runtime).toContain("native-ios-production-app-${{ github.run_id }}");
+    expect(runtime.match(/--device "\$IOS_DEVICE"/g) ?? []).toHaveLength(2);
+    expect(runtime).toContain("xcrun simctl diagnose");
+    expect(runtime).toContain(
+      '--output "$RUNNER_TEMP/native-ios-runtime-evidence/simctl-diagnose"',
+    );
+    expect(runtime).toContain("--no-archive");
+    expect(runtime).toContain("xcode-version.txt");
+    expect(runtime).toContain("simulator-runtimes.txt");
+    expect(runtime).toContain("simulator-devices.txt");
+    expect(runtime).toContain("selected-device.txt");
+    expect(runtime).toContain("installed-apps.txt");
+    expect(runtime).toContain('xcrun simctl listapps "$IOS_DEVICE"');
+    expect(runtime).not.toMatch(/xcodebuild\s+-workspace/);
+    expect(runtime).not.toContain("expo prebuild");
+    expect(runtime).not.toContain("pod install");
+    expect(runtime).not.toContain("CODE_SIGNING_ALLOWED=NO");
   });
 });

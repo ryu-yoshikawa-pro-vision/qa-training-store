@@ -1,0 +1,766 @@
+# Report (append-only)
+
+- 行動のたびに追記する（調査/編集/判断も含む）
+- コマンドや確認結果は必ず記録する
+
+## Evidence Record (optional)
+
+- Record ID:
+- Round:
+- Query:
+- Source:
+- Supports/Refutes:
+- Confidence:
+- Decision:
+- Rationale:
+- Open Issues:
+- Next Action:
+
+## YYYY-MM-DD HH:MM (JST)
+
+- Summary:
+- Completed:
+- Changes:
+- Commands:
+  - `...` => result
+- Notes/Decisions:
+- New tasks:
+- Remaining:
+- Progress: NN% (done/total)
+
+## Deletion candidates
+
+- Codex はファイルやディレクトリを削除しない。
+- 不要に見えるファイルは、ユーザーが手動確認できるようにここへ記録する。
+
+| Path | Reason | Suggested action |
+|---|---|---|
+|  |  |  |
+
+## 2026-08-08 17:00 (JST)
+
+- Summary: Phase 2後半Goalの最新main再調査、保存用計画、実装前ADRを完了した。
+- Completed:
+  - 貼り付けGoal全文を確認した。
+  - `AGENTS.md`、`PLANS.md`、`CONTRIBUTING.md`、`CODE_REVIEW.md`、`docs/CODING_STANDARDS.md`、`docs/PROJECT_CONTEXT.md`、Phase 2計画3件、最新ADR、直近Runを確認した。
+  - `git status --short --branch`、`git log main`で、checkoutのHEADが`main`／`origin/main`と一致し、差分がないことを確認した。Git mutationは行っていない。
+  - Native現状がCatalog／Guest Cartまでで、Login／Account／Checkout／Payment／Order／Reviewがplaceholderであることを確認した。
+  - Web/Applicationの既存Use Case、Domain Repository Contract、Dexie repository、Seed Datasetを確認した。
+  - Android Native CIのDetect→Static／Guard／Build→Runtime→final verify構造、iOS単独Automation一体Workflowを確認した。
+  - `docs/plans/2026-08-08_170005_phase2-native-purchase-automation.md`、`docs/adr/0009-native-purchase-sqlite-capability.md`、`docs/adr/0010-native-ci-ios-build-runtime-gate.md`を保存した。
+- Delegation:
+  - `code_researcher`、`implementation_researcher`、`test_investigator`へ読み取り専用のNative／Application／Test・CI調査を委譲中。編集権限のあるworkerはまだ起動していない。
+- Commands:
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/new-run.ps1 -TaskType implementation -WorkflowLevel strict -Preset safe` => `.codex/runs/20260808-165236-JST/`を初期化。
+  - `git status --short --branch` => `feat/phase2-native-purchase-automation`、作業差分なし。
+  - `git log main -5 --oneline --decorate` => `eb03909`がHEAD／origin/main／main。
+  - `pnpm` script／Native source／Application contract／Dexie repository／Seed／Maestro／CIをPowerShell `Get-Content`／`rg`で調査。
+- Notes/Decisions:
+  - Native専用の簡易Purchase Use Caseではなく、既存共有Application契約へNative SQLite repository／transaction runnerを注入する方針を採用。
+  - 前半の限定ADRは後半の明示Goalに合わせ、Purchase Customer CapabilityとiOS正式Gateの範囲だけADR-0009／0010で拡張した。
+  - WindowsではiOS Simulatorを実行できないため、Remote macOS CI成功までiOS実RuntimeとPhase 2完全DoDは未確定とする。
+- New tasks: なし。
+- Remaining: TASKS 4〜18。
+- Progress: 17% (3/18)
+
+## 2026-08-08 17:20 (JST)
+
+- Summary: 実装前の3系統のread-only調査を回収し、Native入口、共有Application契約、Test／CIの不足を確定した。
+- Completed:
+  - `code_researcher`からNative route／composition root／UI primitive／既存のGate A〜D契約の調査結果を回収した。
+  - `implementation_researcher`からAuth／Account／Checkout／Order／Reviewのtransaction scope、既存scenario、Native拡張時のSQLite schema／surface影響を回収した。
+  - `test_investigator`から既存のComponent／Repository／Contract／Maestro／CI検証と、iOS workflowが手動一体jobのままであること、WindowsでiOS実行不可であることを回収した。
+  - 3 agentはいずれも読み取り専用で、ファイル編集は行っていない。完了後にcloseした。
+- Delegation decision:
+  - `implementation_researcher`が現行Native禁止契約との衝突を指摘したが、これは今回の明示Goalと保存済みADR-0009による意図的な契約拡張として扱う。
+  - writable `implementation_worker`は、親側で対象ファイルと変更単位をさらに固定するまで起動しない。
+- Commands:
+  - `multi_agent_v1__wait_agent` => 3件すべてcompleted。
+  - `multi_agent_v1__close_agent` => 3件すべてclosed。
+- Notes/Decisions:
+  - Native UIは`src/presentation/native/*`と`app/**/*.native.tsx`、composition rootは`src/bootstrap/native-runtime.ts`、永続化は`src/infrastructure/database/sqlite/*`に分離する。
+  - Node SQLiteはrepository／contract確認用に留め、Android／iOS実Runtimeの代替にはしない。
+- `pnpm run verify`だけではNative build／runtime／EAS／production guardを検証できないため、後続Gate E〜Gで個別に実行・記録する。
+- New tasks: なし。
+- Remaining: TASKS 4〜18。
+- Progress: 17% (3/18)
+
+## 2026-08-08 18:16 (JST)
+
+- Summary: Native Customer購入実装後のAndroid実行前preflightを完了した。
+- Completed:
+  - `android-native-local-validation` skillを読み、Doctor→preflight→Build→Install→単体Maestro→Suiteの順序とfail-close停止条件を確認した。
+  - DoctorでNode 24.12.0、pnpm 9.10.0、Java／javac 17、Maestro 2.8.0、Android API 30の認証済み実機、arm64系ABIを確認した。
+  - preflightでAndroid SDK API 36、Build Tools 36.0.0、Gradle 9.3.1、Virtual Store `<PNPM_VIRTUAL_STORE>`、Cドライブ空き約53GBを確認した。
+  - `node_modules/.modules.yaml`に短いVirtual Store設定があり、生成Autolinkingへの`pnpm-local`一致なしを確認した。
+  - `xcodebuild`／`xcrun`がWindowsにないため、iOS Simulatorはローカル実行不可と判定した。
+  - Native Customer購入検証のREADME、Android Runbook、PROJECT_CONTEXT、Historyを更新した。
+- Commands:
+  - `powershell -File scripts/native/windows/android-local.ps1 -Action Doctor -RunId 20260808-181200-doctor` => PASS。完全ログは`.artifacts/native-local/20260808-181200-doctor/doctor.log`。
+  - Android skill指定の同一Shell preflight => Toolchain／SDK／ADB／容量／GradleはPASS。`rg pnpm-local`の一致なし終了値だけが集約コマンドを1にした。完全ログは`.artifacts/native-local/20260808-181300-preflight/preflight.log`。
+- Notes/Decisions:
+  - 現在の変更を含むAPKのBuildが必要なため、次の試行は`20260808-181800-android-build`としてBuildだけを実行する。Build失敗時はInstall／Maestroへ進まない。
+  - 実機のDevice SerialはRun Artifact／文書へ転記しない。
+- Remaining: Android Build以降、Web／Native回帰、自己レビュー、Sanitizer、Remote CI判定。
+- Progress: 17% (3/18)
+
+## 2026-08-08 18:17 (JST)
+
+- Summary: Android Buildは外側の120秒上限で終了し、Build内部の失敗とはまだ判定できない。
+- Completed:
+  - wrapper／Gradleログの末尾を確認し、Java／Gradle／CMakeの新しいエラーはなく、`UP-TO-DATE`処理中に外側Timeoutとなったことを確認した。
+  - 既存APKの更新時刻が今回より前であり、現在の変更を含むAPKとは扱わない。
+  - Java／GradleプロセスはTimeout後に残っていないことを確認した。
+- Commands:
+  - `powershell -File scripts/native/windows/android-local.ps1 -Action Build -RunId 20260808-181800-android-build` => 外側Timeout（124）。Install／Smoke／Maestroは未実行。
+  - `.artifacts/native-local/20260808-181800-android-build/build/assemble-release.log`末尾確認 => Build内部の最初の異常なし、`preBuild`処理中で終了。
+- Notes/Decisions:
+  - 同じBuildを無目的に繰り返さず、「Gradleが120秒超で継続する」仮説を検証するため、Timeout監視だけを600秒へ変更したAttemptを1回行う。`CleanNative`、依存再解決、Flow変更は行わない。
+- Remaining: Android Build以降、Web／Native回帰、自己レビュー、Sanitizer、Remote CI判定。
+- Progress: 17% (3/18)
+
+## 2026-08-08 18:37 (JST)
+
+- Summary: Android購入FlowはPASS、Review FlowはKeyboardによりSave Buttonが可視領域外となって失敗した。
+- Completed:
+  - `native-purchase.yaml`は実機で1/1 PASSした。
+  - `native-review.yaml`はReset、Login、Order Detail、Review入力までは進み、`native-review-save`のtapで失敗した。
+  - Failure EvidenceのHierarchyで`native-review-save`自体は存在するが、入力Keyboard表示中にMaestroからinvisible扱いとなっていた。ScreenshotでもKeyboardが入力欄下部を覆っていることを確認した。
+- Commands:
+  - `powershell -File scripts/native/windows/android-local.ps1 -Action Test -Flow maestro/native-purchase.yaml -RunId 20260808-183500-android-purchase` => PASS（1/1、32秒）。
+  - `powershell -File scripts/native/windows/android-local.ps1 -Action Test -Flow maestro/native-review.yaml -RunId 20260808-183600-android-review` => FAIL（1/1、`native-review-save` not found）。Evidenceは`.artifacts/native-local/20260808-183600-android-review/`。
+  - `view_image`でFailure Screenshotを確認 => 日本語IMEがSave Buttonを覆うための可視性失敗と一致。
+- Changes:
+  - `maestro/native-review.yaml`へ`hideKeyboard`と`native-review-save`の`scrollUntilVisible`を追加した。
+  - `tests/contracts/native-test-control-maestro.test.ts`へReview FlowのKeyboard非表示／Save ID／順序契約を追加した。
+- Notes/Decisions:
+  - これはアプリ業務ロジックの失敗ではなく、入力後の可視性・Automation Flow契約の失敗と分類する。ただし修正後の実機PASSまでは未確定とする。
+  - Flow修正後の同じ単体Review Flowを1回再実行し、成功後にのみ最終Evidenceへ進む。
+- Remaining: Review Flow再検証、Web／Native回帰、自己レビュー、Sanitizer、Remote CI判定。
+- Progress: 17% (3/18)
+
+## 2026-08-08 18:45 (JST)
+
+- Summary: Review FlowのKeyboard非表示をScroll前だけで行った結果、Save操作後もReview状態が変わらず、成功文言Assertionで失敗した。
+- Completed:
+  - RetryのCommands Metadataで、`hideKeyboard`、`scrollUntilVisible`、`tapOn native-review-save`自体はCOMPLETEDだった。
+  - Failure時のHierarchyで入力欄がfocused、Keyboardが表示中、Save Buttonが`投稿する`のままだった。Saveの座標がKeyboard領域と重なるため、tapがアプリButtonへ届かなかった可能性が高い。
+  - `ReactNativeJS`のFatal／Exception／SQLiteエラーは確認できず、Node契約で通過したReview repository業務処理の失敗とは分類しなかった。
+- Commands:
+  - `powershell -File scripts/native/windows/android-local.ps1 -Action Test -Flow maestro/native-review.yaml -RunId 20260808-184000-android-review-retry` => FAIL（成功文言Assertion）。Evidenceは`.artifacts/native-local/20260808-184000-android-review-retry/`。
+  - Failure HierarchyのUTF-8解析 => `native-review-body` focused、Keyboard bounds `[0,72][1080,2016]`、`native-review-save` bounds `[48,1312][1032,1444]`、button label `投稿する`。
+- Notes/Decisions:
+  - 仮説を「Scroll後にKeyboardが再表示され、Save tapがKeyboardへ吸収された」と更新する。`scrollUntilVisible`後にも`hideKeyboard`を置き、Save tap直前の可視領域を確保する。
+  - 成功文言のAssertionを削除・弱めず、Flowを修正して同じ単体Flowをもう1回だけ検証する。
+- Remaining: Review Flow再検証、Web／Native回帰、自己レビュー、Sanitizer、Remote CI判定。
+- Progress: 17% (3/18)
+
+## 2026-08-08 18:47 (JST)
+
+- Summary: Keyboard可視性修正後のAndroid Review FlowはPASSした。
+- Completed:
+  - Scroll直後の`hideKeyboard`追加により、Review投稿と成功文言Assertionが通過した。
+  - Android Native実機の今回変更分は、Build、Install、Smoke、Control 1/1、Runtime 5/5、Boundary 5/5、Purchase 1/1、Review 1/1まで確認できた。
+- Commands:
+  - `powershell -File scripts/native/windows/android-local.ps1 -Action Test -Flow maestro/native-review.yaml -RunId 20260808-184600-android-review-retry2` => PASS（1/1、50秒）。Evidenceは`.artifacts/native-local/20260808-184600-android-review-retry2/`。
+- Notes/Decisions:
+  - Review Flowの最初の2回のFailureは、Assertion削除ではなく、Hierarchy／Screenshotに基づくKeyboard可視性修正で解消した。
+  - 次はFlow／CI Contract、全体静的検証、Web／Native回帰へ進む。iOS実RuntimeとRemote CIは未確認のまま分離する。
+- Remaining: Web／Native回帰、自己レビュー、Sanitizer、Remote CI判定。
+- Progress: 17% (3/18)
+
+## 2026-08-08 18:54 (JST)
+
+- Summary: 全体 `verify` はPrettier format checkで停止した。
+- Completed:
+  - `pnpm run verify`を開始し、後続のMarkdown／Lint／Typecheck／Test／Web Buildは上流format failureのため未実行となった。
+  - 15件のFormat警告を確認した。今回変更したNative／CI／Testファイルと、新規ファイルが含まれるため、変更範囲のFormatter修正が必要である。
+  - `.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`も警告されたが、現在の差分には含まれないBaseline候補として分離した。
+- Commands:
+  - `pnpm run verify` => `format:check` exit 1。`Code style issues found in 15 files`。
+- Notes/Decisions:
+  - 変更範囲の15件のうち今回変更・追加したファイルだけをPrettier対象にし、未変更Baseline 2件は変更しない。再度format checkを実行し、残存Baselineと変更由来を確定する。
+- Remaining: Format修正／全体verify再実行、Web／Native回帰、自己レビュー、Sanitizer、Remote CI判定。
+- Progress: 17% (3/18)
+
+## 2026-08-08 19:05 (JST)
+
+- Summary: Repair Loop iteration 1で、今回差分が原因のNative Jest失敗をテスト専用mockで修正した。
+- Iteration:
+  - input finding: `native-runtime-cleanup.test.ts`が新Composition Rootの`react-native-quick-crypto` TurboModuleをNode Jest環境で解決できず、Native Component Gateが停止。
+  - classification: `must_fix`（今回変更が原因の回帰テスト／検証契約 failure）。
+  - allowed files: `tests/component/native/native-runtime-cleanup.test.ts`。
+  - repair plan: Native Password Hasherを当該cleanup test内だけmockし、実Native runtimeのPBKDF2実装とテスト環境のTurboModule依存を分離する。
+  - changed files: `tests/component/native/native-runtime-cleanup.test.ts`。
+  - validation: `pnpm exec jest --config jest.config.cjs --runInBand` => 11 suites／30 tests PASS。
+  - remaining delta: 全体verifyは未完。未変更BaselineのPrettier 2件、Web Build、Remote CI／iOS runtimeが残る。
+  - decision: continue。
+- Commands:
+  - `pnpm run test` => Unit 65、Integration 94、Repository 29、Web Component 76 PASS後、Native Componentで1 suite failure。
+  - `pnpm exec jest --config jest.config.cjs --runInBand` => PASS。React `act` warningは既存警告として残る。
+- Remaining: 全体Test／Web Buildの後続、自己レビュー、Sanitizer、Remote CI判定。
+- Progress: 17% (3/18)
+
+## 2026-08-08 19:13 (JST)
+
+- Summary: Format除外Baselineを除く全体品質ゲート、Contract／Component再検証、Web BuildがPASSした。
+- Completed:
+  - Markdown 167 files、Lint 0 errors／63 warnings、Typecheck app＋native-tests、Image Manifest、Security Static CheckがPASSした。
+  - Contract 22 suites／148 tests、Component Web 11 suites／76 tests、Native 11 suites／30 testsがPASSした。
+  - `build:web`がPASSし、Expo Web Bundleを生成した。
+  - `serve-web-dist`の単独再検証22/22と、全Contract再実行22/22を確認し、先行EPERMは再現しなかった。
+- Commands:
+  - `pnpm run lint:markdown` => 0 issues／167 files。
+  - `pnpm run lint` => exit 0、0 errors／63 warnings。
+  - `pnpm run typecheck` => app／native-testsともPASS。
+  - `pnpm run security:check` => PASS（232 runtime、269 credential scan）。
+  - `pnpm run test:contracts` => 22 suites／148 tests PASS。
+  - `pnpm run test:component` => Web 11/76、Native 11/30 PASS。
+  - `pnpm run build:web` => PASS。
+- Notes/Decisions:
+  - `pnpm run format:check`は未変更Baselineの`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`の2件だけが残る。今回差分のFormat警告は解消済みで、独立Baselineは変更しない。
+  - `pnpm run verify`の残存未完了はこのBaseline format checkのみ。Android実機はPASS、iOS実RuntimeとRemote CIは未確認である。
+- Remaining: 自己レビュー、PROJECT_CONTEXT実績追記、Run Artifact更新／Sanitizer、Remote CI判定。
+- Progress: 17% (3/18)
+
+## 2026-08-08 19:37 (JST)
+
+- Summary: 自己レビューでDoD直結の不足を特定し、Address CRUD／既定変更保護、決済失敗再試行、Checkout再起動、Android／iOS Production-validation Runtimeの修正を開始した。
+- Review findings:
+  - `app.config.ts`のNative schema metadataが`src/config/versions.ts`のVersion 2と不一致だったため、`2`へ修正した。
+  - Native Address画面が追加／削除だけで編集・既定変更・未保存変更保護を提供していなかったため、更新・既定変更・Navigation Guardを追加した。
+  - Android／iOS MaestroにPayment failure／retry、Session／Checkout restart、Production-validation Flowが不足していたため追加した。
+  - Native CIがProduction Bundle Guardだけで、Android／iOSのProduction App実Runtimeを実行していなかったため、Production APK／`.app` Artifact受け渡しとRuntime Flowを追加した。
+- Changes:
+  - `maestro/native-payment-retry.yaml`、`maestro/native-session-checkout-restart.yaml`、`maestro/native-production-validation.yaml`を追加した。
+  - Native Contract HarnessへCheckout resume、Payment processing／idempotency／failure／retry、Cart version guard、Review Summary deltaの実SQLite検証を追加した。
+  - iOS RuntimeをProduction Build結果へ依存させ、Automation／Production Appを同一Simulatorで順に検証する構成へ更新した。
+- Validation:
+  - `pnpm run typecheck` => app／native-tests PASS。
+  - `pnpm exec vitest run tests/contracts/native-test-control-maestro.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1` => 2 files／48 tests PASS。
+  - `pnpm run test:component:native` => 11 suites／30 tests PASS。
+  - `pnpm exec vitest run tests/repository-contract/native-customer-shared.test.ts tests/contracts/native-customer-application-repositories.test.ts --no-file-parallelism --maxWorkers=1` => 2 files／21 tests PASS。
+- Notes/Decisions:
+  - 修正後のAndroid Production APK／購入系追加Flowは、Preflightと既存Android成功Build条件を再確認した上で新Attemptとして検証する。同じ失敗の無目的な再試行は行わない。
+  - iOS実RuntimeとRemote CIは引き続きWindows環境では実施せず、未確認をPASS扱いしない。
+- Remaining: Android追加Build／Runtime、全体回帰、自己レビュー完了記録、PROJECT_CONTEXT追記、Run Artifact／Sanitizer、Remote CI判定。
+- Progress: 83% (15/18)
+
+## 2026-08-08 22:15 (JST)
+
+- Delegation: Strict implementationの規約に従い、read-onlyの`code_researcher`（Darwin）と`test_investigator`（Mendel）へ最終自己レビュー観点を委譲した。DarwinはNative schema v1→v2移行、Native loginの`returnTo` allowlist、非customer RoleのNative shell表示を指摘し、MendelはAndroid Production APK検証対象、購入完了のorder ID assertion、Checkout再起動の開始／再開識別を指摘した。親Agentは全指摘を採用し、実装・契約テスト・Maestroを修正した。
+- Repairs: SQLite exclusive transactionのlock errorを`ApplicationError(STORAGE_WRITE_FAILED, storage.sqlite.locked, retryable=true)`へ変換し、既存v1 Customer DBをデータ保持したままv2 metadataへ移行する加算的migrationを追加した。Native loginのreturnToを共有allowlist resolverへ統合し、非customer Roleのshellをcustomer UIから隔離した。CIのProduction verifyはAutomation APKではなく`PRODUCTION_APK_PATH`を検証し、Android Production bundle再生成をassembleから分離した。iOS Production Maestroは独立stepで実行する構成へ修正した。
+- Focused validation: CI／repository／runtime surface／Maestro契約の4 files・61 tests PASS、Native purchase component 4 tests PASS、typecheck PASS。修正後にSQLite transaction／Production module resolution 2 files・10 tests PASSした。
+- Full validation: `pnpm run test` はUnit 65、Integration 94、Repository 31、Web Component 76、Native Component 31、Contract 154の全テストPASS。初回全体回帰では旧lock message assertionと5秒境界timeoutを検出し、ApplicationError契約更新と15秒の孤立再検証で解消した。
+- Static/build validation: lint 0 errors／63 warnings、Markdown 0 issues／167、security 233 runtime／270 credential、EAS／Native route 38／Image manifest PASS。Web exportは2294 modules PASS。Native bundle guardはAutomation 2991 modulesでmarkers present、Production 2983 modulesでmarkers absentを確認した。`format:check`は未変更Baselineの`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`のみFAIL継続のため変更しない。
+- Android current source preflight: `20260808-215800-android-doctor` PASS。`20260808-215800-android-current-preflight/preflight.txt`でNode v24.12.0、pnpm 9.10.0、Java 17.0.20、Gradle 9.3.1、SDK API36／Build Tools36.0.0、API30 arm64実機、端末`/data`空き10GB、Cドライブ空き約49GBを確認した。
+- Android current Automation: `20260808-220000-android-current-automation-build` Build PASS（57,766,060 bytes、arm64-v8a）。Install `20260808-220400-android-current-automation-install`、Smoke `20260808-220500-android-current-automation-smoke`、Test Control `20260808-220600-android-current-test-control`がPASS。追加単体Flowはpurchase／payment-retry／session-checkout-restart／reviewが各1/1 PASS（`20260808-220700`〜`20260808-221000`）。RuntimeSuite `20260808-221100-android-current-runtime-suite`は5/5、BoundarySuite `20260808-221500-android-current-boundary-suite`は5/5 PASS。
+- Production next hypothesis: 現行ソースのProduction APKは未更新であるため、Production envの`:app:createBundleReleaseJsAndAssets --rerun-tasks`のみを強制し、その後通常`assembleRelease --build-cache --parallel`を行う。成功条件はProduction bundle生成、APK marker guard、Install／Smoke、Production-validation Flow PASS。前回全`assemble --rerun-tasks`停止（UNKNOWN）と同条件を繰り返さない。
+- Progress: 83% (15/18)
+
+## 2026-08-08 20:56 (JST)
+
+- Android Automation Runtime: `20260808-195500-android-harness`（Contract Harness）PASS、`20260808-195600-android-payment-retry`（Payment Delay 3000ms／processing／failure／retry）PASS、`20260808-195700-android-session-restart`（Session／Checkout restart）PASS、`20260808-195800-android-purchase` PASS、`20260808-195900-android-review` PASS。続く`20260808-200000-android-runtime-suite`は5/5、`20260808-200300-android-boundary-suite`は5/5だった。
+- Production Build recovery: 全`--rerun-tasks`の停滞後、`20260808-204500-android-production-targeted`でProduction envの`createBundleReleaseJsAndAssets --rerun-tasks`（33 tasks／5分53秒）と通常`assembleRelease`（848 tasks、33 executed／815 up-to-date、2分40秒）を分離し、Release APKを生成した。APK SHA256と環境値は同Attemptの`apk-info.txt`、完全ログは`bundle-production.log`／`assemble-production.log`へ保存した。
+- Production guard/runtime: `production-marker-check.txt`でJS bundle 1件、Automation／Harness／TestControl marker 0件を確認した。`20260808-205500-android-production-install` Install PASS、`20260808-205600-android-production-smoke` Smoke PASS、`20260808-205700-android-production-validation` Maestro 1/1 PASS（runtime listening／test control／Contract HarnessがProductionで非表示）。
+- Decision: Android側の追加購入系、Regression Suite、Production-validation実機RuntimeはPASSと判定できる。iOS Simulator RuntimeとRemote CIはWindows環境では未実施のため、Phase 2全体完了とは扱わない。
+- Progress: 83% (15/18)
+
+## 2026-08-08 20:43 (JST)
+
+- Production Build failure: Attempt `20260808-200700-android-production-build` は外側約700秒Timeout後も、ログが`react-native-screens:compileReleaseJavaWithJavac`から進まず、`BUILD SUCCESSFUL`／Production APKを生成しなかった。これは`BUILD FAILED`ではなく、外側Timeout後に残ったGradle親子プロセスの停滞（`UNKNOWN`、派生エラーなし）として分類する。
+- Evidence: 完全ログは`.artifacts/native-local/20260808-200700-android-production-build/assemble-release-production.log`、退避済みAutomation APKは同ディレクトリの`native-automation.apk`。生成物の更新時刻はAutomation Buildのままで、Production APKとは扱わない。
+- Action: 対象Attemptの`gradlew`／Gradle daemon／javac worker／子`cmd`のみをPID確認後に終了した。別親のMaestro／Javaプロセスは停止していない。Install／Production Flowは実行していない。
+- Next hypothesis:
+  - 観測事実: Automation Buildは同じ環境でPASSし、Production Attemptは全`--rerun-tasks`によりNative Java／C++ taskまで再実行した箇所で停滞した。
+  - 最有力仮説: Production差分はJS bundleの再生成だけを強制すれば検証でき、Native compileを全再実行しないTargeted Gradle task構成なら停滞を回避できる。
+  - 今回変更する条件: `--rerun-tasks`を全assembleから` :app:createBundleReleaseJsAndAssets`だけへ限定し、その後通常の`assembleRelease`を実行する。環境変数、ABI、Toolchain、実機は変更しない。
+  - 成功条件: Production envのJS bundle生成、Release APKの生成／marker guard、実機Install／起動、Production-validation Flow PASS。
+- Progress: 83% (15/18)
+
+## 2026-08-08 19:45 (JST)
+
+- Android再検証仮説:
+  - 観測事実: 先行Attempt `20260808-181900-android-build-supervised` は同じNode／pnpm／Java／SDK／実機ABI条件でGradle Build PASSだった。以後、Native購入UI、Harness、Maestro、Production設定に差分を追加した。
+  - 原因仮説: 追加差分がTypeScript／Bundle生成、APK生成、または実機Maestro導線へ影響している可能性がある。
+  - 最有力仮説: 既存Build Cacheを利用すれば追加差分を含むAutomation APKを再生成でき、Production APKは`production`環境変数と`--rerun-tasks`で別Attemptとして確認できる。
+  - 今回変更する条件: ソース差分とBuild Profileのみ。Toolchain、SDK、実機、ABI、Virtual Store、作業Shellは先行成功条件から変更しない。
+  - 成功条件: Preflight PASS、Automation Release APKの生成／Install後に追加Purchase・Review・Harness Flow PASS、Production Release APKの実機起動とProduction-validation Flow PASS。
+  - 失敗時: 最初の異常を分類し、上流失敗時はInstall／Maestroを実行せず、`.artifacts/native-local/<attempt-id>/`の完全ログだけを調査する。
+- Planned attempts: `20260808-194500-preflight`、`20260808-194600-android-build`、続くBuild／Install／Flowごとの一意Attempt。
+- Progress: 83% (15/18)
+
+## 2026-08-08 19:47 (JST)
+
+- Android preflight: `20260808-194500-preflight` がPASSした。Node 24.12.0、pnpm 9.10.0、Java／javac 17.0.20、Gradle 9.3.1、Android API 36、Build Tools 36.0.0、Maestro 2.8.0、認証済みarm64実機、Cドライブ空き約52GB、Virtual Store `<PNPM_VIRTUAL_STORE>`、`pnpm-local`一致なしを確認した。
+- Evidence: 完全ログは`.artifacts/native-local/20260808-194500-preflight/`（`preflight.log`、`environment.txt`）へ保存した。既存APKの時刻は先行Attemptのものであり、現在差分を含むAPKとは扱わない。
+- Decision: PreflightがPASSしたため、次はAutomation Release Buildへ進む。Buildが失敗した場合はInstall／Maestroへ進まない。
+- Progress: 83% (15/18)
+
+## 2026-08-08 19:52 (JST)
+
+- Android Automation Build: `20260808-194600-android-build` がPASSした。`arm64-v8a`向けRelease APKを生成し、Gradleは`BUILD SUCCESSFUL`、848 actionable tasks（34 executed／814 up-to-date）、所要4分22秒だった。
+- Evidence: APK検証（JS bundle／ABI native library）はwrapperでPASSした。APK情報は`.artifacts/native-local/20260808-194600-android-build/build/apk-info.txt`、Gradle完全ログは`build/assemble-release.log`に保存した。
+- Decision: APK生成が確認できたためInstallへ進む。Install失敗時はMaestroへ進まない。
+- Progress: 83% (15/18)
+
+## 2026-08-08 19:44 (JST)
+
+- Summary: Checkout配送先の保存済み住所選択UIとNative Component回帰テストを追加した。Payment retry FlowはPayment Delay 3000msとprocessing画面確認を含めるよう更新した。
+- Validation: 初回のNative Component追加テストは同一`act`内の状態反映順序が原因で失敗したため、選択と送信を分離する最小修正を行った。修正後は`pnpm run typecheck`（app／native-tests）と`pnpm run test:component:native`（11 suites／31 tests）がPASSした。
+- Repair loop: Iteration 2、対象は`tests/component/native/native-purchase-screens.test.tsx`、原因はテスト同期の誤り、修正後の再検証PASS。既存コードの失敗ではないためプロダクトコードの追加修正は行っていない。
+- Remaining: Android追加Build／Runtime、全体回帰、自己レビュー完了記録、PROJECT_CONTEXT追記、Run Artifact／Sanitizer、Remote CI判定。
+- Progress: 83% (15/18)
+
+## 2026-08-08 22:33 (JST)
+
+- Android current Automation: Runbook入口 `scripts/native/windows/android-local.ps1`で、Doctor `20260808-215800-android-doctor`、preflight `20260808-215800-android-current-preflight`、Build `20260808-220000-android-current-automation-build`、Install／Smoke `20260808-220400`／`220500`を実行した。現行ソースのarm64 APKは57,766,060 bytesで、Build／Install／SmokeはPASSした。
+- Android current purchase gates: `20260808-220600-android-current-test-control`は1/1、`20260808-220700-android-current-purchase`は1/1、`20260808-220800-android-current-payment-retry`は1/1、`20260808-220900-android-current-session-restart`は1/1、`20260808-221000-android-current-review`は1/1 PASSした。Purchaseはorder ID、Session restartはstarted／resumedをFlow assertionで確認した。
+- Android current suites: `20260808-221100-android-current-runtime-suite`は5/5、`20260808-221500-android-current-boundary-suite`は5/5 PASSした。MaestroのJUnit、Screenshot、Hierarchy、logcatは各`.artifacts/native-local/<attempt-id>/`に保存した。
+- Android current Production: targeted bundle `20260808-221600-android-current-production-targeted`はProduction envで2983 modules、33 tasks、4分39秒の`BUILD SUCCESSFUL`。通常`assembleRelease`は848 tasks（33 executed／815 up-to-date）、4分37秒で`BUILD SUCCESSFUL`、APKは57,721,056 bytes、arm64、bundle 1件、Automation／Harness／TestControl marker 0件だった。Install `20260808-222000`、Smoke `20260808-222100`、Production validation `20260808-222200`は各PASS、Evidence `20260808-222300`を保存した。
+- iOS／Remote boundary: Windows hostで`xcodebuild`、`xcrun`、`simctl`、`gh`はいずれもnot-foundだった。iOS Simulator RuntimeとGitHub-hosted Remote CIは実行していない。iOS Workflowの静的Contract PASSは実Runtime／Remote PASSと分離し、Phase 2 final DoDは未完了と判定する。Git push／workflow dispatchは行っていない。
+- Final judgement: コード、Static、Web、Node／Contract、Android実機／Productionは完了。iOS実Runtime／Remote CIは外部環境でのFollow-upが必要なため、Run resultは`partial`、Progressは17/18（94%）とする。
+- Progress: 94% (17/18)
+
+## 2026-08-09 01:04 JST — Android current-source preflight／Iteration 6
+
+- Android local validation skill／Runbookに従い、直近REPORT、`.artifacts/native-local/`の成功・失敗履歴、現在の`git diff`／`git status`を確認した。今回のAndroid実行対象はIteration 6のNative Login Role分岐であり、Iteration 7のiOS Workflow／Evidence変更はAndroid APKに含めない。
+- Doctor `scripts/native/windows/android-local.ps1 -Action Doctor -RunId 20260808-165236-JST`はPASSした。Node 24.12.0、pnpm 9.10.0、Java／javac 17.0.20、Maestro 2.8.0、端末API 30／arm64系、ADB authorized 1台を確認した。preflightではGradle 9.3.1、Cドライブ空き約44GB、端末serial 1台を確認した。
+- Next hypothesis: Native LoginのCustomer分岐は既存Customer Purchase Flowを維持し、management Role分岐はLogin Component focusedで検証済みのため、現行Source APKを再生成すればAndroid Purchase／Runtime／Boundaryが既存契約どおり成功する。変更条件はIteration 6のNative LoginコードとTestだけ、Toolchain／SDK／端末／ABIは直近成功条件から変更しない。
+- Planned attempts: `20260809-010500-android-iteration6-build`、続く`install`／`smoke`／`test-control`／`runtime`／`boundary`の一意Attempt。Build失敗時はInstall以降を実行せず、単体Test失敗時はRuntime／Boundaryを実行しない。
+- Progress: 94% (17/18)
+
+## 2026-08-09 00:52 JST — Evidence count correction
+
+- 00:47 JSTのRepair Loop記録にあるMarkdownlintの`170 files`は、今回追加したHistory fileの追加前に取得した値だった。追加後の最終実行値は`171 files／0 issues`であり、`run.json`とFinal gateの記録を171へ更新した。
+- Progress: 94% (17/18)
+
+## 2026-08-09 00:50 JST — Final gate after Iteration 4/5
+
+- `pnpm run format:check`を現行差分で再実行した結果、未変更Baselineの`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`だけが指摘されFAILした。今回変更対象のコード、Workflow、Test、PROJECT_CONTEXT／History、Run Artifactは個別PrettierでPASSしている。
+- `pnpm run typecheck`、`pnpm run lint`（0 errors／63 warnings）、`pnpm run lint:markdown`（171 files／0 issues）、対象Prettier、Run JSON parse、`git diff --check`（exit 0、CRLF warningのみ）はPASSした。
+- Final status: 修正後のCritical／Highは0件。iOS Simulator／Remote GitHub Actions／最新Headの`native-ci / verify`はWindows・未push条件のため未実行であり、TASK 15を未完了としてRun resultは`partial`、Progressは94% (17/18)、Phase 2 final DoDはpendingとする。
+- Progress: 94% (17/18)
+
+## 2026-08-08 22:36 (JST)
+
+- Final artifact gate: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check` がPASSした。5 files、residual findings 0、未サニタイズ絶対Pathなしを確認した。
+- Final artifact parse: `run.json`／`evaluation.json`のJSON parse、Run／docsのfocused Prettier、`git diff --check`がPASSした。TASKSの完了済み17件と未確認のiOS／Remote task 1件を反映した。
+- Final judgement: Critical／Highの未解決findingなし。Remote CI／iOS実Runtimeは未実行のため、コード／Local validation完了、Phase 2 final DoD pendingとしてRunを`partial`で保存する。
+- Progress: 94% (17/18)
+
+## 2026-08-08 22:45 (JST)
+
+- Attachment／remote audit: pasted specを再読し、root READMEがNative前半・後半placeholderの記述を残していることを発見した。GitHub connectorでRepository metadataと`origin/main`相当のworkflow runsをread-only確認したが、未commit差分のRemote runは存在せず、workflow dispatch／pushは行っていない。
+- iOS／Native CI static audit: `.github/workflows/native-ios-ci.yml`のmacOS Build、CocoaPods、unsigned `iphonesimulator` Release `.app`、別Production-validation Build、Automation／Production Runtime、15本のNative Customer／Harness MaestroとProduction Flowを確認した。`.github/workflows/native-ci.yml`はDetect後にAndroid系とiOS reusable workflowを独立実行し、Native変更時の`native-ci / verify`で全結果をsuccess要求するfail-close構成である。静的契約PASSはiOS／Remote実Runtime PASSとは分離した。
+- Documentation repair: `README.md`、Phase 2 Master Roadmap、Phase 2後半詳細計画へ現行Native Customer実装、Android PASS、iOS／Remote pending、Phase 2全体未完了を追記した。変更理由と判断を`docs/history/2026-08-08_224542_readme-phase2-status.md`へ保存した。
+- Documentation validation: `pnpm run lint:markdown`は169 files／0 issues、更新文書のPrettier checkは全件PASS、`git diff --check`はexit 0（CRLF warningのみ）。既存未変更Baselineのformat check 2件は変更していない。
+- Boundary: Windowsでは`xcodebuild`／`xcrun`／`simctl`／`gh`が未提供で、iOS Simulator、GitHub-hosted Remote CI、最新Headの`native-ci / verify`は未実行。iOS／RemoteをPASS扱いせず、Run／evaluationは`partial`、Phase 2 final DoDはpendingのまま保存する。
+- Progress: 94% (17/18)
+
+## 2026-08-08 22:50 (JST)
+
+- Phase 3 documentation: Phase 2詳細計画へ、決済例外／注文ライフサイクル、Native Admin、Account拡張、Migration Recovery、公開／Visual Regressionを優先度・依存関係付きで整理した。物理端末署名、IPA、TestFlight／App Store、EAS Cloudは別のRelease／Distribution計画としてPhase 2から分離した。
+- Progress: 94% (17/18)
+
+## 2026-08-08 23:05 JST — 追加監査と修正
+
+- Galileo（`code_researcher`、read-only）はNative Customer Gate E／FとDoDを監査した。Harvey（`test_investigator`、read-only）はCI／Harness／独立Runtimeの証跡を監査した。親Agentは結果を採用し、両Agentとも編集は行っていない。
+- High: `.github/workflows/native-ci.yml`のDetectが共有`src/presentation/return-to.ts`を監視していなかった。normalizer、static address lookup、Mock Payment GatewayもNative Runtimeの共有依存であるため、4 pathをDetectとContract Testへ追加した。
+- Medium: iOS RuntimeがProduction-validation Buildへ依存し、Production Build失敗時にAutomation Runtimeの証跡まで止める構造だった。iOS Build JobでAutomation／Productionのunsigned Release Simulator Appを生成し、iOS RuntimeはBuild Jobだけに依存して両Artifactを受け取る構成へ整理した。不要な別Runtime Jobは残していない。
+- Medium: Native LoginのCheckout lookup catch-allとProfile load failureのloading固定を修正した。既知のCheckout state Errorだけをfallback扱いにし、予期しないErrorは表示し、ProfileはRetry可能なError Stateにした。回帰Component Testを追加した。
+- Android Flowの不足を修正した。`native-purchase.yaml`でGuest Cart追加、Cart数量1、Login、統合後数量2、Checkout成功を安定testIDで確認する。
+- NativeShellに`AppState.addEventListener("change")`を追加し、foreground `active`復帰時にSessionを再読込する。Contract Testでlistener cleanupを固定した。
+- Progress: 94% (17/18)
+
+## 2026-08-08 23:28 JST — Focused validation
+
+- `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts tests/contracts/native-runtime-service-surface.test.ts tests/contracts/native-test-control-maestro.test.ts --no-file-parallelism --maxWorkers=1`: 3 files／50 tests PASS。
+- `pnpm exec jest --config jest.config.cjs tests/component/native/native-purchase-screens.test.tsx --runInBand`: 1 suite／6 tests PASS。
+- `pnpm run typecheck`: app／native-tests PASS。変更対象のPrettier checkもPASS。
+- Automation／Productionへ環境変数を切り替えた`pnpm exec expo config --json`で、Metadata `automation / automation / true`、`production / production / false`をそれぞれ確認した。
+- 最初のPrettier checkでは既存のNative runtime surface testと今回変更のPurchase screenだけが未整形だった。Prettierで機械整形後、対象ファイル全件PASS。これは同じ仮説の無目的再試行ではなく、出力された整形差分を修正して再検証した結果である。
+- Progress: 94% (17/18)
+
+## 2026-08-08 23:30 JST — Android current-source Runtime
+
+- Preflight `20260808-231300-android-postfix-doctor`: Node 24.12.0、pnpm 9.10.0、Java／javac 17.0.20、Gradle 9.3.1、Maestro 2.8.0、実機API 30／arm64系、Cドライブ空き約49GBを確認した。`adb devices`はauthorized device 1台だった。
+- Build `20260808-231500-android-postfix-build`: arm64-v8a Automation Release APK 57,766,784 bytes、Gradle `BUILD SUCCESSFUL`（848 tasks、32 executed、2 cache、814 up-to-date）でPASS。Install `20260808-231900-android-postfix-install`、Smoke `20260808-231920-android-postfix-smoke`もPASS。
+- `20260808-231940-android-postfix-purchase-merge`: `native-purchase.yaml` 1/1 PASS（Guest Cart数量1→Login統合後数量2→Checkout成功）。
+- `20260808-232100-android-postfix-runtime`: Runtime Suite 5/5 PASS。`20260808-232400-android-postfix-boundary`: Boundary Suite 5/5 PASS。
+- `20260808-232800-android-postfix-payment-retry`、`20260808-232900-android-postfix-session-restart`、`20260808-233000-android-postfix-review`: 各1/1 PASS。
+- 生ログ、JUnit、Screenshot、Hierarchy、APK情報は`.artifacts/native-local/<attempt-id>/`へ保存し、Run Artifactへraw logは複製していない。
+- Windowsでは`xcodebuild`／`xcrun`／`simctl`／`gh`が未提供のため、iOS実Runtime、GitHub-hosted Remote CI、最新Headの`native-ci / verify`は依然未実行である。静的PASSやAndroid PASSをiOS／Remote PASSへ繰り上げない。
+- Progress: 94% (17/18)
+
+## 2026-08-09 00:04 JST — 最終回帰／現行Production再検証
+
+- Full validation: `pnpm run test` はUnit 65、Integration 94、Repository 31、Web Component 76、Native Component 33、Contract 154の全テストPASS。`pnpm run lint`は0 errors／63 warnings、`pnpm run typecheck`、`pnpm run check:native-route-dependencies`（38 routes）、`pnpm run validate:eas:config`、`pnpm run validate:image-manifest`、`pnpm run security:check`はPASSした。
+- Web validation: `pnpm run build:web`は2294 modulesでPASSし、`PLAYWRIGHT_USE_PREBUILT_DIST=true pnpm run test:e2e`はChromium 27/27 PASSした。
+- Static validation: `pnpm run lint:markdown`は170 files／0 issues、Run／更新文書のPrettier checkはPASS、`git diff --check`はexit 0（CRLF warningのみ）。`pnpm run format:check`と`pnpm run verify`は、未変更Baselineの`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`だけを指摘してFAILした。今回変更対象のPrettierはPASSであり、Baselineへ変更を広げていない。
+- Production再検証のAttempt `20260808-235000-android-postfix-production-current`は、直接Gradle呼出しにSDK環境を渡しておらずSDK未検出で停止した。Attempt `20260808-235200-android-postfix-production-current-sdk`はProduction bundle 33 tasksをPASSした後、長い物理Workspace pathによりNinjaの`Filename longer than 260 characters`でassemble停止した。両方とも上流失敗としてInstall／Maestroは実行していない。
+- 同じ失敗を繰り返さず、既存Runbookの短縮条件（`<REPO_ALIAS>` junction／`<PNPM_VIRTUAL_STORE>` virtual store）を採用したAttempt `20260808-235600-android-postfix-production-current-shortpath`で、Production bundleを含むRelease APK assemble 848 tasks／47 executedをPASSした。APKはarm64-v8a、57,702,815 bytes、bundle 1件、Automation／Harness marker 0件で、`build/production-marker-check.txt`に記録した。
+- 現行Production APKのAttempt `20260808-235900-android-postfix-production-install`はInstall／Smoke PASS、`maestro/native-production-validation.yaml` 1/1 PASS、JUnit／Screenshot／Hierarchy／logcat／activitiesを保存した。Android Production-validationはPostfix後の現行ソースでPASSと判定する。
+- Final classification: Critical 0、High 0。MediumはWindows環境で未実行のiOS Simulator／実`expo-sqlite` Harness／Remote CI、Lowは未変更Baseline 2ファイルのFormatのみ。iOS／RemoteをPASSへ繰り上げず、Run resultは`partial`、Phase 2 final DoDはpendingのままとする。
+- Safety／boundary: Git add／commit／push／reset／clean、workflow dispatch、EAS Cloud、iOS署名／物理iPhone操作は実施していない。生ログと一時APKは`.artifacts/native-local/<attempt-id>/`に保存し、Run Artifactへ複製していない。
+- Progress: 94% (17/18)
+
+## 2026-08-09 00:06 JST — Final artifact gate
+
+- `run.json`／`evaluation.json`のJSON parse、更新文書とRun ArtifactのPrettier、`pnpm run lint:markdown`（170 files／0 issues）はPASSした。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はPASSした。5 files、files_changed 0、residual findings 0で、未サニタイズ絶対Pathはない。
+- 最終判定は`partial`のまま保存する。未完了はTASK 15のiOS Simulator／Remote CI境界のみで、Progressは94% (17/18)。
+
+## 2026-08-09 00:25 JST — Self-review Repair Loop iteration 3
+
+- Subagent audit: 継続read-only監査をDarwin（コード／DoD）、Harvey（Harness／Native CI）、Galileo（iOS／CI）へ依頼した。現行`.github/workflows/native-ios-ci.yml`を親Agentが再確認し、Production artifactを同一`ios-build`で生成して`ios-runtime`が`needs: ios-build`で消費する構造を確認したため、Harveyの古いWorkflow状態に基づくHigh指摘は採用しなかった。GalileoのiOS実Runtime未実行は既存のMedium未完了境界として採用した。Agentは編集していない。
+- Review finding: `src/test-controls/native-contract-harness.native.ts`は、`work(scope)`が失敗した場合に`verifyApplicationDatabase`を実行せず、契約Assertionの失敗がApplication DB変更をマスクし得た。Phase 2仕様の「Application DB/KVを変更しない」を失敗経路でも検証できないため、`must_fix`と分類した。
+- Repair plan: allowed filesをHarness本体、Harness Unit Test、Harness Contract Testの3ファイルに限定し、`finally`内でApplication DB不変確認を成否にかかわらず実行する。契約成功時のみPBKDF2 smokeを実行し、元の契約エラーを優先しながらcleanupとfailed signalを維持する。
+- Changed files: `src/test-controls/native-contract-harness.native.ts`、`tests/unit/native-contract-harness.test.ts`、`tests/contracts/native-contract-harness.test.ts`。失敗経路Unit Testで、契約失敗後にApplication DB確認が呼ばれ、PBKDF2は呼ばれない順序を固定した。Contract Testは不変確認／PBKDF2がcleanupより前に実行される構造へ更新した。
+- Validation: `pnpm exec vitest run tests/unit/native-contract-harness.test.ts tests/contracts/native-contract-harness.test.ts`は2 files／10 tests PASS。`pnpm run test`はUnit 65、Integration 94、Repository 31、Web Component 76、Native Component 33、Contract 154の全テストPASS。`pnpm run typecheck`（app／native-tests）PASS、`pnpm run lint`は0 errors／63 warnings、3変更対象のPrettier check PASS。
+- Validation attempt note: 全Test／Typecheck／Lintの並列実行はwrapper timeoutとなり結果を採用しなかった。その後、同じソースでTestを単独実行して143秒でPASSし、Typecheck／Lintも単独実行でPASSした。新しい失敗情報が得られない無目的な再試行はしていない。
+- Remaining: iOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production、GitHub-hosted Remote CI、最新Headの`native-ci / verify`はWindows／未push境界のため未実行。Format／Verifyは未変更Baseline 2ファイルの既知FAILのみ。Critical／Highは0件、Run resultは`partial`、Progressは94% (17/18)を維持する。
+- Progress: 94% (17/18)
+
+## 2026-08-09 00:27 JST — Final artifact gate after repair
+
+- `run.json`／`evaluation.json`のJSON parse、修正対象コード／Test／Run ArtifactのPrettier、`pnpm run lint:markdown`（170 files／0 issues）、`git diff --check`（exit 0、CRLF warningのみ）はPASSした。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はPASSした。5 files、files_changed 0、replacements 0、residual findings 0で、Run Artifactの未サニタイズ絶対Pathはない。
+- Final status: Critical／High 0件。Harness修正後のLocal／Static／Android／Web検証はPASSしたが、iOS Simulator／Remote CI／最新Headの`native-ci / verify`は未実行のため、Run resultは`partial`、Phase 2 final DoDはpending、Progressは94% (17/18)とする。
+- Progress: 94% (17/18)
+
+## 2026-08-09 00:29 JST — Evidence wording correction
+
+- 上記Final statusの「Harness修正後のAndroid」は、修正前に取得済みの現行ソースAndroid Automation／Production Runtime証跡を含む表現であり、Harness修正後にAndroid Build／Install／Maestroを再実行した意味ではない。Harness修正後の新規検証はLocal／Static／全Test／Typecheck／Lint／Artifact gateである。
+- Android実Runtimeは修正差分がHarnessの失敗経路とUnit／Contract testに限定され、focused／full testがPASSしたため無目的な再実行を行わず、既存証跡と修正後Local証跡を分離して保存する。iOS／Remoteは引き続きNOT RUNである。
+- Progress: 94% (17/18)
+
+## 2026-08-09 00:30 JST — Post-correction artifact check
+
+- Correction後の`REPORT.md` Prettier、`run.json`／`evaluation.json` JSON parseはPASSした。Sanitizerを再実行し、5 files、files_changed 0、replacements 0、residual findings 0を確認した。
+- Progress: 94% (17/18)
+
+## 2026-08-09 00:47 JST — Self-review Repair Loop iteration 4/5
+
+- Delegation: Darwin（Native role／code boundary）、Mendel（CI／purchase assertion）、Galileo（iOS／Native detect）、Harvey（CI／Runtime）のread-only監査結果を統合した。親Agentが現行ソースを再確認し、編集は親Agentだけが行った。MendelのProduction APK path findingは現行Workflowで再現したため採用し、Purchase order ID／Checkout restart assertion不足は既存の`native-complete-order-id`／`native-checkout-session-resumed`で満たすためrejectした。HarveyのiOS Production artifact raceは現行の単一`ios-build`と`ios-runtime needs: ios-build`に一致しない古い指摘としてrejectした。
+- Iteration 4 input: Android Native CIのProduction-validationが、Production `assembleRelease`後の実APKをRuntime用Pathへ保存せず、存在しないPathをverify／Uploadし得るHigh finding。
+- Iteration 4 classification／repair plan: `must_fix`。Allowed filesは`.github/workflows/native-ci.yml`と`tests/contracts/native-ci-workflow.test.ts`に限定し、Production sourceの存在／非空確認、Runtime用Pathへのcopy、`GITHUB_ENV` export、copy後Pathのverify／Upload順を実装・契約化した。
+- Iteration 4 validation: `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`は1 file／15 tests PASS、対象Workflow／ContractのPrettierもPASSした。Remote Production buildは未実行のため、実ArtifactのRemote証跡は未取得として残した。
+- Iteration 5 input: Native Role解決完了前にCustomer childrenがmountし得ること、Account Profile read／writeがCustomer guardを明示的に通らないこと。
+- Iteration 5 classification／repair plan: `must_fix`。Allowed filesはNative Shell、Account Use Case、Native Shell Component／Account Integration／Runtime Service Contractの5箇所に限定し、Role解決中のloading gate、非Customerの対象外Panel／Logoutのみ、Profile customer-only guardを追加した。
+- Iteration 5 validation: Account Integration 11 tests、Native Component 12 suites／34 tests、Runtime／CI Contract 17 tests、Typecheck、Lint（0 errors／63 warnings）、対象PrettierがPASSした。続く`pnpm run test`もUnit 65、Integration 95、Repository 31、Web Component 76、Native Component 34、Contract 154の全テストPASSだった。
+- Documentation／artifact: PROJECT_CONTEXTとHistoryへProduction source→runtime copy、Native role boundary、最新検証結果を追記した。Markdownlint 170 files／0 issues、Run JSON parse、`git diff --check`（exit 0、CRLF warningのみ）がPASSした。
+- Remaining／decision: Windowsでは`xcodebuild`／`xcrun`／`simctl`／`gh`が未提供のためiOS実Runtime、Remote GitHub Actions、最新Headの`native-ci / verify`は未実行。Critical／High未解決は0件だが、TASK 15の外部実行境界が残るためRun resultは`partial`、Phase 2 final DoDはpendingとする。
+- Progress: 94% (17/18)
+
+## 2026-08-09 01:42 JST — Iteration 6/7 focused validation and Android Runtime regression
+
+- Iteration 6のNative Login Role境界修正は、Customer login resultだけを`returnTo`／Checkout recoveryへ進め、operator／adminは安全なNative入口へreplaceする実装とした。Native Purchase Component focusedは7 tests、Native Shell focusedは1 suite／2 tests、Typecheck、対象PrettierがPASSした。
+- Iteration 7のiOS Workflow修正は、Runtime EvidenceへXcode Version、Simulator Runtime／Device一覧、選択Device、Installed App一覧をbest-effort保存し、iOS必須8 purchase flow、Harness、Production、Build／Runtime分離をContract Testへ追加した。`pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`は1 file／16 tests PASSした。
+- Android Attempt `20260809-010500-android-iteration6-build`はBuild PASS、Install `...-install`、Smoke `...-smoke`、Test Control `...-test-control` 1/1 PASSだった。しかしRuntimeSuite `20260809-010500-android-iteration6-runtime`は5本中3本失敗し、最初の異常はContract Harnessの画面Assertion、派生症状はStorefront Category titleとCart persisted-stateの未表示だった。失敗時のHierarchy／ScreenshotはいずれもHomeを示し、Runbookに従ってBoundary／Purchase／Reviewは実行しなかった。
+- 根因調査では、Iteration 5の`NativeShell`がpathname変更ごとに`currentUserLoaded=false`へ戻し、`Slot`をアンマウントしていたためrouteがHomeへ戻ると判定した。`src/presentation/native/native-shell.tsx`で初回Session解決中だけloading gateを維持し、pathname／foregroundの再取得中はSlotを保持するよう修正し、pathname遷移中のroute保持Component Testを追加した。
+- 修正後の focused NativeShell／Native purchase Component 2 suites／9 tests、Typecheck、PrettierはPASSした。Android Attempt `20260809-013000-android-iteration8-doctor`／Preflight、Build `...-build`、Install `...-install`、Smoke `...-smoke`、Test Control `...-test-control` 1/1、Runtime `...-runtime` 5/5、Boundary `...-boundary` 5/5がPASSした。完全なMaestro／ADB／Gradle証跡は`.artifacts/native-local/20260809-013000-android-iteration8-*/`に保存した。
+- 修正後Full TestはUnit 65、Integration 95、Repository 31、Web Component 76、Native Component 36、Contract 155の全PASS。`pnpm run lint`は0 errors／63 warnings、`pnpm run lint:markdown`は172 files／0 issues、Typecheck、対象Prettier、`git diff --check`はPASSした。
+- `pnpm run format:check`と`pnpm run verify`は、未変更Baselineの`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`だけを指摘してFAILした。今回の変更対象はfocused PrettierでPASSし、Baselineへ変更を広げていない。iOS Simulator／実`expo-sqlite` Harness／Remote GitHub Actions／最新HeadのRemote `native-ci / verify`はWindows／未push制約で引き続き未実行である。
+- Discovered task 19は完了。TASK 15のiOS／Remote実行境界が未完了のため、Progress: 95% (18/19)。
+
+## 2026-08-09 01:47 JST — Final local static／Web revalidation
+
+- `pnpm run validate:eas:config`、`pnpm run check:native-route-dependencies`（38 routes）、`pnpm run validate:image-manifest`、`pnpm run security:check`、`git diff --check`はPASSした。
+- `pnpm run build:web`はExpo Web 2294 modulesでPASSし、`PLAYWRIGHT_USE_PREBUILT_DIST=true pnpm run test:e2e`はChromium 27/27 PASSした。
+- `pnpm run format:check`／`pnpm run verify`は今回差分外のBaseline 2ファイルで停止する既知FAILのまま。今回追加・変更したコード、docs、Run ArtifactのPrettier、Markdownlint、JSON parse、SanitizerはPASSした。
+- Final local classification: Code implementation complete、Local static complete、Android local Runtime／Production evidence complete。iOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production、Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`はNOT RUN。Phase 2 final DoDはpending。
+- Host capability check `Get-Command xcodebuild,xcrun,simctl,gh -ErrorAction SilentlyContinue`は該当コマンドなし。WindowsからiOS Simulator／GitHub-hosted Remote CIを開始できない根拠として保存する。
+- Progress: 95% (18/19)
+
+## 2026-08-09 01:56 JST — Self-review Repair Loop iteration 9
+
+- `iteration_number`: 9。
+- `input_findings`: iOS Runtimeは`IOS_DEVICE`へSimulatorを選択・Install・Launchしていたが、Native Customer MaestroとProduction-validationの`maestro test`へDevice IDを渡していなかった。Maestroの自動選択により、選択DeviceのInstall／Launch証跡と実際のテスト対象が分離し得るため、`must_fix`と分類した。
+- `repair_plan`: 両方のiOS Maestro実行へ`--device "$IOS_DEVICE"`を追加し、Contract Testで選択Deviceの明示渡しが2箇所あることを固定する。
+- `allowed_files`: `.github/workflows/native-ios-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`。
+- `changed_files`: `.github/workflows/native-ios-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`。
+- `validation_commands`: `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`（16/16 PASS）、対象Prettier（PASS）、`pnpm run test:contracts`（22 files／155 tests PASS）、`pnpm run lint:markdown`（172 files／0 issues PASS）、`git diff --check`（exit 0、CRLF warningのみ）、Run JSON／Evaluation JSON parse（PASS）、`pnpm run format:check`（未変更Baseline 2ファイルのみFAIL）。
+- `validation_result`: 修正対象のWorkflow／Contract、全Contract、Markdown、差分、JSONはPASS。Contractは`run_flow`群とProduction-validationの両方へ`--device "$IOS_DEVICE"`があることを検証した。
+- `remaining_delta`: WindowsではiOS Simulator／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`は未実行。全体`format:check`／`verify`は既知の未変更Baseline 2ファイルで停止する。
+- `decision`: `stop_success`（Iteration 9の局所findingは解消。外部実行環境の未検証は本修正の残差ではなく、Phase 2 final DoDの未完了境界として維持）。
+- Progress: 95% (19/20)
+
+## 2026-08-09 01:58 JST — Iteration 9 final artifact gate
+
+- Workflow／Contract／Run ArtifactのPrettier checkはPASSし、`run.json`／`evaluation.json`のJSON parseもPASSした。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はPASS（5 files、files_changed 0、replacements 0、residual findings 0）。
+- Iteration 9後もCritical／High findingはなく、Run resultは`partial`、iOS／Remote実行境界とBaseline format残差のためPhase 2 final DoDはpendingとする。
+- Progress: 95% (19/20)
+
+## 2026-08-09 02:03 JST — Self-review Repair Loop iteration 10
+
+- `iteration_number`: 10。
+- `input_findings`: `.github/workflows/native-ci.yml`のNative Detect Pathに`tests/contracts/**`がなく、CI Contract Testだけの変更では正式Native Gateが起動しなかった。添付仕様のDetect対象要件に反するため、`must_fix`と分類した。
+- `repair_plan`: Detect Pathへ`tests/contracts/**`を追加し、Native CI Workflow Contractでも同じPathを要求する。Web-only変更をNative変更扱いにするPath追加は行わない。
+- `allowed_files`: `.github/workflows/native-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`。
+- `changed_files`: `.github/workflows/native-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`。
+- `validation_commands`: `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`（16/16 PASS）、対象Prettier（PASS）、`pnpm run test:contracts`（22 files／155 tests PASS）、`rg -n "tests/contracts/\\*\\*"`（Workflow／Contract両方を確認）。
+- `validation_result`: Detect PathとContract assertionが一致し、focused／全Contractおよび対象PrettierがPASSした。
+- `remaining_delta`: WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新Headの`native-ci / verify`が未実行。全体`format:check`／`verify`は未変更Baseline 2ファイルのFAILが残る。
+- `decision`: `stop_success`（Iteration 10のCI trigger findingは解消。外部実行環境の未検証はPhase 2 final DoDの残差として維持）。
+- Progress: 95% (20/21)
+
+## 2026-08-09 02:07 JST — Iteration 10 scope refinement / revalidation
+
+- 初回案の`tests/contracts/**`はWeb専用Contract変更でもNative高コストJobを起動し得るため、添付仕様の「Web-only変更では毎回Native Buildを起動しない」と両立しないと判断した。Iteration 10のallowed files内で、Pathを`tests/component/native/**`と`tests/contracts/native-ci-workflow.test.ts`へ限定した。
+- `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`（16/16 PASS）、`pnpm run test:contracts`（22 files／155 tests PASS）、対象Workflow／Contract／Run Artifact Prettier（PASS）、Detect Path確認（2 PathがWorkflow／Contractで一致）を再実行した。
+- 最終Detect PathはNative source／config／assets／Maestro／Harness／SQLite／scripts／EAS／workflowsに加え、Native Component TestとNative CI Contract Testだけを検知し、Web-only Contract変更を広くNative変更扱いしない。Iteration 10のdecisionは`stop_success`のままとする。
+- Progress: 95% (20/21)
+
+## 2026-08-09 02:10 JST — Self-review Repair Loop iteration 11
+
+- `iteration_number`: 11。
+- `input_findings`: iOS Runtime Evidenceの`xcrun simctl diagnose "$path"`は診断出力先を指定せず、`|| true`により成果物欠落を隠す可能性があった。iOS Evidence必須要件に関わるため、`must_fix`と分類した。
+- `repair_plan`: `simctl diagnose --output "$RUNNER_TEMP/native-ios-runtime-evidence/simctl-diagnose" --no-archive`へ変更し、Contract Testでコマンド、出力先、非Archive指定を固定する。
+- `allowed_files`: `.github/workflows/native-ios-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`。
+- `changed_files`: `.github/workflows/native-ios-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`。
+- `validation_commands`: `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`（16/16 PASS）、対象Prettier（PASS）、`pnpm run test:contracts`（22 files／155 tests PASS）、`rg`によるWorkflow／Contractコマンド確認（PASS）。
+- `validation_result`: iOS Runtime EvidenceがUpload対象配下の明示出力ディレクトリへ診断を収集する契約となり、focused／全Contract／PrettierがPASSした。
+- `remaining_delta`: WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新Headの`native-ci / verify`が未実行。全体`format:check`／`verify`は未変更Baseline 2ファイルのFAILが残る。
+- `decision`: `stop_success`（Iteration 11のEvidence findingは解消。iOS／Remoteの実行環境未確認はPhase 2 final DoDの残差として維持）。
+- Progress: 95% (21/22)
+
+## 2026-08-09 02:17 JST — Full test and final local artifact gate
+
+- `pnpm run test`はexit 0で完了した。Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 36、Contract 155の全テストがPASSした。Native Componentでは既存のReact `act(...)` console warningが出力されたが、失敗はない。
+- Iteration 11修正後のfocused Workflow Contract 16/16、全Contract 155/155、Typecheck、Lint（0 errors／63 warnings）、Native route 38、EAS metadata、Markdownlint（172 files／0 issues）、Web build 2294 modules、Chromium E2E 27/27、Android Runtime／Boundary／Productionの既存証跡はPASSとして維持する。
+- `pnpm run format:check`と`pnpm run verify`は、今回の変更範囲外で未変更の`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`の2ファイルでFAILした。変更対象のPrettierはPASSであり、Baselineへ変更を広げていない。
+- `run.json`／`evaluation.json`のJSON parse、Run ArtifactのPrettier、`git diff --check`、Sanitizer Write／Checkを最終ゲートで再実行する。WindowsのiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`は未実行のままとする。
+- 最終判定は`partial`、Critical／High findingは0件、Phase 2 final DoDはpending。Progress: 95% (21/22)
+
+## 2026-08-09 02:18 JST — Final artifact gate result
+
+- `pnpm exec prettier --check`（Workflow 2件、Workflow Contract、PLAN／TASKS／REPORT／run.json／evaluation.json）はPASSした。
+- `run.json`／`evaluation.json` JSON parseはPASSした。`git diff --check`はexit 0で、CRLF変換warningのみだった。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はPASSした。5 files scanned、files_changed 0、replacements 0、residual_findings 0だった。
+- Final artifact gate後もCritical／High findingは0件。Windowsで実行不能なiOS／Remote検証と、未変更Baseline 2ファイルのformat／verify残差により、Run resultは`partial`、Phase 2 final DoDはpendingとする。
+- Progress: 95% (21/22)
+
+## 2026-08-09 02:25 JST — Self-review Repair Loop iteration 12
+
+- `iteration_number`: 12。
+- `input_findings`: Native Detectは`tests/component/native/**`と`tests/contracts/native-ci-workflow.test.ts`だけを含み、SQLite／Harness／Repository等のNative契約テスト（`tests/contracts/native-*.test.ts`）単独変更がNative Gateを起動しなかった。Web-only Contract変更までNative扱いする広い`tests/contracts/**`は要件に反するため採用しない。
+- `repair_plan`: Detect PathとWorkflow Contractへ`tests/contracts/native-*.test.ts`を追加し、Native契約テストだけを検知する狭いglobで変更漏れを解消する。
+- `allowed_files`: `.github/workflows/native-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`。
+- `changed_files`: `.github/workflows/native-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`。
+- `validation_commands`: `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`（16/16 PASS）、`pnpm run test:contracts`（22 files／155 tests PASS）、対象Workflow／Contract／Run PLAN／TASKS Prettier（PASS）、Detect Path確認（Workflow／Contract一致）。
+- `validation_result`: Native契約テストglobとCI Contract Test PathがWorkflow／Contractで一致し、focused／全Contract／PrettierがPASSした。Web専用Contractを含む`tests/contracts/**`は追加していない。
+- `remaining_delta`: WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`が未実行。全体`format:check`／`verify`は未変更Baseline 2ファイルのFAILが残る。
+- `decision`: `stop_success`（Iteration 12のDetect漏れを解消。外部実行環境の未検証はPhase 2 final DoDの残差として維持）。
+- Progress: 96% (22/23)
+
+## 2026-08-09 02:32 JST — Self-review Repair Loop iteration 13
+
+- `iteration_number`: 13。
+- `input_findings`: Native Order詳細が注文状態と合計だけを表示し、Gate CのPayment Status、Shipment Status、商品／価格／配送先SnapshotをUIへ露出していなかった。DTOと仕様の不一致のため、`must_fix`と分類した。
+- `repair_plan`: Order詳細へPayment／Shipment status、価格内訳、配送先snapshot、商品画像・商品コード・SKU・variation・単価・明細価格を追加し、主要項目をComponent Testで固定する。
+- `allowed_files`: `src/presentation/native/native-purchase-screens.tsx`、`tests/component/native/native-purchase-screens.test.tsx`。
+- `changed_files`: `src/presentation/native/native-purchase-screens.tsx`、`tests/component/native/native-purchase-screens.test.tsx`。
+- `validation_commands`: `pnpm exec jest --config jest.config.cjs tests/component/native/native-purchase-screens.test.tsx --runInBand`（1 suite／8 tests PASS）、`pnpm run typecheck`（app／native-tests PASS）、`pnpm run test:component:native`（12 suites／37 tests PASS）、対象Prettier（PASS）、`git diff --check`（exit 0、CRLF warningのみ）。
+- `validation_result`: Order詳細のPayment／Shipment／価格／配送先／商品snapshot表示とfocused／全Native Component／Typecheck／PrettierがPASSした。
+- `remaining_delta`: WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`が未実行。全体`format:check`／`verify`は未変更Baseline 2ファイルのFAILが残る。
+- `decision`: `stop_success`（Iteration 13のGate C UI omissionを解消。外部実行環境の未検証はPhase 2 final DoDの残差として維持）。
+- Progress: 96% (23/24)
+
+## 2026-08-09 02:35 JST — Self-review Repair Loop iteration 14
+
+- `iteration_number`: 14。
+- `input_findings`: Gate Bが要求するKeyboard対応に対し、Profile／Address／Checkout等の入力画面がScrollViewだけで、`KeyboardAvoidingView`とkeyboard tap契約を持っていなかった。Android／iOSの入力操作DoDに関わるため、`must_fix`と分類した。
+- `repair_plan`: 入力を持つNative購入画面へ共通`KeyboardAvoidingView`（iOS padding／Android height）と`keyboardShouldPersistTaps="handled"`を追加し、Profile Component Testでwrapperを固定する。
+- `allowed_files`: `src/presentation/native/native-purchase-screens.tsx`、`tests/component/native/native-purchase-screens.test.tsx`。
+- `changed_files`: `src/presentation/native/native-purchase-screens.tsx`、`tests/component/native/native-purchase-screens.test.tsx`。
+- `validation_commands`: `pnpm exec jest --config jest.config.cjs tests/component/native/native-purchase-screens.test.tsx --runInBand`（1 suite／9 tests PASS）、`pnpm run test:component:native`（12 suites／38 tests PASS）、`pnpm run test`（Unit 65／Integration 95／Repository 31／Web Component 76／Native Component 38／Contract 155 PASS）、`pnpm run typecheck`（app／native-tests PASS）、対象Prettier（PASS）、`git diff --check`（exit 0、CRLF warningのみ）。
+- `validation_result`: Profile／Address／Checkout／Login／Signup／Reviewの入力画面が共通KeyboardAvoidingViewと`keyboardShouldPersistTaps`を持ち、focused／全Native／全テスト／Typecheck／PrettierがPASSした。既存のReact `act(...)` console warningはNative Runtime Provider由来で、テスト失敗はない。
+- `remaining_delta`: WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`が未実行。全体`format:check`／`verify`は未変更Baseline 2ファイルのFAILが残る。
+- `decision`: `stop_success`（Iteration 14のGate B Keyboard omissionを解消。外部実行環境の未検証とBaseline format残差はPhase 2 final DoDの残差として維持）。
+- Progress: 96% (24/25)
+
+## 2026-08-09 02:42 JST — Final artifact gate result after Iteration 14
+
+- `pnpm run test`はexit 0で完了した。Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 155の全テストがPASSした。
+- `pnpm run lint`は0 errors／63 warnings、`pnpm run lint:markdown`は172 files／0 issues、`pnpm run typecheck`はapp／native-tests PASSだった。既存のNative Runtime Provider由来React `act(...)` console warningはあるが、テスト失敗はない。
+- 変更対象のPrettier check、Run／Evaluation JSON parse、`git diff --check`はPASSした。Sanitizer Write／Checkは5 files／0 changed／0 replacements／0 residual findingsでPASSした。
+- `pnpm run format:check`と`pnpm run verify`は、今回の変更範囲外で未変更の`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`の2ファイルでFAILした。Baselineへ変更は広げていない。
+- 最終判定は`partial`、Critical／High findingは0件、Phase 2 final DoDはpending。WindowsでiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`は未実行のままとする。
+- Progress: 96% (24/25)
+
+## 2026-08-09 02:52 JST — Self-review Repair Loop iteration 15
+
+- `iteration_number`: 15。
+- `input_findings`: Native LoginのCustomer復帰先遷移に`destination as never`があり、貼付仕様の型逃げ禁止に反していた。Checkout abandonは`CheckoutOrderUseCases.start`のsession置換時abandonとIntegration Testで既に契約化されているため、追加UIはfindingとして採用しなかった。
+- `repair_plan`: `router.replace(destination as never)`を`router.replace(destination)`へ置換し、Expo Routerの型で検証する。対象ファイルをNative Purchase Screenの1ファイルに限定する。
+- `allowed_files`: `src/presentation/native/native-purchase-screens.tsx`。
+- `changed_files`: `src/presentation/native/native-purchase-screens.tsx`。
+- `validation_commands`: `pnpm run typecheck`（app／native-tests PASS）、`pnpm run test:component:native`（12 suites／38 tests PASS）、`pnpm exec prettier --check src/presentation/native/native-purchase-screens.tsx tests/component/native/native-purchase-screens.test.tsx`（PASS）、Native Purchase `as never` scan（PASS）、`git diff --check`（exit 0、CRLF warningのみ）。
+- `validation_result`: 型逃げを除去し、Customer Login復帰遷移が型付きでcompileすること、Native Component、対象Prettier、差分検査がPASSした。既存のReact `act(...)` console warningはNative Runtime Provider由来で、テスト失敗はない。
+- `remaining_delta`: WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`が未実行。全体`format:check`／`verify`は未変更Baseline 2ファイルのFAILが残る。
+- `decision`: `stop_success`（Iteration 15の具体的な型逃げfindingを解消。Checkout abandonは既存契約で充足。外部実行環境の未検証とBaseline format残差はPhase 2 final DoDの残差として維持）。
+- Progress: 96% (25/26)
+
+## 2026-08-09 03:41 JST — 最新状態の最終スナップショット
+
+- Iteration 16〜18とIteration 17 follow-upの修正を含む現在のワークツリーは、全Test（Unit 65／Integration 95／Repository 31／Web Component 76／Native Component 38／Contract 158）、Typecheck、focused Native Repository Contract 13、対象Prettier、型逃げscan、Run／Evaluation JSON parse、`git diff --check`をPASSしている。
+- Sanitizer Write／Checkは5 files scanned、files_changed 0、replacements 0、residual_findings 0でPASSしている。
+- 最終判定は`partial`。Critical／High findingは0件。未変更Baselineのformat／verify 2ファイルFAIL、WindowsでのiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`未実行を残差とする。Phase 2 final DoDはpending。
+- Progress: 97% (28/29)
+
+## 2026-08-09 03:13 JST — Self-review Repair Loop iteration 16
+
+- `iteration_number`: 16。
+- `input_findings`: Native Purchase画面に`ApplicationError`判定とReview ratingの`as`型アサーションが残っており、貼付仕様と`docs/CODING_STANDARDS.md`の型逃げ禁止に反していた。
+- `repair_plan`: `ApplicationError`の`instanceof`絞り込み、Review ratingのliteral tuple／推論型への置換、型付き`router.replace`を維持する。対象ファイルをNative Purchase Screenの1ファイルに限定する。
+- `allowed_files`: `src/presentation/native/native-purchase-screens.tsx`。
+- `changed_files`: `src/presentation/native/native-purchase-screens.tsx`。
+- `validation_commands`: `pnpm run typecheck`（app／native-tests PASS）、`pnpm run test:component:native`（12 suites／38 tests PASS）、対象Prettier（PASS）、`as never`／caught／rating型逃げscan（該当なし）、`git diff --check`（exit 0、CRLF warningのみ）。
+- `validation_result`: Native Purchaseの認証エラー判定とReview ratingがRuntime／推論型で検証され、残存する型逃げを除去した。既存のReact `act(...)` console warningはNative Runtime Provider由来で、テスト失敗はない。
+- `remaining_delta`: WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`が未実行。全体`format:check`／`verify`は未変更Baseline 2ファイルのFAILが残る。
+- `decision`: `stop_success`（Iteration 16の具体的な型安全性findingを解消。外部実行環境の未検証とBaseline format残差はPhase 2 final DoDの残差として維持）。
+- Progress: 96% (26/27)
+
+## 2026-08-09 03:14 JST — Self-review Repair Loop iteration 17
+
+- `iteration_number`: 17。
+- `input_findings`: 新規Native SQLite Application Repositoryの履歴・Review一覧・集計・カート更新・Sequence読み出しに`String(row)`／`Number(row)`／Enum型アサーションが残っていた。SQLite既存値をRuntime検証せずDomainへ渡すため、`must_fix`と分類した。
+- `repair_plan`: 既存mapperへ文字列・整数・Boolean・Enum parserを追加し、Application Repositoryの対象SQLite Row／集計値／履歴／Review一覧をparser経由へ統一する。不正role／quantity／product statusの境界テストを追加する。
+- `allowed_files`: `src/infrastructure/database/sqlite/mappers.ts`、`src/infrastructure/database/sqlite/native-customer-application-repositories.ts`、`tests/contracts/native-sqlite-mappers.test.ts`。
+- `changed_files`: `src/infrastructure/database/sqlite/mappers.ts`、`src/infrastructure/database/sqlite/native-customer-application-repositories.ts`、`tests/contracts/native-sqlite-mappers.test.ts`。
+- `validation_commands`: focused mapper（1 file／4 tests PASS）、`pnpm run typecheck`（app／native-tests PASS）、`pnpm run test:repository`（5 files／31 tests PASS）、`pnpm run test`（Unit 65／Integration 95／Repository 31／Web Component 76／Native Component 38／Contract 157 PASS）、対象Prettier（PASS）、強制変換／型逃げscan（Transaction capability adapterの`as unknown as`以外は該当なし）、`git diff --check`（exit 0、CRLF warningのみ）。
+- `validation_result`: SQLite mapper／Application Repositoryの外部値をRuntime parserへ統一し、不正値をfail-closeする境界テストを追加した。初回全体回帰では`address_address_line1`という住所列名組み立て誤りを検出したため、checkoutの`address_line1`とorderの`shipping_address_line1`を分離する最小修正を行い、Repository 31件と全Testを再実行してPASSした。Transaction scopeの`as unknown as`はCustomer capability mapを実装するcompile-time adapter boundaryとしてコメント付きで維持した。
+- `remaining_delta`: WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`が未実行。全体`format:check`／`verify`は未変更Baseline 2ファイルのFAILが残る。
+- `decision`: `stop_success`（SQLite境界の具体的な型安全性findingと回帰を解消。外部実行環境の未検証とBaseline format残差はPhase 2 final DoDの残差として維持）。
+- Progress: 96% (27/28)
+
+## 2026-08-09 03:34 JST — Self-review Repair Loop iteration 18
+
+- `iteration_number`: 18。
+- `input_findings`: Native Transaction Runnerに`as unknown as TransactionScopeMap[S]`が残っており、Customer-only capabilityを全Transaction Scope genericへ強制接続していた。
+- `repair_plan`: Native Repository Setへfail-closed Admin placeholderを型付きで定義し、Customer Scope allowlistをRuntimeで検証する。Admin Scopeはtransaction開始前に拒否し、型アサーションを除去する契約テストを追加する。
+- `allowed_files`: `src/infrastructure/database/sqlite/native-customer-application-repositories.ts`、`tests/contracts/native-customer-application-repositories.test.ts`。
+- `changed_files`: `src/infrastructure/database/sqlite/native-customer-application-repositories.ts`、`tests/contracts/native-customer-application-repositories.test.ts`。
+- `validation_commands`: focused Native Repository Contract（1 file／13 tests PASS）、`pnpm run test:repository`（5 files／31 tests PASS）、`pnpm run test`（Unit 65／Integration 95／Repository 31／Web Component 76／Native Component 38／Contract 158 PASS）、`pnpm run typecheck`（app／native-tests PASS）、対象Prettier（PASS）、`as unknown as` scan（該当なし）。
+- `validation_result`: Native Transaction RunnerはCustomer Scopeだけを許可し、Admin Scopeをtransaction開始前にfail-closeする。型付きplaceholderも呼び出し時にNative unsupported errorを返し、Customer／Admin capability境界を強制した。
+- `remaining_delta`: WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`が未実行。全体`format:check`／`verify`は未変更Baseline 2ファイルのFAILが残る。
+- `decision`: `stop_success`（Iteration 18の最後の型逃げとScope境界findingを解消。外部実行環境の未検証とBaseline format残差はPhase 2 final DoDの残差として維持）。
+- Progress: 97% (28/29)
+
+## 2026-08-09 03:39 JST — Final artifact gate result after Iteration 18
+
+- 最終状態で`pnpm run test`はexit 0、Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158がPASSした。focused Native Repository Contract 13件、`pnpm run typecheck`、対象Prettier、型逃げscanもPASSした。
+- Run／Evaluation JSON parse、Run Artifact Prettier、`git diff --check`、Sanitizer Write／CheckはPASS。Sanitizerは5 files scanned、files_changed 0、replacements 0、residual_findings 0だった。
+- `pnpm run format:check`／`pnpm run verify`の未変更Baseline 2ファイルFAIL、WindowsでのiOS／Remote未実行は残存するため、Run resultは`partial`、Critical／High findingは0件、Phase 2 final DoDはpendingとする。
+- Progress: 97% (28/29)
+
+## 2026-08-09 03:26 JST — Self-review Repair Loop iteration 17 follow-up
+
+- `iteration_number`: 17 follow-up。
+- `input_findings`: Nullable SQLite parserが`undefined`を`null`として受け入れており、列欠落をfail-closeできていなかった。
+- `repair_plan`: `parseNativeNullableString`／`parseNativeNullableEnum`は明示的な`null`だけを許可し、`undefined`や不明値を例外にする。
+- `allowed_files`: `src/infrastructure/database/sqlite/mappers.ts`。
+- `changed_files`: `src/infrastructure/database/sqlite/mappers.ts`。
+- `validation_commands`: focused mapper（1 file／4 tests PASS）、`pnpm run test:repository`（5 files／31 tests PASS）、`pnpm run test`（Unit 65／Integration 95／Repository 31／Web Component 76／Native Component 38／Contract 157 PASS）、`pnpm run typecheck`（app／native-tests PASS）、対象Prettier（PASS）。
+- `validation_result`: SQLite列欠落をnullableへ黙って変換せず、明示的`NULL`以外はfail-closeする境界を確定した。全回帰はPASSし、既存のReact `act(...)` console warning以外の失敗はない。
+- `remaining_delta`: WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`が未実行。全体`format:check`／`verify`は未変更Baseline 2ファイルのFAILが残る。
+- `decision`: `stop_success`（SQLite境界Runtime validationを最終状態まで厳密化。外部実行環境の未検証とBaseline format残差はPhase 2 final DoDの残差として維持）。
+- Progress: 96% (27/28)
+
+## 2026-08-09 03:30 JST — Final artifact gate result after Iteration 17 follow-up
+
+- 最終 parser 状態で`pnpm run test`はexit 0、Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 157がPASSした。`pnpm run typecheck`、focused mapper 4件、対象PrettierもPASSした。
+- Run／Evaluation JSON parse、Run Artifact Prettier、`git diff --check`はPASSした。Sanitizer Write／Checkは再実行し、5 files scanned、files_changed 0、replacements 0、residual_findings 0を確認した。
+- `pnpm run format:check`／`pnpm run verify`の未変更Baseline 2ファイルFAIL、WindowsでのiOS／Remote未実行は残存するため、Run resultは`partial`、Critical／High findingは0件、Phase 2 final DoDはpendingとする。
+- Progress: 96% (27/28)
+
+## 2026-08-09 03:23 JST — Final artifact gate result after Iteration 17
+
+- `pnpm run test`はexit 0で完了した。Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 157の全テストがPASSした。
+- `pnpm run typecheck`はapp／native-testsともPASSした。focused mapper 4 tests、Repository Contract 31 testsもPASSした。
+- Native SQLite mapper／Application Repository／Native Purchaseの対象Prettier、強制変換／型逃げscan、Run／Evaluation JSON parse、Run Artifact Prettier、`git diff --check`はPASSした。scanで残る`as unknown as`はCustomer capability mapのcompile-time adapter boundaryのみである。
+- `pnpm run format:check`と`pnpm run verify`は、今回の変更範囲外で未変更の`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`の2ファイルでFAILした。Baselineへ変更は広げていない。
+- Sanitizer Write／Checkはこの最終Artifact gate後に実行し、ローカル絶対Pathを残さないことを確認する。Critical／High findingは0件、Phase 2 final DoDはpendingとする。
+- WindowsでiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`は未実行のままとする。
+- Progress: 96% (27/28)
+
+## 2026-08-09 02:54 JST — Final artifact gate result after Iteration 15
+
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はPASSした。5 files scanned、files_changed 0、replacements 0、residual_findings 0だった。
+- Run／Evaluation JSON parse、Run Artifact（PLAN／TASKS／REPORT／run.json／evaluation.json）のPrettier check、`git diff --check`はPASSした。差分検査はCRLF変換warningのみだった。
+- Iteration 15後もCritical／High findingは0件。`pnpm run format:check`／`pnpm run verify`の未変更Baseline 2ファイルFAIL、WindowsでのiOS／Remote未実行は残存するため、Run resultは`partial`、Phase 2 final DoDはpendingとする。
+- Progress: 96% (25/26)
+
+## 2026-08-09 03:43 JST — 最新状態の最終スナップショット（追記）
+
+- Iteration 18までの現在のワークツリーは、全Test（Unit 65／Integration 95／Repository 31／Web Component 76／Native Component 38／Contract 158）、Typecheck、focused Native Repository Contract 13、対象Prettier、型逃げscan、Run／Evaluation JSON parse、`git diff --check`をPASSしている。
+- Sanitizer Write／Checkは5 files scanned、files_changed 0、replacements 0、residual_findings 0でPASSしている。
+- 最終判定は`partial`。Critical／High findingは0件。未変更Baselineのformat／verify 2ファイルFAIL、WindowsでのiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`未実行を残差とする。Phase 2 final DoDはpending。
+- Progress: 97% (28/29)
+
+## 2026-08-09 03:49 JST — 最終Documentation／CI Graph監査
+
+- 貼付仕様を1258行まで再読し、Gate EのiOS主要Flow、Gate FのiOS Build／Runtime分離、Production-validation、Native変更なし時Skip、Final Verify fail-close、Remote未実行時のpartial判定を現行Workflow／Contractへ照合した。
+- `.github/workflows/native-ios-ci.yml`はmacOS BuildでAutomation／Productionのunsigned Release `iphonesimulator` `.app`をArtifact化し、`ios-runtime`が`needs: ios-build`で両Artifactを消費する。Maestroは選択Simulatorへ`--device`を明示し、主要購入Flow、実`expo-sqlite` Contract Harness、Production-validation、JUnit／Screenshot／Hierarchy／`simctl diagnose` Evidenceを実行する構成である。
+- `.github/workflows/native-ci.yml`はDetect後にNative Static／Production Bundle Guard／Android Build／iOS reusable workflowを独立実行し、Android／iOS Runtimeを各Build Artifactへ分離する。Native変更時は全結果success、変更なし時は全高コストJob skippedを`native-ci / verify`でfail-close検証する。
+- README、`docs/PROJECT_CONTEXT.md`、Phase 2後半Plan、Historyへ最終parser／Transaction境界と静的監査結果を反映した。対象Prettier、`pnpm run lint:markdown`（173 files／0 issues）、`git diff --check`（exit 0、CRLF warningのみ）はPASSした。
+- `xcodebuild`／`xcrun`／`simctl`／`gh`はWindowsで未提供。iOS実Runtime、Remote Android／iOS CI、最新Headの`native-ci / verify`は実行していない。静的PASSを実Runtime／Remote PASSへ繰り上げず、Phase 2 final DoDはpendingとする。
+- 判定: `partial`、Critical／High 0件、未変更Baseline 2ファイルのformat／verify FAILと外部実行境界を残す。Progress: 97% (28/29)
+
+## 2026-08-09 03:50 JST — Documentation後のArtifact最終ゲート
+
+- Run／Evaluation JSON parseと5件のRun Artifact Prettier checkはPASSした。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はfiles_scanned 5、files_changed 0、replacements 0、residual_findings 0でPASSした。
+- 変更後もCritical／High 0件、Run result `partial`、Phase 2 final DoD pendingを維持する。Progress: 97% (28/29)
+
+## 2026-08-09 04:03 JST — Format／Verify bounded repair完了
+
+- 前回の未変更Baselineだった`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`をPrettierで整形した。Workflow／Contractの意味変更はなく、Format差分は行末／整形残差のみである。
+- `pnpm run verify`は現行ソースでexit 0。Format、Markdownlint 173 files／0 issues、Lint 0 errors／63 warnings、Typecheck、Image Manifest、Security、Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158、Web export 2294 modulesがPASSした。
+- 差分起因だった`parseNativeNumber`未使用importを削除し、Lint警告を64件からBaselineの63件へ戻した。既存のReact `act(...)` console warning以外の失敗はない。
+- Task 30を完了し、`TASKS.md`はProgress: 97% (29/30)へ更新した。WindowsでのiOS実Runtime、Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`は未実行のため、Phase 2 final DoDはpendingのままとする。
+
+## 2026-08-09 04:07 JST — 最終補助Static Gate
+
+- `pnpm run check:native-route-dependencies`は38 native routesでPASSした。
+- `pnpm run validate:eas:config`はdevelopment／preview／production-validation、manual-only、cloudRun not-runをPASSした。
+- `pnpm run validate:native-production-bundle`はAutomation 2991 modules／Production 2983 modulesで、Automation marker present／Production marker absentをPASSした。
+- 現行ローカル／Static検証は完了。iOS実Runtime、Remote Android／iOS CI、最新Headの`native-ci / verify`のみ未実行で、Run result `partial`、Phase 2 final DoD pendingを維持する。Progress: 97% (29/30)
+
+## 2026-08-09 04:09 JST — Quality Gate後のArtifact最終確認
+
+- Run／Evaluation JSON parse、対象Run／Docs Prettier、Markdownlint 174 files、`git diff --check`はPASSした。
+- Sanitizer Write／Checkはfiles_scanned 5、files_changed 0、replacements 0、residual_findings 0でPASSした。
+- 現行判定は`partial`、Critical／High 0件。iOS実Runtime、Remote Android／iOS CI、最新Headの`native-ci / verify`が未実行のため、Phase 2 final DoDはpending。Progress: 97% (29/30)
+
+## 2026-08-09 04:11 JST — Current state snapshot
+
+- Iteration 19のFormat／Verify修正、補助Static Gate、Living Documentation、PLAN／TASKS／Evaluation更新を反映した。現行`pnpm run verify`はPASS、Run ArtifactのJSON／Prettier／Markdownlint／差分検査もPASSである。
+- Critical／Highは0件。WindowsでのiOS実Runtime、GitHub-hosted Remote Android／iOS CI、最新Headの`native-ci / verify`は未実行であり、Phase 2 final DoDはpending。Progress: 97% (29/30)
+
+## 2026-08-09 04:12 JST — External execution blocker audit
+
+- `Get-Command xcodebuild,xcrun,simctl,gh`では対象コマンドが未提供、`adb devices -l`ではAndroid実機のみ利用可能だった。
+- `git ls-remote --heads origin`では現行`feat/phase2-native-purchase-automation`に対応するRemote feature branchが存在せず、未commit差分を含む最新Headに対するGitHub Actionsは実行できない。Git add／commit／push／workflow dispatchは行わない。
+- 貼付仕様のRemote CI条件に従い、Code implementation／Local-static verificationは完了、Remote Android CI／Remote iOS CI／Phase 2 final DoDはpendingとして分離する。Progress: 97% (29/30)
+
+## 2026-08-09 06:17 JST — Quality Gate bounded repair（Iteration 20）
+
+- `pnpm run verify`を5分上限で再確認したところ、shell wrapperが304秒でタイムアウトし終了コードを取得できなかった。これは合格扱いにせず、同一プロセスの残存を確認してから原因を切り分けた。
+- `iteration_number`: 20
+- `input_findings`: 品質ゲート結果が5分実行上限により未確定。プロセス監視ではUnit／Integration／Repository／Web Component／Native Component／Contract／Web exportの順に進行しており、同じコード失敗を示す新しい異常はなかった。
+- `repair_plan`: 重複実行を避け、残存プロセスの終了後にコード変更なしで同一`pnpm run verify`を15分上限で一度だけ再実行し、終了コードと全出力を取得する。
+- `allowed_files`: Run Artifact（`REPORT.md`、`PLAN.md`、`run.json`、`evaluation.json`）のみ。
+- `changed_files`: `.codex/runs/20260808-165236-JST/REPORT.md`、`.codex/runs/20260808-165236-JST/PLAN.md`、`.codex/runs/20260808-165236-JST/run.json`、`.codex/runs/20260808-165236-JST/evaluation.json`。ソース変更はない。
+- `validation_commands`: `pnpm run verify`（5分上限、304秒で未確定）→`pnpm run verify`（15分上限、同一コード）。
+- `validation_result`: extended rerunはexit 0。Format check、Markdownlint 174 files／0 issues、Lint 0 errors／63 warnings、Typecheck、Image Manifest、Security、Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158、Web export 2294 modulesがPASSした。Native Jestの既存React `act(...)` console warning以外の失敗はない。
+- `remaining_delta`: WindowsではiOS Simulator／実`expo-sqlite` Harness／iOS Production-validation、GitHub-hosted Remote Android／iOS CI、最新HeadのRemote `native-ci / verify`を実行できない。これらはローカル品質ゲート成功とは独立した外部環境残差である。
+- `decision`: `stop_success`（ローカル品質ゲートの未確定状態を解消。Phase 2 final DoDはRemote／iOS未実行のためpartialを維持）。Progress: 97% (29/30)
+
+## 2026-08-09 06:19 JST — Run Artifact final gate
+
+- Iteration 20追記後、Run／Evaluation JSON parse、5件のRun Artifact Prettier check、`pnpm run lint:markdown`（174 files／0 issues）、`git diff --check`（exit 0、CRLF warningのみ）をPASSした。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はfiles_scanned 5、files_changed 0、replacements_total 0、residual_findings 0でPASSした。
+- ローカル品質ゲートはPASS、iOS実Runtime／Remote CIは未実行のためRun result `partial`とProgress: 97% (29/30)を維持する。

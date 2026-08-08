@@ -1,4 +1,4 @@
-import { NativeUnsupportedScreen } from "@/presentation/native-route";
+import { NativeCheckoutAddressScreen } from "@/presentation/native-route";
 export default function NativeCheckoutAddressRoute() {
-  return <NativeUnsupportedScreen title="Checkoutは後半対象です" />;
+  return <NativeCheckoutAddressScreen />;
 }

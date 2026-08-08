@@ -69,10 +69,17 @@ jobs:
             'src/**/*.native.tsx' \
             'src/bootstrap/native-runtime.ts' \
             'src/infrastructure/database/sqlite/**' \
+            'src/infrastructure/normalization/normalizers.ts' \
+            'src/infrastructure/address-lookup/static-address-lookup.ts' \
+            'src/infrastructure/payment/mock-payment-gateway.ts' \
             'src/infrastructure/session/native-stores.ts' \
             'src/infrastructure/security/password-hasher.native.ts' \
             'src/test-controls/**' \
+            'tests/component/native/**' \
+            'tests/contracts/native-*.test.ts' \
+            'tests/contracts/native-ci-workflow.test.ts' \
             'src/presentation/native/**' \
+            'src/presentation/return-to.ts' \
             'app.config.ts' \
             'metro.config.*' \
             'package.json' \
@@ -172,6 +179,12 @@ jobs:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+      - name: Verify Automation runtime metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json > "$RUNNER_TEMP/android-automation-config.json"
+          node -e 'const fs = require("node:fs"); const extra = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).extra ?? {}; for (const [key, expected] of Object.entries({ appEnvironment: "automation", buildKind: "automation", testMode: "true" })) { if (extra[key] !== expected) throw new Error(`${key}=${extra[key] ?? "<missing>"}, expected ${expected}`); }' "$RUNNER_TEMP/android-automation-config.json"
       - name: Run Expo prebuild
         run: pnpm exec expo prebuild --platform android --no-install
       - name: Resolve Android SDK and sdkmanager
@@ -275,11 +288,101 @@ jobs:
             exit 1
           fi
           ls -lh "$APK_PATH"
+      - name: Save Automation Release APK for Runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$RUNNER_TEMP/native-apks"
+          cp "$APK_PATH" "$RUNNER_TEMP/native-apks/native-automation.apk"
+          echo "AUTOMATION_APK_PATH=$RUNNER_TEMP/native-apks/native-automation.apk" >> "$GITHUB_ENV"
+      - name: Verify Production-validation runtime metadata
+        shell: bash
+        env:
+          EXPO_PUBLIC_APP_ENV: production
+          EXPO_PUBLIC_BUILD_KIND: production
+          EXPO_PUBLIC_TEST_MODE: "false"
+          EXPO_PUBLIC_DEFAULT_SEED: default
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json > "$RUNNER_TEMP/android-production-config.json"
+          node -e 'const fs = require("node:fs"); const extra = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).extra ?? {}; for (const [key, expected] of Object.entries({ appEnvironment: "production", buildKind: "production", testMode: "false" })) { if (extra[key] !== expected) throw new Error(`${key}=${extra[key] ?? "<missing>"}, expected ${expected}`); }' "$RUNNER_TEMP/android-production-config.json"
+      - name: Regenerate Production-validation JavaScript bundle
+        working-directory: android
+        shell: bash
+        env:
+          EXPO_PUBLIC_APP_ENV: production
+          EXPO_PUBLIC_BUILD_KIND: production
+          EXPO_PUBLIC_TEST_MODE: "false"
+          EXPO_PUBLIC_DEFAULT_SEED: default
+        run: |
+          set -o pipefail
+          ./gradlew :app:createBundleReleaseJsAndAssets \
+            -PreactNativeArchitectures=x86_64 \
+            --build-cache \
+            --parallel \
+            --rerun-tasks \
+            --stacktrace \
+            2>&1 | tee "$RUNNER_TEMP/gradle-create-bundle-production-release.log"
+      - name: Build Production-validation Release APK
+        working-directory: android
+        shell: bash
+        env:
+          EXPO_PUBLIC_APP_ENV: production
+          EXPO_PUBLIC_BUILD_KIND: production
+          EXPO_PUBLIC_TEST_MODE: "false"
+          EXPO_PUBLIC_DEFAULT_SEED: default
+        run: |
+          set -o pipefail
+          ./gradlew :app:assembleRelease \
+            -PreactNativeArchitectures=x86_64 \
+            --build-cache \
+            --parallel \
+            --stacktrace \
+            2>&1 | tee "$RUNNER_TEMP/gradle-assemble-production-release.log"
+      - name: Save Production-validation Release APK for Runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCTION_BUILD_APK="$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/app-release.apk"
+          PRODUCTION_APK_PATH="$RUNNER_TEMP/native-apks/native-production-validation.apk"
+          test -f "$PRODUCTION_BUILD_APK"
+          test -s "$PRODUCTION_BUILD_APK"
+          mkdir -p "$RUNNER_TEMP/native-apks"
+          cp "$PRODUCTION_BUILD_APK" "$PRODUCTION_APK_PATH"
+          echo "PRODUCTION_APK_PATH=$PRODUCTION_APK_PATH" >> "$GITHUB_ENV"
+      - name: Verify Production-validation Release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          : "${PRODUCTION_APK_PATH:?Production APK path was not exported by the save step}"
+          test -f "$PRODUCTION_APK_PATH"
+          test -s "$PRODUCTION_APK_PATH"
+          if ! unzip -l "$PRODUCTION_APK_PATH" | grep -Eq 'assets/.*\.(bundle|hbc)'; then
+            echo "Production-validation APK does not contain a JavaScript bundle." >&2
+            exit 1
+          fi
+          bundle_entries=$(unzip -Z1 "$PRODUCTION_APK_PATH" | grep -E '^assets/.*\.(bundle|hbc)$')
+          test -n "$bundle_entries"
+          while IFS= read -r bundle_entry; do
+            if unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry" | grep -E -q '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService'; then
+              echo "Production-validation APK contains Automation/Test Control markers." >&2
+              exit 1
+            fi
+          done <<< "$bundle_entries"
+          ls -lh "$PRODUCTION_APK_PATH"
       - name: Upload Automation Release APK
         uses: actions/upload-artifact@v4
         with:
           name: native-android-apk-${{ github.run_id }}
-          path: android/app/build/outputs/apk/release/app-release.apk
+          path: ${{ runner.temp }}/native-apks/native-automation.apk
+          if-no-files-found: error
+          overwrite: true
+          retention-days: 3
+      - name: Upload Production-validation Release APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-android-production-apk-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-apks/native-production-validation.apk
           if-no-files-found: error
           overwrite: true
           retention-days: 3
@@ -313,6 +416,27 @@ jobs:
             echo "Gradle Release build log was not generated." \
               > "$RUNNER_TEMP/native-build-evidence/gradle-status.txt"
           fi
+          production_gradle_log="$RUNNER_TEMP/gradle-assemble-production-release.log"
+          if [[ -f "$production_gradle_log" ]]; then
+            if [[ "${NATIVE_ANDROID_BUILD_JOB_STATUS:-failure}" == "success" ]]; then
+              tail -n 200 "$production_gradle_log" \
+                > "$RUNNER_TEMP/native-build-evidence/gradle-assemble-production-release.log"
+            else
+              cp "$production_gradle_log" \
+                "$RUNNER_TEMP/native-build-evidence/gradle-assemble-production-release.log"
+            fi
+          else
+            echo "Gradle Production-validation build log was not generated." \
+              > "$RUNNER_TEMP/native-build-evidence/gradle-production-status.txt"
+          fi
+          production_bundle_log="$RUNNER_TEMP/gradle-create-bundle-production-release.log"
+          if [[ -f "$production_bundle_log" ]]; then
+            cp "$production_bundle_log" \
+              "$RUNNER_TEMP/native-build-evidence/gradle-create-bundle-production-release.log"
+          else
+            echo "Gradle Production-validation bundle log was not generated." \
+              > "$RUNNER_TEMP/native-build-evidence/gradle-create-bundle-production-status.txt"
+          fi
           if [[ -n "${APK_PATH:-}" && -f "$APK_PATH" ]]; then
             {
               echo "apk_path=$APK_PATH"
@@ -330,6 +454,17 @@ jobs:
           else
             echo "Automation Release APK was not generated." \
               > "$RUNNER_TEMP/native-build-evidence/apk-status.txt"
+          fi
+          if [[ -n "${PRODUCTION_APK_PATH:-}" && -f "$PRODUCTION_APK_PATH" ]]; then
+            {
+              echo "production_apk_path=$PRODUCTION_APK_PATH"
+              stat -c 'size_bytes=%s' "$PRODUCTION_APK_PATH"
+              file "$PRODUCTION_APK_PATH" || true
+              sha256sum "$PRODUCTION_APK_PATH" || true
+            } > "$RUNNER_TEMP/native-build-evidence/production-apk-metadata.txt"
+          else
+            echo "Production-validation APK was not generated." \
+              > "$RUNNER_TEMP/native-build-evidence/production-apk-status.txt"
           fi
       - uses: actions/upload-artifact@v4
         if: always()
@@ -486,6 +621,23 @@ jobs:
           fi
           ls -lh "$APK_PATH"
           echo "APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
+      - name: Download Production-validation Release APK
+        uses: actions/download-artifact@v4
+        with:
+          name: native-android-production-apk-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-production-apk
+      - name: Verify downloaded Production-validation Release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCTION_APK_PATH="$RUNNER_TEMP/native-production-apk/native-production-validation.apk"
+          test -f "$PRODUCTION_APK_PATH"
+          test -s "$PRODUCTION_APK_PATH"
+          if unzip -l "$PRODUCTION_APK_PATH" | grep -Eq '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService'; then
+            echo "Downloaded Production-validation APK contains Automation/Test Control markers." >&2
+            exit 1
+          fi
+          echo "PRODUCTION_APK_PATH=$PRODUCTION_APK_PATH" >> "$GITHUB_ENV"
       - name: Start Android Emulator with KVM
         shell: bash
         run: |
@@ -1049,8 +1201,66 @@ jobs:
             echo "result=FAIL"
           fi
           echo "exit_code=$flow_exit"
-          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          exit "$flow_exit"
+           echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+           exit "$flow_exit"
+      - name: Run Maestro Native Purchase flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          maestro test \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/purchase" \
+            --format junit \
+            --output "$RUNNER_TEMP/maestro-purchase.xml" \
+            "$GITHUB_WORKSPACE/maestro/native-purchase.yaml"
+      - name: Run Maestro Native Review flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          maestro test \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/review" \
+            --format junit \
+            --output "$RUNNER_TEMP/maestro-review.xml" \
+            "$GITHUB_WORKSPACE/maestro/native-review.yaml"
+      - name: Run Maestro Native Payment Retry flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          maestro test \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/payment-retry" \
+            --format junit \
+            --output "$RUNNER_TEMP/maestro-payment-retry.xml" \
+            "$GITHUB_WORKSPACE/maestro/native-payment-retry.yaml"
+      - name: Run Maestro Native Session Checkout Restart flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          maestro test \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/session-checkout-restart" \
+            --format junit \
+            --output "$RUNNER_TEMP/maestro-session-checkout-restart.xml" \
+            "$GITHUB_WORKSPACE/maestro/native-session-checkout-restart.yaml"
+      - name: Install and launch Production-validation APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_ID="com.ryuyoshikawa.scenarioshop"
+          timeout 30 "$ADB" shell am force-stop "$PACKAGE_ID" || true
+          timeout 30 "$ADB" shell pm clear "$PACKAGE_ID"
+          timeout 180 "$ADB" install -r "$PRODUCTION_APK_PATH"
+          timeout 15 "$ADB" shell pm path "$PACKAGE_ID" | grep -F 'package:'
+          timeout 30 "$ADB" shell monkey \
+            -p "$PACKAGE_ID" \
+            -c android.intent.category.LAUNCHER \
+            1
+      - name: Run Maestro Native Production-validation flow
+        shell: bash
+        run: |
+          set -euo pipefail
+          maestro test \
+            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/production-validation" \
+            --format junit \
+            --output "$RUNNER_TEMP/maestro-production-validation.xml" \
+            "$GITHUB_WORKSPACE/maestro/native-production-validation.yaml"
       - name: Collect Android evidence
         if: always()
         timeout-minutes: 3
@@ -1167,6 +1377,16 @@ jobs:
             echo "Automation Release APK was not downloaded." \
               > "$RUNNER_TEMP/native-runtime-evidence/apk-status.txt"
           fi
+          if [[ -n "${PRODUCTION_APK_PATH:-}" && -f "$PRODUCTION_APK_PATH" ]]; then
+            {
+              echo "production_apk_path=$PRODUCTION_APK_PATH"
+              stat -c 'size_bytes=%s' "$PRODUCTION_APK_PATH"
+              sha256sum "$PRODUCTION_APK_PATH" || true
+            } > "$RUNNER_TEMP/native-runtime-evidence/production-apk-metadata.txt"
+          else
+            echo "Production-validation APK was not downloaded." \
+              > "$RUNNER_TEMP/native-runtime-evidence/production-apk-status.txt"
+          fi
           if [[ -f "$RUNNER_TEMP/emulator-version.txt" ]]; then
             if ! cp "$RUNNER_TEMP/emulator-version.txt" \
               "$RUNNER_TEMP/native-runtime-evidence/emulator-version.txt"; then
@@ -1220,9 +1440,18 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
+  native-ios:
+    name: Native iOS CI
+    needs: detect
+    if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'
+    uses: ./.github/workflows/native-ios-ci.yml
+    with:
+      run_native: true
+
   verify:
     name: native-ci / verify
-    needs: [detect, native-static, production-bundle-guard, android-build, android-runtime]
+    needs:
+      [detect, native-static, production-bundle-guard, android-build, android-runtime, native-ios]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -1235,6 +1464,7 @@ jobs:
           PRODUCTION_RESULT: ${{ needs.production-bundle-guard.result }}
           ANDROID_BUILD_RESULT: ${{ needs.android-build.result }}
           ANDROID_RUNTIME_RESULT: ${{ needs.android-runtime.result }}
+          IOS_RESULT: ${{ needs.native-ios.result }}
         run: |
           test "$DETECT_RESULT" = success
           test -n "$NATIVE_CHANGED"
@@ -1247,10 +1477,12 @@ jobs:
             test "$PRODUCTION_RESULT" = success
             test "$ANDROID_BUILD_RESULT" = success
             test "$ANDROID_RUNTIME_RESULT" = success
+            test "$IOS_RESULT" = success
           else
             test "$STATIC_RESULT" = skipped
             test "$PRODUCTION_RESULT" = skipped
             test "$ANDROID_BUILD_RESULT" = skipped
             test "$ANDROID_RUNTIME_RESULT" = skipped
+            test "$IOS_RESULT" = skipped
           fi
           echo "All Native CI gates completed successfully."

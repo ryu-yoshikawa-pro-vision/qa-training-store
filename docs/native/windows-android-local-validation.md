@@ -440,6 +440,29 @@ foreach ($flow in @(
 - `native-low-stock.yaml`
 - `native-purchase-limit.yaml`
 
+### Gate 4: Customer Purchase／Review 2 Flow
+
+Phase 2後半の会員購入経路は、単体Flowを分けて実行する。各Flowは自分のSeed ScenarioをResetするため、前のFlowのアプリ状態を成功条件にしない。
+
+```powershell
+$runId = Get-Date -Format yyyyMMdd-HHmmss
+foreach ($flow in @(
+  'maestro/native-purchase.yaml',
+  'maestro/native-review.yaml'
+)) {
+  powershell -NoProfile -ExecutionPolicy Bypass `
+    -File scripts/native/windows/android-local.ps1 `
+    -Action Test `
+    -Flow $flow `
+    -RunId $runId
+  if ($LASTEXITCODE -ne 0) { break }
+}
+```
+
+`native-purchase.yaml` は regular customer のLogin、Cart確認、Address／Payment、Order成功、Orders一覧を確認する。`native-review.yaml` は `reviewable-orders` Scenarioで delivered Order ItemのReview投稿を確認する。購入Flowが失敗した場合はReview Flowへ進まず、最初のFailure Evidenceを調査する。
+
+Node `node:sqlite`のRepository／Application ContractがPASSしていても、Androidの実`expo-sqlite`、端末Install、Maestro操作をPASS扱いにしない。iOSはこのWindows Runbookの対象外であり、macOS Reusable WorkflowのBuild／Runtime結果を別に記録する。
+
 ### Setup から Gate 1 まで一括
 
 ```powershell
@@ -538,3 +561,9 @@ AI エージェントは次に従う。
 - 証跡保存
 
 Build 成功だけでは Native 実機検証完了ではない。
+
+### 9.1 2026-08-08 現行ソースの完了例
+
+現行ソースでProductionを検証する場合は、Automation APKとProduction APKを混同しない。Production envで`:app:createBundleReleaseJsAndAssets --rerun-tasks`だけを実行した後、通常の`:app:assembleRelease --build-cache --parallel`を実行し、APK内のJS bundle、ABI、Automation／Harness／Test Control marker不在を確認する。続いてProduction APKを実機へInstallし、Smokeと`maestro/native-production-validation.yaml`を実行する。
+
+今回の証跡は`.artifacts/native-local/20260808-221600-android-current-production-targeted/`、Install／Smoke／Maestroはそれぞれ`20260808-222000`〜`20260808-222300`である。iOS Simulator／Remote CIの結果はこのWindows RunbookのPASSには含めない。

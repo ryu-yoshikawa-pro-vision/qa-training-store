@@ -47,6 +47,10 @@ jest.mock("@/infrastructure/session/native-stores", () => ({
   },
 }));
 
+jest.mock("@/infrastructure/security/password-hasher.native", () => ({
+  NativePbkdf2PasswordHasher: class {},
+}));
+
 describe("Native runtime database cleanup", () => {
   beforeEach(() => {
     jest.clearAllMocks();

@@ -2,21 +2,28 @@ import type { SQLiteDatabase } from "expo-sqlite";
 import { GuestActorResolver } from "@/application/identity/guest-actor-resolver";
 import { CatalogUseCases } from "@/application/use-cases/catalog-use-cases";
 import { CartUseCases } from "@/application/use-cases/cart-use-cases";
-import {
-  createNativeCustomerCatalogGateway,
-  createNativeCustomerCartGateway,
-} from "@/application/native/guest-storefront";
+import { AuthUseCases } from "@/application/use-cases/auth-use-cases";
+import { AccountUseCases } from "@/application/use-cases/account-use-cases";
+import { CheckoutOrderUseCases } from "@/application/use-cases/checkout-order-use-cases";
+import { CustomerReviewUseCases } from "@/application/use-cases/review-user-use-cases";
+import { createNativeCustomerCatalogGateway } from "@/application/native/guest-storefront";
 import { NativePersistedClock } from "@/infrastructure/clock/native-clock";
 import { NativeIdGenerator } from "@/infrastructure/id-generator/native-id-generator";
 import {
   NativeCurrentSessionStore,
   NativeGuestIdentityStore,
   NativeKeyValueStore,
+  NATIVE_PAYMENT_DELAY_KEY,
 } from "@/infrastructure/session/native-stores";
 import { NativeCustomerSQLiteRepository } from "@/infrastructure/database/sqlite/native-customer-repositories";
+import { createNativeCustomerApplicationRepositories } from "@/infrastructure/database/sqlite/native-customer-application-repositories";
 import { openNativeCustomerDatabase } from "@/infrastructure/database/sqlite/database";
 import { ensureNativeSeed, resolveNativeScenario } from "@/infrastructure/database/sqlite/seed";
-import { DEFAULT_GUEST_ID } from "@/seeds/metadata";
+import { DEFAULT_GUEST_ID, DEFAULT_PAYMENT_DELAY_MS } from "@/seeds/metadata";
+import { DefaultEmailNormalizer } from "@/infrastructure/normalization/normalizers";
+import { NativePbkdf2PasswordHasher } from "@/infrastructure/security/password-hasher.native";
+import { BundledStaticAddressLookup } from "@/infrastructure/address-lookup/static-address-lookup";
+import { MockPaymentGateway } from "@/infrastructure/payment/mock-payment-gateway";
 
 export interface NativeCatalogService {
   getHome: CatalogUseCases["getHome"];
@@ -34,7 +41,23 @@ export interface NativeCartService {
 
 export interface NativeApplicationServices {
   catalog: NativeCatalogService;
-  cart: NativeCartService;
+  auth: Pick<AuthUseCases, "login" | "register" | "logout" | "getCurrentUser">;
+  account: Pick<
+    AccountUseCases,
+    | "getProfile"
+    | "updateProfile"
+    | "listAddresses"
+    | "createAddress"
+    | "updateAddress"
+    | "deleteAddress"
+    | "suggestAddress"
+  >;
+  cart: Pick<
+    CartUseCases,
+    "getCart" | "addItem" | "updateQuantity" | "removeItem" | "acceptPriceChanges"
+  >;
+  checkout: CheckoutOrderUseCases;
+  reviews: CustomerReviewUseCases;
   database: SQLiteDatabase;
   storage: NativeKeyValueStore;
   clock: NativePersistedClock;
@@ -76,7 +99,15 @@ async function createNativeRuntimeServices(
   const idGenerator = new NativeIdGenerator();
   const currentSessionStore = new NativeCurrentSessionStore(storage);
   const guestIdentityStore = new NativeGuestIdentityStore(idGenerator, storage, DEFAULT_GUEST_ID);
-  const repository = new NativeCustomerSQLiteRepository(database);
+  const storefrontRepository = new NativeCustomerSQLiteRepository(database);
+  const repositories = createNativeCustomerApplicationRepositories(database);
+  const passwordHasher = new NativePbkdf2PasswordHasher();
+  const emailNormalizer = new DefaultEmailNormalizer();
+  const paymentGateway = new MockPaymentGateway(async () => {
+    const raw = await storage.get(NATIVE_PAYMENT_DELAY_KEY);
+    const parsed = Number(raw ?? DEFAULT_PAYMENT_DELAY_MS);
+    return Number.isFinite(parsed) ? parsed : DEFAULT_PAYMENT_DELAY_MS;
+  });
   const actor = new GuestActorResolver();
   const persistedSessionId = await currentSessionStore.getSessionId();
   if (persistedSessionId !== null) {
@@ -100,15 +131,63 @@ async function createNativeRuntimeServices(
   await guestIdentityStore.getOrCreateGuestId();
   const catalogUseCases = new CatalogUseCases({
     identity: actor,
-    customerGateway: createNativeCustomerCatalogGateway(repository),
+    customerGateway: createNativeCustomerCatalogGateway(storefrontRepository),
     clock,
   });
+  const authUseCases = new AuthUseCases({
+    users: repositories.users,
+    sessions: repositories.sessions,
+    transactionRunner: repositories.transactionRunner,
+    currentSessionStore,
+    guestIdentityStore,
+    emailNormalizer,
+    passwordHasher,
+    clock,
+    idGenerator,
+  });
+  const accountUseCases = new AccountUseCases({
+    users: repositories.users,
+    sessions: repositories.sessions,
+    addresses: repositories.addresses,
+    currentSessionStore,
+    clock,
+    idGenerator,
+    addressLookup: new BundledStaticAddressLookup(),
+  });
   const cartUseCases = new CartUseCases({
-    identity: actor,
-    customerGateway: createNativeCustomerCartGateway(repository),
+    users: repositories.users,
+    sessions: repositories.sessions,
+    carts: repositories.carts,
+    transactionRunner: repositories.transactionRunner,
+    currentSessionStore,
     guestIdentityStore,
     idGenerator,
     clock,
+  });
+  const checkoutUseCases = new CheckoutOrderUseCases({
+    users: repositories.users,
+    sessions: repositories.sessions,
+    carts: repositories.carts,
+    checkouts: repositories.checkouts,
+    orders: repositories.orders,
+    payments: repositories.payments,
+    reviews: repositories.reviews,
+    transactionRunner: repositories.transactionRunner,
+    currentSessionStore,
+    paymentGateway,
+    clock,
+    idGenerator,
+  });
+  const reviewUseCases = new CustomerReviewUseCases({
+    users: repositories.users,
+    sessions: repositories.sessions,
+    reviews: repositories.reviews,
+    orders: repositories.orders,
+    productRecords: repositories.products,
+    transactionRunner: repositories.transactionRunner,
+    currentSessionStore,
+    clock,
+    idGenerator,
   });
   return {
     catalog: {
@@ -122,7 +201,25 @@ async function createNativeRuntimeServices(
       addItem: (request) => cartUseCases.addItem(request),
       updateQuantity: (request) => cartUseCases.updateQuantity(request),
       removeItem: (request) => cartUseCases.removeItem(request),
+      acceptPriceChanges: (request) => cartUseCases.acceptPriceChanges(request),
     },
+    auth: {
+      login: (request) => authUseCases.login(request),
+      register: (request) => authUseCases.register(request),
+      logout: () => authUseCases.logout(),
+      getCurrentUser: () => authUseCases.getCurrentUser(),
+    },
+    account: {
+      getProfile: () => accountUseCases.getProfile(),
+      updateProfile: (request) => accountUseCases.updateProfile(request),
+      listAddresses: () => accountUseCases.listAddresses(),
+      createAddress: (request) => accountUseCases.createAddress(request),
+      updateAddress: (request) => accountUseCases.updateAddress(request),
+      deleteAddress: (request) => accountUseCases.deleteAddress(request),
+      suggestAddress: (postalCode) => accountUseCases.suggestAddress(postalCode),
+    },
+    checkout: checkoutUseCases,
+    reviews: reviewUseCases,
     database,
     storage,
     clock,

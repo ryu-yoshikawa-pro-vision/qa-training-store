@@ -152,19 +152,28 @@ describe("Native contract harness isolation", () => {
   });
 
   it("emits failed after contract failure and never emits passed", async () => {
+    const calls: string[] = [];
     await expect(
       withNativeContractHarness(
         {
           closeDatabase: () => undefined,
           deleteDatabase: () => undefined,
           removeKvKey: async () => undefined,
+          verifyApplicationDatabase: async () => {
+            calls.push("verify-application-db");
+          },
+          verifyPasswordHashing: async () => {
+            calls.push("verify-password-hashing");
+          },
         },
         async () => {
+          calls.push("contract");
           throw new Error("contract failed");
         },
         "runtime-contract-failed",
       ),
     ).rejects.toThrow("contract failed");
+    expect(calls).toEqual(["contract", "verify-application-db"]);
     expect(signalMock.mock.calls.map(([name]) => name)).toEqual([
       "native-contract-running",
       "native-contract-failed",

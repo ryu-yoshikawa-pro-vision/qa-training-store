@@ -2,7 +2,7 @@ import type { ConfigContext, ExpoConfig } from "expo/config";
 
 const APP_VERSION = "0.1.0";
 const WEB_DATABASE_SCHEMA_VERSION = 1;
-const NATIVE_DATABASE_SCHEMA_VERSION = 1;
+const NATIVE_DATABASE_SCHEMA_VERSION = 2;
 const SEED_VERSION = 11;
 const IMAGE_MANIFEST_VERSION = 1;
 const SCHEMA_VERSION = WEB_DATABASE_SCHEMA_VERSION;

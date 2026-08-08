@@ -512,3 +512,46 @@ EAS Cloud Build／Workflow成果物、iOS署名済みIPA、TestFlight／App Stor
 物理iPhone、iOS実機署名、Provisioning Profile、IPA、TestFlight、App Store、Self-hosted Mac、EAS Cloud Build／Workflow／SubmitはPhase 2最終完了判定に含めません。
 
 Phase 2完了後もPhase 3へ自動で進みません。最終報告でPhase 3候補、優先度、依存関係を提示して停止します。
+
+## 11. 現行Runの判定（2026-08-08）
+
+- コード、Unit／Integration／Repository／Web／Native Component／Contract、Typecheck、Lint、Security、Web Build、Native Production Bundle Guard、Workflow Contract、Android現行ソースの実機検証は完了した。
+- Androidでは購入系Maestro、Payment retry、Session／Checkout restart、Review、Runtime／Boundary、Production validationを実行済みである。
+- iOS SimulatorのBuild／Install／Maestro／実`expo-sqlite` Harnessと、GitHub-hosted Remote Native CI／最新Headの`native-ci / verify`は、Windows・未push条件のため未実施である。これらをPASSに繰り上げず、Phase 2最終DoDはpendingとする。
+- 次の実行では、`native-ios-ci.yml`のBuild／Runtime／Production Artifact、iOS主要Flow、実`expo-sqlite` Harness、Production marker、親WorkflowのAndroid／iOS独立結果、最終`native-ci / verify`を同一Headで確認する。
+
+## 12. Phase 3／後続課題
+
+| 優先度 | 課題 | 依存関係／開始条件 |
+|---|---|---|
+| High | Payment timeout／unknown、再conciliation、キャンセル・返品・返金、Audit Log | Backend／決済状態機械と運用契約を先に確定する |
+| High | Native AdminとCustomer以外の管理操作 | Admin Capability、Role／権限境界、監査要件を別計画で定義する |
+| Medium | Password変更、退会、Guest Checkout、Orderの追加ライフサイクル | Phase 2 Customer購入契約の拡張方針とData retentionを確定する |
+| Medium | Migration Recovery、Crash Point、Integrity Check、DB復旧 | Store公開前の永続化・障害復旧方針とテスト環境を用意する |
+| Low | Public Demo分離、Visual Regression本格導入、Release／Store運用 | デザイン基準、公開環境、署名・配布責務を別途承認する |
+
+物理端末署名、IPA、TestFlight／App Store、EAS Cloud実行はPhase 2の完了条件にも、この一覧の実装済み成果にも含めない。必要になった時点で、別のRelease／Distribution計画として扱う。
+
+## 13. 2026-08-08 現行ソースPostfix検証
+
+- `maestro/native-purchase.yaml`はGuest状態で商品を追加し、Cart数量1を確認してからLoginし、既存会員Cartとの統合後数量2を確認する導線へ修正した。Android実機でCheckout成功まで1/1を確認した。
+- Native ShellはAppStateが`active`へ戻った時にAuth Sessionを再読込し、Login後Checkout fallbackは既知のCheckout状態ErrorだけをGuest／Home fallbackとして扱う。Unexpected Storage Errorは画面へ返す。Profile初期化失敗はloading固定ではなくRetry可能なError Stateへ変更した。
+- Native Detectは`src/presentation/return-to.ts`と、Native Runtimeが参照するnormalizer／static address lookup／Mock Payment Gatewayを監視対象へ追加した。
+- iOS Workflowは`ios-build`でAutomation／Productionのunsigned Release Simulator Appを生成し、Runtimeが両Artifactを受け取る。各Runtime Metadataを`expo config --json`で`automation / automation / true`または`production / production / false`として検査する。WindowsではiOS実RuntimeとRemote CIは未確認のため、Gate E／F／Gの最終判定はpendingである。
+
+## 14. 2026-08-09 最終回帰と現行Production
+
+- `pnpm run test`、Typecheck、Lint、Security、Route／EAS／Image validation、Web BuildはPASSした。Native Componentは33 tests、Contractは154 testsである。
+- `PLAYWRIGHT_USE_PREBUILT_DIST=true pnpm run test:e2e`はChromium 27/27 PASSした。
+- 現行ソースのAndroid Production APKは短縮Workspace条件でBuild、marker guard、Install／Smoke、`native-production-validation.yaml` 1/1をPASSした。iOS Simulator、実`expo-sqlite` Harness、Remote `native-ci / verify`はWindows／未push条件で未実行のため、Phase 2 final DoDはpendingである。
+
+## 15. 2026-08-09 最終自己レビュー追補
+
+- SQLite mapper／Customer Application Repositoryの外部値をRuntime parserへ統一し、列欠落、不正Enum、不正数値をfail-closeする境界を固定した。Native Transaction RunnerはCustomer Scope allowlistとfail-closed Admin placeholderを使い、型アサーションによるCapability境界の迂回を除去した。
+- Native Purchase画面の残存型アサーションを除去した。Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158、Typecheck、focused Repository Contract 13件はPASSした。
+- iOS Workflow／Native CIの静的契約は、Build／Runtime Artifact分離、unsigned Release Simulator、主要購入Flow、実`expo-sqlite` Harness経路、Production-validation、Evidence、Native変更なし時Skip、final fail-closeを満たす。WindowsではiOS実Runtime、Remote Android／iOS CI、最新Headの`native-ci / verify`が未実行で、Phase 2 final DoDはpendingとする。
+
+## 16. 2026-08-09 Quality Gate追補
+
+- 既存BaselineのPhase 1 CI Workflow／ContractをPrettierで意味変更なしに整形し、`pnpm run format:check`と現行`pnpm run verify`をPASSへ更新した。
+- `pnpm run verify`はLint 0 errors／63 warnings、全Test、Security、Image Manifest、Web export 2294 modulesをPASSした。残る未達はWindowsで実行できないiOS実Runtimeと、未push条件のRemote Native CIである。

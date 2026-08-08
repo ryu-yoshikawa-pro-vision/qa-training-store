@@ -653,3 +653,10 @@ Cloudflare DeployはNative Buildへ依存させません。
 - iOS物理端末、署名、Provisioning Profile、IPA、TestFlight、App Store、Self-hosted Mac、Device FarmはPhase 2対象外とする。
 - EAS Profile／Workflowは静的契約として維持するが、EAS Cloud Build／Workflow／SubmitをPhase 2 DoDに含めない。
 - 実装時に`.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、CI Contract Test、Maestro Flow、関連文書をこの方針へ整合させる。
+
+## 13. 現行実装・検証状態（2026-08-08）
+
+- Native CustomerのLogin／Session、Guest Cart統合、Profile／Address、Checkout／Mock Payment、Order、Review、購入系Test Control／Contract Harnessを実装した。
+- Androidは現行ソースでRelease Build、実機Install／Smoke、購入／Payment retry／Checkout restart／Review、Runtime／Boundary、Production validationを確認した。
+- iOSはmacOS GitHub Actions用のReusable WorkflowとしてBuild／Runtime／実`expo-sqlite` Harness／Production validationを定義し、親`native-ci`の独立Jobとfail-close verifyへ接続した。ただしWindows環境ではiOS Simulatorを実行できず、Remote CIも未pushのため結果未取得である。
+- コード／静的検証／ローカルAndroid検証は完了、iOS／Remote Native Gateは未実施。したがってPhase 2全体の完了判定は保留し、次の実行者はmacOS／GitHub-hosted環境でiOS Workflowと最新Headの`native-ci / verify`を実行する。

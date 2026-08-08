@@ -1,5 +1,10 @@
 import { ApplicationError } from "@/application/errors";
-import { NATIVE_FOUNDATION_SCENARIOS, isNativeFoundationScenario } from "@/seeds/metadata";
+import {
+  NATIVE_CUSTOMER_SCENARIOS,
+  NATIVE_FOUNDATION_SCENARIOS,
+  isNativeCustomerScenario,
+  isNativeFoundationScenario,
+} from "@/seeds/metadata";
 import {
   defaultNativeTestControlRequest,
   isNativeTestControlBuild,
@@ -23,6 +28,21 @@ describe("native Test Control protocol", () => {
     ]);
     expect(isNativeFoundationScenario("regular-member")).toBe(false);
     expect(isNativeFoundationScenario("admin-bulk-partial-failure")).toBe(false);
+    expect(NATIVE_CUSTOMER_SCENARIOS).toEqual(
+      expect.arrayContaining([
+        "regular-member",
+        "suspended-user",
+        "withdrawn-user",
+        "checkout-resume",
+        "payment-declined",
+        "payment-processing",
+        "reviewable-orders",
+        "orders-empty",
+        "reviews-empty",
+      ]),
+    );
+    expect(isNativeCustomerScenario("regular-member")).toBe(true);
+    expect(isNativeCustomerScenario("admin-bulk-partial-failure")).toBe(false);
   });
 
   it("enables only local and automation builds", () => {
@@ -78,10 +98,6 @@ describe("native Test Control protocol", () => {
     ],
     [
       { version: 1, scenario: "unknown", clock: null, paymentDelayMs: 0 },
-      "testControl.scenario.invalid",
-    ],
-    [
-      { version: 1, scenario: "regular-member", clock: null, paymentDelayMs: 0 },
       "testControl.scenario.invalid",
     ],
     [

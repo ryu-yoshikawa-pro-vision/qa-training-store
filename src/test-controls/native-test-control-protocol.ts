@@ -2,8 +2,8 @@ import { ApplicationError, validationError } from "@/application/errors";
 import {
   BASE_CLOCK,
   DEFAULT_PAYMENT_DELAY_MS,
-  isNativeFoundationScenario,
-  type NativeFoundationScenario,
+  isNativeCustomerScenario,
+  type NativeCustomerScenario,
 } from "@/seeds/metadata";
 
 export const NATIVE_TEST_CONTROL_PROTOCOL_VERSION = 1;
@@ -82,7 +82,7 @@ export function validateNativeTestControlRequest(input: NativeTestControlResetRe
   if (input.version !== NATIVE_TEST_CONTROL_PROTOCOL_VERSION) {
     throw validationError("testControl.version.invalid");
   }
-  if (!isNativeFoundationScenario(input.scenario)) {
+  if (!isNativeCustomerScenario(input.scenario)) {
     throw validationError("testControl.scenario.invalid", {
       scenario: "testControl.scenario.invalid",
     });
@@ -122,8 +122,8 @@ export function nativeResetDefaultClock(clock: string | null): string {
   return clock ?? BASE_CLOCK;
 }
 
-export function isNativeFoundationScenarioValue(value: string): value is NativeFoundationScenario {
-  return isNativeFoundationScenario(value);
+export function isNativeCustomerScenarioValue(value: string): value is NativeCustomerScenario {
+  return isNativeCustomerScenario(value);
 }
 
 export function isNativeTestControlConflict(error: unknown): boolean {

@@ -283,4 +283,31 @@ describe("auth and account application integration", () => {
       updatedAt: FIXED_TIME,
     });
   });
+
+  it("keeps management roles out of customer profile operations", async () => {
+    await database.sessions.add({
+      id: "session-admin-profile",
+      userId: "user-admin",
+      createdAt: FIXED_TIME,
+    });
+    sessionStore.value = "session-admin-profile";
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator([]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+
+    await expect(account.getProfile()).rejects.toMatchObject({
+      messageKey: "account.customerOnly",
+    });
+    await expect(
+      account.updateProfile({
+        displayName: "不正な更新",
+        phone: null,
+        actionVersion: 1,
+      }),
+    ).rejects.toMatchObject({ messageKey: "account.customerOnly" });
+  });
 });

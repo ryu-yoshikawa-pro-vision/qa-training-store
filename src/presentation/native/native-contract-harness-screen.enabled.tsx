@@ -51,7 +51,7 @@ export function NativeContractHarnessScreen() {
       <Text style={styles.heading}>Native Contract Harness</Text>
       <Text style={styles.body}>
         Automation／Development Build専用です。専用SQLite／KV namespaceでCustomer
-        Contract、FK、Cart操作とApplication DB不変確認を実行します。
+        Auth、Cart統合、Checkout、Order、Review、FKとApplication DB不変確認を実行します。
       </Text>
       <Text
         accessibilityRole="text"
