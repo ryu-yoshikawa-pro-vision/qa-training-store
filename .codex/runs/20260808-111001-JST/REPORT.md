@@ -261,7 +261,52 @@
   - `pnpm exec vitest run tests/contracts/ci-workflow.test.ts tests/contracts/native-ci-workflow.test.ts tests/contracts/native-test-control-maestro.test.ts --no-file-parallelism --maxWorkers=1` => 3 files / 52 tests passed。
   - `node -e "const fs = require('node:fs'); JSON.parse(fs.readFileSync('.codex/runs/20260808-111001-JST/run.json', 'utf8')); console.log('run.json JSON parse OK');"` => pass。
   - Current Run checkbox count => 20 total / 20 done。REPORT final Progress => `100% (20/20)`。
-  - `run.json` malformed YAML command scan => pass。過去REPORT内の旧記録文字列はappend-onlyのため保持し、訂正を後続記録へ追加した。
-  - 対象計画書の`fail-closin` scan => pass。
+- `run.json` malformed YAML command scan => pass。過去REPORT内の旧記録文字列はappend-onlyのため保持し、訂正を後続記録へ追加した。
+- 対象計画書の`fail-closin` scan => pass。
 - Remaining: Remote CIのみユーザーpush後に確認が必要。
 - Progress: 100% (20/20)
+
+## 2026-08-08 14:58 JST — PR #11 最終修正指示の事実整合性訂正
+
+- Summary: 再レビューで指摘されたCurrent RunとLiving Documentationの3件だけを、既存履歴を保持したまま修正した。
+- Input findings / triage:
+  - `must_fix`: `run.json.validation.commands`の実行不能なYAML疑似コマンド、`docs/PROJECT_CONTEXT.md`の既存`## メモ`欠落、14:04 JST時点のREPORT Progress不整合。
+  - `defer`: CodeRabbit等のActions SHA pinning、Build Tools env化、CI topology、Native／Maestro／Production変更、Remote CI確認。今回の指示対象外のため追加実装しない。
+- Repair plan / allowed files:
+  - `run.json`から無効な`node -e yaml.parse(...)`記録だけを削除し、実行済みの`fs.readFileSync`＋`yaml.parse`コマンドを維持した。
+  - `PROJECT_CONTEXT.md`のCI並列Workflow最適化節を維持し、既存`## メモ`を意味変更なしで復元した。
+  - REPORT末尾へProgressの事実訂正をappend-onlyで追記した。
+  - 許可範囲は`docs/PROJECT_CONTEXT.md`、Current Runの`PLAN.md`／`REPORT.md`／`run.json`に限定した。TASKSは変更していない。
+- Progress correction:
+  - 14:04 JSTの記録ではTask 21・22が完了済みであり、正しい値は`Progress: 76% (22/29)`である。既存の`Progress: 69% (20/29)`は誤記として残し、今回の訂正文で訂正した。
+  - Task 23〜28は14:11 JSTの記録までに完了していたことは確認できるが、各タスク個別の正確な完了時刻は当時記録していない。そのため時刻の後付けは行わない。
+  - Task 23〜28の`79% (23/29)`、`83% (24/29)`、`86% (25/29)`、`90% (26/29)`、`93% (27/29)`、`97% (28/29)`およびTask 29の`100% (29/29)`は、現在のTASKSから復元できるProgressの論理値であり、当時その時刻に実際に記録した値ではない。
+- Append-only contract: 過去REPORTの行、時刻、誤ったProgress値は削除・書換え・並替えしていない。
+- Remaining: 検証完了後に最終Sanitizerを実行する。
+- Progress: 100% (29/29)
+
+## 2026-08-08 14:59 JST — 最終修正の検証結果
+
+- Validation:
+  - `pnpm run lint:markdown` => exit 0、0 issues。
+  - `pnpm exec prettier --check docs/PROJECT_CONTEXT.md .codex/runs/20260808-111001-JST/REPORT.md` => exit 0、対象ファイルはPrettier準拠。
+  - `node -e "const fs=require('node:fs'); JSON.parse(fs.readFileSync('.codex/runs/20260808-111001-JST/run.json','utf8')); JSON.parse(fs.readFileSync('.codex/runs/20260808-111001-JST/evaluation.json','utf8')); console.log('JSON parse OK');"` => exit 0。
+  - `python -X utf8 -m jsonschema -i .codex/runs/20260808-111001-JST/evaluation.json .codex/templates/evaluation.schema.json` => exit 0（CLI deprecation warningのみ）。
+  - 実行可能な`fs.readFileSync`＋`yaml.parse`コマンドで`.github/workflows/native-ci.yml`／`.github/workflows/ci.yml`を検証 => exit 0、両Workflowのjobs parse成功。
+  - 整合性確認 => `run.json`の無効なYAML疑似コマンド0件、実行可能なYAMLコマンド1件、TASKS 29/29、REPORT最終Progress `100% (29/29)`、PROJECT_CONTEXTの`## メモ`復元を確認。
+- Remaining delta: 今回の3件についてなし。最終Sanitizerのみ未実行。
+- Decision: `stop_success`（最終Sanitizer Write/Check後に完了）。
+- Progress: 100% (29/29)
+
+## 2026-08-08 15:00 JST — 最終Sanitizer Write/Check
+
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-111001-JST -Write -Check` => exit 0。
+- 結果: `files_scanned=5`、`files_changed=0`、`replacements_total=0`、`residual_findings=0`。
+- REPORT追記後の状態を確定するため、同じSanitizerをこの追記後に再実行する。
+- Progress: 100% (29/29)
+
+## 2026-08-08 15:01 JST — Sanitizer再実行（最終）
+
+- REPORT追記後に同じSanitizerを再実行した結果、exit 0、`files_scanned=5`、`files_changed=0`、`replacements_total=0`、`residual_findings=0`だった。
+- Remaining delta: なし。今回の最終修正指示に対するrepair loopを`stop_success`で終了する。
+- Progress: 100% (29/29)

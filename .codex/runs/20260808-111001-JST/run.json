@@ -50,8 +50,7 @@
       "pnpm run lint (current iteration) => exit 0; 0 errors / 64 warnings",
       "pnpm run typecheck (current iteration) => exit 0",
       "pnpm exec prettier --check .github/workflows/native-ci.yml .github/workflows/ci.yml tests/contracts/ci-workflow.test.ts tests/contracts/native-ci-workflow.test.ts tests/contracts/native-test-control-maestro.test.ts docs/plans/2026-08-08_114733_ci-parallel-workflow-topology.md docs/plans/2026-08-08_125146_pr11-repair.md => exit 0",
-      "node -e yaml.parse(.github/workflows/ci.yml,.github/workflows/native-ci.yml) (current iteration) => exit 0; jobs parsed",
-      "python -X utf8 -m jsonschema -i .codex/runs/20260808-111001-JST/evaluation.json .codex/templates/evaluation.schema.json => exit 0; CLI deprecation warning only",
+    "python -X utf8 -m jsonschema -i .codex/runs/20260808-111001-JST/evaluation.json .codex/templates/evaluation.schema.json => exit 0; CLI deprecation warning only",
       "pnpm run format:check (current iteration) => exit 1; 25 existing files",
       "pnpm run verify (current iteration) => exit 1; stopped at format:check",
       "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-111001-JST -Write -Check (final) => exit 0; files_scanned=5; files_changed=0; replacements_total=0; residual_findings=0"

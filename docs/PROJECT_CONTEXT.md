@@ -238,3 +238,8 @@
 - APKは`native-android-apk-${{ github.run_id }}`（`overwrite: true`、`retention-days: 3`）としてUpload→Downloadで受け渡す。Maestro Runtime/Smoke 5 Flow（test-control／contract-harness／not-found／storefront／cart）はRuntime job内の独立Stepへ分離する。
 - Native未変更PRではNative固有jobをskipし、final `verify`は`detect`の`native_changed`出力を正本に、trueなら全Job success必須（fail-closed）、falseなら全skipを成功扱いとする。
 - 構造契約は`tests/contracts/ci-workflow.test.ts`／`tests/contracts/native-ci-workflow.test.ts`に固定し、`tests/contracts/native-test-control-maestro.test.ts`はCRLF checkout環境でも契約検証できるよう読み取り時にLFへ正規化する（maestro・workflowファイルは`* text=auto`＋Windows autocrlfでCRLFになるため）。
+
+## メモ
+
+- この文書はプロジェクト固有の実態に合わせて上書きしてよい。
+- 標準経路は host 上の `codex-safe` / `codex-task --run-id <run_id>`。Docker sandbox は experimental かつ opt-in。

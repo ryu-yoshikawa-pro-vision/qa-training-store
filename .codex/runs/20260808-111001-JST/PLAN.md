@@ -156,3 +156,29 @@ Run Artifactはsource scope比較から除外する既存規約に従う。scope
 - Strict必須のPLAN／TASKS／REPORT／run.json／evaluationとscope metadataが揃い、manifest summaryが実体と一致する。
 - validation failureとprimary failure categoryがtaxonomy・evaluation・manifestで説明可能な形に揃う。
 - 指定検証、対象Prettier、YAML parse、Sanitizerの結果を事実どおり記録する。
+
+## PR #11 最終修正 Iteration 3（2026-08-08）— Run Artifact事実整合性
+
+### Input findings / triage
+
+- `must_fix`: `run.json.validation.commands`に残る実行不能なYAML疑似コマンド、`PROJECT_CONTEXT.md`から欠落した既存`## メモ`、REPORTの14:04時点Progress不整合。
+- `defer`: CodeRabbit等のActions SHA pinning、Build Tools env化、CI／Maestro／Production変更、Remote CI確認。今回の最終修正指示の対象外であり、追加実装しない。
+
+### Allowed files
+
+- `docs/PROJECT_CONTEXT.md`
+- `.codex/runs/20260808-111001-JST/PLAN.md`
+- `.codex/runs/20260808-111001-JST/REPORT.md`
+- `.codex/runs/20260808-111001-JST/run.json`
+
+### Repair plan
+
+1. `run.json.validation.commands`から無効な`node -e yaml.parse(...)`文字列だけを削除し、実行済みの`fs.readFileSync`＋`yaml.parse`コマンドは保持する。
+2. `CI並列Workflow最適化（2026-08-08）`節を維持したまま、既存の`## メモ`節を意味変更なしで復元する。
+3. REPORT末尾へ、14:04時点の`20/29`誤記を`Progress: 76% (22/29)`へ訂正し、Task 23〜28の個別時刻を後付けしない事実をappend-onlyで記録する。
+
+### Stop condition / Definition of Done
+
+- 指示された4ファイル以外を変更しない。
+- `run.json`／`evaluation.json`のJSON parse、evaluation schema、Markdown lint、対象Prettier、YAML parse、最終Sanitizerが成功する。
+- TASKSは既存の29/29完了を維持し、REPORT末尾Progressは`100% (29/29)`とする。
