@@ -14,7 +14,7 @@
 - PlaywrightでWeb UIテストを設計・実装・実行できる。
 - MaestroでNative UIテストを設計・実装・実行できる。
 - Trace、Screenshot、Video、JUnitなどの実行結果から失敗原因を分析できる。
-- テストが増えた運用フェーズで、Helper、Page Object Model、Fixture、Flow、Scenarioなどを選択肢として使い分けられる。
+- テストが増えた運用フェーズで、Helper、Page Object Model、Fixture、Automation Flow、Seed Scenarioなどを選択肢として使い分けられる。
 - テスト資産を整理し、Flaky Test、重複、実行時間、保守性を改善できる。
 
 ### Part 2: 開発プロセスへの組み込みと実務導入
@@ -55,9 +55,9 @@
 - Scenario Shop Web / Nativeアプリ
 - `src/seeds/metadata.ts` のSeed Scenario
 - `e2e/web/` のPlaywright E2E
-- `e2e/web/fixtures.ts` の共通処理とScenario制御
+- `e2e/web/fixtures.ts` の共通処理とSeed Scenario制御
 - `playwright.config.ts` のProject、Reporter、Artifact設定
-- `maestro/` のNative Flow
+- `maestro/` のMaestro Flow
 - `.github/workflows/ci.yml` のWeb CI/CD
 - `.github/workflows/native-ci.yml` のAndroid Build / Runtime / Maestro
 - `.github/workflows/native-ios-ci.yml` のiOS Simulator / Maestro
@@ -72,13 +72,14 @@
 3. テスト分析・設計はスプレッドシートを基本教材とします。
 4. PlaywrightのSyntax暗記ではなく、テスト条件からコードへ落とす流れを重視します。
 5. MaestroはPlaywrightの後に学び、WebとNativeの共通点・相違点を理解します。
-6. Helper、POM、Fixture、Flow、Scenarioは最初から正解として教えません。
+6. Helper、POM、Fixture、Automation Flow、Seed Scenarioは最初から正解として教えません。
 7. まず自動テストを複数実装し、運用上の問題を体験した後に保守・管理手法として学びます。
 8. POMは必須パターンではなく、保守上の問題を解決する選択肢の一つとして扱います。
 9. Part 2ではGit/GitHub自体を目的化せず、一般的な開発プロセスと自動テストの接続を学びます。
 10. 最終演習では完成済みのCI構成を先に正解として見せず、自分で設計した後に現在のRepositoryと比較します。
 11. 教材実装では、学習用の変更が現在のRegression Suiteや本番向けCI/CDへ意図せず混入しない境界を用意します。
 12. 学習者がRepositoryへ直接Pushできることを前提にせず、Part 2ではForkや演習用Copyを利用できる構成にします。
+13. Part 1をZIPなどGit管理されていないCopyで進めた受講者は、Part 2開始時にGit Historyを持つ同じ `qa-training-store` の演習用Copyへ成果物を引き継ぎます。
 
 ## 全体構成
 
@@ -112,9 +113,11 @@
 
 ## Part 1とPart 2を分ける理由
 
-Part 1はGitHubアカウントやCI環境がなくても進められるようにします。Autify、MagicPodなどのノーコード・ローコード自動化経験者も、テスト対象分析、テスト設計、Scenario、Action、Assertion、Test Dataといった共通概念からコードベースの自動化へ移行できます。
+Part 1はGitHubアカウントやCI環境がなくても進められるようにします。Autify、MagicPodなどのノーコード・ローコード自動化経験者も、テスト対象分析、テスト設計、Test Scenario / User Journey、Action、Assertion、Test Dataといった共通概念からコードベースの自動化へ移行できます。
 
 Part 2では、Part 1で作成した自動テストを「どのように開発プロセスへ組み込み、継続的に実行するか」を学びます。Git/GitHubは自動化そのものの前提ではなく、変更管理、Review、CI、品質ゲートを実現するための仕組みとして扱います。
+
+Part 1を配布ZIPなどで実施した場合も、Part 2で別教材へ切り替えるわけではありません。Git Historyを持つ同じScenario Shopの演習用CopyへPart 1成果物を引き継いで続行します。
 
 ## 学習成果物
 
@@ -143,7 +146,8 @@ Part 2では、Part 1で作成した自動テストを「どのように開発�
 3. Google Sheetsで利用するWorkbookテンプレート、または同等の複製可能なひな形。
 4. Part 2で既存本番向けCI/CDやSecretsへ影響せずGitHub Actionsを試せる演習境界。
 5. Repositoryへ直接Push権限がなくても進められるFork / Copy方式。
-6. 教材入口からこのカリキュラムへ迷わず到達できるナビゲーション。
+6. Part 1をZIPなどで進めた受講者が、Git Historyを持つ演習用CopyへTraining Test・学習成果物を安全に引き継ぐ手順。
+7. 教材入口からこのカリキュラムへ迷わず到達できるナビゲーション。
 
 これらはカリキュラムの学習内容を成立させるための**教材実装要件**であり、この文書整備ブランチでは実装しません。
 
