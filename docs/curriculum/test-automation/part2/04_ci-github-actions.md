@@ -13,7 +13,23 @@
 
 **このモジュールでは、このリポジトリの `.github/workflows/ci.yml` と `package.json` を使用します。**
 
-まず最小Workflowを自分で考えた後、現在の高度なWorkflowと比較します。
+ただし、現在の `.github/workflows/ci.yml` はCloudflare Preview / Productionなど実運用向け経路を含む完成済みWorkflowです。
+
+受講者が最初からこれを直接編集・複製して実行することは前提にしません。
+
+## 演習Workflowの境界
+
+教材提供時には、Forkまたは演習用Copy上で、次の条件を満たすTraining用Workflowを用意します。
+
+- 本番向けCloudflare Deployを実行しない。
+- `CLOUDFLARE_API_TOKEN` など本番Secretを要求しない。
+- 最初はUnit Test / Quality Checkだけを対象にする。
+- 後続LessonでPlaywrightを追加できる。
+- 本体RepositoryのRequired CheckやProduction Workflowへ影響しない。
+
+この文書整備ではTraining用Workflow自体は追加しません。
+
+現在の `ci.yml` は、最小構成を理解した後に「実案件ではどこまで発展するか」を読む比較教材とします。
 
 ## Lesson 1: CIとは
 
@@ -39,7 +55,7 @@ Result
 
 ## Lesson 2: GitHub Actionsの構造
 
-最小例:
+Training用の最小例として次を読みます。
 
 ```yaml
 name: Training CI
@@ -47,11 +63,16 @@ name: Training CI
 on:
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - uses: pnpm/action-setup@v4
         with:
           version: 9.10.0
@@ -67,6 +88,7 @@ jobs:
 
 - Workflow
 - Event
+- Permissions
 - Job
 - Runner
 - Step
@@ -111,7 +133,22 @@ pnpm install --frozen-lockfile
 
 CIで「手元では違うVersionが入っている」状態を減らします。
 
-## Lesson 6: Jobを分ける理由
+## Lesson 6: SecretとPermissionの境界
+
+GitHub Actionsでは、Workflowがどの権限・Secretを必要とするかを意識します。
+
+Training用Workflowでは本番Deploy Secretを必要としない構成から始めます。
+
+学習者は次を区別します。
+
+- Test実行に必要な通常の環境変数
+- Repository権限
+- Secret
+- Deploy Credential
+
+「動かすために本番Secretを配る」という設計を避けます。
+
+## Lesson 7: Jobを分ける理由
 
 現在のScenario Shop CIでは、Style、Code Quality、Vitest、Build、E2Eなどが複数Jobへ分かれています。
 
@@ -125,7 +162,7 @@ Job分割には次の利点があります。
 
 「分割すればするほど速い」わけではありません。
 
-## Lesson 7: Matrix
+## Lesson 8: Matrix
 
 複数Suiteや環境を同じJob定義で実行するときMatrixを使えます。
 
@@ -133,7 +170,7 @@ Scenario ShopではVitest SuiteやPlaywright検証でMatrixを利用していま
 
 Matrixは重複YAMLを減らせますが、何でもMatrixへ入れるのではなく、同じ責務を異なる条件で実行するときに利用します。
 
-## Lesson 8: CI Failure分析
+## Lesson 9: CI Failure分析
 
 Failure時は最低限次を確認します。
 
@@ -141,13 +178,14 @@ Failure時は最低限次を確認します。
 2. Buildで落ちたか。
 3. Testで落ちたか。
 4. Environment / Secret不足か。
-5. Artifactは残っているか。
+5. Permission問題か。
+6. Artifactは残っているか。
 
 「Re-run jobs」を最初の操作にせず、LogからFailure Pointを確認します。
 
 ## ハンズオン1: Unit TestをCIへ載せる
 
-演習用Workflowで `pnpm run test:unit` をPR時に実行します。
+Forkまたは演習用CopyのTraining Workflowで `pnpm run test:unit` をPR時に実行します。
 
 ## ハンズオン2: Quality Checkを追加する
 
@@ -160,7 +198,7 @@ Failure時は最低限次を確認します。
 
 ## ハンズオン3: Trigger比較
 
-同じWorkflowを `workflow_dispatch` でも起動できるようにし、PR実行との違いを確認します。
+同じTraining Workflowを `workflow_dispatch` でも起動できるようにし、PR実行との違いを確認します。
 
 ## ハンズオン4: 現在の`ci.yml`を読む
 
@@ -172,6 +210,8 @@ Failure時は最低限次を確認します。
 - なぜVitestがMatrixなのか。
 - なぜBuild Jobが分かれているか。
 - なぜ`verify`があるか。
+- なぜDeployにはSecretが必要か。
+- Training Workflowへ本番Deployを含めない理由は何か。
 
 ## 確認問題
 
@@ -180,10 +220,12 @@ Failure時は最低限次を確認します。
 3. Jobを分けすぎるデメリットは何か。
 4. Matrixが向く処理は何か。
 5. `workflow_dispatch`はどんな用途に向くか。
+6. Training CIで本番Secretを必要としない構成にする理由は何か。
 
 ## 完了条件
 
 - GitHub Actionsの基本構造を説明できる。
-- Scenario ShopでUnit TestまたはQuality CheckをCI実行できる。
+- Forkまたは演習用CopyでScenario ShopのUnit TestまたはQuality CheckをCI実行できる。
 - PR / Push / Manual / Scheduleの違いを説明できる。
 - CI Failureの発生工程をLogから特定できる。
+- Training Workflowと本体の実運用Workflowを分ける理由を説明できる。
