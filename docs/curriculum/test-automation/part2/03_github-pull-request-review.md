@@ -4,6 +4,7 @@
 
 - GitとGitHubの役割の違いを説明できる。
 - Repository、Remote、Push、Pull Requestの関係を理解できる。
+- ForkとUpstream Repositoryの関係を理解できる。
 - Pull Requestを単なるMerge手段ではなく、変更内容と検証結果を共有する単位として扱える。
 - 自動テストの変更をReviewする観点を持てる。
 - GitHub上のChecksが後続のCIとどのようにつながるか理解できる。
@@ -12,7 +13,31 @@
 
 **このモジュールでは、このリポジトリ `qa-training-store` と、その実際のPull Request構成を使用します。**
 
-教材用に別Repositoryへ切り替えません。
+教材用に別のテスト対象へ切り替えません。
+
+ただし、受講者が `ryu-yoshikawa-pro-vision/qa-training-store` 本体へのPush権限を持つことは前提にしません。
+
+## 演習Repositoryの標準形
+
+GitHub演習では、次のいずれかを使用します。
+
+1. `qa-training-store` を自分のGitHub AccountへForkする。
+2. 講師または組織が用意した `qa-training-store` の演習用Copyを使用する。
+
+どちらの場合もテスト対象・コードベースはScenario Shopのままです。
+
+```text
+Upstream / 教材元
+qa-training-store
+        ↓
+Fork または演習用Copy
+        ↓
+training/* branch
+        ↓
+Pull Request
+```
+
+本体Repositoryへ直接Pushできることを学習要件にしません。
 
 ## Lesson 1: GitとGitHub
 
@@ -22,7 +47,7 @@ GitHubはGit RepositoryをHostingし、Pull Request、Review、Issues、Actions�
 
 この違いを明確にします。
 
-## Lesson 2: Remote
+## Lesson 2: RemoteとFork
 
 Local RepositoryとGitHub上のRepositoryは別の状態を持ちます。
 
@@ -32,7 +57,14 @@ Local RepositoryとGitHub上のRepositoryは別の状態を持ちます。
 git remote -v
 ```
 
-BranchをGitHubへ共有するにはPushします。
+Forkを使う場合は、概念的に次を区別します。
+
+- `origin`: 自分がPushできるFork
+- `upstream`: 教材元のRepository
+
+受講者の権限や教材配布方法によってRemote構成は異なるため、名前の暗記より「どこへPushし、どこを参照元にするか」を理解します。
+
+Branchを共有するには、自分が書き込めるRemoteへPushします。
 
 ```bash
 git push -u origin training/cart-e2e
@@ -49,6 +81,8 @@ PRで最低限伝える内容:
 - どんなTestを追加・変更したか。
 - どの検証を実行したか。
 - 未確認事項やRiskは何か。
+
+演習では自分のForkまたは演習用Copy内でPRを作成できます。本体RepositoryへのPR作成は必須にしません。
 
 ## Lesson 4: Diff Review
 
@@ -82,7 +116,7 @@ Reviewでは「コードが動くか」だけを見ません。
 
 GitHub Actionsを設定すると、PRへChecksが表示されます。
 
-Scenario Shopでは、現在のCIで次のような検証があります。
+Scenario Shop本体では、現在のCIで次のような検証があります。
 
 - Style Quality
 - Code Quality
@@ -94,6 +128,8 @@ Scenario Shopでは、現在のCIで次のような検証があります。
 - Native CI
 
 ここでは詳細Workflowをまだ作り込まず、PRと自動検証結果が紐付く仕組みを理解します。
+
+重要なのは、本体RepositoryのChecksをそのまま演習環境へ複製することではありません。後続モジュールでは、SecretsやDeployに依存しない最小の演習用CIから始めます。
 
 ## Lesson 7: Merge判断
 
@@ -107,7 +143,18 @@ Merge判断では次を組み合わせます。
 
 「CIが緑だから必ず正しい」わけではありません。CIが確認していないRiskは人間が判断します。
 
-## ハンズオン1: PR説明を書く
+## ハンズオン1: Fork / Copyで作業Branchを共有する
+
+自分が書き込める演習Repositoryで `training/*` Branchを作成し、GitHubへPushします。
+
+次を確認します。
+
+- Local Branch
+- Remote Branch
+- Base Branch
+- Push先
+
+## ハンズオン2: PR説明を書く
 
 Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します。
 
@@ -119,7 +166,7 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 - Validation
 - Remaining Risk
 
-## ハンズオン2: Test PRをReviewする
+## ハンズオン3: Test PRをReviewする
 
 既存または演習用Diffを使い、最低3件のReview観点を記録します。
 
@@ -128,14 +175,16 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 ## 確認問題
 
 1. GitとGitHubの違いは何か。
-2. Pull Requestを使う価値は何か。
-3. Test CodeのReviewが必要な理由は何か。
-4. CIが成功していてもMergeを止める判断があり得るのはなぜか。
-5. Assertionを弱くする変更はなぜ危険か。
+2. Forkを使うと本体RepositoryへのPush権限がなくても演習できるのはなぜか。
+3. Pull Requestを使う価値は何か。
+4. Test CodeのReviewが必要な理由は何か。
+5. CIが成功していてもMergeを止める判断があり得るのはなぜか。
+6. Assertionを弱くする変更はなぜ危険か。
 
 ## 完了条件
 
-- Local BranchをGitHubへPushできる。
+- Forkまたは演習用Copyと本体Repositoryの役割を説明できる。
+- 自分が書き込めるRemoteへLocal BranchをPushできる。
 - Pull Requestの役割を説明できる。
 - Test変更をReviewする観点を5つ以上挙げられる。
 - PR本文へTest Designとの対応とValidationを記録できる。
