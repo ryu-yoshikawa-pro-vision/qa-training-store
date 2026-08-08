@@ -4,7 +4,7 @@
 
 - スプレッドシートで設計したテスト条件をPlaywrightへ実装できる。
 - 正常系だけでなく、異常系、境界値、Role差分、状態遷移をE2Eへ落とせる。
-- Seed / Scenario / Resetを利用して再現可能なテストを作れる。
+- Seed Scenario / Resetを利用して再現可能なテストを作れる。
 - UIだけでなく、必要に応じてTest APIや内部状態Inspectionを組み合わせて検証できる。
 - Desktop / Mobile Web、Accessibilityなど異なる品質観点を理解できる。
 
@@ -15,12 +15,13 @@
 主な参照先:
 
 - `e2e/web/phase1-required.spec.ts`
-- `e2e/web/fixtures.ts`
 - `e2e/web/mobile-boundary.spec.ts`
 - `e2e/web/accessibility.spec.ts`
 - `e2e/web/cross-role-lifecycle.spec.ts`
 - `src/seeds/metadata.ts`
 - `window.__TEST_API__`
+
+`e2e/web/fixtures.ts` はこの段階では内部実装を読み解く教材にしません。Seed Scenario ResetやEvidence収集はTraining Test Harnessが提供する機能として利用し、Fixtureの責務・共通化・内部設計はPart 1-8で扱います。
 
 ## 演習実装の前提
 
@@ -33,6 +34,7 @@ Training環境には最低限、次が必要です。
 - Training用specを既存Regressionと分離して保存できる。
 - Training用specを明示的に実行できる。
 - Scenario ShopのAutomation Build / Test APIを利用できる。
+- Seed ScenarioをResetできるTest Harnessを利用できる。
 - Failure時にTrace、Screenshot、Videoなどを確認できる。
 - Training用変更が正式Regressionの必須Suiteへ意図せず混入しない。
 
@@ -43,7 +45,7 @@ Training環境には最低限、次が必要です。
 スプレッドシートのTest Caseを、次の順序でコードへ変換します。
 
 ```text
-Test ID
+Test Case ID
 ↓
 前提状態
 ↓
@@ -58,18 +60,18 @@ Test ID
 
 ```text
 CART-002
-前提: out-of-stock
+前提: out-of-stock Seed Scenario
 操作: 商品をCartへ追加
 期待: 追加が拒否される
 ```
 
 ここからPlaywright Testを作成します。
 
-## Lesson 2: Seed / Scenario / Reset
+## Lesson 2: Seed Scenario / Reset
 
 E2Eでは前のテスト結果へ依存しないことが重要です。
 
-Scenario Shopには、テスト開始状態を再現するためのScenarioがあります。
+Scenario Shopには、テスト開始状態を再現するためのSeed Scenarioがあります。
 
 例:
 
@@ -80,16 +82,16 @@ Scenario Shopには、テスト開始状態を再現するためのScenarioが�
 - `payment-declined`
 - `cart-version-invalidates-checkout`
 
-既存 `e2e/web/fixtures.ts` の `scenario` Fixtureを読み、次を確認します。
+Training Testでは、教材側が提供するTest Harnessを使って必要なSeed ScenarioへResetします。
 
-- Reset前に余分なPageを閉じている。
-- Test APIでScenarioをResetしている。
-- Reloadしている。
-- Metadataを再確認している。
-- Guest / Session状態を検証している。
-- Console ErrorをEvidenceとして残している。
+この段階で重要なのは、Fixtureの実装方法ではなく次を理解することです。
 
-ここではFixture設計そのものを深掘りしません。まず「安定した初期状態がE2Eへ必要」という目的を理解します。Fixtureの設計・共通化は後半のテスト管理モジュールで扱います。
+- 各Testが明示的な初期状態から始まる。
+- 前のTestが残したCartやSessionへ依存しない。
+- Reset後の状態が期待したSeed Scenarioであることを確認できる。
+- 状態準備のために長いUI操作を毎回繰り返さなくてよい。
+
+既存Repositoryがこの仕組みをどのようにFixtureへ実装しているかは、Maestroまで一巡した後のPart 1-8で確認します。
 
 ## Lesson 3: 異常系と境界値
 
@@ -214,22 +216,24 @@ Payment拒否からRetry成功までを実装します。
 - 既存側の保守上気になる点
 - 後で共通化したくなりそうな処理
 
-この時点ではまだPOMへ変更しません。
+この時点ではまだPOMやFixture内部の設計へ変更・分析しません。共通化の必要性だけを問題として記録し、Part 1-8で解決方法を学びます。
 
 ## 確認問題
 
-1. 各テストの開始前にResetする価値は何か。
+1. 各テストの開始前にSeed ScenarioをResetする価値は何か。
 2. UI表示だけでは不足するE2Eの例を挙げる。
 3. Cross-role E2Eを巨大化しすぎると何が問題になるか。
 4. DesktopでPassしてもMobile Testが必要な理由は何か。
 5. Accessibility自動Scanだけで十分ではない理由は何か。
 6. Training用E2Eを正式Regressionから分離する理由は何か。
+7. Part 1前半でFixture内部を先に学ばない理由は何か。
 
 ## 完了条件
 
 - Playwright E2Eを5件以上実装している。
-- Scenario / Resetを利用したテストを含む。
+- Seed Scenario / Resetを利用したテストを含む。
 - 正常、異常または境界の両方を含む。
 - PaymentまたはRole横断の状態遷移を1件以上扱っている。
 - MobileまたはAccessibilityの追加観点を1件以上実行している。
 - Training用E2Eと既存Regressionを混同せず、両者の役割を説明できる。
+- Seed Scenario Resetを利用できる一方、Fixture内部設計はPart 1-8で学ぶ内容だと区別できる。
