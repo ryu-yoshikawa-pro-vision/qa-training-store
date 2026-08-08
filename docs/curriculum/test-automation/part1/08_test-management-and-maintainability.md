@@ -26,6 +26,8 @@
 
 このモジュールへ進む時点で、受講者自身も複数のPlaywright TestとMaestro Flowを作成済みであることを前提とします。
 
+Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetやEvidence収集について、このモジュールから初めて `e2e/web/fixtures.ts` の内部を読み、Fixtureとしてどの責務を持たせているかを分析します。
+
 ## Lesson 1: 運用フェーズで当たる壁
 
 テストが数本の間は、1ファイルへ直接書いても大きな問題になりません。
@@ -132,12 +134,14 @@ Page Objectだけで全UIを表現しようとすると、Page間で共通Compon
 
 Fixtureはテスト実行環境や前提状態を提供するために使えます。
 
-既存 `scenario` Fixtureを教材にし、次を確認します。
+ここで初めて既存 `scenario` Fixtureの内部を教材として読み、次を確認します。
 
 - Test Data Reset
 - Page cleanup
 - Metadata確認
 - Console Error収集
+
+Part 1前半で利用していた「Seed ScenarioをResetできる」「Console ErrorをEvidenceとして扱える」というTest Harnessの裏側が、どのような責務としてFixtureへ実装されているかを確認します。
 
 Fixtureへ何でも入れると、Testから前提処理が見えなくなるRiskがあります。
 
@@ -199,20 +203,22 @@ Test Caseを追加 / 修正 / 廃止
 ↓
 自動化対象を再評価
 ↓
-Playwright / Maestro / 下位テストを更新
+Playwright / Maestro / 下位テストへの変更を特定
 ↓
 Regression分類を見直す
 ↓
 不要になったTestを削除または履歴化
+↓
+Product変更後にTestを実装・実行して整合を確認
 ```
 
-例えば「Cartの購入上限が5から3へ変更された」と仮定します。
+例えば「Cartの購入上限が5から3へ変更される」と仮定します。
 
 この場合、単にPlaywrightの期待値を `5` から `3` へ変えるだけでは不十分です。
 
 確認するもの:
 
-- 上限に関係するRiskは変わったか。
+- 上限に関係するRiskは変わるか。
 - 同値分割はどう変わるか。
 - 境界値は `2 / 3 / 4` などへ変わるか。
 - 既存Test Case IDは同じ目的のままか。
@@ -222,6 +228,10 @@ Regression分類を見直す
 - Regression / Smoke分類を変える必要があるか。
 
 **仕様、テスト設計、自動化コードを別々に更新しない**ことを学びます。
+
+ただし、このモジュールで扱う「購入上限5から3」は**影響分析のための仮想仕様変更**です。現在のScenario ShopのProduct仕様は変更しません。そのため、変更後仕様を前提にPlaywrightやMaestroを実際に書き換えてPassさせることは、このハンズオンの完了条件にしません。
+
+教材実装時に「購入上限3へ変更済み」の専用演習Branchなどを別途用意した場合は、発展演習としてProduct変更とTest変更を実際に同期させて実行できます。
 
 ## Lesson 11: Assertionの置き場所
 
@@ -303,23 +313,36 @@ Part 2でこれらをPR / main / Nightlyへ配置します。
 
 ## ハンズオン4: Seed Scenario整理
 
-自分のTest Data Setupを既存Seed Scenarioと比較し、重複したUI SetupをScenario Resetへ置き換えられないか検討します。
+自分のTest Data Setupを既存Seed Scenarioと比較し、重複したUI SetupをSeed Scenario Resetへ置き換えられないか検討します。
 
 `src/seeds/metadata.ts` だけでなく、実際にReset後の状態を生成する処理も確認し、Metadataと実データ生成の責務を区別します。
 
-## ハンズオン5: 仕様変更を追跡する
+## ハンズオン5: 仮想仕様変更の影響を追跡する
 
-「Cartの購入上限が5から3へ変更された」と仮定し、次を更新します。
+「Cartの購入上限が5から3へ変更される」と仮定し、**実装を変更する前のImpact Analysis**として次を更新・整理します。
 
 1. Risk
 2. 同値分割 / 境界値
 3. 影響するTest Case
 4. 自動化対象
-5. Playwright / Maestroまたは下位テスト
+5. 変更が必要になるPlaywright / Maestro / 下位テスト
 6. Regression分類
-7. 不要になったCase
+7. 不要になるCase / 新たに必要になるCase
 
-変更前後で、どの成果物をなぜ更新したか説明します。
+Product実装は現在の購入上限5のままとし、変更後仕様向けのTest Codeを実際にPassさせることは求めません。
+
+提出するのは、例えば次のような変更計画です。
+
+| 対象 | 現在 | 仮想変更後 | 必要な対応 |
+| --- | --- | --- | --- |
+| 境界値 | 4 / 5 / 6 | 2 / 3 / 4 | Test Case更新 |
+| Playwright | 上限5を確認 | 上限3を確認予定 | Product変更後にTest更新 |
+| Maestro | 上限5のFlow | 上限3のFlow候補 | Native仕様反映後に更新 |
+| Unit Test | 現行Rule | 新Rule | Business Rule変更と同時に更新 |
+
+変更前後で、どの成果物へどの変更が必要になるかを説明します。
+
+専用の仕様変更済み演習Branchが教材として用意された場合のみ、発展として実際のProduct / Test変更と再実行まで行います。
 
 ## ハンズオン6: Regression棚卸し
 
@@ -342,7 +365,8 @@ Part 2でこれらをPR / main / Nightlyへ配置します。
 5. Seed ScenarioとFixtureは同じものか。
 6. `src/seeds/metadata.ts` だけをSeed Scenarioの全状態の定義と見なしてはいけない理由は何か。
 7. 仕様変更時にTest Codeだけを修正すると何がずれる可能性があるか。
-8. テストを削除する判断が必要になるのはなぜか。
+8. Product仕様がまだ変わっていない段階で、将来仕様向けTestを無理にPassさせるべきでないのはなぜか。
+9. テストを削除する判断が必要になるのはなぜか。
 
 ## 完了条件
 
@@ -350,5 +374,6 @@ Part 2でこれらをPR / main / Nightlyへ配置します。
 - 各問題について解決方法を選び、理由を説明している。
 - 少なくとも1件の共通化・構造改善を実装している。
 - Test Case IDと自動化実装の対応を更新している。
-- 仮想仕様変更についてRisk、Test Case、自動化実装、Regression分類の影響を追跡している。
+- 仮想仕様変更についてRisk、Test Case、自動化実装、Regression分類の影響を追跡し、変更計画を作成している。
+- 仮想仕様変更ではProduct未変更のまま将来仕様向けTestをPassさせることを完了条件にしていない。
 - Flaky、重複、不要テスト、実行時間の観点でRegression資産を棚卸ししている。
