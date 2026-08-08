@@ -3,9 +3,10 @@
 ## 学習目標
 
 - 自動テストが増えた運用フェーズで起きる問題を整理できる。
-- テストケース、spec、Test Data、Scenario、共通処理の管理方法を考えられる。
-- Helper、Page Object Model、Component Object、Fixture、Flow、Scenarioの役割を区別できる。
+- テストケース、spec、Test Data、Seed Scenario、共通処理の管理方法を考えられる。
+- Helper、Page Object Model、Component Object、Fixture、Automation Flow、Seed Scenarioの役割を区別できる。
 - POMを必須ルールではなく、保守上の課題を解決する選択肢として判断できる。
+- 仕様変更時にRisk、Test Case、自動化実装、Regression分類を同期して更新できる。
 - 重複、Flaky、実行時間、不要テスト、責務の混在を改善できる。
 - スプレッドシート上のTest Caseとコード上のRegression資産を対応付けて管理できる。
 
@@ -41,12 +42,13 @@
 - Flakyなテストが放置される。
 - 実行時間が増える。
 - 削除してよいテストか判断しづらい。
+- 仕様変更後にスプレッドシートと自動テストの内容がずれる。
 
 ここで初めて「テスト資産をどう管理するか」を考えます。
 
 ## Lesson 2: テストケース管理
 
-スプレッドシートのTest IDと実装を照合します。
+スプレッドシートのTest Case IDと実装を照合します。
 
 確認すること:
 
@@ -141,14 +143,14 @@ Fixtureへ何でも入れると、Testから前提処理が見えなくなるRis
 
 「多くのTestに必要な環境・前提」なのか、「そのTestだけの業務操作」なのかを分けます。
 
-## Lesson 8: Flow
+## Lesson 8: Automation Flow
 
-複数Pageを跨ぐ業務操作はFlowとして切り出す選択肢があります。
+複数Pageを跨ぐ業務操作はAutomation Flowとして切り出す選択肢があります。
 
 例:
 
 ```text
-Purchase Flow
+Purchase Automation Flow
 Login
 ↓
 Cart
@@ -160,25 +162,68 @@ Payment
 Confirm
 ```
 
-Page ObjectはUI操作を表し、Flowは複数Pageを跨ぐ業務操作を表す、と分離できます。
+Page ObjectはUI操作を表し、Automation Flowは複数Pageを跨ぐ業務操作を表す、と分離できます。
+
+ここでいうAutomation Flowは、MaestroのYAMLファイルを指すMaestro Flowとは別の概念です。
 
 ただし、小規模なケースではHelperだけで十分な場合もあります。
 
-## Lesson 9: Scenario / Test Data
+## Lesson 9: Seed Scenario / Test Data
 
-ScenarioはUI操作の共通化ではなく、テスト開始状態の管理です。
+Seed ScenarioはUI操作の共通化ではなく、テスト開始状態の管理です。
 
-Scenario Shopでは `src/seeds/metadata.ts` が状態の正本として機能します。
+`src/seeds/metadata.ts` は、Scenario Shopで利用するSeed Scenarioの名称、用途、推奨Account、初期Session、関連Routeなどを定義する**Scenario Metadataの正本**として機能します。
+
+実際の在庫、Cart、Orderなどのテストデータ生成・Reset処理そのものを、このMetadataファイルだけが定義しているわけではありません。Seed Scenario全体を理解するときは、Metadataと実際のSeed / Reset処理を合わせて確認します。
 
 次を分離して考えます。
 
 - POM: どう操作するか
 - Fixture: どんな実行環境を提供するか
-- Flow: どんな業務操作を進めるか
-- Scenario: どんな状態から開始するか
+- Automation Flow: どんな業務操作を進めるか
+- Seed Scenario: どんな状態から開始するか
 - Test: 何を保証するか
 
-## Lesson 10: Assertionの置き場所
+## Lesson 10: 仕様変更とテスト資産のライフサイクル
+
+運用では、テストを追加するだけでなく、仕様変更に合わせて既存資産を更新・廃止する必要があります。
+
+基本の流れは次です。
+
+```text
+仕様変更
+↓
+影響するRiskを特定
+↓
+Test Caseを追加 / 修正 / 廃止
+↓
+自動化対象を再評価
+↓
+Playwright / Maestro / 下位テストを更新
+↓
+Regression分類を見直す
+↓
+不要になったTestを削除または履歴化
+```
+
+例えば「Cartの購入上限が5から3へ変更された」と仮定します。
+
+この場合、単にPlaywrightの期待値を `5` から `3` へ変えるだけでは不十分です。
+
+確認するもの:
+
+- 上限に関係するRiskは変わったか。
+- 同値分割はどう変わるか。
+- 境界値は `2 / 3 / 4` などへ変わるか。
+- 既存Test Case IDは同じ目的のままか。
+- 新しいCaseが必要か。
+- Web / Native両方へ影響するか。
+- Unit / Integration Testにも変更が必要か。
+- Regression / Smoke分類を変える必要があるか。
+
+**仕様、テスト設計、自動化コードを別々に更新しない**ことを学びます。
+
+## Lesson 11: Assertionの置き場所
 
 AssertionをPage Objectへ隠しすぎると、Testが何を保証しているか分かりにくくなる場合があります。
 
@@ -186,22 +231,24 @@ AssertionをPage Objectへ隠しすぎると、Testが何を保証している�
 
 一方、ComponentのReady状態など、操作成立のための内部確認はObject側へ置く選択肢もあります。
 
-## Lesson 11: Naming / Test ID / Tag
+## Lesson 12: Naming / Test Case ID / Tag
 
 テスト本数が増えたら検索・選択しやすさも重要です。
 
 検討対象:
 
-- Test ID
+- Test Case ID
 - Feature名
 - Role
 - Smoke / Regression
 - Platform
 - Tag
 
-ただしTagを大量に追加し、誰も意味を管理できなくなる状態は避けます。
+UI要素を特定するUI Test ID / `testId` はTest Case IDとは別に管理します。
 
-## Lesson 12: Flaky Test管理
+Tagを大量に追加し、誰も意味を管理できなくなる状態は避けます。
+
+## Lesson 13: Flaky Test管理
 
 Flakyを「たまに落ちるからRetryでよい」と扱いません。
 
@@ -209,14 +256,14 @@ Flakyを「たまに落ちるからRetryでよい」と扱いません。
 
 - Locator見直し
 - 状態待機
-- Scenario Reset
+- Seed Scenario Reset
 - Test間依存除去
 - 並列競合の解消
 - 不要な外部依存除去
 
 Flakyが継続する場合は、Regression Gateへ残すRiskも判断します。
 
-## Lesson 13: 実行時間とTest Suite
+## Lesson 14: 実行時間とTest Suite
 
 テストが増えると実行時間が伸びます。
 
@@ -244,7 +291,7 @@ Part 2でこれらをPR / main / Nightlyへ配置します。
 - POM
 - Component Object
 - Fixture
-- Flow
+- Automation Flow
 
 必ず選択理由を書きます。
 
@@ -254,11 +301,27 @@ Part 2でこれらをPR / main / Nightlyへ配置します。
 
 ただし、POMを使うこと自体を完了条件にはしません。Helperの方が適切と判断した場合、その理由を説明できれば構いません。
 
-## ハンズオン4: Scenario整理
+## ハンズオン4: Seed Scenario整理
 
-自分のTest Data Setupを既存Scenarioと比較し、重複したUI SetupをScenario Resetへ置き換えられないか検討します。
+自分のTest Data Setupを既存Seed Scenarioと比較し、重複したUI SetupをScenario Resetへ置き換えられないか検討します。
 
-## ハンズオン5: Regression棚卸し
+`src/seeds/metadata.ts` だけでなく、実際にReset後の状態を生成する処理も確認し、Metadataと実データ生成の責務を区別します。
+
+## ハンズオン5: 仕様変更を追跡する
+
+「Cartの購入上限が5から3へ変更された」と仮定し、次を更新します。
+
+1. Risk
+2. 同値分割 / 境界値
+3. 影響するTest Case
+4. 自動化対象
+5. Playwright / Maestroまたは下位テスト
+6. Regression分類
+7. 不要になったCase
+
+変更前後で、どの成果物をなぜ更新したか説明します。
+
+## ハンズオン6: Regression棚卸し
 
 スプレッドシートの `06_自動化対応表` と `08_改善管理` を更新します。
 
@@ -275,14 +338,17 @@ Part 2でこれらをPR / main / Nightlyへ配置します。
 1. POMを最初から必須にしない理由は何か。
 2. HelperとPOMはどう使い分けるか。
 3. Fixtureへ業務操作を大量に隠すと何が問題になるか。
-4. FlowとPage Objectの責務をどう分けられるか。
-5. ScenarioとFixtureは同じものか。
-6. テストを削除する判断が必要になるのはなぜか。
+4. Automation FlowとPage Objectの責務をどう分けられるか。
+5. Seed ScenarioとFixtureは同じものか。
+6. `src/seeds/metadata.ts` だけをSeed Scenarioの全状態の定義と見なしてはいけない理由は何か。
+7. 仕様変更時にTest Codeだけを修正すると何がずれる可能性があるか。
+8. テストを削除する判断が必要になるのはなぜか。
 
 ## 完了条件
 
 - 自分のテスト資産の保守上の問題を3件以上洗い出している。
 - 各問題について解決方法を選び、理由を説明している。
 - 少なくとも1件の共通化・構造改善を実装している。
-- Test IDと自動化実装の対応を更新している。
+- Test Case IDと自動化実装の対応を更新している。
+- 仮想仕様変更についてRisk、Test Case、自動化実装、Regression分類の影響を追跡している。
 - Flaky、重複、不要テスト、実行時間の観点でRegression資産を棚卸ししている。
