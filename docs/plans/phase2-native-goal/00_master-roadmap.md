@@ -545,6 +545,7 @@ Detect Native Changes
 - Native変更がない場合は重いAndroid/iOS JobのSkipを許容する。
 - `.github/workflows/native-ios-ci.yml`はNative CIから呼び出せる構成とし、必要に応じた`workflow_dispatch`による単独実行も維持する。
 - iOSはGitHub-hosted macOS Runner上でRelease Simulator Appを署名なしでBuildし、Build-time metadata／Production guardとArtifact uploadを検証する。Simulator Runtime／Maestroは正式Gate対象外とする。
+- iOSの生成`.app`については`EXConstants.bundle/app.config`の`appEnvironment`／`buildKind`／`testMode`を直接検証し、Source側の`expo config --json`だけで完了扱いにしない。
 - iOS Automation BuildとProduction-validation Buildはいずれも`iphonesimulator`向けとし、`CODE_SIGNING_ALLOWED=NO`で署名を要求しない。
 - iOS Automation BuildとProduction-validation Buildの結果を区別する。
 - AndroidのJUnit／Maestro Evidenceと、Android／iOSのBuild情報をPlatform別Artifactとして保存する。iOS Runtime Evidenceは生成しない。
@@ -645,13 +646,13 @@ Cloudflare DeployはNative Buildへ依存させません。
 - 修正WorkflowはSDK Rootの優先解決、sdkmanager絶対Path、Automation Release APK、Emulator OS boot／package service待機、共有層を含む変更検知、Detect Resultを含むFail-safe Verify、専用Maestro Artifact出力を契約とする。
 - その後の前半修正でAndroid Build／Emulator／MaestroをGitHub Actions上で成功させ、`.github/workflows/native-ios-ci.yml`にはRelease Simulator Build／Install／Maestroの手動Workflowを追加した。Phase 2後半では、このiOS経路を正式Native CI Gateへ昇格する。
 
-## 12. Phase 2後半CI方針の確定（2026-08-08）
+## 12. Phase 2後半CI方針の確定（2026-08-08、2026-08-09更新）
 
-ユーザー承認により、Phase 2後半では次を正式方針とします。
+2026-08-08の方針は、2026-08-09に承認されたADR-0011でiOS Build-onlyへ更新した。現在の正式方針は次のとおりである。
 
 - GitHub ActionsをNativeの正式CI経路とする。
-- AndroidはGitHub-hosted Runner上のAndroid Emulator、iOSはGitHub-hosted macOS Runner上のiOS Simulatorを正式実行環境とする。
-- iOS Simulator上でBuild、Install、Launch、Maestro、実`expo-sqlite` Contract Harness、Production-validationまで完結させる。
+- AndroidはGitHub-hosted Runner上のAndroid Emulatorを正式Runtime検証環境とする。iOSはGitHub-hosted macOS Runner上でAutomation／Production-validationのRelease Simulator Buildを実行する。
+- iOSはBuild metadata、Production Bundle Guard、生成`.app` Artifact validationをRequired Gateとする。Simulator Install／Launch、Maestro、実`expo-sqlite` Contract Harness、Production-validation Runtimeは正式Gate対象外とする。
 - AndroidとiOSは独立して実行し、一方の失敗で他方やWebの独立作業を途中停止しない。
 - 最終`native-ci / verify`だけはfail-closeし、Native変更時はAndroid/iOSの両方の必須結果を要求する。
 - iOS物理端末、署名、Provisioning Profile、IPA、TestFlight、App Store、Self-hosted Mac、Device FarmはPhase 2対象外とする。
@@ -662,5 +663,5 @@ Cloudflare DeployはNative Buildへ依存させません。
 
 - Native CustomerのLogin／Session、Guest Cart統合、Profile／Address、Checkout／Mock Payment、Order、Review、購入系Test Control／Contract Harnessを実装した。
 - Androidは現行ソースでRelease Build、実機Install／Smoke、購入／Payment retry／Checkout restart／Review、Runtime／Boundary、Production validationを確認した。
-- iOSはmacOS GitHub Actions用のReusable WorkflowとしてBuild／Runtime／実`expo-sqlite` Harness／Production validationを定義し、親`native-ci`の独立Jobとfail-close verifyへ接続した。ただしWindows環境ではiOS Simulatorを実行できず、Remote CIも未pushのため結果未取得である。
+- iOSはmacOS GitHub Actions用のReusable WorkflowとしてAutomation／Production Build、Resolved／embedded Build metadata、Production Bundle Guard、`.app` Artifact validationを定義し、親`native-ci`の独立Build Gateとfail-close verifyへ接続した。ただしWindows環境ではiOS Buildを実行できず、Remote CIも未確認のため結果未取得である。
 - コード／静的検証／ローカルAndroid検証は完了、iOS／Remote Native Gateは未実施。したがってPhase 2全体の完了判定は保留し、次の実行者はmacOS／GitHub-hosted環境でiOS Workflowと最新Headの`native-ci / verify`を実行する。

@@ -168,13 +168,15 @@ pnpm run build:native:ios:release
 
 #### Native実環境の確認順
 
-Android／iOSともに、Install・起動後に次を実操作します。
+Androidの正式Runtime Gateでは、Install・起動後に次を実操作します。
 
 1. Home → 商品一覧／検索／Category → Product → Variation選択 → `カートに追加`
 2. Cartで数量変更・削除・Empty Stateを確認
 3. 再起動後にGuest IdentityとCartが復元されることを確認
 4. local／automation BuildではTest Control Deep LinkとReady／Error Signalを確認
 5. production validationではTest Control／Harnessが利用不能であることを確認
+
+iOSの正式CIはSimulator Build-onlyです。iOSではAutomation／Production-validationのRelease `.app` Build、Build metadata、Production Bundle Guard、Artifact validationをRequiredとし、Simulator Install／Launch／Maestro／実`expo-sqlite` Runtimeは正式Gateに含めません。
 
 Web／Nativeの比較対象は標準`390×844`、追加で`320×700`です。Home／Catalog／Product／Cartの情報順、商品画像比率、色・Spacing・Radius・Typographyは共有Tokenを使い、Platform固有のHeader／Navigation／Native Component差だけを許容します。Native UIはWebのDOM／CSS／React Aria Componentを再利用しません。
 
@@ -201,7 +203,7 @@ pnpm run validate:native-production-bundle
 
 `validate:native-production-bundle`はAutomation／Productionの生成Android Bundle（Hermes `.hbc`を含む）を検査します。EAS CloudのWorkflow検証・実行はこの経路では行いません。
 
-Phase 2後半の購入Flowでは、Login／Session、Guest Cart統合、Profile／Address、Checkout／Mock Payment、Order、ReviewをNative Customer向けに提供します。購入系の実Runtimeは、Windows Android実機では [`docs/native/windows-android-local-validation.md`](docs/native/windows-android-local-validation.md)、macOS／GitHub Actions iOS Simulatorでは [`docs/plans/phase2-native-goal/02_phase2-second-half-purchase-automation.md`](docs/plans/phase2-native-goal/02_phase2-second-half-purchase-automation.md) と `.github/workflows/native-ios-ci.yml` を参照してください。
+Phase 2後半の購入Flowでは、Login／Session、Guest Cart統合、Profile／Address、Checkout／Mock Payment、Order、ReviewをNative Customer向けに提供します。Androidの購入系実RuntimeはWindows実機の [`docs/native/windows-android-local-validation.md`](docs/native/windows-android-local-validation.md)、iOSはmacOS／GitHub ActionsのBuild-only契約を [`docs/plans/phase2-native-goal/02_phase2-second-half-purchase-automation.md`](docs/plans/phase2-native-goal/02_phase2-second-half-purchase-automation.md) と `.github/workflows/native-ios-ci.yml` で参照してください。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass `
@@ -371,13 +373,14 @@ pnpm run verify
 - Native Customer Application Use Case共有配線、Production Module Resolution、生成BundleのProduction Bundle Guard
 - Native Asset生成差分、Typecheck、Lint、Security、Node SQLite／Web／Native回帰（個別の実行結果はRun Artifactを参照）
 - Android／iOS CI Workflow定義、Android Build／Runtime、iOS Build-only／Artifact／final verifyのWorkflow契約Test
+- iOS BuildではSource側のResolved Expo metadataに加えて、生成`.app`内`EXConstants.bundle/app.config`の`appEnvironment`／`buildKind`／`testMode`を直接検証し、Production marker guardと固定名Artifact uploadを確認する。
 - 現行Android実機では、変更後Automation APKのBuild `20260808-231500-android-postfix-build`、Install／Smoke、Guest Cart数量1→Login統合後数量2を含むPurchase 1/1、Payment retry、Checkout restart、Review、Runtime 5/5、Boundary 5/5を確認した。Postfix後の現行Production APKも短縮Workspace条件でBuild／marker guard／Install／Smoke／Production validation 1/1を確認した。Web Chromium Regressionは27/27 PASSした。
 - 最終自己レビューでは、Native SQLiteのRow／Enum／集計値をRuntime parserへ統一し、Customer Transaction ScopeのallowlistとAdmin placeholderのfail-close境界を追加した。全Test（Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158）、Typecheck、対象PrettierはPASSした。
 
 #### 未実施・判定保留
 
 - WindowsではXcode／iOS Simulatorがないため、iOS Simulator Buildは未実行。現行の正式CIではiOSはAutomation／Productionの独立Build、Build-time metadata／Production guard、Artifact uploadまでをRequiredとし、Simulator Runtime／Maestro／実`expo-sqlite` Runtimeは正式Gate対象外である。
-- 現在の未commit差分はRemoteへpushしていないため、GitHub-hosted Native CI、最新Headの`native-ci / verify`、Remote Artifact取得は未実行。
+- この環境では修正HeadのGitHub-hosted Native CI、最新Headの`native-ci / verify`、Remote Artifact取得をまだ確認していない。ローカル静的検証とAndroid実機結果をRemote CIのPASSへ繰り上げない。
 - EAS Cloud Build／Workflow／Submit、Store公開、PR本文更新はPhase 2の対象外。
 
 #### 現行Native CIの保証範囲
@@ -478,4 +481,4 @@ CloudflareのSecretが設定されている場合は、Pull Request Previewとma
 
 NativeはPhase 2として、GuestのHome、Catalog、Search、Category、Product、Variation、Cart、Guide／Legalに加え、Customer向けのLogin／Session、Profile／Address、Checkout／Payment、Order、Reviewを実装しています。Native AdminとGuest Checkoutは対象外です。
 
-NativeはWebとは別のRoot／Route／Shell、Customer-only SQLite、Native KV、PBKDF2 adapterを使用します。色、8px Grid、Radius、Typography、Touch Target、商品画像比率は`src/presentation/design/tokens.ts`を共有契約とし、Nativeのstyle／primitiveへ接続しています。現行RunではAndroid実機の購入系FlowとProduction validationを確認済みです。iOS SimulatorとGitHub-hosted Remote CIはWindows・未push条件のため未実行であり、最終完了判定には含めません。EASは静的設定確認のみで、Cloud Build／Workflow／Submitは実行しません。
+NativeはWebとは別のRoot／Route／Shell、Customer-only SQLite、Native KV、PBKDF2 adapterを使用します。色、8px Grid、Radius、Typography、Touch Target、商品画像比率は`src/presentation/design/tokens.ts`を共有契約とし、Nativeのstyle／primitiveへ接続しています。現行RunではAndroid実機の購入系FlowとProduction validationを確認済みです。iOSの正式保証はBuild-onlyで、修正HeadのGitHub-hosted Remote CIは未確認のため最終Remote完了判定には含めません。EASは静的設定確認のみで、Cloud Build／Workflow／Submitは実行しません。

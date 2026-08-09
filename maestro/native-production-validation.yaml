@@ -2,7 +2,9 @@ appId: com.ryuyoshikawa.scenarioshop
 ---
 - launchApp:
     clearState: true
-- assertVisible: "Scenario Shop"
+- extendedWaitUntil:
+    visible: "Scenario Shop"
+    timeout: 30000
 - assertNotVisible: "Native test runtime listening"
 - assertNotVisible:
     id: "native-test-runtime-status"

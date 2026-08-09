@@ -279,6 +279,7 @@ describe("Native iOS CI workflow contracts", () => {
       "Install CocoaPods",
       "xcodebuild \\",
       "Release-iphonesimulator",
+      "Verify Automation built app metadata",
       "Save Automation iOS Simulator app artifact",
       "Upload Automation iOS Simulator app",
     ]);
@@ -288,8 +289,10 @@ describe("Native iOS CI workflow contracts", () => {
       "Install CocoaPods",
       "xcodebuild \\",
       "-configuration Release",
-      "iOS Production Validation / Bundle Guard",
+      "Verify Production-validation iOS Simulator artifact",
       "Release-iphonesimulator",
+      "Verify Production built app metadata",
+      "iOS Production Validation / Bundle Guard",
       "Save Production-validation iOS Simulator app artifact",
       "Upload Production-validation iOS Simulator app",
     ]);
@@ -338,6 +341,19 @@ describe("Native iOS CI workflow contracts", () => {
       );
       expect(contract.producer).toContain(`test -d "$${contract.variable}"`);
       expect(contract.producer).toContain("Release-iphonesimulator");
+    }
+    for (const [producer, expected] of [
+      [automation, { environment: "automation", buildKind: "automation", testMode: "true" }],
+      [production, { environment: "production", buildKind: "production", testMode: "false" }],
+    ] as const) {
+      expect(producer).toContain("EXConstants.bundle/app.config");
+      expect(producer).toContain("JSON.parse");
+      expect(producer).toContain("Built iOS artifact metadata mismatch");
+      expect(producer).toContain("test -f");
+      expect(producer).toContain("test -s");
+      expect(producer).toContain(`appEnvironment: \"${expected.environment}\"`);
+      expect(producer).toContain(`buildKind: \"${expected.buildKind}\"`);
+      expect(producer).toContain(`testMode: \"${expected.testMode}\"`);
     }
     expect(iosWorkflow).toContain("if-no-files-found: error");
     expect(iosWorkflow).not.toContain("actions/download-artifact@v4");

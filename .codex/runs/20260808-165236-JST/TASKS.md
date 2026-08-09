@@ -43,9 +43,10 @@
 - [x] 35. PR #14最終修正指示のiOS Deep Link confirmation、全custom scheme Contract、Android Production marker本文検査、iOS diagnose evidence、現行構成文書を反映し、ローカル品質ゲートとAndroid回帰を再検証する。
 - [x] 36. PR #14追加修正指示のiOS Deep Link selector、openLink直後Contract、Android marker full-consumption、iOS diagnose非対話証跡を修正し、positive／negative guardと全品質ゲートを再検証する。
 - [x] 37. PR #14 iOS CI Build-only化指示を反映し、iOS Runtime／simctl／Maestro責務をWorkflowとContractから削除し、iOS Build Gate、現行文書、全品質ゲートを再検証する。
+- [x] 38. PR #14追加指示のAndroid cold-start readiness全Flow、Production wait、iOS embedded metadata、Contract、現行文書を反映し、Android実Runtimeと全ローカル品質ゲートを再検証する。
 
 ## Blocked
 
-- iOS Simulator Buildのローカル実行と、GitHub-hosted Remote Android／iOS CI／最新Headの`native-ci / verify`は、現行WindowsにXcode／`gh`がなく、Git mutation／pushも禁止のため未実行。iOS Simulator Runtime／Maestro／実`expo-sqlite` Harnessは現行正式Gateの対象外であり、未実行をBlockerやPASSへ扱い替えない。
+- iOS Simulator Buildのローカル実行と、GitHub-hosted Remote Android／iOS CI／最新Headの`native-ci / verify`は、現行WindowsにXcode／`gh`がなく、Git mutation／pushも禁止のため未実行。Maestro-MCPはDevice Server `UNAVAILABLE`で実行できなかったが、同一端末のLocal Runbook CLIは要求FlowをPASSした。iOS Simulator Runtime／Maestro／実`expo-sqlite` Harnessは現行正式Gateの対象外であり、未実行をBlockerやPASSへ扱い替えない。
 
-Progress: 97% (36/37)
+Progress: 97% (37/38)

@@ -102,6 +102,14 @@ jobs:
           test -n "$APP_PATH"
           test -d "$APP_PATH"
           echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
+      - name: Verify Automation built app metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_CONFIG_PATH="$APP_PATH/EXConstants.bundle/app.config"
+          test -f "$APP_CONFIG_PATH"
+          test -s "$APP_CONFIG_PATH"
+          node -e 'const fs = require("node:fs"); const extra = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).extra ?? {}; for (const [key, expected] of Object.entries({ appEnvironment: "automation", buildKind: "automation", testMode: "true" })) { if (extra[key] !== expected) throw new Error(`Built iOS artifact metadata mismatch: ${key}=${extra[key] ?? "<missing>"}, expected ${expected}`); }' "$APP_CONFIG_PATH"
       - name: Save Automation iOS Simulator app artifact
         shell: bash
         run: |
@@ -213,18 +221,30 @@ jobs:
             -derivedDataPath "$RUNNER_TEMP/production-derived" \
             CODE_SIGNING_ALLOWED=NO \
             build 2>&1 | tee "$RUNNER_TEMP/ios-production-build.log"
-      - name: iOS Production Validation / Bundle Guard
+      - name: Verify Production-validation iOS Simulator artifact
         shell: bash
         run: |
           set -euo pipefail
           PRODUCTION_BUILD_APP_PATH=$(find "$RUNNER_TEMP/production-derived/Build/Products/Release-iphonesimulator" -maxdepth 1 -name '*.app' -print -quit)
           test -n "$PRODUCTION_BUILD_APP_PATH"
           test -d "$PRODUCTION_BUILD_APP_PATH"
+          echo "PRODUCTION_BUILD_APP_PATH=$PRODUCTION_BUILD_APP_PATH" >> "$GITHUB_ENV"
+      - name: Verify Production built app metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          PRODUCTION_APP_CONFIG_PATH="$PRODUCTION_BUILD_APP_PATH/EXConstants.bundle/app.config"
+          test -f "$PRODUCTION_APP_CONFIG_PATH"
+          test -s "$PRODUCTION_APP_CONFIG_PATH"
+          node -e 'const fs = require("node:fs"); const extra = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).extra ?? {}; for (const [key, expected] of Object.entries({ appEnvironment: "production", buildKind: "production", testMode: "false" })) { if (extra[key] !== expected) throw new Error(`Built iOS artifact metadata mismatch: ${key}=${extra[key] ?? "<missing>"}, expected ${expected}`); }' "$PRODUCTION_APP_CONFIG_PATH"
+      - name: iOS Production Validation / Bundle Guard
+        shell: bash
+        run: |
+          set -euo pipefail
           if grep -R -E '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService' "$PRODUCTION_BUILD_APP_PATH"; then
             echo "Production iOS app contains Automation/Test Control markers." >&2
             exit 1
           fi
-          echo "PRODUCTION_BUILD_APP_PATH=$PRODUCTION_BUILD_APP_PATH" >> "$GITHUB_ENV"
       - name: Save Production-validation iOS Simulator app artifact
         shell: bash
         run: |

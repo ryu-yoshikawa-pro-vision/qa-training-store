@@ -69,6 +69,7 @@
         "maestro/native-session-checkout-restart.yaml",
         "maestro/native-storefront.yaml",
         "maestro/native-test-control.yaml",
+        "maestro/phase2-native-storefront-cart.yaml",
         "maestro/subflows/accept-ios-deep-link.yaml",
         "src/application/contracts/commerce.ts",
         "src/application/native/guest-storefront.ts",
@@ -236,7 +237,15 @@
         "PR #14 Iteration 28 focused Contract => 2 files／45 tests PASS。旧iOS Runtime前提のMaestro／simctl Contract 1件を削除し、共通Flow／Android Contractは維持",
         "PR #14 Iteration 28 full gates => test:contracts 23 files／157 tests、lint:markdown 176 files／0 issues、format:check、lint 0 errors／64 warnings、typecheck、Native Component 47、Repository 33、route 38、EAS、pnpm run verify exit 0（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 157／Web export 2296）",
         "PR #14 Iteration 28 final static gate => iOS Workflow runtime machinery scan 0件、git diff --check exit 0（CRLF変換warningのみ）。iOS Build／Remote Native CIはWindows／未pushのため未実行",
-        "PR #14 Iteration 28 final artifact gate => native YAML 2 files parse PASS、Run／Evaluation JSON parse PASS、Sanitizer Write／Check 5 files／0 changed／0 replacements／0 residual findings PASS"
+        "PR #14 Iteration 28 final artifact gate => native YAML 2 files parse PASS、Run／Evaluation JSON parse PASS、Sanitizer Write／Check 5 files／0 changed／0 replacements／0 residual findings PASS",
+        "PR #14 Iteration 29 focused Contract => native-ci-workflow／native-test-control-maestro 2 files／61 tests PASS。初回readiness boundary failure was Contract slice only; corrected and rerun PASS",
+        "PR #14 Iteration 29 full Contract => 23 files／173 tests PASS",
+        "PR #14 Iteration 29 local gates => format:check、Markdownlint 176 files／0 issues、Lint 0 errors／64 warnings、Typecheck、Native Component 47、Repository 33、route 38、EAS、pnpm run verify exit 0（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 173／Web export 2296）",
+        "PR #14 Iteration 29 Android cold-start => Doctor PASS、Local Runbook CLI priority Flow／Production 1/1／RuntimeSuite 5/5／BoundarySuite 5/5 PASS。Production初回のAutomation APK残留をProduction APK再Installで解消",
+        "PR #14 Iteration 29 static final gate => YAML 21 files parse PASS、old cold-start pattern 0 matches、iOS Runtime machinery 0 matches、git diff --check exit 0（CRLF warningのみ）",
+        "PR #14 Iteration 29 Maestro-MCP => device server UNAVAILABLEで実行前停止。Local Runbook CLIを同一端末の代替検証に使用",
+        "PR #14 Iteration 29 iOS／Remote boundary => Windows Xcode／xcodebuild／xcrun／simctl／gh不在、Git mutation禁止のためiOS Build／Remote Native CI／latest-head final verifyは未実行。iOS RuntimeはADR-0011正式Gate対象外",
+        "PR #14 Iteration 29 final verify rerun => pnpm run verify exit 0（Format、Markdownlint 176 files／0 issues、Lint 0 errors／64 warnings、Typecheck、Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 47、Contract 173、Web export 2296 modules）"
         ],
         "warnings":  [
             "Windows hostではxcodebuild/xcrun/simctl/ghが未提供のためiOS SimulatorとRemote CIは未実行",
@@ -261,7 +270,8 @@
         "Iteration 26はWindows hostのxcodebuild／xcrun／simctl不在と未push条件のため、iOS実Runtime／Remote Native CI／Remote final verifyをPASS扱いしない",
         "Iteration 27初回の並列品質wrapperはnative-production-module-resolution cold timeoutとserve-web-dist一時directory EPERMを含んだが、対象単独4/4と単独全Contract 160/160で解消。並列実行の環境競合をコード失敗へ繰り上げない",
         "Iteration 27はWindows hostのxcodebuild／xcrun／simctl不在と未push条件のため、iOS実Runtime／Remote Native CI／Remote final verifyをPASS扱いしない"
-        ,"Iteration 28はWindows hostのXcode／gh不在とGit mutation禁止のため、iOS Build実行／Remote Native CI／Remote final verifyをPASS扱いしない。iOS Runtime／Maestro／実expo-sqliteは正式Gate対象外"
+        ,"Iteration 28はWindows hostのXcode／gh不在とGit mutation禁止のため、iOS Build実行／Remote Native CI／Remote final verifyをPASS扱いしない。iOS Runtime／Maestro／実expo-sqliteは正式Gate対象外",
+        "Iteration 29はMaestro-MCP Device Server UNAVAILABLEを環境障害として分類し、Local Runbook CLIのAndroid結果へ置換した。iOS Build／Remote Native CI未実行のためstatus partial／missing_validationを維持"
         ]
     },
     "safety":  {

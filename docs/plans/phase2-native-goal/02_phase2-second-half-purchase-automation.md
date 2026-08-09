@@ -279,6 +279,7 @@ Detect Native Changes
 - Automation Build／Production-validation Buildはいずれも`iphonesimulator`向けRelease Buildを生成する。
 - Automation Build／Production-validation Buildはいずれも`CODE_SIGNING_ALLOWED=NO`とし、Apple署名、Provisioning Profileを要求しない。
 - `Release-iphonesimulator`配下の`.app`を検出し、Automation／Productionの固定名ArtifactとしてUploadする。
+- 生成`.app`内の`EXConstants.bundle/app.config`を読み、Automationは`automation / automation / true`、Productionは`production / production / false`のembedded metadataを直接検証する。
 - Simulator boot／install／launch、Maestro、Contract Harness、Production-validation Runtimeは正式CI責務に含めない。
 - iOS WorkflowはNative CIから呼び出せる構成にし、単独の`workflow_dispatch`も必要に応じて維持する。
 - Xcode Version、Build結果、`.app`生成状態、Build logをEvidence化する。
@@ -540,7 +541,7 @@ Phase 2完了後もPhase 3へ自動で進みません。最終報告でPhase 3�
 - `maestro/native-purchase.yaml`はGuest状態で商品を追加し、Cart数量1を確認してからLoginし、既存会員Cartとの統合後数量2を確認する導線へ修正した。Android実機でCheckout成功まで1/1を確認した。
 - Native ShellはAppStateが`active`へ戻った時にAuth Sessionを再読込し、Login後Checkout fallbackは既知のCheckout状態ErrorだけをGuest／Home fallbackとして扱う。Unexpected Storage Errorは画面へ返す。Profile初期化失敗はloading固定ではなくRetry可能なError Stateへ変更した。
 - Native Detectは`src/presentation/return-to.ts`と、Native Runtimeが参照するnormalizer／static address lookup／Mock Payment Gatewayを監視対象へ追加した。
-- iOS Workflowは`ios-automation-build`／`ios-production-build`でAutomation／Productionのunsigned Release Simulator Appを独立生成し、Runtimeが成功した各Artifactを受け取る。各Runtime Metadataを`expo config --json`で`automation / automation / true`または`production / production / false`として検査する。WindowsではiOS実RuntimeとRemote CIは未確認のため、Gate E／F／Gの最終判定はpendingである。
+- iOS Workflowは`ios-automation-build`／`ios-production-build`でAutomation／Productionのunsigned Release Simulator Appを独立生成し、Resolved Expo Metadataと生成`.app`内`EXConstants.bundle/app.config`を`automation / automation / true`または`production / production / false`として検査する。ProductionはBuild-time marker guardを維持し、iOS Runtimeは正式Gate対象外である。WindowsではiOS BuildとRemote CIは未確認のため、Gate E／F／Gの最終判定はpendingである。
 
 ## 14. 2026-08-09 最終回帰と現行Production
 
@@ -552,7 +553,7 @@ Phase 2完了後もPhase 3へ自動で進みません。最終報告でPhase 3�
 
 - SQLite mapper／Customer Application Repositoryの外部値をRuntime parserへ統一し、列欠落、不正Enum、不正数値をfail-closeする境界を固定した。Native Transaction RunnerはCustomer Scope allowlistとfail-closed Admin placeholderを使い、型アサーションによるCapability境界の迂回を除去した。
 - Native Purchase画面の残存型アサーションを除去した。Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158、Typecheck、focused Repository Contract 13件はPASSした。
-- iOS Workflow／Native CIの静的契約は、Build／Runtime Artifact分離、unsigned Release Simulator、主要購入Flow、実`expo-sqlite` Harness経路、Production-validation、Evidence、Native変更なし時Skip、final fail-closeを満たす。WindowsではiOS実Runtime、Remote Android／iOS CI、最新Headの`native-ci / verify`が未実行で、Phase 2 final DoDはpendingとする。
+- iOS Workflow／Native CIの静的契約は、Automation／Production unsigned Release Simulator Build、Resolved／embedded metadata、Production Bundle Guard、`.app` Artifact、Native変更なし時Skip、final fail-closeを満たす。WindowsではiOS Build、Remote Android／iOS CI、最新Headの`native-ci / verify`が未実行で、Phase 2 final DoDはpendingとする。
 
 ## 16. 2026-08-09 Quality Gate追補
 

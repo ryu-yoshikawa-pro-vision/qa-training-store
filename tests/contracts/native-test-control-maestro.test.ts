@@ -20,7 +20,26 @@ const flowNames = [
   "native-production-validation.yaml",
 ] as const;
 
-function readFlow(name: (typeof flowNames)[number]): string {
+const automationFlowNames = [
+  "native-test-control.yaml",
+  "native-contract-harness.yaml",
+  "native-not-found.yaml",
+  "native-storefront.yaml",
+  "native-cart.yaml",
+  "native-search.yaml",
+  "native-restart-persistence.yaml",
+  "native-reset-dirty-state.yaml",
+  "native-out-of-stock.yaml",
+  "native-low-stock.yaml",
+  "native-purchase-limit.yaml",
+  "native-purchase.yaml",
+  "native-payment-retry.yaml",
+  "native-session-checkout-restart.yaml",
+  "native-review.yaml",
+  "phase2-native-storefront-cart.yaml",
+] as const;
+
+function readFlow(name: string): string {
   return readFileSync(join(process.cwd(), "maestro", name), "utf8").replace(/\r\n/g, "\n");
 }
 
@@ -78,6 +97,31 @@ describe("Native Test Control Maestro contracts", () => {
     expect(totalOpenLinks).toBe(38);
     expect(totalHandlers).toBe(totalOpenLinks);
   });
+
+  it.each(automationFlowNames)(
+    "uses the runtime listening signal for cold-start readiness before Scenario Shop in %s",
+    (flowName) => {
+      const source = readFlow(flowName);
+      const launchIndex = source.indexOf("- launchApp:");
+      const clearStateIndex = source.indexOf("clearState: true", launchIndex);
+      const readinessIndex = source.indexOf(
+        '- extendedWaitUntil:\n    visible: "Native test runtime listening"',
+        clearStateIndex,
+      );
+      const scenarioShopIndex = source.indexOf('- assertVisible: "Scenario Shop"', readinessIndex);
+
+      expect(launchIndex).toBeGreaterThanOrEqual(0);
+      expect(clearStateIndex).toBeGreaterThan(launchIndex);
+      expect(readinessIndex).toBeGreaterThan(clearStateIndex);
+      expect(scenarioShopIndex).toBeGreaterThan(readinessIndex);
+
+      const startup = source.slice(clearStateIndex, readinessIndex);
+      const readiness = source.slice(readinessIndex, readinessIndex + 140);
+      expect(startup).not.toContain('- assertVisible: "Scenario Shop"');
+      expect(readiness).toContain("- extendedWaitUntil:");
+      expect(readiness).toContain("timeout: 30000");
+    },
+  );
 
   it.each(flowNames.filter((flowName) => flowName !== "native-production-validation.yaml"))(
     "waits for Linking readiness before reset in %s",
@@ -285,6 +329,29 @@ describe("Native Test Control Maestro contracts", () => {
 
   it("checks Production validation without depending on Test Control or Harness", () => {
     const source = readFlow("native-production-validation.yaml" as (typeof flowNames)[number]);
+    const launchIndex = source.indexOf("- launchApp:");
+    const clearStateIndex = source.indexOf("clearState: true", launchIndex);
+    const shopReadyIndex = source.indexOf(
+      '- extendedWaitUntil:\n    visible: "Scenario Shop"\n    timeout: 30000',
+    );
+    const runtimeLabelIndex = source.indexOf('- assertNotVisible: "Native test runtime listening"');
+    const runtimeStatusIndex = source.indexOf('id: "native-test-runtime-status"');
+    const testControlLinkIndex = source.indexOf('openLink: "scenario-shop://admin/test-control"');
+    const harnessReadyIndex = source.indexOf(
+      '- extendedWaitUntil:\n    visible: "Contract HarnessはAutomation専用です"',
+    );
+    const harnessLabelIndex = source.indexOf('assertNotVisible: "Native Contract Harness"');
+
+    expect(launchIndex).toBeGreaterThanOrEqual(0);
+    expect(clearStateIndex).toBeGreaterThan(launchIndex);
+    expect(shopReadyIndex).toBeGreaterThan(clearStateIndex);
+    expect(runtimeLabelIndex).toBeGreaterThan(shopReadyIndex);
+    expect(runtimeStatusIndex).toBeGreaterThan(runtimeLabelIndex);
+    expect(testControlLinkIndex).toBeGreaterThan(runtimeStatusIndex);
+    expect(harnessReadyIndex).toBeGreaterThan(testControlLinkIndex);
+    expect(harnessLabelIndex).toBeGreaterThan(harnessReadyIndex);
+    expect(source).not.toContain('- assertVisible: "Scenario Shop"');
+    expect(source).not.toContain('visible: "Native test runtime listening"\n    timeout: 30000');
     expect(source).toContain('assertNotVisible: "Native test runtime listening"');
     expect(source).toContain('id: "native-test-runtime-status"');
     expect(source).toContain("Contract HarnessはAutomation専用です");

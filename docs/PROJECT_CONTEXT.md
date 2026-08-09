@@ -244,8 +244,8 @@
 - Native Customerの対象をLogin／Session、Profile／Address、Guest Cart統合、Checkout／Mock Payment、Order、Reviewへ拡張した。Native Admin、Guest Checkout、返金・キャンセル等は引き続き対象外である。
 - Native SQLite Schema Versionを2へ更新し、住所、Checkout Session、Order／Item、Payment、Shipment、Status History、Review／Review Historyを追加した。FK、`foreign_key_check`、共有Application transaction scope、commit後返却、ロック時のfail-closeをNative repository adapterへ実装した。
 - Native Composition Rootは共有Auth／Account／Cart／Checkout／Review Use Caseへ実SQLite repository、PBKDF2、Native KV、Address Lookup、Mock Payment Gatewayを注入する。Catalogはcustomer viewerを許可するが、Admin capabilityは公開しない。
-- Test Control Scenarioは購入系Scenarioを受理し、`native-purchase.yaml` と `native-review.yaml` をAndroid／iOS CIのRuntime経路へ接続した。Production validationではAutomation Markerを許可せず、Test Control／Harnessを公開しない。
-- iOS Workflowは`workflow_call`／manual dispatch、`ios-automation-build`／`ios-production-build`の独立したunsigned Release `iphonesimulator` Build、Artifact handoff、Runtime、Production guardへ分離し、Native CI final verifyへ接続した。iOS物理端末、署名、EAS Cloudは対象外である。
+- Test Control Scenarioは購入系Scenarioを受理し、`native-purchase.yaml` と `native-review.yaml` をAndroid Runtime経路へ接続した。共通Maestro FlowはiOS互換性のため保持するが、iOS正式GateはBuild-onlyである。Production validationではAutomation Markerを許可せず、Test Control／Harnessを公開しない。
+- iOS Workflowは`workflow_call`／manual dispatch、`ios-automation-build`／`ios-production-build`の独立したunsigned Release `iphonesimulator` Build、Build-time metadata／Production guard、生成`.app` Artifact保存／Uploadへ分離し、iOS Build GateとしてNative CI final verifyへ接続した。iOS物理端末、署名、EAS Cloudは対象外である。
 - Node `node:sqlite`による共有Contract／Application Flowは実行済みだが、これはAndroid／iOS実`expo-sqlite`の代替ではない。WindowsでのiOS実行とRemote CIは、各Runの実行結果が得られるまで未確認として扱う。
 - 2026-08-08のWindows Android Runでは、今回の変更を含むAutomation Release APKのBuild／Install／Smoke、Control 1/1、既存Runtime 5/5、Boundary 5/5、Customer Purchase 1/1、Review 1/1を確認した。これはAndroid実`expo-sqlite`の証跡であり、iOS実Runtime／Remote CIの成功を意味しない。
 - 最終自己レビューでは、Native SQLite v1→v2の加算的migration（既存Customer data保持）、Native loginのreturnTo allowlist、非customer Roleのshell隔離、SQLite lock errorのApplicationError変換を追加し、CIのProduction APK実体検証とPurchase／Checkout restartのMaestro assertionを修正した。Unknown schema versionは引き続きfail-closeする。
@@ -256,7 +256,7 @@
 
 - `native-purchase.yaml`はGuest Cart追加→Cart数量1→Login→会員Cart統合後数量2→Checkout成功を同一Flowで確認する。Android実機の変更後APKでPurchase、Payment retry、Checkout restart、Review、Runtime／Boundaryを再実行し、すべて成功した。
 - `NativeShell`はAppStateのforeground復帰時にAuth Sessionを再読込する。Native LoginのCheckout fallbackは`CHECKOUT_STEP_INCOMPLETE`、`CHECKOUT_EXPIRED`、`CART_VERSION_CHANGED`だけを既知状態として扱い、Storage等の予期しないErrorは表示する。Profile読み込みErrorはRetry可能なStateを表示する。
-- Native Detectは共有`src/presentation/return-to.ts`、normalizer、static address lookup、Mock Payment Gatewayを含む。iOS WorkflowはAutomation／Productionを独立Build Jobで生成し、各`.app`をArtifact経由でRuntimeへ渡す。Metadataは`expo config --json`で検査し、Productionはmarker guardと実Runtime FlowでTest Control／Harness無効化を確認する。
+- Native Detectは共有`src/presentation/return-to.ts`、normalizer、static address lookup、Mock Payment Gatewayを含む。iOS WorkflowはAutomation／Productionを独立Build Jobで生成し、Resolved Expo Metadata、生成`.app`内`EXConstants.bundle/app.config`、Production marker guard、固定名Artifactを検査／保存する。iOS Runtime Flowは正式Gateに含めない。
 - 変更後ローカル検証は、Focused Contract／Component／Typecheck／PrettierとAndroid実機で成功した。WindowsではXcode／Simulator／GitHub CLIがないため、iOS実`expo-sqlite`、Remote Native CI、最新Headの`native-ci / verify`は未実行である。静的PASSを実Runtime／Remote PASSへ繰り上げず、Phase 2 final DoDはpendingとする。
 
 ## Phase 2後半 最終自己レビュー追補（2026-08-09）
@@ -289,7 +289,7 @@
 ## PR #14 iOS Build-only化後のNative CI現行契約（2026-08-09）
 
 - Android BuildはAutomation／Production-validationの2 Jobへ分離し、Runtimeは両Jobを`always()`で受けて、どちらかが成功した場合だけ実行する。各Artifactを独立してDownload／verify／installし、Automation／Production Maestroは相互に依存させない。最終`verify`は両Build、Android Runtime、iOS Build GateをNative変更時に必須とする。
-- iOS正式CIは`ios-automation-build`／`ios-production-build`／`ios-verify`だけで構成する。各Buildはmetadata検査、`expo prebuild`、Pods、workspace／scheme解決、unsigned Release `iphonesimulator` `xcodebuild`、`.app`生成確認、固定名保存、Uploadを完結し、`ios-verify`は両Buildだけをfail-closeで集約する。
+- iOS正式CIは`ios-automation-build`／`ios-production-build`／`ios-verify`だけで構成する。各BuildはResolved Expo metadataと生成`.app`内`EXConstants.bundle/app.config`のembedded metadata検査、`expo prebuild`、Pods、workspace／scheme解決、unsigned Release `iphonesimulator` `xcodebuild`、`.app`生成確認、固定名保存、Uploadを完結し、Productionはmarker guardを維持する。`ios-verify`は両Buildだけをfail-closeで集約する。
 - iOSのSimulator boot／install／launch、Maestro、実`expo-sqlite` Contract Harness、Production-validation Runtime、`simctl diagnose`、Runtime Evidenceは正式Gateから除外した。Jobをskipやsuccessへ偽装するのではなく、Runtime Job自体をWorkflow topologyから削除している。
 - iOS Artifactの現行契約はAutomation `native-ios-app-${{ github.run_id }}`／`native-automation.app`、Production `native-ios-production-app-${{ github.run_id }}`／`native-production-validation.app`である。`tests/contracts/native-ci-workflow.test.ts`は各BuildのRelease-iphonesimulator検出、固定名保存、Upload、両BuildのみのAggregateを固定する。
 - Maestroの全16 Native Flowにあるcustom scheme `openLink` 38箇所とiOS conditional handlerは、Android回帰を避けるため共通ソースに保持する。ただし、これらをiOS Runtime PASSやiOS正式Gateの根拠にはしない。
@@ -297,6 +297,12 @@
 - 2026-08-09の最新APKによるAndroid実機はBuild（Metro初回生成を含む）／Install／Smoke／Test Control 1/1、Runtime 5/5、Boundary 5/5をPASSした。Review単体は保存操作まで進んだが、標準日本語IMEがASCII本文を変換し、保存完了assertionへ到達しなかったため、物理端末のIME依存Failureとして記録する。Reviewの2回目`hideKeyboard`は復元しない。
 - iOS Runtimeを正式Gateから外す理由は、iOS Simulatorを継続的にローカル再現・デバッグできる環境を現行運用で保持しないため、GitHub-hosted macOS Runnerだけに依存するRuntime CIの保守性が低いからである。Androidは継続的に再現・デバッグできるためRuntime Gateを維持する。
 - Windowsでは`xcodebuild`／`xcrun`／`simctl`／`gh`が未提供であり、iOS Buildのローカル実行、修正HeadのRemote Native CI／最終`native-ci / verify`は未確認である。iOS Runtimeは正式Gate対象外であり、未実行をPASSへ繰り上げない。Remote Gate結果が未取得のためPhase 2 final DoDはpendingとする。
+
+## PR #14追加指示後の現行Runtime／Artifact契約（2026-08-09）
+
+- Android Automationの全16 Flowは、`launchApp(clearState: true)`後に既存の`Native test runtime listening`を30秒待ってから`Scenario Shop`を確認する。Production FlowはRuntime listeningを待たず、`Scenario Shop`を30秒待ってからRuntime／Test Control／Contract Harnessの非表示を確認する。
+- iOS正式CIはBuild-onlyのまま、Automation／Productionの生成`.app`についてSource側Resolved metadataに加えて、`EXConstants.bundle/app.config`のembedded `appEnvironment`／`buildKind`／`testMode`を直接検証する。Production marker Bundle Guard、固定名Artifact、fail-close Build Gateは維持する。
+- Iteration 29でこの起動順序とembedded metadataをContractへ追加し、focused 61 tests、全Contract 173 tests、全local verify、Android RuntimeSuite／BoundarySuite各5/5をPASSした。Maestro-MCPはDevice Server `UNAVAILABLE`だったため、同一端末のLocal Runbook CLI結果で代替確認した。
 
 ## メモ
 
