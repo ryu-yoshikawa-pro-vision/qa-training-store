@@ -1262,6 +1262,17 @@ Rules:
 benchmark_revision = sha256:<lowercase hex>
 ```
 
+#### Revision string grammar
+
+`benchmark_revision`は次のどちらかだけを受理する。
+
+```text
+^git:[0-9a-f]{40}$
+^sha256:[0-9a-f]{64}$
+```
+
+`git:sha256:...`のような複合Prefixや省略形は受理しない。
+
 Manifest自体はRun Evidenceとして保存してよいが、外部Version DBは作らない。
 
 ### 7.17 Instructor Answer Key
@@ -1427,7 +1438,7 @@ Required:
 {
   "charter_id": null,
   "challenge_id": "CHALLENGE-BASIC-001",
-  "benchmark_revision": "git:<sha-or-sha256>",
+  "benchmark_revision": "git:<40-char-lowercase-sha>",
   "runtime_variant_id": null,
   "runner_profile": {
     "model": "<model>",
@@ -1438,6 +1449,8 @@ Required:
   }
 }
 ```
+
+上記はClean committed benchmarkの例である。Uncommitted / mixed benchmarkでは`benchmark_revision`に`sha256:<64-char-lowercase-hex>`を使う。
 
 Rules:
 
@@ -1689,7 +1702,7 @@ Answer Keyの`allowed_severity_delta`以内なら1.0、超過0.0。Default delta
   "schema_version": 1,
   "run_id": "<run_id>",
   "challenge_id": "CHALLENGE-BASIC-001",
-  "benchmark_revision": "git:<sha>",
+  "benchmark_revision": "git:<40-char-lowercase-sha>",
   "source_head_sha": null,
   "runtime_variant_id": null,
   "runner_profile": {
@@ -1737,6 +1750,8 @@ Answer Keyの`allowed_severity_delta`以内なら1.0、超過0.0。Default delta
   }
 }
 ```
+
+上記はClean committed benchmarkの例である。Uncommitted / mixed benchmarkでは`benchmark_revision`に`sha256:<64-char-lowercase-hex>`を使う。
 
 `matches[]` rules:
 
@@ -1881,6 +1896,7 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] Answer Oracle Owner FileがLearner-safe Bundleに含まれることをvalidation。
 - [ ] Learner-safe Bundleを決定的に生成するTest。
 - [ ] Benchmark Manifest canonical serialization / digest Test。
+- [ ] Benchmark Revision string grammar Test（`git:<40 hex>` / `sha256:<64 hex>`のみ許可）。
 - [ ] Renameを`D + A`へ正規化するTest。
 - [ ] `invalid_reasons[]` enum / uniqueness / sort validation。
 - [ ] Changed BR / AC → Affected Challenge Summary。
@@ -2038,6 +2054,7 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] Manifest Entry order / serialization / SHA-256がDeterministic
 - [ ] 同一Inputから同じ`benchmark_revision`が生成される
 - [ ] Input 1 byte変更で`benchmark_revision`が変わる
+- [ ] `benchmark_revision`が`git:<40 hex>`または`sha256:<64 hex>`以外ならFailure
 - [ ] 異なるChallengeは同じGit SHAでもBenchmark Identityが異なる
 - [ ] `runtime_variant_id`差がBenchmark Identity差として扱われる
 - [ ] Same-condition比較がBenchmark Identity + Runner Profile完全一致を要求する
@@ -2051,6 +2068,8 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] Native APK / arbitrary ADB shell inaccessible
 - [ ] GitHub / Search / Generic Shell inaccessible
 - [ ] Learner-safe CoverageにAnswer mappingなし
+- [ ] 最低1 ChallengeでBlack-box Scored E2EをPreparation → Fresh Runner → Frozen `qa-findings.json` → Separate Evaluator → `evaluation.json`まで完走
+- [ ] 上記E2Eで`challenge_id` / `benchmark_revision` / `runtime_variant_id` / `runner_profile`がFrozen FindingsとEvaluationで完全一致
 - [ ] Required Coverage縮小不可
 - [ ] 未探索Non-defect → NE
 - [ ] Coverage completedでもItem observationなし → NE
@@ -2105,6 +2124,7 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - Source-free isolated root + Fresh Session + Positive Tool Allowlistが成立。
 - Forbidden Capability Probeが全項目Blockを確認。
 - Runner / Evaluator Session分離が確認できる。
+- 最低1 ChallengeでPreparation → Fresh Runner → Frozen Findings → Separate Evaluator → `evaluation.json`までEnd-to-End完走する。
 
 ### 9.4 Scoring Correctness
 
@@ -2122,6 +2142,7 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 
 成功条件:
 
+- Benchmark Revisionが`^git:[0-9a-f]{40}$`または`^sha256:[0-9a-f]{64}$`に適合する。
 - Benchmark Identityが`challenge_id + benchmark_revision + runtime_variant_id`で判定される。
 - Same-condition Runner比較はBenchmark Identity + Runner Profile完全一致を要求する。
 - Tool Profile Revisionが使用ファイルbytesのSHA-256と一致。
@@ -2460,6 +2481,7 @@ Unexpected true defect
 - Challenge注入目的の任意setup scriptを初期版へ追加しない。
 - Normal readonlyとBlack-box Isolationを同一視しない。
 - Scored RunnerはFresh Session + isolated root + Positive Tool Allowlistを成立条件とする。
+- Benchmark Revisionは`git:<40-char-lowercase-sha>`または`sha256:<64-char-lowercase-hex>`だけを許可する。
 - Benchmark Identityは`challenge_id + benchmark_revision + runtime_variant_id`で判定する。
 - Clean committed Benchmark以外はCanonical Manifest + SHA-256でRevisionを作る。
 - Working Tree statusは`A|M|D`、renameはold `D` + new `A`へ固定する。
