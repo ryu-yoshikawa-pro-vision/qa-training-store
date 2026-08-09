@@ -89,17 +89,25 @@ export class CartUseCases {
       });
     }
     const [resolved, now] = await Promise.all([this.resolveOwner(), this.now()]);
-    const cart = await this.transactionRunner!.run("cart-mutation", async ({ carts }) =>
-      resolved.owner.ownerType === "user"
+    const cart = await this.transactionRunner!.run("cart-mutation", async ({ carts }) => {
+      const existing =
+        resolved.owner.ownerType === "user"
+          ? await carts.getActiveByUser(resolved.owner.userId)
+          : await carts.getActiveByGuest(resolved.owner.guestId);
+      if (existing !== null) return existing;
+      const newCartId = this.idGenerator.generate();
+      return resolved.owner.ownerType === "user"
         ? carts.getOrCreateActiveByUser({
             userId: resolved.owner.userId,
+            newCartId,
             now,
           })
         : carts.getOrCreateActiveByGuest({
             guestId: resolved.owner.guestId,
+            newCartId,
             now,
-          }),
-    );
+          });
+    });
     return this.carts!.getCartDto({
       cartId: cart.id,
       viewer: resolved.viewer,

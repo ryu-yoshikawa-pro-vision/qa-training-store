@@ -198,8 +198,12 @@ export interface CartRepository extends VersionedRepository<Cart> {
     now: string;
   }): Promise<CartDto>;
   getActiveByGuest(guestId: string): Promise<Cart | null>;
-  getOrCreateActiveByUser(input: { userId: string; now: string }): Promise<Cart>;
-  getOrCreateActiveByGuest(input: { guestId: string; now: string }): Promise<Cart>;
+  getOrCreateActiveByUser(input: { userId: string; newCartId: string; now: string }): Promise<Cart>;
+  getOrCreateActiveByGuest(input: {
+    guestId: string;
+    newCartId: string;
+    now: string;
+  }): Promise<Cart>;
   listItems(cartId: string): Promise<CartItem[]>;
   addQuantityToActiveCart(input: AddCartItemCommand): Promise<{ cart: Cart; item: CartItem }>;
   setQuantityAndTouchCart(

@@ -55,15 +55,15 @@ export function createNativeCustomerCatalogGateway(
 ): CustomerCatalogGateway {
   return {
     getHome: ({ viewer, now }) => {
-      assertGuest(viewer.kind);
+      assertSupportedViewer(viewer.kind);
       return repository.getHome({ now });
     },
     search: ({ viewer, now, ...request }) => {
-      assertGuest(viewer.kind);
+      assertSupportedViewer(viewer.kind);
       return repository.search({ ...request, now });
     },
     getProductDetail: ({ viewer, productId, now }) => {
-      assertGuest(viewer.kind);
+      assertSupportedViewer(viewer.kind);
       return repository.getProductDetail({ productId, now });
     },
     getCategoryName: (categoryId) => repository.getCategoryName(categoryId),
@@ -100,8 +100,8 @@ export function createNativeCustomerCartGateway(
   };
 }
 
-function assertGuest(kind: string): asserts kind is "guest" {
-  if (kind !== "guest") {
+function assertSupportedViewer(kind: string): asserts kind is "guest" | "customer" {
+  if (kind !== "guest" && kind !== "customer") {
     throw new ApplicationError({
       code: "PERMISSION_DENIED",
       messageKey: "cart.customerOnly",
@@ -114,5 +114,11 @@ function assertGuestOwner(
   owner: CartMutationOwner,
   viewerKind: string,
 ): asserts owner is Extract<CartMutationOwner, { ownerType: "guest" }> {
-  if (owner.ownerType !== "guest" || viewerKind !== "guest") assertGuest("customer");
+  if (owner.ownerType !== "guest" || viewerKind !== "guest") {
+    throw new ApplicationError({
+      code: "PERMISSION_DENIED",
+      messageKey: "cart.customerOnly",
+      retryable: false,
+    });
+  }
 }

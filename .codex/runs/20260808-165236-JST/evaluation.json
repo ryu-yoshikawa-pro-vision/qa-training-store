@@ -1,0 +1,371 @@
+{
+  "schema_version": 1,
+  "run_id": "20260808-165236-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": ["missing_validation"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Phase 2後半のNative Customer購入コード、実SQLite、Android実機、Production validation、Web／静的回帰、Order詳細snapshot表示、入力画面Keyboard対応、Login復帰先の型付き遷移、SQLite境界Runtime parser、PR #14追加DoDのStorefront Stable ID、Android／iOS Flow継続、Cart caller-generated ID、Harness認可fail-close、Checkout step returnTo、NativeShell refresh serial／AppState cleanup／logout catch、PR #14追加修正のreviews-empty／Native fixture／checkout期限更新transaction／Expo Router公開API移行、PR #14最終修正のiOS Deep Link共通handler、Production bundle本文marker guard、Iteration 27のquote非依存selector／openLink直後Contract／full-consumption marker guard／非対話diagnose証跡、Iteration 28のiOS Build-only Workflow／Contract／文書同期、Iteration 29のAndroid cold-start／Production wait／iOS embedded metadata Contractは完了し、Production APK source→runtime copy、Native Customer Role boundary、NativeShell route regressionも修正・再検証した。Iteration 29ではfocused Contract 61、全Contract 173、Android RuntimeSuite／BoundarySuite各5/5、全local verifyを再確認した。Review単体は物理日本語IME依存Failureとして未完了であり、WindowsではiOS BuildとRemote GitHub Actionsの実行結果を取得できない。iOS Simulator Runtime／Maestro／実expo-sqlite Harnessは現行正式Gate対象外である。",
+      "evidence_refs": [
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 01:42",
+          "summary": "NativeShell route regressionの原因・修正、Android Iteration 8 Runtime／Boundary 5/5、全体回帰PASS、iOS／Remote未実行境界を記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はNative Customer購入、Test Control／Maestro、Android／iOS CI、文書、Run Artifactに限定し、Native Admin、Guest Checkout、EAS Cloud、Git mutationは実施していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-08-08_170005_phase2-native-purchase-automation.md",
+          "summary": "計画上のIn／OutとGit mutation禁止を保持している。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Iteration 29のWorkflow／Maestro Contract 2 files／61 tests、全Contract 23 files／173 tests、Native Component 12 suites／47、Repository 5 files／33、Typecheck、route／EAS、Format、Markdownlint 176 files／0 issues、Lint 0 errors／64 warnings、最終`pnpm run verify`（Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 47、Contract 173、Web export 2296 modules）はPASSした。Android Doctor、priority Flow、Production 1/1、RuntimeSuite 5/5、BoundarySuite 5/5、YAML 21 files、old cold-start pattern 0 matches、iOS Runtime machinery 0 matchesもPASSした。Iteration 28でiOS Runtime／simctl／Maestro／Runtime evidenceのWorkflow責務を削除し、Iteration 29でBuild-onlyのembedded metadata Contractと現行文書を更新した。Review単体は標準日本語IMEによるASCII本文変換後に保存assertionでFAILし、iOS Build／Remote CIは未実行である。iOS Simulator Runtime／Maestro／実expo-sqlite Harnessは正式Gate対象外である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 01:42 JST",
+          "summary": "Iteration 8修正後のUnit 65、Integration 95、Repository 31、Web Component 76、Native Component 36、Contract 155、Typecheck、Lint、Android Runtime／Boundary 5/5のPASSを記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 01:56 JST",
+          "summary": "Iteration 9のiOS Maestro selected-device修正、Workflow Contract 16/16、全Contract 155/155、Markdown／JSON／差分検証のPASSとBaseline format残差を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:03 JST",
+          "summary": "Iteration 10でNative Detectへtests/contracts/**を追加し、Workflow Contract 16/16と全Contract 155/155を再確認した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:07 JST",
+          "summary": "Iteration 10のDetect PathをNative Component TestとNative CI Contract Testへ絞り、Web-only Contract変更の高コストJob起動を避ける再検証をPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:10 JST",
+          "summary": "Iteration 11でiOS simctl diagnoseの明示出力先と非Archive指定を契約化し、Workflow Contract／全Contract／PrettierをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:17 JST",
+          "summary": "Iteration 11修正後の全テスト（Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 36、Contract 155）がPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:18 JST",
+          "summary": "最終Artifact gateでRun／Evaluation JSON、Prettier、git diff --check、Sanitizer（5 files／0 changed／0 residual）がPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:25 JST",
+          "summary": "Iteration 12でNative契約テストglobをDetectへ追加し、Workflow Contract 16/16、全Contract 155/155、Prettier、Path一致確認をPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:32 JST",
+          "summary": "Iteration 13でNative Order詳細のPayment／Shipment／商品／価格／配送先Snapshotを追加し、focused 8/8、Native Component 37/37、Typecheck／PrettierをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:35 JST",
+          "summary": "Iteration 14で入力画面へKeyboardAvoidingViewを追加し、focused 9/9、Native Component 38/38、全Test Unit 65／Integration 95／Repository 31／Web Component 76／Contract 155、Typecheck／PrettierをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:42 JST",
+          "summary": "Iteration 14後の全テスト、Lint、Markdownlint、Typecheck、Run／Evaluation JSON、対象Prettier、git diff、SanitizerをPASSし、format／verifyのBaseline 2ファイル残差とiOS／Remote未実行をpartialとして確定した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:52 JST",
+          "summary": "Iteration 15でNative Loginのdestination as neverを型付きrouter.replaceへ修正し、Typecheck、Native Component 38/38、対象Prettier、型逃げscan、git diff --checkをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 02:54 JST",
+          "summary": "Iteration 15後のSanitizer、Run／Evaluation JSON parse、Run Artifact Prettier、git diff --checkをPASSし、iOS／Remote未実行とBaseline format残差をpartialとして維持した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 03:13 JST",
+          "summary": "Iteration 16でNative PurchaseのApplicationError／Review rating型アサーションを除去し、Typecheck、Native Component 38/38、対象Prettier、型逃げscanをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 03:14 JST",
+          "summary": "Iteration 17でSQLite mapper／Application RepositoryをRuntime parserへ統一し、focused mapper 4/4、Repository 31/31、全Test Contract 157/157、Typecheck、Prettier、強制変換scanをPASSした。初回回帰の住所列名不一致は修正済み。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 03:26 JST",
+          "summary": "Iteration 17 follow-upでnullable SQLite parserのundefined受入れを除去し、focused mapper 4/4、Repository 31/31、全Test Contract 157/157、Typecheck、Prettierを再確認した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 03:30 JST",
+          "summary": "最終Artifact gateでRun／Evaluation JSON、Run Artifact Prettier、git diff --check、Sanitizer 5 files／0 changed／0 residualをPASSし、format BaselineとiOS／Remote未実行をpartialとして維持した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 03:34 JST",
+          "summary": "Iteration 18でNative Transaction Runnerの型アサーションを除去し、Customer Scope allowlist、Admin Scopeのtransaction前fail-close、Native Repository Contract 13/13、全Test Contract 158/158をPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 03:39 JST",
+          "summary": "Iteration 18後の全Test、Typecheck、Prettier、型逃げscan、Run／Evaluation JSON、git diff、SanitizerをPASSし、format BaselineとiOS／Remote未実行をpartialとして維持した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 03:41 JST",
+          "summary": "最新状態スナップショットでContract 158、Native Repository Contract 13、Typecheck、Prettier、型逃げscan、Run／Evaluation JSON、git diff、Sanitizer 5 files／0 changed／0 residualを確認し、Phase 2 final DoD pendingを確定した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 03:47 JST",
+          "summary": "最終Documentation auditでREADME／PROJECT_CONTEXT／Phase 2後半Plan／HistoryのPrettier、Markdownlint 173 files、git diff --checkをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 03:50 JST",
+          "summary": "Documentation後のRun／Evaluation JSON、Run Artifact Prettier、Sanitizer 5 files／0 replacements／0 residualをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 04:03 JST",
+          "summary": "Baseline Format整形と差分起因の未使用import修正後、pnpm run verifyがexit 0（Lint 0 errors／63 warnings、全Test、Web export 2294 modules）でPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 04:07 JST",
+          "summary": "Native route dependencies 38 routes、EAS static config、Automation／Production native bundle marker guardをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 04:09 JST",
+          "summary": "Final artifact gateでRun／Evaluation JSON、Prettier、Markdownlint 174 files、git diff --check、Sanitizer 5 files／0 residualをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 06:17 JST",
+          "summary": "Quality Gate Iteration 20で初回5分wrapperの未確定を切り分け、15分extended rerunのpnpm run verify exit 0（全ローカルゲート、全Test、Web export）を記録した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 06:19 JST",
+          "summary": "Iteration 20追記後のRun／Evaluation JSON、Prettier、Markdownlint 174 files、git diff --check、Sanitizer 5 files／0 residualをPASSした。"
+        },
+        {
+          "kind": "remote_validation",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 07:33 JST",
+          "summary": "PR #14旧Remote Native CI runのAndroid APK path不一致とiOS EXConstants scheme誤選択を確認し、修正対象を特定した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 07:33 JST",
+          "summary": "Artifact Contract修正後のWorkflow Contract 17/17、全Contract 159/159、pnpm run verify exit 0を記録した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 07:35 JST",
+          "summary": "Run／Evaluation JSON、Run Artifact Prettier、Markdownlint、git diff --check、Sanitizer 5 files／0 residualの最終ゲートをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 11:08 JST",
+          "summary": "PR #14追加DoDのfocused Vitest 63/63、Native Jest 16/16、Typecheck、全Contract 162/162、pnpm run verify exit 0（Unit 66／Integration 97／Repository 32／Native Component 43／Web export 2294 modules）を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 11:12 JST",
+          "summary": "Run／Evaluation JSON parse、Run Artifact Prettier、Markdownlint 174 files、git diff --check、Sanitizer 5 files／0 residualをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 11:26 JST",
+          "summary": "NativeShell AppState cleanup修正後のNativeShell Jest 5/5、Native Runtime Service Surface Contract 2/2、最新pnpm run verify exit 0（Native Component 44／Contract 162）を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 11:53 JST",
+          "summary": "Iteration 24のreviews-empty Integration 8/8、Native SQLite repository 13/13、Native／Expo Router Contract 16/16、Native Purchase Component 13/13、Admin Product Component 4/4、内部Expo Router path scan、pnpm run verify exit 0（Unit 66／Integration 98／Repository 33／Native Component 45／Contract 165／Web export 2296 modules）を記録している。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".artifacts/native-local/20260808-235600-android-postfix-production-current-shortpath/build/production-marker-check.txt",
+          "summary": "Postfix後Production APKのbundle、arm64 ABI、marker不在、Production metadataを記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 19:17 JST",
+          "summary": "Iteration 27のregex selector、38箇所のopenLink直後Contract、marker positive／negative／bundle-missing guard、非対話simctl diagnose契約、全quality gateとpnpm run verify exit 0を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 19:29 JST",
+          "summary": "marker pipeline全体を対象にgrep -q／grep --quiet禁止を強化したContractと、Focused 48/48、全Contract 160、再pnpm run verify exit 0を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 19:30 JST",
+          "summary": "Iteration 27最終Artifact gateのJSON parse、Run Artifact Prettier、git diff、Sanitizer 5 files／0 residualを記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 21:12 JST",
+          "summary": "Iteration 28のiOS Build-only Workflow／Contract／文書同期、Focused 45/45、全Contract 23 files／157 tests、全quality gate、pnpm run verify exit 0、iOS Build／Remote未実行境界を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 21:16 JST",
+          "summary": "iOS Workflow 2 filesのYAML parse、Runtime machinery scan、Run／Evaluation JSON parse、git diff、Sanitizer 5 files／0 residual、PR本文更新案を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 22:47 JST",
+          "summary": "Iteration 29のAndroid cold-start／Production wait、iOS embedded app.config metadata、focused 61／全Contract 173、全local verify、Android RuntimeSuite／BoundarySuite 5/5、Maestro-MCP UNAVAILABLEとLocal CLI代替、iOS／Remote未実行境界を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 23:00 JST",
+          "summary": "readiness後のScenario Shop順序assertion追加後、focused 61 testsと最新pnpm run verify exit 0（Contract 173、Web export 2296）を記録している。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Git add／commit／push／reset／clean、Remote CI起動、EAS Cloud実行は行っていない。Historyの命名だけはユーザー指示に従いGitを使わない通常ファイル操作で変更した。生ログはRun外の.artifactsへ保存した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "Production next hypothesis",
+          "summary": "上流失敗を分離し、Android targeted buildと証跡保存を行った。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Plan、TASKS、append-only REPORT、ADR、Project Context／History、focused／full validation、Iteration 4/5 Repair Loop、Agent review、Evaluationを保存している。",
+      "evidence_refs": [
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "Delegation",
+          "summary": "Darwin／Mendelのread-only reviewと親Agentの採用判断を記録している。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "共有returnTo resolver、SQLite transaction error mapping、加算的migration、customer-only shell gate、Profile customer guard、Production APK source→runtime handoff、CIの責務分離を既存構造へ局所追加し、契約テストで固定した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "src/infrastructure/database/sqlite/seed.ts",
+          "summary": "v1→v2 migrationとunknown version fail-closeを実装している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".github/workflows/native-ci.yml",
+          "summary": "Production APKの実体検証とtargeted bundle／assembleを分離している。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Windows preflight、unique attempt artifact、APK hash／ABI、Maestro JUnit／screenshots／hierarchy／logcat、CI static contractを保存したが、macOS／Remoteの実行環境結果は未取得である。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".artifacts/native-local/20260809-013000-android-iteration8-preflight/preflight.txt",
+          "summary": "Iteration 8のAndroid toolchain、SDK、実機、容量、Gradleのpreflightを保存している。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "Windows hostでxcodebuild／xcrun／simctl／ghがnot-foundであり、Remote CIを起動していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+        "selector": "2026-08-09 11:53 JST",
+        "summary": "Iteration 24後もWindows hostではiOS Simulator／実expo-sqlite Harness／Remote GitHub Actionsを未実行として記録している。"
+        }
+      ],
+      "detail": "iOS Build-only Workflowの静的契約、生成`.app`内`EXConstants.bundle/app.config`のautomation／production metadata、quote非依存Deep Link selector、custom scheme 38箇所とconfirmation handler 38箇所の直後隣接契約、Android Production bundle本文marker guardのfull-consumption、Iteration 27のdiagnose契約、Iteration 29のAndroid cold-start／Production wait ContractはPASSした。Iteration 28ではios-runtime／simctl／Maestro／Runtime evidenceをWorkflowとRequired Contractから削除し、Iteration 29ではBuild-onlyのembedded metadata順序と現行文書を同期した。macOS iOS BuildとGitHub-hosted Runが未確認のため、現行Phase 2 final DoDは未完了とする。iOS Simulator Runtime／Maestro／実expo-sqlite Harnessは正式Gate対象外であり、Android Review単体は標準日本語IMEによる本文変換後の保存完了assertionでFAILしているため、物理端末依存の未完了検証として扱う。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Native CI Production APK verification",
+      "evidence": "Production verifyがProduction buildの実出力をRuntime用Pathへcopyせずに検査・Uploadし得たため、source、copy、export、verifyの順序を契約テストで固定する修正を行った。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/native-ci-workflow.test.ts",
+          "summary": "Production verifyのAPK pathとtargeted build順序を契約化している。"
+        }
+      ],
+      "expected_impact": "同名Artifactや環境変数の取り違えによるfalse PASSを早期に検出できる。",
+      "recommendation": "Remote CIでProduction build jobを実行し、Artifact名・実ファイルhash・install対象が同一であることをEvidenceへ残す。"
+    }
+  ]
+}

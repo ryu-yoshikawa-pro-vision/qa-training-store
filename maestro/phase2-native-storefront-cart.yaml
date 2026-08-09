@@ -2,6 +2,9 @@ appId: com.ryuyoshikawa.scenarioshop
 ---
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible: "Native test runtime listening"
+    timeout: 30000
 - assertVisible: "Scenario Shop"
 - tapOn: "商品を探す"
 - assertVisible: "商品一覧"

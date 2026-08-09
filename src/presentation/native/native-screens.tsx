@@ -69,7 +69,7 @@ export function NativeHomeScreen() {
           決定的なシナリオで、確かなテストを。
         </Text>
         <Text style={[styles.body, styles.heroBody]}>
-          商品を探して、Variationを選び、Guest Cartへ追加できます。
+          商品を探して、Variationを選び、Guest Cartから会員購入まで確認できます。
         </Text>
         <View style={styles.actionRow}>
           <NativeButton
@@ -647,6 +647,34 @@ export function NativeCartScreen() {
               </Text>
             </View>
           </View>
+          {cart.blockingIssues.includes("PRICE_CHANGED") && (
+            <NativeButton
+              label="最新価格を反映"
+              variant="secondary"
+              disabled={busy !== null}
+              onPress={() => {
+                setBusy("price-change");
+                void services.cart
+                  .acceptPriceChanges({
+                    cartExpectedVersion: cart.cartVersion,
+                    itemExpectedVersions: Object.fromEntries(
+                      cart.items.map((item) => [item.itemId, item.itemVersion]),
+                    ),
+                  })
+                  .then(setCart)
+                  .catch((caught: unknown) => setError(asError(caught)))
+                  .finally(() => setBusy(null));
+              }}
+              testID="native-cart-accept-price-changes"
+            />
+          )}
+          {cart.blockingIssues.length === 0 && (
+            <NativeButton
+              label="購入手続きへ"
+              onPress={() => router.push("/checkout/address")}
+              testID="native-cart-checkout"
+            />
+          )}
         </>
       )}
     </ScrollView>
@@ -658,8 +686,8 @@ export function NativeGuideScreen() {
     <ScrollView contentContainerStyle={styles.scroll}>
       <Text style={styles.heading}>学習Guide</Text>
       <Text style={styles.body}>
-        Guestで商品を探し、商品詳細からVariationを選択してカートへ追加します。テストでは再起動後のGuest
-        IdentityとCart復元も確認できます。
+        Guestで商品を探し、ログイン後は住所・支払い・注文・レビューまで確認できます。テストでは再起動後の
+        Guest IdentityとSQLite Cart復元も確認できます。
       </Text>
     </ScrollView>
   );
@@ -677,14 +705,14 @@ export function NativeLegalScreen({ title }: { title: string }) {
 }
 
 export function NativeUnsupportedScreen({
-  title = "この画面はNative前半の対象外です",
+  title = "このNative画面は利用できません",
 }: {
   title?: string;
 }) {
   return (
     <NativeStatePanel
       title={title}
-      body="Native前半ではGuest StorefrontとCartを実装しています。Web版または後半の対象機能を利用してください。"
+      body="この画面はNative Customerの対象外です。Web版または権限のあるCustomer画面を利用してください。"
       action={<NativeButton label="ホームへ戻る" onPress={() => router.replace("/")} />}
     />
   );

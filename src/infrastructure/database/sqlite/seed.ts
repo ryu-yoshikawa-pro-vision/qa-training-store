@@ -1,7 +1,7 @@
 import type { SQLiteDatabase } from "expo-sqlite";
 import { NATIVE_DATABASE_SCHEMA_VERSION, SEED_VERSION } from "@/config/versions";
 import { createScenarioDataset } from "@/seeds/scenarios";
-import { isNativeFoundationScenario, type NativeFoundationScenario } from "@/seeds/metadata";
+import { isNativeCustomerScenario, type NativeCustomerScenario } from "@/seeds/metadata";
 import type { SeedDataset } from "@/seeds/types";
 import {
   assertForeignKeyCheck,
@@ -9,24 +9,29 @@ import {
   runNativeExclusiveTransaction,
 } from "./database";
 
-export function resolveNativeScenario(value: string | undefined): NativeFoundationScenario {
-  return value !== undefined && isNativeFoundationScenario(value) ? value : "default";
+export function resolveNativeScenario(value: string | undefined): NativeCustomerScenario {
+  return value !== undefined && isNativeCustomerScenario(value) ? value : "default";
 }
 
 export async function ensureNativeSeed(
   database: SQLiteDatabase,
-  scenario: NativeFoundationScenario = "default",
+  scenario: NativeCustomerScenario = "default",
 ): Promise<void> {
   const metadata = await database.getFirstAsync<{ value: string }>(
     "SELECT value FROM schema_metadata WHERE key = 'seedVersion'",
   );
-  const nativeSchema = await database.getFirstAsync<{ value: string }>(
+  let nativeSchema = await database.getFirstAsync<{ value: string }>(
     "SELECT value FROM schema_metadata WHERE key = 'nativeDatabaseSchemaVersion'",
   );
   if (nativeSchema !== null && nativeSchema.value !== String(NATIVE_DATABASE_SCHEMA_VERSION)) {
-    throw new Error(
-      `Native SQLite schema version mismatch: expected ${NATIVE_DATABASE_SCHEMA_VERSION}, got ${nativeSchema.value}`,
-    );
+    if (nativeSchema.value === "1" && NATIVE_DATABASE_SCHEMA_VERSION === 2) {
+      await migrateNativeSchemaV1ToV2(database);
+      nativeSchema = { value: String(NATIVE_DATABASE_SCHEMA_VERSION) };
+    } else {
+      throw new Error(
+        `Native SQLite schema version mismatch: expected ${NATIVE_DATABASE_SCHEMA_VERSION}, got ${nativeSchema.value}`,
+      );
+    }
   }
   const selectedScenario = await database.getFirstAsync<{ value_json: string }>(
     "SELECT value_json FROM app_settings WHERE key = 'test-control'",
@@ -48,6 +53,24 @@ export async function ensureNativeSeed(
   await seedNativeDataset(database, createScenarioDataset(scenario));
 }
 
+/**
+ * Version 1 contained the auth/catalog/cart tables. Version 2 adds the
+ * customer purchase tables, which are created by openNativeCustomerDatabase
+ * before this function runs. The migration only advances metadata so existing
+ * users, carts, catalog data, and session state remain intact.
+ */
+async function migrateNativeSchemaV1ToV2(database: SQLiteDatabase): Promise<void> {
+  await runNativeExclusiveTransaction(database, async (transaction) => {
+    await transaction.runAsync(
+      "INSERT INTO schema_metadata (key, value, updated_at) VALUES (?, ?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at",
+      "nativeDatabaseSchemaVersion",
+      String(NATIVE_DATABASE_SCHEMA_VERSION),
+      new Date().toISOString(),
+    );
+    await assertForeignKeyCheck(transaction);
+  });
+}
+
 export async function seedNativeDataset(
   database: SQLiteDatabase,
   dataset: SeedDataset,
@@ -55,8 +78,19 @@ export async function seedNativeDataset(
   await runNativeExclusiveTransaction(database, async (transaction) => {
     await transaction.execAsync(
       [
+        "DELETE FROM review_status_histories",
+        "DELETE FROM reviews",
+        "DELETE FROM shipments",
+        "DELETE FROM payments",
+        "DELETE FROM order_status_histories",
+        "DELETE FROM order_items",
+        "DELETE FROM orders",
+        "DELETE FROM checkout_sessions",
+        "DELETE FROM inventory_histories",
         "DELETE FROM cart_items",
         "DELETE FROM carts",
+        "DELETE FROM user_addresses",
+        "DELETE FROM daily_sequences",
         "DELETE FROM product_images",
         "DELETE FROM product_review_summaries",
         "DELETE FROM product_variants",
@@ -83,6 +117,25 @@ export async function seedNativeDataset(
         user.createdAt,
         user.updatedAt,
         user.version,
+      );
+    }
+    for (const address of dataset.userAddresses) {
+      await transaction.runAsync(
+        "INSERT INTO user_addresses (id, user_id, label, recipient_name, postal_code, prefecture, city, address_line1, address_line2, phone, is_default, created_at, updated_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        address.id,
+        address.userId,
+        address.label,
+        address.recipientName,
+        address.postalCode,
+        address.prefecture,
+        address.city,
+        address.addressLine1,
+        address.addressLine2,
+        address.phone,
+        address.isDefault ? 1 : 0,
+        address.createdAt,
+        address.updatedAt,
+        address.version,
       );
     }
     for (const session of dataset.sessions) {
@@ -211,6 +264,188 @@ export async function seedNativeDataset(
         item.version,
       );
     }
+    // Checkout and order have a deliberate circular reference in the shared
+    // model. Insert checkout sessions without order_id first, then orders,
+    // and finally restore the checkout->order pointer.
+    for (const checkout of dataset.checkoutSessions) {
+      const address = checkout.addressSnapshot;
+      await transaction.runAsync(
+        "INSERT INTO checkout_sessions (id, user_id, cart_id, cart_version, address_recipient_name, address_postal_code, address_prefecture, address_city, address_line1, address_line2, address_phone, payment_method_code, unlocked_step, status, expires_at, order_id, created_at, updated_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)",
+        checkout.id,
+        checkout.userId,
+        checkout.cartId,
+        checkout.cartVersion,
+        address?.recipientName ?? null,
+        address?.postalCode ?? null,
+        address?.prefecture ?? null,
+        address?.city ?? null,
+        address?.addressLine1 ?? null,
+        address?.addressLine2 ?? null,
+        address?.phone ?? null,
+        checkout.paymentMethodCode,
+        checkout.unlockedStep,
+        checkout.status,
+        checkout.expiresAt,
+        checkout.createdAt,
+        checkout.updatedAt,
+        checkout.version,
+      );
+    }
+    for (const order of dataset.orders) {
+      const address = order.shippingAddressSnapshot;
+      await transaction.runAsync(
+        "INSERT INTO orders (id, order_number, user_id, checkout_session_id, status, subtotal_amount, discount_amount, shipping_amount, total_amount, membership_rank_snapshot, shipping_recipient_name, shipping_postal_code, shipping_prefecture, shipping_city, shipping_address_line1, shipping_address_line2, shipping_phone, created_at, updated_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        order.id,
+        order.orderNumber,
+        order.userId,
+        order.checkoutSessionId,
+        order.status,
+        order.subtotalAmount,
+        order.discountAmount,
+        order.shippingAmount,
+        order.totalAmount,
+        order.membershipRankSnapshot,
+        address.recipientName,
+        address.postalCode,
+        address.prefecture,
+        address.city,
+        address.addressLine1,
+        address.addressLine2,
+        address.phone,
+        order.createdAt,
+        order.updatedAt,
+        order.version,
+      );
+    }
+    for (const checkout of dataset.checkoutSessions) {
+      if (checkout.orderId !== null) {
+        await transaction.runAsync(
+          "UPDATE checkout_sessions SET order_id = ? WHERE id = ?",
+          checkout.orderId,
+          checkout.id,
+        );
+      }
+    }
+    for (const item of dataset.orderItems) {
+      await transaction.runAsync(
+        "INSERT INTO order_items (id, order_id, line_number, product_id, variant_id, product_code_snapshot, product_name_snapshot, sku_snapshot, variation_name_snapshot, option_value_snapshot, unit_effective_price, unit_discount_amount, quantity, line_subtotal_amount, line_discount_amount, line_total_amount, primary_image_asset_id_snapshot, primary_image_path_snapshot, primary_image_alt_text_snapshot, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        item.id,
+        item.orderId,
+        item.lineNumber,
+        item.productId,
+        item.variantId,
+        item.productCodeSnapshot,
+        item.productNameSnapshot,
+        item.skuSnapshot,
+        item.variationNameSnapshot,
+        item.optionValueSnapshot,
+        item.unitEffectivePrice,
+        item.unitDiscountAmount,
+        item.quantity,
+        item.lineSubtotalAmount,
+        item.lineDiscountAmount,
+        item.lineTotalAmount,
+        item.primaryImageAssetIdSnapshot,
+        item.primaryImagePathSnapshot,
+        item.primaryImageAltTextSnapshot,
+        item.createdAt,
+      );
+    }
+    for (const sequence of dataset.sequences) {
+      await transaction.runAsync(
+        "INSERT INTO daily_sequences (sequence_type, local_date, current_value, version) VALUES (?, ?, ?, ?)",
+        sequence.sequenceType,
+        sequence.localDate,
+        sequence.currentValue,
+        sequence.version,
+      );
+    }
+    for (const history of dataset.orderHistories) {
+      await transaction.runAsync(
+        "INSERT INTO order_status_histories (id, order_id, from_status, to_status, actor_user_id, reason_code, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        history.id,
+        history.orderId,
+        history.fromStatus,
+        history.toStatus,
+        history.actorUserId,
+        history.reasonCode,
+        history.createdAt,
+      );
+    }
+    for (const payment of dataset.payments) {
+      await transaction.runAsync(
+        "INSERT INTO payments (id, order_id, attempt_number, method_code, status, amount, gateway_idempotency_key, error_code, created_at, processed_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        payment.id,
+        payment.orderId,
+        payment.attemptNumber,
+        payment.methodCode,
+        payment.status,
+        payment.amount,
+        payment.gatewayIdempotencyKey,
+        payment.errorCode,
+        payment.createdAt,
+        payment.processedAt,
+        payment.version,
+      );
+    }
+    for (const shipment of dataset.shipments) {
+      await transaction.runAsync(
+        "INSERT INTO shipments (id, order_id, status, carrier_name, tracking_number, shipped_at, delivered_at, created_at, updated_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        shipment.id,
+        shipment.orderId,
+        shipment.status,
+        shipment.carrierName,
+        shipment.trackingNumber,
+        shipment.shippedAt,
+        shipment.deliveredAt,
+        shipment.createdAt,
+        shipment.updatedAt,
+        shipment.version,
+      );
+    }
+    for (const history of dataset.inventoryHistories) {
+      await transaction.runAsync(
+        "INSERT INTO inventory_histories (id, variant_id, change_quantity, before_quantity, after_quantity, reason_code, reason_text, actor_user_id, order_id, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        history.id,
+        history.variantId,
+        history.changeQuantity,
+        history.beforeQuantity,
+        history.afterQuantity,
+        history.reasonCode,
+        history.reasonText,
+        history.actorUserId,
+        history.orderId,
+        history.createdAt,
+      );
+    }
+    for (const review of dataset.reviews) {
+      await transaction.runAsync(
+        "INSERT INTO reviews (id, order_item_id, product_id, user_id, rating, title, body, status, created_at, updated_at, version) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+        review.id,
+        review.orderItemId,
+        review.productId,
+        review.userId,
+        review.rating,
+        review.title,
+        review.body,
+        review.status,
+        review.createdAt,
+        review.updatedAt,
+        review.version,
+      );
+    }
+    for (const history of dataset.reviewHistories) {
+      await transaction.runAsync(
+        "INSERT INTO review_status_histories (id, review_id, from_status, to_status, actor_user_id, reason_text, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)",
+        history.id,
+        history.reviewId,
+        history.fromStatus,
+        history.toStatus,
+        history.actorUserId,
+        history.reasonText,
+        history.createdAt,
+      );
+    }
     for (const setting of dataset.appSettings) {
       await transaction.runAsync(
         "INSERT INTO app_settings (key, value_json, updated_at) VALUES (?, ?, ?)",
@@ -245,8 +480,19 @@ export async function clearNativeCustomerData(database: SQLiteDatabase): Promise
   await runNativeExclusiveTransaction(database, async (transaction) => {
     await transaction.execAsync(
       [
+        "DELETE FROM review_status_histories",
+        "DELETE FROM reviews",
+        "DELETE FROM shipments",
+        "DELETE FROM payments",
+        "DELETE FROM order_status_histories",
+        "DELETE FROM order_items",
+        "DELETE FROM orders",
+        "DELETE FROM checkout_sessions",
+        "DELETE FROM inventory_histories",
         "DELETE FROM cart_items",
         "DELETE FROM carts",
+        "DELETE FROM user_addresses",
+        "DELETE FROM daily_sequences",
         "DELETE FROM product_images",
         "DELETE FROM product_review_summaries",
         "DELETE FROM product_variants",

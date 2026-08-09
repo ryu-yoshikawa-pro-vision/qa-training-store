@@ -45,11 +45,11 @@ export class AccountUseCases {
   }
 
   async getProfile() {
-    return toCurrentUserDto(await this.identity.requireCurrentEntity());
+    return toCurrentUserDto(await this.requireCustomer());
   }
 
   async updateProfile(request: UpdateProfileRequest) {
-    const user = await this.identity.requireCurrentEntity();
+    const user = await this.requireCustomer();
     const displayName = request.displayName.trim();
     const phone = request.phone?.replace(/\D/g, "") || null;
     const fieldErrors: Record<string, string> = {};

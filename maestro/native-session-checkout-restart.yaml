@@ -1,0 +1,63 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Native test runtime listening"
+    timeout: 30000
+- assertVisible: "Scenario Shop"
+- openLink: "scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0"
+- runFlow: subflows/accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible: "Native test runtime ready"
+    timeout: 30000
+- openLink: "scenario-shop://login"
+- runFlow: subflows/accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-login-screen"
+    timeout: 30000
+- tapOn:
+    id: "native-login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "native-header-account"
+    timeout: 30000
+- openLink: "scenario-shop://cart"
+- runFlow: subflows/accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-persisted-state-ready"
+    timeout: 30000
+- tapOn:
+    id: "native-cart-checkout"
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-address-screen"
+    timeout: 30000
+- assertVisible:
+    id: "native-checkout-session-started"
+- takeScreenshot: native-session-checkout-before-stop
+- stopApp
+- launchApp
+- assertVisible: "Scenario Shop"
+- extendedWaitUntil:
+    visible: "Native test runtime listening"
+    timeout: 30000
+- assertVisible:
+    id: "native-header-account"
+- openLink: "scenario-shop://checkout/address"
+- runFlow: subflows/accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-address-screen"
+    timeout: 30000
+- assertVisible:
+    id: "native-checkout-session-resumed"
+- tapOn:
+    id: "native-checkout-address-next"
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-payment-screen"
+    timeout: 30000
+- takeScreenshot: native-session-checkout-after-restart

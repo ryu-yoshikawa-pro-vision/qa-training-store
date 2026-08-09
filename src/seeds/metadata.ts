@@ -54,6 +54,11 @@ const suspended = {
   email: "suspended@example.com",
 } as const;
 
+const withdrawn = {
+  kind: "customer",
+  email: "withdrawn@example.com",
+} as const;
+
 const admin = {
   kind: "admin",
   email: "admin@example.com",
@@ -188,6 +193,17 @@ export const SCENARIO_METADATA = {
     e2eHasSession: true,
     summary: "利用停止ユーザーの初期Sessionを復元します。",
   },
+  "withdrawn-user": {
+    displayName: "退会済みユーザー",
+    purpose: "退会済み状態とログイン制御を確認します。",
+    recommendedAccounts: ["withdrawn@example.com"],
+    routes: ["/login", "/guide"],
+    initialSession: withdrawn,
+    safeResetPath: "/",
+    guide: "退会済みアカウントのエラー表示を確認します。",
+    e2eHasSession: true,
+    summary: "退会済みユーザーの初期Sessionを復元します。",
+  },
   "cart-with-invalid-items": {
     displayName: "購入不可Cart",
     purpose: "非公開、在庫、Rank、SKU状態のエラーを確認します。",
@@ -220,6 +236,28 @@ export const SCENARIO_METADATA = {
     guide: "支払い処理中の注文詳細と完了遷移を確認します。",
     e2eHasSession: false,
     summary: "支払い処理中の注文を含む状態です。",
+  },
+  "orders-empty": {
+    displayName: "注文なし",
+    purpose: "注文が存在しない会員の注文一覧を確認します。",
+    recommendedAccounts: ["regular@example.com"],
+    routes: ["/orders", "/guide"],
+    initialSession: regular,
+    safeResetPath: "/",
+    guide: "注文なしのEmpty Stateを確認します。",
+    e2eHasSession: true,
+    summary: "注文、決済、配送、注文履歴を空にした状態です。",
+  },
+  "reviews-empty": {
+    displayName: "レビューなし",
+    purpose: "投稿可能なレビューがない状態を確認します。",
+    recommendedAccounts: ["regular@example.com"],
+    routes: ["/orders", "/guide"],
+    initialSession: regular,
+    safeResetPath: "/",
+    guide: "レビューなしの状態を確認します。",
+    e2eHasSession: true,
+    summary: "レビューとレビュー履歴を空にした状態です。",
   },
   "orders-phase1-statuses": {
     displayName: "注文ステータス",
@@ -388,10 +426,37 @@ export const NATIVE_FOUNDATION_SCENARIOS = [
 
 export type NativeFoundationScenario = (typeof NATIVE_FOUNDATION_SCENARIOS)[number];
 
+/**
+ * Native Customer purchase scenarios. Admin-only scenarios remain excluded,
+ * while the deterministic member/purchase/review fixtures are available to
+ * the Native Test Control bridge.
+ */
+export const NATIVE_CUSTOMER_SCENARIOS = [
+  ...NATIVE_FOUNDATION_SCENARIOS,
+  "regular-member",
+  "suspended-user",
+  "withdrawn-user",
+  "guest-cart-merge-overflow",
+  "checkout-resume",
+  "checkout-replaced",
+  "cart-version-invalidates-checkout",
+  "payment-declined",
+  "payment-processing",
+  "reviewable-orders",
+  "orders-empty",
+  "reviews-empty",
+] as const satisfies readonly PhaseOneScenario[];
+
+export type NativeCustomerScenario = (typeof NATIVE_CUSTOMER_SCENARIOS)[number];
+
 export function isPhaseOneScenario(value: string): value is PhaseOneScenario {
   return Object.prototype.hasOwnProperty.call(SCENARIO_METADATA, value);
 }
 
 export function isNativeFoundationScenario(value: string): value is NativeFoundationScenario {
   return (NATIVE_FOUNDATION_SCENARIOS as readonly string[]).includes(value);
+}
+
+export function isNativeCustomerScenario(value: string): value is NativeCustomerScenario {
+  return (NATIVE_CUSTOMER_SCENARIOS as readonly string[]).includes(value);
 }

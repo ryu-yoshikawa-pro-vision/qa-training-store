@@ -19,11 +19,13 @@ describe("Native Contract Harness runtime contracts", () => {
       "await resources.verifyPasswordHashing?.();",
     );
     const finallyIndex = harnessSource.indexOf("} finally {");
+    const closeDatabaseIndex = harnessSource.indexOf("await resources.closeDatabase();");
     const passedSignalIndex = harnessSource.indexOf("emitNativeTestSignal(NATIVE_CONTRACT_PASSED");
 
     expect(applicationInvariantIndex).toBeGreaterThanOrEqual(0);
     expect(passwordHashingIndex).toBeGreaterThan(applicationInvariantIndex);
-    expect(finallyIndex).toBeGreaterThan(passwordHashingIndex);
+    expect(finallyIndex).toBeLessThan(applicationInvariantIndex);
+    expect(closeDatabaseIndex).toBeGreaterThan(passwordHashingIndex);
     expect(passedSignalIndex).toBeGreaterThan(finallyIndex);
     expect(harnessSource).toContain("passwordHashing: boolean;");
   });

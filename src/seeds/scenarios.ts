@@ -62,12 +62,39 @@ function createScenarioDatasetWithoutInitialSession(scenario: PhaseOneScenario):
         },
       ];
       return dataset;
+    case "withdrawn-user":
+      dataset.sessions = [
+        {
+          id: "session-withdrawn",
+          userId: "user-customer-withdrawn",
+          createdAt: BASE_CLOCK,
+        },
+      ];
+      return dataset;
     case "cart-with-invalid-items":
       return invalidCart(dataset);
     case "payment-declined":
       return dataset;
     case "payment-processing":
       return paymentProcessing(dataset);
+    case "orders-empty":
+      dataset.checkoutSessions = [];
+      dataset.orders = [];
+      dataset.orderItems = [];
+      dataset.sequences = [];
+      dataset.orderHistories = [];
+      dataset.payments = [];
+      dataset.shipments = [];
+      dataset.reviews = [];
+      dataset.reviewHistories = [];
+      rebuildReviewSummaries(dataset);
+      return dataset;
+    case "reviews-empty":
+      removeDeliveredOrders(dataset);
+      dataset.reviews = [];
+      dataset.reviewHistories = [];
+      rebuildReviewSummaries(dataset);
+      return dataset;
     case "reviewable-orders":
       dataset.reviews = dataset.reviews.slice(0, 6);
       dataset.reviewHistories = dataset.reviewHistories.filter((history) =>
@@ -289,6 +316,31 @@ function rebuildReviewSummaries(dataset: SeedDataset): void {
     summary.rating4Count = published.filter((review) => review.rating === 4).length;
     summary.rating5Count = published.filter((review) => review.rating === 5).length;
   }
+}
+
+function removeDeliveredOrders(dataset: SeedDataset): void {
+  const deliveredOrderIds = new Set(
+    dataset.orders.filter((order) => order.status === "delivered").map((order) => order.id),
+  );
+  if (deliveredOrderIds.size === 0) return;
+
+  const deliveredCheckoutSessionIds = new Set(
+    dataset.orders
+      .filter((order) => deliveredOrderIds.has(order.id))
+      .map((order) => order.checkoutSessionId),
+  );
+  dataset.orders = dataset.orders.filter((order) => !deliveredOrderIds.has(order.id));
+  dataset.orderItems = dataset.orderItems.filter((item) => !deliveredOrderIds.has(item.orderId));
+  dataset.orderHistories = dataset.orderHistories.filter(
+    (history) => !deliveredOrderIds.has(history.orderId),
+  );
+  dataset.payments = dataset.payments.filter((payment) => !deliveredOrderIds.has(payment.orderId));
+  dataset.shipments = dataset.shipments.filter(
+    (shipment) => !deliveredOrderIds.has(shipment.orderId),
+  );
+  dataset.checkoutSessions = dataset.checkoutSessions.filter(
+    (session) => !deliveredCheckoutSessionIds.has(session.id),
+  );
 }
 
 function guestMergeOverflow(dataset: SeedDataset): SeedDataset {

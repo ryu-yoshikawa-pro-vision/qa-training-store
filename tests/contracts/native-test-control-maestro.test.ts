@@ -13,10 +13,41 @@ const flowNames = [
   "native-out-of-stock.yaml",
   "native-low-stock.yaml",
   "native-purchase-limit.yaml",
+  "native-purchase.yaml",
+  "native-payment-retry.yaml",
+  "native-session-checkout-restart.yaml",
+  "native-review.yaml",
+  "native-production-validation.yaml",
 ] as const;
 
-function readFlow(name: (typeof flowNames)[number]): string {
+const automationFlowNames = [
+  "native-test-control.yaml",
+  "native-contract-harness.yaml",
+  "native-not-found.yaml",
+  "native-storefront.yaml",
+  "native-cart.yaml",
+  "native-search.yaml",
+  "native-restart-persistence.yaml",
+  "native-reset-dirty-state.yaml",
+  "native-out-of-stock.yaml",
+  "native-low-stock.yaml",
+  "native-purchase-limit.yaml",
+  "native-purchase.yaml",
+  "native-payment-retry.yaml",
+  "native-session-checkout-restart.yaml",
+  "native-review.yaml",
+  "phase2-native-storefront-cart.yaml",
+] as const;
+
+function readFlow(name: string): string {
   return readFileSync(join(process.cwd(), "maestro", name), "utf8").replace(/\r\n/g, "\n");
+}
+
+function readDeepLinkSubflow(): string {
+  return readFileSync(
+    join(process.cwd(), "maestro", "subflows", "accept-ios-deep-link.yaml"),
+    "utf8",
+  ).replace(/\r\n/g, "\n");
 }
 
 function findAllIndexes(source: string, expression: RegExp): number[] {
@@ -24,30 +55,101 @@ function findAllIndexes(source: string, expression: RegExp): number[] {
 }
 
 describe("Native Test Control Maestro contracts", () => {
-  it.each(flowNames)("waits for Linking readiness before reset in %s", (flowName) => {
-    const source = readFlow(flowName);
-    const launchIndex = source.indexOf("- launchApp:");
-    const listeningIndex = source.indexOf('visible: "Native test runtime listening"');
-    const openLinkIndexes = findAllIndexes(
-      source,
-      /- openLink:\s+"scenario-shop:\/\/test-control\/reset/g,
-    );
-    const readyIndexes = findAllIndexes(source, /visible: "Native test runtime ready"/g);
+  it("defines a conditional iOS deep-link confirmation subflow", () => {
+    const source = readDeepLinkSubflow();
 
-    expect(launchIndex).toBeGreaterThanOrEqual(0);
-    expect(listeningIndex).toBeGreaterThan(launchIndex);
-    expect(openLinkIndexes.length).toBeGreaterThan(0);
-    const firstOpenLinkIndex = openLinkIndexes[0];
-    expect(firstOpenLinkIndex).toBeDefined();
-    if (firstOpenLinkIndex === undefined) return;
-    expect(firstOpenLinkIndex).toBeGreaterThan(listeningIndex);
-    expect(readyIndexes.length).toBeGreaterThanOrEqual(openLinkIndexes.length);
-
-    for (const openLinkIndex of openLinkIndexes) {
-      expect(readyIndexes.some((readyIndex) => readyIndex > openLinkIndex)).toBe(true);
-    }
+    expect(source).toContain("platform: iOS");
+    expect(source).toMatch(/visible:\s*['"]Open in \.\*Scenario Shop\.\*['"]/);
+    expect(source).not.toContain('Open in "Scenario Shop"');
+    expect(source).not.toContain("Open in “Scenario Shop”?");
+    expect(source).toContain("tapOn: Open");
     expect(source).not.toMatch(/^\s+- sleep:/m);
+    expect(source).not.toContain("point:");
+    expect(source).not.toContain("optional:");
   });
+
+  it("handles every scenario-shop deep link exactly once in every flow", () => {
+    let totalOpenLinks = 0;
+    let totalHandlers = 0;
+
+    for (const flowName of flowNames) {
+      const source = readFlow(flowName);
+      const openLinkIndexes = findAllIndexes(
+        source,
+        /^- openLink:\s+"scenario-shop:\/\/[^\"]+"$/gm,
+      );
+      const handlerIndexes = findAllIndexes(
+        source,
+        /^- runFlow:\s+subflows\/accept-ios-deep-link\.yaml$/gm,
+      );
+      const adjacentHandlerIndexes = findAllIndexes(
+        source,
+        /^- openLink:\s+"scenario-shop:\/\/[^\"]+"$\n^- runFlow:\s+subflows\/accept-ios-deep-link\.yaml$/gm,
+      );
+
+      expect(openLinkIndexes.length).toBeGreaterThan(0);
+      expect(handlerIndexes).toHaveLength(openLinkIndexes.length);
+      expect(adjacentHandlerIndexes).toHaveLength(openLinkIndexes.length);
+      totalOpenLinks += openLinkIndexes.length;
+      totalHandlers += handlerIndexes.length;
+    }
+
+    expect(totalOpenLinks).toBe(38);
+    expect(totalHandlers).toBe(totalOpenLinks);
+  });
+
+  it.each(automationFlowNames)(
+    "uses the runtime listening signal for cold-start readiness before Scenario Shop in %s",
+    (flowName) => {
+      const source = readFlow(flowName);
+      const launchIndex = source.indexOf("- launchApp:");
+      const clearStateIndex = source.indexOf("clearState: true", launchIndex);
+      const readinessIndex = source.indexOf(
+        '- extendedWaitUntil:\n    visible: "Native test runtime listening"',
+        clearStateIndex,
+      );
+      const scenarioShopIndex = source.indexOf('- assertVisible: "Scenario Shop"', readinessIndex);
+
+      expect(launchIndex).toBeGreaterThanOrEqual(0);
+      expect(clearStateIndex).toBeGreaterThan(launchIndex);
+      expect(readinessIndex).toBeGreaterThan(clearStateIndex);
+      expect(scenarioShopIndex).toBeGreaterThan(readinessIndex);
+
+      const startup = source.slice(clearStateIndex, readinessIndex);
+      const readiness = source.slice(readinessIndex, readinessIndex + 140);
+      expect(startup).not.toContain('- assertVisible: "Scenario Shop"');
+      expect(readiness).toContain("- extendedWaitUntil:");
+      expect(readiness).toContain("timeout: 30000");
+    },
+  );
+
+  it.each(flowNames.filter((flowName) => flowName !== "native-production-validation.yaml"))(
+    "waits for Linking readiness before reset in %s",
+    (flowName) => {
+      const source = readFlow(flowName);
+      const launchIndex = source.indexOf("- launchApp:");
+      const listeningIndex = source.indexOf('visible: "Native test runtime listening"');
+      const openLinkIndexes = findAllIndexes(
+        source,
+        /- openLink:\s+"scenario-shop:\/\/test-control\/reset/g,
+      );
+      const readyIndexes = findAllIndexes(source, /visible: "Native test runtime ready"/g);
+
+      expect(launchIndex).toBeGreaterThanOrEqual(0);
+      expect(listeningIndex).toBeGreaterThan(launchIndex);
+      expect(openLinkIndexes.length).toBeGreaterThan(0);
+      const firstOpenLinkIndex = openLinkIndexes[0];
+      expect(firstOpenLinkIndex).toBeDefined();
+      if (firstOpenLinkIndex === undefined) return;
+      expect(firstOpenLinkIndex).toBeGreaterThan(listeningIndex);
+      expect(readyIndexes.length).toBeGreaterThanOrEqual(openLinkIndexes.length);
+
+      for (const openLinkIndex of openLinkIndexes) {
+        expect(readyIndexes.some((readyIndex) => readyIndex > openLinkIndex)).toBe(true);
+      }
+      expect(source).not.toMatch(/^\s+- sleep:/m);
+    },
+  );
 
   it("defines all five stable runtime labels in one type-safe mapping", () => {
     const source = readFileSync(
@@ -90,19 +192,6 @@ describe("Native Test Control Maestro contracts", () => {
     );
     expect(source).not.toContain("native-test-control");
     expect(source).not.toContain("NativeTestControlBridge");
-  });
-
-  it("does not send a second iOS reset URL before Maestro", () => {
-    const source = readFileSync(join(process.cwd(), ".github/workflows/native-ios-ci.yml"), "utf8");
-    const firstMaestroIndex = source.indexOf("maestro test");
-    expect(firstMaestroIndex).toBeGreaterThanOrEqual(0);
-    expect(source.slice(0, firstMaestroIndex)).not.toContain("simctl openurl");
-    expect(source).not.toContain("scenario-shop://test-control/reset");
-    expect(source).toContain("MAESTRO_VERSION: 2.8.0");
-    expect(source).toContain(
-      "MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip",
-    );
-    expect(source).toContain("$RUNNER_TEMP/maestro/maestro/bin/maestro");
   });
 
   it("keeps IME-dependent search input separate from known-product flows", () => {
@@ -194,5 +283,79 @@ describe("Native Test Control Maestro contracts", () => {
     expect(source).toContain("- launchApp");
     expect(source).toContain('text: "1"');
     expect(source).toContain('id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"');
+  });
+
+  it.each([
+    "native-purchase.yaml",
+    "native-payment-retry.yaml",
+    "native-session-checkout-restart.yaml",
+    "native-review.yaml",
+  ] as const)("keeps customer purchase flow %s fail-close and testID-driven", (flowName) => {
+    const source = readFlow(flowName);
+    expect(source).toContain('visible: "Native test runtime listening"');
+    expect(source).toContain('visible: "Native test runtime ready"');
+    expect(source).not.toMatch(/^\s+- sleep:/m);
+    expect(source).toContain("native-header-account");
+    expect(source).toContain(
+      flowName === "native-review.yaml"
+        ? "native-review-screen"
+        : flowName === "native-session-checkout-restart.yaml"
+          ? "native-checkout-payment-screen"
+          : "native-checkout-complete-screen",
+    );
+    if (flowName === "native-review.yaml") {
+      const inputIndex = source.indexOf('- inputText: "Native Maestro review"');
+      const hideKeyboardIndexes = findAllIndexes(source, /^- hideKeyboard$/gm);
+      const saveScrollIndex = source.indexOf(
+        '- scrollUntilVisible:\n    element:\n      id: "native-review-save"',
+      );
+      const saveTapIndex = source.indexOf('- tapOn:\n    id: "native-review-save"');
+
+      expect(hideKeyboardIndexes).toHaveLength(1);
+      expect(inputIndex).toBeGreaterThanOrEqual(0);
+      expect(saveScrollIndex).toBeGreaterThan(inputIndex);
+      expect(saveTapIndex).toBeGreaterThan(saveScrollIndex);
+      expect(hideKeyboardIndexes[0]).toBeGreaterThan(inputIndex);
+      expect(hideKeyboardIndexes[0]).toBeLessThan(saveScrollIndex);
+    }
+    if (flowName === "native-purchase.yaml") {
+      expect(source).toContain('id: "native-complete-order-id"');
+    }
+    if (flowName === "native-session-checkout-restart.yaml") {
+      expect(source).toContain('id: "native-checkout-session-started"');
+      expect(source).toContain('id: "native-checkout-session-resumed"');
+    }
+  });
+
+  it("checks Production validation without depending on Test Control or Harness", () => {
+    const source = readFlow("native-production-validation.yaml" as (typeof flowNames)[number]);
+    const launchIndex = source.indexOf("- launchApp:");
+    const clearStateIndex = source.indexOf("clearState: true", launchIndex);
+    const shopReadyIndex = source.indexOf(
+      '- extendedWaitUntil:\n    visible: "Scenario Shop"\n    timeout: 30000',
+    );
+    const runtimeLabelIndex = source.indexOf('- assertNotVisible: "Native test runtime listening"');
+    const runtimeStatusIndex = source.indexOf('id: "native-test-runtime-status"');
+    const testControlLinkIndex = source.indexOf('openLink: "scenario-shop://admin/test-control"');
+    const harnessReadyIndex = source.indexOf(
+      '- extendedWaitUntil:\n    visible: "Contract HarnessはAutomation専用です"',
+    );
+    const harnessLabelIndex = source.indexOf('assertNotVisible: "Native Contract Harness"');
+
+    expect(launchIndex).toBeGreaterThanOrEqual(0);
+    expect(clearStateIndex).toBeGreaterThan(launchIndex);
+    expect(shopReadyIndex).toBeGreaterThan(clearStateIndex);
+    expect(runtimeLabelIndex).toBeGreaterThan(shopReadyIndex);
+    expect(runtimeStatusIndex).toBeGreaterThan(runtimeLabelIndex);
+    expect(testControlLinkIndex).toBeGreaterThan(runtimeStatusIndex);
+    expect(harnessReadyIndex).toBeGreaterThan(testControlLinkIndex);
+    expect(harnessLabelIndex).toBeGreaterThan(harnessReadyIndex);
+    expect(source).not.toContain('- assertVisible: "Scenario Shop"');
+    expect(source).not.toContain('visible: "Native test runtime listening"\n    timeout: 30000');
+    expect(source).toContain('assertNotVisible: "Native test runtime listening"');
+    expect(source).toContain('id: "native-test-runtime-status"');
+    expect(source).toContain("Contract HarnessはAutomation専用です");
+    expect(source).toContain('assertNotVisible: "Native Contract Harness"');
+    expect(source).not.toContain("scenario-shop://test-control/reset");
   });
 });

@@ -1,0 +1,65 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Native test runtime listening"
+    timeout: 30000
+- assertVisible: "Scenario Shop"
+- openLink: "scenario-shop://test-control/reset?version=1&scenario=reviewable-orders&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0"
+- runFlow: subflows/accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible: "Native test runtime ready"
+    timeout: 30000
+- openLink: "scenario-shop://login"
+- runFlow: subflows/accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-login-screen"
+    timeout: 30000
+- tapOn:
+    id: "native-login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "native-header-account"
+    timeout: 30000
+- openLink: "scenario-shop://orders/order-delivered"
+- runFlow: subflows/accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-order-detail-screen"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "native-order-review-order-delivered-item-7"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-order-review-order-delivered-item-7"
+- extendedWaitUntil:
+    visible:
+      id: "native-review-screen"
+    timeout: 30000
+- assertVisible:
+    id: "native-review-save"
+- tapOn:
+    id: "native-review-body"
+- inputText: "Native Maestro review"
+- hideKeyboard
+- scrollUntilVisible:
+    element:
+      id: "native-review-save"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-review-save"
+- extendedWaitUntil:
+    visible: "レビューを保存しました"
+    timeout: 30000
+- takeScreenshot: native-review-complete

@@ -204,7 +204,7 @@ describe("auth and account application integration", () => {
   });
 
   it("registers a normalized regular customer and logs out", async () => {
-    const auth = createAuth(["new-user", "new-session"]);
+    const auth = createAuth(["new-user", "new-session", "new-cart"]);
     const result = await auth.register({
       email: "  NEW.User@Example.COM ",
       password: "secure-pass",
@@ -282,5 +282,32 @@ describe("auth and account application integration", () => {
     expect(await database.users.get(profile.id)).toMatchObject({
       updatedAt: FIXED_TIME,
     });
+  });
+
+  it("keeps management roles out of customer profile operations", async () => {
+    await database.sessions.add({
+      id: "session-admin-profile",
+      userId: "user-admin",
+      createdAt: FIXED_TIME,
+    });
+    sessionStore.value = "session-admin-profile";
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator([]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+
+    await expect(account.getProfile()).rejects.toMatchObject({
+      messageKey: "account.customerOnly",
+    });
+    await expect(
+      account.updateProfile({
+        displayName: "不正な更新",
+        phone: null,
+        actionVersion: 1,
+      }),
+    ).rejects.toMatchObject({ messageKey: "account.customerOnly" });
   });
 });

@@ -2,15 +2,17 @@ appId: com.ryuyoshikawa.scenarioshop
 ---
 - launchApp:
     clearState: true
-- assertVisible: "Scenario Shop"
 - extendedWaitUntil:
     visible: "Native test runtime listening"
     timeout: 30000
+- assertVisible: "Scenario Shop"
 - openLink: "scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0"
+- runFlow: subflows/accept-ios-deep-link.yaml
 - extendedWaitUntil:
     visible: "Native test runtime ready"
     timeout: 30000
 - openLink: "scenario-shop://products/product-basic-shirt"
+- runFlow: subflows/accept-ios-deep-link.yaml
 - extendedWaitUntil:
     visible:
       id: "native-product-detail-screen"

@@ -2,6 +2,7 @@ import type { SQLiteDatabase } from "expo-sqlite";
 import { DatabaseSync } from "node:sqlite";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { ApplicationError } from "@/application/errors";
 import { createDefaultDataset } from "@/seeds/default-dataset";
 import { seedNativeDataset } from "@/infrastructure/database/sqlite/seed";
 import { CUSTOMER_SCHEMA_SQL } from "@/infrastructure/database/sqlite/schema";
@@ -45,7 +46,12 @@ describe("Native SQLite transaction runner", () => {
     } as unknown as SQLiteDatabase;
     await expect(
       runNativeExclusiveTransaction(database, async () => "not committed"),
-    ).rejects.toThrow("database is locked");
+    ).rejects.toMatchObject<Partial<ApplicationError>>({
+      name: "ApplicationError",
+      code: "STORAGE_WRITE_FAILED",
+      messageKey: "storage.sqlite.locked",
+      retryable: true,
+    });
     expect(isNativeSQLiteLockedError(new Error("database is locked"))).toBe(true);
     expect(isNativeSQLiteLockedError(new Error("other error"))).toBe(false);
   });

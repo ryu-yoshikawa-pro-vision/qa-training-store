@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { Link, useNavigation, useRouter, type Href } from "expo-router";
-import { usePreventRemove } from "expo-router/build/react-navigation/core";
+import { usePreventRemove } from "expo-router/react-navigation";
 import { Button as AriaButton, Dialog, Heading, Modal, ModalOverlay } from "react-aria-components";
 import type {
   CreateProductRequest,

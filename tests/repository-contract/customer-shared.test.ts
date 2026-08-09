@@ -20,7 +20,11 @@ createCustomerRepositoryContractSuite(async () => {
   const toCart = async (guestId: string, now: string) => {
     const cart =
       (await carts.getActiveByGuest(guestId)) ??
-      (await carts.getOrCreateActiveByGuest({ guestId, now }));
+      (await carts.getOrCreateActiveByGuest({
+        guestId,
+        newCartId: `cart-${guestId}`,
+        now,
+      }));
     return carts.getCartDto({ cartId: cart.id, viewer: guest, now });
   };
   const adapter = {

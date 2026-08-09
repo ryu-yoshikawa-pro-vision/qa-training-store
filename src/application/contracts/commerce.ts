@@ -50,6 +50,7 @@ export interface InventoryItem {
 export interface MergeGuestCartCommand {
   guestId: string;
   userId: string;
+  newCartId: string;
   now: IsoDateTime;
 }
 

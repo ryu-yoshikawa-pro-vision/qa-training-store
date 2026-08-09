@@ -51,14 +51,18 @@ export class DexieCartRepository implements CartRepository {
     );
   }
 
-  async getOrCreateActiveByUser(input: { userId: string; now: string }): Promise<Cart> {
+  async getOrCreateActiveByUser(input: {
+    userId: string;
+    newCartId: string;
+    now: string;
+  }): Promise<Cart> {
     return this.db.transaction("rw", this.db.carts, async () => {
       const existing = await this.getActiveByUser(input.userId);
       if (existing !== null) {
         return existing;
       }
       const cart: Cart = {
-        id: `cart-user-${input.userId}`,
+        id: input.newCartId,
         ownerType: "user",
         guestId: null,
         userId: input.userId,
@@ -72,14 +76,18 @@ export class DexieCartRepository implements CartRepository {
     });
   }
 
-  async getOrCreateActiveByGuest(input: { guestId: string; now: string }): Promise<Cart> {
+  async getOrCreateActiveByGuest(input: {
+    guestId: string;
+    newCartId: string;
+    now: string;
+  }): Promise<Cart> {
     return this.db.transaction("rw", this.db.carts, async () => {
       const existing = await this.getActiveByGuest(input.guestId);
       if (existing !== null) {
         return existing;
       }
       const cart: Cart = {
-        id: `cart-guest-${input.guestId}`,
+        id: input.newCartId,
         ownerType: "guest",
         guestId: input.guestId,
         userId: null,
@@ -299,6 +307,7 @@ export class DexieCartRepository implements CartRepository {
     const user = requireEntity(await this.db.users.get(command.userId), "errors.user.notFound");
     const userCart = await this.getOrCreateActiveByUser({
       userId: command.userId,
+      newCartId: command.newCartId,
       now: command.now,
     });
     const guestCart = await this.getActiveByGuest(command.guestId);

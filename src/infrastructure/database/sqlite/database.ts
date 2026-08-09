@@ -1,4 +1,5 @@
 import { openDatabaseAsync, type SQLiteDatabase } from "expo-sqlite";
+import { ApplicationError } from "@/application/errors";
 import { NATIVE_DATABASE_NAME, CUSTOMER_SCHEMA_SQL } from "./schema";
 
 export type NativeSQLiteTransaction = Parameters<
@@ -45,10 +46,14 @@ export async function runNativeExclusiveTransaction<T>(
 ): Promise<T> {
   let completed = false;
   let result!: T;
-  await database.withExclusiveTransactionAsync(async (transaction) => {
-    result = await work(transaction);
-    completed = true;
-  });
+  try {
+    await database.withExclusiveTransactionAsync(async (transaction) => {
+      result = await work(transaction);
+      completed = true;
+    });
+  } catch (caught: unknown) {
+    throw toNativeStorageError(caught);
+  }
   if (!completed) {
     throw new Error("Native SQLite transaction callback did not complete");
   }
@@ -57,4 +62,16 @@ export async function runNativeExclusiveTransaction<T>(
 
 export function isNativeSQLiteLockedError(error: unknown): boolean {
   return error instanceof Error && /database is locked|database locked/i.test(error.message);
+}
+
+export function toNativeStorageError(error: unknown): Error {
+  if (error instanceof ApplicationError) return error;
+  if (isNativeSQLiteLockedError(error)) {
+    return new ApplicationError({
+      code: "STORAGE_WRITE_FAILED",
+      messageKey: "storage.sqlite.locked",
+      retryable: true,
+    });
+  }
+  return error instanceof Error ? error : new Error(String(error));
 }

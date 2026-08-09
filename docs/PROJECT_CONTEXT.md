@@ -234,10 +234,75 @@
 ## CI並列Workflow最適化（2026-08-08）
 
 - Phase 1 CIの`quality` jobは`style-quality`（format:check / lint:markdown）と`code-quality`（lint / typecheck / validate:image-manifest / security:check）へ2分割し、`verify`は両方の`needs.*.result == success`を要求する。Deployment（verify→deploy-preview→validate→deploy-production）の境界は維持する。
-- Native CIは`detect` → 並列の`native-static`／`production-bundle-guard`／`android-build` → `android-runtime`（Emulator + Maestro）→ final `verify`（表示名`native-ci / verify`）のトポロジへ再構成した。Guardは`validate:native-production-bundle.ts`が`expo export`を自己完結実行するためStatic非依存で、Detect後のみに依存して並列化する。
-- APKは`native-android-apk-${{ github.run_id }}`（`overwrite: true`、`retention-days: 3`）としてUpload→Downloadで受け渡す。Maestro Runtime/Smoke 5 Flow（test-control／contract-harness／not-found／storefront／cart）はRuntime job内の独立Stepへ分離する。
+- Native CIは`detect`後、`native-static`／`production-bundle-guard`／`android-automation-build`／`android-production-build`を独立実行し、`android-runtime`が成功したBuildのArtifactだけを条件付きでDownload／Installする。最終`verify`（表示名`native-ci / verify`）はAutomation／Production Build、Android Runtime、iOS Gateの必須結果をfail-closeで確認する。Guardは`validate:native-production-bundle.ts`が`expo export`を自己完結実行するためStatic非依存で、Detect後のみに依存して並列化する。
+- Android ArtifactはAutomationを`native-android-apk-${{ github.run_id }}`／`native-automation.apk`、Production-validationを`native-android-production-apk-${{ github.run_id }}`／`native-production-validation.apk`として、Gradle出力→保存名→Upload→Download後のverify／install pathを同一契約に固定する。Maestro Runtime/Smoke各FlowはBuild／Emulator／CLI／対象APKの成功条件を個別に持ち、前Flowの失敗で後続を止めない。
 - Native未変更PRではNative固有jobをskipし、final `verify`は`detect`の`native_changed`出力を正本に、trueなら全Job success必須（fail-closed）、falseなら全skipを成功扱いとする。
 - 構造契約は`tests/contracts/ci-workflow.test.ts`／`tests/contracts/native-ci-workflow.test.ts`に固定し、`tests/contracts/native-test-control-maestro.test.ts`はCRLF checkout環境でも契約検証できるよう読み取り時にLFへ正規化する（maestro・workflowファイルは`* text=auto`＋Windows autocrlfでCRLFになるため）。
+
+## Phase 2後半 Native Customer購入自動化（2026-08-08）
+
+- Native Customerの対象をLogin／Session、Profile／Address、Guest Cart統合、Checkout／Mock Payment、Order、Reviewへ拡張した。Native Admin、Guest Checkout、返金・キャンセル等は引き続き対象外である。
+- Native SQLite Schema Versionを2へ更新し、住所、Checkout Session、Order／Item、Payment、Shipment、Status History、Review／Review Historyを追加した。FK、`foreign_key_check`、共有Application transaction scope、commit後返却、ロック時のfail-closeをNative repository adapterへ実装した。
+- Native Composition Rootは共有Auth／Account／Cart／Checkout／Review Use Caseへ実SQLite repository、PBKDF2、Native KV、Address Lookup、Mock Payment Gatewayを注入する。Catalogはcustomer viewerを許可するが、Admin capabilityは公開しない。
+- Test Control Scenarioは購入系Scenarioを受理し、`native-purchase.yaml` と `native-review.yaml` をAndroid Runtime経路へ接続した。共通Maestro FlowはiOS互換性のため保持するが、iOS正式GateはBuild-onlyである。Production validationではAutomation Markerを許可せず、Test Control／Harnessを公開しない。
+- iOS Workflowは`workflow_call`／manual dispatch、`ios-automation-build`／`ios-production-build`の独立したunsigned Release `iphonesimulator` Build、Build-time metadata／Production guard、生成`.app` Artifact保存／Uploadへ分離し、iOS Build GateとしてNative CI final verifyへ接続した。iOS物理端末、署名、EAS Cloudは対象外である。
+- Node `node:sqlite`による共有Contract／Application Flowは実行済みだが、これはAndroid／iOS実`expo-sqlite`の代替ではない。WindowsでのiOS実行とRemote CIは、各Runの実行結果が得られるまで未確認として扱う。
+- 2026-08-08のWindows Android Runでは、今回の変更を含むAutomation Release APKのBuild／Install／Smoke、Control 1/1、既存Runtime 5/5、Boundary 5/5、Customer Purchase 1/1、Review 1/1を確認した。これはAndroid実`expo-sqlite`の証跡であり、iOS実Runtime／Remote CIの成功を意味しない。
+- 最終自己レビューでは、Native SQLite v1→v2の加算的migration（既存Customer data保持）、Native loginのreturnTo allowlist、非customer Roleのshell隔離、SQLite lock errorのApplicationError変換を追加し、CIのProduction APK実体検証とPurchase／Checkout restartのMaestro assertionを修正した。Unknown schema versionは引き続きfail-closeする。
+- 最新ソースのAndroid実機証跡は、Automation Build `20260808-220000-android-current-automation-build`、Purchase／Payment retry／Checkout restart／Review各1/1、Runtime／Boundary各5/5、Production targeted Build `20260808-221600-android-current-production-targeted`、Production-validation `20260808-222200-android-current-production-validation`である。Production bundleはAutomation／Harness／TestControl marker 0件を確認した。
+- Windowsでは`xcodebuild`／`xcrun`／`simctl`／`gh`が未提供で、iOS Simulator RuntimeとGitHub-hosted Remote CIは未実行である。iOS Workflowの静的契約は検証済みだが、実行結果がないためPhase 2 final DoDは未完了として扱う。`format:check`は未変更Baseline 2ファイルのみ継続警告である。
+
+## 2026-08-08 Phase 2 Postfix／現行検証
+
+- `native-purchase.yaml`はGuest Cart追加→Cart数量1→Login→会員Cart統合後数量2→Checkout成功を同一Flowで確認する。Android実機の変更後APKでPurchase、Payment retry、Checkout restart、Review、Runtime／Boundaryを再実行し、すべて成功した。
+- `NativeShell`はAppStateのforeground復帰時にAuth Sessionを再読込する。Native LoginのCheckout fallbackは`CHECKOUT_STEP_INCOMPLETE`、`CHECKOUT_EXPIRED`、`CART_VERSION_CHANGED`だけを既知状態として扱い、Storage等の予期しないErrorは表示する。Profile読み込みErrorはRetry可能なStateを表示する。
+- Native Detectは共有`src/presentation/return-to.ts`、normalizer、static address lookup、Mock Payment Gatewayを含む。iOS WorkflowはAutomation／Productionを独立Build Jobで生成し、Resolved Expo Metadata、生成`.app`内`EXConstants.bundle/app.config`、Production marker guard、固定名Artifactを検査／保存する。iOS Runtime Flowは正式Gateに含めない。
+- 変更後ローカル検証は、Focused Contract／Component／Typecheck／PrettierとAndroid実機で成功した。WindowsではXcode／Simulator／GitHub CLIがないため、iOS実`expo-sqlite`、Remote Native CI、最新Headの`native-ci / verify`は未実行である。静的PASSを実Runtime／Remote PASSへ繰り上げず、Phase 2 final DoDはpendingとする。
+
+## Phase 2後半 最終自己レビュー追補（2026-08-09）
+
+- Native SQLite mapperとCustomer Application Repositoryは、文字列・nullable値・整数・Boolean・Enum・履歴・集計値をRuntime parser経由でDomainへ渡す。列欠落や不正Enum／数値はnullableの明示的`null`以外を含めてfail-closeする。
+- Native Customer Transaction RunnerはCustomer Scope allowlistをRuntimeで確認し、Customer-only Repository Setへ型付きのfail-closed Admin placeholderを置く。Admin Scopeはtransaction開始前にNative unsupportedとして拒否し、型アサーションでCapability境界を逃がさない。
+- Native Purchase画面のLogin復帰、ApplicationError判定、Review ratingの型アサーションを除去した。現行ソースの型check／強制変換scanと、Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158の全TestはPASSした。
+- iOS Workflow／Native CIの静的監査では、Automation／Production unsigned Release `iphonesimulator` Artifact、Build／Runtime分離、選択SimulatorへのMaestro明示渡し、Production-validation、`simctl diagnose`、Native変更なし時のSkip、最終fail-closeを確認した。WindowsではiOS実RuntimeとGitHub-hosted Remote CIが未実行であり、Phase 2 final DoDはpendingである。
+- `pnpm run format:check`／`pnpm run verify`は未変更Baselineの`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`でFAILした。今回の変更範囲との因果は確認できず、別対応候補としてRun Artifactへ記録している。
+
+## 2026-08-09 Phase 2 Self-review Repair
+
+- Android Native CIのProduction-validationは、Production `assembleRelease`の明示的な`android/app/build/outputs/apk/release/app-release.apk`をRuntime用Artifact Pathへcopyしてから、同じPathをverify／Uploadする。Production buildの出力とRuntime消費物の取り違えをContract Testで固定する。
+- Native ShellはSession／Role解決が完了するまでCustomer childrenとNavigationを表示せず、非Customer Roleには対象外PanelとLogoutだけを表示する。AccountのProfile read／writeもCustomer専用として扱う。
+- 修正後の全TestはUnit 65、Integration 95、Repository 31、Web Component 76、Native Component 34、Contract 154がPASSし、Typecheck、Lint（0 errors／63 warnings）、対象Prettier、MarkdownlintもPASSした。WindowsでのiOS実Runtime／Remote CI未実行により、Phase 2 final DoDは引き続きpendingである。
+
+## 2026-08-09 Phase 2 Runtime Regression Repair
+
+- Iteration 6ではNative Login成功時の非Customer Role分岐を`returnTo`付きCheckout復帰より先に判定し、Customerだけが既存のCheckout recoveryへ進むようにした。Iteration 7ではiOS Runtime EvidenceへXcode／Simulator Runtime／Device／Installed Appの記録契約を追加した。
+- Iteration 5のRole boundary実装で、NativeShellがpathname変更ごとに`currentUserLoaded=false`へ戻して`Slot`をアンマウントしていた。これによりAndroid RuntimeでHarness、Category、Cartへの遷移後にHomeへ戻る回帰が発生したため、初回Session解決中だけCustomer childrenを抑止し、遷移中はSlotを保持してSessionをバックグラウンド再取得するよう修正した。pathname遷移中のroute保持をComponent Testで固定した。
+- 修正後の全TestはUnit 65、Integration 95、Repository 31、Web Component 76、Native Component 36、Contract 155がPASSした。Typecheck、Lint（0 errors／63 warnings）、対象PrettierもPASSした。Android実機ではIteration 8のBuild／Install／Smoke／Test Control 1/1、Runtime 5/5、Boundary 5/5を確認した。
+- Android Runtimeの完全証跡は`.artifacts/native-local/20260809-013000-android-iteration8-*/`へ保存した。`format:check`／`verify`の残存FAILは未変更Baselineの`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`に限定され、iOS実Runtime／Remote CI／最新HeadのRemote `native-ci / verify`は引き続き未実行である。
+
+## Phase 2後半 最終ローカルQuality Gate（2026-08-09）
+
+- 既存Baselineだった`.github/workflows/ci.yml`と`tests/contracts/ci-workflow.test.ts`をPrettierで意味変更なしに整形し、`pnpm run format:check`をPASSへ戻した。
+- Native Repositoryの未使用`parseNativeNumber` importを削除した。現行`pnpm run verify`はexit 0、Lint 0 errors／63 warnings、全Test、Security、Image Manifest、Web export 2294 modulesをPASSした。
+- 現行ローカル品質ゲートは完了したが、WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新Headの`native-ci / verify`が未実行である。Phase 2 final DoDはpendingとする。
+
+## PR #14 iOS Build-only化後のNative CI現行契約（2026-08-09）
+
+- Android BuildはAutomation／Production-validationの2 Jobへ分離し、Runtimeは両Jobを`always()`で受けて、どちらかが成功した場合だけ実行する。各Artifactを独立してDownload／verify／installし、Automation／Production Maestroは相互に依存させない。最終`verify`は両Build、Android Runtime、iOS Build GateをNative変更時に必須とする。
+- iOS正式CIは`ios-automation-build`／`ios-production-build`／`ios-verify`だけで構成する。各BuildはResolved Expo metadataと生成`.app`内`EXConstants.bundle/app.config`のembedded metadata検査、`expo prebuild`、Pods、workspace／scheme解決、unsigned Release `iphonesimulator` `xcodebuild`、`.app`生成確認、固定名保存、Uploadを完結し、Productionはmarker guardを維持する。`ios-verify`は両Buildだけをfail-closeで集約する。
+- iOSのSimulator boot／install／launch、Maestro、実`expo-sqlite` Contract Harness、Production-validation Runtime、`simctl diagnose`、Runtime Evidenceは正式Gateから除外した。Jobをskipやsuccessへ偽装するのではなく、Runtime Job自体をWorkflow topologyから削除している。
+- iOS Artifactの現行契約はAutomation `native-ios-app-${{ github.run_id }}`／`native-automation.app`、Production `native-ios-production-app-${{ github.run_id }}`／`native-production-validation.app`である。`tests/contracts/native-ci-workflow.test.ts`は各BuildのRelease-iphonesimulator検出、固定名保存、Upload、両BuildのみのAggregateを固定する。
+- Maestroの全16 Native Flowにあるcustom scheme `openLink` 38箇所とiOS conditional handlerは、Android回帰を避けるため共通ソースに保持する。ただし、これらをiOS Runtime PASSやiOS正式Gateの根拠にはしない。
+- Android Production APKはBuild時とRuntime Download後の双方で、`unzip -Z1`で`assets/`配下のbundleを列挙し、`unzip -p`で本文のAutomation／Contract Harness／`NativeTestControlService` marker不在を確認する。bundleがない場合はfail-closeする。
+- 2026-08-09の最新APKによるAndroid実機はBuild（Metro初回生成を含む）／Install／Smoke／Test Control 1/1、Runtime 5/5、Boundary 5/5をPASSした。Review単体は保存操作まで進んだが、標準日本語IMEがASCII本文を変換し、保存完了assertionへ到達しなかったため、物理端末のIME依存Failureとして記録する。Reviewの2回目`hideKeyboard`は復元しない。
+- iOS Runtimeを正式Gateから外す理由は、iOS Simulatorを継続的にローカル再現・デバッグできる環境を現行運用で保持しないため、GitHub-hosted macOS Runnerだけに依存するRuntime CIの保守性が低いからである。Androidは継続的に再現・デバッグできるためRuntime Gateを維持する。
+- Windowsでは`xcodebuild`／`xcrun`／`simctl`／`gh`が未提供であり、iOS Buildのローカル実行、修正HeadのRemote Native CI／最終`native-ci / verify`は未確認である。iOS Runtimeは正式Gate対象外であり、未実行をPASSへ繰り上げない。Remote Gate結果が未取得のためPhase 2 final DoDはpendingとする。
+
+## PR #14追加指示後の現行Runtime／Artifact契約（2026-08-09）
+
+- Android Automationの全16 Flowは、`launchApp(clearState: true)`後に既存の`Native test runtime listening`を30秒待ってから`Scenario Shop`を確認する。Production FlowはRuntime listeningを待たず、`Scenario Shop`を30秒待ってからRuntime／Test Control／Contract Harnessの非表示を確認する。
+- iOS正式CIはBuild-onlyのまま、Automation／Productionの生成`.app`についてSource側Resolved metadataに加えて、`EXConstants.bundle/app.config`のembedded `appEnvironment`／`buildKind`／`testMode`を直接検証する。Production marker Bundle Guard、固定名Artifact、fail-close Build Gateは維持する。
+- Iteration 29でこの起動順序とembedded metadataをContractへ追加し、focused 61 tests、全Contract 173 tests、全local verify、Android RuntimeSuite／BoundarySuite各5/5をPASSした。Maestro-MCPはDevice Server `UNAVAILABLE`だったため、同一端末のLocal Runbook CLI結果で代替確認した。
 
 ## メモ
 

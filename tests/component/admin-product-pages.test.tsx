@@ -30,7 +30,7 @@ vi.mock("expo-router", () => ({
   useNavigation: () => ({ addListener: () => () => undefined, dispatch: vi.fn() }),
   useRouter: () => ({ replace: routerReplace, push: routerPush }),
 }));
-vi.mock("expo-router/build/react-navigation/core", () => ({
+vi.mock("expo-router/react-navigation", () => ({
   usePreventRemove: () => undefined,
 }));
 vi.mock("@/presentation/hooks/use-application-services", () => ({

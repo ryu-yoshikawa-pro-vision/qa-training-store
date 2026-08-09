@@ -4,8 +4,12 @@ export const NATIVE_DATABASE_NAME = "scenario-shop-native-v1.db";
 export const NATIVE_SCHEMA_VERSION = NATIVE_DATABASE_SCHEMA_VERSION;
 
 /**
- * Customer-only SQLite schema. Admin/order tables are deliberately not part of
- * the Native adapter; the Native app is a Guest Storefront/Cart surface.
+ * Native Customer SQLite schema.
+ *
+ * The Native runtime deliberately contains the customer purchase capability
+ * (auth, account, cart, checkout, order and review), but no Admin tables or
+ * Admin application surface. The tables mirror the shared SeedDataset model so
+ * the Native runtime can exercise the same transaction contracts as Web.
  */
 export const CUSTOMER_SCHEMA_SQL = `
 PRAGMA foreign_keys = ON;
@@ -24,6 +28,24 @@ CREATE TABLE IF NOT EXISTS users (
   updated_at TEXT NOT NULL,
   version INTEGER NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS user_addresses (
+  id TEXT PRIMARY KEY NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  label TEXT NOT NULL,
+  recipient_name TEXT NOT NULL,
+  postal_code TEXT NOT NULL,
+  prefecture TEXT NOT NULL,
+  city TEXT NOT NULL,
+  address_line1 TEXT NOT NULL,
+  address_line2 TEXT,
+  phone TEXT NOT NULL,
+  is_default INTEGER NOT NULL CHECK(is_default IN (0,1)),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_native_addresses_user ON user_addresses(user_id, created_at, id);
 
 CREATE TABLE IF NOT EXISTS sessions (
   id TEXT PRIMARY KEY NOT NULL,
@@ -116,6 +138,14 @@ CREATE TABLE IF NOT EXISTS product_review_summaries (
   version INTEGER NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS daily_sequences (
+  sequence_type TEXT NOT NULL,
+  local_date TEXT NOT NULL,
+  current_value INTEGER NOT NULL CHECK(current_value >= 0),
+  version INTEGER NOT NULL,
+  PRIMARY KEY(sequence_type, local_date)
+);
+
 CREATE TABLE IF NOT EXISTS carts (
   id TEXT PRIMARY KEY NOT NULL,
   owner_type TEXT NOT NULL CHECK(owner_type IN ('guest','user')),
@@ -140,6 +170,157 @@ CREATE TABLE IF NOT EXISTS cart_items (
   updated_at TEXT NOT NULL,
   version INTEGER NOT NULL,
   UNIQUE(cart_id, variant_id)
+);
+
+CREATE TABLE IF NOT EXISTS checkout_sessions (
+  id TEXT PRIMARY KEY NOT NULL,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  cart_id TEXT NOT NULL REFERENCES carts(id) ON DELETE RESTRICT,
+  cart_version INTEGER NOT NULL,
+  address_recipient_name TEXT,
+  address_postal_code TEXT,
+  address_prefecture TEXT,
+  address_city TEXT,
+  address_line1 TEXT,
+  address_line2 TEXT,
+  address_phone TEXT,
+  payment_method_code TEXT CHECK(payment_method_code IN ('TEST-SUCCESS','TEST-DECLINED','TEST-INSUFFICIENT','TEST-AUTH-FAILED') OR payment_method_code IS NULL),
+  unlocked_step TEXT NOT NULL CHECK(unlocked_step IN ('address','payment','confirm')),
+  status TEXT NOT NULL CHECK(status IN ('active','converted','abandoned','expired')),
+  expires_at TEXT NOT NULL,
+  order_id TEXT REFERENCES orders(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_native_checkout_user ON checkout_sessions(user_id, status, updated_at);
+
+CREATE TABLE IF NOT EXISTS orders (
+  id TEXT PRIMARY KEY NOT NULL,
+  order_number TEXT NOT NULL UNIQUE,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  checkout_session_id TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('pending_payment','paid','preparing','shipped','delivered','payment_failed','cancelled')),
+  subtotal_amount INTEGER NOT NULL CHECK(subtotal_amount >= 0),
+  discount_amount INTEGER NOT NULL CHECK(discount_amount >= 0),
+  shipping_amount INTEGER NOT NULL CHECK(shipping_amount >= 0),
+  total_amount INTEGER NOT NULL CHECK(total_amount >= 0),
+  membership_rank_snapshot TEXT NOT NULL CHECK(membership_rank_snapshot IN ('regular','gold','platinum')),
+  shipping_recipient_name TEXT NOT NULL,
+  shipping_postal_code TEXT NOT NULL,
+  shipping_prefecture TEXT NOT NULL,
+  shipping_city TEXT NOT NULL,
+  shipping_address_line1 TEXT NOT NULL,
+  shipping_address_line2 TEXT,
+  shipping_phone TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL,
+  FOREIGN KEY(checkout_session_id) REFERENCES checkout_sessions(id) ON DELETE RESTRICT
+);
+CREATE INDEX IF NOT EXISTS idx_native_orders_user ON orders(user_id, created_at, id);
+
+CREATE TABLE IF NOT EXISTS order_items (
+  id TEXT PRIMARY KEY NOT NULL,
+  order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  line_number INTEGER NOT NULL,
+  product_id TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+  variant_id TEXT NOT NULL REFERENCES product_variants(id) ON DELETE RESTRICT,
+  product_code_snapshot TEXT NOT NULL,
+  product_name_snapshot TEXT NOT NULL,
+  sku_snapshot TEXT NOT NULL,
+  variation_name_snapshot TEXT,
+  option_value_snapshot TEXT,
+  unit_effective_price INTEGER NOT NULL CHECK(unit_effective_price >= 0),
+  unit_discount_amount INTEGER NOT NULL CHECK(unit_discount_amount >= 0),
+  quantity INTEGER NOT NULL CHECK(quantity > 0),
+  line_subtotal_amount INTEGER NOT NULL CHECK(line_subtotal_amount >= 0),
+  line_discount_amount INTEGER NOT NULL CHECK(line_discount_amount >= 0),
+  line_total_amount INTEGER NOT NULL CHECK(line_total_amount >= 0),
+  primary_image_asset_id_snapshot TEXT NOT NULL,
+  primary_image_path_snapshot TEXT NOT NULL,
+  primary_image_alt_text_snapshot TEXT NOT NULL,
+  created_at TEXT NOT NULL,
+  UNIQUE(order_id, line_number)
+);
+CREATE INDEX IF NOT EXISTS idx_native_order_items_order ON order_items(order_id, line_number);
+
+CREATE TABLE IF NOT EXISTS payments (
+  id TEXT PRIMARY KEY NOT NULL,
+  order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  attempt_number INTEGER NOT NULL,
+  method_code TEXT NOT NULL CHECK(method_code IN ('TEST-SUCCESS','TEST-DECLINED','TEST-INSUFFICIENT','TEST-AUTH-FAILED')),
+  status TEXT NOT NULL CHECK(status IN ('processing','succeeded','failed')),
+  amount INTEGER NOT NULL CHECK(amount >= 0),
+  gateway_idempotency_key TEXT NOT NULL UNIQUE,
+  error_code TEXT CHECK(error_code IN ('DECLINED','INSUFFICIENT','AUTH_FAILED','OUT_OF_STOCK') OR error_code IS NULL),
+  created_at TEXT NOT NULL,
+  processed_at TEXT,
+  version INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_native_payments_order ON payments(order_id, attempt_number);
+
+CREATE TABLE IF NOT EXISTS shipments (
+  id TEXT PRIMARY KEY NOT NULL,
+  order_id TEXT NOT NULL UNIQUE REFERENCES orders(id) ON DELETE CASCADE,
+  status TEXT NOT NULL CHECK(status IN ('pending','shipped','delivered')),
+  carrier_name TEXT,
+  tracking_number TEXT,
+  shipped_at TEXT,
+  delivered_at TEXT,
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS order_status_histories (
+  id TEXT PRIMARY KEY NOT NULL,
+  order_id TEXT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+  from_status TEXT,
+  to_status TEXT NOT NULL,
+  actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  reason_code TEXT NOT NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_native_order_histories_order ON order_status_histories(order_id, created_at, id);
+
+CREATE TABLE IF NOT EXISTS inventory_histories (
+  id TEXT PRIMARY KEY NOT NULL,
+  variant_id TEXT NOT NULL REFERENCES product_variants(id) ON DELETE RESTRICT,
+  change_quantity INTEGER NOT NULL,
+  before_quantity INTEGER NOT NULL CHECK(before_quantity >= 0),
+  after_quantity INTEGER NOT NULL CHECK(after_quantity >= 0),
+  reason_code TEXT NOT NULL,
+  reason_text TEXT NOT NULL,
+  actor_user_id TEXT REFERENCES users(id) ON DELETE SET NULL,
+  order_id TEXT REFERENCES orders(id) ON DELETE SET NULL,
+  created_at TEXT NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_native_inventory_history_variant ON inventory_histories(variant_id, created_at, id);
+
+CREATE TABLE IF NOT EXISTS reviews (
+  id TEXT PRIMARY KEY NOT NULL,
+  order_item_id TEXT NOT NULL UNIQUE REFERENCES order_items(id) ON DELETE RESTRICT,
+  product_id TEXT NOT NULL REFERENCES products(id) ON DELETE RESTRICT,
+  user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+  title TEXT,
+  body TEXT NOT NULL,
+  status TEXT NOT NULL CHECK(status IN ('published','hidden','deleted')),
+  created_at TEXT NOT NULL,
+  updated_at TEXT NOT NULL,
+  version INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS idx_native_reviews_product ON reviews(product_id, status, created_at);
+
+CREATE TABLE IF NOT EXISTS review_status_histories (
+  id TEXT PRIMARY KEY NOT NULL,
+  review_id TEXT NOT NULL REFERENCES reviews(id) ON DELETE CASCADE,
+  from_status TEXT,
+  to_status TEXT NOT NULL,
+  actor_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
+  reason_text TEXT,
+  created_at TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS app_settings (

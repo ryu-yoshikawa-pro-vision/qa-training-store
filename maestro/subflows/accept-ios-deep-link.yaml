@@ -1,0 +1,8 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- runFlow:
+    when:
+      platform: iOS
+      visible: "Open in .*Scenario Shop.*"
+    commands:
+      - tapOn: Open

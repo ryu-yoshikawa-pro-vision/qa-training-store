@@ -87,6 +87,7 @@ describe("cart mutation repository contract", () => {
     const result = await carts.mergeGuestIntoUser({
       guestId: DEFAULT_GUEST_ID,
       userId: "user-customer-regular",
+      newCartId: "cart-merge-user",
       now: BASE_CLOCK,
     });
 

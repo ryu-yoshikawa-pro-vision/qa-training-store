@@ -1,6 +1,7 @@
 import { Link, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Pressable, StyleSheet, Text, View } from "react-native";
+import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useNativeRuntime } from "./native-runtime-provider";
 import {
@@ -14,7 +15,71 @@ import {
 
 export function NativeShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
-  const { ready, error, retry } = useNativeRuntime();
+  const { ready, error, retry, services } = useNativeRuntime();
+  const [currentUser, setCurrentUser] = useState<Awaited<
+    ReturnType<NonNullable<typeof services>["auth"]["getCurrentUser"]>
+  > | null>(null);
+  const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
+  const [logoutError, setLogoutError] = useState<Error | null>(null);
+  const refreshSerial = useRef(0);
+  const mounted = useRef(true);
+  const refreshCurrentUser = useCallback(() => {
+    const requestId = ++refreshSerial.current;
+    if (!services) {
+      if (!mounted.current || requestId !== refreshSerial.current) return;
+      setCurrentUser(null);
+      setCurrentUserLoaded(false);
+      return;
+    }
+    void services.auth
+      .getCurrentUser()
+      .then((next) => {
+        if (!mounted.current || requestId !== refreshSerial.current) return;
+        setCurrentUser(next);
+        setCurrentUserLoaded(true);
+      })
+      .catch(() => {
+        if (!mounted.current || requestId !== refreshSerial.current) return;
+        setCurrentUser(null);
+        setCurrentUserLoaded(true);
+      });
+  }, [services]);
+
+  useEffect(() => {
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    refreshCurrentUser();
+  }, [pathname, refreshCurrentUser]);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (state) => {
+      if (state === "active") refreshCurrentUser();
+    });
+    return () => subscription?.remove();
+  }, [refreshCurrentUser]);
+  const unsupportedRole =
+    currentUserLoaded && currentUser !== null && currentUser.role !== "customer";
+  const logoutUnsupportedRole = () => {
+    if (services === null) return;
+    setLogoutError(null);
+    refreshSerial.current += 1;
+    void services.auth
+      .logout()
+      .then(() => {
+        if (!mounted.current) return;
+        setCurrentUser(null);
+        setCurrentUserLoaded(true);
+      })
+      .catch((caught: unknown) => {
+        if (!mounted.current) return;
+        setLogoutError(caught instanceof Error ? caught : new Error("ログアウトに失敗しました"));
+        refreshCurrentUser();
+      });
+  };
   return (
     <SafeAreaView style={shellStyles.safeArea}>
       <View style={shellStyles.header}>
@@ -27,15 +92,43 @@ export function NativeShell({ children }: { children: ReactNode }) {
             <Text style={shellStyles.brand}>Scenario Shop</Text>
           </Pressable>
         </Link>
-        <Link href="/cart" asChild>
-          <Pressable
-            accessibilityRole="link"
-            style={shellStyles.headerLink}
-            testID="native-header-cart"
-          >
-            <Text style={shellStyles.cartLink}>カート</Text>
-          </Pressable>
-        </Link>
+        <View style={shellStyles.headerActions}>
+          {currentUserLoaded && !unsupportedRole && (
+            <Link href="/cart" asChild>
+              <Pressable
+                accessibilityRole="link"
+                style={shellStyles.headerLink}
+                testID="native-header-cart"
+              >
+                <Text style={shellStyles.cartLink}>カート</Text>
+              </Pressable>
+            </Link>
+          )}
+          {!currentUserLoaded ? (
+            <Text style={shellStyles.cartLink} testID="native-session-loading">
+              確認中…
+            </Text>
+          ) : unsupportedRole ? (
+            <NativeButton
+              label="ログアウト"
+              variant="ghost"
+              onPress={logoutUnsupportedRole}
+              testID="native-role-logout"
+            />
+          ) : (
+            <Link href={currentUser === null ? "/login" : "/account/profile"} asChild>
+              <Pressable
+                accessibilityRole="link"
+                style={shellStyles.headerLink}
+                testID="native-header-account"
+              >
+                <Text style={shellStyles.cartLink}>
+                  {currentUser === null ? "ログイン" : "アカウント"}
+                </Text>
+              </Pressable>
+            </Link>
+          )}
+        </View>
       </View>
       <View style={shellStyles.content}>
         {error !== null ? (
@@ -44,11 +137,22 @@ export function NativeShell({ children }: { children: ReactNode }) {
             body={error.message}
             action={<NativeButton label="再試行" onPress={retry} testID="native-runtime-retry" />}
           />
+        ) : !currentUserLoaded ? (
+          <NativeStatePanel title="Sessionを確認中…" />
+        ) : unsupportedRole ? (
+          <NativeStatePanel
+            title="このRoleはNative Customerの対象外です"
+            body={
+              logoutError === null
+                ? "Nativeでは購入者向け画面だけを利用できます。ログアウトしてください。"
+                : `ログアウトに失敗しました。Sessionを再確認しています。${logoutError.message}`
+            }
+          />
         ) : (
           children
         )}
       </View>
-      {ready && (
+      {ready && currentUserLoaded && !unsupportedRole && (
         <View style={shellStyles.bottomNav}>
           <NativeNavLink
             href="/"
@@ -74,6 +178,14 @@ export function NativeShell({ children }: { children: ReactNode }) {
             active={pathname.startsWith("/cart")}
             testID="native-nav-cart"
           />
+          {currentUser !== null && (
+            <NativeNavLink
+              href="/orders"
+              label="注文"
+              active={pathname.startsWith("/orders")}
+              testID="native-nav-orders"
+            />
+          )}
         </View>
       )}
     </SafeAreaView>
@@ -86,7 +198,7 @@ function NativeNavLink({
   active,
   testID,
 }: {
-  href: "/" | "/products" | "/search" | "/cart";
+  href: "/" | "/products" | "/search" | "/cart" | "/orders";
   label: string;
   active: boolean;
   testID: string;
@@ -112,6 +224,7 @@ const shellStyles = StyleSheet.create({
     paddingVertical: nativeSpacing.sm,
   },
   headerLink: { justifyContent: "center", minHeight: nativeSpacing.xxxl },
+  headerActions: { alignItems: "center", flexDirection: "row", gap: nativeSpacing.sm },
   brand: {
     color: nativeColors.ink,
     fontSize: nativeTypography.heading3.fontSize,
