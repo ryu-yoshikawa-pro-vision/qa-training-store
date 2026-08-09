@@ -250,8 +250,15 @@ GitHub ActionsをPhase 2の正式Native CI経路とします。
 Detect Native Changes
   ├─ Native Static
   ├─ Production Bundle Guard
-  ├─ Android Build / Emulator / Maestro
-  └─ iOS Build / Simulator / Maestro
+  ├─ Android Automation Build ────┐
+  ├─ Android Production Build ────┤
+  │                               └─ Android Runtime / Maestro
+  └─ Native iOS CI
+     ├─ iOS Automation Build ─────┐
+     ├─ iOS Production Build ─────┤
+     │                            └─ iOS Runtime / Maestro
+     │                                  ↓
+     └──────────────────────────── iOS Native CI Verify
                 ↓
          native-ci / verify
 ```
@@ -537,7 +544,7 @@ Phase 2完了後もPhase 3へ自動で進みません。最終報告でPhase 3�
 - `maestro/native-purchase.yaml`はGuest状態で商品を追加し、Cart数量1を確認してからLoginし、既存会員Cartとの統合後数量2を確認する導線へ修正した。Android実機でCheckout成功まで1/1を確認した。
 - Native ShellはAppStateが`active`へ戻った時にAuth Sessionを再読込し、Login後Checkout fallbackは既知のCheckout状態ErrorだけをGuest／Home fallbackとして扱う。Unexpected Storage Errorは画面へ返す。Profile初期化失敗はloading固定ではなくRetry可能なError Stateへ変更した。
 - Native Detectは`src/presentation/return-to.ts`と、Native Runtimeが参照するnormalizer／static address lookup／Mock Payment Gatewayを監視対象へ追加した。
-- iOS Workflowは`ios-build`でAutomation／Productionのunsigned Release Simulator Appを生成し、Runtimeが両Artifactを受け取る。各Runtime Metadataを`expo config --json`で`automation / automation / true`または`production / production / false`として検査する。WindowsではiOS実RuntimeとRemote CIは未確認のため、Gate E／F／Gの最終判定はpendingである。
+- iOS Workflowは`ios-automation-build`／`ios-production-build`でAutomation／Productionのunsigned Release Simulator Appを独立生成し、Runtimeが成功した各Artifactを受け取る。各Runtime Metadataを`expo config --json`で`automation / automation / true`または`production / production / false`として検査する。WindowsではiOS実RuntimeとRemote CIは未確認のため、Gate E／F／Gの最終判定はpendingである。
 
 ## 14. 2026-08-09 最終回帰と現行Production
 

@@ -24,11 +24,64 @@ function readFlow(name: (typeof flowNames)[number]): string {
   return readFileSync(join(process.cwd(), "maestro", name), "utf8").replace(/\r\n/g, "\n");
 }
 
+function readDeepLinkSubflow(): string {
+  return readFileSync(
+    join(process.cwd(), "maestro", "subflows", "accept-ios-deep-link.yaml"),
+    "utf8",
+  ).replace(/\r\n/g, "\n");
+}
+
 function findAllIndexes(source: string, expression: RegExp): number[] {
   return [...source.matchAll(expression)].map((match) => match.index ?? -1);
 }
 
 describe("Native Test Control Maestro contracts", () => {
+  it("defines a conditional iOS deep-link confirmation subflow", () => {
+    const source = readDeepLinkSubflow();
+
+    expect(source).toContain("platform: iOS");
+    expect(source).toContain("visible: 'Open in \"Scenario Shop\"'");
+    expect(source).toContain("tapOn: Open");
+    expect(source).not.toMatch(/^\s+- sleep:/m);
+    expect(source).not.toContain("point:");
+    expect(source).not.toContain("optional:");
+  });
+
+  it("handles every scenario-shop deep link exactly once in every flow", () => {
+    let totalOpenLinks = 0;
+    let totalHandlers = 0;
+
+    for (const flowName of flowNames) {
+      const source = readFlow(flowName);
+      const openLinkIndexes = findAllIndexes(
+        source,
+        /^- openLink:\s+"scenario-shop:\/\/[^\"]+"$/gm,
+      );
+      const handlerIndexes = findAllIndexes(
+        source,
+        /^- runFlow:\s+subflows\/accept-ios-deep-link\.yaml$/gm,
+      );
+
+      expect(openLinkIndexes.length).toBeGreaterThan(0);
+      expect(handlerIndexes).toHaveLength(openLinkIndexes.length);
+      totalOpenLinks += openLinkIndexes.length;
+      totalHandlers += handlerIndexes.length;
+
+      openLinkIndexes.forEach((openLinkIndex, index) => {
+        const handlerIndex = handlerIndexes[index];
+        const nextOpenLinkIndex = openLinkIndexes[index + 1];
+
+        expect(handlerIndex).toBeGreaterThan(openLinkIndex);
+        if (nextOpenLinkIndex !== undefined) {
+          expect(handlerIndex).toBeLessThan(nextOpenLinkIndex);
+        }
+      });
+    }
+
+    expect(totalOpenLinks).toBe(38);
+    expect(totalHandlers).toBe(totalOpenLinks);
+  });
+
   it.each(flowNames.filter((flowName) => flowName !== "native-production-validation.yaml"))(
     "waits for Linking readiness before reset in %s",
     (flowName) => {

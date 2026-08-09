@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Phase 2後半のNative Customer購入コード、実SQLite、Android実機、Production validation、Web／静的回帰、Order詳細snapshot表示、入力画面Keyboard対応、Login復帰先の型付き遷移、SQLite境界Runtime parser、PR #14追加DoDのStorefront Stable ID、Android／iOS Flow継続、Cart caller-generated ID、Harness認可fail-close、Checkout step returnTo、NativeShell refresh serial／AppState cleanup／logout catch、PR #14追加修正のreviews-empty／Native fixture／checkout期限更新transaction／Expo Router公開API移行は完了し、Production APK source→runtime copy、Native Customer Role boundary、NativeShell route regressionも修正・再検証した。Iteration 25ではAndroid最新APKのRuntimeSuite／BoundarySuite 5/5を再確認したが、Review単体は物理日本語IME依存Failureとして未完了であり、WindowsではiOS SimulatorとRemote GitHub Actionsの実行結果を取得できない。",
+      "evidence": "Phase 2後半のNative Customer購入コード、実SQLite、Android実機、Production validation、Web／静的回帰、Order詳細snapshot表示、入力画面Keyboard対応、Login復帰先の型付き遷移、SQLite境界Runtime parser、PR #14追加DoDのStorefront Stable ID、Android／iOS Flow継続、Cart caller-generated ID、Harness認可fail-close、Checkout step returnTo、NativeShell refresh serial／AppState cleanup／logout catch、PR #14追加修正のreviews-empty／Native fixture／checkout期限更新transaction／Expo Router公開API移行、PR #14最終修正のiOS Deep Link共通handler、Production bundle本文marker guard、simctl diagnose evidenceは完了し、Production APK source→runtime copy、Native Customer Role boundary、NativeShell route regressionも修正・再検証した。Iteration 26ではcustom scheme 38箇所／handler 38箇所、Android conditional-handler後のTest Control 1/1／RuntimeSuite 5/5／BoundarySuite 5/5、全品質ゲートを再確認した。Review単体は物理日本語IME依存Failureとして未完了であり、WindowsではiOS SimulatorとRemote GitHub Actionsの実行結果を取得できない。",
       "evidence_refs": [
         {
           "kind": "codex_task_report",
@@ -30,7 +30,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Iteration 25のWorkflow／Maestro Contract 2 files／44 tests、Native Purchase Jest 15、Native Component 47、Repository 33、Typecheck、route／EAS、Format、Markdownlint、Lint 0 errors／64 warnings、最終`pnpm run verify`（Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 47、Contract 156、Web export 2296 modules）はPASSした。Android最新APKのDoctor、Build、Install、Smoke、Test Control 1/1、RuntimeSuite 5/5、BoundarySuite 5/5もPASSした。Review単体は標準日本語IMEによるASCII本文変換後に保存assertionでFAILし、iOS実Runtime／Remote CIは未実行である。",
+      "evidence": "Iteration 26のWorkflow／Maestro Contract 2 files／48 tests、全Contract 23 files／160 tests、Native Component 12 suites／47、Repository 5 files／33、Typecheck、route／EAS、Format、Markdownlint 175 files／0 issues、Lint 0 errors／64 warnings、最終`pnpm run verify`（Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 47、Contract 160、Web export 2296 modules）はPASSした。Android conditional-handler後のDoctor、Test Control 1/1、RuntimeSuite 5/5、BoundarySuite 5/5もPASSした。Review単体は標準日本語IMEによるASCII本文変換後に保存assertionでFAILし、iOS実Runtime／Remote CIは未実行である。Contract 165→156は前IterationでのWorkflow Contract整理による実行件数差で、23 files全体の実行漏れではなく、今回4件追加後は160 testsとなった。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -245,7 +245,7 @@
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "Git add／commit／push／reset／clean、削除、rename、Remote CI起動、EAS Cloud実行を行っていない。生ログはRun外の.artifactsへ保存した。",
+      "evidence": "Git add／commit／push／reset／clean、Remote CI起動、EAS Cloud実行は行っていない。Historyの命名だけはユーザー指示に従いGitを使わない通常ファイル操作で変更した。生ログはRun外の.artifactsへ保存した。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
@@ -308,7 +308,7 @@
         "summary": "Iteration 24後もWindows hostではiOS Simulator／実expo-sqlite Harness／Remote GitHub Actionsを未実行として記録している。"
         }
       ],
-      "detail": "iOS Workflowの静的契約はPASSだが、macOS実RuntimeとGitHub-hosted Runが未確認のため、Phase 2 final DoDは未完了とする。Android Review単体も標準日本語IMEによる本文変換後の保存完了assertionでFAILしており、物理端末依存の未完了検証として扱う。"
+      "detail": "iOS Workflowの静的契約、custom scheme 38箇所とconfirmation handler 38箇所の1:1契約、Android Production bundle本文marker guard、iOS diagnose evidence契約はPASSしたが、macOS実RuntimeとGitHub-hosted Runが未確認のため、Phase 2 final DoDは未完了とする。Android Review単体も標準日本語IMEによる本文変換後の保存完了assertionでFAILしており、物理端末依存の未完了検証として扱う。"
     }
   ],
   "improvement_candidates": [

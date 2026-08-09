@@ -40,9 +40,10 @@
 - [x] 32. PR #14追加DoDのMaestro継続実行、Cart ID、認可Harness、Checkout復帰、NativeShell競合を修正し、回帰ゲートを再検証する。
 - [x] 33. PR #14追加修正のreviews-empty、Native fixture、checkout期限更新transaction、expo-router公開APIを最小差分で修正し、回帰ゲートを再検証する。
 - [x] 34. PR #14最終修正指示のAndroid／iOS Build分離、Artifact Contract、Review／Storefront Flow、Profile logout回帰を反映し、可能な静的／Android実機ゲートと未実行境界を記録する。
+- [x] 35. PR #14最終修正指示のiOS Deep Link confirmation、全custom scheme Contract、Android Production marker本文検査、iOS diagnose evidence、現行構成文書を反映し、ローカル品質ゲートとAndroid回帰を再検証する。
 
 ## Blocked
 
 - iOS Simulator／実`expo-sqlite` Harness／iOS Production-validationは、現行Windowsに`xcodebuild`／`xcrun`／`simctl`がないため実行不能。GitHub-hosted Remote Android／iOS CIと最新Headの`native-ci / verify`は、現行未commit差分を反映したRemote Head／実行権限がないため未実行。コード／静的／Android／Web検証とは独立した外部環境Blockerとして記録する。
 
-Progress: 97% (33/34)
+Progress: 97% (34/35)

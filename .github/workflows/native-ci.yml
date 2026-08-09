@@ -495,11 +495,14 @@ jobs:
           : "${PRODUCTION_APK_PATH:?Production APK path was not exported by the save step}"
           test -f "$PRODUCTION_APK_PATH"
           test -s "$PRODUCTION_APK_PATH"
-          if ! unzip -l "$PRODUCTION_APK_PATH" | grep -Eq 'assets/.*\.(bundle|hbc)'; then
+          bundle_entries=$(
+            unzip -Z1 "$PRODUCTION_APK_PATH" |
+              grep -E '^assets/.*\.(bundle|hbc)$' || true
+          )
+          if [[ -z "$bundle_entries" ]]; then
             echo "Production-validation APK does not contain a JavaScript bundle." >&2
             exit 1
           fi
-          bundle_entries=$(unzip -Z1 "$PRODUCTION_APK_PATH" | grep -E '^assets/.*\.(bundle|hbc)$')
           test -n "$bundle_entries"
           while IFS= read -r bundle_entry; do
             if unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry" | grep -E -q '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService'; then
@@ -1344,10 +1347,19 @@ jobs:
           PRODUCTION_APK_PATH="$RUNNER_TEMP/native-production-apk/native-production-validation.apk"
           test -f "$PRODUCTION_APK_PATH"
           test -s "$PRODUCTION_APK_PATH"
-          if unzip -l "$PRODUCTION_APK_PATH" | grep -Eq '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService'; then
-            echo "Downloaded Production-validation APK contains Automation/Test Control markers." >&2
-            exit 1
-          fi
+          bundle_entries=$(
+            unzip -Z1 "$PRODUCTION_APK_PATH" |
+              grep -E '^assets/.*\.(bundle|hbc)$' || true
+          )
+          test -n "$bundle_entries"
+          while IFS= read -r bundle_entry; do
+            if unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry" |
+              grep -E -q '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService'
+            then
+              echo "Downloaded Production-validation APK contains Automation/Test Control markers." >&2
+              exit 1
+            fi
+          done <<< "$bundle_entries"
           echo "PRODUCTION_APK_PATH=$PRODUCTION_APK_PATH" >> "$GITHUB_ENV"
       - name: Install and launch Production-validation APK
         id: production_install

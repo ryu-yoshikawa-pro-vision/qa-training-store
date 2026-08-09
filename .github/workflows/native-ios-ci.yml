@@ -412,10 +412,30 @@ jobs:
              echo "Simulator device was not resolved." \
                > "$RUNNER_TEMP/native-ios-runtime-evidence/installed-apps.txt"
            fi
-           mkdir -p "$RUNNER_TEMP/native-ios-runtime-evidence/simctl-diagnose"
-           xcrun simctl diagnose \
-             --output "$RUNNER_TEMP/native-ios-runtime-evidence/simctl-diagnose" \
-             --no-archive || true
+          DIAGNOSE_DIR="$RUNNER_TEMP/native-ios-runtime-evidence/simctl-diagnose"
+          mkdir -p "$DIAGNOSE_DIR"
+          diagnose_status=0
+          if [[ -n "${IOS_DEVICE:-}" ]]; then
+            xcrun simctl diagnose \
+              --udid="$IOS_DEVICE" \
+              --output="$DIAGNOSE_DIR" \
+              --no-archive || diagnose_status=$?
+          else
+            diagnose_status=1
+            echo "IOS_DEVICE was not resolved; simctl diagnose was not run." \
+              > "$DIAGNOSE_DIR/diagnose-error.txt"
+          fi
+          {
+            printf 'simctl_diagnose_exit_code=%s\n' "$diagnose_status"
+            if [[ -d "$DIAGNOSE_DIR" ]]; then
+              printf 'simctl_diagnose_output_exists=true\n'
+              printf 'simctl_diagnose_output_files=%s\n' \
+                "$(find "$DIAGNOSE_DIR" -type f | wc -l | tr -d ' ')"
+            else
+              printf 'simctl_diagnose_output_exists=false\n'
+              printf 'simctl_diagnose_output_files=0\n'
+            fi
+          } > "$RUNNER_TEMP/native-ios-runtime-evidence/simctl-diagnose-status.txt"
           if [[ -d "$RUNNER_TEMP/maestro-artifacts" ]]; then
             cp -R "$RUNNER_TEMP/maestro-artifacts" "$RUNNER_TEMP/native-ios-runtime-evidence/maestro-artifacts"
           fi

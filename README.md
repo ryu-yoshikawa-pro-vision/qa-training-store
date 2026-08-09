@@ -376,7 +376,7 @@ pnpm run verify
 
 #### 未実施・判定保留
 
-- WindowsではXcode／iOS Simulatorがないため、iOS Simulator Build／Install／Maestro／実`expo-sqlite` Runtimeは未実行。WorkflowのiOS BuildはAutomation／Productionを同じBuild Jobで生成し、Runtimeは両Artifactを受け取る構成を静的確認した。
+- WindowsではXcode／iOS Simulatorがないため、iOS Simulator Build／Install／Maestro／実`expo-sqlite` Runtimeは未実行。WorkflowのiOS BuildはAutomation／Productionの独立Jobで生成し、Runtimeは成功した各Artifactを個別に受け取る構成を静的確認した。
 - 現在の未commit差分はRemoteへpushしていないため、GitHub-hosted Native CI、最新Headの`native-ci / verify`、Remote Artifact取得は未実行。
 - EAS Cloud Build／Workflow／Submit、Store公開、PR本文更新はPhase 2の対象外。
 

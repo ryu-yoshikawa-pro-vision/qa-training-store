@@ -121,6 +121,28 @@ describe("Native CI workflow contracts", () => {
     expect(runtime).toContain("id: production_install");
   });
 
+  it("guards downloaded Production APK by reading every JavaScript bundle body", () => {
+    const production = jobBlock(nativeWorkflow, "android-production-build", "android-runtime");
+    const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
+
+    for (const source of [production, runtime]) {
+      expect(source).toContain('unzip -Z1 "$PRODUCTION_APK_PATH"');
+      expect(source).toContain("^assets/.*\\.(bundle|hbc)$");
+      expect(source).toContain('test -n "$bundle_entries"');
+      expect(source).toContain('unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry"');
+      for (const marker of [
+        "__SCENARIO_SHOP_NATIVE_AUTOMATION__",
+        "__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__",
+        "NativeTestControlService",
+      ]) {
+        expect(source).toContain(marker);
+      }
+    }
+    expect(runtime).not.toContain(
+      'unzip -l "$PRODUCTION_APK_PATH" | grep -Eq \'__SCENARIO_SHOP_NATIVE_AUTOMATION__',
+    );
+  });
+
   it("starts Android Runtime when either independent build succeeds and never builds there", () => {
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
 
@@ -338,6 +360,22 @@ describe("Native iOS CI workflow contracts", () => {
       "Install and launch Production-validation Simulator app",
       "Run iOS Production-validation Maestro flow",
     ]);
+  });
+
+  it("collects iOS simctl diagnose evidence for the selected device", () => {
+    const runtime = jobBlock(iosWorkflow, "ios-runtime", "ios-verify");
+    const evidenceStart = runtime.indexOf("- name: Collect iOS runtime evidence");
+    const evidence = runtime.slice(evidenceStart);
+
+    expect(evidenceStart).toBeGreaterThanOrEqual(0);
+    expect(evidence).toContain('--udid="$IOS_DEVICE"');
+    expect(evidence).toContain('--output="$DIAGNOSE_DIR"');
+    expect(evidence).toContain("--no-archive");
+    expect(evidence).toContain("diagnose_status=$?");
+    expect(evidence).toContain("simctl-diagnose-status.txt");
+    expect(evidence).toContain("simctl_diagnose_exit_code");
+    expect(evidence).toContain("simctl_diagnose_output_exists");
+    expect(evidence).toContain("if: always()");
   });
 
   it("runs all iOS automation flows before failing and keeps Production independent", () => {

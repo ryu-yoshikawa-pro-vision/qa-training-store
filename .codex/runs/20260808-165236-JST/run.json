@@ -50,14 +50,25 @@
         "docs/history/2026-08-09_014000_phase2-native-shell-runtime-repair.md",
         "docs/history/2026-08-09_034700_phase2-final-audit.md",
         "docs/history/2026-08-09_040400_phase2-format-verify-repair.md",
-        "docs/history/2026-08-09_pr14-native-ci-build-split.md",
+        "docs/history/2026-08-09_145500_pr14-native-ci-build-split.md",
         "docs/plans/2026-08-08_170005_phase2-native-purchase-automation.md",
+        "maestro/native-cart.yaml",
+        "maestro/native-contract-harness.yaml",
+        "maestro/native-low-stock.yaml",
+        "maestro/native-not-found.yaml",
+        "maestro/native-out-of-stock.yaml",
         "maestro/native-payment-retry.yaml",
         "maestro/native-production-validation.yaml",
+        "maestro/native-purchase-limit.yaml",
         "maestro/native-purchase.yaml",
+        "maestro/native-reset-dirty-state.yaml",
+        "maestro/native-restart-persistence.yaml",
         "maestro/native-review.yaml",
+        "maestro/native-search.yaml",
         "maestro/native-session-checkout-restart.yaml",
         "maestro/native-storefront.yaml",
+        "maestro/native-test-control.yaml",
+        "maestro/subflows/accept-ios-deep-link.yaml",
         "src/application/contracts/commerce.ts",
         "src/application/native/guest-storefront.ts",
         "src/application/use-cases/auth-use-cases.ts",
@@ -206,7 +217,12 @@
         "PR #14 final artifact gate => Run／Evaluation JSON parse、Run Artifact Prettier、Markdownlint 175 files／0 issues、git diff --check、Sanitizer 5 files／0 changed／0 residual PASS",
         "Repair Loop iteration 24 pnpm run verify => exit 0（Format、Markdownlint 174 files、Lint 0 errors／64 warnings、Typecheck、Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 45、Contract 165、Web export 2296 modules）",
         "PR #14 Remote read-only run 31291426709 => old head 778b6f69ee449fc284e838804d90e5891581591e、Phase 1 success、Android Build success、Android Runtime failure（Storefront category visibility／Review save target）、iOS Build cancelled、iOS Runtime skipped、final verify failure。現行未commit差分の検証結果ではない",
-        "Maestro-MCP follow-up => device 354955112942476／Viewer URL確認、inspect_screen PASS、native-review.yaml実行は0 commandsでtarget order item not visible。既存CLI Review failureと同じ端末条件のため追加再試行なし"
+        "Maestro-MCP follow-up => device 354955112942476／Viewer URL確認、inspect_screen PASS、native-review.yaml実行は0 commandsでtarget order item not visible。既存CLI Review failureと同じ端末条件のため追加再試行なし",
+        "PR #14 final Iteration 26 static => custom scheme openLink 16 flows／38箇所、conditional confirmation handler 38箇所、focused Workflow／Maestro Contract 2 files／48 tests PASS。Production markerはBuild／Download後ともunzip -Z1＋unzip -p＋bundle本文markerでfail-close、iOS diagnoseはIOS_DEVICE／output／no-archive／status evidenceを固定",
+        "PR #14 final Iteration 26 Contract => 初回pnpm run test:contractsは23 files／160 tests中159 PASSでnative-production-module-resolutionのcold timeout 1件。対象単独4/4 PASS後の要求コマンド再実行は23 files／160 tests PASS。REPORT既録のIteration 24の23 files／165 testsからIteration 25の23 files／156 testsへの9件減は、native-ci-workflow Contractを広範な重複検証からfocused suiteへ整理した差分であり、現在も23 files全体を実行している。Iteration 26で4件を追加し160 testsとなった",
+        "PR #14 final Iteration 26 Android regression => android-local.ps1 Doctor PASS、conditional handler追加後のTest Control 1/1、RuntimeSuite 5/5、BoundarySuite 5/5 PASS。新Buildは不要なため既存APKを再利用し、Reviewの物理日本語IME failureは再実行していない",
+        "PR #14 final Iteration 26 quality gates => lint:markdown 175 files／0 issues、format:check PASS、lint 0 errors／64 warnings、typecheck PASS、Native Component 12 suites／47、Repository 5 files／33、native-route 38 routes、EAS PASS、pnpm run verify exit 0（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 160／Web export 2296）",
+        "PR #14 final Iteration 26 artifact gate => old History path references 0、Run／Evaluation JSON parse、Run Artifact Prettier、Markdownlint 175 files／0 issues、git diff --check、Sanitizer Write／CheckのPASSを確認。iOS Simulator／Remote CIはWindows／未pushのため未実行"
         ],
         "warnings":  [
             "Windows hostではxcodebuild/xcrun/simctl/ghが未提供のためiOS SimulatorとRemote CIは未実行",
@@ -226,7 +242,9 @@
         "Iteration 24のローカルverifyはexit 0だが、WindowsのiOS実RuntimeとRemote最新HeadのNative CIは引き続き未実行",
         "PR #14 final Review Flow単体は対象tap／本文入力／保存tapまで進んだが、SHV48標準日本語IMEによるASCII本文変換後に保存完了assertionでFAIL。Reviewの2回目hideKeyboardは復元せず、同条件の無目的な再試行は停止",
         "Android Build wrapperは初回Metro生成中に124秒上限へ到達したが、Gradle log later showed BUILD SUCCESSFULとapk-info生成を確認。iOS／Remote Native CIはWindows toolchain／Git mutation禁止により未実行",
-        "PR #14現行差分のRemote Native CI再実行はgh未提供／Git mutation禁止で未実行。Maestro-MCP Review追跡は開始状態のfixture不足で0 commands、現行Reviewの実Runtime PASSへ繰り上げない"
+        "PR #14現行差分のRemote Native CI再実行はgh未提供／Git mutation禁止で未実行。Maestro-MCP Review追跡は開始状態のfixture不足で0 commands、現行Reviewの実Runtime PASSへ繰り上げない",
+        "Iteration 26初回pnpm run test:contractsはnative-production-module-resolutionのcold timeoutで159/160となったが、対象単独4/4と要求コマンド再実行160/160で解消",
+        "Iteration 26はWindows hostのxcodebuild／xcrun／simctl不在と未push条件のため、iOS実Runtime／Remote Native CI／Remote final verifyをPASS扱いしない"
         ]
     },
     "safety":  {

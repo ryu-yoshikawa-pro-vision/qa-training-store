@@ -7,10 +7,12 @@ appId: com.ryuyoshikawa.scenarioshop
     visible: "Native test runtime listening"
     timeout: 30000
 - openLink: "scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0"
+- runFlow: subflows/accept-ios-deep-link.yaml
 - extendedWaitUntil:
     visible: "Native test runtime ready"
     timeout: 30000
 - openLink: "scenario-shop://login"
+- runFlow: subflows/accept-ios-deep-link.yaml
 - extendedWaitUntil:
     visible:
       id: "native-login-screen"
@@ -22,6 +24,7 @@ appId: com.ryuyoshikawa.scenarioshop
       id: "native-header-account"
     timeout: 30000
 - openLink: "scenario-shop://cart"
+- runFlow: subflows/accept-ios-deep-link.yaml
 - extendedWaitUntil:
     visible:
       id: "native-persisted-state-ready"
@@ -44,6 +47,7 @@ appId: com.ryuyoshikawa.scenarioshop
 - assertVisible:
     id: "native-header-account"
 - openLink: "scenario-shop://checkout/address"
+- runFlow: subflows/accept-ios-deep-link.yaml
 - extendedWaitUntil:
     visible:
       id: "native-checkout-address-screen"

@@ -526,8 +526,15 @@ GitHub ActionsをPhase 2の正式Native CI Gateとします。
 Detect Native Changes
   ├─ Native Static
   ├─ Production Bundle Guard
-  ├─ Android Build / Emulator / Maestro
-  └─ iOS Build / Simulator / Maestro
+  ├─ Android Automation Build ────┐
+  ├─ Android Production Build ────┤
+  │                               └─ Android Runtime / Maestro
+  └─ Native iOS CI
+     ├─ iOS Automation Build ─────┐
+     ├─ iOS Production Build ─────┤
+     │                            └─ iOS Runtime / Maestro
+     │                                  ↓
+     └──────────────────────────── iOS Native CI Verify
                 ↓
          native-ci / verify
 ```

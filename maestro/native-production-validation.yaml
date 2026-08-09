@@ -7,6 +7,7 @@ appId: com.ryuyoshikawa.scenarioshop
 - assertNotVisible:
     id: "native-test-runtime-status"
 - openLink: "scenario-shop://admin/test-control"
+- runFlow: subflows/accept-ios-deep-link.yaml
 - extendedWaitUntil:
     visible: "Contract HarnessはAutomation専用です"
     timeout: 30000

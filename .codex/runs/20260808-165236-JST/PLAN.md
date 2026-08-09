@@ -282,6 +282,19 @@
 - `remaining_delta`: Windowsに`xcodebuild`／`xcrun`／`simctl`／`gh`がなく、iOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production-validation、修正HeadのGitHub-hosted Native CI／final `native-ci / verify`は未確認。
 - `decision`: `continue`。Artifact実装、Contract、ローカル品質ゲート、Android主要Runtimeは確認済みだが、Review端末依存Failure、iOS／Remote実Runtimeが残るため完了扱いにしない。Progress: 97% (33/34)。
 
+## Repair decision（PR #14最終修正指示 — iOS Runtime／残課題、Iteration 26）
+
+- `iteration_number`: 26。
+- `input_findings`: iOS Runtimeの全Flow失敗について、custom scheme初回確認ダイアログの未処理が共通原因として提示された。併せて、全`scenario-shop://` openLinkへの共通handler、Android Production APKのDownload後bundle本文marker検査、iOS `simctl diagnose`のUDID／output／status証跡、現行構成文書とHistory命名の整合を確認対象とした。
+- `classification`: `must_fix`。いずれも現在のWorkflow／Maestro Runtime到達性、Production fail-close、Contractによる再発防止、現行構成の正確な記録へ直接関係する。iOS実RuntimeとRemote CIはWindows／Git mutation禁止の外部環境残差として引き続き分離する。
+- `repair_plan`: `maestro/subflows/accept-ios-deep-link.yaml`を追加し、16 Flowの38個のcustom scheme openLink直後へ条件付きsubflow呼出しを挿入する。Maestro Contractで各FlowのopenLink数とhandler数の一致、各handlerの対応範囲、subflowのiOS／visible／tapOn／禁止事項を固定する。Android Production Build／Runtime双方のbundle列挙を`unzip -Z1`、本文読出しを`unzip -p`へ統一する。iOS evidenceは`IOS_DEVICE`を明示してdiagnoseし、exit code／output有無を記録する。README、Native README、ADR、Phase 2現行計画、PROJECT_CONTEXTのみ現行構成へ同期し、Historyは実記録時刻に基づき通常ファイル操作で命名を正す。
+- `allowed_files`: `.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、`maestro/*.yaml`、`maestro/subflows/accept-ios-deep-link.yaml`、`tests/contracts/native-test-control-maestro.test.ts`、`tests/contracts/native-ci-workflow.test.ts`、`README.md`、`docs/native/README.md`、`docs/PROJECT_CONTEXT.md`、`docs/adr/0010-native-ci-ios-build-runtime-gate.md`、`docs/plans/phase2-native-goal/00_master-roadmap.md`、`docs/plans/phase2-native-goal/02_phase2-second-half-purchase-automation.md`、History対象、同Run Artifact。
+- `changed_files`: 上記のWorkflow、Maestro、Contract、現行構成文書、History命名、`.codex/runs/20260808-165236-JST/PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`。Native Domain／Application／Repository、既存Android PASS Flowの操作列、Git履歴は変更しない。
+- `validation_commands`: 全custom scheme／handler件数scan、focused Maestro／Workflow Contract、全Contract、必須local quality gate一式、対象Prettier／Markdownlint／JSON parse／`git diff --check`／Sanitizer。iOS Build／Simulator／Maestro、修正HeadのRemote CIはWindows／未pushのためNOT RUNとして記録する。
+- `validation_result`: 実装前の現状はcustom scheme 38箇所、handler 0箇所、Runtime Production marker検査は`unzip -l`本文誤検査、iOS diagnoseはUDID／status未記録。修正後の結果をREPORTへ追記する。
+- `remaining_delta`: Windowsには`xcodebuild`／`xcrun`／`simctl`がなく、iOS実RuntimeとRemote CIは今回も実行できない。Android Reviewの物理日本語IME依存Failureは前Iterationから継続し、新しい証拠がない限り無目的な再試行をしない。
+- `decision`: `continue`。静的修正とローカル品質ゲートを実行し、iOS／Remoteの未確認境界をPASSへ繰り上げない。
+
 ## Repair decision（継続ゴール、Iteration 23）
 
 - `iteration_number`: 23。
