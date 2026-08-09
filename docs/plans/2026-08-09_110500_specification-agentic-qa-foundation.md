@@ -72,14 +72,14 @@ Start Gateが未達のまま実装へ進まない。
 - Product Scope、Role / Permission、State / Transition、UI / UX、主要Feature、BR、ACをCurrent Specとして明文化する。
 - `known-deviations.md`はActiveなImplementation差異だけを扱う。
 - `unresolved-specifications.md`は未確定事項だけを扱い、Oracleにしない。
-- Seed ID、Role / Status type、Route、Design Token、Build Config、Test ID等の低レベル値はExecutable Canonical Sourceを正本とし、Markdownへ無目的に複製しない。
+- Seed ID、Role / Status type、Route、Design Token、Build Config、Test ID等の低レベル値はExecutable Canonical Sourceを正本とする。
 - Generated HTML、Application、Existing Test、README、Guide、ADRをNormative Product Behavior SSOTとして扱わない。
 
 #### BR / AC / Feature Grammar
 
 - BRへ安定ID`BR-*`、ACへ安定ID`AC-*`を付与する。
 - Test Case ID、UI Test ID、BR、ACを別Namespaceとする。
-- BR / AC見出しGrammar、`Related BR:` Grammar、Required 5 Sectionの**exact heading grammar**を本Planどおり実装する。
+- BR / AC見出しGrammar、`Related BR:` Grammar、Required 5 Sectionのexact heading grammarを本Planどおり実装する。
 - Required 5 Sectionは各Feature Specに1回ずつ、定義順で存在する。
 - Active BRは1件以上のACから参照されるか、`Acceptance: N/A — <reason>`を持つ。
 - BR / AC ID uniqueness、AC → BR integrity、BR Acceptance coverageを機械検証する。
@@ -108,13 +108,22 @@ Start Gateが未達のまま実装へ進まない。
 
 - Code Review / Repairとは別のAgentic Exploratory QA Entry Point / Skill / Workflowを作る。
 - Spec-driven DiscoveryとGray-box Investigationを分離する。
-- 通常QA / Gray-boxは既存`readonly` presetをWrite Boundaryとして使う。
-- 通常QA / Gray-boxは前後Working Tree SnapshotでQAによる追加Source差分0を確認する。
+- Normal / Gray-boxは既存`readonly` presetをWrite Boundaryとして使う。
+- Normal / Gray-boxは前後Working Tree SnapshotでQAによる追加Source差分0を確認する。
 - Black-box Scored Runnerではrepo-root `readonly`をSource Isolationとして使わない。
 - **1 Finding = 1 distinct product deviation**を固定する。
 - WebはPlaywright MCP相当Capability、NativeはCapability Contractで扱い、Androidを標準対象とする。
 - Maestro Regression PASSだけでNative Agentic QA完了としない。
 - AI QAを初期Required CI Gateにしない。
+
+#### QA Artifact Modes
+
+- `qa-findings.json`は`mode`によるdiscriminated unionとし、Normal / Gray-box / Black-box ScoredのRequired Fieldを混在させない。
+- Normal / Gray-boxは`qa-charter.json.required_coverage`をCoverage SSOTとする。
+- Black-box Scoredは`challenge.json.required_coverage`をCoverage SSOTとする。
+- `qa-findings.coverage.required_ids` / `coverage.items`は各ModeのCoverage SSOTからderiveし、独自追加・削除・並べ替えを禁止する。
+- Normal / Gray-boxではBenchmark / Runner ProfileをScored比較情報として要求しない。
+- Black-box ScoredではChallenge ID / Benchmark Revision / Runtime Variant / Runner Profileを必須の比較情報として記録する。
 
 #### Challenge / Evaluation
 
@@ -122,25 +131,24 @@ Start Gateが未達のまま実装へ進まない。
 - Challenge Definition、Instructor Answer Key、Challenge Patch、Tool Profileの保存Pathを本Planどおり固定する。
 - 各Machine JSONは`schema_version: 1`を必須とする。
 - `spec_refs[]`は本Planの許可Grammar以外を受け付けない。
-- `challenge.required_coverage`をRequired Coverageの唯一の正本とし、`qa-findings.json`側から独自に追加・削除・並べ替えできない。
 - Challenge / Answer Key / Finding間のID uniquenessとCross-file integrityをZod / Validatorで機械検証する。
-- Learner-safe Specification Bundleは`challenge.spec_refs[]`から決定的に生成し、実装者が任意の追加Specを混ぜない。
+- Learner-safe Specification Bundleは`challenge.spec_refs[]`から決定的に生成し、任意の追加Specを混ぜない。
 - Defect注入はInstructor-only Unified Diff Patchへ限定し、Disposable Source Copyへだけ適用する。
+- Pre-patch / Post-patch Sanityはそれぞれ**対応するBuild済みRuntime上**で実施する。
 - Scored RunnerはFresh Session + isolated execution root + explicit Tool Allowlistで実行する。
 - Source Repository、`.git`、Existing Test、Patch Source、Answer Key、Artifact bytes、Search、Generic Shell等をRunnerへExposeしない。
 - Scored開始前にForbidden Capability Probeを通す。
 - Challenge Definition側でExploration Budget / Stop Conditionを固定する。
-- Benchmark RevisionとRunner Execution ProfileをRun Artifactへ記録する。
 - 未Commit Benchmark Revisionは本PlanのCanonical Manifest + SHA-256 Algorithmで決定的に生成する。
-- `qa-findings.json` / `evaluation.json`をVersioned Contractとして保存する。
-- Instructor-defined Required Coverage SetをRunnerが縮小できない。
+- Benchmark比較Identityを`challenge_id + benchmark_revision + runtime_variant_id`で固定する。
+- 同条件Runner比較はBenchmark Identityに`runner_profile`を加えた完全一致で判定する。
 - Non-defectはTN / FP_non_defect / NEを区別し、Item-specific observation Evidenceを要求する。
-- `FP_non_defect`は**Precision用FPのsubset**とし、同じ1 FindingがPrecisionでは`fp`、FPRでは`fp_non_defect`へ寄与する。
+- `FP_non_defect`はPrecision用FPのsubsetとする。
 - `invalid_non_atomic`をTPへ分解せず、Product Defectとして提出された1 FindingにつきPrecisionへ1 FP penaltyを課す。
 - `evaluation.json.matches[]`からFinding / Answer Item / Coverage / Classification / Adjudicationを追跡できる。
+- Scoring invalidation reasonは`invalid_reasons[]`だけをMachine Contractとし、単数`invalid_reason`を使用しない。
 - Environment / Harness要因でRequired Coverageが`blocked_environment`なら`valid_for_scoring=false`とする。
 - Unexpected Valid Findingが真の未登録Defectなら元Runを後付け再採点せず、新Benchmark RevisionでFresh Re-runする。
-- Pre-patch Baseline Sanity / Post-patch SanityでChallenge Ground Truthを確認する。
 
 #### Final
 
@@ -194,7 +202,8 @@ Current `codex-safe`の`readonly` presetはSource Write防止には使えるが�
 
 - Normal / Gray-box: Existing `readonly` = Write Boundary
 - Black-box Scored: isolated root + Tool Allowlist = Read / Information Boundary
-- Benchmark Revision = 評価母集団
+- Benchmark Revision = 評価母集団Revision
+- Benchmark Identity = Challenge + Revision + Runtime Variant
 - Runner Execution Profile = 実行条件
 
 ### 2.4 Current Problem
@@ -222,9 +231,10 @@ Test / Review / QAでOracleが揺れる
 - AI QAはRequired CI Gateにしない。
 - AI QA Findingは探索中に自動修正しない。
 - Challenge評価は未知不具合探索能力の評価であり、Code Inspection能力をBlack-box Scoreへ混ぜない。
-- 同条件Score比較は原則`same benchmark_revision + same runner_profile`とする。
-- Model差等を意図的に比較する場合はProfile差分を明示する。
 - Challenge Defect注入はSource Patchに限定し、初期版では任意Instructor setup scriptを導入しない。
+- 同一Benchmark条件は`same challenge_id + same benchmark_revision + same runtime_variant_id`とする。
+- 同条件Runner比較は上記に`same runner_profile`を追加する。
+- Model差等を意図的に比較する場合はRunner Profile差分を明示する。
 
 ---
 
@@ -247,8 +257,7 @@ Test / Review / QAでOracleが揺れる
 - 重み付き総合スコア / Ranking System。
 - Fingerprint DB / Version DB。
 - YAML parser等、Challenge Machine Contractのためだけの新規dependency。
-- Challengeごとの任意Instructor setup script。
-- Learner-safe Spec Bundleへ`spec_refs[]`外の文書を暗黙追加すること。
+- Challengeごとの任意Instructor setup script / DB mutation system。
 - Runner Execution Profileへ取得不能な温度、乱数Seed等を推測して記録すること。
 
 ---
@@ -262,11 +271,11 @@ Test / Review / QAでOracleが揺れる
 5. Specification Validation / CI
 6. AI Agent Operating Agreement
 7. Agentic Exploratory QA Workflow
-8. Finding / Evidence / Coverage Artifact
-9. Challenge / Answer Key / Challenge Patch / Evaluation
-10. Test Automation Curriculum
-11. Existing README / Guide / PROJECT_CONTEXT責務整理
-12. Scored Runner Isolation / Benchmark / Runner Profile
+8. Charter / Finding / Evidence / Coverage Artifact
+9. Challenge / Answer Key / Evaluation
+10. Scored Runner Isolation / Benchmark / Runner Profile
+11. Test Automation Curriculum
+12. Existing README / Guide / PROJECT_CONTEXT責務整理
 
 ---
 
@@ -308,7 +317,7 @@ Test / Review / QAでOracleが揺れる
 - `.codex/config.toml`
 - `scripts/codex-safe.*`
 - `scripts/codex-task.*`
-- Existing run / evaluation schema
+- Existing Run / Evaluation schema
 - Browser / Native MCP / Tool routing config
 
 ### 6.4 CI / Build / Curriculum
@@ -323,7 +332,7 @@ Test / Review / QAでOracleが揺れる
 
 ---
 
-## 7. Change strategy
+## 7. Change strategy / Fixed Contracts
 
 ### 7.1 Blocker Policy
 
@@ -347,7 +356,7 @@ Test / Review / QAでOracleが揺れる
 
 #### Global blocker
 
-Whole-runを止めるのは以下のようなGoal / Safety / Core Contract全体へ影響する場合だけとする。
+Whole-runを止めるのはGoal / Safety / Core Contract全体へ影響する場合だけとする。
 
 - Implementation Start Gate未達のまま実装開始が必要。
 - Normative SSOT責務自体を変更しないと成立しない。
@@ -417,7 +426,7 @@ Expected判断は以下で固定する。
 
 1. Current Normative Product Behavior
 2. 同Spec内BR / AC
-3. Active Known Deviationによる「Implementation差異情報」
+3. Active Known DeviationによるImplementation差異情報
 4. ADRによるDecision History
 5. Application / Seed / Test / README / GuideはEvidence / Implementation Reference
 
@@ -486,9 +495,7 @@ Generatorは`## Navigation`直下のMarkdown Link ListだけをNavigation Source
 ## Executable Canonical Sources
 ```
 
-ValidatorはAliasを認めない。例えば`## Scope`、`## Business Rule`、`## Canonical Sources`はRequired Sectionとして扱わない。
-
-Conditional Sectionは必要な場合だけ追加する。空のConditional Sectionを作らない。
+ValidatorはAliasを認めない。Conditional Sectionは必要な場合だけ追加し、空Sectionを作らない。
 
 #### BR
 
@@ -504,7 +511,7 @@ Grammar:
 ^### BR-[A-Z0-9]+-[0-9]{3} — .+$
 ```
 
-Current Normative Specificationに存在するBR見出しはActive BRとする。廃止BRをStatus付きで残さずGit Historyで追う。
+Current Normative Specificationに存在するBR見出しはActive BRとする。廃止BRはGit Historyで追う。
 
 #### AC
 
@@ -570,7 +577,7 @@ Agentic QA候補:
 - 高Risk Regression修正
 - Release前探索
 
-Behavior不変Docs、Internal-only Refactor、既存Testで十分な低Risk変更では省略可能。省略をPASS扱いせず、必要なら理由を短く残す。
+Behavior不変Docs、Internal-only Refactor、既存Testで十分な低Risk変更では省略可能。省略をPASS扱いしない。
 
 #### Existing Spec violation
 
@@ -625,12 +632,18 @@ unresolved-specifications.mdから削除
 
 #### Modes
 
-**Spec-driven Discovery**で参照可:
+`qa-findings.json.mode`は以下3値だけを許可する。
+
+```text
+normal | gray-box | black-box-scored
+```
+
+**Normal / Spec-driven Discovery**で参照可:
 
 - 対象Normative Spec
 - Active Known Deviation
 - 関連Unresolved Specification
-- Runbook / Charter
+- `qa-charter.json` / `qa-charter.md`
 - App Runtime
 - Seed / Test Control利用方法
 - Runtime Evidence
@@ -638,6 +651,8 @@ unresolved-specifications.mdから削除
 Finding候補を作る前にSource / Existing Regressionから答えを探さない。
 
 **Gray-box Investigation**では、Normative Spec + UI EvidenceでFinding候補を再現した後だけ原因調査目的でSource / Existing Testを参照してよい。CodeをExpected根拠にしない。
+
+**Black-box Scored**は7.9以降のChallenge / Isolation Contractに従う。
 
 #### Normal / Gray-box Write Boundary
 
@@ -667,7 +682,45 @@ QA開始直前 / 終了直後に同形式のWorking Tree Snapshotを取り、QA�
 
 `invalid_non_atomic`はTPへ分解しない。Product Defectとして提出された場合はPrecisionで1 Finding = 1 FP penaltyとする。内部に本物Defectが含まれていても別Atomic FindingがなければそのDefect ItemはFNのまま。
 
-### 7.8 Black-box Scored Isolation
+### 7.8 Normal / Gray-box Charter Contract
+
+Normal / Gray-boxのMachine-readable入力は`.codex/runs/<run_id>/qa-charter.json`とする。`qa-charter.md`はHuman-readable summaryとして併存可能だがMachine Contractの正本にしない。
+
+最低Contract:
+
+```json
+{
+  "schema_version": 1,
+  "charter_id": "CHARTER-001",
+  "spec_refs": ["BR-CART-001"],
+  "mission": "<neutral exploration mission>",
+  "risk": "<risk focus>",
+  "role": "customer",
+  "seed": "<seed id>",
+  "platform": "web",
+  "viewport_or_device": "desktop",
+  "required_coverage": [
+    {
+      "coverage_id": "COV-001",
+      "mission": "<neutral coverage mission>",
+      "required_evidence_types": ["screenshot"]
+    }
+  ],
+  "allowed_runtime_controls": ["seed_reset"],
+  "stop_condition": "required_coverage_and_candidates_resolved"
+}
+```
+
+Rules:
+
+- Normal / Gray-box Required Coverageの唯一の正本は`qa-charter.required_coverage`。
+- `coverage_id` grammarはChallengeと共通で`^COV-[0-9]{3}$`。
+- `coverage_id`はCharter内で一意。
+- `spec_refs[]`は7.11のNormative Spec Reference Grammarを使う。
+- CharterはExpectedのOracleを置き換えない。ExpectedはNormative Specから判断する。
+- `qa-charter.md`を作る場合はJSONから内容を逸脱させない。
+
+### 7.9 Black-box Scored Isolation
 
 #### Isolated Root
 
@@ -740,9 +793,9 @@ Scored Run開始前にRunner同等Scopeで最低以下をProbeする。
 - Web: JS Bundle / Source Map / Network Response Body inaccessible
 - Native: APK / IPA / arbitrary ADB shell inaccessible
 
-1つでも成立したらScored開始せず練習Runへ降格する。
+1つでも成立したらOfficial Scored Runを開始しない。Diagnostic / Training Runへ降格する。
 
-### 7.9 Machine Contract Storage: JSON + Zod
+### 7.10 Machine Contract Storage: JSON + Zod
 
 初期版のMachine Contract保存形式を**JSON + Zod**へ固定する。YAML / Markdown Front Matter /独自Databaseを併用しない。
 
@@ -789,7 +842,7 @@ scripts/agentic-qa/
 - `instructor/answer-key/*.json`: Instructor-only Machine Contract。
 - `instructor/challenge-patches/*.patch`: Instructor-only Unified Diff。Runnerへ渡さない。
 - `tool-profiles/scored-v1.json`: Scored Allowlist / capability profileのMachine Contract。
-- `scripts/agentic-qa/contracts.ts`: Challenge / Answer Key / Tool Profile / Findings / EvaluationのZod Schemaを正本とする。
+- `scripts/agentic-qa/contracts.ts`: Charter / Challenge / Answer Key / Tool Profile / Findings / EvaluationのZod Schemaを正本とする。
 
 各Machine JSONは必ず以下を持つ。
 
@@ -801,9 +854,9 @@ scripts/agentic-qa/
 
 JSONがZod validationを通らない場合は実行前Failureとする。
 
-### 7.10 `spec_refs[]` Exact Grammar
+### 7.11 `spec_refs[]` Exact Grammar
 
-`challenge.json` / Answer Keyが参照するSpec Referenceは**string array**とし、以下3形式だけを許可する。
+`qa-charter.json` / `challenge.json` / Answer Keyが参照するNormative Spec Referenceは**string array**とし、以下3形式だけを許可する。
 
 ```text
 BR-CART-001
@@ -841,7 +894,7 @@ Spec drift summaryはBase差分から以下を列挙する。
 
 内容変更だけで自動Failureにはせず、Reviewerが「Challenge更新済み」または「意味変更なし」を確認する。
 
-### 7.11 Learner-safe Challenge Definition
+### 7.12 Learner-safe Challenge Definition
 
 `challenge.json`の最低Contract:
 
@@ -912,7 +965,7 @@ Coverage Missionは中立表現にする。
 
 #### Required Coverage SSOT
 
-**Required Coverageの唯一の正本は`challenge.required_coverage`である。**
+**Black-box ScoredのRequired Coverage唯一の正本は`challenge.required_coverage`である。**
 
 Derived value:
 
@@ -924,9 +977,9 @@ expected_required_ids
 Rules:
 
 - `coverage_id`はChallenge内で一意。
-- `qa-findings.json.coverage.required_ids`は`expected_required_ids`と**同一順序で完全一致**する。
+- `qa-findings.json.coverage.required_ids`は`expected_required_ids`と同一順序で完全一致する。
 - Runnerが`required_ids`を追加・削除・並べ替えしない。
-- `qa-findings.json.coverage.items`はRequired Coverageだけを持ち、各`coverage_id`について**ちょうど1件**のResultを持つ。
+- `qa-findings.json.coverage.items`はRequired Coverageだけを持ち、各`coverage_id`についてちょうど1件のResultを持つ。
 - `coverage.items`のID集合 / 順序も`expected_required_ids`と完全一致する。
 - Additional explorationはFinding / Evidenceへ残してよいが、Required Coverage配列へ追加しない。
 
@@ -936,9 +989,9 @@ Rules:
 ^COV-[0-9]{3}$
 ```
 
-### 7.12 Learner-safe Specification Bundle
+### 7.13 Learner-safe Specification Bundle
 
-Black-box Scored Runnerへ渡す`learner-spec/`は`challenge.spec_refs[]`から**決定的に生成**する。
+Black-box Scored Runnerへ渡す`learner-spec/`は`challenge.spec_refs[]`から決定的に生成する。
 
 #### Resolve rule
 
@@ -955,44 +1008,21 @@ Black-box Scored Runnerへ渡す`learner-spec/`は`challenge.spec_refs[]`から*
 3. POSIX repo-relative path昇順へsortする。
 4. **File全体**を`<isolated-run-root>/learner-spec/<repo-relative-path>`へcopyする。
 
-例:
-
-```json
-{
-  "spec_refs": [
-    "BR-CART-001",
-    "AC-CART-002",
-    "docs/spec/ui-ux-contract.md#responsive-behavior"
-  ]
-}
-```
-
-Resolved bundle:
-
-```text
-learner-spec/
-└ docs/spec/
-   ├ features/cart.md
-   └ ui-ux-contract.md
-```
-
 Rules:
 
-- Section単位の切り出しはしない。Owner Markdown File全体をcopyする。
+- Section単位の切り出しはしない。
 - `spec_refs[]`が解決しない場合はBundle生成Failure。
 - Supporting Fileを自動追加しない。
 - 他のNormative Fileも自動追加しない。
 - Challengeで追加Normative情報が必要なら`spec_refs[]`へ明示的にReferenceを追加する。
 - Bundle生成結果のPath一覧と各File SHA-256をPreparation Evidenceへ残す。
-- Answer Key Itemの`oracle_refs[]`は、Current Normative Specに存在し、かつそのReferenceが解決するOwner FileがLearner-safe Bundle内に含まれていなければならない。
+- Answer Key Itemの`oracle_refs[]`はCurrent Normative Specに存在し、そのOwner FileがLearner-safe Bundle内に含まれていなければならない。
 
-これによりEvaluatorだけが知るHidden Oracleを作らない。
+Evaluatorだけが知るHidden Oracleを作らない。
 
-### 7.13 Tool Profile / Runner Execution Profile
+### 7.14 Tool Profile / Runner Execution Profile
 
 #### `scored-v1.json`
-
-Tool ProfileはScored RunnerへExposeするLogical CapabilityのPositive Listを持つ。
 
 最低Contract:
 
@@ -1012,13 +1042,13 @@ Tool ProfileはScored RunnerへExposeするLogical CapabilityのPositive Listを
 }
 ```
 
-Forbidden Capabilityは7.8のContractとして実装し、Allowedに存在しないCapabilityをRunnerへExposeしない。
+Forbidden Capabilityは7.9のContractとして実装し、Allowedに存在しないCapabilityをRunnerへExposeしない。
 
 #### Runner Execution Profile
 
-Benchmark Revisionは「何を評価したか」、Runner Profileは「どの条件で評価したか」を表す。
+Benchmark Revisionは「評価母集団のRevision」、Runner Profileは「どの条件で評価したか」を表す。
 
-Runへ最低以下を保存する。
+最低構造:
 
 ```json
 {
@@ -1032,14 +1062,13 @@ Runへ最低以下を保存する。
 
 Rules:
 
-- `model`は実行基盤から取得できる実Identifierを保存する。取得不能ならScored comparison用Runを正式化せず、Wave 0でBlockerとして扱う。
+- `model`は実行基盤から取得できる実Identifierを保存する。取得不能ならScored comparison用Runを正式化せずBlockerとして扱う。
 - `tool_profile_revision`はPreparation Processが実際に使用した`scored-v1.json`のUTF-8 raw file bytesへSHA-256を適用し、`sha256:<lowercase hex>`として保存する。
 - Budget値はChallenge Definitionからコピーする。
 - 固定不能Budget値は`null`で保存し、omitしない。
-- `qa-findings.json`と`evaluation.json`のRunner Profileは完全一致させる。
-- 同じBenchmarkでもRunner Profileが異なるRunを同一条件として比較しない。
+- Black-box Scoredの`qa-findings.json`と`evaluation.json`のRunner Profileは完全一致させる。
 
-### 7.14 Challenge Patch Contract
+### 7.15 Challenge Patch Contract / Runtime Sanity Order
 
 Challenge Defect注入はInstructor-onlyの**Unified Diff Patch**へ限定する。
 
@@ -1049,29 +1078,27 @@ Fixed path:
 training/agentic-qa/instructor/challenge-patches/<challenge_id>.patch
 ```
 
-例:
-
-```text
-training/agentic-qa/instructor/challenge-patches/CHALLENGE-BASIC-001.patch
-```
-
 Rules:
 
-- Answer Keyに`kind = defect` Itemが1件以上あるChallengeは、初期版では対応するPatch Fileを必須とする。
+- Answer Keyに`kind = defect` Itemが1件以上あるChallengeは対応Patch Fileを必須とする。
 - Non-defectのみのChallengeではPatch Fileを省略できる。
 - 1 ChallengeにつきPatch Fileは最大1件。
 - Patchは標準Unified Diffとし、任意Shell / JS / TS / PowerShell setup scriptをChallenge注入目的で実行しない。
-- Seed / initial stateは既存Seed / Test Controlで作る。Challenge固有の任意DB mutation scriptを追加しない。
+- Seed / initial stateは既存Seed / Test Controlで作る。
 - PatchはInstructor-onlyで、Learner-safe Bundle / isolated Runner Rootへcopyしない。
 
-#### Application flow
+#### Fixed preparation order
 
-Preparation Processは**Disposable Source Copy**だけで以下を行う。
+Pre/Post-patch SanityはRuntime Behaviorを確認するため、**それぞれ対応するBuild / Serve / Install後**に行う。
 
 ```text
-Clean benchmark source copy
+Disposable clean benchmark source copy
+  ↓
+Baseline Build / Serve / Install
   ↓
 Instructor-only Pre-patch Baseline Sanity
+  ↓
+Baseline Runtime teardown / cleanup
   ↓
 git statusで意図しないSource差分0確認
   ↓
@@ -1079,23 +1106,31 @@ git apply --check <challenge.patch>
   ↓
 git apply <challenge.patch>
   ↓
+Patched Build / Serve / Install
+  ↓
 Instructor-only Post-patch Sanity
   ↓
-Build / Serve / Install
+Seed / Test ControlでScored Initial StateへReset
   ↓
-Scored Runtime提供
+Scored RuntimeをRunnerへ提供
 ```
+
+PatchなしNon-defect-only ChallengeではPatch apply段階をskipし、Baseline Build済みRuntimeをSanity後にResetしてScored Runtimeとして利用してよい。
+
+Rules:
 
 - `git apply --check` failureはChallenge Preparation Failure。
 - Patch適用後に意図しない追加Source編集をしない。
 - Scored Run後はDisposable Copyを破棄する。
 - Challenge PatchをImplementation BranchのApplication Sourceへ適用した状態でCommitしない。
-- Baseline Sanityで対象Defectが既に存在する場合、Patchを適用して採点へ進まない。
+- Pre-patch Sanityで対象Defectが既に存在する場合、Patchを適用して採点へ進まない。
 - Post-patch SanityでAnswer KeyのMinimum Reproduction Conditionを満たさない場合、Scored Runを開始しない。
+- Pre/Post-patchで全Regressionを二重実行しない。Challenge-specific Ground Truth Sanityだけを行う。
+- Post-patch Sanityで使ったBuild済みRuntimeをResetしてScored Runへ再利用できる場合、Scored開始前の追加Buildを行わない。
 
-### 7.15 Benchmark Revision
+### 7.16 Benchmark Revision / Benchmark Identity
 
-Benchmark Revisionは以下の評価母集団を一意に識別する。
+Benchmark Revisionは以下の評価母集団InputのRevisionを識別する。
 
 - Runtimeを生成したSource状態
 - Learner-safe Normative Spec Bundle
@@ -1104,13 +1139,43 @@ Benchmark Revisionは以下の評価母集団を一意に識別する。
 - Challenge Patch（存在する場合）
 - Runtime Variant（存在する場合）
 
+#### Benchmark Identity
+
+**比較対象Benchmarkを一意に表すIdentityは次のTupleとする。**
+
+```text
+benchmark_identity =
+  challenge_id
+  + benchmark_revision
+  + runtime_variant_id
+```
+
+`runtime_variant_id`が存在しない場合も`null`を明示し、omitしない。
+
+同一Benchmark条件:
+
+```text
+same challenge_id
++ same benchmark_revision
++ same runtime_variant_id
+```
+
+同条件Runner比較:
+
+```text
+same benchmark_identity
++ same runner_profile
+```
+
+Challengeが異なるRunを、Revision SHAが同じという理由だけで同じBenchmarkとして比較しない。
+
 #### Clean committed benchmark
 
-以下をすべて満たす場合のみ、Git Commit SHAをそのまま利用してよい。
+以下をすべて満たす場合のみGit Commit SHAをRevisionとして利用してよい。
 
 - Source Working Treeがclean。
 - Challenge / Answer Key / Patch / Normative Specが同一Commitに存在する。
-- Runtime Variantが追加で存在しない、またはVariant IDを別Fieldで固定できる。
+- Runtime Variantは`runtime_variant_id`で固定される。
 
 形式:
 
@@ -1120,7 +1185,7 @@ git:<40-char-lowercase-sha>
 
 #### Uncommitted / mixed benchmark
 
-未Commit validation、Working Tree変更、Commit外Benchmark Inputを含む場合は、以下のCanonical Manifestを生成してSHA-256する。
+未Commit validation、Working Tree変更、Commit外Benchmark Inputを含む場合はCanonical Manifestを生成してSHA-256する。
 
 Canonical Manifest logical shape:
 
@@ -1161,23 +1226,28 @@ Canonical Manifest logical shape:
 
 #### Working tree entry generation
 
-`working_tree_entries`はBenchmarkを生成するRepository Working Treeについて、HEADとの差異を決定的に表す。
+`status` enumは次の3値だけに固定する。
 
-対象:
+```text
+A | M | D
+```
 
-- Modified tracked file
-- Added tracked / untracked non-ignored file
-- Deleted tracked file
-- Renamed fileはGitのstatusを正規化し、旧Path削除 + 新Path追加として表現してよい。実装時に一方式へ固定する。
+Normalization:
+
+- tracked/untracked non-ignored addition → `A`
+- modified tracked file → `M`
+- deleted tracked file → `D`
+- rename → **old pathを`D` + new pathを`A`**として必ず2 Entryへ正規化
+- copy detectionを使う場合もnew pathは`A`として扱い、元Pathはそのまま残す
 
 Rules:
 
 - Pathはrepo-root relative POSIX path。
 - Entryは`path`昇順。
-- Existing fileの`sha256`は**raw file bytes**へSHA-256を適用したlowercase hex。
+- Existing fileの`sha256`はraw file bytesへSHA-256を適用したlowercase hex。
 - Deleted fileは`sha256: null`。
 - `.git/**`、`node_modules/**`、`output/**`、`.artifacts/**`、`.codex/runs/**`等、Git ignore / Generated / Runtime Artifactは対象外。
-- Git ignored fileをBenchmark入力として依存させない。必要InputはSource-controlledまたは明示Benchmark Inputへ移す。
+- Git ignored fileをBenchmark入力として依存させない。
 
 #### Canonical serialization
 
@@ -1194,9 +1264,7 @@ benchmark_revision = sha256:<lowercase hex>
 
 Manifest自体はRun Evidenceとして保存してよいが、外部Version DBは作らない。
 
-同一`challenge_id`でもBenchmark Revisionが違えば別母集団とする。
-
-### 7.16 Instructor Answer Key
+### 7.17 Instructor Answer Key
 
 Answer Key JSON最低Contract:
 
@@ -1236,22 +1304,22 @@ Oracle ReferenceはBR / ACを優先し、必要時のみNormative file / section
 
 #### Cross-file integrity
 
-ValidatorはChallenge / Answer Key / Patch / Findingsについて最低限以下を検証する。
+Validatorは最低限以下を検証する。
 
 - Challenge Directory名 === `challenge.challenge_id`。
 - Answer Key filename stem === `challenge.challenge_id`。
 - `answer_key.challenge_id === challenge.challenge_id`。
 - `challenge.required_coverage[].coverage_id`は一意。
 - `answer_key.items[].item_id`は一意。
-- `answer_key.items[].related_coverage_id`は`challenge.required_coverage[].coverage_id`のいずれかに存在する。
-- `answer_key.items[].oracle_refs[]`は7.10 Grammarに適合しCurrent Normative Specに存在する。
-- 各Answer ItemのOracle Owner Fileは7.12のLearner-safe Bundleに含まれる。
-- Defect Itemが1件以上なら7.14のChallenge Patchが存在する。
+- `answer_key.items[].related_coverage_id`はChallenge Required Coverageに存在する。
+- `answer_key.items[].oracle_refs[]`は7.11 Grammarに適合しCurrent Normative Specに存在する。
+- 各Answer ItemのOracle Owner FileはLearner-safe Bundleに含まれる。
+- Defect Itemが1件以上ならChallenge Patchが存在する。
 - Non-defectのみならPatch不存在を許可する。
-- `qa-findings.json.findings[].finding_id`はRun内で一意。
-- `qa-findings.coverage.required_ids` / `coverage.items[].coverage_id`は7.11のDerived Required IDsと完全一致する。
+- `qa-findings.findings[].finding_id`はRun内で一意。
+- `qa-findings.coverage.required_ids` / `coverage.items[].coverage_id`はModeごとのDerived Required IDsと完全一致する。
 
-### 7.17 QA Run Artifact Contract
+### 7.18 QA Run Artifact Contract
 
 #### Layout
 
@@ -1261,35 +1329,27 @@ ValidatorはChallenge / Answer Key / Patch / Findingsについて最低限以下
 ├ TASKS.md
 ├ REPORT.md
 ├ run.json
-├ qa-charter.md
-├ benchmark-manifest.json   # sha256 benchmark時。git:<sha>のみなら任意
+├ qa-charter.json          # normal / gray-box
+├ qa-charter.md            # optional human summary
+├ benchmark-manifest.json  # black-box-scored + sha256 revision時
 ├ qa-findings.json
-└ evaluation.json           # Challenge評価時のみ
+└ evaluation.json          # black-box-scoredのみ
 ```
 
 Raw Screenshot / Trace / MCP Log / ADB Log等は`.artifacts/**`へ分離し、Run Artifactへ相対Referenceと要約だけを残す。
 
 Scored RunnerがArtifactを書けない場合はRunner終了後にOrchestratorがFrozen Structured Resultを保存する。Finding生成中のOrchestratorはAnswer Keyを参照しない。
 
-#### `qa-findings.json`
+#### `qa-findings.json` Common Base
 
-最低構造:
+全Mode共通:
 
 ```json
 {
   "schema_version": 1,
   "run_id": "<run_id>",
-  "charter_id": "<charter_id>",
-  "benchmark_revision": "<revision>",
+  "mode": "normal",
   "source_head_sha": null,
-  "runtime_variant_id": null,
-  "runner_profile": {
-    "model": "<model>",
-    "tool_profile_revision": "sha256:<hex>",
-    "max_duration_seconds": 900,
-    "max_tool_actions": 150,
-    "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
-  },
   "coverage": {
     "required_ids": ["COV-001"],
     "items": [
@@ -1302,27 +1362,7 @@ Scored RunnerがArtifactを書けない場合はRunner終了後にOrchestrator�
       }
     ]
   },
-  "findings": [
-    {
-      "finding_id": "FIND-001",
-      "title": "...",
-      "severity": "high",
-      "confidence": "high",
-      "oracle_refs": ["BR-CART-001"],
-      "platform": "web",
-      "role": "customer",
-      "seed_scenario": "default",
-      "steps": ["..."],
-      "expected": "...",
-      "actual": "...",
-      "evidence": [{"type": "screenshot", "ref": ".artifacts/..."}],
-      "reproduction_count": 2,
-      "known_deviation_ref": null,
-      "duplicate_of": null,
-      "suggested_regression_layer": "web-e2e",
-      "status": "validated"
-    }
-  ]
+  "findings": []
 }
 ```
 
@@ -1336,22 +1376,93 @@ completed | not_completed | blocked_environment
 - `not_completed`: Runnerが未実施 / 断念 / 必要条件不足。
 - `blocked_environment`: Runtime / Emulator / MCP / Test Control等のEnvironment / Harness要因で実施不能。
 
-Required Coverageは7.11のSSOT / Derived Ruleに従う。
+Finding共通Field:
 
-### 7.18 Runner / Evaluator Separation
+- `finding_id`
+- `title`
+- `severity`
+- `confidence`
+- `oracle_refs[]`
+- `platform`
+- `role`
+- `seed_scenario`
+- `steps[]`
+- `expected`
+- `actual`
+- `evidence[]`
+- `reproduction_count`
+- `known_deviation_ref`
+- `duplicate_of`
+- `suggested_regression_layer`
+- `status`
+
+#### Mode-specific discriminated union
+
+##### `mode = normal | gray-box`
+
+Required:
+
+```json
+{
+  "charter_id": "CHARTER-001",
+  "challenge_id": null,
+  "benchmark_revision": null,
+  "runtime_variant_id": null,
+  "runner_profile": null
+}
+```
+
+Rules:
+
+- `charter_id`は`qa-charter.json.charter_id`と一致。
+- Coverage SSOTは`qa-charter.json.required_coverage`。
+- `qa-findings.coverage.required_ids/items`はCharterからderiveする。
+- Normal / Gray-box ResultをBlack-box Scoreへ混ぜない。
+
+##### `mode = black-box-scored`
+
+Required:
+
+```json
+{
+  "charter_id": null,
+  "challenge_id": "CHALLENGE-BASIC-001",
+  "benchmark_revision": "git:<sha-or-sha256>",
+  "runtime_variant_id": null,
+  "runner_profile": {
+    "model": "<model>",
+    "tool_profile_revision": "sha256:<hex>",
+    "max_duration_seconds": 900,
+    "max_tool_actions": 150,
+    "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
+  }
+}
+```
+
+Rules:
+
+- `challenge_id`は実行した`challenge.json.challenge_id`と一致。
+- Coverage SSOTは`challenge.required_coverage`。
+- `qa-findings.coverage.required_ids/items`はChallengeからderiveする。
+- `benchmark_revision` / `runtime_variant_id` / `runner_profile`はEvaluatorまでFreezeする。
+
+### 7.19 Runner / Evaluator Separation
 
 ```text
 Preparation Process
   ├─ Machine Contract validation
   ├─ Required Coverage derive / integrity check
   ├─ Learner-safe Spec Bundle生成
-  ├─ Benchmark Revision確定
+  ├─ Benchmark Revision / Identity確定
   ├─ Runner Profile確定
   ├─ Disposable Source Copy作成
-  ├─ Baseline sanity
+  ├─ Baseline Build / Serve / Install
+  ├─ Pre-patch Baseline Sanity
+  ├─ Baseline Runtime cleanup
   ├─ Challenge Patch apply-check / apply
-  ├─ Post-patch sanity
-  ├─ Build / Serve / Install
+  ├─ Patched Build / Serve / Install
+  ├─ Post-patch Sanity
+  ├─ Scored Initial State Reset
   ├─ isolated execution root作成
   ├─ learner-safe input配置
   └─ Tool Allowlist / Forbidden Probe
@@ -1365,7 +1476,7 @@ Run終了
             ↓
 Separate Evaluator
   ├─ Answer Keyを初めてRead
-  ├─ Benchmark / Runner Profile / Isolation確認
+  ├─ Benchmark Identity / Runner Profile / Isolation確認
   ├─ Coverage blocker確認
   ├─ Finding ↔ Answer Item Matching
   ├─ Item-specific Evidence確認
@@ -1373,11 +1484,13 @@ Separate Evaluator
   └─ evaluation.json生成
 ```
 
+PatchなしChallengeではPatch apply / Patched rebuildをskipしてよい。
+
 - Runner / OrchestratorがSource / Answer KeyをScored Finding生成中に参照できたRunは`valid_for_scoring=false`。
 - EvaluatorはFrozen Findingを書き換えない。
 - RunnerとEvaluatorは同一Agent Sessionを再利用しない。
 
-### 7.19 Matching / Classification
+### 7.20 Matching / Classification
 
 #### Defect Item Match
 
@@ -1406,7 +1519,7 @@ Match条件:
 
 #### Submitted Finding / Precision FP
 
-Precision用`FP`を以下の**相互排他的Finding分類の合計**として固定する。
+Precision用`FP`を以下の相互排他的Finding分類の合計として固定する。
 
 ```text
 FP = generic_unmatched_atomic_fp
@@ -1414,11 +1527,11 @@ FP = generic_unmatched_atomic_fp
    + fp_non_defect
 ```
 
-- `generic_unmatched_atomic_fp`: どのDefect Item / Non-defect Itemにも正しく対応しない一意Atomic Finding。
+- `generic_unmatched_atomic_fp`: どのDefect / Non-defect Itemにも正しく対応しない一意Atomic Finding。
 - `invalid_non_atomic_fp`: Product Defectとして提出された`invalid_non_atomic` Finding。1 Finding = 1 FP。
 - `fp_non_defect`: 実際には正常なNon-defect ItemをDefectとして誤報したFinding。
 
-**`fp_non_defect`はPrecision用FPのsubsetである。**
+`fp_non_defect`はPrecision用FPのsubsetである。
 
 1件の`fp_non_defect` Findingは:
 
@@ -1426,8 +1539,6 @@ FP = generic_unmatched_atomic_fp
 - `counts.fp_non_defect += 1`
 
 へ寄与するが、Finding自体を2件として扱わない。
-
-`generic_unmatched_atomic_fp`から`fp_non_defect`を除外し、同じFindingをPrecision内で二重計上しない。
 
 #### Non-defect Item
 
@@ -1437,7 +1548,7 @@ FP = generic_unmatched_atomic_fp
 
 未探索をTNにしない。Coverage到達だけでTNにしない。
 
-### 7.20 Environment Blocker / Scoring Validity
+### 7.21 Environment Blocker / Scoring Validity
 
 #### `not_completed`
 
@@ -1460,16 +1571,43 @@ Runner能力評価と分離すべき原因:
 
 EvaluatorがRequired Coverageの`blocked_environment`を確認した場合:
 
-```text
-valid_for_scoring = false
-invalid_reason = environment_blocker
+```json
+{
+  "valid_for_scoring": false,
+  "invalid_reasons": ["environment_blocker"]
+}
 ```
 
 正式Recall / Precision / FPR / Coverageは確定しない。Agent能力比較へ使わない。
 
 Runnerが自己都合で`blocked_environment`化しないよう、Evaluator / OrchestratorがEvidenceを確認する。
 
-### 7.21 Unexpected Valid Finding
+### 7.22 `invalid_reasons[]` Contract
+
+Machine Contractでは単数`invalid_reason`を使わず、常に`invalid_reasons: string[]`を使う。
+
+初期enum:
+
+```text
+environment_blocker
+benchmark_ground_truth_changed
+isolation_failure
+tool_scope_failure
+benchmark_identity_mismatch
+runner_profile_mismatch
+coverage_integrity_failure
+preparation_failure
+```
+
+Rules:
+
+- `valid_for_scoring=true`なら`invalid_reasons=[]`。
+- `valid_for_scoring=false`なら1件以上必須。
+- 重複禁止。
+- Serialization時はlexicographic ascendingで保存する。
+- 未知Reason文字列を自由追加しない。新Reasonが必要ならSchema更新としてReviewする。
+
+### 7.23 Unexpected Valid Finding
 
 Challenge外の未知Defect候補は自動FP化しない。
 
@@ -1485,7 +1623,7 @@ Unexpected Valid Finding confirmed
   ↓
 元Run:
   valid_for_scoring = false
-  invalid_reason = benchmark_ground_truth_changed
+  invalid_reasons = ["benchmark_ground_truth_changed"]
   ↓
 Answer Key / Ground Truth更新
   ↓
@@ -1498,7 +1636,7 @@ Fresh Session + 同じ比較対象Runner ProfileでFresh Re-run
 
 元`qa-findings.json`のBenchmark Revisionを書き換えない。
 
-### 7.22 Metrics
+### 7.24 Metrics
 
 `valid_for_scoring=true`にだけ正式適用する。分母0は`null`。
 
@@ -1540,7 +1678,9 @@ critical > high > medium > low
 
 Answer Keyの`allowed_severity_delta`以内なら1.0、超過0.0。Default delta = 1。TP 0件なら`null`。
 
-### 7.23 `evaluation.json` Contract
+### 7.25 `evaluation.json` Contract
+
+`evaluation.json`はBlack-box Scoredだけで生成する。
 
 最低構造:
 
@@ -1549,7 +1689,7 @@ Answer Keyの`allowed_severity_delta`以内なら1.0、超過0.0。Default delta
   "schema_version": 1,
   "run_id": "<run_id>",
   "challenge_id": "CHALLENGE-BASIC-001",
-  "benchmark_revision": "<revision>",
+  "benchmark_revision": "git:<sha>",
   "source_head_sha": null,
   "runtime_variant_id": null,
   "runner_profile": {
@@ -1559,7 +1699,7 @@ Answer Keyの`allowed_severity_delta`以内なら1.0、超過0.0。Default delta
     "max_tool_actions": 150,
     "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
   },
-  "mode": "black-box",
+  "mode": "black-box-scored",
   "fresh_session": true,
   "tool_scope_validated": true,
   "valid_for_scoring": true,
@@ -1607,35 +1747,42 @@ Answer Keyの`allowed_severity_delta`以内なら1.0、超過0.0。Default delta
 - `required_observation_satisfied`: 必要時boolean、それ以外`null`。
 - `adjudication`: `automatic | human`。
 
-`classification = fp_non_defect`のrecordは**1 recordのまま**`counts.fp`と`counts.fp_non_defect`双方へ1ずつ寄与する。
+`classification = fp_non_defect`のrecordは1 recordのまま`counts.fp`と`counts.fp_non_defect`双方へ1ずつ寄与する。
 
 Human adjudicationでもFrozen `qa-findings.json`を書き換えず`matches[]`へ判断を残す。
 
-`counts` / `metrics`はFrozen Findings + Frozen Answer Key + Required Coverage + `matches[]`から再確認可能にする。
+EvaluatorはBlack-box Scored `qa-findings.json`と`evaluation.json`の以下を完全一致確認する。
 
-Evaluatorは`qa-findings.json`と`evaluation.json`のBenchmark Revision / Runner Profile完全一致を確認する。
+- `challenge_id`
+- `benchmark_revision`
+- `runtime_variant_id`
+- `runner_profile`
+
+Mismatchは`valid_for_scoring=false`とし、対応する`invalid_reasons[]`へ記録する。
+
+`counts` / `metrics`はFrozen Findings + Frozen Answer Key + Required Coverage + `matches[]`から再確認可能にする。
 
 `valid_for_scoring=false`なら正式Metricは`null`を基本とする。
 
-### 7.24 Challenge Ground Truth
+### 7.26 Challenge Ground Truth
 
 #### Pre-patch Baseline Sanity
 
-Challenge-specificに最低以下を確認する。
+Baseline Build済みRuntime上で最低以下を確認する。
 
 - 注入対象DefectがClean Baselineですでに存在しない。
 - Non-defect ItemがBaselineで期待どおり成立。
 - Seed / Test Control / Runtime前提が利用可能。
 
-全RegressionをChallengeごとに二重実行しない。
-
 #### Post-patch Sanity
+
+Patched Build済みRuntime上で最低以下を確認する。
 
 - 意図DefectがMinimum Reproduction Conditionで成立。
 - Non-defect Itemが意図せず壊れていない。
 - 最低限Navigation / Reset / Runtime操作可能。
 
-Baseline既存DefectをChallenge注入結果として扱わない。
+全RegressionをChallengeごとに二重実行しない。Challenge-specific Sanityだけを行う。
 
 ---
 
@@ -1653,14 +1800,16 @@ Baseline既存DefectをChallenge注入結果として扱わない。
 - [ ] isolated execution root最小方式を決定。
 - [ ] Browser / Native Tool routingを確認しScored Tool Allowlist実現経路を決定。
 - [ ] Existing Run / Evaluation schemaを確認し、本PlanSchemaを既存Contractへ最小統合。
-- [ ] `training/agentic-qa/**` fixed pathがCurrent Repoと衝突しないことを確認。衝突がなければ変更しない。
+- [ ] `training/agentic-qa/**` fixed pathがCurrent Repoと衝突しないことを確認。
 - [ ] Unified Diff PatchをDisposable Source Copyへ適用できるGit実行経路を確認。
+- [ ] Baseline / Patched Runtimeを個別BuildしてSanityできる経路を確認。
 - [ ] Learner-safe Spec Bundle生成でNormative Owner Fileを解決できることを確認。
 - [ ] Benchmark Revisionの`git:<sha>` / `sha256:<manifest>`生成経路を確認。
+- [ ] `qa-findings` discriminated unionを既存Run Artifactへ最小統合する方法を確認。
 - [ ] PR #14後Native ScopeとPR #13 Curriculum整合確認。
 - [ ] 本PlanのPath / commandsをCurrent Repoへ同期。
 
-Wave 0で選択してよいのは**実装手段**だけであり、本Planで固定したJSON format、Path、Grammar、Required Coverage SSOT、Learner Bundle Rule、Patch Contract、Benchmark Revision Algorithm、Scoring semanticsを変更しない。変更が必要ならCore Contract衝突としてOwner Decisionを求める。
+Wave 0で選択してよいのは**実装手段**だけであり、本Planで固定したJSON format、Path、Grammar、Mode Contract、Coverage SSOT、Learner Bundle Rule、Patch / Sanity Order、Benchmark Identity / Revision Algorithm、Scoring semanticsを変更しない。変更が必要ならCore Contract衝突としてOwner Decisionを求める。
 
 ### Wave 1: Current Specification Inventory
 
@@ -1721,7 +1870,9 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] AC → BR integrity。
 - [ ] BR Acceptance coverage。
 - [ ] Required 5 Section exact heading + order validation。
-- [ ] Challenge / Answer Key / Tool Profile Zod validation。
+- [ ] Charter / Challenge / Answer Key / Tool Profile Zod validation。
+- [ ] `qa-findings` mode discriminated union validation。
+- [ ] Normal / Gray-box Charter ID / Coverage integrity validation。
 - [ ] Challenge Directory / Answer Key filename / `challenge_id`一致validation。
 - [ ] `coverage_id` / Answer `item_id` uniqueness validation。
 - [ ] Answer `related_coverage_id` → Challenge Required Coverage integrity。
@@ -1730,6 +1881,8 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] Answer Oracle Owner FileがLearner-safe Bundleに含まれることをvalidation。
 - [ ] Learner-safe Bundleを決定的に生成するTest。
 - [ ] Benchmark Manifest canonical serialization / digest Test。
+- [ ] Renameを`D + A`へ正規化するTest。
+- [ ] `invalid_reasons[]` enum / uniqueness / sort validation。
 - [ ] Changed BR / AC → Affected Challenge Summary。
 - [ ] Changed referenced Normative file → Affected Challenge Summary。
 - [ ] HTML Build validation。
@@ -1747,13 +1900,15 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] Spec-driven / Gray-box分離。
 - [ ] Normal / Gray-box readonly標準経路。
 - [ ] Working Tree Snapshot。
-- [ ] Charter Contract。
+- [ ] `qa-charter.json` Machine Contract。
+- [ ] optional `qa-charter.md` Human Summary。
+- [ ] Charter Required Coverage SSOT / derive helper。
 - [ ] Atomic Finding Contract。
 - [ ] `scripts/agentic-qa/contracts.ts` Zod schemas。
-- [ ] `qa-findings.json` Versioned Contract。
-- [ ] Required Coverage SSOTから`required_ids` / result skeletonをderiveするhelper。
-- [ ] `qa-findings.coverage.required_ids` / `items`完全一致validation。
-- [ ] Benchmark Revision / Runner Profile記録。
+- [ ] `qa-findings.json` Versioned discriminated union Contract。
+- [ ] Modeごとの`required_ids` / result skeleton derive helper。
+- [ ] Normal / Gray-boxではBenchmark / Runner Profile nullをvalidation。
+- [ ] Black-box ScoredではChallenge / Benchmark / Runtime Variant / Runner Profile requiredをvalidation。
 - [ ] Coverage status / blocker reason構造化。
 - [ ] Known Deviation / Unresolved処理。
 - [ ] Severity / Confidence / Duplicate / Reproduction基準。
@@ -1767,19 +1922,22 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] `challenge.json` / Answer Key / `scored-v1.json`をZod validation可能にする。
 - [ ] Defect Itemを持つChallengeへInstructor-only Unified Diff Patchを作成。
 - [ ] `spec_refs[]` exact grammar適用。
-- [ ] `challenge.required_coverage`をRequired Coverage SSOTとして実装。
+- [ ] `challenge.required_coverage`をScored Required Coverage SSOTとして実装。
 - [ ] Cross-file ID / Coverage / Oracle integrityを実装。
 - [ ] Learner-safe Spec Bundleを`spec_refs[]`から生成。
-- [ ] BundleへOwner Normative File全体だけをcopyしSupportingを暗黙追加しない。
 - [ ] Learner-safe CoverageからDefect / Non-defect mapping排除。
 - [ ] Coverage Mission中立化。
 - [ ] Exploration Budget / Stop Condition固定。
 - [ ] Disposable Source Copy作成。
+- [ ] Baseline Build / Serve / Install。
 - [ ] Pre-patch Baseline Sanity。
+- [ ] Baseline Runtime cleanup。
 - [ ] `git apply --check` → `git apply`。
+- [ ] Patched Build / Serve / Install。
 - [ ] Post-patch Sanity。
-- [ ] Build / Serve / InstallをRunner外へ分離。
-- [ ] Benchmark Revisionを確定し必要時Canonical Manifestを保存。
+- [ ] Scored Initial State Reset。
+- [ ] Benchmark Revision / Benchmark Identity確定。
+- [ ] 必要時Canonical Manifest保存。
 - [ ] isolated execution root作成。
 - [ ] Fresh Session作成。
 - [ ] Scored Tool Allowlist実装。
@@ -1789,10 +1947,11 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] APK / IPA / arbitrary ADB shellをScored Nativeから除外。
 - [ ] GitHub / Repository / Web Search / Generic Shellを除外。
 - [ ] Runner / Evaluator別Session。
-- [ ] Benchmark Revision / Runner Profile一致確認。
+- [ ] Benchmark Identity / Runner Profile一致確認。
 - [ ] Finding Freeze後だけEvaluator開始。
 - [ ] Required Coverage縮小不可。
 - [ ] `blocked_environment` invalidation。
+- [ ] `invalid_reasons[]` Contract実装。
 - [ ] Matching / Duplicate / invalid_non_atomic / review_needed実装。
 - [ ] FP / FP_non_defect subset semantics実装。
 - [ ] TN / FP_non_defect / NE + Item-specific Evidence実装。
@@ -1812,9 +1971,11 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] Normal readonly / Black-box Isolation区別。
 - [ ] Fresh Session / Tool Allowlist / Forbidden Probe。
 - [ ] JSON + Zod Machine ContractとLearner-safe / Instructor-only境界。
-- [ ] Required Coverage SSOTとLearner-safe Bundle生成ルール。
+- [ ] Normal / Gray-box Charter CoverageとScored Challenge CoverageのSSOT差。
+- [ ] Learner-safe Bundle生成ルール。
 - [ ] Instructor Challenge PatchをScored Runnerから隔離する理由。
-- [ ] Benchmark Revision / Runner Profile / Budget比較条件。
+- [ ] Baseline / Patched Runtime Sanity順序。
+- [ ] Benchmark Identity / Revision / Runner Profile / Budget比較条件。
 - [ ] Instructor-defined Coverage / Non-defect評価。
 - [ ] `FP_non_defect`がPrecision FP subsetであること。
 - [ ] `invalid_non_atomic` FP penalty。
@@ -1845,33 +2006,44 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] `pnpm run test:e2e:chromium`
 - [ ] `pnpm run test:a11y`
 - [ ] `pnpm run test:e2e:mobile-boundary`
-- [ ] Web Agentic QA Charter最低1件Dry Run
+- [ ] Web Normal Agentic QA Charter最低1件Dry Run
+- [ ] `qa-charter.json` → `qa-findings` Coverage derive成功
+- [ ] Normal / Gray-boxで`challenge_id/benchmark_revision/runtime_variant_id/runner_profile = null`
+- [ ] Scoredで`charter_id = null`かつChallenge / Benchmark / Runner Profile required
 - [ ] Finding 0件でもCoverage / Evidence / exit reasonが残る
 - [ ] Normal QA前後Snapshotで追加Source差分0
 - [ ] Android CapabilityがあればNative Agentic QA Dry Run
 - [ ] Android Capability不足なら未実施明記、Maestro PASS代替禁止
-- [ ] Challenge / Answer Key / Tool ProfileがJSON + Zod validation成功
+- [ ] Charter / Challenge / Answer Key / Tool ProfileがJSON + Zod validation成功
 - [ ] `schema_version`欠落時Failure
 - [ ] Required Coverage ID重複時Failure
 - [ ] Answer Item ID重複時Failure
 - [ ] Answer `related_coverage_id`不存在時Failure
 - [ ] Answer Key / Challenge ID不一致時Failure
 - [ ] `qa-findings.finding_id`重複時Failure
-- [ ] `qa-findings.coverage.required_ids`がDerived Required IDsと不一致ならFailure
-- [ ] `qa-findings.coverage.items`がRequired Coverageと件数 / ID / 順序不一致ならFailure
+- [ ] Modeごとの`qa-findings.coverage.required_ids/items`不一致ならFailure
 - [ ] Invalid `spec_refs[]`形式がFailure
 - [ ] Supporting pathを`spec_refs[]`へ入れるとFailure
 - [ ] Answer Oracle Owner FileがLearner Bundle外ならFailure
 - [ ] Learner-safe Bundleが`spec_refs[]`から同じPath集合 / Digestで再生成できる
 - [ ] Required 5 Section alias / 欠落 / 重複 / 順序違反がFailure
 - [ ] Defect ItemありChallengeでPatch不存在ならFailure
+- [ ] Baseline Build済みRuntimeで対象Defect不存在を確認
 - [ ] Challenge Patchが`git apply --check`を通る
-- [ ] Baseline SourceへPatchが未適用で対象Defect不存在
-- [ ] Post-patchで意図したDefectが成立
+- [ ] Patch適用後Build済みRuntimeで意図Defect成立を確認
+- [ ] Post-patch Sanity後ResetしてScored Initial Stateへ戻せる
 - [ ] Patch SourceがRunner Rootに存在しない
-- [ ] Uncommitted Benchmark ManifestのEntry order / serialization / SHA-256がDeterministic
+- [ ] Uncommitted Benchmark Manifest statusが`A|M|D`のみ
+- [ ] Renameがold `D` + new `A`へ正規化される
+- [ ] Manifest Entry order / serialization / SHA-256がDeterministic
 - [ ] 同一Inputから同じ`benchmark_revision`が生成される
-- [ ] Input 1 byte変更で`sha256:` Benchmark Revisionが変わる
+- [ ] Input 1 byte変更で`benchmark_revision`が変わる
+- [ ] 異なるChallengeは同じGit SHAでもBenchmark Identityが異なる
+- [ ] `runtime_variant_id`差がBenchmark Identity差として扱われる
+- [ ] Same-condition比較がBenchmark Identity + Runner Profile完全一致を要求する
+- [ ] `invalid_reasons[]`がenum / unique / sortedである
+- [ ] `valid_for_scoring=true`で`invalid_reasons=[]`
+- [ ] `valid_for_scoring=false`で`invalid_reasons` 1件以上
 - [ ] Scored Runner isolated root / Fresh Session確認
 - [ ] Runner rootにSource / `.git` / Test / Source Map / Artifact / Patch / Answer Keyなし
 - [ ] Tool Allowlist / Forbidden Probe成功
@@ -1879,16 +2051,12 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - [ ] Native APK / arbitrary ADB shell inaccessible
 - [ ] GitHub / Search / Generic Shell inaccessible
 - [ ] Learner-safe CoverageにAnswer mappingなし
-- [ ] Challenge最低1件Black-box E2E評価
-- [ ] Benchmark Revision / Runner ProfileがFindingsとEvaluationで一致
-- [ ] Budget null fieldがomitされない
-- [ ] Tool Profile Revisionが実`scored-v1.json` SHA-256と一致
 - [ ] Required Coverage縮小不可
 - [ ] 未探索Non-defect → NE
 - [ ] Coverage completedでもItem observationなし → NE
 - [ ] Non-defect誤報1件が`counts.fp`と`counts.fp_non_defect`双方へ1寄与し、Precision内二重計上しない
 - [ ] `invalid_non_atomic` → TP分解なし + 1 FP penalty
-- [ ] Environment blocker → `valid_for_scoring=false`
+- [ ] Environment blocker → `valid_for_scoring=false` + `invalid_reasons=["environment_blocker"]`を含む
 - [ ] Runner起因`not_completed` → Coverage低下
 - [ ] Atomic Finding最大1 Defect Item
 - [ ] Frozen FindingをEvaluatorが変更しない
@@ -1917,49 +2085,28 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - Normative / Supporting責務がHuman / AIの双方で誤解されない。
 - Generated HTMLはMarkdownからDeterministicに再生成できる。
 
-### 9.2 Machine Contract / Cross-file Integrity
+### 9.2 Machine Contract / Mode Integrity
 
 成功条件:
 
-- Challenge / Answer Key / Tool Profile / Findings / Evaluationが`contracts.ts`のZod Schemaを通る。
+- Charter / Challenge / Answer Key / Tool Profile / Findings / Evaluationが`contracts.ts`のZod Schemaを通る。
+- `qa-findings`は`mode`でdiscriminateされ、Normal / Gray-boxとScoredのRequired Fieldが混ざらない。
+- Normal / Gray-box CoverageはCharter、Scored CoverageはChallengeからderiveされる。
 - `schema_version`、null / required field semanticsが一意。
 - YAML / Front Matter等の第二Machine Contractが存在しない。
-- `spec_refs[]`は定義3形式だけが受理される。
-- Challenge Directory / Answer Key filename / payload `challenge_id`が一致する。
-- Challenge Required Coverage / Answer Mapping / Findings Coverage間のCross-file integrityが一意に検証できる。
-- Coverage / Answer Item / Finding ID duplicateを拒否する。
 
-### 9.3 Learner-safe Bundle
+### 9.3 Black-box Isolation / Preparation
 
 成功条件:
 
-- `spec_refs[]`からOwner Normative Markdown File集合を一意に解決できる。
-- File全体をrepo-relative path保持でcopyする。
-- Section slicingをしない。
-- Supporting / unrelated Normative Fileを暗黙追加しない。
-- Answer Item OracleがLearnerへ提供されていないHidden Normative Fileを参照できない。
-- 同じ`spec_refs[]` / Spec状態から同じBundle Path集合とFile digest集合を生成する。
-
-### 9.4 Challenge Patch / Ground Truth
-
-成功条件:
-
-- Defect Itemを持つChallengeには規約PathのUnified Diff Patchがある。
-- `git apply --check`成功後だけPatch適用する。
-- PatchはDisposable Source Copyにだけ適用する。
-- Pre-patchで対象Defect不存在、Post-patchで意図Defect成立を確認する。
-- Challenge Patch / Answer KeyはRunner Rootへ入らない。
-- 任意Instructor setup scriptをChallenge注入経路として追加しない。
-
-### 9.5 Black-box Isolation
-
-成功条件:
-
+- Pre-patch SanityはBaseline Build済みRuntime上で実施される。
+- Post-patch SanityはPatched Build済みRuntime上で実施される。
+- Post-patch後にScored Initial StateへResetしてからRunnerを開始する。
 - Source-free isolated root + Fresh Session + Positive Tool Allowlistが成立。
 - Forbidden Capability Probeが全項目Blockを確認。
 - Runner / Evaluator Session分離が確認できる。
 
-### 9.6 Scoring Correctness
+### 9.4 Scoring Correctness
 
 成功条件:
 
@@ -1971,19 +2118,18 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 - Environment blockerがAgent Score低下ではなくRun invalidationになる。
 - Frozen Findings + Frozen Answer Key + Coverage + `matches[]`からcounts / metricsを再確認できる。
 
-### 9.7 Reproducibility / Benchmark Revision
+### 9.5 Reproducibility / Comparison Identity
 
 成功条件:
 
-- Same Benchmark + Same Runner Profileを同条件比較として識別できる。
+- Benchmark Identityが`challenge_id + benchmark_revision + runtime_variant_id`で判定される。
+- Same-condition Runner比較はBenchmark Identity + Runner Profile完全一致を要求する。
 - Tool Profile Revisionが使用ファイルbytesのSHA-256と一致。
 - Budget固定不能値は`null`で記録される。
-- Clean committed Benchmarkは`git:<sha>`として識別できる。
-- Uncommitted / mixed BenchmarkはCanonical Manifestから`sha256:<hex>`を決定的に生成できる。
-- Manifest Entry / JSON serialization規則が実装者依存にならない。
+- Manifest rename normalizationが`D + A`で一意。
 - Ground Truth変更後は元RunをRevision付替えせずFresh Re-runする。
 
-### 9.8 Product Regression
+### 9.6 Product Regression
 
 `pnpm run verify`とRequired CIを成功させる。実行していない検証をPASS扱いしない。
 
@@ -2033,49 +2179,65 @@ Wave 0で選択してよいのは**実装手段**だけであり、本Planで固
 
 ### R11. Learner-safe Spec Bundleが実装者ごとに変わる
 
-**Mitigation:** `spec_refs[]` → Owner Normative File全体 → dedupe / sort / copyを固定し、Supporting / unrelated Specの暗黙追加を禁止する。
+**Mitigation:** `spec_refs[]` → Owner Normative File全体 → dedupe / sort / copyを固定する。
 
 ### R12. Required CoverageがArtifact側で改変される
 
-**Mitigation:** `challenge.required_coverage`を唯一のSSOTとし、Derived ID配列 / Result配列の完全一致をValidatorで強制する。
+**Mitigation:** Normal / Gray-boxはCharter、ScoredはChallengeをSSOTとし、Derived ID / Result配列の完全一致をValidatorで強制する。
 
-### R13. Challenge PatchがSourceへ混入する
+### R13. QA Artifact Modeが混在する
+
+**Mitigation:** `qa-findings.mode` discriminated union。Normal / Gray-boxのCharter FieldsとScored Fieldsを同時Requiredにしない。
+
+### R14. Challenge PatchがSourceへ混入する
 
 **Mitigation:** Instructor-only Unified Diff + Disposable Copy + `git apply --check`。Runner RootへPatchを渡さず、Application Branchへ適用状態をCommitしない。
 
-### R14. Benchmark / Runner Profile混同
+### R15. SanityをBuild前に実施してGround Truthを確認できない
 
-**Mitigation:** Benchmark = evaluation population、Runner Profile = execution conditionとして別Field固定。
+**Mitigation:** Baseline Build → Pre-patch Sanity → Patch → Patched Build → Post-patch Sanityの順序を固定する。
 
-### R15. 未Commit Benchmark Revisionが実装者依存になる
+### R16. Benchmark Revisionだけで異なるChallengeを同一視する
 
-**Mitigation:** Canonical Manifest、Path sort、raw bytes SHA-256、JSON serializationを固定する。
+**Mitigation:** Benchmark Identityを`challenge_id + revision + runtime_variant_id`へ固定する。
 
-### R16. TP / FP Gaming
+### R17. Benchmark / Runner Profile混同
+
+**Mitigation:** Benchmark Identity = evaluation population、Runner Profile = execution conditionとして別Contractにする。
+
+### R18. 未Commit Benchmark Revisionが実装者依存になる
+
+**Mitigation:** Canonical Manifest、`A|M|D`、rename `D+A`、Path sort、raw bytes SHA-256、JSON serializationを固定する。
+
+### R19. Invalid Reason表現が分岐する
+
+**Mitigation:** `invalid_reasons[]` enum / unique / sortedへ統一し、単数Fieldを禁止する。
+
+### R20. TP / FP Gaming
 
 **Mitigation:** Atomic Finding、invalid_non_atomic FP penalty、FP_non_defect subset semanticsを固定する。
 
-### R17. 未探索正常ケースでFPR改善
+### R21. 未探索正常ケースでFPR改善
 
 **Mitigation:** TN / FP_non_defect / NE + Item-specific Evidence。
 
-### R18. Environment failureでAgent Score低下
+### R22. Environment failureでAgent Score低下
 
 **Mitigation:** `blocked_environment`ならRun invalidation。
 
-### R19. Challenge / Spec drift
+### R23. Challenge / Spec drift
 
 **Mitigation:** BR / AC + directly referenced Normative file impact summary。
 
-### R20. Ground Truth change後の後付け再採点
+### R24. Ground Truth change後の後付け再採点
 
 **Mitigation:** Original Run invalidation + New Benchmark + Fresh Re-run。
 
-### R21. Local BlockerでGoal停止
+### R25. Local BlockerでGoal停止
 
 **Mitigation:** Local / Global分離、Finalだけfail-close。
 
-### R22. Curriculum drift
+### R26. Curriculum drift
 
 **Mitigation:** Wave 0でPR #14 → #13後をRebaselineしWave 8でCurrent Productへ同期。
 
@@ -2099,6 +2261,7 @@ Wave 0以降で以下が判明した場合だけOpen Questionへ追加する。
 - Model identifierをScored Runner実行基盤から取得できない。
 - Environment blockerとRunner failureをEvidenceから合理的に区別できない。
 - Current Git / Execution EnvironmentでDisposable Source Copy + `git apply --check`を安全に成立させられない。
+- Baseline / Patched Runtimeを分離してChallenge-specific Sanityを実行できない。
 
 Open Questionを推測で埋めない。ただしLocal Blockerなら該当Taskと依存Taskだけを停止し、独立Taskを継続する。
 
@@ -2212,21 +2375,30 @@ Automation           Agentic QA
 
 Normal / Gray-box QA
 Repository Root
+  ├─ qa-charter.json
+  │    └─ Required Coverage SSOT
   └─ existing readonly
        → Write Boundary
+            │
+            ▼
+      qa-findings.json
+      mode=normal|gray-box
 
 Black-box Scored
 Preparation Process
   ├─ validate JSON / Cross-file contracts
   ├─ derive Required Coverage from challenge.json
   ├─ resolve spec_refs → learner-safe Normative file bundle
-  ├─ Benchmark Revision
+  ├─ Benchmark Revision / Identity
   ├─ Runner Profile
   ├─ Disposable Source Copy
-  ├─ Baseline Sanity
+  ├─ Baseline Build / Serve / Install
+  ├─ Pre-patch Sanity
+  ├─ Baseline cleanup
   ├─ Instructor Unified Diff Patch
+  ├─ Patched Build / Serve / Install
   ├─ Post-patch Sanity
-  ├─ Build / Serve / Install
+  ├─ Scored Initial State Reset
   ├─ isolated root
   ├─ learner-safe inputs only
   └─ Forbidden Probe
@@ -2244,12 +2416,16 @@ Fresh Source-free Runner
 Atomic Findings + Required Coverage Results
         │
         ▼
+qa-findings.json
+mode=black-box-scored
+        │
+        ▼
 Frozen Structured Result
         │
         ▼
 Separate Evaluator
   + Instructor Answer Key
-  + same Benchmark
+  + same Benchmark Identity
   + same Runner Profile
   + matches[]
         │
@@ -2258,6 +2434,7 @@ evaluation.json
 
 Unexpected true defect
   → original Run invalid
+  → invalid_reasons=[benchmark_ground_truth_changed]
   → new Benchmark Revision
   → Fresh Re-run
 ```
@@ -2273,18 +2450,23 @@ Unexpected true defect
 - Feature Required 5 Section / BR / AC Grammarは本Planのexact contractを使う。
 - Challenge / Answer Key / Tool ProfileはJSON + Zod、本PlanFixed Pathを使う。
 - `spec_refs[]`は定義3形式以外を許可しない。
-- Required Coverageの唯一の正本は`challenge.required_coverage`とする。
-- `qa-findings.coverage.required_ids` / `coverage.items`を独自編集せずChallengeからderiveして完全一致検証する。
-- Learner-safe Spec Bundleは`spec_refs[]`のOwner Normative Markdown File全体だけで構成し、Supportingや無関係Fileを暗黙追加しない。
+- Normal / Gray-box Required Coverageの唯一の正本は`qa-charter.required_coverage`とする。
+- Black-box Scored Required Coverageの唯一の正本は`challenge.required_coverage`とする。
+- `qa-findings`は`mode` discriminated unionとして実装し、Mode間Required Fieldを混在させない。
+- Learner-safe Spec Bundleは`spec_refs[]`のOwner Normative Markdown File全体だけで構成する。
 - Challenge DefectはInstructor-only Unified Diff Patchで注入し、Disposable Source Copyにだけ適用する。
+- Pre-patch SanityはBaseline Build済みRuntime、Post-patch SanityはPatched Build済みRuntimeで実施する。
+- Post-patch Sanity後にScored Initial StateへResetする。
 - Challenge注入目的の任意setup scriptを初期版へ追加しない。
 - Normal readonlyとBlack-box Isolationを同一視しない。
 - Scored RunnerはFresh Session + isolated root + Positive Tool Allowlistを成立条件とする。
-- Benchmark RevisionなしのScored Resultを比較可能成果物にしない。
+- Benchmark Identityは`challenge_id + benchmark_revision + runtime_variant_id`で判定する。
 - Clean committed Benchmark以外はCanonical Manifest + SHA-256でRevisionを作る。
-- Runner Profileなしで異なるModel / Tool / Budget条件を同一条件比較しない。
+- Working Tree statusは`A|M|D`、renameはold `D` + new `A`へ固定する。
+- 同条件Runner比較はBenchmark Identity + Runner Profile完全一致を要求する。
 - Budget固定不能値は`null`で記録し、omit / 推測しない。
 - Tool Profile Revisionは実際に使用した`scored-v1.json` bytesのSHA-256を使う。
+- Machine-readable Scoring invalidationは`invalid_reasons[]`だけを使い、単数`invalid_reason`を作らない。
 - `fp_non_defect`はPrecision用FPのsubsetとして1回だけPrecisionへ寄与させる。
 - Product Defectとして提出された`invalid_non_atomic`をPrecisionから逃がさない。
 - Ground Truth変更時は元Runを新Benchmarkへ付け替えずFresh Re-runする。
