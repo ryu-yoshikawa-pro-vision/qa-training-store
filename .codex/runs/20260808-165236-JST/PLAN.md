@@ -2,11 +2,11 @@
 
 ## Objective
 
-- 最新`main`相当のPhase 2前半Native基盤を維持し、Phase 2後半の会員購入Flow、実SQLite契約、Android/iOS Maestro、Production-validation、正式Native CI Gateを実装・検証する。
+- 最新`main`相当のPhase 2前半Native基盤を維持し、Phase 2後半の会員購入Flow、実SQLite契約、Android Runtime、iOS Build-only、Production-validation、正式Native CI Gateを実装・検証する。
 
 ## Scope
 
-- In: Native Customer Auth／Session／Guest Cart Merge、Account／Address、Checkout／Mock Payment／Order、Review、Test Control／Harness、Native Component／Contract、Maestro、Android／iOS CI、Production-validation、関連文書とRun Artifact。
+- In: Native Customer Auth／Session／Guest Cart Merge、Account／Address、Checkout／Mock Payment／Order、Review、Test Control／Harness、Native Component／Contract、Android Maestro／Runtime、iOS Build-only CI、Production-validation、関連文書とRun Artifact。
 - Out: Native Admin、Guest Checkout、iOS物理端末／署名、EAS Cloud実行、Phase 3、任意SQL／Sentinel／新Storage／Global Mutation Queue、Git mutation。
 
 ## Assumptions
@@ -26,7 +26,7 @@
 
 - H1: 既存Web Application契約とDexie repositoryの挙動をSQLite Adapterへ移植すれば、Native UIとWebの業務意味を一致させられる。反証はRepository Contract／Integrationで判定する。
 - H2: SQLite全購入者TableをFK付きで同一Schema／Seedへ追加し、Scope単位のexclusive transaction runnerを使えば、Checkout／Payment／Reviewの整合を保てる。反証は実SQLite ContractとHarnessで判定する。
-- H3: iOSをReusable WorkflowのBuild／Runtime分離としてNative CIへ接続すれば、Android責務分離を壊さずfinal verifyへfail-closeできる。反証はCI Contract TestとYAML parseで判定する。
+- H3: iOSをReusable Workflowの独立Build／Build-only VerifyとしてNative CIへ接続すれば、Android Runtime責務を壊さずfinal verifyへfail-closeできる。反証はCI Contract TestとYAML parseで判定する。
 
 ## Research Plan
 
@@ -42,22 +42,22 @@
 - 1. Baselineと既存契約を再確認し、Gate単位の変更境界を固定する。
 - 2. Schema／Seed／Mapper／Repository／Transactionを先に実装し、Application Use Caseへ注入する。
 - 3. AuthからReviewまでNative UIをGate順に実装し、各Gateのfocused testを追加する。
-- 4. Harness／Maestro／Production Runtimeを実装し、AndroidとiOSの共通Flowを再利用する。
-- 5. Android CIの既存Build／Runtime分離を保持し、iOSを同じGraphへ追加する。
+- 4. Harness／Android Maestro／Production Runtimeを実装し、共通Flowのソース互換性を維持する。
+- 5. Android CIの既存Build／Runtime分離を保持し、iOSの独立Build-only Gateを同じGraphへ追加する。
 - 6. 全回帰、文書、自己レビュー、Sanitizer、Remote未実施判定を行う。
 - 標準フロー: `PLAN -> repo mapping -> TASKS -> 実装 -> focused validation -> full validation -> REPORT`
 
 ## Definition of Done
 
-- Gate A〜Gのコード／Static／Test／Local Runtime／Remote Runtimeを実施事実で判定し、Critical／Highを残さない。
-- Android/iOSの主要購入Flow、実SQLite Harness、Production無効化、Build／Runtime分離、fail-close final verify、Web回帰、文書が最新実装と一致する。
+- Gate A〜Gのコード／Static／Test／Android Local Runtime／iOS Build／Remote Gateを実施事実で判定し、Critical／Highを残さない。
+- Androidの主要購入Flow／実SQLite Harness／Production無効化、iOSのBuild-time契約、Build／Runtime分離、fail-close final verify、Web回帰、文書が最新実装と一致する。
 - Remote CI未実施時は「コード実装完了・Local/static verification完了・Remote pending・Phase 2 final DoD pending」と記録する。
 
 ## Risks / Unknowns
 
 - Native Schema拡張による前半FK／Seed／Harness回帰。対策: Schema、Seed、Mapper、Contractを同一Gateで検証する。
 - Native Repositoryのtransaction scope不備による注文／決済／Review整合不良。対策: shared contract、Node SQLite、実Runtime Harnessを分離して検証する。
-- WindowsでiOS Build／Simulatorを実行できない。対策: iOSはRemote macOS CIを未確認として記録し、静的／Android／Webを継続する。
+- WindowsでiOS Build／Simulatorを実行できない。対策: iOS Runtimeは正式Gate対象外とし、iOS BuildとRemote macOS CIを未確認として記録し、静的／Android／Webを継続する。
 - 既存baselineのformat／環境失敗。対策: 直近Run／差分／環境を確認し、仮説なしの再試行をしない。
 
 ## Thinking Log
@@ -71,6 +71,14 @@
 - Android Automation／Productionの現行ソースBuild、実機Install／Smoke、購入系Maestro、Runtime／Boundary、Production validationを完了した。
 - CI契約、全テスト、Web export、Native bundle guard、静的検査、Run artifact Sanitizerを完了した。自己レビューのCritical／High未解決findingはない。
 - WindowsではiOS Simulator／Remote GitHub Actionsを実行できないため、Phase 2 final DoDはpendingとし、Run resultはpartialで保存する。次の実行者はmacOS／GitHub-hosted環境でiOS WorkflowとRemote final verifyを実行する。
+
+## iOS Build-only方針変更（2026-08-09）
+
+- ユーザー指示により、iOSの正式Native CI範囲をAutomation／Production-validation Simulator Build、Build-time metadata／Production guard、`.app` Artifact validation／uploadへ変更する。
+- `ios-runtime` Job、Simulator boot／install／launch、Maestro、実`expo-sqlite` Contract Harness、Production-validation Runtime、`simctl diagnose`、Runtime evidenceは標準WorkflowとRequired Contractから削除する。Jobをskipやsuccessへ偽装しない。
+- 共通Maestro YAMLとiOS conditional deep-link handlerはAndroid回帰を避けるため残すが、iOS Runtime PASSを正式保証として扱わない。Search／ReviewのiOS Runtime固有修正は行わない。
+- iOS Runtimeを外す理由は、iOS Simulatorを継続的にローカル再現・デバッグできる環境を現行運用で保持しないため、GitHub-hosted macOS Runnerだけに依存するRuntime CIの保守性が低いからである。Androidは継続的に再現・デバッグできるためRuntime Gateを維持する。
+- 残る未確認はiOS Buildの実行と、未pushの修正Headに対するRemote Native CI／最終`native-ci / verify`。iOS Runtime未実行は現行方針では未達ではない。
 
 ## Postfix decision（2026-08-08 23:30 JST）
 
@@ -255,6 +263,13 @@
 - `validation_result`: 対象Workflow／Cart／Harness／SQLite／Integration Vitest 63/63、Native Purchase／NativeShell Jest 16/16、Typecheck、対象Prettier、全Contract 22 files／162 tests、`pnpm run verify` exit 0（Unit 66、Integration 97、Repository 32、Web Component 76、Native Component 43、Contract 162、Web export 2294 modules、Lint 0 errors／63 warnings）を確認した。初回全Contractの5秒timeoutは対象4/4単独PASS後の再実行で解消した。VitestでNative Jest対象を誤って実行した際のReact Native Flow parse failureは、正規のJest実行へ切り替え、追加テストを含む16/16 PASSで確認した。
 - `remaining_delta`: Windowsには`xcodebuild`／`xcrun`／`simctl`がなく、iOS Simulator、実`expo-sqlite` iOS Harness、iOS Production-validationは未実行。Git mutation禁止のため修正HeadをRemoteへ反映しておらず、最新HeadのGitHub-hosted Android／iOS Native CIとfinal `native-ci / verify`も未実行。
 - `decision`: `continue`。追加修正と全ローカル品質ゲートは完了したが、iOS／Remote実Runtimeの実行結果がないため完了扱いにしない。Progress: 97% (31/32)。
+
+## Final decision（2026-08-09 Iteration 28）
+
+- iOS CI Build-only化を実装し、旧Runtime Job／Runtime machinery／Runtime前提Contractを削除した。iOS Automation／Production Build、Build-time metadata／Production guard、`.app` Artifact upload、両Buildのみのfail-close Verifyを残した。
+- README、PROJECT_CONTEXT、Phase 2 Master／後半計画、ADR-0010／ADR-0011へ現行保証範囲と理由を同期した。共通Maestro FlowはAndroid回帰防止のため残し、iOS Search／Review固有修正は行っていない。
+- Focused Contract 45/45、全Contract 23 files／157 tests、Markdown 176 files／0 issues、Format、Lint 0 errors／64 warnings、Typecheck、Native Component 47、Repository 33、Route 38、EAS、`pnpm run verify`（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 157／Web export 2296）をPASSした。
+- iOS Build実行と修正HeadのRemote Native CI／最終`native-ci / verify`はWindowsのXcode／`gh`不在、未push、Git mutation禁止のため未実行。iOS Runtime／Maestro／実`expo-sqlite` Harnessは正式Gate対象外であるため、残課題はRemote Build Gate確認に限定する。Run resultは`partial`／`missing_validation`。Progress: 97% (36/37)。
 
 ## Repair decision（PR #14追加修正指示、Iteration 27）
 

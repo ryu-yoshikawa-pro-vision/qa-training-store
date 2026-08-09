@@ -286,15 +286,17 @@
 - Native Repositoryの未使用`parseNativeNumber` importを削除した。現行`pnpm run verify`はexit 0、Lint 0 errors／63 warnings、全Test、Security、Image Manifest、Web export 2294 modulesをPASSした。
 - 現行ローカル品質ゲートは完了したが、WindowsではiOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production validation、GitHub-hosted Remote Android／iOS CI、最新Headの`native-ci / verify`が未実行である。Phase 2 final DoDはpendingとする。
 
-## PR #14 最終修正後のNative CI現行契約（2026-08-09）
+## PR #14 iOS Build-only化後のNative CI現行契約（2026-08-09）
 
-- Android BuildはAutomation／Production-validationの2 Jobへ分離し、Runtimeは両Jobを`always()`で受けて、どちらかが成功した場合だけ実行する。各Artifactを独立してDownload／verify／installし、Automation／Production Maestroは相互に依存させない。最終`verify`は両Build、Android Runtime、iOS required gateをNative変更時に必須とする。
-- iOS Buildは`ios-automation-build`／`ios-production-build`へ分離し、それぞれがmetadata検査、`expo prebuild`、Pods、workspace／scheme解決、unsigned Release `iphonesimulator` `xcodebuild`、`.app`保存、Uploadを完結する。`ios-runtime`は成功Buildが一つ以上ある場合だけ実行し、`ios-verify`は両BuildとRuntimeをfail-closeで集約する。
-- Artifactの現行契約はAndroid Automation `native-automation.apk`、Android Production `native-production-validation.apk`、iOS Automation `native-automation.app`、iOS Production `native-production-validation.app`である。`tests/contracts/native-ci-workflow.test.ts`は4種類のproducer／consumer／install pathと独立Job／fail-closeを最小契約として固定する。
-- Maestroの全16 Native Flowにあるcustom scheme `openLink` 38箇所は、iOSの`Open in "Scenario Shop"`確認を条件付きで受け付ける共通subflowを直後に1対1で呼び出す。Production-validationも同じhandlerを使うが、Test Control runtime／Harnessを有効化する変更は行わない。
-- Android Production APKはBuild時とRuntime Download後の双方で、`unzip -Z1`で`assets/`配下のbundleを列挙し、`unzip -p`で本文のAutomation／Contract Harness／`NativeTestControlService` marker不在を確認する。bundleがない場合はfail-closeする。iOS Runtime Evidenceは選択Simulatorの`IOS_DEVICE`を明示した`simctl diagnose`とexit code／output有無を保存する。
+- Android BuildはAutomation／Production-validationの2 Jobへ分離し、Runtimeは両Jobを`always()`で受けて、どちらかが成功した場合だけ実行する。各Artifactを独立してDownload／verify／installし、Automation／Production Maestroは相互に依存させない。最終`verify`は両Build、Android Runtime、iOS Build GateをNative変更時に必須とする。
+- iOS正式CIは`ios-automation-build`／`ios-production-build`／`ios-verify`だけで構成する。各Buildはmetadata検査、`expo prebuild`、Pods、workspace／scheme解決、unsigned Release `iphonesimulator` `xcodebuild`、`.app`生成確認、固定名保存、Uploadを完結し、`ios-verify`は両Buildだけをfail-closeで集約する。
+- iOSのSimulator boot／install／launch、Maestro、実`expo-sqlite` Contract Harness、Production-validation Runtime、`simctl diagnose`、Runtime Evidenceは正式Gateから除外した。Jobをskipやsuccessへ偽装するのではなく、Runtime Job自体をWorkflow topologyから削除している。
+- iOS Artifactの現行契約はAutomation `native-ios-app-${{ github.run_id }}`／`native-automation.app`、Production `native-ios-production-app-${{ github.run_id }}`／`native-production-validation.app`である。`tests/contracts/native-ci-workflow.test.ts`は各BuildのRelease-iphonesimulator検出、固定名保存、Upload、両BuildのみのAggregateを固定する。
+- Maestroの全16 Native Flowにあるcustom scheme `openLink` 38箇所とiOS conditional handlerは、Android回帰を避けるため共通ソースに保持する。ただし、これらをiOS Runtime PASSやiOS正式Gateの根拠にはしない。
+- Android Production APKはBuild時とRuntime Download後の双方で、`unzip -Z1`で`assets/`配下のbundleを列挙し、`unzip -p`で本文のAutomation／Contract Harness／`NativeTestControlService` marker不在を確認する。bundleがない場合はfail-closeする。
 - 2026-08-09の最新APKによるAndroid実機はBuild（Metro初回生成を含む）／Install／Smoke／Test Control 1/1、Runtime 5/5、Boundary 5/5をPASSした。Review単体は保存操作まで進んだが、標準日本語IMEがASCII本文を変換し、保存完了assertionへ到達しなかったため、物理端末のIME依存Failureとして記録する。Reviewの2回目`hideKeyboard`は復元しない。
-- Windowsでは`xcodebuild`／`xcrun`／`simctl`／`gh`が未提供であり、iOS実Runtime、iOS実`expo-sqlite` Harness、Production-validation、修正HeadのRemote Native CI／最終`native-ci / verify`は未確認である。静的PASSやAndroid PASSをiOS／Remote PASSへ繰り上げず、Phase 2 final DoDはpendingとする。
+- iOS Runtimeを正式Gateから外す理由は、iOS Simulatorを継続的にローカル再現・デバッグできる環境を現行運用で保持しないため、GitHub-hosted macOS Runnerだけに依存するRuntime CIの保守性が低いからである。Androidは継続的に再現・デバッグできるためRuntime Gateを維持する。
+- Windowsでは`xcodebuild`／`xcrun`／`simctl`／`gh`が未提供であり、iOS Buildのローカル実行、修正HeadのRemote Native CI／最終`native-ci / verify`は未確認である。iOS Runtimeは正式Gate対象外であり、未実行をPASSへ繰り上げない。Remote Gate結果が未取得のためPhase 2 final DoDはpendingとする。
 
 ## メモ
 

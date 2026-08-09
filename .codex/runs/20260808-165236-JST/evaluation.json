@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Phase 2後半のNative Customer購入コード、実SQLite、Android実機、Production validation、Web／静的回帰、Order詳細snapshot表示、入力画面Keyboard対応、Login復帰先の型付き遷移、SQLite境界Runtime parser、PR #14追加DoDのStorefront Stable ID、Android／iOS Flow継続、Cart caller-generated ID、Harness認可fail-close、Checkout step returnTo、NativeShell refresh serial／AppState cleanup／logout catch、PR #14追加修正のreviews-empty／Native fixture／checkout期限更新transaction／Expo Router公開API移行、PR #14最終修正のiOS Deep Link共通handler、Production bundle本文marker guard、simctl diagnose evidence、Iteration 27のquote非依存selector／openLink直後Contract／full-consumption marker guard／非対話diagnose証跡は完了し、Production APK source→runtime copy、Native Customer Role boundary、NativeShell route regressionも修正・再検証した。Iteration 27ではcustom scheme 38箇所／handler 38箇所、Android Test Control 1/1、marker positive／negative guard、全品質ゲートを再確認した。Review単体は物理日本語IME依存Failureとして未完了であり、WindowsではiOS SimulatorとRemote GitHub Actionsの実行結果を取得できない。",
+      "evidence": "Phase 2後半のNative Customer購入コード、実SQLite、Android実機、Production validation、Web／静的回帰、Order詳細snapshot表示、入力画面Keyboard対応、Login復帰先の型付き遷移、SQLite境界Runtime parser、PR #14追加DoDのStorefront Stable ID、Android／iOS Flow継続、Cart caller-generated ID、Harness認可fail-close、Checkout step returnTo、NativeShell refresh serial／AppState cleanup／logout catch、PR #14追加修正のreviews-empty／Native fixture／checkout期限更新transaction／Expo Router公開API移行、PR #14最終修正のiOS Deep Link共通handler、Production bundle本文marker guard、Iteration 27のquote非依存selector／openLink直後Contract／full-consumption marker guard／非対話diagnose証跡、Iteration 28のiOS Build-only Workflow／Contract／文書同期は完了し、Production APK source→runtime copy、Native Customer Role boundary、NativeShell route regressionも修正・再検証した。Iteration 27ではcustom scheme 38箇所／handler 38箇所、Android Test Control 1/1、marker positive／negative guard、全品質ゲートを再確認した。Review単体は物理日本語IME依存Failureとして未完了であり、WindowsではiOS BuildとRemote GitHub Actionsの実行結果を取得できない。iOS Simulator Runtime／Maestro／実expo-sqlite Harnessは現行正式Gate対象外である。",
       "evidence_refs": [
         {
           "kind": "codex_task_report",
@@ -30,7 +30,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Iteration 27のWorkflow／Maestro Contract 2 files／48 tests、全Contract 23 files／160 tests、Native Component 12 suites／47、Repository 5 files／33、Typecheck、route／EAS、Format、Markdownlint 175 files／0 issues、Lint 0 errors／64 warnings、最終`pnpm run verify`（Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 47、Contract 160、Web export 2296 modules）はPASSした。Android conditional-handler後のDoctor、Test Control 1/1、marker positive／marker-free／bundle-missing guardもPASSした。Review単体は標準日本語IMEによるASCII本文変換後に保存assertionでFAILし、iOS実Runtime／Remote CIは未実行である。Contract 165→156は前IterationでのWorkflow Contract整理による実行件数差で、23 files全体の実行漏れではなく、Iteration 26で4件追加後の160 testsを今回も確認した。",
+      "evidence": "Iteration 27のWorkflow／Maestro Contract 2 files／48 tests、全Contract 23 files／160 tests、Native Component 12 suites／47、Repository 5 files／33、Typecheck、route／EAS、Format、Markdownlint 175 files／0 issues、Lint 0 errors／64 warnings、最終`pnpm run verify`（Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 47、Contract 160、Web export 2296 modules）はPASSした。Android conditional-handler後のDoctor、Test Control 1/1、marker positive／marker-free／bundle-missing guardもPASSした。Iteration 28ではiOS Runtime／simctl／Maestro／Runtime evidenceのWorkflow責務を削除し、Build-only Contractと文書／ADRを更新する実装を追加検証する。Review単体は標準日本語IMEによるASCII本文変換後に保存assertionでFAILし、iOS Build／Remote CIは未実行である。iOS Simulator Runtime／Maestro／実expo-sqlite Harnessは正式Gate対象外である。Contract 165→156は前IterationでのWorkflow Contract整理による実行件数差で、23 files全体の実行漏れではなく、Iteration 26で4件追加後の160 testsを今回も確認した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -258,6 +258,18 @@
           "path": ".codex/runs/20260808-165236-JST/REPORT.md",
           "selector": "2026-08-09 19:30 JST",
           "summary": "Iteration 27最終Artifact gateのJSON parse、Run Artifact Prettier、git diff、Sanitizer 5 files／0 residualを記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 21:12 JST",
+          "summary": "Iteration 28のiOS Build-only Workflow／Contract／文書同期、Focused 45/45、全Contract 23 files／157 tests、全quality gate、pnpm run verify exit 0、iOS Build／Remote未実行境界を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 21:16 JST",
+          "summary": "iOS Workflow 2 filesのYAML parse、Runtime machinery scan、Run／Evaluation JSON parse、git diff、Sanitizer 5 files／0 residual、PR本文更新案を記録している。"
         }
       ]
     },
@@ -326,7 +338,7 @@
         "summary": "Iteration 24後もWindows hostではiOS Simulator／実expo-sqlite Harness／Remote GitHub Actionsを未実行として記録している。"
         }
       ],
-      "detail": "iOS Workflowの静的契約、quote非依存Deep Link selector、custom scheme 38箇所とconfirmation handler 38箇所の直後隣接契約、Android Production bundle本文marker guardのfull-consumption、iOS diagnose非対話／exit／output-files evidence契約はPASSしたが、macOS実RuntimeとGitHub-hosted Runが未確認のため、Phase 2 final DoDは未完了とする。Android Review単体も標準日本語IMEによる本文変換後の保存完了assertionでFAILしており、物理端末依存の未完了検証として扱う。"
+      "detail": "iOS Build-only Workflowの静的契約、quote非依存Deep Link selector、custom scheme 38箇所とconfirmation handler 38箇所の直後隣接契約、Android Production bundle本文marker guardのfull-consumption、Iteration 27のdiagnose契約はPASSし、Iteration 28ではios-runtime／simctl／Maestro／Runtime evidenceをWorkflowとRequired Contractから削除した。macOS iOS BuildとGitHub-hosted Runが未確認のため、現行Phase 2 final DoDは未完了とする。iOS Simulator Runtime／Maestro／実expo-sqlite Harnessは正式Gate対象外であり、Android Review単体は標準日本語IMEによる本文変換後の保存完了assertionでFAILしているため、物理端末依存の未完了検証として扱う。"
     }
   ],
   "improvement_candidates": [

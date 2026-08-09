@@ -19,8 +19,6 @@ concurrency:
 env:
   NODE_VERSION: 24
   PNPM_VERSION: 9.10.0
-  MAESTRO_VERSION: 2.8.0
-  MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip
 
 jobs:
   ios-automation-build:
@@ -58,7 +56,7 @@ jobs:
         run: pnpm run generate:native-assets
       - name: Verify generated Native assets
         run: git diff --exit-code -- src/generated/native-product-assets.ts
-      - name: Verify Automation runtime metadata
+      - name: Verify Automation build metadata
         shell: bash
         run: |
           set -euo pipefail
@@ -104,15 +102,16 @@ jobs:
           test -n "$APP_PATH"
           test -d "$APP_PATH"
           echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
-      - name: Save Automation iOS Simulator app for Runtime
+      - name: Save Automation iOS Simulator app artifact
         shell: bash
         run: |
           set -euo pipefail
-          RUNTIME_APP_PATH="$RUNNER_TEMP/native-ios-app/native-automation.app"
-          mkdir -p "$(dirname "$RUNTIME_APP_PATH")"
-          cp -R "$APP_PATH" "$RUNTIME_APP_PATH"
-          test -d "$RUNTIME_APP_PATH"
-      - uses: actions/upload-artifact@v4
+          ARTIFACT_APP_PATH="$RUNNER_TEMP/native-ios-app/native-automation.app"
+          mkdir -p "$(dirname "$ARTIFACT_APP_PATH")"
+          cp -R "$APP_PATH" "$ARTIFACT_APP_PATH"
+          test -d "$ARTIFACT_APP_PATH"
+      - name: Upload Automation iOS Simulator app
+        uses: actions/upload-artifact@v4
         with:
           name: native-ios-app-${{ github.run_id }}
           path: ${{ runner.temp }}/native-ios-app
@@ -176,7 +175,7 @@ jobs:
         run: pnpm run generate:native-assets
       - name: Verify generated Native assets
         run: git diff --exit-code -- src/generated/native-product-assets.ts
-      - name: Verify Production runtime metadata
+      - name: Verify Production build metadata
         shell: bash
         run: |
           set -euo pipefail
@@ -226,15 +225,16 @@ jobs:
             exit 1
           fi
           echo "PRODUCTION_BUILD_APP_PATH=$PRODUCTION_BUILD_APP_PATH" >> "$GITHUB_ENV"
-      - name: Save Production-validation iOS Simulator app for Runtime
+      - name: Save Production-validation iOS Simulator app artifact
         shell: bash
         run: |
           set -euo pipefail
-          PRODUCTION_APP_PATH="$RUNNER_TEMP/native-ios-production-app/native-production-validation.app"
-          mkdir -p "$(dirname "$PRODUCTION_APP_PATH")"
-          cp -R "$PRODUCTION_BUILD_APP_PATH" "$PRODUCTION_APP_PATH"
-          test -d "$PRODUCTION_APP_PATH"
-      - uses: actions/upload-artifact@v4
+          PRODUCTION_ARTIFACT_APP_PATH="$RUNNER_TEMP/native-ios-production-app/native-production-validation.app"
+          mkdir -p "$(dirname "$PRODUCTION_ARTIFACT_APP_PATH")"
+          cp -R "$PRODUCTION_BUILD_APP_PATH" "$PRODUCTION_ARTIFACT_APP_PATH"
+          test -d "$PRODUCTION_ARTIFACT_APP_PATH"
+      - name: Upload Production-validation iOS Simulator app
+        uses: actions/upload-artifact@v4
         with:
           name: native-ios-production-app-${{ github.run_id }}
           path: ${{ runner.temp }}/native-ios-production-app
@@ -258,213 +258,9 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  ios-runtime:
-    name: iOS Simulator Runtime / Maestro
-    needs: [ios-automation-build, ios-production-build]
-    if: >-
-      always() &&
-      (inputs.run_native || github.event_name == 'workflow_dispatch') &&
-      (needs.ios-automation-build.result == 'success' || needs.ios-production-build.result == 'success')
-    runs-on: macos-26
-    timeout-minutes: 50
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-      - name: Boot iOS Simulator
-        id: ios_simulator_ready
-        shell: bash
-        run: |
-          set -euo pipefail
-          DEVICE=$(xcrun simctl list devices available | awk -F '[()]' '/iPhone/ {print $2; exit}')
-          test -n "$DEVICE"
-          xcrun simctl boot "$DEVICE" || true
-          xcrun simctl bootstatus "$DEVICE" -b
-          echo "IOS_DEVICE=$DEVICE" >> "$GITHUB_ENV"
-      - name: Install pinned Maestro CLI
-        id: maestro_cli
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/maestro"
-          curl --fail --location --retry 3 "$MAESTRO_DOWNLOAD_URL" --output "$RUNNER_TEMP/maestro.zip"
-          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$RUNNER_TEMP/maestro"
-          test -x "$RUNNER_TEMP/maestro/maestro/bin/maestro"
-          "$RUNNER_TEMP/maestro/maestro/bin/maestro" --version
-          echo "$RUNNER_TEMP/maestro/maestro/bin" >> "$GITHUB_PATH"
-      - name: Download Automation iOS Simulator app
-        if: ${{ !cancelled() && needs.ios-automation-build.result == 'success' && steps.ios_simulator_ready.outcome == 'success' }}
-        uses: actions/download-artifact@v4
-        with:
-          name: native-ios-app-${{ github.run_id }}
-          path: ${{ runner.temp }}/native-ios-app
-      - name: Install and launch Automation iOS Simulator app
-        id: ios_automation_install
-        if: ${{ !cancelled() && needs.ios-automation-build.result == 'success' && steps.ios_simulator_ready.outcome == 'success' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          APP_PATH="$RUNNER_TEMP/native-ios-app/native-automation.app"
-          test -d "$APP_PATH"
-          xcrun simctl install "$IOS_DEVICE" "$APP_PATH"
-          xcrun simctl launch "$IOS_DEVICE" com.ryuyoshikawa.scenarioshop
-      - name: Run iOS Native Customer Maestro flows
-        if: ${{ !cancelled() && steps.ios_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/maestro-artifacts"
-          overall_status=0
-          run_flow() {
-            local name="$1"
-            local flow="$2"
-            local output_dir="$RUNNER_TEMP/maestro-artifacts/$name"
-            local junit="$RUNNER_TEMP/maestro-$name.xml"
-            mkdir -p "$output_dir"
-            echo "flow=$name"
-            echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            set +e
-            maestro test "$GITHUB_WORKSPACE/maestro/$flow" \
-              --device "$IOS_DEVICE" \
-              --test-output-dir="$output_dir" \
-              --format junit --output "$junit"
-            local status=$?
-            set -e
-            echo "result=$([[ "$status" -eq 0 ]] && echo PASS || echo FAIL)"
-            echo "exit_code=$status"
-            echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            if [[ "$status" -ne 0 ]]; then
-              overall_status=1
-            fi
-          }
-          run_flow test-control native-test-control.yaml
-          run_flow contract-harness native-contract-harness.yaml
-          run_flow not-found native-not-found.yaml
-          run_flow storefront native-storefront.yaml
-          run_flow cart native-cart.yaml
-          run_flow search-input native-search.yaml
-          run_flow restart-persistence native-restart-persistence.yaml
-          run_flow reset-dirty-state native-reset-dirty-state.yaml
-          run_flow boundary-out-of-stock native-out-of-stock.yaml
-          run_flow boundary-low-stock native-low-stock.yaml
-          run_flow boundary-purchase-limit native-purchase-limit.yaml
-          run_flow purchase native-purchase.yaml
-          run_flow payment-retry native-payment-retry.yaml
-          run_flow session-checkout-restart native-session-checkout-restart.yaml
-          run_flow review native-review.yaml
-          exit "$overall_status"
-      - name: Download Production-validation iOS Simulator app
-        if: ${{ !cancelled() && needs.ios-production-build.result == 'success' && steps.ios_simulator_ready.outcome == 'success' }}
-        uses: actions/download-artifact@v4
-        with:
-          name: native-ios-production-app-${{ github.run_id }}
-          path: ${{ runner.temp }}/native-ios-production-app
-      - name: Install and launch Production-validation Simulator app
-        id: production_install
-        if: ${{ !cancelled() && needs.ios-production-build.result == 'success' && steps.ios_simulator_ready.outcome == 'success' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          PRODUCTION_APP_PATH="$RUNNER_TEMP/native-ios-production-app/native-production-validation.app"
-          test -d "$PRODUCTION_APP_PATH"
-          xcrun simctl terminate "$IOS_DEVICE" com.ryuyoshikawa.scenarioshop || true
-          xcrun simctl install "$IOS_DEVICE" "$PRODUCTION_APP_PATH"
-          xcrun simctl launch "$IOS_DEVICE" com.ryuyoshikawa.scenarioshop
-      - name: Run iOS Production-validation Maestro flow
-        if: ${{ !cancelled() && steps.production_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          flow_name="production-validation"
-          output_dir="$RUNNER_TEMP/maestro-artifacts/$flow_name"
-          junit_path="$RUNNER_TEMP/maestro-$flow_name.xml"
-          flow_path="$GITHUB_WORKSPACE/maestro/native-production-validation.yaml"
-          mkdir -p "$output_dir"
-          echo "flow=$flow_name"
-          echo "start_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          set +e
-          maestro test "$flow_path" \
-            --device "$IOS_DEVICE" \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path"
-          flow_exit=$?
-          set -e
-          echo "result=$([[ "$flow_exit" -eq 0 ]] && echo PASS || echo FAIL)"
-          echo "exit_code=$flow_exit"
-          echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-          exit "$flow_exit"
-      - name: Collect iOS runtime evidence
-        if: always()
-        shell: bash
-        run: |
-          set -euo pipefail
-          mkdir -p "$RUNNER_TEMP/native-ios-runtime-evidence"
-          xcodebuild -version > "$RUNNER_TEMP/native-ios-runtime-evidence/xcode-version.txt" || true
-          xcrun simctl list runtimes > "$RUNNER_TEMP/native-ios-runtime-evidence/simulator-runtimes.txt" || true
-          xcrun simctl list devices available > "$RUNNER_TEMP/native-ios-runtime-evidence/simulator-devices.txt" || true
-          printf 'device_id=%s\n' "${IOS_DEVICE:-<unset>}" \
-            > "$RUNNER_TEMP/native-ios-runtime-evidence/selected-device.txt"
-           if [[ -n "${IOS_DEVICE:-}" ]]; then
-             xcrun simctl listapps "$IOS_DEVICE" \
-               > "$RUNNER_TEMP/native-ios-runtime-evidence/installed-apps.txt" || true
-           else
-             echo "Simulator device was not resolved." \
-               > "$RUNNER_TEMP/native-ios-runtime-evidence/installed-apps.txt"
-           fi
-          DIAGNOSE_DIR="$RUNNER_TEMP/native-ios-runtime-evidence/simctl-diagnose"
-          mkdir -p "$DIAGNOSE_DIR"
-          diagnose_status=0
-          if [[ -n "${IOS_DEVICE:-}" ]]; then
-            if printf '\n' | xcrun simctl diagnose \
-              --udid="$IOS_DEVICE" \
-              --output="$DIAGNOSE_DIR" \
-              --no-archive
-            then
-              diagnose_status="${PIPESTATUS[1]}"
-            else
-              diagnose_status="${PIPESTATUS[1]}"
-            fi
-          else
-            diagnose_status=1
-            echo "IOS_DEVICE was not resolved; simctl diagnose was not run." \
-              > "$DIAGNOSE_DIR/diagnose-error.txt"
-          fi
-          diagnose_output_files=0
-          if [[ -d "$DIAGNOSE_DIR" ]]; then
-            diagnose_output_files="$(find "$DIAGNOSE_DIR" -type f | wc -l | tr -d ' ')"
-          fi
-          diagnose_evidence_success=false
-          if [[ "$diagnose_status" -eq 0 && "$diagnose_output_files" -gt 0 ]]; then
-            diagnose_evidence_success=true
-          fi
-          {
-            printf 'simctl_diagnose_exit_code=%s\n' "$diagnose_status"
-            if [[ -d "$DIAGNOSE_DIR" ]]; then
-              printf 'simctl_diagnose_output_exists=true\n'
-            else
-              printf 'simctl_diagnose_output_exists=false\n'
-            fi
-            printf 'simctl_diagnose_output_files=%s\n' "$diagnose_output_files"
-            printf 'simctl_diagnose_evidence_success=%s\n' "$diagnose_evidence_success"
-          } > "$RUNNER_TEMP/native-ios-runtime-evidence/simctl-diagnose-status.txt"
-          if [[ -d "$RUNNER_TEMP/maestro-artifacts" ]]; then
-            cp -R "$RUNNER_TEMP/maestro-artifacts" "$RUNNER_TEMP/native-ios-runtime-evidence/maestro-artifacts"
-          fi
-          for junit in "$RUNNER_TEMP"/maestro-*.xml; do
-            [[ -f "$junit" ]] && cp "$junit" "$RUNNER_TEMP/native-ios-runtime-evidence/"
-          done
-      - uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: native-ios-runtime-evidence-${{ github.run_id }}
-          path: ${{ runner.temp }}/native-ios-runtime-evidence
-          if-no-files-found: warn
-          retention-days: 7
-
   ios-verify:
     name: iOS Native CI Verify
-    needs: [ios-automation-build, ios-production-build, ios-runtime]
+    needs: [ios-automation-build, ios-production-build]
     if: always()
     runs-on: ubuntu-24.04
     steps:
@@ -474,16 +270,13 @@ jobs:
           RUN_NATIVE: ${{ inputs.run_native || github.event_name == 'workflow_dispatch' }}
           AUTOMATION_RESULT: ${{ needs.ios-automation-build.result }}
           PRODUCTION_RESULT: ${{ needs.ios-production-build.result }}
-          RUNTIME_RESULT: ${{ needs.ios-runtime.result }}
         run: |
           set -euo pipefail
           if [[ "$RUN_NATIVE" != "true" ]]; then
             test "$AUTOMATION_RESULT" = skipped
             test "$PRODUCTION_RESULT" = skipped
-            test "$RUNTIME_RESULT" = skipped
             exit 0
           fi
           test "$AUTOMATION_RESULT" = success
           test "$PRODUCTION_RESULT" = success
-          test "$RUNTIME_RESULT" = success
-          echo "All iOS Native CI gates completed successfully."
+          echo "All iOS Native CI build gates completed successfully."

@@ -16,7 +16,7 @@
 - [x] 12. Android／iOS主要MaestroとProduction-validation Flowを追加する。
 - [x] 13. Android／iOS Build／Runtime分離、Artifact、Evidence、final verifyを実装する。
 - [x] 14. CI Contract／Detect Path／EAS／Bundle Guardを更新・検証する。
-- [ ] 15. Web回帰、Native回帰、Android／iOS実Runtime可能性を確認する。
+- [ ] 15. Web回帰、Native回帰、Android実Runtime、iOS Build-only／Remote Gate可能性を確認する。
 - [x] 16. README／PROJECT_CONTEXT／History／Native手順／Phase 2計画を更新する。
 - [x] 17. 自己レビュー、Critical／High判定、Sanitizer Write／Checkを行う。
 - [x] 18. REPORT／run.json／evaluation.jsonを実行事実へ更新し、Remote CI未実施を分離して完了判定する。
@@ -42,9 +42,10 @@
 - [x] 34. PR #14最終修正指示のAndroid／iOS Build分離、Artifact Contract、Review／Storefront Flow、Profile logout回帰を反映し、可能な静的／Android実機ゲートと未実行境界を記録する。
 - [x] 35. PR #14最終修正指示のiOS Deep Link confirmation、全custom scheme Contract、Android Production marker本文検査、iOS diagnose evidence、現行構成文書を反映し、ローカル品質ゲートとAndroid回帰を再検証する。
 - [x] 36. PR #14追加修正指示のiOS Deep Link selector、openLink直後Contract、Android marker full-consumption、iOS diagnose非対話証跡を修正し、positive／negative guardと全品質ゲートを再検証する。
+- [x] 37. PR #14 iOS CI Build-only化指示を反映し、iOS Runtime／simctl／Maestro責務をWorkflowとContractから削除し、iOS Build Gate、現行文書、全品質ゲートを再検証する。
 
 ## Blocked
 
-- iOS Simulator／実`expo-sqlite` Harness／iOS Production-validationは、現行Windowsに`xcodebuild`／`xcrun`／`simctl`がないため実行不能。GitHub-hosted Remote Android／iOS CIと最新Headの`native-ci / verify`は、現行未commit差分を反映したRemote Head／実行権限がないため未実行。コード／静的／Android／Web検証とは独立した外部環境Blockerとして記録する。
+- iOS Simulator Buildのローカル実行と、GitHub-hosted Remote Android／iOS CI／最新Headの`native-ci / verify`は、現行WindowsにXcode／`gh`がなく、Git mutation／pushも禁止のため未実行。iOS Simulator Runtime／Maestro／実`expo-sqlite` Harnessは現行正式Gateの対象外であり、未実行をBlockerやPASSへ扱い替えない。
 
-Progress: 97% (35/36)
+Progress: 97% (36/37)

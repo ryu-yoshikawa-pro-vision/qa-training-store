@@ -17,7 +17,7 @@
 
 Run開始時にRun Planと`.codex/runs/<run_id>/`を作成し、本書のGateとDoDをTaskへ展開します。文書の優先順位とADRによる置換条件はMaster Planに従います。前半ADRは、Master Planの`Accepted`、`Supersedes`、ユーザー承認条件を満たす範囲だけ上位計画を置き換えます。
 
-Phase 2後半では、GitHub Actionsを正式Native CI経路とし、Android EmulatorとiOS Simulatorを正式実行環境とします。EAS Profile／Workflowは将来用の静的契約として維持しますが、EAS Cloud Build／Workflow／Submitを実行完了条件に含めません。
+Phase 2後半では、GitHub Actionsを正式Native CI経路とし、Android Emulator RuntimeとiOS Simulator Buildを正式実行範囲とします。iOS Simulator Runtime／Maestro／実`expo-sqlite` Runtimeは正式Gate対象外です。EAS Profile／Workflowは将来用の静的契約として維持しますが、EAS Cloud Build／Workflow／Submitを実行完了条件に含めません。
 
 ## 1. ゴール
 
@@ -35,9 +35,9 @@ Phase 2後半では、GitHub Actionsを正式Native CI経路とし、Android Emu
 - Payment Delayを含むTest Control
 - 購入系Contract Harness
 - Android Emulator上のMaestro必須Flow
-- iOS Simulator上の主要購入Flowと実`expo-sqlite` Contract Harness
-- GitHub Actions上のAndroid/iOS Native CI Gate
-- Android/iOS最終Production-validation
+- iOS Simulator向けAutomation／Production-validation BuildとBuild-time契約
+- GitHub Actions上のAndroid Runtime／iOS Build-only Native CI Gate
+- Android Production-validation RuntimeとiOS Production Build guard
 - Native開発、Build、検証、運用手順
 
 画面数を増やすことではなく、WebとNativeで同じ業務契約、状態遷移、失敗状態を決定的に検証できることを優先します。
@@ -66,11 +66,11 @@ Phase 2後半は、前半成果が`main`へマージ済みであることを前�
 - Deep Link Reset Version 1が成功する。
 - 前半のCritical/High不具合が残っていない。
 
-iOS Simulator CIに関するBaseline成功を除き、上記の前半基盤条件に未達がある場合は、その未達を後半機能実装へ黙って混在させません。前半契約の回帰・未完了として分類し、依存しない確認作業は継続しつつ、当該基盤へ依存する後半実装は保留して理由と影響をRun Artifactへ記録します。
+iOS Simulator Build-only CIに関するBaseline成功を除き、上記の前半基盤条件に未達がある場合は、その未達を後半機能実装へ黙って混在させません。前半契約の回帰・未完了として分類し、依存しない確認作業は継続しつつ、当該基盤へ依存する後半実装は保留して理由と影響をRun Artifactへ記録します。
 
-iOS Simulator Build／Maestro／実`expo-sqlite` Smokeの成功は、後半Goalを開始するための停止条件にしません。後半Runの最初に現行`.github/workflows/native-ios-ci.yml`をBaselineとして確認し、失敗する場合は原因を分類してPhase 2後半の修正対象に含めます。
+iOS Simulator Runtime／Maestro／実`expo-sqlite` Smokeの成功は、後半Goalの開始条件にも正式DoDにも含めません。後半Runでは現行`.github/workflows/native-ios-ci.yml`のBuild-only契約を確認し、iOS Buildの失敗だけをPhase 2後半のCI修正対象に含めます。
 
-一つのPlatformやJobが失敗しても、依存しないPlatform、Web回帰、静的検証、実装を進められるところまで継続します。ただしPhase 2最終完了時にはAndroid/iOSの正式Native CI Gateをすべて成功させます。
+一つのPlatformやJobが失敗しても、依存しないPlatform、Web回帰、静的検証、実装を進められるところまで継続します。ただしPhase 2最終完了時にはAndroid Runtime GateとiOS Build Gateをすべて成功させます。
 
 ## 3. 前半から維持する契約
 
@@ -175,8 +175,8 @@ iOS Simulator Build／Maestro／実`expo-sqlite` Smokeの成功は、後半Goal�
 - Harnessは定義済みContract Suiteだけを専用DB/KVで実行する。
 - Harness Cleanupと既存SeedレコードによるApplication DB不変確認が成功する。
 - 確認用レコードのための専用Table、Entity、Repository、Use Caseがない。
-- Android EmulatorとiOS Simulatorの両方で購入系Harnessを実行できる。
-- iOSの実SQLite確認は、Simulator上のビルド済みNative Appで実`expo-sqlite` Runtimeを使う。Node側SQLite Testでは代替しない。
+- Android Emulatorで購入系Harnessを実行できる。iOS向け共通Harness実装は保持するが、iOS Simulator Runtime実行は正式DoDに含めない。
+- iOSの実`expo-sqlite` Runtime確認は正式Native CI／Phase 2完了条件の対象外とする。Node側SQLite Testは共有Contractとして維持する。
 - Production-validationでTest ControlとHarnessを利用できない。
 
 ### 4.7 Native Component Test / TypeScript型境界
@@ -256,8 +256,6 @@ Detect Native Changes
   └─ Native iOS CI
      ├─ iOS Automation Build ─────┐
      ├─ iOS Production Build ─────┤
-     │                            └─ iOS Runtime / Maestro
-     │                                  ↓
      └──────────────────────────── iOS Native CI Verify
                 ↓
          native-ci / verify
@@ -272,19 +270,18 @@ Detect Native Changes
 - Web CIとCloudflare DeployはNative CI完了待ちにしない。
 - SecretやCredentialをRepository、Bundle、Artifact、Logへ露出しない。
 
-#### iOS Simulator CI
+#### iOS Simulator Build-only CI
 
-既存`.github/workflows/native-ios-ci.yml`をPhase 2後半で正式Native Gateへ昇格します。
+既存`.github/workflows/native-ios-ci.yml`をPhase 2後半のBuild-only正式Native Gateとして運用します。
 
 - GitHub-hosted macOS Runnerを使用する。
 - Expo prebuild、CocoaPods、Xcode BuildをCI内で実行する。
 - Automation Build／Production-validation Buildはいずれも`iphonesimulator`向けRelease Buildを生成する。
 - Automation Build／Production-validation Buildはいずれも`CODE_SIGNING_ALLOWED=NO`とし、Apple署名、Provisioning Profileを要求しない。
-- SimulatorをBootし、`.app`をInstallして起動する。
-- Maestroで主要購入FlowとContract Harnessを実行する。
+- `Release-iphonesimulator`配下の`.app`を検出し、Automation／Productionの固定名ArtifactとしてUploadする。
+- Simulator boot／install／launch、Maestro、Contract Harness、Production-validation Runtimeは正式CI責務に含めない。
 - iOS WorkflowはNative CIから呼び出せる構成にし、単独の`workflow_dispatch`も必要に応じて維持する。
-- Xcode Version、Simulator Runtime／Device、Build結果、JUnit、Screenshot、Hierarchy、Harness結果をEvidence化する。
-- 成功時のEvidenceは軽量にし、失敗時は`simctl diagnose`等の詳細診断を収集する。
+- Xcode Version、Build結果、`.app`生成状態、Build logをEvidence化する。
 
 #### Production-validation
 
@@ -308,9 +305,9 @@ extra.testMode === "false"
 
 - Android/iOS両方でProduction-validation Buildを生成できる。
 - iOS Production-validationも`iphonesimulator`向け・署名なしBuildとし、実機署名経路へ切り替えない。
-- Production-validation AppをEmulator／Simulatorで起動できる。
-- Test Control Deep Link、Service、UI、Handler、Contract Harnessが利用不能である。
-- Production Bundle Guardだけで実Runtime確認を代替しない。
+- Android Production-validation AppをEmulatorで起動でき、Test Control／Harnessが利用不能である。
+- iOS Production BuildはmetadataとBuild-time marker guardでAutomation／Harness不在を検証する。
+- iOS Simulator上のProduction-validation Runtimeは正式Gate対象外である。
 - Automation BuildとProduction-validation BuildのEvidenceを区別する。
 
 #### EASの扱い
@@ -377,7 +374,7 @@ extra.testMode === "false"
 完了条件:
 
 - 最新`main`の前半静的／Native Test Baselineを確認する。
-- 現行iOS Simulator WorkflowをBaseline実行または構成確認し、失敗時は原因を分類する。
+- 現行iOS Simulator Build-only Workflowを構成確認し、Build／metadata／Artifact失敗時は原因を分類する。
 - Login、拒否、Session復元、Role対象外、Guest Cart統合がAndroid/iOSで成立する。
 - PBKDF2互換とKV復元/削除契約を維持する。
 - Customer Transaction ScopeだけでCart統合が動作する。
@@ -411,14 +408,13 @@ extra.testMode === "false"
 - 専用SeedからReview投稿/編集/削除が成立する。
 - Review Summary TransactionとForeign Keyが成功する。
 
-### Gate E: Cross-platform Automation
+### Gate E: Android Automation／共通Flow
 
 完了条件:
 
 - Deep Link ResetとAndroid Maestro必須Flowが連続成功する。
-- iOS Simulatorで主要購入Maestro Flowが連続成功する。
-- Android/iOSでNative Contract Harness購入系Suiteが成功する。
-- iOS HarnessはSimulator上の実`expo-sqlite` Runtimeで実行する。
+- AndroidでNative Contract Harness購入系Suiteが成功する。
+- 共通Maestro YAMLとiOS conditional handlerはソース互換性のため維持するが、iOS Runtime PASSはこのGateの完了条件にしない。
 - Harness Cleanupと既存Seedレコード確認が成功する。
 - Android/iOSで共用可能なFlowは同じYAMLを使用し、不要なPlatform重複を作らない。
 
@@ -432,7 +428,7 @@ extra.testMode === "false"
 - Android/iOS Automation Build結果を分離して記録する。
 - Android/iOS Production-validation Metadataが`"production" / "production" / "false"`である。
 - iOS Production-validationはSimulator向け署名なしBuildとして実行し、Apple署名を要求しない。
-- Android/iOSの実RuntimeでTest Control/Harness無効化を確認する。
+- Android Production-validation RuntimeでTest Control/Harness無効化を確認し、iOSはBuild-time guardでmarker不在を確認する。
 - `typecheck:app`と`typecheck:native-tests`が成功する。
 - Web CIとCloudflare DeployがNative Workflowに依存しない。
 - EAS Profile／Workflowは静的検証のみで、Cloud実行を要求しない。
@@ -441,7 +437,7 @@ extra.testMode === "false"
 
 完了条件:
 
-- Android/iOS主要Flow、全Native Test、Web Test/Build/Playwrightが成功する。
+- Android主要Flow、全Native Test、Web Test/Build/Playwrightが成功する。
 - GitHub Actionsの正式Native Gateが最新Headで成功する。
 - Vitest/Jest型境界、Foreign Key、Harness隔離、KV契約が維持される。
 - Critical/Highが残っていない。
@@ -476,10 +472,10 @@ extra.testMode === "false"
 - Native Component Test
 - Deep Link Test ControlとPayment Delay
 - 専用DB/KVを使う購入系Contract Harness
-- Android/iOS Maestro主要Flow
+- Android Maestro主要Flowと共通Flow定義
 - Android Emulator正式CI
-- iOS Simulator正式CI
-- Android/iOS Production-validation
+- iOS Simulator Build-only正式CI
+- Android Production-validation Runtime／iOS Production Build guard
 - Native CI Contract Test
 - Platform別JUnit／Maestro／Build Evidence
 - Native開発、Build、CI、検証手順
@@ -509,23 +505,23 @@ EAS Cloud Build／Workflow成果物、iOS署名済みIPA、TestFlight／App Stor
 ### 実環境での完了
 
 - Android GitHub Actions Build、Emulator起動、主要操作、Maestro、実SQLite Harness
-- iOS GitHub Actions Simulator Build、Install、起動、商品探索、Cart、Login、Guest Cart統合、Checkout、Order、Payment再試行、Session/Checkout復元、Review、実`expo-sqlite` Contract Harness
-- Harness DB/KV隔離、Cleanup、既存Seedレコード確認
-- Android/iOS Production-validation MetadataとTest Control/Harness無効確認
+- iOS GitHub Actions Simulator向けAutomation／Production Build、Build metadata、Production guard、`.app` Artifact validation
+- Android Harness DB/KV隔離、Cleanup、既存Seedレコード確認
+- Android Production-validation RuntimeとiOS Production Build-time guard
 - 最新Headの`native-ci / verify`成功
 
-実行していない項目をPASSとしません。iOS Simulator正式Gateが未成功の場合、Phase 2を完全完了とせず「コード完了・iOS CI検証未完了」と記録します。
+実行していない項目をPASSとしません。iOS Simulator Runtime／Maestro／実`expo-sqlite` Harnessは正式Gate対象外ですが、iOS Buildまたは修正HeadのRemote Native CIを実行していない場合は、その未確認範囲を明記します。
 
 物理iPhone、iOS実機署名、Provisioning Profile、IPA、TestFlight、App Store、Self-hosted Mac、EAS Cloud Build／Workflow／SubmitはPhase 2最終完了判定に含めません。
 
 Phase 2完了後もPhase 3へ自動で進みません。最終報告でPhase 3候補、優先度、依存関係を提示して停止します。
 
-## 11. 現行Runの判定（2026-08-08）
+## 11. 現行Runの判定（2026-08-09）
 
 - コード、Unit／Integration／Repository／Web／Native Component／Contract、Typecheck、Lint、Security、Web Build、Native Production Bundle Guard、Workflow Contract、Android現行ソースの実機検証は完了した。
 - Androidでは購入系Maestro、Payment retry、Session／Checkout restart、Review、Runtime／Boundary、Production validationを実行済みである。
-- iOS SimulatorのBuild／Install／Maestro／実`expo-sqlite` Harnessと、GitHub-hosted Remote Native CI／最新Headの`native-ci / verify`は、Windows・未push条件のため未実施である。これらをPASSに繰り上げず、Phase 2最終DoDはpendingとする。
-- 次の実行では、`native-ios-ci.yml`のBuild／Runtime／Production Artifact、iOS主要Flow、実`expo-sqlite` Harness、Production marker、親WorkflowのAndroid／iOS独立結果、最終`native-ci / verify`を同一Headで確認する。
+- iOS Simulator Buildのローカル実行と、GitHub-hosted Remote Native CI／最新Headの`native-ci / verify`は、Windows・未push条件のため未実施である。iOS Runtime／Maestro／実`expo-sqlite` Harnessは正式Gate対象外であり、未実行をPASSに繰り上げない。
+- 次の実行では、`native-ios-ci.yml`のAutomation／Production Build、Build-time metadata／Production guard、`.app` Artifact、親WorkflowのAndroid／iOS Build独立結果、最終`native-ci / verify`を同一Headで確認する。
 
 ## 12. Phase 3／後続課題
 

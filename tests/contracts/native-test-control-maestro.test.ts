@@ -150,19 +150,6 @@ describe("Native Test Control Maestro contracts", () => {
     expect(source).not.toContain("NativeTestControlBridge");
   });
 
-  it("does not send a second iOS reset URL before Maestro", () => {
-    const source = readFileSync(join(process.cwd(), ".github/workflows/native-ios-ci.yml"), "utf8");
-    const firstMaestroIndex = source.indexOf("maestro test");
-    expect(firstMaestroIndex).toBeGreaterThanOrEqual(0);
-    expect(source.slice(0, firstMaestroIndex)).not.toContain("simctl openurl");
-    expect(source).not.toContain("scenario-shop://test-control/reset");
-    expect(source).toContain("MAESTRO_VERSION: 2.8.0");
-    expect(source).toContain(
-      "MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip",
-    );
-    expect(source).toContain("$RUNNER_TEMP/maestro/maestro/bin/maestro");
-  });
-
   it("keeps IME-dependent search input separate from known-product flows", () => {
     const primaryFlowNames = [
       "native-storefront.yaml",

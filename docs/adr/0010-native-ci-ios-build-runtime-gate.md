@@ -3,6 +3,7 @@
 - Status: Accepted
 - Date: 2026-08-08
 - Approved-by: user `/goal` request for Phase 2後半
+- Superseded-by: ADR-0011（2026-08-09）
 
 ## Context
 

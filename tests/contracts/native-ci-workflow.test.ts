@@ -267,29 +267,31 @@ describe("Native CI workflow contracts", () => {
 describe("Native iOS CI workflow contracts", () => {
   it("builds Automation and Production independently from clean jobs", () => {
     const automation = jobBlock(iosWorkflow, "ios-automation-build", "ios-production-build");
-    const production = jobBlock(iosWorkflow, "ios-production-build", "ios-runtime");
+    const production = jobBlock(iosWorkflow, "ios-production-build", "ios-verify");
 
     expect(automation).toContain("name: iOS Automation Build");
     expect(production).toContain("name: iOS Production-validation Build");
     expect(automation).not.toContain("needs:");
     expect(production).not.toContain("needs:");
     expectInOrder(automation, [
-      "Verify Automation runtime metadata",
+      "Verify Automation build metadata",
       "Run Expo prebuild",
       "Install CocoaPods",
       "xcodebuild \\",
       "Release-iphonesimulator",
-      "actions/upload-artifact@v4",
+      "Save Automation iOS Simulator app artifact",
+      "Upload Automation iOS Simulator app",
     ]);
     expectInOrder(production, [
-      "Verify Production runtime metadata",
+      "Verify Production build metadata",
       "Run Expo prebuild",
       "Install CocoaPods",
       "xcodebuild \\",
       "-configuration Release",
       "iOS Production Validation / Bundle Guard",
       "Release-iphonesimulator",
-      "actions/upload-artifact@v4",
+      "Save Production-validation iOS Simulator app artifact",
+      "Upload Production-validation iOS Simulator app",
     ]);
     expect(automation).toContain("EXPO_PUBLIC_APP_ENV: automation");
     expect(automation).toContain("EXPO_PUBLIC_BUILD_KIND: automation");
@@ -308,10 +310,9 @@ describe("Native iOS CI workflow contracts", () => {
     expect(production).not.toContain("ios-automation-build");
   });
 
-  it("keeps iOS app producer and consumer paths explicit", () => {
+  it("keeps iOS Simulator app build artifact producer paths explicit", () => {
     const automation = jobBlock(iosWorkflow, "ios-automation-build", "ios-production-build");
-    const production = jobBlock(iosWorkflow, "ios-production-build", "ios-runtime");
-    const runtime = jobBlock(iosWorkflow, "ios-runtime", "ios-verify");
+    const production = jobBlock(iosWorkflow, "ios-production-build", "ios-verify");
 
     for (const contract of [
       {
@@ -319,109 +320,53 @@ describe("Native iOS CI workflow contracts", () => {
         artifact: "native-ios-app-${{ github.run_id }}",
         saved: "native-automation.app",
         directory: "native-ios-app",
-        download: "Download Automation iOS Simulator app",
-        variable: "APP_PATH",
+        variable: "ARTIFACT_APP_PATH",
       },
       {
         producer: production,
         artifact: "native-ios-production-app-${{ github.run_id }}",
         saved: "native-production-validation.app",
         directory: "native-ios-production-app",
-        download: "Download Production-validation iOS Simulator app",
-        variable: "PRODUCTION_APP_PATH",
+        variable: "PRODUCTION_ARTIFACT_APP_PATH",
       },
     ]) {
       expect(contract.producer).toContain(`name: ${contract.artifact}`);
       expect(contract.producer).toContain("path: ${{ runner.temp }}/" + contract.directory);
       expect(contract.producer).toContain(`$RUNNER_TEMP/${contract.directory}/${contract.saved}`);
-      expect(runtime).toContain(`- name: ${contract.download}`);
-      expect(runtime).toContain(`name: ${contract.artifact}`);
-      expect(runtime).toContain("path: ${{ runner.temp }}/" + contract.directory);
-      expect(runtime).toContain(
+      expect(contract.producer).toContain(
         `${contract.variable}="$RUNNER_TEMP/${contract.directory}/${contract.saved}"`,
       );
-      expect(runtime).toContain(`xcrun simctl install "$IOS_DEVICE" "$${contract.variable}"`);
+      expect(contract.producer).toContain(`test -d "$${contract.variable}"`);
+      expect(contract.producer).toContain("Release-iphonesimulator");
     }
-  });
-
-  it("boots the iOS Simulator separately and runs the matching Runtime branch", () => {
-    const runtime = jobBlock(iosWorkflow, "ios-runtime", "ios-verify");
-
-    expect(runtime).toContain("needs: [ios-automation-build, ios-production-build]");
-    expect(runtime).toContain("always()");
-    expect(runtime).toContain("needs.ios-automation-build.result == 'success'");
-    expect(runtime).toContain("needs.ios-production-build.result == 'success'");
-    expect(runtime).toContain("id: ios_simulator_ready");
-    expect(runtime).toContain("id: ios_automation_install");
-    expect(runtime).not.toContain("xcodebuild -workspace");
-    expect(runtime).not.toContain("expo prebuild");
-    expect(runtime).not.toContain("pod install");
-    expect(runtime).not.toContain("CODE_SIGNING_ALLOWED=NO");
-    expect(runtime).not.toContain("ios_runtime_ready");
-    expectInOrder(runtime, [
-      "Boot iOS Simulator",
-      "Install pinned Maestro CLI",
-      "Download Automation iOS Simulator app",
-      "Install and launch Automation iOS Simulator app",
-      "Run iOS Native Customer Maestro flows",
-      "Download Production-validation iOS Simulator app",
-      "Install and launch Production-validation Simulator app",
-      "Run iOS Production-validation Maestro flow",
-    ]);
-  });
-
-  it("collects iOS simctl diagnose evidence for the selected device", () => {
-    const runtime = jobBlock(iosWorkflow, "ios-runtime", "ios-verify");
-    const evidenceStart = runtime.indexOf("- name: Collect iOS runtime evidence");
-    const evidence = runtime.slice(evidenceStart);
-
-    expect(evidenceStart).toBeGreaterThanOrEqual(0);
-    expect(evidence).toContain('--udid="$IOS_DEVICE"');
-    expect(evidence).toContain('--output="$DIAGNOSE_DIR"');
-    expect(evidence).toContain("--no-archive");
-    expect(evidence).toContain("printf '\\n' | xcrun simctl diagnose");
-    expect(evidence).toContain('diagnose_status="${PIPESTATUS[1]}"');
-    expect(evidence).toContain("simctl-diagnose-status.txt");
-    expect(evidence).toContain("simctl_diagnose_exit_code");
-    expect(evidence).toContain("simctl_diagnose_output_exists");
-    expect(evidence).toContain("simctl_diagnose_output_files");
-    expect(evidence).toContain('[[ "$diagnose_status" -eq 0 && "$diagnose_output_files" -gt 0 ]]');
-    expect(evidence).toContain("simctl_diagnose_evidence_success");
-    expect(evidence).toContain("if: always()");
-  });
-
-  it("runs all iOS automation flows before failing and keeps Production independent", () => {
-    const runtime = jobBlock(iosWorkflow, "ios-runtime", "ios-verify");
-    const automationStart = runtime.indexOf("- name: Run iOS Native Customer Maestro flows");
-    const productionInstallStart = runtime.indexOf(
-      "- name: Install and launch Production-validation Simulator app",
-    );
-    const productionFlowStart = runtime.indexOf(
-      "- name: Run iOS Production-validation Maestro flow",
-    );
-    const automation = runtime.slice(automationStart, productionInstallStart);
-    const productionInstall = runtime.slice(productionInstallStart, productionFlowStart);
-    const productionFlow = runtime.slice(productionFlowStart);
-
-    expect(automation).toContain("overall_status=0");
-    expect(automation).toContain("overall_status=1");
-    expect(automation).toContain('exit "$overall_status"');
-    expect((automation.match(/^\s+run_flow /gm) ?? []).length).toBe(15);
-    expect(productionInstall).toContain("needs.ios-production-build.result == 'success'");
-    expect(productionFlow).toContain("steps.production_install.outcome == 'success'");
-    expect(productionFlow).not.toContain("ios_automation_install");
-    expect(iosWorkflow).not.toContain("continue-on-error: true");
+    expect(iosWorkflow).toContain("if-no-files-found: error");
+    expect(iosWorkflow).not.toContain("actions/download-artifact@v4");
   });
 
   it("has a fail-closed iOS aggregate and no-build skip contract", () => {
     const verify = jobBlock(iosWorkflow, "ios-verify");
-    expect(verify).toContain("needs: [ios-automation-build, ios-production-build, ios-runtime]");
+    expect(verify).toContain("needs: [ios-automation-build, ios-production-build]");
     expect(verify).toContain("if: always()");
     expect(verify).toContain('test "$AUTOMATION_RESULT" = success');
     expect(verify).toContain('test "$PRODUCTION_RESULT" = success');
-    expect(verify).toContain('test "$RUNTIME_RESULT" = success');
     expect(verify).toContain('test "$AUTOMATION_RESULT" = skipped');
     expect(verify).toContain('test "$PRODUCTION_RESULT" = skipped');
-    expect(verify).toContain('test "$RUNTIME_RESULT" = skipped');
+    expect(verify).not.toContain("RUNTIME_RESULT");
+  });
+
+  it("removes iOS Simulator Runtime machinery from the Build-only workflow", () => {
+    expect(iosWorkflow).not.toContain("ios-runtime:");
+    for (const runtimeOnlyToken of [
+      "simctl",
+      "IOS_DEVICE",
+      "MAESTRO",
+      "maestro test",
+      "native-ios-runtime-evidence",
+      "actions/download-artifact@v4",
+      "Runtime / Maestro",
+    ]) {
+      expect(iosWorkflow).not.toContain(runtimeOnlyToken);
+    }
+    expect(iosWorkflow).not.toContain("continue-on-error: true");
   });
 });

@@ -936,3 +936,32 @@
 
 - Run／Evaluation JSON parse、5件のRun Artifact Prettier、`git diff --check`（CRLF変換warningのみ）、Sanitizer Write／Check（5 files、0 replacements、0 residual findings）をPASSした。
 - 既存のiOS／Remote未実行境界と`partial`／`missing_validation`判定は変更しない。Progress: 97% (35/36)。
+
+## 2026-08-09 21:00 JST — PR #14 iOS CI Build-only化（Iteration 28）
+
+- 添付された「iOS CI Build-only化」指示を全文確認した。これは一時的なskipではなく、iOS Simulatorを継続的にローカル再現・デバッグできる環境を現行運用で保持しないため、GitHub-hosted macOS Runnerだけに依存するRuntime CIの保守性が低いという正式な保証範囲変更である。Androidは継続的に再現・デバッグできるためRuntime Gateを維持する。
+- `.github/workflows/native-ios-ci.yml`から`ios-runtime` Jobと、Simulator選択／boot、`.app` download／install／launch、Maestro CLI／Flow、Test Control／Contract Harness／Search／Review／Purchase／Payment Retry／Session Restart、Production-validation Runtime、JUnit／Screenshot／Runtime Evidence、`simctl diagnose`を削除した。iOS WorkflowにRuntime helper、`IOS_DEVICE`、Maestro env、`simctl`、Runtime artifact名は残していない。
+- iOS Automation／Production Buildは独立したまま、`EXPO_PUBLIC_APP_ENV`／`EXPO_PUBLIC_BUILD_KIND`／`EXPO_PUBLIC_TEST_MODE`、Expo prebuild、CocoaPods、unsigned Release `iphonesimulator` Build、`Release-iphonesimulator`配下の`.app`検出、Build-time metadata／Production guard、固定名Artifact保存／Uploadを維持した。`ios-verify`は`ios-automation-build`と`ios-production-build`だけをneedsに持ち、Native変更時は両Build success、変更なし時は両Build skippedをfail-closeで要求する。
+- `tests/contracts/native-ci-workflow.test.ts`をBuild-only仕様へ更新した。iOSのBuild metadata、`.app`生成、固定名保存、Artifact upload、両BuildのみのAggregateを検証し、`ios-runtime`／`simctl`／`IOS_DEVICE`／Maestro／download-artifact／Runtime evidenceがiOS Workflowへ再侵入しないことを固定した。Android側のRuntime／Production marker／final fail-close Contractは維持した。
+- 共通Maestro YAML、`accept-ios-deep-link.yaml`、`tests/contracts/native-test-control-maestro.test.ts`は今回削除していない。iOS Runtime成立をRequired Contractとして扱う契約は既に今回のWorkflow Contractから除去し、Android回帰を避けるための共通Flowソースだけを保持した。iOS Search／Review固有Failureの追加修正も行っていない。
+- 現行保証範囲をREADME、PROJECT_CONTEXT、Phase 2 Master／後半計画へ同期し、ADR-0010へSuperseded-byを追記してADR-0011を追加した。現行仕様は「AndroidはBuild + Runtime E2E」「iOSはAutomation／Production-validation Simulator Build + Build-time契約」であり、iOS Simulator Runtime／Maestro／実`expo-sqlite` Harness／Production-validation Runtimeは正式Gate対象外と記録した。過去のHistory記録は改変していない。
+- 検証前の静的確認では、`native-ios-ci.yml`に`ios-runtime:`、`simctl`、`IOS_DEVICE`、`MAESTRO`、`maestro test`、`native-ios-runtime-evidence`、`actions/download-artifact@v4`が残っていないこと、Top-level `native-ci / verify`が従来どおり`native-ios` reusable workflow結果をRequiredとしていることを確認した。
+- iOS実Build／Remote Native CI／最新Headの最終`native-ci / verify`は、WindowsにXcode／`gh`がなく、Git mutation／push禁止のためNOT RUN。iOS Runtimeは正式Gate対象外であり、未実行をPASSへ繰り上げない。既存Android Reviewの標準日本語IME依存Failureも今回の方針変更で修正しない。
+- 判定は実装・Contract・文書反映後の品質ゲート再実行まで保留する。Progress: 95% (35/37)。
+
+## 2026-08-09 21:12 JST — Iteration 28 品質ゲート完了
+
+- 旧iOS Runtime前提の`native-test-control-maestro.test.ts` 1テストがFocused実行で失敗した。原因は削除済みiOS WorkflowのMaestro／simctl／`MAESTRO_VERSION`を必須にする旧Contractであり、iOS Runtime責務の削除と因果が一致するため、そのContractだけを削除した。共通Maestro Flow、Deep Link、Test Control／HarnessのAndroid側契約は変更していない。
+- 修正後のFocused Contractは`tests/contracts/native-ci-workflow.test.ts`／`tests/contracts/native-test-control-maestro.test.ts`の2 files／45 tests PASS。全`pnpm run test:contracts`は23 files／157 tests PASS。減少分はiOS Runtime／Maestro前提Contractの削除であり、Test Control／共通Flowの契約抜けではない。
+- `pnpm run lint:markdown`は176 files／0 issues、`pnpm run format:check` PASS、`pnpm run lint`は0 errors／64 warnings、`pnpm run typecheck` PASS、`pnpm run test:component:native`は12 suites／47 tests、`pnpm run test:repository`は5 files／33 tests、`pnpm run check:native-route-dependencies`は38 routes、`pnpm run validate:eas:config` PASS。
+- `pnpm run verify`はexit 0で完了した。Format、Markdownlint、Lint、Typecheck、Image／Security、Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 47、Contract 157、Web export 2296をPASSした。既存Lint warningとReact `act(...)` console warning以外の失敗はない。
+- iOS Build-only静的scanは、iOS Workflowから`ios-runtime`／`simctl`／`IOS_DEVICE`／Maestro env／`maestro test`／`native-ios-runtime-evidence`／`actions/download-artifact`を除去済みであることを確認した。`git diff --check`はCRLF変換warningのみでexit 0。
+- iOS実Build、修正HeadのRemote Native CI／最終`native-ci / verify`は、WindowsにXcode／`gh`がなく、未push・Git mutation禁止のためNOT RUN。iOS Simulator Runtime／Maestro／実`expo-sqlite` Harness／Production-validation Runtimeは正式Gate対象外であり、未実行をPASS扱いしない。Android Reviewの物理日本語IME依存Failureは今回の方針変更の範囲外として修正していない。
+- 判定は`partial`／`missing_validation`。iOS Build／Remote結果が未取得のため最終Remote確認は未完了だが、今回定義したBuild-only方針への実装・Contract・文書・ローカル品質ゲートは完了した。Progress: 97% (36/37)。
+
+## 2026-08-09 21:16 JST — Iteration 28 最終Artifact gate
+
+- `node` YAML parseで`.github/workflows/native-ios-ci.yml`と`.github/workflows/native-ci.yml`をPASSした。iOS WorkflowのRuntime machinery scanは0件、Run／Evaluation JSON parseもPASSした。
+- `git diff --check`はexit 0（GitのLF→CRLF変換warningのみ）。`scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はfiles_scanned 5、files_changed 0、replacements_total 0、residual_findings 0でPASSした。
+- PR本文更新案: 保証範囲を「Android: Automation／Production Build + Emulator Runtime／Maestro／Contract Harness／Production-validation Runtime」「iOS: Automation／Production-validation Simulator Build + Build-time metadata／Production guard／Artifact validation」へ明記し、iOS Simulator Runtime／Maestro／実`expo-sqlite` Harness／Production-validation Runtimeを正式Gateとして扱う記述を削除する。タイトル案は`feat: Phase 2 Native購入フローとAndroid Runtime／iOS Build検証を完成する`。GitHub上のPRタイトル／本文は変更していない。
+- 最終判定は`partial`／`missing_validation`。iOS Build実行と修正HeadのRemote Native CI／final `native-ci / verify`は未実行だが、iOS Runtime未実行は現行正式Gateの未達ではない。Progress: 97% (36/37)。

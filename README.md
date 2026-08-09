@@ -370,17 +370,27 @@ pnpm run verify
 - Deep Link Pure Function、Native Scenario Allowlist、Guest Mutation拒否、Reset rollback、Harness signal順序、Variation未選択のUnit／Contract／Component Test
 - Native Customer Application Use Case共有配線、Production Module Resolution、生成BundleのProduction Bundle Guard
 - Native Asset生成差分、Typecheck、Lint、Security、Node SQLite／Web／Native回帰（個別の実行結果はRun Artifactを参照）
-- Android／iOS CI Workflow定義、Build／Runtime／Artifact／final verifyのWorkflow契約Test
+- Android／iOS CI Workflow定義、Android Build／Runtime、iOS Build-only／Artifact／final verifyのWorkflow契約Test
 - 現行Android実機では、変更後Automation APKのBuild `20260808-231500-android-postfix-build`、Install／Smoke、Guest Cart数量1→Login統合後数量2を含むPurchase 1/1、Payment retry、Checkout restart、Review、Runtime 5/5、Boundary 5/5を確認した。Postfix後の現行Production APKも短縮Workspace条件でBuild／marker guard／Install／Smoke／Production validation 1/1を確認した。Web Chromium Regressionは27/27 PASSした。
 - 最終自己レビューでは、Native SQLiteのRow／Enum／集計値をRuntime parserへ統一し、Customer Transaction ScopeのallowlistとAdmin placeholderのfail-close境界を追加した。全Test（Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 158）、Typecheck、対象PrettierはPASSした。
 
 #### 未実施・判定保留
 
-- WindowsではXcode／iOS Simulatorがないため、iOS Simulator Build／Install／Maestro／実`expo-sqlite` Runtimeは未実行。WorkflowのiOS BuildはAutomation／Productionの独立Jobで生成し、Runtimeは成功した各Artifactを個別に受け取る構成を静的確認した。
+- WindowsではXcode／iOS Simulatorがないため、iOS Simulator Buildは未実行。現行の正式CIではiOSはAutomation／Productionの独立Build、Build-time metadata／Production guard、Artifact uploadまでをRequiredとし、Simulator Runtime／Maestro／実`expo-sqlite` Runtimeは正式Gate対象外である。
 - 現在の未commit差分はRemoteへpushしていないため、GitHub-hosted Native CI、最新Headの`native-ci / verify`、Remote Artifact取得は未実行。
 - EAS Cloud Build／Workflow／Submit、Store公開、PR本文更新はPhase 2の対象外。
 
-過去のGitHub Actions run `30775548618`の`sdkmanager: command not found`は修正前ベースラインであり、現行Workflowの成功結果を示すものではありません。コード／静的検証／Androidローカル検証は完了していますが、iOSとRemote CIが未実施のため、Phase 2全体は完了扱いにしません。
+#### 現行Native CIの保証範囲
+
+```text
+Android: Build + Emulator Runtime / Maestro / Contract Harness / Production-validation Runtime
+iOS:    Automation Simulator Build + Production-validation Simulator Build
+        + Build-time metadata／Production guard／Artifact validation
+```
+
+iOS Simulator Runtime、iOS Maestro、実`expo-sqlite` Contract Harness、iOS Production-validation Runtimeは正式Native CI Gate対象外です。これはCIの一時的なskipではなく、iOS Simulatorを継続的にローカル再現・デバッグできる環境を現行運用で保持しないため、iOSの保守可能な保証範囲をBuildとBuild-time契約へ限定する設計判断です。Androidは継続的に再現・デバッグできるためRuntime Gateを維持します。
+
+過去のGitHub Actions run `30775548618`の`sdkmanager: command not found`は修正前ベースラインであり、現行Workflowの成功結果を示すものではありません。コード／静的検証／Androidローカル検証は完了していますが、修正HeadのRemote CI結果が未取得のため、最終Remote Gateは未確認として扱います。
 
 ## アーキテクチャ
 

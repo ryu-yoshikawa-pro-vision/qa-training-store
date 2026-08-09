@@ -39,6 +39,7 @@
         "docs/PROJECT_CONTEXT.md",
         "docs/adr/0009-native-purchase-sqlite-capability.md",
         "docs/adr/0010-native-ci-ios-build-runtime-gate.md",
+        "docs/adr/0011-native-ci-ios-build-only-gate.md",
         "docs/history/2026-08-08_181058_native-purchase-automation.md",
         "docs/history/2026-08-08_222951_native-purchase-self-review.md",
         "docs/native/README.md",
@@ -229,7 +230,13 @@
         "PR #14追加 Iteration 27 quality gates => lint:markdown 175 files／0 issues、format:check、lint 0 errors／64 warnings、typecheck、Native Component 47、Repository 33、route 38、EAS、pnpm run verify exit 0（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 160／Web export 2296）",
         "PR #14追加 Iteration 27 artifact gate => Run／Evaluation JSON parse、対象Prettier、git diff --check、Sanitizer Write／CheckをPASS。iOS実Runtime／Remote CIはWindows／未pushのため未実行",
         "PR #14追加 Iteration 27 Contract hardening => marker pipelineをunzip -pからthenまで抽出してgrep -q／grep --quietを禁止するContractへ強化。Focused 48/48、全Contract 23 files／160 tests、pnpm run verify exit 0",
-        "PR #14追加 Iteration 27 final artifact gate => Run／Evaluation JSON parse、Run Artifact Prettier、git diff --check、Sanitizer 5 files／0 replacements／0 residual PASS"
+        "PR #14追加 Iteration 27 final artifact gate => Run／Evaluation JSON parse、Run Artifact Prettier、git diff --check、Sanitizer 5 files／0 replacements／0 residual PASS",
+        "PR #14 Iteration 28 iOS Build-only => ios-runtime／simctl／Maestro／Runtime evidence／download consumerをWorkflowから削除し、ios-verify needsをAutomation／Production Buildだけへ変更。iOS Build metadata／guard／.app Artifact uploadは維持",
+        "PR #14 Iteration 28 docs／ADR => README、PROJECT_CONTEXT、Phase 2 Master／後半計画をiOS Build-only保証範囲へ同期し、ADR-0011を追加。過去Historyは変更しない",
+        "PR #14 Iteration 28 focused Contract => 2 files／45 tests PASS。旧iOS Runtime前提のMaestro／simctl Contract 1件を削除し、共通Flow／Android Contractは維持",
+        "PR #14 Iteration 28 full gates => test:contracts 23 files／157 tests、lint:markdown 176 files／0 issues、format:check、lint 0 errors／64 warnings、typecheck、Native Component 47、Repository 33、route 38、EAS、pnpm run verify exit 0（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 157／Web export 2296）",
+        "PR #14 Iteration 28 final static gate => iOS Workflow runtime machinery scan 0件、git diff --check exit 0（CRLF変換warningのみ）。iOS Build／Remote Native CIはWindows／未pushのため未実行",
+        "PR #14 Iteration 28 final artifact gate => native YAML 2 files parse PASS、Run／Evaluation JSON parse PASS、Sanitizer Write／Check 5 files／0 changed／0 replacements／0 residual findings PASS"
         ],
         "warnings":  [
             "Windows hostではxcodebuild/xcrun/simctl/ghが未提供のためiOS SimulatorとRemote CIは未実行",
@@ -254,6 +261,7 @@
         "Iteration 26はWindows hostのxcodebuild／xcrun／simctl不在と未push条件のため、iOS実Runtime／Remote Native CI／Remote final verifyをPASS扱いしない",
         "Iteration 27初回の並列品質wrapperはnative-production-module-resolution cold timeoutとserve-web-dist一時directory EPERMを含んだが、対象単独4/4と単独全Contract 160/160で解消。並列実行の環境競合をコード失敗へ繰り上げない",
         "Iteration 27はWindows hostのxcodebuild／xcrun／simctl不在と未push条件のため、iOS実Runtime／Remote Native CI／Remote final verifyをPASS扱いしない"
+        ,"Iteration 28はWindows hostのXcode／gh不在とGit mutation禁止のため、iOS Build実行／Remote Native CI／Remote final verifyをPASS扱いしない。iOS Runtime／Maestro／実expo-sqliteは正式Gate対象外"
         ]
     },
     "safety":  {
