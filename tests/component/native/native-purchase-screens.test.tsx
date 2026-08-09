@@ -172,6 +172,57 @@ describe("Native customer purchase screens", () => {
     expect(screen.getByText("profile unavailable")).toBeTruthy();
   });
 
+  it("logs out from the profile and returns to the home route", async () => {
+    const getProfile = jest.fn().mockResolvedValue({
+      id: "user-customer-regular",
+      email: "regular@example.com",
+      displayName: "一般テスト会員",
+      phone: "09000000000",
+      role: "customer",
+      membershipRank: "regular",
+      accountStatus: "active",
+      actionVersion: 1,
+    });
+    const logout = jest.fn().mockResolvedValue(undefined);
+    runtime({ account: { getProfile }, auth: { logout } });
+
+    const screen = await render(<NativeProfileScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-profile-screen")).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("native-profile-logout"));
+    });
+
+    await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
+    expect(mockRouterReplace).toHaveBeenCalledWith("/");
+  });
+
+  it("surfaces a profile logout failure and releases the busy state", async () => {
+    const getProfile = jest.fn().mockResolvedValue({
+      id: "user-customer-regular",
+      email: "regular@example.com",
+      displayName: "一般テスト会員",
+      phone: "09000000000",
+      role: "customer",
+      membershipRank: "regular",
+      accountStatus: "active",
+      actionVersion: 1,
+    });
+    const logout = jest.fn().mockRejectedValue(new Error("logout unavailable"));
+    runtime({ account: { getProfile }, auth: { logout } });
+
+    const screen = await render(<NativeProfileScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-profile-screen")).toBeTruthy());
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("native-profile-logout"));
+    });
+
+    await waitFor(() => expect(screen.getByText("logout unavailable")).toBeTruthy());
+    expect(mockRouterReplace).not.toHaveBeenCalled();
+    expect(screen.getByTestId("native-profile-logout").props.accessibilityState).toEqual({
+      disabled: false,
+    });
+  });
+
   it("uses a keyboard avoiding surface for the profile form", async () => {
     const getProfile = jest.fn().mockResolvedValue({
       id: "user-customer-regular",

@@ -21,17 +21,18 @@ env:
   PNPM_VERSION: 9.10.0
   MAESTRO_VERSION: 2.8.0
   MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip
-  EXPO_PUBLIC_APP_ENV: automation
-  EXPO_PUBLIC_BUILD_KIND: automation
-  EXPO_PUBLIC_TEST_MODE: "true"
-  EXPO_PUBLIC_DEFAULT_SEED: default
 
 jobs:
-  ios-build:
-    name: iOS Simulator Build
+  ios-automation-build:
+    name: iOS Automation Build
     if: inputs.run_native || github.event_name == 'workflow_dispatch'
     runs-on: macos-26
     timeout-minutes: 40
+    env:
+      EXPO_PUBLIC_APP_ENV: automation
+      EXPO_PUBLIC_BUILD_KIND: automation
+      EXPO_PUBLIC_TEST_MODE: "true"
+      EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
       - uses: actions/checkout@v4
         with:
@@ -57,6 +58,12 @@ jobs:
         run: pnpm run generate:native-assets
       - name: Verify generated Native assets
         run: git diff --exit-code -- src/generated/native-product-assets.ts
+      - name: Verify Automation runtime metadata
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json > "$RUNNER_TEMP/ios-automation-config.json"
+          node -e 'const fs = require("node:fs"); const extra = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).extra ?? {}; for (const [key, expected] of Object.entries({ appEnvironment: "automation", buildKind: "automation", testMode: "true" })) { if (extra[key] !== expected) throw new Error(`${key}=${extra[key] ?? "<missing>"}, expected ${expected}`); }' "$RUNNER_TEMP/ios-automation-config.json"
       - name: Run Expo prebuild
         run: pnpm exec expo prebuild --clean --platform ios --no-install
       - name: Install CocoaPods
@@ -134,30 +141,53 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-      - name: Verify Automation runtime metadata
+  ios-production-build:
+    name: iOS Production-validation Build
+    if: inputs.run_native || github.event_name == 'workflow_dispatch'
+    runs-on: macos-26
+    timeout-minutes: 40
+    env:
+      EXPO_PUBLIC_APP_ENV: production
+      EXPO_PUBLIC_BUILD_KIND: production
+      EXPO_PUBLIC_TEST_MODE: "false"
+      EXPO_PUBLIC_DEFAULT_SEED: default
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Select Xcode 26.4.1 or newer
         shell: bash
-        env:
-          EXPO_PUBLIC_APP_ENV: automation
-          EXPO_PUBLIC_BUILD_KIND: automation
-          EXPO_PUBLIC_TEST_MODE: "true"
-          EXPO_PUBLIC_DEFAULT_SEED: default
         run: |
           set -euo pipefail
-          pnpm exec expo config --json > "$RUNNER_TEMP/ios-automation-config.json"
-          node -e 'const fs = require("node:fs"); const extra = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).extra ?? {}; for (const [key, expected] of Object.entries({ appEnvironment: "automation", buildKind: "automation", testMode: "true" })) { if (extra[key] !== expected) throw new Error(`${key}=${extra[key] ?? "<missing>"}, expected ${expected}`); }' "$RUNNER_TEMP/ios-automation-config.json"
-
-      - name: Run Production-validation iOS prebuild
+          XCODE_APP=$(find /Applications -maxdepth 1 -type d -name 'Xcode_26*.app' | sort | tail -n 1)
+          test -n "$XCODE_APP"
+          sudo xcode-select -s "$XCODE_APP/Contents/Developer"
+          xcodebuild -version
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Generate Native assets
+        run: pnpm run generate:native-assets
+      - name: Verify generated Native assets
+        run: git diff --exit-code -- src/generated/native-product-assets.ts
+      - name: Verify Production runtime metadata
         shell: bash
-        env:
-          EXPO_PUBLIC_APP_ENV: production
-          EXPO_PUBLIC_BUILD_KIND: production
-          EXPO_PUBLIC_TEST_MODE: "false"
-          EXPO_PUBLIC_DEFAULT_SEED: default
+        run: |
+          set -euo pipefail
+          pnpm exec expo config --json > "$RUNNER_TEMP/ios-production-config.json"
+          node -e 'const fs = require("node:fs"); const extra = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).extra ?? {}; for (const [key, expected] of Object.entries({ appEnvironment: "production", buildKind: "production", testMode: "false" })) { if (extra[key] !== expected) throw new Error(`${key}=${extra[key] ?? "<missing>"}, expected ${expected}`); }' "$RUNNER_TEMP/ios-production-config.json"
+      - name: Run Expo prebuild
         run: pnpm exec expo prebuild --clean --platform ios --no-install
-      - name: Install Production-validation CocoaPods
+      - name: Install CocoaPods
         working-directory: ios
         run: pod install
-      - name: Resolve Production-validation workspace and scheme
+      - name: Resolve generated workspace and scheme
         id: production-xcode
         shell: bash
         run: |
@@ -169,24 +199,9 @@ jobs:
           test -n "$SCHEME"
           echo "workspace=$WORKSPACE" >> "$GITHUB_OUTPUT"
           echo "scheme=$SCHEME" >> "$GITHUB_OUTPUT"
-      - name: Verify Production-validation runtime metadata
-        shell: bash
-        env:
-          EXPO_PUBLIC_APP_ENV: production
-          EXPO_PUBLIC_BUILD_KIND: production
-          EXPO_PUBLIC_TEST_MODE: "false"
-          EXPO_PUBLIC_DEFAULT_SEED: default
-        run: |
-          set -euo pipefail
-          pnpm exec expo config --json > "$RUNNER_TEMP/ios-production-config.json"
-          node -e 'const fs = require("node:fs"); const extra = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).extra ?? {}; for (const [key, expected] of Object.entries({ appEnvironment: "production", buildKind: "production", testMode: "false" })) { if (extra[key] !== expected) throw new Error(`${key}=${extra[key] ?? "<missing>"}, expected ${expected}`); }' "$RUNNER_TEMP/ios-production-config.json"
       - name: Build Production-validation iOS Simulator app without signing
         shell: bash
         env:
-          EXPO_PUBLIC_APP_ENV: production
-          EXPO_PUBLIC_BUILD_KIND: production
-          EXPO_PUBLIC_TEST_MODE: "false"
-          EXPO_PUBLIC_DEFAULT_SEED: default
           WORKSPACE: ${{ steps.production-xcode.outputs.workspace }}
           SCHEME: ${{ steps.production-xcode.outputs.scheme }}
         run: |
@@ -245,24 +260,19 @@ jobs:
 
   ios-runtime:
     name: iOS Simulator Runtime / Maestro
-    needs: ios-build
-    if: inputs.run_native || github.event_name == 'workflow_dispatch'
+    needs: [ios-automation-build, ios-production-build]
+    if: >-
+      always() &&
+      (inputs.run_native || github.event_name == 'workflow_dispatch') &&
+      (needs.ios-automation-build.result == 'success' || needs.ios-production-build.result == 'success')
     runs-on: macos-26
     timeout-minutes: 50
     steps:
       - uses: actions/checkout@v4
         with:
           persist-credentials: false
-      - uses: actions/download-artifact@v4
-        with:
-          name: native-ios-app-${{ github.run_id }}
-          path: ${{ runner.temp }}/native-ios-app
-      - uses: actions/download-artifact@v4
-        with:
-          name: native-ios-production-app-${{ github.run_id }}
-          path: ${{ runner.temp }}/native-ios-production-app
-      - name: Boot iOS Simulator and install artifact
-        id: ios_runtime_ready
+      - name: Boot iOS Simulator
+        id: ios_simulator_ready
         shell: bash
         run: |
           set -euo pipefail
@@ -270,12 +280,7 @@ jobs:
           test -n "$DEVICE"
           xcrun simctl boot "$DEVICE" || true
           xcrun simctl bootstatus "$DEVICE" -b
-          APP_PATH="$RUNNER_TEMP/native-ios-app/native-automation.app"
-          test -d "$APP_PATH"
-          xcrun simctl install "$DEVICE" "$APP_PATH"
-          xcrun simctl launch "$DEVICE" com.ryuyoshikawa.scenarioshop
           echo "IOS_DEVICE=$DEVICE" >> "$GITHUB_ENV"
-          echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
       - name: Install pinned Maestro CLI
         id: maestro_cli
         shell: bash
@@ -287,8 +292,24 @@ jobs:
           test -x "$RUNNER_TEMP/maestro/maestro/bin/maestro"
           "$RUNNER_TEMP/maestro/maestro/bin/maestro" --version
           echo "$RUNNER_TEMP/maestro/maestro/bin" >> "$GITHUB_PATH"
+      - name: Download Automation iOS Simulator app
+        if: ${{ !cancelled() && needs.ios-automation-build.result == 'success' && steps.ios_simulator_ready.outcome == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: native-ios-app-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-ios-app
+      - name: Install and launch Automation iOS Simulator app
+        id: ios_automation_install
+        if: ${{ !cancelled() && needs.ios-automation-build.result == 'success' && steps.ios_simulator_ready.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          APP_PATH="$RUNNER_TEMP/native-ios-app/native-automation.app"
+          test -d "$APP_PATH"
+          xcrun simctl install "$IOS_DEVICE" "$APP_PATH"
+          xcrun simctl launch "$IOS_DEVICE" com.ryuyoshikawa.scenarioshop
       - name: Run iOS Native Customer Maestro flows
-        if: ${{ !cancelled() && steps.ios_runtime_ready.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
+        if: ${{ !cancelled() && steps.ios_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -332,9 +353,15 @@ jobs:
           run_flow session-checkout-restart native-session-checkout-restart.yaml
           run_flow review native-review.yaml
           exit "$overall_status"
+      - name: Download Production-validation iOS Simulator app
+        if: ${{ !cancelled() && needs.ios-production-build.result == 'success' && steps.ios_simulator_ready.outcome == 'success' }}
+        uses: actions/download-artifact@v4
+        with:
+          name: native-ios-production-app-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-ios-production-app
       - name: Install and launch Production-validation Simulator app
         id: production_install
-        if: ${{ !cancelled() && steps.ios_runtime_ready.outcome == 'success' }}
+        if: ${{ !cancelled() && needs.ios-production-build.result == 'success' && steps.ios_simulator_ready.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -402,3 +429,29 @@ jobs:
           path: ${{ runner.temp }}/native-ios-runtime-evidence
           if-no-files-found: warn
           retention-days: 7
+
+  ios-verify:
+    name: iOS Native CI Verify
+    needs: [ios-automation-build, ios-production-build, ios-runtime]
+    if: always()
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Require iOS Native CI gates
+        shell: bash
+        env:
+          RUN_NATIVE: ${{ inputs.run_native || github.event_name == 'workflow_dispatch' }}
+          AUTOMATION_RESULT: ${{ needs.ios-automation-build.result }}
+          PRODUCTION_RESULT: ${{ needs.ios-production-build.result }}
+          RUNTIME_RESULT: ${{ needs.ios-runtime.result }}
+        run: |
+          set -euo pipefail
+          if [[ "$RUN_NATIVE" != "true" ]]; then
+            test "$AUTOMATION_RESULT" = skipped
+            test "$PRODUCTION_RESULT" = skipped
+            test "$RUNTIME_RESULT" = skipped
+            exit 0
+          fi
+          test "$AUTOMATION_RESULT" = success
+          test "$PRODUCTION_RESULT" = success
+          test "$RUNTIME_RESULT" = success
+          echo "All iOS Native CI gates completed successfully."

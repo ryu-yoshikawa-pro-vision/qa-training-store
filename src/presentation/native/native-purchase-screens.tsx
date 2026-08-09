@@ -286,6 +286,7 @@ export function NativeProfileScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<Error | null>(null);
   const [busy, setBusy] = useState(false);
+  const [logoutBusy, setLogoutBusy] = useState(false);
   const load = useCallback(() => {
     if (services === null) return;
     setLoadError(null);
@@ -302,7 +303,7 @@ export function NativeProfileScreen() {
   const dirty =
     profile !== null &&
     (displayName !== profile.displayName || (phone || null) !== (profile.phone ?? null));
-  useNativeUnsavedChangesGuard(dirty, busy);
+  useNativeUnsavedChangesGuard(dirty, busy || logoutBusy);
   if (!ready || services === null)
     return <RuntimePanel title="Profileを初期化できません" error={error} retry={retry} />;
   if (loadError !== null)
@@ -326,6 +327,15 @@ export function NativeProfileScreen() {
       .catch((caught: unknown) => setMessage(asPurchaseError(caught).message))
       .finally(() => setBusy(false));
   };
+  const logout = () => {
+    setLogoutBusy(true);
+    setMessage(null);
+    void services.auth
+      .logout()
+      .then(() => router.replace("/"))
+      .catch((caught: unknown) => setMessage(asPurchaseError(caught).message))
+      .finally(() => setLogoutBusy(false));
+  };
   if (profile === null) return <NativeStatePanel title="Profileを読み込み中…" />;
   return (
     <PurchaseKeyboardScrollView testID="native-profile-screen">
@@ -347,7 +357,7 @@ export function NativeProfileScreen() {
         <NativeButton
           label={busy ? "保存中…" : "保存する"}
           onPress={save}
-          disabled={busy}
+          disabled={busy || logoutBusy}
           testID="native-profile-save"
         />
       </View>
@@ -360,11 +370,10 @@ export function NativeProfileScreen() {
           testID="native-profile-addresses"
         />
         <NativeButton
-          label="ログアウト"
+          label={logoutBusy ? "ログアウト中…" : "ログアウト"}
           variant="ghost"
-          onPress={() => {
-            void services.auth.logout().then(() => router.replace("/"));
-          }}
+          onPress={logout}
+          disabled={busy || logoutBusy}
           testID="native-profile-logout"
         />
       </View>

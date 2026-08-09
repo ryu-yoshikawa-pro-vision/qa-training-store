@@ -223,14 +223,19 @@ describe("Native Test Control Maestro contracts", () => {
           : "native-checkout-complete-screen",
     );
     if (flowName === "native-review.yaml") {
-      expect(source).toContain("- hideKeyboard");
-      expect(source).toContain('id: "native-review-save"');
-      expect(source.indexOf("- hideKeyboard")).toBeLessThan(
-        source.indexOf('- tapOn:\n    id: "native-review-save"'),
+      const inputIndex = source.indexOf('- inputText: "Native Maestro review"');
+      const hideKeyboardIndexes = findAllIndexes(source, /^- hideKeyboard$/gm);
+      const saveScrollIndex = source.indexOf(
+        '- scrollUntilVisible:\n    element:\n      id: "native-review-save"',
       );
-      expect(source.lastIndexOf("- hideKeyboard")).toBeLessThan(
-        source.indexOf('- tapOn:\n    id: "native-review-save"'),
-      );
+      const saveTapIndex = source.indexOf('- tapOn:\n    id: "native-review-save"');
+
+      expect(hideKeyboardIndexes).toHaveLength(1);
+      expect(inputIndex).toBeGreaterThanOrEqual(0);
+      expect(saveScrollIndex).toBeGreaterThan(inputIndex);
+      expect(saveTapIndex).toBeGreaterThan(saveScrollIndex);
+      expect(hideKeyboardIndexes[0]).toBeGreaterThan(inputIndex);
+      expect(hideKeyboardIndexes[0]).toBeLessThan(saveScrollIndex);
     }
     if (flowName === "native-purchase.yaml") {
       expect(source).toContain('id: "native-complete-order-id"');

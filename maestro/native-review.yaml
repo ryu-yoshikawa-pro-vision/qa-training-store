@@ -54,7 +54,6 @@ appId: com.ryuyoshikawa.scenarioshop
     visibilityPercentage: 100
     centerElement: true
     timeout: 30000
-- hideKeyboard
 - tapOn:
     id: "native-review-save"
 - extendedWaitUntil:

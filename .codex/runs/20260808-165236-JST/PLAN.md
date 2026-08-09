@@ -269,6 +269,19 @@
 - `remaining_delta`: WindowsのiOS実RuntimeおよびRemote最新HeadのNative CIは、前Iterationと同じ外部環境／Git mutation禁止により未実行のまま記録する。
 - `decision`: `continue`。修正とローカル品質ゲートを実行し、実行結果に基づいてRun Artifactを更新する。
 
+## Repair decision（PR #14最終修正指示、Iteration 25）
+
+- `iteration_number`: 25。
+- `input_findings`: 最終指示で、Android／iOS Build Jobの独立性、Automation／Production Artifact契約、Storefront semantic scroll、Reviewの2回目`hideKeyboard`、Profile logoutのbusy／error回帰、実Runtime／Production validation／final verifyの未確認を対象化した。
+- `classification`: `must_fix`。Artifact producer／consumerの不一致はNative Runtime到達を直接阻害し、独立Build／fail-closeとContract Testは再発防止に必須である。iOS／Remote実行はWindows／Git mutation禁止の外部環境残差として分離する。
+- `repair_plan`: Android／iOS BuildをAutomation／Productionへ分割し、保存名・Upload・Download・verify・installを固定する。Runtimeは成功BuildのOR条件で継続し、最終Gateは必須結果をfail-closeする。Maestro／Profile／Contractを最小差分で同期し、静的ゲートとAndroid実機をRunbook順に再検証する。
+- `allowed_files`: `.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、`maestro/native-review.yaml`、`maestro/native-storefront.yaml`、`src/presentation/native/native-purchase-screens.tsx`、対象Component／Contract Test、`docs/PROJECT_CONTEXT.md`、ADR／History、同Run Artifact。
+- `changed_files`: 上記実装・テスト・文書と`.codex/runs/20260808-165236-JST/PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`。固定スワイプの試行は採用せず、Reviewのsemantic `scrollUntilVisible`と2回目`hideKeyboard`削除だけを最終差分に残す。
+- `validation_commands`: focused Contract／Component、全Contract、`pnpm run verify`、対象Prettier／Markdownlint／差分／Sanitizer、Android Doctor／Build／Install／Smoke／Test Control／RuntimeSuite／BoundarySuite、Review単体、iOS／Remote availability check。
+- `validation_result`: Android最新APKのBuild（Gradle `BUILD SUCCESSFUL`）／Install／Smoke／Test Control 1/1／RuntimeSuite 5/5／BoundarySuite 5/5を確認した。Reviewは保存タップまで進んだが、標準日本語IMEによるASCII本文変換後の保存完了assertionが失敗した。静的／Contract／Component／全verifyはPASS、iOS実Runtime／Remoteは未実行である。
+- `remaining_delta`: Windowsに`xcodebuild`／`xcrun`／`simctl`／`gh`がなく、iOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production-validation、修正HeadのGitHub-hosted Native CI／final `native-ci / verify`は未確認。
+- `decision`: `continue`。Artifact実装、Contract、ローカル品質ゲート、Android主要Runtimeは確認済みだが、Review端末依存Failure、iOS／Remote実Runtimeが残るため完了扱いにしない。Progress: 97% (33/34)。
+
 ## Repair decision（継続ゴール、Iteration 23）
 
 - `iteration_number`: 23。

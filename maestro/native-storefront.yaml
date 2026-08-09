@@ -17,9 +17,13 @@ appId: com.ryuyoshikawa.scenarioshop
     visible:
       id: "native-home-screen"
     timeout: 30000
-- extendedWaitUntil:
-    visible:
+- scrollUntilVisible:
+    element:
       id: "native-category-category-apparel"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
     timeout: 30000
 - tapOn:
     id: "native-category-category-apparel"

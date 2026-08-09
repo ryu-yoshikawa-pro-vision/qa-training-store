@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Phase 2後半のNative Customer購入コード、実SQLite、Android実機、Production validation、Web／静的回帰、Order詳細snapshot表示、入力画面Keyboard対応、Login復帰先の型付き遷移、SQLite境界Runtime parser、PR #14追加DoDのStorefront Stable ID、Android／iOS Flow継続、Cart caller-generated ID、Harness認可fail-close、Checkout step returnTo、NativeShell refresh serial／AppState cleanup／logout catch、PR #14追加修正のreviews-empty／Native fixture／checkout期限更新transaction／Expo Router公開API移行は完了し、Production APK source→runtime copy、Native Customer Role boundary、NativeShell route regressionも修正・再検証したが、WindowsではiOS SimulatorとRemote GitHub Actionsの実行結果を取得できない。",
+      "evidence": "Phase 2後半のNative Customer購入コード、実SQLite、Android実機、Production validation、Web／静的回帰、Order詳細snapshot表示、入力画面Keyboard対応、Login復帰先の型付き遷移、SQLite境界Runtime parser、PR #14追加DoDのStorefront Stable ID、Android／iOS Flow継続、Cart caller-generated ID、Harness認可fail-close、Checkout step returnTo、NativeShell refresh serial／AppState cleanup／logout catch、PR #14追加修正のreviews-empty／Native fixture／checkout期限更新transaction／Expo Router公開API移行は完了し、Production APK source→runtime copy、Native Customer Role boundary、NativeShell route regressionも修正・再検証した。Iteration 25ではAndroid最新APKのRuntimeSuite／BoundarySuite 5/5を再確認したが、Review単体は物理日本語IME依存Failureとして未完了であり、WindowsではiOS SimulatorとRemote GitHub Actionsの実行結果を取得できない。",
       "evidence_refs": [
         {
           "kind": "codex_task_report",
@@ -30,7 +30,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "変更後の全テスト（Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 45、Contract 165）、PR #14 Artifact producer／consumer Contract 17、追加Workflow／Cart／Harness／SQLite／Integration focused 63、Iteration 24 focused（reviews-empty 8、Native SQLite repository 13、Native repository／Expo Router Contract 16、Native Purchase Component 13、Admin Product Component 4）、Native SQLite mapper focused 4、Native Repository Contract focused 13、Harness focused 10、Web export／Chromium 27/27、bundle guard、Android Iteration 8 Automation／Runtime／Boundary実機、Iteration 23のNativeShell 5／5とNative Runtime Service Surface 2／2、Typecheck／対象Prettier／差分検査、PR #14追加修正後の`pnpm run verify`はPASSした。全Contract初回の5秒wrapper未確定は対象4/4単独PASS後の再実行で162/162、Iteration 23初回の旧Contract期待値不一致は同期後の再実行で解消し、Iteration 24の`pnpm run verify`はexit 0を取得した。Expo Router内部path scanも該当なしである。iOS実Runtime／Remote CIは未実行である。",
+      "evidence": "Iteration 25のWorkflow／Maestro Contract 2 files／44 tests、Native Purchase Jest 15、Native Component 47、Repository 33、Typecheck、route／EAS、Format、Markdownlint、Lint 0 errors／64 warnings、最終`pnpm run verify`（Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 47、Contract 156、Web export 2296 modules）はPASSした。Android最新APKのDoctor、Build、Install、Smoke、Test Control 1/1、RuntimeSuite 5/5、BoundarySuite 5/5もPASSした。Review単体は標準日本語IMEによるASCII本文変換後に保存assertionでFAILし、iOS実Runtime／Remote CIは未実行である。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -308,7 +308,7 @@
         "summary": "Iteration 24後もWindows hostではiOS Simulator／実expo-sqlite Harness／Remote GitHub Actionsを未実行として記録している。"
         }
       ],
-      "detail": "iOS Workflowの静的契約はPASSだが、macOS実RuntimeとGitHub-hosted Runが未確認のため、Phase 2 final DoDは未完了とする。"
+      "detail": "iOS Workflowの静的契約はPASSだが、macOS実RuntimeとGitHub-hosted Runが未確認のため、Phase 2 final DoDは未完了とする。Android Review単体も標準日本語IMEによる本文変換後の保存完了assertionでFAILしており、物理端末依存の未完了検証として扱う。"
     }
   ],
   "improvement_candidates": [

@@ -847,3 +847,42 @@
   - `pnpm run verify`: exit 0。Format、Markdownlint 174 files／0 issues、Lint 0 errors／64 warnings、Typecheck、Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 45、Contract 165、Web export 2296 modulesがPASSした。既存React `act(...)` console warning以外の失敗はない。
 - `remaining_delta`: Windows hostでは`xcodebuild`／`xcrun`／`simctl`がなく、今回修正後のiOS Simulator Build／Runtime、実`expo-sqlite` iOS Harness、iOS Production-validationは未実行。Git mutation禁止のため修正HeadをRemoteへ反映しておらず、最新HeadのGitHub-hosted Android／iOS Native CIとfinal `native-ci / verify`も未実行。旧Remote failureを修正後PASSへ繰り上げない。
 - 判定: 追加4件とローカル品質ゲートは完了。iOS／Remote実Runtime未確認のためRun resultは`partial`、Phase 2 final DoDはpending。Progress: 97% (32/33)。
+
+## 2026-08-09 14:55 JST — PR #14最終修正（Repair Loop Iteration 25）
+
+- 最終添付指示を確認し、CIアーキテクチャを作り直さず、Artifact受け渡しと実Runtime到達性に限定して修正した。Androidは`android-automation-build`／`android-production-build`、iOSは`ios-automation-build`／`ios-production-build`へ分離し、RuntimeのBuild成功OR条件、個別Artifact Download／verify／install、最終fail-closeを維持した。Runtime内の再Build、`continue-on-error`、一時skipは追加していない。
+- Android Artifact契約はAutomation `native-automation.apk`／`native-android-apk-${{ github.run_id }}`、Production `native-production-validation.apk`／`native-android-production-apk-${{ github.run_id }}`へ統一した。iOSはAutomation `native-automation.app`／`native-ios-app-${{ github.run_id }}`、Production `native-production-validation.app`／`native-ios-production-app-${{ github.run_id }}`へ統一し、各`.app`検出、保存、Upload、Download後の`simctl install` pathを同一にした。
+- `maestro/native-storefront.yaml`は`native-home-screen`後に`native-category-category-apparel`をsemantic `scrollUntilVisible`し、カテゴリtap後にcatalogを待つ。`maestro/native-review.yaml`は2回目の`hideKeyboard`だけを削除し、最終差分では固定座標／固定スワイプを採用していない。
+- `NativeProfileScreen`はlogout busyをdirty guardへ含め、成功時のrouter replace、失敗時の表示、busy解除を実装した。Component Testへlogout success／reject回帰を追加した。Review Contractは入力→hideKeyboard→save scroll→tap順を固定した。
+- Delegationは今回追加していない。既存Runのread-only調査4件（Darwin／Mendel／Galileo／Harvey）と親Agentの採用判断は前IterationのREPORTに保持している。Android Native Local Validation skillのRunbookに従い、Doctor／preflight、Build／Install／Smoke、Control、Runtime、Boundaryの順で実行した。Playwright／MCPはWeb UI変更ではなくNative Workflow／Maestro CLI検証が対象のため使用していない。
+- Static／Contract結果: Workflow／Maestro focused 2 files／44 tests、Native Purchase Jest 1 suite／15 tests、`pnpm run test:contracts` 23 files／156 tests、Native Component 12 suites／47 tests、Repository 5 files／33 tests、Typecheck、route／EAS／Markdownlint／format／lint（0 errors／64 warnings）はPASSした。`pnpm run verify`は最終docs変更後に再実行して結果を追記する。
+- Android実機結果: `native:android:doctor`、Gradle Release Build（初回Metro生成後にGradle `BUILD SUCCESSFUL`）、Install、Smoke、Test Control 1/1、RuntimeSuite 5/5、BoundarySuite 5/5をPASSした。Evidenceは`.artifacts/native-local/20260809-*`の各attempt ID配下へ保存し、Run Artifactには要約だけを残す。
+- Review単体は対象注文のtapと本文入力・保存tapまで進んだが、SHV48標準日本語IMEが`Native Maestro review`を日本語混在文字列へ変換し、保存完了assertionが失敗した。保存処理の上流であるsemantic target探索の試行失敗と、最終assertion失敗を分離し、同じ端末条件の無目的な再試行は停止した。これは物理IME依存の未完了検証であり、CI成功へ繰り上げない。
+- Windowsでは`xcodebuild`／`xcrun`／`simctl`／`gh`が未提供で、iOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production-validation、修正HeadのRemote Native CI／final `native-ci / verify`は未実行である。PROJECT_CONTEXT、ADR-0010、Historyへ現行Job分離を同期した。
+- 判定: `partial`／`missing_validation`。実装、静的ゲート、Android主要Runtimeは確認済みだが、Android Review端末依存Failure、iOS実Runtime、Remote Native CIが残る。Progress: 97% (33/34)。
+
+## 2026-08-09 15:10 JST — Iteration 25最終ローカルQuality Gate
+
+- 最終変更後の初回`pnpm run verify`は、Format／Markdownlint（175 files／0 issues）／Lint（0 errors／64 warnings）／Typecheck／Image／Security／Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47までPASSし、既存`native-production-module-resolution`のcold timeout 1件だけで155/156となった。
+- 原因切り分けとして`pnpm exec vitest run tests/contracts/native-production-module-resolution.test.ts --no-file-parallelism --maxWorkers=1`を実行し、1 file／4 tests PASSを確認した。その後の全`pnpm run verify`はexit 0となり、Contract 23 files／156 tests、Web export 2296 modulesまでPASSした。Native Jestの既存`act(...)` console warningとLint warnings以外の失敗はない。
+- `pnpm exec prettier --check`相当の最終`pnpm run format:check`、`pnpm run lint:markdown`、差分検査はPASS。Run／Evaluation JSONの更新後にSanitizer Write／Checkを実行する。
+- 判定は`partial`／`missing_validation`を維持する。Android主要Runtimeは実機でPASSしたが、Review単体の物理IME依存Failure、iOS実Runtime／Production-validation、修正HeadのRemote Native CI／最終Native `verify`は未実行である。Progress: 97% (33/34)。
+
+## 2026-08-09 15:11 JST — Run Artifact最終ゲート
+
+- Run／Evaluation JSON parse、Run Artifact 5件のPrettier check、`git diff --check`（CRLF変換warningのみ）、`pnpm run lint:markdown`（175 files／0 issues）はPASSした。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はfiles_scanned 5、files_changed 0、replacements_total 0、residual_findings 0でPASSした。
+- Run resultは`partial`／`missing_validation`、Progress: 97% (33/34)を維持する。未実行はiOS実Runtime／Production-validation、Remote Native CI／final verify、Reviewの物理IME依存Failureである。
+
+## 2026-08-09 15:18 JST — PR #14 Remote read-only確認／Maestro-MCP追跡
+
+- GitHub read-only確認ではPR #14はopen／mergeableで、Remote headは`778b6f69ee449fc284e838804d90e5891581591e`だった。Native CI run `31291426709`はこの作業ツリーの未commit差分を含まない旧Headで、Phase 1はsuccess、Android Buildはsuccess、Android RuntimeはStorefrontのカテゴリID可視assertionとReviewの`native-review-save`探索でfailure、iOS Buildはcancelled、iOS Runtimeはskipped、final verifyはfailureだった。これは現行差分のRemote結果ではない。
+- GitHub Actionsの最新Head再実行は、現行環境に`gh`がなく、かつGit mutation／pushを禁止しているため実施していない。Remote runの失敗を現行修正後の結果へ繰り上げない。
+- ユーザー指定に従いMaestro-MCPを使用した。`list_devices`で接続中のAndroid実機`354955112942476`、Maestro Viewer `http://127.0.0.1:10001/`を確認し、`inspect_screen`で現在状態を取得した。既存Review YAMLのMCP実行は開始時状態に対象注文IDがなく、0 commandsで`native-order-review-order-delivered-item-7` not visibleとなった。CLIで既に同一端末のReview失敗原因（標準日本語IME）を取得済みのため、無目的な再試行は行わない。
+- Playwright-MCPはWeb UI変更が対象外のため使用していない。Run resultは`partial`／`missing_validation`、Progress: 97% (33/34)を維持する。
+
+## 2026-08-09 15:22 JST — 追記後の最終Artifactゲート
+
+- Remote／Maestro-MCP追記後に、対象Run ArtifactのPrettier、`pnpm run lint:markdown`（175 files／0 issues）、`git diff --check`を再実行してPASSした。CRLF変換warning以外の差分エラーはない。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はfiles_scanned 5、files_changed 0、replacements_total 0、residual_findings 0でPASSした。
+- Run resultは`partial`／`missing_validation`、Progress: 97% (33/34)を維持する。iOS実Runtime／Production-validation、現行差分のRemote Native CI／final verify、Android Reviewの物理IME依存Failureは未完了である。

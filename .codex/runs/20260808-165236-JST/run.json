@@ -50,6 +50,7 @@
         "docs/history/2026-08-09_014000_phase2-native-shell-runtime-repair.md",
         "docs/history/2026-08-09_034700_phase2-final-audit.md",
         "docs/history/2026-08-09_040400_phase2-format-verify-repair.md",
+        "docs/history/2026-08-09_pr14-native-ci-build-split.md",
         "docs/plans/2026-08-08_170005_phase2-native-purchase-automation.md",
         "maestro/native-payment-retry.yaml",
         "maestro/native-production-validation.yaml",
@@ -197,7 +198,15 @@
         "Repair Loop iteration 23 final pnpm run verify => exit 0（Format、Markdownlint 174 files、Lint 0 errors／64 warnings、Unit 66、Integration 97、Repository 32、Web Component 76、Native Component 44、Contract 162、Web export 2294 modules）",
         "Repair Loop iteration 24 focused => reviews-empty Integration 8/8、Native SQLite repository Contract 13/13、Native repository／Expo Router Contract 16/16、Native Purchase Component 13/13、Admin Product Component 4/4 PASS",
         "Repair Loop iteration 24 Expo Router internal-path scan => no expo-router/build references in production or test workspace",
-        "Repair Loop iteration 24 pnpm run verify => exit 0（Format、Markdownlint 174 files、Lint 0 errors／64 warnings、Typecheck、Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 45、Contract 165、Web export 2296 modules）"
+        "PR #14 final Iteration 25 focused => Workflow／Maestro Contract 2 files／44 tests、Native Purchase Jest 15、Native Component 47、Repository 33、Typecheck、route／EAS／Markdownlint／format PASS",
+        "PR #14 final Iteration 25 Android local => Doctor、Release Build（Gradle BUILD SUCCESSFUL）、Install、Smoke、Test Control 1/1、RuntimeSuite 5/5、BoundarySuite 5/5 PASS",
+        "PR #14 final Iteration 25 pnpm run verify first attempt => format／lint／typecheck／image／security／unit／integration／repository／component PASS、native-production-module-resolution cold timeout 155/156",
+        "PR #14 final Iteration 25 native-production-module-resolution standalone => 1 file／4 tests PASS",
+        "PR #14 final Iteration 25 pnpm run verify rerun => exit 0（Format、Markdownlint 175 files／0 issues、Lint 0 errors／64 warnings、Typecheck、Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 47、Contract 156、Web export 2296 modules）",
+        "PR #14 final artifact gate => Run／Evaluation JSON parse、Run Artifact Prettier、Markdownlint 175 files／0 issues、git diff --check、Sanitizer 5 files／0 changed／0 residual PASS",
+        "Repair Loop iteration 24 pnpm run verify => exit 0（Format、Markdownlint 174 files、Lint 0 errors／64 warnings、Typecheck、Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 45、Contract 165、Web export 2296 modules）",
+        "PR #14 Remote read-only run 31291426709 => old head 778b6f69ee449fc284e838804d90e5891581591e、Phase 1 success、Android Build success、Android Runtime failure（Storefront category visibility／Review save target）、iOS Build cancelled、iOS Runtime skipped、final verify failure。現行未commit差分の検証結果ではない",
+        "Maestro-MCP follow-up => device 354955112942476／Viewer URL確認、inspect_screen PASS、native-review.yaml実行は0 commandsでtarget order item not visible。既存CLI Review failureと同じ端末条件のため追加再試行なし"
         ],
         "warnings":  [
             "Windows hostではxcodebuild/xcrun/simctl/ghが未提供のためiOS SimulatorとRemote CIは未実行",
@@ -214,7 +223,10 @@
         "VitestでNative Jest対象を誤実行した際にReact Native Flow parse failureが発生したが、正規Jest 2 suites／16 tests PASSで再検証した",
         "PR #14追加DoD修正後もWindowsではxcodebuild／xcrun／simctlがなく、修正HeadのRemote Native CIをGit mutationなしで未実行",
         "Iteration 23の初回verifyは実装に同期していない既存Contract期待値で161/162となったが、Contract同期後の再実行はexit 0",
-        "Iteration 24のローカルverifyはexit 0だが、WindowsのiOS実RuntimeとRemote最新HeadのNative CIは引き続き未実行"
+        "Iteration 24のローカルverifyはexit 0だが、WindowsのiOS実RuntimeとRemote最新HeadのNative CIは引き続き未実行",
+        "PR #14 final Review Flow単体は対象tap／本文入力／保存tapまで進んだが、SHV48標準日本語IMEによるASCII本文変換後に保存完了assertionでFAIL。Reviewの2回目hideKeyboardは復元せず、同条件の無目的な再試行は停止",
+        "Android Build wrapperは初回Metro生成中に124秒上限へ到達したが、Gradle log later showed BUILD SUCCESSFULとapk-info生成を確認。iOS／Remote Native CIはWindows toolchain／Git mutation禁止により未実行",
+        "PR #14現行差分のRemote Native CI再実行はgh未提供／Git mutation禁止で未実行。Maestro-MCP Review追跡は開始状態のfixture不足で0 commands、現行Reviewの実Runtime PASSへ繰り上げない"
         ]
     },
     "safety":  {

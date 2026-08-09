@@ -11,7 +11,7 @@ Android Native CIはDetect、Static／Production Guard、Build、Runtime／Maest
 ## Decision
 
 1. `.github/workflows/native-ios-ci.yml`は`workflow_call`と`workflow_dispatch`を提供し、`native_changed`がfalseのときは重いJobをSkipできる。Native CIからは1つのiOS Gateとして呼び出す。
-2. iOS Gate内部は`ios-build`と`ios-runtime`を分離する。BuildはAutomation／Production-validationの両方を`iphonesimulator`、Release、`CODE_SIGNING_ALLOWED=NO`で生成し、`.app`をArtifactで渡す。RuntimeはArtifactをInstall／Launchし、Xcode Buildを再実行しない。
+2. iOS Gate内部は`ios-automation-build`、`ios-production-build`、`ios-runtime`、`ios-verify`へ分離する。2つのBuild Jobはそれぞれclean checkout、metadata検査、`expo prebuild`、Pods、workspace／scheme解決、`iphonesimulator` Release、`CODE_SIGNING_ALLOWED=NO`の`xcodebuild`を実行し、Automation／Production-validationの`.app`を固定名でArtifactに保存する。Runtimeは成功したArtifactをInstall／Launchし、Xcode Buildを再実行しない。Runtime条件はどちらか一方のBuild成功を許容し、`ios-verify`が両Build／Runtimeの必須結果をfail-closeで集約する。
 3. RuntimeはAutomation Appで主要購入Maestro、実`expo-sqlite` Contract Harness、Production-validation AppでTest Control／Deep Link／Service／UI／Handler／Harnessの到達不能性を検証する。成功時Evidenceは必要十分、失敗時はJUnit、Screenshot、Hierarchy、Runtime log、`simctl diagnose`を保存する。
 4. `native-ci / verify`はDetect、Native Static、Production Bundle Guard、Android Build／Runtime、iOS Gateの各結果をNative変更時にsuccess必須としてfail-closeする。AndroidとiOSは互いに依存させず、Web CIはNative CIを待たない。
 5. 複雑なReusable Workflow階層、Composite Action共通化、DerivedData／Pods Cache最適化、物理iPhone署名は導入しない。
