@@ -130,6 +130,14 @@ describe("Native CI workflow contracts", () => {
       expect(source).toContain("^assets/.*\\.(bundle|hbc)$");
       expect(source).toContain('test -n "$bundle_entries"');
       expect(source).toContain('unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry"');
+      const markerScan =
+        source.match(
+          /if unzip -p "\$PRODUCTION_APK_PATH" "\$bundle_entry" \|[\s\S]*?\n\s*then/,
+        )?.[0] ?? "";
+      expect(markerScan).toContain(
+        "grep -aE '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService' > /dev/null",
+      );
+      expect(markerScan).not.toMatch(/\bgrep\b[^\r\n]*(?:-q|--quiet)/);
       for (const marker of [
         "__SCENARIO_SHOP_NATIVE_AUTOMATION__",
         "__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__",
@@ -371,10 +379,14 @@ describe("Native iOS CI workflow contracts", () => {
     expect(evidence).toContain('--udid="$IOS_DEVICE"');
     expect(evidence).toContain('--output="$DIAGNOSE_DIR"');
     expect(evidence).toContain("--no-archive");
-    expect(evidence).toContain("diagnose_status=$?");
+    expect(evidence).toContain("printf '\\n' | xcrun simctl diagnose");
+    expect(evidence).toContain('diagnose_status="${PIPESTATUS[1]}"');
     expect(evidence).toContain("simctl-diagnose-status.txt");
     expect(evidence).toContain("simctl_diagnose_exit_code");
     expect(evidence).toContain("simctl_diagnose_output_exists");
+    expect(evidence).toContain("simctl_diagnose_output_files");
+    expect(evidence).toContain('[[ "$diagnose_status" -eq 0 && "$diagnose_output_files" -gt 0 ]]');
+    expect(evidence).toContain("simctl_diagnose_evidence_success");
     expect(evidence).toContain("if: always()");
   });
 

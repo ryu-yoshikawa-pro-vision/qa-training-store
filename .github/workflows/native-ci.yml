@@ -505,7 +505,9 @@ jobs:
           fi
           test -n "$bundle_entries"
           while IFS= read -r bundle_entry; do
-            if unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry" | grep -E -q '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService'; then
+            if unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry" |
+              grep -aE '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService' > /dev/null
+            then
               echo "Production-validation APK contains Automation/Test Control markers." >&2
               exit 1
             fi
@@ -1354,7 +1356,7 @@ jobs:
           test -n "$bundle_entries"
           while IFS= read -r bundle_entry; do
             if unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry" |
-              grep -E -q '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService'
+              grep -aE '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService' > /dev/null
             then
               echo "Downloaded Production-validation APK contains Automation/Test Control markers." >&2
               exit 1

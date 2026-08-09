@@ -40,7 +40,9 @@ describe("Native Test Control Maestro contracts", () => {
     const source = readDeepLinkSubflow();
 
     expect(source).toContain("platform: iOS");
-    expect(source).toContain("visible: 'Open in \"Scenario Shop\"'");
+    expect(source).toMatch(/visible:\s*['"]Open in \.\*Scenario Shop\.\*['"]/);
+    expect(source).not.toContain('Open in "Scenario Shop"');
+    expect(source).not.toContain("Open in “Scenario Shop”?");
     expect(source).toContain("tapOn: Open");
     expect(source).not.toMatch(/^\s+- sleep:/m);
     expect(source).not.toContain("point:");
@@ -61,21 +63,16 @@ describe("Native Test Control Maestro contracts", () => {
         source,
         /^- runFlow:\s+subflows\/accept-ios-deep-link\.yaml$/gm,
       );
+      const adjacentHandlerIndexes = findAllIndexes(
+        source,
+        /^- openLink:\s+"scenario-shop:\/\/[^\"]+"$\n^- runFlow:\s+subflows\/accept-ios-deep-link\.yaml$/gm,
+      );
 
       expect(openLinkIndexes.length).toBeGreaterThan(0);
       expect(handlerIndexes).toHaveLength(openLinkIndexes.length);
+      expect(adjacentHandlerIndexes).toHaveLength(openLinkIndexes.length);
       totalOpenLinks += openLinkIndexes.length;
       totalHandlers += handlerIndexes.length;
-
-      openLinkIndexes.forEach((openLinkIndex, index) => {
-        const handlerIndex = handlerIndexes[index];
-        const nextOpenLinkIndex = openLinkIndexes[index + 1];
-
-        expect(handlerIndex).toBeGreaterThan(openLinkIndex);
-        if (nextOpenLinkIndex !== undefined) {
-          expect(handlerIndex).toBeLessThan(nextOpenLinkIndex);
-        }
-      });
     }
 
     expect(totalOpenLinks).toBe(38);

@@ -222,7 +222,14 @@
         "PR #14 final Iteration 26 Contract => 初回pnpm run test:contractsは23 files／160 tests中159 PASSでnative-production-module-resolutionのcold timeout 1件。対象単独4/4 PASS後の要求コマンド再実行は23 files／160 tests PASS。REPORT既録のIteration 24の23 files／165 testsからIteration 25の23 files／156 testsへの9件減は、native-ci-workflow Contractを広範な重複検証からfocused suiteへ整理した差分であり、現在も23 files全体を実行している。Iteration 26で4件を追加し160 testsとなった",
         "PR #14 final Iteration 26 Android regression => android-local.ps1 Doctor PASS、conditional handler追加後のTest Control 1/1、RuntimeSuite 5/5、BoundarySuite 5/5 PASS。新Buildは不要なため既存APKを再利用し、Reviewの物理日本語IME failureは再実行していない",
         "PR #14 final Iteration 26 quality gates => lint:markdown 175 files／0 issues、format:check PASS、lint 0 errors／64 warnings、typecheck PASS、Native Component 12 suites／47、Repository 5 files／33、native-route 38 routes、EAS PASS、pnpm run verify exit 0（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 160／Web export 2296）",
-        "PR #14 final Iteration 26 artifact gate => old History path references 0、Run／Evaluation JSON parse、Run Artifact Prettier、Markdownlint 175 files／0 issues、git diff --check、Sanitizer Write／CheckのPASSを確認。iOS Simulator／Remote CIはWindows／未pushのため未実行"
+        "PR #14 final Iteration 26 artifact gate => old History path references 0、Run／Evaluation JSON parse、Run Artifact Prettier、Markdownlint 175 files／0 issues、git diff --check、Sanitizer Write／CheckのPASSを確認。iOS Simulator／Remote CIはWindows／未pushのため未実行",
+        "PR #14追加 Iteration 27 selector／adjacency => visible regex Open in .*Scenario Shop.*、16 flows／38 openLink／38 immediate handlers、focused Workflow／Maestro Contract 2 files／48 tests PASS。Maestro公式regex仕様を確認し、Android Maestro 2.8.0 Test Control 1/1 PASS",
+        "PR #14追加 Iteration 27 marker guard => Build／Runtime marker pipelineをgrep -aE full-consumptionへ変更し、marker-positive exit 1、marker-free exit 0、bundle-missing exit 1をfixtureで実行確認",
+        "PR #14追加 Iteration 27 simctl evidence => printf newline、PIPESTATUS[1]、exit／output_exists／output_files／evidence_success条件をWorkflow／Contractへ追加",
+        "PR #14追加 Iteration 27 quality gates => lint:markdown 175 files／0 issues、format:check、lint 0 errors／64 warnings、typecheck、Native Component 47、Repository 33、route 38、EAS、pnpm run verify exit 0（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 160／Web export 2296）",
+        "PR #14追加 Iteration 27 artifact gate => Run／Evaluation JSON parse、対象Prettier、git diff --check、Sanitizer Write／CheckをPASS。iOS実Runtime／Remote CIはWindows／未pushのため未実行",
+        "PR #14追加 Iteration 27 Contract hardening => marker pipelineをunzip -pからthenまで抽出してgrep -q／grep --quietを禁止するContractへ強化。Focused 48/48、全Contract 23 files／160 tests、pnpm run verify exit 0",
+        "PR #14追加 Iteration 27 final artifact gate => Run／Evaluation JSON parse、Run Artifact Prettier、git diff --check、Sanitizer 5 files／0 replacements／0 residual PASS"
         ],
         "warnings":  [
             "Windows hostではxcodebuild/xcrun/simctl/ghが未提供のためiOS SimulatorとRemote CIは未実行",
@@ -244,7 +251,9 @@
         "Android Build wrapperは初回Metro生成中に124秒上限へ到達したが、Gradle log later showed BUILD SUCCESSFULとapk-info生成を確認。iOS／Remote Native CIはWindows toolchain／Git mutation禁止により未実行",
         "PR #14現行差分のRemote Native CI再実行はgh未提供／Git mutation禁止で未実行。Maestro-MCP Review追跡は開始状態のfixture不足で0 commands、現行Reviewの実Runtime PASSへ繰り上げない",
         "Iteration 26初回pnpm run test:contractsはnative-production-module-resolutionのcold timeoutで159/160となったが、対象単独4/4と要求コマンド再実行160/160で解消",
-        "Iteration 26はWindows hostのxcodebuild／xcrun／simctl不在と未push条件のため、iOS実Runtime／Remote Native CI／Remote final verifyをPASS扱いしない"
+        "Iteration 26はWindows hostのxcodebuild／xcrun／simctl不在と未push条件のため、iOS実Runtime／Remote Native CI／Remote final verifyをPASS扱いしない",
+        "Iteration 27初回の並列品質wrapperはnative-production-module-resolution cold timeoutとserve-web-dist一時directory EPERMを含んだが、対象単独4/4と単独全Contract 160/160で解消。並列実行の環境競合をコード失敗へ繰り上げない",
+        "Iteration 27はWindows hostのxcodebuild／xcrun／simctl不在と未push条件のため、iOS実Runtime／Remote Native CI／Remote final verifyをPASS扱いしない"
         ]
     },
     "safety":  {

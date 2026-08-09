@@ -903,3 +903,36 @@
 ## 2026-08-09 18:01 JST — iOS CLI仕様境界の確認
 
 - AppleのXcode Command-Line Tool referenceで`simctl`がXcode同梱のCLIであることを確認した。Windowsには実行環境がないため、`simctl diagnose`の採用引数をmacOS上で実行確認した結果へ繰り上げず、今回のWorkflow Contract／未実行境界を維持する。
+
+## 2026-08-09 19:17 JST — PR #14追加修正（Repair Loop Iteration 27）
+
+- 添付された追加指示を全文確認し、今回の入力を`must_fix`として修復した。既存Build分離、Artifact契約、Android／iOS独立実行、final fail-closeを維持し、Git操作、固定sleep、固定座標tap、Maestro retry／timeout増加、CI再設計は行っていない。
+- 既存Darwin（code_researcher）／Mendel（test_investigator）へread-only調査を追加委譲した。Maestro selectorは公式Core Selectors仕様でtext selectorがregex扱いであることを確認し、shell側は`grep -q`のSIGPIPEと`PIPESTATUS`の必要性を確認した。親Agentは両結果を採用し、調査Agentはファイルを変更していない。
+- `maestro/subflows/accept-ios-deep-link.yaml`のselectorを`visible: "Open in .*Scenario Shop.*"`へ変更した。ASCII quote、curly quote、末尾`?`に依存せず、対象アプリ名は維持する。`tapOn: Open`、iOS条件、sleep／point／optional禁止は維持した。
+- `tests/contracts/native-test-control-maestro.test.ts`のDeep Link Contractを更新した。selectorが`Scenario Shop`を含むregexであることと既知のquote完全一致でないことを固定し、各Flowの`scenario-shop://` `openLink`行とhandler行が改行単位で隣接することを検証する。全16 Flowの38 openLink／38 handlerを再scanし、直後違反0を確認した。
+- `.github/workflows/native-ci.yml`のProduction Build／Runtime marker scanを、bundle本文を最後までconsumeする`grep -aE ... > /dev/null`へ変更した。`grep -q`／`grep --quiet`はmarker pipelineから除去し、`set -euo pipefail`は維持した。`unzip -Z1`でbundleを列挙し、`unzip -p`で本文を読み、Automation／Contract Harness／`NativeTestControlService` markerの存在をfail-closeで検査する契約は維持した。
+- marker positive fixture（`.artifacts/native-local/20260809-1904-production-marker-positive`）を実行確認した。markerありはguard exit 1、markerなしはexit 0、bundleなしはexit 1となった。これは一時fixtureと生証跡であり、恒久的なshell test frameworkやGit管理fixtureは追加していない。
+- `.github/workflows/native-ios-ci.yml`のdiagnose evidenceを非対話化した。`printf '\n' | xcrun simctl diagnose --udid="$IOS_DEVICE" --output="$DIAGNOSE_DIR" --no-archive`を実行し、`PIPESTATUS[1]`でxcrun本体のexit codeを記録する。`simctl_diagnose_output_files`を数え、exit codeが0かつfile数が0より大きい場合だけ`simctl_diagnose_evidence_success=true`をstatusへ記録する。Evidence失敗はMaestro／Runtime本体の結果を上書きしない。
+- `tests/contracts/native-ci-workflow.test.ts`へfull-consumption marker pipeline、`grep -q`／`grep --quiet`禁止、非対話diagnose、`PIPESTATUS[1]`、output file count、evidence success条件を追加した。
+- 公式selector根拠は[Maestro Core Selectors](https://docs.maestro.dev/reference/selectors/core-selectors)を参照した。Windowsには`xcodebuild`／`xcrun`／`simctl`がないため、iOS実Runtimeの最終挙動はmacOSで未確認であり、selector修正を静的／Android側の確認結果からiOS PASSへ繰り上げていない。
+- 検証結果:
+  - `pnpm exec vitest run tests/contracts/native-test-control-maestro.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`: 2 files／48 tests PASS。
+  - `android-local.ps1 -Action Doctor`: Node v24.12.0、pnpm 9.10.0、Maestro 2.8.0、device/API/ABIをPASS。続く`-Action Test`の`native-test-control`は1/1 PASS。
+  - `pnpm run lint:markdown`: 175 files／0 issues、`pnpm run format:check`: PASS、`pnpm run lint`: 0 errors／64 warnings、`pnpm run typecheck`: PASS、`pnpm run test:component:native`: 12 suites／47、`pnpm run test:repository`: 5 files／33、route 38、EAS PASS。
+  - `pnpm run test:contracts`は初回の並列wrapperでcold timeout（native-production-module-resolution）と`serve-web-dist`一時directory EPERMが同時に出た。対象単独4/4 PASS後、単独の要求コマンドを再実行し23 files／160 tests PASS。並列wrapperのEPERMをコード失敗へ繰り上げていない。
+  - `pnpm run verify`: exit 0。Format、Markdownlint、Lint、Typecheck、Image、Security、Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 47、Contract 160、Web export 2296をPASS。既存Lint warning／React `act(...)` console warning以外の失敗なし。
+- iOS Build／Simulator／Maestro／実`expo-sqlite` Harness／Production-validation、修正HeadのRemote Native CI／final `native-ci / verify`は、Windows／未push／Git mutation禁止のためNOT RUN。Remote CIは`pending`でありPASS扱いしない。既存Android Reviewの標準日本語IME依存Failureも残差として維持する。
+- PR本文更新案: 古い「Android Build→Android Runtime」「iOS Build→iOS Runtime」の記述を、Automation／Productionの独立BuildがそれぞれArtifactを生成し、Android／iOS Runtimeが両ArtifactをDownloadしてMaestro／Production-validationを実行し、iOS Native CI Verifyを経てNative CI final verifyへ合流する現行topologyへ差し替える。PR本文自体は変更していない。
+- 判定は`partial`／`missing_validation`。コード／Contract／ローカル品質ゲート／Android回帰／marker positive・negativeは完了したが、iOS実RuntimeとRemote CIの必須実行結果がないため、Progress: 97% (35/36)を維持する。
+
+## 2026-08-09 19:29 JST — Iteration 27 Contract hardening follow-up
+
+- marker Contractの`grep -q`禁止検証を、単純な同一行文字列ではなく、Workflow内の`unzip -p`から`then`までのmarker pipelineを抽出して判定する形へ強化した。line break付きの`grep -q`／`grep --quiet`回帰も検出できる。
+- 変更は`tests/contracts/native-ci-workflow.test.ts`だけで、Workflow実装、Maestro Flow、Android／iOS Runtime構成は変更していない。
+- 検証結果: 対象Prettier PASS、Focused Workflow／Maestro Contract 2 files／48 tests PASS、`pnpm run test:contracts` 23 files／160 tests PASS、再`pnpm run verify` exit 0（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 160／Web export 2296）。
+- iOS実Runtime／Remote CIは引き続きNOT RUN。Run resultは`partial`／`missing_validation`、Progress: 97% (35/36)を維持する。
+
+## 2026-08-09 19:30 JST — Iteration 27最終Artifact gate
+
+- Run／Evaluation JSON parse、5件のRun Artifact Prettier、`git diff --check`（CRLF変換warningのみ）、Sanitizer Write／Check（5 files、0 replacements、0 residual findings）をPASSした。
+- 既存のiOS／Remote未実行境界と`partial`／`missing_validation`判定は変更しない。Progress: 97% (35/36)。

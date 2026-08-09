@@ -256,6 +256,29 @@
 - `remaining_delta`: Windowsには`xcodebuild`／`xcrun`／`simctl`がなく、iOS Simulator、実`expo-sqlite` iOS Harness、iOS Production-validationは未実行。Git mutation禁止のため修正HeadをRemoteへ反映しておらず、最新HeadのGitHub-hosted Android／iOS Native CIとfinal `native-ci / verify`も未実行。
 - `decision`: `continue`。追加修正と全ローカル品質ゲートは完了したが、iOS／Remote実Runtimeの実行結果がないため完了扱いにしない。Progress: 97% (31/32)。
 
+## Repair decision（PR #14追加修正指示、Iteration 27）
+
+- `iteration_number`: 27。
+- `input_findings`: iOS Deep Link確認ダイアログのselectorがASCII quoteの完全一致で、iOS実Accessibility Textのcurly quote／末尾`?`に一致しない。既存Contractはhandlerの範囲だけを確認し、`openLink`直後の隣接を保証していなかった。Android Production marker guardは`grep -q`を使い、`set -o pipefail`下のSIGPIPEでpositive markerを誤判定し得る。iOS `simctl diagnose`は非対話Enter、xcrun本体のexit code、0 files時の成功判定が不足していた。
+- `classification`: `must_fix`。いずれも今回のiOS Runtime到達、Production fail-close、証跡の信頼性、Contractによる再発防止に直接関係する。
+- `repair_plan`: Maestro 2.8.0のregex selectorとして`Open in .*Scenario Shop.*`を共通subflowへ適用し、Contractをquote非依存かつline-level隣接へ強化する。Androidのmarker pipelineを`grep -aE ... > /dev/null`へ変更してfull-consumptionにし、Build／Runtime双方のmarker scanを固定する。iOSは`printf '\n' | xcrun simctl diagnose`と`PIPESTATUS[1]`で非対話実行／本体exit codeを記録し、`exit=0 && output_files>0`をEvidence successとして記録するがMaestro結果へ結合しない。
+- `allowed_files`: `.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、`maestro/subflows/accept-ios-deep-link.yaml`、`tests/contracts/native-ci-workflow.test.ts`、`tests/contracts/native-test-control-maestro.test.ts`、同Run Artifact。`.artifacts/native-local/`はmarker fixture／生ログのみでGit管理対象外とする。
+- `changed_files`: 上記Workflow 2件、Deep Link subflow、Contract 2件、`.codex/runs/20260808-165236-JST/TASKS.md`、`PLAN.md`、`REPORT.md`、`run.json`、`evaluation.json`。既存docs／Domain／Application／Repository／Git履歴は変更しない。
+- `validation_commands`: 公式Maestro selector仕様確認、Focused Workflow／Maestro Contract、Prettier、Android Doctor／Test、marker-positive／marker-free／bundle-missing fixture、全quality gate一式、`pnpm run verify`、Run／Evaluation JSON parse、Sanitizer Write／Check。
+- `validation_result`: `visible: "Open in .*Scenario Shop.*"`へ修正し、38 custom scheme openLinkとhandlerの直後隣接Contractを48/48でPASS。Android Maestro 2.8.0 Test Controlは1/1 PASS。marker fixtureはpositive exit 1、marker-free exit 0、bundle-missing exit 1。`pnpm run test:contracts`は初回並列実行でcold timeoutとserve-web-distの一時EPERMが出たが、対象単独4/4後の単独全体実行は23 files／160 tests PASS。その他必須ゲートと`pnpm run verify`はexit 0（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 160／Web export 2296）。
+- `remaining_delta`: Windowsには`xcodebuild`／`xcrun`／`simctl`／`gh`がなく、iOS Simulator／Deep Link実Runtime／iOS実`expo-sqlite` Harness／Production-validationとRemote Native CI／final verifyは未実行。既存Android Reviewの物理日本語IME依存Failureも未解消で、同条件の無目的な再試行はしない。
+- `decision`: `continue`。コード、Contract、ローカル品質ゲート、Android回帰、marker positive／negative検証は完了したが、iOS実RuntimeとRemote CIの必須結果がないため`partial`／`missing_validation`を維持する。Progress: 97% (35/36)。
+
+## Repair decision（Iteration 27 Contract hardening follow-up）
+
+- `input_findings`: 初回のmarker Contractは対象文字列を固定していたが、将来のline break付き`grep -q`回帰を十分に検出できない余地があった。
+- `repair_plan`: Workflow内の`unzip -p`から`then`までのmarker pipelineを抽出し、そのpipeline内部に`grep -q`／`grep --quiet`がないことを文字列Contractで検証する。実装方式は変更せず、最小のテスト強化に留める。
+- `changed_files`: `tests/contracts/native-ci-workflow.test.ts`、同Run Artifact。
+- `validation_commands`: 対象Prettier、Focused Workflow／Maestro Contract、`pnpm run test:contracts`、`pnpm run verify`。
+- `validation_result`: Focused 2 files／48 tests、全Contract 23 files／160 tests、`pnpm run verify` exit 0（Unit 66／Integration 98／Repository 33／Web Component 76／Native Component 47／Contract 160／Web export 2296）をPASS。
+- `remaining_delta`: iOS／Remote実RuntimeはIteration 27と同じWindows／未push境界で未実行。
+- `decision`: `continue`。テスト強化と全ローカルゲートは完了したが、Phase 2 final DoDはiOS／Remote未検証のためpartialを維持する。Progress: 97% (35/36)。
+
 ## Repair decision（PR #14追加修正、Iteration 24）
 
 - `iteration_number`: 24。
