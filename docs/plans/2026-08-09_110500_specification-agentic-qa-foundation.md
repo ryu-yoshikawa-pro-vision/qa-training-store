@@ -73,6 +73,7 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] Implementation Branchを最新`main`から作成している。
 - [ ] PR #14によるNative Scope / Android / iOS CI変更と、PR #13の記述の整合を再確認している。
 - [ ] PR #13内にPR #14後の現状と不整合な記述があれば、今回のCurriculum更新Scopeで修正対象としている。
+- [ ] Sandbox / Approval / Public Contractを扱うため、Current `AGENTS.md` Contractに従いImplementation Runを`strict`相当で扱う。
 
 #### Specification
 
@@ -99,7 +100,7 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] Active BRは、1件以上のACから参照されるか、直接ACを持たない理由を明記している。
 - [ ] Feature SpecのRequired Section / Conditional Sectionが明確である。
 
-#### Change Process
+#### Change Process / Execution Continuity
 
 - [ ] 通常Feature変更時のSpec更新順を文書化している。
 - [ ] 「Existing SpecへのBug Fix」と「Product Specification変更」を区別している。
@@ -109,6 +110,9 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] Known Deviation解消時のLifecycleを定義している。
 - [ ] Unresolved Specification確定時のLifecycleを定義している。
 - [ ] Agentic QA / Human Exploratory QAを毎変更へ機械的に強制せず、Riskに応じた適用条件を定義している。
+- [ ] 局所Blockerは該当Taskと依存TaskだけをBlockedにし、独立Task / Waveは継続する。
+- [ ] Global blockerだけがWhole-run停止条件になる。
+- [ ] Final Validationはfail-closeとし、未解消BlockerをDoD完了扱いにしない。
 
 #### Human-facing HTML
 
@@ -129,8 +133,9 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] BR / AC reference integrityが成功する。
 - [ ] BR Acceptance coverageが成功する。
 - [ ] Feature Required Section validationが成功する。
-- [ ] Challenge / Answer KeyのSpec Reference integrityが成功する。
+- [ ] Challenge / Answer KeyのNormative Spec Reference integrityが成功する。
 - [ ] 変更されたBR / ACを参照するChallenge IDをCI / Review Summaryへ列挙できる。
+- [ ] Challengeが直接参照するNormative fileが変更された場合もAffected ChallengeとしてCI / Review Summaryへ列挙できる。
 - [ ] HTML Buildが成功する。
 - [ ] Specification Validationが`pnpm run verify`とRequired CIへ接続される。
 - [ ] Generated HTMLをCI ArtifactとしてReviewerが確認できる。
@@ -160,6 +165,7 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] `qa-findings.json`はVersioned JSON Contractを持つ。
 - [ ] `qa-findings.json`に構造化Coverage Resultを持つ。
 - [ ] Required Coverageの`completed` / `not_completed` / `blocked_environment`を区別できる。
+- [ ] Scored RunはBenchmark Revisionを記録し、同じ評価母集団か判別できる。
 - [ ] Challenge評価時の`evaluation.json`もVersioned JSON Contractを持つ。
 - [ ] Raw Screenshot / Trace / MCP Log等の大容量Evidenceは既存Artifact方針に従いGit管理対象外へ分離する。
 
@@ -168,25 +174,33 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] Challenge DefinitionとInstructor Answer KeyをRepository内でReview可能に管理する。
 - [ ] Black-box Scored ChallengeとGray-box Training / Investigationを区別している。
 - [ ] Black-box Scored RunnerはSource Repositoryとは別の**isolated execution root**で実行し、Source Repositoryをmount / exposeしない。
+- [ ] Black-box Scored Runnerは**fresh agent session**で開始し、過去のSource / Answer Key / Evaluator Contextを引き継がない。
+- [ ] Black-box Scored Runnerはdenylistだけに依存せず、QAに必要なCapabilityだけを明示した**Tool Allowlist**で実行する。
 - [ ] Black-box Scored RunnerへはBuilt Artifactのファイル自体を渡さず、外側でServe / Install済みのRuntimeだけを提供する。
-- [ ] Black-box WebではSource Map、JS Bundle内容取得、Source inspection経路をScored Runnerへ提供しない。
+- [ ] Black-box WebではSource Map、JS Bundle内容取得、Browser evaluate、Network response body inspection等のImplementation inspection経路をScored Runnerへ提供しない。
 - [ ] Black-box NativeではAPK / IPAファイル、Arbitrary ADB shell、App package extraction経路をScored Runnerへ提供しない。
+- [ ] Scored RunnerからGitHub / Repository Search / Web Search / Generic shell / arbitrary HTTP fetchへ到達できない。
+- [ ] Scored Run開始前のForbidden Capability Probeで主要な禁止経路がUnavailable / Blockedであることを確認する。
 - [ ] Gray-box TrainingではSource参照を許容するが、Black-box Recall / Precisionと同じスコアへ混ぜない。
 - [ ] Learner-safe Challenge DefinitionはDefect / Non-defect分類やAnswer Key Item IDを漏らさない。
 - [ ] Required Coverage Missionは「正常」「不具合」等の正解を示さない中立的な探索表現にする。
 - [ ] Learner / AgentへInstructor Answer Keyを渡さない。
 - [ ] Scored RunではFilesystem、Git History、GitHub Connector、Repository Search、External Search、Prompt Context、Hidden Test Output等からInstructor-only情報へアクセスできないことを評価成立条件とする。
 - [ ] Scored Runner / OrchestratorはAnswer Keyを参照しない。
-- [ ] Runnerが`qa-findings.json`をFreezeした後、別EvaluatorだけがAnswer Keyを読む。
+- [ ] Runnerが`qa-findings.json`相当のStructured ResultをFreezeした後、別EvaluatorだけがAnswer Keyを読む。
+- [ ] Challenge適用前にInstructor-only Baseline Sanityを実施し、対象DefectがClean Baselineに存在しないことを確認する。
+- [ ] Challenge適用後にInstructor-only Post-patch Sanityを実施し、意図したDefect / Non-defect Ground Truthが成立することを確認する。
 - [ ] FindingとDefect Itemの計数単位がAtomic Findingで統一されている。
 - [ ] Instructorが定義したRequired Coverage SetをRunnerが減らせない。
 - [ ] Required Coverageの完了状態とEvidenceを機械可読に記録できる。
 - [ ] Non-defect Itemは`TN / FP / Not Evaluated`を区別する。
-- [ ] 未探索Non-defectをTNに数えない。
+- [ ] Non-defectをTNにするには、Coverage完了だけでなく**そのItem固有のRequired ObservationをEvidenceが満たす**ことを要求する。
+- [ ] 未探索またはItem固有Observation未確認のNon-defectをTNに数えない。
 - [ ] Required CoverageがEnvironment / Harness要因で`blocked_environment`になったScored Runは`valid_for_scoring=false`とし、Agent能力のScoreとして確定しない。
 - [ ] TP / FP / FN / TN、Recall / Precision / FPRを同一単位で再計算できる。
 - [ ] Evidence Quality、Reproducibility、Severity Accuracy、Coverageの採点Ruleが定義されている。
 - [ ] Challenge / Answer KeyのOracle ReferenceがCurrent Normative Specに存在することをCIで検証できる。
+- [ ] Benchmark Revisionが異なるScoreを同一母集団として比較しない。
 
 #### Curriculum
 
@@ -195,6 +209,8 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] BR / AC → Risk → Test Case → Automationの関係を追加する。
 - [ ] Agentic QAをPart 1後半へ追加する。
 - [ ] Black-box探索とGray-box調査の違いを教材化する。
+- [ ] Normal readonlyとScored Black-box Isolationの違いを教材化する。
+- [ ] Scored RunではFresh Session / Tool Allowlistが必要な理由を教材化する。
 - [ ] Agentic QAを全変更の必須工程ではなくRisk-basedな探索手段として説明する。
 - [ ] Part 1 CapstoneへValidated FindingとRegression Feedbackを追加する。
 - [ ] Part 2の変更管理 / PR Review / Integration DesignへSpec同期とAI QA運用を接続する。
@@ -204,6 +220,8 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 
 - [ ] 既存Product Behaviorを意図せず変更していない。
 - [ ] Product Bug修正や無関係なRefactorが混ざっていない。
+- [ ] 独立Taskを局所Blockerのために不必要に中断していない。
+- [ ] 未解消Blockerがある状態を全DoD完了としていない。
 - [ ] `pnpm run verify`が成功する。
 - [ ] GitHub Actions Required CIが成功する。
 - [ ] Implementation PRだけで全DoDがReview可能であり、別実装PRを前提にしない。
@@ -244,13 +262,15 @@ PR #14はNative Phase 2後半として、Login / Session / Account / Address / C
 
 PR #13はPR #14より前のRepository状態を前提に作成されているため、PR #14→PR #13の順でマージした後、Curriculumの事実記述が古くなっていないか必ず確認する。
 
-### 2.3 現在のHarness制約
+### 2.3 現在のHarness / Run制約
 
 Current `codex-safe`の`readonly` presetは`read-only` sandboxとしてSourceへの書込みを防げる。一方で、Current wrapperはRepository RootをWorking Rootとして利用する前提であり、Repository外から起動してもRepository Rootへ戻す。
 
 したがって、Current `readonly` presetは**Write Boundary**としては再利用できるが、Black-box Scored Challengeに必要な**Read / Information Boundary**までは保証しない。
 
-本Planではこの2つを別Contractとして扱う。
+またCurrent `AGENTS.md`ではSandbox / Approval / Public Contractを扱う変更はStrict workflow対象であり、Current `RUN_MANIFEST.json`にはGit Commit SHAを直接保持するFieldがない。
+
+本PlanではWrite Boundary、Scored Read Boundary、Benchmark Revisionを別Contractとして扱う。
 
 ### 2.4 現在の問題
 
@@ -316,7 +336,9 @@ Accepted Regression / Spec Feedback
 - AI QA Findingは探索中に自動修正しない。
 - Current Repositoryに存在する`codex-safe`の`readonly` presetは通常QA / Gray-box QAの標準Read-only経路として再利用する。
 - Black-box Scored ChallengeではCurrent Repository Root上の`codex-safe readonly`をSource隔離手段として使わず、Source Repositoryとは別のisolated execution rootを用意する。
+- Black-box Scored Runnerは、Source / Answer Keyを読んでいないFresh Sessionから開始する。
 - Challenge評価の目的はAIの未知不具合探索能力を評価することであり、Code Inspection能力をBlack-box探索スコアへ混ぜない。
+- Benchmark Revisionが異なるRunは、明示的な換算・再評価なしに同一Benchmark Scoreとして直接比較しない。
 
 ---
 
@@ -337,7 +359,8 @@ Accepted Regression / Spec Feedback
 - iOS物理端末Agentic QAを必須にすること。
 - Challenge評価のために独自の大規模Evaluation Platformを構築すること。
 - Initial versionで重み付き総合スコアやランキングシステムまで作ること。
-- Black-box隔離のために必要以上のContainer PlatformやRemote Sandbox基盤を新設すること。最小のisolated execution rootで成立させる。
+- Black-box隔離のために必要以上のContainer PlatformやRemote Sandbox基盤を新設すること。最小のisolated execution root + Tool Allowlistで成立させる。
+- Benchmark Revisionのために外部Version Databaseを導入すること。
 
 ---
 
@@ -354,6 +377,7 @@ Accepted Regression / Spec Feedback
 9. Agentic QA Training Challenge / Evaluation
 10. Test Automation Curriculum
 11. Existing README / Guide / Project Contextの責務整理
+12. Scored Runner Isolation / Benchmark Reproducibility
 
 ---
 
@@ -396,6 +420,7 @@ Accepted Regression / Spec Feedback
 - `scripts/codex-safe.*`
 - `scripts/codex-task.*`
 - Existing run / evaluation artifact schema
+- MCP / Agent Tool routing configuration relevant to Browser / Native capability exposure
 
 ### 6.4 CI / Build
 
@@ -418,7 +443,7 @@ Accepted Regression / Spec Feedback
 
 ## 7. Change strategy
 
-### 7.1 基本方針
+### 7.1 基本方針 / Blocker Policy
 
 実装は1本のPR内でWave順に進める。
 
@@ -427,6 +452,38 @@ Accepted Regression / Spec Feedback
 - Product Bugや無関係なRefactorを混ぜない。
 - 後続Waveが前WaveのContractを前提にできる順序で実施する。
 - 中核Contractに矛盾する状況が発生した場合だけOwner Decisionを求める。
+
+#### Local blocker
+
+特定Platform、Tool、Challenge、Feature等に閉じたBlockerは、そのTaskと直接依存するTaskだけを`Blocked`へ移す。
+
+例:
+
+- Native Scored RunnerのDevice Capabilityだけが不足している。
+- 1つのFeatureでProduct意図が未確定である。
+- 特定ChallengeだけBaseline Sanityが成立しない。
+
+この場合、以下のような独立Taskは継続する。
+
+- Specification整備
+- HTML Generator / Validator
+- Web Agentic QA
+- Curriculumの独立部分
+- Documentation責務整理
+- 他Platform / 他Challenge
+
+#### Global blocker
+
+Whole-runを停止してOwner Decisionを求めるのは、以下のようにGoal / Safety / Core Contract全体へ影響する場合だけとする。
+
+- PR #14 / #13等のImplementation Start Gate未達のまま実装開始が必要になる。
+- Normative SSOTの責務そのものを変更しないと成立しない。
+- Source / Answer Key isolation等の安全境界を守れないままScored評価を成立させる必要がある。
+- 1本のImplementation PRという前提を維持できない重大なRepository制約が判明する。
+
+#### Final fail-close
+
+実行途中は進められる独立Taskを可能な限り進める。一方、Final Validationでは未解消のRequired Blockerを残したままDoD完了、PASS、Implementation-readyと扱わない。
 
 ### 7.2 Specification System / 仕様の正本モデル
 
@@ -517,6 +574,9 @@ ADRはDecision Historyであり、Current Normative Specと矛盾する場合は
 - **Black-box Scored Challenge**: Source / Artifact bytes / Answer Keyを見ず、RuntimeとLearner-safe Specificationから探索能力を評価するChallenge。
 - **Gray-box Training / Investigation**: Source / Existing Test参照を許容し、原因調査やRegression判断を学ぶ非Black-box評価モード。
 - **Required Coverage Set**: InstructorがChallengeごとに固定する、Scored Runで最低限探索すべき有限集合。
+- **Benchmark Revision**: Application / Normative Spec / Challenge / Answer Key等、採点母集団を一意に識別するRevision ID。
+- **Fresh Scored Session**: Source / Answer Key / Evaluator情報を一度も受け取っていない新規Agent Session。
+- **Scored Tool Allowlist**: Black-box探索に必要なCapabilityだけを列挙したPositive Permission Set。
 
 ### 7.4 Target Specification structure
 
@@ -814,7 +874,7 @@ Black-box Scored Challengeは通常`readonly`とは別経路とする。
 
 Current wrapperがRepository RootをWorking Rootとして扱う以上、Repository Root上で`read-only`にしてもApplication Sourceを読めるため、Scored Source Isolationとしては不十分である。
 
-Scored Runnerは以下を満たす**isolated execution root**で起動する。
+Scored Runnerは以下を満たす**isolated execution root**で、**Fresh Session**から起動する。
 
 - Source Repositoryとは別Path / Workspaceである。
 - Source Repositoryをmountしない。
@@ -823,8 +883,58 @@ Scored Runnerは以下を満たす**isolated execution root**で起動する。
 - Learner-safe Specification Bundle / Runbook / Challenge Definitionだけを配置する。
 - Runtimeは外側で起動済みのURL / Emulator / Simulatorを操作する。
 - Repository Connector / Search等のSourceへ戻れるToolをRunnerへ付与しない。
+- Fresh SessionのPromptにはLearner-safe Inputだけを渡し、過去のSource / Answer Key / Evaluator Contextを引き継がない。
 
 実装方法は専用の軽量Launcher、Temporary Workspace、Container等のうち最小構成を選ぶ。既存Harnessへ無理にSource-free modeを押し込む必要はない。
+
+#### Scored Tool Allowlist
+
+Scored Runnerは「禁止Tool一覧」だけで守らず、許可するCapabilityをPositive Listとして固定する。
+
+標準Allowed Capability:
+
+- isolated root内のLearner-safe Spec / Runbook / Challenge DefinitionのRead
+- Target RuntimeへのUser-facing Navigation
+- Click / Tap / Fill / Text input / Select / Scroll / Back
+- DOM / Accessibility / Semantic Label / Test ID観察
+- Screenshot
+- Current URL / Current Screen確認
+- 制限されたConsole / Narrow LogのRead
+- 許可されたSeed / Test Control / Deep Link
+- Viewport切替 / App restart等、Challenge Definitionで許可したQA操作
+
+標準でExposeしないCapability:
+
+- Source Repository / Parent DirectoryのFilesystem探索
+- Generic Shell / PowerShell / Bash
+- Arbitrary `curl` / HTTP fetch / File download
+- Git / GitHub Connector / Repository Search
+- Web Search / External Search
+- Browser `evaluate`等のArbitrary Runtime Code Execution
+- Network Response Body inspection
+- JS Bundle / Source Map取得
+- Arbitrary ADB shell / Package extraction
+- Instructor-only Test / Hidden Test output
+
+Browser NavigationはTarget Application OriginとChallenge Definitionで明示的に許可したTest Control / Deep Linkへ限定する。Static bundle URLを直接探索する目的のNavigationは許可しない。
+
+特定Tool実装上、必要CapabilityとForbidden Capabilityを分離できない場合、そのToolをScored Runnerへ直接Exposeしない。より狭いWrapper / Worker経由で必要Capabilityだけを提供する。
+
+#### Forbidden Capability Probe
+
+Scored Run開始前にRunnerと同等のTool Scopeから代表的な禁止経路をProbeする。
+
+最低確認:
+
+- Source Repository Pathへアクセスできない。
+- Parent Directory traversalでSourceへ戻れない。
+- GitHub / Repository Searchが利用できない。
+- Web Search / arbitrary external fetchが利用できない。
+- Generic Shellが利用できない。
+- WebではJS Bundle / Source Map / Network Response Bodyを取得できない。
+- NativeではAPK / IPA / arbitrary ADB shellへ到達できない。
+
+Probeが1つでも成立してしまう場合、そのRunはScored開始前にIsolation Failureとして中止し、練習Runへ降格する。
 
 #### Working Tree Snapshot
 
@@ -846,11 +956,11 @@ Before / After比較
 QA実行による追加Source差分 = 0
 ```
 
-Black-box Scored RunnerにはSource Repository自体を置かないため、Source Tree差分0ではなくIsolation ContractをValidationする。
+Black-box Scored RunnerにはSource Repository自体を置かないため、Source Tree差分0ではなくIsolation / Tool Allowlist ContractをValidationする。
 
 #### Web Capability
 
-標準経路はPlaywright MCP。
+通常Agentic QAの標準経路はPlaywright MCP。
 
 必要Capability:
 
@@ -863,6 +973,8 @@ Black-box Scored RunnerにはSource Repository自体を置かないため、Sour
 - Console / Error確認
 - Seed / Test Control Reset
 - Viewport切替
+
+Scored modeではPlaywright MCP全Toolを無条件にExposeせず、上記Scored Tool Allowlistへ絞った経路を利用する。
 
 #### Native Capability Contract
 
@@ -905,6 +1017,27 @@ Evaluatorが1 Findingから複数Defect Itemを勝手にTPへ分解しない。
 
 ### 7.11 QA Run Artifact Contract
 
+#### Benchmark Revision
+
+Scored Resultを後から比較・再評価できるよう、RunごとにBenchmark Revisionを持つ。
+
+Benchmark Revisionは、少なくとも以下の評価母集団を一意に識別できることを要求する。
+
+- Application / Runtimeを生成したSource状態
+- Learner-safe Normative Specification Bundle
+- Challenge Definition
+- Instructor Answer Key
+- Challenge Patch / Setup
+
+実装方式を特定のVersion DBへ固定しない。
+
+- Benchmark入力がClean / CommittedならGit Commit SHAをそのままRevision IDとして利用してよい。
+- Implementation validation等でWorking Treeが未Commitの場合は、対象Benchmark InputのDeterministic Content Digest等を使ってよい。
+- `source_head_sha`を補助情報として保存してよい。
+- Runtime生成に追加Variantがある場合だけ`runtime_variant_id`またはDigestを追加する。
+
+同一`challenge_id`でもBenchmark Revisionが異なるRunは別母集団として扱う。
+
 #### `qa-findings.json`
 
 最低構造:
@@ -914,6 +1047,9 @@ Evaluatorが1 Findingから複数Defect Itemを勝手にTPへ分解しない。
   "schema_version": 1,
   "run_id": "<run_id>",
   "charter_id": "<charter_id>",
+  "benchmark_revision": "<revision>",
+  "source_head_sha": "<optional sha>",
+  "runtime_variant_id": null,
   "coverage": {
     "required_ids": ["COV-001", "COV-002"],
     "items": [
@@ -978,9 +1114,11 @@ Scored Runでは`required_ids`をChallenge Definitionから受け取り、Runner
 └ evaluation.json     # Challenge評価時のみ
 ```
 
+Current `run.json`へBenchmark情報を最小拡張できる場合は同じ情報を追跡用に持たせてもよい。新規Manifestを乱立させない。
+
 Raw Screenshot、Trace、MCP Log、ADB Log等は`.artifacts/**`等へ分離し、Run Artifactには相対Referenceと要約だけを残す。
 
-Black-box Scored RunnerがRead-only / Source-freeでArtifactを書けない場合、Runner終了後に外側のOrchestratorがStructured ResultをRun Artifactへ保存する。OrchestratorはScored Finding生成中にAnswer Keyを参照しない。
+Black-box Scored RunnerがRead-only / Source-freeでArtifactを書けない場合、Runner終了後に外側のOrchestratorがFrozen Structured ResultをRun Artifactへ保存する。OrchestratorはScored Finding生成中にAnswer Keyを参照しない。
 
 ### 7.12 Learner-safe Challenge Definition / Spec Drift Contract
 
@@ -1021,9 +1159,16 @@ Defect / Non-defect ItemとCoverageのMappingはInstructor Answer Keyだけに�
 
 Challenge DefinitionとInstructor Answer Keyが参照する`BR-*` / `AC-*` / Normative Spec sectionはCurrent Normative Specificationに存在しなければValidation Failureとする。
 
+Scored Answer ItemのOracleは、可能な限り安定した`BR-*` / `AC-*`を最低1件含める。UI/UX等でBR / ACだけでは表現しにくい場合はNormative file / section referenceを併用してよい。
+
 #### Spec change impact reporting
 
-Reference存在確認だけでは意味変更を検知できないため、CI / ReviewではBaseとの差分から変更されたBR / ACを抽出し、それらを参照するChallenge IDをSummaryへ列挙する。
+Reference存在確認だけでは意味変更を検知できないため、CI / ReviewではBaseとの差分から以下を抽出する。
+
+1. 変更された`BR-*` / `AC-*`
+2. Challenge `spec_refs[]`が直接参照する変更Normative file
+
+それらを参照するChallenge IDをSummaryへ列挙する。
 
 例:
 
@@ -1032,14 +1177,18 @@ Changed requirement: BR-CART-001
 Affected challenges:
 - CHALLENGE-BASIC-02
 - CHALLENGE-ADV-01
+
+Changed normative file: docs/spec/ui-ux-contract.md
+Affected challenges:
+- CHALLENGE-UI-02
 ```
 
-このImpact Reportは、Requirement内容が変わっただけで自動Failureにはしない。
+このImpact Reportは、Requirement / File内容が変わっただけで自動Failureにはしない。
 
 Reviewer / ImplementerはAffected Challengeごとに以下のどちらかを確認する。
 
 - Challenge / Answer Keyを更新した。
-- Requirement編集が意味変更ではなく、Challenge更新不要と判断した。
+- 編集が意味変更ではなく、Challenge更新不要と判断した。
 
 Fingerprint DBや独自Version Databaseは初期版では導入しない。
 
@@ -1067,17 +1216,19 @@ Runner rootの例:
 × build artifact files
 ```
 
-Runnerには以下だけを与える。
+RunnerはFresh Sessionで起動し、Prompt / ContextへLearner-safe Inputだけを渡す。
 
-Web:
+RunnerにはScored Tool Allowlistで許可したCapabilityだけを与える。
+
+Web Runtime:
 
 - 起動済みURL / Runtime endpoint
 - Learner-safe Specification Bundle
 - Learner Runbook / Charter
 - 許可されたSeed / Test Control
-- UI / DOM / Accessibility / Console等のRuntime Evidence Capability
+- UI / DOM / Accessibility / Screenshot /制限Console等のRuntime Evidence Capability
 
-Native:
+Native Runtime:
 
 - Boot済みEmulator / Simulator上で起動可能なApp
 - Learner-safe Specification Bundle
@@ -1093,6 +1244,7 @@ Scored Runnerへ渡さないもの:
 - `.git` / Git history
 - Source Map
 - JS Bundle file access / response body inspection
+- Browser arbitrary evaluate
 - APK / IPA file access
 - Arbitrary ADB shell / package extraction
 - Challenge Patch Source
@@ -1100,21 +1252,29 @@ Scored Runnerへ渡さないもの:
 - Defect List
 - Instructor-only Test
 - Evaluator Matching情報
-- GitHub Connector / Repository Search等のSourceへ戻れるTool
+- GitHub Connector / Repository Search
+- Web Search / External Search
+- Generic Shell / arbitrary HTTP fetch
+- 前SessionのSource / Answer Key Context
 
 Current Repository上の`codex-safe readonly`はSource Write防止には利用できるが、Repositoryを読めるためこのIsolation Contractの代替にはならない。
 
-Web RuntimeがSource MapやSource inspection経路を無効化できない場合、Native RuntimeがArtifact extractionを防げない場合、またはRunnerがSource Repositoryへ戻れる場合、そのRunは練習には使えてもBlack-box Scored Resultとして扱わない。
+Web RuntimeがSource MapやSource inspection経路を無効化できない場合、Native RuntimeがArtifact extractionを防げない場合、RunnerがSource Repositoryへ戻れる場合、またはFresh Session / Tool Allowlistを保証できない場合、そのRunは練習には使えてもBlack-box Scored Resultとして扱わない。
 
 ### 7.14 Runner / Evaluator separation
 
 ```text
 Preparation Process
+  ├─ Benchmark Revision確定
+  ├─ Baseline sanity
+  ├─ Challenge Patch / Setup
+  ├─ Post-patch sanity
   ├─ Build / Serve / Install
   ├─ isolated execution root作成
-  └─ learner-safe inputs配置
+  ├─ learner-safe inputs配置
+  └─ Tool Allowlist / Forbidden Probe
             ↓
-Black-box Runner / Orchestrator
+Fresh Black-box Runner
   │  Source / Answer Keyを読めない
   │
   ├─ Required Coverageを実施
@@ -1123,12 +1283,13 @@ Black-box Runner / Orchestrator
             ↓
          Run終了
             ↓
-Evaluator
+Separate Evaluator
   │  ここで初めてAnswer Keyを読む
   │
-  ├─ Isolation / Coverage blocker確認
+  ├─ Benchmark Revision / Isolation確認
+  ├─ Coverage blocker確認
   ├─ Atomic Finding ↔ Answer Item Matching
-  ├─ Coverage Evidence検証
+  ├─ Item-specific Evidence検証
   ├─ TP / FP / FN / TN / NE集計
   └─ evaluation.json生成
 ```
@@ -1136,6 +1297,8 @@ Evaluator
 Runner / OrchestratorがSource RepositoryやAnswer Keyを参照できた場合、そのRunは`valid_for_scoring=false`とする。
 
 EvaluatorはFrozen Findingを書き換えない。
+
+RunnerとEvaluatorは同じAgent Sessionを使い回さない。
 
 ### 7.15 Instructor Answer Key Item Contract
 
@@ -1158,6 +1321,8 @@ Allowed severity delta  # defectのみ
 `non-defect` Itemは意図されたPlatform差、正常Error表示、Role制約、Empty State等、AIがFalse Positive化しやすい正常挙動を対象にする。
 
 Defect / Non-defect分類、Related Coverage Mapping、Expected severity等はInstructor-only情報とし、Runnerへ渡さない。
+
+Oracle Referenceは安定BR / ACを優先し、必要に応じてNormative file / sectionを補助参照する。
 
 ### 7.16 Atomic Finding ↔ Answer Item Matching Rule
 
@@ -1188,10 +1353,12 @@ Challenge外の予期しない真のDefect候補をAgentが発見した場合、
 
 `unexpected_valid_finding`としてInstructor Reviewへ回し、以下のどちらかで評価を確定する。
 
-- 真のDefectと確認 → Answer Key / 評価母集団を補正して再計算。
+- 真のDefectと確認 → Answer Key / 評価母集団を補正し、新しいBenchmark Revisionとして再評価する。
 - Defectではない → FPとして確定。
 
 Review未完了のまま最終Scored Resultを確定しない。
+
+Answer Key変更前後のScoreを同一Benchmark Revisionとして比較しない。
 
 ### 7.18 TP / FP / FN / TN / NE
 
@@ -1209,11 +1376,13 @@ Review未完了のまま最終Scored Resultを確定しない。
 
 #### Non-defect Item
 
-Non-defectは**実際に探索・観察したものだけ**評価する。
+Non-defectは**実際にそのItem固有の正常条件まで探索・観察したものだけ**評価する。
 
-- **TN**: Instructor-only Mapping先のRelated Coverage Itemが`completed`でEvidenceがあり、そのNon-defectをDefectとして誤報しなかったもの。
-- **FP_non_defect**: Related Coverage Itemを実施したうえで、そのNon-defectをDefectとして誤報したもの。
-- **NE (Not Evaluated)**: Related Coverage Itemが`not_completed`で、正常挙動を実際に評価していないもの。
+- **TN**: Instructor-only Mapping先のRelated Coverage Itemが`completed`で、かつEvidenceがそのNon-defect Itemの`Required observation / distinguishing condition`を満たし、そのBehaviorをDefectとして誤報しなかったもの。
+- **FP_non_defect**: Item固有のRequired observationまで実施・Evidence化したうえで、その正常BehaviorをDefectとして誤報したもの。
+- **NE (Not Evaluated)**: Related Coverageが`not_completed`、またはCoverage自体は`completed`でもItem固有のRequired observationをEvidenceから確認できないもの。
+
+単に画面へ到達した、Coverage Itemを`completed`にした、という事実だけではTNにしない。
 
 `blocked_environment`がRequired Coverageに存在する場合は、TN / FP / NEの最終Score比較より前にRun自体をInvalid Scored Runとして扱う。
 
@@ -1268,7 +1437,7 @@ False Positive Rate = FP_non_defect / (FP_non_defect + TN)
 Coverage = completed_required_coverage_items / required_coverage_items
 ```
 
-FPRの分母には**exercised non-defect itemsだけ**を含める。NEはFPRから除外し、Coverageで未実施として反映する。
+FPRの分母には**item-specific observationをEvidenceで確認できたexercised non-defect itemsだけ**を含める。NEはFPRから除外し、Coverage / Evaluation Detailで未実施として反映する。
 
 PrecisionはEvaluatorがDeduplicateしたunique Atomic Finding集合で計算する。
 
@@ -1293,6 +1462,8 @@ Coverage Itemを`completed`にするには、最低限以下を満たす。
 単なる自己申告だけで`completed`にしない。
 
 Learner-safe Coverage SetにはDefect / Non-defectの正解を示す情報を含めない。
+
+Coverage完了とNon-defect ItemのTN成立は別判定とし、TNにはInstructor-only Item ContractのRequired observationを追加要求する。
 
 ### 7.22 Quality metric scoring
 
@@ -1350,7 +1521,12 @@ Coverage = completed_required_coverage_items / required_coverage_items
   "schema_version": 1,
   "run_id": "<run_id>",
   "challenge_id": "<challenge_id>",
+  "benchmark_revision": "<revision>",
+  "source_head_sha": "<optional sha>",
+  "runtime_variant_id": null,
   "mode": "black-box",
+  "fresh_session": true,
+  "tool_scope_validated": true,
   "valid_for_scoring": true,
   "invalid_reasons": [],
   "matches": [],
@@ -1378,21 +1554,53 @@ Coverage = completed_required_coverage_items / required_coverage_items
 }
 ```
 
+Evaluatorは`qa-findings.json`と`evaluation.json`のBenchmark Revisionが一致することを確認する。
+
 `valid_for_scoring=false`の場合、正式Scoreとして利用しないMetricは`null`を基本とし、診断値を別Fieldへ持つ必要が出た場合のみ最小拡張する。
 
 既存`run.json` / Evaluation Contractと競合する場合は新規Schemaを乱立させず、既存Contractへ最小拡張する。
 
-### 7.24 Challenge Validation
+### 7.24 Challenge Ground Truth / Validation
+
+ChallengeをScored Runnerへ渡す前に、Ground TruthをInstructor-only Validationで確認する。
+
+#### Pre-patch Baseline Sanity
 
 ```text
-Clean Source
+Clean Baseline
   ↓
+Instructor-only challenge-specific sanity
+```
+
+最低限確認:
+
+- 注入対象DefectがClean Baselineですでに再現していない。
+- Non-defect Itemとして採点する正常BehaviorがBaselineで期待どおり成立する。
+- Challengeに必要なSeed / Test Control / Runtime前提が利用可能である。
+
+全Regression SuiteをChallengeごとに二重実行する必要はない。Challenge-specificな最小Sanityに限定する。
+
+#### Post-patch Sanity
+
+```text
 Challenge Patch / Setup適用
   ↓
-Build / Install / ServeをRunner外で実施
+Build / Install / Serve
   ↓
-Scored Runtime起動
-  ↓
+Instructor-only post-patch sanity
+```
+
+最低限確認:
+
+- 意図したDefect ItemがMinimum Reproduction Conditionで成立する。
+- Non-defect Itemが意図せずDefect化していない。
+- Challenge対象外の最低限のNavigation / Reset / Runtime操作が可能である。
+
+Baselineに元から存在するDefectをChallenge注入結果として扱わない。
+
+#### Isolation / Learner-safe Validation
+
+```text
 Source Repository外にisolated execution root作成
   ├─ .gitなし
   ├─ Application Sourceなし
@@ -1402,13 +1610,19 @@ Source Repository外にisolated execution root作成
   ├─ Patch Sourceなし
   └─ Instructor-only contentなし
   ↓
+Fresh Session作成
+  ↓
+Scored Tool Allowlist適用
+  ↓
+Forbidden Capability Probe
+  ↓
 Learner-safe Definitionの情報漏洩確認
   ↓
 Normative Spec / Answer Key Oracle Reference integrity確認
   ↓
-Changed BR / AC → Affected Challenge Summary
+Changed BR / AC + Changed referenced Normative file → Affected Challenge Summary
   ↓
-Challenge-specific sanity check
+Scored Run開始
 ```
 
 意図的Defectにより通常Regressionが失敗する場合、通常Regression全PASSをChallenge Validation条件にしない。
@@ -1423,10 +1637,13 @@ Challenge-specific sanity check
 - [ ] PR #13のmergeを確認する。
 - [ ] 他依存PRを確認する。
 - [ ] 最新`main`からImplementation Branchを作る。
+- [ ] Current `AGENTS.md`に従いStrict workflowとしてRunを初期化する。
 - [ ] AGENTS / PROJECT_CONTEXT / ADR / CI / Native / Curriculumを再Mappingする。
 - [ ] `codex-safe` / `readonly` presetのCurrent Write Boundaryを再確認する。
 - [ ] Current wrapperがBlack-box Source Isolationには不十分である前提を維持し、isolated execution rootの最小方式を決める。
+- [ ] Browser / Native Tool routingを確認し、Scored Tool Allowlistを成立させる最小経路を決める。
 - [ ] Existing Run / Evaluation schemaを再確認する。
+- [ ] Benchmark Revisionを既存Run Contractへ最小拡張する方式を決める。
 - [ ] PR #14後のNative ScopeとPR #13 Curriculumの整合を確認する。
 - [ ] 本PlanのPath / Wave / DoDを最新Repositoryへ同期する。
 - [ ] 既に同等機能が追加済みなら重複を除く。
@@ -1472,6 +1689,7 @@ Challenge-specific sanity check
 - [ ] Known Deviation解消Lifecycleを記載する。
 - [ ] Unresolved Specification解消Lifecycleを記載する。
 - [ ] Risk-based Agentic QA適用条件を記載する。
+- [ ] Local / Global BlockerとFinal fail-closeの実行契約を記載する。
 - [ ] Feature Spec Templateを作る。
 - [ ] AGENTS / Planning / Reviewから変更対象Specを事前確認するよう接続する。
 - [ ] Behavior変更時のSpec / AC更新漏れをCode Review観点へ追加する。
@@ -1500,6 +1718,7 @@ Challenge-specific sanity check
 - [ ] Conditional Sectionは一律必須にしない。
 - [ ] Challenge Definition / Answer KeyのNormative Spec Reference integrity。
 - [ ] Changed BR / AC → Affected Challenge IDをCI Summaryへ出力する。
+- [ ] Changed referenced Normative file → Affected Challenge IDもCI Summaryへ出力する。
 - [ ] HTML Build validation。
 - [ ] `pnpm run validate:spec`を追加する。
 - [ ] `pnpm run verify`へ接続する。
@@ -1520,6 +1739,7 @@ Challenge-specific sanity check
 - [ ] Charter Contractを実装する。
 - [ ] Atomic Finding Contractを実装する。
 - [ ] `qa-findings.json` Versioned Contractを実装する。
+- [ ] Benchmark RevisionをRun Artifactへ記録できるようにする。
 - [ ] Coverage Resultを`qa-findings.json`へ構造化する。
 - [ ] `blocked_environment`分類を実装する。
 - [ ] Known Deviation / Unresolved Spec処理を実装する。
@@ -1537,22 +1757,28 @@ Challenge-specific sanity check
 - [ ] Challenge Definitionへ`spec_refs`とRequired Coverage Setを定義する。
 - [ ] Build / Serve / InstallをRunner外で行うScored Runtime生成方法を作る。
 - [ ] Source Repository外のisolated execution root生成方法を作る。
+- [ ] Fresh Scored Sessionを作る。
+- [ ] Scored Tool Allowlistを実装し、Generic Shell / arbitrary fetch / Search / Browser evaluate等をExposeしない。
+- [ ] Forbidden Capability Probeを実装する。
 - [ ] Scored RunnerへArtifact bytes / Source Tree / `.git`を渡さない。
-- [ ] Web Source Map / JS Bundle inspection経路をScored modeで除外する。
+- [ ] Web Source Map / JS Bundle / Network Response inspection経路をScored modeで除外する。
 - [ ] Native APK / IPA file access / arbitrary ADB shellをScored modeで除外する。
-- [ ] Repository Connector / SearchをScored Runnerから除外する。
+- [ ] Repository Connector / GitHub / Web SearchをScored Runnerから除外する。
 - [ ] Gray-box Training Pathを別途定義する。
-- [ ] Scored Runner / Evaluatorを分離する。
+- [ ] Scored Runner / Evaluatorを別Sessionとして分離する。
+- [ ] Benchmark RevisionをRunner / Evaluator双方で一致確認する。
 - [ ] RunnerがFinding Freeze後にEvaluatorを開始する。
 - [ ] Required Coverage IDをRunnerが縮小できないことを検証する。
 - [ ] `blocked_environment`があれば`valid_for_scoring=false`にする。
 - [ ] Challenge Patch / SetupをDisposable環境へだけ適用する。
-- [ ] Challenge Validation / Sanityを追加する。
+- [ ] Challenge適用前Baseline Sanityを追加する。
+- [ ] Challenge適用後Post-patch Sanityを追加する。
 - [ ] Defect / Non-defect Itemを用意する。
 - [ ] Atomic Finding ↔ Answer Item Matching Ruleを実装する。
 - [ ] Duplicate / invalid_non_atomic / review_neededを分離する。
 - [ ] TP / FP / FN / TN / NE分類を実装する。
-- [ ] 未探索Non-defectをTNへ数えない。
+- [ ] TNにItem-specific Required Observation Evidenceを必須化する。
+- [ ] 未探索 / Item observation未確認Non-defectをTNへ数えない。
 - [ ] Recall / Precision / FPR / Coverage計算を実装する。
 - [ ] Evidence / Reproducibility / Severity採点を実装する。
 - [ ] `evaluation.json` Versioned Contractを実装する。
@@ -1571,11 +1797,13 @@ Challenge-specific sanity check
 - [ ] Playwright MCP / Seed / Charter / Oracle / Atomic Finding / Evidence / False Positive / Regression還元を教材化する。
 - [ ] Black-box DiscoveryとGray-box Investigationの違いを教材化する。
 - [ ] Normal readonlyとBlack-box Isolationの違いを教材化する。
+- [ ] Fresh Session / Tool Allowlist / Forbidden Probeの意味を教材化する。
 - [ ] Agentic QAをRisk-basedな探索手段として説明する。
 - [ ] Native Agentic QAはCapability Contract + Android標準で説明する。
 - [ ] Challenge評価でSource / Artifact / Answer Key隔離の意味を説明する。
 - [ ] Instructor-defined CoverageとNon-defect評価を教材化する。
 - [ ] Environment blocker時にScored Resultを無効にする理由を説明する。
+- [ ] Benchmark Revisionが異なるScoreを単純比較しないことを説明する。
 - [ ] Part 1 CapstoneへValidated FindingとRegression Feedbackを追加する。
 - [ ] Part 2の変更管理 / PR Review / Integration DesignへSpec同期とAI QAを追加する。
 - [ ] PR #14後のNative Scope / iOS CIにCurriculum記述を同期する。
@@ -1608,21 +1836,31 @@ Challenge-specific sanity check
 - [ ] Android Capabilityが利用可能ならNative Agentic QAをDry Runする。
 - [ ] Android Capability不足なら未実施を明記し、Maestro PASSで代替しない。
 - [ ] Scored RunnerがSource Repository外のisolated execution rootで動作することを確認する。
+- [ ] Scored RunnerがFresh Sessionで開始することを確認する。
 - [ ] Scored Runner rootに`.git` / Application Source / Existing Test / Source Map / Artifact bytes / Patch Source / Answer Keyがないことを確認する。
-- [ ] Scored Web RunnerがJS Bundle content inspectionできないことを確認する。
+- [ ] Scored Tool Allowlistに必要Capabilityだけが含まれることを確認する。
+- [ ] Forbidden Capability ProbeでSource / Search / Shell / arbitrary fetch / Browser evaluate等が利用不可であることを確認する。
+- [ ] Scored Web RunnerがJS Bundle / Source Map / Network Response Bodyをinspectionできないことを確認する。
 - [ ] Scored Native RunnerがAPK / arbitrary ADB shellへアクセスできないことを確認する。
-- [ ] Scored RunnerがGitHub Connector / Repository SearchでSourceへ戻れないことを確認する。
+- [ ] Scored RunnerがGitHub Connector / Repository Search / Web SearchでSource / Answerへ戻れないことを確認する。
 - [ ] Learner-safe CoverageにDefect / Non-defect Mappingがないことを確認する。
+- [ ] Challenge適用前Baseline Sanityで対象Defectが存在しないことを確認する。
+- [ ] Post-patch Sanityで意図したGround Truthが成立することを確認する。
 - [ ] Challengeを最低1件Black-box End-to-Endで評価する。
+- [ ] Benchmark RevisionがRun ArtifactとEvaluationで一致することを確認する。
 - [ ] Required Coverage SetをRunnerが縮小できないことを確認する。
 - [ ] Non-defect未探索ケースがTNではなくNEになることを確認する。
+- [ ] Coverage completedでもItem-specific Observation EvidenceがなければTNではなくNEになることを確認する。
 - [ ] Required CoverageのEnvironment blockerで`valid_for_scoring=false`になることを確認する。
 - [ ] Runner起因の`not_completed`はCoverage低下になることを確認する。
 - [ ] Atomic Findingが最大1 Defect ItemへだけMatchすることを確認する。
 - [ ] Frozen FindingをEvaluatorが変更しないことを確認する。
+- [ ] Runner / Evaluatorが同じAgent Sessionを再利用しないことを確認する。
 - [ ] TP / FP / FN / TN / NEと各Metricが再計算可能であることを確認する。
 - [ ] Challenge / Answer KeyのNormative Spec Reference integrityを確認する。
-- [ ] 変更BR / ACのAffected Challenge Summaryを確認する。
+- [ ] 変更BR / ACおよび変更Referenced Normative fileのAffected Challenge Summaryを確認する。
+- [ ] Local Blocker発生時に独立Taskが継続されることをRun Artifactから確認する。
+- [ ] Final Validation時に未解消Required Blockerがあればfail-closeされることを確認する。
 - [ ] `pnpm run verify`。
 - [ ] Required GitHub Actions成功を確認する。
 - [ ] Generated HTMLをHuman視点で確認する。
@@ -1646,6 +1884,7 @@ Challenge-specific sanity check
 - Conditional Section非強制
 - Challenge / Answer Key Normative Spec Reference integrity
 - Changed BR / AC → Affected Challenge Summary
+- Changed directly referenced Normative file → Affected Challenge Summary
 - Generated HTML Build
 
 ### 9.2 Generator
@@ -1673,32 +1912,43 @@ Challenge-specific sanity check
 - Tool / Environment FailureをProduct Defectへ分類しない。
 - Discovery中にSource / Existing Testから答えを先取りしない。
 
-### 9.4 Run Artifact
+### 9.4 Run Artifact / Benchmark Reproducibility
 
 - `qa-findings.json`に`schema_version`がある。
 - `run_id` / `charter_id`からRunを追跡できる。
+- Scored Runに`benchmark_revision`がある。
+- BenchmarkがClean CommitならGit SHA、未Commit validationなら同等のDeterministic Revision IDを記録できる。
+- 必要な場合だけ`source_head_sha` / `runtime_variant_id`を持つ。
+- `qa-findings.json`と`evaluation.json`のBenchmark Revisionが一致する。
 - Oracle / Evidence / Reproduction / Statusを機械処理できる。
 - Required Coverage ID、status、Evidence、blocker reasonを機械処理できる。
 - `completed` / `not_completed` / `blocked_environment`を区別できる。
 - Challenge時の`evaluation.json`からTP / FP / FN / TN / NEとMetricを再計算できる。
+- Benchmark Revisionが異なるScoreを同一系列として無条件比較しない。
 
-### 9.5 Black-box Challenge Isolation
+### 9.5 Black-box Challenge Isolation / Tool Scope
 
 - Scored RunnerはSource Repositoryとは別のisolated execution rootで起動する。
+- Scored RunnerはFresh Sessionで起動する。
+- Fresh SessionへLearner-safe Input以外の過去Contextを引き継がない。
 - Source RepositoryがRunnerへmount / exposeされていない。
 - `.git`がない。
 - Application Sourceがない。
 - Existing Test Sourceがない。
 - Source Mapがない。
 - JS Bundle file / response-body inspection経路がない。
+- Browser arbitrary evaluateがない。
 - APK / IPA file accessがない。
 - Arbitrary ADB shellがない。
 - Patch Sourceがない。
 - Instructor Answer Keyがない。
-- GitHub Connector / Repository Search等でSourceへ戻れない。
+- GitHub Connector / Repository Search / Web SearchでSourceへ戻れない。
+- Generic Shell / arbitrary HTTP fetch / file downloadがない。
 - Build / Serve / InstallはRunner外で完了している。
 - Existing repo-root `readonly`だけをScored Isolationとして使っていない。
-- RunnerとEvaluatorが分離されている。
+- Scored Tool AllowlistがPositive Listとして定義されている。
+- Forbidden Capability ProbeがScored開始前に成功している。
+- RunnerとEvaluatorが別Sessionとして分離されている。
 - Finding Freeze後だけEvaluatorがAnswer Keyを読む。
 
 ### 9.6 Learner-safe Input Validation
@@ -1710,23 +1960,43 @@ Challenge-specific sanity check
 - Answer Key MappingはInstructor-onlyに留まる。
 - Learner-safe Spec BundleがNormative / Supportingの責務を保持する。
 
-### 9.7 Scoring correctness
+### 9.7 Challenge Ground Truth
+
+- Patch適用前のInstructor-only Baseline Sanityで対象Defectが存在しない。
+- BaselineのNon-defect Itemが期待どおり成立する。
+- Patch適用後のInstructor-only Sanityで意図したDefectがMinimum Reproduction Conditionを満たす。
+- Patch適用後もNon-defect Itemが意図せず壊れていない。
+- Challenge-specific Sanityを利用し、全Regression二重実行を必須にしていない。
+- Baselineの既存DefectをChallenge注入Defectとして採点しない。
+
+### 9.8 Scoring correctness
 
 - 1 Findingが最大1 Defect ItemへMatchする。
 - 同一DefectのDuplicateが追加TPにならない。
 - Non-atomic FindingをTPへ分解しない。
 - 未探索Non-defectがTNにならない。
-- Exercised Non-defectだけがTN / FP_non_defect判定対象になる。
-- NEはFPR分母から除外されCoverageで反映される。
+- Coverage completedだけではTNにしない。
+- Non-defect ItemのRequired observationをEvidenceが満たした場合だけTN / FP_non_defect判定対象になる。
+- Item-specific observationがEvidenceで確認できない場合はNEになる。
+- NEはFPR分母から除外されCoverage / Detailで反映される。
 - Required Coverage SetはInstructor定義でRunnerが縮小できない。
 - Coverage completionにEvidenceが必要である。
 - Runner起因の未実施は`not_completed`でCoverage低下になる。
 - Environment / Harness起因のRequired Coverage blockerは`blocked_environment`になり、Runが`valid_for_scoring=false`になる。
 - Invalid Scored RunをAgent能力比較へ使わない。
 - Challenge外Unexpected Findingを自動FP化しない。
+- Unexpected Valid FindingでAnswer Keyを更新した場合はBenchmark Revisionを更新して再評価する。
 - 分母0Metricを`null`として扱う。
 
-### 9.8 Curriculum
+### 9.9 Execution Continuity
+
+- Local Blockerが該当Task / dependent taskだけをBlockedにする。
+- Local BlockerがWeb / Native / Docs / Challenge等の独立Taskを不要に停止させない。
+- Global blockerだけがWhole-run停止条件になる。
+- `## Blocked`へ理由 / 依存 / 再開条件を記録する。
+- Final Validationでは未解消Required Blockerを残したままPASSにしない。
+
+### 9.10 Curriculum
 
 - Part 1 / Part 2 Link / Number整合。
 - Test Case ID / UI Test ID / BR / ACの用語整合。
@@ -1736,10 +2006,12 @@ Challenge-specific sanity check
 - Atomic Findingの考え方が教材とWorkflowで一致する。
 - Black-box / Gray-boxの目的を混同しない。
 - Normal readonly / Black-box isolationを混同しない。
+- Fresh Session / Tool Allowlistの意味を正しく説明する。
 - Learner本文にAnswer Keyを露出しない。
+- Benchmark Revisionが違うScoreを同一基準として単純比較しない。
 - PR #14後のNative / iOS CIの事実と整合する。
 
-### 9.9 Product Regression
+### 9.11 Product Regression
 
 Package / Generator / CI変更を伴うため既存`verify`とRequired CIを通す。
 
@@ -1753,7 +2025,7 @@ Package / Generator / CI変更を伴うため既存`verify`とRequired CIを通�
 
 **Risk:** Specification、Generator、CI、Agentic QA、Challenge、Curriculumを1PRへ含めるためReview負荷が高い。
 
-**Mitigation:** WaveとLogical Commitを分離し、Product Feature改修を混ぜない。各Wave完了時にScope Reviewする。
+**Mitigation:** WaveとLogical Commitを分離し、Product Feature改修を混ぜない。各Wave完了時にScope Reviewする。Local Blockerでは独立Taskを継続する。
 
 ### R2. 現状Implementationを誤って仕様化する
 
@@ -1803,73 +2075,109 @@ Package / Generator / CI変更を伴うため既存`verify`とRequired CIを通�
 
 **Mitigation:** Scored RunnerはSource Repository外のisolated execution rootで実行し、Source Repositoryをmountしない。Existing repo-root readonlyはScored Isolationの代替にしない。
 
-### R10. Black-box RunnerへのImplementation leakage
+### R10. Filesystemを隔離してもToolからImplementationへ到達する
+
+**Risk:** Source Repositoryを除外してもGeneric Shell、Browser evaluate、arbitrary fetch、Network response inspection等からJS BundleやImplementation情報へ到達する。
+
+**Mitigation:** Fresh Session + Positive Tool AllowlistをScored Contractとし、Browser / Nativeの必要CapabilityだけをExposeする。Forbidden Capability Probeで実行前に検証する。
+
+### R11. Scored Sessionへ過去Contextが混入する
+
+**Risk:** 同じAgent SessionがScored開始前にSource / Answer Keyを読んでいれば、Filesystem隔離後もBlack-box評価にならない。
+
+**Mitigation:** Scored RunnerはFresh Sessionで開始し、Learner-safe Prompt / Inputsだけを渡す。Evaluatorは別Sessionとする。
+
+### R12. Black-box RunnerへのImplementation leakage
 
 **Risk:** Sourceを除外してもJS Bundle、Source Map、APK等から実装を読める。
 
 **Mitigation:** Artifact bytesはRunnerへ渡さず、Runner外でServe / Install済みRuntimeだけを提供する。Source Map / bundle inspection / arbitrary ADB shell等もScored modeでは除外する。
 
-### R11. Learner-safe CoverageからAnswerが漏れる
+### R13. Learner-safe CoverageからAnswerが漏れる
 
 **Risk:** Non-defect Mappingや「正常確認」等のMission表現が正解を教え、False Positive評価が無効になる。
 
 **Mitigation:** Learner-safe Coverageは中立Missionだけを持ち、Defect / Non-defect分類とCoverage MappingはInstructor Answer Keyだけに保持する。
 
-### R12. Runner / Evaluatorの情報混線
+### R14. Runner / Evaluatorの情報混線
 
 **Risk:** Finding作成AgentがAnswer Keyを見た状態で自己採点する。
 
-**Mitigation:** Finding FreezeまではRunnerだけ、Answer KeyはRun終了後のEvaluatorだけが読む。
+**Mitigation:** Finding FreezeまではRunnerだけ、Answer KeyはRun終了後の別Session Evaluatorだけが読む。
 
-### R13. TP / FPの計数単位が混ざる
+### R15. Benchmark RevisionなしでScoreを比較する
+
+**Risk:** Application / Spec / Challenge / Answer Keyが変わった後も同じ`challenge_id`だけでScoreを比較し、異なる母集団を同一評価と誤認する。
+
+**Mitigation:** Scored RunへBenchmark Revisionを必須化し、`qa-findings.json`と`evaluation.json`で一致確認する。異なるRevisionを無条件比較しない。
+
+### R16. Challenge Ground TruthがBaseline Defectに汚染される
+
+**Risk:** Patch前から存在するDefectをChallenge注入結果として扱い、Answer Keyが誤ったGround Truthになる。
+
+**Mitigation:** Challenge-specificなPre-patch Baseline SanityとPost-patch SanityをInstructor-onlyで実施する。
+
+### R17. TP / FPの計数単位が混ざる
 
 **Risk:** TPをDefect Item単位、FPをFinding単位で数えるとPrecisionが数学的に破綻する。
 
 **Mitigation:** 1 Finding = 1 deviation、1 Finding → 最大1 Defect Itemに固定する。Duplicate / non-atomicを別分類する。
 
-### R14. 未探索正常ケースでFPRが良化する
+### R18. 未探索正常ケースでFPRが良化する
 
 **Risk:** 未探索Non-defectまでTNにすると、何もしないAgentが低FPRになる。
 
-**Mitigation:** Non-defectはTN / FP_non_defect / NEを区別し、exercised itemだけをFPR分母へ入れる。未実施はCoverageへ反映する。
+**Mitigation:** Non-defectはTN / FP_non_defect / NEを区別し、Item-specific Required ObservationをEvidenceで確認できたItemだけをFPR分母へ入れる。
 
-### R15. Coverage自己申告のGaming
+### R19. Coverage完了だけでTNになる
+
+**Risk:** 1つのCoverage Itemへ複数Non-defect Itemが紐づく場合、画面到達だけで未観察の正常BehaviorまでTNになる。
+
+**Mitigation:** TNにはCoverage完了に加え、Answer Item固有のRequired ObservationをEvidenceが満たすことを要求する。満たさなければNE。
+
+### R20. Coverage自己申告のGaming
 
 **Risk:** AgentがCoverage denominatorを小さく宣言すれば100%にできる。
 
 **Mitigation:** Instructor-defined Required Coverage SetをChallenge Definitionで固定し、Runnerは縮小不可とする。完了にはEvidenceを要求する。
 
-### R16. Environment failureでAgent Scoreが不当に下がる
+### R21. Environment failureでAgent Scoreが不当に下がる
 
 **Risk:** Runtime / MCP / Emulator障害をCoverage不足としてAgentへ帰責すると評価比較が壊れる。
 
 **Mitigation:** Runner起因は`not_completed`、Environment / Harness起因は`blocked_environment`へ分離する。Required CoverageにEnvironment blockerがあればRunを`valid_for_scoring=false`とする。
 
-### R17. Challenge / Spec drift
+### R22. Challenge / Spec drift
 
 **Risk:** Product Specが変わっても古いChallenge / Answer Keyが残り、誤ったOracleで採点する。
 
-**Mitigation:** Spec Reference integrityをCIで検証し、変更BR / ACを参照するAffected Challenge IDをReview Summaryへ出す。Fingerprint DBは作らない。
+**Mitigation:** Spec Reference integrityをCIで検証し、変更BR / ACに加えて直接参照する変更Normative fileもAffected Challenge Summaryへ出す。Fingerprint DBは作らない。
 
-### R18. Agentic QA運用の過剰化
+### R23. Local BlockerでGoal全体が停止する
+
+**Risk:** Nativeや1 Challengeの局所Blockerで、Web / Docs / Validator / Curriculum等の独立Taskまで停止し、1回の`/goal`で進められる作業を残す。
+
+**Mitigation:** Local / Global Blockerを分離する。Local Blockerは該当Taskと依存TaskだけをBlockedへ移し、独立Taskを継続する。Final Validationだけfail-closeにする。
+
+### R24. Agentic QA運用の過剰化
 
 **Risk:** すべての小変更でExploratory QAが必須になり、運用負荷が増える。
 
 **Mitigation:** UI / Journey / Role / State / Error / High-risk変更等を主な適用対象とするRisk-based運用にする。
 
-### R19. NativeをAgentic QAと誤認する
+### R25. NativeをAgentic QAと誤認する
 
 **Risk:** Maestro Regressionを実行しただけで探索QA完了と扱う。
 
 **Mitigation:** Native Capability Contractを定義し、Capability不足時は未実施と明記する。
 
-### R20. CurriculumがPR #14後の現状とずれる
+### R26. CurriculumがPR #14後の現状とずれる
 
 **Risk:** PR #13のNative / iOS CI説明がマージ直後から古くなる。
 
 **Mitigation:** Wave 0でPR #14→#13後をRebaselineし、Wave 8でCurrent Productへ同期する。
 
-### R21. Known Deviation / Unresolved SpecのLifecycle不整合
+### R27. Known Deviation / Unresolved SpecのLifecycle不整合
 
 **Risk:** 解消済みKnown Deviationが残りRegressionを抑制する、または確定済みUnresolved Specが未確定扱いされ続ける。
 
@@ -1887,12 +2195,16 @@ Wave 0以降で以下が判明した場合はOpen Questionへ追加し、必要�
 - Product意図をDocs / ADR / History / Code / Testから確定できない。
 - Current Harnessで通常QAの`readonly` + Browser / Device Capabilityを成立させられない。
 - Source Repositoryとは別のisolated execution rootでBlack-box Runnerを成立させられない。
-- Scored Web RuntimeでSource Map / Bundle inspectionを十分に制限できない。
+- Scored Tool Allowlistへ必要なBrowser / Native Capabilityだけを安全に切り出せない。
+- Fresh Scored Sessionを既存Agent / MCP構成で成立させられない。
+- Scored Web RuntimeでSource Map / Bundle / Network inspectionを十分に制限できない。
 - Scored Native RuntimeでAPK access / arbitrary ADB shellを十分に制限できない。
-- Existing Run / Evaluation schemaと本PlanのVersioned Artifact Contractを最小拡張で両立できない。
+- Existing Run / Evaluation schemaと本PlanのVersioned Artifact / Benchmark Revision Contractを最小拡張で両立できない。
 - Environment blockerとRunner起因の失敗をEvidenceから合理的に区別できないケースが生じる。
 
-Blocking Questionを推測で埋めて実装を続けない。
+Open Questionは推測で埋めない。ただし**Local Blockerなら該当Taskと依存Taskだけを停止し、独立Taskは継続する**。
+
+Whole-runを止めるのは、Goal / Safety / Core Contract全体へ影響するGlobal Blockerに限る。
 
 ---
 
@@ -1909,6 +2221,7 @@ Blocking Questionを推測で埋めて実装を続けない。
 - Unexpected Valid FindingをProduct Backlog / Answer Keyへ還元する運用の高度化。
 - Duplicate Rate等の補助Metricを正式KPIへ昇格するかの検討。
 - Challenge Impact Summaryを将来Hard Gate化する必要性の評価。
+- Scored Tool Allowlistを将来別Harnessへ一般化する必要性の評価。
 
 これらは今回の必須DoDへ入れない。
 
@@ -1929,7 +2242,7 @@ docs/reference/agentic-qa-workflow.md
 .agents/skills/exploratory-qa/**
 scripts/spec/**
 scripts/tests/spec-*.test.*
-scripts/agentic-qa/**       # isolated scored runner orchestrationが必要な場合のみ最小追加
+scripts/agentic-qa/**       # isolated scored runner / tool scope / evaluation orchestrationが必要な場合のみ最小追加
 package.json
 pnpm-lock.yaml
 .github/workflows/ci.yml
@@ -1957,6 +2270,7 @@ output/spec-site/**
 - Specification Change Process
 - Feature Spec Template
 - Agentic QA Workflow Reference
+- Scored Tool Allowlist / Isolation Contract
 - Challenge Definition
 - Instructor Answer Key
 - Curriculum Agentic QA Module
@@ -2032,16 +2346,22 @@ Repository Root
 
 Black-box Scored Challenge
 Preparation Process
+  ├─ Benchmark Revision
+  ├─ Baseline sanity
+  ├─ Challenge Patch / Setup
+  ├─ Post-patch sanity
   ├─ Build / Serve / Install
   ├─ isolated execution root
-  └─ learner-safe inputs only
+  ├─ learner-safe inputs only
+  └─ Forbidden Capability Probe
         │
         ▼
-Source-free Read-only Scored Runner
-  × Source Repository
-  × .git
+Fresh Source-free Scored Runner
+  + explicit Tool Allowlist
+  × Source Repository / .git
   × Artifact bytes
-  × Answer Key
+  × Search / generic shell
+  × Answer Key / prior context
         │
         ▼
 Atomic Findings + Coverage Evidence
@@ -2051,6 +2371,7 @@ Frozen Structured Result
         │
         ▼
 Separate Evaluator + Answer Key
+  + same Benchmark Revision
         │
         ▼
 evaluation.json
@@ -2061,15 +2382,38 @@ Seed / Role / Route / Token / Config
         └──── Normative Specから意味・Contractを参照しつつRuntimeで利用
 ```
 
+### Execution continuity
+
+```text
+Local blocker
+  ├─ affected task → Blocked
+  ├─ dependent task → Blocked
+  └─ independent task → Continue
+
+Global blocker
+  └─ Whole-run stop / Owner Decision
+
+Final Validation
+  └─ unresolved Required Blocker → Fail-close
+```
+
 ---
 
 ## 16. 実装開始時の原則
 
 - 最初にPR #14、PR #13、その他依存PRのMerge状態を確認する。
 - 最新`main`の事実を本Planより優先し、Wave 0でPlanを同期する。
+- Current `AGENTS.md`のStrict workflow要件に従う。
 - Goal / Normative SSOT責務 / Atomic Finding / Instructor-defined Coverage / Black-box Source・Artifact・Answer Key隔離 / QA Write Boundary / Runner-Evaluator分離等の中核Contractを暗黙に弱めない。
 - `docs/spec/`全体を無条件にNormative Oracle化しない。
 - Normal readonlyとBlack-box Isolationを同じ安全境界として扱わない。
+- Scored RunnerはFresh Session + isolated root + explicit Tool Allowlistを成立条件とする。
+- Scored Runnerへ「禁止していないから使える」Capabilityを残さない。
+- Benchmark Revisionを記録せずScored Resultを比較可能な成果物として扱わない。
+- Challenge Ground TruthはPre-patch / Post-patch Sanityで確認する。
+- Local Blockerでは該当Taskと依存Taskだけを止め、独立Taskを最後まで進める。
+- Global blockerだけWhole-runを停止する。
+- Final Validationはfail-closeとし、Blocked / 未実施をPASS扱いしない。
 - 最新Repositoryと中核Contractが衝突する場合はOwner Decisionを求める。
 - 目的は文書量を増やすことではなく、人間とAIが同じ期待値からQAできる状態を作ることである。
 - Markdownは人間にもAIにも読みやすい自然文を優先する。
@@ -2080,5 +2424,6 @@ Seed / Role / Route / Token / Config
 - Black-box Scored ChallengeとGray-box Trainingを混同しない。
 - Learner-safe入力へDefect / Non-defectの正解を漏らさない。
 - 未探索正常ケースを良い評価として扱わない。
+- Coverage完了だけでNon-defectをTN扱いせず、Item-specific Observation Evidenceを確認する。
 - Environment / Harness blockerをAgent能力不足として採点しない。
-- Source / Artifact / Answer KeyへアクセスできたRunを探索能力の高得点として扱わない。
+- Source / Artifact / Answer Key / Forbidden ToolへアクセスできたRunをBlack-box Scored Resultとして扱わない。
