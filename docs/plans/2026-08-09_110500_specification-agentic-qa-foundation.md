@@ -1,251 +1,367 @@
 # Scenario Shop 仕様SSOT・Acceptance Criteria・AIエージェントQA基盤 統合実装計画
 
-## 0. 依頼概要
+## 0. このPlanと現在Branchの位置づけ
 
-- 依頼内容:
-  - 現在進行中の他PRを先にマージし、その後テスト自動化カリキュラムPR #13をマージした最新`main`を基準に、Scenario Shopの現在仕様を整理する。
-  - Markdownを人間・AIエージェント共通の仕様正本（SSOT）とする。
-  - 仕様変更・更新手順を整備する。
-  - Business RuleとAcceptance Criteriaを明文化し、既存テストや将来のAIエージェントQAから追跡できる状態にする。
-  - Markdownから人間向け静的HTMLを機械生成する。
-  - 仕様をTest Oracleとして利用するAIエージェント探索QAのWorkflow、Finding契約、Evidence契約、評価方法を整備する。
-  - AIエージェントQAを既存のテスト自動化カリキュラムへ組み込む。
-  - 上記を分割PRにせず、1本の実装PRとして最後まで完了させる。
-- 背景:
-  - 現在のRepositoryにはREADME、`/guide`、`docs/PROJECT_CONTEXT.md`、ADR、Seed Metadata、Application実装、Playwright / Maestro / Unit等のテストに仕様相当情報が分散している。
-  - Testabilityは高いが、QAが「期待挙動」を一意に判断するための明示的なProduct Specification SSOTがない。
-  - AIエージェントQAでは、仕様が分散したままだとAIが実装や既存Testを誤って仕様扱いし、False Positiveや誤った修正提案を増やすRiskが高い。
-  - Repositoryには既にCodex Run、Plan / Review / Repair / Harness Improvement、安全境界、Playwright E2E、UI Review、Seed / Reset、Test Control、Native Harness、CI等の基盤があるため、新しい巨大なQA Platformを追加するのではなく既存基盤へ接続する。
-- 期待成果:
-  - `docs/spec/`を中心とするCurrent Product Specification SSOT。
-  - Business Rule IDとAcceptance Criteria IDによる追跡可能な仕様。
-  - 仕様更新契約と、実装・Test・AI QAまでの変更フロー。
-  - Markdownから生成される人間向けHTML仕様サイト。
-  - Specificationの構造・Link・ID・HTML生成を検証するCI Gate。
-  - AIエージェント探索QA専用のEntry Point / Skill / Workflow / Finding Contract。
-  - AIエージェントQAの教材・評価用Challenge / Answer Key。
-  - 既存テスト自動化カリキュラムへのAIエージェントQA統合。
+この文書は、将来実施する1本のImplementation PRの実装計画である。
 
-## 1. ゴール / 完了条件
+現在の`plan/specification-agentic-qa-foundation` Branchは**計画文書を保存・レビューするためのDocumentation-only Branch**とし、このBranchでは以下を行わない。
+
+- Application Codeの変更
+- Script / Package / Dependencyの追加
+- GitHub Actions Workflowの変更
+- Agent / Skill / Safety設定の実装
+- Challenge / Patch / Answer Keyの実装
+- Curriculum本文の変更
+- Product Bugの修正
+- PR作成
+
+このBranchで変更してよいのは、本Planを含む計画文書のみとする。
+
+本Planに記載する実装は、依存PRのマージ後に最新`main`から作成する**別のFeature Branch**で開始し、原則として1本のImplementation PRで最後まで完了させる。
+
+## 1. 依頼概要
+
+### 依頼内容
+
+- 現在進行中のProduct / Native関連PRを先にマージする。
+- その後、テスト自動化カリキュラムPR #13をマージする。
+- その最新`main`を基準にScenario Shopの現在仕様を棚卸しする。
+- Markdownを人間・AIエージェント共通の**Normative Product Behavior SSOT**とする。
+- 仕様更新手順、Business Rule、Acceptance Criteria、Traceabilityを整備する。
+- Markdownから人間向け静的HTMLを機械生成する。
+- SpecificationをTest Oracleとして利用するAIエージェント探索QAを整備する。
+- AI QA用Challenge、Instructor Answer Key、評価方法を整備する。
+- AIエージェントQAをテスト自動化カリキュラムへ組み込む。
+- 上記を複数PRへ分割せず、1本のImplementation PRとして完了させる。
+
+### 背景
+
+現在のRepositoryには、Product仕様に相当する情報が以下へ分散している。
+
+- `README.md`
+- `/guide`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/adr/**`
+- Domain / Application実装
+- Seed Metadata
+- Playwright / Maestro / Unit / Integration / Contract等のTest
+- CI Workflow
+
+既存RepositoryはSeed / Reset / Test Clock / Test Control / Inspection / Evidence等のTestabilityが高い。一方で、QAが「何が正しい期待挙動か」を確認するためのNormative Product Specificationが一箇所に整理されていない。
+
+AIエージェントQAでは、仕様が分散したままだと以下が起きやすい。
+
+- 実装の現状を誤って仕様とみなす。
+- 既存Testを仕様の正本として扱う。
+- Product意図が不明な箇所をAIが補完する。
+- Known Deviationを新規Defectとして重複報告する。
+- UI/UX上許容されているPlatform差をFalse Positiveとして報告する。
+
+そのため、AI QAを追加する前にProduct Specificationの正本、変更手順、Acceptance Criteriaを確立する。
+
+## 2. ゴール / 完了条件
 
 ### ゴール
 
-Scenario Shopの現在仕様をMarkdownの単一正本として確立し、その仕様を人間、Developer、QA、AIエージェントが同じOracleとして利用できるようにする。さらに、Acceptance Criteria、仕様変更管理、静的HTML生成、AIエージェント探索QA、教材評価、カリキュラムまで一貫して接続する。
+Scenario Shopの現在仕様をMarkdownのNormative Product Behavior SSOTとして確立し、人間、Developer、QA、AIエージェントが同じOracleを参照できる状態を作る。
+
+そのうえで、SpecificationからAcceptance Criteria、Risk / Test Design、Deterministic Automation、Agentic Exploratory QA、Finding、Regressionへ一貫して接続できるようにする。
 
 ### 完了条件（DoD）
 
-- [ ] 実装開始時点で、依存する他PRとカリキュラムPR #13が`main`へマージ済みである。
-- [ ] 実装Branchがその最新`main`を基準としている。
-- [ ] README、`/guide`、`docs/PROJECT_CONTEXT.md`、ADR、Seed、Application、Test、CI、Native実装を棚卸しし、仕様情報の重複・矛盾・古い記述を分類している。
-- [ ] `docs/spec/README.md`がSpecificationの唯一の入口として機能する。
+#### Implementation Start Gate
+
+- [ ] 既知の依存PRとしてNative Phase 2後半PR #14が`main`へマージ済みである。
+- [ ] カリキュラムPR #13が、その後`main`へマージ済みである。
+- [ ] 実装開始時点で他に依存するOpen PRがある場合、その影響を確認済みである。
+- [ ] Implementation Branchを最新`main`から作成している。
+- [ ] PR #14によるNative Scope / Android / iOS CI変更と、PR #13の記述の整合を再確認している。
+- [ ] PR #13内にPR #14マージ後の現状と不整合な記述があれば、今回のCurriculum更新Scopeで修正対象としている。
+
+#### Specification
+
+- [ ] README、Guide、PROJECT_CONTEXT、ADR、Seed、Application、Test、CI、Native実装を棚卸ししている。
+- [ ] 仕様情報の重複、古い文書、Implementation Deviation、未確定事項を分類している。
+- [ ] `docs/spec/README.md`がCurrent Product Specificationの唯一の入口として機能する。
 - [ ] Product Scope、Role / Permission、Business Rule、State / Transition、Web / Native差分、UI/UX Contract、主要Feature仕様がMarkdownで明文化されている。
-- [ ] Markdown SpecificationをProductの規範的SSOTと定義し、Application Code、既存Test、Generated HTMLをSSOTとして扱わない契約が明記されている。
-- [ ] Business Ruleに安定ID（`BR-*`）、Acceptance Criteriaに安定ID（`AC-*`）が付与され、重複なく追跡できる。
-- [ ] Acceptance CriteriaとTest Caseを別概念として定義し、既存カリキュラムのTest Case IDと混同しない。
-- [ ] 仕様変更時の更新順、Bug Fix時の扱い、緊急対応時の例外、仕様と実装の不一致時の扱いが文書化されている。
-- [ ] Markdownから人間向け静的HTMLを生成できる。
-- [ ] Generated HTMLを直接編集せず、Markdownからの一方向生成のみとする。
-- [ ] HTMLは最低限Navigation、ページ内見出しAnchor、Table、Code block、Responsive表示を備える。
-- [ ] HTML生成物はGit管理上のSSOTにせず、`output/`等の生成先へ出力する。
-- [ ] Specification用ValidationでMarkdown、Relative Link、ID重複、参照整合、HTML Buildを検証できる。
-- [ ] Specification Validationが既存`verify` / CIのRequired品質ゲートへ接続される。
-- [ ] AIエージェントQA専用Entry PointとSkillが存在し、Code Review / Repairとは別Workflowとして定義されている。
-- [ ] AI QAではSpecificationをOracleとして必ず参照し、既存Testや現在実装を根拠なく仕様扱いしない。
-- [ ] AI QA中は原則としてApplication Codeを修正せず、Observe → Reproduce → Record → Continueを守る。
-- [ ] FindingにOracle Reference、Severity、Confidence、Role、Seed、Platform、Viewport、Steps、Expected、Actual、Evidence、Reproducibility、Risk、推奨Regression Layerが記録される。
-- [ ] Findingの再現、False Positive抑制、重複確認、停止条件が明文化されている。
-- [ ] Web Agentic QAの標準経路としてPlaywright MCPを位置付ける。
-- [ ] Native Agentic QAはAndroidを標準経路とし、既存Maestro / Test Control / Native wrapperを再利用する。利用可能なMobile / Maestro系MCPは補助経路として扱い、特定MCPがないと教材全体が成立しない設計にしない。
-- [ ] AI QAを初期段階ではPR Required CI Gateにせず、Manual / On-demandの補助QAとして扱う。
-- [ ] 教材用ChallengeとAnswer KeyがRepository内でReview可能な形で定義される。
-- [ ] ChallengeのためにProduction Runtimeへ恒久的なFeature Flagや意図的Bugを混入させない。
-- [ ] AI QA評価がFinding数だけではなく、Recall、Precision、False Positive、Evidence品質、Reproducibility、Severity妥当性等を含む。
-- [ ] カリキュラムにAIエージェント探索QAが追加され、Part 1 CapstoneとPart 2導入設計へ接続される。
-- [ ] 最終的に`pnpm run verify`、Specification Validation、対象Playwright / Native検証、Markdownlint、HTML Buildが成功する。
-- [ ] 実装PRの差分が「Specification / Acceptance Criteria / HTML生成 / AI QA基盤 / 教材 / カリキュラム」の目的から逸脱していない。
+- [ ] Markdownを**Normative Product Behavior SSOT**と明記している。
+- [ ] Runtimeで利用するSeed Metadata、Role、Route、Design Token、Config等の**Executable Canonical Source**との責務境界を明記している。
+- [ ] Generated HTML、Application実装、既存TestをNormative Product Behavior SSOTとして扱わない。
+- [ ] Executable Canonical Sourceの低レベル値をMarkdownへ無目的に複製しない。
 
-## 2. 現状理解と前提
+#### Business Rule / Acceptance Criteria
 
-### Current understanding
+- [ ] Business Ruleへ安定ID`BR-*`を付与している。
+- [ ] Acceptance Criteriaへ安定ID`AC-*`を付与している。
+- [ ] Test Case ID、UI Test ID / `testId`、BR、ACを別Namespaceとして扱っている。
+- [ ] BR / ACのMarkdown最小Grammarが明文化されている。
+- [ ] `BR-*` / `AC-*`の重複を機械検証できる。
+- [ ] ACから参照するBRの存在を機械検証できる。
+- [ ] Active BRは、1件以上のACから参照されるか、Acceptance Criteriaを直接持たない理由を明記している。
 
-#### Entry points
+#### Change Process
 
-- `README.md`
-  - Product Scope、主要Feature、Role、Test Account、Seed Scenario、Test API、Web / Native実行方法等を含む。
-- `/guide`
-  - 利用者・テスター向けの学習入口としてRole、Scenario、操作上の注意等を提供する。
-- `docs/PROJECT_CONTEXT.md`
-  - Codex運用、UI/UX基準、現在の実装判断、CI/CD、Native Foundation等のliving contextを持つ。
-- `docs/adr/`
-  - 重要な設計判断の履歴を持つ。
-- `AGENTS.md` / `PLANS.md` / `CODE_REVIEW.md`
-  - AIエージェントの作業、計画、Review契約を持つ。
-- `.agents/skills/`
-  - Plan / Code Review / Repair / Harness Improvement等のWorkflowを持つ。
-- `src/seeds/metadata.ts`
-  - 現在のScenario Metadataを機械的に定義する。
-- `e2e/web/fixtures.ts`
-  - Scenario Reset、Metadata確認、Console / Page Error Evidence等を提供する。
-- `playwright.config.ts`
-  - Web E2E、Accessibility、Cross-role、Mobile、UI Review、Artifact方針を持つ。
-- `.github/workflows/ci.yml`
-  - Format / Markdownlint / Lint / Typecheck / Security / Vitest / Build / Playwright / UI Review / Preview / Smoke等をGate化している。
-- Native workflow / wrapper / Maestro Flow
-  - Build、Install、Smoke、Test Control、Runtime / Boundary / Evidenceの既存経路を持つ。
-- `docs/curriculum/test-automation/**`
-  - PR #13マージ後、テスト分析→設計→Playwright→Maestro→保守→Git / CIまでの学習設計となる。
+- [ ] 通常Feature変更時のSpec更新順を文書化している。
+- [ ] 「既存仕様へのBug Fix」と「Product Specification変更」を区別している。
+- [ ] 緊急修正時のSpec同期ルールを定義している。
+- [ ] Spec / Implementation / Testが矛盾した場合のDecision Ruleを定義している。
+- [ ] Product意図が確定できない項目は、AIや実装の現状で勝手に埋めない。
 
-#### Main flow（現在）
+#### Human-facing HTML
+
+- [ ] `docs/spec/**/*.md`から静的HTMLを生成できる。
+- [ ] HTMLはMarkdownから一方向生成する。
+- [ ] Generated HTMLを直接編集しない。
+- [ ] HTMLはNavigation、見出しAnchor、Page TOC、Table、Code block、Responsive表示を備える。
+- [ ] Navigationは`docs/spec/README.md`の明示的な`## Navigation` Sectionから導出する。
+- [ ] Generated HTMLを削除してもMarkdownから完全再生成できる。
+- [ ] 初期DoDに外部Hosting、認証、全文検索、CMSを含めない。
+
+#### Specification Validation / CI
+
+- [ ] Markdownlintが成功する。
+- [ ] Relative Link validationが成功する。
+- [ ] BR / AC ID uniquenessが成功する。
+- [ ] BR / AC reference integrityが成功する。
+- [ ] HTML Buildが成功する。
+- [ ] Specification Validationが`pnpm run verify`とRequired CIへ接続される。
+- [ ] Generated HTMLをCI ArtifactとしてReviewerが確認できる。
+
+#### Agentic QA
+
+- [ ] Code Review / Repairとは別のAgentic Exploratory QA Entry Point / Skill / Workflowがある。
+- [ ] AI QA開始前に対象Spec、BR / AC、Known Deviation、Role、Seed、Platform、Viewport、Charterを固定する。
+- [ ] AI QAではSpecificationをOracleとして参照する。
+- [ ] 未確定仕様をNormative Oracleとして扱わない。
+- [ ] Known Deviationを新規Defectとして重複報告しない。
+- [ ] DiscoveryとInvestigationの情報境界を定義している。
+- [ ] QA探索WorkerはApplication Sourceを変更できないRead-only境界で実行することを標準とする。
+- [ ] QA成果物の保存は探索WorkerではなくParent / Orchestratorが担当できる設計とする。
+- [ ] QA前後でSource Treeに意図しない変更がないことを検証する。
+- [ ] FindingはOracleとEvidenceに基づく。
+- [ ] Findingの再現、重複確認、Severity、Confidence、停止条件を定義している。
+- [ ] Web Agentic QAの標準CapabilityをPlaywright MCPで満たせる。
+- [ ] Native Agentic QAは特定Tool名ではなく必要Capabilityを定義し、Androidを標準対象とする。
+- [ ] Nativeで必要Capabilityが満たせない場合、Maestro Regressionの成功だけでAgentic QA実施済みとみなさない。
+- [ ] AI QAを初期Required CI Gateにしない。
+
+#### QA Run Artifact
+
+- [ ] Charter、Finding、Coverage、終了理由をRun Artifactへ保存できる。
+- [ ] Findingは機械評価可能な構造化Artifactとして保存する。
+- [ ] Challenge評価時のみEvaluation Artifactを追加する。
+- [ ] Raw Screenshot / Trace / MCP Log等の大容量・一時Evidenceは既存Artifact方針に従いGit管理対象外へ分離する。
+
+#### Challenge / Evaluation
+
+- [ ] Challenge DefinitionとInstructor Answer KeyをRepository内でReview可能に管理する。
+- [ ] Learner / Agentへ渡すDisposable WorkspaceにはInstructor Answer Keyを含めない。
+- [ ] Scored Challenge RunではFilesystemだけでなくGitHub Connector / Repository Search / Prompt Context等からAnswer Keyへアクセスできないことを評価成立条件とする。
+- [ ] Answer Keyへアクセス可能なRunはScored Resultとして扱わない。
+- [ ] 意図的Defectを通常Production Runtimeへ恒久Feature Flagとして混入させない。
+- [ ] ChallengeはDisposable Training CopyへPatch / Setupとして適用する。
+- [ ] Challenge適用後も対象Appが起動・探索可能であることを検証する。
+- [ ] Challenge Bundle生成時にInstructor-only contentが除外されていることを検証する。
+- [ ] 評価はFinding数だけでなくRecall、Precision、False Positive Rate、Evidence Quality、Reproducibility、Severity Accuracy、Coverageを含む。
+
+#### Curriculum
+
+- [ ] Specification / Acceptance Criteriaの読み方をカリキュラムへ追加する。
+- [ ] BR / AC → Risk → Test Case → Automationの関係を追加する。
+- [ ] Agentic QAをPart 1後半へ追加する。
+- [ ] Part 1 CapstoneへValidated FindingとRegression Feedbackを追加する。
+- [ ] Part 2の変更管理 / PR Review / Integration DesignへSpec同期とAI QA運用を接続する。
+- [ ] PR #14マージ後のNative Scope / iOS CIを反映し、PR #13時点の前提が古い場合は更新する。
+
+#### Final
+
+- [ ] 既存Product Behaviorを意図せず変更していない。
+- [ ] Product Bug修正や無関係なRefactorが混ざっていない。
+- [ ] `pnpm run verify`が成功する。
+- [ ] GitHub Actions Required CIが成功する。
+- [ ] Implementation PRだけで全DoDがReview可能であり、別実装PRを前提にしない。
+
+## 3. Current understanding
+
+### 現在の主要Entry Point
+
+- `README.md`: Product Overview、Setup、Test Account、Seed、Test API、Web / Native実行方法。
+- `/guide`: 利用者・テスター向けの操作・学習Guide。
+- `docs/PROJECT_CONTEXT.md`: AI作業、Architecture、UI/UX、CI、Native等のliving context。
+- `docs/adr/**`: 過去の重要な設計判断。
+- `AGENTS.md` / `PLANS.md` / `CODE_REVIEW.md`: AIエージェント運用契約。
+- `.agents/skills/**`: Plan / Review / Repair / Harness Improvement等のWorkflow。
+- `src/seeds/metadata.ts`: Scenario MetadataのExecutable Canonical Source。
+- `e2e/web/fixtures.ts`: Reset、Metadata確認、Console / Page Error Evidence。
+- `playwright.config.ts`: Web E2E / Accessibility / Mobile / Cross-role / UI Review / Artifact。
+- `.github/workflows/ci.yml`: Web / Quality / Build / E2E / Preview / Smoke Gate。
+- Native workflow / wrapper / Maestro: Build / Install / Runtime / Test Control / Evidence。
+- `docs/curriculum/test-automation/**`: PR #13マージ後のテスト自動化学習設計。
+
+### 既知の依存変更
+
+PR #14はNative Phase 2後半として、Login / Session / Account / Address / Checkout / Payment / Order / Review、Android / iOS Maestro、iOS Simulator正式CI Gate等を追加・変更する予定である。
+
+そのため、本Planの実装開始時には少なくとも以下を再Baselineする。
+
+- Native Product Scope
+- Native Seed / Test Control
+- Native Route / Role / State
+- Android CI
+- iOS CI
+- Maestro Flow
+- Native Production-validation
+- Curriculum内のNative説明
+
+PR #13はPR #14より前のRepository状態を前提に作成されているため、PR #14→PR #13の順でマージした後、Curriculumの事実記述が古くなっていないか必ず確認する。
+
+### 現在の問題
 
 ```text
 README / Guide / PROJECT_CONTEXT / ADR / Code / Test
-        ↓ 仕様相当情報が分散
-Developer / QA / AIが個別に解釈
         ↓
-Playwright / Maestro / CIで検証
+仕様相当情報が分散
+        ↓
+Human / QA / AIが個別に期待値を解釈
+        ↓
+Test / Review / QAでOracleが揺れる
 ```
 
-#### Main flow（目標）
+### 目標
 
 ```text
-docs/spec/**/*.md  ← Product Specification SSOT
+docs/spec/**/*.md
+Normative Product Behavior SSOT
         │
         ├─ Human → Generated HTML
         ├─ Developer / Reviewer
         ├─ QA / Test Design
         └─ AI Agent Oracle
-        ↓
+        │
+        ├─ references → Executable Canonical Sources
+        │               Seed / Role / Route / Token / Config
+        ▼
 Business Rule / Acceptance Criteria
-        ↓
-Risk / Test Case / Automation
-        ↓
-Playwright / Maestro / Lower-layer Test
-        ↓
-Agentic Exploratory QA
-        ↓
-Finding / Accepted Defect / Regression Feedback
+        ▼
+Risk / Test Case Design
+        ▼
+Deterministic Automation + Agentic Exploratory QA
+        ▼
+Evidence / Finding
+        ▼
+Accepted Regression / Spec Feedback
 ```
 
-#### Key abstractions
+## 4. 仕様の正本モデル
 
-- Product Specification:
-  - 「どうあるべきか」を定義する規範的SSOT。
-- Business Rule:
-  - FeatureやRole、Stateを跨いでも維持されるRule。`BR-*`で識別する。
-- Acceptance Criteria:
-  - Rule / Featureが外部からどう確認できるかを記述する。`AC-*`で識別する。
-- Test Case:
-  - Riskや条件から導出した検証項目。カリキュラム上の`CART-001`等とし、Acceptance Criteriaとは分離する。
-- Seed Scenario:
-  - 再現可能な初期状態。Specificationは意味と期待を記述し、実行可能なSeed実装との整合を検証する。
-- Test Oracle:
-  - QAがExpectedを判断する根拠。今回以降はCurrent `docs/spec/`を最優先とする。
-- Generated HTML:
-  - Human向けPresentation。正本ではない。
-- Agentic QA Finding:
-  - AI探索中の観測を、Oracle ReferenceとEvidence付きで再現可能に記録する成果物。
+### 4.1 Normative Product Behavior SSOT
 
-#### Existing tests / evidence
+`docs/spec/**/*.md`を「Productとして何が正しいか」を定義する規範的SSOTとする。
 
-- Unit / Integration / Repository Contract / Component / Contract Test。
-- Playwright Web E2E、Accessibility、Mobile Boundary、Cross-role、UI Review。
-- Trace / Screenshot / Video / HTML Report。
-- Scenario FixtureによるResetとConsole / Page Error収集。
-- Native Maestro Flow、Test Control、Contract Harness、Runtime / Boundary Suite。
-- GitHub ActionsでのBuild、Preview、Smoke、Artifact。
+対象例:
 
-#### Safe change surface
+- Product Scope
+- Actor / Roleごとの許可・禁止
+- Business Rule
+- State / Transition
+- Error / Boundary Behavior
+- UI / UX Contract
+- Web / Nativeで同じであるべきBehavior
+- 意図したPlatform Difference
+- Acceptance Criteria
 
-- `docs/spec/**`の新設。
-- `docs/reference/**`の更新手順・Agentic QA Reference追加。
-- `AGENTS.md`等のEntry Point更新。
-- `.agents/skills/`へのAgentic QA Skill追加。
-- Specification Build / Validation用の小さな`script`追加。
-- `package.json`へのSpec用script追加と最小限のMarkdown Parser依存追加。
-- `.github/workflows/ci.yml`へのSpec Validation接続。
-- `docs/curriculum/test-automation/**`のAI QA統合。
-- 教材用Challenge / Answer Keyの追加。
+### 4.2 Executable Canonical Sources
 
-#### Unknowns
+Runtime / Build / Test Harnessが機械的に利用する値は、その責務を持つCodeをExecutable Canonical Sourceとして維持する。
 
-- 実装開始時点の`main`は現在の`main`と異なる。進行中の他PRおよびPR #13マージ後に、仕様情報・Native Scope・CI・Agent基盤を再Mappingする必要がある。
-- 進行中PRで既にSpecification、Agentic QA、HTML Docsに相当する実装が追加された場合は重複を作らず統合する。
-- 現在分散している情報に矛盾がある場合、Codeの現状を自動的に「正しい仕様」とみなしてはならない。ADR、履歴、既存文書、Product意図を照合し、それでも決められない場合はOwner Decisionを求める。
+対象例:
+
+- Seed Scenario ID / Metadata
+- Role / StatusのType / Enum / Union
+- Route definitions
+- Design Token
+- Build / Runtime Config
+- App ID
+- Test ID / Accessibility Label
+
+Markdownはこれらの**意味・期待・契約**を定義するが、すべての低レベル値を無目的に複製しない。
+
+仕様上Public Contractとして同じ値をMarkdownにも記載する必要がある場合のみ重複を許し、可能な範囲でValidatorまたはTestにより整合を確認する。
+
+### 4.3 Non-SSOT
+
+以下は仕様判断の参考・Evidenceにはなるが、Normative Product Behavior SSOTを暗黙に上書きしない。
+
+- Application実装
+- Existing Test
+- Generated HTML
+- README
+- Guide
+- PROJECT_CONTEXT
+- ADR
+
+ADRは「なぜその判断をしたか」を残すDecision Historyであり、Current Specと矛盾する場合はCurrent SpecまたはADRの同期漏れとして扱う。
+
+## 5. Key abstractions
+
+- **Product Specification**: どうあるべきかを定義するNormative Behavior。
+- **Business Rule**: Feature / Role / Stateを跨いでも維持されるRule。`BR-*`。
+- **Acceptance Criteria**: Rule / Featureを外部からどう確認できるか。`AC-*`。
+- **Test Case**: Risk / Conditionから導出した検証項目。例`CART-001`。
+- **UI Test ID / testId**: UI ElementをAutomationから識別するIdentity。
+- **Seed Scenario**: 再現可能な初期状態。Executable metadataはCode、意味と期待はSpecで扱う。
+- **Known Deviation**: Normative Specは確定しているがCurrent Implementationが異なる既知差異。
+- **Unresolved Specification**: Product意図が未確定で、Normative Oracleとして利用できない項目。
+- **Test Oracle**: Expected判断の根拠。
+- **Agentic QA Charter**: 探索対象、Risk、Role、Seed、Platform、Viewport、Mission、Stop Conditionを固定する単位。
+- **Agentic QA Finding**: OracleとEvidenceを伴う再現可能な観測結果。
+- **Challenge**: AI QAを評価するためDisposable Training Workspaceへだけ適用する課題状態。
+
+## 6. Assumptions / Non-goals / Blocking questions
 
 ### Assumptions
 
-- 実装は依存PRとPR #13がマージされた後に開始する。
-- 今回保存するPlan Branchは計画保存用であり、実装開始前には必ず最新`main`との差分を再確認する。
-- 実装自体は1本のFeature Branch / 1本のPRで完結させる。
-- Markdown Specificationが唯一の規範的Product Specification SSOTとなる。
-- Git履歴をVersion管理として利用し、仕様書独自の手動Version番号は原則追加しない。
-- Generated HTMLはCommit対象にせず、ローカルまたはCI Artifactへ出力する。Repository事情によりCommitが必要と判明した場合でもGeneratedであることを機械検証する。
-- HumanとAIで別仕様を作らない。両者とも同じMarkdownを読む。
-- SpecificationのNavigationは`docs/spec/README.md`を正本とし、HTML Navigationもそこから導出する。
-- HTML GeneratorはDocusaurus / VitePress等のDocs Frameworkを導入せず、既存Node / TypeScript基盤に小さなGeneratorを追加する。
-- Markdown Parserは実装開始時にPackage互換性を再確認した上で、Raw HTMLを既定で無効化できる軽量Parserを採用する。現時点の第一候補は`markdown-it`系とする。
-- AI QAはLLMの非決定性を持つため、初期Required CI Gateにはしない。
-- AI QAで見つかったFindingは自動修正しない。Finding受理後に通常のImplementation / Repair Workflowへ渡す。
+- Future ImplementationはPR #14とPR #13マージ後に開始する。
+- Implementationは最新`main`から別Branchを作る。
+- 実装内容は1本のPRで完結させる。
+- Markdown SpecificationとGenerated HTMLを別管理しない。
+- Git HistoryをVersion Historyとして使い、手動Document Version番号を原則導入しない。
+- HTMLは初期段階ではCI ArtifactとLocal Buildを標準とする。
+- AI QAはRequired CI Gateにしない。
+- AI QA Findingは探索中に自動修正しない。
 
 ### Non-goals
 
 - Product機能の全面改修。
-- Specificationに合わせる名目で、棚卸し中に見つけた全Bugを同じPRで無条件に修正すること。
-- 現在のPlaywright / Maestro Regression Suiteを全面的に書き換えること。
-- HTMLを別の手動ドキュメントとして保守すること。
-- Docusaurus、VitePress、CMS等の大規模Docs Platform導入。
-- Specification用Databaseや外部SaaSの導入。
-- AIエージェントQAをPR Required Checkにすること。
-- LLMの出力を無検証でIssue / PRへ自動投稿すること。
-- QA中のApplication自動修正。
-- Challengeのために通常Production Runtimeへ恒久Feature Flagや意図的Bugを追加すること。
-- Native後半未実装Featureを、このPRの都合で新規実装すること。
-- 仕様HTMLの公開Hostingまでを必須DoDにすること。まず再生成可能なHTML出力とCI Artifactを成立させる。
+- 棚卸し中に見つけた全Product Bugの同時修正。
+- Existing Regression Suiteの全面書換え。
+- Docusaurus / VitePress / CMS等の大型Docs Platform導入。
+- Specification Database / 外部SaaS導入。
+- HTMLを手動編集可能な第二の仕様書にすること。
+- HTML外部Hostingを今回の必須DoDにすること。
+- AI QAをPR Required Checkにすること。
+- LLM Findingを無検証でIssue / PRへ自動投稿すること。
+- QA探索中のApplication自動修正。
+- Challenge用DefectをProduction Runtimeへ恒久的に入れること。
+- Native機能を仕様整理のために新規実装すること。
+- iOS物理端末Agentic QAを必須にすること。
 
-## 3. 質問 / 曖昧性
+### Blocking questions
 
-### 必ず質問する不透明点
+実装開始後、以下の場合のみOwner Decisionを求める。
 
-実装開始時の再Mappingで、次のいずれかが判明した場合のみOwner Decisionを求める。
+1. Docs / ADR / Code / Test / Historyを照合してもProduct意図を確定できない。
+2. Normative Specを確定すると既存Product BehaviorのBreaking Changeが必要になる。
+3. ChallengeをProduction Pathへ混入させなければ教材が成立しない。
+4. Human向けHTMLに外部Hosting / 認証が必須と判明する。
+5. Agentic QAに必要なCapabilityを現在利用可能なToolで満たせない。
+6. ChallengeのAnswer Key隔離を実行環境上保証できない。
 
-1. 同一挙動について`docs` / ADR / 実装 / Testが明確に矛盾し、履歴からもProduct意図を確定できない。
-2. 仕様化すると既存Product挙動をBreaking Changeする必要がある。
-3. Challenge教材を成立させるためにProduction Pathへ意図的Bugを混入させる必要が生じる。
-4. Human向けHTMLをArtifactではなく外部Hosting必須とする必要が生じる。
-5. AI QAに使用できるToolが想定と異なり、Playwright MCPまたはNative既存経路で教材が成立しない。
+未確定事項は推測で実装せず`Unresolved Specification`として分離し、該当範囲のAI QAをNormative判定対象から外す。
 
-### 仮定してよい細部
+## 7. 影響範囲 / Files to inspect
 
-- File名やFeature分類の軽微な調整。
-- HTMLのSpacingや色等、既存Design Token / UI基準で自然に決められるPresentation細部。
-- Validation Script内部の関数分割。
-- CI Job内のStep名。
-- Generated outputの一時Path。
-
-### 未回答の重要質問
-
-- 現時点ではなし。
-- ただし実装開始時の最新`main`再Mappingを開始Gateとし、そこで新しいBlocking Questionが出た場合は実装を停止して確認する。
-
-## 4. 影響範囲
-
-### Impacted areas
-
-1. Product Specification / Documentation
-2. Acceptance Criteria / Traceability
-3. Specification Change Management
-4. Static HTML Generator
-5. Specification Validation / CI
-6. AI Agent Operating Agreement
-7. Agentic Exploratory QA Workflow
-8. Evidence / Finding Contract
-9. Agentic QA Training Challenge / Evaluation
-10. Test Automation Curriculum
-11. Existing README / Guide / Project Contextの責務整理
-
-### Files to inspect（実装開始時に再確認）
-
-#### Repository / Product context
+### Repository / Product Context
 
 - `README.md`
 - `AGENTS.md`
@@ -254,19 +370,19 @@ Finding / Accepted Defect / Regression Feedback
 - `docs/PROJECT_CONTEXT.md`
 - `docs/adr/**`
 - `docs/reference/**`
-- `docs/history/**`（必要な判断履歴のみ）
+- `docs/history/**`の関連履歴
 
-#### Product / Rule / State
+### Product / Rule / State
 
 - `src/domain/**`
 - `src/application/**`
 - `src/seeds/**`
-- Role / permission関連定義
-- Cart / Checkout / Payment / Order / Review / Admin Rule関連定義
-- Web / Native Route定義
-- Design Token / Responsive Contract関連実装
+- Role / Permission definitions
+- Route definitions
+- Cart / Checkout / Payment / Order / Review / Admin Rule
+- Design Token / Responsive / Accessibility関連実装
 
-#### QA / Automation
+### QA / Automation
 
 - `e2e/web/**`
 - `playwright.config.ts`
@@ -276,34 +392,32 @@ Finding / Accepted Defect / Regression Feedback
 - `tests/repository-contract/**`
 - `tests/component/**`
 - `tests/contracts/**`
-- Native local wrapper / evidence scripts
+- Native local wrapper / Evidence scripts
+- `.codex/templates/**`
+- `scripts/codex-safe.*`
+- `scripts/codex-task.*`
+- Existing evaluation / run artifact schema
 
-#### CI / Build
+### CI / Build
 
 - `package.json`
 - `pnpm-lock.yaml`
 - `.github/workflows/ci.yml`
 - `.github/workflows/native-ci.yml`
-- `.github/workflows/native-ios-ci.yml`（存在・現行役割を再確認）
+- `.github/workflows/native-ios-ci.yml`
 - Markdownlint / Prettier / ESLint設定
 
-#### Curriculum
+### Curriculum
 
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning-design.md`
-- `docs/curriculum/test-automation/01_spreadsheet-test-design.md`
-- `docs/curriculum/test-automation/part1/**`
-- `docs/curriculum/test-automation/part2/**`
+- `00_learning-design.md`
+- `01_spreadsheet-test-design.md`
+- `part1/**`
+- `part2/**`
 
-## 5. 変更方針
+## 8. Target Specification structure
 
-### Change strategy
-
-実装は1本のPR内でWave順に進める。各WaveでReview可能な状態を保ち、後続Waveが前Waveの契約を前提にする。途中でProduct Bugを発見しても、SpecificationとAgentic QA基盤の完成を妨げない限り、無関係なProduct改善へScopeを拡張しない。
-
-### Target Specification structure
-
-初期構成は以下を基準とする。実装開始時の最新Product Scopeに応じてFeature Fileを増減するが、階層を過剰に深くしない。
+初期構成は以下を基準とする。最新Product Scopeに応じてFeature Fileを調整するが、階層を過剰に深くしない。
 
 ```text
 docs/spec/
@@ -314,6 +428,7 @@ docs/spec/
 ├ state-and-scenarios.md
 ├ ui-ux-contract.md
 ├ known-deviations.md
+├ unresolved-specifications.md
 ├ change-process.md
 ├ _templates/
 │  └ feature-spec.md
@@ -328,165 +443,307 @@ docs/spec/
    ├ admin-inventory.md
    ├ admin-orders.md
    ├ admin-users.md
-   └ native-storefront-cart.md
+   └ native-*.md
 ```
 
-Acceptance Criteriaは別Database / 別SSOTへ分離せず、関連Feature Specification内へ同居させる。SpecificationとAcceptance Criteriaの役割は見出しとIDで明確に分離する。
+Acceptance Criteriaは別Database / 別SSOTへ分離せず、関連Feature Specification内へ配置する。
 
-### ID convention
+## 9. Markdown最小Grammar
+
+### 9.1 Navigation
+
+`docs/spec/README.md`に以下の明示Sectionを設ける。
+
+```markdown
+## Navigation
+
+- [Product Scope](./product-scope.md)
+- [Roles and Permissions](./roles-and-permissions.md)
+- [Cart](./features/cart.md)
+```
+
+HTML Generatorは`## Navigation`配下のMarkdown Link ListだけをNavigation Sourceとして読む。
+
+本文中の任意ListをNavigationとして推測しない。
+
+### 9.2 Business Rule
+
+```markdown
+### BR-CART-001 — Cart数量上限
+
+Cart数量は、Product仕様で定義された購入可能上限を超えてはならない。
+```
+
+### 9.3 Acceptance Criteria
+
+```markdown
+#### AC-CART-001 — 上限値を受け入れる
+
+Related BR: `BR-CART-001`
+
+Given ...
+When ...
+Then ...
+```
+
+Given / When / Thenは有効な表現手段だが、すべてのACへ強制しない。期待結果を明確に検証可能な自然文でもよい。
+
+### 9.4 BR without direct AC
+
+Active BRが直接Acceptance Criteriaを持たない場合のみ、BR Section内へ以下を明記する。
+
+```text
+Acceptance: N/A — <直接ACを持たない理由>
+```
+
+Validatorは、Active BRが少なくとも1つのACから参照されるか、`Acceptance: N/A`を持つことを確認する。
+
+### 9.5 ID rule
 
 ```text
 BR-<AREA>-NNN
 AC-<AREA>-NNN
 ```
 
-例:
+- IDは一度利用した意味から別Requirementへ再利用しない。
+- 廃止後も番号を使い回さない。
+- Test Case IDと分離する。
+- UI Test ID / `testId`と分離する。
+- ID Grammarを増やしすぎない。
+
+## 10. Oracle priority / Deviation handling
+
+Human QA / AI QAのExpected判断を以下で統一する。
+
+1. Current `docs/spec/**`のNormative記述
+2. 同Spec内のBR / AC
+3. `known-deviations.md`によるCurrent Implementationとの差異情報
+4. ADRによるDecision History
+5. Application / Seed / Test / README / GuideはEvidence / Implementation Reference
+
+### Known Deviation
+
+Specが確定しておりCurrent Implementationが異なる場合はKnown Deviationとする。
+
+Agentic QAで再現した場合は、新規Findingとして重複登録せず以下のように扱う。
 
 ```text
-BR-CART-001
-AC-CART-001
-AC-CART-002
+Known deviation reproduced
+Reference: <known-deviations section>
 ```
 
-ルール:
+### Unresolved Specification
 
-- IDは一度公開したら意味を別Requirementへ再利用しない。
-- 削除・廃止時はGit履歴で追跡できるようにし、別Ruleへ番号を使い回さない。
-- ACは少なくとも1つのBRまたは明示的なFeature Behaviorへ紐付ける。
-- Test Case ID（例:`CART-001`）とは別Namespaceとする。
-- UI Test ID / `testId`とも混同しない。
+Product意図が未確定な範囲は`unresolved-specifications.md`へ記録する。
 
-### Feature Spec template
+この範囲についてAIは以下を行ってよい。
 
-各Feature Fileは原則として次を含む。
+- Observationを記録する。
+- Risk / Questionを記録する。
+
+しかしNormative Oracleがないため、Product Defectとして確定しない。
+
+## 11. Feature Spec template
+
+各Feature Fileは原則として以下を持つ。
 
 1. Purpose / Scope
 2. Actors / Roles
 3. Preconditions
-4. Business Rules (`BR-*`)
+4. Business Rules
 5. State / Transition（必要な場合）
 6. UI / Behavior Contract
 7. Error / Boundary Behavior
-8. Acceptance Criteria (`AC-*`)
+8. Acceptance Criteria
 9. Web / Native差分（該当する場合）
 10. Out of scope
-11. Implementation references（参考。正本ではない）
-12. Related Test Case / Automation reference（追跡用。正本ではない）
+11. Executable Canonical Source references
+12. Related Test / Automation references
+13. Known Deviations / Unresolved Specification references
 
-### Oracle priority
+Implementation ReferenceやExisting TestはTraceabilityのために参照するが、Normative Specを上書きしない。
 
-AI QA / Human QAのExpected判断は次で統一する。
+## 12. Change Process
 
-1. Current `docs/spec/**`の規範的記述
-2. 同じSpecification内のBusiness Rule / Acceptance Criteria
-3. ADR（判断理由。Current Specと矛盾する場合はSpec更新漏れとして扱う）
-4. Application / Seed / Test / README / GuideはEvidence・実装参照。Specを暗黙に上書きしない。
+### 通常Feature変更
 
-Current Specと実装が矛盾する場合、実装へ合わせてSpecを書き換えるのではなくDeviationとして判定する。
+```text
+Change Request
+  ↓
+Normative Spec更新
+  ↓
+BR / AC更新
+  ↓
+Risk / Test Design更新
+  ↓
+Implementation
+  ↓
+Deterministic Automation更新
+  ↓
+Agentic QA / Exploratory QA
+  ↓
+Review / Merge
+```
 
-### 実行タスク
+### Bug Fix
 
-#### Wave 0: Implementation Start Gate / 最新`main`再Mapping
+#### Existing Spec violation
 
-- [ ] 0-1. 進行中の依存PRがマージ済みであることを確認する。
-- [ ] 0-2. カリキュラムPR #13がマージ済みであることを確認する。
-- [ ] 0-3. 実装Branchを最新`main`へ合わせる。
-- [ ] 0-4. `AGENTS.md`、`PROJECT_CONTEXT`、ADR、CI、Native Scope、Curriculumを再読する。
-- [ ] 0-5. 本PlanのFiles / Scopeが最新構成と矛盾しないか更新する。
-- [ ] 0-6. 既に他PRで実装された同等機能があれば重複を除く。
+Current Implementationが既存Specに違反している場合、SpecをImplementationへ合わせて変更しない。
 
-#### Wave 1: Current Specification Inventory
+- Defectを修正する。
+- 必要なRegressionを追加する。
+- Spec変更は、誤記修正や説明補足が必要な場合だけ行う。
 
-- [ ] 1-1. README、Guide、PROJECT_CONTEXT、ADR、Code、Seed、Testから仕様候補を抽出する。
-- [ ] 1-2. Product ScopeをWeb / Native / Role / Feature単位で棚卸しする。
-- [ ] 1-3. Business RuleをCart、Auth、Checkout / Payment、Order、Review、Admin等で抽出する。
-- [ ] 1-4. Role / Permission Matrixを実装と既存文書から照合する。
-- [ ] 1-5. State / TransitionをCheckout、Payment、Order、Shipment、Review等で照合する。
-- [ ] 1-6. UI/UX Contractを現在のDesign Token、Responsive Boundary、Accessibility契約から抽出する。
-- [ ] 1-7. Seed Scenarioの意味・期待・推奨用途を照合する。
-- [ ] 1-8. Web / NativeのCurrent ScopeとPlatform差分を確定する。
-- [ ] 1-9. 矛盾を`document stale` / `implementation deviation` / `unknown owner decision`へ分類する。
-- [ ] 1-10. 不明なProduct意図をCodeの現状だけで埋めない。
+#### Specification change required
 
-#### Wave 2: Markdown Specification SSOT確立
+期待挙動自体を変える場合はBug Fix扱いでSpec更新を省略せず、通常Feature変更と同じ順序で更新する。
 
-- [ ] 2-1. `docs/spec/README.md`を作成し、SSOT契約、読み順、Oracle優先順位を定義する。
-- [ ] 2-2. `glossary.md`でTest Case ID / AC / BR / Seed Scenario / User Journey / Maestro Flow / Automation Flow等を整理する。
-- [ ] 2-3. `product-scope.md`を作成する。
-- [ ] 2-4. `roles-and-permissions.md`を作成する。
-- [ ] 2-5. `state-and-scenarios.md`を作成する。
-- [ ] 2-6. `ui-ux-contract.md`を作成する。
-- [ ] 2-7. Feature Specificationを現在Scope全体について作成する。
-- [ ] 2-8. Business Ruleへ`BR-*`を付与する。
-- [ ] 2-9. Acceptance Criteriaへ`AC-*`を付与し、RuleとFeatureへ追跡可能にする。
-- [ ] 2-10. `known-deviations.md`へ「期待仕様は確定しているが現行実装が異なる」既知Deviationのみ記録する。単なる未確認事項は入れない。
-- [ ] 2-11. README / Guide / PROJECT_CONTEXTの重複仕様記述を減らし、詳細は`docs/spec`へ参照させる。運用・セットアップ等の責務は各文書に残す。
+### Emergency Fix
 
-#### Wave 3: Specification Change Process / Traceability
+緊急修正でも原則として同一Implementation PR内でSpec / AC / Testを同期する。
 
-- [ ] 3-1. `docs/spec/change-process.md`を作成する。
-- [ ] 3-2. 通常Feature変更の順序を`Spec → AC → Risk / Test Design → Implementation → Automation → Agentic QA`として定義する。
-- [ ] 3-3. Bug Fixで「既存Spec違反を直す場合」と「仕様変更が必要な場合」を分離する。
-- [ ] 3-4. 緊急修正でも同一PR内でSpec同期を完了する原則を定義する。
-- [ ] 3-5. Spec / Implementation / Testの不一致時のDecision Ruleを定義する。
-- [ ] 3-6. `feature-spec.md`テンプレートを作成する。
-- [ ] 3-7. AGENTS / Planning / Review契約から変更対象FeatureのSpecを事前確認するよう接続する。
-- [ ] 3-8. Code ReviewでBehavior変更時のSpec / AC更新漏れを確認対象へ追加する。
+緊急性のため事前更新できない場合は、例外理由を明示し、Merge前にCurrent Specへ同期する。仕様同期なしで「後で直す」を通常運用にしない。
 
-#### Wave 4: Markdown → Static HTML Generator
+## 13. Agentic QA Operating Contract
 
-- [ ] 4-1. `docs/spec/**/*.md`だけをSourceとするGeneratorを追加する。
-- [ ] 4-2. Raw HTMLを既定無効とするMarkdown Parserを使用する。
-- [ ] 4-3. `docs/spec/README.md`からHuman向けNavigationを導出する。
-- [ ] 4-4. Heading Anchor、Page TOC、Table、Code Block、Relative Linkを変換する。
-- [ ] 4-5. 既存UI基準と矛盾しない軽量Responsive CSSをGenerator管理下で出力する。
-- [ ] 4-6. 出力先を`output/spec-site/`等のGenerated Directoryとし、Source TreeへHTMLを手動保存しない。
-- [ ] 4-7. `pnpm run build:spec`を追加する。
-- [ ] 4-8. CI ArtifactとしてHumanが生成HTMLを確認できるようにする。
-- [ ] 4-9. 初期版では外部Hosting、認証、全文検索を必須にしない。
+### 13.1 QA Mode
 
-#### Wave 5: Specification Validation / CI Gate
+Agentic QAはCode Review / Repair / Implementationとは別Workflowとする。
 
-- [ ] 5-1. Spec MarkdownがMarkdownlintを通ることを確認する。
-- [ ] 5-2. `BR-*` / `AC-*`の重複を検出するValidatorを追加する。
-- [ ] 5-3. ACから参照するBR等の存在確認を追加する。
-- [ ] 5-4. `docs/spec`内Relative LinkのBroken Linkを検出する。
-- [ ] 5-5. HTML Build失敗を検知する。
-- [ ] 5-6. `pnpm run validate:spec`を追加する。
-- [ ] 5-7. `pnpm run verify`へSpec Validation / Buildを接続する。
-- [ ] 5-8. `.github/workflows/ci.yml`の既存Quality Gateへ追加する。独立Jobを増やす必要がなければ既存Style / Code Qualityへ統合し、CI肥大化を避ける。
-- [ ] 5-9. Generated HTMLをCI ArtifactとしてUploadし、PR Reviewerが閲覧できるようにする。
+QA Runの目的は以下である。
 
-#### Wave 6: AIエージェント探索QA専用Workflow
+```text
+Observe
+  ↓
+Reproduce
+  ↓
+Record
+  ↓
+Continue exploration
+```
 
-- [ ] 6-1. `QA_AGENT.md`をAI QA Entry Pointとして追加する。
-- [ ] 6-2. `.agents/skills/exploratory-qa/SKILL.md`を追加する。
-- [ ] 6-3. `docs/reference/agentic-qa-workflow.md`を追加する。
-- [ ] 6-4. Agentic QA開始前に対象Spec / BR / AC、Role、Seed、Platform、Viewport、Charterを固定する。
-- [ ] 6-5. Web標準経路をPlaywright MCPによる実操作とする。
-- [ ] 6-6. Native標準経路をAndroid + 既存Test Control / Maestro / wrapperとする。Mobile / Maestro系MCPが使える場合は補助経路として利用する。
-- [ ] 6-7. QA Run中はApplication Codeを原則Read-onlyとし、Finding確定前に修正しない。
-- [ ] 6-8. Observation / Inference / Opinionを分ける。
-- [ ] 6-9. Finding成立時はOracle Referenceを必須にする。
-- [ ] 6-10. Finding Contractを定義する。
-- [ ] 6-11. Reset可能なFindingは原則2回以上再現し、Seed / Role / Viewportを記録する。
-- [ ] 6-12. Screenshot、URL、Console、Trace / Video、Native Evidence等のEvidence優先順位を定義する。
-- [ ] 6-13. Duplicate Finding確認方法を定義する。
-- [ ] 6-14. Severity / Confidence基準を定義する。
-- [ ] 6-15. 停止条件を「固定周回数」ではなくRisk / Role / State / Journey / Platform / Viewport CoverageとCharter完了で定義する。
-- [ ] 6-16. Tool failure、Environment failure、Product findingを混同しないFailure分類を定義する。
-- [ ] 6-17. Finding受理後は通常のRepair / Implementation Runへ渡す。
+Findingが受理された後に、別のImplementation / Repair phaseへ渡す。
 
-### Agentic QA Finding schema
+### 13.2 Information boundary
+
+#### Spec-driven Discovery
+
+標準Discoveryでは以下を参照してよい。
+
+- 対象`docs/spec/**`
+- QA Runbook / Charter
+- App UI
+- Test Control / Seedの利用方法
+- 実行に必要なSetup情報
+- Runtime Evidence
+
+Finding候補を作る前に、Application SourceやExisting Regressionから答えを探すことを標準手順にしない。
+
+#### Gray-box Investigation
+
+Finding候補をSpec + UI Evidenceで再現した後、原因調査やRegression Layer判断が必要な場合のみ、Application Code / Existing Testを参照してよい。
+
+Codeを読んだこと自体をExpected根拠にしない。
+
+#### Scored Challenge
+
+Challenge評価では、Instructor Answer Key、Defect List、Challenge生成用Source Patchの内容、Instructor-only Testへアクセスできないことを必須とする。
+
+Repository Connectorや外部SearchでAnswer Keyを取得できる状態も不可とする。
+
+### 13.3 Write boundary
+
+探索WorkerはApplication Sourceを変更しない。
+
+既存HarnessにRead-only preset / read-only workerが利用可能な場合はそれを優先する。
+
+ただし、Read-only探索Worker自身がRun Artifactを書けない場合にSource WorkspaceへWrite権限を与えて解決しない。
+
+標準構成は以下とする。
+
+```text
+Parent / Orchestrator
+  ├─ Run Artifactを管理
+  └─ Read-only Exploration Worker
+       ├─ Browser / Device操作
+       ├─ Observation
+       └─ Structured resultをParentへ返却
+```
+
+Tool routing上Read-only WorkerへBrowser Capabilityを渡せない場合は、Parentで探索を行うFallbackを許可する。その場合もSource変更を禁止し、開始前後の`git status` / `git diff`でSource変更0を検証する。
+
+Agentic QA専用の新しいSafety Wrapperは、既存Harnessで必要境界を表現できないことが確認されるまで追加しない。
+
+### 13.4 Web Capability
+
+Webの標準経路はPlaywright MCPとする。
+
+最低Capability:
+
+- Navigate
+- DOM / Accessibility情報の観察
+- Click / Fill / Select等の操作
+- Scroll
+- Screenshot
+- URL確認
+- Console / Error確認
+- Seed / Test Controlを使ったReset
+- Viewport切替
+
+### 13.5 Native Capability Contract
+
+Native Agentic QAはAndroidを標準Platformとする。
+
+特定MCP名ではなく、以下Capabilityを満たすTool経路を要求する。
+
+- Current ScreenのScreenshot取得
+- Accessibility / Test ID / Semantic Label等による対象識別
+- Tap
+- Text input
+- Scroll
+- Back
+- App restart
+- Deep Link起動
+- Test Control / Seed Reset
+- Screenshot / Runtime Evidence取得
+- 必要に応じてLog取得
+
+Mobile MCP、Maestro MCP、ADB等のどの組み合わせでもよいが、上記Capabilityを満たさなければAgentic Exploratory QA完了とは扱わない。
+
+既存Maestro Flowを実行してPASSしただけではAgentic QA実施済みとしない。
+
+## 14. Agentic QA Charter / Finding / Artifact
+
+### Charter
 
 最低限以下を含む。
+
+```text
+Charter ID
+Target Spec
+Business Rule / Acceptance Criteria
+Risk
+Role
+Seed Scenario
+Platform
+Viewport / Device
+Mission
+Out of scope
+Stop condition
+```
+
+停止条件は固定回数ではなく、Risk / Role / State / Journey / Platform / Viewport CoverageとCharter Mission完了で定義する。
+
+### Finding schema
 
 ```text
 Finding ID
 Title
 Severity
 Confidence
-Oracle Reference (BR / AC / Spec section)
+Oracle Reference
+Known Deviation Check
 Platform
 Viewport / Device
 Role
@@ -504,215 +761,441 @@ Suggested regression layer
 Status
 ```
 
-#### Wave 7: AI QA教材Challenge / Answer Key / Evaluation
+### Finding成立条件
 
-- [ ] 7-1. Challengeを通常Production Pathへ混入させない構成を決定する。
-- [ ] 7-2. Repository内でReview可能なChallenge DefinitionとInstructor Answer Keyを作成する。
-- [ ] 7-3. 必要な意図的DefectはTraining用のDisposable Copyへだけ適用できるPatch / Setupとして保持し、通常App Buildでは有効化しない。
-- [ ] 7-4. Challenge適用前後を明確にし、元Repositoryへ意図しない変更が残らない手順を定義する。
-- [ ] 7-5. Basic / Intermediate / Advancedの段階を用意する。
-- [ ] 7-6. Functional、Role、State、Error、Responsive、Accessibility、UI/UX、False Positive誘発要素を混ぜる。
-- [ ] 7-7. Answer Keyに「Defect」「Expected behavior（非Defect）」「Evidence」「Oracle Reference」「Severity目安」を含める。
-- [ ] 7-8. 評価指標をRecallだけにせず、Precision、False Positive Rate、Evidence Quality、Reproducibility、Severity Accuracy、Coverageで評価する。
-- [ ] 7-9. Challenge生成・適用が過剰に複雑になる場合は、Training Copy配布時にInstructorがPatch済みZIPを生成する方式を優先し、Production RuntimeへFeature Flagを追加しない。
+- ObservationとInference / Opinionを分離する。
+- ExpectedのOracle Referenceを示す。
+- Known Deviationを確認する。
+- Reset可能なFindingは原則2回以上再現する。
+- Seed / Role / Platform / Viewportを記録する。
+- Evidenceを残す。
+- Duplicate Checkを行う。
+- Tool / Environment FailureをProduct Defectとして扱わない。
 
-#### Wave 8: カリキュラム統合
+### Run Artifact
 
-- [ ] 8-1. `docs/curriculum/test-automation/README.md`の学習成果へSpecification / Acceptance Criteria / Agentic QAを追加する。
-- [ ] 8-2. Part 1前半のScenario Shop分析で、実装探索前にCurrent Specを確認する流れを追加する。
-- [ ] 8-3. Test DesignでBR / AC → Risk → Test Caseの関係を追加する。
-- [ ] 8-4. Part 1-8保守モジュールへ仕様変更時のSpec / AC / Test同期を追加する。
-- [ ] 8-5. 新規`Part 1-9: AIエージェントによる探索的QA`を追加する。
-- [ ] 8-6. 既存Part 1 CapstoneをPart 1-10へ移動し、参照を更新する。
-- [ ] 8-7. Agentic QA Moduleで、AI QAとDeterministic Regression Automationの違いを明示する。
-- [ ] 8-8. Playwright MCP、Seed / Test Control、Charter、Oracle、Finding、Evidence、False Positive、Regression還元を教材化する。
-- [ ] 8-9. Native Agentic QAはAndroidを標準とし、iOSを完了条件にしない。
-- [ ] 8-10. Part 1 Capstoneへ`Human-designed tests + Automation + Agentic QA + Validated Findings + Regression feedback`を追加する。
-- [ ] 8-11. Part 2の変更管理 / PR Review / Integration Design CapstoneへSpec更新とAI QAの運用位置付けを追加する。
-- [ ] 8-12. AI QAをRequired CI Gateにしない理由と、Manual / On-demand / Release前補助としての使い分けを教材化する。
+既存Codex Run Artifactを再利用し、巨大な別QA管理基盤を作らない。
 
-#### Wave 9: Existing Documentation Responsibility Cleanup
+目標構成:
 
-- [ ] 9-1. Root READMEはSetup / Product Overview / Entry Link中心へ整理し、詳細RuleをSpecへリンクする。
-- [ ] 9-2. `/guide`はApplication利用・学習用Guideとして残し、Product Specの正本扱いをやめる。
-- [ ] 9-3. `PROJECT_CONTEXT.md`はAI作業・Architecture / operational contextへ責務を限定し、Product Ruleの重複をSpec参照へ寄せる。
-- [ ] 9-4. ADRは過去判断理由として残し、Current Specとの矛盾を放置しない。
-- [ ] 9-5. Existing TestはRegression assetとして扱い、Specの代替にしないことを明記する。
+```text
+.codex/runs/<run_id>/
+├ PLAN.md
+├ TASKS.md
+├ REPORT.md
+├ run.json
+├ qa-charter.md
+├ qa-findings.json
+└ evaluation.json     # Challenge評価時のみ
+```
 
-#### Wave 10: Full Validation / Review / One-PR Completion
+役割:
 
-- [ ] 10-1. `pnpm run format:check`。
-- [ ] 10-2. `pnpm run lint:markdown`。
-- [ ] 10-3. `pnpm run validate:spec`。
-- [ ] 10-4. `pnpm run build:spec`。
-- [ ] 10-5. `pnpm run lint`。
-- [ ] 10-6. `pnpm run typecheck`。
-- [ ] 10-7. Spec Validator / Generator用Unit Test。
-- [ ] 10-8. 必要な既存Unit / Integration / Contract / Component Test。
-- [ ] 10-9. `pnpm run test:e2e:chromium`。
-- [ ] 10-10. `pnpm run test:a11y`。
-- [ ] 10-11. `pnpm run test:e2e:mobile-boundary`。
-- [ ] 10-12. Agentic QA WorkflowをCurrent AppでDry Runし、少なくとも1つのCharterについてFinding 0件でもEvidence / Coverage /終了理由が残ることを確認する。
-- [ ] 10-13. Android環境が利用可能ならNative Agentic QA手順をDry Runする。利用不可の場合は既存Native CI / Maestro契約と静的整合を確認し、未実施を明記する。
-- [ ] 10-14. `pnpm run verify`。
-- [ ] 10-15. GitHub ActionsでSpec Gateを含む既存Required CIが成功することを確認する。
-- [ ] 10-16. Generated HTML Artifactを実際に開き、Navigation、Anchor、Table、Code block、Responsiveを人間視点で確認する。
-- [ ] 10-17. Spec / AC / Challenge Answer KeyをAIエージェントに読ませ、参照先とOracle優先順位を誤解しないか確認する。
-- [ ] 10-18. PR差分を再Reviewし、Product Bug修正や無関係なRefactorが混ざっていないことを確認する。
+- `qa-charter.md`: Human-readable探索契約。
+- `qa-findings.json`: 機械評価可能なFinding一覧。
+- `REPORT.md`: Run Summary / Coverage /終了理由。
+- `evaluation.json`: Challenge Answer Keyとの評価結果。Challenge時のみ。
 
-## 6. 検証方法
+Raw Screenshot、Trace、MCP Log、ADB Log等は既存Artifact方針に従い`.artifacts/**`等へ分離し、Run Artifactには相対Referenceと要約だけを残す。
 
-### Validation plan
+既存`run.json` / `evaluation.json` Schemaと競合する場合は新規Schemaを乱立させず、既存Contractへ最小拡張する。
 
-#### Static specification validation
+## 15. Challenge / Answer Key / Evaluation
 
-- Markdownlint。
-- Relative link validation。
-- BR / AC ID uniqueness。
-- BR / AC reference integrity。
-- Required section validation（Feature Spec Templateに必須Sectionがあるか。過剰なSchema強制はしない）。
-- Generated HTML Build。
+### 15.1 原則
 
-#### Generator tests
+Challengeの目的は「Finding数を増やすこと」ではなく、AIエージェントが仕様をOracleとして妥当なFindingを作れるか評価することである。
 
-- Markdown見出しから安定Anchorを生成できる。
-- Relative LinkがGenerated HTML内で正しく解決される。
-- Navigation順が`docs/spec/README.md`から導出される。
-- Raw HTMLが実行可能な形で出力されない。
-- Table / Code blockが保持される。
-- 生成先がSource Markdownを変更しない。
+### 15.2 Repository側
 
-#### Product regression
+RepositoryにはReview可能な形で以下を保持できる。
 
-Specification整理自体でProduct Behaviorを変更しない場合でも、CI変更やDependency追加の影響を確認するため既存`verify`を通す。
+```text
+training/agentic-qa/
+├ challenges/
+├ patches-or-setup/
+├ learner-bundle/
+└ instructor/
+   └ answer-key/
+```
 
-#### Agentic QA workflow validation
+実PathはWave 0で調整する。
 
-- Specを読まずに探索開始できない契約になっている。
-- CharterにRole / Seed / Risk / Platform / Viewport / Mission / Stop conditionが入る。
-- FindingにOracle Referenceがない場合は完成扱いにならない。
-- Spec上のExpected BehaviorをFalse PositiveとしてFinding化しない例を確認する。
-- Reset可能なFindingで再現確認を行う。
-- QA中にApplication Codeを自動修正しない。
+### 15.3 Learner Workspace隔離
+
+Agentへ元Repositoryを直接渡さない。
+
+```text
+Source Repository
+  ├─ Challenge Source
+  ├─ Instructor Answer Key
+  └─ Bundle Generator
+          ↓
+Disposable Learner Workspace
+  ├─ Application
+  ├─ docs/spec
+  ├─ Learner Runbook
+  └─ Applied Challenge
+       × Instructor Answer Keyなし
+```
+
+Scored RunではAgentのWorkspace RootをDisposable Learner Workspaceへ限定する。
+
+さらに、以下からInstructor Answer Keyへアクセスできないことを成立条件とする。
+
+- Filesystem
+- Parent directory traversal
+- Git history containing instructor content
+- GitHub Connector / Repository Search
+- External Search
+- Prompt Context
+- Hidden test output containing answer
+
+これを保証できない環境では練習用途には使えても、Precision / Recall等のScored Evaluationには使わない。
+
+### 15.4 Challenge defect
+
+- Production Runtimeへ恒久Feature Flagを追加しない。
+- Disposable CopyへPatch / Setupとして適用する。
+- Challenge適用前後を識別可能にする。
+- 元RepositoryへChallenge変更を戻さない。
+- App起動や探索自体を破壊するChallengeを無制限に作らない。
+
+### 15.5 CI / Validation
+
+少なくとも以下を機械検証する。
+
+```text
+Clean Source
+  ↓
+Learner Bundle生成
+  ↓
+Instructor-only content不在確認
+  ↓
+Challenge適用
+  ↓
+Build / Launch可能性確認
+  ↓
+Challenge-specific sanity check
+```
+
+意図的Defectにより通常Regressionが失敗する場合、通常Regression全PassをChallenge Validation条件にしない。Challengeが意図どおり適用され、探索可能な状態であることを確認する専用Sanity Contractを持つ。
+
+### 15.6 Evaluation
+
+評価指標:
+
+- Recall
+- Precision
+- False Positive Rate
+- Evidence Quality
+- Reproducibility
+- Severity Accuracy
+- Coverage
+
+Answer Keyには以下を含める。
+
+- Defect
+- Expected Behavior / Non-defect
+- Oracle Reference
+- Minimum Reproduction Condition
+- Evidence expectation
+- Severity目安
+
+Basic / Intermediate / Advancedの3段階を基本とするが、難易度分類のためにRuntimeへ複雑な仕組みを追加しない。
+
+## 16. Target implementation Waves
+
+### Wave 0: Implementation Start Gate / Rebaseline
+
+- [ ] PR #14のmergeを確認する。
+- [ ] PR #13のmergeを確認する。
+- [ ] 他依存PRを確認する。
+- [ ] 最新`main`からImplementation Branchを作る。
+- [ ] AGENTS / PROJECT_CONTEXT / ADR / CI / Native / Curriculumを再Mappingする。
+- [ ] PR #14後のNative ScopeとPR #13 Curriculumの整合を確認する。
+- [ ] 本PlanのPath / Wave / DoDを最新Repositoryへ同期する。
+- [ ] 既に同等機能が追加済みなら重複を除く。
+
+### Wave 1: Current Specification Inventory
+
+- [ ] README / Guide / PROJECT_CONTEXT / ADR / Code / Seed / Testを横断する。
+- [ ] Web / Native Product Scopeを確定する。
+- [ ] Role / Permission Matrixを確認する。
+- [ ] Business Ruleを抽出する。
+- [ ] State / Transitionを抽出する。
+- [ ] UI/UX / Accessibility Contractを抽出する。
+- [ ] Seed Scenarioの意味と期待を整理する。
+- [ ] Executable Canonical Source一覧を作る。
+- [ ] 矛盾を`document stale` / `implementation deviation` / `unresolved specification`へ分類する。
+- [ ] Product意図をCodeの現状だけで決定しない。
+
+### Wave 2: Markdown Specification SSOT
+
+- [ ] `docs/spec/README.md`を作る。
+- [ ] `glossary.md`を作る。
+- [ ] `product-scope.md`を作る。
+- [ ] `roles-and-permissions.md`を作る。
+- [ ] `state-and-scenarios.md`を作る。
+- [ ] `ui-ux-contract.md`を作る。
+- [ ] `known-deviations.md`を作る。
+- [ ] `unresolved-specifications.md`を作る。
+- [ ] Current Scope全体のFeature Specを作る。
+- [ ] Executable Canonical SourceへのReferenceを付ける。
+- [ ] README / Guide / PROJECT_CONTEXTから重複Ruleを減らしSpecへ参照させる。
+
+### Wave 3: BR / AC / Change Process / Traceability
+
+- [ ] Markdown最小GrammarをDocument化する。
+- [ ] BR IDを付与する。
+- [ ] AC IDを付与する。
+- [ ] AC → BR Referenceを付与する。
+- [ ] BR Coverage / `Acceptance: N/A`を確認する。
+- [ ] `change-process.md`を作る。
+- [ ] Feature Spec Templateを作る。
+- [ ] AGENTS / Planning / Reviewから変更対象Specを事前確認するよう接続する。
+- [ ] Behavior変更時のSpec / AC更新漏れをCode Review観点へ追加する。
+
+### Wave 4: Markdown → Static HTML
+
+- [ ] `docs/spec/**/*.md`だけをSourceとする。
+- [ ] Raw HTMLを既定無効にできる軽量Markdown Parserを選定する。
+- [ ] `## Navigation`をNavigation Sourceとする。
+- [ ] Heading Anchor / TOC / Table / Code / Relative Linkを生成する。
+- [ ] 軽量Responsive CSSを生成する。
+- [ ] `output/spec-site/**`等へ出力する。
+- [ ] `pnpm run build:spec`を追加する。
+- [ ] Source Markdownを変更しないことをTestする。
+- [ ] Hosting / Auth / Searchは追加しない。
+
+### Wave 5: Specification Validation / CI
+
+- [ ] Markdownlint。
+- [ ] Relative Link validation。
+- [ ] BR / AC ID uniqueness。
+- [ ] AC → BR integrity。
+- [ ] BR Acceptance coverage。
+- [ ] Feature Required Sectionの最小Validation。
+- [ ] HTML Build validation。
+- [ ] `pnpm run validate:spec`を追加する。
+- [ ] `pnpm run verify`へ接続する。
+- [ ] 既存CIの適切なJobへ接続する。
+- [ ] HTML ArtifactをUploadする。
+- [ ] CI Jobを不要に増やさない。
+
+### Wave 6: Agentic QA Workflow / Safety / Artifacts
+
+- [ ] `QA_AGENT.md`を追加する。
+- [ ] `.agents/skills/exploratory-qa/SKILL.md`を追加する。
+- [ ] `docs/reference/agentic-qa-workflow.md`を追加する。
+- [ ] Spec-driven DiscoveryとGray-box Investigationを分離する。
+- [ ] Read-only Exploration Workerを既存Harnessへ接続する。
+- [ ] Parent / OrchestratorがRun Artifactを保存する。
+- [ ] QA前後Source Diffを確認する。
+- [ ] Charter Contractを実装する。
+- [ ] Finding Contractを実装する。
+- [ ] Known Deviation / Unresolved Spec処理を実装する。
+- [ ] Severity / Confidence / Duplicate / Reproduction基準を定義する。
+- [ ] Tool / Environment / Product Failureを分類する。
+- [ ] Web CapabilityをPlaywright MCPでDry Runする。
+- [ ] Native Capability ContractをDocument化する。
+
+### Wave 7: Challenge / Learner Workspace / Evaluation
+
+- [ ] Challenge Definitionを作る。
+- [ ] Instructor Answer Keyを作る。
+- [ ] Disposable Learner Workspace生成方法を作る。
+- [ ] Instructor-only contentをBundleから除外する。
+- [ ] Scored Runの情報アクセス境界を定義する。
+- [ ] Challenge Patch / SetupをDisposable Copyへだけ適用する。
+- [ ] Challenge Validation / Sanityを追加する。
+- [ ] Basic / Intermediate / Advancedを用意する。
+- [ ] Functional / Role / State / Error / Responsive / Accessibility / UI/UX / Non-defectを混ぜる。
+- [ ] Recall / Precision等のEvaluationを実装する。
+
+### Wave 8: Curriculum integration
+
+- [ ] Curriculum READMEへSpecification / AC / Agentic QAを追加する。
+- [ ] Part 1前半へCurrent Specを読む工程を追加する。
+- [ ] Test DesignへBR / AC → Risk → Test Caseを追加する。
+- [ ] 保守モジュールへSpec / AC / Test同期を追加する。
+- [ ] 新規Agentic QA ModuleをPart 1後半へ追加する。
+- [ ] 既存Capstoneを後ろへ移動し参照番号を更新する。
+- [ ] Playwright MCP / Seed / Charter / Oracle / Finding / Evidence / False Positive / Regression還元を教材化する。
+- [ ] Native Agentic QAはCapability Contract + Android標準で説明する。
+- [ ] Challenge評価でAnswer Key隔離の意味を説明する。
+- [ ] Part 1 CapstoneへValidated FindingとRegression Feedbackを追加する。
+- [ ] Part 2の変更管理 / PR Review / Integration DesignへSpec同期とAI QAを追加する。
+- [ ] PR #14後のNative Scope / iOS CIにCurriculum記述を同期する。
+
+### Wave 9: Existing Documentation Responsibility Cleanup
+
+- [ ] READMEをSetup / Product Overview / Spec Entry中心へ整理する。
+- [ ] GuideをApplication利用・学習Guideとして維持する。
+- [ ] PROJECT_CONTEXTをAI作業・Architecture・Operational Context中心へ整理する。
+- [ ] ADRをDecision Historyとして維持する。
+- [ ] Existing TestをRegression Assetとして位置付ける。
+- [ ] Specとの重複Ruleを減らす。
+
+### Wave 10: Full Validation / Review
+
+- [ ] `pnpm run format:check`。
+- [ ] `pnpm run lint:markdown`。
+- [ ] `pnpm run validate:spec`。
+- [ ] `pnpm run build:spec`。
+- [ ] `pnpm run lint`。
+- [ ] `pnpm run typecheck`。
+- [ ] Spec Validator / Generator Test。
+- [ ] 必要なUnit / Integration / Contract / Component Test。
+- [ ] `pnpm run test:e2e:chromium`。
+- [ ] `pnpm run test:a11y`。
+- [ ] `pnpm run test:e2e:mobile-boundary`。
+- [ ] Current AppでWeb Agentic QA Charterを最低1件Dry Runする。
+- [ ] Finding 0件でもCoverage / Evidence /終了理由が残ることを確認する。
+- [ ] Android Capabilityが利用可能ならNative Agentic QAをDry Runする。
+- [ ] Android Capability不足なら未実施を明記し、Maestro PASSで代替しない。
+- [ ] Learner BundleからAnswer Keyが見えないことを確認する。
+- [ ] Challengeを最低1件End-to-Endで評価する。
+- [ ] `pnpm run verify`。
+- [ ] Required GitHub Actions成功を確認する。
+- [ ] Generated HTMLをHuman視点で確認する。
+- [ ] Spec / ACをAIエージェントに読ませOracle解釈を確認する。
+- [ ] PR差分へProduct Fix / unrelated Refactorが混入していないことをReviewする。
+
+## 17. Validation plan
+
+### Static Specification
+
+- Markdownlint
+- Relative Link
+- BR / AC ID uniqueness
+- AC → BR integrity
+- BR Acceptance coverage
+- Required Section
+- Generated HTML Build
+
+### Generator
+
+- Stable Heading Anchor
+- `## Navigation`からのNavigation導出
+- Relative Link変換
+- Raw HTML Safety
+- Table / Code block保持
+- Source Markdown不変
+- Deterministic regeneration
+
+### Agentic QA
+
+- Specを読まずに開始しない。
+- Known Deviationを新規Defect化しない。
+- Unresolved Specificationを確定Defect化しない。
+- Charterが必要Fieldを持つ。
+- Oracle ReferenceなしFindingを完成扱いしない。
+- Reset可能Findingで再現する。
+- QA前後Source変更0を確認する。
 - Tool / Environment FailureをProduct Defectへ分類しない。
+- Discovery中にSource / Existing Testから答えを先取りしない。
 
-#### Curriculum validation
+### Challenge
 
-- Part 1 / Part 2のLinkと番号が整合する。
-- 既存用語（Test Case ID / UI Test ID / Seed Scenario / User Journey / Maestro Flow / Automation Flow）と新規BR / ACが矛盾しない。
-- AI QAをAutomationの代替として説明しない。
-- Challengeの答えをLearner向け本文へ露出しない。
+- Learner BundleにInstructor Answer Keyが含まれない。
+- Scored AgentがAnswer Keyへアクセスできない。
+- Challenge適用後にAppを探索可能。
+- Expected Behavior / Non-defectをFalse Positive化しない例を含む。
+- EvaluationがRecallだけに偏らない。
 
-### 成功判定
+### Curriculum
 
-- 上記DoDをすべて満たす。
-- `pnpm run verify`が成功する。
-- GitHub Actions Required CIが成功する。
-- SpecificationのSourceがMarkdownだけで一意に追える。
-- Generated HTMLを削除してもMarkdownから完全再生成できる。
-- HumanとAI Agentが同じSpecから同じBusiness Rule / Acceptance Criteriaを参照できる。
-- AI QAのFindingが「AIの感想」ではなく、OracleとEvidenceに基づくQA成果物として再現できる。
-- すべて1本のImplementation PR内でReview可能であり、別PRを前提にしない。
+- Part 1 / Part 2 Link / Number整合。
+- Test Case ID / UI Test ID / BR / ACの用語整合。
+- Agentic QAをAutomationの代替として説明しない。
+- Learner本文にAnswer Keyを露出しない。
+- PR #14後のNative / iOS CIの事実と整合する。
 
-## 7. リスクと未解決論点
+### Product Regression
 
-### Risks
+Specification整理が主目的でも、Package / Generator / CI変更を伴うため既存`verify`とRequired CIを通す。
 
-#### R1. Scopeが大きい
+実行していない検証をPASS扱いしない。
 
-- Risk:
-  - Specification、Generator、CI、AI QA、Curriculumを1PRへ統合するため差分が大きくなる。
-- Mitigation:
-  - Wave順とCommit単位を分離する。
-  - 各Waveで責務を明確化し、Product機能改修を混ぜない。
-  - 最終的にはSquash Merge可能だが、Review中は論理Commitを保つ。
+## 18. Risks / Mitigation
 
-#### R2. 現状実装を誤って仕様化する
+### R1. 1PRのScopeが大きい
 
-- Risk:
-  - Bugや偶然の挙動をCurrent Specとして固定してしまう。
-- Mitigation:
-  - Codeだけを根拠にしない。
-  - README、Guide、ADR、Test、History、Ruleを横断する。
-  - 不明なものはOwner DecisionまたはKnown Deviationへ分離する。
+**Risk:** Specification、Generator、CI、Agentic QA、Challenge、Curriculumを1PRへ含めるためReview負荷が高い。
 
-#### R3. MarkdownとCodeの二重管理
+**Mitigation:** WaveとLogical Commitを分離し、Product Feature改修を混ぜない。各Wave完了時にScope Reviewする。
 
-- Risk:
-  - Role、Seed、Status等の値がMarkdownとCodeでずれる。
-- Mitigation:
-  - MarkdownをNormative Behavior SSOTとし、CodeをExecutable implementationと明確に分ける。
-  - すべての低レベル値をMarkdownへ複製しない。
-  - 重複が必要なPublic ContractだけValidatorで整合確認する。
+### R2. 現状Implementationを誤って仕様化する
 
-#### R4. Spec Validatorの過剰設計
+**Risk:** Bugや偶然の挙動をSpecへ固定する。
 
-- Risk:
-  - Markdownが疑似Database化し、仕様を書く負荷が高くなる。
-- Mitigation:
-  - 初期必須MetadataはBR / AC IDとReference程度に限定する。
-  - Front Matterの大量項目を要求しない。
-  - Validatorは壊れやすいFormattingまで強制しない。
+**Mitigation:** Docs / ADR / History / Test / Codeを横断し、不明なものはUnresolved Specificationへ分離する。
 
-#### R5. HTML Docs Platformの肥大化
+### R3. MarkdownとCodeの二重管理
 
-- Risk:
-  - Documentation Framework導入がProductより重くなる。
-- Mitigation:
-  - Static Generator + CSS + Navigationだけから開始する。
-  - Hosting / Full-text Search / CMSはNon-goal。
+**Risk:** Seed / Role / Route / Token等が二重管理になる。
 
-#### R6. AI QA False Positive
+**Mitigation:** Normative Behavior SSOTとExecutable Canonical Sourceを責務分離し、低レベル値を無目的に複製しない。
 
-- Risk:
-  - AIが仕様外の期待を作る。
-- Mitigation:
-  - Oracle Reference必須。
-  - Confidence / Evidence / Reproduction必須。
-  - Expected behaviorのChallengeを混ぜPrecisionを評価する。
+### R4. Validator過剰設計
 
-#### R7. AI QAをCI Gate化して不安定化
+**Risk:** Markdownが疑似Database化する。
 
-- Risk:
-  - LLM Variation、Cost、Tool FlakinessがPR Gateへ入る。
-- Mitigation:
-  - Manual / On-demandを初期標準とする。
-  - Deterministic Regressionは既存Playwright / Maestro / lower layerに戻す。
+**Mitigation:** 最小Grammar、BR / AC ID / Reference / Navigation程度に限定し、大量Front Matterを要求しない。
 
-#### R8. Challengeが通常Productを汚染する
+### R5. HTML Platform肥大化
 
-- Risk:
-  - 意図的BugやFeature FlagがProduction Pathへ残る。
-- Mitigation:
-  - Disposable Training Copy向けPatch / Setupを採用する。
-  - Answer Key / Challenge Definitionは通常Runtimeから分離する。
-  - Challenge適用状態をCIの通常Product Buildへ持ち込まない。
+**Risk:** Documentation Framework整備が主目的化する。
 
-#### R9. Curriculumの難易度過多
+**Mitigation:** Lightweight Parser + Static HTML + CSS + Navigationに限定する。Hosting / Search / CMSはNon-goal。
 
-- Risk:
-  - 初学者がSpecification、AC、Automation、AI QAを一度に学ぶ。
-- Mitigation:
-  - Part 1前半ではSpecを「読む」ことから開始する。
-  - BR / AC作成はTest Designと接続する。
-  - AI QAはPlaywright / Failure Analysis / Maintainabilityを学んだ後に配置する。
+### R6. AI QA False Positive
 
-### Open questions
+**Risk:** AIが独自期待を作る。
 
-- Implementation Start Gate時点で最新`main`を再確認して更新する。
-- HTML公開先は今回DoDに含めない。将来必要になった場合のみ別途Product / Infrastructure判断を行う。
-- Native iOS Agentic QAは環境依存が大きいため、今回の必須完了条件にはしない。既存iOS CI / Maestroの仕様整合は確認する。
+**Mitigation:** Oracle Reference、Known Deviation Check、Reproduction、Evidence、Confidenceを必須化する。
 
-## 8. 成果物
+### R7. QA WorkerがSourceを変更する
 
-### 予定変更ファイル / Directory
+**Risk:** 探索結果が自己修正によって汚染される。
+
+**Mitigation:** Read-only Exploration Workerを標準とし、ParentがArtifactを保存する。前後Diffを検証する。
+
+### R8. Challenge Answer Key leakage
+
+**Risk:** Agentが答えを読んでPrecision / Recall評価が無効になる。
+
+**Mitigation:** Disposable Learner Workspace、Instructor content除外、Connector / Searchアクセス境界をScored Run条件にする。
+
+### R9. NativeをAgentic QAと誤認する
+
+**Risk:** Maestro Regressionを実行しただけで探索QA完了と扱う。
+
+**Mitigation:** Native Capability Contractを定義し、Capability不足時は未実施と明記する。
+
+### R10. CurriculumがPR #14後の現状とずれる
+
+**Risk:** PR #13のNative / iOS CI説明がマージ直後から古くなる。
+
+**Mitigation:** Wave 0でPR #14→#13後をRebaselineし、Wave 8でCurrent Productへ同期する。
+
+### R11. Known Deviation / Unresolved Specの誤判定
+
+**Risk:** AIが既知差異を重複報告したり、未確定仕様をDefect扱いする。
+
+**Mitigation:** Agentic QA開始時の入力へKnown Deviation / Unresolved Specを含め、判定ルールを明示する。
+
+## 19. 予定成果物
+
+### Future Implementation PRの予定変更領域
 
 ```text
 docs/spec/**
 QA_AGENT.md
 AGENTS.md
 CODE_REVIEW.md
-PLANS.md（必要な参照追加のみ）
+PLANS.md                    # 必要な参照追加のみ
 docs/PROJECT_CONTEXT.md
 docs/reference/agentic-qa-workflow.md
 .agents/skills/exploratory-qa/**
@@ -722,87 +1205,98 @@ package.json
 pnpm-lock.yaml
 .github/workflows/ci.yml
 docs/curriculum/test-automation/**
-training/agentic-qa/** または同等の教材Challenge領域
+training/agentic-qa/**       # 実PathはWave 0で確定
 ```
 
-実際のPathはWave 0で最新Repository構造へ合わせる。
+これは**将来のImplementation PRのScope**であり、現在のPlan Branchでは変更しない。
 
-### 付随ドキュメント
-
-- Current Product Specification
-- Specification Change Process
-- Feature Spec Template
-- Agentic QA Workflow Reference
-- Challenge / Instructor Answer Key
-- Curriculum AI Agent QA Module
-
-### 生成物（原則Git管理しない）
+### Generated Artifact
 
 ```text
 output/spec-site/**
+.artifacts/**
 ```
 
-CIではArtifactとして確認できるようにする。
+原則Git管理しない。
 
-## 9. 実装時のCommit / Review単位
+### Durable Documentation
 
-PRは1本だが、Reviewしやすいよう論理単位を分ける。
+- Current Product Specification
+- Business Rule / Acceptance Criteria
+- Specification Change Process
+- Feature Spec Template
+- Agentic QA Workflow Reference
+- Challenge Definition
+- Instructor Answer Key
+- Curriculum Agentic QA Module
 
-推奨Commit sequence:
+## 20. Implementation PRのCommit / Review単位
+
+PRは1本だがReview可能性を保つ。
+
+推奨Logical Commit:
 
 1. `docs: establish current product specification`
 2. `docs: define acceptance criteria and change process`
 3. `feat: add specification html generator`
 4. `ci: validate and publish specification artifact`
 5. `docs: define agentic exploratory qa workflow`
-6. `test: add agentic qa training challenges`
+6. `test: add isolated agentic qa challenges`
 7. `docs: integrate agentic qa into curriculum`
 8. `docs: align repository entry points with specification`
 9. `test: validate specification and agentic qa contracts`
 
-実装中の細部に応じて統合してよいが、無関係なProduct Fixと混ぜない。
+無関係なProduct Fixを混ぜない。
 
-## 10. 最終アーキテクチャ
+## 21. Final architecture
 
 ```text
-                    ┌──────────────────────┐
-                    │ docs/spec/**/*.md    │
-                    │ Product Spec SSOT    │
-                    └──────────┬───────────┘
-                               │
-              ┌────────────────┼────────────────┐
-              │                │                │
-              ▼                ▼                ▼
-      Human / Reviewer    Developer / QA      AI Agent
-              │                │                │
-              │                │                │
-              ▼                │                │
-   Generated Static HTML       │                │
-      (non-SSOT)               │                │
-                               ▼                ▼
-                         BR / Acceptance Criteria
-                               │
-                               ▼
-                      Risk / Test Case Design
-                               │
-                ┌──────────────┴──────────────┐
-                ▼                             ▼
-       Deterministic Automation       Agentic Exploratory QA
- Playwright / Maestro / lower layer   Playwright MCP / Native
-                │                             │
-                └──────────────┬──────────────┘
-                               ▼
-                      Evidence / Finding
-                               │
-                               ▼
-                       Accepted Regression
+                  ┌─────────────────────────────┐
+                  │ docs/spec/**/*.md           │
+                  │ Normative Behavior SSOT     │
+                  └──────────────┬──────────────┘
+                                 │
+                 ┌───────────────┼───────────────┐
+                 │               │               │
+                 ▼               ▼               ▼
+          Human / HTML      Developer / QA     AI Agent
+                                 │               │
+                                 │               ▼
+                                 │        Spec-driven Discovery
+                                 │               │
+                                 ▼               ▼
+                          BR / Acceptance Criteria
+                                 │
+                                 ▼
+                         Risk / Test Case
+                                 │
+                    ┌────────────┴────────────┐
+                    ▼                         ▼
+          Deterministic Automation      Agentic QA
+       Playwright / Maestro / lower     Web / Native Capability
+                    │                         │
+                    └────────────┬────────────┘
+                                 ▼
+                        Evidence / Finding
+                                 │
+                                 ▼
+                    Accepted Regression / Feedback
+
+Executable Canonical Sources
+Seed / Role / Route / Token / Config
+        ↑
+        └──── Specから意味・Contractを参照しつつRuntimeで利用
 ```
 
-## 11. 備考
+## 22. 実装開始時の原則
 
-- 本Planは2026-08-09時点の`main`をMappingして作成しているが、実装開始条件は「進行中の他PRとカリキュラムPR #13がマージされた最新`main`」である。
-- 実装開始前に必ずWave 0を実施し、本Planを最新Repositoryへ再同期する。
-- 目的は文書量を増やすことではなく、仕様・Acceptance Criteria・Test・AI QAが同じ期待値を共有できる状態を作ることである。
-- Specification Markdownは人間にもAIにも読みやすい自然文を優先し、過剰なMetadata Schemaや機械都合の記法を避ける。
-- HTMLは閲覧性を上げるPresentation Layerであり、直接編集や別管理を行わない。
-- AI Agent QAはDeterministic Test Automationの代替ではなく、未知RiskやUI/UX / Journey上の問題を探索し、妥当なFindingをRegressionへ還元する補助QAとして位置付ける。
+- 最初にPR #14、PR #13、その他依存PRのMerge状態を確認する。
+- 最新`main`の事実を本Planより優先し、Wave 0でPlanを同期する。
+- ただし、Goal / SSOT責務 / Answer Key隔離 / QA Write Boundary等の中核Contractを暗黙に弱めない。
+- 最新Repositoryと中核Contractが衝突する場合はOwner Decisionを求める。
+- 目的は文書量を増やすことではなく、人間とAIが同じ期待値からQAできる状態を作ることである。
+- Markdownは人間にもAIにも読みやすい自然文を優先する。
+- MetadataやValidatorは必要最小限にする。
+- Generated HTMLはPresentation Layerであり、直接編集しない。
+- Agentic QAはDeterministic Automationの代替ではない。
+- Challenge評価ではAnswer Keyを読めるAgentを高評価しない。Answer KeyへアクセスできるRunは評価対象外とする。
