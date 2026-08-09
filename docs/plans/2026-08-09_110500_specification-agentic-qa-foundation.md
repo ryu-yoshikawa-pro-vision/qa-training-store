@@ -166,7 +166,9 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] `qa-findings.json`に構造化Coverage Resultを持つ。
 - [ ] Required Coverageの`completed` / `not_completed` / `blocked_environment`を区別できる。
 - [ ] Scored RunはBenchmark Revisionを記録し、同じ評価母集団か判別できる。
+- [ ] Scored RunはRunner Execution Profileを記録し、Model / Tool Profile / Exploration Budget等の比較条件を判別できる。
 - [ ] Challenge評価時の`evaluation.json`もVersioned JSON Contractを持つ。
+- [ ] `evaluation.json.matches[]`からFinding / Answer Item / Classification / Adjudicationの対応を機械可読に追跡できる。
 - [ ] Raw Screenshot / Trace / MCP Log等の大容量Evidenceは既存Artifact方針に従いGit管理対象外へ分離する。
 
 #### Challenge / Evaluation
@@ -184,6 +186,7 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] Gray-box TrainingではSource参照を許容するが、Black-box Recall / Precisionと同じスコアへ混ぜない。
 - [ ] Learner-safe Challenge DefinitionはDefect / Non-defect分類やAnswer Key Item IDを漏らさない。
 - [ ] Required Coverage Missionは「正常」「不具合」等の正解を示さない中立的な探索表現にする。
+- [ ] Challenge Definition側でScored RunのExploration Budget / Stop Conditionを固定し、Runnerが自己都合で比較条件を変更しない。
 - [ ] Learner / AgentへInstructor Answer Keyを渡さない。
 - [ ] Scored RunではFilesystem、Git History、GitHub Connector、Repository Search、External Search、Prompt Context、Hidden Test Output等からInstructor-only情報へアクセスできないことを評価成立条件とする。
 - [ ] Scored Runner / OrchestratorはAnswer Keyを参照しない。
@@ -191,16 +194,19 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] Challenge適用前にInstructor-only Baseline Sanityを実施し、対象DefectがClean Baselineに存在しないことを確認する。
 - [ ] Challenge適用後にInstructor-only Post-patch Sanityを実施し、意図したDefect / Non-defect Ground Truthが成立することを確認する。
 - [ ] FindingとDefect Itemの計数単位がAtomic Findingで統一されている。
+- [ ] Product Defectとして提出された`invalid_non_atomic` FindingはTPにせず、Precisionでは1 Finding = 1 FP penaltyとして扱う。
 - [ ] Instructorが定義したRequired Coverage SetをRunnerが減らせない。
 - [ ] Required Coverageの完了状態とEvidenceを機械可読に記録できる。
 - [ ] Non-defect Itemは`TN / FP / Not Evaluated`を区別する。
 - [ ] Non-defectをTNにするには、Coverage完了だけでなく**そのItem固有のRequired ObservationをEvidenceが満たす**ことを要求する。
 - [ ] 未探索またはItem固有Observation未確認のNon-defectをTNに数えない。
 - [ ] Required CoverageがEnvironment / Harness要因で`blocked_environment`になったScored Runは`valid_for_scoring=false`とし、Agent能力のScoreとして確定しない。
+- [ ] Unexpected Valid FindingによってGround Truth / Answer Keyが変わる場合、元Runを新Benchmarkで後付け再採点せず、元Runを無効化して新RevisionでFresh Runを実施する。
 - [ ] TP / FP / FN / TN、Recall / Precision / FPRを同一単位で再計算できる。
 - [ ] Evidence Quality、Reproducibility、Severity Accuracy、Coverageの採点Ruleが定義されている。
 - [ ] Challenge / Answer KeyのOracle ReferenceがCurrent Normative Specに存在することをCIで検証できる。
 - [ ] Benchmark Revisionが異なるScoreを同一母集団として比較しない。
+- [ ] Runner Profileが異なるScoreを同一実行条件として扱わない。
 
 #### Curriculum
 
@@ -211,6 +217,7 @@ Human向けにはMarkdownから静的HTMLを機械生成する。AIエージェ�
 - [ ] Black-box探索とGray-box調査の違いを教材化する。
 - [ ] Normal readonlyとScored Black-box Isolationの違いを教材化する。
 - [ ] Scored RunではFresh Session / Tool Allowlistが必要な理由を教材化する。
+- [ ] Benchmark RevisionとRunner Execution Profileがそれぞれ何を固定するか教材化する。
 - [ ] Agentic QAを全変更の必須工程ではなくRisk-basedな探索手段として説明する。
 - [ ] Part 1 CapstoneへValidated FindingとRegression Feedbackを追加する。
 - [ ] Part 2の変更管理 / PR Review / Integration DesignへSpec同期とAI QA運用を接続する。
@@ -268,9 +275,9 @@ Current `codex-safe`の`readonly` presetは`read-only` sandboxとしてSourceへ
 
 したがって、Current `readonly` presetは**Write Boundary**としては再利用できるが、Black-box Scored Challengeに必要な**Read / Information Boundary**までは保証しない。
 
-またCurrent `AGENTS.md`ではSandbox / Approval / Public Contractを扱う変更はStrict workflow対象であり、Current `RUN_MANIFEST.json`にはGit Commit SHAを直接保持するFieldがない。
+またCurrent `AGENTS.md`ではSandbox / Approval / Public Contractを扱う変更はStrict workflow対象であり、Current `RUN_MANIFEST.json`にはGit Commit SHAやScored QA用Runner Execution Profileを直接保持するFieldがない。
 
-本PlanではWrite Boundary、Scored Read Boundary、Benchmark Revisionを別Contractとして扱う。
+本PlanではWrite Boundary、Scored Read Boundary、Benchmark Revision、Runner Execution Profileを別Contractとして扱う。
 
 ### 2.4 現在の問題
 
@@ -339,6 +346,7 @@ Accepted Regression / Spec Feedback
 - Black-box Scored Runnerは、Source / Answer Keyを読んでいないFresh Sessionから開始する。
 - Challenge評価の目的はAIの未知不具合探索能力を評価することであり、Code Inspection能力をBlack-box探索スコアへ混ぜない。
 - Benchmark Revisionが異なるRunは、明示的な換算・再評価なしに同一Benchmark Scoreとして直接比較しない。
+- Scoreを同一条件で直接比較する場合は、Benchmark Revisionに加えRunner Execution Profileも一致させる。Model差の比較等、意図的にProfileを変える場合は差分条件を明示する。
 
 ---
 
@@ -361,6 +369,7 @@ Accepted Regression / Spec Feedback
 - Initial versionで重み付き総合スコアやランキングシステムまで作ること。
 - Black-box隔離のために必要以上のContainer PlatformやRemote Sandbox基盤を新設すること。最小のisolated execution root + Tool Allowlistで成立させる。
 - Benchmark Revisionのために外部Version Databaseを導入すること。
+- Runner Execution Profileへ、実際に固定・取得できない温度、乱数Seed等の仮想的な再現情報まで無理に追加すること。
 
 ---
 
@@ -377,7 +386,7 @@ Accepted Regression / Spec Feedback
 9. Agentic QA Training Challenge / Evaluation
 10. Test Automation Curriculum
 11. Existing README / Guide / Project Contextの責務整理
-12. Scored Runner Isolation / Benchmark Reproducibility
+12. Scored Runner Isolation / Benchmark Reproducibility / Runner Execution Profile
 
 ---
 
@@ -574,7 +583,8 @@ ADRはDecision Historyであり、Current Normative Specと矛盾する場合は
 - **Black-box Scored Challenge**: Source / Artifact bytes / Answer Keyを見ず、RuntimeとLearner-safe Specificationから探索能力を評価するChallenge。
 - **Gray-box Training / Investigation**: Source / Existing Test参照を許容し、原因調査やRegression判断を学ぶ非Black-box評価モード。
 - **Required Coverage Set**: InstructorがChallengeごとに固定する、Scored Runで最低限探索すべき有限集合。
-- **Benchmark Revision**: Application / Normative Spec / Challenge / Answer Key等、採点母集団を一意に識別するRevision ID。
+- **Benchmark Revision**: Application / Normative Spec / Challenge / Answer Key / Patch等、採点母集団を一意に識別するRevision ID。
+- **Runner Execution Profile**: Model、Tool Profile Revision、Exploration Budget等、Scored Runnerの比較可能な実行条件を表すProfile。
 - **Fresh Scored Session**: Source / Answer Key / Evaluator情報を一度も受け取っていない新規Agent Session。
 - **Scored Tool Allowlist**: Black-box探索に必要なCapabilityだけを列挙したPositive Permission Set。
 
@@ -1013,13 +1023,13 @@ Atomic Findingの条件:
 
 Evaluatorが1 Findingから複数Defect Itemを勝手にTPへ分解しない。
 
-非Atomic Findingは`invalid_non_atomic`として扱い、TPにはしない。対応するDefect Itemは別Atomic Findingで発見されていなければFNのままとする。
+非Atomic Findingは`invalid_non_atomic`として扱い、TPにはしない。Product Defectとして提出された`invalid_non_atomic`はPrecision上1 Finding = 1 FP penaltyとし、内部に含まれていたDefect ItemをTPへ分解しない。対応するDefect Itemは別Atomic Findingで発見されていなければFNのままとする。
 
 ### 7.11 QA Run Artifact Contract
 
 #### Benchmark Revision
 
-Scored Resultを後から比較・再評価できるよう、RunごとにBenchmark Revisionを持つ。
+Scored Resultを後から比較・追跡できるよう、RunごとにBenchmark Revisionを持つ。
 
 Benchmark Revisionは、少なくとも以下の評価母集団を一意に識別できることを要求する。
 
@@ -1038,6 +1048,26 @@ Benchmark Revisionは、少なくとも以下の評価母集団を一意に識�
 
 同一`challenge_id`でもBenchmark Revisionが異なるRunは別母集団として扱う。
 
+#### Runner Execution Profile
+
+Benchmark Revisionは「何を評価したか」を表し、Runner Execution Profileは「どの条件で評価したか」を表す。両者を混ぜない。
+
+Scored Runでは、実際に固定・取得できる範囲で最低限以下を記録する。
+
+```text
+Model identifier
+Tool profile revision
+Exploration budget
+  - max duration seconds  # 実行基盤で固定できる場合
+  - max tool actions      # 実行基盤で固定できる場合
+Stop condition
+```
+
+- Challenge Definition / OrchestratorがExploration BudgetとStop Conditionを固定し、Runner自身が母集団比較に都合よく縮小・拡張しない。
+- `max_duration_seconds`と`max_tool_actions`の両方を実基盤で厳密に固定できない場合、固定可能なものだけを正式Contractにし、取得不能な値を推測で記録しない。
+- Model、Tool Profile、Budget等が異なるRunは、同じBenchmark Revisionでも同一実行条件として扱わない。
+- Model差等を意図的に比較する場合は、Benchmark Revisionを揃えたうえで変更したRunner Profile Fieldを明示する。
+
 #### `qa-findings.json`
 
 最低構造:
@@ -1050,6 +1080,13 @@ Benchmark Revisionは、少なくとも以下の評価母集団を一意に識�
   "benchmark_revision": "<revision>",
   "source_head_sha": "<optional sha>",
   "runtime_variant_id": null,
+  "runner_profile": {
+    "model": "<model identifier>",
+    "tool_profile_revision": "<revision>",
+    "max_duration_seconds": 900,
+    "max_tool_actions": 150,
+    "stop_condition": "<condition>"
+  },
   "coverage": {
     "required_ids": ["COV-001", "COV-002"],
     "items": [
@@ -1091,6 +1128,8 @@ Benchmark Revisionは、少なくとも以下の評価母集団を一意に識�
 }
 ```
 
+上記Runner Profileの数値はSchema例であり、Challengeごとの固定値ではない。実値はChallenge Definition / OrchestratorのContractを使う。
+
 Coverage `status`初期候補:
 
 - `completed`: Missionまで到達しRequired Evidenceがある。
@@ -1114,7 +1153,7 @@ Scored Runでは`required_ids`をChallenge Definitionから受け取り、Runner
 └ evaluation.json     # Challenge評価時のみ
 ```
 
-Current `run.json`へBenchmark情報を最小拡張できる場合は同じ情報を追跡用に持たせてもよい。新規Manifestを乱立させない。
+Current `run.json`へBenchmark / Runner Profile情報を最小拡張できる場合は同じ情報を追跡用に持たせてもよい。新規Manifestを乱立させない。
 
 Raw Screenshot、Trace、MCP Log、ADB Log等は`.artifacts/**`等へ分離し、Run Artifactには相対Referenceと要約だけを残す。
 
@@ -1131,6 +1170,8 @@ Target platform
 Spec refs[]
 Required coverage[]
 Allowed runtime controls
+Exploration budget
+Stop condition
 Out of scope
 ```
 
@@ -1266,6 +1307,7 @@ Web RuntimeがSource MapやSource inspection経路を無効化できない場合
 ```text
 Preparation Process
   ├─ Benchmark Revision確定
+  ├─ Runner Execution Profile / Budget確定
   ├─ Baseline sanity
   ├─ Challenge Patch / Setup
   ├─ Post-patch sanity
@@ -1286,7 +1328,7 @@ Fresh Black-box Runner
 Separate Evaluator
   │  ここで初めてAnswer Keyを読む
   │
-  ├─ Benchmark Revision / Isolation確認
+  ├─ Benchmark Revision / Runner Profile / Isolation確認
   ├─ Coverage blocker確認
   ├─ Atomic Finding ↔ Answer Item Matching
   ├─ Item-specific Evidence検証
@@ -1341,24 +1383,44 @@ Defect ItemへMatchする条件:
 - 残りを`duplicate`とする。
 - Duplicateは追加TPにしない。
 - Precision計算前にDuplicateをunique submitted finding集合から除外する。
-- `duplicate_rate = duplicate_findings / submitted_atomic_findings`を補助Metricとして記録できる。
+- `duplicate_rate = duplicate_findings / submitted_findings`を補助Metricとして記録できる。
 
-Non-atomic Findingは`invalid_non_atomic`としTPへ変換しない。
+Non-atomic Findingは`invalid_non_atomic`としTPへ変換しない。Product Defectとして提出された`invalid_non_atomic`は1 Findingにつき1件のFP penaltyとしてPrecisionへ含める。
 
-Matchingが曖昧なら`review_needed`としてEvaluator / Human reviewで確定する。Runner自身に自己採点させない。
+Matchingが曖昧なら`review_needed`としてEvaluator / Human reviewで確定する。Runner自身に自己採点させない。`review_needed`が未解決のまま正式Scored Resultを確定しない。
 
 ### 7.17 Unexpected Valid Finding
 
 Challenge外の予期しない真のDefect候補をAgentが発見した場合、自動的にFPへ落とさない。
 
-`unexpected_valid_finding`としてInstructor Reviewへ回し、以下のどちらかで評価を確定する。
+`unexpected_valid_finding`としてInstructor Reviewへ回し、以下で処理する。
 
-- 真のDefectと確認 → Answer Key / 評価母集団を補正し、新しいBenchmark Revisionとして再評価する。
-- Defectではない → FPとして確定。
+- Defectではないと確認 → 元Benchmark RevisionのFPとして確定してよい。
+- 真の未登録Defectと確認 → Ground Truth / Answer Keyを変更するため、**元Runを新Benchmark Revisionで後付け再採点しない**。
 
-Review未完了のまま最終Scored Resultを確定しない。
+真の未登録Defectだった場合のLifecycle:
 
-Answer Key変更前後のScoreを同一Benchmark Revisionとして比較しない。
+```text
+Unexpected Valid Finding confirmed
+  ↓
+元RunのFrozen Finding / Evidenceは保持
+  ↓
+元Run:
+  valid_for_scoring = false
+  invalid_reason = benchmark_ground_truth_changed
+  ↓
+Answer Key / Ground Truth更新
+  ↓
+新Benchmark Revision確定
+  ↓
+Fresh Session +同じ比較対象Runner ProfileでChallengeを再Run
+  ↓
+新Runを新Revisionの正式Scoreとする
+```
+
+元Runは「未知Defectを発見したEvidence」として価値を持つが、Ground Truth変更後の母集団へ遡及的に移し替えない。
+
+`qa-findings.json`のBenchmark Revisionを書き換えてFinding Freezeを破らない。
 
 ### 7.18 TP / FP / FN / TN / NE
 
@@ -1367,12 +1429,20 @@ Answer Key変更前後のScoreを同一Benchmark Revisionとして比較しな�
 #### Defect Item
 
 - **TP**: 一意のAtomic FindingがDefect Itemへ正しくMatchしたもの。
-- **FN**: Defect ItemにMatchするAtomic Findingがないもの。
+- **FN**: Defect ItemにMatchするAtomic Findingがないもの。`invalid_non_atomic`内部で言及されただけのDefectもAtomic FindingとしてMatchしていなければFNのままとする。
 
-#### Submitted Finding
+#### Submitted Finding / Precision penalty
 
-- **FP**: どのDefect Itemにも正しくMatchせず、Product Defectとして提出された一意のAtomic Finding。
-- `duplicate`、`invalid_non_atomic`、`review_needed`は別分類とし、最終評価前に扱いを確定する。
+- **FP**: どのDefect Itemにも正しくMatchしない一意のAtomic Finding、またはProduct Defectとして提出された`invalid_non_atomic` Finding。
+- `invalid_non_atomic`はTPへ分解せず、1 Findingにつき1件のFP penaltyとする。
+- `duplicate`は追加TPにも追加FPにもせず、`duplicate_rate`で別評価する。
+- `review_needed`は正式評価前にHuman / Evaluator adjudicationで最終分類する。
+
+したがってPrecisionのFP countは概念上、以下を含む。
+
+```text
+FP = unmatched_unique_atomic_findings + invalid_non_atomic_findings
+```
 
 #### Non-defect Item
 
@@ -1437,9 +1507,9 @@ False Positive Rate = FP_non_defect / (FP_non_defect + TN)
 Coverage = completed_required_coverage_items / required_coverage_items
 ```
 
-FPRの分母には**item-specific observationをEvidenceで確認できたexercised non-defect itemsだけ**を含める。NEはFPRから除外し、Coverage / Evaluation Detailで未実施として反映する。
+ここでPrecisionの`FP`には`unmatched_unique_atomic_findings`と`invalid_non_atomic_findings`を含める。Duplicateは除外し、別Metricで扱う。
 
-PrecisionはEvaluatorがDeduplicateしたunique Atomic Finding集合で計算する。
+FPRの分母には**item-specific observationをEvidenceで確認できたexercised non-defect itemsだけ**を含める。NEはFPRから除外し、Coverage / Evaluation Detailで未実施として反映する。
 
 ### 7.21 Instructor-defined Coverage Contract
 
@@ -1524,12 +1594,28 @@ Coverage = completed_required_coverage_items / required_coverage_items
   "benchmark_revision": "<revision>",
   "source_head_sha": "<optional sha>",
   "runtime_variant_id": null,
+  "runner_profile": {
+    "model": "<model identifier>",
+    "tool_profile_revision": "<revision>",
+    "max_duration_seconds": 900,
+    "max_tool_actions": 150,
+    "stop_condition": "<condition>"
+  },
   "mode": "black-box",
   "fresh_session": true,
   "tool_scope_validated": true,
   "valid_for_scoring": true,
   "invalid_reasons": [],
-  "matches": [],
+  "matches": [
+    {
+      "finding_id": "FIND-001",
+      "answer_item_id": "DEFECT-003",
+      "coverage_id": "COV-002",
+      "classification": "tp",
+      "required_observation_satisfied": true,
+      "adjudication": "automatic"
+    }
+  ],
   "counts": {
     "tp": 0,
     "fp": 0,
@@ -1554,7 +1640,22 @@ Coverage = completed_required_coverage_items / required_coverage_items
 }
 ```
 
-Evaluatorは`qa-findings.json`と`evaluation.json`のBenchmark Revisionが一致することを確認する。
+上記Runner Profileの数値はSchema例であり、実値はChallenge Definition / Orchestratorが固定した値を使う。
+
+`matches[]`は最低限、Finding / Answer Item / Coverage / Classification / Adjudicationの関係を追跡できるようにする。
+
+- `finding_id`: Finding由来の判定なら設定する。TN / NE等、Findingが存在しないItem判定では`null`を許容する。
+- `answer_item_id`: Answer Itemへ紐づく判定なら設定する。Unmatched FP / invalid_non_atomic等では`null`を許容する。
+- `coverage_id`: Item-specific observationを評価する場合に設定する。
+- `classification`: `tp | fp | fn | tn | fp_non_defect | ne | duplicate | invalid_non_atomic | review_needed | unexpected_valid_finding`等、集計前の最終分類を機械可読に保持する。
+- `required_observation_satisfied`: Non-defectのTN / FP_non_defect / NE根拠として必要な場合に利用する。
+- `adjudication`: `automatic | human`を最低限区別する。
+
+Human adjudicationでClassificationを確定した場合も、Frozen `qa-findings.json`を変更せず`matches[]`へ評価判断を記録する。
+
+`counts` / `metrics`はFrozen Finding、Frozen Answer Key、Required Coverage、`matches[]`から再確認可能にする。
+
+Evaluatorは`qa-findings.json`と`evaluation.json`のBenchmark RevisionおよびRunner Execution Profileが一致することを確認する。
 
 `valid_for_scoring=false`の場合、正式Scoreとして利用しないMetricは`null`を基本とし、診断値を別Fieldへ持つ必要が出た場合のみ最小拡張する。
 
@@ -1644,6 +1745,7 @@ Scored Run開始
 - [ ] Browser / Native Tool routingを確認し、Scored Tool Allowlistを成立させる最小経路を決める。
 - [ ] Existing Run / Evaluation schemaを再確認する。
 - [ ] Benchmark Revisionを既存Run Contractへ最小拡張する方式を決める。
+- [ ] Runner Execution Profileを既存Run / Evaluation Contractへ最小拡張する方式を決める。
 - [ ] PR #14後のNative ScopeとPR #13 Curriculumの整合を確認する。
 - [ ] 本PlanのPath / Wave / DoDを最新Repositoryへ同期する。
 - [ ] 既に同等機能が追加済みなら重複を除く。
@@ -1740,6 +1842,7 @@ Scored Run開始
 - [ ] Atomic Finding Contractを実装する。
 - [ ] `qa-findings.json` Versioned Contractを実装する。
 - [ ] Benchmark RevisionをRun Artifactへ記録できるようにする。
+- [ ] Runner Execution ProfileをRun Artifactへ記録できるようにする。
 - [ ] Coverage Resultを`qa-findings.json`へ構造化する。
 - [ ] `blocked_environment`分類を実装する。
 - [ ] Known Deviation / Unresolved Spec処理を実装する。
@@ -1755,6 +1858,7 @@ Scored Run開始
 - [ ] Coverage Missionを中立的な探索表現にする。
 - [ ] Instructor Answer Key Item Contractを作る。
 - [ ] Challenge Definitionへ`spec_refs`とRequired Coverage Setを定義する。
+- [ ] Challenge Definition / OrchestratorへExploration Budget / Stop Conditionを定義する。
 - [ ] Build / Serve / InstallをRunner外で行うScored Runtime生成方法を作る。
 - [ ] Source Repository外のisolated execution root生成方法を作る。
 - [ ] Fresh Scored Sessionを作る。
@@ -1766,7 +1870,7 @@ Scored Run開始
 - [ ] Repository Connector / GitHub / Web SearchをScored Runnerから除外する。
 - [ ] Gray-box Training Pathを別途定義する。
 - [ ] Scored Runner / Evaluatorを別Sessionとして分離する。
-- [ ] Benchmark RevisionをRunner / Evaluator双方で一致確認する。
+- [ ] Benchmark Revision / Runner Execution ProfileをRunner / Evaluator双方で一致確認する。
 - [ ] RunnerがFinding Freeze後にEvaluatorを開始する。
 - [ ] Required Coverage IDをRunnerが縮小できないことを検証する。
 - [ ] `blocked_environment`があれば`valid_for_scoring=false`にする。
@@ -1776,11 +1880,14 @@ Scored Run開始
 - [ ] Defect / Non-defect Itemを用意する。
 - [ ] Atomic Finding ↔ Answer Item Matching Ruleを実装する。
 - [ ] Duplicate / invalid_non_atomic / review_neededを分離する。
+- [ ] `invalid_non_atomic`をTPへ分解せずPrecisionのFP penaltyへ含める。
 - [ ] TP / FP / FN / TN / NE分類を実装する。
 - [ ] TNにItem-specific Required Observation Evidenceを必須化する。
 - [ ] 未探索 / Item observation未確認Non-defectをTNへ数えない。
+- [ ] Unexpected Valid FindingでGround Truthが変わる場合、元Run無効化 → 新Benchmark Revision → Fresh Re-runのLifecycleを実装する。
 - [ ] Recall / Precision / FPR / Coverage計算を実装する。
 - [ ] Evidence / Reproducibility / Severity採点を実装する。
+- [ ] `evaluation.json.matches[]`の最小Machine-readable Contractを実装する。
 - [ ] `evaluation.json` Versioned Contractを実装する。
 - [ ] Basic / Intermediate / Advancedを用意する。
 - [ ] Functional / Role / State / Error / Responsive / Accessibility / UI/UX / Non-defectを混ぜる。
@@ -1798,12 +1905,14 @@ Scored Run開始
 - [ ] Black-box DiscoveryとGray-box Investigationの違いを教材化する。
 - [ ] Normal readonlyとBlack-box Isolationの違いを教材化する。
 - [ ] Fresh Session / Tool Allowlist / Forbidden Probeの意味を教材化する。
+- [ ] Benchmark Revision / Runner Execution Profileの意味と比較条件を教材化する。
 - [ ] Agentic QAをRisk-basedな探索手段として説明する。
 - [ ] Native Agentic QAはCapability Contract + Android標準で説明する。
 - [ ] Challenge評価でSource / Artifact / Answer Key隔離の意味を説明する。
 - [ ] Instructor-defined CoverageとNon-defect評価を教材化する。
+- [ ] `invalid_non_atomic`をPrecisionから逃がさない理由を教材化する。
 - [ ] Environment blocker時にScored Resultを無効にする理由を説明する。
-- [ ] Benchmark Revisionが異なるScoreを単純比較しないことを説明する。
+- [ ] Unexpected Valid FindingでGround Truthが変わったら元Runを後付け再採点しないことを説明する。
 - [ ] Part 1 CapstoneへValidated FindingとRegression Feedbackを追加する。
 - [ ] Part 2の変更管理 / PR Review / Integration DesignへSpec同期とAI QAを追加する。
 - [ ] PR #14後のNative Scope / iOS CIにCurriculum記述を同期する。
@@ -1847,16 +1956,20 @@ Scored Run開始
 - [ ] Challenge適用前Baseline Sanityで対象Defectが存在しないことを確認する。
 - [ ] Post-patch Sanityで意図したGround Truthが成立することを確認する。
 - [ ] Challengeを最低1件Black-box End-to-Endで評価する。
-- [ ] Benchmark RevisionがRun ArtifactとEvaluationで一致することを確認する。
+- [ ] Benchmark RevisionとRunner Execution ProfileがRun ArtifactとEvaluationで一致することを確認する。
+- [ ] 同じBenchmark / 同じRunner Profileで比較可能なRunになることを確認する。
 - [ ] Required Coverage SetをRunnerが縮小できないことを確認する。
 - [ ] Non-defect未探索ケースがTNではなくNEになることを確認する。
 - [ ] Coverage completedでもItem-specific Observation EvidenceがなければTNではなくNEになることを確認する。
 - [ ] Required CoverageのEnvironment blockerで`valid_for_scoring=false`になることを確認する。
 - [ ] Runner起因の`not_completed`はCoverage低下になることを確認する。
 - [ ] Atomic Findingが最大1 Defect ItemへだけMatchすることを確認する。
+- [ ] `invalid_non_atomic`がTPへ分解されず、Precisionで1 Finding = 1 FP penaltyになることを確認する。
 - [ ] Frozen FindingをEvaluatorが変更しないことを確認する。
 - [ ] Runner / Evaluatorが同じAgent Sessionを再利用しないことを確認する。
+- [ ] `evaluation.json.matches[]`からHuman / Automatic adjudicationを含む分類根拠を追跡できることを確認する。
 - [ ] TP / FP / FN / TN / NEと各Metricが再計算可能であることを確認する。
+- [ ] Unexpected Valid Findingが真の未登録Defectだった場合、元Runを`benchmark_ground_truth_changed`で無効化し、新RevisionでFresh Re-runすることを確認する。
 - [ ] Challenge / Answer KeyのNormative Spec Reference integrityを確認する。
 - [ ] 変更BR / ACおよび変更Referenced Normative fileのAffected Challenge Summaryを確認する。
 - [ ] Local Blocker発生時に独立Taskが継続されることをRun Artifactから確認する。
@@ -1920,11 +2033,15 @@ Scored Run開始
 - BenchmarkがClean CommitならGit SHA、未Commit validationなら同等のDeterministic Revision IDを記録できる。
 - 必要な場合だけ`source_head_sha` / `runtime_variant_id`を持つ。
 - `qa-findings.json`と`evaluation.json`のBenchmark Revisionが一致する。
+- Scored RunにRunner Execution Profileがあり、Model / Tool Profile / Budget / Stop Conditionのうち固定・取得可能な条件を記録できる。
+- `qa-findings.json`と`evaluation.json`のRunner Execution Profileが一致する。
 - Oracle / Evidence / Reproduction / Statusを機械処理できる。
 - Required Coverage ID、status、Evidence、blocker reasonを機械処理できる。
 - `completed` / `not_completed` / `blocked_environment`を区別できる。
+- `evaluation.json.matches[]`からFinding / Answer Item / Classification / Adjudicationを追跡できる。
 - Challenge時の`evaluation.json`からTP / FP / FN / TN / NEとMetricを再計算できる。
 - Benchmark Revisionが異なるScoreを同一系列として無条件比較しない。
+- Runner Profileが異なるScoreを同一実行条件として無条件比較しない。
 
 ### 9.5 Black-box Challenge Isolation / Tool Scope
 
@@ -1959,6 +2076,7 @@ Scored Run開始
 - Coverage Missionが中立的表現である。
 - Answer Key MappingはInstructor-onlyに留まる。
 - Learner-safe Spec BundleがNormative / Supportingの責務を保持する。
+- Exploration Budget / Stop ConditionがChallenge / Orchestrator側で固定される。
 
 ### 9.7 Challenge Ground Truth
 
@@ -1974,6 +2092,8 @@ Scored Run開始
 - 1 Findingが最大1 Defect ItemへMatchする。
 - 同一DefectのDuplicateが追加TPにならない。
 - Non-atomic FindingをTPへ分解しない。
+- Product Defectとして提出された`invalid_non_atomic`が1 Finding = 1 FP penaltyとしてPrecisionへ入る。
+- `invalid_non_atomic`内にDefectが含まれていてもAtomic Findingがなければ該当DefectはFNのままになる。
 - 未探索Non-defectがTNにならない。
 - Coverage completedだけではTNにしない。
 - Non-defect ItemのRequired observationをEvidenceが満たした場合だけTN / FP_non_defect判定対象になる。
@@ -1985,7 +2105,9 @@ Scored Run開始
 - Environment / Harness起因のRequired Coverage blockerは`blocked_environment`になり、Runが`valid_for_scoring=false`になる。
 - Invalid Scored RunをAgent能力比較へ使わない。
 - Challenge外Unexpected Findingを自動FP化しない。
-- Unexpected Valid FindingでAnswer Keyを更新した場合はBenchmark Revisionを更新して再評価する。
+- Unexpected Valid Findingが真の未登録Defectだった場合、元Runを再採点せず`benchmark_ground_truth_changed`で無効化し、新Benchmark Revisionを作ってFresh Re-runする。
+- Ground Truth変更時にFrozen `qa-findings.json`のBenchmark Revisionを書き換えない。
+- `matches[]`のHuman / Automatic adjudicationを含め、Counts / Metricsの根拠を追跡できる。
 - 分母0Metricを`null`として扱う。
 
 ### 9.9 Execution Continuity
@@ -2008,7 +2130,9 @@ Scored Run開始
 - Normal readonly / Black-box isolationを混同しない。
 - Fresh Session / Tool Allowlistの意味を正しく説明する。
 - Learner本文にAnswer Keyを露出しない。
-- Benchmark Revisionが違うScoreを同一基準として単純比較しない。
+- Benchmark RevisionとRunner Execution Profileを混同しない。
+- Benchmark RevisionまたはRunner Profileが違うScoreを同一条件として単純比較しない。
+- Ground Truth変更後は元Runを新Revisionへ付け替えずFresh Re-runする。
 - PR #14後のNative / iOS CIの事実と整合する。
 
 ### 9.11 Product Regression
@@ -2111,73 +2235,97 @@ Package / Generator / CI変更を伴うため既存`verify`とRequired CIを通�
 
 **Mitigation:** Scored RunへBenchmark Revisionを必須化し、`qa-findings.json`と`evaluation.json`で一致確認する。異なるRevisionを無条件比較しない。
 
-### R16. Challenge Ground TruthがBaseline Defectに汚染される
+### R16. Runner条件の違いを無視してScoreを比較する
+
+**Risk:** 同じBenchmarkでもModel、Tool Scope、Exploration Budgetが異なれば探索能力の比較条件が変わる。
+
+**Mitigation:** Benchmark Revisionとは別にRunner Execution Profileを記録する。同一条件比較ではProfileを揃え、Model差等の意図的比較では変更Fieldを明示する。
+
+### R17. Ground Truth変更後に元Runを新Revisionへ付け替える
+
+**Risk:** Unexpected Valid FindingでAnswer Keyを変更した後、Frozen Findingを新Revisionで後付け再採点するとBenchmark RevisionとFinding Freezeの契約が破綻する。
+
+**Mitigation:** 元Runを`benchmark_ground_truth_changed`で無効化し、Finding / Evidenceを保持したまま、新Benchmark RevisionでFresh Sessionから再Runする。
+
+### R18. Challenge Ground TruthがBaseline Defectに汚染される
 
 **Risk:** Patch前から存在するDefectをChallenge注入結果として扱い、Answer Keyが誤ったGround Truthになる。
 
 **Mitigation:** Challenge-specificなPre-patch Baseline SanityとPost-patch SanityをInstructor-onlyで実施する。
 
-### R17. TP / FPの計数単位が混ざる
+### R19. TP / FPの計数単位が混ざる
 
 **Risk:** TPをDefect Item単位、FPをFinding単位で数えるとPrecisionが数学的に破綻する。
 
 **Mitigation:** 1 Finding = 1 deviation、1 Finding → 最大1 Defect Itemに固定する。Duplicate / non-atomicを別分類する。
 
-### R18. 未探索正常ケースでFPRが良化する
+### R20. Non-atomic FindingでPrecisionをGamingする
+
+**Risk:** 不確かな複数Defect候補を1件の`invalid_non_atomic`へまとめ、TPにもFPにもならない扱いにするとPrecisionを不当に高くできる。
+
+**Mitigation:** Product Defectとして提出された`invalid_non_atomic`をTPへ分解せず、1 Finding = 1 FP penaltyとしてPrecisionへ含める。内部に含まれたDefect Itemは別Atomic FindingがなければFNのまま。
+
+### R21. 未探索正常ケースでFPRが良化する
 
 **Risk:** 未探索Non-defectまでTNにすると、何もしないAgentが低FPRになる。
 
 **Mitigation:** Non-defectはTN / FP_non_defect / NEを区別し、Item-specific Required ObservationをEvidenceで確認できたItemだけをFPR分母へ入れる。
 
-### R19. Coverage完了だけでTNになる
+### R22. Coverage完了だけでTNになる
 
 **Risk:** 1つのCoverage Itemへ複数Non-defect Itemが紐づく場合、画面到達だけで未観察の正常BehaviorまでTNになる。
 
 **Mitigation:** TNにはCoverage完了に加え、Answer Item固有のRequired ObservationをEvidenceが満たすことを要求する。満たさなければNE。
 
-### R20. Coverage自己申告のGaming
+### R23. Coverage自己申告のGaming
 
 **Risk:** AgentがCoverage denominatorを小さく宣言すれば100%にできる。
 
 **Mitigation:** Instructor-defined Required Coverage SetをChallenge Definitionで固定し、Runnerは縮小不可とする。完了にはEvidenceを要求する。
 
-### R21. Environment failureでAgent Scoreが不当に下がる
+### R24. Environment failureでAgent Scoreが不当に下がる
 
 **Risk:** Runtime / MCP / Emulator障害をCoverage不足としてAgentへ帰責すると評価比較が壊れる。
 
 **Mitigation:** Runner起因は`not_completed`、Environment / Harness起因は`blocked_environment`へ分離する。Required CoverageにEnvironment blockerがあればRunを`valid_for_scoring=false`とする。
 
-### R22. Challenge / Spec drift
+### R25. Evaluation Match判断が集計値へ埋没する
+
+**Risk:** `matches[]`が空または非構造化だとHuman adjudication、Duplicate、TN / NEのItem-specific判定根拠を後から追跡できない。
+
+**Mitigation:** `matches[]`にFinding ID、Answer Item ID、Coverage ID、Classification、Required Observation判定、Adjudicationを最小限保持し、Counts / Metricsを再確認可能にする。
+
+### R26. Challenge / Spec drift
 
 **Risk:** Product Specが変わっても古いChallenge / Answer Keyが残り、誤ったOracleで採点する。
 
 **Mitigation:** Spec Reference integrityをCIで検証し、変更BR / ACに加えて直接参照する変更Normative fileもAffected Challenge Summaryへ出す。Fingerprint DBは作らない。
 
-### R23. Local BlockerでGoal全体が停止する
+### R27. Local BlockerでGoal全体が停止する
 
 **Risk:** Nativeや1 Challengeの局所Blockerで、Web / Docs / Validator / Curriculum等の独立Taskまで停止し、1回の`/goal`で進められる作業を残す。
 
 **Mitigation:** Local / Global Blockerを分離する。Local Blockerは該当Taskと依存TaskだけをBlockedへ移し、独立Taskを継続する。Final Validationだけfail-closeにする。
 
-### R24. Agentic QA運用の過剰化
+### R28. Agentic QA運用の過剰化
 
 **Risk:** すべての小変更でExploratory QAが必須になり、運用負荷が増える。
 
 **Mitigation:** UI / Journey / Role / State / Error / High-risk変更等を主な適用対象とするRisk-based運用にする。
 
-### R25. NativeをAgentic QAと誤認する
+### R29. NativeをAgentic QAと誤認する
 
 **Risk:** Maestro Regressionを実行しただけで探索QA完了と扱う。
 
 **Mitigation:** Native Capability Contractを定義し、Capability不足時は未実施と明記する。
 
-### R26. CurriculumがPR #14後の現状とずれる
+### R30. CurriculumがPR #14後の現状とずれる
 
 **Risk:** PR #13のNative / iOS CI説明がマージ直後から古くなる。
 
 **Mitigation:** Wave 0でPR #14→#13後をRebaselineし、Wave 8でCurrent Productへ同期する。
 
-### R27. Known Deviation / Unresolved SpecのLifecycle不整合
+### R31. Known Deviation / Unresolved SpecのLifecycle不整合
 
 **Risk:** 解消済みKnown Deviationが残りRegressionを抑制する、または確定済みUnresolved Specが未確定扱いされ続ける。
 
@@ -2199,7 +2347,8 @@ Wave 0以降で以下が判明した場合はOpen Questionへ追加し、必要�
 - Fresh Scored Sessionを既存Agent / MCP構成で成立させられない。
 - Scored Web RuntimeでSource Map / Bundle / Network inspectionを十分に制限できない。
 - Scored Native RuntimeでAPK access / arbitrary ADB shellを十分に制限できない。
-- Existing Run / Evaluation schemaと本PlanのVersioned Artifact / Benchmark Revision Contractを最小拡張で両立できない。
+- Existing Run / Evaluation schemaと本PlanのVersioned Artifact / Benchmark Revision / Runner Profile Contractを最小拡張で両立できない。
+- 実行基盤でExploration Budgetをどの粒度まで確実に固定・取得できるか判定できない。
 - Environment blockerとRunner起因の失敗をEvidenceから合理的に区別できないケースが生じる。
 
 Open Questionは推測で埋めない。ただし**Local Blockerなら該当Taskと依存Taskだけを停止し、独立Taskは継続する**。
@@ -2218,10 +2367,11 @@ Whole-runを止めるのは、Goal / Safety / Core Contract全体へ影響する
 - iOS物理端末Agentic QA。
 - Challenge数や難易度の追加拡張。
 - Evaluation Scoreの重み付き総合点や長期Trend分析。
-- Unexpected Valid FindingをProduct Backlog / Answer Keyへ還元する運用の高度化。
+- Unexpected Valid FindingをProduct Backlogへ還元する運用の高度化。
 - Duplicate Rate等の補助Metricを正式KPIへ昇格するかの検討。
 - Challenge Impact Summaryを将来Hard Gate化する必要性の評価。
 - Scored Tool Allowlistを将来別Harnessへ一般化する必要性の評価。
+- Runner Profileを跨ぐ統計的なModel比較手法。
 
 これらは今回の必須DoDへ入れない。
 
@@ -2347,6 +2497,7 @@ Repository Root
 Black-box Scored Challenge
 Preparation Process
   ├─ Benchmark Revision
+  ├─ Runner Execution Profile / Exploration Budget
   ├─ Baseline sanity
   ├─ Challenge Patch / Setup
   ├─ Post-patch sanity
@@ -2358,6 +2509,7 @@ Preparation Process
         ▼
 Fresh Source-free Scored Runner
   + explicit Tool Allowlist
+  + fixed Runner Profile / Budget
   × Source Repository / .git
   × Artifact bytes
   × Search / generic shell
@@ -2372,9 +2524,16 @@ Frozen Structured Result
         ▼
 Separate Evaluator + Answer Key
   + same Benchmark Revision
+  + same Runner Execution Profile
+  + machine-readable matches[]
         │
         ▼
 evaluation.json
+
+Ground Truth changes after unexpected finding
+  ├─ original Run → invalid / preserve evidence
+  ├─ new Benchmark Revision
+  └─ Fresh Re-run
 
 Executable Canonical Sources
 Seed / Role / Route / Token / Config
@@ -2410,7 +2569,11 @@ Final Validation
 - Scored RunnerはFresh Session + isolated root + explicit Tool Allowlistを成立条件とする。
 - Scored Runnerへ「禁止していないから使える」Capabilityを残さない。
 - Benchmark Revisionを記録せずScored Resultを比較可能な成果物として扱わない。
+- Runner Execution Profileを記録せず、異なるModel / Tool / Budget条件のScoreを同一条件として比較しない。
 - Challenge Ground TruthはPre-patch / Post-patch Sanityで確認する。
+- Ground Truthが変わった場合、元RunのFrozen Findingを新Benchmarkへ付け替えず、元Runを無効化して新RevisionでFresh Re-runする。
+- Product Defectとして提出された`invalid_non_atomic`をPrecisionから逃がさない。
+- EvaluationのClassification根拠を`matches[]`へ機械可読に残す。
 - Local Blockerでは該当Taskと依存Taskだけを止め、独立Taskを最後まで進める。
 - Global blockerだけWhole-runを停止する。
 - Final Validationはfail-closeとし、Blocked / 未実施をPASS扱いしない。
