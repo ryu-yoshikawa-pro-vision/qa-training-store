@@ -1,4 +1,5 @@
 import { randomUUID } from "expo-crypto";
+import { ApplicationError } from "@/application/errors";
 import {
   emitNativeTestSignal,
   NATIVE_CONTRACT_FAILED,
@@ -7,6 +8,29 @@ import {
 } from "./native-signals";
 
 export const NATIVE_CONTRACT_HARNESS_MARKER = "__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__";
+
+export async function assertNativeAuthorizationRejections(input: {
+  login: (credentials: { email: string; password: string }) => Promise<unknown>;
+  clearSession: () => Promise<void>;
+}): Promise<void> {
+  for (const [email, expectedCode] of [
+    ["suspended@example.com", "ACCOUNT_SUSPENDED"],
+    ["withdrawn@example.com", "ACCOUNT_WITHDRAWN"],
+  ] as const) {
+    try {
+      await input.login({ email, password: "testpass1" });
+    } catch (error) {
+      await input.clearSession();
+      if (error instanceof ApplicationError && error.code === expectedCode) continue;
+      const actualCode = error instanceof ApplicationError ? error.code : "non-application-error";
+      throw new Error(
+        `Native authorization contract for ${email} expected ${expectedCode}, received ${actualCode}.`,
+      );
+    }
+    await input.clearSession();
+    throw new Error(`Native authorization contract for ${email} unexpectedly allowed login.`);
+  }
+}
 
 export interface NativeContractHarnessScope {
   runtimeId: string;

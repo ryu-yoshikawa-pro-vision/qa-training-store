@@ -7,6 +7,7 @@ function readWorkflow(filePath: string): string {
 
 const nativeWorkflow = readWorkflow(".github/workflows/native-ci.yml");
 const iosWorkflow = readWorkflow(".github/workflows/native-ios-ci.yml");
+const storefrontFlow = readWorkflow("maestro/native-storefront.yaml");
 
 function jobBlock(jobName: string, nextJobName?: string) {
   const start = nativeWorkflow.indexOf(`  ${jobName}:\n`);
@@ -634,6 +635,66 @@ describe("Native CI workflow contracts", () => {
     );
     expect(nativeWorkflow).not.toContain("find . -type f");
   });
+
+  it("runs every independent Android flow after an earlier failure without hiding failures", () => {
+    const runtime = jobBlock("android-runtime", "verify");
+    const requiredSteps = [
+      "Run Maestro Test Control flow",
+      "Run Maestro Contract Harness flow",
+      "Run Maestro Not Found flow",
+      "Run Maestro Storefront flow",
+      "Run Maestro Cart flow",
+      "Run Maestro Search Input flow",
+      "Run Maestro Restart Persistence flow",
+      "Run Maestro Reset Dirty State flow",
+      "Run Maestro Out of Stock boundary flow",
+      "Run Maestro Low Stock boundary flow",
+      "Run Maestro Purchase Limit boundary flow",
+      "Run Maestro Native Purchase flow",
+      "Run Maestro Native Review flow",
+      "Run Maestro Native Payment Retry flow",
+      "Run Maestro Native Session Checkout Restart flow",
+    ];
+    for (const stepName of requiredSteps) {
+      const start = runtime.indexOf(`- name: ${stepName}`);
+      expect(start).toBeGreaterThanOrEqual(0);
+      const end = runtime.indexOf("\n      - name:", start + 1);
+      const step = runtime.slice(start, end === -1 ? undefined : end);
+      expect(step).toContain(
+        "if: ${{ !cancelled() && steps.android_runtime_ready.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}",
+      );
+      expect(step).not.toContain("continue-on-error: true");
+    }
+
+    const productionInstallStart = runtime.indexOf(
+      "- name: Install and launch Production-validation APK",
+    );
+    const productionFlowStart = runtime.indexOf(
+      "- name: Run Maestro Native Production-validation flow",
+    );
+    expect(productionInstallStart).toBeGreaterThanOrEqual(0);
+    expect(productionFlowStart).toBeGreaterThan(productionInstallStart);
+    const productionInstall = runtime.slice(productionInstallStart, productionFlowStart);
+    const productionFlow = runtime.slice(productionFlowStart);
+    expect(productionInstall).toContain("id: production_install");
+    expect(productionInstall).toContain(
+      "if: ${{ !cancelled() && steps.android_runtime_ready.outcome == 'success' }}",
+    );
+    expect(productionFlow).toContain(
+      "if: ${{ !cancelled() && steps.production_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}",
+    );
+    expect(runtime).toContain("- name: Collect Android evidence\n        if: always()");
+    expect(nativeWorkflow).not.toContain("continue-on-error: true");
+  });
+
+  it("waits for the storefront screen and category before deterministic category navigation", () => {
+    expect(storefrontFlow).toContain('id: "native-home-screen"');
+    expect(storefrontFlow).toContain('id: "native-category-category-apparel"');
+    expect(storefrontFlow).toContain('id: "native-catalog-screen"');
+    expect(storefrontFlow).not.toContain(
+      'id: "native-category-category-apparel"\n    direction: DOWN',
+    );
+  });
 });
 
 describe("Native iOS CI workflow contracts", () => {
@@ -778,5 +839,37 @@ describe("Native iOS CI workflow contracts", () => {
     expect(runtime).not.toContain("expo prebuild");
     expect(runtime).not.toContain("pod install");
     expect(runtime).not.toContain("CODE_SIGNING_ALLOWED=NO");
+  });
+
+  it("runs all iOS automation flows before failing the aggregate step and gates production on install", () => {
+    const runtimeStart = iosWorkflow.indexOf("  ios-runtime:");
+    const runtime = iosWorkflow.slice(runtimeStart);
+    const automationStepStart = runtime.indexOf("- name: Run iOS Native Customer Maestro flows");
+    const productionInstallStart = runtime.indexOf(
+      "- name: Install and launch Production-validation Simulator app",
+    );
+    const productionFlowStart = runtime.indexOf(
+      "- name: Run iOS Production-validation Maestro flow",
+    );
+    expect(automationStepStart).toBeGreaterThanOrEqual(0);
+    expect(productionInstallStart).toBeGreaterThan(automationStepStart);
+    expect(productionFlowStart).toBeGreaterThan(productionInstallStart);
+
+    const automationStep = runtime.slice(automationStepStart, productionInstallStart);
+    const productionInstall = runtime.slice(productionInstallStart, productionFlowStart);
+    const productionFlow = runtime.slice(productionFlowStart);
+    expect(automationStep).toContain("overall_status=0");
+    expect(automationStep).toContain("overall_status=1");
+    expect(automationStep).toContain('exit "$overall_status"');
+    expect(automationStep).not.toContain('test "$status" -eq 0');
+    expect((automationStep.match(/^\s+run_flow /gm) ?? []).length).toBe(15);
+    expect(productionInstall).toContain("id: production_install");
+    expect(productionInstall).toContain(
+      "if: ${{ !cancelled() && steps.ios_runtime_ready.outcome == 'success' }}",
+    );
+    expect(productionFlow).toContain(
+      "if: ${{ !cancelled() && steps.production_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}",
+    );
+    expect(iosWorkflow).not.toContain("continue-on-error: true");
   });
 });

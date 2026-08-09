@@ -148,6 +148,121 @@ describe("Native SQLite Node runtime contract", () => {
     });
   });
 
+  it("uses caller-provided IDs after a user or guest cart is no longer active", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("default"),
+    );
+    const repositories = createNativeCustomerApplicationRepositories(
+      database as unknown as SQLiteDatabase,
+    );
+    const now = "2026-07-01T03:00:00.000Z";
+    const previousUserCart = await repositories.carts.getActiveByUser("user-customer-regular");
+    expect(previousUserCart).not.toBeNull();
+    await database.runAsync(
+      "UPDATE carts SET status = ?, updated_at = ?, version = ? WHERE id = ?",
+      "abandoned",
+      now,
+      previousUserCart!.version + 1,
+      previousUserCart!.id,
+    );
+
+    const nextUserCart = await repositories.carts.getOrCreateActiveByUser({
+      userId: "user-customer-regular",
+      newCartId: "native-user-cart-next",
+      now,
+    });
+    expect(nextUserCart.id).toBe("native-user-cart-next");
+    expect(nextUserCart.id).not.toBe(previousUserCart!.id);
+
+    const firstGuestCart = await repositories.carts.getOrCreateActiveByGuest({
+      guestId: "native-cart-regression-guest",
+      newCartId: "native-guest-cart-first",
+      now,
+    });
+    await database.runAsync(
+      "UPDATE carts SET status = ?, updated_at = ?, version = ? WHERE id = ?",
+      "abandoned",
+      now,
+      firstGuestCart.version + 1,
+      firstGuestCart.id,
+    );
+    const nextGuestCart = await repositories.carts.getOrCreateActiveByGuest({
+      guestId: "native-cart-regression-guest",
+      newCartId: "native-guest-cart-next",
+      now,
+    });
+    expect(nextGuestCart.id).toBe("native-guest-cart-next");
+    expect(nextGuestCart.id).not.toBe(firstGuestCart.id);
+    database.close();
+  });
+
+  it("updates an expired checkout atomically without breaking confirmation", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("checkout-resume"),
+    );
+    const repositories = createNativeCustomerApplicationRepositories(
+      database as unknown as SQLiteDatabase,
+    );
+    const userId = "user-customer-regular";
+    const address = {
+      recipientName: "Native Checkout Customer",
+      postalCode: "1000001",
+      prefecture: "東京都",
+      city: "千代田区千代田",
+      addressLine1: "1-1",
+      addressLine2: null,
+      phone: "09000000000",
+    } as const;
+    const normalNow = "2026-07-01T03:00:00.000Z";
+    const expiredNow = "2026-07-15T03:00:00.000Z";
+    const active = await repositories.checkouts.getById("checkout-active");
+    expect(active).not.toBeNull();
+
+    const addressed = await repositories.checkouts.setAddress({
+      checkoutSessionId: active!.id,
+      checkoutExpectedVersion: active!.version,
+      address,
+      userId,
+      now: normalNow,
+    });
+    const ready = await repositories.checkouts.setPayment({
+      checkoutSessionId: addressed.id,
+      checkoutExpectedVersion: addressed.version,
+      paymentMethodCode: "TEST-SUCCESS",
+      userId,
+      now: normalNow,
+    });
+
+    await expect(
+      repositories.checkouts.getConfirmation(ready.id, userId, normalNow),
+    ).resolves.toMatchObject({
+      checkoutSessionId: ready.id,
+      checkoutActionVersion: ready.version,
+    });
+
+    await database.runAsync(
+      "UPDATE checkout_sessions SET expires_at = ? WHERE id = ?",
+      expiredNow,
+      ready.id,
+    );
+    await expect(
+      repositories.checkouts.getConfirmation(ready.id, userId, expiredNow),
+    ).rejects.toMatchObject({ code: "CHECKOUT_EXPIRED" });
+    await expect(
+      database.getFirstAsync<{ status: string; version: number }>(
+        "SELECT status, version FROM checkout_sessions WHERE id = ?",
+        ready.id,
+      ),
+    ).resolves.toEqual({ status: "expired", version: ready.version + 1 });
+    database.close();
+  });
+
   it("migrates the v1 Native schema metadata without resetting customer data", async () => {
     const database = new NodeSQLiteDatabase();
     await database.execAsync(CUSTOMER_SCHEMA_SQL);

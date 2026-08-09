@@ -49,6 +49,6 @@ describe("Native application service surface", () => {
     expect(source).toContain("currentUserLoaded && !unsupportedRole");
     expect(source).toContain('AppState.addEventListener("change"');
     expect(source).toContain('if (state === "active") refreshCurrentUser();');
-    expect(source).toContain("return () => subscription.remove();");
+    expect(source).toContain("return () => subscription?.remove();");
   });
 });

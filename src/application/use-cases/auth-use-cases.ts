@@ -78,14 +78,16 @@ export class AuthUseCases {
             throw this.invalidCredentials();
           }
           this.assertLoginAllowed(current);
-          const cartMerge =
-            current.role === "customer" && guestId !== null
-              ? await carts.mergeGuestIntoUser({
-                  guestId,
-                  userId: current.id,
-                  now,
-                })
-              : null;
+          let cartMerge = null;
+          if (current.role === "customer" && guestId !== null) {
+            const activeCart = await carts.getActiveByUser(current.id);
+            cartMerge = await carts.mergeGuestIntoUser({
+              guestId,
+              userId: current.id,
+              newCartId: activeCart?.id ?? this.dependencies.idGenerator.generate(),
+              now,
+            });
+          }
           await sessions.create({
             id: sessionId,
             userId: current.id,
@@ -158,6 +160,7 @@ export class AuthUseCases {
           const cartMerge = await carts.mergeGuestIntoUser({
             guestId,
             userId,
+            newCartId: this.dependencies.idGenerator.generate(),
             now,
           });
           await sessions.create({

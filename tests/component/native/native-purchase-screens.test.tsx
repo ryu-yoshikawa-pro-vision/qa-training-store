@@ -2,8 +2,10 @@ import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
 import { ApplicationError } from "@/application/errors";
 import type { CheckoutSession, ShippingAddressSnapshot } from "@/domain/contracts";
 import { router, useLocalSearchParams } from "expo-router";
+import { usePreventRemove } from "expo-router/react-navigation";
 import {
   NativeCheckoutAddressScreen,
+  NativeCheckoutConfirmScreen,
   NativeCheckoutPaymentScreen,
   NativeLoginScreen,
   NativeOrderDetailScreen,
@@ -16,10 +18,10 @@ jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
   router: { push: jest.fn(), replace: jest.fn() },
   useLocalSearchParams: jest.fn(),
+  useNavigation: () => ({ dispatch: jest.fn() }),
 }));
 
-jest.mock("expo-router/build/react-navigation/core", () => ({
-  useNavigation: () => ({ dispatch: jest.fn() }),
+jest.mock("expo-router/react-navigation", () => ({
   usePreventRemove: jest.fn(),
 }));
 
@@ -31,6 +33,7 @@ const useNativeRuntimeMock = jest.mocked(useNativeRuntime);
 const mockRouterPush = jest.mocked(router.push);
 const mockRouterReplace = jest.mocked(router.replace);
 const mockUseLocalSearchParams = jest.mocked(useLocalSearchParams);
+const mockUsePreventRemove = jest.mocked(usePreventRemove);
 
 function runtime(services: Record<string, unknown>): void {
   useNativeRuntimeMock.mockReturnValue({
@@ -66,6 +69,14 @@ const checkoutSession: CheckoutSession = {
   updatedAt: "2026-07-01T03:00:00.000Z",
   version: 2,
 };
+
+function authenticationRequiredError(): ApplicationError {
+  return new ApplicationError({
+    code: "AUTHENTICATION_REQUIRED",
+    messageKey: "auth.required",
+    retryable: false,
+  });
+}
 
 describe("Native customer purchase screens", () => {
   beforeEach(() => {
@@ -127,6 +138,30 @@ describe("Native customer purchase screens", () => {
     expect(getActive).not.toHaveBeenCalled();
   });
 
+  it.each([
+    ["address", NativeCheckoutAddressScreen, "/checkout/address"],
+    ["payment", NativeCheckoutPaymentScreen, "/checkout/payment"],
+    ["confirm", NativeCheckoutConfirmScreen, "/checkout/confirm"],
+  ] as const)(
+    "returns to the %s checkout step when authentication expires",
+    async (_step, Screen, returnTo) => {
+      const getActive = jest.fn().mockRejectedValue(authenticationRequiredError());
+      runtime({
+        account: { listAddresses: jest.fn().mockResolvedValue([]) },
+        checkout: { getActive, getConfirmation: jest.fn().mockResolvedValue(null) },
+      });
+
+      await render(<Screen />);
+
+      await waitFor(() =>
+        expect(mockRouterReplace).toHaveBeenCalledWith({
+          pathname: "/login",
+          params: { returnTo },
+        }),
+      );
+    },
+  );
+
   it("shows a retry state when profile loading fails", async () => {
     const getProfile = jest.fn().mockRejectedValue(new Error("profile unavailable"));
     runtime({ account: { getProfile } });
@@ -154,6 +189,30 @@ describe("Native customer purchase screens", () => {
 
     await waitFor(() => expect(screen.getByTestId("native-profile-screen")).toBeTruthy());
     expect(screen.getByTestId("native-profile-screen-keyboard")).toBeTruthy();
+  });
+
+  it("keeps the unsaved changes guard active for a dirty profile", async () => {
+    const getProfile = jest.fn().mockResolvedValue({
+      id: "user-customer-regular",
+      email: "regular@example.com",
+      displayName: "一般テスト会員",
+      phone: "09000000000",
+      role: "customer",
+      membershipRank: "regular",
+      accountStatus: "active",
+      actionVersion: 1,
+    });
+    runtime({ account: { getProfile } });
+
+    const screen = await render(<NativeProfileScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-profile-screen")).toBeTruthy());
+    await act(async () => {
+      fireEvent.changeText(screen.getByTestId("native-profile-display-name"), "変更後の表示名");
+    });
+
+    await waitFor(() =>
+      expect(mockUsePreventRemove).toHaveBeenLastCalledWith(true, expect.any(Function)),
+    );
   });
 
   it("selects a payment method and advances the checkout step", async () => {
@@ -264,7 +323,7 @@ describe("Native customer purchase screens", () => {
       subtotalAmount: 3500,
       discountAmount: 500,
       shippingAmount: 300,
-      membershipRankSnapshot: "silver",
+      membershipRankSnapshot: "gold",
       shippingAddress: address,
       paymentAttempts: [
         {

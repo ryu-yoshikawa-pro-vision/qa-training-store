@@ -788,3 +788,62 @@
 - Run／Evaluation JSON parse、5件のRun Artifact Prettier check、`pnpm run lint:markdown`（174 files／0 issues）、`git diff --check`（exit 0、CRLF変換warningのみ）をPASSした。
 - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はfiles_scanned 5、files_changed 0、replacements_total 0、residual_findings 0でPASSした。
 - Run resultは、今回のArtifact修正後のローカル品質ゲート成功と、修正HeadのRemote Android／iOS実Runtime未実行を分離して`partial`を維持する。Progress: 97% (30/31)。
+
+## 2026-08-09 11:08 JST — PR #14追加DoD修正（Repair Loop Iteration 22）
+
+- 添付されたPR #14追加指示を831行まで読み、既存Artifact修正を維持したまま、未対応のP0/P1だけを修正した。Git add／commit／push、削除、rename、skip、`continue-on-error`、固定sleep、座標tapは行っていない。
+- Storefrontは`maestro/native-storefront.yaml`で`native-home-screen`、`native-category-category-apparel`、`native-catalog-screen`を順にStable IDで待機し、カテゴリを直接tapするよう修正した。ホームカテゴリの不要な`scrollUntilVisible`と文字列だけの判定は追加していない。カテゴリ画面の`native-catalog-screen`と`カテゴリの商品`を確認する。
+- Android `android-runtime`はRuntime準備とMaestro CLI成功を前提に各独立Maestro stepへ`if: ${{ !cancelled() ... }}`を追加した。前Flowのfailure後も次Flowを実行し、Production installへ`id: production_install`を付与して同条件で継続する。Production MaestroはProduction install成功とMaestro CLI成功だけを前提にし、Automation Flow successには依存しない。evidenceは既存の`always()`を維持し、`continue-on-error`は追加していない。
+- iOS `ios-runtime`は15個のAutomation Flowを`run_flow`内でPASS／FAIL記録し、`overall_status`へ集約して全Flow完了後にだけstepをfailさせるよう修正した。Production installへ`id: production_install`と`!cancelled()`条件を付け、Automation step failure後もinstallを実行し、Production Maestroはinstall成功とMaestro CLI成功を前提にする。
+- Cartは`MergeGuestCartCommand`と`CartRepository.getOrCreateActiveByUser/Guest`へcaller提供`newCartId`を追加し、CartUseCases／AuthUseCasesがactive cart不在時だけ既存`IdGenerator`から生成するようにした。SQLite／Dexieは固定`cart-user-*`／`cart-guest-*`を再利用せず`newCartId`でINSERTする。active cart保持時は既存IDを返し、User／Guestのabandoned後再作成回帰をIntegration／Native SQLite Contractへ追加した。
+- Native Contract Harnessは`assertNativeAuthorizationRejections`へ分離し、suspendedは`ACCOUNT_SUSPENDED`、withdrawnは`ACCOUNT_WITHDRAWN`を個別必須とした。成功、異なるApplicationError、非ApplicationErrorのいずれもSessionをclearした上でfailする。片方だけ成功する偽実装のUnit回帰を追加した。
+- Checkoutは`requiredStep`のmappingでaddress／payment／confirmそれぞれのlogin `returnTo`を渡すようにし、3画面のAUTHENTICATION_REQUIRED Component Testを追加した。NativeShellはrefresh serial、mounted guardで古いPromiseとunmount後更新を無視し、unsupported-role logoutのrejectをcatchしてSession再取得と明示的エラー表示へつなげた。競合解消とlogout rejectのComponent Testを追加した。
+- 変更対象: `maestro/native-storefront.yaml`、`.github/workflows/native-ci.yml`、`.github/workflows/native-ios-ci.yml`、Cart契約／UseCase／SQLite／Dexie、`src/test-controls/native-contract-harness.native.ts`、Native Purchase／Shell、関連Unit／Integration／Repository／Component／Workflow Contract Test。
+- 対象検証:
+  - `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts tests/unit/native-contract-harness.test.ts tests/integration/cart-use-cases.test.ts tests/integration/auth-account.test.ts tests/repository-contract/cart-mutations.test.ts tests/repository-contract/native-customer-shared.test.ts --no-file-parallelism --maxWorkers=1`: 6 files／63 tests PASS。
+  - `pnpm exec jest --config jest.config.cjs tests/component/native/native-purchase-screens.test.tsx tests/component/native/native-shell.test.tsx --runInBand`: 2 suites／16 tests PASS。
+  - `pnpm run typecheck`: app／native-tests PASS。
+  - `pnpm run test:contracts`: 22 files／162 tests PASS。初回は既存`native-production-module-resolution`の5秒cold timeoutで161/162だったが、対象4/4単独PASS後に再実行してPASSした。
+  - `pnpm run verify`: exit 0。Format PASS、Markdownlint 174 files／0 issues、Lint 0 errors／63 warnings、Unit 66、Integration 97、Repository 32、Web Component 76、Native Component 43、Contract 162、Web export 2294 modulesがPASS。Native Jestの既存React `act(...)` console warning以外の失敗なし。
+- 初回に対象ComponentをVitestで実行した際は、Jest管理対象のReact Native Flow parse failureが3 suiteで発生した。これは実装失敗と断定せず、package scriptがNative ComponentをJestで実行することを確認して正規Jestへ切り替えた。Harness helperの一時的なrunner importによるReact Native parseも軽量な既存Harness moduleへ移し、Unit／全verifyで再確認した。
+- `remaining_delta`: Windows hostでは`xcodebuild`／`xcrun`／`simctl`がなく、今回修正後のiOS Simulator Build／Runtime、実`expo-sqlite` iOS Harness、iOS Production-validationは未実行。修正HeadをRemoteへ反映するGit mutationを禁止しているため、最新HeadのGitHub-hosted Android／iOS Native CIとfinal `native-ci / verify`も未実行。旧Remote failureを修正後PASSへ繰り上げない。
+- 判定: 追加実装と全ローカル品質ゲートは完了。iOS／Remote実Runtimeは未確認のためRun resultは`partial`、Phase 2 final DoDはpending。Progress: 97% (31/32)。
+
+## 2026-08-09 11:12 JST — Iteration 22 Run Artifact最終ゲート
+
+- `node -e`によるRun／Evaluation JSON parseはPASSした。
+- Run Artifact 5件（PLAN／TASKS／REPORT／run.json／evaluation.json）のPrettier checkはPASSした。
+- `pnpm run lint:markdown`は174 files／0 issuesでPASSした。
+- `git diff --check`はexit 0だった。表示されたCRLF変換warningのみで、差分エラーはない。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260808-165236-JST -Write -Check`はfiles_scanned 5、files_changed 0、replacements_total 0、residual_findings 0でPASSした。
+- Run resultはローカル全品質ゲートPASSとiOS／Remote実Runtime未実行を分離して`partial`を維持する。Progress: 97% (31/32)。
+
+## 2026-08-09 11:26 JST — AppState cleanup Contract修正と最新全体ゲート（Repair Loop Iteration 23）
+
+- AppState active回帰テスト追加後のNativeShell Jestで、Jest環境の`AppState.addEventListener`が購読オブジェクトを返さないcleanup時に`subscription.remove`が例外となることを確認した。これは新規テストが検出した実装／テスト環境境界の不整合であり、保留せず修正した。
+- `src/presentation/native/native-shell.tsx`のcleanupを`subscription?.remove()`へ変更し、`tests/contracts/native-runtime-service-surface.test.ts`の文字列Contractを同期した。AppState activeの明示テスト、refresh競合、unsupported-role logout rejectionの既存回帰を維持した。
+- `pnpm exec jest --config jest.config.cjs tests/component/native/native-shell.test.tsx --runInBand`: 1 suite／5 tests PASS。
+- `pnpm exec vitest run tests/contracts/native-runtime-service-surface.test.ts --no-file-parallelism --maxWorkers=1`: 1 file／2 tests PASS。
+- 修正前の最新`pnpm run verify`はContract期待値の不一致で161/162となったが、Contract同期後に再実行しexit 0を取得した。結果はFormat PASS、Markdownlint 174 files／0 issues、Lint 0 errors／64 warnings、Typecheck PASS、Unit 66、Integration 97、Repository 32、Web Component 76、Native Component 44、Contract 162、Web export 2294 modules PASS。Native Jestの既存React `act(...)` console warning以外の失敗はない。
+- `remaining_delta`: Windows hostでは`xcodebuild`／`xcrun`／`simctl`がなく、今回修正後のiOS Simulator Build／Runtime、実`expo-sqlite` iOS Harness、iOS Production-validationは未実行。Git mutation禁止のため修正HeadをRemoteへ反映しておらず、最新HeadのGitHub-hosted Android／iOS Native CIとfinal `native-ci / verify`も未実行。旧Remote failureを修正後PASSへ繰り上げない。
+- 判定: AppState追加修正と全ローカル品質ゲートは完了。iOS／Remote実Runtime未確認のためRun resultは`partial`、Phase 2 final DoDはpending。Progress: 97% (31/32)。
+
+## 2026-08-09 11:53 JST — PR #14追加修正（Repair Loop Iteration 24）
+
+- 添付された追加指示の4件だけを`must_fix`として扱い、既存のPR #14修正とRun履歴を保持した。Git add／commit／push、削除、rename、skip、`continue-on-error`は行っていない。
+- Delegation: Darwin（reviews-empty）、Mendel（Native checkout transaction）、Galileo（Expo Router公開API／fixture）へread-only調査を委譲した。Darwinは既存`getEligibility`の判定経路とintegration test位置を確認し、親Agentはユーザー契約を満たすためDelivered注文を除外する実装修正を採用した。Mendelは期限更新が`context.write`外で実行される問題を確認し、GalileoはNative／Admin双方の内部Expo Router pathと公開entrypointを確認した。全subagentはファイル変更なし。
+- `reviews-empty`はDelivered注文、Order Item、注文履歴、Payment、Shipment、関連Checkout SessionをSeedから除外してからReview／Review Historyを空にし、Summaryを再計算するよう修正した。IntegrationでScenario配列、Dexie実データ、Summary全rating count、Delivered 0件、対象全Order Itemの`CustomerReviewUseCases.getEligibility`が`eligible: false`／`ORDER_NOT_DELIVERED`になることを確認した。
+- Native componentのOrder Detail fixtureの`membershipRankSnapshot`を無効な`silver`から有効な`gold`へ変更した。Domain／Mapperは変更していない。
+- `NativeCheckoutSessionRepository.getConfirmation()`の期限切れ分岐を既存の再入可能な`context.write`へ移し、transaction内で最新Sessionを再読込して、activeかつ期限切れの場合だけ`WHERE id = ? AND version = ?`で更新するようにした。`changes !== 1`はConflictとしてfail-closeし、更新後にtransaction外で`CHECKOUT_EXPIRED`を返す。Node SQLite実契約で通常Confirmation、expired status、version増分、`CHECKOUT_EXPIRED`を確認し、source Contractで再読込／write／optimistic lockを固定した。
+- Native purchaseとAdmin productの`useNavigation`／`usePreventRemove`を、Expo Router 57.0.11の公開`expo-router`／`expo-router/react-navigation`へ移行した。対応mockも公開entrypointへ変更し、dirty Profileの`usePreventRemove(true, callback)`回帰を追加した。Production source全体の内部build path不在Contractを追加し、scanでも該当なしを確認した。
+- 変更対象: `src/seeds/scenarios.ts`、`tests/integration/review-user-use-cases.test.ts`、`src/infrastructure/database/sqlite/native-customer-application-repositories.ts`、`tests/repository-contract/native-customer-shared.test.ts`、`tests/contracts/native-customer-application-repositories.test.ts`、`tests/contracts/expo-router-public-imports.test.ts`、`src/presentation/native/native-purchase-screens.tsx`、`tests/component/native/native-purchase-screens.test.tsx`、`src/presentation/pages/admin-product-pages.tsx`、`tests/component/admin-product-pages.test.tsx`。
+- 検証結果:
+  - 対象PrettierはPASS。
+  - `pnpm exec vitest run tests/integration/review-user-use-cases.test.ts --no-file-parallelism --maxWorkers=1`: 1 file／8 tests PASS。
+  - `pnpm exec vitest run tests/repository-contract/native-customer-shared.test.ts --no-file-parallelism --maxWorkers=1`: 1 file／13 tests PASS。
+  - `pnpm exec vitest run tests/contracts/native-customer-application-repositories.test.ts tests/contracts/expo-router-public-imports.test.ts --no-file-parallelism --maxWorkers=1`: 2 files／16 tests PASS。
+  - Native Purchase Jest: 1 suite／13 tests PASS。Admin Product Component: 1 file／4 tests PASS。
+  - `rg -n 'expo-router/build/'`（node_modules／coverage／dist除外）: 該当なし。
+  - `pnpm run verify`: exit 0。Format、Markdownlint 174 files／0 issues、Lint 0 errors／64 warnings、Typecheck、Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 45、Contract 165、Web export 2296 modulesがPASSした。既存React `act(...)` console warning以外の失敗はない。
+- `remaining_delta`: Windows hostでは`xcodebuild`／`xcrun`／`simctl`がなく、今回修正後のiOS Simulator Build／Runtime、実`expo-sqlite` iOS Harness、iOS Production-validationは未実行。Git mutation禁止のため修正HeadをRemoteへ反映しておらず、最新HeadのGitHub-hosted Android／iOS Native CIとfinal `native-ci / verify`も未実行。旧Remote failureを修正後PASSへ繰り上げない。
+- 判定: 追加4件とローカル品質ゲートは完了。iOS／Remote実Runtime未確認のためRun resultは`partial`、Phase 2 final DoDはpending。Progress: 97% (32/33)。

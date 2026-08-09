@@ -166,6 +166,46 @@ describe("review and user administration integration", () => {
     });
   });
 
+  it("keeps the reviews-empty scenario free of reviewable order items", async () => {
+    database = new ScenarioShopDatabase(`reviews-empty-${crypto.randomUUID()}`);
+    const dataset = createScenarioDataset("reviews-empty");
+    expect(dataset.reviews).toHaveLength(0);
+    expect(dataset.reviewHistories).toHaveLength(0);
+    expect(dataset.orders.some((order) => order.status === "delivered")).toBe(false);
+    await loadSeedDataset(database, dataset, "reviews-empty");
+
+    const session = await signIn(database, "user-customer-regular");
+    const useCases = new CustomerReviewUseCases(dependencies(database, session));
+    const orderItems = await database.order_items.toArray();
+    const summaries = await database.product_review_summaries.toArray();
+    const eligibilities = await Promise.all(
+      orderItems.map((item) => useCases.getEligibility(item.id)),
+    );
+
+    expect(await database.reviews.count()).toBe(0);
+    expect(await database.review_status_histories.count()).toBe(0);
+    expect(await database.orders.where("status").equals("delivered").count()).toBe(0);
+    expect(orderItems.length).toBeGreaterThan(0);
+    expect(eligibilities).toHaveLength(orderItems.length);
+    expect(eligibilities.every((eligibility) => eligibility.eligible === false)).toBe(true);
+    expect(eligibilities.every((eligibility) => eligibility.reason === "ORDER_NOT_DELIVERED")).toBe(
+      true,
+    );
+    expect(
+      summaries.every(
+        (summary) =>
+          summary.publishedCount === 0 &&
+          summary.ratingTotal === 0 &&
+          summary.ratingAverage === 0 &&
+          summary.rating1Count === 0 &&
+          summary.rating2Count === 0 &&
+          summary.rating3Count === 0 &&
+          summary.rating4Count === 0 &&
+          summary.rating5Count === 0,
+      ),
+    ).toBe(true);
+  });
+
   it("searches reviews and changes visibility with history and summary atomically", async () => {
     database = new ScenarioShopDatabase(`admin-reviews-${crypto.randomUUID()}`);
     await loadSeedDataset(database, createScenarioDataset("default"), "default");

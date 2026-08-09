@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Phase 2後半のNative Customer購入コード、実SQLite、Android実機、Production validation、Web／静的回帰、Order詳細snapshot表示、入力画面Keyboard対応、Login復帰先の型付き遷移、SQLite境界Runtime parserは完了し、Production APK source→runtime copy、Native Customer Role boundary、NativeShell route regressionも修正・再検証したが、WindowsではiOS SimulatorとRemote GitHub Actionsの実行結果を取得できない。",
+      "evidence": "Phase 2後半のNative Customer購入コード、実SQLite、Android実機、Production validation、Web／静的回帰、Order詳細snapshot表示、入力画面Keyboard対応、Login復帰先の型付き遷移、SQLite境界Runtime parser、PR #14追加DoDのStorefront Stable ID、Android／iOS Flow継続、Cart caller-generated ID、Harness認可fail-close、Checkout step returnTo、NativeShell refresh serial／AppState cleanup／logout catch、PR #14追加修正のreviews-empty／Native fixture／checkout期限更新transaction／Expo Router公開API移行は完了し、Production APK source→runtime copy、Native Customer Role boundary、NativeShell route regressionも修正・再検証したが、WindowsではiOS SimulatorとRemote GitHub Actionsの実行結果を取得できない。",
       "evidence_refs": [
         {
           "kind": "codex_task_report",
@@ -30,7 +30,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "変更後の全テスト（Unit 65、Integration 95、Repository 31、Web Component 76、Native Component 38、Contract 159）、PR #14 Artifact producer／consumer Contract 17、Native SQLite mapper focused 4、Native Repository Contract focused 13、Harness focused 10、Web export／Chromium 27/27、bundle guard、Android Iteration 8 Automation／Runtime／Boundary実機、Iteration 16／17／18後のTypecheck／対象Prettier／型逃げ・強制変換scan／差分検査、PR #14修正後の`pnpm run verify`はPASSした。今回の5分wrapper未確定は15分extended rerunでexit 0を取得して解消した。iOS実Runtime／Remote CIは未実行である。",
+      "evidence": "変更後の全テスト（Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 45、Contract 165）、PR #14 Artifact producer／consumer Contract 17、追加Workflow／Cart／Harness／SQLite／Integration focused 63、Iteration 24 focused（reviews-empty 8、Native SQLite repository 13、Native repository／Expo Router Contract 16、Native Purchase Component 13、Admin Product Component 4）、Native SQLite mapper focused 4、Native Repository Contract focused 13、Harness focused 10、Web export／Chromium 27/27、bundle guard、Android Iteration 8 Automation／Runtime／Boundary実機、Iteration 23のNativeShell 5／5とNative Runtime Service Surface 2／2、Typecheck／対象Prettier／差分検査、PR #14追加修正後の`pnpm run verify`はPASSした。全Contract初回の5秒wrapper未確定は対象4/4単独PASS後の再実行で162/162、Iteration 23初回の旧Contract期待値不一致は同期後の再実行で解消し、Iteration 24の`pnpm run verify`はexit 0を取得した。Expo Router内部path scanも該当なしである。iOS実Runtime／Remote CIは未実行である。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -213,6 +213,30 @@
           "summary": "Run／Evaluation JSON、Run Artifact Prettier、Markdownlint、git diff --check、Sanitizer 5 files／0 residualの最終ゲートをPASSした。"
         },
         {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 11:08 JST",
+          "summary": "PR #14追加DoDのfocused Vitest 63/63、Native Jest 16/16、Typecheck、全Contract 162/162、pnpm run verify exit 0（Unit 66／Integration 97／Repository 32／Native Component 43／Web export 2294 modules）を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 11:12 JST",
+          "summary": "Run／Evaluation JSON parse、Run Artifact Prettier、Markdownlint 174 files、git diff --check、Sanitizer 5 files／0 residualをPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 11:26 JST",
+          "summary": "NativeShell AppState cleanup修正後のNativeShell Jest 5/5、Native Runtime Service Surface Contract 2/2、最新pnpm run verify exit 0（Native Component 44／Contract 162）を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260808-165236-JST/REPORT.md",
+          "selector": "2026-08-09 11:53 JST",
+          "summary": "Iteration 24のreviews-empty Integration 8/8、Native SQLite repository 13/13、Native／Expo Router Contract 16/16、Native Purchase Component 13/13、Admin Product Component 4/4、内部Expo Router path scan、pnpm run verify exit 0（Unit 66／Integration 98／Repository 33／Native Component 45／Contract 165／Web export 2296 modules）を記録している。"
+        },
+        {
           "kind": "evaluation_note",
           "path": ".artifacts/native-local/20260808-235600-android-postfix-production-current-shortpath/build/production-marker-check.txt",
           "summary": "Postfix後Production APKのbundle、arm64 ABI、marker不在、Production metadataを記録している。"
@@ -280,8 +304,8 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260808-165236-JST/REPORT.md",
-          "selector": "2026-08-09 01:42 JST",
-          "summary": "iOS Simulator Runtime、実expo-sqlite Harness、Remote GitHub Actionsを未実行として記録している。"
+        "selector": "2026-08-09 11:53 JST",
+        "summary": "Iteration 24後もWindows hostではiOS Simulator／実expo-sqlite Harness／Remote GitHub Actionsを未実行として記録している。"
         }
       ],
       "detail": "iOS Workflowの静的契約はPASSだが、macOS実RuntimeとGitHub-hosted Runが未確認のため、Phase 2 final DoDは未完了とする。"

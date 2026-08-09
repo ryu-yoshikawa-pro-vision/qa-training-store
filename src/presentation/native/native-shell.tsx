@@ -1,7 +1,7 @@
 import { Link, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useNativeRuntime } from "./native-runtime-provider";
 import {
@@ -20,8 +20,13 @@ export function NativeShell({ children }: { children: ReactNode }) {
     ReturnType<NonNullable<typeof services>["auth"]["getCurrentUser"]>
   > | null>(null);
   const [currentUserLoaded, setCurrentUserLoaded] = useState(false);
+  const [logoutError, setLogoutError] = useState<Error | null>(null);
+  const refreshSerial = useRef(0);
+  const mounted = useRef(true);
   const refreshCurrentUser = useCallback(() => {
+    const requestId = ++refreshSerial.current;
     if (!services) {
+      if (!mounted.current || requestId !== refreshSerial.current) return;
       setCurrentUser(null);
       setCurrentUserLoaded(false);
       return;
@@ -29,14 +34,22 @@ export function NativeShell({ children }: { children: ReactNode }) {
     void services.auth
       .getCurrentUser()
       .then((next) => {
+        if (!mounted.current || requestId !== refreshSerial.current) return;
         setCurrentUser(next);
         setCurrentUserLoaded(true);
       })
       .catch(() => {
+        if (!mounted.current || requestId !== refreshSerial.current) return;
         setCurrentUser(null);
         setCurrentUserLoaded(true);
       });
   }, [services]);
+
+  useEffect(() => {
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     refreshCurrentUser();
@@ -46,16 +59,26 @@ export function NativeShell({ children }: { children: ReactNode }) {
     const subscription = AppState.addEventListener("change", (state) => {
       if (state === "active") refreshCurrentUser();
     });
-    return () => subscription.remove();
+    return () => subscription?.remove();
   }, [refreshCurrentUser]);
   const unsupportedRole =
     currentUserLoaded && currentUser !== null && currentUser.role !== "customer";
   const logoutUnsupportedRole = () => {
     if (services === null) return;
-    void services.auth.logout().then(() => {
-      setCurrentUser(null);
-      setCurrentUserLoaded(true);
-    });
+    setLogoutError(null);
+    refreshSerial.current += 1;
+    void services.auth
+      .logout()
+      .then(() => {
+        if (!mounted.current) return;
+        setCurrentUser(null);
+        setCurrentUserLoaded(true);
+      })
+      .catch((caught: unknown) => {
+        if (!mounted.current) return;
+        setLogoutError(caught instanceof Error ? caught : new Error("ログアウトに失敗しました"));
+        refreshCurrentUser();
+      });
   };
   return (
     <SafeAreaView style={shellStyles.safeArea}>
@@ -119,7 +142,11 @@ export function NativeShell({ children }: { children: ReactNode }) {
         ) : unsupportedRole ? (
           <NativeStatePanel
             title="このRoleはNative Customerの対象外です"
-            body="Nativeでは購入者向け画面だけを利用できます。ログアウトしてください。"
+            body={
+              logoutError === null
+                ? "Nativeでは購入者向け画面だけを利用できます。ログアウトしてください。"
+                : `ログアウトに失敗しました。Sessionを再確認しています。${logoutError.message}`
+            }
           />
         ) : (
           children

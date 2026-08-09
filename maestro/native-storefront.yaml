@@ -13,13 +13,20 @@ appId: com.ryuyoshikawa.scenarioshop
 - assertVisible: "Scenario Shop"
 - assertVisible:
     id: "native-nav-home"
-- scrollUntilVisible:
-    element:
+- extendedWaitUntil:
+    visible:
+      id: "native-home-screen"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
       id: "native-category-category-apparel"
-    direction: DOWN
-    timeout: 10000
+    timeout: 30000
 - tapOn:
     id: "native-category-category-apparel"
+- extendedWaitUntil:
+    visible:
+      id: "native-catalog-screen"
+    timeout: 30000
 - assertVisible: "カテゴリの商品"
 - tapOn:
     id: "native-nav-home"

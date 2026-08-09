@@ -204,7 +204,7 @@ describe("auth and account application integration", () => {
   });
 
   it("registers a normalized regular customer and logs out", async () => {
-    const auth = createAuth(["new-user", "new-session"]);
+    const auth = createAuth(["new-user", "new-session", "new-cart"]);
     const result = await auth.register({
       email: "  NEW.User@Example.COM ",
       password: "secure-pass",

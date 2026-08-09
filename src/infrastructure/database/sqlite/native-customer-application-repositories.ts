@@ -1059,13 +1059,17 @@ class NativeCartRepository implements CartRepository {
     return row === null ? null : mapNativeCart(row);
   }
 
-  async getOrCreateActiveByUser(input: { userId: string; now: string }): Promise<Cart> {
+  async getOrCreateActiveByUser(input: {
+    userId: string;
+    newCartId: string;
+    now: string;
+  }): Promise<Cart> {
     return this.context.write(async (context) => {
       const repository = new NativeCartRepository(context);
       const existing = await repository.getActiveByUser(input.userId);
       if (existing !== null) return existing;
       const cart: Cart = {
-        id: `cart-user-${input.userId}`,
+        id: input.newCartId,
         ownerType: "user",
         guestId: null,
         userId: input.userId,
@@ -1089,13 +1093,17 @@ class NativeCartRepository implements CartRepository {
     });
   }
 
-  async getOrCreateActiveByGuest(input: { guestId: string; now: string }): Promise<Cart> {
+  async getOrCreateActiveByGuest(input: {
+    guestId: string;
+    newCartId: string;
+    now: string;
+  }): Promise<Cart> {
     return this.context.write(async (context) => {
       const repository = new NativeCartRepository(context);
       const existing = await repository.getActiveByGuest(input.guestId);
       if (existing !== null) return existing;
       const cart: Cart = {
-        id: `cart-guest-${input.guestId}`,
+        id: input.newCartId,
         ownerType: "guest",
         guestId: input.guestId,
         userId: null,
@@ -1415,6 +1423,7 @@ class NativeCartRepository implements CartRepository {
       if (user === null) throw nativeNotFound("errors.user.notFound");
       const userCart = await repository.getOrCreateActiveByUser({
         userId: command.userId,
+        newCartId: command.newCartId,
         now: command.now,
       });
       const guestCart = await repository.getActiveByGuest(command.guestId);
@@ -1828,21 +1837,34 @@ class NativeCheckoutSessionRepository implements CheckoutSessionRepository {
     userId: string,
     now: string,
   ): Promise<CheckoutConfirmationDto> {
-    const session = await this.getById(checkoutSessionId);
+    let session = await this.getById(checkoutSessionId);
     if (session === null) throw nativeNotFound("errors.checkout.notFound");
     if (session.expiresAt <= now && session.status === "active") {
-      await this.context.sql.runAsync(
-        "UPDATE checkout_sessions SET status = 'expired', updated_at = ?, version = ? WHERE id = ? AND version = ?",
-        now,
-        session.version + 1,
-        session.id,
-        session.version,
-      );
-      throw new ApplicationError({
-        code: "CHECKOUT_EXPIRED",
-        messageKey: "checkout.expired",
-        retryable: false,
+      const expiration = await this.context.write(async (context) => {
+        const repository = new NativeCheckoutSessionRepository(context);
+        const latest = await repository.getById(checkoutSessionId);
+        if (latest === null) throw nativeNotFound("errors.checkout.notFound");
+        if (latest.status !== "active" || latest.expiresAt > now) {
+          return { expired: false as const, session: latest };
+        }
+        const result = await context.sql.runAsync(
+          "UPDATE checkout_sessions SET status = 'expired', updated_at = ?, version = ? WHERE id = ? AND version = ?",
+          now,
+          latest.version + 1,
+          latest.id,
+          latest.version,
+        );
+        if (result.changes !== 1) throw conflictError();
+        return { expired: true as const, session: latest };
       });
+      if (expiration.expired) {
+        throw new ApplicationError({
+          code: "CHECKOUT_EXPIRED",
+          messageKey: "checkout.expired",
+          retryable: false,
+        });
+      }
+      session = expiration.session;
     }
     if (
       session.userId !== userId ||

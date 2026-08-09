@@ -1,4 +1,6 @@
+import { ApplicationError } from "@/application/errors";
 import {
+  assertNativeAuthorizationRejections,
   assertNativeContractHarnessApplicationStateUnchanged,
   createNativeContractHarnessScope,
   withNativeContractHarness,
@@ -16,6 +18,25 @@ vi.mock("@/test-controls/native-signals", () => ({
 describe("Native contract harness isolation", () => {
   beforeEach(() => {
     signalMock.mockReset();
+  });
+
+  it("fails closed when one authorization rejection is replaced by a successful login", async () => {
+    const login = vi
+      .fn()
+      .mockRejectedValueOnce(
+        new ApplicationError({
+          code: "ACCOUNT_SUSPENDED",
+          messageKey: "auth.account.suspended",
+          retryable: false,
+        }),
+      )
+      .mockResolvedValueOnce({ user: { id: "withdrawn-user" } });
+    const clearSession = vi.fn().mockResolvedValue(undefined);
+
+    await expect(assertNativeAuthorizationRejections({ login, clearSession })).rejects.toThrow(
+      "withdrawn@example.com",
+    );
+    expect(clearSession).toHaveBeenCalledTimes(2);
   });
 
   it("uses a runtime UUID for the DB and KV namespace", () => {

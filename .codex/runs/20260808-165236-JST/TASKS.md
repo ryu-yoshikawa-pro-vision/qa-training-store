@@ -37,9 +37,11 @@
 - [x] 29. Native Transaction Runnerの残存型アサーションを除去し、Admin Scope fail-close契約を追加検証する。
 - [x] 30. 独立BaselineのFormat残差を意味変更なしで整形し、`format:check`／`verify`を再検証する。
 - [x] 31. PR #14のAndroid／iOS Artifact producer・consumer・install契約を修正し、Contract Testで再発防止する。
+- [x] 32. PR #14追加DoDのMaestro継続実行、Cart ID、認可Harness、Checkout復帰、NativeShell競合を修正し、回帰ゲートを再検証する。
+- [x] 33. PR #14追加修正のreviews-empty、Native fixture、checkout期限更新transaction、expo-router公開APIを最小差分で修正し、回帰ゲートを再検証する。
 
 ## Blocked
 
 - iOS Simulator／実`expo-sqlite` Harness／iOS Production-validationは、現行Windowsに`xcodebuild`／`xcrun`／`simctl`がないため実行不能。GitHub-hosted Remote Android／iOS CIと最新Headの`native-ci / verify`は、現行未commit差分を反映したRemote Head／実行権限がないため未実行。コード／静的／Android／Web検証とは独立した外部環境Blockerとして記録する。
 
-Progress: 97% (30/31)
+Progress: 97% (32/33)

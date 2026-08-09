@@ -100,6 +100,49 @@ describe("cart application integration", () => {
     });
   });
 
+  it("uses a new generated ID when an existing user cart is no longer active", async () => {
+    await database.sessions.add({
+      id: "regular-session",
+      userId: "user-customer-regular",
+      createdAt: FIXED_TIME,
+    });
+    session.value = "regular-session";
+    const previous = await database.carts.get("cart-regular-active");
+    expect(previous).toBeDefined();
+    await database.carts.update(previous!.id, {
+      status: "abandoned",
+      updatedAt: FIXED_TIME,
+      version: previous!.version + 1,
+    });
+
+    const next = await useCases(["user-cart-next"]).getCart();
+
+    expect(next.cartId).toBe("user-cart-next");
+    expect(next.cartId).not.toBe(previous!.id);
+    expect(await database.carts.get(next.cartId)).toMatchObject({
+      userId: "user-customer-regular",
+      status: "active",
+    });
+  });
+
+  it("uses a new generated ID when an existing guest cart is abandoned", async () => {
+    const first = await useCases(["guest-cart-first"]).getCart();
+    await database.carts.update(first.cartId, {
+      status: "abandoned",
+      updatedAt: FIXED_TIME,
+      version: first.cartVersion + 1,
+    });
+
+    const second = await useCases(["guest-cart-second"]).getCart();
+
+    expect(second.cartId).toBe("guest-cart-second");
+    expect(second.cartId).not.toBe(first.cartId);
+    expect(await database.carts.get(second.cartId)).toMatchObject({
+      guestId: DEFAULT_GUEST_ID,
+      status: "active",
+    });
+  });
+
   it("touches the parent exactly once per add and delegates quantity zero to remove", async () => {
     const cartUseCases = useCases(["guest-cart", "guest-item", "unused-cart", "unused-item"]);
     const first = await cartUseCases.addItem({

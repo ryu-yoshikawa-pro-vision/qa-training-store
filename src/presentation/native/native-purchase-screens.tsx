@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 import type { ReactNode } from "react";
-import { Link, router, useLocalSearchParams } from "expo-router";
-import { useNavigation, usePreventRemove } from "expo-router/build/react-navigation/core";
+import { Link, router, useLocalSearchParams, useNavigation } from "expo-router";
+import { usePreventRemove } from "expo-router/react-navigation";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -34,6 +34,14 @@ import {
 } from "./native-components";
 
 const REVIEW_RATINGS = [1, 2, 3, 4, 5] as const;
+const CHECKOUT_RETURN_PATHS: Record<
+  CheckoutSession["unlockedStep"],
+  "/checkout/address" | "/checkout/payment" | "/checkout/confirm"
+> = {
+  address: "/checkout/address",
+  payment: "/checkout/payment",
+  confirm: "/checkout/confirm",
+};
 
 function usePurchaseServices() {
   const { ready, error, retry, services } = useNativeRuntime();
@@ -639,7 +647,10 @@ function useCheckoutSession(requiredStep: CheckoutSession["unlockedStep"]) {
       })
       .catch(async (caught: unknown) => {
         if (caught instanceof ApplicationError && caught.code === "AUTHENTICATION_REQUIRED") {
-          router.replace({ pathname: "/login", params: { returnTo: "/checkout/address" } });
+          router.replace({
+            pathname: "/login",
+            params: { returnTo: CHECKOUT_RETURN_PATHS[requiredStep] },
+          });
           return;
         }
         if (requiredStep !== "address") {

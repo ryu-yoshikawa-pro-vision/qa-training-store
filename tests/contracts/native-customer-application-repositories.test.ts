@@ -45,4 +45,11 @@ describe("Native Customer application repository contract", () => {
     expect(source).toContain("nativeUnsupportedBrandRepository");
     expect(source).not.toContain("as unknown as");
   });
+
+  it("re-reads expired checkout sessions inside a reentrant write with optimistic locking", () => {
+    expect(source).toContain("const expiration = await this.context.write");
+    expect(source).toContain("const latest = await repository.getById(checkoutSessionId)");
+    expect(source).toContain("WHERE id = ? AND version = ?");
+    expect(source).toContain("if (result.changes !== 1) throw conflictError();");
+  });
 });

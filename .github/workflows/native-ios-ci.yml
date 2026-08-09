@@ -262,6 +262,7 @@ jobs:
           name: native-ios-production-app-${{ github.run_id }}
           path: ${{ runner.temp }}/native-ios-production-app
       - name: Boot iOS Simulator and install artifact
+        id: ios_runtime_ready
         shell: bash
         run: |
           set -euo pipefail
@@ -276,6 +277,7 @@ jobs:
           echo "IOS_DEVICE=$DEVICE" >> "$GITHUB_ENV"
           echo "APP_PATH=$APP_PATH" >> "$GITHUB_ENV"
       - name: Install pinned Maestro CLI
+        id: maestro_cli
         shell: bash
         run: |
           set -euo pipefail
@@ -286,10 +288,12 @@ jobs:
           "$RUNNER_TEMP/maestro/maestro/bin/maestro" --version
           echo "$RUNNER_TEMP/maestro/maestro/bin" >> "$GITHUB_PATH"
       - name: Run iOS Native Customer Maestro flows
+        if: ${{ !cancelled() && steps.ios_runtime_ready.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/maestro-artifacts"
+          overall_status=0
           run_flow() {
             local name="$1"
             local flow="$2"
@@ -308,7 +312,9 @@ jobs:
             echo "result=$([[ "$status" -eq 0 ]] && echo PASS || echo FAIL)"
             echo "exit_code=$status"
             echo "finish_utc=$(date -u +%Y-%m-%dT%H:%M:%SZ)"
-            test "$status" -eq 0
+            if [[ "$status" -ne 0 ]]; then
+              overall_status=1
+            fi
           }
           run_flow test-control native-test-control.yaml
           run_flow contract-harness native-contract-harness.yaml
@@ -325,7 +331,10 @@ jobs:
           run_flow payment-retry native-payment-retry.yaml
           run_flow session-checkout-restart native-session-checkout-restart.yaml
           run_flow review native-review.yaml
+          exit "$overall_status"
       - name: Install and launch Production-validation Simulator app
+        id: production_install
+        if: ${{ !cancelled() && steps.ios_runtime_ready.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -335,6 +344,7 @@ jobs:
           xcrun simctl install "$IOS_DEVICE" "$PRODUCTION_APP_PATH"
           xcrun simctl launch "$IOS_DEVICE" com.ryuyoshikawa.scenarioshop
       - name: Run iOS Production-validation Maestro flow
+        if: ${{ !cancelled() && steps.production_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail

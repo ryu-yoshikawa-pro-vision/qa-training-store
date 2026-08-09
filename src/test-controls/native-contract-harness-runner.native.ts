@@ -33,6 +33,7 @@ import {
   type NativeContractHarnessApplicationState,
   type NativeContractHarnessResult,
   type NativeContractHarnessScope,
+  assertNativeAuthorizationRejections,
   withNativeContractHarness,
 } from "./native-contract-harness.native";
 
@@ -366,18 +367,11 @@ async function runNativePurchaseContracts(
     throw new Error("Native purchase contract guest cart merge setup failed");
   }
 
-  let authRoleRejection = false;
-  for (const email of ["suspended@example.com", "withdrawn@example.com"]) {
-    try {
-      await auth.login({ email, password: "testpass1" });
-    } catch (error) {
-      authRoleRejection =
-        authRoleRejection ||
-        (error instanceof ApplicationError &&
-          (error.code === "ACCOUNT_SUSPENDED" || error.code === "ACCOUNT_WITHDRAWN"));
-    }
-  }
-  if (!authRoleRejection) throw new Error("Native purchase contract role rejection failed");
+  await assertNativeAuthorizationRejections({
+    login: (credentials) => auth.login(credentials),
+    clearSession: () => currentSessionStore.clear(),
+  });
+  const authRoleRejection = true;
 
   const login = await auth.login({ email: "regular@example.com", password: "testpass1" });
   if (login.user.id !== "user-customer-regular") {
