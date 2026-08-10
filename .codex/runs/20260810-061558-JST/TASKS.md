@@ -23,7 +23,8 @@
 - [x] 19. Wave 10: Full local validation（format/lint/typecheck/e2e/a11y/mobile/verify）を実行し、失敗は原因調査・bounded repairする（verifyは既存baseline format blockerでfail-close）
 - [x] 20. Runtime Validation: Web Normal Agentic QA、Generated HTML Human review、可能ならAndroid Native Agentic QAを実施する（Web/HTML/Android Native Agentic Dry Run完了）
 - [x] 21. Final: Scope差分、Product Behavior、Patch isolation、Machine Contract、Run Artifact Sanitizer、全Blockerを監査する
-- [ ] 22. Final: Run report/evaluation/manifestを完成し、Final DoDをfail-close判定してGoalを完了またはblockedに更新する
+- [x] 22. Final: Run report/evaluation/manifestを完成し、Final DoDをfail-close判定してGoalを完了またはblockedに更新する
+- [x] 23. Repair Loop iteration 2: ユーザー承認済みの既存84件formatter baselineを修復し、`pnpm run verify`を再実行する
 
 ## Discovered
 
@@ -35,7 +36,7 @@
 
 ## Blocked
 
-### B1. Full verify の既存フォーマットベースライン
+### B1. Full verify の既存フォーマットベースライン（Resolved）
 
 - Record ID: B1
 - Round: Wave 10 / final local validation
@@ -48,6 +49,7 @@
 - Re-audit (2026-08-10 09:58 JST): `prettier --list-different` 84件の全件が既存tracked file、今回変更trackedとの交差0、新規fileとの交差0。今回変更起因ではないことを確認した。
 - Open Issues: 既存84件のベースライン整形を別作業で扱う必要がある。
 - Next Action: Ownerがbaseline formatter repairを承認した場合のみ、対象84件を別Runで整形して `verify` を再実行する。
+- Resolution (2026-08-10 12:15 JST): ユーザー承認を受け、実行開始時点の`prettier --list-different`が返した既存84件をPrettierで整形した。再監査はexit 0・残件0。`pnpm run verify`も全工程をPASSし、B1は解消した。GitのLF正規化により意味のある差分は発生していないが、作業ツリーはPrettier準拠のLF状態になっている。
 
 ### B2. Android Native Agentic capability（Resolved）
 
@@ -63,7 +65,7 @@
 - Next Action: Native Runtime/Boundary full Suiteが別途必要なら、Runbook順の新Attemptで実施する。今回のFinal判定はB1/B3を継続監査する。
 - Resolution (2026-08-10 09:50 JST): Maestro MCPの実機Fresh sessionで`native-test-control.yaml`（8 commands）と`native-storefront.yaml`（28 commands）をPASS。Hierarchy／screenshotで`Native test runtime ready`、Product detail、Cart追加メッセージを確認した。B2は解消し、Native Agentic QAの未実施扱いは解除する。ただしRuntime/Boundary全Suiteの実行結果を意味しない。
 
-### B3. Required Remote CI
+### B3. Required Remote CI（Resolved）
 
 - Record ID: B3
 - Round: Final DoD
@@ -76,3 +78,4 @@
 - Re-audit (2026-08-10 09:58 JST): GitHub connector read-only確認でrepository default branchは`main`、current HEAD `b281b878...`のworkflow runs/statusesは空、current implementation branchのremote refも存在しない。
 - Open Issues: Remote CI resultが無い。
 - Next Action: Ownerが変更を適切なImplementation branchへ公開した後、Required CI結果を取得する。
+- Resolution (2026-08-10 12:22 JST): GitHub connector read-onlyでHEAD `4f943ff28363718b06a62eacc00d248913a06422`のPhase 1 CI run `31350967334`とNative CI run `31350967422`がcompleted/success。Native CIの全10 jobs（Android Runtime / Maestro、iOS Automation／Production-validation Build、Native verifyを含む）もsuccessで、B3を解消した。

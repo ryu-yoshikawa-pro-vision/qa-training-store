@@ -79,3 +79,4 @@
 - 2026-08-10 JST: 最新Basic Preparationでpatched loginのsession作成直後にpathnameを読む競合を検出した。既存成功結果と実行ログからSPA遷移待ち不足と分類し、`waitForURL`を追加してPreparation単独で再検証しPASSした。
 - 2026-08-10 JST: Wave 6のWorking Tree Snapshot要件が説明とBenchmark Manifest収集に分散していたため、Normal／Gray-box専用のbefore／after／comparison JSON + Zod契約を追加した。Playwright CLIの実Runtime観察をSnapshot区間で実施し、追加Source差分0を確認した。
 - 2026-08-10 JST: Wave 5のChanged BR／AC・直接参照Normative fileからAffected Challenge IDをCI／Review Summaryへ出す要件が、`summarizeSpecDrift` helperとテストだけでCI未接続だったためD5と分類した。既存Style Quality Job内へSummary CLIを接続し、ローカルWorking Treeでは未追跡specも含める方針を採用した。
+- 2026-08-10 JST: ユーザーが既存84件のformatter baseline修復を明示承認したため、Repair Loop iteration 2として実行開始時点の`prettier --list-different`対象だけを許可スコープにした。84件をPrettierで整形し、残件0を確認した後、`pnpm run verify`を再実行して全ローカル品質ゲートの成功を確認した。

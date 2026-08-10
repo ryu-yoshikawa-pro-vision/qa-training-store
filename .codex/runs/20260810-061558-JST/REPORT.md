@@ -285,3 +285,25 @@
 - Goal State: B1／B3は複数の連続Goal監査で同一条件が再発し、今回のD5補修後も、ユーザーの追加判断または外部状態変更なしには解消できない。Final DoDは`BLOCKED`を維持し、Goal lifecycleをblockedへ更新する。
 - Scope Guard: 既存84ファイルの無関係な一括整形、branch公開、push、commit、PR、workflow dispatchは実施しない。未実行検証をPASS扱いしない。
 - Progress: 96% (26/27)
+
+## 2026-08-10 12:15 (JST)
+
+- Summary: ユーザー承認済みの既存84件formatter baselineをRepair Loop iteration 2として修復し、要求された`pnpm run verify`を再実行した。
+- Iteration: `iteration_number=2`。`input_findings=must_fix: B1 existing formatter baseline 84 files`。`repair_plan=実行開始時点のPrettier対象84相対Pathだけを許可し、Prettierで整形後に残件確認、verifyを単独実行する。Product sourceの設計変更、Git mutation、CI dispatchは行わない`。
+- Allowed Files: 実行開始時点の`pnpm exec prettier --list-different . --ignore-path .prettierignore`が返した84相対Path（workflow 2、app/config・native route 16、Maestro 17、src 29、tests 20）と同Run Artifact。
+- Repair: PowerShellの一括引数渡しはPrettierが84Pathを単一patternとして解釈したため採用せず、1Pathずつ`pnpm exec prettier --write`を実行した。最初のsmoke対象1件と残り83件を完了し、対象再監査は`prettier --list-different` exit 0・残件0。
+- Validation: `pnpm run verify` exit 0。`format:check` PASS、Markdown 230 files / 0 issues、Specification validation 3 challenges PASS、lint 0 errors / 64 warnings、両TypeScript typecheck PASS、security static check 233 runtime files / 288 credential-scan files PASS、Unit 66 / Integration 98 / Repository 33 / Web Component 76 / Native Jest 47 / Contract 185 tests PASS、web export PASS、Specification 21 pages build PASS。`git diff --check`もPASS。
+- Changed Files: Prettier対象84件は作業ツリー上でLFへ正規化され、`git status --short`では84件のstat-only変更として見えるが、`git diff --stat`／`git diff --numstat`は0で、Gitのtext normalization後に意味のある内容差分はない。生成物`dist`／`output`のtracked差分は0。
+- Remote Evidence: GitHub connector read-only auditでHEAD `4f943ff28363718b06a62eacc00d248913a06422`のPhase 1 CI run `31350967334`はsuccess、Native CI run `31350967422`は12:15 JST時点でin_progress。Native CIの完了まではRemote Required CIをPASS扱いしない。
+- Repair Loop: first failureは無く、iteration 2のvalidation resultはlocal `stop_success`。remaining deltaはRemote Native CIの完了確認のみ。B1は解消、B3は継続監査。
+- Decision: `stop_success`（iteration 2）。Task 23を完了。Final Task 22とGoalはRemote CI完了確認後に判定する。
+- Progress: 96% (27/28)
+
+## 2026-08-10 12:22 (JST)
+
+- Summary: Required Remote CIの完了を確認し、Final DoDを再判定した。B1（formatter baseline）とB3（Remote CI）は解消済みで、未完了Required Blockerはない。
+- Remote Evidence: HEAD `4f943ff28363718b06a62eacc00d248913a06422`について、GitHub ActionsのPhase 1 CI run `31350967334`（run #139）とNative CI run `31350967422`（run #87）がともに`completed/success`。Native CIの全10 jobsもsuccessで、Android Runtime / Maestro、Android Automation／Production-validation Build、Native Static、Production Bundle Guard、iOS Automation／Production-validation Build、iOS Native CI Verifyを含む。
+- Final Validation: `pnpm run verify` exit 0、formatter残件0、`git diff --check` PASS。Run JSON、Agentic evaluation、manifestのJSON parseとRun Artifact Sanitizerを最終実行対象とする。
+- Final DoD: PlanのWave 0〜10、Runtime Validation、Repair Loop、Required local verify、Required Remote CI、Scope／Safety／Artifact監査を満たした。Lintの64 warningsは既存警告であり、errorは0。未実行検証をPASSへ拡張していない。
+- Decision: `Final DoD=PASS`。Task 22を完了し、Goalをcompleteへ更新する。
+- Progress: 100% (28/28)

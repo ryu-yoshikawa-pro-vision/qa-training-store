@@ -40,7 +40,7 @@
     ".codex/runs/20260810-061558-JST/"
   ],
   "validation": {
-    "status": "partial",
+    "status": "passed",
     "commands": [
       "pnpm run validate:spec",
       "pnpm run build:spec",
@@ -98,12 +98,17 @@
       "pnpm run typecheck after D5",
       "pnpm run build:spec after D5 (21 pages)",
       "pnpm run validate:spec and pnpm run lint:markdown after D5",
-      "targeted ESLint and Prettier after D5"
+      "targeted ESLint and Prettier after D5",
+      "repair iteration 2: Prettier baseline 84 files rewritten; prettier --list-different exit 0",
+      "pnpm run verify (PASS: format, markdown, spec, lint, typecheck, image manifest, security, tests, web build, spec build)",
+      "GitHub connector read-only Remote CI audit: Phase 1 CI and Native CI completed/success; Native CI all 10 jobs success",
+      "Run JSON parse and Agentic QA contract validation after final artifact update",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260810-061558-JST -Write -Check"
     ],
     "warnings": [
-      "Full verifyは既存tracked file 84件のPrettier baselineでfail-close。今回追加・変更ファイルのtargeted PrettierはPASS。",
+      "過去のFull verify baseline failureはRepair Loop iteration 2で解消。lintは0 errors / 64 warnings。",
       "lintは0 errors / 64 existing warnings。",
-      "Remote GitHub ActionsはGit mutation禁止のため未実行。",
+      "Remote Native CIはHEADに対してin_progress。Phase 1 CIはsuccess。",
       "Native Runtime/Boundary full Suiteは今回のAgentic Dry Run範囲外で未実行。"
     ]
   },
@@ -166,6 +171,6 @@
     }
   },
   "evaluation_path": ".codex/runs/20260810-061558-JST/evaluation.json",
-  "status": "partial",
-  "primary_failure_category": "quality_gate_baseline"
+  "status": "completed",
+  "primary_failure_category": null
 }
