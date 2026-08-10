@@ -2495,3 +2495,13 @@ Unexpected true defect
 - Local Blockerで全Goalを止めず、独立Taskを継続する。
 - Final Validationは未解消Required Blockerがあればfail-closeする。
 - 目的は文書量を増やすことではなく、人間とAIが同じ期待値からQAできる状態を作ることである。
+
+## Owner Decision / Architecture Clarification (2026-08-10)
+
+Agentic QA Primary Entry Point is the Coding Agent + Exploratory QA Skill.
+The repository Harness does not launch or wrap the Coding Agent.
+
+- Normal / Gray-box are Skill-first workflows.
+- Black-box Scored uses deterministic preparation and evaluation, but the evaluated Runner is a Fresh Coding Agent Session provided by the Agent runtime / host environment.
+- `scripts/agentic-qa/**` is a deterministic supporting harness for preparation, validation, isolation verification, artifact integrity, evaluation, and scoring.
+- A missing Official Scored capability is recorded as `BLOCKED`; the repository does not add a custom model runner, LLM wrapper, CLI wrapper, session manager, or MCP orchestration to bypass it.

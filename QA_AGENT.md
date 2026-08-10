@@ -2,13 +2,41 @@
 
 この文書は、Scenario Shop を対象にする Agentic QA の実行契約です。Normative Product Specification は `docs/spec/`、Machine Contract の正本は `scripts/agentic-qa/contracts.ts` です。
 
+## Execution Ownership
+
+Primary QA Executor:
+Coding Agent + Exploratory QA Skill
+
+Runtime Interaction:
+Playwright-MCP / Maestro-MCP or equivalent capabilities provided by the
+Coding Agent runtime.
+
+Supporting Harness:
+`scripts/agentic-qa/**`
+
+Harness responsibility:
+Preparation / validation / isolation verification / artifact integrity /
+evaluation / scoring
+
+Harness does NOT launch, wrap, orchestrate, retry, or manage the Coding Agent.
+The direction is `Coding Agent + Skill → Runtime → qa-findings.json →
+Supporting Harness`.
+
 ## Modes
 
-- Normal: `qa-charter.json` の `spec_refs[]` と Required Coverage を使い、既存のアプリ・テスト・生成物を読み取り専用で観察します。通常の変更境界は `.codex/runs/<run_id>/` と `.artifacts/` です。Source Working Tree に追加差分を作りません。
+- Normal (default): `qa-charter.json` の `spec_refs[]` と Required Coverage を使い、既存のアプリ・テスト・生成物を読み取り専用で観察します。通常の変更境界は `.codex/runs/<run_id>/` と `.artifacts/` です。Source Working Tree に追加差分を作りません。
 - Gray-box: Normal と同じ Readonly Boundary を保ちつつ、許可された Seed、Test Control、Narrow Log、Accessibility/DOM などの検証補助を使います。Source、Test、Patch、Answer Key は見ません。
-- Black-box Scored: Challenge の Learner-safe Bundle、Runbook、Challenge だけを isolated execution root に配置し、Fresh Session と Positive Tool Allowlist を使います。Source Repository、`.git`、Tests、Patch、Answer Key、Build Artifact、Search、Generic Shell、Browser arbitrary evaluate、Network Response Body は Runner に渡しません。
+- Black-box Scored: Agent自体の未知不具合探索能力を評価する場合だけ使用します。ChallengeのLearner-safe Bundle、Runbook、Challengeだけをisolated execution rootに配置し、Fresh Coding Agent Session、trusted session identity、Tool Isolation、trusted Actual Tool Scopeを必要とします。
 
 Normal / Gray-box の `qa-findings.json` は `charter_id` と `working_tree_snapshot`（before／after／comparison）を持ち、`challenge_id`、`benchmark_revision`、`runtime_variant_id`、`runner_profile` は `null` です。Black-box Scored は逆に `charter_id` が `null` で、Challenge、Benchmark Revision、Runtime Variant、Runner Profile を必ず記録します。モード間で結果やMetricを混ぜません。
+
+通常の「Scenario ShopをQAしてください」はNormal Skill workflowを使用します。利用中のCoding Agent RuntimeがBlack-boxに必要なFresh Session、trusted identity、Tool Isolation、Actual Tool Scope inventoryを提供できない場合、Official Scored E2Eは `BLOCKED` です。Repository独自RunnerやLLM wrapperで解決しません。
+
+## Runner terminology
+
+In Black-box Scored mode, **Runner** means the Fresh Coding Agent Session
+being evaluated. It does not mean a repository-specific Node.js runner, LLM
+API wrapper, Codex CLI wrapper, or agent orchestration process.
 
 ## Oracle and coverage
 
@@ -46,13 +74,16 @@ Machine Contract validation
 → Post-patch Sanity
 → Scored Initial State Reset
 → isolated root / Tool Allowlist / Forbidden Probe
-→ Fresh Runner
+→ runtime stop / disposable cleanup
+→ Fresh Coding Agent Session (provided by the Agent runtime / host)
 → Frozen qa-findings.json
 → Separate Evaluator
 → evaluation.json
 ```
 
 Challenge Patch は Instructor-only Unified Diff です。Application Branchへ適用してCommitせず、Runner Rootへコピーしません。Pre-patchで対象Defectが既に存在する、Post-patchで再現条件が成立しない、Patch checkが失敗する場合はScored Runを開始しません。
+
+Preparation HarnessはCoding Agentを起動せず、Agent Session生成、Tool routing、retryも担当しません。Fresh SessionがRuntime/Hostから提供されない場合は、Preparation後にOfficial Scoredを開始せず `BLOCKED` と記録します。
 
 Benchmark Identity は `challenge_id + benchmark_revision + runtime_variant_id`、同条件のRunner比較はこれに完全一致する Runner Profile を加えたものです。Clean committed inputだけ `git:<40 lowercase hex>`、それ以外は Canonical Manifest の `sha256:<64 lowercase hex>` を使います。
 
@@ -73,6 +104,6 @@ Coverage = completed_required_coverage_items / required_coverage_items
 - `scripts/agentic-qa/contracts.ts`: JSON + Zod の正本。
 - `scripts/agentic-qa/validate-contracts.ts`: Cross-file と Run Artifact validation。
 - `scripts/agentic-qa/build-learner-bundle.ts`: `spec_refs[]` からの決定的Bundle。
-- `scripts/agentic-qa/prepare-challenge.ts`: disposable patch preparation、isolation、Forbidden Probe。
-- `scripts/agentic-qa/runner.ts` / `evaluate.ts`: Frozen Runner Result と Separate Evaluator。
+- `scripts/agentic-qa/prepare-challenge.ts`: disposable patch preparation、isolation、Forbidden Probe。Coding Agentは起動しない。
+- `scripts/agentic-qa/runner.ts` / `evaluate.ts`: Frozen Runner Result と Separate Evaluator。`runner.ts`はCoding Agentを起動しない。
 - `scripts/agentic-qa/working-tree-snapshot.ts`: Normal / Gray-box前後Snapshotと追加Source差分の比較。

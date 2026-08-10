@@ -17,7 +17,12 @@ import { createRunnerProfile, freezeScoredFindings, writeFrozenFindings } from "
 import { probeForbiddenCapabilities, assertForbiddenProbePasses } from "./isolation";
 import { optionValue, requiredOptionValue } from "./cli";
 
-/** Contract fixture only: this path is never an Official model-backed run. */
+/**
+ * This file validates the deterministic Agentic QA contract path.
+ *
+ * It does not execute a model-backed Coding Agent and must never be treated as
+ * an Official Scored Run.
+ */
 
 function readJson(filePath: string): unknown {
   try {
@@ -75,7 +80,7 @@ function priorRunnerSessionIds(rootDir: string, currentFile: string): string[] {
   return [...new Set(ids)].sort();
 }
 
-export function runLocalBlackBoxFixture(input: {
+export function runContractFixture(input: {
   rootDir?: string;
   runDir: string;
   challengeId: string;
@@ -256,10 +261,10 @@ function isMainModule(): boolean {
 if (isMainModule()) {
   const cliArgs = process.argv.slice(2);
   const model = optionValue(cliArgs, "--model");
-  runLocalBlackBoxFixture({
+  runContractFixture({
     runDir: requiredOptionValue(cliArgs, "--run-dir"),
     challengeId: requiredOptionValue(cliArgs, "--challenge"),
     ...(model === undefined ? {} : { model }),
   });
-  console.log("Frozen local Black-box fixture findings written");
+  console.log("Frozen Agentic QA contract fixture findings written");
 }

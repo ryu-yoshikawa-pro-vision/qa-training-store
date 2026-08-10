@@ -314,16 +314,16 @@
 - Black-box Required Coverageの正本は`challenge.required_coverage`、Learner-safe Bundleは`challenge.spec_refs[]`のNormative owner fileだけを決定的に含む。Answer Key／Unified Diff PatchはInstructor-onlyで、Patchはdisposable copy上の`git apply --check`→`git apply`順序に限定する。
 - Benchmark RevisionはClean committed inputだけ`git:<40 lowercase hex>`、未Commit／mixed inputはCanonical Manifest SHA-256の`sha256:<64 lowercase hex>`を使う。Benchmark Identityは`challenge_id + benchmark_revision + runtime_variant_id`で、同条件Runner比較にはRunner Profile完全一致を要求する。
 - `scripts/agentic-qa/evaluate.ts`はAtomic Finding、Duplicate、`invalid_non_atomic`、TN／`FP_non_defect`／NE、blocked environment、Unexpected Valid Finding、Recall／Precision／FPR／CoverageをFrozen Runner Resultから再計算する。iOSはADR-0011どおりBuild-only、Android物理RuntimeとMaestro PASSはAgentic Capability PASSへ自動昇格しない。
-- 現RunではWeb Normal Charter／Findings、Basic ChallengeのPreparation→Fresh local deterministic fixture Runner→Frozen Findings→Separate Evaluator→Evaluationを契約E2Eとして保存している。これはモデル比較結果ではなく、JSON/Zod、隔離、Identity、評価経路の実装確認である。
+- 現RunではWeb Normal Charter／Findings、Basic ChallengeのPreparation→Contract Fixture→Frozen Findings→Separate Evaluator→Evaluationを契約E2Eとして保存している。これはモデル比較結果ではなく、JSON/Zod、隔離、Identity、評価経路の実装確認である。
 - Evaluator CLIはchallenge別Canonical ManifestをZod検証し、Manifest digest／Runtime Variant／Tool Profile bytes／Challenge budget／明示modelから期待Benchmark IdentityとRunner Profileを再構成してFrozen Findingsと照合する。Evaluation保存時もFrozen Findingsとの4項目Identity一致を再検証する。
 - Candidate Findingは正式Scoreへ直行させず`review_needed`／human adjudicationとしてfail-closeし、Coverage完了だけではNon-defectをTNにせずItem-specific observationが無ければNEとする。Runner／Evaluatorは`.artifacts/agentic-qa/<run-id>/`の別Session証跡を持つ。
 - 最新RunのBasic Preparationではpatched SPAのsession作成後URL遷移待ちを固定し、Baseline clean／Patched defect、Patch apply、Fresh Runner、Separate Evaluator、Identity一致を再確認した。`pnpm run test:contracts` 24 files／185 tests、Full typecheck、Spec validation／HTML build、Markdownlint、Lint 0 errors／64 warningsはPASS。Full `verify`は既存84 tracked fileのPrettier baseline、Remote CIは未取得のためfail-close継続中である。
 
 ## PR #16 Agentic QA fail-close 修正後（2026-08-10）
 
-- Contract FixtureとOfficial model-backed Scored Runを分離した。`run-local-e2e.ts`は固定Findingを生成する診断fixtureであり、`execution_kind=contract_fixture`、未完了Coverage、`fixture_not_official`、metrics nullのため正式スコアにならない。モデル実行基盤は未提供のためOfficial Scored Runは未実行として扱う。
+- Contract FixtureとOfficial model-backed Scored Runを分離した。`run-contract-fixture.ts`は固定Findingを生成する診断fixtureであり、`execution_kind=contract_fixture`、未完了Coverage、`fixture_not_official`、metrics nullのため正式スコアにならない。モデル実行基盤は未提供のためOfficial Scored Runは未実行として扱う。
 - Forbidden Capability Probeはisolated rootの実ファイル／ディレクトリとrunner tool scopeを測定する。Basic Preparationでは17 capabilityすべて`available=false`を確認し、1件でも利用可能なら`assertForbiddenProbePasses`でfail-closeする。
-- PreparationはDisposable Source Copy、Baseline sanity、patch check/apply、Patched sanity、同一patched runtime上のScored Initial State Reset、Runner callback直前Probe、finallyでのruntime stop／disposable cleanupを実処理し、`preparation-order.json`と`runtime-sanity.json`へ相対証跡を保存する。
+- PreparationはDisposable Source Copy、Baseline sanity、patch check/apply、Patched sanity、同一patched runtime上のScored Initial State Reset、独立したTool Scope／Forbidden Probe、runtime stop／disposable cleanupを実処理し、`preparation-order.json`と`runtime-sanity.json`へ相対証跡を保存する。Coding Agent callbackは持たない。
 - CoverageはMission completionとrequired evidence typeの包含を必須化し、FindingはExpected／Reproduction／Actual Deviation／Evidenceが同じDefectを示す場合だけTP候補になる。Runner sessionとEvaluator sessionは別UUIDを実測し、EvaluationはfixtureまたはCoverage不備をPASSへ昇格させない。
 - Benchmark RevisionはNUL-separated Git status、renameのD/A正規化、code-unit comparator、Git failure fail-closeを使う。Snapshotはbefore／afterからcomparisonを再導出し、Spec／CLI／Challenge seed／Normative docsもfail-close契約へ更新した。既存84件のformatter baseline修復後、`pnpm run verify`を再実行する。
 
@@ -332,9 +332,15 @@
 - Forbidden Probeのpolicy declarationとActual Exposed Tool Scopeを分離した。`actual_tool_scope.measured=false`のPreparation-only／Contract Fixtureは、filesystem probeがcleanでも`tool_scope_validated=false`として正式Scoringへ進まない。実ScopeにForbidden capabilityが含まれる場合は、`forbidden capability <name> is reachable; observed=...`としてfail-closeする。
 - Coverageの`evidence_refs`／`evidence_types`はindex対応・同一ref重複禁止・type別syntaxを契約化した。Official Evaluationでは`.artifacts/`内の実体、URL parse、画像拡張子、path containmentを再確認し、descriptionだけではTPにしない。Screenshot等の意味判定不能なEvidenceは`review_needed`／humanへ落とす。
 - Official model-backed EvaluationはBenchmark／Runtime Variant／Runner Profile期待値、実行artifactのmodel identifier／Fresh session／Actual Tool Scope／Forbidden Probe artifact／別Evaluator sessionを独立再検証する。いずれかが不足すれば`valid_for_scoring=false`、metricsはnullとする。
-- `run-local-e2e.ts`は`CHALLENGE-BASIC-001`専用fixtureとして他Challengeをrejectする。Preparationは未知Challengeのreset判定をserver起動より前に行い、内部prepareRunner callbackを常に通過させる。新規Benchmark ManifestはChallenge-specificを正本とし、genericはlegacy fallbackだけにする。
+- `run-contract-fixture.ts`は`CHALLENGE-BASIC-001`専用fixtureとして他Challengeをrejectする。Preparationは未知Challengeのreset判定をserver起動より前に行い、Agent callbackを持たない。新規Benchmark ManifestはChallenge-specificを正本とし、genericはlegacy fallbackだけにする。
 
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。
 - 標準経路は host 上の `codex-safe` / `codex-task --run-id <run_id>`。Docker sandbox は experimental かつ opt-in。
+
+## PR #16 Skill-first + Harness-backed architecture (2026-08-10)
+
+- Agentic QAのPrimary Entry PointはCoding Agent + Exploratory QA Skillである。Normal／Gray-boxを日常QAのPrimary Use Caseとし、Black-box Scoredは評価用途に限定する。
+- `scripts/agentic-qa/**`はCoding Agentを起動・wrap・orchestrateせず、Deterministic Preparation、Contract Validation、Isolation Verification、Artifact Integrity、Evaluation、Scoringだけを担当するSupporting Harnessである。
+- Black-boxのFresh Coding Agent Session、trusted session identity、Tool Isolation、Actual Tool Scope inventoryはAgent Runtime／HostのCapabilityで提供する。提供できないOfficial Scored E2Eは`BLOCKED`とし、Repository独自Runner／LLM wrapperで回避しない。

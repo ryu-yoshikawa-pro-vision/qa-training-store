@@ -21,7 +21,7 @@
 ## 2. 現状理解と前提
 
 - Current understanding:
-  - `run-local-e2e.ts` は固定Findingを生成する契約fixtureで、patched runtimeの観察を行っていない。
+  - `run-contract-fixture.ts` は固定Findingを生成する契約fixtureで、patched runtimeの観察を行っていない。
   - `isolation.ts` は列挙結果を破棄し、Forbidden Probeの `available` を全件falseで返す。
   - `prepare-challenge.ts` はpost-patch sanity後にruntimeを停止し、scored resetとrunner提供が疑似stepに留まる。
   - Coverage schemaにrequired evidence typeはあるが、Coverage Result検証へ接続されていない。
@@ -46,7 +46,7 @@
 
 - Impacted areas: Agentic QA contracts、isolation、preparation、runner/evaluator、coverage、benchmark/snapshot、spec validator、challenge教材、docs、contract tests、Run Artifact。
 - Files to inspect:
-  - `scripts/agentic-qa/{contracts,coverage,isolation,benchmark-revision,working-tree-snapshot,prepare-challenge,runner,run-local-e2e,evaluate,validate-contracts,spec-refs}.ts`
+  - `scripts/agentic-qa/{contracts,coverage,isolation,benchmark-revision,working-tree-snapshot,prepare-challenge,runner,run-contract-fixture,evaluate,validate-contracts,spec-refs}.ts`
   - `scripts/spec/{validate-spec,summarize-impact}.ts`
   - `tests/contracts/spec-agentic-qa.test.ts`
   - `training/agentic-qa/**`

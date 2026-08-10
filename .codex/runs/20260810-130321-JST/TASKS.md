@@ -12,6 +12,10 @@
 
 ## Discovered
 
+- [x] 7. Skill-first ArchitectureとAGENTS／QA入口を同期する
+- [x] 8. Preparation callback／runtime handoffを削除し、Contract Fixtureをrenameする
+- [x] 9. ADR／Plan／Workflow／Curriculum／Project Contextを責務境界へ同期する
+- [x] 10. Architecture correctionの全Validation、scope監査、Sanitizer、完了判定を行う
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
 
 ## Blocked
@@ -22,3 +26,4 @@
 
 - 2026-08-10 18:14 JST: 最終修正（Forbidden Probe completeness／run_id contract）を実装し、必須validationと`pnpm run verify`をPASSした。Official model-backed Runnerは引き続きBlocked／未実行。
 - 2026-08-10 19:39 JST: Trust Boundary残課題4件（Canonical Forbidden Set、実Profile bytes revision再検証、Fresh Session invariant、unmeasured Tool Scope test isolation）を修正し、focused 25 tests／全Contract 24 files・198 tests／`pnpm run verify`をPASSした。Official model-backed Runnerは引き続きBlocked／未実行。
+- 2026-08-10 21:29 JST: Skill-first + Harness-backed Architecture correctionを実装し、callback／runtime handoff削除、Contract Fixture rename、Skill routing／Workflow／ADR／Plan／Project Context同期、focused 26 tests、全Contract 24 files・199 tests、`pnpm run verify`をPASSした。Official model-backed Runnerは引き続きBlocked／未実行。

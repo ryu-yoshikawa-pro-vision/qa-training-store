@@ -11,9 +11,15 @@
   "base_branch": "main",
   "codex_task_reports": [],
   "changed_files": [
+    ".agents/skills/exploratory-qa/SKILL.md",
+    "AGENTS.md",
+    "QA_AGENT.md",
     "docs/PROJECT_CONTEXT.md",
+    "docs/adr/0012-specification-and-agentic-qa-foundation.md",
     "docs/history/2026-08-10_141500_pr16-agentic-qa-repair.md",
     "docs/history/2026-08-10_152146_pr16-scoring-review-followup.md",
+    "docs/history/2026-08-10_210951_agentic-qa-skill-first.md",
+    "docs/plans/2026-08-09_110500_specification-agentic-qa-foundation.md",
     "docs/plans/2026-08-10_130321_pr16-agentic-qa-repair.md",
     "docs/curriculum/test-automation/README.md",
     "docs/curriculum/test-automation/part1/09_part1-capstone.md",
@@ -34,6 +40,7 @@
     "scripts/agentic-qa/isolation.ts",
     "scripts/agentic-qa/prepare-challenge.ts",
     "scripts/agentic-qa/run-local-e2e.ts",
+    "scripts/agentic-qa/run-contract-fixture.ts",
     "scripts/agentic-qa/runner.ts",
     "scripts/agentic-qa/spec-refs.ts",
     "scripts/agentic-qa/validate-contracts.ts",
@@ -111,7 +118,22 @@
       "pnpm run typecheck (app and native-tests)",
       "pnpm exec tsx scripts/agentic-qa/validate-contracts.ts (3 challenges / 1 charter / 3 findings / 8 manifests / 2 evaluations)",
       "pnpm run test:contracts (24 files / 198 tests)",
-      "pnpm run verify (Trust Boundary repair exit 0; 261.8 seconds)"
+      "pnpm run verify (Trust Boundary repair exit 0; 261.8 seconds)",
+      "pnpm exec tsc --noEmit --pretty false (Architecture correction)",
+      "pnpm exec vitest run tests/contracts/spec-agentic-qa.test.ts --no-file-parallelism --maxWorkers=1 (26 tests)",
+      "pnpm run format:check (Architecture correction)",
+      "pnpm run lint:markdown (234 files)",
+      "pnpm run validate:spec (3 challenges)",
+      "pnpm run build:spec (21 pages)",
+      "pnpm run lint (0 errors / 65 warnings)",
+      "pnpm run typecheck (app and native-tests)",
+      "pnpm exec tsx scripts/agentic-qa/validate-contracts.ts (3 challenges / 1 charter / 3 findings / 8 manifests / 2 evaluations)",
+      "pnpm run test:contracts (24 files / 199 tests)",
+      "pnpm run verify (Architecture correction exit 0; 409.6 seconds)",
+      "active reference search for removed Agent Runner callback / handoff / old fixture path (0 matches)",
+      "Product / Native / Maestro scope audit (0 changed paths)",
+      "git diff --check (PASS; LF-to-CRLF warnings only)",
+      "scripts/sanitize-codex-artifacts.ps1 Write/Check (Architecture correction)"
     ],
     "warnings": [
       "Official model-backed Scored Runは実行基盤がないため未実行。Contract Fixtureは正式スコアへ昇格させていない。",
@@ -122,7 +144,8 @@
       "Native CI #91はsuccess。前回の初期UI assert failureは再発せず、Maestro-MCP／Native変更は不要だった。",
       "最初の全体verifyでは既存Native契約1件が5秒timeoutしたが、単独4/4および全Contract 24 files / 196 testsで再現せず、Native／Product変更なしで最終verifyは成功した。",
       "Trust Boundary修正後のfocused Agentic QA contract testは25 tests、全Contractは24 files / 198 testsでPASS。",
-      "Git mutation、branch／commit／push／PR操作は行っていない。"
+      "Git mutation、branch／commit／push／PR操作は行っていない。",
+      "Architecture correction後のOfficial model-backed Scored E2EはRuntime capability不足によりBLOCKED / NOT EXECUTED。"
     ]
   },
   "safety": {

@@ -65,10 +65,10 @@ export type RuntimeSanity = {
 };
 
 /**
- * Internal-only handle. It is intentionally never serialized into a Machine
- * Artifact; the callback keeps the live patched server inside preparation.
+ * Internal-only handle for deterministic Web preparation and sanity checks.
+ * It is never serialized or exposed as a Coding Agent orchestration API.
  */
-export type ScoredRuntimeHandle = {
+type PreparedWebRuntimeHandle = {
   readonly baseUrl: string;
   withPage<T>(callback: (page: Page) => Promise<T>): Promise<T>;
   stop(): Promise<void>;
@@ -88,7 +88,6 @@ export type ChallengePreparation = {
   actual_tool_scope: ActualToolScope;
   tool_scope_validated: false;
   preparation_order: string[];
-  scored_runtime_handoff: "executed" | "not_executed";
   run_dir: string;
 };
 
@@ -493,7 +492,7 @@ async function stopWebServer(server: ChildProcess): Promise<void> {
   });
 }
 
-type RunningWebRuntime = ScoredRuntimeHandle & {
+type RunningWebRuntime = PreparedWebRuntimeHandle & {
   readonly readiness: Omit<RuntimeSanityPhase, "ground_truth">;
 };
 
@@ -601,11 +600,9 @@ async function prepareWebRuntime(
   patchFile: string | null,
   preparationRoot: string,
   challenge: Challenge,
-  prepareRunner: (runtime: ScoredRuntimeHandle) => Promise<"executed" | "not_executed">,
 ): Promise<{
   patch: PatchPreparation;
   runtimeSanity: RuntimeSanity;
-  scoredRuntimeHandoff: "executed" | "not_executed";
 }> {
   const reset = initialStateForChallenge(challenge);
   const baseline = await runWebRuntimePhase(disposable, preparationRoot, "baseline", challenge);
@@ -630,7 +627,6 @@ async function prepareWebRuntime(
       patched: { ...patchedRuntime.readiness, ground_truth: patchedGroundTruth },
       scored_initial_state_reset: scoredInitialStateReset,
     };
-    const scoredRuntimeHandoff = await prepareRunner(patchedRuntime);
     const order = [
       "baseline_build",
       "pre_patch_sanity",
@@ -639,10 +635,6 @@ async function prepareWebRuntime(
       "patched_build",
       "post_patch_sanity",
       "scored_initial_state_reset",
-      "isolated_execution_root",
-      "actual_tool_scope_unavailable",
-      "positive_tool_allowlist_and_forbidden_probe",
-      ...(scoredRuntimeHandoff === "executed" ? ["runner_runtime_handoff"] : []),
     ];
     fs.writeFileSync(
       path.join(preparationRoot, "runtime-sanity.json"),
@@ -663,7 +655,6 @@ async function prepareWebRuntime(
     return {
       patch,
       runtimeSanity,
-      scoredRuntimeHandoff,
     };
   } finally {
     await patchedRuntime.stop();
@@ -693,7 +684,6 @@ export async function prepareChallenge(input: {
   runDir: string;
   runtimeVariantId?: string | null;
   model?: string;
-  runScoredRunner?: (runtime: ScoredRuntimeHandle) => Promise<void>;
 }): Promise<ChallengePreparation> {
   const rootDir = input.rootDir ?? process.cwd();
   const runId = runIdSchema.parse(input.runId);
@@ -741,7 +731,6 @@ export async function prepareChallenge(input: {
   const disposable = copyDisposableSource(rootDir);
   let patch: PatchPreparation;
   let runtimeSanity: RuntimeSanity;
-  let scoredRuntimeHandoff: "executed" | "not_executed" = "not_executed";
   let isolatedRoot: IsolatedRunnerRoot | undefined;
   let forbiddenProbe: ForbiddenProbeResult[] | undefined;
   let actualToolScope: ActualToolScope | undefined;
@@ -754,47 +743,41 @@ export async function prepareChallenge(input: {
       patchFile,
       preparationRoot,
       challenge,
-      async (runtime) => {
-        isolatedRoot = createIsolatedRunnerRoot({
-          outputRoot: path.join(artifactRoot, "isolated-run-root"),
-          learnerBundle,
-          challengeDirectory: paths.directory,
-          challenge,
-        });
-        actualToolScope = {
-          measured: false,
-          source: "unavailable",
-          exposed_capabilities: [],
-        };
-        const measuredProbe = probeForbiddenCapabilities(
-          isolatedRoot.root,
-          tool.profile,
-          actualToolScope,
-        );
-        forbiddenProbe = parseJsonWithSchema(
-          measuredProbe,
-          forbiddenProbeResultsSchema,
-          "forbidden-probe",
-        );
-        assertForbiddenProbePasses(tool.profile, forbiddenProbe);
-        fs.writeFileSync(
-          path.join(preparationRoot, "forbidden-probe.json"),
-          `${JSON.stringify(forbiddenProbe, null, 2)}\n`,
-          "utf8",
-        );
-        fs.writeFileSync(
-          path.join(preparationRoot, "tool-scope.json"),
-          `${JSON.stringify(actualToolScope, null, 2)}\n`,
-          "utf8",
-        );
-        if (input.runScoredRunner === undefined) return "not_executed";
-        await input.runScoredRunner(runtime);
-        return "executed";
-      },
     );
     patch = prepared.patch;
     runtimeSanity = prepared.runtimeSanity;
-    scoredRuntimeHandoff = prepared.scoredRuntimeHandoff;
+    isolatedRoot = createIsolatedRunnerRoot({
+      outputRoot: path.join(artifactRoot, "isolated-run-root"),
+      learnerBundle,
+      challengeDirectory: paths.directory,
+      challenge,
+    });
+    actualToolScope = {
+      measured: false,
+      source: "unavailable",
+      exposed_capabilities: [],
+    };
+    const measuredProbe = probeForbiddenCapabilities(
+      isolatedRoot.root,
+      tool.profile,
+      actualToolScope,
+    );
+    forbiddenProbe = parseJsonWithSchema(
+      measuredProbe,
+      forbiddenProbeResultsSchema,
+      "forbidden-probe",
+    );
+    assertForbiddenProbePasses(tool.profile, forbiddenProbe);
+    fs.writeFileSync(
+      path.join(preparationRoot, "forbidden-probe.json"),
+      `${JSON.stringify(forbiddenProbe, null, 2)}\n`,
+      "utf8",
+    );
+    fs.writeFileSync(
+      path.join(preparationRoot, "tool-scope.json"),
+      `${JSON.stringify(actualToolScope, null, 2)}\n`,
+      "utf8",
+    );
   } finally {
     cleanupDisposableSource(disposable);
   }
@@ -822,8 +805,7 @@ export async function prepareChallenge(input: {
     "isolated_execution_root",
     "actual_tool_scope_unavailable",
     "positive_tool_allowlist_and_forbidden_probe",
-    ...(scoredRuntimeHandoff === "executed" ? ["runner_runtime_handoff"] : []),
-    "scored_runtime_stop_and_disposable_cleanup",
+    "runtime_stop_and_disposable_cleanup",
   ];
   fs.writeFileSync(
     path.join(preparationRoot, "preparation-order.json"),
@@ -850,7 +832,6 @@ export async function prepareChallenge(input: {
     actual_tool_scope: actualToolScope,
     tool_scope_validated: false,
     preparation_order: preparationOrder,
-    scored_runtime_handoff: scoredRuntimeHandoff,
     run_dir: input.runDir,
   };
 }

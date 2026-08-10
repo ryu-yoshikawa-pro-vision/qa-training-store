@@ -9,6 +9,12 @@
 - Fresh Session、Positive Tool Allowlist、Forbidden Capability Probe、Learner-safe Bundle、Instructor-only資料の意味を説明できる。
 - JSON + Zod Contract、Benchmark Revision / Identity、Runner Profile / Budget、評価のFail-close条件を検証できる。
 
+Agentic QAのPrimary Entry PointはCoding Agent + Exploratory QA Skillです。Coding Agentが
+Specificationを読み、Risk-basedにRuntimeを探索し、Playwright-MCP／Maestro-MCP等の
+Runtime CapabilityでEvidenceとAtomic Findingを作成します。`scripts/agentic-qa/**`は
+Coding Agentを起動するScript Runnerではなく、DeterministicなPreparation、Validation、
+Isolation Verification、Artifact Integrity、Evaluation、Scoringを支えるHarnessです。
+
 ## 1. Specificationを読む
 
 最初に `docs/spec/README.md` から対象Featureへ進み、Normativeな Product Scope、Roles、State、UI/UX、Feature Specificationを確認します。Feature文書は次の5節を固定順で持ちます。
@@ -30,6 +36,10 @@
 | Black-box Scored | `challenge.json.required_coverage` | isolated rootのみ | Learner-safe入力での比較可能な探索 |
 
 Normal / Gray-boxでも、`.codex/runs/<run_id>/` と `.artifacts/`へのEvidence保存は許可します。`working-tree-snapshot.ts`で同形式のbefore／after Snapshotを取得し、comparisonの`passed=true`かつ`additional_source_diff_count=0`を確認してからFindingsを確定します。Black-boxのReadonlyはSource Isolationではありません。Runnerへは `learner-spec/`、`runbook/`、`challenge/`だけを渡します。
+
+通常の「Scenario ShopをQAしてください」はNormalを使います。Black-box ScoredのFresh
+Coding Agent Session、trusted identity、Tool Isolation、Actual Tool ScopeはAgent
+Runtime／Hostが提供するCapabilityであり、RepositoryのHarnessが生成しません。
 
 Playwright MCPまたは同等の狭いBrowser Toolでは、Target OriginへのNavigate、Click / Fill / Select / Scroll、DOM / Accessibility / Screenshot / URL観察だけを公開します。Browser arbitrary `evaluate`、JS Bundle / Source Map、Network Response Body、Web Search、Generic Shellを公開Capabilityにしません。NativeではAndroidのDevice / Maestro経路を確認し、iOSは現行ADR-0011どおりCI Build-onlyです。
 
@@ -53,14 +63,15 @@ Baseline Build / Serve / Install
 → Patched Build / Serve / Install
 → Post-patch Sanity
 → Scored Initial StateへReset
-→ Fresh Runner
+→ runtime cleanup
+→ Fresh Coding Agent Session (Agent Runtime / Host provided)
 ```
 
 Pre-patchで対象Defectが存在する、`git apply --check`が失敗する、Post-patchで再現条件を満たさない場合はScored Runを始めません。PatchはApplication Branchへ適用してCommitせず、Runner Rootへコピーしません。
 
 Black-box ScoredのCoverage SSOTは `challenge.required_coverage` のみです。Normal / Gray-boxはCharterから導出します。RunnerはRequired IDを縮小・追加・並べ替えません。`challenge_id + benchmark_revision + runtime_variant_id` がBenchmark Identityで、同じ条件のRunner比較にはRunner Profileも完全一致させます。Clean committed inputは `git:<40 lowercase hex>`、未Commit / mixed inputはCanonical Manifest SHA-256の `sha256:<64 lowercase hex>`です。
 
-RunnerはFresh SessionでPositive Tool Allowlistを使い、Forbidden Capability Probeを通します。RunnerとEvaluatorは別Sessionです。EvaluatorはFrozen `qa-findings.json`を書き換えず、Answer Keyを初めて読んで `evaluation.json`へMatch / Adjudicationを記録します。Environment Blocker、Isolation Failure、Tool Scope Failure、Benchmark Identity Mismatchは `valid_for_scoring=false` とし、`invalid_reasons[]`をenum・unique・辞書順で保存します。
+RunnerはFresh Coding Agent SessionでPositive Tool Allowlistを使い、Forbidden Capability Probeを通します。RunnerとEvaluatorは別Sessionです。HarnessはRunnerを起動・wrap・retryしません。EvaluatorはFrozen `qa-findings.json`を書き換えず、Answer Keyを初めて読んで `evaluation.json`へMatch / Adjudicationを記録します。Environment Blocker、Isolation Failure、Tool Scope Failure、Benchmark Identity Mismatchは `valid_for_scoring=false` とし、`invalid_reasons[]`をenum・unique・辞書順で保存します。
 
 ## 5. 評価の読み方
 

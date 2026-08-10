@@ -11,6 +11,11 @@ import {
 } from "./contracts";
 import { assertCoverageIntegrity } from "./coverage";
 
+/**
+ * Frozen-result and Runner Profile contract helpers only.
+ * This module does not launch, wrap, or orchestrate a Coding Agent.
+ */
+
 export type FrozenRunnerResult = {
   findings: Extract<QaFindings, { mode: "black-box-scored" }>;
   session_id: string;
