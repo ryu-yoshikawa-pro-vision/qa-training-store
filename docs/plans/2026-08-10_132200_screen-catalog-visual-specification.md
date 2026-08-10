@@ -1,7 +1,7 @@
 # Screen Catalog / Visual Specification 全画面・全重要状態整備計画
 
 作成日時: 2026-08-10 13:22 JST  
-レビュー反映: 2026-08-10 13:42 JST
+レビュー反映: 2026-08-10 13:52 JST
 
 ## 0. 依頼概要
 
@@ -61,20 +61,21 @@ Feature Specification と Normative root specification を Expected Product Beha
 12. Web の全 Product / Supporting / Boundary Screen に baseline Visual Reference があり、全 required Important State に適切な Visual Reference がある。
 13. Responsive 差分が意味を持つ画面は Desktop / Tablet / Mobile / Small Mobile のうち必要な Viewport Reference を持つ。
 14. Admin Web は Desktop契約を visual 化し、1024px未満の共通 Admin viewport warning を shared boundary visual として明示する。
-15. Android Native の Current Customer Scope について、全対象 Product Screen の baseline と required Important State を決定的にcaptureできる。
-16. Android canonical Visual Reference は後述する固定 Emulator Profileを基準とし、物理端末ScreenshotはSupplemental Evidenceとして扱う。
+15. Android Native の Current UI Surface に存在する Product / Supporting / Boundary Screen について、全対象 baseline と required Important State を決定的にcaptureできる。Test-onlyはCatalog対象でもVisual DoD必須対象には含めない。
+16. Android canonical Visual Reference は後述する固定 Emulator Profileで生成し、CI Emulatorまたは同Profileを完全再現したLocal Emulatorから得たRaw Artifactだけをcanonical promotion入力とする。物理端末ScreenshotはSupplemental Evidenceとして扱う。
 17. Native Adminは対象外、iOSはCurrent Build-only契約を維持し、Screenshot完備をDoDに含めない。
 18. ScreenshotはGitHub MarkdownとGenerated Specification HTMLの双方で閲覧できる。
 19. `scripts/spec/markdown.ts` / `build-spec.ts` がMarkdown imageをplaceholderではなく実 `<img>` / Visual Referenceとして安全に生成し、必要assetsを`output/spec-site/**`へcopyする。
 20. Screen / State / Capture Case / Screenshot / Related Oracle の参照integrityをValidatorがfail-closeで検証する。
-21. Route追加時にScreen Catalog未登録を検出できるdrift guardがある。
-22. Screenshot assetのmissing / orphan / duplicate naming / stale state driftを機械検証できる。
+21. Route追加時にScreen Catalog未登録を検出できるdrift guardがあり、redirect / alias / framework-internal / excluded entryを明示的に分類できる。
+22. Screenshot assetのmissing / orphan / duplicate naming / stale state driftを機械検証できる。画像内容自体のCurrent Runtime一致はStructural validationと分離して再capture / Human Reviewで確認する。
 23. Screenshot更新は実Product Behaviorの不具合を期待値として固定せず、Normative Specと一致するRuntimeのみをVisual Reference化する。
 24. Product Behavior、Business Rule、Seed semanticsを本PRの都合で変更していない。
 25. Visual専用Scenario追加は最後の手段とし、既存Scenario / Test Control / UI interactionで到達可能な状態は既存資産を再利用する。
 26. `pnpm run verify` と関連Contract / Playwright / Spec build validationが成功する。
 27. Android capture capabilityが利用可能な環境ではNative Visual Referenceを実生成・確認する。環境不足をWeb / Spec実装の停止理由にしないが、required Native asset不足をPASS扱いしない。
-28. Canonical Visual Assetが後述のRepository Size Budgetを満たす。
+28. Current required Product / Supporting / Boundary scopeに`blocked` stateが1件でも残る場合、Implementationを進められる範囲まで完了していてもFinal Visual Specification DoDは`BLOCKED`とする。明示的なNon-goal / Excluded platformは`not-applicable`またはscope exclusionとして扱い、`blocked`で代用しない。
+29. Canonical Visual Assetが後述のRepository Size Budgetを満たす。
 
 ---
 
@@ -157,7 +158,7 @@ Catalog Universe      38
 | 37 | Admin User Detail | `/admin/users/[userId]` | Product | Yes | Excluded | Admin Users |
 | 38 | Admin Test Control | `/admin/test-control` | Test-only | Automation Web | Excluded | Test Control |
 
-この38はplanning baselineであり、`app/**`のplatform variantを再走査して、追加・削除・redirect-only entryがあれば実装前に補正する。
+この38はplanning baselineであり、`app/**`のplatform variantを再走査して、追加・削除・redirect-only / alias / framework-internal entryがあれば実装前に補正する。
 
 #### 2.3 Existing Web Visual Review
 
@@ -208,9 +209,10 @@ Catalog Universe      38
 - Screenshot は expected visual state の補助であり、文章 / BR / AC / Normative root specification より優先する Oracle にはしない。
 - Canonical Visual Reference は GitHub 上でも閲覧可能にするため `docs/spec/assets/screens/**` に軽量化した WebP を保存する。Raw PNG、Playwright output、ADB / Maestro evidence は生成物として `output/**` / `.artifacts/**` に留める。
 - Web screenshot raw capture は Playwright PNG、canonical promotion は既存 `sharp` dependency を使った deterministic WebP conversion とする。
-- Native capture は Android automation build / canonical emulator profile を対象にする。Android capability がない環境では required Native capture 更新を Blocked として記録する。iOS Runtime image は要求しない。
+- Native canonical captureはAndroid automation build + Section 8のcanonical emulator profileを対象にする。標準経路はCI EmulatorでRaw captureをArtifactとして生成し、Artifact download後にprofile一致を検証してcanonical promotionする。Local EmulatorからのpromotionはCIと同じprofileを完全再現しprofile validationを通った場合だけ許可する。Android capability がない環境では required Native capture 更新を Blocked として記録する。iOS Runtime image は要求しない。
 - 画面差分がない同一共通 Boundary（例: Admin mobile warning）は、同じ Canonical Visual Reference を複数 Screen から参照してよい。
 - Visual Reference の更新は通常の UI regression baseline 更新とは別目的であり、pixel-perfect approval system は導入しない。
+- Validatorが保証するstale検出はScreen / State / Capture / Asset参照のStructural Freshnessである。Canonical image内容がCurrent Runtimeと一致するVisual Content Freshnessは、対象変更時の再captureとHuman Reviewで確認する。
 
 ### Non-goals
 
@@ -275,6 +277,8 @@ Rules:
 
 - Screen ID grammar: `^SCREEN-[A-Z0-9]+(?:-[A-Z0-9]+)+$`
 - Screen IDは全Catalogでunique。
+- Screen IDはRoute名ではなく論理画面Identityを表す。同じ論理画面のRoute変更、表示名変更、Primary owner変更では原則維持する。
+- Screen ID変更は画面責務の分割 / 統合 / 意味上の別画面化が発生した場合だけ行い、旧ID参照を同change setで更新する。
 - Dynamic routeは`[productId]`等のfamily表現を使用する。
 - Classは `Product` / `Supporting` / `Boundary` / `Test-only` の4値。
 - Androidは `Yes` / `No` / `Excluded` のいずれか。
@@ -308,10 +312,14 @@ Screen Catalog: [`SCREEN-STOREFRONT-HOME`](../screen-catalog.md#screen-storefron
 
 ##### `default`
 
-![SCREEN-STOREFRONT-HOME default web-desktop](../assets/screens/SCREEN-STOREFRONT-HOME/default/web-desktop.webp "Web Desktop")
+**Web Desktop — Default**
+
+![SCREEN-STOREFRONT-HOME default web-desktop](../assets/screens/SCREEN-STOREFRONT-HOME/default/web-desktop.webp)
 
 ...
 ```
+
+Caption / labelはMarkdown本文として記載し、Markdown image titleだけに意味を持たせない。これによりGitHub MarkdownとGenerated HTMLで同じ情報を読めるようにする。
 
 ### 4.3 State table fixed columns
 
@@ -330,6 +338,8 @@ Screen Catalog: [`SCREEN-STOREFRONT-HOME`](../screen-catalog.md#screen-storefron
 - Screen配下でunique。
 - grammar: `^[a-z0-9]+(?:-[a-z0-9]+)*$`
 - 永久Global State IDは新設しない。
+- 同じUI Stateの意味が維持される限りslugは安定IDとして維持する。表示文言やScenario変更だけを理由にrenameしない。
+- Stateの意味自体が変わる、分割される、統合される場合のみrename /追加 /削除し、Capture Registry / Asset path / Spec referenceを同change setで更新する。
 - Asset path / Capture Registry / Spec tableで同じslugを共有する。
 
 ### 4.5 State Type
@@ -360,7 +370,9 @@ Screen Catalog: [`SCREEN-STOREFRONT-HOME`](../screen-catalog.md#screen-storefron
 - `not-applicable`
   - Screenshotでは意味を表現できない、またはVisual化価値がない。理由必須。
 - `blocked`
-  - 本来requiredだがRuntime / capability / unresolved specificationにより取得不能。Blocker reason必須。Final DoDではrequired state完備とは扱わない。
+  - 本来requiredだがRuntime / capability / unresolved specificationにより取得不能。Blocker reason必須。中間状態としてのみ有効で、Current required Product / Supporting / Boundary scopeに残る場合はFinal DoDを`BLOCKED`とする。
+
+Non-goal / Excluded platformは`blocked`へ入れず、`not-applicable`またはscope exclusionとして明示する。
 
 Accessibilityのfocus / announcement等、Screenshot単独では証明できない状態は無理に画像化せず`not-applicable`と理由を記載し、Existing a11y testをOracle / Evidenceとして参照してよい。
 
@@ -421,7 +433,7 @@ Visual requirement
   ├ required → Capture Case → Canonical Asset
   ├ shared → Shared Asset Reference
   ├ not-applicable → Reason
-  └ blocked → Blocker Reason
+  └ blocked → Blocker Reason → Final DoD BLOCKED
 ```
 
 Validatorはこの状態遷移をfail-closeで確認する。
@@ -528,7 +540,7 @@ Rules:
 - platform / viewport filenameはallowlistで固定する。
 - Raw PNGはcanonical docs assetにしない。
 - WebP変換ではEXIF / timestamp等不要metadataを保持しない。
-- Screenshot file自体にExpected Behaviorを埋め込まず、Markdown state table / captionで意味を説明する。
+- Screenshot file自体にExpected Behaviorを埋め込まず、Markdown state table / visible Markdown labelで意味を説明する。
 - 共通Boundary Screenshotはshared assetとして参照してよい。
 
 ### 7.3 Capture matrix rule
@@ -565,8 +577,9 @@ Responsive-specific state:
 
 #### Android Native
 
-- Native Customer Scope各Product Screen baselineを1つ取得する。
-- `NATIVE_CUSTOMER_SCENARIOS`で表現されるrequired Important Stateをcaptureする。
+- Current Android UI Surfaceに存在するProduct / Supporting / Boundary Screen baselineを1つ取得する。
+- `NATIVE_CUSTOMER_SCENARIOS`等で表現されるrequired Important Stateをcaptureする。
+- Test-only ScreenはCatalog Universeに含めてもVisual DoD必須対象にはしない。
 - Device orientation / densityの直積は作らない。
 - iOSはcanonical visual matrixから除外する。
 
@@ -627,11 +640,46 @@ Status barの時刻・Battery等がcanonical imageを不必要に変えないよ
 
 物理端末Screenshotはcanonical assetを更新する入力に直接使わず、Supplemental EvidenceとしてRuntime比較に利用する。
 
+### Canonical generation / promotion workflow
+
+標準経路を以下で固定する。
+
+```text
+Android Automation APK
+  ↓
+Canonical CI Emulator Profile
+  ↓
+Test Control / Maestroでstate準備
+  ↓
+Raw PNG capture
+  ↓
+GitHub Actions Artifact upload
+  ↓
+Artifact download
+  ↓
+Capture profile / manifest一致確認
+  ↓
+Deterministic WebP promotion
+  ↓
+docs/spec/assets/screens/**
+```
+
+Rules:
+
+- CIはRepositoryへ自動commitしない。Raw Artifactをcanonical promotion入力として提供する。
+- Artifactには少なくともcapture case key、API、AVD profile、resolution、density、locale、font scale、UI modeを確認できるmanifestを含める。
+- Promotion commandはmanifestがSection 8 Required profileと一致しない場合fail-closeする。
+- Local Emulatorからのpromotionは、同じprofile manifest validationを通る場合だけ許可する。
+- 物理端末Raw ScreenshotはSupplemental Evidenceに限定し、canonical promotion入力として受け付けない。
+- Dummy / stale Artifactを代用しない。
+
 ### Native capture failure
 
 - Emulator / APK / Maestro / Test Controlの環境失敗は`blocked`として記録する。
 - dummy image / stale imageでrequired stateをPASSさせない。
 - Web / Spec / HTML / Validatorの独立Taskは継続する。
+- Current required Product / Supporting / Boundary scopeに`blocked`が残る場合、Final DoDは`BLOCKED`とする。
+- Native Admin / iOS Runtime等のNon-goalは`blocked`ではなくscope exclusion / `not-applicable`として扱う。
 
 ---
 
@@ -672,13 +720,41 @@ Canonical Asset
 - Capture Registryから消えたassetを残さない。
 - Shared assetだけは複数stateから参照可能。
 
+### Structural Freshness / Visual Content Freshness
+
+Validatorがfail-closeで保証するのは次のStructural Freshnessである。
+
+- Catalog / Spec / Capture / Asset referenceが現在の構造と一致する。
+- required stateに必要assetが存在する。
+- orphan / stale state pathが存在しない。
+
+画像内容がCurrent Runtimeと一致するVisual Content Freshnessはpixel diffで自動承認せず、次で担保する。
+
+- UI / Product behavior / Capture setupに影響する変更時は対象caseを再captureする。
+- Promotion前後にHuman ReviewでState description / Normative behaviorと比較する。
+- 未再captureの古い画像を「pathが存在する」だけでCurrent visualとして承認しない。
+
 ### Route integrity
 
+`app/**` entryを次のいずれかへ決定的に分類する。
+
+```text
+routable entry
+├ Screen → Screen Catalog mapping必須
+├ redirect / alias → target Screen ID必須
+├ framework / internal → deterministic ignore rule
+└ excluded → explicit reason必須
+```
+
+Rules:
+
 - `app/**` route familyを抽出し、Catalog route coverageと比較する。
-- `_layout*`等非Screen entryを除外する。
+- `_layout*`等非Screen entryをframework / internalとして明示的なignore ruleで除外する。
 - platform-specific route variantを正規化する。
-- redirect-only entryはinventory上明示的に扱う。
+- redirect-only / alias entryを新しいScreenとして水増しせず、target Screen IDへ解決する。
+- excluded entryは理由なしでskipしない。
 - Native Admin route fileは`Excluded`として扱い、missing screenshot failureにしない。
+- 巨大な第二Route Registryは作らず、分類ロジックと必要最小限のexplicit exceptionだけを持つ。
 
 ---
 
@@ -716,6 +792,8 @@ Visual Reference都合で`SCENARIO_METADATA`を汚染しない。
   - Screen / state / visual reference validation
 - `scripts/native/**` / `maestro/**`
   - Android screen/state capture orchestration
+- `.github/workflows/native-ci.yml`
+  - Canonical Android raw capture Artifact / profile manifestを必要最小限で追加する場合の対象。既存Native build/runtime構造を再利用し、第二workflowを作らない。
 - `src/seeds/metadata.ts`
   - 原則read-only。新Scenario追加はSection 10条件を満たす場合のみ。
 - `package.json`
@@ -777,10 +855,12 @@ Start Gateが未達の場合、このPlanの実装をPR #16へ混ぜず、Plan�
 ### Wave 1 — Exact Screen Inventory
 
 - [ ] `app/**/*.tsx`をplatform variant含めて列挙する。
-- [ ] `_layout*`等の非Screen entryを除外する。
+- [ ] `_layout*`等の非Screen entryをframework / internalとして分類する。
 - [ ] `[id]` Dynamic Routeをscreen familyとして正規化する。
+- [ ] redirect-only / alias routeは新Screenへ数えずtarget Screen IDへmappingする。
 - [ ] `+not-found`、`/forbidden`、Admin responsive boundary、Native shell boundaryを明示する。
 - [ ] Product / Supporting / Boundary / Test-only / Excludedを分類する。
+- [ ] excluded entryには明示的理由を記録する。
 - [ ] Web / Android Native / Excluded Native Admin / iOS Build-onlyを分類する。
 - [ ] Screen ID、Audience / Role、Primary owner、Feature linkを確定する。
 - [ ] Catalog Universe CountとProduct Screen Countを別々に記録する。
@@ -805,6 +885,7 @@ Start Gateが未達の場合、このPlanの実装をPR #16へ混ぜず、Plan�
 - [ ] Screen Catalog tableをSection 4.1のfixed grammarにする。
 - [ ] `docs/spec/_templates/feature-spec.md`の`UI / Behavior Contract` templateをSection 4.2のscreen-centric grammarへ更新する。
 - [ ] 全Feature Specを画面単位に再構成する。
+- [ ] Screen ID / State slugのlifecycle ruleをTemplate / Validatorへ反映する。
 - [ ] Screen CatalogへBR本文 / Expected UI本文を複製しない。
 - [ ] Feature Screen sectionへCatalog metadataを二重記載せずScreen ID linkを使う。
 - [ ] Supporting / Boundary screenはRelated OracleとしてNormative root sectionを許可する。
@@ -838,6 +919,7 @@ output/spec-visuals/raw/web/<screen-id>/<state>/<viewport>.png
 - [ ] Raw captureを`sharp`でdeterministic WebPへ変換する。
 - [ ] metadataをstripする。
 - [ ] Canonical pathへ明示的にpromotionする。
+- [ ] Native Artifactをpromotionする場合はSection 8 profile manifest一致を必須にする。
 - [ ] 1MiB per asset / 100MiB total budgetをValidatorで確認する。
 - [ ] Promotion後のasset count / total bytes / largest assetをreportする。
 - [ ] Visual Reference更新時にcapture condition / state / scenarioも同じchange setで更新する。
@@ -853,14 +935,18 @@ pnpm run validate:spec-visuals
 
 ### Wave 6 — Android Native Visual Capture
 
-- [ ] Current Native Customer screen inventoryを再確認する。
+- [ ] Current Android UI SurfaceのProduct / Supporting / Boundary screen inventoryを再確認する。
 - [ ] Section 8のcanonical emulator profileを固定する。
 - [ ] Locale / font scale / UI mode / animation / System UIをdeterministicにnormalizeする。
 - [ ] Existing Test Control Deep Link / Maestro flowを使い、Screen × Stateを決定的に準備する。
-- [ ] Native Customer baseline全Product Screenをcaptureする。
-- [ ] `NATIVE_CUSTOMER_SCENARIOS`で表現されるrequired Important Stateをcaptureする。
+- [ ] Native Product / Supporting / Boundary baselineをcaptureする。
+- [ ] `NATIVE_CUSTOMER_SCENARIOS`等で表現されるrequired Important Stateをcaptureする。
 - [ ] Native runtime init error / session loading / unsupported role boundaryのうちautomationで決定的に作れる状態だけrequired化する。
+- [ ] CI EmulatorではRaw PNG + capture profile manifestをArtifactとしてuploadできるようにし、既存Native CI構造を再利用する。
+- [ ] Artifact download → manifest validation → WebP promotion経路を確認する。
+- [ ] Local Emulator promotionはcanonical profile validationを通った場合だけ許可する。
 - [ ] 物理端末画像をcanonicalへ直接promotionしない。
+- [ ] Test-only ScreenをVisual DoD必須対象にしない。
 - [ ] Native Adminはcapture対象へ入れない。
 - [ ] iOSをRuntime screenshot Gateへ昇格させない。
 
@@ -868,6 +954,7 @@ pnpm run validate:spec-visuals
 
 ```text
 pnpm run capture:spec-visuals:native:android
+pnpm run promote:spec-visuals -- --source <downloaded-native-artifact>
 ```
 
 Windows wrapperへ追加する場合も、既存Build / Install / Test Control / Device selectionを再利用し、第二のAndroid runnerを作らない。
@@ -876,8 +963,8 @@ Windows wrapperへ追加する場合も、既存Build / Install / Test Control /
 
 - [ ] Markdown image syntaxを実`<img>`としてrenderする。
 - [ ] `alt`を必須にする。
-- [ ] `loading="lazy"`、responsive max-width、border / caption styleを追加する。
-- [ ] Markdown image titleをcaptionへ使う場合は安全にescapeする。
+- [ ] `loading="lazy"`、responsive max-width、border styleを追加する。
+- [ ] Caption / state labelはMarkdown本文へ置き、image titleだけに意味を持たせない。
 - [ ] `docs/spec/assets/**`を`output/spec-site/assets/**`へpreserveしてcopyする。
 - [ ] Relative URLをMarkdown locationとGenerated HTML locationの双方で正しく解決する。
 - [ ] Path traversal / external local file readを許可しない。
@@ -889,12 +976,16 @@ Windows wrapperへ追加する場合も、既存Build / Install / Test Control /
 - [ ] Screen Catalog grammarを検証する。
 - [ ] Screen section grammar / State table列名・順序を検証する。
 - [ ] Screen ID / State slug uniquenessを検証する。
-- [ ] `app/**` route inventoryとScreen Catalog coverageを比較する。
+- [ ] Screen ID / State slugのgrammarとstable identity ruleに反する意図しないrenameをreview対象として明示する。
+- [ ] `app/**` route inventoryをScreen / redirect-alias / framework-internal / excludedへ分類しScreen Catalog coverageを比較する。
+- [ ] redirect / aliasはtarget Screen ID存在を検証し、excludedはreason必須とする。
 - [ ] Product / Supporting / Boundary / Test-only countを別々に算出する。
 - [ ] Spec State ↔ Capture Registry ↔ Assetの3-way integrityを検証する。
 - [ ] Related Oracleが既存Normative targetへ解決できることを検証する。
 - [ ] `required` / `shared` / `not-applicable` / `blocked`の必要metadataを検証する。
-- [ ] missing / orphan / stale visualを検証する。
+- [ ] Current required Product / Supporting / Boundary scopeに`blocked`が残る場合、Final completion reportをPASSにできないContractを設ける。
+- [ ] missing / orphan / stale state path等のStructural Freshnessを検証する。
+- [ ] Visual Content Freshnessは自動pixel判定せず、影響変更時のrecapture / Human Review必須として運用contract化する。
 - [ ] State slug / Screen IDとcanonical asset pathの一致を検証する。
 - [ ] Screenshot image linkが`docs/spec/assets/screens/**`外へ逸脱しないことを検証する。
 - [ ] Shared boundary image reuseを許可する。
@@ -908,14 +999,15 @@ Visual runtime captureそのものを毎PRのRequired CIへ入れる必要はな
 
 - [ ] 全required Web baselineをcapture / promoteする。
 - [ ] 全required Web Important Stateをcapture / promoteする。
-- [ ] Android capabilityが利用可能なら全required Android baseline / Important Stateをcapture / promoteする。
+- [ ] Android capabilityが利用可能なら全required Android Product / Supporting / Boundary baseline / Important Stateをcapture / promoteする。
 - [ ] Screen Catalogから各Screenへ実際に辿れるか確認する。
 - [ ] Feature screen sectionからRelated Oracleへ辿れるか確認する。
 - [ ] ScreenshotとState description / Normative behaviorが一致するか人間視点で確認する。
+- [ ] UI / Product behavior / capture setupに影響する変更について対象caseが再captureされ、古い画像内容をpath存在だけで承認していないことを確認する。
 - [ ] Desktop / Tablet / Mobile / Androidで文字切れ、横overflow、画像欠落、誤状態がないことを確認する。
 - [ ] Screenshotにcredential / secret / OS absolute path / debug-only unexpected dataが写っていないことを確認する。
 - [ ] Generated HTMLをDesktop / Mobileで実閲覧する。
-- [ ] `blocked` stateが残る場合は理由を列挙し、偽の完了判定をしない。
+- [ ] `blocked` stateがCurrent required Product / Supporting / Boundary scopeに1件でも残る場合は理由を列挙し、Final DoDを`BLOCKED`とする。
 
 ### Wave 10 — Documentation / Final Gate
 
@@ -925,6 +1017,7 @@ Visual runtime captureそのものを毎PRのRequired CIへ入れる必要はな
 - [ ] READMEからSpecification Entryが変わる場合は最小更新する。
 - [ ] `.codex/runs/**`へ実装・capture・blocked platform結果を残す。
 - [ ] Product Screen Count / Catalog Universe Count / Important State Count / Required Visual Count / Blocked Count / Asset total bytesを最終reportへ記載する。
+- [ ] Android canonical assetを更新した場合は、promotion元Artifactとcapture profile validation結果を最終reportへ記載する。
 - [ ] Full validationを実行する。
 
 ---
@@ -953,8 +1046,10 @@ git diff --check
 1. Route coverage
    - 新しい`app/foo.tsx` routeがScreen Catalog未登録ならfail。
    - `.native.tsx`のみ / `.web.tsx` variantを正しくplatform classificationする。
-   - `_layout*`等はScreenとして誤検出しない。
+   - `_layout*`等はScreenとして誤検出せずframework/internalとして除外する。
    - `+not-found`をBoundary Screenとして扱う。
+   - redirect / aliasは新Screenとして数えずtarget Screen IDへ解決する。
+   - excluded entryはreasonなしでskipできない。
    - Native AdminをExcludedとして扱う。
 2. Screen Catalog
    - Screen ID duplicateはfail。
@@ -971,6 +1066,7 @@ git diff --check
    - `shared`なのにshared refなし → fail。
    - `not-applicable`なのにreasonなし → fail。
    - `blocked`なのにblocker reasonなし → fail。
+   - Current required Product / Supporting / Boundary scopeに`blocked`あり → Final PASS不可。
 5. 3-way integrity
    - Spec stateなしCapture Case → fail。
    - Capture Caseなしasset → fail。
@@ -984,14 +1080,21 @@ git diff --check
    - Markdown imageが`<img>`になる。
    - placeholderへ退行しない。
    - assetが`output/spec-site/**`へcopyされる。
-   - relative path / caption / altがescapeされる。
+   - relative path / altがescapeされる。
+   - Markdown本文のvisual labelがGitHub / Generated HTML双方で読める。
 8. Scope
    - Product Screen CountとCatalog Universe Countを混同しない。
+   - Android Product / Supporting / Boundary required scopeを適切に扱う。
+   - Test-onlyをVisual DoD必須対象にしない。
    - Native Adminをrequired screenshotへ入れない。
    - iOS Build-onlyをrequired screenshotへ入れない。
 9. Asset budget
    - 1 asset > 1MiB → fail。
    - total > 100MiB → fail。
+10. Native canonical profile
+   - Artifact manifestがRequired profileと不一致 → promotion fail。
+   - profile manifestなし → promotion fail。
+   - 物理端末由来artifact → canonical promotion不可。
 
 ### Web runtime
 
@@ -1011,10 +1114,12 @@ Android capabilityが利用可能な場合:
 1. Current automation APK build/install。
 2. Canonical Emulator Profileを適用。
 3. Test Control reset。
-4. Native required baseline capture matrix実行。
+4. Native required Product / Supporting / Boundary baseline capture matrix実行。
 5. Native required Important State capture matrix実行。
-6. Existing Runtime / Boundary / Purchase / Review Maestro flowの回帰確認。
-7. Canonical WebP promotion後にSpec Markdown / HTMLから画像確認。
+6. Raw PNG + capture profile manifestをArtifactとして保存する。
+7. Existing Runtime / Boundary / Purchase / Review Maestro flowの回帰確認。
+8. Artifact download後、profile validationを通してCanonical WebPへpromotionする。
+9. Spec Markdown / HTMLから画像確認。
 
 Maestro-MCPが利用可能なら実画面状態の補助確認に使用する。
 
@@ -1024,17 +1129,20 @@ Android capabilityがない場合:
 - Required Native canonical imagesの更新未実行をBlockedとして記録する。
 - Web / Static / HTMLを止めない。
 - 未生成画像をdummy placeholderや過去の無検証画像で埋めてPASSさせない。
+- Final DoDは`BLOCKED`とし、Native Admin / iOS等のNon-goalはblocked countへ含めない。
 
 ### 成功判定
 
 - Product Screen CountがCurrent Product Scopeと一致する。
 - Catalog Universe CountがCurrent route / supporting / boundary / test-only inventoryと一致する。
-- 各Product Screenにbaseline visualがある。
+- 各required Product / Supporting / Boundary Screenにbaseline visualがある。
 - 各Important StateがState Matrixにあり、Visual Requirementが明示される。
 - `required` StateはCapture RegistryとAssetの双方に存在する。
 - 適用platformでrequired visualが欠けていない。
+- Current required scopeに`blocked`が0件である。
 - Generated HTMLで全画像が404にならず閲覧できる。
 - Normative SpecとScreenshotに矛盾がない。
+- Visual Content Freshness対象の変更では必要caseを再capture / Human Reviewしている。
 - Existing Product E2E / a11y / mobile-boundary / Native flowを壊していない。
 - Asset budgetを満たす。
 
@@ -1093,9 +1201,11 @@ Android real/emulator capabilityがない環境ではcanonical image更新がで
 対策:
 
 - Current CI emulator profileをcanonical profileに固定する。
+- CI EmulatorでRaw Artifact + profile manifestを生成し、download後にfail-closeでprofile検証してpromotionする。
+- 同profileを完全再現したLocal Emulatorのみ代替promotion入力を許可する。
 - Local Blockerとして分離する。
 - Static / HTML / Web実装を継続する。
-- Final DoDではNative required image不足を明示し、偽PASSしない。
+- Final DoDではNative required image不足を`BLOCKED`として明示し、偽PASSしない。
 
 ### R6. Screen Catalogが第二SSOTになる
 
@@ -1135,6 +1245,27 @@ Focus / announcement等を無理に画像へ落とすと誤った完了判定に
 - `not-applicable`を許可し理由必須にする。
 - Related Oracle / Existing a11y testへ接続する。
 
+### R10. Structural Freshnessだけ通り画像内容が古い
+
+Catalog / Spec / Capture / Asset pathが一致しても、UI変更後に古いScreenshot内容が残る可能性がある。
+
+対策:
+
+- Structural FreshnessとVisual Content Freshnessを明確に分離する。
+- UI / Product behavior / Capture setupへ影響する変更時は対象caseを再captureする。
+- Promotion時にHuman ReviewでCurrent Runtime / Normative Specと比較する。
+- Pixel diff Required CIは導入せず、path存在だけでCurrent imageとして承認しない。
+
+### R11. Route alias / redirectをScreenとして誤カウントする
+
+Compatibility routeやredirect-only entryを独立Screenへ数えるとCatalog UniverseとVisual DoDが膨らむ。
+
+対策:
+
+- Route integrityでScreen / redirect-alias / framework-internal / excludedへ分類する。
+- redirect / aliasはtarget Screen IDを必須にする。
+- excludedはreason必須にし、silent skipを許可しない。
+
 ---
 
 ## 15. 成果物
@@ -1164,6 +1295,8 @@ scripts/native/
 
 maestro/
 └ <visual capture orchestration if required>
+
+.github/workflows/native-ci.yml
 
 tests/contracts/
 └ <screen catalog / visual spec contract tests>
@@ -1203,7 +1336,7 @@ docs/history/<timestamp>_screen-catalog-visual-specification.md
 5. Visual Requirementを全Important Stateへ付与する。
 6. Spec ↔ Capture ↔ Asset 3-way integrityを作る。
 7. 既存deterministic test setupを再利用してVisual Referenceを生成する。
-8. Android canonical capture profileを固定する。
+8. Android canonical capture profile + Artifact promotion経路を固定する。
 9. HTML / Validatorでdriftしない構造にする。
 10. 最後に全required Screen / Important Stateをbackfillする。
 
@@ -1250,8 +1383,10 @@ Canonical Asset Total Bytes: N
 
 Final判定:
 
-- `blocked` required stateが0で、全Required Visual / validation / regressionが成功 → PASS。
-- Android capability不足等でrequired stateが残る → Implementationは進められる範囲まで完了してもFinal DoDはBLOCKED。
+- Current required Product / Supporting / Boundary scopeの`blocked`が0で、全Required Visual / validation / regressionが成功 → PASS。
+- Android capability不足等でCurrent required scopeに`blocked` stateが残る → Implementationは進められる範囲まで完了してもFinal DoDは`BLOCKED`。
 - `not-applicable`は理由と代替Oracle / testが妥当ならBlockerにしない。
+- Native Admin / iOS Runtime / Test-only Visual等の明示的Non-goalは`blocked`へ入れず、scope exclusion / `not-applicable`として扱う。
 - Supporting / Boundary / Test-onlyをProduct Screen完了数へ混ぜない。
 - 未生成画像をplaceholder / stale imageで補ってPASSさせない。
+- Structural FreshnessがPASSでもVisual Content Freshnessの必要なrecapture / Human Reviewが未完了ならPASSにしない。
