@@ -1,4 +1,10 @@
-import type { Challenge, Charter, CoverageDefinition, CoverageResult } from "./contracts";
+import {
+  evidenceRefSyntaxError,
+  type Challenge,
+  type Charter,
+  type CoverageDefinition,
+  type CoverageResult,
+} from "./contracts";
 
 export function deriveRequiredCoverage(
   source: Pick<Charter | Challenge, "required_coverage">,
@@ -51,8 +57,23 @@ export function assertCoverageIntegrity(
         throw new Error(`completed coverage requires mission_completed: ${item.coverage_id}`);
       if (item.evidence_refs.length === 0)
         throw new Error(`completed coverage requires evidence_refs: ${item.coverage_id}`);
+      if (item.evidence_refs.length !== item.evidence_types.length)
+        throw new Error(`coverage evidence refs and types must be paired: ${item.coverage_id}`);
+      const seenRefs = new Set<string>();
+      const pairs = item.evidence_refs.map((ref, index) => {
+        const type = item.evidence_types[index];
+        if (type === undefined)
+          throw new Error(`coverage evidence type is missing: ${item.coverage_id}`);
+        if (seenRefs.has(ref))
+          throw new Error(`coverage evidence ref is duplicated: ${item.coverage_id}`);
+        seenRefs.add(ref);
+        const syntaxError = evidenceRefSyntaxError(ref, type);
+        if (syntaxError !== null)
+          throw new Error(`coverage evidence is invalid for ${item.coverage_id}: ${syntaxError}`);
+        return { ref, type };
+      });
       const missingTypes = definition.required_evidence_types.filter(
-        (type) => !item.evidence_types.includes(type),
+        (type) => !pairs.some((pair) => pair.type === type),
       );
       if (missingTypes.length > 0)
         throw new Error(

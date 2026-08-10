@@ -13,8 +13,7 @@
 ## Discovered
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
-- D1. model-backed Official Scored Runの実行基盤が存在しないため、未実行を正式PASSへ昇格させないArtifactを残す。
 
 ## Blocked
 
-- B1. なし（現時点）。
+- B1 / D1. Official model-backed Runner execution infrastructure is unavailable。Foundation全体のOfficial Scored Runは未実行であり、未実行をPASS扱いしない。Repair implementation／local validationの完了とは分離する。Blockedは進捗分母へ含めない。

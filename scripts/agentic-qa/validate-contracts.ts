@@ -78,19 +78,21 @@ function relativeFromRoot(rootDir: string, absolutePath: string): string {
   return path.relative(rootDir, absolutePath).split(path.sep).join("/");
 }
 
-function assertUnifiedDiff(filePath: string): void {
+export function assertUnifiedDiff(filePath: string): void {
   const lines = fs.readFileSync(filePath, "utf8").split(/\r?\n/);
   const oldHeader = lines.find((line) => line.startsWith("--- a/"));
   const newHeader = lines.find((line) => line.startsWith("+++ b/"));
   if (oldHeader === undefined || newHeader === undefined)
     throw new Error(`Challenge patch is not a Unified Diff: ${filePath}`);
   if (
-    lines.some(
-      (line) =>
-        line.startsWith("+") &&
-        !line.startsWith("+++") &&
-        /^(?:#!|powershell|pwsh|bash|node|npm|pnpm|tsx)\b/i.test(line.slice(1).trim()),
-    )
+    lines.some((line) => {
+      if (!line.startsWith("+") || line.startsWith("+++")) return false;
+      const addedLine = line.slice(1).trim();
+      return (
+        addedLine.startsWith("#!") ||
+        /^(?:powershell|pwsh|bash|node|npm|pnpm|tsx)\b/i.test(addedLine)
+      );
+    })
   ) {
     throw new Error(`Challenge patch contains a setup command: ${filePath}`);
   }

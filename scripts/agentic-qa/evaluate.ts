@@ -9,10 +9,13 @@ import {
   challengeIdSchema,
   challengeSchema,
   compareCodeUnits,
+  evidenceRefSyntaxError,
   evaluationSchema,
   parseJsonWithSchema,
   qaFindingsSchema,
+  runnerSessionSchema,
   toolProfileSchema,
+  forbiddenProbeResultsSchema,
   type AnswerItem,
   type AnswerKey,
   type Challenge,
@@ -35,6 +38,9 @@ export type EvaluationOptions = {
   expectedRuntimeVariantId?: string | null;
   expectedBenchmarkRevision?: string;
   expectedRunnerProfile?: RunnerProfile;
+  runnerSessionArtifactPath?: string;
+  forbiddenProbeArtifactPath?: string;
+  evaluatorSessionArtifactPath?: string;
   isolationFailure?: boolean;
   toolScopeFailure?: boolean;
   preparationFailure?: boolean;
@@ -49,12 +55,59 @@ function coverageComplete(findings: QaFindings, coverageId: string): boolean {
   );
 }
 
-function evidenceSatisfies(finding: Finding, item: ActiveAnswerItem): boolean {
+const MACHINE_EVIDENCE_TYPES = new Set(["dom", "accessibility", "console", "narrow_log", "trace"]);
+
+function safeArtifactPath(rootDir: string, ref: string): string | null {
+  if (!ref.startsWith(".artifacts/")) return null;
+  const root = path.resolve(rootDir);
+  const candidate = path.resolve(root, ...ref.split("/"));
+  const relative = path.relative(root, candidate);
+  if (
+    relative === "" ||
+    relative === ".." ||
+    relative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(relative)
+  )
+    return null;
+  return candidate;
+}
+
+function artifactText(rootDir: string, ref: string, requireExisting: boolean): string | null {
+  const filePath = safeArtifactPath(rootDir, ref);
+  if (filePath === null || !fs.existsSync(filePath)) return requireExisting ? null : "";
+  try {
+    if (!fs.statSync(filePath).isFile()) return null;
+    return fs.readFileSync(filePath, "utf8");
+  } catch {
+    return null;
+  }
+}
+
+function evidenceSupportsObservation(
+  rootDir: string,
+  evidence: Finding["evidence"][number],
+  expectedObservation: string,
+  requireExisting: boolean,
+): boolean {
+  if (!MACHINE_EVIDENCE_TYPES.has(evidence.type)) return false;
+  const content = artifactText(rootDir, evidence.ref, requireExisting);
+  if (content === null) return false;
+  return normalizeText(content).includes(normalizeText(expectedObservation));
+}
+
+function evidenceSatisfies(
+  finding: Finding,
+  item: ActiveAnswerItem,
+  rootDir: string,
+  requireExisting: boolean,
+): boolean {
   const expectation = normalizeText(item.evidence_expectation);
   const actualDeviation = normalizeText(item.required_observation);
   return finding.evidence.some((evidence) => {
-    const values = [normalizeText(evidence.description), normalizeText(evidence.ref)];
-    return values.some((value) => value.includes(expectation) || value.includes(actualDeviation));
+    return (
+      evidenceSupportsObservation(rootDir, evidence, expectation, requireExisting) ||
+      evidenceSupportsObservation(rootDir, evidence, actualDeviation, requireExisting)
+    );
   });
 }
 
@@ -99,27 +152,58 @@ function findingCanBeMatched(finding: Finding, item: ActiveAnswerItem): boolean 
   );
 }
 
+function findingMatchesWithoutVerifiableEvidence(
+  finding: Finding,
+  item: ActiveAnswerItem,
+): boolean {
+  return (
+    findingCanBeMatched(finding, item) &&
+    actualDeviationMatches(finding, item) &&
+    normalizeText(finding.expected) !== normalizeText(finding.actual)
+  );
+}
+
 function activeFinding(finding: Finding): boolean {
   return finding.status !== "discarded" && finding.status !== "duplicate";
 }
 
-function itemObservationSeen(findings: QaFindings, item: ActiveAnswerItem): boolean {
+function coverageEvidenceSupportsObservation(
+  findings: QaFindings,
+  item: ActiveAnswerItem,
+  rootDir: string,
+  requireExisting: boolean,
+): boolean {
   const coverageItem = findings.coverage.items.find(
     (coverage) => coverage.coverage_id === item.related_coverage_id,
   );
-  const coverageNotes = coverageItem?.notes.toLocaleLowerCase("en-US") ?? "";
-  const expectation = item.evidence_expectation.toLocaleLowerCase("en-US");
-  const notesConfirmObservation =
-    coverageItem?.status === "completed" && coverageNotes.includes(expectation);
+  if (coverageItem === undefined || coverageItem.status !== "completed") return false;
+  return coverageItem.evidence_refs.some((ref, index) => {
+    const type = coverageItem.evidence_types[index];
+    if (type === undefined) return false;
+    return evidenceSupportsObservation(
+      rootDir,
+      { type, ref, description: "" },
+      item.evidence_expectation,
+      requireExisting,
+    );
+  });
+}
+
+function itemObservationSeen(
+  findings: QaFindings,
+  item: ActiveAnswerItem,
+  rootDir: string,
+  requireExisting: boolean,
+): boolean {
   return (
-    notesConfirmObservation ||
+    coverageEvidenceSupportsObservation(findings, item, rootDir, requireExisting) ||
     findings.findings.some(
       (finding) =>
         activeFinding(finding) &&
         coverageComplete(findings, item.related_coverage_id) &&
         expectedBehaviorMatches(finding, item) &&
         actualDeviationMatches(finding, item) &&
-        evidenceSatisfies(finding, item),
+        evidenceSatisfies(finding, item, rootDir, requireExisting),
     )
   );
 }
@@ -139,6 +223,149 @@ function allNullMetrics(): Evaluation["metrics"] {
     coverage: null,
     duplicate_rate: null,
   };
+}
+
+function hasOptionValue<K extends keyof EvaluationOptions>(
+  options: EvaluationOptions,
+  key: K,
+): boolean {
+  return options[key] !== undefined;
+}
+
+function evidenceIntegrityIsValid(
+  findings: Extract<QaFindings, { mode: "black-box-scored" }>,
+  rootDir: string,
+): boolean {
+  const validate = (ref: string, type: Parameters<typeof evidenceRefSyntaxError>[1]): boolean => {
+    if (evidenceRefSyntaxError(ref, type) !== null) return false;
+    if (type === "url") return true;
+    const filePath = safeArtifactPath(rootDir, ref);
+    return filePath !== null && fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+  };
+  for (const coverage of findings.coverage.items) {
+    if (coverage.evidence_refs.length !== coverage.evidence_types.length) return false;
+    for (let index = 0; index < coverage.evidence_refs.length; index += 1) {
+      const ref = coverage.evidence_refs[index];
+      const type = coverage.evidence_types[index];
+      if (ref === undefined || type === undefined || !validate(ref, type)) return false;
+    }
+  }
+  return findings.findings.every((finding) =>
+    finding.evidence.every((evidence) => validate(evidence.ref, evidence.type)),
+  );
+}
+
+function officialVerificationFailures(
+  options: EvaluationOptions,
+  findings: Extract<QaFindings, { mode: "black-box-scored" }>,
+): string[] {
+  const failures: string[] = [];
+  if (!hasOptionValue(options, "expectedBenchmarkRevision"))
+    failures.push("benchmark expectation is missing");
+  if (!hasOptionValue(options, "expectedRunnerProfile"))
+    failures.push("runner profile expectation is missing");
+  if (
+    !hasOptionValue(options, "expectedRuntimeVariantId") &&
+    !hasOptionValue(options, "runtimeVariantId")
+  )
+    failures.push("runtime variant expectation is missing");
+  if (
+    options.expectedBenchmarkRevision !== undefined &&
+    options.expectedBenchmarkRevision !== findings.benchmark_revision
+  )
+    failures.push("benchmark identity differs from the evaluator expectation");
+  if (
+    options.expectedRunnerProfile !== undefined &&
+    JSON.stringify(options.expectedRunnerProfile) !== JSON.stringify(findings.runner_profile)
+  )
+    failures.push("runner profile differs from the evaluator expectation");
+  const expectedRuntimeVariantId =
+    options.expectedRuntimeVariantId !== undefined
+      ? options.expectedRuntimeVariantId
+      : options.runtimeVariantId;
+  if (
+    expectedRuntimeVariantId !== undefined &&
+    expectedRuntimeVariantId !== findings.runtime_variant_id
+  )
+    failures.push("runtime variant differs from the evaluator expectation");
+
+  const rootDir = options.rootDir ?? process.cwd();
+  const runnerSessionFile =
+    options.runnerSessionArtifactPath ??
+    path.join(rootDir, ".artifacts", "agentic-qa", findings.run_id, "runner-session.json");
+  let runnerSession: ReturnType<typeof runnerSessionSchema.parse> | undefined;
+  try {
+    runnerSession = parseJsonWithSchema(
+      readJson(runnerSessionFile),
+      runnerSessionSchema,
+      "runner session artifact",
+    );
+  } catch {
+    failures.push("runner session artifact is missing or invalid");
+  }
+  if (runnerSession !== undefined) {
+    if (runnerSession.execution_kind !== "official_model_backed")
+      failures.push("runner session is not official model-backed");
+    if (runnerSession.runner_session_id !== findings.runner_session_id)
+      failures.push("runner session identity differs from findings");
+    if (runnerSession.model_identifier !== findings.runner_profile.model)
+      failures.push("model identifier was not independently observed");
+    if (runnerSession.benchmark_revision !== findings.benchmark_revision)
+      failures.push("runner session benchmark revision differs");
+    if (runnerSession.runtime_variant_id !== findings.runtime_variant_id)
+      failures.push("runner session runtime variant differs");
+    if (
+      !runnerSession.fresh_session ||
+      !runnerSession.session_artifact_new ||
+      !findings.fresh_session
+    )
+      failures.push("fresh session was not proven by the runner artifact");
+    if (!runnerSession.actual_tool_scope.measured || !runnerSession.tool_scope_probe_passed)
+      failures.push("actual runner tool scope was not measured");
+    if (runnerSession.forbidden_probe.some((result) => result.available))
+      failures.push("embedded forbidden probe reports a reachable capability");
+
+    const forbiddenProbeFile =
+      options.forbiddenProbeArtifactPath ??
+      safeArtifactPath(rootDir, runnerSession.forbidden_probe_artifact);
+    if (forbiddenProbeFile === null || !fs.existsSync(forbiddenProbeFile)) {
+      failures.push("forbidden probe artifact is missing");
+    } else {
+      try {
+        const probe = parseJsonWithSchema(
+          readJson(forbiddenProbeFile),
+          forbiddenProbeResultsSchema,
+          "forbidden probe artifact",
+        );
+        if (probe.some((result) => result.available))
+          failures.push("forbidden probe artifact reports a reachable capability");
+      } catch {
+        failures.push("forbidden probe artifact is invalid");
+      }
+    }
+  }
+
+  const evaluatorSessionFile =
+    options.evaluatorSessionArtifactPath ??
+    path.join(rootDir, ".artifacts", "agentic-qa", findings.run_id, "evaluator-session.json");
+  if (!fs.existsSync(evaluatorSessionFile)) {
+    failures.push("evaluator session artifact is missing");
+  } else {
+    try {
+      const value = readJson(evaluatorSessionFile);
+      if (typeof value !== "object" || value === null) throw new Error("not an object");
+      const record = value as Record<string, unknown>;
+      if (record.runner_session_id !== findings.runner_session_id)
+        failures.push("evaluator artifact runner identity differs");
+      if (record.evaluator_session_id !== options.evaluatorSessionId)
+        failures.push("evaluator artifact identity differs");
+      if (record.runner_session_reused !== false)
+        failures.push("evaluator session reuse was not ruled out");
+    } catch {
+      failures.push("evaluator session artifact is invalid");
+    }
+  }
+  return failures;
 }
 
 function invalidReasonSet(
@@ -187,25 +414,42 @@ function invalidReasonSet(
       : options.runtimeVariantId;
   if (hasExpectedRuntimeVariant && expectedRuntimeVariantId !== findings.runtime_variant_id)
     reasons.add("benchmark_identity_mismatch");
+  if (findings.execution_kind === "official_model_backed") {
+    if (officialVerificationFailures(options, findings).length > 0)
+      reasons.add("official_verification_failure");
+    if (!evidenceIntegrityIsValid(findings, options.rootDir ?? process.cwd()))
+      reasons.add("evidence_integrity_failure");
+  }
   return [...reasons].sort(compareCodeUnits);
 }
 
-function matchDefectFinding(finding: Finding, item: ActiveAnswerItem): boolean {
+function matchDefectFinding(
+  finding: Finding,
+  item: ActiveAnswerItem,
+  rootDir: string,
+  requireExisting: boolean,
+): boolean {
   return (
     item.kind === "defect" &&
     findingCanBeMatched(finding, item) &&
     actualDeviationMatches(finding, item) &&
-    evidenceSatisfies(finding, item) &&
+    evidenceSatisfies(finding, item, rootDir, requireExisting) &&
     normalizeText(finding.expected) !== normalizeText(finding.actual)
   );
 }
 
-function evidenceQuality(finding: Finding, item: ActiveAnswerItem): number {
+function evidenceQuality(
+  finding: Finding,
+  item: ActiveAnswerItem,
+  rootDir: string,
+  requireExisting: boolean,
+): number {
   const checks = [
     oracleMatches(finding, item),
     finding.steps.length > 0 && finding.reproduction_count > 0,
     finding.evidence.length > 0,
-    actualDeviationMatches(finding, item) && evidenceSatisfies(finding, item),
+    actualDeviationMatches(finding, item) &&
+      evidenceSatisfies(finding, item, rootDir, requireExisting),
     finding.expected.trim() !== "" &&
       finding.actual.trim() !== "" &&
       normalizeText(finding.expected) !== normalizeText(finding.actual),
@@ -249,6 +493,10 @@ export function evaluateBlackBox(
 ): Evaluation {
   assertScoredInputs(challenge, answerKey, rawFindings);
   const findings = rawFindings;
+  const evaluatorSessionId = options.evaluatorSessionId ?? crypto.randomUUID();
+  const effectiveOptions: EvaluationOptions = { ...options, evaluatorSessionId };
+  const evidenceRootDir = effectiveOptions.rootDir ?? process.cwd();
+  const requireEvidenceArtifacts = findings.execution_kind === "official_model_backed";
   const matches: Evaluation["matches"] = [];
   const matchedDefectItems = new Set<string>();
   const countedFindingIds = new Set<string>();
@@ -323,13 +571,17 @@ export function evaluateBlackBox(
     }
 
     const matchedDefect = defectItems.find(
-      (item) => !matchedDefectItems.has(item.item_id) && matchDefectFinding(finding, item),
+      (item) =>
+        !matchedDefectItems.has(item.item_id) &&
+        matchDefectFinding(finding, item, evidenceRootDir, requireEvidenceArtifacts),
     );
     if (matchedDefect !== undefined) {
       matchedDefectItems.add(matchedDefect.item_id);
       countedFindingIds.add(finding.finding_id);
       tp += 1;
-      evidenceScores.push(evidenceQuality(finding, matchedDefect));
+      evidenceScores.push(
+        evidenceQuality(finding, matchedDefect, evidenceRootDir, requireEvidenceArtifacts),
+      );
       reproducibilityScores.push(reproducibility(finding));
       severityScores.push(severityAccuracy(finding, matchedDefect));
       matches.push({
@@ -337,8 +589,30 @@ export function evaluateBlackBox(
         answer_item_id: matchedDefect.item_id,
         coverage_id: matchedDefect.related_coverage_id,
         classification: "tp",
-        required_observation_satisfied: evidenceSatisfies(finding, matchedDefect),
+        required_observation_satisfied: evidenceSatisfies(
+          finding,
+          matchedDefect,
+          evidenceRootDir,
+          requireEvidenceArtifacts,
+        ),
         adjudication: "automatic",
+      });
+      continue;
+    }
+
+    const unverifiableDefect = defectItems.find(
+      (item) =>
+        !matchedDefectItems.has(item.item_id) &&
+        findingMatchesWithoutVerifiableEvidence(finding, item),
+    );
+    if (unverifiableDefect !== undefined) {
+      matches.push({
+        finding_id: finding.finding_id,
+        answer_item_id: unverifiableDefect.item_id,
+        coverage_id: unverifiableDefect.related_coverage_id,
+        classification: "review_needed",
+        required_observation_satisfied: false,
+        adjudication: "human",
       });
       continue;
     }
@@ -347,7 +621,7 @@ export function evaluateBlackBox(
     if (
       matchedNonDefect !== undefined &&
       coverageComplete(findings, matchedNonDefect.related_coverage_id) &&
-      evidenceSatisfies(finding, matchedNonDefect)
+      evidenceSatisfies(finding, matchedNonDefect, evidenceRootDir, requireEvidenceArtifacts)
     ) {
       fp += 1;
       fpNonDefect += 1;
@@ -359,6 +633,21 @@ export function evaluateBlackBox(
         classification: "fp_non_defect",
         required_observation_satisfied: true,
         adjudication: "automatic",
+      });
+      continue;
+    }
+
+    if (
+      matchedNonDefect !== undefined &&
+      coverageComplete(findings, matchedNonDefect.related_coverage_id)
+    ) {
+      matches.push({
+        finding_id: finding.finding_id,
+        answer_item_id: matchedNonDefect.item_id,
+        coverage_id: matchedNonDefect.related_coverage_id,
+        classification: "review_needed",
+        required_observation_satisfied: false,
+        adjudication: "human",
       });
       continue;
     }
@@ -398,7 +687,8 @@ export function evaluateBlackBox(
     )
       continue;
     const observed =
-      coverageComplete(findings, item.related_coverage_id) && itemObservationSeen(findings, item);
+      coverageComplete(findings, item.related_coverage_id) &&
+      itemObservationSeen(findings, item, evidenceRootDir, requireEvidenceArtifacts);
     if (observed) {
       tn += 1;
       matches.push({
@@ -422,7 +712,7 @@ export function evaluateBlackBox(
     }
   }
 
-  const invalidReasons = invalidReasonSet(options, findings);
+  const invalidReasons = invalidReasonSet(effectiveOptions, findings);
   if (matches.some((match) => match.classification === "review_needed"))
     invalidReasons.push("preparation_failure");
   const uniqueReasons = [...new Set(invalidReasons)].sort(compareCodeUnits);
@@ -478,7 +768,7 @@ export function evaluateBlackBox(
     mode: "black-box-scored",
     execution_kind: findings.execution_kind,
     runner_session_id: findings.runner_session_id,
-    evaluator_session_id: options.evaluatorSessionId ?? crypto.randomUUID(),
+    evaluator_session_id: evaluatorSessionId,
     fresh_session: findings.fresh_session,
     tool_scope_validated: findings.tool_scope_validated,
     valid_for_scoring: validForScoring,

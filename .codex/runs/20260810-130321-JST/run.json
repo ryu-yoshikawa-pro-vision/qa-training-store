@@ -5,7 +5,7 @@
   "workflow_level": "strict",
   "preset": "safe",
   "runtime": "host",
-  "agents_used": [],
+  "agents_used": ["Sagan", "Pasteur", "Dirac"],
   "repo": "qa-training-store",
   "branch": "feat/specification-agentic-qa-foundation",
   "base_branch": "main",
@@ -13,6 +13,7 @@
   "changed_files": [
     "docs/PROJECT_CONTEXT.md",
     "docs/history/2026-08-10_141500_pr16-agentic-qa-repair.md",
+    "docs/history/2026-08-10_152146_pr16-scoring-review-followup.md",
     "docs/plans/2026-08-10_130321_pr16-agentic-qa-repair.md",
     "docs/curriculum/test-automation/README.md",
     "docs/curriculum/test-automation/part1/09_part1-capstone.md",
@@ -61,11 +62,27 @@
       "prepare-challenge.ts Basic final after source formatting",
       "evaluate.ts Basic with separate evaluator session",
       "git diff --check",
-      "scope audit for src/app/maestro and upload-artifact tag"
+      "scope audit for src/app/maestro and upload-artifact tag",
+      "additional review audit with Sagan/Pasteur/Dirac (read-only)",
+      "focused Agentic QA contract test (21 tests)",
+      "pnpm run test:contracts (24 files / 194 tests)",
+      "pnpm run validate:spec",
+      "pnpm run typecheck",
+      "pnpm run lint (0 errors / 65 warnings)",
+      "pnpm run lint:markdown",
+      "pnpm run build:spec",
+      "prepare-challenge.ts Basic/Intermediate/Advanced after follow-up repair",
+      "evaluate.ts Basic Contract Fixture with unmeasured Actual Tool Scope",
+      "pnpm run verify (final follow-up exit 0)",
+      "git diff --check (final follow-up)",
+      "scripts/sanitize-codex-artifacts.ps1 Write/Check (current and historical Run)"
     ],
     "warnings": [
       "Official model-backed Scored Runは実行基盤がないため未実行。Contract Fixtureは正式スコアへ昇格させていない。",
-      "Lintは0 errors / 66 warnings。",
+      "Lintは0 errors / 65 warnings。",
+      "Preparation／Contract FixtureのActual Tool Scopeは未計測で、tool_scope_validated=false。",
+      "Official model-backed Scored Runは実行基盤がなくBLOCKED / NOT EXECUTED。Foundation overall DoDはincomplete。",
+      "Remote CI final statusはこのRunで確認していない。",
       "Git mutation、branch／commit／push／PR操作は行っていない。"
     ]
   },

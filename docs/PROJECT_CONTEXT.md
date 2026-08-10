@@ -327,6 +327,13 @@
 - CoverageはMission completionとrequired evidence typeの包含を必須化し、FindingはExpected／Reproduction／Actual Deviation／Evidenceが同じDefectを示す場合だけTP候補になる。Runner sessionとEvaluator sessionは別UUIDを実測し、EvaluationはfixtureまたはCoverage不備をPASSへ昇格させない。
 - Benchmark RevisionはNUL-separated Git status、renameのD/A正規化、code-unit comparator、Git failure fail-closeを使う。Snapshotはbefore／afterからcomparisonを再導出し、Spec／CLI／Challenge seed／Normative docsもfail-close契約へ更新した。既存84件のformatter baseline修復後、`pnpm run verify`を再実行する。
 
+## PR #16追加レビュー追補（2026-08-10）
+
+- Forbidden Probeのpolicy declarationとActual Exposed Tool Scopeを分離した。`actual_tool_scope.measured=false`のPreparation-only／Contract Fixtureは、filesystem probeがcleanでも`tool_scope_validated=false`として正式Scoringへ進まない。実ScopeにForbidden capabilityが含まれる場合は、`forbidden capability <name> is reachable; observed=...`としてfail-closeする。
+- Coverageの`evidence_refs`／`evidence_types`はindex対応・同一ref重複禁止・type別syntaxを契約化した。Official Evaluationでは`.artifacts/`内の実体、URL parse、画像拡張子、path containmentを再確認し、descriptionだけではTPにしない。Screenshot等の意味判定不能なEvidenceは`review_needed`／humanへ落とす。
+- Official model-backed EvaluationはBenchmark／Runtime Variant／Runner Profile期待値、実行artifactのmodel identifier／Fresh session／Actual Tool Scope／Forbidden Probe artifact／別Evaluator sessionを独立再検証する。いずれかが不足すれば`valid_for_scoring=false`、metricsはnullとする。
+- `run-local-e2e.ts`は`CHALLENGE-BASIC-001`専用fixtureとして他Challengeをrejectする。Preparationは未知Challengeのreset判定をserver起動より前に行い、内部prepareRunner callbackを常に通過させる。新規Benchmark ManifestはChallenge-specificを正本とし、genericはlegacy fallbackだけにする。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

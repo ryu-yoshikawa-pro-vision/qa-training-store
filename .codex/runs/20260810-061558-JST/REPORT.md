@@ -308,6 +308,11 @@
 - Decision: `Final DoD=PASS`。Task 22を完了し、Goalをcompleteへ更新する。
 - Progress: 100% (28/28)
 
+## 2026-08-10 15:22 (JST) 追補
+
+- 旧REPORTの09:50 entryより後に09:48 entryが現れる時刻順は、append-only履歴上のhistorical entryの記録順が前後したものです。既存entryの削除・並べ替え・意味変更は行いません。
+- 現行PR #16の追加レビュー修正とローカル検証はRun `20260810-130321-JST`へ分離して記録します。過去RunのFinal DoD記録はその時点の履歴として保持し、未実行のOfficial model-backed Scored Runを今回もPASSへ補完しません。
+
 ## 2026-08-10 14:13 (JST) PR #16 repair supplement
 
 - Summary: ユーザー指示に基づくPR #16修正で、既存RunのAgentic QA成果物を現行JSON + Zod契約へ追補した。過去記録は削除・並べ替えず、今回の判断と検証を追記している。

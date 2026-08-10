@@ -52,6 +52,38 @@ export const evidenceTypeSchema = z.enum([
   "url",
   "trace",
 ]);
+export type EvidenceType = z.infer<typeof evidenceTypeSchema>;
+
+function isAbsoluteEvidenceRef(value: string): boolean {
+  return value.startsWith("/") || /^[A-Za-z]:[\\/]/.test(value);
+}
+
+function isArtifactEvidenceRef(value: string): boolean {
+  return (
+    value.startsWith(".artifacts/") &&
+    !value.includes("\\") &&
+    !value.split("/").includes("..") &&
+    !isAbsoluteEvidenceRef(value)
+  );
+}
+
+export function evidenceRefSyntaxError(ref: string, type: EvidenceType): string | null {
+  if (type === "url") {
+    try {
+      const url = new URL(ref);
+      return url.protocol === "http:" || url.protocol === "https:"
+        ? null
+        : "URL evidence must use http or https";
+    } catch {
+      return "URL evidence must be a valid http or https URL";
+    }
+  }
+  if (!isArtifactEvidenceRef(ref))
+    return "artifact evidence must be a safe .artifacts-relative ref";
+  if ((type === "screenshot" || type === "screen") && !/\.(?:png|jpe?g|webp)$/i.test(ref))
+    return "screenshot evidence must use a png, jpg, jpeg, or webp artifact";
+  return null;
+}
 const runtimeControl = z.enum(["seed_reset", "clock", "payment_delay", "deep_link", "app_restart"]);
 const severity = z.enum(["critical", "high", "medium", "low"]);
 
@@ -79,6 +111,28 @@ export const coverageResultSchema = z
   })
   .strict()
   .superRefine((value, context) => {
+    if (value.evidence_refs.length !== value.evidence_types.length)
+      context.addIssue({
+        code: "custom",
+        path: ["evidence_refs"],
+        message: "evidence_refs and evidence_types must be one-to-one pairs",
+      });
+    const seenRefs = new Set<string>();
+    value.evidence_refs.forEach((ref, index) => {
+      if (seenRefs.has(ref))
+        context.addIssue({
+          code: "custom",
+          path: ["evidence_refs", index],
+          message: "the same evidence ref cannot be paired with multiple evidence types",
+        });
+      seenRefs.add(ref);
+      const type = value.evidence_types[index];
+      if (type !== undefined) {
+        const error = evidenceRefSyntaxError(ref, type);
+        if (error !== null)
+          context.addIssue({ code: "custom", path: ["evidence_refs", index], message: error });
+      }
+    });
     if (value.status === "completed" && !value.mission_completed)
       context.addIssue({
         code: "custom",
@@ -232,8 +286,26 @@ export const forbiddenCapabilitySchema = z.enum([
   "prior_scored_session",
 ]);
 
-export type EvidenceType = z.infer<typeof evidenceTypeSchema>;
 export type ForbiddenCapability = z.infer<typeof forbiddenCapabilitySchema>;
+export const exposedCapabilitySchema = z.union([toolCapabilitySchema, forbiddenCapabilitySchema]);
+export type ExposedCapability = z.infer<typeof exposedCapabilitySchema>;
+
+export const actualToolScopeSchema = z
+  .object({
+    measured: z.boolean(),
+    source: z.enum(["runner_runtime_inventory", "unavailable"]),
+    exposed_capabilities: z.array(exposedCapabilitySchema),
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (!value.measured && value.exposed_capabilities.length > 0)
+      context.addIssue({
+        code: "custom",
+        path: ["exposed_capabilities"],
+        message: "unmeasured tool scope cannot claim exposed capabilities",
+      });
+  });
+export type ActualToolScope = z.infer<typeof actualToolScopeSchema>;
 
 export const forbiddenProbeResultSchema = z
   .object({
@@ -248,13 +320,36 @@ export const forbiddenProbeResultsSchema = z.array(forbiddenProbeResultSchema).m
 export const runnerSessionSchema = z
   .object({
     runner_session_id: nonEmpty,
+    execution_kind: z.enum(["contract_fixture", "official_model_backed"]),
+    model_identifier: nonEmpty.nullable(),
+    benchmark_revision: z
+      .string()
+      .regex(/^(?:git:[0-9a-f]{40}|sha256:[0-9a-f]{64})$/)
+      .nullable(),
+    runtime_variant_id: nonEmpty.nullable(),
     fresh_session: z.boolean(),
     session_artifact_new: z.boolean(),
     prior_runner_session_ids: z.array(nonEmpty),
     tool_scope_probe_passed: z.boolean(),
+    actual_tool_scope: actualToolScopeSchema,
+    forbidden_probe_artifact: repoRelativePath,
     forbidden_probe: forbiddenProbeResultsSchema,
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (value.execution_kind === "official_model_backed" && value.model_identifier === null)
+      context.addIssue({
+        code: "custom",
+        path: ["model_identifier"],
+        message: "official runner session requires a model identifier",
+      });
+    if (value.tool_scope_probe_passed && !value.actual_tool_scope.measured)
+      context.addIssue({
+        code: "custom",
+        path: ["tool_scope_probe_passed"],
+        message: "tool scope cannot pass without an actual measured inventory",
+      });
+  });
 
 export const toolProfileSchema = z
   .object({
@@ -479,7 +574,11 @@ export const evidenceSchema = z
     ref: nonEmpty,
     description: nonEmpty,
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    const error = evidenceRefSyntaxError(value.ref, value.type);
+    if (error !== null) context.addIssue({ code: "custom", path: ["ref"], message: error });
+  });
 
 export const findingSchema = z
   .object({
@@ -640,6 +739,8 @@ export const invalidReasonSchema = z.enum([
   "coverage_integrity_failure",
   "preparation_failure",
   "fixture_not_official",
+  "official_verification_failure",
+  "evidence_integrity_failure",
 ]);
 
 export const evaluationSchema = z

@@ -51,3 +51,4 @@
 - 不明点の整理、選択肢比較、決定理由を簡潔に記録する。
 
 - 既存Run `20260810-061558-JST` は前タスク完了済み。今回の修正は新Run `20260810-130321-JST` で記録し、指示された旧Runへは追補のみ行う。
+- 2026-08-10 15:27 JST: 追加レビューでは、policyとActual Tool Scope、narrativeとEvidence artifact、local fixtureとOfficial Scored Runを別境界として維持することを確認した。未計測Scope／未実行Official RunはPASSへ昇格しない。

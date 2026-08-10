@@ -2,8 +2,8 @@
   "schema_version": 1,
   "run_id": "20260810-130321-JST",
   "challenge_id": "CHALLENGE-BASIC-001",
-  "benchmark_revision": "sha256:280423029f596432f5be52afaff970788410ec769d85cd45d5fc8e666e05a9e3",
-  "source_head_sha": "e7c3d46c5925a16f4b4feb7aad0f217140a4518a",
+  "benchmark_revision": "sha256:a5332b05fb66710c0778ddda3ae2fd3bff3bf453e94aef0fd9c8a0363c71fca7",
+  "source_head_sha": "c28920806f3add02a374e08e0dad2b20fccbc902",
   "runtime_variant_id": null,
   "runner_profile": {
     "model": "local-deterministic-runner",
@@ -15,28 +15,38 @@
   "mode": "black-box-scored",
   "execution_kind": "contract_fixture",
   "runner_session_id": "be9d8c66-ff9a-4e70-9b15-90bfb6d63e3c",
-  "evaluator_session_id": "fc1d33d7-1e93-42dc-b9fe-0c9f6a240268",
+  "evaluator_session_id": "8543aa5b-b8ef-429a-a16a-e5270f1ca6af",
   "fresh_session": true,
-  "tool_scope_validated": true,
+  "tool_scope_validated": false,
   "valid_for_scoring": false,
   "invalid_reasons": [
     "coverage_integrity_failure",
-    "fixture_not_official"
+    "fixture_not_official",
+    "preparation_failure",
+    "tool_scope_failure"
   ],
   "matches": [
     {
       "finding_id": "FIND-001",
       "answer_item_id": "DEFECT-001",
       "coverage_id": "COV-001",
-      "classification": "tp",
-      "required_observation_satisfied": true,
+      "classification": "review_needed",
+      "required_observation_satisfied": false,
+      "adjudication": "human"
+    },
+    {
+      "finding_id": null,
+      "answer_item_id": "DEFECT-001",
+      "coverage_id": "COV-001",
+      "classification": "fn",
+      "required_observation_satisfied": false,
       "adjudication": "automatic"
     }
   ],
   "counts": {
-    "tp": 1,
+    "tp": 0,
     "fp": 0,
-    "fn": 0,
+    "fn": 1,
     "tn": 0,
     "fp_non_defect": 0,
     "not_evaluated_non_defect": 0,

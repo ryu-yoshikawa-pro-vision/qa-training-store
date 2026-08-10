@@ -1,181 +1,56 @@
 {
   "schema_version": 1,
-  "source_head_sha": "e7c3d46c5925a16f4b4feb7aad0f217140a4518a",
+  "source_head_sha": "c28920806f3add02a374e08e0dad2b20fccbc902",
   "working_tree_entries": [
     {
       "status": "M",
-      "path": "docs/PROJECT_CONTEXT.md",
-      "sha256": "3b79e42c73d9d3500a701f6959d90dbaac6fb3bb95318ee858d82a6955b1790a"
-    },
-    {
-      "status": "M",
-      "path": "docs/curriculum/test-automation/README.md",
-      "sha256": "f5843c58bb8a41638c1e25f013ac7132f6e8156855130898a60058dec6339afb"
-    },
-    {
-      "status": "D",
-      "path": "docs/curriculum/test-automation/part1/09_part1-capstone.md",
-      "sha256": null
-    },
-    {
-      "status": "M",
-      "path": "docs/curriculum/test-automation/part1/09_specification-agentic-qa.md",
-      "sha256": "ab28ac34be9772e11fa335017c32e212b1bbc4620f9be68d3e4ee5045fe53fa2"
-    },
-    {
-      "status": "A",
-      "path": "docs/curriculum/test-automation/part1/10_part1-capstone.md",
-      "sha256": "bb47390b0fe66608d4cc75de08064e825148f3bd269745a78a8affc39390bad5"
-    },
-    {
-      "status": "A",
-      "path": "docs/history/2026-08-10_141500_pr16-agentic-qa-repair.md",
-      "sha256": "7134fe09680a86f83b5ca2c7c5a8018d5e17d32d002bda9656ba74624e8ca6cb"
-    },
-    {
-      "status": "A",
-      "path": "docs/plans/2026-08-10_130321_pr16-agentic-qa-repair.md",
-      "sha256": "f2ea4284481d73b2d656b414b4a8058c0228f45493783a2cde4759c06af90b5e"
-    },
-    {
-      "status": "M",
-      "path": "docs/reference/agentic-qa-workflow.md",
-      "sha256": "08cd1d1b6ec30afbd5b823b654ff1bb84eff52e50c31edf8637222b3a4e36fce"
-    },
-    {
-      "status": "M",
       "path": "docs/reference/run-artifacts.md",
-      "sha256": "9aba3a8df1253bc57ab6ed24d4d99b36e03cba0b0407d98736a3e445231cddd9"
-    },
-    {
-      "status": "M",
-      "path": "docs/spec/README.md",
-      "sha256": "510a21f89cbb6e79a512f60f7b215df74a11b1f76a650531ca9eeb9378c4c352"
-    },
-    {
-      "status": "M",
-      "path": "docs/spec/features/admin-inventory.md",
-      "sha256": "87ca7d47032ba05f58acad1d48068f5b596e01fdf4f011f18a507fa01d715b7d"
-    },
-    {
-      "status": "M",
-      "path": "docs/spec/features/authentication.md",
-      "sha256": "8572d509d2485d3f0619fc066d3bbb378b93fd2cd3cf7bfc1eb16304d80879dd"
-    },
-    {
-      "status": "M",
-      "path": "docs/spec/state-and-scenarios.md",
-      "sha256": "306743376ab24a7bfe4c954b48f7c4e832e0e83cbc37ac197bd8a8e68fb7bada"
-    },
-    {
-      "status": "M",
-      "path": "scripts/agentic-qa/benchmark-revision.ts",
-      "sha256": "e9490674366afe9157d62e16b9072cdecad9674397955cd5f6f89d9c1338e51b"
-    },
-    {
-      "status": "M",
-      "path": "scripts/agentic-qa/build-learner-bundle.ts",
-      "sha256": "91ddc159a7f352bf49ec69ec6e80add1521d0b4d391f35533a0543b9565c12a2"
-    },
-    {
-      "status": "A",
-      "path": "scripts/agentic-qa/cli.ts",
-      "sha256": "d40282cd735c0ead18367ada571add582bab90218f948048b935616ba2448458"
+      "sha256": "45b5d0e5ca795695757a4ec68e5b77886497b45fd66a3a106d88f28cb20921ce"
     },
     {
       "status": "M",
       "path": "scripts/agentic-qa/contracts.ts",
-      "sha256": "c3d7a776ca6c18730f90ea047b3e26b11aa1c43e095e66da0b5005708b52760e"
+      "sha256": "b9ce4df0ceb689de62b7d153f70341444718d460f15f2a9ea6ca5348f2349bfb"
     },
     {
       "status": "M",
       "path": "scripts/agentic-qa/coverage.ts",
-      "sha256": "aafbfd33ca8b7af9abec0bc0dcd6ff7353afbb4a66e5006706f77e684ab981c6"
+      "sha256": "62d031d8195e02e0b39bd4bd5bd266e239e45f8e94967428b3ab2d37f18f464e"
     },
     {
       "status": "M",
       "path": "scripts/agentic-qa/evaluate.ts",
-      "sha256": "15fef732e4df2782b8ff0e717ab0f2070278332551f64f97935874c22dcf6582"
+      "sha256": "104159e9a2c5cabe8148075e337d0e270308cfff44238c48e61cef497f17ccfc"
     },
     {
       "status": "M",
       "path": "scripts/agentic-qa/isolation.ts",
-      "sha256": "dbc22f5624a87a0afbd7fcc53d2da49c6e9810029c36af972499ea3834ab37fc"
+      "sha256": "a4f34fc64133a93729100a4e396a23403a7da5b89aa5f4a31acc55deac4b8c79"
     },
     {
       "status": "M",
       "path": "scripts/agentic-qa/prepare-challenge.ts",
-      "sha256": "3a1ddfec762eb993b66f444a6c118b04eb505ef53de46363fb2f00673043ba18"
+      "sha256": "b0220d999b51439a5dcdd45161dad425b3391de2f3e23ebc81859d11f5542a0c"
     },
     {
       "status": "M",
       "path": "scripts/agentic-qa/run-local-e2e.ts",
-      "sha256": "489ad56994fdf0e572661355728f1a9413586c6a308991664ba8f1340c2a4aaf"
+      "sha256": "d34f64acfaa6064668fc1b91d8db2cd4304b41a4c4cc651d720d908b87af107d"
     },
     {
       "status": "M",
       "path": "scripts/agentic-qa/runner.ts",
-      "sha256": "b3e4cbd6b677bdd6b9bfe403af31bc5e780d207b669274275ddd8f4c00e4781b"
-    },
-    {
-      "status": "M",
-      "path": "scripts/agentic-qa/spec-refs.ts",
-      "sha256": "05bb10f2e36f8cb4514514f603bc276acb3605bfe58684b17035bff84550f0eb"
+      "sha256": "595829d42399700666c3fc70e8fec4679df06d941ef8b7df67f6edc636393207"
     },
     {
       "status": "M",
       "path": "scripts/agentic-qa/validate-contracts.ts",
-      "sha256": "ab3275894b49c15caed77fd1a8669103a45e18cb2ae2e3e3314f513df0f66945"
-    },
-    {
-      "status": "M",
-      "path": "scripts/agentic-qa/working-tree-snapshot.ts",
-      "sha256": "19ecfc434af0109eaf715c0a994caff08b7bb31777944f2d3d212d428af48f45"
-    },
-    {
-      "status": "M",
-      "path": "scripts/spec/markdown.ts",
-      "sha256": "7ecdb9fa0fb4bce5ab63a0ded0d8964ff1e1955acded20f9a63d67447d0e0764"
-    },
-    {
-      "status": "M",
-      "path": "scripts/spec/summarize-impact.ts",
-      "sha256": "187b0100e8e24ddf6f11f76d97287fe3c7de141e3fe205362a58460d10af8b29"
-    },
-    {
-      "status": "M",
-      "path": "scripts/spec/validate-spec.ts",
-      "sha256": "db87b0ed7f221ec0b79af945e4e888d1fafde4250736ca0fbb9ba9fccca35e4d"
+      "sha256": "ae7aa7b68f1d2fb73f0b9b5e34ba48d2d3526a40ec6b0f69c2a565febc27a4d6"
     },
     {
       "status": "M",
       "path": "tests/contracts/spec-agentic-qa.test.ts",
-      "sha256": "0190159669d797bb8f84beb26fa730d517bc4e2aa2a15d1f55bb6593a3828a51"
-    },
-    {
-      "status": "M",
-      "path": "training/agentic-qa/challenges/CHALLENGE-INTERMEDIATE-001/challenge.json",
-      "sha256": "3228b7553348b196359574a7d1a40755869553364e5c77f7bd077aaa2950d5ee"
-    },
-    {
-      "status": "M",
-      "path": "training/agentic-qa/challenges/CHALLENGE-INTERMEDIATE-001/runbook.md",
-      "sha256": "2a417c31c827f7c0c38ef9c0a420d3de8a97863d5c44952fa4b8e8677f7ae5f9"
-    },
-    {
-      "status": "M",
-      "path": "training/agentic-qa/instructor/answer-key/CHALLENGE-ADVANCED-001.json",
-      "sha256": "afde80537b16fce3ab12d6c1733d13c6ef355138f577c7f396edc377950211de"
-    },
-    {
-      "status": "M",
-      "path": "training/agentic-qa/instructor/answer-key/CHALLENGE-BASIC-001.json",
-      "sha256": "71e20abcf03262d86bf1f66facb51a4a7b23e784a574647870e838e249703a9a"
-    },
-    {
-      "status": "M",
-      "path": "training/agentic-qa/instructor/answer-key/CHALLENGE-INTERMEDIATE-001.json",
-      "sha256": "33079d82cfa9017e75c6ef7146d65859f25ff0ba047587bfbbac267fad50c942"
+      "sha256": "ae2b10954a51ae0f6fc8fe7963476be23f5f06879e139aa8f7935f169912e246"
     }
   ],
   "learner_spec_entries": [

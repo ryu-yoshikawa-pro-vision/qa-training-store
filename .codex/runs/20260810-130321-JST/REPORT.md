@@ -78,3 +78,24 @@
 - Scope audit: `src`／`app`／`maestro`の変更なし。`actions/upload-artifact@v4`のtag policyは変更していない。Git mutation、branch／commit／push／PR操作、Product Behavior変更、Application Sourceへのchallenge patch適用は行っていない。
 - Final decision: local DoDは完了。Official model-backed Scored Runは実行基盤がないため未実行であり、正式PASS／スコアとして扱わない。D1は診断Artifactとして保持する。
 - Progress: 100% (6/6)
+
+## 2026-08-10 15:29 (JST) 最終Artifact監査
+
+- Sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260810-061558-JST -Write -Check` と現Run `20260810-130321-JST`を実行し、両Runとも`residual_findings=0`、`files_changed=0`、`replacements_total=0`。
+- Run整合性: `agents_used=["Sagan","Pasteur","Dirac"]`と`subagents.records` 3件を一致させ、D1をBlockedへ移し、Progressの分母はNow 6 taskのみで`100% (6/6)`を維持した。旧REPORTの09:48／09:50順序はhistorical entryとして追補説明した。
+- Final decision: Repair implementation／local validationは完了。Contract Fixtureはinvalid／metrics null、Official model-backed Scored Runは`BLOCKED / NOT EXECUTED`、Remote CI final statusは未確認。Foundation overall DoDはincomplete / blockedであり、未実行をPASS扱いしない。
+- Progress: 100% (6/6)
+
+## 2026-08-10 15:27 (JST) 追加レビュー修正
+
+- Summary: 添付された最新PR #16修正指示を現HEAD `c289208`へ再照合し、前回修正済みの設計を維持したまま、P0/P1の残差をfail-closeで補修した。
+- Repair Loop iteration: `iteration_number=1`。`input_findings=must_fix: Actual Tool Scope／Evidence artifact integrity／Official provenance／notes-only TN／Basic fixture boundary／Preparation ordering／shebang／manifest responsibility`。`decision=continue`から最終検証後`stop_success`へ進める。
+- Allowed Files: `scripts/agentic-qa/{contracts,isolation,runner,coverage,evaluate,run-local-e2e,prepare-challenge,validate-contracts}.ts`、`tests/contracts/spec-agentic-qa.test.ts`、`docs/reference/run-artifacts.md`、living documentation／Run Artifact。Product Behavior、Application Source、Git/PR状態は対象外とした。
+- 修正: Policyの`allowed_capabilities`をProbeへ渡さず、Actual Tool Scope inventoryを別型で扱った。未計測Scopeは`tool_scope_validated=false`。Coverage Evidenceはref/typeの1対1・重複禁止・URL／artifact syntaxを検証し、Official時は実体存在を再確認する。descriptionだけのTP、`coverage.notes`だけのTNを廃止し、機械読取可能なartifactだけをautomatic evidenceとした。Official条件はexpected identity、Runner Session、model identifier、Fresh Session、Actual Tool Scope、Forbidden Probe artifact、Separate Evaluator Session、Evidence IntegrityをEvaluator側で再検証する。
+- P1修正: local deterministic fixtureはBasic専用、未知Challengeのreset判定をserver起動前へ移動、internal `prepareRunner` callbackを必須化、shebang追加行を検出、Challenge-specific manifestを新規正本としてgeneric manifestの上書きを停止した。
+- Preparation: Basic／Intermediate／AdvancedのBaseline build、Pre-patch sanity、Patch check/apply、Patched sanity、Scored Initial State Reset、isolated root、Forbidden Probe、runtime cleanupを再実行し、3件すべてPASS。BasicのActual Tool Scopeは`measured=false`として`tool-scope.json`へ保存した。
+- Evaluation: Basic Contract Fixtureを再評価し、`valid_for_scoring=false`、`tool_scope_validated=false`、`invalid_reasons=coverage_integrity_failure,fixture_not_official,preparation_failure,tool_scope_failure`、metrics全null。Official model-backed Scored Runは実行基盤がないため`BLOCKED / NOT EXECUTED`であり、PASS扱いしていない。
+- Validation: focused contract test 21 tests PASS、full contract test 24 files／194 tests PASS、`validate-contracts`／`validate:spec`／`typecheck`／`lint:markdown`／`build:spec` PASS、`pnpm run lint` 0 errors／65 warnings、`pnpm run verify` exit 0（format、security、全test、Web export 2296 modules、Spec build 21 pagesを含む）。
+- CodeRabbit分類: Actual Tool Scope／Evidence／Official verification／notes-only TN／Basic fixture／server order／prepareRunner／shebang／challenge-specific manifestは`fixed`。前回から有効な既存契約（NUL Git status、rename normalization、Snapshot再導出、CLI fail-close等）は`already addressed`。upload-artifact SHA pin、spec-refs cache、loadAnswerKey helper、Intermediate hunk空行、Docstring Coverageは指示どおり`skipped with reason`。
+- Remaining: Remote CI final statusはこのRunで確認していない。Official model-backed Scored Run基盤も未提供で、Foundation overall DoDは`incomplete / blocked`。Repair implementation／local validation DoDのみ完了。
+- Progress: 100% (6/6)

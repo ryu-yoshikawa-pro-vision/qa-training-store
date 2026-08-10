@@ -4,6 +4,7 @@ import {
   parseJsonWithSchema,
   qaFindingsSchema,
   type Challenge,
+  type ActualToolScope,
   type QaFindings,
   type RunnerProfile,
   type Finding,
@@ -19,6 +20,7 @@ export type RunnerSessionEvidence = {
   runner_session_id: string;
   fresh_session: boolean;
   tool_scope_probe_passed: boolean;
+  actual_tool_scope: ActualToolScope;
 };
 
 export function createRunnerProfile(input: {
@@ -69,7 +71,8 @@ export function freezeScoredFindings(input: {
     execution_kind: input.executionKind,
     runner_session_id: input.session.runner_session_id,
     fresh_session: input.session.fresh_session,
-    tool_scope_validated: input.session.tool_scope_probe_passed,
+    tool_scope_validated:
+      input.session.tool_scope_probe_passed && input.session.actual_tool_scope.measured,
   };
   const findings = parseJsonWithSchema(candidate, qaFindingsSchema, "frozen qa-findings");
   if (findings.mode !== "black-box-scored")

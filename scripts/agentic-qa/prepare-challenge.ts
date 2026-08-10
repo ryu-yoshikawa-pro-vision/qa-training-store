@@ -15,6 +15,7 @@ import {
   parseJsonWithSchema,
   toolProfileSchema,
   type AnswerKey,
+  type ActualToolScope,
   type Challenge,
   type ToolProfile,
 } from "./contracts";
@@ -83,6 +84,8 @@ export type ChallengePreparation = {
   runtime_sanity: RuntimeSanity;
   isolated_root: IsolatedRunnerRoot;
   forbidden_probe: ForbiddenProbeResult[];
+  actual_tool_scope: ActualToolScope;
+  tool_scope_validated: false;
   preparation_order: string[];
   scored_runtime_handoff: "executed" | "not_executed";
   run_dir: string;
@@ -597,17 +600,17 @@ async function prepareWebRuntime(
   patchFile: string | null,
   preparationRoot: string,
   challenge: Challenge,
-  prepareRunner?: (runtime: ScoredRuntimeHandle) => Promise<"executed" | "not_executed">,
+  prepareRunner: (runtime: ScoredRuntimeHandle) => Promise<"executed" | "not_executed">,
 ): Promise<{
   patch: PatchPreparation;
   runtimeSanity: RuntimeSanity;
   scoredRuntimeHandoff: "executed" | "not_executed";
 }> {
+  const reset = initialStateForChallenge(challenge);
   const baseline = await runWebRuntimePhase(disposable, preparationRoot, "baseline", challenge);
   fs.rmSync(path.join(disposable, "dist"), { recursive: true, force: true });
   const patch = applyPatchToDisposable(rootDir, disposable, patchFile);
   const patchedRuntime = await startWebRuntime(disposable, preparationRoot, "patched");
-  const reset = initialStateForChallenge(challenge);
   try {
     const patchedGroundTruth = await patchedRuntime.withPage((page) =>
       runChallengeGroundTruthSanity(page, patchedRuntime.baseUrl, challenge, "patched"),
@@ -626,8 +629,7 @@ async function prepareWebRuntime(
       patched: { ...patchedRuntime.readiness, ground_truth: patchedGroundTruth },
       scored_initial_state_reset: scoredInitialStateReset,
     };
-    const scoredRuntimeHandoff =
-      prepareRunner === undefined ? "not_executed" : await prepareRunner(patchedRuntime);
+    const scoredRuntimeHandoff = await prepareRunner(patchedRuntime);
     const order = [
       "baseline_build",
       "pre_patch_sanity",
@@ -636,9 +638,9 @@ async function prepareWebRuntime(
       "patched_build",
       "post_patch_sanity",
       "scored_initial_state_reset",
-      ...(prepareRunner === undefined
-        ? []
-        : ["isolated_execution_root", "positive_tool_allowlist_and_forbidden_probe"]),
+      "isolated_execution_root",
+      "actual_tool_scope_unavailable",
+      "positive_tool_allowlist_and_forbidden_probe",
       ...(scoredRuntimeHandoff === "executed" ? ["runner_runtime_handoff"] : []),
     ];
     fs.writeFileSync(
@@ -746,6 +748,7 @@ export async function prepareChallenge(input: {
   let scoredRuntimeHandoff: "executed" | "not_executed" = "not_executed";
   let isolatedRoot: IsolatedRunnerRoot | undefined;
   let forbiddenProbe: ForbiddenProbeResult[] | undefined;
+  let actualToolScope: ActualToolScope | undefined;
   try {
     if (challenge.target_platform !== "web")
       throw new Error(`Runtime sanity adapter is not implemented for ${challenge.target_platform}`);
@@ -762,10 +765,15 @@ export async function prepareChallenge(input: {
           challengeDirectory: paths.directory,
           challenge,
         });
+        actualToolScope = {
+          measured: false,
+          source: "unavailable",
+          exposed_capabilities: [],
+        };
         const measuredProbe = probeForbiddenCapabilities(
           isolatedRoot.root,
           tool.profile,
-          tool.profile.allowed_capabilities,
+          actualToolScope,
         );
         forbiddenProbe = parseJsonWithSchema(
           measuredProbe,
@@ -776,6 +784,11 @@ export async function prepareChallenge(input: {
         fs.writeFileSync(
           path.join(preparationRoot, "forbidden-probe.json"),
           `${JSON.stringify(forbiddenProbe, null, 2)}\n`,
+          "utf8",
+        );
+        fs.writeFileSync(
+          path.join(preparationRoot, "tool-scope.json"),
+          `${JSON.stringify(actualToolScope, null, 2)}\n`,
           "utf8",
         );
         if (input.runScoredRunner === undefined) return "not_executed";
@@ -789,7 +802,7 @@ export async function prepareChallenge(input: {
   } finally {
     cleanupDisposableSource(disposable);
   }
-  if (isolatedRoot === undefined || forbiddenProbe === undefined)
+  if (isolatedRoot === undefined || forbiddenProbe === undefined || actualToolScope === undefined)
     throw new Error("Preparation did not execute the isolated-root and Forbidden Probe step");
   const revisionIdentity = benchmarkIdentity(
     challenge.challenge_id,
@@ -811,6 +824,7 @@ export async function prepareChallenge(input: {
     "post_patch_sanity",
     "scored_initial_state_reset",
     "isolated_execution_root",
+    "actual_tool_scope_unavailable",
     "positive_tool_allowlist_and_forbidden_probe",
     ...(scoredRuntimeHandoff === "executed" ? ["runner_runtime_handoff"] : []),
     "scored_runtime_stop_and_disposable_cleanup",
@@ -821,11 +835,6 @@ export async function prepareChallenge(input: {
     "utf8",
   );
   fs.mkdirSync(input.runDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(input.runDir, "benchmark-manifest.json"),
-    benchmarkRevision.serialized_manifest,
-    "utf8",
-  );
   fs.writeFileSync(
     path.join(input.runDir, `benchmark-manifest-${challenge.challenge_id}.json`),
     benchmarkRevision.serialized_manifest,
@@ -842,6 +851,8 @@ export async function prepareChallenge(input: {
     runtime_sanity: runtimeSanity,
     isolated_root: isolatedRoot,
     forbidden_probe: forbiddenProbe,
+    actual_tool_scope: actualToolScope,
+    tool_scope_validated: false,
     preparation_order: preparationOrder,
     scored_runtime_handoff: scoredRuntimeHandoff,
     run_dir: input.runDir,

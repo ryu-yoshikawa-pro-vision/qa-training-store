@@ -81,6 +81,8 @@ export function runLocalBlackBoxFixture(input: {
   model?: string;
 }): void {
   const rootDir = input.rootDir ?? process.cwd();
+  if (input.challengeId !== "CHALLENGE-BASIC-001")
+    throw new Error("Local deterministic contract fixture supports only CHALLENGE-BASIC-001");
   challengeIdSchema.parse(input.challengeId);
   const challenge = parseJsonWithSchema(
     readJson(
@@ -99,7 +101,12 @@ export function runLocalBlackBoxFixture(input: {
     input.challengeId,
     "isolated-run-root",
   );
-  const probe = probeForbiddenCapabilities(isolatedRoot, profile, profile.allowed_capabilities);
+  const actualToolScope = {
+    measured: false as const,
+    source: "unavailable" as const,
+    exposed_capabilities: [],
+  };
+  const probe = probeForbiddenCapabilities(isolatedRoot, profile, actualToolScope);
   assertForbiddenProbePasses(probe);
   const challengeManifestFile = path.join(
     input.runDir,
@@ -137,16 +144,29 @@ export function runLocalBlackBoxFixture(input: {
   const runnerSessionId = crypto.randomUUID();
   const sessionArtifactNew = !fs.existsSync(runnerSessionFile);
   const freshSessionCandidate = sessionArtifactNew && !priorSessionIds.includes(runnerSessionId);
-  const toolScopeProbePassed = probe.every((result) => !result.available);
+  const toolScopeProbePassed =
+    actualToolScope.measured && probe.every((result) => !result.available);
+  const forbiddenProbeRef = `.artifacts/agentic-qa/${path.basename(input.runDir)}/forbidden-probe.json`;
+  fs.writeFileSync(
+    path.join(rootDir, forbiddenProbeRef),
+    `${JSON.stringify(probe, null, 2)}\n`,
+    "utf8",
+  );
   fs.writeFileSync(
     runnerSessionFile,
     `${JSON.stringify(
       {
         runner_session_id: runnerSessionId,
+        execution_kind: "contract_fixture",
+        model_identifier: null,
+        benchmark_revision: benchmarkRevision,
+        runtime_variant_id: manifest.runtime_variant_id,
         fresh_session: freshSessionCandidate,
         session_artifact_new: sessionArtifactNew,
         prior_runner_session_ids: priorSessionIds,
         tool_scope_probe_passed: toolScopeProbePassed,
+        actual_tool_scope: actualToolScope,
+        forbidden_probe_artifact: forbiddenProbeRef,
         forbidden_probe: probe,
       },
       null,
@@ -222,6 +242,7 @@ export function runLocalBlackBoxFixture(input: {
       runner_session_id: recordedSession.runner_session_id,
       fresh_session: freshSession,
       tool_scope_probe_passed: recordedSession.tool_scope_probe_passed,
+      actual_tool_scope: recordedSession.actual_tool_scope,
     },
   });
   writeFrozenFindings(input.runDir, result);

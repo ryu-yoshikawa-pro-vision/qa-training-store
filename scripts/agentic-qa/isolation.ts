@@ -3,7 +3,9 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   compareCodeUnits,
+  actualToolScopeSchema,
   type Challenge,
+  type ActualToolScope,
   type ForbiddenCapability,
   type ToolProfile,
 } from "./contracts";
@@ -113,9 +115,9 @@ function forbiddenPaths(files: string[], capability: ForbiddenCapability): strin
 
 function toolCapabilityAvailable(
   capability: ForbiddenCapability,
-  exposedCapabilities: readonly string[],
+  actualToolScope: ActualToolScope,
 ): boolean {
-  return exposedCapabilities.includes(capability);
+  return actualToolScope.measured && actualToolScope.exposed_capabilities.includes(capability);
 }
 
 export function createIsolatedRunnerRoot(input: {
@@ -181,12 +183,13 @@ export function assertIsolatedRunnerRoot(rootDir: string): void {
 export function probeForbiddenCapabilities(
   rootDir: string,
   profile: ToolProfile,
-  exposedCapabilities: readonly string[] = [],
+  actualToolScope: ActualToolScope,
 ): ForbiddenProbeResult[] {
   assertIsolatedRunnerRoot(rootDir);
   assertPositiveToolAllowlist(profile);
+  actualToolScopeSchema.parse(actualToolScope);
   const files = listFiles(rootDir);
-  const checks: Array<[ForbiddenCapability, string]> = [
+  const checks: [ForbiddenCapability, string][] = [
     ["source_repository", "isolated root has no application or repository source path"],
     ["parent_traversal", "positive file reader exposes no parent traversal capability"],
     ["git_repository_search", "runner tool scope exposes no git/repository search"],
@@ -216,11 +219,14 @@ export function probeForbiddenCapabilities(
   }
   return checks.map(([capability, description]) => {
     const matches = forbiddenPaths(files, capability);
-    const toolAvailable = toolCapabilityAvailable(capability, exposedCapabilities);
+    const toolAvailable = toolCapabilityAvailable(capability, actualToolScope);
     const available = matches.length > 0 || toolAvailable;
+    const observed = [...matches, ...(toolAvailable ? [`tool-scope:${capability}`] : [])].sort(
+      compareCodeUnits,
+    );
     const evidence = available
-      ? `${description}; observed=${[...matches, ...(toolAvailable ? ["tool-scope"] : [])].sort(compareCodeUnits).join(",")}`
-      : `${description}; observed=none; files_checked=${files.length}; tools_checked=${exposedCapabilities.length}`;
+      ? `forbidden capability ${capability} is reachable; observed=${observed.join(",")}`
+      : `${description}; observed=none; files_checked=${files.length}; tool_scope_measured=${actualToolScope.measured}; tools_checked=${actualToolScope.exposed_capabilities.length}`;
     return { capability, available, evidence };
   });
 }

@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "run_id": "20260810-130321-JST",
-  "source_head_sha": "e7c3d46c5925a16f4b4feb7aad0f217140a4518a",
+  "source_head_sha": "c28920806f3add02a374e08e0dad2b20fccbc902",
   "coverage": {
     "required_ids": [
       "COV-001"
@@ -59,7 +59,7 @@
   "mode": "black-box-scored",
   "charter_id": null,
   "challenge_id": "CHALLENGE-BASIC-001",
-  "benchmark_revision": "sha256:280423029f596432f5be52afaff970788410ec769d85cd45d5fc8e666e05a9e3",
+  "benchmark_revision": "sha256:a5332b05fb66710c0778ddda3ae2fd3bff3bf453e94aef0fd9c8a0363c71fca7",
   "runtime_variant_id": null,
   "runner_profile": {
     "model": "local-deterministic-runner",
@@ -71,5 +71,5 @@
   "execution_kind": "contract_fixture",
   "runner_session_id": "be9d8c66-ff9a-4e70-9b15-90bfb6d63e3c",
   "fresh_session": true,
-  "tool_scope_validated": true
+  "tool_scope_validated": false
 }

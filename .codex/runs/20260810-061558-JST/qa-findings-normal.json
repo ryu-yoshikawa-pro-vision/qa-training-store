@@ -15,7 +15,7 @@
         "mission_completed": true,
         "evidence_refs": [
           ".artifacts/agentic-qa/normal/storefront-desktop.png",
-          ".artifacts/agentic-qa/normal/storefront-desktop-url.txt",
+          "http://127.0.0.1:4173/",
           ".artifacts/agentic-qa/normal/storefront-desktop-dom.txt"
         ],
         "evidence_types": ["screenshot", "url", "dom"],
@@ -29,7 +29,7 @@
         "evidence_refs": [
           ".artifacts/agentic-qa/normal/storefront-mobile.png",
           ".artifacts/agentic-qa/normal/storefront-mobile-accessibility.txt",
-          ".artifacts/agentic-qa/normal/storefront-mobile-url.txt"
+          "http://127.0.0.1:4173/products"
         ],
         "evidence_types": ["screenshot", "accessibility", "url"],
         "blocker_reason": null,

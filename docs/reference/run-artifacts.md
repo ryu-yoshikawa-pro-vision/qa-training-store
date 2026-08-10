@@ -58,6 +58,12 @@ Both are validated by schema / validator.
 - Contract Fixtureは`execution_kind=contract_fixture`として保存できる診断成果物ですが、`fixture_not_official`を付与し、`valid_for_scoring=false`かつMetric `null`でなければなりません。
 - Official model-backed Scored Runは、patched runtimeの実測、Forbidden Probe、Fresh Runner、Required Evidence、Atomic Freeze、別Evaluator Sessionのすべてが証明できた場合だけ有効です。未実行の工程を`PASS`や`true`へ補完しません。
 
+### Challenge-specific Benchmark Manifest
+
+- `benchmark-manifest-<challenge-id>.json`をChallenge単位の正本とします。同じRunで複数ChallengeをPreparationする場合も、Challenge-specific manifestを上書きせず個別に保存します。
+- `benchmark-manifest.json`は過去Runとの互換性のためだけにfallback読込を許可するhistorical / legacy generic manifestです。複数Challenge Runでは正本ではなく、新規Preparationで生成・上書きしません。
+- Evaluatorはchallenge-specific manifestを必ず優先し、存在しない場合だけlegacy generic manifestを読みます。
+
 ## Runner Completion Options
 
 ### `--evaluation-template`
