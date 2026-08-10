@@ -99,3 +99,26 @@
 - CodeRabbit分類: Actual Tool Scope／Evidence／Official verification／notes-only TN／Basic fixture／server order／prepareRunner／shebang／challenge-specific manifestは`fixed`。前回から有効な既存契約（NUL Git status、rename normalization、Snapshot再導出、CLI fail-close等）は`already addressed`。upload-artifact SHA pin、spec-refs cache、loadAnswerKey helper、Intermediate hunk空行、Docstring Coverageは指示どおり`skipped with reason`。
 - Remaining: Remote CI final statusはこのRunで確認していない。Official model-backed Scored Run基盤も未提供で、Foundation overall DoDは`incomplete / blocked`。Repair implementation／local validation DoDのみ完了。
 - Progress: 100% (6/6)
+
+## 2026-08-10 16:03 (JST) 追補注記
+
+- `2026-08-10 15:27 (JST) 追加レビュー修正`節は、15:29の監査記録を追記した後に発生時刻15:27の内容を補足記録したため、記録順と発生時刻が前後している。既存記録は削除・並べ替えず、append-onlyを維持する。
+
+## 2026-08-10 16:17 (JST) 追加修正・最終検証
+
+- Repair Loop iteration: `iteration_number=2`。`must_fix`はForbidden Capabilityの実能力対応、`actual_tool_scope`の`measured/source`相関、current-run Evidence境界、Artifact分岐テスト、Manifest選択回帰、Temp cleanup、Run Artifact規約。`decision=stop_success`（local repair／validation）。
+- Allowed Files: `scripts/agentic-qa/{contracts,isolation,evaluate}.ts`、`tests/contracts/spec-agentic-qa.test.ts`、`.codex/runs/20260810-130321-JST/{TASKS,REPORT}.md`。Product Behavior、Application Source、Native Runtime／Maestro Flow、Git／PR状態は対象外とした。
+- Agentic QA修正: Runtime Inventoryの直接Forbidden名に加え、shell／repository search／HTTP fetch／browser JS evaluation／ADB shell相当をCanonical Forbidden Capabilityへ対応付け、実際の露出値をProbe evidenceへ保存した。`actual_tool_scope.measured`と`source`を相関検証し、矛盾状態をSchemaで拒否する。`safeArtifactPath(rootDir, runId, ref)`をcurrent run配下へ限定し、Evidence integrity、TP／FP／TN候補、Artifact実体読込、Forbidden Probe参照へ同じ境界を適用した。
+- 回帰テスト: current-run EvidenceのPASS、previous-run／traversal／absolute pathの拒否、missing artifactのinvalid化、measured/source不整合、safe capability／canonical Forbidden／operation aliasのProbe、複数Challenge Manifest選択、Artifact evidence分岐、2箇所のTemp cleanupを追加・固定した。focused Contract testは23 tests PASS。
+- Review disposition: isolation／contracts／evaluate／testsの現行指摘はfixed。`actions/upload-artifact@v4` SHA pin、`spec-refs` cache、Answer Key helper抽出、到達不能filter、Intermediate patch空行、History script path、Docstring Coverageは、ユーザー指示どおり別対応またはlow-valueとしてskipped。新たなProduct／Native変更は行っていない。
+- Required validation: `pnpm run format:check` PASS、`pnpm run lint:markdown` 233 files／0 issues、`pnpm run validate:spec` PASS、`pnpm run build:spec` 21 pages PASS、`pnpm run lint` 0 errors／65 warnings、`pnpm run typecheck` PASS、`pnpm exec tsx scripts/agentic-qa/validate-contracts.ts` PASS、`pnpm run test:e2e:chromium` 27/27 PASS、`pnpm run test:a11y` 4/4 PASS、`pnpm run test:e2e:mobile-boundary` 4/4 PASS、`pnpm run verify` exit 0（Contract 24 files／196 tests、Web export 2296 modules、Native Jest 47 testsを含む）。
+- Native CI: current HEAD `4a6e064`のNative CI run #91（run ID `31362520574`）は全job success。前回の初期UI assert signature（`Native test runtime listening`／`Scenario Shop`）は再発しなかったため、Maestro-MCPは使用せず、Native code／Flow／timeoutも変更しない。Phase 1 CI #143もsuccess。
+- Official status: Official model-backed Runnerは実行基盤がないため未実行。Contract FixtureはOfficial Scored Runの代替にせず、既存evaluationは`valid_for_scoring=false`／metrics全nullを維持する。Foundation overall DoDはOfficial Runner未実行のため`incomplete / blocked`、local repair／validation DoDは完了。
+- Delegation: 追加test investigatorの新規起動はagent thread limitにより実行できなかったため、既存のSagan／Pasteur／Diracのread-only調査結果と今回の親Agent検証を採用した。writable subagent、Git mutation、PR write actionは未使用。
+- Progress: 100% (6/6)
+
+## 2026-08-10 16:24 (JST) 最終検証追補
+
+- Evaluationの明示的なsession／Forbidden Probe／Evaluator artifact pathも、rootからcurrent runへの安全な相対化を通して検証するよう補強した。`pnpm exec tsc --noEmit --pretty false`、focused Contract test 23 tests、最終`pnpm run verify`（exit 0、Contract 24 files／196 tests）はこの補強後に再実行した。
+- Native CI run #91はsuccessのままで、Maestro-MCPを起動する条件（同じ初期assert failure）は発生していない。Official model-backed Runnerは引き続き`Blocked / 未実行`。
+- Progress: 100% (6/6)

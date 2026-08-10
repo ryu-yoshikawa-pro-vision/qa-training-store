@@ -287,7 +287,22 @@ export const forbiddenCapabilitySchema = z.enum([
 ]);
 
 export type ForbiddenCapability = z.infer<typeof forbiddenCapabilitySchema>;
-export const exposedCapabilitySchema = z.union([toolCapabilitySchema, forbiddenCapabilitySchema]);
+export const runtimeToolCapabilitySchema = z.enum([
+  "shell",
+  "repository_search",
+  "git_search",
+  "http_fetch",
+  "arbitrary_http_fetch",
+  "browser_js_evaluation",
+  "browser_javascript_evaluation",
+  "adb_shell",
+]);
+export type RuntimeToolCapability = z.infer<typeof runtimeToolCapabilitySchema>;
+export const exposedCapabilitySchema = z.union([
+  toolCapabilitySchema,
+  forbiddenCapabilitySchema,
+  runtimeToolCapabilitySchema,
+]);
 export type ExposedCapability = z.infer<typeof exposedCapabilitySchema>;
 
 export const actualToolScopeSchema = z
@@ -298,6 +313,12 @@ export const actualToolScopeSchema = z
   })
   .strict()
   .superRefine((value, context) => {
+    if (value.measured !== (value.source === "runner_runtime_inventory"))
+      context.addIssue({
+        code: "custom",
+        path: ["source"],
+        message: "measured and source must describe the same tool-scope state",
+      });
     if (!value.measured && value.exposed_capabilities.length > 0)
       context.addIssue({
         code: "custom",

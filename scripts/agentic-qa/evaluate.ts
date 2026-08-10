@@ -57,12 +57,32 @@ function coverageComplete(findings: QaFindings, coverageId: string): boolean {
 
 const MACHINE_EVIDENCE_TYPES = new Set(["dom", "accessibility", "console", "narrow_log", "trace"]);
 
-function safeArtifactPath(rootDir: string, ref: string): string | null {
-  if (!ref.startsWith(".artifacts/")) return null;
+export function safeArtifactPath(rootDir: string, runId: string, ref: string): string | null {
+  if (
+    runId === "" ||
+    runId.includes("/") ||
+    runId.includes("\\") ||
+    runId.includes("..") ||
+    path.isAbsolute(runId)
+  )
+    return null;
+  const runPrefix = `.artifacts/agentic-qa/${runId}/`;
+  if (
+    !ref.startsWith(runPrefix) ||
+    ref.includes("\\") ||
+    ref.split("/").includes("..") ||
+    path.isAbsolute(ref)
+  )
+    return null;
   const root = path.resolve(rootDir);
   const candidate = path.resolve(root, ...ref.split("/"));
-  const relative = path.relative(root, candidate);
+  const rootRelative = path.relative(root, candidate);
+  const currentRunRoot = path.resolve(root, ".artifacts", "agentic-qa", runId);
+  const relative = path.relative(currentRunRoot, candidate);
   if (
+    rootRelative === ".." ||
+    rootRelative.startsWith(`..${path.sep}`) ||
+    path.isAbsolute(rootRelative) ||
     relative === "" ||
     relative === ".." ||
     relative.startsWith(`..${path.sep}`) ||
@@ -72,8 +92,27 @@ function safeArtifactPath(rootDir: string, ref: string): string | null {
   return candidate;
 }
 
-function artifactText(rootDir: string, ref: string, requireExisting: boolean): string | null {
-  const filePath = safeArtifactPath(rootDir, ref);
+function configuredRunArtifactPath(
+  rootDir: string,
+  runId: string,
+  configuredPath: string | undefined,
+  defaultRef: string,
+): string | null {
+  const root = path.resolve(rootDir);
+  const ref =
+    configuredPath === undefined
+      ? defaultRef
+      : path.relative(root, path.resolve(root, configuredPath)).split(path.sep).join("/");
+  return safeArtifactPath(root, runId, ref);
+}
+
+function artifactText(
+  rootDir: string,
+  runId: string,
+  ref: string,
+  requireExisting: boolean,
+): string | null {
+  const filePath = safeArtifactPath(rootDir, runId, ref);
   if (filePath === null || !fs.existsSync(filePath)) return requireExisting ? null : "";
   try {
     if (!fs.statSync(filePath).isFile()) return null;
@@ -85,12 +124,13 @@ function artifactText(rootDir: string, ref: string, requireExisting: boolean): s
 
 function evidenceSupportsObservation(
   rootDir: string,
+  runId: string,
   evidence: Finding["evidence"][number],
   expectedObservation: string,
   requireExisting: boolean,
 ): boolean {
   if (!MACHINE_EVIDENCE_TYPES.has(evidence.type)) return false;
-  const content = artifactText(rootDir, evidence.ref, requireExisting);
+  const content = artifactText(rootDir, runId, evidence.ref, requireExisting);
   if (content === null) return false;
   return normalizeText(content).includes(normalizeText(expectedObservation));
 }
@@ -99,14 +139,15 @@ function evidenceSatisfies(
   finding: Finding,
   item: ActiveAnswerItem,
   rootDir: string,
+  runId: string,
   requireExisting: boolean,
 ): boolean {
   const expectation = normalizeText(item.evidence_expectation);
   const actualDeviation = normalizeText(item.required_observation);
   return finding.evidence.some((evidence) => {
     return (
-      evidenceSupportsObservation(rootDir, evidence, expectation, requireExisting) ||
-      evidenceSupportsObservation(rootDir, evidence, actualDeviation, requireExisting)
+      evidenceSupportsObservation(rootDir, runId, evidence, expectation, requireExisting) ||
+      evidenceSupportsObservation(rootDir, runId, evidence, actualDeviation, requireExisting)
     );
   });
 }
@@ -182,6 +223,7 @@ function coverageEvidenceSupportsObservation(
     if (type === undefined) return false;
     return evidenceSupportsObservation(
       rootDir,
+      findings.run_id,
       { type, ref, description: "" },
       item.evidence_expectation,
       requireExisting,
@@ -203,7 +245,7 @@ function itemObservationSeen(
         coverageComplete(findings, item.related_coverage_id) &&
         expectedBehaviorMatches(finding, item) &&
         actualDeviationMatches(finding, item) &&
-        evidenceSatisfies(finding, item, rootDir, requireExisting),
+        evidenceSatisfies(finding, item, rootDir, findings.run_id, requireExisting),
     )
   );
 }
@@ -239,8 +281,13 @@ function evidenceIntegrityIsValid(
   const validate = (ref: string, type: Parameters<typeof evidenceRefSyntaxError>[1]): boolean => {
     if (evidenceRefSyntaxError(ref, type) !== null) return false;
     if (type === "url") return true;
-    const filePath = safeArtifactPath(rootDir, ref);
-    return filePath !== null && fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+    const filePath = safeArtifactPath(rootDir, findings.run_id, ref);
+    if (filePath === null || !fs.existsSync(filePath)) return false;
+    try {
+      return fs.statSync(filePath).isFile();
+    } catch {
+      return false;
+    }
   };
   for (const coverage of findings.coverage.items) {
     if (coverage.evidence_refs.length !== coverage.evidence_types.length) return false;
@@ -290,17 +337,27 @@ function officialVerificationFailures(
     failures.push("runtime variant differs from the evaluator expectation");
 
   const rootDir = options.rootDir ?? process.cwd();
-  const runnerSessionFile =
-    options.runnerSessionArtifactPath ??
-    path.join(rootDir, ".artifacts", "agentic-qa", findings.run_id, "runner-session.json");
+  const runnerSessionFile = configuredRunArtifactPath(
+    rootDir,
+    findings.run_id,
+    options.runnerSessionArtifactPath,
+    `.artifacts/agentic-qa/${findings.run_id}/runner-session.json`,
+  );
   let runnerSession: ReturnType<typeof runnerSessionSchema.parse> | undefined;
-  try {
-    runnerSession = parseJsonWithSchema(
-      readJson(runnerSessionFile),
-      runnerSessionSchema,
-      "runner session artifact",
-    );
-  } catch {
+  if (runnerSessionFile === null) {
+    failures.push("runner session artifact path is unsafe");
+  } else {
+    try {
+      runnerSession = parseJsonWithSchema(
+        readJson(runnerSessionFile),
+        runnerSessionSchema,
+        "runner session artifact",
+      );
+    } catch {
+      runnerSession = undefined;
+    }
+  }
+  if (runnerSession === undefined && runnerSessionFile !== null) {
     failures.push("runner session artifact is missing or invalid");
   }
   if (runnerSession !== undefined) {
@@ -325,9 +382,12 @@ function officialVerificationFailures(
     if (runnerSession.forbidden_probe.some((result) => result.available))
       failures.push("embedded forbidden probe reports a reachable capability");
 
-    const forbiddenProbeFile =
-      options.forbiddenProbeArtifactPath ??
-      safeArtifactPath(rootDir, runnerSession.forbidden_probe_artifact);
+    const forbiddenProbeFile = configuredRunArtifactPath(
+      rootDir,
+      findings.run_id,
+      options.forbiddenProbeArtifactPath,
+      runnerSession.forbidden_probe_artifact,
+    );
     if (forbiddenProbeFile === null || !fs.existsSync(forbiddenProbeFile)) {
       failures.push("forbidden probe artifact is missing");
     } else {
@@ -345,10 +405,13 @@ function officialVerificationFailures(
     }
   }
 
-  const evaluatorSessionFile =
-    options.evaluatorSessionArtifactPath ??
-    path.join(rootDir, ".artifacts", "agentic-qa", findings.run_id, "evaluator-session.json");
-  if (!fs.existsSync(evaluatorSessionFile)) {
+  const evaluatorSessionFile = configuredRunArtifactPath(
+    rootDir,
+    findings.run_id,
+    options.evaluatorSessionArtifactPath,
+    `.artifacts/agentic-qa/${findings.run_id}/evaluator-session.json`,
+  );
+  if (evaluatorSessionFile === null || !fs.existsSync(evaluatorSessionFile)) {
     failures.push("evaluator session artifact is missing");
   } else {
     try {
@@ -427,13 +490,14 @@ function matchDefectFinding(
   finding: Finding,
   item: ActiveAnswerItem,
   rootDir: string,
+  runId: string,
   requireExisting: boolean,
 ): boolean {
   return (
     item.kind === "defect" &&
     findingCanBeMatched(finding, item) &&
     actualDeviationMatches(finding, item) &&
-    evidenceSatisfies(finding, item, rootDir, requireExisting) &&
+    evidenceSatisfies(finding, item, rootDir, runId, requireExisting) &&
     normalizeText(finding.expected) !== normalizeText(finding.actual)
   );
 }
@@ -442,6 +506,7 @@ function evidenceQuality(
   finding: Finding,
   item: ActiveAnswerItem,
   rootDir: string,
+  runId: string,
   requireExisting: boolean,
 ): number {
   const checks = [
@@ -449,7 +514,7 @@ function evidenceQuality(
     finding.steps.length > 0 && finding.reproduction_count > 0,
     finding.evidence.length > 0,
     actualDeviationMatches(finding, item) &&
-      evidenceSatisfies(finding, item, rootDir, requireExisting),
+      evidenceSatisfies(finding, item, rootDir, runId, requireExisting),
     finding.expected.trim() !== "" &&
       finding.actual.trim() !== "" &&
       normalizeText(finding.expected) !== normalizeText(finding.actual),
@@ -573,14 +638,26 @@ export function evaluateBlackBox(
     const matchedDefect = defectItems.find(
       (item) =>
         !matchedDefectItems.has(item.item_id) &&
-        matchDefectFinding(finding, item, evidenceRootDir, requireEvidenceArtifacts),
+        matchDefectFinding(
+          finding,
+          item,
+          evidenceRootDir,
+          findings.run_id,
+          requireEvidenceArtifacts,
+        ),
     );
     if (matchedDefect !== undefined) {
       matchedDefectItems.add(matchedDefect.item_id);
       countedFindingIds.add(finding.finding_id);
       tp += 1;
       evidenceScores.push(
-        evidenceQuality(finding, matchedDefect, evidenceRootDir, requireEvidenceArtifacts),
+        evidenceQuality(
+          finding,
+          matchedDefect,
+          evidenceRootDir,
+          findings.run_id,
+          requireEvidenceArtifacts,
+        ),
       );
       reproducibilityScores.push(reproducibility(finding));
       severityScores.push(severityAccuracy(finding, matchedDefect));
@@ -593,6 +670,7 @@ export function evaluateBlackBox(
           finding,
           matchedDefect,
           evidenceRootDir,
+          findings.run_id,
           requireEvidenceArtifacts,
         ),
         adjudication: "automatic",
@@ -621,7 +699,13 @@ export function evaluateBlackBox(
     if (
       matchedNonDefect !== undefined &&
       coverageComplete(findings, matchedNonDefect.related_coverage_id) &&
-      evidenceSatisfies(finding, matchedNonDefect, evidenceRootDir, requireEvidenceArtifacts)
+      evidenceSatisfies(
+        finding,
+        matchedNonDefect,
+        evidenceRootDir,
+        findings.run_id,
+        requireEvidenceArtifacts,
+      )
     ) {
       fp += 1;
       fpNonDefect += 1;
@@ -804,6 +888,12 @@ function isMainModule(): boolean {
   );
 }
 
+export function selectBenchmarkManifestFile(runDir: string, challengeId: string): string {
+  const challengeManifestFile = path.join(runDir, `benchmark-manifest-${challengeId}.json`);
+  if (fs.existsSync(challengeManifestFile)) return challengeManifestFile;
+  return path.join(runDir, "benchmark-manifest.json");
+}
+
 if (isMainModule()) {
   const cliArgs = process.argv.slice(2);
   const runDir = optionValue(cliArgs, "--run-dir");
@@ -838,9 +928,7 @@ if (isMainModule()) {
     qaFindingsSchema,
     "qa-findings.json",
   );
-  const manifestFile = path.join(runDir, `benchmark-manifest-${challengeId}.json`);
-  const fallbackManifestFile = path.join(runDir, "benchmark-manifest.json");
-  const selectedManifestFile = fs.existsSync(manifestFile) ? manifestFile : fallbackManifestFile;
+  const selectedManifestFile = selectBenchmarkManifestFile(runDir, challengeId);
   const manifest = parseJsonWithSchema(
     readJson(selectedManifestFile),
     benchmarkManifestSchema,

@@ -4,8 +4,10 @@ import path from "node:path";
 import {
   compareCodeUnits,
   actualToolScopeSchema,
+  forbiddenCapabilitySchema,
   type Challenge,
   type ActualToolScope,
+  type ExposedCapability,
   type ForbiddenCapability,
   type ToolProfile,
 } from "./contracts";
@@ -113,11 +115,43 @@ function forbiddenPaths(files: string[], capability: ForbiddenCapability): strin
   });
 }
 
+const runtimeCapabilityToForbidden: Partial<Record<ExposedCapability, ForbiddenCapability>> = {
+  shell: "generic_shell",
+  repository_search: "git_repository_search",
+  git_search: "git_repository_search",
+  http_fetch: "arbitrary_external_fetch",
+  arbitrary_http_fetch: "arbitrary_external_fetch",
+  browser_js_evaluation: "browser_evaluate",
+  browser_javascript_evaluation: "browser_evaluate",
+  adb_shell: "arbitrary_adb_shell",
+};
+
+function forbiddenCapabilityForExposedCapability(
+  exposedCapability: ExposedCapability,
+): ForbiddenCapability | null {
+  const direct = forbiddenCapabilitySchema.safeParse(exposedCapability);
+  if (direct.success) return direct.data;
+  return runtimeCapabilityToForbidden[exposedCapability] ?? null;
+}
+
+function exposedCapabilitiesForForbiddenCapability(
+  capability: ForbiddenCapability,
+  actualToolScope: ActualToolScope,
+): ExposedCapability[] {
+  return actualToolScope.exposed_capabilities.filter(
+    (exposedCapability) =>
+      forbiddenCapabilityForExposedCapability(exposedCapability) === capability,
+  );
+}
+
 function toolCapabilityAvailable(
   capability: ForbiddenCapability,
   actualToolScope: ActualToolScope,
 ): boolean {
-  return actualToolScope.measured && actualToolScope.exposed_capabilities.includes(capability);
+  return (
+    actualToolScope.measured &&
+    exposedCapabilitiesForForbiddenCapability(capability, actualToolScope).length > 0
+  );
 }
 
 export function createIsolatedRunnerRoot(input: {
@@ -219,11 +253,16 @@ export function probeForbiddenCapabilities(
   }
   return checks.map(([capability, description]) => {
     const matches = forbiddenPaths(files, capability);
+    const exposedCapabilities = exposedCapabilitiesForForbiddenCapability(
+      capability,
+      actualToolScope,
+    );
     const toolAvailable = toolCapabilityAvailable(capability, actualToolScope);
     const available = matches.length > 0 || toolAvailable;
-    const observed = [...matches, ...(toolAvailable ? [`tool-scope:${capability}`] : [])].sort(
-      compareCodeUnits,
-    );
+    const observed = [
+      ...matches,
+      ...exposedCapabilities.map((exposedCapability) => `tool-scope:${exposedCapability}`),
+    ].sort(compareCodeUnits);
     const evidence = available
       ? `forbidden capability ${capability} is reachable; observed=${observed.join(",")}`
       : `${description}; observed=none; files_checked=${files.length}; tool_scope_measured=${actualToolScope.measured}; tools_checked=${actualToolScope.exposed_capabilities.length}`;

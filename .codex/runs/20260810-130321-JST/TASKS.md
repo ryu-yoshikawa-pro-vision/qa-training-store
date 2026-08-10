@@ -16,4 +16,4 @@
 
 ## Blocked
 
-- B1 / D1. Official model-backed Runner execution infrastructure is unavailable。Foundation全体のOfficial Scored Runは未実行であり、未実行をPASS扱いしない。Repair implementation／local validationの完了とは分離する。Blockedは進捗分母へ含めない。
+- B1 / D1。Official model-backed Runner実行基盤は利用できない。Foundation全体のOfficial Scored Runは未実行であり、未実行をPASS扱いしない。Repair implementation／local validationの完了とは分離する。Blockedは進捗分母へ含めない。
