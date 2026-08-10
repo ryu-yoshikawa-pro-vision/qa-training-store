@@ -17,3 +17,7 @@
 ## Blocked
 
 - B1 / D1。Official model-backed Runner実行基盤は利用できない。Foundation全体のOfficial Scored Runは未実行であり、未実行をPASS扱いしない。Repair implementation／local validationの完了とは分離する。Blockedは進捗分母へ含めない。
+
+## Latest Iteration
+
+- 2026-08-10 18:14 JST: 最終修正（Forbidden Probe completeness／run_id contract）を実装し、必須validationと`pnpm run verify`をPASSした。Official model-backed Runnerは引き続きBlocked／未実行。

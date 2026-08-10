@@ -14,6 +14,7 @@ import {
   parseJsonWithSchema,
   qaFindingsSchema,
   runnerSessionSchema,
+  runIdSchema,
   toolProfileSchema,
   forbiddenProbeResultsSchema,
   type AnswerItem,
@@ -23,8 +24,10 @@ import {
   type Finding,
   type QaFindings,
   type RunnerProfile,
+  type ToolProfile,
 } from "./contracts";
 import { assertCoverageIntegrity } from "./coverage";
+import { assertForbiddenProbePasses, type ForbiddenProbeResult } from "./isolation";
 import { createRunnerProfile } from "./runner";
 import { optionValue } from "./cli";
 
@@ -38,6 +41,7 @@ export type EvaluationOptions = {
   expectedRuntimeVariantId?: string | null;
   expectedBenchmarkRevision?: string;
   expectedRunnerProfile?: RunnerProfile;
+  expectedToolProfile?: ToolProfile;
   runnerSessionArtifactPath?: string;
   forbiddenProbeArtifactPath?: string;
   evaluatorSessionArtifactPath?: string;
@@ -59,7 +63,7 @@ const MACHINE_EVIDENCE_TYPES = new Set(["dom", "accessibility", "console", "narr
 
 export function safeArtifactPath(rootDir: string, runId: string, ref: string): string | null {
   if (
-    runId === "" ||
+    !runIdSchema.safeParse(runId).success ||
     runId.includes("/") ||
     runId.includes("\\") ||
     runId.includes("..") ||
@@ -307,10 +311,12 @@ function officialVerificationFailures(
   findings: Extract<QaFindings, { mode: "black-box-scored" }>,
 ): string[] {
   const failures: string[] = [];
+  const expectedToolProfile = options.expectedToolProfile;
   if (!hasOptionValue(options, "expectedBenchmarkRevision"))
     failures.push("benchmark expectation is missing");
   if (!hasOptionValue(options, "expectedRunnerProfile"))
     failures.push("runner profile expectation is missing");
+  if (expectedToolProfile === undefined) failures.push("tool profile expectation is missing");
   if (
     !hasOptionValue(options, "expectedRuntimeVariantId") &&
     !hasOptionValue(options, "runtimeVariantId")
@@ -337,6 +343,7 @@ function officialVerificationFailures(
     failures.push("runtime variant differs from the evaluator expectation");
 
   const rootDir = options.rootDir ?? process.cwd();
+  let embeddedForbiddenProbe: ForbiddenProbeResult[] | undefined;
   const runnerSessionFile = configuredRunArtifactPath(
     rootDir,
     findings.run_id,
@@ -365,6 +372,8 @@ function officialVerificationFailures(
       failures.push("runner session is not official model-backed");
     if (runnerSession.runner_session_id !== findings.runner_session_id)
       failures.push("runner session identity differs from findings");
+    if (runnerSession.run_id !== findings.run_id)
+      failures.push("runner session run_id differs from findings");
     if (runnerSession.model_identifier !== findings.runner_profile.model)
       failures.push("model identifier was not independently observed");
     if (runnerSession.benchmark_revision !== findings.benchmark_revision)
@@ -381,6 +390,14 @@ function officialVerificationFailures(
       failures.push("actual runner tool scope was not measured");
     if (runnerSession.forbidden_probe.some((result) => result.available))
       failures.push("embedded forbidden probe reports a reachable capability");
+    embeddedForbiddenProbe = runnerSession.forbidden_probe;
+    if (expectedToolProfile !== undefined) {
+      try {
+        assertForbiddenProbePasses(expectedToolProfile, runnerSession.forbidden_probe);
+      } catch {
+        failures.push("embedded forbidden probe does not exactly match the tool profile");
+      }
+    }
 
     const forbiddenProbeFile = configuredRunArtifactPath(
       rootDir,
@@ -388,6 +405,7 @@ function officialVerificationFailures(
       options.forbiddenProbeArtifactPath,
       runnerSession.forbidden_probe_artifact,
     );
+    let externalForbiddenProbe: ForbiddenProbeResult[] | undefined;
     if (forbiddenProbeFile === null || !fs.existsSync(forbiddenProbeFile)) {
       failures.push("forbidden probe artifact is missing");
     } else {
@@ -399,10 +417,33 @@ function officialVerificationFailures(
         );
         if (probe.some((result) => result.available))
           failures.push("forbidden probe artifact reports a reachable capability");
+        externalForbiddenProbe = probe;
+        if (expectedToolProfile !== undefined) {
+          try {
+            assertForbiddenProbePasses(expectedToolProfile, probe);
+          } catch {
+            failures.push("forbidden probe artifact does not exactly match the tool profile");
+          }
+        }
       } catch {
         failures.push("forbidden probe artifact is invalid");
       }
     }
+    if (
+      embeddedForbiddenProbe !== undefined &&
+      externalForbiddenProbe !== undefined &&
+      JSON.stringify(
+        embeddedForbiddenProbe
+          .map((result) => `${result.capability}:${result.available}`)
+          .sort(compareCodeUnits),
+      ) !==
+        JSON.stringify(
+          externalForbiddenProbe
+            .map((result) => `${result.capability}:${result.available}`)
+            .sort(compareCodeUnits),
+        )
+    )
+      failures.push("embedded and external forbidden probes disagree");
   }
 
   const evaluatorSessionFile = configuredRunArtifactPath(
@@ -944,7 +985,7 @@ if (isMainModule()) {
       "Benchmark manifest challenge / Answer Key path does not match the CLI challenge",
     );
   const profileFile = path.join(rootDir, "training/agentic-qa/tool-profiles/scored-v1.json");
-  parseJsonWithSchema(readJson(profileFile), toolProfileSchema, "scored-v1.json");
+  const profile = parseJsonWithSchema(readJson(profileFile), toolProfileSchema, "scored-v1.json");
   const runnerProfile =
     manifest.runner_profile ??
     createRunnerProfile({
@@ -984,6 +1025,7 @@ if (isMainModule()) {
     expectedBenchmarkRevision,
     expectedRuntimeVariantId: manifest.runtime_variant_id,
     expectedRunnerProfile: runnerProfile,
+    expectedToolProfile: profile,
     evaluatorSessionId,
   });
   fs.writeFileSync(

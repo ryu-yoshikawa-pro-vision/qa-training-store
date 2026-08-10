@@ -52,3 +52,4 @@
 
 - 既存Run `20260810-061558-JST` は前タスク完了済み。今回の修正は新Run `20260810-130321-JST` で記録し、指示された旧Runへは追補のみ行う。
 - 2026-08-10 15:27 JST: 追加レビューでは、policyとActual Tool Scope、narrativeとEvidence artifact、local fixtureとOfficial Scored Runを別境界として維持することを確認した。未計測Scope／未実行Official RunはPASSへ昇格しない。
+- 2026-08-10 18:14 JST: 最終指示のmust_fixをForbidden Probe完全性とAgentic QA run_id固定の2件に限定した。ProbeはTool Profileとの集合一致をRunner／Preparation／Evaluatorで共有検証し、run_idは`YYYYMMDD-HHMMSS-JST`へ固定する。Product／Native／Maestro／仕様／低優先度レビュー項目は変更対象外とした。

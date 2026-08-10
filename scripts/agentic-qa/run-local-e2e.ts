@@ -8,6 +8,7 @@ import {
   challengeSchema,
   parseJsonWithSchema,
   runnerSessionSchema,
+  runIdSchema,
   toolProfileSchema,
   type Finding,
 } from "./contracts";
@@ -83,6 +84,7 @@ export function runLocalBlackBoxFixture(input: {
   const rootDir = input.rootDir ?? process.cwd();
   if (input.challengeId !== "CHALLENGE-BASIC-001")
     throw new Error("Local deterministic contract fixture supports only CHALLENGE-BASIC-001");
+  const runId = runIdSchema.parse(path.basename(input.runDir));
   challengeIdSchema.parse(input.challengeId);
   const challenge = parseJsonWithSchema(
     readJson(
@@ -97,7 +99,7 @@ export function runLocalBlackBoxFixture(input: {
     rootDir,
     ".artifacts",
     "agentic-qa",
-    path.basename(input.runDir),
+    runId,
     input.challengeId,
     "isolated-run-root",
   );
@@ -107,7 +109,7 @@ export function runLocalBlackBoxFixture(input: {
     exposed_capabilities: [],
   };
   const probe = probeForbiddenCapabilities(isolatedRoot, profile, actualToolScope);
-  assertForbiddenProbePasses(probe);
+  assertForbiddenProbePasses(profile, probe);
   const challengeManifestFile = path.join(
     input.runDir,
     `benchmark-manifest-${input.challengeId}.json`,
@@ -128,12 +130,7 @@ export function runLocalBlackBoxFixture(input: {
       toolProfileRevision: `sha256:${sha256File(profileFile)}`,
       challenge,
     });
-  const evidenceDirectory = path.join(
-    rootDir,
-    ".artifacts",
-    "agentic-qa",
-    path.basename(input.runDir),
-  );
+  const evidenceDirectory = path.join(rootDir, ".artifacts", "agentic-qa", runId);
   fs.mkdirSync(evidenceDirectory, { recursive: true });
   const runnerSessionFile = path.join(evidenceDirectory, "runner-session.json");
   if (fs.existsSync(runnerSessionFile))
@@ -146,7 +143,7 @@ export function runLocalBlackBoxFixture(input: {
   const freshSessionCandidate = sessionArtifactNew && !priorSessionIds.includes(runnerSessionId);
   const toolScopeProbePassed =
     actualToolScope.measured && probe.every((result) => !result.available);
-  const forbiddenProbeRef = `.artifacts/agentic-qa/${path.basename(input.runDir)}/forbidden-probe.json`;
+  const forbiddenProbeRef = `.artifacts/agentic-qa/${runId}/forbidden-probe.json`;
   fs.writeFileSync(
     path.join(rootDir, forbiddenProbeRef),
     `${JSON.stringify(probe, null, 2)}\n`,
@@ -156,6 +153,7 @@ export function runLocalBlackBoxFixture(input: {
     runnerSessionFile,
     `${JSON.stringify(
       {
+        run_id: runId,
         runner_session_id: runnerSessionId,
         execution_kind: "contract_fixture",
         model_identifier: null,
@@ -183,7 +181,7 @@ export function runLocalBlackBoxFixture(input: {
     recordedSession.runner_session_id === runnerSessionId &&
     recordedSession.session_artifact_new &&
     recordedSession.fresh_session;
-  const evidenceRef = `.artifacts/agentic-qa/${path.basename(input.runDir)}/runner-observation.txt`;
+  const evidenceRef = `.artifacts/agentic-qa/${runId}/runner-observation.txt`;
   fs.writeFileSync(
     path.join(rootDir, evidenceRef),
     "Local deterministic runner fixture observed the patched challenge boundary. This is a contract E2E artifact, not a model-comparison result.\n",
@@ -217,7 +215,7 @@ export function runLocalBlackBoxFixture(input: {
     status: "confirmed",
   };
   const result = freezeScoredFindings({
-    runId: path.basename(input.runDir),
+    runId,
     challenge,
     benchmarkRevision,
     runtimeVariantId: manifest.runtime_variant_id,

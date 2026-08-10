@@ -122,3 +122,23 @@
 - Evaluationの明示的なsession／Forbidden Probe／Evaluator artifact pathも、rootからcurrent runへの安全な相対化を通して検証するよう補強した。`pnpm exec tsc --noEmit --pretty false`、focused Contract test 23 tests、最終`pnpm run verify`（exit 0、Contract 24 files／196 tests）はこの補強後に再実行した。
 - Native CI run #91はsuccessのままで、Maestro-MCPを起動する条件（同じ初期assert failure）は発生していない。Official model-backed Runnerは引き続き`Blocked / 未実行`。
 - Progress: 100% (6/6)
+
+## 2026-08-10 18:14 (JST) 最終修正指示対応
+
+- Summary: 添付された最終指示のmust_fix 2件だけを対象に、Forbidden Probeの完全性とAgentic QA `run_id`境界をfail-close化した。
+- Repair Loop iteration: `iteration_number=3`。`must_fix`は「Tool ProfileのRequired Forbidden CapabilityとProbe Result Setのexactly-once一致」と「Agentic QA Machine Contractの正式Run ID pattern、およびcurrent-run path helperの防御」。低優先度コメントとProduct／Native変更はdefer／scope外とした。`decision=stop_success`。
+- Allowed Files: `scripts/agentic-qa/{contracts,isolation,evaluate,prepare-challenge,run-local-e2e}.ts`、`tests/contracts/spec-agentic-qa.test.ts`、`.codex/runs/20260810-130321-JST/{PLAN,TASKS,REPORT,run}.md/json`。Product Behavior、Application Source、Native Runtime、Maestro Flow、Specification内容、Git／PR操作は対象外。
+- Forbidden Probe completeness: `forbiddenProbeResultsSchema`でduplicateを拒否し、`assertForbiddenProbePasses(profile, results)`でrequired／actual集合の完全一致、exactly once、全件`available=false`を共通検証した。`probeForbiddenCapabilities`もTool Profile列から同じ集合を生成する。Evaluatorはembedded `runner-session.json.forbidden_probe`とexternal `forbidden-probe.json`を個別に再検証し、Tool Profile一致とcapability／availability一致を確認する。
+- Run ID: `runIdSchema=/^\d{8}-\d{6}-JST$/`をqa-findings、runner session、evaluation、working-tree snapshot／comparisonへ適用した。`safeArtifactPath`も同じschemaを防御的に使用し、`.`、`..`、slash／backslash、POSIX／Windows absolute、previous-run escapeを拒否する。
+- Negative tests: complete safe probe、missing capability、duplicate capability、reachable capability、embedded／external mismatch、valid run ID、dot／parent／slash／backslash／absolute run ID、dot run ID findingsを追加し、focused Agentic QA contract 23 testsがPASSした。
+- Validation: `pnpm run format:check` PASS、`pnpm run lint:markdown` PASS（233 files／0 issues）、`pnpm run validate:spec` PASS、`pnpm run build:spec` PASS（21 pages）、`pnpm run lint` PASS（0 errors／65 warnings）、`pnpm run typecheck` PASS、`pnpm exec tsx scripts/agentic-qa/validate-contracts.ts` PASS（3 challenge／1 charter／3 findings／8 manifests／2 evaluations）。
+- Validation: 初回の`pnpm run verify`ではNative契約1件が5秒timeoutしたが、対象単独4/4 PASS、全Contract 24 files／196 tests PASSで再現しなかった。Native／Productコードは変更せず、最終`pnpm run verify`はexit 0（全test、Native Jest 47、Web export 2296 modules、Spec build 21 pages）でPASSした。
+- Scope audit: `src/**`、`app/**`、`maestro/**`、Native product implementationの変更なし。upload-artifact SHA pin、spec-refs cache、Answer Key helper、Intermediate patch空行、History軽微表記、Docstring Coverage、無関係refactorは変更していない。Git mutation／PR write actionも未実行。
+- Remaining: Official model-backed Runner execution infrastructureは利用できず、Official Scored E2Eは`BLOCKED / NOT EXECUTED`。Contract Fixtureは`valid_for_scoring=false`／metrics全nullを維持し、Foundation overall DoDは`INCOMPLETE / BLOCKED`。Local repair／validation DoDは完了。
+- Progress: 100% (6/6)
+
+## 2026-08-10 18:15 (JST) Run Artifact最終監査
+
+- Sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260810-130321-JST -Write -Check` => PASS（files_scanned=10、files_changed=0、replacements_total=0、residual_findings=0）。
+- Integrity: `run.json` parse => PASS、`git diff --check` => PASS（LF→CRLFのGit warningのみ）、Product／Native／Maestro scope audit => no `src/app/maestro` diff。
+- Progress: 100% (6/6)

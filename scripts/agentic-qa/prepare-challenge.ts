@@ -13,6 +13,7 @@ import {
   challengeSchema,
   forbiddenProbeResultsSchema,
   parseJsonWithSchema,
+  runIdSchema,
   toolProfileSchema,
   type AnswerKey,
   type ActualToolScope,
@@ -695,6 +696,7 @@ export async function prepareChallenge(input: {
   runScoredRunner?: (runtime: ScoredRuntimeHandle) => Promise<void>;
 }): Promise<ChallengePreparation> {
   const rootDir = input.rootDir ?? process.cwd();
+  const runId = runIdSchema.parse(input.runId);
   challengeIdSchema.parse(input.challengeId);
   cleanupStaleDisposableSources();
   const runtimeVariantId = input.runtimeVariantId ?? null;
@@ -709,13 +711,7 @@ export async function prepareChallenge(input: {
     answerKeySchema,
     "training/agentic-qa/instructor/answer-key/" + input.challengeId + ".json",
   );
-  const artifactRoot = path.join(
-    rootDir,
-    ".artifacts",
-    "agentic-qa",
-    input.runId,
-    input.challengeId,
-  );
+  const artifactRoot = path.join(rootDir, ".artifacts", "agentic-qa", runId, input.challengeId);
   const learnerBundle = buildLearnerBundle(
     rootDir,
     challenge,
@@ -780,7 +776,7 @@ export async function prepareChallenge(input: {
           forbiddenProbeResultsSchema,
           "forbidden-probe",
         );
-        assertForbiddenProbePasses(forbiddenProbe);
+        assertForbiddenProbePasses(tool.profile, forbiddenProbe);
         fs.writeFileSync(
           path.join(preparationRoot, "forbidden-probe.json"),
           `${JSON.stringify(forbiddenProbe, null, 2)}\n`,

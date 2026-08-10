@@ -5,6 +5,7 @@ import {
   compareCodeUnits,
   actualToolScopeSchema,
   forbiddenCapabilitySchema,
+  forbiddenProbeResultsSchema,
   type Challenge,
   type ActualToolScope,
   type ExposedCapability,
@@ -242,16 +243,11 @@ export function probeForbiddenCapabilities(
     ["answer_key", "isolated root has no answer key"],
     ["prior_scored_session", "isolated root has no prior scored session artifact"],
   ];
-  for (const [capability] of checks) {
-    if (
-      !profile.forbidden_capabilities.includes(
-        capability as (typeof profile.forbidden_capabilities)[number],
-      )
-    ) {
-      throw new Error(`Tool profile does not declare required forbidden capability: ${capability}`);
-    }
-  }
-  return checks.map(([capability, description]) => {
+  const descriptions = new Map(checks);
+  return profile.forbidden_capabilities.map((capability) => {
+    const description = descriptions.get(capability);
+    if (description === undefined)
+      throw new Error(`No Forbidden Probe check is defined for capability: ${capability}`);
     const matches = forbiddenPaths(files, capability);
     const exposedCapabilities = exposedCapabilitiesForForbiddenCapability(
       capability,
@@ -278,8 +274,28 @@ export function assertPositiveToolAllowlist(profile: ToolProfile): void {
     throw new Error(`Tool profile is missing required positive capability: ${missing.join(", ")}`);
 }
 
-export function assertForbiddenProbePasses(results: ForbiddenProbeResult[]): void {
-  const available = results.filter((result) => result.available);
+export function assertForbiddenProbePasses(
+  profile: ToolProfile,
+  results: ForbiddenProbeResult[],
+): void {
+  const parsed = forbiddenProbeResultsSchema.safeParse(results);
+  if (!parsed.success)
+    throw new Error(
+      `Forbidden capability probe is invalid: ${parsed.error.issues
+        .map((issue) => issue.message)
+        .join(", ")}`,
+    );
+  const required = new Set(profile.forbidden_capabilities);
+  const actual = new Set(parsed.data.map((result) => result.capability));
+  const missing = profile.forbidden_capabilities.filter((capability) => !actual.has(capability));
+  const unexpected = parsed.data
+    .map((result) => result.capability)
+    .filter((capability) => !required.has(capability));
+  if (missing.length > 0 || unexpected.length > 0 || actual.size !== parsed.data.length)
+    throw new Error(
+      `Forbidden capability probe is incomplete: missing=${missing.join(",") || "none"}; unexpected=${unexpected.join(",") || "none"}`,
+    );
+  const available = parsed.data.filter((result) => result.available);
   if (available.length > 0)
     throw new Error(
       `Forbidden capability probe failed: ${available.map((result) => result.capability).join(", ")}`,

@@ -10,8 +10,10 @@ import {
   challengeSchema,
   compareCodeUnits,
   coverageResultSchema,
+  forbiddenProbeResultsSchema,
   parseJsonWithSchema,
   qaFindingsSchema,
+  runIdSchema,
   toolProfileSchema,
   workingTreeSnapshotSchema,
   type QaFindings,
@@ -105,6 +107,7 @@ function createOfficialVerificationArtifacts(input: {
     path.join(artifactRoot, "runner-session.json"),
     `${JSON.stringify(
       {
+        run_id: input.runId,
         runner_session_id: input.runnerSessionId,
         execution_kind: "official_model_backed",
         model_identifier: input.runnerProfile.model,
@@ -147,6 +150,7 @@ function createOfficialVerificationArtifacts(input: {
       expectedBenchmarkRevision: input.benchmarkRevision,
       expectedRuntimeVariantId: input.runtimeVariantId,
       expectedRunnerProfile: input.runnerProfile,
+      expectedToolProfile: profile,
       evaluatorSessionId: input.evaluatorSessionId,
     },
   };
@@ -543,6 +547,30 @@ describe("Specification and Agentic QA contracts", () => {
         "C:\\secret.png",
       ])
         expect(safeArtifactPath(verificationRoot, findings.run_id, ref)).toBeNull();
+      expect(runIdSchema.parse("20260810-174500-JST")).toBe("20260810-174500-JST");
+      for (const invalidRunId of [
+        "",
+        ".",
+        "..",
+        "./foo",
+        "foo/..",
+        "foo/bar",
+        "foo\\bar",
+        "C:/temp/run",
+        "/tmp/run",
+      ]) {
+        expect(() => runIdSchema.parse(invalidRunId)).toThrow();
+        expect(
+          safeArtifactPath(
+            verificationRoot,
+            invalidRunId,
+            `.artifacts/agentic-qa/${invalidRunId}/COV-001/actual.txt`,
+          ),
+        ).toBeNull();
+      }
+      expect(() =>
+        parseJsonWithSchema({ ...parsed, run_id: "." }, qaFindingsSchema, "dot run_id findings"),
+      ).toThrow();
       expect(
         safeArtifactPath(
           verificationRoot,
@@ -583,6 +611,81 @@ describe("Specification and Agentic QA contracts", () => {
       expect(previousRunEvaluation.valid_for_scoring).toBe(false);
       expect(previousRunEvaluation.invalid_reasons).toContain("evidence_integrity_failure");
       expect(previousRunEvaluation.matches[0]?.classification).toBe("review_needed");
+
+      const forbiddenProbeFile = path.join(
+        verificationRoot,
+        ".artifacts",
+        "agentic-qa",
+        findings.run_id,
+        "forbidden-probe.json",
+      );
+      const completeProbe = parseJsonWithSchema(
+        readJson(forbiddenProbeFile),
+        forbiddenProbeResultsSchema,
+        "complete forbidden probe",
+      );
+      expect(() =>
+        parseJsonWithSchema(
+          [...completeProbe, completeProbe[0]],
+          forbiddenProbeResultsSchema,
+          "duplicate forbidden probe",
+        ),
+      ).toThrow();
+
+      fs.writeFileSync(
+        forbiddenProbeFile,
+        `${JSON.stringify(completeProbe.slice(0, -1), null, 2)}\n`,
+        "utf8",
+      );
+      const missingForbiddenCapabilityEvaluation = evaluateBlackBox(
+        challenge,
+        answerKey,
+        parsed,
+        verification.options,
+      );
+      expect(missingForbiddenCapabilityEvaluation.valid_for_scoring).toBe(false);
+      expect(missingForbiddenCapabilityEvaluation.invalid_reasons).toContain(
+        "official_verification_failure",
+      );
+
+      const reachableProbe = completeProbe.map((result, index) =>
+        index === 0 ? { ...result, available: true } : result,
+      );
+      fs.writeFileSync(forbiddenProbeFile, `${JSON.stringify(reachableProbe, null, 2)}\n`, "utf8");
+      const reachableForbiddenCapabilityEvaluation = evaluateBlackBox(
+        challenge,
+        answerKey,
+        parsed,
+        verification.options,
+      );
+      expect(reachableForbiddenCapabilityEvaluation.valid_for_scoring).toBe(false);
+      expect(reachableForbiddenCapabilityEvaluation.invalid_reasons).toContain(
+        "official_verification_failure",
+      );
+
+      fs.writeFileSync(forbiddenProbeFile, `${JSON.stringify(completeProbe, null, 2)}\n`, "utf8");
+      const embeddedRunnerSessionFile = path.join(
+        verificationRoot,
+        ".artifacts",
+        "agentic-qa",
+        findings.run_id,
+        "runner-session.json",
+      );
+      const runnerSession = readJson(embeddedRunnerSessionFile) as Record<string, unknown>;
+      runnerSession.forbidden_probe = completeProbe.slice(0, -1);
+      fs.writeFileSync(
+        embeddedRunnerSessionFile,
+        `${JSON.stringify(runnerSession, null, 2)}\n`,
+        "utf8",
+      );
+      const embeddedMismatchEvaluation = evaluateBlackBox(
+        challenge,
+        answerKey,
+        parsed,
+        verification.options,
+      );
+      expect(embeddedMismatchEvaluation.valid_for_scoring).toBe(false);
+      expect(embeddedMismatchEvaluation.invalid_reasons).toContain("official_verification_failure");
 
       const runnerSessionFile = path.join(
         verificationRoot,
@@ -995,7 +1098,7 @@ describe("Specification and Agentic QA contracts", () => {
       expect(probe).toHaveLength(profile.forbidden_capabilities.length);
       expect(probe.every((result) => result.available === false)).toBe(true);
       expect(probe.every((result) => result.evidence.includes("observed=none"))).toBe(true);
-      expect(() => assertForbiddenProbePasses(probe)).not.toThrow();
+      expect(() => assertForbiddenProbePasses(profile, probe)).not.toThrow();
     } finally {
       fs.rmSync(cleanRoot, { recursive: true, force: true });
     }
@@ -1245,7 +1348,7 @@ describe("Specification and Agentic QA contracts", () => {
         expect(result?.available).toBe(true);
         expect(result?.evidence).toContain(`${capability} is reachable`);
         expect(result?.evidence).toContain(`tool-scope:${capability}`);
-        expect(() => assertForbiddenProbePasses(probe)).toThrow();
+        expect(() => assertForbiddenProbePasses(profile, probe)).toThrow();
       }
       for (const [exposed, forbidden] of [
         ["shell", "generic_shell"],
@@ -1262,7 +1365,7 @@ describe("Specification and Agentic QA contracts", () => {
         const result = probe.find((entry) => entry.capability === forbidden);
         expect(result?.available).toBe(true);
         expect(result?.evidence).toContain(`tool-scope:${exposed}`);
-        expect(() => assertForbiddenProbePasses(probe)).toThrow();
+        expect(() => assertForbiddenProbePasses(profile, probe)).toThrow();
       }
       const learnerSafe = probeForbiddenCapabilities(cleanRoot, profile, {
         measured: true,
@@ -1270,7 +1373,7 @@ describe("Specification and Agentic QA contracts", () => {
         exposed_capabilities: ["runtime_observe"],
       });
       expect(learnerSafe.every((entry) => !entry.available)).toBe(true);
-      expect(() => assertForbiddenProbePasses(learnerSafe)).not.toThrow();
+      expect(() => assertForbiddenProbePasses(profile, learnerSafe)).not.toThrow();
       const unmeasured = probeForbiddenCapabilities(cleanRoot, profile, {
         measured: false,
         source: "unavailable",

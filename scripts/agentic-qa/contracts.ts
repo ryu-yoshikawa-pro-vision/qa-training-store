@@ -7,6 +7,7 @@ export const STOP_CONDITION =
 const nonEmpty = z.string().min(1);
 const schemaVersion = z.literal(SCHEMA_VERSION);
 const sha256Hex = z.string().regex(/^[0-9a-f]{64}$/);
+export const runIdSchema = z.string().regex(/^\d{8}-\d{6}-JST$/);
 
 export function compareCodeUnits(left: string, right: string): number {
   const length = Math.min(left.length, right.length);
@@ -336,10 +337,25 @@ export const forbiddenProbeResultSchema = z
   })
   .strict();
 
-export const forbiddenProbeResultsSchema = z.array(forbiddenProbeResultSchema).min(1);
+export const forbiddenProbeResultsSchema = z
+  .array(forbiddenProbeResultSchema)
+  .min(1)
+  .superRefine((results, context) => {
+    const seen = new Set<ForbiddenCapability>();
+    results.forEach((result, index) => {
+      if (seen.has(result.capability))
+        context.addIssue({
+          code: "custom",
+          path: [index, "capability"],
+          message: "forbidden probe capabilities must be unique",
+        });
+      seen.add(result.capability);
+    });
+  });
 
 export const runnerSessionSchema = z
   .object({
+    run_id: runIdSchema,
     runner_session_id: nonEmpty,
     execution_kind: z.enum(["contract_fixture", "official_model_backed"]),
     model_identifier: nonEmpty.nullable(),
@@ -436,7 +452,7 @@ const isoTimestamp = z.string().regex(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{
 export const workingTreeSnapshotSchema = z
   .object({
     schema_version: schemaVersion,
-    run_id: nonEmpty,
+    run_id: runIdSchema,
     mode: snapshotModeSchema,
     phase: snapshotPhaseSchema,
     captured_at: isoTimestamp,
@@ -478,7 +494,7 @@ const snapshotDiffEntrySchema = z
 export const workingTreeSnapshotComparisonSchema = z
   .object({
     schema_version: schemaVersion,
-    run_id: nonEmpty,
+    run_id: runIdSchema,
     mode: snapshotModeSchema,
     before_snapshot: repoRelativePath,
     after_snapshot: repoRelativePath,
@@ -636,7 +652,7 @@ export const findingSchema = z
 
 const qaCommonFields = {
   schema_version: schemaVersion,
-  run_id: nonEmpty,
+  run_id: runIdSchema,
   source_head_sha: z
     .string()
     .regex(/^[0-9a-f]{40}$/)
@@ -767,7 +783,7 @@ export const invalidReasonSchema = z.enum([
 export const evaluationSchema = z
   .object({
     schema_version: schemaVersion,
-    run_id: nonEmpty,
+    run_id: runIdSchema,
     challenge_id: challengeIdSchema,
     benchmark_revision: z.string().regex(/^(?:git:[0-9a-f]{40}|sha256:[0-9a-f]{64})$/),
     source_head_sha: z
