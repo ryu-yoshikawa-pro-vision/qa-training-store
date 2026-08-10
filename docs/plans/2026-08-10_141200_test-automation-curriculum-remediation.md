@@ -1,4 +1,4 @@
-# テスト自動化カリキュラム再Baseline・教材提供基盤 実装計画
+# テスト自動化カリキュラム再Baseline・教材提供基盤 統合実装計画
 
 ## 0. このPlanと現在Branchの位置づけ
 
@@ -17,24 +17,31 @@
 - Product Bugの修正
 - PR作成
 
-このPlan承認後の実装は、最新`main`から作成する別Branchで行う。
+このPlan承認後の実装は、**Specification FoundationのImplementation PRが`main`へMergeされた後**、最新`main`から作成する別のImplementation Branchで開始する。
 
-本Planでは、依存関係とReview可能性を優先し、1本の巨大PRへ全Scopeを混在させない。
+本Planの対応は、**原則として1本のCurriculum Implementation PRで最後まで完了させる。**
 
-推奨する実装単位は次の3段階とする。
+PRは分割しない。ただし、実装作業そのものは明確なWaveへ分け、各Waveで対象・Validation・完了条件を固定する。
 
-1. **Curriculum Rebaseline PR**
-   - 現在のRepositoryとの事実整合
-   - 学習者Competency定義
-   - Instructor評価基準
-   - Part 1 / Part 2本文改訂
-2. **Training Delivery Foundation PR**
-   - Training専用Playwright / Maestro / Workbook / CI教材境界
-   - Setup / Start Gate / Recovery / Troubleshooting
-3. **Specification Traceability Integration PR**
-   - Specification Foundation実装後に、Spec / BR / AC → Risk → Test Design → AutomationのTraceabilityをカリキュラムへ接続
+1本のPRへ統合する理由は、以下の成果物が強く依存しており、分割すると各PR単体で「後続実装が存在する前提」の不完全状態が発生しやすいためである。
 
-Specification Foundationが先に完成した場合は、1と3を同一Implementation PRへ統合してもよい。ただしTraining Delivery Foundationまで同時に混ぜることは、変更責務が大きく異なるため原則避ける。
+```text
+Curriculum本文
+↕
+Competency / Instructor Rubric
+↕
+Workbook
+↕
+Training Playwright / Maestro
+↕
+Training CI
+↕
+Setup / Start Gate / Recovery
+↕
+Specification Traceability
+```
+
+一方、Specification Foundationそのものは本PRへ含めない。Specification Systemの構築は既存の別Planに従って先に完了させ、このImplementation PRでは完成済みのNormative Specification / BR / ACを教材へ接続する。
 
 ---
 
@@ -73,1069 +80,299 @@ Git / Review / CI / Quality Gateへ接続する
 学習者には最低限、以下を求める。
 
 - 対象機能を自分で探索し、Role / State / Data / Business Rule / Boundaryを整理できる。
+- Normative Specificationと現在の実装を区別し、Expected ResultのOracleを説明できる。
 - Test Caseを思いつきで列挙せず、Riskとテスト設計技法から導出できる。
 - すべてをUI E2Eへ置かず、適切なTest Layerを選べる。
 - 自動化しない判断にも理由を持てる。
 - Playwright / MaestroをSyntaxではなく目的に応じて使い分けられる。
 - Test Dataと初期状態を決定的に再現できる。
-- FailureをProduct Defectと決めつけず、Evidenceから分類・調査できる。
-- Helper / POM / Fixture / Automation Flow等を問題に応じて選べる。
-- Testを変更管理・Review・CI・Quality Gateへ接続できる。
-- Risk、Feedback速度、Flakiness、Runner Costを見てCI/CD設計を判断できる。
+- FailureをEvidenceから分類し、Product / Test / Data / Environment / Specification等のどこに問題があるか切り分けられる。
+- POM / Helper / Fixture / Automation Flow等を問題に応じて選べる。
+- PR / CI / Quality Gate / Artifact / Runner Costを含めて継続実行方法を設計できる。
 
-### 1.3 Definition of Done
+### 1.3 Final Learner Outcome
 
-本計画全体の完了条件は次とする。
+#### Part 1修了
 
-#### Curriculum
-
-- `docs/curriculum/test-automation/` の既存20文書をすべて最新Repository状態へ再Baselineする。
-- 現在のiOS正式保証範囲をBuild-only Gateとして正しく記述する。
-- Android Build + Runtime E2Eと、iOS Build-onlyの保証差を明示する。
-- Native Phase 2後半で追加されたLogin / Session / Account / Address / Checkout / Payment / Order / Reviewを教材候補へ反映する。
-- CartをPart 1標準Capstoneとして維持しつつ、購入・Payment Retry・Cross-roleをAdvanced課題として段階化する。
-- 学習目標、演習、提出物、評価観点、完了条件が矛盾しない。
-- 最低本数は演習量の下限とし、修了判定の中心をCompetencyへ移す。
-
-#### Competency / Instructor
-
-- Part 1 / Part 2の修了能力をCompetencyとして明文化する。
-- 各Competencyに評価LevelとObservable Evidenceを定義する。
-- Instructorが同じ成果物を概ね同じ基準で判定できるRubricを用意する。
-- Learner向け情報とInstructor-only Answer / Evaluation情報を分離する。
-- Failure分類、Review観点、Automation Selectionの判断基準を講師側でも一貫して扱える。
-
-#### Training Delivery
-
-- Training用Playwright Testを正式Regressionから分離して保存・実行できる。
-- Training用Maestro Flowを正式Regressionから分離して扱える。
-- Workbook Templateを複製可能な形で提供できる。
-- Part 1開始前のWeb / Playwright Gateを実行できる。
-- Native / Maestro開始前のAndroid Gateを実行できる。
-- Part 2のTraining CIがProduction / Deploy Workflowや本番Secretへ依存しない。
-- ZIP等からPart 2のGit管理Copyへ成果物を安全に移行できる。
-- Setup失敗時のRecovery / Troubleshooting手順を用意する。
-
-#### Specification Traceability
-
-- Specification Foundation実装後は、実装や既存TestをOracleとして扱わない。
-- Normative Specification / BR / ACからRiskとTestへ辿れる。
-- Workbook上でBR / ACとRisk / Test Caseの対応を記録できる。
-- Spec変更時にRisk / Test Case / Automation / Regression分類を同期して見直す演習が存在する。
-
-#### Validation
-
-- Markdownlintが成功する。
-- Curriculum内の相対Linkが有効である。
-- 現在のRepository Path / Script / Workflowの記述が実物と一致する。
-- iOS Runtime未実行をPASSとして表現しない。
-- Product Behaviorを変更しない。
-- 既存Regression / CIの品質Gateを弱めない。
-
----
-
-## 2. Current Baseline
-
-### 2.1 Curriculum Structure
-
-現在のカリキュラムは20文書で構成される。
+受講者は、GitHub / CIがなくてもScenario Shopを対象に以下を一巡できる。
 
 ```text
-docs/curriculum/test-automation/
-├ README.md
-├ 00_learning-design.md
-├ 01_spreadsheet-test-design.md
-├ part1/
-│  ├ 01_test-automation-foundations.md
-│  ├ 02_scenario-shop-analysis.md
-│  ├ 03_test-design-and-automation-selection.md
-│  ├ 04_playwright-foundations.md
-│  ├ 05_playwright-e2e-practice.md
-│  ├ 06_execution-and-failure-analysis.md
-│  ├ 07_maestro-native-automation.md
-│  ├ 08_test-management-and-maintainability.md
-│  └ 09_part1-capstone.md
-└ part2/
-   ├ 01_software-development-process.md
-   ├ 02_git-version-control.md
-   ├ 03_github-pull-request-review.md
-   ├ 04_ci-github-actions.md
-   ├ 05_playwright-ci.md
-   ├ 06_native-ci-maestro.md
-   ├ 07_ci-cd-quality-gates.md
-   └ 08_integration-design-capstone.md
+探索
+→ Risk分析
+→ Test Design
+→ Automation Selection
+→ Playwright / Maestro
+→ Failure Analysis
+→ Maintenance
 ```
 
-全20文書を対象とし、一部だけを直して完了扱いにしない。
+#### Part 2修了
 
-### 2.2 Current Strengths
+受講者は、Part 1で作成したTest資産を変更管理と継続実行へ接続し、以下を理由付きで設計できる。
 
-現在のカリキュラムで維持すべき設計思想は次である。
+- PR / main / Nightly / ManualへのTest配置
+- Required Quality Gate
+- Web / Android / iOSの保証範囲
+- Build / Runtimeの境界
+- Artifact再利用
+- Failure Evidence
+- Preview / Production / Smoke
+- Runner CostとFeedback速度
 
-- Tool操作より先にテスト自動化の目的とProcessを学ぶ。
-- Scenario Shopだけを継続利用し、別Sample Appへ切り替えない。
-- 既存Regressionを最初から正解としてコピーさせない。
-- Test Design → Automation Selection → Implementationの順序を維持する。
-- POM / Fixture等を最初から必須Patternとして教えない。
-- 「すべてE2E」「すべてWeb / Android / iOSへ複製」を避ける。
-- Part 1ではGitHubを必須にせず、Part 2でDevelopment Processへ接続する。
-- Production Workflow / SecretとTraining環境を分離する。
-- CIを「動けばよい」ではなく、Quality Gate / Cost / Reliabilityまで扱う。
-- 最終演習で既存Repository構成を正解として先に見せず、自分の判断と比較させる。
+最終到達点はGitHub Actions YAMLの暗記ではなく、**案件のRisk・Platform・Cost・Reliabilityを踏まえて、自動テストを継続運用できる仕組みを設計できること**とする。
 
-### 2.3 Verified Current Repository Facts
+---
 
-2026-08-10時点で最低限次をCurrent Baselineとして扱う。
+## 2. Implementation Start Gate
 
-#### iOS
+Implementation Branchを作成する前に、以下をすべて満たす。
 
-`docs/adr/0011-native-ci-ios-build-only-gate.md` がAcceptedであり、iOS正式Native CIはBuild-only Gateである。
+### 2.1 Required dependency
 
-正式保証は次である。
+- Specification Foundation Implementationが`main`へMerge済みである。
+- `docs/spec/README.md`が存在する。
+- Normative Product BehaviorとSupporting文書の境界が確定している。
+- BR / ACのIDと参照Contractが機械検証可能になっている。
+- `pnpm run validate:spec`および関連Required CIが利用可能である。
+
+### 2.2 Repository baseline
+
+- Native Phase 2後半PR #14がMerge済みである。
+- Curriculum PR #13がMerge済みである。
+- Specification FoundationのImplementationがMerge済みである。
+- 実装開始時点のOpen PRを確認し、依存する変更がないことを確認する。
+- 最新`main`からImplementation Branchを作る。
+
+### 2.3 Current facts to re-confirm
+
+Implementation開始時点でコードを正本として最低限以下を再確認する。
+
+- Web Product Scope
+- Native Product Scope
+- Guest / customer / operator / adminのRole差分
+- Cart / Checkout / Payment / Order / Shipment / ReviewのState / Rule
+- Seed Scenario一覧
+- Web Test Control
+- Native Test Control
+- Playwright Projects / scripts
+- Maestro Flow一覧
+- Android CIのBuild + Runtime保証
+- iOS CIのBuild-only保証
+- Web CI/CDのPR / main / Extended E2E / Deploy経路
+- Current SpecificationのNormative Scope
+
+### 2.4 Start Gate failure
+
+Specification Foundationが未完成の場合、Curriculum Implementationを開始しない。
+
+既存カリキュラムのiOS誤記などだけを先行して別PRへ切り出すことも原則しない。Start Gateを満たしてから最新`main`を基準に1本のImplementation PRで整合を取る。
+
+---
+
+## 3. One-PR Execution Contract
+
+### 3.1 PR contract
+
+本Planに基づく実装は、以下を**1本のCurriculum Implementation PR**へ含める。
+
+- Curriculum Rebaseline
+- Competency Model
+- Instructor Rubric
+- Specification Traceability
+- Training Playwright Foundation
+- Training Maestro Foundation
+- Workbook Template
+- Training Git / GitHub / CI Foundation
+- Setup / Start Gate / Recovery / Troubleshooting
+- Learner / Instructor Navigation
+- End-to-End教材検証
+
+### 3.2 Why one PR
+
+分割した場合、次のような不整合が発生しやすい。
+
+- LessonがTraining用Commandを説明するがCommandは次PRまで存在しない。
+- Workbookが新しいRisk / BR / AC列を要求するがCurriculum側が未更新。
+- Rubricが評価するCompetencyとCapstoneの完了条件が一致しない。
+- Training Workflowが参照するScriptとLessonの手順が別PRでずれる。
+- Specification Traceabilityの列や用語が教材内で一時的に混在する。
+
+1PRにすることで、受講者へ見せる最終状態を1つのDiffとしてReviewできる。
+
+### 3.3 One PR does not mean one-shot implementation
+
+1PRでも実装はWave単位で行う。
+
+- Waveごとに変更Scopeを限定する。
+- WaveごとにValidationを行う。
+- 各Wave終了時に現在の差分をSelf Reviewする。
+- 後続Waveで前WaveのContractを勝手に変更しない。
+- Contract変更が必要になった場合はPlan / Taskを更新し、影響範囲を明示してから変更する。
+
+### 3.4 Execution continuity
+
+Local Blockerが発生しても、独立して進められるWaveを止めない。
+
+例:
 
 ```text
-Android
-Build
-+ Emulator Runtime
-+ Maestro
-+ Contract Harness
-+ Production-validation Runtime
-
- iOS
-Automation Simulator Build
-+ Production-validation Simulator Build
-+ Build-time Contract / Bundle Guard
+Android Emulatorが一時的に起動できない
+↓
+Native Runtime ValidationはBlockedとして記録
+↓
+Curriculum本文 / Workbook / Web Training / Rubric / CI設計など
+独立して進められるTaskは継続
+↓
+Final ValidationまでにNative Blockerを解消
 ```
 
-iOSの以下は正式Gate対象外である。
+Whole-runを止めるのはGlobal Blockerだけとする。
 
-- Simulator boot
-- App install / launch
-- Maestro runtime
-- 実`expo-sqlite` Contract Harness
-- Production-validation runtime
-- Runtime Evidence
+Global Blockerの例:
 
-`native-ios-ci.yml` は `workflow_call` / `workflow_dispatch` からBuild Jobを実行し、Top-level Native CIからBuild-only Gateとして利用される。
+- Specification FoundationのContract自体が利用不能
+- Repository Buildが広範囲で壊れており教材実装の正当性を評価できない
+- Required Toolchain全体が利用不能
 
-したがって、現在のCurriculumに残る「iOS Simulator Build → Install → Launch → MaestroがCurrent CI baseline」という記述は修正必須である。
+### 3.5 Final fail-close
 
-#### Specification
+途中WaveでSkip / Blockedを許容しても、Final Definition of Doneでは未解決Required Blockerを残さない。
 
-`docs/spec/README.md` はまだ存在しない。
-
-`docs/plans/2026-08-09_110500_specification-agentic-qa-foundation.md` はSpecification SystemのImplementation Planであり、現時点ではNormative Specificationを教材のCurrent Oracleとして前提にできない。
-
-そのためCurriculum改訂は次を分離する。
-
-1. Current Repositoryで今すぐ正せる事実記述。
-2. Specification Foundation実装後に有効化するTraceability改訂。
-
-Specificationが未実装の段階で、存在しないBR / AC IDや`docs/spec/` PathをCurrent教材として記述しない。
-
-#### Training Delivery
-
-現行Curriculum自身が明示しているとおり、Training専用Playwright Project、Training Workflow、Workbook実Template等は教材設計上の要件であり、現時点では完成済み教材として扱わない。
+「進められるところまで進めた」と「Implementation完了」は区別する。
 
 ---
 
-## 3. Target Learner Competency Model
+## 4. Non-goals
 
-カリキュラム改訂時に、Lesson数やTest本数ではなく以下のCompetencyを修了判定の中心へ置く。
+今回の1PRを巨大なQA技術カタログにしない。
 
-### C01: Automation Purpose / Scope
+以下は原則Non-goalとする。
 
-- 自動化の目的と限界を説明できる。
-- 手動確認と自動確認の役割を分けられる。
-- 自動化しない判断を説明できる。
+- Scenario Shopへの新しいBusiness Feature追加
+- Coupon / Point / Refund / Return等のProduct機能追加
+- API Testing専用Curriculumの新設
+- Performance Testingの新設
+- Security Testing講座の新設
+- Visual Regression Toolの本格導入
+- Mutation Testing
+- Chaos Testing
+- AI QA / Agentic QAをPart 1 / Part 2の必須学習へ追加
+- iOS Runtime CIの復活
+- iOS Runtimeを教材完了条件へ追加
+- Existing Regression Suiteの全面書換え
+- 全既存TestへのTest Case ID付与
+- Curriculum対応を理由としたProduct Architecture全面Refactor
 
-### C02: Test Target Analysis
+今回優先するVertical Scopeは次とする。
 
-- Feature、Role、State、Data、Dependency、Boundaryを整理できる。
-- 画面一覧だけでなくUser Journeyと状態遷移を見られる。
-
-### C03: Risk-based Test Design
-
-- RiskからTest Conditionを導出できる。
-- 同値分割、境界値、Decision Table、State Transition等を実対象へ適用できる。
-
-### C04: Test Layer / Automation Selection
-
-- Unit / Integration / Repository Contract / Component / Web E2E / Native E2Eの役割を説明できる。
-- Riskに応じて適切なLayerを選べる。
-- Web / Nativeへ機械的にCaseを複製しない。
-
-### C05: Playwright Implementation
-
-- Locator / Action / Assertionを目的に応じて選べる。
-- Auto-waitを基本に安定したWeb E2Eを作れる。
-- Test CaseとAssertionの対応を説明できる。
-
-### C06: Native / Maestro Automation
-
-- Native固有Riskを説明できる。
-- UI Test ID / Deep Link / Test Controlを使える。
-- Androidを標準環境としてMaestro Flowを実装できる。
-
-### C07: Test Data / Reproducibility
-
-- Seed Scenario / Resetの価値を説明できる。
-- Test間依存を避け、決定的な初期状態を作れる。
-- Long UI setupとTest Harnessによる状態準備を使い分けられる。
-
-### C08: Failure Analysis
-
-- Error / EvidenceからFailure Pointを特定できる。
-- Retry / Timeout延長だけで終わらない。
-- Product / Test / Data / Harness / Environment / Specification等を分類できる。
-
-### C09: Test Maintainability
-
-- 重複、Flaky、Execution Time、責務混在を見つけられる。
-- Helper / POM / Component Object / Fixture / Automation Flowを問題に応じて選べる。
-- 抽象化自体を目的化しない。
-
-### C10: Version Control / Review
-
-- Diffを読んで変更Scopeを説明できる。
-- PRでTest Design、Validation、Remaining Riskを共有できる。
-- Test Codeを品質資産としてReviewできる。
-
-### C11: CI / Evidence / Quality Gate
-
-- Local TestをCIへ接続できる。
-- Artifact / Evidenceを設計できる。
-- PR / main / Nightly / ManualへTestを配置できる。
-- Required GateをReliabilityとActionabilityから選べる。
-
-### C12: Automation System Design
-
-- Web / Android / iOSの保証範囲を分けて設計できる。
-- Build / Runtime / Artifact / Deploy / Smokeを接続できる。
-- Risk / Cost / Feedback Speedを理由に継続実行基盤を設計できる。
+```text
+Specification
+↓
+Risk
+↓
+Test Design
+↓
+Test Layer
+↓
+Automation Selection
+↓
+Playwright / Maestro
+↓
+Failure Analysis
+↓
+Maintainability
+↓
+Git / Review
+↓
+CI / Quality Gate
+```
 
 ---
 
-## 4. Competency Level
+## 5. Competency Model
 
-各Competencyを最低限次の4段階で評価する。
+Curriculum全体で共通して評価するCompetencyを固定する。
+
+### C01 Test Target Analysis
+
+Role / State / Data / Dependency / Business Rule / User Journeyを整理できる。
+
+### C02 Specification Reading
+
+Normative Specification、BR、ACからExpected Behaviorを読み取り、実装やExisting TestをOracleと混同しない。
+
+### C03 Risk Analysis
+
+壊れた場合のUser / Business Impactと発生可能性から優先度を説明できる。
+
+### C04 Test Design
+
+同値分割、境界値、Decision Table、State Transition、Role Matrix等を必要に応じて適用できる。
+
+### C05 Test Layer Selection
+
+Unit / Integration / Repository Contract / Component / Web E2E / Native E2Eの責務を理解し、Riskを適切なLayerへ配置できる。
+
+### C06 Automation Selection
+
+自動化する / しない / LaterをRisk・頻度・再現性・判定可能性・Costから判断できる。
+
+### C07 Web Automation
+
+Playwrightで再現可能かつ意味のあるLocator / Assertion / Test Dataを使ったE2Eを実装できる。
+
+### C08 Native Automation
+
+Maestro / Stable UI Test ID / Deep Link / Test Controlを利用し、Androidを標準にNative E2Eを実装できる。
+
+### C09 Failure Analysis
+
+EvidenceからFailureを分類し、原因仮説、確認、修正、再発防止まで進められる。
+
+### C10 Maintainability
+
+重複、Flaky、責務混在、不要Test、実行時間を見つけ、Helper / POM / Fixture / Flow等を選べる。
+
+### C11 Change Management
+
+Git / PR / Reviewを使い、Test変更をProduction Codeと同じ品質資産として管理できる。
+
+### C12 Continuous Execution Design
+
+CI Trigger、Quality Gate、Artifact、Platform、Cost、Failure Evidenceを設計できる。
+
+---
+
+## 6. Competency Level
+
+各Competencyを0〜3で評価する。
 
 | Level | 定義 |
 | --- | --- |
-| 0 | 用語または手順を説明できず、ガイド付きでも成立しない |
-| 1 | 手順や例があれば実行できるが、判断理由を十分説明できない |
-| 2 | 自力で実施し、選択理由とEvidenceを説明できる |
-| 3 | Trade-offを比較し、別案との違い・改善案まで説明できる |
+| 0 | 説明・実施できない、または誤った理解で実施する |
+| 1 | 手順や講師支援があれば実施できる |
+| 2 | 自力で実施し、判断理由を説明できる |
+| 3 | 複数の選択肢とTrade-offを比較し、改善案を提案できる |
 
-原則として次を修了基準候補とする。
+Part 1 / Part 2の修了条件はTest本数だけで判定しない。
 
-- Part 1: C01〜C09の主要項目がLevel 2以上。
-- Part 2: C10〜C12を含む全体主要項目がLevel 2以上。
-- Capstoneで一部Level 3相当のTrade-off説明が確認できれば発展到達として扱う。
+最低演習量は維持するが、**修了判定の正本はCompetency LevelとEvidence**とする。
 
-Test本数はCompetencyを観測するための演習量であり、単独の合否条件にしない。
+### Part 1 target
 
----
+原則、C01〜C10でLevel 2を目標とする。
 
-## 5. Curriculum Design Principles to Preserve
+C11 / C12はPart 2への導入理解まででよい。
 
-改訂で以下を壊さない。
+### Part 2 target
 
-1. **Progressive Disclosure**
-   - 必要になる前に高度なPatternを先に暗記させない。
-2. **One Product, Multiple Perspectives**
-   - Scenario Shopを同じBusiness Domainのまま繰り返し見る。
-3. **Reason before Tool**
-   - Tool選択よりRisk / Test Conditionを先に考える。
-4. **No Universal POM Rule**
-   - POM等を唯一の正解として教えない。
-5. **No E2E Maximization**
-   - E2E本数・自動化率をKPIにしない。
-6. **Evidence-based Failure Analysis**
-   - RetryよりEvidenceと原因分析を優先する。
-7. **Safe Training Boundary**
-   - Training変更をProduction Regression / Secret / Deployへ混ぜない。
-8. **Current Repository is a Comparison Example, not Absolute Truth**
-   - 既存実装との差を理由付きで評価させる。
-9. **Specification is Oracle once available**
-   - Specification Foundation完成後はExisting Implementation / Existing TestをExpected Behaviorの正本にしない。
+C01〜C12でLevel 2以上を目標とし、Capstoneの主要設計判断では一部Level 3相当の比較説明を求める。
 
 ---
 
-## 6. Scope
+## 7. Specification Traceability Contract
 
-### 6.1 Existing Curriculum Documents
-
-既存20文書すべてをReview / Update対象とする。
-
-### 6.2 New Curriculum Support Documents
-
-Curriculum Rebaseline PRでは、最低限以下の追加を検討する。
-
-- `docs/curriculum/test-automation/02_competency-rubric.md`
-- `docs/curriculum/test-automation/03_instructor-guide.md`
-
-必要性が重複する場合は1文書へ統合してよい。文書数を増やすこと自体を目的にしない。
-
-### 6.3 Training Delivery Assets
-
-Training Delivery Foundation PRでは、以下を実装対象とする。
-
-- Training Playwright実行境界
-- Training Maestro実行境界
-- Workbook Template
-- Training CI Template / Workflow境界
-- Setup / Start Gate
-- Part 1 → Part 2成果物移行手順
-- Failure / Troubleshooting教材
-- Instructor用Expected Evidence
-
-具体PathはCurrent Repositoryとの衝突を確認したうえで確定する。
-
-`.github/workflows/`へTraining Workflowを置く場合、教材元Repository上で意図せずProduction Workflowと同時起動しないContractを必須とする。
-
-必要なら実行されないTemplate Pathへ配置し、Training Copyへ移したときだけ`.github/workflows/`へ有効化する方式を優先する。
-
----
-
-## 7. Non-goals
-
-- Scenario Shopへ新しいBusiness Featureを大量追加する。
-- Coupon / Point / Refund等をカリキュラムのためだけに実装する。
-- iOS Runtime CIをカリキュラム都合で復活させる。
-- すべてのTest Layerを受講者自身に実装させる。
-- JavaScript / TypeScriptのGeneral-purpose入門講座を作る。
-- ISTQB等のTest Theory全範囲を再実装する。
-- Test Management SaaSを導入する。
-- Workbook管理そのものを学習目的にする。
-- 全Browser / 全Platform / 全Caseを毎回Requiredにする。
-- Agentic QAを初学者向けPart 1 / 2の必須範囲へ追加する。
-- 現在のRepository構成を唯一の正解として暗記させる。
-
----
-
-## 8. Implementation Strategy
-
-# Program A: Curriculum Rebaseline
-
-## Wave A0: Baseline Inventory
-
-### Goal
-
-全20文書をCurrent Repositoryへ照合し、変更前にFact / Learning Design / Delivery Requirementを分離する。
-
-### Read First
-
-- `README.md`
-- `docs/PROJECT_CONTEXT.md`
-- `docs/adr/0011-native-ci-ios-build-only-gate.md`
-- `package.json`
-- `playwright.config.ts`
-- `.github/workflows/ci.yml`
-- `.github/workflows/native-ci.yml`
-- `.github/workflows/native-ios-ci.yml`
-- `src/seeds/metadata.ts`
-- `e2e/web/`
-- `maestro/`
-- `docs/plans/2026-08-09_110500_specification-agentic-qa-foundation.md`
-
-### Output
-
-20文書について次を一時Inventoryとして整理する。
-
-- Current Fact
-- Stale Fact
-- Learning Objective
-- Exercise Dependency
-- Training Asset Dependency
-- Spec Foundation Dependency
-- Required Change
-
-Inventoryは実装作業用であり、恒久文書化の価値がなければCommit不要とする。
-
-### Gate
-
-- 20 / 20文書を確認済み。
-- Native / iOS Factを推測せずCurrent Workflow / ADRから確認済み。
-- 未実装Training Assetを「存在する」と書かない。
-
----
-
-## Wave A1: Repository Fact Rebaseline
-
-### Goal
-
-学習設計に手を入れる前に、Current Repositoryについて誤っている記述を0にする。
-
-### Required Changes
-
-#### iOS
-
-次の誤解を全Curriculumから排除する。
-
-- iOS Runtime / MaestroがCurrent Required Gateである。
-- `native-ios-ci.yml`がInstall / Launch / Maestroまで正式保証する。
-- iOS Runtime未実行をPASSとして扱う。
-
-Current保証は必ず次の意味へ揃える。
-
-```text
-Android = Build + Runtime E2E
- iOS = Simulator Build + Build-time validation
-```
-
-「iOS Runtime CIをどう設計するか」はHypothetical / Future Design Exerciseとしてのみ扱える。
-
-#### Native Scope
-
-Current Native Customer Flowを再確認し、教材候補を次まで拡張可能とする。
-
-- Storefront
-- Search
-- Cart
-- Persistence
-- Login / Session
-- Guest Cart Merge
-- Account / Address
-- Checkout
-- Payment
-- Payment Failure / Retry
-- Order
-- Review
-
-Native AdminはCurrent Scope外として維持する。
-
-### Primary Files
-
-- `README.md`
-- `00_learning-design.md`
-- `part1/07_maestro-native-automation.md`
-- `part1/09_part1-capstone.md`
-- `part2/01_software-development-process.md`
-- `part2/04_ci-github-actions.md`
-- `part2/05_playwright-ci.md`
-- `part2/06_native-ci-maestro.md`
-- `part2/07_ci-cd-quality-gates.md`
-- `part2/08_integration-design-capstone.md`
-
-### Gate
-
-RepositoryのCurrent Native / iOS保証範囲をCurriculum内で検索し、相反する説明が0件であること。
-
----
-
-## Wave A2: Learning Outcome / Competency Reframe
-
-### Goal
-
-Lesson完了条件を、単なるTask CompletionからObservable Competencyへ揃える。
-
-### Changes
-
-- READMEへPart 1 / Part 2のTarget Competencyを簡潔に追加する。
-- `00_learning-design.md`へCompetency-based Evaluation原則を追加する。
-- 新規Rubric文書を作成する場合はC01〜C12とLevel 0〜3を正本化する。
-- 各Lessonで対象Competencyを明示するか、Rubric側からLessonへMappingする。
-- 「最低3件」「最低10件」等はPractice Volumeとして残してよいが、修了判定の本体にしない。
-- Capstoneでは成果物とCompetency Evidenceの対応を明示する。
-
-### Gate
-
-- Part 1完了時に何ができる人なのかをTest本数なしでも説明できる。
-- Part 2完了時に何ができる人なのかをWorkflow YAMLの暗記なしでも説明できる。
-- Instructorが同じ成果物を評価する共通基準が存在する。
-
----
-
-## Wave A3: Part 1 Rework
-
-### Goal
-
-Part 1を「Automation基礎 → Target Analysis → Risk/Test Design → Web → Failure → Native → Maintainability → Capstone」の一本のLearning Loopとして完成させる。
-
-### A3-1 `01_test-automation-foundations.md`
-
-維持する内容:
-
-- 自動化の価値と限界
-- 手動との補完関係
-- 自動化率を目的化しない
-
-追加・調整:
-
-- C01との対応を明示する。
-- 最終判断に「なぜ自動化しないか」をEvidenceとして残す。
-
-### A3-2 `02_scenario-shop-analysis.md`
-
-維持する内容:
-
-- Role / State / Data / User Journey
-- Existing E2Eを先に読まない
-
-追加・調整:
-
-- Specification Foundation完成前はREADME / Guide / Seed / UIを情報源として明示的に区別する。
-- Specification完成後はNormative SpecをExpected Behaviorの主Oracleへ切り替える。
-- 「Observed Behavior」と「Expected Behavior」を同一視しない教育を追加する。
-
-### A3-3 `03_test-design-and-automation-selection.md`
-
-維持する内容:
-
-- Equivalence / Boundary / Decision Table / State Transition
-- Test Layer選択
-- Test Pyramidを機械適用しない
-
-追加・調整:
-
-- Risk → Condition → Layer → ToolのTraceabilityを明示する。
-- Specification完成後はBR / ACとの対応を追加する。
-- 「自動化しない」「Manualを残す」Caseも正常な判断として評価する。
-
-### A3-4 `04_playwright-foundations.md`
-
-維持する内容:
-
-- JS / TSをPlaywrightに必要な最小範囲へ限定
-- Locator / Assertion / Auto-wait
-
-追加・調整:
-
-Coding Bridgeを必要になった時点で小さく挿入する。
-
-候補:
-
-- Function parameter / return
-- Module / export
-- Object composition
-- Array `map` / `filter`
-- Classの最低限
-- Type / narrowing
-- Error handling
-
-General-purpose JS講座へ拡大しない。
-
-### A3-5 `05_playwright-e2e-practice.md`
-
-維持する内容:
-
-- Training Harnessを利用しFixture内部は後で学ぶ
-- Seed Scenario
-- State transition / Cross-role
-- Mobile / Accessibility
-
-追加・調整:
-
-- Test Caseの目的とAssertionを対応付けるEvidenceを強化する。
-- Existing Test API / Internal Inspectionを使う場合、何をUIで保証し何を内部状態で保証したか説明させる。
-
-### A3-6 `06_execution-and-failure-analysis.md`
-
-現在のFailure分類を拡張し、最低限次を区別する。
-
-- Product Defect
-- Test Code Defect
-- Test Data / Seed Defect
-- Locator Defect
-- Timing / Synchronization Defect
-- Harness / Test Control Defect
-- Environment Defect
-- External Dependency
-- Specification Issue / Ambiguity
-- Expected Product Change
-- Flaky / Intermittent
-
-「Specification Issue」はSpecification Foundation完成後に正式利用する。未実装段階では概念だけを先に導入してもよい。
-
-### A3-7 `07_maestro-native-automation.md`
-
-維持する内容:
-
-- Android EmulatorをPart 1標準経路
-- iOSは全受講者必須にしない
-- Web / Native共通Business RuleとPlatform差分
-
-追加・調整:
-
-- Current Native購入FlowをAdvanced題材として追加する。
-- iOS RuntimeはOptional Local Explorationであり、Current CI保証と混同しない。
-- Android / iOSで共通Flowが使える可能性と、正式保証範囲が同じであることを混同しない。
-
-### A3-8 `08_test-management-and-maintainability.md`
-
-維持する内容:
-
-- 問題を経験してから抽象化
-- POM必須論を避ける
-- Fixture / Automation Flow / Seed Scenarioの責務分離
-
-追加・調整:
-
-- Specification変更時のTest LifecycleをSpecification Foundation完成後にBR / ACまで接続する。
-- 「削除するTestを判断できること」もCompetencyへ含める。
-- Test Code quantityではなく必要な保証を維持することを再強調する。
-
-### A3-9 `09_part1-capstone.md`
-
-Core CapstoneはCartを維持する。
-
-理由:
-
-- Web / Native共通で扱える。
-- 初学者でもBusiness Ruleを把握しやすい。
-- Boundary / State / Persistence / Platform差を扱える。
-
-Advanced Capstoneを段階化する。
-
-#### Advanced A: Purchase Journey
-
-```text
-Guest Cart
-→ Login
-→ Cart Merge
-→ Address
-→ Checkout
-→ Payment
-→ Order
-```
-
-#### Advanced B: Failure / Recovery
-
-```text
-Payment Declined
-→ Failed
-→ Retry
-→ Paid
-```
-
-#### Advanced C: Cross-role Lifecycle
-
-Webを中心に次を扱う。
-
-```text
-Product / Inventory Operation
-→ Customer Purchase
-→ Shipment
-→ Delivery
-→ Review
-```
-
-Core修了にAdvanced全件を要求しない。
-
-### A3 Gate
-
-- C01〜C09をPart 1内で観測できる。
-- Playwright / MaestroのSyntaxだけで修了できない。
-- Advanced課題がCurrent Product Scope内で成立する。
-- iOS RuntimeをPart 1 Requiredにしない。
-
----
-
-## Wave A4: Workbook Simplification / Progressive Disclosure
-
-### Goal
-
-WorkbookをTest管理作業そのものが主目的にならないよう段階化する。
-
-### Current Sheets
-
-1. `01_テスト対象分析`
-2. `02_リスク分析`
-3. `03_テスト観点`
-4. `04_テストケース`
-5. `05_自動化候補`
-6. `06_自動化対応表`
-7. `07_実行結果`
-8. `08_改善管理`
-
-### Direction
-
-8 Sheet構成を削除すること自体は目的にしない。
-
-ただし、初学者が最初からすべてを埋める構成は避ける。
-
-最低限次の段階に分ける。
-
-#### Core Design Stage
-
-- Test Target / Risk
-- Test Condition / Test Case
-- Automation Selection
-
-#### Implementation Stage
-
-- Automation Mapping
-
-#### Operation Stage
-
-- Execution / Improvement
-
-必要なら物理Sheet数は維持しつつ、Lessonごとに「今使うSheet」を限定する。
-
-Specification Foundation完成後は以下のColumnを追加検討する。
-
-- Related BR
-- Related AC
-- Spec Ref
-
-BR / ACが未実装の状態でPlaceholder IDを固定しない。
-
-### Gate
-
-- Part 1前半で8 Sheetすべてを完成させる必要がない。
-- 学習者が表を埋めることではなくTest Designを説明できる。
-- Automation MappingはImplementation後に更新する。
-
----
-
-## Wave A5: Part 2 Rework
-
-### Goal
-
-Part 2を「GitHub Actionsを学ぶ講座」ではなく、Part 1のTest資産を変更管理と継続実行へ接続する講座として完成させる。
-
-### A5-1 `01_software-development-process.md`
-
-- Current iOS ArtifactをBuild-onlyとして説明する。
-- Specification Foundation完成後はRequirement / Spec Change → Test Impactを開発Flowへ追加する。
-- Monitoring / Improvementまで含むLoop構造を維持する。
-
-### A5-2 `02_git-version-control.md`
-
-大枠維持。
-
-- ZIP → Git History付きCopy移行を維持する。
-- Commit数やCommand暗記ではなくDiffとChange Unitを評価する。
-- Training成果物以外を誤って上書きしないGateを維持する。
-
-### A5-3 `03_github-pull-request-review.md`
-
-大枠維持。
-
-Review観点へ次を追加する。
-
-- Spec / Test Design / Automationの同期
-- TestをPassさせるためにExpectationを弱めていないか
-- Current保証範囲を過大に報告していないか
-- 未実行PlatformをPASS扱いしていないか
-
-### A5-4 `04_ci-github-actions.md`
-
-大枠維持。
-
-- Training Copyを標準CI経路とする方針を維持する。
-- ForkでProduction Workflowが同時起動しないStart Gateを維持する。
-- Secret配布で本番Workflowを無理にPassさせない。
-
-### A5-5 `05_playwright-ci.md`
-
-大枠維持。
-
-- Build Artifact再利用
-- Failure Artifact
-- Browser Strategy
-- Production Artifact Smoke
-
-Competency C11へ接続する。
-
-### A5-6 `06_native-ci-maestro.md`
-
-**全面的なCurrent Fact Rebaselineが必要。**
-
-Current Repositoryの比較教材は次として説明する。
-
-#### Android Current CI
-
-```text
-Detect Native Change
-↓
-Static / Production Guard
-↓
-Android Automation Build
-+ Android Production-validation Build
-↓
-APK Artifact
-↓
-Android Runtime / Maestro
-↓
-Native Verify
-```
-
-#### iOS Current CI
-
-```text
-Native CI
-↓ reusable workflow
-
-iOS Automation Build
-+
-iOS Production-validation Build
-↓
-iOS Verify
-```
-
-Current iOSではSimulator boot / Install / Launch / Maestroを実行しない。
-
-Lesson構成は次へ修正する。
-
-1. Native CIがWebより重い理由。
-2. Android Training CIを1 JobでEnd-to-End実行。
-3. Build / Runtime分離。
-4. APK Artifact。
-5. Emulator / Maestro / Evidence。
-6. Current Android Native CIとの比較。
-7. Current iOS Build-only Gateとの比較。
-8. 「もしRuntime Gateを採用するなら何が追加で必要か」を設計演習として扱う。
-9. Android / iOSを同じ保証レベルへ無条件に揃えない理由を考える。
-
-Current Repositoryに存在しないiOS Runtime PASSを完了条件へ含めない。
-
-### A5-7 `07_ci-cd-quality-gates.md`
-
-- Android / iOSのCurrent保証差をQuality Gate設計例として利用する。
-- 「両Platform Required = 高品質」と短絡しない。
-- Required条件はReliability / Cost / Feedback /代替Coverageから選ぶ。
-- Build-only GateもQuality Contractの一種として明示する。
-
-### A5-8 `08_integration-design-capstone.md`
-
-Current State一覧を正す。
-
-受講者は最初にCurrent Workflowをコピーせず、自分で次を設計する方針を維持する。
-
-- PR / main / Nightly / Manual
-- Web
-- Android
-- iOS
-- Artifact
-- Evidence
-- Quality Gate
-- Deploy / Smoke
-
-Current Repositoryとの比較時には、iOSがBuild-onlyであることを必ず差分評価に含める。
-
-### A5 Gate
-
-- C10〜C12を観測できる。
-- iOS Build-onlyを正しく説明できる。
-- iOS Runtime CIはDesign Optionとしては考えられるがCurrent Factと混同しない。
-- Current Repositoryを唯一の正解としてコピーしない。
-
----
-
-## Wave A6: Instructor System
-
-### Goal
-
-「良い教材文書」から「複数講師でも運用できる教育システム」へ進める。
-
-### Required Instructor Information
-
-最低限次を定義する。
-
-- LessonごとのExpected Competency
-- Required Evidence
-- Common Wrong Answers / Failure Modes
-- Acceptable Alternative Designs
-- Instructor-only Answer / Reference
-- Pass / Needs Revision基準
-- Environment Failure時の扱い
-- Product Defectを学習者が発見した場合の扱い
-- Specification Ambiguityを発見した場合の扱い
-
-### Rubric Example
-
-Locator選択を例にする。
-
-| Level | Observable Behavior |
-| --- | --- |
-| 0 | 動作するLocatorを作れない |
-| 1 | 例を参考にLocatorを書ける |
-| 2 | Role / Label / UI Test ID等から理由付きで選べる |
-| 3 | Accessibility、保守性、Web / Native差を含めTrade-offを比較できる |
-
-同様に主要CompetencyへObservable Behaviorを定義する。
-
-### Learner / Instructor Separation
-
-Instructor-onlyの正解をLearner教材と同じ入口へ露出させない。
-
-ただしSecurity機構を過剰実装する必要はない。Repositoryの公開形態に応じて、少なくとも「演習前に正解を読むことが標準導線にならない」構成を作る。
-
-### Gate
-
-- 「講師によって合否が大きく変わる」状態を減らせる。
-- Alternativeな妥当設計を不正解扱いしない。
-- RepositoryのCurrent実装と違うだけで減点しない。
-
----
-
-# Program B: Training Delivery Foundation
-
-## Wave B0: Delivery Architecture
-
-### Goal
-
-Training Codeを既存Production / Regression資産と安全に分離する具体構成を確定する。
-
-### Decisions to Make
-
-- Training Playwright Testの保存Path
-- Training用Playwright Config / Project
-- Training用Package Script
-- Training Maestro Flowの保存Path
-- Workbook Templateの形式
-- Training CIをRepository内の実行WorkflowにするかTemplateにするか
-- Instructor Assetの配置
-- Learner成果物の標準Path
-
-### Principle
-
-既存Regressionを練習用Scratch Spaceにしない。
-
----
-
-## Wave B1: Web / Playwright Training Boundary
-
-### Required Capability
-
-- Training Testだけを明示的に実行できる。
-- Existing Regressionへ自動混入しない。
-- Automation Build / Test API / Seed Resetを利用できる。
-- Trace / Screenshot / Video等のEvidenceを確認できる。
-- Desktop / Mobile等の必要なTraining variationを実行できる。
-
-### Validation
-
-- Empty Training Suiteでも既存Regressionに影響しない。
-- Training Testを追加しても`pnpm run verify`の契約を意図せず変えない。
-- Training専用CommandがREADME / Curriculumから再現できる。
-
----
-
-## Wave B2: Native / Maestro Training Boundary
-
-### Standard Platform
-
-Android Emulatorを標準とする。
-
-### Required Capability
-
-- Build
-- Install
-- Launch
-- Test Control Reset
-- Maestro 1 Flow
-- Evidence
-
-### iOS
-
-Optional extensionとして扱う。
-
-Training Delivery FoundationのためにCurrent iOS Runtime CI契約を変更しない。
-
----
-
-## Wave B3: Workbook Template
-
-### Required
-
-CurriculumのCore / Implementation / Operation Stageに合わせて複製可能なTemplateを用意する。
-
-候補形式:
-
-- Google SheetsへImport可能なCSV群
-- Spreadsheet Toolに依存しないMarkdown / CSV Reference
-
-外部Test Management SaaSは必須にしない。
-
-### Gate
-
-- LearnerがColumn設計から作り直さなくてよい。
-- Sheet入力が学習目的を圧迫しない。
-- Risk / Test Case / Automation Mappingを追跡できる。
-
----
-
-## Wave B4: Training CI Boundary
-
-### Required
-
-- Production Deploy Secret不要。
-- Cloudflare Deploy不要。
-- Training Workflowだけを安全に実行可能。
-- Unit / Quality → Playwrightへ段階的に拡張できる。
-- Native Training CIはAndroidを標準とする。
-- Failure Artifactを取得できる。
-
-### Important Constraint
-
-教材元Repository上でTraining Workflowを有効化することで既存PR Triggerと競合する設計は避ける。
-
-Training Copyへ配置したときだけ有効になるTemplate方式も選択肢とする。
-
----
-
-## Wave B5: Setup / Start Gate / Recovery
-
-教材提供前に最低限次を作る。
-
-### Web Gate
-
-- Node / pnpm
-- Install
-- Web Start
-- Chromium Install
-- Minimum Playwright Test
-
-### Native Gate
-
-- JDK
-- Android SDK
-- Emulator
-- Native Build
-- APK Install
-- Maestro Minimum Flow
-
-### Part 2 Gate
-
-- Git History付きCopy
-- GitHub Account
-- Push可能Remote
-- Production Workflow非競合
-- Training CI利用可能
-
-### Recovery
-
-- Dependency Install Failure
-- Browser Install Failure
-- Port conflict
-- Android SDK / JDK mismatch
-- Emulator boot failure
-- APK install failure
-- Maestro connection failure
-- Git migration conflict
-- GitHub Actions permission / disabled Actions
-
-を最低限扱う。
-
----
-
-# Program C: Specification Traceability Integration
-
-## Start Gate
-
-以下を満たすまでProgram Cを実装しない。
-
-- `docs/spec/README.md`が存在する。
-- Normative / Supportingの境界が実装済み。
-- BR / AC GrammarとValidatorが確定済み。
-- Current Product BehaviorのSpec Coverageが教材対象Featureで十分存在する。
-
-## Wave C1: Learning Model Integration
-
-学習Flowを次へ更新する。
+Specification Foundation完成後は、テスト設計の入口を次へ変更する。
 
 ```text
 Normative Specification
@@ -1150,392 +387,872 @@ Test Case
 ↓
 Test Layer / Tool
 ↓
-Automation
+Automation implementation
 ↓
-Evidence
+Execution Evidence
 ```
 
-## Wave C2: Workbook Traceability
+### 7.1 Oracle
 
-Workbookへ最低限次を接続する。
+学習者へ以下を明確に教える。
 
-- Spec Ref
-- Related BR
-- Related AC
+- Normative Specification = Expected BehaviorのOracle
+- Application = 現在のImplementation
+- Existing Test = 既存の検証資産
+- README / Guide = Supporting情報
+- Seed Metadata = Test Data / ScenarioのExecutable Canonical Source
+
+「アプリがそう動いたから正しい」「既存E2Eがそう期待しているから仕様」とは判断しない。
+
+### 7.2 Workbook mapping
+
+Test Caseへ少なくとも以下のTraceabilityを持たせる。
+
+- Spec Reference
+- BR ID
+- AC ID
 - Risk ID
 - Test Case ID
-- Automation implementation
+- Test Layer
+- Tool
+- Implementation path
 
-すべてのCaseへ機械的に大量IDを付けることが目的ではない。
+ただし全Caseへ無理にBR / ACを付けない。
 
-「このTestは何の期待動作を保証するのか」を追跡できることを目的とする。
+ResponsiveやVisual Evidence等、直接BR / ACへ対応しない品質確認は適切なSpec ReferenceまたはRiskを使う。
 
-## Wave C3: Specification Change Exercise
+### 7.3 Specification issue handling
 
-仮想変更だけでなく、専用Training Branch / Patch等を使える場合は次を実施する。
-
-```text
-Specification Change
-↓
-Affected BR / AC
-↓
-Affected Risk
-↓
-Test Design update
-↓
-Automation impact
-↓
-Regression classification update
-↓
-Implementation / Validation
-```
-
-Current Productへ不要な仕様変更を混ぜない。
-
-## Wave C4: Failure Classification Integration
-
-Failure分析で次を正式に区別する。
-
-- Product implementation deviates from Spec
-- Test expectation deviates from Spec
-- Spec is ambiguous / unresolved
-- Environment / Harness prevents evaluation
-
-既存ImplementationやExisting RegressionからExpectedを逆算しない。
-
----
-
-## 9. File-by-file Change Matrix
-
-| File | Direction | Priority |
-| --- | --- | --- |
-| `README.md` | Current Native/iOS修正、Competency・提供準備状況を明確化 | P1 |
-| `00_learning-design.md` | Competency評価、Instructor/Learner責務、Spec Oracle移行方針 | P1 |
-| `01_spreadsheet-test-design.md` | Progressive Workbook、後続BR/AC Traceability | P1 |
-| `part1/01_test-automation-foundations.md` | C01へ接続、自動化しない判断をEvidence化 | P2 |
-| `part1/02_scenario-shop-analysis.md` | Observed / Expected分離、後続Spec接続 | P1 |
-| `part1/03_test-design-and-automation-selection.md` | Risk → Layer → Tool Traceability強化 | P1 |
-| `part1/04_playwright-foundations.md` | Coding Bridge追加 | P2 |
-| `part1/05_playwright-e2e-practice.md` | Design ↔ Assertion対応、Internal Inspection責務明確化 | P2 |
-| `part1/06_execution-and-failure-analysis.md` | Failure taxonomy拡張 | P1 |
-| `part1/07_maestro-native-automation.md` | Current Native Scope、iOS保証差を反映 | P1 |
-| `part1/08_test-management-and-maintainability.md` | Spec変更時Lifecycle、削除判断のCompetency化 | P2 |
-| `part1/09_part1-capstone.md` | Core Cart維持、Advanced Purchase/Recovery/Cross-role追加 | P1 |
-| `part2/01_software-development-process.md` | Current iOS Build-only、後続Spec change flow | P1 |
-| `part2/02_git-version-control.md` | 大枠維持、成果物・Diff評価を明確化 | P3 |
-| `part2/03_github-pull-request-review.md` | Spec/Test同期、保証範囲Reviewを追加 | P2 |
-| `part2/04_ci-github-actions.md` | Training CI安全境界を維持・実装へ接続 | P2 |
-| `part2/05_playwright-ci.md` | Current設計維持、C11への接続 | P2 |
-| `part2/06_native-ci-maestro.md` | iOS Runtime前提をBuild-onlyへ全面Rebaseline | P1 |
-| `part2/07_ci-cd-quality-gates.md` | Platform別保証LevelをGate設計教材へ反映 | P1 |
-| `part2/08_integration-design-capstone.md` | Current iOS前提修正、Competency-based評価 | P1 |
-
----
-
-## 10. Failure Classification Standard
-
-Part 1 / Part 2で同じ分類語彙を使う。
-
-| Category | Meaning |
-| --- | --- |
-| Product Defect | Product実装がExpected Behaviorを満たさない |
-| Test Defect | Test Code / Assertion / expectation自体が誤っている |
-| Test Data / Seed Defect | Initial StateやDataが期待どおりでない |
-| Locator Defect | UI要素識別が誤り・不安定 |
-| Timing / Synchronization | 意味のある状態待機が不足 |
-| Harness Defect | Fixture / Test Control / Helper / Harnessの不具合 |
-| Environment Defect | OS / Browser / Emulator / Runner等の環境問題 |
-| External Dependency | 制御外Service等の問題 |
-| Specification Issue | Expected Behaviorが曖昧・矛盾・未定義 |
-| Expected Change | Product変更に対してTestが古い |
-| Flaky / Intermittent | 同じ前提で結果が非決定的に変動 |
-
-Specification Foundation完成前は「Specification Issue」を概念として扱い、Current Specが存在するかのように誤記しない。
-
----
-
-## 11. Instructor Evaluation Contract
-
-講師は以下を評価しない。
-
-- Existing Repositoryと全く同じCodeになったか。
-- POMを使ったか。
-- Test Case数が多いか。
-- Automation率が高いか。
-- 全Platformへ同じTestを書いたか。
-
-講師が評価するのは次である。
-
-- RiskとTestがつながっているか。
-- 選択理由が説明できるか。
-- Assertionが目的を保証しているか。
-- 初期状態が再現可能か。
-- Failure分析がEvidenceに基づくか。
-- Alternative DesignのTrade-offを理解しているか。
-- 不要な複雑性を追加していないか。
-- Current Guaranteeを過大報告していないか。
-
----
-
-## 12. Validation Strategy
-
-### Curriculum Document Validation
-
-- `pnpm run lint:markdown`
-- Relative Link確認
-- Current file path / script name確認
-- `README.md`とのNavigation整合
-
-### Repository Fact Validation
-
-Curriculum内でCurrent実装を引用する箇所は、最低限次へ照合する。
-
-- `package.json`
-- `playwright.config.ts`
-- `.github/workflows/ci.yml`
-- `.github/workflows/native-ci.yml`
-- `.github/workflows/native-ios-ci.yml`
-- `docs/adr/0011-native-ci-ios-build-only-gate.md`
-- `src/seeds/metadata.ts`
-- Current `maestro/`
-
-### Training Foundation Validation
-
-Program Bでは、実際にLearner Pathを最初から通す。
-
-最低限次をFresh環境相当で確認する。
-
-1. Web Start Gate
-2. Training Playwright first test
-3. Intentional Failure + Evidence
-4. Android Start Gate
-5. Training Maestro first flow
-6. Part 1 output migration
-7. Git branch / commit
-8. Training CI
-9. Playwright CI Artifact
-10. Native Training CIまたはその標準手順
-
-文書だけ整っていて実行できない状態をDoDにしない。
-
----
-
-## 13. Risks and Mitigations
-
-### Risk 1: Curriculumが広すぎる
-
-現在でもPart 1 / Part 2は広い。
-
-Mitigation:
-
-- Core / Advancedを明確に分ける。
-- 新Toolを追加しない。
-- Agentic QA / Security / Performance等を必須Scopeへ追加しない。
-
-### Risk 2: Scenario Shopの複雑さが初学者を圧倒する
-
-Mitigation:
-
-- Productを単純化するのではなく、Lessonごとに見せる範囲を限定する。
-- CartをCore Domainとして繰り返し利用する。
-- AdvancedでCheckout / Payment / Cross-roleを解放する。
-
-### Risk 3: Workbook作業が目的化する
-
-Mitigation:
-
-- Progressive DisclosureをWorkbookにも適用する。
-- 最初から8 Sheetすべてを完成させない。
-
-### Risk 4: Current Repositoryが正解集になる
-
-Mitigation:
-
-- Existing Test / Workflowを演習後に比較する。
-- 「違う = 間違い」にしないRubricを採用する。
-- Specification Foundation完成後はSpecをOracleへする。
-
-### Risk 5: iOSを教えるためにCI方針を歪める
-
-Mitigation:
-
-- Current Build-only契約をそのまま教材として使う。
-- Runtime GateはFuture Design Exerciseとして扱う。
-
-### Risk 6: Training WorkflowがProduction CIと競合する
-
-Mitigation:
-
-- Training Copyを標準経路にする。
-- Template方式を優先候補にする。
-- Production SecretをTrainingへ渡さない。
-
-### Risk 7: Competency Rubricが細かすぎる
-
-Mitigation:
-
-- C01〜C12を上限目安とする。
-- 各Lessonへ細かい点数表を大量追加しない。
-- Capstoneでまとめて観測できる項目はまとめる。
-
----
-
-## 14. Implementation Order
-
-推奨順序は次とする。
+Expected Behaviorが確定できない場合、Existing Implementationから勝手に仕様を決めない。
 
 ```text
-Program A
-Curriculum Rebaseline
-  ↓
-Program B
-Training Delivery Foundation
-  ↓
-Specification Foundation Implementation
-  ↓
-Program C
-Specification Traceability Integration
-  ↓
-End-to-End Curriculum Dry Run
+仕様が不明
+↓
+Unresolved Specificationを確認
+↓
+必要なら仕様確認対象として記録
+↓
+Product Bugとして断定しない
 ```
-
-ただしSpecification Foundation ImplementationがProgram Aより先に完了した場合は次でもよい。
-
-```text
-Specification Foundation
-  ↓
-Program A + Program C
-  ↓
-Program B
-  ↓
-End-to-End Dry Run
-```
-
-最も避けるべき順序は、Training Environmentを作らずCurriculum本文だけを際限なく詳細化することである。
 
 ---
 
-## 15. PR Boundary Recommendation
+## 8. Failure Taxonomy
 
-### PR A: Curriculum Rebaseline
+Part 1 Failure Analysisを以下へ標準化する。
 
-Scope:
+- Product Defect
+- Test Code Defect
+- Test Data / Seed Defect
+- Locator Defect
+- Synchronization / Timing Defect
+- Harness / Test Control Defect
+- Environment / Toolchain Defect
+- External Dependency Defect
+- Specification Issue / Ambiguity
+- Expected Product Change
+- Flaky / Non-deterministic
+- Unknown / Investigation Required
 
-- Existing 20 Curriculum docs
-- Competency / Instructor docs
-- Current Native / iOS correction
-- Capstone reorganization
-- Workbook learning design
+Failure分類は「ラベルを付けること」が目的ではない。
 
-Product Code / Workflowは変更しない。
+修正対象を誤らず、ProductをTestの都合へ合わせる誤修正や、Retry / Timeoutによる隠蔽を防ぐために使う。
 
-### PR B: Training Delivery Foundation
+---
 
-Scope:
+## 9. Coding Bridge
 
-- Training Playwright boundary
-- Training Maestro boundary
+プログラミング未経験者向けに別のJavaScript講座は作らない。
+
+必要になったタイミングで最小限のCoding Bridgeを挟む。
+
+対象候補:
+
+- Function parameter / return
+- Object / Array
+- Destructuring
+- Module / import / export
+- async / await
+- Type annotation
+- Array `map` / `filter`
+- Error / try-catchの基本
+- Classの読み方
+- Object composition
+- Promise / `Promise.all`の概念
+
+Coding Bridgeは「コード設計の専門講座」に発展させず、そのLessonのTest Automation目的へ必要な範囲に限定する。
+
+---
+
+## 10. Workbook Re-design
+
+現行Workbookの8 Sheet思想は維持しつつ、初学者へ一度に全管理項目を要求しない。
+
+### 10.1 Core Workbook
+
+Part 1前半では以下を中心にする。
+
+1. Test Target / Specification Analysis
+2. Risk Analysis
+3. Test Condition / Test Case
+4. Automation Selection / Mapping
+
+### 10.2 Operational Workbook
+
+Testが増えてから以下を追加する。
+
+5. Execution Evidence
+6. Improvement / Maintenance
+
+### 10.3 Optional / Advanced
+
+必要な教材実装に応じて以下を独立SheetまたはViewで提供してよい。
+
+- Detailed Test Coverage Mapping
+- CI Execution Placement
+- Instructor Evaluation
+
+### 10.4 Template requirements
+
+Workbook Templateは少なくとも以下を満たす。
+
+- 複製可能
+- Google SheetsへImport / Copyしやすい
+- 入力例を含む
+- Scenario Shop固有の完成Answerを最初から埋めすぎない
+- Test Case ID、BR / AC、Risk、Layer、Toolの意味が混同されない
+- 入力規則を過剰に複雑化しない
+
+---
+
+## 11. Curriculum Rebaseline Matrix
+
+`docs/curriculum/test-automation/` 配下の全Curriculum文書を確認する。
+
+### README.md
+
+P1:
+
+- iOSを「Simulator / Maestro」と記載しているCurrent Repository説明をBuild-onlyへ修正する。
+- Specification Foundationを主要教材へ追加する。
+- Part 1 / Part 2の修了Competencyを明示する。
+- 実装完了後は「後続でTraining環境を用意する」という古い将来形を除去し、実在するTraining入口へ更新する。
+
+### 00_learning-design.md
+
+P1:
+
+- Current OracleをSpecificationへ変更する。
+- 学習順序へSpec / BR / AC → Riskを接続する。
+- Competency / Rubricの位置づけを追加する。
+- iOS CIのCurrent StateをBuild-onlyへ修正する。
+
+### 01_spreadsheet-test-design.md
+
+P1:
+
+- BR / AC / Spec RefをWorkbookへ追加する。
+- Core / OperationalのProgressive Disclosureへ整理する。
+- Test Case数よりRisk / Traceability /理由を優先することを明示する。
+
+### Part 1-1
+
+P2:
+
+- 自動化の価値判断をCompetency C06へ対応させる。
+- Current SpecificationとObserved Behaviorの違いを軽く導入する。
+
+### Part 1-2
+
+P1:
+
+- `/guide` / SeedだけでなくNormative Specificationを分析Inputへ追加する。
+- Observed BehaviorとExpected Behaviorを分離する。
+
+### Part 1-3
+
+P1:
+
+- Spec / BR / AC → Risk → Test Conditionの流れへ変更する。
+- Layer SelectionとAutomation SelectionをCompetencyへ対応させる。
+
+### Part 1-4
+
+P2:
+
+- Coding Bridgeを追加する。
+- Training用Playwright Project / Scriptの実Pathへ更新する。
+
+### Part 1-5
+
+P1:
+
+- Training用Playwright Environmentの実装結果へ手順を固定する。
+- Seed / Test Control / Evidence取得方法を実Commandへ合わせる。
+- Native Phase 2後半完成後のCurrent Scopeと矛盾しないよう発展例を見直す。
+
+### Part 1-6
+
+P1:
+
+- Failure Taxonomyを拡張する。
+- Specification Issue / Harness / Test Data等を正式分類へ入れる。
+- Instructor Failure Exerciseと接続する。
+
+### Part 1-7
+
+P2:
+
+- Android Emulatorを引き続き標準とする。
+- iOSはOptional local comparisonに留め、CI Runtime保証と混同しない。
+- Training Maestro Path / Commandを実装へ合わせる。
+
+### Part 1-8
+
+P2:
+
+- POMを必須としない現在方針を維持する。
+- Refactoring判断をRubricへ接続する。
+- Specification変更時のTest資産Lifecycleを実際のSpec Contractへ合わせる。
+
+### Part 1-9
+
+P1:
+
+- CartをCore Capstoneとして維持する。
+- Completionを本数 + Competency Evidenceへ変更する。
+- Advanced Capstoneを定義する。
+
+Advanced候補:
+
+```text
+Guest Cart
+→ Login
+→ Cart Merge
+→ Address
+→ Checkout
+→ Payment
+→ Order
+```
+
+```text
+Payment Failure
+→ Retry
+→ Paid
+```
+
+```text
+Customer Purchase
+→ Operator Shipment
+→ Customer Review
+```
+
+### Part 2-1
+
+P2:
+
+- Specification Change → Implementation → Review → Testの関係を追加する。
+
+### Part 2-2
+
+P3:
+
+- 基本構成は維持する。
+- Training成果物の実Path確定後に移行手順を具体化する。
+
+### Part 2-3
+
+P2:
+
+- Spec / Test Design / ValidationのTraceabilityをPR Review観点へ追加する。
+
+### Part 2-4
+
+P1:
+
+- Training CIの実Workflow / Commandへ更新する。
+- Production Workflow分離の実装方法を曖昧な将来形ではなく確定手順にする。
+
+### Part 2-5
+
+P1:
+
+- Training Playwright CIを実際に実行できる状態へ更新する。
+- Artifact Path / Report確認方法を固定する。
+
+### Part 2-6
+
+P1 Critical:
+
+- Current iOS CI説明をBuild-onlyへ全面修正する。
+- iOS Simulator boot / install / launch / MaestroをCurrent CI Flowとして説明しない。
+- Android = Build + Runtime E2E、iOS = Build + Build-time Contractという非対称保証を教材化する。
+- 「なぜ両Platformを同じRequired Levelにしないのか」をRisk / Maintainability / Local reproducibilityから考えさせる。
+
+### Part 2-7
+
+P1:
+
+- Native Quality GateのCurrent GuaranteeをBuild-only iOSへ更新する。
+- Required Gateを「多いほど品質が高い」としない思想を維持する。
+
+### Part 2-8
+
+P1:
+
+- Current iOS baseline記述を修正する。
+- 最終CapstoneをCurrent Repositoryの実保証と比較できるようにする。
+- Competency C11 / C12の評価と接続する。
+
+---
+
+## 12. Training Delivery Foundation
+
+### 12.1 Training Playwright boundary
+
+Existing Regressionへ受講者コードを混在させない。
+
+実装するもの:
+
+- Training専用spec directory
+- Training専用Playwright Projectまたは明示的Test selection
+- Training専用Package Script
+- Automation Build / Test Control利用
+- Seed Reset
+- Trace / Screenshot / Video / Report出力
+- Existing RegressionへTraining Testが混ざらないContract TestまたはValidation
+
+Path / Project名は実装時にCurrent Repositoryへ最も自然なものを選ぶ。
+
+### 12.2 Training Maestro boundary
+
+実装するもの:
+
+- Learner用Maestro Flow保存場所
+- Android標準実行Command
+- Native Test Control Resetの利用手順
+- JUnit / Screenshot等Evidence
+- Existing production/regression Maestro Flowとの混在防止
+
+全受講者へiOS Runtimeを要求しない。
+
+### 12.3 Training CI boundary
+
+Training CIはProduction / Deploy Workflowから安全に分離する。
+
+最低限:
+
+- Production Secret不要
+- Cloudflare Deployなし
+- Training Playwright実行
+- 必要なQuality Check
+- Android Native Trainingを追加可能
+- Learner ArtifactをUpload可能
+- Fork / Copy運用の安全境界を明示
+
+### 12.4 Copy / Fork policy
+
+標準:
+
+- Part 1はLocal Copy / ZIPも許容
+- Part 2開始時にGit Historyを持つTraining Copyへ移行
+- CIハンズオンは演習用Copyを標準
+- Forkを使う場合はProduction Workflowが意図せず起動しない開始Gateを必須
+
+---
+
+## 13. Setup / Start Gate
+
+教材提供時に「環境構築できたつもり」を避けるため、開始Gateを機械的に確認できるようにする。
+
+### 13.1 Web / Playwright Gate
+
+- Node / pnpm version確認
+- Dependency install
+- Scenario Shop Web起動
+- Training Playwright minimal test PASS
+- Training Evidence出力確認
+
+### 13.2 Native / Android Gate
+
+- JDK
+- Android SDK
+- Emulator
+- App Build
+- APK Install
+- App Launch
+- Maestro minimal flow PASS
+- Test Control Reset PASS
+
+### 13.3 Git / GitHub Gate
+
+- Git Historyを保持したTraining Copy
+- `main`存在
+- Training Branch
+- RemoteへPush可能
+- 本体Repositoryへ直接Push不要
+
+### 13.4 CI Gate
+
+- GitHub Actions利用可能
+- Production / Deploy WorkflowがTraining PRで起動しない
+- Training Workflowだけが意図どおり起動
+- Production Secret不要
+
+---
+
+## 14. Instructor System
+
+Learner向けLessonだけで研修を成立させない。
+
+以下をInstructor資産として用意する。
+
+### 14.1 Instructor Guide
+
+- Lesson目的
+- 期待Competency
+- つまずきやすい点
+- 教えすぎてはいけないAnswer
+- 既存Repositoryを見せるタイミング
+- Optional / Advancedの判断
+
+### 14.2 Rubric
+
+各CapstoneでC01〜C12のどれを評価するか固定する。
+
+各評価はLevel 0〜3で記録する。
+
+### 14.3 Expected Outcome
+
+「完成コード1つ」を正解にしない。
+
+- 必須Contract
+- 許容されるAlternative Design
+- 明確なAnti-pattern
+
+を分ける。
+
+### 14.4 Failure Exercises
+
+意図的に最低限以下を体験できる教材を用意する。
+
+- Assertion failure
+- Locator failure
+- State / Seed issue
+- Timing issue
+- CI environment issue
+
+Product Defect注入まで必須にする必要はない。
+
+### 14.5 Troubleshooting
+
+講師が毎回ゼロから調べなくてよいように、以下を記録する。
+
+- Web起動失敗
+- Browser install失敗
+- Playwright timeout
+- Android SDK / JDK
+- Emulator boot
+- APK install
+- Maestro connection
+- Git remote / permission
+- GitHub Actions failure
+
+---
+
+## 15. Wave Plan
+
+### Wave 0 — Baseline / Contract Freeze
+
+目的:
+
+- Implementation開始時点の正本を固定する。
+
+作業:
+
+- Spec / Product / Test / Native / CIを再確認
+- iOS Build-only確認
+- Curriculum全20文書を最新状態と照合
+- Implementation Task一覧作成
+
+完了条件:
+
+- Current factsに未解決の推測がない。
+- Wave 1以降で参照するCanonical Sourceが記録されている。
+
+### Wave 1 — Curriculum Contract / Competency
+
+作業:
+
+- C01〜C12定義
+- Level 0〜3定義
+- Part 1 / Part 2修了基準
+- Instructor Rubric skeleton
+- Core / Advanced区分
+
+完了条件:
+
+- 以降のLessonが同じ到達像を参照できる。
+
+### Wave 2 — Specification Traceability / Workbook
+
+作業:
+
+- Spec / BR / AC → Risk → Testへの接続
 - Workbook Template
-- Setup / Gate / Troubleshooting
-- Training CI boundary
+- Core / Operational分離
+- Test Case ID / UI Test ID / BR / AC Namespace整理
 
-必要なCode / Script / Config変更を含める。
+Validation:
 
-### PR C: Specification Traceability
+- Sample CaseでTraceabilityを最後まで辿る。
 
-Start Gate:
+### Wave 3 — Part 1 Curriculum Rebaseline
 
-- Specification Foundation実装済み。
+作業:
 
-Scope:
+- Part 1全Lesson改訂
+- Coding Bridge
+- Failure Taxonomy
+- Advanced Capstone
+- Competency mapping
 
-- Spec / BR / AC → Risk / Test Traceability
-- Workbook update
-- Specification Change Exercise
-- Failure classification integration
+完了条件:
 
-### Why not one giant PR
+- Part 1の前後Lessonで用語・前提・Path・完了条件が矛盾しない。
 
-3つは責務が異なる。
+### Wave 4 — Training Playwright Foundation
 
-- PR Aは教育設計・事実整合。
-- PR Bは実行環境・Tooling。
-- PR CはSpecification Systemへの依存変更。
+作業:
 
-全部を同時に行うと、Curriculumの内容が悪いのかTraining Harnessが悪いのかSpec実装待ちなのかをReviewしづらくなる。
+- Training spec boundary
+- Project / Script
+- Reset / Evidence
+- minimal examples
+- Existing Regression isolation
 
----
+Validation:
 
-## 16. Final Acceptance Test
+- Training Testだけ実行できる。
+- Existing Required Regressionへ混入しない。
+- Failure Evidenceを確認できる。
 
-最終的には文書Reviewだけでなく、Learner Journeyを実際に1周する。
+### Wave 5 — Training Maestro / Android Foundation
 
-### Part 1 Dry Run
+作業:
+
+- Training Maestro boundary
+- Android setup
+- Test Control
+- Evidence
+- sample flow
+
+Validation:
+
+- Android Emulator上でTraining Flowを実行できる。
+- Existing Maestro Regressionと分離できる。
+
+### Wave 6 — Part 2 Curriculum Rebaseline
+
+作業:
+
+- Git / GitHub / CI Lesson更新
+- Current Training pathへ具体化
+- iOS Build-only全面反映
+- Android / iOS guarantee差を教材化
+- Quality Gate / Cost判断更新
+
+完了条件:
+
+- Current Workflowとの記述差異がない。
+
+### Wave 7 — Training GitHub Actions
+
+作業:
+
+- Secret不要Training CI
+- Playwright Training CI
+- Failure Artifact
+- 必要に応じAndroid Training CI
+- Production Workflow隔離手順
+
+Validation:
+
+- Training CIだけで教材ハンズオンが完結する。
+
+### Wave 8 — Instructor / Setup / Recovery
+
+作業:
+
+- Start Gate
+- Setup Guide
+- Instructor Guide
+- Rubric詳細
+- Troubleshooting
+- Recovery
+- Part 1 → Part 2 migration
+
+### Wave 9 — Repository-wide Curriculum Integration Review
+
+確認:
+
+- 全文書Link
+- Path
+- Command
+- Script
+- Scenario名
+- Current Product Scope
+- Android / iOS保証
+- Specification Reference
+- Workbook column
+- Rubric
+- Learner artifact
+
+矛盾を0にする。
+
+### Wave 10 — End-to-End Training Validation
+
+受講者目線で最低限以下を順に確認する。
 
 ```text
 Setup
 ↓
-Scenario Shop exploration
+Scenario Shop探索
 ↓
-Risk / Test Design
+Specification確認
 ↓
-Automation Selection
+Risk / Workbook
 ↓
 Playwright
 ↓
-Intentional Failure / Evidence
+Failure Analysis
 ↓
-Maestro Android
-↓
-Maintainability Improvement
+Maestro / Android
 ↓
 Part 1 Capstone
-```
-
-確認する。
-
-- Current Repositoryの完成コードを見なくても進められるか。
-- 手順の空白で止まらないか。
-- Test Harnessが正式Regressionへ混入しないか。
-- Competency Level 2を判断できるEvidenceが残るか。
-
-### Part 2 Dry Run
-
-```text
-Part 1 artifacts
 ↓
-Git History付きCopyへ移行
+Part 2 Copy migration
 ↓
-Branch / Commit
-↓
-GitHub / PR / Review
+Git / GitHub
 ↓
 Training CI
 ↓
 Playwright CI
 ↓
-Android Native CI exercise
+Native CI設計
 ↓
-iOS Build-only guarantee analysis
+Quality Gate設計
 ↓
-Quality Gate design
-↓
-Integration Capstone
+Part 2 Capstone
 ```
 
-確認する。
+完成済みRepositoryを知っている開発者目線だけでなく、初見受講者が手順を辿れることを確認する。
 
-- Production Secretが不要か。
-- Production Deployを誤起動しないか。
-- Current Android / iOS Guaranteeを正しく説明できるか。
-- Failure Evidenceを取得できるか。
-- Current Repositoryと異なる妥当設計も評価できるか。
+---
 
-### Final DoD
+## 16. Validation Strategy
 
-- Learnerが「何をしたか」だけでなく「なぜそうしたか」を説明できる。
-- InstructorがEvidenceとRubricで評価できる。
-- Current Product / Test / CIとCurriculumが一致する。
-- Specification Foundation完成後はExpected BehaviorのOracleが明確である。
-- Training CodeとProduction Regression / CIが安全に分離される。
-- カリキュラムを通して、対象分析からCI/CD設計まで1本のLearning Storyとしてつながる。
+### 16.1 Static
+
+- `pnpm run format:check`
+- `pnpm run lint:markdown`
+- `pnpm run lint`
+- `pnpm run typecheck`
+- Specification validation
+
+### 16.2 Existing repository regression
+
+- `pnpm run test`
+- `pnpm run build:web`
+- `pnpm run verify`
+- 変更影響に応じ既存Playwright
+- Native変更がある場合Current Native CI contract
+
+### 16.3 Training validation
+
+新設したTraining Commandを実際に実行する。
+
+- Web minimal PASS
+- Web intentional FAIL → Evidence
+- Seed Reset
+- Android minimal Maestro PASS
+- Training CI PASS
+
+### 16.4 Documentation consistency
+
+以下の参照が実在することを確認する。
+
+- File Path
+- Package Script
+- Playwright Project
+- Maestro Flow
+- Seed Scenario
+- Workflow / Job
+- Spec / BR / AC
+- Artifact Path
+
+「教材では存在すると書いているが実装されていない」を残さない。
+
+---
+
+## 17. Definition of Done
+
+### Curriculum
+
+- `docs/curriculum/test-automation/` 全文書がCurrent Repositoryと整合する。
+- iOS Runtime / MaestroをCurrent Formal CI Guaranteeとして誤記していない。
+- Android = Build + Runtime、iOS = Build-onlyを正しく説明する。
+- SpecificationがExpected Behavior Oracleとして一貫して扱われる。
+- Part 1 / Part 2のLearner OutcomeがCompetencyとして明示される。
+- Test本数だけで修了判定しない。
+
+### Training environment
+
+- Training PlaywrightがExisting Regressionから分離されている。
+- Training MaestroがExisting Regressionから分離されている。
+- Web / Android Start Gateがある。
+- Training CIがProduction Secret / Deployへ依存しない。
+- Part 1 → Part 2移行手順が実行可能である。
+
+### Workbook / Traceability
+
+- 複製可能なWorkbook Templateがある。
+- Spec / BR / AC / Risk / Test Case / Layer / Tool / Implementationを追跡できる。
+- 初学者へ一度に過剰な管理項目を要求しない。
+
+### Instructor
+
+- Rubricがある。
+- Level 0〜3で評価できる。
+- Expected OutcomeとAlternative Designを区別する。
+- Failure Exerciseがある。
+- Troubleshooting / Recoveryがある。
+
+### Validation
+
+- `pnpm run verify`が成功する。
+- Required GitHub Actionsが成功する。
+- Training Web validationが成功する。
+- Android Training validationが成功する。
+- Required documentation link / command validationが成功する。
+- 未解消Required Blockerがない。
+
+### PR
+
+- **上記DoDを1本のCurriculum Implementation PRでReview可能にする。**
+- Specification FoundationそのものはこのPRへ含めない。
+- Product機能追加・無関係なRefactorを混在させない。
+
+---
+
+## 18. Scope Creep Guard
+
+Implementation中に「教材としてあると便利」という理由だけで新技術を追加しない。
+
+追加候補が出た場合は次を問う。
+
+1. C01〜C12のどのCompetencyに必要か。
+2. 現行Scenario Shopで既に学習可能か。
+3. 今回追加しないとVertical Learning Flowが成立しないか。
+4. 新しいTool / Dependency / Platform Costを増やす価値があるか。
+
+4つのうち明確な必要性がなければFuture候補として記録し、今回Scopeへ入れない。
+
+---
+
+## 19. Implementation Principles
+
+- 完成済みコードを演習前の正解として見せすぎない。
+- Existing Repositoryを絶対的な正解としない。
+- SpecificationをOracleとし、実装とTestは検証対象とする。
+- POMを標準解にしない。
+- すべてをE2Eにしない。
+- Web / Android / iOSへ全Testを機械的に複製しない。
+- iOS Runtimeを「CIでできるから」だけで復活させない。
+- Retry / Timeout / `continue-on-error`で品質問題を隠さない。
+- TrainingのためにProduction Security Boundaryを弱めない。
+- Learner CodeをFormal Regressionへ直接混在させない。
+- 最低本数は練習量であり、Competencyの代替指標にしない。
+- 1PRで完了させるが、内部実装はWave単位で小さく検証する。
+
+---
+
+## 20. Final Review Questions
+
+PR Merge前に以下へすべてYesと答えられることを確認する。
+
+### Educational
+
+- 学習者は「何をTestしたか」だけでなく「なぜ」を説明できる構成か。
+- SpecificationとObserved Behaviorを区別できるか。
+- Test DesignからAutomationへ飛躍していないか。
+- 自動化しない判断を評価できるか。
+- Test Layer選択を評価できるか。
+- Failure原因をProduct以外へも切り分けられるか。
+
+### Practical
+
+- 初見学習者がWebを起動できるか。
+- Training Playwrightを実行できるか。
+- Failure Evidenceを見られるか。
+- Android Emulator / Maestroまで進められるか。
+- Part 2へ成果物を引き継げるか。
+- Training PR / CIをProduction環境へ影響せず実行できるか。
+
+### Current repository consistency
+
+- Native Current Scopeと一致するか。
+- iOS Build-onlyと一致するか。
+- Script名が実在するか。
+- Seed Scenario名が実在するか。
+- Workflow説明がCurrent YAMLと一致するか。
+- Specification ReferenceがCurrent Specと一致するか。
+
+### Maintainability
+
+- 教材のためだけの過剰な抽象化がないか。
+- Instructorだけが理解できる暗黙手順がないか。
+- Current Repository変更時に更新箇所を追跡できるか。
+- Training専用コードとFormal Regressionの責務が明確か。
+
+---
+
+## 21. Expected Implementation Result
+
+本Plan完了時、Scenario Shopは単なる「自動テストのサンプルRepository」ではなく、以下を一貫して体験できるTraining Environmentになる。
+
+```text
+Normative Specification
+↓
+Business Rule / Acceptance Criteria
+↓
+Risk Analysis
+↓
+Test Design
+↓
+Automation Selection
+↓
+Playwright / Maestro
+↓
+Failure Evidence / Analysis
+↓
+Maintenance
+↓
+Git / PR / Review
+↓
+CI / Quality Gate
+↓
+Automation Introduction Design
+```
+
+その結果、受講者は既存Test Caseをコードへ置き換えるだけではなく、案件に対して次のように説明できる状態を目指す。
+
+> この仕様とBusiness Riskから、この条件を確認します。
+> このRuleの細かい組み合わせは下位Testへ置き、User JourneyはPlaywrightで確認します。
+> NativeではPlatform固有RiskだけMaestroへ追加します。
+> このTestは自動化しません。保守Costに対してRegression価値が低いためです。
+> PRではこのSuiteをRequiredとし、高コストな確認は別Timingへ配置します。
+> Failure時にはこのEvidenceを確認します。
+> AndroidとiOSは現在の再現性とCostが違うため、同じ保証Levelにはしません。
+
+この判断能力を育成できることを、本Implementationの最終成果とする。
