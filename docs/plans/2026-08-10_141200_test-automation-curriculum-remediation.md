@@ -130,9 +130,13 @@ Part 2修了時、受講者はPart 1のTest資産を変更管理と継続実行�
 - Competency C01〜C12とLevel 0〜3を評価正本として用意する。
 - Training Playwright / MaestroをFormal Regressionから分離する。
 - Workbook TemplateをCSV正本として提供する。
+- Training TypeScriptをRepository Quality Gateでtypecheckする。
 - Secret不要・DeployなしのTraining Web CIとAndroid Training CIを提供する。
+- Training Copy preparationを決定的なScript / Validationとして提供する。
+- Repository-owned Training baseline smokeをFormal Required CIで継続確認する。
 - Setup / Start Gate / Recovery / Instructor Referenceを用意する。
 - Fresh Learner Dry RunでPart 1 → Part 2を通す。
+- `pnpm run validate:curriculum`をRequired Phase 1 CIへ明示的に接続する。
 - `pnpm run verify`とRequired GitHub Actionsを成功させる。
 - 未解消Required Blockerを残さない。
 
@@ -152,6 +156,10 @@ Part 2修了時、受講者はPart 1のTest資産を変更管理と継続実行�
 - Current Curriculumには古いiOS Runtime前提が残っている。
 - Current Curriculum自身がTraining専用Playwright境界、Training Workflow、Workbook実Template等を「後続で用意するもの」として扱っている。
 - `package.json`はNative CIのchange detection対象であるため、Training用Package Script追加によりNative CIが起動することはCurrent Contract上Expectedである。
+- Current `tsconfig.json`は`e2e/**/*.ts`や`scripts/**/*.ts`を含むが、将来追加する`training/**/*.ts`と`playwright.training.config.ts`は現状のままではtypecheck対象外である。
+- Current Phase 1 CIは個別のQuality / Test / Build commandを実行しており、`pnpm run verify`そのものをRequired CIで呼んでいない。このため`validate:curriculum`を`verify`へ追加するだけではRequired CI Gateにならない。
+- Current Android build contractはCompile API 36 / Build Tools 36.0.0を使用する一方、Formal Runtime EmulatorはAPI 34 / `google_apis` / `x86_64`を使用する。
+- Existing `scripts/native/windows/android-local.ps1`は接続済みADB deviceを前提にDoctor / Build / Install / Test等を行うが、AVD作成・Emulator起動そのものは提供しない。
 
 ### 2.2 Specification dependency
 
@@ -170,10 +178,12 @@ Specification Foundation完成前のCurrent Implementation / README / Existing T
 | Unresolved Product Behavior | Specification SystemのUnresolved領域 |
 | Seed Scenario ID / Test Data Scenario | `src/seeds/metadata.ts`等のExecutable Source |
 | Domain Type / State | DomainのExecutable Source。ただし期待挙動はSpecへ従う |
-| Playwright Project / Test Match | `playwright.config.ts` |
+| Playwright Project / Test Match | `playwright.config.ts` / `playwright.training.config.ts` |
 | Package Command | `package.json` |
 | Formal Web Regression | `e2e/web/` |
 | Formal Native Regression | `maestro/` |
+| Training Web Test | `training/playwright/` |
+| Training Native Flow | `training/maestro/` |
 | Android / iOS CI Guarantee | `.github/workflows/` + Current ADR |
 | Current Implementation | Application Code |
 | Observed Behavior | 実行したApplication |
@@ -224,6 +234,7 @@ docs/curriculum/test-automation/
 - macOSはWeb学習とOptional Native比較を許容するが、初版のNative Required Completion Environmentにはしない。
 - Linux Desktopは初版Learner SupportのRequired範囲外とする。
 - Instructor ReferenceはPublic Repository内へ保存されるため秘密情報として扱わない。
+- Delivery Readiness確認では、本体RepositoryとProduction Secretから分離されたInstructor管理のGitHub Training Copy remoteを利用できる。remoteが一時的に利用できない場合でも独立実装は継続するが、最終Delivery Ready判定は保留する。
 
 ---
 
@@ -243,6 +254,7 @@ docs/curriculum/test-automation/
 - Curriculum対応を理由としたProduct Architecture全面Refactor
 - Instructor AnswerをAccess Controlで秘匿する仕組み
 - Formal CIのchange detection最適化
+- Training用Intentional FailureをRequired CIの通常PASS Suiteへ混在させること
 
 今回優先するVertical Scopeは次に固定する。
 
@@ -285,6 +297,7 @@ CI / Quality Gate
 - `docs/adr/0011-native-ci-ios-build-only-gate.md`
 - `README.md`
 - `package.json`
+- `tsconfig.json`
 - `playwright.config.ts`
 - `e2e/web/`
 - `maestro/`
@@ -330,9 +343,11 @@ Development Process
 - Test Layer / Tool
 - Seed Scenario / Test Control
 - Formal Regression / Training Test
+- Baseline PASS / Intentional Failure Exercise
 - Evidence / Failure Taxonomy
 - Competency / Rubric
 - Build / Runtime / Artifact / Quality Gate
+- Source Repository / Disposable Training Copy / GitHub Training Copy
 
 ### 5.4 Existing tests / gates
 
@@ -349,12 +364,16 @@ Development Process
 - Curriculum docs
 - Training専用Directory / Config / Script
 - Training CI template
+- Training Copy preparation / validation script
 - Curriculum validation script
+- Training TypeScript config
 - Package Script
+- `.github/workflows/ci.yml`への`validate:curriculum` / Training Web baseline smoke接続
+- `.github/workflows/native-ci.yml`への最小Training Maestro baseline smoke接続
 - 必要最小限のContract Test
 - Curriculum / Training Navigation docs
 
-Product Business Logic、Formal RegressionのExpectation、Formal Production / Deploy Contractは原則変更しない。
+Product Business Logic、Formal RegressionのExpectation、Formal Production / Deploy Contractは原則変更しない。Formal CIへの追加は**既存Gateを弱めず、Training資産の最小継続検証を追加する範囲**に限定する。
 
 ### 5.6 Unknowns
 
@@ -365,10 +384,12 @@ Blocking Unknownは本Plan時点で残さない。
 - Training Path
 - Workflow activation方式
 - Supported OS
-- Workbook format / schema
+- Workbook format / schema / ID grammar
 - DoD
 - Security / Production separation
 - Specification Oracle
+- Required CI wiring
+- Android Runtime AVD contract
 
 ---
 
@@ -389,20 +410,55 @@ Blocking Unknownは本Plan時点で残さない。
 
 以下をTarget Architectureとする。
 
-- `playwright.config.ts`: Formal Regression専用として維持
-- `playwright.training.config.ts`: Training専用Configを新設
-- `training/playwright/`: Learner用spec / starter / sampleの保存先
-- `output/training/playwright/`: Training Evidence出力先候補
+```text
+playwright.config.ts
+→ Formal Regression専用
 
-Training specを`e2e/web/`へ混在させない。
+playwright.training.config.ts
+→ Training専用
+
+training/playwright/
+├ baseline/
+│  └ Repository-owned PASS sample / smoke
+├ exercises/
+│  └ Learner starter / practice
+└ failure-exercises/
+   └ 明示実行時のみExpected FAILとなる教材
+```
+
+Evidence候補:
+
+- `output/training/playwright/`
+
+Rules:
+
+- Training specを`e2e/web/`へ混在させない。
+- Default Training commandとRequired CIは`baseline/`だけを実行する。
+- `failure-exercises/`を通常PASS Suiteへ含めない。
+- Failure exercise検証は「TestがFAILしたこと」と「Evidenceが生成されたこと」を確認したうえで、Validation Script自体は成功終了できるContractにする。
 
 ### 6.3 Training Maestro
 
-- `maestro/`: Formal Regression専用として維持
-- `training/maestro/`: Learner用Flowの保存先
-- `output/training/maestro/`または`.artifacts`配下: 実行Evidence
+```text
+maestro/
+→ Formal Regression専用
 
-Training FlowをFormal Maestro Suiteへ混在させない。
+training/maestro/
+├ baseline/
+│  └ Required PASS flow
+├ exercises/
+│  └ Learner practice
+└ failure-exercises/
+   └ 必要な場合だけ置くExpected FAIL教材
+```
+
+Evidenceは`output/training/maestro/`またはGit管理外の`.artifacts`配下へ出す。
+
+Rules:
+
+- Training FlowをFormal Maestro Suiteへ混在させない。
+- Required CIでは`baseline/`だけを実行する。
+- Native Failure Exercise自体は必須数を増やさず、教育上必要なものだけ置く。
 
 ### 6.4 Workbook
 
@@ -419,9 +475,9 @@ training/workbook/
 
 Google SheetsはCSVをImport / Copyして使用するDelivery Surfaceとし、Google Sheets固有機能をSSOTにしない。
 
-### 6.5 Training GitHub Actions
+### 6.5 Training GitHub Actions / Training Copy
 
-Training Workflowは教材元Repositoryで自動実行可能な`.github/workflows/`へ直接置かない。
+Training Workflow Templateは教材元Repositoryで自動起動しないPathへ置く。
 
 ```text
 training/github-actions/
@@ -430,21 +486,78 @@ training/github-actions/
 └ training-native-ci.yml
 ```
 
-これらを**Workflow Template**として管理する。
+Training Copy作成を人手のファイル操作だけにしない。最低限次を新設する。
 
-Instructorが用意するTraining Copyでは、Formal Production / Deploy Workflowを無効化または除外した状態を先に作り、その後Training Templateだけを`.github/workflows/`へ有効化する。
+- `scripts/training/prepare-training-copy.ts`
+- `scripts/training/validate-training-copy.ts`
 
-LearnerがFormal WorkflowとTraining Workflowの両方を同時起動させる構成を標準経路にしない。
+`prepare-training-copy`はSource Repositoryを破壊せず、指定したDisposable Targetに対してのみ次を行う。
 
-### 6.6 Curriculum validation
+1. Git Historyを保持したTraining Copyを準備する。
+2. Formal Production / Deploy WorkflowをTraining Copy側で非実行化する。
+3. Training Workflow TemplateをTraining Copyの`.github/workflows/`へ有効化する。
+4. Production Secretを要求する設定を追加しない。
+5. Source RepositoryのFormal Workflowを削除・変更しない。
+
+`validate-training-copy`は最低限次を機械検証する。
+
+- Training Workflowが有効化されている。
+- Formal Production / Deploy WorkflowがTraining PR Triggerとして残っていない。
+- Production Secret参照がない。
+- Cloudflare Deploy等のProduction Deploy Stepがない。
+- Training WorkflowがRepository-owned Training commandだけを参照する。
+
+Local disposable copyの既定出力はGit管理外の`.artifacts/training-copy/<run_id>/`相当とし、完了時にSource Working Treeへ不要差分を残さない。
+
+### 6.6 Curriculum validation / Required CI
 
 以下をTargetとする。
 
 - `scripts/validate-curriculum.ts`
 - `package.json`へ`validate:curriculum`
 - `pnpm run verify`へ接続
+- `.github/workflows/ci.yml`の既存Required Quality Jobへ`pnpm run validate:curriculum`を**明示的に追加**
 
-Validatorは自然文全体を解析しない。決定的に検証可能なContractだけを対象とする。
+Current Phase 1 CIは`pnpm run verify`を直接実行しないため、`verify`への接続だけでRequired Gateになったとみなさない。
+
+新しい専用Jobを増やすこと自体は目的にしない。既存`code-quality`等の自然なRequired Jobへ追加できる場合はそれを優先する。
+
+### 6.7 Training TypeScript quality
+
+Training TypeScriptをFormal Quality Gateから漏らさない。
+
+Target:
+
+- `tsconfig.training.json`
+- `package.json`へ`typecheck:training`
+- 既存`typecheck`から`typecheck:training`を呼ぶ
+
+`tsconfig.training.json`はCurrent TypeScript Contractを継承し、最低限以下を含める。
+
+- `playwright.training.config.ts`
+- `training/**/*.ts`
+
+Intentional Failure ExerciseはAssertion / Locator / State等のRuntime Failureとして作り、Source Repository上の教材Template自体にはType Errorを残さない。
+
+### 6.8 Formal CI baseline smoke
+
+Training Runtime Driftを継続検出するため、Repository-owned baselineだけをFormal CIへ接続する。
+
+#### Web
+
+Current Phase 1 CIのAutomation Build Artifactを再利用し、既存E2E Job / MatrixへTraining Web baseline smokeを追加する方式を優先する。
+
+- `training/playwright/baseline/`だけを実行する。
+- `failure-exercises/`はRequired CIへ入れない。
+- 新しいWeb Buildを重複させない。
+
+#### Native
+
+Current `native-ci.yml`のAndroid Runtime / Maestro Jobで既に起動しているEmulatorとAutomation APKを再利用し、`training/maestro/baseline/`の最小Flowを追加実行する方式を優先する。
+
+- Training用に別Emulator / 別APK buildを増やさない。
+- Formal MaestroのExpectationを変更しない。
+- Training baseline failureはRepository-owned教材DriftとしてRequired CI failureにする。
 
 ---
 
@@ -455,18 +568,34 @@ Validatorは自然文全体を解析しない。決定的に検証可能なContr
 - Separate Config方式を採用する。
 - `playwright.training.config.ts`の`testDir`は`training/playwright`とする。
 - Formal `playwright.config.ts`へLearner Testを追加しない。
-- Training用Package ScriptからのみTraining Configを起動する。
+- Default Training commandは`baseline/`または明示的に選択したLearner exerciseだけを実行する。
+- Required CIは`baseline/`だけを実行する。
+- Failure Exerciseは専用Commandで明示実行する。
 - Seed Reset / Test APIは既存Automation Build Contractを再利用する。
 - Trace / Screenshot / Video / HTML ReportをTraining Evidenceとして確認できるようにする。
+- `playwright.training.config.ts`と`training/**/*.ts`は`typecheck:training`対象とする。
 
 ### 7.2 Training Maestro
 
 - `training/maestro/`をLearner Flowの唯一の標準Pathとする。
 - AndroidをRequired Platformとする。
+- `baseline/`をRequired CI / Required Completionの標準Flowとする。
 - Existing Test Control / Deep Link Contractを再利用する。
 - iOS RuntimeはOptional Comparisonに留める。
 
-### 7.3 Training CI
+### 7.3 Workbook ID Grammar
+
+CSVの複数ID Fieldは次に固定する。
+
+- `br_ids` / `ac_ids`等で複数IDを持つ場合は**`;`区切り**を使用する。
+- 例: `BR-CART-001;BR-CART-002`
+- 区切り前後へ不要な空白を入れない。
+- 同一Field内の重複IDを禁止する。
+- 空Fieldは「その行へ直接対応するBR / ACがない」場合だけ許可する。
+- BR / ACが空でも`spec_ref`と`risk_id`等、理由を追跡できる上位Traceabilityを失わない。
+- Validatorは非空IDのGrammar / uniqueness / Current Spec reference integrityを確認する。
+
+### 7.4 Training CI
 
 Web Training CIとAndroid Training CIの両方を**Required Asset**とする。
 
@@ -479,7 +608,7 @@ Checkout
 → Quality Check
 → Web Build
 → Chromium Install
-→ Training Playwright
+→ Training Playwright baseline
 → Evidence Upload
 ```
 
@@ -492,27 +621,54 @@ Checkout
 → Android Automation Build
 → Emulator boot
 → APK install
-→ Training Maestro minimal flow
+→ Training Maestro baseline
 → Evidence Upload
 ```
 
-Current Formal Native CIの全機能をTraining CIへ複製しない。まず1 Job相当の理解可能な構成を作り、Part 2でCurrent Build / Runtime分離と比較させる。
+Current Formal Native CIの全機能をTraining CIへ複製しない。まず理解可能な最小構成を教材Templateとし、Part 2でCurrent Build / Runtime分離と比較させる。
 
-### 7.4 Training Copy policy
+### 7.5 Training Copy policy / Execution proof
 
 Part 1はGitHub Accountを必須にしないためLocal Copy / ZIPを許容する。
 
 Part 2開始時はGit Historyを持つ専用Training Copyへ移行する。
 
-Training CopyはLearnerへ渡す前にInstructor側で以下を満たす。
+Training Copy preparationは`prepare-training-copy`へ集約し、「無効化または除外」のような受講者判断へ委ねない。
 
-- Upstream Historyを保持する。
-- Formal Production / Deploy WorkflowがTraining PRで起動しない。
-- Training Workflow Templateだけが有効化される。
-- Production Secretを登録しない。
-- Learnerが本体RepositoryへPushする必要がない。
+Implementation PRで証明するものを次へ固定する。
 
-### 7.5 Learner environment support
+#### Merge Gateで証明するもの
+
+- Disposable Local Training CopyをScriptで生成できる。
+- `validate-training-copy`が成功する。
+- Training Workflow TemplateがRepository-owned commandだけを参照する。
+- Web Training baselineがSource Required CIでPASSする。
+- Android Training baselineがSource Native Required CIでPASSする。
+- Production / Deploy Workflow隔離Contractを機械検証できる。
+
+#### Delivery Readiness Gateで証明するもの
+
+Instructor管理のGitHub Training Copy remoteへImplementation candidate commitまたはMerge commitを反映し、次を1回以上実行する。
+
+- Training Web Workflow PASS
+- Android Training Workflow PASS
+- Failure Artifact取得
+- Production / Deploy Workflow非起動
+- Production Secret不要
+
+Evidenceとして最低限以下をRun `REPORT.md`へ記録する。
+
+- Training Copy repository / branch識別情報
+- Source commit SHA
+- GitHub Actions run URL / run ID
+- Web / Android result
+- Artifact名
+
+**Delivery Readiness Gateは2本目のImplementation PRを意味しない。** 外部Training Copyでの実行証明であり、Source変更は同じCurriculum Implementation PRへ集約する。
+
+Training Copy remoteが一時的に利用できない場合はDelivery ValidationだけをBlockedとし、独立Waveは継続する。ただし最終的な「Training Delivery Ready」は宣言しない。
+
+### 7.6 Learner environment support / Android Runtime Contract
 
 初版のCanonical Local Environmentを以下に固定する。
 
@@ -523,16 +679,45 @@ Training CopyはLearnerへ渡す前にInstructor側で以下を満たす。
 - pnpm 9.10.0
 - Chromium / Playwright
 
-#### Native Required
+#### Android Build Contract
 
 - Windows 11
 - PowerShell
 - Java 17
-- Android SDK / API 36
-- Build Tools 36.0.0
-- Android Emulator
+- Android Compile SDK 36
+- Android Build Tools 36.0.0
 - Maestro 2.8.0
-- Existing `scripts/native/windows/android-local.ps1`のDoctor Contractを可能な限り再利用する。
+
+#### Android Runtime Emulator Contract
+
+Current Formal CIと大きく乖離させないため、初版Required Runtimeを以下に固定する。
+
+- Runtime API: 34
+- System Image: `system-images;android-34;google_apis;x86_64`
+- ABI: `x86_64`
+- Device Profile: `pixel_2`
+- Training AVD Name: `scenario-shop-training-api34`
+- Emulator boot完了後にADB deviceを1台へ確定してTraining commandへ渡す。
+
+Existing `scripts/native/windows/android-local.ps1`は接続済みDevice以降のDoctor / Build / Install / Test Contractとして再利用する。
+
+AVD作成・起動・boot待機はTraining専用Helperへ分離する。
+
+Target:
+
+- `scripts/training/android-emulator.ps1`
+
+最低責務:
+
+1. `sdkmanager` / `avdmanager` / `emulator` / `adb`を確認する。
+2. API 34 `google_apis` `x86_64` system imageを確認・必要なら導入手順を案内する。
+3. `scenario-shop-training-api34`を決定的に作成または再利用する。
+4. Emulatorを起動する。
+5. `sys.boot_completed=1`等の意味のある状態まで待機する。
+6. 対象Serialを確定する。
+7. Existing `android-local.ps1`へ対象Deviceを引き渡せる状態にする。
+
+Compile SDK 36とRuntime API 34を「同じAPI Levelでなければならない」と誤解させない教材説明を追加する。
 
 #### Alternative
 
@@ -542,7 +727,7 @@ Training CopyはLearnerへ渡す前にInstructor側で以下を満たす。
 
 Platform対応を広げるために本PRを止めない。
 
-### 7.6 Instructor Reference
+### 7.7 Instructor Reference
 
 Public Repository内のInstructor資料は秘密にできないため、`Instructor-only`ではなく**Instructor Reference**と呼ぶ。
 
@@ -551,7 +736,7 @@ Public Repository内のInstructor資料は秘密にできないため、`Instruc
 - Access Control / Secret化はしない。
 - 完成Code 1つを唯一の正解にしない。
 
-### 7.7 Workbook schema
+### 7.8 Workbook schema
 
 #### `01_target-risk.csv`
 
@@ -760,22 +945,22 @@ Part 1 / Part 2で同じ分類語彙を使う。
 | --- | --- | --- |
 | `README.md` | Current iOS保証、Spec Oracle、Training実入口、Part 1/2 Outcome | P1 |
 | `00_learning-design.md` | C01〜C12、Competency評価、Spec→Risk Flow、Training境界 | P1 |
-| `01_spreadsheet-test-design.md` | CSV Workbook、BR/AC/Risk Traceability、Progressive Disclosure | P1 |
+| `01_spreadsheet-test-design.md` | CSV Workbook、BR/AC/Risk Traceability、`;`区切りGrammar、Progressive Disclosure | P1 |
 | `part1/01_test-automation-foundations.md` | C01 Automation Purpose / Scopeへ接続 | P1 |
 | `part1/02_scenario-shop-analysis.md` | Normative SpecとObserved Behaviorを分離 | P1 |
 | `part1/03_test-design-and-automation-selection.md` | Spec→Risk→Design→Layer→Automation | P1 |
 | `part1/04_playwright-foundations.md` | Coding Bridge、Training Config / Command | P2 |
-| `part1/05_playwright-e2e-practice.md` | Training Playwright実Path、Seed / Evidence | P1 |
-| `part1/06_execution-and-failure-analysis.md` | Failure Taxonomy、Evidence、Instructor Exercise | P1 |
-| `part1/07_maestro-native-automation.md` | Training Maestro実Path、Android Required、iOS Optional | P1 |
+| `part1/05_playwright-e2e-practice.md` | Training Playwright実Path、baseline / failure separation、Seed / Evidence | P1 |
+| `part1/06_execution-and-failure-analysis.md` | Failure Taxonomy、Evidence、Expected Fail Exercise | P1 |
+| `part1/07_maestro-native-automation.md` | Training Maestro実Path、Android Runtime AVD Contract、iOS Optional | P1 |
 | `part1/08_test-management-and-maintainability.md` | Spec変更Lifecycle、不要Test削除判断 | P2 |
 | `part1/09_part1-capstone.md` | Cart Core維持、Competency Evidence、Advanced段階化 | P1 |
 | `part2/01_software-development-process.md` | Spec Change→Implementation→Review→Test | P2 |
-| `part2/02_git-version-control.md` | Training Copy実手順、Part 1 artifact移行 | P2 |
+| `part2/02_git-version-control.md` | Script化したTraining Copy実手順、Part 1 artifact移行 | P1 |
 | `part2/03_github-pull-request-review.md` | Spec/Test/Validation Traceability | P2 |
-| `part2/04_ci-github-actions.md` | Training Template有効化、安全境界 | P1 |
-| `part2/05_playwright-ci.md` | Training Web CI / Artifact実手順 | P1 |
-| `part2/06_native-ci-maestro.md` | Android Training CI、Current iOS Build-onlyへ全面修正 | P1 Critical |
+| `part2/04_ci-github-actions.md` | Training Template有効化、Merge Gate / Delivery Gate、安全境界 | P1 |
+| `part2/05_playwright-ci.md` | Training Web CI / Artifact実手順、Repository baseline smoke | P1 |
+| `part2/06_native-ci-maestro.md` | Android Training CI、API 36 build / API 34 runtime、Current iOS Build-only | P1 Critical |
 | `part2/07_ci-cd-quality-gates.md` | Platform別保証Level、Required Gate判断 | P1 |
 | `part2/08_integration-design-capstone.md` | Current保証との比較、C11/C12評価 | P1 |
 
@@ -841,6 +1026,43 @@ Playwright学習で必要になったタイミングに限定して以下を扱�
 
 教材本文は、参照するTraining資産が存在してから最終確定する。これにより「Lessonが存在しないPath / Commandを参照する」状態を避ける。
 
+### 13.1 Execution continuity contract
+
+1PRを途中の局所障害で止めないため、Blockerを次の2種類へ分ける。
+
+#### Local Blocker
+
+特定Task / Wave / Validationだけに影響し、他の正当性を評価できるもの。
+
+例:
+
+- Windows Emulatorが一時的に起動しない。
+- Instructor管理Training Copy remoteが一時的に利用できない。
+- 1つのFailure Exerciseだけが未完成。
+
+Local Blocker発生時:
+
+1. 該当TaskをBlockedとして`TASKS.md` / `REPORT.md`へ記録する。
+2. 依存Taskだけを止める。
+3. Curriculum、Workbook、Web Training、Rubric等、独立して進められるTaskは継続する。
+4. Final ValidationまでにRequired Blockerを解消する。
+
+#### Global Blocker
+
+Implementation全体の正本や安全性を評価できないもの。
+
+例:
+
+- Specification Foundation Contractが利用不能。
+- Latest `main`が広範囲に壊れ、Baselineを確定できない。
+- Required Source Repositoryへアクセスできない。
+
+Global BlockerだけWhole-run停止条件とする。
+
+#### Final fail-close
+
+途中でBlocked / Skipを記録してもよいが、Required項目に未解決Blockerを残したままImplementation完了扱いにしない。
+
 ### Wave 0 — Baseline / Contract Freeze
 
 作業:
@@ -849,6 +1071,8 @@ Playwright学習で必要になったタイミングに限定して以下を扱�
 - Information typeごとのCanonical Sourceを再確認する。
 - Curriculum 20 / 20文書をInventoryする。
 - Current iOS Build-onlyを確認する。
+- Android Build 36 / Runtime 34 Contractを再確認する。
+- Current Phase 1 CIで`validate:curriculum`を接続すべきRequired Jobを確認する。
 - Open PR / dependency影響を確認する。
 - `.codex/runs/`のPlan / TASKSへ本Wave構造を落とす。
 
@@ -864,7 +1088,7 @@ Gate:
 - C01〜C12とLevel 0〜3を正本化する。
 - Part 1 / Part 2修了基準を固定する。
 - Core / Advancedを固定する。
-- Training Path / Config / CI Template / Workbook / OS Support Contractを本Planどおり確認する。
+- Training Path / baseline / failure exercise / Config / CI Template / Workbook / OS Support Contractを本Planどおり確認する。
 - Instructor Reference skeletonを作る。
 
 Gate:
@@ -877,12 +1101,14 @@ Gate:
 
 - CSV 4ファイルとREADMEを作る。
 - Spec / BR / AC → Risk → Test Case → Automation Mappingを実装する。
+- `;`区切りID GrammarをREADMEへ明記する。
 - Sample Caseを少数だけ入れる。
 - 完成Answerを埋めすぎない。
 
 Validation:
 
 - Sample CaseでSpecからImplementation Pathまで辿れる。
+- Multiple ID fieldをGrammarどおりparseできる。
 - CSVをGoogle SheetsへImport可能な形で保持する。
 
 ### Wave 3 — Training Playwright Foundation
@@ -890,52 +1116,80 @@ Validation:
 作業:
 
 - `playwright.training.config.ts`
-- `training/playwright/`
+- `training/playwright/baseline/`
+- `training/playwright/exercises/`
+- `training/playwright/failure-exercises/`
+- `tsconfig.training.json`
 - Training Package Script
+- `typecheck:training`
 - Seed Reset / Test API利用
 - Training Evidence
 - Formal Regression isolation validation
 
 Validation:
 
-- Training Testだけを実行できる。
+- Training baselineだけを実行してPASSする。
 - Formal `e2e/web/`へLearner Testが混ざらない。
-- Intentional FailでTrace / Screenshot / Video / Reportを確認できる。
+- `typecheck:training`が成功する。
+- Intentional Failure専用Commandは期待どおりFAILし、Trace / Screenshot / Video / Reportを生成する。
+- Expected Failure Validation自体は「期待したFAIL + Evidenceあり」を成功として判定できる。
 
 ### Wave 4 — Training Maestro / Android Foundation
 
 作業:
 
-- `training/maestro/`
+- `training/maestro/baseline/`
+- `training/maestro/exercises/`
+- 必要な場合のみ`training/maestro/failure-exercises/`
+- `scripts/training/android-emulator.ps1`
 - Android local setup / command
 - Test Control Reset
-- minimal Flow
+- baseline Flow
 - Evidence
 - Formal `maestro/`との分離
 
 Validation:
 
-- Canonical Windows環境でDoctor / Build / Install / Launch / Training Flowを通す。
+- Compile SDK 36 / Build Tools 36.0.0を確認する。
+- API 34 `google_apis` `x86_64` AVDを決定的に準備できる。
+- Canonical Windows環境でEmulator boot → Doctor → Build → Install → Launch → Training baseline Flowを通す。
+- Formal MaestroとTraining baselineを分離できる。
 - iOS RuntimeをRequired Validationにしない。
 
-### Wave 5 — Training GitHub / CI Foundation
+### Wave 5 — Training Copy / GitHub Actions Foundation
 
 作業:
 
 - `training/github-actions/training-ci.yml`
 - `training/github-actions/training-native-ci.yml`
+- `scripts/training/prepare-training-copy.ts`
+- `scripts/training/validate-training-copy.ts`
 - Training Copy preparation / activation README
 - Web Failure Artifact
 - Android Maestro Evidence
 - Formal Workflow非競合Gate
 
-Validation:
+Validation — Merge Gate:
 
-- Training Copy上でTraining Workflowだけが起動する。
-- Production Secret不要。
+- Disposable Local Training Copyを生成する。
+- Training TemplateがTarget `.github/workflows/`へ有効化される。
+- Formal Production / Deploy WorkflowがTraining PR Triggerとして残らない。
+- Production Secret参照なし。
 - Cloudflare Deployなし。
+- `validate-training-copy` PASS。
+- Source Working Treeへ不要差分なし。
+
+Validation — Delivery Readiness Gate:
+
+Instructor管理GitHub Training Copy remoteが利用可能なら、Implementation candidate commitでWeb / Android Training Workflowを実行する。
+
 - Web Training CI PASS。
 - Android Training CI PASS。
+- Failure Artifactを確認する。
+- Production / Deploy Workflow非起動を確認する。
+- Run URL / commit SHA / Artifact名を`REPORT.md`へ記録する。
+
+remoteが一時的に利用できない場合はDelivery GateだけBlockedとし、Wave 6以降の独立作業を継続する。
 
 ### Wave 6 — Part 1 Curriculum Rebaseline
 
@@ -945,9 +1199,9 @@ Training実Path / Commandが確定した後にPart 1全文書を改訂する。
 
 - Automation Purpose / Spec / Risk / Test Design Flow
 - Coding Bridge
-- Training Playwright実手順
+- Training Playwright baseline / exercise / expected failure実手順
 - Failure Taxonomy
-- Training Maestro実手順
+- Android Build 36 / Runtime AVD 34を区別したTraining Maestro実手順
 - Maintainability
 - Core / Advanced Capstone
 - Competency Mapping
@@ -962,11 +1216,13 @@ Training CI実体が存在してからPart 2全文書を改訂する。
 
 作業:
 
-- Training Copy移行
+- Script化したTraining Copy移行
 - Git / GitHub / PR
 - Web Training CI
 - Android Training CI
+- Merge Gate / Delivery Readiness Gate
 - Current Formal CI比較
+- Android Build API / Runtime API差
 - iOS Build-only全面反映
 - Quality Gate / Cost / Reliability
 - Integration Capstone
@@ -985,34 +1241,50 @@ Gate:
 - Rubric詳細
 - Expected Contract / Alternative Design / Anti-pattern
 - Failure Exercises
-- Web / Android Start Gate
+- Web Start Gate
+- Android AVD / Start Gate
 - Troubleshooting
 - Part 1 → Part 2 migration
 
 Gate:
 
 - 講師の暗黙知がRequired手順として残らない。
+- AVD未作成 / system image不足 / Emulator boot failureをRecovery手順で扱う。
 
-### Wave 9 — Curriculum Validator / Repository-wide Integration Review
+### Wave 9 — Curriculum Validator / Required CI / Repository-wide Integration Review
 
 作業:
 
 - `scripts/validate-curriculum.ts`
 - `validate:curriculum`
 - `verify`接続
+- `typecheck:training`のRepository typecheck接続
+- `.github/workflows/ci.yml`のRequired Quality Jobへ`validate:curriculum`追加
+- Phase 1 CIへTraining Web baseline smoke追加
+- Native Runtime CIへTraining Maestro baseline smoke追加
 - 全20文書 + Training assetsの整合Review
 
 Validatorは最低限以下を決定的に確認する。
 
 - Required Training Pathの存在
 - Workbook header contract
+- `;`区切りMultiple ID Grammar
 - Training Playwright Config / testDir contract
 - Training CI Templateの存在
+- Training Copy preparation / validation Scriptの存在
 - Curriculumが参照するRepository-owned Package Scriptの存在
 - 明示的Relative Linkの存在
 - Sample Spec / BR / AC referenceのIntegrity
 
 自然文からWorkflow Job名や全Seed IDを推測抽出するような複雑なParserは作らない。
+
+Validation:
+
+- `pnpm run validate:curriculum`がLocalでPASSする。
+- `pnpm run typecheck`でTraining TypeScriptまでPASSする。
+- Required Phase 1 CI上で`validate:curriculum`が実行される。
+- Training Web baseline smokeがSource CIでPASSする。
+- Training Maestro baseline smokeがSource Native CIでPASSする。
 
 ### Wave 10 — End-to-End Fresh Learner Validation
 
@@ -1035,11 +1307,13 @@ Specification
 ↓
 Risk / Workbook
 ↓
-Training Playwright
+Training Playwright baseline
 ↓
 Intentional Failure / Evidence
 ↓
-Training Maestro / Android
+Android AVD preparation
+↓
+Training Maestro baseline
 ↓
 Part 1 Capstone
 ↓
@@ -1060,10 +1334,17 @@ Quality Gate design
 Part 2 Capstone
 ```
 
-Final Gate:
+Merge Gate:
 
-- Required Learner Journeyが手順の空白なく完走する。
-- Blocked / SkipをRequired項目へ残さない。
+- Required Learner JourneyのLocal / Source CIで検証可能な部分が手順の空白なく完走する。
+- Blocked / SkipをSource Repository Required項目へ残さない。
+
+Delivery Readiness Gate:
+
+- Instructor管理GitHub Training CopyでWeb / Android Training Workflowの実Run Evidenceがある。
+- Production / Deploy Workflow非起動を確認済み。
+- Production Secret不要を確認済み。
+- Delivery GateがBlockedの場合、「Implementation Merge Ready」と「Training Delivery Ready」を明確に分け、後者を完了扱いにしない。
 
 ---
 
@@ -1075,39 +1356,61 @@ Final Gate:
 - `pnpm run lint:markdown`
 - `pnpm run lint`
 - `pnpm run typecheck`
+- `pnpm run typecheck:training`
 - `pnpm run validate:spec`
 - `pnpm run validate:curriculum`
 - `pnpm run test`
 - `pnpm run build:web`
 - `pnpm run verify`
 
+`typecheck:training`が既存`typecheck`から呼ばれる最終Contractなら重複実行は不要だが、実装時のEvidenceではTraining TypeScriptが対象に含まれることを確認する。
+
 ### 14.2 Training Web
 
-- Minimal PASS
+- Baseline minimal PASS
 - Seed Reset
 - Mobile Training execution
-- Intentional FAIL
+- Intentional Failure専用Command
+- Expected FAILを確認
 - Trace / Screenshot / Video / HTML Report確認
 - Formal Regression isolation確認
+- Source Phase 1 CI baseline smoke PASS
 
 ### 14.3 Training Android
 
+- Build Contract: Compile SDK 36 / Build Tools 36.0.0
+- Runtime Contract: API 34 / `google_apis` / `x86_64` / `pixel_2`
+- AVD create / reuse
+- Emulator boot
 - Doctor
 - Build
 - Install
 - Launch
 - Test Control Reset
-- Training Maestro PASS
+- Training Maestro baseline PASS
 - Evidence確認
 - Formal Maestro isolation確認
+- Source Native CI baseline smoke PASS
 
-### 14.4 Training CI
+### 14.4 Training Copy / CI
 
-- Web Training CI PASS
-- Web intentional failureでArtifact取得
-- Android Training CI PASS
+#### Merge Gate
+
+- Disposable Local Training Copy生成
+- `validate-training-copy` PASS
+- Training Template activation確認
+- Formal Production / Deploy Workflow isolation確認
+- Production Secret参照なし
+- Source Required CIでTraining baseline command PASS
+
+#### Delivery Readiness Gate
+
+- GitHub Training Copy Web Workflow PASS
+- GitHub Training Copy Android Workflow PASS
+- Failure Artifact取得
 - Production / Deploy Workflow非起動
 - Production Secret不要
+- Run URL / commit SHA / Artifact名記録
 
 ### 14.5 Formal Regression
 
@@ -1120,6 +1423,19 @@ Agentは「Native Codeを変えていないから」という理由だけでNati
 - iOS Build-only Gate
 
 をCurrent Contractどおり確認する。
+
+### 14.6 Required CI assertion
+
+CIがGreenであることだけでなく、今回追加したGateが**実際に実行されたこと**を確認する。
+
+最低限:
+
+- Phase 1 Required Job logに`validate:curriculum`実行がある。
+- Phase 1 CIにTraining Web baseline smoke実行がある。
+- Native Runtime JobにTraining Maestro baseline smoke実行がある。
+- Training TypeScriptがtypecheck対象である。
+
+「Scriptは存在するがRequired CIから呼ばれていない」をPASSにしない。
 
 ---
 
@@ -1139,26 +1455,40 @@ Mitigation:
 Mitigation:
 
 - Training Workflowを`training/github-actions/`のTemplateとして保存する。
-- Training Copyでのみ`.github/workflows/`へ有効化する。
-- Formal Production / Deploy WorkflowをTraining Copyで無効化してからLearnerへ渡す。
+- `prepare-training-copy`でTraining Copyにだけ有効化する。
+- `validate-training-copy`でFormal Production / Deploy Workflow隔離を機械確認する。
+- Source RepositoryのFormal Workflowを削除しない。
 
-### Risk 3: Windows Native setupが重い
+### Risk 3: GitHub Training Copy remoteが利用できない
+
+Mitigation:
+
+- Local disposable copy / Source Required CIでMerge Gateを先に完了する。
+- Delivery ValidationだけをLocal Blockerとして記録する。
+- 他Waveを止めない。
+- Remoteが利用可能になった時点で実Run Evidenceを取得する。
+- Evidence未取得のままTraining Delivery Readyを宣言しない。
+
+### Risk 4: Windows Native setupが重い
 
 Mitigation:
 
 - Canonical Environmentを1つに限定する。
-- Existing Doctor Contractを再利用する。
+- Build 36 / Runtime 34を分離して記述する。
+- AVD作成・bootをTraining Helperへ集約する。
+- Existing Android Local ScriptをDevice接続後のContractとして再利用する。
 - macOS / Linuxの完全サポートを初版へ要求しない。
 
-### Risk 4: Workbook管理が目的化する
+### Risk 5: Workbook管理が目的化する
 
 Mitigation:
 
 - CSV 4ファイルに限定する。
 - Lessonごとに入力Columnを段階化する。
+- Multiple ID Grammarを`;`へ固定する。
 - Test Case数ではなくRisk / Reasonを評価する。
 
-### Risk 5: Instructor ReferenceがLearnerに見える
+### Risk 6: Instructor ReferenceがLearnerに見える
 
 Mitigation:
 
@@ -1167,15 +1497,32 @@ Mitigation:
 - 秘密情報を置かない。
 - Access Control実装へScopeを広げない。
 
-### Risk 6: Curriculum Driftが再発する
+### Risk 7: Curriculum Driftが再発する
 
 Mitigation:
 
-- `validate:curriculum`を追加する。
+- `validate:curriculum`をRequired Phase 1 CIへ直接接続する。
 - Machine-verifiableなPath / Script / Schemaを検証する。
+- Training Web / Native baseline smokeをFormal CIで実行する。
 - Current Guaranteeを引用するLessonではCanonical SourceへのLinkを残す。
 
-### Risk 7: Existing Repositoryが正解集になる
+### Risk 8: Intentional Failureが通常CIを壊す
+
+Mitigation:
+
+- `baseline`と`failure-exercises`をPathで分離する。
+- Required CIは`baseline`だけを実行する。
+- Failure exerciseは専用Expected-Fail validationで扱う。
+
+### Risk 9: Training TypeScriptが品質Gateから漏れる
+
+Mitigation:
+
+- `tsconfig.training.json`を追加する。
+- `typecheck:training`をRepository `typecheck`へ接続する。
+- Runtime Failure ExerciseでType Errorを教材化しない。
+
+### Risk 10: Existing Repositoryが正解集になる
 
 Mitigation:
 
@@ -1183,7 +1530,7 @@ Mitigation:
 - RubricはAlternative Designを許容する。
 - Current ImplementationとSpecificationをOracleとして混同しない。
 
-### Risk 8: iOSを教えるためにCI方針を歪める
+### Risk 11: iOSを教えるためにCI方針を歪める
 
 Mitigation:
 
@@ -1198,27 +1545,38 @@ Mitigation:
 
 **なし。**
 
-本Planでは、以前未確定だった以下を固定済みである。
+本Planでは以下を固定済みである。
 
-- Training Playwright = separate config
-- Training Maestro = separate path
+- Training Playwright = separate config + baseline / exercise / expected failure separation
+- Training Maestro = separate path + baseline separation
 - Workbook = CSV canonical template
+- Multiple BR / AC IDs = `;`区切り
 - Training Workflow = repository内Template、Training Copyでのみ有効化
-- Android Training CI = Required
+- Training Copy preparation = Script化
+- Training Copy validation = Script化
+- Web / Android Training CI = Required Asset
+- Source Formal CI = Training baseline smokeを継続実行
+- `validate:curriculum` = Required Phase 1 CIへ明示接続
+- Training TypeScript = dedicated typecheck + Repository typecheckへ接続
 - Native learner canonical environment = Windows 11
+- Android Build = Compile SDK 36 / Build Tools 36.0.0
+- Android Runtime = API 34 / `google_apis` / `x86_64` / `pixel_2`
+- AVD startup = Training専用PowerShell Helper
 - Instructor asset = Public Instructor Reference
+- Local Blocker = 独立Taskを止めない
 
 ### 16.2 実装時に仮定してよい細部
 
 以下はCurrent Repository Conventionに従い、後から局所修正可能でありContractを変えない範囲で実装者が決めてよい。
 
-- Training Scriptの細かなCommand名
+- Training Scriptの細かなPackage Command名
 - Evidence Folder内の補助File名
 - CSV Sample Rowの具体的なCase
 - Instructor Referenceの章構成
 - Troubleshooting項目の表示順
+- `validate:curriculum`を既存`style-quality`か`code-quality`のどちらへ置くか。ただしRequired Phase 1 CIで必ず実行する。
 
-ただしPath、Workflow activation、Supported OS、DoD、Security Boundary、Oracleを変える判断は仮定扱いにしない。
+ただしPath、Workflow activation、Supported OS、DoD、Security Boundary、Oracle、Android Runtime Contract、Training baseline / failure separationを変える判断は仮定扱いにしない。
 
 ---
 
@@ -1228,6 +1586,7 @@ Mitigation:
 - macOS NativeをRequired Supportへ昇格する場合は、Canonical Setup / Validationを別途定義する。
 - Instructor Referenceを本当に非公開にする必要が生じた場合は、Public Repository外のDelivery方式を別タスクで検討する。
 - iOS Runtime CI方針が将来変わった場合はCurriculumをADRと同時に再Baselineする。
+- GitHub Training Copyの恒久的なOrganization運用や自動Provisioningが必要になった場合は別の運用改善として扱う。本PlanではTraining Copy preparation / validation Contractと実Run Evidenceまでを対象とする。
 
 ---
 
@@ -1239,6 +1598,7 @@ Mitigation:
 - Automation Purpose → Spec → Risk → Design → Automation → CIが1本のLearning Storyとしてつながる。
 - iOS Runtime / MaestroをCurrent Formal CI Guaranteeとして誤記していない。
 - Android = Build + Runtime、iOS = Build-onlyを正しく説明する。
+- Android Build APIとRuntime APIの違いを誤解なく説明する。
 - SpecificationがExpected Behavior Oracleとして一貫して扱われる。
 - Test本数だけで修了判定しない。
 
@@ -1253,51 +1613,65 @@ Mitigation:
 
 - CSV 4ファイルとREADMEが存在する。
 - Spec / BR / AC / Risk / Test Case / Layer / Tool / Implementationを追跡できる。
+- Multiple ID Fieldが`;`区切りGrammarへ従う。
 - Google SheetsへImport可能である。
 - 初学者へ一度に全Columnを要求しない。
 
 ### Training Playwright
 
 - `playwright.training.config.ts`が存在する。
-- `training/playwright/`だけをTraining Testとして実行できる。
+- `training/playwright/baseline/`がRequired PASSとして実行できる。
+- `failure-exercises/`が通常PASS Suiteから分離されている。
 - Formal `e2e/web/`へLearner Testが混在しない。
 - Seed ResetとFailure Evidenceを利用できる。
+- Training TypeScriptがtypecheck対象である。
 
 ### Training Maestro
 
-- `training/maestro/`が存在する。
-- Canonical Windows + AndroidでRequired Flowを実行できる。
+- `training/maestro/baseline/`が存在する。
+- Canonical Windows + Android API 34 AVDでRequired Flowを実行できる。
 - Formal `maestro/`と分離されている。
+- Source Native CIでTraining baseline smokeを実行する。
 - iOS RuntimeをRequiredにしていない。
 
-### Training CI
+### Training Copy / CI
 
-- Web Training CI Templateが存在し、Training CopyでPASSする。
-- Android Training CI Templateが存在し、Training CopyでPASSする。
+- `prepare-training-copy`がDisposable Copyを決定的に準備できる。
+- `validate-training-copy`が安全境界を確認できる。
+- Web Training CI Templateが存在する。
+- Android Training CI Templateが存在する。
 - Production Secretを必要としない。
 - Cloudflare Deployを起動しない。
 - Formal Production / Deploy Workflowと競合しない。
+- Merge GateとしてSource Required CIでWeb / Android Training baselineがPASSする。
+- Delivery Readiness GateとしてInstructor管理GitHub Training CopyのWeb / Android Workflow実Run Evidenceを取得する。
 
 ### Setup / Recovery
 
 - Web Start Gateがある。
 - Android Start Gateがある。
+- AVD create / reuse / boot手順がある。
 - Part 1 → Part 2 Training Copy移行手順がある。
-- Browser / JDK / Android SDK / Emulator / APK / Maestro / Git / Actionsの主要FailureをTroubleshootできる。
+- Browser / JDK / Android SDK / AVD / Emulator / APK / Maestro / Git / Actionsの主要FailureをTroubleshootできる。
 
 ### Validation
 
+- `pnpm run typecheck:training`が成功する。
 - `pnpm run validate:curriculum`が成功する。
 - `pnpm run verify`が成功する。
-- Required Phase 1 CIが成功する。
-- Required Native CIが成功する。
+- Required Phase 1 CIで`validate:curriculum`が実行・成功する。
+- Required Phase 1 CIでTraining Web baseline smokeが成功する。
+- Required Native CIでTraining Maestro baseline smokeが成功する。
+- Required Native CI全体が成功する。
 - iOS Build-only Gateが成功する。
 - Fresh Learner Dry RunがRequired項目を完走する。
+- Delivery Readiness GateのGitHub Training Copy Evidenceが揃う。
 - 未解消Required Blockerがない。
 
 ### PR
 
-- 上記DoDを**1本のCurriculum Implementation PR**でReview可能にする。
+- 上記Source変更を**1本のCurriculum Implementation PR**でReview可能にする。
+- Delivery Readiness用Training Copy実行は2本目のImplementation PRを作らない。
 - Specification Foundationそのものを含めない。
 - Product機能追加・無関係なRefactorを混在させない。
 
@@ -1305,7 +1679,7 @@ Mitigation:
 
 ## 19. Final Review Questions
 
-PR Merge前に以下へすべてYesと答えられることを確認する。
+PR Merge前またはDelivery Ready判定前に、該当Gateについて以下へすべてYesと答えられることを確認する。
 
 ### Educational
 
@@ -1319,27 +1693,43 @@ PR Merge前に以下へすべてYesと答えられることを確認する。
 ### Practical
 
 - Fresh LearnerがWebを起動できるか。
-- Training Playwrightを実行できるか。
-- Failure Evidenceを確認できるか。
-- Windows + AndroidでMaestroまで進められるか。
+- Training Playwright baselineを実行できるか。
+- Intentional Failureを通常PASS Suiteと混ぜずにEvidence確認できるか。
+- WindowsでAPI 34 AVDを準備・起動できるか。
+- AndroidでMaestro baselineまで進められるか。
 - Part 2へ成果物を引き継げるか。
+- Training CopyをScriptで準備・検証できるか。
 - Training PR / CIをProduction環境へ影響せず実行できるか。
 
 ### Current repository consistency
 
 - Current Native Scopeと一致するか。
+- Android Build 36 / Runtime 34 Contractと一致するか。
 - iOS Build-onlyと一致するか。
 - Package Script名が実在するか。
 - Training Pathが実在するか。
+- Training TypeScriptがtypecheckされるか。
+- `validate:curriculum`がRequired Phase 1 CIで実行されるか。
+- Training baseline smokeがWeb / Native Formal CIで実行されるか。
 - Specification ReferenceがCurrent Specと一致するか。
 - Formal RegressionとTraining Testが分離されているか。
+
+### Delivery evidence
+
+- Instructor管理GitHub Training CopyのSource commit SHAを特定できるか。
+- Web Training Workflow Run URLがあるか。
+- Android Training Workflow Run URLがあるか。
+- Artifactを確認できるか。
+- Production / Deploy Workflowが起動していないか。
+- Production Secretを使用していないか。
 
 ### Maintainability
 
 - 教材のためだけの過剰な抽象化がないか。
 - Instructorだけが理解する暗黙手順がないか。
-- Curriculum Driftを機械検出できる範囲があるか。
+- Curriculum DriftをMachine validation + Runtime baseline smokeで検出できるか。
 - Training専用コードとFormal Regressionの責務が明確か。
+- Training Copy preparationが手作業依存になっていないか。
 
 ---
 
@@ -1381,6 +1771,7 @@ Automation Introduction Design
 > このTestは自動化しません。保守Costに対してRegression価値が低いためです。
 > PRではこのSuiteをRequiredとし、高コストな確認は別Timingへ配置します。
 > Failure時にはこのEvidenceを確認します。
-> AndroidとiOSは現在の再現性とCostが違うため、同じ保証Levelにはしません。
+> AndroidではBuild ContractとRuntime Contractを分け、現在の再現性とCostに合う保証Levelを選びます。
+> iOSはCurrent Formal CIがBuild-onlyなので、未実行RuntimeをPASSとは報告しません。
 
-この判断能力を育成できることを、本Implementationの最終成果とする。
+この判断能力を育成でき、かつTraining資産自体がMachine validation / Runtime baseline / Delivery Evidenceで継続検証できることを、本Implementationの最終成果とする。
