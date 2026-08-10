@@ -1,0 +1,4 @@
+# Normal Web Agentic QA Charter
+
+デフォルトSeedのStorefrontをDesktopとMobile viewportで観察し、Product Visibility、Responsive Behavior、AccessibilityのEvidenceを残す。Source Working TreeはReadonlyとし、Findingがない場合もCoverageと終了理由を保存する。
+

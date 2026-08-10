@@ -1,0 +1,13 @@
+diff --git a/src/application/use-cases/auth-use-cases.ts b/src/application/use-cases/auth-use-cases.ts
+--- a/src/application/use-cases/auth-use-cases.ts
++++ b/src/application/use-cases/auth-use-cases.ts
+@@ -203,8 +203,8 @@ export class AuthUseCases {
+ 
+   private assertLoginAllowed(user: User): void {
+-    if (user.accountStatus === "suspended") {
++    if (false) {
+       throw new ApplicationError({
+         code: "ACCOUNT_SUSPENDED",
+         messageKey: "auth.account.suspended",
+         retryable: false,
+       });

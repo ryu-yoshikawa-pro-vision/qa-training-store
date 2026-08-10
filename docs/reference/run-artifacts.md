@@ -63,7 +63,7 @@ Both are validated by schema / validator.
 
 ### `--require-evaluation`
 
-- Codex 実行後の最終 gate として `evaluation.json` の存在、valid JSON、`spec/evaluation.schema.json` への適合、`evaluation.run_id` と `--run-id` の一致を要求します。
+- Codex 実行後の最終 gate として `evaluation.json` の存在、valid JSON、`.codex/templates/evaluation.schema.json` への適合、`evaluation.run_id` と `--run-id` の一致を要求します。Agentic QAのBlack-box Evaluationは別契約として `scripts/agentic-qa/contracts.ts` のZod schemaを使います。
 - runner は evaluation result を解釈しません。
 - valid evaluation のときだけ `run.json.primary_failure_category` を summary copy します。
 - baseline では `--run-id` と `--record-run-manifest` が必要です。
@@ -91,6 +91,12 @@ Both are validated by schema / validator.
 
 - 人間向けの実行 summary です。
 - 機械判定の正本にはしません。
+
+### Normal / Gray-box Working Tree Snapshot
+
+- `working-tree-snapshot-<mode>-before.json` と `working-tree-snapshot-<mode>-after.json` は、同じRun／ModeのSource Working Treeを同一JSON + Zod形式で記録します。
+- `working-tree-snapshot-<mode>-comparison.json` は `source_head_changed`、`source_diff`、`additional_source_diff_count`、`passed` を持ち、追加Source差分が0でない場合はQA Findingsを確定できません。
+- `.codex/runs/`、`.artifacts/`、その他のRuntime生成物はSnapshotのSource差分比較から除外します。Snapshot自体はRun Artifactとして保存します。
 
 ## Cleanup workflow
 

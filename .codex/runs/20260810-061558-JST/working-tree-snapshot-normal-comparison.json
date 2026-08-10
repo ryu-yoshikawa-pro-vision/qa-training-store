@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "20260810-061558-JST",
+  "mode": "normal",
+  "before_snapshot": ".codex/runs/20260810-061558-JST/working-tree-snapshot-normal-before.json",
+  "after_snapshot": ".codex/runs/20260810-061558-JST/working-tree-snapshot-normal-after.json",
+  "before_source_head_sha": "b281b878831e6add484ed09e5807d9045c25ef27",
+  "after_source_head_sha": "b281b878831e6add484ed09e5807d9045c25ef27",
+  "source_head_changed": false,
+  "source_diff": [],
+  "additional_source_diff_count": 0,
+  "passed": true
+}

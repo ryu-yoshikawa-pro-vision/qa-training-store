@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "challenge_id": "CHALLENGE-INTERMEDIATE-001",
+  "items": [
+    {
+      "item_id": "DEFECT-001",
+      "kind": "defect",
+      "title": "Order management permits an invalid transition",
+      "oracle_refs": ["BR-ADMINORD-001", "AC-ADMINORD-001"],
+      "expected_behavior": "Operator order management follows the defined shipment state sequence.",
+      "minimum_reproduction_condition": "Use the paid-order seed and attempt the transition from the order-management screen.",
+      "required_observation": "The order-management screen exposes only a valid next shipment state.",
+      "related_coverage_id": "COV-001",
+      "evidence_expectation": "The order-management screen exposes only a valid next shipment state",
+      "expected_severity": "high",
+      "allowed_severity_delta": 1
+    }
+  ]
+}

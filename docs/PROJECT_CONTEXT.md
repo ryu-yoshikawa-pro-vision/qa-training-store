@@ -304,6 +304,21 @@
 - iOS正式CIはBuild-onlyのまま、Automation／Productionの生成`.app`についてSource側Resolved metadataに加えて、`EXConstants.bundle/app.config`のembedded `appEnvironment`／`buildKind`／`testMode`を直接検証する。Production marker Bundle Guard、固定名Artifact、fail-close Build Gateは維持する。
 - Iteration 29でこの起動順序とembedded metadataをContractへ追加し、focused 61 tests、全Contract 173 tests、全local verify、Android RuntimeSuite／BoundarySuite各5/5をPASSした。Maestro-MCPはDevice Server `UNAVAILABLE`だったため、同一端末のLocal Runbook CLI結果で代替確認した。
 
+## Specification / Agentic QA基盤（2026-08-10）
+
+- Normative Product Specificationを`docs/spec/`へ集約し、Product Scope、Roles、State、UI/UX、FeatureごとのBR/ACを固定した。Feature文書は5つのH2節を順序も含めてValidatorで検査する。
+- `scripts/spec/validate-all.ts`はMarkdownのRelative Link、BR/AC uniqueness、AC→BR、BR Acceptance coverage、Feature 5-section grammarと、`training/agentic-qa/`のJSON + Zod/Cross-file契約を一つの入口へ接続する。`scripts/spec/build-spec.ts`は`output/spec-site`へ静的HTMLを生成する。
+- Spec変更時のReview Summaryは`scripts/spec/summarize-impact.ts`がChanged BR／ACと変更された直接参照Normative fileからAffected Challenge IDを導出する。既存Style Quality Job内で`GITHUB_STEP_SUMMARY`へ出力し、Working Tree modeでは未追跡`docs/spec`も扱う。AI Agentic QA Required Gateや新規CI Jobは追加しない。
+- Agentic QAはNormal、Gray-box、Black-box Scoredを分離する。Normal／Gray-boxはSource Working TreeのReadonly Boundary、Black-boxは`learner-spec/`、`runbook/`、`challenge/`だけのisolated root、Fresh Session、Positive Tool Allowlist、Forbidden Capability Probeを成立条件とする。
+- Normal／Gray-boxのQA Findingsは`working_tree_snapshot`でbefore／after／comparisonの同一形式JSONを参照し、`additional_source_diff_count=0`かつ`passed=true`をZod validatorで確認する。`.codex/runs/`／`.artifacts/`等のQA生成物はSource差分比較から除外する。
+- Black-box Required Coverageの正本は`challenge.required_coverage`、Learner-safe Bundleは`challenge.spec_refs[]`のNormative owner fileだけを決定的に含む。Answer Key／Unified Diff PatchはInstructor-onlyで、Patchはdisposable copy上の`git apply --check`→`git apply`順序に限定する。
+- Benchmark RevisionはClean committed inputだけ`git:<40 lowercase hex>`、未Commit／mixed inputはCanonical Manifest SHA-256の`sha256:<64 lowercase hex>`を使う。Benchmark Identityは`challenge_id + benchmark_revision + runtime_variant_id`で、同条件Runner比較にはRunner Profile完全一致を要求する。
+- `scripts/agentic-qa/evaluate.ts`はAtomic Finding、Duplicate、`invalid_non_atomic`、TN／`FP_non_defect`／NE、blocked environment、Unexpected Valid Finding、Recall／Precision／FPR／CoverageをFrozen Runner Resultから再計算する。iOSはADR-0011どおりBuild-only、Android物理RuntimeとMaestro PASSはAgentic Capability PASSへ自動昇格しない。
+- 現RunではWeb Normal Charter／Findings、Basic ChallengeのPreparation→Fresh local deterministic fixture Runner→Frozen Findings→Separate Evaluator→Evaluationを契約E2Eとして保存している。これはモデル比較結果ではなく、JSON/Zod、隔離、Identity、評価経路の実装確認である。
+- Evaluator CLIはchallenge別Canonical ManifestをZod検証し、Manifest digest／Runtime Variant／Tool Profile bytes／Challenge budget／明示modelから期待Benchmark IdentityとRunner Profileを再構成してFrozen Findingsと照合する。Evaluation保存時もFrozen Findingsとの4項目Identity一致を再検証する。
+- Candidate Findingは正式Scoreへ直行させず`review_needed`／human adjudicationとしてfail-closeし、Coverage完了だけではNon-defectをTNにせずItem-specific observationが無ければNEとする。Runner／Evaluatorは`.artifacts/agentic-qa/<run-id>/`の別Session証跡を持つ。
+- 最新RunのBasic Preparationではpatched SPAのsession作成後URL遷移待ちを固定し、Baseline clean／Patched defect、Patch apply、Fresh Runner、Separate Evaluator、Identity一致を再確認した。`pnpm run test:contracts` 24 files／185 tests、Full typecheck、Spec validation／HTML build、Markdownlint、Lint 0 errors／64 warningsはPASS。Full `verify`は既存84 tracked fileのPrettier baseline、Remote CIは未取得のためfail-close継続中である。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

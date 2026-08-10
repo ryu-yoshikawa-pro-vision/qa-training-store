@@ -32,6 +32,10 @@
     "test:e2e:smoke:webkit": "playwright test --project=webkit-smoke",
     "test:smoke": "playwright test e2e/web/smoke.spec.ts --project=deployed-smoke",
     "security:check": "tsx scripts/security-static-check.ts",
+    "validate:spec": "tsx scripts/spec/validate-all.ts",
+    "build:spec": "tsx scripts/spec/build-spec.ts",
+    "summarize:spec-impact": "tsx scripts/spec/summarize-impact.ts",
+    "agentic-qa:snapshot": "tsx scripts/agentic-qa/working-tree-snapshot.ts",
     "validate:eas:config": "tsx scripts/validate-eas-static-config.ts",
     "validate:native-production-bundle": "tsx scripts/validate-native-production-bundle.ts",
     "check:native-route-dependencies": "tsx scripts/check-native-route-dependencies.ts",
@@ -54,7 +58,7 @@
     "native:android:test:boundary": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action BoundarySuite",
     "native:android:evidence": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Evidence",
     "native:android:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action All",
-    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web"
+    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run validate:spec && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
   },
   "dependencies": {
     "@expo/metro-runtime": "57.0.8",

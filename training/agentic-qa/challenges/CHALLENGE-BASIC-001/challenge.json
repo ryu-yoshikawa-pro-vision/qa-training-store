@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "challenge_id": "CHALLENGE-BASIC-001",
+  "level": "basic",
+  "target_platform": "web",
+  "spec_refs": ["BR-AUTH-001", "AC-AUTH-001"],
+  "required_coverage": [
+    {
+      "coverage_id": "COV-001",
+      "mission": "Exercise the sign-in flow for the supplied suspended-account seed and record the observed result.",
+      "role": "guest",
+      "seed": "suspended-user",
+      "platform": "web",
+      "viewport_or_device": "desktop",
+      "required_evidence_types": ["screenshot", "url"]
+    }
+  ],
+  "allowed_runtime_controls": ["seed_reset", "app_restart"],
+  "exploration_budget": {
+    "max_duration_seconds": 900,
+    "max_tool_actions": 150
+  },
+  "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted",
+  "out_of_scope": [
+    "Source repository inspection",
+    "Automated test inspection",
+    "Instructor materials"
+  ]
+}

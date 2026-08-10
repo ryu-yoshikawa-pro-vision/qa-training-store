@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "run_id": "20260810-061558-JST",
+  "mode": "normal",
+  "source_head_sha": "b281b878831e6add484ed09e5807d9045c25ef27",
+  "coverage": {
+    "required_ids": [
+      "COV-001",
+      "COV-002"
+    ],
+    "items": [
+      {
+        "coverage_id": "COV-001",
+        "status": "completed",
+        "evidence_refs": [
+          ".artifacts/agentic-qa/normal/storefront-desktop.png",
+          ".artifacts/agentic-qa/normal/storefront-desktop-url.txt",
+          ".artifacts/agentic-qa/normal/storefront-desktop-dom.txt"
+        ],
+        "blocker_reason": null,
+        "notes": "Desktop storefront was observed through the Playwright CLI snapshot and screenshot."
+      },
+      {
+        "coverage_id": "COV-002",
+        "status": "completed",
+        "evidence_refs": [
+          ".artifacts/agentic-qa/normal/storefront-mobile.png",
+          ".artifacts/agentic-qa/normal/storefront-mobile-accessibility.txt",
+          ".artifacts/agentic-qa/normal/storefront-mobile-url.txt"
+        ],
+        "blocker_reason": null,
+        "notes": "The mobile viewport exposed the expected navigation labels and main content."
+      }
+    ]
+  },
+  "findings": [],
+  "working_tree_snapshot": {
+    "before": ".codex/runs/20260810-061558-JST/working-tree-snapshot-normal-before.json",
+    "after": ".codex/runs/20260810-061558-JST/working-tree-snapshot-normal-after.json",
+    "comparison": ".codex/runs/20260810-061558-JST/working-tree-snapshot-normal-comparison.json"
+  },
+  "charter_id": "CHARTER-001",
+  "challenge_id": null,
+  "benchmark_revision": null,
+  "runtime_variant_id": null,
+  "runner_profile": null
+}
