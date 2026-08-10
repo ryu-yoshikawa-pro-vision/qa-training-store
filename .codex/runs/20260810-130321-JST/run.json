@@ -100,7 +100,18 @@
       "pnpm exec tsx scripts/agentic-qa/validate-contracts.ts (3 challenges / 1 charter / 3 findings / 8 manifests / 2 evaluations)",
       "pnpm exec vitest run tests/contracts/native-production-module-resolution.test.ts --no-file-parallelism --maxWorkers=1 (4 tests)",
       "pnpm run test:contracts (24 files / 196 tests)",
-      "pnpm run verify (final repair exit 0; 274 seconds)"
+      "pnpm run verify (final repair exit 0; 274 seconds)",
+      "pnpm exec tsc --noEmit --pretty false (Trust Boundary repair)",
+      "pnpm exec vitest run tests/contracts/spec-agentic-qa.test.ts --no-file-parallelism --maxWorkers=1 (25 tests)",
+      "pnpm run format:check (Trust Boundary repair)",
+      "pnpm run lint:markdown (233 files)",
+      "pnpm run validate:spec (3 challenges)",
+      "pnpm run build:spec (21 pages)",
+      "pnpm run lint (0 errors / 65 warnings)",
+      "pnpm run typecheck (app and native-tests)",
+      "pnpm exec tsx scripts/agentic-qa/validate-contracts.ts (3 challenges / 1 charter / 3 findings / 8 manifests / 2 evaluations)",
+      "pnpm run test:contracts (24 files / 198 tests)",
+      "pnpm run verify (Trust Boundary repair exit 0; 261.8 seconds)"
     ],
     "warnings": [
       "Official model-backed Scored Runは実行基盤がないため未実行。Contract Fixtureは正式スコアへ昇格させていない。",
@@ -110,6 +121,7 @@
       "Official model-backed Scored Runは実行基盤がなく未実行。Contract Fixtureは正式スコアへ昇格させていない。",
       "Native CI #91はsuccess。前回の初期UI assert failureは再発せず、Maestro-MCP／Native変更は不要だった。",
       "最初の全体verifyでは既存Native契約1件が5秒timeoutしたが、単独4/4および全Contract 24 files / 196 testsで再現せず、Native／Product変更なしで最終verifyは成功した。",
+      "Trust Boundary修正後のfocused Agentic QA contract testは25 tests、全Contractは24 files / 198 testsでPASS。",
       "Git mutation、branch／commit／push／PR操作は行っていない。"
     ]
   },

@@ -79,6 +79,21 @@
 - Final decision: local DoDは完了。Official model-backed Scored Runは実行基盤がないため未実行であり、正式PASS／スコアとして扱わない。D1は診断Artifactとして保持する。
 - Progress: 100% (6/6)
 
+## 2026-08-10 19:39 (JST) Trust Boundary残課題対応
+
+- Summary: 添付された最終指示のmust_fix 4件だけを対象に、Tool Profile／Runner Session／Evaluator／contract testのtrust boundaryをfail-close化した。
+- Repair Loop iteration: `iteration_number=4`。`input_findings=must_fix: Canonical Forbidden Set欠落／Tool Profile revisionの実bytes独立検証／Fresh Sessionとprior session整合／unmeasured Tool Scope testの状態汚染`。`decision=stop_success`。
+- Allowed Files: `scripts/agentic-qa/contracts.ts`、`scripts/agentic-qa/isolation.ts`、`scripts/agentic-qa/evaluate.ts`、`tests/contracts/spec-agentic-qa.test.ts`、既存Run Artifact。Product Behavior、`src/**`、`app/**`、Native Runtime、`maestro/**`、Specification、Git／PR操作は対象外。
+- Canonical Forbidden Set: `forbiddenCapabilitySchema.options`からCanonical Setをderiveし、`toolProfileSchema`でscored profileの全件一致を要求した。Probe生成と`assertForbiddenProbePasses`も同SchemaでProfile／Probeの集合、exactly-once、全件`available=false`を検証する。Probe description mapはEnum全値を`Record<ForbiddenCapability, string>`で網羅する。
+- Tool Profile Revision: Evaluator CLIが実際に読み込んだ`training/agentic-qa/tool-profiles/scored-v1.json`のfile bytesへ`sha256File`を適用し、`expectedToolProfileRevision`としてOfficial Verificationへ渡す。Frozen `findings.runner_profile.tool_profile_revision`との一致を独立検証し、revisionだけを差し替えたfixtureが`official_verification_failure`のみでinvalidになることを確認した。
+- Fresh Session: `runnerSessionSchema.superRefine()`へprior ID unique、current IDのprior list不在、`fresh_session`なら`session_artifact_new=true`の不変条件を追加した。正常値とcurrent ID混入／duplicate prior／artifact再利用のnegative testを追加した。
+- Test Isolation: unmeasured Tool Scopeのnegative test直前にembedded `forbidden_probe`を`completeProbe`へ復元し、external artifactもcomplete safe probeのまま、壊す条件を`actual_tool_scope`だけに限定した。
+- Tests: focused Agentic QA contract test `25 tests` PASS。全Contract `24 files / 198 tests` PASS。
+- Validation: `pnpm exec tsc --noEmit --pretty false`、Prettier、`pnpm run format:check`、`pnpm run lint:markdown`（233 files / 0 issues）、`pnpm run validate:spec`、`pnpm run build:spec`（21 pages）、`pnpm run lint`（0 errors / 65 warnings）、`pnpm run typecheck`、`pnpm exec tsx scripts/agentic-qa/validate-contracts.ts`（3 challenges / 1 charter / 3 findings / 8 manifests / 2 evaluations）、`pnpm run verify`（exit 0、261.8 seconds）をPASSした。
+- Scope audit: `src/**`、`app/**`、`maestro/**`、Native implementation、Product Specificationの変更なし。Git branch／commit／push／merge／PR write actionは未実行。
+- Remaining: Official model-backed Runner infrastructureは利用できず、Official Scored E2Eは`BLOCKED / NOT EXECUTED`。Contract Fixtureは`valid_for_scoring=false`／metrics全nullを維持し、Foundation overall DoDは`INCOMPLETE / BLOCKED`。Local repair／validation DoDは完了。
+- Progress: 100% (6/6)
+
 ## 2026-08-10 15:29 (JST) 最終Artifact監査
 
 - Sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260810-061558-JST -Write -Check` と現Run `20260810-130321-JST`を実行し、両Runとも`residual_findings=0`、`files_changed=0`、`replacements_total=0`。

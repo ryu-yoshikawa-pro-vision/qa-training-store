@@ -41,6 +41,7 @@ export type EvaluationOptions = {
   expectedRuntimeVariantId?: string | null;
   expectedBenchmarkRevision?: string;
   expectedRunnerProfile?: RunnerProfile;
+  expectedToolProfileRevision?: RunnerProfile["tool_profile_revision"];
   expectedToolProfile?: ToolProfile;
   runnerSessionArtifactPath?: string;
   forbiddenProbeArtifactPath?: string;
@@ -316,6 +317,8 @@ function officialVerificationFailures(
     failures.push("benchmark expectation is missing");
   if (!hasOptionValue(options, "expectedRunnerProfile"))
     failures.push("runner profile expectation is missing");
+  if (!hasOptionValue(options, "expectedToolProfileRevision"))
+    failures.push("tool profile revision expectation is missing");
   if (expectedToolProfile === undefined) failures.push("tool profile expectation is missing");
   if (
     !hasOptionValue(options, "expectedRuntimeVariantId") &&
@@ -332,6 +335,11 @@ function officialVerificationFailures(
     JSON.stringify(options.expectedRunnerProfile) !== JSON.stringify(findings.runner_profile)
   )
     failures.push("runner profile differs from the evaluator expectation");
+  if (
+    options.expectedToolProfileRevision !== undefined &&
+    options.expectedToolProfileRevision !== findings.runner_profile.tool_profile_revision
+  )
+    failures.push("tool profile revision differs from the evaluator's profile file bytes");
   const expectedRuntimeVariantId =
     options.expectedRuntimeVariantId !== undefined
       ? options.expectedRuntimeVariantId
@@ -986,11 +994,12 @@ if (isMainModule()) {
     );
   const profileFile = path.join(rootDir, "training/agentic-qa/tool-profiles/scored-v1.json");
   const profile = parseJsonWithSchema(readJson(profileFile), toolProfileSchema, "scored-v1.json");
+  const expectedToolProfileRevision = `sha256:${sha256File(profileFile)}` as `sha256:${string}`;
   const runnerProfile =
     manifest.runner_profile ??
     createRunnerProfile({
       model: optionValue(cliArgs, "--model") ?? "local-deterministic-runner",
-      toolProfileRevision: `sha256:${sha256File(profileFile)}`,
+      toolProfileRevision: expectedToolProfileRevision,
       challenge,
     });
   const expectedBenchmarkRevision = benchmarkRevisionFromManifest(selectedManifestFile, manifest);
@@ -1025,6 +1034,7 @@ if (isMainModule()) {
     expectedBenchmarkRevision,
     expectedRuntimeVariantId: manifest.runtime_variant_id,
     expectedRunnerProfile: runnerProfile,
+    expectedToolProfileRevision,
     expectedToolProfile: profile,
     evaluatorSessionId,
   });

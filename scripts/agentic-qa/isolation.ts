@@ -6,6 +6,7 @@ import {
   actualToolScopeSchema,
   forbiddenCapabilitySchema,
   forbiddenProbeResultsSchema,
+  toolProfileSchema,
   type Challenge,
   type ActualToolScope,
   type ExposedCapability,
@@ -38,6 +39,26 @@ const REQUIRED_POSITIVE_CAPABILITIES = [
   "narrow_console_or_log",
   "approved_test_control",
 ] as const;
+
+const FORBIDDEN_CAPABILITY_DESCRIPTIONS = {
+  source_repository: "isolated root has no application or repository source path",
+  parent_traversal: "positive file reader exposes no parent traversal capability",
+  git_repository_search: "runner tool scope exposes no git/repository search",
+  web_search: "runner tool scope exposes no web search",
+  arbitrary_external_fetch: "runner tool scope exposes no arbitrary HTTP fetch",
+  generic_shell: "runner tool scope exposes no generic shell",
+  web_bundle: "isolated root has no JavaScript bundle",
+  source_map: "isolated root has no source map",
+  network_response_body: "runner tool scope exposes no network response body",
+  browser_evaluate: "runner tool scope exposes no arbitrary browser evaluate",
+  native_apk_ipa: "isolated root has no APK or IPA",
+  arbitrary_adb_shell: "runner tool scope exposes no arbitrary ADB shell",
+  existing_test: "isolated root has no test file",
+  hidden_test: "isolated root has no hidden test",
+  challenge_patch: "isolated root has no instructor patch",
+  answer_key: "isolated root has no answer key",
+  prior_scored_session: "isolated root has no prior scored session artifact",
+} satisfies Record<ForbiddenCapability, string>;
 
 function copyDirectoryContents(sourceDir: string, destinationDir: string): void {
   fs.mkdirSync(destinationDir, { recursive: true });
@@ -221,33 +242,12 @@ export function probeForbiddenCapabilities(
   actualToolScope: ActualToolScope,
 ): ForbiddenProbeResult[] {
   assertIsolatedRunnerRoot(rootDir);
-  assertPositiveToolAllowlist(profile);
+  const validatedProfile = toolProfileSchema.parse(profile);
+  assertPositiveToolAllowlist(validatedProfile);
   actualToolScopeSchema.parse(actualToolScope);
   const files = listFiles(rootDir);
-  const checks: [ForbiddenCapability, string][] = [
-    ["source_repository", "isolated root has no application or repository source path"],
-    ["parent_traversal", "positive file reader exposes no parent traversal capability"],
-    ["git_repository_search", "runner tool scope exposes no git/repository search"],
-    ["web_search", "runner tool scope exposes no web search"],
-    ["arbitrary_external_fetch", "runner tool scope exposes no arbitrary HTTP fetch"],
-    ["generic_shell", "runner tool scope exposes no generic shell"],
-    ["web_bundle", "isolated root has no JavaScript bundle"],
-    ["source_map", "isolated root has no source map"],
-    ["network_response_body", "runner tool scope exposes no network response body"],
-    ["browser_evaluate", "runner tool scope exposes no arbitrary browser evaluate"],
-    ["native_apk_ipa", "isolated root has no APK or IPA"],
-    ["arbitrary_adb_shell", "runner tool scope exposes no arbitrary ADB shell"],
-    ["existing_test", "isolated root has no test file"],
-    ["hidden_test", "isolated root has no hidden test"],
-    ["challenge_patch", "isolated root has no instructor patch"],
-    ["answer_key", "isolated root has no answer key"],
-    ["prior_scored_session", "isolated root has no prior scored session artifact"],
-  ];
-  const descriptions = new Map(checks);
-  return profile.forbidden_capabilities.map((capability) => {
-    const description = descriptions.get(capability);
-    if (description === undefined)
-      throw new Error(`No Forbidden Probe check is defined for capability: ${capability}`);
+  return validatedProfile.forbidden_capabilities.map((capability) => {
+    const description = FORBIDDEN_CAPABILITY_DESCRIPTIONS[capability];
     const matches = forbiddenPaths(files, capability);
     const exposedCapabilities = exposedCapabilitiesForForbiddenCapability(
       capability,
@@ -278,6 +278,7 @@ export function assertForbiddenProbePasses(
   profile: ToolProfile,
   results: ForbiddenProbeResult[],
 ): void {
+  const validatedProfile = toolProfileSchema.parse(profile);
   const parsed = forbiddenProbeResultsSchema.safeParse(results);
   if (!parsed.success)
     throw new Error(
@@ -285,9 +286,11 @@ export function assertForbiddenProbePasses(
         .map((issue) => issue.message)
         .join(", ")}`,
     );
-  const required = new Set(profile.forbidden_capabilities);
+  const required = new Set(validatedProfile.forbidden_capabilities);
   const actual = new Set(parsed.data.map((result) => result.capability));
-  const missing = profile.forbidden_capabilities.filter((capability) => !actual.has(capability));
+  const missing = validatedProfile.forbidden_capabilities.filter(
+    (capability) => !actual.has(capability),
+  );
   const unexpected = parsed.data
     .map((result) => result.capability)
     .filter((capability) => !required.has(capability));

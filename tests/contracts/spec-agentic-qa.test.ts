@@ -13,6 +13,7 @@ import {
   forbiddenProbeResultsSchema,
   parseJsonWithSchema,
   qaFindingsSchema,
+  runnerSessionSchema,
   runIdSchema,
   toolProfileSchema,
   workingTreeSnapshotSchema,
@@ -55,6 +56,11 @@ import { extractBrAcIds, formatSpecImpactSummary } from "../../scripts/spec/summ
 import { validateMarkdownSpec } from "../../scripts/spec/validate-spec";
 
 const rootDir = path.resolve(__dirname, "../..");
+
+function currentToolProfileRevision(): string {
+  const profileFile = path.join(rootDir, "training/agentic-qa/tool-profiles/scored-v1.json");
+  return `sha256:${crypto.createHash("sha256").update(fs.readFileSync(profileFile)).digest("hex")}`;
+}
 
 function readJson(filePath: string): unknown {
   return JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
@@ -150,6 +156,7 @@ function createOfficialVerificationArtifacts(input: {
       expectedBenchmarkRevision: input.benchmarkRevision,
       expectedRuntimeVariantId: input.runtimeVariantId,
       expectedRunnerProfile: input.runnerProfile,
+      expectedToolProfileRevision: currentToolProfileRevision(),
       expectedToolProfile: profile,
       evaluatorSessionId: input.evaluatorSessionId,
     },
@@ -391,7 +398,7 @@ describe("Specification and Agentic QA contracts", () => {
       `sha256:${crypto.createHash("sha256").update("fixture").digest("hex")}` as `sha256:${string}`;
     const runnerProfile = createRunnerProfile({
       model: "fixture-runner",
-      toolProfileRevision: `sha256:${"a".repeat(64)}`,
+      toolProfileRevision: currentToolProfileRevision() as `sha256:${string}`,
       challenge,
     });
     const verificationRoot = fs.mkdtempSync(path.join(os.tmpdir(), "official-evaluation-"));
@@ -480,6 +487,28 @@ describe("Specification and Agentic QA contracts", () => {
 
       const identityChecked = evaluateBlackBox(challenge, answerKey, parsed, verification.options);
       expect(identityChecked.valid_for_scoring).toBe(true);
+      const expectedToolProfileRevision = currentToolProfileRevision();
+      const mismatchedToolProfileRevision = `sha256:${"a".repeat(64)}`;
+      expect(mismatchedToolProfileRevision).not.toBe(expectedToolProfileRevision);
+      const mismatchedRunnerProfile = {
+        ...findings.runner_profile,
+        tool_profile_revision: mismatchedToolProfileRevision,
+      };
+      const revisionMismatchFindings = parseJsonWithSchema(
+        {
+          ...parsed,
+          runner_profile: mismatchedRunnerProfile,
+        },
+        qaFindingsSchema,
+        "tool profile revision mismatch findings",
+      );
+      const revisionMismatch = evaluateBlackBox(challenge, answerKey, revisionMismatchFindings, {
+        ...verification.options,
+        expectedRunnerProfile: mismatchedRunnerProfile,
+        expectedToolProfileRevision,
+      });
+      expect(revisionMismatch.valid_for_scoring).toBe(false);
+      expect(revisionMismatch.invalid_reasons).toEqual(["official_verification_failure"]);
       const runtimeMismatch = evaluateBlackBox(challenge, answerKey, parsed, {
         ...verification.options,
         expectedRuntimeVariantId: "fixture-variant",
@@ -695,6 +724,7 @@ describe("Specification and Agentic QA contracts", () => {
         "runner-session.json",
       );
       const unmeasuredSession = readJson(runnerSessionFile) as Record<string, unknown>;
+      unmeasuredSession.forbidden_probe = completeProbe;
       unmeasuredSession.actual_tool_scope = {
         measured: false,
         source: "unavailable",
@@ -985,7 +1015,7 @@ describe("Specification and Agentic QA contracts", () => {
     );
     const runnerProfile = createRunnerProfile({
       model: "fixture-runner",
-      toolProfileRevision: `sha256:${"2".repeat(64)}`,
+      toolProfileRevision: currentToolProfileRevision() as `sha256:${string}`,
       challenge,
     });
     const verificationRoot = fs.mkdtempSync(path.join(os.tmpdir(), "fp-evaluation-"));
@@ -1318,6 +1348,89 @@ describe("Specification and Agentic QA contracts", () => {
       { measured: false, source: "unavailable", exposed_capabilities: ["runtime_observe"] },
     ])
       expect(() => actualToolScopeSchema.parse(invalid)).toThrow();
+  });
+
+  it("requires the canonical forbidden capability set in scored profiles", () => {
+    const profile = parseJsonWithSchema(
+      readJson(path.join(rootDir, "training/agentic-qa/tool-profiles/scored-v1.json")),
+      toolProfileSchema,
+      "scored-v1",
+    );
+    const reducedProfile = {
+      ...profile,
+      forbidden_capabilities: profile.forbidden_capabilities.filter(
+        (capability) => capability !== "web_search",
+      ),
+    };
+    expect(toolProfileSchema.safeParse(reducedProfile).success).toBe(false);
+
+    const reducedProbe = profile.forbidden_capabilities
+      .filter((capability) => capability !== "web_search")
+      .map((capability) => ({
+        capability,
+        available: false,
+        evidence: `${capability} is unreachable`,
+      }));
+    expect(() => assertForbiddenProbePasses(reducedProfile, reducedProbe)).toThrow();
+    const cleanRoot = fs.mkdtempSync(path.join(os.tmpdir(), "canonical-forbidden-profile-"));
+    try {
+      expect(() =>
+        probeForbiddenCapabilities(cleanRoot, reducedProfile, {
+          measured: false,
+          source: "unavailable",
+          exposed_capabilities: [],
+        }),
+      ).toThrow();
+    } finally {
+      fs.rmSync(cleanRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("enforces fresh runner session invariants", () => {
+    const base = {
+      run_id: "20260810-000020-JST",
+      runner_session_id: "SESSION-A",
+      execution_kind: "contract_fixture" as const,
+      model_identifier: null,
+      benchmark_revision: null,
+      runtime_variant_id: null,
+      fresh_session: true,
+      session_artifact_new: true,
+      prior_runner_session_ids: ["SESSION-B"],
+      tool_scope_probe_passed: false,
+      actual_tool_scope: {
+        measured: false,
+        source: "unavailable" as const,
+        exposed_capabilities: [],
+      },
+      forbidden_probe_artifact: ".artifacts/agentic-qa/20260810-000020-JST/forbidden-probe.json",
+      forbidden_probe: [
+        {
+          capability: "web_search" as const,
+          available: false,
+          evidence: "web search is unreachable",
+        },
+      ],
+    };
+    expect(runnerSessionSchema.safeParse(base).success).toBe(true);
+    expect(
+      runnerSessionSchema.safeParse({
+        ...base,
+        prior_runner_session_ids: ["SESSION-A"],
+      }).success,
+    ).toBe(false);
+    expect(
+      runnerSessionSchema.safeParse({
+        ...base,
+        prior_runner_session_ids: ["SESSION-B", "SESSION-B"],
+      }).success,
+    ).toBe(false);
+    expect(
+      runnerSessionSchema.safeParse({
+        ...base,
+        session_artifact_new: false,
+      }).success,
+    ).toBe(false);
   });
 
   it("measures actual exposed tool capabilities separately from the policy", () => {

@@ -21,3 +21,4 @@
 ## Latest Iteration
 
 - 2026-08-10 18:14 JST: 最終修正（Forbidden Probe completeness／run_id contract）を実装し、必須validationと`pnpm run verify`をPASSした。Official model-backed Runnerは引き続きBlocked／未実行。
+- 2026-08-10 19:39 JST: Trust Boundary残課題4件（Canonical Forbidden Set、実Profile bytes revision再検証、Fresh Session invariant、unmeasured Tool Scope test isolation）を修正し、focused 25 tests／全Contract 24 files・198 tests／`pnpm run verify`をPASSした。Official model-backed Runnerは引き続きBlocked／未実行。

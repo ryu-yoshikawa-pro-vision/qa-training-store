@@ -288,6 +288,7 @@ export const forbiddenCapabilitySchema = z.enum([
 ]);
 
 export type ForbiddenCapability = z.infer<typeof forbiddenCapabilitySchema>;
+export const canonicalForbiddenCapabilities = forbiddenCapabilitySchema.options;
 export const runtimeToolCapabilitySchema = z.enum([
   "shell",
   "repository_search",
@@ -374,6 +375,25 @@ export const runnerSessionSchema = z
   })
   .strict()
   .superRefine((value, context) => {
+    const priorSessionIds = new Set(value.prior_runner_session_ids);
+    if (priorSessionIds.size !== value.prior_runner_session_ids.length)
+      context.addIssue({
+        code: "custom",
+        path: ["prior_runner_session_ids"],
+        message: "prior runner session IDs must be unique",
+      });
+    if (priorSessionIds.has(value.runner_session_id))
+      context.addIssue({
+        code: "custom",
+        path: ["prior_runner_session_ids"],
+        message: "current runner session ID must not be listed as prior",
+      });
+    if (value.fresh_session && !value.session_artifact_new)
+      context.addIssue({
+        code: "custom",
+        path: ["fresh_session"],
+        message: "fresh session requires a new session artifact",
+      });
     if (value.execution_kind === "official_model_backed" && value.model_identifier === null)
       context.addIssue({
         code: "custom",
@@ -397,6 +417,19 @@ export const toolProfileSchema = z
   })
   .strict()
   .superRefine((value, context) => {
+    const canonical = new Set(canonicalForbiddenCapabilities);
+    const missing = canonicalForbiddenCapabilities.filter(
+      (capability) => !value.forbidden_capabilities.includes(capability),
+    );
+    const unexpected = value.forbidden_capabilities.filter(
+      (capability) => !canonical.has(capability),
+    );
+    if (missing.length > 0 || unexpected.length > 0)
+      context.addIssue({
+        code: "custom",
+        path: ["forbidden_capabilities"],
+        message: `forbidden capabilities must equal the canonical set; missing=${missing.join(",") || "none"}; unexpected=${unexpected.join(",") || "none"}`,
+      });
     if (new Set(value.allowed_capabilities).size !== value.allowed_capabilities.length)
       context.addIssue({
         code: "custom",
