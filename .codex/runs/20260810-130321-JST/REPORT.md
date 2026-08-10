@@ -189,9 +189,103 @@
 - Remaining: local repair／validation DoDは完了。Official model-backed Scored RunとRemote CI final statusはこの環境のscope／capabilityでは未確認であり、Foundation overall DoDは`INCOMPLETE / BLOCKED`のまま。次はtrusted Fresh Session、actual tool scope、source-free patched target lifecycleを提供できる実行環境でOfficial E2Eを実行する。
 - Progress: 100% (12/12)
 
+## 2026-08-11 06:14 JST CI Expo Doctor依存修正（iteration 7開始）
+
+- `input_findings`: Native CI `pnpm dlx expo-doctor@1.17.6`のExpo SDK package mismatch（7件）。再現時には、変更後に依存チェックが解消したにもかかわらず、Windowsのignored `.npmrc`にあるpnpm専用設定をnpmがwarningとしてstderrへ出し、expo-doctor 1.17.6がそのstderrをFailure扱いする環境差分も確認した。
+- `triage`: package／lockfile不整合は`must_fix`。現在の差分とCI Native change detectionに直接関係し、依存契約の検証に不可欠なため修正した。ignored `.npmrc`由来のwarningはrepository／CI checkoutの差分ではなく、`defer`ではなく環境依存の残差として記録する。
+- `repair_plan`: Expo SDK 57が要求する`@expo/metro-runtime 57.0.9`、`expo 57.0.12`、`expo-build-properties 57.0.10`、`expo-constants 57.0.10`、`expo-dev-client 57.0.11`、`expo-router 57.0.12`、`jest-expo 57.0.4`へ更新し、`pnpm.overrides.expo-constants`も同期する。lockfileを再生成し、全品質ゲート／テストを再実行する。運用契約を`docs/PROJECT_CONTEXT.md`と`docs/history/2026-08-11_品質ゲート完了報告契約.md`へ追記する。
+- `allowed_files`: `package.json`、`pnpm-lock.yaml`、`docs/PROJECT_CONTEXT.md`、`docs/history/`、本Runの`PLAN.md`／`TASKS.md`／`REPORT.md`／`run.json`。
+- `changed_files`: iteration 7時点では`package.json`、`pnpm-lock.yaml`、`docs/PROJECT_CONTEXT.md`、`docs/history/2026-08-11_品質ゲート完了報告契約.md`、本Run Artifact。
+- `validation_commands`: `pnpm dlx expo-doctor@1.17.6`（修正前に依存 mismatchを再現）、`pnpm install --lockfile-only --ignore-scripts`、`pnpm install --ignore-scripts`、`pnpm exec expo install --check`、`pnpm dlx expo-doctor@1.17.6 --verbose`、`npm_config_loglevel=error pnpm dlx expo-doctor@1.17.6 --verbose`。
+- `validation_result`: 修正前doctorは7件mismatchでexit 1。修正後`pnpm exec expo install --check`は`Dependencies are up to date`。CI相当doctorは17/17 checks passed。通常Windows doctorのexit 1はignored `.npmrc`のnpm warningのみで、依存 mismatchは残っていない。
+- `remaining_delta`: `pnpm run verify`、CI相当の全追加gate／test、scope、sanitizerが未完了。
+- `decision`: `continue`。
+- Progress: 93% (13/14)
+
+## 2026-08-11 07:38 JST Android独立Search Flow Failure調査（iteration 8継続）
+
+- `input_findings`: `native-search.yaml`が`native-product-card-product-basic-shirt`を30秒以内に検出できず1/1 Failure。Install／Smoke、Gate 1、RuntimeSuite 5/5、BoundarySuite 5/5は同じAPK・同じ実機でPASSしている。
+- `first_anomaly`: Maestro commandsでは`native-catalog-search-input` tap、`inputText: P-0001`、検索button tapまでCOMPLETED。Failure screenshot／Hierarchyには`native-product-card-product-low-stock`と`native-product-card-product-mug`だけが残り、対象basic-shirtは不在。現在のdefault IMEはSHV48標準`jp.co.sharp.android.iwnnime.ml/.standardcommon.IWnnLanguageSwitcher`で、Runbook既知のASCII入力保持問題と一致する。Maestro session heartbeatのWindows file-lock warningも併発したが、primary assertion failureはIME／検索結果の不一致である。
+- `triage`: `DEVICE_FAILURE`／environment residualを第一候補とする。Expo patch依存が原因なら同一APKのGate 1／Runtime／BoundaryやNative component／Web E2Eにも影響するはずだが再現していない。Native source／Maestro Flowは変更しない。
+- `hypothesis`: LatinIMEを一時的に有効化・選択すればASCIIの`P-0001`が保持され、検索結果にbasic-shirtが出る。今回変更する条件はIMEだけ。成功条件はSearch 1/1、失敗時は同じprimary anomalyを維持して停止する。終了後は元IMEと元の有効IME文字列を復元する。
+- `evidence`: `.artifacts/native-local/20260811-070851-android-sdk57-patch-device/maestro/native-search/`および`evidence/`に完全ログ、Hierarchy、Screenshotを保存。リポジトリRun Artifactへ生ログは転載しない。
+- `decision`: `continue`（LatinIME controlled rerun）。Purchase／ReviewはSearchの再検証結果確認後に実行する。
+- Progress: 93% (13/14)
+
+## 2026-08-11 07:43 JST Android Review Flow Failure調査（iteration 8継続）
+
+- `input_findings`: `native-review.yaml`の`scrollUntilVisible`が`native-order-review-order-delivered-item-7`を検出できず1/1 Failure。直前のCustomer purchase Flowは1/1 PASS。
+- `first_anomaly`: Failure時のHierarchyには`native-order-item-order-delivered-item-7`と`native-order-review-order-delivered-item-7`が存在し、対象button boundsは`[99,1517][981,1649]`、Screenshotにも`レビューを書く`が表示されていた。したがってreviewable order seed／review buttonの生成自体は確認できる。Maestroログには同時にWindows session heartbeat file-lock warningがある。
+- `triage`: `TEST_FAILURE`（Maestro scroll可視判定のrace／session lock）候補。source／Maestro Flow／依存差分の不在を確認し、Data Failureとは分類しない。成功済みRuntime／Boundary／Purchaseとの整合もこの判断を支持する。
+- `hypothesis`: 新しいRunIdで同じFlowを一度だけ再実行すれば、scroll可視判定の一時的不整合か恒常的selector契約かを分離できる。成功条件はReview 1/1、失敗時は同一primary anomalyのまま停止する。
+- `decision`: `continue`（bounded single rerun）。
+- Progress: 93% (13/14)
+
+## 2026-08-11 07:48 JST Review Flow最小修正（iteration 9開始）
+
+- `input_findings`: Review Flowの子buttonを直接`scrollUntilVisible`すると2回連続でFailureした。一方、同じFailure artifactのHierarchyには子buttonがあり、対象座標への診断tapは`native-review-screen`へ遷移した。
+- `triage`: 現在のExpo patch更新がNative layout／Maestro可視判定境界へ影響した可能性を完全には除外できず、Native CIの品質ゲートとして`must_fix`扱いに切り替える。Data／source runtime Failureではないため、Flow selectorの最小修正で対応する。
+- `repair_plan`: `maestro/native-review.yaml`のscroll対象だけをreview buttonから親`native-order-item-order-delivered-item-7`へ変更し、子buttonのtap、Review screen、body入力、保存確認は維持する。`tests/contracts/native-test-control-maestro.test.ts`、Flow単体、全quality gateを再実行する。
+- `allowed_files`: `maestro/native-review.yaml`、`package.json`、`pnpm-lock.yaml`、品質ゲート契約文書、現Run Artifact。Product source、Native source、他Maestro Flow、Git／PR操作は対象外。
+- `changed_files`: `maestro/native-review.yaml`を追加。既存のExpo依存／lockfile／文書／Run Artifact変更は維持する。
+- `decision`: `continue`。
+- Progress: 93% (13/14)
+
 ## 2026-08-10 23:15 JST 最終Artifact監査
 
 - Sanitizer: current Run `20260810-130321-JST` は`files_scanned=10`、`files_changed=0`、`replacements_total=0`、`residual_findings=0`。変更した既存Run `20260810-061558-JST` も`files_scanned=16`、`files_changed=0`、`residual_findings=0`。
 - Integrity: `run.json` parse PASS、全`qa-charter.json`は1件で`exploration_budget`あり、`git diff --check` PASS（LF→CRLF warningのみ）。
 - Scope: `git diff --name-only -- src app maestro` と package manifest／lockfile scopeはともに`(none)`。Git mutation／PR write actionは未実行。
 - Progress: 100% (12/12)
+
+## 2026-08-11 07:08 JST 全品質ゲート／CI相当テスト再検証（iteration 8継続）
+
+- `input_findings`: Expo SDK 57 patch依存修正後の最初の`pnpm run verify`でNative Jest 1件が5秒timeout、次の全体verifyでDeterministic Preparation 1件が180秒timeoutした。ユーザー指示に従い、直接変更範囲外に見えるFailureも影響可能性を調査対象とした。
+- `triage`: いずれも最初は`must_fix`として停止・調査した。Native対象テストはfocused `--testTimeout=30000`で1/1、対象ファイル15/15、Native全体12 suites／47 testsへ復旧した。PreparationはartifactのBaseline／Patched Build成功、今回起動プロセス、runtime cleanup経路を確認し、focused実行1/1（28 skipped）へ復旧した。全Contract 24 files／202 testsと最終`pnpm run verify`もPASSし、ソース差分に起因する恒常Failureは確認できなかったため、transient／host resource contention候補として残差を記録する。
+- `repair_plan`: 依存・lockfile整合性、Native static、Production Bundle Guard、Web／Native／Contract／E2E／UI Review／Smoke、Run Artifact Sanitizer、scope／formatを順に再検証する。Android実機Build／FlowはRunbookのDoctorとpreflightをPASSした条件でのみ開始し、失敗時は最初の異常で停止する。
+- `allowed_files`: `package.json`、`pnpm-lock.yaml`、品質ゲート契約文書、現Run Artifact。生成`android/`、`output/`、`.artifacts/`は検証生成物としてGit管理対象へ追加しない。Product／Native source／Maestro Flowは変更しない。
+- `preflight`: `pnpm run native:android:doctor`はNode 24.12.0、pnpm 9.10.0、Maestro 2.8.0、実機API 30／arm64系をPASS。Runbook確認ではJava 17.0.20、ADB device、Android SDK／sdkmanager、Gradle 9.3.1、C:空き約40GBを確認し、autolinkingは`<PNPM_VIRTUAL_STORE>`で`.pnpm-local`残存なし。Build前の仮説は「Expo patch更新後も既存Native生成物と外部Virtual Storeを再利用できる。失敗時はBuild／生成状態／依存の順で最初の異常を分類する」、成功条件はAutomation Release APKの指定ABI検証と後続FlowのPASSとする。
+- `validation_so_far`: `pnpm run verify`最終exit 0（430.7秒）、Expo Doctor 17/17、Native route 38、EAS profiles 4、Production Bundle Guard PASS、Native Jest 12／47、Contract 24／202、Chromium 27、a11y 4、mobile-boundary 4、cross-role 4、UI Review 4 viewport、mobile 14、Firefox smoke 1、WebKit smoke 1、production artifact smoke 1がPASS。Automation／Production web buildは各2297 modules。
+- `remaining_delta`: Android local Build／Install／Smoke／Maestro sequence、最終`pnpm run format:check`／markdown／diff／Sanitizer、Run Artifact／run.json更新、外部GitHub Actions／iOS／Preview deployの未実行理由記録。
+- `decision`: `continue`。
+- Progress: 93% (13/14)
+
+## 2026-08-11 07:52 JST Review Flow親container修正の検証結果（iteration 9継続）
+
+- `input_findings`: `maestro/native-review.yaml`の`scrollUntilVisible`対象を子buttonから親`native-order-item-order-delivered-item-7`へ変更し、`20260811-074828-android-review-container-fix`として同じFlowを実行した。
+- `result`: 1/1 Failure（約50秒）。最初の異常は`No visible element found: id: native-order-item-order-delivered-item-7`。後続のReview画面／保存操作は実行されていない。
+- `evidence`: `.artifacts/native-local/20260811-074828-android-review-container-fix/evidence/`のMaestro hierarchyとUI hierarchyには親container bounds `[48,767][1032,1700]`、子button bounds `[99,1517][981,1649]`が存在し、Screenshotにも`レビューを書く`が完全に表示されていた。既存の診断ADB tapでは同じ座標から`native-review-screen`へ遷移できている。したがってreview data、Native sourceのtestID、button actionの欠落ではなく、`scrollUntilVisible`の可視判定条件／Maestro Windows実行環境の境界を継続仮説とする。
+- `triage`: `TEST_FAILURE`候補を維持する。アプリの直接挙動は確認済みだが、CIで実行されるFlow自体がPASSしていないため、現時点でNative Review gateをPASS扱いしない。
+- `next_hypothesis`: 親／子ともHierarchy上で可視なのに可視判定が失敗するため、first scrollの`visibilityPercentage: 100`と`centerElement: true`を除去し、Maestro defaultの可視判定だけを使う最小変更を1回だけ検証する。成功条件は同じFlow 1/1とReview保存assertionの完了。失敗時は同じ工程の追加retryをしない。
+- Progress: 93% (13/14)
+
+## 2026-08-11 07:56 JST Review Flow可視条件緩和のbounded検証結果
+
+- `input_findings`: 親containerの可視率100%／中央寄せを外し、Maestro default可視判定を使うFlowを`20260811-075300-android-review-default-visibility`で1回実行した。
+- `result`: 1/1 Failure（約64秒）。scroll stepは通過したが、続く`tapOn`で`Element not found: Id matching regex: native-order-review-order-delivered-item-7`となった。
+- `evidence`: Failure時のMaestro logには子buttonが`[99,2407][981,2539]`付近でinvisibleとして記録され、スクリーンショット／UI hierarchyでは親containerが`[48,1657][1032,1917]`で画面下端に部分表示だった。つまりdefault判定は親cardの部分表示で停止し、tap対象buttonを可視化できていない。これは前回の「対象がHierarchy／画面にあるのにscroll可視判定がFailure」と別の失敗情報であり、親cardをscroll対象にするだけでは不十分だった。
+- `triage`: Review Flowは同一工程でbounded検証を実施済み（baseline child selector 2回、親container条件変更1回、default可視判定1回）。Maestroのscroll／UI hierarchy可視性と大きなNative cardの境界が主因候補で、アプリ側のtestID／button actionは診断ADB tapとHierarchyで確認済み。新しい仮説なしの追加retry、timeout延長、座標tapへの置換は行わない。
+- `scope_decision`: 未検証の`maestro/native-review.yaml`修正は採用せず、baseline（child button＋visibility 100%＋centerElement）へapply_patchで復元した。したがって最終scopeにはMaestro Flow差分を残さない。Review FlowはPASS扱いしない。
+- `remaining`: 現Runの全体`pnpm run verify`／静的契約／scope／Sanitizerを最終状態で再確認し、Review FlowのFailureと外部／Official未実行をユーザー報告へ明記する。物理端末のMaestro Review gateをPASSへ変えるには、Maestro／Windows実行環境またはFlow／UI設計の追加方針が必要。
+- Progress: 93% (13/14)
+
+## 2026-08-11 08:12 JST 最終状態の品質ゲート再検証
+
+- `pnpm run verify`: exit 0（605.4秒）。`format:check` PASS、Markdown 236 files／0 issues、Spec validation 3 challenges、lint 0 errors／65 warnings、app／native-tests typecheck PASS、image manifest／security PASS、Unit 13 files／66、Integration 9／98、Repository 5／33、Web component 11／76、Native Jest 12 suites／47、Contract 24 files／202、Web build 2297 modules、Spec build 21 pages。
+- Explicit gates: `pnpm exec tsx scripts/agentic-qa/validate-contracts.ts` PASS（3 challenges／1 charter／3 findings／8 manifests／2 evaluations）、`pnpm run check:native-route-dependencies` PASS（38 routes）、`pnpm run validate:eas:config` PASS（development／preview／production-validation、manual-only、cloudRun not-run）。Expo SDK 57 patch依存はpackage／override／lockfile／installと一致し、CI相当`expo-doctor`は17/17 PASS。
+- CI相当Web／Artifact validation: Automation／Production web build各2297 modules、Chromium 27/27、a11y 4/4、mobile-boundary 4/4、cross-role 4/4、UI Review 4 viewport、mobile 14/14、Firefox 1/1、WebKit 1/1、production artifact smoke 1/1を前段RunでPASS確認済み。Native static、Production Bundle Guard、asset／route／EAS、artifact sanitizer testもPASS済み。
+- Android physical validation: Doctor／Runbook preflight、Prepare、Automation Release Build（BUILD SUCCESSFUL、arm64-v8a APK）、Install、Smoke、Gate 1 1/1、RuntimeSuite 5/5、BoundarySuite 5/5はPASS。SearchはSharp標準IMEで1/1 Failureしたが、原因をASCII入力環境差分として切り分け、LatinIMEを一時選択した同Flow 1/1 PASS後に元IMEと有効IMEを復元した。
+- Android Review residual: `native-review.yaml` baseline Flowは同じMaestro／Windows実機条件で2回Failure。Hierarchy／Screenshotにはreview buttonが存在し、ADB座標tapではReview screenへ遷移した。親container scroll、可視率／中央寄せ除去の限定修正も各1回検証したが、前者は可視判定Failure、後者は親cardの部分表示で停止してchild `tapOn`がFailure。限定修正は採用せずbaselineへ復元し、Review FlowをPASS扱いしない。証跡は`.artifacts/native-local/20260811-074355-android-review-rerun/`、`.artifacts/native-local/20260811-074828-android-review-container-fix/`、`.artifacts/native-local/20260811-075300-android-review-default-visibility/`に保存した。
+- Failure policy: 変更範囲外に見えるtimeout／IME／Review FailureもBaseline、変更差分、共有依存、CI／テスト契約、実行環境を確認した。恒常的ソース回帰を確認できないものはPASSへ隠さず環境／runner残差として分類し、Reviewの未PASSは明示的に残した。既存の完了報告契約は`docs/PROJECT_CONTEXT.md`と`docs/history/2026-08-11_品質ゲート完了報告契約.md`へ記録済み。
+- `scope`: 最終`git diff --name-only -- src app maestro`は差分なし。Maestro限定修正は復元済み。Git add／commit／push／PR操作は未実行。
+- `remaining`: 物理端末のReview FlowをPASSへするには、Maestro 2.8.0／Windows実行環境またはFlow／UI設計の追加判断が必要。Official model-backed Scored Run、Remote GitHub Actions／iOS、外部Preview／Production URL smokeはこの環境で実行可能な証跡がなく、PASS扱いしない。
+- Progress: 93% (13/14)
+
+## 2026-08-11 08:12 JST 最終Artifact／scope監査
+
+- `run.json` parse PASS（`status=completed`、`validation=passed`）。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260810-130321-JST -Write -Check` PASS（files_scanned=10、files_changed=0、replacements_total=0、residual_findings=0）。初回はREPORT内のローカルVirtual Store path 1件を検出したため相対tokenへ修正後、再実行で0件を確認した。
+- `scripts/tests/codex-artifact-sanitizer.test.ps1` PASS（45 baseline contracts + regression coverage）。`pnpm run format:check` PASS、`pnpm run lint:markdown` PASS（236 files／0 issues）、`git diff --check` PASS（LF→CRLF warningのみ）。
+- Final scope: `git diff --name-only -- src app maestro`は`(none)`。残る変更はExpo package／lockfile、品質ゲート完了契約文書、Run Artifactのみ。Git mutation／PR write actionは未実行。
+- `pnpm exec expo install --check` PASS（Dependencies are up to date）。
+- Progress: 93% (13/14)

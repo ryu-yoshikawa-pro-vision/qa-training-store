@@ -352,3 +352,9 @@
 - Charter検証後、最初のRuntime interaction前にBEFORE Snapshotを取得し、Runtime QA、candidate Findings、AFTER Snapshot、comparison、追加Source差分0確認、Findings finalizationの順で進める。
 - Benchmark Revisionのdigest inputはRunner Profileを含まない。Runner ProfileはRun／Evaluation metadataとして分離され、Profileだけの差分ではBenchmark Revision／Identityは不変、`sameRunnerCondition`だけがfalseになる。
 - Official Black-box Scored E2Eは、Hostからtrusted Fresh Session等を取得できず、Prepared patched Target RuntimeをFresh Sessionへsource-freeに引き渡すlifecycleも未実装のため、`BLOCKED / DEFERRED / NOT EXECUTED`とする。Custom Runner／LLM wrapperは追加しない。
+
+## 品質ゲート完了報告契約（2026-08-11）
+
+- 実装・修正作業は、完了報告の前にリポジトリで定義された全品質ゲートとテストを実行する。通常のローカル入口は`pnpm run verify`とし、CIの変更パス条件で追加されるゲート（例：Native変更時の`pnpm dlx expo-doctor@1.17.6`、Native／E2E／Artifact検証）も該当する場合は省略しない。未実行のゲートをPASSとして扱わず、実行できない場合は理由と次の実行者・アクションを報告する。
+- 品質ゲートのエラーは、当該作業の直接範囲外に見えても自動的に保留しない。Baseline、現在の差分、共有依存、CI／テスト契約、実行環境を調査し、現在の変更が原因である、または検証に不可欠である場合は現在の作業で最小修正する。真に無関係・環境依存・unsafe・要件判断が必要な場合だけ、根拠、未実行検証、残差、次の対応をRun Artifactと完了報告へ記録する。
+- 完了報告には、実行した全ゲート／テストのコマンドと結果、警告、未実行項目、主要変更ファイルを含める。ローカル環境固有の警告はリポジトリ起因のFailureと混同せず、CI相当条件での再確認結果とともに記録する。

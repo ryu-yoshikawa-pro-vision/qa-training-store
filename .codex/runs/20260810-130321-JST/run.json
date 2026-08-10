@@ -56,7 +56,10 @@
     "training/agentic-qa/instructor/answer-key/CHALLENGE-BASIC-001.json",
     "training/agentic-qa/instructor/answer-key/CHALLENGE-INTERMEDIATE-001.json",
     ".codex/runs/20260810-061558-JST/",
-    ".codex/runs/20260810-130321-JST/"
+    ".codex/runs/20260810-130321-JST/",
+    "package.json",
+    "pnpm-lock.yaml",
+    "docs/history/2026-08-11_品質ゲート完了報告契約.md"
   ],
   "validation": {
     "status": "passed",
@@ -150,7 +153,28 @@
       "all qa-charter.json search outside node_modules (1 artifact; migrated)",
       "Product / Native / Maestro / package manifest scope audit (0 changed paths)",
       "git diff --check (CI/charter/benchmark repair; PASS; LF-to-CRLF warnings only)",
-      "scripts/sanitize-codex-artifacts.ps1 Write/Check (CI/charter/benchmark repair)"
+      "scripts/sanitize-codex-artifacts.ps1 Write/Check (CI/charter/benchmark repair)",
+      "pnpm dlx expo-doctor@1.17.6 (修正前: 7 package mismatch / exit 1)",
+      "pnpm install --lockfile-only --ignore-scripts",
+      "pnpm install --frozen-lockfile --ignore-scripts",
+      "pnpm exec expo install --check (Dependencies are up to date)",
+      "npm_config_loglevel=error pnpm dlx expo-doctor@1.17.6 --verbose (17/17 checks passed)",
+      "pnpm run verify (最終状態 exit 0; 605.4 seconds; Contract 202 tests; Native Jest 47 tests; Web 2297 modules; Spec 21 pages)",
+      "pnpm exec tsx scripts/agentic-qa/validate-contracts.ts (3 challenges / 1 charter / 3 findings / 8 manifests / 2 evaluations)",
+      "pnpm run check:native-route-dependencies (38 routes)",
+      "pnpm run validate:eas:config (3 profiles / manual-only / cloudRun not-run)",
+      "Native static／production bundle／asset／artifact gates (all PASS)",
+      "CI-equivalent Web E2E／a11y／boundary／cross-role／UI Review／mobile／Firefox／WebKit／production smoke (all PASS)",
+      "Android Doctor／Runbook preflight／Prepare／Build／Install／Smoke／Gate 1／RuntimeSuite／BoundarySuite (all PASS)",
+      "Android Search Flow under Sharp IME (DEVICE_FAILURE candidate), controlled LatinIME rerun (1/1 PASS), original IME／enabled IME restored",
+      "Android Review Flow baseline 2 runs plus bounded parent/default-visibility hypotheses (all not PASS; evidence collected; baseline restored)",
+      "git diff --check and final src/app/maestro scope audit",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260810-130321-JST -Write -Check (PASS; files_scanned=10; residual_findings=0)",
+      "scripts/tests/codex-artifact-sanitizer.test.ps1 (PASS; 45 baseline contracts + regression coverage)",
+      "run.json ConvertFrom-Json parse (PASS)",
+      "pnpm run format:check and pnpm run lint:markdown (PASS; Markdown 236 files / 0 issues)",
+      "git diff --check and git diff --name-only -- src app maestro (PASS; scope none)",
+      "pnpm exec expo install --check (PASS; Dependencies are up to date)"
     ],
     "warnings": [
       "Official model-backed Scored Runは実行基盤がないため未実行。Contract Fixtureは正式スコアへ昇格させていない。",
@@ -166,7 +190,14 @@
       "focused contract test初回は修正前package-level overlayのNo routes found／__TEST_API__ timeoutで失敗したが、root node_modules topologyとpreserve-symlinks-main修正後に29/29へ復旧した。",
       "Runner Profileはhistorical manifest metadataとしてoptionalだが、canonical Benchmark Revision digest inputからは除外した。",
       "Normal／GrayのOfficial model-backed Scored E2EはFresh Session／tool isolation／patched target lifecycle不足の2 blockerによりBLOCKED / DEFERRED / NOT EXECUTED。",
-      "今回もProduct／Native／Maestro／package manifestは変更せず、Git／PR write actionは未実行。"
+      "今回もProduct／Native／Maestro／package manifestは変更せず、Git／PR write actionは未実行。",
+      "Expo SDK 57 patch mismatch 7件は修正済み。通常Windows doctorのstderr failureはignored .npmrcのpnpm専用設定をnpmがwarning表示する環境差分で、CI相当loglevel errorでは17/17 PASS。",
+      "pnpm install時のpeer warning（react-native-worklets、@react-native/metro-config）は既存の非fatal warningとして記録。",
+      "最終verifyのlintは0 errors / 65 warnings。Native JestのReact act(...) console warning、Node SQLite／SDK／Gradle／Expo deprecation warningは非fatal。",
+      "Android BuildはSDK cmdline-tools latest-2 location warningとGradle／Expo／OpenSSL deprecation warningを伴ったがBUILD SUCCESSFUL。",
+      "Android SearchはSharp標準IMEでFailureしたがLatinIME制御下で同FlowをPASSし、端末IMEを復元。",
+      "Android Review FlowはMaestro 2.8.0／Windows実機でchild selectorの可視判定が安定せず、限定修正もPASSせずbaselineへ復元。Reviewは未PASSであり、無目的retry／timeout延長／assertion削除は行っていない。",
+      "Official model-backed Scored Run、Remote GitHub Actions／iOS、外部Preview／Production URL smokeは実行基盤／credential／URL不足で未実行。未実行をPASS扱いしない。"
     ]
   },
   "safety": {
