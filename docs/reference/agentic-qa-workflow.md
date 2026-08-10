@@ -50,6 +50,21 @@ Normal／Gray-boxはSource Working TreeをReadonlyで扱い、Evidenceは
 .codex/runs/<run_id>/ と .artifacts/へ保存します。Black-boxは learner-spec/、
 runbook/、challenge/ だけのisolated rootを使います。
 
+## Normal / Gray-box bootstrap
+
+Normal／Gray-boxでは、まず同一作業の current run を確定し、
+`.codex/runs/<run_id>/qa-charter.json` の存在を確認します。存在する場合は
+`spec_refs`、Required Coverage、User Scope、Platform、Riskを現行仕様と照合し、
+既存のZod／validatorで検証します。存在しない場合は、Coding AgentがUser Request、
+Normative Specification、BR／AC、Product Risk、Platform、Role／Seed、利用可能な
+Runtime Capabilityから、current run内へboundedなCharterを作成します。Charterには
+`exploration_budget`を含め、Budget、Stop Condition、Coverageの重複を決定的に検証して
+からRuntimeへ進みます。過去RunのCharterは暗黙再利用せず、明示的にコピーする場合も
+現行仕様、User Scope、Platform、Role、Seedを再検証します。
+
+Charterが固定値として測れないRuntime制約を持つ場合は、既存
+`exploration_budget`のsemanticsに従い`null`を使います。推測値を実測値として保存しません。
+
 ## Runtime Exploration
 
 ### Oracle確認とRisk分析
@@ -134,15 +149,19 @@ validatorを通らない入力は実行前Failureです。
 ### Normal / Gray-box artifacts
 
 Charterの spec_refs[]、Role、Seed、Platform、Viewport／Device、Risk、Mission、
-Required Coverage、Runtime Controls、Budget、Stop Conditionを固定します。Normal／
+Required Coverage、Runtime Controls、`exploration_budget`、Stop Conditionを固定します。Normal／
 Gray-boxの qa-findings.json は charter_id と working_tree_snapshot（before／after／
 comparison）を持ち、Challenge／Benchmark／Runner Profile項目は null です。
 Findingが0件でもCoverage、Evidence、未完了理由、終了理由を記録します。
 
-QA前後に同じRun／ModeのSnapshotを取得し、比較結果の passed: true と
-additional_source_diff_count: 0 を確認してからFindingsを確定します。
+Charter作成／Validationの後、最初のRuntime interactionより前にBEFORE Snapshotを取得します。
+Runtime QA後にqa-findings candidateを作成し、AFTER Snapshotを取得してから同じRun／Modeで
+比較します。比較結果の passed: true と additional_source_diff_count: 0、追加Source差分0を
+確認してからFindingsをfinalizeします。Finding確定後にBEFORE Snapshotを取得する設計は
+許可しません。
 
     pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir .codex/runs/<run_id> --mode normal --phase before
+    # Runtime QA and candidate qa-findings.json
     pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir .codex/runs/<run_id> --mode normal --phase after
     pnpm exec tsx scripts/agentic-qa/working-tree-snapshot.ts --run-dir .codex/runs/<run_id> --mode normal --before .codex/runs/<run_id>/working-tree-snapshot-normal-before.json --after .codex/runs/<run_id>/working-tree-snapshot-normal-after.json
 
@@ -181,7 +200,12 @@ Preparation HarnessはChallenge validation、Answer Key validation、learner-saf
 disposable source、patch apply、baseline／patched sanity、initial state、isolated root、
 Tool Profile validation、Forbidden Probeだけを担当します。Coding Agent起動、Agent
 Session生成、Tool routing、retry、lifecycle managementは担当しません。Fresh Coding
-Agent SessionはAgent Runtime／Hostが提供します。
+Agent SessionはAgent Runtime／Hostが提供します。Current Hostからtrusted Fresh
+Session／session identity／Tool Isolation／Actual Tool Scopeを取得できない、または
+Preparationがpatched Target Runtimeをlive URL／booted deviceとしてFresh Sessionへ
+source-freeに引き渡すlifecycleを持たない場合、Official Scored E2Eは
+`BLOCKED / DEFERRED / NOT EXECUTED`です。これを解決するためRepository独自のRunner、
+LLM wrapper、Session Manager、MCP orchestrationは追加しません。
 
 Baselineで対象Defectが既に存在する、Patch checkが失敗する、Post-patchで再現条件が
 成立しない場合はScored Runを開始しません。PatchはApplication Branchへ適用してCommit
@@ -207,10 +231,13 @@ invalid_reasons[] はenum、重複なし、辞書順です。正式Metricはvali
     Coverage = completed_required_coverage_items / required_coverage_items
 
 Benchmark RevisionはClean committed inputだけ git:<40 lowercase hex>、未Commit／混在
-入力はCanonical Manifestの sha256:<64 lowercase hex> を使います。Benchmark Identityは
+入力はCanonical Benchmark Manifest Inputの sha256:<64 lowercase hex> を使います。
+Canonical Inputはsource／working tree／learner spec／challenge／Answer Key／patch／
+runtime variantを含み、Runner Profileを含みません。Benchmark Identityは
 challenge_id + benchmark_revision + runtime_variant_id、同条件比較にはRunner Profile
-完全一致を要求します。Ground Truth変更時は元Runを付け替えず、元Runを無効化して新Revisionと
-Fresh Re-runを行います。
+完全一致を要求します。したがってRunner Profileだけが異なる場合、Revision／Identityは
+同じで、sameRunnerConditionだけがfalseになります。Ground Truth変更時は元Runを付け替えず、
+元Runを無効化して新RevisionとFresh Re-runを行います。
 
 ## Platform note
 

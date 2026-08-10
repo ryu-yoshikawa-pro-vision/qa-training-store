@@ -173,3 +173,25 @@
 - Artifact／delegation: 既存Sagan／Pasteur／Diracのread-only調査記録を引き継ぎ、新規writable subagentは使用していない。Run Artifactは本Runへ追記し、Sanitizer Write／Checkと`run.json` parseを後続で確認する。Git mutation、PR write actionは未実行。
 - Remaining: Current Coding Agent Runtimeからtrusted Fresh Session／Tool Isolation／Actual Tool Scope evidenceを取得できないため、Official model-backed Scored E2Eは`BLOCKED / NOT EXECUTED`。このBlocker解消のためRepository独自Agent Runner／LLM wrapperは実装しない。Contract FixtureはOfficialへ昇格不可。Foundation overall DoDは`INCOMPLETE / BLOCKED`、local repair／validation DoDは完了。
 - Progress: 100% (10/10)
+
+## 2026-08-10 23:13 JST 最新PR #16修正指示 — Skill-first実行可能性とCI安定化
+
+- Summary: 最新添付指示を反映し、Skill-first／Harness-backed境界を維持したまま、Phase 1 CI failure、Normal／Gray bootstrap、探索予算、snapshot順、Benchmark RevisionのRunner Profile混入を修正した。
+- Repair Loop iteration: `iteration_number=6`。`input_findings=CIのpackage-level dependency overlayによるpnpm transitive resolution failure、current-run charterのbudget欠落、bootstrap／snapshot ordering不足、Runner Profileのrevision入力混入`。`decision=stop_success`（local repair／validation）。
+- Allowed Files: `.agents/skills/exploratory-qa/SKILL.md`、`QA_AGENT.md`、`docs/{PROJECT_CONTEXT.md,history,plans,reference}`、`scripts/agentic-qa/{prepare-challenge,contracts,benchmark-revision}.ts`、`tests/contracts/spec-agentic-qa.test.ts`、既存`.codex/runs/20260810-061558-JST/qa-charter.json`、current Run Artifact。Product Behavior、`src/**`、`app/**`、Native implementation、`maestro/**`、Git／PR操作は対象外。
+- Root cause and repair: disposable preparationがpackage単位で`.bin`／`expo-router`／`tsx`等をoverlayし、pnpmの完全な依存トポロジーを壊していた。準備源ではrepo rootの`node_modules`全体をjunction／symlinkで公開し、`EXPO_ROUTER_APP_ROOT`と`NODE_OPTIONS=--preserve-symlinks-main`をbuild／serveへ渡した。isolated scored rootには`node_modules`を公開しない既存分離契約をfocused testで確認した。
+- Skill／charter／snapshot: Normal／Grayのcurrent-run bootstrap、missing charter時のCoding Agentによるbounded charter生成、deterministic Zod validation、共有`exploration_budget`、過去charterの暗黙再利用禁止をSkill／入口文書へ明記した。順序は`charter validate -> BEFORE snapshot -> runtime QA -> candidate findings -> AFTER snapshot -> compare -> additional Source diff 0 -> finalize`で固定した。既存`qa-charter.json`全1件を移行した。
+- Benchmark boundary: canonical Benchmark Revision digest inputから`runner_profile`を除外した。Runner Profileだけが異なるA／Bは同一Revision／同一Identityで、`sameRunnerCondition=false`となるnegative testを追加した。historical manifestのoptional metadata semanticsは維持した。
+- Official status: Fresh Session／trusted session identity／tool isolation／actual tool scopeをhostから提供できないこと、およびpatched runtimeをcleanup後にFresh Sessionへsource-freeでhandoffする準備lifecycleがないことの2 blockerにより、Official Black-box Scored E2Eは`BLOCKED / DEFERRED / NOT EXECUTED`。Contract FixtureをOfficial PASSへ昇格させず、custom Agent Runner／LLM wrapper／session managerは追加していない。
+- Validation: `pnpm exec vitest run tests/contracts/spec-agentic-qa.test.ts --no-file-parallelism --maxWorkers=1`は29/29、`pnpm run test:contracts`は24 files／202 tests、`pnpm exec tsx scripts/agentic-qa/validate-contracts.ts`は3 challenge／1 charter／3 findings／8 manifests／2 evaluationsでPASS。`pnpm run format:check`、`pnpm run lint:markdown`（235 files／0 issues）、`pnpm run validate:spec`、`pnpm run build:spec`（21 pages）、`pnpm run lint`（0 errors／65 warnings）、`pnpm run typecheck`、`pnpm run verify`（exit 0、399.5 seconds）をPASSした。Verify内の全test、Native Jest 47、Web export 2296 modulesもPASSした。
+- Investigation note: focused testの初回失敗は修正前overlayによる`No routes found`／`window.__TEST_API__`待機timeoutだった。保持したdiagnostic disposable sourceでmanual buildを実行し、`EXPO_ROUTER_APP_ROOT`単独では不十分、`--preserve-symlinks-main`追加で2296 modules／routesへ復旧することを確認してから再実行した。失敗条件のない無目的再試行はしていない。
+- Scope / safety: `src/**`、`app/**`、`maestro/**`、Product／Native runtimeに差分なし。package manifest／lockfile差分なし。旧architecture語は現行docsの禁止境界またはhistorical recordとしてのみ残り、active implementation／callback／handoffは追加していない。Git branch／commit／push／merge／PR write／review resolveは未実行。
+- Remaining: local repair／validation DoDは完了。Official model-backed Scored RunとRemote CI final statusはこの環境のscope／capabilityでは未確認であり、Foundation overall DoDは`INCOMPLETE / BLOCKED`のまま。次はtrusted Fresh Session、actual tool scope、source-free patched target lifecycleを提供できる実行環境でOfficial E2Eを実行する。
+- Progress: 100% (12/12)
+
+## 2026-08-10 23:15 JST 最終Artifact監査
+
+- Sanitizer: current Run `20260810-130321-JST` は`files_scanned=10`、`files_changed=0`、`replacements_total=0`、`residual_findings=0`。変更した既存Run `20260810-061558-JST` も`files_scanned=16`、`files_changed=0`、`residual_findings=0`。
+- Integrity: `run.json` parse PASS、全`qa-charter.json`は1件で`exploration_budget`あり、`git diff --check` PASS（LF→CRLF warningのみ）。
+- Scope: `git diff --name-only -- src app maestro` と package manifest／lockfile scopeはともに`(none)`。Git mutation／PR write actionは未実行。
+- Progress: 100% (12/12)

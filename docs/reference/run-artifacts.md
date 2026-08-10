@@ -106,8 +106,17 @@ Both are validated by schema / validator.
 
 ### Normal / Gray-box Working Tree Snapshot
 
+- Normal／Gray-boxでは、current runを確定してから
+  `.codex/runs/<run_id>/qa-charter.json` を確認します。欠落時はCoding AgentがUser
+  Scope、Normative Specification、BR／AC、Risk、Platform、Role／Seed、Runtime
+  Capabilityからbounded Charterをcurrent runへ作成し、既存のZod／validatorで検証します。
+  過去RunのCharterは暗黙に再利用しません。Charterには既存の
+  `exploration_budget` schemaとStop Conditionを含めます。
 - `working-tree-snapshot-<mode>-before.json` と `working-tree-snapshot-<mode>-after.json` は、同じRun／ModeのSource Working Treeを同一JSON + Zod形式で記録します。
 - `working-tree-snapshot-<mode>-comparison.json` は `source_head_changed`、`source_diff`、`additional_source_diff_count`、`passed` を持ち、追加Source差分が0でない場合はQA Findingsを確定できません。
+- Charter作成／検証後、最初のRuntime interactionより前にBEFORE Snapshotを取得します。
+  Runtime QAとcandidate Findingsの後にAFTER Snapshotを取得し、comparisonの
+  `passed: true` と `additional_source_diff_count: 0` を確認してからFindingsをfinalizeします。
 - `.codex/runs/`、`.artifacts/`、その他のRuntime生成物はSnapshotのSource差分比較から除外します。Snapshot自体はRun Artifactとして保存します。
 
 ## Cleanup workflow

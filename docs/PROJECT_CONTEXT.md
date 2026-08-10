@@ -344,3 +344,11 @@
 - Agentic QAのPrimary Entry PointはCoding Agent + Exploratory QA Skillである。Normal／Gray-boxを日常QAのPrimary Use Caseとし、Black-box Scoredは評価用途に限定する。
 - `scripts/agentic-qa/**`はCoding Agentを起動・wrap・orchestrateせず、Deterministic Preparation、Contract Validation、Isolation Verification、Artifact Integrity、Evaluation、Scoringだけを担当するSupporting Harnessである。
 - Black-boxのFresh Coding Agent Session、trusted session identity、Tool Isolation、Actual Tool Scope inventoryはAgent Runtime／HostのCapabilityで提供する。提供できないOfficial Scored E2Eは`BLOCKED`とし、Repository独自Runner／LLM wrapperで回避しない。
+
+## PR #16 Skill-first CI／Charter／Benchmark追補 (2026-08-10)
+
+- Preparation用Disposable Sourceはroot `node_modules`全体をWindowsではjunction、その他ではdirectory symlinkで参照し、pnpmのtransitive dependency topologyを保持する。これはPreparation Build専用で、Scored isolated rootには`node_modules`を公開しない。
+- Normal／Gray-boxはcurrent runの`.codex/runs/<run_id>/qa-charter.json`をCoverage SSOTとする。欠落時はCoding AgentがUser Scope、Normative Specification、BR／AC、Risk、Platform、Role／Seed、Runtime Capabilityからbounded Charterを作成し、shared `exploration_budget`を含むZod契約で検証する。過去RunのCharterは暗黙再利用しない。
+- Charter検証後、最初のRuntime interaction前にBEFORE Snapshotを取得し、Runtime QA、candidate Findings、AFTER Snapshot、comparison、追加Source差分0確認、Findings finalizationの順で進める。
+- Benchmark Revisionのdigest inputはRunner Profileを含まない。Runner ProfileはRun／Evaluation metadataとして分離され、Profileだけの差分ではBenchmark Revision／Identityは不変、`sameRunnerCondition`だけがfalseになる。
+- Official Black-box Scored E2Eは、Hostからtrusted Fresh Session等を取得できず、Prepared patched Target RuntimeをFresh Sessionへsource-freeに引き渡すlifecycleも未実装のため、`BLOCKED / DEFERRED / NOT EXECUTED`とする。Custom Runner／LLM wrapperは追加しない。

@@ -162,29 +162,9 @@ function copyDisposableSource(rootDir: string): string {
   if (fs.existsSync(dependencies)) {
     const link = path.join(disposable, "node_modules");
     try {
-      fs.mkdirSync(link, { recursive: true });
-      for (const entry of fs.readdirSync(dependencies, { withFileTypes: true })) {
-        const source = path.join(dependencies, entry.name);
-        const destination = path.join(link, entry.name);
-        const sourceStats = fs.statSync(source);
-        if (!sourceStats.isDirectory()) continue;
-        const resolvedSource = fs.realpathSync(source);
-        if ([".bin", "expo-router", "tsx"].includes(entry.name) && sourceStats.isDirectory()) {
-          fs.cpSync(resolvedSource, destination, { recursive: true });
-          continue;
-        }
-        fs.symlinkSync(
-          resolvedSource,
-          destination,
-          process.platform === "win32"
-            ? sourceStats.isDirectory()
-              ? "junction"
-              : "file"
-            : sourceStats.isDirectory()
-              ? "dir"
-              : "file",
-        );
-      }
+      // Keep pnpm's complete dependency topology intact. A package-by-package
+      // overlay breaks transitive resolution such as tsx -> esbuild in Linux CI.
+      fs.symlinkSync(dependencies, link, process.platform === "win32" ? "junction" : "dir");
     } catch (error) {
       throw new Error(
         `Failed to prepare disposable dependency overlay: ${commandFailureText(error)}`,
@@ -288,6 +268,16 @@ function commandFailureText(error: unknown): string {
   return String(error);
 }
 
+function disposableRuntimeEnvironment(disposable: string): NodeJS.ProcessEnv {
+  return {
+    ...process.env,
+    EXPO_PUBLIC_BUILD_KIND: "automation",
+    EXPO_PUBLIC_TEST_MODE: "true",
+    EXPO_ROUTER_APP_ROOT: path.join(disposable, "app"),
+    NODE_OPTIONS: [process.env.NODE_OPTIONS, "--preserve-symlinks-main"].filter(Boolean).join(" "),
+  };
+}
+
 function runWebBuild(
   disposable: string,
   preparationRoot: string,
@@ -299,11 +289,7 @@ function runWebBuild(
     const output = execFileSync(invocation.command, invocation.args, {
       cwd: disposable,
       encoding: "utf8",
-      env: {
-        ...process.env,
-        EXPO_PUBLIC_BUILD_KIND: "automation",
-        EXPO_PUBLIC_TEST_MODE: "true",
-      },
+      env: disposableRuntimeEnvironment(disposable),
       stdio: ["ignore", "pipe", "pipe"],
       timeout: 600_000,
     });
@@ -509,7 +495,11 @@ async function startWebRuntime(
   const invocation = pnpmInvocation(["exec", "tsx", "scripts/serve-web-dist.ts"]);
   const server = spawn(invocation.command, invocation.args, {
     cwd: disposable,
-    env: { ...process.env, WEB_SERVER_HOST: "127.0.0.1", WEB_SERVER_PORT: String(port) },
+    env: {
+      ...disposableRuntimeEnvironment(disposable),
+      WEB_SERVER_HOST: "127.0.0.1",
+      WEB_SERVER_PORT: String(port),
+    },
     stdio: ["ignore", "pipe", "pipe"],
   });
   server.stdout.on("data", (chunk: Buffer | string) => stdout.push(chunk.toString()));

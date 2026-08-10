@@ -148,6 +148,13 @@ export const coverageResultSchema = z
       });
   });
 
+export const explorationBudgetSchema = z
+  .object({
+    max_duration_seconds: z.number().int().positive().nullable(),
+    max_tool_actions: z.number().int().positive().nullable(),
+  })
+  .strict();
+
 export const charterSchema = z
   .object({
     schema_version: schemaVersion,
@@ -161,6 +168,7 @@ export const charterSchema = z
     viewport_or_device: nonEmpty,
     required_coverage: z.array(coverageDefinitionSchema).min(1),
     allowed_runtime_controls: z.array(runtimeControl),
+    exploration_budget: explorationBudgetSchema,
     stop_condition: z.literal(STOP_CONDITION),
   })
   .strict()
@@ -173,13 +181,6 @@ export const charterSchema = z
         message: "coverage_id must be unique",
       });
   });
-
-export const explorationBudgetSchema = z
-  .object({
-    max_duration_seconds: z.number().int().positive().nullable(),
-    max_tool_actions: z.number().int().positive().nullable(),
-  })
-  .strict();
 
 export const challengeSchema = z
   .object({
@@ -599,6 +600,8 @@ export const benchmarkManifestSchema = z
     answer_key: manifestFileSchema,
     challenge_patch: manifestFileSchema.nullable(),
     runtime_variant_id: z.string().min(1).nullable(),
+    // Kept optional for historical run artifacts; it is run metadata, not
+    // part of the canonical Benchmark Revision input.
     runner_profile: runnerProfileSchema.optional(),
   })
   .strict()

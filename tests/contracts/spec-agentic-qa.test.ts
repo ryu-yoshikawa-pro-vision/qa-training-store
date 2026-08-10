@@ -8,6 +8,7 @@ import {
   actualToolScopeSchema,
   benchmarkManifestSchema,
   challengeSchema,
+  charterSchema,
   compareCodeUnits,
   coverageResultSchema,
   forbiddenProbeResultsSchema,
@@ -235,6 +236,91 @@ describe("Specification and Agentic QA contracts", () => {
     }
   });
 
+  it("requires an exploration budget and bounded coverage in a Normal charter", () => {
+    const valid = {
+      schema_version: 1,
+      charter_id: "CHARTER-001",
+      spec_refs: ["docs/spec/features/authentication.md"],
+      mission: "Verify the suspended-account sign-in boundary",
+      risk: "A suspended account could create an authenticated session",
+      role: "guest",
+      seed: "suspended-user",
+      platform: "web",
+      viewport_or_device: "desktop-1280x720",
+      required_coverage: [
+        {
+          coverage_id: "COV-001",
+          mission: "Submit suspended credentials and observe session creation",
+          role: "guest",
+          seed: "suspended-user",
+          platform: "web",
+          viewport_or_device: "desktop-1280x720",
+          required_evidence_types: ["screenshot", "url"],
+        },
+      ],
+      allowed_runtime_controls: ["seed_reset"],
+      exploration_budget: {
+        max_duration_seconds: 900,
+        max_tool_actions: 150,
+      },
+      stop_condition: "required_coverage_and_candidates_resolved_or_budget_exhausted",
+    };
+    expect(parseJsonWithSchema(valid, charterSchema, "valid charter").exploration_budget).toEqual({
+      max_duration_seconds: 900,
+      max_tool_actions: 150,
+    });
+
+    const withoutBudget = Object.fromEntries(
+      Object.entries(valid).filter(([key]) => key !== "exploration_budget"),
+    );
+    expect(() =>
+      parseJsonWithSchema(withoutBudget, charterSchema, "missing budget charter"),
+    ).toThrow();
+    expect(() =>
+      parseJsonWithSchema(
+        {
+          ...valid,
+          spec_refs: ["not-a-valid-spec-ref"],
+        },
+        charterSchema,
+        "invalid spec ref charter",
+      ),
+    ).toThrow();
+    expect(() =>
+      parseJsonWithSchema(
+        {
+          ...valid,
+          required_coverage: [...valid.required_coverage, valid.required_coverage[0]],
+        },
+        charterSchema,
+        "duplicate coverage charter",
+      ),
+    ).toThrow();
+  });
+
+  it("keeps the Skill-first Normal bootstrap and snapshot order explicit", () => {
+    const skill = fs.readFileSync(
+      path.join(rootDir, ".agents/skills/exploratory-qa/SKILL.md"),
+      "utf8",
+    );
+    expect(skill).toMatch(/Normal.*default/);
+    expect(skill).toContain("If the current run already has `qa-charter.json`");
+    expect(skill).toContain("If it does not exist, the Coding Agent creates it");
+    expect(skill).toContain("Validate the new Charter deterministically");
+    const orderedMarkers = [
+      "### Step 4 — BEFORE Working Tree Snapshot",
+      "### Step 5 — Runtime exploration",
+      "qa-findings candidate",
+      "additional Source diff = 0",
+    ];
+    let previousIndex = -1;
+    for (const marker of orderedMarkers) {
+      const index = skill.indexOf(marker);
+      expect(index, `missing Skill contract marker: ${marker}`).toBeGreaterThan(previousIndex);
+      previousIndex = index;
+    }
+  });
+
   it("creates the same mixed-tree benchmark revision for the same input", () => {
     const challenge = loadChallenge("CHALLENGE-BASIC-001");
     const answerKey = parseJsonWithSchema(
@@ -286,6 +372,63 @@ describe("Specification and Agentic QA contracts", () => {
     } finally {
       fs.rmSync(firstRoot, { recursive: true, force: true });
       fs.rmSync(secondRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("keeps Benchmark Revision independent from Runner Profile", () => {
+    const challenge = loadChallenge("CHALLENGE-BASIC-001");
+    const answerKey = parseJsonWithSchema(
+      readJson(
+        path.join(rootDir, "training/agentic-qa/instructor/answer-key/CHALLENGE-BASIC-001.json"),
+      ),
+      answerKeySchema,
+      "answer-key",
+    );
+    const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "benchmark-runner-profile-"));
+    try {
+      const learnerBundle = buildLearnerBundle(
+        rootDir,
+        challenge,
+        path.join(temporary, "learner-spec"),
+      );
+      const toolProfileRevision = currentToolProfileRevision() as `sha256:${string}`;
+      const modelA = createRunnerProfile({
+        model: "MODEL-A",
+        toolProfileRevision,
+        challenge,
+      });
+      const modelB = createRunnerProfile({
+        model: "MODEL-B",
+        toolProfileRevision,
+        challenge,
+      });
+      const first = createBenchmarkRevision({
+        rootDir,
+        challenge,
+        answerKey,
+        learnerBundle,
+        runtimeVariantId: null,
+        patchPath: "training/agentic-qa/instructor/challenge-patches/CHALLENGE-BASIC-001.patch",
+        runnerProfile: modelA,
+      });
+      const second = createBenchmarkRevision({
+        rootDir,
+        challenge,
+        answerKey,
+        learnerBundle,
+        runtimeVariantId: null,
+        patchPath: "training/agentic-qa/instructor/challenge-patches/CHALLENGE-BASIC-001.patch",
+        runnerProfile: modelB,
+      });
+      const firstIdentity = benchmarkIdentity(challenge.challenge_id, first.revision, null);
+      const secondIdentity = benchmarkIdentity(challenge.challenge_id, second.revision, null);
+      expect(first.revision).toBe(second.revision);
+      expect(sameBenchmarkIdentity(firstIdentity, secondIdentity)).toBe(true);
+      expect(sameRunnerCondition(firstIdentity, modelA, secondIdentity, modelB)).toBe(false);
+      expect(first.manifest.runner_profile).toBeUndefined();
+      expect(second.manifest.runner_profile).toBeUndefined();
+    } finally {
+      fs.rmSync(temporary, { recursive: true, force: true });
     }
   });
 
@@ -1602,7 +1745,7 @@ describe("Specification and Agentic QA contracts", () => {
     }
   });
 
-  it("prepares a challenge without a Coding Agent callback or runtime handoff", async () => {
+  it("prepares a challenge through deterministic preparation only", async () => {
     const runId = "20260810-211500-JST";
     const runDir = fs.mkdtempSync(path.join(os.tmpdir(), "agentic-qa-preparation-contract-"));
     const artifactDir = path.join(rootDir, ".artifacts", "agentic-qa", runId);
@@ -1618,6 +1761,8 @@ describe("Specification and Agentic QA contracts", () => {
       expect(Object.keys(result).some((key) => key.endsWith("_handoff"))).toBe(false);
       expect(result.patch.apply_check).toBe("passed");
       expect(result.runtime_sanity.scored_initial_state_reset.passed).toBe(true);
+      expect(fs.existsSync(path.join(result.isolated_root.root, "node_modules"))).toBe(false);
+      expect(result.benchmark_revision.manifest.runner_profile).toBeUndefined();
     } finally {
       fs.rmSync(runDir, { recursive: true, force: true });
       fs.rmSync(artifactDir, { recursive: true, force: true });

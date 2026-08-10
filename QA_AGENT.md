@@ -32,6 +32,8 @@ Normal / Gray-box の `qa-findings.json` は `charter_id` と `working_tree_snap
 
 通常の「Scenario ShopをQAしてください」はNormal Skill workflowを使用します。利用中のCoding Agent RuntimeがBlack-boxに必要なFresh Session、trusted identity、Tool Isolation、Actual Tool Scope inventoryを提供できない場合、Official Scored E2Eは `BLOCKED` です。Repository独自RunnerやLLM wrapperで解決しません。
 
+Normal／Gray-boxでcurrent runに`qa-charter.json`がない場合は、Coding AgentがUser Request、Normative Specification、BR／AC、Risk、Platform、Role／Seed、Runtime Capabilityからbounded Charterをcurrent runへ作成します。Charterには`exploration_budget`とStop Conditionを含め、既存Zod／validatorで`spec_refs`、Coverageの一意性、Budgetを検証してからRuntimeへ進みます。過去RunのCharterを暗黙再利用せず、Charter検証後かつ最初のRuntime interaction前に`working-tree-snapshot.ts`のBEFORE Snapshotを取得します。
+
 ## Runner terminology
 
 In Black-box Scored mode, **Runner** means the Fresh Coding Agent Session
@@ -83,9 +85,9 @@ Machine Contract validation
 
 Challenge Patch は Instructor-only Unified Diff です。Application Branchへ適用してCommitせず、Runner Rootへコピーしません。Pre-patchで対象Defectが既に存在する、Post-patchで再現条件が成立しない、Patch checkが失敗する場合はScored Runを開始しません。
 
-Preparation HarnessはCoding Agentを起動せず、Agent Session生成、Tool routing、retryも担当しません。Fresh SessionがRuntime/Hostから提供されない場合は、Preparation後にOfficial Scoredを開始せず `BLOCKED` と記録します。
+Preparation HarnessはCoding Agentを起動せず、Agent Session生成、Tool routing、retryも担当しません。Fresh SessionがRuntime/Hostから提供されない場合、またはPreparationがpatched Target Runtimeをlive URL／booted deviceとしてFresh Sessionへsource-freeに引き渡すlifecycleを持たない場合は、Official Scoredを開始せず `BLOCKED / DEFERRED / NOT EXECUTED` と記録します。Repository独自のRunner／LLM wrapper／Session Managerで解決しません。
 
-Benchmark Identity は `challenge_id + benchmark_revision + runtime_variant_id`、同条件のRunner比較はこれに完全一致する Runner Profile を加えたものです。Clean committed inputだけ `git:<40 lowercase hex>`、それ以外は Canonical Manifest の `sha256:<64 lowercase hex>` を使います。
+Benchmark Identity は `challenge_id + benchmark_revision + runtime_variant_id`、同条件のRunner比較はこれに完全一致する Runner Profile を加えたものです。Clean committed inputだけ `git:<40 lowercase hex>`、それ以外は Runner Profileを除外したCanonical Benchmark Manifest Inputの `sha256:<64 lowercase hex>` を使います。Runner Profileだけが異なる比較ではBenchmark Revision／Identityは同じで、sameRunnerConditionだけがfalseになります。
 
 Evaluator は Frozen Finding を書き換えません。`invalid_non_atomic` は一 Finding = 一 FP、`FP_non_defect` は Precision の FP へ一度だけ加算しつつ FPR の `fp_non_defect` にも加算します。Environment/Harness による `blocked_environment` は `valid_for_scoring=false` と `invalid_reasons` に `environment_blocker` を付けます。真の Unexpected Valid Finding は元Runを再採点せず、Ground Truth更新後に新Revision + Fresh Re-runを行います。
 

@@ -19,6 +19,7 @@
     "docs/history/2026-08-10_141500_pr16-agentic-qa-repair.md",
     "docs/history/2026-08-10_152146_pr16-scoring-review-followup.md",
     "docs/history/2026-08-10_210951_agentic-qa-skill-first.md",
+    "docs/history/2026-08-10_223623_agentic-qa-ci-charter-benchmark.md",
     "docs/plans/2026-08-09_110500_specification-agentic-qa-foundation.md",
     "docs/plans/2026-08-10_130321_pr16-agentic-qa-repair.md",
     "docs/curriculum/test-automation/README.md",
@@ -133,7 +134,23 @@
       "active reference search for removed Agent Runner callback / handoff / old fixture path (0 matches)",
       "Product / Native / Maestro scope audit (0 changed paths)",
       "git diff --check (PASS; LF-to-CRLF warnings only)",
-      "scripts/sanitize-codex-artifacts.ps1 Write/Check (Architecture correction)"
+      "scripts/sanitize-codex-artifacts.ps1 Write/Check (Architecture correction)",
+      "pnpm exec prettier --write Agentic QA CI/charter/benchmark repair files",
+      "pnpm exec tsc --noEmit --pretty false (CI/charter/benchmark repair)",
+      "pnpm exec vitest run tests/contracts/spec-agentic-qa.test.ts --no-file-parallelism --maxWorkers=1 (29 tests)",
+      "pnpm run format:check (CI/charter/benchmark repair)",
+      "pnpm run lint:markdown (235 files)",
+      "pnpm run validate:spec (3 challenges)",
+      "pnpm run build:spec (21 pages)",
+      "pnpm run lint (0 errors / 65 warnings)",
+      "pnpm run typecheck (app and native-tests)",
+      "pnpm exec tsx scripts/agentic-qa/validate-contracts.ts (3 challenges / 1 charter / 3 findings / 8 manifests / 2 evaluations)",
+      "pnpm run test:contracts (24 files / 202 tests)",
+      "pnpm run verify (CI/charter/benchmark repair exit 0; 399.5 seconds)",
+      "all qa-charter.json search outside node_modules (1 artifact; migrated)",
+      "Product / Native / Maestro / package manifest scope audit (0 changed paths)",
+      "git diff --check (CI/charter/benchmark repair; PASS; LF-to-CRLF warnings only)",
+      "scripts/sanitize-codex-artifacts.ps1 Write/Check (CI/charter/benchmark repair)"
     ],
     "warnings": [
       "Official model-backed Scored Runは実行基盤がないため未実行。Contract Fixtureは正式スコアへ昇格させていない。",
@@ -145,7 +162,11 @@
       "最初の全体verifyでは既存Native契約1件が5秒timeoutしたが、単独4/4および全Contract 24 files / 196 testsで再現せず、Native／Product変更なしで最終verifyは成功した。",
       "Trust Boundary修正後のfocused Agentic QA contract testは25 tests、全Contractは24 files / 198 testsでPASS。",
       "Git mutation、branch／commit／push／PR操作は行っていない。",
-      "Architecture correction後のOfficial model-backed Scored E2EはRuntime capability不足によりBLOCKED / NOT EXECUTED。"
+      "Architecture correction後のOfficial model-backed Scored E2EはRuntime capability不足によりBLOCKED / NOT EXECUTED。",
+      "focused contract test初回は修正前package-level overlayのNo routes found／__TEST_API__ timeoutで失敗したが、root node_modules topologyとpreserve-symlinks-main修正後に29/29へ復旧した。",
+      "Runner Profileはhistorical manifest metadataとしてoptionalだが、canonical Benchmark Revision digest inputからは除外した。",
+      "Normal／GrayのOfficial model-backed Scored E2EはFresh Session／tool isolation／patched target lifecycle不足の2 blockerによりBLOCKED / DEFERRED / NOT EXECUTED。",
+      "今回もProduct／Native／Maestro／package manifestは変更せず、Git／PR write actionは未実行。"
     ]
   },
   "safety": {

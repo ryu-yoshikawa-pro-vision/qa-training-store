@@ -44,5 +44,9 @@
     "seed_reset",
     "app_restart"
   ],
+  "exploration_budget": {
+    "max_duration_seconds": 900,
+    "max_tool_actions": 150
+  },
   "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
 }

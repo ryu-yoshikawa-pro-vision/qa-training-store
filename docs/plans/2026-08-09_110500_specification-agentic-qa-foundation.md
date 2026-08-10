@@ -2505,3 +2505,25 @@ The repository Harness does not launch or wrap the Coding Agent.
 - Black-box Scored uses deterministic preparation and evaluation, but the evaluated Runner is a Fresh Coding Agent Session provided by the Agent runtime / host environment.
 - `scripts/agentic-qa/**` is a deterministic supporting harness for preparation, validation, isolation verification, artifact integrity, evaluation, and scoring.
 - A missing Official Scored capability is recorded as `BLOCKED`; the repository does not add a custom model runner, LLM wrapper, CLI wrapper, session manager, or MCP orchestration to bypass it.
+
+## Owner Decision / CI and Contract Clarification (2026-08-10)
+
+The Skill-first + Harness-backed boundary remains unchanged. The following
+clarifications are part of the current implementation contract:
+
+- Preparation disposable sources link the repository root `node_modules` as a
+  whole (junction on Windows, directory symlink elsewhere), preserving pnpm's
+  transitive dependency topology for `build:web`. The link is preparation-only;
+  the isolated Scored root still contains only learner-safe inputs and no
+  `node_modules`.
+- Normal／Gray-box bootstraps create a bounded current-run
+  `.codex/runs/<run_id>/qa-charter.json` when it is missing. The Charter is
+  deterministically validated and must use the shared `exploration_budget`
+  schema before the BEFORE Working Tree Snapshot and first Runtime interaction.
+- Benchmark Revision input excludes Runner Profile. Runner Profile remains
+  execution metadata; changing only the model keeps the Benchmark Revision and
+  Identity stable while `sameRunnerCondition` becomes false.
+- Official Black-box Scored E2E remains `BLOCKED / DEFERRED / NOT EXECUTED` when
+  the Host cannot provide trusted Fresh Session evidence or a lifecycle that
+  hands a prepared patched Target Runtime to that session. No repository custom
+  Runner, LLM wrapper, or Session Manager is added.

@@ -93,3 +93,24 @@
 ## 9. 備考
 
 - Git操作（branch、commit、push、rebase、merge、PR操作）は行わない。
+
+## 追加修正方針 — Skill-first 実行可能性とCI安定化 (2026-08-10)
+
+- Phase 1 CIの`tsx`→`esbuild`解決失敗は、package単位のdependency overlayがpnpmの
+  transitive topologyを壊すことが原因と判断した。Preparation用Disposable Sourceには
+  root `node_modules`全体をjunction／directory symlinkで参照させ、Scored isolated rootへ
+  は依存ディレクトリを公開しない。
+- Normal／Gray-boxはcurrent runに`qa-charter.json`がなければCoding AgentがUser Scope、
+  Normative Specification、BR／AC、Risk、Platform、Role／Seed、Runtime Capabilityから
+  bounded Charterを作成し、shared `exploration_budget`を含むZod契約で検証する。過去Runの
+  Charterは暗黙再利用しない。
+- Charter検証後、最初のRuntime interactionより前にBEFORE Snapshotを取得する。Runtime QA、
+  candidate Findings、AFTER Snapshot、comparison、追加Source差分0確認、finalizationの順を
+  Skill／Workflow／Run Artifact契約へ固定する。
+- Benchmark Revisionのcanonical digest inputからRunner Profileを除外する。ProfileはRun／
+  Evaluation metadataとして保持し、Profileだけが異なる場合はRevision／Identityを変えず、
+  `sameRunnerCondition`だけをfalseにする。
+- Official Black-box Scored E2Eは、trusted Fresh Session／identity／Tool Isolation／Actual
+  Tool Scope、またはPrepared patched Target RuntimeをFresh Sessionへ引き渡すlifecycleが
+  Hostから提供されないため`BLOCKED / DEFERRED / NOT EXECUTED`とする。Custom Runner等は
+  実装しない。

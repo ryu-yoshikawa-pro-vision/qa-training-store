@@ -16,6 +16,8 @@
 - [x] 8. Preparation callback／runtime handoffを削除し、Contract Fixtureをrenameする
 - [x] 9. ADR／Plan／Workflow／Curriculum／Project Contextを責務境界へ同期する
 - [x] 10. Architecture correctionの全Validation、scope監査、Sanitizer、完了判定を行う
+- [x] 11. Skill-first実行可能性、pnpm依存トポロジー、既存charter budget、Benchmark Revision境界を修正する
+- [x] 12. 修正後のPreparation、focused／全Contract、必須品質ゲート、scope監査、Run Artifact Sanitizerを実行する
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
 
 ## Blocked
@@ -27,3 +29,5 @@
 - 2026-08-10 18:14 JST: 最終修正（Forbidden Probe completeness／run_id contract）を実装し、必須validationと`pnpm run verify`をPASSした。Official model-backed Runnerは引き続きBlocked／未実行。
 - 2026-08-10 19:39 JST: Trust Boundary残課題4件（Canonical Forbidden Set、実Profile bytes revision再検証、Fresh Session invariant、unmeasured Tool Scope test isolation）を修正し、focused 25 tests／全Contract 24 files・198 tests／`pnpm run verify`をPASSした。Official model-backed Runnerは引き続きBlocked／未実行。
 - 2026-08-10 21:29 JST: Skill-first + Harness-backed Architecture correctionを実装し、callback／runtime handoff削除、Contract Fixture rename、Skill routing／Workflow／ADR／Plan／Project Context同期、focused 26 tests、全Contract 24 files・199 tests、`pnpm run verify`をPASSした。Official model-backed Runnerは引き続きBlocked／未実行。
+- 2026-08-10 23:13 JST: 最新PR #16指示のCI／実行可能性修正（root `node_modules` junction、`--preserve-symlinks-main`、Normal／Gray charter bootstrap、`exploration_budget`、BEFORE／AFTER snapshot順、Runner Profile除外）を実装し、focused 29 tests、全Contract 24 files・202 tests、`pnpm run verify`（exit 0）をPASSした。Official model-backed Scored E2Eは引き続き`BLOCKED / DEFERRED / NOT EXECUTED`。
+- Progress: 100% (12/12)

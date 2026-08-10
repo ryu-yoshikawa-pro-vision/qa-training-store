@@ -141,6 +141,12 @@ function canonicalJson(value: unknown): string {
   return `${JSON.stringify(value, null, 2)}\n`;
 }
 
+function canonicalBenchmarkRevisionInput(manifest: BenchmarkManifest): string {
+  const { runner_profile: ignoredRunnerProfile, ...revisionInput } = manifest;
+  void ignoredRunnerProfile;
+  return canonicalJson(revisionInput);
+}
+
 export function benchmarkRevisionFromManifest(
   manifestFilePath: string,
   manifest: BenchmarkManifest,
@@ -151,7 +157,10 @@ export function benchmarkRevisionFromManifest(
     throw new Error(`Benchmark manifest is not in canonical JSON form: ${manifestFilePath}`);
   if (manifest.working_tree_entries.length === 0 && manifest.source_head_sha !== null)
     return `git:${manifest.source_head_sha}`;
-  const digest = crypto.createHash("sha256").update(raw, "utf8").digest("hex");
+  const digest = crypto
+    .createHash("sha256")
+    .update(canonicalBenchmarkRevisionInput(manifest), "utf8")
+    .digest("hex");
   return `sha256:${digest}`;
 }
 
@@ -164,6 +173,9 @@ export function createBenchmarkRevision(input: {
   patchPath: string | null;
   runnerProfile?: RunnerProfile;
 }): BenchmarkRevision {
+  // Runner Profile is an execution condition and must not alter the benchmark
+  // population or its revision. It remains available to callers as run metadata.
+  void input.runnerProfile;
   const challengePath = `training/agentic-qa/challenges/${input.challenge.challenge_id}/challenge.json`;
   const answerKeyPath = `training/agentic-qa/instructor/answer-key/${input.challenge.challenge_id}.json`;
   const patch = input.patchPath === null ? null : manifestFile(input.rootDir, input.patchPath);
@@ -179,13 +191,15 @@ export function createBenchmarkRevision(input: {
       answer_key: manifestFile(input.rootDir, answerKeyPath),
       challenge_patch: patch,
       runtime_variant_id: input.runtimeVariantId,
-      ...(input.runnerProfile === undefined ? {} : { runner_profile: input.runnerProfile }),
     },
     benchmarkManifestSchema,
     "benchmark manifest",
   );
   const serialized_manifest = canonicalJson(manifest);
-  const digest = crypto.createHash("sha256").update(serialized_manifest, "utf8").digest("hex");
+  const digest = crypto
+    .createHash("sha256")
+    .update(canonicalBenchmarkRevisionInput(manifest), "utf8")
+    .digest("hex");
   let revision: BenchmarkRevision["revision"] = `sha256:${digest}`;
   const entries = manifest.working_tree_entries;
   const tracked = (relativePath: string): boolean => {

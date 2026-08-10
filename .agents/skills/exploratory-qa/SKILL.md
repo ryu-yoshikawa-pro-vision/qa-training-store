@@ -64,6 +64,31 @@ not expose source, `.git`, tests, patches, Answer Keys, build artifacts,
 search, generic shell, arbitrary browser evaluation, network response bodies,
 or native package files to a Scored Session.
 
+## Normal / Gray-box bootstrap
+
+After selecting Normal or Gray-box, confirm the current run and inspect
+`.codex/runs/<run_id>/qa-charter.json` before any Runtime interaction.
+
+- If the current run already has `qa-charter.json`, validate its schema,
+  `spec_refs`, bounded Required Coverage, and current User Scope/Platform/Risk.
+- If it does not exist, the Coding Agent creates it in the current run from
+  the user request, Normative Specification, BR/AC, Product Risk, requested
+  Platform, requested Role/Seed, and available Runtime Capability. Include at
+  least `schema_version`, `charter_id`, `spec_refs`, `mission`, `risk`, `role`,
+  `seed`, `platform`, `viewport_or_device`, `required_coverage`,
+  `allowed_runtime_controls`, `exploration_budget`, and `stop_condition`.
+- Keep Required Coverage bounded: one Coverage Item is one clearly bounded
+  mission. Do not generate a free-form exhaustive checklist.
+- Validate the new Charter deterministically with the existing Zod contract
+  before proceeding. Do not implicitly reuse a Charter from a previous run;
+  explicit reuse requires copying it into the current run and rechecking the
+  current Specification, User Scope, Platform, Role, and Seed.
+
+The Coding Agent must not record guessed runtime limits as measured facts.
+Use the existing `exploration_budget` contract, including `null` only where a
+limit cannot be fixed by the Runtime. The Charter's Stop Condition and Budget
+bound the subsequent exploration.
+
 ## Exploration workflow
 
 ### Step 1 — Oracle confirmation
@@ -94,7 +119,20 @@ behavior, Recovery/Retry, and Data integrity. Choose priorities from the
 Specification, Charter, or Challenge risk; do not mechanically execute a
 checklist or explore without a bounded Budget and Stop Condition.
 
-### Step 4 — Runtime exploration
+### Step 4 — BEFORE Working Tree Snapshot
+
+For Normal and Gray-box, after Charter creation/validation and risk analysis,
+capture the BEFORE Working Tree Snapshot with the existing
+`working-tree-snapshot.ts` before the first Runtime interaction. A BEFORE
+Snapshot taken after Findings or after Runtime exploration is invalid.
+
+```text
+Charter creation / validation
+→ BEFORE Working Tree Snapshot
+→ first Runtime interaction
+```
+
+### Step 5 — Runtime exploration
 
 For Web, use Playwright-MCP or an equivalent Browser Capability provided to the
 Coding Agent first. For Android, use Maestro-MCP or an equivalent Native
@@ -113,7 +151,7 @@ exploration and do not treat a passing Maestro Regression Suite as completion
 of Agentic QA. If Native capability is unavailable, record
 `blocked_environment` or an accurate not-executed result.
 
-### Step 5 — Evidence and Findings
+### Step 6 — Evidence and Findings
 
 Collect, where available, the current URL/screen, DOM, Accessibility tree,
 Screenshot, narrow Console/Log, and Runtime-visible state. Preserve the
@@ -125,7 +163,7 @@ Expected, Actual, Reproduction Steps, Oracle, Role/Seed, Evidence, Reproduction
 Count, Severity, and Confidence according to the Machine Contract. Do not merge
 multiple problems, and do not repair Product Code while exploring.
 
-### Step 6 — Exploration loop
+### Step 7 — Exploration loop
 
 For each Required Coverage Item, follow this bounded loop and prefer new
 information gain:
@@ -150,17 +188,31 @@ does not end the whole QA run.
 
 ## Finalization and supporting harness
 
-After exploration, the Coding Agent produces `qa-findings.json`. Then use the
-deterministic supporting scripts for Schema validation, Coverage integrity,
-Evidence integrity, Working Tree Snapshot comparison, and Evaluation/Scoring
+After exploration, the Coding Agent produces a candidate `qa-findings.json`.
+For Normal and Gray-box, capture the AFTER Working Tree Snapshot, compare it
+with the BEFORE Snapshot, and confirm zero additional Source diff before
+finalizing Findings. Then use the deterministic supporting scripts for Schema
+validation, Coverage integrity, Evidence integrity, and Evaluation/Scoring
 (Scored only). The direction is:
 
 ```text
 Coding Agent + Skill → qa-findings.json → deterministic supporting scripts
 ```
 
-For Normal/Gray-box, capture same-format before/after Working Tree Snapshots
-and require a passing zero-additional-source-diff comparison. For Black-box,
+For Normal/Gray-box, the required finalization sequence is:
+
+```text
+Charter creation / validation
+→ BEFORE Working Tree Snapshot
+→ Runtime QA
+→ qa-findings candidate
+→ AFTER Working Tree Snapshot
+→ BEFORE / AFTER comparison
+→ additional Source diff = 0
+→ qa-findings finalization
+```
+
+Use same-format snapshots from the same Run and Mode. For Black-box,
 Preparation may create a disposable patched runtime, learner-safe bundle,
 isolated root, Tool Profile, and Forbidden Capability Probe; it does not create
 or launch the Coding Agent Session.
