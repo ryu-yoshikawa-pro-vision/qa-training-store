@@ -10,7 +10,7 @@ Scenario Shop の Normative Specification を、通常のテスト自動化と A
 docs/spec/                         Normative / Supporting documentation
 training/agentic-qa/challenges/   Learner-safe Challenge + Runbook
 training/agentic-qa/instructor/    Answer Key + Patch (Instructor-only)
-training/agentic-qa/tool-profiles/Scored Tool Profile
+training/agentic-qa/tool-profiles/ Scored Tool Profile
 .codex/runs/<run_id>/              Durable Charter, Findings, Evaluation
 .artifacts/                        Raw evidence and disposable runtime data
 ```
@@ -45,6 +45,8 @@ GitHub Actionsでは`GITHUB_STEP_SUMMARY`へ同じMarkdownを追記し、Spec変
 ## Black-box Scored
 
 Black-boxのRequired CoverageはChallenge Definitionだけから導出します。`learner-spec/` は `challenge.spec_refs[]` のBR/AC/Normative owner fileだけを決定的に含み、Supporting fileや任意の追加Specを自動追加しません。Challenge/RunbookのMissionはDefect、Non-defect、Item ID、Patch意図を示さない中立文にします。
+
+`run-local-e2e.ts` は JSON/Zod の契約経路を検査する Contract Fixture であり、固定Findingを Official model-backed Scored Runへ昇格させません。`execution_kind=contract_fixture`、未完了Coverage、`fixture_not_official` により、評価Metricはfail-closeで無効になります。Official Runは実patched runtime、Fresh Runner、実測Evidence、別Session Evaluatorをすべて実行できた場合だけ成立します。
 
 Runner Root は次だけです。
 

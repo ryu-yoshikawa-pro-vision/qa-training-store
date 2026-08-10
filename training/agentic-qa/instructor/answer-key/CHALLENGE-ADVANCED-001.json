@@ -9,9 +9,9 @@
       "oracle_refs": ["BR-STOREFRONT-001", "AC-STOREFRONT-001"],
       "expected_behavior": "A viewer who does not satisfy the product rank cannot see the rank-restricted product.",
       "minimum_reproduction_condition": "Use the catalog seed as a guest and inspect the storefront product list.",
-      "required_observation": "The rank-restricted product is absent from the guest storefront list.",
+      "required_observation": "The rank-restricted product is visible in the guest storefront list.",
       "related_coverage_id": "COV-001",
-      "evidence_expectation": "The rank-restricted product is absent from the guest storefront list",
+      "evidence_expectation": "The rank-restricted product is visible in the guest storefront list.",
       "expected_severity": "medium",
       "allowed_severity_delta": 1
     }

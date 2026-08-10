@@ -7,8 +7,10 @@ import {
   answerKeySchema,
   benchmarkManifestSchema,
   challengeSchema,
+  compareCodeUnits,
   parseJsonWithSchema,
   qaFindingsSchema,
+  toolProfileSchema,
   workingTreeSnapshotSchema,
   type QaFindings,
 } from "../../scripts/agentic-qa/contracts";
@@ -16,20 +18,31 @@ import {
   benchmarkIdentity,
   benchmarkRevisionFromManifest,
   createBenchmarkRevision,
+  collectWorkingTreeEntries,
+  parsePorcelainStatusRecords,
   sameBenchmarkIdentity,
   sameRunnerCondition,
 } from "../../scripts/agentic-qa/benchmark-revision";
 import { buildLearnerBundle } from "../../scripts/agentic-qa/build-learner-bundle";
+import { assertCoverageIntegrity } from "../../scripts/agentic-qa/coverage";
 import { evaluateBlackBox } from "../../scripts/agentic-qa/evaluate";
+import {
+  assertForbiddenProbePasses,
+  assertIsolatedRunnerRoot,
+  probeForbiddenCapabilities,
+} from "../../scripts/agentic-qa/isolation";
+import { requiredOptionValue } from "../../scripts/agentic-qa/cli";
 import { createRunnerProfile } from "../../scripts/agentic-qa/runner";
 import { compareWorkingTreeSnapshots } from "../../scripts/agentic-qa/working-tree-snapshot";
 import {
   summarizeSpecDrift,
+  validateWorkingTreeSnapshots,
   validateTrainingContracts,
 } from "../../scripts/agentic-qa/validate-contracts";
 import { buildSpecSite } from "../../scripts/spec/build-spec";
 import { slugHeading } from "../../scripts/spec/slug-heading";
 import { extractBrAcIds, formatSpecImpactSummary } from "../../scripts/spec/summarize-impact";
+import { validateMarkdownSpec } from "../../scripts/spec/validate-spec";
 
 const rootDir = path.resolve(__dirname, "../..");
 
@@ -211,7 +224,8 @@ describe("Specification and Agentic QA contracts", () => {
             { status: "A", path: "docs/new-qa-note.md", sha256: "c".repeat(64) },
           ].sort(
             (left, right) =>
-              left.path.localeCompare(right.path) || left.status.localeCompare(right.status),
+              compareCodeUnits(left.path, right.path) ||
+              compareCodeUnits(left.status, right.status),
           ),
         },
         workingTreeSnapshotSchema,
@@ -269,7 +283,9 @@ describe("Specification and Agentic QA contracts", () => {
           {
             coverage_id: "COV-001",
             status: "completed",
+            mission_completed: true,
             evidence_refs: [".artifacts/COV-001/screenshot.png"],
+            evidence_types: ["screenshot", "url"],
             blocker_reason: null,
             notes: "Login was exercised",
           },
@@ -286,13 +302,15 @@ describe("Specification and Agentic QA contracts", () => {
           role: "guest",
           seed_scenario: "COV-001",
           steps: ["COV-001: open sign-in", "submit suspended credentials"],
-          expected: "Login is rejected and no authenticated session is created",
-          actual: "The session was created",
+          reproduction_condition:
+            "Use the suspended-user seed and submit its valid credentials from the sign-in screen.",
+          expected: "A suspended account is rejected and no authenticated session is created.",
+          actual: "The suspended account creates an authenticated session.",
           evidence: [
             {
               type: "screenshot",
               ref: ".artifacts/COV-001/screenshot.png",
-              description: "Login is rejected and no authenticated session is created",
+              description: "The suspended account creates an authenticated session.",
             },
           ],
           reproduction_count: 2,
@@ -307,6 +325,8 @@ describe("Specification and Agentic QA contracts", () => {
       benchmark_revision: benchmarkRevision,
       runtime_variant_id: null,
       runner_profile: runnerProfile,
+      execution_kind: "official_model_backed",
+      runner_session_id: "fixture-runner-000000",
       fresh_session: true,
       tool_scope_validated: true,
     };
@@ -384,7 +404,9 @@ describe("Specification and Agentic QA contracts", () => {
             {
               coverage_id: "COV-001",
               status: "completed",
+              mission_completed: true,
               evidence_refs: [".artifacts/COV-001/screenshot.png"],
+              evidence_types: ["screenshot", "url"],
               blocker_reason: null,
               notes: "",
             },
@@ -401,6 +423,8 @@ describe("Specification and Agentic QA contracts", () => {
             role: "guest",
             seed_scenario: "COV-001",
             steps: ["COV-001: inspect the flow"],
+            reproduction_condition:
+              "Use the suspended-user seed and submit its valid credentials from the sign-in screen.",
             expected: "Two separate behaviors",
             actual: "One combined report",
             evidence: [
@@ -422,6 +446,8 @@ describe("Specification and Agentic QA contracts", () => {
         benchmark_revision: `sha256:${"c".repeat(64)}`,
         runtime_variant_id: null,
         runner_profile: runnerProfile,
+        execution_kind: "official_model_backed",
+        runner_session_id: "fixture-runner-000001",
         fresh_session: true,
         tool_scope_validated: true,
       },
@@ -444,7 +470,9 @@ describe("Specification and Agentic QA contracts", () => {
             {
               coverage_id: "COV-001",
               status: "blocked_environment",
+              mission_completed: false,
               evidence_refs: [],
+              evidence_types: [],
               blocker_reason: "MCP runtime unavailable",
               notes: "",
             },
@@ -509,7 +537,9 @@ describe("Specification and Agentic QA contracts", () => {
             {
               coverage_id: "COV-001",
               status: "completed",
+              mission_completed: true,
               evidence_refs: [".artifacts/COV-001/normal.png"],
+              evidence_types: ["screenshot", "url"],
               blocker_reason: null,
               notes: "A generic normal observation was recorded",
             },
@@ -526,6 +556,7 @@ describe("Specification and Agentic QA contracts", () => {
             role: "guest",
             seed_scenario: "COV-001",
             steps: ["COV-001: submit suspended credentials"],
+            reproduction_condition: "Use the suspended-user seed",
             expected: "The rejection message remains visible",
             actual: "The observed result is unclear",
             evidence: [
@@ -547,6 +578,8 @@ describe("Specification and Agentic QA contracts", () => {
         benchmark_revision: `sha256:${"1".repeat(64)}`,
         runtime_variant_id: null,
         runner_profile: runnerProfile,
+        execution_kind: "official_model_backed",
+        runner_session_id: "fixture-runner-000002",
         fresh_session: true,
         tool_scope_validated: true,
       },
@@ -605,7 +638,9 @@ describe("Specification and Agentic QA contracts", () => {
             {
               coverage_id: "COV-001",
               status: "completed",
+              mission_completed: true,
               evidence_refs: [".artifacts/COV-001/normal.png"],
+              evidence_types: ["screenshot", "url"],
               blocker_reason: null,
               notes: "The normal state is visible",
             },
@@ -622,7 +657,8 @@ describe("Specification and Agentic QA contracts", () => {
             role: "guest",
             seed_scenario: "COV-001",
             steps: ["COV-001: inspect the normal state"],
-            expected: "The normal state is visible",
+            reproduction_condition: "Use the normal seed",
+            expected: "The normal state remains visible",
             actual: "The normal state is not visible",
             evidence: [
               {
@@ -643,6 +679,8 @@ describe("Specification and Agentic QA contracts", () => {
         benchmark_revision: `sha256:${"3".repeat(64)}`,
         runtime_variant_id: null,
         runner_profile: runnerProfile,
+        execution_kind: "official_model_backed",
+        runner_session_id: "fixture-runner-000003",
         fresh_session: true,
         tool_scope_validated: true,
       },
@@ -656,5 +694,217 @@ describe("Specification and Agentic QA contracts", () => {
     expect(evaluation.metrics.precision).toBe(0);
     expect(evaluation.metrics.false_positive_rate).toBe(1);
     expect(evaluation.matches[0]?.classification).toBe("fp_non_defect");
+  });
+
+  it("fails closed on isolated-root forbidden names and measures the clean probe", () => {
+    const profile = parseJsonWithSchema(
+      readJson(path.join(rootDir, "training/agentic-qa/tool-profiles/scored-v1.json")),
+      toolProfileSchema,
+      "scored-v1",
+    );
+    const cleanRoot = fs.mkdtempSync(path.join(os.tmpdir(), "isolated-clean-"));
+    try {
+      for (const directory of ["learner-spec", "runbook", "challenge"])
+        fs.mkdirSync(path.join(cleanRoot, directory), { recursive: true });
+      fs.writeFileSync(path.join(cleanRoot, "learner-spec", "authentication.md"), "safe", "utf8");
+      fs.writeFileSync(path.join(cleanRoot, "runbook", "runbook.md"), "safe", "utf8");
+      fs.writeFileSync(path.join(cleanRoot, "challenge", "challenge.json"), "{}", "utf8");
+      const probe = probeForbiddenCapabilities(cleanRoot, profile, profile.allowed_capabilities);
+      expect(probe).toHaveLength(profile.forbidden_capabilities.length);
+      expect(probe.every((result) => result.available === false)).toBe(true);
+      expect(probe.every((result) => result.evidence.includes("observed=none"))).toBe(true);
+      expect(() => assertForbiddenProbePasses(probe)).not.toThrow();
+    } finally {
+      fs.rmSync(cleanRoot, { recursive: true, force: true });
+    }
+
+    for (const relativePath of [
+      "answer-key/key.json",
+      "learner-spec/answer-key/key.json",
+      "learner-spec/source.map",
+      "learner-spec/app.apk",
+      "learner-spec/tests/login.test.ts",
+    ]) {
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "isolated-forbidden-"));
+      try {
+        for (const directory of ["learner-spec", "runbook", "challenge"])
+          fs.mkdirSync(path.join(root, directory), { recursive: true });
+        fs.writeFileSync(path.join(root, "learner-spec", "safe.md"), "safe", "utf8");
+        fs.writeFileSync(path.join(root, "runbook", "runbook.md"), "safe", "utf8");
+        fs.writeFileSync(path.join(root, "challenge", "challenge.json"), "{}", "utf8");
+        const target = path.join(root, relativePath);
+        fs.mkdirSync(path.dirname(target), { recursive: true });
+        fs.writeFileSync(target, "forbidden", "utf8");
+        expect(() => assertIsolatedRunnerRoot(root)).toThrow();
+      } finally {
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    }
+  });
+
+  it("parses NUL Git status records without losing rename or unusual paths", () => {
+    const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "benchmark-status-"));
+    try {
+      const leading = " leading 日本語 -> name.txt";
+      const added = "new 日本語.txt";
+      const renamed = "old 日本語.txt";
+      const renamedTo = "renamed -> 日本語.txt";
+      fs.writeFileSync(path.join(temporary, added), "added", "utf8");
+      const output = [`?? ${leading}`, `?? ${added}`, `R  ${renamedTo}`, renamed].join("\0");
+      const entries = parsePorcelainStatusRecords(temporary, `${output}\0`);
+      expect(entries.map((entry) => `${entry.status}:${entry.path}`)).toEqual([
+        `A:${leading}`,
+        `A:${added}`,
+        `D:${renamed}`,
+        `A:${renamedTo}`,
+      ]);
+    } finally {
+      fs.rmSync(temporary, { recursive: true, force: true });
+    }
+    const nonRepository = fs.mkdtempSync(path.join(os.tmpdir(), "benchmark-no-git-"));
+    try {
+      expect(() => collectWorkingTreeEntries(nonRepository)).toThrow();
+    } finally {
+      fs.rmSync(nonRepository, { recursive: true, force: true });
+    }
+  });
+
+  it("requires the full evidence type set before coverage can be completed", () => {
+    const challenge = loadChallenge("CHALLENGE-BASIC-001");
+    const base = {
+      required_ids: ["COV-001"],
+      items: [
+        {
+          coverage_id: "COV-001" as const,
+          status: "completed" as const,
+          mission_completed: true,
+          evidence_refs: [".artifacts/COV-001/log.txt"],
+          evidence_types: ["narrow_log" as const],
+          blocker_reason: null,
+          notes: "only a narrow log was collected",
+        },
+      ],
+    };
+    const baseItem = base.items[0]!;
+    expect(() => assertCoverageIntegrity(challenge, base)).toThrow(/required evidence types/);
+    expect(() =>
+      assertCoverageIntegrity(challenge, {
+        ...base,
+        items: [{ ...baseItem, status: "not_completed" }],
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertCoverageIntegrity(challenge, {
+        ...base,
+        items: [
+          {
+            ...baseItem,
+            evidence_refs: ["screen.png", "page.url"],
+            evidence_types: ["screenshot", "url"],
+          },
+        ],
+      }),
+    ).not.toThrow();
+  });
+
+  it("rejects forged snapshot comparisons and broken same-file anchors", () => {
+    const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "snapshot-validation-"));
+    try {
+      const runId = "20260810-000010-JST";
+      const before = {
+        schema_version: 1 as const,
+        run_id: runId,
+        mode: "normal" as const,
+        phase: "before" as const,
+        captured_at: "2026-08-10T00:00:00.000Z",
+        source_head_sha: "a".repeat(40),
+        working_tree_entries: [],
+      };
+      const after = {
+        ...before,
+        phase: "after" as const,
+        working_tree_entries: [
+          { status: "A" as const, path: "docs/changed.md", sha256: "b".repeat(64) },
+        ],
+      };
+      fs.writeFileSync(path.join(temporary, "before.json"), `${JSON.stringify(before)}\n`, "utf8");
+      fs.writeFileSync(path.join(temporary, "after.json"), `${JSON.stringify(after)}\n`, "utf8");
+      fs.writeFileSync(
+        path.join(temporary, "comparison.json"),
+        `${JSON.stringify({
+          schema_version: 1,
+          run_id: runId,
+          mode: "normal",
+          before_snapshot: "before.json",
+          after_snapshot: "after.json",
+          before_source_head_sha: before.source_head_sha,
+          after_source_head_sha: after.source_head_sha,
+          source_head_changed: false,
+          source_diff: [],
+          additional_source_diff_count: 0,
+          passed: true,
+        })}\n`,
+        "utf8",
+      );
+      const findings = parseJsonWithSchema(
+        {
+          schema_version: 1,
+          run_id: runId,
+          mode: "normal",
+          source_head_sha: before.source_head_sha,
+          coverage: {
+            required_ids: ["COV-001"],
+            items: [
+              {
+                coverage_id: "COV-001",
+                status: "not_completed",
+                mission_completed: false,
+                evidence_refs: [],
+                evidence_types: [],
+                blocker_reason: null,
+                notes: "not executed",
+              },
+            ],
+          },
+          findings: [],
+          working_tree_snapshot: {
+            before: "before.json",
+            after: "after.json",
+            comparison: "comparison.json",
+          },
+          charter_id: "CHARTER-001",
+          challenge_id: null,
+          benchmark_revision: null,
+          runtime_variant_id: null,
+          runner_profile: null,
+        },
+        qaFindingsSchema,
+        "snapshot findings",
+      );
+      if (findings.mode !== "normal") throw new Error("snapshot fixture must be Normal mode");
+      expect(() => validateWorkingTreeSnapshots(temporary, findings)).toThrow();
+    } finally {
+      fs.rmSync(temporary, { recursive: true, force: true });
+    }
+
+    const specCopy = fs.mkdtempSync(path.join(os.tmpdir(), "same-file-anchor-"));
+    try {
+      fs.cpSync(path.join(rootDir, "docs", "spec"), path.join(specCopy, "docs", "spec"), {
+        recursive: true,
+      });
+      const file = path.join(specCopy, "docs/spec/features/authentication.md");
+      fs.appendFileSync(file, "\n[broken same-file anchor](#anchor-does-not-exist)\n", "utf8");
+      expect(
+        validateMarkdownSpec(specCopy).some((item) => item.message.includes("heading anchor")),
+      ).toBe(true);
+    } finally {
+      fs.rmSync(specCopy, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects missing CLI values instead of consuming the next option", () => {
+    expect(() => requiredOptionValue(["--challenge", "--run-dir", "foo"], "--challenge")).toThrow();
+    expect(() => requiredOptionValue(["--run-dir", "--model", "x"], "--run-dir")).toThrow();
+    expect(() => requiredOptionValue(["--root-dir", "--run-id", "x"], "--root-dir")).toThrow();
   });
 });

@@ -12,22 +12,26 @@
       {
         "coverage_id": "COV-001",
         "status": "completed",
+        "mission_completed": true,
         "evidence_refs": [
           ".artifacts/agentic-qa/normal/storefront-desktop.png",
           ".artifacts/agentic-qa/normal/storefront-desktop-url.txt",
           ".artifacts/agentic-qa/normal/storefront-desktop-dom.txt"
         ],
+        "evidence_types": ["screenshot", "url", "dom"],
         "blocker_reason": null,
         "notes": "Desktop storefront was observed through the Playwright CLI snapshot and screenshot."
       },
       {
         "coverage_id": "COV-002",
         "status": "completed",
+        "mission_completed": true,
         "evidence_refs": [
           ".artifacts/agentic-qa/normal/storefront-mobile.png",
           ".artifacts/agentic-qa/normal/storefront-mobile-accessibility.txt",
           ".artifacts/agentic-qa/normal/storefront-mobile-url.txt"
         ],
+        "evidence_types": ["screenshot", "accessibility", "url"],
         "blocker_reason": null,
         "notes": "The mobile viewport exposed the expected navigation labels and main content."
       }

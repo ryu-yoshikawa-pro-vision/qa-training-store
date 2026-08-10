@@ -9,7 +9,7 @@
 | Product | draft → published; published → unpublished/discontinued; unpublished → published/discontinued |
 | Account | active ↔ suspended |
 | Checkout | active → converted/abandoned/expired |
-| Order | pending_payment → payment_failed/paid → preparing → shipped → delivered; payment_failed → pending_payment |
+| Order | pending_payment → payment_failed; pending_payment → paid; payment_failed → pending_payment; paid → preparing; preparing → shipped; shipped → delivered |
 | Shipment | pending → shipped → delivered |
 | Review | published ↔ hidden; published/hidden → deleted |
 | Cart | active → consumed/abandoned |

@@ -9,9 +9,9 @@
       "oracle_refs": ["BR-AUTH-001", "AC-AUTH-001"],
       "expected_behavior": "A suspended account is rejected and no authenticated session is created.",
       "minimum_reproduction_condition": "Use the suspended-user seed and submit its valid credentials from the sign-in screen.",
-      "required_observation": "The sign-in attempt creates no authenticated session and shows the account restriction.",
+      "required_observation": "The suspended account creates an authenticated session.",
       "related_coverage_id": "COV-001",
-      "evidence_expectation": "Login is rejected and no authenticated session is created",
+      "evidence_expectation": "The suspended account creates an authenticated session.",
       "expected_severity": "high",
       "allowed_severity_delta": 1
     }

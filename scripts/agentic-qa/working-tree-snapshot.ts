@@ -2,6 +2,7 @@ import { execFileSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 import {
+  compareCodeUnits,
   parseJsonWithSchema,
   workingTreeSnapshotComparisonSchema,
   workingTreeSnapshotSchema,
@@ -9,6 +10,7 @@ import {
   type WorkingTreeSnapshotComparison,
 } from "./contracts";
 import { collectWorkingTreeEntries } from "./benchmark-revision";
+import { optionValue, requiredOptionValue } from "./cli";
 
 type SnapshotMode = WorkingTreeSnapshot["mode"];
 type SnapshotPhase = WorkingTreeSnapshot["phase"];
@@ -77,8 +79,8 @@ export function compareWorkingTreeSnapshots(
 
   const beforeEntries = entryMap(before);
   const afterEntries = entryMap(after);
-  const paths = [...new Set([...beforeEntries.keys(), ...afterEntries.keys()])].sort((a, b) =>
-    a.localeCompare(b),
+  const paths = [...new Set([...beforeEntries.keys(), ...afterEntries.keys()])].sort(
+    compareCodeUnits,
   );
   const sourceDiff = paths.flatMap((entryPath) => {
     const beforeEntry = beforeEntries.get(entryPath) ?? null;
@@ -112,37 +114,33 @@ function writeJson(filePath: string, value: unknown): void {
   fs.writeFileSync(filePath, canonicalJson(value), "utf8");
 }
 
-function readSnapshot(filePath: string): WorkingTreeSnapshot {
-  return parseJsonWithSchema(
-    JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown,
-    workingTreeSnapshotSchema,
-    repoRelativePath(process.cwd(), filePath),
-  );
-}
-
-function valueAfter(args: string[], name: string): string | undefined {
-  const index = args.indexOf(name);
-  return index >= 0 ? args[index + 1] : undefined;
-}
-
-function requiredValue(args: string[], name: string): string {
-  const value = valueAfter(args, name);
-  if (value === undefined || value === "") throw new Error(`Missing ${name}`);
-  return value;
+function readSnapshot(rootDir: string, filePath: string): WorkingTreeSnapshot {
+  let raw: unknown;
+  try {
+    raw = JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+  } catch (error) {
+    throw new Error(
+      `Invalid JSON at ${repoRelativePath(rootDir, filePath)}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      { cause: error },
+    );
+  }
+  return parseJsonWithSchema(raw, workingTreeSnapshotSchema, repoRelativePath(rootDir, filePath));
 }
 
 function runCli(args: string[]): number {
-  const rootDir = path.resolve(valueAfter(args, "--root-dir") ?? process.cwd());
-  const runDir = path.resolve(rootDir, requiredValue(args, "--run-dir"));
-  const runId = valueAfter(args, "--run-id") ?? path.basename(runDir);
-  const mode = requiredValue(args, "--mode") as SnapshotMode;
+  const rootDir = path.resolve(optionValue(args, "--root-dir") ?? process.cwd());
+  const runDir = path.resolve(rootDir, requiredOptionValue(args, "--run-dir"));
+  const runId = optionValue(args, "--run-id") ?? path.basename(runDir);
+  const mode = requiredOptionValue(args, "--mode") as SnapshotMode;
   if (mode !== "normal" && mode !== "gray-box") throw new Error(`Unsupported mode: ${mode}`);
 
-  const phase = valueAfter(args, "--phase") as SnapshotPhase | undefined;
+  const phase = optionValue(args, "--phase") as SnapshotPhase | undefined;
   if (phase === "before" || phase === "after") {
     const output = path.resolve(
       rootDir,
-      valueAfter(args, "--output") ??
+      optionValue(args, "--output") ??
         path.join(path.relative(rootDir, runDir), `working-tree-snapshot-${mode}-${phase}.json`),
     );
     const snapshot = captureWorkingTreeSnapshot({ rootDir, runId, mode, phase });
@@ -154,16 +152,16 @@ function runCli(args: string[]): number {
   }
   if (phase !== undefined) throw new Error(`Unsupported phase: ${phase}`);
 
-  const beforeFile = path.resolve(rootDir, requiredValue(args, "--before"));
-  const afterFile = path.resolve(rootDir, requiredValue(args, "--after"));
+  const beforeFile = path.resolve(rootDir, requiredOptionValue(args, "--before"));
+  const afterFile = path.resolve(rootDir, requiredOptionValue(args, "--after"));
   const output = path.resolve(
     rootDir,
-    valueAfter(args, "--output") ??
+    optionValue(args, "--output") ??
       path.join(path.relative(rootDir, runDir), `working-tree-snapshot-${mode}-comparison.json`),
   );
   const comparison = compareWorkingTreeSnapshots(
-    readSnapshot(beforeFile),
-    readSnapshot(afterFile),
+    readSnapshot(rootDir, beforeFile),
+    readSnapshot(rootDir, afterFile),
     {
       before: repoRelativePath(rootDir, beforeFile),
       after: repoRelativePath(rootDir, afterFile),

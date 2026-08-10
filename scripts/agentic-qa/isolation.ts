@@ -1,12 +1,17 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import type { Challenge, ToolProfile } from "./contracts";
+import {
+  compareCodeUnits,
+  type Challenge,
+  type ForbiddenCapability,
+  type ToolProfile,
+} from "./contracts";
 import type { LearnerBundle } from "./build-learner-bundle";
 
 export type ForbiddenProbeResult = {
-  capability: string;
-  available: false;
+  capability: ForbiddenCapability;
+  available: boolean;
   evidence: string;
 };
 
@@ -45,13 +50,72 @@ function listFiles(rootDir: string): string[] {
   const visit = (directory: string): void => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
       const absolute = path.join(directory, entry.name);
-      if (entry.isDirectory()) visit(absolute);
-      else if (entry.isFile())
+      if (entry.isDirectory()) {
+        files.push(path.relative(rootDir, absolute).split(path.sep).join("/"));
+        visit(absolute);
+      } else if (entry.isFile())
         files.push(path.relative(rootDir, absolute).split(path.sep).join("/"));
     }
   };
   visit(rootDir);
-  return files.sort((a, b) => a.localeCompare(b));
+  return files.sort(compareCodeUnits);
+}
+
+const forbiddenPathComponents = new Set([
+  ".git",
+  "src",
+  "app",
+  "tests",
+  "e2e",
+  "maestro",
+  "instructor",
+  "answer-key",
+  "patches",
+  "node_modules",
+  "dist",
+  "output",
+  ".artifacts",
+  ".codex",
+]);
+
+function pathComponents(file: string): string[] {
+  return file.split("/").filter((component) => component !== "");
+}
+
+function forbiddenPaths(files: string[], capability: ForbiddenCapability): string[] {
+  return files.filter((file) => {
+    const components = pathComponents(file);
+    const finalComponent = components.at(-1) ?? "";
+    if (capability === "source_repository")
+      return components.some((component) => forbiddenPathComponents.has(component));
+    if (capability === "web_bundle") return /\.(?:js|mjs|cjs)$/i.test(finalComponent);
+    if (capability === "source_map") return finalComponent.endsWith(".map");
+    if (capability === "native_apk_ipa") return /\.(?:apk|ipa)$/i.test(finalComponent);
+    if (capability === "existing_test")
+      return (
+        components.includes("tests") ||
+        components.includes("e2e") ||
+        components.includes("maestro") ||
+        /(?:\.test|\.spec)\.[^/]+$/i.test(finalComponent)
+      );
+    if (capability === "hidden_test")
+      return components.some((component) =>
+        ["hidden-tests", "__tests__", ".hidden"].includes(component),
+      );
+    if (capability === "challenge_patch")
+      return components.includes("patches") || finalComponent.endsWith(".patch");
+    if (capability === "answer_key") return components.includes("answer-key");
+    if (capability === "prior_scored_session")
+      return components.includes(".artifacts") || components.includes(".codex");
+    return false;
+  });
+}
+
+function toolCapabilityAvailable(
+  capability: ForbiddenCapability,
+  exposedCapabilities: readonly string[],
+): boolean {
+  return exposedCapabilities.includes(capability);
 }
 
 export function createIsolatedRunnerRoot(input: {
@@ -96,27 +160,20 @@ export function assertIsolatedRunnerRoot(rootDir: string): void {
     throw new Error(
       `Isolated runner root exposes non-learner input: ${invalidTopLevel.map((entry) => entry.name).join(", ")}`,
     );
-  const forbiddenNames = [
-    "src",
-    "tests",
-    ".git",
-    "patches",
-    "instructor",
-    "answer-key",
-    "node_modules",
-    "dist",
-    "output",
-  ];
   const files = listFiles(rootDir);
-  if (
-    files.some((file) =>
-      forbiddenNames.some(
-        (name) => file === name || file.startsWith(`${name}/`) || file.includes(`/${name}/`),
-      ),
-    )
-  ) {
+  const forbidden = [
+    ...forbiddenPaths(files, "source_repository"),
+    ...forbiddenPaths(files, "challenge_patch"),
+    ...forbiddenPaths(files, "answer_key"),
+    ...forbiddenPaths(files, "web_bundle"),
+    ...forbiddenPaths(files, "source_map"),
+    ...forbiddenPaths(files, "native_apk_ipa"),
+    ...forbiddenPaths(files, "existing_test"),
+    ...forbiddenPaths(files, "hidden_test"),
+  ];
+  if (forbidden.length > 0) {
     throw new Error(
-      "Isolated runner root contains a forbidden source, test, patch, answer, or build path",
+      `Isolated runner root contains forbidden paths: ${[...new Set(forbidden)].sort(compareCodeUnits).join(", ")}`,
     );
   }
 }
@@ -124,28 +181,29 @@ export function assertIsolatedRunnerRoot(rootDir: string): void {
 export function probeForbiddenCapabilities(
   rootDir: string,
   profile: ToolProfile,
+  exposedCapabilities: readonly string[] = [],
 ): ForbiddenProbeResult[] {
   assertIsolatedRunnerRoot(rootDir);
   assertPositiveToolAllowlist(profile);
   const files = listFiles(rootDir);
-  const checks: [string, string][] = [
-    ["source_repository", "isolated root has no src/ or repository files"],
-    ["parent_traversal", "positive file reader resolves only inside learner-spec/"],
-    ["git_repository_search", "no git capability is exposed by the positive tool wrapper"],
-    ["web_search", "no external search capability is exposed"],
-    ["arbitrary_external_fetch", "no arbitrary HTTP capability is exposed"],
-    ["generic_shell", "no shell capability is exposed"],
-    ["web_bundle", "no JavaScript bundle is present in the isolated root"],
-    ["source_map", "no source map is present in the isolated root"],
-    ["network_response_body", "no network response body capability is exposed"],
-    ["browser_evaluate", "no arbitrary browser evaluate capability is exposed"],
-    ["native_apk_ipa", "no APK or IPA is present in the isolated root"],
-    ["arbitrary_adb_shell", "no arbitrary ADB shell capability is exposed"],
-    ["existing_test", "no test files are present in the isolated root"],
-    ["hidden_test", "no hidden test capability is exposed"],
-    ["challenge_patch", "no instructor patch is present in the isolated root"],
-    ["answer_key", "no answer key or defect mapping is present in the isolated root"],
-    ["prior_scored_session", "no prior session data is present in the isolated root"],
+  const checks: Array<[ForbiddenCapability, string]> = [
+    ["source_repository", "isolated root has no application or repository source path"],
+    ["parent_traversal", "positive file reader exposes no parent traversal capability"],
+    ["git_repository_search", "runner tool scope exposes no git/repository search"],
+    ["web_search", "runner tool scope exposes no web search"],
+    ["arbitrary_external_fetch", "runner tool scope exposes no arbitrary HTTP fetch"],
+    ["generic_shell", "runner tool scope exposes no generic shell"],
+    ["web_bundle", "isolated root has no JavaScript bundle"],
+    ["source_map", "isolated root has no source map"],
+    ["network_response_body", "runner tool scope exposes no network response body"],
+    ["browser_evaluate", "runner tool scope exposes no arbitrary browser evaluate"],
+    ["native_apk_ipa", "isolated root has no APK or IPA"],
+    ["arbitrary_adb_shell", "runner tool scope exposes no arbitrary ADB shell"],
+    ["existing_test", "isolated root has no test file"],
+    ["hidden_test", "isolated root has no hidden test"],
+    ["challenge_patch", "isolated root has no instructor patch"],
+    ["answer_key", "isolated root has no answer key"],
+    ["prior_scored_session", "isolated root has no prior scored session artifact"],
   ];
   for (const [capability] of checks) {
     if (
@@ -156,8 +214,15 @@ export function probeForbiddenCapabilities(
       throw new Error(`Tool profile does not declare required forbidden capability: ${capability}`);
     }
   }
-  void files;
-  return checks.map(([capability, evidence]) => ({ capability, available: false, evidence }));
+  return checks.map(([capability, description]) => {
+    const matches = forbiddenPaths(files, capability);
+    const toolAvailable = toolCapabilityAvailable(capability, exposedCapabilities);
+    const available = matches.length > 0 || toolAvailable;
+    const evidence = available
+      ? `${description}; observed=${[...matches, ...(toolAvailable ? ["tool-scope"] : [])].sort(compareCodeUnits).join(",")}`
+      : `${description}; observed=none; files_checked=${files.length}; tools_checked=${exposedCapabilities.length}`;
+    return { capability, available, evidence };
+  });
 }
 
 export function assertPositiveToolAllowlist(profile: ToolProfile): void {

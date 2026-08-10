@@ -14,7 +14,7 @@ Both are validated by schema / validator.
 
 - 実行事実の正本は runner / wrapper / hooks が生成します。
 - 失敗解釈の正本は `evaluation.json` です。
-- `run.json.primary_failure_category` は `evaluation.json.primary_failure_category` からコピーされる summary field です。
+- Generic run evaluationを使う場合、`run.json.primary_failure_category` は `evaluation.json.primary_failure_category` からコピーされる summary field です。Agentic QAの評価は `valid_for_scoring` と `invalid_reasons[]` を正本とし、このgeneric fieldへ読み替えません。
 - `evaluation.json` 生成前の `run.json.primary_failure_category` は `null` です。
 - `run.json.evaluation_path` は評価の正本となる `evaluation.json` を指します。
 - `run.json.primary_failure_category` と `evaluation.json.primary_failure_category` が食い違う場合、後続 validator は warning または failure にするべきです。
@@ -51,6 +51,12 @@ Both are validated by schema / validator.
 - runner は evaluation result を自動判断しません。
 - runner が行うのは `evaluation.json` の template 作成、存在確認、JSON / schema validation、`run_id` 一致確認、manifest summary field 更新だけです。
 - `evidence` 文字列は required のまま維持し、必要に応じて `evidence_refs` で `run.json` / report / JSONL / subagent record / validation command などへの structured reference を追加できます。
+
+### Agentic QA evaluation boundary
+
+- Agentic QAの`evaluation.json`は`scripts/agentic-qa/contracts.ts`のJSON + Zod契約で検証します。Agentic形状のevaluationはbenchmark manifestがなくても検証対象から除外しません。
+- Contract Fixtureは`execution_kind=contract_fixture`として保存できる診断成果物ですが、`fixture_not_official`を付与し、`valid_for_scoring=false`かつMetric `null`でなければなりません。
+- Official model-backed Scored Runは、patched runtimeの実測、Forbidden Probe、Fresh Runner、Required Evidence、Atomic Freeze、別Evaluator Sessionのすべてが証明できた場合だけ有効です。未実行の工程を`PASS`や`true`へ補完しません。
 
 ## Runner Completion Options
 

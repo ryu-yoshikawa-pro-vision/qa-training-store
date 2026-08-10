@@ -3,12 +3,15 @@ import { execFileSync, spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import net from "node:net";
 import os from "node:os";
+import { performance } from "node:perf_hooks";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { chromium, type Page } from "@playwright/test";
 import {
   answerKeySchema,
+  challengeIdSchema,
   challengeSchema,
+  forbiddenProbeResultsSchema,
   parseJsonWithSchema,
   toolProfileSchema,
   type AnswerKey,
@@ -25,6 +28,7 @@ import {
   type IsolatedRunnerRoot,
 } from "./isolation";
 import { createRunnerProfile } from "./runner";
+import { optionValue, requiredOptionValue } from "./cli";
 
 export type PatchPreparation = {
   patch_path: string | null;
@@ -51,6 +55,21 @@ export type RuntimeSanity = {
   platform: "web";
   baseline: RuntimeSanityPhase;
   patched: RuntimeSanityPhase;
+  scored_initial_state_reset: {
+    passed: true;
+    scenario: string;
+    observation: string;
+  };
+};
+
+/**
+ * Internal-only handle. It is intentionally never serialized into a Machine
+ * Artifact; the callback keeps the live patched server inside preparation.
+ */
+export type ScoredRuntimeHandle = {
+  readonly baseUrl: string;
+  withPage<T>(callback: (page: Page) => Promise<T>): Promise<T>;
+  stop(): Promise<void>;
 };
 
 export type ChallengePreparation = {
@@ -65,11 +84,21 @@ export type ChallengePreparation = {
   isolated_root: IsolatedRunnerRoot;
   forbidden_probe: ForbiddenProbeResult[];
   preparation_order: string[];
+  scored_runtime_handoff: "executed" | "not_executed";
   run_dir: string;
 };
 
-function readJson(filePath: string): unknown {
-  return JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+function readJson(filePath: string, rootDir = process.cwd()): unknown {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+  } catch (error) {
+    throw new Error(
+      `Invalid JSON at ${path.relative(rootDir, filePath).replace(/\\/g, "/")}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      { cause: error },
+    );
+  }
 }
 
 function sha256File(filePath: string): string {
@@ -104,14 +133,15 @@ function challengePaths(
 }
 
 function patchRelativePaths(patchFile: string): string[] {
-  return fs
-    .readFileSync(patchFile, "utf8")
-    .split(/\r?\n/)
-    .filter((line) => line.startsWith("--- a/") || line.startsWith("+++ b/"))
-    .map((line) => line.slice(6).split("\t", 1)[0] ?? "")
-    .filter((value) => value !== "/dev/null")
-    .map((value) => value.replace(/\/\/$/, ""))
-    .filter((value, index, values) => values.indexOf(value) === index);
+  const paths: string[] = [];
+  for (const line of fs.readFileSync(patchFile, "utf8").split(/\r?\n/)) {
+    if (!line.startsWith("--- ") && !line.startsWith("+++ ")) continue;
+    const raw = line.slice(4).split("\t", 1)[0] ?? "";
+    if (raw === "/dev/null") continue;
+    const match = /^(?:a|b)\/(.+)$/.exec(raw);
+    if (match?.[1] !== undefined && !paths.includes(match[1])) paths.push(match[1]);
+  }
+  return paths;
 }
 
 function copyDisposableSource(rootDir: string): string {
@@ -120,7 +150,7 @@ function copyDisposableSource(rootDir: string): string {
     recursive: true,
     filter: (source) => {
       const relative = path.relative(rootDir, source).split(path.sep).join("/");
-      return !["node_modules", "output", "dist", ".artifacts"].some(
+      return ![".git", "node_modules", "output", "dist", ".artifacts", ".codex"].some(
         (prefix) => relative === prefix || relative.startsWith(`${prefix}/`),
       );
     },
@@ -175,9 +205,24 @@ function cleanupDisposableSource(disposable: string): void {
 }
 
 function cleanupStaleDisposableSources(): void {
-  for (const entry of fs.readdirSync(os.tmpdir(), { withFileTypes: true })) {
-    if (!entry.name.startsWith("agentic-qa-source-")) continue;
-    cleanupDisposableSource(path.join(os.tmpdir(), entry.name));
+  const staleAfterMs = 60 * 60 * 1000;
+  let entries: fs.Dirent[] = [];
+  try {
+    entries = fs.readdirSync(os.tmpdir(), { withFileTypes: true });
+  } catch {
+    return;
+  }
+  const now = performance.timeOrigin + performance.now();
+  for (const entry of entries) {
+    if (!entry.isDirectory() || !entry.name.startsWith("agentic-qa-source-")) continue;
+    const disposable = path.join(os.tmpdir(), entry.name);
+    try {
+      if (now - fs.statSync(disposable).mtimeMs < staleAfterMs) continue;
+      cleanupDisposableSource(disposable);
+    } catch {
+      // Stale cleanup is best effort; the current preparation owns its own
+      // cleanup and will fail closed if that cleanup cannot complete.
+    }
   }
 }
 
@@ -206,7 +251,7 @@ function applyPatchToDisposable(
     execFileSync("git", gitArgs, { cwd: disposable, stdio: "pipe" });
     execFileSync("git", ["apply", "--", patchFile], { cwd: disposable, stdio: "pipe" });
     return {
-      patch_path: patchFile,
+      patch_path: path.relative(rootDir, patchFile).split(path.sep).join("/"),
       apply_check: "passed",
       applied: true,
       disposable_copy: "created_and_cleaned",
@@ -444,12 +489,15 @@ async function stopWebServer(server: ChildProcess): Promise<void> {
   });
 }
 
-async function runWebRuntimePhase(
+type RunningWebRuntime = ScoredRuntimeHandle & {
+  readonly readiness: Omit<RuntimeSanityPhase, "ground_truth">;
+};
+
+async function startWebRuntime(
   disposable: string,
   preparationRoot: string,
   phase: "baseline" | "patched",
-  challenge: Challenge,
-): Promise<RuntimeSanityPhase> {
+): Promise<RunningWebRuntime> {
   runWebBuild(disposable, preparationRoot, phase);
   const port = await findFreePort();
   const url = `http://127.0.0.1:${port}/`;
@@ -463,41 +511,17 @@ async function runWebRuntimePhase(
   });
   server.stdout.on("data", (chunk: Buffer | string) => stdout.push(chunk.toString()));
   server.stderr.on("data", (chunk: Buffer | string) => stderr.push(chunk.toString()));
-  let browser: Awaited<ReturnType<typeof chromium.launch>> | null = null;
   const browserDiagnostics: string[] = [];
-  try {
-    const result = await waitForWebRuntime(url);
-    browser = await chromium.launch({ headless: true });
-    const page = await browser.newPage();
-    page.on("console", (message) =>
-      browserDiagnostics.push(`console:${message.type()}:${message.text()}`),
-    );
-    page.on("pageerror", (error) => browserDiagnostics.push(`pageerror:${error.message}`));
-    const groundTruth = await runChallengeGroundTruthSanity(
-      page,
-      url.replace(/\/$/, ""),
-      challenge,
-      phase,
-    );
-    fs.writeFileSync(
-      path.join(preparationRoot, `${phase}-server-stdout.log`),
-      stdout.join(""),
-      "utf8",
-    );
-    fs.writeFileSync(
-      path.join(preparationRoot, `${phase}-server-stderr.log`),
-      stderr.join(""),
-      "utf8",
-    );
-    return { ...result, ground_truth: groundTruth };
-  } finally {
-    if (browser !== null) await browser.close();
+  let stopped = false;
+  const stop = async (): Promise<void> => {
+    if (stopped) return;
+    stopped = true;
+    await stopWebServer(server);
     fs.writeFileSync(
       path.join(preparationRoot, `${phase}-browser-diagnostics.log`),
       browserDiagnostics.join("\n"),
       "utf8",
     );
-    await stopWebServer(server);
     fs.writeFileSync(
       path.join(preparationRoot, `${phase}-server-stdout.log`),
       stdout.join(""),
@@ -508,7 +532,63 @@ async function runWebRuntimePhase(
       stderr.join(""),
       "utf8",
     );
+  };
+  const withPage = async <T>(callback: (page: Page) => Promise<T>): Promise<T> => {
+    if (stopped) throw new Error(`${phase} Web runtime is already stopped`);
+    const browser = await chromium.launch({ headless: true });
+    try {
+      const page = await browser.newPage();
+      page.on("console", (message) =>
+        browserDiagnostics.push(`console:${message.type()}:${message.text()}`),
+      );
+      page.on("pageerror", (error) => browserDiagnostics.push(`pageerror:${error.message}`));
+      return await callback(page);
+    } finally {
+      await browser.close();
+    }
+  };
+  try {
+    const result = await waitForWebRuntime(url);
+    return {
+      baseUrl: url.replace(/\/$/, ""),
+      readiness: result,
+      withPage,
+      stop,
+    };
+  } catch (error) {
+    await stop();
+    throw error;
   }
+}
+
+async function runWebRuntimePhase(
+  disposable: string,
+  preparationRoot: string,
+  phase: "baseline" | "patched",
+  challenge: Challenge,
+): Promise<RuntimeSanityPhase> {
+  const runtime = await startWebRuntime(disposable, preparationRoot, phase);
+  try {
+    const groundTruth = await runtime.withPage((page) =>
+      runChallengeGroundTruthSanity(page, runtime.baseUrl, challenge, phase),
+    );
+    return { ...runtime.readiness, ground_truth: groundTruth };
+  } finally {
+    await runtime.stop();
+  }
+}
+
+function initialStateForChallenge(challenge: Challenge): {
+  scenario: string;
+  clearSession: boolean;
+} {
+  if (challenge.challenge_id === "CHALLENGE-BASIC-001")
+    return { scenario: "suspended-user", clearSession: true };
+  if (challenge.challenge_id === "CHALLENGE-INTERMEDIATE-001")
+    return { scenario: "orders-phase1-statuses", clearSession: false };
+  if (challenge.challenge_id === "CHALLENGE-ADVANCED-001")
+    return { scenario: "default", clearSession: false };
+  throw new Error(`No scored runtime reset adapter for ${challenge.challenge_id}`);
 }
 
 async function prepareWebRuntime(
@@ -517,35 +597,74 @@ async function prepareWebRuntime(
   patchFile: string | null,
   preparationRoot: string,
   challenge: Challenge,
-): Promise<{ patch: PatchPreparation; runtimeSanity: RuntimeSanity }> {
+  prepareRunner?: (runtime: ScoredRuntimeHandle) => Promise<"executed" | "not_executed">,
+): Promise<{
+  patch: PatchPreparation;
+  runtimeSanity: RuntimeSanity;
+  scoredRuntimeHandoff: "executed" | "not_executed";
+}> {
   const baseline = await runWebRuntimePhase(disposable, preparationRoot, "baseline", challenge);
   fs.rmSync(path.join(disposable, "dist"), { recursive: true, force: true });
   const patch = applyPatchToDisposable(rootDir, disposable, patchFile);
-  const patched = await runWebRuntimePhase(disposable, preparationRoot, "patched", challenge);
-  fs.writeFileSync(
-    path.join(preparationRoot, "runtime-sanity.json"),
-    JSON.stringify(
-      {
-        platform: "web",
-        baseline,
-        patched,
-        patch,
-        order: [
-          "baseline_build",
-          "pre_patch_sanity",
-          "baseline_runtime_cleanup",
-          "git_apply_check_and_apply",
-          "patched_build",
-          "post_patch_sanity",
-          "scored_initial_state_reset",
-        ],
-      },
-      null,
-      2,
-    ),
-    "utf8",
-  );
-  return { patch, runtimeSanity: { platform: "web", baseline, patched } };
+  const patchedRuntime = await startWebRuntime(disposable, preparationRoot, "patched");
+  const reset = initialStateForChallenge(challenge);
+  try {
+    const patchedGroundTruth = await patchedRuntime.withPage((page) =>
+      runChallengeGroundTruthSanity(page, patchedRuntime.baseUrl, challenge, "patched"),
+    );
+    await patchedRuntime.withPage((page) =>
+      resetBrowserScenario(page, patchedRuntime.baseUrl, reset.scenario, reset.clearSession),
+    );
+    const scoredInitialStateReset = {
+      passed: true as const,
+      scenario: reset.scenario,
+      observation: "The patched runtime was reset after post-patch sanity on the same server.",
+    };
+    const runtimeSanity: RuntimeSanity = {
+      platform: "web",
+      baseline,
+      patched: { ...patchedRuntime.readiness, ground_truth: patchedGroundTruth },
+      scored_initial_state_reset: scoredInitialStateReset,
+    };
+    const scoredRuntimeHandoff =
+      prepareRunner === undefined ? "not_executed" : await prepareRunner(patchedRuntime);
+    const order = [
+      "baseline_build",
+      "pre_patch_sanity",
+      "baseline_runtime_cleanup",
+      "git_apply_check_and_apply",
+      "patched_build",
+      "post_patch_sanity",
+      "scored_initial_state_reset",
+      ...(prepareRunner === undefined
+        ? []
+        : ["isolated_execution_root", "positive_tool_allowlist_and_forbidden_probe"]),
+      ...(scoredRuntimeHandoff === "executed" ? ["runner_runtime_handoff"] : []),
+    ];
+    fs.writeFileSync(
+      path.join(preparationRoot, "runtime-sanity.json"),
+      JSON.stringify(
+        {
+          platform: "web",
+          baseline,
+          patched: runtimeSanity.patched,
+          patch,
+          scored_initial_state_reset: scoredInitialStateReset,
+          order,
+        },
+        null,
+        2,
+      ),
+      "utf8",
+    );
+    return {
+      patch,
+      runtimeSanity,
+      scoredRuntimeHandoff,
+    };
+  } finally {
+    await patchedRuntime.stop();
+  }
 }
 
 function copyToolProfile(rootDir: string): { profile: ToolProfile; revision: `sha256:${string}` } {
@@ -556,7 +675,11 @@ function copyToolProfile(rootDir: string): { profile: ToolProfile; revision: `sh
     "tool-profiles",
     "scored-v1.json",
   );
-  const profile = parseJsonWithSchema(readJson(profilePath), toolProfileSchema, "scored-v1.json");
+  const profile = parseJsonWithSchema(
+    readJson(profilePath, rootDir),
+    toolProfileSchema,
+    "training/agentic-qa/tool-profiles/scored-v1.json",
+  );
   return { profile, revision: `sha256:${sha256File(profilePath)}` };
 }
 
@@ -567,17 +690,23 @@ export async function prepareChallenge(input: {
   runDir: string;
   runtimeVariantId?: string | null;
   model?: string;
+  runScoredRunner?: (runtime: ScoredRuntimeHandle) => Promise<void>;
 }): Promise<ChallengePreparation> {
   const rootDir = input.rootDir ?? process.cwd();
+  challengeIdSchema.parse(input.challengeId);
   cleanupStaleDisposableSources();
   const runtimeVariantId = input.runtimeVariantId ?? null;
   const paths = challengePaths(rootDir, input.challengeId);
   const challenge = parseJsonWithSchema(
-    readJson(paths.challenge),
+    readJson(paths.challenge, rootDir),
     challengeSchema,
-    paths.challenge,
+    "training/agentic-qa/challenges/" + input.challengeId + "/challenge.json",
   );
-  const answerKey = parseJsonWithSchema(readJson(paths.answer), answerKeySchema, paths.answer);
+  const answerKey = parseJsonWithSchema(
+    readJson(paths.answer, rootDir),
+    answerKeySchema,
+    "training/agentic-qa/instructor/answer-key/" + input.challengeId + ".json",
+  );
   const artifactRoot = path.join(
     rootDir,
     ".artifacts",
@@ -591,6 +720,12 @@ export async function prepareChallenge(input: {
     path.join(artifactRoot, "learner-spec"),
   );
   const patchFile = fs.existsSync(paths.patch) ? paths.patch : null;
+  const tool = copyToolProfile(rootDir);
+  const runnerProfile = createRunnerProfile({
+    model: input.model ?? "local-deterministic-runner",
+    toolProfileRevision: tool.revision,
+    challenge,
+  });
   const benchmarkRevision = createBenchmarkRevision({
     rootDir,
     challenge,
@@ -601,18 +736,16 @@ export async function prepareChallenge(input: {
       patchFile === null
         ? null
         : `training/agentic-qa/instructor/challenge-patches/${challenge.challenge_id}.patch`,
-  });
-  const tool = copyToolProfile(rootDir);
-  const runnerProfile = createRunnerProfile({
-    model: input.model ?? "local-deterministic-runner",
-    toolProfileRevision: tool.revision,
-    challenge,
+    runnerProfile,
   });
   const preparationRoot = path.join(artifactRoot, "preparation");
   fs.mkdirSync(preparationRoot, { recursive: true });
   const disposable = copyDisposableSource(rootDir);
   let patch: PatchPreparation;
   let runtimeSanity: RuntimeSanity;
+  let scoredRuntimeHandoff: "executed" | "not_executed" = "not_executed";
+  let isolatedRoot: IsolatedRunnerRoot | undefined;
+  let forbiddenProbe: ForbiddenProbeResult[] | undefined;
   try {
     if (challenge.target_platform !== "web")
       throw new Error(`Runtime sanity adapter is not implemented for ${challenge.target_platform}`);
@@ -622,20 +755,42 @@ export async function prepareChallenge(input: {
       patchFile,
       preparationRoot,
       challenge,
+      async (runtime) => {
+        isolatedRoot = createIsolatedRunnerRoot({
+          outputRoot: path.join(artifactRoot, "isolated-run-root"),
+          learnerBundle,
+          challengeDirectory: paths.directory,
+          challenge,
+        });
+        const measuredProbe = probeForbiddenCapabilities(
+          isolatedRoot.root,
+          tool.profile,
+          tool.profile.allowed_capabilities,
+        );
+        forbiddenProbe = parseJsonWithSchema(
+          measuredProbe,
+          forbiddenProbeResultsSchema,
+          "forbidden-probe",
+        );
+        assertForbiddenProbePasses(forbiddenProbe);
+        fs.writeFileSync(
+          path.join(preparationRoot, "forbidden-probe.json"),
+          `${JSON.stringify(forbiddenProbe, null, 2)}\n`,
+          "utf8",
+        );
+        if (input.runScoredRunner === undefined) return "not_executed";
+        await input.runScoredRunner(runtime);
+        return "executed";
+      },
     );
     patch = prepared.patch;
     runtimeSanity = prepared.runtimeSanity;
+    scoredRuntimeHandoff = prepared.scoredRuntimeHandoff;
   } finally {
-    fs.rmSync(disposable, { recursive: true, force: true });
+    cleanupDisposableSource(disposable);
   }
-  const isolatedRoot = createIsolatedRunnerRoot({
-    outputRoot: path.join(artifactRoot, "isolated-run-root"),
-    learnerBundle,
-    challengeDirectory: paths.directory,
-    challenge,
-  });
-  const forbiddenProbe = probeForbiddenCapabilities(isolatedRoot.root, tool.profile);
-  assertForbiddenProbePasses(forbiddenProbe);
+  if (isolatedRoot === undefined || forbiddenProbe === undefined)
+    throw new Error("Preparation did not execute the isolated-root and Forbidden Probe step");
   const revisionIdentity = benchmarkIdentity(
     challenge.challenge_id,
     benchmarkRevision.revision,
@@ -657,7 +812,14 @@ export async function prepareChallenge(input: {
     "scored_initial_state_reset",
     "isolated_execution_root",
     "positive_tool_allowlist_and_forbidden_probe",
+    ...(scoredRuntimeHandoff === "executed" ? ["runner_runtime_handoff"] : []),
+    "scored_runtime_stop_and_disposable_cleanup",
   ];
+  fs.writeFileSync(
+    path.join(preparationRoot, "preparation-order.json"),
+    `${JSON.stringify(preparationOrder, null, 2)}\n`,
+    "utf8",
+  );
   fs.mkdirSync(input.runDir, { recursive: true });
   fs.writeFileSync(
     path.join(input.runDir, "benchmark-manifest.json"),
@@ -681,6 +843,7 @@ export async function prepareChallenge(input: {
     isolated_root: isolatedRoot,
     forbidden_probe: forbiddenProbe,
     preparation_order: preparationOrder,
+    scored_runtime_handoff: scoredRuntimeHandoff,
     run_dir: input.runDir,
   };
 }
@@ -693,15 +856,11 @@ function isMainModule(): boolean {
 }
 
 async function main(): Promise<void> {
-  const challengeId = process.argv[process.argv.indexOf("--challenge") + 1];
-  const runDir = process.argv[process.argv.indexOf("--run-dir") + 1];
-  const modelIndex = process.argv.indexOf("--model");
-  const model = modelIndex === -1 ? undefined : process.argv[modelIndex + 1];
-  if (modelIndex !== -1 && model === undefined) throw new Error("Missing argument value: --model");
-  if (challengeId === undefined || runDir === undefined)
-    throw new Error(
-      "Usage: prepare-challenge.ts --challenge <challenge-id> --run-dir <run-dir> [--model <model>]",
-    );
+  const args = process.argv.slice(2);
+  const challengeId = requiredOptionValue(args, "--challenge");
+  challengeIdSchema.parse(challengeId);
+  const runDir = requiredOptionValue(args, "--run-dir");
+  const model = optionValue(args, "--model");
   const result = await prepareChallenge({
     challengeId,
     runId: path.basename(runDir),

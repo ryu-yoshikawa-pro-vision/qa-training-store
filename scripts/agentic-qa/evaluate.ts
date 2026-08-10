@@ -6,7 +6,9 @@ import { benchmarkRevisionFromManifest } from "./benchmark-revision";
 import {
   answerKeySchema,
   benchmarkManifestSchema,
+  challengeIdSchema,
   challengeSchema,
+  compareCodeUnits,
   evaluationSchema,
   parseJsonWithSchema,
   qaFindingsSchema,
@@ -21,6 +23,7 @@ import {
 } from "./contracts";
 import { assertCoverageIntegrity } from "./coverage";
 import { createRunnerProfile } from "./runner";
+import { optionValue } from "./cli";
 
 type ActiveAnswerItem = Extract<AnswerItem, { kind: "defect" | "non-defect" }>;
 
@@ -37,6 +40,7 @@ export type EvaluationOptions = {
   preparationFailure?: boolean;
   environmentBlocker?: boolean;
   benchmarkGroundTruthChanged?: boolean;
+  evaluatorSessionId?: string;
 };
 
 function coverageComplete(findings: QaFindings, coverageId: string): boolean {
@@ -46,10 +50,31 @@ function coverageComplete(findings: QaFindings, coverageId: string): boolean {
 }
 
 function evidenceSatisfies(finding: Finding, item: ActiveAnswerItem): boolean {
-  const expectation = item.evidence_expectation.trim().toLocaleLowerCase("en-US");
-  return finding.evidence.some((evidence) =>
-    evidence.description.toLocaleLowerCase("en-US").includes(expectation),
+  const expectation = normalizeText(item.evidence_expectation);
+  const actualDeviation = normalizeText(item.required_observation);
+  return finding.evidence.some((evidence) => {
+    const values = [normalizeText(evidence.description), normalizeText(evidence.ref)];
+    return values.some((value) => value.includes(expectation) || value.includes(actualDeviation));
+  });
+}
+
+function normalizeText(value: string): string {
+  return value.trim().toLocaleLowerCase("en-US").replace(/\s+/g, " ");
+}
+
+function expectedBehaviorMatches(finding: Finding, item: ActiveAnswerItem): boolean {
+  return normalizeText(finding.expected) === normalizeText(item.expected_behavior);
+}
+
+function reproductionMatches(finding: Finding, item: ActiveAnswerItem): boolean {
+  return (
+    normalizeText(finding.reproduction_condition) ===
+    normalizeText(item.minimum_reproduction_condition)
   );
+}
+
+function actualDeviationMatches(finding: Finding, item: ActiveAnswerItem): boolean {
+  return normalizeText(finding.actual).includes(normalizeText(item.required_observation));
 }
 
 function oracleMatches(finding: Finding, item: ActiveAnswerItem): boolean {
@@ -66,7 +91,11 @@ function coverageMatches(finding: Finding, item: ActiveAnswerItem): boolean {
 
 function findingCanBeMatched(finding: Finding, item: ActiveAnswerItem): boolean {
   return (
-    oracleMatches(finding, item) && coverageMatches(finding, item) && finding.evidence.length > 0
+    oracleMatches(finding, item) &&
+    coverageMatches(finding, item) &&
+    reproductionMatches(finding, item) &&
+    expectedBehaviorMatches(finding, item) &&
+    finding.evidence.length > 0
   );
 }
 
@@ -88,6 +117,8 @@ function itemObservationSeen(findings: QaFindings, item: ActiveAnswerItem): bool
       (finding) =>
         activeFinding(finding) &&
         coverageComplete(findings, item.related_coverage_id) &&
+        expectedBehaviorMatches(finding, item) &&
+        actualDeviationMatches(finding, item) &&
         evidenceSatisfies(finding, item),
     )
   );
@@ -110,7 +141,10 @@ function allNullMetrics(): Evaluation["metrics"] {
   };
 }
 
-function invalidReasonSet(options: EvaluationOptions, findings: QaFindings): string[] {
+function invalidReasonSet(
+  options: EvaluationOptions,
+  findings: Extract<QaFindings, { mode: "black-box-scored" }>,
+): string[] {
   const reasons = new Set<string>();
   if (
     options.environmentBlocker === true ||
@@ -120,6 +154,16 @@ function invalidReasonSet(options: EvaluationOptions, findings: QaFindings): str
   if (options.isolationFailure === true) reasons.add("isolation_failure");
   if (options.toolScopeFailure === true) reasons.add("tool_scope_failure");
   if (options.preparationFailure === true) reasons.add("preparation_failure");
+  if (findings.execution_kind === "contract_fixture") reasons.add("fixture_not_official");
+  if (!findings.fresh_session) reasons.add("isolation_failure");
+  if (!findings.tool_scope_validated) reasons.add("tool_scope_failure");
+  if (
+    options.evaluatorSessionId !== undefined &&
+    options.evaluatorSessionId === findings.runner_session_id
+  )
+    reasons.add("isolation_failure");
+  if (findings.coverage.items.some((item) => item.status === "not_completed"))
+    reasons.add("coverage_integrity_failure");
   if (
     options.benchmarkGroundTruthChanged === true ||
     findings.findings.some((finding) => finding.status === "unexpected_valid_finding")
@@ -143,15 +187,16 @@ function invalidReasonSet(options: EvaluationOptions, findings: QaFindings): str
       : options.runtimeVariantId;
   if (hasExpectedRuntimeVariant && expectedRuntimeVariantId !== findings.runtime_variant_id)
     reasons.add("benchmark_identity_mismatch");
-  return [...reasons].sort((a, b) => a.localeCompare(b));
+  return [...reasons].sort(compareCodeUnits);
 }
 
 function matchDefectFinding(finding: Finding, item: ActiveAnswerItem): boolean {
   return (
     item.kind === "defect" &&
     findingCanBeMatched(finding, item) &&
+    actualDeviationMatches(finding, item) &&
     evidenceSatisfies(finding, item) &&
-    finding.expected !== finding.actual
+    normalizeText(finding.expected) !== normalizeText(finding.actual)
   );
 }
 
@@ -160,9 +205,10 @@ function evidenceQuality(finding: Finding, item: ActiveAnswerItem): number {
     oracleMatches(finding, item),
     finding.steps.length > 0 && finding.reproduction_count > 0,
     finding.evidence.length > 0,
+    actualDeviationMatches(finding, item) && evidenceSatisfies(finding, item),
     finding.expected.trim() !== "" &&
       finding.actual.trim() !== "" &&
-      finding.expected !== finding.actual,
+      normalizeText(finding.expected) !== normalizeText(finding.actual),
   ];
   return checks.filter(Boolean).length / checks.length;
 }
@@ -379,7 +425,7 @@ export function evaluateBlackBox(
   const invalidReasons = invalidReasonSet(options, findings);
   if (matches.some((match) => match.classification === "review_needed"))
     invalidReasons.push("preparation_failure");
-  const uniqueReasons = [...new Set(invalidReasons)].sort((a, b) => a.localeCompare(b));
+  const uniqueReasons = [...new Set(invalidReasons)].sort(compareCodeUnits);
   const validForScoring = uniqueReasons.length === 0;
   const requiredCoverage = challenge.required_coverage.length;
   const completedCoverage = findings.coverage.items.filter(
@@ -430,8 +476,11 @@ export function evaluateBlackBox(
     runtime_variant_id: findings.runtime_variant_id,
     runner_profile: findings.runner_profile,
     mode: "black-box-scored",
-    fresh_session: true,
-    tool_scope_validated: true,
+    execution_kind: findings.execution_kind,
+    runner_session_id: findings.runner_session_id,
+    evaluator_session_id: options.evaluatorSessionId ?? crypto.randomUUID(),
+    fresh_session: findings.fresh_session,
+    tool_scope_validated: findings.tool_scope_validated,
     valid_for_scoring: validForScoring,
     invalid_reasons: uniqueReasons as Evaluation["invalid_reasons"],
     matches,
@@ -442,16 +491,20 @@ export function evaluateBlackBox(
 }
 
 function readJson(filePath: string): unknown {
-  return JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+  } catch (error) {
+    throw new Error(
+      `Invalid JSON at ${path.relative(process.cwd(), filePath).replace(/\\/g, "/")}: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
+      { cause: error },
+    );
+  }
 }
 
 function sha256File(filePath: string): string {
   return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
-}
-
-function optionValue(name: string): string | undefined {
-  const index = process.argv.indexOf(name);
-  return index === -1 ? undefined : process.argv[index + 1];
 }
 
 function isMainModule(): boolean {
@@ -462,10 +515,12 @@ function isMainModule(): boolean {
 }
 
 if (isMainModule()) {
-  const runDir = optionValue("--run-dir");
-  const challengeId = optionValue("--challenge");
+  const cliArgs = process.argv.slice(2);
+  const runDir = optionValue(cliArgs, "--run-dir");
+  const challengeId = optionValue(cliArgs, "--challenge");
   if (runDir === undefined || challengeId === undefined)
     throw new Error("Usage: evaluate.ts --run-dir <run-dir> --challenge <challenge-id>");
+  challengeIdSchema.parse(challengeId);
   const rootDir = process.cwd();
   const challenge = parseJsonWithSchema(
     readJson(
@@ -512,13 +567,19 @@ if (isMainModule()) {
     );
   const profileFile = path.join(rootDir, "training/agentic-qa/tool-profiles/scored-v1.json");
   parseJsonWithSchema(readJson(profileFile), toolProfileSchema, "scored-v1.json");
-  const runnerProfile = createRunnerProfile({
-    model: optionValue("--model") ?? "local-deterministic-runner",
-    toolProfileRevision: `sha256:${sha256File(profileFile)}`,
-    challenge,
-  });
+  const runnerProfile =
+    manifest.runner_profile ??
+    createRunnerProfile({
+      model: optionValue(cliArgs, "--model") ?? "local-deterministic-runner",
+      toolProfileRevision: `sha256:${sha256File(profileFile)}`,
+      challenge,
+    });
   const expectedBenchmarkRevision = benchmarkRevisionFromManifest(selectedManifestFile, manifest);
   const evaluatorSessionId = crypto.randomUUID();
+  if (findings.mode !== "black-box-scored")
+    throw new Error("Evaluator accepts scored findings only");
+  if (findings.runner_session_id === evaluatorSessionId)
+    throw new Error("Evaluator session must differ from runner session");
   const evaluatorEvidenceDirectory = path.join(
     rootDir,
     ".artifacts",
@@ -530,9 +591,10 @@ if (isMainModule()) {
     path.join(evaluatorEvidenceDirectory, "evaluator-session.json"),
     `${JSON.stringify(
       {
+        runner_session_id: findings.runner_session_id,
         evaluator_session_id: evaluatorSessionId,
         answer_key_read: true,
-        runner_session_reused: false,
+        runner_session_reused: findings.runner_session_id === evaluatorSessionId,
       },
       null,
       2,
@@ -544,6 +606,7 @@ if (isMainModule()) {
     expectedBenchmarkRevision,
     expectedRuntimeVariantId: manifest.runtime_variant_id,
     expectedRunnerProfile: runnerProfile,
+    evaluatorSessionId,
   });
   fs.writeFileSync(
     path.join(runDir, "evaluation.json"),

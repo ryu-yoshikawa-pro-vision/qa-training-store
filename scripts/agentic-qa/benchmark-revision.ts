@@ -4,10 +4,13 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   benchmarkManifestSchema,
+  challengeIdSchema,
+  compareCodeUnits,
   parseJsonWithSchema,
   type AnswerKey,
   type BenchmarkManifest,
   type Challenge,
+  type RunnerProfile,
 } from "./contracts";
 import type { LearnerBundle } from "./build-learner-bundle";
 
@@ -41,12 +44,14 @@ const EXCLUDED_PREFIXES = [
 ];
 
 function normalizeRepoPath(value: string): string {
-  return value.replace(/^\s+/, "").replace(/\\/g, "/");
+  return value.replace(/\\/g, "/");
 }
 
 function isExcludedPath(relativePath: string): boolean {
   const normalized = normalizeRepoPath(relativePath);
-  return EXCLUDED_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+  return EXCLUDED_PREFIXES.some(
+    (prefix) => normalized === prefix.slice(0, -1) || normalized.startsWith(prefix),
+  );
 }
 
 function sha256File(filePath: string): string {
@@ -58,12 +63,9 @@ function git(rootDir: string, args: string[]): string {
 }
 
 function sourceHeadSha(rootDir: string): string | null {
-  try {
-    const value = git(rootDir, ["rev-parse", "HEAD"]).toLowerCase();
-    return /^[0-9a-f]{40}$/.test(value) ? value : null;
-  } catch {
-    return null;
-  }
+  const value = git(rootDir, ["rev-parse", "HEAD"]).toLowerCase();
+  if (!/^[0-9a-f]{40}$/.test(value)) throw new Error("Git HEAD is not a valid commit SHA");
+  return value;
 }
 
 function entryFor(
@@ -80,42 +82,52 @@ function entryFor(
   };
 }
 
-function parseStatusLine(rootDir: string, line: string): WorkingTreeEntry[] {
-  const statusCode = line.slice(0, 2);
-  const rawPath = line.slice(3).trim();
+function parseStatusRecord(
+  rootDir: string,
+  record: string,
+  renameSource?: string,
+): WorkingTreeEntry[] {
+  const statusCode = record.slice(0, 2);
+  const rawPath = record.slice(3);
   if (rawPath === "") return [];
   if (statusCode.startsWith("R") || statusCode.startsWith("C")) {
-    const separator = rawPath.indexOf(" -> ");
-    if (separator >= 0) {
-      const oldPath = rawPath.slice(0, separator);
-      const newPath = rawPath.slice(separator + 4);
-      return [entryFor(rootDir, "D", oldPath), entryFor(rootDir, "A", newPath)];
-    }
+    if (renameSource === undefined || renameSource === "")
+      throw new Error("Git status rename/copy record is missing its source path");
+    return [entryFor(rootDir, "D", renameSource), entryFor(rootDir, "A", rawPath)];
   }
   if (statusCode === "??" || statusCode.includes("A")) return [entryFor(rootDir, "A", rawPath)];
   if (statusCode.includes("D")) return [entryFor(rootDir, "D", rawPath)];
   return [entryFor(rootDir, "M", rawPath)];
 }
 
-export function collectWorkingTreeEntries(rootDir: string): WorkingTreeEntry[] {
-  let output = "";
-  try {
-    output = execFileSync("git", ["status", "--porcelain=v1", "--untracked-files=all"], {
-      cwd: rootDir,
-      encoding: "utf8",
-    });
-  } catch {
-    return [];
+export function parsePorcelainStatusRecords(rootDir: string, output: string): WorkingTreeEntry[] {
+  const records = output.split("\0").filter((record) => record !== "");
+  const parsedEntries: WorkingTreeEntry[] = [];
+  for (let index = 0; index < records.length; index += 1) {
+    const record = records[index]!;
+    const statusCode = record.slice(0, 2);
+    if (statusCode.startsWith("R") || statusCode.startsWith("C")) {
+      parsedEntries.push(...parseStatusRecord(rootDir, record, records[index + 1]));
+      index += 1;
+    } else {
+      parsedEntries.push(...parseStatusRecord(rootDir, record));
+    }
   }
-  const entries = output
-    .split(/\r?\n/)
-    .flatMap((line) => parseStatusLine(rootDir, line))
-    .filter((entry) => !isExcludedPath(entry.path));
+  const entries = parsedEntries.filter((entry) => !isExcludedPath(entry.path));
   const unique = new Map<string, WorkingTreeEntry>();
   for (const entry of entries) unique.set(`${entry.status}:${entry.path}`, entry);
   return [...unique.values()].sort(
-    (a, b) => a.path.localeCompare(b.path) || a.status.localeCompare(b.status),
+    (a, b) => compareCodeUnits(a.path, b.path) || compareCodeUnits(a.status, b.status),
   );
+}
+
+export function collectWorkingTreeEntries(rootDir: string): WorkingTreeEntry[] {
+  const output = execFileSync("git", ["status", "--porcelain=v1", "-z", "--untracked-files=all"], {
+    cwd: rootDir,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  return parsePorcelainStatusRecords(rootDir, output);
 }
 
 function manifestFile(rootDir: string, relativePath: string): { path: string; sha256: string } {
@@ -150,6 +162,7 @@ export function createBenchmarkRevision(input: {
   learnerBundle: LearnerBundle;
   runtimeVariantId: string | null;
   patchPath: string | null;
+  runnerProfile?: RunnerProfile;
 }): BenchmarkRevision {
   const challengePath = `training/agentic-qa/challenges/${input.challenge.challenge_id}/challenge.json`;
   const answerKeyPath = `training/agentic-qa/instructor/answer-key/${input.challenge.challenge_id}.json`;
@@ -160,12 +173,13 @@ export function createBenchmarkRevision(input: {
       source_head_sha: sourceHeadSha(input.rootDir),
       working_tree_entries: collectWorkingTreeEntries(input.rootDir),
       learner_spec_entries: [...input.learnerBundle.entries].sort((a, b) =>
-        a.path.localeCompare(b.path),
+        compareCodeUnits(a.path, b.path),
       ),
       challenge: manifestFile(input.rootDir, challengePath),
       answer_key: manifestFile(input.rootDir, answerKeyPath),
       challenge_patch: patch,
       runtime_variant_id: input.runtimeVariantId,
+      ...(input.runnerProfile === undefined ? {} : { runner_profile: input.runnerProfile }),
     },
     benchmarkManifestSchema,
     "benchmark manifest",
@@ -178,8 +192,15 @@ export function createBenchmarkRevision(input: {
     try {
       git(input.rootDir, ["ls-files", "--error-unmatch", "--", relativePath]);
       return true;
-    } catch {
-      return false;
+    } catch (error) {
+      if (
+        typeof error === "object" &&
+        error !== null &&
+        "status" in error &&
+        (error as { status?: unknown }).status === 1
+      )
+        return false;
+      throw new Error(`Git tracked-file inspection failed for ${relativePath}`, { cause: error });
     }
   };
   const clean =
@@ -199,10 +220,11 @@ export function benchmarkIdentity(
   revision: string,
   runtimeVariantId: string | null,
 ): BenchmarkIdentity {
+  const validatedChallengeId = challengeIdSchema.parse(challengeId);
   if (!/^(?:git:[0-9a-f]{40}|sha256:[0-9a-f]{64})$/.test(revision))
     throw new Error(`Invalid benchmark revision: ${revision}`);
   return {
-    challenge_id: challengeId,
+    challenge_id: validatedChallengeId,
     benchmark_revision: revision,
     runtime_variant_id: runtimeVariantId,
   };

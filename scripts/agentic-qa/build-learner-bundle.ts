@@ -1,6 +1,7 @@
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
+import { compareCodeUnits } from "./contracts";
 import { resolveSpecReferences } from "./spec-refs";
 import type { Challenge } from "./contracts";
 
@@ -43,7 +44,7 @@ export function buildLearnerBundle(
     fs.copyFileSync(sourcePath, destinationPath);
     entries.push({ path: item.ownerPath, sha256: sha256File(sourcePath) });
   }
-  entries.sort((a, b) => a.path.localeCompare(b.path));
+  entries.sort((a, b) => compareCodeUnits(a.path, b.path));
   return { root: outputDir, entries };
 }
 

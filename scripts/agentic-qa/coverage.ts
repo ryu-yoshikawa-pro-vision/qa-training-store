@@ -18,7 +18,9 @@ export function createCoverageSkeleton(
   return source.required_coverage.map((item) => ({
     coverage_id: item.coverage_id,
     status: "not_completed",
+    mission_completed: false,
     evidence_refs: [],
+    evidence_types: [],
     blocker_reason: null,
     notes: "",
   }));
@@ -35,9 +37,27 @@ export function assertCoverageIntegrity(
   if (JSON.stringify(actualItemIds) !== JSON.stringify(expected))
     throw new Error("coverage.items does not match the Coverage SSOT");
   for (const item of actual.items) {
+    const definition = expectedSource.required_coverage.find(
+      (candidate) => candidate.coverage_id === item.coverage_id,
+    );
+    if (definition === undefined)
+      throw new Error(`coverage item is not present in the Coverage SSOT: ${item.coverage_id}`);
     if (item.status === "blocked_environment" && item.blocker_reason === null)
       throw new Error(`blocked coverage requires blocker_reason: ${item.coverage_id}`);
     if (item.status !== "blocked_environment" && item.blocker_reason !== null)
       throw new Error(`only blocked coverage may have blocker_reason: ${item.coverage_id}`);
+    if (item.status === "completed") {
+      if (!item.mission_completed)
+        throw new Error(`completed coverage requires mission_completed: ${item.coverage_id}`);
+      if (item.evidence_refs.length === 0)
+        throw new Error(`completed coverage requires evidence_refs: ${item.coverage_id}`);
+      const missingTypes = definition.required_evidence_types.filter(
+        (type) => !item.evidence_types.includes(type),
+      );
+      if (missingTypes.length > 0)
+        throw new Error(
+          `completed coverage is missing required evidence types for ${item.coverage_id}: ${missingTypes.join(", ")}`,
+        );
+    }
   }
 }

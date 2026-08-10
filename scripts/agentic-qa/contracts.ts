@@ -7,6 +7,16 @@ export const STOP_CONDITION =
 const nonEmpty = z.string().min(1);
 const schemaVersion = z.literal(SCHEMA_VERSION);
 const sha256Hex = z.string().regex(/^[0-9a-f]{64}$/);
+
+export function compareCodeUnits(left: string, right: string): number {
+  const length = Math.min(left.length, right.length);
+  for (let index = 0; index < length; index += 1) {
+    const difference = left.charCodeAt(index) - right.charCodeAt(index);
+    if (difference !== 0) return difference;
+  }
+  return left.length - right.length;
+}
+
 const repoRelativePath = nonEmpty
   .refine(
     (value) => !value.startsWith("/") && !/^[A-Za-z]:[\\/]/.test(value),
@@ -17,9 +27,11 @@ const repoRelativePath = nonEmpty
     "must not contain parent traversal or backslashes",
   );
 const coverageId = z.string().regex(/^COV-[0-9]{3}$/);
-const challengeId = z.string().regex(/^CHALLENGE-(?:BASIC|INTERMEDIATE|ADVANCED)-[0-9]{3}$/);
+export const challengeIdSchema = z
+  .string()
+  .regex(/^CHALLENGE-(?:BASIC|INTERMEDIATE|ADVANCED)-[0-9]{3}$/);
 const charterId = z.string().regex(/^CHARTER-[0-9]{3}$/);
-const specRef = z
+export const specRefSchema = z
   .string()
   .refine(
     (value) =>
@@ -30,7 +42,7 @@ const specRef = z
   );
 const platform = z.enum(["web", "android", "ios"]);
 const role = z.enum(["guest", "customer", "operator", "admin"]);
-const evidenceType = z.enum([
+export const evidenceTypeSchema = z.enum([
   "screenshot",
   "accessibility",
   "dom",
@@ -51,7 +63,7 @@ export const coverageDefinitionSchema = z
     seed: nonEmpty,
     platform,
     viewport_or_device: nonEmpty,
-    required_evidence_types: z.array(evidenceType).min(1),
+    required_evidence_types: z.array(evidenceTypeSchema).min(1),
   })
   .strict();
 
@@ -59,17 +71,33 @@ export const coverageResultSchema = z
   .object({
     coverage_id: coverageId,
     status: z.enum(["completed", "not_completed", "blocked_environment"]),
+    mission_completed: z.boolean(),
     evidence_refs: z.array(nonEmpty),
+    evidence_types: z.array(evidenceTypeSchema),
     blocker_reason: z.string().nullable(),
     notes: z.string(),
   })
-  .strict();
+  .strict()
+  .superRefine((value, context) => {
+    if (value.status === "completed" && !value.mission_completed)
+      context.addIssue({
+        code: "custom",
+        path: ["mission_completed"],
+        message: "completed coverage requires mission_completed=true",
+      });
+    if (value.status === "blocked_environment" && value.mission_completed)
+      context.addIssue({
+        code: "custom",
+        path: ["mission_completed"],
+        message: "blocked coverage cannot claim mission_completed=true",
+      });
+  });
 
 export const charterSchema = z
   .object({
     schema_version: schemaVersion,
     charter_id: charterId,
-    spec_refs: z.array(specRef).min(1),
+    spec_refs: z.array(specRefSchema).min(1),
     mission: nonEmpty,
     risk: nonEmpty,
     role,
@@ -101,10 +129,10 @@ export const explorationBudgetSchema = z
 export const challengeSchema = z
   .object({
     schema_version: schemaVersion,
-    challenge_id: challengeId,
+    challenge_id: challengeIdSchema,
     level: z.enum(["basic", "intermediate", "advanced"]),
     target_platform: platform,
-    spec_refs: z.array(specRef).min(1),
+    spec_refs: z.array(specRefSchema).min(1),
     required_coverage: z.array(coverageDefinitionSchema).min(1),
     allowed_runtime_controls: z.array(runtimeControl),
     exploration_budget: explorationBudgetSchema,
@@ -132,7 +160,7 @@ export const challengeSchema = z
 const answerItemBase = z.object({
   item_id: nonEmpty,
   title: nonEmpty,
-  oracle_refs: z.array(specRef).min(1),
+  oracle_refs: z.array(specRefSchema).min(1),
   expected_behavior: nonEmpty,
   minimum_reproduction_condition: nonEmpty,
   required_observation: nonEmpty,
@@ -164,7 +192,7 @@ export const answerItemSchema = z.discriminatedUnion("kind", [
 export const answerKeySchema = z
   .object({
     schema_version: schemaVersion,
-    challenge_id: challengeId,
+    challenge_id: challengeIdSchema,
     items: z.array(answerItemSchema).min(1),
   })
   .strict()
@@ -203,6 +231,30 @@ export const forbiddenCapabilitySchema = z.enum([
   "answer_key",
   "prior_scored_session",
 ]);
+
+export type EvidenceType = z.infer<typeof evidenceTypeSchema>;
+export type ForbiddenCapability = z.infer<typeof forbiddenCapabilitySchema>;
+
+export const forbiddenProbeResultSchema = z
+  .object({
+    capability: forbiddenCapabilitySchema,
+    available: z.boolean(),
+    evidence: nonEmpty,
+  })
+  .strict();
+
+export const forbiddenProbeResultsSchema = z.array(forbiddenProbeResultSchema).min(1);
+
+export const runnerSessionSchema = z
+  .object({
+    runner_session_id: nonEmpty,
+    fresh_session: z.boolean(),
+    session_artifact_new: z.boolean(),
+    prior_runner_session_ids: z.array(nonEmpty),
+    tool_scope_probe_passed: z.boolean(),
+    forbidden_probe: forbiddenProbeResultsSchema,
+  })
+  .strict();
 
 export const toolProfileSchema = z
   .object({
@@ -289,7 +341,7 @@ export const workingTreeSnapshotSchema = z
       });
     const sorted = [...value.working_tree_entries].sort(
       (left, right) =>
-        left.path.localeCompare(right.path) || left.status.localeCompare(right.status),
+        compareCodeUnits(left.path, right.path) || compareCodeUnits(left.status, right.status),
     );
     if (JSON.stringify(sorted) !== JSON.stringify(value.working_tree_entries))
       context.addIssue({
@@ -337,7 +389,7 @@ export const workingTreeSnapshotComparisonSchema = z
         message: "working tree snapshot diff paths must be unique",
       });
     const sorted = [...value.source_diff].sort((left, right) =>
-      left.path.localeCompare(right.path),
+      compareCodeUnits(left.path, right.path),
     );
     if (JSON.stringify(sorted) !== JSON.stringify(value.source_diff))
       context.addIssue({
@@ -382,6 +434,7 @@ export const benchmarkManifestSchema = z
     answer_key: manifestFileSchema,
     challenge_patch: manifestFileSchema.nullable(),
     runtime_variant_id: z.string().min(1).nullable(),
+    runner_profile: runnerProfileSchema.optional(),
   })
   .strict()
   .superRefine((value, context) => {
@@ -394,7 +447,7 @@ export const benchmarkManifestSchema = z
       });
     const sortedWorking = [...value.working_tree_entries].sort(
       (left, right) =>
-        left.path.localeCompare(right.path) || left.status.localeCompare(right.status),
+        compareCodeUnits(left.path, right.path) || compareCodeUnits(left.status, right.status),
     );
     if (JSON.stringify(sortedWorking) !== JSON.stringify(value.working_tree_entries))
       context.addIssue({
@@ -410,7 +463,7 @@ export const benchmarkManifestSchema = z
         message: "learner spec entries must be unique",
       });
     const sortedLearner = [...value.learner_spec_entries].sort((left, right) =>
-      left.path.localeCompare(right.path),
+      compareCodeUnits(left.path, right.path),
     );
     if (JSON.stringify(sortedLearner) !== JSON.stringify(value.learner_spec_entries))
       context.addIssue({
@@ -422,7 +475,7 @@ export const benchmarkManifestSchema = z
 
 export const evidenceSchema = z
   .object({
-    type: evidenceType,
+    type: evidenceTypeSchema,
     ref: nonEmpty,
     description: nonEmpty,
   })
@@ -434,11 +487,12 @@ export const findingSchema = z
     title: nonEmpty,
     severity,
     confidence: z.enum(["high", "medium", "low"]),
-    oracle_refs: z.array(specRef).min(1),
+    oracle_refs: z.array(specRefSchema).min(1),
     platform,
     role,
     seed_scenario: nonEmpty,
     steps: z.array(nonEmpty).min(1),
+    reproduction_condition: nonEmpty,
     expected: nonEmpty,
     actual: nonEmpty,
     evidence: z.array(evidenceSchema).min(1),
@@ -507,12 +561,14 @@ export const scoredFindingsSchema = z
     ...qaCommonFields,
     mode: z.literal("black-box-scored"),
     charter_id: z.null(),
-    challenge_id: challengeId,
+    challenge_id: challengeIdSchema,
     benchmark_revision: z.string().regex(/^(?:git:[0-9a-f]{40}|sha256:[0-9a-f]{64})$/),
     runtime_variant_id: z.string().nullable(),
     runner_profile: runnerProfileSchema,
-    fresh_session: z.literal(true),
-    tool_scope_validated: z.literal(true),
+    execution_kind: z.enum(["contract_fixture", "official_model_backed"]),
+    runner_session_id: nonEmpty,
+    fresh_session: z.boolean(),
+    tool_scope_validated: z.boolean(),
   })
   .strict();
 
@@ -583,13 +639,14 @@ export const invalidReasonSchema = z.enum([
   "runner_profile_mismatch",
   "coverage_integrity_failure",
   "preparation_failure",
+  "fixture_not_official",
 ]);
 
 export const evaluationSchema = z
   .object({
     schema_version: schemaVersion,
     run_id: nonEmpty,
-    challenge_id: challengeId,
+    challenge_id: challengeIdSchema,
     benchmark_revision: z.string().regex(/^(?:git:[0-9a-f]{40}|sha256:[0-9a-f]{64})$/),
     source_head_sha: z
       .string()
@@ -598,8 +655,11 @@ export const evaluationSchema = z
     runtime_variant_id: z.string().nullable(),
     runner_profile: runnerProfileSchema,
     mode: z.literal("black-box-scored"),
-    fresh_session: z.literal(true),
-    tool_scope_validated: z.literal(true),
+    execution_kind: z.enum(["contract_fixture", "official_model_backed"]),
+    runner_session_id: nonEmpty,
+    evaluator_session_id: nonEmpty,
+    fresh_session: z.boolean(),
+    tool_scope_validated: z.boolean(),
     valid_for_scoring: z.boolean(),
     invalid_reasons: z.array(invalidReasonSchema),
     matches: z.array(matchSchema),
@@ -608,7 +668,7 @@ export const evaluationSchema = z
   })
   .strict()
   .superRefine((value, context) => {
-    const sorted = [...value.invalid_reasons].sort((a, b) => a.localeCompare(b));
+    const sorted = [...value.invalid_reasons].sort(compareCodeUnits);
     if (
       new Set(value.invalid_reasons).size !== value.invalid_reasons.length ||
       JSON.stringify(sorted) !== JSON.stringify(value.invalid_reasons)
@@ -629,6 +689,39 @@ export const evaluationSchema = z
         code: "custom",
         path: ["invalid_reasons"],
         message: "invalidated evaluation requires at least one invalid reason",
+      });
+    if (value.evaluator_session_id === value.runner_session_id)
+      context.addIssue({
+        code: "custom",
+        path: ["evaluator_session_id"],
+        message: "evaluator must use a distinct session",
+      });
+    if (value.execution_kind === "contract_fixture" && value.valid_for_scoring)
+      context.addIssue({
+        code: "custom",
+        path: ["execution_kind"],
+        message: "contract fixtures cannot be valid for scoring",
+      });
+    if (
+      value.execution_kind === "contract_fixture" &&
+      !value.invalid_reasons.includes("fixture_not_official")
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["invalid_reasons"],
+        message: "contract fixtures require fixture_not_official",
+      });
+    if (value.valid_for_scoring && (!value.fresh_session || !value.tool_scope_validated))
+      context.addIssue({
+        code: "custom",
+        path: ["valid_for_scoring"],
+        message: "valid scoring requires a fresh session and validated tool scope",
+      });
+    if (!value.valid_for_scoring && Object.values(value.metrics).some((metric) => metric !== null))
+      context.addIssue({
+        code: "custom",
+        path: ["metrics"],
+        message: "invalidated evaluation must null all metrics",
       });
   });
 

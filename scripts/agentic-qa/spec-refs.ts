@@ -1,11 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
+import { compareCodeUnits, specRefSchema } from "./contracts";
 import { isNormativeSpecPath, listSpecMarkdown } from "../spec/build-spec";
 import { parseMarkdownFile } from "../spec/markdown";
 
 const BR = /^BR-[A-Z0-9]+-[0-9]{3}$/;
 const AC = /^AC-[A-Z0-9]+-[0-9]{3}$/;
-const FILE = /^docs\/spec\/(?!.*\.\.)[^#\s]+\.md(?:#[a-z0-9][a-z0-9-]*)?$/;
 
 export type ResolvedSpecReference = {
   reference: string;
@@ -14,7 +14,7 @@ export type ResolvedSpecReference = {
 };
 
 export function isValidSpecReference(reference: string): boolean {
-  return BR.test(reference) || AC.test(reference) || FILE.test(reference);
+  return specRefSchema.safeParse(reference).success;
 }
 
 export function resolveSpecReference(
@@ -56,7 +56,7 @@ export function resolveSpecReferences(
   }
   const unique = new Map<string, ResolvedSpecReference>();
   for (const item of resolved) if (item !== null) unique.set(item.ownerPath, item);
-  return [...unique.values()].sort((a, b) => a.ownerPath.localeCompare(b.ownerPath));
+  return [...unique.values()].sort((a, b) => compareCodeUnits(a.ownerPath, b.ownerPath));
 }
 
 export function assertSpecReferences(rootDir: string, references: string[]): void {

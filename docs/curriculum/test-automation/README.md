@@ -100,7 +100,7 @@
 7. [MaestroによるNative UI自動化](./part1/07_maestro-native-automation.md)
 8. [テスト管理と保守性改善](./part1/08_test-management-and-maintainability.md)
 9. [Specification と Agentic QA](./part1/09_specification-agentic-qa.md)
-10. [Part 1 総合演習](./part1/09_part1-capstone.md)
+10. [Part 1 総合演習](./part1/10_part1-capstone.md)
 
 ### Part 2: 開発プロセスへの組み込みと実務導入
 

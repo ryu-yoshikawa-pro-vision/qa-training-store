@@ -319,6 +319,14 @@
 - Candidate Findingは正式Scoreへ直行させず`review_needed`／human adjudicationとしてfail-closeし、Coverage完了だけではNon-defectをTNにせずItem-specific observationが無ければNEとする。Runner／Evaluatorは`.artifacts/agentic-qa/<run-id>/`の別Session証跡を持つ。
 - 最新RunのBasic Preparationではpatched SPAのsession作成後URL遷移待ちを固定し、Baseline clean／Patched defect、Patch apply、Fresh Runner、Separate Evaluator、Identity一致を再確認した。`pnpm run test:contracts` 24 files／185 tests、Full typecheck、Spec validation／HTML build、Markdownlint、Lint 0 errors／64 warningsはPASS。Full `verify`は既存84 tracked fileのPrettier baseline、Remote CIは未取得のためfail-close継続中である。
 
+## PR #16 Agentic QA fail-close 修正後（2026-08-10）
+
+- Contract FixtureとOfficial model-backed Scored Runを分離した。`run-local-e2e.ts`は固定Findingを生成する診断fixtureであり、`execution_kind=contract_fixture`、未完了Coverage、`fixture_not_official`、metrics nullのため正式スコアにならない。モデル実行基盤は未提供のためOfficial Scored Runは未実行として扱う。
+- Forbidden Capability Probeはisolated rootの実ファイル／ディレクトリとrunner tool scopeを測定する。Basic Preparationでは17 capabilityすべて`available=false`を確認し、1件でも利用可能なら`assertForbiddenProbePasses`でfail-closeする。
+- PreparationはDisposable Source Copy、Baseline sanity、patch check/apply、Patched sanity、同一patched runtime上のScored Initial State Reset、Runner callback直前Probe、finallyでのruntime stop／disposable cleanupを実処理し、`preparation-order.json`と`runtime-sanity.json`へ相対証跡を保存する。
+- CoverageはMission completionとrequired evidence typeの包含を必須化し、FindingはExpected／Reproduction／Actual Deviation／Evidenceが同じDefectを示す場合だけTP候補になる。Runner sessionとEvaluator sessionは別UUIDを実測し、EvaluationはfixtureまたはCoverage不備をPASSへ昇格させない。
+- Benchmark RevisionはNUL-separated Git status、renameのD/A正規化、code-unit comparator、Git failure fail-closeを使う。Snapshotはbefore／afterからcomparisonを再導出し、Spec／CLI／Challenge seed／Normative docsもfail-close契約へ更新した。既存84件のformatter baseline修復後、`pnpm run verify`を再実行する。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。

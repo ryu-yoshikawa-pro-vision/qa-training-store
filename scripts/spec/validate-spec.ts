@@ -46,8 +46,7 @@ function validateLinks(
   for (const [relativePath, parsed] of parsedFiles) {
     for (const link of parsed.links.filter((candidate) => !candidate.image)) {
       const resolved = resolveMarkdownTarget(relativePath, link.target);
-      if (resolved === null || (resolved.path === relativePath && resolved.anchor !== null))
-        continue;
+      if (resolved === null) continue;
       const absolute = path.join(rootDir, resolved.path);
       if (!fs.existsSync(absolute)) {
         issue(

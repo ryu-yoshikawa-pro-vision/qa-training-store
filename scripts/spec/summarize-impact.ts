@@ -3,6 +3,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 import { summarizeSpecDrift, type SpecDriftSummary } from "../agentic-qa/validate-contracts";
+import { compareCodeUnits } from "../agentic-qa/contracts";
 import { isNormativeSpecPath } from "./build-spec";
 
 export type SpecImpactSummary = SpecDriftSummary & {
@@ -44,7 +45,7 @@ function defaultBaseRef(): string {
 
 function diffArguments(baseRef: string, workingTree: boolean, namesOnly: boolean): string[] {
   const args = ["diff"];
-  if (namesOnly) args.push("--name-only", "--diff-filter=ACMRTUXB");
+  if (namesOnly) args.push("--name-only", "--diff-filter=ACDMRTUXB");
   args.push(workingTree ? baseRef : `${baseRef}...HEAD`);
   if (!namesOnly) args.push("--unified=0");
   args.push("--", "docs/spec");
@@ -53,8 +54,8 @@ function diffArguments(baseRef: string, workingTree: boolean, namesOnly: boolean
 
 function untrackedSpecFiles(rootDir: string): string[] {
   const output = runGit(rootDir, ["ls-files", "--others", "--exclude-standard", "--", "docs/spec"]);
-  return [...new Set(output.split(/\r?\n/).map(normalizePath).filter(Boolean))].sort((a, b) =>
-    a.localeCompare(b),
+  return [...new Set(output.split(/\r?\n/).map(normalizePath).filter(Boolean))].sort(
+    compareCodeUnits,
   );
 }
 
@@ -62,7 +63,7 @@ export function changedSpecFiles(rootDir: string, baseRef: string, workingTree =
   const output = runGit(rootDir, diffArguments(baseRef, workingTree, true));
   const files = output.split(/\r?\n/).map(normalizePath).filter(Boolean);
   return [...new Set(workingTree ? [...files, ...untrackedSpecFiles(rootDir)] : files)].sort(
-    (a, b) => a.localeCompare(b),
+    compareCodeUnits,
   );
 }
 
@@ -75,7 +76,7 @@ export function extractBrAcIds(diffText: string): string[] {
       if (id !== undefined) ids.add(id);
     }
   }
-  return [...ids].sort((a, b) => a.localeCompare(b));
+  return [...ids].sort(compareCodeUnits);
 }
 
 export function changedBrAcIds(rootDir: string, baseRef: string, workingTree = false): string[] {
@@ -90,7 +91,7 @@ export function changedBrAcIds(rootDir: string, baseRef: string, workingTree = f
       }
     }
   }
-  return [...ids].sort((a, b) => a.localeCompare(b));
+  return [...ids].sort(compareCodeUnits);
 }
 
 export function buildSpecImpactSummary(input: {

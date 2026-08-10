@@ -7,6 +7,7 @@ import {
   benchmarkManifestSchema,
   challengeSchema,
   charterSchema,
+  compareCodeUnits,
   evaluationSchema,
   parseJsonWithSchema,
   qaFindingsSchema,
@@ -19,6 +20,7 @@ import {
 import { assertCoverageIntegrity } from "./coverage";
 import { assertLearnerBundleHasOwners, buildLearnerBundle } from "./build-learner-bundle";
 import { resolveSpecReferences } from "./spec-refs";
+import { compareWorkingTreeSnapshots } from "./working-tree-snapshot";
 
 export type ContractValidationSummary = {
   challenges: string[];
@@ -34,8 +36,16 @@ export type SpecDriftSummary = {
   affected_challenge_ids: string[];
 };
 
-function readJson(filePath: string): unknown {
-  return JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+function readJson(filePath: string, rootDir = process.cwd()): unknown {
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8")) as unknown;
+  } catch (error) {
+    const displayPath = relativeFromRoot(rootDir, filePath);
+    throw new Error(
+      `Invalid JSON at ${displayPath}: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
 }
 
 function challengeDirectory(rootDir: string): string {
@@ -74,7 +84,14 @@ function assertUnifiedDiff(filePath: string): void {
   const newHeader = lines.find((line) => line.startsWith("+++ b/"));
   if (oldHeader === undefined || newHeader === undefined)
     throw new Error(`Challenge patch is not a Unified Diff: ${filePath}`);
-  if (lines.some((line) => /^(?:#!|powershell|pwsh|bash|node|npm|pnpm|tsx)\b/i.test(line.trim()))) {
+  if (
+    lines.some(
+      (line) =>
+        line.startsWith("+") &&
+        !line.startsWith("+++") &&
+        /^(?:#!|powershell|pwsh|bash|node|npm|pnpm|tsx)\b/i.test(line.slice(1).trim()),
+    )
+  ) {
     throw new Error(`Challenge patch contains a setup command: ${filePath}`);
   }
 }
@@ -82,7 +99,7 @@ function assertUnifiedDiff(filePath: string): void {
 function validateChallenge(rootDir: string, challengeDirectoryPath: string): string {
   const challengeFile = path.join(challengeDirectoryPath, "challenge.json");
   const challenge = parseJsonWithSchema(
-    readJson(challengeFile),
+    readJson(challengeFile, rootDir),
     challengeSchema,
     relativeFromRoot(rootDir, challengeFile),
   );
@@ -94,7 +111,7 @@ function validateChallenge(rootDir: string, challengeDirectoryPath: string): str
   if (!fs.existsSync(keyFile))
     throw new Error(`Answer Key is missing: ${relativeFromRoot(rootDir, keyFile)}`);
   const answerKey = parseJsonWithSchema(
-    readJson(keyFile),
+    readJson(keyFile, rootDir),
     answerKeySchema,
     relativeFromRoot(rootDir, keyFile),
   );
@@ -149,7 +166,7 @@ function validateFindings(
   challenge?: Challenge,
 ): QaFindings {
   const findings = parseJsonWithSchema(
-    readJson(findingsFile),
+    readJson(findingsFile, rootDir),
     qaFindingsSchema,
     relativeFromRoot(rootDir, findingsFile),
   );
@@ -178,7 +195,7 @@ function snapshotPath(rootDir: string, reference: string): string {
   return absolute;
 }
 
-function validateWorkingTreeSnapshots(
+export function validateWorkingTreeSnapshots(
   rootDir: string,
   findings: Extract<QaFindings, { mode: "normal" | "gray-box" }>,
 ): void {
@@ -186,17 +203,17 @@ function validateWorkingTreeSnapshots(
   const afterPath = snapshotPath(rootDir, findings.working_tree_snapshot.after);
   const comparisonPath = snapshotPath(rootDir, findings.working_tree_snapshot.comparison);
   const before = parseJsonWithSchema(
-    readJson(beforePath),
+    readJson(beforePath, rootDir),
     workingTreeSnapshotSchema,
     relativeFromRoot(rootDir, beforePath),
   );
   const after = parseJsonWithSchema(
-    readJson(afterPath),
+    readJson(afterPath, rootDir),
     workingTreeSnapshotSchema,
     relativeFromRoot(rootDir, afterPath),
   );
   const comparison = parseJsonWithSchema(
-    readJson(comparisonPath),
+    readJson(comparisonPath, rootDir),
     workingTreeSnapshotComparisonSchema,
     relativeFromRoot(rootDir, comparisonPath),
   );
@@ -216,11 +233,32 @@ function validateWorkingTreeSnapshots(
     comparison.after_snapshot !== findings.working_tree_snapshot.after
   )
     throw new Error("Working tree snapshot comparison references do not match findings");
+  const expected = compareWorkingTreeSnapshots(before, after, {
+    before: findings.working_tree_snapshot.before,
+    after: findings.working_tree_snapshot.after,
+  });
+  if (
+    comparison.before_source_head_sha !== expected.before_source_head_sha ||
+    comparison.after_source_head_sha !== expected.after_source_head_sha ||
+    comparison.source_head_changed !== expected.source_head_changed ||
+    JSON.stringify(comparison.source_diff) !== JSON.stringify(expected.source_diff) ||
+    comparison.additional_source_diff_count !== expected.additional_source_diff_count ||
+    comparison.passed !== expected.passed
+  )
+    throw new Error("Working tree snapshot comparison does not match re-derived comparison");
   if (!comparison.passed)
     throw new Error("Normal / Gray-box QA has an additional Source Working Tree diff");
 }
 
 const FINDINGS_ARTIFACT_NAMES = ["qa-findings.json", "qa-findings-normal.json"] as const;
+
+function isAgenticEvaluationArtifact(value: unknown): boolean {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    ("mode" in value || ("challenge_id" in value && "benchmark_revision" in value))
+  );
+}
 
 export function validateTrainingContracts(rootDir = process.cwd()): ContractValidationSummary {
   const profileFile = path.join(
@@ -231,7 +269,7 @@ export function validateTrainingContracts(rootDir = process.cwd()): ContractVali
     "scored-v1.json",
   );
   const profile = parseJsonWithSchema(
-    readJson(profileFile),
+    readJson(profileFile, rootDir),
     toolProfileSchema,
     relativeFromRoot(rootDir, profileFile),
   );
@@ -246,7 +284,7 @@ export function validateTrainingContracts(rootDir = process.cwd()): ContractVali
     .readdirSync(challengesRoot, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => validateChallenge(rootDir, path.join(challengesRoot, entry.name)))
-    .sort((a, b) => a.localeCompare(b));
+    .sort(compareCodeUnits);
 
   const runDirectories = [path.join(rootDir, ".codex", "runs")]
     .filter((directory) => fs.existsSync(directory))
@@ -268,22 +306,31 @@ export function validateTrainingContracts(rootDir = process.cwd()): ContractVali
       )
         continue;
       const file = path.join(directory, entry.name);
-      parseJsonWithSchema(readJson(file), benchmarkManifestSchema, relativeFromRoot(rootDir, file));
+      parseJsonWithSchema(
+        readJson(file, rootDir),
+        benchmarkManifestSchema,
+        relativeFromRoot(rootDir, file),
+      );
       hasAgenticManifest = true;
       validatedManifests.push(relativeFromRoot(rootDir, file));
     }
     const evaluationFile = path.join(directory, "evaluation.json");
-    if (hasAgenticManifest && fs.existsSync(evaluationFile)) {
+    if (fs.existsSync(evaluationFile)) {
+      const rawEvaluation = readJson(evaluationFile, rootDir);
+      // Older run directories use evaluation.json for general run assessment,
+      // not for the Agentic QA machine contract. Every Agentic QA-shaped
+      // evaluation is schema-validated even when its manifest is absent.
+      if (!hasAgenticManifest && !isAgenticEvaluationArtifact(rawEvaluation)) continue;
       const evaluation = parseJsonWithSchema(
-        readJson(evaluationFile),
+        rawEvaluation,
         evaluationSchema,
         relativeFromRoot(rootDir, evaluationFile),
       );
       validatedEvaluations.push(relativeFromRoot(rootDir, evaluationFile));
       const findingsFile = path.join(directory, "qa-findings.json");
-      if (fs.existsSync(findingsFile)) {
+      if (hasAgenticManifest && fs.existsSync(findingsFile)) {
         const findings = parseJsonWithSchema(
-          readJson(findingsFile),
+          readJson(findingsFile, rootDir),
           qaFindingsSchema,
           relativeFromRoot(rootDir, findingsFile),
         );
@@ -293,7 +340,12 @@ export function validateTrainingContracts(rootDir = process.cwd()): ContractVali
             evaluation.challenge_id !== findings.challenge_id ||
             evaluation.benchmark_revision !== findings.benchmark_revision ||
             evaluation.runtime_variant_id !== findings.runtime_variant_id ||
-            JSON.stringify(evaluation.runner_profile) !== JSON.stringify(findings.runner_profile))
+            JSON.stringify(evaluation.runner_profile) !== JSON.stringify(findings.runner_profile) ||
+            evaluation.execution_kind !== findings.execution_kind ||
+            evaluation.runner_session_id !== findings.runner_session_id ||
+            evaluation.evaluator_session_id === findings.runner_session_id ||
+            evaluation.fresh_session !== findings.fresh_session ||
+            evaluation.tool_scope_validated !== findings.tool_scope_validated)
         )
           throw new Error(
             `Evaluation identity does not match Frozen Findings: ${relativeFromRoot(rootDir, evaluationFile)}`,
@@ -311,22 +363,11 @@ export function validateTrainingContracts(rootDir = process.cwd()): ContractVali
   const validatedCharters: string[] = [];
   for (const file of charterFiles) {
     const charter = parseJsonWithSchema(
-      readJson(file),
+      readJson(file, rootDir),
       charterSchema,
       relativeFromRoot(rootDir, file),
     );
     validatedCharters.push(relativeFromRoot(rootDir, file));
-    for (const findingsName of FINDINGS_ARTIFACT_NAMES) {
-      const findingsFile = path.join(path.dirname(file), findingsName);
-      if (!fs.existsSync(findingsFile)) continue;
-      const findings = parseJsonWithSchema(
-        readJson(findingsFile),
-        qaFindingsSchema,
-        relativeFromRoot(rootDir, findingsFile),
-      );
-      if (findings.mode === "normal" || findings.mode === "gray-box")
-        validateFindings(rootDir, findingsFile, charter);
-    }
   }
 
   const findingsFiles = runDirectories.flatMap((directory) => {
@@ -341,11 +382,23 @@ export function validateTrainingContracts(rootDir = process.cwd()): ContractVali
   for (const file of findingsFiles) {
     if (validatedFindings.includes(relativeFromRoot(rootDir, file))) continue;
     const findings = parseJsonWithSchema(
-      readJson(file),
+      readJson(file, rootDir),
       qaFindingsSchema,
       relativeFromRoot(rootDir, file),
     );
-    if (findings.mode === "black-box-scored") {
+    if (findings.mode === "normal" || findings.mode === "gray-box") {
+      const charterFile = path.join(path.dirname(file), "qa-charter.json");
+      if (!fs.existsSync(charterFile))
+        throw new Error(
+          `Normal / Gray-box findings require qa-charter.json: ${relativeFromRoot(rootDir, file)}`,
+        );
+      const charter = parseJsonWithSchema(
+        readJson(charterFile, rootDir),
+        charterSchema,
+        relativeFromRoot(rootDir, charterFile),
+      );
+      validateFindings(rootDir, file, charter);
+    } else if (findings.mode === "black-box-scored") {
       const challengeFile = path.join(challengesRoot, findings.challenge_id, "challenge.json");
       if (!fs.existsSync(challengeFile))
         throw new Error(`Scored findings challenge is missing: ${findings.challenge_id}`);
@@ -353,17 +406,21 @@ export function validateTrainingContracts(rootDir = process.cwd()): ContractVali
         rootDir,
         file,
         undefined,
-        parseJsonWithSchema(readJson(challengeFile), challengeSchema, findings.challenge_id),
+        parseJsonWithSchema(
+          readJson(challengeFile, rootDir),
+          challengeSchema,
+          relativeFromRoot(rootDir, challengeFile),
+        ),
       );
     }
     validatedFindings.push(relativeFromRoot(rootDir, file));
   }
   return {
     challenges,
-    validated_findings: validatedFindings.sort(),
-    validated_charters: validatedCharters.sort(),
-    validated_manifests: validatedManifests.sort(),
-    validated_evaluations: validatedEvaluations.sort(),
+    validated_findings: validatedFindings.sort(compareCodeUnits),
+    validated_charters: validatedCharters.sort(compareCodeUnits),
+    validated_manifests: validatedManifests.sort(compareCodeUnits),
+    validated_evaluations: validatedEvaluations.sort(compareCodeUnits),
   };
 }
 
@@ -379,8 +436,8 @@ export function summarizeSpecDrift(
 ): SpecDriftSummary {
   const normalizedFiles = [
     ...new Set(changedNormativeFiles.map((value) => value.replace(/\\/g, "/"))),
-  ].sort((a, b) => a.localeCompare(b));
-  const normalizedIds = [...new Set(changedBrAc)].sort((a, b) => a.localeCompare(b));
+  ].sort(compareCodeUnits);
+  const normalizedIds = [...new Set(changedBrAc)].sort(compareCodeUnits);
   const affected = new Set<string>();
   const root = challengeDirectory(rootDir);
   if (fs.existsSync(root)) {
@@ -388,7 +445,11 @@ export function summarizeSpecDrift(
       if (!entry.isDirectory()) continue;
       const file = path.join(root, entry.name, "challenge.json");
       if (!fs.existsSync(file)) continue;
-      const challenge = parseJsonWithSchema(readJson(file), challengeSchema, entry.name);
+      const challenge = parseJsonWithSchema(
+        readJson(file, rootDir),
+        challengeSchema,
+        relativeFromRoot(rootDir, file),
+      );
       const resolved = resolveSpecReferences(rootDir, challenge.spec_refs);
       if (
         challenge.spec_refs.some((reference) => normalizedIds.includes(reference)) ||
@@ -400,7 +461,7 @@ export function summarizeSpecDrift(
   return {
     changed_br_ac: normalizedIds,
     changed_normative_files: normalizedFiles,
-    affected_challenge_ids: [...affected].sort((a, b) => a.localeCompare(b)),
+    affected_challenge_ids: [...affected].sort(compareCodeUnits),
   };
 }
 

@@ -8,7 +8,7 @@ Operator/AdminがSKU単位の在庫と在庫履歴を管理する契約を定義
 
 ### BR-ADMININV-001 — 在庫はSKU単位の非負整数として調整する
 
-在庫0はout_of_stock、1〜5はlow_stock、1以上はavailableとして扱い、在庫0をlow_stockへ二重計上しません。
+在庫0はout_of_stock、1〜5はlow_stock、6以上はavailableとして扱い、在庫0をlow_stockへ二重計上しません。
 
 ### BR-ADMININV-002 — すべての在庫変更を履歴と一緒に保存する
 

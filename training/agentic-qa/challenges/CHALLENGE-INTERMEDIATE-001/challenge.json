@@ -7,9 +7,9 @@
   "required_coverage": [
     {
       "coverage_id": "COV-001",
-      "mission": "Exercise the operator order-management flow with the supplied paid-order seed and record the observed shipment transition behavior.",
+      "mission": "Exercise the operator order-management flow with the supplied orders-phase1-statuses seed and record the observed shipment transition behavior.",
       "role": "operator",
-      "seed": "default",
+      "seed": "orders-phase1-statuses",
       "platform": "web",
       "viewport_or_device": "desktop",
       "required_evidence_types": ["screenshot", "dom"]

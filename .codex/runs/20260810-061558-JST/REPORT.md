@@ -307,3 +307,13 @@
 - Final DoD: PlanのWave 0〜10、Runtime Validation、Repair Loop、Required local verify、Required Remote CI、Scope／Safety／Artifact監査を満たした。Lintの64 warningsは既存警告であり、errorは0。未実行検証をPASSへ拡張していない。
 - Decision: `Final DoD=PASS`。Task 22を完了し、Goalをcompleteへ更新する。
 - Progress: 100% (28/28)
+
+## 2026-08-10 14:13 (JST) PR #16 repair supplement
+
+- Summary: ユーザー指示に基づくPR #16修正で、既存RunのAgentic QA成果物を現行JSON + Zod契約へ追補した。過去記録は削除・並べ替えず、今回の判断と検証を追記している。
+- Repair: Contract FixtureとOfficial model-backed Scored Runを分離し、Coverage Evidence／Mission、Actual Deviation Evidence、Fresh Runner／Separate Evaluator、Forbidden Probe、Benchmark／Snapshot／Spec／CLI fail-closeを反映した。challenge patchはApplication Sourceへ適用していない。
+- Preparation: Basic／Intermediate／AdvancedでBaseline／Patched ground truth、patch check/apply、Scored Initial State Reset、isolated root、Forbidden Probe、runtime stop／disposable cleanupを確認した。Basicの最終Artifactは17 capabilityの`available=0`、`preparation-order.json`、`runtime-sanity.json`、`forbidden-probe.json`を含む。
+- Evaluation: fixture結果は`execution_kind=contract_fixture`、`valid_for_scoring=false`、`invalid_reasons=coverage_integrity_failure,fixture_not_official`、metrics null。Official model-backed Scored Runは実行基盤がないため未実行であり、PASSへ昇格していない。
+- Validation: Agentic contract validator、focused contract test、後続の全品質ゲート結果は今回のRun `20260810-130321-JST/REPORT.md`へ記録する。既存84件formatter baselineはユーザー指示に従って修復済みで、`pnpm run verify`を再実行する。
+- Scope: Git mutation、branch／commit／push／PR操作、Product Behavior変更、Application Source変更、`actions/upload-artifact@v4`の単独SHA pinは行っていない。
+- Progress: 100% (28/28)

@@ -30,6 +30,8 @@ Seed Scenario ID、Role/Status Type、Route、Design Token、Build Config、App 
 4. ADRによるDecision History
 5. Application / Seed / Test / README / Guide（Evidenceまたは実装参照）
 
+ただし、各Featureの`Executable Canonical Sources`で明示された低レベル値については、Code / Configを正本とします。対象はRoute、App ID、Test ID、Accessibility label、Seed ID、Design token、Build configなどです。この例外は値の解決に限り、Application / Seed / Test / README / Guide全般をExpected Product Behaviorの上位Oracleへ昇格させるものではありません。
+
 Known DeviationはExpected Behaviorを書き換えません。Unresolvedの項目は、Product Decisionが完了するまでDefect Oracleにしません。
 
 ## Navigation

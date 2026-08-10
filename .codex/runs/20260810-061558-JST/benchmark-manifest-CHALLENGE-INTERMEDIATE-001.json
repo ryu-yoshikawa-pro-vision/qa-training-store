@@ -19,8 +19,28 @@
     },
     {
       "status": "A",
+      "path": "QA_AGENT.md",
+      "sha256": "76892c4d9234208cf0ce11cb8380ddb7d6a149ec2356ed8931193902370a2e23"
+    },
+    {
+      "status": "M",
+      "path": "README.md",
+      "sha256": "cdc5fe4a6599bac996c7fb8ac47011d71d489177f8d55286a5d6b85d8dfe513c"
+    },
+    {
+      "status": "M",
+      "path": "docs/PROJECT_CONTEXT.md",
+      "sha256": "07ec03a352065088d51d9321e49518e392a822630a0e7e10b65a27a982468100"
+    },
+    {
+      "status": "A",
       "path": "docs/adr/0012-specification-and-agentic-qa-foundation.md",
       "sha256": "df3fbf83e64551408cad773b3cd84c509f8d6647f5a380ab157717f2d032c5ea"
+    },
+    {
+      "status": "M",
+      "path": "docs/curriculum/test-automation/README.md",
+      "sha256": "0d4244d093abec4dddfd75beba218788f9fd658fa1a38f065c9c62442c937374"
     },
     {
       "status": "A",
@@ -33,19 +53,9 @@
       "sha256": "78ce014eac651a16cb991f50208ef1c3df1ef99a20a071690cf5b73f178389f4"
     },
     {
-      "status": "M",
-      "path": "docs/curriculum/test-automation/README.md",
-      "sha256": "0d4244d093abec4dddfd75beba218788f9fd658fa1a38f065c9c62442c937374"
-    },
-    {
       "status": "A",
       "path": "docs/history/2026-08-10_071500_specification-agentic-qa-foundation.md",
       "sha256": "255fde4072d8a5eb0b8a1a516433d75248f5fa6e299da9ca5ceddb5aa78ecca7"
-    },
-    {
-      "status": "M",
-      "path": "docs/PROJECT_CONTEXT.md",
-      "sha256": "07ec03a352065088d51d9321e49518e392a822630a0e7e10b65a27a982468100"
     },
     {
       "status": "A",
@@ -56,6 +66,11 @@
       "status": "M",
       "path": "docs/reference/run-artifacts.md",
       "sha256": "93ad73b5f82a3d97c4242e13e83aae61923725e2076d1e927c78fbd3eea646e6"
+    },
+    {
+      "status": "A",
+      "path": "docs/spec/README.md",
+      "sha256": "60bde20701e0a7155224ace0e8e2ada20346bcc04c8c999533224fcae6b7513c"
     },
     {
       "status": "A",
@@ -139,11 +154,6 @@
     },
     {
       "status": "A",
-      "path": "docs/spec/README.md",
-      "sha256": "60bde20701e0a7155224ace0e8e2ada20346bcc04c8c999533224fcae6b7513c"
-    },
-    {
-      "status": "A",
       "path": "docs/spec/roles-and-permissions.md",
       "sha256": "6a203e3f547f506cc0e88e1d2dd3944e64738822965a7364133f31aba35815e5"
     },
@@ -166,16 +176,6 @@
       "status": "M",
       "path": "package.json",
       "sha256": "68a1d0d1e3debaeef459bf6a6224e95183303bc04ba45c59ac69efb950c9f4c3"
-    },
-    {
-      "status": "A",
-      "path": "QA_AGENT.md",
-      "sha256": "76892c4d9234208cf0ce11cb8380ddb7d6a149ec2356ed8931193902370a2e23"
-    },
-    {
-      "status": "M",
-      "path": "README.md",
-      "sha256": "cdc5fe4a6599bac996c7fb8ac47011d71d489177f8d55286a5d6b85d8dfe513c"
     },
     {
       "status": "A",

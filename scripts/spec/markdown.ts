@@ -140,5 +140,5 @@ export function renderInline(
 }
 
 export function isExternalLink(target: string): boolean {
-  return /^(?:https?:|mailto:|tel:|#|\/\/)/i.test(target);
+  return /^(?:https?:|mailto:|tel:|\/\/)/i.test(target);
 }

@@ -1,13 +1,24 @@
-import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
-import type { Challenge, QaFindings, RunnerProfile, Finding } from "./contracts";
+import {
+  parseJsonWithSchema,
+  qaFindingsSchema,
+  type Challenge,
+  type QaFindings,
+  type RunnerProfile,
+  type Finding,
+} from "./contracts";
 import { assertCoverageIntegrity } from "./coverage";
 
 export type FrozenRunnerResult = {
   findings: Extract<QaFindings, { mode: "black-box-scored" }>;
   session_id: string;
-  evaluator_session_id: string;
+};
+
+export type RunnerSessionEvidence = {
+  runner_session_id: string;
+  fresh_session: boolean;
+  tool_scope_probe_passed: boolean;
 };
 
 export function createRunnerProfile(input: {
@@ -33,14 +44,14 @@ export function freezeScoredFindings(input: {
   runnerProfile: RunnerProfile;
   coverage: Extract<QaFindings, { mode: "black-box-scored" }>["coverage"];
   findings: Finding[];
-  sessionId?: string;
-  evaluatorSessionId?: string;
+  executionKind: "contract_fixture" | "official_model_backed";
+  session: RunnerSessionEvidence;
 }): FrozenRunnerResult {
   assertCoverageIntegrity(input.challenge, input.coverage);
   const findingIds = input.findings.map((finding) => finding.finding_id);
   if (new Set(findingIds).size !== findingIds.length)
     throw new Error("Runner cannot freeze duplicate finding_id values");
-  const findings: Extract<QaFindings, { mode: "black-box-scored" }> = {
+  const candidate: Extract<QaFindings, { mode: "black-box-scored" }> = {
     schema_version: 1,
     run_id: input.runId,
     mode: "black-box-scored",
@@ -55,13 +66,17 @@ export function freezeScoredFindings(input: {
     benchmark_revision: input.benchmarkRevision,
     runtime_variant_id: input.runtimeVariantId,
     runner_profile: input.runnerProfile,
-    fresh_session: true,
-    tool_scope_validated: true,
+    execution_kind: input.executionKind,
+    runner_session_id: input.session.runner_session_id,
+    fresh_session: input.session.fresh_session,
+    tool_scope_validated: input.session.tool_scope_probe_passed,
   };
+  const findings = parseJsonWithSchema(candidate, qaFindingsSchema, "frozen qa-findings");
+  if (findings.mode !== "black-box-scored")
+    throw new Error("Frozen runner result must remain black-box-scored");
   return {
     findings,
-    session_id: input.sessionId ?? crypto.randomUUID(),
-    evaluator_session_id: input.evaluatorSessionId ?? crypto.randomUUID(),
+    session_id: input.session.runner_session_id,
   };
 }
 

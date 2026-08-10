@@ -103,13 +103,16 @@
       "pnpm run verify (PASS: format, markdown, spec, lint, typecheck, image manifest, security, tests, web build, spec build)",
       "GitHub connector read-only Remote CI audit: Phase 1 CI and Native CI completed/success; Native CI all 10 jobs success",
       "Run JSON parse and Agentic QA contract validation after final artifact update",
-      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260810-061558-JST -Write -Check"
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260810-061558-JST -Write -Check",
+      "PR #16 repair supplement: fixture／official separation, measured Forbidden Probe, runtime reset／handoff, required evidence, separate evaluator, benchmark／snapshot／spec／CLI fail-close",
+      "PR #16 repair supplement: Agentic contract validation and final local verify recorded in run 20260810-130321-JST"
     ],
     "warnings": [
       "過去のFull verify baseline failureはRepair Loop iteration 2で解消。lintは0 errors / 64 warnings。",
       "lintは0 errors / 64 existing warnings。",
       "Remote Native CIはHEADに対してin_progress。Phase 1 CIはsuccess。",
-      "Native Runtime/Boundary full Suiteは今回のAgentic Dry Run範囲外で未実行。"
+      "Native Runtime/Boundary full Suiteは今回のAgentic Dry Run範囲外で未実行。",
+      "PR #16 repair: existing local fixture is explicitly not official scored; model-backed Official Scored Run was not executed."
     ]
   },
   "safety": {

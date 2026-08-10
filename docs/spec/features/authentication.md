@@ -8,7 +8,7 @@ Login、Signup、Session、Account Status、Role、Customer向けReturn先、Gue
 
 ### BR-AUTH-001 — LoginはAccount StatusとRoleを検証してSessionを作る
 
-activeな固定AccountだけがLoginできます。suspended/withdrawnは拒否し、Sessionを作成しません。
+activeなAccountだけがLoginできます。Signupで作成されたactiveなAccountを含みます。suspended/withdrawnは拒否し、Sessionを作成しません。
 
 ### BR-AUTH-002 — Customer以外のCapabilityを購入導線へ渡さない
 
