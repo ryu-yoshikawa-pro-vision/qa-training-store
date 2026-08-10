@@ -1,7 +1,7 @@
 # Screen Catalog / Visual Specification 全画面・全重要状態整備計画
 
 作成日時: 2026-08-10 13:22 JST  
-最終レビュー反映: 2026-08-10 14:17 JST
+最終レビュー反映: 2026-08-10 14:30 JST
 
 ## 0. 依頼概要
 
@@ -104,7 +104,7 @@ Executable Canonical Source
 24. Generated HTML上のVisual Referenceはクリックしてcanonical imageを原寸確認できる。
 25. Spec State ↔ Capture Target / Case ↔ Canonical Asset ↔ Markdown Visual Referenceの4-way integrityをValidatorがfail-closeで検証する。
 26. Screen CatalogのPrimary specification列からscreen-owning spec setを機械的にderiveできる。
-27. screen-owning specは所有するSCREEN sectionをexactly 1持ち、cross-cutting specは所有していないSCREEN sectionを持たない。
+27. screen-owning specは所有するSCREEN sectionをexactly 1持ち、Feature ownerでは`## UI / Behavior Contract`配下、Normative root ownerでは`## Screen Contracts`配下に配置される。cross-cutting specは所有していないSCREEN sectionを持たない。
 28. Route追加時にScreen Catalog未登録を検出し、redirect / alias / framework-internal / excludedを明示的に分類できる。
 29. Structural FreshnessとVisual Content Freshnessを分離する。
 30. Visual-blocking Product Defectを見つけた場合、本PRへProduct Fixを混ぜず、別Product Fix PR → merge → rebase → recaptureの順で解消する。
@@ -127,7 +127,7 @@ PR #16では以下を導入している。
   - `state-and-scenarios.md`
   - `ui-ux-contract.md`
 - Feature Spec: `docs/spec/features/**/*.md`
-- Required H2 Section:
+- Feature Spec Required H2 Section:
   1. `Purpose / Scope`
   2. `Business Rules`
   3. `UI / Behavior Contract`
@@ -139,6 +139,8 @@ PR #16では以下を導入している。
 - Markdown → Static HTML generator。
 
 Current `UI / Behavior Contract`にはScreen / Function / State / Visual Referenceの固定Grammarはまだ存在しない。
+
+Normative root SpecはFeature SpecのRequired 5 H2 Grammarを持たない。そのため、Normative root SpecがScreenのPrimary specificationになる場合は、本計画で追加する固定`## Screen Contracts`配下をScreen ownershipの配置先とする。
 
 ### 3.2 Current Product Scope
 
@@ -393,16 +395,25 @@ Allowlist:
 - Catalog → Primary specificationのanchorは現行`slugHeading()`規則と一致させる。
 - `### SCREEN-STOREFRONT-HOME — Home` のanchorは `#screen-storefront-home-home`。
 - Feature → Catalogはtable row専用anchorを作らず、`../screen-catalog.md`へ戻す。
+- Root → Catalogはtable row専用anchorを作らず、`./screen-catalog.md`へ戻す。
 - table row anchorのためだけのraw HTMLや重複headingを追加しない。
 
 ### 5.5 Screen-owning spec set
 
 ValidatorはScreen Catalogの`Primary specification`列からscreen-owning spec setをderiveする。
 
+Owner typeはpathから決定する。
+
+- Feature owner: `docs/spec/features/**/*.md`
+- Normative root owner: PR #16のNormative root allowlist (`product-scope.md`, `roles-and-permissions.md`, `state-and-scenarios.md`, `ui-ux-contract.md`)
+
 Rules:
 
 - CatalogでPrimary specificationとして参照されたSpecだけがscreen-owning specとなる。
 - 各Screen IDはPrimary specification内にexactly 1つ `### SCREEN-*` sectionを持つ。
+- Feature ownerの`SCREEN-*` sectionは`## UI / Behavior Contract`の直接配下に置く。
+- Normative root ownerの`SCREEN-*` sectionは`## Screen Contracts`の直接配下に置く。
+- Screenを1件以上所有するNormative root Specは`## Screen Contracts`をexactly 1つ持つ。Screenを所有しないroot Specには追加を要求しない。
 - Primary specification内にCatalog上ownershipのない`SCREEN-*` sectionが存在したらfail。
 - Primary specificationとして参照されないcross-cutting Feature Specは`SCREEN-*` sectionを必須にしない。
 - cross-cutting specに所有していない`SCREEN-*` sectionが存在したらfail。
@@ -412,9 +423,13 @@ Rules:
 
 ## 6. Feature / Root Spec Screen Contract
 
-Required 5 H2 contractは変更しない。
+`### SCREEN-*`以下のScreen Contract GrammarはFeature owner / Normative root ownerで共通とする。違うのはScreen sectionの親H2と相対pathだけである。
 
-Screen-owning Specの`## UI / Behavior Contract`配下を次で統一する。
+### 6.1 Feature owner
+
+Feature SpecのRequired 5 H2 contractは変更しない。
+
+Feature SpecがPrimary ownerの場合は既存`## UI / Behavior Contract`配下へScreen sectionを置く。
 
 ```markdown
 ## UI / Behavior Contract
@@ -433,7 +448,6 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
 | `default` | baseline | `all` | `default` | ... | `required` | `web-desktop, web-tablet, web-mobile, android` | `-` | `BR-...`, `AC-...` |
-| `admin-mobile-warning` | responsive | `admin` | viewport `<1024px` | ... | `shared` | `web-small-mobile` | `web-small-mobile=ref: SCREEN-ADMIN-DASHBOARD/admin-mobile-warning/web-small-mobile` | [UI/UX](../ui-ux-contract.md#...) |
 
 #### Visual References
 
@@ -443,6 +457,47 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-STOREFRONT-HOME default web-desktop](../assets/screens/SCREEN-STOREFRONT-HOME/default/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-HOME/default/web-desktop.webp)
 ```
+
+### 6.2 Normative root owner
+
+Normative root SpecがPrimary ownerの場合は固定`## Screen Contracts`を配置先とする。Feature SpecのRequired 5 H2 Grammarをroot Specへ適用しない。
+
+```markdown
+## Screen Contracts
+
+### SCREEN-SUPPORTING-TERMS — Terms
+
+Screen Catalog: [Screen Catalog](./screen-catalog.md)
+
+#### Functions
+
+- 利用者がTerms画面を閲覧できる。
+- ...
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `all` | `default` | ... | `required` | `web-desktop, web-mobile, android` | `-` | [Product Scope](./product-scope.md#...) |
+
+#### Visual References
+
+##### `default`
+
+**Web Desktop — Default**
+
+[![SCREEN-SUPPORTING-TERMS default web-desktop](./assets/screens/SCREEN-SUPPORTING-TERMS/default/web-desktop.webp)](./assets/screens/SCREEN-SUPPORTING-TERMS/default/web-desktop.webp)
+```
+
+### 6.3 Common inner grammar
+
+Feature / rootの双方で各`### SCREEN-*` sectionは次を同じ順序でexactly 1つ持つ。
+
+1. `#### Functions`
+2. `#### Important UI States`
+3. `#### Visual References`
+
+State table grammar、Visual Requirement、Capture Target、Related Oracle、Visual Referenceの意味はSection 7以降を共通適用する。
 
 Caption / state labelはMarkdown本文として記載し、image titleだけに意味を持たせない。
 
@@ -972,7 +1027,11 @@ Markdown Visual Reference
 - Screen ID unique。
 - Primary specification exactly 1。
 - CatalogのPrimary specificationからscreen-owning spec setをderiveする。
+- Owner typeはPrimary specification pathからFeature / Normative rootへ決定する。
 - Screen-owning specに所有Screen section exactly 1。
+- Feature ownerのScreen section parentは`## UI / Behavior Contract`のみ許可する。
+- Normative root ownerのScreen section parentは`## Screen Contracts`のみ許可する。
+- Screenを所有するNormative root Specは`## Screen Contracts` exactly 1。
 - 所有していないSCREEN section禁止。
 - cross-cutting specにCatalog ownershipのないSCREEN section禁止。
 
@@ -1153,10 +1212,12 @@ Start Gate未達ならPR #16へ本実装を混ぜない。
 - [ ] Global NavigationはCurrent flat list grammarを維持。
 - [ ] Catalog本文をCustomer / Admin / Supporting / Boundary / Test-onlyでgrouping。
 - [ ] Feature templateをScreen-centric grammarへ更新。
-- [ ] screen-owning SpecのみScreen sectionを持つ。
+- [ ] Feature ownerは`## UI / Behavior Contract`配下に`### SCREEN-*`を配置。
+- [ ] Normative root ownerは`## Screen Contracts`を追加し、その配下に`### SCREEN-*`を配置。
+- [ ] root SpecへFeature Required 5 H2 Grammarを持ち込まない。
+- [ ] Feature / root双方の`### SCREEN-*`以下を共通Functions / State Matrix / Visual References grammarで整備。
 - [ ] cross-cutting specへScreen Stateを複製しない。
-- [ ] Functions / State Matrix / Visual Referencesを整備。
-- [ ] Primary specificationからownershipをderive可能にする。
+- [ ] Primary specificationからownership / owner typeをderive可能にする。
 
 ### Wave 4 — Shared Web Capture Registry / Pilot
 
@@ -1234,9 +1295,13 @@ pnpm run validate:spec-visuals
 - [ ] Screen Catalog grammar検証。
 - [ ] Screen ID uniqueness。
 - [ ] Primary specification exactly 1。
-- [ ] Catalogからscreen-owning spec set derive。
+- [ ] Catalogからscreen-owning spec set / owner type derive。
 - [ ] Screen owner section exactly 1。
+- [ ] Feature ownerのSCREEN section parentが`## UI / Behavior Contract`であること。
+- [ ] Normative root ownerのSCREEN section parentが`## Screen Contracts`であること。
+- [ ] Screenを所有するroot Specに`## Screen Contracts` exactly 1。
 - [ ] ownershipのないSCREEN section禁止。
+- [ ] State section `Functions` / `Important UI States` / `Visual References`の共通順序検証。
 - [ ] State table fixed columns / order検証。
 - [ ] State slug uniqueness / grammar。
 - [ ] State Type allowlist。
@@ -1402,6 +1467,7 @@ Android capability不足時:
 
 - Catalog Primary specificationからowner setをderive。
 - ownershipのないSCREEN sectionをValidatorで禁止。
+- Feature / rootの配置先を固定し、同じScreenを別H2へ重複定義しない。
 
 ### R8. Capture Registry第三SSOT化
 
@@ -1447,6 +1513,7 @@ Android capability不足時:
 docs/spec/
 ├ README.md
 ├ screen-catalog.md
+├ product-scope.md / roles-and-permissions.md / state-and-scenarios.md / ui-ux-contract.md
 ├ _templates/feature-spec.md
 ├ features/**/*.md
 └ assets/screens/**
@@ -1543,6 +1610,7 @@ PASS条件:
 - `pending = 0`。
 - `blocked = 0`。
 - shared / not-applicable metadata妥当。
+- Feature / root双方のSCREEN section placement contract PASS。
 - 4-way integrity PASS。
 - Structural Freshness PASS。
 - Visual Content Freshness Human Review完了。
@@ -1562,6 +1630,7 @@ FAIL条件:
 
 - missing / orphan / stale structural reference。
 - Primary specification ownership重複。
+- Feature owner / Normative root ownerのSCREEN section parent違反。
 - cross-cutting specによるScreen State重複。
 - stale Android Artifact promotion。
 - Product Bug状態をcanonical visualとして承認。
