@@ -2,9 +2,9 @@
 
 ## 0. このPlanと現在Branchの位置づけ
 
-この文書は、Scenario Shop / `qa-training-store` のCodex実装運用を、**親agentによるオーケストレーション + GPT-5.6 Luna subagentによる積極的な並列調査・並列実装・品質ゲート実行**へ移行するための実装計画である。
+この文書は、Scenario Shop / `qa-training-store` のCodex実装運用を、**親agentによるオーケストレーション + GPT-5.6 Luna subagentによる積極的な並列調査・bounded実装・品質ゲート実行**へ移行するためのImplementation Planである。
 
-現在の `docs/plan-luna-subagent-orchestration` Branchは、PR #16 `feat: 仕様SSOTとAgentic QA基盤を構築する` のMerge後の最新 `main` を基点とした**Documentation-only Branch**である。
+現在の `docs/plan-luna-subagent-orchestration` Branchは、PR #16 `feat: 仕様SSOTとAgentic QA基盤を構築する` のMerge後の `main` を基点とした**Documentation-only Branch**である。
 
 このBranchでは以下を行わない。
 
@@ -18,7 +18,7 @@
 
 このBranchで変更するのは本Planのみとする。
 
-本Planの実装は、最新 `main` から作成する**別のImplementation Branch**で行う。
+本Planの実装は、Implementation開始時点の最新 `main` から作成する**別のImplementation Branch**で行う。
 
 ---
 
@@ -34,8 +34,10 @@ Parent Agent
   + planning
   + task decomposition
   + dependency management
+  + validation-set decision
   + subagent orchestration
   + integration review
+  + repair decision
   + final completion decision
 
 Subagents
@@ -45,7 +47,9 @@ Subagents
   + failure investigation
 ```
 
-Standard / Strict taskでは、subagentへ安全に委譲可能な作業を親agent自身が抱え込まず、**独立作業は原則としてsubagentへ委譲し、並列実行可能なら積極的に並列化する**。
+Standard / Strict taskでは、subagentへ安全に委譲可能な作業を親agent自身が抱え込まず、**独立作業は原則としてsubagentへ委譲し、安全に並列実行できる場合は積極的に並列化する**。
+
+ただし、parallelismそのものを目的にしない。特にwrite-heavy taskは、**独立workspace / working rootが実証できた場合にのみ並列化し、保証できない場合はserial executionへfail-closeする**。
 
 そのうえで、すべてのproject-scoped custom subagentと、modelを明示しない通常spawnの既定値を以下へ統一する。
 
@@ -62,36 +66,41 @@ model_reasoning_effort = "max"
 2. すべてのsubagentは原則 `model_reasoning_effort = "max"` を使用する。
 3. `code_researcher` / `implementation_researcher` / `test_investigator` / `implementation_worker` をすべてLuna + maxへ変更する。
 4. 新規 `quality_gate_runner` もLuna + maxで追加する。
-5. `.codex/config.toml` にdefault subagent model / reasoning effortを設定し、将来追加されるgeneric subagentもLuna + maxを既定とする。
+5. `.codex/config.toml` にdefault subagent model / reasoning effortを設定し、generic subagentもLuna + maxを既定とする。
 6. 親agentは、明示されたユーザー例外がない限り、spawn時に別model / reasoning effortへ上書きしない。
 7. Standard / Strict taskでは、subagentを使える作業は積極的に委譲する。
-8. 並列化できるread-only調査は原則並列化する。
-9. writable実装も、write scopeが完全分離できる場合は積極的に並列化する。
-10. 最終完了判定は親agentが行い、実装workerまたはquality gate runner自身の自己判定だけで完了扱いにしない。
+8. read-only investigationは、独立観点がある場合は原則並列化する。
+9. writable implementationは、**Write Parallel Capability Gate** を通過した場合だけ並列化する。
+10. Write Parallel Capability Gateを通過できない場合、writable workerはserial実行とする。
+11. 最終完了判定は親agentが行い、workerまたはquality gate runner自身の自己判定だけで完了扱いにしない。
+12. silent model fallback / silent reasoning-effort downgradeは行わない。
 
 ### 1.3 Reasoning Effortについて
 
-GPT-5.6 Lunaは `max` reasoning effortをサポートする。
+GPT-5.6 familyは `max` reasoning effortをサポートする。GPT-5.6 Lunaはcost-sensitive / high-volume向けのモデルであるが、本Planでは速度・token効率よりもsubagent単位の品質を優先し、Owner Decisionどおり全subagentを `max` に固定する。
 
-本Planでは速度・token効率よりも、subagent単位の調査・実装・検証品質を優先し、Owner Decisionどおり全subagentを `max` に固定する。
+これは一般的な推奨値ではなく、本RepositoryのOwner Decisionである。
 
-ただし、`max` は低いreasoning effortよりlatency / token usageが増える可能性があるため、導入後の実Runでは以下をEvidenceとして記録する。
+導入後の実Runでは最低限以下をEvidenceとして記録する。
 
 - subagent起動数
-- 並列実行数
-- wall-clock上の待ち時間傾向
+- parallel execution数
+- phaseごとのwall-clock傾向
 - Repair Loop回数
 - 同一Failure再試行回数
-- quality gateの初回PASS率
-- scope違反 / unexpected source mutationの有無
+- quality gate初回PASS率
+- scope violation件数
+- unexpected tracked source mutation件数
+- 取得可能な範囲のtoken / usage / credit情報
+- 1 taskあたりのsubagent count
 
-本Planでは自動的なeffort downgradeは導入しない。
+本Planでは自動的なmodel変更・effort downgradeは導入しない。
 
 ---
 
 ## 2. Current Understanding
 
-### 2.1 現在のCustom Agents
+### 2.1 Current Custom Agents
 
 Current Repositoryには以下のproject-scoped custom agentsが存在する。
 
@@ -102,74 +111,66 @@ Current Repositoryには以下のproject-scoped custom agentsが存在する。
 .codex/agents/implementation_worker.toml
 ```
 
-現在はいずれも `gpt-5.4-mini` / `medium` を利用している。
+Current baselineではいずれも `gpt-5.4-mini` / `medium` を利用している。
 
-| Agent | Current responsibility | Write |
+| Agent | Current responsibility | Source write |
 | --- | --- | --- |
 | `code_researcher` | Codebase / dependency / impact investigation | No |
 | `implementation_researcher` | Implementation approach / change surface investigation | No |
 | `test_investigator` | Test / CI / flaky / missing coverage investigation | No |
 | `implementation_worker` | Parentがscopeを確定した後の限定実装 | Yes |
 
-### 2.2 Current Subagent Policy
+### 2.2 PR #16 Merge後のBaseline
 
-Current `AGENTS.md` では、Standard / Strictの実装前にproject-scoped custom agentsを原則利用する方針がある。
-
-また、writable subagentは原則1タスク1つで、完全に分離されたwrite scopeの場合だけparallel executionを許可している。
-
-この安全思想は維持するが、本Planでは次を追加する。
-
-- 「使ってよい」から「使える場合は原則使う」へ強化する。
-- read-only investigationは独立観点を積極的にparallelizeする。
-- implementation taskをWork Packageへ分解し、write setがdisjointなら複数 `implementation_worker` をparallelizeする。
-- validationを新規 `quality_gate_runner` へ委譲する。
-- gate failure時の原因調査も複数read-only agentへ再度parallelizeする。
-
-### 2.3 Current Config
-
-Current `.codex/config.toml` は概ね以下を持つ。
-
-```toml
-[features]
-codex_hooks = true
-
-[agents]
-max_threads = 4
-max_depth = 1
-```
-
-Current OpenAI Codex Configuration Referenceでは以下が正式キーとして定義されている。
-
-```text
-agents.enabled
-agents.default_subagent_model
-agents.default_subagent_reasoning_effort
-agents.max_concurrent_threads_per_session
-agents.max_threads  # legacy alias
-features.hooks
-features.multi_agent
-```
-
-`features.codex_hooks` はdeprecated aliasであり、`agents.max_threads` は `agents.max_concurrent_threads_per_session` のlegacy aliasである。
-
-`agents.max_depth` はCurrent Configuration Referenceに確認できないため、本Planでは再帰spawn防止の安全境界として依存しない。
-
-### 2.4 PR #16 Merge後のBaseline
-
-PR #16は2026-08-11に `main` へMerge済みであり、本Plan BranchはそのMerge commitを含む最新 `main` から作成する。
-
-Current baselineには以下が含まれる。
+PR #16はMerge済みであり、Current `main` には以下が含まれる。
 
 - Specification SSOT
 - BR / AC validation
 - Agentic Exploratory QA
 - QA artifact contract
 - `pnpm run verify`拡張
-- `AGENTS.md`の品質ゲート完了契約
+- 品質ゲート完了契約
 - Runtime / Contract test分離
 - Run Artifact / Evidence運用
+- bounded Repair Loop
+- subagent observation / collection contract
+- change-scope enforcement
 
-Implementation開始時は、さらにその時点の最新 `main` へrebaselineし、Open PRの競合を確認する。
+Implementation開始時には、その時点の最新 `main` へ再Baselineし、Open PRとの競合を確認する。
+
+### 2.3 Current Scope Enforcement Constraint
+
+Current `codex-task` / change-scope contractは、Codex実行後にRepository working tree全体から `changed_files` を収集し、`allowed_files` / `allowed_dirs` / `allowed_globs` と比較する。
+
+したがって、**同一working treeで複数writable workerを同時実行した場合、Worker Aのscope checkからWorker Bの変更も見える可能性がある**。
+
+この状態で単純に「allowed scopeが重複しないからparallel-safe」と判定してはいけない。
+
+本Planでは以下を固定する。
+
+```text
+disjoint write set
+≠
+parallel write capability proven
+```
+
+Parallel writeには、disjoint write setに加えて**execution workspace isolationの実証**が必要である。
+
+### 2.4 Current Run Artifact Behavior
+
+Current harnessは `run.json`、report、collector output等をmachine-generated artifactとして更新できる。
+
+したがって「Run Artifactは親agentだけが更新する」という表現は、以下へ正規化する。
+
+```text
+Model-authored durable Run Artifact
+  → Parent Agent only
+
+Trusted harness / hook / collector generated artifact
+  → Machine-generated update allowed
+```
+
+Worker自身が `PLAN.md` / `TASKS.md` / `REPORT.md` / `evaluation.json` を勝手に編集することは禁止するが、既存wrapper / collectorの正規更新は許可する。
 
 ---
 
@@ -182,64 +183,75 @@ Target flowを以下に固定する。
 ```text
 Parent orientation
   ↓
-Parallel investigation
+Parallel read-only investigation
   ├─ code_researcher
   ├─ implementation_researcher
   └─ test_investigator
-  ↓ join
-Parent planning / dependency graph / write-set assignment
+  ↓ join / evidence collection / close
+Parent synthesis
+  ├─ implementation plan
+  ├─ dependency graph
+  ├─ Work Packages
+  ├─ read/write sets
+  └─ Required Validation Set
   ↓
-Parallel bounded implementation when safe
-  ├─ implementation_worker A
-  ├─ implementation_worker B
-  └─ implementation_worker C
-  ↓ join
+Write Parallel Capability Gate
+  ├─ PASS
+  │    → parallel bounded implementation if scopes are disjoint
+  └─ FAIL / UNKNOWN
+       → serial bounded implementation
+  ↓ join / evidence collection / close
 Parent integration review
   ↓
 quality_gate_runner
-  ├─ targeted validation
-  ├─ canonical quality gate
-  ├─ path-specific tests
-  ├─ E2E / Native checks when applicable
+  ├─ execute Parent-defined Required Validation Set
+  ├─ optional diagnostics
+  ├─ source-integrity verification
   └─ structured result
   ↓
 PASS → Parent final review → Complete
   │
-  └─ FAIL
+  └─ FAIL / BLOCKED
        ↓
      Parallel failure investigation
        ├─ test_investigator
        └─ code_researcher
-       ↓ join
-     Parent classification / Repair plan
+       ↓ join / close
+     Parent causal classification / Repair plan
        ↓
      implementation_worker(s)
+       ↓
+     Parent integration review
        ↓
      quality_gate_runner revalidation
 ```
 
 ### 3.2 Parent Agent Responsibility
 
-Parent agentは以下へ集中する。
+Parent Agentは以下へ集中する。
 
 - User intent / requirement解釈
 - Current repository state確認
 - Scope決定
 - Plan / Task decomposition
 - Dependency graph作成
-- read / write set決定
+- read set / write set決定
+- Write Parallel Capability Gate判定
+- Required Validation Set確定
 - subagent dispatch
+- subagent lifecycle管理
 - subagent結果統合
 - cross-worker consistency review
-- Repair Loopへの遷移判断
+- failure causal classification
+- Repair Loop遷移判断
 - final completion decision
-- `.codex/runs/**` の正式Run Artifact更新
+- model-authored durable Run Artifact更新
 
-親agentが直接実装するのは、以下に限定する。
+Parent Agentが直接主要実装を行うのは以下に限定する。
 
 - Lightweight task
 - 分割コストの方が明らかに高い極小修正
-- subagentへ安全にscopeを渡せない統合作業
+- subagentへ安全にscopeを渡せないintegration work
 - worker完了後に必要となった非常に小さいintegration fix
 
 Standard / Strictで親agentが主要実装を直接行った場合は、その理由を `REPORT.md` に記録する。
@@ -250,7 +262,7 @@ Standard / Strictで親agentが主要実装を直接行った場合は、その�
 
 ### 4.1 Explicit Custom Agent Pinning
 
-以下すべてのagent TOMLで明示的にpinする。
+以下すべてのcustom agent TOMLで明示的にpinする。
 
 ```toml
 model = "gpt-5.6-luna"
@@ -269,7 +281,7 @@ model_reasoning_effort = "max"
 
 ### 4.2 Default Subagent Contract
 
-`.codex/config.toml` に以下を設定する。
+`.codex/config.toml` ではCurrent official keyを利用する。
 
 ```toml
 [agents]
@@ -279,11 +291,11 @@ default_subagent_reasoning_effort = "max"
 max_concurrent_threads_per_session = 6
 ```
 
-これにより、role TOMLを明示しないgeneric subagentも原則Luna + maxを継承する。
+これによりgeneric spawnの既定値もLuna + maxへ寄せる。
 
-Custom role側でもmodel / effortを明示する理由は以下。
+Custom role側でもmodel / effortを明示する理由:
 
-- intentをfile単位で明確にする
+- role intentをfile単位で明確にする
 - accidental default driftを防ぐ
 - `scripts/verify` でcontract化しやすくする
 - future config変更時にもrole contractを維持する
@@ -292,93 +304,183 @@ Custom role側でもmodel / effortを明示する理由は以下。
 
 親agentまたはtask-specific workflowが以下を勝手に行ってはならない。
 
-```text
-spawn時に別modelを指定する
-spawn時にmax以外のreasoning effortを指定する
-agent TOMLからmodel / effort pinを削除する
-```
+- spawn時に別modelを指定する
+- spawn時にmax以外のreasoning effortを指定する
+- agent TOMLからmodel / effort pinを削除する
 
-例外は以下のみ。
+例外:
 
 - ユーザーが具体的なmodel / effort変更を明示した
-- OpenAI側のmodel availabilityによりLunaが利用不能で、ユーザーがfallbackを承認した
+- OpenAI側のmodel availabilityによりLunaが利用不能で、ユーザーがfallbackを明示承認した
 - repository-wide migration planとして別途承認された
 
 Luna利用不能時はsilent fallbackしない。
 
+### 4.4 Runtime Evidenceの限界
+
+Current subagent observation schemaはagent modelを記録できるが、reasoning effortをruntime observed valueとして保証する契約は持っていない。
+
+そのためDoDを以下へ分離する。
+
+```text
+Model
+  - config/TOML invariantでgpt-5.6-lunaを検証
+  - runtime subagent evidenceで可能な範囲で実modelを観測
+
+Reasoning effort
+  - config/TOML invariantでmaxを検証
+  - Current CLIがmax configを受理しspawn成功することを検証
+  - runtime wire formatで観測可能なら追加Evidence化
+  - 観測不能な場合に「runtime maxを直接観測した」とは記録しない
+```
+
+必要なら `subagent-run.schema.json` に以下を追加する。
+
+- `reasoning_effort`
+- `configuration_evidence`
+- `runtime_evidence`
+- `evidence_source = configured | runtime_observed | inferred`
+
+既存schemaで十分なら無理に追加しない。
+
 ---
 
-## 5. Agent Responsibilities
+## 5. Child Recursion Prevention
 
-### 5.1 `code_researcher`
+### 5.1 Target Hierarchy
+
+許可:
+
+```text
+Parent
+  ├─ Child A
+  ├─ Child B
+  └─ Child C
+```
+
+禁止:
+
+```text
+Parent
+  └─ Child
+       └─ Grandchild
+```
+
+### 5.2 Enforcement Strategy
+
+Parent project configではmulti-agent toolsを有効化する。
+
+```toml
+[features]
+multi_agent = true
+hooks = true
+```
+
+Current official configでは `features.multi_agent` が `spawn_agent` / `send_input` / `resume_agent` / `wait_agent` / `close_agent` を制御する。
+
+各custom agent側ではWave 0で**agent-file内のfeature overrideがCurrent CLIで有効か**を実証する。
+
+有効なら各child agentへ以下を設定する。
+
+```toml
+[features]
+multi_agent = false
+```
+
+これを第一選択とする。
+
+もしCurrent CLIでagent-file単位のfeature overrideが有効でない場合は、以下へfallbackする。
+
+- developer instructionsでsubagent spawn禁止
+- PreToolUse hookでchild sessionからの `spawn_agent` / `Agent` invocationをblock可能か検証
+- `scripts/verify` contract
+- Real-run Evidence
+
+**instruction-onlyを唯一の安全境界にしない。**
+
+### 5.3 Hook Capability Note
+
+Current Codex hooksでは `spawn_agent` はlocal function-tool hook pathで `Agent` matcherにも一致する。
+
+ただし `SubagentStart` hookの `continue: false` はsubagent開始を停止しないため、再帰spawn阻止に `SubagentStart`だけを使わない。
+
+Wave 0で実際のhook inputを確認し、child session識別が十分できる場合だけPreToolUse enforcementを導入する。
+
+---
+
+## 6. Agent Responsibilities
+
+### 6.1 `code_researcher`
 
 目的:
 
 - related code / dependency / impact surface調査
 - canonical source確認
 - shared dependency確認
-- hidden couplingの発見
+- hidden coupling発見
 
 契約:
 
 - read-only
-- 編集禁止
-- 必要な証拠だけ返す
+- Source編集禁止
+- 必要なEvidenceだけ返す
 - implementation decisionを勝手に確定しない
-- subagentをspawnしない
+- additional subagentをspawnしない
 
-### 5.2 `implementation_researcher`
+### 6.2 `implementation_researcher`
 
 目的:
 
-- requested changeに必要な具体的変更箇所を特定
+- requested changeに必要な具体的変更箇所特定
 - safe change surface整理
-- implementation Work Package候補作成
-- validation candidates整理
+- Work Package候補作成
+- read set / write set候補作成
+- validation candidate整理
 
 契約:
 
 - read-only
-- 編集禁止
-- write set候補を親へ返す
-- subagentをspawnしない
+- Source編集禁止
+- 最終write setを勝手に確定しない
+- additional subagentをspawnしない
 
-### 5.3 `test_investigator`
+### 6.3 `test_investigator`
 
 目的:
 
 - existing tests / CI / contract / regression確認
+- Required Validation Set候補作成
 - failure root-cause候補整理
 - missing coverage確認
-- required validation整理
 
 契約:
 
 - read-only
 - test修正禁止
 - flakyと断定する前にEvidenceを要求
-- subagentをspawnしない
+- required validationの最終決定はParentへ返す
+- additional subagentをspawnしない
 
-### 5.4 `implementation_worker`
+### 6.4 `implementation_worker`
 
 目的:
 
-- parentが確定したWork Packageだけを実装する
+- Parentが確定したWork Packageだけを実装する
 - minimal diffを維持する
-- worker単位で独立したAcceptance Criteriaを満たす
+- worker単位のAcceptance Criteriaを満たす
 
 契約:
 
 - workspace-write
-- parentが明示した `allowed-files` / `allowed-dirs` / `allowed-globs` 外を編集しない
+- Parentが明示した `allowed-files` / `allowed-dirs` / `allowed-globs` 外を編集しない
 - file delete / rename / move禁止
 - git mutation禁止
 - unrelated refactor禁止
-- dependency / design ambiguityが出たら勝手に広げずparentへ返す
-- `.codex/runs/**` を編集しない
-- subagentをspawnしない
+- dependency / design ambiguityが出たら勝手に広げずParentへ返す
+- model-authored `.codex/runs/**` 更新禁止
+- additional subagent spawn禁止
 
-出力:
+Worker出力:
 
 - changed files
 - implementation summary
@@ -388,16 +490,14 @@ Luna利用不能時はsilent fallbackしない。
 - scope adherence
 - unexpected mutation有無
 
-### 5.5 New `quality_gate_runner`
-
-新規追加する。
+### 6.5 New `quality_gate_runner`
 
 目的:
 
-- implementation後のrequired validationを実行する
-- complete / fail / blockedをEvidence付きで返す
+- implementation後のRequired Validation Setを実行する
+- PASS / FAIL / BLOCKEDをEvidence付きで返す
 - failureを分類する
-- 実装者とは別roleとしてvalidation independenceを確保する
+- validation responsibilityをimplementation workerから分離する
 
 Model:
 
@@ -420,27 +520,101 @@ workspace-writeとする理由:
 - generated validation output
 - package/build toolingの一時生成物
 
-が必要になる可能性があるため。
+ただし、workspace-writeは**Source Modification権限を技術的に完全排除するものではない**。
 
-ただしSource Modificationは明確に禁止する。
+したがってvalidation-onlyは以下の多層契約で守る。
+
+1. developer instructionsでSource edit禁止
+2. ParentがRequired Validation Setだけを渡す
+3. validation前snapshot
+4. validation実行
+5. validation後snapshot
+6. tracked Source差分比較
+7. unexpected tracked Source mutationがあればrunner resultをFAIL
+8. 必要ならPreToolUse hookでedit operationをblock可能かWave 0で確認
 
 禁止:
 
 - Application Code編集
 - Test Code編集
 - Specification / Documentation編集
-- `apply_patch` / edit operationによるtracked source変更
+- Sourceへの `apply_patch` / Edit / Write
 - git mutation
 - failureの自動修正
-- unrelated failureの即断
+- Required Validation Setの削除
 - skipped validationをPASS扱いすること
-- subagent spawn
+- unrelated failureの即断
+- additional subagent spawn
 
 ---
 
-## 6. Quality Gate Runner Output Contract
+## 7. Required Validation Set Contract
 
-最低限、親agentへ以下を返す。
+### 7.1 Selection Responsibility
+
+Required Validation Setの最終決定者はParent Agentとする。
+
+`test_investigator` は候補を返すが、`quality_gate_runner` 自身がrequired gateの有無を勝手に決めない。
+
+Target:
+
+```text
+Test Investigator
+  ↓ candidate validations
+Parent
+  ↓ decide Required Validation Set
+Quality Gate Runner
+  ↓ execute exactly that required set
+```
+
+### 7.2 Runner Rules
+
+`quality_gate_runner` は以下を守る。
+
+- Parentがrequiredとしたcommandを勝手に削除しない
+- 実行不能ならSKIPではなくBLOCKEDとして返す
+- required commandの順序に依存がある場合は上流から実行する
+- 上流failureで後続が無意味なら、後続は `not_run_due_to_upstream_failure` として明示する
+- required set以外のdiagnostic commandは追加してよい
+- diagnostic追加はRequired PASSの代替にしない
+
+### 7.3 Canonical Baseline
+
+通常のcanonical local gateは `pnpm run verify` とする。
+
+ただし `verify` だけで全runtime validationが完結すると仮定しない。
+
+変更scopeに応じた例:
+
+```text
+Web behavior
+→ pnpm run test:e2e:chromium
+
+Accessibility
+→ pnpm run test:a11y
+
+Responsive / mobile web boundary
+→ pnpm run test:e2e:mobile-boundary
+
+Specification
+→ pnpm run validate:spec
+→ pnpm run build:spec
+
+Agentic QA runtime preparation
+→ dedicated runtime test
+
+Android Native
+→ Current Native Runbook / CI contractに従う
+
+iOS Native
+→ Current ADR / CI contractに従う
+```
+
+---
+
+## 8. Quality Gate Runner Output Contract
+
+最低限以下をParentへ返す。
 
 ```text
 Status
@@ -448,14 +622,19 @@ Status
 - FAIL
 - BLOCKED
 
+Required Validation Set
+- required command list
+- executed / not executed
+
 Executed
 - command
 - result
 - relevant summary
 
-Skipped
+Not Executed
 - command
 - reason
+- upstream failure / environment blocker / not applicable
 
 Failures
 - first abnormal event
@@ -465,6 +644,8 @@ Failures
 - suspected relation to current changes
 
 Source Integrity
+- before snapshot
+- after snapshot
 - unexpected tracked source mutation: yes/no
 
 Remaining
@@ -478,7 +659,7 @@ Recommendation
 - human decision required
 ```
 
-Failure classificationは以下を初期標準とする。
+Failure classification:
 
 ```text
 CHANGE_CAUSED
@@ -492,15 +673,15 @@ UNKNOWN
 
 `UNKNOWN` を禁止しない。
 
-根拠不足で `BASELINE` / `ENVIRONMENT` / `FLAKY_SUSPECTED` へ押し込むより、未確定を正直に返すことを優先する。
+根拠不足で `BASELINE` / `ENVIRONMENT` / `FLAKY_SUSPECTED` へ押し込まない。
 
 ---
 
-## 7. Parallelization Contract
+## 9. Parallelization Contract
 
-### 7.1 Read-only Investigation
+### 9.1 Read-only Investigation
 
-Standard / Strictでは、独立した調査観点が2つ以上存在する場合、原則parallel spawnする。
+Standard / Strictでは独立した調査観点が2つ以上存在する場合、原則parallel spawnする。
 
 典型:
 
@@ -510,69 +691,103 @@ implementation_researcher
 test_investigator
 ```
 
-親agentが全コードを先に調査し尽くしてからsubagentを呼ぶ運用は避ける。
-
 Target:
 
 ```text
 minimal parent orientation
 → parallel investigation
-→ join
+→ wait / join
+→ evidence collection
+→ close finished agents
 → parent synthesis
 ```
 
-### 7.2 Writable Implementation Parallelization
+### 9.2 Read / Write Overlap Rule
 
-implementationをWork Packageへ分解し、安全条件を満たせば複数 `implementation_worker` をparallel spawnする。
+read-only agentだから常にwrite workerと並列実行してよいわけではない。
 
-例:
+Active implementation workerのwrite setとresearcherのread setが重複する場合、researcherがhalf-written / not-yet-integrated stateを読むリスクがある。
+
+したがってimplementation phase中のauxiliary investigationは以下のいずれかを満たす場合だけ並列化する。
+
+- researcher read setとactive worker write setがdisjoint
+- workerがjoin済み
+- read対象がimmutable baseline / committed sourceであることを明示的に保証できる
+
+不明ならworker join後に調査する。
+
+### 9.3 Writable Parallel Capability Gate
+
+writable workerをparallel化する前に、Parentは以下を確認する。
+
+#### Gate A — Work Package Independence
+
+- write setが重複しない
+- shared schema / migration / lockfileを同時更新しない
+- same generated outputを更新しない
+- worker間の途中依存がない
+- merge orderに意味がない、または明示管理可能
+- formatter / generatorが相手scopeを変更しない
+
+#### Gate B — Workspace Isolation
+
+- 各workerが独立working root / isolated workspaceで実行されることを実Runで証明できる
+- Worker Aの`git status` / scope checkからWorker Bのin-flight変更が混入しない
+- worker単位でchanged filesを正しく帰属できる
+
+#### Decision
 
 ```text
-WP-A: domain service + unit tests
-WP-B: isolated UI component + component tests
-WP-C: independent documentation / specification validator
+Gate A PASS + Gate B PASS
+→ parallel writable execution allowed
+
+Gate A PASS + Gate B FAIL/UNKNOWN
+→ serial writable execution
+
+Gate A FAIL
+→ serial writable execution
 ```
 
-### 7.3 Writable Parallelization Safety Conditions
+**disjoint pathだけを根拠にparallel writeを許可しない。**
 
-以下をすべて満たす場合にparallel writeを許可する。
+### 9.4 Isolation実現方針
 
-1. `allowed-files` / `allowed-dirs` / `allowed-globs` が重複しない。
-2. 同じtracked fileを編集しない。
-3. 同じgenerated outputを生成・更新しない。
-4. 一方のworkerの変更結果を他方が実装中に必要としない。
-5. shared schema / migration / lockfileを同時更新しない。
-6. `.codex/runs/**` をworkerが編集しない。
-7. 各Work Packageに独立したAcceptance Criteriaがある。
-8. merge orderに意味がない、または親agentが明示的にdependency orderを管理できる。
-9. cross-package formatter等が他workerのfileへtracked変更を発生させない。
+Wave 0 / Wave 1でCurrent Codex clientの実挙動を確認する。
 
-1つでも不明ならserial executionへ落とす。
+優先順位:
 
-### 7.4 Parallelizationを目的化しない
+1. Current Codexがsubagentごとの独立workspace / working rootを正式に提供している場合はそれを利用する。
+2. Current Repositoryの既存harnessで安全にisolated execution rootを提供できる場合は再利用する。
+3. いずれも保証できなければwritable parallelismを導入しない。
 
-目標は最大agent数ではない。
+本Planのためだけに大型custom runner / distributed worker platformを作らない。
 
-最適化対象は以下。
+Git worktreeを自前で追加する案は、必要性・cleanup・Windows互換性・scope enforcementとの統合まで含めて別途評価し、単にparallelismを満たすためだけには追加しない。
+
+### 9.5 Parallelismを目的化しない
+
+最適化対象:
 
 - parent context pollution低減
 - independent workのwall-clock短縮
 - evidence quality向上
 - implementation / validation責務分離
 
-共有fileを無理に分割し、integration costを増やすparallelismは禁止する。
+最大agent数はKPIにしない。
 
 ---
 
-## 8. Concurrency Configuration
+## 10. Concurrency / Agent Lifecycle
 
-### 8.1 Thread Limit
+### 10.1 Thread Limit
 
-初期値は以下とする。
+初期値:
 
 ```toml
 max_concurrent_threads_per_session = 6
 ```
+
+Current official config上、この値はprimary threadを除くopen spawned-agent thread数の上限である。
 
 想定:
 
@@ -581,24 +796,36 @@ Research phase:
   3 read-only agents + spare capacity
 
 Implementation phase:
-  up to 3 bounded workers + auxiliary investigation
+  isolated workspaceが実証できた場合のみ複数worker
 
 Failure phase:
-  parallel investigator + bounded repair worker
+  parallel investigators + repair worker
 ```
 
 初期導入で8以上へ上げない。
 
-理由:
+### 10.2 Lifecycle
 
-- Expo / Playwright / Native / package manager等の共有resource競合
-- build / test実行によるCPU / memory contention
-- tracked generated output競合
-- 親agent側のintegration review負荷
+完了agentを開いたままにしない。
 
-### 8.2 Feature Keys
+標準phase lifecycle:
 
-Current official keyへ寄せる。
+```text
+spawn
+→ run
+→ wait/join
+→ evidence collect
+→ parent decision
+→ close finished agent
+```
+
+Research agentをcloseしてからImplementation phaseへ進み、Implementation workerをcloseしてからQuality Gate phaseへ進む。
+
+必要な場合のみresumeする。
+
+### 10.3 Current Feature Keys
+
+Parent project configではCurrent official keyを使用する。
 
 ```toml
 [features]
@@ -606,117 +833,83 @@ hooks = true
 multi_agent = true
 ```
 
-- `features.codex_hooks` はdeprecated aliasのため `features.hooks` へ移行する。
-- `features.multi_agent` はdefault onだが、repository intentを明示するため明記する。
-
-### 8.3 Legacy Keys
-
-以下をCurrent keyへ移行する。
+legacy key:
 
 ```text
-agents.max_threads
-→ agents.max_concurrent_threads_per_session
-
 features.codex_hooks
 → features.hooks
+
+agents.max_threads
+→ agents.max_concurrent_threads_per_session
 ```
 
-`agents.max_depth` はCurrent Configuration Referenceに存在しないため、再帰spawn防止のcontractには使用しない。
+`agents.max_depth` のようなCurrent official referenceで確認できないkeyへ安全性を依存しない。
 
-削除前にCurrent Codex CLIでconfig loadが正常であることと、repository scriptsがこのkeyをcontractとして参照していないことを確認する。
+削除前にCurrent CLI / Repository contractからの参照を確認する。
 
 ---
 
-## 9. One-level Orchestration Contract
+## 11. Run Artifact Ownership
 
-subagentがsubagentを再帰spawnする構造を禁止する。
+### 11.1 Model-authored Durable Artifacts
 
-Target hierarchy:
-
-```text
-Parent
-  ├─ child
-  ├─ child
-  ├─ child
-  └─ child
-```
-
-禁止:
-
-```text
-Parent
-  └─ child
-       └─ grandchild
-```
-
-`max_depth` のような未確認config keyへ依存せず、以下でcontract化する。
-
-- `AGENTS.md`
-- 各 `.codex/agents/*.toml` developer instructions
-- `scripts/verify` contract
-- 実Run Evidence
-
-各custom agentへ次を明示する。
-
-```text
-Do not spawn, resume, or delegate to additional subagents.
-Only the parent agent orchestrates subagent execution.
-```
-
----
-
-## 10. Run Artifact Ownership
-
-### 10.1 Parent-only Durable Artifact Write
-
-以下のdurable Run Artifactは親agentだけが更新する。
+以下のcontentをModelが直接書き換える場合はParent Agentだけが行う。
 
 ```text
 .codex/runs/<run_id>/PLAN.md
 .codex/runs/<run_id>/TASKS.md
 .codex/runs/<run_id>/REPORT.md
-.codex/runs/<run_id>/run.json
 .codex/runs/<run_id>/evaluation.json
 ```
 
-理由:
+`run.json` もParent decisionの意味を勝手にworkerが変更してはいけない。
 
-- parallel worker write conflict防止
-- append-only `REPORT.md` 競合防止
-- progress denominator破損防止
-- single source of run decision維持
+### 11.2 Trusted Machine-generated Updates
 
-### 10.2 Subagent Evidence
+以下は既存contractに従うmachine-generated更新として許可する。
 
-subagentは親agentへ結果を返し、既存subagent observation / collection contractを通してEvidenceを集約する。
+- `codex-task` wrapperによるreport / manifest更新
+- hook observation
+- subagent observation generation
+- collectorによる `run.json` aggregation
+- validation result aggregation
 
-必要ならrun-localのmachine-readable subagent evidenceは既存schemaを再利用する。
+したがって「parent-only write」は**model-authored durable decision content**に対するownershipであり、trusted harness自動更新を禁止する意味ではない。
 
-新しい独自artifact formatは、既存 `subagent-run.schema.json` で表現不能な場合だけ追加検討する。
+### 11.3 Parallel Conflict Prevention
+
+Workerは以下を直接編集しない。
+
+- `PLAN.md`
+- `TASKS.md`
+- `REPORT.md`
+- `evaluation.json`
+
+machine-generated subagent evidenceは既存 `subagents/*.json` 等のcontractを利用し、同一pathへのparallel writeを発生させない。
 
 ---
 
-## 11. Failure / Repair Loop
+## 12. Failure / Repair Loop
 
-### 11.1 Gate Failure
+### 12.1 Gate Failure
 
-`quality_gate_runner` がFAILしたら親agentは即修正しない。
+`quality_gate_runner` がFAIL / BLOCKEDしたら、Parentは即座に修正へ飛ばない。
 
 まず可能な範囲で以下をparallel investigationする。
 
 ```text
 test_investigator
-  → failure / test / CI contract analysis
+  → test / CI / contract / first-failure analysis
 
 code_researcher
   → current diff / dependency / causal relation analysis
 ```
 
-必要なら `implementation_researcher` も追加する。
+必要なら `implementation_researcher` を追加する。
 
-### 11.2 Parent Classification
+### 12.2 Parent Classification
 
-親agentがEvidenceを統合し、次を決定する。
+ParentがEvidenceを統合し、次を決定する。
 
 ```text
 CHANGE_CAUSED
@@ -729,19 +922,22 @@ ENVIRONMENT
 → reproducibility / environment evidenceを記録
 
 HARNESS
-→ harness improvementまたはrepairへ分岐
+→ repairまたはharness-improvementへ分岐
 
 BLOCKED / UNKNOWN
-→ human decisionまたは追加調査
+→ additional investigationまたはhuman decision
 ```
 
-### 11.3 Repair
+### 12.3 Repair
 
-修正対象が分離可能なら、Repairでも複数 `implementation_worker` をparallelizeしてよい。
+RepairでもWrite Parallel Capability Gateを適用する。
 
-修正後は必ず `quality_gate_runner` へ戻す。
+- Isolationを実証できれば、disjoint repair workerをparallelizeしてよい。
+- 実証できなければserial repairとする。
 
-### 11.4 Bounded Retry
+修正後はParent integration reviewを通し、必ず `quality_gate_runner` へ戻す。
+
+### 12.4 Bounded Retry
 
 既存のbounded Repair Loop思想を維持する。
 
@@ -756,57 +952,9 @@ BLOCKED / UNKNOWN
 
 ---
 
-## 12. Quality Gate Selection
-
-### 12.1 Canonical Gate
-
-Current Repositoryでは、通常のcanonical local gateとして `pnpm run verify` を使用する。
-
-`verify` だけで全runtime validationが完結すると仮定しない。
-
-### 12.2 Path-specific Additional Validation
-
-変更scopeに応じて `quality_gate_runner` は追加検証を選択する。
-
-例:
-
-```text
-Web behavior
-→ Playwright Chromium E2E
-
-Accessibility
-→ a11y E2E
-
-Responsive / mobile web boundary
-→ mobile-boundary E2E
-
-Specification
-→ validate:spec / build:spec
-
-Agentic QA runtime preparation
-→ dedicated runtime test
-
-Android Native
-→ Native build/runtime/Maestro contract
-
-iOS Native
-→ Current ADRに従うBuild-only validation
-```
-
-何を実行すべきか不明な場合、`test_investigator` の調査結果を利用する。
-
-### 12.3 Fail-close
-
-- 未実行をPASS扱いしない。
-- skipped gateには理由を必須とする。
-- required gateがenvironment blockerならStatusはBLOCKEDとする。
-- unrelatedと判断する場合もEvidenceを必須とする。
-
----
-
 ## 13. Lightweight Exception
 
-Lightweight taskでは、以下のような明白な小変更についてsubagent省略を許可する。
+Lightweight taskでは以下のような明白な小変更についてsubagent省略を許可する。
 
 - single file
 - low risk
@@ -815,7 +963,7 @@ Lightweight taskでは、以下のような明白な小変更についてsubagen
 - no cross-platform impact
 - validationが単純
 
-ただし、subagent省略理由を `REPORT.md` に記録する。
+ただしsubagent省略理由を `REPORT.md` に記録する。
 
 Lightweightを使って以下を回避してはならない。
 
@@ -827,7 +975,7 @@ Lightweightを使って以下を回避してはならない。
 
 ---
 
-## 14. Codex Version / Availability Preflight
+## 14. Codex Version / Availability / Capability Preflight
 
 Implementation開始時に以下を確認する。
 
@@ -837,13 +985,21 @@ codex --version
 
 確認項目:
 
-- Current Codex CLIが `gpt-5.6-luna` を利用可能である。
-- project-scoped subagent configがmodel / reasoning effortを受理する。
-- `max` reasoning effortが実際に利用可能である。
-- multi-agent toolsが利用可能である。
-- `agents.default_subagent_model` / `agents.default_subagent_reasoning_effort` がCurrent CLIで有効である。
+- Current Codex CLIが `gpt-5.6-luna` を利用可能
+- project-scoped custom agent configがmodel / reasoning effortを受理
+- `max` reasoning effortを指定したspawnが成功
+- multi-agent toolsが利用可能
+- `agents.default_subagent_model` が有効
+- `agents.default_subagent_reasoning_effort` が有効
+- `agents.max_concurrent_threads_per_session` が有効
+- `features.hooks` が有効
+- `features.multi_agent` が有効
+- custom agent内のfeature overrideが有効か
+- child recursionをtool-levelでblock可能か
+- parallel writable workerに独立workspaceが割り当てられるか
+- runtime evidenceでmodel / reasoning effortをどこまで観測できるか
 
-Lunaが利用不能ならsilent fallbackしない。
+Luna / maxが利用不能ならsilent fallbackしない。
 
 Plan / Run ArtifactへBLOCKERとして記録し、ユーザー判断へ戻す。
 
@@ -870,12 +1026,24 @@ Implementation PRでは最低限以下を再Baselineして変更する。
 AGENTS.md
 ```
 
+### Hooks / Safety
+
+既存hookで足りるか確認し、必要な場合だけ変更する。
+
+```text
+.codex/hooks/pre_tool_use_policy.py
+.codex/hooks/pre_tool_use_policy.ps1
+.codex/hooks/observe.sh
+.codex/hooks/observe.ps1
+```
+
 ### Harness / Documentation
 
 ```text
 docs/reference/codex-implementation-harness.md
 docs/reference/subagent-observation.md
-docs/reference/run-artifacts.md          # only if contract changes require it
+docs/reference/run-artifacts.md
+docs/reference/change-scope-policy.md   # only if parallel/isolated semantics change
 ```
 
 ### Validation Contract
@@ -887,20 +1055,18 @@ scripts/verify.ps1
 
 ### Schema / Tests
 
-必要性を再確認して以下を変更する。
+必要性を再確認して変更する。
 
 ```text
 .codex/templates/subagent-run.schema.json
 relevant harness / contract tests
 ```
 
-不要ならschema追加や新しいvalidation frameworkは作らない。
+不要なら新schema / framework / runnerを追加しない。
 
 ---
 
 ## 16. `scripts/verify` Contract
-
-Current harnessは `implementation_worker` のmodelまでhard-codeしているため、Luna migrationと同じPRで更新必須である。
 
 ### 16.1 Required Agent Files
 
@@ -921,9 +1087,7 @@ model = "gpt-5.6-luna"
 model_reasoning_effort = "max"
 ```
 
-可能ならagent名ごとの重複hard-codeではなく、`.codex/agents/*.toml` 全体を走査してInvariantとして検証する。
-
-これにより将来agent追加時もLuna + max contractから逸脱したら品質ゲートが落ちる。
+可能ならagent名ごとの重複hard-codeではなく `.codex/agents/*.toml` 全体を走査してInvariant化する。
 
 ### 16.3 Config Invariant
 
@@ -938,15 +1102,29 @@ features.multi_agent = true
 features.hooks = true
 ```
 
-### 16.4 Safety Invariant
+### 16.4 Child Recursion Invariant
 
-以下も検証する。
+agent-file feature overrideがCurrent CLIで有効なら、すべてのchild agentで次を検証する。
+
+```text
+features.multi_agent = false
+```
+
+feature overrideを利用できない場合は、代替enforcementの実装とcontract testを必須とする。
+
+### 16.5 Safety Invariant
+
+以下を検証する。
 
 - implementation workerのscope restriction
-- quality gate runnerのsource-edit禁止
-- subagent recursion禁止
-- parent-only Run Artifact ownership
-- parallel writable scope separation rule
+- quality gate runnerのSource-edit禁止契約
+- Source Integrity snapshot contract
+- Required Validation Setをrunnerが削除しない契約
+- child recursion禁止
+- model-authored Run Artifact parent-only ownership
+- trusted harness machine-generated update例外
+- parallel writable executionにCapability Gateが必要
+- isolated workspace未証明時はserial fallback
 
 Bash / PowerShellのverify契約は同等にする。
 
@@ -954,19 +1132,37 @@ Bash / PowerShellのverify契約は同等にする。
 
 ## 17. Implementation Waves
 
-### Wave 0 — Rebaseline / Preflight
+### Wave 0 — Rebaseline / Official Spec / Capability Discovery
 
 latest `main` で以下を確認する。
+
+Repository:
 
 - Current custom agent list
 - Current `AGENTS.md`
 - Current `.codex/config.toml`
 - Current verify scripts
+- Current change-scope enforcement
 - Current subagent observation schema
 - Current Repair Loop
 - Current `pnpm run verify`
-- Current Codex CLI / Luna availability
 - Open PRとの競合
+
+Codex runtime:
+
+- Current CLI version
+- Luna availability
+- max effort config acceptance
+- generic subagent default inheritance
+- current feature keys
+- hook tool coverage
+- custom agent feature override可否
+- child session識別可否
+- runtime model observability
+- reasoning effort observability
+- worker workspace / cwd behavior
+
+**Wave 0の最重要判定はWrite Parallel Capability Gateを実現できるかどうかである。**
 
 このWaveではProduct Codeを変更しない。
 
@@ -978,82 +1174,146 @@ latest `main` で以下を確認する。
 - `quality_gate_runner`追加
 - default subagent model / effort追加
 - concurrencyをCurrent keyへ移行
-- `features.hooks` / `features.multi_agent`へ明示移行
-- unsupported / stale config keyの扱いを確認
+- `features.hooks` / `features.multi_agent`へ移行
+- unsupported / stale config key整理
+- child recursion tool-level preventionを可能な範囲で実装
 
 Validation:
 
 - TOML parse
 - Codex config load
 - agent discovery
-- Luna spawn smoke
+- each custom role spawn smoke
+- generic spawn smoke
+- max config acceptance
 
 ### Wave 2 — Orchestration Contract
 
 `AGENTS.md` / implementation harnessへ以下を実装する。
 
-- parent orchestration responsibility
+- Parent orchestration responsibility
 - parallel read-only investigation
+- agent lifecycle / close rule
 - Work Package decomposition
-- writable parallel safety conditions
-- parent-only Run Artifact ownership
+- read set / write set
+- Write Parallel Capability Gate
+- workspace isolation requirement
+- serial fallback
+- model-authored Run Artifact parent-only ownership
+- trusted machine-generated artifact exception
 - no recursive subagents
+- Required Validation Set contract
 - quality gate handoff
 - failure investigation
 - Repair handoff
 - bounded retry
 - Lightweight exception
 
-### Wave 3 — Harness / Contract Validation
+### Wave 3 — Harness / Hook / Contract Validation
 
 実施:
 
 - `scripts/verify`
 - `scripts/verify.ps1`
 - relevant contract tests
+- child recursion enforcement
+- source integrity check
 - subagent observation docs/schema as needed
+- hook changes only whenCurrent capabilityが実証できた場合
 
-全agent Luna + max invariantをmechanical gateにする。
+### Wave 4 — Read-only Parallel Real Run
 
-### Wave 4 — Real Multi-agent Execution Verification
-
-TOML / static validationだけで完了しない。
-
-Repository内の小さく安全な実タスクまたは専用fixtureを使い、実際に以下を1回以上通す。
+まず安全なread-heavy workflowを実Runする。
 
 ```text
 Parent
   ↓
-3 parallel research agents
-  ↓
+code_researcher + implementation_researcher + test_investigator
+  ↓ parallel
 join
   ↓
-2+ parallel implementation workers with disjoint scopes
+evidence collect
   ↓
-join / integration review
-  ↓
-quality_gate_runner
+close
 ```
 
-実Application behaviorを無意味に変更するためのfixtureは作らない。
+Acceptance:
 
-既存harness contractを利用して安全に再現できる方法を優先する。
+- 2+ agentsが実際にoverlapして実行される
+- Luna model evidence取得
+- max configured evidence取得
+- Source差分0
+- Parent synthesis可能
+- completed threadsがcloseされる
 
-### Wave 5 — Failure / Repair Execution Verification
+### Wave 5 — Writable Execution Capability Verification
 
-可能なら意図的かつ安全なfixture failureを使って以下を確認する。
+専用fixtureまたは安全なbounded taskでworkspace isolationを検証する。
+
+#### Case A — Isolation PASS
+
+```text
+Worker A → isolated workspace A
+Worker B → isolated workspace B
+```
+
+確認:
+
+- each workerが相手のin-flight source diffを見ない
+- changed filesをworker単位で帰属可能
+- scope checkが誤検知しない
+- integration方法がdeterministic
+
+PASSならparallel writable executionを有効化する。
+
+#### Case B — Isolation FAIL / UNKNOWN
+
+parallel writable executionを有効化しない。
+
+Target operation:
+
+```text
+implementation_worker A
+→ join
+→ Parent review
+→ implementation_worker B
+→ join
+→ Parent review
+```
+
+**このfallbackでも本Planは完了可能とする。**
+
+「parallel writeできなかった」ことをImplementation失敗にはしない。安全に保証できないparallel writeを無理に実装する方を失敗とする。
+
+### Wave 6 — Quality Gate Runner Real Run
+
+ParentがRequired Validation Setを確定し、runnerへ渡す。
+
+確認:
+
+- runnerがrequired setを削除しない
+- required commandを実行する
+- before/after Source Integrityを確認する
+- Source mutationがない
+- structured resultを返す
+- optional diagnosticとrequired gateを区別する
+
+### Wave 7 — Failure / Repair Real Run
+
+安全なfixture failureで以下を確認する。
 
 ```text
 quality_gate_runner FAIL
 → parallel investigators
-→ parent classification
+→ Parent classification
 → bounded repair worker
+→ Parent review
 → quality_gate_runner PASS
 ```
 
-Product defectを人工的に残したままmergeしない。
+Product defectを残したままmergeしない。
 
-### Wave 6 — Final Validation
+### Wave 8 — Final Validation
 
 最低限:
 
@@ -1061,7 +1321,9 @@ Product defectを人工的に残したままmergeしない。
 repository harness verify
 pnpm run verify
 relevant contract tests
-Codex multi-agent real run evidence
+Codex read-only parallel real run
+writable capability decision evidence
+quality_gate_runner real run
 source integrity check
 Run Artifact sanitizer
 ```
@@ -1072,25 +1334,52 @@ Current Required CIもすべてPASSさせる。
 
 ## 18. Real-run Acceptance Criteria
 
-導入完了には以下をすべて満たす。
+### Model / Config
 
-- [ ] `code_researcher` が `gpt-5.6-luna` / `max` でspawnされる。
-- [ ] `implementation_researcher` が `gpt-5.6-luna` / `max` でspawnされる。
-- [ ] `test_investigator` が `gpt-5.6-luna` / `max` でspawnされる。
-- [ ] `implementation_worker` が `gpt-5.6-luna` / `max` でspawnされる。
-- [ ] `quality_gate_runner` が `gpt-5.6-luna` / `max` でspawnされる。
-- [ ] generic subagentがdefaultでLuna + maxを継承する。
+- [ ] `code_researcher` configが `gpt-5.6-luna` / `max`。
+- [ ] `implementation_researcher` configが `gpt-5.6-luna` / `max`。
+- [ ] `test_investigator` configが `gpt-5.6-luna` / `max`。
+- [ ] `implementation_worker` configが `gpt-5.6-luna` / `max`。
+- [ ] `quality_gate_runner` configが `gpt-5.6-luna` / `max`。
+- [ ] generic subagent defaultがLuna + max。
+- [ ] Current CLIがmax設定を受理してspawn成功する。
+- [ ] runtime modelを取得可能なEvidenceでLunaと確認する。
+- [ ] reasoning effortをruntime直接観測できない場合、その限界を明示する。
+
+### Delegation / Lifecycle
+
 - [ ] read-only agentを2つ以上parallel実行できる。
-- [ ] write scopeが完全分離されたworkerを2つ以上parallel実行できる。
-- [ ] worker同士が同じtracked fileを編集しない。
-- [ ] workerが `.codex/runs/**` を編集しない。
-- [ ] parentがworker join後にintegration reviewを行う。
-- [ ] `quality_gate_runner` がrequired validationを実行する。
-- [ ] `quality_gate_runner` がtracked sourceを変更しない。
-- [ ] gate failureをstructured classificationできる。
-- [ ] failure investigationをparallel subagentsへ委譲できる。
+- [ ] Research phase終了後にagentをcloseできる。
+- [ ] child agentがgrandchildをspawnできない、またはspawn attemptがblockされる。
+- [ ] Parentがsubagent結果を統合して最終判断する。
+
+### Writable Capability
+
+- [ ] Write Parallel Capability Gateを実行する。
+- [ ] workspace isolation可否をEvidence付きで判定する。
+- [ ] isolation PASSならdisjoint workerを2つ以上parallel実行して安全性を確認する。
+- [ ] isolation FAIL / UNKNOWNならserial fallbackを確認する。
+- [ ] workerがmodel-authored durable Run Artifactを編集しない。
+- [ ] worker scope attributionが正しい。
+
+### Quality Gate
+
+- [ ] ParentがRequired Validation Setを確定する。
+- [ ] `quality_gate_runner` がrequired setを削除しない。
+- [ ] runnerがrequired validationを実行する。
+- [ ] runnerがtracked Sourceを変更しない。
+- [ ] skipped / blocked / upstream-failureをPASS扱いしない。
+- [ ] failureをstructured classificationできる。
+
+### Repair
+
+- [ ] failure investigationをparallel read-only agentsへ委譲できる。
+- [ ] Parentがcausal classificationする。
+- [ ] Repair後にParent integration reviewを行う。
 - [ ] Repair後にquality gate runnerへ戻る。
-- [ ] child subagentがgrandchild subagentをspawnしない。
+
+### Final
+
 - [ ] subagent EvidenceがRun Artifact / machine-readable evidenceへ集約される。
 - [ ] required local gatesがPASSする。
 - [ ] required GitHub ActionsがPASSする。
@@ -1108,9 +1397,12 @@ Current Required CIもすべてPASSさせる。
 - 独自MCP orchestration layerの構築。
 - Remote Sandbox platformの構築。
 - Kubernetes / distributed worker infrastructure。
+- parallel writeのためだけの大型worktree manager構築。
 - すべてのtaskを無理にparallel化すること。
+- 同一working tree上でscope帰属不能なparallel writeを許可すること。
 - writable workerへ共有fileの同時編集を許可すること。
 - quality gate runnerへ自動修正権限を与えること。
+- Required Validation Setの選定をquality gate runnerへ丸投げすること。
 - unlimited Repair Loop。
 - silent model fallback。
 - auto reasoning-effort downgrade。
@@ -1120,43 +1412,73 @@ Current Required CIもすべてPASSさせる。
 
 ## 20. Risks and Mitigations
 
-### Risk 1 — `max` によるlatency増加
+### Risk 1 — `max` によるlatency / usage増加
 
 Mitigation:
 
-- Lunaのhigh-volume向け特性を利用する。
-- 独立作業をparallel化する。
+- Owner Decisionとしてmaxを固定する。
+- independent read-heavy workをparallel化する。
 - task granularityを適切に保つ。
-- 実Runでwall-clockとRepair回数を記録する。
+- wall-clock / Repair回数 / usage情報を記録する。
+- 自動downgradeはしない。
 
-### Risk 2 — Parallel write conflict
+### Risk 2 — Parallel write conflict / scope誤検知
 
 Mitigation:
 
-- explicit write set
-- disjoint scope requirement
-- Run Artifact parent-only write
-- shared config / lockfileのparallel edit禁止
-- parent integration review
+- Write Parallel Capability Gate
+- disjoint write set
+- workspace isolation requirement
+- changed-file attribution確認
+- isolation未証明時serial fallback
+- shared config / lockfile parallel edit禁止
 
-### Risk 3 — Context duplication
+### Risk 3 — Read/write race
+
+Mitigation:
+
+- active write setとresearch read setの重複禁止
+- overlap不明ならjoin後にresearch
+- committed / immutable baselineを明示利用
+
+### Risk 4 — Context duplication
 
 Mitigation:
 
 - subagent promptにはtask-specific scopeだけ渡す。
-- parentが必要最小限のcontextを委譲する。
-- subagent結果はsummary + evidence中心にする。
+- Parentが必要最小限のcontextを委譲する。
+- subagent結果はsummary + Evidence中心にする。
 
-### Risk 4 — Quality runner自身がsourceを直してしまう
+### Risk 5 — Quality runner自身がSourceを直す
 
 Mitigation:
 
-- agent developer instructionsでsource edit禁止
-- pre/post working tree comparison
-- verify contract
-- unexpected source mutationならFAIL
+- agent instructions
+- Required Validation Set限定
+- before / after snapshot
+- tracked Source diff check
+- possible hook enforcementをWave 0で評価
+- mutation検知時FAIL
 
-### Risk 5 — Future agentが別modelへ戻る
+### Risk 6 — Child recursion
+
+Mitigation:
+
+- child `multi_agent = false` が有効なら利用
+- PreToolUse hook enforcement可否確認
+- instruction contract
+- verify contract
+- real-run negative test
+
+### Risk 7 — Reasoning effortをruntime証明できない
+
+Mitigation:
+
+- config invariantとruntime evidenceを分離
+-観測可能範囲だけを事実として記録
+- schema拡張は必要時のみ
+
+### Risk 8 — Future agentが別modelへ戻る
 
 Mitigation:
 
@@ -1164,14 +1486,14 @@ Mitigation:
 - per-role explicit pin
 - all `.codex/agents/*.toml` invariant validation
 
-### Risk 6 — Unsupported / deprecated Codex config
+### Risk 9 — Unsupported / deprecated Codex config
 
 Mitigation:
 
-- Current official Config Referenceへ合わせる。
-- legacy aliasをCurrent keyへ移行する。
-- undocumented `max_depth` へ安全性を依存しない。
-- real Codex CLI config-load / spawn testをDoDにする。
+- Implementation時点のCurrent official Config Referenceへ再照合
+- legacy aliasをCurrent keyへ移行
+- undocumented keyへ安全性を依存しない
+- real CLI config-load / spawn testをDoDにする
 
 ---
 
@@ -1189,11 +1511,16 @@ Mitigation:
 
 - Codex agent discovery
 - each custom role spawn
-- Luna model confirmation
-- max reasoning effort confirmation where observable
-- parallel read-only spawn
-- parallel disjoint write spawn
+- Luna model evidence
+- max config acceptance
+- generic default inheritance
+- child recursion negative test
+- parallel read-only execution
+- completed agent close
+- writable isolation capability test
+- serial fallback test
 - quality gate runner execution
+- Required Validation Set preservation
 - failure classification
 - Repair Loop handoff
 
@@ -1206,11 +1533,12 @@ Mitigation:
 
 ### Integrity
 
-- unexpected tracked file diffなし
+- unexpected tracked Source diffなし
 - agent scope違反なし
-- Run Artifact ownership違反なし
+- model-authored Run Artifact ownership違反なし
 - no recursive subagents
 - no git mutation by worker
+- parallel write attribution ambiguityなし
 
 ---
 
@@ -1225,18 +1553,29 @@ Mitigation:
 
 ### Orchestration
 
-- Standard / Strictでparallel researchを原則利用する。
-- disjoint write scopeではparallel implementationを原則検討する。
-- parentがwork decomposition / integration / final judgmentを担当する。
-- subagent recursionを禁止する。
-- Run Artifactはparent-only write。
+- Standard / Strictでparallel read-only researchを原則利用する。
+- Parentがwork decomposition / Required Validation Set / integration / final judgmentを担当する。
+- child recursionをtool-level優先で防止する。
+- completed agentをphase終了時にcloseする。
+- model-authored durable Run ArtifactはParent-only write。
+- trusted harness machine-generated artifact updateは維持する。
+
+### Writable Execution
+
+- Write Parallel Capability Gateが実装される。
+- workspace isolationが実証できた場合のみparallel writeを有効化する。
+- isolation未証明ならserial fallbackする。
+- serial fallbackでもPlan完了扱いにできる。
+- unsafe parallelismをDoD達成のために強制しない。
 
 ### Quality Gate
 
-- implementation後に `quality_gate_runner` へ必ずhandoffできる。
+- ParentがRequired Validation Setを確定する。
+- implementation後に `quality_gate_runner` へhandoffできる。
 - runnerがrequired tests / quality gatesを実行する。
 - runnerはSourceを修正しない。
-- failure classification / evidence / skipped validationを返す。
+- Source Integrityをbefore / afterで検証する。
+- failure classification / Evidence / not-run reasonを返す。
 - failure時はparallel investigation + Repair Loopへ遷移できる。
 
 ### Harness
@@ -1244,13 +1583,15 @@ Mitigation:
 - `scripts/verify` / PowerShell parityが新contractを検証する。
 - all-agent Luna + max invariantがmechanical gateになる。
 - Current Codex config keyへ移行済み。
+- child recursion enforcementが検証可能。
 
 ### Evidence
 
-- actual Luna subagent spawnを確認済み。
-- parallel research実Runを確認済み。
-- parallel implementation実Runを確認済み。
-- quality gate runner実Runを確認済み。
+- actual Luna custom subagent spawnを確認済み。
+- max configをCurrent CLIが受理することを確認済み。
+- parallel read-only real runを確認済み。
+- writable isolation capability decisionをEvidence化済み。
+- quality gate runner real runを確認済み。
 - required local validation PASS。
 - required GitHub Actions PASS。
 
@@ -1258,20 +1599,50 @@ Mitigation:
 
 ## 23. Implementation Start Gate
 
-PR #16のMerge条件はすでに満たされている。
+PR #16のMerge条件は満たされている。
 
 Implementation開始前に以下を満たす。
 
 - latest `main` を取得済み。
 - PR #16後の `AGENTS.md` / `package.json` / harness / Agentic QA contractを再Baseline済み。
 - Current Open PRとの変更競合を確認済み。
+- Current OpenAI official Codex docsを再確認済み。
 - Current Codex CLIがLuna / max / multi-agentを利用可能。
+- Write Parallel Capability Gateの検証方法を決定済み。
 - 実装用の新規Branchをlatest `main` から作成済み。
 - 本PlanをImplementation Runのprimary planning referenceとして使用する。
 
 ---
 
-## 24. Final Implementation Principle
+## 24. Official Reference Baseline
+
+Implementation時にはCurrent official documentationを再確認する。
+
+最低限の参照対象:
+
+- Codex Subagents documentation
+- Codex Configuration Reference
+- Codex Hooks documentation
+- GPT-5.6 Luna model documentation
+- GPT-5.6 model guidance / reasoning effort documentation
+
+本Plan作成・レビュー時点で確認している重要事項:
+
+- subagent workflowsはparallel exploration / tests / log analysis等のread-heavy taskに向いている。
+- write-heavy parallel workflowsはconflict / coordination overheadへ注意が必要である。
+- `agents.default_subagent_model` / `agents.default_subagent_reasoning_effort` が存在する。
+- explicit spawn model / effortはdefaultより優先される。
+- `agents.max_concurrent_threads_per_session` はprimaryを除くopen spawned-agent thread数を制限する。
+- `agents.max_threads` はlegacy aliasである。
+- `features.multi_agent` はmulti-agent collaboration toolsを制御する。
+- `features.hooks` がCurrent keyであり `features.codex_hooks` はdeprecated aliasである。
+- PreToolUse hookは `spawn_agent` をlocal function toolとして捕捉でき、`Agent` aliasにも一致する。
+- `SubagentStart` の `continue: false` はsubagent開始を停止しない。
+- GPT-5.6は `max` reasoning effortをサポートする。
+
+---
+
+## 25. Final Implementation Principle
 
 本Planの最終目的は「agent数を増やすこと」ではない。
 
@@ -1279,16 +1650,19 @@ Implementation開始前に以下を満たす。
 
 ```text
 Parent Agent
-  = 判断・分解・統合・責任
+  = 判断・分解・Validation Set決定・統合・責任
 
 GPT-5.6 Luna Subagents / max
   = 調査・実装・検証のbounded execution
 
 Parallelism
-  = 独立作業のwall-clock短縮
+  = 安全に独立できる作業のwall-clock短縮
+
+Write Parallel Capability Gate
+  = 並列writeの安全性をdisjoint pathだけでなくworkspace isolationまで含めて判定
 
 Quality Gate Runner
-  = 実装者とは分離されたvalidation responsibility
+  = Parent指定のRequired Validation Setを変更せず実行するvalidation responsibility
 
 Repair Loop
   = Failure時だけEvidence駆動で再動員
@@ -1296,4 +1670,4 @@ Repair Loop
 
 subagentを使える箇所では積極的に使う。
 
-ただし、**安全に分離できない作業を並列化しない、検証者に修正させない、親agentの最終責任をsubagentへ委譲しない**ことを同時に守る。
+ただし、**安全に分離できないwriteを並列化しない、検証者に修正させない、Required Validation Setをrunnerへ丸投げしない、machine-generated artifactとmodel-authored artifactを混同しない、観測できないruntime事実を観測済みと扱わない、親agentの最終責任をsubagentへ委譲しない**ことを同時に守る。
