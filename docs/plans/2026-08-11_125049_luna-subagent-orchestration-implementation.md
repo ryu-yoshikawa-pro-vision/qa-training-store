@@ -27,13 +27,13 @@
   - write workspace isolation が Current Codex で証明できない場合は serial fallback を採用する。
   - `spec/failure-taxonomy.json` は既存 Markdown reference と evaluation schema の10 categoryを機械化する唯一の catalog として復元する。新しい category は追加しない。
 - Non-goals:
-  - Product / Test behavior の変更、独自 LLM runner、Responses API wrapper、custom session / distributed worker / large worktree manager、第二 Failure Taxonomy、Git mutation、remote PR write。
+  - Product / Test behavior、assertions、expected behaviorの変更、独自 LLM runner、Responses API wrapper、custom session / distributed worker / large worktree manager、第二 Failure Taxonomy、Git mutation、remote PR write。runner / timeout configurationは品質検証に必要な最小範囲だけ許可する。
 
 ## 3. 質問 / 曖昧性
 
 - 必ず質問する不透明点: なし。ユーザーの Implementation 指示を L3 explicit approval として扱う指定がある。
 - 仮定してよい細部: 既存 snapshot / collector の summary 境界、hook failure は execution を止めない既存契約、quality runner の write-tool block は安全な識別がない限り追加しない。
-- 未回答の重要質問: 現在の `0.142.5` でなく必要な公式 minimum の Codex が利用可能か、更新なしには解決できない。Runtime Agent Compliance は actual hook evidence が得られるまで未完了とする。
+- 未回答の重要質問: CLI更新後の `0.147.0` はLuna/maxのno-op capability checkを通過したが、実runtimeのcustom-agent identity/model観測とhook trustを同一Runで再確認できるかは別途検証する。Runtime Agent Compliance はactual hook evidenceが得られるまで未完了とする。
 
 ## 4. 影響範囲
 

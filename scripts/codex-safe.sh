@@ -277,6 +277,8 @@ run_preflight() {
   assert_decision forbidden git add .
   assert_decision forbidden git reset --hard HEAD~1
   assert_decision forbidden terraform destroy -auto-approve
+  assert_decision allow node scripts/codex-local-validation.mjs validate-orchestration
+  assert_decision prompt pwsh -Command Get-Date
   if [[ "$preset" == "auto-net" ]]; then
     assert_decision allow docker ps
     assert_decision allow npm test

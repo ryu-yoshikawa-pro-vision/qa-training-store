@@ -11,6 +11,10 @@
   "base_branch": null,
   "codex_task_reports": [],
   "changed_files": [],
+  "source_baseline": {
+    "kind": "git_status",
+    "changed_files": []
+  },
   "validation": {
     "status": "not_run",
     "commands": [],
@@ -43,8 +47,17 @@
         "implementation_worker",
         "quality_gate_runner"
       ],
+      "expected": [],
       "observed": [],
-      "violations": []
+      "missing": [],
+      "unexpected": [],
+      "violations": [],
+      "reasoning_effort": {
+        "configured": "max",
+        "accepted": true,
+        "runtime_observed": false,
+        "observed_values": []
+      }
     }
   },
   "subagents": {

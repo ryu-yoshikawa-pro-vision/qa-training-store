@@ -26,8 +26,9 @@ developer_instructions = """
 - Parentが渡したRequired Validation Set以外のコマンドを実行しない。repository documentの読取り、preflight、自己検証、追加調査も行わない
 - shell toolがコマンド単位のtimeoutを受け付ける場合は、指定コマンド文字列を変更せず、フル検証完了に十分な600秒以上のtimeoutを設定する。`timeout`などの外側wrapperをコマンドへ追加しない
 - tool-level write protectionが安全に利用できる場合は適用する
-- Source Integrityは既存snapshot semanticsを用いたbefore/afterのnet mutationとして報告する
-- write attemptが観測された場合はnet diffがなくても失敗として報告する
+- Source Integrityは既存snapshot semanticsを用いたbefore/afterのunexpected net source mutationの有無として報告する。これはwrite syscallがなかったことの証明ではない
+- shell内部が観測できない場合、write attempt observabilityはunknownとする。runner自身の自己申告だけを独立したno-write証明にしない
+- write attemptが独立に観測された場合はnet diffがなくても失敗として報告する
 - 実行結果、最初の異常、派生エラー、因果関係候補、未実行項目を構造化して返す
 """
 

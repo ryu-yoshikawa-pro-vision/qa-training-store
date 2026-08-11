@@ -1,6 +1,6 @@
-# Tasks
+# タスク
 
-## Now
+## 現在
 
 - [x] 1. Strict Runとimplementation planを確定する
 - [x] 2. Current main、AGENTS、Plan、ADR、直近Run、config、hooks、collectorをrebaselineする
@@ -13,7 +13,7 @@
 - [x] 9. Wave 7 quality runner、Wave 8 failure/repair path、Source Integrityを実Runする（承認済み25件のformat後のtimeout repair後、5/5 PASS、Source Integrity PASS）
 - [x] 10. Wave 9 local/external validation、sanitizer、evaluation、completion stateを確定する（未達ゲートはfail-closeで記録）
 
-## Discovered
+## 発見事項
 
 - [x] D1. `spec/failure-taxonomy.json`が欠落しているため、既存10 categoryだけで機械catalogを復元する
 - [x] D2. Codex CLIを更新後、Plan minimum `0.144.0`を満たしLuna runtime acceptanceを再確認する
@@ -23,6 +23,6 @@
 - [x] D6. External Completion Checksを確認し、PR #19 merge commitのstatus/workflowが空で現working treeは未pushのため`MERGE_READY=false`を維持する
 - [x] D7. current CLI child runtimeがrepository-local exact execpolicy ruleを読み込まない層の差を、標準safe wrapperの安全な実行環境で確認する
 
-## Blocked
+## 保留
 
 - B1（解消済み）. post-formatのquality_gate_runner #4で`native-production-module-resolution.test.ts`の5000ms cold-load timeoutが2回再現したが、`vitest.config.ts`の共有testTimeout 15秒設定後にfocused contract、親verify、quality runner 5/5がPASS。Product/Test behaviorは変更していない。

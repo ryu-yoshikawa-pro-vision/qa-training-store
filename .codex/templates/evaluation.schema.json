@@ -61,6 +61,62 @@
       }
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "result": { "const": "pass" },
+          "primary_failure_category": { "const": null }
+        },
+        "required": ["result", "primary_failure_category"]
+      },
+      "then": {
+        "properties": {
+          "failure_categories": { "maxItems": 0 }
+        }
+      }
+    },
+    {
+      "if": { "properties": { "primary_failure_category": { "const": "instruction_gap" } } },
+      "then": { "properties": { "failure_categories": { "contains": { "const": "instruction_gap" } } } }
+    },
+    {
+      "if": { "properties": { "primary_failure_category": { "const": "scope_creep" } } },
+      "then": { "properties": { "failure_categories": { "contains": { "const": "scope_creep" } } } }
+    },
+    {
+      "if": { "properties": { "primary_failure_category": { "const": "missing_context" } } },
+      "then": { "properties": { "failure_categories": { "contains": { "const": "missing_context" } } } }
+    },
+    {
+      "if": { "properties": { "primary_failure_category": { "const": "missing_validation" } } },
+      "then": { "properties": { "failure_categories": { "contains": { "const": "missing_validation" } } } }
+    },
+    {
+      "if": { "properties": { "primary_failure_category": { "const": "unsafe_action_blocked" } } },
+      "then": { "properties": { "failure_categories": { "contains": { "const": "unsafe_action_blocked" } } } }
+    },
+    {
+      "if": { "properties": { "primary_failure_category": { "const": "bad_subagent_delegation" } } },
+      "then": { "properties": { "failure_categories": { "contains": { "const": "bad_subagent_delegation" } } } }
+    },
+    {
+      "if": { "properties": { "primary_failure_category": { "const": "flaky_or_env_issue" } } },
+      "then": { "properties": { "failure_categories": { "contains": { "const": "flaky_or_env_issue" } } } }
+    },
+    {
+      "if": { "properties": { "primary_failure_category": { "const": "review_gap" } } },
+      "then": { "properties": { "failure_categories": { "contains": { "const": "review_gap" } } } }
+    },
+    {
+      "if": { "properties": { "primary_failure_category": { "const": "repair_loop_stalled" } } },
+      "then": { "properties": { "failure_categories": { "contains": { "const": "repair_loop_stalled" } } } }
+    },
+    {
+      "if": { "properties": { "primary_failure_category": { "const": "artifact_contract_gap" } } },
+      "then": { "properties": { "failure_categories": { "contains": { "const": "artifact_contract_gap" } } } }
+    }
+  ],
   "properties": {
     "schema_version": {
       "type": "integer",

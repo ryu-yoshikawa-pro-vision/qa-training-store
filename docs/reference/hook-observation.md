@@ -15,10 +15,11 @@ Observation events are not the source of truth for evaluation decisions.
 - block 判断の正本は既存 safety hook / wrapper / policy に残ります。
 - collector は run_id 一致の event を `run.json.hook_observations` に summary 統合します。
 - `SubagentStart` の stdin payload に含まれる `agent_type`、`agent_id`、`model` を runtime compliance evidenceとして記録します。allowlist外または `gpt-5.6-luna` 以外はcollectorでfail-close候補にします。
+- schema の正本は `.codex/templates/hook-observation.schema.json` です。
 
 ## Event Types
 
-`spec/hook-observation.schema.json` と bundled copy は次の event を定義します。
+`.codex/templates/hook-observation.schema.json` は次の event を定義します。
 
 - `PreToolUse`
 - `PostToolUse`
@@ -80,15 +81,17 @@ optional hook baseline は次を受け取れます。
 
 - observation hook は `features.hooks = true` のproject configから `PreToolUse`、`SubagentStart`、`SubagentStop`へ接続します。
 - Codex command hookはJSON objectをstdinへ渡すため、hookはraw promptやsecretを保存せず、identity / modelなど契約に必要なscalarだけを抽出します。
+- stdin がリダイレクトされていない起動では `ReadToEnd` を呼ばず、環境変数と既定値だけで観測します。リダイレクト時だけ stdin JSON を読み取ります。
 - observation eventはevidenceであり、評価判断のsource of truthにはしません。runtime complianceはcollector summaryとraw JSONLをParentが確認します。
 
 ## Runtime Agent Compliance
 
-- 通常利用のallowlistは `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5 roleです。
+- 通常利用の `agent.name` allowlist は `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5 custom identityです。schema上の `role`（例: `investigator`、`validator`、`worker`）とは別の分類です。
 - `SubagentStart` を観測したら `agent_type`、`agent_id`、`model` の存在を確認します。
-- allowlist外、identity欠落、model欠落、Luna以外が1件でもあればRunはcompliantではありません。
+- expected invocation と observed `SubagentStart` は利用可能な `agent_id` で1:1照合します。expected / observed / missing / unexpected / violations を集計し、missing がある不完全観測は PASS にしません。
+- allowlist外、identity欠落、model欠落、Luna以外、unexpected invocationが1件でもあればRunはcompliantではありません。
 - reasoning effortはruntime fieldが存在する場合だけ記録し、存在しない場合はTOML/CLI configured evidenceをruntime verifiedと表現しません。
-- `run.json.hook_observations.runtime_agent_compliance` は `pass`、`fail`、`unknown` を持ち、start eventがない場合は `unknown` です。
+- `run.json.hook_observations.runtime_agent_compliance` は `pass`、`fail`、`incomplete`、`unknown` を持ち、start eventがない場合は `incomplete` または `unknown` として扱い、PASSへ補完しません。
 
 ## Failure Behavior
 

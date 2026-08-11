@@ -79,6 +79,8 @@ function Test-TemplateContract {
         "scripts/init-project.sh",
         "scripts/validate-output-schema.py",
         "scripts/validate-luna-orchestration.py",
+        "scripts/test-luna-orchestration-contract.py",
+        "scripts/codex-local-validation.mjs",
         "spec/failure-taxonomy.json",
         ".codex/agents/code_researcher.toml",
         ".codex/agents/implementation_researcher.toml",
@@ -97,9 +99,11 @@ function Test-TemplateContract {
         }
     }
 
-    $agents = Get-Content -Raw AGENTS.md
-    $plans = Get-Content -Raw PLANS.md
-    $review = Get-Content -Raw CODE_REVIEW.md
+    $agents = Get-Content -Raw -Encoding UTF8 AGENTS.md
+    $plans = Get-Content -Raw -Encoding UTF8 PLANS.md
+    $review = Get-Content -Raw -Encoding UTF8 CODE_REVIEW.md
+    $hookDoc = Get-Content -Raw -Encoding UTF8 docs/reference/hook-observation.md
+    $subagentDoc = Get-Content -Raw -Encoding UTF8 docs/reference/subagent-observation.md
     if ($agents -notmatch [regex]::Escape(".agents/skills/feature-plan/SKILL.md")) { throw "AGENTS.md missing feature-plan skill reference" }
     if ($agents -notmatch [regex]::Escape(".agents/skills/code-review/SKILL.md")) { throw "AGENTS.md missing code-review skill reference" }
     if ($agents -notmatch [regex]::Escape("docs/reference/codex-safety-harness.md")) { throw "AGENTS.md missing safety harness reference" }
@@ -196,15 +200,34 @@ function Test-TemplateContract {
     if ($evaluationDoc -notmatch [regex]::Escape("evidence_refs")) { throw "evaluation doc missing evidence_refs guidance" }
     $evaluationTemplate = Get-Content -Raw .codex/templates/EVALUATION.md
     if ($evaluationTemplate -notmatch [regex]::Escape("evidence_refs")) { throw "evaluation template missing evidence_refs guidance" }
-    $hookDoc = Get-Content -Raw docs/reference/hook-observation.md
     if ($hookDoc -notmatch [regex]::Escape("run.json.hook_observations")) { throw "hook observation doc missing manifest integration guidance" }
-    $subagentDoc = Get-Content -Raw docs/reference/subagent-observation.md
     if ($subagentDoc -notmatch [regex]::Escape("implementation_worker")) { throw "subagent observation doc missing implementation_worker guidance" }
     if ($subagentDoc -notmatch [regex]::Escape("allowed_files")) { throw "subagent observation doc missing allowed_files guidance" }
     if ($subagentDoc -notmatch [regex]::Escape("changed_files")) { throw "subagent observation doc missing changed_files guidance" }
     if ($subagentDoc -notmatch [regex]::Escape("parent_decision")) { throw "subagent observation doc missing parent_decision guidance" }
     if ($subagentDoc -notmatch [regex]::Escape("used_in_final_plan")) { throw "subagent observation doc missing used_in_final_plan guidance" }
     if ($subagentDoc -notmatch [regex]::Escape("run.json.subagents.records")) { throw "subagent observation doc missing manifest integration guidance" }
+    if ($hookDoc -notmatch [regex]::Escape(".codex/templates/hook-observation.schema.json")) { throw "hook observation doc missing schema path" }
+    if ($hookDoc -match [regex]::Escape("spec/hook-observation.schema.json")) { throw "hook observation doc has stale schema path" }
+    if ($hookDoc -notmatch [regex]::Escape("runtime_agent_compliance")) { throw "hook observation doc missing runtime compliance" }
+    if ($subagentDoc -notmatch [regex]::Escape("agent.name")) { throw "subagent doc missing agent.name distinction" }
+    if ($subagentDoc -notmatch [regex]::Escape('`role`')) { throw "subagent doc missing role distinction" }
+    if ($subagentDoc -notmatch [regex]::Escape("write attempt observability")) { throw "subagent doc missing write observability" }
+    if ($subagentDoc -notmatch [regex]::Escape("unexpected net source mutation")) { throw "subagent doc missing source integrity boundary" }
+    $dispatcher = Get-Content -Raw -Encoding UTF8 scripts/codex-local-validation.mjs
+    if ($dispatcher -notmatch [regex]::Escape("shell: false")) { throw "dispatcher must disable shell execution" }
+    foreach ($action in @("validate-orchestration", "verify-bash", "verify-powershell", "test-contracts", "verify")) {
+        if ($dispatcher -notmatch [regex]::Escape($action)) { throw "dispatcher missing action: $action" }
+    }
+    $runArtifacts = Get-Content -Raw -Encoding UTF8 docs/reference/run-artifacts.md
+    if ($runArtifacts -notmatch [regex]::Escape("source_baseline")) { throw "run-artifacts doc missing source baseline" }
+    if ($runArtifacts -notmatch [regex]::Escape("failure_categories")) { throw "run-artifacts doc missing failure taxonomy relation" }
+    $failureTaxonomy = Get-Content -Raw -Encoding UTF8 spec/failure-taxonomy.json
+    if ($failureTaxonomy -match [regex]::Escape('"$schema"')) { throw "failure taxonomy must not declare $schema" }
+    $vitestConfig = Get-Content -Raw -Encoding UTF8 vitest.config.ts
+    if ($vitestConfig -match [regex]::Escape("testTimeout")) { throw "vitest global testTimeout must not be configured" }
+    $nativeResolutionTest = Get-Content -Raw -Encoding UTF8 tests/contracts/native-production-module-resolution.test.ts
+    if ($nativeResolutionTest -notmatch [regex]::Escape('describe("Native automation module resolution", { timeout: 15_000 }')) { throw "native resolution test must own its timeout" }
 
     $config = Get-Content -Raw .codex/config.toml
     if ($config -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "config missing workspace-write sandbox" }
@@ -223,21 +246,70 @@ function Test-TemplateContract {
     if ($config -match [regex]::Escape('max_threads')) { throw "config still contains legacy max_threads" }
     if ($config -match [regex]::Escape('max_depth')) { throw "config still contains unsupported depth setting" }
     if ($config -notmatch [regex]::Escape('pre_tool_use_policy.ps1')) { throw "config missing pre-tool hook command" }
-    $hookDoc = Get-Content -Raw -Encoding UTF8 docs/reference/hook-observation.md
     if ($hookDoc -notmatch [regex]::Escape("agent_type")) { throw "hook observation doc missing agent identity" }
     if ($hookDoc -notmatch [regex]::Escape("runtime_agent_compliance")) { throw "hook observation doc missing runtime compliance" }
     if ($hookDoc -notmatch [regex]::Escape("SubagentStart")) { throw "hook observation doc missing SubagentStart" }
-    $subagentDoc = Get-Content -Raw -Encoding UTF8 docs/reference/subagent-observation.md
     if ($subagentDoc -notmatch [regex]::Escape("Local Required Validation Set")) { throw "subagent doc missing validation set" }
     if ($subagentDoc -notmatch [regex]::Escape("per-command timeout")) { throw "subagent doc missing timeout guidance" }
     if ($subagentDoc -notmatch [regex]::Escape("Source Integrity")) { throw "subagent doc missing source integrity" }
+    if ($subagentDoc -notmatch [regex]::Escape("Failure Taxonomy")) { throw "subagent doc missing failure taxonomy guidance" }
+    if ($subagentDoc -notmatch [regex]::Escape("write attempt observability")) { throw "subagent doc missing write observability" }
+    foreach ($agentName in @("code_researcher", "implementation_researcher", "test_investigator", "implementation_worker", "quality_gate_runner")) {
+        $agentPath = ".codex/agents/$agentName.toml"
+        $agentText = Get-Content -Raw -Encoding UTF8 $agentPath
+        if ($agentText -notmatch [regex]::Escape("name = `"$agentName`"")) { throw "$agentName name mismatch" }
+        if ($agentText -notmatch [regex]::Escape('model = "gpt-5.6-luna"')) { throw "$agentName model mismatch" }
+        if ($agentText -notmatch [regex]::Escape('model_reasoning_effort = "max"')) { throw "$agentName reasoning effort mismatch" }
+        if ($agentText -notmatch [regex]::Escape("additional subagent spawn")) { throw "$agentName recursion prohibition missing" }
+        if ($agentText -notmatch [regex]::Escape("multi_agent = false")) { throw "$agentName child multi-agent setting missing" }
+    }
+    foreach ($agentName in @("code_researcher", "implementation_researcher", "test_investigator")) {
+        $agentText = Get-Content -Raw -Encoding UTF8 ".codex/agents/$agentName.toml"
+        if ($agentText -notmatch [regex]::Escape('sandbox_mode = "read-only"')) { throw "$agentName sandbox mismatch" }
+    }
+    foreach ($agentName in @("implementation_worker", "quality_gate_runner")) {
+        $agentText = Get-Content -Raw -Encoding UTF8 ".codex/agents/$agentName.toml"
+        if ($agentText -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "$agentName sandbox mismatch" }
+    }
+}
+
+function Find-PythonForValidator {
+    foreach ($candidate in @("python3", "python", "python.exe")) {
+        $command = Get-Command $candidate -ErrorAction SilentlyContinue |
+            Where-Object { $_.CommandType -eq "Application" } |
+            Select-Object -First 1
+        if (-not $command) {
+            continue
+        }
+        $pythonPath = $command.Path
+        $probeExitCode = 1
+        try {
+            & $pythonPath -c "import sys; raise SystemExit(0 if sys.version_info >= (3, 11) else 1)" > $null 2>&1
+            $probeExitCode = $LASTEXITCODE
+        }
+        catch {
+            $probeExitCode = 1
+        }
+        if ($probeExitCode -eq 0) {
+            return [string]$pythonPath
+        }
+    }
+    throw "Python 3.11+ was not found in PATH"
 }
 
 function Test-LunaOrchestrationContract {
-    $python = Get-Command python -ErrorAction Stop
-    & $python.Source scripts/validate-luna-orchestration.py
+    $python = Find-PythonForValidator
+    & $python -B scripts/validate-luna-orchestration.py
     if ($LASTEXITCODE -ne 0) {
         throw "scripts/validate-luna-orchestration.py failed"
+    }
+}
+
+function Test-LunaRuntimeContract {
+    $python = Find-PythonForValidator
+    & $python -B scripts/test-luna-orchestration-contract.py
+    if ($LASTEXITCODE -ne 0) {
+        throw "scripts/test-luna-orchestration-contract.py failed"
     }
 }
 
@@ -283,7 +355,9 @@ function Test-ExecpolicyBaseline {
     $ruleArgs = @(
         '--rules', '.codex/rules/10-readonly-allow.rules',
         '--rules', '.codex/rules/20-risky-prompt.rules',
-        '--rules', '.codex/rules/30-destructive-forbidden.rules'
+        '--rules', '.codex/rules/30-destructive-forbidden.rules',
+        '--rules', '.codex/rules/15-local-validation-allow.rules',
+        '--rules', '.codex/rules/99-local-validation-wrapper-allow.rules'
     )
 
     $allow = & $codex execpolicy check @ruleArgs -- git status 2>&1
@@ -300,6 +374,12 @@ function Test-ExecpolicyBaseline {
 
     $gitRmForbidden = & $codex execpolicy check @ruleArgs -- git rm file.txt 2>&1
     if ((Get-Decision ($gitRmForbidden | Out-String)) -ne 'forbidden') { throw "git rm should be forbidden" }
+
+    $dispatcherAllow = & $codex execpolicy check @ruleArgs -- node scripts/codex-local-validation.mjs validate-orchestration 2>&1
+    if ((Get-Decision ($dispatcherAllow | Out-String)) -ne 'allow') { throw "dispatcher validation should be allow" }
+
+    $powershellPrompt = & $codex execpolicy check @ruleArgs -- pwsh -Command Get-Date 2>&1
+    if ((Get-Decision ($powershellPrompt | Out-String)) -ne 'prompt') { throw "broad pwsh command should be prompt" }
 }
 
 function Test-WrapperPreflight {
@@ -313,6 +393,7 @@ function Test-PowerShellHasCodex {
 
 Invoke-Check "template contract files" { Test-TemplateContract }
 Invoke-Check "GPT-5.6 Luna orchestration contract" { Test-LunaOrchestrationContract }
+Invoke-Check "runtime orchestration contract tests" { Test-LunaRuntimeContract }
 
 if ($StrictHarness) {
     Invoke-Check "strict harness source-repo contract" { Test-StrictHarnessContract }

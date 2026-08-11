@@ -69,7 +69,10 @@ function Add-Utf8NoBomLine {
 
 try {
     $repoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..\..")).Path
-    $rawHookInput = [Console]::In.ReadToEnd()
+    $rawHookInput = ""
+    if ([Console]::IsInputRedirected) {
+        $rawHookInput = [Console]::In.ReadToEnd()
+    }
     $hookInput = $null
     if (-not [string]::IsNullOrWhiteSpace($rawHookInput)) {
         try { $hookInput = $rawHookInput | ConvertFrom-Json } catch { $hookInput = $null }

@@ -7,9 +7,12 @@ import json
 import sys
 from pathlib import Path
 
+if sys.version_info < (3, 11):
+    raise SystemExit("Python 3.11+ is required for TOML contract validation")
+
 try:
     import tomllib
-except ModuleNotFoundError as exc:  # pragma: no cover - Python version is a preflight concern.
+except ModuleNotFoundError as exc:  # pragma: no cover - Python version is checked above.
     raise SystemExit("Python 3.11+ is required for TOML contract validation") from exc
 
 
@@ -40,6 +43,16 @@ def load_toml(path: Path) -> dict:
         return tomllib.load(handle)
 
 
+def contains_toml_key(value, expected_key: str) -> bool:
+    if isinstance(value, dict):
+        if expected_key in value:
+            return True
+        return any(contains_toml_key(child, expected_key) for child in value.values())
+    if isinstance(value, list):
+        return any(contains_toml_key(child, expected_key) for child in value)
+    return False
+
+
 def fail(errors: list[str], message: str) -> None:
     errors.append(message)
 
@@ -47,11 +60,10 @@ def fail(errors: list[str], message: str) -> None:
 def main() -> int:
     errors: list[str] = []
     config_path = ROOT / ".codex" / "config.toml"
-    config_text = config_path.read_text(encoding="utf-8")
     config = load_toml(config_path)
 
     for legacy in ("codex_hooks", "max_threads", "max_depth"):
-        if legacy in config_text:
+        if contains_toml_key(config, legacy):
             fail(errors, f"legacy config key remains: {legacy}")
 
     features = config.get("features", {})
@@ -126,6 +138,8 @@ def main() -> int:
 
     taxonomy_path = ROOT / "spec" / "failure-taxonomy.json"
     taxonomy = json.loads(taxonomy_path.read_text(encoding="utf-8"))
+    if "$schema" in taxonomy:
+        fail(errors, "failure taxonomy catalog must not declare $schema")
     category_ids = {item.get("id") for item in taxonomy.get("categories", [])}
     if category_ids != FAILURE_CATEGORIES:
         fail(errors, "failure taxonomy category set does not match the existing SSOT")
@@ -139,6 +153,22 @@ def main() -> int:
     for field in ("agent_type", "agent_id", "model"):
         if field not in properties:
             fail(errors, f"hook observation schema is missing runtime field: {field}")
+
+    dispatcher = ROOT / "scripts" / "codex-local-validation.mjs"
+    if not dispatcher.exists():
+        fail(errors, "validation dispatcher is missing")
+    else:
+        dispatcher_text = dispatcher.read_text(encoding="utf-8")
+        for action in ("validate-orchestration", "verify-bash", "verify-powershell", "test-contracts", "verify"):
+            if f'"{action}"' not in dispatcher_text:
+                fail(errors, f"validation dispatcher is missing action: {action}")
+        if "shell: false" not in dispatcher_text or "spawn(" not in dispatcher_text:
+            fail(errors, "validation dispatcher must spawn argv without a shell")
+
+    evaluation_schema_path = ROOT / ".codex" / "templates" / "evaluation.schema.json"
+    evaluation_schema = json.loads(evaluation_schema_path.read_text(encoding="utf-8"))
+    if not isinstance(evaluation_schema.get("allOf"), list) or not evaluation_schema["allOf"]:
+        fail(errors, "evaluation schema must enforce primary/failure category relation")
 
     if errors:
         print("LUNA_ORCHESTRATION_VALIDATION_FAIL")

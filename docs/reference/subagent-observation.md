@@ -8,7 +8,7 @@ Writable subagents must declare allowed_files before changing files.
 Read-only subagents should have changed_files = [].  
 Subagent logs are evidence, not final evaluation judgement.
 
-Repository-governed taskの通常roleは `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5つだけです。Parentは役割、scope、validation、統合、最終判断を保持します。
+Repository-governed taskの通常 `agent.name` は `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5 custom identityだけです。一方、schema上の `role` は `investigator`、`validator`、`worker` などの分類であり、`agent.name` と同一視しません。Parentは役割、scope、validation、統合、最終判断を保持します。
 
 ## Read-only と Writable の違い
 
@@ -45,8 +45,8 @@ Repository-governed taskの通常roleは `code_researcher`、`implementation_res
 - Required Validation Setを削除、弱体化、置換しない。
 - Application / Test / Specification / Documentation Sourceを編集しない。
 - failureを自動修正せず、最初の異常、派生エラー、causal relation候補を返す。
-- `Source Integrity` は既存working-tree snapshot semanticsでbefore/afterのnet mutationとして確認する。
-- write attemptが観測された場合はnet diffがなくても失敗として返す。
+- `Source Integrity` は既存working-tree snapshot semanticsでbefore/afterの「unexpected net source mutationがないこと」だけを確認する。write syscallがなかったことの証明ではありません。
+- shell内部が観測できない場合、write attempt observability は `unknown` と記録する。runner自身の自己申告だけを独立したno-write証明にしません。write attemptが独立に観測された場合はnet diffがなくても失敗として返す。
 - shell toolがper-command timeoutを受け付ける場合は、フルRequired Setの完了に十分な600秒以上を設定する。timeout wrapperを追加したり、コマンド文字列を変更したりしない。
 - Failure Taxonomyの最終categoryを決めず、Parentまたはreviewerへ委譲する。
 

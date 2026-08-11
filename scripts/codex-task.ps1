@@ -580,6 +580,10 @@ function Write-RunManifest {
             Convert-ToRepoRelativePath -RepoRoot $RepoRoot -Path $State.report_path
         )
         changed_files = @($State.changed_files)
+        source_baseline = [ordered]@{
+            kind = 'git_status'
+            changed_files = @($State.source_baseline_files)
+        }
         validation = [ordered]@{
             status = $State.validation_status
             commands = @($State.validation_commands)
@@ -650,6 +654,9 @@ function Write-RunManifest {
             }
             if ($null -eq $manifest.primary_failure_category -and $null -ne $existing.primary_failure_category) {
                 $manifest.primary_failure_category = $existing.primary_failure_category
+            }
+            if ($existing.PSObject.Properties.Name -contains 'source_baseline' -and $null -ne $existing.source_baseline) {
+                $manifest.source_baseline = $existing.source_baseline
             }
             foreach ($key in @('artifact_summary', 'hook_observations', 'subagents')) {
                 if ($existing.PSObject.Properties.Name -contains $key) {
@@ -792,6 +799,27 @@ function Get-GitChangedFiles {
         $buffer.Dispose()
         $process.Dispose()
     }
+}
+
+function Get-RunSourceChangedFiles {
+    param(
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [Parameter(Mandatory = $true)][System.Collections.IDictionary]$State
+    )
+
+    $current = @(Get-GitChangedFiles -RepoRoot $RepoRoot)
+    $baseline = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::Ordinal)
+    foreach ($path in @($State.source_baseline_files)) {
+        [void]$baseline.Add($path)
+    }
+
+    $delta = New-Object System.Collections.Generic.List[string]
+    foreach ($path in $current) {
+        if (-not $baseline.Contains($path)) {
+            $delta.Add($path)
+        }
+    }
+    return @(Get-SortedUniqueStrings -Values @($delta))
 }
 
 function Invoke-ScopeChecks {
@@ -1311,6 +1339,7 @@ $state = [ordered]@{
     expected_changed_files = (New-Object System.Collections.Generic.List[string])
     expected_missing_behavior = "fail"
     changed_files = @()
+    source_baseline_files = @()
     scope_violation = $false
 }
 $script:repoRoot = $repoRoot
@@ -1615,6 +1644,24 @@ if (-not [string]::IsNullOrWhiteSpace($state.run_id)) {
     }
     if ($state.record_run_manifest) {
         $state.manifest_path = Join-Path $runRoot "run.json"
+        $existingManifest = $null
+        if (Test-Path -LiteralPath $state.manifest_path) {
+            try {
+                $existingManifest = Get-Content -Raw -LiteralPath $state.manifest_path | ConvertFrom-Json
+            }
+            catch {
+                $existingManifest = $null
+            }
+        }
+        if ($null -ne $existingManifest -and
+            $existingManifest.PSObject.Properties.Name -contains 'source_baseline' -and
+            $null -ne $existingManifest.source_baseline -and
+            $existingManifest.source_baseline.PSObject.Properties.Name -contains 'changed_files') {
+            $state.source_baseline_files = @(Get-SortedUniqueStrings -Values @($existingManifest.source_baseline.changed_files))
+        }
+        else {
+            $state.source_baseline_files = @(Get-GitChangedFiles -RepoRoot $repoRoot)
+        }
     }
     $state.evaluation_file_path = Join-Path $runRoot "evaluation.json"
 }
@@ -1759,55 +1806,76 @@ function Invoke-NativeCommand {
     }
 }
 
-if ($state.runtime -eq "host") {
-    $report.codex_exit_code = Invoke-NativeCommand -Command $codexCmd -CommandArgs ($codexArgs + $execArgs + $prompt)
+$previousCodexRunId = [Environment]::GetEnvironmentVariable("CODEX_RUN_ID", "Process")
+$previousCodexObservationLog = [Environment]::GetEnvironmentVariable("CODEX_OBSERVATION_LOG", "Process")
+$runObservationLog = $null
+try {
+    if (-not [string]::IsNullOrWhiteSpace($state.run_id)) {
+        [Environment]::SetEnvironmentVariable("CODEX_RUN_ID", $state.run_id, "Process")
+        if ($state.record_run_manifest) {
+            $runObservationLog = Join-Path $runRoot "logs\hooks.jsonl"
+            $runObservationLogParent = Split-Path -Parent $runObservationLog
+            if (-not (Test-Path $runObservationLogParent)) {
+                New-Item -ItemType Directory -Path $runObservationLogParent -Force | Out-Null
+            }
+            [Environment]::SetEnvironmentVariable("CODEX_OBSERVATION_LOG", $runObservationLog, "Process")
+        }
+    }
+
+    if ($state.runtime -eq "host") {
+        $report.codex_exit_code = Invoke-NativeCommand -Command $codexCmd -CommandArgs ($codexArgs + $execArgs + $prompt)
+    }
+    else {
+        $dockerCmd = try { Get-DockerCommand } catch { $null }
+        if (-not $dockerCmd) {
+            Fail-Task -Status "docker_unavailable" -Message "docker command not found in PATH" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
+        }
+        if ([string]::IsNullOrWhiteSpace($env:CODEX_DOCKER_IMAGE)) {
+            Fail-Task -Status "docker_unavailable" -Message "Set CODEX_DOCKER_IMAGE before using docker-sandbox runtime" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
+        }
+        if (-not (Test-IsPathUnderRoot -Path $state.output_file -Root $repoRoot)) {
+            Fail-Task -Status "docker_unavailable" -Message "docker-sandbox output file must be under repository root" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
+        }
+        if ($state.output_schema -and -not (Test-IsPathUnderRoot -Path $state.output_schema -Root $repoRoot)) {
+            Fail-Task -Status "docker_unavailable" -Message "docker-sandbox output schema must be under repository root" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
+        }
+        if (-not (Test-IsPathUnderRoot -Path $cwd -Root $repoRoot)) {
+            Fail-Task -Status "docker_unavailable" -Message "docker-sandbox working directory must be under repository root" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
+        }
+
+        $dockerArgs = @("run", "--rm", "-v", "${repoRoot}:/workspace", "-w", "/workspace")
+        $homeCodex = Join-Path $HOME ".codex"
+        if (Test-Path $homeCodex) {
+            $dockerArgs += @("-v", "${homeCodex}:/root/.codex")
+        }
+        if (-not [string]::IsNullOrWhiteSpace($env:OPENAI_API_KEY)) {
+            $dockerArgs += @("-e", "OPENAI_API_KEY")
+        }
+
+        $containerArgs = @("codex", "--profile", $profileName, "--ask-for-approval", $approvalPolicy)
+        if ($state.allow_search) {
+            $containerArgs += "--search"
+        }
+        $containerArgs += @(
+            "exec",
+            "-C", (Convert-ToContainerPath -RepoRoot $repoRoot -Path $cwd),
+            "--sandbox", $sandboxMode,
+            "--output-last-message", (Convert-ToContainerPath -RepoRoot $repoRoot -Path $state.output_file)
+        )
+        if ($state.output_schema) {
+            $containerArgs += @("--output-schema", (Convert-ToContainerPath -RepoRoot $repoRoot -Path $state.output_schema))
+        }
+        $report.codex_exit_code = Invoke-NativeCommand -Command $dockerCmd -CommandArgs ($dockerArgs + @($env:CODEX_DOCKER_IMAGE) + $containerArgs + $prompt)
+    }
 }
-else {
-    $dockerCmd = try { Get-DockerCommand } catch { $null }
-    if (-not $dockerCmd) {
-        Fail-Task -Status "docker_unavailable" -Message "docker command not found in PATH" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
-    }
-    if ([string]::IsNullOrWhiteSpace($env:CODEX_DOCKER_IMAGE)) {
-        Fail-Task -Status "docker_unavailable" -Message "Set CODEX_DOCKER_IMAGE before using docker-sandbox runtime" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
-    }
-    if (-not (Test-IsPathUnderRoot -Path $state.output_file -Root $repoRoot)) {
-        Fail-Task -Status "docker_unavailable" -Message "docker-sandbox output file must be under repository root" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
-    }
-    if ($state.output_schema -and -not (Test-IsPathUnderRoot -Path $state.output_schema -Root $repoRoot)) {
-        Fail-Task -Status "docker_unavailable" -Message "docker-sandbox output schema must be under repository root" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
-    }
-    if (-not (Test-IsPathUnderRoot -Path $cwd -Root $repoRoot)) {
-        Fail-Task -Status "docker_unavailable" -Message "docker-sandbox working directory must be under repository root" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
-    }
-
-    $dockerArgs = @("run", "--rm", "-v", "${repoRoot}:/workspace", "-w", "/workspace")
-    $homeCodex = Join-Path $HOME ".codex"
-    if (Test-Path $homeCodex) {
-        $dockerArgs += @("-v", "${homeCodex}:/root/.codex")
-    }
-    if (-not [string]::IsNullOrWhiteSpace($env:OPENAI_API_KEY)) {
-        $dockerArgs += @("-e", "OPENAI_API_KEY")
-    }
-
-    $containerArgs = @("codex", "--profile", $profileName, "--ask-for-approval", $approvalPolicy)
-    if ($state.allow_search) {
-        $containerArgs += "--search"
-    }
-    $containerArgs += @(
-        "exec",
-        "-C", (Convert-ToContainerPath -RepoRoot $repoRoot -Path $cwd),
-        "--sandbox", $sandboxMode,
-        "--output-last-message", (Convert-ToContainerPath -RepoRoot $repoRoot -Path $state.output_file)
-    )
-    if ($state.output_schema) {
-        $containerArgs += @("--output-schema", (Convert-ToContainerPath -RepoRoot $repoRoot -Path $state.output_schema))
-    }
-    $report.codex_exit_code = Invoke-NativeCommand -Command $dockerCmd -CommandArgs ($dockerArgs + @($env:CODEX_DOCKER_IMAGE) + $containerArgs + $prompt)
+finally {
+    [Environment]::SetEnvironmentVariable("CODEX_RUN_ID", $previousCodexRunId, "Process")
+    [Environment]::SetEnvironmentVariable("CODEX_OBSERVATION_LOG", $previousCodexObservationLog, "Process")
 }
 
 Write-TaskLog -Path $state.log_path -Event "codex_exec_exit" -Data @{ exit_code = $report.codex_exit_code }
 if ($state.record_run_manifest) {
-    $state.changed_files = @(Get-GitChangedFiles -RepoRoot $repoRoot)
+    $state.changed_files = @(Get-RunSourceChangedFiles -RepoRoot $repoRoot -State $state)
     Write-RunManifest -Path $state.manifest_path -State $state -Report $report -RepoRoot $repoRoot
 }
 if ($report.codex_exit_code -ne 0) {

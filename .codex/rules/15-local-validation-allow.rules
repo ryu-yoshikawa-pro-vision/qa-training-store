@@ -1,33 +1,9 @@
-# Exact allowlist for the Parent-defined local quality validation set.
-# These commands are invoked by the validation-only quality_gate_runner.
-# Keep every rule exact and narrow; do not broaden to arbitrary shell commands.
+# Parent-defined validation is exposed through one Node dispatcher.
+# prefix_rule is intentionally not treated as exact matching; the dispatcher
+# rejects unknown actions and extra arguments before starting any validation.
 
 prefix_rule(
-  pattern = ["python", "scripts/validate-luna-orchestration.py"],
+  pattern = ["node", "scripts/codex-local-validation.mjs"],
   decision = "allow",
-  match = ["python scripts/validate-luna-orchestration.py"],
-)
-
-prefix_rule(
-  pattern = ["bash", "scripts/verify"],
-  decision = "allow",
-  match = ["bash scripts/verify"],
-)
-
-prefix_rule(
-  pattern = ["powershell.exe", "-NoProfile", "-ExecutionPolicy", "Bypass", "-File", "scripts/verify.ps1"],
-  decision = "allow",
-  match = ["powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1"],
-)
-
-prefix_rule(
-  pattern = ["pnpm", "run", "test:contracts"],
-  decision = "allow",
-  match = ["pnpm run test:contracts"],
-)
-
-prefix_rule(
-  pattern = ["pnpm", "run", "verify"],
-  decision = "allow",
-  match = ["pnpm run verify"],
+  match = ["node scripts/codex-local-validation.mjs verify"],
 )

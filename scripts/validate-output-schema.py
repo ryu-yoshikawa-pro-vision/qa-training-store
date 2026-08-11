@@ -12,11 +12,19 @@ SUPPORTED_SCHEMA_KEYS = {
     "description",
     "type",
     "enum",
+    "const",
     "minLength",
     "minimum",
+    "minItems",
+    "maxItems",
     "required",
     "properties",
     "items",
+    "contains",
+    "allOf",
+    "if",
+    "then",
+    "else",
     "additionalProperties",
 }
 
@@ -96,6 +104,9 @@ def validate(schema, value, path, errors, root_schema):
     if "enum" in schema and value not in schema["enum"]:
         errors.append(f"{path}: value {value!r} not in enum {schema['enum']!r}")
 
+    if "const" in schema and value != schema["const"]:
+        errors.append(f"{path}: value {value!r} does not equal const {schema['const']!r}")
+
     if isinstance(value, str) and "minLength" in schema and len(value) < schema["minLength"]:
         errors.append(f"{path}: expected minLength {schema['minLength']}, got {len(value)}")
 
@@ -122,6 +133,33 @@ def validate(schema, value, path, errors, root_schema):
         for idx, item in enumerate(value):
             validate(schema["items"], item, f"{path}[{idx}]", errors, root_schema)
 
+    if isinstance(value, list):
+        if "minItems" in schema and len(value) < schema["minItems"]:
+            errors.append(f"{path}: expected minItems {schema['minItems']}, got {len(value)}")
+        if "maxItems" in schema and len(value) > schema["maxItems"]:
+            errors.append(f"{path}: expected maxItems {schema['maxItems']}, got {len(value)}")
+        if "contains" in schema:
+            contains_errors = []
+            for idx, item in enumerate(value):
+                item_errors = []
+                validate(schema["contains"], item, f"{path}[{idx}]", item_errors, root_schema)
+                if not item_errors:
+                    break
+                contains_errors.extend(item_errors)
+            else:
+                errors.append(f"{path}: expected an item matching contains")
+
+    for subschema in schema.get("allOf", []):
+        validate(subschema, value, path, errors, root_schema)
+
+    if "if" in schema:
+        condition_errors = []
+        validate(schema["if"], value, path, condition_errors, root_schema)
+        if not condition_errors and "then" in schema:
+            validate(schema["then"], value, path, errors, root_schema)
+        elif condition_errors and "else" in schema:
+            validate(schema["else"], value, path, errors, root_schema)
+
 
 def collect_unsupported_keywords(schema, path, errors):
     if isinstance(schema, dict):
@@ -139,6 +177,11 @@ def collect_unsupported_keywords(schema, path, errors):
 
         if "items" in schema:
             collect_unsupported_keywords(schema["items"], f"{path}.items", errors)
+        if "contains" in schema:
+            collect_unsupported_keywords(schema["contains"], f"{path}.contains", errors)
+        for keyword in ("allOf", "if", "then", "else"):
+            if keyword in schema:
+                collect_unsupported_keywords(schema[keyword], f"{path}.{keyword}", errors)
     elif isinstance(schema, list):
         for idx, item in enumerate(schema):
             collect_unsupported_keywords(item, f"{path}[{idx}]", errors)

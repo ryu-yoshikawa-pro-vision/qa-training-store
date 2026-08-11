@@ -1,5 +1,4 @@
 {
-  "$schema": "https://json-schema.org/draft/2020-12/schema",
   "title": "Scenario Shop Failure Taxonomy",
   "description": "唯一のFailure Category catalog。判定はParentまたはreviewerが行い、runnerはcausal relation候補だけを返す。",
   "schema_version": 1,

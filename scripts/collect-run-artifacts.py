@@ -2,6 +2,7 @@
 import argparse
 import copy
 import json
+import subprocess
 from pathlib import Path
 
 
@@ -24,6 +25,200 @@ RUNTIME_AGENT_ALLOWLIST = (
     "implementation_worker",
     "quality_gate_runner",
 )
+
+
+def current_source_changed_files(repo_root: Path):
+    """Return current source changes without generated .codex/runs artifacts."""
+    try:
+        result = subprocess.run(
+            ["git", "-C", str(repo_root), "status", "--porcelain=v1", "-z", "--untracked-files=all"],
+            capture_output=True,
+            check=False,
+        )
+    except OSError:
+        return [], False
+    if result.returncode != 0:
+        return [], False
+
+    entries = result.stdout.decode("utf-8", errors="replace").split("\0")
+    paths = []
+    index = 0
+    while index < len(entries):
+        entry = entries[index]
+        index += 1
+        if not entry:
+            continue
+        status = entry[:2]
+        primary = entry[3:] if len(entry) >= 4 else ""
+        candidates = [primary]
+        if "R" in status or "C" in status:
+            if index < len(entries):
+                candidates.append(entries[index])
+                index += 1
+            if "R" in status:
+                candidates = candidates[1:]
+            else:
+                candidates = candidates[1:]
+        for value in candidates:
+            normalized = normalize_repo_path(value)
+            if normalized and normalized != ".codex/runs" and not normalized.startswith(".codex/runs/"):
+                paths.append(normalized)
+    return unique_list(paths), True
+
+
+def aggregate_changed_files(baseline, current, accepted_subagent_changes):
+    baseline_set = {normalize_repo_path(item) for item in baseline if isinstance(item, str)}
+    current_set = {normalize_repo_path(item) for item in current if isinstance(item, str)}
+    accepted = {normalize_repo_path(item) for item in accepted_subagent_changes if isinstance(item, str)}
+    return sorted((current_set - baseline_set) | accepted)
+
+
+def evaluate_runtime_agent_compliance(expected_records, observed):
+    """Compare one expected invocation record to one SubagentStart by runtime agent_id."""
+    expected = []
+    for record in expected_records:
+        if not isinstance(record, dict):
+            continue
+        expected.append(
+            {
+                "invocation_id": record.get("invocation_id") or record.get("subagent_run_id"),
+                "agent_name": record.get("agent_name"),
+                "role": record.get("role"),
+                "agent_id": record.get("runtime_agent_id"),
+                "configured_model": record.get("model"),
+            }
+        )
+
+    expected_by_id = {}
+    violations = []
+    for item in expected:
+        agent_id = item.get("agent_id")
+        if not isinstance(agent_id, str) or not agent_id:
+            violations.append(
+                {
+                    "kind": "missing_expected_invocation_identifier",
+                    "invocation_id": item.get("invocation_id"),
+                }
+            )
+            continue
+        if agent_id in expected_by_id:
+            violations.append({"kind": "duplicate_expected_invocation_identifier", "agent_id": agent_id})
+            continue
+        expected_by_id[agent_id] = item
+        if item.get("agent_name") not in RUNTIME_AGENT_ALLOWLIST:
+            violations.append(
+                {
+                    "kind": "expected_agent_not_allowlisted",
+                    "agent_name": item.get("agent_name"),
+                    "invocation_id": item.get("invocation_id"),
+                }
+            )
+        if item.get("configured_model") != "gpt-5.6-luna":
+            violations.append(
+                {
+                    "kind": "expected_model_mismatch",
+                    "model": item.get("configured_model"),
+                    "invocation_id": item.get("invocation_id"),
+                }
+            )
+
+    observed_by_id = {}
+    unexpected = []
+    matched_ids = set()
+    for item in observed:
+        agent_id = item.get("agent_id") if isinstance(item, dict) else None
+        if not isinstance(agent_id, str) or not agent_id:
+            violations.append({"kind": "missing_observed_invocation_identifier", "event_id": item.get("event_id")})
+            unexpected.append(item)
+            continue
+        if agent_id in observed_by_id:
+            violations.append({"kind": "duplicate_observed_invocation_identifier", "agent_id": agent_id})
+            unexpected.append(item)
+            continue
+        observed_by_id[agent_id] = item
+        expected_item = expected_by_id.get(agent_id)
+        if expected_item is None:
+            unexpected.append(item)
+            if item.get("agent_type") not in RUNTIME_AGENT_ALLOWLIST:
+                violations.append(
+                    {
+                        "kind": "unexpected_or_generic_agent",
+                        "agent_type": item.get("agent_type"),
+                        "agent_id": agent_id,
+                        "event_id": item.get("event_id"),
+                    }
+                )
+            else:
+                violations.append({"kind": "unexpected_invocation", "agent_id": agent_id})
+            continue
+
+        matched_ids.add(agent_id)
+        if item.get("agent_type") != expected_item.get("agent_name"):
+            violations.append(
+                {
+                    "kind": "agent_identity_mismatch",
+                    "agent_id": agent_id,
+                    "expected": expected_item.get("agent_name"),
+                    "observed": item.get("agent_type"),
+                }
+            )
+        if item.get("agent_type") not in RUNTIME_AGENT_ALLOWLIST:
+            violations.append(
+                {
+                    "kind": "non_allowlisted_agent",
+                    "agent_type": item.get("agent_type"),
+                    "agent_id": agent_id,
+                }
+            )
+        if item.get("model") != "gpt-5.6-luna":
+            violations.append({"kind": "model_mismatch", "model": item.get("model"), "agent_id": agent_id})
+
+    missing = [item for item in expected if item.get("agent_id") not in matched_ids]
+    if not expected:
+        violations.append({"kind": "empty_expected_invocation_set"})
+
+    if expected and not missing and not unexpected and not violations:
+        status = "pass"
+    elif missing or any(item.get("kind", "").startswith("missing_") for item in violations):
+        status = "incomplete"
+    else:
+        status = "fail"
+
+    configured_efforts = {"max"}
+    observed_efforts = sorted(
+        {item.get("reasoning_effort") for item in observed if isinstance(item, dict) and item.get("reasoning_effort")}
+    )
+    return {
+        "status": status,
+        "allowlist": list(RUNTIME_AGENT_ALLOWLIST),
+        "expected": expected,
+        "observed": observed,
+        "missing": missing,
+        "unexpected": unexpected,
+        "violations": violations,
+        "reasoning_effort": {
+            "configured": sorted(configured_efforts)[0],
+            "accepted": True,
+            "runtime_observed": bool(observed_efforts),
+            "observed_values": observed_efforts,
+        },
+    }
+
+
+def validate_failure_taxonomy_relation(evaluation):
+    """Return contract errors for primary_failure_category/failure_categories."""
+    if not isinstance(evaluation, dict):
+        return ["evaluation must be an object"]
+    primary = evaluation.get("primary_failure_category")
+    categories = evaluation.get("failure_categories")
+    if not isinstance(categories, list):
+        return ["failure_categories must be an array"]
+    errors = []
+    if evaluation.get("result") == "pass" and primary is None and categories:
+        errors.append("final pass with null primary_failure_category must have failure_categories=[]")
+    if primary is not None and primary not in categories:
+        errors.append("primary_failure_category must be included in failure_categories")
+    return errors
 
 
 def parse_args():
@@ -88,6 +283,10 @@ def default_manifest(repo_root: Path, run_id: str):
             "base_branch": None,
             "codex_task_reports": [],
             "changed_files": [],
+            "source_baseline": {
+                "kind": "git_status",
+                "changed_files": [],
+            },
             "validation": {"status": "not_run", "commands": [], "warnings": []},
             "safety": {
                 "network": False,
@@ -110,8 +309,17 @@ def default_manifest(repo_root: Path, run_id: str):
                 "runtime_agent_compliance": {
                     "status": "unknown",
                     "allowlist": list(RUNTIME_AGENT_ALLOWLIST),
+                    "expected": [],
                     "observed": [],
+                    "missing": [],
+                    "unexpected": [],
                     "violations": [],
+                    "reasoning_effort": {
+                        "configured": "max",
+                        "accepted": True,
+                        "runtime_observed": False,
+                        "observed_values": [],
+                    },
                 },
             },
             "subagents": {
@@ -184,7 +392,8 @@ def safety_text(event):
     return " ".join(parts)
 
 
-def collect_hook_observations(repo_root: Path, run_root: Path, run_id: str, explicit_logs):
+def collect_hook_observations(repo_root: Path, run_root: Path, run_id: str, explicit_logs, expected_records=None):
+    expected_records = expected_records or []
     summary = {
         "log_paths": [],
         "event_counts": {},
@@ -194,8 +403,17 @@ def collect_hook_observations(repo_root: Path, run_root: Path, run_id: str, expl
         "runtime_agent_compliance": {
             "status": "unknown",
             "allowlist": list(RUNTIME_AGENT_ALLOWLIST),
+            "expected": [],
             "observed": [],
+            "missing": [],
+            "unexpected": [],
             "violations": [],
+            "reasoning_effort": {
+                "configured": "max",
+                "accepted": True,
+                "runtime_observed": False,
+                "observed_values": [],
+            },
         },
     }
     warnings = []
@@ -268,40 +486,18 @@ def collect_hook_observations(repo_root: Path, run_root: Path, run_id: str, expl
                 reasoning_effort = payload.get("reasoning_effort")
                 if isinstance(reasoning_effort, str) and reasoning_effort:
                     observed["reasoning_effort"] = reasoning_effort
+                for key in ("session_id", "turn_id"):
+                    value = payload.get(key)
+                    if isinstance(value, str) and value:
+                        observed[key] = value
                 summary["runtime_agent_compliance"]["observed"].append(observed)
-                if not isinstance(agent_type, str) or not agent_type:
-                    summary["runtime_agent_compliance"]["violations"].append(
-                        {"kind": "missing_agent_type", "event_id": payload.get("event_id")}
-                    )
-                elif agent_type not in RUNTIME_AGENT_ALLOWLIST:
-                    summary["runtime_agent_compliance"]["violations"].append(
-                        {
-                            "kind": "non_allowlisted_agent",
-                            "agent_type": agent_type,
-                            "event_id": payload.get("event_id"),
-                        }
-                    )
-                if not isinstance(model, str) or not model:
-                    summary["runtime_agent_compliance"]["violations"].append(
-                        {"kind": "missing_model", "event_id": payload.get("event_id")}
-                    )
-                elif model != "gpt-5.6-luna":
-                    summary["runtime_agent_compliance"]["violations"].append(
-                        {
-                            "kind": "model_mismatch",
-                            "model": model,
-                            "event_id": payload.get("event_id"),
-                        }
-                    )
         if matched_in_file:
             summary["log_paths"].append(repo_relative(repo_root, path))
 
     summary["log_paths"] = unique_list(summary["log_paths"])
     summary["event_counts"] = dict(sorted(summary["event_counts"].items()))
     compliance = summary["runtime_agent_compliance"]
-    compliance["status"] = "pass" if compliance["observed"] and not compliance["violations"] else (
-        "fail" if compliance["violations"] else "unknown"
-    )
+    compliance.update(evaluate_runtime_agent_compliance(expected_records, compliance["observed"]))
     return summary, warnings, safety
 
 
@@ -381,6 +577,12 @@ def collect_subagents(repo_root: Path, run_root: Path, run_id: str):
                 "path": repo_relative(repo_root, path),
                 "subagent_run_id": payload.get("subagent_run_id"),
                 "agent_name": agent_name,
+                "model": agent.get("model"),
+                "runtime_agent_id": (
+                    payload.get("metadata", {}).get("runtime_agent_id")
+                    if isinstance(payload.get("metadata"), dict)
+                    else None
+                ),
                 "role": payload.get("role"),
                 "mode": mode,
                 "status": payload.get("status"),
@@ -438,6 +640,8 @@ def merge_manifests(default_data, existing_data, base_data):
             manifest["codex_task_reports"] = source.get("codex_task_reports")
         if "changed_files" in source and isinstance(source.get("changed_files"), list):
             manifest["changed_files"] = source.get("changed_files")
+        if "source_baseline" in source and isinstance(source.get("source_baseline"), dict):
+            manifest["source_baseline"] = source.get("source_baseline")
         if "validation" in source and isinstance(source.get("validation"), dict):
             manifest["validation"] = source.get("validation")
         if "safety" in source and isinstance(source.get("safety"), dict):
@@ -489,12 +693,39 @@ def main():
     validation_warnings.extend(subagent_warnings)
     manifest["subagents"] = subagents
 
-    hook_summary, hook_warnings, safety_updates = collect_hook_observations(repo_root, run_root, args.run_id, args.hook_log)
+    hook_summary, hook_warnings, safety_updates = collect_hook_observations(
+        repo_root,
+        run_root,
+        args.run_id,
+        args.hook_log,
+        expected_records=subagents["records"],
+    )
     validation_warnings.extend(hook_warnings)
     manifest["hook_observations"] = hook_summary
 
-    manifest["changed_files"] = unique_list(
-        [normalize_repo_path(item) for item in manifest.get("changed_files", []) if isinstance(item, str)] + subagent_changed_files
+    baseline_data = manifest.get("source_baseline") if isinstance(manifest.get("source_baseline"), dict) else None
+    baseline_files = baseline_data.get("changed_files", []) if baseline_data else []
+    if baseline_data is None:
+        add_warning(
+            validation_warnings,
+            "source_baseline_missing",
+            repo_relative(repo_root, manifest_path),
+            "Run baseline is missing; current source changes cannot be distinguished from pre-existing changes.",
+        )
+    current_files, current_files_available = current_source_changed_files(repo_root)
+    if not current_files_available:
+        add_warning(
+            validation_warnings,
+            "source_changed_files_unavailable",
+            repo_relative(repo_root, manifest_path),
+            "Git status could not be read; changed_files aggregate is incomplete.",
+        )
+        current_files = []
+
+    manifest["changed_files"] = aggregate_changed_files(
+        baseline_files,
+        current_files,
+        subagent_changed_files,
     )
     manifest["agents_used"] = unique_list(
         [item for item in manifest.get("agents_used", []) if isinstance(item, str) and item] + subagent_agents
@@ -517,6 +748,14 @@ def main():
             add_warning(validation_warnings, "evaluation_invalid_json", repo_relative(repo_root, evaluation_path), str(exc))
         else:
             if isinstance(evaluation, dict):
+                taxonomy_errors = validate_failure_taxonomy_relation(evaluation)
+                for error in taxonomy_errors:
+                    add_warning(
+                        validation_warnings,
+                        "failure_taxonomy_relation_invalid",
+                        repo_relative(repo_root, evaluation_path),
+                        error,
+                    )
                 if evaluation.get("run_id") == args.run_id:
                     manifest["primary_failure_category"] = evaluation.get("primary_failure_category")
                 else:

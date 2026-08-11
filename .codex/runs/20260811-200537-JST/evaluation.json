@@ -1,0 +1,151 @@
+{
+  "schema_version": 1,
+  "run_id": "20260811-200537-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "PR #20の実装修正、focused contract、通常ホストのRequired Validation Set、full pnpm run verifyは完了したが、quality_gate_runner child sandboxの環境不備により最終品質runner PASSは未確立である。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260811-200537-JST/run.json",
+          "selector": "completion_state",
+          "summary": "LOCAL_IMPLEMENTATION_COMPLETE=false、MERGE_READY=falseをfail-closeで保持する。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/pr20-quality-runner-2230/codex-output.txt",
+          "selector": "QUALITY_GATE_RUNNER_INCOMPLETE",
+          "summary": "指定順5コマンドは全件実行されたが、全件exit 1でPASSに到達しなかった。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "warn",
+      "evidence": "9件のsubagent recordはchanged_files=[]かつscope compliantだった。通常ホストの前後Source snapshotでもApplication/Test/Specification/Documentation Sourceの予期しない追加差分は観測されなかったが、child shell内部の書込み観測可能性はunknownである。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260811-200537-JST/run.json",
+          "selector": "changed_files",
+          "summary": "Run baselineとの差分はscripts/validate-output-schema.pyのみで、subagent accepted changesはない。"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-200537-JST/subagents/quality-gate-runner-2230.json",
+          "selector": "metadata",
+          "summary": "Source Integrityはouter snapshotで予期しないSource差分なし、write observabilityはunknown。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "validator、Bash verify、PowerShell verify、contract tests、通常ホストのpnpm run verifyはPASSした。一方、quality_gate_runnerの同一sandboxではpython/pnpm PATH不備とBash起動権限拒否が再現し、指定された品質runner PASSは得られなかった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/pr20-quality-runner-2230/codex-output.txt",
+          "selector": "Progress",
+          "summary": "5/5コマンドを指定順に実行した事実と各exit 1を記録する。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/pr20-quality-runner-2230/codex-task-report.json",
+          "selector": "codex_exit_code",
+          "summary": "Parent wrapperはexit 0で、child結果のQUALITY_GATE_RUNNER_INCOMPLETEを保存した。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "warn",
+      "evidence": "Git mutation、delete、renameは行わず、childの変更ファイルは空だった。PowerShellが許可済み生成ログへのAdd-Content権限エラーを返したが、shell内部の禁止Source writeがないことは独立観測できずunknownとして保持する。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260811-200537-JST/run.json",
+          "selector": "safety",
+          "summary": "git mutation/deleteのblocked attemptはなく、runtime complianceはpass。"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-200537-JST/subagents/quality-gate-runner-2230.json",
+          "selector": "metadata.write_attempt_observability",
+          "summary": "独立したSource write不存在の証明ではなく、観測可能性unknownを記録する。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Parent-defined command set、runtime hookのexpected/observed、各subagent record、品質runner出力、completion stateをRun Artifactへ保存した。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".codex/runs/20260811-200537-JST/logs/hooks.jsonl",
+          "selector": "SubagentStart/SubagentStop",
+          "summary": "9件すべて同一runtime agent_idでStart/Stopが観測され、modelはgpt-5.6-luna。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Node dispatcher、validator、Bash/PowerShell parity、taxonomy relation、runtime compliance contract、hook/doc path契約を実装した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/pr20-quality-runner-2230/prompt.txt",
+          "selector": "Local Required Validation Set",
+          "summary": "品質runnerの固定5コマンドと実行順をParent promptへ保存した。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "通常ホストでは同一の検証が成功したが、quality_gate_runner child sandboxでは環境依存のPATH・Bash・生成ログ権限エラーが3回のbounded attemptで再現した。",
+      "evidence_refs": [
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-200537-JST/subagents/quality-gate-runner-2230.json",
+          "selector": "summary",
+          "summary": "child sandboxの同一環境問題を最終bounded attemptで記録した。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "quality_gate_runnerが指定順5コマンドを各1回実行したが、python/pnpmが認識されず、bashはE_ACCESSDENIED、PowerShell verifyはPython未検出と生成ログ権限拒否で全件exit 1になった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/pr20-quality-runner-2230/codex-output.txt",
+          "selector": "QUALITY_GATE_RUNNER_INCOMPLETE",
+          "summary": "最初の異常と各コマンドのexit status、因果候補をParent outputに保存した。"
+        }
+      ],
+      "detail": "通常ホストの検証結果をchild sandboxのPASSとして補完せず、L3 permission/config変更なしでfail-closeする。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "quality_gate_runner child sandbox environment",
+      "evidence": "同一sandboxでPython/pnpm PATH不備、Bash E_ACCESSDENIED、.codex/logsへのAdd-Content権限拒否がbounded retryで再現した。",
+      "evidence_refs": [
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-200537-JST/subagents/quality-gate-runner-2230.json",
+          "selector": "summary",
+          "summary": "子環境の実行条件を記録した。"
+        }
+      ],
+      "expected_impact": "quality_gate_runnerが通常ホストと同じRequired Validation Setを実行できる。",
+      "recommendation": "ユーザー承認のもとでsandboxのPATH・Bash実行権限・生成ログ権限を別タスクとして調査し、permission/config変更後に新しいRunで再評価する。"
+    }
+  ]
+}

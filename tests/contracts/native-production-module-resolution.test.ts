@@ -1,7 +1,8 @@
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
+import { describe } from "vitest";
 
-describe("Native automation module resolution", () => {
+describe("Native automation module resolution", { timeout: 15_000 }, () => {
   function resolveFor(buildKind: string, moduleName: string) {
     const previous = process.env.EXPO_PUBLIC_BUILD_KIND;
     process.env.EXPO_PUBLIC_BUILD_KIND = buildKind;

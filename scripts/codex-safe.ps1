@@ -288,7 +288,9 @@ function Invoke-Preflight {
         @{ Tokens = @('terraform', 'destroy', '-auto-approve'); Decisions = @('forbidden') },
         @{ Tokens = @('rm', 'file.txt'); Decisions = @('forbidden') },
         @{ Tokens = @('Remove-Item', 'file.txt'); Decisions = @('forbidden') },
-        @{ Tokens = @('git', 'rm', 'file.txt'); Decisions = @('forbidden') }
+        @{ Tokens = @('git', 'rm', 'file.txt'); Decisions = @('forbidden') },
+        @{ Tokens = @('node', 'scripts/codex-local-validation.mjs', 'validate-orchestration'); Decisions = @('allow') },
+        @{ Tokens = @('pwsh', '-Command', 'Get-Date'); Decisions = @('prompt') }
     ) | ForEach-Object { $tests.Add($_) }
 
     if ($PresetName -eq 'auto-net') {

@@ -3,9 +3,7 @@
   "run_id": "20260811-124437-JST",
   "result": "pass",
   "primary_failure_category": null,
-  "failure_categories": [
-    "flaky_or_env_issue"
-  ],
+  "failure_categories": [],
   "dimensions": {
     "task_completion": {
       "rating": "pass",
@@ -15,7 +13,7 @@
           "kind": "run_manifest",
           "path": ".codex/runs/20260811-124437-JST/run.json",
           "selector": "completion_state",
-          "summary": "LOCAL_IMPLEMENTATION_COMPLETE=true、MERGE_READY=false（External Checks pending）"
+            "summary": "LOCAL_IMPLEMENTATION_COMPLETE=true、MERGE_READY=false（External Checksはpending）"
         },
         {
           "kind": "log_event",
@@ -27,19 +25,19 @@
           "kind": "subagent_run",
           "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fef6d-quality-gate-runner-policy-blocked.json",
           "selector": "status",
-          "summary": "quality_gate_runnerが5件を実行したが#2 timeout/#4 failureでINCOMPLETE"
+            "summary": "quality_gate_runnerが5件を実行したが、#2はtimeout、#4はfailureでINCOMPLETE"
         },
         {
           "kind": "subagent_run",
           "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fef85-quality-gate-runner-standard.json",
           "selector": "status",
-          "summary": "標準wrapper経由のexact role実行がcompleted、runner markerはINCOMPLETE"
+            "summary": "標準wrapper経由のexact role実行がcompleted、runner markerはINCOMPLETE"
         },
         {
           "kind": "subagent_run",
           "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fefad-quality-gate-runner-standard-timeout300.json",
           "selector": "status",
-          "summary": "timeout拡張後の標準wrapper exact roleが5件完了、#4のみFAILでINCOMPLETE"
+            "summary": "timeout拡張後の標準wrapper exact roleが5件完了、#4のみFAILでINCOMPLETE"
         }
       ]
     },
@@ -69,7 +67,7 @@
           "kind": "validation_command",
           "path": ".artifacts/luna-orchestration/parent-required-validation/04b-test-contracts-after-focused.log",
           "selector": "Test Files",
-          "summary": "24 files / 201 tests PASS"
+            "summary": "24 files / 201 testsがPASS"
         },
         {
           "kind": "validation_command",
@@ -81,13 +79,13 @@
           "kind": "subagent_run",
           "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fef85-quality-gate-runner-standard.json",
           "selector": "evidence",
-          "summary": "5/5実行、#2 timeout、#4 failure、#1/#3/#5 PASS"
+            "summary": "5/5実行、#2はtimeout、#4はfailure、#1/#3/#5はPASS"
         },
         {
           "kind": "subagent_run",
           "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fefad-quality-gate-runner-standard-timeout300.json",
           "selector": "evidence",
-          "summary": "5/5実行、#1/#2/#3/#5 PASS、#4 format baseline failure"
+            "summary": "5/5実行、#1/#2/#3/#5はPASS、#4はformat baseline failure"
         },
         {
           "kind": "validation_command",
@@ -99,7 +97,7 @@
           "kind": "validation_command",
           "path": ".artifacts/luna-orchestration/wave12-quality-runner-generated-output-1848/working-tree-snapshot-comparison.json",
           "selector": "passed",
-          "summary": "Source Integrity passed、追加ソース差分0、HEAD不変"
+            "summary": "Source Integrityはpassed、追加ソース差分0、HEAD不変"
         }
       ]
     },
@@ -117,13 +115,13 @@
           "kind": "validation_command",
           "path": ".artifacts/luna-orchestration/wave11-quality-runner-repair-1740/working-tree-snapshot-comparison.json",
           "selector": "passed",
-          "summary": "Source Integrity passed"
+            "summary": "Source Integrityはpassed"
         },
         {
           "kind": "validation_command",
           "path": ".artifacts/luna-orchestration/wave12-quality-runner-generated-output-1848/working-tree-snapshot-comparison.json",
           "selector": "passed",
-          "summary": "Source Integrity passed、trusted generated output以外の追加差分なし"
+            "summary": "Source Integrityはpassed、trusted generated output以外の追加差分なし"
         }
       ]
     },
@@ -147,7 +145,7 @@
           "kind": "validation_command",
           "path": ".artifacts/luna-orchestration/parent-required-validation/01-validate-luna-orchestration.log",
           "selector": "LUNA_ORCHESTRATION_VALIDATION_PASS",
-          "summary": "5 role、Luna/max、child multi-agent=false"
+            "summary": "5 custom agent.name、Luna/max、child multi-agent=false"
         }
       ]
     },
@@ -165,7 +163,7 @@
           "kind": "log_event",
           "path": ".artifacts/luna-orchestration/wave7-quality-runner-repair-1504/codex-exec.jsonl",
           "selector": "quality_gate_runner",
-          "summary": "exact role spawn後に5件実行、#2 timeout/#4 failure"
+            "summary": "exact role spawn後に5件実行、#2はtimeout、#4はfailure"
         },
         {
           "kind": "validation_command",
@@ -177,7 +175,7 @@
           "kind": "validation_command",
           "path": ".artifacts/luna-orchestration/wave11-quality-runner-repair-1740/codex-output.txt",
           "selector": "QUALITY_GATE_RUNNER_INCOMPLETE",
-          "summary": "post-format repairでも5/5完了、#1/#2/#3/#5 PASS、#4 native timeout"
+            "summary": "post-format repairでも5/5完了、#1/#2/#3/#5はPASS、#4はnative timeout"
         }
       ]
     }
@@ -253,17 +251,17 @@
       "target": "quality_gate_runner runtime completion",
       "evidence": "標準wrapperのCLI exact roleはspawn成功し、600秒以上のper-command timeoutでpost-timeoutの5件Required Validation Setを完了、QUALITY_GATE_RUNNER_PASSとなった。900秒外側shell ceilingの終了コード124はwrapper-boundary warningとして別記録した。",
       "evidence_refs": [
-        {
-          "kind": "subagent_run",
-          "path": ".artifacts/luna-orchestration/wave11-quality-runner-1722/codex-output.txt",
+          {
+            "kind": "validation_command",
+            "path": ".artifacts/luna-orchestration/wave11-quality-runner-1722/codex-output.txt",
           "selector": "status",
-          "summary": "completed、runner markerはINCOMPLETE"
+            "summary": "completed、runner markerはINCOMPLETE"
         },
         {
-          "kind": "subagent_run",
+          "kind": "validation_command",
           "path": ".artifacts/luna-orchestration/wave12-quality-runner-generated-output-1848/codex-output.txt",
           "selector": "status",
-          "summary": "5/5 completed, QUALITY_GATE_RUNNER_PASS, write_attempt=false"
+          "summary": "5/5実行完了、QUALITY_GATE_RUNNER_PASS、write_attempt=false"
         }
       ],
       "expected_impact": "Parent-defined validation setを独立runnerが実行した証跡を得られる。",

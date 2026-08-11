@@ -49,13 +49,22 @@ if [[ ! -t 0 ]]; then
   hook_input="$(cat 2>/dev/null || printf '')"
 fi
 
+python_bin=""
+for candidate in python3 python python.exe; do
+  if command -v "$candidate" >/dev/null 2>&1 &&
+    "$candidate" -c 'import sys; raise SystemExit(0 if sys.version_info >= (3, 0) else 1)' >/dev/null 2>&1; then
+    python_bin="$(command -v "$candidate")"
+    break
+  fi
+done
+
 payload_value() {
   local value=""
-  if [[ -z "$hook_input" ]] || ! command -v python >/dev/null 2>&1; then
+  if [[ -z "$hook_input" || -z "$python_bin" ]]; then
     printf '%s' "$value"
     return 0
   fi
-  value="$(printf '%s' "$hook_input" | python -c 'import json, sys
+  value="$(printf '%s' "$hook_input" | "$python_bin" -c 'import json, sys
 try:
     payload = json.load(sys.stdin)
 except Exception:

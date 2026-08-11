@@ -30,3 +30,5 @@ DerivedData/
 .codex/tmp/
 .npmrc
 .expo-local-export/
+__pycache__/
+*.pyc

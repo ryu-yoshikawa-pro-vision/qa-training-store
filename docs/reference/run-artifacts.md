@@ -18,6 +18,7 @@ Both are validated by schema / validator.
 - `evaluation.json` 生成前の `run.json.primary_failure_category` は `null` です。
 - `run.json.evaluation_path` は評価の正本となる `evaluation.json` を指します。
 - `run.json.primary_failure_category` と `evaluation.json.primary_failure_category` が食い違う場合、後続 validator は warning または failure にするべきです。
+- `result=pass` かつ `primary_failure_category=null` の最終評価では `failure_categories=[]` とします。primaryが非nullなら同じ値を配列にも含めます。schemaとcollectorがこの関係を機械検証します。
 - `changed_files`、exit code、log path、report path、executed commands は agent が手書きしません。
 - agent は観測事実を `run.json` / `codex-task` report JSON / logs から参照して評価します。
 
@@ -44,6 +45,7 @@ Both are validated by schema / validator.
 - `run.json.evaluation_path` は `evaluation.json` への summary link です。
 - `run.json.primary_failure_category` は valid な `evaluation.json.primary_failure_category` からだけコピーされる summary field です。
 - `run.json.completion_state` はParentだけが更新するcompletion decisionです。`LOCAL_IMPLEMENTATION_COMPLETE` はLocal Required Validation、runtime acceptance、Source Integrity、Real-run Acceptanceが完了した場合だけtrue、`MERGE_READY`はLocal完了かつExternal ChecksがPASSまたは明示N/Aの場合だけtrueです。初期値はfalse / pendingで、collectorは未実行をPASSへ補完しません。
+- `source_baseline.changed_files` はRun開始時のsource状態です。`changed_files` は current source と baseline の差分に、Parentが受け入れた subagent changes を加えたaggregateであり、手動 append ではありません。`.codex/runs/` はsource差分から除外します。
 - `scripts/collect-run-artifacts.sh` / `scripts/collect-run-artifacts.ps1` は on-disk artifact を再走査し、`run.json` summary を再集約できます。
 
 ### `evaluation.json`

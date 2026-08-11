@@ -11,8 +11,6 @@ export default defineConfig({
   test: {
     globals: true,
     environment: "jsdom",
-    // Metro config cold-load under quality-runner load can exceed Vitest's 5-second default.
-    testTimeout: 15_000,
     setupFiles: ["./tests/setup.ts"],
     restoreMocks: true,
     clearMocks: true,
