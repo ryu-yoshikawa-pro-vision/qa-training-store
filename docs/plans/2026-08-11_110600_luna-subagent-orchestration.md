@@ -88,7 +88,7 @@ quality_gate_runner
 9. final completion decisionはParent Agentだけが行う。
 10. silent model fallback / silent reasoning-effort downgradeを行わない。
 11. subagentがsubagentをspawnするrecursive delegationを禁止する。
-12.既存Failure Taxonomyを唯一のFailure Category SSOTとし、新しい独自taxonomyを作らない。
+12. 既存Failure Taxonomyを唯一のFailure Category SSOTとし、新しい独自taxonomyを作らない。
 
 ### 1.4 `max`の位置づけ
 
@@ -626,7 +626,7 @@ workspace-writeはbuild output / cache / Playwright artifacts等のために必�
 - Sourceへのpatch / edit / write
 - git mutation
 - failureの自動修正
-- Parent Required Validation Setの削除
+- Parent Local Required Validation Setの削除
 - required validationの未実行をPASS扱い
 - final Failure Taxonomy categoryの確定
 - additional subagent spawn
@@ -723,7 +723,11 @@ External check failure時はParentがログ / job / artifact Evidenceを取得�
 
 `quality_gate_runner` のvalidation-only性はinstructionだけで証明しない。
 
+Parent integration review完了後、**現在の実装差分を正当なvalidation baselineとしてBefore Snapshotへ含める**。その後のvalidationによって追加Source変更が発生していないことをBefore / Afterで確認する。
+
 ```text
+Parent integration review
+  ↓
 Before Source Snapshot
   ↓
 Required Local Validation
@@ -733,7 +737,9 @@ After Source Snapshot
 Comparison
 ```
 
-unexpected Source mutationがあればrunner statusはFAILとする。
+したがって、workerが意図して実装した既存diff自体をquality runnerのmutationとして誤検知しない。
+
+unexpected additional Source mutationがあればrunner statusはFAILとする。
 
 ### 8.2 Reuse Current Snapshot Semantics
 
@@ -1751,7 +1757,7 @@ Mitigation:
 
 - child `agents.enabled = false`を第一選択
 - optional `multi_agent = false`第二防御
--必要時のみPreToolUse enforcement
+- 必要時のみPreToolUse enforcement
 - instructions
 - negative real-run test
 
@@ -1816,7 +1822,7 @@ Mitigation:
 - writable workerの共有file同時編集
 - quality runnerの自動修正
 - quality runnerへのValidation Set選定丸投げ
--第二Failure Taxonomy
+- 第二Failure Taxonomy
 - unlimited Repair Loop
 - silent model fallback
 - automatic reasoning-effort downgrade
@@ -1848,7 +1854,7 @@ Mitigation:
 
 - Write Parallel Capability Gate実装
 - workspace isolation実証時のみparallel write
--未証明ならserial fallback
+- 未証明ならserial fallback
 - serial fallbackでもPlan完了可能
 
 ### Validation
