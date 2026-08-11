@@ -1211,13 +1211,15 @@ Part 1 / Part 2で同じ分類語彙を使う。
 
 ## 11. Curriculum Rebaseline Matrix
 
-完了対象は22文書。既存20文書の再Baselineに加えて、下段2文書を新規Requiredとして実装する。
+完了対象は22文書。既存20文書の再Baselineに加えて、新規Required 2文書を実装する。
 
 | File | Required direction | Priority |
 | --- | --- | --- |
 | `README.md` | Current iOS保証、Spec Oracle、Training実入口、Part 1/2 Outcome | P1 |
 | `00_learning-design.md` | C01〜C12、Competency評価、Spec→Risk Flow、Training境界 | P1 |
 | `01_spreadsheet-test-design.md` | CSV Workbook、BR/AC/Risk Traceability、`;`区切りGrammar、Progressive Disclosure | P1 |
+| `02_competency-rubric.md` | C01〜C12 / Level 0〜3 / Part 1・2評価Contractの正本 | P1 New Required |
+| `03_instructor-reference.md` | Expected Contract / Alternative / Anti-pattern / Facilitation / Troubleshooting | P1 New Required |
 | `part1/01_test-automation-foundations.md` | C01 Automation Purpose / Scopeへ接続 | P1 |
 | `part1/02_scenario-shop-analysis.md` | Normative SpecとObserved Behaviorを分離 | P1 |
 | `part1/03_test-design-and-automation-selection.md` | Spec→Risk→Design→Layer→Automation | P1 |
@@ -1235,8 +1237,6 @@ Part 1 / Part 2で同じ分類語彙を使う。
 | `part2/06_native-ci-maestro.md` | Android Training CI Runtime Contract、Native detect、API 36 build / API 34 runtime、Current iOS Build-only | P1 Critical |
 | `part2/07_ci-cd-quality-gates.md` | Platform別保証Level、Required Gate判断 | P1 |
 | `part2/08_integration-design-capstone.md` | Current保証との比較、C11/C12評価 | P1 |
-| `02_competency-rubric.md` | C01〜C12 / Level 0〜3 / Part 1・2評価Contractの正本 | P1 New Required |
-| `03_instructor-reference.md` | Expected Contract / Alternative / Anti-pattern / Facilitation / Troubleshooting | P1 New Required |
 
 ### 11.1 Part 1 Capstone
 
