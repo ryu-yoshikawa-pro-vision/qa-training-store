@@ -1,7 +1,7 @@
 # Screen Catalog / Visual Specification 全画面・全重要状態整備計画
 
 作成日時: 2026-08-10 13:22 JST  
-最終レビュー反映: 2026-08-10 14:30 JST
+最終レビュー反映: 2026-08-11 11:46 JST
 
 ## 0. 依頼概要
 
@@ -92,7 +92,7 @@ Executable Canonical Source
 12. Capture Targetが`captured`の場合、Capture Case + Canonical Asset + Markdown Visual Referenceが揃う。
 13. Capture Targetが`blocked`の場合、blocker reasonがあり、そのTargetのCanonical Asset / Markdown Visual ReferenceをCurrentとして表示しない。
 14. `shared` Stateは別の`required` Assetを直接参照し、`shared → shared`や循環参照を許可しない。
-15. `not-applicable` Stateは理由を持ち、必要に応じてRelated Oracle / a11y test等へ接続する。
+15. `not-applicable` Stateは理由を持ち、必要な非Visual契約はRelated Oracleへ接続する。既存a11y / regression testはNon-normative validation evidenceとして維持し、Related Oracleへ格納しない。
 16. Webの全 Product / Supporting / Boundary Screenにbaseline Visual Referenceがある。
 17. Responsive差分が意味を持つ画面は必要なDesktop / Tablet / Mobile / Small Mobile Referenceを持つ。
 18. Admin WebはDesktop契約をvisual化し、`<1024px`の共通Admin warningをshared Visual Referenceとして扱う。
@@ -108,7 +108,7 @@ Executable Canonical Source
 28. Route追加時にScreen Catalog未登録を検出し、redirect / alias / framework-internal / excludedを明示的に分類できる。
 29. Structural FreshnessとVisual Content Freshnessを分離する。
 30. Visual-blocking Product Defectを見つけた場合、本PRへProduct Fixを混ぜず、別Product Fix PR → merge → rebase → recaptureの順で解消する。
-31. Canonical Visual AssetがRepository Size Budgetを満たす。
+31. Canonical Visual AssetがRepository Size Budgetを満たし、decode可能なWebP実体・正の寸法・正のbyte sizeを持つ。
 32. Current required Product / Supporting / Boundary scopeのBlocked Capture Target Countが0である。
 33. `pnpm run verify`、Visual Contract tests、Web回帰、必要なNative回帰が成功する。
 
@@ -586,7 +586,12 @@ Allowlist / order:
 4. `web-small-mobile`
 5. `android`
 
-複数指定は`,` 区切りで上記順序へsortする。
+Rules:
+
+- `required` / `shared`では上記allowlistから1件以上を指定する。
+- 複数指定は`,` + space区切りで上記順序へsortする。
+- `not-applicable`の場合だけsentinel `-` を許可し、Required platformsは`-`のみとする。
+- `-`とplatform値の混在は禁止する。
 
 ### 7.6 Visual requirement
 
@@ -609,7 +614,7 @@ Visual Requirementは**仕様上必要なVisual policy**であり、実行成否
 <platform>=ref: <screen-id>/<state-slug>/<platform>
 ```
 
-複数platformの場合は`;` 区切りでRequired platform orderへsortする。
+複数platformの場合は`;` + space区切りでRequired platform orderへsortする。
 
 例:
 
@@ -627,8 +632,9 @@ Rules:
 
 - `Visual detail`: `reason: <non-empty text>`
 - Screenshotで意味を表現できない、またはVisual化価値がない場合。
-- Required platformsは`-`。
-- 必要に応じRelated Oracle / a11y test等を代替Evidenceとして参照する。
+- Required platformsはsentinel `-` のみ。
+- 必要な非Visual契約はRelated Oracleへ接続する。
+- 既存a11y / regression testはNon-normative validation evidenceとして維持し、Related Oracleへ格納しない。
 
 ### 7.7 Related Oracle
 
@@ -649,6 +655,7 @@ Rules:
 - Supporting documentをExpected Behavior Oracleにしない。
 - Supporting ScreenのRelated Oracleは画面の存在 / navigation / access / user-facing layout等のProduct contractを指す。
 - Terms / Privacy / Commerce等のSupporting本文そのものをScreenshotがNormative Product Oracleへ昇格させるわけではない。
+- a11y / regression test referenceをRelated Oracleへ格納しない。これらはNon-normative validation evidenceである。
 - Visual Specのためだけに意味の薄いBR / ACを新設しない。
 
 ### 7.8 Important State判定
@@ -703,7 +710,7 @@ Wave 1 / 2でCurrent RuntimeとNormative Specから補正するが、最低限�
 | Orders | populated, empty, payment processing/failed status mix |
 | Order Detail | payment failed/pending, paid, preparing, shipped, delivered, review eligibility/status variants |
 | Review Editor | create, published edit, hidden, deleted/non-editable boundary |
-| Admin Dashboard | operator, admin |
+| Admin Dashboard | operator, admin, `admin-mobile-warning` (`<1024px` shared visual owner) |
 | Admin Products | default, many products, material filter/empty, bulk partial failure |
 | Admin Product New | blank, validation, preview |
 | Admin Product Detail | draft, published, dirty, preview, discontinue confirm, delete-blocked, inactive image relation |
@@ -715,8 +722,8 @@ Wave 1 / 2でCurrent RuntimeとNormative Specから補正するが、最低限�
 | Admin Reviews | published/hidden, empty, bulk partial failure |
 | Admin Users | role/status mix, material filter/empty |
 | Admin User Detail | active customer, suspended, withdrawn read-only, self admin protection, last-admin protection |
-| Admin responsive boundary | shared `<1024px` warning |
-| Native Shell boundary | session loading, runtime init error/retry, unsupported role where deterministic |
+
+Native Shell候補の`session loading` / `runtime init error/retry` / `unsupported role`はownerless cross-cutting Stateとして定義しない。Wave 1 / 2でCurrent Runtimeを確認し、既存のCatalog Screenへ帰属できるuser-facing stateだけをそのScreenのImportant Stateへ追加する。独立したuser-facing surfaceであることが確認できた場合だけ、新しいBoundary ScreenとしてCatalogへ登録してPrimary specificationを割り当てた後にStateを定義する。
 
 Admin Test ControlはTest-onlyのためNormative Important State / canonical Visual DoD対象外とする。
 
@@ -756,7 +763,7 @@ Target execution statusは次の3値。
   - Final PASS不可。
 - `captured`
   - Capture Case実行済み。
-  - Canonical AssetとMarkdown Visual Reference必須。
+  - exactly 1つのCapture Case、Canonical Asset、Markdown Visual Reference必須。
 - `blocked`
   - 本来requiredだが環境 / capability / unresolved runtime dependency等で取得不能。
   - `blockerReason`必須。
@@ -778,6 +785,7 @@ Web画像を保持したままAndroid blockerをfail-closeできる。
 最低項目:
 
 ```text
+captureCaseKey
 screenId
 stateSlug
 platform
@@ -793,7 +801,10 @@ blockerReason
 
 Rules:
 
-- key: `screenId + stateSlug + platform`。
+- `captureCaseKey` grammar: `<screenId>/<stateSlug>/<platform>`。
+- Capture Target keyも同じ`screenId + stateSlug + platform` identityを使用し、Registry全体でuniqueにする。
+- `captured` Targetは同一`captureCaseKey`を持つCapture Caseへexactly 1件解決できなければならない。
+- Capture CaseのscreenId / stateSlug / platform / statusはTargetと一致させる。
 - Routeは実行上必要なprojectionであり、`app/**` / Catalogと一致させる。
 - RoleはSpec StateのAudience / Roleと整合する。
 - Expected UI / BR本文をRegistryへ複製しない。
@@ -839,6 +850,9 @@ Rules:
 - Raw PNGはcanonical docs assetへcommitしない。
 - WebP metadataをstripする。
 - Screenshot file自体にExpected Behaviorを埋め込まない。
+- Validatorは`sharp`等の既存image toolingで各canonical Assetをdecodeし、実formatがWebPであること、width / heightが正の整数であること、byte sizeが0より大きく1 MiB以下であることを検証する。
+- `page` / `viewport` / `region`で寸法契約が異なるため、canonical Assetの寸法をViewport固定値へ一律一致させない。
+- 全Canonical Asset用のSHA-256 manifestやScreenshot provenance DBは追加しない。内容のCurrent性はSection 12.9のVisual Content Freshnessで管理し、Android Raw ArtifactのSource SHA / APK SHA-256 provenanceとは分離する。
 
 ### 10.2 Capture mode
 
@@ -978,6 +992,7 @@ captured_at
 
 Rules:
 
+- `capture_case_key`はSection 9の`captureCaseKey`と同一identityを表し、値が一致しなければfail-close。
 - `source_commit_sha`は40-char Git SHA。
 - `automation_apk_sha256`は64-char lowercase SHA-256。
 - promotion時に今回capture対象として期待するSource Revisionとmanifestの`source_commit_sha`が一致しない場合fail-close。
@@ -1034,31 +1049,35 @@ Markdown Visual Reference
 - Screenを所有するNormative root Specは`## Screen Contracts` exactly 1。
 - 所有していないSCREEN section禁止。
 - cross-cutting specにCatalog ownershipのないSCREEN section禁止。
+- Important Stateは必ずCatalog上のScreen ownerへ属する。ownerless / cross-cutting Stateは禁止する。
 
 ### 12.2 Spec → Capture Target
 
 - Product / Supporting / Boundary Screenに`baseline` State >= 1。
 - `required` StateのRequired platformsごとにCapture Target存在。
 - `shared`はRequired platformごとにdirect required Asset ref。
-- `not-applicable`はreason。
+- `not-applicable`はreasonかつRequired platforms=`-`。
 
 ### 12.3 Capture Target status
 
 - `pending`: Final PASS不可。
-- `captured`: Asset + Markdown Reference必須。
+- `captured`: 同一`captureCaseKey`のCapture Case exactly 1 + Asset + Markdown Reference必須。
 - `blocked`: blockerReason必須、Asset / Markdown ReferenceをCurrentとして表示禁止、Final PASS不可。
 
 ### 12.4 Capture → Spec
 
+- captureCaseKeyが`<screenId>/<stateSlug>/<platform>`と一致し、Registry全体でunique。
 - screenIdがCatalogに存在。
 - stateSlugがPrimary specificationのState Matrixに存在。
 - platformがRequired platformsに含まれる。
 - roleがAudience / Roleと整合する。
+- `captured` TargetとCapture CaseのscreenId / stateSlug / platform / statusが一致する。
 
 ### 12.5 Capture → Asset
 
 - `captured` Targetにcanonical Asset存在。
 - pathがScreen ID / State slug / platformと一致。
+- canonical Assetがdecode可能なWebPで、width / heightが正の整数、byte sizeが0より大きく1 MiB以下。
 - `pending` / `blocked` TargetはCurrent canonical Assetを所有しない。
 
 ### 12.6 Asset → Capture / Spec
@@ -1066,6 +1085,7 @@ Markdown Visual Reference
 - orphan Asset禁止。
 - deleted State Asset禁止。
 - TargetなしAsset禁止。
+- decode不能 / 非WebP / 0 byte / 1 MiB超過Asset禁止。
 - `shared`以外の複数State流用禁止。
 
 ### 12.7 Markdown Visual Reference
@@ -1102,14 +1122,15 @@ Rules:
 
 Structural Freshness = Validator対象。
 
-- Catalog / State / Target / Asset / Markdown link整合。
+- Catalog / State / Target / Case / Asset / Markdown link整合。
 - missing / orphan / stale pathなし。
+- Canonical Assetのdecode / WebP format / positive dimensions / size budgetが成立。
 
 Visual Content Freshness = recapture + Human Review対象。
 
 - UI / Product Behavior / capture setupに影響する変更時は対象caseをrecaptureする。
 - Human ReviewでCurrent RuntimeとNormative Specを比較する。
-- pathが存在するだけでCurrent imageと認めない。
+- pathやhashが存在するだけでCurrent imageと認めない。
 - Pixel diff Required CIは導入しない。
 
 ---
@@ -1198,11 +1219,13 @@ Start Gate未達ならPR #16へ本実装を混ぜない。
 - [ ] Important State Typeを付与。
 - [ ] Audience / Roleを付与。
 - [ ] Visual Requirementを`required` / `shared` / `not-applicable`から選ぶ。
-- [ ] Required platformsを固定allowlistで指定。
+- [ ] Required platformsを固定allowlist、または`not-applicable`専用sentinel `-`で指定。
 - [ ] Related Oracleを付与。
+- [ ] すべてのImportant StateをCatalog上の具体的なScreen ownerへ帰属させ、ownerless / cross-cutting Stateを残さない。
 - [ ] Product Detail Variation 12 / 13 boundary確認。
 - [ ] Cart purchase-limit-reached確認。
 - [ ] Admin Inventory 0 / 1-5 / 6+ boundary確認。
+- [ ] Native Shell候補は既存Screenへの帰属可否を確認し、独立surfaceの場合のみBoundary Screen追加を検討。
 - [ ] unreachable / unresolved / known deviationをExpected Visualへ固定しない。
 
 ### Wave 3 — Screen-centric Specification
@@ -1225,6 +1248,7 @@ Start Gate未達ならPR #16へ本実装を混ぜない。
 - [ ] Current UI Reviewを壊さない。
 - [ ] typed Capture Registryを追加。
 - [ ] Required platformごとにTargetを生成。
+- [ ] Capture Caseへuniqueな`captureCaseKey`を付与。
 - [ ] `/guide`等不足baselineを追加。
 - [ ] 全Web required Stateをcaseへmapping。
 - [ ] font / image / animation / scroll / focusをdeterministic化。
@@ -1250,6 +1274,7 @@ output/spec-visuals/raw/web/<screen-id>/<state>/<platform>.png
 - [ ] metadata strip。
 - [ ] Explicit promotion command。
 - [ ] target statusを`captured`へ更新。
+- [ ] promoted Assetがdecode可能WebP / positive dimensions / >0 byte / <=1MiBであることを検証。
 - [ ] 1MiB / 100MiB budget確認。
 - [ ] asset count / total bytes / largest asset report。
 - [ ] orphanを自動削除せずValidatorでfail。
@@ -1270,7 +1295,8 @@ pnpm run validate:spec-visuals
 - [ ] `workflow_dispatch` input `capture_spec_visuals`を追加。
 - [ ] PR CIではcanonical captureしない。
 - [ ] `capture_spec_visuals=true`時だけRaw PNG + manifest upload。
-- [ ] manifestへ`source_commit_sha` / `automation_apk_sha256`を含める。
+- [ ] manifestへ`capture_case_key` / `source_commit_sha` / `automation_apk_sha256`を含める。
+- [ ] `capture_case_key`とRegistryの`captureCaseKey`一致を検証。
 - [ ] Artifact download後にprofile + source + APK digest validation。
 - [ ] stale Artifact promotionをfail-close。
 - [ ] promotion後Target statusを`captured`へ更新。
@@ -1301,25 +1327,29 @@ pnpm run validate:spec-visuals
 - [ ] Normative root ownerのSCREEN section parentが`## Screen Contracts`であること。
 - [ ] Screenを所有するroot Specに`## Screen Contracts` exactly 1。
 - [ ] ownershipのないSCREEN section禁止。
+- [ ] ownerless / cross-cutting Important State禁止。
 - [ ] State section `Functions` / `Important UI States` / `Visual References`の共通順序検証。
 - [ ] State table fixed columns / order検証。
 - [ ] State slug uniqueness / grammar。
 - [ ] State Type allowlist。
 - [ ] Audience / Role allowlist / order。
-- [ ] Required platforms allowlist / order。
+- [ ] Required platforms allowlist / orderと`not-applicable`専用`-` sentinel検証。
 - [ ] Product / Supporting / Boundaryにbaseline >= 1。
 - [ ] Visual Requirement 3-value validation。
 - [ ] shared direct required ref / no cycles。
 - [ ] not-applicable reason。
 - [ ] required State → platform Targets。
+- [ ] Target / Capture Caseの`captureCaseKey` uniqueness / existence / metadata一致。
 - [ ] Target status `pending/captured/blocked` validation。
+- [ ] `captured` Target → Capture Case exactly 1。
 - [ ] blocked reason。
 - [ ] Target ↔ State role/platform integrity。
-- [ ] State ↔ Target ↔ Asset ↔ Markdown 4-way integrity。
+- [ ] State ↔ Target / Case ↔ Asset ↔ Markdown 4-way integrity。
 - [ ] pending/blocked TargetにCurrent image linkがないこと。
-- [ ] Related Oracle resolution。
+- [ ] Related Oracle resolution。a11y / regression testをOracleとして受理しない。
 - [ ] Route coverage / alias / framework / excluded分類。
 - [ ] image path scope。
+- [ ] Canonical Assetのdecode / WebP format / positive dimensions / byte size検証。
 - [ ] Asset size budget。
 - [ ] `validate:spec` / `build:spec`へ統合。
 
@@ -1363,6 +1393,8 @@ pnpm run verify
 - Android Runtime / Boundary / Purchase / Review Maestro regression。
 - `capture_spec_visuals=true` workflowのmanual validation。
 - Android Artifact source / APK digest mismatch negative test。
+- Captured TargetのCapture Case欠落 / key mismatch negative test。
+- Canonical Assetの非WebP / decode failure / size budget negative test。
 - Generated HTML image link validation。
 
 未実行をPASS扱いしない。
@@ -1389,11 +1421,11 @@ Playwright-MCPが利用可能なら人間視点の補助確認へ使用する。
 1. canonical emulator起動。
 2. Automation APK install。
 3. profile normalize。
-4. Source SHA / APK SHA-256 manifest準備。
+4. Capture Case Key / Source SHA / APK SHA-256 manifest準備。
 5. Test Control / MaestroでState準備。
 6. Screenshot capture。
 7. Artifact upload / download。
-8. profile / source / APK digest validation。
+8. capture_case_key / profile / source / APK digest validation。
 9. WebP promotion。
 10. Markdown / HTML確認。
 
@@ -1468,6 +1500,7 @@ Android capability不足時:
 - Catalog Primary specificationからowner setをderive。
 - ownershipのないSCREEN sectionをValidatorで禁止。
 - Feature / rootの配置先を固定し、同じScreenを別H2へ重複定義しない。
+- ownerless / cross-cutting Important Stateを禁止する。
 
 ### R8. Capture Registry第三SSOT化
 
@@ -1488,21 +1521,25 @@ Android capability不足時:
 対策:
 
 - `not-applicable + reason`。
-- Related Oracle / a11y testへ接続。
+- 必要な非Visual契約はRelated Oracleへ接続する。
+- a11y / regression testはNon-normative validation evidenceとして維持する。
 
 ### R11. 古い画像内容が残る
 
 対策:
 
 - Structural / Visual Content Freshnessを分離。
+- Validatorでdecode不能 / 非WebP / size違反を排除する。
 - UI影響変更時にrecapture。
 - Human Review。
+- 全Asset hash manifestをCurrent性の代替にしない。
 
 ### R12. stale Android Artifact promotion
 
 対策:
 
 - Source SHA + APK SHA-256 validation。
+- capture_case_key一致を検証。
 - profile一致だけではpromotionしない。
 
 ---
@@ -1565,6 +1602,7 @@ docs/history/<timestamp>_screen-catalog-visual-specification.md
 - Docusaurus / VitePress。
 - 新Screenshot DB。
 - 新Route DB。
+- 全Canonical Asset用Hash Manifest / Screenshot provenance DB。
 - 全Role × 全State × 全Viewport直積。
 
 一つのPRで以下のContractを完成させる。
@@ -1587,6 +1625,7 @@ Screen Inventory
 最終報告では最低限以下を数値化する。
 
 ```text
+Catalog Universe Count: N / N
 Product Screen Count: N / N
 Supporting Screen Count: N / N
 Boundary Screen Count: N / N
@@ -1606,15 +1645,19 @@ Canonical Asset Total Bytes: N
 PASS条件:
 
 - Product / Supporting / Boundary inventory完了。
+- Catalog Universe CountをProduct Screen Countと分離して報告済み。
 - Required Target全件`captured`。
 - `pending = 0`。
 - `blocked = 0`。
 - shared / not-applicable metadata妥当。
 - Feature / root双方のSCREEN section placement contract PASS。
+- ownerless / cross-cutting Important Stateなし。
+- Captured TargetごとにCapture Case exactly 1かつkey / metadata一致。
 - 4-way integrity PASS。
 - Structural Freshness PASS。
+- Canonical Asset format / decode / dimensions / size validation PASS。
 - Visual Content Freshness Human Review完了。
-- Android Artifact source / APK digest validation成立。
+- Android Artifact capture_case_key / source / APK digest validation成立。
 - Generated HTML画像閲覧可能。
 - Asset budget PASS。
 - Existing Web / Native regression PASS。
@@ -1631,6 +1674,9 @@ FAIL条件:
 - missing / orphan / stale structural reference。
 - Primary specification ownership重複。
 - Feature owner / Normative root ownerのSCREEN section parent違反。
+- ownerless / cross-cutting Important State。
+- Captured TargetにCapture Case欠落 / 重複 / key不一致。
+- decode不能 / 非WebP / 0 byte / size budget違反のCanonical Asset。
 - cross-cutting specによるScreen State重複。
 - stale Android Artifact promotion。
 - Product Bug状態をcanonical visualとして承認。
