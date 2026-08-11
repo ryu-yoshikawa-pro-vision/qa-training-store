@@ -20,6 +20,7 @@
 - [x] 12. 修正後のPreparation、focused／全Contract、必須品質ゲート、scope監査、Run Artifact Sanitizerを実行する
 - [x] 13. Expo SDK 57のpatch依存をCI要求へ揃え、lockfileと`expo-doctor`を再検証する
 - [ ] 14. 全品質ゲート／テスト、範囲外Failure調査、文書、scope監査、Run Artifact Sanitizerを完了する
+- [x] 15. PR #16 Phase 1 CIのContract／Runtime Preparation分離、Required Chromium接続、検証、Run Artifact追記を完了する
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
 
 ## Blocked
@@ -37,3 +38,5 @@
 - Progress: 93% (13/14)
 - 2026-08-11 08:12 JST: 最終状態で`pnpm run verify`を再実行しexit 0（605.4秒）。Contract 24 files／202 tests、Native Jest 12 suites／47 tests、Web build 2297 modules、Spec build 21 pages、lint 0 errors／65 warnings。Agentic QA contract、Native route、EAS configもPASS。Expo Doctor CI相当17/17 PASS、Android Build／Install／Smoke／Gate 1／Runtime 5/5／Boundary 5/5／Search（LatinIME制御下）もPASSした。追加Review Flowはbaseline selectorで2回、限定修正2回を検証したがPASSせず、Maestro可視判定境界として停止・記録した。現時点ではReview Flowを含む全物理端末FlowのPASSを確認できていないため、task 14は未完了のまま保持する。
 - Progress: 93% (13/14)
+- 2026-08-11 10:08 JST: PR #16 Phase 1 CI修正として、実Preparation testをContract Suiteから`tests/runtime/agentic-qa-preparation.test.ts`へ分離し、専用scriptを追加、既存Required Chromium E2Eのinstall直後へ接続した。BrowserなしContract 24 files／201 testsと最終`pnpm run verify`はPASS。Runtime専用testはChromium起動後の`No routes found`／`__TEST_API__` timeoutがWindows disposable Expo Router resolutionで再現したため、`prepareChallenge`本体へは変更を広げず残差として記録した。
+- Progress: 93% (14/15)

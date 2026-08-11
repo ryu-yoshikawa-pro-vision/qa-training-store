@@ -325,6 +325,10 @@ jobs:
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
 
+      - name: Verify Agentic QA deterministic preparation
+        if: matrix.name == 'required'
+        run: pnpm run test:agentic-qa:preparation
+
       - name: Run Chromium E2E
         run: ${{ matrix.command }}
 

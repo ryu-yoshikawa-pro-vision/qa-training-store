@@ -5,12 +5,13 @@
   "workflow_level": "strict",
   "preset": "safe",
   "runtime": "host",
-  "agents_used": ["Sagan", "Pasteur", "Dirac"],
+  "agents_used": ["Sagan", "Pasteur", "Dirac", "Franklin", "Hume", "Dirac-PR16-CI"],
   "repo": "qa-training-store",
   "branch": "feat/specification-agentic-qa-foundation",
   "base_branch": "main",
   "codex_task_reports": [],
   "changed_files": [
+    ".github/workflows/ci.yml",
     ".agents/skills/exploratory-qa/SKILL.md",
     "AGENTS.md",
     "QA_AGENT.md",
@@ -50,6 +51,7 @@
     "scripts/spec/summarize-impact.ts",
     "scripts/spec/validate-spec.ts",
     "tests/contracts/spec-agentic-qa.test.ts",
+    "tests/runtime/agentic-qa-preparation.test.ts",
     "training/agentic-qa/challenges/CHALLENGE-INTERMEDIATE-001/challenge.json",
     "training/agentic-qa/challenges/CHALLENGE-INTERMEDIATE-001/runbook.md",
     "training/agentic-qa/instructor/answer-key/CHALLENGE-ADVANCED-001.json",
@@ -174,7 +176,21 @@
       "run.json ConvertFrom-Json parse (PASS)",
       "pnpm run format:check and pnpm run lint:markdown (PASS; Markdown 236 files / 0 issues)",
       "git diff --check and git diff --name-only -- src app maestro (PASS; scope none)",
-      "pnpm exec expo install --check (PASS; Dependencies are up to date)"
+      "pnpm exec expo install --check (PASS; Dependencies are up to date)",
+      "pre-change focused Preparation contract test with isolated browser cache (expected browser executable failure reproduced)",
+      "pnpm exec playwright install chromium (PASS)",
+      "browser-free pnpm run test:contracts with isolated browser cache (24 files / 201 tests PASS)",
+      "pnpm run test:agentic-qa:preparation (Chromium launch reached Baseline but __TEST_API__ wait timed out)",
+      "CI-equivalent Preparation rerun and diagnostic (same timeout; pageerror No routes found; disposable build 745 modules; cleanup PASS)",
+      "pnpm run format:check (PASS)",
+      "pnpm run lint:markdown (236 files / 0 issues)",
+      "pnpm run validate:spec (3 challenges)",
+      "pnpm run lint (0 errors / 65 warnings)",
+      "pnpm run typecheck (app and native-tests)",
+      "pnpm run verify (first attempt Native Jest timeout; focused native test 15/15 PASS; final retry exit 0; 234.7 seconds)",
+      "self-review of four-file diff (no findings)",
+      "final browser-free pnpm run test:contracts (24 files / 201 tests PASS)",
+      "temporary runDir and agentic-qa artifact absence check (PASS)"
     ],
     "warnings": [
       "Official model-backed Scored Runは実行基盤がないため未実行。Contract Fixtureは正式スコアへ昇格させていない。",
@@ -197,7 +213,9 @@
       "Android BuildはSDK cmdline-tools latest-2 location warningとGradle／Expo／OpenSSL deprecation warningを伴ったがBUILD SUCCESSFUL。",
       "Android SearchはSharp標準IMEでFailureしたがLatinIME制御下で同FlowをPASSし、端末IMEを復元。",
       "Android Review FlowはMaestro 2.8.0／Windows実機でchild selectorの可視判定が安定せず、限定修正もPASSせずbaselineへ復元。Reviewは未PASSであり、無目的retry／timeout延長／assertion削除は行っていない。",
-      "Official model-backed Scored Run、Remote GitHub Actions／iOS、外部Preview／Production URL smokeは実行基盤／credential／URL不足で未実行。未実行をPASS扱いしない。"
+      "Official model-backed Scored Run、Remote GitHub Actions／iOS、外部Preview／Production URL smokeは実行基盤／credential／URL不足で未実行。未実行をPASS扱いしない。",
+      "Dedicated Agentic QA Preparation runtime testはChromium起動後にNo routes found／__TEST_API__ timeout。CI相当環境でも再現したが、今回のContract分離差分とは因果関係を確認できず、prepare-challenge本体は変更していない。",
+      "verify初回のNative Jest 5秒timeoutはfocused 15/15 PASS後の再実行で解消し、最終verifyはexit 0。"
     ]
   },
   "safety": {
@@ -209,7 +227,7 @@
   "artifact_summary": {
     "codex_task_report_count": 0,
     "hook_event_count": 0,
-    "subagent_run_count": 3,
+    "subagent_run_count": 6,
     "evaluation_present": true
   },
   "hook_observations": {
@@ -241,14 +259,35 @@
         "status": "completed",
         "used_in_final_plan": true,
         "summary": "Benchmark／Snapshot／Spec／CLIのfail-close観点を調査した。"
+      },
+      {
+        "agent": "Franklin",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "Phase 1 CI修正の移動対象、import、相対Path、cleanup Assertionを調査した。"
+      },
+      {
+        "agent": "Hume",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "専用Runtime test scriptと既存Required Chromium matrixへの接続条件を確認した。"
+      },
+      {
+        "agent": "Dirac-PR16-CI",
+        "mode": "read_only",
+        "status": "completed",
+        "used_in_final_plan": true,
+        "summary": "Browser-free Contract／Chromium-backed Runtimeの検証戦略と環境制限を調査した。"
       }
     ],
     "summary": {
-      "total": 3,
-      "read_only": 3,
+      "total": 6,
+      "read_only": 6,
       "writable": 0,
       "scope_violations": 0,
-      "used_in_final_plan": 3
+      "used_in_final_plan": 6
     }
   },
   "evaluation_path": ".codex/runs/20260810-130321-JST/evaluation.json",

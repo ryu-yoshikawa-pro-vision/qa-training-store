@@ -43,7 +43,6 @@ import {
 } from "../../scripts/agentic-qa/isolation";
 import { requiredOptionValue } from "../../scripts/agentic-qa/cli";
 import { createRunnerProfile } from "../../scripts/agentic-qa/runner";
-import { prepareChallenge } from "../../scripts/agentic-qa/prepare-challenge";
 import { runContractFixture } from "../../scripts/agentic-qa/run-contract-fixture";
 import { compareWorkingTreeSnapshots } from "../../scripts/agentic-qa/working-tree-snapshot";
 import {
@@ -1744,28 +1743,4 @@ describe("Specification and Agentic QA contracts", () => {
       ).toThrow("Local deterministic contract fixture supports only CHALLENGE-BASIC-001");
     }
   });
-
-  it("prepares a challenge through deterministic preparation only", async () => {
-    const runId = "20260810-211500-JST";
-    const runDir = fs.mkdtempSync(path.join(os.tmpdir(), "agentic-qa-preparation-contract-"));
-    const artifactDir = path.join(rootDir, ".artifacts", "agentic-qa", runId);
-    try {
-      const result = await prepareChallenge({
-        rootDir,
-        challengeId: "CHALLENGE-BASIC-001",
-        runId,
-        runDir,
-      });
-      expect(result.preparation_order.some((step) => step.includes("handoff"))).toBe(false);
-      expect(result.preparation_order).toContain("runtime_stop_and_disposable_cleanup");
-      expect(Object.keys(result).some((key) => key.endsWith("_handoff"))).toBe(false);
-      expect(result.patch.apply_check).toBe("passed");
-      expect(result.runtime_sanity.scored_initial_state_reset.passed).toBe(true);
-      expect(fs.existsSync(path.join(result.isolated_root.root, "node_modules"))).toBe(false);
-      expect(result.benchmark_revision.manifest.runner_profile).toBeUndefined();
-    } finally {
-      fs.rmSync(runDir, { recursive: true, force: true });
-      fs.rmSync(artifactDir, { recursive: true, force: true });
-    }
-  }, 180_000);
 });

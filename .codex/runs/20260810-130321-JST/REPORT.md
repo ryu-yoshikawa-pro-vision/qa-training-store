@@ -289,3 +289,16 @@
 - Final scope: `git diff --name-only -- src app maestro`は`(none)`。残る変更はExpo package／lockfile、品質ゲート完了契約文書、Run Artifactのみ。Git mutation／PR write actionは未実行。
 - `pnpm exec expo install --check` PASS（Dependencies are up to date）。
 - Progress: 93% (13/14)
+
+## 2026-08-11 10:08 JST PR #16 Phase 1 CI修正（iteration 10）
+
+- `input_findings`: Phase 1 CIの`Vitest (contracts)`が、`tests/contracts/spec-agentic-qa.test.ts`末尾の実ブラウザPreparation testからChromium不足で失敗する。Contract SuiteとRuntime Integration Testの責務が混在しているため、`must_fix`として分類した。
+- `repair_plan`: Preparation testと`prepareChallenge` importをContract Suiteから分離し、`tests/runtime/agentic-qa-preparation.test.ts`へ移動する。専用package scriptを追加し、既存`e2e-chromium`のChromium install直後に`matrix.name == 'required'`だけ実行する。`prepareChallenge`本体、Product、Native、Maestro、Expo依存、lockfile、verifyの依存関係は変更しない。
+- `allowed_files`: `.github/workflows/ci.yml`、`package.json`、`tests/contracts/spec-agentic-qa.test.ts`、`tests/runtime/agentic-qa-preparation.test.ts`、本Run Artifact。
+- `delegation`: Franklin（コード構造）、Hume（実装配置とCI条件）、Dirac（検証戦略）のread-only調査を実施。3件とも編集なし。Franklinの移動対象・相対Path・Assertion確認、HumeのCI matrix条件確認、Diracのbrowser-free／runtime分離方針を採用した。Humeが別E2E移動を提案した部分は添付指示と不一致のため採用しなかった。
+- `changed_files`: `.github/workflows/ci.yml`、`package.json`、`tests/contracts/spec-agentic-qa.test.ts`、`tests/runtime/agentic-qa-preparation.test.ts`。
+- `validation`: 変更前のbrowserなしfocused Contract testは`chromium.launch`実行ファイル不足を再現。変更後、Chromium探索先を存在しない一時Pathへ固定した`pnpm run test:contracts`は24 files／201 tests PASS。`pnpm exec playwright install chromium` PASS。`pnpm run format:check`、`pnpm run lint:markdown`（236 files／0 issues）、`pnpm run validate:spec`（3 challenges）、`pnpm run lint`（0 errors／65 warnings）、`pnpm run typecheck`、`pnpm run test:contracts`、最終`pnpm run verify`（exit 0、Native Jest 12 suites／47 tests、Web build 2297 modules、Spec build 21 pages）をPASSした。初回verifyのNative Jest 5秒timeoutはfocused `native-purchase-screens.test.tsx`（15 tests、`--testTimeout=30000`）PASS後に再実行して解消した。
+- `runtime_residual`: 専用`pnpm run test:agentic-qa:preparation`はChromium起動後、Baselineで`page.waitForFunction(__TEST_API__)`がtimeoutした。CI相当の`EXPO_PUBLIC_APP_ENV`等を付けた再検証も同じ結果で、diagnosticでは`pageerror:No routes found`、disposable build 745 modulesを確認した。これは今回の4ファイルの分離差分ではなく、`prepareChallenge`／disposable Expo Router resolution側の別Failureと判断し、添付指示どおり本体へ変更を広げず停止した。失敗後のtemporary runDir、`.artifacts/agentic-qa/20260810-211500-JST`、diagnostic run/artifactは存在しないことを確認した。
+- `review`: 自己レビューでContractからのbrowser依存除去、専用scriptの非接続、Required matrix条件、Assertion／cleanup保持、Product／Native／Maestro／lockfile非変更を確認し、差分起因の追加Findingなし。
+- `decision`: `stop_success`（Phase 1 CIのContract／Runtime分離修正）。Runtime専用testの別Failureは`remaining_delta`として明示し、`prepareChallenge`の追加修正は別Repairへ分離する。
+- Progress: 93% (14/15)

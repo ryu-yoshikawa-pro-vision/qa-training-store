@@ -21,6 +21,7 @@
     "test:component:native": "jest --config jest.config.cjs",
     "test:component": "pnpm run test:component:web && pnpm run test:component:native",
     "test:contracts": "vitest run tests/contracts --no-file-parallelism --maxWorkers=1",
+    "test:agentic-qa:preparation": "vitest run tests/runtime/agentic-qa-preparation.test.ts --no-file-parallelism --maxWorkers=1",
     "test": "pnpm run test:unit && pnpm run test:integration && pnpm run test:repository && pnpm run test:component && pnpm run test:contracts",
     "test:e2e": "pnpm run test:e2e:chromium",
     "test:e2e:chromium": "playwright test e2e/web/phase1-required.spec.ts e2e/web/ui-ux-improvements.spec.ts --project=chromium",
