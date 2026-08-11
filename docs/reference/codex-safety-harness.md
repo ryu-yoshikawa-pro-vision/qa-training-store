@@ -21,7 +21,8 @@
   - project-scoped custom agents の定義
   - `code_researcher` / `implementation_researcher` / `test_investigator` は read-only 調査 agent
   - `implementation_worker` は親 agent が承認した小さく限定された実装だけを扱う workspace-write agent
-  - writable subagent は原則 1 タスクにつき 1 つだけ使い、削除、rename、git mutation、スコープ外編集をしない
+  - `quality_gate_runner` はParent定義のLocal Required Validation Setだけを実行し、Source編集や自動修正をしない workspace-write agent
+  - Write Parallel Capability GateがPASSした場合だけwriteをparallel化し、FAIL / UNKNOWNではserial fallbackを使う。全writable agentは削除、rename、git mutation、スコープ外編集をしない
 - `.codex/rules/*.rules`
   - `execpolicy` ルール
   - 読み取り系の allow、広い prompt、破壊系の forbidden を定義
@@ -33,7 +34,9 @@
   - workspace-write sandbox は `network_access = false`, `writable_roots = []`
   - login shell は `allow_login_shell = false`
   - project profile: `repo_safe`, `repo_auto_net`, `repo_readonly`
-  - PreToolUse hook: `.codex/hooks/pre_tool_use_policy.ps1`
+  - `features.hooks = true` / `features.multi_agent = true`
+  - `agents.enabled = true`, Luna / max default、6 concurrent threads
+  - PreToolUse / SubagentStart / SubagentStop hook: safety policyとruntime identity observation
 - `.codex/requirements.toml`
   - 管理配布/機能有効化時に使う補助的な最小要件定義
 - `scripts/verify`

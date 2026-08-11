@@ -36,11 +36,14 @@ Both are validated by schema / validator.
 - task type、workflow level、preset、runtime、agents used、changed files、validation summary、safety summary、evaluation path などを保持します。
 - `artifact_summary` は report / hook / subagent / evaluation の存在数を summary します。
 - `hook_observations` は run に紐づく hook JSONL の path と event count を summary します。
+- `hook_observations.runtime_agent_compliance` は `SubagentStart` のallowlist / identity / Luna model検査のsummaryです。start eventが取れない場合は`unknown`であり、PASSへ補完しません。
 - `subagents.records` は `subagent-run.json` 全文ではなく、path と scope summary だけを保持します。
+- Parent-defined Local Required Validation Set、quality runner結果、before/after Source Integrityは別のvalidation evidenceとして保持し、runnerの未実行をPASS扱いしません。
 - `codex-task` report JSON の置き換えではありません。
 - `validation.commands` は single command 前提ではなく、`output schema validation`、`verify`、`evaluation validation`、`clean git check` など複数の観測結果を保持できます。
 - `run.json.evaluation_path` は `evaluation.json` への summary link です。
 - `run.json.primary_failure_category` は valid な `evaluation.json.primary_failure_category` からだけコピーされる summary field です。
+- `run.json.completion_state` はParentだけが更新するcompletion decisionです。`LOCAL_IMPLEMENTATION_COMPLETE` はLocal Required Validation、runtime acceptance、Source Integrity、Real-run Acceptanceが完了した場合だけtrue、`MERGE_READY`はLocal完了かつExternal ChecksがPASSまたは明示N/Aの場合だけtrueです。初期値はfalse / pendingで、collectorは未実行をPASSへ補完しません。
 - `scripts/collect-run-artifacts.sh` / `scripts/collect-run-artifacts.ps1` は on-disk artifact を再走査し、`run.json` summary を再集約できます。
 
 ### `evaluation.json`

@@ -188,21 +188,31 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 ## 10.1 Subagent 運用
 
 - Standard / Strict の実装タスクでは、実装前に原則として project-scoped custom agents を起動する。
-- project-scoped custom agents の既定 model は `gpt-5.4-mini` とする。
+- Repository-governed taskのcustom agentは、明示設定された `gpt-5.6-luna` / `max` を使う。silent model fallbackやreasoning-effort downgradeを行わない。
+- 通常利用を許可するroleは `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5つだけとする。built-in / generic roleはspawnしない。
 - コード調査、依存関係、影響範囲確認には `code_researcher` を使う。
 - 実装方針、変更箇所、検証コマンドの整理には `implementation_researcher` を使う。
 - 既存テスト、CI、失敗ログ、追加検証観点の確認には `test_investigator` を使う。
 - 親 agent が計画、対象ファイル、変更範囲、禁止事項を確定した後、小さく限定された実装には `implementation_worker` を使ってよい。
 - `implementation_worker` は workspace-write の実装 subagent だが、親 agent が明示した対象ファイルだけを最小差分で編集する。
-- writable subagent は原則 1 タスクにつき 1 つだけ使う。複数の writable subagent を並列に使うのは、対象ファイルが完全に分離され、親 agent が衝突リスクを明示的に管理できる場合だけにする。
+- `quality_gate_runner` は Parent が確定した Local Required Validation Setだけを実行するworkspace-write agentであり、Sourceを編集せず、失敗を自動修正せず、Failure Taxonomyの最終判断をしない。
+- Parentは、目的、Work Package、read/write set、Local Required Validation Set、External Completion Checks、Failure interpretation、統合、最終完了判断を担う。subagentへ最終責任を委譲しない。
+- read-only investigationは独立したWork Packageへ分解してparallel化する。各researcherは編集・作成・削除を行わず、runtime overrideでsandboxが広がってもbehavioral read-onlyを維持し、`changed_files = []` を返す。
+- Write Parallel Capability Gateを実施し、Work Packageとwrite setの完全分離、workspace isolation、cwd分離、衝突しない実証がすべてPASSした場合だけwriteをparallel化する。FAILまたはUNKNOWNならworkerをserial実行する。
 - `implementation_worker` はファイル削除、rename、移動、`git add` / `git commit` / `git push` / `git rm` / `git reset` / `git clean` などの git mutation、delete / rename を含む patch operation を行わない。
 - `implementation_worker` がスコープ、設計判断、対象ファイル、検証方法に迷う場合は実装せず、親 agent に確認事項を返す。
 - Lightweight task では、単一ファイルの軽微修正など明らかに不要な場合のみ subagent 起動を省略してよい。
 - 軽量な調査・探索・テスト確認は `code_researcher` / `implementation_researcher` / `test_investigator` など read-only 調査 subagent に限って委譲する。
 - read-only 調査 subagent は編集・作成・削除を行わず、調査結果だけを返す。
 - wrapper や runtime override の影響で read-only sandbox が保証できない場合でも、read-only 調査 subagent は編集・作成・削除を行わない。
+- 各custom agentのchild configで `[agents] enabled = false` と `[features] multi_agent = false` を設定し、behavioral instructionでもadditional subagent spawnを禁止する。childからgrandchildへのrecursive delegationはこの契約で防止し、legacy depth settingへ依存しない。negative real-runを必須とする。
+- `SubagentStart` observationで `agent_type`、`agent_id`、`model` を記録し、allowlist外またはLuna以外を1件でも検出したRunはfail-closeする。reasoning effortは直接観測できる場合だけruntime evidenceとし、観測不能ならconfigured evidenceと明記する。
+- Runtime Agent Compliance Gateは、観測できないidentity/modelをPASSへ補完せず、違反または必要evidence欠落をfail-closeする。
+- `quality_gate_runner`のRequired Validation SetはParentが固定する。runnerは全件を実行し、最初の異常と派生エラー、causal relation候補、before/afterのnet Source Integrity、write attemptを報告する。未実行をPASS扱いしない。
+- writable subagent（implementation_worker / quality_gate_runner）は、Gate判定とParentのscope確定なしにparallel実行しない。
+- Failure CategoryのSSOTは `spec/failure-taxonomy.json` と `docs/reference/failure-taxonomy.md` だけとし、runnerはcausal relation候補、最終分類はParentまたはreviewerが行う。
+- `LOCAL_IMPLEMENTATION_COMPLETE` はLocal Required Validation Set、runtime acceptance、Source Integrity、適用可能なReal-run Acceptanceが全て完了した場合だけtrueとする。`MERGE_READY` はExternal Completion ChecksがPASSまたは明示的にN/Aの場合だけtrueとし、pending / 未実行をPASS扱いしない。
 - subagent を使った場合、または省略した場合は、委譲内容、返ってきた要約、親 agent が採用した判断、省略理由を `.codex/runs/<run_id>/REPORT.md` に記録する。
-- 並列化する場合も `agents.max_depth = 1` を前提とし、再帰的な subagent 起動は行わない。
 - 利用可能な project-scoped custom agents は `.codex/agents/` 配下の TOML 定義を確認する。
 
 ## 11. 改善ガバナンス

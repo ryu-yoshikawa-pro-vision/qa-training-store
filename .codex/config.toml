@@ -15,11 +15,15 @@ writable_roots = []
 inherit = "core"
 
 [features]
-codex_hooks = true
+hooks = true
+multi_agent = true
 
 [agents]
-max_threads = 4
-max_depth = 1
+enabled = true
+default_subagent_model = "gpt-5.6-luna"
+default_subagent_reasoning_effort = "max"
+max_concurrent_threads_per_session = 6
+
 
 [[hooks.PreToolUse]]
 matcher = "Bash|Shell|PowerShell|apply_patch|Edit|Write"
@@ -29,6 +33,31 @@ type = "command"
 command = "pwsh -NoProfile -ExecutionPolicy Bypass -File .codex/hooks/pre_tool_use_policy.ps1"
 timeout = 30
 statusMessage = "Checking destructive command policy"
+
+[[hooks.PreToolUse]]
+matcher = "Bash|Shell|PowerShell|apply_patch|Edit|Write"
+
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "pwsh -NoProfile -ExecutionPolicy Bypass -File .codex/hooks/observe.ps1"
+timeout = 30
+statusMessage = "Recording hook observation"
+
+[[hooks.SubagentStart]]
+
+[[hooks.SubagentStart.hooks]]
+type = "command"
+command = "pwsh -NoProfile -ExecutionPolicy Bypass -File .codex/hooks/observe.ps1"
+timeout = 30
+statusMessage = "Recording subagent identity"
+
+[[hooks.SubagentStop]]
+
+[[hooks.SubagentStop.hooks]]
+type = "command"
+command = "pwsh -NoProfile -ExecutionPolicy Bypass -File .codex/hooks/observe.ps1"
+timeout = 30
+statusMessage = "Recording subagent completion"
 
 [profiles.repo_safe]
 sandbox_mode = "workspace-write"

@@ -49,9 +49,9 @@ prefix_rule(
 )
 
 prefix_rule(
-  pattern = [["pwsh", "pwsh.exe", "powershell", "powershell.exe"], ["-Command", "-c"]],
+  pattern = [["powershell", "powershell.exe"], ["-Command", "-c"]],
   decision = "prompt",
-  match = ["pwsh -Command Get-Date", "powershell -Command Get-Date"],
+  match = ["powershell -Command Get-Date", "powershell.exe -Command Get-Date"],
 )
 
 prefix_rule(

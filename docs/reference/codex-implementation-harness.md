@@ -143,7 +143,9 @@
 - 実装前の調査は `code_researcher` / `implementation_researcher` / `test_investigator` に委譲できる。
 - `implementation_worker` は、親 agent が計画、対象ファイル、変更範囲、禁止事項を確定した後にだけ使う。
 - `implementation_worker` は小さく限定された実装を行う workspace-write subagent であり、親 agent が指定した対象ファイルだけを最小差分で編集する。
-- writable subagent は原則 1 タスクにつき 1 つだけ使う。
+- Write Parallel Capability GateがPASSした場合だけwrite setが完全分離したworkerをparallel化し、FAIL / UNKNOWNではserial fallbackを使う。
+- `quality_gate_runner` はParent定義のLocal Required Validation Setを全件実行するvalidation-only roleで、Source edit、failure自動修正、Required Validation Set削除、final Failure Taxonomy判断を行わない。shell toolのper-command timeoutが指定できる場合はフルセット用に600秒以上を使い、コマンド文字列へtimeout wrapperを追加しない。
+- `SubagentStart` runtime evidenceで5 roleのallowlist、agent identity、Luna modelを確認し、違反はfail-closeする。
 - `implementation_worker` の実装後は、親 agent が diff、仕様判断、未検証点、検証結果を確認する。
 - `implementation_worker` は削除、rename、移動、git mutation、delete / rename を含む patch operation、スコープ外リファクタリングを行わない。
 

@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "subagent_run_id": "wave7-019fef6d-quality-gate-runner-policy-blocked",
+  "parent_run_id": "20260811-124437-JST",
+  "agent": {
+    "name": "quality_gate_runner",
+    "model": "gpt-5.6-luna"
+  },
+  "role": "quality_gate_runner",
+  "mode": "writable",
+  "purpose": "Parent-defined Local Required Validation Setをexact順序で実行するbounded quality runner runtime acceptance。",
+  "sandbox": {
+    "type": "workspace-write",
+    "network": false
+  },
+  "allowed_files": [
+    ".artifacts/luna-orchestration/wave7-quality-runner-repair-1504/"
+  ],
+  "input_files": [
+    ".codex/agents/quality_gate_runner.toml",
+    ".codex/rules/99-local-validation-wrapper-allow.rules"
+  ],
+  "changed_files": [],
+  "scope": {
+    "declared": true,
+    "compliant": true,
+    "violations": []
+  },
+  "started_at": null,
+  "ended_at": null,
+  "status": "blocked",
+  "summary": "exact role spawnは成功したが、1件目のvalidation commandが実プロセス起動前の外側Windows execpolicyで拒否され、残り4件は未実行。write_attempt=false、QUALITY_GATE_RUNNER_INCOMPLETE。",
+  "parent_decision": {
+    "action": "deferred",
+    "reason": "リポジトリ内exact ruleをruntimeが読み込まないため、Required Validation Setのrunner PASSへ昇格しない。追加の危険なpolicy bypassは行わず、環境側blockerとして記録する。"
+  },
+  "used_in_final_plan": false,
+  "evidence": [
+    {
+      "kind": "path",
+      "value": ".artifacts/luna-orchestration/wave7-quality-runner-repair-1504/codex-exec.jsonl"
+    },
+    {
+      "kind": "path",
+      "value": ".artifacts/luna-orchestration/wave7-quality-runner-repair-1504/codex-exec.stderr.log"
+    },
+    {
+      "kind": "validation",
+      "value": "1: BLOCKED before execution; 2-5: NOT_RUN; first abnormal event is command 1 policy rejection; write_attempt=false"
+    },
+    {
+      "kind": "validation",
+      "value": "Source Integrity comparison: passed=true; additional_source_diff_count=0; source_head_changed=false"
+    },
+    {
+      "kind": "finding",
+      "value": "codex execpolicy check accepts the observed exact token variants, but the child runtime still rejects the wrapper before process launch; local completion remains fail-closed"
+    }
+  ],
+  "metadata": {
+    "runtime_agent_id": "019fef6d-6d87-7661-b41f-b82c720da1bd",
+    "model_evidence": "custom-agent role configuration; SubagentStart hook was not observed",
+    "reasoning_effort_evidence": "configured max; not directly observed",
+    "write_attempt_evidence": "runner reported write_attempt=false; before/after snapshot found no additional source diff"
+  }
+}

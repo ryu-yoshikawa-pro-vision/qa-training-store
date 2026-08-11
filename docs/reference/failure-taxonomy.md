@@ -11,6 +11,7 @@
 - `failure_categories` は `primary_failure_category` を必ず含みます。
 - `findings[].category` は taxonomy と整合する必要があります。
 - taxonomy 外の category を agent が作ってはいけません。
+- 機械catalogは `spec/failure-taxonomy.json`、人間向け説明はこの文書です。第二のFailure Taxonomyを作りません。
 - evidence のない分類は、後続 validator で warning または failure にするべきです。
 
 ## Category 一覧
@@ -38,6 +39,8 @@
   - 例: `instruction_gap`, `missing_context`, `bad_subagent_delegation`, `review_gap`, `repair_loop_stalled`, `artifact_contract_gap`
 
 最終的な `primary_failure_category` は、runner が決めるのではなく、agent / reviewer が taxonomy から選びます。
+
+quality runnerはfailure categoryではなく、first abnormal event、downstream relation、Source Integrity、validation未実行などのcausal relation候補だけを返します。Parentまたはreviewerが既存10 categoryから最終分類を行います。
 
 ## `primary_failure_category` と `failure_categories`
 

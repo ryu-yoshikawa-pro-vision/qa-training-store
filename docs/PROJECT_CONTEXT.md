@@ -358,3 +358,60 @@
 - 実装・修正作業は、完了報告の前にリポジトリで定義された全品質ゲートとテストを実行する。通常のローカル入口は`pnpm run verify`とし、CIの変更パス条件で追加されるゲート（例：Native変更時の`pnpm dlx expo-doctor@1.17.6`、Native／E2E／Artifact検証）も該当する場合は省略しない。未実行のゲートをPASSとして扱わず、実行できない場合は理由と次の実行者・アクションを報告する。
 - 品質ゲートのエラーは、当該作業の直接範囲外に見えても自動的に保留しない。Baseline、現在の差分、共有依存、CI／テスト契約、実行環境を調査し、現在の変更が原因である、または検証に不可欠である場合は現在の作業で最小修正する。真に無関係・環境依存・unsafe・要件判断が必要な場合だけ、根拠、未実行検証、残差、次の対応をRun Artifactと完了報告へ記録する。
 - 完了報告には、実行した全ゲート／テストのコマンドと結果、警告、未実行項目、主要変更ファイルを含める。ローカル環境固有の警告はリポジトリ起因のFailureと混同せず、CI相当条件での再確認結果とともに記録する。
+
+## GPT-5.6 Luna Subagent Orchestration（2026-08-11）
+
+- Repository-governed taskのcustom roleは`code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner`の5つに固定し、全roleを`gpt-5.6-luna`／`max`へ明示固定する。researcherはread-only、workerとquality runnerはworkspace-writeである。
+- Project configは`features.hooks = true`／`features.multi_agent = true`、`agents.enabled = true`、Luna／max default、`max_concurrent_threads_per_session = 6`へ移行した。deprecated hooks key、legacy thread key、unsupported depth keyへ安全性を依存しない。
+- 各custom agentはchild configでmulti-agentを無効化し、developer instructionでもrecursive delegationを禁止する。`SubagentStart` observationはstdinから`agent_type`／`agent_id`／`model`を抽出し、allowlist外またはLuna以外をruntime complianceでfail-closeする。reasoning effortは直接観測できる場合だけruntime evidenceとする。
+- ParentはWork Package、read/write set、Write Parallel Capability Gate、Local Required Validation Set、External Completion Checks、Failure interpretation、統合、`LOCAL_IMPLEMENTATION_COMPLETE`／`MERGE_READY`の最終判断を保持する。write isolationがPASSでなければserial fallbackとする。
+- `quality_gate_runner`はParent定義のRequired Validation Setだけを実行し、Source編集・自動修正・Required Set削除・Failure Taxonomy最終分類を行わない。既存`working-tree-snapshot.ts`の除外・net diff semanticsをSource Integrity evidenceへ再利用する。
+- Failure CategoryのSSOTは`spec/failure-taxonomy.json`と`docs/reference/failure-taxonomy.md`であり、runnerはcausal relation候補だけを返す。
+- Codex CLIはユーザー更新後の`0.147.0`でLuna/max safe no-opを受理した。Project-local `profiles`は現行CLIではunsupported warningとなるため、既存wrapperのprofile運用と分離して扱い、今回のLuna acceptanceをそのwarningでPASSへ補完しない。
+
+## GPT-5.6 Luna Runtime Acceptance follow-up（2026-08-11）
+
+- `codex-cli 0.147.0`では`gpt-5.6-luna`／`max`のsafe no-opとproject-scoped custom-agent spawnを受理した。
+- bounded internal read-only parallelとchild recursion negativeは実行した。read-only agentは`changed_files=[]`、childは`agents.enabled=false`／`features.multi_agent=false`を確認し、grandchildを起動していない。
+- CLI実spawnではproject hookの`SubagentStart`観測が取得できず、Runtime Agent Complianceはunknownとする。fixtureのhook evidenceをruntime PASSへ昇格しない。hook trustを迂回する危険なオプションは使用しない。
+- `quality_gate_runner` exact roleはCLIでspawnされたがRequired Validation Set完了前にtimeoutし、Parent validation結果をrunner PASSへ置換しない。`LOCAL_IMPLEMENTATION_COMPLETE=false`、`MERGE_READY=false`を維持する。
+
+## GPT-5.6 Luna standard-wrapper runtime revalidation（2026-08-11）
+
+- CLI `0.147.0`の標準 `scripts/codex-task.ps1` 経路で、exact `quality_gate_runner`を1件だけspawnし、Parent-defined 5-command Required Validation Setを指定順・各1回で完了させた。wrapper reportは整数`codex_exit_code`を持つ正常JSONとして生成された。
+- quality runner結果は#1 validator PASS、#2 Bash verify timeout、#3 PowerShell verify PASS、#4 `pnpm run verify`の既存25ファイルformat baseline failure、#5 contract test PASSであり、`QUALITY_GATE_RUNNER_INCOMPLETE`。未実行をPASSへ補完しない。
+- quality runner前後の既存working-tree snapshot comparisonは`passed=true`、`additional_source_diff_count=0`、`source_head_changed=false`。Source IntegrityはPASS、child `changed_files=[]`、write attemptは未観測である。
+- `SubagentStart` hook eventは標準wrapper経路でも取得できなかったため、Runtime Agent Complianceはunknown、reasoning effortはconfigured `max` evidenceに限定する。`LOCAL_IMPLEMENTATION_COMPLETE=false`、`MERGE_READY=false`を維持する。
+- GitHub読み取り確認ではPR #19のmerge commitが現HEADと一致したが、現working treeの実装差分は未pushで、merge commitのcombined status／workflow runsは空だった。External Completion Checksはpendingとして扱う。
+
+## GPT-5.6 Luna quality runner timeout-extended revalidation（2026-08-11）
+
+- 標準wrapperのchild tool上限が`bash scripts/verify`の親側実測時間より短く、#2がtimeoutしていたため、quality runnerへコマンド文字列を変更しない300秒以上のper-command timeout指示を追加した。外側timeout wrapper、dangerous bypass、Required Set削減は行っていない。
+- timeout拡張後のexact `quality_gate_runner`は5件を指定順・各1回で完了し、#1 validator、#2 Bash verify、#3 PowerShell verify、#5 contract test（24 files / 201 tests）はPASS、#4 `pnpm run verify`だけが既存25ファイルのformat baselineでFAILした。runner markerは`QUALITY_GATE_RUNNER_INCOMPLETE`である。
+- 今回追加した`spec/failure-taxonomy.json`は個別Prettier check PASSであり、full verifyの残り25件とは因果を分離した。`LOCAL_IMPLEMENTATION_COMPLETE=false`、`MERGE_READY=false`は維持する。
+
+## GPT-5.6 Luna quality runner full-verify timeout adjustment（2026-08-11）
+
+- 承認済みの既存25ファイルを機械的にPrettier整形し、`pnpm run verify`のformat／lint／spec／typecheck／security／全Test／Web build／Spec buildをexit 0で完了した。
+- 実測full verify所要時間が約303秒だったため、quality runnerのper-command timeout契約を300秒以上から600秒以上へ拡張した。コマンド文字列、Required Validation Set、外側timeout wrapperは禁止契約は変更していない。
+
+## GPT-5.6 Luna trusted hook runtime acceptance（2026-08-11）
+
+- project-local hookを対話CLIの`/hooks`でtrustした後、標準safe wrapperの実spawnで`SubagentStart`／`SubagentStop`各1件を取得できた。両イベントは同一Agent IDのallowlisted `code_researcher`で、実測modelは`gpt-5.6-luna`だった。
+- `scripts/collect-run-artifacts.ps1`でRun manifestへ集約し、`runtime_agent_compliance.status=pass`、`violations=[]`となった。hook trust bypassは使用していない。
+- Runtime identity/model blockerは解消したが、quality runner #4の既存25ファイルformat baseline failure、full `pnpm run verify`未完了、未push／External Completion Checks pendingは継続するため、`LOCAL_IMPLEMENTATION_COMPLETE=false`、`MERGE_READY=false`を維持する。
+
+## GPT-5.6 Luna quality runner post-format repair（2026-08-11）
+
+- ユーザーの明示承認により、既存25ファイルの機械的Prettier修正を今回の差分へ含めた。25件の個別checkと全体format checkはPASSし、親の`pnpm run verify`は全工程exit 0となった。
+- quality runnerのRequired Validation Setは変更せず、600秒以上のper-command timeoutで2回実行した。両回とも#1/#2/#3/#5はPASSしたが、#4 `pnpm run verify`内で`native-production-module-resolution.test.ts`の5000ms cold-load timeoutが発生し、runnerは`QUALITY_GATE_RUNNER_INCOMPLETE`だった。
+- focused 4/4とfull contract 24 files / 201 testsはPASSしたが同じquality runner timeoutが再現したため、追加再試行とtest code変更は行わない。主分類は`flaky_or_env_issue`である。
+- quality runner前後snapshotは`passed=true`、追加Source差分0、HEAD不変。quality runner PASS未達のため`LOCAL_IMPLEMENTATION_COMPLETE=false`、未push／External Completion Checks pendingのため`MERGE_READY=false`を維持する。
+
+## GPT-5.6 Luna quality runner final acceptance（2026-08-11）
+
+- post-formatのnative module cold-load timeoutに対し、`vitest.config.ts`へ共有test infrastructureの`testTimeout: 15_000`だけを追加した。Product Code、Test behavior、package scripts、Required Validation Setは変更していない。
+- focused contractは24 files / 201 tests PASS。trusted/generated output（`dist`、`output/spec-site`、`.artifacts`、cache、build output）は既存Source Integrityのnet mutation除外 semanticsに従い、runner入力でも禁止Source writeと区別する。
+- 最終exact `quality_gate_runner`は5コマンドを指定順・各1回で実行し、全exit 0、`write_attempt=false`、`QUALITY_GATE_RUNNER_PASS`。前後snapshot比較は追加Source差分0、HEAD不変でPASSした。
+- hook trust後のcollector集約は`SubagentStart`／`SubagentStop` 3組、allowlist role、`gpt-5.6-luna`、violationsなしでRuntime Agent Compliance PASS。`LOCAL_IMPLEMENTATION_COMPLETE=true`へ更新した。
+- PR #19のcombined status／workflow runsが空で、current working-tree implementation diffは未pushのため、`MERGE_READY=false`とExternal Checks pendingは維持する。outer 900秒wrapper境界の終了コード124は、内部codex report exit 0のwrapper warningとして扱う。

@@ -96,6 +96,18 @@ has_change_scope_catalog() {
   return 0
 }
 
+check_luna_orchestration_contract() {
+  local python_bin=""
+  if command -v python >/dev/null 2>&1; then
+    python_bin="python"
+  elif command -v python.exe >/dev/null 2>&1; then
+    python_bin="python.exe"
+  else
+    return 1
+  fi
+  "$python_bin" scripts/validate-luna-orchestration.py
+}
+
 check_template_contract() {
   [[ -f AGENTS.md ]] || return 1
   [[ -f PLANS.md ]] || return 1
@@ -107,6 +119,7 @@ check_template_contract() {
   [[ -f .codex/agents/code_researcher.toml ]] || return 1
   [[ -f .codex/agents/implementation_researcher.toml ]] || return 1
   [[ -f .codex/agents/implementation_worker.toml ]] || return 1
+  [[ -f .codex/agents/quality_gate_runner.toml ]] || return 1
   [[ -f .codex/agents/test_investigator.toml ]] || return 1
   [[ -f .codex/hooks/pre_tool_use_policy.py ]] || return 1
   [[ -f .codex/hooks/pre_tool_use_policy.ps1 ]] || return 1
@@ -133,6 +146,8 @@ check_template_contract() {
   [[ -f scripts/init-project.ps1 ]] || return 1
   [[ -f scripts/init-project.sh ]] || return 1
   [[ -f scripts/validate-output-schema.py ]] || return 1
+  [[ -f scripts/validate-luna-orchestration.py ]] || return 1
+  [[ -f spec/failure-taxonomy.json ]] || return 1
   [[ -f .agents/skills/feature-plan/references/planning-workflow.md ]] || return 1
   [[ -f .agents/skills/code-review/references/review-workflow.md ]] || return 1
   [[ -f .agents/skills/repair-loop/SKILL.md ]] || return 1
@@ -173,6 +188,14 @@ check_template_contract() {
   contains "command-based deletion" AGENTS.md || return 1
   contains "implementation_worker" AGENTS.md || return 1
   contains "writable subagent" AGENTS.md || return 1
+  contains "Write Parallel Capability Gate" AGENTS.md || return 1
+  contains "quality_gate_runner" AGENTS.md || return 1
+  contains "Runtime Agent Compliance" AGENTS.md || return 1
+  contains "LOCAL_IMPLEMENTATION_COMPLETE" AGENTS.md || return 1
+  contains "MERGE_READY" AGENTS.md || return 1
+  contains "completion_state" .codex/templates/RUN_MANIFEST.json || return 1
+  contains "LOCAL_IMPLEMENTATION_COMPLETE" .codex/templates/RUN_MANIFEST.json || return 1
+  contains "MERGE_READY" .codex/templates/RUN_MANIFEST.json || return 1
   contains "親 agent が計画、対象ファイル、変更範囲、禁止事項を確定した後" AGENTS.md || return 1
   contains "親 agent が明示した対象ファイルだけを最小差分で編集する" AGENTS.md || return 1
   contains "ファイル削除、rename、移動" AGENTS.md || return 1
@@ -251,10 +274,19 @@ check_template_contract() {
   contains "network_access = false" .codex/config.toml || return 1
   contains "[profiles.repo_auto_net]" .codex/config.toml || return 1
   contains "network_access = true" .codex/config.toml || return 1
-  contains "codex_hooks = true" .codex/config.toml || return 1
+  contains "hooks = true" .codex/config.toml || return 1
+  contains "multi_agent = true" .codex/config.toml || return 1
+  contains "enabled = true" .codex/config.toml || return 1
+  contains "default_subagent_model = \"gpt-5.6-luna\"" .codex/config.toml || return 1
+  contains "default_subagent_reasoning_effort = \"max\"" .codex/config.toml || return 1
+  contains "max_concurrent_threads_per_session = 6" .codex/config.toml || return 1
+  ! contains "codex_hooks" .codex/config.toml || return 1
+  ! contains "max_threads" .codex/config.toml || return 1
+  ! contains "max_depth" .codex/config.toml || return 1
   contains "pre_tool_use_policy.ps1" .codex/config.toml || return 1
   contains "name = \"implementation_worker\"" .codex/agents/implementation_worker.toml || return 1
-  contains "model = \"gpt-5.4-mini\"" .codex/agents/implementation_worker.toml || return 1
+  contains "model = \"gpt-5.6-luna\"" .codex/agents/implementation_worker.toml || return 1
+  contains "model_reasoning_effort = \"max\"" .codex/agents/implementation_worker.toml || return 1
   contains "sandbox_mode = \"workspace-write\"" .codex/agents/implementation_worker.toml || return 1
   contains "親 agent が明示した計画" .codex/agents/implementation_worker.toml || return 1
   contains "親 agent が指定していないファイルを編集しない" .codex/agents/implementation_worker.toml || return 1
@@ -262,6 +294,8 @@ check_template_contract() {
   contains "スコープ遵守確認" .codex/agents/implementation_worker.toml || return 1
   contains "指定外ファイルを変更していないことの確認" .codex/agents/implementation_worker.toml || return 1
   contains "削除 / rename / git mutation を行っていないことの確認" .codex/agents/implementation_worker.toml || return 1
+  contains "Local Required Validation Set" .codex/agents/quality_gate_runner.toml || return 1
+  contains "additional subagent spawn禁止" .codex/agents/quality_gate_runner.toml || return 1
   contains "run.json" docs/reference/run-artifacts.md || return 1
   contains "evaluation.json" docs/reference/run-artifacts.md || return 1
   contains "codex-task" docs/reference/run-artifacts.md || return 1
@@ -340,6 +374,8 @@ check_template_contract() {
   contains "CODEX_OBSERVATION_LOG" docs/reference/hook-observation.md || return 1
   contains "blocking" docs/reference/hook-observation.md || return 1
   contains "SubagentStart" docs/reference/hook-observation.md || return 1
+  contains "agent_type" docs/reference/hook-observation.md || return 1
+  contains "runtime_agent_compliance" docs/reference/hook-observation.md || return 1
   contains "Observation hook must not weaken safety hooks." docs/reference/hook-observation.md || return 1
   contains "Observation hook failure must not stop Codex execution." docs/reference/hook-observation.md || return 1
   contains "Observation events are not the source of truth for evaluation decisions." docs/reference/hook-observation.md || return 1
@@ -351,6 +387,10 @@ check_template_contract() {
   contains "used_in_final_plan" docs/reference/subagent-observation.md || return 1
   contains "Subagent logs are evidence, not final evaluation judgement." docs/reference/subagent-observation.md || return 1
   contains "run.json.subagents.records" docs/reference/subagent-observation.md || return 1
+  contains "Local Required Validation Set" docs/reference/subagent-observation.md || return 1
+  contains "per-command timeout" docs/reference/subagent-observation.md || return 1
+  contains "Source Integrity" docs/reference/subagent-observation.md || return 1
+  contains "failure taxonomy" docs/reference/subagent-observation.md || return 1
   contains "evidence_refs" docs/reference/evaluation.md || return 1
   contains "evidence_refs" .codex/templates/EVALUATION.md || return 1
   contains "Review -> Repair -> Validate" docs/reference/repair-loop.md || return 1
@@ -452,6 +492,7 @@ check_powershell_wrapper_preflight() {
 }
 
 run_check "template contract files" check_template_contract
+run_check "GPT-5.6 Luna orchestration contract" check_luna_orchestration_contract
 
 if (( strict_harness )); then
   run_check "strict harness source-repo contract" check_strict_harness_contract

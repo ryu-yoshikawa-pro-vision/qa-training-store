@@ -1,0 +1,158 @@
+#!/usr/bin/env python3
+"""Validate the repository-governed GPT-5.6 Luna subagent contract."""
+
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+try:
+    import tomllib
+except ModuleNotFoundError as exc:  # pragma: no cover - Python version is a preflight concern.
+    raise SystemExit("Python 3.11+ is required for TOML contract validation") from exc
+
+
+ROOT = Path(__file__).resolve().parents[1]
+EXPECTED_AGENTS = {
+    "code_researcher": "read-only",
+    "implementation_researcher": "read-only",
+    "test_investigator": "read-only",
+    "implementation_worker": "workspace-write",
+    "quality_gate_runner": "workspace-write",
+}
+FAILURE_CATEGORIES = {
+    "instruction_gap",
+    "scope_creep",
+    "missing_context",
+    "missing_validation",
+    "unsafe_action_blocked",
+    "bad_subagent_delegation",
+    "flaky_or_env_issue",
+    "review_gap",
+    "repair_loop_stalled",
+    "artifact_contract_gap",
+}
+
+
+def load_toml(path: Path) -> dict:
+    with path.open("rb") as handle:
+        return tomllib.load(handle)
+
+
+def fail(errors: list[str], message: str) -> None:
+    errors.append(message)
+
+
+def main() -> int:
+    errors: list[str] = []
+    config_path = ROOT / ".codex" / "config.toml"
+    config_text = config_path.read_text(encoding="utf-8")
+    config = load_toml(config_path)
+
+    for legacy in ("codex_hooks", "max_threads", "max_depth"):
+        if legacy in config_text:
+            fail(errors, f"legacy config key remains: {legacy}")
+
+    features = config.get("features", {})
+    if features.get("hooks") is not True:
+        fail(errors, "features.hooks must be true")
+    if features.get("multi_agent") is not True:
+        fail(errors, "features.multi_agent must be true")
+
+    agents_config = config.get("agents", {})
+    expected_defaults = {
+        "enabled": True,
+        "default_subagent_model": "gpt-5.6-luna",
+        "default_subagent_reasoning_effort": "max",
+        "max_concurrent_threads_per_session": 6,
+    }
+    for key, expected in expected_defaults.items():
+        if agents_config.get(key) != expected:
+            fail(errors, f"agents.{key} must be {expected!r}")
+
+    hooks = config.get("hooks", {})
+    for event in ("SubagentStart", "SubagentStop"):
+        event_hooks = hooks.get(event)
+        if not isinstance(event_hooks, list) or not event_hooks:
+            fail(errors, f"hooks.{event} observation hook is missing")
+            continue
+        command_text = json.dumps(event_hooks, ensure_ascii=False)
+        if "observe.ps1" not in command_text:
+            fail(errors, f"hooks.{event} must call observe.ps1")
+
+    agent_dir = ROOT / ".codex" / "agents"
+    files = sorted(agent_dir.glob("*.toml"))
+    names = {path.stem for path in files}
+    if names != set(EXPECTED_AGENTS):
+        fail(errors, f"custom agent file set mismatch: {sorted(names)!r}")
+
+    for name, sandbox in EXPECTED_AGENTS.items():
+        path = agent_dir / f"{name}.toml"
+        if not path.exists():
+            continue
+        data = load_toml(path)
+        if data.get("name") != name:
+            fail(errors, f"{name}: name must match filename")
+        if data.get("model") != "gpt-5.6-luna":
+            fail(errors, f"{name}: model must be gpt-5.6-luna")
+        if data.get("model_reasoning_effort") != "max":
+            fail(errors, f"{name}: model_reasoning_effort must be max")
+        if data.get("sandbox_mode") != sandbox:
+            fail(errors, f"{name}: sandbox_mode must be {sandbox}")
+        child_agents = data.get("agents", {})
+        child_features = data.get("features", {})
+        if child_agents.get("enabled") is not False:
+            fail(errors, f"{name}: child agents.enabled must be false")
+        if child_features.get("multi_agent") is not False:
+            fail(errors, f"{name}: child features.multi_agent must be false")
+        instructions = data.get("developer_instructions")
+        if not isinstance(instructions, str) or not instructions.strip():
+            fail(errors, f"{name}: developer_instructions is required")
+            continue
+        if "additional subagent spawn禁止" not in instructions:
+            fail(errors, f"{name}: recursive delegation prohibition is missing")
+        if name in {"code_researcher", "implementation_researcher", "test_investigator"}:
+            if "編集" not in instructions or "作成" not in instructions:
+                fail(errors, f"{name}: behavioral read-only contract is incomplete")
+        if name == "implementation_worker":
+            for marker in ("Write Parallel Capability Gate", "focused validation", "allowed scope"):
+                if marker not in instructions:
+                    fail(errors, f"{name}: missing worker contract marker {marker!r}")
+        if name == "quality_gate_runner":
+            for marker in ("Local Required Validation Set", "Source", "Failure Taxonomy", "自動修正", "timeout"):
+                if marker not in instructions:
+                    fail(errors, f"{name}: missing quality runner contract marker {marker!r}")
+
+    taxonomy_path = ROOT / "spec" / "failure-taxonomy.json"
+    taxonomy = json.loads(taxonomy_path.read_text(encoding="utf-8"))
+    category_ids = {item.get("id") for item in taxonomy.get("categories", [])}
+    if category_ids != FAILURE_CATEGORIES:
+        fail(errors, "failure taxonomy category set does not match the existing SSOT")
+    if len(taxonomy.get("categories", [])) != len(FAILURE_CATEGORIES):
+        fail(errors, "failure taxonomy must contain exactly the existing 10 categories")
+
+    hook_schema = json.loads(
+        (ROOT / ".codex" / "templates" / "hook-observation.schema.json").read_text(encoding="utf-8")
+    )
+    properties = hook_schema.get("properties", {})
+    for field in ("agent_type", "agent_id", "model"):
+        if field not in properties:
+            fail(errors, f"hook observation schema is missing runtime field: {field}")
+
+    if errors:
+        print("LUNA_ORCHESTRATION_VALIDATION_FAIL")
+        for error in errors:
+            print(f"- {error}")
+        return 1
+
+    print("LUNA_ORCHESTRATION_VALIDATION_PASS")
+    print(f"agents={','.join(sorted(EXPECTED_AGENTS))}")
+    print("model=gpt-5.6-luna")
+    print("reasoning_effort=max")
+    print("child_multi_agent=false")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

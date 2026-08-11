@@ -14,6 +14,7 @@ Observation events are not the source of truth for evaluation decisions.
 - `hook-observation JSONL` は evidence / tracing 用です。
 - block 判断の正本は既存 safety hook / wrapper / policy に残ります。
 - collector は run_id 一致の event を `run.json.hook_observations` に summary 統合します。
+- `SubagentStart` の stdin payload に含まれる `agent_type`、`agent_id`、`model` を runtime compliance evidenceとして記録します。allowlist外または `gpt-5.6-luna` 以外はcollectorでfail-close候補にします。
 
 ## Event Types
 
@@ -67,14 +68,27 @@ optional hook baseline は次を受け取れます。
 - `decision`
 - `evidence`
 - `metadata`
+- `agent_type`（optional）
+- `agent_id`（optional）
+- `model`（optional）
+- `reasoning_effort`（optional。直接観測できた場合だけ）
+- `permission_mode`（optional）
 
 `input_summary` は raw prompt や secret の全文ではなく summary だけを書きます。
 
 ## Optional Behavior
 
-- observation hook は optional です。
-- config に接続しなくても schema / docs / bundled template を先に使えます。
-- optional hook を有効化する場合も、observation event は evidence であり、評価判断の source of truth にはしません。
+- observation hook は `features.hooks = true` のproject configから `PreToolUse`、`SubagentStart`、`SubagentStop`へ接続します。
+- Codex command hookはJSON objectをstdinへ渡すため、hookはraw promptやsecretを保存せず、identity / modelなど契約に必要なscalarだけを抽出します。
+- observation eventはevidenceであり、評価判断のsource of truthにはしません。runtime complianceはcollector summaryとraw JSONLをParentが確認します。
+
+## Runtime Agent Compliance
+
+- 通常利用のallowlistは `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5 roleです。
+- `SubagentStart` を観測したら `agent_type`、`agent_id`、`model` の存在を確認します。
+- allowlist外、identity欠落、model欠落、Luna以外が1件でもあればRunはcompliantではありません。
+- reasoning effortはruntime fieldが存在する場合だけ記録し、存在しない場合はTOML/CLI configured evidenceをruntime verifiedと表現しません。
+- `run.json.hook_observations.runtime_agent_compliance` は `pass`、`fail`、`unknown` を持ち、start eventがない場合は `unknown` です。
 
 ## Failure Behavior
 
@@ -100,6 +114,7 @@ optional hook baseline は次を受け取れます。
 
 - `hook-observation JSONL` は追跡用の補助 artifact です。
 - `run.json` には path / count / blocking summary だけを載せ、raw event 全文は JSONL に残します。
+- runtime agent complianceはidentity/modelのsummaryだけを載せ、詳細なraw eventはJSONLに残します。
 - `SafetyBlocked` は count と既知 type に限って `run.json.safety` summary 更新に使えます。
 - `evaluation.json` が interpretation の source of truth である点は変えません。
 

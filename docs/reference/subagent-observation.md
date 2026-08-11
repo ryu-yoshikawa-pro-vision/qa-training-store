@@ -8,6 +8,8 @@ Writable subagents must declare allowed_files before changing files.
 Read-only subagents should have changed_files = [].  
 Subagent logs are evidence, not final evaluation judgement.
 
+Repository-governed taskの通常roleは `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5つだけです。Parentは役割、scope、validation、統合、最終判断を保持します。
+
 ## Read-only と Writable の違い
 
 - read-only subagent:
@@ -19,7 +21,8 @@ Subagent logs are evidence, not final evaluation judgement.
 - writable subagent:
   - 親 agent が scope を確定した後だけ使います。
   - `allowed_files` を先に宣言し、`changed_files` がその範囲内かを後で評価します。
-  - `implementation_worker` のような限定実装役を想定します。
+- `implementation_worker` のような限定実装役を想定します。
+- child configはmulti-agentを無効化し、すべてのroleでadditional subagent spawnを禁止します。
 
 ## `implementation_worker` の記録項目
 
@@ -34,6 +37,22 @@ Subagent logs are evidence, not final evaluation judgement.
 - `summary`
 - `parent_decision`
 - `used_in_final_plan`
+
+## Quality Gate Runner
+
+`quality_gate_runner` はworkspace-write設定を持ちますが、Parentが確定したLocal Required Validation Setを実行するvalidation-only roleです。
+
+- Required Validation Setを削除、弱体化、置換しない。
+- Application / Test / Specification / Documentation Sourceを編集しない。
+- failureを自動修正せず、最初の異常、派生エラー、causal relation候補を返す。
+- `Source Integrity` は既存working-tree snapshot semanticsでbefore/afterのnet mutationとして確認する。
+- write attemptが観測された場合はnet diffがなくても失敗として返す。
+- shell toolがper-command timeoutを受け付ける場合は、フルRequired Setの完了に十分な600秒以上を設定する。timeout wrapperを追加したり、コマンド文字列を変更したりしない。
+- Failure Taxonomyの最終categoryを決めず、Parentまたはreviewerへ委譲する。
+
+## Write Parallel Capability Gate
+
+writable workerをparallel化するのは、Work Package、write set、workspace、cwdが完全に分離していることを実Runで確認できた場合だけです。FAILまたはUNKNOWNならserial fallbackを採用します。
 
 ## `allowed_files` / `changed_files` / `scope.compliant`
 
@@ -84,7 +103,7 @@ Subagent logs are evidence, not final evaluation judgement.
   "parent_run_id": "20260627-120000-JST",
   "agent": {
     "name": "implementation_worker",
-    "model": "gpt-5.4-mini"
+    "model": "gpt-5.6-luna"
   },
   "role": "implementation_worker",
   "mode": "writable",

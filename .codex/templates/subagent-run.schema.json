@@ -70,12 +70,13 @@
     },
     "role": {
       "type": "string",
-      "enum": [
-        "planner",
-        "investigator",
-        "reviewer",
-        "implementation_worker",
-        "validator",
+        "enum": [
+          "planner",
+          "investigator",
+          "reviewer",
+          "implementation_worker",
+          "quality_gate_runner",
+          "validator",
         "other"
       ]
     },

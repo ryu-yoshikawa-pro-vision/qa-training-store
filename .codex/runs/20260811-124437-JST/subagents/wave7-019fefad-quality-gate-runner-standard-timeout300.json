@@ -1,0 +1,64 @@
+{
+  "schema_version": 1,
+  "subagent_run_id": "wave7-019fefad-quality-gate-runner-standard-timeout300",
+  "parent_run_id": "20260811-124437-JST",
+  "agent": {
+    "name": "quality_gate_runner",
+    "model": "gpt-5.6-luna"
+  },
+  "role": "quality_gate_runner",
+  "mode": "writable",
+  "purpose": "Wave 7 bounded revalidationでParent-defined Local Required Validation Setをexact順序・各1回で実行し、tool timeout切り分け後のSource Integrityを確認する。",
+  "sandbox": {
+    "type": "workspace-write",
+    "network": false
+  },
+  "allowed_files": [
+    ".artifacts/luna-orchestration/wave7-quality-runner-wrapper-1615/**"
+  ],
+  "input_files": [
+    ".codex/agents/quality_gate_runner.toml",
+    ".codex/config.toml"
+  ],
+  "changed_files": [],
+  "scope": {
+    "declared": true,
+    "compliant": true,
+    "violations": []
+  },
+  "started_at": "2026-08-11T16:16:06+09:00",
+  "ended_at": "2026-08-11T16:20:15+09:00",
+  "status": "completed",
+  "summary": "quality_gate_runnerをexactに1件起動し、5コマンドを指定順・各1回実行。#1/#2/#3/#5はPASS、#4は既存25ファイルのformat:check failure。runnerはQUALITY_GATE_RUNNER_INCOMPLETEを返し、write_attemptは観測なし。",
+  "parent_decision": {
+    "action": "partially_accepted",
+    "reason": "tool timeout切り分け後の5件完了とSource Integrityは受理するが、Required Validation Setは#4でPASSでなく、LOCAL_IMPLEMENTATION_COMPLETEはfalseを維持する。"
+  },
+  "used_in_final_plan": false,
+  "evidence": [
+    {
+      "kind": "path",
+      "value": ".artifacts/luna-orchestration/wave7-quality-runner-wrapper-1615/codex-task-output.txt"
+    },
+    {
+      "kind": "path",
+      "value": ".artifacts/luna-orchestration/wave7-quality-runner-wrapper-1615/codex-task-report.json"
+    },
+    {
+      "kind": "validation",
+      "value": "5/5 commands executed; #1 PASS, #2 PASS, #3 PASS, #4 FAIL exit 1, #5 PASS exit 0 (24 files / 201 tests); QUALITY_GATE_RUNNER_INCOMPLETE"
+    },
+    {
+      "kind": "validation",
+      "value": ".artifacts/luna-orchestration/wave7-quality-runner-wrapper-1615/working-tree-snapshot-comparison.json: passed=true; additional_source_diff_count=0; source_head_changed=false"
+    }
+  ],
+  "metadata": {
+    "runtime_parent_session_id": "019fefad-b877-7703-b825-cbf935a1f7af",
+    "runtime_agent_id": "not directly observed; SubagentStart hook event was not captured",
+    "model_evidence": "codex-task wrapper header and configured custom role; runtime child model direct hook evidence unavailable",
+    "reasoning_effort_evidence": "configured max; not directly observed",
+    "write_attempt_evidence": "not observed",
+    "source_integrity_evidence": "before/after working-tree snapshot comparison passed"
+  }
+}

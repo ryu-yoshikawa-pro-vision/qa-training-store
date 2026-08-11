@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "subagent_run_id": "wave7-019fef2a-quality-gate-runner",
+  "parent_run_id": "20260811-124437-JST",
+  "agent": {
+    "name": "quality_gate_runner",
+    "model": "gpt-5.6-luna"
+  },
+  "role": "quality_gate_runner",
+  "mode": "writable",
+  "purpose": "Parent-defined Local Required Validation Setを実行するexact quality runnerのruntime acceptance。",
+  "sandbox": {
+    "type": "workspace-write",
+    "network": false
+  },
+  "allowed_files": [
+    ".artifacts/luna-orchestration/wave7-quality-runner/"
+  ],
+  "input_files": [
+    ".codex/agents/quality_gate_runner.toml",
+    ".codex/runs/20260811-124437-JST/runtime-acceptance.md"
+  ],
+  "changed_files": [],
+  "scope": {
+    "declared": true,
+    "compliant": null,
+    "violations": []
+  },
+  "started_at": null,
+  "ended_at": null,
+  "status": "blocked",
+  "summary": "exact roleのspawnは成功したが、Required Validation Setの完了結果を返す前に上限timeout。未実行をPASS扱いしない。",
+  "parent_decision": {
+    "action": "deferred",
+    "reason": "quality runnerのruntime completion evidenceがないため、Parent validation結果をquality runner PASSへ昇格しない。"
+  },
+  "used_in_final_plan": false,
+  "evidence": [
+    {
+      "kind": "path",
+      "value": ".artifacts/luna-orchestration/wave7-quality-runner/codex-exec.jsonl"
+    },
+    {
+      "kind": "validation",
+      "value": "Source Integrity comparison: passed=true; additional_source_diff_count=0; source_head_changed=false"
+    },
+    {
+      "kind": "finding",
+      "value": "quality runner output marker and four command results were not returned before timeout"
+    }
+  ],
+  "metadata": {
+    "runtime_agent_id": "019fef2b-fc49-7643-b26a-93a2d961ee80",
+    "model_evidence": "custom-agent role configuration; SubagentStart hook was not observed for this run",
+    "reasoning_effort_evidence": "not directly observed",
+    "write_attempt_evidence": "no net source mutation observed; tool-level write attempt not directly observable"
+  }
+}

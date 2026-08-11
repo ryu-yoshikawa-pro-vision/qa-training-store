@@ -33,7 +33,19 @@
     "event_counts": {},
     "blocking_event_count": 0,
     "safety_blocked_count": 0,
-    "observation_error_count": 0
+    "observation_error_count": 0,
+    "runtime_agent_compliance": {
+      "status": "unknown",
+      "allowlist": [
+        "code_researcher",
+        "implementation_researcher",
+        "test_investigator",
+        "implementation_worker",
+        "quality_gate_runner"
+      ],
+      "observed": [],
+      "violations": []
+    }
   },
   "subagents": {
     "records": [],
@@ -46,6 +58,12 @@
     }
   },
   "evaluation_path": null,
+  "completion_state": {
+    "LOCAL_IMPLEMENTATION_COMPLETE": false,
+    "MERGE_READY": false,
+    "external_checks": "pending",
+    "reasons": ["Parent has not completed local and external acceptance decisions."]
+  },
   "status": "pending",
   "primary_failure_category": null
 }

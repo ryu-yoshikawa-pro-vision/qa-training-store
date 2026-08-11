@@ -17,6 +17,14 @@ HOOK_EVENTS = {
     "ObservationError",
 }
 
+RUNTIME_AGENT_ALLOWLIST = (
+    "code_researcher",
+    "implementation_researcher",
+    "test_investigator",
+    "implementation_worker",
+    "quality_gate_runner",
+)
+
 
 def parse_args():
     parser = argparse.ArgumentParser(description="Aggregate run-local artifacts into run.json.")
@@ -99,6 +107,12 @@ def default_manifest(repo_root: Path, run_id: str):
                 "blocking_event_count": 0,
                 "safety_blocked_count": 0,
                 "observation_error_count": 0,
+                "runtime_agent_compliance": {
+                    "status": "unknown",
+                    "allowlist": list(RUNTIME_AGENT_ALLOWLIST),
+                    "observed": [],
+                    "violations": [],
+                },
             },
             "subagents": {
                 "records": [],
@@ -111,6 +125,12 @@ def default_manifest(repo_root: Path, run_id: str):
                 },
             },
             "evaluation_path": None,
+            "completion_state": {
+                "LOCAL_IMPLEMENTATION_COMPLETE": False,
+                "MERGE_READY": False,
+                "external_checks": "pending",
+                "reasons": ["Parent has not completed local and external acceptance decisions."],
+            },
             "status": "pending",
             "primary_failure_category": None,
         }
@@ -171,6 +191,12 @@ def collect_hook_observations(repo_root: Path, run_root: Path, run_id: str, expl
         "blocking_event_count": 0,
         "safety_blocked_count": 0,
         "observation_error_count": 0,
+        "runtime_agent_compliance": {
+            "status": "unknown",
+            "allowlist": list(RUNTIME_AGENT_ALLOWLIST),
+            "observed": [],
+            "violations": [],
+        },
     }
     warnings = []
     safety = {"delete_attempt_blocked": False, "git_mutation_attempt_blocked": False}
@@ -229,11 +255,53 @@ def collect_hook_observations(repo_root: Path, run_root: Path, run_id: str, expl
                     safety["git_mutation_attempt_blocked"] = True
             if event == "ObservationError":
                 summary["observation_error_count"] += 1
+            if event == "SubagentStart":
+                agent_type = payload.get("agent_type")
+                agent_id = payload.get("agent_id")
+                model = payload.get("model")
+                observed = {
+                    "agent_type": agent_type if isinstance(agent_type, str) else None,
+                    "agent_id": agent_id if isinstance(agent_id, str) else None,
+                    "model": model if isinstance(model, str) else None,
+                    "event_id": payload.get("event_id"),
+                }
+                reasoning_effort = payload.get("reasoning_effort")
+                if isinstance(reasoning_effort, str) and reasoning_effort:
+                    observed["reasoning_effort"] = reasoning_effort
+                summary["runtime_agent_compliance"]["observed"].append(observed)
+                if not isinstance(agent_type, str) or not agent_type:
+                    summary["runtime_agent_compliance"]["violations"].append(
+                        {"kind": "missing_agent_type", "event_id": payload.get("event_id")}
+                    )
+                elif agent_type not in RUNTIME_AGENT_ALLOWLIST:
+                    summary["runtime_agent_compliance"]["violations"].append(
+                        {
+                            "kind": "non_allowlisted_agent",
+                            "agent_type": agent_type,
+                            "event_id": payload.get("event_id"),
+                        }
+                    )
+                if not isinstance(model, str) or not model:
+                    summary["runtime_agent_compliance"]["violations"].append(
+                        {"kind": "missing_model", "event_id": payload.get("event_id")}
+                    )
+                elif model != "gpt-5.6-luna":
+                    summary["runtime_agent_compliance"]["violations"].append(
+                        {
+                            "kind": "model_mismatch",
+                            "model": model,
+                            "event_id": payload.get("event_id"),
+                        }
+                    )
         if matched_in_file:
             summary["log_paths"].append(repo_relative(repo_root, path))
 
     summary["log_paths"] = unique_list(summary["log_paths"])
     summary["event_counts"] = dict(sorted(summary["event_counts"].items()))
+    compliance = summary["runtime_agent_compliance"]
+    compliance["status"] = "pass" if compliance["observed"] and not compliance["violations"] else (
+        "fail" if compliance["violations"] else "unknown"
+    )
     return summary, warnings, safety
 
 
@@ -360,7 +428,7 @@ def load_manifest_candidate(path: Path):
 def merge_manifests(default_data, existing_data, base_data):
     manifest = copy.deepcopy(default_data)
     for source in (base_data or {}, existing_data or {}):
-        for key in ("schema_version", "run_id", "task_type", "workflow_level", "preset", "runtime", "repo", "branch", "base_branch", "evaluation_path", "status", "primary_failure_category"):
+        for key in ("schema_version", "run_id", "task_type", "workflow_level", "preset", "runtime", "repo", "branch", "base_branch", "evaluation_path", "completion_state", "status", "primary_failure_category"):
             value = source.get(key)
             if value is not None:
                 manifest[key] = value

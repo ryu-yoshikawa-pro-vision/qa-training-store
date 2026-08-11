@@ -189,6 +189,41 @@
     "metadata": {
       "type": "object",
       "description": "Free-form observation metadata. Keep it minimal and sanitized."
+    },
+    "agent_type": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Observed SubagentStart agent type when provided by Codex runtime."
+    },
+    "agent_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Observed runtime agent identifier when provided by Codex."
+    },
+    "model": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Observed runtime model when provided by Codex."
+    },
+    "reasoning_effort": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Observed runtime reasoning effort when directly exposed; never inferred."
+    },
+    "permission_mode": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Observed runtime permission mode when provided by Codex."
+    },
+    "session_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Observed session identifier when provided by Codex."
+    },
+    "turn_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Observed turn identifier when provided by Codex."
     }
   }
 }

@@ -1,7 +1,7 @@
 name = "code_researcher"
 description = "Read-only agent for codebase investigation, dependency tracing, and implementation impact analysis."
-model = "gpt-5.4-mini"
-model_reasoning_effort = "medium"
+model = "gpt-5.6-luna"
+model_reasoning_effort = "max"
 sandbox_mode = "read-only"
 
 developer_instructions = """
@@ -13,6 +13,8 @@ developer_instructions = """
 
 禁止:
 - コードやドキュメントを編集しない
+- Sourceを作成・削除しない
+- additional subagent spawn禁止
 - 推測だけで結論を出さない
 - 広すぎる探索をしない
 
@@ -22,3 +24,9 @@ developer_instructions = """
 - 変更時の注意点
 - 親 agent が次に見るべき箇所
 """
+
+[agents]
+enabled = false
+
+[features]
+multi_agent = false

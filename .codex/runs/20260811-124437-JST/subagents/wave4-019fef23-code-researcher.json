@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "subagent_run_id": "wave4-019fef23-code-researcher",
+  "parent_run_id": "20260811-124437-JST",
+  "agent": {
+    "name": "code_researcher",
+    "model": "gpt-5.6-luna"
+  },
+  "role": "investigator",
+  "mode": "read_only",
+  "purpose": "Wave 4 bounded runtimeでconfigとcustom-agent契約を確認する。",
+  "sandbox": {
+    "type": "read-only",
+    "network": false
+  },
+  "allowed_files": [],
+  "input_files": [
+    ".codex/config.toml",
+    ".codex/agents/code_researcher.toml"
+  ],
+  "changed_files": [],
+  "scope": {
+    "declared": true,
+    "compliant": true,
+    "violations": []
+  },
+  "started_at": null,
+  "ended_at": null,
+  "status": "completed",
+  "summary": "custom roleのbounded read-only確認が完了し、変更なし・追加spawnなし。",
+  "parent_decision": {
+    "action": "accepted",
+    "reason": "config/role契約の確認結果をWave 4 Parent synthesisへ採用する。runtime hookによるmodel直接観測は別途unknownとして扱う。"
+  },
+  "used_in_final_plan": true,
+  "evidence": [
+    {
+      "kind": "path",
+      "value": ".codex/agents/code_researcher.toml"
+    },
+    {
+      "kind": "finding",
+      "value": "completion_status=complete; changed_files=[]; mutation_observed=no"
+    }
+  ],
+  "metadata": {
+    "runtime_agent_id": "019fef23-e5de-73b0-bad1-e71f3fb30850",
+    "model_evidence": "custom-agent role configuration; SubagentStart hook was not observed for this run",
+    "reasoning_effort_evidence": "not directly observed"
+  }
+}

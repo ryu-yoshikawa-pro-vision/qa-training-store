@@ -78,6 +78,13 @@ function Test-TemplateContract {
         "scripts/init-project.ps1",
         "scripts/init-project.sh",
         "scripts/validate-output-schema.py",
+        "scripts/validate-luna-orchestration.py",
+        "spec/failure-taxonomy.json",
+        ".codex/agents/code_researcher.toml",
+        ".codex/agents/implementation_researcher.toml",
+        ".codex/agents/implementation_worker.toml",
+        ".codex/agents/quality_gate_runner.toml",
+        ".codex/agents/test_investigator.toml",
         ".agents/skills/feature-plan/references/planning-workflow.md",
         ".agents/skills/code-review/references/review-workflow.md",
         "docs/reference/codex-safety-harness.md",
@@ -101,6 +108,15 @@ function Test-TemplateContract {
     if ($agents -notmatch [regex]::Escape("scripts/new-run.ps1")) { throw "AGENTS.md missing PowerShell new-run reference" }
     if ($agents -notmatch [regex]::Escape("Report file")) { throw "AGENTS.md missing report policy" }
     if ($agents -notmatch [regex]::Escape("command-based deletion")) { throw "AGENTS.md missing deletion policy" }
+    if ($agents -notmatch [regex]::Escape("Write Parallel Capability Gate")) { throw "AGENTS.md missing write parallel gate" }
+    if ($agents -notmatch [regex]::Escape("quality_gate_runner")) { throw "AGENTS.md missing quality gate runner" }
+    if ($agents -notmatch [regex]::Escape("Runtime Agent Compliance")) { throw "AGENTS.md missing runtime compliance contract" }
+    if ($agents -notmatch [regex]::Escape("LOCAL_IMPLEMENTATION_COMPLETE")) { throw "AGENTS.md missing local completion state" }
+    if ($agents -notmatch [regex]::Escape("MERGE_READY")) { throw "AGENTS.md missing merge readiness state" }
+    $manifestTemplate = Get-Content -Raw -Encoding UTF8 .codex/templates/RUN_MANIFEST.json
+    if ($manifestTemplate -notmatch [regex]::Escape("completion_state")) { throw "run manifest missing completion state" }
+    if ($manifestTemplate -notmatch [regex]::Escape("LOCAL_IMPLEMENTATION_COMPLETE")) { throw "run manifest missing local completion state" }
+    if ($manifestTemplate -notmatch [regex]::Escape("MERGE_READY")) { throw "run manifest missing merge readiness state" }
     if ($plans -notmatch [regex]::Escape(".agents/skills/feature-plan/SKILL.md")) { throw "PLANS.md missing feature-plan skill reference" }
     if ($plans -notmatch [regex]::Escape(".agents/skills/feature-plan/references/planning-workflow.md")) { throw "PLANS.md missing planning reference" }
     if ($plans -notmatch [regex]::Escape("docs/plans/TEMPLATE.md")) { throw "PLANS.md missing plan template reference" }
@@ -197,8 +213,32 @@ function Test-TemplateContract {
     if ($config -notmatch [regex]::Escape('network_access = false')) { throw "config missing disabled workspace-write network" }
     if ($config -notmatch [regex]::Escape('[profiles.repo_auto_net]')) { throw "config missing repo_auto_net profile" }
     if ($config -notmatch [regex]::Escape('network_access = true')) { throw "config missing auto-net network" }
-    if ($config -notmatch [regex]::Escape('codex_hooks = true')) { throw "config missing hook feature flag" }
+    if ($config -notmatch [regex]::Escape('hooks = true')) { throw "config missing hooks feature flag" }
+    if ($config -notmatch [regex]::Escape('multi_agent = true')) { throw "config missing multi-agent feature flag" }
+    if ($config -notmatch [regex]::Escape('enabled = true')) { throw "config missing agents enabled flag" }
+    if ($config -notmatch [regex]::Escape('default_subagent_model = "gpt-5.6-luna"')) { throw "config missing Luna default model" }
+    if ($config -notmatch [regex]::Escape('default_subagent_reasoning_effort = "max"')) { throw "config missing max default effort" }
+    if ($config -notmatch [regex]::Escape('max_concurrent_threads_per_session = 6')) { throw "config missing current concurrency setting" }
+    if ($config -match [regex]::Escape('codex_hooks')) { throw "config still contains deprecated codex_hooks" }
+    if ($config -match [regex]::Escape('max_threads')) { throw "config still contains legacy max_threads" }
+    if ($config -match [regex]::Escape('max_depth')) { throw "config still contains unsupported depth setting" }
     if ($config -notmatch [regex]::Escape('pre_tool_use_policy.ps1')) { throw "config missing pre-tool hook command" }
+    $hookDoc = Get-Content -Raw -Encoding UTF8 docs/reference/hook-observation.md
+    if ($hookDoc -notmatch [regex]::Escape("agent_type")) { throw "hook observation doc missing agent identity" }
+    if ($hookDoc -notmatch [regex]::Escape("runtime_agent_compliance")) { throw "hook observation doc missing runtime compliance" }
+    if ($hookDoc -notmatch [regex]::Escape("SubagentStart")) { throw "hook observation doc missing SubagentStart" }
+    $subagentDoc = Get-Content -Raw -Encoding UTF8 docs/reference/subagent-observation.md
+    if ($subagentDoc -notmatch [regex]::Escape("Local Required Validation Set")) { throw "subagent doc missing validation set" }
+    if ($subagentDoc -notmatch [regex]::Escape("per-command timeout")) { throw "subagent doc missing timeout guidance" }
+    if ($subagentDoc -notmatch [regex]::Escape("Source Integrity")) { throw "subagent doc missing source integrity" }
+}
+
+function Test-LunaOrchestrationContract {
+    $python = Get-Command python -ErrorAction Stop
+    & $python.Source scripts/validate-luna-orchestration.py
+    if ($LASTEXITCODE -ne 0) {
+        throw "scripts/validate-luna-orchestration.py failed"
+    }
 }
 
 function Test-StrictHarnessContract {
@@ -272,6 +312,7 @@ function Test-PowerShellHasCodex {
 }
 
 Invoke-Check "template contract files" { Test-TemplateContract }
+Invoke-Check "GPT-5.6 Luna orchestration contract" { Test-LunaOrchestrationContract }
 
 if ($StrictHarness) {
     Invoke-Check "strict harness source-repo contract" { Test-StrictHarnessContract }

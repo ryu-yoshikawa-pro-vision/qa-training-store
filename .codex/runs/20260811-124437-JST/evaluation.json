@@ -1,0 +1,273 @@
+{
+  "schema_version": 1,
+  "run_id": "20260811-124437-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Wave 1〜6の実装とstatic contract、承認済み25ファイルの機械的Prettier修正、親のpnpm run verify、実SubagentStart/SubagentStopのgpt-5.6-luna runtime evidence、vitest timeout repair、quality_gate_runner PASSを完了した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260811-124437-JST/run.json",
+          "selector": "completion_state",
+          "summary": "LOCAL_IMPLEMENTATION_COMPLETE=true、MERGE_READY=false（External Checks pending）"
+        },
+        {
+          "kind": "log_event",
+          "path": ".artifacts/luna-orchestration/wave10-hook-trust-1649/hooks.jsonl",
+          "selector": "SubagentStart/SubagentStop",
+          "summary": "各1件、同一Agent ID、code_researcher、model=gpt-5.6-luna、violationsなし"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fef6d-quality-gate-runner-policy-blocked.json",
+          "selector": "status",
+          "summary": "quality_gate_runnerが5件を実行したが#2 timeout/#4 failureでINCOMPLETE"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fef85-quality-gate-runner-standard.json",
+          "selector": "status",
+          "summary": "標準wrapper経由のexact role実行がcompleted、runner markerはINCOMPLETE"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fefad-quality-gate-runner-standard-timeout300.json",
+          "selector": "status",
+          "summary": "timeout拡張後の標準wrapper exact roleが5件完了、#4のみFAILでINCOMPLETE"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "Product source/test behaviorを変更せず、Write Parallel Capability Gate UNKNOWN時はserial fallbackを選択した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave7-quality-runner-repair-1504/working-tree-snapshot-comparison.json",
+          "selector": "comparison",
+          "summary": "additional_source_diff_count=0、source_head_changed=false"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-124437-JST/subagents/wave6-019fef29-implementation-worker.json",
+          "selector": "changed_files",
+          "summary": "serial workerのchanged_files=[]"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "Luna orchestration validator、Bash verify、PowerShell verify、承認済み25ファイルのPrettier check、親のpnpm run verify、focused contract、full contract 24 files / 201 tests、post-timeout quality runnerの5/5 PASSを確認した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/parent-required-validation/04b-test-contracts-after-focused.log",
+          "selector": "Test Files",
+          "summary": "24 files / 201 tests PASS"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave11-format-baseline-1706/pnpm-run-verify-stream.log",
+          "selector": "PNPM_RUN_VERIFY_EXIT",
+          "summary": "承認済み25ファイル整形後のfull verify exit 0"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fef85-quality-gate-runner-standard.json",
+          "selector": "evidence",
+          "summary": "5/5実行、#2 timeout、#4 failure、#1/#3/#5 PASS"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fefad-quality-gate-runner-standard-timeout300.json",
+          "selector": "evidence",
+          "summary": "5/5実行、#1/#2/#3/#5 PASS、#4 format baseline failure"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave12-quality-runner-generated-output-1848/codex-output.txt",
+          "selector": "QUALITY_GATE_RUNNER_PASS",
+          "summary": "5/5指定順実行、全exit 0、write_attempt=false"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave12-quality-runner-generated-output-1848/working-tree-snapshot-comparison.json",
+          "selector": "passed",
+          "summary": "Source Integrity passed、追加ソース差分0、HEAD不変"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Git mutation、delete/rename、禁止されたsource writeは行わず、post-timeout quality runnerのwrite_attempt=falseとSource Integrity passed=trueを確認した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260811-124437-JST/run.json",
+          "selector": "safety",
+          "summary": "git_mutation_attempt_blocked=false、delete_attempt_blocked=false、scope_violation=false"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave11-quality-runner-repair-1740/working-tree-snapshot-comparison.json",
+          "selector": "passed",
+          "summary": "Source Integrity passed"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave12-quality-runner-generated-output-1848/working-tree-snapshot-comparison.json",
+          "selector": "passed",
+          "summary": "Source Integrity passed、trusted generated output以外の追加差分なし"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Parent判断、subagent record、runtime acceptance、raw log相対参照をRun Artifactへ保存した。",
+      "evidence_refs": [
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-124437-JST/runtime-acceptance.md",
+          "selector": "Wave 4: read-only parallel",
+          "summary": "Wave 4〜7の実行事実と未完了条件を記録"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "5 custom role、allowlist、child config、taxonomy SSOT、Bash/PowerShell parityをstatic validatorとdocsで固定した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/parent-required-validation/01-validate-luna-orchestration.log",
+          "selector": "LUNA_ORCHESTRATION_VALIDATION_PASS",
+          "summary": "5 role、Luna/max、child multi-agent=false"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "native module resolutionの5000ms cold-load timeoutは、vitest.config.tsのtestTimeout 15秒設定後のfocused contractとquality runner #4で解消した。post-timeout quality runnerは5/5 PASS、write_attempt=false、Source Integrity PASSとなり、project hook trust後は実SubagentStart/SubagentStopでgpt-5.6-lunaを観測した。外側900秒wrapper境界はwarningとして保持する。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/parent-required-validation/04a-targeted-native-production-module-resolution.log",
+          "selector": "Test Files",
+          "summary": "focused再検証は4/4 PASS"
+        },
+        {
+          "kind": "log_event",
+          "path": ".artifacts/luna-orchestration/wave7-quality-runner-repair-1504/codex-exec.jsonl",
+          "selector": "quality_gate_runner",
+          "summary": "exact role spawn後に5件実行、#2 timeout/#4 failure"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave7-quality-runner-wrapper-1540/codex-task-report.json",
+          "selector": "codex_exit_code",
+          "summary": "wrapper reportが整数0で生成され、終了コード配列化が解消"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave11-quality-runner-repair-1740/codex-output.txt",
+          "selector": "QUALITY_GATE_RUNNER_INCOMPLETE",
+          "summary": "post-format repairでも5/5完了、#1/#2/#3/#5 PASS、#4 native timeout"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "承認済み25ファイルのPrettier修正直後には、quality_gate_runnerのRequired Validation Setを2回、各5件指定順で実行し、#4のnative-production-module-resolution 5000ms timeoutでINCOMPLETEとなった。これはbounded repairで解消済みの履歴 finding である。",
+      "evidence_refs": [
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fef6d-quality-gate-runner-policy-blocked.json",
+          "selector": "status",
+          "summary": "5件実行後にINCOMPLETE"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fef85-quality-gate-runner-standard.json",
+          "selector": "status",
+          "summary": "completedだがrunner resultはINCOMPLETE"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".codex/runs/20260811-124437-JST/subagents/wave7-019fefad-quality-gate-runner-standard-timeout300.json",
+          "selector": "status",
+          "summary": "timeout拡張後に5件完了、#4 format baselineでINCOMPLETE"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave11-quality-runner-1722/codex-output.txt",
+          "selector": "QUALITY_GATE_RUNNER_INCOMPLETE",
+          "summary": "post-format 5/5実行、#4 native timeout"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave11-quality-runner-repair-1740/codex-output.txt",
+          "selector": "QUALITY_GATE_RUNNER_INCOMPLETE",
+          "summary": "同じ#4 native timeoutを再現"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260811-124437-JST/run.json",
+          "selector": "hook_observations.runtime_agent_compliance",
+          "summary": "status=pass、code_researcher／gpt-5.6-luna、violations=[]"
+        }
+      ],
+      "detail": "親のpnpm run verify、focused 4/4、full contract 24 files / 201 testsはPASSし、quality runner前後のSource Integrityもpassed=trueだった。その後、共有vitest.config.tsへtestTimeout 15秒を追加する最小repairを行い、後続quality runnerはPASSした。Product/Test behaviorは変更していない。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "quality runner内のpnpm run verifyでnative-production-module-resolutionの5秒cold-load timeoutが2回再現したが、共有Vitest timeout設定後のfocused contract、親のfull pnpm run verify、後続quality runner 5/5はPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave11-quality-runner-1722/repair-focused-native-module.log",
+          "selector": "Test Files",
+          "summary": "focused 4/4 PASS"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".artifacts/luna-orchestration/wave11-quality-runner-1722/repair-full-contracts.log",
+          "selector": "Test Files",
+          "summary": "full rerun 24/24、201/201 PASS"
+        }
+      ],
+      "detail": "初回の変更差分は該当test/Metro設定を含まず、前後Source snapshotも追加差分0だった。bounded repairでは共有test infrastructureのtimeout設定だけを変更し、focused contractとquality runner PASSで解消を確認した。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "quality_gate_runner runtime completion",
+      "evidence": "標準wrapperのCLI exact roleはspawn成功し、600秒以上のper-command timeoutでpost-timeoutの5件Required Validation Setを完了、QUALITY_GATE_RUNNER_PASSとなった。900秒外側shell ceilingの終了コード124はwrapper-boundary warningとして別記録した。",
+      "evidence_refs": [
+        {
+          "kind": "subagent_run",
+          "path": ".artifacts/luna-orchestration/wave11-quality-runner-1722/codex-output.txt",
+          "selector": "status",
+          "summary": "completed、runner markerはINCOMPLETE"
+        },
+        {
+          "kind": "subagent_run",
+          "path": ".artifacts/luna-orchestration/wave12-quality-runner-generated-output-1848/codex-output.txt",
+          "selector": "status",
+          "summary": "5/5 completed, QUALITY_GATE_RUNNER_PASS, write_attempt=false"
+        }
+      ],
+      "expected_impact": "Parent-defined validation setを独立runnerが実行した証跡を得られる。",
+      "recommendation": "Required Validation Setを弱めず、今回のtestTimeout repairとtrusted generated-output除外を維持する。CI相当環境では900秒外側wrapper境界とnative cold-load timingを継続監視する。"
+    }
+  ]
+}

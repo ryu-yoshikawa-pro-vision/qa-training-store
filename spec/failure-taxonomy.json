@@ -1,0 +1,58 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Scenario Shop Failure Taxonomy",
+  "description": "唯一のFailure Category catalog。判定はParentまたはreviewerが行い、runnerはcausal relation候補だけを返す。",
+  "schema_version": 1,
+  "categories": [
+    {
+      "id": "instruction_gap",
+      "definition": "指示が曖昧でCodexが迷った",
+      "improvement_target": "AGENTS.mdとskills"
+    },
+    {
+      "id": "scope_creep",
+      "definition": "依頼範囲外の変更を行った",
+      "improvement_target": "worker policyとallowed files"
+    },
+    {
+      "id": "missing_context",
+      "definition": "必要なファイルや背景を読んでいない",
+      "improvement_target": "planning skill"
+    },
+    {
+      "id": "missing_validation",
+      "definition": "必要な検証が不足した",
+      "improvement_target": "validation planとcodex-task"
+    },
+    {
+      "id": "unsafe_action_blocked",
+      "definition": "危険操作がrule、hook、policyで阻止された",
+      "improvement_target": "rulesとhooks"
+    },
+    {
+      "id": "bad_subagent_delegation",
+      "definition": "subagentの委譲、scope、lifecycleが不適切だった",
+      "improvement_target": "subagent policy"
+    },
+    {
+      "id": "flaky_or_env_issue",
+      "definition": "環境差分または不安定性が主因だった",
+      "improvement_target": "sandboxとsetup docs"
+    },
+    {
+      "id": "review_gap",
+      "definition": "review観点が漏れた",
+      "improvement_target": "CODE_REVIEW.mdとreview skill"
+    },
+    {
+      "id": "repair_loop_stalled",
+      "definition": "bounded repair loopが収束しなかった",
+      "improvement_target": "stop conditionとrepair skill"
+    },
+    {
+      "id": "artifact_contract_gap",
+      "definition": "artifactの責務、構造、正本関係が不明確だった",
+      "improvement_target": "run artifact docsとschema"
+    }
+  ]
+}

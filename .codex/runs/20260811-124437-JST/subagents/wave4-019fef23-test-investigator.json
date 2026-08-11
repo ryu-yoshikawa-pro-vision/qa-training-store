@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "subagent_run_id": "wave4-019fef23-test-investigator",
+  "parent_run_id": "20260811-124437-JST",
+  "agent": {
+    "name": "test_investigator",
+    "model": "gpt-5.6-luna"
+  },
+  "role": "validator",
+  "mode": "read_only",
+  "purpose": "Wave 4 bounded runtimeでvalidation/runtime acceptance契約を確認する。",
+  "sandbox": {
+    "type": "read-only",
+    "network": false
+  },
+  "allowed_files": [],
+  "input_files": [
+    "scripts/validate-luna-orchestration.py"
+  ],
+  "changed_files": [],
+  "scope": {
+    "declared": true,
+    "compliant": true,
+    "violations": []
+  },
+  "started_at": null,
+  "ended_at": null,
+  "status": "blocked",
+  "summary": "検証コマンドを実行しないbounded read-only指定のため、契約確認はblocked。変更なし・追加spawnなし。",
+  "parent_decision": {
+    "action": "deferred",
+    "reason": "実検証はParent-defined Local Required Validation SetとしてParentまたはquality_gate_runnerが実行する。未実行をPASS扱いしない。"
+  },
+  "used_in_final_plan": false,
+  "evidence": [
+    {
+      "kind": "path",
+      "value": "scripts/validate-luna-orchestration.py"
+    },
+    {
+      "kind": "finding",
+      "value": "completion_status=blocked; changed_files=[]; mutation_observed=no"
+    }
+  ],
+  "metadata": {
+    "runtime_agent_id": "019fef23-e9ff-7ba1-9409-02721e2cc916",
+    "model_evidence": "custom-agent role configuration; SubagentStart hook was not observed for this run",
+    "reasoning_effort_evidence": "not directly observed"
+  }
+}

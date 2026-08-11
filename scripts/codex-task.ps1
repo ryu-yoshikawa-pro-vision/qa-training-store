@@ -1749,8 +1749,8 @@ function Invoke-NativeCommand {
     }
 
     try {
-        & $Command @CommandArgs
-        return $LASTEXITCODE
+        & $Command @CommandArgs 1>$null
+        return [int]$LASTEXITCODE
     }
     finally {
         if ($hasNativeErrPref) {

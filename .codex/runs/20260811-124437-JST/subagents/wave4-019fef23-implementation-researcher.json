@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "subagent_run_id": "wave4-019fef23-implementation-researcher",
+  "parent_run_id": "20260811-124437-JST",
+  "agent": {
+    "name": "implementation_researcher",
+    "model": "gpt-5.6-luna"
+  },
+  "role": "investigator",
+  "mode": "read_only",
+  "purpose": "Wave 4 bounded runtimeでParent responsibilityとWrite Parallel Capability Gateを確認する。",
+  "sandbox": {
+    "type": "read-only",
+    "network": false
+  },
+  "allowed_files": [],
+  "input_files": [
+    "AGENTS.md"
+  ],
+  "changed_files": [],
+  "scope": {
+    "declared": true,
+    "compliant": true,
+    "violations": []
+  },
+  "started_at": null,
+  "ended_at": null,
+  "status": "completed",
+  "summary": "Parent responsibilityとGate/serial fallbackのbounded read-only確認が完了し、変更なし・追加spawnなし。",
+  "parent_decision": {
+    "action": "accepted",
+    "reason": "ParentがWork Package、write set、validation set、最終判断を保持する契約の根拠として採用する。"
+  },
+  "used_in_final_plan": true,
+  "evidence": [
+    {
+      "kind": "path",
+      "value": "AGENTS.md:199-201"
+    },
+    {
+      "kind": "finding",
+      "value": "completion_status=complete; changed_files=[]; mutation_observed=no"
+    }
+  ],
+  "metadata": {
+    "runtime_agent_id": "019fef23-e830-70f1-9c9e-f116d1673368",
+    "model_evidence": "custom-agent role configuration; SubagentStart hook was not observed for this run",
+    "reasoning_effort_evidence": "not directly observed"
+  }
+}
