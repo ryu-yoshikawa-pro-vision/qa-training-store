@@ -687,6 +687,67 @@ app_restart
 
 Session reconciliationはBootstrap infrastructure責務とする。
 
+### 16.3 Exploration-time `seed_reset` Contract
+
+Official Scoredで探索開始後にRunnerが `seed_reset` を呼べる場合、その意味を**raw Seed Resetではなく、Current Single Initial State Groupのatomic re-bootstrap**に固定する。
+
+```text
+Runner top-level call:
+approved_test_control.seed_reset()
+        ↓
+trusted adapter:
+raw seed_reset(current seed)
+→ session_reconcile(current required role)
+→ initial_route_normalize
+→ Current Initial State Group invariant verify
+        ↓ PASS
+Runnerへ制御を返す
+```
+
+Current Initial State Group invariantとして最低限以下を再確認する。
+
+```text
+seed == required seed
+role == required role
+session requirement == required session requirement
+viewport_or_device == current Runtime Variant / Challenge requirement
+initial route is learner-safe and valid for the current group
+```
+
+Basicでは `suspended-user` のraw resetがauthenticated suspended Sessionを生成しても、`guest`要件へ再reconcileしてからRunnerへ戻す。
+
+Intermediateでは `orders-phase1-statuses + operator`、Advancedでは `default + guest` を同じ一般Contractで再成立させる。
+
+Agent視点では `seed_reset` は1 top-level Tool Actionであり、Adapter内部のreset / reconciliation / validationを追加Tool Actionとしてcountしない。
+
+探索中re-bootstrapのtrusted logには最低限以下を残す。
+
+```text
+operation_id
+runner_session_id
+initial_state_group_identity
+requested_seed
+required_role
+observed_role
+session_invariant_passed
+route_invariant_passed
+runtime_variant_invariant_passed
+completed_at
+```
+
+Initial State Receipt自体を探索中resetのたびに増やす必要はない。最初のOfficial Initial State Receiptを正本とし、探索中の再BootstrapはHost-side trusted operation logへ記録する。
+
+再Bootstrap後にCurrent Initial State Groupを完全に再成立できない場合は、Role / Session不一致のまま探索を継続してはいけない。
+
+```text
+re-bootstrap invariant PASS
+→ exploration continue
+
+re-bootstrap invariant FAIL
+→ stop_reason = environment_blocked
+→ Official Run invalid / valid_for_scoring=false
+```
+
 ---
 
 ## 17. Official v1 Initial State Contract
@@ -915,6 +976,7 @@ Rules:
 - Initial State Bootstrap / readinessはcount外。
 - Host内部retryはRunner新規callでなければcount外。
 - Runner明示retryは別Action。
+- Exploration-time `seed_reset` はRunner視点の1 top-level Actionとして1回だけcountし、内部re-bootstrap処理は追加countしない。
 - **final `runner_output_write` / final result flushはBudget外。**
 
 Budget exhausted後は、
@@ -940,6 +1002,8 @@ exploration_started_at
 を測る。
 
 Bootstrap / Preparation / final output flush時間は含めない。
+
+探索開始後にRunnerが実行した `seed_reset` のatomic re-bootstrapは、そのtop-level探索Actionの実行時間としてDurationへ含める。Pre-run Bootstrapとは区別する。
 
 ### 22.3 Runner Execution Summary
 
@@ -1015,6 +1079,7 @@ Evaluator inputs:
 - Initial State Receipt
 - Runner Execution Summary
 - Frozen Runner Artifact Manifest / hash
+- Exploration-time trusted control operation log when runtime controls were used
 
 Validation order:
 
@@ -1029,6 +1094,7 @@ Schema
 → Origin / Runtime Resource Boundary
 → Forbidden Probe
 → Initial State / Role / Session binding
+→ Exploration-time runtime-control invariant when used
 → Budget / Stop accounting
 → Evidence mapping / Frozen Artifact integrity
 → Required Coverage
@@ -1062,6 +1128,7 @@ Official verification failure時は `valid_for_scoring=false`、metricsは有効
     forbidden-probe.json
     initial-state-receipt.json
     runner-execution-summary.json
+    runtime-control-operations.json
     prepared-target/**
   runner/
     qa-findings.json
@@ -1070,6 +1137,8 @@ Official verification failure時は `valid_for_scoring=false`、metricsは有効
   evaluation/
     evaluator-execution.json
 ```
+
+`runtime-control-operations.json` は探索中Runtime Controlが使われた場合のtrusted operation logとし、未使用時は空配列または明示的な未使用状態をMachine Contractで固定する。
 
 不要な別Rootは増やさない。
 
@@ -1099,6 +1168,7 @@ Official verification failure時は `valid_for_scoring=false`、metricsは有効
 - constrained output
 - Trusted Bootstrap Operations
 - trusted Initial State receipt
+- exploration-time `seed_reset` atomic re-bootstrap / invariant evidence
 - duration / budgeted top-level tool action accounting
 
 未達ならRepository Implementationを開始しない。
@@ -1120,6 +1190,7 @@ Official verification failure時は `valid_for_scoring=false`、metricsは有効
 - Origin / Resource Boundary
 - constrained output
 - Trusted Bootstrap Operations
+- Exploration-time `seed_reset` re-bootstrap feasibility
 - Evidence Mapping feasibility
 - Budget accounting
 - Protected Path candidate棚卸し
@@ -1140,6 +1211,7 @@ insufficient → BLOCKED / STOP
 - Learner-safe Input Manifest
 - Runtime Variant Registry / schema
 - Initial State Receipt
+- Runtime Control Operation Log schema
 - Runner Session Fresh Context fields
 - Runner Execution Summary
 - Frozen Runner Artifact schema
@@ -1163,6 +1235,8 @@ insufficient → BLOCKED / STOP
 - Runtime Variant actual viewport mismatch
 - wrong Initial State Role / Session
 - cross-session receipt
+- exploration-time seed_reset leaves wrong role/session → FAIL
+- exploration-time seed_reset invariant evidence missing when reset used → FAIL
 - Budget receipt missing
 - Patch touches Protected Infrastructure
 - Evidence physical/canonical mapping mismatch
@@ -1227,6 +1301,9 @@ Exit:
 - constrained output
 - Runtime URL
 - Scored Skill start
+- Exploration Runtime Control adapter
+- `seed_reset` atomic re-bootstrap / invariant enforcement
+- trusted runtime-control operation log
 
 Repository ScriptからAgent launch禁止。
 
@@ -1236,6 +1313,7 @@ Repository ScriptからAgent launch禁止。
 - budgeted top-level action semantics
 - Host timer / counter
 - hard cap capability
+- exploration-time seed_reset = 1 budgeted action
 - final output flush budget外
 - Execution Summary
 - Challenge Budget validation
@@ -1258,6 +1336,7 @@ Repository ScriptからAgent launch禁止。
 - Fresh Context
 - Tool / Origin / Resource Boundary
 - Initial State
+- Exploration-time runtime-control invariant
 - Budget
 - Evidence Mapping / Frozen Artifact
 - Ground Truth / metrics
@@ -1272,6 +1351,7 @@ Preparation
 → Fresh Runner
 → suspended-user + guest Initial State
 → Skill exploration
+→ optional exploration-time seed_reset re-establishes suspended-user + guest
 → Freeze
 → Deterministic Evaluator
 ```
@@ -1284,6 +1364,7 @@ DoD:
 - Fresh Session / Context PASS
 - Tool / Origin / Resource Boundary PASS
 - Initial State PASS
+- exploration-time seed_reset invariant PASS when reset is used
 - Budget PASS
 - current-run Evidence only
 - Artifact audit PASS
@@ -1293,7 +1374,7 @@ DoD:
 - Intermediate: `orders-phase1-statuses + operator + desktop`
 - Advanced: `default + guest + tablet`
 
-Basic専用特殊処理を導入しない。
+同じExploration-time `seed_reset` atomic re-bootstrap Contractを使い、Basic専用特殊処理を導入しない。
 
 ### Wave 11 — Reproducibility
 
@@ -1351,6 +1432,8 @@ Runner Condition = DIFFERENT
 - Protected Patch
 - Initial State single-group validation
 - Initial State Receipt
+- Runtime Control Operation Log
+- exploration-time seed_reset invariant validation
 - Runner Execution Summary
 - budgeted action / Stop semantics
 - Evidence Mapping
@@ -1368,6 +1451,8 @@ Runner Condition = DIFFERENT
 - Basic guest Initial State
 - Intermediate operator Initial State
 - Advanced tablet Initial State
+- exploration-time seed_reset re-bootstrap for Basic / Intermediate / Advanced
+- re-bootstrap role/session failure → environment_blocked
 - cleanup
 
 ### Host Integration
@@ -1378,6 +1463,7 @@ Runner Condition = DIFFERENT
 - Origin / Resource deny
 - constrained output
 - trusted Bootstrap receipt
+- exploration-time seed_reset atomic adapter / operation log
 - Budget timer / action accounting
 - learner-safe input boundary
 
@@ -1397,6 +1483,8 @@ Manual / Explicit WorkflowまたはHost-native executionで行う。
 
 Challenge固有のInitial State / Runtime / Ground Truth問題は、そのChallengeだけをblockする。
 
+探索中のallowed Runtime ControlでCurrent Initial State Groupを再成立できない場合も、そのRunを `environment_blocked` / invalidとして停止する。
+
 ### Global Blocker
 
 以下はOfficial execution全体を止める。
@@ -1409,6 +1497,7 @@ Challenge固有のInitial State / Runtime / Ground Truth問題は、そのChalle
 - Runtime Resource Boundary不可
 - constrained output不可
 - trusted Bootstrap不可
+- exploration-time `seed_reset` invariantをHost/trusted adapterで保証不可
 - trusted Budget不可
 - source-free Runtime不可
 - Scored Skill source-free delivery不可
@@ -1548,6 +1637,8 @@ Official Host capability利用可能環境ではHost Integration / Official E2E�
 - [ ] Intermediate operator PASS with same contract
 - [ ] Advanced tablet PASS with same contract
 - [ ] trusted Receipt bound to Session / Runtime / Coverage
+- [ ] exploration-time `seed_reset` atomically re-establishes Current Initial State Group
+- [ ] failed re-bootstrap stops as `environment_blocked` / invalid
 
 ### Runner Output / Evidence
 
@@ -1562,6 +1653,7 @@ Official Host capability利用可能環境ではHost Integration / Official E2E�
 
 - [ ] exploration start boundary fixed
 - [ ] budgeted top-level tool action semantics fixed
+- [ ] exploration-time `seed_reset` counted once as top-level action
 - [ ] final output flush excluded from budget
 - [ ] duration / tool actions Host measured
 - [ ] Stop Reason matches existing STOP_CONDITION semantics
@@ -1569,6 +1661,7 @@ Official Host capability利用可能環境ではHost Integration / Official E2E�
 ### Evaluation
 
 - [ ] Deterministic Evaluator
+- [ ] runtime-control invariant evidence validated when control is used
 - [ ] all identity / context / tool / resource / state / budget / evidence checks fail-close
 - [ ] Official verification failure does not expose valid metrics
 
@@ -1623,6 +1716,7 @@ Hostがtrusted / machine-readableに以下を提供・enforceできる
 - Runtime Resource Boundary
 - Constrained Output
 - Trusted Bootstrap Operations
+- Exploration-time seed_reset atomic re-bootstrap
 - Budget Accounting
         ↓ YES
 Official Black-box Scored E2EをSkill-firstで実装する
