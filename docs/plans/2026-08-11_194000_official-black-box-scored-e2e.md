@@ -288,6 +288,38 @@ insufficient
 
 Session IDが新しいだけではOfficialにならない。
 
+Hostから得たFresh Session / Fresh Context証明は、未証明値をboolean `false` として扱わない。
+
+Machine Contractでは各必須主張を最低限以下の証跡付き状態として表現する。
+
+```text
+proof_status = proven | unproven | unknown
+expected_value
+observed_value
+trusted_source
+captured_at
+evidence_ref
+```
+
+例:
+
+```json
+{
+  "fresh_session": {
+    "proof_status": "proven",
+    "expected_value": true,
+    "observed_value": true,
+    "evidence_ref": "..."
+  },
+  "parent_context_inherited": {
+    "proof_status": "proven",
+    "expected_value": false,
+    "observed_value": false,
+    "evidence_ref": "..."
+  }
+}
+```
+
 Host-trusted evidenceで最低限以下を証明する。
 
 ```text
@@ -298,13 +330,17 @@ model_identifier
 model_configuration_identifier
 host_identifier
 host_profile_revision
-fresh_session_proof
-fresh_context_proof
-parent_context_inherited=false
-prior_conversation_inherited=false
-repository_context_inherited=false
-prior_scored_session_context_inherited=false
+fresh_session
+fresh_context
+parent_context_inherited
+prior_conversation_inherited
+repository_context_inherited
+prior_scored_session_context_inherited
 ```
+
+Officialとして有効なのは、`fresh_session` / `fresh_context` と全必須no-inheritance assertionが `proof_status=proven` で、かつobserved valueがexpected valueと一致する場合だけとする。
+
+`unproven` / `unknown` / evidence欠落 / expected-observed mismatchはすべてOfficial invalidとする。
 
 Hostから証明できない値をRepository側で推測して `false` へ設定しない。
 
@@ -358,9 +394,45 @@ skill_revision = sha256:<64 lowercase hex>
 
 をRunner Profileへ記録する。
 
+Official Scored Runnerが参照してよいSkillは、Preparationで`input/**`へfreezeしたこのScored Skill Snapshotだけとする。
+
+`.agents/skills/**`、`QA_AGENT.md`、Repository-level Skill fallbackをOfficial RunnerがRequired Readingまたはfallbackとして参照してはいけない。
+
+Host / trusted layerで最低限以下を記録・検証する。
+
+```text
+actual_skill_source = isolated-run-root/input/<scored-skill>
+actual_skill_revision = expected skill_revision
+fallback_used = false
+```
+
+Skill source / revision mismatch、Repository Skill fallback、またはfallback利用有無を証明できない場合はOfficial invalidとする。
+
 ### 9.2 Learner-safe Input Manifest
 
-Runnerへ渡したexact input bytesをManifest化する。
+Runnerへ渡す全Runner-visible inputを、1つのCanonical `runner-input.json`として固定する。
+
+最低限以下を含める。
+
+```text
+Learner-safe Specification Bundle identity / hash
+Challenge learner-facing definition identity / hash
+Challenge Runbook identity / hash
+Scored Skill revision
+Output Contract revision
+Runtime URL
+Runtime Variant definition / identity
+allowed origins
+Required Initial State Definition
+Exploration Runtime Controls
+Exploration Budget
+Stop Condition
+canonical Evidence ref prefix
+```
+
+`allowed origins`やset相当の配列はCanonical sortを行い、Runnerへ実際に渡す値と同じ値をserializeする。
+
+Learner-safe Input Manifestは個別の監査用hashに加えて、`runner-input.json`全体のhashを正本として持つ。
 
 ```json
 {
@@ -371,11 +443,14 @@ Runnerへ渡したexact input bytesをManifest化する。
   "challenge_sha256": "...",
   "runbook_sha256": "...",
   "skill_revision": "sha256:...",
-  "output_contract_revision": "sha256:..."
+  "output_contract_revision": "sha256:...",
+  "runner_input_sha256": "sha256:..."
 }
 ```
 
-ManifestとRunner-visible bytesが一致しなければOfficial invalid。
+Runnerへ渡したexact `runner-input.json` bytesとManifestの`runner_input_sha256`が一致しなければOfficial invalid。
+
+Runner-visible値を変更した場合は必ず`runner_input_sha256`が変わることをContract Testで保証する。
 
 ---
 
@@ -434,6 +509,7 @@ stop_condition
 same Benchmark Identity
 AND same Prepared Target artifact_sha256
 AND same Runner Profile
+AND same runner_input_sha256
 ```
 
 で同条件とする。
@@ -443,6 +519,7 @@ AND same Runner Profile
 ```text
 benchmark_revision = SAME
 benchmark_identity = DIFFERENT
+runner_input_sha256 = DIFFERENT
 ```
 
 でなければならない。
@@ -504,14 +581,34 @@ Rules:
 1. Regular Fileのみ対象。
 2. Artifact RootからのPOSIX relative path。
 3. `..` / absolute path / backslash禁止。
-4. Symlink原則禁止。
-5. raw bytesへSHA-256。
-6. `files[]`をpathのcode-unit昇順でsort。
-7. mtime / owner / permission等を除外。
-8. Canonical JSON serializationを固定。
-9. `artifact_sha256 = sha256(canonical manifest bytes)`。
+4. Artifact Root配下のSymlinkはnestedを含め**例外なくreject**する。
+5. Hash列挙時は`lstat` / no-follow semanticsを使用し、Symlink target bytesをhash対象へ取り込まない。
+6. Runtime Serverもno-followでArtifact Root外を参照せず、Symlinkを発見したArtifactは起動前にinvalidとする。
+7. raw file bytesへSHA-256。
+8. `files[]`をpathのcode-unit昇順でsort。
+9. mtime / owner / permission等を除外。
+10. Canonical JSONはRepository共有Serializerを唯一のSSOTとし、Hostごとの独自再実装を正本にしない。
+11. `artifact_sha256 = sha256(canonical manifest bytes)`。
 
-同一AlgorithmをPrepared TargetとFrozen Runner Artifactへ使用する。
+Canonical Serializer Contract:
+
+```text
+input = schema-validated in-memory value
+object key order = shared serializerがcode-unit昇順で再帰的にsort
+array order = contract-defined order。set相当配列は呼出前にcode-unit昇順へsort
+encoding = UTF-8 without BOM
+line ending = LF
+indent = 2 spaces
+trailing newline = exactly one LF
+Unicode normalization = 行わず、validated valueのcode pointsを保持
+numbers = schemaで許可されたfinite JSON numberのみ。NaN / Infinity禁止
+raw JSON duplicate keys = canonicalization前のparse/validationでreject
+escaping = shared serializerのJSON escaping semanticsを正本とする
+```
+
+Prepared Target / Frozen Runner Artifact / `runner-input.json`等、Official identityに用いるCanonical JSONは同じshared serializerを再利用する。
+
+Hostがhashを独立検証する必要がある場合も、Harnessが生成したcanonical bytesまたは同じshared serializer/test vectorsを使用し、別仕様を作らない。
 
 Hash mismatchはOfficial invalid。
 
@@ -560,12 +657,14 @@ Runner公開前に以下を確認する。
 - Challenge Patch不在
 - Answer Key不在
 - Source Map不在
+- Artifact Root内Symlink不在
 - Agent rootにRuntime Artifact bytes不在
 
 ### 13.3 Runtime Lifecycle
 
 ```text
 canonical hash verify
+→ symlink / prohibited artifact validation
 → runtime start
 → readiness PASS
 → URL / Origin確定
@@ -599,14 +698,42 @@ Official Runnerで許可するもの:
 - Network Response Body inspection
 - arbitrary raw HTTP fetch
 
-Host Tool Boundaryで最低限以下をnegative probeする。
+### 14.1 Actual Served Resource Negative Probe
+
+Resource Boundary Probeは固定例の`/assets/*.js`だけを試してPASSにしてはいけない。
+
+Prepared RuntimeのArtifact Manifestと実際のHTML / build metadataから、**そのRunで実際に配信されるresource URL**を列挙し、最低限以下を対象にする。
 
 ```text
-/assets/*.js direct read → unavailable
-*.map → unavailable
-raw response body → unavailable
+実配信JavaScript bundle URL
+実配信CSS URL
+manifest / internal build metadata URL（存在する場合）
+Source Map URL（生成物に存在してはならない。存在・discoverableならFAIL）
+```
+
+各実配信resourceについて、Runner-visible Tool Boundaryから以下をnegative probeする。
+
+```text
+direct navigation / direct read → unavailable
+raw response body inspection → unavailable
 arbitrary fetch → unavailable
 ```
+
+通常Browserのsubresource loadまで拒否してはいけない。拒否対象はAgent Tool経由でimplementation bytesを直接観測する経路である。
+
+Probe結果には最低限以下を保存する。
+
+```text
+resource_url
+resource_kind
+artifact_manifest_entry / discovery_source
+probe_capability
+expected = denied
+observed
+evidence_ref
+```
+
+Artifact Manifestだけをsyntheticに検査し、実際のserved URLを1件もprobeしていないRunはResource Boundary PASSにしない。
 
 MCP Proxyを新規実装しない。HostがこのBoundaryを保証できなければOfficial RunはBLOCKED。
 
@@ -623,6 +750,8 @@ Wave 0でMachine-readable Protected Path Setを確定する。
 - `scripts/agentic-qa/**`
 - `training/agentic-qa/tool-profiles/**`
 - `training/agentic-qa/skills/**`
+- `.agents/skills/**`
+- Official Skill selection / fallback configuration
 - Answer Key / Benchmark machinery
 - Scored Output Contract
 - Test Control implementation
@@ -640,6 +769,10 @@ patch_paths ∩ protected_paths = empty
 を機械検証する。
 
 さらにparent traversal / absolute path / symlink escape / Protected Path rename-delete-addをrejectする。
+
+Official SkillについてはProtected Path検査だけに依存せず、Runner実行時に`actual_skill_source` / `actual_skill_revision` / `fallback_used=false`をtrusted evidenceで検証する。
+
+`.agents/skills/**`等Repository SkillをOfficial Runnerが参照しない契約を証明できない場合はfail-closeする。
 
 完全なStatic Security Scannerは作らない。
 
@@ -732,21 +865,35 @@ observed_role
 session_invariant_passed
 route_invariant_passed
 runtime_variant_invariant_passed
+runtime_disposition
 completed_at
 ```
 
 Initial State Receipt自体を探索中resetのたびに増やす必要はない。最初のOfficial Initial State Receiptを正本とし、探索中の再BootstrapはHost-side trusted operation logへ記録する。
 
-再Bootstrap後にCurrent Initial State Groupを完全に再成立できない場合は、Role / Session不一致のまま探索を継続してはいけない。
+### 16.4 Re-bootstrap Failure Isolation
+
+探索中re-bootstrapはProduct stateを途中まで変更し得るため、失敗時に同じRuntimeを継続利用してはいけない。
+
+Rollback / compensation frameworkはv1では実装せず、**discard-and-isolate**を正本とする。
+
+raw reset / session reconciliation / route normalization / invariant verificationのどの段階で失敗しても、以下を行う。
 
 ```text
-re-bootstrap invariant PASS
-→ exploration continue
-
-re-bootstrap invariant FAIL
+re-bootstrap FAIL
 → stop_reason = environment_blocked
 → Official Run invalid / valid_for_scoring=false
+→ current Browser Context / Runtime instance = tainted
+→ RunnerのRuntime interactionを即時停止
+→ tainted Browser Context / Runtime instanceをdestroy / discard
+→ 同一instanceの再利用禁止
 ```
+
+通常Run終了時の`runtime stop`とは別に、re-bootstrap失敗時点で状態隔離を開始する。
+
+Prepared Target Artifact自体はimmutable identityが同じなら将来Runで再利用してよいが、次Runでは必ず新しいBrowser Context / Runtime instanceを起動し、Fresh Session / Initial State Bootstrapを最初からやり直す。
+
+cleanup / destroy自体の失敗もtrusted operation logへ記録し、そのRunはinvalidのままとする。
 
 ---
 
@@ -945,17 +1092,19 @@ Directory / Permissionでも分離する。
 
 - current session id
 - prior Runner session ids
-- fresh session / fresh context proof
-- no parent / repository / prior scored context inheritance
+- Fresh Session / Fresh Context証跡付きproof status
+- no parent / repository / prior scored context inheritanceの証跡付きproof status
 - model identifier / model configuration
 - host identifier / host profile revision
 - Benchmark Revision
 - Runtime Variant
 - Prepared Target artifact hash
+- runner_input_sha256
 - Actual Tool Scope
 - Forbidden Probe
 - Tool Profile revision
-- Skill revision
+- expected / actual Skill source and revision
+- fallback_used
 - Output Contract revision
 
 Official verificationではRepository自己申告値ではなくHost-trusted sourceを要求する。
@@ -977,20 +1126,52 @@ Rules:
 - Host内部retryはRunner新規callでなければcount外。
 - Runner明示retryは別Action。
 - Exploration-time `seed_reset` はRunner視点の1 top-level Actionとして1回だけcountし、内部re-bootstrap処理は追加countしない。
-- **final `runner_output_write` / final result flushはBudget外。**
+- **bounded final output finalizationだけはExploration Budget外。**
 
 Budget exhausted後は、
 
 ```text
 runtime exploration tools → disabled
-final output / result flush → permitted
+runtime observation / evidence collection → disabled
+bounded final output finalization → permitted once
 ```
 
 とする。
 
-これによりBudgetを使い切っても`qa-findings.json`を確実に保存できる。
+### 22.2 Bounded Final Output Finalization
 
-### 22.2 Duration
+Budget外にできるのは無制限なRunner処理ではなく、**1回だけの非対話的finalization phase**に限定する。
+
+許可すること:
+
+- Exploration終了時点までにRunnerが保持しているFinding内容を`qa-findings.json`へserializeする。
+- 既に取得済みEvidenceへのCanonical Refを確定する。
+- `output/**`へpath-confinedなfinal writeを行う。
+
+禁止すること:
+
+- Runtime navigation / interaction / observation
+- Screenshot / Console / Log等の追加Evidence取得
+- Test Control
+- 外部fetch
+- Finding候補の追加調査
+- finalizationから探索phaseへ戻ること
+
+Host / Output Contractは最低限以下を固定する。
+
+```text
+max_final_output_bytes
+finalization_timeout_seconds
+max_final_output_writes = 1
+```
+
+`runner_output_write`をToolとして実装する場合も、許可されるのはこの1回のpath-confined final writeだけで、Exploration Tool Actionとは別扱いにする。
+
+size超過 / timeout / write failure / finalization中の禁止Tool利用は `stop_reason=runner_failed` とし、Official Runをinvalidにする。
+
+BudgetとDurationから除外するのは、このbounded finalization phaseだけとする。
+
+### 22.3 Duration
 
 Host monotonic wall-clockで、
 
@@ -1001,11 +1182,11 @@ exploration_started_at
 
 を測る。
 
-Bootstrap / Preparation / final output flush時間は含めない。
+Bootstrap / Preparation / bounded final output finalization時間は含めない。
 
 探索開始後にRunnerが実行した `seed_reset` のatomic re-bootstrapは、そのtop-level探索Actionの実行時間としてDurationへ含める。Pre-run Bootstrapとは区別する。
 
-### 22.3 Runner Execution Summary
+### 22.4 Runner Execution Summary
 
 ```json
 {
@@ -1016,7 +1197,9 @@ Bootstrap / Preparation / final output flush時間は含めない。
   "exploration_ended_at": "...",
   "duration_seconds": 412,
   "tool_actions": 83,
-  "stop_reason": "required_coverage_and_candidates_resolved"
+  "stop_reason": "required_coverage_and_candidates_resolved",
+  "finalization_status": "completed",
+  "final_output_bytes": 16384
 }
 ```
 
@@ -1051,6 +1234,8 @@ Runner終了後、Harnessがconstrained outputをDeterministic Importする。
 - Atomic Finding
 - physical evidence existence
 - Canonical Artifact Manifest
+- Artifact Root内Symlink不在
+- bounded finalization status / size
 
 Freeze後にCanonical hashを記録し、post-freeze mutationをrejectする。
 
@@ -1069,13 +1254,13 @@ Evaluator inputs:
 - Challenge
 - Answer Key
 - Benchmark Manifest
-- Learner-safe Input Manifest
+- Learner-safe Input Manifest / `runner-input.json`
 - Runtime Variant definition
 - Target Runtime Identity / Artifact Manifest
 - Tool Profile bytes
 - Runner Session Evidence
 - Actual Tool Inventory
-- Forbidden Probe
+- Forbidden Probe / Actual Served Resource Probe
 - Initial State Receipt
 - Runner Execution Summary
 - Frozen Runner Artifact Manifest / hash
@@ -1086,16 +1271,17 @@ Validation order:
 ```text
 Schema
 → Benchmark Revision / Runbook
+→ Runner Input hash
 → Runtime Variant / actual browser condition
 → Prepared Runtime identity / canonical hash
-→ Runner Profile / Skill / Output Contract
-→ Fresh Session / Fresh Context
+→ Runner Profile / expected-actual Skill / Output Contract
+→ Fresh Session / Fresh Context proof status
 → Tool Profile / Actual Tool Scope
-→ Origin / Runtime Resource Boundary
+→ Origin / Runtime Resource Boundary / actual served resource probe
 → Forbidden Probe
 → Initial State / Role / Session binding
-→ Exploration-time runtime-control invariant when used
-→ Budget / Stop accounting
+→ Exploration-time runtime-control invariant / failure disposition when used
+→ Budget / Stop / bounded finalization accounting
 → Evidence mapping / Frozen Artifact integrity
 → Required Coverage
 → Ground Truth
@@ -1120,12 +1306,14 @@ Official verification failure時は `valid_for_scoring=false`、metricsは有効
 
 .artifacts/agentic-qa/<run_id>/
   trusted/
+    runner-input.json
     learner-safe-input-manifest.json
     runtime-variant.json
     target-runtime.json
     prepared-artifact-manifest.json
     runner-session.json
     forbidden-probe.json
+    resource-boundary-probe.json
     initial-state-receipt.json
     runner-execution-summary.json
     runtime-control-operations.json
@@ -1158,18 +1346,21 @@ Official verification failure時は `valid_for_scoring=false`、metricsは有効
 ### Host Gate
 
 - Fresh Session
-- Fresh Context / no inheritance
+- Fresh Context / no inheritanceを`proven`として証明可能
 - trusted session/model/host identity
 - Actual Tool Scope
 - allow / deny enforcement
 - Origin Boundary
 - Runtime Resource Boundary
+- actual served resource negative probe
 - isolated root
 - constrained output
+- Official Scored Skill source / revision固定・fallback禁止
 - Trusted Bootstrap Operations
 - trusted Initial State receipt
-- exploration-time `seed_reset` atomic re-bootstrap / invariant evidence
+- exploration-time `seed_reset` atomic re-bootstrap / invariant evidence / failure isolation
 - duration / budgeted top-level tool action accounting
+- bounded final output finalization
 
 未達ならRepository Implementationを開始しない。
 
@@ -1185,14 +1376,17 @@ Official verification failure時は `valid_for_scoring=false`、metricsは有効
 - Challenge validation
 - Seed / Role / Viewport整合
 - Host Capability Matrix
-- Fresh Context
+- Fresh Context proof shape / unknown handling
 - Tool Inventory
 - Origin / Resource Boundary
+- actual served resource probe feasibility
 - constrained output
+- Official Skill source / fallback observability
 - Trusted Bootstrap Operations
-- Exploration-time `seed_reset` re-bootstrap feasibility
+- Exploration-time `seed_reset` re-bootstrap / discard feasibility
 - Evidence Mapping feasibility
 - Budget accounting
+- bounded finalization capability
 - Protected Path candidate棚卸し
 
 Exit:
@@ -1208,12 +1402,13 @@ insufficient → BLOCKED / STOP
 
 - Prepared Runtime schema
 - Canonical Artifact Manifest schema
-- Learner-safe Input Manifest
+- shared Canonical Serializer
+- Learner-safe Input Manifest / canonical `runner-input.json`
 - Runtime Variant Registry / schema
 - Initial State Receipt
 - Runtime Control Operation Log schema
-- Runner Session Fresh Context fields
-- Runner Execution Summary
+- Runner Session Fresh Context proof-status fields
+- Runner Execution Summary / bounded finalization fields
 - Frozen Runner Artifact schema
 - Evaluator Execution Receipt
 - Runner Profile Skill / Output / Host / Model config revision
@@ -1222,25 +1417,34 @@ insufficient → BLOCKED / STOP
 - Tool Profile `runner_output_write`
 - Protected Path Contract
 - Origin / Resource Boundary Contract
+- Actual Served Resource Probe Contract
 - Evidence Mapping Contract
 
 必須negative tests:
 
-- missing fresh context
+- Fresh Context proof `unknown` / `unproven` → FAIL
+- missing fresh context evidence
 - unmeasured tool scope
 - unsafe unknown capability
 - origin/resource boundary missing
+- actual served resource未probe → FAIL
 - Skill / Output revision missing
+- Official Skill fallback used → FAIL
+- Runner-visible input変更で`runner_input_sha256`不変 → FAIL
 - dirty benchmark Runtime Variant change alters revision → FAIL
 - Runtime Variant actual viewport mismatch
 - wrong Initial State Role / Session
 - cross-session receipt
 - exploration-time seed_reset leaves wrong role/session → FAIL
 - exploration-time seed_reset invariant evidence missing when reset used → FAIL
+- failed re-bootstrap Runtime reused → FAIL
 - Budget receipt missing
+- finalization timeout / size超過 → FAIL
 - Patch touches Protected Infrastructure
 - Evidence physical/canonical mapping mismatch
+- Artifact内nested symlink → FAIL
 - unsorted artifact manifest
+- noncanonical JSON bytes → FAIL
 
 ### Wave 2 — Learner-safe Skill / Input Packaging
 
@@ -1248,11 +1452,14 @@ insufficient → BLOCKED / STOP
 - Skill SHA-256
 - Runbook SHA-256
 - Output Contract revision
+- all Runner-visible inputを含む`runner-input.json`
+- Runner Input SHA-256
 - Input Manifest
 - `input/**` read-only packaging
 - Instructor-only content混入検査
+- actual Skill source / revision / fallback=false validation
 
-Exit: Runner inputだけでScored workflowを理解できる。
+Exit: Runner inputだけでScored workflowを理解でき、Runner-visible値の変更が`runner_input_sha256`へ反映される。
 
 ### Wave 3 — Source-free Runtime / Canonical Hash / Protected Patch
 
@@ -1262,14 +1469,15 @@ Exit: Runner inputだけでScored workflowを理解できる。
 4. Patch Apply
 5. Patched Build / Sanity
 6. `dist/**` copy
-7. prohibited artifact検査
+7. prohibited artifact / nested symlink検査
 8. Canonical File Manifest / hash
 9. Disposable Source cleanup
 10. Runtime start from Prepared Artifact only
 11. hash reverify
 12. readiness
 13. Runtime Variant / Origin確定
-14. cleanup test
+14. actual served resource URL discovery / negative probe準備
+15. cleanup test
 
 ### Wave 4 — Trusted Initial State Bootstrap
 
@@ -1291,30 +1499,35 @@ Exit:
 ### Wave 5 — Host-native Fresh Runner / Isolation
 
 - Fresh Session
-- Fresh Context evidence
+- Fresh Context proven evidence
 - Model / Host profile
 - Tool allowlist
 - Origin / Resource Boundary
+- actual served resource negative probe
 - Actual Tool Scope
 - Forbidden Probe
-- read-only input
+- read-only canonical Runner Input
 - constrained output
 - Runtime URL
-- Scored Skill start
+- exact Scored Skill snapshot only
+- Skill source / revision / fallback=false proof
 - Exploration Runtime Control adapter
 - `seed_reset` atomic re-bootstrap / invariant enforcement
+- failed re-bootstrap Runtime discard / no reuse
 - trusted runtime-control operation log
 
 Repository ScriptからAgent launch禁止。
 
-### Wave 6 — Trusted Budget Accounting
+### Wave 6 — Trusted Budget Accounting / Finalization
 
 - exploration start boundary
 - budgeted top-level action semantics
 - Host timer / counter
 - hard cap capability
 - exploration-time seed_reset = 1 budgeted action
-- final output flush budget外
+- bounded final output finalization
+- final output max bytes / dedicated timeout / max write count
+- finalization中のRuntime Tool禁止
 - Execution Summary
 - Challenge Budget validation
 
@@ -1324,20 +1537,24 @@ Repository ScriptからAgent launch禁止。
 - canonical Evidence ref mapping
 - qa-findings validation
 - evidence import
+- nested symlink reject
 - canonical Frozen Manifest
 - hash / mutation detection
+- finalization size / status validation
 
 ### Wave 8 — Deterministic Evaluator
 
 - Benchmark / Runbook
+- Runner Input hash
 - Runtime Variant / actual viewport
 - Prepared Runtime hash
 - Runner Profile
-- Fresh Context
-- Tool / Origin / Resource Boundary
+- Fresh Context proof status
+- expected / actual Skill source / revision / fallback
+- Tool / Origin / Resource Boundary / actual served resource probe
 - Initial State
-- Exploration-time runtime-control invariant
-- Budget
+- Exploration-time runtime-control invariant / failure disposition
+- Budget / bounded finalization
 - Evidence Mapping / Frozen Artifact
 - Ground Truth / metrics
 
@@ -1352,6 +1569,7 @@ Preparation
 → suspended-user + guest Initial State
 → Skill exploration
 → optional exploration-time seed_reset re-establishes suspended-user + guest
+→ bounded finalization
 → Freeze
 → Deterministic Evaluator
 ```
@@ -1360,12 +1578,15 @@ DoD:
 
 - official_model_backed
 - runtime_variant non-null / actual condition match
+- runner_input_sha256 verified
 - valid_for_scoring=true
-- Fresh Session / Context PASS
-- Tool / Origin / Resource Boundary PASS
+- Fresh Session / Context all required proofs `proven`
+- exact Scored Skill / no fallback PASS
+- Tool / Origin / actual Resource Boundary PASS
 - Initial State PASS
 - exploration-time seed_reset invariant PASS when reset is used
-- Budget PASS
+- re-bootstrap failure path discards Runtime
+- Budget / bounded finalization PASS
 - current-run Evidence only
 - Artifact audit PASS
 
@@ -1384,12 +1605,14 @@ DoD:
 same Benchmark Identity
 same Prepared Target hash
 same Runner Profile
+same runner_input_sha256
 ```
 
 確認:
 
 - Benchmark Identity同一
 - Runtime Artifact同一
+- Runner Input同一
 - Runner Sessionは別
 - Fresh Context proof各Run固有
 - Evidence分離
@@ -1400,6 +1623,7 @@ Model / configurationだけ変更した場合:
 ```text
 Benchmark Identity = SAME
 Prepared Target = SAME
+Runner Input = SAME
 Runner Condition = DIFFERENT
 ```
 
@@ -1423,19 +1647,24 @@ Runner Condition = DIFFERENT
 
 - Runtime Variant Registry / viewport binding
 - Benchmark Revision runtime_variant exclusion
-- Canonical Artifact Manifest
+- Canonical Artifact Manifest / shared Serializer
+- nested symlink reject
+- canonical `runner-input.json` / Runner Input hash sensitivity
 - Learner-safe Input Manifest
 - Runner Profile revisions
-- Fresh Session / Context
+- Fresh Session / Context proof-status / unknown handling
+- exact Skill source / revision / fallback=false
 - Tool Scope
 - Origin / Resource Boundary
+- Actual Served Resource Probe schema
 - Protected Patch
 - Initial State single-group validation
 - Initial State Receipt
 - Runtime Control Operation Log
-- exploration-time seed_reset invariant validation
+- exploration-time seed_reset invariant / failed Runtime disposition
 - Runner Execution Summary
 - budgeted action / Stop semantics
+- bounded finalization size / timeout / write count
 - Evidence Mapping
 - Artifact ownership
 - Freeze
@@ -1445,27 +1674,31 @@ Runner Condition = DIFFERENT
 
 - Source cleanup後Runtime起動
 - canonical hash verify
+- nested symlink Runtime reject
 - Runtime Variant actual viewport
-- Runtime Resource Boundary negative probe
+- actual served JS / CSS / manifest Resource Boundary negative probe
+- Source Map absence / direct observation deny
 - Trusted Bootstrap Operations
 - Basic guest Initial State
 - Intermediate operator Initial State
 - Advanced tablet Initial State
 - exploration-time seed_reset re-bootstrap for Basic / Intermediate / Advanced
-- re-bootstrap role/session failure → environment_blocked
+- re-bootstrap role/session failure → environment_blocked + Runtime discard / no reuse
 - cleanup
 
 ### Host Integration
 
-- Fresh Session / Context
+- Fresh Session / Context proof-status
 - Tool inventory
 - deny enforcement
-- Origin / Resource deny
+- Origin / actual Resource deny
 - constrained output
+- exact scored Skill source / no fallback
 - trusted Bootstrap receipt
-- exploration-time seed_reset atomic adapter / operation log
+- exploration-time seed_reset atomic adapter / operation log / discard path
 - Budget timer / action accounting
-- learner-safe input boundary
+- bounded finalization timeout / size enforcement
+- learner-safe input boundary / Runner Input hash
 
 Host capabilityがない一般CIでfake PASSしない。
 
@@ -1483,22 +1716,25 @@ Manual / Explicit WorkflowまたはHost-native executionで行う。
 
 Challenge固有のInitial State / Runtime / Ground Truth問題は、そのChallengeだけをblockする。
 
-探索中のallowed Runtime ControlでCurrent Initial State Groupを再成立できない場合も、そのRunを `environment_blocked` / invalidとして停止する。
+探索中のallowed Runtime ControlでCurrent Initial State Groupを再成立できない場合も、そのRunを `environment_blocked` / invalidとして停止し、tainted Runtime instanceを破棄して再利用しない。
 
 ### Global Blocker
 
 以下はOfficial execution全体を止める。
 
 - Fresh Session不可
-- Fresh Context不可
+- Fresh Context不可 / required proofが`proven`でない
 - Actual Tool Scope不可
 - Tool deny不可
 - Origin Boundary不可
 - Runtime Resource Boundary不可
+- actual served resource probe不可
 - constrained output不可
+- exact Scored Skill source / fallback禁止を証明不可
 - trusted Bootstrap不可
-- exploration-time `seed_reset` invariantをHost/trusted adapterで保証不可
+- exploration-time `seed_reset` invariant / failure isolationをHost/trusted adapterで保証不可
 - trusted Budget不可
+- bounded finalization不可
 - source-free Runtime不可
 - Scored Skill source-free delivery不可
 - PatchがProtected Infrastructureへ触れる
@@ -1534,10 +1770,12 @@ scripts/agentic-qa/validate-contracts.ts
 scripts/agentic-qa/benchmark-revision.ts
 scripts/agentic-qa/build-learner-bundle.ts
 
+scripts/agentic-qa/<canonical-json>.ts
 scripts/agentic-qa/<canonical-artifact-manifest>.ts
 scripts/agentic-qa/<prepared-runtime-lifecycle>.ts
 scripts/agentic-qa/<runner-output-import>.ts
 scripts/agentic-qa/<protected-patch-validation>.ts
+scripts/agentic-qa/<resource-boundary-probe>.ts
 
 training/agentic-qa/skills/scored-v1.md
 training/agentic-qa/tool-profiles/scored-v1.json
@@ -1553,6 +1791,10 @@ docs/PROJECT_CONTEXT.md
 relevant docs/history/**
 .codex/runs/<implementation-run>/**
 ```
+
+`scripts/agentic-qa/runner.ts` は既存責務を維持し、**Frozen Runner Result / Runner Profile / Runner Session等の契約処理だけ**を担当する。
+
+`runner.ts` はCoding Agentのlaunch / wrap / orchestrate / retry / manage、Tool proxy、Model API callを担当しない。これらを追加してOfficial blockerを回避しない。
 
 Host integrationをRepositoryへ追加する場合もMachine Contract / trusted evidence adapterに限定する。
 
@@ -1594,17 +1836,19 @@ Official Host capability利用可能環境ではHost Integration / Official E2E�
 - [ ] Coding Agent + Scored SkillがPrimary Executor
 - [ ] Repository独自Agent Runnerなし
 - [ ] HarnessがAgentをlaunch / wrap / orchestrateしない
+- [ ] `runner.ts` がFrozen Result / Profile等の契約処理だけを担当
 - [ ] Trusted Operator / Host Workflowがhandoff owner
 
 ### Host / Context / Isolation
 
 - [ ] Fresh Session trusted
-- [ ] Fresh Context / no inheritance trusted
+- [ ] Fresh Context / no inheritanceの全required proofが`proven`
+- [ ] `unknown` / `unproven`をfalseへ補完しない
 - [ ] Model / Host config revision記録
 - [ ] Actual Tool Scope measured
 - [ ] Tool allow / deny enforced
 - [ ] Origin Boundary enforced
-- [ ] Runtime Resource Boundary enforced
+- [ ] Actual Served Runtime Resource Boundary enforced / evidenced
 - [ ] constrained output enforced
 - [ ] trusted Budget accounting
 
@@ -1612,7 +1856,10 @@ Official Host capability利用可能環境ではHost Integration / Official E2E�
 
 - [ ] Scored Skill source-free delivery
 - [ ] Skill revision fixed
+- [ ] exact Scored Skill source / revisionがtrusted evidenceと一致
+- [ ] Repository Skill fallback未使用
 - [ ] Runbook included in Benchmark Revision
+- [ ] all Runner-visible input covered by `runner_input_sha256`
 - [ ] Output Contract revision included in Runner Profile
 - [ ] Instructor-only情報非露出
 
@@ -1622,12 +1869,16 @@ Official Host capability利用可能環境ではHost Integration / Official E2E�
 - [ ] Runtime Variant non-null for Official
 - [ ] actual browser / viewport matches Runtime Variant and Challenge
 - [ ] Prepared Runtime canonical hash
+- [ ] Shared Canonical Serializerがidentity計算のSSOT
+- [ ] Artifact Root内symlink zero
 - [ ] Source cleanup後にRuntime start
 - [ ] Bundle / Source Map direct observation不可
+- [ ] 実配信JS / CSS / manifest等をnegative probe済み
 
 ### Patch
 
 - [ ] Protected Infrastructure untouched
+- [ ] `.agents/skills/**` / Official Skill selection-fallback pathも保護
 
 ### Initial State
 
@@ -1639,6 +1890,7 @@ Official Host capability利用可能環境ではHost Integration / Official E2E�
 - [ ] trusted Receipt bound to Session / Runtime / Coverage
 - [ ] exploration-time `seed_reset` atomically re-establishes Current Initial State Group
 - [ ] failed re-bootstrap stops as `environment_blocked` / invalid
+- [ ] failed re-bootstrap Runtime instanceをdiscardし再利用しない
 
 ### Runner Output / Evidence
 
@@ -1648,20 +1900,27 @@ Official Host capability利用可能環境ではHost Integration / Official E2E�
 - [ ] deterministic import
 - [ ] Frozen Runner canonical hash
 - [ ] post-freeze mutation rejected
+- [ ] Frozen Artifact内symlinkなし
 
 ### Budget / Stop
 
 - [ ] exploration start boundary fixed
 - [ ] budgeted top-level tool action semantics fixed
 - [ ] exploration-time `seed_reset` counted once as top-level action
-- [ ] final output flush excluded from budget
+- [ ] Budget外はbounded finalization 1 phaseのみ
+- [ ] finalization max bytes / timeout / max writes enforced
+- [ ] finalization中のRuntime observation / exploration禁止
+- [ ] finalization失敗は`runner_failed` / invalid
 - [ ] duration / tool actions Host measured
 - [ ] Stop Reason matches existing STOP_CONDITION semantics
 
 ### Evaluation
 
 - [ ] Deterministic Evaluator
-- [ ] runtime-control invariant evidence validated when control is used
+- [ ] Fresh Context proof status validated
+- [ ] Runner Input hash validated
+- [ ] actual Skill / Resource Boundary evidence validated
+- [ ] runtime-control invariant / failed Runtime disposition validated when control is used
 - [ ] all identity / context / tool / resource / state / budget / evidence checks fail-close
 - [ ] Official verification failure does not expose valid metrics
 
@@ -1694,7 +1953,7 @@ Official Host capability利用可能環境ではHost Integration / Official E2E�
 3. Source-free Runtime / Hash / Protected Patch
 4. Trusted Initial State Bootstrap
 5. Fresh Host Integration / Isolation
-6. Trusted Budget Accounting
+6. Trusted Budget Accounting / Finalization
 7. Output Import / Evidence Mapping / Freeze
 8. Deterministic Evaluator
 9. Basic Official E2E
@@ -1710,14 +1969,16 @@ Official Host capability利用可能環境ではHost Integration / Official E2E�
 ```text
 Hostがtrusted / machine-readableに以下を提供・enforceできる
 - Fresh Session
-- Fresh Context / no inheritance
+- Fresh Context / no inheritanceのproven evidence
 - Tool Isolation / Tool Inventory
 - Origin Boundary
-- Runtime Resource Boundary
+- Actual Served Runtime Resource Boundary
 - Constrained Output
+- exact Scored Skill source / no fallback
 - Trusted Bootstrap Operations
-- Exploration-time seed_reset atomic re-bootstrap
+- Exploration-time seed_reset atomic re-bootstrap / failure isolation
 - Budget Accounting
+- Bounded Finalization
         ↓ YES
 Official Black-box Scored E2EをSkill-firstで実装する
 
