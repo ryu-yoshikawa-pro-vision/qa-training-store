@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "charter_id": "CHARTER-001",
+  "spec_refs": [
+    "BR-STOREFRONT-001",
+    "AC-STOREFRONT-001",
+    "docs/spec/ui-ux-contract.md#responsive-behavior"
+  ],
+  "mission": "Observe storefront visibility and responsive behavior using the default seed without changing the source tree.",
+  "risk": "Unauthorized product visibility and a broken small-screen storefront would affect customer trust and discovery.",
+  "role": "guest",
+  "seed": "default",
+  "platform": "web",
+  "viewport_or_device": "desktop-and-mobile",
+  "required_coverage": [
+    {
+      "coverage_id": "COV-001",
+      "mission": "Open the storefront with the default seed and observe the visible product list.",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "desktop",
+      "required_evidence_types": [
+        "screenshot",
+        "url",
+        "dom"
+      ]
+    },
+    {
+      "coverage_id": "COV-002",
+      "mission": "Open the storefront at a mobile viewport and observe layout and accessible navigation.",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "mobile",
+      "required_evidence_types": [
+        "screenshot",
+        "accessibility",
+        "url"
+      ]
+    }
+  ],
+  "allowed_runtime_controls": [
+    "seed_reset",
+    "app_restart"
+  ],
+  "exploration_budget": {
+    "max_duration_seconds": 900,
+    "max_tool_actions": 150
+  },
+  "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
+}

@@ -1,0 +1,75 @@
+{
+  "schema_version": 1,
+  "run_id": "20260810-130321-JST",
+  "source_head_sha": "c28920806f3add02a374e08e0dad2b20fccbc902",
+  "coverage": {
+    "required_ids": [
+      "COV-001"
+    ],
+    "items": [
+      {
+        "coverage_id": "COV-001",
+        "status": "not_completed",
+        "mission_completed": false,
+        "evidence_refs": [
+          ".artifacts/agentic-qa/20260810-130321-JST/runner-observation.txt"
+        ],
+        "evidence_types": [
+          "narrow_log"
+        ],
+        "blocker_reason": null,
+        "notes": "Contract fixture evidence is intentionally incomplete and is not an official scored run."
+      }
+    ]
+  },
+  "findings": [
+    {
+      "finding_id": "FIND-001",
+      "title": "Suspended account sign-in result differs from the Normative contract",
+      "severity": "high",
+      "confidence": "high",
+      "oracle_refs": [
+        "BR-AUTH-001",
+        "AC-AUTH-001"
+      ],
+      "platform": "web",
+      "role": "guest",
+      "seed_scenario": "COV-001",
+      "steps": [
+        "COV-001: open the sign-in screen",
+        "submit the suspended-user credentials"
+      ],
+      "reproduction_condition": "Use the suspended-user seed and submit its valid credentials from the sign-in screen.",
+      "expected": "A suspended account is rejected and no authenticated session is created.",
+      "actual": "The suspended account creates an authenticated session.",
+      "evidence": [
+        {
+          "type": "narrow_log",
+          "ref": ".artifacts/agentic-qa/20260810-130321-JST/runner-observation.txt",
+          "description": "The suspended account creates an authenticated session."
+        }
+      ],
+      "reproduction_count": 2,
+      "known_deviation_ref": null,
+      "duplicate_of": null,
+      "suggested_regression_layer": "integration",
+      "status": "confirmed"
+    }
+  ],
+  "mode": "black-box-scored",
+  "charter_id": null,
+  "challenge_id": "CHALLENGE-BASIC-001",
+  "benchmark_revision": "sha256:a5332b05fb66710c0778ddda3ae2fd3bff3bf453e94aef0fd9c8a0363c71fca7",
+  "runtime_variant_id": null,
+  "runner_profile": {
+    "model": "local-deterministic-runner",
+    "tool_profile_revision": "sha256:452e4a3d9d488e8e708b3886d416b4da6e5aea47f34bb6d243ebacf9d7a61f8f",
+    "max_duration_seconds": 900,
+    "max_tool_actions": 150,
+    "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
+  },
+  "execution_kind": "contract_fixture",
+  "runner_session_id": "be9d8c66-ff9a-4e70-9b15-90bfb6d63e3c",
+  "fresh_session": true,
+  "tool_scope_validated": false
+}

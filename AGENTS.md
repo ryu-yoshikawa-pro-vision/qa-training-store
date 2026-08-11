@@ -18,6 +18,8 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 - レビュー依頼または `/review` のときは `CODE_REVIEW.md` を読み、`.agents/skills/code-review/SKILL.md` を使う。Review では findings を返し、実装や設計相談へ逸れない。
 - review findings や validation failure の修正では `docs/reference/repair-loop.md` を読み、`.agents/skills/repair-loop/SKILL.md` を使う。Repair loop は bounded workflow であり、無制限再試行ではない。
 - 実行結果や評価結果から harness 自体の改善候補を作るときは `docs/reference/harness-improvement-loop.md` を読み、`.agents/skills/harness-improvement/SKILL.md` を使う。実装修正と harness improvement は分離する。
+- 探索的QA、仕様ベースQA、Agentic QA、実Runtimeを操作してProduct Behaviorを確認する依頼では、`QA_AGENT.md` と `.agents/skills/exploratory-qa/SKILL.md` を使用する。Exploratory QA SkillがQA実行のPrimary Entry Pointである。
+- `scripts/agentic-qa/**` はCoding Agentを起動・制御するものではなく、Deterministic Preparation / Validation / Isolation Verification / Evaluationの補助として使用する。QA探索中はProduct Codeを修正しない。修正依頼へ進む場合はQA Findingを確定した後、Repair Workflowへ明示的に切り替える。
 - チャットで合意した計画を実装に移す前に、`docs/plans/` 配下へ保存する。
 
 ## 1. Run 初期化

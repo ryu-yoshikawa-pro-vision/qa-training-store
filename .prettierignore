@@ -18,6 +18,7 @@ public/files/
 src/generated/product-image-manifest.ts
 test-results
 .playwright-mcp
+.playwright-cli
 expo-env.d.ts
 scripts/*.ps1
 scripts/*.sh

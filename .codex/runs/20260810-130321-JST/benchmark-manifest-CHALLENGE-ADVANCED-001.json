@@ -1,0 +1,82 @@
+{
+  "schema_version": 1,
+  "source_head_sha": "c28920806f3add02a374e08e0dad2b20fccbc902",
+  "working_tree_entries": [
+    {
+      "status": "M",
+      "path": "docs/reference/run-artifacts.md",
+      "sha256": "45b5d0e5ca795695757a4ec68e5b77886497b45fd66a3a106d88f28cb20921ce"
+    },
+    {
+      "status": "M",
+      "path": "scripts/agentic-qa/contracts.ts",
+      "sha256": "b9ce4df0ceb689de62b7d153f70341444718d460f15f2a9ea6ca5348f2349bfb"
+    },
+    {
+      "status": "M",
+      "path": "scripts/agentic-qa/coverage.ts",
+      "sha256": "62d031d8195e02e0b39bd4bd5bd266e239e45f8e94967428b3ab2d37f18f464e"
+    },
+    {
+      "status": "M",
+      "path": "scripts/agentic-qa/evaluate.ts",
+      "sha256": "104159e9a2c5cabe8148075e337d0e270308cfff44238c48e61cef497f17ccfc"
+    },
+    {
+      "status": "M",
+      "path": "scripts/agentic-qa/isolation.ts",
+      "sha256": "a4f34fc64133a93729100a4e396a23403a7da5b89aa5f4a31acc55deac4b8c79"
+    },
+    {
+      "status": "M",
+      "path": "scripts/agentic-qa/prepare-challenge.ts",
+      "sha256": "b0220d999b51439a5dcdd45161dad425b3391de2f3e23ebc81859d11f5542a0c"
+    },
+    {
+      "status": "M",
+      "path": "scripts/agentic-qa/run-local-e2e.ts",
+      "sha256": "d34f64acfaa6064668fc1b91d8db2cd4304b41a4c4cc651d720d908b87af107d"
+    },
+    {
+      "status": "M",
+      "path": "scripts/agentic-qa/runner.ts",
+      "sha256": "595829d42399700666c3fc70e8fec4679df06d941ef8b7df67f6edc636393207"
+    },
+    {
+      "status": "M",
+      "path": "scripts/agentic-qa/validate-contracts.ts",
+      "sha256": "ae7aa7b68f1d2fb73f0b9b5e34ba48d2d3526a40ec6b0f69c2a565febc27a4d6"
+    },
+    {
+      "status": "M",
+      "path": "tests/contracts/spec-agentic-qa.test.ts",
+      "sha256": "ae2b10954a51ae0f6fc8fe7963476be23f5f06879e139aa8f7935f169912e246"
+    }
+  ],
+  "learner_spec_entries": [
+    {
+      "path": "docs/spec/features/storefront.md",
+      "sha256": "ba7d5df19420caf798a36a77a9a3a47701af99e601ab4dc3bb89f5e042ee59ab"
+    }
+  ],
+  "challenge": {
+    "path": "training/agentic-qa/challenges/CHALLENGE-ADVANCED-001/challenge.json",
+    "sha256": "161eb4b42dc7489d79c62300acac26e8361c2672421fe7763c58d0d1331a47ef"
+  },
+  "answer_key": {
+    "path": "training/agentic-qa/instructor/answer-key/CHALLENGE-ADVANCED-001.json",
+    "sha256": "afde80537b16fce3ab12d6c1733d13c6ef355138f577c7f396edc377950211de"
+  },
+  "challenge_patch": {
+    "path": "training/agentic-qa/instructor/challenge-patches/CHALLENGE-ADVANCED-001.patch",
+    "sha256": "c696f9701ac7500e9ea437f54595ffe1220b275b3a4323899e754dbd2ad848b7"
+  },
+  "runtime_variant_id": null,
+  "runner_profile": {
+    "model": "local-deterministic-runner",
+    "tool_profile_revision": "sha256:452e4a3d9d488e8e708b3886d416b4da6e5aea47f34bb6d243ebacf9d7a61f8f",
+    "max_duration_seconds": 1200,
+    "max_tool_actions": 250,
+    "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
+  }
+}

@@ -60,7 +60,7 @@
 - `maestro/` のMaestro Flow
 - `.github/workflows/ci.yml` のWeb CI/CD
 - `.github/workflows/native-ci.yml` のAndroid Build / Runtime / Maestro
-- `.github/workflows/native-ios-ci.yml` のiOS Simulator / Maestro
+- `.github/workflows/native-ios-ci.yml` のiOS Build-only baseline
 - `tests/unit/`、`tests/integration/`、`tests/component/`、`tests/contracts/` などのテスト層
 - `/guide` とTest Control
 - Cloudflare Pages Preview / Productionのデプロイ経路
@@ -99,7 +99,8 @@
 6. [テスト実行・結果分析・改善](./part1/06_execution-and-failure-analysis.md)
 7. [MaestroによるNative UI自動化](./part1/07_maestro-native-automation.md)
 8. [テスト管理と保守性改善](./part1/08_test-management-and-maintainability.md)
-9. [Part 1 総合演習](./part1/09_part1-capstone.md)
+9. [Specification と Agentic QA](./part1/09_specification-agentic-qa.md)
+10. [Part 1 総合演習](./part1/10_part1-capstone.md)
 
 ### Part 2: 開発プロセスへの組み込みと実務導入
 

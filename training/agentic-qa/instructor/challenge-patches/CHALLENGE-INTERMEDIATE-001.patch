@@ -1,0 +1,48 @@
+diff --git a/src/domain/policies/state-transitions.ts b/src/domain/policies/state-transitions.ts
+--- a/src/domain/policies/state-transitions.ts
++++ b/src/domain/policies/state-transitions.ts
+@@ -17,7 +17,7 @@
+ const ORDER_TRANSITIONS: Readonly<Record<OrderStatus, readonly OrderStatus[]>> = {
+   pending_payment: ["payment_failed", "paid"],
+   payment_failed: ["pending_payment"],
+-  paid: ["preparing"],
++  paid: ["preparing", "delivered"],
+   preparing: ["shipped"],
+   shipped: ["delivered"],
+   delivered: [],
+
+diff --git a/src/presentation/pages/admin-operations-pages.tsx b/src/presentation/pages/admin-operations-pages.tsx
+--- a/src/presentation/pages/admin-operations-pages.tsx
++++ b/src/presentation/pages/admin-operations-pages.tsx
+@@ -566,16 +566,31 @@
+           {order.orderStatus === "paid" && (
+             <button
+               className="button button--primary"
+               onClick={() =>
+                 void mutate(() =>
+                   adminOperations.startPreparation({
+                     orderId,
+                     orderActionVersion: order.orderActionVersion,
+                   }),
+                 )
+               }
+             >
+               発送準備を開始
+             </button>
+           )}
++          {order.orderStatus === "paid" && (
++            <button
++              className="button button--primary"
++              onClick={() =>
++                void mutate(() =>
++                  adminOperations.completeDelivery({
++                    orderId,
++                    orderActionVersion: order.orderActionVersion,
++                  }),
++                )
++              }
++            >
++              配達完了にする
++            </button>
++          )}
+           {order.orderStatus === "preparing" && (

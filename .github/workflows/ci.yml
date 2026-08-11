@@ -29,6 +29,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          fetch-depth: 0
           persist-credentials: false
 
       - uses: pnpm/action-setup@v4
@@ -43,11 +44,21 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile --ignore-scripts
 
+      - name: Specification impact summary
+        env:
+          SPEC_IMPACT_EVENT_NAME: ${{ github.event_name }}
+          SPEC_IMPACT_BASE_BRANCH: ${{ github.base_ref }}
+          SPEC_IMPACT_EVENT_BEFORE: ${{ github.event.before }}
+        run: pnpm run summarize:spec-impact
+
       - name: Format check
         run: pnpm run format:check
 
       - name: Markdown lint
         run: pnpm run lint:markdown
+
+      - name: Specification and Agentic QA validation
+        run: pnpm run validate:spec
 
   code-quality:
     name: Code Quality
@@ -199,6 +210,12 @@ jobs:
       - name: Build automation web
         run: pnpm run build:web
 
+      - name: Build specification site
+        run: pnpm run build:spec
+
+      - name: Verify specification artifact
+        run: test -f output/spec-site/index.html
+
       - name: Verify automation artifact
         run: test -f dist/index.html
 
@@ -207,6 +224,14 @@ jobs:
         with:
           name: web-dist-automation
           path: dist
+          if-no-files-found: error
+          retention-days: 3
+
+      - name: Upload specification artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: spec-site-automation
+          path: output/spec-site
           if-no-files-found: error
           retention-days: 3
 
@@ -299,6 +324,10 @@ jobs:
 
       - name: Install Chromium
         run: pnpm exec playwright install --with-deps chromium
+
+      - name: Verify Agentic QA deterministic preparation
+        if: matrix.name == 'required'
+        run: pnpm run test:agentic-qa:preparation
 
       - name: Run Chromium E2E
         run: ${{ matrix.command }}

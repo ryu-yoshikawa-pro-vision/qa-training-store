@@ -94,6 +94,13 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 - Cloudflare Pages
 - pnpm
 
+## Specification と Agentic QA
+
+- Normative Product Specification: [`docs/spec/README.md`](docs/spec/README.md)
+- Agentic QA実行契約: [`QA_AGENT.md`](QA_AGENT.md)
+- Agentic QA Workflow: [`docs/reference/agentic-qa-workflow.md`](docs/reference/agentic-qa-workflow.md)
+- Learner-safe Challenge: [`training/agentic-qa/`](training/agentic-qa/)
+
 依存PackageのVersion指定は[`package.json`](./package.json)、実際に解決されるVersionは[`pnpm-lock.yaml`](./pnpm-lock.yaml)を参照してください。
 
 ## セットアップ

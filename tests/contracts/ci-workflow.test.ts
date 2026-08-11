@@ -27,10 +27,21 @@ describe("Phase 1 CI deployment boundaries", () => {
     const style = jobBlock("style-quality", "code-quality");
     const format = stepBlock(style, "Format check");
     const markdown = stepBlock(style, "Markdown lint");
+    const specification = stepBlock(style, "Specification and Agentic QA validation");
+    const impact = stepBlock(style, "Specification impact summary");
 
     expect(format).toContain("pnpm run format:check");
     expect(markdown).toContain("pnpm run lint:markdown");
+    expect(specification).toContain("pnpm run validate:spec");
+    expect(impact).toContain("pnpm run summarize:spec-impact");
+    expect(impact).toContain("SPEC_IMPACT_EVENT_NAME");
     expect(style.indexOf("Markdown lint")).toBeGreaterThan(style.indexOf("Format check"));
+    expect(style.indexOf("Specification and Agentic QA validation")).toBeGreaterThan(
+      style.indexOf("Markdown lint"),
+    );
+    expect(style.indexOf("Specification impact summary")).toBeLessThan(
+      style.indexOf("Format check"),
+    );
     expect(style).not.toMatch(/run: pnpm run lint$/m);
     expect(style).not.toMatch(/run: pnpm run typecheck$/m);
   });
@@ -145,6 +156,10 @@ describe("Phase 1 CI deployment boundaries", () => {
   });
 
   it("keeps Automation and Production artifacts identical across consumers", () => {
+    const automationBuild = jobBlock("build-automation", "build-production");
+    expect(automationBuild).toContain("pnpm run build:spec");
+    expect(automationBuild).toContain("path: output/spec-site");
+    expect(automationBuild).toContain("name: spec-site-automation");
     expect(jobBlock("build-automation", "build-production")).toContain("name: web-dist-automation");
     const automationConsumers = [
       ["e2e-chromium", "ui-review"],

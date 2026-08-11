@@ -1,0 +1,30 @@
+{
+  "schema_version": 1,
+  "challenge_id": "CHALLENGE-ADVANCED-001",
+  "level": "advanced",
+  "target_platform": "web",
+  "spec_refs": ["BR-STOREFRONT-001", "AC-STOREFRONT-001"],
+  "required_coverage": [
+    {
+      "coverage_id": "COV-001",
+      "mission": "Exercise storefront visibility for the supplied rank-restricted catalog seed as a guest and record the observed product list.",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "tablet",
+      "required_evidence_types": ["screenshot", "dom", "accessibility"]
+    }
+  ],
+  "allowed_runtime_controls": ["seed_reset", "app_restart", "clock"],
+  "exploration_budget": {
+    "max_duration_seconds": 1200,
+    "max_tool_actions": 250
+  },
+  "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted",
+  "out_of_scope": [
+    "Source repository inspection",
+    "Automated test inspection",
+    "Instructor materials",
+    "External search"
+  ]
+}

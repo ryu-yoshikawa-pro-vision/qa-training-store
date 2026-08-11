@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "run_id": "20260810-130321-JST",
+  "challenge_id": "CHALLENGE-BASIC-001",
+  "benchmark_revision": "sha256:a5332b05fb66710c0778ddda3ae2fd3bff3bf453e94aef0fd9c8a0363c71fca7",
+  "source_head_sha": "c28920806f3add02a374e08e0dad2b20fccbc902",
+  "runtime_variant_id": null,
+  "runner_profile": {
+    "model": "local-deterministic-runner",
+    "tool_profile_revision": "sha256:452e4a3d9d488e8e708b3886d416b4da6e5aea47f34bb6d243ebacf9d7a61f8f",
+    "max_duration_seconds": 900,
+    "max_tool_actions": 150,
+    "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
+  },
+  "mode": "black-box-scored",
+  "execution_kind": "contract_fixture",
+  "runner_session_id": "be9d8c66-ff9a-4e70-9b15-90bfb6d63e3c",
+  "evaluator_session_id": "8543aa5b-b8ef-429a-a16a-e5270f1ca6af",
+  "fresh_session": true,
+  "tool_scope_validated": false,
+  "valid_for_scoring": false,
+  "invalid_reasons": [
+    "coverage_integrity_failure",
+    "fixture_not_official",
+    "preparation_failure",
+    "tool_scope_failure"
+  ],
+  "matches": [
+    {
+      "finding_id": "FIND-001",
+      "answer_item_id": "DEFECT-001",
+      "coverage_id": "COV-001",
+      "classification": "review_needed",
+      "required_observation_satisfied": false,
+      "adjudication": "human"
+    },
+    {
+      "finding_id": null,
+      "answer_item_id": "DEFECT-001",
+      "coverage_id": "COV-001",
+      "classification": "fn",
+      "required_observation_satisfied": false,
+      "adjudication": "automatic"
+    }
+  ],
+  "counts": {
+    "tp": 0,
+    "fp": 0,
+    "fn": 1,
+    "tn": 0,
+    "fp_non_defect": 0,
+    "not_evaluated_non_defect": 0,
+    "duplicates": 0,
+    "invalid_non_atomic": 0,
+    "blocked_environment_coverage": 0
+  },
+  "metrics": {
+    "recall": null,
+    "precision": null,
+    "false_positive_rate": null,
+    "evidence_quality": null,
+    "reproducibility": null,
+    "severity_accuracy": null,
+    "coverage": null,
+    "duplicate_rate": null
+  }
+}

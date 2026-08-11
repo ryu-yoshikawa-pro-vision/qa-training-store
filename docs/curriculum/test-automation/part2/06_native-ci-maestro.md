@@ -6,7 +6,7 @@
 - Androidの最小Training WorkflowでBuild、Emulator、Install、Maestro実行までを体験できる。
 - Android BuildとAndroid Emulator実行を分ける理由を理解できる。
 - APK ArtifactをBuild JobからRuntime Jobへ受け渡す構成を説明できる。
-- iOS Simulator上でBuild・Install・Launch・Maestroを実行する流れを理解できる。
+- iOSのBuild-only CIで、Build-time metadata／Production guard／Artifactを検証する流れを理解できる。
 - Native変更がない場合に高コストJobをSkipする設計を理解できる。
 - JUnit、Screenshot、logcat、Simulator診断などNative Failure Evidenceを扱える。
 - Web CIとNative CIで異なるCost・Flakiness・実行時間を考慮できる。
@@ -38,7 +38,7 @@ Native変更判定、Static Check、Production Bundle Guard、Android Build、An
 
 `.github/workflows/native-ios-ci.yml` は現時点では `workflow_dispatch` のみです。
 
-つまり、iOS Simulator Build / MaestroをCI上で確認できる**手動実行のCI baseline**であり、現在のPR Required Gateへ自動的に含まれているわけではありません。
+つまり、iOS Automation / Productionのunsigned Release `iphonesimulator` BuildとArtifactをCI上で確認する**手動実行のBuild-only baseline**であり、Simulator Install／Launch／Maestroは現行正式Gateの対象外です。現在のPR Required Gateへ自動的に含まれているわけではありません。
 
 この差を完成済みの正解として暗記せず、後続演習で「iOSをPR / main / Nightly / Manualのどこへ配置するか」をRiskとCostから考えます。
 
@@ -77,11 +77,9 @@ PlaywrightのBrowser実行と比べ、Native CIでは追加で次が必要にな
 - macOS Runner
 - Xcode
 - CocoaPods
-- Simulator Build
-- Simulator
-- App Install
-- App Launch
-- Maestro
+- `iphonesimulator` Build
+- Build-time metadata / Production guard
+- `.app` Artifact保存
 
 そのため、Native CIでは実行時間とRunner Costを特に意識します。
 
@@ -208,7 +206,7 @@ Scenario Shopでは変更Pathを判定し、Native変更がない場合は高コ
 
 最適化とFail-safeのBalanceを考えます。
 
-## Lesson 10: iOS Simulator CI
+## Lesson 10: iOS Build-only CI
 
 `native-ios-ci.yml` を読み、次の流れを確認します。
 
@@ -225,18 +223,14 @@ pod install
 ↓
 xcodebuild
 ↓
-Simulator boot
+Build-time metadata / Production guard
 ↓
-App install / launch
-↓
-Maestro
-↓
-Evidence
+`.app` Artifact upload
 ```
 
 iOSではmacOS Runnerが必要で、AndroidとはCost特性が異なります。
 
-現状は `workflow_dispatch` の手動実行baselineであるため、「CI上で動く」ことと「PR Required Gateへ入っている」ことを区別します。
+現状は `workflow_dispatch` の手動Build baselineであるため、「Build Artifactが生成・検証される」ことと「Simulator Runtime / Maestroが動く」こと、さらに「PR Required Gateへ入っている」ことを区別します。
 
 ## Lesson 11: Android / iOSを独立して考える
 
@@ -348,6 +342,6 @@ AndroidとiOSを同じ頻度にする必要があるかも含め、Runner Cost�
 - Native Failureを工程別に分類し、Evidenceを1件以上確認している。
 - 現在のAndroid Native CIのJob構成を説明できる。
 - Build Artifact再利用の目的を説明できる。
-- iOS Simulator CIのBuild → Install → Launch → Maestroの流れを説明できる。
-- 現在のiOS CIが手動実行baselineであることを説明できる。
+- iOS CIのBuild → metadata / guard → Artifactの流れを説明できる。
+- 現在のiOS CIが手動Build-only baselineであることを説明できる。
 - Android / iOSの実行頻度案をCostとRiskから説明できる。

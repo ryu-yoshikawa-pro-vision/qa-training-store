@@ -1,0 +1,32 @@
+{
+  "schema_version": 1,
+  "profile_id": "scored-v1",
+  "allowed_capabilities": [
+    "learner_safe_file_read",
+    "runtime_navigate",
+    "runtime_interact",
+    "runtime_observe",
+    "screenshot",
+    "narrow_console_or_log",
+    "approved_test_control"
+  ],
+  "forbidden_capabilities": [
+    "source_repository",
+    "parent_traversal",
+    "git_repository_search",
+    "web_search",
+    "arbitrary_external_fetch",
+    "generic_shell",
+    "web_bundle",
+    "source_map",
+    "network_response_body",
+    "browser_evaluate",
+    "native_apk_ipa",
+    "arbitrary_adb_shell",
+    "existing_test",
+    "hidden_test",
+    "challenge_patch",
+    "answer_key",
+    "prior_scored_session"
+  ]
+}

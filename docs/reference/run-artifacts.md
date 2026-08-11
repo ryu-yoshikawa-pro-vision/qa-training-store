@@ -14,7 +14,7 @@ Both are validated by schema / validator.
 
 - 実行事実の正本は runner / wrapper / hooks が生成します。
 - 失敗解釈の正本は `evaluation.json` です。
-- `run.json.primary_failure_category` は `evaluation.json.primary_failure_category` からコピーされる summary field です。
+- Generic run evaluationを使う場合、`run.json.primary_failure_category` は `evaluation.json.primary_failure_category` からコピーされる summary field です。Agentic QAの評価は `valid_for_scoring` と `invalid_reasons[]` を正本とし、このgeneric fieldへ読み替えません。
 - `evaluation.json` 生成前の `run.json.primary_failure_category` は `null` です。
 - `run.json.evaluation_path` は評価の正本となる `evaluation.json` を指します。
 - `run.json.primary_failure_category` と `evaluation.json.primary_failure_category` が食い違う場合、後続 validator は warning または failure にするべきです。
@@ -52,6 +52,18 @@ Both are validated by schema / validator.
 - runner が行うのは `evaluation.json` の template 作成、存在確認、JSON / schema validation、`run_id` 一致確認、manifest summary field 更新だけです。
 - `evidence` 文字列は required のまま維持し、必要に応じて `evidence_refs` で `run.json` / report / JSONL / subagent record / validation command などへの structured reference を追加できます。
 
+### Agentic QA evaluation boundary
+
+- Agentic QAの`evaluation.json`は`scripts/agentic-qa/contracts.ts`のJSON + Zod契約で検証します。Agentic形状のevaluationはbenchmark manifestがなくても検証対象から除外しません。
+- Contract Fixtureは`execution_kind=contract_fixture`として保存できる診断成果物ですが、`fixture_not_official`を付与し、`valid_for_scoring=false`かつMetric `null`でなければなりません。
+- Official model-backed Scored Runは、patched runtimeの実測、Forbidden Probe、Fresh Runner、Required Evidence、Atomic Freeze、別Evaluator Sessionのすべてが証明できた場合だけ有効です。未実行の工程を`PASS`や`true`へ補完しません。
+
+### Challenge-specific Benchmark Manifest
+
+- `benchmark-manifest-<challenge-id>.json`をChallenge単位の正本とします。同じRunで複数ChallengeをPreparationする場合も、Challenge-specific manifestを上書きせず個別に保存します。
+- `benchmark-manifest.json`は過去Runとの互換性のためだけにfallback読込を許可するhistorical / legacy generic manifestです。複数Challenge Runでは正本ではなく、新規Preparationで生成・上書きしません。
+- Evaluatorはchallenge-specific manifestを必ず優先し、存在しない場合だけlegacy generic manifestを読みます。
+
 ## Runner Completion Options
 
 ### `--evaluation-template`
@@ -63,7 +75,7 @@ Both are validated by schema / validator.
 
 ### `--require-evaluation`
 
-- Codex 実行後の最終 gate として `evaluation.json` の存在、valid JSON、`spec/evaluation.schema.json` への適合、`evaluation.run_id` と `--run-id` の一致を要求します。
+- Codex 実行後の最終 gate として `evaluation.json` の存在、valid JSON、`.codex/templates/evaluation.schema.json` への適合、`evaluation.run_id` と `--run-id` の一致を要求します。Agentic QAのBlack-box Evaluationは別契約として `scripts/agentic-qa/contracts.ts` のZod schemaを使います。
 - runner は evaluation result を解釈しません。
 - valid evaluation のときだけ `run.json.primary_failure_category` を summary copy します。
 - baseline では `--run-id` と `--record-run-manifest` が必要です。
@@ -91,6 +103,21 @@ Both are validated by schema / validator.
 
 - 人間向けの実行 summary です。
 - 機械判定の正本にはしません。
+
+### Normal / Gray-box Working Tree Snapshot
+
+- Normal／Gray-boxでは、current runを確定してから
+  `.codex/runs/<run_id>/qa-charter.json` を確認します。欠落時はCoding AgentがUser
+  Scope、Normative Specification、BR／AC、Risk、Platform、Role／Seed、Runtime
+  Capabilityからbounded Charterをcurrent runへ作成し、既存のZod／validatorで検証します。
+  過去RunのCharterは暗黙に再利用しません。Charterには既存の
+  `exploration_budget` schemaとStop Conditionを含めます。
+- `working-tree-snapshot-<mode>-before.json` と `working-tree-snapshot-<mode>-after.json` は、同じRun／ModeのSource Working Treeを同一JSON + Zod形式で記録します。
+- `working-tree-snapshot-<mode>-comparison.json` は `source_head_changed`、`source_diff`、`additional_source_diff_count`、`passed` を持ち、追加Source差分が0でない場合はQA Findingsを確定できません。
+- Charter作成／検証後、最初のRuntime interactionより前にBEFORE Snapshotを取得します。
+  Runtime QAとcandidate Findingsの後にAFTER Snapshotを取得し、comparisonの
+  `passed: true` と `additional_source_diff_count: 0` を確認してからFindingsをfinalizeします。
+- `.codex/runs/`、`.artifacts/`、その他のRuntime生成物はSnapshotのSource差分比較から除外します。Snapshot自体はRun Artifactとして保存します。
 
 ## Cleanup workflow
 

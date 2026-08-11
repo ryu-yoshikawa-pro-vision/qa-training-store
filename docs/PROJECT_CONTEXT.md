@@ -304,7 +304,57 @@
 - iOS正式CIはBuild-onlyのまま、Automation／Productionの生成`.app`についてSource側Resolved metadataに加えて、`EXConstants.bundle/app.config`のembedded `appEnvironment`／`buildKind`／`testMode`を直接検証する。Production marker Bundle Guard、固定名Artifact、fail-close Build Gateは維持する。
 - Iteration 29でこの起動順序とembedded metadataをContractへ追加し、focused 61 tests、全Contract 173 tests、全local verify、Android RuntimeSuite／BoundarySuite各5/5をPASSした。Maestro-MCPはDevice Server `UNAVAILABLE`だったため、同一端末のLocal Runbook CLI結果で代替確認した。
 
+## Specification / Agentic QA基盤（2026-08-10）
+
+- Normative Product Specificationを`docs/spec/`へ集約し、Product Scope、Roles、State、UI/UX、FeatureごとのBR/ACを固定した。Feature文書は5つのH2節を順序も含めてValidatorで検査する。
+- `scripts/spec/validate-all.ts`はMarkdownのRelative Link、BR/AC uniqueness、AC→BR、BR Acceptance coverage、Feature 5-section grammarと、`training/agentic-qa/`のJSON + Zod/Cross-file契約を一つの入口へ接続する。`scripts/spec/build-spec.ts`は`output/spec-site`へ静的HTMLを生成する。
+- Spec変更時のReview Summaryは`scripts/spec/summarize-impact.ts`がChanged BR／ACと変更された直接参照Normative fileからAffected Challenge IDを導出する。既存Style Quality Job内で`GITHUB_STEP_SUMMARY`へ出力し、Working Tree modeでは未追跡`docs/spec`も扱う。AI Agentic QA Required Gateや新規CI Jobは追加しない。
+- Agentic QAはNormal、Gray-box、Black-box Scoredを分離する。Normal／Gray-boxはSource Working TreeのReadonly Boundary、Black-boxは`learner-spec/`、`runbook/`、`challenge/`だけのisolated root、Fresh Session、Positive Tool Allowlist、Forbidden Capability Probeを成立条件とする。
+- Normal／Gray-boxのQA Findingsは`working_tree_snapshot`でbefore／after／comparisonの同一形式JSONを参照し、`additional_source_diff_count=0`かつ`passed=true`をZod validatorで確認する。`.codex/runs/`／`.artifacts/`等のQA生成物はSource差分比較から除外する。
+- Black-box Required Coverageの正本は`challenge.required_coverage`、Learner-safe Bundleは`challenge.spec_refs[]`のNormative owner fileだけを決定的に含む。Answer Key／Unified Diff PatchはInstructor-onlyで、Patchはdisposable copy上の`git apply --check`→`git apply`順序に限定する。
+- Benchmark RevisionはClean committed inputだけ`git:<40 lowercase hex>`、未Commit／mixed inputはCanonical Manifest SHA-256の`sha256:<64 lowercase hex>`を使う。Benchmark Identityは`challenge_id + benchmark_revision + runtime_variant_id`で、同条件Runner比較にはRunner Profile完全一致を要求する。
+- `scripts/agentic-qa/evaluate.ts`はAtomic Finding、Duplicate、`invalid_non_atomic`、TN／`FP_non_defect`／NE、blocked environment、Unexpected Valid Finding、Recall／Precision／FPR／CoverageをFrozen Runner Resultから再計算する。iOSはADR-0011どおりBuild-only、Android物理RuntimeとMaestro PASSはAgentic Capability PASSへ自動昇格しない。
+- 現RunではWeb Normal Charter／Findings、Basic ChallengeのPreparation→Contract Fixture→Frozen Findings→Separate Evaluator→Evaluationを契約E2Eとして保存している。これはモデル比較結果ではなく、JSON/Zod、隔離、Identity、評価経路の実装確認である。
+- Evaluator CLIはchallenge別Canonical ManifestをZod検証し、Manifest digest／Runtime Variant／Tool Profile bytes／Challenge budget／明示modelから期待Benchmark IdentityとRunner Profileを再構成してFrozen Findingsと照合する。Evaluation保存時もFrozen Findingsとの4項目Identity一致を再検証する。
+- Candidate Findingは正式Scoreへ直行させず`review_needed`／human adjudicationとしてfail-closeし、Coverage完了だけではNon-defectをTNにせずItem-specific observationが無ければNEとする。Runner／Evaluatorは`.artifacts/agentic-qa/<run-id>/`の別Session証跡を持つ。
+- 最新RunのBasic Preparationではpatched SPAのsession作成後URL遷移待ちを固定し、Baseline clean／Patched defect、Patch apply、Fresh Runner、Separate Evaluator、Identity一致を再確認した。`pnpm run test:contracts` 24 files／185 tests、Full typecheck、Spec validation／HTML build、Markdownlint、Lint 0 errors／64 warningsはPASS。Full `verify`は既存84 tracked fileのPrettier baseline、Remote CIは未取得のためfail-close継続中である。
+
+## PR #16 Agentic QA fail-close 修正後（2026-08-10）
+
+- Contract FixtureとOfficial model-backed Scored Runを分離した。`run-contract-fixture.ts`は固定Findingを生成する診断fixtureであり、`execution_kind=contract_fixture`、未完了Coverage、`fixture_not_official`、metrics nullのため正式スコアにならない。モデル実行基盤は未提供のためOfficial Scored Runは未実行として扱う。
+- Forbidden Capability Probeはisolated rootの実ファイル／ディレクトリとrunner tool scopeを測定する。Basic Preparationでは17 capabilityすべて`available=false`を確認し、1件でも利用可能なら`assertForbiddenProbePasses`でfail-closeする。
+- PreparationはDisposable Source Copy、Baseline sanity、patch check/apply、Patched sanity、同一patched runtime上のScored Initial State Reset、独立したTool Scope／Forbidden Probe、runtime stop／disposable cleanupを実処理し、`preparation-order.json`と`runtime-sanity.json`へ相対証跡を保存する。Coding Agent callbackは持たない。
+- CoverageはMission completionとrequired evidence typeの包含を必須化し、FindingはExpected／Reproduction／Actual Deviation／Evidenceが同じDefectを示す場合だけTP候補になる。Runner sessionとEvaluator sessionは別UUIDを実測し、EvaluationはfixtureまたはCoverage不備をPASSへ昇格させない。
+- Benchmark RevisionはNUL-separated Git status、renameのD/A正規化、code-unit comparator、Git failure fail-closeを使う。Snapshotはbefore／afterからcomparisonを再導出し、Spec／CLI／Challenge seed／Normative docsもfail-close契約へ更新した。既存84件のformatter baseline修復後、`pnpm run verify`を再実行する。
+
+## PR #16追加レビュー追補（2026-08-10）
+
+- Forbidden Probeのpolicy declarationとActual Exposed Tool Scopeを分離した。`actual_tool_scope.measured=false`のPreparation-only／Contract Fixtureは、filesystem probeがcleanでも`tool_scope_validated=false`として正式Scoringへ進まない。実ScopeにForbidden capabilityが含まれる場合は、`forbidden capability <name> is reachable; observed=...`としてfail-closeする。
+- Coverageの`evidence_refs`／`evidence_types`はindex対応・同一ref重複禁止・type別syntaxを契約化した。Official Evaluationでは`.artifacts/`内の実体、URL parse、画像拡張子、path containmentを再確認し、descriptionだけではTPにしない。Screenshot等の意味判定不能なEvidenceは`review_needed`／humanへ落とす。
+- Official model-backed EvaluationはBenchmark／Runtime Variant／Runner Profile期待値、実行artifactのmodel identifier／Fresh session／Actual Tool Scope／Forbidden Probe artifact／別Evaluator sessionを独立再検証する。いずれかが不足すれば`valid_for_scoring=false`、metricsはnullとする。
+- `run-contract-fixture.ts`は`CHALLENGE-BASIC-001`専用fixtureとして他Challengeをrejectする。Preparationは未知Challengeのreset判定をserver起動より前に行い、Agent callbackを持たない。新規Benchmark ManifestはChallenge-specificを正本とし、genericはlegacy fallbackだけにする。
+
 ## メモ
 
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。
 - 標準経路は host 上の `codex-safe` / `codex-task --run-id <run_id>`。Docker sandbox は experimental かつ opt-in。
+
+## PR #16 Skill-first + Harness-backed architecture (2026-08-10)
+
+- Agentic QAのPrimary Entry PointはCoding Agent + Exploratory QA Skillである。Normal／Gray-boxを日常QAのPrimary Use Caseとし、Black-box Scoredは評価用途に限定する。
+- `scripts/agentic-qa/**`はCoding Agentを起動・wrap・orchestrateせず、Deterministic Preparation、Contract Validation、Isolation Verification、Artifact Integrity、Evaluation、Scoringだけを担当するSupporting Harnessである。
+- Black-boxのFresh Coding Agent Session、trusted session identity、Tool Isolation、Actual Tool Scope inventoryはAgent Runtime／HostのCapabilityで提供する。提供できないOfficial Scored E2Eは`BLOCKED`とし、Repository独自Runner／LLM wrapperで回避しない。
+
+## PR #16 Skill-first CI／Charter／Benchmark追補 (2026-08-10)
+
+- Preparation用Disposable Sourceはroot `node_modules`全体をWindowsではjunction、その他ではdirectory symlinkで参照し、pnpmのtransitive dependency topologyを保持する。これはPreparation Build専用で、Scored isolated rootには`node_modules`を公開しない。
+- Normal／Gray-boxはcurrent runの`.codex/runs/<run_id>/qa-charter.json`をCoverage SSOTとする。欠落時はCoding AgentがUser Scope、Normative Specification、BR／AC、Risk、Platform、Role／Seed、Runtime Capabilityからbounded Charterを作成し、shared `exploration_budget`を含むZod契約で検証する。過去RunのCharterは暗黙再利用しない。
+- Charter検証後、最初のRuntime interaction前にBEFORE Snapshotを取得し、Runtime QA、candidate Findings、AFTER Snapshot、comparison、追加Source差分0確認、Findings finalizationの順で進める。
+- Benchmark Revisionのdigest inputはRunner Profileを含まない。Runner ProfileはRun／Evaluation metadataとして分離され、Profileだけの差分ではBenchmark Revision／Identityは不変、`sameRunnerCondition`だけがfalseになる。
+- Official Black-box Scored E2Eは、Hostからtrusted Fresh Session等を取得できず、Prepared patched Target RuntimeをFresh Sessionへsource-freeに引き渡すlifecycleも未実装のため、`BLOCKED / DEFERRED / NOT EXECUTED`とする。Custom Runner／LLM wrapperは追加しない。
+
+## 品質ゲート完了報告契約（2026-08-11）
+
+- 実装・修正作業は、完了報告の前にリポジトリで定義された全品質ゲートとテストを実行する。通常のローカル入口は`pnpm run verify`とし、CIの変更パス条件で追加されるゲート（例：Native変更時の`pnpm dlx expo-doctor@1.17.6`、Native／E2E／Artifact検証）も該当する場合は省略しない。未実行のゲートをPASSとして扱わず、実行できない場合は理由と次の実行者・アクションを報告する。
+- 品質ゲートのエラーは、当該作業の直接範囲外に見えても自動的に保留しない。Baseline、現在の差分、共有依存、CI／テスト契約、実行環境を調査し、現在の変更が原因である、または検証に不可欠である場合は現在の作業で最小修正する。真に無関係・環境依存・unsafe・要件判断が必要な場合だけ、根拠、未実行検証、残差、次の対応をRun Artifactと完了報告へ記録する。
+- 完了報告には、実行した全ゲート／テストのコマンドと結果、警告、未実行項目、主要変更ファイルを含める。ローカル環境固有の警告はリポジトリ起因のFailureと混同せず、CI相当条件での再確認結果とともに記録する。

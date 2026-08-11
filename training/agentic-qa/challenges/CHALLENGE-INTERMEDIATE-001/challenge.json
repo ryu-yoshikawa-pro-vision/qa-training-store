@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "challenge_id": "CHALLENGE-INTERMEDIATE-001",
+  "level": "intermediate",
+  "target_platform": "web",
+  "spec_refs": ["BR-ADMINORD-001", "AC-ADMINORD-001"],
+  "required_coverage": [
+    {
+      "coverage_id": "COV-001",
+      "mission": "Exercise the operator order-management flow with the supplied orders-phase1-statuses seed and record the observed shipment transition behavior.",
+      "role": "operator",
+      "seed": "orders-phase1-statuses",
+      "platform": "web",
+      "viewport_or_device": "desktop",
+      "required_evidence_types": ["screenshot", "dom"]
+    }
+  ],
+  "allowed_runtime_controls": ["seed_reset", "app_restart", "deep_link"],
+  "exploration_budget": {
+    "max_duration_seconds": 900,
+    "max_tool_actions": 200
+  },
+  "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted",
+  "out_of_scope": [
+    "Source repository inspection",
+    "Automated test inspection",
+    "Instructor materials"
+  ]
+}
