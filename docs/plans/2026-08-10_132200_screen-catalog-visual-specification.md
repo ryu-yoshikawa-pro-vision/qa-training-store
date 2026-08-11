@@ -586,7 +586,7 @@ Allowlist / order:
 4. `web-small-mobile`
 5. `android`
 
-複数指定は`, `区切りで上記順序へsortする。
+複数指定は`,` 区切りで上記順序へsortする。
 
 ### 7.6 Visual requirement
 
@@ -609,7 +609,7 @@ Visual Requirementは**仕様上必要なVisual policy**であり、実行成否
 <platform>=ref: <screen-id>/<state-slug>/<platform>
 ```
 
-複数platformの場合は`; `区切りでRequired platform orderへsortする。
+複数platformの場合は`;` 区切りでRequired platform orderへsortする。
 
 例:
 
