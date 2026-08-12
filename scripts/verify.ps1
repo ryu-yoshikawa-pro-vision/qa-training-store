@@ -124,13 +124,14 @@ function Test-TemplateContract {
         if ($agentText -match '(?m)^\s*model\s*=') { throw "$agentPath must inherit project model" }
         if ($agentText -match '(?m)^\s*model_reasoning_effort\s*=') { throw "$agentPath must inherit project reasoning effort" }
     }
-    $qualityGate = Get-Content -Raw .codex/agents/quality_gate_runner.toml
+    $qualityGate = Get-Content -Raw -Encoding UTF8 .codex/agents/quality_gate_runner.toml
     if ($qualityGate -notmatch [regex]::Escape('name = "quality_gate_runner"')) { throw "quality_gate_runner name mismatch" }
     if ($qualityGate -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "quality_gate_runner sandbox mismatch" }
     if ($qualityGate -notmatch [regex]::Escape("Parent-defined validation")) { throw "quality_gate_runner validation responsibility missing" }
     if ($qualityGate -notmatch [regex]::Escape("validation-only")) { throw "quality_gate_runner validation-only contract missing" }
     if ($qualityGate -notmatch [regex]::Escape("without modifying source, test, or documentation files")) { throw "quality_gate_runner source/test/docs boundary missing" }
     if ($qualityGate -notmatch [regex]::Escape("Git mutation")) { throw "quality_gate_runner Git mutation boundary missing" }
+    if ($qualityGate -notmatch '\u8FFD\u52A0\u306E subagent \u3092\u8D77\u52D5\u3057\u306A\u3044') { throw "quality_gate_runner child delegation prohibition missing" }
     $worker = Get-Content -Raw .codex/agents/implementation_worker.toml
     if ($worker -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "implementation_worker sandbox mismatch" }
     if ($worker -notmatch [regex]::Escape("small, scoped code changes")) { throw "implementation_worker bounded plan missing" }

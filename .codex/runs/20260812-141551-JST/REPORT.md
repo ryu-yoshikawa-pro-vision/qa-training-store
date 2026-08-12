@@ -155,3 +155,68 @@
   - `git diff --check` => PASS（CRLF正規化warningのみ）
 - Remaining: POSIX Bashのtemplate contract不整合、既知のlocal `pnpm run verify` Prettier failure、Phase 1 external Chromium install failureは別途残る。今回のPRで古いcontract、Product、CI、Playwright installを修正しない。
 - Progress: 100% (8/8)
+
+## 2026-08-12 16:40 (JST) 最終状態訂正
+
+- 14:58 / 15:18の`quality_gate_runner` BLOCKEDおよびBash FAIL記録はHistorical Evidenceであり、削除・並べ替えを行わない。
+- fresh Parent sessionで`quality_gate_runner` Native spawnは最終PASS。Parent指定のPowerShell verify / `git diff --check`もPASSした。
+- POSIX/LF環境の`bash scripts/verify`は修正後に`PASS=1 FAIL=0 SKIP=3`でPASSした。
+- Phase 1 CI SUCCESS、Native CI SUCCESS。現在の未解決blockerはなし。
+- local `pnpm run verify`のPrettier findingはworking-tree / line-ending conditionの可能性があり、clean CIでは再現しない。今回Product/Test修正は行っていない。
+- 本記録をこのRunの最終状態として扱う。既存REPORTの英語見出しはappend-only履歴保持のため書き換えず、本最終entryは日本語見出しで記録する。
+
+### 修正内容
+
+- `TASKS.md`のTask 6をfresh Parent sessionのfinal PASSとして更新し、見出しを日本語化、Progressを`100% (9/9)`へ統一した。
+- `run.json`のcollector風`agents_used` / `subagents.records` / aggregateをzero化した。durableなsubagent-run evidence fileは作成していないため、実際のNative smoke要約は本REPORTと`run.json.follow_up`を正本とする。
+- `run.json.validation.commands`へPOSIX/LF最終Bash PASSを追加し、`status=completed`、`validation.status=passed`、`evaluation_path=null`、`primary_failure_category=null`を維持した。
+- `scripts/verify.ps1`へ、quality gateが`追加の subagent を起動しない`契約を確認するparity checkを追加した。PowerShellソースの文字コード差異を避けるため、検査patternはUnicode escapeで表現した。
+- Planへmodel / reasoning effortの現在値は実装時TOML validationだけで確認し、永続verifyはSSOT key存在とoverride不在だけを検査する方針を追記した。
+
+### 検証
+
+- `tomllib` parse（config + 5 agent、`[agents]`、SSOT key 2件、agent個別model 0件）=> PASS。
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1` => PASS（`PASS=3 FAIL=0 SKIP=0`）。
+- POSIX/LF WSL Ubuntu / GNU Bash 5.2の`bash scripts/verify` => PASS（`PASS=1 FAIL=0 SKIP=3`）。
+- `git diff --check` => PASS。
+- focused formatter => PASS。
+- Parent Run / Historical worker Runのsanitizer Write + Check => PASS、各`residual_findings=0`。
+
+### Native Subagent確認
+
+- read-only researchers、`implementation_worker`、fresh Parent sessionの`quality_gate_runner`は役割どおり完了。fresh quality gateは指定commandのみを実行し、Source/Test/Docs/Run Artifact変更、Git mutation、child spawnなし。
+- 初回same-sessionの`unknown agent_type` BLOCKEDは履歴として保持し、final stateへ持ち越さない。
+
+### CodeRabbit対応
+
+#### 対応済み
+
+- REPORT final-state correction、Run Artifact見出しの日本語化、writable aggregateのzero化、Progress `9/9`、PowerShell child-delegation parityを反映した。
+
+#### 採用しない指摘
+
+- `verify`で`gpt-5.6-luna` / `max`をhard-codeする提案は不採用。project config SSOTを維持し、将来model変更時の複数ファイル更新を避ける。
+- `AGENTS.md`のsubagent workflowを別skillへ分割する提案は不採用。repository-wideの恒久policyであり、現在のbounded sectionを分割する必要性が低い。
+- `quality_gate_runner`のruntime filesystem monitoring / source integrity framework提案は不採用。独自監査基盤を再導入し、minimal native delegationの範囲を超えるため。
+
+### 最終スコープ確認
+
+- Product Code: 変更なし
+- Tests: 変更なし
+- CI Workflow: 変更なし
+- Custom launcher / Runtime Compliance / Ledger / Dispatcher / New skill: 追加なし
+- Historical worker Run `.codex/runs/20260812-142248-JST/`: 保持、active Runへ昇格なし
+- Git mutation: なし
+
+### 修正ループ iteration 1
+
+- Input findings: final REPORT ordering、TASKS final state、Progress、run.json aggregate、Bash command evidence、PowerShell parity、Run Artifact language。
+- Triage: contract / data integrity / validationは`must_fix`、過剰設計提案は`reject`、local pnpm findingはclean CI非再現のため`defer`。
+- Repair plan: active Parent Run、Plan、`scripts/verify.ps1`だけを最小編集し、Product/Test/CI workflow/runtime frameworkは変更しない。
+- Allowed files: `.codex/runs/20260812-141551-JST/{REPORT.md,TASKS.md,run.json}`、`docs/plans/2026-08-12_141551_native-subagent-orchestration.md`、`scripts/verify.ps1`。
+- Changed files: 上記5ファイル。Git mutation、削除、rename、新規Run作成なし。
+- Validation commands: `tomllib` parse、PowerShell verify、POSIX/LF Bash verify、`git diff --check`、focused formatter、両Run sanitizer。
+- Validation result: すべて必須検証PASS。local `pnpm run verify`はworking-tree / line-ending conditionの可能性がある未変更test fileで停止し、clean CI format checkはPASS。
+- Remaining delta: なし。
+- Decision: `stop_success`。
+- Progress: 100% (9/9)

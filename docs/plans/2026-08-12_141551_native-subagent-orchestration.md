@@ -102,6 +102,7 @@ PR #20で試したRuntime Compliance、独自監査基盤、subprocess launcher�
 
 - delegated child subagentはParentのactive Runを所有し、独自のRun DirectoryまたはRun Artifactを作成・更新しない。過去のworker RunはHistorical Evidenceとして保持する。
 - `scripts/verify` / `scripts/verify.ps1`は`default_subagent_model`と`default_subagent_reasoning_effort`のkey存在だけを検証し、model値と`max`を固定しない。
+  現在値`gpt-5.6-luna` / `max`は実装時のTOML validationで確認する。永続verifyは将来model変更時のSSOTを崩さないため、`[agents]` section、default key存在、agent側override不在のみをcontractとして検証する。
 - fresh Parent sessionのNative runtimeで`quality_gate_runner`をspawnし、Parent指定のPowerShell verifyと`git diff --check`がPASSすることを確認する。
 - Initial WSL UbuntuのPOSIX/LF overlayではtemplate contract failureが発生したが、follow-upでPR-localの`verify contract update omission`と分類し、verify側を現行契約へ更新して解消した。古い運用文言は復活させない。
 
