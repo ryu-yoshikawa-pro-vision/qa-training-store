@@ -123,6 +123,26 @@
   - `git diff --stat` => 20 files changed、950 insertions、457 deletions。
 - Progress: 94% (15/16)
 
+## 2026-08-12 09:24 (JST)
+
+- Summary: ユーザーが現行PR差分のコミット後に追跡済みpycを除去して再コミットしたため、最終collector／評価／sanitizerを再実行した。
+- Completed:
+  - HEADは `f033200`（PR修正）→ `e6cd9d2`（`validate-luna-orchestration.cpython-311.pyc`除去）の2コミット。作業ツリーはclean。
+  - `git ls-files`で `__pycache__/`、`*.py[cod]`、global raw hook logの追跡済み項目は0件。
+  - evaluationを`result=pass`、`primary_failure_category=null`、`findings=[]`へ更新した。
+  - `LOCAL_IMPLEMENTATION_COMPLETE=true`へ更新し、External Checks pendingのため`MERGE_READY=false`を維持した。
+- Commands / Evidence:
+  - `python -B scripts/test-luna-orchestration-contract.py` => 20 tests、PASS。
+  - `python -B scripts/validate-luna-orchestration.py` => `LUNA_ORCHESTRATION_VALIDATION_PASS`。
+  - `node scripts/codex-local-validation.mjs validate-orchestration` => `LUNA_ORCHESTRATION_VALIDATION_PASS`。
+  - `python -B scripts/collect-run-artifacts.py ... --strict` => exit 0、warnings=0、Runtime Compliance expected=4／observed=4／missing=0／unexpected=0。
+  - Node/Ajv evaluation schema validation => `EVALUATION_SCHEMA_PASS`。
+  - Sanitizer Write/Check => `files_changed=0`、`residual_findings=0`。
+- Completion Decision:
+  - `run.json.status=passed`、`evaluation.result=pass`、Runtime Compliance／Source Integrity／scope violationはすべてPASS相当。
+  - External Checks未確認のみを残し、Merge Readyへは進めない。
+- Progress: 100% (16/16)
+
 ## 2026-08-12 09:08 (JST)
 
 - Summary:

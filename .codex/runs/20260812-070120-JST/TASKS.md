@@ -17,7 +17,7 @@
 
 ## Discovered
 
-- [ ] D1. `.pyc`のtracked状態とglobal raw hook logのtracked状態を確認し、削除なしでPR混入防止を判定する
+- [x] D1. `.pyc`のtracked状態とglobal raw hook logのtracked状態を確認し、削除なしでPR混入防止を判定する
 - [x] D2. quality childのPATH／writable rootが現行CLIで解決可能か確認する
 - [x] D3. 既存 `scope_violation=true` の生成元をparent／subagent／runtime complianceに分解して確認する
 - [x] D4. 過去Runのtask_completion evidence／historical warningは変更せず、新Runとのcurrent／historical境界を確認する

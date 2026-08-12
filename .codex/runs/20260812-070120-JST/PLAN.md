@@ -76,3 +76,9 @@
 - timeoutした補助dispatchはappend-only cancelとして残し、hookで観測されたactive expected ledgerから除外した。collectorはignored_cancelled_runtimeとして事実を保持する。
 - Source Integrity、scope attribution、Runtime Compliance、Sanitizer Write/CheckはPASS。ただし既存追跡済みpycはbinaryのため削除できず、LOCAL_IMPLEMENTATION_COMPLETE=false、MERGE_READY=falseを維持する。
 - 2026-08-12 09:19 JST: ユーザー判断により、現行PR修正を先にコミットし、追跡済みpycの除去と再コミットは後続の別境界で行う。除去完了まではD1、LOCAL_IMPLEMENTATION_COMPLETE、MERGE_READYの未完了判定を維持する。
+
+## Final Reconciliation
+
+- 2026-08-12 09:24 JST: ユーザーが2段階コミットと追跡済みpyc除去を完了した。`git ls-files`上のgenerated artifactは0件、作業ツリーはclean。
+- collector strict、contract、orchestration validator、evaluation schema、Sanitizer Write/Checkを再実行し、すべてPASS。D1を完了し、`LOCAL_IMPLEMENTATION_COMPLETE=true`へ更新した。
+- External Checksは未確認のため、`MERGE_READY=false`は維持する。

@@ -15,29 +15,7 @@
   "branch": null,
   "base_branch": null,
   "codex_task_reports": [],
-  "changed_files": [
-    ".codex/agents/quality_gate_runner.toml",
-    ".codex/observations/hooks.jsonl",
-    ".codex/templates/EVALUATION.md",
-    ".codex/templates/RUN_MANIFEST.json",
-    ".codex/templates/evaluation.schema.json",
-    ".gitignore",
-    "docs/reference/evaluation.md",
-    "docs/reference/failure-taxonomy.md",
-    "docs/reference/hook-observation.md",
-    "docs/reference/run-artifacts.md",
-    "docs/reference/subagent-observation.md",
-    "scripts/codex-local-validation.mjs",
-    "scripts/codex-safe.sh",
-    "scripts/codex-task.ps1",
-    "scripts/codex-task.sh",
-    "scripts/collect-run-artifacts.py",
-    "scripts/record-expected-invocation.py",
-    "scripts/test-luna-orchestration-contract.py",
-    "scripts/validate-luna-orchestration.py",
-    "scripts/verify",
-    "scripts/verify.ps1"
-  ],
+  "changed_files": [],
   "expected_invocation_ledger": ".codex/runs/20260812-070120-JST/expected-invocations.jsonl",
   "expected_invocations": [
     {
@@ -141,8 +119,45 @@
     "evidence": "git status source set was identical before and after final local validation; no application source file changed."
   },
   "validation": {
-    "status": "not_run",
-    "commands": [],
+    "status": "passed",
+    "commands": [
+      {
+        "command": "python -B scripts/test-luna-orchestration-contract.py",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "LUNA_ORCHESTRATION_CONTRACT_TEST_PASS; 20 tests passed."
+      },
+      {
+        "command": "python -B scripts/validate-luna-orchestration.py",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "LUNA_ORCHESTRATION_VALIDATION_PASS."
+      },
+      {
+        "command": "node scripts/codex-local-validation.mjs validate-orchestration",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "LUNA_ORCHESTRATION_VALIDATION_PASS."
+      },
+      {
+        "command": "python -B scripts/collect-run-artifacts.py --run-id 20260812-070120-JST --manifest-path .codex/runs/20260812-070120-JST/run.json --hook-log .artifacts/luna-orchestration/pr20-run-20260812-070120-JST-hooks.jsonl --strict",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "Runtime Compliance expected=4, observed=4, missing=0, unexpected=0, warnings=0."
+      },
+      {
+        "command": "node -e <evaluation schema validation>",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "EVALUATION_SCHEMA_PASS."
+      },
+      {
+        "command": "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260812-070120-JST -Write -Check",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "residual_findings=0."
+      }
+    ],
     "warnings": []
   },
   "safety": {
@@ -465,14 +480,14 @@
   },
   "evaluation_path": ".codex/runs/20260812-070120-JST/evaluation.json",
   "completion_state": {
-    "LOCAL_IMPLEMENTATION_COMPLETE": false,
+    "LOCAL_IMPLEMENTATION_COMPLETE": true,
     "MERGE_READY": false,
     "external_checks": "pending",
     "reasons": [
-      "\u65e2\u5b58\u8ffd\u8de1\u6e08\u307fbinary pyc\u304c\u6b8b\u3063\u3066\u304a\u308a\u3001\u751f\u6210\u7269\u9664\u5916\u306eDoD\u304c\u672a\u9054\u3002",
+      "Local Required Validation\u3001Runtime Acceptance\u3001Source Integrity\u3001Real-run Acceptance\u3001artifact hygiene\u304c\u3059\u3079\u3066PASS\u3002",
       "External checks\u306f\u672a\u78ba\u8a8d\u306e\u305f\u3081MERGE_READY=false\u3092\u7dad\u6301\u3059\u308b\u3002"
     ]
   },
-  "status": "partial",
-  "primary_failure_category": "artifact_contract_gap"
+  "status": "passed",
+  "primary_failure_category": null
 }
