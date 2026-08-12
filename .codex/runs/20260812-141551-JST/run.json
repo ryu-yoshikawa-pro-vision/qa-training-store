@@ -5,7 +5,13 @@
     "workflow_level":  "standard",
     "preset":  "safe",
     "runtime":  "host",
-    "agents_used":  [],
+    "agents_used":  [
+        "code_researcher",
+        "implementation_researcher",
+        "test_investigator",
+        "implementation_worker",
+        "quality_gate_runner"
+    ],
     "repo":  "qa-training-store",
     "branch":  "feat/native-subagent-orchestration",
     "base_branch":  "main",
@@ -27,24 +33,48 @@
         ".codex/runs/20260812-142248-JST/"
     ],
     "validation":  {
-                       "status":  "passed",
+                       "status":  "failed",
                        "commands":  [
-                           "tomllib parse for config and five agent TOMLs (PASS)",
-                           "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 (PASS=3 FAIL=0 SKIP=0)",
-                           "git diff --check (PASS; line-ending warnings only)",
-                           "pnpm exec prettier --check focused supported files (PASS)",
-                           "pnpm run verify (FAIL at format:check on unchanged tests/contracts/native-production-module-resolution.test.ts)",
-                           "bash scripts/verify (FAIL before execution because Windows mixed/CRLF pipefail\\r)",
-                           "bash scripts/verify POSIX/LF WSL Ubuntu / GNU Bash 5.2 final (PASS=1 FAIL=0 SKIP=3)",
-                           "scripts/sanitize-codex-artifacts.ps1 Write/Check for both Run directories (PASS)",
-                           "codex --strict-config --version (PASS; codex-cli 0.147.0)",
-                           "quality_gate_runner Native spawn initial attempt (BLOCKED; unknown agent_type; retained as historical evidence)",
-                           "quality_gate_runner Native spawn fresh Parent session (PASS; Parent-defined validation completed)"
+                           {
+                               "command":  "tomllib parse for config and five agent TOMLs",
+                               "status":  "passed",
+                               "note":  "configのSSOT key、5 agentのparse、個別model/reasoning override不在を確認した。"
+                           },
+                           {
+                               "command":  "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1",
+                               "status":  "passed",
+                               "note":  "PASS=3 FAIL=0 SKIP=0。"
+                           },
+                           {
+                               "command":  "git diff --check",
+                               "status":  "passed",
+                               "note":  "内容エラーなし。改行正規化warningのみ。"
+                           },
+                           {
+                               "command":  "pnpm exec prettier --check focused supported files",
+                               "status":  "passed",
+                               "note":  "変更対象のTOML/Markdownを確認した。"
+                           },
+                           {
+                               "command":  "pnpm run verify",
+                               "status":  "failed",
+                               "note":  "未変更のtests/contracts/native-production-module-resolution.test.tsに対するformat findingで停止。clean CIでは再現せず、local working-tree / line-ending conditionとして扱い、local verify自体はPASS扱いしない。"
+                           },
+                           {
+                               "command":  "bash scripts/verify",
+                               "status":  "passed",
+                               "note":  "最終POSIX/LF WSL Ubuntu / GNU Bash 5.2 run: PASS=1 FAIL=0 SKIP=3。"
+                           },
+                           {
+                               "command":  "scripts/sanitize-codex-artifacts.ps1 Write/Check for both Run directories",
+                               "status":  "passed",
+                               "note":  "Parent / Historical workerともresidual_findings=0。"
+                           }
                        ],
                        "warnings":  [
-                           "Initial same-session quality_gate_runner spawn was blocked as unknown agent_type; fresh Parent session spawn and validation passed.",
-                           "POSIX/LF first follow-up exposed a PR-local verify contract update omission; the marker was corrected and final Bash verify passed.",
-                            "pnpm verify stops at a local working-tree/line-ending condition involving tests/contracts/native-production-module-resolution.test.ts; clean CI format check is PASS and downstream local gates were not run."
+                           "initial same-sessionのquality_gate_runner Native spawnはunknown agent_typeでblockedだったが、fresh Parent sessionのspawnとvalidationはPASSした。",
+                           "POSIX/LFの初回follow-upはverify contract mismatchでFAILだったが、verify修正後の最終Bash verifyはPASSした。",
+                           "local pnpm run verifyは未変更test fileのformat findingで停止した。clean CIでは再現せず、local working-tree / line-ending conditionとして扱い、local verify自体はPASS扱いしない。"
                        ]
                    },
     "safety":  {

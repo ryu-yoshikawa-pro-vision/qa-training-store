@@ -229,3 +229,78 @@
 - CIはPhase 1 / NativeともSUCCESS、Native `quality_gate_runner`、POSIX/LF Bash、PowerShell verifyもPASS。unresolved blockerはなし。
 - 新しいledger / collector / runtime monitoring frameworkは追加していない。Agent config、AGENTS.md、verify script、Product Code、Tests、CI workflowは変更していない。
 - Progress: 100% (9/9)
+
+## 2026-08-12 18:09 (JST) 最終Review指摘の再検証・Artifact契約訂正
+
+### Historical Evidenceの時刻・結果対応
+
+- 14:58時点では、`quality_gate_runner`のinitial same-session Native spawnが`unknown agent_type`でBLOCKEDであり、Windows working tree上のBash failureも未解消だった。
+- 15:18時点では、fresh Parent sessionの`quality_gate_runner` Native spawnとParent-defined validationはPASSした。
+- 15:18 follow-upのPOSIX/LF Bash初回は、PR-localのverify contract mismatchでFAILした。その後、旧運用文言を復活させずverify側を現行契約へ合わせ、最終POSIX/LF Bash verifyはPASSした。
+- したがって、14:58のBLOCKED、15:18のquality gate PASS、Bash follow-up初回FAIL、Bash最終PASSは別々の事実として扱う。過去記録は削除・並べ替えせず、final `run.json.validation.commands`には最終判定に使用した主要commandだけを保持する。
+
+### 最終Run Artifact状態
+
+- `run.status`: `completed`
+- `validation.status`: `failed`
+- local failure: `pnpm run verify`が未変更の`tests/contracts/native-production-module-resolution.test.ts`に対するformat findingで停止した。clean CIでは再現していないため、local working-tree / line-ending conditionとして記録し、local verify自体はPASS扱いしない。repository baseline defectとは断定しない。
+- final Bash: PASS（POSIX/LF WSL Ubuntu / GNU Bash 5.2、`PASS=1 FAIL=0 SKIP=3`）。
+- PowerShell verify: PASS（`PASS=3 FAIL=0 SKIP=0`）。
+- `quality_gate_runner`: fresh Parent sessionのNative spawn / Parent-defined validation PASS。
+- Phase 1 CI: SUCCESS（run #175）、Native CI: SUCCESS（run #121）。
+- `CI_STATUS_AT_START`: Phase 1 SUCCESS / Native SUCCESS。
+- `CI_AFTER_PUSH`: `pending_user_push`。AIエージェントはpushしていない。
+- PR merge blocker: current CI / implementationに起因するものはなし。local pnpm failureは隠さず`failed`として保持するが、clean CI非再現のnon-blocking local conditionとする。
+- `agents_used`: `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner`の5 role。
+- `artifact_summary.subagent_run_count`: `0`。`subagents.records`: `[]`。durableな`subagent-run.json`は生成していない。
+- `evaluation_path`: `null`。`primary_failure_category`: `null`。Progress: 100% (9/9)。unresolved blocker: なし。
+
+### Native subagent evidence方針
+
+- `agents_used`は実際にNative delegationで使用した5 roleへ整合させた。
+- runner / wrapper / hooksが今回のNative executionについてdurableな`subagent-run.json`を生成していないため、subagent aggregateは0件のまま維持した。
+- historical Native smoke evidenceは本REPORTに残し、過去実行のtimestamps、scope、agent ID等からretroactiveなrunner evidenceを創作していない。
+- Native executionのmachine-readable observationが将来必須となる場合は、runtime observationを別タスクで設計する。
+
+### Review Comment Disposition
+
+#### Addressed
+
+- `validation.status`をlocal `pnpm run verify`の実結果に合わせて`failed`へ修正した。`run.status=completed`とPRのmerge判断は分離した。
+- `validation.commands`を正式manifest内のmachine-readable objectへ正規化し、`pnpm run verify`を`failed`、final Bash / PowerShellを`passed`とした。
+- REPORTへ14:58 / 15:18のHistorical Evidenceと結果の対応を追記した。
+- TASKSのBash記録を「verify側を修正して再実行し、PASSを確認した」と完了形へ修正した。
+- `agents_used`を実際に利用した5 roleへ一致させた。
+
+#### Not adopted
+
+- RetroactiveなNative `subagent-run.json`生成: runner / wrapper / hooksが生成していないobserved factsをParentが後付けで創作しないため。Native machine-readable observationは別scopeとする。
+- Persistent verifierへの`gpt-5.6-luna` / `max` hard-code: `.codex/config.toml`をmodel / reasoning effortのSSOTとして維持し、将来のmodel切替時に値を複製しないため。現在値はTOML validationで確認済みで、persistent verifyはinheritance contractを検証する。
+- `AGENTS.md` 10.1のrepo-local skill分割: task-specific workflowではなく、Parent responsibility、role routing、serial writable、recursive delegation禁止、Native delegation、reportingを含むrepository-wideの恒久policyであるため。
+
+### Repair Loop iteration 2
+
+- `input_findings`: validation status、machine-readable commands、Historical時刻対応、TASKS完了形、`agents_used`不整合。
+- `triage`: contract / validation / data integrityは`must_fix`。retroactive evidence生成、model値hard-code、AGENTS skill分割は`reject`。local pnpm failureのProduct/Test修正はclean CI非再現かつ今回scope外のため`defer`。
+- `allowed_files`: `.codex/runs/20260812-141551-JST/run.json`、`TASKS.md`、`REPORT.md`。
+- `changed_files`: 上記3ファイルのみ。collector、template、docs/reference、AGENTS、config、verify、Product、Tests、CI workflowは変更していない。
+- `validation_commands`: JSON parse / template shape、collector `merge_validation_status` semantics、PowerShell verify、POSIX/LF Bash verify、`git diff --check`、focused formatter、Parent / Historical worker sanitizer。
+- `validation_result`: `run.json`契約PASS、collector semanticsは`failed`、PowerShell PASS、POSIX/LF Bash PASS、残りの検証は後続commandで確認する。
+- `remaining_delta`: 本修正に関する未解決差分なし。
+- `decision`: `stop_success`。
+- Progress: 100% (9/9)
+
+## 2026-08-12 18:17 (JST) 最終Validation結果
+
+- JSON parse /正式template shape: PASS。`run.json`はJSONとしてparseでき、top-level keyは`.codex/templates/RUN_MANIFEST.json`と一致した。独自top-level field、`follow_up`はない。
+- Manifest contract: PASS。`run.status=completed`、`validation.status=failed`、`agents_used=5`、`artifact_summary.subagent_run_count=0`、`subagents.records=[]`、`evaluation_path=null`、`primary_failure_category=null`を確認した。
+- Machine-readable command schema: PASS。`validation.commands`は全件objectで、`pnpm run verify`は`failed`、final Bash / PowerShellは`passed`。
+- Collector semantics: PASS。`scripts/collect-run-artifacts.py`の`merge_validation_status()`をread-only評価し、結果は`failed`となった。collector本体やtemplateは変更していない。
+- `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`: PASS（`PASS=3 FAIL=0 SKIP=0`）。
+- POSIX/LF `bash scripts/verify`: PASS（LF overlay、純POSIX PATH、`PASS=1 FAIL=0 SKIP=3`、exit 0）。overlay準備の初回quoting failureと不要な全体copyの停止はverify本体到達前の一時環境準備であり、repositoryには影響しない。最終は必要ファイルだけのoverlayで実行した。
+- `git diff --check`: PASS。内容エラーなし、改行正規化warningのみ。
+- focused Prettier: PASS（REPORT / TASKS / run.json）。
+- sanitizer Write + Check: PASS。Parent / Historical workerとも`files_changed=0`、`residual_findings=0`。
+- Scope audit: 変更は`.codex/runs/20260812-141551-JST/REPORT.md`、`TASKS.md`、`run.json`の3ファイルのみ。Product Code、Tests、CI workflow、Agent TOML、Config、AGENTS、verify、collector、template、新規subagent artifact、新規runtime infrastructure、Git mutationはなし。
+- `pnpm run verify`は既知のlocal failureを隠さず、今回のRun Artifact-only修正では無目的に再実行していない。
+- `remaining_delta`: なし。`decision`: `stop_success`。Progress: 100% (9/9)
