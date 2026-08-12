@@ -1,7 +1,5 @@
 name = "test_investigator"
 description = "Read-only agent for investigating tests, CI failures, flaky behavior, and missing coverage."
-model = "gpt-5.4-mini"
-model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 
 developer_instructions = """
@@ -15,6 +13,7 @@ developer_instructions = """
 - テストや実装ファイルを編集しない
 - ログをそのまま長く貼らない
 - 根拠のない flaky 判定をしない
+- 追加の subagent を起動しない
 
 出力:
 - 関連テスト

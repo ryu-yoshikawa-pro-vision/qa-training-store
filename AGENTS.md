@@ -187,23 +187,22 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 
 ## 10.1 Subagent 運用
 
-- Standard / Strict の実装タスクでは、実装前に原則として project-scoped custom agents を起動する。
-- project-scoped custom agents の既定 model は `gpt-5.4-mini` とする。
-- コード調査、依存関係、影響範囲確認には `code_researcher` を使う。
-- 実装方針、変更箇所、検証コマンドの整理には `implementation_researcher` を使う。
-- 既存テスト、CI、失敗ログ、追加検証観点の確認には `test_investigator` を使う。
-- 親 agent が計画、対象ファイル、変更範囲、禁止事項を確定した後、小さく限定された実装には `implementation_worker` を使ってよい。
-- `implementation_worker` は workspace-write の実装 subagent だが、親 agent が明示した対象ファイルだけを最小差分で編集する。
-- writable subagent は原則 1 タスクにつき 1 つだけ使う。複数の writable subagent を並列に使うのは、対象ファイルが完全に分離され、親 agent が衝突リスクを明示的に管理できる場合だけにする。
-- `implementation_worker` はファイル削除、rename、移動、`git add` / `git commit` / `git push` / `git rm` / `git reset` / `git clean` などの git mutation、delete / rename を含む patch operation を行わない。
-- `implementation_worker` がスコープ、設計判断、対象ファイル、検証方法に迷う場合は実装せず、親 agent に確認事項を返す。
-- Lightweight task では、単一ファイルの軽微修正など明らかに不要な場合のみ subagent 起動を省略してよい。
-- 軽量な調査・探索・テスト確認は `code_researcher` / `implementation_researcher` / `test_investigator` など read-only 調査 subagent に限って委譲する。
-- read-only 調査 subagent は編集・作成・削除を行わず、調査結果だけを返す。
-- wrapper や runtime override の影響で read-only sandbox が保証できない場合でも、read-only 調査 subagent は編集・作成・削除を行わない。
-- subagent を使った場合、または省略した場合は、委譲内容、返ってきた要約、親 agent が採用した判断、省略理由を `.codex/runs/<run_id>/REPORT.md` に記録する。
-- 並列化する場合も `agents.max_depth = 1` を前提とし、再帰的な subagent 起動は行わない。
-- 利用可能な project-scoped custom agents は `.codex/agents/` 配下の TOML 定義を確認する。
+- Native delegation marker: No child subagent delegation.
+
+- Standard / StrictのParent Codexだけが、requirement interpretation、plan、delegation、result synthesis、implementation scope decision、final validation set decision、failure interpretation、final completion decisionを行う。
+- project-scoped custom agentsのmodel / reasoning effortは `.codex/config.toml` の `[agents]` にあるproject defaultをSSOTとし、agent TOMLへ個別値を重複記載しない。
+- `code_researcher` は code / dependency / impact investigationを担当する。
+- `implementation_researcher` は implementation approach / change surface investigationを担当する。
+- `test_investigator` は tests / CI / regression investigationを担当する。
+- `implementation_worker` は、親 agent が計画、対象ファイル、変更範囲、禁止事項を確定した後のParent-defined scoped implementationだけを担当する。親 agent が明示した対象ファイルだけを最小差分で編集する。
+- `quality_gate_runner` は Parent-defined validationを指定順に実行し、結果だけを返すvalidation-only subagentである。Source、test、docsを修正しない。
+- 独立した観点がある場合、`code_researcher` / `implementation_researcher` / `test_investigator` はParentが必要なものだけをNative delegationで並列起動してよい。常に3つ起動するルールにはしない。
+- writable subagentは原則1タスクにつき1つをserialで起動し、parallel writable worker、workspace isolation、worktree managerは今回実装しない。
+- `implementation_worker` はファイル削除、rename、移動、`git add` / `git commit` / `git push` / `git rm` / `git reset` / `git clean` などのGit mutation、delete / renameを含むpatch operationを行わない。scope、設計判断、対象ファイル、検証方法に迷ったら編集せず親 agentに確認事項を返す。
+- すべてのchild agentは追加のsubagentを起動しない（No child subagent delegation）。`agents.max_depth = 1`を維持し、child専用config、hook enforcement、runtime recursion collectorは作らない。
+- subagentの起動・停止・並列実行・結果受領はCodex native delegation機能を利用する。Repositoryのshell / PowerShell / Python / Node scriptからsubagentを起動せず、既存`codex-safe.*` / `codex-task.*`をorchestration engineへ変更しない。
+- read-only調査subagentは編集・作成・削除を行わず、調査結果だけを返す。subagentを使った場合、委譲内容、返ってきた要約、親 agentが採用した判断、省略理由を `.codex/runs/<run_id>/REPORT.md` に記録する。
+- 利用可能なproject-scoped custom agentsは `.codex/agents/` 配下のTOML定義を確認する。
 
 ## 11. 改善ガバナンス
 

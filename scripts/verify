@@ -108,6 +108,7 @@ check_template_contract() {
   [[ -f .codex/agents/implementation_researcher.toml ]] || return 1
   [[ -f .codex/agents/implementation_worker.toml ]] || return 1
   [[ -f .codex/agents/test_investigator.toml ]] || return 1
+  [[ -f .codex/agents/quality_gate_runner.toml ]] || return 1
   [[ -f .codex/hooks/pre_tool_use_policy.py ]] || return 1
   [[ -f .codex/hooks/pre_tool_use_policy.ps1 ]] || return 1
   [[ -f .codex/templates/PLAN.md ]] || return 1
@@ -253,8 +254,21 @@ check_template_contract() {
   contains "network_access = true" .codex/config.toml || return 1
   contains "codex_hooks = true" .codex/config.toml || return 1
   contains "pre_tool_use_policy.ps1" .codex/config.toml || return 1
+  contains "name = \"code_researcher\"" .codex/agents/code_researcher.toml || return 1
+  contains "name = \"implementation_researcher\"" .codex/agents/implementation_researcher.toml || return 1
+  contains "name = \"test_investigator\"" .codex/agents/test_investigator.toml || return 1
   contains "name = \"implementation_worker\"" .codex/agents/implementation_worker.toml || return 1
-  contains "model = \"gpt-5.4-mini\"" .codex/agents/implementation_worker.toml || return 1
+  contains "name = \"quality_gate_runner\"" .codex/agents/quality_gate_runner.toml || return 1
+  ! contains "model =" .codex/agents/code_researcher.toml || return 1
+  ! contains "model_reasoning_effort =" .codex/agents/code_researcher.toml || return 1
+  ! contains "model =" .codex/agents/implementation_researcher.toml || return 1
+  ! contains "model_reasoning_effort =" .codex/agents/implementation_researcher.toml || return 1
+  ! contains "model =" .codex/agents/test_investigator.toml || return 1
+  ! contains "model_reasoning_effort =" .codex/agents/test_investigator.toml || return 1
+  ! contains "model =" .codex/agents/implementation_worker.toml || return 1
+  ! contains "model_reasoning_effort =" .codex/agents/implementation_worker.toml || return 1
+  ! contains "model =" .codex/agents/quality_gate_runner.toml || return 1
+  ! contains "model_reasoning_effort =" .codex/agents/quality_gate_runner.toml || return 1
   contains "sandbox_mode = \"workspace-write\"" .codex/agents/implementation_worker.toml || return 1
   contains "親 agent が明示した計画" .codex/agents/implementation_worker.toml || return 1
   contains "親 agent が指定していないファイルを編集しない" .codex/agents/implementation_worker.toml || return 1
@@ -262,6 +276,10 @@ check_template_contract() {
   contains "スコープ遵守確認" .codex/agents/implementation_worker.toml || return 1
   contains "指定外ファイルを変更していないことの確認" .codex/agents/implementation_worker.toml || return 1
   contains "削除 / rename / git mutation を行っていないことの確認" .codex/agents/implementation_worker.toml || return 1
+  contains "sandbox_mode = \"workspace-write\"" .codex/agents/quality_gate_runner.toml || return 1
+  contains "Parent-defined validation" AGENTS.md || return 1
+  contains "Codex native delegation" AGENTS.md || return 1
+  contains "quality_gate_runner" AGENTS.md || return 1
   contains "run.json" docs/reference/run-artifacts.md || return 1
   contains "evaluation.json" docs/reference/run-artifacts.md || return 1
   contains "codex-task" docs/reference/run-artifacts.md || return 1

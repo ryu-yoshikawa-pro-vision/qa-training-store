@@ -60,6 +60,11 @@ function Test-TemplateContract {
         "codex-project.toml",
         ".codex/config.toml",
         ".codex/requirements.toml",
+        ".codex/agents/code_researcher.toml",
+        ".codex/agents/implementation_researcher.toml",
+        ".codex/agents/test_investigator.toml",
+        ".codex/agents/implementation_worker.toml",
+        ".codex/agents/quality_gate_runner.toml",
         ".codex/hooks/pre_tool_use_policy.py",
         ".codex/hooks/pre_tool_use_policy.ps1",
         ".codex/templates/PLAN.md",
@@ -101,6 +106,25 @@ function Test-TemplateContract {
     if ($agents -notmatch [regex]::Escape("scripts/new-run.ps1")) { throw "AGENTS.md missing PowerShell new-run reference" }
     if ($agents -notmatch [regex]::Escape("Report file")) { throw "AGENTS.md missing report policy" }
     if ($agents -notmatch [regex]::Escape("command-based deletion")) { throw "AGENTS.md missing deletion policy" }
+    if ($agents -notmatch [regex]::Escape("quality_gate_runner")) { throw "AGENTS.md missing quality_gate_runner routing" }
+    if ($agents -notmatch [regex]::Escape("Parent-defined validation")) { throw "AGENTS.md missing Parent-defined validation routing" }
+    if ($agents -notmatch [regex]::Escape("Codex native delegation")) { throw "AGENTS.md missing native delegation policy" }
+    if ($agents -notmatch [regex]::Escape("No child subagent delegation")) { throw "AGENTS.md missing recursive delegation prohibition" }
+    foreach ($agentPath in @(
+        ".codex/agents/code_researcher.toml",
+        ".codex/agents/implementation_researcher.toml",
+        ".codex/agents/test_investigator.toml",
+        ".codex/agents/implementation_worker.toml",
+        ".codex/agents/quality_gate_runner.toml"
+    )) {
+        $agentText = Get-Content -Raw $agentPath
+        if ($agentText -match '(?m)^\s*model\s*=') { throw "$agentPath must inherit project model" }
+        if ($agentText -match '(?m)^\s*model_reasoning_effort\s*=') { throw "$agentPath must inherit project reasoning effort" }
+    }
+    $qualityGate = Get-Content -Raw .codex/agents/quality_gate_runner.toml
+    if ($qualityGate -notmatch [regex]::Escape('name = "quality_gate_runner"')) { throw "quality_gate_runner name mismatch" }
+    if ($qualityGate -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "quality_gate_runner sandbox mismatch" }
+    if ($qualityGate -notmatch [regex]::Escape("Parent-defined validation")) { throw "quality_gate_runner validation responsibility missing" }
     if ($plans -notmatch [regex]::Escape(".agents/skills/feature-plan/SKILL.md")) { throw "PLANS.md missing feature-plan skill reference" }
     if ($plans -notmatch [regex]::Escape(".agents/skills/feature-plan/references/planning-workflow.md")) { throw "PLANS.md missing planning reference" }
     if ($plans -notmatch [regex]::Escape("docs/plans/TEMPLATE.md")) { throw "PLANS.md missing plan template reference" }
