@@ -177,6 +177,39 @@ describe("Native CI workflow contracts", () => {
     ]);
   });
 
+  it("keeps canonical Android visual capture manual, profile-bound, and provenance-bound", () => {
+    const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
+    const captureStart = runtime.indexOf("- name: Capture Android Screen Catalog baseline");
+    const captureEnd = runtime.indexOf("\n      - name:", captureStart + 1);
+    const capture = runtime.slice(captureStart, captureEnd === -1 ? undefined : captureEnd);
+
+    expect(nativeWorkflow).toContain("capture_spec_visuals:");
+    expect(nativeWorkflow).toContain("type: boolean");
+    expect(nativeWorkflow).toContain("default: false");
+    expect(captureStart).toBeGreaterThanOrEqual(0);
+    expect(capture).toContain("inputs.capture_spec_visuals == true");
+    expect(capture).not.toContain("pull_request");
+    expect(capture).toContain("SCREEN-STOREFRONT-HOME/default/android");
+    expect(capture).toContain("source-commit-sha");
+    expect(capture).toContain("automation-apk-path");
+    expect(capture).toContain("android-visual-capture.ts write-manifest");
+    expect(runtime).toContain("native-android-screen-catalog-visuals-");
+    for (const profileValue of [
+      "android-${ANDROID_API_LEVEL}",
+      "google_apis",
+      "x86_64",
+      "pixel_2",
+      "ja-JP",
+      "font_scale 1.0",
+    ]) {
+      expect(runtime).toContain(profileValue);
+    }
+    expect(capture).toContain("exec-out screencap -p");
+    expect(capture).toContain("APK_PATH");
+    expect(capture).toContain("GITHUB_SHA");
+    expect(capture).toContain("GITHUB_RUN_ID");
+  });
+
   it("keeps Android Maestro flows independent while fail-closing the runtime job", () => {
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
     const flowNames = [

@@ -317,6 +317,12 @@ describe("Native Test Control Maestro contracts", () => {
       expect(saveTapIndex).toBeGreaterThan(saveScrollIndex);
       expect(hideKeyboardIndexes[0]).toBeGreaterThan(inputIndex);
       expect(hideKeyboardIndexes[0]).toBeLessThan(saveScrollIndex);
+      expect(source).toContain(
+        'id: "native-order-review-order-delivered-item-7"\n    direction: DOWN\n    speed: 50',
+      );
+      expect(source).toContain("- waitForAnimationToEnd:\n    timeout: 5000\n- runFlow:");
+      expect(source).toContain('text: "完了|Done|Enter"');
+      expect(source).toContain("- pressKey: Back");
     }
     if (flowName === "native-purchase.yaml") {
       expect(source).toContain('id: "native-complete-order-id"');

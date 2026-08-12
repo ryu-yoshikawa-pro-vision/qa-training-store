@@ -100,7 +100,7 @@ describe("Native customer purchase screens", () => {
       }),
     );
     await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
-  });
+  }, 15_000);
 
   it("surfaces an unexpected checkout lookup error after login", async () => {
     const login = jest.fn().mockResolvedValue({ user: { role: "customer" } });

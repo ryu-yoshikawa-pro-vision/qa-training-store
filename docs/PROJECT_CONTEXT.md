@@ -339,6 +339,14 @@
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。
 - 標準経路は host 上の `codex-safe` / `codex-task --run-id <run_id>`。Docker sandbox は experimental かつ opt-in。
 
+## Screen Catalog / Visual Specification（2026-08-12）
+
+- Current `app/**` route scanはCatalog Universe 38件（Product 31、Supporting 4、Boundary 2、Test-only 1）で、`docs/spec/screen-catalog.md`へ固定した。Catalogはindexであり、Expected Product BehaviorのSSOTではない。Normative ownerは各Feature / root SpecificationのScreen Contractとし、cross-cutting `native-customer.md`はScreen Stateを所有しない。
+- `scripts/spec/visual-registry.ts`はCapture Case metadataとPlatform単位statusを持ち、`scripts/spec/visual-contract.ts`はCatalog / owner / state / target / asset / Markdown reference / routeのintegrityをfail-closeで検証する。ScreenshotはNon-normative Referenceであり、Product Bugや未解決behaviorをcanonicalizeしない。
+- 既存UI Reviewを再利用したWeb captureでCanonical WebP 68件を生成した。Markdownと`output/spec-site`のGenerated HTMLはactual image、lazy loading、canonical assetへのclick-throughを持つ。Repository asset budgetは1件1 MiB以下、合計100 MiB以下で検証する。
+- Android canonical profileはNative CIのAPI 34 / `google_apis` / `x86_64` / `pixel_2`、ja-JP、font scale 1.0、light、portraitとし、`workflow_dispatch`の`capture_spec_visuals=true`だけでRaw PNG + source SHA + Automation APK SHA-256 manifestを生成する。Physical Androidはpromotion inputではない。
+- この実装Runでは、Windows local Release buildの初期失敗を明示Virtual Store引数で修正し、API30 ARM physical deviceのRelease Build／Install／Smoke／Runtime／Boundary／Purchaseはpassedした。ただしAPI34／`google_apis`／`x86_64`／`pixel_2` emulator、AVD、API34 system imageはlocalに存在せず、Android 25 targetはcanonical capture未実行のblockedを維持する。Review FlowはMaestro-MCPの段階診断で、先頭から7件目への`speed: 10` timeoutと物理日本語IMEの非同期dismiss raceを分離し、`maestro/native-review.yaml`へ最初のscrollの`speed: 50`、animation待機、IME表示時だけの条件付きBackを反映した。標準Native入口でReview Flow 1/1を確認したが、Physical deviceはcanonical promotion inputではない。Webのcheckout processingは`CheckoutProcessingContent`が`resumePayment`後に即時redirectするためCurrent routeがfailedへ解決する。これはPlan契約どおり別Product Fix PRへ分離し、canonical AndroidとともにFinal DoDのPASSへ繰り上げない。品質ゲートはformatter-only baseline normalization後の`pnpm run verify`までpassedしている。詳細は`docs/history/2026-08-13_004500_screen-catalog-review-maestro-mcp.md`、最新Run REPORT、ADR-0013を参照する。
+
 ## PR #16 Skill-first + Harness-backed architecture (2026-08-10)
 
 - Agentic QAのPrimary Entry PointはCoding Agent + Exploratory QA Skillである。Normal／Gray-boxを日常QAのPrimary Use Caseとし、Black-box Scoredは評価用途に限定する。

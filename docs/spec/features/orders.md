@@ -18,6 +18,66 @@ paid → preparing → shipped → deliveredの順を守り、発送/配送完�
 
 Customerは注文番号、合計、配送先概要、Payment、Shipment、Timeline、次のActionを確認できます。Operator/AdminはCustomer購入操作を持たず、管理対象Orderの許可された状態だけを進めます。
 
+### SCREEN-ORDERS-LIST — Orders
+
+Screen Catalog: [Screen Catalog](../screen-catalog.md)
+
+#### Functions
+
+- Customer自身のOrder番号、合計、Payment、Shipment、Timelineを一覧表示する。
+- Empty、processing、failedを別のStatus表示として扱う。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `customer` | `regular-member` | 注文一覧とStatusを表示する。 | `required` | `web-desktop, android` | `-` | `BR-ORDER-001`, `AC-ORDER-001` |
+| `empty` | empty | `customer` | `orders-empty` | 注文がないこととStorefront導線を表示する。 | `required` | `web-desktop` | `-` | `BR-ORDER-001`, `AC-ORDER-001` |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-ORDERS-LIST default web-desktop](../assets/screens/SCREEN-ORDERS-LIST/default/web-desktop.webp)](../assets/screens/SCREEN-ORDERS-LIST/default/web-desktop.webp)
+
+##### `empty`
+
+###### Web Desktop
+
+[![SCREEN-ORDERS-LIST empty web-desktop](../assets/screens/SCREEN-ORDERS-LIST/empty/web-desktop.webp)](../assets/screens/SCREEN-ORDERS-LIST/empty/web-desktop.webp)
+
+### SCREEN-ORDERS-DETAIL — Order Detail
+
+Screen Catalog: [Screen Catalog](../screen-catalog.md)
+
+#### Functions
+
+- Order Snapshot、Payment、Shipment、Timeline、Review eligibilityを表示する。
+- Customer本人のOrderだけを表示し、現在のProduct変更でSnapshotを変えない。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `customer` | `regular-member` | Order SnapshotとShipment状態を表示する。 | `required` | `web-desktop, android` | `-` | `BR-ORDER-001`, `AC-ORDER-001` |
+| `reviewable` | domain | `customer` | `reviewable-orders` | Delivered itemのReview導線を表示する。 | `required` | `web-desktop` | `-` | `BR-ORDER-001`, `AC-ORDER-001` |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-ORDERS-DETAIL default web-desktop](../assets/screens/SCREEN-ORDERS-DETAIL/default/web-desktop.webp)](../assets/screens/SCREEN-ORDERS-DETAIL/default/web-desktop.webp)
+
+##### `reviewable`
+
+###### Web Desktop
+
+[![SCREEN-ORDERS-DETAIL reviewable web-desktop](../assets/screens/SCREEN-ORDERS-DETAIL/reviewable/web-desktop.webp)](../assets/screens/SCREEN-ORDERS-DETAIL/reviewable/web-desktop.webp)
+
 ## Acceptance Criteria
 
 ### Criteria

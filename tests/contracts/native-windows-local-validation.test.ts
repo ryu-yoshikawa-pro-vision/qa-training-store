@@ -48,6 +48,7 @@ describe("Windows Android local validation contract", () => {
     expect(runbook).toContain("'maestro/native-restart-persistence.yaml'");
     expect(runbook).toContain("単体 Flow が失敗した場合、他の Flow を実行しない");
     expect(skill).toMatch(/単体\s*Flow\s*が\s*失敗したら\s*後続\s*Suite\s*を\s*実行せず/);
+    expect(script).toContain('"--virtual-store-dir", $virtualStorePath');
   });
 
   it("enables Expo autolinking-aware Metro resolution", () => {

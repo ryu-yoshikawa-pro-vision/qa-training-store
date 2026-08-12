@@ -25,3 +25,28 @@ AuthorizationはUI表示だけでなくApplication Use Caseで強制します。
 ## Canonical Sources
 
 Role/Statusの型は `src/domain/contracts/entities.ts`、認可Policyは `src/domain/policies/permissions.ts`、SessionとRoute Guardは `src/application/` および `src/presentation/`、固定アカウントは `src/seeds/default-dataset.ts` を参照してください。
+
+## Screen Contracts
+
+### SCREEN-BOUNDARY-FORBIDDEN — Forbidden
+
+Screen Catalog: [Screen Catalog](./screen-catalog.md)
+
+#### Functions
+
+- RoleまたはPermissionにより利用できないRouteであることを説明する。
+- 利用者が安全なStorefrontまたは許可された入口へ戻れるActionを表示する。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `guest, customer, operator, admin` | `default` | 権限不足の説明と安全な戻り先を表示する。 | `required` | `web-desktop, android` | `-` | [Roles and Permissions](./roles-and-permissions.md#authorization), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-BOUNDARY-FORBIDDEN default web-desktop](assets/screens/SCREEN-BOUNDARY-FORBIDDEN/default/web-desktop.webp)](assets/screens/SCREEN-BOUNDARY-FORBIDDEN/default/web-desktop.webp)

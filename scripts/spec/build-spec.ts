@@ -63,6 +63,17 @@ function resolveOutputLink(fromRelativePath: string, target: string): string {
     : `${relativeOutputPath(outputPathFor(fromRelativePath), output)}#${hash}`;
 }
 
+function resolveImageOutputLink(fromRelativePath: string, target: string): string {
+  if (isExternalLink(target)) throw new Error(`Specification image must be local: ${target}`);
+  const [withoutHash = ""] = target.split("#", 1);
+  const sourceDirectory = path.posix.dirname(fromRelativePath);
+  const resolved = path.posix.normalize(path.posix.join(sourceDirectory, withoutHash));
+  if (!resolved.startsWith("docs/spec/assets/")) {
+    throw new Error(`Specification image is outside docs/spec/assets: ${target}`);
+  }
+  return relativeOutputPath(outputPathFor(fromRelativePath), resolved.replace(/^docs\/spec\//, ""));
+}
+
 function relativeOutputPath(fromOutput: string, toOutput: string): string {
   const relative = path.posix.relative(path.posix.dirname(fromOutput), toOutput);
   return relative === "" ? path.posix.basename(toOutput) : relative;
@@ -103,7 +114,9 @@ function renderBody(parsed: ParsedMarkdown): string {
 
   const flushParagraph = (): void => {
     if (paragraph.length > 0) {
-      output.push(`<p>${renderInline(paragraph.join(" "), linkTarget)}</p>`);
+      output.push(
+        `<p>${renderInline(paragraph.join(" "), linkTarget, (target) => resolveImageOutputLink(parsed.relativePath, target))}</p>`,
+      );
       paragraph = [];
     }
   };
@@ -147,7 +160,7 @@ function renderBody(parsed: ParsedMarkdown): string {
       const items: string[] = [];
       while (index < lines.length && /^\s*[-*+]\s+/.test(lines[index] ?? "")) {
         items.push(
-          `<li>${renderInline((lines[index] ?? "").replace(/^\s*[-*+]\s+/, ""), linkTarget)}</li>`,
+          `<li>${renderInline((lines[index] ?? "").replace(/^\s*[-*+]\s+/, ""), linkTarget, (target) => resolveImageOutputLink(parsed.relativePath, target))}</li>`,
         );
         index += 1;
       }
@@ -159,7 +172,7 @@ function renderBody(parsed: ParsedMarkdown): string {
       const items: string[] = [];
       while (index < lines.length && /^\s*\d+\.\s+/.test(lines[index] ?? "")) {
         items.push(
-          `<li>${renderInline((lines[index] ?? "").replace(/^\s*\d+\.\s+/, ""), linkTarget)}</li>`,
+          `<li>${renderInline((lines[index] ?? "").replace(/^\s*\d+\.\s+/, ""), linkTarget, (target) => resolveImageOutputLink(parsed.relativePath, target))}</li>`,
         );
         index += 1;
       }
@@ -169,7 +182,7 @@ function renderBody(parsed: ParsedMarkdown): string {
     if (/^\s*>\s?/.test(line)) {
       flushParagraph();
       output.push(
-        `<blockquote>${renderInline(line.replace(/^\s*>\s?/, ""), linkTarget)}</blockquote>`,
+        `<blockquote>${renderInline(line.replace(/^\s*>\s?/, ""), linkTarget, (target) => resolveImageOutputLink(parsed.relativePath, target))}</blockquote>`,
       );
       index += 1;
       continue;
@@ -186,7 +199,7 @@ function renderBody(parsed: ParsedMarkdown): string {
   return `${renderToc(parsed.headings)}<div class="document-body">${output.join("\n")}</div>`;
 }
 
-const CSS = `:root{color-scheme:light;--navy:#111827;--muted:#475569;--border:#e2e8f0;--gold:#7a5b22;--surface:#fffdf8;--code:#f8fafc}*{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--navy);font:16px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}a{color:#1d4ed8}header{border-bottom:1px solid var(--border);background:#fff;padding:1rem clamp(1rem,4vw,3rem);position:sticky;top:0;z-index:2}header .brand{font-weight:700;font-size:1.1rem}header .label{margin-left:.75rem;color:var(--gold);font-size:.8rem;border:1px solid var(--gold);border-radius:999px;padding:.15rem .55rem}nav ul{display:flex;flex-wrap:wrap;gap:.4rem 1rem;margin:.75rem 0 0;padding:0;list-style:none}main{display:grid;grid-template-columns:minmax(0,1fr) minmax(12rem,18rem);gap:2rem;max-width:1280px;margin:0 auto;padding:2rem clamp(1rem,4vw,3rem)}article{min-width:0}h1,h2,h3,h4,h5,h6{line-height:1.25;scroll-margin-top:6rem}h1{font-size:clamp(1.8rem,4vw,2.7rem)}h2{margin-top:2.25rem;border-bottom:1px solid var(--border);padding-bottom:.35rem}table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;margin:1rem 0}th,td{border:1px solid var(--border);padding:.55rem .7rem;text-align:left;vertical-align:top}th{background:#f8fafc}pre{overflow-x:auto;background:var(--code);border:1px solid var(--border);padding:1rem;border-radius:.5rem}code{background:#f1f5f9;border-radius:.25rem;padding:.1rem .25rem;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}pre code{background:none;padding:0}.toc{border:1px solid var(--border);border-radius:.5rem;padding:.75rem 1rem;background:#fff;position:sticky;top:7rem;max-height:70vh;overflow:auto}.toc ul{list-style:none;padding:0;margin:.5rem 0}.toc-level-3{padding-left:1rem}.image-placeholder{border:1px dashed var(--border);padding:.1rem .3rem;color:var(--muted)}blockquote{border-left:4px solid var(--gold);margin:1rem 0;padding:.25rem 1rem;color:var(--muted)}@media(max-width:800px){header{position:static}main{display:block;padding:1.25rem 1rem}.toc{position:static;max-height:none;margin-bottom:1.25rem}nav ul{display:block}nav li{margin:.25rem 0}}`;
+const CSS = `:root{color-scheme:light;--navy:#111827;--muted:#475569;--border:#e2e8f0;--gold:#7a5b22;--surface:#fffdf8;--code:#f8fafc}*{box-sizing:border-box}body{margin:0;background:var(--surface);color:var(--navy);font:16px/1.7 system-ui,-apple-system,"Segoe UI",sans-serif}a{color:#1d4ed8}header{border-bottom:1px solid var(--border);background:#fff;padding:1rem clamp(1rem,4vw,3rem);position:sticky;top:0;z-index:2}header .brand{font-weight:700;font-size:1.1rem}header .label{margin-left:.75rem;color:var(--gold);font-size:.8rem;border:1px solid var(--gold);border-radius:999px;padding:.15rem .55rem}nav ul{display:flex;flex-wrap:wrap;gap:.4rem 1rem;margin:.75rem 0 0;padding:0;list-style:none}main{display:grid;grid-template-columns:minmax(0,1fr) minmax(12rem,18rem);gap:2rem;max-width:1280px;margin:0 auto;padding:2rem clamp(1rem,4vw,3rem)}article{min-width:0}h1,h2,h3,h4,h5,h6{line-height:1.25;scroll-margin-top:6rem}h1{font-size:clamp(1.8rem,4vw,2.7rem)}h2{margin-top:2.25rem;border-bottom:1px solid var(--border);padding-bottom:.35rem}table{border-collapse:collapse;width:100%;display:block;overflow-x:auto;margin:1rem 0}th,td{border:1px solid var(--border);padding:.55rem .7rem;text-align:left;vertical-align:top}th{background:#f8fafc}pre{overflow-x:auto;background:var(--code);border:1px solid var(--border);padding:1rem;border-radius:.5rem}code{background:#f1f5f9;border-radius:.25rem;padding:.1rem .25rem;font-family:ui-monospace,SFMono-Regular,Consolas,monospace}pre code{background:none;padding:0}.toc{border:1px solid var(--border);border-radius:.5rem;padding:.75rem 1rem;background:#fff;position:sticky;top:7rem;max-height:70vh;overflow:auto}.toc ul{list-style:none;padding:0;margin:.5rem 0}.toc-level-3{padding-left:1rem}.canonical-image-link{display:inline-block;max-width:100%;border:1px solid var(--border);padding:.25rem;background:#fff}.canonical-image-link img{display:block;max-width:100%;height:auto}blockquote{border-left:4px solid var(--gold);margin:1rem 0;padding:.25rem 1rem;color:var(--muted)}@media(max-width:800px){header{position:static}main{display:block;padding:1.25rem 1rem}.toc{position:static;max-height:none;margin-bottom:1.25rem}nav ul{display:block}nav li{margin:.25rem 0}}`;
 
 function pageHtml(parsed: ParsedMarkdown, navigation: NavigationItem[]): string {
   const title = parsed.headings.find((heading) => heading.level === 1)?.text ?? parsed.relativePath;
@@ -237,7 +250,41 @@ export function buildSpecSite(options: BuildSpecOptions = {}): string[] {
     fs.mkdirSync(path.dirname(outputAbsolute), { recursive: true });
     fs.writeFileSync(outputAbsolute, pageHtml(parsed, navigation), "utf8");
   }
+  const assetSource = path.join(rootDir, "docs", "spec", "assets");
+  const assetDestination = path.join(outputDir, "assets");
+  if (fs.existsSync(assetSource))
+    copyDirectorySafely(assetSource, assetDestination, assetSource, assetDestination);
   return [...parsedFiles.keys()].sort((a, b) => a.localeCompare(b));
+}
+
+function copyDirectorySafely(
+  source: string,
+  destination: string,
+  sourceRoot: string,
+  destinationRoot: string,
+): void {
+  const resolvedSourceRoot = path.resolve(sourceRoot);
+  const resolvedDestinationRoot = path.resolve(destinationRoot);
+  const resolvedSource = path.resolve(source);
+  const resolvedDestination = path.resolve(destination);
+  if (
+    !resolvedSource.startsWith(`${resolvedSourceRoot}${path.sep}`) &&
+    resolvedSource !== resolvedSourceRoot
+  )
+    throw new Error(`Asset source escaped root: ${source}`);
+  if (
+    !resolvedDestination.startsWith(`${resolvedDestinationRoot}${path.sep}`) &&
+    resolvedDestination !== resolvedDestinationRoot
+  )
+    throw new Error(`Asset destination escaped root: ${destination}`);
+  fs.mkdirSync(resolvedDestination, { recursive: true });
+  for (const entry of fs.readdirSync(resolvedSource, { withFileTypes: true })) {
+    const sourceEntry = path.join(resolvedSource, entry.name);
+    const destinationEntry = path.join(resolvedDestination, entry.name);
+    if (entry.isDirectory())
+      copyDirectorySafely(sourceEntry, destinationEntry, sourceRoot, destinationRoot);
+    else if (entry.isFile()) fs.copyFileSync(sourceEntry, destinationEntry);
+  }
 }
 
 function isMainModule(): boolean {

@@ -3,6 +3,12 @@ name: Native CI
 on:
   pull_request:
   workflow_dispatch:
+    inputs:
+      capture_spec_visuals:
+        description: Capture canonical Screen Catalog Android visuals
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -826,6 +832,23 @@ jobs:
           "$ADB" shell settings put global transition_animation_scale 0
           "$ADB" shell settings put global animator_duration_scale 0
           "$ADB" shell input keyevent 82
+      - name: Normalize Android canonical visual profile
+        if: ${{ !cancelled() && inputs.capture_spec_visuals == true && steps.android_emulator_ready.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$ADB" shell settings put system system_locales ja-JP || true
+          "$ADB" shell settings put system font_scale 1.0
+          "$ADB" shell cmd uimode night no
+          "$ADB" shell settings put system accelerometer_rotation 0
+          "$ADB" shell settings put system user_rotation 0
+          locale_value="$($ADB shell getprop persist.sys.locale | tr -d '\r')"
+          font_scale="$($ADB shell settings get system font_scale | tr -d '\r')"
+          ui_mode="$($ADB shell cmd uimode night | tr -d '\r')"
+          echo "locale=$locale_value"
+          echo "font_scale=$font_scale"
+          echo "ui_mode=$ui_mode"
+          test "$font_scale" = "1.0"
       - name: Cache pinned Maestro CLI
         uses: actions/cache@v4
         with:
@@ -965,6 +988,56 @@ jobs:
             cat "$RUNNER_TEMP/app-launch-logcat.txt" >&2
             exit 1
           fi
+      - name: Capture Android Screen Catalog baseline
+        id: android_visual_capture
+        if: ${{ !cancelled() && inputs.capture_spec_visuals == true && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          PACKAGE_ID="com.ryuyoshikawa.scenarioshop"
+          CASE_KEY="SCREEN-STOREFRONT-HOME/default/android"
+          RAW_DIR="$RUNNER_TEMP/spec-visuals/raw/android/SCREEN-STOREFRONT-HOME/default"
+          RAW_PNG="$RAW_DIR/android.png"
+          MANIFEST="$RAW_DIR/android.manifest.json"
+          UI_DUMP="$RUNNER_TEMP/screen-catalog-ui.xml"
+          mkdir -p "$RAW_DIR"
+          reset_url='scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0'
+          timeout 30 "$ADB" shell am force-stop "$PACKAGE_ID"
+          timeout 60 "$ADB" shell am start -W -a android.intent.action.VIEW -d "$reset_url" "$PACKAGE_ID"
+          for _ in $(seq 1 30); do
+            timeout 10 "$ADB" shell uiautomator dump /sdcard/screen-catalog-ui.xml >/dev/null 2>&1 || true
+            timeout 10 "$ADB" shell cat /sdcard/screen-catalog-ui.xml > "$UI_DUMP" 2>/dev/null || true
+            if grep -q "native-home-screen" "$UI_DUMP"; then
+              break
+            fi
+            sleep 2
+          done
+          timeout 30 "$ADB" shell uiautomator dump /sdcard/screen-catalog-ui.xml >/dev/null
+          timeout 10 "$ADB" shell cat /sdcard/screen-catalog-ui.xml > "$UI_DUMP"
+          grep -q "native-home-screen" "$UI_DUMP"
+          timeout 30 "$ADB" exec-out screencap -p > "$RAW_PNG"
+          test -s "$RAW_PNG"
+          resolution="$($ADB shell wm size | sed -n 's/.*Physical size: //p' | tr -d '\r')"
+          density="$($ADB shell wm density | sed -n 's/.*Physical density: //p' | tr -d '\r')"
+          test -n "$resolution"
+          test -n "$density"
+          pnpm exec tsx scripts/spec/android-visual-capture.ts write-manifest \
+            --capture-case-key "$CASE_KEY" \
+            --source-commit-sha "$GITHUB_SHA" \
+            --automation-apk-path "$APK_PATH" \
+            --raw-png-path "$RAW_PNG" \
+            --output "$MANIFEST" \
+            --resolution "$resolution" \
+            --density "$density" \
+            --workflow-run-id "$GITHUB_RUN_ID"
+      - name: Upload Android Screen Catalog raw visuals
+        if: ${{ always() && steps.android_visual_capture.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: native-android-screen-catalog-visuals-${{ github.run_id }}
+          path: ${{ runner.temp }}/spec-visuals/raw/android
+          if-no-files-found: error
+          retention-days: 7
       - name: Run Maestro Test Control flow
         if: ${{ !cancelled() && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash

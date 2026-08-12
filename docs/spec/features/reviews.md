@@ -18,6 +18,63 @@ publishedだけを商品表示へ集計し、hiddenは再公開操作まで非�
 
 Customerは本人Reviewの評価、Title、本文、Status、Versionを編集できます。Adminは公開/非公開を管理できます。削除済みを編集・再投稿できるUIを表示しません。
 
+### SCREEN-REVIEWS-EDITOR — Review Editor
+
+Screen Catalog: [Screen Catalog](../screen-catalog.md)
+
+#### Functions
+
+- Deliveredかつ本人のOrder Itemに対してReviewを作成・編集する。
+- published、hidden、deletedを表示し、deletedを再投稿可能に見せない。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `customer` | `reviewable-orders` | Rating、Title、本文、保存Actionを表示する。 | `required` | `web-desktop, android` | `-` | `BR-REVIEW-001`, `AC-REVIEW-001` |
+| `published` | domain | `customer` | `reviewable-orders` | 既存Reviewの編集状態を表示する。 | `required` | `web-desktop` | `-` | `BR-REVIEW-002`, `AC-REVIEW-002` |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-REVIEWS-EDITOR default web-desktop](../assets/screens/SCREEN-REVIEWS-EDITOR/default/web-desktop.webp)](../assets/screens/SCREEN-REVIEWS-EDITOR/default/web-desktop.webp)
+
+##### `published`
+
+###### Web Desktop
+
+[![SCREEN-REVIEWS-EDITOR published web-desktop](../assets/screens/SCREEN-REVIEWS-EDITOR/published/web-desktop.webp)](../assets/screens/SCREEN-REVIEWS-EDITOR/published/web-desktop.webp)
+
+### SCREEN-ADMIN-REVIEWS — Admin Reviews
+
+Screen Catalog: [Screen Catalog](../screen-catalog.md)
+
+#### Functions
+
+- Operator/AdminがReviewの公開状態と一括操作結果を確認する。
+- Customer ReviewのSnapshotを壊さずに公開/非公開を操作する。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `operator, admin` | `default` | Review一覧と状態操作を表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-REVIEW-002`, `AC-REVIEW-002` |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-ADMIN-REVIEWS default web-desktop](../assets/screens/SCREEN-ADMIN-REVIEWS/default/web-desktop.webp)](../assets/screens/SCREEN-ADMIN-REVIEWS/default/web-desktop.webp)
+
+###### Web Tablet
+
+[![SCREEN-ADMIN-REVIEWS default web-tablet](../assets/screens/SCREEN-ADMIN-REVIEWS/default/web-tablet.webp)](../assets/screens/SCREEN-ADMIN-REVIEWS/default/web-tablet.webp)
+
 ## Acceptance Criteria
 
 ### Criteria
