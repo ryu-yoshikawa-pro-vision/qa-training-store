@@ -220,3 +220,12 @@
 - Remaining delta: なし。
 - Decision: `stop_success`。
 - Progress: 100% (9/9)
+
+## 2026-08-12 17:30 (JST) Run Artifact正本関係の最終訂正
+
+- `run.json.follow_up`はrepositoryの正式なRun Manifest fieldではなく、collector再集約時に保持される保証がないため削除した。
+- Native subagent smokeの人間向けEvidenceは本REPORTへ一本化する。durableな`subagent-run.json`は今回生成していないため、`run.json`のsubagent aggregateは0件とし、独自fieldでNative smoke結果を保持しない。
+- 最終採用したrequired validationはPASS。local `pnpm run verify`のみworking-tree / line-ending conditionの可能性がある未変更test fileで停止したが、clean CIでは再現しておらずnon-blocking local conditionとして扱う。local `pnpm run verify`自体はPASS扱いしない。
+- CIはPhase 1 / NativeともSUCCESS、Native `quality_gate_runner`、POSIX/LF Bash、PowerShell verifyもPASS。unresolved blockerはなし。
+- 新しいledger / collector / runtime monitoring frameworkは追加していない。Agent config、AGENTS.md、verify script、Product Code、Tests、CI workflowは変更していない。
+- Progress: 100% (9/9)

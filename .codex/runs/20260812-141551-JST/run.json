@@ -82,57 +82,5 @@
                   },
     "evaluation_path":  null,
     "status":  "completed",
-    "primary_failure_category":  null,
-    "follow_up":  {
-                      "fresh_parent_session":  true,
-                      "quality_gate_runner":  {
-                          "native_spawn":  "completed",
-                          "agent_ids":  [
-                              "019ff494-6ee6-7681-b065-92acdf3666c3",
-                              "019ff49c-f336-7690-a154-9da8a03a989c"
-                          ],
-                          "commands":  [
-                              "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1",
-                              "git diff --check"
-                          ],
-                          "result":  "passed",
-                          "source_test_docs_run_mutation":  false,
-                          "child_subagent_spawn":  false
-                      },
-                      "implementation_worker":  {
-                          "native_spawn":  "completed",
-                          "agent_id":  "019ff49b-b222-7cd2-84da-88e3b300589e",
-                          "changed_files":  [
-                              ".codex/agents/implementation_worker.toml"
-                          ],
-                          "run_artifact_created":  false,
-                          "git_mutation":  false
-                      },
-                      "posix_lf_bash_verify":  {
-                          "runtime":  "WSL Ubuntu / GNU Bash 5.2",
-                          "lf_input":  "passed",
-                          "initial_result":  "failed_template_contract",
-                          "initial_cause_classification":  "verify_contract_update_omission",
-                          "result":  "passed",
-                          "final_summary":  "PASS=1 FAIL=0 SKIP=3",
-                          "pure_posix_skips":  [
-                              "execpolicy",
-                              "bash wrapper preflight",
-                              "PowerShell wrapper preflight"
-                          ],
-                          "final_validation":  "bash scripts/verify"
-                      },
-                      "static_validation":  {
-                          "toml_parse":  "passed",
-                          "focused_prettier":  "passed",
-                          "powershell_verify":  "passed",
-                          "bash_verify":  "passed",
-                          "config_agents_section":  "present",
-                          "max_threads":  4,
-                          "max_depth":  1,
-                          "ssot_keys":  2,
-                          "agent_individual_model_keys":  0
-                      },
-                      "new_run_directories":  0
-                  }
+    "primary_failure_category":  null
 }
