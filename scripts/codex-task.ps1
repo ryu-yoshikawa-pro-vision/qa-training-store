@@ -70,6 +70,7 @@ $script:codexRunArtifactSanitizationExecuted = $false
 $script:codexTaskCompletedNormally = $false
 $script:codexTaskMainTryActive = $false
 $script:codexTaskTerminationCode = 0
+$script:lastGitChangedFilesAvailable = $true
 
 function Get-RepoRoot {
     param([string]$ScriptDir)
@@ -580,9 +581,12 @@ function Write-RunManifest {
             Convert-ToRepoRelativePath -RepoRoot $RepoRoot -Path $State.report_path
         )
         changed_files = @($State.changed_files)
+        expected_invocation_ledger = if ($State.run_root -and (Test-Path (Join-Path $State.run_root "expected-invocations.jsonl"))) { Convert-ToRepoRelativePath -RepoRoot $RepoRoot -Path (Join-Path $State.run_root "expected-invocations.jsonl") } else { $null }
+        expected_invocations = @()
         source_baseline = [ordered]@{
             kind = 'git_status'
             changed_files = @($State.source_baseline_files)
+            expected_files = $State.expected_file_baseline
         }
         validation = [ordered]@{
             status = $State.validation_status
@@ -594,6 +598,9 @@ function Write-RunManifest {
             delete_attempt_blocked = $false
             git_mutation_attempt_blocked = $false
             scope_violation = $State.scope_violation
+            parent_scope_violation = $State.scope_violation
+            subagent_scope_violation = $false
+            runtime_compliance_violation = $false
         }
         artifact_summary = [ordered]@{
             codex_task_report_count = 0
@@ -648,12 +655,27 @@ function Write-RunManifest {
                 $manifest.safety.delete_attempt_blocked = ([bool]$existingSafety.delete_attempt_blocked -or [bool]$manifest.safety.delete_attempt_blocked)
                 $manifest.safety.git_mutation_attempt_blocked = ([bool]$existingSafety.git_mutation_attempt_blocked -or [bool]$manifest.safety.git_mutation_attempt_blocked)
                 $manifest.safety.scope_violation = ([bool]$existingSafety.scope_violation -or [bool]$manifest.safety.scope_violation)
+                if ($existingSafety.PSObject.Properties.Name -contains 'parent_scope_violation') {
+                    $manifest.safety.parent_scope_violation = ([bool]$existingSafety.parent_scope_violation -or [bool]$manifest.safety.parent_scope_violation)
+                }
+                if ($existingSafety.PSObject.Properties.Name -contains 'subagent_scope_violation') {
+                    $manifest.safety.subagent_scope_violation = ([bool]$existingSafety.subagent_scope_violation -or [bool]$manifest.safety.subagent_scope_violation)
+                }
+                if ($existingSafety.PSObject.Properties.Name -contains 'runtime_compliance_violation') {
+                    $manifest.safety.runtime_compliance_violation = ([bool]$existingSafety.runtime_compliance_violation -or [bool]$manifest.safety.runtime_compliance_violation)
+                }
             }
             if ($null -eq $manifest.evaluation_path -and $null -ne $existing.evaluation_path) {
                 $manifest.evaluation_path = $existing.evaluation_path
             }
             if ($null -eq $manifest.primary_failure_category -and $null -ne $existing.primary_failure_category) {
                 $manifest.primary_failure_category = $existing.primary_failure_category
+            }
+            if ($existing.PSObject.Properties.Name -contains 'expected_invocation_ledger') {
+                $manifest.expected_invocation_ledger = $existing.expected_invocation_ledger
+            }
+            if ($existing.PSObject.Properties.Name -contains 'expected_invocations') {
+                $manifest.expected_invocations = @($existing.expected_invocations)
             }
             if ($existing.PSObject.Properties.Name -contains 'source_baseline' -and $null -ne $existing.source_baseline) {
                 $manifest.source_baseline = $existing.source_baseline
@@ -724,18 +746,23 @@ function Test-PathMatchesAllowedScope {
 function Get-GitChangedFiles {
     param([Parameter(Mandatory = $true)][string]$RepoRoot)
 
+    $script:lastGitChangedFilesAvailable = $true
+
     try {
         & git -C $RepoRoot rev-parse --is-inside-work-tree *> $null
         if ($LASTEXITCODE -ne 0) {
+            $script:lastGitChangedFilesAvailable = $false
             return @()
         }
     }
     catch {
+        $script:lastGitChangedFilesAvailable = $false
         return @()
     }
 
     $gitCmd = Get-Command git -ErrorAction SilentlyContinue
     if (-not $gitCmd) {
+        $script:lastGitChangedFilesAvailable = $false
         return @()
     }
 
@@ -757,6 +784,7 @@ function Get-GitChangedFiles {
         $null = $process.StandardError.ReadToEnd()
         $process.WaitForExit()
         if ($process.ExitCode -ne 0) {
+            $script:lastGitChangedFilesAvailable = $false
             return @()
         }
 
@@ -801,6 +829,38 @@ function Get-GitChangedFiles {
     }
 }
 
+function Get-ExpectedFileFingerprint {
+    param(
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [Parameter(Mandatory = $true)][string]$RelativePath
+    )
+
+    $fullPath = Join-Path $RepoRoot ($RelativePath -replace '/', [System.IO.Path]::DirectorySeparatorChar)
+    if (-not (Test-Path -LiteralPath $fullPath -PathType Leaf)) {
+        return [ordered]@{ exists = $false; hash = $null; size = $null }
+    }
+
+    $item = Get-Item -LiteralPath $fullPath
+    $hash = (Get-FileHash -LiteralPath $fullPath -Algorithm SHA256).Hash
+    return [ordered]@{ exists = $true; hash = $hash; size = [int64]$item.Length }
+}
+
+function Test-ExpectedFileChanged {
+    param(
+        [Parameter(Mandatory = $true)][System.Collections.IDictionary]$State,
+        [Parameter(Mandatory = $true)][string]$RepoRoot,
+        [Parameter(Mandatory = $true)][string]$RelativePath
+    )
+
+    $baseline = $State.expected_file_baseline[$RelativePath]
+    if ($null -eq $baseline) {
+        return $false
+    }
+
+    $current = Get-ExpectedFileFingerprint -RepoRoot $RepoRoot -RelativePath $RelativePath
+    return ($baseline | ConvertTo-Json -Compress -Depth 4) -ne ($current | ConvertTo-Json -Compress -Depth 4)
+}
+
 function Get-RunSourceChangedFiles {
     param(
         [Parameter(Mandatory = $true)][string]$RepoRoot,
@@ -808,6 +868,11 @@ function Get-RunSourceChangedFiles {
     )
 
     $current = @(Get-GitChangedFiles -RepoRoot $RepoRoot)
+    if (-not $script:lastGitChangedFilesAvailable) {
+        $State.source_changed_files_unavailable = $true
+        Add-ValidationWarning -State $State -Type 'source_changed_files_unavailable' -Path 'run.json' -Message 'Git status could not be read; known changed_files are preserved.'
+        return @(Get-SortedUniqueStrings -Values @($State.known_changed_files))
+    }
     $baseline = New-Object System.Collections.Generic.HashSet[string]([System.StringComparer]::Ordinal)
     foreach ($path in @($State.source_baseline_files)) {
         [void]$baseline.Add($path)
@@ -816,6 +881,11 @@ function Get-RunSourceChangedFiles {
     $delta = New-Object System.Collections.Generic.List[string]
     foreach ($path in $current) {
         if (-not $baseline.Contains($path)) {
+            $delta.Add($path)
+        }
+    }
+    foreach ($path in @($State.expected_changed_files)) {
+        if (Test-ExpectedFileChanged -State $State -RepoRoot $RepoRoot -RelativePath $path) {
             $delta.Add($path)
         }
     }
@@ -861,7 +931,7 @@ function Invoke-ScopeChecks {
 
         $missingExpected = New-Object System.Collections.Generic.List[string]
         foreach ($path in @($State.expected_changed_files)) {
-            if (-not $changedLookup.Contains($path)) {
+            if (-not $changedLookup.Contains($path) -and -not (Test-ExpectedFileChanged -State $State -RepoRoot $RepoRoot -RelativePath $path)) {
                 $missingExpected.Add($path)
             }
         }
@@ -1339,7 +1409,10 @@ $state = [ordered]@{
     expected_changed_files = (New-Object System.Collections.Generic.List[string])
     expected_missing_behavior = "fail"
     changed_files = @()
+    known_changed_files = @()
     source_baseline_files = @()
+    expected_file_baseline = @{}
+    source_changed_files_unavailable = $false
     scope_violation = $false
 }
 $script:repoRoot = $repoRoot
@@ -1658,9 +1731,15 @@ if (-not [string]::IsNullOrWhiteSpace($state.run_id)) {
             $null -ne $existingManifest.source_baseline -and
             $existingManifest.source_baseline.PSObject.Properties.Name -contains 'changed_files') {
             $state.source_baseline_files = @(Get-SortedUniqueStrings -Values @($existingManifest.source_baseline.changed_files))
+            if ($existingManifest.PSObject.Properties.Name -contains 'changed_files') {
+                $state.known_changed_files = @(Get-SortedUniqueStrings -Values @($existingManifest.changed_files))
+            }
         }
         else {
             $state.source_baseline_files = @(Get-GitChangedFiles -RepoRoot $repoRoot)
+        }
+        foreach ($path in @($state.expected_changed_files)) {
+            $state.expected_file_baseline[$path] = Get-ExpectedFileFingerprint -RepoRoot $repoRoot -RelativePath $path
         }
     }
     $state.evaluation_file_path = Join-Path $runRoot "evaluation.json"
@@ -1813,7 +1892,7 @@ try {
     if (-not [string]::IsNullOrWhiteSpace($state.run_id)) {
         [Environment]::SetEnvironmentVariable("CODEX_RUN_ID", $state.run_id, "Process")
         if ($state.record_run_manifest) {
-            $runObservationLog = Join-Path $runRoot "logs\hooks.jsonl"
+            $runObservationLog = Join-Path (Join-Path $runRoot "logs") "hooks.jsonl"
             $runObservationLogParent = Split-Path -Parent $runObservationLog
             if (-not (Test-Path $runObservationLogParent)) {
                 New-Item -ItemType Directory -Path $runObservationLogParent -Force | Out-Null

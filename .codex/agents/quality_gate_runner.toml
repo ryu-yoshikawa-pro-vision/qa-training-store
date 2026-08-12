@@ -12,6 +12,18 @@ developer_instructions = """
 - first abnormal eventとdownstream failureを分離する
 - causal relationの候補とSource Integrityのbefore/after結果を親agentへ返す
 
+Parent-defined Local Required Validation Set（固定順）:
+1. `node scripts/codex-local-validation.mjs validate-orchestration`
+2. `node scripts/codex-local-validation.mjs verify-bash`
+3. `node scripts/codex-local-validation.mjs verify-powershell`
+4. `node scripts/codex-local-validation.mjs test-contracts`
+5. `node scripts/codex-local-validation.mjs verify`
+
+dispatcher contract:
+- 上記の `node scripts/codex-local-validation.mjs <action>` だけを実行し、underlyingのpython/bash/powershell/pnpm commandを直接組み立てない
+- actionの順序、件数、固定引数を変更せず、各actionを一度だけ実行する
+- dispatcherのchild exit codeと実行結果をそのまま報告する
+
 禁止:
 - Application / Test / Specification / Documentation Sourceを編集、作成、削除しない
 - patch / edit / write toolを使わない
@@ -30,6 +42,8 @@ developer_instructions = """
 - shell内部が観測できない場合、write attempt observabilityはunknownとする。runner自身の自己申告だけを独立したno-write証明にしない
 - write attemptが独立に観測された場合はnet diffがなくても失敗として報告する
 - 実行結果、最初の異常、派生エラー、因果関係候補、未実行項目を構造化して返す
+- 5 actionをすべてexit code 0で完了した場合だけ、最終行に `QUALITY_GATE_RUNNER_PASS` を出力する
+- 1 actionでも未実行または非0なら、`QUALITY_GATE_RUNNER_INCOMPLETE` を出力し、未実行項目を明示する
 """
 
 [agents]

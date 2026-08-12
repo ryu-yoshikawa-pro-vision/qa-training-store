@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import importlib.util
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -44,6 +45,27 @@ def observed_records(expected, count=None):
     return records if count is None else records[:count]
 
 
+def duplicate_agent_expected_records():
+    return [
+        {
+            "invocation_id": "invocation-A",
+            "expected_agent_name": "code_researcher",
+            "expected_role": "investigator",
+            "runtime_agent_id": "agent-id-A",
+            "expected_model": "gpt-5.6-luna",
+            "dispatch_timestamp": "2026-08-11T12:00:00Z",
+        },
+        {
+            "invocation_id": "invocation-B",
+            "expected_agent_name": "code_researcher",
+            "expected_role": "investigator",
+            "runtime_agent_id": "agent-id-B",
+            "expected_model": "gpt-5.6-luna",
+            "dispatch_timestamp": "2026-08-11T12:00:01Z",
+        },
+    ]
+
+
 class RuntimeComplianceContractTests(unittest.TestCase):
     def test_expected_three_observed_three_passes(self):
         expected = expected_records()
@@ -81,19 +103,109 @@ class RuntimeComplianceContractTests(unittest.TestCase):
         result = COLLECTOR.evaluate_runtime_agent_compliance(expected, observed)
         self.assertNotEqual(result["status"], "pass")
 
-    def test_duplicate_role_with_one_observation_is_not_pass(self):
-        expected = expected_records(2)
-        result = COLLECTOR.evaluate_runtime_agent_compliance(expected, observed_records(expected, 1))
+    def test_same_agent_multiple_invocations_missing_second_is_not_pass(self):
+        expected = duplicate_agent_expected_records()
+        observed = [
+            {
+                "agent_type": "code_researcher",
+                "agent_id": "agent-id-A",
+                "model": "gpt-5.6-luna",
+                "event_id": "event-agent-id-A",
+            }
+        ]
+        result = COLLECTOR.evaluate_runtime_agent_compliance(expected, observed)
         self.assertNotEqual(result["status"], "pass")
-        self.assertEqual(len(result["missing"]), 1)
+        self.assertEqual([item["invocation_id"] for item in result["missing"]], ["invocation-B"])
 
     def test_empty_expected_is_not_pass(self):
         result = COLLECTOR.evaluate_runtime_agent_compliance([], [])
         self.assertNotEqual(result["status"], "pass")
         self.assertTrue(result["violations"])
 
+    def test_duplicate_observed_agent_id_is_not_pass(self):
+        expected = expected_records(1)
+        observed = observed_records(expected) + observed_records(expected)
+        result = COLLECTOR.evaluate_runtime_agent_compliance(expected, observed)
+        self.assertNotEqual(result["status"], "pass")
+        self.assertTrue(any(item["kind"] == "duplicate_observed_invocation_identifier" for item in result["violations"]))
+
+    def test_reasoning_effort_is_static_when_runtime_field_is_absent(self):
+        expected = expected_records(1)
+        result = COLLECTOR.evaluate_runtime_agent_compliance(expected, observed_records(expected))
+        self.assertEqual(result["status"], "pass")
+        self.assertEqual(result["reasoning_effort"]["configured"], "max")
+        self.assertTrue(result["reasoning_effort"]["configured_accepted"])
+        self.assertFalse(result["reasoning_effort"]["runtime_observed"])
+        self.assertIsNone(result["reasoning_effort"]["runtime_matches_configured"])
+
+    def test_reasoning_effort_mismatch_is_not_pass(self):
+        expected = expected_records(1)
+        observed = observed_records(expected)
+        observed[0]["reasoning_effort"] = "high"
+        result = COLLECTOR.evaluate_runtime_agent_compliance(expected, observed)
+        self.assertNotEqual(result["status"], "pass")
+        self.assertTrue(any(item["kind"] == "reasoning_effort_mismatch" for item in result["violations"]))
+
 
 class ArtifactContractTests(unittest.TestCase):
+    def test_porcelain_rename_keeps_new_and_old_paths(self):
+        raw = b"R  new-name.ts\0old-name.ts\0?? untracked.ts\0"
+        self.assertEqual(
+            COLLECTOR.parse_porcelain_paths(raw),
+            ["new-name.ts", "old-name.ts", "untracked.ts"],
+        )
+
+    def test_porcelain_copy_keeps_new_path(self):
+        raw = b"C  copied.ts\0source.ts\0"
+        self.assertEqual(COLLECTOR.parse_porcelain_paths(raw), ["copied.ts"])
+
+    def test_porcelain_fixture_covers_clean_new_delete_rename_and_copy(self):
+        raw = (
+            b" M modified.ts\0"
+            b"A  added.ts\0"
+            b"D  deleted.ts\0"
+            b"R  renamed-new.ts\0renamed-old.ts\0"
+            b"C  copied.ts\0copy-source.ts\0"
+            b"?? untracked.ts\0"
+        )
+        self.assertEqual(
+            COLLECTOR.parse_porcelain_paths(raw),
+            [
+                "modified.ts",
+                "added.ts",
+                "deleted.ts",
+                "renamed-new.ts",
+                "renamed-old.ts",
+                "copied.ts",
+                "untracked.ts",
+            ],
+        )
+
+    def test_status_unavailable_preserves_known_and_accepted_files(self):
+        self.assertEqual(
+            COLLECTOR.preserve_known_changed_files(["known.ts"], ["accepted.ts"]),
+            ["accepted.ts", "known.ts"],
+        )
+
+    def test_expected_ledger_dispatch_and_link_are_independent_from_subagent_records(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "expected-invocations.jsonl"
+            path.write_text(
+                "\n".join(
+                    [
+                        '{"event":"dispatch","invocation_id":"inv-A","expected_agent_name":"code_researcher","expected_model":"gpt-5.6-luna","expected_role":"investigator","dispatch_timestamp":"2026-08-11T12:00:00Z"}',
+                        '{"event":"link","invocation_id":"inv-A","runtime_agent_id":"agent-A","linked_timestamp":"2026-08-11T12:00:01Z"}',
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            records, warnings, present = COLLECTOR.load_expected_invocation_ledger(Path(directory), Path(directory))
+            self.assertTrue(present)
+            self.assertEqual(warnings, [])
+            self.assertEqual(records[0]["invocation_id"], "inv-A")
+            self.assertEqual(records[0]["runtime_agent_id"], "agent-A")
+
     def test_baseline_delta_preserves_accepted_subagent_changes(self):
         result = COLLECTOR.aggregate_changed_files(
             ["pre-existing.ts", "shared.ts"],
@@ -101,6 +213,42 @@ class ArtifactContractTests(unittest.TestCase):
             ["accepted-child.ts"],
         )
         self.assertEqual(result, ["accepted-child.ts", "parent.ts"])
+
+    def test_only_accepted_subagent_changes_are_aggregated(self):
+        self.assertEqual(
+            COLLECTOR.accepted_subagent_changes("accepted", ["accepted.ts"]),
+            ["accepted.ts"],
+        )
+        self.assertEqual(
+            COLLECTOR.accepted_subagent_changes("partially_accepted", ["partial.ts"]),
+            ["partial.ts"],
+        )
+        self.assertEqual(COLLECTOR.accepted_subagent_changes("rejected", ["rejected.ts"]), [])
+
+    def test_dirty_baseline_fingerprint_covers_unchanged_and_additional_change(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "dirty.ts"
+            path.write_text("before\n", encoding="utf-8")
+            baseline = {
+                "expected_files": {"dirty.ts": COLLECTOR.fingerprint_file(root, "dirty.ts")}
+            }
+            self.assertEqual(COLLECTOR.expected_file_delta(root, baseline), [])
+
+            path.write_text("after\n", encoding="utf-8")
+            self.assertEqual(COLLECTOR.expected_file_delta(root, baseline), ["dirty.ts"])
+
+    def test_clean_baseline_new_and_deleted_expected_files_are_detected(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            missing_baseline = {
+                "expected_files": {
+                    "new.ts": {"exists": False, "hash": None, "size": None},
+                    "deleted.ts": {"exists": True, "hash": "old", "size": 3},
+                }
+            }
+            (root / "new.ts").write_text("new", encoding="utf-8")
+            self.assertEqual(COLLECTOR.expected_file_delta(root, missing_baseline), ["new.ts", "deleted.ts"])
 
     def test_final_pass_has_no_failure_categories(self):
         self.assertEqual(

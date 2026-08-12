@@ -111,6 +111,52 @@ find_python_for_validator() {
   return 1
 }
 
+resolve_codex_command() {
+  local resolved
+  resolved="$(command -v codex 2>/dev/null || true)"
+  if [[ -n "$resolved" ]] && "$resolved" --version >/dev/null 2>&1; then
+    printf '%s' "$resolved"
+    return 0
+  fi
+
+  if [[ -n "$powershell_cmd" ]]; then
+    resolved="$("$powershell_cmd" -NoProfile -Command '(Get-Command codex -ErrorAction SilentlyContinue).Source' 2>/dev/null | tr -d '\r' | tail -n 1)"
+    if [[ -n "$resolved" ]]; then
+      printf '%s' "$resolved"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+resolve_powershell_command() {
+  local resolved
+  resolved="$(command -v powershell.exe 2>/dev/null || command -v pwsh 2>/dev/null || true)"
+  if [[ -n "$resolved" ]]; then
+    printf '%s' "$resolved"
+    return 0
+  fi
+  for resolved in "/c/Program Files/PowerShell/7/pwsh.exe" "/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"; do
+    if [[ -f "$resolved" ]]; then
+      printf '%s' "$resolved"
+      return 0
+    fi
+  done
+  return 1
+}
+
+powershell_cmd="$(resolve_powershell_command || true)"
+codex_cmd="$(resolve_codex_command || true)"
+
+run_codex() {
+  if [[ "$codex_cmd" == *.ps1 ]]; then
+    "$powershell_cmd" -NoProfile -ExecutionPolicy Bypass -File "$codex_cmd" "$@"
+  else
+    "$codex_cmd" "$@"
+  fi
+}
+
 check_luna_orchestration_contract() {
   local python_bin
   python_bin="$(find_python_for_validator)" || return 1
@@ -163,6 +209,7 @@ check_template_contract() {
   [[ -f scripts/validate-output-schema.py ]] || return 1
   [[ -f scripts/validate-luna-orchestration.py ]] || return 1
   [[ -f scripts/test-luna-orchestration-contract.py ]] || return 1
+  [[ -f scripts/record-expected-invocation.py ]] || return 1
   [[ -f scripts/codex-local-validation.mjs ]] || return 1
   [[ -f spec/failure-taxonomy.json ]] || return 1
   [[ -f .agents/skills/feature-plan/references/planning-workflow.md ]] || return 1
@@ -317,7 +364,10 @@ check_template_contract() {
   contains "failure_categories" docs/reference/run-artifacts.md || return 1
   contains "prefix_rule" .codex/rules/15-local-validation-allow.rules || return 1
   contains "scripts/codex-local-validation.mjs" .codex/rules/99-local-validation-wrapper-allow.rules || return 1
+  contains "additional subagent spawn禁止" scripts/validate-luna-orchestration.py || return 1
   ! contains '"$schema"' spec/failure-taxonomy.json || return 1
+  [[ -f vitest.config.ts ]] || return 1
+  [[ -f tests/contracts/native-production-module-resolution.test.ts ]] || return 1
   ! contains "testTimeout" vitest.config.ts || return 1
   contains 'describe("Native automation module resolution", { timeout: 15_000 }' tests/contracts/native-production-module-resolution.test.ts || return 1
   contains "name = \"implementation_worker\"" .codex/agents/implementation_worker.toml || return 1
@@ -332,6 +382,10 @@ check_template_contract() {
   contains "削除 / rename / git mutation を行っていないことの確認" .codex/agents/implementation_worker.toml || return 1
   contains "Local Required Validation Set" .codex/agents/quality_gate_runner.toml || return 1
   contains "additional subagent spawn禁止" .codex/agents/quality_gate_runner.toml || return 1
+  contains "Failure Taxonomy" .codex/agents/quality_gate_runner.toml || return 1
+  contains "codex-local-validation.mjs" .codex/agents/quality_gate_runner.toml || return 1
+  contains "QUALITY_GATE_RUNNER_PASS" .codex/agents/quality_gate_runner.toml || return 1
+  contains "QUALITY_GATE_RUNNER_INCOMPLETE" .codex/agents/quality_gate_runner.toml || return 1
   for agent_name in code_researcher implementation_researcher test_investigator implementation_worker quality_gate_runner; do
     contains "name = \"$agent_name\"" ".codex/agents/$agent_name.toml" || return 1
     contains 'model = "gpt-5.6-luna"' ".codex/agents/$agent_name.toml" || return 1
@@ -440,7 +494,6 @@ check_template_contract() {
   contains "Source Integrity" docs/reference/subagent-observation.md || return 1
   contains "Failure Taxonomy" .codex/agents/quality_gate_runner.toml || return 1
   contains "write attempt observability" docs/reference/subagent-observation.md || return 1
-  contains "failure taxonomy" docs/reference/subagent-observation.md || return 1
   contains "evidence_refs" docs/reference/evaluation.md || return 1
   contains "evidence_refs" .codex/templates/EVALUATION.md || return 1
   contains "Review -> Repair -> Validate" docs/reference/repair-loop.md || return 1
@@ -500,35 +553,35 @@ check_execpolicy_baseline() {
   local clean_subcmd="cl""ean"
   local remove_bin="r""m"
 
-  out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" status)" || return 1
+  out="$(run_codex execpolicy check "${rule_args[@]}" -- "$git_bin" status)" || return 1
   decision="$(decision_from_json "$out")" || return 1
   [[ "$decision" == "allow" ]] || return 1
 
-  out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$add_subcmd" .)" || return 1
+  out="$(run_codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$add_subcmd" .)" || return 1
   decision="$(decision_from_json "$out")" || return 1
   [[ "$decision" == "forbidden" ]] || return 1
 
-  out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$reset_subcmd" "$hard_flag" HEAD~1)" || return 1
+  out="$(run_codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$reset_subcmd" "$hard_flag" HEAD~1)" || return 1
   decision="$(decision_from_json "$out")" || return 1
   [[ "$decision" == "forbidden" ]] || return 1
 
-  out="$(codex execpolicy check "${rule_args[@]}" -- "$remove_bin" file.txt)" || return 1
+  out="$(run_codex execpolicy check "${rule_args[@]}" -- "$remove_bin" file.txt)" || return 1
   decision="$(decision_from_json "$out")" || return 1
   [[ "$decision" == "forbidden" ]] || return 1
 
-  out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$remove_bin" file.txt)" || return 1
+  out="$(run_codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$remove_bin" file.txt)" || return 1
   decision="$(decision_from_json "$out")" || return 1
   [[ "$decision" == "forbidden" ]] || return 1
 
-  out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$clean_subcmd" -fdx)" || return 1
+  out="$(run_codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$clean_subcmd" -fdx)" || return 1
   decision="$(decision_from_json "$out")" || return 1
   [[ "$decision" == "forbidden" ]] || return 1
 
-  out="$(codex execpolicy check "${rule_args[@]}" -- node scripts/codex-local-validation.mjs validate-orchestration)" || return 1
+  out="$(run_codex execpolicy check "${rule_args[@]}" -- node scripts/codex-local-validation.mjs validate-orchestration)" || return 1
   decision="$(decision_from_json "$out")" || return 1
   [[ "$decision" == "allow" ]] || return 1
 
-  out="$(codex execpolicy check "${rule_args[@]}" -- pwsh -Command Get-Date)" || return 1
+  out="$(run_codex execpolicy check "${rule_args[@]}" -- pwsh -Command Get-Date)" || return 1
   decision="$(decision_from_json "$out")" || return 1
   [[ "$decision" == "prompt" ]] || return 1
 
@@ -536,7 +589,7 @@ check_execpolicy_baseline() {
 }
 
 check_codex_available() {
-  command -v codex >/dev/null 2>&1 && codex --version >/dev/null 2>&1
+  [[ -n "$codex_cmd" ]] && run_codex --version >/dev/null 2>&1
 }
 
 check_bash_wrapper_preflight() {
@@ -544,11 +597,12 @@ check_bash_wrapper_preflight() {
 }
 
 check_powershell_has_codex() {
-  powershell.exe -NoProfile -Command "if (Get-Command codex -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }" >/dev/null 2>&1
+  [[ -n "$powershell_cmd" ]] || return 1
+  "$powershell_cmd" -NoProfile -Command "if (Get-Command codex -ErrorAction SilentlyContinue) { exit 0 } else { exit 1 }" >/dev/null 2>&1
 }
 
 check_powershell_wrapper_preflight() {
-  powershell.exe -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly >/tmp/codex-safe-ps-preflight.log 2>&1
+  "$powershell_cmd" -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly >/tmp/codex-safe-ps-preflight.log 2>&1
 }
 
 run_check "template contract files" check_template_contract
@@ -571,7 +625,7 @@ else
   log_skip "bash wrapper preflight (codex command not executable or wrapper not found)"
 fi
 
-if command -v powershell.exe >/dev/null 2>&1; then
+if [[ -n "$powershell_cmd" ]]; then
   if check_powershell_has_codex; then
     run_check "PowerShell wrapper preflight" check_powershell_wrapper_preflight
   else

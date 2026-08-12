@@ -27,7 +27,8 @@
 - Choose `failure_categories` and `findings[].category` from `spec/failure-taxonomy.json`.
 - Every `rating` and finding must include evidence.
 - `evidence_refs` を使う場合は artifact 全文を複製せず、path / selector / event_id / summary で参照する。
-- If `result` is `fail` or `partial`, `primary_failure_category` should usually be non-null.
+- If `primary_failure_category` is non-null, `failure_categories` must include it.
+  A final `pass` with null primary uses `failure_categories: []`.
 - `improvement_candidates` should include `target`, `evidence`, `expected_impact`, and `recommendation`.
 
 ## Evaluation JSON

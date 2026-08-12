@@ -142,9 +142,68 @@ append_command() {
   local command_path="$2"
   if [[ "$command_path" == *.sh ]]; then
     _target+=(bash "$command_path")
+  elif [[ "$command_path" == *.ps1 ]]; then
+    _target+=("$powershell_cmd" -NoProfile -ExecutionPolicy Bypass -File "$command_path")
   else
     _target+=("$command_path")
   fi
+}
+
+resolve_powershell_command() {
+  local resolved
+  resolved="$(command -v powershell.exe 2>/dev/null || true)"
+  if [[ -n "$resolved" ]]; then
+    printf '%s' "$resolved"
+    return 0
+  fi
+  resolved="$(command -v pwsh 2>/dev/null || true)"
+  if [[ -n "$resolved" ]]; then
+    printf '%s' "$resolved"
+    return 0
+  fi
+  for resolved in "/c/Program Files/PowerShell/7/pwsh.exe" "/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe"; do
+    if [[ -f "$resolved" ]]; then
+      printf '%s' "$resolved"
+      return 0
+    fi
+  done
+  return 1
+}
+
+powershell_cmd="$(resolve_powershell_command || true)"
+
+resolve_codex_command() {
+  local resolved
+  resolved="$(command -v codex 2>/dev/null || true)"
+  if [[ -n "$resolved" ]] && "$resolved" --version >/dev/null 2>&1; then
+    printf '%s' "$resolved"
+    return 0
+  fi
+
+  if [[ -n "$powershell_cmd" ]]; then
+    resolved="$("$powershell_cmd" -NoProfile -Command '(Get-Command codex -ErrorAction SilentlyContinue).Source' 2>/dev/null | tr -d '\r' | tail -n 1)"
+    if [[ -n "$resolved" ]]; then
+      printf '%s' "$resolved"
+      return 0
+    fi
+  fi
+
+  return 1
+}
+
+to_codex_path() {
+  local path="$1"
+  if [[ "$codex_cmd" == *.ps1 ]]; then
+    if command -v wslpath >/dev/null 2>&1; then
+      wslpath -w "$path"
+      return 0
+    fi
+    if command -v cygpath >/dev/null 2>&1; then
+      cygpath -w "$path"
+      return 0
+    fi
+  fi
+  printf '%s' "$path"
 }
 
 check_unsafe_passthrough() {
@@ -233,7 +292,7 @@ collect_rule_args() {
   rule_args=()
   local rule
   for rule in "${rule_files[@]}"; do
-    rule_args+=(--rules "$rule")
+    rule_args+=(--rules "$(to_codex_path "$rule")")
   done
 }
 
@@ -334,7 +393,7 @@ if [[ -n "${CODEX_BIN:-}" ]]; then
     codex_cmd="$(command -v "$CODEX_BIN" || true)"
   fi
 else
-  codex_cmd="$(command -v codex || true)"
+  codex_cmd="$(resolve_codex_command || true)"
 fi
 [[ -n "$codex_cmd" ]] || { echo "codex command not found in PATH" >&2; exit 1; }
 
@@ -369,7 +428,8 @@ fi
 
 preset_config
 
-final_args=(--profile "$profile_name" -C "$cwd" --sandbox "$sandbox_mode" --ask-for-approval "$approval_policy")
+codex_cwd="$(to_codex_path "$cwd")"
+final_args=(--profile "$profile_name" -C "$codex_cwd" --sandbox "$sandbox_mode" --ask-for-approval "$approval_policy")
 if (( allow_search )); then
   final_args+=(--search)
 fi

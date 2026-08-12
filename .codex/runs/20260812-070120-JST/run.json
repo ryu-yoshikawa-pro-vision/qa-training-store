@@ -1,0 +1,478 @@
+{
+  "schema_version": 1,
+  "run_id": "20260812-070120-JST",
+  "task_type": "repair",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [
+    "code_researcher",
+    "implementation_researcher",
+    "quality_gate_runner",
+    "test_investigator"
+  ],
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    ".codex/agents/quality_gate_runner.toml",
+    ".codex/observations/hooks.jsonl",
+    ".codex/templates/EVALUATION.md",
+    ".codex/templates/RUN_MANIFEST.json",
+    ".codex/templates/evaluation.schema.json",
+    ".gitignore",
+    "docs/reference/evaluation.md",
+    "docs/reference/failure-taxonomy.md",
+    "docs/reference/hook-observation.md",
+    "docs/reference/run-artifacts.md",
+    "docs/reference/subagent-observation.md",
+    "scripts/codex-local-validation.mjs",
+    "scripts/codex-safe.sh",
+    "scripts/codex-task.ps1",
+    "scripts/codex-task.sh",
+    "scripts/collect-run-artifacts.py",
+    "scripts/record-expected-invocation.py",
+    "scripts/test-luna-orchestration-contract.py",
+    "scripts/validate-luna-orchestration.py",
+    "scripts/verify",
+    "scripts/verify.ps1"
+  ],
+  "expected_invocation_ledger": ".codex/runs/20260812-070120-JST/expected-invocations.jsonl",
+  "expected_invocations": [
+    {
+      "invocation_id": "3b9ecd39-4ab3-4742-bb75-8b4cb71f5669",
+      "expected_agent_name": "quality_gate_runner",
+      "expected_model": "gpt-5.6-luna",
+      "expected_role": "quality_gate_runner",
+      "dispatch_timestamp": "2026-08-11T22:43:21.091890Z",
+      "runtime_agent_id": "019ff301-4d9c-74b1-99e1-203d0f4f8b30",
+      "linked_timestamp": "2026-08-11T22:46:42.993957Z"
+    },
+    {
+      "invocation_id": "b11e603e-1359-41c3-8f1f-019f7bce5f92",
+      "expected_agent_name": "code_researcher",
+      "expected_model": "gpt-5.6-luna",
+      "expected_role": "investigator",
+      "dispatch_timestamp": "2026-08-11T23:30:51.497001Z",
+      "runtime_agent_id": "019ff32a-e66f-7cf1-94d1-60c6e1bba404",
+      "linked_timestamp": "2026-08-11T23:32:41.551966Z"
+    },
+    {
+      "invocation_id": "2db29770-1fa6-46fa-b452-bdc505a34c78",
+      "expected_agent_name": "implementation_researcher",
+      "expected_model": "gpt-5.6-luna",
+      "expected_role": "investigator",
+      "dispatch_timestamp": "2026-08-11T23:30:51.612001Z",
+      "runtime_agent_id": "019ff32a-e54c-7d33-b4d3-f0aca2e92952",
+      "linked_timestamp": "2026-08-11T23:32:41.701925Z"
+    },
+    {
+      "invocation_id": "0c69b51e-2b53-4f77-b04d-594353a6da7e",
+      "expected_agent_name": "test_investigator",
+      "expected_model": "gpt-5.6-luna",
+      "expected_role": "investigator",
+      "dispatch_timestamp": "2026-08-11T23:30:51.723003Z",
+      "runtime_agent_id": "019ff32a-e948-75b0-8afe-8c72b8f41621",
+      "linked_timestamp": "2026-08-11T23:32:41.821925Z"
+    }
+  ],
+  "source_baseline": {
+    "kind": "git_status",
+    "changed_files": []
+  },
+  "source_integrity": {
+    "status": "pass",
+    "before": {
+      "captured_at": "2026-08-12T09:03:57+09:00",
+      "kind": "git_status",
+      "changed_files": [
+        ".codex/agents/quality_gate_runner.toml",
+        ".codex/observations/hooks.jsonl",
+        ".codex/templates/EVALUATION.md",
+        ".codex/templates/RUN_MANIFEST.json",
+        ".codex/templates/evaluation.schema.json",
+        ".gitignore",
+        "docs/reference/evaluation.md",
+        "docs/reference/failure-taxonomy.md",
+        "docs/reference/hook-observation.md",
+        "docs/reference/run-artifacts.md",
+        "docs/reference/subagent-observation.md",
+        "scripts/codex-local-validation.mjs",
+        "scripts/codex-safe.sh",
+        "scripts/codex-task.ps1",
+        "scripts/codex-task.sh",
+        "scripts/collect-run-artifacts.py",
+        "scripts/record-expected-invocation.py",
+        "scripts/test-luna-orchestration-contract.py",
+        "scripts/validate-luna-orchestration.py",
+        "scripts/verify",
+        "scripts/verify.ps1"
+      ]
+    },
+    "after": {
+      "captured_at": "2026-08-12T09:03:57+09:00",
+      "kind": "git_status",
+      "changed_files": [
+        ".codex/agents/quality_gate_runner.toml",
+        ".codex/observations/hooks.jsonl",
+        ".codex/templates/EVALUATION.md",
+        ".codex/templates/RUN_MANIFEST.json",
+        ".codex/templates/evaluation.schema.json",
+        ".gitignore",
+        "docs/reference/evaluation.md",
+        "docs/reference/failure-taxonomy.md",
+        "docs/reference/hook-observation.md",
+        "docs/reference/run-artifacts.md",
+        "docs/reference/subagent-observation.md",
+        "scripts/codex-local-validation.mjs",
+        "scripts/codex-safe.sh",
+        "scripts/codex-task.ps1",
+        "scripts/codex-task.sh",
+        "scripts/collect-run-artifacts.py",
+        "scripts/record-expected-invocation.py",
+        "scripts/test-luna-orchestration-contract.py",
+        "scripts/validate-luna-orchestration.py",
+        "scripts/verify",
+        "scripts/verify.ps1"
+      ]
+    },
+    "unexpected_net_source_mutation": false,
+    "evidence": "git status source set was identical before and after final local validation; no application source file changed."
+  },
+  "validation": {
+    "status": "not_run",
+    "commands": [],
+    "warnings": []
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false,
+    "parent_scope_violation": false,
+    "subagent_scope_violation": false,
+    "runtime_compliance_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 223,
+    "subagent_run_count": 11,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [
+      ".artifacts/luna-orchestration/pr20-run-20260812-070120-JST-hooks.jsonl"
+    ],
+    "event_counts": {
+      "PreToolUse": 212,
+      "SubagentStart": 7,
+      "SubagentStop": 4
+    },
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0,
+    "ignored_cancelled_runtime": [
+      {
+        "agent_type": "implementation_researcher",
+        "agent_id": "019ff317-f5f6-7e71-8583-014c325c337c",
+        "model": "gpt-5.6-luna",
+        "event_id": "54eeed5a64b14c459828a2fc3200c1d5",
+        "session_id": "019ff317-65af-7941-8e7c-95b6d308acc3",
+        "turn_id": "019ff317-f6ce-7fe0-b9a4-221af21533a0"
+      },
+      {
+        "agent_type": "test_investigator",
+        "agent_id": "019ff317-f6f9-7ba0-b4ab-ab6021518d27",
+        "model": "gpt-5.6-luna",
+        "event_id": "17a75ad5075e446bbef479749c2d76fb",
+        "session_id": "019ff317-65af-7941-8e7c-95b6d308acc3",
+        "turn_id": "019ff317-f966-7bb3-a826-c5d75d0d0fff"
+      },
+      {
+        "agent_type": "code_researcher",
+        "agent_id": "019ff317-f990-74a0-ae33-d4c0d856e935",
+        "model": "gpt-5.6-luna",
+        "event_id": "33f50557645f4f10b6c248f3c43bd557",
+        "session_id": "019ff317-65af-7941-8e7c-95b6d308acc3",
+        "turn_id": "019ff317-fccd-7e13-b0e3-89b4ce8c19d4"
+      }
+    ],
+    "runtime_agent_compliance": {
+      "status": "pass",
+      "allowlist": [
+        "code_researcher",
+        "implementation_researcher",
+        "test_investigator",
+        "implementation_worker",
+        "quality_gate_runner"
+      ],
+      "expected": [
+        {
+          "invocation_id": "3b9ecd39-4ab3-4742-bb75-8b4cb71f5669",
+          "agent_name": "quality_gate_runner",
+          "role": "quality_gate_runner",
+          "agent_id": "019ff301-4d9c-74b1-99e1-203d0f4f8b30",
+          "configured_model": "gpt-5.6-luna",
+          "dispatch_timestamp": "2026-08-11T22:43:21.091890Z"
+        },
+        {
+          "invocation_id": "b11e603e-1359-41c3-8f1f-019f7bce5f92",
+          "agent_name": "code_researcher",
+          "role": "investigator",
+          "agent_id": "019ff32a-e66f-7cf1-94d1-60c6e1bba404",
+          "configured_model": "gpt-5.6-luna",
+          "dispatch_timestamp": "2026-08-11T23:30:51.497001Z"
+        },
+        {
+          "invocation_id": "2db29770-1fa6-46fa-b452-bdc505a34c78",
+          "agent_name": "implementation_researcher",
+          "role": "investigator",
+          "agent_id": "019ff32a-e54c-7d33-b4d3-f0aca2e92952",
+          "configured_model": "gpt-5.6-luna",
+          "dispatch_timestamp": "2026-08-11T23:30:51.612001Z"
+        },
+        {
+          "invocation_id": "0c69b51e-2b53-4f77-b04d-594353a6da7e",
+          "agent_name": "test_investigator",
+          "role": "investigator",
+          "agent_id": "019ff32a-e948-75b0-8afe-8c72b8f41621",
+          "configured_model": "gpt-5.6-luna",
+          "dispatch_timestamp": "2026-08-11T23:30:51.723003Z"
+        }
+      ],
+      "observed": [
+        {
+          "agent_type": "quality_gate_runner",
+          "agent_id": "019ff301-4d9c-74b1-99e1-203d0f4f8b30",
+          "model": "gpt-5.6-luna",
+          "event_id": "bba535fda6fd4761abd7b10897dc299b",
+          "session_id": "019ff2fe-fbe3-73a0-b55f-e32a5b36da9f",
+          "turn_id": "019ff301-4e6a-7180-a1f1-4fcdc0c83fd4"
+        },
+        {
+          "agent_type": "code_researcher",
+          "agent_id": "019ff32a-e66f-7cf1-94d1-60c6e1bba404",
+          "model": "gpt-5.6-luna",
+          "event_id": "fea54aa5005045959a35e63189e39520",
+          "session_id": "019ff32a-6596-7610-aa6d-8dd783582a36",
+          "turn_id": "019ff32a-e8ee-7241-826a-747fd6d85207"
+        },
+        {
+          "agent_type": "implementation_researcher",
+          "agent_id": "019ff32a-e54c-7d33-b4d3-f0aca2e92952",
+          "model": "gpt-5.6-luna",
+          "event_id": "4e265f059fef4e9e8a1eb80a67e9f09f",
+          "session_id": "019ff32a-6596-7610-aa6d-8dd783582a36",
+          "turn_id": "019ff32a-e62e-7703-8221-c6942b90acd6"
+        },
+        {
+          "agent_type": "test_investigator",
+          "agent_id": "019ff32a-e948-75b0-8afe-8c72b8f41621",
+          "model": "gpt-5.6-luna",
+          "event_id": "71bf378e154a4fd5ac72c317fba95510",
+          "session_id": "019ff32a-6596-7610-aa6d-8dd783582a36",
+          "turn_id": "019ff32a-ec71-7ba2-abe1-e5471b5433ef"
+        }
+      ],
+      "missing": [],
+      "unexpected": [],
+      "violations": [],
+      "reasoning_effort": {
+        "configured": "max",
+        "configured_accepted": true,
+        "runtime_observed": false,
+        "observed_values": [],
+        "runtime_matches_configured": null
+      }
+    }
+  },
+  "subagents": {
+    "records": [
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-code-researcher-identity.json",
+        "subagent_run_id": "b11e603e-1359-41c3-8f1f-019f7bce5f92",
+        "agent_name": "code_researcher",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff32a-e66f-7cf1-94d1-60c6e1bba404",
+        "role": "investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "allowed_files_count": 0,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": true,
+        "parent_decision": "accepted"
+      },
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-code-researcher.json",
+        "subagent_run_id": "1f31917e-9bb4-41ad-beb2-e5537e79b7ce",
+        "agent_name": "code_researcher",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff2de-7161-7522-ae26-49bd209c2894",
+        "role": "investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "allowed_files_count": 0,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": true,
+        "parent_decision": "accepted"
+      },
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-implementation-researcher-identity.json",
+        "subagent_run_id": "2db29770-1fa6-46fa-b452-bdc505a34c78",
+        "agent_name": "implementation_researcher",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff32a-e54c-7d33-b4d3-f0aca2e92952",
+        "role": "investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "allowed_files_count": 0,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": true,
+        "parent_decision": "accepted"
+      },
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-implementation-researcher.json",
+        "subagent_run_id": "403fba9e-6c14-43d7-a3f6-c2d663cae97c",
+        "agent_name": "implementation_researcher",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff2de-771e-7cd3-a40f-9574a96adb95",
+        "role": "investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "allowed_files_count": 0,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": true,
+        "parent_decision": "accepted"
+      },
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-negative-spawn.json",
+        "subagent_run_id": "4d0c2c3b-098d-40dc-bc9b-c3363bc92a09",
+        "agent_name": "code_researcher",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff314-7152-7703-9f62-9f4b226a1f0f",
+        "role": "investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "allowed_files_count": 0,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": true,
+        "parent_decision": "accepted"
+      },
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-quality-gate-runner.json",
+        "subagent_run_id": "3b9ecd39-4ab3-4742-bb75-8b4cb71f5669",
+        "agent_name": "quality_gate_runner",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff301-4d9c-74b1-99e1-203d0f4f8b30",
+        "role": "quality_gate_runner",
+        "mode": "writable",
+        "status": "completed",
+        "allowed_files_count": 2,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": true,
+        "parent_decision": "accepted"
+      },
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-readonly-code-researcher-hook.json",
+        "subagent_run_id": "45b4b8cc-e2fa-4083-a4de-d967e6d74806",
+        "agent_name": "code_researcher",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff317-f990-74a0-ae33-d4c0d856e935",
+        "role": "investigator",
+        "mode": "read_only",
+        "status": "interrupted",
+        "allowed_files_count": 0,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": false,
+        "parent_decision": "rejected"
+      },
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-readonly-implementation-researcher-hook.json",
+        "subagent_run_id": "656dbf52-e13e-4cd8-bfa2-95e23f2b30f5",
+        "agent_name": "implementation_researcher",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff317-f5f6-7e71-8583-014c325c337c",
+        "role": "investigator",
+        "mode": "read_only",
+        "status": "interrupted",
+        "allowed_files_count": 0,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": false,
+        "parent_decision": "rejected"
+      },
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-readonly-test-investigator-hook.json",
+        "subagent_run_id": "ed01df9c-eb8c-4c4c-ab70-de4044c888e0",
+        "agent_name": "test_investigator",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff317-f6f9-7ba0-b4ab-ab6021518d27",
+        "role": "investigator",
+        "mode": "read_only",
+        "status": "interrupted",
+        "allowed_files_count": 0,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": false,
+        "parent_decision": "rejected"
+      },
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-test-investigator-identity.json",
+        "subagent_run_id": "0c69b51e-2b53-4f77-b04d-594353a6da7e",
+        "agent_name": "test_investigator",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff32a-e948-75b0-8afe-8c72b8f41621",
+        "role": "investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "allowed_files_count": 0,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": true,
+        "parent_decision": "accepted"
+      },
+      {
+        "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-test-investigator.json",
+        "subagent_run_id": "f77c4a3d-a352-452a-95ae-5b2df989a845",
+        "agent_name": "test_investigator",
+        "model": "gpt-5.6-luna",
+        "runtime_agent_id": "019ff2de-7aa0-7ae0-8562-3d96db7d8ae4",
+        "role": "investigator",
+        "mode": "read_only",
+        "status": "completed",
+        "allowed_files_count": 0,
+        "changed_files_count": 0,
+        "scope_compliant": true,
+        "used_in_final_plan": true,
+        "parent_decision": "accepted"
+      }
+    ],
+    "summary": {
+      "total": 11,
+      "read_only": 10,
+      "writable": 1,
+      "scope_violations": 0,
+      "used_in_final_plan": 8
+    }
+  },
+  "evaluation_path": ".codex/runs/20260812-070120-JST/evaluation.json",
+  "completion_state": {
+    "LOCAL_IMPLEMENTATION_COMPLETE": false,
+    "MERGE_READY": false,
+    "external_checks": "pending",
+    "reasons": [
+      "\u65e2\u5b58\u8ffd\u8de1\u6e08\u307fbinary pyc\u304c\u6b8b\u3063\u3066\u304a\u308a\u3001\u751f\u6210\u7269\u9664\u5916\u306eDoD\u304c\u672a\u9054\u3002",
+      "External checks\u306f\u672a\u78ba\u8a8d\u306e\u305f\u3081MERGE_READY=false\u3092\u7dad\u6301\u3059\u308b\u3002"
+    ]
+  },
+  "status": "partial",
+  "primary_failure_category": "artifact_contract_gap"
+}

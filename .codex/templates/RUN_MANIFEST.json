@@ -11,10 +11,13 @@
   "base_branch": null,
   "codex_task_reports": [],
   "changed_files": [],
+  "expected_invocation_ledger": null,
+  "expected_invocations": [],
   "source_baseline": {
     "kind": "git_status",
     "changed_files": []
   },
+  "source_integrity": null,
   "validation": {
     "status": "not_run",
     "commands": [],
@@ -38,6 +41,7 @@
     "blocking_event_count": 0,
     "safety_blocked_count": 0,
     "observation_error_count": 0,
+    "ignored_cancelled_runtime": [],
     "runtime_agent_compliance": {
       "status": "unknown",
       "allowlist": [
@@ -54,9 +58,10 @@
       "violations": [],
       "reasoning_effort": {
         "configured": "max",
-        "accepted": true,
+        "configured_accepted": true,
         "runtime_observed": false,
-        "observed_values": []
+        "observed_values": [],
+        "runtime_matches_configured": null
       }
     }
   },

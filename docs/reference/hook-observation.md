@@ -74,6 +74,8 @@ optional hook baseline は次を受け取れます。
 - `model`（optional）
 - `reasoning_effort`（optional。直接観測できた場合だけ）
 - `permission_mode`（optional）
+- `session_id`（optional）
+- `turn_id`（optional）
 
 `input_summary` は raw prompt や secret の全文ではなく summary だけを書きます。
 
@@ -86,11 +88,12 @@ optional hook baseline は次を受け取れます。
 
 ## Runtime Agent Compliance
 
-- 通常利用の `agent.name` allowlist は `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5 custom identityです。schema上の `role`（例: `investigator`、`validator`、`worker`）とは別の分類です。
+- 通常利用の `agent.name` allowlist は `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5 custom identityです。schema上の `role`（`planner`、`investigator`、`reviewer`、`implementation_worker`、`quality_gate_runner`、`validator`、`other`）とは別の分類です。一部のrole値はagent identityと同名になり得ますが、別fieldです。
 - `SubagentStart` を観測したら `agent_type`、`agent_id`、`model` の存在を確認します。
-- expected invocation と observed `SubagentStart` は利用可能な `agent_id` で1:1照合します。expected / observed / missing / unexpected / violations を集計し、missing がある不完全観測は PASS にしません。
+- Parent dispatch時に `expected-invocations.jsonl` へ `invocation_id`、`expected_agent_name`、`expected_model`、`expected_role`、`dispatch_timestamp` をmachine-generatedで記録し、spawn後にruntime `agent_id` linkを追加します。expected ledgerとsubagent recordは同じ生成経路にしません。
+- expected invocation と observed `SubagentStart` はledgerでlinkされた `agent_id` で1:1照合します。expected / observed / missing / unexpected / violations を集計し、missing がある不完全観測は PASS にしません。
 - allowlist外、identity欠落、model欠落、Luna以外、unexpected invocationが1件でもあればRunはcompliantではありません。
-- reasoning effortはruntime fieldが存在する場合だけ記録し、存在しない場合はTOML/CLI configured evidenceをruntime verifiedと表現しません。
+- reasoning effortは`configured=max`をstatic configuration evidenceとして記録します。runtime fieldが存在する場合だけ`runtime_observed=true`と観測値を記録し、存在しない場合はTOML/CLI configured evidenceをruntime verifiedと表現しません。観測値に不一致がある場合だけfail-closeします。
 - `run.json.hook_observations.runtime_agent_compliance` は `pass`、`fail`、`incomplete`、`unknown` を持ち、start eventがない場合は `incomplete` または `unknown` として扱い、PASSへ補完しません。
 
 ## Failure Behavior

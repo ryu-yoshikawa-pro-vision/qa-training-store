@@ -31,4 +31,7 @@ DerivedData/
 .npmrc
 .expo-local-export/
 __pycache__/
-*.pyc
+*.py[cod]
+.codex/observations/*.jsonl
+.codex/runs/*/logs/*.jsonl
+.codex/reports/*.report.json

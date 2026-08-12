@@ -132,7 +132,17 @@ def main() -> int:
                 if marker not in instructions:
                     fail(errors, f"{name}: missing worker contract marker {marker!r}")
         if name == "quality_gate_runner":
-            for marker in ("Local Required Validation Set", "Source", "Failure Taxonomy", "自動修正", "timeout"):
+            for marker in (
+                "Local Required Validation Set",
+                "Source",
+                "Failure Taxonomy",
+                "自動修正",
+                "timeout",
+                "codex-local-validation.mjs",
+                "underlyingのpython/bash/powershell/pnpm commandを直接組み立てない",
+                "QUALITY_GATE_RUNNER_PASS",
+                "QUALITY_GATE_RUNNER_INCOMPLETE",
+            ):
                 if marker not in instructions:
                     fail(errors, f"{name}: missing quality runner contract marker {marker!r}")
 
@@ -165,10 +175,19 @@ def main() -> int:
         if "shell: false" not in dispatcher_text or "spawn(" not in dispatcher_text:
             fail(errors, "validation dispatcher must spawn argv without a shell")
 
+    expected_ledger = ROOT / "scripts" / "record-expected-invocation.py"
+    if not expected_ledger.exists():
+        fail(errors, "expected invocation ledger recorder is missing")
+
     evaluation_schema_path = ROOT / ".codex" / "templates" / "evaluation.schema.json"
     evaluation_schema = json.loads(evaluation_schema_path.read_text(encoding="utf-8"))
     if not isinstance(evaluation_schema.get("allOf"), list) or not evaluation_schema["allOf"]:
         fail(errors, "evaluation schema must enforce primary/failure category relation")
+    for condition in evaluation_schema.get("allOf", []):
+        conditional = condition.get("if") if isinstance(condition, dict) else None
+        if isinstance(conditional, dict) and "primary_failure_category" in conditional.get("properties", {}):
+            if "primary_failure_category" not in conditional.get("required", []):
+                fail(errors, "evaluation schema conditional category blocks must require primary_failure_category")
 
     if errors:
         print("LUNA_ORCHESTRATION_VALIDATION_FAIL")

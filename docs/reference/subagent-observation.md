@@ -8,7 +8,7 @@ Writable subagents must declare allowed_files before changing files.
 Read-only subagents should have changed_files = [].  
 Subagent logs are evidence, not final evaluation judgement.
 
-Repository-governed taskの通常 `agent.name` は `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5 custom identityだけです。一方、schema上の `role` は `investigator`、`validator`、`worker` などの分類であり、`agent.name` と同一視しません。Parentは役割、scope、validation、統合、最終判断を保持します。
+Repository-governed taskの通常 `agent.name` は `code_researcher`、`implementation_researcher`、`test_investigator`、`implementation_worker`、`quality_gate_runner` の5 custom identityだけです。一方、schema上の `role` は `planner`、`investigator`、`reviewer`、`implementation_worker`、`quality_gate_runner`、`validator`、`other` の分類です。`agent.name` と `role` は別fieldであり、一部のrole値はagent identityと同じ文字列になり得ますが、意味上は同一視しません。Parentは役割、scope、validation、統合、最終判断を保持します。
 
 ## Read-only と Writable の違い
 
@@ -41,6 +41,16 @@ Repository-governed taskの通常 `agent.name` は `code_researcher`、`implemen
 ## Quality Gate Runner
 
 `quality_gate_runner` はworkspace-write設定を持ちますが、Parentが確定したLocal Required Validation Setを実行するvalidation-only roleです。
+
+固定されたRequired Validation Setは、次のdispatcher actionをこの順序で一度ずつ実行します。
+
+1. `node scripts/codex-local-validation.mjs validate-orchestration`
+2. `node scripts/codex-local-validation.mjs verify-bash`
+3. `node scripts/codex-local-validation.mjs verify-powershell`
+4. `node scripts/codex-local-validation.mjs test-contracts`
+5. `node scripts/codex-local-validation.mjs verify`
+
+runnerはunderlyingのpython/bash/powershell/pnpm commandを直接組み立てず、dispatcherのexit codeを報告します。
 
 - Required Validation Setを削除、弱体化、置換しない。
 - Application / Test / Specification / Documentation Sourceを編集しない。

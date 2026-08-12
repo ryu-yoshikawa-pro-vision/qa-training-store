@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "run_id": "20260812-070120-JST",
+  "result": "partial",
+  "primary_failure_category": "artifact_contract_gap",
+  "failure_categories": ["artifact_contract_gap"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "実Runtime quality gate、parallel identity run、contract、Bash/PowerShell、full verify、Sanitizerは完了したが、既存追跡済みpycをpatchで除去できず、生成物除外は未完了。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260812-070120-JST/run.json", "selector": "completion_state", "summary": "ローカル判定とRuntime Complianceの集約結果。"},
+        {"kind": "changed_file", "path": "scripts/__pycache__/validate-luna-orchestration.cpython-311.pyc", "summary": "既存の追跡済み生成物で、現在のpatchから安全に除去できなかった。"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はLuna orchestration harness、Run Artifact、docs、tests、wrapperに限定され、application sourceの差分はない。",
+      "evidence_refs": [{"kind": "run_manifest", "path": ".codex/runs/20260812-070120-JST/run.json", "selector": "source_integrity", "summary": "source setのbefore/after一致とscope attribution。"}]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "quality_gate_runnerの5 actionが固定順序で各1回exit 0、parent full verifyもexit 0、contract 20件とapp contract 201件がpass。",
+      "evidence_refs": [
+        {"kind": "subagent_run", "path": ".codex/runs/20260812-070120-JST/subagents/subagent-run-quality-gate-runner.json", "summary": "QUALITY_GATE_RUNNER_PASSと5 actionのexit 0。"},
+        {"kind": "validation_command", "path": ".codex/runs/20260812-070120-JST/REPORT.md", "selector": "validation", "summary": "focused/full validationの結果。"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "git add/commit/push/reset/clean/rmとcommand-based deletionは実行せず、scope violationはparent/subagent/runtimeのいずれもfalse。",
+      "evidence_refs": [{"kind": "run_manifest", "path": ".codex/runs/20260812-070120-JST/run.json", "selector": "safety", "summary": "scope attributionとmutation flags。"}]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "expected ledger、runtime link、hook observation、subagent record、evaluation、Sanitizer結果をRun-local evidenceへ分離した。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260812-070120-JST/run.json", "selector": "hook_observations.runtime_agent_compliance", "summary": "expected=4、observed=4、missing=0、violations=0。"},
+        {"kind": "hook_observation", "path": ".artifacts/luna-orchestration/pr20-run-20260812-070120-JST-hooks.jsonl", "summary": "品質childとparallel childのhookイベント。"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "rename/copy、dirty baseline fingerprint、failure taxonomy、cross-platform wrapper、raw log exclusionを契約とdocsへ同期した。",
+      "evidence_refs": [{"kind": "changed_file", "path": "scripts/collect-run-artifacts.py", "summary": "artifact aggregationとruntime complianceの実装。"}]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "最終identity-only parallel runとlocal validationは再現できたが、最初のhook-observable調査runは600秒timeoutとなり、cancelled attemptとして記録した。",
+      "evidence_refs": [{"kind": "run_manifest", "path": ".codex/runs/20260812-070120-JST/expected-invocations.jsonl", "summary": "dispatch/link/cancelのappend-only履歴。"}]
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "git ls-filesでscripts/__pycache__/validate-luna-orchestration.cpython-311.pycが追跡済みとして残る。",
+      "evidence_refs": [{"kind": "changed_file", "path": "scripts/__pycache__/validate-luna-orchestration.cpython-311.pyc", "summary": "バイナリのためapply_patchが読み込めず、削除操作を実行しなかった。"}],
+      "detail": "新規生成pycは.gitignoreで除外したが、既存追跡済みpycの除去にはユーザーによる明示的な削除操作または別の安全なバイナリ対応が必要。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "repository generated-artifact hygiene",
+      "evidence": "追跡済みpycは通常のテキストpatchでは扱えず、再発時にRun completionを止める。",
+      "evidence_refs": [{"kind": "evaluation_note", "path": ".codex/runs/20260812-070120-JST/evaluation.json", "summary": "artifact contract gapの記録。"}],
+      "expected_impact": "generated artifactがPRへ混入するリスクを早期に検出できる。",
+      "recommendation": "CIでgit ls-filesの__pycache__/*.pycをfailさせ、binary generated artifactの承認済み除去手順を文書化する。"
+    }
+  ]
+}

@@ -18,13 +18,25 @@ function fail(message) {
 }
 
 function canRun(command, args) {
-  const result = spawnSync(command, args, {
+  const spec = spawnSpec(command, args);
+  const result = spawnSync(spec.command, spec.args, {
     cwd: repoPath,
     stdio: "ignore",
     shell: false,
     windowsHide: true,
   });
   return result.error == null && result.status === 0;
+}
+
+function spawnSpec(command, args) {
+  if (process.platform === "win32" && /\.(cmd|bat)$/i.test(command)) {
+    const commandShell = process.env.ComSpec || "cmd.exe";
+    return {
+      command: commandShell,
+      args: ["/d", "/s", "/c", command, ...args],
+    };
+  }
+  return { command, args };
 }
 
 function findPython() {
@@ -109,14 +121,15 @@ if (args.length !== 1) {
 } else {
   try {
     const [command, commandArgs] = actionCommand(args[0]);
-    const child = spawn(command, commandArgs, {
+    const spec = spawnSpec(command, commandArgs);
+    const child = spawn(spec.command, spec.args, {
       cwd: repoPath,
       stdio: "inherit",
       shell: false,
       windowsHide: true,
     });
     child.on("error", (error) => {
-      console.error(`codex-local-validation: failed to start ${command}: ${error.message}`);
+      console.error(`codex-local-validation: failed to start ${spec.command}: ${error.message}`);
       process.exitCode = 1;
     });
     child.on("exit", (code, signal) => {

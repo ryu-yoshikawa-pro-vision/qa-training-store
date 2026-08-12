@@ -77,43 +77,73 @@
       }
     },
     {
-      "if": { "properties": { "primary_failure_category": { "const": "instruction_gap" } } },
+      "if": {
+        "properties": { "primary_failure_category": { "const": "instruction_gap" } },
+        "required": ["primary_failure_category"]
+      },
       "then": { "properties": { "failure_categories": { "contains": { "const": "instruction_gap" } } } }
     },
     {
-      "if": { "properties": { "primary_failure_category": { "const": "scope_creep" } } },
+      "if": {
+        "properties": { "primary_failure_category": { "const": "scope_creep" } },
+        "required": ["primary_failure_category"]
+      },
       "then": { "properties": { "failure_categories": { "contains": { "const": "scope_creep" } } } }
     },
     {
-      "if": { "properties": { "primary_failure_category": { "const": "missing_context" } } },
+      "if": {
+        "properties": { "primary_failure_category": { "const": "missing_context" } },
+        "required": ["primary_failure_category"]
+      },
       "then": { "properties": { "failure_categories": { "contains": { "const": "missing_context" } } } }
     },
     {
-      "if": { "properties": { "primary_failure_category": { "const": "missing_validation" } } },
+      "if": {
+        "properties": { "primary_failure_category": { "const": "missing_validation" } },
+        "required": ["primary_failure_category"]
+      },
       "then": { "properties": { "failure_categories": { "contains": { "const": "missing_validation" } } } }
     },
     {
-      "if": { "properties": { "primary_failure_category": { "const": "unsafe_action_blocked" } } },
+      "if": {
+        "properties": { "primary_failure_category": { "const": "unsafe_action_blocked" } },
+        "required": ["primary_failure_category"]
+      },
       "then": { "properties": { "failure_categories": { "contains": { "const": "unsafe_action_blocked" } } } }
     },
     {
-      "if": { "properties": { "primary_failure_category": { "const": "bad_subagent_delegation" } } },
+      "if": {
+        "properties": { "primary_failure_category": { "const": "bad_subagent_delegation" } },
+        "required": ["primary_failure_category"]
+      },
       "then": { "properties": { "failure_categories": { "contains": { "const": "bad_subagent_delegation" } } } }
     },
     {
-      "if": { "properties": { "primary_failure_category": { "const": "flaky_or_env_issue" } } },
+      "if": {
+        "properties": { "primary_failure_category": { "const": "flaky_or_env_issue" } },
+        "required": ["primary_failure_category"]
+      },
       "then": { "properties": { "failure_categories": { "contains": { "const": "flaky_or_env_issue" } } } }
     },
     {
-      "if": { "properties": { "primary_failure_category": { "const": "review_gap" } } },
+      "if": {
+        "properties": { "primary_failure_category": { "const": "review_gap" } },
+        "required": ["primary_failure_category"]
+      },
       "then": { "properties": { "failure_categories": { "contains": { "const": "review_gap" } } } }
     },
     {
-      "if": { "properties": { "primary_failure_category": { "const": "repair_loop_stalled" } } },
+      "if": {
+        "properties": { "primary_failure_category": { "const": "repair_loop_stalled" } },
+        "required": ["primary_failure_category"]
+      },
       "then": { "properties": { "failure_categories": { "contains": { "const": "repair_loop_stalled" } } } }
     },
     {
-      "if": { "properties": { "primary_failure_category": { "const": "artifact_contract_gap" } } },
+      "if": {
+        "properties": { "primary_failure_category": { "const": "artifact_contract_gap" } },
+        "required": ["primary_failure_category"]
+      },
       "then": { "properties": { "failure_categories": { "contains": { "const": "artifact_contract_gap" } } } }
     }
   ],

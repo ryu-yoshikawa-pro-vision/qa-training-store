@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import argparse
 import copy
+import hashlib
 import json
 import subprocess
 from pathlib import Path
@@ -27,6 +28,151 @@ RUNTIME_AGENT_ALLOWLIST = (
 )
 
 
+def parse_porcelain_paths(raw_status: bytes):
+    """Parse git porcelain v1 -z paths, retaining rename new+old and copy new paths."""
+    entries = raw_status.decode("utf-8", errors="replace").split("\0")
+    paths = []
+    index = 0
+    while index < len(entries):
+        entry = entries[index]
+        index += 1
+        if not entry:
+            continue
+        status = entry[:2]
+        primary = entry[3:] if len(entry) >= 4 else ""
+        candidates = [primary]
+        if "R" in status or "C" in status:
+            if index < len(entries):
+                original = entries[index]
+                index += 1
+                if "R" in status:
+                    candidates.append(original)
+        for value in candidates:
+            normalized = normalize_repo_path(value)
+            if normalized:
+                paths.append(normalized)
+    return unique_list(paths)
+
+
+def load_expected_invocation_ledger(repo_root: Path, run_root: Path):
+    """Load dispatch events and append-only runtime links independently of subagent records."""
+    ledger_path = run_root / "expected-invocations.jsonl"
+    if not ledger_path.exists():
+        return [], [], False
+
+    dispatches = {}
+    links = {}
+    cancelled = set()
+    warnings = []
+    for line_number, line in enumerate(ledger_path.read_text(encoding="utf-8").splitlines(), start=1):
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError as exc:
+            add_warning(
+                warnings,
+                "expected_invocation_ledger_invalid_json",
+                repo_relative(repo_root, ledger_path),
+                f"line {line_number}: {exc.msg}",
+            )
+            continue
+        if not isinstance(event, dict):
+            add_warning(
+                warnings,
+                "expected_invocation_ledger_invalid_event",
+                repo_relative(repo_root, ledger_path),
+                f"line {line_number}: event must be an object",
+            )
+            continue
+        event_type = event.get("event")
+        invocation_id = event.get("invocation_id")
+        if event_type == "dispatch":
+            if not isinstance(invocation_id, str) or not invocation_id:
+                add_warning(
+                    warnings,
+                    "expected_invocation_ledger_missing_id",
+                    repo_relative(repo_root, ledger_path),
+                    f"line {line_number}: dispatch invocation_id is required",
+                )
+                continue
+            if invocation_id in dispatches:
+                add_warning(
+                    warnings,
+                    "expected_invocation_ledger_duplicate_dispatch",
+                    repo_relative(repo_root, ledger_path),
+                    f"line {line_number}: duplicate invocation_id={invocation_id}",
+                )
+                continue
+            dispatches[invocation_id] = event
+        elif event_type == "link":
+            if isinstance(invocation_id, str) and invocation_id:
+                links[invocation_id] = event
+        elif event_type == "cancel":
+            if isinstance(invocation_id, str) and invocation_id:
+                cancelled.add(invocation_id)
+            else:
+                add_warning(
+                    warnings,
+                    "expected_invocation_ledger_cancel_missing_id",
+                    repo_relative(repo_root, ledger_path),
+                    f"line {line_number}: cancel invocation_id is required",
+                )
+        else:
+            add_warning(
+                warnings,
+                "expected_invocation_ledger_unknown_event",
+                repo_relative(repo_root, ledger_path),
+                f"line {line_number}: event={event_type!r}",
+            )
+
+    records = []
+    for invocation_id, dispatch in dispatches.items():
+        if invocation_id in cancelled:
+            continue
+        link = links.get(invocation_id, {})
+        records.append(
+            {
+                "invocation_id": invocation_id,
+                "expected_agent_name": dispatch.get("expected_agent_name"),
+                "expected_model": dispatch.get("expected_model"),
+                "expected_role": dispatch.get("expected_role"),
+                "dispatch_timestamp": dispatch.get("dispatch_timestamp"),
+                "runtime_agent_id": link.get("runtime_agent_id"),
+                "linked_timestamp": link.get("linked_timestamp"),
+            }
+        )
+    return records, warnings, True
+
+
+def load_cancelled_runtime_agent_ids(run_root: Path):
+    """Return runtime IDs from append-only cancellations for historical attempts."""
+    ledger_path = run_root / "expected-invocations.jsonl"
+    if not ledger_path.exists():
+        return set()
+    links = {}
+    cancelled = set()
+    for line in ledger_path.read_text(encoding="utf-8").splitlines():
+        if not line.strip():
+            continue
+        try:
+            event = json.loads(line)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(event, dict):
+            continue
+        invocation_id = event.get("invocation_id")
+        if event.get("event") == "link" and isinstance(invocation_id, str):
+            links[invocation_id] = event.get("runtime_agent_id")
+        elif event.get("event") == "cancel" and isinstance(invocation_id, str):
+            cancelled.add(invocation_id)
+    return {
+        runtime_agent_id
+        for invocation_id, runtime_agent_id in links.items()
+        if invocation_id in cancelled and isinstance(runtime_agent_id, str) and runtime_agent_id
+    }
+
+
 def current_source_changed_files(repo_root: Path):
     """Return current source changes without generated .codex/runs artifacts."""
     try:
@@ -40,29 +186,11 @@ def current_source_changed_files(repo_root: Path):
     if result.returncode != 0:
         return [], False
 
-    entries = result.stdout.decode("utf-8", errors="replace").split("\0")
     paths = []
-    index = 0
-    while index < len(entries):
-        entry = entries[index]
-        index += 1
-        if not entry:
-            continue
-        status = entry[:2]
-        primary = entry[3:] if len(entry) >= 4 else ""
-        candidates = [primary]
-        if "R" in status or "C" in status:
-            if index < len(entries):
-                candidates.append(entries[index])
-                index += 1
-            if "R" in status:
-                candidates = candidates[1:]
-            else:
-                candidates = candidates[1:]
-        for value in candidates:
-            normalized = normalize_repo_path(value)
-            if normalized and normalized != ".codex/runs" and not normalized.startswith(".codex/runs/"):
-                paths.append(normalized)
+    for value in parse_porcelain_paths(result.stdout):
+        normalized = normalize_repo_path(value)
+        if normalized and normalized != ".codex/runs" and not normalized.startswith(".codex/runs/"):
+            paths.append(normalized)
     return unique_list(paths), True
 
 
@@ -71,6 +199,71 @@ def aggregate_changed_files(baseline, current, accepted_subagent_changes):
     current_set = {normalize_repo_path(item) for item in current if isinstance(item, str)}
     accepted = {normalize_repo_path(item) for item in accepted_subagent_changes if isinstance(item, str)}
     return sorted((current_set - baseline_set) | accepted)
+
+
+def fingerprint_file(repo_root: Path, relative_path: str):
+    """Return the stable file fingerprint used for dirty-baseline comparison."""
+    normalized = normalize_repo_path(relative_path)
+    candidate = (repo_root / normalized).resolve()
+    try:
+        candidate.relative_to(repo_root.resolve())
+    except ValueError:
+        return {"exists": False, "hash": None, "size": None}
+    if not candidate.is_file():
+        return {"exists": False, "hash": None, "size": None}
+
+    digest = hashlib.sha256()
+    with candidate.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return {
+        "exists": True,
+        "hash": digest.hexdigest().upper(),
+        "size": candidate.stat().st_size,
+    }
+
+
+def expected_file_delta(repo_root: Path, source_baseline):
+    """Find expected files modified after their recorded run-start fingerprint."""
+    if not isinstance(source_baseline, dict):
+        return []
+    expected_files = source_baseline.get("expected_files")
+    if not isinstance(expected_files, dict):
+        return []
+
+    changed = []
+    for relative_path, baseline in expected_files.items():
+        if not isinstance(relative_path, str) or not isinstance(baseline, dict):
+            continue
+        expected = {
+            "exists": bool(baseline.get("exists")),
+            "hash": baseline.get("hash"),
+            "size": baseline.get("size"),
+        }
+        if fingerprint_file(repo_root, relative_path) != expected:
+            changed.append(normalize_repo_path(relative_path))
+    return unique_list(changed)
+
+
+def preserve_known_changed_files(existing, accepted_subagent_changes):
+    """Preserve known evidence when git status is unavailable instead of erasing it."""
+    values = [
+        normalize_repo_path(item)
+        for item in list(existing) + list(accepted_subagent_changes)
+        if isinstance(item, str) and item
+    ]
+    return sorted(set(values))
+
+
+def accepted_subagent_changes(parent_action, file_changes):
+    """Return files eligible for aggregation only after explicit parent acceptance."""
+    if parent_action not in {"accepted", "partially_accepted"}:
+        return []
+    return [
+        normalize_repo_path(item)
+        for item in file_changes
+        if isinstance(item, str) and item
+    ]
 
 
 def evaluate_runtime_agent_compliance(expected_records, observed):
@@ -82,10 +275,11 @@ def evaluate_runtime_agent_compliance(expected_records, observed):
         expected.append(
             {
                 "invocation_id": record.get("invocation_id") or record.get("subagent_run_id"),
-                "agent_name": record.get("agent_name"),
-                "role": record.get("role"),
+                "agent_name": record.get("expected_agent_name") or record.get("agent_name"),
+                "role": record.get("expected_role") or record.get("role"),
                 "agent_id": record.get("runtime_agent_id"),
-                "configured_model": record.get("model"),
+                "configured_model": record.get("expected_model") or record.get("model"),
+                "dispatch_timestamp": record.get("dispatch_timestamp"),
             }
         )
 
@@ -93,10 +287,18 @@ def evaluate_runtime_agent_compliance(expected_records, observed):
     violations = []
     for item in expected:
         agent_id = item.get("agent_id")
+        if not isinstance(item.get("invocation_id"), str) or not item.get("invocation_id"):
+            violations.append(
+                {
+                    "kind": "missing_expected_invocation_id",
+                    "invocation_id": item.get("invocation_id"),
+                }
+            )
+            continue
         if not isinstance(agent_id, str) or not agent_id:
             violations.append(
                 {
-                    "kind": "missing_expected_invocation_identifier",
+                    "kind": "missing_expected_runtime_agent_id",
                     "invocation_id": item.get("invocation_id"),
                 }
             )
@@ -177,6 +379,23 @@ def evaluate_runtime_agent_compliance(expected_records, observed):
     if not expected:
         violations.append({"kind": "empty_expected_invocation_set"})
 
+    configured_effort = "max"
+    observed_efforts = sorted(
+        {item.get("reasoning_effort") for item in observed if isinstance(item, dict) and item.get("reasoning_effort")}
+    )
+    runtime_observed = bool(observed_efforts)
+    runtime_matches_configured = None
+    if runtime_observed:
+        runtime_matches_configured = all(value == configured_effort for value in observed_efforts)
+        if not runtime_matches_configured:
+            violations.append(
+                {
+                    "kind": "reasoning_effort_mismatch",
+                    "configured": configured_effort,
+                    "observed_values": observed_efforts,
+                }
+            )
+
     if expected and not missing and not unexpected and not violations:
         status = "pass"
     elif missing or any(item.get("kind", "").startswith("missing_") for item in violations):
@@ -184,10 +403,6 @@ def evaluate_runtime_agent_compliance(expected_records, observed):
     else:
         status = "fail"
 
-    configured_efforts = {"max"}
-    observed_efforts = sorted(
-        {item.get("reasoning_effort") for item in observed if isinstance(item, dict) and item.get("reasoning_effort")}
-    )
     return {
         "status": status,
         "allowlist": list(RUNTIME_AGENT_ALLOWLIST),
@@ -197,10 +412,11 @@ def evaluate_runtime_agent_compliance(expected_records, observed):
         "unexpected": unexpected,
         "violations": violations,
         "reasoning_effort": {
-            "configured": sorted(configured_efforts)[0],
-            "accepted": True,
-            "runtime_observed": bool(observed_efforts),
+            "configured": configured_effort,
+            "configured_accepted": True,
+            "runtime_observed": runtime_observed,
             "observed_values": observed_efforts,
+            "runtime_matches_configured": runtime_matches_configured,
         },
     }
 
@@ -283,10 +499,13 @@ def default_manifest(repo_root: Path, run_id: str):
             "base_branch": None,
             "codex_task_reports": [],
             "changed_files": [],
+            "expected_invocation_ledger": None,
+            "expected_invocations": [],
             "source_baseline": {
                 "kind": "git_status",
                 "changed_files": [],
             },
+            "source_integrity": None,
             "validation": {"status": "not_run", "commands": [], "warnings": []},
             "safety": {
                 "network": False,
@@ -306,6 +525,7 @@ def default_manifest(repo_root: Path, run_id: str):
                 "blocking_event_count": 0,
                 "safety_blocked_count": 0,
                 "observation_error_count": 0,
+                "ignored_cancelled_runtime": [],
                 "runtime_agent_compliance": {
                     "status": "unknown",
                     "allowlist": list(RUNTIME_AGENT_ALLOWLIST),
@@ -314,12 +534,13 @@ def default_manifest(repo_root: Path, run_id: str):
                     "missing": [],
                     "unexpected": [],
                     "violations": [],
-                    "reasoning_effort": {
-                        "configured": "max",
-                        "accepted": True,
-                        "runtime_observed": False,
-                        "observed_values": [],
-                    },
+                "reasoning_effort": {
+                    "configured": "max",
+                    "configured_accepted": True,
+                    "runtime_observed": False,
+                    "observed_values": [],
+                    "runtime_matches_configured": None,
+                },
                 },
             },
             "subagents": {
@@ -392,14 +613,23 @@ def safety_text(event):
     return " ".join(parts)
 
 
-def collect_hook_observations(repo_root: Path, run_root: Path, run_id: str, explicit_logs, expected_records=None):
+def collect_hook_observations(
+    repo_root: Path,
+    run_root: Path,
+    run_id: str,
+    explicit_logs,
+    expected_records=None,
+    ignored_runtime_agent_ids=None,
+):
     expected_records = expected_records or []
+    ignored_runtime_agent_ids = set(ignored_runtime_agent_ids or [])
     summary = {
         "log_paths": [],
         "event_counts": {},
         "blocking_event_count": 0,
         "safety_blocked_count": 0,
         "observation_error_count": 0,
+        "ignored_cancelled_runtime": [],
         "runtime_agent_compliance": {
             "status": "unknown",
             "allowlist": list(RUNTIME_AGENT_ALLOWLIST),
@@ -410,9 +640,10 @@ def collect_hook_observations(repo_root: Path, run_root: Path, run_id: str, expl
             "violations": [],
             "reasoning_effort": {
                 "configured": "max",
-                "accepted": True,
+                "configured_accepted": True,
                 "runtime_observed": False,
                 "observed_values": [],
+                "runtime_matches_configured": None,
             },
         },
     }
@@ -490,6 +721,9 @@ def collect_hook_observations(repo_root: Path, run_root: Path, run_id: str, expl
                     value = payload.get(key)
                     if isinstance(value, str) and value:
                         observed[key] = value
+                if observed.get("agent_id") in ignored_runtime_agent_ids:
+                    summary["ignored_cancelled_runtime"].append(observed)
+                    continue
                 summary["runtime_agent_compliance"]["observed"].append(observed)
         if matched_in_file:
             summary["log_paths"].append(repo_relative(repo_root, path))
@@ -554,6 +788,7 @@ def collect_subagents(repo_root: Path, run_root: Path, run_id: str):
         scope_compliant = scope.get("compliant")
         used_in_final_plan = payload.get("used_in_final_plan") is True
         parent_decision = payload.get("parent_decision") if isinstance(payload.get("parent_decision"), dict) else {}
+        parent_action = parent_decision.get("action")
         agent = payload.get("agent") if isinstance(payload.get("agent"), dict) else {}
         agent_name = agent.get("name")
 
@@ -590,10 +825,19 @@ def collect_subagents(repo_root: Path, run_root: Path, run_id: str):
                 "changed_files_count": len(file_changes),
                 "scope_compliant": scope_compliant,
                 "used_in_final_plan": used_in_final_plan,
-                "parent_decision": parent_decision.get("action"),
+                "parent_decision": parent_action,
             }
         )
-        changed_files.extend(normalize_repo_path(item) for item in file_changes if isinstance(item, str) and item)
+        accepted_changes = accepted_subagent_changes(parent_action, file_changes)
+        if accepted_changes:
+            changed_files.extend(accepted_changes)
+        elif file_changes:
+            add_warning(
+                warnings,
+                "subagent_changes_not_accepted",
+                repo_relative(repo_root, path),
+                f"parent_decision={parent_action!r}; changed_files are excluded from the aggregate until accepted.",
+            )
         if isinstance(agent_name, str) and agent_name:
             agents_used.append(agent_name)
 
@@ -630,7 +874,7 @@ def load_manifest_candidate(path: Path):
 def merge_manifests(default_data, existing_data, base_data):
     manifest = copy.deepcopy(default_data)
     for source in (base_data or {}, existing_data or {}):
-        for key in ("schema_version", "run_id", "task_type", "workflow_level", "preset", "runtime", "repo", "branch", "base_branch", "evaluation_path", "completion_state", "status", "primary_failure_category"):
+        for key in ("schema_version", "run_id", "task_type", "workflow_level", "preset", "runtime", "repo", "branch", "base_branch", "evaluation_path", "completion_state", "status", "primary_failure_category", "source_integrity"):
             value = source.get(key)
             if value is not None:
                 manifest[key] = value
@@ -640,6 +884,10 @@ def merge_manifests(default_data, existing_data, base_data):
             manifest["codex_task_reports"] = source.get("codex_task_reports")
         if "changed_files" in source and isinstance(source.get("changed_files"), list):
             manifest["changed_files"] = source.get("changed_files")
+        if "expected_invocation_ledger" in source:
+            manifest["expected_invocation_ledger"] = source.get("expected_invocation_ledger")
+        if "expected_invocations" in source and isinstance(source.get("expected_invocations"), list):
+            manifest["expected_invocations"] = source.get("expected_invocations")
         if "source_baseline" in source and isinstance(source.get("source_baseline"), dict):
             manifest["source_baseline"] = source.get("source_baseline")
         if "validation" in source and isinstance(source.get("validation"), dict):
@@ -693,12 +941,31 @@ def main():
     validation_warnings.extend(subagent_warnings)
     manifest["subagents"] = subagents
 
+    expected_invocations, expected_warnings, expected_ledger_present = load_expected_invocation_ledger(
+        repo_root, run_root
+    )
+    cancelled_runtime_agent_ids = load_cancelled_runtime_agent_ids(run_root)
+    validation_warnings.extend(expected_warnings)
+    if expected_ledger_present:
+        expected_records = expected_invocations
+        manifest["expected_invocation_ledger"] = repo_relative(repo_root, run_root / "expected-invocations.jsonl")
+        manifest["expected_invocations"] = expected_invocations
+    else:
+        expected_records = subagents["records"]
+        add_warning(
+            validation_warnings,
+            "expected_invocation_ledger_missing",
+            repo_relative(repo_root, run_root),
+            "Expected invocation ledger is missing; legacy subagent records are used only for historical compatibility.",
+        )
+
     hook_summary, hook_warnings, safety_updates = collect_hook_observations(
         repo_root,
         run_root,
         args.run_id,
         args.hook_log,
-        expected_records=subagents["records"],
+        expected_records=expected_records,
+        ignored_runtime_agent_ids=cancelled_runtime_agent_ids,
     )
     validation_warnings.extend(hook_warnings)
     manifest["hook_observations"] = hook_summary
@@ -718,15 +985,18 @@ def main():
             validation_warnings,
             "source_changed_files_unavailable",
             repo_relative(repo_root, manifest_path),
-            "Git status could not be read; changed_files aggregate is incomplete.",
+            "Git status could not be read; existing changed_files are preserved and accepted subagent changes are merged.",
         )
-        current_files = []
-
-    manifest["changed_files"] = aggregate_changed_files(
-        baseline_files,
-        current_files,
-        subagent_changed_files,
-    )
+        manifest["changed_files"] = preserve_known_changed_files(
+            manifest.get("changed_files", []), subagent_changed_files
+        )
+    else:
+        expected_delta = expected_file_delta(repo_root, baseline_data)
+        manifest["changed_files"] = aggregate_changed_files(
+            baseline_files,
+            unique_list(current_files + expected_delta),
+            subagent_changed_files,
+        )
     manifest["agents_used"] = unique_list(
         [item for item in manifest.get("agents_used", []) if isinstance(item, str) and item] + subagent_agents
     )
@@ -735,7 +1005,21 @@ def main():
     safety["network"] = bool(safety.get("network"))
     safety["delete_attempt_blocked"] = bool(safety.get("delete_attempt_blocked")) or safety_updates["delete_attempt_blocked"]
     safety["git_mutation_attempt_blocked"] = bool(safety.get("git_mutation_attempt_blocked")) or safety_updates["git_mutation_attempt_blocked"]
-    safety["scope_violation"] = bool(safety.get("scope_violation")) or subagents["summary"]["scope_violations"] > 0
+    parent_scope_violation = bool(safety.get("parent_scope_violation"))
+    subagent_scope_violation = subagents["summary"]["scope_violations"] > 0
+    runtime_compliance_violation = bool(manifest["hook_observations"]["runtime_agent_compliance"]["violations"])
+    if "parent_scope_violation" not in safety and bool(safety.get("scope_violation")):
+        add_warning(
+            validation_warnings,
+            "legacy_scope_violation_unattributed",
+            repo_relative(repo_root, manifest_path),
+            "Existing scope_violation=true has no parent/subagent/runtime attribution; it is preserved as a parent-scope warning.",
+        )
+        parent_scope_violation = True
+    safety["parent_scope_violation"] = parent_scope_violation
+    safety["subagent_scope_violation"] = subagent_scope_violation
+    safety["runtime_compliance_violation"] = runtime_compliance_violation
+    safety["scope_violation"] = parent_scope_violation or subagent_scope_violation or runtime_compliance_violation
     manifest["safety"] = safety
 
     evaluation_path = run_root / "evaluation.json"

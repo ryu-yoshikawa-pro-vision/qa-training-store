@@ -8,7 +8,7 @@
 
 - `primary_failure_category` は run の主たる失敗原因を 1 つ選びます。
 - `failure_categories` は複合要因を表す配列です。
-- `failure_categories` は `primary_failure_category` を必ず含みます。
+- `primary_failure_category` が非nullの場合、`failure_categories` はその値を必ず含みます。最終 `pass` で primary がnullの場合は `failure_categories=[]` とします。
 - `findings[].category` は taxonomy と整合する必要があります。
 - taxonomy 外の category を agent が作ってはいけません。
 - 機械catalogは `spec/failure-taxonomy.json`、人間向け説明はこの文書です。第二のFailure Taxonomyを作りません。
@@ -52,7 +52,7 @@ quality runnerはfailure categoryではなく、first abnormal event、downstrea
 ### `failure_categories`
 
 - 複合要因を表す配列です。
-- `primary_failure_category` を必ず含めます。
+- `primary_failure_category` が非nullの場合は必ず含めます。`pass` かつ primary がnullの場合は空配列にします。
 
 ## `findings[].category` の扱い
 

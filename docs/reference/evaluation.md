@@ -115,6 +115,7 @@ pass | partial | fail | not_evaluated
 
 - `primary_failure_category` は `spec/failure-taxonomy.json` の category から選びます。
 - `failure_categories` も taxonomy と整合する必要があります。
+- `primary_failure_category` が非nullなら `failure_categories` に同じ値を含め、最終 `pass` かつ primary がnullなら空配列にします。
 - `findings[].category` も taxonomy と整合する必要があります。
 - taxonomy 外の category は使いません。
 - evidence のない finding / rating は後続 validator で warning または failure にするべきです。

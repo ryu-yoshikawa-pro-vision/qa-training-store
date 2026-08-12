@@ -38,6 +38,7 @@ Both are validated by schema / validator.
 - `artifact_summary` は report / hook / subagent / evaluation の存在数を summary します。
 - `hook_observations` は run に紐づく hook JSONL の path と event count を summary します。
 - `hook_observations.runtime_agent_compliance` は `SubagentStart` のallowlist / identity / Luna model検査のsummaryです。start eventが取れない場合は`unknown`であり、PASSへ補完しません。
+- `expected_invocation_ledger` はParentのdispatch時点でmachine-generatedされるRun-local `expected-invocations.jsonl`です。`expected_invocations`はdispatch recordとspawn後のruntime agent ID linkを集約し、subagent recordからexpected件数を逆算しません。
 - `subagents.records` は `subagent-run.json` 全文ではなく、path と scope summary だけを保持します。
 - Parent-defined Local Required Validation Set、quality runner結果、before/after Source Integrityは別のvalidation evidenceとして保持し、runnerの未実行をPASS扱いしません。
 - `codex-task` report JSON の置き換えではありません。
@@ -45,7 +46,10 @@ Both are validated by schema / validator.
 - `run.json.evaluation_path` は `evaluation.json` への summary link です。
 - `run.json.primary_failure_category` は valid な `evaluation.json.primary_failure_category` からだけコピーされる summary field です。
 - `run.json.completion_state` はParentだけが更新するcompletion decisionです。`LOCAL_IMPLEMENTATION_COMPLETE` はLocal Required Validation、runtime acceptance、Source Integrity、Real-run Acceptanceが完了した場合だけtrue、`MERGE_READY`はLocal完了かつExternal ChecksがPASSまたは明示N/Aの場合だけtrueです。初期値はfalse / pendingで、collectorは未実行をPASSへ補完しません。
-- `source_baseline.changed_files` はRun開始時のsource状態です。`changed_files` は current source と baseline の差分に、Parentが受け入れた subagent changes を加えたaggregateであり、手動 append ではありません。`.codex/runs/` はsource差分から除外します。
+- `source_baseline.changed_files` はRun開始時のsource状態です。renameはnew pathを必ず保持し、old pathはrename evidenceとして同じ結果に含めます。copyはnew pathを保持します。`changed_files` は current source と baseline の差分に、Parentが受け入れた subagent changes を加えたaggregateであり、手動 append ではありません。`.codex/runs/` はsource差分から除外します。
+- Git statusを取得できない場合、collectorは既存manifestの`changed_files`とaccepted subagent changesを空配列へ置換せず保持し、`source_changed_files_unavailable` warningを残します。
+- `expected_changed_files`を使うrunは、run開始時のexists/hash/size fingerprintと終了時fingerprintを比較します。開始時からdirtyでも、追加変更があった場合だけchangedと判定し、変更なしはchanged扱いにしません。
+- `safety.scope_violation`は`parent_scope_violation`、`subagent_scope_violation`、`runtime_compliance_violation`の合算です。scope flagを理由なくfalseへ手修正せず、生成元を分離して記録します。
 - `scripts/collect-run-artifacts.sh` / `scripts/collect-run-artifacts.ps1` は on-disk artifact を再走査し、`run.json` summary を再集約できます。
 
 ### `evaluation.json`

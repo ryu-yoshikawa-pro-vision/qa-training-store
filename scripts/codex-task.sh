@@ -37,6 +37,10 @@ declare -a allowed_dirs=()
 declare -a allowed_globs=()
 declare -a expected_changed_files=()
 declare -a changed_files=()
+declare -a source_baseline_files=()
+declare -A expected_file_baseline_exists=()
+declare -A expected_file_baseline_hash=()
+declare -A expected_file_baseline_size=()
 declare -a validation_command_names=()
 declare -a validation_command_exit_codes=()
 declare -a validation_command_statuses=()
@@ -62,6 +66,7 @@ manifest_started=0
 safety_scope_violation=false
 evaluation_path=""
 primary_failure_category=""
+baseline_captured=0
 
 json_escape() {
   local s="$1"
@@ -501,12 +506,101 @@ to_repo_relative_path() {
   printf '%s' "$candidate" | tr '\\' '/'
 }
 
+get_file_fingerprint() {
+  local relative_path="$1" full_path file_hash file_size
+  full_path="$repo_root/$relative_path"
+  if [[ ! -f "$full_path" ]]; then
+    printf 'false\t\t'
+    return 0
+  fi
+
+  if command -v sha256sum >/dev/null 2>&1; then
+    file_hash="$(sha256sum -- "$full_path" | awk '{print $1}')"
+  elif command -v shasum >/dev/null 2>&1; then
+    file_hash="$(shasum -a 256 -- "$full_path" | awk '{print $1}')"
+  else
+    file_hash="$(git -C "$repo_root" hash-object -- "$full_path")"
+  fi
+  file_size="$(wc -c < "$full_path" | tr -d '[:space:]')"
+  printf 'true\t%s\t%s' "$file_hash" "$file_size"
+}
+
+capture_source_baseline() {
+  (( baseline_captured )) && return 0
+  collect_changed_files
+  source_baseline_files=("${changed_files[@]}")
+  expected_file_baseline_exists=()
+  expected_file_baseline_hash=()
+  expected_file_baseline_size=()
+  local path exists file_hash file_size
+  for path in "${expected_changed_files[@]}"; do
+    IFS=$'\t' read -r exists file_hash file_size < <(get_file_fingerprint "$path")
+    expected_file_baseline_exists["$path"]="$exists"
+    expected_file_baseline_hash["$path"]="$file_hash"
+    expected_file_baseline_size["$path"]="$file_size"
+  done
+  baseline_captured=1
+}
+
+expected_file_changed() {
+  local path="$1" exists file_hash file_size
+  [[ -n "${expected_file_baseline_exists[$path]+present}" ]] || return 0
+  IFS=$'\t' read -r exists file_hash file_size < <(get_file_fingerprint "$path")
+  [[ "$exists" != "${expected_file_baseline_exists[$path]}" ||
+     "$file_hash" != "${expected_file_baseline_hash[$path]}" ||
+     "$file_size" != "${expected_file_baseline_size[$path]}" ]]
+}
+
+filter_expected_baseline_changes() {
+  local -a filtered=()
+  local path
+  for path in "${changed_files[@]}"; do
+    if [[ -n "${expected_file_baseline_exists[$path]+present}" ]] && ! expected_file_changed "$path"; then
+      continue
+    fi
+    filtered+=("$path")
+  done
+  for path in "${expected_changed_files[@]}"; do
+    if expected_file_changed "$path"; then
+      filtered+=("$path")
+    fi
+  done
+  changed_files=("${filtered[@]}")
+  sort_unique_array changed_files
+}
+
+json_expected_file_baseline() {
+  local first=1 path
+  printf '{'
+  for path in "${expected_changed_files[@]}"; do
+    if (( first )); then
+      first=0
+    else
+      printf ', '
+    fi
+    printf '"%s": {"exists": %s, "hash": ' "$(json_escape "$path")" "$(if [[ "${expected_file_baseline_exists[$path]}" == "true" ]]; then printf true; else printf false; fi)"
+    if [[ -n "${expected_file_baseline_hash[$path]}" ]]; then
+      printf '"%s"' "$(json_escape "${expected_file_baseline_hash[$path]}")"
+    else
+      printf 'null'
+    fi
+    printf ', "size": '
+    if [[ -n "${expected_file_baseline_size[$path]}" ]]; then
+      printf '%s' "${expected_file_baseline_size[$path]}"
+    else
+      printf 'null'
+    fi
+    printf '}'
+  done
+  printf '}'
+}
+
 write_run_manifest() {
   (( record_run_manifest )) || return 0
   (( manifest_started )) || return 0
   [[ -n "$manifest_path" ]] || return 0
 
-  local branch report_ref network_enabled validation_commands_json validation_warnings_json changed_files_json py manifest_json
+  local branch report_ref network_enabled validation_commands_json validation_warnings_json changed_files_json source_baseline_json expected_baseline_json py manifest_json
   branch="$(git_branch)"
   report_ref="$(to_repo_relative_path "$report_path")"
   network_enabled=false
@@ -514,6 +608,8 @@ write_run_manifest() {
     network_enabled=true
   fi
   changed_files_json="$(json_string_array changed_files)"
+  source_baseline_json="$(json_string_array source_baseline_files)"
+  expected_baseline_json="$(json_expected_file_baseline)"
   validation_commands_json="$(json_validation_commands)"
   validation_warnings_json="$(json_validation_warnings)"
   py="$(python_cmd)"
@@ -535,6 +631,13 @@ write_run_manifest() {
     "$(json_escape "$report_ref")"
   ],
   "changed_files": $changed_files_json,
+  "expected_invocation_ledger": null,
+  "expected_invocations": [],
+  "source_baseline": {
+    "kind": "git_status",
+    "changed_files": $source_baseline_json,
+    "expected_files": $expected_baseline_json
+  },
   "validation": {
     "status": "$(json_escape "$validation_status")",
     "commands": $validation_commands_json,
@@ -624,6 +727,10 @@ if current.get("evaluation_path") is None and existing.get("evaluation_path") is
     current["evaluation_path"] = existing.get("evaluation_path")
 if current.get("primary_failure_category") is None and existing.get("primary_failure_category") is not None:
     current["primary_failure_category"] = existing.get("primary_failure_category")
+if current.get("expected_invocation_ledger") is None and existing.get("expected_invocation_ledger") is not None:
+    current["expected_invocation_ledger"] = existing.get("expected_invocation_ledger")
+if not current.get("expected_invocations") and existing.get("expected_invocations"):
+    current["expected_invocations"] = existing.get("expected_invocations")
 for key in ("artifact_summary", "hook_observations", "subagents"):
     if key in existing:
         current[key] = existing[key]
@@ -1317,6 +1424,7 @@ main() {
   if (( record_run_manifest )); then
     manifest_started=1
     run_status="running"
+    capture_source_baseline
     write_run_manifest
   fi
 
@@ -1434,6 +1542,7 @@ main() {
   write_log "codex_exec_exit" ",\"exit_code\":$codex_exit_code"
   if (( record_run_manifest )); then
     collect_changed_files
+    filter_expected_baseline_changes
     write_run_manifest
   fi
   if [[ "$codex_exit_code" != "0" ]]; then
