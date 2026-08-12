@@ -157,16 +157,16 @@ run_codex() {
   fi
 }
 
-check_luna_orchestration_contract() {
+check_subagent_orchestration_contract() {
   local python_bin
   python_bin="$(find_python_for_validator)" || return 1
-  "$python_bin" -B scripts/validate-luna-orchestration.py
+  "$python_bin" -B scripts/validate-subagent-orchestration.py
 }
 
-check_luna_runtime_contract() {
+check_subagent_runtime_contract() {
   local python_bin
   python_bin="$(find_python_for_validator)" || return 1
-  "$python_bin" -B scripts/test-luna-orchestration-contract.py
+  "$python_bin" -B scripts/test-subagent-orchestration-contract.py
 }
 
 check_template_contract() {
@@ -207,8 +207,8 @@ check_template_contract() {
   [[ -f scripts/init-project.ps1 ]] || return 1
   [[ -f scripts/init-project.sh ]] || return 1
   [[ -f scripts/validate-output-schema.py ]] || return 1
-  [[ -f scripts/validate-luna-orchestration.py ]] || return 1
-  [[ -f scripts/test-luna-orchestration-contract.py ]] || return 1
+  [[ -f scripts/validate-subagent-orchestration.py ]] || return 1
+  [[ -f scripts/test-subagent-orchestration-contract.py ]] || return 1
   [[ -f scripts/record-expected-invocation.py ]] || return 1
   [[ -f scripts/codex-local-validation.mjs ]] || return 1
   [[ -f spec/failure-taxonomy.json ]] || return 1
@@ -341,8 +341,8 @@ check_template_contract() {
   contains "hooks = true" .codex/config.toml || return 1
   contains "multi_agent = true" .codex/config.toml || return 1
   contains "enabled = true" .codex/config.toml || return 1
-  contains "default_subagent_model = \"gpt-5.6-luna\"" .codex/config.toml || return 1
-  contains "default_subagent_reasoning_effort = \"max\"" .codex/config.toml || return 1
+  contains "default_subagent_model =" .codex/config.toml || return 1
+  contains "default_subagent_reasoning_effort =" .codex/config.toml || return 1
   contains "max_concurrent_threads_per_session = 6" .codex/config.toml || return 1
   ! contains "codex_hooks" .codex/config.toml || return 1
   ! contains "max_threads" .codex/config.toml || return 1
@@ -364,15 +364,13 @@ check_template_contract() {
   contains "failure_categories" docs/reference/run-artifacts.md || return 1
   contains "prefix_rule" .codex/rules/15-local-validation-allow.rules || return 1
   contains "scripts/codex-local-validation.mjs" .codex/rules/99-local-validation-wrapper-allow.rules || return 1
-  contains "additional subagent spawn禁止" scripts/validate-luna-orchestration.py || return 1
+  contains "additional subagent spawn禁止" scripts/validate-subagent-orchestration.py || return 1
   ! contains '"$schema"' spec/failure-taxonomy.json || return 1
   [[ -f vitest.config.ts ]] || return 1
   [[ -f tests/contracts/native-production-module-resolution.test.ts ]] || return 1
   ! contains "testTimeout" vitest.config.ts || return 1
   contains 'describe("Native automation module resolution", { timeout: 15_000 }' tests/contracts/native-production-module-resolution.test.ts || return 1
   contains "name = \"implementation_worker\"" .codex/agents/implementation_worker.toml || return 1
-  contains "model = \"gpt-5.6-luna\"" .codex/agents/implementation_worker.toml || return 1
-  contains "model_reasoning_effort = \"max\"" .codex/agents/implementation_worker.toml || return 1
   contains "sandbox_mode = \"workspace-write\"" .codex/agents/implementation_worker.toml || return 1
   contains "親 agent が明示した計画" .codex/agents/implementation_worker.toml || return 1
   contains "親 agent が指定していないファイルを編集しない" .codex/agents/implementation_worker.toml || return 1
@@ -388,8 +386,6 @@ check_template_contract() {
   contains "QUALITY_GATE_RUNNER_INCOMPLETE" .codex/agents/quality_gate_runner.toml || return 1
   for agent_name in code_researcher implementation_researcher test_investigator implementation_worker quality_gate_runner; do
     contains "name = \"$agent_name\"" ".codex/agents/$agent_name.toml" || return 1
-    contains 'model = "gpt-5.6-luna"' ".codex/agents/$agent_name.toml" || return 1
-    contains 'model_reasoning_effort = "max"' ".codex/agents/$agent_name.toml" || return 1
     contains "additional subagent spawn禁止" ".codex/agents/$agent_name.toml" || return 1
     contains "multi_agent = false" ".codex/agents/$agent_name.toml" || return 1
   done
@@ -606,8 +602,8 @@ check_powershell_wrapper_preflight() {
 }
 
 run_check "template contract files" check_template_contract
-run_check "GPT-5.6 Luna orchestration contract" check_luna_orchestration_contract
-run_check "runtime orchestration contract tests" check_luna_runtime_contract
+run_check "subagent orchestration contract" check_subagent_orchestration_contract
+run_check "subagent runtime contract tests" check_subagent_runtime_contract
 
 if (( strict_harness )); then
   run_check "strict harness source-repo contract" check_strict_harness_contract

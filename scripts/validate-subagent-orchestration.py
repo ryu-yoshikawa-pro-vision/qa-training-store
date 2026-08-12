@@ -1,19 +1,15 @@
 #!/usr/bin/env python3
-"""Validate the repository-governed GPT-5.6 Luna subagent contract."""
+"""Validate the repository-governed subagent orchestration contract."""
 
 from __future__ import annotations
 
 import json
 import sys
+import tomllib
 from pathlib import Path
 
 if sys.version_info < (3, 11):
     raise SystemExit("Python 3.11+ is required for TOML contract validation")
-
-try:
-    import tomllib
-except ModuleNotFoundError as exc:  # pragma: no cover - Python version is checked above.
-    raise SystemExit("Python 3.11+ is required for TOML contract validation") from exc
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -57,31 +53,47 @@ def fail(errors: list[str], message: str) -> None:
     errors.append(message)
 
 
-def main() -> int:
+def validate_repository(root: Path = ROOT) -> tuple[list[str], str | None, str | None]:
     errors: list[str] = []
-    config_path = ROOT / ".codex" / "config.toml"
-    config = load_toml(config_path)
+    config_path = root / ".codex" / "config.toml"
+    try:
+        config = load_toml(config_path)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        return [f"unable to load parent config: {exc}"], None, None
 
     for legacy in ("codex_hooks", "max_threads", "max_depth"):
         if contains_toml_key(config, legacy):
             fail(errors, f"legacy config key remains: {legacy}")
 
     features = config.get("features", {})
+    if not isinstance(features, dict):
+        fail(errors, "features must be a TOML table")
+        features = {}
     if features.get("hooks") is not True:
         fail(errors, "features.hooks must be true")
     if features.get("multi_agent") is not True:
         fail(errors, "features.multi_agent must be true")
 
     agents_config = config.get("agents", {})
-    expected_defaults = {
+    if not isinstance(agents_config, dict):
+        fail(errors, "agents must be a TOML table")
+        agents_config = {}
+    expected_config = {
         "enabled": True,
-        "default_subagent_model": "gpt-5.6-luna",
-        "default_subagent_reasoning_effort": "max",
         "max_concurrent_threads_per_session": 6,
     }
-    for key, expected in expected_defaults.items():
+    for key, expected in expected_config.items():
         if agents_config.get(key) != expected:
             fail(errors, f"agents.{key} must be {expected!r}")
+
+    expected_model = agents_config.get("default_subagent_model")
+    if not isinstance(expected_model, str) or not expected_model.strip():
+        fail(errors, "agents.default_subagent_model must be a non-empty string")
+        expected_model = None
+    expected_reasoning_effort = agents_config.get("default_subagent_reasoning_effort")
+    if not isinstance(expected_reasoning_effort, str) or not expected_reasoning_effort.strip():
+        fail(errors, "agents.default_subagent_reasoning_effort must be a non-empty string")
+        expected_reasoning_effort = None
 
     hooks = config.get("hooks", {})
     for event in ("SubagentStart", "SubagentStop"):
@@ -93,7 +105,7 @@ def main() -> int:
         if "observe.ps1" not in command_text:
             fail(errors, f"hooks.{event} must call observe.ps1")
 
-    agent_dir = ROOT / ".codex" / "agents"
+    agent_dir = root / ".codex" / "agents"
     files = sorted(agent_dir.glob("*.toml"))
     names = {path.stem for path in files}
     if names != set(EXPECTED_AGENTS):
@@ -103,13 +115,17 @@ def main() -> int:
         path = agent_dir / f"{name}.toml"
         if not path.exists():
             continue
-        data = load_toml(path)
+        try:
+            data = load_toml(path)
+        except (OSError, tomllib.TOMLDecodeError) as exc:
+            fail(errors, f"{name}: unable to load TOML: {exc}")
+            continue
         if data.get("name") != name:
             fail(errors, f"{name}: name must match filename")
-        if data.get("model") != "gpt-5.6-luna":
-            fail(errors, f"{name}: model must be gpt-5.6-luna")
-        if data.get("model_reasoning_effort") != "max":
-            fail(errors, f"{name}: model_reasoning_effort must be max")
+        if data.get("model") != expected_model:
+            fail(errors, f"{name}: model must match agents.default_subagent_model")
+        if data.get("model_reasoning_effort") != expected_reasoning_effort:
+            fail(errors, f"{name}: model_reasoning_effort must match agents.default_subagent_reasoning_effort")
         if data.get("sandbox_mode") != sandbox:
             fail(errors, f"{name}: sandbox_mode must be {sandbox}")
         child_agents = data.get("agents", {})
@@ -146,8 +162,12 @@ def main() -> int:
                 if marker not in instructions:
                     fail(errors, f"{name}: missing quality runner contract marker {marker!r}")
 
-    taxonomy_path = ROOT / "spec" / "failure-taxonomy.json"
-    taxonomy = json.loads(taxonomy_path.read_text(encoding="utf-8"))
+    taxonomy_path = root / "spec" / "failure-taxonomy.json"
+    try:
+        taxonomy = json.loads(taxonomy_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        fail(errors, f"failure taxonomy cannot be loaded: {exc}")
+        taxonomy = {}
     if "$schema" in taxonomy:
         fail(errors, "failure taxonomy catalog must not declare $schema")
     category_ids = {item.get("id") for item in taxonomy.get("categories", [])}
@@ -156,15 +176,18 @@ def main() -> int:
     if len(taxonomy.get("categories", [])) != len(FAILURE_CATEGORIES):
         fail(errors, "failure taxonomy must contain exactly the existing 10 categories")
 
-    hook_schema = json.loads(
-        (ROOT / ".codex" / "templates" / "hook-observation.schema.json").read_text(encoding="utf-8")
-    )
+    hook_schema_path = root / ".codex" / "templates" / "hook-observation.schema.json"
+    try:
+        hook_schema = json.loads(hook_schema_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        fail(errors, f"hook observation schema cannot be loaded: {exc}")
+        hook_schema = {}
     properties = hook_schema.get("properties", {})
     for field in ("agent_type", "agent_id", "model"):
         if field not in properties:
             fail(errors, f"hook observation schema is missing runtime field: {field}")
 
-    dispatcher = ROOT / "scripts" / "codex-local-validation.mjs"
+    dispatcher = root / "scripts" / "codex-local-validation.mjs"
     if not dispatcher.exists():
         fail(errors, "validation dispatcher is missing")
     else:
@@ -175,12 +198,16 @@ def main() -> int:
         if "shell: false" not in dispatcher_text or "spawn(" not in dispatcher_text:
             fail(errors, "validation dispatcher must spawn argv without a shell")
 
-    expected_ledger = ROOT / "scripts" / "record-expected-invocation.py"
+    expected_ledger = root / "scripts" / "record-expected-invocation.py"
     if not expected_ledger.exists():
         fail(errors, "expected invocation ledger recorder is missing")
 
-    evaluation_schema_path = ROOT / ".codex" / "templates" / "evaluation.schema.json"
-    evaluation_schema = json.loads(evaluation_schema_path.read_text(encoding="utf-8"))
+    evaluation_schema_path = root / ".codex" / "templates" / "evaluation.schema.json"
+    try:
+        evaluation_schema = json.loads(evaluation_schema_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError) as exc:
+        fail(errors, f"evaluation schema cannot be loaded: {exc}")
+        evaluation_schema = {}
     if not isinstance(evaluation_schema.get("allOf"), list) or not evaluation_schema["allOf"]:
         fail(errors, "evaluation schema must enforce primary/failure category relation")
     for condition in evaluation_schema.get("allOf", []):
@@ -189,16 +216,21 @@ def main() -> int:
             if "primary_failure_category" not in conditional.get("required", []):
                 fail(errors, "evaluation schema conditional category blocks must require primary_failure_category")
 
+    return errors, expected_model, expected_reasoning_effort
+
+
+def main() -> int:
+    errors, expected_model, expected_reasoning_effort = validate_repository()
     if errors:
-        print("LUNA_ORCHESTRATION_VALIDATION_FAIL")
+        print("SUBAGENT_ORCHESTRATION_VALIDATION_FAIL")
         for error in errors:
             print(f"- {error}")
         return 1
 
-    print("LUNA_ORCHESTRATION_VALIDATION_PASS")
+    print("SUBAGENT_ORCHESTRATION_VALIDATION_PASS")
     print(f"agents={','.join(sorted(EXPECTED_AGENTS))}")
-    print("model=gpt-5.6-luna")
-    print("reasoning_effort=max")
+    print(f"configured_model={expected_model}")
+    print(f"configured_reasoning_effort={expected_reasoning_effort}")
     print("child_multi_agent=false")
     return 0
 

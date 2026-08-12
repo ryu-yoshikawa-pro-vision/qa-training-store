@@ -113,7 +113,7 @@ writable workerをparallel化するのは、Work Package、write set、workspace
   "parent_run_id": "20260627-120000-JST",
   "agent": {
     "name": "implementation_worker",
-    "model": "gpt-5.6-luna"
+    "model": "parent-configured-model"
   },
   "role": "implementation_worker",
   "mode": "writable",

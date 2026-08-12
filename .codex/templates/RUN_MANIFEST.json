@@ -57,8 +57,9 @@
       "unexpected": [],
       "violations": [],
       "reasoning_effort": {
-        "configured": "max",
-        "configured_accepted": true,
+        "configured": null,
+        "configured_values": [],
+        "configured_accepted": false,
         "runtime_observed": false,
         "observed_values": [],
         "runtime_matches_configured": null

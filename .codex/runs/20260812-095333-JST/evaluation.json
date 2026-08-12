@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "run_id": "20260812-095333-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "config SSOT移行、generic validator / contract、read-only 3並列、quality_gate_runner 5 action、local validation、full verify、Source Integrity、scope確認を完了した。",
+      "evidence_refs": [
+        { "kind": "run_manifest", "path": ".codex/runs/20260812-095333-JST/run.json", "selector": "completion_state", "summary": "LOCAL_IMPLEMENTATION_COMPLETE=true、MERGE_READY=false。" },
+        { "kind": "validation_command", "path": ".codex/runs/20260812-095333-JST/quality-runner-output.txt", "selector": "QUALITY_GATE_RUNNER_PASS", "summary": "quality_gate_runnerの5 action完了marker。" },
+        { "kind": "validation_command", "path": ".codex/runs/20260812-095333-JST/parallel-readonly-output.txt", "selector": "SUBAGENT_PARALLEL_RUNTIME_PASS", "summary": "read-only 3並列の完了marker。" }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はsubagent orchestration harness、関連docs、plan、Run Artifactに限定され、application sourceは変更していない。collectorのscope_violation、parent_scope_violation、subagent_scope_violation、runtime_compliance_violationはいずれもfalseである。",
+      "evidence_refs": [
+        { "kind": "run_manifest", "path": ".codex/runs/20260812-095333-JST/run.json", "selector": "safety", "summary": "scope attributionとruntime violationの集約結果。" },
+        { "kind": "validation_command", "path": ".artifacts/luna-orchestration/pr20-source-integrity-20260812-095333-JST.json", "selector": "source_path_set_changed", "summary": "quality runner前後のsource path setに追加差分なし。" }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "generic validator、27件のorchestration contract、Bash / PowerShell verify、dispatcher positive / negative、24 files / 201 tests、親のpnpm run verify、quality runner 5/5がPASSした。",
+      "evidence_refs": [
+        { "kind": "validation_command", "path": ".codex/runs/20260812-095333-JST/run.json", "selector": "validation", "summary": "最終validation command一覧。" },
+        { "kind": "validation_command", "path": ".artifacts/luna-orchestration/pr20-quality-gate-result-20260812-095333-JST.json", "selector": "exit_codes", "summary": "quality runnerの全action exit code 0。" },
+        { "kind": "changed_file", "path": "scripts/test-subagent-orchestration-contract.py", "summary": "future model / effort migration fixtureを含むgeneric contract test。" }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "git add / commit / push / reset / clean / rmとbranch・PR操作は行わず、quality runnerはsafe wrapper経由で実行した。Source Integrityはnet source mutationなしを示すが、write syscall完全観測とは区別している。",
+      "evidence_refs": [
+        { "kind": "run_manifest", "path": ".codex/runs/20260812-095333-JST/run.json", "selector": "safety", "summary": "network、git mutation、delete、scopeの安全集約。" },
+        { "kind": "validation_command", "path": ".artifacts/luna-orchestration/pr20-source-integrity-20260812-095333-JST.json", "selector": "write_syscall_observability", "summary": "write syscall観測可能性をunknownとして明示。" }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "dispatch expected ledger、runtime hook、quality output、wrapper report、Run report、evaluationをRun-localへ保存し、旧Runのwave11 failureとwave12 current PASSを区別した。",
+      "evidence_refs": [
+        { "kind": "run_manifest", "path": ".codex/runs/20260812-095333-JST/run.json", "selector": "hook_observations.runtime_agent_compliance", "summary": "expected=4、observed=4、missing=0、unexpected=0、violations=0。" },
+        { "kind": "hook_observation", "path": ".codex/runs/20260812-095333-JST/logs/hooks.jsonl", "selector": "SubagentStart/SubagentStop", "summary": "3 researcherと1 quality runnerのruntime hook evidence。" },
+        { "kind": "validation_command", "path": ".codex/runs/20260812-095333-JST/expected-invocations.jsonl", "selector": "dispatch/link", "summary": "Parent dispatch expectationとruntime linkのappend-only ledger。" }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "validator、contract test、collector、dispatcher、Bash / PowerShell verifyをgeneric名称へ移行し、model / effortの比較はconfigまたはdispatch expectationから導出する。",
+      "evidence_refs": [
+        { "kind": "changed_file", "path": "scripts/validate-subagent-orchestration.py", "summary": "Parent configから期待model / effortを読み込むvalidator。" },
+        { "kind": "changed_file", "path": "scripts/collect-run-artifacts.py", "summary": "expected-vs-observed modelとoptional effort比較。" },
+        { "kind": "changed_file", "path": "scripts/record-expected-invocation.py", "summary": "dispatch時点のParent config値をledgerへ保存。" }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "future model / effort fixture、model mismatch、effort mismatch、effort未観測許容、rename / copy、dirty baseline、status unavailable、failure taxonomy relationをcontract testで再現できる。",
+      "evidence_refs": [
+        { "kind": "changed_file", "path": "scripts/test-subagent-orchestration-contract.py", "selector": "ValidatorMigrationContractTests", "summary": "将来値へconfigとagent TOMLを置換するmigration fixture。" },
+        { "kind": "validation_command", "path": ".codex/runs/20260812-095333-JST/REPORT.md", "selector": "2026-08-12 10:32", "summary": "実行判断とfocused validationの記録。" }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": [
+    {
+      "target": "quality runner write-attempt observability",
+      "evidence": "quality runnerのsource_edit_observed=falseとnet source inventory比較は得られたが、write syscallの完全観測は契約上unknownである。",
+      "evidence_refs": [
+        { "kind": "validation_command", "path": ".artifacts/luna-orchestration/pr20-quality-gate-result-20260812-095333-JST.json", "selector": "write_attempt_observability", "summary": "write attempt観測可能性の明示。" }
+      ],
+      "expected_impact": "禁止されたsource writeと許可されたgenerated artifact writeの説明境界を維持できる。",
+      "recommendation": "write syscall監視基盤は新設せず、今後もbefore/after Source Integrity、hook、wrapper reportの観測範囲を分離して記録する。"
+    }
+  ]
+}

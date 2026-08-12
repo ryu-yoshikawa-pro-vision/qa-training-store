@@ -104,6 +104,22 @@ def load_expected_invocation_ledger(repo_root: Path, run_root: Path):
                     f"line {line_number}: duplicate invocation_id={invocation_id}",
                 )
                 continue
+            if not isinstance(event.get("expected_model"), str) or not event.get("expected_model"):
+                add_warning(
+                    warnings,
+                    "expected_invocation_ledger_missing_model",
+                    repo_relative(repo_root, ledger_path),
+                    f"line {line_number}: dispatch expected_model is required",
+                )
+            if not isinstance(event.get("expected_reasoning_effort"), str) or not event.get(
+                "expected_reasoning_effort"
+            ):
+                add_warning(
+                    warnings,
+                    "expected_invocation_ledger_missing_reasoning_effort",
+                    repo_relative(repo_root, ledger_path),
+                    f"line {line_number}: dispatch expected_reasoning_effort is required",
+                )
             dispatches[invocation_id] = event
         elif event_type == "link":
             if isinstance(invocation_id, str) and invocation_id:
@@ -136,6 +152,7 @@ def load_expected_invocation_ledger(repo_root: Path, run_root: Path):
                 "invocation_id": invocation_id,
                 "expected_agent_name": dispatch.get("expected_agent_name"),
                 "expected_model": dispatch.get("expected_model"),
+                "expected_reasoning_effort": dispatch.get("expected_reasoning_effort"),
                 "expected_role": dispatch.get("expected_role"),
                 "dispatch_timestamp": dispatch.get("dispatch_timestamp"),
                 "runtime_agent_id": link.get("runtime_agent_id"),
@@ -195,9 +212,19 @@ def current_source_changed_files(repo_root: Path):
 
 
 def aggregate_changed_files(baseline, current, accepted_subagent_changes):
-    baseline_set = {normalize_repo_path(item) for item in baseline if isinstance(item, str)}
-    current_set = {normalize_repo_path(item) for item in current if isinstance(item, str)}
-    accepted = {normalize_repo_path(item) for item in accepted_subagent_changes if isinstance(item, str)}
+    def normalized_set(values):
+        result = set()
+        for item in values:
+            if not isinstance(item, str):
+                continue
+            normalized = normalize_repo_path(item)
+            if normalized:
+                result.add(normalized)
+        return result
+
+    baseline_set = normalized_set(baseline)
+    current_set = normalized_set(current)
+    accepted = normalized_set(accepted_subagent_changes)
     return sorted((current_set - baseline_set) | accepted)
 
 
@@ -278,7 +305,8 @@ def evaluate_runtime_agent_compliance(expected_records, observed):
                 "agent_name": record.get("expected_agent_name") or record.get("agent_name"),
                 "role": record.get("expected_role") or record.get("role"),
                 "agent_id": record.get("runtime_agent_id"),
-                "configured_model": record.get("expected_model") or record.get("model"),
+                "expected_model": record.get("expected_model") or record.get("model"),
+                "expected_reasoning_effort": record.get("expected_reasoning_effort"),
                 "dispatch_timestamp": record.get("dispatch_timestamp"),
             }
         )
@@ -315,11 +343,11 @@ def evaluate_runtime_agent_compliance(expected_records, observed):
                     "invocation_id": item.get("invocation_id"),
                 }
             )
-        if item.get("configured_model") != "gpt-5.6-luna":
+        if not isinstance(item.get("expected_model"), str) or not item.get("expected_model"):
             violations.append(
                 {
-                    "kind": "expected_model_mismatch",
-                    "model": item.get("configured_model"),
+                    "kind": "missing_expected_model",
+                    "model": item.get("expected_model"),
                     "invocation_id": item.get("invocation_id"),
                 }
             )
@@ -372,29 +400,60 @@ def evaluate_runtime_agent_compliance(expected_records, observed):
                     "agent_id": agent_id,
                 }
             )
-        if item.get("model") != "gpt-5.6-luna":
-            violations.append({"kind": "model_mismatch", "model": item.get("model"), "agent_id": agent_id})
+        if item.get("model") != expected_item.get("expected_model"):
+            violations.append(
+                {
+                    "kind": "model_mismatch",
+                    "expected_model": expected_item.get("expected_model"),
+                    "observed_model": item.get("model"),
+                    "agent_id": agent_id,
+                }
+            )
+
+        observed_effort = item.get("reasoning_effort")
+        expected_effort = expected_item.get("expected_reasoning_effort")
+        if observed_effort:
+            if not isinstance(expected_effort, str) or not expected_effort:
+                violations.append(
+                    {
+                        "kind": "missing_expected_reasoning_effort",
+                        "observed_reasoning_effort": observed_effort,
+                        "agent_id": agent_id,
+                    }
+                )
+            elif observed_effort != expected_effort:
+                violations.append(
+                    {
+                        "kind": "reasoning_effort_mismatch",
+                        "expected_reasoning_effort": expected_effort,
+                        "observed_reasoning_effort": observed_effort,
+                        "agent_id": agent_id,
+                    }
+                )
 
     missing = [item for item in expected if item.get("agent_id") not in matched_ids]
     if not expected:
         violations.append({"kind": "empty_expected_invocation_set"})
 
-    configured_effort = "max"
     observed_efforts = sorted(
         {item.get("reasoning_effort") for item in observed if isinstance(item, dict) and item.get("reasoning_effort")}
+    )
+    configured_efforts = sorted(
+        {
+            item.get("expected_reasoning_effort")
+            for item in expected
+            if isinstance(item.get("expected_reasoning_effort"), str) and item.get("expected_reasoning_effort")
+        }
     )
     runtime_observed = bool(observed_efforts)
     runtime_matches_configured = None
     if runtime_observed:
-        runtime_matches_configured = all(value == configured_effort for value in observed_efforts)
-        if not runtime_matches_configured:
-            violations.append(
-                {
-                    "kind": "reasoning_effort_mismatch",
-                    "configured": configured_effort,
-                    "observed_values": observed_efforts,
-                }
-            )
+        runtime_matches_configured = not any(
+            item.get("kind") in {"missing_expected_reasoning_effort", "reasoning_effort_mismatch"}
+            for item in violations
+        )
+
+    configured_effort = configured_efforts[0] if len(configured_efforts) == 1 else configured_efforts
 
     if expected and not missing and not unexpected and not violations:
         status = "pass"
@@ -413,7 +472,8 @@ def evaluate_runtime_agent_compliance(expected_records, observed):
         "violations": violations,
         "reasoning_effort": {
             "configured": configured_effort,
-            "configured_accepted": True,
+            "configured_values": configured_efforts,
+            "configured_accepted": bool(configured_efforts) and len(configured_efforts) == 1,
             "runtime_observed": runtime_observed,
             "observed_values": observed_efforts,
             "runtime_matches_configured": runtime_matches_configured,
@@ -535,8 +595,9 @@ def default_manifest(repo_root: Path, run_id: str):
                     "unexpected": [],
                     "violations": [],
                 "reasoning_effort": {
-                    "configured": "max",
-                    "configured_accepted": True,
+                    "configured": None,
+                    "configured_values": [],
+                    "configured_accepted": False,
                     "runtime_observed": False,
                     "observed_values": [],
                     "runtime_matches_configured": None,
@@ -639,8 +700,9 @@ def collect_hook_observations(
             "unexpected": [],
             "violations": [],
             "reasoning_effort": {
-                "configured": "max",
-                "configured_accepted": True,
+                "configured": None,
+                "configured_values": [],
+                "configured_accepted": False,
                 "runtime_observed": False,
                 "observed_values": [],
                 "runtime_matches_configured": None,

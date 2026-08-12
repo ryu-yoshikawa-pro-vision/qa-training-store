@@ -415,3 +415,10 @@
 - 最終exact `quality_gate_runner`は5コマンドを指定順・各1回で実行し、全exit 0、`write_attempt=false`、`QUALITY_GATE_RUNNER_PASS`。前後snapshot比較は追加Source差分0、HEAD不変でPASSした。
 - hook trust後のcollector集約は`SubagentStart`／`SubagentStop` 3組、allowlist role、`gpt-5.6-luna`、violationsなしでRuntime Agent Compliance PASS。`LOCAL_IMPLEMENTATION_COMPLETE=true`へ更新した。
 - PR #19のcombined status／workflow runsが空で、current working-tree implementation diffは未pushのため、`MERGE_READY=false`とExternal Checks pendingは維持する。outer 900秒wrapper境界の終了コード124は、内部codex report exit 0のwrapper warningとして扱う。
+
+## Subagent Orchestration SSOT follow-up（2026-08-12）
+
+- Parentのmodel／reasoning effortの正本は`.codex/config.toml`の`agents.default_subagent_model`／`agents.default_subagent_reasoning_effort`である。5つのagent TOMLは現在値を明示保持し、validatorがParent configとの一致を確認する。
+- `scripts/validate-subagent-orchestration.py`、`scripts/test-subagent-orchestration-contract.py`、Bash／PowerShell verify、local validation dispatcherは、現在のmodel名やeffort名を比較契約へ埋め込まない。移行fixtureで将来のmodel／effort値も検証できる。
+- Parent dispatch ledgerはexpected model／effortをconfigから記録し、collectorはruntime観測modelをdispatch期待値と比較する。reasoning effortはruntime観測値がある場合だけ比較し、未観測は違反にしない。
+- Strict Run `20260812-095333-JST`ではread-only investigator 3件を実Runtime並列、quality gate runner 1件を5 actionの指定順で実行した。外部CIは未確認のため`MERGE_READY=false`を維持する。

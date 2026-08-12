@@ -8,6 +8,7 @@ import datetime as dt
 import json
 import re
 import sys
+import tomllib
 import uuid
 from pathlib import Path
 
@@ -21,6 +22,36 @@ def utc_now() -> str:
 
 def repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
+
+
+def config_path(explicit: str | None) -> Path:
+    path = Path(explicit) if explicit else repo_root() / ".codex" / "config.toml"
+    if not path.is_absolute():
+        path = repo_root() / path
+    return path
+
+
+def load_parent_defaults(explicit: str | None = None) -> dict[str, str]:
+    path = config_path(explicit)
+    try:
+        with path.open("rb") as stream:
+            config = tomllib.load(stream)
+    except (OSError, tomllib.TOMLDecodeError) as exc:
+        raise ValueError(f"unable to load parent config: {path}") from exc
+
+    agents = config.get("agents")
+    if not isinstance(agents, dict):
+        raise ValueError("parent config must define [agents]")
+    model = agents.get("default_subagent_model")
+    reasoning_effort = agents.get("default_subagent_reasoning_effort")
+    if not isinstance(model, str) or not model.strip():
+        raise ValueError("agents.default_subagent_model must be a non-empty string")
+    if not isinstance(reasoning_effort, str) or not reasoning_effort.strip():
+        raise ValueError("agents.default_subagent_reasoning_effort must be a non-empty string")
+    return {
+        "model": model,
+        "reasoning_effort": reasoning_effort,
+    }
 
 
 def ledger_path(run_id: str, explicit: str | None) -> Path:
@@ -57,11 +88,13 @@ def read_events(path: Path) -> list[dict]:
 
 def dispatch(args: argparse.Namespace) -> dict:
     invocation_id = str(uuid.uuid4())
+    parent_defaults = load_parent_defaults(args.config_path)
     event = {
         "event": "dispatch",
         "invocation_id": invocation_id,
         "expected_agent_name": args.agent_name,
-        "expected_model": args.model,
+        "expected_model": parent_defaults["model"],
+        "expected_reasoning_effort": parent_defaults["reasoning_effort"],
         "expected_role": args.role,
         "dispatch_timestamp": utc_now(),
     }
@@ -121,11 +154,11 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--ledger-path")
+    parser.add_argument("--config-path")
     mode = parser.add_mutually_exclusive_group(required=True)
     mode.add_argument("--dispatch-agent-name")
     mode.add_argument("--link-invocation-id")
     mode.add_argument("--cancel-invocation-id")
-    parser.add_argument("--model", default="gpt-5.6-luna")
     parser.add_argument("--role")
     parser.add_argument("--runtime-agent-id")
     parser.add_argument("--reason", default="dispatch did not create a runtime agent")

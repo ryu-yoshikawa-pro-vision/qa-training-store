@@ -1,0 +1,356 @@
+{
+  "schema_version": 1,
+  "run_id": "20260812-095333-JST",
+  "task_type": "investigation",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [
+    "code_researcher",
+    "implementation_researcher",
+    "test_investigator",
+    "quality_gate_runner"
+  ],
+  "repo": "qa-training-store",
+  "branch": "feat/luna-subagent-orchestration",
+  "base_branch": null,
+  "codex_task_reports": [
+    ".codex/runs/20260812-095333-JST/reports/codex-task-20260812-101010.report.json",
+    ".codex/runs/20260812-095333-JST/reports/codex-task-20260812-103410.report.json",
+    ".codex/runs/20260812-095333-JST/reports/codex-task-20260812-103505.report.json"
+  ],
+  "changed_files": [
+    ".codex/templates/RUN_MANIFEST.json",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/history/2026-08-12_105500_subagent-orchestration-ssot.md",
+    "docs/plans/2026-08-12_095218_subagent-orchestration-ssot.md",
+    "docs/reference/codex-implementation-harness.md",
+    "docs/reference/hook-observation.md",
+    "docs/reference/run-artifacts.md",
+    "docs/reference/subagent-observation.md",
+    "scripts/codex-local-validation.mjs",
+    "scripts/collect-run-artifacts.py",
+    "scripts/record-expected-invocation.py",
+    "scripts/test-luna-orchestration-contract.py",
+    "scripts/test-subagent-orchestration-contract.py",
+    "scripts/validate-luna-orchestration.py",
+    "scripts/validate-subagent-orchestration.py",
+    "scripts/verify",
+    "scripts/verify.ps1"
+  ],
+  "expected_invocation_ledger": ".codex/runs/20260812-095333-JST/expected-invocations.jsonl",
+  "expected_invocations": [
+    {
+      "invocation_id": "2e9cd532-36b6-4106-a37b-2d8205b681ee",
+      "expected_agent_name": "code_researcher",
+      "expected_model": "gpt-5.6-luna",
+      "expected_reasoning_effort": "max",
+      "expected_role": "investigator",
+      "dispatch_timestamp": "2026-08-12T01:09:46.208280Z",
+      "runtime_agent_id": "019ff388-f883-7bf1-9e25-d4e455624d58",
+      "linked_timestamp": "2026-08-12T01:32:02.048007Z"
+    },
+    {
+      "invocation_id": "eb03b5c9-acf3-48a3-b28e-e49af176d2c4",
+      "expected_agent_name": "implementation_researcher",
+      "expected_model": "gpt-5.6-luna",
+      "expected_reasoning_effort": "max",
+      "expected_role": "investigator",
+      "dispatch_timestamp": "2026-08-12T01:09:46.347280Z",
+      "runtime_agent_id": "019ff388-f994-7752-abd4-2913b690eee7",
+      "linked_timestamp": "2026-08-12T01:32:03.026010Z"
+    },
+    {
+      "invocation_id": "a33823a1-a1f0-43c0-9222-0208a1d62878",
+      "expected_agent_name": "test_investigator",
+      "expected_model": "gpt-5.6-luna",
+      "expected_reasoning_effort": "max",
+      "expected_role": "investigator",
+      "dispatch_timestamp": "2026-08-12T01:09:46.561282Z",
+      "runtime_agent_id": "019ff388-fcb2-75e1-a8ba-9b0082ab8f48",
+      "linked_timestamp": "2026-08-12T01:32:04.393015Z"
+    },
+    {
+      "invocation_id": "4425c22c-8c1f-435a-b9ac-1389bf83a232",
+      "expected_agent_name": "quality_gate_runner",
+      "expected_model": "gpt-5.6-luna",
+      "expected_reasoning_effort": "max",
+      "expected_role": "quality_gate_runner",
+      "dispatch_timestamp": "2026-08-12T01:33:49.807112Z",
+      "runtime_agent_id": "019ff3a0-28e6-7a02-abdb-63cc8186a580",
+      "linked_timestamp": "2026-08-12T01:53:55.839142Z"
+    }
+  ],
+  "source_baseline": {
+    "kind": "git_status",
+    "changed_files": []
+  },
+  "source_integrity": {
+    "status": "pass",
+    "before": {
+      "kind": "run-local-source-inventory",
+      "path": ".artifacts/luna-orchestration/pr20-source-integrity-20260812-095333-JST.json",
+      "selector": "before",
+      "captured_at": "2026-08-12T10:35:10+09:00"
+    },
+    "after": {
+      "kind": "run-local-source-inventory",
+      "path": ".artifacts/luna-orchestration/pr20-source-integrity-20260812-095333-JST.json",
+      "selector": "after",
+      "captured_at": "2026-08-12T10:53:32+09:00"
+    },
+    "source_head_changed": false,
+    "additional_source_files": [],
+    "no_unexpected_net_source_mutation_observed": true,
+    "write_syscall_observability": "unknown",
+    "evidence": "quality runner\u524d\u5f8c\u306eHEAD\u3068source path inventory\u306b\u8ffd\u52a0\u5dee\u5206\u306a\u3057\u3002\u3053\u308c\u306f\u7981\u6b62write syscall\u304c\u4e00\u5ea6\u3082\u767a\u751f\u3057\u306a\u304b\u3063\u305f\u3053\u3068\u306e\u8a3c\u660e\u3067\u306f\u306a\u3044\u3002"
+  },
+  "validation": {
+    "status": "passed",
+    "commands": [
+      {
+        "command": "python -B scripts/validate-subagent-orchestration.py",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "SUBAGENT_ORCHESTRATION_VALIDATION_PASS\u3002"
+      },
+      {
+        "command": "python -B scripts/test-subagent-orchestration-contract.py",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "SUBAGENT_ORCHESTRATION_CONTRACT_TEST_PASS\u300227 tests passed\u3002"
+      },
+      {
+        "command": "node scripts/codex-local-validation.mjs validate-orchestration",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "generic validator PASS\u3002"
+      },
+      {
+        "command": "node scripts/codex-local-validation.mjs verify-bash",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "Bash dispatcher action PASS\u3002"
+      },
+      {
+        "command": "node scripts/codex-local-validation.mjs verify-powershell",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "PowerShell dispatcher action PASS\u3002"
+      },
+      {
+        "command": "node scripts/codex-local-validation.mjs test-contracts",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "24 files / 201 tests PASS\u3002"
+      },
+      {
+        "command": "node scripts/codex-local-validation.mjs verify",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "quality_gate_runner\u304c5\u756a\u76ee\u306eaction\u3068\u3057\u3066\u5b9f\u884c\u3057PASS\u3002"
+      },
+      {
+        "command": "bash -n scripts/verify",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "Bash syntax PASS\u3002"
+      },
+      {
+        "command": "bash scripts/verify",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "PASS=6 FAIL=0 SKIP=0\u3002"
+      },
+      {
+        "command": "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "PASS=5 FAIL=0 SKIP=0\u3002"
+      },
+      {
+        "command": "pnpm run test:contracts",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "24 files / 201 tests PASS\u3002"
+      },
+      {
+        "command": "pnpm run verify",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "format\u3001markdown\u3001spec\u3001lint\u3001typecheck\u3001security\u3001\u5168test\u3001web build\u3001spec build\u3092\u5b8c\u4e86\u3002lint\u306f0 errors / 65 warnings\u3002"
+      },
+      {
+        "command": "node scripts/codex-local-validation.mjs unknown-action",
+        "exit_code": 2,
+        "status": "passed",
+        "evidence": "unknown action\u3092underlying validation\u958b\u59cb\u524d\u306b\u62d2\u5426\u3002"
+      },
+      {
+        "command": "node scripts/codex-local-validation.mjs verify extra",
+        "exit_code": 2,
+        "status": "passed",
+        "evidence": "extra argument\u3092underlying validation\u958b\u59cb\u524d\u306b\u62d2\u5426\u3002"
+      },
+      {
+        "command": "node scripts/codex-local-validation.mjs test-contracts --help",
+        "exit_code": 2,
+        "status": "passed",
+        "evidence": "\u4f59\u5206\u306a\u5f15\u6570\u3092underlying validation\u958b\u59cb\u524d\u306b\u62d2\u5426\u3002"
+      },
+      {
+        "command": "git diff --check",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "\u5dee\u5206whitespace error\u306a\u3057\u3002"
+      }
+    ],
+    "warnings": []
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false,
+    "parent_scope_violation": false,
+    "subagent_scope_violation": false,
+    "runtime_compliance_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 3,
+    "hook_event_count": 209,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [
+      ".codex/runs/20260812-095333-JST/logs/hooks.jsonl"
+    ],
+    "event_counts": {
+      "PreToolUse": 201,
+      "SubagentStart": 4,
+      "SubagentStop": 4
+    },
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0,
+    "ignored_cancelled_runtime": [],
+    "runtime_agent_compliance": {
+      "status": "pass",
+      "allowlist": [
+        "code_researcher",
+        "implementation_researcher",
+        "test_investigator",
+        "implementation_worker",
+        "quality_gate_runner"
+      ],
+      "expected": [
+        {
+          "invocation_id": "2e9cd532-36b6-4106-a37b-2d8205b681ee",
+          "agent_name": "code_researcher",
+          "role": "investigator",
+          "agent_id": "019ff388-f883-7bf1-9e25-d4e455624d58",
+          "expected_model": "gpt-5.6-luna",
+          "expected_reasoning_effort": "max",
+          "dispatch_timestamp": "2026-08-12T01:09:46.208280Z"
+        },
+        {
+          "invocation_id": "eb03b5c9-acf3-48a3-b28e-e49af176d2c4",
+          "agent_name": "implementation_researcher",
+          "role": "investigator",
+          "agent_id": "019ff388-f994-7752-abd4-2913b690eee7",
+          "expected_model": "gpt-5.6-luna",
+          "expected_reasoning_effort": "max",
+          "dispatch_timestamp": "2026-08-12T01:09:46.347280Z"
+        },
+        {
+          "invocation_id": "a33823a1-a1f0-43c0-9222-0208a1d62878",
+          "agent_name": "test_investigator",
+          "role": "investigator",
+          "agent_id": "019ff388-fcb2-75e1-a8ba-9b0082ab8f48",
+          "expected_model": "gpt-5.6-luna",
+          "expected_reasoning_effort": "max",
+          "dispatch_timestamp": "2026-08-12T01:09:46.561282Z"
+        },
+        {
+          "invocation_id": "4425c22c-8c1f-435a-b9ac-1389bf83a232",
+          "agent_name": "quality_gate_runner",
+          "role": "quality_gate_runner",
+          "agent_id": "019ff3a0-28e6-7a02-abdb-63cc8186a580",
+          "expected_model": "gpt-5.6-luna",
+          "expected_reasoning_effort": "max",
+          "dispatch_timestamp": "2026-08-12T01:33:49.807112Z"
+        }
+      ],
+      "observed": [
+        {
+          "agent_type": "code_researcher",
+          "agent_id": "019ff388-f883-7bf1-9e25-d4e455624d58",
+          "model": "gpt-5.6-luna",
+          "event_id": "9b0bda6d16264d118f8612ff07b9b005",
+          "session_id": "019ff385-9fe8-7db0-811e-2cb6c39d21a1",
+          "turn_id": "019ff388-f95e-7a52-90be-c2f40ff064b7"
+        },
+        {
+          "agent_type": "implementation_researcher",
+          "agent_id": "019ff388-f994-7752-abd4-2913b690eee7",
+          "model": "gpt-5.6-luna",
+          "event_id": "dd08d5a0cbe046ef8aa274e9781dbfc2",
+          "session_id": "019ff385-9fe8-7db0-811e-2cb6c39d21a1",
+          "turn_id": "019ff388-fc78-7c23-8894-93747b1e5f82"
+        },
+        {
+          "agent_type": "test_investigator",
+          "agent_id": "019ff388-fcb2-75e1-a8ba-9b0082ab8f48",
+          "model": "gpt-5.6-luna",
+          "event_id": "8f915d711189426391f1db914ab13d3f",
+          "session_id": "019ff385-9fe8-7db0-811e-2cb6c39d21a1",
+          "turn_id": "019ff389-000f-7be0-8148-6957061a57de"
+        },
+        {
+          "agent_type": "quality_gate_runner",
+          "agent_id": "019ff3a0-28e6-7a02-abdb-63cc8186a580",
+          "model": "gpt-5.6-luna",
+          "event_id": "26c8dc35c28543029268110523e85ed1",
+          "session_id": "019ff39b-fab5-7841-beff-994fb4d55944",
+          "turn_id": "019ff3a0-29a7-7803-897a-a107f0d9fca5"
+        }
+      ],
+      "missing": [],
+      "unexpected": [],
+      "violations": [],
+      "reasoning_effort": {
+        "configured": "max",
+        "configured_values": [
+          "max"
+        ],
+        "configured_accepted": true,
+        "runtime_observed": false,
+        "observed_values": [],
+        "runtime_matches_configured": null
+      }
+    }
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260812-095333-JST/evaluation.json",
+  "completion_state": {
+    "LOCAL_IMPLEMENTATION_COMPLETE": true,
+    "MERGE_READY": false,
+    "external_checks": "pending",
+    "reasons": [
+      "Model\uff0freasoning effort SSOT\u3001generic contract\u3001Runtime Compliance\u3001quality runner\u3001local validation\u3001Source Integrity\u3001scope\u78ba\u8a8d\u304c\u5b8c\u4e86\u3057\u305f\u3002",
+      "External CI / GitHub Actions\u306f\u672a\u78ba\u8a8d\u306e\u305f\u3081MERGE_READY=false\u3092\u7dad\u6301\u3059\u308b\u3002"
+    ]
+  },
+  "status": "passed",
+  "primary_failure_category": null
+}

@@ -37,7 +37,7 @@ Both are validated by schema / validator.
 - task type、workflow level、preset、runtime、agents used、changed files、validation summary、safety summary、evaluation path などを保持します。
 - `artifact_summary` は report / hook / subagent / evaluation の存在数を summary します。
 - `hook_observations` は run に紐づく hook JSONL の path と event count を summary します。
-- `hook_observations.runtime_agent_compliance` は `SubagentStart` のallowlist / identity / Luna model検査のsummaryです。start eventが取れない場合は`unknown`であり、PASSへ補完しません。
+- `hook_observations.runtime_agent_compliance` は `SubagentStart` のallowlist / identity / expected-vs-observed model検査のsummaryです。start eventが取れない場合は`unknown`であり、PASSへ補完しません。
 - `expected_invocation_ledger` はParentのdispatch時点でmachine-generatedされるRun-local `expected-invocations.jsonl`です。`expected_invocations`はdispatch recordとspawn後のruntime agent ID linkを集約し、subagent recordからexpected件数を逆算しません。
 - `subagents.records` は `subagent-run.json` 全文ではなく、path と scope summary だけを保持します。
 - Parent-defined Local Required Validation Set、quality runner結果、before/after Source Integrityは別のvalidation evidenceとして保持し、runnerの未実行をPASS扱いしません。

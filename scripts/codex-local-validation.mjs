@@ -80,7 +80,7 @@ function actionCommand(action) {
       if (!python) {
         throw new Error("Python 3.11+ was not found in PATH");
       }
-      return [python, ["scripts/validate-luna-orchestration.py"]];
+      return [python, ["scripts/validate-subagent-orchestration.py"]];
     }
     case "verify-bash":
       return ["bash", ["scripts/verify"]];

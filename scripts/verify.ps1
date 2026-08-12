@@ -79,8 +79,8 @@ function Test-TemplateContract {
         "scripts/init-project.ps1",
         "scripts/init-project.sh",
         "scripts/validate-output-schema.py",
-        "scripts/validate-luna-orchestration.py",
-        "scripts/test-luna-orchestration-contract.py",
+        "scripts/validate-subagent-orchestration.py",
+        "scripts/test-subagent-orchestration-contract.py",
         "scripts/record-expected-invocation.py",
         "scripts/codex-local-validation.mjs",
         "spec/failure-taxonomy.json",
@@ -242,8 +242,8 @@ function Test-TemplateContract {
     if ($config -notmatch [regex]::Escape('hooks = true')) { throw "config missing hooks feature flag" }
     if ($config -notmatch [regex]::Escape('multi_agent = true')) { throw "config missing multi-agent feature flag" }
     if ($config -notmatch [regex]::Escape('enabled = true')) { throw "config missing agents enabled flag" }
-    if ($config -notmatch [regex]::Escape('default_subagent_model = "gpt-5.6-luna"')) { throw "config missing Luna default model" }
-    if ($config -notmatch [regex]::Escape('default_subagent_reasoning_effort = "max"')) { throw "config missing max default effort" }
+    if ($config -notmatch [regex]::Escape('default_subagent_model =')) { throw "config missing default subagent model" }
+    if ($config -notmatch [regex]::Escape('default_subagent_reasoning_effort =')) { throw "config missing default subagent reasoning effort" }
     if ($config -notmatch [regex]::Escape('max_concurrent_threads_per_session = 6')) { throw "config missing current concurrency setting" }
     if ($config -match [regex]::Escape('codex_hooks')) { throw "config still contains deprecated codex_hooks" }
     if ($config -match [regex]::Escape('max_threads')) { throw "config still contains legacy max_threads" }
@@ -260,8 +260,6 @@ function Test-TemplateContract {
         $agentPath = ".codex/agents/$agentName.toml"
         $agentText = Get-Content -Raw -Encoding UTF8 $agentPath
         if ($agentText -notmatch [regex]::Escape("name = `"$agentName`"")) { throw "$agentName name mismatch" }
-        if ($agentText -notmatch [regex]::Escape('model = "gpt-5.6-luna"')) { throw "$agentName model mismatch" }
-        if ($agentText -notmatch [regex]::Escape('model_reasoning_effort = "max"')) { throw "$agentName reasoning effort mismatch" }
         if ($agentText -notmatch [regex]::Escape($recursionMarker)) { throw "$agentName recursion prohibition missing" }
         if ($agentText -notmatch [regex]::Escape("multi_agent = false")) { throw "$agentName child multi-agent setting missing" }
     }
@@ -277,7 +275,7 @@ function Test-TemplateContract {
         if ($agentName -eq "quality_gate_runner" -and $agentText -notmatch [regex]::Escape("QUALITY_GATE_RUNNER_PASS")) { throw "quality_gate_runner agent contract missing pass marker" }
         if ($agentName -eq "quality_gate_runner" -and $agentText -notmatch [regex]::Escape("QUALITY_GATE_RUNNER_INCOMPLETE")) { throw "quality_gate_runner agent contract missing incomplete marker" }
     }
-    $validator = Get-Content -Raw -Encoding UTF8 scripts/validate-luna-orchestration.py
+    $validator = Get-Content -Raw -Encoding UTF8 scripts/validate-subagent-orchestration.py
     if ($validator -notmatch [regex]::Escape($recursionMarker)) { throw "validator recursion prohibition marker missing" }
 }
 
@@ -305,19 +303,19 @@ function Find-PythonForValidator {
     throw "Python 3.11+ was not found in PATH"
 }
 
-function Test-LunaOrchestrationContract {
+function Test-SubagentOrchestrationContract {
     $python = Find-PythonForValidator
-    & $python -B scripts/validate-luna-orchestration.py
+    & $python -B scripts/validate-subagent-orchestration.py
     if ($LASTEXITCODE -ne 0) {
-        throw "scripts/validate-luna-orchestration.py failed"
+        throw "scripts/validate-subagent-orchestration.py failed"
     }
 }
 
-function Test-LunaRuntimeContract {
+function Test-SubagentRuntimeContract {
     $python = Find-PythonForValidator
-    & $python -B scripts/test-luna-orchestration-contract.py
+    & $python -B scripts/test-subagent-orchestration-contract.py
     if ($LASTEXITCODE -ne 0) {
-        throw "scripts/test-luna-orchestration-contract.py failed"
+        throw "scripts/test-subagent-orchestration-contract.py failed"
     }
 }
 
@@ -400,8 +398,8 @@ function Test-PowerShellHasCodex {
 }
 
 Invoke-Check "template contract files" { Test-TemplateContract }
-Invoke-Check "GPT-5.6 Luna orchestration contract" { Test-LunaOrchestrationContract }
-Invoke-Check "runtime orchestration contract tests" { Test-LunaRuntimeContract }
+Invoke-Check "subagent orchestration contract" { Test-SubagentOrchestrationContract }
+Invoke-Check "subagent runtime contract tests" { Test-SubagentRuntimeContract }
 
 if ($StrictHarness) {
     Invoke-Check "strict harness source-repo contract" { Test-StrictHarnessContract }

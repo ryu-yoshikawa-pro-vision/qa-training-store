@@ -493,3 +493,10 @@
 - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260811-124437-JST -Write -Check` => PASS、`files_scanned=15`、`files_changed=0`、`residual_findings=0`。
 - 判断: Run Artifact sanitizerをこの追記後に再実行して最終状態を確認する。`LOCAL_IMPLEMENTATION_COMPLETE=true`、`MERGE_READY=false`を維持する。
 - Progress: 100% (17/17)
+
+## 2026-08-12 11:08 (JST) — Historical completion-state clarification
+
+- Historical (wave11): quality runnerのtimeout / incomplete結果を受け、当時の判定は`LOCAL_IMPLEMENTATION_COMPLETE=false`、`MERGE_READY=false`だった。
+- Current (wave12): shared timeout repair後のquality runner PASS、Source Integrity PASS、Runtime Agent Compliance PASSを受け、current `run.json.completion_state.LOCAL_IMPLEMENTATION_COMPLETE=true`へ更新済みである。
+- `MERGE_READY=false`はExternal Checks pendingのため現在も維持する。過去waveのfailure findingは履歴として削除しない。
+- Progress: 100% (17/17)
