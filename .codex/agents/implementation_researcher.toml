@@ -1,7 +1,5 @@
 name = "implementation_researcher"
 description = "Implementation support agent for checking how a requested change should be made before the main agent edits files."
-model = "gpt-5.4-mini"
-model_reasoning_effort = "medium"
 sandbox_mode = "read-only"
 
 developer_instructions = """
@@ -16,6 +14,7 @@ developer_instructions = """
 - ファイルを編集しない
 - 実装を確定事項として扱わない
 - 親 agent の判断を飛ばして作業を進めない
+- 追加の subagent を起動しない
 
 出力:
 - 推奨変更箇所

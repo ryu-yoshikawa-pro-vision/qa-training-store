@@ -108,6 +108,7 @@ check_template_contract() {
   [[ -f .codex/agents/implementation_researcher.toml ]] || return 1
   [[ -f .codex/agents/implementation_worker.toml ]] || return 1
   [[ -f .codex/agents/test_investigator.toml ]] || return 1
+  [[ -f .codex/agents/quality_gate_runner.toml ]] || return 1
   [[ -f .codex/hooks/pre_tool_use_policy.py ]] || return 1
   [[ -f .codex/hooks/pre_tool_use_policy.ps1 ]] || return 1
   [[ -f .codex/templates/PLAN.md ]] || return 1
@@ -176,8 +177,12 @@ check_template_contract() {
   contains "親 agent が計画、対象ファイル、変更範囲、禁止事項を確定した後" AGENTS.md || return 1
   contains "親 agent が明示した対象ファイルだけを最小差分で編集する" AGENTS.md || return 1
   contains "ファイル削除、rename、移動" AGENTS.md || return 1
-  contains "迷う場合は実装せず、親 agent に確認事項を返す" AGENTS.md || return 1
-  contains "read-only 調査 subagent に限って委譲する" AGENTS.md || return 1
+  contains "迷ったら編集せず親 agentに確認事項を返す" AGENTS.md || return 1
+  contains "code_researcher" AGENTS.md || return 1
+  contains "implementation_researcher" AGENTS.md || return 1
+  contains "test_investigator" AGENTS.md || return 1
+  contains "Codex native delegation" AGENTS.md || return 1
+  contains "No child subagent delegation" AGENTS.md || return 1
   contains ".agents/skills/feature-plan/SKILL.md" PLANS.md || return 1
   contains ".agents/skills/feature-plan/references/planning-workflow.md" PLANS.md || return 1
   contains "docs/plans/TEMPLATE.md" PLANS.md || return 1
@@ -249,12 +254,28 @@ check_template_contract() {
   contains "approval_policy = \"untrusted\"" .codex/config.toml || return 1
   contains "web_search = \"cached\"" .codex/config.toml || return 1
   contains "network_access = false" .codex/config.toml || return 1
+  contains "[agents]" .codex/config.toml || return 1
+  contains "default_subagent_model =" .codex/config.toml || return 1
+  contains "default_subagent_reasoning_effort =" .codex/config.toml || return 1
   contains "[profiles.repo_auto_net]" .codex/config.toml || return 1
   contains "network_access = true" .codex/config.toml || return 1
   contains "codex_hooks = true" .codex/config.toml || return 1
   contains "pre_tool_use_policy.ps1" .codex/config.toml || return 1
+  contains "name = \"code_researcher\"" .codex/agents/code_researcher.toml || return 1
+  contains "name = \"implementation_researcher\"" .codex/agents/implementation_researcher.toml || return 1
+  contains "name = \"test_investigator\"" .codex/agents/test_investigator.toml || return 1
   contains "name = \"implementation_worker\"" .codex/agents/implementation_worker.toml || return 1
-  contains "model = \"gpt-5.4-mini\"" .codex/agents/implementation_worker.toml || return 1
+  contains "name = \"quality_gate_runner\"" .codex/agents/quality_gate_runner.toml || return 1
+  ! contains "model =" .codex/agents/code_researcher.toml || return 1
+  ! contains "model_reasoning_effort =" .codex/agents/code_researcher.toml || return 1
+  ! contains "model =" .codex/agents/implementation_researcher.toml || return 1
+  ! contains "model_reasoning_effort =" .codex/agents/implementation_researcher.toml || return 1
+  ! contains "model =" .codex/agents/test_investigator.toml || return 1
+  ! contains "model_reasoning_effort =" .codex/agents/test_investigator.toml || return 1
+  ! contains "model =" .codex/agents/implementation_worker.toml || return 1
+  ! contains "model_reasoning_effort =" .codex/agents/implementation_worker.toml || return 1
+  ! contains "model =" .codex/agents/quality_gate_runner.toml || return 1
+  ! contains "model_reasoning_effort =" .codex/agents/quality_gate_runner.toml || return 1
   contains "sandbox_mode = \"workspace-write\"" .codex/agents/implementation_worker.toml || return 1
   contains "親 agent が明示した計画" .codex/agents/implementation_worker.toml || return 1
   contains "親 agent が指定していないファイルを編集しない" .codex/agents/implementation_worker.toml || return 1
@@ -262,6 +283,14 @@ check_template_contract() {
   contains "スコープ遵守確認" .codex/agents/implementation_worker.toml || return 1
   contains "指定外ファイルを変更していないことの確認" .codex/agents/implementation_worker.toml || return 1
   contains "削除 / rename / git mutation を行っていないことの確認" .codex/agents/implementation_worker.toml || return 1
+  contains "sandbox_mode = \"workspace-write\"" .codex/agents/quality_gate_runner.toml || return 1
+  contains "Validation-only" .codex/agents/quality_gate_runner.toml || return 1
+  contains "source code、test code、docsを修正しない" .codex/agents/quality_gate_runner.toml || return 1
+  contains "Git mutation" .codex/agents/quality_gate_runner.toml || return 1
+  contains "追加の subagent を起動しない" .codex/agents/quality_gate_runner.toml || return 1
+  contains "Parent-defined validation" AGENTS.md || return 1
+  contains "Codex native delegation" AGENTS.md || return 1
+  contains "quality_gate_runner" AGENTS.md || return 1
   contains "run.json" docs/reference/run-artifacts.md || return 1
   contains "evaluation.json" docs/reference/run-artifacts.md || return 1
   contains "codex-task" docs/reference/run-artifacts.md || return 1

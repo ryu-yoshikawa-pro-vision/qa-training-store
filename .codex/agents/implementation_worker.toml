@@ -1,7 +1,5 @@
 name = "implementation_worker"
 description = "Implementation-focused agent for small, scoped code changes after the parent agent has approved the plan."
-model = "gpt-5.4-mini"
-model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """
@@ -19,6 +17,8 @@ developer_instructions = """
 - 設計やスコープを勝手に広げない
 - 追加リファクタリング、整形、依存更新を混ぜない
 - 複数案があり判断が必要な場合は、勝手に決めず親 agent に戻す
+- 追加の subagent を起動しない
+- 独自のRun Directoryを作らず、PLAN / TASKS / REPORT / run.json等のRun Artifactを作成・更新しない。作業結果だけをParentへ返し、Run記録はParentに委ねる
 
 制約:
 - writable subagent は原則 1 タスクにつき 1 つだけ使う
