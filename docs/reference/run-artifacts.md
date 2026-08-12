@@ -64,6 +64,43 @@ Both are validated by schema / validator.
 - `benchmark-manifest.json`は過去Runとの互換性のためだけにfallback読込を許可するhistorical / legacy generic manifestです。複数Challenge Runでは正本ではなく、新規Preparationで生成・上書きしません。
 - Evaluatorはchallenge-specific manifestを必ず優先し、存在しない場合だけlegacy generic manifestを読みます。
 
+### Official Black-box Scored artifact chain
+
+Official v1では、次のartifactを同じRun IDへCanonical JSONとして保存します。
+
+```text
+.artifacts/agentic-qa/<run_id>/
+├─ input/
+│  ├─ runner-input.json
+│  ├─ learner-safe-input-manifest.json
+│  ├─ output-contract.json
+│  ├─ scored-skill.md
+│  ├─ runbook.md
+│  └─ specification/**
+├─ trusted/
+│  ├─ prepared-target/target-runtime.json
+│  ├─ prepared-target/artifact-manifest.json
+│  ├─ initial-state-receipt.json
+│  ├─ host-capability-receipt.json
+│  ├─ bootstrap-operations.json
+│  ├─ runtime-control-operations.json
+│  └─ resource-boundary-probe.json
+└─ runner/
+   ├─ output/qa-findings.json
+   ├─ output/evidence/**
+   ├─ evidence-mapping.json
+   ├─ execution-summary.json
+   ├─ artifact-manifest.json
+   └─ frozen-runner-artifact.json
+```
+
+`canonical-json.ts`がobject key order、UTF-8/LF、trailing newline、duplicate-key
+拒否を含む共有Serializerです。Runtime VariantはBenchmark Revision digestから除外し、
+`challenge_id + benchmark_revision + runtime_variant_id`のIdentity dimensionとして扱います。
+`host-capability-receipt.json`がない、またはrequired proofが`proven`でない場合は、
+他の準備artifactが揃っていても`valid_for_scoring=false`です。unknown / unmeasured /
+not executedを推測でPASSへ変換しません。
+
 ## Runner Completion Options
 
 ### `--evaluation-template`

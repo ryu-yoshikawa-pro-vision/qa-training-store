@@ -29,5 +29,5 @@ describe("Agentic QA preparation runtime", () => {
       fs.rmSync(runDir, { recursive: true, force: true });
       fs.rmSync(artifactDir, { recursive: true, force: true });
     }
-  }, 180_000);
+  }, 360_000);
 });

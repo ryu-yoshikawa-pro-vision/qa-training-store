@@ -19,8 +19,28 @@ import {
   type ActualToolScope,
   type Challenge,
   type ToolProfile,
+  type ProtectedPatchValidation,
 } from "./contracts";
 import { buildLearnerBundle } from "./build-learner-bundle";
+import { validateProtectedPatch, assertProtectedPatch } from "./protected-patch-validation";
+import {
+  finalizePreparedTargetHandoff,
+  type PreparedTargetHandoff,
+} from "./prepared-runtime-lifecycle";
+import { getRuntimeVariant } from "./runtime-variant";
+import {
+  createDefaultOutputContract,
+  createRunnerInput,
+  writeRunnerInputPackage,
+  type RunnerInputPackage,
+} from "./runner-input";
+import { deriveInitialStateGroup } from "./initial-state-bootstrap";
+import { sha256File as canonicalSha256File, writeCanonicalJsonFile } from "./canonical-json";
+import { copyDirectoryWithoutSymlinks } from "./canonical-artifact-manifest";
+import {
+  createNotExecutedResourceBoundaryProbe,
+  discoverServedResources,
+} from "./resource-boundary-probe";
 import { createBenchmarkRevision, benchmarkIdentity } from "./benchmark-revision";
 import {
   createIsolatedRunnerRoot,
@@ -82,6 +102,7 @@ export type ChallengePreparation = {
   benchmark_identity: ReturnType<typeof benchmarkIdentity>;
   runner_profile: ReturnType<typeof createRunnerProfile>;
   patch: PatchPreparation;
+  protected_patch_validation?: ProtectedPatchValidation;
   runtime_sanity: RuntimeSanity;
   isolated_root: IsolatedRunnerRoot;
   forbidden_probe: ForbiddenProbeResult[];
@@ -89,6 +110,8 @@ export type ChallengePreparation = {
   tool_scope_validated: false;
   preparation_order: string[];
   run_dir: string;
+  prepared_target?: PreparedTargetHandoff;
+  runner_input_package?: RunnerInputPackage;
 };
 
 function readJson(filePath: string, rootDir = process.cwd()): unknown {
@@ -158,20 +181,6 @@ function copyDisposableSource(rootDir: string): string {
       );
     },
   });
-  const dependencies = path.join(rootDir, "node_modules");
-  if (fs.existsSync(dependencies)) {
-    const link = path.join(disposable, "node_modules");
-    try {
-      // Keep pnpm's complete dependency topology intact. A package-by-package
-      // overlay breaks transitive resolution such as tsx -> esbuild in Linux CI.
-      fs.symlinkSync(dependencies, link, process.platform === "win32" ? "junction" : "dir");
-    } catch (error) {
-      throw new Error(
-        `Failed to prepare disposable dependency overlay: ${commandFailureText(error)}`,
-        { cause: error },
-      );
-    }
-  }
   return disposable;
 }
 
@@ -250,7 +259,7 @@ function pnpmInvocation(args: string[]): { command: string; args: string[] } {
     const command = args.join(" ");
     return {
       command: process.env.ComSpec ?? "cmd.exe",
-      args: ["/d", "/s", "/c", `pnpm ${command}`],
+      args: ["/d", "/s", "/c", `corepack pnpm ${command}`],
     };
   }
   return { command: "pnpm", args };
@@ -269,13 +278,46 @@ function commandFailureText(error: unknown): string {
 }
 
 function disposableRuntimeEnvironment(disposable: string): NodeJS.ProcessEnv {
-  return {
+  const environment: NodeJS.ProcessEnv = {
     ...process.env,
     EXPO_PUBLIC_BUILD_KIND: "automation",
     EXPO_PUBLIC_TEST_MODE: "true",
     EXPO_ROUTER_APP_ROOT: path.join(disposable, "app"),
     NODE_OPTIONS: [process.env.NODE_OPTIONS, "--preserve-symlinks-main"].filter(Boolean).join(" "),
   };
+  if (process.platform === "win32") {
+    const shimRoot = path.join(disposable, ".agentic-qa-shims");
+    fs.mkdirSync(shimRoot, { recursive: true });
+    fs.writeFileSync(path.join(shimRoot, "pnpm.cmd"), "@corepack pnpm %*\r\n", "utf8");
+    const inheritedPath = environment.Path ?? environment.PATH ?? "";
+    const pathWithShim = `${shimRoot}${path.delimiter}${inheritedPath}`;
+    environment.Path = pathWithShim;
+    environment.PATH = pathWithShim;
+  }
+  return environment;
+}
+
+function installDisposableDependencies(disposable: string, preparationRoot: string): void {
+  const logPath = path.join(preparationRoot, "dependency-install.log");
+  try {
+    const invocation = pnpmInvocation([
+      "install",
+      "--offline",
+      "--ignore-scripts",
+      "--config.node-linker=hoisted",
+    ]);
+    const output = execFileSync(invocation.command, invocation.args, {
+      cwd: disposable,
+      encoding: "utf8",
+      env: disposableRuntimeEnvironment(disposable),
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 600_000,
+    });
+    fs.writeFileSync(logPath, output, "utf8");
+  } catch (error) {
+    fs.writeFileSync(logPath, commandFailureText(error), "utf8");
+    throw new Error(`Disposable dependency preparation failed: ${commandFailureText(error)}`);
+  }
 }
 
 function runWebBuild(
@@ -535,6 +577,15 @@ async function startWebRuntime(
         browserDiagnostics.push(`console:${message.type()}:${message.text()}`),
       );
       page.on("pageerror", (error) => browserDiagnostics.push(`pageerror:${error.message}`));
+      page.on("response", (response) => {
+        if (response.status() >= 400)
+          browserDiagnostics.push(`response:${response.status()}:${response.url()}`);
+      });
+      page.on("requestfailed", (request) =>
+        browserDiagnostics.push(
+          `requestfailed:${request.url()}:${request.failure()?.errorText ?? "unknown"}`,
+        ),
+      );
       return await callback(page);
     } finally {
       await browser.close();
@@ -593,6 +644,10 @@ async function prepareWebRuntime(
 ): Promise<{
   patch: PatchPreparation;
   runtimeSanity: RuntimeSanity;
+  patched_dist_root: string;
+  patched_runtime_url: string;
+  patched_runtime_title: string;
+  served_html: string;
 }> {
   const reset = initialStateForChallenge(challenge);
   const baseline = await runWebRuntimePhase(disposable, preparationRoot, "baseline", challenge);
@@ -611,6 +666,12 @@ async function prepareWebRuntime(
       scenario: reset.scenario,
       observation: "The patched runtime was reset after post-patch sanity on the same server.",
     };
+    const servedResponse = await fetch(`${patchedRuntime.baseUrl}/`, {
+      signal: AbortSignal.timeout(2_000),
+    });
+    const servedHtml = await servedResponse.text();
+    if (servedResponse.status !== 200)
+      throw new Error("Patched runtime HTML readiness probe failed");
     const runtimeSanity: RuntimeSanity = {
       platform: "web",
       baseline,
@@ -626,25 +687,21 @@ async function prepareWebRuntime(
       "post_patch_sanity",
       "scored_initial_state_reset",
     ];
-    fs.writeFileSync(
-      path.join(preparationRoot, "runtime-sanity.json"),
-      JSON.stringify(
-        {
-          platform: "web",
-          baseline,
-          patched: runtimeSanity.patched,
-          patch,
-          scored_initial_state_reset: scoredInitialStateReset,
-          order,
-        },
-        null,
-        2,
-      ),
-      "utf8",
-    );
+    writeCanonicalJsonFile(path.join(preparationRoot, "runtime-sanity.json"), {
+      platform: "web",
+      baseline,
+      patched: runtimeSanity.patched,
+      patch,
+      scored_initial_state_reset: scoredInitialStateReset,
+      order,
+    });
     return {
       patch,
       runtimeSanity,
+      patched_dist_root: path.join(disposable, "dist"),
+      patched_runtime_url: patchedRuntime.baseUrl,
+      patched_runtime_title: patchedRuntime.readiness.title,
+      served_html: servedHtml,
     };
   } finally {
     await patchedRuntime.stop();
@@ -673,6 +730,9 @@ export async function prepareChallenge(input: {
   runId: string;
   runDir: string;
   runtimeVariantId?: string | null;
+  preparedRuntimeUrl?: string;
+  allowedOrigins?: readonly string[];
+  hostProfileRevision?: `sha256:${string}`;
   model?: string;
 }): Promise<ChallengePreparation> {
   const rootDir = input.rootDir ?? process.cwd();
@@ -691,6 +751,18 @@ export async function prepareChallenge(input: {
     answerKeySchema,
     "training/agentic-qa/instructor/answer-key/" + input.challengeId + ".json",
   );
+  const runtimeVariant =
+    runtimeVariantId === null ? undefined : getRuntimeVariant(runtimeVariantId);
+  if (runtimeVariant !== undefined) {
+    if (challenge.target_platform !== runtimeVariant.platform)
+      throw new Error("Challenge platform does not match the requested Runtime Variant");
+    for (const coverage of challenge.required_coverage) {
+      if (coverage.viewport_or_device !== runtimeVariant.viewport_or_device)
+        throw new Error(
+          `Coverage ${coverage.coverage_id} does not match the requested Runtime Variant`,
+        );
+    }
+  }
   const artifactRoot = path.join(rootDir, ".artifacts", "agentic-qa", runId, input.challengeId);
   const learnerBundle = buildLearnerBundle(
     rootDir,
@@ -698,8 +770,16 @@ export async function prepareChallenge(input: {
     path.join(artifactRoot, "learner-spec"),
   );
   const patchFile = fs.existsSync(paths.patch) ? paths.patch : null;
+  const protectedPatchValidation =
+    patchFile === null ? undefined : validateProtectedPatch({ rootDir, patchPath: patchFile });
+  if (protectedPatchValidation !== undefined) assertProtectedPatch(protectedPatchValidation);
+  if (protectedPatchValidation !== undefined)
+    writeCanonicalJsonFile(
+      path.join(artifactRoot, "preparation", "protected-patch-validation.json"),
+      protectedPatchValidation,
+    );
   const tool = copyToolProfile(rootDir);
-  const runnerProfile = createRunnerProfile({
+  let runnerProfile = createRunnerProfile({
     model: input.model ?? "local-deterministic-runner",
     toolProfileRevision: tool.revision,
     challenge,
@@ -724,7 +804,12 @@ export async function prepareChallenge(input: {
   let isolatedRoot: IsolatedRunnerRoot | undefined;
   let forbiddenProbe: ForbiddenProbeResult[] | undefined;
   let actualToolScope: ActualToolScope | undefined;
+  let preparedWebRuntime: Awaited<ReturnType<typeof prepareWebRuntime>> | undefined;
+  let preparedTarget: PreparedTargetHandoff | undefined;
+  let runnerInputPackage: RunnerInputPackage | undefined;
+  let stagedPreparedTargetRoot: string | undefined;
   try {
+    installDisposableDependencies(disposable, preparationRoot);
     if (challenge.target_platform !== "web")
       throw new Error(`Runtime sanity adapter is not implemented for ${challenge.target_platform}`);
     const prepared = await prepareWebRuntime(
@@ -734,8 +819,15 @@ export async function prepareChallenge(input: {
       preparationRoot,
       challenge,
     );
+    preparedWebRuntime = prepared;
     patch = prepared.patch;
     runtimeSanity = prepared.runtimeSanity;
+    if (runtimeVariant !== undefined && input.preparedRuntimeUrl !== undefined) {
+      stagedPreparedTargetRoot = path.join(artifactRoot, "trusted", "prepared-target");
+      const stagedWebDist = path.join(stagedPreparedTargetRoot, "web-dist");
+      fs.mkdirSync(stagedPreparedTargetRoot, { recursive: true });
+      copyDirectoryWithoutSymlinks(prepared.patched_dist_root, stagedWebDist);
+    }
     isolatedRoot = createIsolatedRunnerRoot({
       outputRoot: path.join(artifactRoot, "isolated-run-root"),
       learnerBundle,
@@ -758,21 +850,94 @@ export async function prepareChallenge(input: {
       "forbidden-probe",
     );
     assertForbiddenProbePasses(tool.profile, forbiddenProbe);
-    fs.writeFileSync(
-      path.join(preparationRoot, "forbidden-probe.json"),
-      `${JSON.stringify(forbiddenProbe, null, 2)}\n`,
-      "utf8",
-    );
-    fs.writeFileSync(
-      path.join(preparationRoot, "tool-scope.json"),
-      `${JSON.stringify(actualToolScope, null, 2)}\n`,
-      "utf8",
-    );
+    writeCanonicalJsonFile(path.join(preparationRoot, "forbidden-probe.json"), forbiddenProbe);
+    writeCanonicalJsonFile(path.join(preparationRoot, "tool-scope.json"), actualToolScope);
   } finally {
     cleanupDisposableSource(disposable);
   }
   if (isolatedRoot === undefined || forbiddenProbe === undefined || actualToolScope === undefined)
     throw new Error("Preparation did not execute the isolated-root and Forbidden Probe step");
+  if (preparedWebRuntime === undefined)
+    throw new Error("Preparation did not retain the patched runtime record");
+  if (
+    runtimeVariant !== undefined &&
+    stagedPreparedTargetRoot !== undefined &&
+    input.preparedRuntimeUrl !== undefined
+  ) {
+    preparedTarget = finalizePreparedTargetHandoff({
+      rootDir,
+      targetRoot: stagedPreparedTargetRoot,
+      runId,
+      challengeId: challenge.challenge_id,
+      benchmarkRevision: benchmarkRevision.revision,
+      runtimeVariant,
+      sourceHeadSha: benchmarkRevision.manifest.source_head_sha,
+      patchSha256: patchFile === null ? null : canonicalSha256File(patchFile),
+      runtimeUrl: input.preparedRuntimeUrl,
+      ...(input.allowedOrigins === undefined ? {} : { allowedOrigins: input.allowedOrigins }),
+      readinessTitle: preparedWebRuntime.patched_runtime_title,
+      sourceCleanupCompleted: true,
+    });
+    const discoveredResources = discoverServedResources({
+      runtimeUrl: input.preparedRuntimeUrl,
+      html: preparedWebRuntime.served_html,
+    });
+    const boundaryProbe = createNotExecutedResourceBoundaryProbe({
+      runId,
+      artifactSha256: preparedTarget.targetRuntime.artifact_sha256,
+      resources: discoveredResources,
+      evidenceRefPrefix: `.artifacts/agentic-qa/${runId}/trusted/`,
+    });
+    writeCanonicalJsonFile(
+      path.join(artifactRoot, "trusted", "resource-boundary-probe.json"),
+      boundaryProbe,
+    );
+    const initialState = deriveInitialStateGroup({ challenge, runtimeVariant });
+    const outputContract = createDefaultOutputContract(runId);
+    const skillRevision = canonicalSha256File(
+      path.join(rootDir, "training", "agentic-qa", "skills", "scored-v1.md"),
+    );
+    const runnerInput = createRunnerInput({
+      runId,
+      challenge,
+      learnerBundle,
+      runtimeUrl: preparedTarget.targetRuntime.runtime_url,
+      runtimeVariant,
+      initialState,
+      ...(input.allowedOrigins === undefined ? {} : { allowedOrigins: input.allowedOrigins }),
+      skillRevision,
+      runbookSha256: canonicalSha256File(
+        path.join(
+          rootDir,
+          "training",
+          "agentic-qa",
+          "challenges",
+          challenge.challenge_id,
+          "runbook.md",
+        ),
+      ),
+      challengeSha256: canonicalSha256File(paths.challenge),
+      outputContract,
+    });
+    runnerInputPackage = writeRunnerInputPackage({
+      rootDir,
+      inputRoot: path.join(artifactRoot, "input"),
+      challenge,
+      learnerBundle,
+      runnerInput,
+      outputContract,
+    });
+    runnerProfile = createRunnerProfile({
+      model: input.model ?? "local-deterministic-runner",
+      toolProfileRevision: tool.revision,
+      challenge,
+      skillRevision,
+      outputContractRevision: outputContract.revision,
+      ...(input.hostProfileRevision === undefined
+        ? {}
+        : { hostProfileRevision: input.hostProfileRevision }),
+    });
+  }
   const revisionIdentity = benchmarkIdentity(
     challenge.challenge_id,
     benchmarkRevision.revision,
@@ -796,12 +961,11 @@ export async function prepareChallenge(input: {
     "actual_tool_scope_unavailable",
     "positive_tool_allowlist_and_forbidden_probe",
     "runtime_stop_and_disposable_cleanup",
+    ...(protectedPatchValidation === undefined ? [] : ["protected_patch_validation"]),
+    ...(preparedTarget === undefined ? [] : ["source_free_prepared_target"]),
+    ...(runnerInputPackage === undefined ? [] : ["learner_safe_runner_input"]),
   ];
-  fs.writeFileSync(
-    path.join(preparationRoot, "preparation-order.json"),
-    `${JSON.stringify(preparationOrder, null, 2)}\n`,
-    "utf8",
-  );
+  writeCanonicalJsonFile(path.join(preparationRoot, "preparation-order.json"), preparationOrder);
   fs.mkdirSync(input.runDir, { recursive: true });
   fs.writeFileSync(
     path.join(input.runDir, `benchmark-manifest-${challenge.challenge_id}.json`),
@@ -816,6 +980,9 @@ export async function prepareChallenge(input: {
     benchmark_identity: revisionIdentity,
     runner_profile: runnerProfile,
     patch,
+    ...(protectedPatchValidation === undefined
+      ? {}
+      : { protected_patch_validation: protectedPatchValidation }),
     runtime_sanity: runtimeSanity,
     isolated_root: isolatedRoot,
     forbidden_probe: forbiddenProbe,
@@ -823,6 +990,8 @@ export async function prepareChallenge(input: {
     tool_scope_validated: false,
     preparation_order: preparationOrder,
     run_dir: input.runDir,
+    ...(preparedTarget === undefined ? {} : { prepared_target: preparedTarget }),
+    ...(runnerInputPackage === undefined ? {} : { runner_input_package: runnerInputPackage }),
   };
 }
 
@@ -839,10 +1008,14 @@ async function main(): Promise<void> {
   challengeIdSchema.parse(challengeId);
   const runDir = requiredOptionValue(args, "--run-dir");
   const model = optionValue(args, "--model");
+  const runtimeVariantId = optionValue(args, "--runtime-variant");
+  const preparedRuntimeUrl = optionValue(args, "--runtime-url");
   const result = await prepareChallenge({
     challengeId,
     runId: path.basename(runDir),
     runDir,
+    ...(runtimeVariantId === undefined ? {} : { runtimeVariantId }),
+    ...(preparedRuntimeUrl === undefined ? {} : { preparedRuntimeUrl }),
     ...(model === undefined ? {} : { model }),
   });
   console.log(

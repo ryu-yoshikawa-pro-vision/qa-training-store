@@ -30,6 +30,7 @@ import { assertCoverageIntegrity } from "./coverage";
 import { assertForbiddenProbePasses, type ForbiddenProbeResult } from "./isolation";
 import { createRunnerProfile } from "./runner";
 import { optionValue } from "./cli";
+import { validateOfficialArtifacts, type OfficialArtifactLocations } from "./official-verification";
 
 type ActiveAnswerItem = Extract<AnswerItem, { kind: "defect" | "non-defect" }>;
 
@@ -52,6 +53,9 @@ export type EvaluationOptions = {
   environmentBlocker?: boolean;
   benchmarkGroundTruthChanged?: boolean;
   evaluatorSessionId?: string;
+  /** Require the Wave 1-8 Official artifact chain in addition to legacy contracts. */
+  requireOfficialArtifacts?: boolean;
+  officialArtifactLocations?: OfficialArtifactLocations;
 };
 
 function coverageComplete(findings: QaFindings, coverageId: string): boolean {
@@ -476,6 +480,17 @@ function officialVerificationFailures(
     } catch {
       failures.push("evaluator session artifact is invalid");
     }
+  }
+  if (options.requireOfficialArtifacts === true) {
+    const artifactVerification = validateOfficialArtifacts(
+      options.officialArtifactLocations ?? {
+        rootDir,
+        runRoot: path.join(rootDir, ".artifacts", "agentic-qa", findings.run_id),
+      },
+    );
+    failures.push(
+      ...artifactVerification.failures.map((failure) => `official artifact: ${failure}`),
+    );
   }
   return failures;
 }
@@ -1037,6 +1052,11 @@ if (isMainModule()) {
     expectedToolProfileRevision,
     expectedToolProfile: profile,
     evaluatorSessionId,
+    requireOfficialArtifacts: findings.execution_kind === "official_model_backed",
+    officialArtifactLocations: {
+      rootDir,
+      runRoot: path.join(rootDir, ".artifacts", "agentic-qa", findings.run_id),
+    },
   });
   fs.writeFileSync(
     path.join(runDir, "evaluation.json"),

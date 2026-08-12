@@ -21,6 +21,7 @@ import { assertCoverageIntegrity } from "./coverage";
 import { assertLearnerBundleHasOwners, buildLearnerBundle } from "./build-learner-bundle";
 import { resolveSpecReferences } from "./spec-refs";
 import { compareWorkingTreeSnapshots } from "./working-tree-snapshot";
+import { assertProtectedPatch, validateProtectedPatch } from "./protected-patch-validation";
 
 export type ContractValidationSummary = {
   challenges: string[];
@@ -153,11 +154,17 @@ function validateChallenge(rootDir: string, challengeDirectoryPath: string): str
 
   const hasDefect = answerKey.items.some((item) => item.kind === "defect");
   const challengePatch = patchPath(rootDir, challenge.challenge_id);
+  const runbookFile = path.join(challengeDirectoryPath, "runbook.md");
+  if (!fs.existsSync(runbookFile))
+    throw new Error(`Challenge Runbook is missing: ${relativeFromRoot(rootDir, runbookFile)}`);
   if (hasDefect && !fs.existsSync(challengePatch))
     throw new Error(
       `Defect Challenge Patch is missing: ${relativeFromRoot(rootDir, challengePatch)}`,
     );
-  if (fs.existsSync(challengePatch)) assertUnifiedDiff(challengePatch);
+  if (fs.existsSync(challengePatch)) {
+    assertUnifiedDiff(challengePatch);
+    assertProtectedPatch(validateProtectedPatch({ rootDir, patchPath: challengePatch }));
+  }
   return challenge.challenge_id;
 }
 
@@ -364,11 +371,7 @@ export function validateTrainingContracts(rootDir = process.cwd()): ContractVali
   });
   const validatedCharters: string[] = [];
   for (const file of charterFiles) {
-    const charter = parseJsonWithSchema(
-      readJson(file, rootDir),
-      charterSchema,
-      relativeFromRoot(rootDir, file),
-    );
+    parseJsonWithSchema(readJson(file, rootDir), charterSchema, relativeFromRoot(rootDir, file));
     validatedCharters.push(relativeFromRoot(rootDir, file));
   }
 

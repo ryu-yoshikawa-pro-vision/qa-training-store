@@ -367,6 +367,14 @@
 - 品質ゲートのエラーは、当該作業の直接範囲外に見えても自動的に保留しない。Baseline、現在の差分、共有依存、CI／テスト契約、実行環境を調査し、現在の変更が原因である、または検証に不可欠である場合は現在の作業で最小修正する。真に無関係・環境依存・unsafe・要件判断が必要な場合だけ、根拠、未実行検証、残差、次の対応をRun Artifactと完了報告へ記録する。
 - 完了報告には、実行した全ゲート／テストのコマンドと結果、警告、未実行項目、主要変更ファイルを含める。ローカル環境固有の警告はリポジトリ起因のFailureと混同せず、CI相当条件での再確認結果とともに記録する。
 
+## PR #23 Official Black-box Scored E2E Repository Contract（2026-08-13）
+
+- Official Black-box Scored E2EのRepository側基盤として、Shared Canonical JSON、Canonical Artifact Manifest、Runtime Variant Registry、Protected Patch、Source-free Prepared Target、Learner-safe Scored Skill／Runner Input、Initial State Bootstrap、Runtime Control、Output／Evidence Mapping／Freeze、Strict Official Verificationを実装した。
+- Benchmark RevisionのdigestにはRuntime Variantを含めず、Benchmark Identity、Prepared Target、Runner Input、実ブラウザ条件では独立したIdentity dimensionとして扱う。Runner-visibleな変更はCanonical `runner-input.json`のhashへ反映する。
+- Official Host証跡はRepository自己申告で補完しない。Fresh Session／Context、no-inheritance、Actual Tool Scope、Tool Isolation、Origin／Resource Boundary、source-free root、constrained output、exact Scored Skill source／revision／fallback禁止、Browser Variantをtrusted Host Receiptで検証し、欠落・不一致・未実行Probeはfail-closeする。Repository独自Agent Runner／LLM wrapperは追加しない。
+- WindowsのDisposable Source buildでは、root `node_modules` junctionがExpo Routerのbundle discoveryを745 modules／`No routes found`にしていたため、Disposable copy内で`pnpm install --offline --ignore-scripts --config.node-linker=hoisted`を実行する。Source cleanup後のLearner／Prepared Target rootへ`node_modules`やSourceは公開しない。
+- 2026-08-13時点のdeterministic validationでは、Official black-box contract 34 tests、served-dist contract 23 tests、Preparation 1/1、Spec validation／HTML build、Unit／Integration／Web Component、Security／Image ManifestがPASSした。Full TypeScriptには既存`/guide` route型エラー、Full Contractには環境の`node:sqlite` bundling failureが残る。Host-trusted Receipt未提供のため、Official E2E／scoreは未実行・未採点である。
+
 ## Test Automation Curriculum / Training Environment（2026-08-12）
 
 - Required Curriculumは `docs/curriculum/test-automation/` の22文書へ固定した。`02_competency-rubric.md` はC01〜C12／Level 0〜3の評価正本、`03_instructor-reference.md` はExpected Contract、Alternative Design、Anti-pattern、Facilitation、Troubleshootingの公開Referenceである。Agentic QA教材はOptional ReferenceとしてRequired Part 1から分離する。

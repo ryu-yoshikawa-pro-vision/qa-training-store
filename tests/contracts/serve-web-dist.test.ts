@@ -37,9 +37,13 @@ function getFreePort(): Promise<number> {
   });
 }
 
-function fetchResponse(url: string, method = "GET"): Promise<HttpTestResponse> {
+function fetchResponse(
+  url: string,
+  method = "GET",
+  headers?: Record<string, string>,
+): Promise<HttpTestResponse> {
   return new Promise((resolve, reject) => {
-    const req = httpRequest(url, { method }, (res) => {
+    const req = httpRequest(url, { method, headers }, (res) => {
       const chunks: Buffer[] = [];
       res.on("data", (chunk: Buffer) => chunks.push(chunk));
       res.on("end", () => {
@@ -53,6 +57,10 @@ function fetchResponse(url: string, method = "GET"): Promise<HttpTestResponse> {
     req.on("error", reject);
     req.end();
   });
+}
+
+function fetchSubresource(url: string, method = "GET"): Promise<HttpTestResponse> {
+  return fetchResponse(url, method, { "sec-fetch-dest": "script" });
 }
 
 function requestRawPath(
@@ -288,7 +296,7 @@ describe("Static web server contract", () => {
   });
 
   it("serves existing JavaScript with correct content type", async () => {
-    const res = await fetchResponse(`${baseUrl}/app.js`);
+    const res = await fetchSubresource(`${baseUrl}/app.js`);
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toContain("text/javascript");
     expect(res.body.toString("utf-8")).toBe("console.log('hello');");
@@ -313,7 +321,7 @@ describe("Static web server contract", () => {
   });
 
   it("returns HEAD with content headers but no body", async () => {
-    const res = await fetchResponse(`${baseUrl}/app.js`, "HEAD");
+    const res = await fetchSubresource(`${baseUrl}/app.js`, "HEAD");
     expect(res.status).toBe(200);
     expect(res.headers["content-length"]).toBeDefined();
     expect(res.headers["content-type"]).toContain("text/javascript");
@@ -368,7 +376,7 @@ describe("Static web server contract", () => {
   });
 
   it("serves asset with query string", async () => {
-    const res = await fetchResponse(`${baseUrl}/app.js?v=1`);
+    const res = await fetchSubresource(`${baseUrl}/app.js?v=1`);
     expect(res.status).toBe(200);
     expect(res.headers["content-type"]).toContain("text/javascript");
     expect(res.body.toString("utf-8")).toBe("console.log('hello');");
@@ -408,7 +416,13 @@ describe("Static web server contract", () => {
     const res = await fetchResponse(`${baseUrl}/`);
     expect(res.headers["cache-control"]).toContain("no-store");
 
-    const res2 = await fetchResponse(`${baseUrl}/app.js`);
+    const res2 = await fetchSubresource(`${baseUrl}/app.js`);
     expect(res2.headers["cache-control"]).toContain("no-store");
+  });
+
+  it("denies direct navigation to implementation resources", async () => {
+    const res = await fetchResponse(`${baseUrl}/app.js`);
+    expect(res.status).toBe(403);
+    expect(res.body.toString("utf-8")).toBe("Forbidden");
   });
 });

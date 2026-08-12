@@ -47,8 +47,10 @@ Coding Agent → Skill → Runtime → Artifact → Script であり、Script �
    Official Runを開始します。提供できない場合は BLOCKED です。
 
 Normal／Gray-boxはSource Working TreeをReadonlyで扱い、Evidenceは
-.codex/runs/<run_id>/ と .artifacts/へ保存します。Black-boxは learner-spec/、
-runbook/、challenge/ だけのisolated rootを使います。
+.codex/runs/<run_id>/ と .artifacts/へ保存します。Black-boxは learner-safe
+specification、Challenge Runbook、`training/agentic-qa/skills/scored-v1.md` の
+exact snapshot、Canonical `runner-input.json`、Runtime URLだけを境界内へ渡します。
+Instructor material、Source、`.git`、Bundle、Prior RunはRunner-visibleになりません。
 
 ## Normal / Gray-box bootstrap
 
@@ -194,18 +196,22 @@ Preparation Harnessの順序は次のとおりです。
     isolated_execution_root
     actual_tool_scope_unavailable
     positive_tool_allowlist_and_forbidden_probe
+    protected_patch_validation
+    source_free_prepared_target
+    learner_safe_runner_input
     runtime_stop_and_disposable_cleanup
+    host_capability_gate_and_trusted_bootstrap
+    constrained_output_import_and_freeze
 
 Preparation HarnessはChallenge validation、Answer Key validation、learner-safe bundle、
-disposable source、patch apply、baseline／patched sanity、initial state、isolated root、
-Tool Profile validation、Forbidden Probeだけを担当します。Coding Agent起動、Agent
-Session生成、Tool routing、retry、lifecycle managementは担当しません。Fresh Coding
-Agent SessionはAgent Runtime／Hostが提供します。Current Hostからtrusted Fresh
-Session／session identity／Tool Isolation／Actual Tool Scopeを取得できない、または
-Preparationがpatched Target Runtimeをlive URL／booted deviceとしてFresh Sessionへ
-source-freeに引き渡すlifecycleを持たない場合、Official Scored E2Eは
-`BLOCKED / DEFERRED / NOT EXECUTED`です。これを解決するためRepository独自のRunner、
-LLM wrapper、Session Manager、MCP orchestrationは追加しません。
+disposable source、protected patch、baseline／patched sanity、Canonical Artifact Manifest、
+Source-free Prepared Target、Runner Input、isolated root、Tool Profile validation、Forbidden
+Probe、output import、Evidence Mapping、Freeze、Evaluationだけを担当します。Coding Agent起動、
+Agent Session生成、Tool routing、retry、lifecycle managementは担当しません。Fresh Coding
+Agent Session、Fresh Context、Actual Tool Scope、Origin／Resource Boundary、Budget、
+constrained outputはHostのtrusted receiptが正本です。receiptがない、またはrequired proofが
+`proven`でない場合、Official Scored E2Eは`BLOCKED / DEFERRED / NOT EXECUTED`です。これを
+解決するためRepository独自のRunner、LLM wrapper、Session Manager、MCP orchestrationは追加しません。
 
 Baselineで対象Defectが既に存在する、Patch checkが失敗する、Post-patchで再現条件が
 成立しない場合はScored Runを開始しません。PatchはApplication Branchへ適用してCommit
@@ -232,11 +238,11 @@ invalid_reasons[] はenum、重複なし、辞書順です。正式Metricはvali
 
 Benchmark RevisionはClean committed inputだけ git:<40 lowercase hex>、未Commit／混在
 入力はCanonical Benchmark Manifest Inputの sha256:<64 lowercase hex> を使います。
-Canonical Inputはsource／working tree／learner spec／challenge／Answer Key／patch／
-runtime variantを含み、Runner Profileを含みません。Benchmark Identityは
-challenge_id + benchmark_revision + runtime_variant_id、同条件比較にはRunner Profile
-完全一致を要求します。したがってRunner Profileだけが異なる場合、Revision／Identityは
-同じで、sameRunnerConditionだけがfalseになります。Ground Truth変更時は元Runを付け替えず、
+Canonical Inputはsource／working tree／learner spec／challenge／Answer Key／patch／Runbookを
+含み、Runtime VariantとRunner Profileを含みません。Benchmark Identityは
+challenge_id + benchmark_revision + runtime_variant_id、同条件比較にはPrepared Target hash、
+Runner Input hash、Runner Profile完全一致を要求します。Runtime Variantだけが異なる場合、
+Revisionは同じで、IdentityとRunner Input hashが変わります。Ground Truth変更時は元Runを付け替えず、
 元Runを無効化して新RevisionとFresh Re-runを行います。
 
 ## Platform note

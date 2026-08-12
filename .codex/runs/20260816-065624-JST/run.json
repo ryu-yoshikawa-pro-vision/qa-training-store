@@ -1,0 +1,84 @@
+{
+  "schema_version": 1,
+  "run_id": "20260816-065624-JST",
+  "task_type": "repair",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "feat/implement-official-black-box-scored-e2e",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    "docs/PROJECT_CONTEXT.md",
+    "docs/adr/0015-official-black-box-scored-e2e-artifact-boundary.md",
+    "scripts/agentic-qa/benchmark-revision.ts",
+    "tests/contracts/spec-agentic-qa.test.ts",
+    "docs/plans/2026-08-16_065624_rebase-pr23-conflict-integration.md",
+    ".codex/runs/20260816-065624-JST/PLAN.md",
+    ".codex/runs/20260816-065624-JST/TASKS.md",
+    ".codex/runs/20260816-065624-JST/REPORT.md",
+    ".codex/runs/20260816-065624-JST/evaluation.json",
+    ".codex/runs/20260816-065624-JST/run.json"
+  ],
+  "validation": {
+    "status": "partial",
+    "commands": [
+      "pnpm exec vitest run tests/contracts/spec-agentic-qa.test.ts --no-file-parallelism --maxWorkers=1 --reporter=dot",
+      "pnpm run test:agentic-qa:preparation",
+      "pnpm exec tsx scripts/agentic-qa/validate-contracts.ts",
+      "pnpm exec vitest run tests/contracts/official-artifact-chain.test.ts tests/contracts/official-black-box-contracts.test.ts --no-file-parallelism --maxWorkers=1 --reporter=dot",
+      "pnpm run test:contracts",
+      "pnpm run typecheck",
+      "pnpm run lint",
+      "pnpm run lint:markdown",
+      "pnpm run validate:spec",
+      "pnpm run build:spec",
+      "pnpm run security:check",
+      "pnpm run format:check",
+      "git diff --check",
+      "pnpm run test:e2e:chromium",
+      "python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260816-065624-JST/evaluation.json",
+      "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260816-065624-JST -Write -Check"
+    ],
+    "warnings": [
+      "test:contractsは最新main既存のWindows CRLF依存test 1件で失敗",
+      "format:checkはrepository baseline 434 filesで失敗。targeted changed-file PrettierはPASS",
+      "official-artifact-chain.test.tsとfully-rebound identity checksは後続rebase commit未適用のため未実行",
+      "pnpm run verifyは既知の同一format / baseline test failureの重複を避けてNOT RUN"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260816-065624-JST/evaluation.json",
+  "status": "partial",
+  "primary_failure_category": "missing_validation"
+}

@@ -1316,6 +1316,9 @@ describe("Specification and Agentic QA contracts", () => {
         `D:${renamed}`,
         `A:${renamedTo}`,
       ]);
+      expect(parsePorcelainStatusRecords(temporary, `AD deleted-during-rebase.txt\0`)).toEqual([
+        { status: "D", path: "deleted-during-rebase.txt", sha256: null },
+      ]);
     } finally {
       fs.rmSync(temporary, { recursive: true, force: true });
     }

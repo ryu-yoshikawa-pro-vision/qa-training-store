@@ -10,6 +10,7 @@ import {
   type Finding,
 } from "./contracts";
 import { assertCoverageIntegrity } from "./coverage";
+import { writeCanonicalJsonFile } from "./canonical-json";
 
 /**
  * Frozen-result and Runner Profile contract helpers only.
@@ -32,14 +33,36 @@ export function createRunnerProfile(input: {
   model: string;
   toolProfileRevision: `sha256:${string}`;
   challenge: Challenge;
+  modelConfigurationIdentifier?: string;
+  skillRevision?: string;
+  outputContractRevision?: string;
+  hostProfileRevision?: string;
 }): RunnerProfile {
-  return {
+  const profile: RunnerProfile = {
     model: input.model,
     tool_profile_revision: input.toolProfileRevision,
     max_duration_seconds: input.challenge.exploration_budget.max_duration_seconds,
     max_tool_actions: input.challenge.exploration_budget.max_tool_actions,
     stop_condition: input.challenge.stop_condition,
   };
+  if (input.modelConfigurationIdentifier !== undefined)
+    profile.model_configuration_identifier = input.modelConfigurationIdentifier;
+  if (input.skillRevision !== undefined) profile.skill_revision = input.skillRevision;
+  if (input.outputContractRevision !== undefined)
+    profile.output_contract_revision = input.outputContractRevision;
+  if (input.hostProfileRevision !== undefined)
+    profile.host_profile_revision = input.hostProfileRevision;
+  return profile;
+}
+
+export function assertOfficialRunnerProfile(profile: RunnerProfile): void {
+  if (
+    profile.model_configuration_identifier === undefined ||
+    profile.skill_revision === undefined ||
+    profile.output_contract_revision === undefined ||
+    profile.host_profile_revision === undefined
+  )
+    throw new Error("Official Runner Profile is missing a model, Skill, Output, or Host revision");
 }
 
 export function freezeScoredFindings(input: {
@@ -90,9 +113,5 @@ export function freezeScoredFindings(input: {
 
 export function writeFrozenFindings(runDir: string, result: FrozenRunnerResult): void {
   fs.mkdirSync(runDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(runDir, "qa-findings.json"),
-    `${JSON.stringify(result.findings, null, 2)}\n`,
-    "utf8",
-  );
+  writeCanonicalJsonFile(path.join(runDir, "qa-findings.json"), result.findings);
 }
