@@ -14,7 +14,10 @@
 
 主な参照先:
 
-- `e2e/web/phase1-required.spec.ts`
+- [`docs/spec/features/cart.md`](../../../spec/features/cart.md)
+- `training/playwright/baseline/training-baseline.spec.ts`
+- `training/playwright/exercises/`
+- `e2e/web/phase1-required.spec.ts`（Formal比較教材）
 - `e2e/web/mobile-boundary.spec.ts`
 - `e2e/web/accessibility.spec.ts`
 - `e2e/web/cross-role-lifecycle.spec.ts`
@@ -25,20 +28,20 @@
 
 ## 演習実装の前提
 
-受講者が作るE2Eは、教材提供時に用意されるTraining用実行境界で管理します。
+受講者が作るE2Eは、実装済みのTraining用実行境界で管理します。
 
 既存の正式Regressionへ直接追加することは前提にしません。既存E2Eは、受講者が自分の実装を完成させた後に設計・品質の比較対象として使用します。
 
 Training環境には最低限、次が必要です。
 
-- Training用specを既存Regressionと分離して保存できる。
-- Training用specを明示的に実行できる。
+- Training用specを `training/playwright/`へ保存できる。
+- `training-chromium` / `training-mobile-chromium`を明示的に実行できる。
 - Scenario ShopのAutomation Build / Test APIを利用できる。
 - Seed ScenarioをResetできるTest Harnessを利用できる。
 - Failure時にTrace、Screenshot、Videoなどを確認できる。
 - Training用変更が正式Regressionの必須Suiteへ意図せず混入しない。
 
-この文書整備では、そのConfigやScript自体は追加しません。
+`playwright.training.config.ts`、`package.json`のTraining Script、Training CI templateがこの契約を提供します。
 
 ## Lesson 1: テスト設計からコードへ落とす
 
@@ -179,7 +182,7 @@ Playwright Projectを切り替え、Mobile Viewportでも主要Flowを確認し�
 
 DesktopでPassすることとMobileで使えることは同じではありません。
 
-Training用Mobile実行も、教材提供時に正式Suiteと分離した入口を用意します。
+Training用Mobile実行は `pnpm run training:web:mobile` で正式Suiteと分離して実行します。
 
 ## Lesson 8: Accessibility
 
@@ -230,7 +233,7 @@ Payment拒否からRetry成功までを実装します。
 
 ## 完了条件
 
-- Playwright E2Eを5件以上実装している。
+- Playwright E2Eを5件以上実装している（本数はPractice Volumeであり、Rubric単独の合否条件ではない）。
 - Seed Scenario / Resetを利用したテストを含む。
 - 正常、異常または境界の両方を含む。
 - PaymentまたはRole横断の状態遷移を1件以上扱っている。

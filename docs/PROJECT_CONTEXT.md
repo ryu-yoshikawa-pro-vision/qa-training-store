@@ -358,3 +358,14 @@
 - 実装・修正作業は、完了報告の前にリポジトリで定義された全品質ゲートとテストを実行する。通常のローカル入口は`pnpm run verify`とし、CIの変更パス条件で追加されるゲート（例：Native変更時の`pnpm dlx expo-doctor@1.17.6`、Native／E2E／Artifact検証）も該当する場合は省略しない。未実行のゲートをPASSとして扱わず、実行できない場合は理由と次の実行者・アクションを報告する。
 - 品質ゲートのエラーは、当該作業の直接範囲外に見えても自動的に保留しない。Baseline、現在の差分、共有依存、CI／テスト契約、実行環境を調査し、現在の変更が原因である、または検証に不可欠である場合は現在の作業で最小修正する。真に無関係・環境依存・unsafe・要件判断が必要な場合だけ、根拠、未実行検証、残差、次の対応をRun Artifactと完了報告へ記録する。
 - 完了報告には、実行した全ゲート／テストのコマンドと結果、警告、未実行項目、主要変更ファイルを含める。ローカル環境固有の警告はリポジトリ起因のFailureと混同せず、CI相当条件での再確認結果とともに記録する。
+
+## Test Automation Curriculum / Training Environment（2026-08-12）
+
+- Required Curriculumは `docs/curriculum/test-automation/` の22文書へ固定した。`02_competency-rubric.md` はC01〜C12／Level 0〜3の評価正本、`03_instructor-reference.md` はExpected Contract、Alternative Design、Anti-pattern、Facilitation、Troubleshootingの公開Referenceである。Agentic QA教材はOptional ReferenceとしてRequired Part 1から分離する。
+- Expected Product Behaviorの教材Oracleは `docs/spec/` のNormative Specificationである。Current UI、既存Test、README、Observed Behaviorから新しい期待動作を逆算しない。Workbookは `training/workbook/` の4 CSVをcanonical templateとし、`spec_ref` → `br_ids` / `ac_ids` → `risk_id` → `test_case_id` → implementation / evidenceのTraceabilityを保持する。
+- Formal Webは `playwright.config.ts` / `e2e/web/`、Formal Nativeは `maestro/` を正本とする。Training Webは `playwright.training.config.ts` と `training/playwright/` の `training-chromium`／`training-mobile-chromium`へ分離し、Training Nativeは `training/maestro/`へ分離する。Intentional Failureは通常baselineへ混在させない。
+- Training Webの既定local runtimeはworktree専用の `PLAYWRIGHT_BASE_URL`（未指定時 `http://127.0.0.1:8082`）であり、Formal / Visual runtimeのPortを再利用しない。Training TypeScriptは `tsconfig.training.json` と `typecheck:training`を経由してRepository quality gateへ接続する。
+- `training/github-actions/` はSecret不要、Deployなし、`permissions: contents: read`、GitHub-hosted Ubuntu runnerのTraining Workflow Templateを持つ。Training Copyは完全なSource commit SHAを指定し、active Workflow allowlistを `training-ci.yml`／`training-native-ci.yml`の2件へ検証する。Production／Deploy Workflow、Secret、OIDC、EnvironmentはTraining Copyへ持ち込まない。
+- Required Phase 1 CIは `validate:curriculum` とTraining Web baselineを実行し、Native CIは `training/maestro/**`をchange detectionへ含め、既存Android Runtime／Emulator／APK／Maestro基盤でTraining baselineを実行する。不要な第二Formal Native基盤は作らない。
+- Android Training Runtimeは API 34 / `google_apis` / `x86_64`、単一の対象serial、package service ready、有限timeoutを必須とし、Maestro 2.8.0は展開先のnested `maestro/bin/maestro`をversion checkしてからbaselineを実行する。Windows local runnerはPATH上の`maestro.bat`をshell経由で解決し、明示serialへFlowを渡す。Formal NativeのBuild／Runtime／cleanup契約を弱めず、Training専用の第二基盤は作らない。
+- Current Native GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-only（ADR-0011）である。Curriculum、Training Evidence、完了報告のいずれもiOS Simulator／Maestro／Runtime PASSを記録しない。

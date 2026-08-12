@@ -1,0 +1,67 @@
+name: Scenario Shop Training Web
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "Run the baseline or the intentional expected-failure exercise"
+        required: true
+        default: baseline
+        type: choice
+        options:
+          - baseline
+          - expected-failure
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "9.10.0"
+  CI: "true"
+  EXPO_PUBLIC_APP_ENV: automation
+  EXPO_PUBLIC_BUILD_KIND: automation
+  EXPO_PUBLIC_TEST_MODE: "true"
+  EXPO_PUBLIC_DEFAULT_SEED: default
+  PLAYWRIGHT_BASE_URL: http://127.0.0.1:8082
+  PLAYWRIGHT_USE_PREBUILT_DIST: "true"
+
+jobs:
+  training-web:
+    name: Training Web (${{ inputs.mode || 'baseline' }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Validate curriculum contract
+        run: pnpm run validate:curriculum
+      - name: Build automation web
+        run: pnpm run build:web
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run Training Web baseline
+        if: github.event_name != 'workflow_dispatch' || inputs.mode == 'baseline'
+        run: pnpm run training:web:baseline
+      - name: Run Training Web expected-failure exercise
+        if: github.event_name == 'workflow_dispatch' && inputs.mode == 'expected-failure'
+        run: pnpm run training:web:expected-failure
+      - name: Upload Training Web evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-web-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/training/playwright
+          if-no-files-found: warn
+          retention-days: 14

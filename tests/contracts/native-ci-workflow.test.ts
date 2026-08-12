@@ -214,10 +214,28 @@ describe("Native CI workflow contracts", () => {
       "- name: Run Maestro Native Production-validation flow",
     );
     const productionInstall = runtime.slice(productionInstallStart, productionFlowStart);
-    const productionFlow = runtime.slice(productionFlowStart);
+    const productionFlowEnd = runtime.indexOf("\n      - name:", productionFlowStart + 1);
+    const productionFlow = runtime.slice(
+      productionFlowStart,
+      productionFlowEnd === -1 ? undefined : productionFlowEnd,
+    );
     expect(productionInstall).toContain("needs.android-production-build.result == 'success'");
     expect(productionFlow).toContain("steps.production_install.outcome == 'success'");
     expect(productionFlow).not.toContain("android_automation_install");
+  });
+
+  it("detects Training Maestro changes and runs the baseline in the shared Android runtime", () => {
+    const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
+    expect(nativeWorkflow).toContain("'training/maestro/**'");
+    const start = runtime.indexOf("- name: Run Training Maestro baseline");
+    expect(start).toBeGreaterThanOrEqual(0);
+    const end = runtime.indexOf("\n      - name:", start + 1);
+    const step = runtime.slice(start, end === -1 ? undefined : end);
+    expect(step).toContain("steps.android_automation_install.outcome == 'success'");
+    expect(step).toContain("steps.maestro_cli.outcome == 'success'");
+    expect(step).toContain("training/maestro/baseline/native-training-baseline.yaml");
+    expect(step).toContain("TRAINING_MAESTRO_OUTPUT_DIR");
+    expect(step).not.toContain("assembleRelease");
   });
 
   it("keeps Native CI final verify fail-closed and preserves the no-change skip", () => {

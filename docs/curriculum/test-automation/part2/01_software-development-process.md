@@ -137,7 +137,7 @@ Scenario Shopでは次があります。
 
 - Web `dist/`
 - Android APK
-- iOS Simulator App
+- iOS `iphonesimulator` Build Artifact（Current formal guaranteeはBuild-only）
 
 Source TestがPassしても、Buildに失敗したりBuild Artifactで問題が起きる可能性があります。
 

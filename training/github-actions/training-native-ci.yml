@@ -1,0 +1,168 @@
+name: Scenario Shop Training Android
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "9.10.0"
+  MAESTRO_VERSION: "2.8.0"
+  MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip
+  ANDROID_API_LEVEL: "34"
+  ANDROID_SYSTEM_IMAGE: system-images;android-34;google_apis;x86_64
+  TRAINING_AVD_NAME: scenario-shop-training-api34-ci
+  EXPO_PUBLIC_APP_ENV: automation
+  EXPO_PUBLIC_BUILD_KIND: automation
+  EXPO_PUBLIC_TEST_MODE: "true"
+  EXPO_PUBLIC_DEFAULT_SEED: default
+
+jobs:
+  training-android:
+    name: Training Android Maestro baseline
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: pnpm/action-setup@v4
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Resolve Android SDK
+        shell: bash
+        run: |
+          set -euo pipefail
+          SDK_ROOT="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-/usr/local/lib/android/sdk}}"
+          SDKMANAGER="$(find "$SDK_ROOT/cmdline-tools" -type f -name sdkmanager -perm -u+x | sort | tail -n 1)"
+          ADB="$SDK_ROOT/platform-tools/adb"
+          EMULATOR="$SDK_ROOT/emulator/emulator"
+          AVDMANAGER="$(dirname "$SDKMANAGER")/avdmanager"
+          test -x "$SDKMANAGER"
+          echo "ANDROID_HOME=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
+          echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
+          echo "ADB=$ADB" >> "$GITHUB_ENV"
+          echo "EMULATOR=$EMULATOR" >> "$GITHUB_ENV"
+          echo "AVDMANAGER=$AVDMANAGER" >> "$GITHUB_ENV"
+          echo "$SDK_ROOT/platform-tools" >> "$GITHUB_PATH"
+          echo "$SDK_ROOT/emulator" >> "$GITHUB_PATH"
+          echo "$(dirname "$SDKMANAGER")" >> "$GITHUB_PATH"
+      - name: Install Android runtime components
+        shell: bash
+        run: |
+          set -euo pipefail
+          yes | "$SDKMANAGER" --licenses >/dev/null
+          "$SDKMANAGER" "platform-tools" "emulator" "platforms;android-36" "build-tools;36.0.0" "$ANDROID_SYSTEM_IMAGE"
+      - name: Verify Android runtime tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -x "$ADB"
+          test -x "$EMULATOR"
+          test -x "$AVDMANAGER"
+      - name: Validate curriculum contract
+        run: pnpm run validate:curriculum
+      - name: Prepare Android Release APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          pnpm exec expo prebuild --clean --platform android --no-install
+          (cd android && ./gradlew :app:assembleRelease --no-daemon --stacktrace)
+          APK_PATH="$GITHUB_WORKSPACE/android/app/build/outputs/apk/release/app-release.apk"
+          test -f "$APK_PATH"
+          echo "TRAINING_APK_PATH=$APK_PATH" >> "$GITHUB_ENV"
+      - name: Verify KVM and create fresh AVD
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -e /dev/kvm
+          test -r /dev/kvm
+          if ! "$AVDMANAGER" list avd | grep -q "Name: $TRAINING_AVD_NAME"; then
+            echo "no" | "$AVDMANAGER" create avd --name "$TRAINING_AVD_NAME" --package "$ANDROID_SYSTEM_IMAGE" --device pixel_2
+          fi
+      - name: Start emulator and wait for finite readiness
+        shell: bash
+        run: |
+          set -euo pipefail
+          "$ADB" start-server
+          "$EMULATOR" -avd "$TRAINING_AVD_NAME" -no-snapshot -no-window -no-audio -no-boot-anim -gpu swiftshader_indirect > "$RUNNER_TEMP/training-emulator.log" 2>&1 &
+          echo $! > "$RUNNER_TEMP/training-emulator.pid"
+          timeout 180 bash -c 'until [[ "$(adb devices | awk '\''NR > 1 && $2 == "device" && $1 ~ /^emulator-[0-9]+$/ { print $1 }'\'' | wc -l)" -eq 1 ]]; do sleep 2; done'
+          mapfile -t TARGET_SERIALS < <(adb devices | awk 'NR > 1 && $2 == "device" && $1 ~ /^emulator-[0-9]+$/ { print $1 }')
+          if [[ "${#TARGET_SERIALS[@]}" -ne 1 ]]; then
+            echo "Expected exactly one Training emulator, found ${#TARGET_SERIALS[@]}."
+            adb devices
+            exit 1
+          fi
+          TARGET_SERIAL="${TARGET_SERIALS[0]}"
+          timeout 180 bash -c "until adb -s $TARGET_SERIAL shell getprop sys.boot_completed | grep -q 1; do sleep 2; done"
+          test "$(adb -s "$TARGET_SERIAL" shell getprop ro.build.version.sdk | tr -d '\r')" = "$ANDROID_API_LEVEL"
+          test "$(adb -s "$TARGET_SERIAL" shell getprop ro.product.cpu.abi | tr -d '\r')" = "x86_64"
+          timeout 60 bash -c "until adb -s $TARGET_SERIAL shell service check package | grep -q found; do sleep 2; done"
+          echo "TARGET_SERIAL=$TARGET_SERIAL" >> "$GITHUB_ENV"
+          adb devices
+      - name: Install APK and launch Training target
+        shell: bash
+        run: |
+          set -euo pipefail
+          timeout 180 adb -s "$TARGET_SERIAL" install -r "$TRAINING_APK_PATH"
+          timeout 15 adb -s "$TARGET_SERIAL" shell pm path com.ryuyoshikawa.scenarioshop | grep -F 'package:'
+          timeout 30 adb -s "$TARGET_SERIAL" shell monkey -p com.ryuyoshikawa.scenarioshop 1
+      - name: Install Maestro 2.8.0
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --silent --show-error --location "$MAESTRO_DOWNLOAD_URL" --output "$RUNNER_TEMP/maestro.zip"
+          maestro_root="$RUNNER_TEMP/maestro"
+          unzip -q "$RUNNER_TEMP/maestro.zip" -d "$maestro_root"
+          maestro_bin="$maestro_root/maestro/bin/maestro"
+          test -x "$maestro_bin"
+          "$maestro_bin" --version | grep -F "$MAESTRO_VERSION"
+          echo "$maestro_root/maestro/bin" >> "$GITHUB_PATH"
+      - name: Run Training Maestro baseline
+        shell: bash
+        run: pnpm run training:native:baseline
+      - name: Collect Android Training evidence
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          evidence="$RUNNER_TEMP/training-native-evidence"
+          mkdir -p "$evidence"
+          echo "api=$ANDROID_API_LEVEL" > "$evidence/environment.txt"
+          echo "system_image=$ANDROID_SYSTEM_IMAGE" >> "$evidence/environment.txt"
+          echo "avd=$TRAINING_AVD_NAME" >> "$evidence/environment.txt"
+          echo "serial=${TARGET_SERIAL:-unresolved}" >> "$evidence/environment.txt"
+          adb devices > "$evidence/adb-devices.txt" 2>&1
+          if [[ -n "${TARGET_SERIAL:-}" ]]; then adb -s "$TARGET_SERIAL" logcat -d > "$evidence/logcat.txt" 2>&1; fi
+          if [[ -d output/training/maestro ]]; then cp -R output/training/maestro "$evidence/maestro"; fi
+          if [[ -f "$RUNNER_TEMP/training-emulator.log" ]]; then cp "$RUNNER_TEMP/training-emulator.log" "$evidence/emulator.log"; fi
+      - name: Upload Android Training evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-android-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/training-native-evidence
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Cleanup emulator
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          if [[ -n "${TARGET_SERIAL:-}" ]]; then adb -s "$TARGET_SERIAL" emu kill; fi
+          if [[ -f "$RUNNER_TEMP/training-emulator.pid" ]]; then kill "$(cat "$RUNNER_TEMP/training-emulator.pid")" 2>/dev/null || true; fi

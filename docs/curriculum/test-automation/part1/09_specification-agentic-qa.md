@@ -1,5 +1,7 @@
 # Specification と Agentic QA
 
+> Optional Reference: この文書はRequired Part 1の対象外です。Agentic QAを必須カリキュラムへ混在させず、Required Part 1は [`09_part1-capstone.md`](./09_part1-capstone.md) を使用します。
+
 ## 到達目標
 
 - Normative Specification、Supporting Documentation、Executable Canonical Source の責務を区別できる。

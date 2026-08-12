@@ -101,6 +101,16 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 - Agentic QA Workflow: [`docs/reference/agentic-qa-workflow.md`](docs/reference/agentic-qa-workflow.md)
 - Learner-safe Challenge: [`training/agentic-qa/`](training/agentic-qa/)
 
+## Test Automation Curriculum / Training
+
+- Curriculum入口: [`docs/curriculum/test-automation/README.md`](docs/curriculum/test-automation/README.md)
+- Required Curriculum validator: `pnpm run validate:curriculum`
+- Training Web baseline: `pnpm run training:web:baseline`（`PLAYWRIGHT_BASE_URL`で専用Runtimeを指定）
+- Training Web projects: `training-chromium` / `training-mobile-chromium`
+- Training Native baseline: `pnpm run training:native:baseline`（Android Runtimeのみ）
+
+Formal RegressionとTraining Testは別のConfig / Directoryで管理します。Current Native GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Runtime / Maestro PASSを正式保証として扱いません。
+
 依存PackageのVersion指定は[`package.json`](./package.json)、実際に解決されるVersionは[`pnpm-lock.yaml`](./pnpm-lock.yaml)を参照してください。
 
 ## セットアップ

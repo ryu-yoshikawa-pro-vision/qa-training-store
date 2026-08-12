@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "run_id": "20260812-193501-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": ["missing_validation", "flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "22文書、Training assets、CI接続、validator、Web validation、Android TrainingのDoctor／Prepare／arm64-v8a Release APK／Install／Smoke／Maestro baseline／Evidence／cleanupは完了。Wave 10のfinal exact-SHA Training Copyとremote Delivery Readinessは未完了。",
+      "evidence_refs": [".codex/runs/20260812-193501-JST/REPORT.md"]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はCurriculum / Training / Required CI contractとRun artifactに限定され、Product code・Formal expectation・他worktreeは変更していない。",
+      "evidence_refs": [".codex/runs/20260812-193501-JST/run.json"]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Spec、Curriculum、lint、repository／Training typecheck、contract 204、Web desktop/mobile、expected-failure、Android Doctor／Prepare／Build／Install／Smoke／Training Maestro 1/1／Evidence／cleanup、Native/Curriculum focused contract、PowerShell parse、sanitizer、repo-wide format:check、最終verifyはPASS。先行full testでWindows temp cleanupのEPERMとNative componentの単発timeoutが発生したが、serve-web-dist 22 tests、Native 12 suites / 47 tests、verify内の最終full test（unit 66 / integration 98 / repository 33 / component 123 / contracts 204）はPASS。remote Required Runは未実行。",
+      "evidence_refs": [".codex/runs/20260812-193501-JST/REPORT.md"]
+    },
+    "safety_compliance": {
+      "rating": "warn",
+      "evidence": "Android release marker確認後に指定slotだけを使用し、他worktreeを触らず、git add/commit/push/merge/rebase等も実行していない。Training Workflowはread-only/no-secret/no-OIDC/no-deploy契約。過去のmarker未成立時にread-only adb devicesを一度誤実行した記録があるため、完全PASSにしない。",
+      "evidence_refs": [".codex/runs/20260812-193501-JST/run.json"]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "code-reviewとrepair-loopの判断・変更・再検証をREPORTへ追記し、failure evidenceと未完了Required blockerを分離記録した。",
+      "evidence_refs": [".codex/runs/20260812-193501-JST/REPORT.md"]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Formal / Training roots、Android / iOS guarantee、Normative Oracle、Training Copy allowlistを専用config・validator・contract testへ分離した。",
+      "evidence_refs": [".codex/runs/20260812-193501-JST/REPORT.md"]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Local Webは専用8082 fallback / env、Android Trainingはtarget serialとshort hashed virtual storeで再現し、Training Copyはfull SHA必須で再現契約を実装した。final committed SHAとremote executionは未成立。",
+      "evidence_refs": [".codex/runs/20260812-193501-JST/run.json"]
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "Final exact-SHA Training Copy and remote Delivery Readiness runs are not executed.",
+      "detail": "The Plan's final DoD cannot be marked complete until the final SHA and remote gates are available."
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "One full test run hit EPERM while cleaning a temp directory and another encountered a Native component timeout; isolated reruns and the verify-integrated full test passed. Android local build initially exposed Windows path-length failures, then passed after explicit short hashed pnpm topology.",
+      "detail": "The intermittent local symptoms were resolved by bounded reruns and the format baseline was repaired. Remote Delivery Readiness still requires a final committed SHA and remote access."
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "docs/reference/change-scope-policy.md",
+      "evidence": "Prettier does not parse PowerShell / CSV; the repository-wide Prettier baseline was repaired in this Run after explicit user approval.",
+      "evidence_refs": [".codex/runs/20260812-193501-JST/REPORT.md"],
+      "expected_impact": "Make repository formatting ownership and non-Prettier asset checks easier to distinguish.",
+      "recommendation": "Keep PowerShell / CSV ownership explicit in a future tooling maintenance change; current format gate is green."
+    }
+  ]
+}

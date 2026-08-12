@@ -11,6 +11,8 @@
 
 **このモジュールでは、このリポジトリのScenario Shopを使用します。**
 
+分析のOracleは [`docs/spec/README.md`](../../../spec/README.md) から辿るNormative Specificationです。Current UI、README、既存Testは探索・実装比較のEvidenceとして扱い、未定義の期待動作を教材へ追加しません。
+
 主に次を使います。
 
 - Scenario ShopのWeb画面

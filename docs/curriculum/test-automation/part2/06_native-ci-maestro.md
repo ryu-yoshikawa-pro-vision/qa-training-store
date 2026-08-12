@@ -18,6 +18,10 @@
 主な参照先:
 
 - `maestro/`
+- `training/maestro/`
+- `training/github-actions/training-native-ci.yml`
+- `scripts/training/run-maestro-baseline.ts`
+- `scripts/training/android-emulator.ps1`
 - `.github/workflows/native-ci.yml`
 - `.github/workflows/native-ios-ci.yml`
 - `scripts/native/windows/android-local.ps1`
@@ -44,17 +48,15 @@ Native変更判定、Static Check、Production Bundle Guard、Android Build、An
 
 ## Training Native Workflowの前提
 
-受講者が最初から現在の `native-ci.yml` を複製することは前提にしません。
-
-教材提供時には、Forkまたは演習用Copyで次を満たす最小Training Workflowを用意します。
+受講者が最初から現在の `native-ci.yml` を複製することは前提にしません。最小Training Workflow templateは実装済みです。
 
 - Production Deployや本番Secretへ依存しない。
 - Androidを標準実行Platformとする。
 - Part 1で作成したMaestro Flowを1本以上CIで実行できる。
 - Build / Emulator / Install / Maestro / Evidenceの関係を確認できる。
-- 現在の高度なNative CIは、最小構成を動かした後に比較する。
+- 現在の高度なFormal Native CIは、最小構成を動かした後に比較する。
 
-この文書整備ではWorkflow自体は追加しません。
+Training Native Workflowは `permissions: contents: read`、Secret / OIDC / Environment / Deployなしで、Build → Emulator → Install → Maestro → Evidenceを構成します。Formal Native CIのRequired Gateを置き換えず、Training baselineは既存Formal Android Runtimeからも再利用できます。
 
 ## Lesson 1: Native CIがWeb CIより重い理由
 
@@ -242,7 +244,7 @@ Scenario ShopのPhase 2方針では、Android / iOSを独立実行し、進め�
 
 ## ハンズオン1: Android MaestroをTraining CIで実行する
 
-Part 2-4 / Part 2-5で使ったTraining Workflowとは別Jobでも構いません。Android用の最小Native Jobを作り、Part 1で作成したMaestro Flowを1本実行します。
+`training-native-ci.yml`を読み、Android用の最小Native JobでPart 1のMaestro Flowを1本実行します。Training baselineの通常入口は `pnpm run training:native:baseline` です。
 
 最低限次の工程を含めます。
 

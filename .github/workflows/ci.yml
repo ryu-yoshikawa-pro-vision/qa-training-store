@@ -60,6 +60,9 @@ jobs:
       - name: Specification and Agentic QA validation
         run: pnpm run validate:spec
 
+      - name: Curriculum validation
+        run: pnpm run validate:curriculum
+
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
@@ -293,6 +296,8 @@ jobs:
             command: pnpm run test:e2e:mobile-boundary
           - name: cross-role
             command: pnpm run test:e2e:cross-role
+          - name: training-web-baseline
+            command: pnpm run training:web:baseline
     env:
       PLAYWRIGHT_USE_PREBUILT_DIST: "true"
       EXPO_PUBLIC_APP_ENV: automation
@@ -330,6 +335,8 @@ jobs:
         run: pnpm run test:agentic-qa:preparation
 
       - name: Run Chromium E2E
+        env:
+          PLAYWRIGHT_BASE_URL: ${{ matrix.name == 'training-web-baseline' && 'http://127.0.0.1:8082' || 'http://127.0.0.1:8081' }}
         run: ${{ matrix.command }}
 
       - name: Upload Playwright artifacts on failure
@@ -338,6 +345,15 @@ jobs:
         with:
           name: playwright-${{ matrix.name }}-${{ github.run_id }}-${{ github.run_attempt }}
           path: output/playwright
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Upload Training Web artifacts on failure
+        if: ${{ failure() && matrix.name == 'training-web-baseline' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: training-web-${{ github.run_id }}-${{ github.run_attempt }}
+          path: output/training/playwright
           if-no-files-found: warn
           retention-days: 14
 

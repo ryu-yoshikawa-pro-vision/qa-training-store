@@ -12,6 +12,8 @@
 
 **このモジュールでは、このリポジトリのScenario Shopを使用します。**
 
+期待動作の確認は [`docs/spec/README.md`](../../../spec/README.md) とNormative Feature（例: [`cart.md`](../../../spec/features/cart.md)）のBR / ACから始めます。画面で観察した結果はObserved Evidenceとして記録し、Specの代わりにしません。
+
 最初はテストコードを読み込むのではなく、Scenario Shopを「テスト対象」として観察します。
 
 ## Lesson 1: テスト自動化とは

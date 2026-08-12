@@ -6,7 +6,7 @@
 - MaestroのFlow、Action、Assertionの基本を理解できる。
 - Scenario Shop Nativeアプリを対象に最小のMaestro Flowを作成できる。
 - Stable UI Test ID、Deep Link、Test Controlを利用して再現可能なNative Testを作れる。
-- Android / iOSで共通化できるBusiness FlowとPlatform差分を区別できる。
+- AndroidでRequired Flowを実装し、iOSはBuild-only保証とPlatform差分を説明できる。
 - PlaywrightとMaestroを「どちらが優れているか」ではなく、対象Platformと目的から使い分けられる。
 
 ## 教材
@@ -28,15 +28,48 @@
 
 Part 1のMaestroハンズオンは、全受講者が同じ手順を再現しやすいように**Android Emulatorを標準経路**とします。
 
-Mac環境を利用できる受講者は同じBusiness FlowをiOS Simulatorでも確認できますが、Part 1の完了条件としてiOS実行を必須にしません。
+Current Formal GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Simulator / Maestroを使える環境でも、それを正式Runtime保証やPart 1完了条件へ昇格させません。
 
 理由は次です。
 
-- iOS SimulatorにはmacOS / Xcode環境が必要で、受講環境の制約が大きい。
+- iOS RuntimeにはmacOS / Xcode環境が必要だが、Current formal CIはBuild-onlyである。
 - Part 1の目的はNative UI自動化の基本概念を理解することであり、OS環境構築差分を主目的にしない。
-- Android / iOS両PlatformのCI設計とRunner CostはPart 2で扱う。
+- Android / iOSの保証範囲、CI設計、Runner CostはPart 2で扱う。
 
-教材提供時には、Android Build / Install / Emulator / Maestroの開始確認手順を別途用意します。この文書整備では環境構築ScriptやMaestro設定を追加しません。
+Android Build / Install / Emulator / Maestroの開始確認は、`scripts/training/android-emulator.ps1`、Training Maestro baseline、Current Native CIの契約で固定します。Formal NativeのFlowや第二Emulator基盤は作りません。
+
+### Android Start GateとRecovery
+
+Windowsでは、既存のAndroid SDK / Emulator基盤をTrainingから再利用します。新しいFormal Native基盤や別のEmulatorを作りません。`ANDROID_SDK_ROOT`または`ANDROID_HOME`を設定した同じRepository Rootで、次の順に確認します。
+
+```powershell
+& .\scripts\training\android-emulator.ps1 -Action Doctor
+& .\scripts\training\android-emulator.ps1 -Action Prepare
+& .\scripts\training\android-emulator.ps1 -Action Start
+```
+
+`Prepare`で`system-images;android-34;google_apis;x86_64`が不足している場合は、既存SDKの`sdkmanager.bat`で次を一度だけInstallしてから、`Prepare`を再実行します。SDK Rootの実Pathは各自の環境に合わせます。
+
+```powershell
+$sdkmanager = Join-Path $env:ANDROID_SDK_ROOT "cmdline-tools\latest\bin\sdkmanager.bat"
+& $sdkmanager "platform-tools" "emulator" "platforms;android-36" "build-tools;36.0.0" "system-images;android-34;google_apis;x86_64"
+```
+
+`Start`はADB ready、`sys.boot_completed=1`、Android package serviceを有限時間で確認し、出力する`QA_TRAINING_ANDROID_SERIAL`を対象端末として扱います。出力されたserialを同じShellへ設定し、Native Release Build / Install後にTraining baselineを実行します。
+
+```powershell
+$env:QA_TRAINING_ANDROID_SERIAL = "<Startが出力したemulator-serial>"
+$env:ANDROID_SERIAL = $env:QA_TRAINING_ANDROID_SERIAL
+$env:EXPO_PUBLIC_APP_ENV = "automation"
+$env:EXPO_PUBLIC_BUILD_KIND = "automation"
+$env:EXPO_PUBLIC_TEST_MODE = "true"
+$env:EXPO_PUBLIC_DEFAULT_SEED = "default"
+pnpm run build:native:android:release
+pnpm run training:native:baseline
+& .\scripts\training\android-emulator.ps1 -Action Stop -Serial $env:QA_TRAINING_ANDROID_SERIAL
+```
+
+`Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`のImage不足は上記`sdkmanager`を使い、boot timeoutは`Start`を停止して`adb devices`とEmulator logを確認してから再試行します。APK install前にMaestroを再試行せず、Build / Install / Test Control Readyを順に確認します。終了時は必ず`Stop`でTraining Emulatorを停止します。
 
 ## Lesson 1: Maestroとは
 
@@ -94,7 +127,7 @@ Nativeでは画面遷移やTest ControlにDeep Linkを利用できます。
 例:
 
 ```text
-scenario-shop://products/product-basic-shirt
+scenario-shop://products/<product-id>
 ```
 
 また、Test Control ResetにもDeep Linkを使用します。
@@ -159,7 +192,7 @@ NativeアプリではApp Restart後の状態復元も重要です。
 
 「Android用とiOS用を最初から全件複製する」ことは避けます。
 
-Part 1ではAndroidで実際に手を動かし、iOSは差分を理解するところまでを標準とします。Part 2ではGitHub Actions上のAndroid Emulator / iOS Simulator実行を比較します。
+Part 1ではAndroidで実際に手を動かし、iOSは差分とBuild-only保証を理解するところまでを標準とします。Part 2ではGitHub Actions上のAndroid RuntimeとiOS Build-onlyを比較します。
 
 ## Lesson 10: Playwright vs Maestro
 
@@ -192,13 +225,13 @@ WebとNativeで、共通するテスト条件と異なる操作を記録しま�
 
 Cartへ商品を追加した後にAppを再起動し、状態復元を確認します。
 
-## 発展ハンズオン: iOS Simulator
+## 発展リファレンス: iOS Build-only
 
-Mac環境がある場合、Androidで実装したFlowをiOS Simulatorでも実行し、次を記録します。
+`native-ios-ci.yml`を読み、Runtimeを実行したと誤認せず、Build-only Evidenceとして次を記録します。
 
 - Flowを共用できた箇所
 - Platform差が出た箇所
-- iOS固有対応が本当に必要だった箇所
+- iOS RuntimeをRequiredにしない理由と、iOS固有Build差分
 
 ## 確認問題
 
@@ -218,4 +251,4 @@ Mac環境がある場合、Androidで実装したFlowをiOS Simulatorでも実�
 - PlaywrightとMaestroで同じBusiness Flowを1件以上比較している。
 - Native固有のテスト観点を1件以上説明できる。
 - Test Case IDとUI Test IDを区別できる。
-- Android / iOSで共用できるFlowとPlatform差分の考え方を説明できる。
+- Android RuntimeとiOS Build-onlyの保証差を、Current ADR / Workflowに沿って説明できる。
