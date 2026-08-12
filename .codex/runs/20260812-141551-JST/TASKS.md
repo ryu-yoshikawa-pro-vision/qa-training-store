@@ -14,16 +14,17 @@
 ## Discovered
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
-- D1. Native runtimeがproject custom agentのmodel metadataを表示しない場合は、独自runtime監査を追加せず、REPORTへ未確認として記録する。
+- [x] D1. Native runtimeがproject custom agentのmodel metadataを直接表示できなくても、独自runtime監査を追加しない方針を確認した。
 
-## Blocked
+## Historical Blockers (resolved)
 
-- B1. Codex CLI 0.147.0の現Native delegation APIが`quality_gate_runner`を`unknown agent_type`として拒否した。TOML/staticはPASSだが、quality runnerのNative smokeとそのvalidationは未実行。独自fallback/wrapperは作らず、Codex runtime更新またはcustom role discovery対応後に再実行する。
+- B1. Initial same-session attemptでは、Codex CLI 0.147.0のNative delegation APIが`quality_gate_runner`を`unknown agent_type`として拒否した。これは履歴として保持し、独自fallback/wrapperは作成していない。
+- Resolution: fresh Parent sessionで`quality_gate_runner`のNative spawnとParent指定validationがPASSし、最終状態のblockerではない。
 
 ## Follow-up (2026-08-12 15:18 JST)
 
 - B1は解消。fresh Parent sessionのNative runtimeで`quality_gate_runner`をspawnし、Parent指定validationを実行した。
 - `implementation_worker`のRun ownership smokeをserialで実施し、指定TOMLの1文言だけを変更、新規child Run Artifactなしを確認した。
-- WSL UbuntuのPOSIX/LF overlayで`bash scripts/verify`を実行した。LF入力はPASSしたが、HEAD以前から存在するtemplate contract不整合でFAILしたため、古い運用文言は追加しない。
+- WSL UbuntuのPOSIX/LF overlayで`bash scripts/verify`を実行した。初回FAILはPR-localのverify contract update omissionだったため、旧運用文言を復活させずverify側を修正して再実行する。
 
 Progress: 100% (8/8)

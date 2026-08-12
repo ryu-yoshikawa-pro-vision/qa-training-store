@@ -13,7 +13,7 @@
         "Confucius (code_researcher, read-only)",
         "Darwin (implementation_researcher, read-only)",
         "Dewey (test_investigator, read-only)",
-        "quality_gate_runner (blocked: unknown agent_type)"
+        "quality_gate_runner (initial attempt blocked; fresh-session follow-up completed and passed)"
     ],
     "repo":  "qa-training-store",
     "branch":  "feat/native-subagent-orchestration",
@@ -36,7 +36,7 @@
         ".codex/runs/20260812-142248-JST/"
     ],
     "validation":  {
-                       "status":  "failed",
+                       "status":  "passed",
                        "commands":  [
                            "tomllib parse for config and five agent TOMLs (PASS)",
                            "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 (PASS=3 FAIL=0 SKIP=0)",
@@ -46,12 +46,13 @@
                            "bash scripts/verify (FAIL before execution because Windows mixed/CRLF pipefail\\r)",
                            "scripts/sanitize-codex-artifacts.ps1 Write/Check for both Run directories (PASS)",
                            "codex --strict-config --version (PASS; codex-cli 0.147.0)",
-                           "quality_gate_runner Native spawn (BLOCKED; unknown agent_type)"
+                           "quality_gate_runner Native spawn initial attempt (BLOCKED; unknown agent_type; retained as historical evidence)",
+                           "quality_gate_runner Native spawn fresh Parent session (PASS; Parent-defined validation completed)"
                        ],
                        "warnings":  [
-                           "quality_gate_runner is defined and statically valid but is not discoverable by the current Native delegation API.",
-                           "PowerShell verify passed; Bash verify needs a POSIX/LF checkout.",
-                           "pnpm verify stopped at an unchanged baseline Prettier failure; downstream gates were not run."
+                           "Initial same-session quality_gate_runner spawn was blocked as unknown agent_type; fresh Parent session spawn and validation passed.",
+                           "POSIX/LF first follow-up exposed a PR-local verify contract update omission; the marker was corrected and final Bash verify passed.",
+                           "pnpm verify stops at an unchanged tests/contracts/native-production-module-resolution.test.ts format finding; clean CI format check is PASS and downstream local gates were not run."
                        ]
                    },
     "safety":  {
@@ -63,7 +64,7 @@
     "artifact_summary":  {
                              "codex_task_report_count":  0,
                              "hook_event_count":  0,
-                             "subagent_run_count":  7,
+                             "subagent_run_count":  10,
                              "evaluation_present":  false
                          },
     "hook_observations":  {
@@ -141,20 +142,28 @@
                               "mode":  "unknown",
                               "status":  "blocked",
                               "used_in_final_plan":  false,
-                              "summary":  "Native spawnがunknown agent_typeで拒否され、指定validationは未実行。"
+                              "summary":  "Initial same-session Native spawnがunknown agent_typeで拒否された。履歴として保持し、fresh Parent sessionで解消した。"
+                          },
+                          {
+                              "agent":  "Goodall",
+                              "role":  "quality_gate_runner",
+                              "mode":  "workspace_write",
+                              "status":  "completed",
+                              "used_in_final_plan":  true,
+                              "summary":  "Fresh Parent sessionでNative spawnし、Parent指定のverify.ps1とgit diff --checkを指定順に実行してPASS。Source/Test/Docs/Run Artifact変更、Git mutation、child spawnなし。"
                           }
                       ],
                       "summary":  {
-                                      "total":  8,
+                                      "total":  9,
                                       "read_only":  6,
                                       "writable":  1,
                                       "scope_violations":  0,
-                                      "used_in_final_plan":  7
+                                      "used_in_final_plan":  8
                                   }
                   },
     "evaluation_path":  null,
     "status":  "completed",
-    "primary_failure_category":  "flaky_or_env_issue",
+    "primary_failure_category":  null,
     "follow_up":  {
                       "fresh_parent_session":  true,
                       "quality_gate_runner":  {
@@ -183,17 +192,23 @@
                       "posix_lf_bash_verify":  {
                           "runtime":  "WSL Ubuntu / GNU Bash 5.2",
                           "lf_input":  "passed",
-                          "result":  "failed_template_contract",
+                          "initial_result":  "failed_template_contract",
+                          "initial_cause_classification":  "verify_contract_update_omission",
+                          "result":  "passed",
+                          "final_summary":  "PASS=1 FAIL=0 SKIP=3",
                           "pure_posix_skips":  [
                               "execpolicy",
                               "bash wrapper preflight",
                               "PowerShell wrapper preflight"
                           ],
-                          "cause_classification":  "pre_existing_contract_mismatch"
+                          "final_validation":  "bash scripts/verify"
                       },
                       "static_validation":  {
                           "toml_parse":  "passed",
                           "focused_prettier":  "passed",
+                          "powershell_verify":  "passed",
+                          "bash_verify":  "passed",
+                          "config_agents_section":  "present",
                           "max_threads":  4,
                           "max_depth":  1,
                           "ssot_keys":  2,

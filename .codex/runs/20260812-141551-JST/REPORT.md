@@ -74,6 +74,46 @@
 - Remaining: Codexが`quality_gate_runner`をNative custom roleとしてdiscoverできるruntimeでquality validationを再実行すること。POSIX/LF checkoutでBash verifyを再実行すること。baseline Prettier failureは該当ファイルの別修正作業で扱う。
 - Progress: 100% (8/8)
 
+## 2026-08-12 15:57 (JST) Final Fixes and Validation
+
+- Final Fixes:
+  - `scripts/verify`の旧AGENTS markerを現行のParent routing、researcher routing、bounded worker、Native delegation、child delegation禁止の契約へ更新した。`read-only 調査 subagent に限って委譲する`という旧運用制約は復活させていない。
+  - Bash / PowerShell verifyへ`[agents]` section、`default_subagent_model`、`default_subagent_reasoning_effort`のkey存在確認を追加した。model値や`max`はhard-codeしていない。
+  - `AGENTS.md`のsubagent使用／省略時のREPORT記録契約を、使用時の委譲内容・要約・Parent判断と、省略時の省略理由に分離した。
+  - `run.json`を最終状態へ整合させ、`validation.status=passed`、`primary_failure_category=null`、`evaluation_path=null`とした。initial same-session blockedは履歴として残し、fresh Parent sessionのquality gate成功をfinal recordへ追加した。
+  - L3 Approval / RollbackをPlanと本REPORTへ記録した。rollback automationは追加していない。
+  - Historical worker Run `.codex/runs/20260812-142248-JST/**`をPlan scopeへ明記し、削除せずEvidenceとして保持した。D1は独自runtime監査を追加しないdecision taskとして完了扱いにした。
+
+- Validation:
+  - 標準Python `tomllib` parse => PASS（config + 5 agent、`[agents]`、SSOT key 2件、agent個別model key 0件）。
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1` => PASS（`PASS=3 FAIL=0 SKIP=0`）。
+  - POSIX/LFのWSL Ubuntu / GNU Bash 5.2 overlayで`bash scripts/verify` => PASS（`PASS=1 FAIL=0 SKIP=3`、純POSIXに存在しないCodex/PowerShell系preflightだけSKIP）。初回POSIX failureはPR-localの`verify contract update omission`であり、修正後に再実行した。
+  - `git diff --check` => PASS（LF→CRLF warningのみ）。
+  - focused `pnpm exec prettier --check`（変更対象TOML/Markdown）=> PASS。
+  - `pnpm run verify` => local `format:check`で未変更の`tests/contracts/native-production-module-resolution.test.ts`を検出して停止。clean GitHub ActionsのStyle Quality / `format:check` PASSを外部evidenceとして優先し、Product/Test修正は行わない。
+
+- Native Subagents:
+  - `code_researcher`、`implementation_researcher`、`test_investigator`: Native read-only smoke PASS。
+  - `implementation_worker`: bounded one-file smoke PASS。Run Artifact作成、Source/Test/Docs変更、Git mutation、child spawnなし。
+  - `quality_gate_runner`: initial same-session attemptは`unknown agent_type`でblocked（履歴）。fresh Parent sessionでNative spawnし、Parent指定の`verify.ps1`と`git diff --check`を指定順に実行してPASS。追加command、Source/Test/Docs/Run Artifact変更、Git mutation、child spawnなし。agent定義は今回変更していないため再spawnは行っていない。
+
+- CI:
+  - Phase 1 CI: SUCCESS（過去のChromium依存導入時apt 403は再実行で解消済み）。
+  - Native CI: SUCCESS。
+
+- Final scope audit:
+  - Product Code: none
+  - tests: none
+  - `.github`: none
+  - CI workflow: none
+  - custom launcher / Runtime Compliance / ledger / dispatcher / custom sandbox: none
+  - Git mutation: none
+  - Run Directory: active Parent `20260812-141551-JST`とHistorical worker `20260812-142248-JST`以外の追加なし
+
+- Run Artifact sanitizer: Parent Run / Historical worker RunともにWrite+Check PASS（各`residual_findings=0`、`files_changed=0`）。
+
+- Progress: 100% (8/8)
+
 ## 2026-08-12 14:58 (JST) 最終Artifact確認
 
 - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260812-141551-JST -Write -Check` => PASS（4 files、0 changes、0 residual）。worker Run `20260812-142248-JST`もPASS（3 files、0 changes、0 residual）。

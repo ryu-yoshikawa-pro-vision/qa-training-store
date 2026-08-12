@@ -202,7 +202,7 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 - `implementation_worker` はファイル削除、rename、移動、`git add` / `git commit` / `git push` / `git rm` / `git reset` / `git clean` などのGit mutation、delete / renameを含むpatch operationを行わない。scope、設計判断、対象ファイル、検証方法に迷ったら編集せず親 agentに確認事項を返す。
 - すべてのchild agentは追加のsubagentを起動しない（No child subagent delegation）。`agents.max_depth = 1`を維持し、child専用config、hook enforcement、runtime recursion collectorは作らない。
 - subagentの起動・停止・並列実行・結果受領はCodex native delegation機能を利用する。Repositoryのshell / PowerShell / Python / Node scriptからsubagentを起動せず、既存`codex-safe.*` / `codex-task.*`をorchestration engineへ変更しない。
-- read-only調査subagentは編集・作成・削除を行わず、調査結果だけを返す。subagentを使った場合、委譲内容、返ってきた要約、親 agentが採用した判断、省略理由を `.codex/runs/<run_id>/REPORT.md` に記録する。
+- read-only調査subagentは編集・作成・削除を行わず、調査結果だけを返す。subagentを使用または省略した場合は `.codex/runs/<run_id>/REPORT.md` に記録する。使用時は委譲内容・要約・Parentの採用判断を、省略時は省略理由を記録する。
 - 利用可能なproject-scoped custom agentsは `.codex/agents/` 配下のTOML定義を確認する。
 
 ## 11. 改善ガバナンス

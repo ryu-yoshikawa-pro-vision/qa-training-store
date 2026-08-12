@@ -92,15 +92,27 @@ PR #20で試したRuntime Compliance、独自監査基盤、subprocess launcher�
 
 ## 9. 実行タスク
 
-- [ ] 1. Baselineとread-only Native調査をRunへ記録する。
-- [ ] 2. config、4 agent、quality gate agent、AGENTS、verify scriptsを最小差分で更新する。
-- [ ] 3. TOML/static validationを実行する。
-- [ ] 4. 5 agentのNative smoke testをParentから実行する。
-- [ ] 5. repository validation、sanitizer、scope auditを実行し、Run Artifactを確定する。
+- [x] 1. Baselineとread-only Native調査をRunへ記録する。
+- [x] 2. config、4 agent、quality gate agent、AGENTS、verify scriptsを最小差分で更新する。
+- [x] 3. TOML/static validationを実行する。
+- [x] 4. 5 agentのNative smoke testをParentから実行する。
+- [x] 5. repository validation、sanitizer、scope auditを実行し、Run Artifactを確定する。
 
 ## 10. Follow-up decisions
 
 - delegated child subagentはParentのactive Runを所有し、独自のRun DirectoryまたはRun Artifactを作成・更新しない。過去のworker RunはHistorical Evidenceとして保持する。
 - `scripts/verify` / `scripts/verify.ps1`は`default_subagent_model`と`default_subagent_reasoning_effort`のkey存在だけを検証し、model値と`max`を固定しない。
 - fresh Parent sessionのNative runtimeで`quality_gate_runner`をspawnし、Parent指定のPowerShell verifyと`git diff --check`がPASSすることを確認する。
-- WSL UbuntuのPOSIX/LF overlayでBash verifyを実行したが、HEAD以前から存在するtemplate contractの文言不整合でFAILした。古い運用文言を復活させず、clean CIのformat:check PASSと合わせて環境／baseline差として記録する。
+- Initial WSL UbuntuのPOSIX/LF overlayではtemplate contract failureが発生したが、follow-upでPR-localの`verify contract update omission`と分類し、verify側を現行契約へ更新して解消した。古い運用文言は復活させない。
+
+## 11. Final follow-up scope and approval
+
+- `scripts/verify`の旧AGENTS markerは、現在のParent routing、researcher routing、bounded worker、Native delegation、child delegation禁止の契約へ更新する。Bash / PowerShell双方で`[agents]` section、project default key、5 agentの個別model不在、quality gateのvalidation-only境界を確認する。
+- POSIX/LF環境のBash failureは`pre_existing_contract_mismatch`ではなく、PR-localの`verify contract update omission`として扱う。旧markerをAGENTSへ復活させず、verify側を現行契約へ合わせる。
+- Historical worker Run `.codex/runs/20260812-142248-JST/**`はownership修正前に生成されたEvidenceとして保持し、active Runには昇格させない。
+
+### Approval / Rollback
+
+- Approval: 2026-08-12 JST、ユーザーのPR #22実装指示により、`quality_gate_runner`の`workspace-write`およびCodex Native delegation導入を承認済みとして扱う。
+- Scope: `.codex/config.toml`、custom agent定義、`AGENTS.md`、verify contract、Run Artifact。
+- Rollback: 問題が発生した場合は`quality_gate_runner`定義を除去し、`.codex/config.toml`、既存4 agent、`AGENTS.md`、`scripts/verify*`をPR base相当の状態へ戻す。Git操作自体はユーザーが行う。rollback automationは追加しない。
