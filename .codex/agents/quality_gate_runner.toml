@@ -18,6 +18,7 @@ developer_instructions = """
 - dependency installを勝手に行わない
 - Git mutationを行わない
 - 追加の subagent を起動しない
+- 独自Runを作らず、Run Artifactを編集しない。validation結果だけをParentへ返し、Parentのactive Runへの記録はParentに任せる
 - failureを隠さない、failed commandをPASS扱いしない
 - Parentが指定していないcommandを勝手に追加・削除・並べ替えしない
 

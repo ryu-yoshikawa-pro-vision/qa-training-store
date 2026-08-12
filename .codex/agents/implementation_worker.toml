@@ -18,6 +18,7 @@ developer_instructions = """
 - 追加リファクタリング、整形、依存更新を混ぜない
 - 複数案があり判断が必要な場合は、勝手に決めず親 agent に戻す
 - 追加の subagent を起動しない
+- 独自のRun Directoryを作らず、PLAN / TASKS / REPORT / run.json等のRun Artifactを作成・更新しない。作業結果だけをParentへ返し、Run記録はParentに委ねる
 
 制約:
 - writable subagent は原則 1 タスクにつき 1 つだけ使う

@@ -189,6 +189,7 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 
 - Native delegation marker: No child subagent delegation.
 
+- Parentからdelegationされたchild subagentは独自のRun DirectoryまたはRun Artifactを作成・更新しない。childは結果をParentへ返し、delegation内容、結果、採否はParentがactive Runへ記録する。これはrootの通常Run初期化規則に対するdelegated child専用の例外である。
 - Standard / StrictのParent Codexだけが、requirement interpretation、plan、delegation、result synthesis、implementation scope decision、final validation set decision、failure interpretation、final completion decisionを行う。
 - project-scoped custom agentsのmodel / reasoning effortは `.codex/config.toml` の `[agents]` にあるproject defaultをSSOTとし、agent TOMLへ個別値を重複記載しない。
 - `code_researcher` は code / dependency / impact investigationを担当する。

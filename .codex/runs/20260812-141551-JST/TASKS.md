@@ -19,3 +19,11 @@
 ## Blocked
 
 - B1. Codex CLI 0.147.0の現Native delegation APIが`quality_gate_runner`を`unknown agent_type`として拒否した。TOML/staticはPASSだが、quality runnerのNative smokeとそのvalidationは未実行。独自fallback/wrapperは作らず、Codex runtime更新またはcustom role discovery対応後に再実行する。
+
+## Follow-up (2026-08-12 15:18 JST)
+
+- B1は解消。fresh Parent sessionのNative runtimeで`quality_gate_runner`をspawnし、Parent指定validationを実行した。
+- `implementation_worker`のRun ownership smokeをserialで実施し、指定TOMLの1文言だけを変更、新規child Run Artifactなしを確認した。
+- WSL UbuntuのPOSIX/LF overlayで`bash scripts/verify`を実行した。LF入力はPASSしたが、HEAD以前から存在するtemplate contract不整合でFAILしたため、古い運用文言は追加しない。
+
+Progress: 100% (8/8)

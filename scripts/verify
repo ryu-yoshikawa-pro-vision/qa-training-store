@@ -250,6 +250,8 @@ check_template_contract() {
   contains "approval_policy = \"untrusted\"" .codex/config.toml || return 1
   contains "web_search = \"cached\"" .codex/config.toml || return 1
   contains "network_access = false" .codex/config.toml || return 1
+  contains "default_subagent_model =" .codex/config.toml || return 1
+  contains "default_subagent_reasoning_effort =" .codex/config.toml || return 1
   contains "[profiles.repo_auto_net]" .codex/config.toml || return 1
   contains "network_access = true" .codex/config.toml || return 1
   contains "codex_hooks = true" .codex/config.toml || return 1

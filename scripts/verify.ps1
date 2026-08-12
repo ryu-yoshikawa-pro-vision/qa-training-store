@@ -219,6 +219,8 @@ function Test-TemplateContract {
     if ($config -notmatch [regex]::Escape('approval_policy = "untrusted"')) { throw "config missing untrusted approval policy" }
     if ($config -notmatch [regex]::Escape('web_search = "cached"')) { throw "config missing cached web_search" }
     if ($config -notmatch [regex]::Escape('network_access = false')) { throw "config missing disabled workspace-write network" }
+    if ($config -notmatch '(?m)^\s*default_subagent_model\s*=') { throw "config missing default subagent model key" }
+    if ($config -notmatch '(?m)^\s*default_subagent_reasoning_effort\s*=') { throw "config missing default subagent reasoning effort key" }
     if ($config -notmatch [regex]::Escape('[profiles.repo_auto_net]')) { throw "config missing repo_auto_net profile" }
     if ($config -notmatch [regex]::Escape('network_access = true')) { throw "config missing auto-net network" }
     if ($config -notmatch [regex]::Escape('codex_hooks = true')) { throw "config missing hook feature flag" }

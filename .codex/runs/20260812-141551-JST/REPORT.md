@@ -91,3 +91,27 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-08-12 15:18 (JST) Follow-up
+
+- Summary: P1/P2のfollow-upを完了した。child Run ownershipを明文化し、SSOT key存在チェックを追加し、fresh Parent sessionで`quality_gate_runner`のNative smokeとvalidationをPASSした。
+- Changes:
+  - `AGENTS.md`へ、delegated childは独自のRun Directory / Run Artifactを作成・更新せず、delegation内容・結果・採否をParentのactive Runへ記録する例外を追加した。
+  - `.codex/agents/implementation_worker.toml`と`quality_gate_runner.toml`へRun ownership禁止を追加した。worker smokeでは`作業結果だけをParentへ返し`の1文言だけを変更した。
+  - `scripts/verify` / `scripts/verify.ps1`へ、`.codex/config.toml`の`default_subagent_model =`と`default_subagent_reasoning_effort =`のkey存在チェックを追加した。値はhard-codeしていない。
+- Native Smoke:
+  - `quality_gate_runner`（fresh Parent session）: Native spawn成功。Parent指定の`powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`と`git diff --check`だけを指定順に実行し、両方exit code 0 / PASS。Primary failureなし、追加commandなし、Source/Test/Docs/Run Artifact変更なし。
+  - `implementation_worker`: `.codex/agents/implementation_worker.toml`の1文言だけを変更。独自Run Directory、PLAN / TASKS / REPORT / run.json、Git mutation、追加subagentなし。
+- Model configuration: `max_threads = 4`、`max_depth = 1`を維持し、configにSSOT key 2件、5 agent TOMLに個別`model` / `model_reasoning_effort`なし。TOML parseはPASS。
+- POSIX/LF Bash:
+  - WSL Ubuntu / GNU Bash 5.2でLF overlayを作り、`bash scripts/verify`まで実行した。LF入力判定はPASS。
+  - 結果は`FAIL: template contract files`、`execpolicy` / wrapper / PowerShellは純POSIX PATHでSKIP。HEADの`AGENTS.md`には旧文言`read-only 調査 subagent に限って委譲する`がなく、HEADの`scripts/verify`だけがその文言を要求していたため、今回のP1/P2やLF変換が原因とは確定できない。古い意味の文言や大規模なline-ending変更は追加しない。
+- CI Follow-up: clean GitHub Actions checkoutではStyle Quality / `format:check`がPASSしているため、local `pnpm run verify`の未変更test fileに対するPrettier findingをrepository baseline defectとは確定しない。Windows working-tree / line-ending等のlocal conditionの可能性として扱う。Native CIはSUCCESS、Phase 1のproduction-smokeはChromium依存導入時のMicrosoft apt repository 403でexternal failureであり、今回の`.codex/**`変更との因果は確認できない。
+- Scope Confirmation: Product Code、tests、CI workflow、custom launcher、Runtime Compliance system、ledger、dispatcher、Git mutationは変更していない。Run Directoryは既存のParent Run `20260812-141551-JST`とhistorical worker Run `20260812-142248-JST`以外に増えていない。
+- Commands:
+  - 標準`tomllib` parse => PASS（config + 5 agent、SSOT key、個別modelなし）
+  - `pnpm exec prettier --check` focused TOML/Markdown => PASS
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1` => PASS（quality_gate_runner経由）
+  - `git diff --check` => PASS（CRLF正規化warningのみ）
+- Remaining: POSIX Bashのtemplate contract不整合、既知のlocal `pnpm run verify` Prettier failure、Phase 1 external Chromium install failureは別途残る。今回のPRで古いcontract、Product、CI、Playwright installを修正しない。
+- Progress: 100% (8/8)

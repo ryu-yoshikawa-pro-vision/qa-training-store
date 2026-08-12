@@ -97,3 +97,10 @@ PR #20で試したRuntime Compliance、独自監査基盤、subprocess launcher�
 - [ ] 3. TOML/static validationを実行する。
 - [ ] 4. 5 agentのNative smoke testをParentから実行する。
 - [ ] 5. repository validation、sanitizer、scope auditを実行し、Run Artifactを確定する。
+
+## 10. Follow-up decisions
+
+- delegated child subagentはParentのactive Runを所有し、独自のRun DirectoryまたはRun Artifactを作成・更新しない。過去のworker RunはHistorical Evidenceとして保持する。
+- `scripts/verify` / `scripts/verify.ps1`は`default_subagent_model`と`default_subagent_reasoning_effort`のkey存在だけを検証し、model値と`max`を固定しない。
+- fresh Parent sessionのNative runtimeで`quality_gate_runner`をspawnし、Parent指定のPowerShell verifyと`git diff --check`がPASSすることを確認する。
+- WSL UbuntuのPOSIX/LF overlayでBash verifyを実行したが、HEAD以前から存在するtemplate contractの文言不整合でFAILした。古い運用文言を復活させず、clean CIのformat:check PASSと合わせて環境／baseline差として記録する。
