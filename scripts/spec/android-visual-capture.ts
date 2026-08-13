@@ -14,7 +14,25 @@ export const ANDROID_CANONICAL_PROFILE = {
   font_scale: 1,
   ui_mode: "light",
   orientation: "portrait",
+  resolution: "1080x1920",
+  density: 440,
 } as const;
+
+export type AndroidObservedVisualProfile = {
+  api_level: number;
+  abi: string;
+  resolution: string;
+  density: number;
+  locale: string;
+  font_scale: number;
+  ui_mode: string;
+  orientation: string;
+};
+
+export type AndroidVisualProfileProvenance = {
+  runtime_observed: readonly (keyof AndroidObservedVisualProfile)[];
+  workflow_configuration: readonly ["system_image", "avd_profile"];
+};
 
 export type AndroidVisualCaptureManifest = {
   capture_case_key: string;
@@ -30,6 +48,7 @@ export type AndroidVisualCaptureManifest = {
   font_scale: number;
   ui_mode: string;
   orientation: string;
+  profile_provenance: AndroidVisualProfileProvenance;
   workflow_run_id?: string;
   captured_at?: string;
 };
@@ -76,22 +95,33 @@ export async function validateAndroidVisualManifest(
     );
   if (manifest.api_level !== ANDROID_CANONICAL_PROFILE.api_level)
     issues.push(`api_level must be ${ANDROID_CANONICAL_PROFILE.api_level}`);
-  for (const field of [
-    "system_image",
-    "abi",
-    "avd_profile",
-    "locale",
-    "ui_mode",
-    "orientation",
-  ] as const) {
+  for (const field of ["system_image", "abi", "avd_profile"] as const) {
     if (manifest[field] !== ANDROID_CANONICAL_PROFILE[field])
       issues.push(`${field} must be ${ANDROID_CANONICAL_PROFILE[field]}`);
   }
-  if (!/^\d+x\d+$/.test(manifest.resolution)) issues.push("resolution must be WIDTHxHEIGHT");
-  if (!Number.isFinite(manifest.density) || manifest.density <= 0)
-    issues.push("density must be a positive number");
-  if (manifest.font_scale !== ANDROID_CANONICAL_PROFILE.font_scale)
-    issues.push(`font_scale must be ${ANDROID_CANONICAL_PROFILE.font_scale}`);
+  const observedIssues = validateAndroidObservedVisualProfile({
+    api_level: manifest.api_level,
+    abi: manifest.abi,
+    resolution: manifest.resolution,
+    density: manifest.density,
+    locale: manifest.locale,
+    font_scale: manifest.font_scale,
+    ui_mode: manifest.ui_mode,
+    orientation: manifest.orientation,
+  });
+  issues.push(...observedIssues);
+  if (manifest.profile_provenance === undefined) {
+    issues.push("profile_provenance is required for Android visual manifests");
+  } else {
+    const observedFields = [...manifest.profile_provenance.runtime_observed].sort().join(",");
+    const expectedFields = [...RUNTIME_PROFILE_FIELDS].sort().join(",");
+    if (observedFields !== expectedFields)
+      issues.push("profile_provenance.runtime_observed must list every runtime profile field");
+    if (manifest.profile_provenance.workflow_configuration.join(",") !== "system_image,avd_profile")
+      issues.push(
+        "profile_provenance.workflow_configuration must identify system_image and avd_profile",
+      );
+  }
   if (options.automationApkPath !== undefined) {
     if (!fs.existsSync(options.automationApkPath)) {
       issues.push(`automation APK does not exist: ${options.automationApkPath}`);
@@ -118,10 +148,39 @@ export type WriteAndroidVisualManifestOptions = AndroidVisualManifestValidationO
   captureCaseKey: string;
   rawPngPath: string;
   outputPath: string;
-  resolution: string;
-  density: number;
+  observedProfile: AndroidObservedVisualProfile;
+  systemImage: string;
+  avdProfile: string;
   workflowRunId?: string;
 };
+
+const RUNTIME_PROFILE_FIELDS = [
+  "api_level",
+  "abi",
+  "resolution",
+  "density",
+  "locale",
+  "font_scale",
+  "ui_mode",
+  "orientation",
+] as const satisfies readonly (keyof AndroidObservedVisualProfile)[];
+
+export function validateAndroidObservedVisualProfile(
+  observed: AndroidObservedVisualProfile,
+): string[] {
+  const issues: string[] = [];
+  if (!/^\d+x\d+$/.test(observed.resolution))
+    issues.push(`resolution must be a WxH value: ${observed.resolution}`);
+  if (!Number.isFinite(observed.density) || observed.density <= 0)
+    issues.push(`density must be a positive number: ${observed.density}`);
+  for (const field of RUNTIME_PROFILE_FIELDS) {
+    if (observed[field] !== ANDROID_CANONICAL_PROFILE[field])
+      issues.push(
+        `${field} must match canonical runtime profile: ${String(observed[field])} !== ${String(ANDROID_CANONICAL_PROFILE[field])}`,
+      );
+  }
+  return issues;
+}
 
 export async function writeAndroidVisualManifest(
   options: WriteAndroidVisualManifestOptions,
@@ -132,13 +191,19 @@ export async function writeAndroidVisualManifest(
   if (!fs.existsSync(options.automationApkPath)) {
     throw new Error(`automation APK does not exist: ${options.automationApkPath}`);
   }
+  const observedIssues = validateAndroidObservedVisualProfile(options.observedProfile);
+  if (observedIssues.length > 0) throw new Error(observedIssues.join("\n"));
   const manifest: AndroidVisualCaptureManifest = {
     capture_case_key: options.captureCaseKey,
     source_commit_sha: options.expectedSourceCommitSha,
     automation_apk_sha256: await sha256(options.automationApkPath),
-    ...ANDROID_CANONICAL_PROFILE,
-    resolution: options.resolution,
-    density: options.density,
+    ...options.observedProfile,
+    system_image: options.systemImage,
+    avd_profile: options.avdProfile,
+    profile_provenance: {
+      runtime_observed: RUNTIME_PROFILE_FIELDS,
+      workflow_configuration: ["system_image", "avd_profile"],
+    },
     captured_at: new Date().toISOString(),
   };
   if (options.workflowRunId !== undefined) manifest.workflow_run_id = options.workflowRunId;
@@ -160,32 +225,111 @@ function readCliOption(args: string[], name: string): string {
   return value;
 }
 
+function readOptionalCliOption(args: string[], name: string): string | undefined {
+  const index = args.indexOf(name);
+  if (index === -1) return undefined;
+  const value = args[index + 1];
+  if (value === undefined || value.trim() === "") throw new Error(`Missing CLI option: ${name}`);
+  return value;
+}
+
+async function readJsonFile<T>(filePath: string): Promise<T> {
+  try {
+    return JSON.parse(await readFile(filePath, "utf8")) as T;
+  } catch (error) {
+    throw new Error(
+      `Unable to read JSON file ${filePath}: ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
+}
+
 async function runCli(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
-  if (command !== "write-manifest") return;
-  const captureCaseKey = readCliOption(args, "--capture-case-key");
-  const sourceCommitSha = readCliOption(args, "--source-commit-sha");
-  const automationApkPath = readCliOption(args, "--automation-apk-path");
-  const rawPngPath = readCliOption(args, "--raw-png-path");
-  const outputPath = readCliOption(args, "--output");
-  const resolution = readCliOption(args, "--resolution");
-  const density = Number(readCliOption(args, "--density"));
-  if (!Number.isFinite(density)) throw new Error("--density must be numeric");
-  const workflowRunId = args.includes("--workflow-run-id")
-    ? readCliOption(args, "--workflow-run-id")
-    : undefined;
-  await writeAndroidVisualManifest({
-    expectedCaptureCaseKey: captureCaseKey,
-    expectedSourceCommitSha: sourceCommitSha,
-    automationApkPath,
-    captureCaseKey,
-    rawPngPath,
-    outputPath,
-    resolution,
-    density,
-    ...(workflowRunId === undefined ? {} : { workflowRunId }),
-  });
-  console.log(`Wrote Android visual manifest: ${outputPath}`);
+  if (command === "describe-case") {
+    const captureCaseKey = readCliOption(args, "--capture-case-key");
+    const captureCase = VISUAL_CAPTURE_CASE_BY_KEY.get(captureCaseKey);
+    if (captureCase === undefined || captureCase.platform !== "android")
+      throw new Error(`capture_case_key is not a registered Android target: ${captureCaseKey}`);
+    console.log(
+      JSON.stringify(
+        {
+          capture_case_key: captureCase.captureCaseKey,
+          screen_id: captureCase.screenId,
+          state_slug: captureCase.stateSlug,
+          platform: captureCase.platform,
+          scenario: captureCase.scenario,
+          route: captureCase.route,
+          role: captureCase.role,
+          setup: captureCase.setup,
+          ready: captureCase.ready,
+          capture_mode: captureCase.captureMode,
+          status: captureCase.status,
+          canonical_asset_path: visualAssetPath(captureCase),
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
+  if (command === "validate-profile") {
+    const profilePath = readCliOption(args, "--profile-json");
+    const observedProfile = await readJsonFile<AndroidObservedVisualProfile>(profilePath);
+    const issues = validateAndroidObservedVisualProfile(observedProfile);
+    if (issues.length > 0) throw new Error(issues.join("\n"));
+    console.log("Android canonical runtime profile validated.");
+    return;
+  }
+  if (command === "write-manifest") {
+    const captureCaseKey = readCliOption(args, "--capture-case-key");
+    const sourceCommitSha = readCliOption(args, "--source-commit-sha");
+    const automationApkPath = readCliOption(args, "--automation-apk-path");
+    const rawPngPath = readCliOption(args, "--raw-png-path");
+    const outputPath = readCliOption(args, "--output");
+    const profilePath = readCliOption(args, "--observed-profile-json");
+    const systemImage = readCliOption(args, "--system-image");
+    const avdProfile = readCliOption(args, "--avd-profile");
+    const workflowRunId = readOptionalCliOption(args, "--workflow-run-id");
+    const observedProfile = await readJsonFile<AndroidObservedVisualProfile>(profilePath);
+    await writeAndroidVisualManifest({
+      expectedCaptureCaseKey: captureCaseKey,
+      expectedSourceCommitSha: sourceCommitSha,
+      automationApkPath,
+      captureCaseKey,
+      rawPngPath,
+      outputPath,
+      observedProfile,
+      systemImage,
+      avdProfile,
+      ...(workflowRunId === undefined ? {} : { workflowRunId }),
+    });
+    console.log(`Wrote Android visual manifest: ${outputPath}`);
+    return;
+  }
+  if (command === "promote") {
+    const captureCaseKey = readCliOption(args, "--capture-case-key");
+    const manifestPath = readCliOption(args, "--manifest");
+    const rawPngPath = readCliOption(args, "--raw-png-path");
+    const automationApkPath = readCliOption(args, "--automation-apk-path");
+    const expectedSourceCommitSha = readCliOption(args, "--expected-source-commit-sha");
+    const rootDir = readOptionalCliOption(args, "--root-dir") ?? process.cwd();
+    const outputPath = readOptionalCliOption(args, "--output");
+    const manifest = await readJsonFile<AndroidVisualCaptureManifest>(manifestPath);
+    const promotedPath = await promoteAndroidVisualCapture({
+      manifest,
+      expectedCaptureCaseKey: captureCaseKey,
+      expectedSourceCommitSha,
+      automationApkPath,
+      rootDir,
+      rawPngPath,
+      ...(outputPath === undefined ? {} : { outputPath }),
+    });
+    console.log(`Promoted Android canonical visual: ${promotedPath}`);
+    return;
+  }
+  throw new Error(
+    "Usage: describe-case | validate-profile | write-manifest | promote (see repository Plan for options)",
+  );
 }
 
 if (process.argv[1]?.replaceAll("\\", "/").endsWith("android-visual-capture.ts")) {

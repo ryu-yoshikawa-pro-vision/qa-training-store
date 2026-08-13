@@ -1,0 +1,99 @@
+# Plan: PR #24 Review Repair
+
+## Objective
+
+Primary Planの契約に合わせ、構造検証とVisual完成判定を分離する。初回観測時点のCheckout Processing blockerはfresh runtime captureで再評価し、API34 Android canonical capture不足は解消・偽装せず、Structural Validationは通過し、Final Visual DoDは正しくBLOCKEDになる状態を実装する。
+
+## Current understanding
+
+- Branchは`feat/implement-screen-catalog-visual-specification`で、既存PR実装コミットと一致し、開始時のworking treeはcleanだった。
+- 現RunではWeb canonical assetは存在し、Android required targetsがblockedである。`SCREEN-CHECKOUT-PROCESSING/default/web-desktop`は当初blockedだったが、fresh runtime capture後にcapturedへrebaselineする。
+- `pnpm run validate:spec`は現在Structural Validation相当で、blocked/pendingを完成判定としてfailしていない。`verify`もFinal Visual Gate未接続である。
+- Native workflowにはcanonical profileの期待値投入とHome固定caseの経路がある。Runtime観測値、manual case選択、promotion CLIの接続を再確認する。
+- Primary PlanはScreen Catalogをindex、Normative SpecをExpected Behavior SSOT、ScreenshotをNon-normative Referenceと定義している。
+
+## Scope
+
+### In
+
+- `scripts/spec/visual-contract.ts`、validator入口、package scripts、contract tests
+- `scripts/spec/android-visual-capture.ts`、`.github/workflows/native-ci.yml`、Native workflow contract tests
+- `scripts/spec/materialize-visual-references.ts`と冪等性テスト
+- Screen Contract grammar / role / platform / audience / shared / oracle / asset budget / altのvalidatorとnegative tests
+- `docs/PROJECT_CONTEXT.md`、ADR/history、今回のRun Artifact
+
+### Out / Non-goals
+
+- Checkout ProcessingのProduct code / behavior修正
+- Product Bugを正常Screenshotへ置換すること
+- Android API34 runtimeをローカルで捏造・推測してcapture/promotionすること
+- Storybook、外部Visual SaaS、Screenshot DB、第二のExpected Behavior SSOT、巨大なcase registryの追加
+- Git add/commit/push/rebase/merge/branch操作、PR更新
+
+## Assumptions and open questions
+
+- `system_image`と`avd_profile`はworkflow configuration由来、その他のprofile値はruntime observation由来として責務を分ける。
+- API34 Current CI emulatorのresolution/densityは推測で書かず、workflowの実測コマンドと既存CI evidenceからcanonical expected値を確定する。CI evidenceが取得できない場合は、固定値を追加せず、capture時のobserved値をexpected profileへfail-close比較できる形とし、未取得をRunでBLOCKED記録する。
+- Existing promotion functionとMarkdown/HTML renderer utilityを再利用し、重複validationや新規DBは追加しない。
+
+## Hypotheses
+
+- H1: final gateは既存summaryを再利用した`pending=0 && blocked=0`判定として最小差分で追加できる。
+- H2: Android workflowでadb観測結果をJSON/CLI入力へ渡し、manifest生成を期待値コピーからobserved値記録へ変更できる。
+- H3: validator不足契約は既存Markdown parser / parsed spec modelへ局所検査を追加し、現行Specを壊さずnegative fixtureで固定できる。
+
+## Change strategy
+
+1. Current source/test/workflow mappingとPR review evidenceを確定する。
+2. Structural / Final APIとpackage/verify wiringを追加し、blocked/pending contract testsを先に固定する。
+3. Android profile observation/assertion、case selection、describe/promote CLI、manifest/promotion integrityを修正する。
+4. Materializer冪等性とvalidator missing contractsを実装し、negative testsを追加する。
+5. DocumentationとRun Artifactを更新し、Structural PASS / Final BLOCKEDを含む全validationを実行する。
+
+## Allowed change surface
+
+- `scripts/spec/**`
+- `tests/contracts/**`
+- `.github/workflows/native-ci.yml`
+- `package.json`
+- `docs/PROJECT_CONTEXT.md`
+- `docs/adr/0013-screen-catalog-visual-reference.md`
+- `docs/history/**`（今回判断の追記用）
+- `.codex/runs/20260813-084749-JST/**`
+
+Product `app/**`は変更しない。
+
+## Validation plan
+
+- `pnpm run format:check`
+- `pnpm run lint:markdown`
+- `pnpm run validate:spec`（Structural PASS）
+- `pnpm run validate:spec-visuals:final`（現状BLOCK/FAIL。blocked/pending残存が理由であることを確認）
+- `pnpm run build:spec`
+- `pnpm run lint`
+- `pnpm run typecheck`
+- `pnpm run test:contracts`
+- `pnpm run test`
+- `pnpm run build:web`
+- `pnpm run verify`（Final Gate接続後は現状BLOCK/FAILが正しい）
+- 可能な範囲で`pnpm run native:android:doctor`とNative static contract tests
+- 最後にself-review、`git diff --check`、Run Artifact sanitizer Write/Check
+
+## Definition of Done for this repair
+
+- Structural Validationは現行blocked targetを理由にfailしない。
+- Final Gateはpendingまたはblockedが1件でもあればfail-closeし、`verify`へ接続される。
+- Android manifestはobserved runtime valuesを記録し、capture前にexpected profileとassertする。wrong profile/source/APK/case/outputはpromotionしない。
+- manual dispatchはRegistryの任意のAndroid required targetを`capture_case_key`で選べる。
+- materializerは2回実行して差分なし。
+- 指摘されたvalidator不足契約とnegative testsを追加する。
+- 未実行API34 captureはblockedとして明示し、Final PASSへ偽装しない。Checkout Processing Web Targetはfresh captureとpromotionの証跡が揃った場合だけcapturedへ更新する。
+
+## Thinking log
+
+- 2026-08-13 JST: 既存実装はPR #24のHEADにあり、review repairとして新Runを開始。レビュー指摘はPrimary PlanのFinal Gate、Android evidence provenance、validator fail-close不足に直接関係するため、must_fixとして扱う。
+
+## Rebaseline update
+
+- 2026-08-13 JST: ユーザー確認とfresh Web UI Reviewにより、Checkout Processing Product Fixは実装前からCurrent Runtimeへ反映済みであることを確認した。`payment-processing` scenarioでProcessing headingがreadyとなり、fresh raw PNGからcanonical WebPとMarkdown referenceを生成した。
+- この変更によりCheckout Processing Web Targetはblockedではなくcapturedとなった。Product codeは変更していない。Final DoDの残存blockerはAPI34 Android required targetsである。

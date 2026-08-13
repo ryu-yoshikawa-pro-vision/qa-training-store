@@ -35,6 +35,7 @@
     "security:check": "tsx scripts/security-static-check.ts",
     "validate:spec": "tsx scripts/spec/validate-all.ts",
     "validate:spec-visuals": "tsx scripts/spec/validate-all.ts",
+    "validate:spec-visuals:final": "tsx scripts/spec/validate-all.ts --visuals-final",
     "build:spec": "tsx scripts/spec/build-spec.ts",
     "promote:spec-visuals": "tsx scripts/spec/promote-web-visuals.ts",
     "materialize:spec-visual-references": "tsx scripts/spec/materialize-visual-references.ts",
@@ -62,7 +63,7 @@
     "native:android:test:boundary": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action BoundarySuite",
     "native:android:evidence": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Evidence",
     "native:android:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action All",
-    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run validate:spec && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
+    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
   },
   "dependencies": {
     "@expo/metro-runtime": "57.0.9",

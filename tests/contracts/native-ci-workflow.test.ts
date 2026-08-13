@@ -186,13 +186,23 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain("capture_spec_visuals:");
     expect(nativeWorkflow).toContain("type: boolean");
     expect(nativeWorkflow).toContain("default: false");
+    expect(nativeWorkflow).toContain("capture_case_key:");
+    expect(nativeWorkflow).toContain("type: string");
+    expect(nativeWorkflow).toContain("default: SCREEN-STOREFRONT-HOME/default/android");
     expect(captureStart).toBeGreaterThanOrEqual(0);
     expect(capture).toContain("inputs.capture_spec_visuals == true");
     expect(capture).not.toContain("pull_request");
-    expect(capture).toContain("SCREEN-STOREFRONT-HOME/default/android");
+    expect(capture).toContain('CASE_KEY="${{ inputs.capture_case_key }}"');
+    expect(capture).toContain("android-visual-capture.ts describe-case");
+    for (const captureMetadata of ["scenario", "route", "role", "setup", "ready", "capture_mode"]) {
+      expect(capture).toContain(`.${captureMetadata}`);
+    }
     expect(capture).toContain("source-commit-sha");
-    expect(capture).toContain("automation-apk-path");
+    expect(capture).toContain("--automation-apk-path");
     expect(capture).toContain("android-visual-capture.ts write-manifest");
+    expect(capture).toContain("--observed-profile-json");
+    expect(capture).toContain("--system-image google_apis");
+    expect(capture).toContain("--avd-profile pixel_2");
     expect(runtime).toContain("native-android-screen-catalog-visuals-");
     for (const profileValue of [
       "android-${ANDROID_API_LEVEL}",

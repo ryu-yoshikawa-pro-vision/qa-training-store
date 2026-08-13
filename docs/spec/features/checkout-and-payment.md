@@ -154,6 +154,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 ##### `default`
 
+###### Web Desktop — Canonical Visual Reference
+
+[![SCREEN-CHECKOUT-PROCESSING default web-desktop](../assets/screens/SCREEN-CHECKOUT-PROCESSING/default/web-desktop.webp)](../assets/screens/SCREEN-CHECKOUT-PROCESSING/default/web-desktop.webp)
+
 ### SCREEN-CHECKOUT-COMPLETE — Checkout Complete
 
 Screen Catalog: [Screen Catalog](../screen-catalog.md)

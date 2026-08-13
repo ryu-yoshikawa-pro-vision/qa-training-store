@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "run_id": "20260813-084749-JST",
+  "task_type": "repair",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "feat/implement-screen-catalog-visual-specification",
+  "base_branch": "origin/main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".github/workflows/native-ci.yml",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/spec/features/checkout-and-payment.md",
+    "docs/history/2026-08-13_093000_screen-catalog-review-repair.md",
+    "docs/adr/0013-screen-catalog-visual-reference.md",
+    "package.json",
+    "scripts/spec/android-visual-capture.ts",
+    "scripts/spec/materialize-visual-references.ts",
+    "scripts/spec/validate-all.ts",
+    "scripts/spec/visual-registry.ts",
+    "scripts/spec/visual-contract.ts",
+    "tests/contracts/native-ci-workflow.test.ts",
+    "tests/contracts/visual-contract.test.ts"
+  ],
+  "validation": {
+    "status": "partial",
+    "commands": [
+      "pnpm run format:check",
+      "pnpm run lint:markdown",
+      "pnpm run validate:spec",
+      "pnpm run validate:spec-visuals:final",
+      "pnpm run build:spec",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run test:contracts",
+      "pnpm run test",
+      "pnpm run build:web",
+      "pnpm run verify",
+      "pnpm run check:native-route-dependencies",
+      "pnpm run validate:eas:config",
+      "pnpm run validate:native-production-bundle",
+      "pnpm run native:android:doctor",
+      "pnpm run test:e2e:chromium",
+      "pnpm run test:a11y",
+      "pnpm run test:e2e:mobile-boundary",
+      "pnpm run test:e2e:cross-role",
+      "ui-review.spec.ts (4 viewport)",
+      "pnpm exec tsc --noEmit --project tsconfig.json",
+      "pnpm exec vitest run tests/contracts/visual-contract.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm run promote:spec-visuals",
+      "pnpm run materialize:spec-visual-references",
+      "ui-review.spec.ts checkout-processing desktop fresh capture",
+      "android-local.ps1 -Action Doctor -RunId 20260813-130000-android-doctor-recheck",
+      "pnpm run test:e2e:chromium",
+      "pnpm run test:a11y",
+      "pnpm run test:e2e:mobile-boundary",
+      "pnpm run test:e2e:cross-role"
+    ],
+    "warnings": [
+      "Final Visual Gate and verify intentionally fail because 25 Android targets are blocked and 69/94 targets are captured.",
+      "lint reports 65 existing warnings.",
+      "4 viewport concurrent UI Review had one desktop resource timeout; isolated desktop rerun passed.",
+      "Concurrent A11y/mobile/cross-role attempt hit shared 8081 runtime contention; all three suites passed when rerun sequentially."
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260813-084749-JST/evaluation.json",
+  "status": "partial",
+  "primary_failure_category": "visual_dod_blocked"
+}

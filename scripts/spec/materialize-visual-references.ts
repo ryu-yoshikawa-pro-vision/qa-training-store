@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { listSpecMarkdown } from "./build-spec";
 import {
   collectVisualStates,
@@ -7,8 +8,6 @@ import {
   type VisualContractIssue,
 } from "./visual-contract";
 import { VISUAL_CAPTURE_CASES, visualAssetPath } from "./visual-registry";
-
-const rootDir = process.cwd();
 
 function relativeAssetPath(specFile: string, asset: string): string {
   return path.posix.relative(path.posix.dirname(specFile), asset);
@@ -50,11 +49,37 @@ function nextStateHeading(lines: string[], from: number, end: number): number {
   return next === -1 ? end : next;
 }
 
-function hasAssetReference(lines: string[], start: number, end: number, asset: string): boolean {
-  return lines.slice(start, end).some((line) => line.includes(asset));
+function resolveMarkdownTarget(specFile: string, target: string): string {
+  const [withoutHash = ""] = target.split("#", 1);
+  const normalized = withoutHash.replaceAll("\\", "/");
+  if (normalized.startsWith("docs/spec/")) return path.posix.normalize(normalized);
+  return path.posix.normalize(path.posix.join(path.posix.dirname(specFile), normalized));
 }
 
-async function main(): Promise<void> {
+function hasAssetReference(
+  lines: string[],
+  start: number,
+  end: number,
+  specFile: string,
+  asset: string,
+): boolean {
+  const imagePattern =
+    /\[!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)\]\(([^)\s]+)(?:\s+"[^"]*")?\)|!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+  return lines.slice(start, end).some((line) => {
+    for (const match of line.matchAll(imagePattern)) {
+      const source = match[1] ?? match[3] ?? "";
+      const href = match[2] ?? source;
+      if (
+        resolveMarkdownTarget(specFile, source) === asset ||
+        resolveMarkdownTarget(specFile, href) === asset
+      )
+        return true;
+    }
+    return false;
+  });
+}
+
+export async function materializeVisualReferences(rootDir = process.cwd()): Promise<number> {
   const catalog = parseScreenCatalog(rootDir);
   const issues: VisualContractIssue[] = [];
   const states = collectVisualStates(rootDir, catalog, issues);
@@ -78,22 +103,37 @@ async function main(): Promise<void> {
       throw new Error(`visual state heading is missing: ${state.screenId}/${state.slug}`);
     const end = nextStateHeading(lines, heading, bounds.end);
     const asset = visualAssetPath(captureCase);
-    if (hasAssetReference(lines, heading, end, asset)) continue;
     const relative = relativeAssetPath(state.file, asset);
+    if (hasAssetReference(lines, heading, end, state.file, asset)) continue;
     const block = [
       `###### ${platformLabel(captureCase.platform)} — Canonical Visual Reference`,
       "",
       `[![${captureCase.screenId} ${captureCase.stateSlug} ${captureCase.platform}](${relative})](${relative})`,
+      "",
     ];
     lines.splice(end, 0, ...block);
     referencesAdded += 1;
   }
   for (const [specFile, lines] of files)
     fs.writeFileSync(path.join(rootDir, specFile), lines.join("\n"));
+  return referencesAdded;
+}
+
+async function main(): Promise<void> {
+  const referencesAdded = await materializeVisualReferences();
   console.log(`Materialized Markdown visual references: ${referencesAdded}`);
 }
 
-void main().catch((error) => {
-  console.error(error instanceof Error ? error.message : String(error));
-  process.exitCode = 1;
-});
+function isMainModule(): boolean {
+  return (
+    process.argv[1] !== undefined &&
+    pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
+  );
+}
+
+if (isMainModule()) {
+  void main().catch((error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  });
+}

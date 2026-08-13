@@ -198,9 +198,8 @@ const customerCases: CaptureCase[] = [
       "/checkout/processing?orderId=order-payment-failed",
       { role: "customer", scenario: "payment-processing" },
     ),
-    status: "blocked",
-    blockerReason:
-      "Current Web route resolves the payment-processing seed to checkout/failed before the processing UI can be captured; Product Fix must be handled separately.",
+    status: "captured",
+    blockerReason: null,
   },
   android(
     "SCREEN-CHECKOUT-PROCESSING",
