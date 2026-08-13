@@ -14,8 +14,8 @@
 - [x] 10. Training Web desktop / mobile / expected-failureを専用runtimeで実行しEvidenceを確認する
 - [x] 11. Android marker後にTraining Doctor / Prepare / Start、x86_64 Release Build、APK検査、Install、Smoke、Training Maestro、Evidence、cleanupを実行する
 - [x] 12. full test、`pnpm run verify`、最終self-review、Run Artifact同期方針を確定する
-- [ ] 13. Fresh checkout / Fresh Training Copyを使ったFresh Learner full journeyを実施する
-- [ ] 14. Final Delivery Readiness: exact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する（50021adのPhase 1 / Native CI successは別途記録済み）
+- [x] 13. Fresh checkout / Fresh Training Copyを使ったFresh Learner full journeyを実施する
+- [ ] 14. Final Delivery Readiness: pre-freeze Run Artifact確定後にcommit / push、Source Required CI、FINAL_CANDIDATE_SHA freezeを行い、exact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。freeze後の完了判定はPR Final Delivery Recordをcanonical evidenceとし、このTask / Run Artifactは更新しない
 - [x] 15. 追加repair: Training Workflowのruns-on / checkout persist-credentials / alternate package entrypoint / remote script pipeを構造検証し、negative contractを追加する
 - [x] 16. 追加repair: Learner Exercise用Mobile entrypointを追加し、教材・Curriculum validator・contractへ接続する
 - [x] 17. 追加repair: Maestro invocation helperを分離してrunnerのsilent-success経路を除去し、Windows quoting契約を維持する
@@ -33,4 +33,5 @@
 ## Blocked
 
 - Source repairはcommit / push済みで、修正Sourceに対するRequired Phase 1 / Native CIも成功済み。Source correctness gateは完了している。
-- Fresh Learner full journeyは未完了。Fresh Learnerと最終Run Artifact状態が完了するまでFINAL_CANDIDATE_SHAは意図的にfreezeしない。その後にexact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。
+- Fresh Learner full journeyは完了。Fresh CopyのWeb desktop / mobile / learner exercise / expected-failure、Workbook / Spec / Part 1 / Part 2のlearner path、Android Release APKのInstall / Smoke / Test Control / Training Maestro baselineを確認した。標準Training AVDではSystem UI ANRが発生したが、同じFresh Learner用のRelease APKを認証済み物理端末で再検証し、Android経路をPASSとした。AVDの環境障害は残課題として扱わない。
+- Source correctness / Required Source CI / Fresh Learner / pre-freeze Artifactは完了済み。Git mutationは禁止のため、ユーザーが最終Artifactをcommit / pushし、修正後Required CIを確認した後にFINAL_CANDIDATE_SHAをfreezeする。その後にexact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。

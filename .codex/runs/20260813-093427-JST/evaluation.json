@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "最終Source repairはcommit / push済みで、修正Sourceに対するRequired Phase 1 / Native CI success、Android Runtime / Training Maestro baseline successを確認済み。Source implementationとlocal validationは完了している。Fresh Learner full journey、FINAL_CANDIDATE_SHA freeze、exact-SHA Training Copy、Final Delivery Readinessは未完了。",
+      "evidence": "Source implementation、local validation、修正Sourceに対するRequired Phase 1 / Native CI success、Fresh Learner full journey、pre-freeze Run Artifact更新は完了している。Fresh CopyでWeb desktop / mobile / learner exercise / expected-failure、Android Release APKのInstall / Smoke / Test Control / Training Maestro baselineを確認した。FINAL_CANDIDATE_SHA freeze、exact-SHA Training Copy、Final Delivery Readinessは未完了。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "scope_control": {
@@ -22,7 +22,7 @@
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "Git mutationなし。marker release条件を確認後にcurrent worktree専用Android runtimeだけを使用し、Formal Maestroは実行せず、Stop cleanupを確認した。Training Workflowはread-only / no-secret / no-environment / no-self-hosted / no-deploy boundary。",
+      "evidence": "Git mutationなし。marker release条件を確認後にcurrent worktree専用Training AVDを使用し、System UI ANRを記録・cleanupした。その後、認証済み物理Android端末を起床・解除し、Fresh Learner用Release APKのInstall / Smoke、native-test-control 1/1、Training Maestro baseline 1/1を実行した。Training Workflowはread-only / no-secret / no-environment / no-self-hosted / no-deploy boundary。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "reviewability": {
@@ -37,7 +37,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "最終Source repairはcommit / push済みで、Required Phase 1 / Native CI successとAndroid Runtime / Training Maestro baseline successを確認済み。Source correctness gateは完了しているが、Fresh Learner、FINAL_CANDIDATE_SHA freeze、exact-SHA Training Copy、remote Delivery Readinessは未成立。",
+      "evidence": "Source correctness gate、Required Phase 1 / Native CI success、Fresh Learner、pre-freeze Run Artifact更新は完了している。標準Training AVDはSystem UI ANRだったが、認証済み物理Android端末でAndroid Test Control / Training Maestro baselineをPASSした。Git mutationは禁止のため、ユーザーのcommit / pushと修正後Required CI成功を確認してからFINAL_CANDIDATE_SHAをfreezeし、そのexact SHAでTraining Copy / Deliveryを行う。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     }
   },
@@ -45,23 +45,23 @@
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "修正Sourceに対するRequired Phase 1 / Native CIはsuccess。Fresh Learner full journey、FINAL_CANDIDATE_SHA freeze、Training Copy exact-SHA 3 runs、SHA equality、Final Delivery Readinessは未実行。",
-      "detail": "Source correctness gateは完了しているが、Fresh LearnerとFinal Delivery Readinessの完了前にFinal Candidateをfreezeしない。"
+      "evidence": "修正Sourceに対するRequired Phase 1 / Native CI、Fresh Learner full journey、pre-freeze Run Artifact更新はsuccess。Fresh CopyのWeb desktop / mobile / learner exercise / expected-failure、物理Android端末のAndroid Test Control / Training Maestro baselineもPASSした。FINAL_CANDIDATE_SHA freeze、Training Copy exact-SHA 3 runs、SHA equality、Final Delivery Readinessは未成立。",
+      "detail": "Source correctness gateとFresh Learnerは完了している。ユーザーがpre-freeze Artifactをcommit / pushし、修正後Required CI成功を確認した後にcurrent PR HEADをFINAL_CANDIDATE_SHAとしてfreezeし、そのexact SHAでFinal Deliveryを実施する。"
     },
     {
       "category": "environment_failure",
       "severity": "medium",
-      "evidence": "Training Androidの初回DoctorはSDK env未設定でfail-close。過去のBuild sequenceでは長いPath回避のshort virtual storeを使用し、外側commandはtimeoutしたがGradle logはBUILD SUCCESSFUL。",
-      "detail": "明示的SDK envでDoctor、Training AVD identity、既存APK独立検査、Install、Smoke、Training baseline、cleanupはPASS。今回のrunner-only repairではAPK rebuildとFormal Maestroは実施していない。"
+      "evidence": "Fresh Learner Androidでは標準Training AVDのSystem UI ANRを確認した。AVDはStop cleanup後、認証済み物理Android端末を起床・解除し、arm64-v8a Release Build、Install、Smoke、native-test-control 1/1、Training Maestro baseline 1/1をPASSした。",
+      "detail": "標準AVDのSystem UI状態は環境障害として記録するが、Android capabilityは物理端末で独立に再検証できたため、Fresh Learner AndroidをPASS扱いした。Source変更やFormal Regressionの変更は行っていない。"
     }
   ],
   "improvement_candidates": [
     {
       "target": "Training Copy remote Delivery Readiness",
-      "evidence": "FINAL_CANDIDATE_SHAを意図的に未freezeとしているため、exact-SHA manifestとremote workflow conclusionは未確定。",
+      "evidence": "Fresh Learnerとpre-freeze Run Artifactは完了したが、FINAL_CANDIDATE_SHAはユーザーのcommit / pushと修正後Required CI確認前のため未freeze。exact-SHA manifestとremote workflow conclusionは未確定。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"],
       "expected_impact": "Merge前のSHA equalityとTraining Copy実行結果を最終候補へ固定できる。",
-      "recommendation": "修正をcommitした後、new final PR HEAD SHAでTraining Copy Web / Android / expected-failureを3回実行し、actual conclusionとArtifactを記録する。"
+      "recommendation": "Fresh Learnerとpre-freeze Run Artifactを完了し、最終変更をcommit / pushしてSource Required CI成功を確認した後、current PR HEADをFINAL_CANDIDATE_SHAとしてfreezeする。そのexact SHAでTraining Copy Web / Android / expected-failureを3回実行し、actual conclusion、Artifact、SHA equalityを外部Final Delivery Recordへ記録する。"
     }
   ]
 }

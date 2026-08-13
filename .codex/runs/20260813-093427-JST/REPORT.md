@@ -388,3 +388,163 @@ Progress: 90% (18/20)
 - Sanitizer Write / Check => PASS（5 files、0 residual findings）。
 - `git diff --check` => PASS（CRLF warningのみ）。
 - allowed-files check => PASS。変更対象はactive Runの4ファイルのみで、Source変更なし。
+
+## 2026-08-14 06:35 JST — Fresh Learner / pre-freeze contract reconciliation
+
+### Final Delivery contract
+
+- Final Delivery EvidenceがRun Artifactへの追記を要求すると、`FINAL_CANDIDATE_SHA` freeze後のREPORT更新がPR HEADを変え、Evidenceを無効化する自己参照ループになることを確認した。
+- `docs/plans/2026-08-10_141200_test-automation-curriculum-remediation.md`を最小差分で更新し、Fresh Learner / Source validation / pre-freeze Run Artifact確定 → commit / push → Source Required CI → `FINAL_CANDIDATE_SHA` freeze → exact-SHA Training Copy / 3 runs → SHA equalityの順序へ統一した。
+- `FINAL_CANDIDATE_SHA` freeze直前までをActive Runのpre-freeze authoritative recordとし、freeze後はCurrent PR BranchのSource / Plan / Run Artifactを変更しない。freeze後のFinal Delivery RecordはPR #25のGitHub commentをcanonical evidenceとする。
+- このRunではGit mutationを行わず、Final Candidate SHAをfreezeしていない。したがってpost-freeze Deliveryを開始しない。
+
+### Fresh Learner environment
+
+- Fresh Copy: `.artifacts/fresh-learner-20260814-051914/`。既存`node_modules`、output、Playwright cache、learner artifactを持ち込まず、`pnpm install --frozen-lockfile --ignore-scripts`後に開始した。
+- Fresh CopyのTraining Copy preparation / exact source resolutionはPASS。`training:copy:validate`もTraining active workflow allowlist、manifest SHA、Trust BoundaryをPASSした。
+- Source rootの`validate:spec`はPASS。Training Copy上の`validate:curriculum`はFormal `.github/workflows/ci.yml`をactiveから除去するTraining Copy設計とvalidatorのSource-root前提が衝突してfailしたため、Training Copy validator PASSとは分離した。Source rootのCurriculum validationはpre-freeze gateで再確認する。
+- Required Curriculum 21文書の存在、learner-facing package entrypoint（Web desktop / mobile baseline / mobile exercise / expected-failure / Native / Copy / validator）を確認した。Instructor Referenceを解答として先読みしていない。
+
+### Fresh Learner results
+
+- Web RuntimeはFresh Copy専用の`http://127.0.0.1:8086`で起動した。
+- Training Web desktop baseline: PASS（1/1）。
+- Training Web mobile baseline: PASS（1/1）。
+- Learner exercise mobile entrypoint: PASS（1/1）。`training/playwright/exercises`を`training-mobile-chromium`で実行した。
+- Expected-failure: intentional child failureを確認し、wrapper contractはPASS。今回runでzip / png / webm / html Evidenceを確認した。GitHub Workflow actual conclusionのremote failureは未実行であり、local wrapper PASSをremote Delivery PASSへ読み替えていない。
+- Workbook / Spec / Part 1 / Part 2のlearner pathはcanonical Navigation、完了条件、Training境界、Android/iOS保証、Git/CI/Quality Gate記述を本文だけで追跡できることを静的に確認した。
+- Android marker `visual-android-released.json`（`android_runtime_released=true` / `next_agent_can_use_android=true`）を確認し、Training AVD `scenario-shop-training-api34`を使用した。
+- Android Doctor（明示SDK / Java環境）/ Prepare / Start / AVD identityはPASS。標準Release buildは外側timeout、ABI-aware buildは長いPathで一度failした後、current worktree専用short junctionで`BUILD SUCCESSFUL`。今回生成APKのInstall / SmokeはPASSした。
+- `native-test-control`単体は2回ともSystem UIの`isn't responding`ダイアログが前面に残り、`Native test runtime listening`操作を遮断してFAIL。画面背後にアプリとruntime listeningは存在し、Evidence screenshot / UI hierarchy / JUnit / logcatを取得した。これは`DEVICE_FAILURE` / `blocked_environment`として扱い、Training Maestro baseline、Formal Maestro full suite、後続Native flowは実行していない。
+- AVDはStopでcleanup済み。Fresh Learner AndroidはPASS扱いせず、Task 13は未完了のままとする。既存PR Source CI / 過去Training Maestro successはFresh Learner Androidの成功に読み替えない。
+
+### Findings / source decision
+
+- Source correctness上の新規blocking defectは確認していない。今回のAndroid停止原因はSystem UI / AVD状態であり、Product Business Logic、Formal Regression、Training sourceを変更しない。
+- Fresh LearnerはWeb部分PASS、Android capabilityはblocked_environment。Required Journeyの完了へ読み替えない。Recoveryの実施（AVD Stop / Start、APK再Install / Smoke）は記録したが、同じSystem UI ANRが再現したため無目的な再試行を停止した。
+- Subagentは使用しなかった。AGENTS.mdのNative delegation markerが`No child subagent delegation`で、今回のpre-freeze Artifact整合と実Runtime結果は親Agentが直接照合できたため、結果の分散を避けた。
+
+### Current state / remaining
+
+- Source correctness gate、修正Sourceに対するRequired Phase 1 / Native CI success、Fresh Web learner pathは確認済み。
+- Fresh Learner full journeyはAndroid `blocked_environment`のため未完了。Task 13はunchecked、Task 14もunchecked。Progress: 90% (19/21)。
+- `run.json.status=partial` / `evaluation.json.result=partial`、primary failure categoryは`missing_validation`を維持し、Android環境停止は追加の`environment_failure`として記録する。
+- Fresh Learnerとpre-freeze Run Artifactを完了してcommit / pushし、post-change Required CIが成功するまで`FINAL_CANDIDATE_SHA`はfreezeしない。
+- その後にexact-SHA Training Copy Web / Android / expected-failure、remote Delivery Readiness、external Final Delivery Record、SHA equalityを実施する。今回の未コミットpre-freeze変更後にFinal Deliveryを実行していない。
+
+### Final pre-freeze artifact checks
+
+- `pnpm run format:check` => PASS。
+- `run.json` / `evaluation.json` JSON parse => PASS。
+- TASKS checkbox再計算（Now + Discovered、Blocked除外）=> PASS（19/21、90%）。
+- `git diff --check` => PASS（CRLF warningのみ、whitespace errorなし）。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check` => PASS（5 files、0 replacements、0 residual findings）。
+- Allowed-files check => PASS。今回の変更はPlanとActive Runの標準Artifact 4ファイルのみ。Source / Product / Workflow / Test / Curriculum implementationは変更していない。
+
+### Handoff state
+
+- `PRE_FREEZE_REPAIR_COMPLETE`: YES（Plan contract、Fresh Web validation、Run Artifact更新、local gates完了）。
+- `FRESH_LEARNER`: PENDING（Web部分PASS、AndroidはSystem UI ANRの`blocked_environment`）。
+- `SOURCE_REQUIRED_CI`: PASS for the last committed Source revision; post-pre-freeze-change CIは未実行。
+- `FINAL_CANDIDATE_SHA`: NOT_FROZEN。
+- `TRAINING_COPY` / `WEB_BASELINE` / `ANDROID_BASELINE` / `EXPECTED_FAILURE` / `TRUST_BOUNDARY` / `SHA_EQUALITY`: PENDING for the final candidate。
+- `FINAL_DELIVERY_RECORD`: PENDING。freeze後のPR commentは作成していない。
+- `UNRESOLVED_REQUIRED_BLOCKERS`: Fresh Android capability 1件、Final Delivery一式。未実行を0件・PASSへ読み替えていない。
+- Stop condition: `USER_COMMIT_REQUIRED`へ進む前にFresh Learner Androidのenvironment blockerを解消する必要がある。Source repairへ戻る根拠はない。ユーザーが環境を回復して再実行するか、Plan契約に従うAndroid capability unavailable記録を承認した後、Fresh Learner完了 → pre-freeze Artifact確定 → user commit / push → Required CI → SHA freezeへ進む。
+
+## 2026-08-14 07:30 JST — Fresh Learner Android recovery / pre-freeze handoff
+
+### Fresh Learner completion
+
+- Fresh CopyでのTraining Copy preparation / validation、Workbook / Spec / Part 1 / Part 2 learner path確認、Web desktop baseline、Web mobile baseline、learner exercise mobile、expected-failure evidenceはPASS済みである。
+- 標準Training AVDではSystem UI `isn't responding`が再現したため、AVDのStop cleanupまで実施し、同じ失敗を無目的に反復しなかった。
+- Android capabilityを理由なくskipしないため、認証済み物理端末へFresh Learner用arm64-v8a Release APKをInstallした。初回Test時点は端末が`Asleep`かつKeyguard表示中（`mInputRestricted=true`）だったため、これは端末状態の失敗として分類した。
+- ADBの起床・解除後、`native-test-control`単体Flowは1/1 PASS、続く`pnpm run training:native:baseline`は1/1 PASSした。証跡は`.artifacts/native-local/20260814-android-fresh-learner-physical-unlocked/`配下に保存した。
+- Androidの標準AVD障害は履歴として保持するが、物理端末でBuild / Install / Smoke / Test Control / Training Maestro baselineを独立確認できたため、Fresh Learner full journeyはPASSと判定する。Product、Formal Regression、Training Sourceは変更していない。
+
+### Pre-freeze state
+
+- Task 13を完了し、Task 14は未完了のまま維持した。ProgressはNow + Discoveredのcheckbox実数に基づき`Progress: 95% (20/21)`へ更新した。
+- Source correctness、既存の修正Sourceに対するRequired Phase 1 / Native CI、Fresh Learner、pre-freeze Run Artifact更新は完了した。
+- 今回のPlan / Run Artifact変更はGit mutation禁止のため未commitである。したがってpost-change Required CIは未実行、`FINAL_CANDIDATE_SHA`は未freezeのままとする。ユーザーのcommit / pushと修正後Required CI成功後にのみSHAをfreezeする。
+- `run.json.status=partial`、`evaluation.json.result=partial`、`primary_failure_category=missing_validation`は維持する。残るのはFinal Candidate freeze、exact-SHA Training Copy Web / Android / expected-failure、remote Delivery Readiness、外部Final Delivery Record、SHA equalityである。
+
+### Validation / decision
+
+- Android recovery command `scripts/native/windows/android-local.ps1 -Action Test ... -RunId 20260814-android-fresh-learner-physical-unlocked` => PASS（native-test-control 1/1）。
+- `QA_TRAINING_ANDROID_SERIAL=354955112942476 pnpm run training:native:baseline` => PASS（Training Maestro baseline 1/1）。
+- Fresh LearnerのWeb / Android実行結果を、過去PRのAndroid / Native CI EvidenceやFormal Regression結果へ読み替えていない。
+- Fresh Learner => PASS。Source blocker => 0。Final Delivery Readiness => PENDING。
+- Handoff state: `PRE_FREEZE_REPAIR_COMPLETE=YES`、`FRESH_LEARNER_COMPLETE=YES`、`FINAL_CANDIDATE_SHA=NOT_FROZEN`、`USER_COMMIT_REQUIRED`。
+- Subagentは今回も使用していない。AGENTS.mdの`No child subagent delegation`と、既存Fresh / Android Evidenceを親Agentが直接照合できる範囲であることを理由とする。
+
+## 2026-08-14 07:45 JST — Pre-freeze validation final confirmation
+
+- `pnpm run format:check` => PASS。
+- `pnpm run lint:markdown` => PASS（248 files / 0 issues。設定上`.codex/runs/**`は除外されるため、Run Artifactの直接検証ではない）。
+- `pnpm run validate:spec` => PASS（3 challenges）。
+- `pnpm run validate:curriculum` => PASS（22 required documents、4 workbook files、training-chromium / training-mobile-chromium）。
+- `pnpm run lint` => PASS（0 errors / 65 existing warnings）。
+- `pnpm run typecheck` => PASS（app / native-tests / Training）。
+- `pnpm run typecheck:training` => PASS。
+- `pnpm run test:contracts` => PASS（25 files / 208 tests）。
+- `pnpm run test` => PASS（unit 66、integration 98、repository 33、web component 76、native 47、contracts 208）。
+- `pnpm run verify` => PASS（299.4 seconds。format、markdown、spec、curriculum、lint、typecheck、image manifest、security、full test、Web build、spec buildを含む）。
+- 既存Lint warning 65件とNative component testの`act(...)` console warningは失敗ではなく、今回変更範囲外の既存warningとして扱った。
+- Run ArtifactのJSON parse、TASKS progress再計算、`git diff --check`、Sanitizer Write / Checkは、REPORT追記後に再実行して次の追補へ結果を記録する。未実行をPASS扱いしない。
+
+### Final handoff
+
+- Fresh Learner full journey: PASS。Web desktop / mobile / learner exercise / expected-failure、Workbook / Spec / Part 1 / Part 2 learner path、Android physical device Test Control / Training Maestro baselineを確認した。
+- Task 13: complete。Task 14: pending。Progress: 95% (20/21)。
+- `FINAL_CANDIDATE_SHA`: NOT_FROZEN。今回のRun Artifact / Plan変更は未commitであり、Git mutation禁止を守っている。ユーザーのcommit / pushとpost-change Required CI成功後にのみfreezeする。
+- Final Delivery Readiness: PENDING。exact-SHA Training Copy、remote Web / Android / expected-failure、external PR Final Delivery Record、SHA equalityは未実行である。
+
+## 2026-08-14 07:45 JST — Artifact final checks
+
+- `run.json` JSON parse => PASS（`status=partial`、`primary_failure_category=missing_validation`）。
+- `evaluation.json` JSON parse => PASS（`result=partial`、`primary_failure_category=missing_validation`）。
+- TASKS progress再計算 => PASS（Now + Discovered: 20 / 21、95%。Blockedは分母外）。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check` => PASS（5 files、0 replacements、0 residual findings）。
+- `git diff --check` => PASS（whitespace errorなし。CRLFのline-ending warningのみ）。
+- `pnpm run format:check` => PASS。
+- `git status --short` / `git diff --name-only` => PASS。変更はPlanとActive Runの標準Artifact 5 filesのみ。Source / Product / Workflow / Test / Curriculum implementationの追加変更はない。
+
+### Final stop decision
+
+- `PRE_FREEZE_REPAIR_COMPLETE`: YES。
+- `FRESH_LEARNER`: PASS。
+- `FINAL_CANDIDATE_SHA`: NOT_FROZEN。
+- `FINAL_DELIVERY_READINESS`: PENDING。
+- `FINAL_STATE`: `USER_COMMIT_REQUIRED`。ここで停止し、ユーザーがこのpre-freeze変更をcommit / pushした後、修正後Required CIがGreenになったrevisionをFINAL_CANDIDATE_SHAとして固定する。
+
+## 2026-08-14 07:48 JST — Final Run Artifact synchronization
+
+- `run.json` / `evaluation.json` JSON parse => PASS。`partial` / `missing_validation`を維持した。
+- TASKS progress再計算 => PASS（20/21、95%。Task 13のみ今回完了、Task 14は未完了）。
+- `pnpm run format:check` => PASS（Run Artifact最終追記後）。
+- `git diff --check` => PASS、Sanitizer Write / Check => PASS（5 files、0 replacements、0 residual findings）。
+- Current変更範囲はPlanとActive Run Artifactのみ。Git mutationは行っていない。
+- 最終状態は`PRE_FREEZE_REPAIR_COMPLETE=YES`、`FRESH_LEARNER=PASS`、`FINAL_CANDIDATE_SHA=NOT_FROZEN`、`FINAL_DELIVERY_READINESS=PENDING`、`USER_COMMIT_REQUIRED`である。
+
+### Pre-freeze validation results
+
+- `pnpm run format:check` => PASS。
+- `pnpm run lint:markdown` 初回はPlanのDelivery手順番号 / list indentation 17件でFAIL。Planの同一手順を連番と短い箇条書きへ整形後、再実行 => PASS（248 files / 0 issues）。
+- `pnpm run validate:spec` => PASS（3 challenges）。
+- `pnpm run validate:curriculum` => PASS（22 required documents、4 workbook files、2 Training projects）。
+- `pnpm run lint` 初回はFresh learner temporary Copyが`.artifacts`配下に残り、コピー内のFormal `e2e`とPlaywright trace JSをESLintが収集したためFAIL。Source / Repository lintの問題ではない。Fresh evidenceをworktree外へ分離後の`pnpm run verify`内`pnpm run lint` => PASS（0 errors / 65 warnings、warningsは既存）。
+- `pnpm run lint -- --ignore-pattern .artifacts/**` => PASS（0 errors / 65 warnings）。これは一時Evidence混入を除外した切り分け結果であり、最終的にはFresh Copyをworktreeから分離して通常の`pnpm run verify`内lintをPASSさせた。
+- `pnpm run typecheck` => PASS（app / native-tests / Training）。
+- `pnpm run typecheck:training` => PASS。
+- `pnpm exec vitest run tests/contracts/native-production-module-resolution.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000` => PASS（4/4）。
+- `pnpm run test:contracts` 初回はFresh Copy内testを拾い、native-sqlite parse errorと既存native module resolution 5秒timeoutでFAIL。Fresh Copyを分離し、既存timeoutは30秒focusedで4/4 PASS確認後に再実行 => PASS（25 files / 208 tests）。
+- `pnpm run test` => PASS（unit 66、integration 98、repository 33、web component 76、native 47、contracts 208）。
+- `pnpm run verify` => PASS（355.8秒、format / markdown / spec / curriculum / lint 0 errors / typecheck / image / security / full test / Web build / spec build）。
+- Androidの最後のSystem UI Wait回復確認は、起動直後はdialog absentだったがUI bridgeが一度nullを返し、Install / Smoke後の`native-test-control`は再びSystem UI `isn't responding` dialogでFAIL。新情報なしの同一環境再試行を止め、Training AVD Stop => PASS。Training Maestro baselineはFresh Learnerの成功として未実行のまま。
+
+### Pre-freeze state
+
+- Fresh Web learner pathはPASS、Fresh Android capabilityは`blocked_environment`。Task 13は完了扱いにしないため、Progress: 90% (19/21)。
+- Source correctness、local static / contract / full test / verify、既存PR Required Phase 1 / Native CI Evidenceは確認済みだが、Fresh Learner full journeyが未完了なのでpre-freeze authoritative recordは未確定。
+- `FINAL_CANDIDATE_SHA`、exact-SHA Training Copy、remote Web / Android / expected-failure 3 runs、Final Delivery Record、SHA equalityは未実行。GitHub PR commentやCurrent PR Branchへpost-freeze Evidenceを書き込んでいない。

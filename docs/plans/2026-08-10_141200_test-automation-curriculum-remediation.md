@@ -139,7 +139,10 @@ Part 2修了時、受講者はPart 1のTest資産を変更管理と継続実行�
 - Fresh Learner Dry RunでPart 1 → Part 2を通す。
 - `pnpm run validate:curriculum`をRequired Phase 1 CIへ明示的に接続する。
 - Delivery Readiness GateをCurriculum Implementation PRの**最終PR HEAD SHAに結び付けたMerge前Required Gate**として実Run Evidenceまで取得する。
-- Delivery Evidence取得後にPR HEADが変わった場合はEvidenceを無効化し、最終HEADで再実行する。
+- Fresh Learner、Source validation、pre-freeze Run Artifactを完了し、その変更をcommit / pushしてSource Required CIが成功した後に、current PR HEADを`FINAL_CANDIDATE_SHA`としてfreezeする。
+- `FINAL_CANDIDATE_SHA` freeze直前までのRun Artifactをpre-freeze authoritative recordとする。freeze後はCurrent PR BranchのSource、Plan、Run Artifactを変更しない。
+- freeze後のFinal Delivery EvidenceはPR #25のGitHub上のFinal Delivery Record commentをcanonical recordとし、Run Artifactへ追記しない。
+- Delivery開始後にPR HEADが変わった場合はEvidenceを無効化し、新しいcandidateで再実行する。
 - `pnpm run verify`とRequired GitHub Actionsを成功させる。
 - 未解消Required Blockerを残さない。
 
@@ -883,53 +886,52 @@ Training Copy preparationは`prepare-training-copy`へ集約し、受講者へWo
 
 #### Final Delivery Readiness Gate
 
-Delivery Readinessの正式実Runは**Wave 10の最後、すべてのSource変更・Fresh Learner Validation・Source Required CIが完了した後**に行う。
+Delivery Readinessの正式実Runは**Wave 10の最後、Fresh Learner、すべてのSource変更、pre-freeze Run Artifact、Source Required CIが完了した後**に行う。
 
-手順:
+Pre-freeze手順:
 
-1. GitHubからCurriculum Implementation PRのcurrent HEAD full SHAを取得し、`FINAL_CANDIDATE_SHA`として記録する。
-2. `prepare-training-copy`へ`FINAL_CANDIDATE_SHA`を渡してTraining Copyを生成する。
-3. `validate-training-copy`がTrust Boundary / Workflow allowlistをPASSする。
-4. Instructor管理のdisposable / training-only GitHub Training Copyへその内容を反映する。
-5. Web Training Workflow `baseline` Runを実行する。
-   - actual conclusion: `success`
-   - baseline PASS
-   - Artifact確認
-6. Android Training Workflow Runを実行する。
-   - actual conclusion: `success`
-   - Maestro baseline PASS
-   - Runtime Evidence確認
-7. Web Training Workflow `expected-failure` Manual Runを実行する。
-   - actual conclusion: `failure`
-   - expected outcome: intentional failure
-   - `failure-exercises`が実行されている
-   - Evidence Artifactが`if: always()`相当で取得できる
-8. Training CopyのActive Workflowがallowlist 2件だけであることを再確認する。
-9. Secret / Environment / OIDC / write permission / self-hosted runner / Production Deployがないことを再確認する。
-10. GitHub上のPR HEAD full SHAを再取得し、`FINAL_CANDIDATE_SHA`と**完全一致**することを確認する。
+1. Fresh Learner結果、Source validation、Required CI、remaining blocker、freeze準備状態をActive Run Artifactへ記録する。
+2. Task 13を完了し、Task 14は未完了のままpre-freeze recordを確定する。Run ArtifactのprogressとJSONを検証する。
+3. 必要なPlan / Run Artifactの変更をcommit / pushし、修正後Source Required CIが成功したことを確認する。
+4. その後GitHubからcurrent PR HEAD full SHAを取得し、runtime variableとして`FINAL_CANDIDATE_SHA`および`DELIVERY_START_PR_HEAD`へ設定する。両値は完全一致しなければ開始しない。
 
-Evidenceとして最低限以下をRun `REPORT.md`へ記録する。
+Post-freeze手順:
+
+1. `prepare-training-copy`へ`FINAL_CANDIDATE_SHA`を渡してTraining Copyを生成する。
+2. `validate-training-copy`がTrust Boundary / Workflow allowlistをPASSする。
+3. Instructor管理のdisposable / training-only GitHub Training Copyへその内容を反映する。
+4. Web Training Workflow `baseline` Runを実行し、actual conclusion `success`、baseline PASS、Artifactを確認する。
+5. Android Training Workflow Runを実行し、actual conclusion `success`、Maestro baseline PASS、Runtime Evidenceを確認する。
+6. Web Training Workflow `expected-failure` Manual Runを実行し、actual conclusion `failure`、intentional failure、`failure-exercises`実行、`if: always()`相当のEvidence Artifactを確認する。
+7. Training CopyのActive Workflowがallowlist 2件だけであり、Secret / Environment / OIDC / write permission / self-hosted runner / Production Deployがないことを再確認する。
+8. GitHub上のPR HEAD full SHAを再取得し、`DELIVERY_END_PR_HEAD`へ設定する。`FINAL_CANDIDATE_SHA == DELIVERY_START_PR_HEAD == DELIVERY_END_PR_HEAD == TRAINING_COPY_RESOLVED_SHA`を確認する。
+
+Post-freeze Final Delivery Evidenceは、PR #25へのGitHub Final Delivery Record commentをcanonical recordとして保存する。Current PR BranchのREPORT / TASKS / run.json / evaluation.json / Plan / Sourceへ追記・修正してはならない。
+
+PR commentには最低限以下を含める。
 
 - Training Copy repository / branch識別情報
 - `FINAL_CANDIDATE_SHA`（40-char full SHA）
 - Delivery開始時PR HEAD SHA
 - Delivery終了時PR HEAD SHA
-- `FINAL_CANDIDATE_SHA == start PR HEAD == end PR HEAD`の一致判定
 - Resolved Training Copy Source commit SHA
-- Web baseline Run URL / run ID / result / Artifact名
-- Android baseline Run URL / run ID / result / Artifact名
+- Web baseline Run URL / run ID / conclusion / Artifact名
+- Android baseline Run URL / run ID / conclusion / Artifact名
 - Web expected-failure Run URL / run ID / actual conclusion / expected outcome / Artifact名
 - Active Workflow allowlist確認結果
 - Workflow permissions / runner / Secret / Environment / OIDC / Deploy確認結果
+- `FINAL_CANDIDATE_SHA == DELIVERY_START_PR_HEAD == DELIVERY_END_PR_HEAD == TRAINING_COPY_RESOLVED_SHA`の一致判定
+- Fresh Learner、Source Required CI、Unresolved Required Blocker数、Final Delivery Readiness判定
 
 **Delivery Readiness GateはCurriculum Implementation PRのMerge前Required Gateである。**
 
 Evidence invalidation rule:
 
-- Delivery開始後にPR HEADが1 commitでも変わった場合、そのDelivery Evidenceは無効とする。
+- freeze後、Delivery開始から終了までにPR HEADが1 commitでも変わった場合、そのDelivery Evidenceは無効とする。
 - Documentation-onlyの微修正であっても例外にしない。
 - 新しい最終PR HEAD SHAでTraining Copy生成とDelivery Readiness 3 Runを再実行する。
 - `Merge commit`をDelivery Readiness Sourceとして使わない。
+- Delivery完了後にsource上のRun Artifactを更新して完了状態を反映するcommitは作成しない。
 
 Training Copy remoteが一時的に利用できない場合:
 
@@ -1642,7 +1644,8 @@ PR HEAD SHA re-check
 
 Final Delivery Readiness:
 
-- Fresh Learner / Source validation完了後にcurrent PR HEAD full SHAを`FINAL_CANDIDATE_SHA`として取得する。
+- Fresh Learner / Source validation / pre-freeze Run Artifact完了後に必要な変更をcommit / pushし、Source Required CI成功を確認する。
+- その後current PR HEAD full SHAをruntime variableとして`FINAL_CANDIDATE_SHA`へ取得し、同値の`DELIVERY_START_PR_HEAD`を設定する。
 - Training CopyはそのSHAから生成する。
 - GitHub Training CopyでWeb baseline / Android baseline / Web expected-failureの3 Runを実行する。
 - Active Workflowはallowlist 2件のみ。
@@ -1651,6 +1654,7 @@ Final Delivery Readiness:
 - Delivery終了時にcurrent PR HEAD full SHAを再取得する。
 - `FINAL_CANDIDATE_SHA == Delivery start PR HEAD == Delivery end PR HEAD == Training Copy resolved Source SHA`を必須とする。
 - 一致しない場合はEvidence無効として新しいHEADから3 Runをやり直す。
+- freeze後のFinal Delivery EvidenceはPR #25のGitHub Final Delivery Record commentをcanonical recordとし、Current PR BranchのRun Artifact / Plan / Sourceを変更しない。
 
 Final Merge Gate:
 
@@ -1660,6 +1664,7 @@ Final Merge Gate:
 - Final Delivery ReadinessのSHA equalityがPASSする。
 - Instructor管理GitHub Training CopyでWeb baseline / Android baseline / Web expected-failureの実Run Evidenceがある。
 - Production Secret / write token / Production Environmentを利用していない。
+- Final Delivery Record commentが存在し、freeze後にCurrent PR Branchを変更していない。
 - **上記が揃うまでCurriculum Implementation PRをMergeしない。**
 
 ---
@@ -1744,7 +1749,7 @@ Source Formal CI:
 
 #### Final GitHub Delivery Readiness component
 
-- 実行直前のcurrent PR HEAD 40-char SHAを`FINAL_CANDIDATE_SHA`として記録
+- Fresh Learner / pre-freeze Run Artifactを確定し、必要な変更をcommit / pushしてSource Required CIを成功させた後、実行直前のcurrent PR HEAD 40-char SHAをruntime variableとして`FINAL_CANDIDATE_SHA`へ記録
 - GitHub Training Copy resolved Source SHA == `FINAL_CANDIDATE_SHA`
 - GitHub Training Copy Web baseline Workflow PASS
 - GitHub Training Copy Android baseline Workflow PASS
@@ -1754,6 +1759,7 @@ Source Formal CI:
 - read-only token / no secrets / no environment / no self-hosted runner / no Production Deploy
 - Delivery終了時PR HEAD SHA == `FINAL_CANDIDATE_SHA`
 - 各Run URL / run ID / Source SHA / Artifact名記録
+- Final Delivery EvidenceはPR #25のGitHub Final Delivery Record commentへ記録し、freeze後のCurrent PR Branchは変更しない
 
 Delivery Readiness componentは**Wave 10の最後に実行するPR Merge前必須Gate**とする。
 
@@ -2103,6 +2109,8 @@ Mitigation:
 - 上記Source変更を**1本のCurriculum Implementation PR**でReview可能にする。
 - Delivery Readiness用Training Copy実行は2本目のImplementation PRを作らない。
 - Delivery Readiness GateはCurriculum Implementation PR Merge前にPASSする。
+- Fresh Learner / pre-freeze Run Artifactはfreeze前のActive Run authoritative recordとする。
+- freeze後のFinal Delivery状態はPR #25のGitHub Final Delivery Record commentをcanonical evidenceとし、TASKS task 14やその他のCurrent PR BranchのRun Artifactを完了反映のために更新しない。
 - Delivery Evidence取得後にPR HEADが変わったらEvidenceを再取得する。
 - `Merge commit`をDelivery Readiness Sourceにしない。
 - Specification Foundationそのものを含めない。
