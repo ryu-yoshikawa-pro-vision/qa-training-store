@@ -1067,6 +1067,7 @@ jobs:
           NATIVE_SETUP_ID="$(jq -r '.native_setup_id' "$CASE_JSON")"
           NATIVE_SETUP_SUBFLOW="$(jq -r '.native_setup_subflow // ""' "$CASE_JSON")"
           NATIVE_RESET_PAYMENT_DELAY_MS="$(jq -r '.native_reset_payment_delay_ms' "$CASE_JSON")"
+          NATIVE_CHECKOUT_STEP="$(jq -r '.native_checkout_step // ""' "$CASE_JSON")"
           NATIVE_READY_ID="$(jq -r '.native_ready_id' "$CASE_JSON")"
           CAPTURE_MODE="$(jq -r '.capture_mode' "$CASE_JSON")"
           CANONICAL_ASSET_PATH="$(jq -r '.canonical_asset_path' "$CASE_JSON")"
@@ -1074,6 +1075,12 @@ jobs:
             test -n "$value"
           done
           [[ "$NATIVE_RESET_PAYMENT_DELAY_MS" =~ ^[0-9]+$ ]]
+          if [[ -n "$NATIVE_CHECKOUT_STEP" ]]; then
+            case "$NATIVE_CHECKOUT_STEP" in
+              address|payment|confirm) ;;
+              *) echo "Unexpected native checkout step: $NATIVE_CHECKOUT_STEP" >&2; exit 1 ;;
+            esac
+          fi
           if [[ -n "$NATIVE_SETUP_SUBFLOW" ]]; then
             test -f "$GITHUB_WORKSPACE/maestro/$NATIVE_SETUP_SUBFLOW"
           fi
@@ -1088,6 +1095,7 @@ jobs:
           echo "native_setup_id=$NATIVE_SETUP_ID"
           echo "native_setup_subflow=$NATIVE_SETUP_SUBFLOW"
           echo "native_reset_payment_delay_ms=$NATIVE_RESET_PAYMENT_DELAY_MS"
+          echo "native_checkout_step=$NATIVE_CHECKOUT_STEP"
           echo "native_ready_id=$NATIVE_READY_ID"
           echo "capture_mode=$CAPTURE_MODE"
           echo "canonical_asset_path=$CANONICAL_ASSET_PATH"
@@ -1112,6 +1120,7 @@ jobs:
             --env "SETUP_ID=$NATIVE_SETUP_ID"
             --env "SETUP_SUBFLOW=$NATIVE_SETUP_SUBFLOW"
             --env "RESET_PAYMENT_DELAY_MS=$NATIVE_RESET_PAYMENT_DELAY_MS"
+            --env "CHECKOUT_STEP=$NATIVE_CHECKOUT_STEP"
             --env "READY_ID=$NATIVE_READY_ID"
             --env "SCREEN_ID=$SCREEN_ID"
             --env "STATE_SLUG=$STATE_SLUG"

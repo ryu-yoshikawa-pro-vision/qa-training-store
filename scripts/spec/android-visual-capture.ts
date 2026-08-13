@@ -272,6 +272,7 @@ async function runCli(): Promise<void> {
           native_setup_subflow: NATIVE_CAPTURE_SETUP_PLANS[captureCase.nativeSetupId].subflow,
           native_reset_payment_delay_ms:
             NATIVE_CAPTURE_SETUP_PLANS[captureCase.nativeSetupId].resetPaymentDelayMs,
+          native_checkout_step: NATIVE_CAPTURE_SETUP_PLANS[captureCase.nativeSetupId].checkoutStep,
           native_ready_id: captureCase.nativeReadyId,
           ready_conditions: NATIVE_CAPTURE_READY_CONDITIONS[captureCase.nativeReadyId],
           capture_mode: captureCase.captureMode,

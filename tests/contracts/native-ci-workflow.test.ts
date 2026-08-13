@@ -31,6 +31,9 @@ const phaseOneWorkflow = readWorkflow(".github/workflows/ci.yml");
 const androidStartupHelper = readWorkflow("scripts/native/android-maestro-run.sh");
 const storefrontFlow = readWorkflow("maestro/native-storefront.yaml");
 const visualCaptureFlow = readWorkflow("maestro/native-visual-capture.yaml");
+const customerCheckoutSetupFlow = readWorkflow(
+  "maestro/subflows/native-visual-capture-customer-checkout.yaml",
+);
 const webUiReview = readWorkflow("e2e/web/ui-review.spec.ts");
 
 describe("Native CI workflow contracts", () => {
@@ -217,6 +220,7 @@ describe("Native CI workflow contracts", () => {
       "ready",
       "native_setup_id",
       "native_reset_payment_delay_ms",
+      "native_checkout_step",
       "native_ready_id",
       "ready_conditions",
       "capture_mode",
@@ -226,6 +230,7 @@ describe("Native CI workflow contracts", () => {
     expect(capture).toContain("maestro/native-visual-capture.yaml");
     expect(capture).toContain("android-maestro-run.sh");
     expect(capture).toContain('--env "SETUP_SUBFLOW=$NATIVE_SETUP_SUBFLOW"');
+    expect(capture).toContain('--env "CHECKOUT_STEP=$NATIVE_CHECKOUT_STEP"');
     expect(capture).toContain('jq -rn --arg value "$SCENARIO"');
     expect(capture).toContain("scenario=${scenario_encoded}");
     expect(capture).toContain('--env "ROLE=$ROLE"');
@@ -268,6 +273,25 @@ describe("Native CI workflow contracts", () => {
       expect(visualCaptureFlow).toContain(`READY_VALUE_${slot}`);
     }
     expect(visualCaptureFlow).not.toMatch(/^\s+- sleep:/m);
+  });
+
+  it("executes the customer checkout setup up to the requested semantic step", () => {
+    expect(customerCheckoutSetupFlow).toContain(
+      "subflows/native-visual-capture-customer-login.yaml",
+    );
+    expect(customerCheckoutSetupFlow).toContain('id: "native-persisted-state-ready"');
+    expect(customerCheckoutSetupFlow).toContain(
+      'id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"',
+    );
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-address-screen"');
+    expect(customerCheckoutSetupFlow).toContain('true: ${CHECKOUT_STEP != "address"}');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-address-next"');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-payment-screen"');
+    expect(customerCheckoutSetupFlow).toContain('true: ${CHECKOUT_STEP == "confirm"}');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-payment-method-TEST-SUCCESS"');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-payment-next"');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-confirm-screen"');
+    expect(customerCheckoutSetupFlow).not.toMatch(/^\s+- sleep:/m);
   });
 
   it("keeps Android Maestro flows independent while fail-closing the runtime job", () => {

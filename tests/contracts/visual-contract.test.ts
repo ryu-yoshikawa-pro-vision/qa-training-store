@@ -24,6 +24,7 @@ import {
   validateVisualCaptureRegistry,
   visualAssetPath,
 } from "../../scripts/spec/visual-registry";
+import { NATIVE_CAPTURE_SETUP_PLANS } from "../../scripts/spec/android-visual-setup";
 
 sharp.cache(false);
 
@@ -444,6 +445,30 @@ describe("Screen Catalog / Visual Contract", () => {
         },
       ]),
     ).toContain(`unknown Android nativeSetupId: ${androidCase.captureCaseKey}`);
+  });
+
+  it("maps checkout Android targets to executable session preparation steps", () => {
+    const expected = [
+      ["SCREEN-CHECKOUT-ADDRESS/default/android", "customer-checkout-address", "address"],
+      ["SCREEN-CHECKOUT-PAYMENT/default/android", "customer-checkout-payment", "payment"],
+      ["SCREEN-CHECKOUT-CONFIRM/default/android", "customer-checkout-confirm", "confirm"],
+    ] as const;
+
+    for (const [captureCaseKey, setupId, checkoutStep] of expected) {
+      const captureCase = VISUAL_CAPTURE_CASES.find(
+        (candidate) => candidate.captureCaseKey === captureCaseKey,
+      );
+      expect(captureCase).toBeDefined();
+      if (captureCase === undefined) continue;
+      expect(captureCase.role).toBe("customer");
+      expect(captureCase.scenario).toBe("regular-member");
+      expect(captureCase.nativeSetupId).toBe(setupId);
+      expect(NATIVE_CAPTURE_SETUP_PLANS[setupId]).toMatchObject({
+        requiredRole: "customer",
+        subflow: "subflows/native-visual-capture-customer-checkout.yaml",
+        checkoutStep,
+      });
+    }
   });
 
   it("requires Android canonical profile fields to be observed runtime values", async () => {

@@ -382,4 +382,10 @@
 - Checkout Processing WebのCapture Caseは、`支払いを処理しています`のexact semantic headingだけをready conditionとして受理する。Failed headingを同じmatcherへ含めず、Product codeやFailed画面をcanonical化する変更は行わない。
 - Android Capture Caseは自然言語の`setup`／`ready`をshellで解釈しない。Registryからmachine-readableな`nativeSetupId`／`nativeReadyId`を解決し、既存Maestro subflowでguest cart／customer loginを実行し、role／route／ready conditionを実画面でassertした後だけscreenshotを取得する。Payment Processingは`customer-login-processing` setupで決済遷移の実行猶予を明示する。
 - `scripts/native/android-maestro-run.sh`はAndroid workflow専用の起動前処理としてforce-stop→`pm clear`→PID消失確認→Maestro launchを実行する。共通Maestro YAMLから`launchApp(clearState: true)`を除去し、iOS互換のdeep-link subflowは維持する。timeout増加や無条件retryではstartup raceを隠さない。
+
+## PR #24 Review Repair iteration 3（2026-08-13）
+
+- AndroidのCheckout Address／Payment／Confirm Capture Caseは、customer roleと`regular-member` scenarioだけを宣言して終わらせず、`customer-checkout-address`／`customer-checkout-payment`／`customer-checkout-confirm`のmachine setup IDへ接続する。各setupは既存customer loginとNative Checkout操作を再利用し、Addressでactive Checkout Sessionを開始し、Paymentで住所を確定し、Confirmで`TEST-SUCCESS`を選択してから、registryのcanonical routeとready testIDをassertする。
+- `native_checkout_step`と`CHECKOUT_STEP`はCapture CaseからMaestro subflowへ渡す実行契約であり、setupの自然言語をshellで解析しない。step固有の遷移が失敗した場合、screenshot取得・manifest生成・canonical promotionへ進まない。
+- このsetup追加はNative Product codeやFinal Gateを変更しない。API34／`google_apis`／`x86_64`／`pixel_2` Emulatorでの実測captureとpromotionが完了するまで、Android 25 Targetはblocked、Final Visual DoDはBLOCKEDのまま維持する。
 - Phase 1 CIのStyle Quality Required pathはStructural Validationの後にFinal Visual Specification gateを実行する。`validate:spec`のPASSは構造整合性のみを意味し、`validate:spec-visuals:final`／`verify`はpending／blockedが残る間fail-closeする。

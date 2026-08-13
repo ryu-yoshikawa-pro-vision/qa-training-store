@@ -33,3 +33,9 @@ Current Repositoryには、Normative Product Specification、既存UI Review、N
 - Android manual captureは`capture_case_key`から`nativeSetupId`／`nativeReadyId`を解決する。Capture driverはTest Control reset、machine setup、canonical route、role assertion、ready matcher assertion、screenshotの順に進み、ready assertionが失敗した場合はartifactをcanonicalへ昇格しない。
 - Android startup race対策はworkflowの共通preflightへ閉じ込める。既存Maestro flowはclear-stateを担当せず、Android helperが旧task／process停止、data clear、PID消失確認を完了してから通常の`launchApp`を実行する。Native flowのassertionとProduction validationは削除しない。
 - Phase 1 Required CIはStructural gateとFinal gateを同じRequired job pathで実行する。Android canonical captureが未完了の間にPhase 1／`verify`がfailすることは仕様上正しい。
+
+## Addendum: Review Repair iteration 3（2026-08-13）
+
+- Checkout画面のAndroid Capture Caseは、単なるcustomer loginではなく、既存のNative Test Control seedとCheckout UI操作を使うtyped setupで準備する。`customer-checkout-address`はactive sessionを開始し、`customer-checkout-payment`は配送先を保存してPaymentへ進み、`customer-checkout-confirm`は成功テスト決済を保存してConfirmへ進む。
+- setupの実行結果はMaestroのstable testID（Checkout画面、住所Next、Payment、成功決済、Confirm）で確認する。generic capture driverはその後にcanonical routeへ遷移し、Capture Case固有のready matcherを満たした場合だけscreenshotを取得する。
+- `regular-member`のseed済みcustomer Session／Cartを使い、Capture専用のProduct state databaseやProduct code変更は追加しない。API34 runtimeでこの経路が実測されるまでは、既存のAndroid blockerとFinal Gate fail-closeを維持する。

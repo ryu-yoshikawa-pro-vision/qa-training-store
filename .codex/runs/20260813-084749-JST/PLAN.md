@@ -118,3 +118,14 @@ Product `app/**`は変更しない。
 - Native role／setup／ready driver、Android cleanup helper、Required CI接続、strict Web matcher、contract tests、static／Web validationは完了した。
 - API34 canonical Emulator／AVDを実測できる環境はこのworktreeにないため、Native CI主要flowの修正後runtime確認とAndroid capture／promotionは次のmanual dispatchへ残す。Physical API30 deviceの画像はcanonicalへ昇格しない。
 - Scope audit、`git diff --check`、Run Artifact sanitizer Write／CheckはPASS。Git mutation、Product source変更、second SSOT、gate weakening、secret／local absolute path混入はない。
+
+## Repair iteration 3 decisions
+
+- `regular-member`はNative customer Sessionとactive Cartをseedするが、Payment／Confirmへ直接進めるactive Checkout Sessionはseedしない。したがって対象Targetを単なる`customer-login` setupでcapture可能とは扱わない。
+- RegistryのCheckout Android Targetは`customer-checkout-address`／`customer-checkout-payment`／`customer-checkout-confirm`へ明示接続する。共通Maestro subflowは既存customer loginとCheckoutのstable testIDを使い、`CHECKOUT_STEP`まで実際に進める。
+- `native_checkout_step`はCapture Caseからworkflowへ渡し、workflowへ個別screen分岐を複製しない。generic capture flowはsetup成功後にcanonical routeとready matcherをassertし、失敗時はscreenshotへ進まない。
+
+## Repair iteration 3 validation boundary
+
+- 新規setupの静的契約とTypeScript／Maestro syntaxはlocalで確認する。
+- API34 `google_apis`／`x86_64`／`pixel_2` Emulatorがlocalにないため、実runtime capture／promotionはmanual GitHub Actions dispatch後にのみ実施し、physical API30画像はcanonicalへ昇格しない。

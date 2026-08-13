@@ -3,10 +3,14 @@ export const NATIVE_CAPTURE_SETUP_IDS = [
   "guest-cart-with-basic-shirt",
   "customer-login",
   "customer-login-processing",
+  "customer-checkout-address",
+  "customer-checkout-payment",
+  "customer-checkout-confirm",
 ] as const;
 
 export type NativeCaptureSetupId = (typeof NATIVE_CAPTURE_SETUP_IDS)[number];
 export type NativeCaptureRole = "guest" | "customer";
+export type NativeCheckoutStep = "address" | "payment" | "confirm";
 
 export type NativeReadyMatcher = {
   kind: "id" | "text";
@@ -43,6 +47,7 @@ export type NativeCaptureSetupPlan = {
   requiredRole: NativeCaptureRole;
   subflow: string | null;
   resetPaymentDelayMs: number;
+  checkoutStep: NativeCheckoutStep | null;
 };
 
 export const NATIVE_CAPTURE_SETUP_PLANS: Readonly<
@@ -52,21 +57,43 @@ export const NATIVE_CAPTURE_SETUP_PLANS: Readonly<
     requiredRole: "guest",
     subflow: null,
     resetPaymentDelayMs: 0,
+    checkoutStep: null,
   },
   "guest-cart-with-basic-shirt": {
     requiredRole: "guest",
     subflow: "subflows/native-visual-capture-guest-cart.yaml",
     resetPaymentDelayMs: 0,
+    checkoutStep: null,
   },
   "customer-login": {
     requiredRole: "customer",
     subflow: "subflows/native-visual-capture-customer-login.yaml",
     resetPaymentDelayMs: 0,
+    checkoutStep: null,
   },
   "customer-login-processing": {
     requiredRole: "customer",
     subflow: "subflows/native-visual-capture-customer-login.yaml",
     resetPaymentDelayMs: 30000,
+    checkoutStep: null,
+  },
+  "customer-checkout-address": {
+    requiredRole: "customer",
+    subflow: "subflows/native-visual-capture-customer-checkout.yaml",
+    resetPaymentDelayMs: 0,
+    checkoutStep: "address",
+  },
+  "customer-checkout-payment": {
+    requiredRole: "customer",
+    subflow: "subflows/native-visual-capture-customer-checkout.yaml",
+    resetPaymentDelayMs: 0,
+    checkoutStep: "payment",
+  },
+  "customer-checkout-confirm": {
+    requiredRole: "customer",
+    subflow: "subflows/native-visual-capture-customer-checkout.yaml",
+    resetPaymentDelayMs: 0,
+    checkoutStep: "confirm",
   },
 };
 

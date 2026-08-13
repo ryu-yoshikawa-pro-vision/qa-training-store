@@ -226,9 +226,30 @@
 - Completion decision: `Structural Validation: PASS`、`Final Visual DoD: BLOCKED`、`Phase 1 readiness: BLOCKED`、`Native CI readiness: BLOCKED / runtime未再実行`、`Merge readiness: NOT READY`。DoD未達を完了扱いにしない。
 - Progress: 100% (14/14)
 
+## Repair iteration 3: Checkout Capture Setup（2026-08-13 JST）
+
+- 既存Native seed／Checkout実装を再確認した。`regular-member`はcustomer Sessionとactive Cartを作るが、Payment／Confirmはactive Checkout Sessionのunlocked stepを要求するため、login後の直接routeだけではcapture前提を満たさない。
+- `android-visual-setup.ts`へ`customer-checkout-address`／`customer-checkout-payment`／`customer-checkout-confirm`とtyped `checkoutStep`を追加した。Registryの3 Android Targetを対応setupへ接続した。
+- 既存customer loginとNative Checkoutのstable testID操作を再利用する`maestro/subflows/native-visual-capture-customer-checkout.yaml`を追加した。`describe-case`の`native_checkout_step`をNative workflowの`CHECKOUT_STEP`へ渡し、Address／Payment／Confirmの順序を実行する。
+- Checkout setup専用contract test、PROJECT_CONTEXT、ADR-0013、historyを更新した。Product code、Final Gate、Android blockerの扱いは変更していない。
+
+Progress: 89% (17/19)
+
 ## 2026-08-13 18:12 (JST)
 
 - Final recheck: 追加したCapture Case scenario／role／dynamic setup／ready slot契約を含む`pnpm run test:contracts`はPASS（25 files／216 tests）。`pnpm run test`もPASS（unit 66、integration 98、repository 33、web component 76、native Jest 47、contracts 216）。
 - Final gate recheck: `pnpm run validate:spec-visuals:final`と`pnpm run verify`は、Structural Validation通過後にblocked 25／captured 69/94を理由としてFAIL。これはFinal DoDのfail-close期待結果である。
 - Final artifacts: Format check、Markdown lint、spec validation/build、lint、typecheck、Web build、image manifest、security、Chromium E2E、Maestro syntax、Android doctor、Run Artifact sanitizerは直近結果を維持してPASS。API34 canonical capture／修正後Native runtimeは未実行で、Android release markerはblocked／releasedのまま。
 - Progress: 100% (14/14)
+
+## 2026-08-13 19:36 (JST)
+
+- Validation: Checkout setup追加後の`pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run validate:spec`、`pnpm run build:spec`、`pnpm run typecheck`、`pnpm run test:contracts`（25 files／218 tests）、`pnpm run lint`（0 errors／65 warnings）、`pnpm run test`（Unit 66／Integration 98／Repository 33／Web Component 76／Native Jest 47／Contract 218）、`pnpm run build:web`、Maestro 2.8.0全22 YAML syntax、`pnpm run native:android:doctor`はPASS。
+- Final判定: `pnpm run validate:spec-visuals:final`と`pnpm run verify`はblocked 25／captured 69 of 94を理由にFAIL。Structural ValidationはPASSで、Final Visual DoDのfail-closeは維持されている。
+- Android補助確認: API30 physical deviceでsetup flowを試したが、Windows Bash helperのADB解決とMaestro batch引数のURL query separator解釈によりapp launch前に停止した。端末の`force-stop`／`pm clear`後にprocess不在を確認し、release markerを`blocked`／releasedへ更新した。API30はcanonical inputに使用していない。
+- Scope／self-review: app／src変更なし、Git mutationなし、Final Gate弱体化なし、dummy／stale Android assetなし。`git diff --check`はPASS。
+- Run Artifact sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-084749-JST -Write`と`-Check`はPASS（5 files、residual 0）。
+- 追加self-review: checkout subflowはcustomer login後にseed済みCart itemをassertし、Checkout Address／Payment／Confirmのstep操作へ進む。追加後の対象contract 27件とMaestro syntaxは再度PASSした。
+- Web／artifact recheck: `pnpm run test:e2e:chromium`は27/27 PASS、`pnpm run validate:image-manifest`、`pnpm run security:check`、`git diff --check`はPASSした。
+- Completion decision: Structural Validation: PASS、Final Visual DoD: BLOCKED、Phase 1 readiness: BLOCKED、Native CI readiness: BLOCKED（修正後checkout setupのAPI34 runtime未実行）、Merge readiness: NOT READY。
+- Progress: 100% (19/19)

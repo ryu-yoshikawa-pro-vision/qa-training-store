@@ -192,6 +192,7 @@ const customerCases: CaptureCase[] = [
   android("SCREEN-CHECKOUT-ADDRESS", "default", "/checkout/address", {
     role: "customer",
     scenario: "regular-member",
+    nativeSetupId: "customer-checkout-address",
   }),
   web("SCREEN-CHECKOUT-ADDRESS", "resume-notice", "/checkout/address", {
     role: "customer",
@@ -204,6 +205,7 @@ const customerCases: CaptureCase[] = [
   android("SCREEN-CHECKOUT-PAYMENT", "default", "/checkout/payment", {
     role: "customer",
     scenario: "regular-member",
+    nativeSetupId: "customer-checkout-payment",
   }),
   web("SCREEN-CHECKOUT-CONFIRM", "default", "/checkout/confirm", {
     role: "customer",
@@ -212,6 +214,7 @@ const customerCases: CaptureCase[] = [
   android("SCREEN-CHECKOUT-CONFIRM", "default", "/checkout/confirm", {
     role: "customer",
     scenario: "regular-member",
+    nativeSetupId: "customer-checkout-confirm",
   }),
   web("SCREEN-CHECKOUT-CONFIRM", "stale-cart", "/checkout/confirm", {
     role: "customer",

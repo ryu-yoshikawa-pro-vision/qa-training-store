@@ -16,6 +16,11 @@
 - [x] 12. Android startup race対策をclear-stateとlaunchの共通Android helperへ分離し、Maestro static contractを更新する
 - [x] 13. Static validation、Web regression、Native syntax／doctorを実行し、実行不能なAPI34 captureはBLOCKED記録を維持する
 - [x] 14. Self-review、scope audit、Run Artifact sanitizer、Final DoD判定を更新する
+- [x] 15. Checkout Payment／Confirmの実行前提をNative seed／Checkout実装からrebaselineする
+- [x] 16. Checkout step別のmachine setup plan、registry接続、Maestro subflow、workflow metadataを実装する
+- [x] 17. Checkout setupの契約テスト、PROJECT_CONTEXT、ADR、historyを更新する
+- [x] 18. 追加変更のformat／syntax／typecheck／contract／spec validationを実行する
+- [x] 19. Android capability、Final Gate、scope、sanitizerを再確認し、最終判定を記録する
 
 ## Discovered
 
@@ -33,4 +38,4 @@
 
 - R1. Checkout Processing Web Targetはfresh UI Review capture、canonical WebP promotion、Markdown reference materializationまで完了した
 
-Progress: 100% (14/14)
+Progress: 100% (19/19)
