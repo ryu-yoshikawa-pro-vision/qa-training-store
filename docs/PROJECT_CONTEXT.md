@@ -376,3 +376,10 @@
 - Android canonical expected resolution／densityはAPI 34 `google_apis` `x86_64` `pixel_2`のCurrent workflowに固定し、`1080x1920`／`440`を使用する。既存CI runではcaptureが無効でresolutionのruntime evidenceしか得られず、densityはPixel 2 AVD configurationとの照合値であるため、manual captureでruntime実測が一致するまでFinal DoDへ昇格しない。参照: [AOSP Pixel 2 AVD config](https://android.googlesource.com/platform/external/adt-infra/+/refs/heads/emu-master-dev/emu-image/templates/avd/Pixel2.avd/config.ini)。
 - Native manual dispatchには`capture_case_key`を追加し、`android-visual-capture.ts describe-case`でRegistryのroute／scenario／role／setup／ready／capture modeを解決する。PR CIはcaptureを実行しない。Artifact download後のmanifest／source SHA／APK SHA-256／profile／output path検証とdeterministic WebP promotionは`android-visual-capture.ts promote`を正式CLIとする。
 - Checkout Processing Web TargetはProduct codeを変更せず、既存UI Reviewの`payment-processing` scenario、route、ready headingを使ってfresh captureした。Targetは`captured`、canonical WebPとMarkdown referenceは存在する。Final DoDの残存blockerはAPI34 Android required targetsのみである。
+
+## PR #24 Review Repair iteration 2（2026-08-13）
+
+- Checkout Processing WebのCapture Caseは、`支払いを処理しています`のexact semantic headingだけをready conditionとして受理する。Failed headingを同じmatcherへ含めず、Product codeやFailed画面をcanonical化する変更は行わない。
+- Android Capture Caseは自然言語の`setup`／`ready`をshellで解釈しない。Registryからmachine-readableな`nativeSetupId`／`nativeReadyId`を解決し、既存Maestro subflowでguest cart／customer loginを実行し、role／route／ready conditionを実画面でassertした後だけscreenshotを取得する。Payment Processingは`customer-login-processing` setupで決済遷移の実行猶予を明示する。
+- `scripts/native/android-maestro-run.sh`はAndroid workflow専用の起動前処理としてforce-stop→`pm clear`→PID消失確認→Maestro launchを実行する。共通Maestro YAMLから`launchApp(clearState: true)`を除去し、iOS互換のdeep-link subflowは維持する。timeout増加や無条件retryではstartup raceを隠さない。
+- Phase 1 CIのStyle Quality Required pathはStructural Validationの後にFinal Visual Specification gateを実行する。`validate:spec`のPASSは構造整合性のみを意味し、`validate:spec-visuals:final`／`verify`はpending／blockedが残る間fail-closeする。

@@ -846,6 +846,7 @@ jobs:
           "$ADB" shell settings put global animator_duration_scale 0
           "$ADB" shell input keyevent 82
       - name: Normalize Android canonical visual profile
+        id: android_profile_normalize
         if: ${{ !cancelled() && inputs.capture_spec_visuals == true && steps.android_emulator_ready.outcome == 'success' }}
         shell: bash
         run: |
@@ -1046,7 +1047,7 @@ jobs:
           fi
       - name: Capture Android Screen Catalog baseline
         id: android_visual_capture
-        if: ${{ !cancelled() && inputs.capture_spec_visuals == true && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
+        if: ${{ !cancelled() && inputs.capture_spec_visuals == true && steps.android_emulator_ready.outcome == 'success' && steps.android_profile_normalize.outcome == 'success' && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -1063,11 +1064,19 @@ jobs:
           ROLE="$(jq -r '.role' "$CASE_JSON")"
           SETUP="$(jq -r '.setup' "$CASE_JSON")"
           READY="$(jq -r '.ready' "$CASE_JSON")"
+          NATIVE_SETUP_ID="$(jq -r '.native_setup_id' "$CASE_JSON")"
+          NATIVE_SETUP_SUBFLOW="$(jq -r '.native_setup_subflow // ""' "$CASE_JSON")"
+          NATIVE_RESET_PAYMENT_DELAY_MS="$(jq -r '.native_reset_payment_delay_ms' "$CASE_JSON")"
+          NATIVE_READY_ID="$(jq -r '.native_ready_id' "$CASE_JSON")"
           CAPTURE_MODE="$(jq -r '.capture_mode' "$CASE_JSON")"
           CANONICAL_ASSET_PATH="$(jq -r '.canonical_asset_path' "$CASE_JSON")"
-          for value in "$SCREEN_ID" "$STATE_SLUG" "$SCENARIO" "$ROUTE" "$ROLE" "$SETUP" "$READY" "$CAPTURE_MODE" "$CANONICAL_ASSET_PATH"; do
+          for value in "$SCREEN_ID" "$STATE_SLUG" "$SCENARIO" "$ROUTE" "$ROLE" "$SETUP" "$READY" "$NATIVE_SETUP_ID" "$NATIVE_RESET_PAYMENT_DELAY_MS" "$NATIVE_READY_ID" "$CAPTURE_MODE" "$CANONICAL_ASSET_PATH"; do
             test -n "$value"
           done
+          [[ "$NATIVE_RESET_PAYMENT_DELAY_MS" =~ ^[0-9]+$ ]]
+          if [[ -n "$NATIVE_SETUP_SUBFLOW" ]]; then
+            test -f "$GITHUB_WORKSPACE/maestro/$NATIVE_SETUP_SUBFLOW"
+          fi
           echo "capture_case_key=$CASE_KEY"
           echo "screen_id=$SCREEN_ID"
           echo "state_slug=$STATE_SLUG"
@@ -1076,37 +1085,49 @@ jobs:
           echo "role=$ROLE"
           echo "setup=$SETUP"
           echo "ready=$READY"
+          echo "native_setup_id=$NATIVE_SETUP_ID"
+          echo "native_setup_subflow=$NATIVE_SETUP_SUBFLOW"
+          echo "native_reset_payment_delay_ms=$NATIVE_RESET_PAYMENT_DELAY_MS"
+          echo "native_ready_id=$NATIVE_READY_ID"
           echo "capture_mode=$CAPTURE_MODE"
           echo "canonical_asset_path=$CANONICAL_ASSET_PATH"
           RAW_DIR="$RUNNER_TEMP/spec-visuals/raw/android/$SCREEN_ID/$STATE_SLUG"
           RAW_PNG="$RAW_DIR/android.png"
           MANIFEST="$RAW_DIR/android.manifest.json"
-          UI_DUMP="$RUNNER_TEMP/screen-catalog-ui.xml"
           mkdir -p "$RAW_DIR"
           scenario_encoded="$(jq -rn --arg value "$SCENARIO" '$value | @uri')"
-          reset_url="scenario-shop://test-control/reset?version=1&scenario=${scenario_encoded}&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0"
-          timeout 30 "$ADB" shell am force-stop "$PACKAGE_ID"
-          timeout 60 "$ADB" shell am start -W -a android.intent.action.VIEW -d "$reset_url" "$PACKAGE_ID"
-          for _ in $(seq 1 30); do
-            timeout 10 "$ADB" shell uiautomator dump /sdcard/screen-catalog-ui.xml >/dev/null 2>&1 || true
-            timeout 10 "$ADB" shell cat /sdcard/screen-catalog-ui.xml > "$UI_DUMP" 2>/dev/null || true
-            if grep -q "Native test runtime ready" "$UI_DUMP"; then
-              break
-            fi
-            sleep 2
+          reset_url="scenario-shop://test-control/reset?version=1&scenario=${scenario_encoded}&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=${NATIVE_RESET_PAYMENT_DELAY_MS}"
+          route_without_leading_slash="${ROUTE#/}"
+          route_url="scenario-shop://${route_without_leading_slash}"
+          route_is_root="false"
+          if [[ "$ROUTE" == "/" ]]; then route_is_root="true"; fi
+          READY_COUNT="$(jq '.ready_conditions | length' "$CASE_JSON")"
+          test "$READY_COUNT" -ge 1
+          test "$READY_COUNT" -le 3
+          maestro_env_args=(
+            --env "RESET_URL=$reset_url"
+            --env "ROUTE_URL=$route_url"
+            --env "ROUTE_IS_ROOT=$route_is_root"
+            --env "ROLE=$ROLE"
+            --env "SETUP_ID=$NATIVE_SETUP_ID"
+            --env "SETUP_SUBFLOW=$NATIVE_SETUP_SUBFLOW"
+            --env "RESET_PAYMENT_DELAY_MS=$NATIVE_RESET_PAYMENT_DELAY_MS"
+            --env "READY_ID=$NATIVE_READY_ID"
+            --env "SCREEN_ID=$SCREEN_ID"
+            --env "STATE_SLUG=$STATE_SLUG"
+          )
+          for slot in 1 2 3; do
+            index=$((slot - 1))
+            ready_kind="$(jq -r ".ready_conditions[$index].kind // \"\"" "$CASE_JSON")"
+            ready_value="$(jq -r ".ready_conditions[$index].value // \"\"" "$CASE_JSON")"
+            maestro_env_args+=(--env "READY_KIND_${slot}=$ready_kind")
+            maestro_env_args+=(--env "READY_VALUE_${slot}=$ready_value")
           done
-          timeout 30 "$ADB" shell uiautomator dump /sdcard/screen-catalog-ui.xml >/dev/null
-          timeout 10 "$ADB" shell cat /sdcard/screen-catalog-ui.xml > "$UI_DUMP"
-          grep -q "Native test runtime ready" "$UI_DUMP"
-          if [[ "$ROUTE" != "/" ]]; then
-            route_without_leading_slash="${ROUTE#/}"
-            route_url="scenario-shop://${route_without_leading_slash}"
-            timeout 60 "$ADB" shell am start -W -a android.intent.action.VIEW -d "$route_url" "$PACKAGE_ID"
-          fi
-          timeout 30 "$ADB" shell uiautomator dump /sdcard/screen-catalog-ui.xml >/dev/null
-          timeout 10 "$ADB" shell cat /sdcard/screen-catalog-ui.xml > "$UI_DUMP"
-          grep -q "Native test runtime ready" "$UI_DUMP"
-          test -n "$READY"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$GITHUB_WORKSPACE/maestro/native-visual-capture.yaml" \
+            --test-output-dir "$RUNNER_TEMP/maestro-artifacts/visual-capture" \
+            --junit-output "$RUNNER_TEMP/maestro-visual-capture.xml" \
+            "${maestro_env_args[@]}"
           timeout 30 "$ADB" exec-out screencap -p > "$RAW_PNG"
           test -s "$RAW_PNG"
           pnpm exec tsx scripts/spec/android-visual-capture.ts write-manifest \
@@ -1144,11 +1165,10 @@ jobs:
           echo "hierarchy=$output_dir"
           echo "maestro_output=$output_dir"
           set +e
-          maestro test \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path" \
-            "$flow_path"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$flow_path" \
+            --test-output-dir "$output_dir" \
+            --junit-output "$junit_path"
           flow_exit=$?
           set -e
           if [[ "$flow_exit" -eq 0 ]]; then
@@ -1176,11 +1196,10 @@ jobs:
           echo "hierarchy=$output_dir"
           echo "maestro_output=$output_dir"
           set +e
-          maestro test \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path" \
-            "$flow_path"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$flow_path" \
+            --test-output-dir "$output_dir" \
+            --junit-output "$junit_path"
           flow_exit=$?
           set -e
           if [[ "$flow_exit" -eq 0 ]]; then
@@ -1208,11 +1227,10 @@ jobs:
           echo "hierarchy=$output_dir"
           echo "maestro_output=$output_dir"
           set +e
-          maestro test \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path" \
-            "$flow_path"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$flow_path" \
+            --test-output-dir "$output_dir" \
+            --junit-output "$junit_path"
           flow_exit=$?
           set -e
           if [[ "$flow_exit" -eq 0 ]]; then
@@ -1240,11 +1258,10 @@ jobs:
           echo "hierarchy=$output_dir"
           echo "maestro_output=$output_dir"
           set +e
-          maestro test \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path" \
-            "$flow_path"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$flow_path" \
+            --test-output-dir "$output_dir" \
+            --junit-output "$junit_path"
           flow_exit=$?
           set -e
           if [[ "$flow_exit" -eq 0 ]]; then
@@ -1272,11 +1289,10 @@ jobs:
           echo "hierarchy=$output_dir"
           echo "maestro_output=$output_dir"
           set +e
-          maestro test \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path" \
-            "$flow_path"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$flow_path" \
+            --test-output-dir "$output_dir" \
+            --junit-output "$junit_path"
           flow_exit=$?
           set -e
           if [[ "$flow_exit" -eq 0 ]]; then
@@ -1292,11 +1308,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          maestro test \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/search-input" \
-            --format junit \
-            --output "$RUNNER_TEMP/maestro-search-input.xml" \
-            "$GITHUB_WORKSPACE/maestro/native-search.yaml"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$GITHUB_WORKSPACE/maestro/native-search.yaml" \
+            --test-output-dir "$RUNNER_TEMP/maestro-artifacts/search-input" \
+            --junit-output "$RUNNER_TEMP/maestro-search-input.xml"
       - name: Run Maestro Restart Persistence flow
         if: ${{ !cancelled() && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash
@@ -1314,11 +1329,10 @@ jobs:
           echo "hierarchy=$output_dir"
           echo "maestro_output=$output_dir"
           set +e
-          maestro test \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path" \
-            "$flow_path"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$flow_path" \
+            --test-output-dir "$output_dir" \
+            --junit-output "$junit_path"
           flow_exit=$?
           set -e
           if [[ "$flow_exit" -eq 0 ]]; then
@@ -1346,11 +1360,10 @@ jobs:
           echo "hierarchy=$output_dir"
           echo "maestro_output=$output_dir"
           set +e
-          maestro test \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path" \
-            "$flow_path"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$flow_path" \
+            --test-output-dir "$output_dir" \
+            --junit-output "$junit_path"
           flow_exit=$?
           set -e
           if [[ "$flow_exit" -eq 0 ]]; then
@@ -1378,11 +1391,10 @@ jobs:
           echo "hierarchy=$output_dir"
           echo "maestro_output=$output_dir"
           set +e
-          maestro test \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path" \
-            "$flow_path"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$flow_path" \
+            --test-output-dir "$output_dir" \
+            --junit-output "$junit_path"
           flow_exit=$?
           set -e
           if [[ "$flow_exit" -eq 0 ]]; then
@@ -1410,11 +1422,10 @@ jobs:
           echo "hierarchy=$output_dir"
           echo "maestro_output=$output_dir"
           set +e
-          maestro test \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path" \
-            "$flow_path"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$flow_path" \
+            --test-output-dir "$output_dir" \
+            --junit-output "$junit_path"
           flow_exit=$?
           set -e
           if [[ "$flow_exit" -eq 0 ]]; then
@@ -1442,11 +1453,10 @@ jobs:
           echo "hierarchy=$output_dir"
           echo "maestro_output=$output_dir"
           set +e
-          maestro test \
-            --test-output-dir="$output_dir" \
-            --format junit \
-            --output "$junit_path" \
-            "$flow_path"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$flow_path" \
+            --test-output-dir "$output_dir" \
+            --junit-output "$junit_path"
           flow_exit=$?
           set -e
           if [[ "$flow_exit" -eq 0 ]]; then
@@ -1462,41 +1472,37 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          maestro test \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/purchase" \
-            --format junit \
-            --output "$RUNNER_TEMP/maestro-purchase.xml" \
-            "$GITHUB_WORKSPACE/maestro/native-purchase.yaml"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$GITHUB_WORKSPACE/maestro/native-purchase.yaml" \
+            --test-output-dir "$RUNNER_TEMP/maestro-artifacts/purchase" \
+            --junit-output "$RUNNER_TEMP/maestro-purchase.xml"
       - name: Run Maestro Native Review flow
         if: ${{ !cancelled() && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
-          maestro test \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/review" \
-            --format junit \
-            --output "$RUNNER_TEMP/maestro-review.xml" \
-            "$GITHUB_WORKSPACE/maestro/native-review.yaml"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$GITHUB_WORKSPACE/maestro/native-review.yaml" \
+            --test-output-dir "$RUNNER_TEMP/maestro-artifacts/review" \
+            --junit-output "$RUNNER_TEMP/maestro-review.xml"
       - name: Run Maestro Native Payment Retry flow
         if: ${{ !cancelled() && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
-          maestro test \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/payment-retry" \
-            --format junit \
-            --output "$RUNNER_TEMP/maestro-payment-retry.xml" \
-            "$GITHUB_WORKSPACE/maestro/native-payment-retry.yaml"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$GITHUB_WORKSPACE/maestro/native-payment-retry.yaml" \
+            --test-output-dir "$RUNNER_TEMP/maestro-artifacts/payment-retry" \
+            --junit-output "$RUNNER_TEMP/maestro-payment-retry.xml"
       - name: Run Maestro Native Session Checkout Restart flow
         if: ${{ !cancelled() && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
-          maestro test \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/session-checkout-restart" \
-            --format junit \
-            --output "$RUNNER_TEMP/maestro-session-checkout-restart.xml" \
-            "$GITHUB_WORKSPACE/maestro/native-session-checkout-restart.yaml"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$GITHUB_WORKSPACE/maestro/native-session-checkout-restart.yaml" \
+            --test-output-dir "$RUNNER_TEMP/maestro-artifacts/session-checkout-restart" \
+            --junit-output "$RUNNER_TEMP/maestro-session-checkout-restart.xml"
       - name: Download Production-validation Release APK
         if: ${{ !cancelled() && needs.android-production-build.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
         uses: actions/download-artifact@v4
@@ -1545,11 +1551,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          maestro test \
-            --test-output-dir="$RUNNER_TEMP/maestro-artifacts/production-validation" \
-            --format junit \
-            --output "$RUNNER_TEMP/maestro-production-validation.xml" \
-            "$GITHUB_WORKSPACE/maestro/native-production-validation.yaml"
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$GITHUB_WORKSPACE/maestro/native-production-validation.yaml" \
+            --test-output-dir "$RUNNER_TEMP/maestro-artifacts/production-validation" \
+            --junit-output "$RUNNER_TEMP/maestro-production-validation.xml"
       - name: Collect Android evidence
         if: always()
         timeout-minutes: 3

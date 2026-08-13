@@ -1,3 +1,12 @@
+import {
+  NATIVE_CAPTURE_READY_ID_BY_SCREEN_ID,
+  NATIVE_CAPTURE_SETUP_PLANS,
+  isNativeCaptureReadyId,
+  isNativeCaptureSetupId,
+  type NativeCaptureReadyId,
+  type NativeCaptureSetupId,
+} from "./android-visual-setup";
+
 export type VisualPlatform =
   | "web-desktop"
   | "web-tablet"
@@ -20,6 +29,8 @@ export type CaptureCase = {
   setup: string;
   ready: string;
   captureMode: CaptureMode;
+  nativeSetupId?: NativeCaptureSetupId;
+  nativeReadyId?: NativeCaptureReadyId;
   status: CaptureStatus;
   blockerReason: string | null;
 };
@@ -63,18 +74,32 @@ const android = (
   screenId: string,
   stateSlug: string,
   route: string,
-  options: Partial<Pick<CaptureCase, "scenario" | "role" | "setup" | "ready" | "captureMode">> = {},
-): CaptureCase =>
-  createCase(screenId, stateSlug, "android", {
+  options: Partial<
+    Pick<
+      CaptureCase,
+      "scenario" | "role" | "setup" | "ready" | "captureMode" | "nativeSetupId" | "nativeReadyId"
+    >
+  > = {},
+): CaptureCase => {
+  const role = options.role ?? "guest";
+  const nativeSetupId =
+    options.nativeSetupId ?? (role === "customer" ? "customer-login" : "reset-only");
+  const nativeReadyId = options.nativeReadyId ?? NATIVE_CAPTURE_READY_ID_BY_SCREEN_ID[screenId];
+  if (nativeReadyId === undefined)
+    throw new Error(`Missing native ready mapping for Android Screen: ${screenId}`);
+  return createCase(screenId, stateSlug, "android", {
     scenario: options.scenario ?? "default",
     route,
-    role: options.role ?? "guest",
-    setup: options.setup ?? `Test Control reset: ${options.scenario ?? "default"}`,
-    ready: options.ready ?? "native screen ready marker visible",
+    role,
+    setup: options.setup ?? `Native setup: ${nativeSetupId}`,
+    ready: options.ready ?? `Native ready: ${nativeReadyId}`,
     captureMode: options.captureMode ?? "viewport",
+    nativeSetupId,
+    nativeReadyId,
     status: "blocked",
     blockerReason: ANDROID_CAPTURE_BLOCKER,
   });
+};
 
 const adminWeb = (
   screenId: string,
@@ -127,6 +152,7 @@ const customerCases: CaptureCase[] = [
   android("SCREEN-STOREFRONT-CART", "default", "/cart", {
     role: "guest",
     setup: "add product to native guest cart",
+    nativeSetupId: "guest-cart-with-basic-shirt",
   }),
   web("SCREEN-STOREFRONT-CART", "empty", "/cart", {
     role: "guest",
@@ -205,7 +231,11 @@ const customerCases: CaptureCase[] = [
     "SCREEN-CHECKOUT-PROCESSING",
     "default",
     "/checkout/processing?orderId=order-payment-failed",
-    { role: "customer", scenario: "payment-processing" },
+    {
+      role: "customer",
+      scenario: "payment-processing",
+      nativeSetupId: "customer-login-processing",
+    },
   ),
   web("SCREEN-CHECKOUT-COMPLETE", "default", "/checkout/complete?orderId=order-paid", {
     role: "customer",
@@ -384,6 +414,26 @@ export function validateVisualCaptureRegistry(
       issues.push(`blocked capture requires blockerReason: ${captureCase.captureCaseKey}`);
     if (captureCase.status !== "blocked" && captureCase.blockerReason !== null)
       issues.push(`non-blocked capture cannot have blockerReason: ${captureCase.captureCaseKey}`);
+    if (captureCase.platform === "android") {
+      if (captureCase.nativeSetupId === undefined) {
+        issues.push(`Android capture requires nativeSetupId: ${captureCase.captureCaseKey}`);
+      } else if (!isNativeCaptureSetupId(captureCase.nativeSetupId)) {
+        issues.push(`unknown Android nativeSetupId: ${captureCase.captureCaseKey}`);
+      } else if (captureCase.role !== "guest" && captureCase.role !== "customer") {
+        issues.push(`unsupported Android capture role: ${captureCase.captureCaseKey}`);
+      } else if (
+        NATIVE_CAPTURE_SETUP_PLANS[captureCase.nativeSetupId].requiredRole !== captureCase.role
+      ) {
+        issues.push(
+          `Android nativeSetupId role mismatch: ${captureCase.captureCaseKey} requires ${NATIVE_CAPTURE_SETUP_PLANS[captureCase.nativeSetupId].requiredRole}, got ${captureCase.role}`,
+        );
+      }
+      if (captureCase.nativeReadyId === undefined) {
+        issues.push(`Android capture requires nativeReadyId: ${captureCase.captureCaseKey}`);
+      } else if (!isNativeCaptureReadyId(captureCase.nativeReadyId)) {
+        issues.push(`unknown Android nativeReadyId: ${captureCase.captureCaseKey}`);
+      }
+    }
   }
   return issues;
 }

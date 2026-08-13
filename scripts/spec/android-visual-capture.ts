@@ -3,6 +3,10 @@ import fs from "node:fs";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
 import sharp from "sharp";
+import {
+  NATIVE_CAPTURE_READY_CONDITIONS,
+  NATIVE_CAPTURE_SETUP_PLANS,
+} from "./android-visual-setup";
 import { VISUAL_CAPTURE_CASE_BY_KEY, visualAssetPath } from "./visual-registry";
 
 export const ANDROID_CANONICAL_PROFILE = {
@@ -250,6 +254,8 @@ async function runCli(): Promise<void> {
     const captureCase = VISUAL_CAPTURE_CASE_BY_KEY.get(captureCaseKey);
     if (captureCase === undefined || captureCase.platform !== "android")
       throw new Error(`capture_case_key is not a registered Android target: ${captureCaseKey}`);
+    if (captureCase.nativeSetupId === undefined || captureCase.nativeReadyId === undefined)
+      throw new Error(`Android Capture Case is missing native setup metadata: ${captureCaseKey}`);
     console.log(
       JSON.stringify(
         {
@@ -262,6 +268,12 @@ async function runCli(): Promise<void> {
           role: captureCase.role,
           setup: captureCase.setup,
           ready: captureCase.ready,
+          native_setup_id: captureCase.nativeSetupId,
+          native_setup_subflow: NATIVE_CAPTURE_SETUP_PLANS[captureCase.nativeSetupId].subflow,
+          native_reset_payment_delay_ms:
+            NATIVE_CAPTURE_SETUP_PLANS[captureCase.nativeSetupId].resetPaymentDelayMs,
+          native_ready_id: captureCase.nativeReadyId,
+          ready_conditions: NATIVE_CAPTURE_READY_CONDITIONS[captureCase.nativeReadyId],
           capture_mode: captureCase.captureMode,
           status: captureCase.status,
           canonical_asset_path: visualAssetPath(captureCase),

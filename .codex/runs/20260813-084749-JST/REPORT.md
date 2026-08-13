@@ -88,6 +88,18 @@
 - Remaining: B1 Product Fix merge後のCheckout Processing recapture、B2 Native CI manual dispatchによるAPI34 canonical Android target capture／manifest validation／promotion。Final Visual DoDはBLOCKED。
 - Progress: 100% (7/7)
 
+## 2026-08-13 14:20 (JST)
+
+- Summary: PR #24の追加review要求を現在のHEADへrebaselineし、4つの主要残件を実装対象として確定した。
+- Evidence:
+  - `git status --short --branch` => clean。branchは`feat/implement-screen-catalog-visual-specification`、HEADは`e801496`でorigin branchと一致。
+  - `e2e/web/ui-review.spec.ts`のCheckout Processing matcherはProcessing／Failed headingのOR条件であり、fail-openを再確認した。
+  - `.github/workflows/native-ci.yml`のAndroid captureは`scenario reset`とroute deep linkの後に`test -n "$READY"`だけを実行しており、Capture Caseのrole／setup／readyを実画面へ適用していない。
+  - `.github/workflows/ci.yml`のRequired pathは`pnpm run validate:spec`だけで、Final Visual Gateは未接続。`pnpm run verify`側には既存Final Gateがあるが、Phase 1 CIのRequired jobが受けていない。
+  - Native Maestro flow群は`launchApp(clearState: true)`を直接実行し、共通Android preflightがない。既知のtask cleanup race evidenceと一致する。
+- Decision: Product code、Screenshotの捏造、Final Gateの弱体化、Git操作は行わない。machine-readableなAndroid setup／ready mapping、実画面assert、Android-only startup preflight、Phase 1 Required Gate接続を最小構成で実装する。API34 runtimeはローカルcanonical sourceがないため、実capture／promotionは未実施のままBLOCKEDを維持する。
+- Progress: 47% (7/15)
+
 ## 2026-08-13 13:51 (JST)
 
 - Summary: 既存GitHub Actionsのmanual dispatch可否と入力設定を確認した。
@@ -186,3 +198,37 @@
   - Android Runtime cleanup完了後、`<USER_HOME>/Documents\qa-training-store-coordination\visual-android-released.json`を`status: blocked`、`android_runtime_released: true`、`next_agent_can_use_android: true`で更新した。
 - Decision: Checkout Processing Web TargetはProduct codeを変更せず`captured`へrebaselineした。Final Visual DoDはAndroid 25 targetのcanonical capture待ちでBLOCKEDを維持する。Physical API30 evidenceはcanonical assetへpromotionしない。
 - Progress: 100% (7/7)
+
+## 2026-08-13 17:55 (JST)
+
+- Summary: PR #24 review repair iteration 2をCurrent Repositoryへ実装し、構造検証・Web回帰・全テスト・Native static validationを現差分で再実行した。Final GateはAndroid required target 25件を理由にfail-closeした。
+- Implementation:
+  - Checkout Processing Webのready matcherを`支払いを処理しています`のexact headingへ限定し、Current worktreeのfresh UI Review 1/1と画像目視確認でProcessing UIを確認した。Failed headingとのOR条件、Product code変更、stale assetの再受理は行っていない。
+  - Android Capture Caseへtypedな`nativeSetupId`／`nativeReadyId`を追加し、Registry由来のscenario／route／role／machine setup subflow／ready conditionsをMaestro capture driverへ渡す構成にした。guest cart、customer login、processing delayを既存Native Test Control／Maestroで実行し、roleとreadyをassertした後にのみscreenshotへ進む。
+  - `android-maestro-run.sh`へforce-stop→`pm clear`→PID消失確認→Maestro launchを共通化し、Android flowから`launchApp(clearState: true)`を除去した。timeout増加、無条件retry、assertion削除、continue-on-error追加は行っていない。
+  - Phase 1 CI Style Quality Required pathへFinal Visual Specification gateを接続し、profile normalization successをcapture条件へ含めた。`verify`は既存のFinal Gate経路を維持する。
+- Validation:
+  - `pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run validate:spec`、`pnpm run build:spec`、`pnpm run lint`（0 errors／既存warning 65件）、`pnpm run typecheck` => PASS。
+  - `pnpm run test:contracts` => PASS（25 files／215 tests）。`pnpm run test` => PASS（unit 66、integration 98、repository 33、web component 76、native Jest 47、contracts 215）。
+  - `pnpm run build:web`、`pnpm run validate:image-manifest`、`pnpm run security:check` => PASS。`pnpm run test:e2e:chromium` => PASS（27/27）。Maestro 2.8.0 `check-syntax` => PASS（21 files）。
+  - `pnpm run validate:spec-visuals:final` => FAIL（blocked 25、captured 69/94）。`pnpm run verify` => FAIL（format／markdown／structural通過後、同じFinal Gateで停止）。未完了をPASSへ偽装していない。
+  - `pnpm run native:android:doctor` => PASS（Maestro 2.8.0、physical API30 arm64 deviceのみ）。API34 `google_apis`／`x86_64`／`pixel_2` emulator／AVDは利用できず、修正後Native CIの主要flow実runtimeとcanonical capture／promotionは未実行。
+- Visual summary: Capture Target 94、Captured 69、Pending 0、Blocked 25、Canonical Asset 69、合計5,408,254 bytes。Web Processing blockerは残っていない。
+- Android marker: `<USER_HOME>/Documents/qa-training-store-coordination/visual-android-released.json`は`owner: visual`、`status: blocked`、`android_runtime_released: true`、`next_agent_can_use_android: true`を保持している。API34 Runtimeをこのiterationで起動していないため、既存release状態を再利用した。
+- Scope audit: Product `app/**`／`src/**`、他worktree、Git履歴、branch、PR、canonical Android assetは変更していない。第二SSOT、ScreenshotのNormative化、dummy／stale asset、CI gate弱体化、secret／local absolute path混入は確認されなかった。
+- Final decision: `Structural Validation: PASS`、`Final Visual DoD: BLOCKED`。次の実行者はこのbranchをpush後、GitHub ActionsのNative CIをmanual dispatchし、`capture_spec_visuals=true`とRegistryの`capture_case_key`を選択してAPI34 capture／promotionを進める必要がある。
+- Progress: 93% (13/14)
+
+## 2026-08-13 18:03 (JST)
+
+- Self-review: `git diff --check`、scope file audit、weak-gate pattern audit、local absolute path auditを実行し、差分内のProduct `app/**`／`src/**`変更、new `continue-on-error`／`clearState: true`／retry隠蔽、secret、local absolute pathを検出しなかった。既存テスト内のnegative assertion文字列はgate弱体化ではない。
+- Run Artifact: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-084749-JST -Write` => PASS、続く`-Check` => PASS（5 files、residual 0）。
+- Completion decision: `Structural Validation: PASS`、`Final Visual DoD: BLOCKED`、`Phase 1 readiness: BLOCKED`、`Native CI readiness: BLOCKED / runtime未再実行`、`Merge readiness: NOT READY`。DoD未達を完了扱いにしない。
+- Progress: 100% (14/14)
+
+## 2026-08-13 18:12 (JST)
+
+- Final recheck: 追加したCapture Case scenario／role／dynamic setup／ready slot契約を含む`pnpm run test:contracts`はPASS（25 files／216 tests）。`pnpm run test`もPASS（unit 66、integration 98、repository 33、web component 76、native Jest 47、contracts 216）。
+- Final gate recheck: `pnpm run validate:spec-visuals:final`と`pnpm run verify`は、Structural Validation通過後にblocked 25／captured 69/94を理由としてFAIL。これはFinal DoDのfail-close期待結果である。
+- Final artifacts: Format check、Markdown lint、spec validation/build、lint、typecheck、Web build、image manifest、security、Chromium E2E、Maestro syntax、Android doctor、Run Artifact sanitizerは直近結果を維持してPASS。API34 canonical capture／修正後Native runtimeは未実行で、Android release markerはblocked／releasedのまま。
+- Progress: 100% (14/14)

@@ -102,6 +102,9 @@ async function createVisualFixture(
     setup: "fixture setup",
     ready: "fixture ready",
     captureMode: "viewport" as CaptureMode,
+    ...(platform === "android"
+      ? { nativeSetupId: "customer-login" as const, nativeReadyId: "home-screen" as const }
+      : {}),
     status,
     blockerReason: status === "blocked" ? "fixture blocker" : null,
   }));
@@ -228,6 +231,9 @@ Example acceptance.
     setup: "fixture setup",
     ready: "fixture ready",
     captureMode: "viewport" as CaptureMode,
+    ...(platform === "android"
+      ? { nativeSetupId: "customer-login" as const, nativeReadyId: "home-screen" as const }
+      : {}),
     status: targetStatus,
     blockerReason: targetStatus === "blocked" ? "fixture blocker" : null,
   }));
@@ -402,6 +408,42 @@ describe("Screen Catalog / Visual Contract", () => {
         `captureCaseKey metadata mismatch: SCREEN-OTHER/invalid/web-desktop`,
       ]),
     );
+  });
+
+  it("requires executable Android setup and ready metadata with a compatible role", () => {
+    const androidCase = VISUAL_CAPTURE_CASES.find(
+      (captureCase) => captureCase.platform === "android",
+    );
+    expect(androidCase).toBeDefined();
+    if (androidCase === undefined) return;
+
+    const { nativeSetupId: _nativeSetupId, ...withoutNativeSetup } = androidCase;
+    const { nativeReadyId: _nativeReadyId, ...withoutNativeReady } = androidCase;
+    expect(validateVisualCaptureRegistry([withoutNativeSetup])).toContain(
+      `Android capture requires nativeSetupId: ${androidCase.captureCaseKey}`,
+    );
+    expect(validateVisualCaptureRegistry([withoutNativeReady])).toContain(
+      `Android capture requires nativeReadyId: ${androidCase.captureCaseKey}`,
+    );
+    expect(
+      validateVisualCaptureRegistry([
+        { ...androidCase, nativeSetupId: "customer-login", role: "guest" },
+      ]),
+    ).toEqual(
+      expect.arrayContaining([
+        expect.stringContaining(
+          `Android nativeSetupId role mismatch: ${androidCase.captureCaseKey}`,
+        ),
+      ]),
+    );
+    expect(
+      validateVisualCaptureRegistry([
+        {
+          ...androidCase,
+          nativeSetupId: "unknown" as NonNullable<CaptureCase["nativeSetupId"]>,
+        },
+      ]),
+    ).toContain(`unknown Android nativeSetupId: ${androidCase.captureCaseKey}`);
   });
 
   it("requires Android canonical profile fields to be observed runtime values", async () => {

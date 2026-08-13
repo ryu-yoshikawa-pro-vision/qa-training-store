@@ -1,0 +1,82 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- launchApp
+- extendedWaitUntil:
+    visible: "Native test runtime listening"
+    timeout: 30000
+- assertVisible: "Scenario Shop"
+- openLink: ${RESET_URL}
+- runFlow: subflows/accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible: "Native test runtime ready"
+    timeout: 30000
+- runFlow:
+    when:
+      true: ${SETUP_SUBFLOW != ""}
+    file: ${SETUP_SUBFLOW}
+- runFlow:
+    when:
+      true: ${ROUTE_IS_ROOT == "false"}
+    commands:
+      - openLink: ${ROUTE_URL}
+      - runFlow: subflows/accept-ios-deep-link.yaml
+      - extendedWaitUntil:
+          visible: "Native test runtime ready"
+          timeout: 30000
+- runFlow:
+    when:
+      true: ${ROLE == "customer"}
+    commands:
+      - assertVisible:
+          id: "native-nav-orders"
+- runFlow:
+    when:
+      true: ${ROLE == "guest"}
+    commands:
+      - assertNotVisible:
+          id: "native-nav-orders"
+- runFlow:
+    when:
+      true: ${READY_KIND_1 == "id"}
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: ${READY_VALUE_1}
+          timeout: 30000
+- runFlow:
+    when:
+      true: ${READY_KIND_1 == "text"}
+    commands:
+      - extendedWaitUntil:
+          visible: ${READY_VALUE_1}
+          timeout: 30000
+- runFlow:
+    when:
+      true: ${READY_KIND_2 == "id"}
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: ${READY_VALUE_2}
+          timeout: 30000
+- runFlow:
+    when:
+      true: ${READY_KIND_2 == "text"}
+    commands:
+      - extendedWaitUntil:
+          visible: ${READY_VALUE_2}
+          timeout: 30000
+- runFlow:
+    when:
+      true: ${READY_KIND_3 == "id"}
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: ${READY_VALUE_3}
+          timeout: 30000
+- runFlow:
+    when:
+      true: ${READY_KIND_3 == "text"}
+    commands:
+      - extendedWaitUntil:
+          visible: ${READY_VALUE_3}
+          timeout: 30000

@@ -50,6 +50,13 @@ function readDeepLinkSubflow(): string {
   ).replace(/\r\n/g, "\n");
 }
 
+function readAndroidStartupHelper(): string {
+  return readFileSync(
+    join(process.cwd(), "scripts", "native", "android-maestro-run.sh"),
+    "utf8",
+  ).replace(/\r\n/g, "\n");
+}
+
 function findAllIndexes(source: string, expression: RegExp): number[] {
   return [...source.matchAll(expression)].map((match) => match.index ?? -1);
 }
@@ -102,20 +109,20 @@ describe("Native Test Control Maestro contracts", () => {
     "uses the runtime listening signal for cold-start readiness before Scenario Shop in %s",
     (flowName) => {
       const source = readFlow(flowName);
-      const launchIndex = source.indexOf("- launchApp:");
-      const clearStateIndex = source.indexOf("clearState: true", launchIndex);
+      const launchIndex = source.indexOf("- launchApp");
       const readinessIndex = source.indexOf(
         '- extendedWaitUntil:\n    visible: "Native test runtime listening"',
-        clearStateIndex,
+        launchIndex,
       );
       const scenarioShopIndex = source.indexOf('- assertVisible: "Scenario Shop"', readinessIndex);
 
       expect(launchIndex).toBeGreaterThanOrEqual(0);
-      expect(clearStateIndex).toBeGreaterThan(launchIndex);
-      expect(readinessIndex).toBeGreaterThan(clearStateIndex);
+      expect(source.slice(launchIndex, launchIndex + 20)).toContain("- launchApp\n");
+      expect(source).not.toContain("clearState: true");
+      expect(readinessIndex).toBeGreaterThan(launchIndex);
       expect(scenarioShopIndex).toBeGreaterThan(readinessIndex);
 
-      const startup = source.slice(clearStateIndex, readinessIndex);
+      const startup = source.slice(launchIndex, readinessIndex);
       const readiness = source.slice(readinessIndex, readinessIndex + 140);
       expect(startup).not.toContain('- assertVisible: "Scenario Shop"');
       expect(readiness).toContain("- extendedWaitUntil:");
@@ -127,7 +134,7 @@ describe("Native Test Control Maestro contracts", () => {
     "waits for Linking readiness before reset in %s",
     (flowName) => {
       const source = readFlow(flowName);
-      const launchIndex = source.indexOf("- launchApp:");
+      const launchIndex = source.indexOf("- launchApp");
       const listeningIndex = source.indexOf('visible: "Native test runtime listening"');
       const openLinkIndexes = findAllIndexes(
         source,
@@ -267,7 +274,7 @@ describe("Native Test Control Maestro contracts", () => {
 
   it("makes restart persistence stages and initial state isolation explicit", () => {
     const source = readFlow("native-restart-persistence.yaml");
-    expect((source.match(/clearState:\s*true/g) ?? []).length).toBe(1);
+    expect((source.match(/clearState:\s*true/g) ?? []).length).toBe(0);
     for (const checkpoint of [
       "native-restart-persistence-before-add",
       "native-restart-persistence-after-add",
@@ -335,8 +342,7 @@ describe("Native Test Control Maestro contracts", () => {
 
   it("checks Production validation without depending on Test Control or Harness", () => {
     const source = readFlow("native-production-validation.yaml" as (typeof flowNames)[number]);
-    const launchIndex = source.indexOf("- launchApp:");
-    const clearStateIndex = source.indexOf("clearState: true", launchIndex);
+    const launchIndex = source.indexOf("- launchApp");
     const shopReadyIndex = source.indexOf(
       '- extendedWaitUntil:\n    visible: "Scenario Shop"\n    timeout: 30000',
     );
@@ -349,8 +355,9 @@ describe("Native Test Control Maestro contracts", () => {
     const harnessLabelIndex = source.indexOf('assertNotVisible: "Native Contract Harness"');
 
     expect(launchIndex).toBeGreaterThanOrEqual(0);
-    expect(clearStateIndex).toBeGreaterThan(launchIndex);
-    expect(shopReadyIndex).toBeGreaterThan(clearStateIndex);
+    expect(source.slice(launchIndex, launchIndex + 20)).toContain("- launchApp\n");
+    expect(source).not.toContain("clearState: true");
+    expect(shopReadyIndex).toBeGreaterThan(launchIndex);
     expect(runtimeLabelIndex).toBeGreaterThan(shopReadyIndex);
     expect(runtimeStatusIndex).toBeGreaterThan(runtimeLabelIndex);
     expect(testControlLinkIndex).toBeGreaterThan(runtimeStatusIndex);
@@ -363,5 +370,16 @@ describe("Native Test Control Maestro contracts", () => {
     expect(source).toContain("Contract HarnessはAutomation専用です");
     expect(source).toContain('assertNotVisible: "Native Contract Harness"');
     expect(source).not.toContain("scenario-shop://test-control/reset");
+  });
+
+  it("keeps Android state cleanup outside the cross-platform Maestro flow", () => {
+    const helper = readAndroidStartupHelper();
+    expect(helper).toContain('shell pm clear "$PACKAGE_ID"');
+    expect(helper).toContain('shell pidof "$PACKAGE_ID"');
+    expect(helper).toContain('"$MAESTRO_BIN" "${maestro_args[@]}"');
+    expect(helper).not.toContain("clearState");
+    for (const flowName of automationFlowNames) {
+      expect(readFlow(flowName)).not.toContain("clearState: true");
+    }
   });
 });

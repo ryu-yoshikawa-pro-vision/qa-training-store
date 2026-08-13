@@ -27,9 +27,23 @@ function expectInOrder(source: string, fragments: string[]): void {
 
 const nativeWorkflow = readWorkflow(".github/workflows/native-ci.yml");
 const iosWorkflow = readWorkflow(".github/workflows/native-ios-ci.yml");
+const phaseOneWorkflow = readWorkflow(".github/workflows/ci.yml");
+const androidStartupHelper = readWorkflow("scripts/native/android-maestro-run.sh");
 const storefrontFlow = readWorkflow("maestro/native-storefront.yaml");
+const visualCaptureFlow = readWorkflow("maestro/native-visual-capture.yaml");
+const webUiReview = readWorkflow("e2e/web/ui-review.spec.ts");
 
 describe("Native CI workflow contracts", () => {
+  it("accepts only the Processing heading for Checkout Processing visual capture", () => {
+    expect(webUiReview).toContain(
+      'page.getByRole("heading", { name: "支払いを処理しています", exact: true })',
+    );
+    expect(webUiReview).not.toContain("支払いを処理しています|支払いを完了できませんでした");
+    expect(webUiReview).not.toContain(
+      "name: /支払いを処理しています|支払いを完了できませんでした/",
+    );
+  });
+
   it("keeps Android automation and production builds independent and self-contained", () => {
     const automation = jobBlock(
       nativeWorkflow,
@@ -191,16 +205,40 @@ describe("Native CI workflow contracts", () => {
     expect(nativeWorkflow).toContain("default: SCREEN-STOREFRONT-HOME/default/android");
     expect(captureStart).toBeGreaterThanOrEqual(0);
     expect(capture).toContain("inputs.capture_spec_visuals == true");
+    expect(capture).toContain("steps.android_profile_normalize.outcome == 'success'");
     expect(capture).not.toContain("pull_request");
     expect(capture).toContain('CASE_KEY="${{ inputs.capture_case_key }}"');
     expect(capture).toContain("android-visual-capture.ts describe-case");
-    for (const captureMetadata of ["scenario", "route", "role", "setup", "ready", "capture_mode"]) {
+    for (const captureMetadata of [
+      "scenario",
+      "route",
+      "role",
+      "setup",
+      "ready",
+      "native_setup_id",
+      "native_reset_payment_delay_ms",
+      "native_ready_id",
+      "ready_conditions",
+      "capture_mode",
+    ]) {
       expect(capture).toContain(`.${captureMetadata}`);
     }
+    expect(capture).toContain("maestro/native-visual-capture.yaml");
+    expect(capture).toContain("android-maestro-run.sh");
+    expect(capture).toContain('--env "SETUP_SUBFLOW=$NATIVE_SETUP_SUBFLOW"');
+    expect(capture).toContain('jq -rn --arg value "$SCENARIO"');
+    expect(capture).toContain("scenario=${scenario_encoded}");
+    expect(capture).toContain('--env "ROLE=$ROLE"');
+    expectInOrder(capture, ["android-maestro-run.sh", "exec-out screencap -p"]);
+    expect(capture).not.toContain('test -n "$READY"');
     expect(capture).toContain("source-commit-sha");
     expect(capture).toContain("--automation-apk-path");
     expect(capture).toContain("android-visual-capture.ts write-manifest");
     expect(capture).toContain("--observed-profile-json");
+    expectInOrder(runtime, [
+      "Normalize Android canonical visual profile",
+      "Capture Android Screen Catalog baseline",
+    ]);
     expect(capture).toContain("--system-image google_apis");
     expect(capture).toContain("--avd-profile pixel_2");
     expect(runtime).toContain("native-android-screen-catalog-visuals-");
@@ -218,6 +256,18 @@ describe("Native CI workflow contracts", () => {
     expect(capture).toContain("APK_PATH");
     expect(capture).toContain("GITHUB_SHA");
     expect(capture).toContain("GITHUB_RUN_ID");
+  });
+
+  it("executes Capture Case setup metadata and asserts role plus all ready matcher slots", () => {
+    expect(visualCaptureFlow).toContain("- launchApp\n");
+    expect(visualCaptureFlow).toContain("SETUP_SUBFLOW");
+    expect(visualCaptureFlow).toContain('true: ${ROLE == "customer"}');
+    expect(visualCaptureFlow).toContain('true: ${ROLE == "guest"}');
+    for (const slot of [1, 2, 3]) {
+      expect(visualCaptureFlow).toContain(`READY_KIND_${slot}`);
+      expect(visualCaptureFlow).toContain(`READY_VALUE_${slot}`);
+    }
+    expect(visualCaptureFlow).not.toMatch(/^\s+- sleep:/m);
   });
 
   it("keeps Android Maestro flows independent while fail-closing the runtime job", () => {
@@ -248,6 +298,8 @@ describe("Native CI workflow contracts", () => {
       expect(step).toContain("!cancelled()");
       expect(step).toContain("steps.android_automation_install.outcome == 'success'");
       expect(step).not.toContain("continue-on-error: true");
+      expect(step).toContain("android-maestro-run.sh");
+      expect(step).not.toContain("maestro test");
     }
 
     const productionInstallStart = runtime.indexOf(
@@ -261,6 +313,39 @@ describe("Native CI workflow contracts", () => {
     expect(productionInstall).toContain("needs.android-production-build.result == 'success'");
     expect(productionFlow).toContain("steps.production_install.outcome == 'success'");
     expect(productionFlow).not.toContain("android_automation_install");
+    expect(productionFlow).toContain("android-maestro-run.sh");
+  });
+
+  it("connects the Final Visual gate to the Phase 1 Required path", () => {
+    const styleQuality = jobBlock(phaseOneWorkflow, "style-quality", "code-quality");
+    const verify = jobBlock(phaseOneWorkflow, "verify", "deploy-preview");
+
+    expectInOrder(styleQuality, [
+      "run: pnpm run validate:spec",
+      "- name: Final Visual Specification gate",
+      "run: pnpm run validate:spec-visuals:final",
+    ]);
+    expect(verify).toContain("needs.style-quality.result");
+    expect(verify).toContain('require_success "style-quality" "$STYLE_QUALITY_RESULT"');
+    expect(phaseOneWorkflow).not.toContain("continue-on-error: true");
+  });
+
+  it("uses a fail-closed Android cleanup helper before every Maestro launch", () => {
+    expect(androidStartupHelper).toContain('am force-stop "$PACKAGE_ID"');
+    expect(androidStartupHelper).toContain('shell pm clear "$PACKAGE_ID"');
+    expect(androidStartupHelper).toContain('shell pidof "$PACKAGE_ID"');
+    expect(androidStartupHelper).toContain('"$MAESTRO_BIN" "${maestro_args[@]}"');
+    expect(androidStartupHelper.indexOf("shell pm clear")).toBeGreaterThan(
+      androidStartupHelper.indexOf("am force-stop"),
+    );
+    expect(androidStartupHelper.indexOf('shell pidof "$PACKAGE_ID"')).toBeGreaterThan(
+      androidStartupHelper.indexOf("shell pm clear"),
+    );
+    expect(androidStartupHelper.indexOf('"$MAESTRO_BIN" "${maestro_args[@]}"')).toBeGreaterThan(
+      androidStartupHelper.indexOf('shell pidof "$PACKAGE_ID"'),
+    );
+    expect(androidStartupHelper).not.toContain("clearState");
+    expect(androidStartupHelper).not.toContain("retry");
   });
 
   it("keeps Native CI final verify fail-closed and preserves the no-change skip", () => {

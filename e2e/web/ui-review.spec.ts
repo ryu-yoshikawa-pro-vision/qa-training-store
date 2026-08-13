@@ -456,8 +456,7 @@ const coreRoutes: CaptureRoute[] = [
   createCustomerRoute(
     "/checkout/processing?orderId=order-payment-failed",
     "payment-processing",
-    (page) =>
-      page.getByRole("heading", { name: /支払いを処理しています|支払いを完了できませんでした/ }),
+    (page) => page.getByRole("heading", { name: "支払いを処理しています", exact: true }),
     async (page) => {
       await loginRegular(page);
       await gotoPath(page, "/checkout/processing?orderId=order-payment-failed");
