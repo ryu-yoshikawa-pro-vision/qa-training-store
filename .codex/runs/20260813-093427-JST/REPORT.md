@@ -323,3 +323,68 @@ Progress: 90% (18/20)
 - `run.json.status=partial`、`run.json.primary_failure_category=missing_validation`、`evaluation.json.result=partial`を維持。`scope` / `scope_ref`は追加していない。
 - Android、Fresh Learner、remote Training Copy、Final Delivery Readinessは今回実行していない。未実行をPASS扱いせず、次工程へ残す。
 - Run Artifact追記後の`pnpm run format:check`もPASS（全対象がPrettier準拠）。
+
+## 2026-08-13 21:31 JST — Active Run current-state reconciliation
+
+### Current state
+
+- 最終Source repairはcommit / push済みであることをGitHub read-onlyで確認した。
+- 修正Sourceに対するRequired Phase 1 CI success（#192）を確認した。
+- 修正Sourceに対するRequired Native CI success（#134）を確認した。
+- Android Runtime / Training Maestro baseline success、およびTraining baselineがProduction-validation APK切替前に実行されたことは、既存Run / PR Evidenceとユーザー提示の状態で確認済みである。
+- Source implementationとして追加のblocking findingはない。Source correctness gateは完了している。
+- Fresh Learner full journeyはpendingである。
+- `FINAL_CANDIDATE_SHA`はまだfreezeしない。Fresh Learnerと最終Run Artifact状態の完了後にfreezeする。
+- Final Delivery Readinessはpendingである。
+
+### Historical SHA clarification
+
+- `50021ad` / `6ef3f6c`は過去のrepair iterationにおけるEvidenceとして保持する。過去記録はREPORTのappend-only契約に従って変更しない。
+- これらの過去SHAをFinal Delivery candidateとして使用しない。current stateには変化後に再び古くなるexact SHAを新規固定せず、durableな状態表現だけを記録する。
+
+### Scope / non-adopted review comments
+
+- 今回の変更はactive Runの`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`だけに限定し、Source / Product / Workflow / Test / Curriculumは変更していない。
+- Run Artifact英語見出しの全面変更、GitHub Action SHA pinning、`scope` / `scope_ref`追加、過去Runの再構築、2026-08-13未来日付コメントの変更は行わない。Canonical template / Repository-wide policy / append-only契約と矛盾するためである。
+
+### Remaining
+
+- Fresh Learner full journey
+- `FINAL_CANDIDATE_SHA` freeze
+- exact-SHA Training Copy Web / Android / expected-failure
+- expected-failure Artifact確認
+- Final Delivery Readiness 3 runs
+- final PR HEAD / `FINAL_CANDIDATE_SHA` / Training Copy resolved SHA equality
+
+### Final artifact validation
+
+- JSON parse、TASKS progress再計算、sanitizer、`git diff --check`はArtifact更新後に実行し、結果を次の追補へ記録する。
+
+### 2026-08-13 21:34 JST — Final artifact validation
+
+- `run.json` JSON parse => PASS（`status=partial`、`primary_failure_category=missing_validation`）。
+- `evaluation.json` JSON parse => PASS（`result=partial`、`primary_failure_category=missing_validation`）。
+- TASKS progress再計算 => PASS（Now + Discovered: 19 / 21、90%。Blockedは分母外）。
+- `pnpm run format:check` => PASS（全対象がPrettier準拠）。
+- `pnpm run lint:markdown` => PASS（248 files / 0 issues）。ただし設定上`.codex/runs/**`は除外されるため、Run Artifact自体の直接検証EvidenceはJSON parse、Sanitizer、`git diff --check`で取得した。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check` => PASS（5 files、0 replacements、0 residual findings）。
+- `git diff --check` => PASS（CRLFのline-ending warningのみ、whitespace errorなし）。
+- allowed-files check => PASS。変更はactive Runの`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`のみ。Source / Product / Workflow / Test / Curriculum変更なし。
+
+### Reconciliation decision
+
+- 「repair未コミット」「post-repair Required CI未完了」はcurrent stateから除去した。
+- `run.json.status=partial`、`evaluation.json.result=partial`、`missing_validation`は維持した。残る理由はFresh Learner、FINAL_CANDIDATE_SHA freeze、exact-SHA Training Copy、Final Delivery Readiness、SHA equalityである。
+- `stop_success`。今回のRun Artifact reconciliationを完了し、Final Deliveryは次工程へ引き継ぐ。
+- Progress: 90% (19/21)
+
+### 2026-08-13 21:36 JST — Final post-append confirmation
+
+- GitHub read-only PR metadata / workflow-runs確認 => PASS。commit / push済み、Phase 1 CI #192 success、Native CI #134 success。current exact SHAは自己参照を避けるためRun Artifactへ追加固定していない。
+- `run.json` / `evaluation.json` JSON parse => PASS。
+- TASKS progress再計算 => PASS（19 / 21、90%。Blocked除外）。
+- `pnpm run format:check` => PASS。
+- `pnpm run lint:markdown` => PASS（248 files / 0 issues）。`.codex/runs/**`は除外設定のため、Run Artifact自体の直接検証ではない。
+- Sanitizer Write / Check => PASS（5 files、0 residual findings）。
+- `git diff --check` => PASS（CRLF warningのみ）。
+- allowed-files check => PASS。変更対象はactive Runの4ファイルのみで、Source変更なし。

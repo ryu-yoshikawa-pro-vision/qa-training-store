@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "PR #25 committed HEAD 6ef3f6c8183580ca57192c52b9e37a0bd72eaf00で、Phase 1 CI #189 / Native CI #131 success、およびAndroid Runtime / Maestro / Training baseline successを確認済み。今回の最終Source repair（sdkmanager回帰Contract、Run同期）のlocal validationも完了した。修正後のFinal Candidate SHA、Fresh Learner、post-repair Required CI、exact-SHA Training Copyは未完了。",
+      "evidence": "最終Source repairはcommit / push済みで、修正Sourceに対するRequired Phase 1 / Native CI success、Android Runtime / Training Maestro baseline successを確認済み。Source implementationとlocal validationは完了している。Fresh Learner full journey、FINAL_CANDIDATE_SHA freeze、exact-SHA Training Copy、Final Delivery Readinessは未完了。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "scope_control": {
@@ -17,7 +17,7 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "今回のrepair後にformat、markdown、curriculum、repository / Training typecheck、focused Curriculum contract 6、full verify（full contracts 208、security、Web/spec buildを含む）をPASS。Current PR HEADのPhase 1 / Native CI successはread-only workflow evidenceで確認。",
+      "evidence": "format、markdown、spec、curriculum、repository / Training typecheck、focused Curriculum contract 6、full verify（full contracts 208、security、Web/spec buildを含む）をPASS。修正Sourceに対するRequired Phase 1 / Native CI successはread-only workflow evidenceで確認。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "safety_compliance": {
@@ -37,7 +37,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Committed PR HEAD 6ef3f6cのPhase 1 / Native CI successと、ユーザー提示のAndroid Runtime / Maestro / Training baseline successを記録。今回のSource変更はvalidatorとRun ArtifactのみでAndroidは再実行していない。未コミット修正後のFinal exact SHA / remote executionは未成立。",
+      "evidence": "最終Source repairはcommit / push済みで、Required Phase 1 / Native CI successとAndroid Runtime / Training Maestro baseline successを確認済み。Source correctness gateは完了しているが、Fresh Learner、FINAL_CANDIDATE_SHA freeze、exact-SHA Training Copy、remote Delivery Readinessは未成立。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     }
   },
@@ -45,8 +45,8 @@
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "Committed PR HEAD 6ef3f6cのPhase 1 / Native CIはsuccess。今回repair後のFinal Candidate SHA、post-repair Required CI、Training Copy exact-SHA 3 runs、SHA equality、Fresh Learner full journeyは未実行。",
-      "detail": "今回のlocal repairは完了したが、未コミットSource変更があるため、6ef3f6cのremote evidenceからFinal Delivery Readinessへ昇格しない。"
+      "evidence": "修正Sourceに対するRequired Phase 1 / Native CIはsuccess。Fresh Learner full journey、FINAL_CANDIDATE_SHA freeze、Training Copy exact-SHA 3 runs、SHA equality、Final Delivery Readinessは未実行。",
+      "detail": "Source correctness gateは完了しているが、Fresh LearnerとFinal Delivery Readinessの完了前にFinal Candidateをfreezeしない。"
     },
     {
       "category": "environment_failure",
@@ -58,7 +58,7 @@
   "improvement_candidates": [
     {
       "target": "Training Copy remote Delivery Readiness",
-      "evidence": "exact-SHA manifestとremote workflow conclusionは現uncommitted worktreeでは確定できない。",
+      "evidence": "FINAL_CANDIDATE_SHAを意図的に未freezeとしているため、exact-SHA manifestとremote workflow conclusionは未確定。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"],
       "expected_impact": "Merge前のSHA equalityとTraining Copy実行結果を最終候補へ固定できる。",
       "recommendation": "修正をcommitした後、new final PR HEAD SHAでTraining Copy Web / Android / expected-failureを3回実行し、actual conclusionとArtifactを記録する。"

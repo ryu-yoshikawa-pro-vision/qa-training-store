@@ -32,5 +32,5 @@
 
 ## Blocked
 
-- 今回の最終Source repairが未コミットのため、FINAL_CANDIDATE_SHAはまだ固定しない。repair commit後の最終HEADでexact-SHA / remote Delivery Readinessを実施する。
-- Fresh Learner full journeyはこのuncommitted worktreeからの個別再現と同一視しない。
+- Source repairはcommit / push済みで、修正Sourceに対するRequired Phase 1 / Native CIも成功済み。Source correctness gateは完了している。
+- Fresh Learner full journeyは未完了。Fresh Learnerと最終Run Artifact状態が完了するまでFINAL_CANDIDATE_SHAは意図的にfreezeしない。その後にexact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。

@@ -92,16 +92,24 @@
       "git diff --check => pass (final check; CRLF warnings only)",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)",
       "pnpm run format:check => pass (final Run Artifact state)",
-      "Run Artifact JSON parse => pass"
+      "Run Artifact JSON parse => pass",
+      "GitHub read-only PR #25 metadata / workflow-runs check => pass (commit/push present; Phase 1 CI #192 success; Native CI #134 success; current exact SHA intentionally omitted from Run Artifact)",
+      "run.json / evaluation.json JSON parse => pass (final current-state reconciliation)",
+      "TASKS progress recalculation => pass (19/21, 90%; Blocked excluded)",
+      "pnpm run format:check => pass (final Run Artifact reconciliation)",
+      "pnpm run lint:markdown => pass (248 files / 0 issues; .codex/runs/** excluded, so not direct Run Artifact validation)",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)",
+      "git diff --check => pass (CRLF warnings only; no whitespace errors)",
+      "allowed-files check => pass (TASKS / REPORT / run.json / evaluation.json only)"
     ],
     "warnings": [
       "lint has 65 pre-existing warnings",
       "Android Gradle Build evidence is split: the earlier outer command timed out after Gradle had logged BUILD SUCCESSFUL; APK was independently inspected before Install. This repair reused the unchanged APK because only the runner changed.",
       "Android SDK latest/latest-2 warning remains; current Training AVD identity and focused baseline passed",
-      "PR #25 committed HEAD 6ef3f6c8183580ca57192c52b9e37a0bd72eaf00 has Phase 1 CI #189, Native CI #131, Android Runtime / Maestro, and Training Maestro baseline success; this final repair is uncommitted and those prior runs are not Final Candidate evidence",
-      "Post-repair Final Candidate SHA, post-repair Source Required CI, exact-SHA Training Copy, 3 Delivery Readiness runs, SHA equality, and Fresh Learner full journey are not complete",
+      "Latest Source repair is committed and pushed; Required Phase 1 / Native CI for the repaired source succeeded, and Android Runtime / Training Maestro baseline success is recorded. Source correctness gates are complete",
+      "Fresh Learner full journey and Final Delivery Readiness remain pending; FINAL_CANDIDATE_SHA is intentionally not frozen until Fresh Learner and the final Run Artifact state are complete. Exact-SHA Training Copy, 3 Delivery Readiness runs, and SHA equality follow that freeze",
       "Action SHA pinning and run.json scope_ref were intentionally not added; the former is a repository-wide policy concern and the latter is absent from the canonical RUN_MANIFEST schema",
-      "FINAL_CANDIDATE_SHA is not frozen until this repair is committed and post-repair Source Required CI succeeds"
+      "FINAL_CANDIDATE_SHA is intentionally not frozen until Fresh Learner and the final Run Artifact state are complete"
     ]
   },
   "safety": {
