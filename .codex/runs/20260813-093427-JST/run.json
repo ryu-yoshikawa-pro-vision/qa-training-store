@@ -23,6 +23,7 @@
     "pnpm-lock.yaml",
     "scripts/spec/validate-spec.ts",
     "scripts/training/android-emulator.ps1",
+    "scripts/training/maestro-invocation.ts",
     "scripts/training/run-expected-failure.ts",
     "scripts/training/run-maestro-baseline.ts",
     "scripts/training/validate-training-copy.ts",
@@ -44,20 +45,26 @@
       "pnpm run lint => pass (0 errors, 65 warnings)",
       "pnpm run typecheck => pass",
       "pnpm run typecheck:training => pass",
-      "pnpm run test:contracts => pass (25 files, 207 tests)",
-      "pnpm run test => pass (unit 66, integration 98, repository 33, web component 76, native 47, contracts 207)",
+      "pnpm exec vitest run tests/contracts/training-curriculum.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1 => pass (2 files, 18 tests)",
+      "pnpm run test:contracts => pass (25 files, 208 tests)",
+      "pnpm run test => pass (unit 66, integration 98, repository 33, web component 76, native 47, contracts 208)",
       "pnpm run verify => pass",
       "Training Web desktop => pass (1/1)",
-      "Training Web mobile => pass (1/1)",
+      "Training Web mobile baseline => pass (1/1)",
+      "Training Web mobile learner exercise => pass (1/1)",
       "Training Web expected-failure => wrapper pass; intentional child failure and fresh evidence pass",
-      "Training Android Doctor / Prepare / Start / Build / APK inspection / Install / Smoke / baseline / Evidence / Stop => pass",
-      "Training Copy validator on current source => fail-closed as expected (active workflow allowlist mismatch; no exact-SHA Copy PASS claimed)"
+      "Training Android initial Doctor without SDK environment => fail-closed as expected; explicit SDK environment Doctor => pass; existing APK independent verification => pass; Install => pass; Smoke => pass; Training AVD Start => pass; focused Training Maestro baseline 1/1 => pass; Stop/poll cleanup => pass (no APK rebuild; no Formal Maestro)",
+      "Training Copy validator on current source => fail-closed as expected (active workflow allowlist mismatch; no exact-SHA Copy PASS claimed)",
+      "git diff --check => pass (CRLF warnings only)",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)"
     ],
     "warnings": [
       "lint has 65 pre-existing warnings",
-      "Android Gradle Build needed current-worktree short Junction and <PNPM_VIRTUAL_STORE> virtual store; SDK latest/latest-2 warning remains",
-      "One outer command timed out after Gradle had logged BUILD SUCCESSFUL; APK was independently inspected before Install",
-      "Final committed SHA, remote Required CI, exact-SHA Training Copy, 3 Delivery Readiness runs, and Fresh Learner full journey are not complete"
+      "Android Gradle Build evidence is split: the earlier outer command timed out after Gradle had logged BUILD SUCCESSFUL; APK was independently inspected before Install. This repair reused the unchanged APK because only the runner changed.",
+      "Android SDK latest/latest-2 warning remains; current Training AVD identity and focused baseline passed",
+      "PR #25 HEAD 7c442d3 Phase 1 / Native CI evidence predates this repair and is not the final candidate",
+      "Final committed SHA, post-repair remote Required CI, exact-SHA Training Copy, 3 Delivery Readiness runs, and Fresh Learner full journey are not complete",
+      "Action SHA pinning and run.json scope_ref were intentionally not added; the former is a repository-wide policy concern and the latter is absent from the canonical RUN_MANIFEST schema"
     ]
   },
   "safety": {

@@ -136,6 +136,7 @@ function validateCurriculumLinks(rootDir: string): void {
 }
 
 export function parseCsv(text: string, name = "workbook.csv"): string[][] {
+  const source = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
   const rows: string[][] = [];
   let row: string[] = [];
   let field = "";
@@ -150,11 +151,11 @@ export function parseCsv(text: string, name = "workbook.csv"): string[][] {
     fieldClosed = false;
   };
 
-  for (let index = 0; index < text.length; index += 1) {
-    const character = text[index] ?? "";
+  for (let index = 0; index < source.length; index += 1) {
+    const character = source[index] ?? "";
     if (inQuotes) {
       if (character === '"') {
-        if (text[index + 1] === '"') {
+        if (source[index + 1] === '"') {
           field += '"';
           index += 1;
         } else {
@@ -173,7 +174,7 @@ export function parseCsv(text: string, name = "workbook.csv"): string[][] {
         field = "";
         fieldClosed = false;
       } else if (character === "\r" || character === "\n") {
-        if (character === "\r" && text[index + 1] === "\n") index += 1;
+        if (character === "\r" && source[index + 1] === "\n") index += 1;
         finishRow();
       } else {
         fail(`${name} contains characters after a closing quote`);
@@ -188,7 +189,7 @@ export function parseCsv(text: string, name = "workbook.csv"): string[][] {
       row.push(field);
       field = "";
     } else if (character === "\r" || character === "\n") {
-      if (character === "\r" && text[index + 1] === "\n") index += 1;
+      if (character === "\r" && source[index + 1] === "\n") index += 1;
       finishRow();
     } else {
       field += character;
@@ -371,6 +372,7 @@ function validateTrainingAssets(rootDir: string): string[] {
     "scripts/training/prepare-training-copy.ts",
     "scripts/training/validate-training-copy.ts",
     "scripts/training/workflow-contract.ts",
+    "scripts/training/maestro-invocation.ts",
     "scripts/training/android-emulator.ps1",
     "tsconfig.training.json",
   ]) {
@@ -400,10 +402,14 @@ function validateTrainingAssets(rootDir: string): string[] {
   for (const required of [
     "TRAINING_MAESTRO_OUTPUT_DIR",
     "native-training-baseline.yaml",
-    '"--device"',
     "300_000",
+    "import { buildMaestroInvocation }",
+    "main();",
   ])
     assertContains(maestroRunner, required, "Training Maestro runner");
+  const maestroInvocation = read(rootDir, "scripts/training/maestro-invocation.ts");
+  for (const required of ['"--device"', "--test-output-dir="])
+    assertContains(maestroInvocation, required, "Training Maestro invocation");
 
   const expectedFailureRunner = read(rootDir, "scripts/training/run-expected-failure.ts");
   for (const required of ["rmSync(evidenceRoot", '".zip"', '".png"', '".webm"', '".html"'])
@@ -416,6 +422,9 @@ function validateTrainingAssets(rootDir: string): string[] {
   for (const required of [
     "$env:ANDROID_SDK_ROOT",
     "$env:ANDROID_HOME",
+    "$cmdlineToolsRoot",
+    "Get-ChildItem -LiteralPath $cmdlineToolsRoot",
+    "sdkmanager.bat was not found",
     "Android build failed.",
     "Training Maestro baseline failed.",
     "finally",
@@ -440,7 +449,6 @@ function validateTrainingAssets(rootDir: string): string[] {
     } catch (error) {
       fail(error instanceof Error ? error.message : String(error));
     }
-    assertContains(workflow, "persist-credentials: false", name);
     assertContains(workflow, "if: always()", name);
   }
   for (const required of [
@@ -493,11 +501,21 @@ export function validateCurriculum(rootDir = process.cwd()): CurriculumSummary {
   const trainingProjects = validateTrainingAssets(rootDir);
 
   const scripts = parsePackageScripts(read(rootDir, "package.json"));
+  const mobileExerciseScript = scripts["training:web:mobile:exercise"];
+  if (
+    mobileExerciseScript !==
+    "playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-mobile-chromium"
+  ) {
+    fail(
+      "training:web:mobile:exercise must run training/playwright/exercises with training-mobile-chromium",
+    );
+  }
   for (const scriptName of [
     "validate:curriculum",
     "typecheck:training",
     "training:web:baseline",
     "training:web:mobile",
+    "training:web:mobile:exercise",
     "training:web:expected-failure",
     "training:web:check-expected-failure",
     "training:native:baseline",

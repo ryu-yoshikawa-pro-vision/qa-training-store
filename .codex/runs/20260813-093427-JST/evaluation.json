@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Review fixes、local quality gates、Training Web、Android Training baseline、Evidence、cleanupは完了。Fresh Learner full journey、final committed SHA、remote Required CI、exact-SHA Training Copyは未完了。",
+      "evidence": "追加レビュー修正、local quality gates、Training Web desktop / mobile baseline / learner exercise / expected-failure、Android Training baseline、Evidence、cleanupは完了。Fresh Learner full journey、修正後final committed SHA、post-repair remote Required CI、exact-SHA Training Copyは未完了。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "scope_control": {
@@ -17,7 +17,7 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "format、markdown、spec、curriculum、lint、repository / Training typecheck、contracts 207、full test、verify、Training Web 3モード、Android Training baseline 1/1を再実行してPASS。",
+      "evidence": "format、markdown、spec、curriculum、lint、repository / Training typecheck、focused contracts 18、full contracts 208、full test、verify、Training Web 4モード、Android Training baseline 1/1を再実行してPASS。Training Copy validatorはcurrent rootでfail-closeしたためexact-SHA Copy PASSとは扱っていない。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "safety_compliance": {
@@ -27,7 +27,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "22 review findingsのvalid / invalid判断、独自finding、変更、検証、remaining blockerをREPORTへ記録した。",
+      "evidence": "既存22 review findingsと今回の追加Findingについてvalid / invalid / out-of-scope判断、変更、検証、remaining blockerをREPORTへ記録した。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "maintainability": {
@@ -37,7 +37,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Local Web / Androidはdedicated port、AVD identity、target serial、short virtual store、fresh expected-failure evidenceで再現確認。Final exact SHAとremote executionはcommit禁止のため未成立。",
+      "evidence": "Local Web / Androidはdedicated port、AVD identity、target serial、short virtual store、fresh expected-failure evidenceで再現確認。今回のrunner-only repairでは既存APKを独立検査して再利用し、Training Maestro baseline 1/1とcleanupを確認。初回SDK env未設定Doctorのfail-closeと、明示設定後のPASSを分離記録。Final exact SHAとpost-repair remote executionはcommit禁止のため未成立。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     }
   },
@@ -51,8 +51,8 @@
     {
       "category": "environment_failure",
       "severity": "medium",
-      "evidence": "Training Android initial Doctorはemulator component不足、初回Buildは長いPath、short virtual store再試行の外側commandはtimeoutしたがGradle logはBUILD SUCCESSFUL。",
-      "detail": "SDK component導入、current-worktree専用short Junction、virtual store再リンク、APK独立検査によりAndroid Training baselineはPASS。"
+      "evidence": "Training Androidの初回DoctorはSDK env未設定でfail-close。過去のBuild sequenceでは長いPath回避のshort virtual storeを使用し、外側commandはtimeoutしたがGradle logはBUILD SUCCESSFUL。",
+      "detail": "明示的SDK envでDoctor、Training AVD identity、既存APK独立検査、Install、Smoke、Training baseline、cleanupはPASS。今回のrunner-only repairではAPK rebuildとFormal Maestroは実施していない。"
     }
   ],
   "improvement_candidates": [

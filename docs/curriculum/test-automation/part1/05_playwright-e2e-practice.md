@@ -182,7 +182,10 @@ Playwright Projectを切り替え、Mobile Viewportでも主要Flowを確認し�
 
 DesktopでPassすることとMobileで使えることは同じではありません。
 
-Training用Mobile実行は `pnpm run training:web:mobile` で正式Suiteと分離して実行します。
+Training baselineのMobile確認は `pnpm run training:web:mobile` で実行します。
+Baseline確認とは別に、受講者が作成したExerciseをMobile Projectで実行する場合は、
+`pnpm run training:web:mobile:exercise` を使用します。この入口は
+`training/playwright/exercises`だけを `training-mobile-chromium` で実行し、Formal E2Eを実行しません。
 
 ## Lesson 8: Accessibility
 
@@ -208,7 +211,8 @@ Payment拒否からRetry成功までを実装します。
 
 ## ハンズオン3: Mobile確認
 
-作成したテストのうち1件をMobile向けTraining実行環境で実行し、Desktopとの差を記録します。
+まず `pnpm run training:web:mobile` でTraining baselineを確認します。その後、作成したテストのうち1件以上を
+`pnpm run training:web:mobile:exercise` でMobile向けTraining実行環境へ実行し、Desktopとの差を記録します。
 
 ## ハンズオン4: 既存E2Eとの差分分析
 
@@ -237,6 +241,6 @@ Payment拒否からRetry成功までを実装します。
 - Seed Scenario / Resetを利用したテストを含む。
 - 正常、異常または境界の両方を含む。
 - PaymentまたはRole横断の状態遷移を1件以上扱っている。
-- Desktop実行に加えて、Mobile実行を1件以上行っている。Accessibilityは追加観点として実行・記録できるが、Mobileの代替にはしない。
+- Desktop実行に加えて、Mobile baselineを確認し、作成したExerciseをMobileで1件以上実行している。Accessibilityは追加観点として実行・記録できるが、Mobileの代替にはしない。
 - Training用E2Eと既存Regressionを混同せず、両者の役割を説明できる。
 - Seed Scenario Resetを利用できる一方、Fixture内部設計はPart 1-8で学ぶ内容だと区別できる。

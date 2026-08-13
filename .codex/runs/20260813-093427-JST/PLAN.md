@@ -69,3 +69,8 @@ Exit Criteria:
 - 2026-08-13 13:40 JST: Training helperのscalar配列問題を修正。長いrepository PathによるCMake failureを確認し、current worktree専用 `<REPO_ROOT>` と `<PNPM_VIRTUAL_STORE>` のshort virtual storeで再生成した。
 - 2026-08-13 13:56 JST: Gradle log上でx86_64 Release APK Build成功を確認。外側timeoutとGradle成功を分離し、APK bundle / ABIを検査した。
 - 2026-08-13 14:18 JST: Training Maestro baseline 1/1、Evidence、cleanup、full test、verify、Training Web 3モードをPASSした。
+- 2026-08-13 16:59 JST: 追加レビュー修正では、既存P0順序を再設計せず、YAML構造の`runs-on` / checkout `persist-credentials`、alternate package execution、remote script pipeを共有Trust Boundaryへ追加した。Current Training Workflowはnegative fixtureを含めてPASSした。
+- 2026-08-13 16:59 JST: Learner Exercise用Mobile entrypointをBaseline entrypointから分離し、教材・Curriculum validator・contractへ接続した。Maestro runnerはpure invocation helperへ分離し、main-module判定によるsilent-success経路を除去した。CSV BOM許容とsdkmanager教材fallbackも追加した。
+- 2026-08-13 16:59 JST: CodeRabbitのAction SHA pinning提案はRepository全体のSupply Chain Policy変更となるため不採用。`scope` / `scope_ref`追加も、PLAN.mdのScopeがStrict要件を満たしcanonical RUN_MANIFEST schemaにfieldがないため不採用。PR #25の7c442d3でのPhase 1 / Native CI成功は修正前Evidenceとして記録するが、今回のSource変更後はFinal Candidateへ流用しない。
+- 2026-08-13 16:59 JST: Subagentは使用しなかった。Native delegation markerとrepair scopeを照合し、親Agentでレビュー照合・最小実装・validation・最終判断を完結できたため、調査結果の分散を避けた。
+- 2026-08-13 16:59 JST: 変更後の静的Gate、focused / full contracts、full test、verify、Training Web desktop / mobile baseline / learner exercise / expected-failure、Android Training baseline 1/1とcleanupを確認した。Android Build invocationは外側timeoutとGradle `BUILD SUCCESSFUL`を分離し、既存APKの独立検査後に後続へ進めた。

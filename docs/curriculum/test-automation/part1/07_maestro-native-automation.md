@@ -57,7 +57,18 @@ if (-not $sdkRoot) {
 if (-not $sdkRoot) {
   throw "ANDROID_SDK_ROOT or ANDROID_HOME is required."
 }
-$sdkmanager = Join-Path $sdkRoot "cmdline-tools\latest\bin\sdkmanager.bat"
+$cmdlineToolsRoot = Join-Path $sdkRoot "cmdline-tools"
+if (-not (Test-Path -LiteralPath $cmdlineToolsRoot -PathType Container)) {
+  throw "cmdline-tools directory was not found: $cmdlineToolsRoot"
+}
+$sdkmanager = Join-Path $cmdlineToolsRoot "latest\bin\sdkmanager.bat"
+if (-not (Test-Path -LiteralPath $sdkmanager -PathType Leaf)) {
+  $sdkmanager = Get-ChildItem -LiteralPath $cmdlineToolsRoot -Recurse -Filter "sdkmanager.bat" -File |
+    Select-Object -First 1 -ExpandProperty FullName
+}
+if (-not $sdkmanager) {
+  throw "sdkmanager.bat was not found under cmdline-tools."
+}
 & $sdkmanager "platform-tools" "emulator" "platforms;android-36" "build-tools;36.0.0" "system-images;android-34;google_apis;x86_64"
 if ($LASTEXITCODE -ne 0) {
   throw "Android SDK package installation failed."

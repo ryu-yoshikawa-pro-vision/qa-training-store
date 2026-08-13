@@ -1,45 +1,7 @@
 import { existsSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
 import { spawnSync } from "node:child_process";
-
-export type MaestroInvocation = {
-  command: string;
-  args: string[];
-  shell: boolean;
-};
-
-function quoteWindowsArgument(value: string): string {
-  if (value !== "" && !/[\s"&|<>^]/.test(value)) return value;
-  return `"${value.replace(/["^]/g, (character) => `^${character}`)}"`;
-}
-
-export function buildMaestroInvocation(
-  platform: NodeJS.Platform,
-  outputDirectory: string,
-  junitPath: string,
-  flowPath: string,
-  targetSerial?: string,
-): MaestroInvocation {
-  const args = [
-    ...(targetSerial ? ["--device", targetSerial] : []),
-    "test",
-    `--test-output-dir=${outputDirectory}`,
-    "--format",
-    "junit",
-    "--output",
-    junitPath,
-    flowPath,
-  ];
-  if (platform !== "win32") return { command: "maestro", args, shell: false };
-
-  const commandLine = ["maestro.bat", ...args].map(quoteWindowsArgument).join(" ");
-  return {
-    command: process.env.ComSpec ?? "cmd.exe",
-    args: ["/d", "/s", "/c", commandLine],
-    shell: false,
-  };
-}
+import { buildMaestroInvocation } from "./maestro-invocation";
 
 function main(): void {
   const outputDirectory = resolve(
@@ -76,11 +38,4 @@ function main(): void {
   console.log(`Training Maestro baseline passed. Evidence: ${outputDirectory}`);
 }
 
-function isMainModule(): boolean {
-  return (
-    process.argv[1] !== undefined &&
-    pathToFileURL(resolve(process.argv[1])).href === import.meta.url
-  );
-}
-
-if (isMainModule()) main();
+main();

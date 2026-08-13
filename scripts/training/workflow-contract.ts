@@ -8,6 +8,8 @@ export const APPROVED_TRAINING_ACTIONS = new Set([
   "actions/upload-artifact@v4",
 ]);
 
+export const APPROVED_TRAINING_RUNNERS = new Set(["ubuntu-24.04"]);
+
 const REPOSITORY_TRAINING_COMMANDS = new Set([
   "pnpm run validate:curriculum",
   "pnpm run build:web",
@@ -79,13 +81,13 @@ function normalizeCommand(command: string): string {
   return command
     .trim()
     .replace(/\s+/g, " ")
-    .replace(/^pnpm\.cmd\b/, "pnpm");
+    .replace(/^(pnpm|npm|yarn|npx|bunx)\.cmd\b/, "$1");
 }
 
 function commandCandidates(run: string): string[] {
   const candidates: string[] = [];
   const commandPattern =
-    /(?:^|(?:\r?\n)|(?:&&|\|\||[;&|]))\s*((?:pnpm(?:\.cmd)?\s+(?:run|exec|install)\b|npx\b|node(?:\.exe)?\b)[^\r\n;&|]*)/gim;
+    /(?:^|(?:\r?\n)|(?:&&|\|\||[;&|]))\s*((?:pnpm(?:\.cmd)?\b|npm(?:\.cmd)?\b|yarn(?:\.cmd)?\b|npx(?:\.cmd)?\b|bunx(?:\.cmd)?\b|node(?:\.exe)?\b)[^\r\n;&|]*)/gim;
   for (const match of run.matchAll(commandPattern)) {
     const command = match[1];
     if (command !== undefined) candidates.push(normalizeCommand(command));
@@ -94,6 +96,9 @@ function commandCandidates(run: string): string[] {
 }
 
 function assertAllowedRun(workflowName: string, run: string): void {
+  if (/(?:^|(?:\r?\n)|[;&])\s*(?:curl|wget)\b[^\r\n]*(?:\|)\s*(?:bash|sh|zsh)\b/i.test(run)) {
+    fail(workflowName, "remote script execution through a shell pipe is forbidden");
+  }
   for (const command of commandCandidates(run)) {
     if (REPOSITORY_TRAINING_COMMANDS.has(command)) continue;
     if (ALLOWED_SETUP_COMMANDS.some((pattern) => pattern.test(command))) continue;
@@ -109,6 +114,7 @@ function assertAllowedRun(workflowName: string, run: string): void {
     if (/^pnpm install\b/.test(command)) {
       fail(workflowName, `unapproved pnpm install command: ${command}`);
     }
+    fail(workflowName, `unapproved command: ${command}`);
   }
 }
 
@@ -140,6 +146,10 @@ export function validateTrainingWorkflow(workflowName: string, text: string): vo
     if (!isRecord(job)) fail(workflowName, `job ${jobName} must be an object`);
     if (typeof job.uses === "string")
       fail(workflowName, `job ${jobName} uses an external reusable workflow`);
+    const runner = job["runs-on"];
+    if (typeof runner !== "string" || !APPROVED_TRAINING_RUNNERS.has(runner)) {
+      fail(workflowName, `job ${jobName} must use an approved GitHub-hosted runner: ubuntu-24.04`);
+    }
     const steps = job.steps;
     if (!Array.isArray(steps)) fail(workflowName, `job ${jobName} steps must be an array`);
     for (const [stepIndex, step] of steps.entries()) {
@@ -147,6 +157,12 @@ export function validateTrainingWorkflow(workflowName: string, text: string): vo
       if (step.uses !== undefined) {
         if (typeof step.uses !== "string" || !APPROVED_TRAINING_ACTIONS.has(step.uses)) {
           fail(workflowName, `unapproved action: ${String(step.uses)}`);
+        }
+        if (step.uses === "actions/checkout@v4") {
+          const checkoutOptions = step.with;
+          if (!isRecord(checkoutOptions) || checkoutOptions["persist-credentials"] !== false) {
+            fail(workflowName, `job ${jobName} checkout must set persist-credentials: false`);
+          }
         }
       }
       if (step.run !== undefined) {

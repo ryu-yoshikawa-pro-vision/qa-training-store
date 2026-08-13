@@ -79,8 +79,6 @@ for (const workflowName of activeWorkflowAllowlist) {
   } catch (error) {
     fail(error instanceof Error ? error.message : String(error));
   }
-  if (!text.includes("runs-on: ubuntu-"))
-    fail(`${workflowName} must use a GitHub-hosted Ubuntu runner`);
   if (workflowName === "training-native-ci.yml") {
     for (const required of [
       "ubuntu-24.04",

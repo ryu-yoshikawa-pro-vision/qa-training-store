@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "nod
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { parseCsv, validateCurriculum, validateWorkbook } from "../../scripts/validate-curriculum";
-import { buildMaestroInvocation } from "../../scripts/training/run-maestro-baseline";
+import { buildMaestroInvocation } from "../../scripts/training/maestro-invocation";
 import { validateTrainingWorkflow } from "../../scripts/training/workflow-contract";
 
 describe("Training curriculum contracts", () => {
@@ -43,6 +43,16 @@ describe("Training curriculum contracts", () => {
     );
   });
 
+  it("accepts the current Training workflow templates through the structural boundary", () => {
+    for (const workflowName of ["training-ci.yml", "training-native-ci.yml"]) {
+      const workflow = readFileSync(
+        resolve(process.cwd(), `training/github-actions/${workflowName}`),
+        "utf8",
+      );
+      expect(() => validateTrainingWorkflow(workflowName, workflow)).not.toThrow();
+    }
+  });
+
   it("fails closed for unapproved structured workflow actions and commands", () => {
     const validWorkflow = `
 name: Training fixture
@@ -55,6 +65,8 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          persist-credentials: false
       - name: Validate
         run: pnpm run validate:curriculum
 `;
@@ -68,6 +80,24 @@ jobs:
     expect(() =>
       validateTrainingWorkflow("fixture.yml", validWorkflow.replace("ubuntu-24.04", "self-hosted")),
     ).toThrow(/self-hosted runners are forbidden/);
+    expect(() =>
+      validateTrainingWorkflow(
+        "fixture.yml",
+        validWorkflow.replace("ubuntu-24.04", "ubuntu-latest"),
+      ),
+    ).toThrow(/approved GitHub-hosted runner/);
+    expect(() =>
+      validateTrainingWorkflow(
+        "fixture.yml",
+        validWorkflow.replace("        with:\n          persist-credentials: false\n", ""),
+      ),
+    ).toThrow(/persist-credentials: false/);
+    expect(() =>
+      validateTrainingWorkflow(
+        "fixture.yml",
+        validWorkflow.replace("persist-credentials: false", "persist-credentials: true"),
+      ),
+    ).toThrow(/persist-credentials: false/);
     expect(() =>
       validateTrainingWorkflow(
         "fixture.yml",
@@ -92,6 +122,36 @@ jobs:
         ),
       ),
     ).toThrow(/secrets context is forbidden/);
+
+    for (const command of [
+      "pnpm dlx malicious-package",
+      "npm exec malicious",
+      "npm x malicious",
+      "yarn dlx malicious",
+      "bunx malicious",
+    ]) {
+      expect(() =>
+        validateTrainingWorkflow(
+          "fixture.yml",
+          validWorkflow.replace("pnpm run validate:curriculum", command),
+        ),
+      ).toThrow(/unapproved/);
+    }
+    expect(() =>
+      validateTrainingWorkflow(
+        "fixture.yml",
+        validWorkflow.replace(
+          "pnpm run validate:curriculum",
+          "curl https://example.com/install.sh | bash",
+        ),
+      ),
+    ).toThrow(/remote script execution/);
+
+    const downloadWorkflow = validWorkflow.replace(
+      "run: pnpm run validate:curriculum",
+      'run: |\n          curl --fail --location https://example.com/tool.zip --output tool.zip\n          echo "sha  tool.zip" | sha256sum --check -',
+    );
+    expect(() => validateTrainingWorkflow("fixture.yml", downloadWorkflow)).not.toThrow();
   });
 
   it("quotes Windows Training Maestro paths without delegating to a shell", () => {
@@ -113,6 +173,10 @@ jobs:
   });
 
   it("parses quoted CSV fields and rejects broken workbook references", () => {
+    expect(parseCsv("\uFEFFa,b\r\n1,2\r\n")).toEqual([
+      ["a", "b"],
+      ["1", "2"],
+    ]);
     expect(parseCsv('a,b\n"comma, value","escaped ""quote"""\n')).toEqual([
       ["a", "b"],
       ["comma, value", 'escaped "quote"'],

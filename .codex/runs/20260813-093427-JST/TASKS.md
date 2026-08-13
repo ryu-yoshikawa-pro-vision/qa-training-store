@@ -16,6 +16,12 @@
 - [x] 12. full test、`pnpm run verify`、最終self-review、Run Artifact同期方針を確定する
 - [ ] 13. Fresh checkout / Fresh Training Copyを使ったFresh Learner full journeyを実施する
 - [ ] 14. 修正後commit SHAによるfinal Source Required CI、exact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する
+- [x] 15. 追加repair: Training Workflowのruns-on / checkout persist-credentials / alternate package entrypoint / remote script pipeを構造検証し、negative contractを追加する
+- [x] 16. 追加repair: Learner Exercise用Mobile entrypointを追加し、教材・Curriculum validator・contractへ接続する
+- [x] 17. 追加repair: Maestro invocation helperを分離してrunnerのsilent-success経路を除去し、Windows quoting契約を維持する
+- [x] 18. 追加repair: sdkmanager教材fallbackとCSV UTF-8 BOM許容を実装し、focused / full validationを再実行する
+- [x] 19. 追加repair: Training Web Exercise / expected-failureとAndroid Training baselineを実行し、Android timeoutとcleanupを事実分離して記録する
+- [x] 20. 追加repair: review triage、PR #25旧HEADのCI状態、subagent省略理由、scope判断、remaining blockerをRun Artifactへ追記しSanitizerを実行する
 
 ## Discovered
 
