@@ -194,7 +194,9 @@ const customerCases: CaptureCase[] = [
   android("SCREEN-CHECKOUT-ADDRESS", "default", "/checkout/address", {
     role: "customer",
     scenario: "regular-member",
-    nativeSetupId: "customer-checkout-address",
+    nativeSetupId: "customer-seeded-session",
+    setup:
+      "regular-member resetでseed済みcustomer／Cartを使用し、Capture flowでAddress routeを一度だけ開いてCheckoutを開始",
   }),
   web("SCREEN-CHECKOUT-ADDRESS", "resume-notice", "/checkout/address", {
     role: "customer",

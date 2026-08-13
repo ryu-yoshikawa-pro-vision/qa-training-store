@@ -2,6 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { SCENARIO_METADATA } from "@/seeds/metadata";
 import { createScenarioDataset } from "@/seeds/scenarios";
+import { VISUAL_CAPTURE_CASES } from "../../scripts/spec/visual-registry";
 
 const root = process.cwd();
 const nativeComponents = readFileSync(
@@ -59,6 +60,29 @@ describe("Web/Native visual contract", () => {
         }),
       ]),
     );
+    const activeCartIds = new Set(
+      dataset.carts
+        .filter((cart) => cart.status === "active" && cart.userId === "user-customer-regular")
+        .map((cart) => cart.id),
+    );
+    expect(
+      dataset.checkoutSessions.filter(
+        (session) =>
+          session.status === "active" &&
+          session.userId === "user-customer-regular" &&
+          activeCartIds.has(session.cartId),
+      ),
+    ).toEqual([]);
+  });
+
+  it("keeps the default Checkout Address capture on the seeded-session path", () => {
+    const address = VISUAL_CAPTURE_CASES.find(
+      (candidate) => candidate.captureCaseKey === "SCREEN-CHECKOUT-ADDRESS/default/android",
+    );
+    expect(address).toMatchObject({
+      nativeSetupId: "customer-seeded-session",
+      setup: expect.stringContaining("Address routeを一度だけ開いてCheckoutを開始"),
+    });
   });
 
   it("keeps Native catalog headings distinct for product list and category routes", () => {

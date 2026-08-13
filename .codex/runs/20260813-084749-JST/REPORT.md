@@ -279,6 +279,27 @@ Progress: 89% (17/19)
 - Final decision: コード修正フェーズはbounded repairとして完了。`Structural Validation: PASS`、`Final Visual DoD: BLOCKED`、`Phase 1 readiness: BLOCKED`、`Native CI readiness: BLOCKED（修正後runtime未実行）`、`Merge readiness: NOT READY`。残存deltaはAPI34 canonical Android 25 targetのmanual capture／promotionのみ。
 - Progress: 100% (25/25)
 
+## Repair iteration 5: Checkout Address default二重navigation修正（2026-08-13 JST）
+
+- Finding triage: `SCREEN-CHECKOUT-ADDRESS/default/android`の意味論上のfail-openを`must_fix`として扱った。原因はsetup subflowがAddress routeを開いてCheckout Sessionを開始した後、共通capture flowが同じrouteを再度開き、`started`から`resumed`へ変化し得ることだった。
+- Rebaseline:
+  - `SCENARIO_METADATA["regular-member"].initialSession`はcustomer／`regular@example.com`。
+  - `createScenarioDataset("regular-member")`は`user-customer-regular`のcustomer session、current active Cart、`variant-basic-shirt-02` itemを作る。
+  - default datasetにはconverted Checkout履歴があるが、current active Cartに紐づく`status: active` Checkout Sessionは存在しない。`getActiveByUser`が見るactive sessionの前提をContract Testで固定した。
+- Repair:
+  - `SCREEN-CHECKOUT-ADDRESS/default/android`の`nativeSetupId`を`customer-seeded-session`へ変更した。setup descriptionも「seed済みcustomer／Cartを使い、Capture flowでAddress routeを一度だけ開いてCheckoutを開始」と明示した。
+  - `customer-checkout-address` setup ID、Payment／Confirmの専用setup、Checkout subflow、Address ready matcher、Category ready分離、Final Gate、workflow、startup helper、Android profile／promotionは変更していない。
+  - 代表Android mapping testをAddress期待値へ修正し、regular-memberのactive session不在とAddress setup pathをcontract testへ追加した。
+- Capture sequence after repair: reset → `customer-seeded-session`（subflowなし）→ common capture flowが`/checkout/address`を一度だけ開く → customer role assertion → Address screen／active session ready assertion → screenshot。Payment／Confirmは従来どおり専用subflowでAddressから順に進む。
+- Validation:
+  - `pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run validate:spec`、`pnpm run build:spec`、`pnpm run lint`（0 errors／65 warnings）、`pnpm run typecheck`、`pnpm run test:contracts`（25 files／222 tests）、`pnpm run test:component:native`（12 suites／49 tests）、`pnpm run test`、`pnpm run build:web`、`pnpm run check:native-route-dependencies`、`pnpm run validate:eas:config`、`pnpm run validate:native-production-bundle` => PASS。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94）。`pnpm run verify` => EXPECTED FAIL（format／markdown／structural PASS後、同じFinal Gateで停止）。
+  - 対象Contract Test初回はsource stringのformat依存でFAILしたが、Registry objectを直接検証する実装へ修正後、16/16 PASS。最終全Contract／全TestはPASS。
+- Runtime: API34 canonical Emulatorは利用できないため未実施。物理API30をcanonical captureへ使用していない。GitHub Actions dispatch、canonical promotion、Android marker更新は行っていない。
+- Scope audit: Git mutationなし、workflow変更なし、Product仕様変更なし、fake／stale assetなし、Final Gate弱体化なし、generic DSL追加なし。`git diff --check`はPASS。
+- Remaining delta: Android canonical 25 targetのmanual capture／promotionのみ。Final statusは`Structural Validation: PASS`、`Final Visual DoD: BLOCKED`、`Merge readiness: NOT READY`。
+- Progress: 100% (30/30)
+
 ## Final recheck（2026-08-13 JST）
 
 - `pnpm run format:check` => PASS。

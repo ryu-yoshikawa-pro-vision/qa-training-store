@@ -1,0 +1,90 @@
+{
+    "schema_version":  1,
+    "run_id":  "20260814-060040-JST",
+    "task_type":  "repair",
+    "workflow_level":  "strict",
+    "preset":  "safe",
+    "runtime":  "host",
+    "agents_used":  [
+
+                    ],
+    "repo":  "qa-training-store",
+    "branch":  null,
+    "base_branch":  null,
+    "codex_task_reports":  [
+
+                           ],
+    "changed_files":  [],
+    "validation":  {
+                       "status":  "partial",
+                       "commands":  [
+                           "pnpm run format:check",
+                           "pnpm run lint:markdown",
+                           "pnpm run validate:spec",
+                           "pnpm run build:spec",
+                           "pnpm run lint",
+                           "pnpm run typecheck",
+                           "pnpm run test:contracts",
+                           "pnpm run test:component:native",
+                           "pnpm run test",
+                           "pnpm run test:repository",
+                           "pnpm run test:component:web",
+                           "pnpm run build:web",
+                           "pnpm run validate:image-manifest",
+                           "pnpm run security:check",
+                           "pnpm run check:native-route-dependencies",
+                           "pnpm run validate:eas:config",
+                           "pnpm run validate:native-production-bundle",
+                           "pnpm run validate:spec-visuals:final",
+                           "pnpm run verify",
+                           "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts tests/contracts/native-test-control-maestro.test.ts --no-file-parallelism --maxWorkers=1",
+                           "android-local.ps1 -Action Doctor -DeviceSerial 354955112942476"
+                       ],
+                       "warnings":  [
+                           "test:contractsは222/222 tests PASS後、serve-web-distのWindows Temp cleanup EPERMで終了",
+                           "testのmany-productsは既定10秒timeoutだが、seeds.test.ts単独は43/43 PASS",
+                           "test:componentの既定240秒timeoutに対しweb component単独は76/76 PASS",
+                           "build:webとvalidate:native-production-bundleは共有Expo／Gradle processのある環境でtimeout",
+                           "Final Visual GateはAndroid 25 blocked、Captured 69/94のためEXPECTED FAIL",
+                           "API34 canonical capture／runtime未実行"
+                       ]
+                   },
+    "safety":  {
+                   "network":  false,
+                   "delete_attempt_blocked":  false,
+                   "git_mutation_attempt_blocked":  false,
+                   "scope_violation":  false
+               },
+    "artifact_summary":  {
+                             "codex_task_report_count":  0,
+                             "hook_event_count":  0,
+                             "subagent_run_count":  0,
+                   "evaluation_present":  true
+                         },
+    "hook_observations":  {
+                              "log_paths":  [
+
+                                            ],
+                              "event_counts":  {
+
+                                               },
+                              "blocking_event_count":  0,
+                              "safety_blocked_count":  0,
+                              "observation_error_count":  0
+                          },
+    "subagents":  {
+                      "records":  [
+
+                                  ],
+                      "summary":  {
+                                      "total":  0,
+                                      "read_only":  0,
+                                      "writable":  0,
+                                      "scope_violations":  0,
+                                      "used_in_final_plan":  0
+                                  }
+                  },
+    "evaluation_path":  ".codex/runs/20260814-060040-JST/evaluation.json",
+    "status":  "partial",
+    "primary_failure_category":  "flaky_or_env_issue"
+}

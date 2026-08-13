@@ -67,6 +67,15 @@
         "Paymentはactive CheckoutSession marker、Confirmはloaded confirmation submitをready条件に使用",
         "Payment invalid session negative test、Confirm loading negative test、Category contract testがPASS"
       ]
+    },
+    {
+      "id": "checkout-address-default-semantics",
+      "status": "complete",
+      "evidence": [
+        "SCREEN-CHECKOUT-ADDRESS/default/androidをcustomer-seeded-sessionへ変更し、setup側の二重route navigationを除去",
+        "regular-memberのcustomer session／active member Cart／basic-shirt item／current active Cartに紐づくactive Checkout Session不在をContract Testで検証",
+        "Payment／Confirm専用setupと共通capture flowを維持し、全Contract Test 222件がPASS"
+      ]
     }
   ],
   "remaining": [

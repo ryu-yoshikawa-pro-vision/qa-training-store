@@ -137,3 +137,10 @@ Product `app/**`は変更しない。`src/**`の今回の変更もPaymentの業�
 - Paymentのroot、payment method、NextはCheckout Sessionが不正でも描画され得るため、既存画面の操作だけではCapture Case固有のready条件をfail-closeできない。画面挙動は変更せず、valid `state.session`時だけ既存payment controls containerへsemantic testIDを付与し、ready matcherへ接続する。
 - Confirmはconfirmationロード後だけ存在する既存`native-checkout-confirm-submit`をready条件へ追加する。CategoryはProduct List／Category専用heading testIDをready条件へ追加し、Shell navigationの同名ラベルを避けてdeep-link取り違えを検出する。
 - Android capture flowの順序（reset → setup → route → role → ready → screenshot）、Final Gate、startup helper、canonical profile、manual dispatch境界は変更しない。API34 capture／promotionは今回も実行しない。
+
+## Repair iteration 5 decisions
+
+- Findingは`must_fix`（Checkout Address defaultの意味論／canonical integrity）として扱う。許可変更範囲はAddress Registry mapping、意味論Contract Test、既存Run／history documentationに限定する。
+- `SCREEN-CHECKOUT-ADDRESS/default/android`は`customer-seeded-session`へ変更する。`customer-checkout-address`、Payment／Confirm専用setup、共通capture flowは維持する。
+- `regular-member`のdefault datasetについて、customer session、current active Cart、basic-shirt item、current active Cartに紐づくactive Checkout Sessionが存在しないことを実体からassertする。
+- Addressのready matcherやNative Product codeは、setup mapping変更だけで二重navigationを除去できるため変更しない。Final Gate、workflow、startup helper、Android canonical assetも変更しない。

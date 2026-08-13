@@ -27,6 +27,11 @@
 - [x] 23. Component／workflow／visual contract testsと関連ドキュメントを更新する
 - [x] 24. 追加変更のformat、lint、typecheck、contract、spec、build validationを実行する
 - [x] 25. self-review、scope audit、Run Artifact sanitizer、Final DoD判定を更新する
+- [x] 26. Checkout Address defaultの二重navigation root causeとregular-member datasetを再確認する
+- [x] 27. Address Targetをcustomer-seeded-sessionへ変更し、Payment／Confirmの専用setupを維持する
+- [x] 28. Address mapping、dataset前提、25 Android代表意味論のContract Testを更新する
+- [x] 29. format、lint、typecheck、spec、component／contract、全test、build、native static validationを実行する
+- [x] 30. Final Gate、scope audit、Run Artifact sanitizer、iteration判定を更新する
 
 ## Discovered
 
@@ -44,4 +49,4 @@
 
 - R1. Checkout Processing Web Targetはfresh UI Review capture、canonical WebP promotion、Markdown reference materializationまで完了した
 
-Progress: 100% (25/25)
+Progress: 100% (30/30)

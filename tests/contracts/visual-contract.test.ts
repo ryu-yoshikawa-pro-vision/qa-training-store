@@ -453,7 +453,6 @@ describe("Screen Catalog / Visual Contract", () => {
 
   it("maps checkout Android targets to executable session preparation steps", () => {
     const expected = [
-      ["SCREEN-CHECKOUT-ADDRESS/default/android", "customer-checkout-address", "address"],
       ["SCREEN-CHECKOUT-PAYMENT/default/android", "customer-checkout-payment", "payment"],
       ["SCREEN-CHECKOUT-CONFIRM/default/android", "customer-checkout-confirm", "confirm"],
     ] as const;
@@ -473,6 +472,21 @@ describe("Screen Catalog / Visual Contract", () => {
         checkoutStep,
       });
     }
+
+    const address = VISUAL_CAPTURE_CASES.find(
+      (candidate) => candidate.captureCaseKey === "SCREEN-CHECKOUT-ADDRESS/default/android",
+    );
+    expect(address).toMatchObject({
+      scenario: "regular-member",
+      role: "customer",
+      nativeSetupId: "customer-seeded-session",
+      nativeReadyId: "checkout-address-screen",
+    });
+    expect(NATIVE_CAPTURE_SETUP_PLANS["customer-seeded-session"]).toMatchObject({
+      requiredRole: "customer",
+      subflow: null,
+      checkoutStep: null,
+    });
   });
 
   it("keeps representative Android screen semantics connected to executable setup and ready contracts", () => {
@@ -508,7 +522,7 @@ describe("Screen Catalog / Visual Contract", () => {
       ],
       [
         "SCREEN-CHECKOUT-ADDRESS/default/android",
-        "customer-checkout-address",
+        "customer-seeded-session",
         "checkout-address-screen",
         "regular-member",
         "customer",
