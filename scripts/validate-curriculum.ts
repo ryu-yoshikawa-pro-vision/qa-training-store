@@ -297,7 +297,8 @@ export function validateWorkbook(rootDir: string): number {
           ["br_ids", splitIds(table.name, "br_ids", cell(table, row, "br_ids"))],
           ["ac_ids", splitIds(table.name, "ac_ids", cell(table, row, "ac_ids"))],
         ] as const) {
-          const references = specReferences.get(specRef)!;
+          const references = specReferences.get(specRef);
+          if (references === undefined) fail(`${rowLabel} has an unparsed spec_ref: ${specRef}`);
           const known = field === "br_ids" ? references.brIds : references.acIds;
           for (const id of ids)
             if (!known.has(id)) fail(`${rowLabel} references unknown ${id} in ${specRef}`);

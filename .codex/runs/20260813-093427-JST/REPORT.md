@@ -196,3 +196,55 @@ Progress: 90% (18/20)
 - 最終fixture整形後のfocused contracts => PASS（2 files / 18 tests）。
 - `pnpm run format:check` => PASS。`pnpm run validate:curriculum` => PASS（22 / 4 / 2 projects）。
 - `git diff --check` => PASS（CRLF warningのみ）。この追補後もSource CI / remote Delivery Readinessの未完了状態は変わらない。
+
+## 2026-08-13 18:33 JST — PR #25最終review repair
+
+### Iteration record
+
+- `iteration_number`: 3（active Run継続）
+- `input_findings`: sdkmanager fallbackの候補選択規則不一致、current PR / CI状態とRun Artifactの古いHEAD記録、`scripts/validate-curriculum.ts`の非null assertion。
+- `repair_plan`: 教材と`android-emulator.ps1`のfallback選択を一致させ、非null assertionを明示的な`undefined`検査へ置換し、current PR / CI状態をRun Artifactのcurrent recordへ追記・同期する。
+- `allowed_files`: `docs/curriculum/test-automation/part1/07_maestro-native-automation.md`、`scripts/validate-curriculum.ts`、`.codex/runs/20260813-093427-JST/{PLAN,TASKS,REPORT,run,evaluation}`。既修正Workflow / Test / Productは対象外。
+
+### Current PR / CI state
+
+- PR #25 current HEADは`50021adbfca10c7a8db3bcf7f9395c4203d59be8`。GitHub read-only確認で、Phase 1 CI run `31682890216`とNative CI run `31682890504`はいずれも`completed / success`。
+- ユーザー提示およびPR current evidenceでは、このHEADでAndroid Runtime / Maestro、Training Maestro baseline、Production-validation APK切替前のTraining baselineもsuccess。今回の修正は教材とvalidatorだけなのでAndroidを再実行していない。
+- ただし今回の2 Source変更はこのworktreeで未コミット。50021adのremote Evidenceは今回修正後のFinal Candidate Evidenceへ昇格させず、post-repair commit後の再実行を残す。
+
+### Finding triage and repair
+
+| Finding | 判定 | 対応 |
+| --- | --- | --- |
+| 教材のsdkmanager fallbackが`Select-Object -First 1`でhelperと不一致 | valid / must_fix | `Get-ChildItem`候補を`Sort-Object FullName`し、`$foundSdkManagers[-1].FullName`を使用。`Write-Output "Using sdkmanager: ..."`を追加。latest direct path、0件error、LASTEXITCODE検査は維持 |
+| Current Run Artifactが7c442dの旧CI状態をcurrentとして示す | valid / must_fix | REPORTへ50021ad / Phase 1 / Native CI successを追補し、TASKSのcurrent task表現、run.json warnings / validation、evaluation evidenceを同期。旧記録は削除・改変していない |
+| `specReferences.get(specRef)!` | valid / must_fix | `Map.get`結果が`undefined`なら既存validatorと同じ`fail(...)`へ進む明示Runtime checkへ置換。外部値の検証順序とBR / AC照合は維持 |
+| 既修正Native順序、Training Trust Boundary、Mobile Exercise、Maestro runner、CSV BOMの再変更 | reject / out of scope | Current HEADで解消済みで、今回の3件に不要なため変更しない |
+
+### Validation
+
+- `pnpm run format:check` => PASS
+- `pnpm run lint:markdown` => PASS（0 issues / 248 files）
+- `pnpm run validate:curriculum` => PASS（22 required documents、4 workbook files、2 Training projects）
+- `pnpm run typecheck` => PASS（app / native-tests / Training）
+- `pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1` => PASS（1 file / 6 tests）
+- `pnpm run verify` => PASS（spec、Curriculum、lint 0 errors / 65 warnings、typecheck、security、全test、Web build、spec build）
+- `git diff --check` => この追補後に実行する。CRLF warningは許容し、失敗をPASS扱いしない。
+- Run Artifact sanitizer Write / Check => この追補後に実行する。未実行状態をPASS扱いしない。
+
+### Remaining delta / decision
+
+- `remaining_delta`: Fresh Learner full journey、post-repair commitのFinal Candidate SHA、post-repair Source Required CI、exact-SHA Training Copy 3 runs、Delivery Readiness、SHA equality。
+- `decision`: `stop_success`（今回の3件のlocal repair完了）。Final Delivery pendingは維持する。
+- Progress: 90% (19/21)
+
+### 2026-08-13 18:36 JST — 最終Artifact確認
+
+- `git diff --check` => PASS（CRLF warningのみ）。今回のSource変更は教材1ファイル、validator 1ファイル、active Run Artifact 5ファイルに限定され、Product / Workflow / Test sourceの追加変更はない。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check` => PASS（5 files、0 replacements、0 residual findings）。
+- `run.json` / `evaluation.json` JSON parse、TASKS checkbox計算、`scope` / `scope_ref`不在を確認。current stateは`run.status=partial`、`evaluation.result=partial`、Progress `90% (19/21)`。
+
+### 2026-08-13 18:37 JST — 検証途中の補足
+
+- Source変更直後の最初の`pnpm run validate:curriculum`は、既存validatorが要求する`Get-ChildItem -LiteralPath $cmdlineToolsRoot`連続文字列と教材の改行位置が衝突してfailした。教材のコマンド開始行を整形して同じ選択規則を保ち、再実行はPASSした。
+- 最初のad hoc Prettier確認は実ファイル名のPath typoで対象を読まずに終了した。正しい`07_maestro-native-automation.md` Pathで再実行しPASSした。品質Gateの未実行をPASS扱いしていない。

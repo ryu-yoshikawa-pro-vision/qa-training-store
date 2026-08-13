@@ -63,12 +63,20 @@ if (-not (Test-Path -LiteralPath $cmdlineToolsRoot -PathType Container)) {
 }
 $sdkmanager = Join-Path $cmdlineToolsRoot "latest\bin\sdkmanager.bat"
 if (-not (Test-Path -LiteralPath $sdkmanager -PathType Leaf)) {
-  $sdkmanager = Get-ChildItem -LiteralPath $cmdlineToolsRoot -Recurse -Filter "sdkmanager.bat" -File |
-    Select-Object -First 1 -ExpandProperty FullName
+  $foundSdkManagers = @(
+    Get-ChildItem -LiteralPath $cmdlineToolsRoot `
+      -Filter "sdkmanager.bat" `
+      -Recurse `
+      -File |
+      Sort-Object FullName
+  )
+  if ($foundSdkManagers.Count -eq 0) {
+    throw "sdkmanager.bat was not found under cmdline-tools."
+  }
+  $sdkmanager = $foundSdkManagers[-1].FullName
 }
-if (-not $sdkmanager) {
-  throw "sdkmanager.bat was not found under cmdline-tools."
-}
+
+Write-Output "Using sdkmanager: $sdkmanager"
 & $sdkmanager "platform-tools" "emulator" "platforms;android-36" "build-tools;36.0.0" "system-images;android-34;google_apis;x86_64"
 if ($LASTEXITCODE -ne 0) {
   throw "Android SDK package installation failed."

@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "追加レビュー修正、local quality gates、Training Web desktop / mobile baseline / learner exercise / expected-failure、Android Training baseline、Evidence、cleanupは完了。Fresh Learner full journey、修正後final committed SHA、post-repair remote Required CI、exact-SHA Training Copyは未完了。",
+      "evidence": "PR #25 current HEAD 50021adはcommit済みで、Phase 1 CI / Native CI success、およびAndroid Runtime / Maestro / Training baseline successを確認済み。今回の最終repair（教材sdkmanager fallback、validator非null除去、Run同期）のlocal validationも完了した。Fresh Learner full journey、今回修正後のFinal Candidate SHA、post-repair Required CI、exact-SHA Training Copyは未完了。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "scope_control": {
@@ -17,7 +17,7 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "format、markdown、spec、curriculum、lint、repository / Training typecheck、focused contracts 18、full contracts 208、full test、verify、Training Web 4モード、Android Training baseline 1/1を再実行してPASS。Training Copy validatorはcurrent rootでfail-closeしたためexact-SHA Copy PASSとは扱っていない。",
+      "evidence": "今回のrepair後にformat、markdown、curriculum、repository / Training typecheck、focused Curriculum contract 6、full verify（full contracts 208、security、Web/spec buildを含む）をPASS。Current PR HEADのPhase 1 / Native CI successはread-only workflow evidenceで確認。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "safety_compliance": {
@@ -37,7 +37,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Local Web / Androidはdedicated port、AVD identity、target serial、short virtual store、fresh expected-failure evidenceで再現確認。今回のrunner-only repairでは既存APKを独立検査して再利用し、Training Maestro baseline 1/1とcleanupを確認。初回SDK env未設定Doctorのfail-closeと、明示設定後のPASSを分離記録。Final exact SHAとpost-repair remote executionはcommit禁止のため未成立。",
+      "evidence": "Current PR HEAD 50021adのPhase 1 / Native CI successと、ユーザー提示のAndroid Runtime / Maestro / Training baseline successを記録。今回のSource変更は教材 / validatorのみでAndroidは再実行していない。Local repairのverifyは再現確認済みだが、未コミット修正後のFinal exact SHA / remote executionは未成立。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     }
   },
@@ -45,8 +45,8 @@
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "修正後commit SHA、final Source Required CI、Training Copy exact-SHA 3 runs、SHA equality、Fresh Learner full journeyは未実行。",
-      "detail": "Git mutation禁止およびremote依存のため、local PASSからFinal Delivery Readinessへ昇格しない。"
+      "evidence": "Current PR HEAD 50021adのPhase 1 / Native CIはsuccess。今回repair後のcommit SHA、post-repair Required CI、Training Copy exact-SHA 3 runs、SHA equality、Fresh Learner full journeyは未実行。",
+      "detail": "今回のlocal repairは完了したが、未コミットSource変更があるため、50021adのremote evidenceからFinal Delivery Readinessへ昇格しない。"
     },
     {
       "category": "environment_failure",

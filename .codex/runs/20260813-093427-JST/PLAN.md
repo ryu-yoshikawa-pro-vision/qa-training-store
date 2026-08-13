@@ -20,7 +20,7 @@ PR #25のレビュー指摘と追加レビュー結果を、Current Normative Sp
 
 - 必ず質問する不透明点: なし。Review要求、Plan、Repository契約、markerにより実行範囲を確定できる。
 - 仮定してよい細部: YAML構造parseには既存依存にない最小の `yaml` direct devDependencyを追加する。任意shellの意味解析器は作らない。
-- 未回答の重要質問: 最終commit SHAとremote Training Copy / Required CIはGit mutation禁止のため、このRunでは確定できない。
+- 未回答の重要質問: current PR HEAD `50021adbfca10c7a8db3bcf7f9395c4203d59be8`とそのPhase 1 / Native CI successは確認済み。今回repair後のFinal Candidate SHAとremote Training Copy / Required CIはGit mutation禁止のため、このRunでは確定できない。
 
 ## Hypotheses
 
@@ -74,3 +74,6 @@ Exit Criteria:
 - 2026-08-13 16:59 JST: CodeRabbitのAction SHA pinning提案はRepository全体のSupply Chain Policy変更となるため不採用。`scope` / `scope_ref`追加も、PLAN.mdのScopeがStrict要件を満たしcanonical RUN_MANIFEST schemaにfieldがないため不採用。PR #25の7c442d3でのPhase 1 / Native CI成功は修正前Evidenceとして記録するが、今回のSource変更後はFinal Candidateへ流用しない。
 - 2026-08-13 16:59 JST: Subagentは使用しなかった。Native delegation markerとrepair scopeを照合し、親Agentでレビュー照合・最小実装・validation・最終判断を完結できたため、調査結果の分散を避けた。
 - 2026-08-13 16:59 JST: 変更後の静的Gate、focused / full contracts、full test、verify、Training Web desktop / mobile baseline / learner exercise / expected-failure、Android Training baseline 1/1とcleanupを確認した。Android Build invocationは外側timeoutとGradle `BUILD SUCCESSFUL`を分離し、既存APKの独立検査後に後続へ進めた。
+- 2026-08-13 18:33 JST: 最終review repairのallowed scopeを、教材sdkmanager fallback、`scripts/validate-curriculum.ts`の非null assertion、active Runのcurrent PR / CI同期の3件へ限定した。既修正Native順序、Trust Boundary、Mobile Exercise、Maestro runner、CSV BOMは再設計しない。
+- 2026-08-13 18:33 JST: PR #25のcurrent HEAD `50021adbfca10c7a8db3bcf7f9395c4203d59be8`とGitHub上のPhase 1 CI / Native CI successをread-onlyで確認した。今回の2 Source変更は未コミットなので、50021adのCI Evidenceを今回修正後のFinal Candidateへ流用しない。
+- 2026-08-13 18:33 JST: 教材fallbackをhelperと同じ`Sort-Object FullName`→最後のcandidate選択へ修正し、選択Pathを出力。`specReferences.get(specRef)!`は`undefined`をfailするRuntime checkへ置換した。format、markdown、curriculum、typecheck、focused contract、verifyはPASS。
