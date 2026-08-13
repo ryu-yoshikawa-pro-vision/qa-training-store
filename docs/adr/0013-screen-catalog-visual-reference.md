@@ -39,3 +39,9 @@ Current Repositoryには、Normative Product Specification、既存UI Review、N
 - Checkout画面のAndroid Capture Caseは、単なるcustomer loginではなく、既存のNative Test Control seedとCheckout UI操作を使うtyped setupで準備する。`customer-checkout-address`はactive sessionを開始し、`customer-checkout-payment`は配送先を保存してPaymentへ進み、`customer-checkout-confirm`は成功テスト決済を保存してConfirmへ進む。
 - setupの実行結果はMaestroのstable testID（Checkout画面、住所Next、Payment、成功決済、Confirm）で確認する。generic capture driverはその後にcanonical routeへ遷移し、Capture Case固有のready matcherを満たした場合だけscreenshotを取得する。
 - `regular-member`のseed済みcustomer Session／Cartを使い、Capture専用のProduct state databaseやProduct code変更は追加しない。API34 runtimeでこの経路が実測されるまでは、既存のAndroid blockerとFinal Gate fail-closeを維持する。
+
+## Addendum: Review Repair iteration 4（2026-08-13）
+
+- Native Test Controlの`regular-member` resetはcustomer Sessionと会員Cartをseedする。したがってそのscenarioのprofile／addresses／orders系Capture Caseは`customer-seeded-session`でseed stateを利用し、login操作を重複させない。guest seedからcustomer化が必要なdefault／review／processing系だけ既存customer login setupを使う。
+- Checkout visual setupはseeded role／Cartを確認し、Addressのactive session開始、住所保存、成功決済選択、Confirm dataロードの順に既存Maestro testIDを操作する。Paymentのnormal stateは`native-checkout-payment-session-ready`、Confirmのloaded stateは`native-checkout-confirm-submit`で検証する。
+- Product ListとCategoryのready contractは同一catalog rootだけに依存せず、それぞれ専用heading testID（`native-product-list-heading`／`native-category-heading`）を要求する。Shell navigationの同名ラベルを誤って拾わない。Addressもrootに加えてactive session markerを要求するため、error／locked／wrong deep-link stateをcanonical captureへ進めない。

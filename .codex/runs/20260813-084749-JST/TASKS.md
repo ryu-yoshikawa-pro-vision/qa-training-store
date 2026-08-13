@@ -21,6 +21,12 @@
 - [x] 17. Checkout setupの契約テスト、PROJECT_CONTEXT、ADR、historyを更新する
 - [x] 18. 追加変更のformat／syntax／typecheck／contract／spec validationを実行する
 - [x] 19. Android capability、Final Gate、scope、sanitizerを再確認し、最終判定を記録する
+- [x] 20. 追加レビューのNative seed／Checkout／Category state前提を再確認し、変更範囲を確定する
+- [x] 21. Payment／Confirm／Categoryのready contractを正常state専用へ修正する
+- [x] 22. regular-member seedを使うCheckout setupと全Android代表caseの意味論契約を整合させる
+- [x] 23. Component／workflow／visual contract testsと関連ドキュメントを更新する
+- [x] 24. 追加変更のformat、lint、typecheck、contract、spec、build validationを実行する
+- [x] 25. self-review、scope audit、Run Artifact sanitizer、Final DoD判定を更新する
 
 ## Discovered
 
@@ -38,4 +44,4 @@
 
 - R1. Checkout Processing Web Targetはfresh UI Review capture、canonical WebP promotion、Markdown reference materializationまで完了した
 
-Progress: 100% (19/19)
+Progress: 100% (25/25)

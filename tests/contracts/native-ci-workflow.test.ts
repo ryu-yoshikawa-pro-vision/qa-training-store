@@ -273,17 +273,25 @@ describe("Native CI workflow contracts", () => {
       expect(visualCaptureFlow).toContain(`READY_VALUE_${slot}`);
     }
     expect(visualCaptureFlow).not.toMatch(/^\s+- sleep:/m);
+    expectInOrder(visualCaptureFlow, [
+      "file: ${SETUP_SUBFLOW}",
+      'true: ${ROUTE_IS_ROOT == "false"}',
+      'true: ${ROLE == "customer"}',
+      "READY_KIND_1",
+    ]);
   });
 
   it("executes the customer checkout setup up to the requested semantic step", () => {
-    expect(customerCheckoutSetupFlow).toContain(
+    expect(customerCheckoutSetupFlow).not.toContain(
       "subflows/native-visual-capture-customer-login.yaml",
     );
+    expect(customerCheckoutSetupFlow).toContain('id: "native-nav-orders"');
     expect(customerCheckoutSetupFlow).toContain('id: "native-persisted-state-ready"');
     expect(customerCheckoutSetupFlow).toContain(
       'id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"',
     );
     expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-address-screen"');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-address-session-ready"');
     expect(customerCheckoutSetupFlow).toContain('true: ${CHECKOUT_STEP != "address"}');
     expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-address-next"');
     expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-payment-screen"');

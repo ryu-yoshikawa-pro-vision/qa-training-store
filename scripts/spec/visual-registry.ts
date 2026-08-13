@@ -171,6 +171,7 @@ const customerCases: CaptureCase[] = [
   android("SCREEN-AUTH-ACCOUNT-PROFILE", "default", "/account/profile", {
     role: "customer",
     scenario: "regular-member",
+    nativeSetupId: "customer-seeded-session",
   }),
   web("SCREEN-CHECKOUT-ADDRESSES", "default", "/account/addresses", {
     role: "customer",
@@ -179,6 +180,7 @@ const customerCases: CaptureCase[] = [
   android("SCREEN-CHECKOUT-ADDRESSES", "default", "/account/addresses", {
     role: "customer",
     scenario: "regular-member",
+    nativeSetupId: "customer-seeded-session",
   }),
   web("SCREEN-CHECKOUT-ADDRESSES", "empty", "/account/addresses", {
     role: "customer",
@@ -260,6 +262,7 @@ const customerCases: CaptureCase[] = [
   android("SCREEN-ORDERS-LIST", "default", "/orders", {
     role: "customer",
     scenario: "regular-member",
+    nativeSetupId: "customer-seeded-session",
   }),
   web("SCREEN-ORDERS-LIST", "empty", "/orders", { role: "customer", scenario: "orders-empty" }),
   web("SCREEN-ORDERS-DETAIL", "default", "/orders/order-delivered", {
@@ -269,6 +272,7 @@ const customerCases: CaptureCase[] = [
   android("SCREEN-ORDERS-DETAIL", "default", "/orders/order-delivered", {
     role: "customer",
     scenario: "regular-member",
+    nativeSetupId: "customer-seeded-session",
   }),
   web("SCREEN-ORDERS-DETAIL", "reviewable", "/orders/order-delivered", {
     role: "customer",

@@ -389,3 +389,10 @@
 - `native_checkout_step`と`CHECKOUT_STEP`はCapture CaseからMaestro subflowへ渡す実行契約であり、setupの自然言語をshellで解析しない。step固有の遷移が失敗した場合、screenshot取得・manifest生成・canonical promotionへ進まない。
 - このsetup追加はNative Product codeやFinal Gateを変更しない。API34／`google_apis`／`x86_64`／`pixel_2` Emulatorでの実測captureとpromotionが完了するまで、Android 25 Targetはblocked、Final Visual DoDはBLOCKEDのまま維持する。
 - Phase 1 CIのStyle Quality Required pathはStructural Validationの後にFinal Visual Specification gateを実行する。`validate:spec`のPASSは構造整合性のみを意味し、`validate:spec-visuals:final`／`verify`はpending／blockedが残る間fail-closeする。
+
+## PR #24 Review Repair iteration 4（2026-08-13）
+
+- `regular-member`のNative Test Control resetはcustomer Sessionと会員Cartを復元するため、Android visual captureではcustomer loginを重複実行しない。既存seedを使うTargetは`customer-seeded-session`、default／review／processingのようにguest seedからcustomer化が必要なTargetは既存`customer-login`系setupを使う。
+- Checkout visual setupは、seeded customer roleとbasic-shirt Cartをassertした後、Address画面でactive Checkout Sessionを開始する。Paymentは住所保存後に`native-checkout-payment-session-ready`、Confirmはconfirmationロード後の既存`native-checkout-confirm-submit`をassertしてからcaptureへ進む。
+- Native ready matcherはProduct ListとCategoryを専用heading testID（`native-product-list-heading`／`native-category-heading`）で分離する。Checkout Addressはactive session marker、Paymentはvalid session marker、Confirmはloaded confirmationのsubmit markerをroot testIDと併せて要求し、Shell navigationの同名ラベルやroute rootだけの誤受理を防ぐ。
+- これらはCapture Caseのmachine metadataと既存Native UI stateを一致させるための最小変更であり、Final Gate、Android canonical profile、startup helper、manual dispatch境界、Productの業務挙動は変更しない。API34 capture未実行中はAndroid 25 Target blocked／Final Visual DoD BLOCKEDを維持する。

@@ -24,7 +24,11 @@ import {
   validateVisualCaptureRegistry,
   visualAssetPath,
 } from "../../scripts/spec/visual-registry";
-import { NATIVE_CAPTURE_SETUP_PLANS } from "../../scripts/spec/android-visual-setup";
+import {
+  NATIVE_CAPTURE_READY_CONDITIONS,
+  NATIVE_CAPTURE_READY_ID_BY_SCREEN_ID,
+  NATIVE_CAPTURE_SETUP_PLANS,
+} from "../../scripts/spec/android-visual-setup";
 
 sharp.cache(false);
 
@@ -468,6 +472,126 @@ describe("Screen Catalog / Visual Contract", () => {
         subflow: "subflows/native-visual-capture-customer-checkout.yaml",
         checkoutStep,
       });
+    }
+  });
+
+  it("keeps representative Android screen semantics connected to executable setup and ready contracts", () => {
+    const expected = [
+      ["SCREEN-STOREFRONT-HOME/default/android", "reset-only", "home-screen", "default", "guest"],
+      [
+        "SCREEN-STOREFRONT-CART/default/android",
+        "guest-cart-with-basic-shirt",
+        "cart-with-basic-shirt",
+        "default",
+        "guest",
+      ],
+      [
+        "SCREEN-STOREFRONT-CATEGORY/default/android",
+        "reset-only",
+        "category-screen",
+        "default",
+        "guest",
+      ],
+      [
+        "SCREEN-AUTH-ACCOUNT-PROFILE/default/android",
+        "customer-seeded-session",
+        "profile-screen",
+        "regular-member",
+        "customer",
+      ],
+      [
+        "SCREEN-CHECKOUT-ADDRESSES/default/android",
+        "customer-seeded-session",
+        "addresses-screen",
+        "regular-member",
+        "customer",
+      ],
+      [
+        "SCREEN-CHECKOUT-ADDRESS/default/android",
+        "customer-checkout-address",
+        "checkout-address-screen",
+        "regular-member",
+        "customer",
+      ],
+      [
+        "SCREEN-CHECKOUT-PAYMENT/default/android",
+        "customer-checkout-payment",
+        "checkout-payment-screen",
+        "regular-member",
+        "customer",
+      ],
+      [
+        "SCREEN-CHECKOUT-CONFIRM/default/android",
+        "customer-checkout-confirm",
+        "checkout-confirm-screen",
+        "regular-member",
+        "customer",
+      ],
+      [
+        "SCREEN-CHECKOUT-PROCESSING/default/android",
+        "customer-login-processing",
+        "checkout-processing-screen",
+        "payment-processing",
+        "customer",
+      ],
+      [
+        "SCREEN-CHECKOUT-COMPLETE/default/android",
+        "customer-login",
+        "checkout-complete-screen",
+        "default",
+        "customer",
+      ],
+      [
+        "SCREEN-CHECKOUT-FAILED/default/android",
+        "customer-login",
+        "checkout-failed-screen",
+        "payment-declined",
+        "customer",
+      ],
+      [
+        "SCREEN-ORDERS-LIST/default/android",
+        "customer-seeded-session",
+        "orders-screen",
+        "regular-member",
+        "customer",
+      ],
+      [
+        "SCREEN-ORDERS-DETAIL/default/android",
+        "customer-seeded-session",
+        "order-detail-screen",
+        "regular-member",
+        "customer",
+      ],
+      [
+        "SCREEN-REVIEWS-EDITOR/default/android",
+        "customer-login",
+        "review-screen",
+        "reviewable-orders",
+        "customer",
+      ],
+    ] as const;
+
+    expect(
+      VISUAL_CAPTURE_CASES.filter((captureCase) => captureCase.platform === "android"),
+    ).toHaveLength(25);
+    for (const [captureCaseKey, setupId, readyId, scenario, role] of expected) {
+      const captureCase = VISUAL_CAPTURE_CASES.find(
+        (candidate) => candidate.captureCaseKey === captureCaseKey,
+      );
+      expect(captureCase).toBeDefined();
+      if (captureCase === undefined) continue;
+      expect(captureCase.nativeSetupId).toBe(setupId);
+      expect(captureCase.nativeReadyId).toBe(readyId);
+      expect(captureCase.scenario).toBe(scenario);
+      expect(captureCase.role).toBe(role);
+      expect(NATIVE_CAPTURE_READY_ID_BY_SCREEN_ID[captureCase.screenId]).toBe(readyId);
+      expect(NATIVE_CAPTURE_READY_CONDITIONS[readyId].length).toBeGreaterThanOrEqual(1);
+    }
+
+    for (const captureCase of VISUAL_CAPTURE_CASES.filter(
+      (candidate) => candidate.platform === "android" && candidate.scenario === "regular-member",
+    )) {
+      expect(captureCase.nativeSetupId).not.toBe("customer-login");
     }
   });
 

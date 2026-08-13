@@ -253,3 +253,40 @@ Progress: 89% (17/19)
 - Web／artifact recheck: `pnpm run test:e2e:chromium`は27/27 PASS、`pnpm run validate:image-manifest`、`pnpm run security:check`、`git diff --check`はPASSした。
 - Completion decision: Structural Validation: PASS、Final Visual DoD: BLOCKED、Phase 1 readiness: BLOCKED、Native CI readiness: BLOCKED（修正後checkout setupのAPI34 runtime未実行）、Merge readiness: NOT READY。
 - Progress: 100% (19/19)
+
+## Repair iteration 4: Checkout state semantics／Category ready contract（2026-08-13 JST）
+
+- Summary: 追加レビューで判明したCheckout Payment／Confirmのstate準備不足とCategory/Product Listのready matcher混同を、既存のNative seed、Checkout hook、Maestro setup、Visual Registryを再利用して修正した。Final Gate、Android profile／provenance、promotion、startup helper、通常PRのcapture境界は変更していない。
+- Root cause:
+  - `regular-member`はreset後にcustomer sessionとmember Cartを復元するため、visual captureでcustomer loginを再実行するとseedの意味論を壊し得た。
+  - Payment画面のrootと操作部はCheckoutSessionがnullでも描画され、Confirmはroute rootだけではconfirmation未ロード状態を区別できなかった。
+  - Catalogの画面見出しだけではShell navigationの同名Textと衝突し、Category deep linkの誤遷移を検出できなかった。
+- Implementation:
+  - `android-visual-setup.ts`へ`customer-seeded-session`と`category-screen`を追加し、Address／Payment／Confirmのready条件をsession marker、payment session marker、confirmation submitへ接続した。
+  - `visual-registry.ts`のregular-member profile／addresses／orders casesをseeded-sessionへ変更し、Checkout 3 targetはstep-specific setupを維持した。全25 Android caseの代表意味論をcontract testで固定した。
+  - `native-visual-capture-customer-checkout.yaml`はcustomer loginを行わず、seeded Cart確認→Address→必要なstep progression→role／ready assertionの順で実行するようにした。
+  - Native Checkout Address／Paymentへ、active session時だけ存在する最小限のsemantic markerを追加した。Confirmは既存のloaded confirmation submit testIDをready条件に使用した。CatalogにはProduct List／Category専用heading testIDを追加した。
+  - Component／workflow／visual contract tests、PROJECT_CONTEXT、ADR、iteration historyを更新した。Product `app/**`、canonical Android asset、Final Gate、CI gate、startup helperは変更していない。
+- Validation:
+  - `pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run validate:spec`、`pnpm run build:spec`、`pnpm run lint`（0 errors／65 warnings）、`pnpm run typecheck`、`pnpm run test:contracts`（221 tests）、`pnpm run test`（unit 66／integration 98／repository 33／web component 76／native Jest 49／contracts 221）、`pnpm run build:web` => PASS。
+  - `pnpm run validate:image-manifest`、`pnpm run security:check`、`pnpm run check:native-route-dependencies`、`pnpm run validate:eas:config`、`pnpm run validate:native-production-bundle`、`pnpm run test:e2e:chromium`（27/27）、Maestro 2.8.0 YAML syntax（22 files）、対象component／contract tests => PASS。
+  - Checkout Processing strict UI Review（desktop 1/1）=> PASS。Processing exact headingを確認し、Failed screenをcanonical化していない。
+  - `pnpm run validate:spec-visuals:final` => FAIL（blocked 25、captured 69/94）。`pnpm run verify` => Structural Gate通過後、同じFinal GateでFAIL。未完成状態に対するfail-closeとして期待どおり。
+- Android validation:
+  - `pnpm run native:android:doctor` => PASS。Maestro 2.8.0、physical API30 arm64 deviceのみを確認した。API34 `google_apis`／`x86_64`／`pixel_2` Emulatorは利用できないため、修正後のNative runtime、canonical capture、promotionは実行していない。API30をcanonical assetへ昇格していない。
+  - Android Runtime release markerは既存の`status: blocked`／`android_runtime_released: true`／`next_agent_can_use_android: true`を保持している。このiterationではAPI34 runtimeを起動していないため、markerの再作成は行っていない。
+- Scope audit: Git mutationなし。他worktree変更なし。Product `app/**`変更なし。Final Gate／CI required pathの弱体化、`launchApp(clearState: true)`復活、timeout-only retry、dummy／stale asset、第二SSOT、secret／local absolute path混入なし。`git diff --check`はPASS。
+- Final decision: コード修正フェーズはbounded repairとして完了。`Structural Validation: PASS`、`Final Visual DoD: BLOCKED`、`Phase 1 readiness: BLOCKED`、`Native CI readiness: BLOCKED（修正後runtime未実行）`、`Merge readiness: NOT READY`。残存deltaはAPI34 canonical Android 25 targetのmanual capture／promotionのみ。
+- Progress: 100% (25/25)
+
+## Final recheck（2026-08-13 JST）
+
+- `pnpm run format:check` => PASS。
+- `pnpm run lint:markdown` => PASS（252 files、0 issues）。
+- `pnpm run validate:spec` => PASS（94 targets、Captured 69、Pending 0、Blocked 25、Canonical Asset 69、5,408,254 bytes）。
+- `pnpm run validate:spec-visuals:final` => FAIL（`blockedTargetCount === 0`に対して25、`capturedTargetCount === captureTargetCount`に対して69 !== 94）。未完了Android targetを正しくfail-closeしている。
+- `pnpm run verify` => FAIL。format／markdown／Structural ValidationはPASSし、Final Visual Gateで同じ25 blocked／69 of 94により停止した。これは現時点の期待結果である。
+- Run Artifact sanitizer Write／Check => PASS（5 files、residual 0）。
+- Android marker read-only check: `visual-android-released.json`は`status: blocked`、`android_runtime_released: true`、`next_agent_can_use_android: true`。現PowerShell processでは`QA_STORE_COORD_DIR`未設定のため書き換えていない。
+- Final status: `Structural Validation: PASS`、`Final Visual DoD: BLOCKED`、`Phase 1 readiness: BLOCKED`、`Native CI readiness: BLOCKED`、`Merge readiness: NOT READY`。
+- Progress: 100% (25/25)

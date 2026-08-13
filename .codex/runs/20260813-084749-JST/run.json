@@ -18,12 +18,19 @@
     "docs/adr/0013-screen-catalog-visual-reference.md",
     "package.json",
     "scripts/spec/android-visual-capture.ts",
+    "scripts/spec/android-visual-setup.ts",
     "scripts/spec/materialize-visual-references.ts",
     "scripts/spec/validate-all.ts",
     "scripts/spec/visual-registry.ts",
     "scripts/spec/visual-contract.ts",
     "tests/contracts/native-ci-workflow.test.ts",
-    "tests/contracts/visual-contract.test.ts"
+    "tests/contracts/native-visual-contract.test.ts",
+    "tests/contracts/visual-contract.test.ts",
+    "tests/component/native/native-purchase-screens.test.tsx",
+    "src/presentation/native/native-purchase-screens.tsx",
+    "src/presentation/native/native-screens.tsx",
+    "maestro/subflows/native-visual-capture-customer-checkout.yaml",
+    "docs/history/2026-08-13_201500_screen-catalog-review-repair-iteration-4.md"
   ],
   "validation": {
     "status": "partial",

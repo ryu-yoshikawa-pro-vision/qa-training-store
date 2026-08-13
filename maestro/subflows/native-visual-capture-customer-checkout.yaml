@@ -1,6 +1,7 @@
 appId: com.ryuyoshikawa.scenarioshop
 ---
-- runFlow: subflows/native-visual-capture-customer-login.yaml
+- assertVisible:
+    id: "native-nav-orders"
 - openLink: "scenario-shop://cart"
 - runFlow: subflows/accept-ios-deep-link.yaml
 - extendedWaitUntil:
@@ -15,6 +16,10 @@ appId: com.ryuyoshikawa.scenarioshop
     visible:
       id: "native-checkout-address-screen"
     timeout: 30000
+- assertVisible:
+    id: "native-checkout-session-started"
+- assertVisible:
+    id: "native-checkout-address-session-ready"
 - runFlow:
     when:
       true: ${CHECKOUT_STEP != "address"}
@@ -25,6 +30,8 @@ appId: com.ryuyoshikawa.scenarioshop
           visible:
             id: "native-checkout-payment-screen"
           timeout: 30000
+      - assertVisible:
+          id: "native-checkout-payment-session-ready"
 - runFlow:
     when:
       true: ${CHECKOUT_STEP == "confirm"}
@@ -37,3 +44,5 @@ appId: com.ryuyoshikawa.scenarioshop
           visible:
             id: "native-checkout-confirm-screen"
           timeout: 30000
+      - assertVisible:
+          id: "native-checkout-confirm-submit"

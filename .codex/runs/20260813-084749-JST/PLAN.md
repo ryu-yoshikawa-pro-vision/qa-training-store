@@ -70,12 +70,13 @@ Primary Planの契約に合わせ、構造検証とVisual完成判定を分離�
 - `.github/workflows/ci.yml`
 - `.github/workflows/native-ci.yml`
 - `package.json`
+- `src/presentation/native/native-purchase-screens.tsx`（Payment正常stateを示す既存controls containerへの最小semantic testIDのみ）
 - `docs/PROJECT_CONTEXT.md`
 - `docs/adr/0013-screen-catalog-visual-reference.md`
 - `docs/history/**`（今回判断の追記用）
 - `.codex/runs/20260813-084749-JST/**`
 
-Product `app/**`は変更しない。
+Product `app/**`は変更しない。`src/**`の今回の変更もPaymentの業務挙動・表示・操作を変更せず、valid Checkout Session時だけready検証へ利用するsemantic markerを公開する最小変更に限定する。
 
 ## Validation plan
 
@@ -129,3 +130,10 @@ Product `app/**`は変更しない。
 
 - 新規setupの静的契約とTypeScript／Maestro syntaxはlocalで確認する。
 - API34 `google_apis`／`x86_64`／`pixel_2` Emulatorがlocalにないため、実runtime capture／promotionはmanual GitHub Actions dispatch後にのみ実施し、physical API30画像はcanonicalへ昇格しない。
+
+## Repair iteration 4 decisions
+
+- `regular-member` Native resetはcustomer Sessionと会員Cart（basic-shirt-02を含む）を復元するため、Checkout visual setupでcustomer loginを重複実行しない。setupはseeded customer role／Cartをassertし、Addressを開いてactive Checkout Sessionを開始する。
+- Paymentのroot、payment method、NextはCheckout Sessionが不正でも描画され得るため、既存画面の操作だけではCapture Case固有のready条件をfail-closeできない。画面挙動は変更せず、valid `state.session`時だけ既存payment controls containerへsemantic testIDを付与し、ready matcherへ接続する。
+- Confirmはconfirmationロード後だけ存在する既存`native-checkout-confirm-submit`をready条件へ追加する。CategoryはProduct List／Category専用heading testIDをready条件へ追加し、Shell navigationの同名ラベルを避けてdeep-link取り違えを検出する。
+- Android capture flowの順序（reset → setup → route → role → ready → screenshot）、Final Gate、startup helper、canonical profile、manual dispatch境界は変更しない。API34 capture／promotionは今回も実行しない。

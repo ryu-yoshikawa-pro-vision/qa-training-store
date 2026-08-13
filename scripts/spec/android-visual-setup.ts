@@ -2,6 +2,7 @@ export const NATIVE_CAPTURE_SETUP_IDS = [
   "reset-only",
   "guest-cart-with-basic-shirt",
   "customer-login",
+  "customer-seeded-session",
   "customer-login-processing",
   "customer-checkout-address",
   "customer-checkout-payment",
@@ -20,6 +21,7 @@ export type NativeReadyMatcher = {
 export type NativeCaptureReadyId =
   | "home-screen"
   | "catalog-screen"
+  | "category-screen"
   | "product-detail-screen"
   | "search-screen"
   | "cart-with-basic-shirt"
@@ -71,6 +73,12 @@ export const NATIVE_CAPTURE_SETUP_PLANS: Readonly<
     resetPaymentDelayMs: 0,
     checkoutStep: null,
   },
+  "customer-seeded-session": {
+    requiredRole: "customer",
+    subflow: null,
+    resetPaymentDelayMs: 0,
+    checkoutStep: null,
+  },
   "customer-login-processing": {
     requiredRole: "customer",
     subflow: "subflows/native-visual-capture-customer-login.yaml",
@@ -101,7 +109,14 @@ export const NATIVE_CAPTURE_READY_CONDITIONS: Readonly<
   Record<NativeCaptureReadyId, readonly NativeReadyMatcher[]>
 > = {
   "home-screen": [{ kind: "id", value: "native-home-screen" }],
-  "catalog-screen": [{ kind: "id", value: "native-catalog-screen" }],
+  "catalog-screen": [
+    { kind: "id", value: "native-catalog-screen" },
+    { kind: "id", value: "native-product-list-heading" },
+  ],
+  "category-screen": [
+    { kind: "id", value: "native-catalog-screen" },
+    { kind: "id", value: "native-category-heading" },
+  ],
   "product-detail-screen": [{ kind: "id", value: "native-product-detail-screen" }],
   "search-screen": [{ kind: "id", value: "native-search-screen" }],
   "cart-with-basic-shirt": [
@@ -112,9 +127,18 @@ export const NATIVE_CAPTURE_READY_CONDITIONS: Readonly<
   "signup-screen": [{ kind: "id", value: "native-signup-screen" }],
   "profile-screen": [{ kind: "id", value: "native-profile-screen" }],
   "addresses-screen": [{ kind: "id", value: "native-addresses-screen" }],
-  "checkout-address-screen": [{ kind: "id", value: "native-checkout-address-screen" }],
-  "checkout-payment-screen": [{ kind: "id", value: "native-checkout-payment-screen" }],
-  "checkout-confirm-screen": [{ kind: "id", value: "native-checkout-confirm-screen" }],
+  "checkout-address-screen": [
+    { kind: "id", value: "native-checkout-address-screen" },
+    { kind: "id", value: "native-checkout-address-session-ready" },
+  ],
+  "checkout-payment-screen": [
+    { kind: "id", value: "native-checkout-payment-screen" },
+    { kind: "id", value: "native-checkout-payment-session-ready" },
+  ],
+  "checkout-confirm-screen": [
+    { kind: "id", value: "native-checkout-confirm-screen" },
+    { kind: "id", value: "native-checkout-confirm-submit" },
+  ],
   "checkout-processing-screen": [{ kind: "id", value: "native-checkout-processing-screen" }],
   "checkout-complete-screen": [{ kind: "id", value: "native-checkout-complete-screen" }],
   "checkout-failed-screen": [{ kind: "id", value: "native-checkout-failed-screen" }],
@@ -135,7 +159,7 @@ export const NATIVE_CAPTURE_READY_ID_BY_SCREEN_ID: Readonly<Record<string, Nativ
     "SCREEN-STOREFRONT-PRODUCT-LIST": "catalog-screen",
     "SCREEN-STOREFRONT-PRODUCT-DETAIL": "product-detail-screen",
     "SCREEN-STOREFRONT-SEARCH": "search-screen",
-    "SCREEN-STOREFRONT-CATEGORY": "catalog-screen",
+    "SCREEN-STOREFRONT-CATEGORY": "category-screen",
     "SCREEN-STOREFRONT-CART": "cart-with-basic-shirt",
     "SCREEN-AUTH-LOGIN": "login-screen",
     "SCREEN-AUTH-SIGNUP": "signup-screen",
