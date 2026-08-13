@@ -15,7 +15,7 @@
 3. 既存Scenarioの意味を [`state-and-scenarios.md`](../../../spec/state-and-scenarios.md) とExecutable Sourceで確認する。
 4. `training-chromium`でbaselineを実行し、必要なCart条件を`exercises/`へ実装する。
 5. `training-mobile-chromium`でResponsive Riskを1件確認する。
-6. AndroidではTraining Maestro baselineを実行し、WebとNativeの共通RiskとPlatform固有Riskを分ける。
+6. Android Capabilityが利用できる場合はTraining Maestro baselineを実行し、WebとNativeの共通RiskとPlatform固有Riskを分ける。Capabilityがない場合は実行を成功扱いにせず、`blocked_environment` または `not_completed` と理由をWorkbookへ記録する。環境不足は直ちにFailureとはしないが、Required Journeyの完了にも読み替えない。
 7. `03_automation-mapping.csv` と `04_execution-improvement.csv`へDecision、Evidence、Failure分類を追記する。
 
 ## Advanced tracks

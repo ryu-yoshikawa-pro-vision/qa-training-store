@@ -45,28 +45,63 @@ Windowsでは、既存のAndroid SDK / Emulator基盤をTrainingから再利用�
 ```powershell
 & .\scripts\training\android-emulator.ps1 -Action Doctor
 & .\scripts\training\android-emulator.ps1 -Action Prepare
-& .\scripts\training\android-emulator.ps1 -Action Start
 ```
 
 `Prepare`で`system-images;android-34;google_apis;x86_64`が不足している場合は、既存SDKの`sdkmanager.bat`で次を一度だけInstallしてから、`Prepare`を再実行します。SDK Rootの実Pathは各自の環境に合わせます。
 
 ```powershell
-$sdkmanager = Join-Path $env:ANDROID_SDK_ROOT "cmdline-tools\latest\bin\sdkmanager.bat"
+$sdkRoot = $env:ANDROID_SDK_ROOT
+if (-not $sdkRoot) {
+  $sdkRoot = $env:ANDROID_HOME
+}
+if (-not $sdkRoot) {
+  throw "ANDROID_SDK_ROOT or ANDROID_HOME is required."
+}
+$sdkmanager = Join-Path $sdkRoot "cmdline-tools\latest\bin\sdkmanager.bat"
 & $sdkmanager "platform-tools" "emulator" "platforms;android-36" "build-tools;36.0.0" "system-images;android-34;google_apis;x86_64"
+if ($LASTEXITCODE -ne 0) {
+  throw "Android SDK package installation failed."
+}
 ```
 
-`Start`はADB ready、`sys.boot_completed=1`、Android package serviceを有限時間で確認し、出力する`QA_TRAINING_ANDROID_SERIAL`を対象端末として扱います。出力されたserialを同じShellへ設定し、Native Release Build / Install後にTraining baselineを実行します。
+`Start`はADB ready、`sys.boot_completed=1`、Android package serviceを有限時間で確認し、`QA_TRAINING_ANDROID_SERIAL=<serial>`を出力します。次のブロックはそのserialを自動取得し、Native Release Build / Install後にTraining baselineを実行します。
 
 ```powershell
-$env:QA_TRAINING_ANDROID_SERIAL = "<Startが出力したemulator-serial>"
-$env:ANDROID_SERIAL = $env:QA_TRAINING_ANDROID_SERIAL
 $env:EXPO_PUBLIC_APP_ENV = "automation"
 $env:EXPO_PUBLIC_BUILD_KIND = "automation"
 $env:EXPO_PUBLIC_TEST_MODE = "true"
 $env:EXPO_PUBLIC_DEFAULT_SEED = "default"
-pnpm run build:native:android:release
-pnpm run training:native:baseline
-& .\scripts\training\android-emulator.ps1 -Action Stop -Serial $env:QA_TRAINING_ANDROID_SERIAL
+$serial = $null
+try {
+  $startOutput = & .\scripts\training\android-emulator.ps1 -Action Start
+  if ($LASTEXITCODE -ne 0) {
+    throw "Android emulator start failed."
+  }
+  $serialLine = $startOutput | Where-Object { $_ -like "QA_TRAINING_ANDROID_SERIAL=*" } | Select-Object -First 1
+  if (-not $serialLine) {
+    throw "Android emulator did not return a Training serial."
+  }
+  $serial = ($serialLine.ToString() -split "=", 2)[1]
+  if ([string]::IsNullOrWhiteSpace($serial)) {
+    throw "Training emulator serial is empty."
+  }
+  $env:QA_TRAINING_ANDROID_SERIAL = $serial
+  $env:ANDROID_SERIAL = $serial
+  pnpm run build:native:android:release
+  if ($LASTEXITCODE -ne 0) {
+    throw "Android build failed."
+  }
+  pnpm run training:native:baseline
+  if ($LASTEXITCODE -ne 0) {
+    throw "Training Maestro baseline failed."
+  }
+} finally {
+  if ([string]::IsNullOrWhiteSpace($serial)) {
+    & .\scripts\training\android-emulator.ps1 -Action Stop
+  } else {
+    & .\scripts\training\android-emulator.ps1 -Action Stop -Serial $serial
+  }
+}
 ```
 
 `Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`のImage不足は上記`sdkmanager`を使い、boot timeoutは`Start`を停止して`adb devices`とEmulator logを確認してから再試行します。APK install前にMaestroを再試行せず、Build / Install / Test Control Readyを順に確認します。終了時は必ず`Stop`でTraining Emulatorを停止します。
@@ -245,7 +280,7 @@ Cartへ商品を追加した後にAppを再起動し、状態復元を確認し�
 
 ## 完了条件
 
-- Android Emulator上でMaestro Flowを2本以上作成している。
+- Android Emulator上で意味のあるMaestro Flow Evidenceを最低1本作成している。2本以上はPractice Volumeとして推奨する。
 - UI Test IDを利用した操作を含む。
 - Test ControlまたはDeep Linkを利用している。
 - PlaywrightとMaestroで同じBusiness Flowを1件以上比較している。

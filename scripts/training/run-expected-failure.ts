@@ -1,8 +1,10 @@
-import { existsSync, readdirSync, statSync } from "node:fs";
+import { existsSync, readdirSync, rmSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 
 const packageManager = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+const evidenceRoot = resolve("output/training/playwright");
+rmSync(evidenceRoot, { recursive: true, force: true });
 const result = spawnSync(
   packageManager,
   [
@@ -18,7 +20,6 @@ const result = spawnSync(
 
 if (result.error) throw result.error;
 
-const evidenceRoot = resolve("output/training/playwright");
 function listFiles(directory: string): string[] {
   if (!existsSync(directory)) return [];
   return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
@@ -31,7 +32,7 @@ const evidenceFiles = listFiles(evidenceRoot);
 const evidenceExists = evidenceFiles.length > 0;
 const requiredEvidence = [".zip", ".png", ".webm", ".html"];
 const missingEvidence = requiredEvidence.filter(
-  (extension) => !evidenceFiles.some((file) => statSync(file).isFile() && file.endsWith(extension)),
+  (extension) => !evidenceFiles.some((file) => file.endsWith(extension)),
 );
 
 if (result.status === 0) {

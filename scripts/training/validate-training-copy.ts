@@ -1,23 +1,10 @@
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
+import { validateTrainingWorkflow } from "./workflow-contract";
 
 const FULL_SHA = /^[0-9a-f]{40}$/;
 const activeWorkflowAllowlist = new Set(["training-ci.yml", "training-native-ci.yml"]);
-const approvedActions = new Set([
-  "actions/checkout@v4",
-  "pnpm/action-setup@v4",
-  "actions/setup-node@v4",
-  "actions/setup-java@v4",
-  "actions/upload-artifact@v4",
-]);
-const allowedTrainingCommands = new Set([
-  "pnpm run validate:curriculum",
-  "pnpm run build:web",
-  "pnpm run training:web:baseline",
-  "pnpm run training:web:expected-failure",
-  "pnpm run training:native:baseline",
-]);
 
 function option(name: string): string {
   const index = process.argv.indexOf(name);
@@ -87,34 +74,10 @@ for (const workflowName of activeWorkflowAllowlist) {
 for (const workflowName of activeWorkflowAllowlist) {
   const workflowPath = join(workflowDirectory, workflowName);
   const text = readFileSync(workflowPath, "utf8");
-  if (!/^permissions:\r?\n  contents: read\r?$/m.test(text))
-    fail(`${workflowName} must declare permissions: contents: read`);
-  for (const forbidden of [
-    "contents: write",
-    "actions: write",
-    "checks: write",
-    "pull-requests: write",
-    "packages: write",
-    "deployments: write",
-    "id-token: write",
-    "secrets.",
-    "environment:",
-    "self-hosted",
-    "cloudflare",
-    "wrangler",
-    "deploy-production",
-  ]) {
-    if (text.includes(forbidden)) fail(`${workflowName} contains forbidden token: ${forbidden}`);
-  }
-  const actionLines = [...text.matchAll(/^\s*- uses:\s*([^\s]+)\s*$/gm)].map((match) => match[1]);
-  if (actionLines.some((action) => action !== undefined && !approvedActions.has(action)))
-    fail(`${workflowName} uses an unapproved action`);
-  const packageCommands = [...text.matchAll(/\bpnpm run [A-Za-z0-9:_-]+/g)].map(
-    (match) => match[0],
-  );
-  for (const command of packageCommands) {
-    if (!allowedTrainingCommands.has(command))
-      fail(`${workflowName} has an unapproved training command: ${command}`);
+  try {
+    validateTrainingWorkflow(workflowName, text);
+  } catch (error) {
+    fail(error instanceof Error ? error.message : String(error));
   }
   if (!text.includes("runs-on: ubuntu-"))
     fail(`${workflowName} must use a GitHub-hosted Ubuntu runner`);

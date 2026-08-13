@@ -42,7 +42,16 @@ Canonical templateは `training/workbook/01_target-risk.csv`、`02_test-cases.cs
 | `03_automation-mapping.csv` | Automate / Later / Do not automateとLayer | `test_case_id` → `implementation_path` |
 | `04_execution-improvement.csv` | 結果、Evidence、Failure分類、改善 | `test_case_id` → `evidence` |
 
-複数のBR / ACは `;` で区切ります。空欄は直接対応するIDがない場合だけ許容し、実装PathやEvidenceを存在しないものへ合わせてはいけません。
+複数のBR / ACは `;` で区切ります。対象・Risk・Test Caseをつなぐ主IDは空欄にせず、BR / ACなど直接対応するIDがない列だけ空欄を許容します。`implementation_path`は未実装またはDo not automateで実装Pathが存在しない場合、`evidence`は未実行の場合、`failure_category`はPass / Not runの場合に空欄にできます。`cause` / `action` / `improvement`は調査の進捗に応じて追加します。未実在のPathやEvidenceでセルを埋めません。
+
+この4つのファイルがCanonical CSVです。後述する8つのSheet風設計ビューは、4つのCSVを設計上見やすく分けた**conceptual design views**であり、8つのCanonical CSVや8つの必須成果物を意味しません。
+
+| 設計ビュー | Canonical CSV |
+| --- | --- |
+| `01_テスト対象分析` / `02_リスク分析` | `01_target-risk.csv` |
+| `03_テスト観点` / `04_テストケース` | `02_test-cases.csv` |
+| `05_自動化候補` / `06_自動化対応表` | `03_automation-mapping.csv` |
+| `07_実行結果` / `08_改善管理` | `04_execution-improvement.csv` |
 
 ## なぜスプレッドシートを使うか
 

@@ -11,6 +11,7 @@ env:
   NODE_VERSION: "24"
   PNPM_VERSION: "9.10.0"
   MAESTRO_VERSION: "2.8.0"
+  MAESTRO_SHA256: "b3e561161904fb391875ca5834d5b22cf0b01c052dd1b408ad83e30d8f8951b3"
   MAESTRO_DOWNLOAD_URL: https://github.com/mobile-dev-inc/Maestro/releases/download/cli-2.8.0/maestro.zip
   ANDROID_API_LEVEL: "34"
   ANDROID_SYSTEM_IMAGE: system-images;android-34;google_apis;x86_64
@@ -127,6 +128,7 @@ jobs:
         run: |
           set -euo pipefail
           curl --fail --silent --show-error --location "$MAESTRO_DOWNLOAD_URL" --output "$RUNNER_TEMP/maestro.zip"
+          echo "$MAESTRO_SHA256  $RUNNER_TEMP/maestro.zip" | sha256sum --check -
           maestro_root="$RUNNER_TEMP/maestro"
           unzip -q "$RUNNER_TEMP/maestro.zip" -d "$maestro_root"
           maestro_bin="$maestro_root/maestro/bin/maestro"

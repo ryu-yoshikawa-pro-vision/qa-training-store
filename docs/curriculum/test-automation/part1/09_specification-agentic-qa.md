@@ -101,4 +101,4 @@ Coverage = completed_required_coverage_items / required_coverage_items
 - [Specification Entry](../../../spec/README.md)
 - [Agentic QA Workflow](../../../reference/agentic-qa-workflow.md)
 - [QA Agent Contract](../../../../QA_AGENT.md)
-- [Part 1 総合演習](./10_part1-capstone.md)
+- [Part 1 総合演習](./09_part1-capstone.md)

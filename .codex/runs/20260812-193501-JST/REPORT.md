@@ -127,6 +127,15 @@
 - Wave status: Wave 4のTraining Maestro／Android baseline／Formal isolationを実Runまで完了した。Wave 10はWeb／Android／review完了、最終SHA／remote Delivery Readinessのみ未完了。
 - Progress: 83% (10/12)
 
+## 2026-08-13 14:18 (JST) — PR #25 review/fix追補
+
+- CodeRabbit 22件をCurrent code / Repository contract / Planへ再評価した。P0 Native CI順序、Workflow構造parse、Maestro checksum、Workbook traceability、Windows Android fail-close、stale expected-failure、Curriculum整合、CRLF、contract test依存をvalidとして修正した。canonical Run Manifestに`scope`がなく、2026-08-13のAndroid historyは実行日と一致するため、それぞれinvalidとして変更しなかった。
+- 独自findingとして、Normative Specification内のBR / AC実在確認、4 CSVのcross-reference / duplicate / RFC 4180相当parse、named `uses` / multiline `run` / bracket secrets検査、AVD identity、単数Emulator時PowerShell scalar `.Count`、idempotent cleanupを追加した。
+- 変更後のlocal validation: `pnpm run format:check`、`lint:markdown`、`validate:spec`、`validate:curriculum`、`lint`（0 errors / 65 warnings）、`typecheck`、`typecheck:training`、`test:contracts`（207）、`test`、`verify`はPASS。
+- Training Web専用`127.0.0.1:8082`でdesktop 1/1、mobile 1/1、expected-failure wrapper（intentional non-zero + fresh zip/png/webm/html Evidence）はPASS。Training Copy validatorはcurrent sourceのactive workflow allowlist不一致でfail-closeし、exact-SHA PASSとは扱っていない。
+- Android markerを再確認し、`android_runtime_released=true` / `next_agent_can_use_android=true`を根拠に独立実行した。Training AVD `scenario-shop-training-api34` API34 / x86_64、Automation Release APK検査、Install、Smoke、Training Maestro baseline 1/1、Evidence、Stop cleanupをPASS。Formal Maestroは実行していない。証跡は`.artifacts/native-local/20260813-133500-curriculum-review-android-training-shortpath/`。
+- 現在も未完了: 修正後commit / final PR HEAD、final Source Required CI、exact-SHA Training Copy 3 runs、remote Delivery Readiness、Fresh Learner full journey。未実行をPASS扱いせず、Progressはactive review Runで`86% (12/14)`と記録する。
+
 ## 2026-08-13 07:48 (JST)
 
 - Final local validation:

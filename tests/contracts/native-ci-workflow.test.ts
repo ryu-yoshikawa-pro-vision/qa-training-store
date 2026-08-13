@@ -171,6 +171,7 @@ describe("Native CI workflow contracts", () => {
       "Download Automation Release APK",
       "Install and launch Automation APK",
       "Run Maestro Test Control flow",
+      "Run Training Maestro baseline",
       "Download Production-validation Release APK",
       "Install and launch Production-validation APK",
       "Run Maestro Native Production-validation flow",
@@ -227,10 +228,20 @@ describe("Native CI workflow contracts", () => {
   it("detects Training Maestro changes and runs the baseline in the shared Android runtime", () => {
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
     expect(nativeWorkflow).toContain("'training/maestro/**'");
-    const start = runtime.indexOf("- name: Run Training Maestro baseline");
-    expect(start).toBeGreaterThanOrEqual(0);
-    const end = runtime.indexOf("\n      - name:", start + 1);
-    const step = runtime.slice(start, end === -1 ? undefined : end);
+    const trainingBaselineIndex = runtime.indexOf("- name: Run Training Maestro baseline");
+    const productionDownloadIndex = runtime.indexOf(
+      "- name: Download Production-validation Release APK",
+    );
+    const productionInstallIndex = runtime.indexOf(
+      "- name: Install and launch Production-validation APK",
+    );
+    expect(trainingBaselineIndex).toBeGreaterThanOrEqual(0);
+    expect(productionDownloadIndex).toBeGreaterThanOrEqual(0);
+    expect(productionInstallIndex).toBeGreaterThanOrEqual(0);
+    expect(trainingBaselineIndex).toBeLessThan(productionDownloadIndex);
+    expect(trainingBaselineIndex).toBeLessThan(productionInstallIndex);
+    const end = runtime.indexOf("\n      - name:", trainingBaselineIndex + 1);
+    const step = runtime.slice(trainingBaselineIndex, end === -1 ? undefined : end);
     expect(step).toContain("steps.android_automation_install.outcome == 'success'");
     expect(step).toContain("steps.maestro_cli.outcome == 'success'");
     expect(step).toContain("training/maestro/baseline/native-training-baseline.yaml");

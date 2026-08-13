@@ -237,6 +237,6 @@ Payment拒否からRetry成功までを実装します。
 - Seed Scenario / Resetを利用したテストを含む。
 - 正常、異常または境界の両方を含む。
 - PaymentまたはRole横断の状態遷移を1件以上扱っている。
-- MobileまたはAccessibilityの追加観点を1件以上実行している。
+- Desktop実行に加えて、Mobile実行を1件以上行っている。Accessibilityは追加観点として実行・記録できるが、Mobileの代替にはしない。
 - Training用E2Eと既存Regressionを混同せず、両者の役割を説明できる。
 - Seed Scenario Resetを利用できる一方、Fixture内部設計はPart 1-8で学ぶ内容だと区別できる。

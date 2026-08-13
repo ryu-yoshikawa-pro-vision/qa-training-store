@@ -42,11 +42,11 @@ Part 1はC01〜C10の主要項目をLevel 2へ到達させます。次を一つ�
 
 1. Current SpecのFeature、BR、ACを参照した対象分析。
 2. RiskとTest Conditionを記録したWorkbook。
-3. Web Training baselineまたは自分のexerciseと、Android Training Maestroの最小Flow。
-4. Desktop / Mobileの実行結果と、FailureまたはExpected FailureのEvidence。
+3. Web Training baselineまたは自分のexerciseと、Android Training Maestroの意味のあるFlowを最低1本。
+4. Desktop / Mobileの実行結果と、FailureまたはExpected FailureのEvidence。Accessibilityは追加観点として提出できる。
 5. Core Cart Capstoneの設計理由と、自動化しない条件の説明。
 
-AdvancedのPurchase Journey、Failure / Recovery、Cross-role Lifecycleは、Coreの代替ではなく追加Challengeです。全3系統の完了を必須にしません。
+Lesson 7でMaestro Flowを2本以上作ることはPractice Volumeです。Part 1の合否に必須なのは、意味のあるNative Flow Evidenceを最低1本提出することです。AdvancedのPurchase Journey、Failure / Recovery、Cross-role Lifecycleは、Coreの代替ではなく追加Challengeです。全3系統の完了を必須にしません。
 
 ## Part 2修了基準
 

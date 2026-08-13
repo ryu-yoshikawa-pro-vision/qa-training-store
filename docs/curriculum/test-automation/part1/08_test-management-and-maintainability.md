@@ -111,7 +111,7 @@ class ProductPage {
   }
 
   async addToCart() {
-    await this.page.getByRole("button", { name: "対象操作" }).click();
+    await this.page.getByRole("button", { name: "カートに追加" }).click();
   }
 }
 ```

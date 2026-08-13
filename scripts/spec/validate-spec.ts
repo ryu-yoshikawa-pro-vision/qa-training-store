@@ -15,11 +15,36 @@ export type SpecIssue = {
   message: string;
 };
 
+export type NormativeSpecReferences = {
+  brIds: Set<string>;
+  acIds: Set<string>;
+};
+
 const BR_HEADING = /^### BR-[A-Z0-9]+-[0-9]{3} — .+$/;
 const AC_HEADING = /^#### AC-[A-Z0-9]+-[0-9]{3} — .+$/;
 const BR_ID = /^BR-[A-Z0-9]+-[0-9]{3}$/;
 const AC_ID = /^AC-[A-Z0-9]+-[0-9]{3}$/;
 const RELATED_BR = /^Related BR: `((?:BR-[A-Z0-9]+-[0-9]{3})(?:`, `BR-[A-Z0-9]+-[0-9]{3})*)`$/;
+
+export function collectNormativeSpecReferences(
+  rootDir = process.cwd(),
+): Map<string, NormativeSpecReferences> {
+  const references = new Map<string, NormativeSpecReferences>();
+  for (const relativePath of listSpecMarkdown(rootDir)) {
+    if (!isNormativeSpecPath(relativePath)) continue;
+    const parsed = parseMarkdownFile(path.join(rootDir, relativePath), relativePath);
+    const brIds = new Set<string>();
+    const acIds = new Set<string>();
+    for (const heading of parsed.headings) {
+      const br = /^### (BR-[A-Z0-9]+-\d{3}) — /.exec(heading.raw);
+      if (br?.[1] !== undefined) brIds.add(br[1]);
+      const ac = /^#### (AC-[A-Z0-9]+-\d{3}) — /.exec(heading.raw);
+      if (ac?.[1] !== undefined) acIds.add(ac[1]);
+    }
+    references.set(relativePath, { brIds, acIds });
+  }
+  return references;
+}
 
 function issue(issues: SpecIssue[], file: string, message: string, line?: number): void {
   if (line === undefined) issues.push({ file, message });

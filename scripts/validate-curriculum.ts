@@ -1,6 +1,9 @@
 import fs from "node:fs";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
+import { isNormativeSpecPath } from "./spec/build-spec";
+import { collectNormativeSpecReferences } from "./spec/validate-spec";
+import { validateTrainingWorkflow } from "./training/workflow-contract";
 
 const REQUIRED_CURRICULUM_FILES = [
   "docs/curriculum/test-automation/README.md",
@@ -132,50 +135,222 @@ function validateCurriculumLinks(rootDir: string): void {
   }
 }
 
-function validateWorkbook(rootDir: string): number {
-  const workbookRoot = path.join(rootDir, "training", "workbook");
-  const readCsv = (name: string): string[] => {
-    const text = read(rootDir, `training/workbook/${name}`);
-    const lines = text.split(/\r?\n/).filter((line) => line.trim().length > 0);
-    const expected = WORKBOOK_HEADERS[name];
-    if (!expected) fail(`unknown workbook contract: ${name}`);
-    if ((lines[0] ?? "").split(",").join("|") !== expected.join("|")) {
-      fail(`${name} header does not match the canonical schema`);
-    }
-    return lines;
+export function parseCsv(text: string, name = "workbook.csv"): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let field = "";
+  let inQuotes = false;
+  let fieldClosed = false;
+
+  const finishRow = (): void => {
+    row.push(field);
+    rows.push(row);
+    row = [];
+    field = "";
+    fieldClosed = false;
   };
 
-  for (const [name, headers] of Object.entries(WORKBOOK_HEADERS)) {
-    const lines = readCsv(name);
-    if (lines.length < 2) fail(`${name} must contain a small traceable sample row`);
-    const headerIndex = new Map(headers.map((header, index) => [header, index]));
-    for (const line of lines.slice(1)) {
-      const cells = line.split(",");
-      for (const idField of ["br_ids", "ac_ids"]) {
-        const index = headerIndex.get(idField);
-        if (index === undefined) continue;
-        const value = cells[index] ?? "";
-        if (!value) continue;
-        const ids = value.split(";");
-        if (ids.some((id) => id.trim() !== id))
-          fail(`${name} uses whitespace around a multiple-ID field`);
-        if (new Set(ids).size !== ids.length) fail(`${name} repeats an ID in ${idField}`);
-        const pattern = idField === "br_ids" ? /^BR-[A-Z0-9]+-\d{3}$/ : /^AC-[A-Z0-9]+-\d{3}$/;
-        if (ids.some((id) => !pattern.test(id)))
-          fail(`${name} has an invalid ${idField} value: ${value}`);
-      }
-      const specIndex = headerIndex.get("spec_ref");
-      if (specIndex !== undefined) {
-        const specRef = cells[specIndex] ?? "";
-        if (!specRef.startsWith("docs/spec/") || !fs.existsSync(path.join(rootDir, specRef))) {
-          fail(`${name} has an invalid spec_ref: ${specRef}`);
+  for (let index = 0; index < text.length; index += 1) {
+    const character = text[index] ?? "";
+    if (inQuotes) {
+      if (character === '"') {
+        if (text[index + 1] === '"') {
+          field += '"';
+          index += 1;
+        } else {
+          inQuotes = false;
+          fieldClosed = true;
         }
+      } else {
+        field += character;
+      }
+      continue;
+    }
+
+    if (fieldClosed) {
+      if (character === ",") {
+        row.push(field);
+        field = "";
+        fieldClosed = false;
+      } else if (character === "\r" || character === "\n") {
+        if (character === "\r" && text[index + 1] === "\n") index += 1;
+        finishRow();
+      } else {
+        fail(`${name} contains characters after a closing quote`);
+      }
+      continue;
+    }
+
+    if (character === '"') {
+      if (field.length !== 0) fail(`${name} contains a quote inside an unquoted field`);
+      inQuotes = true;
+    } else if (character === ",") {
+      row.push(field);
+      field = "";
+    } else if (character === "\r" || character === "\n") {
+      if (character === "\r" && text[index + 1] === "\n") index += 1;
+      finishRow();
+    } else {
+      field += character;
+    }
+  }
+
+  if (inQuotes) fail(`${name} contains an unterminated quoted field`);
+  if (row.length > 0 || field.length > 0) finishRow();
+  return rows.filter((candidate) => !(candidate.length === 1 && candidate[0] === ""));
+}
+
+type WorkbookTable = { name: string; headers: readonly string[]; rows: string[][] };
+
+function cell(table: WorkbookTable, row: string[], column: string): string {
+  const index = table.headers.indexOf(column);
+  return index < 0 ? "" : (row[index] ?? "");
+}
+
+function splitIds(name: string, field: string, value: string): string[] {
+  if (value === "") return [];
+  const ids = value.split(";");
+  if (ids.some((id) => id.trim() !== id || id.length === 0))
+    fail(`${name} uses whitespace or an empty item in ${field}`);
+  if (new Set(ids).size !== ids.length) fail(`${name} repeats an ID in ${field}`);
+  const pattern = field === "br_ids" ? /^BR-[A-Z0-9]+-\d{3}$/ : /^AC-[A-Z0-9]+-\d{3}$/;
+  if (ids.some((id) => !pattern.test(id))) fail(`${name} has an invalid ${field} value: ${value}`);
+  return ids;
+}
+
+const WORKBOOK_ID_PATTERNS: Record<string, RegExp> = {
+  target_id: /^TARGET-[A-Z0-9]+-\d{3}$/,
+  risk_id: /^RISK-[A-Z0-9]+-\d{3}$/,
+  test_case_id: /^TC-[A-Z0-9]+-\d{3}$/,
+};
+
+function assertWorkbookId(name: string, rowLabel: string, field: string, value: string): void {
+  const pattern = WORKBOOK_ID_PATTERNS[field];
+  if (pattern === undefined) return;
+  if (value === "") fail(`${rowLabel} requires ${field}`);
+  if (!pattern.test(value)) fail(`${name} has an invalid ${field}: ${value}`);
+}
+
+function assertRepositoryPath(rootDir: string, name: string, column: string, value: string): void {
+  if (value === "") return;
+  if (/^(?:[A-Za-z]:[\\/]|[\\/])/.test(value)) fail(`${name} has an absolute ${column}: ${value}`);
+  const absolute = path.resolve(rootDir, value);
+  const relative = path.relative(rootDir, absolute);
+  if (relative.startsWith(`..${path.sep}`) || relative === "..")
+    fail(`${name} has a path outside the repository: ${value}`);
+  if (!fs.existsSync(absolute)) fail(`${name} has a non-existent ${column}: ${value}`);
+}
+
+export function validateWorkbook(rootDir: string): number {
+  const workbookRoot = path.join(rootDir, "training", "workbook");
+  if (!fs.existsSync(path.join(workbookRoot, "README.md")))
+    fail("training/workbook/README.md is missing");
+
+  const tables: WorkbookTable[] = Object.entries(WORKBOOK_HEADERS).map(([name, headers]) => {
+    const rows = parseCsv(read(rootDir, `training/workbook/${name}`), name);
+    if (rows.length < 2) fail(`${name} must contain a small traceable sample row`);
+    const header = rows[0] ?? [];
+    if (header.length !== headers.length || header.some((value, index) => value !== headers[index]))
+      fail(`${name} header does not match the canonical schema`);
+    for (const [rowIndex, row] of rows.slice(1).entries()) {
+      if (row.length !== headers.length)
+        fail(`${name} row ${rowIndex + 2} has ${row.length} columns; expected ${headers.length}`);
+    }
+    return { name, headers, rows: rows.slice(1) };
+  });
+
+  const specReferences = collectNormativeSpecReferences(rootDir);
+  const riskIds = new Set<string>();
+  const testCaseIds = new Set<string>();
+  const targetIds = new Set<string>();
+  const unique = (set: Set<string>, value: string, name: string, field: string): void => {
+    if (set.has(value)) fail(`${name} repeats ${field}: ${value}`);
+    set.add(value);
+  };
+
+  for (const table of tables) {
+    for (const [rowIndex, row] of table.rows.entries()) {
+      const rowLabel = `${table.name} row ${rowIndex + 2}`;
+      for (const [field, pattern] of [
+        ["br_ids", /^BR-[A-Z0-9]+-\d{3}$/],
+        ["ac_ids", /^AC-[A-Z0-9]+-\d{3}$/],
+      ] as const) {
+        const value = cell(table, row, field);
+        const ids = splitIds(table.name, field, value);
+        if (ids.some((id) => !pattern.test(id)))
+          fail(`${rowLabel} has an invalid ${field}: ${value}`);
+      }
+
+      const specRef = cell(table, row, "spec_ref");
+      if (
+        (table.name === "01_target-risk.csv" || table.name === "02_test-cases.csv") &&
+        specRef === ""
+      ) {
+        fail(`${rowLabel} requires spec_ref`);
+      }
+      if (specRef !== "") {
+        if (!isNormativeSpecPath(specRef) || !fs.existsSync(path.join(rootDir, specRef)))
+          fail(`${rowLabel} has an invalid normative spec_ref: ${specRef}`);
+        if (!specReferences.has(specRef)) fail(`${rowLabel} has an unparsed spec_ref: ${specRef}`);
+        for (const [field, ids] of [
+          ["br_ids", splitIds(table.name, "br_ids", cell(table, row, "br_ids"))],
+          ["ac_ids", splitIds(table.name, "ac_ids", cell(table, row, "ac_ids"))],
+        ] as const) {
+          const references = specReferences.get(specRef)!;
+          const known = field === "br_ids" ? references.brIds : references.acIds;
+          for (const id of ids)
+            if (!known.has(id)) fail(`${rowLabel} references unknown ${id} in ${specRef}`);
+        }
+      }
+
+      if (table.name === "01_target-risk.csv") {
+        const targetId = cell(table, row, "target_id");
+        const riskId = cell(table, row, "risk_id");
+        assertWorkbookId(table.name, rowLabel, "target_id", targetId);
+        assertWorkbookId(table.name, rowLabel, "risk_id", riskId);
+        unique(targetIds, targetId, table.name, "target_id");
+        unique(riskIds, riskId, table.name, "risk_id");
+      }
+      if (table.name === "02_test-cases.csv") {
+        const testCaseId = cell(table, row, "test_case_id");
+        const riskId = cell(table, row, "risk_id");
+        assertWorkbookId(table.name, rowLabel, "test_case_id", testCaseId);
+        assertWorkbookId(table.name, rowLabel, "risk_id", riskId);
+        if (!riskIds.has(riskId)) fail(`${rowLabel} references unknown risk_id: ${riskId}`);
+        unique(testCaseIds, testCaseId, table.name, "test_case_id");
+      }
+      if (table.name === "03_automation-mapping.csv") {
+        const testCaseId = cell(table, row, "test_case_id");
+        assertWorkbookId(table.name, rowLabel, "test_case_id", testCaseId);
+        if (!testCaseIds.has(testCaseId))
+          fail(`${rowLabel} references unknown test_case_id: ${testCaseId}`);
+        assertRepositoryPath(
+          rootDir,
+          rowLabel,
+          "implementation_path",
+          cell(table, row, "implementation_path"),
+        );
+      }
+      if (table.name === "04_execution-improvement.csv") {
+        const testCaseId = cell(table, row, "test_case_id");
+        const result = cell(table, row, "result").trim().toLowerCase();
+        assertWorkbookId(table.name, rowLabel, "test_case_id", testCaseId);
+        if (result === "") fail(`${rowLabel} requires result`);
+        if (!testCaseIds.has(testCaseId))
+          fail(`${rowLabel} references unknown test_case_id: ${testCaseId}`);
+        const evidence = cell(table, row, "evidence");
+        if (result === "not run" && evidence !== "")
+          fail(`${rowLabel} must leave evidence blank when result is Not run`);
+        if (
+          (result === "pass" || result === "not run") &&
+          cell(table, row, "failure_category") !== ""
+        )
+          fail(`${rowLabel} must leave failure_category blank for ${result}`);
+        assertRepositoryPath(rootDir, rowLabel, "evidence", evidence);
       }
     }
   }
-  if (!fs.existsSync(path.join(workbookRoot, "README.md")))
-    fail("training/workbook/README.md is missing");
-  return Object.keys(WORKBOOK_HEADERS).length;
+  return tables.length;
 }
 
 function validateTrainingAssets(rootDir: string): string[] {
@@ -195,6 +370,7 @@ function validateTrainingAssets(rootDir: string): string[] {
     "training/github-actions/training-native-ci.yml",
     "scripts/training/prepare-training-copy.ts",
     "scripts/training/validate-training-copy.ts",
+    "scripts/training/workflow-contract.ts",
     "scripts/training/android-emulator.ps1",
     "tsconfig.training.json",
   ]) {
@@ -204,20 +380,48 @@ function validateTrainingAssets(rootDir: string): string[] {
   const nativeFlow = read(rootDir, "training/maestro/baseline/native-training-baseline.yaml");
   assertContains(nativeFlow, "com.ryuyoshikawa.scenarioshop", "Training Maestro baseline");
   assertContains(nativeFlow, "scenario-shop://test-control/reset", "Training Maestro baseline");
-  const nativeRunner = read(rootDir, "scripts/training/run-maestro-baseline.ts");
-  assertContains(nativeRunner, '"--device"', "Training Maestro runner");
-  assertContains(nativeRunner, "TARGET_SERIAL", "Training Maestro runner");
-  assertContains(nativeRunner, "timeout: 300_000", "Training Maestro runner");
-  assertContains(nativeRunner, '"maestro.bat"', "Training Maestro runner Windows command");
-  assertContains(
-    nativeRunner,
-    'shell: process.platform === "win32"',
-    "Training Maestro runner Windows shell",
-  );
   const androidHelper = read(rootDir, "scripts/training/android-emulator.ps1");
   assertContains(androidHelper, "service check package", "Android Training helper");
   assertContains(androidHelper, "ro.build.version.sdk", "Android Training helper");
   assertContains(androidHelper, "ro.product.cpu.abi", "Android Training helper");
+  for (const required of [
+    "ANDROID_SDK_ROOT",
+    "ANDROID_HOME",
+    "cmdline-tools directory was not found",
+    "sdkmanager.bat was not found",
+    "scenario-shop-training-api34",
+    "emu avd name",
+    "Training emulator AVD must be",
+    "No connected emulator for serial",
+  ])
+    assertContains(androidHelper, required, "Android Training helper");
+
+  const maestroRunner = read(rootDir, "scripts/training/run-maestro-baseline.ts");
+  for (const required of [
+    "TRAINING_MAESTRO_OUTPUT_DIR",
+    "native-training-baseline.yaml",
+    '"--device"',
+    "300_000",
+  ])
+    assertContains(maestroRunner, required, "Training Maestro runner");
+
+  const expectedFailureRunner = read(rootDir, "scripts/training/run-expected-failure.ts");
+  for (const required of ["rmSync(evidenceRoot", '".zip"', '".png"', '".webm"', '".html"'])
+    assertContains(expectedFailureRunner, required, "Training expected-failure runner");
+
+  const nativeLesson = read(
+    rootDir,
+    "docs/curriculum/test-automation/part1/07_maestro-native-automation.md",
+  );
+  for (const required of [
+    "$env:ANDROID_SDK_ROOT",
+    "$env:ANDROID_HOME",
+    "Android build failed.",
+    "Training Maestro baseline failed.",
+    "finally",
+    "-Action Stop",
+  ])
+    assertContains(nativeLesson, required, "Native automation lesson");
 
   const webWorkflow = read(rootDir, "training/github-actions/training-ci.yml");
   const nativeWorkflow = read(rootDir, "training/github-actions/training-native-ci.yml");
@@ -231,21 +435,13 @@ function validateTrainingAssets(rootDir: string): string[] {
     ["training-ci.yml", webWorkflow],
     ["training-native-ci.yml", nativeWorkflow],
   ] as const) {
-    assertContains(workflow, "permissions:\n  contents: read", name);
+    try {
+      validateTrainingWorkflow(name, workflow);
+    } catch (error) {
+      fail(error instanceof Error ? error.message : String(error));
+    }
     assertContains(workflow, "persist-credentials: false", name);
     assertContains(workflow, "if: always()", name);
-    for (const forbidden of [
-      "contents: write",
-      "id-token: write",
-      "secrets.",
-      "environment:",
-      "self-hosted",
-      "cloudflare",
-      "wrangler",
-    ]) {
-      if (workflow.includes(forbidden))
-        fail(`${name} contains forbidden Trust Boundary token: ${forbidden}`);
-    }
   }
   for (const required of [
     "runs-on: ubuntu-24.04",

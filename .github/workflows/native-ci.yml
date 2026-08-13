@@ -1336,6 +1336,19 @@ jobs:
             --format junit \
             --output "$RUNNER_TEMP/maestro-session-checkout-restart.xml" \
             "$GITHUB_WORKSPACE/maestro/native-session-checkout-restart.yaml"
+      - name: Run Training Maestro baseline
+        if: ${{ !cancelled() && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
+        shell: bash
+        env:
+          TRAINING_MAESTRO_OUTPUT_DIR: ${{ runner.temp }}/maestro-artifacts/training-baseline
+        run: |
+          set -euo pipefail
+          mkdir -p "$TRAINING_MAESTRO_OUTPUT_DIR"
+          maestro test \
+            --test-output-dir="$TRAINING_MAESTRO_OUTPUT_DIR" \
+            --format junit \
+            --output "$RUNNER_TEMP/maestro-training-baseline.xml" \
+            "$GITHUB_WORKSPACE/training/maestro/baseline/native-training-baseline.yaml"
       - name: Download Production-validation Release APK
         if: ${{ !cancelled() && needs.android-production-build.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
         uses: actions/download-artifact@v4
@@ -1389,19 +1402,6 @@ jobs:
             --format junit \
             --output "$RUNNER_TEMP/maestro-production-validation.xml" \
             "$GITHUB_WORKSPACE/maestro/native-production-validation.yaml"
-      - name: Run Training Maestro baseline
-        if: ${{ !cancelled() && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
-        shell: bash
-        env:
-          TRAINING_MAESTRO_OUTPUT_DIR: ${{ runner.temp }}/maestro-artifacts/training-baseline
-        run: |
-          set -euo pipefail
-          mkdir -p "$TRAINING_MAESTRO_OUTPUT_DIR"
-          maestro test \
-            --test-output-dir="$TRAINING_MAESTRO_OUTPUT_DIR" \
-            --format junit \
-            --output "$RUNNER_TEMP/maestro-training-baseline.xml" \
-            "$GITHUB_WORKSPACE/training/maestro/baseline/native-training-baseline.yaml"
       - name: Collect Android evidence
         if: always()
         timeout-minutes: 3

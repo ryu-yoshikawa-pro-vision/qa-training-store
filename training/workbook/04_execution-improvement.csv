@@ -1,2 +1,2 @@
 test_case_id,run_context,result,evidence,failure_category,cause,action,improvement
-TC-CART-001,Training Web baseline,Not run,output/training/playwright,Unknown / Investigation Required,Sample rowのため未実行,条件とEvidenceを追加して実行する,Failureを分類できるEvidenceを残す
+TC-CART-001,Training Web baseline,Not run,,,,条件とEvidenceを追加して実行する,Failureを分類できるEvidenceを残す

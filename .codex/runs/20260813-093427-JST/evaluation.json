@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "run_id": "20260813-093427-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": ["missing_validation", "environment_failure"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Review fixes、local quality gates、Training Web、Android Training baseline、Evidence、cleanupは完了。Fresh Learner full journey、final committed SHA、remote Required CI、exact-SHA Training Copyは未完了。",
+      "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はCurriculum / Training / Required CI contract / test / Run Artifactに限定。Product Business Logic、Formal expectation、iOS Runtime、他worktreeは変更していない。",
+      "evidence_refs": [".codex/runs/20260813-093427-JST/run.json"]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "format、markdown、spec、curriculum、lint、repository / Training typecheck、contracts 207、full test、verify、Training Web 3モード、Android Training baseline 1/1を再実行してPASS。",
+      "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Git mutationなし。marker release条件を確認後にcurrent worktree専用Android runtimeだけを使用し、Formal Maestroは実行せず、Stop cleanupを確認した。Training Workflowはread-only / no-secret / no-environment / no-self-hosted / no-deploy boundary。",
+      "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "22 review findingsのvalid / invalid判断、独自finding、変更、検証、remaining blockerをREPORTへ記録した。",
+      "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "YAML boundary helper、Normative spec reference utility、Workbook validator、behavior contractを共有・局所化し、実装文字列依存を削減した。",
+      "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Local Web / Androidはdedicated port、AVD identity、target serial、short virtual store、fresh expected-failure evidenceで再現確認。Final exact SHAとremote executionはcommit禁止のため未成立。",
+      "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "修正後commit SHA、final Source Required CI、Training Copy exact-SHA 3 runs、SHA equality、Fresh Learner full journeyは未実行。",
+      "detail": "Git mutation禁止およびremote依存のため、local PASSからFinal Delivery Readinessへ昇格しない。"
+    },
+    {
+      "category": "environment_failure",
+      "severity": "medium",
+      "evidence": "Training Android initial Doctorはemulator component不足、初回Buildは長いPath、short virtual store再試行の外側commandはtimeoutしたがGradle logはBUILD SUCCESSFUL。",
+      "detail": "SDK component導入、current-worktree専用short Junction、virtual store再リンク、APK独立検査によりAndroid Training baselineはPASS。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Training Copy remote Delivery Readiness",
+      "evidence": "exact-SHA manifestとremote workflow conclusionは現uncommitted worktreeでは確定できない。",
+      "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"],
+      "expected_impact": "Merge前のSHA equalityとTraining Copy実行結果を最終候補へ固定できる。",
+      "recommendation": "修正をcommitした後、new final PR HEAD SHAでTraining Copy Web / Android / expected-failureを3回実行し、actual conclusionとArtifactを記録する。"
+    }
+  ]
+}

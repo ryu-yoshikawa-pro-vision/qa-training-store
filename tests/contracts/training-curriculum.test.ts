@@ -1,6 +1,9 @@
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
-import { validateCurriculum } from "../../scripts/validate-curriculum";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { join, resolve } from "node:path";
+import { tmpdir } from "node:os";
+import { parseCsv, validateCurriculum, validateWorkbook } from "../../scripts/validate-curriculum";
+import { buildMaestroInvocation } from "../../scripts/training/run-maestro-baseline";
+import { validateTrainingWorkflow } from "../../scripts/training/workflow-contract";
 
 describe("Training curriculum contracts", () => {
   it("keeps the required curriculum and Training entrypoints connected", () => {
@@ -24,18 +27,6 @@ describe("Training curriculum contracts", () => {
       resolve(process.cwd(), ".github/workflows/ci.yml"),
       "utf8",
     );
-    const trainingNativeWorkflow = readFileSync(
-      resolve(process.cwd(), "training/github-actions/training-native-ci.yml"),
-      "utf8",
-    );
-    const trainingNativeRunner = readFileSync(
-      resolve(process.cwd(), "scripts/training/run-maestro-baseline.ts"),
-      "utf8",
-    );
-    const androidHelper = readFileSync(
-      resolve(process.cwd(), "scripts/training/android-emulator.ps1"),
-      "utf8",
-    );
 
     expect(trainingConfig).toContain('testDir: "./training/playwright"');
     expect(trainingConfig).toContain("http://127.0.0.1:8082");
@@ -50,22 +41,140 @@ describe("Training curriculum contracts", () => {
     expect(phaseOneWorkflow).toContain(
       "PLAYWRIGHT_BASE_URL: ${{ matrix.name == 'training-web-baseline' && 'http://127.0.0.1:8082'",
     );
-    expect(trainingNativeWorkflow).toContain("TARGET_SERIALS");
-    expect(trainingNativeWorkflow).toContain('"${#TARGET_SERIALS[@]}" -ne 1');
-    expect(trainingNativeWorkflow).toContain('test -x "$EMULATOR"');
-    expect(trainingNativeWorkflow).toContain('test -x "$AVDMANAGER"');
-    expect(trainingNativeWorkflow).toContain("service check package");
-    expect(trainingNativeWorkflow).toContain("ro.build.version.sdk");
-    expect(trainingNativeWorkflow).toContain("ro.product.cpu.abi");
-    expect(trainingNativeWorkflow).toContain("maestro/bin/maestro");
-    expect(trainingNativeWorkflow).toContain("--version");
-    expect(trainingNativeRunner).toContain('"--device"');
-    expect(trainingNativeRunner).toContain("TARGET_SERIAL");
-    expect(trainingNativeRunner).toContain("timeout: 300_000");
-    expect(trainingNativeRunner).toContain('"maestro.bat"');
-    expect(trainingNativeRunner).toContain('shell: process.platform === "win32"');
-    expect(androidHelper).toContain("service check package");
-    expect(androidHelper).toContain("ro.build.version.sdk");
-    expect(androidHelper).toContain("ro.product.cpu.abi");
+  });
+
+  it("fails closed for unapproved structured workflow actions and commands", () => {
+    const validWorkflow = `
+name: Training fixture
+on: pull_request
+permissions:
+  contents: read
+jobs:
+  training:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate
+        run: pnpm run validate:curriculum
+`;
+    expect(() => validateTrainingWorkflow("fixture.yml", validWorkflow)).not.toThrow();
+    expect(() =>
+      validateTrainingWorkflow(
+        "fixture.yml",
+        validWorkflow.replace("actions/checkout@v4", "evil/action@v1"),
+      ),
+    ).toThrow(/unapproved action/);
+    expect(() =>
+      validateTrainingWorkflow("fixture.yml", validWorkflow.replace("ubuntu-24.04", "self-hosted")),
+    ).toThrow(/self-hosted runners are forbidden/);
+    expect(() =>
+      validateTrainingWorkflow(
+        "fixture.yml",
+        validWorkflow.replace("pnpm run validate:curriculum", "pnpm exec arbitrary-tool"),
+      ),
+    ).toThrow(/unapproved pnpm exec command/);
+    expect(() =>
+      validateTrainingWorkflow(
+        "fixture.yml",
+        validWorkflow.replace(
+          "run: pnpm run validate:curriculum",
+          "run: |\n          set -euo pipefail\n          pnpm exec arbitrary-tool",
+        ),
+      ),
+    ).toThrow(/unapproved pnpm exec command/);
+    expect(() =>
+      validateTrainingWorkflow(
+        "fixture.yml",
+        validWorkflow.replace(
+          "run: pnpm run validate:curriculum",
+          "run: echo ${{ secrets['TOKEN'] }}",
+        ),
+      ),
+    ).toThrow(/secrets context is forbidden/);
+  });
+
+  it("quotes Windows Training Maestro paths without delegating to a shell", () => {
+    const invocation = buildMaestroInvocation(
+      "win32",
+      "C:\\Training Evidence\\maestro",
+      "C:\\Training Evidence\\junit.xml",
+      "C:\\Training Evidence\\flow.yaml",
+      "emulator-5554",
+    );
+    expect(invocation.shell).toBe(false);
+    expect(invocation.command.toLowerCase()).toContain("cmd");
+    expect(invocation.args.join(" ")).toContain(
+      '"--test-output-dir=C:\\Training Evidence\\maestro"',
+    );
+    expect(invocation.args.join(" ")).toContain('"C:\\Training Evidence\\junit.xml"');
+    expect(invocation.args.join(" ")).toContain('"C:\\Training Evidence\\flow.yaml"');
+    expect(invocation.args.join(" ")).toContain("--device emulator-5554");
+  });
+
+  it("parses quoted CSV fields and rejects broken workbook references", () => {
+    expect(parseCsv('a,b\n"comma, value","escaped ""quote"""\n')).toEqual([
+      ["a", "b"],
+      ["comma, value", 'escaped "quote"'],
+    ]);
+
+    const root = mkdtempSync(join(tmpdir(), "training-workbook-contract-"));
+    try {
+      mkdirSync(join(root, "training", "workbook"), { recursive: true });
+      mkdirSync(join(root, "docs", "spec", "features"), { recursive: true });
+      writeFileSync(join(root, "training", "workbook", "README.md"), "# Workbook\n", "utf8");
+      writeFileSync(
+        join(root, "docs", "spec", "features", "cart.md"),
+        readFileSync(resolve(process.cwd(), "docs/spec/features/cart.md"), "utf8"),
+        "utf8",
+      );
+      for (const name of [
+        "01_target-risk.csv",
+        "02_test-cases.csv",
+        "03_automation-mapping.csv",
+        "04_execution-improvement.csv",
+      ]) {
+        writeFileSync(
+          join(root, "training", "workbook", name),
+          readFileSync(resolve(process.cwd(), `training/workbook/${name}`), "utf8"),
+          "utf8",
+        );
+      }
+      const testCasesPath = join(root, "training", "workbook", "02_test-cases.csv");
+      writeFileSync(
+        testCasesPath,
+        readFileSync(testCasesPath, "utf8").replace("RISK-CART-001", "RISK-CART-999"),
+        "utf8",
+      );
+      expect(() => validateWorkbook(root)).toThrow(/unknown risk_id: RISK-CART-999/);
+
+      writeFileSync(
+        testCasesPath,
+        readFileSync(resolve(process.cwd(), "training/workbook/02_test-cases.csv"), "utf8"),
+        "utf8",
+      );
+      const targetRiskPath = join(root, "training", "workbook", "01_target-risk.csv");
+      writeFileSync(
+        targetRiskPath,
+        readFileSync(targetRiskPath, "utf8").replace("RISK-CART-001", "bad-risk"),
+        "utf8",
+      );
+      expect(() => validateWorkbook(root)).toThrow(/invalid risk_id: bad-risk/);
+
+      writeFileSync(
+        targetRiskPath,
+        readFileSync(resolve(process.cwd(), "training/workbook/01_target-risk.csv"), "utf8"),
+        "utf8",
+      );
+      const mappingPath = join(root, "training", "workbook", "03_automation-mapping.csv");
+      writeFileSync(
+        mappingPath,
+        readFileSync(mappingPath, "utf8").replace("TC-CART-001", "TC-CART-999"),
+        "utf8",
+      );
+      expect(() => validateWorkbook(root)).toThrow(/unknown test_case_id: TC-CART-999/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
