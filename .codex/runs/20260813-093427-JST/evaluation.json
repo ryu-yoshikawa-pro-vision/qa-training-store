@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "PR #25 current HEAD 50021adはcommit済みで、Phase 1 CI / Native CI success、およびAndroid Runtime / Maestro / Training baseline successを確認済み。今回の最終repair（教材sdkmanager fallback、validator非null除去、Run同期）のlocal validationも完了した。Fresh Learner full journey、今回修正後のFinal Candidate SHA、post-repair Required CI、exact-SHA Training Copyは未完了。",
+      "evidence": "PR #25 committed HEAD 6ef3f6c8183580ca57192c52b9e37a0bd72eaf00で、Phase 1 CI #189 / Native CI #131 success、およびAndroid Runtime / Maestro / Training baseline successを確認済み。今回の最終Source repair（sdkmanager回帰Contract、Run同期）のlocal validationも完了した。修正後のFinal Candidate SHA、Fresh Learner、post-repair Required CI、exact-SHA Training Copyは未完了。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "scope_control": {
@@ -37,7 +37,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Current PR HEAD 50021adのPhase 1 / Native CI successと、ユーザー提示のAndroid Runtime / Maestro / Training baseline successを記録。今回のSource変更は教材 / validatorのみでAndroidは再実行していない。Local repairのverifyは再現確認済みだが、未コミット修正後のFinal exact SHA / remote executionは未成立。",
+      "evidence": "Committed PR HEAD 6ef3f6cのPhase 1 / Native CI successと、ユーザー提示のAndroid Runtime / Maestro / Training baseline successを記録。今回のSource変更はvalidatorとRun ArtifactのみでAndroidは再実行していない。未コミット修正後のFinal exact SHA / remote executionは未成立。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     }
   },
@@ -45,8 +45,8 @@
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "Current PR HEAD 50021adのPhase 1 / Native CIはsuccess。今回repair後のcommit SHA、post-repair Required CI、Training Copy exact-SHA 3 runs、SHA equality、Fresh Learner full journeyは未実行。",
-      "detail": "今回のlocal repairは完了したが、未コミットSource変更があるため、50021adのremote evidenceからFinal Delivery Readinessへ昇格しない。"
+      "evidence": "Committed PR HEAD 6ef3f6cのPhase 1 / Native CIはsuccess。今回repair後のFinal Candidate SHA、post-repair Required CI、Training Copy exact-SHA 3 runs、SHA equality、Fresh Learner full journeyは未実行。",
+      "detail": "今回のlocal repairは完了したが、未コミットSource変更があるため、6ef3f6cのremote evidenceからFinal Delivery Readinessへ昇格しない。"
     },
     {
       "category": "environment_failure",

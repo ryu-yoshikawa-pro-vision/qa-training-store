@@ -33,7 +33,12 @@
     "tests/contracts/training-curriculum.test.ts",
     "training/github-actions/training-native-ci.yml",
     "training/workbook/04_execution-improvement.csv",
-    "training/workbook/README.md"
+    "training/workbook/README.md",
+    ".codex/runs/20260813-093427-JST/PLAN.md",
+    ".codex/runs/20260813-093427-JST/TASKS.md",
+    ".codex/runs/20260813-093427-JST/REPORT.md",
+    ".codex/runs/20260813-093427-JST/run.json",
+    ".codex/runs/20260813-093427-JST/evaluation.json"
   ],
   "validation": {
     "status": "partial",
@@ -57,7 +62,7 @@
       "Training Copy validator on current source => fail-closed as expected (active workflow allowlist mismatch; no exact-SHA Copy PASS claimed)",
       "git diff --check => pass (CRLF warnings only)",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)",
-      "GitHub read-only PR #25 / commit workflow-runs check => pass (head 50021ad; Phase 1 CI 31682890216 success; Native CI 31682890504 success)",
+      "GitHub read-only PR #25 / commit workflow-runs check (historical prior-repair evidence: head 50021ad; Phase 1 CI 31682890216 success; Native CI 31682890504 success)",
       "pnpm run format:check => pass",
       "pnpm run lint:markdown => pass (0 issues, 248 files)",
       "pnpm run validate:curriculum => pass (22 documents, 4 workbook files, 2 Training projects)",
@@ -65,15 +70,38 @@
       "pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1 => pass (1 file, 6 tests)",
       "pnpm run verify => pass (lint 0 errors / 65 warnings, contracts 25 files / 208 tests, Web/spec build)",
       "git diff --check => pass (CRLF warnings only)",
-      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)"
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)",
+      "pnpm run format:check => pass (final Source repair)",
+      "pnpm run lint:markdown => pass (0 issues, 248 files; final Source repair)",
+      "pnpm run validate:spec => pass (3 challenges)",
+      "pnpm run validate:curriculum => pass (22 documents, 4 workbook files, 2 Training projects; sdkmanager selection tokens included)",
+      "pnpm run lint => pass (0 errors, 65 warnings)",
+      "pnpm run typecheck => pass (app / native-tests / Training)",
+      "pnpm run typecheck:training => pass",
+      "pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1 => pass (1 file, 6 tests)",
+      "pnpm run test:contracts => initial fail (native-production-module-resolution: 1 test timed out at 5000ms; 24 files / 207 tests passed)",
+      "pnpm exec vitest run tests/contracts/native-production-module-resolution.test.ts --no-file-parallelism --maxWorkers=1 --testTimeout=30000 => pass (1 file, 4 tests)",
+      "pnpm run test:contracts => pass on rerun (25 files, 208 tests)",
+      "pnpm run test => pass (unit 66, integration 98, repository 33, web component 76, native 47, contracts 208)",
+      "pnpm run verify => initial exit 124 at 305.7 seconds; subsequent component checks passed and no source failure was identified",
+      "pnpm run validate:image-manifest => pass",
+      "pnpm run security:check => pass (233 runtime files, 284 credential-scan files)",
+      "pnpm run build:web => pass",
+      "pnpm run build:spec => pass (21 specification pages)",
+      "pnpm run verify => pass (final rerun, 327.8 seconds; lint 0 errors / 65 warnings, contracts 25 files / 208 tests, Web/spec build)",
+      "git diff --check => pass (final check; CRLF warnings only)",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)",
+      "pnpm run format:check => pass (final Run Artifact state)",
+      "Run Artifact JSON parse => pass"
     ],
     "warnings": [
       "lint has 65 pre-existing warnings",
       "Android Gradle Build evidence is split: the earlier outer command timed out after Gradle had logged BUILD SUCCESSFUL; APK was independently inspected before Install. This repair reused the unchanged APK because only the runner changed.",
       "Android SDK latest/latest-2 warning remains; current Training AVD identity and focused baseline passed",
-      "PR #25 current HEAD 50021adbfca10c7a8db3bcf7f9395c4203d59be8 has Phase 1 CI and Native CI success; current PR Android / Maestro / Training baseline success is recorded, but this final repair is uncommitted",
+      "PR #25 committed HEAD 6ef3f6c8183580ca57192c52b9e37a0bd72eaf00 has Phase 1 CI #189, Native CI #131, Android Runtime / Maestro, and Training Maestro baseline success; this final repair is uncommitted and those prior runs are not Final Candidate evidence",
       "Post-repair Final Candidate SHA, post-repair Source Required CI, exact-SHA Training Copy, 3 Delivery Readiness runs, SHA equality, and Fresh Learner full journey are not complete",
-      "Action SHA pinning and run.json scope_ref were intentionally not added; the former is a repository-wide policy concern and the latter is absent from the canonical RUN_MANIFEST schema"
+      "Action SHA pinning and run.json scope_ref were intentionally not added; the former is a repository-wide policy concern and the latter is absent from the canonical RUN_MANIFEST schema",
+      "FINAL_CANDIDATE_SHA is not frozen until this repair is committed and post-repair Source Required CI succeeds"
     ]
   },
   "safety": {

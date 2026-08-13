@@ -248,3 +248,78 @@ Progress: 90% (18/20)
 
 - Source変更直後の最初の`pnpm run validate:curriculum`は、既存validatorが要求する`Get-ChildItem -LiteralPath $cmdlineToolsRoot`連続文字列と教材の改行位置が衝突してfailした。教材のコマンド開始行を整形して同じ選択規則を保ち、再実行はPASSした。
 - 最初のad hoc Prettier確認は実ファイル名のPath typoで対象を読まずに終了した。正しい`07_maestro-native-automation.md` Pathで再実行しPASSした。品質Gateの未実行をPASS扱いしていない。
+
+## 2026-08-13 20:22 JST — goal5 最終Source repair
+
+### Scope / delegation
+
+- 今回の対象はP2 2件（sdkmanager fallback回帰Contract、active Run Artifactのstale / self-contradictory current state）に限定した。
+- `docs/curriculum/test-automation/part1/07_maestro-native-automation.md`の既修正PowerShell、Native CI順序、Training Trust Boundary、Maestro runner、Mobile Exercise、CSV BOM等は再変更していない。
+- Subagentは使用しなかった。Native delegation markerが`No child subagent delegation`であり、今回の狭いvalidator / Run Artifact修正は親Agentだけで照合・実装・検証できるため、結果分散を避けた。
+
+### Current PR state
+
+- repair開始前のPR HEAD: `6ef3f6c8183580ca57192c52b9e37a0bd72eaf00`
+- Phase 1 CI #189: success
+- Native CI #131: success
+- Android Runtime / Maestro: success
+- Training Maestro baseline: success（Production-validation APK切替前）
+- 上記は今回Source修正前のcommitted HEADに対する履歴Evidenceであり、今回さらにSourceを修正したため、`6ef3f6c`をFinal Candidate SHAとして固定しない。今回repair後のexact-SHA Delivery Evidenceへ流用しない。
+
+### Findings
+
+| Finding | 判定 | 対応 |
+| --- | --- | --- |
+| sdkmanager fallback selection ruleの回帰Contract不足 | valid / must_fix | `scripts/validate-curriculum.ts`のNative lesson required tokenへ`Sort-Object FullName`、`$foundSdkManagers[-1].FullName`、`Using sdkmanager:`を追加。教材の実装やPowerShell parserは変更していない。 |
+| active Run Artifactのstale / self-contradictory current state | valid / must_fix | TASKSのBlockedを「commit不存在」から「今回repair未コミットのためFINAL_CANDIDATE_SHA未固定」へ更新。run.json / evaluation.jsonを6ef3f6cの既存CI successと、repair後gate未成立の時間軸へ同期した。 |
+
+### Review comments not adopted
+
+- **GitHub Action SHA pinning**: approved action setとRepository-wide immutable SHA policyは別責務。Training WorkflowだけpinするとFormal CIとpolicyが分裂するため不採用。
+- **run.json `scope_ref`**: Strict scopeはPLAN.mdの`## Scope`で宣言済み。canonical `RUN_MANIFEST.json` schemaに`scope_ref`がないため、今回schema拡張は不採用。
+- **Past Run Artifact rewrite**: 過去記録をレビューUI整理目的で再構築せず、REPORTはappend-only、current stateはactive Runへ追記・同期した。
+- **未来日付コメント**: 現在は2026-08-13 JSTであり、8/13実行Evidenceを未来日付とは扱わない。該当履歴は変更していない。
+
+### Validation
+
+- `pnpm run format:check` => PASS
+- `pnpm run lint:markdown` => PASS（0 issues / 248 files）
+- `pnpm run validate:spec` => PASS（3 challenges）
+- `pnpm run validate:curriculum` => PASS（22 required documents、4 workbook files、2 Training projects。sdkmanager selection tokenを含む）
+- `pnpm run lint` => PASS（0 errors / 65 existing warnings）
+- `pnpm run typecheck` => PASS（app / native-tests / Training）
+- `pnpm run typecheck:training` => PASS
+- `pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1` => PASS（1 file / 6 tests）
+- `pnpm run test:contracts` => 初回は`native-production-module-resolution.test.ts`の1件が5秒timeout（24 files / 207 testsまでPASS）。変更範囲外の既存Native resolution testを単体で確認し、4/4 PASS後に同コマンドを再実行した。
+- `pnpm run test:contracts`（再実行）=> PASS（25 files / 208 tests）
+- `pnpm run test` => PASS（unit 66、integration 98、repository 33、web component 76、native 47、contracts 208）
+- `pnpm run verify` => 初回は5分上限でexit 124。構成要素（image manifest、security、Web/spec build）を個別PASS確認後、十分な上限で再実行しPASS（327.8秒、lint 0 errors / 65 warnings、contracts 25 files / 208 tests、Web/spec build）。
+- `git diff --check` => 次のArtifact更新後に実行する。未実行状態をPASS扱いしない。
+- Run Artifact sanitizer => 次のREPORT更新後にWrite / Checkを実行する。未実行状態をPASS扱いしない。
+
+### Remaining
+
+- Fresh Learner full journey
+- repair commit後のFinal Candidate SHA固定
+- post-repair Source Required CI
+- exact-SHA Training Copy Web baseline
+- exact-SHA Training Copy Android baseline
+- exact-SHA Training Copy expected-failure
+- expected-failure Artifact確認
+- Delivery Readiness
+- final PR HEAD / `FINAL_CANDIDATE_SHA` / Training Copy resolved SHA equality
+
+### Decision / Progress
+
+- `Source repair: complete / Local validation: complete / Source Final Candidate: not frozen / Fresh Learner: pending / Final Delivery Readiness: pending`
+- 今回のSource repairについては`stop_success`。ユーザーのcommit / push後に次工程へ引き継ぐ。
+- Progress: 90% (19/21)
+
+### 2026-08-13 20:23 JST — Final artifact gate
+
+- `git diff --check` => PASS（CRLFのline-ending warningのみ。whitespace errorなし）。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check` => PASS（5 files、0 replacements、0 residual findings）。
+- 最終変更範囲は`scripts/validate-curriculum.ts`とactive Runの5標準Artifact（PLAN / TASKS / REPORT / run.json / evaluation.json）のみ。教材、Product、Formal CI、Native runtime sourceは追加変更なし。
+- `run.json.status=partial`、`run.json.primary_failure_category=missing_validation`、`evaluation.json.result=partial`を維持。`scope` / `scope_ref`は追加していない。
+- Android、Fresh Learner、remote Training Copy、Final Delivery Readinessは今回実行していない。未実行をPASS扱いせず、次工程へ残す。
+- Run Artifact追記後の`pnpm run format:check`もPASS（全対象がPrettier準拠）。

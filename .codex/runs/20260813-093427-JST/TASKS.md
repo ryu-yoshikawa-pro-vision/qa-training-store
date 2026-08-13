@@ -32,5 +32,5 @@
 
 ## Blocked
 
-- Final committed PR HEADが存在しないため、exact-SHA / remote Delivery Readinessは実行しない。
+- 今回の最終Source repairが未コミットのため、FINAL_CANDIDATE_SHAはまだ固定しない。repair commit後の最終HEADでexact-SHA / remote Delivery Readinessを実施する。
 - Fresh Learner full journeyはこのuncommitted worktreeからの個別再現と同一視しない。
