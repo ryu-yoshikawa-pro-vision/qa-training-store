@@ -14,7 +14,7 @@
 - [x] 10. Training Web desktop / mobile / expected-failureを専用runtimeで実行しEvidenceを確認する
 - [x] 11. Android marker後にTraining Doctor / Prepare / Start、x86_64 Release Build、APK検査、Install、Smoke、Training Maestro、Evidence、cleanupを実行する
 - [x] 12. full test、`pnpm run verify`、最終self-review、Run Artifact同期方針を確定する
-- [ ] 13. Fresh checkout / Fresh Training Copyを使ったFresh Learner full journeyを実施する
+- [x] 13. Fresh checkout / Fresh Training Copyを使ったFresh Learner full journeyを実施する
 - [ ] 14. Final Delivery Readiness: pre-freeze Run Artifact確定後にcommit / push、Source Required CI、FINAL_CANDIDATE_SHA freezeを行い、exact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。freeze後の完了判定はPR Final Delivery Recordをcanonical evidenceとし、このTask / Run Artifactは更新しない
 - [x] 15. 追加repair: Training Workflowのruns-on / checkout persist-credentials / alternate package entrypoint / remote script pipeを構造検証し、negative contractを追加する
 - [x] 16. 追加repair: Learner Exercise用Mobile entrypointを追加し、教材・Curriculum validator・contractへ接続する
@@ -34,8 +34,7 @@
 
 ## Blocked
 
-- Source / Curriculum / validator / contract変更を含むworktreeは未commitであり、post-change Required Phase 1 / Native CIは未実行。Current-treeのPhysical Canonical runtimeと全local validationはPASSしたが、exact committed snapshotのFresh Learnerは未確認とする。
-- Fresh CopyのWeb desktop / mobile / learner exercise / expected-failure、Workbook / Spec / Part 1 / Part 2のlearner pathは既存Evidenceどおり確認済み。新契約でのPhysical AndroidはDoctor / Prepare / ABI Auto Build / APK integrity / Install / Smoke / Test Control 1/1 / Training Maestro baseline 1/1 / Evidence / cleanupまでPASSした。dirty worktreeのためTask 13は未完了のままとする。
-- Phase Aのserial conflict fail-close、Local AVD旧契約の除去、CI Emulator契約の保持、Run ID / serial Evidence連携、minSdk Source of Truth整合、static validationは完了した。今回のworktreeはこのSource / Docs / Test repairでdirtyになったため、ユーザーのcommit / push後にexact committed snapshotをPhysical Deviceで再実行し、post-change Required CI成功後にFINAL_CANDIDATE_SHAをfreezeする。その後にexact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。Task 13 / Task 14は未完了のままとする。
+- Exact committed SHA `8e559880f13e33cd6b939eefafc174b5e3675fb4`のFresh Training CopyでWeb（desktop / mobile / learner exercise / expected-failure）とPhysical Android（Doctor / Prepare / ABI Auto Build / APK integrity / Install / Smoke / Test Control 1/1 / Training Maestro baseline 1/1 / Evidence / cleanup）をPASSし、同SHAのPhase 1 CI #201 / Native CI #143もsuccessになった。Task 13は完了へ同期した。
+- Final Delivery Readinessは未実施。Task 14はFinal Delivery用のpre-freeze Run Artifact commit / push、Required CI、FINAL_CANDIDATE_SHA freeze、exact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを含むため、別フェーズとして保留する。今回のPhase BではFinal Deliveryを開始しない。
 
-Progress: 90% (19/21)
+Progress: 95% (20/21)

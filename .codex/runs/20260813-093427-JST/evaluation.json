@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Source / Curriculum / validator / contract変更、serial conflict fail-close behavior test、same Run ID / serial Evidence contract、local validation、Fresh CopyのWeb desktop / mobile / learner exercise / expected-failure、Workbook / Spec / Part 1 / Part 2 pathを確認した。新契約のWindows Local Physical Androidはcurrent-treeでDoctor / Prepare / Build / APK integrity / Install / Smoke / Test Control 1/1 / Training Maestro baseline 1/1 / Evidence / cleanupまでPASSしたが、今回のPhase A repairを含む未commit worktreeのためexact committed snapshot Fresh Learner、post-change Required CI、FINAL_CANDIDATE_SHA、Final Delivery Readinessは未完了である。",
+      "evidence": "Source / Curriculum / validator / contract変更、serial conflict fail-close behavior test、same Run ID / serial Evidence contract、local validation、SOURCE_CANDIDATE_SHA 8e559880f13e33cd6b939eefafc174b5e3675fb4のFresh Training Copy Web desktop / mobile / learner exercise / expected-failure、Workbook / Spec / Part 1 / Part 2 path、Physical Android Doctor / Prepare / ABI Auto Build / APK integrity / Install / Smoke / Test Control 1/1 / Training Maestro baseline 1/1 / Evidence / cleanupを確認した。Final Delivery Readiness、Task 14、FINAL_CANDIDATE_SHAは未完了である。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "scope_control": {
@@ -17,7 +17,7 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "format、markdown、spec、curriculum、repository / Training typecheck、focused Curriculum contract 8、serial resolver 7 behavior cases、full contract 25 files / 210 tests、full verify（security、Web/spec buildを含む）をPASS。今回の変更後Remote Required Phase 1 / Native CIは未実行であり、f1694055のgreenは今回のdirty revisionの結果へ読み替えていない。",
+      "evidence": "format、markdown、spec、curriculum、repository / Training typecheck、focused Curriculum contract 8、serial resolver 7 behavior cases、full contract 25 files / 210 tests、full verify（security、Web/spec buildを含む）をPASS。SOURCE_CANDIDATE_SHAのPhase 1 CI #201 / Native CI #143もsuccessであり、Fresh Copy Web / Physical Android runtimeもPASSした。Run ArtifactのTask 13 reconciliation commit / pushは未実施である。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     },
     "safety_compliance": {
@@ -37,7 +37,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Static / contract / repository validationとcurrent-tree Physical Android runtimeは確認済み。Run Artifactはcurrent-tree runtimeをCanonical Local routeのImplementation Verificationとして記録するが、exact committed snapshotではない。ユーザーのcommit / push、修正後Required CI成功、exact committed Physical Fresh Learnerを確認してからFINAL_CANDIDATE_SHAをfreezeし、そのexact SHAでTraining Copy / Deliveryを行う。",
+      "evidence": "Static / contract / repository validation、exact committed SOURCE_CANDIDATE_SHAのFresh Web、同SHAのPhysical Android runtime、同SHAのPhase 1 CI #201 / Native CI #143 successを確認済み。Run ArtifactはTask 13完了へ更新したが、この更新のcommit / push、FINAL_CANDIDATE_SHA freeze、exact-SHA Training Copy 3 runs、Final Deliveryは未完了である。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"]
     }
   },
@@ -45,8 +45,8 @@
     {
       "category": "missing_validation",
       "severity": "high",
-      "evidence": "Windows Local Physical Canonicalのcurrent-tree runtimeとPhase A serial / documentation repairはPASSしたが、Source / Docs / Tests / Run Artifactが今回の修正を含む未commit状態であり、exact committed snapshotのFresh Learner、post-change Required Phase 1 / Native CI、FINAL_CANDIDATE_SHA、Training Copy exact-SHA 3 runs、SHA equality、Final Delivery Readinessは未成立。",
-      "detail": "Task 13はcurrent-tree Implementation Verificationだけでは完了にせず未チェックのままとする。ユーザーがcommit / pushした後、同じPhysical Device契約でexact committed snapshotを再実行し、今回のSource repairに対するRequired CIがgreenになってからFinal Delivery段階へ進む。"
+      "evidence": "SOURCE_CANDIDATE_SHA 8e559880f13e33cd6b939eefafc174b5e3675fb4のFresh Training Copy Web / Physical Android、同SHAのPhase 1 CI #201 / Native CI #143 successは成立した。未完了なのはTask 13ではなく、Task 13更新を含むRun Artifactの次commit / push、FINAL_CANDIDATE_SHA、exact-SHA Training Copy 3 runs、SHA equality、Final Delivery Readinessである。",
+      "detail": "Task 13はexact committed snapshotのFresh Learner PASSとして完了した。ユーザーがRun ArtifactのTask 13 reconciliationをcommit / pushした後、その新exact HEADのRequired CIを確認し、別フェーズでFINAL_CANDIDATE_SHAとFinal Deliveryへ進む。"
     },
     {
       "category": "environment_failure",
@@ -58,10 +58,10 @@
   "improvement_candidates": [
     {
       "target": "Training Copy remote Delivery Readiness",
-      "evidence": "Current-treeのPhysical Fresh Learner Androidとpre-freeze Run Artifact追補は完了したが、FINAL_CANDIDATE_SHAはユーザーのcommit / pushと修正後Required CI確認前のため未freeze。exact-SHA manifestとremote workflow conclusionは未確定。",
+      "evidence": "Exact committed SOURCE_CANDIDATE_SHAのFresh Learner Web / Physical Androidと、そのHEADのPhase 1 CI #201 / Native CI #143 successは完了した。Task 13更新を含むRun Artifactの次commit / push前なので、pre-freeze状態とFINAL_CANDIDATE_SHAは未確定。",
       "evidence_refs": [".codex/runs/20260813-093427-JST/REPORT.md"],
       "expected_impact": "Merge前のSHA equalityとTraining Copy実行結果を最終候補へ固定できる。",
-      "recommendation": "Fresh Learnerとpre-freeze Run Artifactを完了し、最終変更をcommit / pushしてSource Required CI成功を確認した後、current PR HEADをFINAL_CANDIDATE_SHAとしてfreezeする。そのexact SHAでTraining Copy Web / Android / expected-failureを3回実行し、actual conclusion、Artifact、SHA equalityを外部Final Delivery Recordへ記録する。"
+      "recommendation": "Task 13更新済みRun Artifactをユーザーがcommit / pushし、新exact HEADのPhase 1 / Native CI successを確認する。その後にFinal DeliveryフェーズとしてFINAL_CANDIDATE_SHAをfreezeし、exact SHAでTraining Copy Web / Android / expected-failureの3 remote runs、actual conclusion、Artifact、SHA equalityをFinal Delivery Recordへ記録する。"
     }
   ]
 }

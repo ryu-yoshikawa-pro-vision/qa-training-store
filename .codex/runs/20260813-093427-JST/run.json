@@ -176,16 +176,30 @@
       "pnpm run typecheck:training => pass",
       "Local contract documentation reconciliation => pass (Local Physical canonical; CI API34 / google_apis / x86_64 Emulator retained; same Run ID / serial evidence; fixed minSdk duplicate removed)",
       "AVD usage in Phase A => none; no Emulator start, runtime, or AVD repair performed",
-      "Final Phase A artifact checks => pass (Run Artifact JSON parse, TASKS 19/21 = 90%, sanitizer Write / Check residual 0, format:check, git diff --check)"
+      "Final Phase A artifact checks => pass (Run Artifact JSON parse, TASKS 19/21 = 90%, sanitizer Write / Check residual 0, format:check, git diff --check)",
+      "Phase B PR #25 read-only refresh => pass (SOURCE_CANDIDATE_SHA 8e559880f13e33cd6b939eefafc174b5e3675fb4; local HEAD matched)",
+      "Phase B GitHub exact-head CI => pass (Phase 1 CI #201 success; Native CI #143 success on 8e559880f13e33cd6b939eefafc174b5e3675fb4)",
+      "Phase B Fresh Training Copy => pass (full SHA manifest / detached HEAD equality; training:copy:validate; fresh pnpm install --frozen-lockfile)",
+      "Phase B Fresh Copy learner paths => pass (validate:spec; Workbook 4 files; Part 1 / Part 2 document path check 10/10)",
+      "Phase B Fresh Web => pass (build:web; training:web:baseline 1/1; training:web:mobile 1/1; training:web:mobile:exercise 1/1; expected-failure wrapper and evidence pass)",
+      "Phase B Physical Android preflight => pass (serial 354955112942476 only; API 30; ABI arm64-v8a family; physical qemu checks; boot_completed=1; package service found; awake / unlocked; host emulator process 0)",
+      "Phase B Physical Android Build initial => environment/build-setup failure on local .pnpm prefab command CreateProcess error 2; no Install or downstream action started",
+      "Phase B Physical Android Build recovery => pass after one explicit short Virtual Store fallback and expo prebuild --clean; Auto arm64-v8a APK integrity bundle 1 / arm64-v8a native 27",
+      "Phase B Physical Android Install / Smoke => pass on 354955112942476",
+      "Phase B Physical Android native-test-control => pass (1/1; JUnit device 354955112942476)",
+      "Phase B Training Maestro baseline => pass (1/1; QA_TRAINING_ANDROID_SERIAL / TARGET_SERIAL / ANDROID_SERIAL equal; same Run ID 20260814-phaseB-185135)",
+      "Phase B Physical Android Evidence / cleanup => pass (screen, UI hierarchy, Maestro hierarchy, logcat, activities, JUnit; force-stop; app PID absent; physical device only; no emulator process)",
+      "Phase B exact committed Fresh Learner decision => Task 13 complete; Task 14 unchecked; Progress 20/21 = 95%; FINAL_CANDIDATE_SHA not frozen; Final Delivery not started",
+      "Phase B final Run Artifact validation => pass (JSON parse; TASKS 20/21 = 95%; format:check; lint:markdown 250 files / 0 issues; git diff --check; sanitizer 5 files / 0 residual findings)"
     ],
     "warnings": [
       "lint has 65 pre-existing warnings",
       "Android SDK cmdline-tools latest/latest-2 inconsistency warning remains; current Physical Device build and runtime passed",
-      "Windows Local Physical Canonical current-tree runtime passed, but Source / Docs / Tests are uncommitted; exact committed snapshot Fresh Learner and post-change Required Phase 1 / Native CI remain pending",
+      "Exact committed Fresh Learner at SOURCE_CANDIDATE_SHA passed; the next required state change is the user's commit / push of this Task 13 Run Artifact reconciliation",
       "Existing C:\\q pointed to another repository; Prepare fail-closed as designed and used a separately verified current-worktree alias without modifying C:\\q",
       "Historical Local AVD System UI ANR remains in REPORT history only; no AVD was used for the current contract verification and it is not a current Local Fresh Learner blocker",
       "Action SHA pinning and run.json scope_ref were intentionally not added; the former is a repository-wide policy concern and the latter is absent from the canonical RUN_MANIFEST schema",
-      "GitHub Native CI Emulator contract remains protected, but current changes have not received post-change remote CI; user commit / push and exact-head Required CI are required before FINAL_CANDIDATE_SHA or Final Delivery"
+      "Exact-head Phase 1 CI #201 and Native CI #143 are success; FINAL_CANDIDATE_SHA remains intentionally unset until the post-Task-13 Run Artifact commit / push and its exact-head checks"
     ]
   },
   "safety": {

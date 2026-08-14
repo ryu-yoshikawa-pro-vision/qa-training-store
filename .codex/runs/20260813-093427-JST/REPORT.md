@@ -683,3 +683,93 @@ Progress: 90% (18/20)
 - Regression: Training CIの`TARGET_SERIAL`単独経路は維持し、CIのAPI34 / `google_apis` / `x86_64` Emulator / Formal Maestro / Training baseline contractは既存Workflowとvalidatorで保持している。
 - Evidence identity: Local教材とRunbookは同一`$runId`、同一serial、同一`TRAINING_MAESTRO_OUTPUT_DIR`を指定するため、Native helperとTraining baselineが別端末／別Runへ逸れる経路を残していない。
 - No P1 / P2 finding。残余は今回の修正をcommit / pushした後のexact committed Fresh Learner、post-change Required CI、Final Delivery Readinessのみであり、Phase AのSource blockerは0件と判定する。
+
+## 2026-08-14 19:22 JST — Phase B exact committed Fresh Learner完了
+
+### Exact source / Fresh Training Copy
+
+- GitHub PR #25の最新HEADとローカルHEADは`8e559880f13e33cd6b939eefafc174b5e3675fb4`で一致した。これを`SOURCE_CANDIDATE_SHA`として使用した。
+- `training:copy:prepare`はこのfull SHAを解決し、Fresh Training Copyの`sourceSha`、`resolvedSourceSha`、detached `HEAD`を同一値へ揃えた。Fresh targetには実行前の`node_modules`、`output`、`.artifacts`がなく、`pnpm install --frozen-lockfile`を新規実行した。
+- `training:copy:validate`はPASS。active workflowはTraining用2件だけで、Formal / Production workflowはCopyのarchiveへ分離された。
+- Fresh Copyで`pnpm run validate:spec`はPASSし、Workbook 4件、Part 1 / Part 2のlearner document path checkは10件中10件存在を確認した。Copy後の`pnpm run validate:curriculum`は、Training Copyが意図的にFormal `.github/workflows/ci.yml`をactiveから外すため、その前提不足をfail-closeしたもの。これはTraining Copy contractの失敗ではなく、Copy専用の`training:copy:validate` PASSとsource側Curriculum validation PASSで分離した。
+
+### Fresh Learner Web
+
+- Dedicated Web runtime（`PLAYWRIGHT_BASE_URL=http://127.0.0.1:8182`、prebuilt `dist`）で次をすべてPASSした。
+  - `pnpm run build:web`
+  - `pnpm run training:web:baseline`: 1/1
+  - `pnpm run training:web:mobile`: 1/1
+  - `pnpm run training:web:mobile:exercise`: 1/1
+  - `pnpm run training:web:check-expected-failure`: wrapper PASS、意図したchild failure、fresh screenshot / video / trace evidence PASS
+- Web Evidenceは`<FRESH_TRAINING_COPY>/output/training/playwright/`配下にあり、既存worktreeのPlaywright outputを使用していない。
+
+### Fresh Learner Physical Android
+
+- AVD / Emulatorは起動・使用していない。`adb devices -l`はPhysical Device `354955112942476`（status=`device`）のみで、host emulator processは0だった。
+- Shared Run IDは`20260814-phaseB-185135`。Native helper全Action、Training Maestro、Evidenceを同じRun ID、同じserialへ固定した。
+- Device identity: API `30`、ABI `arm64-v8a,armeabi-v7a,armeabi`、Auto選択ABI `arm64-v8a`、`ro.kernel.qemu` / `ro.boot.qemu`はEmulator値でなく、`sys.boot_completed=1`、package service=`found`、package installed、awake、keyguard=`false`を確認した。API 30は最低対応値へ固定せず、repositoryの`app.config.ts` `minSdkVersion`との比較で判定した。
+- `Doctor`: PASS。
+- `Prepare`: PASS。Fresh Copyの依存、Native asset、image manifest、route dependency、Expo prebuildを生成した。
+- 最初のBuildは、local `.pnpm` pathの`prefab_command.bat` CreateProcess error 2で失敗した。これはFresh CopyのVirtual Storeが短縮設定になっていなかった環境／Build setup failureであり、Source failureやDevice failureではない。`Install`以降はこの失敗後に開始していない。
+- Runbook 4.3の有限fallbackとして、Fresh Copy内で`pnpm install --frozen-lockfile --virtual-store-dir=<PNPM_VIRTUAL_STORE>`を一度実行し、`expo prebuild --clean --platform android --no-install`で生成状態を更新した。その変更条件だけで同じserial / ABI / Run IDのBuildを再実行し、`BUILD SUCCESSFUL`を確認した。
+- Final `Build -Architecture Auto`: PASS。APK `57,776,965` bytes、SHA-256 `1863D846DEE9C992A7B4D6192BB64C9D5CF544A3A08EACC491C0242C1236692F`、JS bundleあり、`arm64-v8a` native library 27件、`x86_64` library 0件。
+- `Install`: PASS。`pm path`で`com.ryuyoshikawa.scenarioshop`を確認した。
+- `Smoke`: PASS。Launcher起動後のapp processとfatal startup log absenceを確認した。
+- `Test Control`: `maestro/native-test-control.yaml` 1/1 PASS。JUnitのdeviceは`354955112942476`。
+- Training Maestro baseline: `pnpm run training:native:baseline` 1/1 PASS。`QA_TRAINING_ANDROID_SERIAL`、`TARGET_SERIAL`、`ANDROID_SERIAL`を同一serialへ設定し、outputを`<FRESH_TRAINING_COPY>/.artifacts/native-local/20260814-phaseB-185135/maestro/training-baseline/`へ出力した。JUnitのdeviceは同一serial、tests=`1`、failures=`0`。
+- `Evidence`: `<FRESH_TRAINING_COPY>/.artifacts/native-local/20260814-phaseB-185135/evidence/`へ`screen.png`、`uiautomator.xml`、`maestro-hierarchy.txt`、`logcat.txt`、`activities.txt`を保存した。Native Test Control JUnitとTraining baseline JUnitも同じRun配下にある。
+- `cleanup`: `am force-stop com.ryuyoshikawa.scenarioshop`後にapp PIDなし、ADBは対象Physical Device 1台、host emulator process 0を確認した。
+
+### Exact-head CIとFresh Learner判定
+
+- GitHub Actionsをread-onlyで再確認し、同じ`SOURCE_CANDIDATE_SHA`のPhase 1 CI #201とNative CI #143がともに`success`となった。Native CIのAPI34 / `google_apis` / `x86_64` Emulator、Formal Maestro、Training baseline保証は維持されている。
+- Fresh WebとFresh Physical Androidが同じexact committed sourceで一続きにPASSしたため、Task 13を完了へ同期する。Phase BのFresh Learnerにおけるcurrent blockerは解消した。
+- Final Delivery Readinessは未実施。Task 14は未完了、`FINAL_CANDIDATE_SHA`は未freeze、Final Delivery remote runsは未開始である。次はこのTask 13更新を含むRun Artifactをユーザーがcommit / pushし、その新exact HEADのRequired CIを確認した後、別フェーズでpre-freeze / Final Deliveryへ進む。
+
+## 2026-08-14 18:48 JST — Phase B開始前のexact HEAD確認とpreflight
+
+- GitHub PR #25をread-onlyで再取得し、`SOURCE_CANDIDATE_SHA`を`8e559880f13e33cd6b939eefafc174b5e3675fb4`として確定した。ローカル`HEAD`も同一SHAで、Phase Aの変更を含むworktreeはこの時点でcleanだった。
+- 同SHAのGitHub Actionsは、Phase 1 CI #201とNative CI #143が`in_progress`であることを確認した。完了前の状態をPASSへ読み替えず、結果は後で再確認する。
+- Fresh Training Copyはこのexact SHAから専用のdisposable targetへ作成し、既存worktreeの`node_modules`、Playwright output、Native artifactをFresh Learner Evidenceへ流用しない。Training CopyのGit clone / detached checkoutは、PR branchを変更しない専用target内だけで行う。
+- `adb devices -l`はPhysical Deviceの`354955112942476`一台（status=`device`）だけを返し、emulator serialは存在しない。AVD / Emulatorは起動・使用しない。
+- Skillのpreflightに従い、Fresh Copy作成・依存準備・Web dedicated runtime・Physical Android runtimeを別々に確認する。AndroidのBuild / Install / Test / MaestroはFresh Copyと同一Run ID、同一explicit serialで実行し、最初の失敗で後続を進めない。
+
+### Fresh Copy準備の初回失敗
+
+- `pnpm run training:copy:prepare -- --source-sha 8e559880f13e33cd6b939eefafc174b5e3675fb4 --target <DISPOSABLE_TARGET>` は、準備スクリプトがtargetのドライブ直下親を再帰作成しようとしてWindowsの`EPERM`になった。clone、checkout、依存準備、Runtimeは開始されていない。
+- 原因はFresh Copy targetをドライブ直下へ置いたことによる準備スクリプトのtarget-parent条件であり、Source / Android / Device failureではない。既存targetを削除せず、親ディレクトリを持つ新しい短いdisposable targetへ一度だけ切り替える。
+
+### Exact Fresh Training Copy確定
+
+- `<FRESH_TRAINING_COPY>`をtargetとして、`training:copy:prepare`を再実行した。manifestの`sourceSha`、`resolvedSourceSha`、Copyのdetached `HEAD`はすべて`8e559880f13e33cd6b939eefafc174b5e3675fb4`で一致した。
+- 新Copyでは`pnpm install --frozen-lockfile`を実行し、node_modulesを新規作成した。既存worktreeの依存関係は流用していない。
+- `training:copy:validate -- --root <FRESH_TRAINING_COPY>`はPASSし、active workflowはTraining用2件、Production workflowはarchive済みであることを確認した。新Copyには実行前の`output` / `.artifacts`は存在しない。
+- Phase Bの共有Run IDは`20260814-phaseB-185135`とする。Fresh Webの専用runtimeと、後続Physical AndroidのNative helper / Training Maestro / Evidenceは、それぞれこのRunの相対証跡へ保存する。
+
+### Exact Fresh Physical Android — Build初回失敗
+
+- Doctor、Prepare、Build直前preflightはPASSした。対象はserial `354955112942476`、ADB `device`、API 30、ABI候補`arm64-v8a,armeabi-v7a,armeabi`、Run ID `20260814-phaseB-185135`であり、emulator processは0だった。
+- `android-local.ps1 -Action Build -Architecture Auto -RequirePhysicalDevice`は、Autoで`arm64-v8a`を選択した後、`:react-native-nitro-modules:configureCMakeRelWithDebInfo[arm64-v8a]`でFAILした。Install、Smoke、Test、Training Maestro、Evidenceは上流Build失敗のため実行していない。
+- 最初の異常は、Gradleが`<FRESH_TRAINING_COPY>\\node_modules\\.pnpm\\...\\prefab_command.bat`を起動できずCreateProcess error 2になったこと。`cmdline-tools;latest`の`latest-2`不整合warningも出たが、失敗taskの直接原因とは分離して扱う。
+- 原因仮説は、Fresh CopyのPrepare後にVirtual Storeが`<PNPM_VIRTUAL_STORE>`へ移らず、長いlocal `.pnpm` pathからCMake commandを生成したこと。次は`.modules.yaml`、pnpm config、生成batの存在を確認し、必要ならrunbook記載どおり短縮Virtual Storeを明示する一度限りの切り分けを行う。SourceやAPK、Device failureとはまだ分類しない。
+
+### Build失敗の切り分け結果
+
+- Fresh Copyの`node_modules/.modules.yaml`は`virtualStoreDir: <FRESH_TRAINING_COPY>\\node_modules\\.pnpm`、`virtualStoreDirMaxLength: 120`で、helperが設定する標準短縮Virtual Storeになっていなかった。
+- 同じShellで短縮Virtual Storeを設定した`pnpm config list`は`virtual-store-dir=<PNPM_VIRTUAL_STORE>`、`virtual-store-dir-max-length=20`を返すため、pnpm設定値の読み取り自体は成功している。生成された`prefab_command.bat`は存在するが、パス長288文字のlocal `.pnpm`経路から起動されていた。
+- したがって次の切り分けは、Runbook 4.3の手動fallbackに限定し、Fresh Copy内で短縮Virtual Storeを明示した`pnpm install --frozen-lockfile`を一度実行してから、同じABI / serial / Run IDでBuildを再実行する。APKが未生成のためInstall以降はまだ開始しない。
+
+## 2026-08-14 19:28 JST — Phase B最終reconciliation
+
+- 実行順序の最終事実は、`SOURCE_CANDIDATE_SHA=8e559880f13e33cd6b939eefafc174b5e3675fb4`のFresh Training Copy準備・validate・新規install、Dedicated Web（desktop / mobile / exercise / expected-failure）、Physical Android Doctor → Prepare → 短縮Virtual Store切り分け後のAuto Build → APK integrity → Install → Smoke → Test Control 1/1 → Training Maestro baseline 1/1 → Evidence → cleanupである。AVD / Emulatorは一度も使用していない。
+- Physical Evidence identityはserial `354955112942476`、API 30、Auto ABI `arm64-v8a`、Run ID `20260814-phaseB-185135`であり、Native helperとTraining Maestro outputを同一Runへ紐付けた。cleanup後のapp PIDは空、ADBはPhysical Deviceのみ、host emulator processは0だった。
+- Exact SHAのPhase 1 CI #201 / Native CI #143はsuccess。Task 13は`[x]`、Task 14は`[ ]`、Progressは`95% (20/21)`。`run.json` / `evaluation.json`はFinal Delivery未完了のため`partial` / `missing_validation`を維持し、FINAL_CANDIDATE_SHAは未freezeである。
+- 本追補はREPORT append-onlyの最終current-state記録であり、過去のAVD ANR、旧Physical補助証跡、Phase A記録は削除・改変していない。今回のPhase B実行でSource blockerは0件、残りはRun Artifactのユーザーcommit / push後の新exact-head Required CIとFinal Delivery Readinessだけである。
+
+## 2026-08-14 19:30 JST — Phase B Run Artifact最終検証
+
+- `run.json` / `evaluation.json` JSON parseはPASS。`run.json.status` / `evaluation.json.result`は`partial`、両方の`primary_failure_category`は`missing_validation`を維持した。
+- TASKS checkbox recountは21件中20件完了、`Progress: 95% (20/21)`。Task 13はchecked、Task 14はuncheckedである。
+- `pnpm run format:check`、`pnpm run lint:markdown`、`git diff --check`はPASS。`lint:markdown`は設定上`.codex/runs/**`を除外している。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check`はPASS（5 files、0 replacements、0 residual findings）。
+- GitHub PR #25 latest HEADは`8e559880f13e33cd6b939eefafc174b5e3675fb4`、Phase 1 CI #201 / Native CI #143はsuccess。Run Artifact追補はまだcommit / pushしていないため、Final Delivery前の新exact-head Required CIは次段階で実施する。
