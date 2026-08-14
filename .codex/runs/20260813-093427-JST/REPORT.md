@@ -548,3 +548,43 @@ Progress: 90% (18/20)
 - Fresh Web learner pathはPASS、Fresh Android capabilityは`blocked_environment`。Task 13は完了扱いにしないため、Progress: 90% (19/21)。
 - Source correctness、local static / contract / full test / verify、既存PR Required Phase 1 / Native CI Evidenceは確認済みだが、Fresh Learner full journeyが未完了なのでpre-freeze authoritative recordは未確定。
 - `FINAL_CANDIDATE_SHA`、exact-SHA Training Copy、remote Web / Android / expected-failure 3 runs、Final Delivery Record、SHA equalityは未実行。GitHub PR commentやCurrent PR Branchへpost-freeze Evidenceを書き込んでいない。
+
+## 2026-08-14 11:53 JST — User-directed physical-device-only supplemental verification
+
+- ユーザー指示により、進行中だったCanonical Emulator Startを停止し、この時点以後エミュレータを起動・検証に使用しない方針へ切り替えた。割り込み後に残っていた`emulator-5554`は検証目的ではなく停止・cleanupだけを行い、最終`adb devices`は実機`354955112942476`のみとなった。`emulator.exe` / qemuプロセスも残っていない。
+- Canonical AVDの再検証は実施していない。したがって、過去に観測したSystem UI `isn't responding`、native-test-control failure、物理端末 recovery PASSの履歴を変更せず、物理端末結果をCanonical AVD PASSへ読み替えない。TASKSのTask 13は未完了へ訂正し、Progressは`19/21 = 90%`とした。
+- 既知の根本原因分類は、SystemUIのANR dialogとcurrent focused windowを伴うAVD runtime / host resource stability問題（stale state、boot後UI readiness、GPU/headless条件を含む環境側候補）であり、Application failureとは分離している。ただし、ユーザー指示によりCanonical AVDを再実行できないため、最終的な単一原因の確定およびCanonical修正後の再現性確認は未成立である。
+- 現worktreeで既に行ったSource変更は、`scripts/training/android-emulator.ps1`の有限UI安定待ち（bootanim、package、SystemUI PID安定、uiautomator hierarchy、ANR dialog不在）追加と起動GPU条件の変更、`scripts/validate-curriculum.ts`の対応contract追加である。これはAVD観測Evidenceに基づく未commitの最小修正候補だが、Canonical AVDでの修正後PASSは未確認である。Product Sourceは変更していない。
+
+### Physical supplemental run
+
+- Device: `354955112942476`（実機、DoctorでAPI 30、ABI `arm64-v8a,armeabi-v7a,armeabi`）。Canonical AVD identityではない。
+- Run: `.artifacts/native-local/20260814-physical-supplemental-1145/`。
+- arm64-v8a Release APK build / integrity: PASS。`build/apk-info.txt`にAPK size、SHA-256、ABIを保存した。
+- Install: PASS。Smoke: PASS。`native-test-control`: PASS（1/1、JUnitあり）。Training Maestro baseline: PASS（1/1、JUnitあり）。
+- Evidence: `evidence/screen.png`、`evidence/uiautomator.xml`、`evidence/maestro-hierarchy.txt`、`evidence/logcat.txt`、`evidence/activities.txt`。補助証跡でありCanonical PASS根拠ではない。
+- Cleanup: 実機上の`com.ryuyoshikawa.scenarioshop`を`am force-stop`し、PIDおよびactivity matchが空であることを確認した。最終接続確認は実機のみ。
+
+### Current handoff decision
+
+- Fresh Learner Web / workbook / specification / Part 1 / Part 2 pathは既存EvidenceどおりPASS。Androidは物理端末の補助検証のみPASS、Canonical AVD Fresh Learnerは未成立である。
+- `run.json.status=partial`、`evaluation.json.result=partial`、`primary_failure_category=missing_validation`を維持する。Final Delivery remote runsは開始していない。
+- `FINAL_CANDIDATE_SHA`は未freeze。Git mutation（add / commit / push / merge / rebase / tag / branch操作）は実施していない。Source変更を含むため、Canonical検証を再開できるまでpost-change Required CIを実行していない。
+
+### Physical-only handoff validation
+
+- `run.json` / `evaluation.json` JSON parse => PASS。状態はそれぞれ`partial / missing_validation`を維持した。
+- PowerShell parser（`scripts/training/android-emulator.ps1`）=> PASS（parse error 0）。
+- `TASKS.md` checkbox再計算 => PASS（19/21、90%。Task 13 / Task 14は未完了、Discovered / Blockedの扱いはAGENTS.mdどおり）。
+- `pnpm run format:check` => PASS（初回は`validate-curriculum.ts`のPrettier差分のみFAILしたため、同ファイルをformatterで整形後に再実行）。
+- `pnpm run lint:markdown` => PASS（248 files / 0 issues。設定上`.codex/runs/**`は除外される）。
+- `pnpm run validate:spec` => PASS（3 challenges）。
+- `pnpm run validate:curriculum` => PASS（22 required documents、4 workbook files、training-chromium / training-mobile-chromium）。
+- `pnpm run lint` => PASS（0 errors / 65 existing warnings）。
+- `pnpm run typecheck` => PASS（app / native-tests / Training）。
+- focused curriculum contract => PASS（1 file / 6 tests）。
+- `pnpm run test:contracts` => PASS（25 files / 208 tests）。
+- `pnpm run verify` => PASS（format、markdown、spec、curriculum、lint、typecheck、image manifest、security、full test、Web build、spec build）。既存の65 lint warningsとNative testの`act(...)` console warningは失敗ではない。
+- `git diff --check` => PASS（whitespace errorなし。CRLF warningのみ）。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check` => PASS（5 files、0 replacements、0 residual findings）。
+- 最終runtime確認 => `adb devices`は実機`354955112942476`のみ、emulator / qemu process countは0。エミュレータは追加起動していない。

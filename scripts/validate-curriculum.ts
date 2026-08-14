@@ -396,8 +396,18 @@ function validateTrainingAssets(rootDir: string): string[] {
     "emu avd name",
     "Training emulator AVD must be",
     "No connected emulator for serial",
+    "Get-InteractiveUiHierarchy",
+    "Wait-InteractiveUiStable",
+    "exec-out cat",
+    '"-gpu", "off"',
+    "stable com.android.systemui PID",
+    "no System UI ANR dialog",
   ])
     assertContains(androidHelper, required, "Android Training helper");
+  if (androidHelper.includes('"-no-window"') || androidHelper.includes("swiftshader_indirect"))
+    fail(
+      "Android Training helper must not use the unstable headless/swiftshader startup combination",
+    );
 
   const maestroRunner = read(rootDir, "scripts/training/run-maestro-baseline.ts");
   for (const required of [

@@ -134,7 +134,7 @@
       "Fresh learner Evidence was moved outside the worktree after validation so temporary copied e2e / Playwright trace files cannot affect repository lint or contract discovery",
       "Fresh Learner Android recovery on authenticated physical device: device was asleep / keyguard-restricted; wake / unlock state was confirmed, then native-test-control 1/1 passed",
       "Fresh Learner Android: training:native:baseline with QA_TRAINING_ANDROID_SERIAL => pass (1/1; fresh learner Release APK installed on physical device)",
-      "Fresh Learner current state => Web and Android paths pass; Task 13 complete, Task 14 pending, Progress 20/21 (95%); standard Training AVD System UI ANR retained as historical environment evidence, not a remaining capability blocker",
+      "Current reconciliation => Web path passes; physical Android is supplemental PASS only; Canonical API34 AVD Fresh Learner is not verified because emulator use was halted by user; Task 13 unchecked, Task 14 pending, Progress 19/21 (90%)",
       "Fresh Learner Android physical device Build => pass (arm64-v8a Release APK; current worktree short junction)",
       "Fresh Learner Android physical device Install => pass; Smoke => pass",
       "Fresh Learner Android physical device Test Control => pass (native-test-control 1/1 after wake / unlock)",
@@ -142,21 +142,29 @@
       "pnpm run test:contracts => pass (25 files, 208 tests; post-Fresh Learner handoff)",
       "pnpm run test => pass (unit 66, integration 98, repository 33, web component 76, native 47, contracts 208; post-Fresh Learner handoff)",
       "pnpm run verify => pass (299.4 seconds; format, markdown, spec, curriculum, lint 0 errors / 65 warnings, typecheck, security, full test, Web/spec build)",
-      "Fresh Learner final state => PASS; Task 13 complete, Task 14 pending, Progress 20/21 (95%); FINAL_CANDIDATE_SHA not frozen",
+      "Fresh Learner final state => Canonical Android NOT VERIFIED; physical device supplemental run PASS only; Task 13 incomplete, Task 14 pending, Progress 19/21 (90%); FINAL_CANDIDATE_SHA not frozen",
       "run.json / evaluation.json JSON parse => pass",
       "TASKS progress recalculation => pass (20/21, 95%; Blocked excluded)",
       "git diff --check => pass (CRLF warnings only; no whitespace errors)",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 replacements, 0 residual findings)",
-      "pnpm run format:check => pass (post-append final check)"
+      "pnpm run format:check => pass (post-append final check)",
+      "User-directed physical-only supplemental run: Doctor => pass (serial 354955112942476, API 30, arm64-v8a device family)",
+      "User-directed physical-only supplemental run: arm64-v8a Release Build / APK integrity => pass; Install => pass; Smoke => pass",
+      "User-directed physical-only supplemental run: native-test-control => pass (1/1); training:native:baseline => pass (1/1); Evidence => pass; force-stop cleanup => pass",
+      "Canonical API34 / google_apis / x86_64 AVD revalidation => not run after user halted emulator use; physical run not used as Canonical substitute",
+      "Current Run Artifact JSON parse / PowerShell parse / TASKS recount => pass (run partial/missing_validation; evaluation partial/missing_validation; 19/21 = 90%; Task 13 and Task 14 unchecked)",
+      "pnpm run format:check => pass; pnpm run lint:markdown => pass (248 files / 0 issues; .codex/runs excluded); pnpm run validate:spec => pass; pnpm run validate:curriculum => pass",
+      "pnpm run lint => pass (0 errors / 65 warnings); pnpm run typecheck => pass; focused curriculum contract => pass (6/6); pnpm run test:contracts => pass (25 files / 208 tests); pnpm run verify => pass",
+      "git diff --check => pass; scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)"
     ],
     "warnings": [
       "lint has 65 pre-existing warnings",
       "Android Gradle Build evidence is split: the earlier outer command timed out after Gradle had logged BUILD SUCCESSFUL; APK was independently inspected before Install. This repair reused the unchanged APK because only the runner changed.",
       "Android SDK latest/latest-2 warning remains; current Training AVD identity and focused baseline passed",
-      "Latest Source repair is committed and pushed; Required Phase 1 / Native CI for the repaired source succeeded, and Android Runtime / Training Maestro baseline success is recorded. Source correctness gates are complete",
-      "Fresh Learner Web and Android paths are complete. Standard Training AVD had a repeatable System UI ANR, but authenticated physical Android validation passed for Test Control and Training Maestro baseline; Final Delivery Readiness remains pending",
+      "Latest worktree Source repair is not committed or pushed; prior Required Phase 1 / Native CI success belongs to the earlier committed revision, and post-change Required CI is pending",
+      "Fresh Learner Web path is complete. Physical Android supplemental validation passed for Test Control and Training Maestro baseline, but standard Training AVD had a repeatable System UI ANR and Canonical Android remains unverified; Final Delivery Readiness remains pending",
       "Action SHA pinning and run.json scope_ref were intentionally not added; the former is a repository-wide policy concern and the latter is absent from the canonical RUN_MANIFEST schema",
-      "Fresh Learner and pre-freeze Run Artifact are complete. FINAL_CANDIDATE_SHA remains intentionally not frozen until the user commits/pushes these changes and post-change Required CI succeeds; exact-SHA Delivery follows that freeze"
+      "Pre-freeze reconciliation is incomplete because Canonical Android was not revalidated after the uncommitted Source repair. FINAL_CANDIDATE_SHA remains intentionally not frozen until Canonical validation, user commit/push, and post-change Required CI succeed; exact-SHA Delivery follows that freeze"
     ]
   },
   "safety": {

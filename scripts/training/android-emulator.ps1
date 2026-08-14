@@ -75,6 +75,63 @@ function Wait-Until([scriptblock]$condition, [int]$timeoutSeconds, [string]$desc
     throw "Timed out waiting for $description after $timeoutSeconds seconds."
 }
 
+function Get-InteractiveUiHierarchy([string]$TargetSerial) {
+    $remotePath = "/sdcard/qa-training-ui-readiness.xml"
+    $previousErrorActionPreference = $ErrorActionPreference
+    try {
+        $ErrorActionPreference = "Continue"
+        $null = & $adb -s $TargetSerial shell uiautomator dump $remotePath 2>&1
+        $dumpExit = $LASTEXITCODE
+        if ($dumpExit -ne 0) { return "" }
+        $xml = @(& $adb -s $TargetSerial exec-out cat $remotePath 2>&1)
+        $catExit = $LASTEXITCODE
+        if ($catExit -ne 0) { return "" }
+        return (($xml | ForEach-Object { $_.ToString() }) -join "`n")
+    } finally {
+        $ErrorActionPreference = $previousErrorActionPreference
+    }
+}
+
+function Wait-InteractiveUiStable(
+    [string]$TargetSerial,
+    [int]$timeoutSeconds = 180,
+    [int]$stableSeconds = 60
+) {
+    $deadline = (Get-Date).AddSeconds($timeoutSeconds)
+    $stableSince = $null
+    $lastSystemUiPid = ""
+    do {
+        $bootCompleted = (& $adb -s $TargetSerial shell getprop sys.boot_completed 2>$null).Trim()
+        $bootAnimation = (& $adb -s $TargetSerial shell getprop init.svc.bootanim 2>$null).Trim()
+        $packageService = ((& $adb -s $TargetSerial shell service check package 2>$null) | Out-String).Trim()
+        $systemUiPid = (& $adb -s $TargetSerial shell pidof com.android.systemui 2>$null).Trim()
+        $hierarchy = Get-InteractiveUiHierarchy $TargetSerial
+        $hierarchyReady = $hierarchy -match "<hierarchy"
+        $anrDialogPresent = $hierarchy -match "System UI isn't responding|Application Not Responding"
+        $condition = (
+            $bootCompleted -eq "1" -and
+            $bootAnimation -eq "stopped" -and
+            $packageService -match "found" -and
+            -not [string]::IsNullOrWhiteSpace($systemUiPid) -and
+            $hierarchyReady -and
+            -not $anrDialogPresent
+        )
+        if ($condition) {
+            if ($null -eq $stableSince -or $lastSystemUiPid -ne $systemUiPid) {
+                $stableSince = Get-Date
+            } elseif (((Get-Date) - $stableSince).TotalSeconds -ge $stableSeconds) {
+                Write-Output "Interactive UI stable on $TargetSerial for $stableSeconds seconds (SystemUI PID $systemUiPid)."
+                return
+            }
+        } else {
+            $stableSince = $null
+        }
+        $lastSystemUiPid = $systemUiPid
+        Start-Sleep -Seconds 2
+    } while ((Get-Date) -lt $deadline)
+    throw "Timed out waiting for interactive UI stability on $TargetSerial after $timeoutSeconds seconds. Required: sys.boot_completed=1, boot animation stopped, package service found, UI hierarchy ready, a stable com.android.systemui PID for $stableSeconds seconds, and no System UI ANR dialog."
+}
+
 function Test-AvdExists {
     return @(& $avdManager list avd) -match "Name:\s+$([regex]::Escape($trainingAvdName))"
 }
@@ -112,7 +169,7 @@ switch ($Action) {
         if ($connected.Count -eq 1) {
             $Serial = $connected[0]
         } else {
-            $process = Start-Process -FilePath $emulator -ArgumentList @("-avd", $trainingAvdName, "-no-snapshot", "-no-window", "-no-audio", "-no-boot-anim", "-gpu", "swiftshader_indirect") -WindowStyle Hidden -PassThru
+            $process = Start-Process -FilePath $emulator -ArgumentList @("-avd", $trainingAvdName, "-no-snapshot", "-no-audio", "-no-boot-anim", "-gpu", "off") -WindowStyle Hidden -PassThru
             Write-Output "emulator_pid=$($process.Id)"
             Wait-Until { @(Get-ConnectedSerials).Count -eq 1 } 180 "one connected emulator"
             $Serial = @(Get-ConnectedSerials)[0]
@@ -130,6 +187,7 @@ switch ($Action) {
         Wait-Until {
             [bool]((& $adb -s $Serial shell service check package 2>$null) -match "found")
         } 60 "Android package service"
+        Wait-InteractiveUiStable $Serial
         Write-Output "QA_TRAINING_ANDROID_SERIAL=$Serial"
         Write-Output "Android Training emulator is ready."
     }
