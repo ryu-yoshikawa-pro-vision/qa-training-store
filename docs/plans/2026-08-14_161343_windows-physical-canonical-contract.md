@@ -18,7 +18,7 @@
   - GitHub Native CIのAPI 34 / `google_apis` / `x86_64` / Emulator / Formal Maestro / Training baselineが維持される。
   - iOSのBuild-only保証を変更しない。
   - 新契約Source / docs / helper / testsでPhysical Deviceの一続きの実動作確認を行う。
-  - Task 13は、dirty worktree検証のみならpendingとし、Task 14は未完了のままにする。
+  - Task 13は、dirty worktree検証のみならpendingとする。Task 14のFinal Delivery ReadinessはOwner DecisionによりDeferred / PR #25 Required外とし、Required Progressの分母へ含めない。
 
 ## 2. 現状理解と前提
 
@@ -36,7 +36,7 @@
 - Non-goals:
   - Windows AVD / Hypervisor / GPU / SystemUI ANRの修復・追加調査。
   - Product Business Logic、Native Application Source、Formal Maestro Flowの広範囲修正。
-  - Git commit / push / merge / rebase / branch操作、PR操作、Final Delivery、FINAL_CANDIDATE_SHA freeze。
+  - Git commit / push / merge / rebase / branch操作、PR操作、Final Deliveryの任意運用、FINAL_CANDIDATE_SHA freeze。
   - GitHub Native CIのEmulator削除・弱体化、iOS Runtime保証の追加。
   - API 30を正式最低対応APIとして定義すること。
 
@@ -138,4 +138,4 @@ Training Maestro baselineの前に、`QA_TRAINING_ANDROID_SERIAL`、`TARGET_SERI
 ## 9. 備考
 
 - `scripts/training/android-emulator.ps1`の削除は、Local canonical contractから未検証AVD helperを外すための限定変更であり、GitHub Actionsのshell Emulator実装は削除しない。
-- Final Deliveryは別フェーズであり、今回開始しない。
+- Final DeliveryはFuture operational validation / optional instructor validationであり、今回のRequired DoD・Task・Merge Gateには含めず、開始しない。

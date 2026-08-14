@@ -773,3 +773,55 @@ Progress: 90% (18/20)
 - `pnpm run format:check`、`pnpm run lint:markdown`、`git diff --check`はPASS。`lint:markdown`は設定上`.codex/runs/**`を除外している。
 - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check`はPASS（5 files、0 replacements、0 residual findings）。
 - GitHub PR #25 latest HEADは`8e559880f13e33cd6b939eefafc174b5e3675fb4`、Phase 1 CI #201 / Native CI #143はsuccess。Run Artifact追補はまだcommit / pushしていないため、Final Delivery前の新exact-head Required CIは次段階で実施する。
+
+## 2026-08-14 19:56 JST — Run Artifact push後のexact-head Required CI待機
+
+- GitHub PR #25をread-onlyで再取得し、ユーザーがRun ArtifactのTask 13 reconciliationをpush済みであることを確認した。現在のPR HEADは`86ee40a23a18a5c7bb1b9917be626c598fb46103`で、ローカルHEADと一致し、worktreeはcleanである。
+- このHEADのPhase 1 CI #202は`queued`、Native CI #144は`in_progress`。未完了のCIをPASSへ読み替えず、このexact HEADの両Required CI successを待つ。
+- `FINAL_CANDIDATE_SHA`はまだfreezeしない。Final Delivery remote runsもまだ開始しない。CI結果確定後にpre-freeze判定を更新する。
+
+## 2026-08-14 20:31 JST — exact-head Required CI結果とDelivery経路確認
+
+- GitHub PR #25のcurrent HEADは`86ee40a23a18a5c7bb1b9917be626c598fb46103`で、ローカルHEADと一致する。
+- 同一SHAのPhase 1 CI #202（Run ID `31794035175`）とNative CI #144（Run ID `31794035473`）は、read-only取得でともに`completed / success`を確認した。Native CIの`Android Runtime / Maestro`ではAPI 34 Emulator、Formal Maestro、`Run Training Maestro baseline`、Production-validationがsuccessで、Runtime evidence artifactも生成されている。
+- Source Repositoryのactive workflowはPhase 1 CI、Generate pnpm lockfile、Native CI、Native iOS CIであり、Training Workflow template（`training-ci.yml` / `training-native-ci.yml`）はSource Repositoryのactive workflowではない。Repository、環境変数、関連設定からInstructor管理のGitHub Training Copy repository / branchを特定できなかった。
+- したがって、Final Delivery Readinessに必須のTraining Copy上のWeb baseline、Android baseline、Web expected-failureの3 remote runは、現時点では実行対象が存在せず開始できない。Source Required CI、既存Local Physical Android evidence、Native CI Emulator runをFinal Delivery 3 runの代替にはしない。
+- `FINAL_CANDIDATE_SHA`はfreezeしていない。Final Deliveryは未開始、Task 14は未完了のまま維持する。`run.json` / `evaluation.json`の`partial` / `missing_validation`も、remote Training Copy Delivery未実施という現在状態と整合する。
+
+## 2026-08-14 21:06 JST — Owner scope decisionによるRequired DoD再定義
+
+- Owner Decisionにより、PR #25のRequired Definition of Doneを「Required Curriculum、Workbook / Training assets、Formal / Training境界、Curriculum validator、Training Playwright desktop / mobile、learner exercise、expected-failure lifecycle、Windows Local Physical AndroidのTraining Maestro baseline、GitHub Native CI API34 EmulatorのTraining baseline、`pnpm run verify`、Current PR HEADのPhase 1 / Native CI、Critical / High Source findingの解消」へ再定義した。
+- Instructor管理のremote Training Copy repository作成・publish、remote Web / Android / expected-failureの3 runs、`FINAL_CANDIDATE_SHA` freeze、Delivery start / end PR HEAD equality、Training Copy resolved SHA equality、Final Delivery Recordは、Future operational validation / optional instructor validationへdeferする。これらを今回のRequired DoD、Merge blocker、Task、Progress denominator、failureへ含めない。
+- 既存のTraining Copy prepare / validate機能は、安全な教材Copyを作成・検証するRequired Assetとして維持する。Windows Local Physical Android Canonical、GitHub Native CI API34 / `google_apis` / `x86_64` Emulator、Formal / Training境界、iOS Build-only保証、既存Source implementationは変更しない。
+- 過去のFinal Delivery計画、remote未実施、AVD System UI ANR、旧Physical Device補助証跡は削除・改変せず、今回のcurrent-state reconciliationをこの追補として記録した。`docs/adr/0013-curriculum-pr-required-dod-scope.md`と`docs/history/2026-08-14_210220_curriculum-required-dod-scope.md`にもOwner Decisionを記録した。
+- `TASKS.md`ではTask 14を`Deferred by Owner Decision / not required for PR #25`へ移し、Required task 20件を分母として`Progress: 100% (20/20)`へ再計算した。Task 13はchecked、Task 14はdeferredであり、Blockedはなし。`FINAL_CANDIDATE_SHA`はfreezeしていない。Final Deliveryは意図的に開始していない。
+- `run.json` / `evaluation.json`ではremote Training Copy repository不存在・remote 3 runs未実施をcurrent failure / blockerから除外した。今回の追補は未commitのため、次のユーザーcommit / push後に新exact HEADのPhase 1 CI / Native CIを確認することだけをcurrent missing validationとして残す。86ee40aのPhase 1 CI #202 / Native CI #144 successは、今回の追補前の既存Evidenceとして扱い、追補後のCI PASSとは主張しない。
+
+### Repair-loop iteration record
+
+- iteration_number: 1
+- input finding: Owner Decisionにより、remote Training Copy DeliveryをPR #25 Required DoDから除外し、旧Task 14 / `missing_validation` current stateを再評価する必要が生じた。
+- repair plan: Source implementationとCI保証を変更せず、統合Plan、ADR、Project Context、Active RunのPLAN / TASKS / REPORT / run.json / evaluation.jsonへRequired / Optional境界を同期する。Task 14はDeferredとしてProgress分母から除外し、履歴はappend-onlyで保持する。
+- allowed files: `docs/plans/2026-08-10_141200_test-automation-curriculum-remediation.md`、`docs/adr/0013-curriculum-pr-required-dod-scope.md`、`docs/history/2026-08-14_210220_curriculum-required-dod-scope.md`、`docs/PROJECT_CONTEXT.md`、`.codex/runs/20260813-093427-JST/{PLAN,TASKS,REPORT,run,evaluation}`。
+- changed files: 上記allowed files。既存Source implementation、Formal / Training workflow、CI Emulator契約は変更なし。
+- validation plan: JSON parse / evaluation schema、TASKS recount、format:check、lint:markdown、validate:spec、validate:curriculum、lint、typecheck、typecheck:training、focused / full contracts、verify、git diff --check、Run Artifact sanitizer、stale current-contract search。
+- result: static / local validationを実行し、Required DoDとFuture operational validationの境界を同期する。次exact-head Required CIはユーザーcommit / push後に実行する。
+- remaining_delta: Future operational validationとしてのremote Training Copy Deliveryのみ。これはPR #25のRequired blockerではない。
+- decision: stop_success（今回のOwner scope repairは完了。Final Deliveryは開始しない。）
+
+## 2026-08-14 21:33 JST — Owner scope変更後の最終validation
+
+- `pnpm run format:check`: PASS。
+- `pnpm run lint:markdown`: PASS（252 files、0 issues。`.codex/runs/**`は設定上除外）。
+- `pnpm run validate:spec`: PASS（3 challenges）。
+- `pnpm run validate:curriculum`: PASS（22 required documents、4 workbook files、training-chromium / training-mobile-chromium）。
+- `pnpm run lint`: PASS（0 errors / 65 warnings。warningsは既存）。
+- `pnpm run typecheck`: PASS。`pnpm run typecheck:training`: PASS。
+- focused `tests/contracts/training-curriculum.test.ts`: PASS（8/8）。
+- `pnpm run test:contracts`: 初回は`native-production-module-resolution`の既知のVitest既定5秒timeoutで24/25 files・209/210 testsまで進んでFAIL。`--testTimeout=30000`のfocused 4/4 PASS後に全体を再実行し、25/25 files・210/210 testsでPASS。
+- `pnpm run verify`: PASS（最終実行311.2秒、全test、security、Web build、Spec buildを含む。lintは0 errors / 65 warnings）。
+- `run.json` / `evaluation.json`: JSON parse PASS。Evaluation schema shape validation PASS。Task recountはRequired checked 20、Required unchecked 0、Task 14 Deferred、`Progress: 100% (20/20)`。
+- Repository-wide stale reference確認では、current normativeなDelivery記述をOptional / Futureへ統一し、Part 2教材とInstructor Referenceにも「将来の任意Operational validation」を明示した。GitHub Native CIのAPI34 / `google_apis` / `x86_64` Emulator契約は残っている。
+- `git diff --check`: PASS（CRLFのwarningのみ）。`scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check`: PASS（5 files、0 residual findings）。
+- 変更したのはDoD / Plan / ADR / Project Context / curriculum wording / Active Run Artifactのみで、既存Source implementation、Training Copy prepare / validate、Formal / Training workflow、CI Emulator、iOS Build-only保証は変更していない。
+- Current PR HEAD `86ee40a23a18a5c7bb1b9917be626c598fb46103`のPhase 1 CI #202 / Native CI #144はsuccessだが、今回の未commit scope追補を含むCIではない。ユーザーのcommit / push後に新exact HEADのPhase 1 / Native CIを確認する。remote Training Copy Delivery未実施はcurrent failure / blockerではない。

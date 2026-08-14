@@ -190,4 +190,4 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 - Pull Requestの役割を説明できる。
 - Test変更をReviewする観点を5つ以上挙げられる。
 - PR本文へTest Designとの対応とValidationを記録できる。
-- Delivery ReadinessではWeb / Android baselineのPASSとexpected-failureの実際のFAILを別の結論として扱える。
+- 将来の任意Operational validationとしてDelivery Readinessを扱う場合、Web / Android baselineのPASSとexpected-failureの実際のFAILを別の結論として扱える。

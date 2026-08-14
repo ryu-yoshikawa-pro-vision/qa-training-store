@@ -52,7 +52,7 @@
 1. Part 1のArtifactをTraining Copyへ移す目的を説明する。
 2. `prepare-training-copy`のfull SHAとallowlist結果を受講者自身に確認させる。
 3. CI設計ではRequired / Optional / Manualを分け、Workflow YAMLの暗記を評価しない。
-4. Delivery ReadinessではRun URL、Artifact、actual conclusion、SHA equalityを別々に確認する。
+4. 将来の任意Operational validationとしてDelivery Readinessを扱う場合は、Run URL、Artifact、actual conclusion、SHA equalityを別々に確認する。
 
 ## Troubleshooting prompts
 

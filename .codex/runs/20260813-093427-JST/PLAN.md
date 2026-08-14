@@ -20,7 +20,7 @@ PR #25のレビュー指摘と追加レビュー結果を、Current Normative Sp
 
 - 必ず質問する不透明点: なし。Review要求、Plan、Repository契約、markerにより実行範囲を確定できる。
 - 仮定してよい細部: YAML構造parseには既存依存にない最小の `yaml` direct devDependencyを追加する。任意shellの意味解析器は作らない。
-- 未回答の重要質問: current PR HEAD `50021adbfca10c7a8db3bcf7f9395c4203d59be8`とそのPhase 1 / Native CI successは確認済み。今回repair後のFinal Candidate SHAとremote Training Copy / Required CIはGit mutation禁止のため、このRunでは確定できない。
+- 未回答の重要質問: なし。Owner Decisionによりremote Training Copy Delivery、Final Candidate SHA、SHA equality、Final Delivery RecordはPR #25のRequired DoD / Merge Gateから外し、Future operational validation / optional instructor validationへdeferする。Current PR HEADのRequired CIと既存Local / CI baselineを、今回のDoD判定対象とする。
 
 ## Hypotheses
 
@@ -38,7 +38,7 @@ Exit Criteria:
 
 - 各主要findingにvalid / invalid判断と根拠がある。
 - ローカルで実行可能なGateは未実行をPASS扱いせず記録される。
-- commit / remote前提のGateはblockerとして分離される。
+- commit / remote前提の任意運用GateはRequired blockerとして扱わず、Required DoDとの差分として明示される。
 
 ## Approach
 
@@ -52,13 +52,13 @@ Exit Criteria:
 - P0順序、Trust Boundary、checksum、Workbook参照整合性、Android fail-close、stale Evidence、教材整合、CRLF、contract test依存整理が実装される。
 - `pnpm run verify`、Training Web desktop/mobile/expected-failure、Training Android baseline、local contract / typecheckがPASSする。
 - Visual marker、Android cleanup、iOS Build-only、Formal / Training境界を記録する。
-- exact-SHA Training Copy、final committed PR HEAD、remote Required CI / Delivery Readiness、Fresh Learner full journeyが未完了なら100%扱いしない。
+- Required Curriculum / Workbook・Training assets / Formal・Training境界 / Curriculum validator / Training Playwright desktop・mobile / learner exercise / expected-failure lifecycle / Windows Local Physical Android Training Maestro baseline / GitHub Native CI API34 Emulator Training baseline / `pnpm run verify` / Current PR HEAD Required CI / Critical・High Source finding解消が完了条件である。Training Copyのprepare / validateはRequired Assetとして維持する。remote Training Copy publish・3 runs・FINAL_CANDIDATE_SHA・SHA equality・Final Delivery Recordは任意の将来運用であり、未実施でも100%判定を妨げない。
 
 ## Risks / Unknowns
 
 - Windows Android Buildはrepository実体Pathが長く、短縮Junction + short virtual storeが必要になる可能性がある。別worktreeを指す既存aliasは使用しない。
 - markerがrelease済みでもAPI34 x86_64 AVDが不足する可能性がある。SDK不足時はRunbookどおり導入し、失敗時は後続工程を止める。
-- remote exact-SHA Gateはcommit/push禁止と外部GitHub実行に依存する。
+- remote Training Copyのexact-SHA Deliveryは将来任意の運用検証であり、今回のRequired DoDやMerge blockerではない。Current PR HEADのRequired CIはユーザーのcommit / push後に確認する。
 
 ## Thinking Log
 
@@ -78,3 +78,10 @@ Exit Criteria:
 - 2026-08-13 18:33 JST: PR #25のcurrent HEAD `50021adbfca10c7a8db3bcf7f9395c4203d59be8`とGitHub上のPhase 1 CI / Native CI successをread-onlyで確認した。今回の2 Source変更は未コミットなので、50021adのCI Evidenceを今回修正後のFinal Candidateへ流用しない。
 - 2026-08-13 18:33 JST: 教材fallbackをhelperと同じ`Sort-Object FullName`→最後のcandidate選択へ修正し、選択Pathを出力。`specReferences.get(specRef)!`は`undefined`をfailするRuntime checkへ置換した。format、markdown、curriculum、typecheck、focused contract、verifyはPASS。
 - 2026-08-13 19:56 JST: goal5の最終Source repairでは、教材側の既修正実装を再変更せず、`validate:curriculum`へfallback選択規則の3 token（sort、最後のcandidate、選択Path出力）を回帰Contractとして追加した。TASKS / run.json / evaluation.jsonは、6ef3f6cの既存CI成功を履歴として保持しつつ、今回修正後のFINAL_CANDIDATE_SHA未固定をcurrent stateへ同期する。Source repair後はcommit / post-repair CI / Fresh Learner / exact-SHA Deliveryを次工程へ残す。
+
+## Owner Decision（2026-08-14）
+
+- PR #25のRequired Definition of Doneを、Curriculum / Workbook・Training assets / Formal・Training境界 / validator / Training Web desktop・mobile / learner exercise / expected-failure lifecycle / Windows Local Physical Android Training Maestro baseline / GitHub Native CI API34 Emulator Training baseline / `pnpm run verify` / Current PR HEAD Required CI / Critical・High Source finding解消へ再定義した。
+- Instructor管理remote Training Copyの作成・publish、remote Web / Android / expected-failureの3 runs、`FINAL_CANDIDATE_SHA` freeze、PR HEADとTraining Copy resolved SHAのequality、Final Delivery Recordは、Future operational validation / optional instructor validationへdeferする。これらは今回のTask、Progress分母、DoD、Merge blockerに含めない。
+- 既存のTraining Copy prepare / validateは安全な教材Copyを作成・検証するRequired Assetとして維持する。Local Physical AndroidとGitHub Native CI Emulatorの責務分離、既存Source implementation、過去REPORT履歴は変更しない。
+- Task 14はDeferredとしてRequired Progressの分母から除外し、Required task 20件が完了しているためProgressは`100% (20/20)`とする。Current PR HEAD `86ee40a23a18a5c7bb1b9917be626c598fb46103`のPhase 1 CI #202 / Native CI #144はこのOwner Decision前の既存commitでsuccessだが、今回のArtifact変更後のCIとしては扱わず、ユーザーのcommit / push後に新HEADで再確認する。

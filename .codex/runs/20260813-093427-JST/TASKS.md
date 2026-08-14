@@ -15,7 +15,6 @@
 - [x] 11. Android marker後にTraining Doctor / Prepare / Start、x86_64 Release Build、APK検査、Install、Smoke、Training Maestro、Evidence、cleanupを実行する
 - [x] 12. full test、`pnpm run verify`、最終self-review、Run Artifact同期方針を確定する
 - [x] 13. Fresh checkout / Fresh Training Copyを使ったFresh Learner full journeyを実施する
-- [ ] 14. Final Delivery Readiness: pre-freeze Run Artifact確定後にcommit / push、Source Required CI、FINAL_CANDIDATE_SHA freezeを行い、exact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。freeze後の完了判定はPR Final Delivery Recordをcanonical evidenceとし、このTask / Run Artifactは更新しない
 - [x] 15. 追加repair: Training Workflowのruns-on / checkout persist-credentials / alternate package entrypoint / remote script pipeを構造検証し、negative contractを追加する
 - [x] 16. 追加repair: Learner Exercise用Mobile entrypointを追加し、教材・Curriculum validator・contractへ接続する
 - [x] 17. 追加repair: Maestro invocation helperを分離してrunnerのsilent-success経路を除去し、Windows quoting契約を維持する
@@ -32,9 +31,12 @@
 - D4. Windows Local Fresh LearnerのCanonicalをPhysical Android Deviceへ分離し、GitHub Native CIのAPI 34 / `google_apis` / `x86_64` Emulator保証は維持する契約へ更新した。
 - D5. Training Maestroの`QA_TRAINING_ANDROID_SERIAL` / `TARGET_SERIAL` / `ANDROID_SERIAL`は、非空値が異なる場合に暗黙選択せずfail-closeする必要がある。Run IDとserialをNative helper / Training Maestro Evidenceへ共通化した。
 
+## Deferred
+
+- Task 14: Deferred by Owner Decision / not required for PR #25。Instructor管理remote Training Copyへのpublish、remote Web / Android / expected-failureの3 runs、`FINAL_CANDIDATE_SHA` freeze、PR HEAD / Training Copy resolved SHA equality、Final Delivery Recordは、Future operational validation / optional instructor validationとする。既存のTraining Copy prepare / validate機能はRequired Assetとして維持する。
+
 ## Blocked
 
-- Exact committed SHA `8e559880f13e33cd6b939eefafc174b5e3675fb4`のFresh Training CopyでWeb（desktop / mobile / learner exercise / expected-failure）とPhysical Android（Doctor / Prepare / ABI Auto Build / APK integrity / Install / Smoke / Test Control 1/1 / Training Maestro baseline 1/1 / Evidence / cleanup）をPASSし、同SHAのPhase 1 CI #201 / Native CI #143もsuccessになった。Task 13は完了へ同期した。
-- Final Delivery Readinessは未実施。Task 14はFinal Delivery用のpre-freeze Run Artifact commit / push、Required CI、FINAL_CANDIDATE_SHA freeze、exact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを含むため、別フェーズとして保留する。今回のPhase BではFinal Deliveryを開始しない。
+- なし。過去のFinal Delivery未実施・remote Delivery待ちの記録はREPORT.mdへ保持するが、Owner Decision後のCurrent Required DoD blockerではない。
 
-Progress: 95% (20/21)
+Progress: 100% (20/20)

@@ -19,6 +19,8 @@
     "docs/curriculum/test-automation/part1/08_test-management-and-maintainability.md",
     "docs/curriculum/test-automation/part1/09_part1-capstone.md",
     "docs/curriculum/test-automation/part1/09_specification-agentic-qa.md",
+    "docs/curriculum/test-automation/03_instructor-reference.md",
+    "docs/curriculum/test-automation/part2/03_github-pull-request-review.md",
     "package.json",
     "pnpm-lock.yaml",
     "scripts/spec/validate-spec.ts",
@@ -38,6 +40,9 @@
     "training/github-actions/training-native-ci.yml",
     "training/workbook/04_execution-improvement.csv",
     "training/workbook/README.md",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/adr/0013-curriculum-pr-required-dod-scope.md",
+    "docs/history/2026-08-14_210220_curriculum-required-dod-scope.md",
     ".codex/runs/20260813-093427-JST/PLAN.md",
     ".codex/runs/20260813-093427-JST/TASKS.md",
     ".codex/runs/20260813-093427-JST/REPORT.md",
@@ -190,16 +195,29 @@
       "Phase B Training Maestro baseline => pass (1/1; QA_TRAINING_ANDROID_SERIAL / TARGET_SERIAL / ANDROID_SERIAL equal; same Run ID 20260814-phaseB-185135)",
       "Phase B Physical Android Evidence / cleanup => pass (screen, UI hierarchy, Maestro hierarchy, logcat, activities, JUnit; force-stop; app PID absent; physical device only; no emulator process)",
       "Phase B exact committed Fresh Learner decision => Task 13 complete; Task 14 unchecked; Progress 20/21 = 95%; FINAL_CANDIDATE_SHA not frozen; Final Delivery not started",
-      "Phase B final Run Artifact validation => pass (JSON parse; TASKS 20/21 = 95%; format:check; lint:markdown 250 files / 0 issues; git diff --check; sanitizer 5 files / 0 residual findings)"
+      "Phase B final Run Artifact validation => pass (JSON parse; TASKS 20/21 = 95%; format:check; lint:markdown 250 files / 0 issues; git diff --check; sanitizer 5 files / 0 residual findings)",
+      "Owner Decision => pass (PR #25 Required DoD narrowed to Curriculum / Training Environment, Local Physical Android, GitHub Native CI Emulator, verify, current Required CI, and Critical / High Source finding closure; remote Training Copy Delivery is Future operational validation)",
+      "TASKS current reconciliation => pass (Task 14 Deferred by Owner Decision and excluded from denominator; 20 Required tasks complete; Progress 100% = 20/20)",
+      "Current Required DoD evaluation => partial only because the Owner Decision / Run Artifact追補 is not yet committed and its next exact-head Phase 1 / Native CI is pending; remote Training Copy absence is not a failure or blocker",
+      "Current PR HEAD 86ee40a23a18a5c7bb1b9917be626c598fb46103 => Phase 1 CI #202 / Native CI #144 success; this pre-change evidence is retained and is not claimed as validation of the uncommitted scope追補",
+      "Focused training-curriculum contract => pass (1 file, 8 tests)",
+      "pnpm run test:contracts => initial known timeout (native-production-module-resolution default 5s; 24/25 files, 209/210 tests); focused test with --testTimeout=30000 => pass (4/4); full rerun => pass (25 files, 210 tests)",
+      "pnpm run verify after final documentation scope reconciliation => pass (311.2 seconds; lint 0 errors / 65 warnings, full test, Web build, Spec build)",
+      "run.json / evaluation.json JSON parse => pass; evaluation schema shape validation => pass",
+      "TASKS checkbox recount => pass (20 Required checked, 0 Required unchecked, Task 14 Deferred, Progress 100% = 20/20)",
+      "Repository-wide current contract search => pass (Delivery references in current normative files are explicitly Optional / Future; CI Emulator contract references remain intact)",
+      "git diff --check => pass (CRLF warnings only; no whitespace errors)",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)"
     ],
     "warnings": [
       "lint has 65 pre-existing warnings",
       "Android SDK cmdline-tools latest/latest-2 inconsistency warning remains; current Physical Device build and runtime passed",
-      "Exact committed Fresh Learner at SOURCE_CANDIDATE_SHA passed; the next required state change is the user's commit / push of this Task 13 Run Artifact reconciliation",
+      "Required Fresh Learner Web / Physical Android and current PR Required CI evidence passed; the next required state is the user's commit / push of this Owner Decision / Run Artifact reconciliation and new exact-head Required CI",
       "Existing C:\\q pointed to another repository; Prepare fail-closed as designed and used a separately verified current-worktree alias without modifying C:\\q",
       "Historical Local AVD System UI ANR remains in REPORT history only; no AVD was used for the current contract verification and it is not a current Local Fresh Learner blocker",
       "Action SHA pinning and run.json scope_ref were intentionally not added; the former is a repository-wide policy concern and the latter is absent from the canonical RUN_MANIFEST schema",
-      "Exact-head Phase 1 CI #201 and Native CI #143 are success; FINAL_CANDIDATE_SHA remains intentionally unset until the post-Task-13 Run Artifact commit / push and its exact-head checks"
+      "Current PR HEAD Phase 1 CI #202 and Native CI #144 are success before the current scope追補; after user commit / push, the new exact-head Required CI must be confirmed",
+      "Remote Training Copy Delivery, FINAL_CANDIDATE_SHA, SHA equality, and Final Delivery Record are intentionally deferred as Future operational validation / optional instructor validation and are not current failure categories or Merge blockers"
     ]
   },
   "safety": {
