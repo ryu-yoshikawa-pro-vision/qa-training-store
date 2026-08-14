@@ -233,3 +233,62 @@
   - `pnpm run verify` => EXPECTED FAIL（format/markdown/specはPASS後、Final Visual Gateで停止）。
 - Decision: local profile repairはPASSしたが、remote反映にはGit pushが必要。Run `31841614738`のAPK/Emulator evidenceはcanonical visual入力に採用しない。次は修正をpushした後、新HEADのState B remote gateとdispatchから再開する。
 - Progress: 100% (8/8)
+
+## 2026-08-15 08:20 JST
+
+- Summary: Expo Doctorのblocking mismatchをSDK 57内の7 package patch更新で修正し、依存・Native・構造品質ゲートを再検証した。canonical Android captureはまだ未実行のため、ここでHANDOFF_EXPO_PATCH_PUSH_REQUIREDとして停止する。
+- Iteration: repair-loop iteration 2。Input findingはNative StaticのExpo Doctor mismatch（must_fix）とFinal Visual GateのAndroid 25 blocked（今回の依存修正後も継続する残差）。allowed filesは`package.json`、`pnpm-lock.yaml`、active Run Artifactのみ。Product code、workflow、Final Gate、Native setup/ready semanticsは変更していない。
+- Dependency repair:
+  - `@expo/metro-runtime`: `57.0.9` → `57.0.10`
+  - `expo`: `57.0.12` → `57.0.13`
+  - `expo-build-properties`: `57.0.10` → `57.0.11`
+  - `expo-constants`: `57.0.10` → `57.0.11`
+  - `expo-dev-client`: `57.0.11` → `57.0.12`
+  - `expo-linking`: `57.0.5` → `57.0.6`
+  - `expo-router`: `57.0.12` → `57.0.13`
+  - `pnpm.overrides.expo-constants`: `57.0.10` → `57.0.11`。既存overrideは削除せず、direct dependencyと同一versionへ同期した。
+- Lockfile: `pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile`で再生成し、Prettier整形後に`pnpm install --frozen-lockfile --ignore-scripts`を再実行してPASS。lockfileは7 packageのSDK 57 patch解決と依存graphの更新のみ。
+- Pre-check:
+  - `pnpm exec expo install --check`（変更前）=> EXPECTED FAIL、CIと同じ7 mismatch。
+  - `pnpm dlx expo-doctor@1.17.6`（変更前）=> EXPECTED FAIL、7 mismatchに加えてExpo config schema APIのnetwork timeout。
+- Validation:
+  - `pnpm install --frozen-lockfile` => PASS。
+  - `pnpm exec expo install --check` => PASS（Dependencies are up to date）。
+  - `npm_config_loglevel=error pnpm dlx expo-doctor@1.17.6` => PASS（17/17）。
+  - `pnpm exec expo prebuild --platform android --no-install` => PASS（generated `android/`は既存どおりignore対象）。
+  - `pnpm run validate:eas:config` => PASS。
+  - `pnpm run validate:native-production-bundle` => PASS（Expo router 57.0.13でautomation/production marker guard成立）。
+  - `pnpm run check:native-route-dependencies` => PASS（38 routes）。
+  - `pnpm run test:component:native` => PASS（12 suites、49 tests。既存act warningあり）。
+  - `pnpm run test:contracts` => PASS（26 files、228 tests）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run lint` => PASS（0 errors、65 warnings）。
+  - `pnpm run format:check` => PASS（lockfile整形後）。
+  - `pnpm run lint:markdown` => PASS（255 files、0 issues）。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94のみ）。
+  - `pnpm run verify` => EXPECTED FAIL。format/markdown/structural validationはPASSし、Final Visual Gateのblocked 25 / `69 !== 94`だけでfail-closeした。
+- Operational note: 3つの設定検証を並列実行した試行は1件の120秒超過で結果回収不能となったため、個別再実行して上記のPASSを確認した。品質ゲートを未実行のまま扱っていない。
+- Changed files: `package.json`、`pnpm-lock.yaml`。Run Artifactは`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`を更新する。
+- Decision: stop_needs_human。Expo patch repairとlocal validationは完了。Actions dispatch、remote capture、artifact apply、promotion、status transitionは新HEADのpush前に行わない。
+- Remaining: ユーザーが`package.json`と`pnpm-lock.yaml`をcommit/pushした後、最新PR HEADでNative CI batch captureを再実行する。Final Visual DoDはCapture 94 / Captured 69 / Pending 0 / Blocked 25 / Canonical 69のまま。
+- Progress: 69% (11/16)
+
+## 2026-08-15 08:27 JST
+
+- Summary: `verify`のFinal Gate早期停止後に未到達だった通常test/build/security系を個別実行し、依存patch更新による回帰がないことを確認した。
+- Additional validation:
+  - `pnpm run test` => PASS（Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 49、Contract 228）。既存Native act warningとSQLite ExperimentalWarningのみ。
+  - `pnpm run validate:image-manifest` => PASS。
+  - `pnpm run security:check` => PASS（233 runtime files、283 credential-scan files）。
+  - `pnpm run build:spec` => PASS（22 pages）。
+  - `pnpm run build:web` => PASS（Expo Router 57.0.13でweb export成立）。
+- Remaining delta: Android canonical capture 25件、同一run artifact/APK provenance validation、all-or-nothing promotion、status transition、6画面目視、materialize、Final Gate PASSは未実行。依存patchを含むPR HEADのpushが必要。
+- Decision: stop_needs_human。ここでActionsをdispatchせず、HANDOFF_EXPO_PATCH_PUSH_REQUIREDを出す。
+- Progress: 69% (11/16)
+
+## 2026-08-15 08:29 JST
+
+- Peer warning investigation: `pnpm install`は`react-native-worklets`と`@react-native/metro-config`のpeer warningを出した。remote HEAD `9e3c328612b20964fecf89a4052ca92197ec7fb5`の旧lockfileにも、`expo-modules-core@57.0.10`の同じworklets peer rangeと`react-native@0.86.2`→`@react-native/metro-config@0.86.1`の同じ解決が存在した。今回の7 package patch更新が新たなwarningを導入した根拠はなく、React Native／workletsの範囲外upgradeは行わない。
+- Decision: peer warningは既存baselineとして記録し、Expo Doctor 17/17、Native bundle、Native tests、typecheck、full testがPASSしているため今回のHANDOFFを妨げるblocking failureとは扱わない。
+- Progress: 69% (11/16)

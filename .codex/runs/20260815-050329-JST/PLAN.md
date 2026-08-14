@@ -67,3 +67,9 @@
 
 - State B dispatchはremote gate通過後に実行できたが、API34 Emulatorのsystem localeが`en_US`のまま残り、profile normalizationでfailした。Emulator起動とAPK buildは成功し、Capture Caseは未実行だったため、個別setup/readyやProduct UIの問題とは扱わない。
 - Android公式のlocale設定手順に沿って、`setprop persist.sys.locale ja-JP`とstop/start、boot/locale収束確認をworkflowへ追加した。同じremote SHAでは再実行せず、ユーザーpush後に新SHAでState Bを再開する。
+
+### 2026-08-15 08:20 JST
+
+- Expo Doctorの再確認で、対象は前回CIログと同じ7 packageだけだった。`expo-constants` overrideは既存の依存解決固定として維持し、direct dependencyと`57.0.11`へ同期する最小修正を採用した。
+- 更新後の`expo install --check`と`expo-doctor@1.17.6`はPASSし、prebuild、Native bundle/config、route dependency、Native component、contract、typecheck、lintもPASSした。Final GateはAndroid capture未実行のblocked 25だけが残るため、依存修正成功とは分離してEXPECTED FAILのまま扱う。
+- 今iterationのdecisionは`stop_needs_human`。新しい依存変更をActions dispatchへ反映するには、ユーザーによるcommit/pushが必要であり、push前のremote captureやartifact混在は行わない。

@@ -2,15 +2,15 @@
   "schema_version": 1,
   "run_id": "20260815-050329-JST",
   "result": "partial",
-  "primary_failure_category": "artifact_contract_gap",
+  "primary_failure_category": "missing_validation",
   "failure_categories": [
-    "artifact_contract_gap",
-    "flaky_or_env_issue"
+    "missing_validation",
+    "artifact_contract_gap"
   ],
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "State B dispatchは実行したが、Run 31841614738がAndroid canonical profile normalizationでcapture前にfailした。locale normalizationのlocal repairは完了したものの、修正を含む新HEADのremote capture・artifact apply・Final Gate PASSは未実行である。"
+      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。依存修正を含む新HEADのremote capture・artifact apply・Final Gate PASSは、ユーザーpush前のため未実行である。"
     },
     "scope_control": {
       "rating": "pass",
@@ -18,7 +18,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "format、markdown、typecheck、spec、全contract 228 tests、native component 49 testsはPASSした。Run 31841614738ではAPK buildとEmulator起動まで成功したが、profile normalization failureのため実artifact provenanceは未検証である。"
+      "evidence": "frozen install、expo install --check、expo-doctor 17/17、prebuild、EAS/native bundle/route validation、format、markdown、typecheck、lint、full test（Unit 66、Integration 98、Repository 33、Component 125、Contract 228）、native component 49 tests、web/spec build、image/security checksはPASSした。Final GateはAndroid 25 blockedを理由にEXPECTED FAILであり、実artifact provenanceは新HEADのActions captureまで未検証である。"
     },
     "safety_compliance": {
       "rating": "pass",
@@ -34,7 +34,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "remote gateとHEAD一致dispatchの再現経路は確認できたが、現HEADのprofile normalization failureを修正した新SHAのActions captureが必要である。"
+      "evidence": "remote gateとHEAD一致dispatchの再現経路は確認でき、現HEADにはlocale repairが存在する。今回の依存patchを含む新SHAは未pushのため、Actions captureは未実行である。"
     }
   },
   "findings": [
@@ -45,10 +45,16 @@
       "detail": "settings put system system_localesだけではAPI34 Emulatorのpersist.sys.localeがcanonical ja-JPへ反映されず、profile contractがfail-closeした。setpropと再起動・収束確認のlocal repairを行い、新HEADのcaptureを待つ。"
     },
     {
-      "category": "flaky_or_env_issue",
+      "category": "artifact_contract_gap",
       "severity": "medium",
       "evidence": "Run 31841614738のNative StaticはExpo Doctorが7 packageのpatch version mismatchを報告してfailureした。旧HEAD c5082e4のNative Staticはsuccessで、batch変更はpackage dependency/lockを変更していない。",
-      "detail": "現時点ではrunner/registry metadata driftとして記録し、依存validationを弱める変更は行わない。"
+      "detail": "再確認で同じ7件が現行Expo SDK 57の要求値と一致したため、依存validationを弱めず、7 packageと既存expo-constants overrideをSDK 57 patchへ同期した。更新後のexpo-doctorは17/17 PASS。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "依存patch修正後のlocal gateはPASSしたが、その変更を含むremote HEADのActions batch capture、25件artifact provenance、promotion、Final Gate PASSは未実行である。",
+      "detail": "ユーザーのcommit/push後に新HEADをsource of truthとしてState Bを再開する。古いRun 31841614738のartifactは再利用しない。"
     }
   ],
   "improvement_candidates": []

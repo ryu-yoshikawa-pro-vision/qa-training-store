@@ -22,6 +22,7 @@
 - [ ] D5. 修正をユーザーがpushした後、新HEADでState B remote gateとbatch dispatchを再実行する。
 - [ ] D6. 同一runの25/25 artifact/APKを検証・apply・promotion・status transitionし、代表6画面を目視確認する。
 - [ ] D7. materializeとFinal Visual Gate/verify/最新CIの完了を確認し、HANDOFF Bまたはmerge readinessを報告する。
+- [x] D8. Expo DoctorのSDK 57 patch mismatch 7件と`expo-constants` overrideを同期し、local quality gatesを再実行する。
 
 ## Blocked
 
