@@ -53,6 +53,58 @@ describe("Training curriculum contracts", () => {
     }
   });
 
+  it("separates the Windows physical-device route from the CI Emulator route", () => {
+    const root = process.cwd();
+    const nativeLesson = readFileSync(
+      resolve(root, "docs/curriculum/test-automation/part1/07_maestro-native-automation.md"),
+      "utf8",
+    );
+    const windowsHelper = readFileSync(
+      resolve(root, "scripts/native/windows/android-local.ps1"),
+      "utf8",
+    );
+    const trainingWorkflow = readFileSync(
+      resolve(root, "training/github-actions/training-native-ci.yml"),
+      "utf8",
+    );
+    const nativeCiWorkflow = readFileSync(resolve(root, ".github/workflows/native-ci.yml"), "utf8");
+
+    for (const token of [
+      "Android physical device",
+      "adb devices -l",
+      "-RequirePhysicalDevice",
+      "-DeviceSerial",
+      "Training Maestro baseline",
+      "Evidence",
+    ]) {
+      expect(nativeLesson).toContain(token);
+    }
+    expect(nativeLesson).not.toContain("scripts/training/android-emulator.ps1");
+    expect(windowsHelper).toContain("function Assert-PhysicalDevice");
+    expect(windowsHelper).toContain("ro.kernel.qemu");
+    expect(windowsHelper).toContain("ro.boot.qemu");
+    expect(windowsHelper).toContain(
+      "if ($RequirePhysicalDevice) { Assert-PhysicalDevice $selected }",
+    );
+
+    for (const token of [
+      'ANDROID_API_LEVEL: "34"',
+      "system-images;android-34;google_apis;x86_64",
+      "TRAINING_AVD_NAME",
+      "Run Training Maestro baseline",
+      "Cleanup emulator",
+    ]) {
+      expect(trainingWorkflow).toContain(token);
+    }
+    for (const token of [
+      "training/maestro/**",
+      "Start Android Emulator with KVM",
+      "Run Training Maestro baseline",
+    ]) {
+      expect(nativeCiWorkflow).toContain(token);
+    }
+  });
+
   it("fails closed for unapproved structured workflow actions and commands", () => {
     const validWorkflow = `
 name: Training fixture

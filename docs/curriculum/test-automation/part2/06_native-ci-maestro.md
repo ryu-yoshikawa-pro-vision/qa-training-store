@@ -21,7 +21,6 @@
 - `training/maestro/`
 - `training/github-actions/training-native-ci.yml`
 - `scripts/training/run-maestro-baseline.ts`
-- `scripts/training/android-emulator.ps1`
 - `.github/workflows/native-ci.yml`
 - `.github/workflows/native-ios-ci.yml`
 - `scripts/native/windows/android-local.ps1`
@@ -56,7 +55,7 @@ Native変更判定、Static Check、Production Bundle Guard、Android Build、An
 - Build / Emulator / Install / Maestro / Evidenceの関係を確認できる。
 - 現在の高度なFormal Native CIは、最小構成を動かした後に比較する。
 
-Training Native Workflowは `permissions: contents: read`、Secret / OIDC / Environment / Deployなしで、Build → Emulator → Install → Maestro → Evidenceを構成します。Formal Native CIのRequired Gateを置き換えず、Training baselineは既存Formal Android Runtimeからも再利用できます。
+Training Native Workflowは `permissions: contents: read`、Secret / OIDC / Environment / Deployなしで、GitHub-hosted Ubuntu runner上のBuild → API 34 Emulator → Install → Maestro → Evidenceを構成します。ここでのEmulatorはGitHub Native CIのCanonicalであり、Windows Local Fresh LearnerのCanonical Physical Device経路とは別責務です。Formal Native CIのRequired Gateを置き換えず、Training baselineは既存Formal Android Runtimeからも再利用できます。
 
 ## Lesson 1: Native CIがWeb CIより重い理由
 
@@ -152,9 +151,9 @@ Build Jobで生成したAPKをGitHub Actions Artifactへ保存し、Runtime Job�
 
 ただしArtifact Upload / Downloadにも時間がかかるため、分割の価値がある境界を考えます。
 
-## Lesson 5: Emulator
+## Lesson 5: CI Emulator
 
-Android Runtime Jobでは、APKをInstallするためにEmulatorを起動します。
+GitHub Native Android Runtime Jobでは、APKをInstallするためにAPI 34 / `google_apis` / `x86_64` Emulatorを起動します。Windows LocalではこのLessonのEmulatorを起動せず、Part 1のPhysical Device runbookを使用します。
 
 確認観点:
 
@@ -340,7 +339,7 @@ AndroidとiOSを同じ頻度にする必要があるかも含め、Runner Cost�
 
 ## 完了条件
 
-- AndroidのTraining WorkflowでScenario ShopをBuildし、Emulator上でMaestro Flowを1本以上実行している。
+- GitHub-hosted Android Training WorkflowでScenario ShopをBuildし、API 34 Emulator上でMaestro Flowを1本以上実行している。
 - Native Failureを工程別に分類し、Evidenceを1件以上確認している。
 - 現在のAndroid Native CIのJob構成を説明できる。
 - Build Artifact再利用の目的を説明できる。

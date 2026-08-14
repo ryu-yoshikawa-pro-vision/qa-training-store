@@ -29,9 +29,12 @@
 - D1. Windows Android Buildではcurrent repository実体PathがCMake object path上限を超えたため、current worktree専用短縮Junctionとshort virtual storeが必要だった。
 - D2. Training helperの接続Emulator単数時にPowerShell scalarへ`.Count`を参照する不備があり、配列化して修正した。
 - D3. SDKのcmdline-tools `latest` / `latest-2` inconsistency warningは残るが、Training AVD identity / API / ABI / baselineはPASSした。
+- D4. Windows Local Fresh LearnerのCanonicalをPhysical Android Deviceへ分離し、GitHub Native CIのAPI 34 / `google_apis` / `x86_64` Emulator保証は維持する契約へ更新した。
 
 ## Blocked
 
-- 過去の修正Sourceに対するRequired Phase 1 / Native CIは成功済みだが、今回のhelper / validator変更は未commitであり、その修正Sourceに対するpost-change Required CIは未実行。Canonical validation停止中のためSource correctness gateは未確定とする。
-- Fresh CopyのWeb desktop / mobile / learner exercise / expected-failure、Workbook / Spec / Part 1 / Part 2のlearner pathは確認済み。物理端末のBuild / Install / Smoke / Test Control / Training Maestro baselineは補助Evidenceとして成功したが、Canonical AVDの代替にはしない。ユーザー指示によりエミュレータの追加使用を停止したため、Canonical AVD Fresh Learnerは未成立であり、Task 13は未完了のままとする。
-- Source helper変更を含む未commit worktreeに対するpost-change Required CIは未実行。Git mutationは禁止のため、Canonical AVD検証が再開・成功し、Source / Artifact validationを完了した後にユーザーがcommit / pushし、Required CI成功後にFINAL_CANDIDATE_SHAをfreezeする。その後にexact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。
+- Source / Curriculum / validator / contract変更を含むworktreeは未commitであり、post-change Required Phase 1 / Native CIは未実行。Current-treeのPhysical Canonical runtimeと全local validationはPASSしたが、exact committed snapshotのFresh Learnerは未確認とする。
+- Fresh CopyのWeb desktop / mobile / learner exercise / expected-failure、Workbook / Spec / Part 1 / Part 2のlearner pathは既存Evidenceどおり確認済み。新契約でのPhysical AndroidはDoctor / Prepare / ABI Auto Build / APK integrity / Install / Smoke / Test Control 1/1 / Training Maestro baseline 1/1 / Evidence / cleanupまでPASSした。dirty worktreeのためTask 13は未完了のままとする。
+- ユーザーのcommit / push後にexact committed snapshotをPhysical Deviceで再実行し、post-change Required CI成功後にFINAL_CANDIDATE_SHAをfreezeする。その後にexact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。Task 14は未完了のままとする。
+
+Progress: 90% (19/21)

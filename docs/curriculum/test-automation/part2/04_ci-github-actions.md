@@ -29,7 +29,7 @@ Git / GitHubの基本演習ではForkも利用できますが、**GitHub Actions
 - 本番向けCloudflare Deployを実行しない。
 - `CLOUDFLARE_API_TOKEN` など本番Secretを要求しない。
 - Curriculum validator、Automation Web build、Training Playwright baselineをRepository-owned commandで実行する。
-- Androidは別のTraining Native WorkflowでBuild → Emulator → Maestro baselineを実行する。
+- Androidは別のGitHub-hosted Training Native WorkflowでAPI 34 / `google_apis` / `x86_64` Emulator → Build / Install → Maestro baselineを実行する。これはWindows Local Fresh LearnerのCanonical Physical Device経路とは分離したCI保証である。
 - 本体RepositoryのRequired CheckやProduction Workflowへ影響しない。
 
 ### Forkを使ってCI演習する場合

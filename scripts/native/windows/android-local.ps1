@@ -11,7 +11,8 @@ param(
   [string]$Flow = "maestro/native-test-control.yaml",
   [int]$MaxWorkers = 1,
   [string]$RunId,
-  [switch]$CleanNative
+  [switch]$CleanNative,
+  [switch]$RequirePhysicalDevice
 )
 
 Set-StrictMode -Version Latest
@@ -123,16 +124,83 @@ function RepositoryRoot {
   return $alias
 }
 
+function RepositoryMinimumAndroidApi {
+  $configPath = Join-Path $SourceRoot "app.config.ts"
+  if (-not (Test-Path $configPath)) { throw "Android support source of truth was not found: $configPath" }
+  $content = Get-Content $configPath -Raw
+  $match = [regex]::Match($content, '(?m)\bminSdkVersion\s*:\s*(\d+)\b')
+  if (-not $match.Success) { throw "Android minimum API was not found in app.config.ts." }
+  return [int]$match.Groups[1].Value
+}
+
+function Assert-PhysicalDevice([string]$TargetSerial) {
+  $deviceLines = @(Out "adb" @("devices", "-l") -AllowFailure)
+  $statusLine = @($deviceLines | Where-Object {
+      $_ -match "^$([regex]::Escape($TargetSerial))\s+(\S+)(?:\s|$)"
+    } | Select-Object -First 1)
+  if ($statusLine.Count -eq 0 -or $statusLine[0] -notmatch "^$([regex]::Escape($TargetSerial))\s+device(?:\s|$)") {
+    throw "Canonical Fresh Learner requires an authorized physical Android device with adb status 'device': $TargetSerial"
+  }
+  if ($TargetSerial -match "^(emulator-\d+|localhost:\d+)$") {
+    throw "Canonical Fresh Learner requires a physical Android device. Emulator detected: $TargetSerial"
+  }
+
+  $qemu = ((Out "adb" @("-s", $TargetSerial, "shell", "getprop", "ro.kernel.qemu") -AllowFailure) -join "").Trim()
+  $bootQemu = ((Out "adb" @("-s", $TargetSerial, "shell", "getprop", "ro.boot.qemu") -AllowFailure) -join "").Trim()
+  if ($qemu -eq "1" -or $bootQemu -eq "1") {
+    throw "Canonical Fresh Learner requires a physical Android device. Emulator detected: $TargetSerial (qemu property is 1)."
+  }
+
+  $apiText = ((Out "adb" @("-s", $TargetSerial, "shell", "getprop", "ro.build.version.sdk") -AllowFailure) -join "").Trim()
+  $api = 0
+  if (-not [int]::TryParse($apiText, [ref]$api)) {
+    throw "Android API level is unreadable for physical device $TargetSerial."
+  }
+  $minimumApi = RepositoryMinimumAndroidApi
+  if ($api -lt $minimumApi) {
+    throw "Physical device $TargetSerial uses Android API $api, below repository minimum API $minimumApi from app.config.ts."
+  }
+
+  $abi = ((Out "adb" @("-s", $TargetSerial, "shell", "getprop", "ro.product.cpu.abilist") -AllowFailure) -join "").Trim()
+  if ([string]::IsNullOrWhiteSpace($abi)) {
+    throw "Android ABI is unreadable for physical device $TargetSerial."
+  }
+  $packageService = ((Out "adb" @("-s", $TargetSerial, "shell", "service", "check", "package") -AllowFailure) -join " ").Trim()
+  if ($packageService -notmatch "found") {
+    throw "Android package service is not ready on physical device $TargetSerial."
+  }
+
+  $power = ((Out "adb" @("-s", $TargetSerial, "shell", "dumpsys", "power") -AllowFailure) -join "`n")
+  if ($power -notmatch "mWakefulness=Awake|Display Power:\s*state=ON") {
+    throw "Physical device $TargetSerial must be awake. Wake the device and retry."
+  }
+  $window = ((Out "adb" @("-s", $TargetSerial, "shell", "dumpsys", "window") -AllowFailure) -join "`n")
+  $keyguardMatch = [regex]::Match($window, "(?:isKeyguardShowing|mShowingLockscreen)=(true|false)")
+  if (-not $keyguardMatch.Success) {
+    throw "Unable to confirm lock state for physical device $TargetSerial. Unlock the device and retry."
+  }
+  if ($keyguardMatch.Groups[1].Value -eq "true") {
+    throw "Physical device $TargetSerial is locked. Unlock the device and retry; credentials are not automated."
+  }
+
+  Write-Host "PASS: Physical device=$TargetSerial API=$api ABI=$abi qemu=$qemu boot_qemu=$bootQemu" -ForegroundColor Green
+}
+
 function Serial {
   Require "adb"
   $devices = @(Out "adb" @("devices") | Where-Object { $_ -match "^(\S+)\s+device$" } | ForEach-Object { $Matches[1] })
+  $selected = $null
   if ($DeviceSerial) {
     if ($devices -notcontains $DeviceSerial) { throw "Device is not authorized: $DeviceSerial" }
-    return $DeviceSerial
+    $selected = $DeviceSerial
   }
-  if ($devices.Count -eq 0) { throw "No authorized device. Check 'adb devices -l'." }
-  if ($devices.Count -gt 1) { throw "Multiple devices found. Pass -DeviceSerial." }
-  return $devices[0]
+  else {
+    if ($devices.Count -eq 0) { throw "No authorized device. Check 'adb devices -l'." }
+    if ($devices.Count -gt 1) { throw "Multiple devices found. Pass -DeviceSerial." }
+    $selected = $devices[0]
+  }
+  if ($RequirePhysicalDevice) { Assert-PhysicalDevice $selected }
+  return $selected
 }
 
 function DeviceArchitecture([string]$Serial) {
@@ -184,6 +252,7 @@ function Prepare {
   Step "Prepare dependencies and generated Android project"
   Set-LocalEnvironment
   InitArtifacts
+  if ($RequirePhysicalDevice) { $null = Serial }
   $root = RepositoryRoot
   Ensure-Directory $VirtualStoreDir
 

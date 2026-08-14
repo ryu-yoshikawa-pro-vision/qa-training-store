@@ -588,3 +588,52 @@ Progress: 90% (18/20)
 - `git diff --check` => PASS（whitespace errorなし。CRLF warningのみ）。
 - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check` => PASS（5 files、0 replacements、0 residual findings）。
 - 最終runtime確認 => `adb devices`は実機`354955112942476`のみ、emulator / qemu process countは0。エミュレータは追加起動していない。
+
+## 2026-08-14 17:09 JST — Windows Local Physical Device Canonical契約変更後のcurrent-tree検証
+
+### 方針と原因分類
+
+- ユーザー指示により、Windows Local Fresh Learner / Part 1 NativeのCanonicalをUSB接続されたPhysical Android Deviceへ変更した。Android Emulator / AVDはLocalの完了条件から外し、GitHub Native CIだけがAPI 34 / `google_apis` / `x86_64` Emulator、Formal Maestro、Training Maestro baselineを保証する責務分離とした。iOS Build-onlyは変更していない。
+- 旧Local AVDで観測されたSystem UI `isn't responding`は、旧契約下の履歴として保持する環境側Findingであり、今回のGoalでは修復・再調査しない。今回のCurrent blockerはAVDではなく、Source / Curriculum / validator / contract変更が未commitでexact committed snapshotとpost-change Required CIが未確認であることと分類する。
+- Source上の必要修正は、既存Windows helperへ明示的な`-RequirePhysicalDevice`を追加し、serial文字列だけに依存せずADB status、`ro.kernel.qemu` / `ro.boot.qemu`、`app.config.ts`の`minSdkVersion`、ABI、package service、awake、unlockedを有限・fail-closeで確認することだった。明示`-DeviceSerial`分岐でもphysical checkを必ず通るよう回帰修正した。
+- 最初のPrepareは、既存の既定Repository Aliasが別リポジトリを指しているためhelperの安全なJunction検査でfail-closeした。既存Aliasは変更せず、現在worktreeだけを指す検証済みの短縮Aliasを明示して再実行した。これはHost Path前提の環境差分であり、Application / Android runtime failureではない。
+
+### 変更範囲
+
+- `scripts/native/windows/android-local.ps1`: Physical Canonicalのopt-in fail-close判定、Repository minimum APIのSource of Truth読取、明示serial適用。
+- `scripts/training/android-emulator.ps1`: Local専用で参照消滅を確認した未検証AVD helperを削除。GitHub Native CIのshell Emulator実装は削除していない。
+- `scripts/validate-curriculum.ts` / `tests/contracts/training-curriculum.test.ts`: Local Physical Device contractとCI Emulator contractの分離、旧AVD実装文字列固定の除去、CI API34 / image / serial / baseline / cleanupの保護。
+- `docs/curriculum/test-automation/00_learning-design.md`、`part1/07_maestro-native-automation.md`、`part1/09_part1-capstone.md`、`part1/10_part1-capstone.md`: USB debugging、ADB authorization、`adb devices -l`、awake / unlocked、Physical DeviceのBuild / Install / Smoke / Test Control / Training baseline / EvidenceをCanonical化。
+- `docs/curriculum/test-automation/part2/04_ci-github-actions.md`、`part2/06_native-ci-maestro.md`、`training/github-actions/README.md`: Windows Local PhysicalとGitHub Native CI Emulatorの責務を明示。
+- `docs/native/windows-android-local-validation.md`、remediation Plan、`docs/PROJECT_CONTEXT.md`、history / new plan: Runbook、要件、living documentationを更新。
+- `.github/workflows/native-ci.yml` と `training/github-actions/training-native-ci.yml`のCI Emulator実装は変更していない。
+
+### 新契約でのPhysical Android current-tree実行
+
+- Device: serial `354955112942476`、ADB status `device`、Android API 30、ABI `arm64-v8a,armeabi-v7a,armeabi`。API 30は最低対応APIとして固定せず、`app.config.ts`の`minSdkVersion`と照合した。
+- Physical判定: `ro.kernel.qemu` / `ro.boot.qemu`はEmulator値でなく、package serviceは`found`、端末はawake / unlocked、ホストemulator processは0。
+- `android-local.ps1 -Action Doctor -DeviceSerial ... -RequirePhysicalDevice`: PASS。
+- `Prepare`: 検証済みworktree Junction指定でPASS。依存関係、Native asset、image manifest、route dependency、Expo prebuildを完了。
+- `Build -Architecture Auto`: PASS。Device ABI `arm64-v8a`向けRelease APKを生成。`.artifacts/native-local/20260814-physical-canonical-contract-1633/build/apk-info.txt`で57,777,006 bytes、SHA-256、ABIを保存し、bundle 1件、arm64-v8a native library 27件、他ABI 0件を確認。
+- `Install`: PASS。`pm path`でpackage installedを確認。
+- `Smoke`: PASS。Launch後のapp process確認とfatal startup log scanを完了。
+- `Test -Flow maestro/native-test-control.yaml`: PASS、JUnit `tests=1 failures=0`。
+- `QA_TRAINING_ANDROID_SERIAL`、`ANDROID_SERIAL`、`TARGET_SERIAL`を同じserialへ固定した`pnpm run training:native:baseline`: PASS、1/1、JUnit `tests=1 failures=0`。
+- `Evidence`: `.artifacts/native-local/20260814-physical-canonical-contract-1633/evidence/`へ`screen.png`、`uiautomator.xml`、`maestro-hierarchy.txt`、`logcat.txt`、`activities.txt`を保存。PNG signature、UI hierarchy parse、hierarchy非空を確認した。
+- Cleanup: `am force-stop com.ryuyoshikawa.scenarioshop`後にapp PIDなし、ADBは対象Physical Deviceのみ、host emulator process 0を確認し、`cleanup.txt`へ保存した。今回の検証でAVDは起動・使用していない。
+
+### ValidationとFresh Learner判定
+
+- PowerShell parse、`pnpm run format:check`、`pnpm run lint:markdown`（250 files / 0 issues）、`pnpm run validate:spec`、`pnpm run validate:curriculum`、`pnpm run lint`（0 errors / 65 existing warnings）、`pnpm run typecheck`、focused curriculum contract（7/7）、`pnpm run test:contracts`（25 files / 209 tests）、`pnpm run verify`（406.5 seconds）をPASSした。
+- Current-treeのWindows Local Physical Android Journeyは、要求されたDoctor → Prepare → Build → APK integrity → Install → Smoke → Test Control → Training Maestro baseline → Evidence → cleanupを一続きにPASSした。
+- ただしSource / Docs / Tests / Run Artifactは未commitであるため、これはImplementation Verificationであり、exact committed snapshotのFresh Learner PASSへは繰り上げない。Task 13は未チェック、Task 14も未チェック、Progressは`90% (19/21)`を維持する。
+- `run.json`は`status=partial` / `primary_failure_category=missing_validation`、`evaluation.json`は`result=partial` / `primary_failure_category=missing_validation`を維持する。FINAL_CANDIDATE_SHAはfreezeせず、Final Delivery remote runsも開始していない。ユーザーのcommit / push後にexact committed snapshotのPhysical Fresh LearnerとRequired Phase 1 / Native CIを確認する。
+
+## 2026-08-14 17:14 JST — Active Run Artifact final checks
+
+- `run.json` / `evaluation.json` JSON parse => PASS。`partial` / `missing_validation`を維持した。
+- `TASKS.md` checkbox再計算 => PASS。Now + Discoveredのcheckboxは21件、完了19件、Blocked除外、Progressは`90% (19/21)`。Task 13 / Task 14は未完了。
+- `git diff --check` => PASS。whitespace errorなし（CRLF warningのみ）。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check` => PASS（5 files、0 replacements、0 residual findings）。
+- `pnpm run format:check`、`pnpm run lint:markdown`をRun Artifact追記後にも再実行し、PASSを確認した。`lint:markdown`は設定上`.codex/runs/**`を除外するためRun Artifactの直接Markdown検証ではない。
+- Git mutation（add / commit / push / merge / rebase / tag / branch操作）は実施していない。Final Delivery remote runs、FINAL_CANDIDATE_SHA freeze、PR更新も実施していない。

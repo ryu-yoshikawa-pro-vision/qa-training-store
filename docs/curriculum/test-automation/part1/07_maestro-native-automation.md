@@ -26,104 +26,93 @@
 
 ## Part 1での標準実行環境
 
-Part 1のMaestroハンズオンは、全受講者が同じ手順を再現しやすいように**Android Emulatorを標準経路**とします。
+Windows LocalのPart 1 MaestroハンズオンにおけるCanonical経路は、USB接続された**Android physical device**です。Android Emulator / AVDは任意の補助経路であり、Fresh LearnerやPart 1の完了条件ではありません。
 
 Current Formal GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Simulator / Maestroを使える環境でも、それを正式Runtime保証やPart 1完了条件へ昇格させません。
 
 理由は次です。
 
 - iOS RuntimeにはmacOS / Xcode環境が必要だが、Current formal CIはBuild-onlyである。
-- Part 1の目的はNative UI自動化の基本概念を理解することであり、OS環境構築差分を主目的にしない。
+- Windows Localでは受講者が手元のUSB接続端末でNative UI自動化を再現できることを優先する。
+- GitHub Native CIでは、Android API 34 / `google_apis` / `x86_64` EmulatorとFormal / Training Maestroを引き続き保証する。これはWindows LocalのCanonicalとは別責務である。
 - Android / iOSの保証範囲、CI設計、Runner CostはPart 2で扱う。
 
-Android Build / Install / Emulator / Maestroの開始確認は、`scripts/training/android-emulator.ps1`、Training Maestro baseline、Current Native CIの契約で固定します。Formal NativeのFlowや第二Emulator基盤は作りません。
+Android Build / Install / Physical Device / Maestroの開始確認は、`scripts/native/windows/android-local.ps1`、Training Maestro baseline、Current Native CIの契約で固定します。Formal NativeのFlowや第二Native基盤は作りません。
 
-### Android Start GateとRecovery
+### Android Physical Device Start Gate
 
-Windowsでは、既存のAndroid SDK / Emulator基盤をTrainingから再利用します。新しいFormal Native基盤や別のEmulatorを作りません。`ANDROID_SDK_ROOT`または`ANDROID_HOME`を設定した同じRepository Rootで、次の順に確認します。
+Windowsでは、Developer Options、USB debugging、ADB authorizationが済んだAndroid physical deviceを使用します。端末を起動してscreenを表示し、画面を手動でunlockしてから開始します。PIN / password / biometricを自動突破する処理はありません。
 
-```powershell
-& .\scripts\training\android-emulator.ps1 -Action Doctor
-& .\scripts\training\android-emulator.ps1 -Action Prepare
-```
+RepositoryのAndroid最低対応APIは`app.config.ts`の`minSdkVersion`をSource of Truthとします。今回の検証端末API 30を、正式な最低対応APIとして教材へ固定しません。
 
-`Prepare`で`system-images;android-34;google_apis;x86_64`が不足している場合は、既存SDKの`sdkmanager.bat`で次を一度だけInstallしてから、`Prepare`を再実行します。SDK Rootの実Pathは各自の環境に合わせます。
+複数の端末が接続されている場合は自動選択せず、必ずserialを明示します。
 
 ```powershell
-$sdkRoot = $env:ANDROID_SDK_ROOT
-if (-not $sdkRoot) {
-  $sdkRoot = $env:ANDROID_HOME
-}
-if (-not $sdkRoot) {
-  throw "ANDROID_SDK_ROOT or ANDROID_HOME is required."
-}
-$cmdlineToolsRoot = Join-Path $sdkRoot "cmdline-tools"
-if (-not (Test-Path -LiteralPath $cmdlineToolsRoot -PathType Container)) {
-  throw "cmdline-tools directory was not found: $cmdlineToolsRoot"
-}
-$sdkmanager = Join-Path $cmdlineToolsRoot "latest\bin\sdkmanager.bat"
-if (-not (Test-Path -LiteralPath $sdkmanager -PathType Leaf)) {
-  $foundSdkManagers = @(
-    Get-ChildItem -LiteralPath $cmdlineToolsRoot `
-      -Filter "sdkmanager.bat" `
-      -Recurse `
-      -File |
-      Sort-Object FullName
-  )
-  if ($foundSdkManagers.Count -eq 0) {
-    throw "sdkmanager.bat was not found under cmdline-tools."
-  }
-  $sdkmanager = $foundSdkManagers[-1].FullName
-}
-
-Write-Output "Using sdkmanager: $sdkmanager"
-& $sdkmanager "platform-tools" "emulator" "platforms;android-36" "build-tools;36.0.0" "system-images;android-34;google_apis;x86_64"
-if ($LASTEXITCODE -ne 0) {
-  throw "Android SDK package installation failed."
-}
+adb devices -l
+$serial = "<physical-device-serial>"
 ```
 
-`Start`はADB ready、`sys.boot_completed=1`、Android package serviceを有限時間で確認し、`QA_TRAINING_ANDROID_SERIAL=<serial>`を出力します。次のブロックはそのserialを自動取得し、Native Release Build / Install後にTraining baselineを実行します。
+出力が次のように`device`であることを確認します。
+
+```text
+<physical-device-serial>    device usb:... product:... model:...
+```
+
+`unauthorized`、`offline`、未接続の場合は、端末をunlockしてPCのRSA authorizationを許可し、USB接続を確認してから再実行します。ADBが端末を勝手に選ばないように、以降の全コマンドへ同じ`$serial`を渡します。
+
+Physical Device Canonical flowは、最初にToolchain DoctorでJDK、Android SDK、ADB、Maestroを確認し、次の順序で進めます。
 
 ```powershell
-$env:EXPO_PUBLIC_APP_ENV = "automation"
-$env:EXPO_PUBLIC_BUILD_KIND = "automation"
-$env:EXPO_PUBLIC_TEST_MODE = "true"
-$env:EXPO_PUBLIC_DEFAULT_SEED = "default"
-$serial = $null
-try {
-  $startOutput = & .\scripts\training\android-emulator.ps1 -Action Start
-  if ($LASTEXITCODE -ne 0) {
-    throw "Android emulator start failed."
-  }
-  $serialLine = $startOutput | Where-Object { $_ -like "QA_TRAINING_ANDROID_SERIAL=*" } | Select-Object -First 1
-  if (-not $serialLine) {
-    throw "Android emulator did not return a Training serial."
-  }
-  $serial = ($serialLine.ToString() -split "=", 2)[1]
-  if ([string]::IsNullOrWhiteSpace($serial)) {
-    throw "Training emulator serial is empty."
-  }
-  $env:QA_TRAINING_ANDROID_SERIAL = $serial
-  $env:ANDROID_SERIAL = $serial
-  pnpm run build:native:android:release
-  if ($LASTEXITCODE -ne 0) {
-    throw "Android build failed."
-  }
-  pnpm run training:native:baseline
-  if ($LASTEXITCODE -ne 0) {
-    throw "Training Maestro baseline failed."
-  }
-} finally {
-  if ([string]::IsNullOrWhiteSpace($serial)) {
-    & .\scripts\training\android-emulator.ps1 -Action Stop
-  } else {
-    & .\scripts\training\android-emulator.ps1 -Action Stop -Serial $serial
-  }
-}
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Doctor `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Prepare `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Build `
+  -DeviceSerial $serial `
+  -Architecture Auto `
+  -RequirePhysicalDevice `
+  -RunId "<run-id>"
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Install `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId "<run-id>"
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Smoke `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId "<run-id>"
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Test `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -Flow "maestro/native-test-control.yaml" `
+  -RunId "<run-id>"
+
+$env:QA_TRAINING_ANDROID_SERIAL = $serial
+$env:ANDROID_SERIAL = $serial
+pnpm run training:native:baseline
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Evidence `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId "<run-id>"
 ```
 
-`Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`のImage不足は上記`sdkmanager`を使い、boot timeoutは`Start`を停止して`adb devices`とEmulator logを確認してから再試行します。APK install前にMaestroを再試行せず、Build / Install / Test Control Readyを順に確認します。終了時は必ず`Stop`でTraining Emulatorを停止します。
+`-RequirePhysicalDevice`はserial、ADB status、Emulator property、Android API、ABI、package service、awake、unlockedを有限チェックし、Emulatorやlocked deviceをfail-closeします。失敗時は「端末を起動し、画面ロックを解除してから再実行してください」と表示し、認証情報へアクセスしません。
+
+`Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`は依存関係とNative生成物を整えます。APK integrity確認後にInstall、Smoke、Test Control、Training Maestro baseline、Evidenceへ進み、上流が失敗した場合は後続をPASS扱いにしません。
 
 ## Lesson 1: Maestroとは
 
@@ -206,7 +195,7 @@ Native Testでも、前回実行の状態へ依存しないことが重要です
 
 ## Lesson 6: 最初のMaestro Flow
 
-Android Emulator上で次を実装します。
+Canonical physical Android device上で次を実装します。
 
 1. Appを起動する。
 2. Test Controlで`default` Seed ScenarioへResetする。
@@ -259,7 +248,7 @@ Part 1ではAndroidで実際に手を動かし、iOSは差分とBuild-only保証
 | 要素指定 | Role / Label / Locator / UI Test IDなど | Text / UI Test IDなど |
 | 初期化 | Test API / Fixture / Seed Scenario | Deep Link / Test Control / Seed Scenario |
 | Evidence | Trace / Screenshot / Video | Screenshot / JUnitなど |
-| 実行環境 | Browser | Emulator / Simulator / Device |
+| 実行環境 | Browser | Physical Android device（Windows Local） / Emulator（GitHub Native CI） / Simulator（任意比較） |
 
 どちらかへ統一することではなく、対象に適したToolを選びます。
 
@@ -295,11 +284,11 @@ Cartへ商品を追加した後にAppを再起動し、状態復元を確認し�
 4. Deep Linkを使うとテストが速くなる一方、何を飛ばしすぎないよう注意すべきか。
 5. Android / iOSでFlowを機械的に複製しない理由は何か。
 6. PlaywrightとMaestroの共通概念を3つ挙げる。
-7. Part 1でAndroidを標準経路にする理由は何か。
+7. Windows LocalのCanonicalをPhysical Android device、GitHub Native CIのCanonicalをAPI 34 Emulatorに分ける理由は何か。
 
 ## 完了条件
 
-- Android Emulator上で意味のあるMaestro Flow Evidenceを最低1本作成している。2本以上はPractice Volumeとして推奨する。
+- Physical Android device上で意味のあるMaestro Flow Evidenceを最低1本作成している。2本以上はPractice Volumeとして推奨する。
 - UI Test IDを利用した操作を含む。
 - Test ControlまたはDeep Linkを利用している。
 - PlaywrightとMaestroで同じBusiness Flowを1件以上比較している。

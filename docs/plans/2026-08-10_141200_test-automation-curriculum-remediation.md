@@ -959,34 +959,24 @@ Training Copy remoteが一時的に利用できない場合:
 - Android Build Tools 36.0.0
 - Maestro 2.8.0
 
-#### Android Runtime Emulator Contract
+#### Windows Local Android Physical Device Contract
 
-Current Formal CIと大きく乖離させないため、初版Required Runtimeを以下に固定する。
+Windows Local Fresh Learner / Part 1 NativeのCanonical Runtimeは、USB接続されたPhysical Android Deviceとする。既存`android-local.ps1`へ明示serialと`-RequirePhysicalDevice`を渡し、次を有限・fail-closeに確認する。
 
-- Runtime API: 34
-- System Image: `system-images;android-34;google_apis;x86_64`
-- ABI: `x86_64`
-- Device Profile: `pixel_2`
-- Training AVD Name: `scenario-shop-training-api34`
-- Emulator boot完了後にADB deviceを1台へ確定してTraining commandへ渡す。
+- ADB statusが`device`であること。
+- `ro.kernel.qemu` / `ro.boot.qemu`がEmulatorを示さないこと。
+- Android APIが`app.config.ts`の`minSdkVersion`以上であること。
+- Device ABIをAuto検出し、そのABI向けRelease APKをBuildすること。
+- Package service、awake、unlocked、Maestro操作可能性を確認すること。
+- Build / APK integrity / Install / Smoke / Test Control / Training Maestro / Evidenceを同じserialで実行すること。
 
-Existing `scripts/native/windows/android-local.ps1`は接続済みDevice以降のDoctor / Build / Install / Test Contractとして再利用する。
-
-AVD作成・起動・boot待機はTraining専用Helperへ分離する。
+Android Emulator / AVDはWindows Localの任意補助経路であり、Part 1完了条件にはしない。GitHub Native CIでは別契約としてAPI 34 / `google_apis` / `x86_64` Emulator Runtimeを維持する。
 
 Target:
 
-- `scripts/training/android-emulator.ps1`
+- `scripts/native/windows/android-local.ps1`
 
-最低責務:
-
-1. `sdkmanager` / `avdmanager` / `emulator` / `adb`を確認する。
-2. API 34 `google_apis` `x86_64` system imageを確認・必要なら導入手順を案内する。
-3. `scenario-shop-training-api34`を決定的に作成または再利用する。
-4. Emulatorを起動する。
-5. `sys.boot_completed=1`等の意味のある状態まで待機する。
-6. 対象Serialを確定する。
-7. Existing `android-local.ps1`へ対象Deviceを引き渡せる状態にする。
+`scripts/training/android-emulator.ps1`はWindows Local Canonical経路から除去する。CIのEmulator準備・起動は`training/github-actions/training-native-ci.yml`および`.github/workflows/native-ci.yml`のWorkflow内で完結する。
 
 Compile SDK 36とRuntime API 34を「同じAPI Levelでなければならない」と誤解させない教材説明を追加する。
 
@@ -1427,8 +1417,8 @@ Validation:
 - `training/maestro/baseline/`
 - `training/maestro/exercises/`
 - 必要な場合のみ`training/maestro/failure-exercises/`
-- `scripts/training/android-emulator.ps1`
-- Android local setup / command
+- `scripts/native/windows/android-local.ps1`のPhysical Device opt-in
+- Android local physical-device setup / command
 - Test Control Reset
 - baseline Flow
 - Evidence
@@ -1437,9 +1427,9 @@ Validation:
 Validation:
 
 - Compile SDK 36 / Build Tools 36.0.0を確認する。
-- API 34 `google_apis` `x86_64` AVDを決定的に準備できる。
-- Canonical Windows環境でEmulator boot → Doctor → Build → Install → Launch → Training baseline Flowを通す。
+- Canonical Windows環境で明示serialのPhysical Deviceを`-RequirePhysicalDevice`付きでDoctor → Prepare → Build → Install → Launch → Test Control → Training baseline → Evidenceまで通す。
 - Formal MaestroとTraining baselineを分離できる。
+- GitHub Native CI側ではAPI 34 `google_apis` `x86_64` Emulator RuntimeとTraining baselineを維持する。
 - iOS RuntimeをRequired Validationにしない。
 
 ### Wave 5 — Training Copy / GitHub Actions Foundation
@@ -2058,7 +2048,8 @@ Mitigation:
 ### Training Maestro
 
 - `training/maestro/baseline/`が存在する。
-- Canonical Windows + Android API 34 AVDでRequired Flowを実行できる。
+- Windows LocalではCanonical Physical Android DeviceでRequired Flowを実行できる。
+- GitHub Native CIではAndroid API 34 / `google_apis` / `x86_64` EmulatorでRequired Flowを実行できる。
 - Formal `maestro/`と分離されている。
 - Source Native CIでTraining baseline smokeを実行する。
 - `training/maestro/**`変更でNative Runtime CIがskipされない。
@@ -2081,11 +2072,11 @@ Mitigation:
 ### Setup / Recovery
 
 - Web Start Gateがある。
-- Android Start Gateがある。
-- AVD create / reuse / boot手順がある。
+- Windows Local Android Start Gateがあり、Physical DeviceのUSB／ADB authorization／awake／unlockedを確認する。
+- GitHub Native CI Training用のAVD create / reuse / boot手順がある。
 - Training Copy active Workflow / permission / runner確認手順がある。
 - Part 1 → Part 2 Training Copy移行手順がある。
-- Browser / JDK / Android SDK / AVD / Emulator / APK / Maestro / Git / Actionsの主要FailureをTroubleshootできる。
+- Browser / JDK / Android SDK / Physical Device / CI AVD / APK / Maestro / Git / Actionsの主要FailureをTroubleshootできる。
 
 ### Validation
 
@@ -2146,7 +2137,7 @@ PR Merge前に以下へすべてYesと答えられることを確認する。
 - `training-chromium`でbaselineを実行できるか。
 - `training-mobile-chromium`でminimal caseを実行できるか。
 - Intentional Failureを通常PASS Suiteと混ぜずにEvidence確認できるか。
-- WindowsでAPI 34 AVDを準備・起動できるか。
+- WindowsでPhysical Android Deviceを明示serialで準備・検証できるか。
 - AndroidでMaestro baselineまで進められるか。
 - Part 2へ成果物を引き継げるか。
 - full Source SHAからTraining CopyをScriptで準備・検証できるか。

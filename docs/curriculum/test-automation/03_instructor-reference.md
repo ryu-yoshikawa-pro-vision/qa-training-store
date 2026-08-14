@@ -62,7 +62,7 @@
 | Reset後に別データが残る | Scenario ID、Test API、localStorage / IndexedDBの初期化 | Test Data / Seed |
 | Locatorが見つからない | Semantic role、Stable Test ID、待機対象 | Locator / Synchronization |
 | Expected Failureが成功する | Failure Exerciseがbaselineへ混入していないか | Test Code |
-| AVDがbootしない | API 34 image、ABI、KVM、serial、finite timeout | Environment / Toolchain |
+| GitHub Native CIのAVDがbootしない | API 34 image、ABI、KVM、serial、finite timeout | Environment / Toolchain |
 | Maestroが起動しない | APKのBuild kind、Test Control listening、Maestro version | Harness / Toolchain |
 | Training CopyにWorkflowが多い | `prepare-training-copy`とactive allowlist | Trust Boundary |
 | iOSを実行できない | Current保証がBuild-onlyであることを確認 | Not a Required Runtime gate |

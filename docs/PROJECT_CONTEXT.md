@@ -369,3 +369,10 @@
 - Required Phase 1 CIは `validate:curriculum` とTraining Web baselineを実行し、Native CIは `training/maestro/**`をchange detectionへ含め、既存Android Runtime／Emulator／APK／Maestro基盤でTraining baselineを実行する。不要な第二Formal Native基盤は作らない。
 - Android Training Runtimeは API 34 / `google_apis` / `x86_64`、単一の対象serial、package service ready、有限timeoutを必須とし、Maestro 2.8.0は展開先のnested `maestro/bin/maestro`をversion checkしてからbaselineを実行する。Windows local runnerはPATH上の`maestro.bat`をshell経由で解決し、明示serialへFlowを渡す。Formal NativeのBuild／Runtime／cleanup契約を弱めず、Training専用の第二基盤は作らない。
 - Current Native GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-only（ADR-0011）である。Curriculum、Training Evidence、完了報告のいずれもiOS Simulator／Maestro／Runtime PASSを記録しない。
+
+## PR #25 Windows Local Physical Device Canonical分離（2026-08-14）
+
+- Windows Local Fresh Learner / Part 1 NativeのCanonical Android Runtimeは、USB接続・ADB authorization済み・起動済み・画面ロック解除済みのPhysical Android Deviceである。複数端末時はserialを明示し、`scripts/native/windows/android-local.ps1 -RequirePhysicalDevice`がADB status、Emulator property、`app.config.ts`の`minSdkVersion`、ABI、package service、awake、unlockedをfail-closeで確認する。
+- Windows LocalのDevice ABIは`Auto`検出を維持し、arm64-v8a等へ固定しない。Build、APK integrity、Install、Smoke、Test Control、Training Maestro baseline、Evidenceは同じserialへ接続する。API 30は最低対応APIとして固定せず、`app.config.ts`をSource of Truthとする。
+- Windows LocalのAndroid Emulator / AVDはFresh Learner完了条件から外した。Local専用で未検証だった`scripts/training/android-emulator.ps1`は削除し、AVD作成・起動・cleanupの保証はGitHub Native CI Workflowへ限定する。
+- GitHub Native CIは従来どおりUbuntu GitHub-hosted runner上のAndroid API 34 / `google_apis` / `x86_64` Emulator、Formal Maestro、Training Maestro baselineを保証する。iOSは変更せずBuild-onlyである。Local Physical DeviceとCI Emulatorの結果を相互に代替しない。

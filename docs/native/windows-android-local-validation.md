@@ -31,6 +31,8 @@ Store 公開、Production keystore、AAB、EAS Cloud、Android Emulator は対�
 | Maestro | 2.8.0 |
 | Android package | `com.ryuyoshikawa.scenarioshop` |
 | Deep Link scheme | `scenario-shop` |
+| Windows Local Canonical route | USB-connected physical Android device with explicit serial |
+| Android minimum API | `app.config.ts` の `minSdkVersion` |
 | 標準 SDK Root | `C:\Android\Sdk` |
 | 標準 Repository Alias | `C:\q` |
 | 標準 pnpm Virtual Store | `C:\v\qts` |
@@ -114,6 +116,8 @@ CI と同じ `2.8.0` を使用する。
 
 スクリプトの `Prepare` が Junction を作成し、以後の pnpm／Expo／Gradle／Maestro は `C:\q` から実行する。
 
+既存の `C:\q` が別 Repository を指している場合、helper は安全のため `Prepare` を fail-close する。既存 Alias を上書きせず、現在 worktree だけを指す検証済みの別 Alias を用意し、全 Action へ同じ `-RepositoryAlias` を明示する。
+
 `subst` は使用しない。React Native Autolinking 内部の `cmd` が仮想 Drive 上で失敗した実績がある。
 
 ### 4.2 pnpm Virtual Store
@@ -178,6 +182,35 @@ pnpm run native:android:doctor
 - ADB
 - USB 接続実機
 - Maestro 2.8.0
+
+Windows LocalのCanonical routeでは、上記の汎用package scriptではなく、同じserialと`-RequirePhysicalDevice`を各工程へ明示する。`-RequirePhysicalDevice`はEmulator、未認証／offline、API不足、package service未ready、sleep中、lock中の端末をfail-closeする。
+
+```powershell
+$serial = "<physical-device-serial>"
+adb devices -l
+
+$helper = "scripts/native/windows/android-local.ps1"
+$common = @(
+  "-DeviceSerial", $serial,
+  "-RequirePhysicalDevice"
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Doctor @common
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Prepare @common
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Build -Architecture Auto -RunId "<run-id>" @common
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Install -RunId "<run-id>" @common
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Smoke -RunId "<run-id>" @common
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Test `
+  -Flow maestro/native-test-control.yaml -RunId "<run-id>" @common
+
+$env:QA_TRAINING_ANDROID_SERIAL = $serial
+$env:ANDROID_SERIAL = $serial
+pnpm run training:native:baseline
+
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Evidence -RunId "<run-id>" @common
+```
+
+端末のAPIは`app.config.ts`の`minSdkVersion`以上である必要がある。接続可能だった端末のAPI 30を最低対応値として教材やhelperへ固定しない。ABIは`-Architecture Auto`で端末の`ro.product.cpu.abilist`から選択する。
 
 ### 5.1.1 実行前の失敗履歴と preflight
 

@@ -95,10 +95,12 @@ Maestroへ進む時点ではNative実行環境が追加で必要です。開始�
 
 ### Native / Maestro開始Gate
 
-標準ハンズオンはAndroid Emulatorを基準とします。
+Windows Localの標準ハンズオンは、USB接続されたPhysical Android Deviceを基準とします。Android Emulator / AVDは任意の補助経路であり、Part 1完了条件ではありません。
 
 - JDK / Android SDKを利用できる。
-- Android Emulatorを起動できる。
+- Android端末でDeveloper Options、USB debugging、ADB authorizationを設定できる。
+- `adb devices -l`で対象serialのstatusが`device`であることを確認できる。
+- 端末を起動・unlockし、Maestroから操作できる状態にできる。
 - Scenario Shop NativeアプリをBuild / Installできる。
 - Maestroから最小Flowを実行できる。
 

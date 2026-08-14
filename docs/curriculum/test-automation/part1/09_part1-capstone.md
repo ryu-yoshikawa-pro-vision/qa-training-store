@@ -15,7 +15,7 @@
 3. 既存Scenarioの意味を [`state-and-scenarios.md`](../../../spec/state-and-scenarios.md) とExecutable Sourceで確認する。
 4. `training-chromium`でbaselineを実行し、必要なCart条件を`exercises/`へ実装する。
 5. `training-mobile-chromium`でResponsive Riskを1件確認する。
-6. Android Capabilityが利用できる場合はTraining Maestro baselineを実行し、WebとNativeの共通RiskとPlatform固有Riskを分ける。Capabilityがない場合は実行を成功扱いにせず、`blocked_environment` または `not_completed` と理由をWorkbookへ記録する。環境不足は直ちにFailureとはしないが、Required Journeyの完了にも読み替えない。
+6. Windows LocalのCanonical Physical Android Deviceを、明示serial・`adb` status `device`・起動済み・unlock済みで準備する。Release APKをDevice ABIに合わせてBuildし、Install、Smoke、Test Control、Training Maestro baselineを実行する。Evidenceにはserial、physical判定、API、ABI、APK integrity、JUnit、Screenshot、UI hierarchy、logcat、activity stateを残す。Physical Device capabilityがない場合は実行を成功扱いにせず、`blocked_environment` または `not_completed` と理由をWorkbookへ記録する。環境不足は直ちにFailureとはしないが、Required Journeyの完了にも読み替えない。
 7. `03_automation-mapping.csv` と `04_execution-improvement.csv`へDecision、Evidence、Failure分類を追記する。
 
 ## Advanced tracks
@@ -33,4 +33,5 @@ Advancedは仕様のBR / AC、Scenario Reset、Layer選択、EvidenceをCoreと�
 - Spec、Risk、Test Case、Layer、Tool、EvidenceのTraceabilityを説明できる。
 - 自動化しない条件またはLater条件を1つ説明できる。
 - baselineとFailure Exerciseを混ぜていない。
+- Physical Android DeviceでBuild / Install / Smoke / Test Control / Training Maestro baseline / Evidenceを一続きに確認できる。
 - Android Build / RuntimeとiOS Build-onlyの保証差を誤記しない。

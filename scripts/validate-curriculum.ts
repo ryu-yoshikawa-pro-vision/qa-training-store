@@ -374,7 +374,7 @@ function validateTrainingAssets(rootDir: string): string[] {
     "scripts/training/validate-training-copy.ts",
     "scripts/training/workflow-contract.ts",
     "scripts/training/maestro-invocation.ts",
-    "scripts/training/android-emulator.ps1",
+    "scripts/native/windows/android-local.ps1",
     "tsconfig.training.json",
   ]) {
     if (!fs.existsSync(path.join(rootDir, requiredPath)))
@@ -383,31 +383,22 @@ function validateTrainingAssets(rootDir: string): string[] {
   const nativeFlow = read(rootDir, "training/maestro/baseline/native-training-baseline.yaml");
   assertContains(nativeFlow, "com.ryuyoshikawa.scenarioshop", "Training Maestro baseline");
   assertContains(nativeFlow, "scenario-shop://test-control/reset", "Training Maestro baseline");
-  const androidHelper = read(rootDir, "scripts/training/android-emulator.ps1");
-  assertContains(androidHelper, "service check package", "Android Training helper");
-  assertContains(androidHelper, "ro.build.version.sdk", "Android Training helper");
-  assertContains(androidHelper, "ro.product.cpu.abi", "Android Training helper");
+  const windowsAndroidHelper = read(rootDir, "scripts/native/windows/android-local.ps1");
   for (const required of [
-    "ANDROID_SDK_ROOT",
-    "ANDROID_HOME",
-    "cmdline-tools directory was not found",
-    "sdkmanager.bat was not found",
-    "scenario-shop-training-api34",
-    "emu avd name",
-    "Training emulator AVD must be",
-    "No connected emulator for serial",
-    "Get-InteractiveUiHierarchy",
-    "Wait-InteractiveUiStable",
-    "exec-out cat",
-    '"-gpu", "off"',
-    "stable com.android.systemui PID",
-    "no System UI ANR dialog",
+    "RequirePhysicalDevice",
+    "ro.kernel.qemu",
+    "ro.boot.qemu",
+    "Canonical Fresh Learner requires a physical Android device",
+    "app.config.ts",
+    "minSdkVersion",
+    "ro.build.version.sdk",
+    "ro.product.cpu.abilist",
+    "service",
+    "dumpsys",
+    "isKeyguardShowing",
+    "DeviceSerial",
   ])
-    assertContains(androidHelper, required, "Android Training helper");
-  if (androidHelper.includes('"-no-window"') || androidHelper.includes("swiftshader_indirect"))
-    fail(
-      "Android Training helper must not use the unstable headless/swiftshader startup combination",
-    );
+    assertContains(windowsAndroidHelper, required, "Windows Android physical helper");
 
   const maestroRunner = read(rootDir, "scripts/training/run-maestro-baseline.ts");
   for (const required of [
@@ -431,18 +422,16 @@ function validateTrainingAssets(rootDir: string): string[] {
     "docs/curriculum/test-automation/part1/07_maestro-native-automation.md",
   );
   for (const required of [
-    "$env:ANDROID_SDK_ROOT",
-    "$env:ANDROID_HOME",
-    "$cmdlineToolsRoot",
-    "Get-ChildItem -LiteralPath $cmdlineToolsRoot",
-    "Sort-Object FullName",
-    "$foundSdkManagers[-1].FullName",
-    "Using sdkmanager:",
-    "sdkmanager.bat was not found",
-    "Android build failed.",
-    "Training Maestro baseline failed.",
-    "finally",
-    "-Action Stop",
+    "Toolchain Doctor",
+    "-Action Doctor",
+    "Android physical device",
+    "USB debugging",
+    "adb devices -l",
+    "RequirePhysicalDevice",
+    "-DeviceSerial",
+    "unlocked",
+    "Training Maestro baseline",
+    "Evidence",
   ])
     assertContains(nativeLesson, required, "Native automation lesson");
 
@@ -486,6 +475,9 @@ function validateTrainingAssets(rootDir: string): string[] {
     'test -x "$EMULATOR"',
     'test -x "$AVDMANAGER"',
     "-avd",
+    "ANDROID_SYSTEM_IMAGE",
+    "TRAINING_AVD_NAME",
+    "Run Training Maestro baseline",
   ])
     assertContains(nativeWorkflow, required, "Training Android Workflow");
   return ["training-chromium", "training-mobile-chromium"];

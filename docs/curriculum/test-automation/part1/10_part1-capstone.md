@@ -121,7 +121,7 @@ Training用実行境界で最低3件をPlaywrightへ実装します。
 
 ## Phase 5: Maestro実装
 
-Android Emulator上で最低2件をMaestroへ実装します。
+Windows LocalのCanonical Physical Android Device上で最低2件をMaestroへ実装します。Android Emulator / AVDはPart 1の完了条件ではありません。
 
 必須条件:
 

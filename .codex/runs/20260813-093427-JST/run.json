@@ -155,16 +155,25 @@
       "Current Run Artifact JSON parse / PowerShell parse / TASKS recount => pass (run partial/missing_validation; evaluation partial/missing_validation; 19/21 = 90%; Task 13 and Task 14 unchecked)",
       "pnpm run format:check => pass; pnpm run lint:markdown => pass (248 files / 0 issues; .codex/runs excluded); pnpm run validate:spec => pass; pnpm run validate:curriculum => pass",
       "pnpm run lint => pass (0 errors / 65 warnings); pnpm run typecheck => pass; focused curriculum contract => pass (6/6); pnpm run test:contracts => pass (25 files / 208 tests); pnpm run verify => pass",
-      "git diff --check => pass; scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)"
+      "git diff --check => pass; scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)",
+      "PowerShell parser scripts/native/windows/android-local.ps1 => pass",
+      "Physical preflight => pass (serial 354955112942476, adb device, API 30, ABI readable, package found, awake / unlocked, host emulator process 0)",
+      "Windows Local Physical Canonical Doctor => pass",
+      "Windows Local Physical Canonical Prepare => initial stale C:\\q alias fail-closed; rerun with verified current-worktree C:\\q-pr25-physical alias => pass",
+      "Windows Local Physical Canonical Build => pass (Architecture Auto selected arm64-v8a; APK integrity bundle 1 / arm64-v8a native 27 / other ABI 0)",
+      "Windows Local Physical Canonical Install => pass; Smoke => pass; native-test-control => pass (1/1)",
+      "Training Maestro baseline with QA_TRAINING_ANDROID_SERIAL / ANDROID_SERIAL / TARGET_SERIAL fixed => pass (1/1)",
+      "Windows Local Physical Canonical Evidence and cleanup => pass (.artifacts/native-local/20260814-physical-canonical-contract-1633; app stopped; physical device only)",
+      "Current-tree Physical Fresh Learner Android required sequence => pass; exact committed snapshot verification remains pending"
     ],
     "warnings": [
       "lint has 65 pre-existing warnings",
-      "Android Gradle Build evidence is split: the earlier outer command timed out after Gradle had logged BUILD SUCCESSFUL; APK was independently inspected before Install. This repair reused the unchanged APK because only the runner changed.",
-      "Android SDK latest/latest-2 warning remains; current Training AVD identity and focused baseline passed",
-      "Latest worktree Source repair is not committed or pushed; prior Required Phase 1 / Native CI success belongs to the earlier committed revision, and post-change Required CI is pending",
-      "Fresh Learner Web path is complete. Physical Android supplemental validation passed for Test Control and Training Maestro baseline, but standard Training AVD had a repeatable System UI ANR and Canonical Android remains unverified; Final Delivery Readiness remains pending",
+      "Android SDK cmdline-tools latest/latest-2 inconsistency warning remains; current Physical Device build and runtime passed",
+      "Windows Local Physical Canonical current-tree runtime passed, but Source / Docs / Tests are uncommitted; exact committed snapshot Fresh Learner and post-change Required Phase 1 / Native CI remain pending",
+      "Existing C:\\q pointed to another repository; Prepare fail-closed as designed and used a separately verified current-worktree alias without modifying C:\\q",
+      "Historical Local AVD System UI ANR remains in REPORT history only; no AVD was used for the current contract verification and it is not a current Local Fresh Learner blocker",
       "Action SHA pinning and run.json scope_ref were intentionally not added; the former is a repository-wide policy concern and the latter is absent from the canonical RUN_MANIFEST schema",
-      "Pre-freeze reconciliation is incomplete because Canonical Android was not revalidated after the uncommitted Source repair. FINAL_CANDIDATE_SHA remains intentionally not frozen until Canonical validation, user commit/push, and post-change Required CI succeed; exact-SHA Delivery follows that freeze"
+      "GitHub Native CI Emulator contract remains protected, but current changes have not received post-change remote CI; user commit / push and exact-head Required CI are required before FINAL_CANDIDATE_SHA or Final Delivery"
     ]
   },
   "safety": {
