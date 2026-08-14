@@ -825,3 +825,58 @@ Progress: 90% (18/20)
 - `git diff --check`: PASS（CRLFのwarningのみ）。`scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check`: PASS（5 files、0 residual findings）。
 - 変更したのはDoD / Plan / ADR / Project Context / curriculum wording / Active Run Artifactのみで、既存Source implementation、Training Copy prepare / validate、Formal / Training workflow、CI Emulator、iOS Build-only保証は変更していない。
 - Current PR HEAD `86ee40a23a18a5c7bb1b9917be626c598fb46103`のPhase 1 CI #202 / Native CI #144はsuccessだが、今回の未commit scope追補を含むCIではない。ユーザーのcommit / push後に新exact HEADのPhase 1 / Native CIを確認する。remote Training Copy Delivery未実施はcurrent failure / blockerではない。
+
+## 2026-08-15 — 最終repair開始（Expo patch整合 / Plan stale契約 / Run Artifact）
+
+- 既存の完了済Task 1〜21は履歴を保持したまま変更しない。今回のRequired repairをTask 22〜24として追加し、Task 14 Deferredは引き続きProgress分母から除外する。開始時点はRequired 20/23（87%）。
+- 前回push後のCurrent PR HEADは`422d4c39bb764ec18752554dbb75115940e5123e`。Phase 1 CIはPASS、Native CIはFAILだった。Native CIはNative Static / Expo DoctorだけがFAILであり、Native component/static checks up to Expo Doctor、Android Automation build/runtime、API34 Emulator、Formal Maestro、Training Maestro baseline、Production-validation path、iOS Build-only jobsはPASSだった。Native runtime failureとは扱わない。
+- 直近レビュー指摘のうち今回のRequired scopeへ該当するP1は、Expo SDK 57 patch dependency mismatchと統合Planの旧Final Delivery Required表現。run.json scope / scope_ref、Action SHA pinning、Run Artifact見出し、過去Run / historyの旧記録は、ユーザー指定どおり今回の修正対象外として記録する。
+- `package.json`のExpo依存7件と`pnpm.overrides.expo-constants`をpatch整合へ更新した。`pnpm install --lockfile-only --force --ignore-scripts`でlockfileを再解決し、Prettierで既存lockfile形式へ整形した。`pnpm-lock.yaml`はExpo SDK 57 patchと必要な推移peer contextだけを更新し、major / minor変更は行っていない。
+- 統合Planでは、Curriculum Matrix、Wave 1、Risk 4、§16、§18、§20の旧Final Delivery / final HEAD / Delivery Source必須表現をOptional / Future operational validationへ明示的に変更した。Training CIのAPI34 Emulator lifecycleは`training/github-actions/training-native-ci.yml`内完結として保持し、Windows Local Physical Android、GitHub Native CI Emulator、iOS Build-only、Training Copy prepare / validateのRequired契約は変更していない。
+- `TASKS.md`のTask 22〜24は、依存整合、Plan stale契約、Run Artifact reconciliationの完了まで追跡する。Task 14はDeferredのまま、Final Delivery remote 3 runsはRequired task / blockerへ戻さない。
+
+## 2026-08-15 — Task 22完了（Expo SDK 57 patch alignment）
+
+- `package.json`: `@expo/metro-runtime` 57.0.9→57.0.10、`expo` 57.0.12→57.0.13、`expo-build-properties` 57.0.10→57.0.11、`expo-constants` 57.0.10→57.0.11、`expo-dev-client` 57.0.11→57.0.12、`expo-linking` 57.0.5→57.0.6、`expo-router` 57.0.12→57.0.13へpatchだけ更新し、`pnpm.overrides.expo-constants`も57.0.11へ整合させた。
+- `pnpm install --lockfile-only --force --ignore-scripts`でlockfileを解決し、PrettierでRepository既存形式へ整形した。`pnpm install --frozen-lockfile`はPASSした。
+- `pnpm dlx expo-doctor@1.17.6`は17/17 checks PASS。Expo Doctorのskip、warning格下げ、CI workaroundは行っていない。
+- Task 22を完了。Task 23（Plan stale契約）とTask 24（全validation / Run Artifact reconciliation）は継続中。Progress: 91% (21/23)。
+
+## 2026-08-15 — Task 23完了（統合Plan stale Final Delivery契約の整理）
+
+- Required表現として残っていた `part2/04_ci-github-actions.md` Matrix、Wave 1、Risk 4、§16のDelivery Source、§18のDelivery Source、§20のDelivery Evidence / 最終成果文を修正した。
+- 旧契約は、Training Workflow allowlist / Trust Boundary / Training Copy prepare / validate / Required DoDとOptional operational validationの境界、または exact Source traceability / least-privilege execution / Source CI / Fresh Learner validationへ置換した。
+- Risk 4はOptional remote operational validationのcandidate freshness riskへ限定し、PR #25のRequired DoD / Task / Merge Gateへ影響しないことを明記した。
+- `Training CI AVD startup = Training専用PowerShell Helper`は、`Training CI Emulator lifecycle = training/github-actions/training-native-ci.yml内で完結`へ変更した。Windows Local Physical Android、GitHub Native CI API34 / `google_apis` / `x86_64` Emulator、iOS Build-onlyは維持した。
+- 指定stale searchでは、現行Normative文書のFinal Delivery / SHA equality / remote Training Copy表現はすべてOptional / Future / 将来 / 任意 / Required外として分類できる。CI EmulatorのAPI34 / image / ABI / AVD lifecycle記述はCI契約として保持した。過去Run / historyは変更していない。
+- Native component初回実行は既定5秒timeoutの1件でFAILしたが、単独再実行および`pnpm run test:component:native -- --runInBand`は47/47 PASS。今回の依存更新に伴う再現性Failureとは判断せず、Source修正・timeout緩和は行わない。
+- Task 23を完了。Task 24（全validation / Run Artifact reconciliation）は継続中。Progress: 96% (22/23)。
+
+## 2026-08-15 — Task 24完了（validation / Run Artifact current-state reconciliation）
+
+- Dependency validation: `pnpm install --lockfile-only --force --ignore-scripts`、`pnpm install --frozen-lockfile`、`pnpm dlx expo-doctor@1.17.6`を実行し、Expo Doctor 17/17 PASSを確認した。
+- Static validation: `pnpm run format:check` PASS、`pnpm run lint:markdown` PASS（252 files / 0 issues、`.codex/runs/**`は設定上除外）、`pnpm run validate:spec` PASS（3 challenges）、`pnpm run validate:curriculum` PASS（22文書 / 4 workbook / 2 Training project）、`pnpm run lint` PASS（0 errors / 65既存warnings）、`pnpm run typecheck` PASS、`pnpm run typecheck:training` PASS。
+- Native / contract validation: 初回の並列Native component実行は`native-purchase-screens.test.tsx`の既定5秒timeoutで1件FAILした。単独再実行PASS後、`pnpm run test:component:native -- --runInBand`で12 suites / 47 tests PASS。focused `training-curriculum.test.ts`は8/8、`pnpm run test:contracts`は25 files / 210 tests PASS。timeout緩和・skip・allow-failure・Source変更は行っていない。
+- Full quality gate: `pnpm run verify` PASS（282.1秒、full test、Web build、Spec buildを含む。lint 0 errors / 65 warnings）。依存更新後のNative component / contracts / Web buildに新規Source failureは確認されなかった。
+- Run Artifact: `run.json` / `evaluation.json` JSON parse、TASKS checkbox recount、stale search、`git diff --check`を確認した。Sanitizer Write / Checkは最終追補後に実行する。Task 14はDeferredのまま、Task 22〜24を完了し、Required Progressは`100% (23/23)`（Deferredは分母外）。
+- Current CI fact: 422d4c39bb764ec18752554dbb75115940e5123eのPhase 1 CI #203はPASS、Native CI #145はNative Static / Expo DoctorだけFAIL。今回のrepair後のexact-head CIはまだ実行しておらず、ユーザーのcommit / push後にPhase 1 / Native CIを確認する。未来のCI PASSは記録していない。
+- Current evaluation: `result=partial` / `primary_failure_category=missing_validation`を維持し、current findingはpost-repair exact-head Phase 1 / Native CI未確認だけとした。remote Training Copy Delivery、FINAL_CANDIDATE_SHA、SHA equality、Final Delivery Recordはfailure / blockerへ戻していない。
+- Scope safety: Windows Local Physical Android、GitHub Native CI API34 / `google_apis` / `x86_64` Emulator、iOS Build-only、Training Copy prepare / validate、既存Source implementation、Formal / Training workflowは変更していない。今回AVDを起動・使用せず、remote Deliveryも開始していない。Git mutationは実施していない。
+
+### Repair-loop iteration record
+
+- iteration_number: 2
+- input findings: Expo Doctor SDK57 patch mismatch、統合Planの旧Final Delivery Required表現、422d4 Native CI failureとActive Run current stateの未同期。
+- repair plan: Expo直接依存7件とoverrideをpatch整合し、lockfileを正式更新。PlanのRequired / Optional境界を修正。過去履歴を保持してRun ArtifactへCI事実・validation・pending exact-head CIを同期する。
+- allowed files: `package.json`、`pnpm-lock.yaml`、統合Plan、Active RunのPLAN / TASKS / REPORT / run.json / evaluation.json。
+- changed files: 上記対象のみ。既存implementation、CI runtime、Physical / Emulator契約は変更なし。
+- validation commands: frozen install、Expo Doctor、format、markdown、spec、curriculum、lint、typecheck、Training typecheck、Native component、focused / full contracts、verify、stale search、JSON parse、sanitizer、diff check。
+- validation result: Local gates PASS。Native component初回timeoutは再実行で47/47 PASS。post-repair exact-head CIは未実行であり、ユーザーcommit / push後に実施する。
+- remaining delta: post-repair exact-head Phase 1 / Native CIの確認のみ。remote Training Copy operational validationはFuture / OptionalでRequired差分ではない。
+- decision: source_repair_complete_pending_user_commit_ci（今回のRequired source repairとlocal validationは完了。Final Deliveryは開始しない。）
+
+## 2026-08-15 — 最終Run Artifact sanitation
+
+- `node -e`による`run.json` / `evaluation.json` JSON parseはPASS。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check`はPASS（5 files、0 replacements、0 residual findings）。
+- Run Artifactへ未サニタイズのローカル絶対Pathは残っていない。Task 14はDeferred、Required Progressは`100% (23/23)`、`run.json` / `evaluation.json`は`partial` / `missing_validation`とし、pendingはpost-repair exact-head CIだけである。

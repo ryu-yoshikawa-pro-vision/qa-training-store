@@ -34,7 +34,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "format、markdown、spec、curriculum、lint、repository / Training typecheck、focused / full contracts、pnpm run verify、Fresh Learner Web / Physical Android、Current PR HEAD 86ee40a23a18a5c7bb1b9917be626c598fb46103のPhase 1 CI #202 / Native CI #144はPASSした。ただし今回のOwner DecisionとRun Artifact追補を含む次commitのexact-head Required CIは、ユーザーのcommit / push後に確認する。",
+      "evidence": "Expo Doctor 17/17、format、markdown、spec、curriculum、lint、repository / Training typecheck、focused / full contracts、pnpm run verifyは今回の修正後にPASSした。422d4c39bb764ec18752554dbb75115940e5123eのPhase 1 CI #203はPASS、Native CI #145はExpo DoctorだけFAILだったが、今回の修正後のexact-head CIではない。次commitのRequired CIはユーザーのcommit / push後に確認する。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -44,7 +44,7 @@
         },
         {
           "kind": "evaluation_note",
-          "summary": "86eeの既存CIは今回の未commit追補後のCIとしては扱わず、次HEAD確認を残した。"
+        "summary": "422d4のNative CI failureはExpo Doctor patch mismatchのhistorical evidenceとして分離し、次exact-head確認を残した。"
         }
       ]
     },
@@ -95,14 +95,8 @@
     {
       "category": "missing_validation",
       "severity": "medium",
-      "evidence": "Owner Decisionを反映したPlan / ADR / Project Context / Active Run Artifactの追補は未commitであり、Current PR HEAD 86eeのPhase 1 CI #202 / Native CI #144はこの追補を含まない。",
+      "evidence": "今回のExpo patch / Plan / Active Run repairは未commitであり、Current PR HEAD 422d4c39bb764ec18752554dbb75115940e5123eのPhase 1 CI #203 / Native CI #145はこのrepairを含まない。Native CIのfailureはExpo Doctorだけで、runtime系はPASSだった。",
       "detail": "ユーザーが今回の追補をcommit / pushした後、新exact HEADのPhase 1 CIとNative CIがsuccessであることを確認する。remote Training Copy Delivery、FINAL_CANDIDATE_SHA、SHA equality、Final Delivery Recordはこのfindingの解消条件ではない。"
-    },
-    {
-      "category": "flaky_or_env_issue",
-      "severity": "low",
-      "evidence": "旧契約下でLocal AVDのSystem UI `isn't responding`が観測された事実をREPORT履歴へ保持している。",
-      "detail": "これはOwner Decision後のWindows Local Fresh Learnerのcurrent blockerではない。Local CanonicalはPhysical Android、API34 Emulator保証はGitHub Native CIへ分離され、AVD修復は今回のRequired scopeに含めない。"
     }
   ],
   "improvement_candidates": [

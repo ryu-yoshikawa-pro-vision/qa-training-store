@@ -207,7 +207,21 @@
       "TASKS checkbox recount => pass (20 Required checked, 0 Required unchecked, Task 14 Deferred, Progress 100% = 20/20)",
       "Repository-wide current contract search => pass (Delivery references in current normative files are explicitly Optional / Future; CI Emulator contract references remain intact)",
       "git diff --check => pass (CRLF warnings only; no whitespace errors)",
-      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)"
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 residual findings)",
+      "PR #25 read-only CI fact at 422d4c39bb764ec18752554dbb75115940e5123e => Phase 1 CI #203 PASS; Native CI #145 FAIL only at Native Static / Expo Doctor; Android API34 Emulator runtime, Formal Maestro, Training Maestro baseline, Production-validation path, and iOS Build-only jobs PASS",
+      "pnpm install --lockfile-only => exit 0 but pnpm requested node_modules recreation without updating the lockfile; formal rerun used --force --ignore-scripts",
+      "pnpm install --lockfile-only --force --ignore-scripts => pass (Expo SDK 57 patch lockfile resolved; unrelated major / minor updates not introduced)",
+      "pnpm install --frozen-lockfile => pass (lockfile current; 1173 packages installed)",
+      "pnpm dlx expo-doctor@1.17.6 => pass (17/17 checks)",
+      "pnpm exec prettier@3.8.1 --check pnpm-lock.yaml => pass",
+      "Final-repair static / contract validation => pass (format, markdown, spec, curriculum, lint 0 errors / 65 warnings, typecheck, Training typecheck, Native component 47/47 on focused rerun, focused curriculum contract 8/8, full contracts 25 files / 210 tests)",
+      "pnpm run verify => pass (282.1 seconds; full test, Web build, Spec build; lint 0 errors / 65 warnings)",
+      "Repository-wide Final Delivery stale-reference search => pass; Required wording removed from the integration Plan, remaining references explicitly say Optional / Future / 将来 / 任意 / PR #25 Required外; CI Emulator references retained",
+      "Run Artifact JSON parse => pass",
+      "TASKS checkbox recount => pass (Task 14 Deferred excluded; Tasks 22 / 23 / 24 complete; Progress 100% = 23/23)",
+      "git diff --check => pass (CRLF warnings only; no whitespace errors)",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 replacements, 0 residual findings)",
+      "post-repair exact-head Phase 1 / Native CI => pending user commit / push; no future PASS claimed"
     ],
     "warnings": [
       "lint has 65 pre-existing warnings",
@@ -216,7 +230,7 @@
       "Existing C:\\q pointed to another repository; Prepare fail-closed as designed and used a separately verified current-worktree alias without modifying C:\\q",
       "Historical Local AVD System UI ANR remains in REPORT history only; no AVD was used for the current contract verification and it is not a current Local Fresh Learner blocker",
       "Action SHA pinning and run.json scope_ref were intentionally not added; the former is a repository-wide policy concern and the latter is absent from the canonical RUN_MANIFEST schema",
-      "Current PR HEAD Phase 1 CI #202 and Native CI #144 are success before the current scope追補; after user commit / push, the new exact-head Required CI must be confirmed",
+      "Current pre-repair PR HEAD 422d4c39bb764ec18752554dbb75115940e5123e had Phase 1 CI #203 PASS and Native CI #145 FAIL only at Expo Doctor; post-repair exact-head Required CI remains pending user commit / push",
       "Remote Training Copy Delivery, FINAL_CANDIDATE_SHA, SHA equality, and Final Delivery Record are intentionally deferred as Future operational validation / optional instructor validation and are not current failure categories or Merge blockers"
     ]
   },

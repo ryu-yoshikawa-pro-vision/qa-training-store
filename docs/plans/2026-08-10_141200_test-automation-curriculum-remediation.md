@@ -1189,7 +1189,7 @@ Part 1 / Part 2で同じ分類語彙を使う。
 | `part2/01_software-development-process.md` | Spec Change→Implementation→Review→Test | P2 |
 | `part2/02_git-version-control.md` | exact SHA + Script化Training Copy、Part 1 artifact移行 | P1 |
 | `part2/03_github-pull-request-review.md` | Spec/Test/Validation Traceability | P2 |
-| `part2/04_ci-github-actions.md` | Training Workflow allowlist、Trust Boundary、Final HEAD Delivery Gate | P1 |
+| `part2/04_ci-github-actions.md` | Training Workflow allowlist、Trust Boundary、Training Copy prepare / validate、Optional operational validation境界 | P1 |
 | `part2/05_playwright-ci.md` | Training Web CI baseline / expected-failure / Artifact実手順 | P1 |
 | `part2/06_native-ci-maestro.md` | Android Training CI Runtime Contract、Native detect、API 36 build / API 34 runtime、Current iOS Build-only | P1 Critical |
 | `part2/07_ci-cd-quality-gates.md` | Platform別保証Level、Required Gate判断 | P1 |
@@ -1327,7 +1327,7 @@ Gate:
 - Part 1 / Part 2修了基準を固定する。
 - Core / Advancedを固定する。
 - Training Path / Project / baseline / failure exercise / Config / CI Template / Workbook / OS Support Contractを本Planどおり確認する。
-- Training Copy full SHA / Workflow allowlist / Trust Boundary / Final HEAD Delivery Gateを確認する。
+- Training Copy full SHA / Workflow allowlist / Trust Boundary / Required DoDとOptional operational validationの境界を確認する。
 
 Gate:
 
@@ -1755,22 +1755,22 @@ Mitigation:
 - Remoteが利用可能になった時点で、必要に応じて任意のRun Evidenceを取得する。
 - Evidence未取得を本PRのMerge blockerへ昇格しない。
 
-### Risk 4: Delivery Evidenceが古いcandidateを指す
+### Risk 4: Optional operational validationでEvidenceが古いcandidateを指す（PR #25 Required Merge Gate外）
 
 Mitigation:
 
-- Delivery正式実行をWave 10の最後へ限定する。
-- full SHAだけをSourceにする。
-- Delivery開始 / 終了時PR HEADとTraining Copy resolved SHAの完全一致を記録する。
-- Delivery開始後のcommitはEvidence invalidationとする。
-- 新HEADで3 Runすべて再実行する。
+- Optional operational validationを実施する場合だけ、開始時点のSource full SHAを記録する。
+- Optional実行の開始 / 終了時に、使用したSource SHAとTraining Copy resolved SHAを確認する。
+- Optional実行開始後にSourceが変わった場合は、そのEvidenceを再利用しない。
+- 新しいSourceでOptional実行を再開する場合は、必要なrunだけを再実行する。
+- このRiskとMitigationはPR #25のRequired DoD、Task、Merge Gateには影響しない。
 
 ### Risk 5: Training Copy candidate実行がProduction権限へ触れる
 
 Mitigation:
 
-- same-repo maintainer-controlled final PR HEAD full SHAだけを許可する。
-- Fork / third-party SHAを禁止する。
+- Optional remote operational validationでは、same-repo maintainer-controlled sourceのfull SHAだけを許可する。
+- Optional remote operational validationではFork / third-party SHAを禁止する。
 - dedicated disposable training-only repositoryを使う。
 - `permissions: contents: read`を明示する。
 - Secret / Environment / OIDC / write permission / self-hosted runnerを禁止する。
@@ -1887,7 +1887,7 @@ Mitigation:
 - Multiple BR / AC IDs = `;`区切り
 - Training Workflow = repository内Template、Training Copyでのみ有効化
 - Training Copy Source = full commit SHA
-- Delivery Source = same-repo maintainer-controlled final PR HEAD full SHA
+- Optional remote operational validationのDelivery Source = same-repo maintainer-controlled sourceのPR HEAD full SHA
 - Training Copy active Workflow = allowlist 2件のみ
 - Training Copy preparation / validation = Script化
 - Training CI Trust Boundary = read-only token / no secrets / no environment / GitHub-hosted runner / isolated training repo
@@ -1901,7 +1901,7 @@ Mitigation:
 - Native learner canonical environment = Windows 11
 - Android Build = Compile SDK 36 / Build Tools 36.0.0
 - Android Training CI Runtime = API 34 / `google_apis` / `x86_64` / `pixel_2`
-- Training CI AVD startup = Training専用PowerShell Helper
+- Training CI Emulator lifecycle = `training/github-actions/training-native-ci.yml`内で完結
 - Instructor asset = Public Instructor Reference
 - Local Blocker = 独立Taskを止めない
 - Delivery Readiness = Optional / Future Operational Validation。Required Merge Gateには含めない
@@ -1999,7 +1999,7 @@ Mitigation:
 ### Training Copy / CI
 
 - `prepare-training-copy`がfull Source SHAからDisposable Copyを決定的に準備できる。
-- Delivery Sourceがsame-repo maintainer-controlled final PR HEAD full SHAである。
+- Local Training Copyは指定したfull Source SHAから作成できる。Optional remote operational validationを行う場合だけ、same-repo maintainer-controlled sourceのPR HEAD full SHAを使用する。
 - Training Copyの`.github/workflows/`が`training-ci.yml` / `training-native-ci.yml`のallowlistと完全一致する。
 - `validate-training-copy`がTrust Boundaryを確認できる。
 - Training Workflowが`permissions: contents: read`、no-secret、no-environment、no-OIDC、no-write、GitHub-hosted runner Contractを満たす。
@@ -2163,8 +2163,8 @@ Automation Introduction Design
 > Failure時にはこのEvidenceを確認します。
 > Training CopyではTraining Workflowだけを有効にし、read-only token / no secrets / GitHub-hosted runnerで実行境界を限定します。
 > Android Training CIではAPI 34 Emulatorのboot / serial / timeout / Evidence / Cleanupまで実行Contractとして扱います。
-> Delivery Evidenceは最終PR HEADの完全SHAと一致する実Runだけを採用します。
+> Optional remote operational validationを行う場合は、使用したSource full SHAとEvidenceの対応を確認します。これはPR #25のRequired DoD / Merge Gateではありません。
 > AndroidではBuild ContractとRuntime Contractを分け、現在の再現性とCostに合う保証Levelを選びます。
 > iOSはCurrent Formal CIがBuild-onlyなので、未実行RuntimeをPASSとは報告しません。
 
-この判断能力を育成でき、かつTraining資産自体がMachine validation / Runtime baseline / exact Source traceability / least-privilege execution / final-HEAD Delivery Evidenceで継続検証できることを、本Implementationの最終成果とする。
+この判断能力を育成でき、かつTraining資産自体がMachine validation / Runtime baseline / exact Source traceability / least-privilege execution / Source CI / Fresh Learner validationで継続検証できることを、本Implementationの最終成果とする。

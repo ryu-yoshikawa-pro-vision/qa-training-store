@@ -85,3 +85,24 @@ Exit Criteria:
 - Instructor管理remote Training Copyの作成・publish、remote Web / Android / expected-failureの3 runs、`FINAL_CANDIDATE_SHA` freeze、PR HEADとTraining Copy resolved SHAのequality、Final Delivery Recordは、Future operational validation / optional instructor validationへdeferする。これらは今回のTask、Progress分母、DoD、Merge blockerに含めない。
 - 既存のTraining Copy prepare / validateは安全な教材Copyを作成・検証するRequired Assetとして維持する。Local Physical AndroidとGitHub Native CI Emulatorの責務分離、既存Source implementation、過去REPORT履歴は変更しない。
 - Task 14はDeferredとしてRequired Progressの分母から除外し、Required task 20件が完了しているためProgressは`100% (20/20)`とする。Current PR HEAD `86ee40a23a18a5c7bb1b9917be626c598fb46103`のPhase 1 CI #202 / Native CI #144はこのOwner Decision前の既存commitでsuccessだが、今回のArtifact変更後のCIとしては扱わず、ユーザーのcommit / push後に新HEADで再確認する。
+
+## 最終repair計画（2026-08-15）
+
+### 対象と仮説
+
+- P1-1: Current PR HEAD `422d4c39bb764ec18752554dbb75115940e5123e`のNative CI failureは、Expo SDK 57の7つのpatch依存と`expo-constants` overrideの不整合が原因で、Native RuntimeのFailureではない。
+- P1-2: 統合Planに残るFinal Delivery / final HEAD / Delivery Sourceの必須表現をOptional / Future operational validationへ同期すれば、ADR-0013とRequired DoDの矛盾が解消する。
+- Run Artifact: 過去の完了TaskとREPORT履歴を保持したまま、Task 22〜24で今回のrepair結果とpost-repair exact-head CI pendingを追跡する。
+
+### Allowed scope
+
+- `package.json`
+- `pnpm-lock.yaml`
+- `docs/plans/2026-08-10_141200_test-automation-curriculum-remediation.md`
+- `.codex/runs/20260813-093427-JST/{PLAN,TASKS,REPORT,run.json,evaluation.json}`
+
+Windows Local Physical Android、GitHub Native CI API34 Emulator、iOS Build-only、既存Training implementation、Training Copy prepare / validate、過去Run / historyは変更しない。Final Delivery remote validationは今回開始しない。
+
+### Repair-loop decision
+
+Expo dependency patch alignment、Plan stale contract cleanup、Run Artifact reconciliationの3 taskを完了後に、local quality gateを実行する。新exact-head Phase 1 / Native CIはユーザーのcommit / push後に確認するため、今回のlocal repairではPASSへ繰り上げない。

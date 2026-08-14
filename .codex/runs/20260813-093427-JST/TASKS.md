@@ -22,6 +22,9 @@
 - [x] 19. 追加repair: Training Web Exercise / expected-failureとAndroid Training baselineを実行し、Android timeoutとcleanupを事実分離して記録する
 - [x] 20. 追加repair: review triage、PR #25旧HEADのCI状態、subagent省略理由、scope判断、remaining blockerをRun Artifactへ追記しSanitizerを実行する
 - [x] 21. 最終review repair: sdkmanager fallback選択規則、Curriculum validator非null assertion、current PR / CI状態のRun Artifact同期を修正・検証する
+- [x] 22. 最終repair: Expo SDK 57 patch dependency alignmentとExpo Doctor 17/17を実施する
+- [x] 23. 最終repair: 統合Planの旧Final Delivery Required契約をOptional / Future境界へ同期し、stale referenceを分類する
+- [x] 24. 最終repair: 422d4のCI failure、post-repair validation、Run Artifactをcurrent stateへ同期する
 
 ## Discovered
 
@@ -39,4 +42,4 @@
 
 - なし。過去のFinal Delivery未実施・remote Delivery待ちの記録はREPORT.mdへ保持するが、Owner Decision後のCurrent Required DoD blockerではない。
 
-Progress: 100% (20/20)
+Progress: 100% (23/23)
