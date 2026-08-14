@@ -2,6 +2,7 @@ import { existsSync, mkdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { spawnSync } from "node:child_process";
 import { buildMaestroInvocation } from "./maestro-invocation";
+import { resolveTrainingAndroidSerial } from "./serial-resolution";
 
 function main(): void {
   const outputDirectory = resolve(
@@ -9,10 +10,7 @@ function main(): void {
   );
   const junitPath = resolve(outputDirectory, "training-native-baseline.xml");
   const flowPath = resolve("training/maestro/baseline/native-training-baseline.yaml");
-  const targetSerial =
-    process.env.TARGET_SERIAL ??
-    process.env.QA_TRAINING_ANDROID_SERIAL ??
-    process.env.ANDROID_SERIAL;
+  const targetSerial = resolveTrainingAndroidSerial();
 
   if (!existsSync(flowPath)) throw new Error(`Training Maestro baseline is missing: ${flowPath}`);
   mkdirSync(outputDirectory, { recursive: true });

@@ -374,6 +374,7 @@ function validateTrainingAssets(rootDir: string): string[] {
     "scripts/training/validate-training-copy.ts",
     "scripts/training/workflow-contract.ts",
     "scripts/training/maestro-invocation.ts",
+    "scripts/training/serial-resolution.ts",
     "scripts/native/windows/android-local.ps1",
     "tsconfig.training.json",
   ]) {

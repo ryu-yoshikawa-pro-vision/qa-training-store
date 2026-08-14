@@ -27,7 +27,6 @@ Store 公開、Production keystore、AAB、EAS Cloud、Android Emulator は対�
 | Java | 17 |
 | Android compile API | 36 |
 | Android Build Tools | 36.0.0 |
-| minSdk | 24 |
 | Maestro | 2.8.0 |
 | Android package | `com.ryuyoshikawa.scenarioshop` |
 | Deep Link scheme | `scenario-shop` |
@@ -187,28 +186,34 @@ Windows LocalのCanonical routeでは、上記の汎用package scriptではな�
 
 ```powershell
 $serial = "<physical-device-serial>"
+$runId = "<run-id>"
 adb devices -l
 
 $helper = "scripts/native/windows/android-local.ps1"
 $common = @(
   "-DeviceSerial", $serial,
-  "-RequirePhysicalDevice"
+  "-RequirePhysicalDevice",
+  "-RunId", $runId
 )
 
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Doctor @common
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Prepare @common
-powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Build -Architecture Auto -RunId "<run-id>" @common
-powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Install -RunId "<run-id>" @common
-powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Smoke -RunId "<run-id>" @common
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Build -Architecture Auto @common
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Install @common
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Smoke @common
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Test `
-  -Flow maestro/native-test-control.yaml -RunId "<run-id>" @common
+  -Flow maestro/native-test-control.yaml @common
 
 $env:QA_TRAINING_ANDROID_SERIAL = $serial
+$env:TARGET_SERIAL = $serial
 $env:ANDROID_SERIAL = $serial
+$env:TRAINING_MAESTRO_OUTPUT_DIR = Join-Path (Get-Location) ".artifacts\native-local\$runId\maestro\training-baseline"
 pnpm run training:native:baseline
 
-powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Evidence -RunId "<run-id>" @common
+powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Evidence @common
 ```
+
+`$runId`はCanonical Local runの開始時に一度だけ定義する。Doctor / Prepareを含むNative helperの全Action、Training Maestroのserial環境変数、Training Maestro output directory、Evidenceは同じ`$runId`へ揃える。これにより、Native helperの`.artifacts/native-local/<run-id>/`とTraining baselineのJUnit / debug outputを同一Runとして追跡できる。
 
 端末のAPIは`app.config.ts`の`minSdkVersion`以上である必要がある。接続可能だった端末のAPI 30を最低対応値として教材やhelperへ固定しない。ABIは`-Architecture Auto`で端末の`ro.product.cpu.abilist`から選択する。
 

@@ -3,6 +3,7 @@ import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { parseCsv, validateCurriculum, validateWorkbook } from "../../scripts/validate-curriculum";
 import { buildMaestroInvocation } from "../../scripts/training/maestro-invocation";
+import { resolveTrainingAndroidSerial } from "../../scripts/training/serial-resolution";
 import { validateTrainingWorkflow } from "../../scripts/training/workflow-contract";
 
 describe("Training curriculum contracts", () => {
@@ -74,6 +75,10 @@ describe("Training curriculum contracts", () => {
       "adb devices -l",
       "-RequirePhysicalDevice",
       "-DeviceSerial",
+      "$runId",
+      "TARGET_SERIAL",
+      "TRAINING_MAESTRO_OUTPUT_DIR",
+      ".artifacts/native-local",
       "Training Maestro baseline",
       "Evidence",
     ]) {
@@ -103,6 +108,31 @@ describe("Training curriculum contracts", () => {
     ]) {
       expect(nativeCiWorkflow).toContain(token);
     }
+  });
+
+  it("fails closed when Training Maestro serial environment values conflict", () => {
+    expect(resolveTrainingAndroidSerial({ QA_TRAINING_ANDROID_SERIAL: "physical-1" })).toBe(
+      "physical-1",
+    );
+    expect(resolveTrainingAndroidSerial({ TARGET_SERIAL: "emulator-5554" })).toBe("emulator-5554");
+    expect(resolveTrainingAndroidSerial({ ANDROID_SERIAL: "physical-2" })).toBe("physical-2");
+    expect(
+      resolveTrainingAndroidSerial({
+        QA_TRAINING_ANDROID_SERIAL: "same",
+        TARGET_SERIAL: "same",
+        ANDROID_SERIAL: "same",
+      }),
+    ).toBe("same");
+    expect(() =>
+      resolveTrainingAndroidSerial({
+        QA_TRAINING_ANDROID_SERIAL: "ABC",
+        TARGET_SERIAL: "emulator-5554",
+      }),
+    ).toThrow(/Conflicting Android serials/);
+    expect(() =>
+      resolveTrainingAndroidSerial({ TARGET_SERIAL: "ABC", ANDROID_SERIAL: "DEF" }),
+    ).toThrow(/Conflicting Android serials/);
+    expect(resolveTrainingAndroidSerial({})).toBeUndefined();
   });
 
   it("fails closed for unapproved structured workflow actions and commands", () => {

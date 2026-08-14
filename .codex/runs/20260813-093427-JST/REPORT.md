@@ -637,3 +637,49 @@ Progress: 90% (18/20)
 - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check` => PASS（5 files、0 replacements、0 residual findings）。
 - `pnpm run format:check`、`pnpm run lint:markdown`をRun Artifact追記後にも再実行し、PASSを確認した。`lint:markdown`は設定上`.codex/runs/**`を除外するためRun Artifactの直接Markdown検証ではない。
 - Git mutation（add / commit / push / merge / rebase / tag / branch操作）は実施していない。Final Delivery remote runs、FINAL_CANDIDATE_SHA freeze、PR更新も実施していない。
+
+## 2026-08-14 18:30 JST — Phase A serial / Local contract repair
+
+### PR read-only state
+
+- GitHub APIをread-onlyで取得し、PR #25は`open`、current HEADはユーザー提示どおり`f1694055e40d798c8ff9759f85ebae92577caa2f`、baseは`cef7aa97640fb7ffbe5db9d977b154083398cffb`、mergeable stateは`clean`であることを確認した。
+- 同じHEADのActionsをread-onlyで確認し、Phase 1 CI #200（success）とNative CI #142（success）を確認した。これは既存HEADの履歴であり、今回のdirty worktree修正後CI PASSへ読み替えていない。
+
+### Required repair
+
+- `scripts/training/serial-resolution.ts`を追加し、`QA_TRAINING_ANDROID_SERIAL`、`TARGET_SERIAL`、`ANDROID_SERIAL`の非空値を全比較するpure resolverを実装した。複数値が異なる場合は具体的な環境変数名を含むErrorでfail-closeし、全値が同じ場合は候補順、1値だけの場合はその値、全空の場合は既存Maestro invocation契約どおり`undefined`を返す。
+- `scripts/training/run-maestro-baseline.ts`は上記resolverを使用する。CIの`TARGET_SERIAL`単独設定は従来どおり有効であり、Physical Localで異なる古いserialが残る場合は暗黙選択しない。
+- `tests/contracts/training-curriculum.test.ts`へbehavior testを追加し、QA-only、TARGET-only、ANDROID-only、全値同一、QA/TARGET conflict、TARGET/ANDROID conflict、全空の7ケースを確認した。focused結果は8 tests / 8 passedである。resolverの実装文字列をassertするテストは追加していない。
+- `scripts/validate-curriculum.ts`は新しいpure helperの存在をTraining asset contractへ接続した。既存のLocal Physical routeとCI Emulator routeの分離テストは維持し、CI Workflowは変更していない。
+- `docs/curriculum/test-automation/part1/07_maestro-native-automation.md`と`docs/native/windows-android-local-validation.md`へ、Canonical Local runの`$runId`を一度だけ定義し、Doctor / Prepareを含む全Native helper Action、3つのserial環境変数、`TRAINING_MAESTRO_OUTPUT_DIR`、Evidenceを同一Runへ揃える手順を追加した。Training Maestro outputは`.artifacts/native-local/<run-id>/maestro/training-baseline/`配下である。
+- `docs/native/windows-android-local-validation.md`の固定`minSdk | 24`行を削除し、Android minimum APIは`app.config.ts`の`minSdkVersion`のみをSource of Truthとして残した。API 30を最低値へ固定していない。
+- 統合Remediation PlanのCurriculum Matrix、Wave 6、Wave 8、Wave 10、§14.3、リスク／Current factのLocal記述から旧Local AVD必須契約を除去した。LocalはPhysical Device（explicit serial、`device`、authorization、awake、unlocked、supported API、ABI Auto、package service、Doctor / Prepare / Build / APK integrity / Install / Smoke / Test Control / Training baseline / Evidence / cleanup）とし、API34 / `google_apis` / `x86_64` / `pixel_2` / AVD create / Emulator bootはGitHub Native CIの契約として残した。
+- `.github/workflows/native-ci.yml`と`training/github-actions/training-native-ci.yml`には差分がなく、CIのAPI34 / `google_apis` / `x86_64` Emulator、Formal Maestro、Training baseline、cleanup契約を維持している。iOS Build-onlyも変更していない。
+
+### Validation
+
+- 初回`pnpm run format:check`は新規helper / testのPrettier差分でFAILしたため、対象2ファイルのみPrettier整形後に再実行しPASSした。
+- 初回`pnpm run lint:markdown`は新Plan節と実行タスクの間のMD032 1件でFAILしたため、空行を追加して再実行しPASS（250 files / 0 issues）した。Run Artifactは設定上lint対象外である。
+- `pnpm run validate:spec` => PASS（3 challenges）。
+- `pnpm run validate:curriculum` => PASS（22 required documents、4 workbook files、2 Training projects）。
+- `pnpm run lint` => PASS（0 errors / 65 warnings。warningsは既存）。
+- `pnpm run typecheck` / `pnpm run typecheck:training` => PASS。
+- `pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1` => PASS（8/8）。
+- `pnpm run test:contracts`初回は既知の`native-production-module-resolution` 1件が5秒timeout（24 files / 209 passed）したが、同テストの30秒focused実行は4/4 PASSし、full再実行は25 files / 210 tests PASSとなった。今回の変更に起因する失敗は確認されていない。
+- `pnpm run verify` => PASS（326.6 seconds。format、markdown、spec、curriculum、lint 0 errors / 65 warnings、typecheck、image、security、full test、Web build、spec buildを含む）。Full testのcontractsは25 files / 210 tests PASS。
+- Phase AではADB、Maestro runtime、Android Build / Install、AVD / Emulatorを新規実行していない。既存のPhysical current-tree Evidence（Run ID `20260814-physical-canonical-contract-1633`）は履歴として保持し、新しいserial resolver / docs repairの実行証跡へ流用していない。
+
+### Current decision
+
+- Current-treeの新契約Physical Android runは既存EvidenceでDoctor / Prepare / Build with ABI Auto / APK integrity / Install / Smoke / Test Control 1/1 / Training Maestro 1/1 / Evidence / cleanupまでPASSしているが、今回のPhase A修正を含むworktreeは未commitである。exact committed snapshot Fresh Learnerはpendingとする。
+- Task 13はunchecked、Task 14はunchecked、Progressは`90% (19/21)`を維持する。
+- `run.json`は`status=partial` / `primary_failure_category=missing_validation`、`evaluation.json`は`result=partial` / `primary_failure_category=missing_validation`を維持する。FINAL_CANDIDATE_SHAは未freeze、Final Deliveryは未開始である。
+- 次はユーザーがこの修正をcommit / pushした後、新exact PR HEADでFresh Training Copy + Physical Device Fresh Learnerを再実行し、そのHEADのRequired Phase 1 / Native CI successを確認する。Phase BとFinal Deliveryは今回開始しない。
+
+## 2026-08-14 18:36 JST — Phase A self-review
+
+- Diff triageでは、変更領域をTraining serial resolution、Local curriculum / runbook、統合Plan、validator contract、Active Run Artifactへ限定した。Product Business Logic、Formal Maestro expectation、Native CI Workflow、iOS Build-onlyには差分がない。
+- Correctness: serial候補の優先順はQA → TARGET → ANDROIDで固定し、異なる非空値は暗黙選択せずthrow、全空は既存の自動選択可能な`undefined`を維持する。Pure helperの7 behavior caseとfocused 8/8で確認した。
+- Regression: Training CIの`TARGET_SERIAL`単独経路は維持し、CIのAPI34 / `google_apis` / `x86_64` Emulator / Formal Maestro / Training baseline contractは既存Workflowとvalidatorで保持している。
+- Evidence identity: Local教材とRunbookは同一`$runId`、同一serial、同一`TRAINING_MAESTRO_OUTPUT_DIR`を指定するため、Native helperとTraining baselineが別端末／別Runへ逸れる経路を残していない。
+- No P1 / P2 finding。残余は今回の修正をcommit / pushした後のexact committed Fresh Learner、post-change Required CI、Final Delivery Readinessのみであり、Phase AのSource blockerは0件と判定する。

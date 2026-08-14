@@ -30,11 +30,12 @@
 - D2. Training helperの接続Emulator単数時にPowerShell scalarへ`.Count`を参照する不備があり、配列化して修正した。
 - D3. SDKのcmdline-tools `latest` / `latest-2` inconsistency warningは残るが、Training AVD identity / API / ABI / baselineはPASSした。
 - D4. Windows Local Fresh LearnerのCanonicalをPhysical Android Deviceへ分離し、GitHub Native CIのAPI 34 / `google_apis` / `x86_64` Emulator保証は維持する契約へ更新した。
+- D5. Training Maestroの`QA_TRAINING_ANDROID_SERIAL` / `TARGET_SERIAL` / `ANDROID_SERIAL`は、非空値が異なる場合に暗黙選択せずfail-closeする必要がある。Run IDとserialをNative helper / Training Maestro Evidenceへ共通化した。
 
 ## Blocked
 
 - Source / Curriculum / validator / contract変更を含むworktreeは未commitであり、post-change Required Phase 1 / Native CIは未実行。Current-treeのPhysical Canonical runtimeと全local validationはPASSしたが、exact committed snapshotのFresh Learnerは未確認とする。
 - Fresh CopyのWeb desktop / mobile / learner exercise / expected-failure、Workbook / Spec / Part 1 / Part 2のlearner pathは既存Evidenceどおり確認済み。新契約でのPhysical AndroidはDoctor / Prepare / ABI Auto Build / APK integrity / Install / Smoke / Test Control 1/1 / Training Maestro baseline 1/1 / Evidence / cleanupまでPASSした。dirty worktreeのためTask 13は未完了のままとする。
-- ユーザーのcommit / push後にexact committed snapshotをPhysical Deviceで再実行し、post-change Required CI成功後にFINAL_CANDIDATE_SHAをfreezeする。その後にexact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。Task 14は未完了のままとする。
+- Phase Aのserial conflict fail-close、Local AVD旧契約の除去、CI Emulator契約の保持、Run ID / serial Evidence連携、minSdk Source of Truth整合、static validationは完了した。今回のworktreeはこのSource / Docs / Test repairでdirtyになったため、ユーザーのcommit / push後にexact committed snapshotをPhysical Deviceで再実行し、post-change Required CI成功後にFINAL_CANDIDATE_SHAをfreezeする。その後にexact-SHA Training Copy 3 runs、SHA equality、remote Delivery Readinessを実施する。Task 13 / Task 14は未完了のままとする。
 
 Progress: 90% (19/21)

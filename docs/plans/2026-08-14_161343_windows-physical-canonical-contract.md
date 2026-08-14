@@ -80,6 +80,13 @@
   5. Source / static gateを実行する。
   6. 契約変更後のPhysical Device Fresh Learnerを、明示serial・`-RequirePhysicalDevice`でDoctor → Prepare → Build → Install → Smoke → Test Control → Training baseline → Evidenceまで一続きで実行する。
   7. REPORT append-only、TASKS、run.json、evaluation.jsonをcurrent stateへ同期する。dirty worktreeのためTask 13はpendingを維持する。
+
+### 5.1 Local Evidence Identity
+
+Canonical Local runでは`$runId`を一度だけ定義し、Doctor / Prepareを含むNative helperの全Actionへ同じ`-RunId $runId`を渡す。Build、Install、Smoke、Test、Evidenceだけでなく、準備段階の診断も同じRunへ記録する。
+
+Training Maestro baselineの前に、`QA_TRAINING_ANDROID_SERIAL`、`TARGET_SERIAL`、`ANDROID_SERIAL`を同じPhysical Device serialへ設定し、`TRAINING_MAESTRO_OUTPUT_DIR`を`.artifacts/native-local/$runId/maestro/training-baseline/`へ設定する。これによりNative helperのEvidence、Training Maestro JUnit、Maestro debug outputが同じRun IDとserialで追跡できる。新しいRun ManifestやArtifact frameworkは追加しない。
+
 - 実行タスク:
   - [ ] 1. Local / CI / iOS契約のrepo mappingと安全な変更範囲を確定する
   - [ ] 2. Windows helperへphysical-only opt-in readiness contractを追加する

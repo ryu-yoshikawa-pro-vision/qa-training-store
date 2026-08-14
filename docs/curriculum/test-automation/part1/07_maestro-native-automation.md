@@ -50,6 +50,7 @@ RepositoryのAndroid最低対応APIは`app.config.ts`の`minSdkVersion`をSource
 ```powershell
 adb devices -l
 $serial = "<physical-device-serial>"
+$runId = "<run-id>"
 ```
 
 出力が次のように`device`であることを確認します。
@@ -66,49 +67,55 @@ Physical Device Canonical flowは、最初にToolchain DoctorでJDK、Android SD
 & .\scripts\native\windows\android-local.ps1 `
   -Action Doctor `
   -DeviceSerial $serial `
-  -RequirePhysicalDevice
+  -RequirePhysicalDevice `
+  -RunId $runId
 
 & .\scripts\native\windows\android-local.ps1 `
   -Action Prepare `
   -DeviceSerial $serial `
-  -RequirePhysicalDevice
+  -RequirePhysicalDevice `
+  -RunId $runId
 
 & .\scripts\native\windows\android-local.ps1 `
   -Action Build `
   -DeviceSerial $serial `
   -Architecture Auto `
   -RequirePhysicalDevice `
-  -RunId "<run-id>"
+  -RunId $runId
 
 & .\scripts\native\windows\android-local.ps1 `
   -Action Install `
   -DeviceSerial $serial `
   -RequirePhysicalDevice `
-  -RunId "<run-id>"
+  -RunId $runId
 
 & .\scripts\native\windows\android-local.ps1 `
   -Action Smoke `
   -DeviceSerial $serial `
   -RequirePhysicalDevice `
-  -RunId "<run-id>"
+  -RunId $runId
 
 & .\scripts\native\windows\android-local.ps1 `
   -Action Test `
   -DeviceSerial $serial `
   -RequirePhysicalDevice `
   -Flow "maestro/native-test-control.yaml" `
-  -RunId "<run-id>"
+  -RunId $runId
 
 $env:QA_TRAINING_ANDROID_SERIAL = $serial
+$env:TARGET_SERIAL = $serial
 $env:ANDROID_SERIAL = $serial
+$env:TRAINING_MAESTRO_OUTPUT_DIR = Join-Path (Get-Location) ".artifacts\native-local\$runId\maestro\training-baseline"
 pnpm run training:native:baseline
 
 & .\scripts\native\windows\android-local.ps1 `
   -Action Evidence `
   -DeviceSerial $serial `
   -RequirePhysicalDevice `
-  -RunId "<run-id>"
+  -RunId $runId
 ```
+
+Native helperの全ActionとTraining Maestro baselineは、同じ`$runId`と`$serial`を使用します。Training MaestroのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-baseline/`へ保存し、Native helperのEvidenceと同じRunへ紐付けます。
 
 `-RequirePhysicalDevice`はserial、ADB status、Emulator property、Android API、ABI、package service、awake、unlockedを有限チェックし、Emulatorやlocked deviceをfail-closeします。失敗時は「端末を起動し、画面ロックを解除してから再実行してください」と表示し、認証情報へアクセスしません。
 

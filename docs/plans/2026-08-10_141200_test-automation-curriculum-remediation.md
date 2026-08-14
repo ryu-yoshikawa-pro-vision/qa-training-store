@@ -184,7 +184,7 @@ Start Gateが未達のまま、Implementation Branchを作成して本実装へ�
 - Current `tsconfig.json`は`e2e/**/*.ts`や`scripts/**/*.ts`を含むが、将来追加する`training/**/*.ts`と`playwright.training.config.ts`は現状のままではtypecheck対象外である。
 - Current Phase 1 CIは個別のQuality / Test / Build commandを実行しており、`pnpm run verify`そのものをRequired CIで呼んでいない。このため`validate:curriculum`を`verify`へ追加するだけではRequired CI Gateにならない。
 - Current Android build contractはCompile API 36 / Build Tools 36.0.0を使用する一方、Formal Runtime EmulatorはAPI 34 / `google_apis` / `x86_64`を使用する。
-- Existing `scripts/native/windows/android-local.ps1`は接続済みADB deviceを前提にDoctor / Build / Install / Test等を行うが、AVD作成・Emulator起動そのものは提供しない。
+- Existing `scripts/native/windows/android-local.ps1`は接続済みADB deviceを前提にDoctor / Build / Install / Test等を行う。Windows Local Fresh LearnerではAVD作成・Emulator起動を必須にしない。
 - Current Phase 1 CIとCurrent Native CIはいずれも`pull_request`で起動するため、Training Copyへそのまま持ち込むとTraining WorkflowとFormal Workflowが同時実行される。
 - Current Native CIのchange detectionは`maestro/**`等を対象とするが、将来追加する`training/maestro/**`は現状のままでは検知対象外である。
 - Current Native Runtime CIは`ubuntu-24.04` / Java 17 / Android Runtime API 34 / `google_apis` / `x86_64` / `pixel_2` / KVMを使用し、ADB ready、`sys.boot_completed=1`、package service readyを有限待機で確認している。
@@ -439,7 +439,7 @@ Blocking Unknownは本Plan時点で残さない。
 - Specification Oracle
 - Required CI wiring
 - Native CI change detection
-- Android Runtime AVD contract
+- Android Runtime CI Emulator contract
 - Delivery Readiness evidence contract
 
 ---
@@ -1218,7 +1218,7 @@ Part 1 / Part 2で同じ分類語彙を使う。
 | `part1/04_playwright-foundations.md` | Coding Bridge、Training Config / Project / Command | P2 |
 | `part1/05_playwright-e2e-practice.md` | Training Playwright実Path、Desktop / Mobile、baseline / failure separation、Seed / Evidence | P1 |
 | `part1/06_execution-and-failure-analysis.md` | Failure Taxonomy、Evidence、Expected Fail Exercise | P1 |
-| `part1/07_maestro-native-automation.md` | Training Maestro実Path、Android Runtime AVD Contract、iOS Optional | P1 |
+| `part1/07_maestro-native-automation.md` | Training Maestro実Path、Windows Local Physical Device Canonical、GitHub CI Emulatorとの責務分離、iOS Optional | P1 |
 | `part1/08_test-management-and-maintainability.md` | Spec変更Lifecycle、不要Test削除判断 | P2 |
 | `part1/09_part1-capstone.md` | Cart Core維持、Competency Evidence、Advanced段階化 | P1 |
 | `part2/01_software-development-process.md` | Spec Change→Implementation→Review→Test | P2 |
@@ -1302,7 +1302,7 @@ Playwright学習で必要になったタイミングに限定して以下を扱�
 
 例:
 
-- Windows Emulatorが一時的に起動しない。
+- Windows LocalのPhysical Deviceが未接続・未認証・lock中である。
 - Instructor管理Training Copy remoteが一時的に利用できない。
 - 1つのFailure Exerciseだけが未完成。
 
@@ -1473,7 +1473,7 @@ Training実Path / Project / Commandが確定した後にPart 1全文書を改訂
 - Coding Bridge
 - Training Playwright Desktop / Mobile / baseline / exercise / expected failure実手順
 - Failure Taxonomy
-- Android Build 36 / Runtime AVD 34を区別したTraining Maestro実手順
+- Windows Local Physical DeviceのTraining Maestro実手順と、GitHub CI API 34 Emulator保証の責務分離
 - Maintainability
 - Core / Advanced Capstone
 - Competency Mapping
@@ -1517,7 +1517,7 @@ Gate:
 - Expected Contract / Alternative Design / Anti-pattern
 - Failure Exercises
 - Web Start Gate
-- Android AVD / Start Gate
+- Android Physical Device / Start Gate
 - Training Copy Start Gate / Trust Boundary
 - Troubleshooting
 - Part 1 → Part 2 migration
@@ -1525,7 +1525,7 @@ Gate:
 Gate:
 
 - 講師の暗黙知がRequired手順として残らない。
-- AVD未作成 / system image不足 / Emulator boot failureをRecovery手順で扱う。
+- Developer Options、USB debugging、ADB authorization、explicit serial、`device` status、awake、unlocked、supported Android API、ABI、package serviceのPhysical Device Recoveryを扱う。
 - Training Copy active Workflow / permission / runner不一致をRecoveryで扱う。
 
 ### Wave 9 — Curriculum Validator / Required CI / Repository-wide Integration Review
@@ -1597,7 +1597,7 @@ Training Playwright mobile project
 ↓
 Intentional Failure / Evidence
 ↓
-Android AVD preparation
+Physical Android Device preparation
 ↓
 Training Maestro baseline
 ↓
@@ -1691,17 +1691,21 @@ Final Merge Gate:
 
 Local:
 
+- Canonical device: USB-connected Physical Android Device with explicit serial and ADB status `device`
 - Build Contract: Compile SDK 36 / Build Tools 36.0.0
-- Runtime Contract: API 34 / `google_apis` / `x86_64` / `pixel_2`
-- AVD create / reuse
-- Emulator boot
+- Physical Device Start Gate: Developer Options / USB debugging / ADB authorization / awake / unlocked
+- Android API: `app.config.ts`の`minSdkVersion`以上。特定のAPI 30を最低値として固定しない
+- ABI: `Auto`検出で端末に合わせる
 - Doctor
+- Prepare
 - Build
+- APK integrity
 - Install
 - Launch
 - Test Control Reset
 - Training Maestro baseline PASS
 - Evidence確認
+- cleanup
 - Formal Maestro isolation確認
 
 Training GitHub Actions:
@@ -1852,9 +1856,9 @@ Mitigation:
 
 Mitigation:
 
-- Canonical Environmentを1つに限定する。
-- Build 36 / Runtime 34を分離して記述する。
-- AVD作成・bootをTraining Helperへ集約する。
+- Windows LocalのCanonical EnvironmentをPhysical Deviceへ限定し、CI Emulatorは別契約として記述する。
+- Build 36とGitHub Native CIのRuntime API 34を責務分離して記述する。
+- GitHub Training CIのAVD作成・bootをTraining Workflowへ集約する。
 - Existing Android Local ScriptをDevice接続後のContractとして再利用する。
 - macOS / Linuxの完全サポートを初版へ要求しない。
 
@@ -1959,8 +1963,8 @@ Mitigation:
 - Training TypeScript = dedicated typecheck + Repository typecheckへ接続
 - Native learner canonical environment = Windows 11
 - Android Build = Compile SDK 36 / Build Tools 36.0.0
-- Android Runtime = API 34 / `google_apis` / `x86_64` / `pixel_2`
-- AVD startup = Training専用PowerShell Helper
+- Android Training CI Runtime = API 34 / `google_apis` / `x86_64` / `pixel_2`
+- Training CI AVD startup = Training専用PowerShell Helper
 - Instructor asset = Public Instructor Reference
 - Local Blocker = 独立Taskを止めない
 - Delivery Readiness = Wave 10 final HEAD exact-SHA Merge Gate
