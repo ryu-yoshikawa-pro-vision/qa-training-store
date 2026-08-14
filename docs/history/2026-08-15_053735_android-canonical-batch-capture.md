@@ -17,3 +17,9 @@ PR #24のNative CIは、`capture_spec_visuals=true`で1回のworkflow runにつ�
 - 次はユーザーが変更をPR branchへcommit/pushした後、remote workflow gateを再確認し、固定API34 canonical profileでActions dispatchする。
 - 25/25 artifact、source SHA、同一run APK SHA-256、profile、raw PNG、per-case manifestを検証してからpromotion・status transition・Markdown materializationを行う。
 - State Aのlocal validationではFinal Visual Gateがblocked 25 / captured 69/94を理由に失敗するのは期待どおりであり、canonical screenshotは未取得・未promotionである。
+
+## State B capture attempt: profile normalization repair
+
+- Run `31841614738`（workflow_dispatch、source SHA `bb064ac2efe79828fd2f5e95f929e92a63bc92b0`）では、Android Emulatorの起動とAPK buildは成功したが、`Normalize Android canonical visual profile`が`persist.sys.locale`の`en_US`残留でfailした。capture case実行前のためvisual artifactは生成されていない。
+- Android公式のEmulator locale手順に合わせ、workflowのprofile normalizationへ`setprop persist.sys.locale ja-JP; stop; sleep 5; start`とboot完了待ちを追加し、locale property/settingsの短い収束確認を入れた。これはcanonical profile検証のfail-closeを維持する最小修正で、Capture retryやready assertionの弱体化ではない。
+- 同じremote SHAでの再実行は修正を反映しないため行わない。local修正を次のPR HEADへpush後、new source SHAでbatch captureを再実行する。

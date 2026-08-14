@@ -271,6 +271,7 @@ describe("Native CI workflow contracts", () => {
     ]) {
       expect(runtime).toContain(profileValue);
     }
+    expect(runtime).toContain("setprop persist.sys.locale ja-JP");
     expect(capture).toContain("exec-out screencap -p");
     expect(capture).toContain("APK_PATH");
     expect(capture).toContain("GITHUB_SHA");

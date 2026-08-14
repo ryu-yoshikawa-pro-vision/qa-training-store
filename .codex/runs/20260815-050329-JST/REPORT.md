@@ -156,6 +156,18 @@
 - Remaining: push後のremote Actions capture/apply/final validation。
 - Progress: 100% (8/8)
 
+## 2026-08-15 06:42 JST
+
+- State B run completion: Run `31841614738`は`failure`で完了した。Android Automation/Production APK buildはsuccess、Emulator起動もsuccessだったが、`Android Runtime / Maestro`の`Normalize Android canonical visual profile`がfailureとなり、Capture Caseは1件も実行されなかった。
+- Failure classification: infrastructure bug。runtime evidenceの`dumpsys-activity.txt` / `app-launch-logcat.txt`でsystem localeが`en_US`のまま残っていた。`settings put system system_locales ja-JP`だけではAPI34 Emulatorの`persist.sys.locale`と実configがcanonical `ja-JP`へ反映されず、profile validationがfail-closeした。個別setup/ready、Product UI、Maestro case failureではない。
+- Artifact safety: visual batch artifactは存在せず、APK artifactはbuild証拠としてのみ扱い、promotion/applyには使用していない。異なるrunのartifact混在、status transition、canonical mutationはなし。
+- Local repair: `.github/workflows/native-ci.yml`へ`setprop persist.sys.locale ja-JP`、`stop`/5秒待機/`start`、boot完了待ち、locale property/settingsの最大30秒収束確認を追加した。`tests/contracts/native-ci-workflow.test.ts`でlocale normalization commandを固定した。
+- Local repair validation:
+  - `pnpm exec prettier --check .github/workflows/native-ci.yml tests/contracts/native-ci-workflow.test.ts docs/history/2026-08-15_053735_android-canonical-batch-capture.md` => PASS。
+  - `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts` => PASS（17/17）。
+- Decision: 同じsource SHAでは修正を反映できないため、transient rerunではなくlocal repair後のpushを待つ。push後は新SHAをsource of truthとしてState B remote gateから再開する。
+- Progress: 100% (8/8)
+
 ## 2026-08-15 05:42 (JST)
 
 - Summary: Run artifactのschema/sanitizationを完了した。
@@ -195,4 +207,29 @@
 - Repair: テストcase単体のtimeoutだけを30秒へ明示し、workflow runtimeのtimeout/retryやassertionは変更しなかった。
 - Revalidation: targeted 23/23、full contracts 228/228、full `pnpm run test`、typecheck、lint、spec、Final Gate/verify結果を再確認した。
 - Decision: test timeoutは解消済み。残差はremote push前のActions/canonical capture未実行のみ。
+- Progress: 100% (8/8)
+
+## 2026-08-15 06:20 JST
+
+- Summary: ユーザーpush後のState B remote gateを通過し、PR #24の最新HEADへNative CIのbatch capture dispatchを実行した。
+- Remote gate: PR branchは`feat/implement-screen-catalog-visual-specification`、HEAD SHAは`bb064ac2efe79828fd2f5e95f929e92a63bc92b0`。remote workflowに`capture_case_key=all`、Registry-derived `list-cases`、batch manifest/partial failure guardがあり、remote CLIに`apply-batch`が存在することを確認した。
+- Dispatch: `capture_spec_visuals=true`、`capture_case_key=all`。対象runはRun ID `31841614738`、event=`workflow_dispatch`、branch/HEAD SHA一致で特定した。既存のpush起因`pull_request` runは対象外とした。
+- Current run: `Detect Native Changes` / `Production Bundle Guard`はpassed。`Native Static`は`Run Expo Doctor`でfailureとなり、API34 Android build/iOS buildは継続中。
+- Failure analysis: Expo Doctorが`@expo/metro-runtime`、`expo`、`expo-build-properties`、`expo-constants`、`expo-dev-client`、`expo-linking`、`expo-router`のpatch version mismatch（installed 57.0.x < expected 57.0.x+1）を検出した。batch変更は依存versionを変更しておらず、失敗はcapture stepではなくNative Staticの既存依存メタデータ／runner時点差分として分類した。Android capture到達可否はrun完了まで継続確認する。
+- Safety: Git mutation、PR merge、Actions再実行、artifact混在、canonical変更はまだ行っていない。
+- Remaining: Run `31841614738`完了、batch artifact/APK download、同一run validation/apply/promotion、status transition、materialize、final validation。
+- Progress: 100% (8/8)
+
+## 2026-08-15 06:48 JST
+
+- Local repair validation:
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint:markdown` => PASS（255 files、0 issues）。
+  - `pnpm run test:contracts` => PASS（26 files、228 tests）。
+  - `pnpm run test:component:native` => PASS（12 suites、49 tests）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94のみ）。
+  - `pnpm run verify` => EXPECTED FAIL（format/markdown/specはPASS後、Final Visual Gateで停止）。
+- Decision: local profile repairはPASSしたが、remote反映にはGit pushが必要。Run `31841614738`のAPK/Emulator evidenceはcanonical visual入力に採用しない。次は修正をpushした後、新HEADのState B remote gateとdispatchから再開する。
 - Progress: 100% (8/8)

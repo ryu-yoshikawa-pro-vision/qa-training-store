@@ -17,9 +17,14 @@
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
 - D1. push後にremote workflow gate、Actions dispatch/watch、artifact download、apply、materialize、Final validationを実行する。
 - D2. 実capture後に代表6画面のPNG/WebPを目視確認し、canonical profile以外の画像はpromotionしない。
+- [x] D3. State B dispatchを実行し、Run `31841614738`の最初の失敗をprofile normalizationまで特定する。
+- [x] D4. API34 locale normalizationを最小修正し、local contract/format/related validationを再実行する。
+- [ ] D5. 修正をユーザーがpushした後、新HEADでState B remote gateとbatch dispatchを再実行する。
+- [ ] D6. 同一runの25/25 artifact/APKを検証・apply・promotion・status transitionし、代表6画面を目視確認する。
+- [ ] D7. materializeとFinal Visual Gate/verify/最新CIの完了を確認し、HANDOFF Bまたはmerge readinessを報告する。
 
 ## Blocked
 
 - B1. なし（現時点では実装を継続可能）。
 
-Progress: 100% (8/8)
+Progress: 77% (10/13)

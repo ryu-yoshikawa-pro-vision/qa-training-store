@@ -51,8 +51,9 @@
                                     ],
                        "warnings":  [
                                     "Final Visual GateはAndroid 25 blocked、Captured 69/94のためEXPECTED FAIL",
-                                    "PR remote workflowはbatch未pushのためActions dispatch未実行",
-                                    "canonical API34 capture、artifact download、promotion、status transition、代表画面目視は未実行"
+                                    "Run 31841614738はAPI34 Emulator profile normalizationでcapture前にfailureし、visual artifactは未生成",
+                                    "local profile repairは完了したが、修正SHAのremote push、再capture、artifact download、promotion、status transition、代表画面目視は未実行",
+                                    "Native StaticはExpo Doctorのpatch version driftでfailure（batch依存変更なし）"
                                     ]
                    },
     "safety":  {

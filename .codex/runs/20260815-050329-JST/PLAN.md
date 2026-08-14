@@ -62,3 +62,8 @@
 - GitHub APIでPR #24を確認し、HEAD=`c5082e4d78fe7c99b2e70cb09133f98cf21d7f0f`、対象branchが正しいことを確認した。
 - remote workflowはsingle `capture_case_key`のみで、batch list/applyは未実装だったためSTATE Aと判定した。
 - 既存の`promoteAndroidVisualCapture`、`materializeVisualReferences`、Maestro capture flowを再利用し、generic DSLを増やさない方針にした。
+
+### 2026-08-15 06:48 JST
+
+- State B dispatchはremote gate通過後に実行できたが、API34 Emulatorのsystem localeが`en_US`のまま残り、profile normalizationでfailした。Emulator起動とAPK buildは成功し、Capture Caseは未実行だったため、個別setup/readyやProduct UIの問題とは扱わない。
+- Android公式のlocale設定手順に沿って、`setprop persist.sys.locale ja-JP`とstop/start、boot/locale収束確認をworkflowへ追加した。同じremote SHAでは再実行せず、ユーザーpush後に新SHAでState Bを再開する。

@@ -852,6 +852,19 @@ jobs:
         run: |
           set -euo pipefail
           "$ADB" shell settings put system system_locales ja-JP
+          "$ADB" shell setprop persist.sys.locale ja-JP
+          "$ADB" shell stop
+          sleep 5
+          "$ADB" shell start
+          boot_completed=false
+          for _ in $(seq 1 90); do
+            if [[ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
+              boot_completed=true
+              break
+            fi
+            sleep 2
+          done
+          test "$boot_completed" = true
           "$ADB" shell settings put system font_scale 1.0
           "$ADB" shell cmd uimode night no
           "$ADB" shell settings put system accelerometer_rotation 0
@@ -860,6 +873,14 @@ jobs:
           abi="$($ADB shell getprop ro.product.cpu.abi | tr -d '\r')"
           locale_value="$($ADB shell getprop persist.sys.locale | tr -d '\r')"
           locale_settings="$($ADB shell settings get system system_locales | tr -d '\r')"
+          for _ in $(seq 1 30); do
+            if [[ "$locale_value" = "ja-JP" && "$locale_settings" = "ja-JP" ]]; then
+              break
+            fi
+            sleep 1
+            locale_value="$($ADB shell getprop persist.sys.locale | tr -d '\r')"
+            locale_settings="$($ADB shell settings get system system_locales | tr -d '\r')"
+          done
           font_scale="$($ADB shell settings get system font_scale | tr -d '\r')"
           night_mode="$($ADB shell cmd uimode night | tr -d '\r')"
           rotation="$($ADB shell dumpsys input | sed -n 's/.*SurfaceOrientation: *//p' | head -n 1 | tr -d '\r')"
