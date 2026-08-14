@@ -45,3 +45,9 @@ Current Repositoryには、Normative Product Specification、既存UI Review、N
 - Native Test Controlの`regular-member` resetはcustomer Sessionと会員Cartをseedする。したがってそのscenarioのprofile／addresses／orders系Capture Caseは`customer-seeded-session`でseed stateを利用し、login操作を重複させない。guest seedからcustomer化が必要なdefault／review／processing系だけ既存customer login setupを使う。
 - Checkout visual setupはseeded role／Cartを確認し、Addressのactive session開始、住所保存、成功決済選択、Confirm dataロードの順に既存Maestro testIDを操作する。Paymentのnormal stateは`native-checkout-payment-session-ready`、Confirmのloaded stateは`native-checkout-confirm-submit`で検証する。
 - Product ListとCategoryのready contractは同一catalog rootだけに依存せず、それぞれ専用heading testID（`native-product-list-heading`／`native-category-heading`）を要求する。Shell navigationの同名ラベルを誤って拾わない。Addressもrootに加えてactive session markerを要求するため、error／locked／wrong deep-link stateをcanonical captureへ進めない。
+
+## Addendum: Android canonical batch capture（2026-08-15）
+
+- `capture_case_key=all`はCapture RegistryからAndroid keyを導出し、1 workflow run／1 API34 Emulator／1 Automation APKでcaseごとの既存capture flowを独立実行する。single-case dispatch互換は維持し、case keyをworkflow YAMLへ複製しない。
+- Batch artifactはbatch manifestとper-case manifestを持ち、全expected/captured set、`complete=true`、source SHA、同一run APK SHA-256、canonical runtime profile、raw PNGを全件検証してからのみcanonical WebPを生成・反映する。partial batchや任意output pathは拒否する。
+- provenance validationとcanonical promotionが成功するまで、RegistryのAndroid statusは`blocked`のままとする。asset存在だけでstatusを変更せず、promotion後の明示的execution state変更と既存materializationを別段階で行う。

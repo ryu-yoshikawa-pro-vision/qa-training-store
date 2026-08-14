@@ -36,6 +36,7 @@
     "validate:spec": "tsx scripts/spec/validate-all.ts",
     "validate:spec-visuals": "tsx scripts/spec/validate-all.ts",
     "validate:spec-visuals:final": "tsx scripts/spec/validate-all.ts --visuals-final",
+    "apply:android-spec-visuals": "tsx scripts/spec/android-visual-capture.ts apply-batch",
     "build:spec": "tsx scripts/spec/build-spec.ts",
     "promote:spec-visuals": "tsx scripts/spec/promote-web-visuals.ts",
     "materialize:spec-visual-references": "tsx scripts/spec/materialize-visual-references.ts",

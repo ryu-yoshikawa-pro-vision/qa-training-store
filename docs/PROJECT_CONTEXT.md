@@ -396,3 +396,10 @@
 - Checkout visual setupは、seeded customer roleとbasic-shirt Cartをassertした後、Address画面でactive Checkout Sessionを開始する。Paymentは住所保存後に`native-checkout-payment-session-ready`、Confirmはconfirmationロード後の既存`native-checkout-confirm-submit`をassertしてからcaptureへ進む。
 - Native ready matcherはProduct ListとCategoryを専用heading testID（`native-product-list-heading`／`native-category-heading`）で分離する。Checkout Addressはactive session marker、Paymentはvalid session marker、Confirmはloaded confirmationのsubmit markerをroot testIDと併せて要求し、Shell navigationの同名ラベルやroute rootだけの誤受理を防ぐ。
 - これらはCapture Caseのmachine metadataと既存Native UI stateを一致させるための最小変更であり、Final Gate、Android canonical profile、startup helper、manual dispatch境界、Productの業務挙動は変更しない。API34 capture未実行中はAndroid 25 Target blocked／Final Visual DoD BLOCKEDを維持する。
+
+## PR #24 Android canonical batch capture infrastructure（2026-08-15）
+
+- Android manual captureはsingle case互換を維持しつつ、`capture_case_key=all`では`visual-registry.ts`からAndroid case keyをdeterministicに導出し、1 APK build／1 API34 Emulator／1 profile normalization／1 install上でcaseごとに既存reset・setup・route・role・ready・screenshot・manifestを実行する。25件をworkflow YAMLへ複製しない。
+- Batch artifactは`batch.manifest.json`とRegistryから導出したraw/per-case manifestを持ち、`complete=true`、expected/captured case set一致、source SHA、同一run APK SHA-256、API34 canonical profile、PNG存在を全件検証する。partial/incomplete/stale/mixed provenanceはpromotionせず、Final Gateへ昇格しない。
+- `apply:android-spec-visuals`は全件validation後にtemporary WebPを生成し、canonical pathへ反映する。Android statusはartifact存在から自動capturedにせず、実capture成功後の明示execution state変更でのみblocked→capturedへ遷移する。
+- State A実装直後はユーザーpush待ちであり、GitHub Actions canonical capture、25件promotion、Android status transition、Final Visual Gate PASSは未実行である。

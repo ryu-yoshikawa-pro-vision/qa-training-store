@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import fs from "node:fs";
 import { readFile } from "node:fs/promises";
+import os from "node:os";
 import path from "node:path";
 import sharp from "sharp";
 import {
@@ -21,6 +22,8 @@ export const ANDROID_CANONICAL_PROFILE = {
   resolution: "1080x1920",
   density: 440,
 } as const;
+
+export const ANDROID_BATCH_MANIFEST_SCHEMA_VERSION = 1 as const;
 
 export type AndroidObservedVisualProfile = {
   api_level: number;
@@ -57,6 +60,22 @@ export type AndroidVisualCaptureManifest = {
   captured_at?: string;
 };
 
+export type AndroidVisualBatchMode = "single" | "all";
+
+export type AndroidVisualBatchManifest = {
+  schema_version: typeof ANDROID_BATCH_MANIFEST_SCHEMA_VERSION;
+  workflow_run_id: string;
+  source_commit_sha: string;
+  requested_mode: AndroidVisualBatchMode;
+  expected_case_count: number;
+  capture_case_keys: readonly string[];
+  captured_case_count: number;
+  captured_case_keys: readonly string[];
+  complete: boolean;
+  failed_case_key?: string;
+  failure_message?: string;
+};
+
 export type AndroidVisualManifestValidationOptions = {
   expectedCaptureCaseKey: string;
   expectedSourceCommitSha: string;
@@ -64,7 +83,22 @@ export type AndroidVisualManifestValidationOptions = {
 };
 
 function isSha(value: string, length: number): boolean {
-  return new RegExp(`^[0-9a-f]{${length}}$`).test(value);
+  return typeof value === "string" && new RegExp(`^[0-9a-f]{${length}}$`).test(value);
+}
+
+export function listAndroidCaptureCaseKeys(): readonly string[] {
+  const keys =
+    VISUAL_CAPTURE_CASE_BY_KEY.size === 0
+      ? []
+      : [...VISUAL_CAPTURE_CASE_BY_KEY.values()]
+          .filter((captureCase) => captureCase.platform === "android")
+          .map((captureCase) => captureCase.captureCaseKey);
+  const duplicates = keys.filter((key, index) => keys.indexOf(key) !== index);
+  if (duplicates.length > 0)
+    throw new Error(
+      `Android Capture Case registry contains duplicates: ${[...new Set(duplicates)].join(", ")}`,
+    );
+  return keys;
 }
 
 async function sha256(filePath: string): Promise<string> {
@@ -186,6 +220,205 @@ export function validateAndroidObservedVisualProfile(
   return issues;
 }
 
+export type AndroidVisualBatchValidationOptions = {
+  artifactDir: string;
+  expectedSourceCommitSha: string;
+  automationApkPath: string;
+};
+
+export type AndroidVisualBatchEntry = {
+  captureCaseKey: string;
+  rawPngPath: string;
+  manifestPath: string;
+  manifest: AndroidVisualCaptureManifest;
+};
+
+export type AndroidVisualBatchValidationResult = {
+  issues: readonly string[];
+  entries: readonly AndroidVisualBatchEntry[];
+};
+
+function sameStringArray(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
+function duplicateStrings(values: readonly string[]): readonly string[] {
+  return [...new Set(values.filter((value, index) => values.indexOf(value) !== index))];
+}
+
+function isStringArray(value: unknown): value is readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+
+function isWithinRoot(rootDir: string, candidatePath: string): boolean {
+  const root = path.resolve(rootDir);
+  const candidate = path.resolve(candidatePath);
+  return candidate === root || candidate.startsWith(`${root}${path.sep}`);
+}
+
+function derivedRawPaths(
+  artifactDir: string,
+  captureCaseKey: string,
+): {
+  rawPngPath: string;
+  manifestPath: string;
+} {
+  const captureCase = VISUAL_CAPTURE_CASE_BY_KEY.get(captureCaseKey);
+  if (captureCase === undefined || captureCase.platform !== "android")
+    throw new Error(`Android Capture Case is not registered: ${captureCaseKey}`);
+  const caseRoot = path.join(artifactDir, "raw", captureCase.screenId, captureCase.stateSlug);
+  return {
+    rawPngPath: path.join(caseRoot, "android.png"),
+    manifestPath: path.join(caseRoot, "android.manifest.json"),
+  };
+}
+
+async function validateRawAndroidPng(rawPngPath: string): Promise<string[]> {
+  if (!fs.existsSync(rawPngPath)) return [`raw PNG does not exist: ${rawPngPath}`];
+  const stats = await fs.promises.stat(rawPngPath);
+  if (stats.size <= 0) return [`raw PNG is empty: ${rawPngPath}`];
+  try {
+    const metadata = await sharp(rawPngPath).metadata();
+    const expectedResolution = ANDROID_CANONICAL_PROFILE.resolution.split("x").map(Number);
+    if (metadata.format !== "png") return [`raw visual is not PNG: ${rawPngPath}`];
+    if (metadata.width !== expectedResolution[0] || metadata.height !== expectedResolution[1])
+      return [`raw PNG dimensions must be ${ANDROID_CANONICAL_PROFILE.resolution}: ${rawPngPath}`];
+  } catch (error) {
+    return [
+      `raw PNG cannot be decoded: ${rawPngPath}: ${error instanceof Error ? error.message : String(error)}`,
+    ];
+  }
+  return [];
+}
+
+function validateBatchManifestShape(
+  manifest: AndroidVisualBatchManifest,
+  expectedCaseKeys: readonly string[],
+  expectedSourceCommitSha: string,
+): string[] {
+  const issues: string[] = [];
+  const allowedKeys = new Set([
+    "schema_version",
+    "workflow_run_id",
+    "source_commit_sha",
+    "requested_mode",
+    "expected_case_count",
+    "capture_case_keys",
+    "captured_case_count",
+    "captured_case_keys",
+    "complete",
+    "failed_case_key",
+    "failure_message",
+  ]);
+  for (const key of Object.keys(manifest as object))
+    if (!allowedKeys.has(key)) issues.push(`batch manifest contains unexpected field: ${key}`);
+  if (manifest.schema_version !== ANDROID_BATCH_MANIFEST_SCHEMA_VERSION)
+    issues.push(`batch manifest schema_version must be ${ANDROID_BATCH_MANIFEST_SCHEMA_VERSION}`);
+  if (typeof manifest.workflow_run_id !== "string" || manifest.workflow_run_id.trim() === "")
+    issues.push("batch manifest workflow_run_id is required");
+  if (!isSha(manifest.source_commit_sha, 40))
+    issues.push("batch manifest source_commit_sha must be a 40-character lowercase Git SHA");
+  if (manifest.source_commit_sha !== expectedSourceCommitSha)
+    issues.push(
+      `batch manifest source_commit_sha does not match expected source: ${manifest.source_commit_sha} !== ${expectedSourceCommitSha}`,
+    );
+  if (manifest.requested_mode !== "all")
+    issues.push(`batch manifest requested_mode must be all: ${manifest.requested_mode}`);
+  if (manifest.expected_case_count !== expectedCaseKeys.length)
+    issues.push(
+      `batch manifest expected_case_count does not match Registry: ${manifest.expected_case_count} !== ${expectedCaseKeys.length}`,
+    );
+  if (!isStringArray(manifest.capture_case_keys)) {
+    issues.push("batch manifest capture_case_keys must be a string array");
+  } else {
+    const duplicates = duplicateStrings(manifest.capture_case_keys);
+    if (duplicates.length > 0)
+      issues.push(`batch manifest capture_case_keys contains duplicates: ${duplicates.join(", ")}`);
+    if (!sameStringArray(manifest.capture_case_keys, expectedCaseKeys))
+      issues.push(
+        "batch manifest capture_case_keys does not exactly match the Registry Android case order",
+      );
+  }
+  if (!Number.isInteger(manifest.captured_case_count) || manifest.captured_case_count < 0)
+    issues.push("batch manifest captured_case_count must be a non-negative integer");
+  if (!isStringArray(manifest.captured_case_keys)) {
+    issues.push("batch manifest captured_case_keys must be a string array");
+  } else {
+    const duplicates = duplicateStrings(manifest.captured_case_keys);
+    if (duplicates.length > 0)
+      issues.push(
+        `batch manifest captured_case_keys contains duplicates: ${duplicates.join(", ")}`,
+      );
+    if (manifest.captured_case_count !== manifest.captured_case_keys.length)
+      issues.push("batch manifest captured_case_count does not match captured_case_keys");
+    const expectedSet = new Set(expectedCaseKeys);
+    for (const key of manifest.captured_case_keys)
+      if (!expectedSet.has(key)) issues.push(`batch manifest has unexpected captured case: ${key}`);
+    if (manifest.complete && !sameStringArray(manifest.captured_case_keys, expectedCaseKeys))
+      issues.push("complete batch manifest must capture every Registry Android case in order");
+  }
+  if (manifest.complete !== true)
+    issues.push("batch manifest is incomplete; canonical promotion requires complete=true");
+  if (manifest.complete && manifest.failed_case_key !== undefined)
+    issues.push("complete batch manifest must not contain failed_case_key");
+  if (!manifest.complete && typeof manifest.failed_case_key !== "string")
+    issues.push("incomplete batch manifest must identify failed_case_key");
+  return issues;
+}
+
+export async function validateAndroidVisualBatch(
+  manifest: AndroidVisualBatchManifest,
+  options: AndroidVisualBatchValidationOptions,
+): Promise<AndroidVisualBatchValidationResult> {
+  const expectedCaseKeys = listAndroidCaptureCaseKeys();
+  const issues = validateBatchManifestShape(
+    manifest,
+    expectedCaseKeys,
+    options.expectedSourceCommitSha,
+  );
+  const entries: AndroidVisualBatchEntry[] = [];
+  const capturedKeys = isStringArray(manifest.captured_case_keys)
+    ? manifest.captured_case_keys
+    : [];
+  const expectedSet = new Set(expectedCaseKeys);
+  for (const captureCaseKey of capturedKeys) {
+    if (!expectedSet.has(captureCaseKey)) continue;
+    const paths = derivedRawPaths(options.artifactDir, captureCaseKey);
+    issues.push(...(await validateRawAndroidPng(paths.rawPngPath)));
+    if (!fs.existsSync(paths.manifestPath)) {
+      issues.push(`per-case manifest does not exist: ${paths.manifestPath}`);
+      continue;
+    }
+    let caseManifest: AndroidVisualCaptureManifest;
+    try {
+      caseManifest = JSON.parse(
+        await readFile(paths.manifestPath, "utf8"),
+      ) as AndroidVisualCaptureManifest;
+    } catch (error) {
+      issues.push(
+        `per-case manifest is not valid JSON: ${paths.manifestPath}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      continue;
+    }
+    issues.push(
+      ...(await validateAndroidVisualManifest(caseManifest, {
+        expectedCaptureCaseKey: captureCaseKey,
+        expectedSourceCommitSha: options.expectedSourceCommitSha,
+        automationApkPath: options.automationApkPath,
+      })),
+    );
+    if (caseManifest.workflow_run_id !== manifest.workflow_run_id)
+      issues.push(`per-case manifest workflow_run_id does not match batch: ${captureCaseKey}`);
+    entries.push({
+      captureCaseKey,
+      rawPngPath: paths.rawPngPath,
+      manifestPath: paths.manifestPath,
+      manifest: caseManifest,
+    });
+  }
+  return { issues, entries };
+}
+
 export async function writeAndroidVisualManifest(
   options: WriteAndroidVisualManifestOptions,
 ): Promise<AndroidVisualCaptureManifest> {
@@ -249,6 +482,21 @@ async function readJsonFile<T>(filePath: string): Promise<T> {
 
 async function runCli(): Promise<void> {
   const [command, ...args] = process.argv.slice(2);
+  if (command === "list-cases") {
+    const captureCaseKeys = listAndroidCaptureCaseKeys();
+    console.log(
+      JSON.stringify(
+        {
+          platform: "android",
+          count: captureCaseKeys.length,
+          capture_case_keys: captureCaseKeys,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
   if (command === "describe-case") {
     const captureCaseKey = readCliOption(args, "--capture-case-key");
     const captureCase = VISUAL_CAPTURE_CASE_BY_KEY.get(captureCaseKey);
@@ -340,8 +588,32 @@ async function runCli(): Promise<void> {
     console.log(`Promoted Android canonical visual: ${promotedPath}`);
     return;
   }
+  if (command === "apply-batch") {
+    const artifactDir = readCliOption(args, "--artifact-dir");
+    const automationApkPath = readCliOption(args, "--automation-apk-path");
+    const expectedSourceCommitSha = readCliOption(args, "--expected-source-commit-sha");
+    const rootDir = readOptionalCliOption(args, "--root-dir") ?? process.cwd();
+    const applied = await applyAndroidVisualBatch({
+      artifactDir,
+      automationApkPath,
+      expectedSourceCommitSha,
+      rootDir,
+    });
+    console.log(
+      JSON.stringify(
+        {
+          promoted_case_count: applied.promotedPaths.length,
+          promoted_paths: applied.promotedPaths,
+          status_transition: applied.statusTransition,
+        },
+        null,
+        2,
+      ),
+    );
+    return;
+  }
   throw new Error(
-    "Usage: describe-case | validate-profile | write-manifest | promote (see repository Plan for options)",
+    "Usage: list-cases | describe-case | validate-profile | write-manifest | promote | apply-batch (see repository Plan for options)",
   );
 }
 
@@ -374,4 +646,124 @@ export async function promoteAndroidVisualCapture(
   await fs.promises.mkdir(path.dirname(outputPath), { recursive: true });
   await sharp(options.rawPngPath).webp({ quality: 88 }).toFile(outputPath);
   return path.relative(options.rootDir, outputPath).split(path.sep).join("/");
+}
+
+export type PromoteAndroidVisualBatchOptions = AndroidVisualBatchValidationOptions & {
+  rootDir: string;
+};
+
+export async function promoteAndroidVisualBatch(
+  options: PromoteAndroidVisualBatchOptions,
+): Promise<readonly string[]> {
+  const artifactDir = path.resolve(options.artifactDir);
+  const rootDir = path.resolve(options.rootDir);
+  const batchManifestPath = path.join(artifactDir, "batch.manifest.json");
+  if (!fs.existsSync(batchManifestPath))
+    throw new Error(`batch manifest does not exist: ${batchManifestPath}`);
+  const batchManifest = await readJsonFile<AndroidVisualBatchManifest>(batchManifestPath);
+  const validation = await validateAndroidVisualBatch(batchManifest, {
+    artifactDir,
+    expectedSourceCommitSha: options.expectedSourceCommitSha,
+    automationApkPath: options.automationApkPath,
+  });
+  if (validation.issues.length > 0) throw new Error(validation.issues.join("\n"));
+
+  const stagingRoot = await fs.promises.mkdtemp(
+    path.join(os.tmpdir(), "qa-store-android-visual-batch-"),
+  );
+  const stagedOutputs: { outputPath: string; stagedPath: string }[] = [];
+  try {
+    for (const entry of validation.entries) {
+      const captureCase = VISUAL_CAPTURE_CASE_BY_KEY.get(entry.captureCaseKey);
+      if (captureCase === undefined || captureCase.platform !== "android")
+        throw new Error(`Android Capture Case is not registered: ${entry.captureCaseKey}`);
+      const relativeOutput = visualAssetPath(captureCase);
+      if (path.isAbsolute(relativeOutput))
+        throw new Error(`Android promotion output must be repository-relative: ${relativeOutput}`);
+      const outputPath = path.resolve(rootDir, relativeOutput);
+      if (!isWithinRoot(rootDir, outputPath))
+        throw new Error(`Android promotion output escapes repository root: ${relativeOutput}`);
+      const stagedPath = path.join(stagingRoot, "outputs", relativeOutput);
+      await fs.promises.mkdir(path.dirname(stagedPath), { recursive: true });
+      await sharp(entry.rawPngPath).webp({ quality: 88 }).toFile(stagedPath);
+      stagedOutputs.push({ outputPath, stagedPath });
+    }
+
+    const backups: { outputPath: string; backupPath: string | null }[] = [];
+    for (const [index, staged] of stagedOutputs.entries()) {
+      if (!fs.existsSync(staged.outputPath)) {
+        backups.push({ outputPath: staged.outputPath, backupPath: null });
+        continue;
+      }
+      const backupPath = path.join(stagingRoot, "backups", `${index}.webp`);
+      await fs.promises.mkdir(path.dirname(backupPath), { recursive: true });
+      await fs.promises.copyFile(staged.outputPath, backupPath);
+      backups.push({ outputPath: staged.outputPath, backupPath });
+    }
+
+    try {
+      for (const staged of stagedOutputs) {
+        await fs.promises.mkdir(path.dirname(staged.outputPath), { recursive: true });
+        await fs.promises.copyFile(staged.stagedPath, staged.outputPath);
+      }
+    } catch (error) {
+      const rollbackIssues: string[] = [];
+      for (const backup of backups) {
+        try {
+          if (backup.backupPath !== null) {
+            await fs.promises.copyFile(backup.backupPath, backup.outputPath);
+          } else if (fs.existsSync(backup.outputPath)) {
+            await fs.promises.unlink(backup.outputPath);
+          }
+        } catch (rollbackError) {
+          rollbackIssues.push(
+            `${backup.outputPath}: ${rollbackError instanceof Error ? rollbackError.message : String(rollbackError)}`,
+          );
+        }
+      }
+      const rollbackMessage =
+        rollbackIssues.length === 0 ? "" : `; rollback failed for ${rollbackIssues.join(", ")}`;
+      throw new Error(
+        `Android batch canonical promotion failed after validation: ${error instanceof Error ? error.message : String(error)}${rollbackMessage}`,
+      );
+    }
+    return stagedOutputs.map(({ outputPath }) =>
+      path.relative(rootDir, outputPath).split(path.sep).join("/"),
+    );
+  } finally {
+    await fs.promises.rm(stagingRoot, { recursive: true, force: true });
+  }
+}
+
+export async function markAndroidCanonicalCaptureCaptured(rootDir: string): Promise<void> {
+  const resolvedRoot = path.resolve(rootDir);
+  const registryPath = path.resolve(resolvedRoot, "scripts/spec/visual-registry.ts");
+  if (!isWithinRoot(resolvedRoot, registryPath))
+    throw new Error("Android status transition path escapes repository root");
+  const source = await readFile(registryPath, "utf8");
+  const blockedDeclaration =
+    'export const ANDROID_CANONICAL_CAPTURE_STATUS: CaptureStatus = "blocked";';
+  const capturedDeclaration =
+    'export const ANDROID_CANONICAL_CAPTURE_STATUS: CaptureStatus = "captured";';
+  if (source.includes(capturedDeclaration)) return;
+  if (!source.includes(blockedDeclaration))
+    throw new Error("Android canonical capture status switch is not in the expected blocked state");
+  await fs.promises.writeFile(
+    registryPath,
+    source.replace(blockedDeclaration, capturedDeclaration),
+    "utf8",
+  );
+}
+
+export type ApplyAndroidVisualBatchResult = {
+  promotedPaths: readonly string[];
+  statusTransition: "captured";
+};
+
+export async function applyAndroidVisualBatch(
+  options: PromoteAndroidVisualBatchOptions,
+): Promise<ApplyAndroidVisualBatchResult> {
+  const promotedPaths = await promoteAndroidVisualBatch(options);
+  await markAndroidCanonicalCaptureCaptured(options.rootDir);
+  return { promotedPaths, statusTransition: "captured" };
 }

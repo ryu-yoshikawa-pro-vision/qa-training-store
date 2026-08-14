@@ -210,8 +210,11 @@ describe("Native CI workflow contracts", () => {
     expect(capture).toContain("inputs.capture_spec_visuals == true");
     expect(capture).toContain("steps.android_profile_normalize.outcome == 'success'");
     expect(capture).not.toContain("pull_request");
-    expect(capture).toContain('CASE_KEY="${{ inputs.capture_case_key }}"');
+    expect(capture).toContain("CAPTURE_CASE_SELECTION");
+    expect(capture).toContain("android-visual-capture.ts list-cases");
     expect(capture).toContain("android-visual-capture.ts describe-case");
+    expect(capture).toContain('for CASE_KEY in "${CASE_KEYS[@]}"');
+    expect(capture).toContain("capture_case() (");
     for (const captureMetadata of [
       "scenario",
       "route",
@@ -234,7 +237,13 @@ describe("Native CI workflow contracts", () => {
     expect(capture).toContain('jq -rn --arg value "$SCENARIO"');
     expect(capture).toContain("scenario=${scenario_encoded}");
     expect(capture).toContain('--env "ROLE=$ROLE"');
-    expectInOrder(capture, ["android-maestro-run.sh", "exec-out screencap -p"]);
+    expectInOrder(capture, [
+      "list-cases",
+      "capture_case() (",
+      "android-maestro-run.sh",
+      "exec-out screencap -p",
+      "android-visual-capture.ts write-manifest",
+    ]);
     expect(capture).not.toContain('test -n "$READY"');
     expect(capture).toContain("source-commit-sha");
     expect(capture).toContain("--automation-apk-path");
@@ -246,6 +255,11 @@ describe("Native CI workflow contracts", () => {
     ]);
     expect(capture).toContain("--system-image google_apis");
     expect(capture).toContain("--avd-profile pixel_2");
+    expect(capture).toContain("batch.manifest.json");
+    expect(capture).toContain("capture_case_keys");
+    expect(capture).toContain("complete");
+    expect(capture).toContain("canonical promotion is forbidden");
+    expect(capture).not.toContain("25");
     expect(runtime).toContain("native-android-screen-catalog-visuals-");
     for (const profileValue of [
       "android-${ANDROID_API_LEVEL}",

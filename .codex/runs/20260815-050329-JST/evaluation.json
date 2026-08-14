@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "run_id": "20260815-050329-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "STATE Aのbatch infrastructure、contract、local validationは完了したが、remote branchへのpush前であり、固定API34 Actionsの25件capture・artifact apply・Final Gate PASSは未実行である。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はbatch capture/apply、workflow contract、関連docs/run artifactに限定し、Product UI、Native setup、Final Gate、startup helper、Git mutationを行っていない。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "format、markdown、lint、typecheck、spec、build、全contract 227 tests、component、web build、production bundle guardはPASSしたが、Actions API34 runtimeと実artifact provenanceは未検証である。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "partial/incomplete batchをapply拒否し、canonical outputをvalidation後に限定し、Final Visual Gateを緩和せず、Git/PR操作とworkflow dispatchを行っていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Registry list、batch manifest、single互換、fail-close、all-or-nothing、status switch、Actions境界をcontract・plan・history・REPORTへ記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存manifest validator、visualAssetPath、Maestro flow、Native workflowを再利用し、25 caseのYAML複製やgeneric DSLを追加していない。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "local State Aの再現経路はcontractで固定したが、remote workflowはまだ旧single-case実装のため、ユーザーのcommit/push後にHEAD一致のremote gateが必要である。"
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "PR #24 remote HEAD c5082e4d78fe7c99b2e70cb09133f98cf21d7f0fのnative-ci.ymlにはsingle captureしかなく、batch implementationは未pushである。",
+      "detail": "Actions dispatchは旧workflowを実行するため禁止した。ユーザーが変更を対象branchへcommit/pushした後、remote gateを再確認してState Bへ進む。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "validate:spec-visuals:finalとverifyはblockedTargetCount=25、capturedTargetCount=69/94だけを理由に失敗した。",
+      "detail": "Android canonical assetは未取得・未promotionであり、State Aでは期待されたfail-close残差である。"
+    }
+  ],
+  "improvement_candidates": []
+}
