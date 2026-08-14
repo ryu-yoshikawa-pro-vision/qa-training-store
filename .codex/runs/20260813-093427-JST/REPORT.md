@@ -880,3 +880,13 @@ Progress: 90% (18/20)
 - `node -e`による`run.json` / `evaluation.json` JSON parseはPASS。
 - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check`はPASS（5 files、0 replacements、0 residual findings）。
 - Run Artifactへ未サニタイズのローカル絶対Pathは残っていない。Task 14はDeferred、Required Progressは`100% (23/23)`、`run.json` / `evaluation.json`は`partial` / `missing_validation`とし、pendingはpost-repair exact-head CIだけである。
+
+## 2026-08-15 07:39 JST — Native CI failed-jobs rerunの最終確認
+
+- 対象PR #25の現在HEADは`2c3ae82bba9b8db0f4d64ef0dbacd2614f37981f`で、ローカルHEADおよびPR head SHAと一致した。read-only確認の結果、Phase 1 CI #205（run `31841989608`）はPASS、Native CI #148（run `31841989709`）は失敗ジョブのみ再実行した。
+- 再実行後のNative CIは全job PASS。Native Static / Expo Doctor、Android Automation Build、Android API34 `google_apis` / `x86_64` Emulator Runtime、Formal Maestro全flow、Training Maestro baseline、Android Production-validation、iOS Build-only、`native-ci / verify`を確認した。
+- 前回の失敗3件（`native-cart`、`native-reset-dirty-state`、`native-purchase`）は、再実行ではすべてPASSした。`launchApp(clearState: true)`直後の`Native test runtime listening` Start Gate timeoutは再現しなかった。
+- 前回失敗ログでは、旧Taskの`remove-task` teardownが新Process起動直後に同一packageの新PIDをkillする時系列が観測されており、Android task lifecycle raceの仮説を支持する。ただし同一HEAD・同一workflowのrerunで再現しなかったため、今回は非再現のAndroid task lifecycle flakeとして扱う。Sourceの因果修正は行わない。
+- timeout延長、sleep、retry、allow-failure、flow削除、assertion緩和は行っていない。Formal Maestro、Training baseline、CI Emulator、Windows Local Physical Android、iOS Build-onlyの保証境界は変更していない。
+- 今回のNative CI確認をもって、対象HEADのRequired CI pendingは解消した。Active RunのRequired ProgressはTask 14 Deferredを分母外とする`100% (23/23)`を維持し、Final Delivery / remote Training Copy / `FINAL_CANDIDATE_SHA`はRequired scopeへ戻さない。
+- 今後の候補として、Android task teardownとlaunchの競合を別課題で継続観測する。ただし今回のPR #25へ予防的なSource安定化修正は追加しない。

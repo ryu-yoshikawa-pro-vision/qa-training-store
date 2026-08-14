@@ -50,7 +50,7 @@
     ".codex/runs/20260813-093427-JST/evaluation.json"
   ],
   "validation": {
-    "status": "partial",
+    "status": "passed",
     "commands": [
       "pnpm run format:check => pass",
       "pnpm run lint:markdown => pass",
@@ -221,16 +221,18 @@
       "TASKS checkbox recount => pass (Task 14 Deferred excluded; Tasks 22 / 23 / 24 complete; Progress 100% = 23/23)",
       "git diff --check => pass (CRLF warnings only; no whitespace errors)",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260813-093427-JST -Write -Check => pass (5 files, 0 replacements, 0 residual findings)",
-      "post-repair exact-head Phase 1 / Native CI => pending user commit / push; no future PASS claimed"
+      "post-repair exact-head PR #25 check => pass (HEAD 2c3ae82bba9b8db0f4d64ef0dbacd2614f37981f; Phase 1 CI #205 / run 31841989608 success; Native CI #148 / run 31841989709 failed-jobs rerun success)",
+      "Native CI failed-jobs rerun => pass (Android Runtime / Maestro all formal flows, Training Maestro baseline, Production-validation, Native Static / Expo Doctor, iOS Build-only, and native-ci / verify all success; native-cart / native-reset-dirty-state / native-purchase Start Gate failure not reproduced)",
+      "Native task lifecycle failure assessment => non-reproduced Android task teardown / launch timing flake; no Source repair, timeout increase, retry, sleep, allow-failure, flow skip, or assertion weakening performed"
     ],
     "warnings": [
       "lint has 65 pre-existing warnings",
       "Android SDK cmdline-tools latest/latest-2 inconsistency warning remains; current Physical Device build and runtime passed",
-      "Required Fresh Learner Web / Physical Android and current PR Required CI evidence passed; the next required state is the user's commit / push of this Owner Decision / Run Artifact reconciliation and new exact-head Required CI",
+      "Required Fresh Learner Web / Physical Android and current PR Required CI evidence passed; no current Required validation blocker remains",
       "Existing C:\\q pointed to another repository; Prepare fail-closed as designed and used a separately verified current-worktree alias without modifying C:\\q",
       "Historical Local AVD System UI ANR remains in REPORT history only; no AVD was used for the current contract verification and it is not a current Local Fresh Learner blocker",
       "Action SHA pinning and run.json scope_ref were intentionally not added; the former is a repository-wide policy concern and the latter is absent from the canonical RUN_MANIFEST schema",
-      "Current pre-repair PR HEAD 422d4c39bb764ec18752554dbb75115940e5123e had Phase 1 CI #203 PASS and Native CI #145 FAIL only at Expo Doctor; post-repair exact-head Required CI remains pending user commit / push",
+      "Historical PR HEAD 422d4c39bb764ec18752554dbb75115940e5123e had Phase 1 CI #203 PASS and Native CI #145 FAIL only at Expo Doctor; target HEAD 2c3ae82bba9b8db0f4d64ef0dbacd2614f37981f Native CI #148 rerun is PASS",
       "Remote Training Copy Delivery, FINAL_CANDIDATE_SHA, SHA equality, and Final Delivery Record are intentionally deferred as Future operational validation / optional instructor validation and are not current failure categories or Merge blockers"
     ]
   },
@@ -264,6 +266,6 @@
     }
   },
   "evaluation_path": ".codex/runs/20260813-093427-JST/evaluation.json",
-  "status": "partial",
-  "primary_failure_category": "missing_validation"
+  "status": "complete",
+  "primary_failure_category": null
 }

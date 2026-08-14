@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "run_id": "20260813-093427-JST",
-  "result": "partial",
-  "primary_failure_category": "missing_validation",
-  "failure_categories": ["missing_validation"],
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "Owner Decision後のRequired DoDはCurriculum / Workbook・Training assets / Formal・Training境界 / validator / Training Web desktop・mobile / learner exercise / expected-failure lifecycle / Windows Local Physical Android Training Maestro baseline / GitHub Native CI API34 Emulator Training baseline / pnpm run verify / Required CI / Critical・High Source finding解消へ限定され、既存のFresh Learnerとcurrent CI evidenceはこれらを満たしている。Task 14のremote Delivery要件はDeferredであり、Required taskの分母から除外した。",
+      "evidence": "Owner Decision後のRequired DoDはCurriculum / Workbook・Training assets / Formal・Training境界 / validator / Training Web desktop・mobile / learner exercise / expected-failure lifecycle / Windows Local Physical Android Training Maestro baseline / GitHub Native CI API34 Emulator Training baseline / pnpm run verify / Required CI / Critical・High Source finding解消へ限定され、Fresh Learnerと対象HEADのRequired CI rerunがこれらを満たしている。Task 14のremote Delivery要件はDeferredであり、Required taskの分母から除外した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -17,7 +17,7 @@
         },
         {
           "kind": "evaluation_note",
-          "summary": "Fresh Learner Web / Physical Androidと既存Required CIの成功を、縮小後DoDの根拠として評価した。"
+          "summary": "Fresh Learner Web / Physical Android、Phase 1 CI #205、Native CI #148 rerunの成功を、縮小後DoDの根拠として評価した。"
         }
       ]
     },
@@ -33,18 +33,18 @@
       ]
     },
     "validation_confidence": {
-      "rating": "warn",
-      "evidence": "Expo Doctor 17/17、format、markdown、spec、curriculum、lint、repository / Training typecheck、focused / full contracts、pnpm run verifyは今回の修正後にPASSした。422d4c39bb764ec18752554dbb75115940e5123eのPhase 1 CI #203はPASS、Native CI #145はExpo DoctorだけFAILだったが、今回の修正後のexact-head CIではない。次commitのRequired CIはユーザーのcommit / push後に確認する。",
+      "rating": "pass",
+      "evidence": "Expo Doctor 17/17、format、markdown、spec、curriculum、lint、repository / Training typecheck、focused / full contracts、pnpm run verify、および対象HEAD 2c3ae82bba9b8db0f4d64ef0dbacd2614f37981fのPhase 1 CI #205 / Native CI #148 rerunがPASSした。Native CI rerunではAPI34 Emulator、Formal Maestro、Training Maestro baseline、Production-validation、iOS Build-onlyを確認した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260813-093427-JST/run.json",
           "selector": "validation.commands",
-          "summary": "今回までのstatic / local validation結果を保持している。"
+          "summary": "今回までのstatic / local validationと対象HEADのRequired CI結果を保持している。"
         },
         {
           "kind": "evaluation_note",
-        "summary": "422d4のNative CI failureはExpo Doctor patch mismatchのhistorical evidenceとして分離し、次exact-head確認を残した。"
+          "summary": "422d4のExpo Doctor failureはhistorical evidenceとして分離し、対象HEADのNative CI rerun successでcurrent findingを解消した。"
         }
       ]
     },
@@ -81,24 +81,17 @@
       ]
     },
     "reproducibility": {
-      "rating": "warn",
-      "evidence": "Fresh Training CopyのWeb / Physical Androidと、同時点のCurrent PR HEAD Required CIは既に再現確認済みである。今回のscope追補を含む新exact HEADのPhase 1 / Native CIは、commit / push後に再実行してMerge Ready判定を確定する。remote Training Copy DeliveryはRequired再現条件ではない。",
+      "rating": "pass",
+      "evidence": "Fresh Training CopyのWeb / Physical Android、対象HEADのPhase 1 CI #205、Native CI #148 rerunを確認した。前回のnative-cart / native-reset-dirty-state / native-purchase Start Gate failureはSource変更なしのrerunで再現せず、Android task lifecycle timing flakeとして別課題候補に分離した。remote Training Copy DeliveryはRequired再現条件ではない。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
-          "summary": "次のRequired CI確認だけをcurrent pending validationとして残し、remote Delivery未実施はblockerから除外した。"
+          "summary": "対象HEADのRequired CIを確認し、remote Delivery未実施はblockerから除外した。"
         }
       ]
     }
   },
-  "findings": [
-    {
-      "category": "missing_validation",
-      "severity": "medium",
-      "evidence": "今回のExpo patch / Plan / Active Run repairは未commitであり、Current PR HEAD 422d4c39bb764ec18752554dbb75115940e5123eのPhase 1 CI #203 / Native CI #145はこのrepairを含まない。Native CIのfailureはExpo Doctorだけで、runtime系はPASSだった。",
-      "detail": "ユーザーが今回の追補をcommit / pushした後、新exact HEADのPhase 1 CIとNative CIがsuccessであることを確認する。remote Training Copy Delivery、FINAL_CANDIDATE_SHA、SHA equality、Final Delivery Recordはこのfindingの解消条件ではない。"
-    }
-  ],
+  "findings": [],
   "improvement_candidates": [
     {
       "target": "Training Copy remote operational validation",
