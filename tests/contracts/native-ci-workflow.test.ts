@@ -31,6 +31,7 @@ const phaseOneWorkflow = readWorkflow(".github/workflows/ci.yml");
 const androidStartupHelper = readWorkflow("scripts/native/android-maestro-run.sh");
 const storefrontFlow = readWorkflow("maestro/native-storefront.yaml");
 const visualCaptureFlow = readWorkflow("maestro/native-visual-capture.yaml");
+const localeProvisionFlow = readWorkflow("maestro/android-locale-provision.yaml");
 const customerCheckoutSetupFlow = readWorkflow(
   "maestro/subflows/native-visual-capture-customer-checkout.yaml",
 );
@@ -271,10 +272,24 @@ describe("Native CI workflow contracts", () => {
     ]) {
       expect(runtime).toContain(profileValue);
     }
+    expect(runtime).toContain('"$ADB" root');
+    expect(runtime).toContain('root_uid="$("$ADB" shell id -u');
+    expect(runtime).toContain("uid=0\\(root\\)");
+    expect(runtime).toContain("ADB_ROOT_AVAILABLE");
+    expect(runtime).toContain("root_available=false");
+    expect(runtime).toContain('provisioning_mode="settings_ui"');
+    expect(runtime).toContain('if [[ "${ADB_ROOT_AVAILABLE:-false}" = true ]]');
     expect(runtime).toContain("setprop persist.sys.locale ja-JP");
-    expect(runtime).toContain('"$ADB" reboot');
-    expect(runtime).not.toContain('"$ADB" shell stop');
-    expect(runtime).not.toContain('"$ADB" shell start');
+    expect(runtime).toContain('"$ADB" shell stop');
+    expect(runtime).toContain('"$ADB" shell start');
+    expect(runtime).toContain('"$ADB" unroot');
+    expect(runtime).toContain('observation_shell_uid="$("$ADB" shell id -u');
+    expect(runtime).toContain('test "$observation_shell_uid" != "0"');
+    expect(runtime).toContain("android.settings.LOCALE_SETTINGS");
+    expect(runtime).toContain('"$MAESTRO_BIN" test');
+    expect(runtime).toContain("maestro/android-locale-provision.yaml");
+    expect(runtime).not.toContain('"$ADB" reboot');
+    expect(runtime).not.toContain("settings put system system_locales ja-JP");
     expect(runtime).toContain("$ADB shell dumpsys activity activities");
     expect(runtime).toContain('"$ADB" shell wm density 440');
     expect(runtime).toContain("Override density:");
@@ -284,11 +299,23 @@ describe("Native CI workflow contracts", () => {
     expect(runtime).toContain("from effective configuration");
     expect(runtime).toContain('effective_locale="unknown"');
     expect(runtime).toContain('test "$effective_locale" = "ja-JP"');
+    expect(runtime).not.toContain('test "$locale_settings" = "ja-JP"');
     expect(runtime).not.toContain('test "$locale_value" = "ja-JP"');
     expect(capture).toContain("exec-out screencap -p");
     expect(capture).toContain("APK_PATH");
     expect(capture).toContain("GITHUB_SHA");
     expect(capture).toContain("GITHUB_RUN_ID");
+  });
+
+  it("keeps rootless Android locale fallback isolated in a Settings UI flow", () => {
+    expect(localeProvisionFlow).toContain("appId: com.android.settings");
+    expect(localeProvisionFlow).toContain('id: "com.android.settings:id/add_language"');
+    expect(localeProvisionFlow).toContain('id: "android:id/locale_search_menu"');
+    expect(localeProvisionFlow).toContain('id: "android:id/locale"');
+    expect(localeProvisionFlow).toContain('id: "android:id/button1"');
+    expect(localeProvisionFlow).toContain('inputText: "Japanese"');
+    expect(localeProvisionFlow).not.toContain("system_locales");
+    expect(localeProvisionFlow).not.toContain("persist.sys.locale");
   });
 
   it("executes Capture Case setup metadata and asserts role plus all ready matcher slots", () => {

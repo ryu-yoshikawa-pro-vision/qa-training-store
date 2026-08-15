@@ -30,10 +30,14 @@
 - [x] D13. ユーザーpush後のremote HEAD/workflowを再確認し、実効locale（`cmd activity get-config`）のrootless strict観測を追加してlocal validationを完了する。
 - [x] D14. Run `31855909379`のNormalization failureをruntime evidenceで分類し、`dumpsys activity activities`による非root実効locale観測へ最小修正してlocal validationを完了する。
 - [x] D15. Run `31860166187`のlocale normalization failureを実効Configurationのruntime evidenceで確定し、設計レビュー停止条件へ分類する。
+- [x] D16. ユーザー確定のStrategy A/Bに基づき、実測adb root分岐とSettings UI fallbackを実装し、effective locale strict gateを維持する。
+- [x] D17. locale provisioning変更のlocal format／workflow contract／full contract／native／typecheck／lint／spec validationを実行する。
+- [ ] D18. 必要ファイルを明示stageして対象branchへcommit/pushし、remote HEAD一致を確認する。
+- [ ] D19. 新HEADでprofile normalization、25件capture、artifact検証、promotion、Final Gate、最新CI確認まで完了する。
 
 ## Blocked
 
 - B1. なし（実装上の未解決ブロッカーはない）。
-- B2. `LOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIRED`: API34 `google_apis` Emulatorで`system_locales`が`null`、実効Configurationが`en_US`となり、rootlessに`ja-JP`を保証できない。別の個別locale設定コマンドのbest-effort化や再dispatchは、設計判断まで停止する。
+- B2. 解消済み（ユーザーがStrategy A: 実測adb root、Strategy B: Settings Locale UI、effective Configuration strict gateの設計を確定）。
 
-Progress: 78% (18/23)
+Progress: 74% (20/27)

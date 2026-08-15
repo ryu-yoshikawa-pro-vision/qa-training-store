@@ -110,3 +110,11 @@
 - 非rootの`dumpsys activity activities`で実効Configurationを観測した結果、`mGlobalConfig`／`CurrentConfiguration`は`[en_US]`だった。`settings get system system_locales`は`null`、`persist.sys.locale`も空で、`locale_effective=unknown`となり、strict locale validationでcapture前に停止した。
 - これはtransient、capture setup/ready、Product UIではなく、locale provisioning／observation設計の失敗である。別の個別locale設定コマンドをbest-effort化する修正や再dispatchは行わず、ユーザー指定の`LOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIRED`で停止する。
 - 代替案は、canonical AVD/bootstrapでサポートされたlocale provisioningを確立し、その後もrootlessな実効`Configuration`（`dumpsys activity`）を厳格に観測する方式。`persist.sys.locale`を唯一の根拠にせず、locale gateも緩めない。実機への切替はcanonical profile要件と両立しないため採用しない。
+
+### 2026-08-15 14:36 JST: locale provisioning設計確定
+
+- ユーザー判断により、canonical条件（API34、`google_apis`、x86_64、`pixel_2`）を変更せず、Strategy A→Bの順で実装する。
+- Strategy Aは`adb root`の終了コードではなく、`adb shell id`／`id -u`の実測UIDがroot（0）であることを証拠にする。root時だけ`persist.sys.locale=ja-JP`とframework `stop/start`を実行し、rootless `dumpsys activity activities`のeffective Configurationで最終判定する。
+- Strategy Bはroot不可時だけ`android.settings.LOCALE_SETTINGS`を起点に専用Maestro flowを実行する。Settings UI操作はProduct capture flowから分離し、Resource IDを優先し、最後の判定は同じeffective Configurationへ集約する。
+- `system_locales`／`persist.sys.locale`の値だけでPASSにせず、`effective_locale=ja-JP`を必須のまま維持する。profile normalization成功後だけcaptureへ進む条件も維持する。
+- 変更対象はNative CI workflow、workflow contract、locale provisioning専用Maestro flowに限定する。Final Gate、canonical profile、Product UI、capture DSLは変更しない。

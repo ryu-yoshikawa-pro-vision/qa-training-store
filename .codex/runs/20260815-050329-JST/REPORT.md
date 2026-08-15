@@ -466,6 +466,43 @@
 - Local validation baseline remains: format、full contracts 228/228、native component 49/49、typecheck、lint、EAS/native bundle/route、structural specはPASS。`validate:spec-visuals:final`と`verify`はblocked 25／69 != 94のみを理由にEXPECTED FAIL。新しいcanonical asset/status変更はない。
 - Progress: 78% (18/23)
 
+## 2026-08-15 14:36 JST
+
+- 最新remote PR HEADは`25e31a06910db7b598e98afe560ac7d2c67ca085`で、local HEAD／対象branchと一致することをGitHub APIとread-only Git確認で確認した。
+- ユーザーが`LOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIRED`の設計判断を確定したため、停止を解除した。canonical profileはAPI34、`google_apis`、x86_64、`pixel_2`のまま維持する。
+- `.github/workflows/native-ci.yml`に、capture時だけ実行する`adb root` capability checkを追加した。`adb root`のexit codeではなく、`adb shell id`と`id -u`が`uid=0(root)`／`0`であることを`adb-root.txt`へ記録し、`ADB_ROOT_AVAILABLE`を分岐入力にする。
+- root時は`persist.sys.locale=ja-JP`、root-only framework `stop/start`、boot/package service waitを実行する。root不可時は`android.settings.LOCALE_SETTINGS`を起動し、`maestro/android-locale-provision.yaml`で`add_language`、locale search、Japanese結果、region、positive buttonをResource ID中心に操作する。
+- locale validationは緩和していない。`system_locales`／`persist.sys.locale`は観測値として出力するが、最終PASSは非root`dumpsys activity activities`のeffective Configurationから`effective_locale=ja-JP`を得た場合だけである。profile normalization成功条件とcapture前fail-closeも維持する。
+- contract testへroot実測、rootless fallback、Settings flow、effective locale strict gateを追加した。`native-ci-workflow.test.ts`は18 testsへ更新済み。
+- 公式AOSPの`android.settings.LOCALE_SETTINGS`、`add_language`、`locale_search_menu`、locale pickerのresource構造を参照した。
+- 次はD17としてlocal validationを実行する。現時点のAndroid countsはTarget 94、Captured 69、Pending 0、Blocked 25、Canonical 69であり、capture未実行のためFinal GateはまだEXPECTED FAILである。
+- Progress: 70% (19/27)
+
+## 2026-08-15 14:51 JST
+
+- D17 local validation結果:
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint:markdown` => PASS（255 files、0 issues）。
+  - `pnpm run test:contracts` => PASS（26 files、229 tests）。
+  - `pnpm run test:component:native` => PASS（12 suites、49 tests）。既存のReact `act(...)` warningのみ。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run lint` => PASS（0 errors、65 existing warnings）。
+  - `pnpm run validate:eas:config` => PASS。
+  - `pnpm run validate:native-production-bundle` => PASS。
+  - `pnpm run check:native-route-dependencies` => PASS（38 routes）。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+  - `pnpm exec expo install --check` => PASS。
+  - `pnpm dlx expo-doctor@1.17.6` => PASS（17/17）。
+  - `pnpm run test` => PASS（unit 66、integration 98、repository 33、component web 76、native 49、contract 229）。
+  - `pnpm run security:check` => PASS。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94）。Final Gateを緩和していないため正しい。
+  - `pnpm run verify` => EXPECTED FAIL（format、markdown、structural specはPASS後、Final Visual Gateのblocked 25／69 != 94で停止）。
+- 追加のcontract testはworkflow 18 testsでPASSし、root UID実測、root不可時Settings UI fallback、effective locale strict、profile成功後のみcaptureを固定した。
+- D18（explicit staging・commit・push）へ進む前の未解決差分は、`.github/workflows/native-ci.yml`、`maestro/android-locale-provision.yaml`、`tests/contracts/native-ci-workflow.test.ts`およびRun Artifact更新のみ。canonical asset/statusは未変更。
+- 最終差分確認で、Strategy Aの設定後に`adb unroot`し、rootless shellの`id -u != 0`を観測してからeffective Configurationを読む処理を追加した。これによりroot権限をlocale設定に限定し、locale証拠の観測自体はrootlessであることをruntime logへ残す。
+- Full contractは最終差分で再実行し、26 files／229 testsがPASSした。
+- Progress: 74% (20/27)
+
 ## 2026-08-15 10:39 JST
 
 - Run `31855909379` completed with `failure`。Android Runtime / Maestro job `94941657113`がNormalizationでfailure、`native-ci / verify` job `94943684428`はその依存failure。Android Automation/Production build、Native Static、iOS jobs、iOS verifyはsuccess。Captureは0/25で、batch manifest、canonical promotion、status transitionは未実行。
