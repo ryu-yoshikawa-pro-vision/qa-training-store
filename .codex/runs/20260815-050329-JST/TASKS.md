@@ -29,9 +29,11 @@
 - [x] D12. Run `31852971377`の第二のroot権限 failureを確定し、`adb reboot`への最小workflow修正とlocal validationを完了する。
 - [x] D13. ユーザーpush後のremote HEAD/workflowを再確認し、実効locale（`cmd activity get-config`）のrootless strict観測を追加してlocal validationを完了する。
 - [x] D14. Run `31855909379`のNormalization failureをruntime evidenceで分類し、`dumpsys activity activities`による非root実効locale観測へ最小修正してlocal validationを完了する。
+- [x] D15. Run `31860166187`のlocale normalization failureを実効Configurationのruntime evidenceで確定し、設計レビュー停止条件へ分類する。
 
 ## Blocked
 
-- B1. なし（現時点では実装を継続可能）。
+- B1. なし（実装上の未解決ブロッカーはない）。
+- B2. `LOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIRED`: API34 `google_apis` Emulatorで`system_locales`が`null`、実効Configurationが`en_US`となり、rootlessに`ja-JP`を保証できない。別の個別locale設定コマンドのbest-effort化や再dispatchは、設計判断まで停止する。
 
-Progress: 77% (17/22)
+Progress: 78% (18/23)

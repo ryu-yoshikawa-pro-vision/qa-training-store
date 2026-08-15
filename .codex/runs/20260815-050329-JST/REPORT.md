@@ -442,6 +442,30 @@
 - Decision: local修正は未pushのため、`31855909379`のAPK／runtime evidenceでpromotionやstatus transitionを行わない。ユーザーが修正をcommit/pushした後、最新HEADでNormalization PASSと`locale_effective=ja-JP`の実測を確認してからState Bを再実行する。
 - Progress: 77% (17/22)
 
+## 2026-08-15 12:10 JST
+
+- Summary: 最新PR HEAD `028f43600382298e8aaecaf3342426ffe0ca143f`をSource of TruthとしてNative CIを`capture_spec_visuals=true`、`capture_case_key=all`でdispatchし、Run `31860166187`をevent／branch／head SHA一致で特定した。Android Runtimeはcanonical profile normalizationで停止し、Android 25件captureへ到達しなかった。
+- Run evidence:
+  - Run ID: `31860166187`。
+  - `event=workflow_dispatch`、branch=`feat/implement-screen-catalog-visual-specification`、head SHA=`028f43600382298e8aaecaf3342426ffe0ca143f`。
+  - Android Runtime / Maestro job `94953288217`。Android build、Native Static、Production Bundle GuardはPASS。Normalization stepでFAIL。
+  - 同一Runのruntime evidence artifactは`native-android-runtime-evidence-31860166187`、同一RunのAPK artifactは`native-android-apk-31860166187`。profile failure前のため、どちらもcanonical apply／promotionには使用しない。
+- Runtime profile observation:
+  - `api_level=34`、`abi=x86_64`、`font_scale=1.0`、`ui_mode=light`、`orientation=portrait`、`resolution=1080x1920`、`density=440`は観測・通過した。
+  - `settings get system system_locales`は`null`、`persist.sys.locale`は空、`dumpsys activity activities`の非root実効Configurationは`[en_US]`。workflow出力も`locale_effective=unknown`となった。
+  - したがって、実効locale `ja-JP`は保証できず、locale gateは正しくfail-closeした。runtime evidenceの`dumpsys-activity.txt`には`mGlobalConfig`／`CurrentConfiguration`の`[en_US]`が残っている。
+- Failure classification:
+  - Category: locale normalization design / infrastructure profile normalization。
+  - Root-only commandの単発失敗をbest-effort化する段階ではなく、現行の`settings put system system_locales`→reboot→rootless effective Configuration観測という設計で、GitHub-hosted API34 Emulatorに`ja-JP`を適用・観測できていない。
+  - setup/ready、Maestro個別case、Product UI、transient CI failureではない。25件capture、batch manifest、apply、WebP promotion、status transitionは未実行。
+- Stop decision: `LOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIRED`。
+  - 追加の個別locale設定コマンドをbest-effort化しない。別のHEAD／RunのArtifactを混ぜない。locale validationを削除・緩和しない。
+  - 推奨案はcanonical AVD/bootstrapでサポートされたlocale provisioningを確立し、capture前に非rootの実効`Configuration`（`dumpsys activity`）で`ja-JP`を厳格に確認すること。`persist.sys.locale`は唯一の判定根拠にしない。
+  - 実機はcanonical profile（API34、google_apis、x86_64、pixel_2）の代替にならないため、今回のcanonical captureには使用しない。
+- Current counts (unchanged): Capture Target 94、Captured 69、Pending 0、Blocked 25、Canonical Assets 69。
+- Local validation baseline remains: format、full contracts 228/228、native component 49/49、typecheck、lint、EAS/native bundle/route、structural specはPASS。`validate:spec-visuals:final`と`verify`はblocked 25／69 != 94のみを理由にEXPECTED FAIL。新しいcanonical asset/status変更はない。
+- Progress: 78% (18/23)
+
 ## 2026-08-15 10:39 JST
 
 - Run `31855909379` completed with `failure`。Android Runtime / Maestro job `94941657113`がNormalizationでfailure、`native-ci / verify` job `94943684428`はその依存failure。Android Automation/Production build、Native Static、iOS jobs、iOS verifyはsuccess。Captureは0/25で、batch manifest、canonical promotion、status transitionは未実行。

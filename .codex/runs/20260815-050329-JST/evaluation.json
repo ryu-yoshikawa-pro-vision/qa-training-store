@@ -10,7 +10,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。最新HEADのRun 31855909379もprofile normalizationのeffective locale判定で失敗し、capture/artifact apply/Final Gate PASSは未完了である。非root dumpsys activityにja_JPが観測できたため、観測源を最小修正してpush待ちである。"
+      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。最新HEADのRun 31860166187はAPI34 Emulatorのeffective localeがen_USのままprofile normalizationで失敗し、capture/artifact apply/Final Gate PASSは未完了である。現行のlocale provisioning／観測設計ではja-JPを保証できないため、LOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIREDで停止した。"
     },
     "scope_control": {
       "rating": "pass",
@@ -18,11 +18,11 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "frozen install、expo install --check、expo-doctor 17/17、prebuild、EAS/native bundle/route validation、format、markdown、typecheck、lint、full test（Unit 66、Integration 98、Repository 33、Component 125、Contract 228）、native component 49 tests、web/spec build、image/security checksはPASSした。最新workflow修正後のlocal contract/native/config gateもPASSした。Final GateはAndroid 25 blockedを理由にEXPECTED FAILであり、実artifact provenanceは新HEADのActions captureまで未検証である。"
+      "evidence": "frozen install、expo install --check、expo-doctor 17/17、prebuild、EAS/native bundle/route validation、format、markdown、typecheck、lint、full test（Unit 66、Integration 98、Repository 33、Component 125、Contract 228）、native component 49 tests、web/spec build、image/security checksはPASSした。最新workflow修正後のlocal contract/native/config gateもPASSした。Final GateはAndroid 25 blockedを理由にEXPECTED FAILであり、Run 31860166187は実効locale en_USでcapture前に停止したため、実artifact provenanceは未検証である。"
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "partial/incomplete batchをapply拒否し、canonical outputをvalidation後に限定し、Final Visual Gateを緩和せず、Git/PR mutationは行っていない。Actions workflow_dispatchはユーザー許可範囲でRun 31850993052とRun 31852971377へ実施した。現Runのprofile failure後にrerunやartifact流用は行っていない。"
+      "evidence": "partial/incomplete batchをapply拒否し、canonical outputをvalidation後に限定し、Final Visual Gateを緩和せず、force push、reset、rebase、merge、PR操作、異なるRunのArtifact混用は行っていない。許可された対象branchへのcommit/pushとActions workflow_dispatchのみ実施した。現Runのprofile failure後にrerunやartifact流用は行っていない。"
     },
     "reviewability": {
       "rating": "pass",
@@ -34,7 +34,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Run 31855909379はPR HEAD 6cca966に紐づき、API34 Emulator起動後にeffective locale strict判定で失敗した。runtime evidenceの非root dumpsys activity activitiesにja_JPが記録されていたため、localではrootless rebootとdumpsys activity由来effective_localeのstrict検証へ最小修正した。push後の新HEAD captureが必要である。"
+      "evidence": "Run 31860166187はPR HEAD 028f43600382298e8aaecaf3342426ffe0ca143fに紐づき、API34 Emulator起動後にeffective locale strict判定で失敗した。runtime evidenceの非root dumpsys activity activitiesにen_USが記録され、settings system_localesもnullだったため、現行のlocale provisioning／観測設計ではja-JP保証が成立しないと判断した。設計レビュー後の新設計・新HEAD captureが必要である。"
     }
   },
   "findings": [
@@ -73,6 +73,12 @@
       "severity": "high",
       "evidence": "remote PR #24 HEAD c9d31e7のworkflowは`adb shell stop/start`とpersist.sys.locale/system_locales判定の旧内容で、rootless rebootとeffective Configuration観測を含んでいなかった。",
       "detail": "remote gate不一致のためdispatchを拒否した。local workflowでは`cmd activity get-config`のja-rJP/ja-JPを実効localeとしてstrict検証し、system_localesと併せてprofile JSONへ反映する修正を完了した。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Run 31860166187（HEAD 028f43600382298e8aaecaf3342426ffe0ca143f）のprofile outputは`locale_settings=null`、`locale_effective=unknown`。同Runの非root `dumpsys activity activities`の`mGlobalConfig`／`CurrentConfiguration`は`[en_US]`で、API34 Emulatorへja-JPが実効適用されていない。",
+      "detail": "これは別の個別locale設定コマンドをbest-effort化して再試行する段階ではなく、GitHub-hosted API34 Emulatorでrootlessにeffective localeをja-JPへ確立するprovisioning／observation設計のレビューが必要な状態である。locale validationを弱めず、LOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIREDとして停止する。"
     }
   ],
   "improvement_candidates": []

@@ -103,3 +103,10 @@
 - 現remote実装の`cmd activity get-config`解析はこのRunでstrict convergenceを成立させられなかった。`persist.sys.locale`のbest-effort化やlocale判定の緩和は行わず、非rootで実際に読めた`dumpsys activity activities`をeffective Configurationの観測源に変更した。`system_locales=ja-JP`と`effective_locale=ja-JP`の両方を引き続き必須とし、値をテスト前にログへ出す。
 - Local validation after repair: Prettier、`native-ci-workflow.test.ts` 17/17、全contract 228/228、typecheck、lint、structural specをPASS。現時点のspec countsはTarget 94、Captured 69、Pending 0、Blocked 25、Canonical 69。
 - Decision: 新しいworkflow／contract修正は未pushのため、現RunのAPK/runtime evidenceをcanonical入力にせず、physical deviceでも代替しない。ユーザーpush後に最新SHAでState Bを最初から再実行する。
+
+### 2026-08-15 12:10 JST
+
+- 最新PR HEADは`028f43600382298e8aaecaf3342426ffe0ca143f`。このHEADへdispatchしたRun `31860166187`は、API34 Emulatorの起動、API level 34、x86_64、portrait、1080x1920、440dpiまで通過した。
+- 非rootの`dumpsys activity activities`で実効Configurationを観測した結果、`mGlobalConfig`／`CurrentConfiguration`は`[en_US]`だった。`settings get system system_locales`は`null`、`persist.sys.locale`も空で、`locale_effective=unknown`となり、strict locale validationでcapture前に停止した。
+- これはtransient、capture setup/ready、Product UIではなく、locale provisioning／observation設計の失敗である。別の個別locale設定コマンドをbest-effort化する修正や再dispatchは行わず、ユーザー指定の`LOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIRED`で停止する。
+- 代替案は、canonical AVD/bootstrapでサポートされたlocale provisioningを確立し、その後もrootlessな実効`Configuration`（`dumpsys activity`）を厳格に観測する方式。`persist.sys.locale`を唯一の根拠にせず、locale gateも緩めない。実機への切替はcanonical profile要件と両立しないため採用しない。

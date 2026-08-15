@@ -74,7 +74,8 @@
                                      "root-only stop/startをadb rebootへ置換したworkflow修正は未push。現Runのrerunとartifact再利用は禁止",
                                      "並列負荷でbatch contract 2件が既定5秒timeoutしたが、単独実行で6/6、全contractで228/228 PASS",
                                      "PR #24 remote HEAD c9d31e7はadb reboot/effective get-config修正未反映。要件未達のremoteへActions dispatchしない",
-                                    "effective localeは非root dumpsys activity activities由来のja_JP/ja-JPをstrictに観測し、persist.sys.localeを唯一の判定根拠にしないlocal修正を検証済み"
+                                    "effective localeは非root dumpsys activity activities由来のja_JP/ja-JPをstrictに観測し、persist.sys.localeを唯一の判定根拠にしないlocal修正を検証済み",
+                                    "Run 31860166187はAPI34 Emulatorのsystem_locales=null、effective Configuration=en_US、locale_effective=unknownでprofile normalization failure。ja-JPを保証できないためLOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIREDとして停止し、追加のlocale best-effort修正や再dispatchを行わない"
                                     ]
                    },
     "safety":  {
@@ -114,5 +115,5 @@
                   },
     "evaluation_path":  ".codex/runs/20260815-050329-JST/evaluation.json",
     "status":  "partial",
-    "primary_failure_category":  "missing_validation"
+    "primary_failure_category":  "artifact_contract_gap"
 }
