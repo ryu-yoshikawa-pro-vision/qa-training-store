@@ -1,6 +1,6 @@
 # Agentic QA・テスト自動化 QA強化・知見循環計画
 
-- Plan Revision: `v07`
+- Plan Revision: `v08`
 - Status: `Draft / Review Required`
 - Created: 2026-08-15 JST
 - Revised: 2026-08-15 JST
@@ -412,7 +412,7 @@ executor:
 - `tool_scope_ref`: 利用可能Toolと制約を特定できるReference。
 
 Identityが取得できないことを隠さず`unknown`として記録する。
-HumanまたはDeterministic Automationで該当しないFieldは`not_applicable`としてよい。
+HumanまたはDeterministic Automationで該当しない項目は`not_applicable`としてよい。
 
 ### 4.6 最小Experiment Record
 
