@@ -40,7 +40,7 @@ Git管理されたqa-training-store
 
 ### 移行時の安全な手順
 
-教材提供時には、次の順序で移行できる手順を用意します。
+Training Copyでは、次の順序で移行します。
 
 1. Git Historyを持つ `qa-training-store` の演習用Copyを取得する。
    - 教材の配布方法が`git clone`の場合は、教材で指定されたRepositoryをcloneする。
@@ -58,9 +58,9 @@ Git管理されたqa-training-store
 git switch -c training/git-basics
 ```
 
-実際のclone先、Training用Path、引継ぎ対象File一覧は、後続の教材実装時にRepositoryの最新構成へ合わせて確定します。この文書では特定の未実装Pathや演習Repository URLを固定しません。
+Training Copyの準備は `pnpm run training:copy:prepare -- --source-sha <40桁SHA> --target <disposable-folder>` で行います。Source SHAを省略した曖昧なBranch先頭や、別Worktreeの未確認変更を教材正本へしません。準備後は `pnpm run training:copy:validate -- --root <disposable-folder>` でactive Workflow allowlistとSHA一致を検証します。
 
-教材提供時には、受講者が次を確認できる移行手順を用意します。
+受講者は移行後に次を確認します。
 
 - `git status` が実行できる。
 - `git log` で教材元のHistoryを確認できる。
@@ -70,6 +70,7 @@ git switch -c training/git-basics
 - 既存Repositoryの完成済みRegressionへTraining Codeを混在させていない。
 - `.git`や未指定の教材元FileをPart 1 Folderから上書きしていない。
 - `git diff`で引継ぎ差分を説明できる。
+- Training CopyのSource SHA、active Workflow allowlist、Formal Workflowとの分離を説明できる。
 
 Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状態を標準経路にはしません。
 

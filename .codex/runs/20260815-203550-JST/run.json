@@ -1,0 +1,29 @@
+{
+  "schema_version": 1,
+  "run_id": "20260815-203550-JST",
+  "task_type": "guidance",
+  "workflow_level": "lightweight",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store-curriculum",
+  "branch": "feat/implement-test-automation-curriculum-remediation",
+  "base_branch": "main",
+  "status": "completed",
+  "git_mutation": false,
+  "changed_files": [
+    ".codex/runs/20260815-203550-JST/PLAN.md",
+    ".codex/runs/20260815-203550-JST/TASKS.md",
+    ".codex/runs/20260815-203550-JST/REPORT.md",
+    ".codex/runs/20260815-203550-JST/run.json"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "git status --short --branch",
+      "git branch --show-current",
+      "git remote -v",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260815-203550-JST -Write -Check => pass (4 files, 0 residual findings)"
+    ]
+  }
+}

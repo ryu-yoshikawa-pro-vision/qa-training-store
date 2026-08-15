@@ -1,5 +1,7 @@
 # Part 1-10: 総合演習
 
+> Legacy Alias: Required canonical documentは [`09_part1-capstone.md`](./09_part1-capstone.md) です。このファイルは既存参照のため保存し、標準Navigation・Rubric・Validatorの対象にしません。
+
 ## 学習目標
 
 Part 1で学んだ内容を、1つの課題に対して最初から最後まで適用します。
@@ -119,7 +121,7 @@ Training用実行境界で最低3件をPlaywrightへ実装します。
 
 ## Phase 5: Maestro実装
 
-Android Emulator上で最低2件をMaestroへ実装します。
+Windows LocalのCanonical Physical Android Device上で最低2件をMaestroへ実装します。Android Emulator / AVDはPart 1の完了条件ではありません。
 
 必須条件:
 

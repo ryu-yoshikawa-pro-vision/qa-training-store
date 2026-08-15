@@ -780,7 +780,7 @@ describe("Screen Catalog / Visual Contract", () => {
       const original = await readFile(specPath, "utf8");
       const reference =
         "[![SCREEN-STOREFRONT-HOME default web-desktop](../assets/screens/SCREEN-STOREFRONT-HOME/default/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-HOME/default/web-desktop.webp)";
-      const withoutReference = original.replace(`${reference}\n`, "");
+      const withoutReference = original.replace(reference, "");
       expect(withoutReference).not.toBe(original);
       await writeFile(specPath, withoutReference);
 

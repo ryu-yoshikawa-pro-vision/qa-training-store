@@ -1,0 +1,2 @@
+test_case_id,risk_id,spec_ref,br_ids,ac_ids,test_condition,precondition,expected_result,design_technique
+TC-CART-001,RISK-CART-001,docs/spec/features/cart.md,BR-CART-001;BR-CART-003,AC-CART-001;AC-CART-003,在庫と購入上限の境界数量を追加する,default ScenarioをResetする,上限を超えず購入不可明細はCheckoutへ進めない,境界値;状態遷移

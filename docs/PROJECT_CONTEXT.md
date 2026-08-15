@@ -300,7 +300,7 @@
 
 ## PR #14追加指示後の現行Runtime／Artifact契約（2026-08-09）
 
-- Android Automationの全16 Flowは、`launchApp(clearState: true)`後に既存の`Native test runtime listening`を30秒待ってから`Scenario Shop`を確認する。Production FlowはRuntime listeningを待たず、`Scenario Shop`を30秒待ってからRuntime／Test Control／Contract Harnessの非表示を確認する。
+- Android AutomationのFormal Flowは、`scripts/native/android-maestro-run.sh`でforce-stop→`pm clear`→再force-stop→PID消失確認を完了してからMaestroを起動する。Training baselineも同じstartup helperを使い、Automation APK上で実行してからProduction-validation APKへ進む。Production FlowはRuntime listeningを待たず、`Scenario Shop`を30秒待ってからRuntime／Test Control／Contract Harnessの非表示を確認する。
 - iOS正式CIはBuild-onlyのまま、Automation／Productionの生成`.app`についてSource側Resolved metadataに加えて、`EXConstants.bundle/app.config`のembedded `appEnvironment`／`buildKind`／`testMode`を直接検証する。Production marker Bundle Guard、固定名Artifact、fail-close Build Gateは維持する。
 - Iteration 29でこの起動順序とembedded metadataをContractへ追加し、focused 61 tests、全Contract 173 tests、全local verify、Android RuntimeSuite／BoundarySuite各5/5をPASSした。Maestro-MCPはDevice Server `UNAVAILABLE`だったため、同一端末のLocal Runbook CLI結果で代替確認した。
 
@@ -367,6 +367,18 @@
 - 品質ゲートのエラーは、当該作業の直接範囲外に見えても自動的に保留しない。Baseline、現在の差分、共有依存、CI／テスト契約、実行環境を調査し、現在の変更が原因である、または検証に不可欠である場合は現在の作業で最小修正する。真に無関係・環境依存・unsafe・要件判断が必要な場合だけ、根拠、未実行検証、残差、次の対応をRun Artifactと完了報告へ記録する。
 - 完了報告には、実行した全ゲート／テストのコマンドと結果、警告、未実行項目、主要変更ファイルを含める。ローカル環境固有の警告はリポジトリ起因のFailureと混同せず、CI相当条件での再確認結果とともに記録する。
 
+## Test Automation Curriculum / Training Environment（2026-08-12）
+
+- Required Curriculumは `docs/curriculum/test-automation/` の22文書へ固定した。`02_competency-rubric.md` はC01〜C12／Level 0〜3の評価正本、`03_instructor-reference.md` はExpected Contract、Alternative Design、Anti-pattern、Facilitation、Troubleshootingの公開Referenceである。Agentic QA教材はOptional ReferenceとしてRequired Part 1から分離する。
+- Expected Product Behaviorの教材Oracleは `docs/spec/` のNormative Specificationである。Current UI、既存Test、README、Observed Behaviorから新しい期待動作を逆算しない。Workbookは `training/workbook/` の4 CSVをcanonical templateとし、`spec_ref` → `br_ids` / `ac_ids` → `risk_id` → `test_case_id` → implementation / evidenceのTraceabilityを保持する。
+- Formal Webは `playwright.config.ts` / `e2e/web/`、Formal Nativeは `maestro/` を正本とする。Training Webは `playwright.training.config.ts` と `training/playwright/` の `training-chromium`／`training-mobile-chromium`へ分離し、Training Nativeは `training/maestro/`へ分離する。Intentional Failureは通常baselineへ混在させない。
+- Training Webの既定local runtimeはworktree専用の `PLAYWRIGHT_BASE_URL`（未指定時 `http://127.0.0.1:8082`）であり、Formal / Visual runtimeのPortを再利用しない。Training TypeScriptは `tsconfig.training.json` と `typecheck:training`を経由してRepository quality gateへ接続する。
+- `training/github-actions/` はSecret不要、Deployなし、`permissions: contents: read`、GitHub-hosted Ubuntu runnerのTraining Workflow Templateを持つ。Training Copyは完全なSource commit SHAを指定し、active Workflow allowlistを `training-ci.yml`／`training-native-ci.yml`の2件へ検証する。Production／Deploy Workflow、Secret、OIDC、EnvironmentはTraining Copyへ持ち込まない。
+- PR #25のRequired DoDはCurriculum / Training Environmentの完成とCurrent PR HEADのRequired CI・Local / CI Training baselineまでとし、Instructor管理remote Training Copy Delivery、Final Delivery 3 run、候補SHA freeze、SHA equality、Final Delivery RecordはFuture operational validation / optional instructor validationとして扱う。`prepare-training-copy` / `validate-training-copy`自体は安全な教材CopyのRequired Assetとして維持する。
+- Required Phase 1 CIは `validate:curriculum` とTraining Web baselineを実行し、Native CIは `training/maestro/**`をchange detectionへ含め、既存Android Runtime／Emulator／APK／Maestro基盤でTraining baselineを実行する。不要な第二Formal Native基盤は作らない。
+- GitHub Native CIのAndroid Training Runtimeは API 34 / `google_apis` / `x86_64`、単一の対象serial、package service ready、有限timeoutを必須とし、Maestro 2.8.0は展開先のnested `maestro/bin/maestro`をversion checkしてからbaselineを実行する。Windows Local runnerはPhysical DeviceをCanonicalとし、PATH上の`maestro.bat`をshell経由で解決して明示serialへFlowを渡す。Formal NativeのBuild／Runtime／cleanup契約を弱めず、Training専用の第二基盤は作らない。
+- Current Native GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-only（ADR-0011）である。Curriculum、Training Evidence、完了報告のいずれもiOS Simulator／Maestro／Runtime PASSを記録しない。
+
 ## PR #24 Screen Catalog / Visual Specification Review Repair（2026-08-13）
 
 - `pnpm run validate:spec`はStructural Validationであり、Catalog grammar、Screen ownership、State／Capture Case／Asset／Markdown reference／Oracle integrityを検証する。正当な`blocked`／`pending` Targetはここでは許容する。Structural PASSはVisual Specification完成を意味しない。
@@ -396,6 +408,13 @@
 - Checkout visual setupは、seeded customer roleとbasic-shirt Cartをassertした後、Address画面でactive Checkout Sessionを開始する。Paymentは住所保存後に`native-checkout-payment-session-ready`、Confirmはconfirmationロード後の既存`native-checkout-confirm-submit`をassertしてからcaptureへ進む。
 - Native ready matcherはProduct ListとCategoryを専用heading testID（`native-product-list-heading`／`native-category-heading`）で分離する。Checkout Addressはactive session marker、Paymentはvalid session marker、Confirmはloaded confirmationのsubmit markerをroot testIDと併せて要求し、Shell navigationの同名ラベルやroute rootだけの誤受理を防ぐ。
 - これらはCapture Caseのmachine metadataと既存Native UI stateを一致させるための最小変更であり、Final Gate、Android canonical profile、startup helper、manual dispatch境界、Productの業務挙動は変更しない。API34 capture未実行中はAndroid 25 Target blocked／Final Visual DoD BLOCKEDを維持する。
+
+## PR #25 Windows Local Physical Device Canonical分離（2026-08-14）
+
+- Windows Local Fresh Learner / Part 1 NativeのCanonical Android Runtimeは、USB接続・ADB authorization済み・起動済み・画面ロック解除済みのPhysical Android Deviceである。複数端末時はserialを明示し、`scripts/native/windows/android-local.ps1 -RequirePhysicalDevice`がADB status、Emulator property、`app.config.ts`の`minSdkVersion`、ABI、package service、awake、unlockedをfail-closeで確認する。
+- Windows LocalのDevice ABIは`Auto`検出を維持し、arm64-v8a等へ固定しない。Build、APK integrity、Install、Smoke、Test Control、Training Maestro baseline、Evidenceは同じserialへ接続する。API 30は最低対応APIとして固定せず、`app.config.ts`をSource of Truthとする。
+- Windows LocalのAndroid Emulator / AVDはFresh Learner完了条件から外した。Local専用で未検証だった`scripts/training/android-emulator.ps1`は削除し、AVD作成・起動・cleanupの保証はGitHub Native CI Workflowへ限定する。
+- GitHub Native CIは従来どおりUbuntu GitHub-hosted runner上のAndroid API 34 / `google_apis` / `x86_64` Emulator、Formal Maestro、Training Maestro baselineを保証する。iOSは変更せずBuild-onlyである。Local Physical DeviceとCI Emulatorの結果を相互に代替しない。
 
 ## PR #24 Android canonical batch capture infrastructure（2026-08-15）
 

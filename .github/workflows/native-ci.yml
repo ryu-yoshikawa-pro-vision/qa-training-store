@@ -96,6 +96,7 @@ jobs:
             'package.json' \
             'pnpm-lock.yaml' \
             'maestro/**' \
+            'training/maestro/**' \
             '.github/workflows/native-ci.yml' \
             '.github/workflows/native-ios-ci.yml'; then
             echo "native_changed=false" >> "$GITHUB_OUTPUT"
@@ -1736,6 +1737,17 @@ jobs:
             --flow "$GITHUB_WORKSPACE/maestro/native-session-checkout-restart.yaml" \
             --test-output-dir "$RUNNER_TEMP/maestro-artifacts/session-checkout-restart" \
             --junit-output "$RUNNER_TEMP/maestro-session-checkout-restart.xml"
+      - name: Run Training Maestro baseline
+        if: ${{ !cancelled() && steps.android_automation_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
+        shell: bash
+        env:
+          TRAINING_MAESTRO_OUTPUT_DIR: ${{ runner.temp }}/maestro-artifacts/training-baseline
+        run: |
+          set -euo pipefail
+          bash "$GITHUB_WORKSPACE/scripts/native/android-maestro-run.sh" \
+            --flow "$GITHUB_WORKSPACE/training/maestro/baseline/native-training-baseline.yaml" \
+            --test-output-dir "$TRAINING_MAESTRO_OUTPUT_DIR" \
+            --junit-output "$RUNNER_TEMP/maestro-training-baseline.xml"
       - name: Download Production-validation Release APK
         if: ${{ !cancelled() && needs.android-production-build.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
         uses: actions/download-artifact@v4

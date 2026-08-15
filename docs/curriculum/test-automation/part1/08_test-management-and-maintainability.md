@@ -14,6 +14,8 @@
 
 **このモジュールでは、このリポジトリの既存Playwright / Maestroテストを使用します。**
 
+仕様変更の起点は [`docs/spec/README.md`](../../../spec/README.md) と対象FeatureのBR / ACです。Formal TestとTraining Testの責務を分けたうえで、Risk、Workbook、実装、Regression分類を同期します。
+
 主な参照先:
 
 - `e2e/web/phase1-required.spec.ts`

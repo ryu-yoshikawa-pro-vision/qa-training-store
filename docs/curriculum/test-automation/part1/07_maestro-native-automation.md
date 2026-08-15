@@ -6,7 +6,7 @@
 - MaestroのFlow、Action、Assertionの基本を理解できる。
 - Scenario Shop Nativeアプリを対象に最小のMaestro Flowを作成できる。
 - Stable UI Test ID、Deep Link、Test Controlを利用して再現可能なNative Testを作れる。
-- Android / iOSで共通化できるBusiness FlowとPlatform差分を区別できる。
+- AndroidでRequired Flowを実装し、iOSはBuild-only保証とPlatform差分を説明できる。
 - PlaywrightとMaestroを「どちらが優れているか」ではなく、対象Platformと目的から使い分けられる。
 
 ## 教材
@@ -26,17 +26,100 @@
 
 ## Part 1での標準実行環境
 
-Part 1のMaestroハンズオンは、全受講者が同じ手順を再現しやすいように**Android Emulatorを標準経路**とします。
+Windows LocalのPart 1 MaestroハンズオンにおけるCanonical経路は、USB接続された**Android physical device**です。Android Emulator / AVDは任意の補助経路であり、Fresh LearnerやPart 1の完了条件ではありません。
 
-Mac環境を利用できる受講者は同じBusiness FlowをiOS Simulatorでも確認できますが、Part 1の完了条件としてiOS実行を必須にしません。
+Current Formal GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-onlyです。iOS Simulator / Maestroを使える環境でも、それを正式Runtime保証やPart 1完了条件へ昇格させません。
 
 理由は次です。
 
-- iOS SimulatorにはmacOS / Xcode環境が必要で、受講環境の制約が大きい。
-- Part 1の目的はNative UI自動化の基本概念を理解することであり、OS環境構築差分を主目的にしない。
-- Android / iOS両PlatformのCI設計とRunner CostはPart 2で扱う。
+- iOS RuntimeにはmacOS / Xcode環境が必要だが、Current formal CIはBuild-onlyである。
+- Windows Localでは受講者が手元のUSB接続端末でNative UI自動化を再現できることを優先する。
+- GitHub Native CIでは、Android API 34 / `google_apis` / `x86_64` EmulatorとFormal / Training Maestroを引き続き保証する。これはWindows LocalのCanonicalとは別責務である。
+- Android / iOSの保証範囲、CI設計、Runner CostはPart 2で扱う。
 
-教材提供時には、Android Build / Install / Emulator / Maestroの開始確認手順を別途用意します。この文書整備では環境構築ScriptやMaestro設定を追加しません。
+Android Build / Install / Physical Device / Maestroの開始確認は、`scripts/native/windows/android-local.ps1`、Training Maestro baseline、Current Native CIの契約で固定します。Formal NativeのFlowや第二Native基盤は作りません。
+
+### Android Physical Device Start Gate
+
+Windowsでは、Developer Options、USB debugging、ADB authorizationが済んだAndroid physical deviceを使用します。端末を起動してscreenを表示し、画面を手動でunlockしてから開始します。PIN / password / biometricを自動突破する処理はありません。
+
+RepositoryのAndroid最低対応APIは`app.config.ts`の`minSdkVersion`をSource of Truthとします。今回の検証端末API 30を、正式な最低対応APIとして教材へ固定しません。
+
+複数の端末が接続されている場合は自動選択せず、必ずserialを明示します。
+
+```powershell
+adb devices -l
+$serial = "<physical-device-serial>"
+$runId = "<run-id>"
+```
+
+出力が次のように`device`であることを確認します。
+
+```text
+<physical-device-serial>    device usb:... product:... model:...
+```
+
+`unauthorized`、`offline`、未接続の場合は、端末をunlockしてPCのRSA authorizationを許可し、USB接続を確認してから再実行します。ADBが端末を勝手に選ばないように、以降の全コマンドへ同じ`$serial`を渡します。
+
+Physical Device Canonical flowは、最初にToolchain DoctorでJDK、Android SDK、ADB、Maestroを確認し、次の順序で進めます。
+
+```powershell
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Doctor `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId $runId
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Prepare `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId $runId
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Build `
+  -DeviceSerial $serial `
+  -Architecture Auto `
+  -RequirePhysicalDevice `
+  -RunId $runId
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Install `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId $runId
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Smoke `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId $runId
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Test `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -Flow "maestro/native-test-control.yaml" `
+  -RunId $runId
+
+$env:QA_TRAINING_ANDROID_SERIAL = $serial
+$env:TARGET_SERIAL = $serial
+$env:ANDROID_SERIAL = $serial
+$env:TRAINING_MAESTRO_OUTPUT_DIR = Join-Path (Get-Location) ".artifacts\native-local\$runId\maestro\training-baseline"
+pnpm run training:native:baseline
+
+& .\scripts\native\windows\android-local.ps1 `
+  -Action Evidence `
+  -DeviceSerial $serial `
+  -RequirePhysicalDevice `
+  -RunId $runId
+```
+
+Native helperの全ActionとTraining Maestro baselineは、同じ`$runId`と`$serial`を使用します。Training MaestroのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-baseline/`へ保存し、Native helperのEvidenceと同じRunへ紐付けます。
+
+`-RequirePhysicalDevice`はserial、ADB status、Emulator property、Android API、ABI、package service、awake、unlockedを有限チェックし、Emulatorやlocked deviceをfail-closeします。失敗時は「端末を起動し、画面ロックを解除してから再実行してください」と表示し、認証情報へアクセスしません。
+
+`Doctor`のTool不足はJDK 17、Android SDK、Platform Tools、MaestroのVersionとPathを確認します。`Prepare`は依存関係とNative生成物を整えます。APK integrity確認後にInstall、Smoke、Test Control、Training Maestro baseline、Evidenceへ進み、上流が失敗した場合は後続をPASS扱いにしません。
 
 ## Lesson 1: Maestroとは
 
@@ -94,7 +177,7 @@ Nativeでは画面遷移やTest ControlにDeep Linkを利用できます。
 例:
 
 ```text
-scenario-shop://products/product-basic-shirt
+scenario-shop://products/<product-id>
 ```
 
 また、Test Control ResetにもDeep Linkを使用します。
@@ -119,7 +202,7 @@ Native Testでも、前回実行の状態へ依存しないことが重要です
 
 ## Lesson 6: 最初のMaestro Flow
 
-Android Emulator上で次を実装します。
+Canonical physical Android device上で次を実装します。
 
 1. Appを起動する。
 2. Test Controlで`default` Seed ScenarioへResetする。
@@ -159,7 +242,7 @@ NativeアプリではApp Restart後の状態復元も重要です。
 
 「Android用とiOS用を最初から全件複製する」ことは避けます。
 
-Part 1ではAndroidで実際に手を動かし、iOSは差分を理解するところまでを標準とします。Part 2ではGitHub Actions上のAndroid Emulator / iOS Simulator実行を比較します。
+Part 1ではAndroidで実際に手を動かし、iOSは差分とBuild-only保証を理解するところまでを標準とします。Part 2ではGitHub Actions上のAndroid RuntimeとiOS Build-onlyを比較します。
 
 ## Lesson 10: Playwright vs Maestro
 
@@ -172,7 +255,7 @@ Part 1ではAndroidで実際に手を動かし、iOSは差分を理解すると�
 | 要素指定 | Role / Label / Locator / UI Test IDなど | Text / UI Test IDなど |
 | 初期化 | Test API / Fixture / Seed Scenario | Deep Link / Test Control / Seed Scenario |
 | Evidence | Trace / Screenshot / Video | Screenshot / JUnitなど |
-| 実行環境 | Browser | Emulator / Simulator / Device |
+| 実行環境 | Browser | Physical Android device（Windows Local） / Emulator（GitHub Native CI） / Simulator（任意比較） |
 
 どちらかへ統一することではなく、対象に適したToolを選びます。
 
@@ -192,13 +275,13 @@ WebとNativeで、共通するテスト条件と異なる操作を記録しま�
 
 Cartへ商品を追加した後にAppを再起動し、状態復元を確認します。
 
-## 発展ハンズオン: iOS Simulator
+## 発展リファレンス: iOS Build-only
 
-Mac環境がある場合、Androidで実装したFlowをiOS Simulatorでも実行し、次を記録します。
+`native-ios-ci.yml`を読み、Runtimeを実行したと誤認せず、Build-only Evidenceとして次を記録します。
 
 - Flowを共用できた箇所
 - Platform差が出た箇所
-- iOS固有対応が本当に必要だった箇所
+- iOS RuntimeをRequiredにしない理由と、iOS固有Build差分
 
 ## 確認問題
 
@@ -208,14 +291,14 @@ Mac環境がある場合、Androidで実装したFlowをiOS Simulatorでも実�
 4. Deep Linkを使うとテストが速くなる一方、何を飛ばしすぎないよう注意すべきか。
 5. Android / iOSでFlowを機械的に複製しない理由は何か。
 6. PlaywrightとMaestroの共通概念を3つ挙げる。
-7. Part 1でAndroidを標準経路にする理由は何か。
+7. Windows LocalのCanonicalをPhysical Android device、GitHub Native CIのCanonicalをAPI 34 Emulatorに分ける理由は何か。
 
 ## 完了条件
 
-- Android Emulator上でMaestro Flowを2本以上作成している。
+- Physical Android device上で意味のあるMaestro Flow Evidenceを最低1本作成している。2本以上はPractice Volumeとして推奨する。
 - UI Test IDを利用した操作を含む。
 - Test ControlまたはDeep Linkを利用している。
 - PlaywrightとMaestroで同じBusiness Flowを1件以上比較している。
 - Native固有のテスト観点を1件以上説明できる。
 - Test Case IDとUI Test IDを区別できる。
-- Android / iOSで共用できるFlowとPlatform差分の考え方を説明できる。
+- Android RuntimeとiOS Build-onlyの保証差を、Current ADR / Workflowに沿って説明できる。

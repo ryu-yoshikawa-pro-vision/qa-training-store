@@ -1,0 +1,2 @@
+test_case_id,automation_decision,test_layer,tool,implementation_path,execution_timing,reason
+TC-CART-001,Later,Web E2E,Playwright,training/playwright/exercises/training-exercise-starter.spec.ts,PR baseline後,User Journeyの再現価値と保守Costを比較して決める

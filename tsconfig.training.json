@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "playwright.training.config.ts",
+    "training/**/*.ts",
+    "scripts/training/**/*.ts",
+    "src/test-controls/global.d.ts"
+  ],
+  "exclude": ["node_modules", "dist", "android", "ios", "output"]
+}

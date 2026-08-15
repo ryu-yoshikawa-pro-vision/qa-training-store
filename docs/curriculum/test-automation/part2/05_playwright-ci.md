@@ -27,7 +27,7 @@
 
 受講者は本体Repositoryの `.github/workflows/ci.yml` を直接変更してPlaywright演習を行いません。
 
-また、Part 1で作成したTraining用Playwright TestをCIから明示的に実行できる入口が教材提供時に用意されていることを前提とします。現行 `playwright.config.ts` / `package.json` の正式Suiteへ演習specを混在させることは前提にしません。
+Part 1で作成したTraining用Playwright Testは `playwright.training.config.ts` と `training-ci.yml`から明示的に実行します。現行 `playwright.config.ts` / `package.json` のFormal Suiteへ演習specを混在させません。
 
 現在の `.github/workflows/ci.yml` は、自分の最小Playwright CIを動かした後に比較教材として読みます。
 
@@ -199,11 +199,11 @@ Training Workflowに次を追加します。
 
 1. Build
 2. Chromium Install
-3. Training用Playwright E2E
+3. `training:web:baseline`によるTraining用Playwright E2E
 
 ## ハンズオン2: Failure Artifact
 
-Training用Testを意図的にFailさせ、Trace / ScreenshotなどをArtifactとして取得します。
+`training:web:check-expected-failure`でTraining用Testを意図的にFailさせ、Trace / ScreenshotなどをArtifactとして取得します。Expected Failureは通常baselineへ含めません。
 
 Artifactだけから原因を説明します。
 

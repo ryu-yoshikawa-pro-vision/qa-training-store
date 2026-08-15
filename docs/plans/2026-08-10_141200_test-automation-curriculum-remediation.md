@@ -138,8 +138,10 @@ Part 2修了時、受講者はPart 1のTest資産を変更管理と継続実行�
 - Setup / Start Gate / Recovery / Instructor Referenceを用意する。
 - Fresh Learner Dry RunでPart 1 → Part 2を通す。
 - `pnpm run validate:curriculum`をRequired Phase 1 CIへ明示的に接続する。
-- Delivery Readiness GateをCurriculum Implementation PRの**最終PR HEAD SHAに結び付けたMerge前Required Gate**として実Run Evidenceまで取得する。
-- Delivery Evidence取得後にPR HEADが変わった場合はEvidenceを無効化し、最終HEADで再実行する。
+- Final Delivery Readinessは本PRのRequired Definition of Done / Merge Gateに含めない。
+- Required DoDはCurriculum、Workbook / Training assets、Formal / Training境界、Local Physical Android、GitHub Native CI API34 Emulator、`pnpm run verify`、Current PR HEADのRequired CI、およびCritical / High Source findingの解消で判定する。
+- `prepare-training-copy` / `validate-training-copy`は安全な教材Copyを作成・検証するLocal機能として維持する。
+- Instructor管理Training Copyへのpublish、remote 3 run、`FINAL_CANDIDATE_SHA` freeze、PR HEAD / resolved SHA equality、Final Delivery RecordはFuture operational validation / optional instructor validationとして扱う。
 - `pnpm run verify`とRequired GitHub Actionsを成功させる。
 - 未解消Required Blockerを残さない。
 
@@ -181,7 +183,7 @@ Start Gateが未達のまま、Implementation Branchを作成して本実装へ�
 - Current `tsconfig.json`は`e2e/**/*.ts`や`scripts/**/*.ts`を含むが、将来追加する`training/**/*.ts`と`playwright.training.config.ts`は現状のままではtypecheck対象外である。
 - Current Phase 1 CIは個別のQuality / Test / Build commandを実行しており、`pnpm run verify`そのものをRequired CIで呼んでいない。このため`validate:curriculum`を`verify`へ追加するだけではRequired CI Gateにならない。
 - Current Android build contractはCompile API 36 / Build Tools 36.0.0を使用する一方、Formal Runtime EmulatorはAPI 34 / `google_apis` / `x86_64`を使用する。
-- Existing `scripts/native/windows/android-local.ps1`は接続済みADB deviceを前提にDoctor / Build / Install / Test等を行うが、AVD作成・Emulator起動そのものは提供しない。
+- Existing `scripts/native/windows/android-local.ps1`は接続済みADB deviceを前提にDoctor / Build / Install / Test等を行う。Windows Local Fresh LearnerではAVD作成・Emulator起動を必須にしない。
 - Current Phase 1 CIとCurrent Native CIはいずれも`pull_request`で起動するため、Training Copyへそのまま持ち込むとTraining WorkflowとFormal Workflowが同時実行される。
 - Current Native CIのchange detectionは`maestro/**`等を対象とするが、将来追加する`training/maestro/**`は現状のままでは検知対象外である。
 - Current Native Runtime CIは`ubuntu-24.04` / Java 17 / Android Runtime API 34 / `google_apis` / `x86_64` / `pixel_2` / KVMを使用し、ADB ready、`sys.boot_completed=1`、package service readyを有限待機で確認している。
@@ -271,10 +273,10 @@ docs/curriculum/test-automation/
 - macOSはWeb学習とOptional Native比較を許容するが、初版のNative Required Completion Environmentにはしない。
 - Linux Desktopは初版Learner SupportのRequired範囲外とする。
 - Instructor ReferenceはPublic Repository内へ保存されるため秘密情報として扱わない。
-- Delivery Readiness確認では、本体RepositoryとProduction Secretから分離されたInstructor管理の**disposable / training-only GitHub repository**を利用できる。
+- 将来の任意のOperational validationでは、本体RepositoryとProduction Secretから分離されたInstructor管理の**disposable / training-only GitHub repository**を利用できる。
 - GitHub Training CopyはProduction repository / environmentと接続せず、Production / Organization Secretのgrant対象にしない。
-- Delivery Readiness実行対象は、同一Source Repositoryのmaintainer-controlled Curriculum Implementation PRの最終HEAD commit SHAに限定する。Forkや第三者Repositoryのcommitは対象外とする。
-- Training Copy remoteが一時的に利用できない場合でも独立実装は継続するが、**最終的にはCurriculum Implementation PRのMerge Blockerとして解消する。**
+- 将来の任意Operational validationを実施する場合、そのSourceは同一Source Repositoryのmaintainer-controlled Curriculum Implementation PRのHEAD full SHAに限定する。Forkや第三者Repositoryのcommitは対象外とする。
+- Training Copy remoteが利用できないことは、本PRのRequired failure / Merge blockerとして扱わない。
 
 ---
 
@@ -436,8 +438,8 @@ Blocking Unknownは本Plan時点で残さない。
 - Specification Oracle
 - Required CI wiring
 - Native CI change detection
-- Android Runtime AVD contract
-- Delivery Readiness evidence contract
+- Android Runtime CI Emulator contract
+- Optional Training Copy operational evidence contract
 
 ---
 
@@ -570,10 +572,10 @@ Training Copy作成を人手のファイル操作へ委ねない。最低限次�
 - 必須Inputは**完全なcommit SHA**とする。
 - Branch名、Tag名、短縮SHAをDelivery EvidenceのSourceとして受け付けない。
 - Local preparationでも入力SHAを完全SHAへresolveして記録する。
-- Delivery Readinessの正式Sourceは、実行直前にGitHub上で取得した**Curriculum Implementation PRのcurrent HEAD full SHA**と完全一致しなければならない。
-- Source SHAは同一`qa-training-store` Repositoryのmaintainer-controlled PR HEADであることを確認する。
-- Fork / third-party Repository由来のSHAをDelivery Readiness Sourceとして実行しない。
-- 生成したTraining CopyとEvidenceへresolved Source commit SHAを必ず記録する。
+- Local Training Copyは入力された完全SHAをresolveしてmanifestへ記録する。
+- 将来の任意Operational validationでremoteへ実行する場合だけ、同一`qa-training-store` Repositoryのmaintainer-controlled PR HEAD full SHAとの一致を確認する。
+- Fork / third-party Repository由来のSHAを将来のOperational validation Sourceとして実行しない。
+- 生成したTraining CopyとEvidenceへresolved Source commit SHAを記録する。
 
 概念例:
 
@@ -583,7 +585,7 @@ prepare-training-copy
   --target <disposable-target>
 ```
 
-具体的なPackage Script名やCLI option名はImplementation時の局所決定でよいが、**完全SHA必須 / Delivery時はcurrent PR HEADと完全一致**というContractは変えない。
+具体的なPackage Script名やCLI option名はImplementation時の局所決定でよい。Local Copyでは完全SHA必須とし、remote Operational validationのSHA equalityは将来の任意運用条件とする。
 
 #### Workflow Allowlist Contract
 
@@ -881,61 +883,26 @@ Training Copy preparationは`prepare-training-copy`へ集約し、受講者へWo
 - `training/maestro/**`変更時にNative Runtime CIが起動するContractを確認できる。
 - Production / Deploy / Formal Workflow非混在Contractを機械検証できる。
 
-#### Final Delivery Readiness Gate
+#### Final Delivery Readiness（Optional / Future Operational Validation）
 
-Delivery Readinessの正式実Runは**Wave 10の最後、すべてのSource変更・Fresh Learner Validation・Source Required CIが完了した後**に行う。
+Owner Decisionにより、Final Delivery Readinessは本PRのRequired Definition of Done、Task、Merge Gateから外す。今回のRequired判定は、Fresh Learner、Local / Source validation、Required CI、Critical / High Source findingの解消で完了する。
 
-手順:
+Training Copyのremote運用を将来実施する場合は、次の任意手順を利用できる。
 
-1. GitHubからCurriculum Implementation PRのcurrent HEAD full SHAを取得し、`FINAL_CANDIDATE_SHA`として記録する。
-2. `prepare-training-copy`へ`FINAL_CANDIDATE_SHA`を渡してTraining Copyを生成する。
-3. `validate-training-copy`がTrust Boundary / Workflow allowlistをPASSする。
-4. Instructor管理のdisposable / training-only GitHub Training Copyへその内容を反映する。
-5. Web Training Workflow `baseline` Runを実行する。
-   - actual conclusion: `success`
-   - baseline PASS
-   - Artifact確認
-6. Android Training Workflow Runを実行する。
-   - actual conclusion: `success`
-   - Maestro baseline PASS
-   - Runtime Evidence確認
-7. Web Training Workflow `expected-failure` Manual Runを実行する。
-   - actual conclusion: `failure`
-   - expected outcome: intentional failure
-   - `failure-exercises`が実行されている
-   - Evidence Artifactが`if: always()`相当で取得できる
-8. Training CopyのActive Workflowがallowlist 2件だけであることを再確認する。
-9. Secret / Environment / OIDC / write permission / self-hosted runner / Production Deployがないことを再確認する。
-10. GitHub上のPR HEAD full SHAを再取得し、`FINAL_CANDIDATE_SHA`と**完全一致**することを確認する。
+1. `prepare-training-copy`へ完全Source SHAを渡してLocal Training Copyを生成する。
+2. `validate-training-copy`でTrust Boundary / Workflow allowlistを検証する。
+3. Instructor管理のdisposable / training-only GitHub Training Copyへ反映する。
+4. Web baseline、Android baseline、Web expected-failureの3 runとArtifactを確認する。
+5. Active Workflow allowlist、`permissions: contents: read`、Secret / Environment / OIDC / write permission / self-hosted runner / Production Deployなしを確認する。
+6. 必要な場合だけ、PR HEADとTraining Copy resolved SHAの一致を記録する。
 
-Evidenceとして最低限以下をRun `REPORT.md`へ記録する。
+これらのremote run、`FINAL_CANDIDATE_SHA` freeze、Delivery start/end PR HEAD equality、Training Copy resolved SHA equality、Final Delivery Recordは、Future operational validation / optional instructor validationであり、本PRのMerge blockerではない。
 
-- Training Copy repository / branch識別情報
-- `FINAL_CANDIDATE_SHA`（40-char full SHA）
-- Delivery開始時PR HEAD SHA
-- Delivery終了時PR HEAD SHA
-- `FINAL_CANDIDATE_SHA == start PR HEAD == end PR HEAD`の一致判定
-- Resolved Training Copy Source commit SHA
-- Web baseline Run URL / run ID / result / Artifact名
-- Android baseline Run URL / run ID / result / Artifact名
-- Web expected-failure Run URL / run ID / actual conclusion / expected outcome / Artifact名
-- Active Workflow allowlist確認結果
-- Workflow permissions / runner / Secret / Environment / OIDC / Deploy確認結果
+Training Copy remoteが利用できない場合:
 
-**Delivery Readiness GateはCurriculum Implementation PRのMerge前Required Gateである。**
-
-Evidence invalidation rule:
-
-- Delivery開始後にPR HEADが1 commitでも変わった場合、そのDelivery Evidenceは無効とする。
-- Documentation-onlyの微修正であっても例外にしない。
-- 新しい最終PR HEAD SHAでTraining Copy生成とDelivery Readiness 3 Runを再実行する。
-- `Merge commit`をDelivery Readiness Sourceとして使わない。
-
-Training Copy remoteが一時的に利用できない場合:
-
-- Delivery ValidationだけをLocal Blockerとして記録する。
-- Wave 6以降の独立作業、PR Review、Source CI確認は継続する。
-- ただしFinal Delivery Readiness Gate未解消のままPRをMergeしない。
+- Remote Deliveryを未実施のOptional validationとして記録する。
+- Local prepare / validate、Curriculum、Web、Physical Android、Required CIなどの独立したRequired DoD判定は継続する。
+- Remote Delivery未実施をfailure、Blocked task、Merge blockerへ昇格しない。
 
 ### 7.6 Learner environment support / Android Runtime Contract
 
@@ -957,34 +924,24 @@ Training Copy remoteが一時的に利用できない場合:
 - Android Build Tools 36.0.0
 - Maestro 2.8.0
 
-#### Android Runtime Emulator Contract
+#### Windows Local Android Physical Device Contract
 
-Current Formal CIと大きく乖離させないため、初版Required Runtimeを以下に固定する。
+Windows Local Fresh Learner / Part 1 NativeのCanonical Runtimeは、USB接続されたPhysical Android Deviceとする。既存`android-local.ps1`へ明示serialと`-RequirePhysicalDevice`を渡し、次を有限・fail-closeに確認する。
 
-- Runtime API: 34
-- System Image: `system-images;android-34;google_apis;x86_64`
-- ABI: `x86_64`
-- Device Profile: `pixel_2`
-- Training AVD Name: `scenario-shop-training-api34`
-- Emulator boot完了後にADB deviceを1台へ確定してTraining commandへ渡す。
+- ADB statusが`device`であること。
+- `ro.kernel.qemu` / `ro.boot.qemu`がEmulatorを示さないこと。
+- Android APIが`app.config.ts`の`minSdkVersion`以上であること。
+- Device ABIをAuto検出し、そのABI向けRelease APKをBuildすること。
+- Package service、awake、unlocked、Maestro操作可能性を確認すること。
+- Build / APK integrity / Install / Smoke / Test Control / Training Maestro / Evidenceを同じserialで実行すること。
 
-Existing `scripts/native/windows/android-local.ps1`は接続済みDevice以降のDoctor / Build / Install / Test Contractとして再利用する。
-
-AVD作成・起動・boot待機はTraining専用Helperへ分離する。
+Android Emulator / AVDはWindows Localの任意補助経路であり、Part 1完了条件にはしない。GitHub Native CIでは別契約としてAPI 34 / `google_apis` / `x86_64` Emulator Runtimeを維持する。
 
 Target:
 
-- `scripts/training/android-emulator.ps1`
+- `scripts/native/windows/android-local.ps1`
 
-最低責務:
-
-1. `sdkmanager` / `avdmanager` / `emulator` / `adb`を確認する。
-2. API 34 `google_apis` `x86_64` system imageを確認・必要なら導入手順を案内する。
-3. `scenario-shop-training-api34`を決定的に作成または再利用する。
-4. Emulatorを起動する。
-5. `sys.boot_completed=1`等の意味のある状態まで待機する。
-6. 対象Serialを確定する。
-7. Existing `android-local.ps1`へ対象Deviceを引き渡せる状態にする。
+`scripts/training/android-emulator.ps1`はWindows Local Canonical経路から除去する。CIのEmulator準備・起動は`training/github-actions/training-native-ci.yml`および`.github/workflows/native-ci.yml`のWorkflow内で完結する。
 
 Compile SDK 36とRuntime API 34を「同じAPI Levelでなければならない」と誤解させない教材説明を追加する。
 
@@ -1226,13 +1183,13 @@ Part 1 / Part 2で同じ分類語彙を使う。
 | `part1/04_playwright-foundations.md` | Coding Bridge、Training Config / Project / Command | P2 |
 | `part1/05_playwright-e2e-practice.md` | Training Playwright実Path、Desktop / Mobile、baseline / failure separation、Seed / Evidence | P1 |
 | `part1/06_execution-and-failure-analysis.md` | Failure Taxonomy、Evidence、Expected Fail Exercise | P1 |
-| `part1/07_maestro-native-automation.md` | Training Maestro実Path、Android Runtime AVD Contract、iOS Optional | P1 |
+| `part1/07_maestro-native-automation.md` | Training Maestro実Path、Windows Local Physical Device Canonical、GitHub CI Emulatorとの責務分離、iOS Optional | P1 |
 | `part1/08_test-management-and-maintainability.md` | Spec変更Lifecycle、不要Test削除判断 | P2 |
 | `part1/09_part1-capstone.md` | Cart Core維持、Competency Evidence、Advanced段階化 | P1 |
 | `part2/01_software-development-process.md` | Spec Change→Implementation→Review→Test | P2 |
 | `part2/02_git-version-control.md` | exact SHA + Script化Training Copy、Part 1 artifact移行 | P1 |
 | `part2/03_github-pull-request-review.md` | Spec/Test/Validation Traceability | P2 |
-| `part2/04_ci-github-actions.md` | Training Workflow allowlist、Trust Boundary、Final HEAD Delivery Gate | P1 |
+| `part2/04_ci-github-actions.md` | Training Workflow allowlist、Trust Boundary、Training Copy prepare / validate、Optional operational validation境界 | P1 |
 | `part2/05_playwright-ci.md` | Training Web CI baseline / expected-failure / Artifact実手順 | P1 |
 | `part2/06_native-ci-maestro.md` | Android Training CI Runtime Contract、Native detect、API 36 build / API 34 runtime、Current iOS Build-only | P1 Critical |
 | `part2/07_ci-cd-quality-gates.md` | Platform別保証Level、Required Gate判断 | P1 |
@@ -1310,8 +1267,8 @@ Playwright学習で必要になったタイミングに限定して以下を扱�
 
 例:
 
-- Windows Emulatorが一時的に起動しない。
-- Instructor管理Training Copy remoteが一時的に利用できない。
+- Windows LocalのPhysical Deviceが未接続・未認証・lock中である。
+- Instructor管理Training Copy remoteが一時的に利用できない（将来のOptional validationのみ）。
 - 1つのFailure Exerciseだけが未完成。
 
 Local Blocker発生時:
@@ -1319,7 +1276,7 @@ Local Blocker発生時:
 1. 該当TaskをBlockedとして`TASKS.md` / `REPORT.md`へ記録する。
 2. 依存Taskだけを止める。
 3. Curriculum、Workbook、Web Training、Rubric等、独立して進められるTaskは継続する。
-4. Final ValidationまでにRequired Blockerを解消する。
+4. Required Definition of DoneのFinal ValidationまでにRequired Blockerを解消する。
 
 #### Global Blocker
 
@@ -1337,7 +1294,7 @@ Global BlockerだけWhole-run停止条件とする。
 
 途中でBlocked / Skipを記録してもよいが、Required項目に未解決Blockerを残したままImplementation完了扱いにしない。
 
-Delivery Readiness Gateの一時BlockはLocal Blockerだが、**PR Merge時点ではRequired Blockerとして必ず解消する。**
+将来のDelivery Readinessを実施しないことは本PRのBlockerではない。Required Definition of Doneに含まれるBlockerだけをPR Merge判定へ反映する。
 
 ### Wave 0 — Start Gate / Baseline / Contract Freeze
 
@@ -1370,7 +1327,7 @@ Gate:
 - Part 1 / Part 2修了基準を固定する。
 - Core / Advancedを固定する。
 - Training Path / Project / baseline / failure exercise / Config / CI Template / Workbook / OS Support Contractを本Planどおり確認する。
-- Training Copy full SHA / Workflow allowlist / Trust Boundary / Final HEAD Delivery Gateを確認する。
+- Training Copy full SHA / Workflow allowlist / Trust Boundary / Required DoDとOptional operational validationの境界を確認する。
 
 Gate:
 
@@ -1425,8 +1382,8 @@ Validation:
 - `training/maestro/baseline/`
 - `training/maestro/exercises/`
 - 必要な場合のみ`training/maestro/failure-exercises/`
-- `scripts/training/android-emulator.ps1`
-- Android local setup / command
+- `scripts/native/windows/android-local.ps1`のPhysical Device opt-in
+- Android local physical-device setup / command
 - Test Control Reset
 - baseline Flow
 - Evidence
@@ -1435,9 +1392,9 @@ Validation:
 Validation:
 
 - Compile SDK 36 / Build Tools 36.0.0を確認する。
-- API 34 `google_apis` `x86_64` AVDを決定的に準備できる。
-- Canonical Windows環境でEmulator boot → Doctor → Build → Install → Launch → Training baseline Flowを通す。
+- Canonical Windows環境で明示serialのPhysical Deviceを`-RequirePhysicalDevice`付きでDoctor → Prepare → Build → Install → Launch → Test Control → Training baseline → Evidenceまで通す。
 - Formal MaestroとTraining baselineを分離できる。
+- GitHub Native CI側ではAPI 34 `google_apis` `x86_64` Emulator RuntimeとTraining baselineを維持する。
 - iOS RuntimeをRequired Validationにしない。
 
 ### Wave 5 — Training Copy / GitHub Actions Foundation
@@ -1469,7 +1426,7 @@ Validation — Local / Source component only:
 - Source Working Treeへ不要差分なし。
 - resolved Source SHAを記録できる。
 
-**Wave 5では正式なGitHub Delivery Readiness Evidenceを確定しない。** 後続WaveでSourceが変わるため、remoteでの最終3 RunはWave 10のFinal candidate確定後にだけ行う。
+**Wave 5では正式なGitHub Delivery Readiness EvidenceをRequired成果物として確定しない。** Training Copy preparation / validationとWorkflow Trust BoundaryはRequired Assetとして維持し、remote 3 Runは将来のOptional operational validationへdeferする。
 
 ### Wave 6 — Part 1 Curriculum Rebaseline
 
@@ -1481,7 +1438,7 @@ Training実Path / Project / Commandが確定した後にPart 1全文書を改訂
 - Coding Bridge
 - Training Playwright Desktop / Mobile / baseline / exercise / expected failure実手順
 - Failure Taxonomy
-- Android Build 36 / Runtime AVD 34を区別したTraining Maestro実手順
+- Windows Local Physical DeviceのTraining Maestro実手順と、GitHub CI API 34 Emulator保証の責務分離
 - Maintainability
 - Core / Advanced Capstone
 - Competency Mapping
@@ -1501,7 +1458,7 @@ Training CI実体が存在してからPart 2全文書を改訂する。
 - Git / GitHub / PR
 - Web Training CI baseline / expected-failure
 - Android Training CI Runtime Contract
-- Final HEADに結び付くMerge前Delivery Readiness Gate
+- 将来のOptional operational validationとしてのDelivery Readiness設計
 - Current Formal CI比較
 - Android Build API / Runtime API差
 - iOS Build-only全面反映
@@ -1525,7 +1482,7 @@ Gate:
 - Expected Contract / Alternative Design / Anti-pattern
 - Failure Exercises
 - Web Start Gate
-- Android AVD / Start Gate
+- Android Physical Device / Start Gate
 - Training Copy Start Gate / Trust Boundary
 - Troubleshooting
 - Part 1 → Part 2 migration
@@ -1533,7 +1490,7 @@ Gate:
 Gate:
 
 - 講師の暗黙知がRequired手順として残らない。
-- AVD未作成 / system image不足 / Emulator boot failureをRecovery手順で扱う。
+- Developer Options、USB debugging、ADB authorization、explicit serial、`device` status、awake、unlocked、supported Android API、ABI、package serviceのPhysical Device Recoveryを扱う。
 - Training Copy active Workflow / permission / runner不一致をRecoveryで扱う。
 
 ### Wave 9 — Curriculum Validator / Required CI / Repository-wide Integration Review
@@ -1578,7 +1535,7 @@ Validation:
 - `training/maestro/**`だけの変更でNative CI detectがtrueになるContractをTestで確認する。
 - Training Maestro baseline smokeがSource Native CIでPASSする。
 
-### Wave 10 — End-to-End Fresh Learner Validation / Final Delivery Readiness / Final Merge Gate
+### Wave 10 — End-to-End Fresh Learner Validation / Required Merge Evaluation
 
 「初見」を以下のContractで定義する。
 
@@ -1605,13 +1562,13 @@ Training Playwright mobile project
 ↓
 Intentional Failure / Evidence
 ↓
-Android AVD preparation
+Physical Android Device preparation
 ↓
 Training Maestro baseline
 ↓
 Part 1 Capstone
 ↓
-Training Copy migration with exact Source SHA
+Training Copy preparation / validation with exact Source SHA
 ↓
 Git / GitHub / PR
 ↓
@@ -1627,40 +1584,21 @@ Part 2 Capstone
 ↓
 Source Required CI final PASS
 ↓
-Final PR HEAD SHA freeze
+Current PR Required DoD evaluation
 ↓
-GitHub Training Copy from exact final HEAD
-↓
-Web baseline Run
-↓
-Android baseline Run
-↓
-Web expected-failure Run + Artifact
-↓
-PR HEAD SHA re-check
+Optional Future Training Copy operational validation
 ```
 
-Final Delivery Readiness:
+Required Merge Evaluation:
 
-- Fresh Learner / Source validation完了後にcurrent PR HEAD full SHAを`FINAL_CANDIDATE_SHA`として取得する。
-- Training CopyはそのSHAから生成する。
-- GitHub Training CopyでWeb baseline / Android baseline / Web expected-failureの3 Runを実行する。
-- Active Workflowはallowlist 2件のみ。
-- `permissions: contents: read`、no-secret、no-environment、no-OIDC、no-write、GitHub-hosted runnerのみを確認する。
-- Production / Deploy WorkflowはActiveではない。
-- Delivery終了時にcurrent PR HEAD full SHAを再取得する。
-- `FINAL_CANDIDATE_SHA == Delivery start PR HEAD == Delivery end PR HEAD == Training Copy resolved Source SHA`を必須とする。
-- 一致しない場合はEvidence無効として新しいHEADから3 Runをやり直す。
-
-Final Merge Gate:
-
-- Required Learner Journeyが手順の空白なく完走する。
-- Curriculum 22 / 22文書が存在し、Validator対象になっている。
-- Source Required CIのRequired項目にBlocked / Skipがない。
-- Final Delivery ReadinessのSHA equalityがPASSする。
-- Instructor管理GitHub Training CopyでWeb baseline / Android baseline / Web expected-failureの実Run Evidenceがある。
-- Production Secret / write token / Production Environmentを利用していない。
-- **上記が揃うまでCurriculum Implementation PRをMergeしない。**
+- Required Curriculum 22 / 22文書が存在し、Validator対象になっている。
+- Workbook / Training assets、Formal / Training境界、Training Copy prepare / validateが成立している。
+- Training Playwright desktop / mobile、learner exercise、expected-failure lifecycleがPASSする。
+- Windows Local Physical AndroidでTraining Maestro baselineがPASSする。
+- GitHub Native CIのAPI34 / `google_apis` / `x86_64` EmulatorでTraining Maestro baselineがPASSする。
+- `pnpm run verify`、Current PR HEADのPhase 1 CI / Native CIがPASSする。
+- Critical / Highの未解消Source findingがない。
+- Remote Training Copy Delivery未実施はFuture operational validationとして記録し、Required Merge Gateへ含めない。
 
 ---
 
@@ -1696,17 +1634,21 @@ Final Merge Gate:
 
 Local:
 
+- Canonical device: USB-connected Physical Android Device with explicit serial and ADB status `device`
 - Build Contract: Compile SDK 36 / Build Tools 36.0.0
-- Runtime Contract: API 34 / `google_apis` / `x86_64` / `pixel_2`
-- AVD create / reuse
-- Emulator boot
+- Physical Device Start Gate: Developer Options / USB debugging / ADB authorization / awake / unlocked
+- Android API: `app.config.ts`の`minSdkVersion`以上。特定のAPI 30を最低値として固定しない
+- ABI: `Auto`検出で端末に合わせる
 - Doctor
+- Prepare
 - Build
+- APK integrity
 - Install
 - Launch
 - Test Control Reset
 - Training Maestro baseline PASS
 - Evidence確認
+- cleanup
 - Formal Maestro isolation確認
 
 Training GitHub Actions:
@@ -1742,20 +1684,15 @@ Source Formal CI:
 - Source Working Treeへ不要差分なし
 - resolved Source SHA記録
 
-#### Final GitHub Delivery Readiness component
+#### Optional Future Training Copy operational validation component
 
-- 実行直前のcurrent PR HEAD 40-char SHAを`FINAL_CANDIDATE_SHA`として記録
-- GitHub Training Copy resolved Source SHA == `FINAL_CANDIDATE_SHA`
-- GitHub Training Copy Web baseline Workflow PASS
-- GitHub Training Copy Android baseline Workflow PASS
-- GitHub Training Copy Web expected-failure Workflow actual conclusion = `failure`
-- expected-failure Artifact取得
-- Active Workflow allowlist 2件のみ
-- read-only token / no secrets / no environment / no self-hosted runner / no Production Deploy
-- Delivery終了時PR HEAD SHA == `FINAL_CANDIDATE_SHA`
-- 各Run URL / run ID / Source SHA / Artifact名記録
+- `prepare-training-copy` / `validate-training-copy`のLocal Trust BoundaryとWorkflow allowlistを維持する。
+- Instructor管理のremote Training Copy、Web baseline、Android baseline、Web expected-failureは任意の将来運用で実行できる。
+- Optional実行時は、permissions、Secret、Environment、OIDC、runner、Deploy境界を確認する。
+- `FINAL_CANDIDATE_SHA`、Delivery start/end PR HEAD equality、Training Copy resolved SHA equality、Final Delivery Recordは任意の将来Evidenceとする。
+- これらを未実施でも本PRのRequired DoD、Merge Gate、Task完了判定には影響させない。
 
-Delivery Readiness componentは**Wave 10の最後に実行するPR Merge前必須Gate**とする。
+Training Copy operational validationは**PR #25のRequired Merge Gateではなく、Future operational validation / optional instructor validation**とする。
 
 ### 14.5 Formal Regression
 
@@ -1813,27 +1750,27 @@ Mitigation:
 Mitigation:
 
 - Local disposable copy / Source Required CIの独立検証を先に進める。
-- Delivery ValidationだけをLocal Blockerとして記録する。
-- 他Waveを止めない。
-- Remoteが利用可能になった時点でWave 10最終Run Evidenceを取得する。
-- Evidence未取得のままPRをMergeしない。
+- Remote DeliveryはOptional / Future Operational Validationとして記録する。
+- 他WaveとRequired Merge Evaluationを止めない。
+- Remoteが利用可能になった時点で、必要に応じて任意のRun Evidenceを取得する。
+- Evidence未取得を本PRのMerge blockerへ昇格しない。
 
-### Risk 4: Delivery Evidenceが古いcandidateを指す
+### Risk 4: Optional operational validationでEvidenceが古いcandidateを指す（PR #25 Required Merge Gate外）
 
 Mitigation:
 
-- Delivery正式実行をWave 10の最後へ限定する。
-- full SHAだけをSourceにする。
-- Delivery開始 / 終了時PR HEADとTraining Copy resolved SHAの完全一致を記録する。
-- Delivery開始後のcommitはEvidence invalidationとする。
-- 新HEADで3 Runすべて再実行する。
+- Optional operational validationを実施する場合だけ、開始時点のSource full SHAを記録する。
+- Optional実行の開始 / 終了時に、使用したSource SHAとTraining Copy resolved SHAを確認する。
+- Optional実行開始後にSourceが変わった場合は、そのEvidenceを再利用しない。
+- 新しいSourceでOptional実行を再開する場合は、必要なrunだけを再実行する。
+- このRiskとMitigationはPR #25のRequired DoD、Task、Merge Gateには影響しない。
 
 ### Risk 5: Training Copy candidate実行がProduction権限へ触れる
 
 Mitigation:
 
-- same-repo maintainer-controlled final PR HEAD full SHAだけを許可する。
-- Fork / third-party SHAを禁止する。
+- Optional remote operational validationでは、same-repo maintainer-controlled sourceのfull SHAだけを許可する。
+- Optional remote operational validationではFork / third-party SHAを禁止する。
 - dedicated disposable training-only repositoryを使う。
 - `permissions: contents: read`を明示する。
 - Secret / Environment / OIDC / write permission / self-hosted runnerを禁止する。
@@ -1856,9 +1793,9 @@ Mitigation:
 
 Mitigation:
 
-- Canonical Environmentを1つに限定する。
-- Build 36 / Runtime 34を分離して記述する。
-- AVD作成・bootをTraining Helperへ集約する。
+- Windows LocalのCanonical EnvironmentをPhysical Deviceへ限定し、CI Emulatorは別契約として記述する。
+- Build 36とGitHub Native CIのRuntime API 34を責務分離して記述する。
+- GitHub Training CIのAVD作成・bootをTraining Workflowへ集約する。
 - Existing Android Local ScriptをDevice接続後のContractとして再利用する。
 - macOS / Linuxの完全サポートを初版へ要求しない。
 
@@ -1950,7 +1887,7 @@ Mitigation:
 - Multiple BR / AC IDs = `;`区切り
 - Training Workflow = repository内Template、Training Copyでのみ有効化
 - Training Copy Source = full commit SHA
-- Delivery Source = same-repo maintainer-controlled final PR HEAD full SHA
+- Optional remote operational validationのDelivery Source = same-repo maintainer-controlled sourceのPR HEAD full SHA
 - Training Copy active Workflow = allowlist 2件のみ
 - Training Copy preparation / validation = Script化
 - Training CI Trust Boundary = read-only token / no secrets / no environment / GitHub-hosted runner / isolated training repo
@@ -1963,11 +1900,11 @@ Mitigation:
 - Training TypeScript = dedicated typecheck + Repository typecheckへ接続
 - Native learner canonical environment = Windows 11
 - Android Build = Compile SDK 36 / Build Tools 36.0.0
-- Android Runtime = API 34 / `google_apis` / `x86_64` / `pixel_2`
-- AVD startup = Training専用PowerShell Helper
+- Android Training CI Runtime = API 34 / `google_apis` / `x86_64` / `pixel_2`
+- Training CI Emulator lifecycle = `training/github-actions/training-native-ci.yml`内で完結
 - Instructor asset = Public Instructor Reference
 - Local Blocker = 独立Taskを止めない
-- Delivery Readiness = Wave 10 final HEAD exact-SHA Merge Gate
+- Delivery Readiness = Optional / Future Operational Validation。Required Merge Gateには含めない
 
 ### 16.2 実装時に仮定してよい細部
 
@@ -1984,7 +1921,7 @@ Mitigation:
 - Android Training CIの個別step timeout秒数。ただしすべて有限であり、Current Formal Native CIの値を合理的な初期値として参照する。
 - Approved GitHub Action setの具体的列挙。ただしCurrent Repositoryで利用実績があり、Training Workflowが必要とする最小setに限定する。
 
-ただしRequired文書数、Path、Project名、Workflow allowlist、full SHA必須、Final HEAD equality、Supported OS、DoD、Security Boundary、Android CI Runtime Contract、Oracle、Training baseline / failure separation、Delivery Merge Gateを変える判断は仮定扱いにしない。
+ただしRequired文書数、Path、Project名、Workflow allowlist、full SHA必須、Supported OS、DoD、Security Boundary、Android CI Runtime Contract、Oracle、Training baseline / failure separationの変更は仮定扱いにしない。Delivery ReadinessのRequired / Optional境界はOwner Decisionで確定する。
 
 ---
 
@@ -1994,7 +1931,7 @@ Mitigation:
 - macOS NativeをRequired Supportへ昇格する場合は、Canonical Setup / Validationを別途定義する。
 - Instructor Referenceを本当に非公開にする必要が生じた場合は、Public Repository外のDelivery方式を別タスクで検討する。
 - iOS Runtime CI方針が将来変わった場合はCurriculumをADRと同時に再Baselineする。
-- GitHub Training Copyの恒久的なOrganization運用や自動Provisioningが必要になった場合は別の運用改善として扱う。本PlanではTraining Copy preparation / validation ContractとPR Merge前実Run Evidenceまでを対象とする。
+- GitHub Training Copyの恒久的なOrganization運用、自動Provisioning、remote 3 Run、Final Delivery Recordが必要になった場合は別の運用改善として扱う。本PlanではTraining Copy preparation / validation ContractをRequired Assetとして維持し、remote運用はOptional / Future Operational Validationとする。
 - より高度なSupply-chain policy enforcementが必要になった場合は別Security Planで扱う。初版はleast privilegeとIsolationを主境界とする。
 
 ---
@@ -2052,7 +1989,8 @@ Mitigation:
 ### Training Maestro
 
 - `training/maestro/baseline/`が存在する。
-- Canonical Windows + Android API 34 AVDでRequired Flowを実行できる。
+- Windows LocalではCanonical Physical Android DeviceでRequired Flowを実行できる。
+- GitHub Native CIではAndroid API 34 / `google_apis` / `x86_64` EmulatorでRequired Flowを実行できる。
 - Formal `maestro/`と分離されている。
 - Source Native CIでTraining baseline smokeを実行する。
 - `training/maestro/**`変更でNative Runtime CIがskipされない。
@@ -2061,25 +1999,23 @@ Mitigation:
 ### Training Copy / CI
 
 - `prepare-training-copy`がfull Source SHAからDisposable Copyを決定的に準備できる。
-- Delivery Sourceがsame-repo maintainer-controlled final PR HEAD full SHAである。
+- Local Training Copyは指定したfull Source SHAから作成できる。Optional remote operational validationを行う場合だけ、same-repo maintainer-controlled sourceのPR HEAD full SHAを使用する。
 - Training Copyの`.github/workflows/`が`training-ci.yml` / `training-native-ci.yml`のallowlistと完全一致する。
 - `validate-training-copy`がTrust Boundaryを確認できる。
 - Training Workflowが`permissions: contents: read`、no-secret、no-environment、no-OIDC、no-write、GitHub-hosted runner Contractを満たす。
 - Web Training CI Templateが存在する。
 - Android Training CI Templateが存在し、`ubuntu-24.04` / Java17 / API34 / KVM / AVD / finite boot / serial / evidence / cleanup Contractを満たす。
-- Web baseline WorkflowがPASSする。
-- Android baseline WorkflowがPASSする。
-- Web expected-failure Manual Workflowのactual conclusionが`failure`でExpected FailureとしてArtifactを取得できる。
+- Web baseline / Android baseline / Web expected-failureは、Source CIおよびLocal Training assetとしてRequired条件を満たす。remote Training Copyでの実RunはOptionalとする。
 - Formal Phase 1 / Native / iOS / Deploy WorkflowがTraining CopyでActiveにならない。
 
 ### Setup / Recovery
 
 - Web Start Gateがある。
-- Android Start Gateがある。
-- AVD create / reuse / boot手順がある。
+- Windows Local Android Start Gateがあり、Physical DeviceのUSB／ADB authorization／awake／unlockedを確認する。
+- GitHub Native CI Training用のAVD create / reuse / boot手順がある。
 - Training Copy active Workflow / permission / runner確認手順がある。
 - Part 1 → Part 2 Training Copy移行手順がある。
-- Browser / JDK / Android SDK / AVD / Emulator / APK / Maestro / Git / Actionsの主要FailureをTroubleshootできる。
+- Browser / JDK / Android SDK / Physical Device / CI AVD / APK / Maestro / Git / Actionsの主要FailureをTroubleshootできる。
 
 ### Validation
 
@@ -2093,18 +2029,19 @@ Mitigation:
 - Required Native CI全体が成功する。
 - iOS Build-only Gateが成功する。
 - Fresh Learner Dry RunがRequired項目を完走する。
-- Final Delivery ReadinessをWave 10で実行する。
-- `FINAL_CANDIDATE_SHA == Delivery start PR HEAD == Delivery end PR HEAD == Training Copy resolved Source SHA`が成立する。
-- Instructor管理GitHub Training CopyのWeb baseline / Android baseline / Web expected-failure実Run Evidenceが揃う。
+- Current PR HEADのPhase 1 CI / Native CIが成功する。
+- Windows Local Physical AndroidのTraining Maestro baselineとGitHub Native CI API34 EmulatorのTraining Maestro baselineが成功する。
+- Critical / Highの未解消Source findingがない。
+- remote Training CopyのWeb baseline / Android baseline / Web expected-failure、`FINAL_CANDIDATE_SHA`、PR HEAD / resolved SHA equality、Final Delivery RecordはOptional / Future Operational Validationであり、Required DoDに含めない。
 - 未解消Required Blockerがない。
 
 ### PR
 
 - 上記Source変更を**1本のCurriculum Implementation PR**でReview可能にする。
-- Delivery Readiness用Training Copy実行は2本目のImplementation PRを作らない。
-- Delivery Readiness GateはCurriculum Implementation PR Merge前にPASSする。
-- Delivery Evidence取得後にPR HEADが変わったらEvidenceを再取得する。
-- `Merge commit`をDelivery Readiness Sourceにしない。
+- Training Copyのremote運用を行う場合も、2本目のImplementation PRを作らず、別のOptional operational validationとして扱う。
+- Delivery ReadinessはCurriculum Implementation PR Merge前のRequired Gateではない。
+- Fresh Learner / Run Artifactは今回のRequired DoD判定の根拠とする。
+- Final Delivery Record、freeze後のEvidence、PR HEAD / resolved SHA equalityは将来任意の運用記録とする。
 - Specification Foundationそのものを含めない。
 - Product機能追加・無関係なRefactorを混在させない。
 
@@ -2138,7 +2075,7 @@ PR Merge前に以下へすべてYesと答えられることを確認する。
 - `training-chromium`でbaselineを実行できるか。
 - `training-mobile-chromium`でminimal caseを実行できるか。
 - Intentional Failureを通常PASS Suiteと混ぜずにEvidence確認できるか。
-- WindowsでAPI 34 AVDを準備・起動できるか。
+- WindowsでPhysical Android Deviceを明示serialで準備・検証できるか。
 - AndroidでMaestro baselineまで進められるか。
 - Part 2へ成果物を引き継げるか。
 - full Source SHAからTraining CopyをScriptで準備・検証できるか。
@@ -2158,23 +2095,18 @@ PR Merge前に以下へすべてYesと答えられることを確認する。
 - Specification ReferenceがCurrent Specと一致するか。
 - Formal RegressionとTraining Testが分離されているか。
 
-### Delivery evidence / Trust Boundary
+### Optional future Delivery evidence / Trust Boundary
 
-- Delivery開始直前のcurrent PR HEAD full SHAを`FINAL_CANDIDATE_SHA`として記録したか。
-- Training Copy resolved Source SHAが`FINAL_CANDIDATE_SHA`と一致するか。
-- Delivery終了時のPR HEAD SHAも`FINAL_CANDIDATE_SHA`と一致するか。
-- Delivery開始後にPR HEADが変更されていないか。変更された場合はEvidenceを再取得したか。
-- Training CopyのActive Workflowがallowlist 2件だけか。
-- Workflow permissionが`contents: read`のみか。
-- write permission / `id-token: write` / `secrets.*` / `environment:` / `self-hosted`がないか。
-- Training CopyへProduction / Organization Secretがgrantされていないか。
-- Web baseline Workflow Run URLがありPASSしているか。
-- Android baseline Workflow Run URLがありPASSしているか。
-- Android RunでRuntime / failure evidence / cleanupを確認できるか。
-- Web expected-failure Run URLがありactual conclusion=`failure`になっているか。
-- Expected-failure Artifactを確認できるか。
-- Production / Deploy WorkflowがActiveになっていないか。
-- Delivery Readiness GateがPR Merge前にPASSしているか。
+以下は将来、Instructorが任意にremote Training Copy operational validationを実施する場合の確認項目であり、本PRのMerge条件ではない。
+
+- 必要な場合だけDelivery開始直前のPR HEAD full SHAを記録する。
+- Training Copy resolved Source SHA、Delivery開始 / 終了時PR HEADの一致を確認する。
+- Training CopyのActive Workflowがallowlist 2件だけか確認する。
+- Workflow permissionが`contents: read`のみか確認する。
+- write permission / `id-token: write` / `secrets.*` / `environment:` / `self-hosted`がないか確認する。
+- Training CopyへProduction / Organization Secretがgrantされていないか確認する。
+- Web / Android baselineとWeb expected-failureのRun URL、結論、Artifactを記録する。
+- Production / Deploy WorkflowがActiveになっていないか確認する。
 
 ### Maintainability
 
@@ -2231,8 +2163,8 @@ Automation Introduction Design
 > Failure時にはこのEvidenceを確認します。
 > Training CopyではTraining Workflowだけを有効にし、read-only token / no secrets / GitHub-hosted runnerで実行境界を限定します。
 > Android Training CIではAPI 34 Emulatorのboot / serial / timeout / Evidence / Cleanupまで実行Contractとして扱います。
-> Delivery Evidenceは最終PR HEADの完全SHAと一致する実Runだけを採用します。
+> Optional remote operational validationを行う場合は、使用したSource full SHAとEvidenceの対応を確認します。これはPR #25のRequired DoD / Merge Gateではありません。
 > AndroidではBuild ContractとRuntime Contractを分け、現在の再現性とCostに合う保証Levelを選びます。
 > iOSはCurrent Formal CIがBuild-onlyなので、未実行RuntimeをPASSとは報告しません。
 
-この判断能力を育成でき、かつTraining資産自体がMachine validation / Runtime baseline / exact Source traceability / least-privilege execution / final-HEAD Delivery Evidenceで継続検証できることを、本Implementationの最終成果とする。
+この判断能力を育成でき、かつTraining資産自体がMachine validation / Runtime baseline / exact Source traceability / least-privilege execution / Source CI / Fresh Learner validationで継続検証できることを、本Implementationの最終成果とする。

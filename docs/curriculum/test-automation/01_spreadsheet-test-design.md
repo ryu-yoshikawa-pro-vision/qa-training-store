@@ -15,6 +15,7 @@
 主に次を参照します。
 
 - `/guide`
+- [`docs/spec/README.md`](../../spec/README.md)とFeatureのBR / AC
 - `src/seeds/metadata.ts`
 - Storefront / Customer / Adminの各画面
 - `e2e/web/phase1-required.spec.ts`
@@ -24,11 +25,33 @@
 
 ## この文書の位置づけ
 
-この文書は、Part 1で繰り返し利用する**Workbookの使い方とテスト設計技法のReference**です。
+この文書は、Part 1で繰り返し利用する**Workbookの使い方とテスト設計技法のReference**です。Product Behaviorの期待結果はWorkbookから作らず、必ずNormative Specificationへ戻って確認します。
 
 実際の学習Lessonでは、`part1/02_scenario-shop-analysis.md` と `part1/03_test-design-and-automation-selection.md` の演習に沿ってこのWorkbookを更新します。
 
-この文書整備ではGoogle Sheets実ファイルやCSVを追加しません。教材提供時には、ここで定義した列をもとに複製可能なWorkbookテンプレートを別途用意します。
+Canonical templateは `training/workbook/01_target-risk.csv`、`02_test-cases.csv`、`03_automation-mapping.csv`、`04_execution-improvement.csv` として提供します。Google SheetsへImportしてもCSVのHeader、ID Grammar、Traceabilityを変更しません。
+
+## Canonical CSVと段階的な入力
+
+4つのCSVを次の順に使います。最初から全列を埋めず、講師は受講者の判断が必要になった列だけを開示します。
+
+| CSV | 役割 | 必須Trace |
+| --- | --- | --- |
+| `01_target-risk.csv` | 対象、Spec参照、Risk | `target_id` → `spec_ref` / `br_ids` / `ac_ids` → `risk_id` |
+| `02_test-cases.csv` | 条件、前提、期待、設計技法 | `risk_id` → `test_case_id` |
+| `03_automation-mapping.csv` | Automate / Later / Do not automateとLayer | `test_case_id` → `implementation_path` |
+| `04_execution-improvement.csv` | 結果、Evidence、Failure分類、改善 | `test_case_id` → `evidence` |
+
+複数のBR / ACは `;` で区切ります。対象・Risk・Test Caseをつなぐ主IDは空欄にせず、BR / ACなど直接対応するIDがない列だけ空欄を許容します。`implementation_path`は未実装またはDo not automateで実装Pathが存在しない場合、`evidence`は未実行の場合、`failure_category`はPass / Not runの場合に空欄にできます。`cause` / `action` / `improvement`は調査の進捗に応じて追加します。未実在のPathやEvidenceでセルを埋めません。
+
+この4つのファイルがCanonical CSVです。後述する8つのSheet風設計ビューは、4つのCSVを設計上見やすく分けた**conceptual design views**であり、8つのCanonical CSVや8つの必須成果物を意味しません。
+
+| 設計ビュー | Canonical CSV |
+| --- | --- |
+| `01_テスト対象分析` / `02_リスク分析` | `01_target-risk.csv` |
+| `03_テスト観点` / `04_テストケース` | `02_test-cases.csv` |
+| `05_自動化候補` / `06_自動化対応表` | `03_automation-mapping.csv` |
+| `07_実行結果` / `08_改善管理` | `04_execution-improvement.csv` |
 
 ## なぜスプレッドシートを使うか
 
@@ -65,7 +88,7 @@
 - どの程度重要か。
 - 自動化に向くか。
 
-## 推奨Workbook構成
+## 設計ビュー（CSVへ記録する観点）
 
 教材では次のSheet構成を基本とします。
 
