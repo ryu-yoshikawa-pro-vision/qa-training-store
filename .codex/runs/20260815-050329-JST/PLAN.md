@@ -124,3 +124,8 @@
 - `adb root`は`adb_shell_id=uid=0(root)`、`adb_shell_uid=0`で成功し、root解除後は`locale_observation_shell_uid=2000`だった。Strategy Aの権限要件とrootless観測要件は満たしている。
 - 失敗は`stop/start`後に`settings` Binder serviceが再利用可能になる前に`settings put system font_scale`を実行したことによる`cmd: Can't find service: settings`であり、effective localeのfail-open／validation不足ではない。
 - `package` service readinessに加え、`service check settings`が`found`になるまで待つcapture専用の安定化をworkflowへ追加する。locale判定源、canonical profile、capture前fail-closeは変更しない。
+
+### 2026-08-15 15:50 JST: readiness matcherのfalse positive修正
+
+- Run `31869442478`でもadb root（UID 0）とrootless観測（UID 2000）は成立したが、`service check settings`の`grep -q "found"`が`not found`にも部分一致し、未準備のまま`settings` commandへ進んだ。
+- `grep -Eq ':[[:space:]]+found[[:space:]]*$'`へ限定し、実際の`found`行だけをreadiness successとする。locale値、effective Configuration strict gate、capture gatingは変更しない。

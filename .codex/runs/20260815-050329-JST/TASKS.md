@@ -35,10 +35,11 @@
 - [x] D18. 必要ファイルを明示stageして対象branchへcommit/pushし、remote HEAD一致を確認する。
 - [ ] D19. 新HEADでprofile normalization、25件capture、artifact検証、promotion、Final Gate、最新CI確認まで完了する。（remote gate確認済み、dispatch待ち）
 - [x] D20. Run `31868358969`のNormalization failureを完全ログで分類し、rootless観測後の`settings` service readiness不足を最小修正する。
+- [x] D21. Run `31869442478`の`not found`部分一致を特定し、settings service readiness matcherを厳密一致へ修正してlocal validationを完了する。
 
 ## Blocked
 
 - B1. なし（実装上の未解決ブロッカーはない）。
 - B2. 解消済み（ユーザーがStrategy A: 実測adb root、Strategy B: Settings Locale UI、effective Configuration strict gateの設計を確定）。
 
-Progress: 79% (22/28)
+Progress: 80% (23/29)

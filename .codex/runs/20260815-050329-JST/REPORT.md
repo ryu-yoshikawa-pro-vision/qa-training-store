@@ -528,3 +528,13 @@
 - 現在のcountsはCapture Target 94、Captured 69、Pending 0、Blocked 25、Canonical Assets 69。Final Visual Gate／`verify`はblocked 25のみを理由にEXPECTED FAILのままであり、capture前のためstatus／assetは変更していない。
 - 次は明示対象2ファイルとRun Artifactを確認してcommit/pushし、新HEADでStrategy Aのruntime proofからState Bを再実行する。
 - Progress: 79% (22/28)
+
+## 2026-08-15 15:50 JST
+
+- 新HEAD `9f7e548daf2d55f6612b81ea2327240d610143f`をPR #24 remote HEADとして確認し、Run `31869442478`を同SHA・対象branch・`workflow_dispatch`で実行した。
+- Android Runtime `94976680304`はadb rootの実UID（`uid=0(root)`）とroot解除後のrootless UID（`2000`）を確認したが、`Normalize Android canonical visual profile`で再度停止した。`cmd: Can't find service: settings`によりcaptureは0/25で、APK起動failureは派生エラー。
+- 完全ログ（`.artifacts/native-remote/31869442478/android-runtime.log`）から、先行修正の`service check settings | grep -q "found"`が`not found`の部分文字列も通していたことを特定した。locale provisionやeffective locale validationの設計失敗ではない。
+- `grep -Eq ':[[:space:]]+found[[:space:]]*$'`へ厳密化し、workflow contractへfalse-positive拒否を追加した。canonical profile、Settings UI fallback、rootless `dumpsys activity activities`、capture fail-closeは維持した。
+- 修正後local validation: format PASS、workflow contract 18/18 PASS、full contractは並列実行時に既存batch testの5秒timeoutが1件発生したが、単独再実行で26 files／229 tests PASS、native component 49/49 PASS、typecheck PASS、lint PASS（既存65 warningsのみ）、spec PASS（94/69/0/25/69）。
+- 現時点でArtifact download、apply、promotion、status transitionは未実行。異なるRunのArtifactは使用していない。次はこのmatcher修正をcommit/pushし、新HEADでcanonical profileから再実行する。
+- Progress: 80% (23/29)

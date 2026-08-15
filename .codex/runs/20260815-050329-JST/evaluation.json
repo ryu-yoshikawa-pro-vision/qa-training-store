@@ -10,7 +10,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。Run 31868358969ではadb root実測とrootless観測を通過したが、stop/start直後のsettings Binder service未準備でprofile normalizationが停止したため、service readiness待機を最小追加した。remote runtime proof、capture、artifact apply、Final Gate PASSは未完了である。"
+      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。Run 31869442478ではadb root実測とrootless観測を通過したが、service check settingsのnot found部分一致で未準備のsettings commandへ進みprofile normalizationが停止したため、readiness matcherを厳密化した。local contract 18/18とfull contract 229/229はPASS、remote runtime proof、capture、artifact apply、Final Gate PASSは未完了である。"
     },
     "scope_control": {
       "rating": "pass",

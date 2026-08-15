@@ -284,7 +284,10 @@ describe("Native CI workflow contracts", () => {
     expect(runtime).toContain('"$ADB" shell start');
     expect(runtime).toContain('"$ADB" unroot');
     expect(runtime).toContain("settings_service_ready=false");
-    expect(runtime).toContain("service check settings");
+    expect(runtime).toContain(
+      "service check settings 2>/dev/null | grep -Eq ':[[:space:]]+found[[:space:]]*$'",
+    );
+    expect(runtime).not.toContain('service check settings 2>/dev/null | grep -q "found"');
     expect(runtime).toContain('test "$settings_service_ready" = true');
     expect(runtime).toContain('observation_shell_uid="$("$ADB" shell id -u');
     expect(runtime).toContain('test "$observation_shell_uid" != "0"');
