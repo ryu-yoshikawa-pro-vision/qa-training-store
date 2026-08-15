@@ -33,7 +33,7 @@
 - [x] D16. ユーザー確定のStrategy A/Bに基づき、実測adb root分岐とSettings UI fallbackを実装し、effective locale strict gateを維持する。
 - [x] D17. locale provisioning変更のlocal format／workflow contract／full contract／native／typecheck／lint／spec validationを実行する。
 - [x] D18. 必要ファイルを明示stageして対象branchへcommit/pushし、remote HEAD一致を確認する。
-- [ ] D19. 新HEADでprofile normalization、25件capture、artifact検証、promotion、Final Gate、最新CI確認まで完了する。
+- [ ] D19. 新HEADでprofile normalization、25件capture、artifact検証、promotion、Final Gate、最新CI確認まで完了する。（remote gate確認済み、dispatch待ち）
 
 ## Blocked
 
