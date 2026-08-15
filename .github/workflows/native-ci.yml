@@ -855,9 +855,10 @@ jobs:
           if ! "$ADB" shell setprop persist.sys.locale ja-JP; then
             echo "setprop persist.sys.locale is unavailable on this emulator; continuing with system_locales and strict convergence validation."
           fi
-          "$ADB" shell stop
+          # API34 google_apis images reject shell-level stop/start without root.
+          # Reboot through adb instead, then keep the strict locale convergence check below.
+          "$ADB" reboot
           sleep 5
-          "$ADB" shell start
           boot_completed=false
           for _ in $(seq 1 90); do
             if [[ "$("$ADB" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == "1" ]]; then
@@ -875,13 +876,20 @@ jobs:
           abi="$($ADB shell getprop ro.product.cpu.abi | tr -d '\r')"
           locale_value="$($ADB shell getprop persist.sys.locale | tr -d '\r')"
           locale_settings="$($ADB shell settings get system system_locales | tr -d '\r')"
+          effective_config="$($ADB shell cmd activity get-config 2>/dev/null | tr -d '\r')"
+          effective_locale="unknown"
           for _ in $(seq 1 30); do
-            if [[ "$locale_value" = "ja-JP" && "$locale_settings" = "ja-JP" ]]; then
+            if printf '%s\n' "$effective_config" | grep -Eq '(^|-)ja-rJP($|-)|(^|-)ja-JP($|-)' ; then
+              effective_locale="ja-JP"
+            else
+              effective_locale="unknown"
+            fi
+            if [[ "$locale_settings" = "ja-JP" && "$effective_locale" = "ja-JP" ]]; then
               break
             fi
             sleep 1
-            locale_value="$($ADB shell getprop persist.sys.locale | tr -d '\r')"
             locale_settings="$($ADB shell settings get system system_locales | tr -d '\r')"
+            effective_config="$($ADB shell cmd activity get-config 2>/dev/null | tr -d '\r')"
           done
           font_scale="$($ADB shell settings get system font_scale | tr -d '\r')"
           night_mode="$($ADB shell cmd uimode night | tr -d '\r')"
@@ -890,8 +898,8 @@ jobs:
           density="$($ADB shell wm density | sed -n 's/.*Physical density: //p' | head -n 1 | tr -d '\r')"
           test "$api_level" = "34"
           test "$abi" = "x86_64"
-          test "$locale_value" = "ja-JP"
           test "$locale_settings" = "ja-JP"
+          test "$effective_locale" = "ja-JP"
           test "$font_scale" = "1.0"
           test -n "$resolution"
           test -n "$density"
@@ -908,7 +916,9 @@ jobs:
           esac
           echo "api_level=$api_level"
           echo "abi=$abi"
-          echo "locale=$locale_value"
+          echo "locale_property=$locale_value"
+          echo "locale_settings=$locale_settings"
+          echo "locale_effective=$effective_locale"
           echo "font_scale=$font_scale"
           echo "ui_mode=$ui_mode"
           echo "orientation=$orientation"
@@ -920,7 +930,7 @@ jobs:
             --arg abi "$abi" \
             --arg resolution "$resolution" \
             --arg density "$density" \
-            --arg locale "$locale_value" \
+            --arg locale "$effective_locale" \
             --arg font_scale "$font_scale" \
             --arg ui_mode "$ui_mode" \
             --arg orientation "$orientation" \

@@ -272,6 +272,13 @@ describe("Native CI workflow contracts", () => {
       expect(runtime).toContain(profileValue);
     }
     expect(runtime).toContain("setprop persist.sys.locale ja-JP");
+    expect(runtime).toContain('"$ADB" reboot');
+    expect(runtime).not.toContain('"$ADB" shell stop');
+    expect(runtime).not.toContain('"$ADB" shell start');
+    expect(runtime).toContain("$ADB shell cmd activity get-config");
+    expect(runtime).toContain('effective_locale="unknown"');
+    expect(runtime).toContain('test "$effective_locale" = "ja-JP"');
+    expect(runtime).not.toContain('test "$locale_value" = "ja-JP"');
     expect(capture).toContain("exec-out screencap -p");
     expect(capture).toContain("APK_PATH");
     expect(capture).toContain("GITHUB_SHA");

@@ -80,3 +80,18 @@
 - 完全ログで`adb shell setprop persist.sys.locale ja-JP`が`Failed to set property`（exit 1）となり、`set -e`によりstop/startと厳格なlocale convergence validationへ到達していないことを確認した。Captureは未実行で、artifact/APKをcanonical入力には使わない。
 - 修正方針は現行locale設計を拡張せず、`setprop`の権限拒否だけをbest-effort扱いにすること。`settings put system system_locales ja-JP`、stop/start、boot wait、`persist.sys.locale`/`system_locales`のja-JP検証、profile validatorは維持する。検証失敗時は引き続きfail-closeする。
 - local workflow Prettier、Expo Doctor、Native/config、component/contracts、typecheck/lint、structural validationはPASS。Final Gate/verifyはblocked 25 / captured 69/94のみでEXPECTED FAIL。新修正をpush後に新HEADでState Bを最初から再実行する。
+
+### 2026-08-15 09:40 JST
+
+- Run `31852971377`はPR HEAD=`c9d31e7698ac4f10bcabe1a11bb072edfc78dafe`に対して正しくdispatchされたが、`Normalize Android canonical visual profile`で再度停止した。
+- 完全ログの第一の補助コマンドは想定どおりbest-effortで越えたが、続く`adb shell stop`が`Must be root`で失敗した。API34 `google_apis`のshell権限に依存するroot-only操作が第二の実原因であり、transient、setup/ready、Product UI failureではない。
+- `system_locales`設定、`persist.sys.locale`と`system_locales`の収束確認、API34 canonical profile validatorは維持する。root-onlyの`stop/start`だけをhost-side `adb reboot`へ置換し、boot completion wait後に既存strict validationを実行する方針を採用した。
+- localでworkflow contractに`adb reboot`とroot-only stop/start不在を固定し、Prettier、contract、format、native component、typecheck、lint、EAS、production bundle、route、structural specを再検証した。並列負荷時にtimeoutしたbatch contractは単独再実行で6/6、全contractで228/228へ回復した。
+- 新しいworkflow修正は未pushのため、現RunのAPK/runtime evidenceは採用せず、同じHEADでのrerunもしない。修正をpush後、新HEADでState Bを最初から実行する。
+
+### 2026-08-15 10:04 JST
+
+- ユーザーpush後のremote gateをGitHub APIで確認したが、PR #24と対象branchのHEADはともに`c9d31e7698ac4f10bcabe1a11bb072edfc78dafe`で、remote workflow SHAも旧内容のままだった。remoteには`adb shell stop/start`が残り、`adb reboot`および実効Configuration観測は未反映だったためdispatchしなかった。
+- 要件の「property単独判定禁止」に対応し、local workflowはrootlessな`cmd activity get-config`のresource qualifierから`ja-rJP`／`ja-JP`を検出する`effective_locale`を追加した。`system_locales=ja-JP`と実効Configurationの両方をstrictに要求し、`persist.sys.locale`は診断出力だけに降格した。profile JSONのlocaleは`effective_locale`から生成する。
+- AOSP ActivityManager shell commandの`get-config`がdevice Configurationを返すことを一次ソースで確認した。remoteでこの修正が実行され、`locale_effective=ja-JP`の実測が得られるまでcanonical captureへ進めない。
+- local validationはworkflow contract 17/17、全contract 228/228、native component 49/49、format、typecheck、lint、structural specをPASS。Final Gate/verifyは現状のAndroid 25 blockedだけでEXPECTED FAIL。

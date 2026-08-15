@@ -10,19 +10,19 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。新HEADのRun 31850993052はprofile normalizationで失敗し、capture/artifact apply/Final Gate PASSは未完了である。"
+      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。最新HEADのRun 31852971377もprofile normalizationでroot-only stop操作により失敗し、capture/artifact apply/Final Gate PASSは未完了である。"
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "変更はbatch capture/apply、workflowのlocale補助コマンド、workflow contract、関連docs/run artifactに限定し、Product UI、Native setup、Final Gate、startup helper、Git mutationを行っていない。"
+      "evidence": "変更はbatch capture/apply、workflowのlocale補助コマンド、workflow contract、関連docs/run artifactに限定し、Product UI、Native setup、Final Gate、startup helper、Git mutationを行っていない。persist.sys.locale単独判定を避けるeffective Configuration観測を追加した。"
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "frozen install、expo install --check、expo-doctor 17/17、prebuild、EAS/native bundle/route validation、format、markdown、typecheck、lint、full test（Unit 66、Integration 98、Repository 33、Component 125、Contract 228）、native component 49 tests、web/spec build、image/security checksはPASSした。Final GateはAndroid 25 blockedを理由にEXPECTED FAILであり、実artifact provenanceは新HEADのActions captureまで未検証である。"
+      "evidence": "frozen install、expo install --check、expo-doctor 17/17、prebuild、EAS/native bundle/route validation、format、markdown、typecheck、lint、full test（Unit 66、Integration 98、Repository 33、Component 125、Contract 228）、native component 49 tests、web/spec build、image/security checksはPASSした。最新workflow修正後のlocal contract/native/config gateもPASSした。Final GateはAndroid 25 blockedを理由にEXPECTED FAILであり、実artifact provenanceは新HEADのActions captureまで未検証である。"
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "partial/incomplete batchをapply拒否し、canonical outputをvalidation後に限定し、Final Visual Gateを緩和せず、Git/PR mutationは行っていない。Actions workflow_dispatchはユーザー許可範囲でRun 31850993052へ1回実施した。"
+      "evidence": "partial/incomplete batchをapply拒否し、canonical outputをvalidation後に限定し、Final Visual Gateを緩和せず、Git/PR mutationは行っていない。Actions workflow_dispatchはユーザー許可範囲でRun 31850993052とRun 31852971377へ実施した。現Runのprofile failure後にrerunやartifact流用は行っていない。"
     },
     "reviewability": {
       "rating": "pass",
@@ -34,7 +34,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "remote gateとHEAD一致dispatchの再現経路は確認できたが、Run 31850993052はsetprop権限拒否でprofile normalization failure。local locale patchは検証済みだが未pushで、新HEADの再captureが必要である。"
+      "evidence": "remote gateでPR/branch HEADがc9d31e7のまま、adb reboot/effective Configuration修正未反映であることを確認したためdispatchしていない。localではrootless rebootとcmd activity get-config由来effective_localeのstrict検証を実装・検証済みで、push後の新HEAD captureが必要である。"
     }
   },
   "findings": [
@@ -61,6 +61,18 @@
       "severity": "high",
       "evidence": "Run 31850993052のAndroid Runtime job 94928353459はAPI34 emulator起動とAPK install後、`adb shell setprop persist.sys.locale ja-JP`の権限拒否でNormalize Android canonical visual profileがfailureとなった。",
       "detail": "既存のsettings/stop-start/convergence validationを維持し、setprop補助コマンドだけをbest-effort化した。profile値のstrict検証は残したため、修正push後に新HEADで25件を最初からcaptureする。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Run 31852971377のAndroid Runtime job 94933594336はsetprop best-effort分岐を通過した後、`adb shell stop`で`Must be root`となり、boot/locale convergence/profile validation前にfailureした。",
+      "detail": "API34 google_apisの非root shellでroot-only stop/startを使わないよう、`adb reboot`へ最小置換した。locale/profileのstrict validationは維持し、修正未pushのため現Runのartifactはcanonicalに採用しない。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "remote PR #24 HEAD c9d31e7のworkflowは`adb shell stop/start`とpersist.sys.locale/system_locales判定の旧内容で、rootless rebootとeffective Configuration観測を含んでいなかった。",
+      "detail": "remote gate不一致のためdispatchを拒否した。local workflowでは`cmd activity get-config`のja-rJP/ja-JPを実効localeとしてstrict検証し、system_localesと併せてprofile JSONへ反映する修正を完了した。"
     }
   ],
   "improvement_candidates": []

@@ -53,7 +53,14 @@
                                     "pnpm exec expo install --check",
                                     "pnpm dlx expo-doctor@1.17.6",
                                     "pnpm exec expo prebuild --platform android --no-install",
-                                    "pnpm exec prettier --check .github/workflows/native-ci.yml"
+                                     "pnpm exec prettier --check .github/workflows/native-ci.yml",
+                                     "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts",
+                                     "pnpm exec vitest run tests/contracts/android-visual-capture-batch.test.ts",
+                                     "pnpm run test:contracts (isolated rerun)",
+                                     "pnpm run test:component:native (isolated rerun)",
+                                     "GitHub API remote PR/branch/workflow gate (read-only)",
+                                     "pnpm run validate:spec-visuals:final (expected blocked failure)",
+                                     "pnpm run verify (expected Final Visual Gate failure)"
                                     ],
                        "warnings":  [
                                     "Final Visual GateはAndroid 25 blocked、Captured 69/94のためEXPECTED FAIL",
@@ -62,7 +69,12 @@
                                     "Native StaticはExpo Doctorのpatch version driftでfailureしたが、7 packageとexpo-constants overrideを更新後、doctor 17/17 PASS",
                                     "依存patch修正後もFinal Visual GateはAndroid 25 blockedのためEXPECTED FAIL。新HEADのActions capture、artifact apply、promotion、status transition、代表画面目視はpush後まで未実行",
                                     "Run 31850993052はAndroid Runtimeのsetprop persist.sys.locale権限拒否でprofile normalization failure。capture artifactは未生成でcanonicalには不採用",
-                                    "locale workflow patchはlocal Prettier/quality gates PASS済みだが未push。新HEADで再captureが必要"
+                                     "locale workflow patchはlocal Prettier/quality gates PASS済みだが未push。新HEADで再captureが必要",
+                                     "Run 31852971377はsetprop best-effort後のadb shell stopがMust be rootで失敗。capture/artifactは未生成でcanonicalには不採用",
+                                     "root-only stop/startをadb rebootへ置換したworkflow修正は未push。現Runのrerunとartifact再利用は禁止",
+                                     "並列負荷でbatch contract 2件が既定5秒timeoutしたが、単独実行で6/6、全contractで228/228 PASS",
+                                     "PR #24 remote HEAD c9d31e7はadb reboot/effective get-config修正未反映。要件未達のremoteへActions dispatchしない",
+                                     "effective localeはcmd activity get-config由来のja-rJP/ja-JPをstrictに観測し、persist.sys.localeを唯一の判定根拠にしないlocal修正を検証済み"
                                     ]
                    },
     "safety":  {
