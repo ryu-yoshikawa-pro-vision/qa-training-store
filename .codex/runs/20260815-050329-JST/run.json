@@ -17,7 +17,7 @@
     "changed_files":  [
                        ".github/workflows/native-ci.yml",
                        "maestro/android-locale-provision.yaml",
-                       "maestro/subflows/native-visual-capture-noop.yaml",
+                       "maestro/native-visual-capture.yaml",
                        "scripts/spec/android-visual-capture.ts",
                        "scripts/spec/visual-registry.ts",
                        "tests/contracts/android-visual-capture-batch.test.ts",
@@ -72,7 +72,15 @@
                                     "pnpm run lint (after empty setup subflow repair)",
                                     "pnpm run validate:spec (after empty setup subflow repair)",
                                     "Run 31873026259 same-run Automation APK artifact/manifest/dex inspection",
-                                    "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts (resolver readiness contract)"
+                                    "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts (resolver readiness contract)",
+                                    "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts (static setup subflow mapping contract)",
+                                    "pnpm run test:contracts (after static setup mapping repair)",
+                                    "pnpm run test:component:native (after static setup mapping repair)",
+                                    "pnpm run typecheck (after static setup mapping repair)",
+                                    "pnpm run lint (after static setup mapping repair)",
+                                    "pnpm run validate:spec (after static setup mapping repair)",
+                                    "pnpm run lint:markdown (after static setup mapping repair)",
+                                    "Run Artifact sanitizer Write/Check (after static setup mapping repair)"
                                     ],
                        "warnings":  [
                                     "Final Visual GateはAndroid 25 blocked、Captured 69/94のためEXPECTED FAIL",
@@ -92,7 +100,8 @@
                                     "Run 31869442478でもroot UID 0とrootless UID 2000を確認したが、service check settingsのgrep -q foundがnot foundに部分一致し、未準備のsettings commandでprofile normalization failure。行末厳密matcherへ修正し、local contract 18/18とfull contract 229/229をPASS",
                                     "Run 31870391806はeffective locale ja-JPと全canonical profileをPASSしたが、Automation APKのinstall/pm path後にmonkeyがNo activities foundでfailure。同Run manifestにはMainActivity/MAIN/LAUNCHERがありProduction APKは起動成功したため、Automationだけam start -Wの明示componentへ変更して再captureする",
                                     "Run 31871497815はeffective locale ja-JP、canonical profile、Automation明示起動をPASSしたが、最初のHome caseでnull setup subflowがMaestroの空dynamic file path validationによりInvalid File Pathとなった。batchは0/25、complete=falseでcanonicalには不採用。null setupを専用無操作subflowへ解決し、contract 18/18、full contract 229/229、native 49/49を再PASSした",
-                                    "Run 31873026259はeffective locale ja-JPとcanonical profileをPASSしたが、同Run Automation APKのinstall直後にam startがError type 3となりcapture skipped。manifest/dexにはMainActivity/MAIN/LAUNCHER、後続Production validationは起動成功だったため、package resolver readiness不足と分類し、cmd package resolve-activityの局所readiness gateを追加する"
+                                    "Run 31873026259はeffective locale ja-JPとcanonical profileをPASSしたが、同Run Automation APKのinstall直後にam startがError type 3となりcapture skipped。manifest/dexにはMainActivity/MAIN/LAUNCHER、後続Production validationは起動成功だったため、package resolver readiness不足と分類し、cmd package resolve-activityの局所readiness gateを追加する",
+                                    "Run 31874167949はprofile、Automation起動、resolver readinessをPASSしたが、Maestroが動的file: ${SETUP_SUBFLOW}を値が非空でもInvalid File Pathとして拒否した。batchは0/25、complete=falseでcanonicalには不採用。SETUP_IDごとの静的subflow file分岐へ修正する"
                                     ]
                    },
     "safety":  {

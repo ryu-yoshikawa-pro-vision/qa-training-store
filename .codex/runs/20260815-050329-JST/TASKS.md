@@ -41,6 +41,7 @@
 - [x] D24. setup意味論を変えずに空subflow用の無操作flowへ解決する最小修正とcontract/local validationを完了する。
 - [x] D25. Run `31873026259`のprofile PASS後Automation起動failureを同Run APK／manifest／runtime evidenceで分類し、package resolver readiness不足を確定する。
 - [x] D26. install後のlauncher activity resolver readinessを厳密に待つ最小修正とlocal validationを完了する。
+- [x] D27. Maestroの動的subflow path拒否を静的setup ID分岐へ修正し、local validation後に新HEADで25件captureを再実行する。
 
 ## Blocked
 
@@ -52,3 +53,7 @@ Progress: 80% (24/30)
 Progress: 81% (26/32)
 
 Progress: 82% (28/34)
+
+Progress: 80% (28/35)
+
+Progress: 82% (29/35)

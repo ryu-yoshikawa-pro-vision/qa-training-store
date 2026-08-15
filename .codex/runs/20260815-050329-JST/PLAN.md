@@ -148,3 +148,10 @@
 - Run `31873026259`はprofile normalizationをPASSしたが、Automation APK install直後の`am start -W -n com.ryuyoshikawa.scenarioshop/.MainActivity`が`Error type 3`／`Activity ... does not exist`で失敗した。captureはskippedで0/25だった。
 - 同RunのAutomation APKはJavaScript bundleを含み、install／`pm path`成功。同じAPKのmanifestとdexには`com.ryuyoshikawa.scenarioshop.MainActivity`、exported、MAIN／LAUNCHERが存在する。後続Production validationでは同activityが起動しているため、Product UI／APK build／locale failureではなく、install直後のAndroid package resolver readiness不足と分類する。
 - Automation起動前に`cmd package resolve-activity --brief`で対象packageのMainActivityが解決可能になるまで限定的に待ち、未解決なら明示的にfail-closeする。既存の`am start -W`、process alive／logcat fatalチェック、Production起動、profile strict gateは維持する。これは広域retryではなく、起動対象のresolver readinessを確認する局所待機である。
+
+### 2026-08-15 17:45 JST: 動的subflow pathのMaestro parser拒否
+
+- Run `31874167949`はprofile normalizationとAutomation起動をPASSし、`native_setup_subflow`を`subflows/native-visual-capture-noop.yaml`へ解決しても、Home caseで`file: ${SETUP_SUBFLOW}`を`Invalid File Path`として拒否した。値が空でないことでは不十分で、Maestroの`file`は動的path自体を受け付けない。
+- 無操作subflow方式は採用せず、`SETUP_ID`の既知setup IDごとに静的`runFlow.file`を条件付きで記述する。`reset-only`と`customer-seeded-session`はrunFlowなし、guest cart／customer login／checkout address・payment・confirmは既存subflowを静的に呼ぶ。Registry／setup planの意味論、Addressの二重navigation修正、Payment／Confirm専用setupは変えない。
+- `maestro/native-visual-capture.yaml`の動的file参照を除去し、workflowのnull fallbackを元の空値へ戻し、不要なnoop subflowを削除する。contractで6つの静的setup mappingと動的file不在を固定する。
+- D27 local validation: targeted workflow contract 18/18、全contract 229/229、native component 49/49、typecheck、lint（0 errors／65 existing warnings）、Prettier、markdown、diff check、spec、Run Artifact sanitizerはPASS。次は必要ファイルをcommit/pushし、新HEADでprofileから25件captureを再実行する。

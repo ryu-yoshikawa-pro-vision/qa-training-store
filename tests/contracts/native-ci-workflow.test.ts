@@ -31,7 +31,6 @@ const phaseOneWorkflow = readWorkflow(".github/workflows/ci.yml");
 const androidStartupHelper = readWorkflow("scripts/native/android-maestro-run.sh");
 const storefrontFlow = readWorkflow("maestro/native-storefront.yaml");
 const visualCaptureFlow = readWorkflow("maestro/native-visual-capture.yaml");
-const visualCaptureNoopFlow = readWorkflow("maestro/subflows/native-visual-capture-noop.yaml");
 const localeProvisionFlow = readWorkflow("maestro/android-locale-provision.yaml");
 const customerCheckoutSetupFlow = readWorkflow(
   "maestro/subflows/native-visual-capture-customer-checkout.yaml",
@@ -327,11 +326,19 @@ describe("Native CI workflow contracts", () => {
 
   it("executes Capture Case setup metadata and asserts role plus all ready matcher slots", () => {
     expect(visualCaptureFlow).toContain("- launchApp\n");
-    expect(visualCaptureFlow).toContain("SETUP_SUBFLOW");
-    expect(nativeWorkflow).toContain(
-      'NATIVE_SETUP_SUBFLOW="$(jq -r \'.native_setup_subflow // "subflows/native-visual-capture-noop.yaml"\' "$CASE_JSON")"',
-    );
-    expect(visualCaptureNoopFlow).toContain("waitForAnimationToEnd:");
+    expect(nativeWorkflow).toContain('.native_setup_subflow // ""');
+    for (const setup of [
+      ["guest-cart-with-basic-shirt", "subflows/native-visual-capture-guest-cart.yaml"],
+      ["customer-login", "subflows/native-visual-capture-customer-login.yaml"],
+      ["customer-login-processing", "subflows/native-visual-capture-customer-login.yaml"],
+      ["customer-checkout-address", "subflows/native-visual-capture-customer-checkout.yaml"],
+      ["customer-checkout-payment", "subflows/native-visual-capture-customer-checkout.yaml"],
+      ["customer-checkout-confirm", "subflows/native-visual-capture-customer-checkout.yaml"],
+    ] as const) {
+      expect(visualCaptureFlow).toContain(`true: \${SETUP_ID == "${setup[0]}"}`);
+      expect(visualCaptureFlow).toContain(`file: ${setup[1]}`);
+    }
+    expect(visualCaptureFlow).not.toContain("file: ${SETUP_SUBFLOW}");
     expect(visualCaptureFlow).toContain('true: ${ROLE == "customer"}');
     expect(visualCaptureFlow).toContain('true: ${ROLE == "guest"}');
     for (const slot of [1, 2, 3]) {
@@ -340,7 +347,8 @@ describe("Native CI workflow contracts", () => {
     }
     expect(visualCaptureFlow).not.toMatch(/^\s+- sleep:/m);
     expectInOrder(visualCaptureFlow, [
-      "file: ${SETUP_SUBFLOW}",
+      "file: subflows/native-visual-capture-guest-cart.yaml",
+      "file: subflows/native-visual-capture-customer-checkout.yaml",
       'true: ${ROUTE_IS_ROOT == "false"}',
       'true: ${ROLE == "customer"}',
       "READY_KIND_1",

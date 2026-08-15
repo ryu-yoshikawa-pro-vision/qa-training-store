@@ -565,3 +565,17 @@
 - 完全ログの最初の起動異常は、install成功の約0.1秒後の`am start -W -n com.ryuyoshikawa.scenarioshop/.MainActivity`に対する`Error type 3`／`Activity class ... does not exist`だった。同Run APKのmanifest／dexにはMainActivityとMAIN／LAUNCHERがあり、同Runの後続Production validationではactivityが実際に起動しているため、APK／Product UI／locale defectではなくpackage resolver readiness不足と分類した。
 - 同Runのruntime evidenceは`.artifacts/native-remote/31873026259/`へ保存し、canonicalには使用していない。Visual artifactはcapture skippedのため存在せず、別Run／別SHAのArtifact混用もない。
 - 修正: Automation install後に`cmd package resolve-activity --brief`をpackage／MAIN／LAUNCHER指定で確認し、`com.ryuyoshikawa.scenarioshop`と`MainActivity`が解決できるまで最大15回・2秒間隔で待つ。解決不能時はfail-closeし、その後のみ既存`am start -W`を実行する。contractでresolver-before-startを固定した。
+
+## 2026-08-15 17:45 JST
+
+- Run `31874167949`（HEAD `0493a2bdde94190ea145bba0df1ece9b3e39631a`）はprofile、Automation起動、resolver readinessをPASSしたが、Home caseのMaestro captureでfailureした。`native_setup_subflow`は`subflows/native-visual-capture-noop.yaml`へ正しく解決されていたため、空値fallbackの問題ではない。
+- 完全ログの第一原因は、Maestroが`file: ${SETUP_SUBFLOW}`という動的file参照を値の有無に関係なく`Invalid File Path`として拒否したことだった。batchは0/25、`complete=false`で、同Runのpartial raw／APKはcanonicalに使用しない。
+- 修正: `maestro/native-visual-capture.yaml`で`SETUP_ID`の既知6 setup IDを静的`runFlow.file`へ分岐する。`reset-only`／`customer-seeded-session`はsubflowなし、guest cart／customer login／checkout address・payment・confirmは既存subflowを呼ぶ。`SETUP_SUBFLOW`動的参照、noop subflow、Product UI、ready assertion、Final Gateは残さない／変更しない。
+- D27のlocal targeted validationは18/18、Prettier、diff checkまでPASS。全contract／native／typecheck／lint／specを再確認後、必要ファイルだけcommit/pushし、新HEADでState Bを最初から再実行する。
+
+## 2026-08-15 17:50 JST
+
+- 静的setup mapping修正後のlocal validation: `pnpm run test:contracts` 26 files／229 tests PASS、`pnpm run test:component:native` 12 suites／49 tests PASS、`pnpm run typecheck` PASS、`pnpm run lint` PASS（0 errors／65 existing warnings）、`pnpm run validate:spec` PASS（94／69／0／25／69）、`pnpm run lint:markdown` PASS、Prettier PASS、`git diff --check` PASS、Run Artifact sanitizer 5 files／residual 0 PASS。
+- `reset-only`／`customer-seeded-session`はCapture flowでsubflowを実行せず、guest cart、customer login、customer-login-processing、checkout address、checkout payment、checkout confirmの6 setup IDだけを静的file pathへ接続した。動的`file: ${SETUP_SUBFLOW}`とnoop subflowは残していない。
+- 変更は未push。次に必要ファイルを明示stage・commit・pushし、新HEADをSource of TruthとしてNative CI batch captureを再実行する。現時点のvisual countsはTarget 94、Captured 69、Pending 0、Blocked 25、Canonical 69で変化なし。
+- Progress: 82% (29/35)

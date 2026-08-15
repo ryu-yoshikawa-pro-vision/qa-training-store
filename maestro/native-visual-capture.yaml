@@ -12,8 +12,28 @@ appId: com.ryuyoshikawa.scenarioshop
     timeout: 30000
 - runFlow:
     when:
-      true: ${SETUP_SUBFLOW != ""}
-    file: ${SETUP_SUBFLOW}
+      true: ${SETUP_ID == "guest-cart-with-basic-shirt"}
+    file: subflows/native-visual-capture-guest-cart.yaml
+- runFlow:
+    when:
+      true: ${SETUP_ID == "customer-login"}
+    file: subflows/native-visual-capture-customer-login.yaml
+- runFlow:
+    when:
+      true: ${SETUP_ID == "customer-login-processing"}
+    file: subflows/native-visual-capture-customer-login.yaml
+- runFlow:
+    when:
+      true: ${SETUP_ID == "customer-checkout-address"}
+    file: subflows/native-visual-capture-customer-checkout.yaml
+- runFlow:
+    when:
+      true: ${SETUP_ID == "customer-checkout-payment"}
+    file: subflows/native-visual-capture-customer-checkout.yaml
+- runFlow:
+    when:
+      true: ${SETUP_ID == "customer-checkout-confirm"}
+    file: subflows/native-visual-capture-customer-checkout.yaml
 - runFlow:
     when:
       true: ${ROUTE_IS_ROOT == "false"}
