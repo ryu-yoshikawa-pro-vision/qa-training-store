@@ -876,10 +876,13 @@ jobs:
           abi="$($ADB shell getprop ro.product.cpu.abi | tr -d '\r')"
           locale_value="$($ADB shell getprop persist.sys.locale | tr -d '\r')"
           locale_settings="$($ADB shell settings get system system_locales | tr -d '\r')"
-          effective_config="$($ADB shell cmd activity get-config 2>/dev/null | tr -d '\r')"
+          # Observe the effective ActivityManager configuration through the non-root shell.
+          # API34 google_apis exposes the applied locale here as [ja_JP].
+          effective_locale_observation="dumpsys activity activities"
+          effective_config="$($ADB shell dumpsys activity activities | tr -d '\r')"
           effective_locale="unknown"
           for _ in $(seq 1 30); do
-            if printf '%s\n' "$effective_config" | grep -Eq '(^|-)ja-rJP($|-)|(^|-)ja-JP($|-)' ; then
+            if printf '%s\n' "$effective_config" | grep -Eq '\\[(ja_JP|ja-JP)(,|\])' ; then
               effective_locale="ja-JP"
             else
               effective_locale="unknown"
@@ -889,21 +892,13 @@ jobs:
             fi
             sleep 1
             locale_settings="$($ADB shell settings get system system_locales | tr -d '\r')"
-            effective_config="$($ADB shell cmd activity get-config 2>/dev/null | tr -d '\r')"
+            effective_config="$($ADB shell dumpsys activity activities | tr -d '\r')"
           done
           font_scale="$($ADB shell settings get system font_scale | tr -d '\r')"
           night_mode="$($ADB shell cmd uimode night | tr -d '\r')"
           rotation="$($ADB shell dumpsys input | sed -n 's/.*SurfaceOrientation: *//p' | head -n 1 | tr -d '\r')"
           resolution="$($ADB shell wm size | sed -n 's/.*Physical size: //p' | head -n 1 | tr -d '\r')"
           density="$($ADB shell wm density | sed -n 's/.*Physical density: //p' | head -n 1 | tr -d '\r')"
-          test "$api_level" = "34"
-          test "$abi" = "x86_64"
-          test "$locale_settings" = "ja-JP"
-          test "$effective_locale" = "ja-JP"
-          test "$font_scale" = "1.0"
-          test -n "$resolution"
-          test -n "$density"
-          test -n "$rotation"
           case "$night_mode" in
             *yes*) ui_mode="dark" ;;
             *no*) ui_mode="light" ;;
@@ -918,12 +913,21 @@ jobs:
           echo "abi=$abi"
           echo "locale_property=$locale_value"
           echo "locale_settings=$locale_settings"
+          echo "locale_observation_source=$effective_locale_observation"
           echo "locale_effective=$effective_locale"
           echo "font_scale=$font_scale"
           echo "ui_mode=$ui_mode"
           echo "orientation=$orientation"
           echo "resolution=$resolution"
           echo "density=$density"
+          test "$api_level" = "34"
+          test "$abi" = "x86_64"
+          test "$locale_settings" = "ja-JP"
+          test "$effective_locale" = "ja-JP"
+          test "$font_scale" = "1.0"
+          test -n "$resolution"
+          test -n "$density"
+          test -n "$rotation"
           profile_json="$RUNNER_TEMP/android-observed-profile.json"
           jq -n \
             --arg api_level "$api_level" \

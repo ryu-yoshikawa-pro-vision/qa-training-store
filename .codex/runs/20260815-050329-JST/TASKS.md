@@ -28,9 +28,10 @@
 - [ ] D11. locale patchをユーザーがpushした後、新HEADでState Bのremote gate、dispatch、capture、apply、promotionを再実行する。
 - [x] D12. Run `31852971377`の第二のroot権限 failureを確定し、`adb reboot`への最小workflow修正とlocal validationを完了する。
 - [x] D13. ユーザーpush後のremote HEAD/workflowを再確認し、実効locale（`cmd activity get-config`）のrootless strict観測を追加してlocal validationを完了する。
+- [x] D14. Run `31855909379`のNormalization failureをruntime evidenceで分類し、`dumpsys activity activities`による非root実効locale観測へ最小修正してlocal validationを完了する。
 
 ## Blocked
 
 - B1. なし（現時点では実装を継続可能）。
 
-Progress: 76% (16/21)
+Progress: 77% (17/22)

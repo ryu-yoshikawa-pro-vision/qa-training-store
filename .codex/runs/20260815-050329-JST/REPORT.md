@@ -416,3 +416,38 @@
   - `pnpm run verify` => EXPECTED FAIL（format、markdown、structural specはPASS後、Final Visual Gateでfail-close）。
 - Decision: `HANDOFF_EFFECTIVE_LOCALE_PATCH_PUSH_REQUIRED`。remoteへ実効locale修正が反映されるまでdispatchしない。ユーザーがlocalのworkflow／contract修正をcommit/pushした後、最新HEADを再取得してState Bを再開する。
 - Progress: 76% (16/21)
+
+## 2026-08-15 10:35 JST
+
+- Summary: PR #24最新HEAD `6cca966ffbc0ef9e565ac0db138bbbe7cdad0db5`へ`capture_spec_visuals=true`、`capture_case_key=all`をdispatchし、専用Run `31855909379`をevent／branch／head SHA一致で特定した。RunはAPI34 Emulator起動とAPK/build系を通過したが、Normalizationで失敗し、Android 25件captureへ到達しなかった。
+- Runtime evidence:
+  - Run URL: `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/31855909379`
+  - Android Runtime job: `94941657113`。
+  - `native-android-runtime-evidence-31855909379`を同Runからdownloadした。
+  - `android-abi.txt`=`x86_64`、`android-build-properties.txt`=`34`、`avd-list.txt`=`native-api34`、`adb-devices.txt`はEmulatorを示す。
+  - `dumpsys-activity.txt`の`mGlobalConfig`と`CurrentConfiguration`に`[ja_JP]`、`1080x1920`、`420dpi`、portraitが記録されており、rootlessな実効Configurationの観測自体は成立している。
+  - Workflow logでは`setprop persist.sys.locale`の権限拒否はbest-effort分岐で継続したが、`cmd activity get-config`を使ったeffective locale strict判定後にexit code 1となった。Normalization failureのため、batch manifestとvisual capture artifactはcanonical入力に使わない。
+- Failure classification: infrastructure/profile-normalization。setup/ready、Product UI、Maestro個別case、transient failureではない。実機へ切り替えない理由は、canonical profileがAPI34 `google_apis` x86_64 `pixel_2` Emulatorに固定され、実機はSupplemental evidenceにしかならないため。
+- Minimal repair:
+  - `.github/workflows/native-ci.yml`: `cmd activity get-config`の解析を、今回の非root runtime evidenceで実際に読めた`dumpsys activity activities`へ変更。`[ja_JP]`／`[ja-JP]`を`effective_locale=ja-JP`へ変換し、`system_locales=ja-JP`とeffective localeの両方をstrictに要求。`persist.sys.locale`は診断のみのまま維持。strict tests前にlocale/profile観測値を出力。
+  - `tests/contracts/native-ci-workflow.test.ts`: effective locale observation sourceを契約化。
+- Local validation:
+  - `pnpm exec prettier --check .github/workflows/native-ci.yml tests/contracts/native-ci-workflow.test.ts` => PASS。
+  - `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts` => PASS（17 tests）。初回の期待文字列不一致はテスト表現のみを修正し、再実行でPASS。
+  - `pnpm run format:check` => PASS。
+  - `pnpm run test:contracts` => PASS（26 files、228 tests）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run lint` => PASS（0 errors、65 existing warnings）。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+- Decision: local修正は未pushのため、`31855909379`のAPK／runtime evidenceでpromotionやstatus transitionを行わない。ユーザーが修正をcommit/pushした後、最新HEADでNormalization PASSと`locale_effective=ja-JP`の実測を確認してからState Bを再実行する。
+- Progress: 77% (17/22)
+
+## 2026-08-15 10:39 JST
+
+- Run `31855909379` completed with `failure`。Android Runtime / Maestro job `94941657113`がNormalizationでfailure、`native-ci / verify` job `94943684428`はその依存failure。Android Automation/Production build、Native Static、iOS jobs、iOS verifyはsuccess。Captureは0/25で、batch manifest、canonical promotion、status transitionは未実行。
+- `pnpm run validate:spec-visuals:final` => EXPECTED FAIL。理由はFinal Visual Gateがblocked 25とCaptured 69/94をstrictに拒否したため。
+- `pnpm run verify` => EXPECTED FAIL。format、markdown、structural specはPASSし、Final Visual Gateのblocked 25 / `69 !== 94`で停止した。今回のlocal workflow repair起因の新規failureはない。
+- Current local state: `SCREEN-CHECKOUT-*`を含むcanonical asset/statusは変更していない。Capture Target 94、Captured 69、Pending 0、Blocked 25、Canonical Asset 69。
+- Next gate: `.github/workflows/native-ci.yml`と`tests/contracts/native-ci-workflow.test.ts`の未push修正をユーザーがcommit/pushした後、remote HEADを再取得し、同一新HEADでNormalizationの`locale_settings=ja-JP`および`locale_effective=ja-JP`ログを確認してから、State Bのcaptureを再dispatchする。
+- `pnpm run test:component:native` => PASS（12 suites、49 tests）。既存React `act(...)` warningのみ。
+- Progress: 77% (17/22)

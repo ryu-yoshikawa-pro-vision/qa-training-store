@@ -95,3 +95,11 @@
 - 要件の「property単独判定禁止」に対応し、local workflowはrootlessな`cmd activity get-config`のresource qualifierから`ja-rJP`／`ja-JP`を検出する`effective_locale`を追加した。`system_locales=ja-JP`と実効Configurationの両方をstrictに要求し、`persist.sys.locale`は診断出力だけに降格した。profile JSONのlocaleは`effective_locale`から生成する。
 - AOSP ActivityManager shell commandの`get-config`がdevice Configurationを返すことを一次ソースで確認した。remoteでこの修正が実行され、`locale_effective=ja-JP`の実測が得られるまでcanonical captureへ進めない。
 - local validationはworkflow contract 17/17、全contract 228/228、native component 49/49、format、typecheck、lint、structural specをPASS。Final Gate/verifyは現状のAndroid 25 blockedだけでEXPECTED FAIL。
+
+### 2026-08-15 10:35 JST
+
+- Run `31855909379`はPR HEAD=`6cca966ffbc0ef9e565ac0db138bbbe7cdad0db5`に対して正しくdispatchされたが、`Normalize Android canonical visual profile`で失敗した。API34 Emulator起動、Android Automation APK build、production build、Native Staticは成功したが、25件capture前に停止した。
+- 失敗Runのruntime evidence（`.artifacts/native-remote/31855909379/dumpsys-activity.txt`）には、非root `dumpsys activity`の`mGlobalConfig`／`CurrentConfiguration`として`[ja_JP]`が記録されている。したがって実機へ切り替える根拠はなく、canonical要件のAPI34 `google_apis` x86_64 `pixel_2` Emulatorを維持する。
+- 現remote実装の`cmd activity get-config`解析はこのRunでstrict convergenceを成立させられなかった。`persist.sys.locale`のbest-effort化やlocale判定の緩和は行わず、非rootで実際に読めた`dumpsys activity activities`をeffective Configurationの観測源に変更した。`system_locales=ja-JP`と`effective_locale=ja-JP`の両方を引き続き必須とし、値をテスト前にログへ出す。
+- Local validation after repair: Prettier、`native-ci-workflow.test.ts` 17/17、全contract 228/228、typecheck、lint、structural specをPASS。現時点のspec countsはTarget 94、Captured 69、Pending 0、Blocked 25、Canonical 69。
+- Decision: 新しいworkflow／contract修正は未pushのため、現RunのAPK/runtime evidenceをcanonical入力にせず、physical deviceでも代替しない。ユーザーpush後に最新SHAでState Bを最初から再実行する。

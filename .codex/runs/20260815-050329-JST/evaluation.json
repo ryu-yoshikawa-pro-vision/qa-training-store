@@ -10,7 +10,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。最新HEADのRun 31852971377もprofile normalizationでroot-only stop操作により失敗し、capture/artifact apply/Final Gate PASSは未完了である。"
+      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。最新HEADのRun 31855909379もprofile normalizationのeffective locale判定で失敗し、capture/artifact apply/Final Gate PASSは未完了である。非root dumpsys activityにja_JPが観測できたため、観測源を最小修正してpush待ちである。"
     },
     "scope_control": {
       "rating": "pass",
@@ -34,7 +34,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "remote gateでPR/branch HEADがc9d31e7のまま、adb reboot/effective Configuration修正未反映であることを確認したためdispatchしていない。localではrootless rebootとcmd activity get-config由来effective_localeのstrict検証を実装・検証済みで、push後の新HEAD captureが必要である。"
+      "evidence": "Run 31855909379はPR HEAD 6cca966に紐づき、API34 Emulator起動後にeffective locale strict判定で失敗した。runtime evidenceの非root dumpsys activity activitiesにja_JPが記録されていたため、localではrootless rebootとdumpsys activity由来effective_localeのstrict検証へ最小修正した。push後の新HEAD captureが必要である。"
     }
   },
   "findings": [
