@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "run_id": "20260815-050329-JST",
+  "result": "pass",
+  "primary_failure_category": "none",
+  "failure_categories": [
+    "missing_validation",
+    "artifact_contract_gap"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Expo Doctorの7件patch mismatchを修正し、Run 31877515915でeffective locale ja-JP、API34 canonical profile、Android 25/25 capture、同一Run artifact/APK provenance、25 WebP promotion、94/94 Final Visual Gate、verify、追加native validationまで完了した。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はbatch capture/apply、workflowのlocale補助コマンド、workflow contract、関連docs/run artifactに限定し、Product UI、Native setup、Final Gate、startup helper、Git mutationを行っていない。persist.sys.locale単独判定を避けるeffective Configuration観測を追加した。"
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "format、markdown、94/94 spec/final gate、typecheck、lint、image/security、full test（Unit 66、Integration 98、Repository 33、Component 125、Contract 230）、native component 49、web/spec build、EAS/native bundle/route validationがPASSした。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "partial/incomplete batchをapply拒否し、canonical outputをvalidation後に限定し、Final Visual Gateを緩和せず、force push、reset、rebase、merge、PR操作、異なるRunのArtifact混用は行っていない。許可された対象branchへのcommit/pushとActions workflow_dispatchのみ実施した。現Runのprofile failure後にrerunやartifact流用は行っていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Registry list、batch manifest、single互換、fail-close、all-or-nothing、status switch、Actions境界とprofile normalization repairをcontract・plan・history・REPORTへ記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存manifest validator、visualAssetPath、Maestro flow、Native workflowを再利用し、25 caseのYAML複製やgeneric DSLを追加していない。"
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Run 31877515915でroot capabilityとrootless観測UID 2000、dumpsys activity activities由来effective locale ja-JP、固定API34 canonical profileを確認し、同Runの25件captureへ到達した。"
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Run 31841614738（workflow_dispatch、HEAD bb064ac2efe79828fd2f5e95f929e92a63bc92b0）のAndroid RuntimeがNormalize Android canonical visual profileでfailureし、Capture Caseは0/25だった。runtime evidenceはsystem locale en_USを示す。",
+      "detail": "settings put system system_localesだけではAPI34 Emulatorのpersist.sys.localeがcanonical ja-JPへ反映されず、profile contractがfail-closeした。setpropと再起動・収束確認のlocal repairを行い、新HEADのcaptureを待つ。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "Run 31841614738のNative StaticはExpo Doctorが7 packageのpatch version mismatchを報告してfailureした。旧HEAD c5082e4のNative Staticはsuccessで、batch変更はpackage dependency/lockを変更していない。",
+      "detail": "再確認で同じ7件が現行Expo SDK 57の要求値と一致したため、依存validationを弱めず、7 packageと既存expo-constants overrideをSDK 57 patchへ同期した。更新後のexpo-doctorは17/17 PASS。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "high",
+      "evidence": "依存patch修正後のlocal gateはPASSしたが、その変更を含むremote HEADのActions batch capture、25件artifact provenance、promotion、Final Gate PASSは未実行である。",
+      "detail": "ユーザーのcommit/push後に新HEADをsource of truthとしてState Bを再開する。古いRun 31841614738のartifactは再利用しない。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Run 31850993052のAndroid Runtime job 94928353459はAPI34 emulator起動とAPK install後、`adb shell setprop persist.sys.locale ja-JP`の権限拒否でNormalize Android canonical visual profileがfailureとなった。",
+      "detail": "既存のsettings/stop-start/convergence validationを維持し、setprop補助コマンドだけをbest-effort化した。profile値のstrict検証は残したため、修正push後に新HEADで25件を最初からcaptureする。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Run 31852971377のAndroid Runtime job 94933594336はsetprop best-effort分岐を通過した後、`adb shell stop`で`Must be root`となり、boot/locale convergence/profile validation前にfailureした。",
+      "detail": "API34 google_apisの非root shellでroot-only stop/startを使わないよう、`adb reboot`へ最小置換した。locale/profileのstrict validationは維持し、修正未pushのため現Runのartifactはcanonicalに採用しない。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "remote PR #24 HEAD c9d31e7のworkflowは`adb shell stop/start`とpersist.sys.locale/system_locales判定の旧内容で、rootless rebootとeffective Configuration観測を含んでいなかった。",
+      "detail": "remote gate不一致のためdispatchを拒否した。local workflowでは`cmd activity get-config`のja-rJP/ja-JPを実効localeとしてstrict検証し、system_localesと併せてprofile JSONへ反映する修正を完了した。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Run 31860166187（HEAD 028f43600382298e8aaecaf3342426ffe0ca143f）のprofile outputは`locale_settings=null`、`locale_effective=unknown`。同Runの非root `dumpsys activity activities`の`mGlobalConfig`／`CurrentConfiguration`は`[en_US]`で、API34 Emulatorへja-JPが実効適用されていない。",
+      "detail": "ユーザーが設計判断を確定したため、この停止は解除した。local workflowはadb root capabilityの実測UID分岐、root pathのpersist.sys.locale＋stop/start、root不可時のSettings Locale UI、rootless effective Configuration strict gateへ更新済みである。remote runtimeでStrategy AまたはBが実際にja-JPへ到達するまでcaptureへ進めない。"
+    }
+  ],
+  "improvement_candidates": []
+}

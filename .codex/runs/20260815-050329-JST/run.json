@@ -1,0 +1,162 @@
+{
+    "schema_version":  1,
+    "run_id":  "20260815-050329-JST",
+    "task_type":  "implementation",
+    "workflow_level":  "strict",
+    "preset":  "safe",
+    "runtime":  "host",
+    "agents_used":  [
+
+                    ],
+    "repo":  "qa-training-store",
+    "branch":  "feat/implement-screen-catalog-visual-specification",
+    "base_branch":  null,
+    "codex_task_reports":  [
+
+                           ],
+    "changed_files":  [
+                       ".github/workflows/native-ci.yml",
+                       "maestro/android-locale-provision.yaml",
+    "maestro/native-visual-capture.yaml",
+    "maestro/subflows/native-visual-capture-guest-cart.yaml",
+    "maestro/subflows/native-visual-capture-customer-login.yaml",
+    "maestro/subflows/native-visual-capture-customer-checkout.yaml",
+    "scripts/spec/android-visual-capture.ts",
+                       "scripts/spec/visual-registry.ts",
+                       "tests/contracts/android-visual-capture-batch.test.ts",
+                       "tests/contracts/native-ci-workflow.test.ts",
+                       "package.json",
+                       "pnpm-lock.yaml",
+                       "docs/plans/2026-08-15_050329_android-canonical-batch-capture.md",
+                       "docs/history/2026-08-15_053735_android-canonical-batch-capture.md",
+                       "docs/PROJECT_CONTEXT.md",
+                       "docs/adr/0013-screen-catalog-visual-reference.md"
+                      ],
+    "validation":  {
+                       "status":  "passed",
+                       "commands":  [
+                                    "pnpm run format:check",
+                                    "pnpm run lint:markdown",
+                                    "pnpm run lint",
+                                    "pnpm run typecheck",
+                                    "pnpm run validate:spec",
+                                    "pnpm run build:spec",
+                                    "pnpm run test:contracts",
+                                    "pnpm run test:component",
+                                    "pnpm run test",
+                                    "pnpm run build:web",
+                                    "pnpm run validate:image-manifest",
+                                    "pnpm run security:check",
+                                    "pnpm run check:native-route-dependencies",
+                                    "pnpm run validate:eas:config",
+                                    "pnpm run validate:native-production-bundle",
+                                    "pnpm run validate:spec-visuals:final",
+                                    "pnpm run verify",
+                                    "pnpm exec tsx scripts/spec/android-visual-capture.ts list-cases",
+                                    "targeted Vitest batch/native-ci/visual contracts",
+                                    "pnpm install --frozen-lockfile",
+                                    "pnpm exec expo install --check",
+                                    "pnpm dlx expo-doctor@1.17.6",
+                                    "pnpm exec expo prebuild --platform android --no-install",
+                                     "pnpm exec prettier --check .github/workflows/native-ci.yml",
+                                     "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts",
+                                     "pnpm exec vitest run tests/contracts/android-visual-capture-batch.test.ts",
+                                     "pnpm run test:contracts (isolated rerun)",
+                                     "pnpm run test:component:native (isolated rerun)",
+                                     "GitHub API remote PR/branch/workflow gate (read-only)",
+                                     "pnpm run validate:spec-visuals:final (expected blocked failure)",
+                                    "pnpm run verify (expected Final Visual Gate failure)",
+                                    "pnpm run test:contracts (final rerun after locale strategy)",
+                                    "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts (18 tests)",
+                                    "pnpm exec prettier --check capture workflow/noop flow/contract",
+                                    "pnpm run test:contracts (after empty setup subflow repair)",
+                                    "pnpm run test:component:native (after empty setup subflow repair)",
+                                    "pnpm run typecheck (after empty setup subflow repair)",
+                                    "pnpm run lint (after empty setup subflow repair)",
+                                    "pnpm run validate:spec (after empty setup subflow repair)",
+                                    "Run 31873026259 same-run Automation APK artifact/manifest/dex inspection",
+                                    "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts (resolver readiness contract)",
+                                    "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts (static setup subflow mapping contract)",
+                                    "pnpm run test:contracts (after static setup mapping repair)",
+                                    "pnpm run test:component:native (after static setup mapping repair)",
+                                    "pnpm run typecheck (after static setup mapping repair)",
+                                    "pnpm run lint (after static setup mapping repair)",
+                                    "pnpm run validate:spec (after static setup mapping repair)",
+                                    "pnpm run lint:markdown (after static setup mapping repair)",
+                                    "Run Artifact sanitizer Write/Check (after static setup mapping repair)",
+                                    "Run 31877515915 exact workflow_dispatch/head/branch verification",
+                                    "Run 31877515915 same-run batch manifest/profile/APK provenance validation",
+                                    "pnpm run apply:android-spec-visuals (25-case all-or-nothing promotion)",
+                                    "pnpm run materialize:spec-visual-references",
+                                    "pnpm run validate:spec (final 94/94)",
+                                    "pnpm run validate:spec-visuals:final (PASS)",
+                                    "pnpm run verify (PASS)",
+                                    "pnpm run check:native-route-dependencies",
+                                    "pnpm run validate:eas:config",
+                                    "pnpm run validate:native-production-bundle",
+                                    "pnpm run test:contracts (final 230 tests)",
+                                    "representative six canonical WebP visual review"
+                                    ],
+                       "warnings":  [
+                                    "Final Visual GateはAndroid 25 blocked、Captured 69/94のためEXPECTED FAIL",
+                                    "Run 31841614738はAPI34 Emulator profile normalizationでcapture前にfailureし、visual artifactは未生成",
+                                    "local profile repairは完了したが、修正SHAのremote push、再capture、artifact download、promotion、status transition、代表画面目視は未実行",
+                                    "Native StaticはExpo Doctorのpatch version driftでfailureしたが、7 packageとexpo-constants overrideを更新後、doctor 17/17 PASS",
+                                    "依存patch修正後もFinal Visual GateはAndroid 25 blockedのためEXPECTED FAIL。新HEADのActions capture、artifact apply、promotion、status transition、代表画面目視はpush後まで未実行",
+                                    "Run 31850993052はAndroid Runtimeのsetprop persist.sys.locale権限拒否でprofile normalization failure。capture artifactは未生成でcanonicalには不採用",
+                                     "locale workflow patchはlocal Prettier/quality gates PASS済みだが未push。新HEADで再captureが必要",
+                                     "Run 31852971377はsetprop best-effort後のadb shell stopがMust be rootで失敗。capture/artifactは未生成でcanonicalには不採用",
+                                     "root-only stop/startをadb rebootへ置換したworkflow修正は未push。現Runのrerunとartifact再利用は禁止",
+                                     "並列負荷でbatch contract 2件が既定5秒timeoutしたが、単独実行で6/6、全contractで228/228 PASS",
+                                     "PR #24 remote HEAD c9d31e7はadb reboot/effective get-config修正未反映。要件未達のremoteへActions dispatchしない",
+                                    "effective localeは非root dumpsys activity activities由来のja_JP/ja-JPをstrictに観測し、persist.sys.localeを唯一の判定根拠にしないlocal修正を検証済み",
+                                    "Run 31860166187はAPI34 Emulatorのsystem_locales=null、effective Configuration=en_US、locale_effective=unknownでprofile normalization failure。ユーザーがStrategy A/B設計を確定したため、実測adb root／Settings UI fallbackとrootless effective Configuration strict gateを実装した。remote runtime proofと25件captureは未実行",
+                                    "Run 31868358969はadb_shell_id=uid=0(root)、root解除後locale_observation_shell_uid=2000を確認したが、stop/start直後のsettings Binder service未準備でcmd: Can't find service: settingsとなりcapture前にfailure。service check settingsのreadiness待機を最小追加し、新HEADで再captureする",
+                                    "Run 31869442478でもroot UID 0とrootless UID 2000を確認したが、service check settingsのgrep -q foundがnot foundに部分一致し、未準備のsettings commandでprofile normalization failure。行末厳密matcherへ修正し、local contract 18/18とfull contract 229/229をPASS",
+                                    "Run 31870391806はeffective locale ja-JPと全canonical profileをPASSしたが、Automation APKのinstall/pm path後にmonkeyがNo activities foundでfailure。同Run manifestにはMainActivity/MAIN/LAUNCHERがありProduction APKは起動成功したため、Automationだけam start -Wの明示componentへ変更して再captureする",
+                                    "Run 31871497815はeffective locale ja-JP、canonical profile、Automation明示起動をPASSしたが、最初のHome caseでnull setup subflowがMaestroの空dynamic file path validationによりInvalid File Pathとなった。batchは0/25、complete=falseでcanonicalには不採用。null setupを専用無操作subflowへ解決し、contract 18/18、full contract 229/229、native 49/49を再PASSした",
+                                    "Run 31873026259はeffective locale ja-JPとcanonical profileをPASSしたが、同Run Automation APKのinstall直後にam startがError type 3となりcapture skipped。manifest/dexにはMainActivity/MAIN/LAUNCHER、後続Production validationは起動成功だったため、package resolver readiness不足と分類し、cmd package resolve-activityの局所readiness gateを追加する",
+      "Run 31874167949はprofile、Automation起動、resolver readinessをPASSしたが、Maestroが動的file: ${SETUP_SUBFLOW}を値が非空でもInvalid File Pathとして拒否した。batchは0/25、complete=falseでcanonicalには不採用。SETUP_IDごとの静的subflow file分岐へ修正する",
+      "Run 31875746949はprofileとAutomation起動をPASSしたが、静的guest cart capture subflow内のrunFlow: subflows/accept-ios-deep-link.yamlが相対pathとして解決できずHomeで0/25 failure。capture用3 subflowの内部参照を同一ディレクトリ相対へ修正し、新HEADで再captureする",
+      "Run 31877515915はeffective locale ja-JPと全canonical profileをPASSし、同一Emulatorで25/25 capture、complete=true、同一Run provenance validation、25 WebP promotion、94/94 Final Gate、verifyを完了した"
+                                    ]
+                   },
+    "safety":  {
+                   "network":  true,
+                   "delete_attempt_blocked":  false,
+                   "git_mutation_attempt_blocked":  false,
+                   "scope_violation":  false
+               },
+    "artifact_summary":  {
+                             "codex_task_report_count":  0,
+                             "hook_event_count":  0,
+                             "subagent_run_count":  0,
+                   "evaluation_present":  true
+                         },
+    "hook_observations":  {
+                              "log_paths":  [
+
+                                            ],
+                              "event_counts":  {
+
+                                               },
+                              "blocking_event_count":  0,
+                              "safety_blocked_count":  0,
+                              "observation_error_count":  0
+                          },
+    "subagents":  {
+                      "records":  [
+
+                                  ],
+                      "summary":  {
+                                      "total":  0,
+                                      "read_only":  0,
+                                      "writable":  0,
+                                      "scope_violations":  0,
+                                      "used_in_final_plan":  0
+                                  }
+                  },
+    "evaluation_path":  ".codex/runs/20260815-050329-JST/evaluation.json",
+    "status":  "completed",
+    "primary_failure_category":  "none"
+}

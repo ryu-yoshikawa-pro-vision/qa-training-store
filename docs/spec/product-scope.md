@@ -30,3 +30,113 @@ Cancel/Return/Refund、Payment Unknown/Reconciliation、Guest Checkout、Native 
 ## Canonical Source Boundaries
 
 この文書は意味・対象範囲を定義します。具体的なRouteは `app/`、Role/Status Typeは `src/domain/contracts/`、Seed/Scenarioは `src/seeds/metadata.ts` と `src/seeds/scenarios.ts`、Design Tokenは `src/presentation/design/tokens.ts`、Build/Native Configは `app.config.ts` と `.github/workflows/` を参照してください。
+
+## Screen Contracts
+
+### SCREEN-SUPPORTING-GUIDE — Guide
+
+Screen Catalog: [Screen Catalog](./screen-catalog.md)
+
+#### Functions
+
+- Guest、Customer、Operator、AdminがScenario Shopの利用方法、固定Account、Role、Rank benefitを確認する。
+- 仕様の読み方と安全なReset入口を表示する。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `guest, customer, operator, admin` | `default` | Guide本文とRole別の入口を表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [Roles and Permissions](./roles-and-permissions.md#roles) |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-SUPPORTING-GUIDE default web-desktop](assets/screens/SCREEN-SUPPORTING-GUIDE/default/web-desktop.webp)](assets/screens/SCREEN-SUPPORTING-GUIDE/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-SUPPORTING-GUIDE default android](assets/screens/SCREEN-SUPPORTING-GUIDE/default/android.webp)](assets/screens/SCREEN-SUPPORTING-GUIDE/default/android.webp)
+
+### SCREEN-SUPPORTING-TERMS — Terms
+
+Screen Catalog: [Screen Catalog](./screen-catalog.md)
+
+#### Functions
+
+- 利用規約を閲覧できる。
+- Storefrontへ戻るNavigationを提供する。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `all` | `default` | 利用規約本文の入口とNavigationを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-SUPPORTING-TERMS default web-desktop](assets/screens/SCREEN-SUPPORTING-TERMS/default/web-desktop.webp)](assets/screens/SCREEN-SUPPORTING-TERMS/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-SUPPORTING-TERMS default android](assets/screens/SCREEN-SUPPORTING-TERMS/default/android.webp)](assets/screens/SCREEN-SUPPORTING-TERMS/default/android.webp)
+
+### SCREEN-SUPPORTING-PRIVACY — Privacy
+
+Screen Catalog: [Screen Catalog](./screen-catalog.md)
+
+#### Functions
+
+- プライバシーポリシーを閲覧できる。
+- Storefrontへ戻るNavigationを提供する。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `all` | `default` | Privacy本文の入口とNavigationを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-SUPPORTING-PRIVACY default web-desktop](assets/screens/SCREEN-SUPPORTING-PRIVACY/default/web-desktop.webp)](assets/screens/SCREEN-SUPPORTING-PRIVACY/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-SUPPORTING-PRIVACY default android](assets/screens/SCREEN-SUPPORTING-PRIVACY/default/android.webp)](assets/screens/SCREEN-SUPPORTING-PRIVACY/default/android.webp)
+
+### SCREEN-SUPPORTING-COMMERCE — Commerce
+
+Screen Catalog: [Screen Catalog](./screen-catalog.md)
+
+#### Functions
+
+- 模擬取引表示と外部決済・配送を行わない範囲を閲覧できる。
+- Storefrontへ戻るNavigationを提供する。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `all` | `default` | 模擬取引の説明とNavigationを表示する。 | `required` | `web-desktop, android` | `-` | [Product Scope](./product-scope.md#current-product), [UI and UX Contract](./ui-ux-contract.md#boundary-ux) |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-SUPPORTING-COMMERCE default web-desktop](assets/screens/SCREEN-SUPPORTING-COMMERCE/default/web-desktop.webp)](assets/screens/SCREEN-SUPPORTING-COMMERCE/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-SUPPORTING-COMMERCE default android](assets/screens/SCREEN-SUPPORTING-COMMERCE/default/android.webp)](assets/screens/SCREEN-SUPPORTING-COMMERCE/default/android.webp)

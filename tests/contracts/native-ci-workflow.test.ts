@@ -27,9 +27,31 @@ function expectInOrder(source: string, fragments: string[]): void {
 
 const nativeWorkflow = readWorkflow(".github/workflows/native-ci.yml");
 const iosWorkflow = readWorkflow(".github/workflows/native-ios-ci.yml");
+const phaseOneWorkflow = readWorkflow(".github/workflows/ci.yml");
+const androidStartupHelper = readWorkflow("scripts/native/android-maestro-run.sh");
 const storefrontFlow = readWorkflow("maestro/native-storefront.yaml");
+const visualCaptureFlow = readWorkflow("maestro/native-visual-capture.yaml");
+const localeProvisionFlow = readWorkflow("maestro/android-locale-provision.yaml");
+const customerCheckoutSetupFlow = readWorkflow(
+  "maestro/subflows/native-visual-capture-customer-checkout.yaml",
+);
+const guestCartSetupFlow = readWorkflow("maestro/subflows/native-visual-capture-guest-cart.yaml");
+const customerLoginSetupFlow = readWorkflow(
+  "maestro/subflows/native-visual-capture-customer-login.yaml",
+);
+const webUiReview = readWorkflow("e2e/web/ui-review.spec.ts");
 
 describe("Native CI workflow contracts", () => {
+  it("accepts only the Processing heading for Checkout Processing visual capture", () => {
+    expect(webUiReview).toContain(
+      'page.getByRole("heading", { name: "支払いを処理しています", exact: true })',
+    );
+    expect(webUiReview).not.toContain("支払いを処理しています|支払いを完了できませんでした");
+    expect(webUiReview).not.toContain(
+      "name: /支払いを処理しています|支払いを完了できませんでした/",
+    );
+  });
+
   it("keeps Android automation and production builds independent and self-contained", () => {
     const automation = jobBlock(
       nativeWorkflow,
@@ -178,6 +200,198 @@ describe("Native CI workflow contracts", () => {
     ]);
   });
 
+  it("keeps canonical Android visual capture manual, profile-bound, and provenance-bound", () => {
+    const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
+    const captureStart = runtime.indexOf("- name: Capture Android Screen Catalog baseline");
+    const captureEnd = runtime.indexOf("\n      - name:", captureStart + 1);
+    const capture = runtime.slice(captureStart, captureEnd === -1 ? undefined : captureEnd);
+
+    expect(nativeWorkflow).toContain("capture_spec_visuals:");
+    expect(nativeWorkflow).toContain("type: boolean");
+    expect(nativeWorkflow).toContain("default: false");
+    expect(nativeWorkflow).toContain("capture_case_key:");
+    expect(nativeWorkflow).toContain("type: string");
+    expect(nativeWorkflow).toContain("default: SCREEN-STOREFRONT-HOME/default/android");
+    expect(captureStart).toBeGreaterThanOrEqual(0);
+    expect(capture).toContain("inputs.capture_spec_visuals == true");
+    expect(capture).toContain("steps.android_profile_normalize.outcome == 'success'");
+    expect(capture).not.toContain("pull_request");
+    expect(capture).toContain("CAPTURE_CASE_SELECTION");
+    expect(capture).toContain("android-visual-capture.ts list-cases");
+    expect(capture).toContain("android-visual-capture.ts describe-case");
+    expect(capture).toContain('for CASE_KEY in "${CASE_KEYS[@]}"');
+    expect(capture).toContain("capture_case() (");
+    for (const captureMetadata of [
+      "scenario",
+      "route",
+      "role",
+      "setup",
+      "ready",
+      "native_setup_id",
+      "native_reset_payment_delay_ms",
+      "native_checkout_step",
+      "native_ready_id",
+      "ready_conditions",
+      "capture_mode",
+    ]) {
+      expect(capture).toContain(`.${captureMetadata}`);
+    }
+    expect(capture).toContain("maestro/native-visual-capture.yaml");
+    expect(capture).toContain("android-maestro-run.sh");
+    expect(capture).toContain('--env "SETUP_SUBFLOW=$NATIVE_SETUP_SUBFLOW"');
+    expect(capture).toContain('--env "CHECKOUT_STEP=$NATIVE_CHECKOUT_STEP"');
+    expect(capture).toContain('jq -rn --arg value "$SCENARIO"');
+    expect(capture).toContain("scenario=${scenario_encoded}");
+    expect(capture).toContain('--env "ROLE=$ROLE"');
+    expectInOrder(capture, [
+      "list-cases",
+      "capture_case() (",
+      "android-maestro-run.sh",
+      "exec-out screencap -p",
+      "android-visual-capture.ts write-manifest",
+    ]);
+    expect(capture).not.toContain('test -n "$READY"');
+    expect(capture).toContain("source-commit-sha");
+    expect(capture).toContain("--automation-apk-path");
+    expect(capture).toContain("android-visual-capture.ts write-manifest");
+    expect(capture).toContain("--observed-profile-json");
+    expectInOrder(runtime, [
+      "Normalize Android canonical visual profile",
+      "Capture Android Screen Catalog baseline",
+    ]);
+    expect(capture).toContain("--system-image google_apis");
+    expect(capture).toContain("--avd-profile pixel_2");
+    expect(capture).toContain("batch.manifest.json");
+    expect(capture).toContain("capture_case_keys");
+    expect(capture).toContain("complete");
+    expect(capture).toContain("canonical promotion is forbidden");
+    expect(capture).not.toContain("25");
+    expect(runtime).toContain("native-android-screen-catalog-visuals-");
+    for (const profileValue of [
+      "android-${ANDROID_API_LEVEL}",
+      "google_apis",
+      "x86_64",
+      "pixel_2",
+      "ja-JP",
+      "font_scale 1.0",
+    ]) {
+      expect(runtime).toContain(profileValue);
+    }
+    expect(runtime).toContain('"$ADB" root');
+    expect(runtime).toContain('root_uid="$("$ADB" shell id -u');
+    expect(runtime).toContain("uid=0\\(root\\)");
+    expect(runtime).toContain("ADB_ROOT_AVAILABLE");
+    expect(runtime).toContain("root_available=false");
+    expect(runtime).toContain('provisioning_mode="settings_ui"');
+    expect(runtime).toContain('if [[ "${ADB_ROOT_AVAILABLE:-false}" = true ]]');
+    expect(runtime).toContain("setprop persist.sys.locale ja-JP");
+    expect(runtime).toContain('"$ADB" shell stop');
+    expect(runtime).toContain('"$ADB" shell start');
+    expect(runtime).toContain('"$ADB" unroot');
+    expect(runtime).toContain("settings_service_ready=false");
+    expect(runtime).toContain(
+      "service check settings 2>/dev/null | grep -Eq ':[[:space:]]+found[[:space:]]*$'",
+    );
+    expect(runtime).not.toContain('service check settings 2>/dev/null | grep -q "found"');
+    expect(runtime).toContain('test "$settings_service_ready" = true');
+    expect(runtime).toContain('observation_shell_uid="$("$ADB" shell id -u');
+    expect(runtime).toContain('test "$observation_shell_uid" != "0"');
+    expect(runtime).toContain("android.settings.LOCALE_SETTINGS");
+    expect(runtime).toContain('"$MAESTRO_BIN" test');
+    expect(runtime).toContain("maestro/android-locale-provision.yaml");
+    expect(runtime).not.toContain('"$ADB" reboot');
+    expect(runtime).not.toContain("settings put system system_locales ja-JP");
+    expect(runtime).toContain("$ADB shell dumpsys activity activities");
+    expect(runtime).toContain('"$ADB" shell wm density 440');
+    expect(runtime).toContain("Override density:");
+    expect(runtime).toContain('effective_locale_observation="dumpsys activity activities"');
+    expect(runtime).toContain("grep -Eq '\\[(ja_JP|ja-JP)(,|\\])'");
+    expect(runtime).toContain('effective_orientation="unknown"');
+    expect(runtime).toContain("from effective configuration");
+    expect(runtime).toContain('effective_locale="unknown"');
+    expect(runtime).toContain('test "$effective_locale" = "ja-JP"');
+    expect(runtime).not.toContain('test "$locale_settings" = "ja-JP"');
+    expect(runtime).not.toContain('test "$locale_value" = "ja-JP"');
+    expect(capture).toContain("exec-out screencap -p");
+    expect(capture).toContain("APK_PATH");
+    expect(capture).toContain("GITHUB_SHA");
+    expect(capture).toContain("GITHUB_RUN_ID");
+  });
+
+  it("keeps rootless Android locale fallback isolated in a Settings UI flow", () => {
+    expect(localeProvisionFlow).toContain("appId: com.android.settings");
+    expect(localeProvisionFlow).toContain('id: "com.android.settings:id/add_language"');
+    expect(localeProvisionFlow).toContain('id: "android:id/locale_search_menu"');
+    expect(localeProvisionFlow).toContain('id: "android:id/locale"');
+    expect(localeProvisionFlow).toContain('id: "android:id/button1"');
+    expect(localeProvisionFlow).toContain('inputText: "Japanese"');
+    expect(localeProvisionFlow).not.toContain("system_locales");
+    expect(localeProvisionFlow).not.toContain("persist.sys.locale");
+  });
+
+  it("executes Capture Case setup metadata and asserts role plus all ready matcher slots", () => {
+    expect(visualCaptureFlow).toContain("- launchApp\n");
+    expect(nativeWorkflow).toContain('.native_setup_subflow // ""');
+    for (const setup of [
+      ["guest-cart-with-basic-shirt", "subflows/native-visual-capture-guest-cart.yaml"],
+      ["customer-login", "subflows/native-visual-capture-customer-login.yaml"],
+      ["customer-login-processing", "subflows/native-visual-capture-customer-login.yaml"],
+      ["customer-checkout-address", "subflows/native-visual-capture-customer-checkout.yaml"],
+      ["customer-checkout-payment", "subflows/native-visual-capture-customer-checkout.yaml"],
+      ["customer-checkout-confirm", "subflows/native-visual-capture-customer-checkout.yaml"],
+    ] as const) {
+      expect(visualCaptureFlow).toContain(`true: \${SETUP_ID == "${setup[0]}"}`);
+      expect(visualCaptureFlow).toContain(`file: ${setup[1]}`);
+    }
+    expect(visualCaptureFlow).not.toContain("file: ${SETUP_SUBFLOW}");
+    expect(visualCaptureFlow).toContain('true: ${ROLE == "customer"}');
+    expect(visualCaptureFlow).toContain('true: ${ROLE == "guest"}');
+    for (const slot of [1, 2, 3]) {
+      expect(visualCaptureFlow).toContain(`READY_KIND_${slot}`);
+      expect(visualCaptureFlow).toContain(`READY_VALUE_${slot}`);
+    }
+    expect(visualCaptureFlow).not.toMatch(/^\s+- sleep:/m);
+    expectInOrder(visualCaptureFlow, [
+      "file: subflows/native-visual-capture-guest-cart.yaml",
+      "file: subflows/native-visual-capture-customer-checkout.yaml",
+      'true: ${ROUTE_IS_ROOT == "false"}',
+      'true: ${ROLE == "customer"}',
+      "READY_KIND_1",
+    ]);
+  });
+
+  it("executes the customer checkout setup up to the requested semantic step", () => {
+    expect(customerCheckoutSetupFlow).not.toContain(
+      "subflows/native-visual-capture-customer-login.yaml",
+    );
+    expect(customerCheckoutSetupFlow).toContain('id: "native-nav-orders"');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-persisted-state-ready"');
+    expect(customerCheckoutSetupFlow).toContain(
+      'id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"',
+    );
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-address-screen"');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-address-session-ready"');
+    expect(customerCheckoutSetupFlow).toContain('true: ${CHECKOUT_STEP != "address"}');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-address-next"');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-payment-screen"');
+    expect(customerCheckoutSetupFlow).toContain('true: ${CHECKOUT_STEP == "confirm"}');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-payment-method-TEST-SUCCESS"');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-payment-next"');
+    expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-confirm-screen"');
+    expect(customerCheckoutSetupFlow).not.toMatch(/^\s+- sleep:/m);
+  });
+
+  it("resolves nested visual-capture subflows relative to their subflow directory", () => {
+    for (const setupFlow of [
+      guestCartSetupFlow,
+      customerLoginSetupFlow,
+      customerCheckoutSetupFlow,
+    ]) {
+      expect(setupFlow).toContain("runFlow: accept-ios-deep-link.yaml");
+      expect(setupFlow).not.toContain("runFlow: subflows/accept-ios-deep-link.yaml");
+    }
+  });
+
   it("keeps Android Maestro flows independent while fail-closing the runtime job", () => {
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
     const flowNames = [
@@ -206,6 +420,8 @@ describe("Native CI workflow contracts", () => {
       expect(step).toContain("!cancelled()");
       expect(step).toContain("steps.android_automation_install.outcome == 'success'");
       expect(step).not.toContain("continue-on-error: true");
+      expect(step).toContain("android-maestro-run.sh");
+      expect(step).not.toContain("maestro test");
     }
 
     const productionInstallStart = runtime.indexOf(
@@ -214,15 +430,60 @@ describe("Native CI workflow contracts", () => {
     const productionFlowStart = runtime.indexOf(
       "- name: Run Maestro Native Production-validation flow",
     );
+    const automationInstallStart = runtime.indexOf("- name: Install and launch Automation APK");
+    const automationInstall = runtime.slice(automationInstallStart, productionInstallStart);
     const productionInstall = runtime.slice(productionInstallStart, productionFlowStart);
     const productionFlowEnd = runtime.indexOf("\n      - name:", productionFlowStart + 1);
     const productionFlow = runtime.slice(
       productionFlowStart,
       productionFlowEnd === -1 ? undefined : productionFlowEnd,
     );
+    expect(automationInstall).toContain('MAIN_ACTIVITY="$PACKAGE_ID/.MainActivity"');
+    expect(automationInstall).toContain("cmd package resolve-activity --brief");
+    expect(automationInstall).toContain("activity_resolution_status=1");
+    expect(automationInstall.indexOf("cmd package resolve-activity --brief")).toBeLessThan(
+      automationInstall.indexOf('shell am start -W -n "$MAIN_ACTIVITY"'),
+    );
+    expect(automationInstall).toContain('shell am start -W -n "$MAIN_ACTIVITY"');
+    expect(automationInstall).not.toContain("shell monkey");
     expect(productionInstall).toContain("needs.android-production-build.result == 'success'");
     expect(productionFlow).toContain("steps.production_install.outcome == 'success'");
     expect(productionFlow).not.toContain("android_automation_install");
+    expect(productionFlow).toContain("android-maestro-run.sh");
+  });
+
+  it("connects the Final Visual gate to the Phase 1 Required path", () => {
+    const styleQuality = jobBlock(phaseOneWorkflow, "style-quality", "code-quality");
+    const verify = jobBlock(phaseOneWorkflow, "verify", "deploy-preview");
+
+    expectInOrder(styleQuality, [
+      "run: pnpm run validate:spec",
+      "- name: Final Visual Specification gate",
+      "run: pnpm run validate:spec-visuals:final",
+      "- name: Curriculum validation",
+      "run: pnpm run validate:curriculum",
+    ]);
+    expect(verify).toContain("needs.style-quality.result");
+    expect(verify).toContain('require_success "style-quality" "$STYLE_QUALITY_RESULT"');
+    expect(phaseOneWorkflow).not.toContain("continue-on-error: true");
+  });
+
+  it("uses a fail-closed Android cleanup helper before every Maestro launch", () => {
+    expect(androidStartupHelper).toContain('am force-stop "$PACKAGE_ID"');
+    expect(androidStartupHelper).toContain('shell pm clear "$PACKAGE_ID"');
+    expect(androidStartupHelper).toContain('shell pidof "$PACKAGE_ID"');
+    expect(androidStartupHelper).toContain('"$MAESTRO_BIN" "${maestro_args[@]}"');
+    expect(androidStartupHelper.indexOf("shell pm clear")).toBeGreaterThan(
+      androidStartupHelper.indexOf("am force-stop"),
+    );
+    expect(androidStartupHelper.indexOf('shell pidof "$PACKAGE_ID"')).toBeGreaterThan(
+      androidStartupHelper.indexOf("shell pm clear"),
+    );
+    expect(androidStartupHelper.indexOf('"$MAESTRO_BIN" "${maestro_args[@]}"')).toBeGreaterThan(
+      androidStartupHelper.indexOf('shell pidof "$PACKAGE_ID"'),
+    );
+    expect(androidStartupHelper).not.toContain("clearState");
+    expect(androidStartupHelper).not.toContain("retry");
   });
 
   it("detects Training Maestro changes and runs the baseline in the shared Android runtime", () => {
@@ -244,8 +505,12 @@ describe("Native CI workflow contracts", () => {
     const step = runtime.slice(trainingBaselineIndex, end === -1 ? undefined : end);
     expect(step).toContain("steps.android_automation_install.outcome == 'success'");
     expect(step).toContain("steps.maestro_cli.outcome == 'success'");
+    expect(step).toContain("android-maestro-run.sh");
     expect(step).toContain("training/maestro/baseline/native-training-baseline.yaml");
     expect(step).toContain("TRAINING_MAESTRO_OUTPUT_DIR");
+    expect(step).toContain("maestro-training-baseline.xml");
+    expect(step).not.toContain("maestro test");
+    expect(step).not.toContain("continue-on-error: true");
     expect(step).not.toContain("assembleRelease");
   });
 

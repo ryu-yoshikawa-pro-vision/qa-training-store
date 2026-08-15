@@ -18,6 +18,40 @@ Manual adjustmentとPayment成功時の購入減算は、Before/After、理由�
 
 在庫一覧はSKU単位のFilter、Search、Sortを提供し、Product一覧のAggregate stock表示とは境界を分けます。失敗時に部分更新を表示しません。
 
+### SCREEN-ADMIN-INVENTORIES — Admin Inventories
+
+Screen Catalog: [Screen Catalog](../screen-catalog.md)
+
+#### Functions
+
+- SKU単位の在庫、状態分類、Filter、Adjustment、Historyを表示する。
+- 0 / 1-5 / 6+の境界とVersion Conflictを説明する。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `operator, admin` | `default` | 在庫一覧と状態分類を表示する。 | `required` | `web-desktop, web-tablet` | `-` | `BR-ADMININV-001`, `AC-ADMININV-001` |
+| `stock-boundaries` | boundary | `operator, admin` | `default` | 0、1-5、6+を異なる状態として表示する。 | `required` | `web-desktop` | `-` | `BR-ADMININV-001`, `AC-ADMININV-001` |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-ADMIN-INVENTORIES default web-desktop](../assets/screens/SCREEN-ADMIN-INVENTORIES/default/web-desktop.webp)](../assets/screens/SCREEN-ADMIN-INVENTORIES/default/web-desktop.webp)
+
+###### Web Tablet
+
+[![SCREEN-ADMIN-INVENTORIES default web-tablet](../assets/screens/SCREEN-ADMIN-INVENTORIES/default/web-tablet.webp)](../assets/screens/SCREEN-ADMIN-INVENTORIES/default/web-tablet.webp)
+
+##### `stock-boundaries`
+
+###### Web Desktop
+
+[![SCREEN-ADMIN-INVENTORIES stock-boundaries web-desktop](../assets/screens/SCREEN-ADMIN-INVENTORIES/stock-boundaries/web-desktop.webp)](../assets/screens/SCREEN-ADMIN-INVENTORIES/stock-boundaries/web-desktop.webp)
+
 ## Acceptance Criteria
 
 ### Criteria

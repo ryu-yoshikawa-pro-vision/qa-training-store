@@ -260,7 +260,8 @@ function Prepare {
   try {
     $store = ((Out "pnpm" @("config", "get", "virtual-store-dir")) -join "").Trim()
     if (-not $store -or $store -eq "undefined") { throw "pnpm virtual store setting was not applied." }
-    Run "pnpm" @("install", "--frozen-lockfile", "--prod=false") (Join-Path $ArtifactRoot "build\pnpm-install.log")
+    $virtualStorePath = ($VirtualStoreDir -replace "\\", "/")
+    Run "pnpm" @("install", "--frozen-lockfile", "--prod=false", "--virtual-store-dir", $virtualStorePath) (Join-Path $ArtifactRoot "build\pnpm-install.log")
     Run "pnpm" @("run", "generate:native-assets") (Join-Path $ArtifactRoot "build\native-assets.log")
     Run "pnpm" @("run", "validate:image-manifest") (Join-Path $ArtifactRoot "build\image-manifest.log")
     Run "pnpm" @("run", "check:native-route-dependencies") (Join-Path $ArtifactRoot "build\native-routes.log")

@@ -1,7 +1,6 @@
 appId: com.ryuyoshikawa.scenarioshop
 ---
-- launchApp:
-    clearState: true
+- launchApp
 - extendedWaitUntil:
     visible: "Native test runtime listening"
     timeout: 30000
@@ -33,7 +32,7 @@ appId: com.ryuyoshikawa.scenarioshop
     element:
       id: "native-order-review-order-delivered-item-7"
     direction: DOWN
-    speed: 10
+    speed: 50
     visibilityPercentage: 100
     centerElement: true
     timeout: 30000
@@ -49,6 +48,14 @@ appId: com.ryuyoshikawa.scenarioshop
     id: "native-review-body"
 - inputText: "Native Maestro review"
 - hideKeyboard
+- waitForAnimationToEnd:
+    timeout: 5000
+- runFlow:
+    when:
+      visible:
+        text: "完了|Done|Enter"
+    commands:
+      - pressKey: Back
 - scrollUntilVisible:
     element:
       id: "native-review-save"

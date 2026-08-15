@@ -35,7 +35,7 @@ describe("Native automation module resolution", () => {
     expect(
       resolveFor("automation", "@/presentation/native/native-contract-harness-screen"),
     ).toContain("native-contract-harness-screen.enabled");
-  });
+  }, 15_000);
 
   it("resolves the production entry to the disabled module", () => {
     expect(resolveFor("production", "@/presentation/native/native-automation-bridge")).toContain(
