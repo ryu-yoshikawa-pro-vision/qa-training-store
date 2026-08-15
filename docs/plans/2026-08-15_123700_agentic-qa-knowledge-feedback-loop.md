@@ -1,6 +1,6 @@
 # Agentic QA・テスト自動化 知見循環・実案件還元計画
 
-- Plan Revision: `v05`
+- Plan Revision: `v06`
 - Status: `Draft / Review Required`
 - Created: 2026-08-15 JST
 - Revised: 2026-08-15 JST
@@ -310,20 +310,20 @@ Artifact digest等の追跡可能なReferenceとする。
 
 事後修正したDesignを、元から事前登録済みだったものとして扱わない。
 
-### 4.3 FailureとInvalid Runを分離する
+### 4.3 Failure、Evaluation Invalid、Invalid Runを分離する
 
 `RUN_INVALID`はAgentやProductが失敗したRunを都合よく除外するために使わない。
+Runの成否と、そのRunからEvaluation値を算出できるかを別に扱う。
 
-`RUN_INVALID`にできるのは、Experiment Protocol自体が壊れ、予定した条件で結果を解釈できない場合に限定する。
+`RUN_INVALID`にできるのは、事前定義したExperiment Protocol自体が壊れ、予定した条件でRunを解釈できない場合に限定する。
 
 例:
 
 - Variant取り違え。
 - Prior Result / Hidden Answerの混入。
-- Required Evidenceの欠損。
 - Pre-registered条件からの逸脱。
 - Evaluator / Ground Truth破損。
-- 計測系の破損でOutcomeを判定不能。
+- 実行対象のFailureではなく、計測・収集Protocolの破損によりRequired Evidenceを取得できない。
 
 以下は原則として通常Result / Failureとして残し、Invalid扱いで除外しない。
 
@@ -333,7 +333,11 @@ Artifact digest等の追跡可能なReferenceとする。
 - 実運用でも発生し得るBrowser / Runtime / Environment Failure。
 - Agent起因のHuman Intervention。
 
-Environment側障害が実験対象外であり、かつ事前定義したInvalid条件に該当する場合だけInvalidにできる。
+Tool / Runtime / Agent Failureの結果としてRequired Evidenceが欠損した場合、Run自体は通常のFailureとして保持する。
+欠損したEvidence、Failure Code、取得できなかった理由を保存し、そのEvidenceを必要とするMetricまたはEvaluationだけを
+`invalid`または`not_computable`とする。この場合は`RUN_INVALID`へ変更せず、Protocol Invalid Run数にも含めない。
+
+Environment側障害が実験対象外であり、かつ事前定義したProtocol Invalid条件に該当する場合だけ`RUN_INVALID`にできる。
 Invalid Runは理由とEvidenceを必須とし、Variant別のInvalid率も報告する。
 
 ### 4.4 Human Baseline
@@ -427,12 +431,21 @@ execution:
   invalid_run_count:
   stop_condition:
   invalid_conditions: []
+runs:
+  - run_id:
+    variant_id:
+    status: completed | failure | invalid
+    artifact_ref:
+    failure_codes: []
+    invalid_reason:
+    evaluation_status: valid | partial | invalid | not_computable
+    missing_evidence: []
+    evidence_refs: []
 evaluation:
   method:
   ground_truth_ref:
   required_metrics: []
 results: []
-evidence_refs: []
 interpretation:
 conclusion:
 knowledge_refs: []
@@ -441,6 +454,9 @@ next_action:
 
 `confirmatory_contract`は`study_intent=confirmatory`でRequiredとする。
 AI Agent Experimentでは`executor`をRequiredとし、不明なIdentityは省略せず`unknown`として残す。
+各Runは`run_id`で一意に追跡し、既存Run Artifactを正本とする場合は改変されない`artifact_ref`を必須とする。
+Run、Variant、Failure / Invalid理由、Evaluation可否、Evidenceの対応はRun単位で追跡する。
+集約`results`はRun Recordを正本として算出し、Run単位Evidenceの代替にはしない。
 全Experimentで全Metricを収集せず、Questionに必要なものだけRequiredにする。
 
 ---
@@ -614,10 +630,21 @@ validated_against:
   model_or_runtime:
   tool_revision:
   repository_revision:
+  executor_condition_refs: []
+  environment_refs: []
+knowledge_reviews:
+  - review_ref:
+    reviewer_identity:
+    reviewed_revision:
+    independence_check:
+    decision:
 revalidation_triggers: []
 supersedes: []
 superseded_by: []
 ```
+
+`executor_condition_refs`と`environment_refs`はRaw Experiment側のimmutableなExecutor / Environment条件を参照し、
+Prompt、Skill、Configuration、Context Policy、Tool Scope等をKnowledge Recordへ重複コピーしない。
 
 Knowledge Reviewでは`evidence_refs`と手書きされた`experiment_family_refs`だけに依存しない。
 Canonical Experiment Record Locationを検索し、参照対象の`experiment_family_id`を持つ全Recordを確認して、
@@ -639,7 +666,9 @@ Canonical Experiment Record Locationを検索し、参照対象の`experiment_fa
 - Recommendation Scopeに必要なExternal / Field Evidenceがある。
 
 `recommended`への昇格はIndependent Knowledge ReviewをRequiredとする。
-独立Reviewerを用意できない場合、そのKnowledgeは最大`candidate`までとする。
+対象Knowledge Revisionに対する`knowledge_reviews`の証跡として、Review Reference、Reviewer Identity、
+Review対象Revision、独立性確認結果、Decisionを保存する。
+Review証跡がない場合、または独立Reviewerを用意できない場合、そのKnowledgeは最大`candidate`までとする。
 
 ---
 
@@ -671,6 +700,10 @@ Canonical Experiment Record Locationを検索し、参照対象の`experiment_fa
 分類不能・重複が増えた場合にTaxonomyを改訂する。
 Agent能力不足、Specification不足、Tool不足、Environment不足を混同しない。
 `RUN_INVALID`の適用は4.3のProtocol Invalid条件に従う。
+
+Failure Taxonomyは原因分類の正本であり、調査開始Evidenceの固定Pathまでは定義しない。
+Browser、MCP、Maestro、CLI、CI等で適切なEvidence経路は異なるため、Evidence取得・Troubleshooting手順は
+各Execution / Curriculum SSOTを正とし、このTaxonomyへ第二SSOTとして複製しない。
 
 ### 6.2 Metrics
 
@@ -819,6 +852,24 @@ Repositoryへ戻せるのは、Sanitized Observation、Abstracted Constraint、A
 Anonymized Failure Pattern、Generalized Hypothesis、機密情報を含まないReferenceに限定する。
 
 Raw Evidenceが必要な場合は案件側で許可されたStorageへ保持する。
+Field EvidenceをPublic Repositoryへ取り込む場合は、次のSanitization Gate証跡を必須とする。
+
+```yaml
+field_evidence_gate:
+  sanitization_status: pending | approved | rejected
+  security_review_ref:
+  approved_by:
+  scan_result_ref:
+  source_storage_ref:
+```
+
+- `security_review_ref`: Public-safeなSanitization / Security Review証跡への参照。
+- `approved_by`: Public Repositoryへ保存可能なRole名またはopaque reviewer identityのみを使用する。
+- `scan_result_ref`: Scanを実施した場合のみPublic-safeな結果Referenceを記録する。
+- `source_storage_ref`: Raw Evidenceの所在を直接公開せず、内部URL、顧客名、案件名等を含まないopaque referenceとする。
+
+`sanitization_status=approved`の証跡がないField EvidenceはPublic Repositoryへ取り込まない。
+Gate自体のRecordにも顧客情報、Internal URL、秘密情報を含めない。
 このGateを満たせないField EvidenceはPublic Repositoryへ取り込まない。
 
 ### 9.3 Field Pilot Record
@@ -835,6 +886,12 @@ observed_difference:
 known_confounders: []
 actual_failure_or_intervention: []
 training_environment_differences: []
+field_evidence_gate:
+  sanitization_status:
+  security_review_ref:
+  approved_by:
+  scan_result_ref:
+  source_storage_ref:
 new_hypothesis:
 ```
 
@@ -873,6 +930,9 @@ Independent Reviewerは、単に別の時刻・別のPromptで同じConclusion�
 Human Reviewer、Fresh Independent Agent、別担当Reviewerのいずれも利用できる。
 ただし`field: recommended`や高リスクField Stage昇格は、Agentだけで完結させず案件側Human Risk Reviewを要求する。
 
+Independent Reviewの実施要件だけでなく、5.8の`knowledge_reviews`へReview証跡を残す。
+Review対象RevisionとEvidenceが後から変わった場合、古いReviewだけで新Revisionを`recommended`へ維持しない。
+
 ### 10.3 Revalidation Trigger
 
 以下の変化がClaimの成立条件へ影響し得る場合、該当Scopeの`recommended`を`stale`へ移し再検証する。
@@ -887,7 +947,7 @@ Human Reviewer、Fresh Independent Agent、別担当Reviewerのいずれも利�
 - 新しいConflicting Field Evidence
 - 高品質な外部Evidenceとの衝突
 
-Raw Experimentの`executor` IdentityとKnowledgeの`validated_against`を用いて、
+Raw Experimentの`executor` IdentityとKnowledgeの`validated_against.executor_condition_refs` / `environment_refs`を用いて、
 どのKnowledgeが変更影響を受けるかを判断する。
 すべてのVersion変更で機械的にStale化せず、Claimへの影響をKnowledge Reviewerが判断する。
 
@@ -992,11 +1052,12 @@ New MCP Proxy / Tool Router、Generic Knowledge Management Platformを追加し�
 - Knowledge RecordのCanonical Location。
 - Experiment / Knowledge / Experiment Family ID Convention。
 - Pre-registration Reference方式。
+- Run ID / Run Artifact Reference方式。
 - Evidence Reference方式。
 - Executor IdentityのReference方式。
 - 対象ExperimentのRequired Capability Ready / Degraded確認とValidation Reference。
 - Evaluator / Knowledge Reviewer。
-- Security / Sanitization要件。
+- Security / Sanitization要件と、Field利用時のSanitization Gate証跡方式。
 
 このGateのためにDashboard、Database、専用SaaSを作らない。
 Markdown / YAML / Git Commit等の最小手段で開始する。
@@ -1046,16 +1107,17 @@ Training Repositoryで成功したことだけを理由にBounded Agentic以上�
 | --- | --- |
 | Infrastructure開発へ戻る | Current Artifact再利用、Manual Record許容、Evidence付きPain Pointまで自動化しない |
 | Confirmation Bias | 反証可能なHypothesis、Support / Refutation Rule事前固定、immutable pre-registration reference |
-| Result Selection Bias | Experiment Family全Recordを確認し、FailureとProtocol Invalidを分離 |
+| Result Selection Bias | Experiment Family全RecordとRun単位Artifactを確認し、FailureとProtocol Invalidを分離 |
 | Claim Overstatement | `not_supported`と`refuted`を分離し、Support未達を反証へ変換しない |
 | Metric Cherry-picking | Primary Outcome、Practical Threshold、Aggregation / Decision Ruleを事前固定 |
-| Execution Identity Loss | Model / Prompt / Skill / Context / Tool ScopeをRaw Experimentへ記録 |
+| Execution Identity Loss | Model / Prompt / Skill / Context / Tool ScopeをRaw Experimentへ記録しKnowledgeから参照 |
+| Governance Evidence Loss | Independent Knowledge Reviewの対象Revisionと証跡をKnowledgeへ保持 |
 | Curriculumへ早期一般化 | Core / Research Curriculum分離、Knowledge Review、別PR |
 | TrainingとFieldの差 | Field Status分離、Shadow / Assist、差分記録 |
 | Metrics Gaming | 単一Metric最適化を避けTrade-offを見る |
 | Repository Complexity | Learner-visible PathとResearch Artifactを分離 |
 | Knowledge Staleness | Revalidation Triggerと`stale`状態を使う |
-| Privacy / Confidentiality | Field Security Gateとparticipant-identifiable data禁止 |
+| Privacy / Confidentiality | Field Security Gate、Sanitization証跡、participant-identifiable data禁止 |
 
 ### 12.2 Non-goals
 
@@ -1076,8 +1138,8 @@ Plan Approval時点で未確定でもよいが、11.4のExperiment Readiness Gat
 4. External Knowledge IntakeをRepository / Issue等のどこに置くか。
 5. Human Active Time / Agent Costの収集精度。
 
-Field Security Boundary、Participant Data Boundary、Pre-registration Traceability、Experiment Family Traceability、
-Confirmatory Decision Rule、Executor Identity、Revalidation RuleはOpen QuestionではなくRequired Policyとする。
+Field Security Boundary、Participant Data Boundary、Pre-registration Traceability、Experiment Family / Run Traceability、
+Confirmatory Decision Rule、Executor Identity、Independent Review Evidence、Revalidation RuleはOpen QuestionではなくRequired Policyとする。
 
 ### 12.4 Plan DoD
 
@@ -1090,8 +1152,9 @@ Confirmatory Decision Rule、Executor Identity、Revalidation RuleはOpen Questi
 - Practical Effectが適用不能な場合に事前理由を記録できる。
 - Pre-registrationの実行前Revisionを追跡できる。
 - Experiment Family / LineageでPositive / Negative Evidenceを束ねられる。
+- Run ID / Artifact ReferenceでRun、Variant、Failure / Invalid理由、Evidenceを追跡できる。
 - Knowledge ReviewでCanonical Location上の同一Family全Recordを確認する。
-- FailureとProtocol Invalid Runの境界がある。
+- Run FailureとEvaluation InvalidとProtocol Invalid Runの境界がある。
 - Agent比較の反復原則と同一Outcome比較原則がある。
 - Evidence StateとClaim Assessmentが分離されている。
 - `not_supported`と`refuted`が区別されている。
@@ -1100,10 +1163,13 @@ Confirmatory Decision Rule、Executor Identity、Revalidation RuleはOpen Questi
 - Recommendation ScopeがRepository / Training / Fieldで分離されている。
 - Atomic Knowledge Claim、Practical Effect、Evidence Traceabilityがある。
 - AI Agent ExperimentでModel / Prompt / Skill / Context / Tool Scope等のExecutor Identityを残す。
-- `recommended`昇格にIndependent Reviewが必要であり、独立性の最低条件がある。
+- Knowledgeが検証対象Executor / Environment条件をimmutable Referenceで追跡できる。
+- `recommended`昇格にIndependent Reviewが必要であり、対象RevisionとReview証跡を記録できる。
 - Failure Taxonomy v1がある。
+- Failure調査Evidenceの詳細はExecution / Curriculum SSOTへ委譲し、Taxonomyへ第二SSOTを作らない。
 - Core / PracticeとAdvanced / Research CurriculumのPromotion Ruleがある。
 - Field Security BoundaryとParticipant Data BoundaryがRequired Gateである。
+- Public RepositoryへField Evidenceを入れる前にPublic-safeなSanitization Gate証跡を要求する。
 - Revalidation TriggerがExecutor Identityの変更も考慮する。
 - Foundation CapabilityがExperiment単位のDependency Gateである。
 - Capability ReadinessをValidation Evidenceで判定し、`degraded`利用条件が明確である。
