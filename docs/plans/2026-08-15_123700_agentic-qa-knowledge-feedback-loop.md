@@ -1,36 +1,44 @@
 # Agentic QA・テスト自動化 知見循環・実案件還元計画
 
-- Plan Revision: `v00`
+- Plan Revision: `v01`
 - Status: `Draft / Review Required`
 - Created: 2026-08-15 JST
+- Revised: 2026-08-15 JST
 - Scope: Research / Experiment / Curriculum / Field Feedback Operating Plan
 
 ## 0. 位置づけ
 
-この計画は、`qa-training-store`を単なるSample Application、Test Automation Repository、またはAgent Framework Repositoryとして拡張し続けるための計画ではない。
+この計画は、`qa-training-store`を単なるSample Application、Test Automation Repository、
+またはAgent Framework Repositoryとして拡張し続けるための計画ではない。
 
-本Repositoryを、以下を一つの循環として継続的に検証できるTraining / Experimental Platformとして運用するための中長期Operating Planとする。
+本Repositoryを、Test Automation、Agentic Development、Agentic QAを実際に使って検証し、
+得られたEvidenceを学習と実案件へ循環させるTraining / Experimental Platformとして運用するための
+中長期Operating Planとする。
 
-1. Test Automationを学習する。
-2. AI AgentによるDevelopmentを実験する。
-3. AI AgentによるQA / Test Process Automationを実験する。
-4. Human / Deterministic Automation / Agentic Approachを比較評価する。
-5. 実験結果をEvidence付きKnowledgeへ変換する。
-6. 検証済みKnowledgeをCurriculumへ反映する。
-7. 実案件へ段階的に適用する。
-8. Fieldで得たEvidenceをRepositoryへ戻し、次のHypothesisへ接続する。
+本Repositoryの目的は次のとおりである。
+
+1. Test Automationを段階的に学習できること。
+2. AI AgentによるDevelopmentを実験できること。
+3. AI AgentによるQA / Test Process Automationを実験できること。
+4. 比較可能なApproachをEvidence付きで評価できること。
+5. 実験結果を再利用可能なKnowledgeへ変換できること。
+6. 検証済みKnowledgeをCurriculumへ反映できること。
+7. 実案件へ段階的に適用し、Field Evidenceを取得できること。
+8. Field EvidenceをRepositoryへ戻し、次のQuestion / Hypothesisへ接続できること。
 
 このPlanは、特定のAgent構成、Model、Tool、QA Modeを永続的な正解として固定しない。
+現在のRepository Architecture自体もEvaluation対象である。
 
-現在のRepository Architecture自体もEvaluation対象とする。
+このPlanが定義するのは、何を正しいと信じるかではない。
 
-このPlanの目的は「何を正しいと信じるか」を先に決めることではなく、**何をどのEvidenceに基づいて信じてよいかを判断できる継続サイクルを作ること**である。
+> 何を、どのEvidenceに基づいて、どの範囲まで信じてよいかを判断し続けるための運用である。
 
 ---
 
-## 1. RepositoryのNorth Star
+## 1. North Star
 
-Repositoryの主要成果を、機能数、Test Case数、Agent数、Automation率、AI生成率ではなく、次の循環が成立していることと定義する。
+Repositoryの主要成果を、機能数、Test Case数、Agent数、Automation率、AI生成率ではなく、
+次の循環が継続的に成立していることと定義する。
 
 ```text
 External Knowledge ───────┐
@@ -57,434 +65,445 @@ Field Problem ────────────┤
                           ↺
 ```
 
-North Starは次の状態である。
+North Starは、Experiment件数を増やすことではない。
 
-> Experimentを増やすことではなく、再現可能なEvidenceを増やし、何が有効で何が無効かを更新し続け、その結果をCurriculumとField Practiceへ還元できること。
+> 再現可能なEvidenceを増やし、何が有効で何が無効かを更新し続け、
+> そのKnowledgeを他者が学習でき、実案件で安全に再利用できる状態を作る。
 
----
+### 1.1 主要成果として扱わないもの
 
-## 2. ゴール / 完了条件
+以下は手段または副次指標であり、それ自体を主要成果としない。
 
-### 2.1 ゴール
+- Agentを追加したこと。
+- Test Case数が増えたこと。
+- Frameworkを追加したこと。
+- Promptが長くなったこと。
+- Automation率が上がったこと。
+- AI生成コード率が上がったこと。
+- Finding件数が増えたこと。
 
-PR #23、#24、#25等で整備するAgentic QA、Visual Specification、Training Environmentを、実際に使用して知見を生産する運用へ移行する。
+### 1.2 主要成果
 
-そのうえで、Repositoryを以下の4機能を持つPlatformとして成立させる。
-
-- `Training Platform`: Test Automationを段階的に学べる。
-- `Experiment Lab`: Agentic Development / Agentic QAを比較実験できる。
-- `Knowledge Base`: Evidence付きPattern / Anti-patternを蓄積できる。
-- `Field Feedback Hub`: 実案件での適用結果をRepositoryへ戻せる。
-
-### 2.2 このPlan自体のDoD
-
-このPlanは以下を満たした時点でOperating PlanとしてApprove可能とする。
-
-- Repositoryの目的とNorth Starが一意である。
-- Experimentと通常Developmentの責務境界が明確である。
-- Knowledge Maturityが定義されている。
-- Experiment Lifecycleと最低限RequiredなEvidenceが定義されている。
-- Failure Taxonomy v1が定義されている。
-- Metricsの使い方と誤用防止が定義されている。
-- Curriculum PromotionのGateが定義されている。
-- Field Adoptionの段階が定義されている。
-- 外部Knowledgeの取り込み方が定義されている。
-- PR #23〜#25完了後のFeature Freeze / Experiment優先原則が定義されている。
-- 初期Experiment BacklogがCandidateとして定義されている。
-- 実験前に過剰なExperiment Platformを実装しない境界がある。
-- 未検証のArchitectureやPracticeをBest Practiceとして扱わない。
-
-このPlanのApproveは、Experiment Runner、Dashboard、Database、Knowledge Management Application等の実装開始を意味しない。
-
----
-
-## 3. 基本原則
-
-### 3.1 Repository改善そのものを成果にしない
-
-以下を主要成果として扱わない。
-
-- 新しいAgentを追加した。
-- Test Case数が増えた。
-- Frameworkを追加した。
-- Promptが長くなった。
-- Automation率が上がった。
-- AIが実装したコード量が増えた。
-
-主要成果は、次の問いへEvidence付きで回答できることとする。
+主要成果は、重要なQuestionについて次をEvidence付きで説明できることである。
 
 - 何を試したか。
 - 何と比較したか。
 - 何が起きたか。
-- なぜ起きた可能性が高いか。
+- どの条件で成立したか。
+- どの条件では成立しなかったか。
 - 再現したか。
-- どの条件で成立し、どの条件で成立しないか。
-- 実案件へ適用可能か。
-- Curriculumへ昇格させてよいか。
+- 何がまだ不明か。
+- Curriculumへ反映してよいか。
+- 実案件へ適用してよいか。
 
-### 3.2 ExperimentはHypothesisから開始する
+---
 
-「Agentを使ってみる」「新Modelを試す」だけではExperimentとしない。
+## 2. SSOTと責務境界
 
-最低限以下を明確にする。
+このPlanはKnowledge lifecycleとExperiment governanceの正本である。
+既存のSpecification、Agentic QA contract、Visual Specification、Curriculum contractを再定義しない。
+
+### 2.1 正本
+
+| 責務 | 正本 |
+| --- | --- |
+| Product Expected Behavior | `docs/spec/**` と既存Normative Specification |
+| Agentic QAの実行・採点・Evidence Contract | `QA_AGENT.md`、`scripts/agentic-qa/**` と関連Contract |
+| Visual Reference / Screen Contract | Screen Catalog / Visual Specificationの正本 |
+| Curriculum / Competency / Training Contract | `docs/curriculum/**` とTraining Environmentの正本 |
+| Experiment governance / Knowledge lifecycle | このPlan |
+
+### 2.2 優先順位
+
+このPlanと各領域の正本が矛盾する場合、実行仕様、採点式、Curriculum要件、Product Behaviorについては
+各領域の正本を優先する。
+
+このPlanは以下を定義する。
+
+- Experimentをどのように開始・比較・停止するか。
+- EvidenceからKnowledgeへどのように昇格するか。
+- Knowledgeをいつ再検証するか。
+- CurriculumやFieldへどのように移すか。
+
+Metricの厳密な計算式やOfficial ScoreのValidity条件は、このPlanに複製しない。
+必要な場合は各SSOTを参照する。
+
+---
+
+## 3. Experimentの種類と基本原則
+
+すべてのExperimentへ同じ厳密さを要求しない。
+目的に応じてExperiment Classを明示する。
+
+### 3.1 Experiment Class
+
+| Class | 目的 | 主な要求 |
+| --- | --- | --- |
+| `Exploratory` | 未知の現象、Failure、候補仮説を発見する | ObservationとEvidenceを残す |
+| `Comparative` | 2つ以上のApproachを比較する | 比較条件と評価方法を事前に固定する |
+| `Confirmatory` | 重要な仮説を反証可能な形で確認する | 事前登録、独立Run、反復、Invalid条件を要求する |
+| `Field Pilot` | 実案件で適用可能性と制約を確認する | Security Boundary、Baseline、Confounderを要求する |
+| `Educational` | 学習効果、理解度、Recovery能力を確認する | Learner条件と評価基準を明示する |
+
+Exploratory ExperimentのObservationを、そのままConfirmatoryな結論へ昇格させない。
+
+### 3.2 ExperimentはQuestionから開始する
+
+「Agentを使う」「新Modelを試す」だけではExperimentとしない。
+
+最低限、次の流れを持つ。
 
 ```text
 Question
 ↓
-Hypothesis
+HypothesisまたはExploratory Goal
 ↓
-Comparison / Baseline
+Comparison / Observation Design
 ↓
-Controlled Variables
+Evaluation Method
 ↓
-Metrics / Evidence
+Execution
 ↓
 Result
 ↓
-Conclusion
+Interpretation
+↓
+Knowledge Decision
 ```
 
-Comparisonを設定できないExperimentでは、設定できない理由と、何をObservationとして扱うかを明示する。
+### 3.3 ResultとInterpretationを分離する
 
-### 3.3 成功だけをEvidenceとして扱わない
+```text
+Result
+= 実際に観測・計測した事実
 
-Failure、Block、False Positive、False Negative、Human Intervention、Unexpected RegressionもKnowledge Sourceとして保存する。
+Interpretation
+= Resultから導いた推論
+```
 
-成功率だけを最適化しない。
+因果を証明できない場合は、因果として断定しない。
 
-### 3.4 未実行をPASS扱いしない
+### 3.4 成功だけをEvidenceとして扱わない
 
-Current Repositoryの既存方針を維持する。
+以下もKnowledge Sourceとして保存する。
+
+- Failure
+- Block
+- False Positive
+- False Negative
+- Human Intervention
+- Unexpected Regression
+- Contradictory Result
+- Invalid Run
+
+### 3.5 未実行をPASS扱いしない
 
 - 未実行は未実行。
 - Evidence不足はEvidence不足。
-- Host / Tool Capability不明は不明。
-- Environment BlockはProduct / Agent Successへ変換しない。
+- Capability不明は不明。
+- Environment BlockをAgent Successへ変換しない。
+- Agentの自己申告をGround Truthにしない。
 
-### 3.5 AIの自己評価をGround Truthにしない
+### 3.6 Comparisonは同じOutcomeに対して行う
 
-Agentが「問題なし」「修正完了」「Test PASS」と報告しただけではEvidenceとしない。
+Human QA、Deterministic Automation、Agentic QAを常に同列の競合手段として扱わない。
 
-可能な限り、以下を独立させる。
-
-- Deterministic Test / Validator
-- Independent QA Agent
-- Human Review
-- Instructor Answer Key
-- Known Challenge Ground Truth
-- Runtime Evidence
-
-### 3.6 一度の成功をBest Practiceへ昇格しない
-
-一度のObservationは`Observed`であり、`Recommended`ではない。
-
-### 3.7 外部情報を正解として輸入しない
-
-Paper、Industry Report、Vendor Guidance、OSS Practice、Engineering Blog等は重要なInputとするが、Repository固有の推奨へ直接昇格させない。
-
-外部Claimは原則としてHypothesisまたはSupporting Evidenceとして扱う。
-
-### 3.8 Framework追加よりExperimentを優先する
-
-PR #23〜#25等のCurrent Foundation完了後は、新しいAgent / Runner / Orchestration / Dashboard / Knowledge Platformを原則追加しない。
-
-追加を検討できるのは、実Experimentで以下がEvidence付きで確認された場合に限る。
-
-- Current Foundationでは必要なExperimentが実行不能。
-- Current FoundationではEvidence Integrityを保証できない。
-- 同一のManual Workaroundが反復し、Experiment throughputまたは信頼性を有意に阻害している。
-
-「将来必要そう」「あると便利そう」は新規基盤追加の根拠にしない。
-
----
-
-## 4. Knowledge Maturity Model
-
-Knowledgeは以下の状態で管理する。
-
-| Status | 定義 | 利用方針 |
-| --- | --- | --- |
-| `Hypothesis` | 外部情報、現場課題、過去Observationから生まれた未検証の仮説 | Experiment対象。推奨しない |
-| `Observed` | 少なくとも1回、条件とEvidence付きで現象を確認した | Observationとして共有可能 |
-| `Reproduced` | 独立Runまたは条件差を含む複数Runで再現した | Candidate Pattern / Anti-pattern |
-| `Triangulated` | Repository Experimentと外部Evidence、異なるEvaluation方法等で複数方向から支持された | Curriculum Candidate |
-| `Field-tested` | 実案件のShadow / Assist等で有効性または制約を確認した | Field Guidance候補 |
-| `Recommended` | 複数条件で再現し、適用条件・制約・失敗条件まで説明可能 | Core Curriculum / Recommended Practice候補 |
-| `Deprecated` | 新しいEvidenceにより非推奨、限定条件化、または置換された | Anti-pattern / Historical Knowledgeとして保持 |
-
-### 4.1 Maturity運用ルール
-
-- Status昇格にはEvidence Referenceを持つ。
-- `Observed → Reproduced`は同一RunのRetryだけで満たさない。
-- Model、Prompt、Tool、Source Revision等が実質同一のRetryは独立再現とみなさない。
-- `Recommended`は永久保証ではない。
-- Model / Tool / Repository Architectureの大幅変更時は再検証対象にできる。
-- `Deprecated`を削除せず、なぜ非推奨になったかを残す。
-
----
-
-## 5. Experiment Lifecycle
-
-### 5.1 Phase A — Question
-
-実験対象となる問いを一文で定義する。
+先に比較対象となるCapability / Outcomeを定義する。
 
 例:
 
-> Fresh ContextのIndependent QA Agentは、Implementation Contextを継承するQA AgentよりFalse Positiveを減らせるか。
+- Known Regression Detection
+- Unknown Defect Discovery
+- Test Design
+- Failure Diagnosis
+- Implementation Review
+- Repair
 
-### 5.2 Phase B — Hypothesis
+同じOutcomeを狙わないApproach間の数値差を、優劣として解釈しない。
 
-方向性を予測可能な形で定義する。
+### 3.7 Agent比較で単一Runから一般結論を出さない
 
-悪い例:
+AI Agentは非決定的であり、単一RunはPerformanceの代表値とは限らない。
 
-> Fresh Contextを試す。
+Comparative / Confirmatory ExperimentでAgent性能差を論じる場合は、
+必要な独立Run数を実行前に定める。
 
-良い例:
+最低限、以下を区別して記録する。
 
-> Fresh Contextを使用するとImplementation由来の思い込みが減り、Precisionが向上する一方、Context不足によってRecallが低下する可能性がある。
+- RunごとのResult
+- 中央値または代表値
+- ばらつき
+- Best / Worst
+- Failure率
+- Invalid Run数
 
-### 5.3 Phase C — Experiment Design
+Run数を一律に固定しない。
+Question、Cost、Observed Varianceに応じて決める。
+ただし単一Runだけを根拠に、Agent構成やModelの優劣をRecommended Practiceへ昇格させない。
 
-最低限以下を決める。
+### 3.8 事後的な条件変更を同じExperiment成功として扱わない
+
+Comparative / Confirmatory Experimentでは、実行前に最低限次を固定する。
+
+- Hypothesis
+- Variant
+- Evaluation Method
+- Required Metrics
+- Stop Condition
+- Invalid Run Condition
+- Planned Run CountまたはRun Count決定ルール
+
+Resultを見た後に条件、Metric、Prompt、Tool Scope等を変えた場合は、
+同一Experimentの都合のよいContinuationではなく、Variantまたは新しいExperiment Revisionとして扱う。
+
+---
+
+## 4. Experiment Lifecycleと記録
+
+### 4.1 Lifecycle
+
+1. `Question`
+2. `Classify`
+3. `Design`
+4. `Pre-register when required`
+5. `Execute`
+6. `Evaluate`
+7. `Reproduce / Refute`
+8. `Knowledge Decision`
+
+### 4.2 Designで最低限決める項目
 
 - Experiment ID
+- Experiment Class
 - Question
-- Hypothesis
+- HypothesisまたはExploratory Goal
 - Task / Challenge
+- Capability / Outcome
 - Baseline / Comparison
 - Independent Variable
 - Controlled Variables
 - Agent / Model / Mode
+- Context Policy
 - Tool Scope
 - Repository / Product Revision
 - Runtime Environment
-- Ground TruthまたはEvaluation方法
-- Metrics
+- Ground TruthまたはEvaluation Method
+- Required Metrics
 - Stop Condition
 - Invalid Run Condition
+- Planned Run Countまたは決定ルール
 
-### 5.4 Phase D — Execution
+### 4.3 実行原則
 
 既存のRepository Harness、Run Artifact、QA Artifact、Scored E2E等を可能な限り再利用する。
-
 Experiment専用Infrastructureは最小化する。
 
-Execution中に条件変更が必要になった場合は、同一Run内で都合よく変更せず、Run invalidationまたはVariantとして記録する。
+Execution中に条件変更が必要になった場合は、変更理由を記録し、必要に応じてRunをInvalidとする。
 
-### 5.5 Phase E — Evaluation
+### 4.4 Human Baselineを使う場合
 
-ResultとInterpretationを分ける。
+Human Baselineは「人間」という一種類の基準ではない。
+最低限、比較可能性に影響する以下を記録する。
 
-```text
-Result
-= 実際に観測・計測したもの
+- Experience band
+- Role / Background
+- Tool allowance
+- Time budget
+- Specification access
+- Training Environment familiarity
 
-Interpretation
-= Resultから推論したもの
-```
+個人評価を目的とせず、不要な個人情報は記録しない。
 
-因果を直接証明できない場合はCorrelation / Hypothesis Supportとして扱う。
-
-### 5.6 Phase F — Reproduction / Refutation
-
-重要なObservationは別Runで再確認する。
-
-再現しない場合、それ自体をFailureではなくKnowledgeとして扱う。
-
-例:
-
-- Environment依存だった。
-- Model Revision依存だった。
-- Challenge Type依存だった。
-- Prompt Variationで消えた。
-- Randomnessが大きかった。
-
-### 5.7 Phase G — Knowledge Decision
-
-最終的に以下のいずれかへ分類する。
-
-- Promote maturity
-- Keep current maturity
-- Narrow applicability
-- Refute hypothesis
-- Need more data
-- Deprecated
-
----
-
-## 6. Experiment Record Contract v1
+### 4.5 最小Experiment Record
 
 初期段階では新しいDatabaseやExperiment Management Applicationを作らない。
+既存Artifactまたは軽量なMachine-readable Recordを利用する。
 
-既存Run Artifactまたは既存Documentationへ、後から機械集計可能な最小情報を追加する方針とする。
-
-Logical Contractは以下を目安とする。
+Logical Contractの最低限は次とする。
 
 ```yaml
 experiment_id:
+experiment_class:
 question:
-hypothesis:
-knowledge_refs: []
+hypothesis_or_goal:
+capability:
 source_revision:
-task_class:
 
-variant:
-  name:
-  baseline_or_candidate:
-
-agent:
-  role:
-  model:
-  mode:
-  context_policy:
-  tool_scope:
+variants: []
+controlled_variables: []
 
 environment:
   platform:
-  browser_or_runtime:
-  viewport_or_device:
+  runtime:
+
+execution:
+  planned_run_count:
+  completed_run_count:
+  invalid_run_count:
+  stop_condition:
+  invalid_conditions: []
 
 evaluation:
-  ground_truth_type:
-  evaluator:
+  method:
+  ground_truth_ref:
+  required_metrics: []
 
-metrics:
-  elapsed_time:
-  human_active_time:
-  intervention_count:
-  recall:
-  precision:
-  false_positive_rate:
-  coverage:
-  repair_success:
-  regression_introduction:
-  estimated_agent_cost:
-
-failures: []
-result:
+results: []
+evidence_refs: []
 interpretation:
-confidence:
-knowledge_status_before:
-knowledge_status_after:
-next_experiment:
+conclusion:
+knowledge_refs: []
+next_action:
 ```
 
-### 6.1 Required / Optional
-
-全Experimentで全FieldをRequiredにしない。
-
-最低限Required候補は以下とする。
-
-- Experiment ID
-- Question
-- Hypothesis
-- Source Revision
-- Variant
-- Environment
-- Evaluation Method
-- Result
-- Evidence Reference
-- Conclusion
-
-MetricsはExperiment Questionに必要なものだけ選択する。
+全Experimentで全Metricを収集する必要はない。
+Questionに必要なものだけをRequiredにする。
 
 ---
 
-## 7. Failure Taxonomy v1
+## 5. EvidenceとKnowledge Model
 
-Failure Taxonomyは最初から完全であることを目指さない。
+Knowledgeを単一の成熟度階段で管理しない。
+Evidenceの再現性、外部支持、Field適用、推奨状態は異なる概念として分離する。
 
-初版として以下を使用し、実Experimentで分類不能・重複が増えた場合に改訂する。
+### 5.1 Evidence Status
+
+| Status | 定義 |
+| --- | --- |
+| `hypothesis` | 未検証の仮説 |
+| `observed` | 条件とEvidence付きで少なくとも1回観測した |
+| `reproduced` | 独立Runまたは条件差を含む複数Runで再現した |
+| `conflicting` | 有効なEvidence同士が矛盾している |
+
+同一RunのRetry、実質同一Contextの再試行、失敗後に条件を調整した成功だけでは
+`reproduced`としない。
+
+### 5.2 External Support
+
+| Status | 定義 |
+| --- | --- |
+| `none` | 外部Evidenceを確認していない |
+| `supporting` | 独立した外部Evidenceが支持している |
+| `mixed` | 支持と反証が混在している |
+| `conflicting` | 主要な外部EvidenceがRepository Observationと衝突している |
+| `not_applicable` | 外部支持が判断に不要または適用不能 |
+
+### 5.3 Field Status
+
+| Status | 定義 |
+| --- | --- |
+| `not_tested` | 実案件未検証 |
+| `shadow` | Release Decisionへ使わず並行評価した |
+| `assist` | Human Decision前提で実務補助に利用した |
+| `bounded` | 明示Scope内でAgentic Flowを利用した |
+| `risk_based` | Risk条件に基づき限定的な自律運用へ進んだ |
+
+### 5.4 Recommendation Status
+
+| Status | 定義 |
+| --- | --- |
+| `experimental` | 研究・試行段階 |
+| `candidate` | 再利用候補だが標準推奨ではない |
+| `recommended` | 適用条件・制約・Failure条件まで説明可能な推奨Practice |
+| `stale` | 再検証Triggerにより現時点の推奨有効性が未確認 |
+| `deprecated` | 新しいEvidenceにより非推奨、限定化、または置換された |
+
+`deprecated`はEvidenceの成熟度ではなくLifecycle状態として扱う。
+
+### 5.5 Knowledge Identity
+
+再利用するKnowledgeにはIdentityとTraceabilityを持たせる。
+
+Logical Contractは次を最低限とする。
+
+```yaml
+knowledge_id:
+claim:
+
+applies_to: []
+does_not_apply_to: []
+
+evidence_status:
+external_support:
+field_status:
+recommendation_status:
+
+evidence_refs: []
+conflicting_evidence_refs: []
+
+validated_at:
+validated_against:
+  model_or_runtime:
+  tool_revision:
+  repository_revision:
+
+revalidation_triggers: []
+
+supersedes: []
+superseded_by: []
+```
+
+最初からKnowledge Databaseを作る必要はない。
+Markdown / YAML等の軽量形式で十分である。
+ただしKnowledge IDとEvidence Referenceは省略しない。
+
+### 5.6 Recommendation昇格原則
+
+`recommended`への昇格は、単一のStatusだけでは決めない。
+少なくとも以下を確認する。
+
+- Evidenceが複数Runまたは複数条件で支持されている。
+- 重大なConflicting Evidenceが未整理のまま残っていない。
+- 適用条件とNon-applicable Conditionsを説明できる。
+- Failure SignとRecoveryまたはRollbackを説明できる。
+- 外部EvidenceまたはField Evidenceが必要なテーマでは、それらも確認している。
+
+すべてのKnowledgeにField Testを必須としない。
+ただし実案件の標準Practiceとして推奨する場合は、Field Evidenceを強く要求する。
+
+---
+
+## 6. Failure TaxonomyとMetrics
+
+### 6.1 Failure Taxonomy v1
+
+初版として以下を使用し、実Experimentで分類不能や重複が増えた場合に改訂する。
 
 | Code | 意味 |
 | --- | --- |
-| `SPEC_AMBIGUITY` | Specification / Acceptance Criteriaが曖昧でOracleが確定できない |
-| `CONTEXT_MISSING` | 必要なContextがAgentへ提供されていない |
-| `CONTEXT_OVERLOAD` | 不要情報が多く重要Contextの判断を阻害した |
-| `ORACLE_FAILURE` | Expected Behaviorの判断を誤った |
+| `SPEC_AMBIGUITY` | Specification / Acceptance Criteriaが曖昧 |
+| `CONTEXT_MISSING` | 必要Contextが提供されていない |
+| `CONTEXT_OVERLOAD` | 不要情報が判断を阻害した |
+| `ORACLE_FAILURE` | Expected Behaviorを誤認した |
 | `AGENT_REASONING_FAILURE` | 必要情報は存在したが推論・計画・判断を誤った |
-| `TOOL_FAILURE` | Browser / MCP / Maestro / CLI等のTool実行に失敗した |
-| `ENVIRONMENT_FAILURE` | Build / CI / Runtime / Emulator / Network等の環境で失敗した |
-| `AUTOMATION_FLAKE` | Deterministic Automation自体が不安定だった |
-| `FALSE_POSITIVE` | 実際にはDefectでないものをFindingとした |
+| `TOOL_FAILURE` | Browser / MCP / Maestro / CLI等のTool実行失敗 |
+| `ENVIRONMENT_FAILURE` | Build / CI / Runtime / Emulator / Network等の環境失敗 |
+| `AUTOMATION_FLAKE` | Deterministic Automation自体が不安定 |
+| `FALSE_POSITIVE` | DefectでないものをFindingとした |
 | `FALSE_NEGATIVE` | Ground Truth上のDefectを検出できなかった |
 | `DUPLICATE_FINDING` | 同一原因を複数Findingとして過大計上した |
 | `OVER_REPAIR` | 必要範囲を超えて修正した |
 | `UNDER_REPAIR` | Root CauseまたはRequired Scopeを修正しきれなかった |
 | `REGRESSION_INTRODUCED` | 修正により新しいRegressionを導入した |
-| `SCOPE_VIOLATION` | 許可されていないSource / File / Responsibilityへ変更した |
+| `SCOPE_VIOLATION` | 許可されていない責務やSourceへ変更した |
 | `HUMAN_INTERVENTION` | Agent単独では継続不能で人間介入が必要だった |
-| `EVALUATION_FAILURE` | Evaluator / Ground Truth / Metric計算の問題でResultを確定できない |
-| `RUN_INVALID` | Required Evidence不足、条件逸脱等によりExperimentとして無効 |
+| `EVALUATION_FAILURE` | Evaluator / Ground Truth / Metric計算に問題があった |
+| `RUN_INVALID` | Evidence不足や条件逸脱によりExperimentとして無効 |
 
-### 7.1 Failure Analysisの目的
+Agent能力不足、Specification不足、Tool不足、Environment不足を混同しない。
 
-「Agentが失敗した」で終わらせず、Failure Sourceを分離する。
+### 6.2 Metric Strategy
 
-特に以下を混同しない。
+MetricはQuestionに必要なものだけを選択する。
+Official Agentic QAのMetric定義と計算式は既存SSOTを正とし、このPlanでは再定義しない。
 
-- Agent能力不足
-- Specification不足
-- Test Oracle不足
-- Tool不足
-- Environment不足
-- Repository Harness不足
+主な候補は以下である。
 
-Infrastructure FailureをAgent Quality Failureとして数えず、逆も同様とする。
-
----
-
-## 8. Metrics Strategy
-
-### 8.1 QA Metrics候補
-
-- Recall
-- Precision
-- False Positive Rate
-- Required Coverage
-- Detection Latency
-- Finding Reproduction Rate
-- Duplicate Finding Rate
-
-### 8.2 Development / Repair Metrics候補
-
-- First-pass Success
-- Repair Success Rate
-- Regression Introduction Rate
-- Scope Violation Rate
-- Time to First Green
-- Rework Count
-- Human Intervention Count
-
-### 8.3 Delivery Metrics候補
-
-- Lead Time
-- Cycle Time
-- PR Review Time
-- Human Active Time
-- Escaped Defect
-- Change Failure
-
-### 8.4 Cost Metrics候補
-
-- Agent Runtime
-- Tool Action Count
-- Token / API Costが取得可能な場合のAgent Cost
-- CI Runtime
-- Human Active Minutes
-
-### 8.5 Education Metrics候補
-
-- Learner Completion
-- Exercise Pass / Fail
-- Failure Analysis Success
-- Time to Competency
-- Instructor Intervention
-- Recovery Success
-
-### 8.6 Metric Anti-pattern
+- QA: Recall、Precision、False Positive Rate、Coverage、Reproduction Rate
+- Development: First-pass Success、Repair Success、Regression Introduction、Scope Violation
+- Delivery: Lead Time、Cycle Time、Human Active Time、Change Failure
+- Cost: Agent Runtime、Tool Action、CI Runtime、Agent Cost
+- Education: Completion、Failure Analysis Success、Time to Competency、Instructor Intervention
 
 以下を単独のSuccess KPIにしない。
 
@@ -496,121 +515,32 @@ Infrastructure FailureをAgent Quality Failureとして数えず、逆も同様�
 - PR数
 - Finding件数
 
-Finding件数は品質ではない。False Positiveを増やせば容易に増加するためである。
-
 ---
 
-## 9. Comparison Strategy
+## 7. External Knowledge Intake
 
-すべてのExperimentでHuman Baselineを要求しないが、主要テーマでは比較対象を持つ。
+外部Knowledgeはすべて同じ扱いにしない。
 
-### 9.1 QA比較
+### 7.1 Source Claim Class
 
-```text
-A. Human QA
+| Class | 例 | 扱い |
+| --- | --- | --- |
+| `Normative / Constraint` | Security、契約、法令、Repository policy | Experiment対象ではなく制約として扱う |
+| `Tool Fact` | Official Documentation上のAPI仕様 | 一次情報で確認し、必要に応じてCompatibilityを検証する |
+| `Empirical Claim` | 「このAgent構成は品質を改善する」 | 原則Hypothesisとして検証する |
+| `Anecdotal Observation` | Blog、Conference Talk、個別事例 | 仮説候補として扱う |
 
-B. Deterministic Automation
-   - Vitest
-   - Playwright
-   - Maestro
-   - Contract / Validator
+「外部情報はすべて仮説」と単純化しない。
+一方で、外部のEmpirical ClaimをRepository固有のBest Practiceへ直接昇格させない。
 
-C. Agentic QA
-```
+### 7.2 Intake Record
 
-### 9.2 Development Process比較
-
-Representative Experimentでは以下を比較可能にする。
-
-```text
-A. Human-oriented Development
-   + Conventional QA
-
-B. Agent Development
-   + Deterministic QA
-
-C. Agent Development
-   + Independent Agent QA
-   + Deterministic QA
-   + Agent Repair
-```
-
-### 9.3 Comparison Fairness
-
-可能な限り以下を揃える。
-
-- Same Product Revision
-- Same Task / Challenge
-- Same Specification
-- Same Runtime Target
-- Same Time / Action Budgetまたは差分を明示
-- Same Evaluation Contract
-
-完全に揃えられない場合は制約を記録する。
-
----
-
-## 10. Agent Independence Strategy
-
-AI AgentによるDevelopmentとQAを同一Contextで連続実行する場合、Correlated Failureが起き得る。
-
-そのため、Experimentでは独立性そのものをVariableとして扱う。
-
-Candidate構成:
-
-```text
-Developer Agent
-↓
-Deterministic Gate
-↓
-Fresh / Independent QA Agent
-↓
-Finding
-↓
-Repair Agent
-↓
-Regression Gate
-```
-
-比較対象として以下を持てる。
-
-- Same Agent / Same Context Review
-- Same Model / Fresh Context Review
-- Different Role / Fresh Context Review
-- Gray-box QA
-- Black-box QA
-- Human Acceptance
-
-「常に別Modelを使う」「常にBlack-boxを使う」を現時点では標準化しない。
-
-どの独立性がCost / Recall / Precision / Repair Qualityへ寄与するかを実験対象とする。
-
----
-
-## 11. External Knowledge Intake
-
-### 11.1 対象
-
-外部Knowledge Source候補:
-
-- DORA / Software Delivery Research
-- Quality Engineering Industry Report
-- OpenAI / GitHub / Tool Vendor Official Guidance
-- Playwright / Maestro Official Documentation
-- Academic Paper
-- OSS Repository / Agent Framework
-- Engineering Blog / Conference Talk
-- QA Community Practice
-- 実案件でのObservation
-
-### 11.2 Intake Contract
-
-外部情報は長文要約を蓄積すること自体を目的としない。
-
-最低限以下へ変換する。
+長文要約を蓄積すること自体を目的にしない。
+最低限、次を残す。
 
 ```yaml
 claim:
+claim_class:
 source:
 source_type:
 published_or_observed_at:
@@ -620,17 +550,9 @@ proposed_experiment:
 priority:
 ```
 
-### 11.3 Source Weight
-
-Sourceの権威だけでKnowledge Statusを昇格させない。
-
-一方で、External Evidenceを無視してRepository内Experimentだけに閉じない。
-
-`Triangulated`では、可能な場合に異なるEvidence Sourceを組み合わせる。
-
 ---
 
-## 12. Curriculum Promotion Lifecycle
+## 8. Curriculum Promotion
 
 Experiment Resultを直接Core Curriculumへ反映しない。
 
@@ -639,7 +561,7 @@ Experiment Result
 ↓
 Knowledge Review
 ↓
-Knowledge Maturity Decision
+Recommendation Decision
 ↓
 Curriculum Candidate
 ↓
@@ -650,9 +572,13 @@ Fresh Learner Validation
 Curriculum Release
 ```
 
-### 12.1 Curriculumへ載せる情報
+Experiment Resultの変更とCurriculum変更は原則として別Reviewにする。
+Observationと一般化を同じReviewで承認し、Confirmation Biasを強めることを避ける。
 
-成功手順だけでなく以下を含める。
+CurriculumのLevel、Competency、Required Asset等の具体契約はCurriculum側のSSOTを正とする。
+このPlanは学習段階を再定義しない。
+
+Curriculumへ反映するKnowledgeには、成功手順だけでなく次を含める。
 
 - Why
 - Applicable Conditions
@@ -663,150 +589,194 @@ Curriculum Release
 - Recovery
 - Anti-pattern
 
-### 12.2 Core / Advanced分離
+---
 
-Agentic QAの高度なTrust Boundary、Benchmark、Fresh Session、Isolation等を初心者へ一括で見せない。
+## 9. Field AdoptionとSecurity Boundary
 
-Learning Pathは段階化する。
+実案件へRepository全体をコピーしない。
+必要なPatternだけを段階導入する。
+
+### 9.1 Adoption Stage
 
 ```text
-Level 0
-Manual Test / Test Design / Basic Playwright
-
-Level 1
-Risk / Test Layer / Playwright / CI
-
-Level 2
-Specification / BR / AC / Maestro / Failure Analysis
-
-Level 3
-Agent Development / Agent QA / Review / Repair
-
-Advanced / Research
-Black-box Scored / Isolation / Benchmark / Reproducibility
+Shadow
+↓
+Assist
+↓
+Bounded Agentic
+↓
+Risk-based Autonomy
 ```
 
-Repository内部構造を単純化することと、Learnerが見る範囲を単純化することを混同しない。
+- `Shadow`: Agent ResultをRelease Decisionへ直接使用しない。
+- `Assist`: Human Decision前提でAgentを補助利用する。
+- `Bounded Agentic`: 明示Scope内でImplementation / QA / Repair等をAgenticに実行する。
+- `Risk-based Autonomy`: Low-risk / Well-bounded Taskに限りHuman Interventionを減らす。
+
+Merge、Deployment、Credential、Production Data Mutation等の権限は、このStageだけで自動付与しない。
+案件固有のRisk Decisionを別途必要とする。
+
+### 9.2 Field Pilot開始前のRequired Security Gate
+
+Field Evidenceの機密境界はOpen Questionにしない。
+Public Repositoryへ実案件の機密情報を持ち込まない。
+
+Repositoryへの保存を禁止するもの:
+
+- 顧客Source Code
+- Raw Log
+- Raw Screenshot / Video / Trace
+- Credential / Secret / Token
+- Personal Information
+- Internal URL
+- Confidential Requirement
+- Proprietary Artifact
+- 契約上公開できないProject Metadata
+
+Repositoryへ戻せるもの:
+
+- Sanitized Observation
+- Abstracted Constraint
+- Aggregated Metric
+- Anonymized Failure Pattern
+- Generalized Hypothesis
+- 機密情報を含まないSanitized Evidence Reference
+
+Raw Evidenceが必要な場合は案件側で許可されたStorageへ保持し、
+Repository側には機密情報を含まない抽象化されたReferenceだけを残す。
+
+このGateを満たせないField PilotのEvidenceはPublic Repositoryへ取り込まない。
+
+### 9.3 Field Pilot Record
+
+実案件で「改善した」と判断する場合、可能な限り既存Baselineを持つ。
+最低限、次を記録する。
+
+```yaml
+adopted_pattern:
+field_stage:
+existing_baseline:
+pilot_condition:
+expected_benefit:
+observed_difference:
+known_confounders: []
+actual_failure_or_intervention: []
+training_environment_differences: []
+new_hypothesis:
+```
+
+Correlationを因果として断定しない。
+Field Resultは成功事例だけに限定しない。
 
 ---
 
-## 13. Field Adoption Lifecycle
+## 10. GovernanceとRevalidation
 
-実案件へCurrent Repositoryの全Architectureをそのままコピーしない。
+### 10.1 Logical Roles
 
-必要なPatternのみ段階導入する。
+小規模運用では一人が複数Roleを兼任してよい。
+ただし責務を概念上分離する。
 
-### Stage 1 — Shadow
+| Role | 主な責務 |
+| --- | --- |
+| Experiment Owner | Question、Design、Executionを管理する |
+| Evaluator | ResultをEvaluation Contractに基づいて評価する |
+| Knowledge Reviewer | 一般化、適用範囲、Recommendation変更を判断する |
+| Curriculum Reviewer | Curriculumへの反映可否を判断する |
+| Field Owner | 実案件のRiskと導入Stageを判断する |
 
-```text
-Human Process
-+
-Agent Process
-```
+以下はAgentまたはExperiment Ownerの自己申告だけで確定しない。
 
-Agent ResultをRelease Decisionへ直接使用せず比較Evidenceを取得する。
+- Official Score
+- Ground Truth Match
+- Critical Finding
+- `recommended`への昇格
+- Field Stageの高リスク側への昇格
 
-### Stage 2 — Assist
+独立Reviewerを用意できない場合、その制約をEvidenceへ残す。
 
-```text
-Agent Investigation / Test Generation / QA
-↓
-Human Decision
-```
+### 10.2 Knowledge Revalidation Trigger
 
-### Stage 3 — Bounded Agentic
+Knowledgeには賞味期限がある。
+以下の変化がClaimの成立条件へ影響し得る場合、`recommended`を`stale`へ移し再検証する。
 
-```text
-Agent Implementation
-↓
-Deterministic Gate
-↓
-Independent Agent QA
-↓
-Agent Repair
-↓
-Human Acceptance
-```
+- Agent Model Familyまたは重要なModel Behaviorの変更
+- Agentic ToolのMajor Behavior変更
+- Playwright / Maestro等の重要Tool変更
+- Repository ArchitectureまたはSpecificationの大幅変更
+- Evaluation Contractの重要変更
+- 新しいConflicting Field Evidence
+- 新しい高品質な外部Evidenceとの衝突
 
-ScopeとRiskを限定する。
+すべてのVersion変更で機械的にStale化しない。
+Claimに影響する変更かをKnowledge Reviewerが判断する。
 
-### Stage 4 — Risk-based Autonomy
+### 10.3 Operating Cadence
 
-Low-risk / Well-bounded Taskに限り、Human Interventionをさらに減らす。
+Cadenceは固定ノルマではなく目安とする。
 
-Merge、Deployment、Credential、Data Mutation等の高リスク操作は別Decisionとする。
+- Weekly / Experiment Cycle: Small Experimentを1〜2件程度候補とする。
+- Monthly / Knowledge Review: 十分なEvidenceが蓄積したらKnowledgeを見直す。
+- Quarterly / Field Review: 適切な案件がある場合のみShadow / Assist Pilotを検討する。
 
-### 13.1 Field Feedback Required
+件数達成を目的化しない。
 
-Field Pilotでは最低限以下をRepositoryへ戻す。
+Knowledge Reviewでは、成功数より以下を重視する。
 
-- What was adopted
-- Project constraints
-- Expected benefit
-- Actual benefit
-- Failure / Intervention
-- Metrics available
-- Difference from Training Environment
-- New Hypothesis
-
-Field Resultを成功事例だけに限定しない。
-
----
-
-## 14. Operating Cadence
-
-Cadenceは固定ノルマではなく初期目安とする。
-
-### 14.1 Weekly / Experiment Cycle
-
-- 1〜2件程度のSmall Experimentを候補とする。
-- Repository変更が目的ではなく、Questionへ回答可能なサイズにする。
-- 同一テーマを複数週かけてReproduceしてよい。
-
-### 14.2 Monthly / Knowledge Review
-
-月次または十分なExperimentが蓄積した時点で以下を確認する。
-
-- 何を試したか。
-- 何が再現したか。
-- 何が再現しなかったか。
 - 何を反証したか。
-- どのKnowledge Statusを変更するか。
-- Curriculum Candidateはあるか。
-- Infrastructure追加が本当に必要か。
-- 次に最も価値の高いUnknownは何か。
+- 何が再現しなかったか。
+- 何を以前ほど信じなくなったか。
+- どのUnknownが次の意思決定に最も影響するか。
 
-成功数より「何を以前ほど信じなくなったか」を重視する。
+### 10.4 Stop / Continue
 
-### 14.3 Quarterly / Field Review
+Experiment Loopを無限に回さない。
 
-適切な案件がある場合、1〜2件程度のShadow / Assist Pilotを検討する。
+Continue候補:
 
-案件都合によりQuarter単位で必ずField Pilotを実施する義務は持たない。
+- Evidenceが矛盾している。
+- Reproductionが不足している。
+- Field Relevanceが高い。
+- Decision Impactが大きい。
+
+Stop / Park候補:
+
+- 結果が十分安定している。
+- Decisionへ影響しない。
+- Costに対して得られる情報が小さい。
+- より重要なUnknownがある。
+
+Hypothesisが支持されなかった場合、Promptや条件を無限に調整して成功させることを目的にしない。
+「この条件では成立しなかった」をKnowledgeとして受け入れる。
 
 ---
 
-## 15. Transition Plan
+## 11. Transition Planと初期Experiment
 
-### Phase 0 — Current Foundation Completion
+### 11.1 Phase 0 — Required Foundation Completion
 
-現在進行中のFoundation Implementationを優先する。
+移行GateはPR番号ではなくCapabilityで定義する。
 
-主なCurrent Gate:
+必要なCapability:
+
+- Official Agentic QAをEvidence付きで評価できるScored Capability
+- Screen / Important StateをSpecificationへ接続できるVisual Oracle
+- Formal Regressionと分離されたTraining Environment
+
+Current implementation reference:
 
 - PR #23: Official Black-box Scored E2E
 - PR #24: Screen Catalog / Visual Specification
 - PR #25: Test Automation Curriculum / Training Environment
 
-これらの最終仕様は各PRのReview結果と最新`main`を正とする。
+PR番号は現時点の実装参照であり、Operating Planの永続Gateではない。
+最終仕様は各領域の最新SSOTと`main`を正とする。
 
-このPlanは上記PRのScopeを無断で拡張しない。
+### 11.2 Phase 1 — Stabilization / Feature Freeze
 
-### Phase 1 — Stabilization / Feature Freeze
+Foundation統合後、最新`main`でFull Validationを行う。
 
-Foundation統合後、最新`main`で必要なFull Validationを実施する。
-
-この期間は原則として以下を行わない。
+原則として以下を追加しない。
 
 - 新Agent Framework
 - Custom Runner
@@ -816,180 +786,123 @@ Foundation統合後、最新`main`で必要なFull Validationを実施する。
 - New MCP Proxy / Tool Router
 - Generic Knowledge Management Platform
 
-Critical Bug、Experiment実行を妨げるDefect、Evidence Integrity問題は修正対象とする。
+追加を検討できるのは、実Experimentで次のいずれかがEvidence付きで確認された場合に限る。
 
-### Phase 2 — Experiment Baseline
+- Current Foundationでは必要なExperimentが実行不能。
+- Evidence Integrityを保証できない。
+- 同一Manual Workaroundが反復し、Experiment throughputまたは信頼性を実際に阻害している。
 
-最初のExperiment群を実施する。
+「将来必要そう」「あると便利そう」は根拠にしない。
 
-10〜20件は初期の目安であり、DoDではない。
+### 11.3 Phase 2 — Baseline Experiments
 
-目的は件数達成ではなく、Failure Taxonomy、Record Contract、Metrics、Experiment Granularityが実用的かを検証することにある。
+最初は少数の高価値Experimentを実施し、Experiment Contract自体を検証する。
+件数ノルマは設定しない。
 
-### Phase 3 — Knowledge Consolidation
+初期候補は次の8件とする。
 
-初期Experimentから以下を整理する。
+1. Fresh Context vs Implementation Context継承
+2. Same Agent Review vs Independent Agent Review
+3. Gray-box QA vs Black-box QA
+4. Specificationあり vs Specificationなし
+5. Single Repair Attempt vs Bounded Iterative Repair
+6. Human Test Design vs Agent Test Design
+7. Visual Referenceあり vs Visual Referenceなし
+8. Single Agent vs Specialized Subagents
 
-- Pattern Candidate
-- Anti-pattern Candidate
+この一覧はRequired Task Listではない。
+現在の不確実性、実案件との関連性、意思決定への影響、Experiment Costから優先順位を決める。
+
+### 11.4 Phase 3 — Knowledge Consolidation
+
+初期Experimentから次を整理する。
+
+- Candidate Pattern
+- Candidate Anti-pattern
 - Open Question
 - Conflicting Evidence
-- Taxonomy Revision Need
+- Failure Taxonomy Revision Need
 - Curriculum Candidate
 
-### Phase 4 — Curriculum Update
+### 11.5 Phase 4 — Curriculum Update
 
 Knowledge Reviewで妥当と判断した内容だけをCurriculumへ反映する。
+Fresh Learner Validation等の具体DoDはCurriculum SSOTへ従う。
 
-Fresh Learner Validationを維持する。
-
-### Phase 5 — Field Pilot
+### 11.6 Phase 5 — Field Pilot
 
 適切な実案件へShadowまたはAssistから導入する。
-
 Training Repositoryで成功したことだけを理由にBounded Agentic以上へ進めない。
 
-### Phase 6 — Feedback
+### 11.7 Phase 6 — Feedback
 
 Field Resultから新しいQuestion / Hypothesisを作り、Experimentへ戻す。
 
 ---
 
-## 16. Initial Experiment Backlog
+## 12. Risks / Non-goals / Plan DoD
 
-以下はCandidateであり、Required Task Listではない。
+### 12.1 主要Risk
 
-優先順位はCurrent Unknown、Field Relevance、Experiment Cost、Foundation Readinessから決める。
+#### Infrastructure Developmentへの回帰
 
-### 16.1 Agentic QA
+Experiment開始前にPlatformを作り続けるRiskがある。
 
-1. Gray-box QA vs Black-box QA
-2. Fresh Context vs Implementation Context継承
-3. Same Agent Review vs Independent Agent Review
-4. Specificationあり vs Specificationなし
-5. Visual Referenceあり vs Visual Referenceなし
-6. Deterministic Regression実行前QA vs 実行後QA
-7. Runtime Evidence制限あり vs 広いTool Access
-8. Time / Tool Action Budget Variation
-9. Basic / Intermediate / Advanced Challenge間の性能差
-10. Web vs AndroidでのAgent QA Failure差
+対策:
 
-### 16.2 Agentic Development / Repair
+- Current Artifactを再利用する。
+- Manual Recordを許容する。
+- Evidence付きPain Pointになるまで自動化しない。
 
-11. Single Agent vs Specialized Subagents
-12. Implementation Researchあり vs なし
-13. Test Investigatorあり vs なし
-14. Single Repair Attempt vs Bounded Iterative Repair
-15. QA Findingを直接Repairへ渡す vs ParentがTriagingして渡す
-16. Specification / BR / ACによるImplementation Accuracy差
-17. Test-first Agent Flow vs Implementation-first Agent Flow
-18. Same Model Role Split vs Model Variation
+#### Confirmation Bias
 
-### 16.3 Test Automation
+既存Architectureを正当化するExperimentになるRiskがある。
 
-19. Human Test Design vs Agent Test Design
-20. E2E偏重設計 vs Test Layerを明示した設計
-21. Stable Test IDあり vs User-facing Locator中心
-22. Trace / Screenshot / Video Evidenceの組合せによるFailure Diagnosis差
-23. Playwright ExerciseでのFailure-driven Learning効果
-24. Maestro Native TrainingでのEnvironment Friction分析
+対策:
 
-### 16.4 Process / Education
+- 反証可能なHypothesisを優先する。
+- Comparative / Confirmatoryでは条件を事前固定する。
+- Negative / Conflicting Resultを保持する。
+- Current Architecture自体をVariableにする。
 
-25. Agent-assisted Learner vs AgentなしLearner
-26. Curriculum Level別のInstructor Intervention差
-27. Failure Exerciseあり vs 成功Exerciseのみ
-28. Specification-first Learning vs Automation-first Learning
+#### Curriculumへの早すぎる一般化
 
----
+対策:
 
-## 17. Experiment Prioritization
+- Knowledge Statusを多軸管理する。
+- Curriculum PRを分離する。
+- Fresh Learner Validation等の既存Gateを維持する。
 
-Experiment Candidateは少なくとも以下で優先順位を判断する。
+#### Training EnvironmentとFieldの差
 
-```text
-Priority
-≈
-Field Relevance
-× Decision Impact
-× Uncertainty
-× Reusability
-÷ Experiment Cost
-```
+対策:
 
-厳密な数式評価をRequiredにしない。
+- Field Statusを独立管理する。
+- Shadow / Assistから開始する。
+- Trainingとの差をField Recordへ残す。
 
-優先するのは、結果によって次のArchitecture、Curriculum、Field Practiceの判断が変わるExperimentである。
+#### Metrics Gaming
 
-興味深いだけでDecisionへ影響しないExperimentを大量に回さない。
+対策:
 
----
+- 単一MetricをSuccess KPIにしない。
+- Questionに必要なTrade-offを見る。
 
-## 18. Stop / Continue Decision
+#### Repository Complexity
 
-Experiment Loop自体も無限に回さない。
+対策:
 
-テーマ単位で以下を判断する。
+- Learner-visible PathとResearch Artifactを分離する。
+- Operating Planに実装詳細を複製しない。
 
-### Continue
+#### Knowledge Staleness
 
-- Evidenceが矛盾している。
-- Reproductionが不足している。
-- Field Relevanceが高い。
-- Decision Impactが大きい。
+対策:
 
-### Stop / Park
+- Revalidation Triggerを持つ。
+- Stale KnowledgeをRecommendedのまま放置しない。
 
-- 結果が十分安定している。
-- Decisionへ影響しない。
-- Costに対して得られる情報が小さい。
-- Foundation制約で有効なExperimentができない。
-- より重要なUnknownがある。
-
-### Refute
-
-Hypothesisが支持されなかった場合、別のPromptや条件を無限に調整して成功させることを目的にしない。
-
-「この条件では成立しなかった」をKnowledgeとして受け入れる。
-
----
-
-## 19. Governance / Review Boundary
-
-### 19.1 Experiment Result Review
-
-Experiment OwnerとResult Reviewerを完全分離できる場合は望ましいが、初期運用で常に必須とはしない。
-
-ただし以下は自己申告のみで確定しない。
-
-- Official Score
-- Ground Truth Match
-- Critical Finding
-- Recommended Practiceへの昇格
-
-### 19.2 Curriculum Review
-
-Experiment結果のPRとCurriculum変更PRは原則分離する。
-
-理由は、Observationと一般化を同じReviewで承認するとConfirmation Biasが入りやすいためである。
-
-### 19.3 Field Adoption Review
-
-実案件への導入判断はTraining Repositoryだけで完結しない。
-
-案件固有の以下を別途考慮する。
-
-- Data sensitivity
-- Release risk
-- Regulatory / Contractual constraints
-- Tool availability
-- Existing CI / Test Architecture
-- Team skill
-- Human review capacity
-
----
-
-## 20. Non-goals
+### 12.2 Non-goals
 
 このPlanだけでは以下を実装しない。
 
@@ -1009,119 +922,71 @@ Experiment結果のPRとCurriculum変更PRは原則分離する。
 - 全Metricの自動収集
 - Model性能ランキング自体をRepositoryの目的にすること
 
-必要性がExperiment Evidenceから確認された場合のみ別Planで検討する。
+必要性がExperiment Evidenceから確認された場合のみ、別Planで検討する。
 
----
+### 12.3 Open Questions
 
-## 21. Risks
+以下は初期運用で必要性を確認する。
 
-### Risk 1 — Infrastructure Developmentへの回帰
-
-Experimentを始める前に必要以上のPlatformを作り始める可能性がある。
-
-Mitigation:
-
-- Current Artifactを再利用する。
-- Manual Recordを許容する。
-- 反復作業がEvidence付きPain Pointになるまで自動化しない。
-
-### Risk 2 — Confirmation Bias
-
-既存Agent Architectureを正当化するためのExperimentになる可能性がある。
-
-Mitigation:
-
-- Refutation可能なHypothesisにする。
-- Baselineを置く。
-- Negative Resultを保持する。
-- Current Architecture自体をVariableにできるようにする。
-
-### Risk 3 — Curriculumへの早すぎる一般化
-
-一度の成功が教材の推奨事項になる可能性がある。
-
-Mitigation:
-
-- Knowledge Maturity Gate
-- Curriculum PR分離
-- Fresh Learner Validation
-
-### Risk 4 — Training EnvironmentとFieldの差
-
-Scenario Shopで有効でも実案件で無効な可能性がある。
-
-Mitigation:
-
-- Field-testedを独立Statusとする。
-- Shadow / Assistから導入する。
-- Field ConstraintをEvidenceとして戻す。
-
-### Risk 5 — Metrics Gaming
-
-Recall、Finding数、Automation率等、一つのMetricだけを最適化する可能性がある。
-
-Mitigation:
-
-- Precision / FPR / Cost / Intervention等とのTrade-offを見る。
-- MetricはQuestionに必要なものだけ使用する。
-
-### Risk 6 — Repository Complexity
-
-Research向けArtifactが初心者のLearning Pathを複雑化する可能性がある。
-
-Mitigation:
-
-- Repository内部CapabilityとLearner-visible Pathを分離する。
-- Beginner CurriculumからAdvanced Research Artifactを隠す。
-
----
-
-## 22. Open Questions
-
-以下はPlan Reviewまたは初期Experimentを通して決める。
-
-1. Experiment Recordを既存`.codex/runs`へ統合するか、独立した軽量Directoryを持つか。
-2. Knowledge Maturityの正本をどこに置くか。
+1. Experiment Recordを既存`.codex/runs`へ統合するか、軽量Directoryを持つか。
+2. Knowledge Recordの物理配置をどこにするか。
 3. Failure TaxonomyをMachine-readableにする時期。
-4. External Knowledge IntakeをRepositoryに保存するか、Issue等を利用するか。
+4. External Knowledge IntakeをRepositoryに保存するか、Issue等を使うか。
 5. Human Active Time / Agent Costをどの精度まで収集するか。
-6. Field Evidenceで機密情報をRepositoryへ持ち込まないためのAbstract / Redaction Contract。
-7. Experiment ResultのReviewer IndependenceをどこまでRequiredにするか。
-8. Model RevisionやTool Revisionが変化した際のKnowledge Revalidation Rule。
 
-これらはPlan段階で過剰に固定せず、初期運用で必要性を確認する。
+Field Security BoundaryとRevalidation RuleはOpen Questionから除外し、本PlanのRequired Policyとする。
 
----
+### 12.4 このPlanのDoD
 
-## 23. 次のAction
+このPlanは以下を満たした時点でOperating PlanとしてApprove可能とする。
+
+- RepositoryのNorth Starが一意である。
+- 各既存SSOTとの責務境界が明確である。
+- Experiment ClassとLifecycleが定義されている。
+- Comparative / Confirmatoryの事前固定ルールが定義されている。
+- Agent比較で単一Runから一般結論を出さない原則がある。
+- Human / Automation / Agentを同一Outcomeで比較する原則がある。
+- Evidence / External / Field / Recommendationを分離したKnowledge Modelがある。
+- Knowledge IDとEvidence Traceabilityが定義されている。
+- Failure Taxonomy v1が定義されている。
+- Curriculum Promotion Gateが定義されている。
+- Field Security BoundaryがRequired Gateとして定義されている。
+- Revalidation Triggerが定義されている。
+- Logical Reviewer Roleが定義されている。
+- Foundation完了後のFeature Freeze原則が定義されている。
+- 初期Experimentが少数のCandidateとして定義されている。
+- Experiment Evidenceなしに新しい大規模Infrastructureを追加しない境界がある。
+
+### 12.5 次のAction
 
 このPlanのReview完了前にはExperiment Platform Implementationを開始しない。
 
 順序は以下とする。
 
-1. このPlanを複数回レビューし、目的・境界・過剰設計リスクを詰める。
-2. Current Foundation PR #23〜#25の最終状態を確認する。
+1. このPlanをレビューし、Operating PlanとしてApprove可能な状態にする。
+2. Required Foundationの最終状態を確認する。
 3. 最新`main`へPlanをrebaselineする。
-4. Foundation完了後、Feature Freeze / Stabilizationへ移行する。
-5. 最初のExperimentを1件だけ選ぶ。
+4. Foundation完了後、Stabilization / Feature Freezeへ移行する。
+5. 最初の高価値Experimentを1件だけ選ぶ。
 6. Current Artifactで実行し、不足を実測する。
-7. 不足が本当に反復する場合だけ最小Implementationを別Plan化する。
+7. 不足が反復し、意思決定を妨げる場合だけ最小Implementationを別Plan化する。
 8. Experiment → Knowledge → Curriculum → Field Feedbackを反復する。
 
 ---
 
-## 24. Final Principle
+## Final Principle
 
-このRepositoryにおいて、今後の主要な価値は「どれだけ高度なAgent Frameworkを作ったか」ではない。
+このRepositoryの価値は、どれだけ高度なAgent Frameworkを作ったかではない。
 
 価値は、次の問いへ継続的に回答できることにある。
 
 > AI Agentは、どの条件でDevelopmentとQAへ有効なのか。
 >
-> どの条件では人間、Deterministic Automation、または別のApproachを使うべきなのか。
+> どの条件ではHuman、Deterministic Automation、または別のApproachを使うべきなのか。
 >
 > その判断を再現可能なEvidenceで説明できるか。
 >
 > そのKnowledgeを他者が学び、実案件で安全に再利用できるか。
 
-Repositoryは答えを固定する場所ではなく、**答えを検証し続けるためのTraining / Experiment / Feedback Platform**として運用する。
+Repositoryは答えを固定する場所ではなく、
+**答えを検証し続けるためのTraining / Experiment / Feedback Platform**として運用する。
