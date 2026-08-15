@@ -142,3 +142,9 @@
 - 最初のCapture Case `SCREEN-STOREFRONT-HOME/default/android`で、`native_setup_subflow`がnullのため`SETUP_SUBFLOW`が空となり、Maestroが条件分岐の実行前に`file: ${SETUP_SUBFLOW}`を`Invalid File Path`として拒否した。batchは0/25でcomplete=false、Artifactはcanonical入力に使用しない。
 - setup planのnull意味論、Addressの`customer-seeded-session`、Payment／Confirmの専用subflow、ready assertion、profile strict gateは変更しない。workflowでnullだけを`subflows/native-visual-capture-noop.yaml`へ解決し、1コマンドの無操作subflowを追加する。これはcapture flowの空動的pathを埋める局所修正であり、汎用DSL追加ではない。
 - targeted workflow contract 18/18、全contract 229/229、native component 49/49、typecheck、lint（0 errors／65 existing warnings）、Prettier、diff check、spec validationはPASS。次はRun Artifactを含む必要ファイルを明示stageしてcommit/pushし、新HEADで同一runを再利用せず25件captureを最初から再実行する。
+
+### 2026-08-15 17:10 JST: Automation package resolver readiness
+
+- Run `31873026259`はprofile normalizationをPASSしたが、Automation APK install直後の`am start -W -n com.ryuyoshikawa.scenarioshop/.MainActivity`が`Error type 3`／`Activity ... does not exist`で失敗した。captureはskippedで0/25だった。
+- 同RunのAutomation APKはJavaScript bundleを含み、install／`pm path`成功。同じAPKのmanifestとdexには`com.ryuyoshikawa.scenarioshop.MainActivity`、exported、MAIN／LAUNCHERが存在する。後続Production validationでは同activityが起動しているため、Product UI／APK build／locale failureではなく、install直後のAndroid package resolver readiness不足と分類する。
+- Automation起動前に`cmd package resolve-activity --brief`で対象packageのMainActivityが解決可能になるまで限定的に待ち、未解決なら明示的にfail-closeする。既存の`am start -W`、process alive／logcat fatalチェック、Production起動、profile strict gateは維持する。これは広域retryではなく、起動対象のresolver readinessを確認する局所待機である。

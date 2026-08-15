@@ -411,6 +411,11 @@ describe("Native CI workflow contracts", () => {
     const productionInstall = runtime.slice(productionInstallStart, productionFlowStart);
     const productionFlow = runtime.slice(productionFlowStart);
     expect(automationInstall).toContain('MAIN_ACTIVITY="$PACKAGE_ID/.MainActivity"');
+    expect(automationInstall).toContain("cmd package resolve-activity --brief");
+    expect(automationInstall).toContain("activity_resolution_status=1");
+    expect(automationInstall.indexOf("cmd package resolve-activity --brief")).toBeLessThan(
+      automationInstall.indexOf('shell am start -W -n "$MAIN_ACTIVITY"'),
+    );
     expect(automationInstall).toContain('shell am start -W -n "$MAIN_ACTIVITY"');
     expect(automationInstall).not.toContain("shell monkey");
     expect(productionInstall).toContain("needs.android-production-build.result == 'success'");

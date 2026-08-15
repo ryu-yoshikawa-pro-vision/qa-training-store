@@ -1093,6 +1093,28 @@ jobs:
           timeout 15 "$ADB" logcat -c
           timeout 180 "$ADB" install -r "$APK_PATH"
           timeout 15 "$ADB" shell pm path "$PACKAGE_ID" | grep -F 'package:'
+          activity_resolution_status=1
+          for _ in $(seq 1 15); do
+            set +e
+            resolved_activity="$(timeout 10 "$ADB" shell cmd package resolve-activity --brief \
+              -a android.intent.action.MAIN \
+              -c android.intent.category.LAUNCHER \
+              -p "$PACKAGE_ID" 2>&1)"
+            resolve_status=$?
+            set -e
+            printf '%s\n' "$resolved_activity"
+            if [[ "$resolve_status" -eq 0 ]] \
+              && printf '%s\n' "$resolved_activity" | grep -Fq "$PACKAGE_ID" \
+              && printf '%s\n' "$resolved_activity" | grep -Fq 'MainActivity'; then
+              activity_resolution_status=0
+              break
+            fi
+            sleep 2
+          done
+          if [[ "$activity_resolution_status" -ne 0 ]]; then
+            echo "Android launcher activity was not resolvable after installation." >&2
+            exit 1
+          fi
           timeout 30 "$ADB" shell am start -W -n "$MAIN_ACTIVITY"
           set +e
           timeout 60 bash -c '

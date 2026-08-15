@@ -558,3 +558,10 @@
 - 修正: `.github/workflows/native-ci.yml`で`native_setup_subflow`のnullを`subflows/native-visual-capture-noop.yaml`へ解決し、同flowに`waitForAnimationToEnd`だけを置いた。Capture Caseのsetup semantics、Checkout Addressの`customer-seeded-session`、Payment／Confirm setup、ready条件、Final Visual Gateは変更していない。`tests/contracts/native-ci-workflow.test.ts`でfallbackとflowの存在を固定した。
 - 検証: targeted workflow contract 18/18 PASS、`pnpm run test:contracts` 26 files／229 tests PASS、`pnpm run test:component:native` 12 suites／49 tests PASS、`pnpm run typecheck` PASS、`pnpm run lint` PASS（0 errors／65 existing warnings）、Prettier PASS、`git diff --check` PASS、`pnpm run validate:spec` PASS（94／69／0／25／69）。Final Visual Gateはcapture前のため未再実行で、blocked 25によるEXPECTED FAIL状態を維持する。
 - Progress: 81% (26/32)
+
+## 2026-08-15 17:10 JST
+
+- Run `31873026259`（HEAD `7c17b17e027644f311e3eb16abbc49aac70eb7ea`）は、root capability、rootless effective locale `ja-JP`、API34 canonical profile、Automation APKのdownload／bundle／installをPASSしたが、`Install and launch Automation APK`でfailureした。captureはskipped、0/25である。
+- 完全ログの最初の起動異常は、install成功の約0.1秒後の`am start -W -n com.ryuyoshikawa.scenarioshop/.MainActivity`に対する`Error type 3`／`Activity class ... does not exist`だった。同Run APKのmanifest／dexにはMainActivityとMAIN／LAUNCHERがあり、同Runの後続Production validationではactivityが実際に起動しているため、APK／Product UI／locale defectではなくpackage resolver readiness不足と分類した。
+- 同Runのruntime evidenceは`.artifacts/native-remote/31873026259/`へ保存し、canonicalには使用していない。Visual artifactはcapture skippedのため存在せず、別Run／別SHAのArtifact混用もない。
+- 修正: Automation install後に`cmd package resolve-activity --brief`をpackage／MAIN／LAUNCHER指定で確認し、`com.ryuyoshikawa.scenarioshop`と`MainActivity`が解決できるまで最大15回・2秒間隔で待つ。解決不能時はfail-closeし、その後のみ既存`am start -W`を実行する。contractでresolver-before-startを固定した。

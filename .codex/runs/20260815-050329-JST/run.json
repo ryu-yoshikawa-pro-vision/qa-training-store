@@ -70,7 +70,9 @@
                                     "pnpm run test:component:native (after empty setup subflow repair)",
                                     "pnpm run typecheck (after empty setup subflow repair)",
                                     "pnpm run lint (after empty setup subflow repair)",
-                                    "pnpm run validate:spec (after empty setup subflow repair)"
+                                    "pnpm run validate:spec (after empty setup subflow repair)",
+                                    "Run 31873026259 same-run Automation APK artifact/manifest/dex inspection",
+                                    "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts (resolver readiness contract)"
                                     ],
                        "warnings":  [
                                     "Final Visual GateはAndroid 25 blocked、Captured 69/94のためEXPECTED FAIL",
@@ -89,7 +91,8 @@
                                     "Run 31868358969はadb_shell_id=uid=0(root)、root解除後locale_observation_shell_uid=2000を確認したが、stop/start直後のsettings Binder service未準備でcmd: Can't find service: settingsとなりcapture前にfailure。service check settingsのreadiness待機を最小追加し、新HEADで再captureする",
                                     "Run 31869442478でもroot UID 0とrootless UID 2000を確認したが、service check settingsのgrep -q foundがnot foundに部分一致し、未準備のsettings commandでprofile normalization failure。行末厳密matcherへ修正し、local contract 18/18とfull contract 229/229をPASS",
                                     "Run 31870391806はeffective locale ja-JPと全canonical profileをPASSしたが、Automation APKのinstall/pm path後にmonkeyがNo activities foundでfailure。同Run manifestにはMainActivity/MAIN/LAUNCHERがありProduction APKは起動成功したため、Automationだけam start -Wの明示componentへ変更して再captureする",
-                                    "Run 31871497815はeffective locale ja-JP、canonical profile、Automation明示起動をPASSしたが、最初のHome caseでnull setup subflowがMaestroの空dynamic file path validationによりInvalid File Pathとなった。batchは0/25、complete=falseでcanonicalには不採用。null setupを専用無操作subflowへ解決し、contract 18/18、full contract 229/229、native 49/49を再PASSした"
+                                    "Run 31871497815はeffective locale ja-JP、canonical profile、Automation明示起動をPASSしたが、最初のHome caseでnull setup subflowがMaestroの空dynamic file path validationによりInvalid File Pathとなった。batchは0/25、complete=falseでcanonicalには不採用。null setupを専用無操作subflowへ解決し、contract 18/18、full contract 229/229、native 49/49を再PASSした",
+                                    "Run 31873026259はeffective locale ja-JPとcanonical profileをPASSしたが、同Run Automation APKのinstall直後にam startがError type 3となりcapture skipped。manifest/dexにはMainActivity/MAIN/LAUNCHER、後続Production validationは起動成功だったため、package resolver readiness不足と分類し、cmd package resolve-activityの局所readiness gateを追加する"
                                     ]
                    },
     "safety":  {
