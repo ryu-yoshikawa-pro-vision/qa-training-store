@@ -872,6 +872,7 @@ jobs:
           "$ADB" shell cmd uimode night no
           "$ADB" shell settings put system accelerometer_rotation 0
           "$ADB" shell settings put system user_rotation 0
+          "$ADB" shell wm density 440
           api_level="$($ADB shell getprop ro.build.version.sdk | tr -d '\r')"
           abi="$($ADB shell getprop ro.product.cpu.abi | tr -d '\r')"
           locale_value="$($ADB shell getprop persist.sys.locale | tr -d '\r')"
@@ -897,7 +898,7 @@ jobs:
           font_scale="$($ADB shell settings get system font_scale | tr -d '\r')"
           night_mode="$($ADB shell cmd uimode night | tr -d '\r')"
           resolution="$($ADB shell wm size | sed -n 's/.*Physical size: //p' | head -n 1 | tr -d '\r')"
-          density="$($ADB shell wm density | sed -n 's/.*Physical density: //p' | head -n 1 | tr -d '\r')"
+          density="$($ADB shell wm density | sed -n 's/.*Override density: //p' | head -n 1 | tr -d '\r')"
           effective_orientation="unknown"
           if printf '%s\n' "$effective_config" | grep -Eq '(^|[[:space:]])port([[:space:]]|$)' ; then
             effective_orientation="portrait"

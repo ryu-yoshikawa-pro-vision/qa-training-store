@@ -276,6 +276,8 @@ describe("Native CI workflow contracts", () => {
     expect(runtime).not.toContain('"$ADB" shell stop');
     expect(runtime).not.toContain('"$ADB" shell start');
     expect(runtime).toContain("$ADB shell dumpsys activity activities");
+    expect(runtime).toContain('"$ADB" shell wm density 440');
+    expect(runtime).toContain("Override density:");
     expect(runtime).toContain('effective_locale_observation="dumpsys activity activities"');
     expect(runtime).toContain("grep -Eq '\\[(ja_JP|ja-JP)(,|\\])'");
     expect(runtime).toContain('effective_orientation="unknown"');
