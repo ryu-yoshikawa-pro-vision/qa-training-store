@@ -1,6 +1,6 @@
 # Agentic QA・テスト自動化 QA強化・知見循環計画
 
-- Plan Revision: `v08`
+- Plan Revision: `v09`
 - Status: `Draft / Review Required`
 - Created: 2026-08-15 JST
 - Revised: 2026-08-15 JST
