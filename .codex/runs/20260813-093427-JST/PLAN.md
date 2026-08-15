@@ -91,7 +91,7 @@ Exit Criteria:
 ### 対象と仮説
 
 - P1-1: Current PR HEAD `422d4c39bb764ec18752554dbb75115940e5123e`のNative CI failureは、Expo SDK 57の7つのpatch依存と`expo-constants` overrideの不整合が原因で、Native RuntimeのFailureではない。
-- P1-2: 統合Planに残るFinal Delivery / final HEAD / Delivery Sourceの必須表現をOptional / Future operational validationへ同期すれば、ADR-0013とRequired DoDの矛盾が解消する。
+- P1-2: 統合Planに残るFinal Delivery / final HEAD / Delivery Sourceの必須表現をOptional / Future operational validationへ同期すれば、ADR-0014とRequired DoDの矛盾が解消する。
 - Run Artifact: 過去の完了TaskとREPORT履歴を保持したまま、Task 22〜24で今回のrepair結果とpost-repair exact-head CI pendingを追跡する。
 
 ### Allowed scope
@@ -106,3 +106,29 @@ Windows Local Physical Android、GitHub Native CI API34 Emulator、iOS Build-onl
 ### Repair-loop decision
 
 Expo dependency patch alignment、Plan stale contract cleanup、Run Artifact reconciliationの3 taskを完了後に、local quality gateを実行する。新exact-head Phase 1 / Native CIはユーザーのcommit / push後に確認するため、今回のlocal repairではPASSへ繰り上げない。
+
+## 2026-08-15 — PR #24 + PR #25 latest main integration repair
+
+- Current input: ユーザーがPR #25対象branchへ最新main `6fd393340742170877838bd9d025631895e194fa` を取り込み、HEAD `6aa054b3ed0a7e39f178e3638bef18bb4de903c5`でmerge conflictを発生させた。
+- Goal: PR #24のScreen Catalog / Visual Specification保証と、PR #25のCurriculum / Training Environment保証を意味的に統合する。
+- Allowed files: `.github/workflows/ci.yml`、`.github/workflows/native-ci.yml`、`docs/PROJECT_CONTEXT.md`、`package.json`、`pnpm-lock.yaml`、`scripts/native/windows/android-local.ps1`、`scripts/training/run-maestro-baseline.ts`、`training/maestro/baseline/native-training-baseline.yaml`、`training/github-actions/training-native-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`、`tests/contracts/training-curriculum.test.ts`、`docs/adr/0014-curriculum-pr-required-dod-scope.md`、旧Curriculum ADRの移行、current reference、今回のPlan / Active Run Artifact。
+- Non-goals: Git add / commit / push / merge / rebase、PR操作、Product / Visual実装の巻き戻し、新基盤設計、remote Training Copy Delivery、Windows LocalのEmulator Canonical化。
+- Mandatory repairs: Visual Final GateとCurriculum Gateの共存、Training Web matrix維持、package / lockfile union、Native Formal / Training共通startup helper、standalone runner cleanup、Training `clearState`除去、ADR-0014移行、契約テスト追加。
+- Validation: ユーザー指定のdependency、static、contract、full quality gate、sanitizerをboundedに実行する。post-commit / post-pushの新HEAD CIはユーザーGit操作後の残差とする。
+- Decision boundary: working tree sourceを修正して検証するが、Git indexのunmerged stateは`git add`禁止境界によりユーザーへ返す。未stageをPASSとは扱わない。
+
+## 2026-08-15 — 統合結果追補
+
+- ユーザー操作により merge commit `77ef6b685488c680a3fd24000316ccdf313fe05b` が作成された。parentsはPR #25 original HEAD `6aa054b3ed0a7e39f178e3638bef18bb4de903c5` と最新main `6fd393340742170877838bd9d025631895e194fa`。
+- Source上のconflict markerは0、Gitのunmerged pathは0。merge後に不足していたADR移行、Training standalone cleanup、Training YAML、追加contract、lockfile再生成をworking treeへ反映した。
+- `validate:spec`、`validate:spec-visuals:final`、`validate:curriculum`、lint、typecheck、全contracts、focused contracts、full test、image/security/buildの個別検証はPASS。`format:check`全体と`verify`はorigin/mainと同一の40ファイルのbaseline整形不一致で停止した。
+- `expo-doctor@1.17.6`はExpo API schema fetch timeoutで終了し、コード不整合とは分離した。新merge exact HEADのPhase 1 / Native CIは未取得であり、CI greenまではMerge Readyと判定しない。
+- Git add / commit / pushはAgent自身は実行していない。ユーザー作成のmerge commit以降のworking tree修正をstageし、push後にexact HEAD CIを確認する残差を明記する。
+
+## Repair-loop iteration 4 plan（2026-08-15）
+
+- Finding: Windows作業ツリーで`format:check`が40ファイルを報告し、集約`verify`が5分上限で終了した。
+- Hypothesis: Prettierが報告した対象だけを機械的に正規化すれば、ロジック差分を増やさずformat gateを通過できる。`test`の実測時間を反映した10分上限なら集約verifyも完走する。
+- Allowed files: Prettierが返した40ファイル、既存Active Run、統合Plan。Semantic repair sourceは再変更しない。
+- Stop conditions: Expo Doctorのnetwork timeoutは無目的に再試行しない。新exact HEAD CIはGit操作境界によりユーザーのcommit / push後へ残す。
+- Result: format gate、個別後続gate、10分上限の`pnpm run verify`はPASS。残差はExpo Doctor環境依存failureとpost-push CIのみ。

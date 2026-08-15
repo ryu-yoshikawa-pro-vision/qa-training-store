@@ -1,4 +1,4 @@
-# ADR-0013: Curriculum PRのRequired DoDとTraining Delivery運用境界
+# ADR-0014: Curriculum PRのRequired DoDとTraining Delivery運用境界
 
 - Status: Accepted
 - Date: 2026-08-14

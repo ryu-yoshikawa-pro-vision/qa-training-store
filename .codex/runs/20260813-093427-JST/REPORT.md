@@ -890,3 +890,49 @@ Progress: 90% (18/20)
 - timeout延長、sleep、retry、allow-failure、flow削除、assertion緩和は行っていない。Formal Maestro、Training baseline、CI Emulator、Windows Local Physical Android、iOS Build-onlyの保証境界は変更していない。
 - 今回のNative CI確認をもって、対象HEADのRequired CI pendingは解消した。Active RunのRequired ProgressはTask 14 Deferredを分母外とする`100% (23/23)`を維持し、Final Delivery / remote Training Copy / `FINAL_CANDIDATE_SHA`はRequired scopeへ戻さない。
 - 今後の候補として、Android task teardownとlaunchの競合を別課題で継続観測する。ただし今回のPR #25へ予防的なSource安定化修正は追加しない。
+
+## 2026-08-15 21:35 JST — PR #24 / PR #25 latest main semantic integration
+
+- 開始時点ではPR #25 original HEAD `6aa054b3ed0a7e39f178e3638bef18bb4de903c5`へ最新main `6fd393340742170877838bd9d025631895e194fa`を取り込んだmerge状態で、`.github/workflows/ci.yml`、`.github/workflows/native-ci.yml`、`docs/PROJECT_CONTEXT.md`、`package.json`、`tests/contracts/native-ci-workflow.test.ts`の5ファイルが競合していた。
+- Agentは`git add`、`git commit`、`git push`、`git merge`、`git rebase`、`git reset`を実行していない。作業中にユーザーがmerge commit `77ef6b685488c680a3fd24000316ccdf313fe05b`を作成し、parentsは`6aa054b` / `6fd3933`となった。以後はそのHEADを基準にsemantic repairを継続した。
+- Conflict marker検索は0件、`git diff --name-only --diff-filter=U`は空。Visual側のFinal Gate、Curriculum Gate、Training Web required matrix、Windows Physical Device、Formal startup helper、Training Native helper経路を保持している。
+- Semantic repairは、ADR-0013 Screen Catalogを不変のままCurriculum ADRを0014へ移行、Training baselineから`clearState: true`を除去、standalone runnerへserial解決後のforce-stop→`pm clear` Success確認→force-stop→pidof有限待機を追加、Training contractへ順序を固定、Visual ContractのWindows改行依存テストを最小修正した。
+- Current metadata / evidence_refsはCurriculum側を`docs/adr/0014-curriculum-pr-required-dod-scope.md`へ統一した。REPORT内の旧ADR-0013 pathはappend-onlyの過去記録として残しており、現行canonical pathを示す参照ではない。
+- Dependency repairは`pnpm install --lockfile-only`と`pnpm install --frozen-lockfile`を実行。lockfileのHEAD比差分は2行削除とPR #25由来のyaml importer差分に限定され、指定Expo patch versions / `yaml 2.9.0`を確認した。
+- Validation結果: `pnpm run lint:markdown`、`pnpm run validate:spec`、`pnpm run validate:spec-visuals:final`、`pnpm run validate:curriculum`、`pnpm run lint`（0 errors）、`pnpm run typecheck`、`pnpm run test:contracts`（27 files / 240 tests）、focused native/training contract（2 files / 29 tests）、`pnpm run test`、`validate:image-manifest`、`security:check`、`build:web`、`build:spec`はPASSした。
+- `pnpm dlx expo-doctor@1.17.6`はExpo API schema fetch timeoutで1 checkだけ失敗し、コード不整合とは分離した。`pnpm run format:check` / `pnpm run verify`はorigin/mainと同一の40ファイルの整形不一致で停止した。今回の差分対象は個別Prettier check PASSであり、無関係な一括整形は行っていない。
+- Native実機は今回のsource統合後に新規build/install/runを行っていない。既存RunのPhysical supplemental evidenceを今回HEADのPASSへ繰り上げず、GitHub exact-head Phase 1 / Native CIも未確認とした。
+
+### Repair-loop iteration record
+
+- iteration_number: 3
+- input findings: PR #24 / #25 merge conflict、ADR-0013 duplicate、Formal / Training Android startup contract divergence、Training `clearState` race、package / lockfile union、current run artifact未同期。
+- repair plan: 5 conflict filesを両側の保証のunionとして確認し、Training runner / YAML / contractを最新startup contractへrebaselineし、ADRとRun Artifactをcurrent stateへ更新する。Required Gateは削除せず、global baseline failureは無関係なまま分類する。
+- allowed files: conflict対象、Training startup source / YAML、contract test、ADR / Project Context references、package / lockfile、Active Run、統合Plan。
+- changed files: `.github/workflows/ci.yml`、`.github/workflows/native-ci.yml`、`docs/PROJECT_CONTEXT.md`、`package.json`、`pnpm-lock.yaml`、`scripts/training/run-maestro-baseline.ts`、`training/maestro/baseline/native-training-baseline.yaml`、`tests/contracts/native-ci-workflow.test.ts`、`tests/contracts/training-curriculum.test.ts`、ADR-0014、Active Run、統合Planほか検証上必要な最小修正。
+- validation result: source conflict / unmergedは0。主要local gatesはPASS、global `format:check` / `verify`はorigin/main baseline failure、Expo Doctorはnetwork timeout、post-user-merge exact-head CIは未実行。
+- remaining delta: userがcurrent working treeのADR rename / Training runner / contract / lockfile / Run Artifactをstage・commit・pushし、新exact HEADでPhase 1 CI / Native CIを確認する。Remote Training Copy等はOptional / Futureのため残差に含めない。
+- decision: source_semantic_repair_complete_pending_user_stage_push_ci
+
+## 2026-08-15 21:43 JST — Windows Local Physical Training baseline
+
+- Runbookの`Doctor`をserial `354955112942476`、`-RequirePhysicalDevice`、attempt-id `20260815-214000-training-baseline`で実行し、Node 24、pnpm 9.10.0、Maestro 2.8.0、API 30、arm64系Physical Device、非Emulator条件がPASSした。
+- Product code / APKを今回変更していないため、既存Automation APKのpackage pathを確認し、Build / Installを無目的に再実行せず、`pnpm run training:native:baseline`だけを実行した。Training baselineは1/1 PASSした。
+- Runnerはtarget serialを解決し、force-stop→`pm clear` Success確認→再force-stop→pid消失待機をMaestro前に実行した。Maestro JUnitは`.artifacts/native-local/20260815-214000-training-baseline/maestro/training-baseline/training-native-baseline.xml`に保存された。
+- 実行後は同一Physical serialへforce-stopを行い、package PIDが空であることを確認した。AVD / Emulatorは起動・使用していない。これはWindows Local supplemental validationであり、GitHub exact-head CIの代替にはしない。
+
+## 2026-08-15 22:24 JST — Repair-loop iteration 4: quality gate repair
+
+- Input finding: `pnpm run format:check`が40ファイルで不一致。対象は`pnpm exec prettier --list-different .`が返したファイルに限定し、全体の一括整形やロジック変更は行わない方針とした。
+- Allowed files: Prettierが検出した40ファイルのみ。Run Artifact、ADR、Training runner、契約テスト、lockfile、YAMLのSemantic repairは再変更しない。
+- Repair: 対象40ファイルへ`pnpm exec prettier --write`を実行し、Windows作業ツリーのformat状態を正規化した。`pnpm exec prettier --list-different .`は空となり、`pnpm run format:check`はPASSした。Gitの正規化後content diffは増えていない。
+- Validation: `pnpm run lint:markdown`、`pnpm run validate:spec`、`pnpm run validate:spec-visuals:final`、`pnpm run validate:curriculum`、`pnpm run lint`（0 errors / 65 warnings）、`pnpm run typecheck`、`pnpm run validate:image-manifest`、`pnpm run security:check`、`pnpm run test`（unit 66 / integration 98 / repository 33 / component 49 / contracts 240）、`pnpm run build:web`、`pnpm run build:spec`はPASSした。
+- `pnpm run verify`は初回5分上限ではexit 124となったが、test実測195秒を踏まえた10分上限で1回だけ再実行し、287.4秒でPASSした。後続の無目的なretryは行わない。
+- Remaining delta: `pnpm dlx expo-doctor@1.17.6`のExpo API schema fetch timeout、ユーザーのcommit / push後に行う新exact HEADのPhase 1 / Native CI。前者は環境依存、後者はGit操作境界による未実行として分類する。
+- decision: continue
+
+## 2026-08-15 21:58 JST — 品質ゲート再確認
+
+- `git status --short`で、ユーザー作成のmerge commit後にSemantic repair、ADR-0014、Active Run、統合Planが未commitで残っていることを再確認した。`git diff --name-only --diff-filter=U`は空である。
+- `pnpm run format:check`を最上流gateとして再実行した結果、origin/mainから未変更の既存40ファイルでformat不一致となった。今回の統合差分を一括整形する変更は行わない。
+- したがって現時点で`pnpm run verify`を合格扱いにせず、Semantic repairを含むcommit / pushは保留とした。Expo Doctorのschema fetch timeoutおよび新HEAD CI未確認も既存のRequired blockerとして維持する。

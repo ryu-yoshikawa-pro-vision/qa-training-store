@@ -1,9 +1,9 @@
 {
   "schema_version": 1,
   "run_id": "20260813-093427-JST",
-  "result": "pass",
-  "primary_failure_category": null,
-  "failure_categories": [],
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": ["missing_validation"],
   "dimensions": {
     "task_completion": {
       "rating": "pass",
@@ -27,24 +27,24 @@
       "evidence_refs": [
         {
           "kind": "changed_file",
-          "path": "docs/adr/0013-curriculum-pr-required-dod-scope.md",
+          "path": "docs/adr/0014-curriculum-pr-required-dod-scope.md",
           "summary": "PR #25のRequired DoDとFuture operational validationの境界を記録した。"
         }
       ]
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "Expo Doctor 17/17、format、markdown、spec、curriculum、lint、repository / Training typecheck、focused / full contracts、pnpm run verify、および対象HEAD 2c3ae82bba9b8db0f4d64ef0dbacd2614f37981fのPhase 1 CI #205 / Native CI #148 rerunがPASSした。Native CI rerunではAPI34 Emulator、Formal Maestro、Training Maestro baseline、Production-validation、iOS Build-onlyを確認した。",
+      "evidence": "format、markdown、spec、Final Visual、curriculum、lint、repository / Training typecheck、focused / full contracts、pnpm run verify、image manifest、security、Web build、Spec buildがPASSした。Expo Doctorは今回の実行でExpo API schema fetch timeoutとなり、環境依存failureとして分離した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260813-093427-JST/run.json",
           "selector": "validation.commands",
-          "summary": "今回までのstatic / local validationと対象HEADのRequired CI結果を保持している。"
+          "summary": "今回までのstatic / local validationと、未解消のExpo Doctor環境依存failureを保持している。"
         },
         {
           "kind": "evaluation_note",
-          "summary": "422d4のExpo Doctor failureはhistorical evidenceとして分離し、対象HEADのNative CI rerun successでcurrent findingを解消した。"
+          "summary": "Expo Doctorのschema fetch timeoutはコード不整合と分離し、新exact HEADのCI確認はユーザーのcommit / push後へ残している。"
         }
       ]
     },
@@ -91,7 +91,34 @@
       ]
     }
   },
-  "findings": [],
+  "findings": [
+    {
+      "kind": "required_validation",
+      "status": "open",
+      "summary": "ユーザー作成のmerge commit後のexact HEADについて、Phase 1 CI / Native CIが未実行である。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260813-093427-JST/run.json",
+          "selector": "validation.commands",
+          "summary": "post-merge exact-head CI未実行を記録した。"
+        }
+      ]
+    },
+    {
+      "kind": "environment",
+      "status": "open",
+      "summary": "Expo DoctorのExpo API schema checkはnetwork fetch timeoutで完了しなかった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260813-093427-JST/run.json",
+          "selector": "validation.commands",
+          "summary": "コード不整合ではなく環境依存として分離した。"
+        }
+      ]
+    }
+  ],
   "improvement_candidates": [
     {
       "target": "Training Copy remote operational validation",
@@ -99,7 +126,7 @@
       "evidence_refs": [
         {
           "kind": "changed_file",
-          "path": "docs/adr/0013-curriculum-pr-required-dod-scope.md",
+          "path": "docs/adr/0014-curriculum-pr-required-dod-scope.md",
           "summary": "remote DeliveryをFuture operational validation / optional instructor validationへ分類した。"
         }
       ],

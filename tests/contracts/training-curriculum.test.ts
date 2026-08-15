@@ -28,6 +28,9 @@ describe("Training curriculum contracts", () => {
       resolve(process.cwd(), ".github/workflows/ci.yml"),
       "utf8",
     );
+    const packageManifest = JSON.parse(
+      readFileSync(resolve(process.cwd(), "package.json"), "utf8"),
+    ) as { scripts: Record<string, string> };
 
     expect(trainingConfig).toContain('testDir: "./training/playwright"');
     expect(trainingConfig).toContain("http://127.0.0.1:8082");
@@ -42,6 +45,9 @@ describe("Training curriculum contracts", () => {
     expect(phaseOneWorkflow).toContain(
       "PLAYWRIGHT_BASE_URL: ${{ matrix.name == 'training-web-baseline' && 'http://127.0.0.1:8082'",
     );
+    expect(packageManifest.scripts["typecheck"]).toContain("typecheck:training");
+    expect(packageManifest.scripts["verify"]).toContain("validate:spec-visuals:final");
+    expect(packageManifest.scripts["verify"]).toContain("validate:curriculum");
   });
 
   it("accepts the current Training workflow templates through the structural boundary", () => {
@@ -252,6 +258,56 @@ jobs:
     expect(invocation.args.join(" ")).toContain('"C:\\Training Evidence\\junit.xml"');
     expect(invocation.args.join(" ")).toContain('"C:\\Training Evidence\\flow.yaml"');
     expect(invocation.args.join(" ")).toContain("--device emulator-5554");
+  });
+
+  it("keeps Training Native startup deterministic without clearState race", () => {
+    const root = process.cwd();
+    const runner = readFileSync(resolve(root, "scripts/training/run-maestro-baseline.ts"), "utf8");
+    const baseline = readFileSync(
+      resolve(root, "training/maestro/baseline/native-training-baseline.yaml"),
+      "utf8",
+    );
+    const nativeCi = readFileSync(resolve(root, ".github/workflows/native-ci.yml"), "utf8");
+    const standaloneWorkflow = readFileSync(
+      resolve(root, "training/github-actions/training-native-ci.yml"),
+      "utf8",
+    );
+
+    expect(baseline).toContain("- launchApp\n");
+    expect(baseline).not.toContain("clearState: true");
+    for (const token of [
+      "resolveTrainingAndroidSerial",
+      'process.env.ADB ?? "adb"',
+      "shell: false",
+      'shell", "am", "force-stop", PACKAGE_ID',
+      'shell", "pm", "clear", PACKAGE_ID',
+      'shell", "pidof", PACKAGE_ID',
+      "Android application process did not exit after cleanup",
+      "await cleanupAndroidApplication(targetSerial)",
+    ]) {
+      expect(runner).toContain(token);
+    }
+    const cleanupStart = runner.indexOf("async function cleanupAndroidApplication");
+    const cleanupEnd = runner.indexOf("\n}\n\nasync function run", cleanupStart);
+    const cleanup = runner.slice(cleanupStart, cleanupEnd);
+    expect(cleanup.indexOf('["shell", "pm", "clear", PACKAGE_ID]')).toBeGreaterThan(
+      cleanup.indexOf('["shell", "am", "force-stop", PACKAGE_ID]'),
+    );
+    expect(cleanup.indexOf("await waitForProcessExit(serial)")).toBeGreaterThan(
+      cleanup.indexOf('["shell", "pm", "clear", PACKAGE_ID]'),
+    );
+    expect(runner.indexOf("await cleanupAndroidApplication(targetSerial)")).toBeLessThan(
+      runner.indexOf("const invocation = buildMaestroInvocation"),
+    );
+    const trainingStepStart = nativeCi.indexOf("- name: Run Training Maestro baseline");
+    const trainingStepEnd = nativeCi.indexOf("\n      - name:", trainingStepStart + 1);
+    const trainingStep = nativeCi.slice(
+      trainingStepStart,
+      trainingStepEnd === -1 ? undefined : trainingStepEnd,
+    );
+    expect(trainingStep).toContain("android-maestro-run.sh");
+    expect(trainingStep).not.toContain("maestro test");
+    expect(standaloneWorkflow).toContain("pnpm run training:native:baseline");
   });
 
   it("parses quoted CSV fields and rejects broken workbook references", () => {

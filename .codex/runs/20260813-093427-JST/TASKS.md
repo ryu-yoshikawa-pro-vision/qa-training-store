@@ -25,6 +25,13 @@
 - [x] 22. 最終repair: Expo SDK 57 patch dependency alignmentとExpo Doctor 17/17を実施する
 - [x] 23. 最終repair: 統合Planの旧Final Delivery Required契約をOptional / Future境界へ同期し、stale referenceを分類する
 - [x] 24. 最終repair: 422d4のCI failure、post-repair validation、Run Artifactをcurrent stateへ同期する
+- [x] 25. PR #24 / #25の競合5ファイルを意味的に統合し、両PRのGate / Training契約を保持する
+- [x] 26. package.jsonを統合し、lockfileを再生成してExpo / yaml / Training scriptsを検証する
+- [x] 27. Native CIとstandalone Training runnerを最新startup helperへrebaselineし、Training `clearState`依存を除去する
+- [x] 28. ADR-0013重複をADR-0014へ移行し、Project Contextとcurrent referenceを整合させる
+- [x] 29. Native CI / Training contractへ統合後のstartup・Gate・順序契約を追加する
+- [ ] 30. 指定されたstatic / dependency / contract / full validationを実行する
+- [x] 31. Active Runをappend-onlyで更新し、sanitizerとGit index残差を記録する
 
 ## Discovered
 
@@ -40,6 +47,7 @@
 
 ## Blocked
 
-- なし。過去のFinal Delivery未実施・remote Delivery待ちの記録はREPORT.mdへ保持するが、Owner Decision後のCurrent Required DoD blockerではない。
+- R1. `pnpm dlx expo-doctor@1.17.6`はExpo API schema fetchのネットワークタイムアウトで17/17を完了できていない。コード不整合とは分離し、同一条件の無目的な再試行はしない。
+- R2. Semantic repairを含むcurrent working treeのcommit / push後に、PR #25新HEADのPhase 1 CI / Native CIを確認する必要がある。
 
-Progress: 100% (23/23)
+Progress: 96% (29/30)
