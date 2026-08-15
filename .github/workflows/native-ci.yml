@@ -896,18 +896,22 @@ jobs:
           done
           font_scale="$($ADB shell settings get system font_scale | tr -d '\r')"
           night_mode="$($ADB shell cmd uimode night | tr -d '\r')"
-          rotation="$($ADB shell dumpsys input | sed -n 's/.*SurfaceOrientation: *//p' | head -n 1 | tr -d '\r')"
           resolution="$($ADB shell wm size | sed -n 's/.*Physical size: //p' | head -n 1 | tr -d '\r')"
           density="$($ADB shell wm density | sed -n 's/.*Physical density: //p' | head -n 1 | tr -d '\r')"
+          effective_orientation="unknown"
+          if printf '%s\n' "$effective_config" | grep -Eq '(^|[[:space:]])port([[:space:]]|$)' ; then
+            effective_orientation="portrait"
+          elif printf '%s\n' "$effective_config" | grep -Eq '(^|[[:space:]])land([[:space:]]|$)' ; then
+            effective_orientation="landscape"
+          fi
           case "$night_mode" in
             *yes*) ui_mode="dark" ;;
             *no*) ui_mode="light" ;;
             *) echo "Unable to normalize Android UI mode from: $night_mode" >&2; exit 1 ;;
           esac
-          case "$rotation" in
-            0|2) orientation="portrait" ;;
-            1|3) orientation="landscape" ;;
-            *) echo "Unable to normalize Android orientation from rotation: $rotation" >&2; exit 1 ;;
+          case "$effective_orientation" in
+            portrait|landscape) orientation="$effective_orientation" ;;
+            *) echo "Unable to normalize Android orientation from effective configuration." >&2; exit 1 ;;
           esac
           echo "api_level=$api_level"
           echo "abi=$abi"
@@ -927,7 +931,6 @@ jobs:
           test "$font_scale" = "1.0"
           test -n "$resolution"
           test -n "$density"
-          test -n "$rotation"
           profile_json="$RUNNER_TEMP/android-observed-profile.json"
           jq -n \
             --arg api_level "$api_level" \
