@@ -155,3 +155,10 @@
 - 無操作subflow方式は採用せず、`SETUP_ID`の既知setup IDごとに静的`runFlow.file`を条件付きで記述する。`reset-only`と`customer-seeded-session`はrunFlowなし、guest cart／customer login／checkout address・payment・confirmは既存subflowを静的に呼ぶ。Registry／setup planの意味論、Addressの二重navigation修正、Payment／Confirm専用setupは変えない。
 - `maestro/native-visual-capture.yaml`の動的file参照を除去し、workflowのnull fallbackを元の空値へ戻し、不要なnoop subflowを削除する。contractで6つの静的setup mappingと動的file不在を固定する。
 - D27 local validation: targeted workflow contract 18/18、全contract 229/229、native component 49/49、typecheck、lint（0 errors／65 existing warnings）、Prettier、markdown、diff check、spec、Run Artifact sanitizerはPASS。次は必要ファイルをcommit/pushし、新HEADでprofileから25件captureを再実行する。
+
+### 2026-08-15 17:24 JST: 静的capture subflow内部の相対path不整合
+
+- Run `31875746949`（HEAD `70d1863700971475de98d0feb6149453da951ab0`）は、adb root、rootless UID 2000、effective locale `ja-JP`、API34／google_apis／x86_64／pixel_2、font scale 1、light、portrait、1080x1920、density 440をPASSした。Native Static、Automation Build、Production Build、iOS jobsもPASSした。
+- 最初のHome captureで、静的に呼び出した`maestro/subflows/native-visual-capture-guest-cart.yaml`内の`runFlow: subflows/accept-ios-deep-link.yaml`が、subflowディレクトリ基準で解決されず`Invalid File Path`になった。batchは0/25、`complete=false`であり、同RunのAPK／partial evidenceはcanonicalに使用しない。
+- `native-visual-capture-guest-cart.yaml`、`native-visual-capture-customer-login.yaml`、`native-visual-capture-customer-checkout.yaml`の内部参照だけを`accept-ios-deep-link.yaml`へ修正し、contractでcapture subflowの相対pathを固定する。Product UI、setup semantics、ready assertion、locale strict gate、Final Visual Gateは変更しない。
+- D28としてlocal validation、commit／push後に新HEADでprofileから25件captureを再実行する。異なるHEAD／Runのartifactは混在させない。

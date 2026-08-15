@@ -35,6 +35,10 @@ const localeProvisionFlow = readWorkflow("maestro/android-locale-provision.yaml"
 const customerCheckoutSetupFlow = readWorkflow(
   "maestro/subflows/native-visual-capture-customer-checkout.yaml",
 );
+const guestCartSetupFlow = readWorkflow("maestro/subflows/native-visual-capture-guest-cart.yaml");
+const customerLoginSetupFlow = readWorkflow(
+  "maestro/subflows/native-visual-capture-customer-login.yaml",
+);
 const webUiReview = readWorkflow("e2e/web/ui-review.spec.ts");
 
 describe("Native CI workflow contracts", () => {
@@ -374,6 +378,17 @@ describe("Native CI workflow contracts", () => {
     expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-payment-next"');
     expect(customerCheckoutSetupFlow).toContain('id: "native-checkout-confirm-screen"');
     expect(customerCheckoutSetupFlow).not.toMatch(/^\s+- sleep:/m);
+  });
+
+  it("resolves nested visual-capture subflows relative to their subflow directory", () => {
+    for (const setupFlow of [
+      guestCartSetupFlow,
+      customerLoginSetupFlow,
+      customerCheckoutSetupFlow,
+    ]) {
+      expect(setupFlow).toContain("runFlow: accept-ios-deep-link.yaml");
+      expect(setupFlow).not.toContain("runFlow: subflows/accept-ios-deep-link.yaml");
+    }
   });
 
   it("keeps Android Maestro flows independent while fail-closing the runtime job", () => {

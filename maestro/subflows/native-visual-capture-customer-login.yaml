@@ -1,7 +1,7 @@
 appId: com.ryuyoshikawa.scenarioshop
 ---
 - openLink: "scenario-shop://login"
-- runFlow: subflows/accept-ios-deep-link.yaml
+- runFlow: accept-ios-deep-link.yaml
 - extendedWaitUntil:
     visible:
       id: "native-login-screen"

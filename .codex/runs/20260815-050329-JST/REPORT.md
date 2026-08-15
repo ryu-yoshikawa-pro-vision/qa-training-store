@@ -579,3 +579,17 @@
 - `reset-only`／`customer-seeded-session`はCapture flowでsubflowを実行せず、guest cart、customer login、customer-login-processing、checkout address、checkout payment、checkout confirmの6 setup IDだけを静的file pathへ接続した。動的`file: ${SETUP_SUBFLOW}`とnoop subflowは残していない。
 - 変更は未push。次に必要ファイルを明示stage・commit・pushし、新HEADをSource of TruthとしてNative CI batch captureを再実行する。現時点のvisual countsはTarget 94、Captured 69、Pending 0、Blocked 25、Canonical 69で変化なし。
 - Progress: 82% (29/35)
+
+## 2026-08-15 17:24 JST
+
+- Run `31875746949`（HEAD `70d1863700971475de98d0feb6149453da951ab0`）を同一HEAD／同一Runで確認した。`Normalize Android canonical visual profile`は、root shell UID 0、rootless locale観測UID 2000、effective Configuration由来locale `ja-JP`、API34、google_apis、x86_64、pixel_2、font scale 1、light、portrait、1080x1920、density 440をPASSした。
+- `Capture Android Screen Catalog baseline`はHome caseでfailureした。完全ログの第一原因は、静的に呼び出した`native-visual-capture-guest-cart.yaml`の4行目にある`runFlow: subflows/accept-ios-deep-link.yaml`が、subflow内の相対pathとして無効だったこと（`Invalid File Path`）である。batch manifestは`requested_mode=all`、`expected_case_count=25`、`captured_case_count=0`、`complete=false`。ログは`.artifacts/native-remote/31875746949/android-runtime.log`に保存し、APK／partial artifactはcanonicalに採用しない。
+- 修正対象をcapture用3 subflowの内部相対pathと関連contractに限定した。`accept-ios-deep-link.yaml`を同じ`maestro/subflows`ディレクトリ基準で参照する。locale provisioning、profile strict gate、Addressのsetup semantics、Payment／Confirm専用setup、ready matcher、Final Visual Gateは変更しない。
+- 次はlocal quality gates後、必要ファイルだけcommit／pushし、新HEADをSource of Truthとしてprofileからbatch captureを最初から再実行する。
+- Progress: 81% (29/36)
+
+## 2026-08-15 18:36 JST
+
+- capture subflow相対path修正後のlocal validation: `pnpm run format:check` PASS、workflow contract 19/19 PASS、`pnpm run test:contracts` 26 files／230 tests PASS、`pnpm run test:component:native` 12 suites／49 tests PASS、`pnpm run typecheck` PASS、`pnpm run lint` PASS（0 errors／65 existing warnings）、`pnpm run validate:spec` PASS、`pnpm run lint:markdown` PASS、`git diff --check` PASS、Run Artifact sanitizer 5 files／residual 0 PASS。
+- `validate:spec`のvisual countsは変更前と同じTarget 94、Captured 69、Pending 0、Blocked 25、Canonical 69であり、capture前の期待状態を維持している。
+- 次は必要ファイルを明示stage・commit・pushし、最新HEADに対して新しいNative CI batch runをdispatchする。`31875746949`のpartial evidenceは再利用しない。

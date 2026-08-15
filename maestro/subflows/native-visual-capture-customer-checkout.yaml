@@ -3,7 +3,7 @@ appId: com.ryuyoshikawa.scenarioshop
 - assertVisible:
     id: "native-nav-orders"
 - openLink: "scenario-shop://cart"
-- runFlow: subflows/accept-ios-deep-link.yaml
+- runFlow: accept-ios-deep-link.yaml
 - extendedWaitUntil:
     visible:
       id: "native-persisted-state-ready"
@@ -11,7 +11,7 @@ appId: com.ryuyoshikawa.scenarioshop
 - assertVisible:
     id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"
 - openLink: "scenario-shop://checkout/address"
-- runFlow: subflows/accept-ios-deep-link.yaml
+- runFlow: accept-ios-deep-link.yaml
 - extendedWaitUntil:
     visible:
       id: "native-checkout-address-screen"
