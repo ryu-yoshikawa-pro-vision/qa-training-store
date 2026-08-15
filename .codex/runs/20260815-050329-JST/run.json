@@ -33,7 +33,7 @@
                        "docs/adr/0013-screen-catalog-visual-reference.md"
                       ],
     "validation":  {
-                       "status":  "partial",
+                       "status":  "passed",
                        "commands":  [
                                     "pnpm run format:check",
                                     "pnpm run lint:markdown",
@@ -83,7 +83,19 @@
                                     "pnpm run lint (after static setup mapping repair)",
                                     "pnpm run validate:spec (after static setup mapping repair)",
                                     "pnpm run lint:markdown (after static setup mapping repair)",
-                                    "Run Artifact sanitizer Write/Check (after static setup mapping repair)"
+                                    "Run Artifact sanitizer Write/Check (after static setup mapping repair)",
+                                    "Run 31877515915 exact workflow_dispatch/head/branch verification",
+                                    "Run 31877515915 same-run batch manifest/profile/APK provenance validation",
+                                    "pnpm run apply:android-spec-visuals (25-case all-or-nothing promotion)",
+                                    "pnpm run materialize:spec-visual-references",
+                                    "pnpm run validate:spec (final 94/94)",
+                                    "pnpm run validate:spec-visuals:final (PASS)",
+                                    "pnpm run verify (PASS)",
+                                    "pnpm run check:native-route-dependencies",
+                                    "pnpm run validate:eas:config",
+                                    "pnpm run validate:native-production-bundle",
+                                    "pnpm run test:contracts (final 230 tests)",
+                                    "representative six canonical WebP visual review"
                                     ],
                        "warnings":  [
                                     "Final Visual GateはAndroid 25 blocked、Captured 69/94のためEXPECTED FAIL",
@@ -105,7 +117,8 @@
                                     "Run 31871497815はeffective locale ja-JP、canonical profile、Automation明示起動をPASSしたが、最初のHome caseでnull setup subflowがMaestroの空dynamic file path validationによりInvalid File Pathとなった。batchは0/25、complete=falseでcanonicalには不採用。null setupを専用無操作subflowへ解決し、contract 18/18、full contract 229/229、native 49/49を再PASSした",
                                     "Run 31873026259はeffective locale ja-JPとcanonical profileをPASSしたが、同Run Automation APKのinstall直後にam startがError type 3となりcapture skipped。manifest/dexにはMainActivity/MAIN/LAUNCHER、後続Production validationは起動成功だったため、package resolver readiness不足と分類し、cmd package resolve-activityの局所readiness gateを追加する",
       "Run 31874167949はprofile、Automation起動、resolver readinessをPASSしたが、Maestroが動的file: ${SETUP_SUBFLOW}を値が非空でもInvalid File Pathとして拒否した。batchは0/25、complete=falseでcanonicalには不採用。SETUP_IDごとの静的subflow file分岐へ修正する",
-      "Run 31875746949はprofileとAutomation起動をPASSしたが、静的guest cart capture subflow内のrunFlow: subflows/accept-ios-deep-link.yamlが相対pathとして解決できずHomeで0/25 failure。capture用3 subflowの内部参照を同一ディレクトリ相対へ修正し、新HEADで再captureする"
+      "Run 31875746949はprofileとAutomation起動をPASSしたが、静的guest cart capture subflow内のrunFlow: subflows/accept-ios-deep-link.yamlが相対pathとして解決できずHomeで0/25 failure。capture用3 subflowの内部参照を同一ディレクトリ相対へ修正し、新HEADで再captureする",
+      "Run 31877515915はeffective locale ja-JPと全canonical profileをPASSし、同一Emulatorで25/25 capture、complete=true、同一Run provenance validation、25 WebP promotion、94/94 Final Gate、verifyを完了した"
                                     ]
                    },
     "safety":  {
@@ -144,6 +157,6 @@
                                   }
                   },
     "evaluation_path":  ".codex/runs/20260815-050329-JST/evaluation.json",
-    "status":  "partial",
-    "primary_failure_category":  "artifact_contract_gap"
+    "status":  "completed",
+    "primary_failure_category":  "none"
 }

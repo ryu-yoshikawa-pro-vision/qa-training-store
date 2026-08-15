@@ -50,3 +50,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-BOUNDARY-FORBIDDEN default web-desktop](assets/screens/SCREEN-BOUNDARY-FORBIDDEN/default/web-desktop.webp)](assets/screens/SCREEN-BOUNDARY-FORBIDDEN/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-BOUNDARY-FORBIDDEN default android](assets/screens/SCREEN-BOUNDARY-FORBIDDEN/default/android.webp)](assets/screens/SCREEN-BOUNDARY-FORBIDDEN/default/android.webp)

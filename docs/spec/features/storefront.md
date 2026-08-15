@@ -46,6 +46,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-STOREFRONT-HOME default web-desktop](../assets/screens/SCREEN-STOREFRONT-HOME/default/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-HOME/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-STOREFRONT-HOME default android](../assets/screens/SCREEN-STOREFRONT-HOME/default/android.webp)](../assets/screens/SCREEN-STOREFRONT-HOME/default/android.webp)
+
 ##### `empty-catalog`
 
 ###### Web Desktop
@@ -76,6 +80,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-STOREFRONT-PRODUCT-LIST default web-desktop](../assets/screens/SCREEN-STOREFRONT-PRODUCT-LIST/default/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-PRODUCT-LIST/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-STOREFRONT-PRODUCT-LIST default android](../assets/screens/SCREEN-STOREFRONT-PRODUCT-LIST/default/android.webp)](../assets/screens/SCREEN-STOREFRONT-PRODUCT-LIST/default/android.webp)
 
 ##### `empty`
 
@@ -114,6 +122,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-STOREFRONT-PRODUCT-DETAIL default web-desktop](../assets/screens/SCREEN-STOREFRONT-PRODUCT-DETAIL/default/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-PRODUCT-DETAIL/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-STOREFRONT-PRODUCT-DETAIL default android](../assets/screens/SCREEN-STOREFRONT-PRODUCT-DETAIL/default/android.webp)](../assets/screens/SCREEN-STOREFRONT-PRODUCT-DETAIL/default/android.webp)
+
 ##### `out-of-stock`
 
 ###### Web Desktop
@@ -150,6 +162,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-STOREFRONT-SEARCH default web-desktop](../assets/screens/SCREEN-STOREFRONT-SEARCH/default/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-SEARCH/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-STOREFRONT-SEARCH default android](../assets/screens/SCREEN-STOREFRONT-SEARCH/default/android.webp)](../assets/screens/SCREEN-STOREFRONT-SEARCH/default/android.webp)
+
 ##### `no-results`
 
 ###### Web Desktop
@@ -178,6 +194,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-STOREFRONT-CATEGORY default web-desktop](../assets/screens/SCREEN-STOREFRONT-CATEGORY/default/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-CATEGORY/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-STOREFRONT-CATEGORY default android](../assets/screens/SCREEN-STOREFRONT-CATEGORY/default/android.webp)](../assets/screens/SCREEN-STOREFRONT-CATEGORY/default/android.webp)
 
 ## Acceptance Criteria
 

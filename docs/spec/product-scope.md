@@ -56,6 +56,10 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 [![SCREEN-SUPPORTING-GUIDE default web-desktop](assets/screens/SCREEN-SUPPORTING-GUIDE/default/web-desktop.webp)](assets/screens/SCREEN-SUPPORTING-GUIDE/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-SUPPORTING-GUIDE default android](assets/screens/SCREEN-SUPPORTING-GUIDE/default/android.webp)](assets/screens/SCREEN-SUPPORTING-GUIDE/default/android.webp)
+
 ### SCREEN-SUPPORTING-TERMS — Terms
 
 Screen Catalog: [Screen Catalog](./screen-catalog.md)
@@ -78,6 +82,10 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-SUPPORTING-TERMS default web-desktop](assets/screens/SCREEN-SUPPORTING-TERMS/default/web-desktop.webp)](assets/screens/SCREEN-SUPPORTING-TERMS/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-SUPPORTING-TERMS default android](assets/screens/SCREEN-SUPPORTING-TERMS/default/android.webp)](assets/screens/SCREEN-SUPPORTING-TERMS/default/android.webp)
 
 ### SCREEN-SUPPORTING-PRIVACY — Privacy
 
@@ -102,6 +110,10 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 
 [![SCREEN-SUPPORTING-PRIVACY default web-desktop](assets/screens/SCREEN-SUPPORTING-PRIVACY/default/web-desktop.webp)](assets/screens/SCREEN-SUPPORTING-PRIVACY/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-SUPPORTING-PRIVACY default android](assets/screens/SCREEN-SUPPORTING-PRIVACY/default/android.webp)](assets/screens/SCREEN-SUPPORTING-PRIVACY/default/android.webp)
+
 ### SCREEN-SUPPORTING-COMMERCE — Commerce
 
 Screen Catalog: [Screen Catalog](./screen-catalog.md)
@@ -124,3 +136,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-SUPPORTING-COMMERCE default web-desktop](assets/screens/SCREEN-SUPPORTING-COMMERCE/default/web-desktop.webp)](assets/screens/SCREEN-SUPPORTING-COMMERCE/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-SUPPORTING-COMMERCE default android](assets/screens/SCREEN-SUPPORTING-COMMERCE/default/android.webp)](assets/screens/SCREEN-SUPPORTING-COMMERCE/default/android.webp)

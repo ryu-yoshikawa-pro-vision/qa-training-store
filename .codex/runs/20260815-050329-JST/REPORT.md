@@ -593,3 +593,14 @@
 - capture subflow相対path修正後のlocal validation: `pnpm run format:check` PASS、workflow contract 19/19 PASS、`pnpm run test:contracts` 26 files／230 tests PASS、`pnpm run test:component:native` 12 suites／49 tests PASS、`pnpm run typecheck` PASS、`pnpm run lint` PASS（0 errors／65 existing warnings）、`pnpm run validate:spec` PASS、`pnpm run lint:markdown` PASS、`git diff --check` PASS、Run Artifact sanitizer 5 files／residual 0 PASS。
 - `validate:spec`のvisual countsは変更前と同じTarget 94、Captured 69、Pending 0、Blocked 25、Canonical 69であり、capture前の期待状態を維持している。
 - 次は必要ファイルを明示stage・commit・pushし、最新HEADに対して新しいNative CI batch runをdispatchする。`31875746949`のpartial evidenceは再利用しない。
+
+## 2026-08-15 19:30 JST
+
+- Run `31877515915`（source HEAD `da1db9d0aaeb08c86ce1a37b2c5f4c0781d4c351`）を同一Run／同一HEADで完了確認した。`Android Runtime / Maestro`、`Native Static`、Android Automation／Production Build、iOS jobs、verify jobはsuccess。effective localeはrootless観測で`ja-JP`、canonical profileはAPI34／google_apis／x86_64／pixel_2／font 1／light／portrait／1080x1920／440 densityだった。
+- 同Run artifact `native-android-screen-catalog-visuals-31877515915` と `native-android-apk-31877515915`（実artifact名 `native-android-apk-31877515915`）をdownloadした。`batch.manifest.json`は`requested_mode=all`、expected 25、captured 25、`complete=true`、source SHA一致。Registry expected setとのmissing／duplicate／unexpectedは0、PNG／per-case manifestは各25。
+- Automation APK SHA-256は`87b441a8f2cd64fd6bfac06450c5653559efaf2980b79954992bd65a6adb6065`で全25 manifestと一致。全manifestのprofileも`34|google_apis|x86_64|pixel_2|ja-JP|1|light|portrait|1080x1920|440`で一致した。
+- `pnpm run apply:android-spec-visuals`は全件validation後に`promoted_case_count=25`、`status_transition=captured`を返した。25 WebPをcanonical pathへ反映し、Visual Reference 25件をmaterialize、spec 22 pagesをbuildした。
+- 代表画面目視: Homeはshell／viewport／typographyを確認、Cartはbasic shirt 1 item、Checkout Addressはdefault Address（`Checkoutを開始しました`、resume noticeなし）、PaymentはStep 2／成功選択肢／次へ、ConfirmはStep 3／注文内容／確定 action、Categoryは`カテゴリの商品`専用headingを確認した。
+- `validate:spec` PASS、`validate:spec-visuals:final` PASS、`verify` PASS。最終countsはCapture Target 94、Captured 94、Pending 0、Blocked 0、Canonical Assets 94。追加のnative route dependency、EAS static config、production bundle guardもPASSした。
+- verify後にcontract期待値を現行captured stateへ同期し、全contract 26 files／230 testsを再PASSした。status switchの型安全helperも含め、最終差分を明示stageしてcommit／pushする。
+- Progress: 100% (36/36)

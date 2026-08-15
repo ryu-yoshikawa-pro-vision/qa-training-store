@@ -44,3 +44,7 @@ Screen Catalog: [Screen Catalog](./screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-BOUNDARY-NOT-FOUND default web-desktop](assets/screens/SCREEN-BOUNDARY-NOT-FOUND/default/web-desktop.webp)](assets/screens/SCREEN-BOUNDARY-NOT-FOUND/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-BOUNDARY-NOT-FOUND default android](assets/screens/SCREEN-BOUNDARY-NOT-FOUND/default/android.webp)](assets/screens/SCREEN-BOUNDARY-NOT-FOUND/default/android.webp)

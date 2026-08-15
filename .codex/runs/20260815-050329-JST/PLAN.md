@@ -162,3 +162,12 @@
 - 最初のHome captureで、静的に呼び出した`maestro/subflows/native-visual-capture-guest-cart.yaml`内の`runFlow: subflows/accept-ios-deep-link.yaml`が、subflowディレクトリ基準で解決されず`Invalid File Path`になった。batchは0/25、`complete=false`であり、同RunのAPK／partial evidenceはcanonicalに使用しない。
 - `native-visual-capture-guest-cart.yaml`、`native-visual-capture-customer-login.yaml`、`native-visual-capture-customer-checkout.yaml`の内部参照だけを`accept-ios-deep-link.yaml`へ修正し、contractでcapture subflowの相対pathを固定する。Product UI、setup semantics、ready assertion、locale strict gate、Final Visual Gateは変更しない。
 - D28としてlocal validation、commit／push後に新HEADでprofileから25件captureを再実行する。異なるHEAD／Runのartifactは混在させない。
+
+### 2026-08-15 19:30 JST: canonical batch完了
+
+- 新HEAD `da1db9d0aaeb08c86ce1a37b2c5f4c0781d4c351`のRun `31877515915`を唯一のcapture sourceとして使用した。workflow_dispatch、branch、event、HEADは一致し、Android Runtime／Native Static／Android builds／iOS jobsはsuccessだった。
+- Runtime profileはAPI34、google_apis、x86_64、pixel_2、effective locale `ja-JP`、font scale 1、light、portrait、1080x1920、density 440をPASSした。batch manifestは`requested_mode=all`、expected/captured 25、`complete=true`でRegistryの25 case setと一致した。
+- 同Run visual artifactとAutomation APKだけをdownloadし、25 PNG／25 per-case manifest、source SHA、APK SHA、profileを全件検証した。APK SHA-256は`87b441a8f2cd64fd6bfac06450c5653559efaf2980b79954992bd65a6adb6065`で全manifest一致。apply-batchはall-or-nothingで25 WebPをpromotionし、明示status switchを`captured`へ遷移した。
+- Home、Cart、Checkout Address、Checkout Payment、Checkout Confirm、Categoryを目視確認した。Addressは`Checkout: 配送先`、`Step 1 / 3`、`Checkoutを開始しました`が表示され、resume noticeではなかった。Cartはseeded basic shirt、Payment／Confirmは専用step、Categoryは専用headingを確認した。
+- Visual Reference materialize、spec build、`validate:spec`、`validate:spec-visuals:final`、`verify`、extra native route/EAS/production bundle validationはPASS。countsはTarget/Captured/Pending/Blocked/Canonical = 94/94/0/0/94。
+- 残作業は今回のcanonical asset、registry status、materialized references、status-aware contract test、Run Artifactをcommit／pushし、push後の最新HEAD CIを確認すること。PR mergeは行わない。

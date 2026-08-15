@@ -1,24 +1,24 @@
 {
   "schema_version": 1,
   "run_id": "20260815-050329-JST",
-  "result": "partial",
-  "primary_failure_category": "missing_validation",
+  "result": "pass",
+  "primary_failure_category": "none",
   "failure_categories": [
     "missing_validation",
     "artifact_contract_gap"
   ],
   "dimensions": {
     "task_completion": {
-      "rating": "warn",
-      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。Run 31870391806ではadb root実測、rootless観測、effective locale ja-JP、全canonical profileがPASSしたが、Automation APKのmonkey起動だけがmanifest query failureとなりcapture前に停止した。explicit MainActivity起動へ最小修正し、local contract 18/18、full contract 229/229、native 49/49をPASSした。remote capture、artifact apply、Final Gate PASSは未完了である。"
+      "rating": "pass",
+      "evidence": "Expo Doctorの7件patch mismatchを修正し、Run 31877515915でeffective locale ja-JP、API34 canonical profile、Android 25/25 capture、同一Run artifact/APK provenance、25 WebP promotion、94/94 Final Visual Gate、verify、追加native validationまで完了した。"
     },
     "scope_control": {
       "rating": "pass",
       "evidence": "変更はbatch capture/apply、workflowのlocale補助コマンド、workflow contract、関連docs/run artifactに限定し、Product UI、Native setup、Final Gate、startup helper、Git mutationを行っていない。persist.sys.locale単独判定を避けるeffective Configuration観測を追加した。"
     },
     "validation_confidence": {
-      "rating": "warn",
-      "evidence": "frozen install、expo install --check、expo-doctor 17/17、prebuild、EAS/native bundle/route validation、format、markdown、typecheck、lint、full test（Unit 66、Integration 98、Repository 33、Component 125、Contract 229）、native component 49 tests、web/spec build、image/security checksはPASSした。最新workflow修正後のlocal workflow contract 18 testsとfull contract 229 testsもPASSした。Final GateはAndroid 25 blockedを理由にEXPECTED FAILであり、remoteの新設計runtime proofと実artifact provenanceは未検証である。"
+      "rating": "pass",
+      "evidence": "format、markdown、94/94 spec/final gate、typecheck、lint、image/security、full test（Unit 66、Integration 98、Repository 33、Component 125、Contract 230）、native component 49、web/spec build、EAS/native bundle/route validationがPASSした。"
     },
     "safety_compliance": {
       "rating": "pass",
@@ -33,8 +33,8 @@
       "evidence": "既存manifest validator、visualAssetPath、Maestro flow、Native workflowを再利用し、25 caseのYAML複製やgeneric DSLを追加していない。"
     },
     "reproducibility": {
-      "rating": "warn",
-      "evidence": "Run 31860166187はPR HEAD 028f43600382298e8aaecaf3342426ffe0ca143fに紐づき、API34 Emulator起動後にeffective locale strict判定で失敗した。runtime evidenceの非root dumpsys activity activitiesにen_USが記録され、settings system_localesもnullだったため設計レビューへ停止した。ユーザー確定後のlocal実装は、root設定後にadb unrootしてid -u != 0を確認し、rootless effective Configurationへ戻る。新HEADのremote runtime proofとcaptureが必要である。"
+      "rating": "pass",
+      "evidence": "Run 31877515915でroot capabilityとrootless観測UID 2000、dumpsys activity activities由来effective locale ja-JP、固定API34 canonical profileを確認し、同Runの25件captureへ到達した。"
     }
   },
   "findings": [

@@ -42,6 +42,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-AUTH-LOGIN default web-desktop](../assets/screens/SCREEN-AUTH-LOGIN/default/web-desktop.webp)](../assets/screens/SCREEN-AUTH-LOGIN/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-AUTH-LOGIN default android](../assets/screens/SCREEN-AUTH-LOGIN/default/android.webp)](../assets/screens/SCREEN-AUTH-LOGIN/default/android.webp)
+
 ##### `validation-error`
 
 ###### Web Desktop
@@ -72,6 +76,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-AUTH-SIGNUP default web-desktop](../assets/screens/SCREEN-AUTH-SIGNUP/default/web-desktop.webp)](../assets/screens/SCREEN-AUTH-SIGNUP/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-AUTH-SIGNUP default android](../assets/screens/SCREEN-AUTH-SIGNUP/default/android.webp)](../assets/screens/SCREEN-AUTH-SIGNUP/default/android.webp)
+
 ##### `validation-error`
 
 ### SCREEN-AUTH-ACCOUNT-PROFILE — Account Profile
@@ -96,6 +104,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-AUTH-ACCOUNT-PROFILE default web-desktop](../assets/screens/SCREEN-AUTH-ACCOUNT-PROFILE/default/web-desktop.webp)](../assets/screens/SCREEN-AUTH-ACCOUNT-PROFILE/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-AUTH-ACCOUNT-PROFILE default android](../assets/screens/SCREEN-AUTH-ACCOUNT-PROFILE/default/android.webp)](../assets/screens/SCREEN-AUTH-ACCOUNT-PROFILE/default/android.webp)
 
 ## Acceptance Criteria
 

@@ -285,9 +285,9 @@ describe("Screen Catalog / Visual Contract", () => {
     const result = await validateVisualContract();
     expect(result.issues).toEqual([]);
     expect(result.summary.captureTargetCount).toBe(94);
-    expect(result.summary.capturedTargetCount).toBe(69);
+    expect(result.summary.capturedTargetCount).toBe(94);
     expect(result.summary.pendingTargetCount).toBe(0);
-    expect(result.summary.blockedTargetCount).toBe(25);
+    expect(result.summary.blockedTargetCount).toBe(0);
   });
 
   it("separates structural validation from the fail-closed Final Visual Gate", async () => {

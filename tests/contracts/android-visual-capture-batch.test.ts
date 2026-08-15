@@ -300,7 +300,7 @@ describe("Android canonical visual batch capture contract", () => {
         const output = path.join(rootDir, visualAssetPath(captureCase));
         expect((await stat(output)).size).toBeGreaterThan(0);
       }
-      expect(ANDROID_CANONICAL_CAPTURE_STATUS).toBe("blocked");
+      expect(ANDROID_CANONICAL_CAPTURE_STATUS).toBe("captured");
     } finally {
       await rm(rootDir, { recursive: true, force: true });
     }

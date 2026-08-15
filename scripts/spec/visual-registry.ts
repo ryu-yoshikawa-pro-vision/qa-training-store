@@ -38,9 +38,12 @@ export type CaptureCase = {
 const ANDROID_CAPTURE_BLOCKER =
   "Canonical API34/google_apis/x86_64/pixel_2 capture is blocked in this worktree: the local Release build fails in react-native-nitro-modules CMake prefab command resolution (CreateProcess error 2). The connected physical API30 ARM device is supplemental evidence only and cannot be promoted.";
 
-// This is an explicit execution-state switch. It must remain blocked until a complete,
+// This is an explicit execution-state switch. It may become "captured" only after a complete,
 // provenance-validated Android batch has been promoted from the fixed canonical profile.
-export const ANDROID_CANONICAL_CAPTURE_STATUS: CaptureStatus = "blocked";
+export const ANDROID_CANONICAL_CAPTURE_STATUS: CaptureStatus = "captured";
+
+const blockerReasonForStatus = (status: CaptureStatus): string | null =>
+  status === "blocked" ? ANDROID_CAPTURE_BLOCKER : null;
 
 function createCase(
   screenId: string,
@@ -101,7 +104,7 @@ const android = (
     nativeSetupId,
     nativeReadyId,
     status: ANDROID_CANONICAL_CAPTURE_STATUS,
-    blockerReason: ANDROID_CANONICAL_CAPTURE_STATUS === "blocked" ? ANDROID_CAPTURE_BLOCKER : null,
+    blockerReason: blockerReasonForStatus(ANDROID_CANONICAL_CAPTURE_STATUS),
   });
 };
 

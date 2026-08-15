@@ -47,6 +47,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-STOREFRONT-CART default web-desktop](../assets/screens/SCREEN-STOREFRONT-CART/default/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-CART/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-STOREFRONT-CART default android](../assets/screens/SCREEN-STOREFRONT-CART/default/android.webp)](../assets/screens/SCREEN-STOREFRONT-CART/default/android.webp)
+
 ##### `empty`
 
 ###### Web Desktop

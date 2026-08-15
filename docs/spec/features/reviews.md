@@ -42,6 +42,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-REVIEWS-EDITOR default web-desktop](../assets/screens/SCREEN-REVIEWS-EDITOR/default/web-desktop.webp)](../assets/screens/SCREEN-REVIEWS-EDITOR/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-REVIEWS-EDITOR default android](../assets/screens/SCREEN-REVIEWS-EDITOR/default/android.webp)](../assets/screens/SCREEN-REVIEWS-EDITOR/default/android.webp)
+
 ##### `published`
 
 ###### Web Desktop

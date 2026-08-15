@@ -46,6 +46,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-CHECKOUT-ADDRESSES default web-desktop](../assets/screens/SCREEN-CHECKOUT-ADDRESSES/default/web-desktop.webp)](../assets/screens/SCREEN-CHECKOUT-ADDRESSES/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-CHECKOUT-ADDRESSES default android](../assets/screens/SCREEN-CHECKOUT-ADDRESSES/default/android.webp)](../assets/screens/SCREEN-CHECKOUT-ADDRESSES/default/android.webp)
+
 ##### `empty`
 
 ###### Web Desktop
@@ -76,6 +80,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-CHECKOUT-ADDRESS default web-desktop](../assets/screens/SCREEN-CHECKOUT-ADDRESS/default/web-desktop.webp)](../assets/screens/SCREEN-CHECKOUT-ADDRESS/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-CHECKOUT-ADDRESS default android](../assets/screens/SCREEN-CHECKOUT-ADDRESS/default/android.webp)](../assets/screens/SCREEN-CHECKOUT-ADDRESS/default/android.webp)
+
 ##### `resume-notice`
 
 ###### Web Desktop
@@ -105,6 +113,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-CHECKOUT-PAYMENT default web-desktop](../assets/screens/SCREEN-CHECKOUT-PAYMENT/default/web-desktop.webp)](../assets/screens/SCREEN-CHECKOUT-PAYMENT/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-CHECKOUT-PAYMENT default android](../assets/screens/SCREEN-CHECKOUT-PAYMENT/default/android.webp)](../assets/screens/SCREEN-CHECKOUT-PAYMENT/default/android.webp)
+
 ### SCREEN-CHECKOUT-CONFIRM — Checkout Confirm
 
 Screen Catalog: [Screen Catalog](../screen-catalog.md)
@@ -128,6 +140,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-CHECKOUT-CONFIRM default web-desktop](../assets/screens/SCREEN-CHECKOUT-CONFIRM/default/web-desktop.webp)](../assets/screens/SCREEN-CHECKOUT-CONFIRM/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-CHECKOUT-CONFIRM default android](../assets/screens/SCREEN-CHECKOUT-CONFIRM/default/android.webp)](../assets/screens/SCREEN-CHECKOUT-CONFIRM/default/android.webp)
 
 ##### `stale-cart`
 
@@ -158,6 +174,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-CHECKOUT-PROCESSING default web-desktop](../assets/screens/SCREEN-CHECKOUT-PROCESSING/default/web-desktop.webp)](../assets/screens/SCREEN-CHECKOUT-PROCESSING/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-CHECKOUT-PROCESSING default android](../assets/screens/SCREEN-CHECKOUT-PROCESSING/default/android.webp)](../assets/screens/SCREEN-CHECKOUT-PROCESSING/default/android.webp)
+
 ### SCREEN-CHECKOUT-COMPLETE — Checkout Complete
 
 Screen Catalog: [Screen Catalog](../screen-catalog.md)
@@ -179,6 +199,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-CHECKOUT-COMPLETE default web-desktop](../assets/screens/SCREEN-CHECKOUT-COMPLETE/default/web-desktop.webp)](../assets/screens/SCREEN-CHECKOUT-COMPLETE/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-CHECKOUT-COMPLETE default android](../assets/screens/SCREEN-CHECKOUT-COMPLETE/default/android.webp)](../assets/screens/SCREEN-CHECKOUT-COMPLETE/default/android.webp)
 
 ### SCREEN-CHECKOUT-FAILED — Checkout Failed
 
@@ -202,6 +226,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-CHECKOUT-FAILED default web-desktop](../assets/screens/SCREEN-CHECKOUT-FAILED/default/web-desktop.webp)](../assets/screens/SCREEN-CHECKOUT-FAILED/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-CHECKOUT-FAILED default android](../assets/screens/SCREEN-CHECKOUT-FAILED/default/android.webp)](../assets/screens/SCREEN-CHECKOUT-FAILED/default/android.webp)
 
 ## Acceptance Criteria
 

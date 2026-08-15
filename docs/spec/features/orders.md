@@ -42,6 +42,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 
 [![SCREEN-ORDERS-LIST default web-desktop](../assets/screens/SCREEN-ORDERS-LIST/default/web-desktop.webp)](../assets/screens/SCREEN-ORDERS-LIST/default/web-desktop.webp)
 
+###### Android — Canonical Visual Reference
+
+[![SCREEN-ORDERS-LIST default android](../assets/screens/SCREEN-ORDERS-LIST/default/android.webp)](../assets/screens/SCREEN-ORDERS-LIST/default/android.webp)
+
 ##### `empty`
 
 ###### Web Desktop
@@ -71,6 +75,10 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 ###### Web Desktop
 
 [![SCREEN-ORDERS-DETAIL default web-desktop](../assets/screens/SCREEN-ORDERS-DETAIL/default/web-desktop.webp)](../assets/screens/SCREEN-ORDERS-DETAIL/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-ORDERS-DETAIL default android](../assets/screens/SCREEN-ORDERS-DETAIL/default/android.webp)](../assets/screens/SCREEN-ORDERS-DETAIL/default/android.webp)
 
 ##### `reviewable`
 
