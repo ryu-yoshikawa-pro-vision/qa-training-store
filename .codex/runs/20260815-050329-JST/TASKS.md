@@ -32,7 +32,7 @@
 - [x] D15. Run `31860166187`のlocale normalization failureを実効Configurationのruntime evidenceで確定し、設計レビュー停止条件へ分類する。
 - [x] D16. ユーザー確定のStrategy A/Bに基づき、実測adb root分岐とSettings UI fallbackを実装し、effective locale strict gateを維持する。
 - [x] D17. locale provisioning変更のlocal format／workflow contract／full contract／native／typecheck／lint／spec validationを実行する。
-- [ ] D18. 必要ファイルを明示stageして対象branchへcommit/pushし、remote HEAD一致を確認する。
+- [x] D18. 必要ファイルを明示stageして対象branchへcommit/pushし、remote HEAD一致を確認する。
 - [ ] D19. 新HEADでprofile normalization、25件capture、artifact検証、promotion、Final Gate、最新CI確認まで完了する。
 
 ## Blocked
@@ -40,4 +40,4 @@
 - B1. なし（実装上の未解決ブロッカーはない）。
 - B2. 解消済み（ユーザーがStrategy A: 実測adb root、Strategy B: Settings Locale UI、effective Configuration strict gateの設計を確定）。
 
-Progress: 74% (20/27)
+Progress: 78% (21/27)

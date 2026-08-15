@@ -501,7 +501,9 @@
 - D18（explicit staging・commit・push）へ進む前の未解決差分は、`.github/workflows/native-ci.yml`、`maestro/android-locale-provision.yaml`、`tests/contracts/native-ci-workflow.test.ts`およびRun Artifact更新のみ。canonical asset/statusは未変更。
 - 最終差分確認で、Strategy Aの設定後に`adb unroot`し、rootless shellの`id -u != 0`を観測してからeffective Configurationを読む処理を追加した。これによりroot権限をlocale設定に限定し、locale証拠の観測自体はrootlessであることをruntime logへ残す。
 - Full contractは最終差分で再実行し、26 files／229 testsがPASSした。
-- Progress: 74% (20/27)
+- implementation commit `41ad95b41dace11dae7df47b38d71e0dbd91af7b`を、対象branchへforceなしでpushした。commit前はbranch、status、cached diff、cached diff checkを確認し、stage対象はlocale実装3ファイルとRun Artifact 5ファイルに限定した。
+- 次はremote HEAD／workflow gateをGitHub APIで確認し、HEAD一致のうえでState Bのbatch dispatchへ進む。
+- Progress: 78% (21/27)
 
 ## 2026-08-15 10:39 JST
 
