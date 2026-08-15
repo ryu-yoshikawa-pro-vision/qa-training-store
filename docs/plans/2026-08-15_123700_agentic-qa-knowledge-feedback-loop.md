@@ -1,6 +1,6 @@
 # Agentic QA・テスト自動化 知見循環・実案件還元計画
 
-- Plan Revision: `v04`
+- Plan Revision: `v05`
 - Status: `Draft / Review Required`
 - Created: 2026-08-15 JST
 - Revised: 2026-08-15 JST
@@ -73,7 +73,7 @@ Agent追加、Framework追加、Test Case増加、Automation率、AI生成コー
 - 何を試し、何と比較したか。
 - 何が起き、何が起きなかったか。
 - どの条件で成立し、どの条件では成立しないか。
-- 再現したか、反証されたか、何がまだ不明か。
+- 再現したか、支持されなかったか、反証されたか、何がまだ不明か。
 - Curriculumまたは実案件へ移してよいか。
 
 ---
@@ -203,7 +203,7 @@ AI Agentは非決定的である。
 Run数はQuestion、Cost、Observed Varianceに応じて決めるが、単一Runだけを根拠に
 Agent構成やModelをRecommended Practiceへ昇格させない。
 
-### 3.6 Confirmatoryは「何をもって支持とするか」まで事前固定する
+### 3.6 Confirmatoryは「何をもって支持・反証とするか」まで事前固定する
 
 `study_intent=confirmatory`では、Metricを列挙するだけでは不十分である。
 結果を見る前に最低限以下を固定する。
@@ -213,7 +213,8 @@ Agent構成やModelをRecommended Practiceへ昇格させない。
 - Primary Outcome
 - Secondary Outcomeがある場合の扱い
 - Evaluation Method
-- Decision Rule
+- Support Rule
+- Refutation Rule
 - Minimum Practical Effectまたは意味のある差の基準
 - Aggregation Rule
 - Stop Condition
@@ -224,14 +225,22 @@ Agent構成やModelをRecommended Practiceへ昇格させない。
 
 ```yaml
 primary_outcome: precision
-minimum_practical_effect: "+5 percentage points"
+minimum_practical_effect:
+  value: "+5 percentage points"
+  not_applicable_reason:
 aggregation_rule: median_across_independent_runs
 decision_rule:
   support_if: "precision improves >= 5pp and recall degradation <= 3pp"
+  refute_if: "precision degrades >= 5pp"
+  otherwise: not_supported
 ```
+
+Minimum Practical Effectを合理的に定義できないテーマでは、無理に数値を置かず、
+`not_applicable_reason`をExecution前に記録する。
 
 厳密な統計検定をすべてのExperimentへ必須にはしない。
 ただしResult確認後に都合のよいMetricだけを選んでHypothesis Supportと判定しない。
+また、Support Rule未達を自動的にRefutationへ変換しない。
 
 ### 3.7 事後調整を同一成功として扱わない
 
@@ -341,7 +350,34 @@ Human Baselineを使う場合は、比較可能性に影響する範囲で次を
 Public Repositoryにはparticipant-identifiable performance dataを保存しない。
 Learner / Human dataを保存する場合は匿名化・集計し、個人が特定できない状態にする。
 
-### 4.5 最小Experiment Record
+### 4.5 実行主体と実行条件のIdentityを残す
+
+Experimentを後から再現・比較・再検証できるよう、Raw Experiment Record側でExecutor Identityを保持する。
+Knowledge側の集約情報だけに依存しない。
+
+AI Agentを使用するExperimentでは、取得可能な範囲で最低限以下を記録する。
+
+```yaml
+executor:
+  type:
+  role:
+  model_or_runtime:
+  configuration_ref:
+  prompt_or_skill_ref:
+  context_policy:
+  tool_scope_ref:
+```
+
+- `model_or_runtime`: 実際に使用したModel / Runtime identity。証明できない場合は`unknown`とする。
+- `configuration_ref`: Reasoning、Agent設定、Runner profile等、結果へ影響する設定のReference。
+- `prompt_or_skill_ref`: Prompt / Skill / Agent instructionのRevisionまたはimmutable Reference。
+- `context_policy`: Fresh / inherited、Gray-box / Black-box等、Context条件。
+- `tool_scope_ref`: 利用可能Toolと制約を特定できるReference。
+
+Identityが取得できないこと自体を隠さず`unknown`として記録する。
+HumanまたはDeterministic Automationで該当しないFieldは`not_applicable`としてよい。
+
+### 4.6 最小Experiment Record
 
 初期段階ではDatabaseやExperiment Management Applicationを作らない。
 既存Artifactまたは軽量なMachine-readable Recordを使う。
@@ -363,6 +399,14 @@ optional_capabilities: []
 variants: []
 controlled_variables: []
 environment: {}
+executor:
+  type:
+  role:
+  model_or_runtime:
+  configuration_ref:
+  prompt_or_skill_ref:
+  context_policy:
+  tool_scope_ref:
 design_revision:
 pre_registered_at:
 pre_registration_ref:
@@ -370,8 +414,13 @@ confirmatory_contract:
   primary_outcome:
   secondary_outcomes: []
   minimum_practical_effect:
+    value:
+    not_applicable_reason:
   aggregation_rule:
   decision_rule:
+    support_if:
+    refute_if:
+    otherwise:
 execution:
   planned_run_count:
   completed_run_count:
@@ -391,6 +440,7 @@ next_action:
 ```
 
 `confirmatory_contract`は`study_intent=confirmatory`でRequiredとする。
+AI Agent Experimentでは`executor`をRequiredとし、不明なIdentityは省略せず`unknown`として残す。
 全Experimentで全Metricを収集せず、Questionに必要なものだけRequiredにする。
 
 ---
@@ -398,26 +448,40 @@ next_action:
 ## 5. EvidenceとKnowledge Model
 
 Knowledgeを単一の成熟度階段で管理しない。
-Evidence再現性、外部支持、Field適用、Recommendationを分離する。
+Evidenceの蓄積状態、Claimへの判定、外部支持、Field適用、Recommendationを分離する。
 
-### 5.1 Evidence Status
+### 5.1 Evidence State
 
-| Status | 定義 |
+Evidence StateはClaimに対する結論ではなく、Evidenceがどの程度蓄積・再現しているかを表す。
+
+| State | 定義 |
 | --- | --- |
-| `hypothesis` | 未検証 |
-| `observed` | Claimを支持する現象を条件とEvidence付きで1回以上観測 |
-| `reproduced` | Claimを支持する現象が独立Runで複数回再現 |
-| `refuted` | 事前定義したDecision Ruleに基づきClaimが支持されない、または反証された |
-| `conflicting` | 有効な支持Evidenceと反証Evidenceが矛盾 |
-
-`refuted`は「一度失敗した」だけを意味しない。
-Confirmatory Decision Rule、複数Evidence、または十分な反証Evidenceに基づいて判断する。
+| `none` | 有効なExperiment Evidenceがない |
+| `observed` | 条件とEvidence付きで1回以上観測 |
+| `reproduced` | 独立Runで複数回再現 |
+| `conflicting` | 有効なEvidence同士が矛盾している |
 
 同一RunのRetry、実質同一Contextの再試行、失敗後に条件調整した成功だけでは`reproduced`としない。
 
-### 5.2 Replication Scope
+### 5.2 Claim Assessment
 
-`reproduced`であっても、どの範囲で再現したかを分けて記録する。
+Claim AssessmentはEvidenceからHypothesis / Claimをどう評価したかを表す。
+Evidence Stateとは別に管理する。
+
+| Assessment | 定義 |
+| --- | --- |
+| `untested` | 有効な判定をまだ行っていない |
+| `supported` | 事前定義したSupport Ruleまたは十分なEvidenceによりClaimを支持 |
+| `not_supported` | Support Ruleを満たさないが、反対命題まで支持するEvidenceはない |
+| `refuted` | 事前定義したRefutation Ruleまたは十分な反証EvidenceによりClaimを反証 |
+| `inconclusive` | Conflict、Evidence不足、その他の理由で支持・反証を判定できない |
+
+`not_supported`と`refuted`を同一視しない。
+Support Rule未達だけを理由にClaimを`refuted`へ移さない。
+
+### 5.3 Replication Scope
+
+`evidence_state=reproduced`であっても、どの範囲で再現したかを分けて記録する。
 
 ```yaml
 replication_scope:
@@ -431,7 +495,7 @@ replication_scope:
 同一条件での再現と、異なるTask / Platform / Modelでの再現を同じ強さとして扱わない。
 Recommendation Scopeの判断ではReplication Scopeも確認する。
 
-### 5.3 External Support
+### 5.4 External Support
 
 | Status | 定義 |
 | --- | --- |
@@ -441,7 +505,7 @@ Recommendation Scopeの判断ではReplication Scopeも確認する。
 | `conflicting` | 主要外部Evidenceと衝突 |
 | `not_applicable` | 外部支持が不要または適用不能 |
 
-### 5.4 Field Status
+### 5.5 Field Status
 
 | Status | 定義 |
 | --- | --- |
@@ -454,7 +518,7 @@ Recommendation Scopeの判断ではReplication Scopeも確認する。
 Field Statusは一方向の成熟度ではない。
 Evidence、Risk、重大Failure、Environment変更に応じて維持・昇格・降格できる。
 
-### 5.5 Recommendation StatusとScope
+### 5.6 Recommendation StatusとScope
 
 Recommendationは、どこで推奨するかをScopeごとに管理する。
 
@@ -485,7 +549,7 @@ Repository内で再現しただけで`field: recommended`にしない。
 Field一般推奨には、適用条件が異なる実案件Evidenceまたは同等に強いField Evidenceを要求する。
 単一案件の成功は、その案件条件でのField Evidenceであり、他案件への一般化を自動的に正当化しない。
 
-### 5.6 Atomic Knowledge ClaimとPractical Effect
+### 5.7 Atomic Knowledge ClaimとPractical Effect
 
 Knowledge Claimは反証可能な最小単位にする。
 「Fresh ContextはAgentic QAを改善する」のような広すぎるClaimを避ける。
@@ -506,6 +570,8 @@ conditions: []
 effect:
   observed:
   practical_threshold:
+    value:
+    not_applicable_reason:
 ```
 
 例:
@@ -513,12 +579,13 @@ effect:
 > Web Black-box QAにおいて、Fresh ContextはInherited Contextと比較してPrecisionを実務上意味のある水準で改善する。
 
 0.1ポイントの差と、意思決定を変える差を同じ`improve`として扱わない。
-可能なテーマでは`practical_threshold`を持ち、差の存在だけでなく実務上の意味を判断する。
+適用可能なテーマでは`practical_threshold.value`を持ち、差の存在だけでなく実務上の意味を判断する。
+適用不能なテーマでは`not_applicable_reason`を残す。
 
 異なるOutcome、Platform、QA Modeで結果が分かれる場合は、無理に1つのClaimへまとめず別Knowledgeとして管理する。
 上位Patternが必要な場合は複数のAtomic Knowledgeを参照して別途一般化する。
 
-### 5.7 Knowledge IdentityとFamily Traceability
+### 5.8 Knowledge IdentityとFamily Traceability
 
 再利用するKnowledgeにはIdentityとTraceabilityを持たせる。
 
@@ -530,7 +597,8 @@ conditions: []
 effect: {}
 applies_to: []
 does_not_apply_to: []
-evidence_status:
+evidence_state:
+claim_assessment:
 replication_scope: {}
 external_support:
 field_status:
@@ -551,21 +619,23 @@ supersedes: []
 superseded_by: []
 ```
 
-Knowledge Reviewでは`evidence_refs`だけでなく`experiment_family_refs`も確認し、
-同一FamilyのNegative / Invalid Evidenceを意図的に無視しない。
+Knowledge Reviewでは`evidence_refs`と手書きされた`experiment_family_refs`だけに依存しない。
+Canonical Experiment Record Locationを検索し、参照対象の`experiment_family_id`を持つ全Recordを確認して、
+同一FamilyのNegative / Invalid Evidenceを意図的または偶発的に除外しない。
 
 物理保存先は初期運用で決めてよいが、Knowledge ID、Experiment Family、Evidence Referenceは省略しない。
 
-### 5.8 Recommendation昇格
+### 5.9 Recommendation昇格
 
 `recommended`は単一Statusだけで決めない。最低限次を確認する。
 
+- Claim Assessmentが`recommended`の根拠として妥当な`supported`である。
 - 複数Runまたは複数条件でEvidenceが支持される。
 - Replication ScopeがRecommendation Scopeに対して十分である。
 - 重大なConflicting Evidenceが未整理で残っていない。
 - Applicable / Non-applicable Conditionsを説明できる。
 - Failure SignとRecovery / Rollbackを説明できる。
-- Practical Effectが意思決定上十分である。
+- Practical Effectが意思決定上十分、または適用不能理由が妥当である。
 - Recommendation Scopeに必要なExternal / Field Evidenceがある。
 
 `recommended`への昇格はIndependent Knowledge ReviewをRequiredとする。
@@ -681,14 +751,17 @@ Curriculum Release
 Core / Practice Curriculumでは、原則として`candidate`以上のKnowledgeを扱い、
 推奨Practiceとして教える内容は`training: recommended`を要求する。
 
-`refuted`または`deprecated`なKnowledgeは、推奨手順ではなくAnti-pattern / Failure Lessonとして利用できる。
+`claim_assessment=refuted`またはRecommendationが`deprecated`なKnowledgeは、
+推奨手順ではなくAnti-pattern / Failure Lessonとして利用できる。
 
 ### 8.2 Advanced / Research Curriculum
 
-`experimental`、`conflicting`、`refuted`なKnowledgeも、研究課題・比較演習・Failure Analysis教材として利用できる。
+Recommendationが`experimental`なKnowledge、`evidence_state=conflicting`なKnowledge、
+`claim_assessment=not_supported / refuted / inconclusive`なKnowledgeも、
+研究課題・比較演習・Failure Analysis教材として利用できる。
 ただし以下をRequiredとする。
 
-- 未確定または反証済みKnowledgeであることを明示する。
+- 未確定、未支持、反証済み、または矛盾中のKnowledgeであることを明示する。
 - Best Practiceとして教えない。
 - Learnerに既知の結論があるように見せない。
 - Experiment Family / Evidenceへ辿れるReferenceを持つ。
@@ -806,12 +879,16 @@ Human Reviewer、Fresh Independent Agent、別担当Reviewerのいずれも利�
 
 - Agent Model Familyまたは重要Behavior変更
 - Agentic ToolのMajor Behavior変更
+- Prompt / Skill / Agent configurationの重要変更
+- Context Policy / Tool Scopeの重要変更
 - Playwright / Maestro等の重要Tool変更
 - Repository Architecture / Specificationの大幅変更
 - Evaluation Contractの重要変更
 - 新しいConflicting Field Evidence
 - 高品質な外部Evidenceとの衝突
 
+Raw Experimentの`executor` IdentityとKnowledgeの`validated_against`を用いて、
+どのKnowledgeが変更影響を受けるかを判断する。
 すべてのVersion変更で機械的にStale化せず、Claimへの影響をKnowledge Reviewerが判断する。
 
 ### 10.4 Cadenceと停止判断
@@ -852,7 +929,7 @@ Current implementation reference:
 PR番号は現時点の実装参照であり、永続Gateではない。最終仕様は各SSOTと最新`main`を正とする。
 
 これらをRepository全体の一括Blocking Gateにしない。
-各Experimentが必要なCapabilityだけを`required_capabilities`として宣言し、そのCapabilityがReadyであれば進める。
+各Experimentが必要なCapabilityだけを`required_capabilities`として宣言し、そのCapabilityが利用可能なら進める。
 
 例:
 
@@ -869,7 +946,7 @@ Blocked CapabilityはそのCapabilityを必要とするExperimentだけをBlock�
 
 ### 11.2 Capability ReadinessはEvidenceで判定する
 
-`Ready`を自己申告だけで決めない。
+Readinessを自己申告だけで決めない。
 Experiment開始時に必要Capabilityについて最低限以下を確認する。
 
 ```yaml
@@ -882,9 +959,12 @@ known_limitations: []
 ```
 
 - `ready`: 対象Experimentに必要なContractをValidation Evidence付きで満たす。
-- `degraded`: 一部制約があるが、Experiment Design上明示すれば利用可能。
+- `degraded`: 一部制約があるが、Known LimitationがPrimary OutcomeまたはEvidence Integrityを損なわず、
+  Experiment Design上その影響を説明できる場合に限りRequired Capabilityとして利用できる。
 - `blocked`: 必須Contractを満たせず、そのCapabilityをRequiredとするExperimentは実行不可。
-- `unknown`: Readiness Evidenceが不足している。
+- `unknown`: Readiness Evidenceが不足しているためRequired Capabilityとして利用しない。
+
+`degraded`の制約がPrimary OutcomeやEvidence Integrityへ影響する場合は、そのExperimentに対しては`blocked`相当とする。
 
 新しいCapability Registryを作ることはRequiredにしない。
 既存SSOT、CI、Validation ArtifactをReferenceとして利用する。
@@ -913,7 +993,8 @@ New MCP Proxy / Tool Router、Generic Knowledge Management Platformを追加し�
 - Experiment / Knowledge / Experiment Family ID Convention。
 - Pre-registration Reference方式。
 - Evidence Reference方式。
-- 対象ExperimentのRequired Capability Ready確認とValidation Reference。
+- Executor IdentityのReference方式。
+- 対象ExperimentのRequired Capability Ready / Degraded確認とValidation Reference。
 - Evaluator / Knowledge Reviewer。
 - Security / Sanitization要件。
 
@@ -964,9 +1045,11 @@ Training Repositoryで成功したことだけを理由にBounded Agentic以上�
 | Risk | 対策 |
 | --- | --- |
 | Infrastructure開発へ戻る | Current Artifact再利用、Manual Record許容、Evidence付きPain Pointまで自動化しない |
-| Confirmation Bias | 反証可能なHypothesis、Decision Rule事前固定、immutable pre-registration reference |
-| Result Selection Bias | Experiment FamilyでNegative Evidenceを保持し、FailureとProtocol Invalidを分離 |
+| Confirmation Bias | 反証可能なHypothesis、Support / Refutation Rule事前固定、immutable pre-registration reference |
+| Result Selection Bias | Experiment Family全Recordを確認し、FailureとProtocol Invalidを分離 |
+| Claim Overstatement | `not_supported`と`refuted`を分離し、Support未達を反証へ変換しない |
 | Metric Cherry-picking | Primary Outcome、Practical Threshold、Aggregation / Decision Ruleを事前固定 |
+| Execution Identity Loss | Model / Prompt / Skill / Context / Tool ScopeをRaw Experimentへ記録 |
 | Curriculumへ早期一般化 | Core / Research Curriculum分離、Knowledge Review、別PR |
 | TrainingとFieldの差 | Field Status分離、Shadow / Assist、差分記録 |
 | Metrics Gaming | 単一Metric最適化を避けTrade-offを見る |
@@ -994,7 +1077,7 @@ Plan Approval時点で未確定でもよいが、11.4のExperiment Readiness Gat
 5. Human Active Time / Agent Costの収集精度。
 
 Field Security Boundary、Participant Data Boundary、Pre-registration Traceability、Experiment Family Traceability、
-Confirmatory Decision Rule、Revalidation RuleはOpen QuestionではなくRequired Policyとする。
+Confirmatory Decision Rule、Executor Identity、Revalidation RuleはOpen QuestionではなくRequired Policyとする。
 
 ### 12.4 Plan DoD
 
@@ -1003,23 +1086,27 @@ Confirmatory Decision Rule、Revalidation RuleはOpen QuestionではなくRequir
 - North Starと既存SSOT境界が一意である。
 - Study Intent / Design Type / Contextが分離されている。
 - Experiment Lifecycleと事前固定ルールがある。
-- ConfirmatoryにPrimary Outcome / Decision Rule / Practical Effect / Aggregation Ruleがある。
+- ConfirmatoryにPrimary Outcome / Support Rule / Refutation Rule / Practical Effect / Aggregation Ruleがある。
+- Practical Effectが適用不能な場合に事前理由を記録できる。
 - Pre-registrationの実行前Revisionを追跡できる。
 - Experiment Family / LineageでPositive / Negative Evidenceを束ねられる。
+- Knowledge ReviewでCanonical Location上の同一Family全Recordを確認する。
 - FailureとProtocol Invalid Runの境界がある。
 - Agent比較の反復原則と同一Outcome比較原則がある。
-- Evidence Statusに`refuted`がある。
+- Evidence StateとClaim Assessmentが分離されている。
+- `not_supported`と`refuted`が区別されている。
 - Replication Scopeを区別できる。
-- Evidence / External / Field / Recommendationを分離したKnowledge Modelがある。
+- Evidence / Claim / External / Field / Recommendationを分離したKnowledge Modelがある。
 - Recommendation ScopeがRepository / Training / Fieldで分離されている。
 - Atomic Knowledge Claim、Practical Effect、Evidence Traceabilityがある。
+- AI Agent ExperimentでModel / Prompt / Skill / Context / Tool Scope等のExecutor Identityを残す。
 - `recommended`昇格にIndependent Reviewが必要であり、独立性の最低条件がある。
 - Failure Taxonomy v1がある。
 - Core / PracticeとAdvanced / Research CurriculumのPromotion Ruleがある。
 - Field Security BoundaryとParticipant Data BoundaryがRequired Gateである。
-- Revalidation Triggerがある。
+- Revalidation TriggerがExecutor Identityの変更も考慮する。
 - Foundation CapabilityがExperiment単位のDependency Gateである。
-- Capability ReadinessをValidation Evidenceで判定する。
+- Capability ReadinessをValidation Evidenceで判定し、`degraded`利用条件が明確である。
 - Experiment Readiness Gateがある。
 - Experiment Evidenceなしに大規模Infrastructureを追加しない。
 
