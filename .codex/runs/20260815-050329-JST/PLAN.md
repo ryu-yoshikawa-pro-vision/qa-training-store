@@ -73,3 +73,10 @@
 - Expo Doctorの再確認で、対象は前回CIログと同じ7 packageだけだった。`expo-constants` overrideは既存の依存解決固定として維持し、direct dependencyと`57.0.11`へ同期する最小修正を採用した。
 - 更新後の`expo install --check`と`expo-doctor@1.17.6`はPASSし、prebuild、Native bundle/config、route dependency、Native component、contract、typecheck、lintもPASSした。Final GateはAndroid capture未実行のblocked 25だけが残るため、依存修正成功とは分離してEXPECTED FAILのまま扱う。
 - 今iterationのdecisionは`stop_needs_human`。新しい依存変更をActions dispatchへ反映するには、ユーザーによるcommit/pushが必要であり、push前のremote captureやartifact混在は行わない。
+
+### 2026-08-15 09:04 JST
+
+- Run `31850993052`はAPI34 emulator起動、Android APK build、Native Static/Expo Doctorを通過したが、`Normalize Android canonical visual profile`で失敗した。
+- 完全ログで`adb shell setprop persist.sys.locale ja-JP`が`Failed to set property`（exit 1）となり、`set -e`によりstop/startと厳格なlocale convergence validationへ到達していないことを確認した。Captureは未実行で、artifact/APKをcanonical入力には使わない。
+- 修正方針は現行locale設計を拡張せず、`setprop`の権限拒否だけをbest-effort扱いにすること。`settings put system system_locales ja-JP`、stop/start、boot wait、`persist.sys.locale`/`system_locales`のja-JP検証、profile validatorは維持する。検証失敗時は引き続きfail-closeする。
+- local workflow Prettier、Expo Doctor、Native/config、component/contracts、typecheck/lint、structural validationはPASS。Final Gate/verifyはblocked 25 / captured 69/94のみでEXPECTED FAIL。新修正をpush後に新HEADでState Bを最初から再実行する。

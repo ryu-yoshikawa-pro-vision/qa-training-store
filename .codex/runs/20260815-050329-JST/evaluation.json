@@ -10,11 +10,11 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。依存修正を含む新HEADのremote capture・artifact apply・Final Gate PASSは、ユーザーpush前のため未実行である。"
+      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。新HEADのRun 31850993052はprofile normalizationで失敗し、capture/artifact apply/Final Gate PASSは未完了である。"
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "変更はbatch capture/apply、workflow contract、関連docs/run artifactに限定し、Product UI、Native setup、Final Gate、startup helper、Git mutationを行っていない。"
+      "evidence": "変更はbatch capture/apply、workflowのlocale補助コマンド、workflow contract、関連docs/run artifactに限定し、Product UI、Native setup、Final Gate、startup helper、Git mutationを行っていない。"
     },
     "validation_confidence": {
       "rating": "warn",
@@ -22,7 +22,7 @@
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "partial/incomplete batchをapply拒否し、canonical outputをvalidation後に限定し、Final Visual Gateを緩和せず、Git/PR操作とworkflow dispatchを行っていない。"
+      "evidence": "partial/incomplete batchをapply拒否し、canonical outputをvalidation後に限定し、Final Visual Gateを緩和せず、Git/PR mutationは行っていない。Actions workflow_dispatchはユーザー許可範囲でRun 31850993052へ1回実施した。"
     },
     "reviewability": {
       "rating": "pass",
@@ -34,7 +34,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "remote gateとHEAD一致dispatchの再現経路は確認でき、現HEADにはlocale repairが存在する。今回の依存patchを含む新SHAは未pushのため、Actions captureは未実行である。"
+      "evidence": "remote gateとHEAD一致dispatchの再現経路は確認できたが、Run 31850993052はsetprop権限拒否でprofile normalization failure。local locale patchは検証済みだが未pushで、新HEADの再captureが必要である。"
     }
   },
   "findings": [
@@ -55,6 +55,12 @@
       "severity": "high",
       "evidence": "依存patch修正後のlocal gateはPASSしたが、その変更を含むremote HEADのActions batch capture、25件artifact provenance、promotion、Final Gate PASSは未実行である。",
       "detail": "ユーザーのcommit/push後に新HEADをsource of truthとしてState Bを再開する。古いRun 31841614738のartifactは再利用しない。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Run 31850993052のAndroid Runtime job 94928353459はAPI34 emulator起動とAPK install後、`adb shell setprop persist.sys.locale ja-JP`の権限拒否でNormalize Android canonical visual profileがfailureとなった。",
+      "detail": "既存のsettings/stop-start/convergence validationを維持し、setprop補助コマンドだけをbest-effort化した。profile値のstrict検証は残したため、修正push後に新HEADで25件を最初からcaptureする。"
     }
   ],
   "improvement_candidates": []
