@@ -1,7 +1,6 @@
 appId: com.ryuyoshikawa.scenarioshop
 ---
-- launchApp:
-    clearState: true
+- launchApp
 - extendedWaitUntil:
     visible: "Native test runtime listening"
     timeout: 30000

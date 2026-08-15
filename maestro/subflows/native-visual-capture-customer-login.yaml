@@ -1,0 +1,16 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- openLink: "scenario-shop://login"
+- runFlow: accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-login-screen"
+    timeout: 30000
+- tapOn:
+    id: "native-login-submit"
+- extendedWaitUntil:
+    visible:
+      id: "native-header-account"
+    timeout: 30000
+- assertVisible:
+    id: "native-nav-orders"

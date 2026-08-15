@@ -162,7 +162,14 @@ export function NativeCatalogScreen({ categoryId }: { categoryId?: string }) {
     );
   return (
     <ScrollView contentContainerStyle={styles.scroll} testID="native-catalog-screen">
-      <Text style={styles.heading}>{categoryId === undefined ? "商品一覧" : "カテゴリの商品"}</Text>
+      <Text
+        style={styles.heading}
+        testID={
+          categoryId === undefined ? "native-product-list-heading" : "native-category-heading"
+        }
+      >
+        {categoryId === undefined ? "商品一覧" : "カテゴリの商品"}
+      </Text>
       <View style={[styles.row, { marginBottom: nativeSpacing.xs }]}>
         <NativeTextField
           value={keyword}

@@ -1,0 +1,606 @@
+# Report (append-only)
+
+- 行動のたびに追記する（調査/編集/判断も含む）
+- コマンドや確認結果は必ず記録する
+
+## Evidence Record (optional)
+
+- Record ID:
+- Round:
+- Query:
+- Source:
+- Supports/Refutes:
+- Confidence:
+- Decision:
+- Rationale:
+- Open Issues:
+- Next Action:
+
+## YYYY-MM-DD HH:MM (JST)
+
+- Summary:
+- Completed:
+- Changes:
+- Commands:
+  - `...` => result
+- Notes/Decisions:
+- New tasks:
+- Remaining:
+- Progress: NN% (done/total)
+
+## Deletion candidates
+
+- Codex はファイルやディレクトリを削除しない。
+- 不要に見えるファイルは、ユーザーが手動確認できるようにここへ記録する。
+
+| Path | Reason | Suggested action |
+|---|---|---|
+|  |  |  |
+
+## 2026-08-15 05:03 (JST)
+
+- Summary: PR #24の残ブロッカー解消Goalに対する新規Runを初期化し、remote gateをread-onlyで確認した。
+- Completed:
+  - feature-plan、repair-loop、android-native-local-validationの各skillと関連runbook/referenceを読了した。
+  - `docs/PROJECT_CONTEXT.md`、ADR-0013、既存Run、single capture workflow、Registry、capture CLI、materialize、contract testsを確認した。
+  - GitHub APIでPR #24のhead branch=`feat/implement-screen-catalog-visual-specification`、head SHA=`c5082e4d78fe7c99b2e70cb09133f98cf21d7f0f`を確認した。
+  - remote `.github/workflows/native-ci.yml`にsingle captureのみが存在し、`capture_case_key=all`、Registry list CLI、batch applyは未存在だったためSTATE Aと判定した。
+- Changes:
+  - `docs/plans/2026-08-15_050329_android-canonical-batch-capture.md`を追加した。
+  - RunのPLAN/TASKSへrepo mapping、仮説、変更範囲、停止条件を記録した。
+- Commands:
+  - `Invoke-RestMethod https://api.github.com/repos/ryu-yoshikawa-pro-vision/qa-training-store/pulls/24` => PASS（PR open、対象branch、HEAD SHA確認）。
+  - GitHub Contents APIでremote workflowを取得 => PASS（single capture実装を確認）。
+  - `rg`/`Get-Content`によるlocal workflow/CLI/Registry/test/docs調査 => PASS。
+- Notes/Decisions:
+  - Git CLI、commit、push、pull、branch操作は実行していない。
+  - `gh` executableは環境に存在しなかったため、許可されたread-only GitHub確認をPowerShell `Invoke-RestMethod`で代替した。
+  - batchは既存setup/ready/route semanticsを再利用し、YAMLへ25 case keyを複製しない。
+- New tasks:
+  - CLI/workflow/tests/packageの実装とlocal validation。
+- Remaining:
+  - State A implementation、HANDOFF A、push後のActions capture/apply/final validation。
+- Progress: 25% (2/8)
+
+## 2026-08-15 05:21 (JST)
+
+- Summary: STATE Aのbatch infrastructureを実装し、対象contract 38/38とtypecheckを通過させた。
+- Completed:
+  - `list-cases`でRegistryからdeterministic Android case list（25件、重複なし）を出力するCLIを追加した。
+  - batch manifest（schema、mode、expected/captured set、complete、failure情報）と、全per-case manifest/raw PNGのprofile/source/APK/run provenanceを検証するCLIロジックを追加した。
+  - validation完了後にtemporary WebPを全件生成し、canonical outputへcopyする際のrollbackを持つall-or-nothing batch promotionを追加した。
+  - `native-ci.yml`のcapture stepをsingle/all対応へ変更し、allでは既存の同一Emulator・profile・APK上でRegistry順にreset/setup/route/role/ready/screenshot/manifestを繰り返すようにした。
+  - partial failureは`complete=false`、failed case、workflow failure、artifact upload（debug用）となり、applyは拒否する。
+  - explicit status switch `ANDROID_CANONICAL_CAPTURE_STATUS`を追加したが、現値は実capture前の`blocked`から変更していない。
+  - `apply:android-spec-visuals` package script、batch contract tests、workflow contract更新を追加した。
+- Changes:
+  - `.github/workflows/native-ci.yml`
+  - `scripts/spec/android-visual-capture.ts`
+  - `scripts/spec/visual-registry.ts`
+  - `tests/contracts/android-visual-capture-batch.test.ts`
+  - `tests/contracts/native-ci-workflow.test.ts`
+  - `package.json`
+- Commands:
+  - `pnpm exec prettier --write ...` => PASS。
+  - targeted Vitest（batch、native-ci、visual、native visual contract）=> PASS（4 files、38 tests）。
+  - `pnpm run typecheck` => PASS（app／native-tests）。
+  - `pnpm exec tsx scripts/spec/android-visual-capture.ts list-cases` => PASS（count=25）。
+- Notes/Decisions:
+  - batch applyのcanonical output pathはRegistry `visualAssetPath()`からのみ導出し、artifactの任意output pathを受け付けない。unknown `output_path`も拒否する。
+  - existing single `describe-case`／`write-manifest`／`promote`は残し、`apply-batch`は`requested_mode=all`を要求する。
+  - status transitionとMarkdown materializationは実Actions 25/25、同一source/APK/profile検証後にのみ行う。
+- New tasks:
+  - full local validation、artifact sanitizer、HANDOFF A。
+- Remaining:
+  - remote branchへpushされるまでActions dispatch不可。push後にSTATE Bへ進む。
+- Progress: 62% (5/8)
+
+## 2026-08-15 05:38 (JST)
+
+- Summary: STATE Aの実装とlocal validationを完了した。remote PR branchは旧single-case workflowのままなので、Actions dispatchは行わずHANDOFF Aで停止する。
+- Completed:
+  - batch infrastructure、workflow contract、batch fixture contract、docs/history/ADR/PROJECT_CONTEXTを追加した。
+  - `ANDROID_CANONICAL_CAPTURE_STATUS`は`blocked`のままで、実artifact provenance検証前のstatus transitionを防いだ。
+- Validation commands:
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint:markdown` => PASS（255 files、0 issues）。
+  - `pnpm run lint` => PASS（0 errors、既存warning 65件）。
+  - `pnpm run typecheck` => PASS（app／native-tests）。
+  - `pnpm run validate:spec` => PASS（Catalog 38、State 58、Target 94、Captured 69、Pending 0、Blocked 25）。
+  - `pnpm run build:spec` => PASS（22 pages）。
+  - `pnpm run test:contracts` => PASS（26 files、227 tests）。
+  - `pnpm run test:component:native` => PASS（12 suites、49 tests）。
+  - `pnpm run test:component` => PASS（web 76 tests、native 49 tests）。
+  - `pnpm run test` => PASS（unit 66、integration 98、repository 33、component 125、contracts 227）。
+  - `pnpm run build:web` => PASS。
+  - `pnpm run validate:image-manifest` => PASS。
+  - `pnpm run security:check` => PASS（233 runtime files、275 credential-scan files）。
+  - `pnpm run check:native-route-dependencies` => PASS（38 native routes）。
+  - `pnpm run validate:eas:config` => PASS（manual-only、cloudRun not run）。
+  - `pnpm run validate:native-production-bundle` => PASS（automation marker present、production marker absent）。
+  - `pnpm exec tsx scripts/spec/android-visual-capture.ts list-cases` => PASS（Registry-derived count=25、duplicateなし）。
+  - targeted batch/native-ci/visual contract Vitest => PASS（4 files、38 tests）。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked=25、captured=69/94のみ）。
+  - `pnpm run verify` => EXPECTED FAIL（format/markdown/structural PASS後、Final Visual Gateで停止）。
+- Remote gate:
+  - GitHub APIのPR #24 HEADは`c5082e4d78fe7c99b2e70cb09133f98cf21d7f0f`。
+  - remote workflowにはsingle `capture_case_key`のみで、`capture_case_key=all`、`list-cases`、batch artifact/applyはまだ存在しない。
+  - `gh` executableは未提供だったため、read-only PowerShell GitHub APIを使用した。Actions dispatchは未実行。
+- Safety:
+  - commit、push、pull、merge、rebase、checkout、reset、branch/tag操作なし。
+  - workflow dispatch、PR操作、自動commitなし。
+  - API30 physical screenshot、fake/placeholder asset、canonical promotion、blocked→captured変更なし。
+- Remaining:
+  - ユーザーが変更をPR branchへcommit/pushするまでState Bへ進めない。
+  - push後にremote gate→single run ID特定→Actions batch capture→artifact/APK download→apply→explicit status transition→materialize→Final validationを実行する。
+- Decision: `stop_needs_human`（必要なGit pushだけが未実行。実装・local validationは完了）。
+- Progress: 88% (7/8)
+
+## HANDOFF_A_PUSH_REQUIRED
+
+- ユーザー操作: このlocal変更をPR #24の`feat/implement-screen-catalog-visual-specification`へcommit/pushする。
+- Push前にActionsをdispatchしない。現在remoteは旧single-case実装なので、batch inputを受け付けない。
+- Push後の再開条件: PR HEAD SHAをGitHub APIで取得し、remote workflowに`capture_case_key=all`、`list-cases`、batch manifest/apply対応が存在することを確認できること。
+- Push後に実行するproof dispatch:
+  - `capture_spec_visuals=true`
+  - `capture_case_key=all`
+- 現時点のFinal Visual状態: Capture Target 94 / Captured 69 / Pending 0 / Blocked 25。これはbatch未実行の正しい状態である。
+
+## 2026-08-15 05:39 (JST)
+
+- Summary: State Aのlocal implementation、validation、Run artifact、HANDOFF Aを完了した。
+- Completed: TASKSの8項目を完了扱いにし、`evaluation.json`を作成した。
+- Commands:
+  - `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260815-050329-JST/evaluation.json` => 次のartifact sanitationと合わせて実行予定。
+- Decision: `stop_needs_human`。Git pushが必要なためState Bへは進まない。
+- Remaining: push後のremote Actions capture/apply/final validation。
+- Progress: 100% (8/8)
+
+## 2026-08-15 06:42 JST
+
+- State B run completion: Run `31841614738`は`failure`で完了した。Android Automation/Production APK buildはsuccess、Emulator起動もsuccessだったが、`Android Runtime / Maestro`の`Normalize Android canonical visual profile`がfailureとなり、Capture Caseは1件も実行されなかった。
+- Failure classification: infrastructure bug。runtime evidenceの`dumpsys-activity.txt` / `app-launch-logcat.txt`でsystem localeが`en_US`のまま残っていた。`settings put system system_locales ja-JP`だけではAPI34 Emulatorの`persist.sys.locale`と実configがcanonical `ja-JP`へ反映されず、profile validationがfail-closeした。個別setup/ready、Product UI、Maestro case failureではない。
+- Artifact safety: visual batch artifactは存在せず、APK artifactはbuild証拠としてのみ扱い、promotion/applyには使用していない。異なるrunのartifact混在、status transition、canonical mutationはなし。
+- Local repair: `.github/workflows/native-ci.yml`へ`setprop persist.sys.locale ja-JP`、`stop`/5秒待機/`start`、boot完了待ち、locale property/settingsの最大30秒収束確認を追加した。`tests/contracts/native-ci-workflow.test.ts`でlocale normalization commandを固定した。
+- Local repair validation:
+  - `pnpm exec prettier --check .github/workflows/native-ci.yml tests/contracts/native-ci-workflow.test.ts docs/history/2026-08-15_053735_android-canonical-batch-capture.md` => PASS。
+  - `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts` => PASS（17/17）。
+- Decision: 同じsource SHAでは修正を反映できないため、transient rerunではなくlocal repair後のpushを待つ。push後は新SHAをsource of truthとしてState B remote gateから再開する。
+- Progress: 100% (8/8)
+
+## 2026-08-15 05:42 (JST)
+
+- Summary: Run artifactのschema/sanitizationを完了した。
+- Commands:
+  - `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260815-050329-JST/evaluation.json` => PASS。
+  - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260815-050329-JST -Write` => PASS（5 files、変更0、residual 0）。
+  - 同`-Check` => PASS（residual 0）。
+  - run.json/evaluation.json JSON parse => PASS。
+- Decision: State Aを完了し、`HANDOFF_A_PUSH_REQUIRED`で停止する。Git操作とActions dispatchは未実行。
+- Progress: 100% (8/8)
+
+## 2026-08-15 05:53 (JST)
+
+- Summary: status transitionを`apply-batch`の成功後処理へ接続し、最終の対象テスト・full test・static gateを再確認した。
+- Changes:
+  - `applyAndroidVisualBatch`は既存`promoteAndroidVisualBatch`成功後にだけ、Registryの単一status switchを`blocked`から`captured`へ更新する。
+  - 直接のsingle `promote`、asset存在、invalid/incomplete batchはstatusを変更しない。
+- Commands:
+  - targeted batch/native-ci contract => PASS（2 files、23 tests）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run test:contracts` => PASS（26 files、228 tests）。
+  - `pnpm run test` => PASS（unit 66、integration 98、repository 33、component 125、contracts 228）。
+  - `pnpm run lint` => PASS（0 errors、既存warning 65件）。
+  - `pnpm run validate:spec` => PASS（94 target、69 captured、25 blocked）。
+  - `pnpm run build:spec` => PASS（22 pages）。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94のみ）。
+  - `pnpm run verify` => EXPECTED FAIL（Final Visual Gateのみ）。
+- Notes:
+  - 新規batch contractのデフォルト5秒timeoutは、25 per-case manifest/APK digest検証のためテスト単体30秒へ明示した。workflow timeout/retryは変更していない。
+  - API34 Actions capture、artifact download、promotion、目視確認はremote push前のため未実行。
+- Decision: `stop_needs_human`を維持する。
+- Progress: 100% (8/8)
+
+## 2026-08-15 05:55 (JST)
+
+- Observation: status transition contract追加直後のtargeted runでは、25件分のAPK digest検証を含む2 testが既定5秒timeoutになった。
+- Repair: テストcase単体のtimeoutだけを30秒へ明示し、workflow runtimeのtimeout/retryやassertionは変更しなかった。
+- Revalidation: targeted 23/23、full contracts 228/228、full `pnpm run test`、typecheck、lint、spec、Final Gate/verify結果を再確認した。
+- Decision: test timeoutは解消済み。残差はremote push前のActions/canonical capture未実行のみ。
+- Progress: 100% (8/8)
+
+## 2026-08-15 06:20 JST
+
+- Summary: ユーザーpush後のState B remote gateを通過し、PR #24の最新HEADへNative CIのbatch capture dispatchを実行した。
+- Remote gate: PR branchは`feat/implement-screen-catalog-visual-specification`、HEAD SHAは`bb064ac2efe79828fd2f5e95f929e92a63bc92b0`。remote workflowに`capture_case_key=all`、Registry-derived `list-cases`、batch manifest/partial failure guardがあり、remote CLIに`apply-batch`が存在することを確認した。
+- Dispatch: `capture_spec_visuals=true`、`capture_case_key=all`。対象runはRun ID `31841614738`、event=`workflow_dispatch`、branch/HEAD SHA一致で特定した。既存のpush起因`pull_request` runは対象外とした。
+- Current run: `Detect Native Changes` / `Production Bundle Guard`はpassed。`Native Static`は`Run Expo Doctor`でfailureとなり、API34 Android build/iOS buildは継続中。
+- Failure analysis: Expo Doctorが`@expo/metro-runtime`、`expo`、`expo-build-properties`、`expo-constants`、`expo-dev-client`、`expo-linking`、`expo-router`のpatch version mismatch（installed 57.0.x < expected 57.0.x+1）を検出した。batch変更は依存versionを変更しておらず、失敗はcapture stepではなくNative Staticの既存依存メタデータ／runner時点差分として分類した。Android capture到達可否はrun完了まで継続確認する。
+- Safety: Git mutation、PR merge、Actions再実行、artifact混在、canonical変更はまだ行っていない。
+- Remaining: Run `31841614738`完了、batch artifact/APK download、同一run validation/apply/promotion、status transition、materialize、final validation。
+- Progress: 100% (8/8)
+
+## 2026-08-15 06:48 JST
+
+- Local repair validation:
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint:markdown` => PASS（255 files、0 issues）。
+  - `pnpm run test:contracts` => PASS（26 files、228 tests）。
+  - `pnpm run test:component:native` => PASS（12 suites、49 tests）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94のみ）。
+  - `pnpm run verify` => EXPECTED FAIL（format/markdown/specはPASS後、Final Visual Gateで停止）。
+- Decision: local profile repairはPASSしたが、remote反映にはGit pushが必要。Run `31841614738`のAPK/Emulator evidenceはcanonical visual入力に採用しない。次は修正をpushした後、新HEADのState B remote gateとdispatchから再開する。
+- Progress: 100% (8/8)
+
+## 2026-08-15 08:20 JST
+
+- Summary: Expo Doctorのblocking mismatchをSDK 57内の7 package patch更新で修正し、依存・Native・構造品質ゲートを再検証した。canonical Android captureはまだ未実行のため、ここでHANDOFF_EXPO_PATCH_PUSH_REQUIREDとして停止する。
+- Iteration: repair-loop iteration 2。Input findingはNative StaticのExpo Doctor mismatch（must_fix）とFinal Visual GateのAndroid 25 blocked（今回の依存修正後も継続する残差）。allowed filesは`package.json`、`pnpm-lock.yaml`、active Run Artifactのみ。Product code、workflow、Final Gate、Native setup/ready semanticsは変更していない。
+- Dependency repair:
+  - `@expo/metro-runtime`: `57.0.9` → `57.0.10`
+  - `expo`: `57.0.12` → `57.0.13`
+  - `expo-build-properties`: `57.0.10` → `57.0.11`
+  - `expo-constants`: `57.0.10` → `57.0.11`
+  - `expo-dev-client`: `57.0.11` → `57.0.12`
+  - `expo-linking`: `57.0.5` → `57.0.6`
+  - `expo-router`: `57.0.12` → `57.0.13`
+  - `pnpm.overrides.expo-constants`: `57.0.10` → `57.0.11`。既存overrideは削除せず、direct dependencyと同一versionへ同期した。
+- Lockfile: `pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile`で再生成し、Prettier整形後に`pnpm install --frozen-lockfile --ignore-scripts`を再実行してPASS。lockfileは7 packageのSDK 57 patch解決と依存graphの更新のみ。
+- Pre-check:
+  - `pnpm exec expo install --check`（変更前）=> EXPECTED FAIL、CIと同じ7 mismatch。
+  - `pnpm dlx expo-doctor@1.17.6`（変更前）=> EXPECTED FAIL、7 mismatchに加えてExpo config schema APIのnetwork timeout。
+- Validation:
+  - `pnpm install --frozen-lockfile` => PASS。
+  - `pnpm exec expo install --check` => PASS（Dependencies are up to date）。
+  - `npm_config_loglevel=error pnpm dlx expo-doctor@1.17.6` => PASS（17/17）。
+  - `pnpm exec expo prebuild --platform android --no-install` => PASS（generated `android/`は既存どおりignore対象）。
+  - `pnpm run validate:eas:config` => PASS。
+  - `pnpm run validate:native-production-bundle` => PASS（Expo router 57.0.13でautomation/production marker guard成立）。
+  - `pnpm run check:native-route-dependencies` => PASS（38 routes）。
+  - `pnpm run test:component:native` => PASS（12 suites、49 tests。既存act warningあり）。
+  - `pnpm run test:contracts` => PASS（26 files、228 tests）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run lint` => PASS（0 errors、65 warnings）。
+  - `pnpm run format:check` => PASS（lockfile整形後）。
+  - `pnpm run lint:markdown` => PASS（255 files、0 issues）。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94のみ）。
+  - `pnpm run verify` => EXPECTED FAIL。format/markdown/structural validationはPASSし、Final Visual Gateのblocked 25 / `69 !== 94`だけでfail-closeした。
+- Operational note: 3つの設定検証を並列実行した試行は1件の120秒超過で結果回収不能となったため、個別再実行して上記のPASSを確認した。品質ゲートを未実行のまま扱っていない。
+- Changed files: `package.json`、`pnpm-lock.yaml`。Run Artifactは`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`を更新する。
+- Decision: stop_needs_human。Expo patch repairとlocal validationは完了。Actions dispatch、remote capture、artifact apply、promotion、status transitionは新HEADのpush前に行わない。
+- Remaining: ユーザーが`package.json`と`pnpm-lock.yaml`をcommit/pushした後、最新PR HEADでNative CI batch captureを再実行する。Final Visual DoDはCapture 94 / Captured 69 / Pending 0 / Blocked 25 / Canonical 69のまま。
+- Progress: 69% (11/16)
+
+## 2026-08-15 08:27 JST
+
+- Summary: `verify`のFinal Gate早期停止後に未到達だった通常test/build/security系を個別実行し、依存patch更新による回帰がないことを確認した。
+- Additional validation:
+  - `pnpm run test` => PASS（Unit 66、Integration 98、Repository 33、Web Component 76、Native Component 49、Contract 228）。既存Native act warningとSQLite ExperimentalWarningのみ。
+  - `pnpm run validate:image-manifest` => PASS。
+  - `pnpm run security:check` => PASS（233 runtime files、283 credential-scan files）。
+  - `pnpm run build:spec` => PASS（22 pages）。
+  - `pnpm run build:web` => PASS（Expo Router 57.0.13でweb export成立）。
+- Remaining delta: Android canonical capture 25件、同一run artifact/APK provenance validation、all-or-nothing promotion、status transition、6画面目視、materialize、Final Gate PASSは未実行。依存patchを含むPR HEADのpushが必要。
+- Decision: stop_needs_human。ここでActionsをdispatchせず、HANDOFF_EXPO_PATCH_PUSH_REQUIREDを出す。
+- Progress: 69% (11/16)
+
+## 2026-08-15 08:29 JST
+
+- Peer warning investigation: `pnpm install`は`react-native-worklets`と`@react-native/metro-config`のpeer warningを出した。remote HEAD `9e3c328612b20964fecf89a4052ca92197ec7fb5`の旧lockfileにも、`expo-modules-core@57.0.10`の同じworklets peer rangeと`react-native@0.86.2`→`@react-native/metro-config@0.86.1`の同じ解決が存在した。今回の7 package patch更新が新たなwarningを導入した根拠はなく、React Native／workletsの範囲外upgradeは行わない。
+- Decision: peer warningは既存baselineとして記録し、Expo Doctor 17/17、Native bundle、Native tests、typecheck、full testがPASSしているため今回のHANDOFFを妨げるblocking failureとは扱わない。
+- Progress: 69% (11/16)
+
+## 2026-08-15 08:38 JST
+
+- Summary: ユーザーpush後の新HEADでState B remote gateを再確認し、Native CI batch captureをdispatchした。
+- Remote gate:
+  - PR #24 HEAD=`f377dc1d3e218fd811895873d945c21af51d416e`。
+  - branch=`feat/implement-screen-catalog-visual-specification`、PRはopen、未merge。
+  - remote `package.json`は7 packageと`expo-constants` overrideが更新済み。remote lockfileもoverride `57.0.11`を含む。
+  - remote workflowはRegistry-derived `list-cases`、`capture_case_key=all`、batch manifest、`complete` fail-close、locale normalization修正を含む。
+  - remote CLIは`apply-batch`とpromotion/status transitionを含む。
+- Dispatch: `native-ci.yml`へ`capture_spec_visuals=true`、`capture_case_key=all`で1回dispatch。HTTP 204。
+- Exact run: Run ID `31850993052`。`event=workflow_dispatch`、branch、head SHAがすべて現在PR HEADと一致。URL: `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/31850993052`。
+- Current state: runは`in_progress`。旧Run `31841614738`のartifactは再利用しない。
+- Decision: D5完了。次は同一Runの完了監視、profile/capture結果確認、成功時のみartifact download/applyへ進む。
+- Progress: 75% (12/16)
+
+## 2026-08-15 09:04 JST
+
+- Summary: ユーザーpush後のPR HEAD `f377dc1d3e218fd811895873d945c21af51d416e`へNative CI batch captureをdispatchし、Run `31850993052`を正確に監視した。Android buildとNative Staticは成功したが、profile normalizationでlocale設定コマンドが失敗したため、capture/promotionへは進めなかった。
+- Remote run evidence:
+  - Run ID: `31850993052`。
+  - `event=workflow_dispatch`、branch=`feat/implement-screen-catalog-visual-specification`、head SHA=`f377dc1d3e218fd811895873d945c21af51d416e`。
+  - Android Production-validation Build: PASS。
+  - Android Automation Build: PASS。
+  - Native Static（Expo Doctorを含む）: PASS。
+  - Production Bundle Guard: PASS。
+  - Android Runtime / Maestro job `94928353459`: FAILURE。
+- Failure classification:
+  - Category: infrastructure/profile-normalization。
+  - First abnormality: `adb shell setprop persist.sys.locale ja-JP`が`Failed to set property 'persist.sys.locale' to 'ja-JP'`、exit code 1。
+  - `set -euo pipefail`によりstop/start、locale convergence、profile validator、25-case captureへ到達しなかった。
+  - setup/ready/Product UI/transient failureではない。Capture batch manifestは生成されていないため、APKを含む同RunのArtifactをcanonicalへ使わない。
+- Minimal repair: `.github/workflows/native-ci.yml`の`setprop`だけをbest-effortに変更した。`settings put system system_locales ja-JP`、Android stop/start、boot completion wait、`persist.sys.locale`と`system_locales`のja-JP strict validation、API34/profile validatorは変更していない。profile不一致時のfail-closeは維持する。
+- Local validation after repair:
+  - `pnpm exec prettier --check .github/workflows/native-ci.yml` => PASS。
+  - `pnpm run format:check` => PASS。
+  - `pnpm exec expo install --check` => PASS。
+  - `npm_config_loglevel=error pnpm dlx expo-doctor@1.17.6` => PASS（17/17）。
+  - `pnpm run validate:eas:config` => PASS。
+  - `pnpm run validate:native-production-bundle` => PASS。
+  - `pnpm run check:native-route-dependencies` => PASS（38 routes）。
+  - `pnpm run test:component:native` => PASS（12 suites、49 tests）。既存act warningのみ。
+  - `pnpm run test:contracts` => PASS（26 files、228 tests）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run lint` => PASS（0 errors、65 warnings）。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94のみ）。
+  - `pnpm run verify` => EXPECTED FAIL。format/markdown/specはPASS後、Final Visual Gateのblocked 25 / `69 !== 94`で停止。
+- Decision: stop_needs_human。workflow修正は未pushのため、Actionsを再dispatchしない。ユーザーが`.github/workflows/native-ci.yml`の修正をcommit/pushした後、最新HEADでState Bを最初から再実行する。
+- Changed files in this iteration: `.github/workflows/native-ci.yml`、Run Artifact（`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`の更新要）。
+- Remaining: Android 25件のcapture、同一Run batch/APK provenance validation、promotion、status transition、代表6画面目視、materialize、Final Gate PASS。
+- Progress: 74% (14/19)
+
+## 2026-08-15 09:08 JST
+
+- Run `31850993052`全体が完了し、conclusion=`failure`。失敗jobは`Android Runtime / Maestro`（profile normalization）と、それに依存する`native-ci / verify`のみ。iOSを含む他の並列jobに追加failureはない。
+- Android captureはprofile normalization前に停止しており、25件batch manifest、visual batch artifact、canonical promotion、status transitionは未実行のまま。
+- Next handoff: `.github/workflows/native-ci.yml`のbest-effort補助コマンド修正をユーザーがcommit/pushし、新しいPR HEADでRunを最初からdispatchする。
+
+## 2026-08-15 09:40 JST
+
+- Summary: ユーザーpush後のPR HEAD `c9d31e7698ac4f10bcabe1a11bb072edfc78dafe`へState Bを再開し、Run `31852971377`を正確にdispatch・監視した。Android build、Native Static、production bundleはPASSしたが、locale profile normalizationでcapture前に停止した。
+- Remote run evidence:
+  - Run ID: `31852971377`。
+  - `event=workflow_dispatch`、branch=`feat/implement-screen-catalog-visual-specification`、head SHA=`c9d31e7698ac4f10bcabe1a11bb072edfc78dafe`。
+  - Android Automation Build、Android Production-validation Build、Native Static、Production Bundle Guard: PASS。
+  - Android Runtime / Maestro job `94933594336`: FAILURE。
+- Failure classification:
+  - Category: infrastructure/profile-normalization。
+  - `setprop persist.sys.locale`の権限拒否はbest-effort分岐で越えたが、続く`adb shell stop`が`Must be root`で終了した。API34 `google_apis`の非root shellではstop/startを実行できないため、同じ処理を再実行しても成功しない根拠がある。
+  - boot completion、locale convergence、profile validator、Android 25-case captureへ到達していない。batch manifestとvisual batch artifactは生成されていない。Run内APKが存在してもprofile failure前のためcanonical入力には使わない。
+  - setup/ready、Product UI、Maestro個別case、transient failureではない。locale validationは弱めない。
+- Minimal repair:
+  - `.github/workflows/native-ci.yml`: root-onlyの`"$ADB" shell stop`／`start`を削除し、`"$ADB" reboot`へ置換。`system_locales`設定、既存boot completion wait、`persist.sys.locale`／`system_locales` strict convergence、API34/profile validationは維持した。
+  - `tests/contracts/native-ci-workflow.test.ts`: `adb reboot`の存在とroot-only stop/start不在を契約化。
+- Local validation:
+  - `pnpm exec prettier --check .github/workflows/native-ci.yml tests/contracts/native-ci-workflow.test.ts` => PASS。
+  - `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts` => PASS（17 tests）。
+  - `pnpm run test:contracts` => PASS（26 files、228 tests）。並列実行時のbatch 2 tests timeoutは単独再実行で6/6 PASSとなり、環境負荷による一過性と分類した。
+  - `pnpm run format:check` => PASS。
+  - `pnpm run test:component:native` => PASS（12 suites、49 tests。既存act warningのみ）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run lint` => PASS（0 errors、65 warnings）。
+  - `pnpm run validate:eas:config` => PASS。
+  - `pnpm run validate:native-production-bundle` => PASS。
+  - `pnpm run check:native-route-dependencies` => PASS（38 routes）。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94のみ）。
+  - `pnpm run verify` => EXPECTED FAIL。format、markdown、structural specはPASS後、Final Visual Gateのblocked 25 / `69 !== 94`でfail-closeした。
+- Decision: `HANDOFF_RUNTIME_LOCALE_PATCH_PUSH_REQUIRED`。未pushのworkflow修正があるため、Actions rerun、artifact download/apply、promotion、status transitionは行わない。ユーザーがworkflow修正をcommit/pushした後、新HEADでState Bを最初から再開する。
+- Remaining: Android canonical 25件のcapture、同一Run provenance validation、25 WebP promotion、status transition、代表6画面目視、materialize、94/94、Final Gate PASS。
+- Changed files in this iteration: `.github/workflows/native-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`、Run Artifact（`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json`）。
+- Progress: 75% (15/20)
+
+## 2026-08-15 09:45 JST
+
+- Run `31852971377`全体が完了し、conclusion=`failure`。iOS系jobはすべてPASS。失敗はAndroid Runtimeの`Normalize Android canonical visual profile`と、それに依存する`native-ci / verify`の`Require stable Native CI result`のみだった。
+- Android 25件capture、batch manifest、visual artifact apply、canonical promotion、status transitionは未実行。現RunのAPKを別用途から流用せず、修正後の新HEADで再captureする。
+
+## 2026-08-15 10:04 JST
+
+- Summary: ユーザーpush後としてState Bのremote gateを再確認したが、PR #24のremote HEADは`c9d31e7698ac4f10bcabe1a11bb072edfc78dafe`のままだった。branch refも同一SHAで、最新commitは`setprop` best-effortのみであり、`adb shell stop/start`を含んでいた。
+- Remote gate result:
+  - PR head SHA = branch head SHA = `c9d31e7698ac4f10bcabe1a11bb072edfc78dafe`。
+  - remote workflow SHA=`605e33db149b86119d21478840b392b95be92f2e`。
+  - remote workflow: `adb reboot`なし、`adb shell stop/start`あり、`persist.sys.locale`と`system_locales`のみをprofile locale判定に使用。
+  - `apply-batch` CLIはremoteに存在するが、locale normalizationが要件を満たさないためActions dispatchは行わなかった。
+- Effective locale repair:
+  - `.github/workflows/native-ci.yml`へrootlessな`$ADB shell cmd activity get-config`の観測を追加した。
+  - resource qualifierの`ja-rJP`／`ja-JP`を`effective_locale=ja-JP`へ変換し、`system_locales=ja-JP`とeffective localeの両方を必須化した。
+  - `persist.sys.locale`は`locale_property`として診断出力するだけにし、canonical profile JSONのlocaleには使用しない。locale保証は弱めていない。
+  - `adb reboot`とstrict boot wait、effective Configuration再観測を維持した。
+  - AndroidのActivityManager `get-config` shell commandがdevice Configurationを返すことをAOSP一次ソースで確認した。
+- Local validation:
+  - `pnpm run format:check` => PASS。
+  - `pnpm run test:contracts` => PASS（26 files、228 tests）。
+  - `pnpm run test:component:native` => PASS（12 suites、49 tests。既存act warningのみ）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run lint` => PASS（0 errors、65 warnings）。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94）。
+  - `pnpm run verify` => EXPECTED FAIL（format、markdown、structural specはPASS後、Final Visual Gateでfail-close）。
+- Decision: `HANDOFF_EFFECTIVE_LOCALE_PATCH_PUSH_REQUIRED`。remoteへ実効locale修正が反映されるまでdispatchしない。ユーザーがlocalのworkflow／contract修正をcommit/pushした後、最新HEADを再取得してState Bを再開する。
+- Progress: 76% (16/21)
+
+## 2026-08-15 10:35 JST
+
+- Summary: PR #24最新HEAD `6cca966ffbc0ef9e565ac0db138bbbe7cdad0db5`へ`capture_spec_visuals=true`、`capture_case_key=all`をdispatchし、専用Run `31855909379`をevent／branch／head SHA一致で特定した。RunはAPI34 Emulator起動とAPK/build系を通過したが、Normalizationで失敗し、Android 25件captureへ到達しなかった。
+- Runtime evidence:
+  - Run URL: `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/31855909379`
+  - Android Runtime job: `94941657113`。
+  - `native-android-runtime-evidence-31855909379`を同Runからdownloadした。
+  - `android-abi.txt`=`x86_64`、`android-build-properties.txt`=`34`、`avd-list.txt`=`native-api34`、`adb-devices.txt`はEmulatorを示す。
+  - `dumpsys-activity.txt`の`mGlobalConfig`と`CurrentConfiguration`に`[ja_JP]`、`1080x1920`、`420dpi`、portraitが記録されており、rootlessな実効Configurationの観測自体は成立している。
+  - Workflow logでは`setprop persist.sys.locale`の権限拒否はbest-effort分岐で継続したが、`cmd activity get-config`を使ったeffective locale strict判定後にexit code 1となった。Normalization failureのため、batch manifestとvisual capture artifactはcanonical入力に使わない。
+- Failure classification: infrastructure/profile-normalization。setup/ready、Product UI、Maestro個別case、transient failureではない。実機へ切り替えない理由は、canonical profileがAPI34 `google_apis` x86_64 `pixel_2` Emulatorに固定され、実機はSupplemental evidenceにしかならないため。
+- Minimal repair:
+  - `.github/workflows/native-ci.yml`: `cmd activity get-config`の解析を、今回の非root runtime evidenceで実際に読めた`dumpsys activity activities`へ変更。`[ja_JP]`／`[ja-JP]`を`effective_locale=ja-JP`へ変換し、`system_locales=ja-JP`とeffective localeの両方をstrictに要求。`persist.sys.locale`は診断のみのまま維持。strict tests前にlocale/profile観測値を出力。
+  - `tests/contracts/native-ci-workflow.test.ts`: effective locale observation sourceを契約化。
+- Local validation:
+  - `pnpm exec prettier --check .github/workflows/native-ci.yml tests/contracts/native-ci-workflow.test.ts` => PASS。
+  - `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts` => PASS（17 tests）。初回の期待文字列不一致はテスト表現のみを修正し、再実行でPASS。
+  - `pnpm run format:check` => PASS。
+  - `pnpm run test:contracts` => PASS（26 files、228 tests）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run lint` => PASS（0 errors、65 existing warnings）。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+- Decision: local修正は未pushのため、`31855909379`のAPK／runtime evidenceでpromotionやstatus transitionを行わない。ユーザーが修正をcommit/pushした後、最新HEADでNormalization PASSと`locale_effective=ja-JP`の実測を確認してからState Bを再実行する。
+- Progress: 77% (17/22)
+
+## 2026-08-15 12:10 JST
+
+- Summary: 最新PR HEAD `028f43600382298e8aaecaf3342426ffe0ca143f`をSource of TruthとしてNative CIを`capture_spec_visuals=true`、`capture_case_key=all`でdispatchし、Run `31860166187`をevent／branch／head SHA一致で特定した。Android Runtimeはcanonical profile normalizationで停止し、Android 25件captureへ到達しなかった。
+- Run evidence:
+  - Run ID: `31860166187`。
+  - `event=workflow_dispatch`、branch=`feat/implement-screen-catalog-visual-specification`、head SHA=`028f43600382298e8aaecaf3342426ffe0ca143f`。
+  - Android Runtime / Maestro job `94953288217`。Android build、Native Static、Production Bundle GuardはPASS。Normalization stepでFAIL。
+  - 同一Runのruntime evidence artifactは`native-android-runtime-evidence-31860166187`、同一RunのAPK artifactは`native-android-apk-31860166187`。profile failure前のため、どちらもcanonical apply／promotionには使用しない。
+- Runtime profile observation:
+  - `api_level=34`、`abi=x86_64`、`font_scale=1.0`、`ui_mode=light`、`orientation=portrait`、`resolution=1080x1920`、`density=440`は観測・通過した。
+  - `settings get system system_locales`は`null`、`persist.sys.locale`は空、`dumpsys activity activities`の非root実効Configurationは`[en_US]`。workflow出力も`locale_effective=unknown`となった。
+  - したがって、実効locale `ja-JP`は保証できず、locale gateは正しくfail-closeした。runtime evidenceの`dumpsys-activity.txt`には`mGlobalConfig`／`CurrentConfiguration`の`[en_US]`が残っている。
+- Failure classification:
+  - Category: locale normalization design / infrastructure profile normalization。
+  - Root-only commandの単発失敗をbest-effort化する段階ではなく、現行の`settings put system system_locales`→reboot→rootless effective Configuration観測という設計で、GitHub-hosted API34 Emulatorに`ja-JP`を適用・観測できていない。
+  - setup/ready、Maestro個別case、Product UI、transient CI failureではない。25件capture、batch manifest、apply、WebP promotion、status transitionは未実行。
+- Stop decision: `LOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIRED`。
+  - 追加の個別locale設定コマンドをbest-effort化しない。別のHEAD／RunのArtifactを混ぜない。locale validationを削除・緩和しない。
+  - 推奨案はcanonical AVD/bootstrapでサポートされたlocale provisioningを確立し、capture前に非rootの実効`Configuration`（`dumpsys activity`）で`ja-JP`を厳格に確認すること。`persist.sys.locale`は唯一の判定根拠にしない。
+  - 実機はcanonical profile（API34、google_apis、x86_64、pixel_2）の代替にならないため、今回のcanonical captureには使用しない。
+- Current counts (unchanged): Capture Target 94、Captured 69、Pending 0、Blocked 25、Canonical Assets 69。
+- Local validation baseline remains: format、full contracts 228/228、native component 49/49、typecheck、lint、EAS/native bundle/route、structural specはPASS。`validate:spec-visuals:final`と`verify`はblocked 25／69 != 94のみを理由にEXPECTED FAIL。新しいcanonical asset/status変更はない。
+- Progress: 78% (18/23)
+
+## 2026-08-15 14:36 JST
+
+- 最新remote PR HEADは`25e31a06910db7b598e98afe560ac7d2c67ca085`で、local HEAD／対象branchと一致することをGitHub APIとread-only Git確認で確認した。
+- ユーザーが`LOCALE_NORMALIZATION_DESIGN_REVIEW_REQUIRED`の設計判断を確定したため、停止を解除した。canonical profileはAPI34、`google_apis`、x86_64、`pixel_2`のまま維持する。
+- `.github/workflows/native-ci.yml`に、capture時だけ実行する`adb root` capability checkを追加した。`adb root`のexit codeではなく、`adb shell id`と`id -u`が`uid=0(root)`／`0`であることを`adb-root.txt`へ記録し、`ADB_ROOT_AVAILABLE`を分岐入力にする。
+- root時は`persist.sys.locale=ja-JP`、root-only framework `stop/start`、boot/package service waitを実行する。root不可時は`android.settings.LOCALE_SETTINGS`を起動し、`maestro/android-locale-provision.yaml`で`add_language`、locale search、Japanese結果、region、positive buttonをResource ID中心に操作する。
+- locale validationは緩和していない。`system_locales`／`persist.sys.locale`は観測値として出力するが、最終PASSは非root`dumpsys activity activities`のeffective Configurationから`effective_locale=ja-JP`を得た場合だけである。profile normalization成功条件とcapture前fail-closeも維持する。
+- contract testへroot実測、rootless fallback、Settings flow、effective locale strict gateを追加した。`native-ci-workflow.test.ts`は18 testsへ更新済み。
+- 公式AOSPの`android.settings.LOCALE_SETTINGS`、`add_language`、`locale_search_menu`、locale pickerのresource構造を参照した。
+- 次はD17としてlocal validationを実行する。現時点のAndroid countsはTarget 94、Captured 69、Pending 0、Blocked 25、Canonical 69であり、capture未実行のためFinal GateはまだEXPECTED FAILである。
+- Progress: 70% (19/27)
+
+## 2026-08-15 14:51 JST
+
+- D17 local validation結果:
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint:markdown` => PASS（255 files、0 issues）。
+  - `pnpm run test:contracts` => PASS（26 files、229 tests）。
+  - `pnpm run test:component:native` => PASS（12 suites、49 tests）。既存のReact `act(...)` warningのみ。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run lint` => PASS（0 errors、65 existing warnings）。
+  - `pnpm run validate:eas:config` => PASS。
+  - `pnpm run validate:native-production-bundle` => PASS。
+  - `pnpm run check:native-route-dependencies` => PASS（38 routes）。
+  - `pnpm run validate:spec` => PASS（Target 94、Captured 69、Pending 0、Blocked 25、Canonical 69）。
+  - `pnpm exec expo install --check` => PASS。
+  - `pnpm dlx expo-doctor@1.17.6` => PASS（17/17）。
+  - `pnpm run test` => PASS（unit 66、integration 98、repository 33、component web 76、native 49、contract 229）。
+  - `pnpm run security:check` => PASS。
+  - `pnpm run validate:spec-visuals:final` => EXPECTED FAIL（blocked 25、captured 69/94）。Final Gateを緩和していないため正しい。
+  - `pnpm run verify` => EXPECTED FAIL（format、markdown、structural specはPASS後、Final Visual Gateのblocked 25／69 != 94で停止）。
+- 追加のcontract testはworkflow 18 testsでPASSし、root UID実測、root不可時Settings UI fallback、effective locale strict、profile成功後のみcaptureを固定した。
+- D18（explicit staging・commit・push）へ進む前の未解決差分は、`.github/workflows/native-ci.yml`、`maestro/android-locale-provision.yaml`、`tests/contracts/native-ci-workflow.test.ts`およびRun Artifact更新のみ。canonical asset/statusは未変更。
+- 最終差分確認で、Strategy Aの設定後に`adb unroot`し、rootless shellの`id -u != 0`を観測してからeffective Configurationを読む処理を追加した。これによりroot権限をlocale設定に限定し、locale証拠の観測自体はrootlessであることをruntime logへ残す。
+- Full contractは最終差分で再実行し、26 files／229 testsがPASSした。
+- implementation commit `41ad95b41dace11dae7df47b38d71e0dbd91af7b`を、対象branchへforceなしでpushした。commit前はbranch、status、cached diff、cached diff checkを確認し、stage対象はlocale実装3ファイルとRun Artifact 5ファイルに限定した。
+- 次はremote HEAD／workflow gateをGitHub APIで確認し、HEAD一致のうえでState Bのbatch dispatchへ進む。
+- 追加のRun Artifact記録commit後の最新remote HEADは`c4aed7df4eca3b0d5d837f56792acae49f0cb8bb`で、local HEAD／PR #24 head／対象branchが一致した。remote workflowでもcapture inputs、実測adb root check、Settings UI fallback、effective locale strict gateを確認した。remote `android-visual-capture.ts`には`list-cases`と`apply-batch`が存在する。
+- D19はremote gate確認済み、次はこの最新HEADをSource of TruthとしてNative CIをdispatchする。
+- Progress: 78% (21/27)
+
+## 2026-08-15 10:39 JST
+
+- Run `31855909379` completed with `failure`。Android Runtime / Maestro job `94941657113`がNormalizationでfailure、`native-ci / verify` job `94943684428`はその依存failure。Android Automation/Production build、Native Static、iOS jobs、iOS verifyはsuccess。Captureは0/25で、batch manifest、canonical promotion、status transitionは未実行。
+- `pnpm run validate:spec-visuals:final` => EXPECTED FAIL。理由はFinal Visual Gateがblocked 25とCaptured 69/94をstrictに拒否したため。
+- `pnpm run verify` => EXPECTED FAIL。format、markdown、structural specはPASSし、Final Visual Gateのblocked 25 / `69 !== 94`で停止した。今回のlocal workflow repair起因の新規failureはない。
+- Current local state: `SCREEN-CHECKOUT-*`を含むcanonical asset/statusは変更していない。Capture Target 94、Captured 69、Pending 0、Blocked 25、Canonical Asset 69。
+- Next gate: `.github/workflows/native-ci.yml`と`tests/contracts/native-ci-workflow.test.ts`の未push修正をユーザーがcommit/pushした後、remote HEADを再取得し、同一新HEADでNormalizationの`locale_settings=ja-JP`および`locale_effective=ja-JP`ログを確認してから、State Bのcaptureを再dispatchする。
+- `pnpm run test:component:native` => PASS（12 suites、49 tests）。既存React `act(...)` warningのみ。
+- Progress: 77% (17/22)
+
+## 2026-08-15 15:20 JST
+
+- Run `31868358969`はPR HEAD=`fafed3fae01493f370e20510ab5a7f031625b529`、対象branch、`workflow_dispatch`の一致を確認して実行した。
+- `Check Android adb root capability`は、終了コードだけでなく`adb_shell_id=uid=0(root)`、`adb_shell_uid=0`を実測して`adb_root_available=true`となった。root解除後のeffective locale観測は`locale_observation_shell_uid=2000`で、rootless条件も成立した。
+- `Normalize Android canonical visual profile`は`cmd: Can't find service: settings`（exit 20）で停止した。`stop/start`後のframework再起動待ちが不足し、`settings put system font_scale`の前提serviceが未準備だった。effective locale検証まで到達せず、25件captureは0件。後続APK起動failureは派生エラーであり、Artifactはcanonical入力に使用しない。
+- 完全ログは`.artifacts/native-remote/31868358969/android-runtime.log`に保存した。既存locale strict gate、rootless `dumpsys activity activities`判定、capture前fail-closeは正しいため維持する。
+- 最小修正として`.github/workflows/native-ci.yml`に`settings_service_ready`の`service check settings`待機を追加し、`tests/contracts/native-ci-workflow.test.ts`で契約化した。Settings UI fallback、canonical条件、Final Visual Gateは変更していない。
+- 修正後のlocal validation: targeted workflow contract 18/18、full contract 229/229、native component 49/49、format、markdown、typecheck、lint、EAS、production bundle、native route dependency、structural specはPASS。既存lint warningとnative React `act(...)` warningのみ。
+- 現在のcountsはCapture Target 94、Captured 69、Pending 0、Blocked 25、Canonical Assets 69。Final Visual Gate／`verify`はblocked 25のみを理由にEXPECTED FAILのままであり、capture前のためstatus／assetは変更していない。
+- 次は明示対象2ファイルとRun Artifactを確認してcommit/pushし、新HEADでStrategy Aのruntime proofからState Bを再実行する。
+- Progress: 79% (22/28)
+
+## 2026-08-15 15:50 JST
+
+- 新HEAD `9f7e548daf2d55f6612b81ea2327240d610143f`をPR #24 remote HEADとして確認し、Run `31869442478`を同SHA・対象branch・`workflow_dispatch`で実行した。
+- Android Runtime `94976680304`はadb rootの実UID（`uid=0(root)`）とroot解除後のrootless UID（`2000`）を確認したが、`Normalize Android canonical visual profile`で再度停止した。`cmd: Can't find service: settings`によりcaptureは0/25で、APK起動failureは派生エラー。
+- 完全ログ（`.artifacts/native-remote/31869442478/android-runtime.log`）から、先行修正の`service check settings | grep -q "found"`が`not found`の部分文字列も通していたことを特定した。locale provisionやeffective locale validationの設計失敗ではない。
+- `grep -Eq ':[[:space:]]+found[[:space:]]*$'`へ厳密化し、workflow contractへfalse-positive拒否を追加した。canonical profile、Settings UI fallback、rootless `dumpsys activity activities`、capture fail-closeは維持した。
+- 修正後local validation: format PASS、workflow contract 18/18 PASS、full contractは並列実行時に既存batch testの5秒timeoutが1件発生したが、単独再実行で26 files／229 tests PASS、native component 49/49 PASS、typecheck PASS、lint PASS（既存65 warningsのみ）、spec PASS（94/69/0/25/69）。
+- 現時点でArtifact download、apply、promotion、status transitionは未実行。異なるRunのArtifactは使用していない。次はこのmatcher修正をcommit/pushし、新HEADでcanonical profileから再実行する。
+- Progress: 80% (23/29)
+
+## 2026-08-15 16:20 JST
+
+- Run `31870391806`はPR HEAD=`09092be1541918991597ab2023e86db3ac5ef5d2`で実行し、`Normalize Android canonical visual profile`が初めてsuccessした。
+- Runtime evidence: `adb_shell_id=uid=0(root)`／root解除後`locale_observation_shell_uid=2000`、`api_level=34`、`abi=x86_64`、`locale_provisioning_mode=adb_root`、`locale_property=ja-JP`、rootless `dumpsys activity activities`由来`locale_effective=ja-JP`、`font_scale=1.0`、`ui_mode=light`、`orientation=portrait`、`resolution=1080x1920`、`density=440`。`settings system_locales=null`は診断値であり、effective locale strict gateはPASSした。
+- 25件captureは、Automation APK install後の起動stepで停止したため0/25。`monkey`が`No activities found to run`（exit 252）を返したが、同RunのAPK download/install/`pm path`はsuccess、Production-validation APKの同Emulator起動とMaestro flowもsuccessだった。
+- 同RunのAutomation APKを`.artifacts/native-remote/31870391806/apk/`へ取得し、manifestで`com.ryuyoshikawa.scenarioshop.MainActivity`、`exported=true`、`MAIN/LAUNCHER`を確認した。したがってProduct UI／locale／APK build failureではなく、Automation APKのinstall直後monkey query起動経路の不整合として分類した。Artifactはcanonical promotionに使用しない。
+- `.github/workflows/native-ci.yml`のAutomation起動だけを`am start -W -n "$PACKAGE_ID/.MainActivity"`へ変更し、Production-validationのmonkey起動と`scripts/native/android-maestro-run.sh`は維持した。workflow contractでexplicit componentとAutomation側monkey不使用を固定した。
+- 修正後local validation: format、workflow contract 18/18、full contract 229/229、native component 49/49、typecheck、lint（0 errors／65 existing warnings）、markdown、structural specはPASS。Final Visual Gateはcapture前のため未変化。
+- 次は今回のworkflow／contractとRun Artifactをcommit/pushし、新HEADでprofile PASS後のAutomation起動からState Bを再実行する。
+- Progress: 80% (24/30)
+
+## 2026-08-15 16:46 JST
+
+- Run `31871497815`（HEAD `65b0321656bf03ed80361490df8454c4b2a9bf45`）は、`Normalize Android canonical visual profile`と`Install and launch Automation APK`をPASSした。runtime evidenceはroot UID 0、rootless観測UID 2000、effective locale `ja-JP`、API34、x86_64、font scale 1、light、portrait、1080x1920、density 440だった。
+- `Capture Android Screen Catalog baseline`は最初のHome caseでfailureした。完全ログの第一原因はMaestro `Invalid File Path .../maestro/native-visual-capture.yaml:13:3`で、null setupを空文字のまま`file: ${SETUP_SUBFLOW}`へ渡したことだった。`batch.manifest.json`は`requested_mode=all`、`expected_case_count=25`、`captured_case_count=0`、`complete=false`で、canonical promotionは実行していない。
+- 通常の後続Android Maestro flowは成功したが、batch captureの失敗を打ち消すものではない。同Runのpartial raw artifact／APKは使用せず、別HEAD／別Runとの混在もしていない。
+- 修正: `.github/workflows/native-ci.yml`で`native_setup_subflow`のnullを`subflows/native-visual-capture-noop.yaml`へ解決し、同flowに`waitForAnimationToEnd`だけを置いた。Capture Caseのsetup semantics、Checkout Addressの`customer-seeded-session`、Payment／Confirm setup、ready条件、Final Visual Gateは変更していない。`tests/contracts/native-ci-workflow.test.ts`でfallbackとflowの存在を固定した。
+- 検証: targeted workflow contract 18/18 PASS、`pnpm run test:contracts` 26 files／229 tests PASS、`pnpm run test:component:native` 12 suites／49 tests PASS、`pnpm run typecheck` PASS、`pnpm run lint` PASS（0 errors／65 existing warnings）、Prettier PASS、`git diff --check` PASS、`pnpm run validate:spec` PASS（94／69／0／25／69）。Final Visual Gateはcapture前のため未再実行で、blocked 25によるEXPECTED FAIL状態を維持する。
+- Progress: 81% (26/32)
+
+## 2026-08-15 17:10 JST
+
+- Run `31873026259`（HEAD `7c17b17e027644f311e3eb16abbc49aac70eb7ea`）は、root capability、rootless effective locale `ja-JP`、API34 canonical profile、Automation APKのdownload／bundle／installをPASSしたが、`Install and launch Automation APK`でfailureした。captureはskipped、0/25である。
+- 完全ログの最初の起動異常は、install成功の約0.1秒後の`am start -W -n com.ryuyoshikawa.scenarioshop/.MainActivity`に対する`Error type 3`／`Activity class ... does not exist`だった。同Run APKのmanifest／dexにはMainActivityとMAIN／LAUNCHERがあり、同Runの後続Production validationではactivityが実際に起動しているため、APK／Product UI／locale defectではなくpackage resolver readiness不足と分類した。
+- 同Runのruntime evidenceは`.artifacts/native-remote/31873026259/`へ保存し、canonicalには使用していない。Visual artifactはcapture skippedのため存在せず、別Run／別SHAのArtifact混用もない。
+- 修正: Automation install後に`cmd package resolve-activity --brief`をpackage／MAIN／LAUNCHER指定で確認し、`com.ryuyoshikawa.scenarioshop`と`MainActivity`が解決できるまで最大15回・2秒間隔で待つ。解決不能時はfail-closeし、その後のみ既存`am start -W`を実行する。contractでresolver-before-startを固定した。
+
+## 2026-08-15 17:45 JST
+
+- Run `31874167949`（HEAD `0493a2bdde94190ea145bba0df1ece9b3e39631a`）はprofile、Automation起動、resolver readinessをPASSしたが、Home caseのMaestro captureでfailureした。`native_setup_subflow`は`subflows/native-visual-capture-noop.yaml`へ正しく解決されていたため、空値fallbackの問題ではない。
+- 完全ログの第一原因は、Maestroが`file: ${SETUP_SUBFLOW}`という動的file参照を値の有無に関係なく`Invalid File Path`として拒否したことだった。batchは0/25、`complete=false`で、同Runのpartial raw／APKはcanonicalに使用しない。
+- 修正: `maestro/native-visual-capture.yaml`で`SETUP_ID`の既知6 setup IDを静的`runFlow.file`へ分岐する。`reset-only`／`customer-seeded-session`はsubflowなし、guest cart／customer login／checkout address・payment・confirmは既存subflowを呼ぶ。`SETUP_SUBFLOW`動的参照、noop subflow、Product UI、ready assertion、Final Gateは残さない／変更しない。
+- D27のlocal targeted validationは18/18、Prettier、diff checkまでPASS。全contract／native／typecheck／lint／specを再確認後、必要ファイルだけcommit/pushし、新HEADでState Bを最初から再実行する。
+
+## 2026-08-15 17:50 JST
+
+- 静的setup mapping修正後のlocal validation: `pnpm run test:contracts` 26 files／229 tests PASS、`pnpm run test:component:native` 12 suites／49 tests PASS、`pnpm run typecheck` PASS、`pnpm run lint` PASS（0 errors／65 existing warnings）、`pnpm run validate:spec` PASS（94／69／0／25／69）、`pnpm run lint:markdown` PASS、Prettier PASS、`git diff --check` PASS、Run Artifact sanitizer 5 files／residual 0 PASS。
+- `reset-only`／`customer-seeded-session`はCapture flowでsubflowを実行せず、guest cart、customer login、customer-login-processing、checkout address、checkout payment、checkout confirmの6 setup IDだけを静的file pathへ接続した。動的`file: ${SETUP_SUBFLOW}`とnoop subflowは残していない。
+- 変更は未push。次に必要ファイルを明示stage・commit・pushし、新HEADをSource of TruthとしてNative CI batch captureを再実行する。現時点のvisual countsはTarget 94、Captured 69、Pending 0、Blocked 25、Canonical 69で変化なし。
+- Progress: 82% (29/35)
+
+## 2026-08-15 17:24 JST
+
+- Run `31875746949`（HEAD `70d1863700971475de98d0feb6149453da951ab0`）を同一HEAD／同一Runで確認した。`Normalize Android canonical visual profile`は、root shell UID 0、rootless locale観測UID 2000、effective Configuration由来locale `ja-JP`、API34、google_apis、x86_64、pixel_2、font scale 1、light、portrait、1080x1920、density 440をPASSした。
+- `Capture Android Screen Catalog baseline`はHome caseでfailureした。完全ログの第一原因は、静的に呼び出した`native-visual-capture-guest-cart.yaml`の4行目にある`runFlow: subflows/accept-ios-deep-link.yaml`が、subflow内の相対pathとして無効だったこと（`Invalid File Path`）である。batch manifestは`requested_mode=all`、`expected_case_count=25`、`captured_case_count=0`、`complete=false`。ログは`.artifacts/native-remote/31875746949/android-runtime.log`に保存し、APK／partial artifactはcanonicalに採用しない。
+- 修正対象をcapture用3 subflowの内部相対pathと関連contractに限定した。`accept-ios-deep-link.yaml`を同じ`maestro/subflows`ディレクトリ基準で参照する。locale provisioning、profile strict gate、Addressのsetup semantics、Payment／Confirm専用setup、ready matcher、Final Visual Gateは変更しない。
+- 次はlocal quality gates後、必要ファイルだけcommit／pushし、新HEADをSource of Truthとしてprofileからbatch captureを最初から再実行する。
+- Progress: 81% (29/36)
+
+## 2026-08-15 18:36 JST
+
+- capture subflow相対path修正後のlocal validation: `pnpm run format:check` PASS、workflow contract 19/19 PASS、`pnpm run test:contracts` 26 files／230 tests PASS、`pnpm run test:component:native` 12 suites／49 tests PASS、`pnpm run typecheck` PASS、`pnpm run lint` PASS（0 errors／65 existing warnings）、`pnpm run validate:spec` PASS、`pnpm run lint:markdown` PASS、`git diff --check` PASS、Run Artifact sanitizer 5 files／residual 0 PASS。
+- `validate:spec`のvisual countsは変更前と同じTarget 94、Captured 69、Pending 0、Blocked 25、Canonical 69であり、capture前の期待状態を維持している。
+- 次は必要ファイルを明示stage・commit・pushし、最新HEADに対して新しいNative CI batch runをdispatchする。`31875746949`のpartial evidenceは再利用しない。
+
+## 2026-08-15 19:30 JST
+
+- Run `31877515915`（source HEAD `da1db9d0aaeb08c86ce1a37b2c5f4c0781d4c351`）を同一Run／同一HEADで完了確認した。`Android Runtime / Maestro`、`Native Static`、Android Automation／Production Build、iOS jobs、verify jobはsuccess。effective localeはrootless観測で`ja-JP`、canonical profileはAPI34／google_apis／x86_64／pixel_2／font 1／light／portrait／1080x1920／440 densityだった。
+- 同Run artifact `native-android-screen-catalog-visuals-31877515915` と `native-android-apk-31877515915`（実artifact名 `native-android-apk-31877515915`）をdownloadした。`batch.manifest.json`は`requested_mode=all`、expected 25、captured 25、`complete=true`、source SHA一致。Registry expected setとのmissing／duplicate／unexpectedは0、PNG／per-case manifestは各25。
+- Automation APK SHA-256は`87b441a8f2cd64fd6bfac06450c5653559efaf2980b79954992bd65a6adb6065`で全25 manifestと一致。全manifestのprofileも`34|google_apis|x86_64|pixel_2|ja-JP|1|light|portrait|1080x1920|440`で一致した。
+- `pnpm run apply:android-spec-visuals`は全件validation後に`promoted_case_count=25`、`status_transition=captured`を返した。25 WebPをcanonical pathへ反映し、Visual Reference 25件をmaterialize、spec 22 pagesをbuildした。
+- 代表画面目視: Homeはshell／viewport／typographyを確認、Cartはbasic shirt 1 item、Checkout Addressはdefault Address（`Checkoutを開始しました`、resume noticeなし）、PaymentはStep 2／成功選択肢／次へ、ConfirmはStep 3／注文内容／確定 action、Categoryは`カテゴリの商品`専用headingを確認した。
+- `validate:spec` PASS、`validate:spec-visuals:final` PASS、`verify` PASS。最終countsはCapture Target 94、Captured 94、Pending 0、Blocked 0、Canonical Assets 94。追加のnative route dependency、EAS static config、production bundle guardもPASSした。
+- verify後にcontract期待値を現行captured stateへ同期し、全contract 26 files／230 testsを再PASSした。status switchの型安全helperも含め、最終差分を明示stageしてcommit／pushする。
+- Progress: 100% (36/36)

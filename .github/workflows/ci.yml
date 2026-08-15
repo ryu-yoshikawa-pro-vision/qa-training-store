@@ -60,6 +60,9 @@ jobs:
       - name: Specification and Agentic QA validation
         run: pnpm run validate:spec
 
+      - name: Final Visual Specification gate
+        run: pnpm run validate:spec-visuals:final
+
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest

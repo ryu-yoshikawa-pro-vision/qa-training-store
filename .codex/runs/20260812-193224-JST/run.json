@@ -1,0 +1,132 @@
+{
+    "schema_version":  1,
+    "run_id":  "20260812-193224-JST",
+    "task_type":  "implementation",
+    "workflow_level":  "strict",
+    "preset":  "safe",
+    "runtime":  "host",
+    "agents_used":  [
+
+                    ],
+    "repo":  "qa-training-store",
+    "branch":  "feat/implement-screen-catalog-visual-specification",
+    "base_branch":  "main",
+    "codex_task_reports":  [
+
+                           ],
+    "changed_files":  [
+                          ".github/workflows/native-ci.yml",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/adr/0013-screen-catalog-visual-reference.md",
+    "docs/history/2026-08-13_004500_screen-catalog-review-maestro-mcp.md",
+    "docs/history/2026-08-12_235000_screen-catalog-visual-specification.md",
+                          "docs/plans/2026-08-12_193224_screen-catalog-visual-rebaseline.md",
+                          "docs/spec/README.md",
+                          "docs/spec/screen-catalog.md",
+                          "docs/spec/features/admin-catalog.md",
+                          "docs/spec/features/admin-inventory.md",
+                          "docs/spec/features/admin-orders.md",
+                          "docs/spec/features/admin-users.md",
+                          "docs/spec/features/authentication.md",
+                          "docs/spec/features/cart.md",
+                          "docs/spec/features/checkout-and-payment.md",
+                          "docs/spec/features/orders.md",
+                          "docs/spec/features/reviews.md",
+                          "docs/spec/features/storefront.md",
+                          "docs/spec/product-scope.md",
+                          "docs/spec/roles-and-permissions.md",
+                          "docs/spec/state-and-scenarios.md",
+                          "docs/spec/ui-ux-contract.md",
+                          "e2e/web/ui-review.spec.ts",
+                          "maestro/native-review.yaml",
+                          "package.json",
+                          "scripts/native/windows/android-local.ps1",
+                          "scripts/spec/android-visual-capture.ts",
+                          "scripts/spec/build-spec.ts",
+                          "scripts/spec/markdown.ts",
+                          "scripts/spec/materialize-visual-references.ts",
+                          "scripts/spec/promote-web-visuals.ts",
+                          "scripts/spec/validate-all.ts",
+                          "scripts/spec/visual-contract.ts",
+                          "scripts/spec/visual-registry.ts",
+    "tests/component/native/native-purchase-screens.test.tsx",
+    "tests/contracts/native-ci-workflow.test.ts",
+    "tests/contracts/native-production-module-resolution.test.ts",
+    "tests/contracts/native-test-control-maestro.test.ts",
+    "tests/contracts/native-windows-local-validation.test.ts",
+                          "tests/contracts/visual-contract.test.ts"
+                      ],
+    "validation":  {
+                       "status":  "blocked",
+                       "commands":  [
+                                     "pnpm run format:check",
+                                     "pnpm run lint:markdown",
+                                     "pnpm run validate:spec",
+                                     "pnpm run validate:spec-visuals",
+                                     "pnpm run build:spec",
+                                     "pnpm run lint",
+                                     "pnpm run typecheck",
+                                     "pnpm run test:contracts",
+                                     "pnpm run test",
+                                     "pnpm run build:web",
+                                     "pnpm run validate:image-manifest",
+                                     "pnpm run security:check",
+                                     "pnpm run native:android:doctor",
+                                     "native:android:build:local (RunId 20260813-024500-native-build-fixed)",
+                                     "native:android:install:local (RunId 20260813-031000-native-install-fixed)",
+                                     "native:android:smoke:local (RunId 20260813-032000-native-smoke-fixed)",
+                                     "native:android:test:control (RunId 20260813-034500-native-test-control-retry)",
+                                     "native:android:test:runtime (RunId 20260813-040000-native-runtime-suite)",
+                                     "native:android:test:boundary (RunId 20260813-043500-native-boundary-suite)",
+                                     "maestro/native-purchase.yaml (RunId 20260813-051500-native-purchase)",
+      "maestro/native-review.yaml (Maestro-MCP staged diagnostics; standard Native RunId 20260813-003900-native-review-speed-ime-fix passed 1/1)",
+                                     "pnpm run verify",
+                                     "git diff --check"
+                                    ],
+                       "warnings":  [
+                                     "format:check and verify passed after formatter-only baseline normalization; lint remains 0 errors / 65 warnings.",
+                                     "Canonical Android API34 capture remains unexecuted because local runtime is API30 ARM physical device; local API30 build passed after explicit Virtual Store argument.",
+      "Native Review Flow initially failed three bounded attempts at scrollUntilVisible; Maestro-MCP staged diagnostics isolated speed10 timeout and physical Japanese IME dismiss race, then the bounded Flow repair passed 1/1 through the standard Native entry.",
+      "QA_STORE_COORD_DIR was set at User scope after Android cleanup; visual-android-released.json was created successfully. New PowerShell processes see the User value; an already-running parent process may require restart to inherit it.",
+                                     "Checkout processing target remains blocked because the current route resolves to failed."
+                                    ]
+                   },
+    "safety":  {
+                   "network":  false,
+                   "delete_attempt_blocked":  false,
+                   "git_mutation_attempt_blocked":  false,
+                   "scope_violation":  false
+               },
+    "artifact_summary":  {
+                             "codex_task_report_count":  0,
+                             "hook_event_count":  0,
+                             "subagent_run_count":  0,
+                             "evaluation_present":  true
+                         },
+    "hook_observations":  {
+                              "log_paths":  [
+
+                                            ],
+                              "event_counts":  {
+
+                                               },
+                              "blocking_event_count":  0,
+                              "safety_blocked_count":  0,
+                              "observation_error_count":  0
+                          },
+    "subagents":  {
+                      "records":  [
+
+                                  ],
+                      "summary":  {
+                                      "total":  0,
+                                      "read_only":  0,
+                                      "writable":  0,
+                                      "scope_violations":  0,
+                                      "used_in_final_plan":  0
+                                  }
+                  },
+    "evaluation_path":  ".codex/runs/20260812-193224-JST/evaluation.json",
+    "status":  "blocked",
+    "primary_failure_category":  "missing_validation"
+}

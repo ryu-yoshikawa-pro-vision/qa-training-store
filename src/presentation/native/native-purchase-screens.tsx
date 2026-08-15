@@ -775,7 +775,10 @@ export function NativeCheckoutAddressScreen() {
           </View>
         </View>
       )}
-      <View style={{ gap: nativeSpacing.sm, marginTop: nativeSpacing.lg }}>
+      <View
+        style={{ gap: nativeSpacing.sm, marginTop: nativeSpacing.lg }}
+        testID={state.session === null ? undefined : "native-checkout-address-session-ready"}
+      >
         <PurchaseTextInput
           value={address.recipientName}
           onChangeText={(value) => setAddress({ ...address, recipientName: value })}
@@ -854,7 +857,10 @@ export function NativeCheckoutPaymentScreen() {
     <ScrollView contentContainerStyle={styles.scroll} testID="native-checkout-payment-screen">
       <Text style={styles.heading}>Checkout：支払い</Text>
       <Text style={styles.body}>Step 2 / 3　テスト決済を選択してください。</Text>
-      <View style={{ gap: nativeSpacing.sm, marginTop: nativeSpacing.lg }}>
+      <View
+        style={{ gap: nativeSpacing.sm, marginTop: nativeSpacing.lg }}
+        testID={state.session === null ? undefined : "native-checkout-payment-session-ready"}
+      >
         {PAYMENT_METHODS.map((candidate) => (
           <NativeButton
             key={candidate}

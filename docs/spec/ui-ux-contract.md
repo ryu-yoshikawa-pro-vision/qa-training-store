@@ -19,3 +19,32 @@ Loading、Empty、Error、Conflict、Not Foundを同じ表示へ潰しません�
 ## Canonical Sources
 
 具体的なLabel、Test ID、Route、Token、Component構造は `src/presentation/`、`app/`、`src/presentation/design/tokens.ts`、`docs/05_ui/` を参照してください。既存TestはRegression Evidenceであり、Normative Oracleではありません。
+
+## Screen Contracts
+
+### SCREEN-BOUNDARY-NOT-FOUND — Not Found
+
+Screen Catalog: [Screen Catalog](./screen-catalog.md)
+
+#### Functions
+
+- 存在しないRouteを明示し、利用者がStorefrontへ戻れるActionを表示する。
+- Framework internal entryではなく、ユーザーが観測できるBoundary surfaceとして扱う。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `all` | `missing-route` | Page Not Foundと戻り先を表示する。 | `required` | `web-desktop, android` | `-` | [UI and UX Contract](./ui-ux-contract.md#boundary-ux), [State and Scenarios](./state-and-scenarios.md#error-and-boundary-states) |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-BOUNDARY-NOT-FOUND default web-desktop](assets/screens/SCREEN-BOUNDARY-NOT-FOUND/default/web-desktop.webp)](assets/screens/SCREEN-BOUNDARY-NOT-FOUND/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-BOUNDARY-NOT-FOUND default android](assets/screens/SCREEN-BOUNDARY-NOT-FOUND/default/android.webp)](assets/screens/SCREEN-BOUNDARY-NOT-FOUND/default/android.webp)

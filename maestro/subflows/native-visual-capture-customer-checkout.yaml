@@ -1,0 +1,48 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- assertVisible:
+    id: "native-nav-orders"
+- openLink: "scenario-shop://cart"
+- runFlow: accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-persisted-state-ready"
+    timeout: 30000
+- assertVisible:
+    id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"
+- openLink: "scenario-shop://checkout/address"
+- runFlow: accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-checkout-address-screen"
+    timeout: 30000
+- assertVisible:
+    id: "native-checkout-session-started"
+- assertVisible:
+    id: "native-checkout-address-session-ready"
+- runFlow:
+    when:
+      true: ${CHECKOUT_STEP != "address"}
+    commands:
+      - tapOn:
+          id: "native-checkout-address-next"
+      - extendedWaitUntil:
+          visible:
+            id: "native-checkout-payment-screen"
+          timeout: 30000
+      - assertVisible:
+          id: "native-checkout-payment-session-ready"
+- runFlow:
+    when:
+      true: ${CHECKOUT_STEP == "confirm"}
+    commands:
+      - tapOn:
+          id: "native-payment-method-TEST-SUCCESS"
+      - tapOn:
+          id: "native-checkout-payment-next"
+      - extendedWaitUntil:
+          visible:
+            id: "native-checkout-confirm-screen"
+          timeout: 30000
+      - assertVisible:
+          id: "native-checkout-confirm-submit"

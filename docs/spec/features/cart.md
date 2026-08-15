@@ -22,6 +22,47 @@ SKU単位で合算し、許容上限を超える分、非公開、Rank不足、�
 
 Cartはguest/customerだけが利用できます。明細には商品、画像、現在価格、数量、上限、問題、合計、Empty Stateを表示し、更新中は同一CartのMutation操作を二重実行できません。
 
+### SCREEN-STOREFRONT-CART — Cart
+
+Screen Catalog: [Screen Catalog](../screen-catalog.md)
+
+#### Functions
+
+- Guest / Customer Cartの明細、数量、現在価格、問題理由、合計を表示する。
+- 在庫、購入上限、公開状態、価格を再検証し、問題を修正または削除できるようにする。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `guest, customer` | `default` | Cart明細と数量操作を表示する。 | `required` | `web-desktop, android` | `-` | `BR-CART-001`, `AC-CART-001` |
+| `empty` | empty | `guest, customer` | `default` | Cartが空であることと商品探索導線を表示する。 | `required` | `web-desktop` | `-` | `BR-CART-001` |
+| `invalid-items` | error | `guest, customer` | `cart-with-invalid-items` | 購入不可理由と修正Actionを表示する。 | `required` | `web-desktop` | `-` | `BR-CART-003`, `AC-CART-003` |
+
+#### Visual References
+
+##### `default`
+
+###### Web Desktop
+
+[![SCREEN-STOREFRONT-CART default web-desktop](../assets/screens/SCREEN-STOREFRONT-CART/default/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-CART/default/web-desktop.webp)
+
+###### Android — Canonical Visual Reference
+
+[![SCREEN-STOREFRONT-CART default android](../assets/screens/SCREEN-STOREFRONT-CART/default/android.webp)](../assets/screens/SCREEN-STOREFRONT-CART/default/android.webp)
+
+##### `empty`
+
+###### Web Desktop
+
+[![SCREEN-STOREFRONT-CART empty web-desktop](../assets/screens/SCREEN-STOREFRONT-CART/empty/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-CART/empty/web-desktop.webp)
+
+##### `invalid-items`
+
+###### Web Desktop
+
+[![SCREEN-STOREFRONT-CART invalid-items web-desktop](../assets/screens/SCREEN-STOREFRONT-CART/invalid-items/web-desktop.webp)](../assets/screens/SCREEN-STOREFRONT-CART/invalid-items/web-desktop.webp)
+
 ## Acceptance Criteria
 
 ### Criteria
