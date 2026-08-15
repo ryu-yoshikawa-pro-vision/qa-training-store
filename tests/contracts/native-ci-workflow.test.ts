@@ -31,6 +31,7 @@ const phaseOneWorkflow = readWorkflow(".github/workflows/ci.yml");
 const androidStartupHelper = readWorkflow("scripts/native/android-maestro-run.sh");
 const storefrontFlow = readWorkflow("maestro/native-storefront.yaml");
 const visualCaptureFlow = readWorkflow("maestro/native-visual-capture.yaml");
+const visualCaptureNoopFlow = readWorkflow("maestro/subflows/native-visual-capture-noop.yaml");
 const localeProvisionFlow = readWorkflow("maestro/android-locale-provision.yaml");
 const customerCheckoutSetupFlow = readWorkflow(
   "maestro/subflows/native-visual-capture-customer-checkout.yaml",
@@ -327,6 +328,10 @@ describe("Native CI workflow contracts", () => {
   it("executes Capture Case setup metadata and asserts role plus all ready matcher slots", () => {
     expect(visualCaptureFlow).toContain("- launchApp\n");
     expect(visualCaptureFlow).toContain("SETUP_SUBFLOW");
+    expect(nativeWorkflow).toContain(
+      'NATIVE_SETUP_SUBFLOW="$(jq -r \'.native_setup_subflow // "subflows/native-visual-capture-noop.yaml"\' "$CASE_JSON")"',
+    );
+    expect(visualCaptureNoopFlow).toContain("waitForAnimationToEnd:");
     expect(visualCaptureFlow).toContain('true: ${ROLE == "customer"}');
     expect(visualCaptureFlow).toContain('true: ${ROLE == "guest"}');
     for (const slot of [1, 2, 3]) {

@@ -549,3 +549,12 @@
 - 修正後local validation: format、workflow contract 18/18、full contract 229/229、native component 49/49、typecheck、lint（0 errors／65 existing warnings）、markdown、structural specはPASS。Final Visual Gateはcapture前のため未変化。
 - 次は今回のworkflow／contractとRun Artifactをcommit/pushし、新HEADでprofile PASS後のAutomation起動からState Bを再実行する。
 - Progress: 80% (24/30)
+
+## 2026-08-15 16:46 JST
+
+- Run `31871497815`（HEAD `65b0321656bf03ed80361490df8454c4b2a9bf45`）は、`Normalize Android canonical visual profile`と`Install and launch Automation APK`をPASSした。runtime evidenceはroot UID 0、rootless観測UID 2000、effective locale `ja-JP`、API34、x86_64、font scale 1、light、portrait、1080x1920、density 440だった。
+- `Capture Android Screen Catalog baseline`は最初のHome caseでfailureした。完全ログの第一原因はMaestro `Invalid File Path .../maestro/native-visual-capture.yaml:13:3`で、null setupを空文字のまま`file: ${SETUP_SUBFLOW}`へ渡したことだった。`batch.manifest.json`は`requested_mode=all`、`expected_case_count=25`、`captured_case_count=0`、`complete=false`で、canonical promotionは実行していない。
+- 通常の後続Android Maestro flowは成功したが、batch captureの失敗を打ち消すものではない。同Runのpartial raw artifact／APKは使用せず、別HEAD／別Runとの混在もしていない。
+- 修正: `.github/workflows/native-ci.yml`で`native_setup_subflow`のnullを`subflows/native-visual-capture-noop.yaml`へ解決し、同flowに`waitForAnimationToEnd`だけを置いた。Capture Caseのsetup semantics、Checkout Addressの`customer-seeded-session`、Payment／Confirm setup、ready条件、Final Visual Gateは変更していない。`tests/contracts/native-ci-workflow.test.ts`でfallbackとflowの存在を固定した。
+- 検証: targeted workflow contract 18/18 PASS、`pnpm run test:contracts` 26 files／229 tests PASS、`pnpm run test:component:native` 12 suites／49 tests PASS、`pnpm run typecheck` PASS、`pnpm run lint` PASS（0 errors／65 existing warnings）、Prettier PASS、`git diff --check` PASS、`pnpm run validate:spec` PASS（94／69／0／25／69）。Final Visual Gateはcapture前のため未再実行で、blocked 25によるEXPECTED FAIL状態を維持する。
+- Progress: 81% (26/32)

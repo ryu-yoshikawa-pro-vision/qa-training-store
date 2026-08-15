@@ -1211,7 +1211,7 @@ jobs:
             SETUP="$(jq -r '.setup' "$CASE_JSON")"
             READY="$(jq -r '.ready' "$CASE_JSON")"
             NATIVE_SETUP_ID="$(jq -r '.native_setup_id' "$CASE_JSON")"
-            NATIVE_SETUP_SUBFLOW="$(jq -r '.native_setup_subflow // ""' "$CASE_JSON")"
+            NATIVE_SETUP_SUBFLOW="$(jq -r '.native_setup_subflow // "subflows/native-visual-capture-noop.yaml"' "$CASE_JSON")"
             NATIVE_RESET_PAYMENT_DELAY_MS="$(jq -r '.native_reset_payment_delay_ms' "$CASE_JSON")"
             NATIVE_CHECKOUT_STEP="$(jq -r '.native_checkout_step // ""' "$CASE_JSON")"
             NATIVE_READY_ID="$(jq -r '.native_ready_id' "$CASE_JSON")"

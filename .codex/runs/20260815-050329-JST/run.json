@@ -17,6 +17,7 @@
     "changed_files":  [
                        ".github/workflows/native-ci.yml",
                        "maestro/android-locale-provision.yaml",
+                       "maestro/subflows/native-visual-capture-noop.yaml",
                        "scripts/spec/android-visual-capture.ts",
                        "scripts/spec/visual-registry.ts",
                        "tests/contracts/android-visual-capture-batch.test.ts",
@@ -63,7 +64,13 @@
                                      "pnpm run validate:spec-visuals:final (expected blocked failure)",
                                     "pnpm run verify (expected Final Visual Gate failure)",
                                     "pnpm run test:contracts (final rerun after locale strategy)",
-                                    "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts (18 tests)"
+                                    "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts (18 tests)",
+                                    "pnpm exec prettier --check capture workflow/noop flow/contract",
+                                    "pnpm run test:contracts (after empty setup subflow repair)",
+                                    "pnpm run test:component:native (after empty setup subflow repair)",
+                                    "pnpm run typecheck (after empty setup subflow repair)",
+                                    "pnpm run lint (after empty setup subflow repair)",
+                                    "pnpm run validate:spec (after empty setup subflow repair)"
                                     ],
                        "warnings":  [
                                     "Final Visual GateはAndroid 25 blocked、Captured 69/94のためEXPECTED FAIL",
@@ -81,7 +88,8 @@
                                     "Run 31860166187はAPI34 Emulatorのsystem_locales=null、effective Configuration=en_US、locale_effective=unknownでprofile normalization failure。ユーザーがStrategy A/B設計を確定したため、実測adb root／Settings UI fallbackとrootless effective Configuration strict gateを実装した。remote runtime proofと25件captureは未実行",
                                     "Run 31868358969はadb_shell_id=uid=0(root)、root解除後locale_observation_shell_uid=2000を確認したが、stop/start直後のsettings Binder service未準備でcmd: Can't find service: settingsとなりcapture前にfailure。service check settingsのreadiness待機を最小追加し、新HEADで再captureする",
                                     "Run 31869442478でもroot UID 0とrootless UID 2000を確認したが、service check settingsのgrep -q foundがnot foundに部分一致し、未準備のsettings commandでprofile normalization failure。行末厳密matcherへ修正し、local contract 18/18とfull contract 229/229をPASS",
-                                    "Run 31870391806はeffective locale ja-JPと全canonical profileをPASSしたが、Automation APKのinstall/pm path後にmonkeyがNo activities foundでfailure。同Run manifestにはMainActivity/MAIN/LAUNCHERがありProduction APKは起動成功したため、Automationだけam start -Wの明示componentへ変更して再captureする"
+                                    "Run 31870391806はeffective locale ja-JPと全canonical profileをPASSしたが、Automation APKのinstall/pm path後にmonkeyがNo activities foundでfailure。同Run manifestにはMainActivity/MAIN/LAUNCHERがありProduction APKは起動成功したため、Automationだけam start -Wの明示componentへ変更して再captureする",
+                                    "Run 31871497815はeffective locale ja-JP、canonical profile、Automation明示起動をPASSしたが、最初のHome caseでnull setup subflowがMaestroの空dynamic file path validationによりInvalid File Pathとなった。batchは0/25、complete=falseでcanonicalには不採用。null setupを専用無操作subflowへ解決し、contract 18/18、full contract 229/229、native 49/49を再PASSした"
                                     ]
                    },
     "safety":  {

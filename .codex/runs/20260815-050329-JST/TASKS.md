@@ -37,6 +37,8 @@
 - [x] D20. Run `31868358969`のNormalization failureを完全ログで分類し、rootless観測後の`settings` service readiness不足を最小修正する。
 - [x] D21. Run `31869442478`の`not found`部分一致を特定し、settings service readiness matcherを厳密一致へ修正してlocal validationを完了する。
 - [x] D22. Run `31870391806`でeffective locale/profile PASS後に発生したAutomation APKのmonkey起動failureをmanifest確認で分類し、明示MainActivity起動へ最小修正する。
+- [x] D23. Run `31871497815`の最初のbatch capture failureを完全ログで分類し、空のsetup subflow pathがMaestro parserで拒否されることを確定する。
+- [x] D24. setup意味論を変えずに空subflow用の無操作flowへ解決する最小修正とcontract/local validationを完了する。
 
 ## Blocked
 
@@ -44,3 +46,5 @@
 - B2. 解消済み（ユーザーがStrategy A: 実測adb root、Strategy B: Settings Locale UI、effective Configuration strict gateの設計を確定）。
 
 Progress: 80% (24/30)
+
+Progress: 81% (26/32)
