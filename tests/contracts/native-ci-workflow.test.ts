@@ -277,6 +277,7 @@ describe("Native CI workflow contracts", () => {
     expect(runtime).not.toContain('"$ADB" shell start');
     expect(runtime).toContain("$ADB shell dumpsys activity activities");
     expect(runtime).toContain('effective_locale_observation="dumpsys activity activities"');
+    expect(runtime).toContain("grep -Eq '\\[(ja_JP|ja-JP)(,|\\])'");
     expect(runtime).toContain('effective_locale="unknown"');
     expect(runtime).toContain('test "$effective_locale" = "ja-JP"');
     expect(runtime).not.toContain('test "$locale_value" = "ja-JP"');

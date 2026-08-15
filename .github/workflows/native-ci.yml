@@ -882,7 +882,7 @@ jobs:
           effective_config="$($ADB shell dumpsys activity activities | tr -d '\r')"
           effective_locale="unknown"
           for _ in $(seq 1 30); do
-            if printf '%s\n' "$effective_config" | grep -Eq '\\[(ja_JP|ja-JP)(,|\])' ; then
+            if printf '%s\n' "$effective_config" | grep -Eq '\[(ja_JP|ja-JP)(,|\])' ; then
               effective_locale="ja-JP"
             else
               effective_locale="unknown"
