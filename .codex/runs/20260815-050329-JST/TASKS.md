@@ -34,10 +34,11 @@
 - [x] D17. locale provisioning変更のlocal format／workflow contract／full contract／native／typecheck／lint／spec validationを実行する。
 - [x] D18. 必要ファイルを明示stageして対象branchへcommit/pushし、remote HEAD一致を確認する。
 - [ ] D19. 新HEADでprofile normalization、25件capture、artifact検証、promotion、Final Gate、最新CI確認まで完了する。（remote gate確認済み、dispatch待ち）
+- [x] D20. Run `31868358969`のNormalization failureを完全ログで分類し、rootless観測後の`settings` service readiness不足を最小修正する。
 
 ## Blocked
 
 - B1. なし（実装上の未解決ブロッカーはない）。
 - B2. 解消済み（ユーザーがStrategy A: 実測adb root、Strategy B: Settings Locale UI、effective Configuration strict gateの設計を確定）。
 
-Progress: 78% (21/27)
+Progress: 79% (22/28)

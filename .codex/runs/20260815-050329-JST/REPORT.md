@@ -516,3 +516,15 @@
 - Next gate: `.github/workflows/native-ci.yml`と`tests/contracts/native-ci-workflow.test.ts`の未push修正をユーザーがcommit/pushした後、remote HEADを再取得し、同一新HEADでNormalizationの`locale_settings=ja-JP`および`locale_effective=ja-JP`ログを確認してから、State Bのcaptureを再dispatchする。
 - `pnpm run test:component:native` => PASS（12 suites、49 tests）。既存React `act(...)` warningのみ。
 - Progress: 77% (17/22)
+
+## 2026-08-15 15:20 JST
+
+- Run `31868358969`はPR HEAD=`fafed3fae01493f370e20510ab5a7f031625b529`、対象branch、`workflow_dispatch`の一致を確認して実行した。
+- `Check Android adb root capability`は、終了コードだけでなく`adb_shell_id=uid=0(root)`、`adb_shell_uid=0`を実測して`adb_root_available=true`となった。root解除後のeffective locale観測は`locale_observation_shell_uid=2000`で、rootless条件も成立した。
+- `Normalize Android canonical visual profile`は`cmd: Can't find service: settings`（exit 20）で停止した。`stop/start`後のframework再起動待ちが不足し、`settings put system font_scale`の前提serviceが未準備だった。effective locale検証まで到達せず、25件captureは0件。後続APK起動failureは派生エラーであり、Artifactはcanonical入力に使用しない。
+- 完全ログは`.artifacts/native-remote/31868358969/android-runtime.log`に保存した。既存locale strict gate、rootless `dumpsys activity activities`判定、capture前fail-closeは正しいため維持する。
+- 最小修正として`.github/workflows/native-ci.yml`に`settings_service_ready`の`service check settings`待機を追加し、`tests/contracts/native-ci-workflow.test.ts`で契約化した。Settings UI fallback、canonical条件、Final Visual Gateは変更していない。
+- 修正後のlocal validation: targeted workflow contract 18/18、full contract 229/229、native component 49/49、format、markdown、typecheck、lint、EAS、production bundle、native route dependency、structural specはPASS。既存lint warningとnative React `act(...)` warningのみ。
+- 現在のcountsはCapture Target 94、Captured 69、Pending 0、Blocked 25、Canonical Assets 69。Final Visual Gate／`verify`はblocked 25のみを理由にEXPECTED FAILのままであり、capture前のためstatus／assetは変更していない。
+- 次は明示対象2ファイルとRun Artifactを確認してcommit/pushし、新HEADでStrategy Aのruntime proofからState Bを再実行する。
+- Progress: 79% (22/28)

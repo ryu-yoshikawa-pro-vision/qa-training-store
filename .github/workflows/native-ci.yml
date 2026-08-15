@@ -972,6 +972,15 @@ jobs:
             sleep 2
           done
           test "$package_service_ready" = true
+          settings_service_ready=false
+          for _ in $(seq 1 90); do
+            if "$ADB" shell service check settings 2>/dev/null | grep -q "found"; then
+              settings_service_ready=true
+              break
+            fi
+            sleep 2
+          done
+          test "$settings_service_ready" = true
           "$ADB" shell settings put system font_scale 1.0
           "$ADB" shell cmd uimode night no
           "$ADB" shell settings put system accelerometer_rotation 0

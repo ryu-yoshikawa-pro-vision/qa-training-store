@@ -118,3 +118,9 @@
 - Strategy Bはroot不可時だけ`android.settings.LOCALE_SETTINGS`を起点に専用Maestro flowを実行する。Settings UI操作はProduct capture flowから分離し、Resource IDを優先し、最後の判定は同じeffective Configurationへ集約する。
 - `system_locales`／`persist.sys.locale`の値だけでPASSにせず、`effective_locale=ja-JP`を必須のまま維持する。profile normalization成功後だけcaptureへ進む条件も維持する。
 - 変更対象はNative CI workflow、workflow contract、locale provisioning専用Maestro flowに限定する。Final Gate、canonical profile、Product UI、capture DSLは変更しない。
+
+### 2026-08-15 15:20 JST: Run 31868358969 の失敗分類と最小修正
+
+- `adb root`は`adb_shell_id=uid=0(root)`、`adb_shell_uid=0`で成功し、root解除後は`locale_observation_shell_uid=2000`だった。Strategy Aの権限要件とrootless観測要件は満たしている。
+- 失敗は`stop/start`後に`settings` Binder serviceが再利用可能になる前に`settings put system font_scale`を実行したことによる`cmd: Can't find service: settings`であり、effective localeのfail-open／validation不足ではない。
+- `package` service readinessに加え、`service check settings`が`found`になるまで待つcapture専用の安定化をworkflowへ追加する。locale判定源、canonical profile、capture前fail-closeは変更しない。

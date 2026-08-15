@@ -10,7 +10,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。Run 31860166187はAPI34 Emulatorのeffective localeがen_USのままprofile normalizationで失敗したが、ユーザー確定のStrategy A/B（実測adb root／Settings UI fallback）とrootless effective Configuration strict gateを実装し、local gateを再PASSした。remote runtime proof、capture、artifact apply、Final Gate PASSは未完了である。"
+      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。Run 31868358969ではadb root実測とrootless観測を通過したが、stop/start直後のsettings Binder service未準備でprofile normalizationが停止したため、service readiness待機を最小追加した。remote runtime proof、capture、artifact apply、Final Gate PASSは未完了である。"
     },
     "scope_control": {
       "rating": "pass",

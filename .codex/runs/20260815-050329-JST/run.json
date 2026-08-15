@@ -78,7 +78,8 @@
                                      "並列負荷でbatch contract 2件が既定5秒timeoutしたが、単独実行で6/6、全contractで228/228 PASS",
                                      "PR #24 remote HEAD c9d31e7はadb reboot/effective get-config修正未反映。要件未達のremoteへActions dispatchしない",
                                     "effective localeは非root dumpsys activity activities由来のja_JP/ja-JPをstrictに観測し、persist.sys.localeを唯一の判定根拠にしないlocal修正を検証済み",
-                                    "Run 31860166187はAPI34 Emulatorのsystem_locales=null、effective Configuration=en_US、locale_effective=unknownでprofile normalization failure。ユーザーがStrategy A/B設計を確定したため、実測adb root／Settings UI fallbackとrootless effective Configuration strict gateを実装した。remote runtime proofと25件captureは未実行"
+                                    "Run 31860166187はAPI34 Emulatorのsystem_locales=null、effective Configuration=en_US、locale_effective=unknownでprofile normalization failure。ユーザーがStrategy A/B設計を確定したため、実測adb root／Settings UI fallbackとrootless effective Configuration strict gateを実装した。remote runtime proofと25件captureは未実行",
+                                    "Run 31868358969はadb_shell_id=uid=0(root)、root解除後locale_observation_shell_uid=2000を確認したが、stop/start直後のsettings Binder service未準備でcmd: Can't find service: settingsとなりcapture前にfailure。service check settingsのreadiness待機を最小追加し、新HEADで再captureする"
                                     ]
                    },
     "safety":  {

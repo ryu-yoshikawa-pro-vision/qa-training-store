@@ -283,6 +283,9 @@ describe("Native CI workflow contracts", () => {
     expect(runtime).toContain('"$ADB" shell stop');
     expect(runtime).toContain('"$ADB" shell start');
     expect(runtime).toContain('"$ADB" unroot');
+    expect(runtime).toContain("settings_service_ready=false");
+    expect(runtime).toContain("service check settings");
+    expect(runtime).toContain('test "$settings_service_ready" = true');
     expect(runtime).toContain('observation_shell_uid="$("$ADB" shell id -u');
     expect(runtime).toContain('test "$observation_shell_uid" != "0"');
     expect(runtime).toContain("android.settings.LOCALE_SETTINGS");
