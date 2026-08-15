@@ -10,7 +10,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。Run 31869442478ではadb root実測とrootless観測を通過したが、service check settingsのnot found部分一致で未準備のsettings commandへ進みprofile normalizationが停止したため、readiness matcherを厳密化した。local contract 18/18とfull contract 229/229はPASS、remote runtime proof、capture、artifact apply、Final Gate PASSは未完了である。"
+      "evidence": "Expo Doctorの7件patch mismatchを修正し、local依存・Native・構造ゲートはPASSした。Run 31870391806ではadb root実測、rootless観測、effective locale ja-JP、全canonical profileがPASSしたが、Automation APKのmonkey起動だけがmanifest query failureとなりcapture前に停止した。explicit MainActivity起動へ最小修正し、local contract 18/18、full contract 229/229、native 49/49をPASSした。remote capture、artifact apply、Final Gate PASSは未完了である。"
     },
     "scope_control": {
       "rating": "pass",

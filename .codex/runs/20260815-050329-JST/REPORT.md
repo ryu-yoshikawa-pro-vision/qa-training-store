@@ -538,3 +538,14 @@
 - 修正後local validation: format PASS、workflow contract 18/18 PASS、full contractは並列実行時に既存batch testの5秒timeoutが1件発生したが、単独再実行で26 files／229 tests PASS、native component 49/49 PASS、typecheck PASS、lint PASS（既存65 warningsのみ）、spec PASS（94/69/0/25/69）。
 - 現時点でArtifact download、apply、promotion、status transitionは未実行。異なるRunのArtifactは使用していない。次はこのmatcher修正をcommit/pushし、新HEADでcanonical profileから再実行する。
 - Progress: 80% (23/29)
+
+## 2026-08-15 16:20 JST
+
+- Run `31870391806`はPR HEAD=`09092be1541918991597ab2023e86db3ac5ef5d2`で実行し、`Normalize Android canonical visual profile`が初めてsuccessした。
+- Runtime evidence: `adb_shell_id=uid=0(root)`／root解除後`locale_observation_shell_uid=2000`、`api_level=34`、`abi=x86_64`、`locale_provisioning_mode=adb_root`、`locale_property=ja-JP`、rootless `dumpsys activity activities`由来`locale_effective=ja-JP`、`font_scale=1.0`、`ui_mode=light`、`orientation=portrait`、`resolution=1080x1920`、`density=440`。`settings system_locales=null`は診断値であり、effective locale strict gateはPASSした。
+- 25件captureは、Automation APK install後の起動stepで停止したため0/25。`monkey`が`No activities found to run`（exit 252）を返したが、同RunのAPK download/install/`pm path`はsuccess、Production-validation APKの同Emulator起動とMaestro flowもsuccessだった。
+- 同RunのAutomation APKを`.artifacts/native-remote/31870391806/apk/`へ取得し、manifestで`com.ryuyoshikawa.scenarioshop.MainActivity`、`exported=true`、`MAIN/LAUNCHER`を確認した。したがってProduct UI／locale／APK build failureではなく、Automation APKのinstall直後monkey query起動経路の不整合として分類した。Artifactはcanonical promotionに使用しない。
+- `.github/workflows/native-ci.yml`のAutomation起動だけを`am start -W -n "$PACKAGE_ID/.MainActivity"`へ変更し、Production-validationのmonkey起動と`scripts/native/android-maestro-run.sh`は維持した。workflow contractでexplicit componentとAutomation側monkey不使用を固定した。
+- 修正後local validation: format、workflow contract 18/18、full contract 229/229、native component 49/49、typecheck、lint（0 errors／65 existing warnings）、markdown、structural specはPASS。Final Visual Gateはcapture前のため未変化。
+- 次は今回のworkflow／contractとRun Artifactをcommit/pushし、新HEADでprofile PASS後のAutomation起動からState Bを再実行する。
+- Progress: 80% (24/30)

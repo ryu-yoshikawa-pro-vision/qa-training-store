@@ -129,3 +129,9 @@
 
 - Run `31869442478`でもadb root（UID 0）とrootless観測（UID 2000）は成立したが、`service check settings`の`grep -q "found"`が`not found`にも部分一致し、未準備のまま`settings` commandへ進んだ。
 - `grep -Eq ':[[:space:]]+found[[:space:]]*$'`へ限定し、実際の`found`行だけをreadiness successとする。locale値、effective Configuration strict gate、capture gatingは変更しない。
+
+### 2026-08-15 16:20 JST: profile PASS後のAutomation起動経路
+
+- Run `31870391806`で`locale_effective=ja-JP`、rootless UID 2000、API34、x86_64、font 1、light、portrait、1080x1920、440dpiがPASSした。locale/profile gateは成立している。
+- 同RunのAutomation APKはdownload、非空、JavaScript bundle、`adb install -r`、`pm path`まで成功したが、`monkey -p ... -c LAUNCHER`だけが`No activities found`で終了した。取得した同Run APK manifestには`MainActivity`、`exported=true`、`MAIN/LAUNCHER`が存在し、Production-validation APKのmonkey起動はsuccessだった。
+- Automation capture起動だけを既知component `com.ryuyoshikawa.scenarioshop/.MainActivity`への`am start -W`へ置換する。Production起動、Maestro startup helper、locale/profile/final gateは変更しない。

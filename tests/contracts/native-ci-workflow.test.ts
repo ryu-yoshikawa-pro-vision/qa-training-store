@@ -401,8 +401,13 @@ describe("Native CI workflow contracts", () => {
     const productionFlowStart = runtime.indexOf(
       "- name: Run Maestro Native Production-validation flow",
     );
+    const automationInstallStart = runtime.indexOf("- name: Install and launch Automation APK");
+    const automationInstall = runtime.slice(automationInstallStart, productionInstallStart);
     const productionInstall = runtime.slice(productionInstallStart, productionFlowStart);
     const productionFlow = runtime.slice(productionFlowStart);
+    expect(automationInstall).toContain('MAIN_ACTIVITY="$PACKAGE_ID/.MainActivity"');
+    expect(automationInstall).toContain('shell am start -W -n "$MAIN_ACTIVITY"');
+    expect(automationInstall).not.toContain("shell monkey");
     expect(productionInstall).toContain("needs.android-production-build.result == 'success'");
     expect(productionFlow).toContain("steps.production_install.outcome == 'success'");
     expect(productionFlow).not.toContain("android_automation_install");

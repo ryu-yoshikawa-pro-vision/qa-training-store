@@ -1088,14 +1088,12 @@ jobs:
         run: |
           set -euo pipefail
           PACKAGE_ID="com.ryuyoshikawa.scenarioshop"
+          MAIN_ACTIVITY="$PACKAGE_ID/.MainActivity"
           export PACKAGE_ID
           timeout 15 "$ADB" logcat -c
           timeout 180 "$ADB" install -r "$APK_PATH"
           timeout 15 "$ADB" shell pm path "$PACKAGE_ID" | grep -F 'package:'
-          timeout 30 "$ADB" shell monkey \
-            -p "$PACKAGE_ID" \
-            -c android.intent.category.LAUNCHER \
-            1
+          timeout 30 "$ADB" shell am start -W -n "$MAIN_ACTIVITY"
           set +e
           timeout 60 bash -c '
             for _ in $(seq 1 30); do
