@@ -50,7 +50,7 @@ Security boundary 自体が成立していない項目は、単に「権限不�
 
 ## 3. Current State
 
-### 3.1 Repository
+### 3.1 Repository / CI
 
 主な既存ファイル:
 
@@ -67,7 +67,8 @@ Security boundary 自体が成立していない項目は、単に「権限不�
 
 - top-level `permissions: contents: read`
 - `actions/checkout` の `persist-credentials: false`
-- aggregate required job `verify`
+- aggregate job `verify`
+- final validation job `validate`
 - `verify.if: always()`
 - `validate.if: always()`
 - Production deploy は `main` push のみ
@@ -91,9 +92,11 @@ Security boundary 自体が成立していない項目は、単に「権限不�
 - Squash only
 - Bypass なし
 
-今回、Ruleset を作り直さない。
+現在は `verify` が Required check だが、今回の Hardening 完了後は最終判定を行う `validate` を Required check とする。
 
-実装時に Current State を確認し、意図せず弱体化していないことだけ確認する。
+`verify` は内部 quality aggregate として維持し、Ruleset では `validate` のみを最終 Required check とする。
+
+`validate` の修正版が `main` に反映され、正常に成功することを確認する前に Ruleset を切り替えない。
 
 ### 3.3 Collaborator / Cloudflare
 
@@ -101,11 +104,19 @@ Security boundary 自体が成立していない項目は、単に「権限不�
 
 現行 `ci.yml` は same-repo PR の Preview と `main` の Production Deployment で Cloudflare Repository Secrets を利用している。
 
-今回の trust policy は次とする。
+今回の trust policy:
 
 > **Write 権限を持つ主体は、Repository code だけでなく Cloudflare Deployment Credential を利用できる範囲まで trusted とみなせる主体に限定する。**
 
 Deployment Credential まで信頼できない主体には Write を維持しない。
+
+ただし、Deployment Credential trust は技術的に自動判定しない。
+
+- trust classification は Repository Owner の明示判断とする
+- 実装者 / AI agent は GitHub role、過去の commit、account 名、所属 Organization 等から trust を推定しない
+- 実装者 / AI agent は Owner の明示指示なしに collaborator 権限を変更しない
+- classification 未確定でも他の Hardening は進めてよい
+- classification 未確定のまま Cloudflare trust boundary を完了扱いにしない
 
 この Plan では GitHub Environment を使った中間 trust model は導入しない。
 
@@ -150,7 +161,7 @@ Dependabot Version Updates は有効化しない。
 
 `.github/dependabot.yml` は追加しない。
 
-### P-03: Dependabot Security は標準機能をそのまま使う
+### P-03: Dependabot Security は標準機能を使う
 
 最終状態:
 
@@ -168,7 +179,7 @@ Security PR は通常の PR と同様に CI を通し、人間が merge 要否�
 
 Low severity を含む Security PR の量が実際に運用問題になった場合のみ、別タスクで selective auto-triage を検討する。
 
-今回、その問題を先回りして Custom Auto-triage Rule は作らない。
+今回 Custom Auto-triage Rule は作らない。
 
 `Dismiss package malware alerts` preset は OFF を維持する。
 
@@ -224,23 +235,32 @@ push / schedule / workflow_dispatch
 
 `success OR skipped` のような曖昧な判定にはしない。
 
-Ruleset の Required check は引き続き `verify` のみとする。
+`verify` は内部 quality aggregate として維持する。
+
+Ruleset の最終 Required check は P-14 に従って `validate` とする。
 
 ### P-05: Cloudflare Deployment Credential の trust boundary を単純化する
 
-実装開始時に Write / Maintain / Admin collaborator を確認する。
+実装開始時に Write / Maintain / Admin collaborator を Inventory する。
 
-各主体について、Cloudflare Deployment Credential を利用できる範囲まで trust できるか判断する。
+Deployment Credential trust は Repository Owner の明示判断で確定する。
 
 ```text
-Deploymentまでtrustできる
+OwnerがDeploymentまでtrustedと明示
 → Write維持可
 
-Deploymentまでtrustできない
-→ Writeを維持しない
+Ownerがnot trustedと明示
+→ Ownerの明示指示に基づき必要最小権限へ変更
+
+Owner判断が未確定
+→ 他のHardeningは進行可
+→ Cloudflare trust boundaryは未完了
+→ Repository Hardening DoDは未達
 ```
 
-中間モデルは作らない。
+実装者 / AI agent は trust を推定しない。
+
+実装者 / AI agent は Owner の明示指示なしに collaborator 権限を変更しない。
 
 Cloudflare Token は provider 側で可能な限り必要最小権限にする。
 
@@ -272,45 +292,37 @@ Cloudflare Secret の存在を eligibility 条件にはしない。
 
 ```text
 normal same-repo PR
+→ verify success
 → deploy-preview success
+→ validate success
 
 Dependabot PR
+→ verify success
 → deploy-preview skipped
+→ validate success
 
 fork PR
+→ verify success
 → deploy-preview skipped
+→ validate success
 
 push / schedule / workflow_dispatch
+→ verify success
 → deploy-preview skipped
+→ validate success
 ```
 
 normal same-repo PR で Cloudflare Secret が欠落している場合は Fail する。
 
 `validate` は既存の `if: always()` を必ず維持する。
 
-`deploy-preview` が Dependabot / fork / non-PR event で `skipped` でも、`validate` 自体は実行して expected result を判定する。
-
-`validate` の結果判定:
-
-```text
-normal same-repo PR
-→ verify == success
-→ deploy-preview == success
-
-Dependabot PR / fork PR
-→ verify == success
-→ deploy-preview == skipped
-
-push / schedule / workflow_dispatch
-→ verify == success
-→ deploy-preview == skipped
-```
+`deploy-preview` が skipped でも `validate` 自体は実行し、event / PR type ごとの expected result を判定する。
 
 PRであれば常に Preview success を要求する現在の実装を修正する。
 
 Cloudflare Credential を Dependabot Secrets や fork 用 Secret として複製しない。
 
-### P-07: `pull_request_target` で Secret 制約を回避しない
+### P-07: Secret制約を危険な方法で回避しない
 
 Secret 利用のために `pull_request_target` で untrusted head code を checkout / execute しない。
 
@@ -497,19 +509,31 @@ Revoked / expired / false positive:
 
 Git history rewrite は revoke / rotate より優先しない。
 
-### P-14: Ruleset と既存安全設定は維持する
+### P-14: Ruleset と既存安全設定を維持し、最終Gateを `validate` にする
 
-`main-protection` の期待値:
+Hardening 完了後の `main-protection` 期待値:
 
 - PR required
-- `verify` required
+- Required status check: `validate`
+- `verify` は Ruleset Required ではなく内部 aggregate として維持
 - conversation resolution required
-- linear history
+- linear history required
 - force push blocked
 - deletion blocked
 - squash only
 - strict OFF
 - bypass なし
+
+`verify` と `validate` の両方を Required check にしない。
+
+`validate` が `verify` と Preview expected result の両方を最終判定するため、Ruleset の最終 Gate は `validate` だけでよい。
+
+Ruleset 移行手順:
+
+1. Phase 2 の修正版 `validate` を通常手順で `main` へ反映
+2. `main` 上で `validate` が正常に実行・成功することを確認
+3. `main-protection` の Required check を `verify` から `validate` へ変更
+4. 変更後、通常 PR で `validate` が merge block の最終 Gate になることを確認
 
 既存 Workflow の次も維持する。
 
@@ -561,28 +585,30 @@ CODE_REVIEW.md              # 既存記載と矛盾する場合のみ最小修�
 2. `.github/workflows/**` を再確認
 3. remote `uses:` を Inventory
 4. self-hosted runner 不在確認
-5. Write / Maintain / Admin collaborator 確認
-6. 各 Write-capable主体を Deployment Credential まで trust できるか確認
-7. Cloudflare Secret / Token scope 確認
-8. GitHub Settings Current State 確認
-9. Existing vulnerability / malware / secret findings を Inventory
-10. `main-protection` Current State 確認
-11. `verify.if: always()` / `validate.if: always()` の Current State を確認
+5. Write / Maintain / Admin collaborator を Inventory
+6. Owner に各 Write-capable 主体の Deployment Credential trust classification を確認
+7. 実装者 / AI agent は trust を推定しない
+8. Owner の明示指示なしに collaborator 権限を変更しない
+9. Cloudflare Secret / Token scope 確認
+10. GitHub Settings Current State 確認
+11. Existing vulnerability / malware / secret findings を Inventory
+12. `main-protection` Current State を確認
+13. `verify.if: always()` / `validate.if: always()` の Current State を確認
 
-Write-capable主体を Deployment まで trust できない場合は、Repository変更を進める前に権限を見直す。
+Owner の trust classification が未確定でも、権限変更を伴わない Repository Hardening は継続してよい。
+
+ただし Cloudflare trust boundary は未完了として扱う。
 
 Exit:
 
 - 実装 Gap が確定
-- Cloudflare trust boundary が確定
+- Owner の trust classification が確認済み、または未確定として明示済み
 - remote Action pinning 対象が列挙済み
 - Critical / High と Moderate / Low の Existing finding 件数が把握済み
 - Malware / Secret Alert の状態が把握済み
-- `always()` を維持すべき aggregate / validation job が確認済み
+- Current Ruleset / `always()` state が確認済み
 
 ### Phase 2: Repository Changes
-
-実施:
 
 #### Security / Contribution files
 
@@ -702,17 +728,28 @@ Exit:
 - `pnpm run verify` PASS
 - `git diff --check` PASS
 - Required PR CI PASS
-- Preview contract PASS
+- Preview / `validate` contract PASS
 - `verify.if: always()` / `validate.if: always()` 維持確認
 - Repository変更は review / merge 判断可能
 
-この時点で実装者が勝手に `main` へ merge しない。
+この時点では Ruleset Required check は既存 `verify` のままでよい。
+
+実装者は DoD 達成目的で勝手に `main` へ merge しない。
 
 ### Phase 4: Post-merge Settings / Final Validation
 
 Repository変更が正規手順で `main` へ反映された後に実施する。
 
-Settings:
+順序:
+
+1. `main` 上の修正版 `validate` が正常実行・成功することを確認
+2. `main-protection` Required check を `verify` から `validate` へ変更
+3. `validate` が最終 merge Gate として機能することを確認
+4. Dependabot-safe Preview / `validate` が `main` に存在することを再確認
+5. Dependabot Security Updates を ON
+6. その他 Security Settings を最終状態へ揃える
+
+Settings 最終状態:
 
 - Dependency graph ON
 - Dependabot Alerts ON
@@ -726,8 +763,7 @@ Settings:
 - CodeQL Default Setup ON
 - Actions default permission read-only
 - Actions create / approve PR OFF
-
-Security Updates は、この Phase で Dependabot-safe Preview / `validate` が `main` に存在することを確認してから ON にする。
+- `main-protection` Required check: `validate`
 
 UI / Runtime 確認:
 
@@ -739,7 +775,7 @@ UI / Runtime 確認:
 - PVR notification 受信経路
 - CodeQL JavaScript / TypeScript successful
 - CodeQL `actions` successful
-- `main-protection` 維持
+- `main-protection` の Required check が `validate`
 
 Security PR が生成された場合:
 
@@ -753,7 +789,7 @@ Security PR が生成されない場合は失敗扱いしない。
 
 最後に、未実施項目があれば理由・影響・代替策を記録する。
 
-Security boundaryを成立させる必須項目が未実施なら Hardening 完了にしない。
+Cloudflare trust classification 未確定等、Security boundaryを成立させる必須項目が未実施なら Hardening 完了にしない。
 
 ---
 
@@ -769,13 +805,21 @@ Advisory / scope / dependency を確認し、実測根拠がある場合だけ�
 
 `dependency-review` を `needs` に追加したことで `verify.if: always()` が失われていないか確認する。
 
-`verify` の event別結果判定を修正し、Required check自体を外さない。
+`verify` の event別結果判定を修正する。
 
 ### `validate` が Dependabot / fork PR で skipped
 
 `deploy-preview` が skipped でも `validate.if: always()` により実行されることを確認する。
 
 PreviewをDependabot / forkへ広げず、`validate` の expected-result判定を修正する。
+
+### `validate` Required へのRuleset移行で問題が出る
+
+修正版 `validate` が `main` で成功済みか確認する。
+
+Rulesetを無効化せず、Required check設定だけを確認・修正する。
+
+`verify` と `validate` の両方を恒久的に Required にして複雑化しない。
 
 ### normal PR が Preview Deploy されない
 
@@ -785,13 +829,15 @@ Dependabot / fork へ Secret を広げない。
 
 normal PR の Secret 不足を skip に弱体化しない。
 
-### Write collaborator を Deployment まで trust できない
+### Collaborator trust が未確定 / not trusted
 
-Write を維持したまま複雑な例外モデルを作らない。
+実装者 / AI agent は trust を推定しない。
 
-必要最小権限へ下げる。
+Owner の明示判断を記録する。
 
-将来、中間 trust model が本当に必要になった場合だけ別タスクで Environment を検討する。
+not trusted の場合も、Owner の明示指示なしに権限を変更しない。
+
+classification 未確定なら他のHardeningは継続してよいが、Cloudflare trust boundaryは未完了とする。
 
 ### Action SHA pinning で Workflow が壊れる
 
@@ -844,12 +890,15 @@ Dependency / CI:
 - `validate.if: always()` 維持
 - Dependabot / forkでも`validate`自体は実行
 - `validate` がPreview契約と整合
+- normal PR / Dependabot相当で `validate` success
 - `pull_request_target` 未追加
 
 Cloudflare trust:
 
-- 全Write-capable主体を Deployment Credential まで trust できることを確認済み
-- trustできない主体はWriteから外れている
+- Write-capable主体を Inventory 済み
+- Owner の trust classification を確認済み、または未確定として明示済み
+- 実装者 / AI agent が trust を推定していない
+- Owner の明示指示なしに collaborator 権限を変更していない
 - Cloudflare Token scope確認済み
 
 GitHub Actions:
@@ -875,6 +924,11 @@ Quality:
 - `pnpm run verify` PASS
 - `git diff --check` PASS
 - Required PR CI PASS
+- 修正版 `validate` PASS
+
+PR-ready時点では `main-protection` Required check が既存 `verify` のままでもよい。
+
+Ruleset切替は修正版`validate`が`main`へ反映された後にPhase 4で行う。
 
 ### 8.2 Repository Hardening Complete
 
@@ -897,7 +951,12 @@ Default branch反映後:
 - Actions default permission read-only
 - Actions create / approve PR OFF
 - `main`上の全remote Action full SHA
-- `main-protection`期待状態維持
+- `main-protection` Required check は `validate`
+- `verify` は内部 aggregate として維持
+- normal PRでPreview failure時に`validate`がfailしmerge blockされる構造
+- Dependabot / forkではPreview skippedを`validate`が正常扱いできる構造
+- Owner の Cloudflare trust classification が確定済み
+- not trusted主体がある場合、Ownerの明示判断に基づき権限対応済み
 - 既存Application / QA behaviorに回帰なし
 
 未実施項目がある場合は理由・影響・代替策が記録されている。
@@ -945,7 +1004,7 @@ Security boundary の必須条件が未成立なら完了扱いにしない。
 3. Phase 3 — Pre-merge Validation
 4. PR-ready DoD確認
 5. Repository Owner / 通常運用で `main` へ反映
-6. Phase 4 — Post-merge Settings / Final Validation
+6. Phase 4 — `validate` Required化 + Security Settings / Final Validation
 7. Repository Hardening DoD確認
 
 この Plan では、将来起こるか分からない問題を先回りして複雑な仕組みを作らない。
