@@ -2,24 +2,40 @@
 
 ## 0. このPlanと現在Branchの位置づけ
 
-この文書は、`qa-training-store` / Scenario Shopへ、**Cloudflare無料枠を前提とした公開Backend/APIテスト対象**を追加するための実装計画である。
+この文書は、`qa-training-store` / Scenario Shopへ、**Cloudflare無料枠を前提とした公開Backend/APIテスト対象**を追加し、Web / Native / API / Database / Contract / CI / Agentic QA / Trainingを同一Repositoryで学習できる状態へ拡張するための実装計画である。
 
 現在の`plan/phase3-cloudflare-backend` Branchは**計画文書だけを保存・レビューするDocumentation-only Branch**とする。このBranchではApplication Code、Workflow、Dependency、Cloudflare設定の実装は行わない。
 
-実装は本Planのレビュー完了後、最新`main`から別のFeature Branchを作成して開始する。
+本Planは2026-08-16時点のCurrent `main`を再baseline済みとする。
+
+```text
+Current main
+40a5042cb758370cbba643ee0341efc0042212a1
+```
+
+このBaselineには、少なくとも次のFoundationがすでに統合されている。
+
+- Screen Catalog / Visual Specification Foundation
+- Test Automation Curriculum / Training Environment
+- Official Black-box Scored E2E / Agentic QA Foundation
+- Current Phase 1 Web CI / Native CI / iOS Build-only Baseline
+
+実装は本Planのレビュー完了後、**その時点の最新`main`から別のFeature Branchを作成して開始する**。実装開始時に`main`が進んでいた場合は、Section 2のCurrent Foundation Inventoryを再取得し、本Planの固定SHAを実装開始点へ機械的に使い回さない。
 
 本Planの設計基準は以下の順で優先する。
 
 1. QA / テスト自動化教材として学習価値が高いこと
-2. Public Repository / Public Test Targetとして安全に運用できること
-3. Cloudflare Free Plan内で継続運用できること
-4. Current SpecificationのProduct Behaviorを意図せず変えないこと
-5. 現在のWeb / Native資産を不要に壊さないこと
+2. Current Normative SpecificationとCurrent QA Foundationを壊さないこと
+3. Public Repository / Public Test Targetとして安全に運用できること
+4. Cloudflare Free Plan内で継続運用できること
+5. 現在のWeb / Native / Visual / Curriculum / Agentic QA資産を不要に壊さないこと
 6. 過剰設計を避け、ローカルでも再現できること
 7. Free quota最適化のために恒久的な設計複雑性を先回りして導入しないこと
 8. Cloudflare固有制約を隠蔽せず、教材上の学習境界として明示すること
 9. Current parityとPhase 3で新規追加するQA教材Capabilityを混同しないこと
 10. Scenario IDの見かけ上の一致よりScenario semanticsの一致を優先すること
+11. Existing Required Gateを「Backendとは無関係」として省略しないこと
+12. Agentic QA / Curriculumを後付けのDocumentation扱いにせず、Phase 3の実行互換性へ含めること
 
 ---
 
@@ -42,6 +58,8 @@ Scenario Shopを、現在のWeb / Native UIテスト教材から、以下を同�
 - CI/CD Test
 - Request IDを使った障害調査
 - Local環境でのStructured Log / D1調査
+- Agentic QAによるBackend-aware Runtime探索
+- Curriculum / TrainingによるAPI・Backend QA学習
 
 Target Architectureは次とする。
 
@@ -80,22 +98,59 @@ Public
 - Contract / Error / State Transition
 - Sandbox Isolation
 - Request IDを使ったEvidence記録
+- Public-safe Scenarioによる軽量な再現
 
 Local Wrangler
 - 上記すべて
 - Structured Worker Log
 - D1 query / migration / constraint investigation
+- Transaction / rollback investigation
+- Local-only fault injection
 - Load / Stress / Soak
 - Public Free環境で禁止する破壊的検証
 ```
 
 Public利用者向けにlog閲覧APIは追加しない。
 
+### 1.2 Phase 3完了条件はTest Targetだけではない
+
+Phase 3はBackendを追加して終了ではない。
+
+次の3層が揃って初めて完了とする。
+
+```text
+Product / Runtime
+  Backend + D1 + Web API-backed
+
+Quality Foundation
+  Existing Required CI / Visual / Training / Agentic QA互換
+
+Learning Delivery
+  API / Backend QAをCurrent Curriculum / Trainingから利用可能
+```
+
+そのため、実装は3 PRへ分割する。
+
+```text
+PR A
+Backend Foundation + Current Web API Parity
+        ↓
+PR B
+Web Backend Integration + Current QA Runtime Compatibility
+        ↓
+PR C
+API / Backend QA Curriculum Integration
+```
+
+PR Cを省略する場合はPhase 3のGoalを「API / Backend QA Test Target Foundation」に明示的に狭める必要がある。本Planでは**Curriculumまで接続してPhase 3を完了する方針**を採用する。
+
 ---
 
-## 2. Current Baseline / Problem
+## 2. Current Baseline / Foundation Inventory
 
-現在のScenario ShopはDomain / Application / Repository abstractionを持つが、WebもNativeもClient Runtime内で完結する。
+### 2.1 Product Baseline
+
+Current Scenario ShopはDomain / Application / Repository abstractionを持つが、WebもNativeもClient Runtime内で完結する。
 
 ```text
 Web
@@ -125,16 +180,18 @@ Phase 3ではこの不足をBackend追加によって埋める。
 
 通常のProduction ECを再現すること自体はGoalではない。**QAで観測・再現・自動化しやすいBackend**を作る。
 
-### 2.1 Current Specificationを最優先する
+### 2.2 Current Specificationを最優先する
 
 Backend化はProductの新規作り直しではない。
 
-実装時は次の順序で判断する。
+Expected Product Behaviorは`docs/spec/README.md`のOracle Priorityへ従う。
 
 ```text
 Current Normative Spec
         ↓
 Current Business Rule / Acceptance Criteria
+        ↓
+Executable Canonical Source for low-level values
         ↓
 Current Application Capability
         ↓
@@ -145,9 +202,11 @@ Backend API Capability
 HTTP Endpoint / D1 Persistence
 ```
 
-既存Implementationの都合だけでCurrent Product Behaviorを削らない。
+Application、Existing Test、README、Guide、ScreenshotだけをExpected Product Behaviorの上位Oracleへ昇格させない。
 
-一方、Current Specに含まれないBehaviorを「Backendらしいから」という理由だけでCurrent parity扱いにしない。
+Current ScopeでExcludedなCancel / Return / Refund等をPhase 3で勝手に追加しない。
+
+### 2.3 Known Current Capability Inventory
 
 既知のCurrent parity対象として最低限以下を落とさない。
 
@@ -155,18 +214,151 @@ HTTP Endpoint / D1 Persistence
 - Guest Cart merge
 - Home Catalog
 - Product Search / Facet / Detail
+- Category name/detail equivalent
+- Search Suggestion
 - Product Review List
 - Address Suggestion
+- Cart Get / Add / Quantity / Remove
 - Cart Price Change Acceptance
 - Stateful Checkout
 - Payment Retry
 - Customer Order / Review Eligibility / Review
 - Admin Overview
 - Admin Catalog / Inventory / Orders / Reviews / Users
+- Test Clock / Payment fault / Test Control相当のQA Control
 
-Current ScopeでExcludedなCancel / Return / RefundをPhase 3で勝手に追加しない。
+Implementation開始時にApplication public methods、Presentation usage、Normative Specを再scanし、上記だけを固定一覧として使わない。
 
-### 2.2 Operation Classification
+### 2.4 Screen Catalog / Visual Baseline
+
+Current `docs/spec/screen-catalog.md`はScreen IDとRoute、Platform、Primary Specificationを結ぶSupporting Indexであり、Expected Product Behaviorの第二SSOTではない。
+
+Current Catalog Universeは次をBaselineとする。
+
+```text
+Product     31
+Supporting   4
+Boundary     2
+Test-only    1
+Total       38
+```
+
+Visual SpecificationはCanonical ScreenshotをNon-normative Referenceとして扱う。
+
+Phase 3ではScreen Catalogを**Web migrationの取りこぼし検出用Traceability**へ利用してよいが、API設計のOracleへ昇格させない。
+
+### 2.5 Curriculum / Training Baseline
+
+Current Repositoryには正式なTest Automation CurriculumとTraining Environmentが存在する。
+
+Current保証を維持する。
+
+```text
+Web
+Formal RegressionとTraining baselineを分離
+training-chromium / training-mobile-chromium
+
+Android
+Build + Runtime E2E
+Training MaestroはCurrent Formal Native Runtimeを再利用
+
+iOS
+Build-only
+Runtime / Simulator / Maestro PASSとして扱わない
+```
+
+Training TestとFormal Regressionの境界をPhase 3で混ぜない。
+
+### 2.6 Agentic QA Baseline
+
+Current Agentic QA Foundationは次を前提とする。
+
+- Primary QA ExecutorはCoding Agent + Exploratory QA Skill
+- Repository HarnessはPreparation / Validation / Isolation / Artifact Integrity / Evaluation / Scoringを担当
+- HarnessがCoding Agentをlaunch / wrap / retry / orchestrateしない
+- Normal / Gray-boxはSource Working Tree readonly
+- Black-box ScoredはSource-free Prepared Targetとtrusted Host Capabilityを要求
+- Official ScoredはFresh Coding Agent Session、trusted identity、Tool Isolation、Actual Tool Scopeが無い場合BLOCKED
+- Required CoverageはModeごとのSSOTから変更しない
+
+Phase 3 Backend化でこのOwnership Boundaryを崩さない。
+
+### 2.7 Current Required Quality Foundation
+
+Implementation開始時に`package.json`と`.github/workflows/**`を再scanし、Current Required GateをInventory化する。
+
+2026-08-16 Baselineでは少なくとも次をCurrent Foundationとして扱う。
+
+```text
+Style / Specification
+- format check
+- markdown lint
+- validate:spec
+- validate:spec-visuals:final
+- validate:curriculum
+
+Code Quality
+- lint
+- typecheck
+- image manifest validation
+- security check
+
+Test
+- unit
+- integration
+- repository
+- component
+- contracts
+
+Build
+- automation web build
+- production web build
+- specification site build
+
+Web Runtime
+- required Chromium E2E
+- accessibility
+- mobile boundary
+- cross-role
+- Training Web baseline
+- UI Review desktop
+- UI Review tablet
+- UI Review mobile
+- UI Review small-mobile
+- production smoke
+
+Agentic QA
+- deterministic preparation verification
+
+Native
+- Current Android required build/runtime/Maestro guarantees
+- Current iOS build-only guarantee
+```
+
+Phase 3独自GateがPASSしても、Current Foundation Gateを壊していれば完了ではない。
+
+### 2.8 Foundation Baseline Gate
+
+PR A/B/Cの各開始点で、可能なCurrent Foundation GateをBaseline実行する。
+
+原則:
+
+```text
+Before Phase 3 change
+Current Foundation PASS or known pre-existing failure recorded
+        ↓
+Phase 3 implementation
+        ↓
+Same Foundation rerun
+        ↓
+New failure = Phase 3 regression until disproven
+```
+
+長時間Native Gate等を毎Waveで全実行する必要はない。PR Required Gate / Final GateとしてCurrent Policyに従う。
+
+---
+
+## 3. Operation Classification / Traceability
 
 Traceability Matrixでは各API Operationを次のいずれかへ分類する。
 
@@ -189,13 +381,60 @@ Idempotency-Key付きOrder作成
   -> PHASE3_QA_EXTENSION
 ```
 
-Current parityを満たすために不要な便利APIを無制限に追加しない。
+### 3.1 Required Traceability Matrix
+
+最低列:
+
+```text
+Operation
+Classification
+Normative Spec / BR / AC
+Application public method
+Presentation / Current Web usage
+Screen ID / Route where applicable
+Current Transaction invariant where applicable
+API endpoint
+Auth requirement
+Sandbox scope
+Test layer
+```
+
+Screen IDはSupporting traceabilityであり、Expected BehaviorのOracleではない。
+
+### 3.2 Screen to API Capability Mapping
+
+Product Screenについて、Current UIがBackend APIへ移行できることを確認する。
+
+例:
+
+```text
+SCREEN-STOREFRONT-HOME
+-> Home Catalog capability
+
+SCREEN-STOREFRONT-CART
+-> Cart read/mutation + price change acceptance
+
+SCREEN-CHECKOUT-*
+-> Checkout session/state/payment/order operations
+
+SCREEN-REVIEWS-EDITOR
+-> Review eligibility + mutation
+
+SCREEN-ADMIN-*
+-> Admin capability mapping
+```
+
+Supporting / Legal ScreenはAPI `N/A`を許容する。
+
+Boundary ScreenはHTTP Error / Authorization Boundaryとの対応を確認する。
+
+Test-only Screenは`PLATFORM_CONTROL`へ分類する。
 
 ---
 
-## 3. Architecture Decision
+## 4. Architecture Decision
 
-### 3.1 採用構成
+### 4.1 採用構成
 
 - Frontend Hosting: 現行Cloudflare Pagesを継続
 - Backend Runtime: Cloudflare Workers
@@ -212,7 +451,7 @@ Current parityを満たすために不要な便利APIを無制限に追加しな
 - E2E/API Test: Playwright request APIまたはNode HTTP client
 - Contract: OpenAPI 3.1
 
-### 3.2 初期版で採用しないもの
+### 4.2 初期版で採用しないもの
 
 - Prisma
 - Drizzle ORM
@@ -235,20 +474,20 @@ Current parityを満たすために不要な便利APIを無制限に追加しな
 
 D1を直接扱い、SQL、migration、constraint、query、transaction境界の学習対象を隠さない。
 
-### 3.3 Pages FunctionsではなくStandalone Workerを使う
+### 4.3 Pages FunctionsではなくStandalone Workerを使う
 
 理由:
 
 - API自体を独立したテスト対象として扱いやすい
 - Web build / static hostingとBackend lifecycleを分離できる
 - `workers.dev` URLだけでもPublic APIを成立させられる
-- Postman / Bruno / REST Assured / pytest等から直接扱いやすい
+- 外部API Clientから直接扱いやすい
 - `wrangler dev`でBackendだけを起動できる
 - 現行PagesをWorkers Static Assetsへ移行する必要がない
 
 Hosting MigrationはPhase 3 Goalに含めない。
 
-### 3.4 Server-side Identity Boundary
+### 4.4 Server-side Identity Boundary
 
 WorkerではBrowser `CurrentSessionStore` / `GuestIdentityStore`をCurrent User SSOTとして再利用しない。
 
@@ -280,7 +519,7 @@ AuthenticationとAuthorizationを分離する。
 重要:
 
 - Valid Session Tokenからsuspended / withdrawn userを識別できること自体は許容する
-- Current Operationがactive accountを要求する場合に、Operation Guardで`ACCOUNT_SUSPENDED` / `ACCOUNT_WITHDRAWN`等を返す
+- Current Operationがactive accountを要求する場合に、Operation GuardでCurrent semanticsのerrorを返す
 - `suspended-user` / `withdrawn-user` Scenarioのsemanticsを変えない
 
 禁止:
@@ -291,121 +530,15 @@ AuthenticationとAuthorizationを分離する。
 
 再利用対象は原則pureなDomain Policy / Service / Contractとする。
 
-### 3.5 Existing TransactionRunnerをD1へ機械移植しない
-
-Current Applicationのcallback型`ApplicationTransactionRunner`をD1へ同じ形で持ち込まない。
-
-禁止例:
-
-```text
-transactionRunner.run(async () => {
-  await repositoryA.update()  # auto-commit
-  await repositoryB.insert()  # auto-commit
-  await repositoryC.update()  # failure
-})
-```
-
-Backendのatomic operationは、必要なread / validationを行った後、同一Transactionで確定すべきPrepared Statement群を組み立て、D1 `batch()`等のall-or-nothing境界で実行する。
-
-```text
-Read-only / immutable validation
-     ↓
-Build statements
-     ↓
-D1 atomic operation
-- mutable-state guard / conditional mutation
-- mutation A
-- mutation B
-- history
-- state transition
-     ↓
-Commit or Rollback
-```
-
-ここでbatch外へ出してよいread / validationは、request schema、存在確認後もatomic mutationの正当性を左右しないimmutable/reference data、またはatomic boundary内で再検証される前提のpre-readに限る。
-
-**在庫数、optimistic version、現在state、sequence uniqueness等のmutable-state predicateをbatch外のread結果だけで確定してはならない。** これらは同一D1 atomic operation内のguard / conditional mutation / constraint等で評価または再評価し、競合時はSection 3.6のrollbackへ接続する。
-
-Backendではtransaction-oriented Command / Repository APIを設けてよい。
-
-既存Client向けRepository interfaceへD1のatomicityを無理に合わせない。
-
-### 3.6 Guard failureをSQL failureへ変換する
-
-D1 `batch()`へstatementを並べただけでは、optimistic lockや在庫Guardが自動的にrollback条件になるとは限らない。
-
-例えばconditional UPDATEが0 row更新でもSQL statement自体は成功扱いになり得る。
-
-したがってatomic operationでは、**Guard不成立を同一atomic boundary内のSQL failureへ変換し、batch全体をrollbackさせる**ことを必須Contractとする。
-
-対象:
-
-- insufficient stock
-- stale expected version
-- idempotency conflict
-- concurrent sequence conflict
-- invalid state transition where mutation race can occur
-
-実装方式はWave A2でD1 / SQLite semanticsを確認して固定する。
-
-候補:
-
-- constraint
-- trigger
-- assertion用statement
-- guardを含むsingle SQL construct
-- guarded mutation resultをSQL failureへ昇格する同等方式
-
-DoD:
-
-```text
-Guard failure
--> target state unchanged
--> history unchanged
--> dependent aggregate unchanged
--> idempotency state inconsistentなし
-```
-
-### 3.7 Transaction Invariant Inventory
-
-Checkoutだけを特別扱いせず、Current `transactionRunner.run(...)`の全call siteをImplementation開始時に棚卸しする。
-
-最低成果物:
-
-```text
-Current Transaction Label
-Call Site
-守るInvariant
-Current all-or-nothing / partial-success semantics
-D1 Command / HTTP orchestration
-Guard
-Rollback Test
-```
-
-最低対象:
-
-- Login / Signup + Guest Cart Merge + Session作成
-- Product Aggregate create/update/status/delete
-- Category / Brand mutation protection
-- Inventory adjustment + Inventory History
-- Checkout start / order creation / payment finalization / retry
-- Order + Shipment + Order History
-- Review + Review History + Review Summary
-- User role/status + Session invalidation + Checkout invalidation
-- Last Admin protection
-- Order Number Sequence
-
-PR AでこのInventoryが未完成の状態を完了扱いにしない。
-
 ---
 
-## 4. Cloudflare Free Plan Constraint
+## 5. Cloudflare Free Plan Constraint
 
-2026-08-15時点のCloudflare公式DocumentationをImplementation Baselineとする。
+2026-08-15に確認したCloudflare公式DocumentationをPlanning Baselineとする。
 
-Implementation開始時にも再確認し、上限変更があれば数値を更新する。
+Implementation開始時に再確認し、変更があれば実測Gateと文書を更新する。
 
-### 4.1 Workers Free
+### 5.1 Workers Free Planning Baseline
 
 - 100,000 requests / day
 - CPU time: 10 ms / HTTP request
@@ -418,10 +551,10 @@ Implementation開始時にも再確認し、上限変更があれば数値を更
 
 Reference:
 
-- [Workers limits](https://developers.cloudflare.com/workers/platform/limits/)
-- [Workers pricing](https://developers.cloudflare.com/workers/platform/pricing/)
+- <https://developers.cloudflare.com/workers/platform/limits/>
+- <https://developers.cloudflare.com/workers/platform/pricing/>
 
-### 4.2 D1 Free
+### 5.2 D1 Free Planning Baseline
 
 - 10 databases / account
 - 500 MB / database
@@ -434,10 +567,10 @@ Reference:
 
 Reference:
 
-- [D1 limits](https://developers.cloudflare.com/d1/platform/limits/)
-- [D1 pricing](https://developers.cloudflare.com/d1/platform/pricing/)
+- <https://developers.cloudflare.com/d1/platform/limits/>
+- <https://developers.cloudflare.com/d1/platform/pricing/>
 
-### 4.3 Pages Free
+### 5.3 Pages Free Planning Baseline
 
 - 500 builds / month
 - 20,000 files / site
@@ -446,30 +579,31 @@ Reference:
 
 Reference:
 
-- [Pages limits](https://developers.cloudflare.com/pages/platform/limits/)
-- [Pages Functions pricing](https://developers.cloudflare.com/pages/functions/pricing/)
+- <https://developers.cloudflare.com/pages/platform/limits/>
+- <https://developers.cloudflare.com/pages/functions/pricing/>
 
-### 4.4 Free Planで特に重要な制約
+### 5.4 Free Planで特に重要な制約
 
-1. Workers 100,000 requests/day
-2. Workers 10 ms CPU/request
-3. D1 100,000 rows written/day
-4. D1 50 queries/Worker invocation
-5. D1 100 bound parameters/query
-6. Worker bundle / startup制約
-7. 同一D1のthroughput共有
+1. Workers request/day
+2. Workers CPU/request
+3. D1 rows written/day
+4. D1 queries/invocation
+5. D1 bound parameters/query
+6. Worker bundle / startup
+7. simultaneous outgoing connection
+8. shared D1 throughput
 
-Free quota節約を理由に、Current Product Behaviorを複雑なOverlayへ作り替えない。
+Free quota節約を理由にCurrent Product Behaviorを複雑なOverlayへ作り替えない。
 
 ---
 
-## 5. D1 Query / Statement Budget Policy
+## 6. D1 Query / Statement Budget Policy
 
-### 5.1 N+1を禁止する
+### 6.1 N+1を禁止する
 
-Backend Repositoryでは、itemごとのSELECTループを避け、set-based query / bulk fetchを使う。
+Backend RepositoryではitemごとのSELECTループを避け、set-based query / bulk fetchを使う。
 
-### 5.2 Unbounded D1 fan-outを禁止する
+### 6.2 Unbounded D1 fan-outを禁止する
 
 ```text
 Promise.all(100 D1 queries)
@@ -479,7 +613,23 @@ Promise.all(100 D1 queries)
 
 set-based query / bounded sequenceを優先する。
 
-### 5.3 Query CountをTestする
+D1 connection上限を理由に専用Semaphoreを先回りして追加しない。まずArchitectureでfan-outを避ける。
+
+### 6.3 Invocation Totalを計測する
+
+Business Repositoryだけでなく次を含む1 Worker invocation全体で計測する。
+
+```text
+Sandbox identity
+Authentication
+Authorization
+Business queries
+Idempotency
+Audit/history where applicable
+Response shaping
+```
+
+### 6.4 Query Count Test対象
 
 最低対象:
 
@@ -495,782 +645,399 @@ set-based query / bounded sequenceを優先する。
 - Checkout confirmation
 - Order creation
 - Payment finalize
+- Payment retry
 - Review eligibility
 - Admin overview
 - Admin product detail
-- Admin order detail
-- Review summary
+- Bulk mutation single target
+- Cleanup run
 
-**50-query GateはRepositoryやBusiness Handlerだけではなく、1 HTTP Worker invocation全体で計測する。**
+### 6.5 Bound Parameter Policy
 
-```text
-HTTP invocation start
-  ↓
-Sandbox Token digest lookup
-  ↓
-User Session Token lookup / actor resolution（必要な場合）
-  ↓
-Authorization / active-account guard
-  ↓
-Business Operation
-  ↓
-Response
-```
+大量Seed / bulk mutationで100 bind/queryを超えないようにする。
 
-Middleware / Identity解決 / Business queryを合算したTOTALを正本とする。
-
-DoD:
-
-- 1 invocation全体で50 D1 queryを超えない
-- 正常系が上限ぎりぎりにならない
-- N+1をPerformance smellとしてCI / Reviewで検知する
-- Query Budget instrumentationがMiddlewareを除外しない
-
-### 5.4 Seed / Resetは1 row = 1 statementにしない
-
-Seed Adapterは、D1のparameter / statement上限を守りながら、以下のいずれかまたは組み合わせを使う。
-
-- bounded multi-row INSERT
-- set-based INSERT
-- prepared statementsをまとめたbounded batch
-- DB側templateからの`INSERT ... SELECT`相当
-
-方式はWave A2で実Datasetを使って決定する。
+必要ならstatementをbounded chunkへ分けるが、Public Sandbox Create/Resetのatomicityを壊してはならない。
 
 ---
 
-## 6. Scenario Classification / Exposure Policy
+## 7. Scenario Classification
 
-Current Scenarioの**semantics parity**とPublic Free提供範囲を分離する。
+Current Scenarioを一律Backendへ移植しない。
 
-### 6.1 3分類する
+### 7.1 Backend-portable Current Scenario
+
+Current semanticsをBackend/D1でも表現できるScenario。
+
+例:
+
+- default
+- empty-catalog
+- many-products
+- out-of-stock
+- low-stock
+- sale-active
+- expired-sale
+- membership/rank
+- suspended/withdrawn
+- cart invalid items
+- payment state
+- order/review state
+- admin state
+
+### 7.2 Platform-specific Current Scenario
+
+Client/Platform固有障害を再現するScenario。
+
+例:
 
 ```text
-A. Backend-portable
-   Backend/D1へ移行してもScenarioの意味を維持できる
-
-B. Platform-specific
-   Browser IndexedDB / Native SQLite / UI runtime等に固有
-
-C. Public-safe Backend Scenario
-   AのうちPublic Free環境で公開可能
+storage-write-failure
 ```
 
-Traceability MatrixへScenario classificationも記録する。
+これはBrowser IndexedDB / client storage failureの意味を持つため、同じScenario IDをD1 write failureへ読み替えない。
 
-### 6.2 Local Backend
+PR BでDexie production persistenceを外した後、この教材を維持する場合はlocal/test-onlyのPlatform-specific境界へ隔離する。
 
-Local Wrangler / local D1では、Backend-portable Current Scenarioを再現する。
+Backend固有D1 failure教材が必要なら別Scenario / fault capabilityとして後続PhaseまたはPR Cで明示する。
 
-Current Web / Native platform-specific Scenarioは、それぞれ既存platform側で維持する。
+### 7.3 Public-safe Backend Scenario
 
-### 6.3 Platform-specific Scenario
+Backend-portable Scenarioのうち、次を満たすものだけPublicへ許可する。
 
-`storage-write-failure`はClient Storage書込失敗を確認するScenarioであり、Backend D1 write failureと同義ではない。
+- Create/Resetがsingle atomic boundaryで完結
+- D1 query/bind limit内
+- actual rows_writtenに運用余裕
+- abuse riskが低い
+- payload / delay boundを設定可能
+- deterministic
 
-同じScenario IDをD1故障へ読み替えない。
+`many-products`はLocal-onlyを初期標準とする。
 
-Backend-specific faultが必要なら別Capabilityとして追加する。
+### 7.4 Scenario Metadata
 
-### 6.4 Public Scenario Eligibility
-
-Public Free環境では**Public Scenario Allowlist**だけを作成 / Reset可能にする。
-
-Public Scenarioは次の条件をすべて満たすこと。
-
-```text
-Backend-portable
-AND public learning valueあり
-AND Createがsingle atomic D1 boundary内に収まる
-AND Resetがsingle atomic D1 boundary内に収まる
-AND <= 50 D1 queries / invocation
-AND <= 100 bound parameters / query
-AND actual rows_writtenがFree quotaに対して合理的
-AND Abuse surfaceを不必要に増やさない
-```
-
-**Public Create / Resetではmulti-stage half-seed protocolを採用しない。**
-
-Public Scenarioがsingle atomic boundaryへ収まらない場合、そのScenarioはLocal-onlyとする。
-
-### 6.5 `many-products`は初期Public提供しない
-
-Current `many-products`はHeavy ScenarioであるためPublic対象外とする。
+`GET /v1/scenarios`または同等metadataで最低限次を返す。
 
 ```text
-Local Backend
-many-products = Backend-portableならsupported
-
-Public Backend
-many-products = rejected / unsupported
-```
-
-Public APIで要求された場合:
-
-```text
-422 SCENARIO_NOT_AVAILABLE_PUBLICLY
-```
-
-### 6.6 Scenario Metadata
-
-最低限以下を取得可能にする。
-
-```text
-scenario id
-classification
-supported on backend local
-supported publicly
-seed version
+scenarioId
+seedVersion
+backendSupport
+publicAvailability
+platformSpecific
 purpose
-initial actor
+initialAuth kind
 ```
 
-README / API Guide / Web Guideでも、
-
-```text
-Public available
-Local backend only
-Platform-specific
-```
-
-を見分けられるようにする。
+Guide / TrainingはこのmetadataとCurrent static metadataを一貫させる。
 
 ---
 
-## 7. Public QA Sandbox Model
+## 8. Public Sandbox Architecture
 
-Public Test Targetでは全利用者で1つのmutable datasetを共有しない。
+### 8.1 Isolation Unit
 
-各利用者 / Browser / automation runへEphemeral Sandboxを発行する。
-
-### 7.1 Business DataはSandbox Scoped
-
-Current Product Behaviorへ影響するBusiness Dataを原則Sandbox単位で持つ。
+Public Test TargetはBrowser / automation executionごとにSandboxを持つ。
 
 ```text
-Sandbox Owned
-- categories
-- brands
-- products
-- variants
-- product_images
-- review_summaries
-- users
+Sandbox
+- sandbox_id
+- scenario_id
+- lifecycle
+- expires_at
+- test clock
+- fault controls
+- business dataset
+- guest identity
 - sessions
-- addresses
-- inventory histories
-- carts / cart items
-- checkout sessions
-- orders / order items / histories
-- sequences
-- payments
-- shipments
-- reviews / review histories
-- test controls
-- business idempotency records
+- operational idempotency
 ```
 
-Operational:
+Business tableは原則Sandbox-scopedとする。
 
-- Sandbox Create idempotency records
-- cleanup / tombstone metadata
+### 8.2 Full Sandbox Dataset
 
-Globalでよいもの:
+初期PhaseではOverlay方式を採用せず、SandboxごとにPublic-safe business datasetを持つ。
 
-- static image asset manifest
-- build metadata
-- supported seed definitions
-- API schema / OpenAPI
+理由:
 
-Global Catalog Overlayは初期採用しない。
+- isolationを理解しやすい
+- resetがdeterministic
+- SQL JOIN / FK / UNIQUEを学習できる
+- Current Scenario semanticsを保持しやすい
 
-### 7.2 Sandbox Creation Contract
+### 8.3 Lifecycle
 
-Public Sandbox Createはresponse loss後も重複Sandboxを作らずrecoverできるよう、`Idempotency-Key`を必須にする。
+```text
+creating
+  ↓
+active
+  ↓
+expired tombstone
+  ↓
+hard delete
+```
 
-```http
+- Active: normal operation
+- Expired tombstone: 410
+- Hard delete後: 404
+
+Sandbox hard deleteをCloudflare recovery historyからの即時完全消去と説明しない。
+
+### 8.4 Default TTL
+
+初期標準は24h。
+
+Public Free運用の測定結果で短縮する場合はDocumentする。
+
+### 8.5 One Deterministic Guest per Sandbox
+
+Phase 3初期は1 Sandbox = 1 deterministic guest identityとする。
+
+multi-guest actorはNon-goal。
+
+### 8.6 Capability Token
+
+Sandbox TokenとUser Session Tokenを分離する。
+
+```text
+X-Sandbox-Token
+  -> Sandbox capability
+
+Authorization: Bearer <user-session-token>
+  -> User identity
+```
+
+Cross-Sandbox resourceは404。
+
+Same Sandboxでpermission不足は403。
+
+### 8.7 Sandbox Create
+
+```text
 POST /v1/test/sandboxes
-Content-Type: application/json
-Idempotency-Key: create_xxx
-
-{
-  "scenario": "default"
-}
+Idempotency-Key: required
 ```
 
-`scenario`省略時は`default`。
+default Scenarioを指定可能。
 
-Response例:
+CreateはPublic-safe Scenarioについてsingle atomic boundaryで完結させる。
 
-```json
-{
-  "sandboxId": "sbx_xxx",
-  "sandboxToken": "sbxt_xxx",
-  "expiresAt": "2026-08-16T07:00:00Z",
-  "seedVersion": 12,
-  "scenario": "default",
-  "initialAuth": {
-    "kind": "guest"
-  }
-}
-```
+`creating` stateを50-query limit回避のmulti-request half-seed protocolに使わない。
 
-User初期Sessionを持つScenario例:
+### 8.8 Create Response-loss Recovery
 
-```json
-{
-  "sandboxId": "sbx_xxx",
-  "sandboxToken": "sbxt_xxx",
-  "expiresAt": "2026-08-16T07:00:00Z",
-  "seedVersion": 12,
-  "scenario": "gold-member",
-  "initialAuth": {
-    "kind": "user",
-    "sessionToken": "ses_xxx",
-    "userId": "user-customer-gold"
-  }
-}
+問題:
+
+```text
+DB commit成功
+↓
+Raw Sandbox Token response前にconnection loss
+↓
+ClientがSandboxへ到達不能
 ```
 
 Contract:
 
-- Default TTL: 24 hours
-- `sandboxToken`のRaw値はToken発行 / recovery responseでのみ返す
-- User `sessionToken`もCreate / Reset / recovery時のToken発行responseでのみRaw値を返す
-- DBにはToken plaintextを保存せずdigestを保存
-- Token digest contractはSection 9.2を正本とする
-- ID / token生成はWeb Cryptoを使う
-- Public Scenario Createはsingle atomic boundaryで完了する
-- Responseを返せない中間状態をPublic active Sandboxとして残さない
-- Create Idempotency RecordにはRaw Tokenを保存しない
-- Create Idempotency Recordは最低限`operation_id`, `idempotency_key`, `payload_hash`, `sandbox_id`, status / timestampsを持ち、Sandbox Createと同じatomic boundaryで関連付ける
-- same key + same normalized payloadはduplicate Sandboxを作らない
-- same key + different payloadは`409 IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD`
-- missing keyは`400 IDEMPOTENCY_KEY_REQUIRED`
+- Create Idempotency-Key必須
+- operation + key + payload hash + sandbox associationをatomic保存
+- same key + same payload retryでduplicate Sandboxを作らない
+- Raw TokenをDB保存しない
+- retry時にCapability Token digestをrotateしfresh Raw Tokenを返せる
+- initial User Session Tokenも必要なら同様にfresh発行
+- same key + different payloadは409
 
-#### 7.2.1 Create Response Loss Recovery
+### 8.9 Reset
 
-Sandbox Createがcommit済みなのにresponseだけ失われた場合、Clientは**同じ`Idempotency-Key`と同じpayload**で再試行する。
+ResetはSandbox Tokenを使用し、Public-safe Scenarioについてsingle atomic boundaryでdatasetを復元する。
 
-Retry時に既存active Sandboxへ紐づくCreate Idempotency Recordが見つかった場合:
+Reset成功時:
 
-```text
-existing sandboxを再利用
-↓
-fresh Sandbox Tokenを生成
-↓
-existing sandbox_token_digestをatomicにrotate
-↓
-initial user scenarioならfresh User Session Tokenも生成し、initial session digestをrotate
-↓
-旧digestをinvalidate
-↓
-same sandboxId + fresh Raw Tokenをresponseで返す
-```
+- old user sessions invalid
+- fresh initialAuth token
+- deterministic dataset
+- scenario/clock/fault state reset
 
-これによりRaw TokenをDBへ保存せず、到達不能なactive Sandboxやduplicate Sandboxを残さない。
-
-- recovery responseで返すRaw Tokenもresponse時だけ存在させる
-- Token rotateはSandbox business datasetを再seedしない
-- idempotency recordが指すSandboxがexpired / hard-deletedの場合は新Sandboxを暗黙生成せず、`409 IDEMPOTENCY_RESULT_EXPIRED`等のstable errorを返し、新しいCreate keyでの明示再作成を要求する
-- Create Idempotency Recordのretentionは少なくとも対応Sandboxのactive TTLをcoverする
-
-必須Test:
+BrowserはReset request前に旧User Session Tokenを消さない。
 
 ```text
-POST create with key K
--> DB commit
--> responseを意図的に破棄
--> same K + same payloadでretry
--> Sandboxは1件のみ
--> same sandboxId
--> fresh sandboxTokenを取得可能
--> fresh tokenだけが有効
--> initial user scenarioではfresh sessionTokenも取得可能
+resetPending
+-> request
+-> success response
+-> fresh token replace / old clear
 ```
 
-### 7.3 Scenario Initial Auth Semantics
+pre-commit network failureなら旧tokenを維持する。
 
-Current Scenarioの`initialSession`をBackendでもsemantics parityとして維持する。
+post-commit response lossならSandbox TokenでResetをretryしてfresh initialAuthを回復する。
 
-Seed Definitionに固定Raw Tokenを持たせない。
+### 8.10 Test Execution Sandbox Rule
+
+Backend移行後、原則次を共有Sandboxで並列実行しない。
 
 ```text
-Scenario Dataset
-  -> initial actorを指定
-  -> Workerがfresh Session Tokenを生成
-  -> D1へdigestのみ保存
-  -> Raw TokenをCreate/Reset responseのinitialAuthで1回だけ返す
+Formal E2E
+Training Web baseline
+UI Review
+Agentic QA preparation / runtime
+Production/Preview smoke
 ```
 
-Guest Scenario:
+基本Rule:
 
 ```text
-initialAuth.kind = guest
+one independent test execution context
+-> one fresh Sandbox
 ```
 
-Customer / Operator / Admin / Suspended / Withdrawn等のSession Scenario:
+同一test suite内のCross-role lifecycle等、State共有が意図されたcaseは同一Sandbox内で実施してよい。
 
-```text
-initialAuth.kind = user
-fresh Raw Session Tokenを返す
-```
+D1 Database自体は共有してよい。必要なのはSandbox IDによるdata isolationであり、test suiteごとのD1作成ではない。
 
-Suspended / Withdrawn userのValid Session自体は復元できるが、active accountを要求するBusiness OperationはCurrent Behaviorどおり拒否する。
-
-### 7.4 Browser Sandbox Bootstrap
-
-```text
-Browser start
-  ↓
-Stored valid sandbox exists?
-  ├─ Yes -> reuse
-  └─ No  -> pending Create Idempotency-Keyあり?
-             ├─ Yes -> same keyでCreate retry
-             └─ No  -> new Create Idempotency-Keyを生成・保存してPOST /v1/test/sandboxes
-                       ↓
-                     success response
-                       ↓
-                     store sandboxId/token/expiry
-                     apply initialAuth
-                     clear pending Create key
-```
-
-必須:
-
-- Reloadだけで新規Sandboxを作らない
-- TTL内Sandboxを再利用する
-- expiredなら新規作成する
-- Create requestの結果がambiguousな間はpending Create Idempotency-Keyを保持し、別keyで重複Createしない
-- logoutでSandbox自体を破棄しない
-- **Backend identity / Backend persistenceに関するBrowser Storage**にはSandbox TokenとUser Session Tokenを保存する
-- response-loss recovery用のpending Idempotency-Key / request metadataはnon-secret control metadataとして保存してよい
-- one-time notice、UI preference等のPresentation固有Storageまで禁止・削除する意味ではない
-
-### 7.5 Sandbox Context Transport
-
-Guest request:
-
-```http
-X-Sandbox-Token: sbxt_xxx
-```
-
-Logged-in request:
-
-```http
-X-Sandbox-Token: sbxt_xxx
-Authorization: Bearer ses_xxx
-```
-
-Session record自身も`sandbox_id`を持つ。
-
-Logged-in requestでは必ず、
-
-```text
-Sandbox Token sandbox_id == Session sandbox_id
-```
-
-を検証する。
-
-### 7.6 Guest Identity
-
-1 SandboxにつきdeterministicなGuest Identityを1つ持つ設計を初期標準とする。
-
-Guest CartはSandbox Contextに紐づく。
-
-Login / Signup成功時はCurrent BRどおりGuest CartをCustomer Cartへmergeする。
-
-複数Guest Actorを1 Sandbox内で同時管理するCapabilityは初期Non-goalとする。
-
-Guest CheckoutはPhase 3 Current parityへ追加しない。
-
-### 7.7 Cross-Sandbox Semantics
-
-- Cross-Sandbox Resource: 404
-- 同一Sandbox内のPermission不足: 403
-- Sandbox expiry済みTombstone保持中: 410 `SANDBOX_EXPIRED`
-- 存在しないSandbox: 404
-- Sandbox Token不正 / 欠落: 401系Contract
-
-### 7.8 Expiry Tombstone
-
-```text
-active
-  ↓ TTL expiry
-expired tombstone
-  - business child data delete
-  - minimal sandbox metadataだけ保持
-  - APIは410 SANDBOX_EXPIRED
-  ↓ tombstone retention expiry
-hard delete
-  - APIは404
-```
-
-Tombstone retentionは短期間かつboundedにする。
-
-### 7.9 Reset Contract
-
-```http
-POST /v1/test/sandboxes/{sandboxId}/reset
-X-Sandbox-Token: sbxt_xxx
-Content-Type: application/json
-
-{
-  "scenario": "payment-declined"
-}
-```
-
-Reset ResponseはSandbox metadataと**fresh `initialAuth`**を返す。
-
-Reset時:
-
-```text
-old user sessions invalidate
-↓
-single atomic dataset replacement
-↓
-Scenario initial actor用fresh session token digest作成
-↓
-commit
-↓
-Raw fresh session tokenをresponseで1回だけ返す
-```
-
-Browser `window.__TEST_API__.reset()` thin wrapperはBackend Reset開始前に旧local session tokenを消さない。
-
-```text
-resetPending = true
-↓
-old local session tokenを一時保持
-↓
-Backend Reset
-↓
-成功response + initialAuth受領
-↓
-userならnew session tokenへreplace
-Guestならuser session tokenをclear
-↓
-Current one-time notice storage等をCurrent Behaviorどおりclear
-↓
-resetPending = false
-```
-
-Network errorがBackend commit前に発生した場合は`resetPending`を解除して旧tokenをそのまま利用できる。
-
-Backend commit後にresponseだけ失われた場合は旧User Session TokenはBackend上無効になり得るが、Sandbox Tokenは保持されているためResetを再実行してfresh `initialAuth`を取得する。response deliveryがambiguousな間に旧User Session Tokenを破棄して回復経路を狭めない。
-
-Reset response喪失時はSandbox TokenでResetを再実行し、fresh initialAuthを再発行できること。
-
-必須Test:
-
-- request送信前 / commit前network failure -> old local session token維持
-- commit後response loss -> Sandbox Tokenでreset retry -> fresh initialAuth取得
-- success response受領後だけold local session tokenをreplace / clear
-
-### 7.10 Cleanup
-
-Cloudflare Cron Triggerを1本使用する。
-
-- active → expired tombstone
-- expired tombstone → hard delete
-- failed operational record cleanup
-- expired Create Idempotency Record cleanup
-- 1回の処理件数をbounded
-- cleanup failureでAPI全体を止めない
-- cleanup rows writtenを計測
-- 1 runあたりD1 query count / CPU / processed sandbox countを計測
-
-Public Createがsingle atomicであるため、Public用multi-stage `creating` lifecycleは初期版では不要とする。
-
-Local-onlyの補助処理で一時状態が必要になってもPublic Contractへ露出しない。
+終了時deleteはbest effort。失敗時はTTL cleanupへ任せる。
 
 ---
 
-## 8. Sandbox-scoped Relational Integrity / Read Isolation
+## 9. Relational Integrity / D1 Schema
 
-### 8.1 Primary Key
+### 9.1 Composite Sandbox Key
 
-Sandbox Owned tableでは原則:
+Sandbox-owned Entityは原則次を使う。
 
-```sql
+```text
 PRIMARY KEY (sandbox_id, id)
 ```
 
-固定Seed IDを複数Sandboxで保持できること。
+Foreign KeyもSandbox IDを含める。
 
-### 8.2 Foreign Key
-
-```sql
+```text
 FOREIGN KEY (sandbox_id, product_id)
 REFERENCES products (sandbox_id, id)
 ```
 
-DB constraint自体でCross-Sandbox relationを作れないようにする。
+### 9.2 Sandbox-scoped UNIQUE
 
-### 8.3 UNIQUE / Idempotency Scope
+例:
 
-最低候補:
+- `(sandbox_id, normalized_email)`
+- `(sandbox_id, product_code)`
+- `(sandbox_id, sku)`
+- `(sandbox_id, order_number)`
+- `(sandbox_id, actor_id, operation, idempotency_key)`
 
-```text
-users:       UNIQUE(sandbox_id, normalized_email)
-products:    UNIQUE(sandbox_id, product_code)
-variants:    UNIQUE(sandbox_id, sku)
-business_idempotency:
-             UNIQUE(sandbox_id, actor_id, operation_id, idempotency_key)
-sandbox_create_idempotency:
-             UNIQUE(operation_id, idempotency_key)
-```
+### 9.3 Index
 
-Business idempotencyの`actor_id`は**NOT NULL**とする。
+主要Indexは原則`sandbox_id`をleading keyにする。
 
-- Current authenticated Customer/Admin等のBusiness mutationでは`actor_id = user_id`
-- 将来Guest/System operationへidempotencyを適用する場合も、nullable `user_id`へ逃がさずdeterministicなnon-null actor scopeを割り当てる
-- SQLiteのNULLを含むUNIQUEへdeduplicationを依存させない
-- Phase 3ではGuest Checkoutを新設しないため、Guest Order idempotencyをCurrent parity要件にはしない
+必要なquery patternを確認してから追加し、index write amplificationをactual D1 metadataで測定する。
 
-Sandbox CreateはSandbox生成前のPlatform operationであるため、Business idempotency tableへ無理に押し込まずOperational Create Idempotencyとして分離する。
+### 9.4 JOIN Isolation
 
-### 8.4 Index
+Readでも必ずSandbox scopeをJOIN conditionへ含める。
 
-Read / filterで使うIndexは原則`sandbox_id`をleading scopeに含める。
+同一logical IDを2 Sandboxへ置き、値を変えたintegration testでcross-sandbox leakを検出する。
+
+### 9.5 Table Ownership Matrix
+
+PR Aで次を成果物化する。
 
 ```text
-(sandbox_id, user_id)
-(sandbox_id, product_id)
-(sandbox_id, status)
-(sandbox_id, updated_at)
+Table
+Sandbox-owned?
+Primary Key
+Foreign Key
+Unique Constraint
+Read Scope
+Write Owner
+Reset Behavior
+Cleanup Behavior
 ```
-
-actual query plan / rows readを確認して必要なIndexだけ追加する。
-
-### 8.5 SQL JOINもSandbox Scopeを必須にする
-
-Composite FKはWrite integrityを守るが、Read isolationを自動的に保証しない。
-
-禁止:
-
-```sql
-JOIN products p
-  ON p.id = v.product_id
-WHERE v.sandbox_id = ?
-```
-
-必須:
-
-```sql
-JOIN products p
-  ON p.sandbox_id = v.sandbox_id
- AND p.id = v.product_id
-WHERE v.sandbox_id = ?
-```
-
-Sandbox-owned table間のJOIN / subquery / EXISTS / aggregateは、logical keyだけでなく`sandbox_id`を同じscopeとして明示する。
-
-Repository Review Checklistへ追加する。
-
-### 8.6 Read Isolation Test
-
-同一Logical IDにSandboxごとで異なる値を持たせるfixtureを用意する。
-
-```text
-Sandbox A / product-basic-shirt / name=A
-Sandbox B / product-basic-shirt / name=B
-```
-
-最低対象:
-
-- Product detail
-- Cart
-- Checkout
-- Order
-- Review
-- Admin detail
-
-でCross-Sandbox値が混入しないことをIntegration Testする。
-
-Cross-Sandbox 404 Testだけで完了扱いにしない。
-
-### 8.7 Index costもFree quotaへ含める
-
-PK / UNIQUE / Index更新によるwrite amplificationを含め、**final schema + final index構成でD1が返す実`rows_written` metadata**をFree Quota Gateの正本とする。
-
-対象:
-
-- Sandbox create
-- Reset
-- Business mutation
-- expiry cleanup
-- tombstone hard delete
-- Create Idempotency record cleanup
 
 ---
 
-## 9. Authentication / Authorization
+## 10. Authentication / Authorization / Token Security
 
-### 9.1 Tokenを分離する
+### 10.1 Password
 
-#### Sandbox Token
+Current security propertyを維持する。
 
-用途:
+Planning Baseline:
 
-- Sandbox Business API scope
-- reset
-- failure injection
-- test clock
-- inspection
-- sandbox delete
+```text
+PBKDF2
+SHA-256
+210000 iterations
+16-byte salt
+32-byte hash
+```
 
-#### User Session Token
+Implementation開始時にCurrent PasswordHasherを再確認する。
 
-用途:
+### 10.2 Workers Free CPU Decision Gate
 
-- Customer / Operator / Admin API
+Workers Free 10ms CPUとCurrent PBKDF2が両立しない可能性がある。
 
-いずれもDBにはdigestのみ保存する。
+必須:
 
-### 9.2 Capability Token Generation / Digest Contract
+1. Local profile
+2. Cloudflare temporary deployed Worker
+3. Observability / Workers Logs等でrepresentative signup/login CPU確認
+4. Current strengthのままPASSするか判定
 
-Sandbox Token / User Session Tokenは、人間が覚えるPasswordとは性質が異なるため、PasswordHasher / PBKDF2へ流さない。
+FAIL時:
+
+- iterationsを勝手に下げない
+- plaintext/fast hashへ置換しない
+- Auth依存WaveをDecision Gateとして止める
+- Auth非依存のschema/docs/test準備は継続してよい
+- PR Aを完了扱いにしない
+
+### 10.3 Capability Token
+
+Sandbox Token / User Session TokenへPassword PBKDF2を使わない。
 
 初期標準:
 
 ```text
-Password
-  -> Current PBKDF2
-  -> slow password KDF
-
-Sandbox Token / User Session Token
-  -> cryptographically secure random >= 256 bits
-  -> token prefixを付けてexternal representation化
-  -> SHA-256 digest
-  -> D1にはdigestだけ保存
+>=256-bit cryptographically secure random token
+DB persistence = SHA-256 digest only
+Raw token = issuance response only
 ```
 
-実装Contract:
+Raw Token / digestをlogしない。
 
-- random byte生成はWeb Cryptoの暗号学的乱数を使う
-- digestはWeb Crypto `SHA-256`相当のfast digestを使う
-- Sandbox/User TokenにPassword用PBKDF2を使用しない
-- Raw TokenをDBへ保存しない
-- Raw Tokenをstructured log / error / tracingへ出さない
-- Token digestをAPI responseへ返さない
-- Raw Sandbox TokenはSandbox Create / response-loss recovery等のToken発行response時だけ返す
-- Raw User Session TokenはLogin / Signup / Scenario Create / Reset / recovery等、Token発行Operationのresponse時だけ返す
-- Token rotate時は旧digestをinvalidateする
-- Token prefix自体を認証Secretとはみなさず、十分なrandom部分を必須にする
+### 10.4 Session TTL
 
-理由はFree CPU最適化だけではない。Passwordは低entropy入力へのoffline guessing耐性が必要だが、Server生成Capability Tokenは十分なentropyを持たせ、fast digestによるlookupを行う。
+Current parityとして独立User Session TTLを新設しない。
 
-HMAC等の追加Secret管理はPhase 3初期版では導入せず、必要性が実証された場合に別Decisionとする。
+Phase 3では少なくとも次でinvalidationする。
 
-### 9.3 Login / Signup
+- logout
+- account/role/status change where Current requires
+- Sandbox Reset
+- Sandbox expiry
 
-```text
-POST /v1/auth/signup
-POST /v1/auth/login
-POST /v1/auth/logout
-GET  /v1/me
-```
+Public Sandbox TTLがPublic session lifetimeの上界となる。
 
-Current Behavior:
+Session TTL教材を追加するならNew Phase 3 BehaviorとしてNormative Spec changeを別Decisionで行う。
 
-- invalid credential
-- suspended / withdrawn login拒否
-- logout / revoked session
-- role boundary
-- Signup validation
-- Login / Signup時Guest Cart merge
+### 10.5 Initial Auth
 
-### 9.4 Session Lifetime
+Current Scenario `initialSession`をBackend Bearer Token環境でも再現する。
 
-Current Session entity / Authentication Specには独立したSession TTLが定義されていないため、Phase 3初期版では**Session expiryをCurrent parityとして追加しない**。
+Create/Reset responseは必要な場合だけfresh initialAuthを返す。
 
-User Sessionは最低限次で無効化される。
+Raw Session Tokenはresponse時だけ返し、DBはdigestのみ。
 
-```text
-logout
-account status / role mutationでCurrent Behavior上無効化される場合
-sandbox reset
-sandbox expiry
-sandbox delete
-sandbox create recoveryでinitial session tokenをrotateした場合
-```
+### 10.6 Guest Cart Merge
 
-独立User Session TTLは別Decisionとする。
-
-### 9.5 Password Hash Hard Decision Gate
-
-Current PBKDF2の強度を勝手に変更しない。
-
-LocalだけでFree CPU Gateの合否を断定しない。
-
-Implementation Gate:
-
-```text
-1. Local workerd
-   - functional PBKDF2 test
-   - CPU profile
-
-2. Cloudflare observable temporary deployment
-   - dedicated temporary Worker / temporary environmentへ実deploy
-   - Observability / Workers Logsを有効化
-   - representative login/signup requestを複数回実行
-   - invocation CPU time / outcomeを取得
-   - outcome != exceededCpu
-   - representative CPU usageがFree 10ms limitへ継続的に収まることを確認
-   - Gate終了後にtemporary Workerを削除
-```
-
-**Workers Logsを取得できないVersioned Preview URL等をPBKDF2 CPU Gateの正本にしない。**
-
-Preview URL / temporary versionは、当時の仕様で可能な範囲のupload / startup / runtime compatibility確認には使ってよい。
-
-PBKDF2 CPU Gateの合否は、CPU/outcomeを実際に観測できるCloudflare deployed runtimeを正本とする。
-
-Production D1をPBKDF2 Gateのために触る必要はない。専用の最小fixture / temporary bindingで成立させる。
-
-FAIL時:
-
-```text
-実装停止
-↓
-Plan / Architecture Decisionを再実施
-```
-
-禁止:
-
-- iterationを黙って下げる
-- plain SHA hashへ置換
-- plaintext保存
-- 「教材だから」でsecurity propertyを無断で弱める
-
-### 9.6 Cookieを初期採用しない
-
-Bearer Token方式とする。
-
-CSRF学習は別Phase。
+Signup/Login + Guest Cart merge + Session creationのCurrent transaction invariantを保持する。
 
 ---
 
-## 10. Current Spec → Backend API Capability Mapping
+## 11. API Surface
 
-### 10.1 Parity Inventory Source
+PathはOpenAPI確定時に最終固定する。Capability欠落を先に防ぐ。
 
-実装開始時に次をすべて棚卸しする。
-
-```text
-docs/spec/** Normative BR / AC
-src/application/create-application-services.ts
-各Application Use Caseのpublic method
-Current transactionRunner.run(...) call sites
-Web route / pageから実際に利用しているApplication capability
-Current Test Control
-Current Scenario metadata / semantics
-```
-
-`docs/spec`だけでAPI棚卸しを終えない。
-
-### 10.2 Platform
+### 11.1 Platform
 
 ```text
 GET /v1/health
@@ -1279,95 +1046,60 @@ GET /v1/openapi.json
 GET /v1/scenarios
 ```
 
-### 10.3 Sandbox / Test Control
+### 11.2 Sandbox / QA Control
 
 ```text
 POST   /v1/test/sandboxes
-POST   /v1/test/sandboxes/:sandboxId/reset
-DELETE /v1/test/sandboxes/:sandboxId
-GET    /v1/test/sandboxes/:sandboxId/metadata
-PUT    /v1/test/sandboxes/:sandboxId/clock
-PUT    /v1/test/sandboxes/:sandboxId/faults/payment
-GET    /v1/test/sandboxes/:sandboxId/inspect/orders/:orderId
-GET    /v1/test/sandboxes/:sandboxId/inspect/variants/:variantId
-GET    /v1/test/sandboxes/:sandboxId/inspect/review-summaries/:productId
+GET    /v1/test/sandboxes/current
+POST   /v1/test/sandboxes/current/reset
+DELETE /v1/test/sandboxes/current
+
+PUT    /v1/test/clock
+PUT    /v1/test/payment-delay
+PUT    /v1/test/payment-fault
+
+GET    /v1/test/inspect/orders
+GET    /v1/test/inspect/variants
+GET    /v1/test/inspect/review-summary
 ```
 
-### 10.4 Test Control Parity
+Public controlはallowlist / boundされた操作だけ提供する。
 
-Current Test APIの最低Capabilityを維持する。
+### 11.3 Auth / Account
 
 ```text
-reset
-setClock
-setPaymentDelay
-getMetadata
-inspectOrder
-inspectVariant
-inspectReviewSummary
+POST /v1/auth/signup
+POST /v1/auth/login
+POST /v1/auth/logout
+GET  /v1/auth/me
+
+GET   /v1/account/profile
+PATCH /v1/account/profile
+
+GET    /v1/account/addresses
+POST   /v1/account/addresses
+PATCH  /v1/account/addresses/:addressId
+DELETE /v1/account/addresses/:addressId
+
+GET /v1/address-suggestions
 ```
 
-`setPaymentDelay(milliseconds)`は`faults/payment` ContractのCurrent-parity subsetとして表現する。
-
-Public Test ControlではFree環境の共有資源を守るため、初期上限を次で固定する。
-
-```text
-PUBLIC_MAX_PAYMENT_DELAY_MS = 5000
-0 <= paymentDelayMs <= 5000
-```
-
-- Publicで`5000`を超える値は`422 PAYMENT_DELAY_OUT_OF_RANGE`
-- `payment.slow` presetもPublicではこの上限以内のdelayだけを使用する
-- 5秒を超える長時間delay教材はLocal-only
-- Public上限はImplementation開始時にFree環境実測で再確認できるが、無制限へ緩和しない
-- Payment DelayをDB transaction内に保持しない
-
-Metadata最低項目:
-
-```text
-appVersion
-schemaVersion
-seedVersion
-buildSha
-scenario
-scenarioMetadata
-clock
-paymentDelayMs
-classification / public exposure
-```
-
-Backend追加の500/503等Faultは`PHASE3_QA_EXTENSION`とする。
-
-### 10.5 Authentication / Account
-
-最低:
-
-```text
-POST   /v1/auth/signup
-POST   /v1/auth/login
-POST   /v1/auth/logout
-GET    /v1/me
-PATCH  /v1/me/profile
-GET    /v1/me/addresses
-POST   /v1/me/addresses
-PATCH  /v1/me/addresses/:addressId
-DELETE /v1/me/addresses/:addressId
-GET    /v1/address-suggestions?postalCode=...
-```
-
-### 10.6 Storefront / Catalog
+### 11.4 Storefront
 
 ```text
 GET /v1/home
 GET /v1/categories
+GET /v1/categories/:categoryId
 GET /v1/brands
 GET /v1/products
 GET /v1/products/:productId
 GET /v1/products/:productId/reviews
-GET /v1/search/suggestions
+GET /v1/search-suggestions
 ```
 
-### 10.7 Cart
+Current filters / facet / pagination / pageSize contractをTraceability Matrixで固定する。
+
+### 11.5 Cart
 
 ```text
 GET    /v1/cart
@@ -1377,70 +1109,32 @@ DELETE /v1/cart/items/:itemId
 POST   /v1/cart/price-changes/accept
 ```
 
-Currentに存在しないCart全削除APIは初期追加しない。
+### 11.6 Checkout / Payment
 
-### 10.8 Checkout / Payment
+Current stateful checkoutをtransportへ写像する。
+
+例:
 
 ```text
 POST /v1/checkout/sessions
 GET  /v1/checkout/sessions/active
-PUT  /v1/checkout/sessions/:checkoutSessionId/address
-PUT  /v1/checkout/sessions/:checkoutSessionId/payment
-GET  /v1/checkout/sessions/:checkoutSessionId/confirmation
-POST /v1/checkout/sessions/:checkoutSessionId/orders
-POST /v1/orders/:orderId/payment/resume
-POST /v1/orders/:orderId/payment/retry
+PUT  /v1/checkout/sessions/:id/address
+PUT  /v1/checkout/sessions/:id/payment
+POST /v1/checkout/sessions/:id/confirm
+POST /v1/checkout/sessions/:id/payment/resume
+POST /v1/checkout/sessions/:id/payment/retry
 ```
 
-Current Checkoutをsingle endpointへ単純化しない。
+Actual routeはOpenAPIでCurrent call semanticsへ合わせて確定する。
 
-#### 10.8.1 Checkout Write Request Contract
-
-重複submit / response lossでOrderやPayment Attemptを重複させないため、以下をOpenAPI request contractとして固定する。
-
-| Operation | `checkoutActionVersion` | `Idempotency-Key` | Duplicate semantics |
-|---|---|---|---|
-| `POST /v1/checkout/sessions/:checkoutSessionId/orders` | **required** in request body | **required** | same key + same payloadは同一Order結果を返す |
-| `POST /v1/orders/:orderId/payment/resume` | Current parityで要求されない限り追加しない | **required** | same key + same payloadで同じresume実行を再利用 |
-| `POST /v1/orders/:orderId/payment/retry` | Current parityで要求されない限り追加しない | **required** | same keyでは同一retry Payment Attemptを再利用。新しいretry actionは新しいkeyを要求 |
-
-Common Contract:
-
-- Business idempotency scopeは`(sandbox_id, actor_id, operation_id, idempotency_key)`
-- `actor_id`はnon-null
-- same key + same normalized payload -> stored / existing operation resultを返す
-- same key + different payload -> `409 IDEMPOTENCY_KEY_REUSED_WITH_DIFFERENT_PAYLOAD`
-- required key欠落 -> `400 IDEMPOTENCY_KEY_REQUIRED`
-- `checkoutActionVersion` mismatch / stale action -> Current semanticsに合わせたstable 409系errorへ固定する
-- duplicate submitでOrderを新規作成しない
-- retry endpointでsame keyを再送しても新しいPayment Attemptを追加しない
-
-Mock Payment Gatewayもduplicate HTTP deliveryで副作用を二重実行しない。
-
-初期標準:
-
-```text
-idempotency operation record / payment attemptを確定
-  ↓
-Mock Payment GatewayへpaymentAttemptId + operation idempotency identityを渡す
-  ↓
-同一Payment Attemptのgateway side effectはat-most-once相当で扱う
-  ↓
-finalize result
-```
-
-契約テストでは、same key + same payloadのduplicate submit / resume / retryでMock Payment Gateway invocation countが増えないことを確認する。
-
-### 10.9 Customer Orders
+### 11.7 Orders
 
 ```text
 GET /v1/orders
 GET /v1/orders/:orderId
 ```
 
-Order Snapshot、Payment、Shipment、TimelineをCurrent Specどおり返す。
-
-### 10.10 Customer Reviews
+### 11.8 Customer Review
 
 ```text
 GET    /v1/order-items/:orderItemId/review-eligibility
@@ -1449,627 +1143,694 @@ PATCH  /v1/reviews/:reviewId
 DELETE /v1/reviews/:reviewId
 ```
 
-Customer自身のReview取得で追加Endpointが必要とParity Inventoryで判明した場合だけ追加する。
+Current UIが使っていないgeneric customer review list/detailを便利APIとして無断追加しない。
 
-### 10.11 Admin Overview
+### 11.9 Admin
 
-```text
-GET /v1/admin/overview
-```
-
-### 10.12 Admin Catalog
-
-Current Capability:
-
-- Category search/create/update/active/reorder
-- Brand search/create/update/active
-- Product search/detail/create/update
-- Product preview
-- Product status
-- Draft delete
-- Duplicate source
-- Bulk status UI orchestration
-- Image asset search
-
-### 10.13 Admin Inventory
-
-- search / filter / sort
-- detail / history
-- manual adjustment with expected version
-
-### 10.14 Admin Orders
-
-- search / detail
-- paid -> preparing
-- preparing -> shipped
-- shipped -> delivered
-
-### 10.15 Admin Reviews
-
-- search / detail
-- published / hidden transition
-- bulk visibility UI orchestration
-
-### 10.16 Admin Users
-
-- search / detail
-- Customer rank
-- Operator/Admin role
-- active/suspended
-- last admin protection
-- self-destructive change protection
-- withdrawn mutation rejection
-- Session / Checkout invalidation effect
-
-### 10.17 Bulk Operation Transport Policy
-
-Current Product / Review Bulk操作は最大50件とpartial failure semanticsを持つ。
-
-D1 Freeの50 query/invocationへ50 targetsを1 Worker invocationで押し込まない。
-
-初期標準:
+最低Capability:
 
 ```text
-Admin UI
-  ↓ selected targets <= 50
-API Client orchestration
-  ↓
-independent single-target HTTP mutations
-  ↓
-results aggregate
+Admin Overview
+Product list/detail/create/update/status/delete
+Category list/create/update/reorder equivalent
+Brand list/create/update
+Inventory list/adjust/history
+Order list/detail/status/shipment
+Review list/update visibility
+User list/detail/role/status
 ```
 
-例:
-
-```text
-PATCH product A status
-PATCH product B status
-PATCH product C status
-...
-```
-
-Reviewも同様。
-
-各単一mutationはBackend側でBusiness Rule / transactionを保証する。
-
-Bulk全体を1 DB transactionにしない。
-
-Current partial-success semanticsを維持する。
-
-Web側はunbounded concurrencyにせず、bounded concurrency / sequenceで実行する。
-
-### 10.18 API Parity Gate
-
-Traceability Matrix:
-
-```text
-Feature
-Classification
-Current BR / AC
-Current Application Capability
-Current Web Usage
-API Operation ID
-HTTP Method / Path
-Backend Service / Command
-Integration Test
-```
-
-Missing `CURRENT_PARITY` Operationがある状態でPR Aを完了扱いにしない。
+BulkはCurrent partial-success semanticsを保持する。
 
 ---
 
-## 11. HTTP Contract
+## 12. Transaction Model
 
-### 11.1 Status Code
+### 12.1 Existing TransactionRunnerを機械移植しない
+
+Current callback型`ApplicationTransactionRunner`をD1へ同じ形で持ち込まない。
+
+禁止例:
+
+```text
+transactionRunner.run(async () => {
+  await repositoryA.update() // auto-commit
+  await repositoryB.insert() // auto-commit
+  await repositoryC.update() // failure
+})
+```
+
+Backend atomic operationは、必要なread / validation後にPrepared Statement群を組み立て、D1 `batch()`等のall-or-nothing境界で実行する。
+
+### 12.2 Atomic Boundary外Read
+
+batch外へ出してよいのは以下に限定する。
+
+- request schema validation
+- immutable/reference data
+- atomic boundary内で再検証される前提のpre-read
+
+在庫、version、current state、sequence uniqueness等のmutable-state predicateをpre-readだけで確定しない。
+
+### 12.3 Guard Failure Contract
+
+D1 `batch()`にstatementを並べただけでは不十分。
+
+特に、
+
+```text
+UPDATE ... WHERE stock >= ? AND version = ?
+```
+
+が0 row更新してもSQL errorとは限らない。
+
+**0-row conditional UPDATEをrollback signalとして扱ってはいけない。**
+
+Guard不成立がaggregate全体を拒否すべき場合、同一atomic boundary内でstatement failureへ変換するか、single safe SQL / constraint / trigger等でall-or-nothingを保証する。
+
+Post-commit後にaffected rowsを見てerrorを返すだけでは不十分。
+
+### 12.4 Guard対象
+
+- insufficient stock
+- stale expected version
+- invalid mutable state transition
+- sequence conflict
+- idempotency conflict where mutation must abort
+- last-admin protection where concurrent mutation can violate invariant
+
+### 12.5 Guard Failure DoD
+
+```text
+Guard failure
+-> inventory unchanged
+-> history unchanged
+-> order unchanged
+-> payment unchanged
+-> shipment unchanged
+-> review summary unchanged where applicable
+-> idempotency state inconsistentなし
+```
+
+### 12.6 Transaction Invariant Inventory
+
+Current `transactionRunner.run(...)`全call siteをPR A Wave A1で棚卸しする。
+
+最低成果物:
+
+```text
+Current Transaction Label
+Call Site
+Normative / Application invariant
+Current all-or-nothing / partial-success semantics
+D1 Command / HTTP orchestration
+Mutable Guard
+Rollback Test
+```
+
+最低対象:
+
+- Login / Signup + Guest Cart Merge + Session
+- Product aggregate create/update/status/delete
+- Category / Brand mutation protection
+- Inventory adjustment + Inventory History
+- Checkout start / order creation / payment finalization / retry
+- Order + Shipment + Order History
+- Review + Review History + Review Summary
+- User role/status + Session invalidation + Checkout invalidation
+- Last Admin protection
+- Order Number Sequence
+
+PR AでInventory未完成のまま完了扱いにしない。
+
+---
+
+## 13. Checkout / Payment / Idempotency
+
+### 13.1 Stateful Checkoutを維持する
+
+Backend化でCheckoutを単発`POST /orders`へ単純化しない。
+
+Current state transitionをTraceabilityしてAPIへ写像する。
+
+### 13.2 Business Idempotency
+
+Order creation / payment mutation等、network retryでduplicate side effectが危険なwriteにはOperation-specific `Idempotency-Key`を要求する。
+
+Contract:
+
+```text
+same key + same actor + same operation + same payload
+-> same result replay
+
+same key + same actor + same operation + different payload
+-> 409
+```
+
+### 13.3 Nullable Actor禁止
+
+Business idempotency scopeにnullable `user_id`を使わない。
+
+Guest CheckoutはCurrent Non-goalなので無断追加しない。
+
+### 13.4 Payment Gateway Side Effect
+
+Mock Payment Gateway callもduplicate retryで二重化させない。
+
+確認:
+
+- duplicate order submit
+- duplicate resume
+- duplicate retry
+- response-loss retry
+
+### 13.5 Inventory Conflict
+
+stock=1へ2 concurrent checkoutを行い、成功は最大1つにする。
+
+loser側はstable conflict errorを返し、partial mutationを残さない。
+
+### 13.6 Order Number
+
+Asia/Tokyo business dateをCurrent semanticsとして維持し、concurrent allocationでもuniqueにする。
+
+### 13.7 Public Payment Delay
+
+Public maxは初期5000ms。
+
+```text
+0     PASS
+5000  PASS
+5001  422
+```
+
+長時間delayはLocal-only。
+
+delay待機中にDB transactionを保持しない。
+
+---
+
+## 14. Time / Clock
+
+### 14.1 Persistence
+
+UTCで保存する。
+
+### 14.2 Business Calendar
+
+Current business semanticsでAsia/Tokyoを使用する箇所は維持する。
+
+### 14.3 Test Clock
+
+Sandboxごとにdeterministic Test Clockを持つ。
+
+- sale expiry
+- business date
+- order number
+- scenario state
+
+等をCurrent behaviorと整合させる。
+
+Worker global mutable clockを使わない。
+
+---
+
+## 15. Error Contract
+
+### 15.1 Stable Error Envelope
 
 最低:
-
-- 200
-- 201
-- 204
-- 400
-- 401
-- 403
-- 404
-- 409
-- 410
-- 422
-- 429
-- 500
-- 503
-
-Operation単位にOpenAPIで固定する。
-
-### 11.2 Error Envelope
-
-Application Error Envelopeでは`retryable`をmachine-readable fieldとして固定する。
 
 ```json
 {
   "error": {
-    "code": "INVENTORY_CONFLICT",
-    "message": "Requested quantity is not available.",
-    "requestId": "req_xxx",
+    "code": "STABLE_CODE",
+    "messageKey": "optional.current.message.key",
     "retryable": false,
-    "details": {}
+    "requestId": "..."
   }
 }
 ```
 
-Stable error codeと`retryable`をAutomation Contractとする。
+Actual shapeはOpenAPIで固定する。
 
-`retryable=true`は「payloadやIdempotency-Keyを変えてblind retryしてよい」という意味ではない。Operation contractに従って同じlogical requestを安全に再送可能であることを示す補助情報とする。
+### 15.2 HTTP Mapping
 
-### 11.3 Platform Error
-
-Cloudflare Platform自身が返すquota / hosting errorはApplication Error Envelopeと分離してDocument化する。
-
-### 11.4 D1 Transient Error Mapping / Retry
+Current Application Errorの意味をHTTP statusへ写像する。
 
 例:
 
-```json
-{
-  "error": {
-    "code": "DATABASE_TEMPORARILY_UNAVAILABLE",
-    "message": "Database is temporarily unavailable.",
-    "requestId": "req_xxx",
-    "retryable": true,
-    "details": {}
-  }
-}
-```
+- validation -> 400 / 422をoperation contractで固定
+- unauthenticated -> 401
+- forbidden -> 403
+- cross-sandbox resource -> 404
+- expired sandbox -> 410
+- optimistic/inventory/idempotency payload conflict -> 409
+- rate limit -> 429
+- temporary DB unavailable -> 503 + retryable true
 
-HTTP statusは503。
+### 15.3 D1 Transient Failure
 
-方針:
+read-only retryはPlatformの挙動を前提にしてもよいが、Application側で無制限retryしない。
 
-- read-only queryでplatform/runtimeが安全にretryする範囲は許容
-- write mutationをApplication側でblind retryしない
-- Idempotency contractを持つwrite mutationは**same payload + same `Idempotency-Key`**でのみretryする
-- Idempotency contractを持たないwriteで結果がambiguousな場合、`retryable=true`を安易に返さない
-- Clientは`retryable`だけでなくOperation-specific contractも確認する
+writeはblind retryしない。
 
-### 11.5 Request ID
+safe retryが必要なwriteはsame Idempotency-Key contractと組み合わせる。
 
-全Requestへ**Server側でCanonical Request ID**を付与する。
-
-初期Header名:
-
-```http
-X-Request-Id: req_xxx
-```
-
-- Response header
-- Error JSON
-- structured log
-
-で同じ値を追跡できるようにする。
-
-ClientからCanonical `X-Request-Id`を上書きさせない。
-
-Client correlation ID教材が将来必要なら、`X-Correlation-Id`等を別Contractとして追加する。
-
-### 11.6 OpenAPI
-
-OpenAPI 3.1を公開する。
-
-Runtime schemaとのdriftをCIで防ぐ。
-
-Checkout write request body / required header / idempotency / error envelopeの`retryable`もOpenAPIへ含める。
+known temporary D1 errorはstable 503へmapする。
 
 ---
 
-## 12. Checkout / Payment Transaction Model
+## 16. CORS / Browser Contract
 
-Backend化によってCurrent Checkout Behaviorを単純化しない。
+Pages SPAとStandalone Workerはcross-originを初期構成とする。
 
-```text
-Transaction A
-  Validate session / cart / price
-  Create Order(pending_payment)
-  Create Payment(processing)
-  Create histories
-  Convert Checkout Session
-  Consume Cart
-
-        ↓
-
-Mock Payment
-success / declined / error / slow
-
-        ↓
-
-Transaction B-success
-  Revalidate inventory
-  Atomic inventory decrement
-  Inventory history
-  Payment succeeded
-  Order paid
-  Shipment create/update
-  Order history
-
-or
-
-Transaction B-failure
-  Payment failed
-  Order payment_failed
-  Order history
-  Inventory unchanged
-```
-
-Transaction A / BはD1 atomic boundaryで実装する。
-
-DB transaction中にPayment Delayを入れない。
-
-Mutable stateについてはSection 3.5 / 3.6を適用し、Transaction前のpre-readだけを競合判定の正本にしない。
-
-### 12.1 Inventory Conflict
-
-stock=1へ2 Actorが競合した場合、成功は1件のみ。
-
-最終decrementはconditional updateだけで完了扱いにせず、Section 3.6のGuard failure Contractを満たす。
-
-### 12.2 Order Number Sequence / Timezone
-
-Current Order NumberのBusiness Calendarを維持する。
-
-```text
-Persistence timestamp
-= ISO-8601 UTC
-
-Order number local date / business calendar
-= Asia/Tokyo
-```
-
-Cloudflare execution location / runtime timezoneへ依存しない。
-
-Concurrency Test:
-
-```text
-same sandbox
-same Asia/Tokyo local date
-concurrent two orders
-→ distinct orderNumber
-→ sequence skip/duplicate/inconsistent historyなし
-```
-
-### 12.3 Atomic Rollback Tests
-
-最低:
-
-- insufficient inventory
-- stale order version
-- stale inventory version
-- idempotency conflict
-- sequence conflict / duplicate order number prevention
-
-でpartial commitがないことを確認する。
-
----
-
-## 13. Idempotency
-
-### 13.1 Business Mutation Idempotency
-
-最低Contract:
-
-- scope = `sandbox_id + actor_id + operation_id + idempotency_key`
-- `actor_id`はNOT NULL
-- same scope + key + normalized payload -> same logical result
-- same scope + key + different payload -> 409
-- concurrent duplicate -> logical mutation 1件
-- expiry明示
-- Sandbox Reset対象
-- DB UNIQUEでもSandbox / actor / operation scopeを保証する
-
-Current Order creation / payment resume / payment retryはSection 10.8.1のOperation-specific contractを正本とする。
-
-Phase 3ではGuest Checkoutを追加しない。将来Guest/Systemのidempotent Business Mutationを追加する場合はnullable `user_id`ではなくnon-null actor scopeを付与する。
-
-### 13.2 Platform Create Idempotency
-
-Sandbox CreateはSandbox生成前のPlatform operationなのでBusiness Mutation Idempotencyと分離する。
-
-- scope = `operation_id + idempotency_key`
-- payload hashを保存
-- same key + same payload -> existing Sandboxをrecover
-- same key + different payload -> 409
-- Raw Tokenは保存しない
-- response loss recoveryはSection 7.2.1のToken rotate contractを使う
-
----
-
-## 14. Deterministic Failure Injection
-
-初期:
-
-```text
-payment.success
-payment.declined
-payment.error-500
-payment.unavailable-503
-payment.slow
-```
-
-Current `setPaymentDelay(milliseconds)`を維持する。
-
-PublicではSection 10.4の`PUBLIC_MAX_PAYMENT_DELAY_MS = 5000`を強制する。
-
-- 5秒超は422
-- 長時間delayはLocal-only
-- Public `payment.slow`も5秒以内
-- Client timeout / abort後もDB transactionが開いたままにならない
-- allowed delay中にClientがtimeout / abortした場合のOrder / Payment stateをinspectでき、Current resume/retry flowで回復可能であることをTestする
-
-必要ならdeterministic 429を実Rate Limiterと分離して追加できる。
-
-任意SQL / arbitrary status / arbitrary sleep / arbitrary crashは提供しない。
-
----
-
-## 15. Test Clock
-
-Sandbox単位のlogical clockを持つ。
-
-Business Logicは直接`Date.now()`へ依存しない。
-
-```text
-Business logical clock
-= sandbox test clock
-
-Persistence/system timestamp where required
-= UTC
-
-Business calendar / order number date
-= Asia/Tokyo
-
-Sandbox TTL / tombstone / cleanup
-= real time
-```
-
----
-
-## 16. Web Migration Strategy
-
-PR BでWebをAPI-backedへ移行する。
-
-### 16.1 Authority
-
-Backend移行後、WebではServerをauthoritativeとする。
-
-- auth
-- account
-- address
-- catalog
-- cart
-- checkout
-- payment
-- order
-- inventory
-- review
-- admin全般
-
-Browser側でServer transactionを再実装しない。
-
-### 16.2 Client Boundary
-
-```text
-Presentation
- -> Backend API Client
- -> HTTP
- -> Worker
- -> D1
-```
-
-### 16.3 Dexie
-
-Web Backend移行完了後、DexieをProduction persistenceとして残さない。
-
-Platform-specific Dexie failure教材が必要な場合はlocal/test-only adapterとしてCurrent semanticsを維持する。
-
-### 16.4 `window.__TEST_API__`
-
-残す場合はBackend Test Controlのthin wrapperへ変更する。
-
-ResetではSection 7.9の`resetPending` / `initialAuth` contractに従い、成功response受領前に旧local User Session Tokenを消さない。
-
-Production Web UIへ新規Test APIを露出しない。
-
-### 16.5 Native
-
-Phase 3ではNative SQLiteを維持する。
-
----
-
-## 17. API Base URL / CORS
-
-### 17.1 API Base URL
-
-```text
-EXPO_PUBLIC_API_BASE_URL
-```
-
-Environment:
-
-```text
-local      -> local Worker URL
-preview    -> production Worker URL（PR B initial strategy）
-production -> production Worker URL
-```
-
-API URLをPresentationへ直書きしない。
-
-### 17.2 CORS
-
-初期Public APIはCookie credentialを使わないため、原則:
-
-```http
-Access-Control-Allow-Origin: *
-```
-
-許可対象Request Header:
-
-- Content-Type
-- Authorization
-- X-Sandbox-Token
-- Idempotency-Key
-
-Canonical `X-Request-Id`はServer生成のResponse Headerであり、初期版ではClientからの上書きを許可しない。
-
-Browser JSからRequest IDをEvidenceとして読めるよう、Responseには最低次を付与する。
-
-```http
-Access-Control-Expose-Headers: X-Request-Id
-```
-
-### 17.3 Preflight Contract
+### 16.1 Required CORS
 
 ```text
 OPTIONS /v1/*
-```
-
-で最低限:
-
-```http
 Access-Control-Allow-Origin: *
-Access-Control-Allow-Methods: ...
-Access-Control-Allow-Headers: Content-Type, Authorization, X-Sandbox-Token, Idempotency-Key
-Access-Control-Expose-Headers: X-Request-Id
+Access-Control-Allow-Methods: explicit allowlist
+Access-Control-Allow-Headers:
+  Content-Type
+  Authorization
+  X-Sandbox-Token
+  Idempotency-Key
+Access-Control-Allow-Credentials: false
+Access-Control-Expose-Headers:
+  X-Request-Id
 ```
 
-CORS middlewareは正常responseだけでなくApplication error responseにも適用する。
+`Access-Control-Max-Age`はbounded値を設定してよい。
 
-最低検証:
+### 16.2 Error Response CORS
 
-```text
-OPTIONS preflight -> allowed
-actual request -> success
-Browser JavaScript -> X-Request-Idを読める
-401/403/404/409/422/500/503 -> CORS headerあり
-```
+401/403/404/409/410/422/429/500/503でもCORS headersを付け、Browserがmachine-readable errorを読めるようにする。
 
-CORSをSecurity Boundaryとはみなさない。
+### 16.3 Request ID
+
+Server-generated `X-Request-Id`をCanonical correlation IDとする。
+
+Client supplied request IDをCanonical IDへ無条件採用しない。
 
 ---
 
-## 18. Local Development
+## 17. Web Migration Strategy
 
-Docker必須化しない。
+PR BでWebをAPI-backedへ移行する。
 
-基本Flow:
+### 17.1 Authority
+
+Backend移行後、WebではServerをauthoritativeとする。
 
 ```text
-pnpm install
-pnpm backend:migrate:local
-pnpm backend:seed:local
-pnpm backend:dev
-pnpm web
+Before
+Web UI -> Application -> Dexie
+
+After
+Web UI -> Application/API Client -> Worker -> D1
 ```
 
-Fresh cloneからREADMEだけでAPIを起動できることをDoDにする。
+PresentationへAPI URLを直書きしない。
 
-Wranglerはpackage.json / lockfileでpinする。
+### 17.2 Environment
 
-Rate Limiting Bindingを使う場合、Implementation時点のCloudflare最低要件を満たすこと。2026-08-15時点ではWrangler 4.36.0以上が必要である。
+```text
+local
+-> local Worker + local D1
+
+preview
+-> production Worker initial strategy + fresh Sandbox
+
+production
+-> production Worker + production D1
+```
+
+`EXPO_PUBLIC_API_BASE_URL`等で明示する。
+
+### 17.3 Dexie
+
+Production authoritative persistenceからDexieを外す。
+
+ただし、以下まで一律禁止しない。
+
+- presentation-only preference
+- one-time notice
+- non-authoritative UI state
+- Platform-specific storage failure training if explicitly isolated
+
+Backend identity token storageとPresentation local storageの責務を分離する。
+
+### 17.4 Browser Bootstrap
+
+PR Bは少なくとも次を扱う。
+
+- Sandbox create/reuse/expiry
+- pending Create Idempotency-Key
+- Create response-loss recovery
+- Sandbox Token storage
+- initialAuth token handling
+- Reset pending token ordering
+- expired Sandbox recovery
+
+### 17.5 Duplicate Orchestration禁止
+
+Current Business LogicをBrowserとServerへ二重実装しない。
+
+Browserはvalidation UXやtransport orchestrationを持てるが、authoritative invariantはServerへ寄せる。
 
 ---
 
-## 19. Repository Structure
+## 18. Current QA Runtime Compatibility
 
-大規模Monorepo化しない。
+Backend必須化後、Static Web artifactだけではCurrent Required Runtimeを再現できない。
+
+PR BではCurrent QA FoundationをBackend-aware化する。
+
+### 18.1 Formal Playwright
+
+Local Formal E2Eは以下をdeterministically起動する。
 
 ```text
-app/
-src/
-backend/
-  src/
-    index.ts
-    app.ts
-    env.ts
-    context/
-    middleware/
-    routes/
-    application/
-    repositories/
-    commands/
-    services/
-    test-control/
-    contracts/
-  migrations/
-  tests/
-  wrangler.jsonc
-
-docs/
-  api/
-  plans/
+Web dist
+Local Worker
+Local D1
+Fresh Sandbox
 ```
 
-BackendからPresentation / browser-specific / native-specific adapterへ依存しない。
+Formal TestのfixtureがScenario reset / auth tokenをBackend Contract経由で扱えるようにする。
+
+### 18.2 Training Web
+
+Current `playwright.training.config.ts`のFormal Runtimeとのport分離を維持する。
+
+Training Web baselineもBackendが必要になるため、Training専用Web runtimeとFresh Sandboxを準備する。
+
+TrainingがFormal Sandboxを共有しない。
+
+### 18.3 UI Review
+
+UI Review desktop/tablet/mobile/small-mobileもfresh deterministic Sandboxでcaptureする。
+
+同時実行でstate collisionしない。
+
+### 18.4 Production Smoke
+
+Production build smokeでもBackend dependencyを明示し、単に`index.html`がserveできるだけをProduct smoke PASSとしない。
+
+### 18.5 Native
+
+NativeはPhase 3 Backend migration対象外。
+
+Current Native SQLite regressionはそのまま維持する。
+
+Web Backend化のためにNative Repository/Applicationを不用意に壊さない。
 
 ---
 
-## 20. D1 Schema / Ownership / Migration Policy
+## 19. Agentic QA Backend-aware Runtime Contract
 
-### 20.1 Table Ownership Matrix
+これはPR Bの必須Compatibility Scopeとする。
 
-全tableを、
+### 19.1 Current Problem
 
-- Global Static
-- Sandbox Owned
-- Operational
+Current Official Black-box preparationはSource-free Web Prepared Targetを作り、trusted HostがRuntime URLへhandoffする。
 
-へ分類し、未分類を許可しない。
+PR B後はFrontend artifactだけではScenario Shop runtimeが成立しない。
 
-Create Idempotency RecordはOperationalへ分類する。
-
-### 20.2 Constraint
-
-- FK
-- UNIQUE
-- NOT NULL
-- CHECK
-- optimistic version
-
-を可能な範囲でDBでも保証する。
-
-Idempotency actor scopeのNOT NULLもDB constraintで保証する。
-
-### 20.3 Migration
-
-Wrangler D1 migrationをGit管理する。
-
-Dashboard手作業だけでProduction Schemaを変えない。
-
-### 20.4 Expand / Contract
+必要Runtime:
 
 ```text
-Expand migration
-  ↓
-Worker deploy
-  ↓
-Stabilize
-  ↓
-Later Contract migration
+Prepared Web artifact
++
+Backend Worker runtime
++
+D1 state
++
+Fresh Sandbox
 ```
 
-Worker rollbackとD1 rollbackを同一視しない。
+### 19.2 Prepared Target Identity
 
-### 20.5 Seed SSOT
+Backendが変わったらOfficial Target Identityも変わらなければならない。
 
-Current `src/seeds/**`とのparityを維持し、Backend用Seed SSOTを別手書きしない。
+少なくともtrusted runtime identityへ次をbindする。
 
-Platform-specific ScenarioをBackendへ意味変更して複製しない。
+```text
+frontend_artifact_sha256
+backend_artifact_sha256 or immutable Worker version identity
+backend_api_origin
+schema_version
+seed_version
+runtime_variant_id
+```
+
+Remote Production Workerを使う場合も、mutable aliasだけでBenchmark Identityを成立させない。Immutable deployment/version identityをtrusted receiptへ含める。
+
+### 19.3 Runtime Origins
+
+Backend-aware Webでは正当なRuntime Originが最低2つになる。
+
+```text
+Web origin
+API origin
+```
+
+Prepared Target `allowed_origins` / Host-trusted resource boundaryへAPI Originを含める。
+
+ただしAllowed Originを広く`*`へするのではなく、actual prepared runtimeへ必要なoriginだけをtrusted inputとして固定する。
+
+### 19.4 Source-free Boundary
+
+Black-box RunnerへBackend Sourceを渡さない。
+
+Runner-visible:
+
+- learner-safe specification
+- challenge/runbook
+- scored skill
+- prepared runtime URL
+- runtime-visible API behavior where tool scope permits
+
+Runner-hidden:
+
+- backend source
+- D1 schema source where forbidden by challenge/tool profile
+- answer key
+- instructor patch
+- secret/token digest
+- internal log not allowed by profile
+
+### 19.5 Deterministic Preparation
+
+Repository-side preparationは必要に応じて次をdeterministically準備する。
+
+```text
+Disposable source
+↓
+Baseline Web build
+↓
+Backend local build/runtime
+↓
+Fresh local D1 migration
+↓
+Fresh Sandbox / Initial State
+↓
+Baseline sanity
+↓
+Patch apply
+↓
+Patched Web/backend build as touched scope requires
+↓
+Fresh deterministic Initial State
+↓
+Prepared Target artifact/hash
+↓
+Source cleanup
+↓
+Trusted Host handoff
+```
+
+Challenge patchがFrontendだけを触る場合、Backend SourceをRunner artifactへ含める必要はない。
+
+Backendを触るScored Challengeを将来追加する場合は別Benchmark contractで設計する。
+
+### 19.6 Harness Ownershipを維持する
+
+Backend lifecycleが増えても、Repository HarnessがCoding Agentを起動・wrap・retry・orchestrateしない。
+
+Runtime preparation / readinessはSupporting Harness、Agent session ownershipはHostのまま。
+
+### 19.7 Initial State Bootstrap
+
+Current `scored_initial_state_deterministic_reset_sanity`相当をBackend Sandbox Resetへ接続する。
+
+最低確認:
+
+- requested Scenario
+- fresh Sandbox
+- expected initialAuth
+- reset determinism
+- Web readiness
+- API readiness
+
+### 19.8 Agentic QA Required Gate
+
+PR B Final Gateで最低:
+
+- Current deterministic preparation test PASS
+- backend-aware Prepared Target hash/identity test
+- allowed origin / API origin validation
+- source-free artifact validation
+- fresh Sandbox initial-state test
+- resource boundary negative probe contract
+
+Official model-backed Scored RunはHost Capabilityが提供できる場合だけ実施する。Host不足をRepository側で偽PASSへしない。
 
 ---
 
-## 21. Abuse Protection / Free Plan Protection
+## 20. Screen Catalog / Visual Specification Compatibility
 
-### 21.1 Worker Rate Limiting
+### 20.1 Screen Catalogの役割
 
-Rate LimitingはAbuse mitigationとして使うが、Workers日次request quota自体を完全防御するものと誤認しない。
+Screen CatalogはWeb migrationのcoverage indexとして利用する。
 
-Free Quota Measurement後、少なくとも次を別bucketとして検討する。
+各Product Screenについて、Current UIを成立させるBackend CapabilityがTraceability Matrixに存在することを検証する。
+
+### 20.2 Canonical Screenshot
+
+Datasource変更だけを理由にCanonical Screenshotを再生成・更新しない。
+
+```text
+Dexie -> API
+```
+
+がVisible Behaviorを変えないなら、既存Canonical Referenceを維持する。
+
+### 20.3 New Visible State
+
+Network化によって新しいExpected Visible Stateを追加する場合は、Current change processへ従う。
+
+```text
+Normative Spec
+↓
+BR / AC
+↓
+Risk / Test Design
+↓
+Implementation
+↓
+Screen Contract / Visual Registry where required
+↓
+Canonical Visual Reference
+```
+
+例:
+
+- API loading
+- retry
+- temporary backend unavailable
+- expired Sandbox user-facing recovery
+
+これらを「Backendでは普通」として無断追加しない。
+
+### 20.4 Final Visual Gate
+
+PR Bで`validate:spec-visuals:final`とCurrent UI ReviewをRequired Foundationとして維持する。
+
+---
+
+## 21. Curriculum / Training Integration
+
+PR CでPhase 3 Test Targetを正式Curriculumへ接続する。
+
+### 21.1 方針
+
+Current Competency IDを必要以上に増やさない。
+
+まず既存Competencyを拡張する。
+
+特に:
+
+```text
+C05 Test Layer Selection
+-> API / Backend Integration / DB Contractを含める
+
+C09 Failure Analysis
+-> Request ID / HTTP / Worker / D1 evidenceを含める
+
+C12 Continuous Execution Design
+-> API contract / migration / backend gateを含める
+```
+
+必要性が実証されるまでC13以降を追加しない。
+
+### 21.2 Curriculum Topics
+
+最低限次を学習可能にする。
+
+1. HTTP request / response / status
+2. API validation / negative test
+3. AuthN / AuthZ
+4. OpenAPI / Contract Test
+5. Sandbox / deterministic reset
+6. D1 schema / FK / UNIQUE / CHECK
+7. Migration
+8. Transaction / rollback
+9. Idempotency
+10. Inventory conflict / basic concurrency
+11. Retryable vs non-retryable error
+12. Request ID / local log investigation
+13. Free quota / CI design
+
+### 21.3 Local-first Training
+
+Curriculum hands-onはCloudflare account必須にしない。
+
+```text
+Local Wrangler
++
+Local D1
++
+Training Web/API Client
+```
+
+を標準とする。
+
+Public Workerはdemonstration / optional targetとして利用できるが、受講者へCloudflare secretを配布しない。
+
+### 21.4 Training Assets
+
+必要に応じて次を追加する。
+
+```text
+training/api/**
+training/backend/**
+docs/curriculum/test-automation/**
+scripts/training/**
+```
+
+Playwright Request API、Node HTTP Client、Vitest integration等からCurrent learning goalに最小のものを選ぶ。
+
+新たな外部APIテストツールを必須Dependencyにしない。
+
+### 21.5 Training / Formal Separation
+
+Training exerciseがFormal RegressionやProduction Workflowへ意図せず混入しないCurrent boundaryを維持する。
+
+Training Copyのleast-privilege / no-production-secret policyも維持する。
+
+### 21.6 Curriculum Validation
+
+PR Cは`validate:curriculum`を更新し、Navigation / Rubric / Training Entry / Script / Workflow Templateの整合をfail-closeで確認する。
+
+---
+
+## 22. Public Operation Hardening
+
+### 22.1 Route-class Rate Limit
+
+最低クラス:
 
 ```text
 Sandbox Create
@@ -2079,9 +1840,11 @@ Business Mutation
 Read
 ```
 
-特にCreate / Resetは通常Readより厳しくする。
+Create/Resetを通常Readより厳しくする。
 
-### 21.2 Bounded Payload / Delay
+Cloudflare Freeで追加Serviceが必要になる複雑なRate Limiterを先回りして導入しない。
+
+### 22.2 Bounded Input
 
 - body size
 - string length
@@ -2089,25 +1852,23 @@ Read
 - pagination
 - bulk size
 - idempotency key length / format
-- Public payment delay <= 5000 ms
+- Public payment delay
 
-を制限する。
+をboundする。
 
-### 21.3 Active Sandbox Ceiling
+### 22.3 Active Sandbox Ceiling
 
 Hard ceiling到達時は新規Sandbox作成を503等で拒否し、既存Sandbox利用を優先する。
 
-### 21.4 Public Free Availability
+### 22.4 Public Availability
 
 best-effort availabilityとする。
 
-### 21.5 Shared D1 Throughput Boundary
+SLAを約束しない。
 
-Sandbox Isolationはdata isolationでありthroughput isolationではない。
+### 22.5 Public禁止事項
 
-初期Phaseでsharding / Durable Objects等を導入しない。
-
-### 21.6 Public禁止事項
+Public環境で禁止:
 
 - Load
 - Stress
@@ -2115,34 +1876,59 @@ Sandbox Isolationはdata isolationでありthroughput isolationではない。
 - DoS-like
 - aggressive fuzzing
 - destructive security test
-- Public delay上限を回避する長時間request保持
+- rate limit bypass
+- long-held request abuse
+- real personal data / secret投入
 
-はLocalだけで実施する。
+これらはLocalで行う。
 
-### 21.7 Synthetic Test Data Only
+### 22.6 Synthetic Test Data Only
 
-Public Sandboxへ実データ / 秘密情報を投入しないようREADME / API Guideへ明示する。
+Public Sandboxへ実データ / 秘密情報を投入しない。
 
 禁止例:
 
 - 実名
 - 実住所
-- 実電話番号
-- 実メールアドレス
-- 他サービスで再利用しているPassword
+- 実電話
+- 実メール
+- 他Serviceで再利用するpassword
 - API key
 - access token
 - secret
 
-Sandbox hard deleteを「あらゆるbackup / recovery historyから即時物理消去」と説明しない。
-
-Cloudflare D1 Time Travel等のPlatform recovery機能があるため、**Synthetic Test Data Only**をPublic利用前提とする。
+README / API Guide / Curriculumへ明示する。
 
 ---
 
-## 22. Observability
+## 23. Cleanup
 
-### 22.1 Server側
+### 23.1 Cron
+
+Expired Sandbox cleanupにCronを使ってよい。
+
+### 23.2 Bounded Cleanup
+
+1回のCron invocationで次をboundする。
+
+- processed sandbox count
+- D1 query count
+- rows_written
+- Worker CPU
+
+大量Sandboxを1回で全削除するloopを作らない。
+
+### 23.3 Tombstone
+
+Active child dataset削除後も一定期間Sandbox tombstoneを残し410 semanticsを提供する。
+
+その後hard deleteして404へ移行する。
+
+---
+
+## 24. Observability
+
+### 24.1 Server
 
 最低:
 
@@ -2151,93 +1937,81 @@ Cloudflare D1 Time Travel等のPlatform recovery機能があるため、**Synthe
 - operation ID
 - status
 - latency
-- error code
-- retryable flag where applicable
-- D1 query count（dev/test）
-- D1 rows read / rows written（measurement path）
+- stable error code
+- retryable
+- D1 query count in dev/test
+- D1 rows read/write measurement path
 
-Raw Token / token digest / password / password hash / Authorization header / X-Sandbox-Tokenをlogしない。
+禁止:
 
-Create Idempotency-Key等もそのままlogせず、必要ならhash / truncated fingerprint等のnon-secret correlation表現を使う。
+- Raw Sandbox Token
+- token digest
+- Raw User Session Token
+- Authorization header
+- password
+- password hash
+- X-Sandbox-Token
 
-### 22.2 Public Learner
+Create Idempotency-KeyもRaw logしない。必要ならnon-secret fingerprintへ変換する。
 
-Public教材では、
+### 24.2 Public Learner
+
+Publicでは、
 
 - request ID
-- error response
+- HTTP status
+- error code
 - reproducible Sandbox Scenario
 
-をEvidenceとして扱う。
+をEvidenceにする。
 
-### 22.3 Local Learner
+### 24.3 Local Learner
 
-Local WranglerではStructured Log / D1 failureを含むinvestigationを教材化できる。
+Localでは、
 
-### 22.4 Remote Runtime Gate Observability
+- structured Worker log
+- D1 error
+- migration
+- constraint
+- request ID correlation
 
-PBKDF2 CPU Gateの正本は、**Workers Logs / invocation metricsを取得可能なtemporary deployed Worker / temporary environment**とする。
+を学習可能にする。
 
-最低確認:
+### 24.4 Remote CPU Gate
 
-- representative login/signup invocation
-- CPU time
-- outcome
-- `exceededCpu`相当の失敗有無
-- actual Worker startup成功
+PBKDF2 CPU GateはObservabilityを取得可能なtemporary deployed Workerで確認する。
 
-Workers Logsを取得できないPreview URL / versionだけをCPU Gateの正本にしない。
-
-Preview URL等は、upload / startup / runtime compatibilityの補助確認としてのみ利用してよい。
-
-Tail Worker等のPaid-only機能を必須化しない。
+Workers Logsを取得できないPreview URLだけをCPU Gate正本にしない。
 
 ---
 
-## 23. Environment Strategy
+## 25. Environment Strategy
 
-### 23.1 Local
+### 25.1 Local
 
 ```text
-Expo local
+Expo Web local/static dist
 Worker local
 D1 local
+Fresh Sandbox per execution context
 ```
 
-Required Testの主対象。
+Required functional/integration testの主対象。
 
-### 23.2 Remote Compatibility Gate
+### 25.2 Remote Compatibility Gate
 
-PR A Wave A1で最小限のCloudflare実Runtime検証を行う。
+PR A Wave A1/A10で最小限のCloudflare Runtime検証を行う。
 
 目的:
 
-- PBKDF2 CPU Gate
+- PBKDF2 CPU
 - actual Worker upload/startup
 - compressed bundle
-- Cloudflare Runtime固有差分
+- Runtime固有差分
 
-PBKDF2 CPU Gateでは、Observability / Workers Logsを取得可能な**dedicated temporary deployed Worker / temporary environment**を使う。
+本格的なper-PR D1 Preview環境は初期導入しない。
 
-```text
-temporary Worker deploy
-  ↓
-observability enabled
-  ↓
-representative signup/login
-  ↓
-CPU time / outcome確認
-  ↓
-Gate結果記録
-  ↓
-temporary Worker削除
-```
-
-Workers Logsを取得できないVersioned Preview URLをCPU Gateの正本にはしない。
-
-本格的なPR D1 Preview環境を初期導入する必要はない。
-
-### 23.3 Production
+### 25.3 Production
 
 ```text
 Pages production
@@ -2247,528 +2021,577 @@ D1 production
 
 Public Test Target。
 
-### 23.4 PR A
+### 25.4 PR B Preview
 
-WebはまだDexie。
+初期戦略:
 
-Backend機能TestはLocal Worker / Local D1を主とし、Wave A1/A10でRemote Compatibility Gateを追加する。
+```text
+Pages Preview
+-> production Worker
+-> fresh Public-safe Sandbox
+```
 
-PR A merge後、Production Backend APIを先に公開する。
+PR BでBackend breaking changeを同時に入れないことが前提。
 
-### 23.5 PR B Preview
-
-Pages PreviewからProduction WorkerへFresh Sandboxを作って接続する。
-
-PR BでBackend breaking changeを同時に入れない。
-
-### 23.6 Future Backend Preview
-
-必要になった場合だけWorkers Versioned Preview URL + Preview D1等を個別Planで判断する。
+必要性が出た場合だけDedicated Preview Worker/D1を別Planで判断する。
 
 ---
 
-## 24. CI / CD
+## 26. Worker Bundle / Startup Gate
 
-### 24.1 PR A Required CI / Gates
+### 26.1 Local/CI
 
-1. Backend lint / typecheck
-2. Wrangler config validation
-3. Worker bundle dry-run / compressed size validation
-4. fresh local D1 migration
-5. Scenario classification validation
-6. Backend-portable Scenario parity smoke
-7. Public Scenario Allowlist validation
-8. Public Scenario single-atomic Create/Reset validation
-9. Unit
-10. Repository Integration
-11. API Integration
-12. OpenAPI Contract
-13. Spec / Application / Web Usage -> API Traceability
-14. Transaction Invariant Inventory validation
-15. Composite PK / FK / UNIQUE Sandbox isolation test
-16. SQL JOIN Read Isolation test
-17. Cross-Sandbox 404
-18. Authorization
-19. Signup / Login / Session invalidation
-20. Scenario initialAuth / fresh session token
-21. Capability Token random/digest persistence test
-22. Sandbox Create response-loss idempotency / token-rotation recovery
-23. Reset local-token ordering / response-loss recovery
-24. Business idempotency actor NOT NULL constraint
-25. Guest Cart merge
-26. Home Catalog
-27. Product Review List
-28. Address Suggestion
-29. Cart Price Change Acceptance
-30. Review Eligibility
-31. Admin Overview
-32. Checkout state flow
-33. Checkout write OpenAPI request / header contract
-34. Duplicate checkout submit returns same Order
-35. Duplicate resume/retry does not duplicate Payment Attempt / gateway call
-36. Payment success/failure/retry
-37. D1 atomic batch rollback
-38. Mutable-state guard evaluated inside atomic operation
-39. Guard failure rollback
-40. Idempotency
-41. Inventory conflict
-42. Order Number Sequence concurrency
-43. Review / Review Summary atomicity
-44. User / Session / Checkout invalidation atomicity
-45. Admin Catalog / Inventory / Orders / Reviews / Users
-46. Bulk independent mutation partial-success semantics
-47. Failure Injection / Payment Delay parity
-48. Public payment delay <= 5000 ms / over-limit 422
-49. Payment timeout / abort recovery
-50. Test Clock / Asia-Tokyo business date
-51. Error Envelope `retryable` contract
-52. CORS preflight / error CORS / exposed Request ID
-53. Invocation-total Query budget
-54. Sandbox Create / Reset statement budget
-55. Final-schema rows read/write budget
-56. Cleanup budget measurement
-57. PBKDF2 local profile
-58. Cloudflare observable temporary deployment PBKDF2 CPU Gate
-59. Cloudflare actual Worker upload/startup Gate
-60. Existing Web regression
-61. Native regression required by current policy
+`wrangler deploy --dry-run`等でcompressed bundle sizeを計測する。
 
-### 24.2 Worker Bundle / Startup Gate
+Free platform limitを超えたらFAIL。
 
-Local/CI:
-
-```text
-wrangler deploy --dry-run等
--> compressed bundle size
-```
-
-Remote:
-
-```text
-temporary deployed Worker / environment
--> actual upload success
--> actual startup success
--> no startup limit failure
-```
+### 26.2 Remote
 
 CPU Gateと同じtemporary deploymentを再利用してよい。
 
-Gate終了後はtemporary Worker / environmentをcleanupする。
+- actual upload success
+- actual startup success
+- startup limit failureなし
 
-### 24.3 PR A Production Deploy
-
-```text
-Required CI / Decision Gates PASS
-  ↓
-D1 Expand Migration
-  ↓
-Worker deploy
-  ↓
-API smoke with Public-safe fresh Sandbox
-  ↓
-API parity smoke
-```
-
-### 24.4 PR B Required CI
-
-1. Existing code quality
-2. Web API client unit
-3. Local Worker + local D1
-4. Browser -> Worker -> D1 E2E
-5. Cross-role
-6. Auth / initialAuth Reset
-7. Sandbox Create response-loss recovery through persisted pending key
-8. Reset failure / response-loss token handling
-9. Home / Catalog / Product Review List
-10. Address Suggestion
-11. Cart Price Change Acceptance
-12. Checkout / Payment
-13. Checkout duplicate-submit / idempotency E2E
-14. Review Eligibility / Review
-15. Admin Overview / Admin E2E
-16. Bulk partial-success E2E
-17. CORS preflight through Browser origin
-18. Browserから`X-Request-Id`参照
-19. Accessibility
-20. Mobile Web boundary
-21. Browser smoke
-22. Production-build smoke
-23. Native regression
-24. Dexie production guard
-25. duplicate server business orchestration guard
-26. `EXPO_PUBLIC_API_BASE_URL` validation
-27. Guide Scenario classification display
-
-### 24.5 PR B Remote Preview
-
-Production BackendのFresh Sandboxを使う。
-
-可能なら終了時deleteし、失敗時はTTL cleanupへ任せる。
+終了後temporary Workerをcleanupする。
 
 ---
 
-## 25. Test Strategy
+## 27. Free Quota Measurement Gate
 
-### 25.1 Unit
+論理Seed object数ではなく、**final schema / final indexでD1が返すactual metadata**を正本とする。
 
-- validation
-- domain policy
-- error mapping / retryable semantics
-- clock
-- timezone/business date
-- permission
-- idempotency semantics
-- Scenario classification
-- capability token generation / digest
-- payment delay bound
+Index maintenanceによるwrite amplificationとDELETEを含める。
 
-### 25.2 Repository / Command Integration
+### 27.1 Public Scenario Metrics
 
-- CRUD
-- composite PK
-- sandbox-scoped UNIQUE / FK
-- sandbox-aware JOIN
-- CHECK
-- optimistic version
-- atomic batch rollback
-- mutable-state guard inside atomic boundary
-- guard failure rollback
-- query filtering
-- conditional inventory
-- history atomicity
-- sequence uniqueness
-- token digest persistence / lookup
-- token rotation
-- non-null business idempotency actor
-- Sandbox Create operational idempotency
+- each public create actual rows written
+- each public reset actual rows written
+- Create idempotency / token rotation actual rows written
+- representative mutations actual rows written
+- active -> expired cleanup
+- tombstone hard delete
 
-### 25.3 API Integration
+### 27.2 Route Metrics
 
-- request / response schema
-- status
-- auth
-- authorization
-- sandbox scope
-- CORS / preflight
-- exposed Request ID
-- error / retryable
-- request ID
-- state transition
-- idempotency
-- checkout required headers / bodies
-- fault injection
-- Public payment delay bound
-- transient DB error mapping
-- initialAuth
-- Raw Token non-leakage
-- Create response loss recovery
-- Reset response loss recovery
-
-### 25.4 Scenario
-
-BackendではBackend-portable Current Scenarioを対象にする。
-
-Platform-specific Scenarioは既存platform側で維持する。
-
-PublicではAllowlist only。
-
-### 25.5 Public Create / Reset
-
-```text
-for every Public Scenario:
-create with Idempotency-Key
--> single atomic boundary
--> deterministic state
--> valid initialAuth
--> token digest only persisted
--> Create idempotency record atomically associated
--> <= 50 D1 queries including middleware/runtime identity lookup
--> bind limit PASS
-
-create response loss
--> same key retry
--> duplicate Sandboxなし
--> same sandboxId
--> fresh token rotate/recovery
-
-mutate
-reset
--> single atomic boundary
--> old user sessions invalid
--> fresh initialAuth
--> deterministic restore
--> query/bind/write budget PASS
-
-reset pre-commit failure
--> old browser user token retained
-
-reset post-commit response loss
--> Sandbox Token retryでfresh initialAuth回復
-```
-
-### 25.6 Expiry
-
-```text
-active
--> expiry
--> 410 during tombstone
--> child data unavailable
--> tombstone expiry
--> 404
-```
-
-### 25.7 Concurrency / Atomicity
-
-- stock=1 two checkout
-- duplicate business idempotency sequential / concurrent
-- stale version
-- mutable-state predicateをatomic boundary外のpre-readだけで確定しない
-- conditional update 0-row時に後続mutationがcommitされない
-- two simultaneous order number allocations are unique
-- Review / Summary partial commitなし
-- User access mutation / Session invalidation partial commitなし
-
-### 25.8 Checkout Idempotency
-
-- Order submit same key + same payload -> same Order
-- same key + different payload -> 409
-- missing required key -> 400
-- same retry key -> same Payment Attempt
-- new retry action + new key -> new Payment Attempt
-- duplicate submit / resume / retryでMock Payment Gateway callが二重化しない
-
-### 25.9 Bulk
-
-Product / Reviewの最大50件選択を、boundedなindependent HTTP mutationへ分解し、Current partial-success resultを再現する。
-
-### 25.10 Public Delay / Timeout
-
-- `0`, `5000` boundary PASS
-- `5001` -> 422
-- `payment.slow` <= 5000
-- longer delay Local-only
-- allowed delay中のClient timeout / abortでDB transactionを保持しない
-- timeout / abort後のOrder / Payment状態をinspectし、resume/retryで回復可能
-
-### 25.11 Public Smoke
-
-Publicでは軽量Smokeのみ。
-
----
-
-## 26. Free Quota Measurement Gate
-
-論理Seed object数ではなく、final schema / final indexでD1が返す実測metadataを正本とする。
-
-```text
-Public Scenario Metrics
-- each public create: actual rows written
-- each public reset: actual rows written
-- Create idempotency / token rotation: actual rows written
-- cleanup: actual rows written
-- tombstone hard delete: actual rows written
-
-Local Heavy Scenario Metrics
-- many-products actual rows written
-- Public対象外であること
-
-Route Metrics
 - invocation-total D1 queries
 - rows read
 - rows written
 - representative CPU where measurable
 
-Operational Metrics
-- cleanup D1 queries / CPU / processed sandbox count
-- Worker compressed bundle size
-- Remote Cloudflare CPU outcome
-- Worker startup outcome
+### 27.3 Operational Metrics
 
-Estimated Daily Capacity
-- public sandbox creations/day
-- create recovery retries/day
+- cleanup queries / CPU / processed Sandbox
+- Worker compressed bundle
+- Worker startup outcome
+- Remote PBKDF2 CPU
+
+### 27.4 Estimated Daily Capacity
+
+- sandbox creations/day
+- recovery retries/day
 - resets/day
 - learner sessions/day
-```
 
-Hard Gate:
+### 27.5 Hard Gate
 
-- Middleware / Identity / Business処理を含む1 invocation全体で50 D1 queries以内
-- 100 bound parameters/query以内
-- final index込みactual `rows_written`でPublic write quotaへ運用余裕
-- Public Create recoveryを含めてもFree quotaへ合理的な余裕
-- Workers Free CPU representative route
-- Current PBKDF2 Remote CPU Gate PASS
-- Worker Free bundle / startup PASS
+- 1 invocation total <= D1 query limit
+- bound params <= limit
+- actual rows_writtenでPublic daily write quotaに合理的余裕
+- Workers Free representative CPU
+- Current PBKDF2 Remote CPU PASS
+- Worker bundle/startup PASS
+
+Free quotaを100%使い切るcapacityを目標にしない。
 
 ---
 
-## 27. Implementation Waves
+## 28. CI / CD Strategy
 
-Backend追加とWeb移行は2 Implementation PRに分割する。
+### 28.1 Current Foundation First
+
+PR A/B/CはCurrent Required Gateを置き換えず、その上へPhase 3 Gateを追加する。
+
+`.github/workflows/ci.yml`のCurrent jobsを不要に統合・削除しない。
+
+### 28.2 PR A Required Gate
+
+最低:
+
+1. Current applicable Foundation Gate
+2. Backend lint/typecheck
+3. Wrangler config validation
+4. Worker bundle dry-run / compressed size
+5. fresh local D1 migration
+6. Scenario classification
+7. Backend-portable Scenario parity smoke
+8. Public Scenario Allowlist
+9. Public Create/Reset single-atomic validation
+10. Backend Unit
+11. D1 Repository/Command Integration
+12. API Integration
+13. OpenAPI Contract
+14. Spec/Application/Web/Screen -> API Traceability
+15. Transaction Invariant Inventory validation
+16. Composite Sandbox PK/FK/UNIQUE
+17. sandbox-aware JOIN isolation
+18. Cross-Sandbox 404
+19. AuthN/AuthZ
+20. Signup/Login/current session invalidation
+21. initialAuth
+22. Capability Token digest/non-leakage
+23. Create response-loss recovery
+24. Reset token-order/recovery
+25. Guest Cart merge
+26. Home Catalog
+27. Category equivalent
+28. Product Review List
+29. Address Suggestion
+30. Cart Price Change Acceptance
+31. Review Eligibility
+32. Checkout state flow
+33. Checkout write Idempotency contract
+34. duplicate submit same Order
+35. duplicate retry no duplicate gateway call
+36. Payment failure/retry
+37. D1 atomic rollback
+38. mutable-state guard inside atomic operation
+39. 0-row guard failure rollback
+40. inventory conflict
+41. order number concurrency
+42. review summary atomicity
+43. user/session/checkout invalidation atomicity
+44. Admin parity
+45. Bulk partial-success semantics
+46. fault/payment delay parity
+47. Public delay bound
+48. timeout/abort recovery
+49. Test Clock / Asia-Tokyo business date
+50. Error Envelope / retryable
+51. CORS OPTIONS / error CORS / exposed Request ID
+52. invocation-total query budget
+53. Create/Reset statement/bind budget
+54. final-index rows read/write budget
+55. cleanup budget
+56. PBKDF2 local profile
+57. observable Cloudflare PBKDF2 Gate
+58. actual Worker upload/startup Gate
+59. Existing Web regression
+60. Current Native regression required by policy
+
+### 28.3 PR A Deploy
+
+```text
+Required Gates PASS
+↓
+D1 migration
+↓
+Worker deploy
+↓
+Public-safe fresh Sandbox
+↓
+API smoke
+↓
+API parity smoke
+```
+
+### 28.4 PR B Required Gate
+
+最低:
+
+1. Current Foundation Gate
+2. Web API client unit
+3. local Worker + local D1
+4. browser -> Worker -> D1 E2E
+5. fresh Sandbox per independent suite
+6. cross-role
+7. auth / initialAuth reset
+8. Create response-loss recovery
+9. Reset failure/response-loss token handling
+10. Home/Catalog/Product Review
+11. Address Suggestion
+12. Cart Price Change Acceptance
+13. Checkout/Payment
+14. duplicate submit/idempotency E2E
+15. Review Eligibility/Review
+16. Admin E2E
+17. Bulk partial-success
+18. Browser CORS preflight
+19. Browser X-Request-Id visibility
+20. Accessibility
+21. Mobile Web boundary
+22. Production-build smoke
+23. Dexie production guard
+24. duplicate server business orchestration guard
+25. API base URL validation
+26. Guide Public/Local/Platform-specific display
+27. UI Review 4 viewports backend-aware
+28. Final Visual Specification gate
+29. Training Web baseline backend-aware
+30. Agentic QA deterministic preparation backend-aware
+31. Prepared Target backend identity binding
+32. Allowed origin / API origin validation
+33. Source-free artifact validation
+34. Current Native regression
+
+### 28.5 PR C Required Gate
+
+最低:
+
+1. Current Foundation Gate
+2. validate:curriculum
+3. Training typecheck
+4. API/Backend Training baseline
+5. no-production-secret boundary
+6. Training Copy validation
+7. Formal Regression非混入
+8. Curriculum navigation/rubric consistency
+9. Local Wrangler/D1 hands-on reproducibility
+10. Final documentation links
+
+---
+
+## 29. Test Strategy
+
+### 29.1 Unit
+
+- validation
+- domain policy
+- permission
+- error mapping
+- retryable semantics
+- clock
+- timezone
+- idempotency semantics
+- scenario classification
+- token generation/digest
+- payment delay bound
+
+### 29.2 Repository / Command Integration
+
+- CRUD
+- composite PK/FK
+- sandbox-scoped UNIQUE
+- sandbox-aware JOIN
+- CHECK
+- optimistic version
+- atomic rollback
+- mutable-state guard inside atomic boundary
+- conditional update zero-row rollback
+- inventory/history
+- sequence uniqueness
+- token digest/rotation
+- business idempotency actor not-null
+- Create operational idempotency
+
+### 29.3 API Integration
+
+- schema
+- status
+- auth
+- authorization
+- sandbox scope
+- CORS
+- Request ID
+- error/retryable
+- state transition
+- idempotency
+- fault injection
+- initialAuth
+- token non-leakage
+- response-loss recovery
+
+### 29.4 Scenario
+
+- Backend-portable Current Scenario parity
+- Platform-specific exclusion preserved
+- Public allowlist only
+
+### 29.5 Public Create / Reset
+
+For every Public Scenario:
+
+```text
+create with Idempotency-Key
+-> atomic
+-> deterministic
+-> initialAuth valid
+-> digest only persisted
+-> query/bind budget PASS
+
+response loss
+-> same key retry
+-> no duplicate Sandbox
+-> same sandboxId
+-> fresh token recovery
+
+mutate
+reset
+-> atomic restore
+-> old sessions invalid
+-> fresh initialAuth
+-> budget PASS
+```
+
+### 29.6 Expiry
+
+```text
+active
+-> expired
+-> 410 tombstone
+-> hard delete
+-> 404
+```
+
+### 29.7 Concurrency / Atomicity
+
+- stock=1 two checkout
+- duplicate idempotency sequential/concurrent
+- stale version
+- mutable predicate not pre-read-only
+- conditional update 0-row no partial commit
+- order number uniqueness
+- review summary no partial commit
+- user/session invalidation no partial commit
+
+### 29.8 Bulk
+
+Current max selectionを1巨大D1 transactionへ押し込まない。
+
+bounded independent HTTP mutationへ分解し、Current partial-success resultを再現する。
+
+### 29.9 Visual / Runtime
+
+- backend-aware formal E2E
+- backend-aware Training
+- backend-aware UI Review
+- Current visual final gate
+- Agentic QA prepared runtime
+
+---
+
+## 30. Implementation Waves
 
 ### PR A — Backend Foundation + Current Web API Parity
 
-#### Wave A1: Baseline / Decision Gates
+#### Wave A0: Current Foundation Rebaseline
 
-- Hono / Wrangler Skeleton
-- Request Context
+- latest main SHA固定
+- Current Required Gate inventory
+- Current Capability inventory
+- Screen/API traceability seed
+- Transaction Invariant inventory seed
+- Scenario classification seed
+- Current Foundation baseline result記録
+
+#### Wave A1: Backend Skeleton / Decision Gates
+
+- Hono / Wrangler skeleton
+- RequestContext
 - OpenAPI方式
-- Local Worker / D1
-- Current Capability Inventory
-- Current Transaction Invariant Inventory
-- Scenario Classification Inventory
+- Local Worker/D1
 - PBKDF2 local profile
-- Cloudflare observable temporary deployment PBKDF2 CPU Gate
-- Worker bundle / startup Gate
+- observable temporary Worker CPU Gate
+- Worker bundle/startup Gate
 
-**PBKDF2 GateがFAILなら後続Auth実装へ進まない。**
+PBKDF2 FAILならAuth-dependent workを止めるが、独立作業は継続する。
 
-#### Wave A2: D1 Schema / Sandbox Foundation
+#### Wave A2: D1 Schema / Sandbox
 
 - Table Ownership Matrix
-- Composite PK / FK / UNIQUE / Index
-- sandbox-aware JOIN Contract
+- Composite PK/FK/UNIQUE/Index
+- sandbox-aware JOIN
 - migration
-- D1 atomic Command pattern
-- mutable-state guard inside atomic boundary
-- Guard failure -> SQL failure pattern
+- atomic Command pattern
+- guard failure pattern
 - Seed adapter
-- Backend-portable Scenario parity
-- Platform-specific Scenario exclusion
-- Public Scenario Allowlist
-- Public single-atomic eligibility
-- Capability Token >=256-bit random + SHA-256 digest utility
-- initialAuth Token generation
-- Business idempotency non-null actor scope
-- Sandbox Create operational idempotency
-- Create response-loss Token rotate recovery
-- Reset old-session invalidation / Browser token ordering contract
-- tombstone
-- cleanup budget
+- Scenario classification
+- Public allowlist
+- capability token digest
+- Create/Reset idempotency/recovery
+- tombstone/cleanup
 
 #### Wave A3: Auth / Account
 
-- signup / login / logout
-- Request authentication vs active-account authorization separation
-- Session TTLをCurrent parityとして新設しない
-- Guest Identity / merge
-- profile / address
+- signup/login/logout/me
+- active-account guard
+- guest merge
+- profile/address
 - Address Suggestion
+- no independent Current-parity Session TTL
 
 #### Wave A4: Storefront / Cart
 
-- Home Catalog
-- search / facet / pagination
+- Home
+- search/facet/pagination
+- category equivalent
 - Product Review List
-- cart
-- Cart Price Change Acceptance
+- Cart
+- price change acceptance
 
 #### Wave A5: Checkout / Payment / Orders
 
 - stateful checkout
-- Transaction A/B via D1 atomic batch
-- Checkout write OpenAPI request contract
-- checkoutActionVersion semantics
-- required Idempotency-Key
-- duplicate gateway-call suppression
-- payment retry
+- atomic mutations
+- required idempotency
+- gateway side-effect suppression
+- retry
 - inventory conflict
-- idempotency
-- Order Number Sequence / Asia-Tokyo date
+- order number concurrency
 
 #### Wave A6: Reviews
 
 - Review Eligibility
-- Customer / Admin
+- create/update/delete
+- Admin Review
 - Review Summary atomicity
 
-#### Wave A7: Admin Parity
+#### Wave A7: Admin
 
-- Admin Overview
+- Overview
 - Catalog
 - Inventory
 - Orders
+- Reviews
 - Users
-- Bulk independent mutation transport
+- Bulk partial-success transport
 
 #### Wave A8: QA Control
 
 - Clock
 - Payment Delay
-- Public max 5000 ms
-- Local-only long delay
-- extended payment faults
-- inspection
-- Metadata parity
+- Payment Fault
+- Inspect endpoints
+- metadata parity
 
 #### Wave A9: Public Hardening
 
-- CORS / exposed Request ID
-- route-class rate limit
-- payload / delay bound
+- CORS
+- Request ID
+- rate limit policy
+- payload bounds
 - active ceiling
 - no-secret logs
-- Synthetic Test Data Only docs
-- invocation-total query / CPU / quota metrics
+- Synthetic Test Data Only
+- quota metrics
 
-#### Wave A10: Contract / Docs / Final Gate
+#### Wave A10: Contract / Remote / Final
 
 - OpenAPI
-- Traceability Matrix
-- Transaction Invariant Matrix
-- Public/Local Scenario guide
-- usage / prohibited tests
-- quota limits
-- response-loss recovery documentation
-- retryable error semantics
-- Remote Cloudflare compatibility rerun
-- final regression
+- Traceability Matrix complete
+- Transaction Invariant Matrix complete
+- Scenario guide
+- remote CPU/runtime rerun
+- current Foundation regression
+- production deploy/smoke
 
-### PR B — Web Backend Integration
+### PR B — Web Backend Integration + Current QA Runtime Compatibility
+
+#### Wave B0: Current Foundation Baseline
+
+- Current Web/Training/UI Review/Agentic preparation baseline
+- visual final gate baseline
 
 #### Wave B1: API Client / Sandbox Bootstrap
 
-- `EXPO_PUBLIC_API_BASE_URL`
+- API base URL
 - Sandbox create/reuse/expiry
-- persisted pending Create Idempotency-Key
-- Create response-loss recovery
-- initialAuth token handling
-- Reset `resetPending` token replacement
-- Browser CORS / preflight / exposed Request ID
+- pending Create key
+- initialAuth
+- resetPending
+- CORS/Request ID
 
 #### Wave B2: Storefront / Auth / Account / Cart
 
-- Home Catalog
-- Product Review List
-- Address Suggestion
-- Cart Price Change Acceptance
+- Current capability migration
+- no duplicate business logic
 
 #### Wave B3: Checkout / Order / Review
 
-- Checkout required Idempotency-Key handling
-- duplicate submit/retry recovery
-- Review Eligibility含む
+- required Idempotency-Key
+- network retry/recovery
+- Review Eligibility
 
 #### Wave B4: Admin
 
 - Overview
-- Bulk independent mutation orchestration
+- Bulk orchestration
 
-#### Wave B5: Test Control / Dexie Removal
+#### Wave B5: Test Control / Dexie Boundary
 
-- Backend thin wrapper
-- Production persistenceからDexieを外す
-- Platform-specific Dexie failure教材を残す場合はlocal/test-only境界へ隔離
+- thin backend control wrapper
+- production Dexie persistence removal
+- platform-specific storage exercise isolation
 
-#### Wave B6: Full Regression / Public Preview
+#### Wave B6: Formal / Training / UI Review Runtime
 
-- Guide Scenario classification表示
-- Public Preview smoke
+- one fresh Sandbox per independent execution
+- Formal fixtures backend-aware
+- Training runtime backend-aware
+- UI Review backend-aware
+- production smoke backend-aware
+
+#### Wave B7: Agentic QA Prepared Runtime
+
+- backend runtime identity
+- frontend/backend artifact binding
+- schema/seed binding
+- API origin allowed origin
+- local D1/sandbox bootstrap
+- source-free validation
+- initial state deterministic reset
+- Current harness ownership維持
+
+#### Wave B8: Visual / Guide / Final
+
+- Guide Scenario classification
+- no unnecessary canonical screenshot churn
+- visual final gate
+- Current Foundation full regression
+- preview smoke
+
+### PR C — API / Backend QA Curriculum Integration
+
+#### Wave C1: Learning Design
+
+- existing Competency mapping
+- API/Backend QA outcomes
+- local-first policy
+- no Cloudflare account requirement
+
+#### Wave C2: Curriculum Content
+
+- HTTP/API
+- AuthN/AuthZ
+- Contract
+- D1/migration
+- transaction/idempotency/concurrency
+- Request ID investigation
+
+#### Wave C3: Training Assets
+
+- API exercises
+- backend exercises where required
+- local Wrangler/D1 bootstrap
+- expected failure exercise
+
+#### Wave C4: CI / Validation
+
+- Training baseline
+- curriculum validator
+- Training Copy safety
+- no production secret
+
+#### Wave C5: Final Delivery
+
+- navigation
+- rubric consistency
+- instructor references
+- current Foundation regression
 
 ---
 
-## 28. Expected File Impact
+## 31. Expected File Impact
 
 ### PR A
 
@@ -2782,8 +2605,8 @@ README.md
 docs/api/**
 docs/spec/**
 docs/PROJECT_CONTEXT.md
-src/domain/**   # pure shared changes only if required
-src/seeds/**    # seed SSOT sharing/refactor / classification metadata if required
+src/domain/**   # pure shared change only if required
+src/seeds/**    # seed SSOT / classification only if required
 ```
 
 ### PR B
@@ -2794,364 +2617,335 @@ src/infrastructure/**
 src/bootstrap/**
 src/presentation/**
 src/test-controls/**
-src/seeds/metadata.ts      # Guide classification表示に必要なら
+src/seeds/metadata.ts
 app/**
 e2e/**
+playwright.config.ts
+playwright.training.config.ts
+training/playwright/** if runtime bootstrap changes are required
+scripts/agentic-qa/**
+tests/runtime/**
 tests/**
 README.md
 docs/spec/**
+docs/reference/**
 docs/PROJECT_CONTEXT.md
 package.json
 .github/workflows/ci.yml
 ```
 
+### PR C
+
+```text
+docs/curriculum/test-automation/**
+training/api/**
+training/backend/** if needed
+training/playwright/** if API-linked exercises need it
+scripts/training/**
+scripts/validate-curriculum.ts
+playwright.training.config.ts if required
+.github/workflows/** training template/current training gate only if required
+README.md
+docs/PROJECT_CONTEXT.md
+package.json
+```
+
+変更不要な領域を広げない。
+
 ---
 
-## 29. Definition of Done
+## 32. Definition of Done
 
-### 29.1 Backend
+### 32.1 Current Foundation
+
+- latest implementation baseがCurrent main
+- Current Required Gate Inventory完成
+- Current Foundationに新規Regressionなし
+- `validate:spec` PASS
+- `validate:spec-visuals:final` PASS
+- `validate:curriculum` PASS where applicable
+- Current Security Gate PASS
+- Current Formal Web regression PASS
+- Current Training baseline PASS
+- Current Agentic QA deterministic preparation PASS
+- Current Native policy PASS
+
+### 32.2 Backend
 
 - Standalone Worker + D1
-- Free Plan前提を実測
+- Free Plan constraints revalidated
 - Fresh local setup
 - Migration reproducible
 - Ownership Matrix
 - Composite Sandbox relational integrity
-- Sandbox-aware JOIN isolation
-- Existing TransactionRunnerをD1へ偽装移植していない
-- Transaction Invariant Inventory完成
-- Atomic mutationがD1 batch境界で保証される
-- mutable-state predicateをatomic boundary内でguard / revalidateしている
-- Guard failureがrollbackへ変換される
-- Backend-portable Current Scenario parity
-- Platform-specific Scenarioを意味変更してBackendへ移植していない
-- Public Scenario Allowlist
-- 全Public Scenario Create/Resetがsingle atomic boundary
-- `many-products` Public対象外
-- No half-seeded Public Sandbox
-- Sandbox Create response-loss recoveryでduplicate Sandboxなし
-- Sandbox Create recoveryでRaw TokenをDB保存せずfresh Token rotate可能
-- Expiry tombstone contract
-- Auth / Role
-- AuthenticationとActive Account Guardが分離されている
-- Scenario initialAuth parity
-- Sandbox/User Session Tokenは>=256-bit random + SHA-256 digest、Password PBKDF2と分離
-- Raw TokenはToken発行response時のみ、DBはdigestのみ
-- Raw Token / digestをlogしない
-- Session TTLをCurrent parityとして勝手に追加していない
-- Reset成功response前にBrowser旧Session Tokenを削除しない
+- sandbox-aware JOIN
+- Backend-portable Scenario parity
+- Platform-specific Scenario semantic preservation
+- Public Allowlist
+- Public Create/Reset single atomic
+- no half-seeded Public Sandbox
+- Create response-loss recovery
+- Reset token ordering/recovery
+- expiry tombstone
+- Auth/Role
+- initialAuth parity
+- capability token digest-only persistence
+- no token log
+- Current password security property preserved
 - PBKDF2 Remote CPU Gate PASS
-- Guest Cart merge
-- Home Catalog
-- Product Review List
-- Address Suggestion
-- Cart Price Change Acceptance
+- Current API parity
 - Stateful Checkout
-- Checkout write OpenAPI request contract
-- checkoutActionVersion / Idempotency-Key semantics固定
-- Business idempotency actor NOT NULL
-- duplicate checkout / retryでPayment Gateway side effect重複なし
-- Inventory Conflict
-- Order Number concurrency
-- Review Eligibility
-- Reviews / Review Summary atomicity
-- Admin Overview / Catalog / Inventory / Orders / Reviews / Users
-- Bulk partial-success semantics
-- Public Payment Delay <= 5000 ms
-- OpenAPI
-- Error Envelope `retryable` machine-readable contract
+- Idempotency
+- duplicate gateway side effectなし
+- Inventory conflict
+- Order number concurrency
+- Review Summary atomicity
+- Admin parity
+- Bulk partial-success
 - CORS preflight
-- BrowserからCanonical `X-Request-Id`参照可能
-- D1 transient error mapping
-- Worker bundle / startup Gate PASS
+- stable Request ID
+- OpenAPI
+- Worker bundle/startup Gate PASS
 
-### 29.2 API Parity
+### 32.3 Transaction
 
-- Spec + Application public methods + Web usageのTraceability Matrix
-- Current Transaction全call siteのInvariant Matrix
-- Operation classificationがある
-- Missing CURRENT_PARITY Operationなし
-- Current Excluded Behavior追加なし
+- Current Transaction Invariant Inventory完成
+- callback TransactionRunnerをD1へ偽装移植していない
+- mutable predicateをatomic boundary内でguard/revalidate
+- conditional update 0-rowをsuccess rollback signalと誤認していない
+- Guard failureがsame atomic boundaryでrollback
+- partial commit test PASS
 
-### 29.3 QA
+### 32.4 Web
 
-- Unit PASS
-- D1 Integration PASS
-- Sandbox relational integrity PASS
-- SQL JOIN isolation PASS
-- Atomic rollback PASS
-- Mutable-state guard placement PASS
-- Guard failure rollback PASS
-- API PASS
-- Contract PASS
-- Checkout write request/header contract PASS
-- CORS preflight / Request ID exposure PASS
-- Scenario classification PASS
-- Sandbox isolation PASS
-- Create / Reset budget PASS
-- Create response-loss recovery PASS
-- Reset token-order / response-loss recovery PASS
-- initialAuth PASS
-- Capability Token digest / rotation / non-leakage PASS
-- Business idempotency non-null actor PASS
-- Auth PASS
-- Checkout PASS
-- Duplicate submit / payment gateway at-most-once contract PASS
-- Concurrency PASS
-- Bulk partial-success PASS
-- Failure Injection PASS
-- Public Payment Delay bound PASS
-- Timeout / abort recovery PASS
-- Error retryable contract PASS
-- Invocation-total Query Budget PASS
-- Free Quota Gate PASS
-- Remote CPU Gate PASS
-- Bundle / startup Gate PASS
-
-### 29.4 Web
-
-- Web authoritative persistence = Backend/D1
-- Production IndexedDB dependencyなし
-- Browser -> Worker -> D1 E2E
-- `EXPO_PUBLIC_API_BASE_URL`で接続
-- Browser preflightが通る
-- Browserから`X-Request-Id`を取得できる
-- Create response loss時にpending Idempotency-Keyでsame Sandboxをrecoverできる
-- Reset中は旧Session Tokenを保持し、成功後だけreplace / clearする
-- Reset後のinitialAuthがCurrent Scenarioどおり復元される
-- Backend identity用StorageとPresentation固有Storageの責務が分離されている
-- Current Web expected behavior維持
-- GuideでPublic / Local / Platform-specific Scenarioを識別可能
+- Web authoritative persistence = Worker/D1
+- production business persistenceからDexie除去
+- API base URL configuration
+- browser -> Worker -> D1 E2E
+- cross-origin CORS PASS
+- Request ID Browser可視
+- response-loss recovery
+- Reset token ordering
+- initialAuth parity
+- Current expected behavior維持
+- Guide Scenario availability表示
 - Native unaffected
 
-### 29.5 Public Operation
+### 32.5 Visual
 
-- Public / Local / Platform-specific Scenario差をDocument化
-- Public禁止事項
+- Screen CatalogをSupporting coverageとして利用
+- Product Screen -> Backend capability mappingに欠落なし
+- datasource変更だけでcanonical screenshotを不用意に更新していない
+- Visible behavior changeはSpec-first
+- UI Review 4 viewports PASS
+- Final Visual Gate PASS
+
+### 32.6 Agentic QA
+
+- Prepared WebだけでなくBackend-aware Runtimeとして成立
+- frontend artifact identity固定
+- backend immutable identity固定
+- API origin固定
+- schema/seed version固定
+- fresh Sandbox initial state
+- deterministic reset sanity
+- source-free boundary維持
+- Backend SourceをBlack-box Runnerへ漏らさない
+- Host vs Repository Harness ownership維持
+- allowed originsへ必要なWeb/API originだけを含む
+- deterministic preparation contract PASS
+
+### 32.7 Curriculum
+
+- API/Backend QA learning outcomesがCurrent Curriculumへ接続
+- C05/C09/C12等既存Competencyと整合
+- Local-first hands-on
+- Cloudflare account/secret必須でない
+- Formal/Training分離
+- API/Backend Training baseline PASS
+- curriculum validator PASS
+
+### 32.8 Public Operation
+
 - Synthetic Test Data Only
+- Public禁止事項Document化
 - best-effort availability
-- load/stressはLocal
-- payment delay > 5000 msはLocal-only
-- final index込みactual quota measurement
-- shared D1 throughput limitationをDocument化
-- cleanup operational budgetを計測
+- Public payment delay bound
+- actual final-index quota measurement
+- cleanup budget計測
+- load/stressはLocal-only
 
 ---
 
-## 30. Risks / Decision Gates
+## 33. Risks / Decision Gates
 
 ### Risk 1: Workers CPU / PBKDF2
 
-Current AuthがFree CPUと両立しない可能性。
+Current password securityとWorkers Free CPUが両立しない可能性。
 
 Gate:
 
-- Local profile
-- Workers Logsを取得可能なtemporary deployed WorkerでRemote Cloudflare invocation CPU/outcome確認
+- local profile
+- observable temporary deployment
+- actual CPU/outcome
 
-Workers Logsを取得できないPreview URLだけでGateをPASSさせない。
+FAIL時はSecurityを黙って弱めない。
 
-FAIL時は設計判断へ戻る。Securityを黙って弱めない。
+### Risk 2: Current Foundation regression
 
-### Risk 2: Capability Token CPU / Secret handling drift
-
-Sandbox/User Session TokenへPassword用PBKDF2を誤用すると、全Business RequestのCPUを不必要に消費する。
-
-Gate:
-
-- >=256-bit cryptographically secure random token
-- SHA-256 digest persistence
-- PasswordHasher / PBKDF2と分離
-- Raw Token / digestのlog禁止
-- Raw Token DB保存禁止
-
-### Risk 3: Sandbox Create response loss / unreachable Sandbox
-
-Create commit後にresponseだけ失われると、Raw Tokenを取得できずactive Sandboxが到達不能になる危険。
+Backend独自testはPASSしてもVisual/Training/Agentic QA/Nativeが壊れる可能性。
 
 Gate:
 
-- required Create Idempotency-Key
-- operation + key + payload hash + sandbox associationをatomic保存
-- same key retryでduplicate Sandbox禁止
-- Raw Tokenを保存せずToken digestをrotateしてfresh Raw Tokenをresponse
-- initial User Session Tokenも必要ならrotate
-- commit後response-drop test
+- Current Foundation Inventory
+- PRごとのFoundation Final Gate
 
-### Risk 4: Reset browser token ordering
+### Risk 3: Agentic QA Target identity drift
 
-Reset前にBrowserが旧User Session Tokenを削除すると、pre-commit network failureでBackend Sessionは有効なのにClientだけ認証情報を失う。
+Frontend artifactが同じでもBackend deploymentが違えばRuntime behaviorが変わる。
 
 Gate:
 
-- `resetPending`中は旧token保持
-- success response後だけreplace / clear
-- post-commit response lossはSandbox Tokenでretry
+- backend immutable identityをPrepared Target/trusted receiptへbind
+- API origin/schema/seedも固定
 
-### Risk 5: D1 write quota
+### Risk 4: Agentic QA Source-free boundary leak
 
-Full Sandbox Seed / Reset / Cleanup / Index / Idempotency write amplification。
+Backend起動のためにSourceをRunner-visible artifactへ混ぜる危険。
 
 Gate:
 
-- final schema + final indexのactual rows_written
-- Public-safe Scenarioだけ公開
+- Web artifactとtrusted runtime identityを分離
+- source-free artifact validation
+- resource boundary negative probe
 
-### Risk 6: D1 query / bind limit
+### Risk 5: Training runtime collision
 
-Business RouteだけでなくSandbox Create / ResetもHard Gate。
+Formal/Training/UI Review/Agentic QAが同Sandboxを共有すると並列CIでstateが衝突する。
 
-Middleware / Identity queryを含むinvocation TOTALで計測する。
+Gate:
 
-### Risk 7: Relational scope / Read isolation bug
+- one independent execution context = one fresh Sandbox
+
+### Risk 6: Curriculum scope creep
+
+Backend追加を理由に大規模な新Curriculum体系を作る危険。
+
+Gate:
+
+- existing Competencyを先に拡張
+-新IDは必要性が実証された場合のみ
+
+### Risk 7: D1 write quota
+
+Seed/Reset/Cleanup/Index/Idempotency write amplification。
+
+Gate:
+
+- final schema/index actual rows_written
+- Public-safe only
+
+### Risk 8: D1 query/bind
+
+Middleware + business + idempotencyの合計が上限を超える。
+
+Gate:
+
+- invocation total measurement
+
+### Risk 9: Relational isolation bug
 
 Fixed Seed IDがSandbox間で重複する。
 
 Gate:
 
-- Composite PK / FK / UNIQUE
+- Composite PK/FK
 - sandbox-aware JOIN
-- same logical ID / different value isolation test
+- same logical ID isolation test
 
-### Risk 8: Nullable idempotency actor
+### Risk 10: Fake transaction / false guard success
 
-SQLite UNIQUEへnullable user_idを含めると、同一Keyのduplicate rowを許容し得る。
-
-Gate:
-
-- Business idempotency `actor_id NOT NULL`
-- Platform Create Idempotencyを別scopeへ分離
-- Guest Checkoutを無断追加しない
-
-### Risk 9: Fake transaction / false guard success / TOCTOU
+`batch()`利用だけでatomicity完了と誤認する危険。
 
 Gate:
 
-- Backend Command + D1 atomic batch
-- mutable-state predicateはatomic boundary内でguard / revalidate
-- Guard failureをSQL failureへ変換
-- Transaction Invariant Inventory
-- partial commit tests
+- 0-row conditional update contract
+- guard failure -> same-boundary failure
+- partial commit test
 
-### Risk 10: Scenario Initial Session drift
+### Risk 11: Create response loss
 
-Backend Bearer Token化でCurrent `initialSession`を再現できなくなる危険。
+Raw Token取得前にresponseを失う危険。
 
 Gate:
 
-- Create/Reset initialAuth Contract
-- Raw fresh token response only
-- digest persistence
-- suspended/withdrawn semantics test
+- required Create Idempotency-Key
+- token digest rotation recovery
+- raw token DB保存禁止
 
-### Risk 11: Checkout duplicate delivery
+### Risk 12: Reset browser token ordering
 
-Order / payment writeのrequired headers/bodyが曖昧だとduplicate submitやnetwork retryでOrder / Payment Attempt / Mock Gateway side effectが重複する危険。
-
-Gate:
-
-- Operation-specific OpenAPI request contract
-- required Idempotency-Key
-- checkoutActionVersionの適用範囲固定
-- same key / same payload replay
-- same key / different payload 409
-- gateway invocation de-dup test
-
-### Risk 12: Public Payment Delay Abuse
-
-Public `setPaymentDelay`が無制限だと共有Workerの長時間requestを作れる。
+pre-commit failureでClientだけtokenを失う危険。
 
 Gate:
 
-- Public max 5000 ms
-- 5001以上は422
-- long delayはLocal-only
-- timeout / abort recovery test
+- resetPending
+- success後replace
 
-### Risk 13: Retryable error drift
+### Risk 13: Checkout duplicate delivery
 
-503説明とError Envelopeが不一致だとClientが安全なretry判断をできない。
+Order/Payment side effect重複。
 
 Gate:
 
-- Error Envelopeに`retryable`必須
-- write mutationはsame Idempotency-Key contractと併用
-- blind retry禁止
+- required operation-specific Idempotency-Key
+- gateway side-effect de-dup
 
-### Risk 14: Bulk D1 budget overflow
-
-Current最大50件を1 Worker requestで処理するとFree query budgetを超える危険。
+### Risk 14: Public abuse
 
 Gate:
 
-- independent single-target HTTP mutation orchestration
-- bounded concurrency
-- Current partial-success semantics
+- bounded input
+- route-class policy
+- active ceiling
+- Public prohibition
 
-### Risk 15: Public Abuse
+### Risk 15: Visual spec churn
 
-best-effort availability + route-class rate limit + bounded operation。
+Datasource migrationをUI changeと誤認しScreenshot大量更新する危険。
+
+Gate:
+
+- visible behavior change only
+- Spec-first
 
 ### Risk 16: Shared D1 throughput
 
-Data isolationはあってもthroughput isolationはない。
+Sandbox isolationはthroughput isolationではない。
 
-初期Phaseでは受容し、shardingはしない。
+初期Phaseでは受容し、shardingしない。
 
-### Risk 17: Spec / API drift
+### Risk 17: Backend目的化
 
-SpecだけでなくApplication public methods / Web usageまで棚卸し。
+Infrastructure追加が学習目的を上回る危険。
 
-### Risk 18: Scenario semantic drift
+Gate:
 
-Client Storage failure等をBackend failureへ同じIDで読み替える危険。
-
-### Risk 19: Checkout / Order Sequence drift
-
-Transaction A / BとAsia/Tokyo order number semanticsを固定。
-
-### Risk 20: Migration rollback mismatch
-
-Expand / Contract。
-
-### Risk 21: CORS Browser-only failure
-
-OPTIONS Contract + Error response CORS + `Access-Control-Expose-Headers: X-Request-Id` + Browser-origin CI。
-
-### Risk 22: Worker bundle / startup
-
-Dry-runだけでなくCloudflare actual upload/startupをGateにする。
-
-### Risk 23: D1 transient failure retry misuse
-
-write blind retry禁止 + Operation-specific Idempotency-Keyで再試行。
-
-### Risk 24: Public personal data retention misunderstanding
-
-Synthetic Test Data Onlyを明示し、Sandbox deleteをbackup即時消去と説明しない。
-
-### Risk 25: Browser Storage responsibility drift
-
-Backend Token storage制約を、one-time notice / UI preference等のPresentation固有Storageまで禁止する規約と誤読しない。
-
-### Risk 26: Backend目的化
-
-QA学習目的を説明できないInfrastructureは追加しない。
+- QA learning valueを説明できないServiceは追加しない
 
 ---
 
-## 31. Non-goals
+## 34. Non-goals
 
 - Native Backend migration
-- PostgreSQL-specific isolation / deadlock
+- PostgreSQL-specific isolation/deadlock
 - Microservices
 - Queue / webhook
 - real payment
 - OAuth
-- CSRF教材
-- Production-grade Security Training全般
-- Public Load / Stress
-- arbitrary fault injection
+- Production-grade Security Curriculum全般
+- Public Load / Stress / Soak
+- arbitrary Public fault injection
 - Cancel / Return / Refund
 - Guest Checkout
 - UI全面再設計
@@ -3159,21 +2953,25 @@ QA学習目的を説明できないInfrastructureは追加しない。
 - Initial D1 sharding
 - Current parityではない独立User Session TTLの無断追加
 - Platform-specific Scenarioを同じIDでBackend failureへ意味変更
-- Bulk全体を1巨大D1 transactionへ押し込むこと
+- Bulk全体を1巨大D1 transactionへ押し込む
 - Public multi-stage half-seed protocol
-- Capability TokenへPassword用PBKDF2を適用すること
-- Browser Presentation固有Storageを一律禁止すること
-- Publicで5秒超の任意Payment Delayを許可すること
+- Capability TokenへPassword PBKDF2適用
+- Presentation local storageの一律禁止
+- Publicで5秒超の任意Payment Delay
+- Repository独自Agent Session Manager / LLM wrapper
+- Agentic QA HarnessによるCoding Agent orchestration
+- Cloudflare accountをCurriculum必須条件にすること
+- Datasource変更だけを理由にCanonical Screenshotを全再生成すること
 
 ---
 
-## 32. Phase 3後に個別Planで判断するもの
+## 35. Phase 3後に個別Planで判断するもの
 
 - Native API integration
 - API version migration exercise
-- DB migration challenge
+- richer DB migration challenge
 - Contract breaking challenge
-- Security curriculum
+- dedicated Security curriculum
 - Performance curriculum
 - Queue / webhook
 - eventual consistency
@@ -3182,22 +2980,21 @@ QA学習目的を説明できないInfrastructureは追加しない。
 - Guest Checkout
 - PostgreSQL別教材
 - Public lightweight large-catalog Scenario
-- D1 sharding（必要性が実証された場合のみ）
+- D1 sharding
 - independent User Session TTL教材
 - Backend-specific database fault Scenario
 - Dedicated Preview D1
 - Client correlation ID教材
-- Capability Token HMAC化（必要性が実証された場合のみ）
+- Capability Token HMAC化
+- Backend-changing Official Scored Challenge
 
 ---
 
-## 33. Implementation Stop Conditions
+## 36. Implementation Stop Conditions
 
-以下のいずれかが発生した場合、AIエージェントは「一部だけ実装して完了」とせず、**後続依存部分を止めてDecision Gateとして報告**する。
+以下のいずれかが発生した場合、AIエージェントは一部だけ実装して完了扱いにせず、**依存する後続だけを止めてDecision Gateとして報告**する。
 
-ただし依存しない検証・ドキュメント整理・他Wave準備は継続してよい。
-
-Stop Conditions:
+依存しない検証・ドキュメント・他Wave準備は継続してよい。
 
 ```text
 PBKDF2 Remote CPU Gate FAIL
@@ -3205,28 +3002,35 @@ Worker Free bundle/startup Gate FAIL
 Public default Create/Resetがsingle atomic boundaryへ収まらない
 Sandbox Create response-loss recoveryをRaw Token保存なしで成立させられない
 Current Transaction InvariantをD1で保証できない
-Mutable-state concurrency guardをD1 atomic boundaryで保証できない
-Current Checkout duplicate semanticsをIdempotency contractで維持できない
+Mutable-state guardをsame atomic boundaryで保証できない
+Current Checkout duplicate semanticsをIdempotency Contractで維持できない
 Current parityとCloudflare Free constraintが直接矛盾する
 D1 actual quota measurementでPublic運用余裕が成立しない
+Current Required FoundationにPhase 3起因Regressionが残る
+Backend-aware Agentic QA Prepared Runtime identityをtrustedに固定できない
+Black-box Source-free boundaryをBackend化後も維持できない
+Training/Formal Sandbox isolationをCurrent CI内で成立させられない
 ```
 
 禁止:
 
 - Securityを黙って弱める
 - Current Behaviorを黙って削る
-- Public Scenarioのatomicityを黙って緩める
+- Public atomicityを黙って緩める
 - Paid Plan前提へ黙って切り替える
-- Capability TokenへPBKDF2を誤用する
-- response-loss対策としてRaw Capability TokenをDB保存する
-- nullable actorでIdempotency UNIQUEを成立させたことにする
-- Checkout writeのIdempotency-Keyを黙ってoptionalにする
-- Public Payment Delay上限を黙って外す
+- Raw Capability TokenをDB保存する
+- nullable actorでBusiness Idempotencyを成立させたことにする
+- Idempotency-Keyを黙ってoptionalにする
+- Agentic QAのHost proofをRepository側で偽装する
+- Backend SourceをBlack-box Runnerへ漏らす
+- Existing Required Gateを削ってPhase 3 CIを軽くする
+- Curriculum validatorを無効化して教材差分を通す
+- Canonical ScreenshotをObserved Behaviorへ合わせてSpecを逆転させる
 - Overengineeringで制約を隠す
 
 ---
 
-## 34. Recommended Final Direction
+## 37. Recommended Final Direction
 
 Phase 3 Infrastructureは次で固定する。
 
@@ -3240,9 +3044,29 @@ Cloudflare Worker / REST API
 Cloudflare D1
 ```
 
-設計中心はCloudflareそのものではなく、**Current Scenario Shopを決定的に隔離されたQA Sandboxへ変換すること**である。
+ただし設計中心はCloudflareそのものではない。
 
-初期標準:
+中心は、**Current Scenario ShopとCurrent QA Foundationを、決定的に隔離されたBackend-aware QA Sandboxへ拡張すること**である。
+
+実装順序:
+
+```text
+Current main / Foundation rebaseline
+        ↓
+PR A
+Backend + D1 + Current Web API Parity
+        ↓
+PR B
+Web -> Backend
++ Formal / Training / Visual / Agentic QA Runtime Compatibility
+        ↓
+PR C
+API / Backend QA Curriculum Integration
+        ↓
+Phase 3 Complete
+```
+
+Phase 3の初期標準:
 
 ```text
 Sandbox-scoped Business Dataset
@@ -3260,7 +3084,6 @@ Fresh Scenario InitialAuth Token
 >=256-bit Random Capability Token
 SHA-256 Capability Token Digest
 Password PBKDF2 / Capability Token Digest Separation
-User Session Token Digest Persistence
 Authentication / Active Account Guard Separation
 Business Idempotency Non-null Actor Scope
 Deterministic Reset
@@ -3274,13 +3097,13 @@ Machine-readable Retryable Error
 Server-generated Canonical Request ID
 CORS Exposed Request ID
 Stateful Checkout
-Checkout Action Version Contract
-Checkout Required Idempotency-Key
+Required Checkout Idempotency-Key
 Mock Payment Gateway Duplicate Suppression
 D1 Atomic Command / Batch
 Mutable-state Guard Inside Atomic Boundary
-Transaction Invariant Inventory
+0-row Conditional Update Is Not Rollback Signal
 Guard Failure Rollback
+Transaction Invariant Inventory
 Inventory Conflict
 Order Number Concurrency
 Bulk Independent Mutation Orchestration
@@ -3291,27 +3114,19 @@ Actual D1 rows_written Measurement
 Observable Temporary Worker Remote CPU Gate
 Worker Bundle / Startup Gate
 Synthetic Test Data Only
+One Fresh Sandbox Per Independent QA Execution
+Current Visual Specification Compatibility
+Current Training Compatibility
+Backend-aware Agentic QA Prepared Runtime Identity
+Local-first API / Backend QA Curriculum
 ```
 
-実装順序:
+PR AでAPI parity、Transaction Invariant、Public Sandbox atomicity、response-loss recovery、Capability Token Contract、Checkout Idempotency、Remote CPU Gateを完成させずPR Bへ進まない。
 
-```text
-PR A
-Backend + D1 + Current Web API Parity
-        ↓ merge / Public API deploy
+PR BでWebだけ動かして完了とせず、Formal E2E、Training、UI Review、Visual Final Gate、Agentic QA deterministic preparationがBackend-aware runtimeで成立するところまで完了する。
 
-PR B
-Web -> Published Backend API
-```
+PR Cでは新しいTraining Frameworkを作るのではなく、Current CurriculumへAPI / Backend QAを最小限の追加で接続する。
 
-PR AでAPI parity、Transaction Invariant、Public Sandbox atomicity、response-loss recovery、Capability Token Contract、Checkout write Idempotency Contract、Remote CPU Gateを完成させずPR Bへ進まない。
+Current FoundationのどこかがPhase 3によって壊れた場合、そのGateを削除・弱体化するのではなくPhase 3実装側を修正する。
 
-Free quotaのために複雑なOverlayへ先回りしない一方、Public Free運用へ収まらないScenario / operationはLocalへ明確に分離する。
-
-Current security propertyとWorkers Free CPUが両立しない場合は、実装者が勝手に弱めずDecision Gateへ戻す。
-
-D1 atomicityは`batch()`を使った事実だけで完了扱いにせず、mutable-state Guard、Guard failure、Current aggregate invariantが実際にrollbackへつながることまで検証する。
-
-Create / Reset / Checkoutのnetwork response lossは「再送すれば何とかなる」と曖昧にせず、Idempotency / Token rotation / Browser token orderingをContractとして固定する。
-
-これによりScenario Shopを、Frontend / Backend / Database / Web / Native / API / CIを横断してQAを学習できるPublic Test Targetへ拡張する。
+これによりScenario Shopを、Frontend / Backend / Database / Web / Native / API / CI / Visual Specification / Agentic QA / Curriculumを横断してQAを学習できるPublic Test Targetへ拡張する。
