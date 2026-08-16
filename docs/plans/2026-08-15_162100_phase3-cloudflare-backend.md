@@ -389,6 +389,26 @@ CreateへIdempotency-Keyを要求しない。
 - Exactly-once級のRecoveryは教材価値に対して複雑すぎる
 - Business IdempotencyはOrder / Paymentで学習できる
 
+Create responseは最低限次を返す。
+
+```text
+sandboxId
+sandboxToken
+initialAuth
+```
+
+`initialAuth`はCurrent Scenario metadataの`initialSession`と対応させる。
+
+```text
+guest
+-> initialAuth = null
+
+customer / operator / admin
+-> fresh raw User Session Token + identity metadata
+```
+
+Raw Sandbox TokenとRaw User Session Tokenはissuance response時だけ返し、D1にはSHA-256 digestだけ保存する。
+
 Create response loss時は新しいSandboxを再作成する。
 
 ```text
@@ -402,8 +422,6 @@ Sandbox BをCreate
 ↓
 AはTTL cleanup
 ```
-
-Raw Sandbox TokenはCreate response時だけ返し、D1にはSHA-256 digestだけ保存する。
 
 到達不能Sandboxのcleanupを完全保証するためのToken rotation / operational idempotency / recovery associationは実装しない。
 
@@ -716,7 +734,9 @@ HTTP mapping例:
 
 writeをblind retryしない。
 
-retryable writeはsame Idempotency-Key contractと組み合わせる。
+Business writeをretryableにする場合はC14のsame Idempotency-Key contractを適用する。
+
+Deterministic Platform ControlのretryはOperation固有Contractに従う。Sandbox ResetはC08に従い、専用Idempotency-Keyを要求しない。
 
 Server-generated `X-Request-Id`をCanonical IDとする。
 
@@ -757,6 +777,10 @@ Normal
 ```
 
 Cloudflare側の標準機能を優先し、D1 counter等の独自Rate Limiterを先回りして作らない。
+
+Sensitive thresholdはC27で実測したSandbox Create / Resetの`rows_written`を踏まえて決める。
+
+Rate Limiter自体をD1 daily quotaの正確なaccounting mechanismとして扱わない。
 
 必要性が実測されるまで細かいroute classを増やさない。
 
@@ -823,6 +847,8 @@ Bound paramsもPlatform limitを超えないことを共通Gateで確認する�
 - cleanup
 
 Index write amplificationを含める。
+
+C24のSensitive thresholdはこの実測値を入力に決めるが、Rate Limiterをdaily quota ledgerとして扱わない。
 
 Free quotaを100%使い切るcapacityを目標にしない。
 
@@ -916,7 +942,7 @@ Nativeは既存SQLite構成を維持する。
 
 Phase 3専用のRuntime Identity Frameworkを新規作成しない。
 
-#23で導入済みのtrusted receipt / identityへ必要なBackend情報を追加するだけとする。
+PR #23で導入済みのtrusted receipt / identityへ必要なBackend情報を追加するだけとする。
 
 最低追加情報:
 
@@ -928,6 +954,10 @@ schema_version
 seed_version
 runtime_variant_id
 ```
+
+既存の`origin_boundary.allowed_origins`も拡張し、Canonical local Prepared Runtimeでは少なくともexact Web originとexact API origin `http://127.0.0.1:8787`だけを許可する。
+
+wildcardやarbitrary external originは追加しない。
 
 Canonical local Prepared Runtime:
 
@@ -1499,7 +1529,7 @@ Backend独自testはPASSしてもVisual/Training/Agentic QA/Nativeが壊れる�
 
 Backend対応を理由に新Identity Frameworkを作る危険。
 
--> C32で既存#23 identity/receiptの拡張だけに制限する。
+-> C32で既存PR #23 identity/receiptの拡張だけに制限する。
 
 ### R8. Plan / Contract drift
 
