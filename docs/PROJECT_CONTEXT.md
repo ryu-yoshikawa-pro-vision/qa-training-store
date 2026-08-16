@@ -28,6 +28,19 @@
 - `scripts/`: `codex-safe` / `codex-task` / `codex-sandbox` と verify
 - `codex-project.toml`: template 適用後の project metadata
 
+## Codex Full Access Safety Hook（2026-08-16）
+
+- Windows native Codex `0.147.0`のproject Hookは、`[features].hooks = true`、`PreToolUse` matcher `^Bash$`、`command_windows`を正本とする。deprecatedな`codex_hooks`、project-local profile、旧PowerShell／Python policy Hookには依存しない。
+- Full Access common policyの正本は`.codex/hooks/pre_tool_use_policy.mjs`一つであり、G1-G10／N1-N4の明確な破壊代表だけをdenyする。schema-invalid inputはfail-close、safeは無出力、denyはstructured `hookSpecificOutput`を返す。
+- Windows launcher `.codex/hooks/pre_tool_use_policy_windows.ps1`はstdin／stdout／stderrとNode exit codeのtransportだけを担当する。Rulesはstatic prefixのdefense-in-depth、`auto-net`のRulesとwrapper制約は別preset契約である。
+- 通常の`git add`／feature branch上のcommit・push／fetch／normal switch、path-based unstage、明示的recovery、`python -c`／`python -`／`terraform apply`／`kubectl apply`はcommon Hookでblanket denyしない。`apply_patch`はmatcher外である。
+
+## Repository EOL Contract（2026-08-17）
+
+- tracked text fileのcheckout EOLは`.gitattributes`の`* text=auto eol=lf`を正本とし、global `core.autocrlf`設定へ依存しない。root `.editorconfig`はUTF-8、LF、final newlineだけをEditor補助として指定する。
+- Prettierは`.prettierrc.json`の`endOfLine: lf`で同じLF契約を明示する。`.bat`／`.cmd`はRepositoryにないためCRLF例外を設けない。
+- EOL契約変更時の移行は既存変更を保持した`git add --renormalize .`とstaged／unstaged差分確認で一度だけ行い、branch switch後の`format:check`をWindows Nativeで検証する。
+
 ## UI デザイン基準
 
 - Storefront と customer 画面は、白／暖色系 Off White、Dark Navy `#111827`、限定的な Gold `#C6A15B` を基調とし、商品画像と情報階層を主役にする。

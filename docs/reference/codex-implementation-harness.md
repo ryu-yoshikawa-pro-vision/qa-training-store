@@ -162,8 +162,8 @@
 
 - `codex-safe` と `codex-task` の既定 preset は `safe` のままです。
 - network access つきで workspace 内の自律実装が必要なときだけ `--preset auto-net` を明示する。
-- `auto-net` は `repo_auto_net` profile、`workspace-write` sandbox、`approval_policy = "never"`、workspace network enabled を使う。
-- `codex-task` は非対話 harness なので、safe / readonly / auto-net のいずれでも Codex CLI には `--ask-for-approval never` を渡す。preset は profile、sandbox、preflight rules の選択に使う。
+- `auto-net` は project profileに依存せず、`workspace-write` sandbox、`approval_policy = "never"`、wrapperが明示する `sandbox_workspace_write.network_access=true` を使う。
+- `codex-task` は非対話 harness なので、safe / readonly / auto-net のいずれでも Codex CLI には `--ask-for-approval never` を渡す。preset は sandbox、network override、preflight rules の選択に使う。
 - raw `--full-auto`、`danger-full-access`、`--dangerously-bypass-approvals-and-sandbox` は使わない。
 - `codex-task` の preflight は指定 preset を `codex-safe` に渡すため、safe と auto-net の期待値は分離される。
 

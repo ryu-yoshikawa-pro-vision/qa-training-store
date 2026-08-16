@@ -32,8 +32,10 @@
   - project-scoped default: `sandbox_mode = "workspace-write"`, `approval_policy = "untrusted"`, `web_search = "cached"`
   - workspace-write sandbox は `network_access = false`, `writable_roots = []`
   - login shell は `allow_login_shell = false`
-  - project profile: `repo_safe`, `repo_auto_net`, `repo_readonly`
-  - PreToolUse hook: `.codex/hooks/pre_tool_use_policy.ps1`
+  - Codex 0.147.0で有効なproject profileに依存せず、wrapperがpresetごとのsandbox／approvalを明示注入する
+  - `auto-net` の network access は wrapper が `-c sandbox_workspace_write.network_access=true` を明示注入する
+  - PreToolUse/Bash hook: `.codex/hooks/pre_tool_use_policy.mjs`
+  - Windows native launcher: `.codex/hooks/pre_tool_use_policy_windows.ps1`
 - `.codex/requirements.toml`
   - 管理配布/機能有効化時に使う補助的な最小要件定義
 - `scripts/verify`
@@ -112,7 +114,7 @@ bash scripts/codex-safe.sh --preset auto-net
 - プロジェクト配下の読み取りとファイル作成・編集は、通常の作業では承認なしで行ってよい。
 - shell / PowerShell / git command による削除は禁止する。対象例は `rm`, `del`, `erase`, `Remove-Item`, `rmdir`, `unlink`, 通常の `git rm`。
 - `cleanup-runs` は generated run artifact の限定 cleanup 用例外 command だが、preview-only default、confirm 必須、repo root 外 / symlink candidate 拒否を満たす前提でのみ使う。
-- `auto-net` では `git add`, `git commit`, `git push`, `git rm`, `git reset`, `git clean` も forbidden にする。
+- `auto-net` は common Full Access policyとは別の非対話presetであり、`git add`, `git commit`, `git push`, `git rm`, `git reset`, `git clean` など既存の禁止を維持する。
 - `auto-net` では delete / rename を含む patch operation も禁止する。不要に見えるファイルは削除候補として `REPORT.md` に記録する。
 - `implementation_worker` も削除、rename、移動、git mutation、delete / rename を含む patch operation を行わない。
 - 追跡済み runtime artifact を配布対象から外す migration では、明示された対象に限って `git rm --cached -- <path>` を使ってよい。物理ファイルは削除しない。
@@ -133,9 +135,11 @@ bash scripts/codex-safe.sh --preset auto-net
 
 ## Hook guard
 
-- `.codex/hooks/pre_tool_use_policy.ps1` は destructive command、remote script piping、delete / rename patch を補助的に検出する。
-- `.codex/hooks/pre_tool_use_policy.py` は Python が標準化された環境向けの同等 hook 実装として残す。
-- `.codex/config.toml` は PreToolUse hook を `pwsh` 経由で有効化する。`pwsh` がない環境や hooks 非対応の Codex CLI では hook が実行されない可能性があるため、execpolicy rules と shell wrapper 禁止を併用する。
+- Full Access common policyの正本は `.codex/hooks/pre_tool_use_policy.mjs` だけである。`PreToolUse` の `Bash` matcher（`^Bash$`）から `tool_input.command` だけを受け取り、Section 3 Matrix相当のG1-G10／N1-N4を判定する。
+- Windows nativeでは `command_windows` から `.codex/hooks/pre_tool_use_policy_windows.ps1` を経由してNodeへstdinを転送する。repository rootはroot／nested cwdのどちらからも解決する。
+- malformed／schema-invalid inputはstdout空、stderr非空、exit 2でfail-closeする。denyは `hookSpecificOutput.permissionDecision = "deny"` のstructured output、safeはexit 0かつ無出力とする。
+- `.codex/config.toml` は `features.hooks = true` を使い、deprecatedな `codex_hooks` や旧PowerShell／Python policyは参照しない。`apply_patch` はmatcher外であり、common HookはそのAdd／Update／Delete／Moveを検査しない。
+- `.codex/rules/**` はstatic prefixだけのdefense-in-depthであり、common policyの正本ではない。`auto-net` のshell wrapper禁止などpreset固有のrulesは別契約として維持する。
 - Phase 1 では shell wrapper 系の `bash -lc`, `sh -c`, `pwsh -Command`, `cmd /c` は auto-net rules 側で forbidden 寄りに扱う。
 
 ## Report file generation policy

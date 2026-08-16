@@ -1,0 +1,146 @@
+{
+  "schema_version": 1,
+  "run_id": "20260816-210818-JST",
+  "result": "partial",
+  "primary_failure_category": "artifact_contract_gap",
+  "failure_categories": [
+    "artifact_contract_gap",
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Planの実装・契約・Windows launcher・Full Access acceptance・文書同期は完了した。全体formatとfull contractには変更前から存在するfailureが残るため、Run全体の判定はpartialとした。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260816-210818-JST/REPORT.md",
+          "summary": "実装、Acceptance、品質ゲート、failure分類を記録した最終Run Report。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "Node Hook、Windows transport、関連config／rules／wrapper／verify／docs／contract testとRun Artifactに対象を限定し、Product code、実Repository／実Remote、PR／merge／pushは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260816-210818-JST/run.json",
+          "summary": "変更ファイル、scope violation、Safety状態を記録したRun Manifest。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Hook 22 tests、Matrix 31 cases、PowerShell／Bash verify、typecheck、lint、security、spec／curriculum／image validation、Full Access acceptanceはPASSした。一方、format 93件とfull contract 3件は既存baseline、WSL Bash wrapperはNode未解決でskip、codex doctorはtimeoutだった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260816-210818-JST/REPORT.md",
+          "selector": "2026-08-16 21:54",
+          "summary": "変更範囲の検証結果と全体ゲートのbaseline分類。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "破壊Acceptanceはtemporary cloneとlocal bare remoteだけで実行した。G1／G2／G7／G10／N1はPreToolUseで実行前にdenyされ、local／remote sentinelは不変だった。product repositoryではGit mutationを行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "log_event",
+          "path": ".artifacts/native-local/codex-full-access-acceptance-20260816-214540/",
+          "summary": "Full Access allow／deny、sentinel integrity、launcher latencyのraw evidence。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "MatrixをNode Hookから出力し、Contract Testはその出力をdata-drivenに参照した。Independent Review、Repair Loop 1回、判断、残留リスクをRun Reportへ追記した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/pre_tool_use_policy.mjs",
+          "summary": "Full Access common policyの唯一のNode SSOT。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "summary": "Node HookとWindows launcherの契約テスト。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "新Dependency、Git parser、shell parser、新Safety platformを追加せず、Windows側はstdin／stdout／stderr／exit codeを転送するtransport-only launcherとした。旧二重policyは除去した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/pre_tool_use_policy_windows.ps1",
+          "summary": "Windows transport-only launcher。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/config.toml",
+          "summary": "Bash-only PreToolUseとcommand_windows設定。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Windows Native Codex 0.147.0でAcceptanceを再現したが、temporary cloneの初回通常経路はHook review persist前に発火せず、one-off trust bypassが必要だった。Bash側はWSLのNode未解決で該当wrapper検証をskipした。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260816-210818-JST/REPORT.md",
+          "selector": "D5",
+          "summary": "初回trust review未persistとone-off bypassの実測記録。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "pnpm run test:contractsは3件失敗したが、対象のofficial artifact／Native baselineのworking hashはHEADと一致し、git diffにも含まれていない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260816-210818-JST/REPORT.md",
+          "selector": "full contract gate",
+          "summary": "3件のbaseline contract failureとhash／scope因果確認。"
+        }
+      ],
+      "detail": "今回のHook変更と因果のない既存fixture／artifact契約の修正はscopeへ追加せず、別修正候補として残した。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "pnpm run format:checkは今回未変更の既存93ファイルでfailし、Bash verifyはWSL側Node未解決で2項目をskip、codex doctorは20秒超timeoutした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260816-210818-JST/REPORT.md",
+          "selector": "2026-08-16 21:54",
+          "summary": "format／WSL／doctorの環境・baseline境界。"
+        }
+      ],
+      "detail": "Windows Nativeで必須のHook／launcher／Full Access evidenceは取得済みであり、WSL必須化や無目的なdoctor再試行は行わない。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "既存format／full contract baselineの分離と修復",
+      "evidence": "変更差分に含まれない93 format failureと3 full contract failureが、今回の関連検証結果をnon-greenにしている。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260816-210818-JST/REPORT.md",
+          "summary": "変更差分とのhash／scope因果を確認したbaseline failure記録。"
+        }
+      ],
+      "expected_impact": "変更起因failureと既存baseline failureを品質ゲート上で速く識別できる。",
+      "recommendation": "別Runで対象fixture／artifactのcanonical契約とformat baselineを修復し、full gateを再実行する。"
+    }
+  ]
+}

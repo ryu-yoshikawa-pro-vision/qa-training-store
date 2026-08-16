@@ -1,0 +1,107 @@
+{
+    "schema_version":  1,
+    "run_id":  "20260816-210818-JST",
+    "task_type":  "implementation",
+    "workflow_level":  "strict",
+    "preset":  "safe",
+    "runtime":  "host",
+    "agents_used":  [
+
+                    ],
+    "repo":  "qa-training-store",
+    "branch":  "feat/implement-codex-git-safety-hook",
+    "base_branch":  "main",
+    "codex_task_reports":  [
+
+                           ],
+    "changed_files":  [
+        ".codex/config.toml",
+        ".codex/hooks/pre_tool_use_policy.mjs",
+        ".codex/hooks/pre_tool_use_policy_windows.ps1",
+        ".codex/hooks/pre_tool_use_policy.ps1",
+        ".codex/hooks/pre_tool_use_policy.py",
+        ".codex/requirements.toml",
+        ".codex/rules-auto-net/30-auto-net-forbidden.rules",
+        ".codex/rules/30-destructive-forbidden.rules",
+        ".codex/rules/README.md",
+        "docs/PROJECT_CONTEXT.md",
+        "docs/adr/0016-codex-pretooluse-node-policy.md",
+        "docs/history/2026-08-16_214147_codex-full-access-safety-hook.md",
+        "docs/reference/codex-implementation-harness.md",
+        "docs/reference/codex-safety-harness.md",
+        "scripts/codex-safe.ps1",
+        "scripts/codex-safe.sh",
+        "scripts/codex-task.ps1",
+        "scripts/codex-task.sh",
+        "scripts/verify",
+        "scripts/verify.ps1",
+        "tests/contracts/codex-hook-contract.test.ts",
+        ".codex/runs/20260816-210818-JST/"
+    ],
+    "validation":  {
+                       "status":  "passed_with_warnings",
+                       "commands":  [
+                           "node --check .codex/hooks/pre_tool_use_policy.mjs; Matrix count check",
+                           "pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1",
+                           "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1",
+                           "bash scripts/verify",
+                           "pnpm run typecheck",
+                           "pnpm run lint",
+                           "pnpm run security:check",
+                           "pnpm run lint:markdown",
+                           "pnpm run validate:spec",
+                           "pnpm run validate:curriculum",
+                           "pnpm run validate:image-manifest",
+                           "git diff --check",
+                           "pnpm run format:check",
+                           "pnpm run test:contracts",
+                           "Full Access temporary clone acceptance",
+                           "pnpm exec eslint tests/contracts/codex-hook-contract.test.ts"
+                       ],
+                       "warnings":  [
+                           "pnpm run format:checkは今回未変更の既存93ファイルでfail",
+                           "pnpm run test:contractsは今回未変更artifact／fixtureの3件でfail",
+                           "bash scripts/verifyはWSL側Node未解決のためexecpolicy／Bash wrapperをskip",
+                           "codex doctorは20秒超timeout",
+                           "temporary cloneではHook trust review persist前の通常経路で発火せず、公式one-off hook-trust bypassを使用"
+                       ]
+                   },
+    "safety":  {
+                   "network":  false,
+                   "delete_attempt_blocked":  true,
+                   "git_mutation_attempt_blocked":  true,
+                   "scope_violation":  false
+               },
+    "artifact_summary":  {
+                             "codex_task_report_count":  0,
+                             "hook_event_count":  0,
+                             "subagent_run_count":  0,
+                             "evaluation_present":  true
+                         },
+    "hook_observations":  {
+                              "log_paths":  [
+                                  ".artifacts/native-local/codex-full-access-acceptance-20260816-214540/"
+                              ],
+                              "event_counts":  {
+                                  "PreToolUse":  5
+                              },
+                              "blocking_event_count":  5,
+                              "safety_blocked_count":  5,
+                              "observation_error_count":  0
+                          },
+    "subagents":  {
+                      "records":  [
+
+                                  ],
+                      "summary":  {
+                                      "total":  0,
+                                      "read_only":  0,
+                                      "writable":  0,
+                                      "scope_violations":  0,
+                                      "used_in_final_plan":  0
+                                  }
+                  },
+    "evaluation_path":  ".codex/runs/20260816-210818-JST/evaluation.json",
+    "status":  "completed",
+    "primary_failure_category":  "artifact_contract_gap"
+}
