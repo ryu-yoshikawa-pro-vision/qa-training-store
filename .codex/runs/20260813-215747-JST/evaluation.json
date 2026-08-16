@@ -5,6 +5,7 @@
   "primary_failure_category": "flaky_or_env_issue",
   "failure_categories": ["flaky_or_env_issue"],
   "dimensions": {
+    "task_completion": {"rating": "pass", "evidence": "Benchmark ManifestのSpec／Challenge／Runbook identityをRunner Inputへ直接bindし、required testsをPASSした。", "evidence_refs": []},
     "scope_control": {"rating": "pass", "evidence": "変更はOfficial verifier、artifact-chain tests、関連docs、Run Artifactに限定した。", "evidence_refs": []},
     "validation_confidence": {"rating": "warn", "evidence": "focused 69 tests、全contracts 271 tests、preparation、Chromium 27 tests等がPASS。repository-wide format:checkは既存baselineでFAILした。", "evidence_refs": []},
     "safety_compliance": {"rating": "pass", "evidence": "Git mutation、fake Host receipt、fake score、architecture redesignを行っていない。", "evidence_refs": []},
