@@ -1,6 +1,6 @@
 # QA Training・Agentic QA 継続改善・知見循環計画
 
-- Plan Revision: `v13`
+- Plan Revision: `v14`
 - Status: `Draft / Review Required`
 - Created: 2026-08-15 JST
 - Revised: 2026-08-16 JST
@@ -664,7 +664,7 @@ applies_to: []
 does_not_apply_to: []
 evidence_state:
 claim_assessment:
-experiment_family_refs: []
+experiment_refs: []
 evidence_refs: []
 promotion: []
 validated_at:
@@ -674,9 +674,13 @@ validated_against:
   environment_refs: []
 ```
 
+`experiment_refs`はKnowledgeの根拠となる単発Experimentを含む直接Referenceを持つ。
+同一Question / Hypothesisを複数Experimentで追う場合だけ、次の`experiment_family_refs`を追加する。
+
 次は必要な場合だけ追加する。
 
 ```yaml
+experiment_family_refs: []
 replication_scope: {}
 external_support:
 conflicting_evidence_refs: []
@@ -1094,16 +1098,16 @@ Evidenceなしに次を追加しない。
 
 ### 11.4 Experiment Readiness Gate
 
-最初の正式Experimentを開始する前に、最低限次だけ決める。
+最初の正式Experimentを開始する前に、最初のExperimentを再現・追跡するための最低限だけ決める。
 
 - Experiment Recordの置き場所。
-- Knowledge Recordの置き場所。
-- ID Convention。
+- Experiment ID Convention。
 - Artifact / Evidence Reference方式。
-- Confirmatoryで使うPre-registration Reference方式。
-- 必要なCapabilityのReadiness確認方法。
+- 対象Experimentに必要なCapabilityのReadiness確認方法。
 
-このGateのためにDashboard、Database、専用SaaSを作らない。
+Knowledge Recordの置き場所とID Conventionは、最初にKnowledge化する価値のあるResultが出た時点で決める。
+Pre-registration Reference方式は、最初にConfirmatoryまたは事前固定が必要なComparative Experimentを行う時点で決める。
+必要になる前に専用形式やRegistryを作らない。
 
 ### 11.5 Initial Baseline Assessment
 
@@ -1247,11 +1251,11 @@ Plan Approval時点で未確定でもよい。
 2. PR #23 / #24 / #25を含むFoundationの最新状態を`main`で確認する。
 3. Planを最新`main`へrebaselineする。
 4. Test Target / Curriculum / QA Systemの軽量Baseline Assessmentを行う。
-5. Experiment / Knowledge ArtifactのCanonical Locationを最小構成で決める。
+5. 最初のExperiment RecordのCanonical LocationとReference方式だけ決める。
 6. QA / TrainingへのImpactが大きいQuestionを1件選ぶ。
 7. Current ArtifactでLightweight Experimentを実行する。
 8. 比較・一般化が必要な場合だけConfirmatory / Comparative Contractを追加する。
-9. 再利用価値がある場合だけKnowledgeを作る。
+9. 再利用価値がある場合だけ、その時点でKnowledge Recordの置き場所を決めてKnowledgeを作る。
 10. 必要なTargetだけ`candidate`として変更する。
 11. Target-specific Validationと、必要な場合だけPost-promotion Experimentを行う。
 12. 次のGapへ進む。
