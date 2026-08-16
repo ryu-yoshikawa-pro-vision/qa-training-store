@@ -106,15 +106,15 @@ Security boundary 自体が成立していない項目は、単に「権限不�
 
 今回の trust policy:
 
-> **Write 権限を持つ主体は、Repository code だけでなく Cloudflare Deployment Credential を利用できる範囲まで trusted とみなせる主体に限定する。**
+> **Repository code / workflow を変更できる主体は、Cloudflare Deployment Credential を利用できる範囲まで trusted とみなせる主体に限定する。**
 
-Deployment Credential まで信頼できない主体には Write を維持しない。
+Deployment Credential まで信頼できない主体には write-capable access を維持しない。
 
 ただし、Deployment Credential trust は技術的に自動判定しない。
 
 - trust classification は Repository Owner の明示判断とする
 - 実装者 / AI agent は GitHub role、過去の commit、account 名、所属 Organization 等から trust を推定しない
-- 実装者 / AI agent は Owner の明示指示なしに collaborator 権限を変更しない
+- 実装者 / AI agent は Owner の明示指示なしに collaborator / App 等の権限を変更しない
 - classification 未確定でも他の Hardening は進めてよい
 - classification 未確定のまま Cloudflare trust boundary を完了扱いにしない
 
@@ -241,13 +241,19 @@ Ruleset の最終 Required check は P-14 に従って `validate` とする。
 
 ### P-05: Cloudflare Deployment Credential の trust boundary を単純化する
 
-実装開始時に Write / Maintain / Admin collaborator を Inventory する。
+実装開始時に、この Repository の code / workflow を変更できる全 write-capable principal を Inventory する。
+
+最低限の確認対象:
+
+- direct collaborator の Write / Maintain / Admin
+- Contents / Workflows 等の write 権限を持つ GitHub App installation
+- Repository owner が Organization へ変わっている場合は team 経由の write-capable access
 
 Deployment Credential trust は Repository Owner の明示判断で確定する。
 
 ```text
 OwnerがDeploymentまでtrustedと明示
-→ Write維持可
+→ write-capable access維持可
 
 Ownerがnot trustedと明示
 → Ownerの明示指示に基づき必要最小権限へ変更
@@ -260,11 +266,28 @@ Owner判断が未確定
 
 実装者 / AI agent は trust を推定しない。
 
-実装者 / AI agent は Owner の明示指示なしに collaborator 権限を変更しない。
+実装者 / AI agent は Owner の明示指示なしに collaborator / App 等の権限を変更しない。
 
 Cloudflare Token は provider 側で可能な限り必要最小権限にする。
 
-Preview / Production が同一 Token を共有している場合は記録するが、分離の必要性が具体的に確認されない限り、今回必須で分離しない。
+実装時に次を記録する。
+
+- Preview / Production が同一 Token を共有しているか
+- Preview / Production が同一 Pages project を利用しているか
+- Token の Cloudflare permission / resource scope
+- Preview から Production resource へ影響できる blast radius
+
+Preview / Production Token の分離は今回の一律必須条件にはしない。
+
+同一 Token を共有する場合は、Repository Owner が blast radius を理解したうえで共有継続を明示承認し、次の代替制御が成立していることを確認する。
+
+- Preview は normal same-repo PR のみ
+- Dependabot / fork PR へ Cloudflare Secret を渡さない
+- Production deploy は `main` push のみ
+- remote Actions は full SHA pin
+- write-capable principal の trust classification が確定済み
+
+Owner の明示承認がない状態で Token 共有を Hardening 完了扱いにしない。
 
 ### P-06: Preview は normal same-repo PR のみ
 
@@ -316,7 +339,41 @@ normal same-repo PR で Cloudflare Secret が欠落している場合は Fail �
 
 `validate` は既存の `if: always()` を必ず維持する。
 
-`deploy-preview` が skipped でも `validate` 自体は実行し、event / PR type ごとの expected result を判定する。
+`validate` には、少なくとも次の PR 種別判定材料を渡す。
+
+```yaml
+env:
+  EVENT_NAME: ${{ github.event_name }}
+  REPOSITORY: ${{ github.repository }}
+  PR_HEAD_REPO_FULL_NAME: ${{ github.event.pull_request.head.repo.full_name }}
+  PR_AUTHOR_LOGIN: ${{ github.event.pull_request.user.login }}
+  VERIFY_RESULT: ${{ needs.verify.result }}
+  DEPLOY_PREVIEW_RESULT: ${{ needs.deploy-preview.result }}
+```
+
+`validate` 内では次の条件で normal same-repo PR を判定する。
+
+```text
+EVENT_NAME == pull_request
+AND PR_HEAD_REPO_FULL_NAME == REPOSITORY
+AND PR_AUTHOR_LOGIN != dependabot[bot]
+→ normal same-repo PR
+```
+
+判定契約:
+
+```text
+normal same-repo PR
+→ deploy-preview == success を要求
+
+Dependabot PR / fork PR
+→ deploy-preview == skipped を要求
+
+push / schedule / workflow_dispatch
+→ deploy-preview == skipped を要求
+```
+
+`deploy-preview` が skipped でも `validate` 自体は実行し、event / PR type ごとの expected result を明示判定する。
 
 PRであれば常に Preview success を要求する現在の実装を修正する。
 
@@ -585,15 +642,19 @@ CODE_REVIEW.md              # 既存記載と矛盾する場合のみ最小修�
 2. `.github/workflows/**` を再確認
 3. remote `uses:` を Inventory
 4. self-hosted runner 不在確認
-5. Write / Maintain / Admin collaborator を Inventory
-6. Owner に各 Write-capable 主体の Deployment Credential trust classification を確認
-7. 実装者 / AI agent は trust を推定しない
-8. Owner の明示指示なしに collaborator 権限を変更しない
-9. Cloudflare Secret / Token scope 確認
-10. GitHub Settings Current State 確認
-11. Existing vulnerability / malware / secret findings を Inventory
-12. `main-protection` Current State を確認
-13. `verify.if: always()` / `validate.if: always()` の Current State を確認
+5. direct collaborator の Write / Maintain / Admin を Inventory
+6. Contents / Workflows 等の write 権限を持つ GitHub App installation を Inventory
+7. Repository owner が Organization へ変わっている場合は team 経由の write-capable access を Inventory
+8. Owner に各 write-capable principal の Deployment Credential trust classification を確認
+9. 実装者 / AI agent は trust を推定しない
+10. Owner の明示指示なしに collaborator / App 等の権限を変更しない
+11. Cloudflare Secret / Token scope を確認
+12. Preview / Production の Token / Pages project 共有状態と blast radius を確認
+13. Token 共有を継続する場合は Owner の明示承認と P-05 の代替制御を確認
+14. GitHub Settings Current State 確認
+15. Existing vulnerability / malware / secret findings を Inventory
+16. `main-protection` Current State を確認
+17. `verify.if: always()` / `validate.if: always()` の Current State を確認
 
 Owner の trust classification が未確定でも、権限変更を伴わない Repository Hardening は継続してよい。
 
@@ -602,7 +663,11 @@ Owner の trust classification が未確定でも、権限変更を伴わない 
 Exit:
 
 - 実装 Gap が確定
+- 全 write-capable principal の Inventory が完了
 - Owner の trust classification が確認済み、または未確定として明示済み
+- Cloudflare Token permission / resource scope の確認結果が記録済み
+- Preview / Production の Token / Pages project 共有状態と blast radius が記録済み
+- Token 共有継続時は Owner の明示承認と代替制御が確認済み、または未完了として明示済み
 - remote Action pinning 対象が列挙済み
 - Critical / High と Moderate / Low の Existing finding 件数が把握済み
 - Malware / Secret Alert の状態が把握済み
@@ -627,7 +692,8 @@ Exit:
 - `verify.if: always()` を維持
 - `deploy-preview` を P-06 の実YAML条件へ変更
 - Dependabot / fork PR は Preview skip
-- `validate` を Preview eligibility と整合
+- `validate` に `EVENT_NAME` / `REPOSITORY` / `PR_HEAD_REPO_FULL_NAME` / `PR_AUTHOR_LOGIN` を渡す
+- `validate` で normal same-repo / Dependabot / fork / non-PR を区別して Preview expected result を判定
 - `validate.if: always()` を維持
 - `pull_request_target` は追加しない
 
@@ -666,6 +732,7 @@ Exit:
 - normal same-repo PR のPreviewは維持
 - `verify` が Dependency Review を aggregate
 - non-PRでも`verify`がskippedにならず結果判定する
+- `validate` が PR 種別を判定できる入力を持つ
 - Dependabot / forkでも`validate`がskippedにならず結果判定する
 - 全 remote Action が full SHA
 - write permissionを不要に増やしていない
@@ -711,6 +778,7 @@ Static validation でよい項目:
 
 - `github.event.pull_request.user.login` による Dependabot 判定
 - `github.event.pull_request.head.repo.full_name` による fork 判定
+- `validate` に `REPOSITORY` / `PR_HEAD_REPO_FULL_NAME` / `PR_AUTHOR_LOGIN` が渡され、PR 種別判定に使用されること
 - Cloudflare SecretをDependabotへ複製していない
 - Dependency Reviewに`pull-requests: write`を与えていない
 
@@ -807,11 +875,13 @@ Advisory / scope / dependency を確認し、実測根拠がある場合だけ�
 
 `verify` の event別結果判定を修正する。
 
-### `validate` が Dependabot / fork PR で skipped
+### `validate` が Dependabot / fork PR で skipped / 誤判定
 
 `deploy-preview` が skipped でも `validate.if: always()` により実行されることを確認する。
 
-PreviewをDependabot / forkへ広げず、`validate` の expected-result判定を修正する。
+`EVENT_NAME` / `REPOSITORY` / `PR_HEAD_REPO_FULL_NAME` / `PR_AUTHOR_LOGIN` が期待どおり渡されているか確認する。
+
+PreviewをDependabot / forkへ広げず、`validate` の PR 種別 / expected-result 判定を修正する。
 
 ### `validate` Required へのRuleset移行で問題が出る
 
@@ -829,7 +899,7 @@ Dependabot / fork へ Secret を広げない。
 
 normal PR の Secret 不足を skip に弱体化しない。
 
-### Collaborator trust が未確定 / not trusted
+### write-capable principal の trust が未確定 / not trusted
 
 実装者 / AI agent は trust を推定しない。
 
@@ -838,6 +908,16 @@ Owner の明示判断を記録する。
 not trusted の場合も、Owner の明示指示なしに権限を変更しない。
 
 classification 未確定なら他のHardeningは継続してよいが、Cloudflare trust boundaryは未完了とする。
+
+### Preview / Production Token を共有する
+
+Cloudflare permission / resource scope と blast radius を確認する。
+
+共有継続は Repository Owner の明示承認を必要とする。
+
+P-05 の代替制御が成立していなければ Hardening 完了扱いにしない。
+
+Token 分離が必要と Owner が判断した場合だけ、Preview / Production credential を分離する。
 
 ### Action SHA pinning で Workflow が壊れる
 
@@ -888,6 +968,7 @@ Dependency / CI:
 - normal same-repo PRでPreview success
 - Dependabot / forkでPreview skipped
 - `validate.if: always()` 維持
+- `validate` に `REPOSITORY` / `PR_HEAD_REPO_FULL_NAME` / `PR_AUTHOR_LOGIN` を渡して PR 種別判定
 - Dependabot / forkでも`validate`自体は実行
 - `validate` がPreview契約と整合
 - normal PR / Dependabot相当で `validate` success
@@ -895,11 +976,14 @@ Dependency / CI:
 
 Cloudflare trust:
 
-- Write-capable主体を Inventory 済み
+- 全 write-capable principal を Inventory 済み
+- direct collaborator に加え、該当する GitHub App installation / team access を確認済み
 - Owner の trust classification を確認済み、または未確定として明示済み
 - 実装者 / AI agent が trust を推定していない
-- Owner の明示指示なしに collaborator 権限を変更していない
-- Cloudflare Token scope確認済み
+- Owner の明示指示なしに collaborator / App 等の権限を変更していない
+- Cloudflare Token permission / resource scope確認済み
+- Preview / Production の Token / Pages project 共有状態と blast radius確認済み
+- Token 共有継続時は Owner の明示承認と P-05 の代替制御を確認済み、または未完了として明示済み
 
 GitHub Actions:
 
@@ -955,8 +1039,10 @@ Default branch反映後:
 - `verify` は内部 aggregate として維持
 - normal PRでPreview failure時に`validate`がfailしmerge blockされる構造
 - Dependabot / forkではPreview skippedを`validate`が正常扱いできる構造
-- Owner の Cloudflare trust classification が確定済み
+- 全 write-capable principal の Owner trust classification が確定済み
 - not trusted主体がある場合、Ownerの明示判断に基づき権限対応済み
+- Cloudflare Token scope / blast radius確認済み
+- Preview / Production Token共有時はOwnerの明示承認と代替制御が確認済み
 - 既存Application / QA behaviorに回帰なし
 
 未実施項目がある場合は理由・影響・代替策が記録されている。
