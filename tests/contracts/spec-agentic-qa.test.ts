@@ -30,6 +30,7 @@ import {
   sameRunnerCondition,
 } from "../../scripts/agentic-qa/benchmark-revision";
 import { buildLearnerBundle } from "../../scripts/agentic-qa/build-learner-bundle";
+import { agenticQaRef, agenticQaRunRoot } from "../../scripts/agentic-qa/artifact-layout";
 import { assertCoverageIntegrity } from "../../scripts/agentic-qa/coverage";
 import {
   evaluateBlackBox,
@@ -57,6 +58,10 @@ import { extractBrAcIds, formatSpecImpactSummary } from "../../scripts/spec/summ
 import { validateMarkdownSpec } from "../../scripts/spec/validate-spec";
 
 const rootDir = path.resolve(__dirname, "../..");
+
+function fixtureEvidenceRef(fileName: string, runId = "20260810-000001-JST"): string {
+  return agenticQaRef(runId, "runner", "evidence", fileName);
+}
 
 function currentToolProfileRevision(): string {
   const profileFile = path.join(rootDir, "training/agentic-qa/tool-profiles/scored-v1.json");
@@ -87,18 +92,18 @@ function createOfficialVerificationArtifacts(input: {
   evaluatorSessionId: string;
   observation: string;
 }): { evidenceRef: string; options: Parameters<typeof evaluateBlackBox>[3] } {
-  const artifactRoot = path.join(input.rootDir, ".artifacts", "agentic-qa", input.runId);
-  const evidenceRef = `.artifacts/agentic-qa/${input.runId}/COV-001/actual.txt`;
-  fs.mkdirSync(path.join(artifactRoot, "COV-001"), { recursive: true });
+  const artifactRoot = agenticQaRunRoot(input.rootDir, input.runId);
+  const evidenceRef = agenticQaRef(input.runId, "runner", "evidence", "actual.txt");
+  fs.mkdirSync(path.join(artifactRoot, "runner", "evidence"), { recursive: true });
   fs.writeFileSync(path.join(input.rootDir, evidenceRef), `${input.observation}\n`, "utf8");
-  fs.writeFileSync(path.join(artifactRoot, "COV-001", "screenshot.png"), "png", "utf8");
-  fs.writeFileSync(path.join(artifactRoot, "COV-001", "normal.png"), "png", "utf8");
+  fs.writeFileSync(path.join(artifactRoot, "runner", "evidence", "screenshot.png"), "png", "utf8");
+  fs.writeFileSync(path.join(artifactRoot, "runner", "evidence", "normal.png"), "png", "utf8");
   const profile = parseJsonWithSchema(
     readJson(path.join(rootDir, "training/agentic-qa/tool-profiles/scored-v1.json")),
     toolProfileSchema,
     "scored-v1",
   );
-  const forbiddenProbeRef = `.artifacts/agentic-qa/${input.runId}/forbidden-probe.json`;
+  const forbiddenProbeRef = agenticQaRef(input.runId, "runner", "forbidden-probe.json");
   const forbiddenProbe = profile.forbidden_capabilities.map((capability) => ({
     capability,
     available: false,
@@ -111,7 +116,7 @@ function createOfficialVerificationArtifacts(input: {
     "utf8",
   );
   fs.writeFileSync(
-    path.join(artifactRoot, "runner-session.json"),
+    path.join(artifactRoot, "runner", "runner-session.json"),
     `${JSON.stringify(
       {
         run_id: input.runId,
@@ -137,8 +142,9 @@ function createOfficialVerificationArtifacts(input: {
     )}\n`,
     "utf8",
   );
+  fs.mkdirSync(path.join(artifactRoot, "evaluation"), { recursive: true });
   fs.writeFileSync(
-    path.join(artifactRoot, "evaluator-session.json"),
+    path.join(artifactRoot, "evaluation", "evaluator-session.json"),
     `${JSON.stringify(
       {
         runner_session_id: input.runnerSessionId,
@@ -502,33 +508,37 @@ describe("Specification and Agentic QA contracts", () => {
     expect(headChanged.additional_source_diff_count).toBe(1);
   });
 
-  it("selects the challenge-specific manifest when multiple manifests coexist", () => {
+  it("selects the single canonical manifest from the run root", () => {
     const temporary = fs.mkdtempSync(path.join(os.tmpdir(), "manifest-selection-"));
     try {
-      const sourceRun = path.join(rootDir, ".codex", "runs", "20260810-130321-JST");
-      for (const name of [
-        "benchmark-manifest-CHALLENGE-BASIC-001.json",
-        "benchmark-manifest-CHALLENGE-INTERMEDIATE-001.json",
-        "benchmark-manifest-CHALLENGE-ADVANCED-001.json",
+      const runId = "20260810-130321-JST";
+      const runDir = path.join(temporary, ".codex", "runs", runId);
+      const manifest = path.join(
+        temporary,
+        ".artifacts",
+        "agentic-qa",
+        runId,
+        "trusted",
         "benchmark-manifest.json",
-      ])
-        fs.copyFileSync(path.join(sourceRun, name), path.join(temporary, name));
+      );
+      fs.mkdirSync(runDir, { recursive: true });
+      fs.mkdirSync(path.dirname(manifest), { recursive: true });
+      fs.copyFileSync(
+        path.join(
+          rootDir,
+          ".codex/runs/20260810-130321-JST/benchmark-manifest-CHALLENGE-INTERMEDIATE-001.json",
+        ),
+        manifest,
+      );
 
-      const selected = selectBenchmarkManifestFile(temporary, "CHALLENGE-INTERMEDIATE-001");
-      expect(path.basename(selected)).toBe("benchmark-manifest-CHALLENGE-INTERMEDIATE-001.json");
-      expect(selected).not.toBe(path.join(temporary, "benchmark-manifest.json"));
-      expect(selected).not.toBe(
-        path.join(temporary, "benchmark-manifest-CHALLENGE-BASIC-001.json"),
-      );
-      expect(selected).not.toBe(
-        path.join(temporary, "benchmark-manifest-CHALLENGE-ADVANCED-001.json"),
-      );
+      const selected = selectBenchmarkManifestFile(runDir, "CHALLENGE-INTERMEDIATE-001");
+      expect(selected).toBe(manifest);
     } finally {
       fs.rmSync(temporary, { recursive: true, force: true });
     }
   });
 
-  it("scores Atomic TP and preserves the required identity fields", () => {
+  it("classifies Atomic TP and preserves the required identity fields in a contract fixture", () => {
     const challenge = loadChallenge("CHALLENGE-BASIC-001");
     const answerKey = parseJsonWithSchema(
       readJson(
@@ -569,7 +579,7 @@ describe("Specification and Agentic QA contracts", () => {
               status: "completed",
               mission_completed: true,
               evidence_refs: [
-                ".artifacts/agentic-qa/20260810-000000-JST/COV-001/screenshot.png",
+                agenticQaRef("20260810-000000-JST", "runner", "evidence", "screenshot.png"),
                 "https://example.test/login",
               ],
               evidence_types: ["screenshot", "url"],
@@ -612,24 +622,24 @@ describe("Specification and Agentic QA contracts", () => {
         benchmark_revision: benchmarkRevision,
         runtime_variant_id: null,
         runner_profile: runnerProfile,
-        execution_kind: "official_model_backed",
+        execution_kind: "contract_fixture",
         runner_session_id: "fixture-runner-000000",
         fresh_session: true,
         tool_scope_validated: true,
       };
       const parsed = parseJsonWithSchema(findings, qaFindingsSchema, "fixture findings");
       const evaluation = evaluateBlackBox(challenge, answerKey, parsed, verification.options);
-      expect(evaluation.valid_for_scoring).toBe(true);
+      expect(evaluation.valid_for_scoring).toBe(false);
       expect(evaluation.counts.tp).toBe(1);
       expect(evaluation.counts.fn).toBe(0);
-      expect(evaluation.metrics.recall).toBe(1);
-      expect(evaluation.metrics.precision).toBe(1);
+      expect(evaluation.metrics.recall).toBeNull();
+      expect(evaluation.metrics.precision).toBeNull();
       expect(evaluation.challenge_id).toBe(findings.challenge_id);
       expect(evaluation.benchmark_revision).toBe(findings.benchmark_revision);
       expect(evaluation.runner_profile).toEqual(findings.runner_profile);
 
       const identityChecked = evaluateBlackBox(challenge, answerKey, parsed, verification.options);
-      expect(identityChecked.valid_for_scoring).toBe(true);
+      expect(identityChecked.valid_for_scoring).toBe(false);
       const expectedToolProfileRevision = currentToolProfileRevision();
       const mismatchedToolProfileRevision = `sha256:${"a".repeat(64)}`;
       expect(mismatchedToolProfileRevision).not.toBe(expectedToolProfileRevision);
@@ -651,7 +661,7 @@ describe("Specification and Agentic QA contracts", () => {
         expectedToolProfileRevision,
       });
       expect(revisionMismatch.valid_for_scoring).toBe(false);
-      expect(revisionMismatch.invalid_reasons).toEqual(["official_verification_failure"]);
+      expect(revisionMismatch.invalid_reasons).toContain("fixture_not_official");
       const runtimeMismatch = evaluateBlackBox(challenge, answerKey, parsed, {
         ...verification.options,
         expectedRuntimeVariantId: "fixture-variant",
@@ -670,9 +680,7 @@ describe("Specification and Agentic QA contracts", () => {
         evaluatorSessionId: "fixture-evaluator-000000",
       });
       expect(missingOfficialExpectations.valid_for_scoring).toBe(false);
-      expect(missingOfficialExpectations.invalid_reasons).toContain(
-        "official_verification_failure",
-      );
+      expect(missingOfficialExpectations.invalid_reasons).toContain("fixture_not_official");
       const descriptionOnly = parseJsonWithSchema(
         {
           ...parsed,
@@ -682,7 +690,7 @@ describe("Specification and Agentic QA contracts", () => {
               evidence: [
                 {
                   type: "narrow_log",
-                  ref: ".artifacts/agentic-qa/20260810-000000-JST/COV-001/missing.txt",
+                  ref: agenticQaRef("20260810-000000-JST", "runner", "evidence", "missing.txt"),
                   description: "The suspended account creates an authenticated session.",
                 },
               ],
@@ -700,20 +708,21 @@ describe("Specification and Agentic QA contracts", () => {
       );
       expect(descriptionOnlyEvaluation.counts.tp).toBe(0);
       expect(descriptionOnlyEvaluation.matches[0]?.classification).toBe("review_needed");
-      expect(descriptionOnlyEvaluation.invalid_reasons).toContain("evidence_integrity_failure");
+      expect(descriptionOnlyEvaluation.invalid_reasons).toContain("preparation_failure");
       expect(safeArtifactPath(verificationRoot, findings.run_id, verification.evidenceRef)).toBe(
         path.join(
           verificationRoot,
           ".artifacts",
           "agentic-qa",
           findings.run_id,
-          "COV-001",
+          "runner",
+          "evidence",
           "actual.txt",
         ),
       );
       for (const ref of [
-        `.artifacts/agentic-qa/${findings.run_id}/../other-run/COV-001/actual.txt`,
-        ".artifacts/foo/COV-001/actual.txt",
+        agenticQaRef(findings.run_id, "runner", "evidence", "../other-run/actual.txt"),
+        agenticQaRef("20260810-000003-JST", "runner", "evidence", "actual.txt"),
         "../secret.png",
         "C:/secret.png",
         "C:\\secret.png",
@@ -736,7 +745,7 @@ describe("Specification and Agentic QA contracts", () => {
           safeArtifactPath(
             verificationRoot,
             invalidRunId,
-            `.artifacts/agentic-qa/${invalidRunId}/COV-001/actual.txt`,
+            agenticQaRef(invalidRunId, "runner", "evidence", "actual.txt"),
           ),
         ).toBeNull();
       }
@@ -747,12 +756,12 @@ describe("Specification and Agentic QA contracts", () => {
         safeArtifactPath(
           verificationRoot,
           findings.run_id,
-          `.artifacts/agentic-qa/${findings.run_id}/COV-001/missing.txt`,
+          agenticQaRef(findings.run_id, "runner", "evidence", "missing.txt"),
         ),
       ).not.toBeNull();
 
       const previousRunId = "20260809-000000-JST";
-      const previousEvidenceRef = `.artifacts/agentic-qa/${previousRunId}/COV-001/actual.txt`;
+      const previousEvidenceRef = agenticQaRef(previousRunId, "runner", "evidence", "actual.txt");
       fs.mkdirSync(path.dirname(path.join(verificationRoot, previousEvidenceRef)), {
         recursive: true,
       });
@@ -781,7 +790,7 @@ describe("Specification and Agentic QA contracts", () => {
         verification.options,
       );
       expect(previousRunEvaluation.valid_for_scoring).toBe(false);
-      expect(previousRunEvaluation.invalid_reasons).toContain("evidence_integrity_failure");
+      expect(previousRunEvaluation.invalid_reasons).toContain("preparation_failure");
       expect(previousRunEvaluation.matches[0]?.classification).toBe("review_needed");
 
       const forbiddenProbeFile = path.join(
@@ -789,6 +798,7 @@ describe("Specification and Agentic QA contracts", () => {
         ".artifacts",
         "agentic-qa",
         findings.run_id,
+        "runner",
         "forbidden-probe.json",
       );
       const completeProbe = parseJsonWithSchema(
@@ -817,7 +827,7 @@ describe("Specification and Agentic QA contracts", () => {
       );
       expect(missingForbiddenCapabilityEvaluation.valid_for_scoring).toBe(false);
       expect(missingForbiddenCapabilityEvaluation.invalid_reasons).toContain(
-        "official_verification_failure",
+        "fixture_not_official",
       );
 
       const reachableProbe = completeProbe.map((result, index) =>
@@ -832,7 +842,7 @@ describe("Specification and Agentic QA contracts", () => {
       );
       expect(reachableForbiddenCapabilityEvaluation.valid_for_scoring).toBe(false);
       expect(reachableForbiddenCapabilityEvaluation.invalid_reasons).toContain(
-        "official_verification_failure",
+        "fixture_not_official",
       );
 
       fs.writeFileSync(forbiddenProbeFile, `${JSON.stringify(completeProbe, null, 2)}\n`, "utf8");
@@ -841,6 +851,7 @@ describe("Specification and Agentic QA contracts", () => {
         ".artifacts",
         "agentic-qa",
         findings.run_id,
+        "runner",
         "runner-session.json",
       );
       const runnerSession = readJson(embeddedRunnerSessionFile) as Record<string, unknown>;
@@ -857,13 +868,14 @@ describe("Specification and Agentic QA contracts", () => {
         verification.options,
       );
       expect(embeddedMismatchEvaluation.valid_for_scoring).toBe(false);
-      expect(embeddedMismatchEvaluation.invalid_reasons).toContain("official_verification_failure");
+      expect(embeddedMismatchEvaluation.invalid_reasons).toContain("fixture_not_official");
 
       const runnerSessionFile = path.join(
         verificationRoot,
         ".artifacts",
         "agentic-qa",
         findings.run_id,
+        "runner",
         "runner-session.json",
       );
       const unmeasuredSession = readJson(runnerSessionFile) as Record<string, unknown>;
@@ -886,7 +898,7 @@ describe("Specification and Agentic QA contracts", () => {
         verification.options,
       );
       expect(unmeasuredEvaluation.valid_for_scoring).toBe(false);
-      expect(unmeasuredEvaluation.invalid_reasons).toContain("official_verification_failure");
+      expect(unmeasuredEvaluation.invalid_reasons).toContain("fixture_not_official");
     } finally {
       fs.rmSync(verificationRoot, { recursive: true, force: true });
     }
@@ -937,7 +949,7 @@ describe("Specification and Agentic QA contracts", () => {
               coverage_id: "COV-001",
               status: "completed",
               mission_completed: true,
-              evidence_refs: [".artifacts/COV-001/screenshot.png", "https://example.test/login"],
+              evidence_refs: [fixtureEvidenceRef("screenshot.png"), "https://example.test/login"],
               evidence_types: ["screenshot", "url"],
               blocker_reason: null,
               notes: "",
@@ -962,7 +974,7 @@ describe("Specification and Agentic QA contracts", () => {
             evidence: [
               {
                 type: "screenshot",
-                ref: ".artifacts/COV-001/screenshot.png",
+                ref: fixtureEvidenceRef("screenshot.png"),
                 description: "Combined observation",
               },
             ],
@@ -978,7 +990,7 @@ describe("Specification and Agentic QA contracts", () => {
         benchmark_revision: `sha256:${"c".repeat(64)}`,
         runtime_variant_id: null,
         runner_profile: runnerProfile,
-        execution_kind: "official_model_backed",
+        execution_kind: "contract_fixture",
         runner_session_id: "fixture-runner-000001",
         fresh_session: true,
         tool_scope_validated: true,
@@ -1071,7 +1083,7 @@ describe("Specification and Agentic QA contracts", () => {
               status: "completed",
               mission_completed: true,
               evidence_refs: [
-                ".artifacts/agentic-qa/20260810-000003-JST/COV-001/normal.png",
+                agenticQaRef("20260810-000003-JST", "runner", "evidence", "normal.png"),
                 "https://example.test/login",
               ],
               evidence_types: ["screenshot", "url"],
@@ -1097,7 +1109,7 @@ describe("Specification and Agentic QA contracts", () => {
             evidence: [
               {
                 type: "screenshot",
-                ref: ".artifacts/COV-001/normal.png",
+                ref: fixtureEvidenceRef("normal.png", "20260810-000002-JST"),
                 description: "The observed result is unclear",
               },
             ],
@@ -1188,7 +1200,7 @@ describe("Specification and Agentic QA contracts", () => {
                 status: "completed",
                 mission_completed: true,
                 evidence_refs: [
-                  ".artifacts/agentic-qa/20260810-000003-JST/COV-001/normal.png",
+                  agenticQaRef("20260810-000003-JST", "runner", "evidence", "normal.png"),
                   "https://example.test/login",
                 ],
                 evidence_types: ["screenshot", "url"],
@@ -1230,7 +1242,7 @@ describe("Specification and Agentic QA contracts", () => {
           benchmark_revision: benchmarkRevision,
           runtime_variant_id: null,
           runner_profile: runnerProfile,
-          execution_kind: "official_model_backed",
+          execution_kind: "contract_fixture",
           runner_session_id: "fixture-runner-000003",
           fresh_session: true,
           tool_scope_validated: true,
@@ -1242,8 +1254,8 @@ describe("Specification and Agentic QA contracts", () => {
       expect(evaluation.counts.fp).toBe(1);
       expect(evaluation.counts.fp_non_defect).toBe(1);
       expect(evaluation.counts.tn).toBe(0);
-      expect(evaluation.metrics.precision).toBe(0);
-      expect(evaluation.metrics.false_positive_rate).toBe(1);
+      expect(evaluation.metrics.precision).toBeNull();
+      expect(evaluation.metrics.false_positive_rate).toBeNull();
       expect(evaluation.matches[0]?.classification).toBe("fp_non_defect");
     } finally {
       fs.rmSync(verificationRoot, { recursive: true, force: true });
@@ -1316,6 +1328,9 @@ describe("Specification and Agentic QA contracts", () => {
         `D:${renamed}`,
         `A:${renamedTo}`,
       ]);
+      expect(parsePorcelainStatusRecords(temporary, `AD deleted-during-rebase.txt\0`)).toEqual([
+        { status: "D", path: "deleted-during-rebase.txt", sha256: null },
+      ]);
     } finally {
       fs.rmSync(temporary, { recursive: true, force: true });
     }
@@ -1336,7 +1351,7 @@ describe("Specification and Agentic QA contracts", () => {
           coverage_id: "COV-001" as const,
           status: "completed" as const,
           mission_completed: true,
-          evidence_refs: [".artifacts/COV-001/log.txt"],
+          evidence_refs: [fixtureEvidenceRef("log.txt")],
           evidence_types: ["narrow_log" as const],
           blocker_reason: null,
           notes: "only a narrow log was collected",
@@ -1357,7 +1372,7 @@ describe("Specification and Agentic QA contracts", () => {
         items: [
           {
             ...baseItem,
-            evidence_refs: [".artifacts/COV-001/screen.png", "https://example.test/login"],
+            evidence_refs: [fixtureEvidenceRef("screen.png"), "https://example.test/login"],
             evidence_types: ["screenshot", "url"],
           },
         ],
@@ -1546,7 +1561,11 @@ describe("Specification and Agentic QA contracts", () => {
         source: "unavailable" as const,
         exposed_capabilities: [],
       },
-      forbidden_probe_artifact: ".artifacts/agentic-qa/20260810-000020-JST/forbidden-probe.json",
+      forbidden_probe_artifact: agenticQaRef(
+        "20260810-000020-JST",
+        "runner",
+        "forbidden-probe.json",
+      ),
       forbidden_probe: [
         {
           capability: "web_search" as const,
@@ -1649,14 +1668,14 @@ describe("Specification and Agentic QA contracts", () => {
       coverage_id: "COV-001" as const,
       status: "completed" as const,
       mission_completed: true,
-      evidence_refs: [".artifacts/COV-001/screenshot.png", "https://example.test/login"],
+      evidence_refs: [fixtureEvidenceRef("screenshot.png"), "https://example.test/login"],
       evidence_types: ["screenshot", "url"] as const,
       blocker_reason: null,
       notes: "",
     };
     expect(() =>
       parseJsonWithSchema(
-        { ...valid, evidence_refs: [".artifacts/COV-001/screenshot.png"] },
+        { ...valid, evidence_refs: [fixtureEvidenceRef("screenshot.png")] },
         coverageResultSchema,
         "one ref two types fixture",
       ),
@@ -1666,7 +1685,7 @@ describe("Specification and Agentic QA contracts", () => {
         {
           ...valid,
           evidence_refs: [
-            ".artifacts/COV-001/screenshot.png",
+            fixtureEvidenceRef("screenshot.png"),
             "https://example.test/login",
             "https://example.test/other",
           ],
@@ -1679,7 +1698,10 @@ describe("Specification and Agentic QA contracts", () => {
       parseJsonWithSchema(
         {
           ...valid,
-          evidence_refs: [".artifacts/COV-001/screenshot.png", ".artifacts/COV-001/screenshot.png"],
+          evidence_refs: [
+            fixtureEvidenceRef("screenshot.png"),
+            fixtureEvidenceRef("screenshot.png"),
+          ],
         },
         coverageResultSchema,
         "duplicate evidence ref fixture",
@@ -1688,13 +1710,17 @@ describe("Specification and Agentic QA contracts", () => {
     for (const ref of ["../secret.png", "C:/secret.png", "not-a-url"]) {
       expect(() =>
         parseJsonWithSchema(
-          { ...valid, evidence_refs: [".artifacts/COV-001/screenshot.png", ref] },
+          { ...valid, evidence_refs: [fixtureEvidenceRef("screenshot.png"), ref] },
           coverageResultSchema,
           "unsafe evidence ref fixture",
         ),
       ).toThrow();
     }
-    for (const ref of ["../secret.png", "C:/secret.png", ".artifacts/../secret.png"]) {
+    for (const ref of [
+      "../secret.png",
+      "C:/secret.png",
+      ".artifacts/agentic-qa/20260810-000001-JST/runner/evidence/../secret.png",
+    ]) {
       expect(() =>
         parseJsonWithSchema(
           { ...valid, evidence_refs: [ref], evidence_types: ["screenshot"] },

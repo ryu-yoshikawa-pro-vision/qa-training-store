@@ -1,4 +1,4 @@
-import { createReadStream, existsSync } from "node:fs";
+import { createReadStream, existsSync, lstatSync, readdirSync } from "node:fs";
 import { stat } from "node:fs/promises";
 import { createServer } from "node:http";
 import { extname, resolve, sep } from "node:path";
@@ -37,8 +37,28 @@ if (!loopbackHosts.has(host)) {
   process.exit(1);
 }
 
-const resolvedRoot = resolve(process.cwd(), "dist");
+const configuredRoot = process.env.WEB_SERVER_DIST_ROOT ?? "dist";
+const resolvedRoot = resolve(process.cwd(), configuredRoot);
 const fallbackFile = resolve(resolvedRoot, "index.html");
+
+function assertNoSymlinks(directory: string): void {
+  const rootStat = lstatSync(directory);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink())
+    throw new Error(`WEB_SERVER_DIST_ROOT must be a real directory: ${directory}`);
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const child = resolve(directory, entry.name);
+    const stat = lstatSync(child);
+    if (stat.isSymbolicLink()) throw new Error(`Prepared Runtime contains a symlink: ${child}`);
+    if (stat.isDirectory()) assertNoSymlinks(child);
+  }
+}
+
+try {
+  assertNoSymlinks(resolvedRoot);
+} catch (error) {
+  console.error(error instanceof Error ? error.message : String(error));
+  process.exit(1);
+}
 
 const contentTypes: Record<string, string> = {
   ".avif": "image/avif",

@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "run_id": "20260816-103345-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "最終HEADのPROJECT_CONTEXTをmain側のPR #24/#25履歴とPR #23 Official履歴の両方を保持してsemantic mergeし、Git conflict markerを除去した。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "source変更はdocs/PROJECT_CONTEXT.mdの4行差分だけで、Official implementation/test、Product、Native、CI、package/lockfileは変更していない。新Runと規約上必要なplanは監査成果物として追加した。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Markdown、typecheck、lint、spec、security、preparation、E2E、buildはPASSしたが、全体format baselineとWindows CRLF依存のcontract positive 2件・training test 1件が残る。negative attack testsはPASSした。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "git add/commit/push/pull/merge/rebase/reset/restore/checkout/switch/stash/clean等のGit mutationを行わず、Official Host capabilityのない実行・採点をPASS扱いしていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "過去Runの当時のPASS記録を変更せず、rebase継続後のmarker再導入、semantic merge、検証結果、failure root causeを新Runへ時系列で記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "文書の競合マーカーと見出し境界だけを修正し、Official Artifact Chainの設計変更、fixture/test改変、既存baselineの一括整形を行っていない。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Windows checkoutではindex LFとworking tree CRLFの差によりcanonical JSON byte assertionと固定LF assertionが失敗し、repository-wide format checkも437 filesで失敗した。Linux/CI条件での再確認が必要である。"
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "pnpm run format:checkは437 filesを報告し、今回のsource差分はPROJECT_CONTEXT.mdだけだった。pnpm run verifyはformat:checkで停止した。",
+      "detail": "今回のsemantic mergeに起因するformat差ではなく、現Windows working treeのrepository-wide baselineとして記録する。既存437 filesの整形は今回のscope外である。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "Official focusedは67/69、full contractsは307/310で、positive Official 2件はscored-v1.jsonのindex LF・working tree CRLFによるcanonical JSON byte mismatch、training curriculum 1件はCRLFによる固定LF assertionだった。",
+      "detail": "Official fully-rebound Runbook/Specification/Challenge、missing Runbook、exact set/freeze、symlink rejection、Host fail-close等のnegative testsはPASSしている。CRLFを隠す実装/test修正は行わず、Linux/CI条件で再確認する。"
+    }
+  ],
+  "improvement_candidates": []
+}

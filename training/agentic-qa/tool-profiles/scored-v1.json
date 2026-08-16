@@ -1,6 +1,4 @@
 {
-  "schema_version": 1,
-  "profile_id": "scored-v1",
   "allowed_capabilities": [
     "learner_safe_file_read",
     "runtime_navigate",
@@ -28,5 +26,7 @@
     "challenge_patch",
     "answer_key",
     "prior_scored_session"
-  ]
+  ],
+  "profile_id": "scored-v1",
+  "schema_version": 1
 }

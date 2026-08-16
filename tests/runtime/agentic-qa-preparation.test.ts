@@ -2,6 +2,7 @@ import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { OFFICIAL_PREPARATION_SEQUENCE } from "../../scripts/agentic-qa/contracts";
 import { prepareChallenge } from "../../scripts/agentic-qa/prepare-challenge";
 
 const rootDir = path.resolve(__dirname, "../..");
@@ -18,8 +19,7 @@ describe("Agentic QA preparation runtime", () => {
         runId,
         runDir,
       });
-      expect(result.preparation_order.some((step) => step.includes("handoff"))).toBe(false);
-      expect(result.preparation_order).toContain("runtime_stop_and_disposable_cleanup");
+      expect(result.preparation_order).toEqual([...OFFICIAL_PREPARATION_SEQUENCE]);
       expect(Object.keys(result).some((key) => key.endsWith("_handoff"))).toBe(false);
       expect(result.patch.apply_check).toBe("passed");
       expect(result.runtime_sanity.scored_initial_state_reset.passed).toBe(true);
@@ -29,5 +29,5 @@ describe("Agentic QA preparation runtime", () => {
       fs.rmSync(runDir, { recursive: true, force: true });
       fs.rmSync(artifactDir, { recursive: true, force: true });
     }
-  }, 180_000);
+  }, 360_000);
 });

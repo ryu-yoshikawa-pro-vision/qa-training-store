@@ -1,0 +1,79 @@
+{
+  "schema_version": 1,
+  "run_id": "20260816-121835-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "P1 3件の実装と意図したnegative contract testを追加し、Evaluator、Bootstrap/Initial State、Runtime Controlの各境界をfail-closeへ拡張した。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "source/testの変更は指定された3ファイルに限定し、Product、Native、CI、schema redesign、Challenge/Answer Key内容変更、新規dependencyを行っていない。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "P1 negative testsを含むfocused testsは82件中80件PASSした。既存positive 2件、全contracts 3件、repository-wide formatはWindows CRLF/既存format baselineで失敗した。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Git mutationを行わず、Official Host Capability Receipt/Runtime Handoffをfakeせず、Host証跡がないOfficial execution/scoreをPASS扱いしていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "過去Runを改変せず、P1実装、negative test、validation、Windows baseline、Official execution BLOCKEDを新Runへ時系列で記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存のOfficial verifier/EvaluationOptionsの責務を拡張し、schema redesignや新しいruntime abstractionを追加していない。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Windows checkoutではscored-v1.jsonのindex LF/working tree CRLFによるcanonical JSON mismatchと、training curriculumの固定LF assertionが再現した。CI/Linux条件での再確認が必要である。"
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "`pnpm run format:check`は434 filesを報告し、`pnpm run verify`はformat:checkで停止した。変更3ファイル単独のPrettier checkはPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "pnpm run format:check",
+          "event_id": null,
+          "summary": "repository-wide既存format baseline"
+        }
+      ],
+      "detail": "今回のP1差分に無関係なrepository-wide整形を行わず、残差として記録する。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "focused Official testsは82件中80件PASS。失敗はscored-v1.jsonのcanonical JSON byte mismatchによるpositive 2件で、全contractsは323件中320件PASSし、同じ2件とtraining curriculumのCRLF assertion 1件が失敗した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "pnpm exec vitest run tests/contracts/official-artifact-chain.test.ts tests/contracts/official-black-box-contracts.test.ts --no-file-parallelism --maxWorkers=1 --reporter=dot",
+          "event_id": null,
+          "summary": "P1 negativeと既存Official contractの実行結果"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "pnpm run test:contracts",
+          "event_id": null,
+          "summary": "全contractsの実行結果"
+        }
+      ],
+      "detail": "CRLFを隠すsource/test修正は行わず、Linux/CI条件での再確認を残す。P1 negative、fully-rebound attack、Host fail-closeはPASSした。"
+    }
+  ],
+  "improvement_candidates": []
+}

@@ -65,8 +65,16 @@ function copyDirectoryContents(sourceDir: string, destinationDir: string): void 
   for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
     const source = path.join(sourceDir, entry.name);
     const destination = path.join(destinationDir, entry.name);
-    if (entry.isDirectory()) copyDirectoryContents(source, destination);
-    else if (entry.isFile()) fs.copyFileSync(source, destination);
+    if (entry.isSymbolicLink()) throw new Error(`Isolated root copy rejected symlink: ${source}`);
+    if (entry.isDirectory()) {
+      copyDirectoryContents(source, destination);
+      continue;
+    }
+    if (entry.isFile()) {
+      fs.copyFileSync(source, destination);
+      continue;
+    }
+    throw new Error(`Isolated root copy rejected non-regular entry: ${source}`);
   }
 }
 
@@ -76,15 +84,41 @@ function listFiles(rootDir: string): string[] {
   const visit = (directory: string): void => {
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
       const absolute = path.join(directory, entry.name);
+      if (entry.isSymbolicLink())
+        throw new Error(`Isolated runner root contains a symlink: ${absolute}`);
       if (entry.isDirectory()) {
         files.push(path.relative(rootDir, absolute).split(path.sep).join("/"));
         visit(absolute);
       } else if (entry.isFile())
         files.push(path.relative(rootDir, absolute).split(path.sep).join("/"));
+      else throw new Error(`Isolated runner root contains a non-regular entry: ${absolute}`);
     }
   };
   visit(rootDir);
   return files.sort(compareCodeUnits);
+}
+
+function expectedFilesFromFrozenInput(frozenInputRoot: string): string[] {
+  const specificationRoot = path.join(frozenInputRoot, "specification");
+  const files: string[] = [];
+  const visit = (directory: string): void => {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+      const absolute = path.join(directory, entry.name);
+      const stat = fs.lstatSync(absolute);
+      if (stat.isSymbolicLink())
+        throw new Error(`Frozen learner input contains a symlink: ${absolute}`);
+      if (stat.isDirectory()) {
+        visit(absolute);
+        continue;
+      }
+      if (!stat.isFile()) throw new Error(`Frozen learner input contains a non-file: ${absolute}`);
+      files.push(
+        `learner-spec/${path.relative(specificationRoot, absolute).split(path.sep).join("/")}`,
+      );
+    }
+  };
+  visit(specificationRoot);
+  return ["runbook/runbook.md", "challenge/challenge.json", ...files].sort(compareCodeUnits);
 }
 
 const forbiddenPathComponents = new Set([
@@ -179,26 +213,50 @@ function toolCapabilityAvailable(
 export function createIsolatedRunnerRoot(input: {
   outputRoot: string;
   learnerBundle: LearnerBundle;
-  challengeDirectory: string;
+  challengeDirectory?: string;
   challenge: Challenge;
+  frozenInputRoot?: string;
 }): IsolatedRunnerRoot {
   const sessionId = crypto.randomUUID();
   const learnerSpecDir = path.join(input.outputRoot, "learner-spec");
   const runbookDir = path.join(input.outputRoot, "runbook");
   const challengeDir = path.join(input.outputRoot, "challenge");
   fs.mkdirSync(input.outputRoot, { recursive: true });
-  copyDirectoryContents(input.learnerBundle.root, learnerSpecDir);
+  if (input.frozenInputRoot !== undefined) {
+    copyDirectoryContents(path.join(input.frozenInputRoot, "specification"), learnerSpecDir);
+  } else {
+    copyDirectoryContents(input.learnerBundle.root, learnerSpecDir);
+  }
   fs.mkdirSync(runbookDir, { recursive: true });
-  fs.copyFileSync(
-    path.join(input.challengeDirectory, "runbook.md"),
-    path.join(runbookDir, "runbook.md"),
-  );
+  if (input.frozenInputRoot !== undefined) {
+    fs.copyFileSync(
+      path.join(input.frozenInputRoot, "runbook.md"),
+      path.join(runbookDir, "runbook.md"),
+    );
+  } else if (input.challengeDirectory !== undefined) {
+    fs.copyFileSync(
+      path.join(input.challengeDirectory, "runbook.md"),
+      path.join(runbookDir, "runbook.md"),
+    );
+  } else throw new Error("Isolated Runner Root requires a frozen input or challenge directory");
   fs.mkdirSync(challengeDir, { recursive: true });
-  fs.copyFileSync(
-    path.join(input.challengeDirectory, "challenge.json"),
-    path.join(challengeDir, "challenge.json"),
+  if (input.frozenInputRoot !== undefined) {
+    fs.copyFileSync(
+      path.join(input.frozenInputRoot, "challenge", "challenge.json"),
+      path.join(challengeDir, "challenge.json"),
+    );
+  } else if (input.challengeDirectory !== undefined) {
+    fs.copyFileSync(
+      path.join(input.challengeDirectory, "challenge.json"),
+      path.join(challengeDir, "challenge.json"),
+    );
+  } else throw new Error("Isolated Runner Root requires a frozen input or challenge directory");
+  assertIsolatedRunnerRoot(
+    input.outputRoot,
+    input.frozenInputRoot === undefined
+      ? undefined
+      : expectedFilesFromFrozenInput(input.frozenInputRoot),
   );
-  assertIsolatedRunnerRoot(input.outputRoot);
   return {
     root: input.outputRoot,
     session_id: sessionId,
@@ -208,8 +266,10 @@ export function createIsolatedRunnerRoot(input: {
   };
 }
 
-export function assertIsolatedRunnerRoot(rootDir: string): void {
-  if (!fs.existsSync(rootDir)) throw new Error(`Isolated runner root does not exist: ${rootDir}`);
+export function assertIsolatedRunnerRoot(rootDir: string, expectedFiles?: readonly string[]): void {
+  const rootStat = fs.lstatSync(rootDir);
+  if (!rootStat.isDirectory() || rootStat.isSymbolicLink())
+    throw new Error(`Isolated runner root must be a real directory: ${rootDir}`);
   const topLevel = fs.readdirSync(rootDir, { withFileTypes: true });
   const invalidTopLevel = topLevel.filter(
     (entry) => !entry.isDirectory() || !ALLOWED_ROOTS.has(entry.name),
@@ -219,6 +279,26 @@ export function assertIsolatedRunnerRoot(rootDir: string): void {
       `Isolated runner root exposes non-learner input: ${invalidTopLevel.map((entry) => entry.name).join(", ")}`,
     );
   const files = listFiles(rootDir);
+  if (expectedFiles !== undefined) {
+    const expected = new Set(expectedFiles);
+    const expectedEntries = new Set<string>();
+    for (const file of expectedFiles) {
+      const segments = file.split("/");
+      for (let index = 1; index < segments.length; index += 1)
+        expectedEntries.add(segments.slice(0, index).join("/"));
+      expectedEntries.add(file);
+    }
+    const actualEntries = files.sort(compareCodeUnits);
+    if (
+      actualEntries.length !== expectedEntries.size ||
+      actualEntries.some((entry) => !expectedEntries.has(entry))
+    )
+      throw new Error("Isolated runner root canonical file set mismatch");
+    for (const file of expected) {
+      if (!fs.lstatSync(path.join(rootDir, file)).isFile())
+        throw new Error("Isolated runner root canonical file set mismatch");
+    }
+  }
   const forbidden = [
     ...forbiddenPaths(files, "source_repository"),
     ...forbiddenPaths(files, "challenge_patch"),

@@ -9,18 +9,58 @@ import { pathToFileURL } from "node:url";
 import { chromium, type Page } from "@playwright/test";
 import {
   answerKeySchema,
+  benchmarkManifestSchema,
   challengeIdSchema,
   challengeSchema,
   forbiddenProbeResultsSchema,
+  hostCapabilityReceiptSchema,
+  OFFICIAL_PREPARATION_SEQUENCE,
   parseJsonWithSchema,
   runIdSchema,
+  runtimeHandoffReceiptSchema,
+  officialRunnerProfileSchema,
   toolProfileSchema,
   type AnswerKey,
   type ActualToolScope,
   type Challenge,
+  type HostCapabilityReceipt,
+  type RuntimeHandoffReceipt,
   type ToolProfile,
+  type ProtectedPatchValidation,
 } from "./contracts";
 import { buildLearnerBundle } from "./build-learner-bundle";
+import {
+  patchTouchedPaths,
+  validateProtectedPatch,
+  assertProtectedPatch,
+} from "./protected-patch-validation";
+import {
+  finalizePreparedTargetHandoff,
+  type PreparedTargetHandoff,
+} from "./prepared-runtime-lifecycle";
+import { getRuntimeVariant } from "./runtime-variant";
+import {
+  createDefaultOutputContract,
+  createRunnerInput,
+  writeRunnerInputPackage,
+  type RunnerInputPackage,
+} from "./runner-input";
+import { deriveInitialStateGroup } from "./initial-state-bootstrap";
+import {
+  readCanonicalJsonFile,
+  sha256File as canonicalSha256File,
+  writeCanonicalJsonFile,
+} from "./canonical-json";
+import {
+  copyDirectoryWithoutSymlinks,
+  createArtifactManifest,
+  readArtifactManifest,
+  writeArtifactManifest,
+} from "./canonical-artifact-manifest";
+import {
+  createNotExecutedResourceBoundaryProbe,
+  discoverServedResources,
+} from "./resource-boundary-probe";
 import { createBenchmarkRevision, benchmarkIdentity } from "./benchmark-revision";
 import {
   createIsolatedRunnerRoot,
@@ -30,6 +70,7 @@ import {
   type IsolatedRunnerRoot,
 } from "./isolation";
 import { createRunnerProfile } from "./runner";
+import { agenticQaRef, agenticQaRunRoot } from "./artifact-layout";
 import { optionValue, requiredOptionValue } from "./cli";
 
 export type PatchPreparation = {
@@ -82,6 +123,7 @@ export type ChallengePreparation = {
   benchmark_identity: ReturnType<typeof benchmarkIdentity>;
   runner_profile: ReturnType<typeof createRunnerProfile>;
   patch: PatchPreparation;
+  protected_patch_validation?: ProtectedPatchValidation;
   runtime_sanity: RuntimeSanity;
   isolated_root: IsolatedRunnerRoot;
   forbidden_probe: ForbiddenProbeResult[];
@@ -89,6 +131,8 @@ export type ChallengePreparation = {
   tool_scope_validated: false;
   preparation_order: string[];
   run_dir: string;
+  prepared_target?: PreparedTargetHandoff;
+  runner_input_package?: RunnerInputPackage;
 };
 
 function readJson(filePath: string, rootDir = process.cwd()): unknown {
@@ -135,18 +179,6 @@ function challengePaths(
   };
 }
 
-function patchRelativePaths(patchFile: string): string[] {
-  const paths: string[] = [];
-  for (const line of fs.readFileSync(patchFile, "utf8").split(/\r?\n/)) {
-    if (!line.startsWith("--- ") && !line.startsWith("+++ ")) continue;
-    const raw = line.slice(4).split("\t", 1)[0] ?? "";
-    if (raw === "/dev/null") continue;
-    const match = /^(?:a|b)\/(.+)$/.exec(raw);
-    if (match?.[1] !== undefined && !paths.includes(match[1])) paths.push(match[1]);
-  }
-  return paths;
-}
-
 function copyDisposableSource(rootDir: string): string {
   const disposable = fs.mkdtempSync(path.join(os.tmpdir(), "agentic-qa-source-"));
   fs.cpSync(rootDir, disposable, {
@@ -158,20 +190,6 @@ function copyDisposableSource(rootDir: string): string {
       );
     },
   });
-  const dependencies = path.join(rootDir, "node_modules");
-  if (fs.existsSync(dependencies)) {
-    const link = path.join(disposable, "node_modules");
-    try {
-      // Keep pnpm's complete dependency topology intact. A package-by-package
-      // overlay breaks transitive resolution such as tsx -> esbuild in Linux CI.
-      fs.symlinkSync(dependencies, link, process.platform === "win32" ? "junction" : "dir");
-    } catch (error) {
-      throw new Error(
-        `Failed to prepare disposable dependency overlay: ${commandFailureText(error)}`,
-        { cause: error },
-      );
-    }
-  }
   return disposable;
 }
 
@@ -222,7 +240,7 @@ function applyPatchToDisposable(
       disposable_copy: "created_and_cleaned",
     };
   try {
-    for (const relativePath of patchRelativePaths(patchFile)) {
+    for (const relativePath of patchTouchedPaths(fs.readFileSync(patchFile, "utf8"))) {
       const source = path.join(rootDir, relativePath);
       const destination = path.join(disposable, relativePath);
       if (fs.existsSync(source)) {
@@ -250,14 +268,20 @@ function pnpmInvocation(args: string[]): { command: string; args: string[] } {
     const command = args.join(" ");
     return {
       command: process.env.ComSpec ?? "cmd.exe",
-      args: ["/d", "/s", "/c", `pnpm ${command}`],
+      args: ["/d", "/s", "/c", `corepack pnpm ${command}`],
     };
   }
   return { command: "pnpm", args };
 }
 
 function commandFailureText(error: unknown): string {
-  if (error instanceof Error) return error.message;
+  if (error instanceof Error) {
+    const processError = error as Error & { stdout?: unknown; stderr?: unknown };
+    return [error.message, processError.stdout, processError.stderr]
+      .filter((value) => value !== undefined && value !== null)
+      .map((value) => (Buffer.isBuffer(value) ? value.toString("utf8") : String(value)))
+      .join("\n");
+  }
   if (typeof error === "object" && error !== null) {
     const result = error as { message?: unknown; stdout?: unknown; stderr?: unknown };
     return [result.message, result.stdout, result.stderr]
@@ -269,13 +293,87 @@ function commandFailureText(error: unknown): string {
 }
 
 function disposableRuntimeEnvironment(disposable: string): NodeJS.ProcessEnv {
-  return {
+  const environment: NodeJS.ProcessEnv = {
     ...process.env,
     EXPO_PUBLIC_BUILD_KIND: "automation",
     EXPO_PUBLIC_TEST_MODE: "true",
     EXPO_ROUTER_APP_ROOT: path.join(disposable, "app"),
     NODE_OPTIONS: [process.env.NODE_OPTIONS, "--preserve-symlinks-main"].filter(Boolean).join(" "),
   };
+  if (process.platform === "win32") {
+    const shimRoot = path.join(disposable, ".agentic-qa-shims");
+    fs.mkdirSync(shimRoot, { recursive: true });
+    fs.writeFileSync(path.join(shimRoot, "pnpm.cmd"), "@corepack pnpm %*\r\n", "utf8");
+    const inheritedPath = environment.Path ?? environment.PATH ?? "";
+    const pathWithShim = `${shimRoot}${path.delimiter}${inheritedPath}`;
+    environment.Path = pathWithShim;
+    environment.PATH = pathWithShim;
+  }
+  return environment;
+}
+
+function prepareDisposableDependencies(
+  rootDir: string,
+  disposable: string,
+  preparationRoot: string,
+): void {
+  const logPath = path.join(preparationRoot, "dependency-install.log");
+  const rootNodeModules = path.join(rootDir, "node_modules");
+  const disposableNodeModules = path.join(disposable, "node_modules");
+  const linkRootDependencies = (reason: string): void => {
+    if (!fs.existsSync(rootNodeModules))
+      throw new Error(`Root dependency topology is missing: ${rootNodeModules}`);
+    if (fs.existsSync(disposableNodeModules))
+      fs.rmSync(disposableNodeModules, { recursive: true, force: true });
+    fs.symlinkSync(
+      rootNodeModules,
+      disposableNodeModules,
+      process.platform === "win32" ? "junction" : "dir",
+    );
+    fs.writeFileSync(logPath, reason, "utf8");
+  };
+  if (process.platform !== "win32") {
+    try {
+      linkRootDependencies(
+        "Non-Windows disposable preparation reused root node_modules through a temporary symlink.\n",
+      );
+      return;
+    } catch (error) {
+      fs.writeFileSync(logPath, commandFailureText(error), "utf8");
+      throw new Error(
+        `Disposable dependency topology preparation failed: ${commandFailureText(error)}`,
+      );
+    }
+  }
+  try {
+    const invocation = pnpmInvocation([
+      "install",
+      "--offline",
+      "--ignore-scripts",
+      "--config.node-linker=hoisted",
+    ]);
+    const output = execFileSync(invocation.command, invocation.args, {
+      cwd: disposable,
+      encoding: "utf8",
+      env: disposableRuntimeEnvironment(disposable),
+      stdio: ["ignore", "pipe", "pipe"],
+      timeout: 600_000,
+    });
+    fs.writeFileSync(logPath, output, "utf8");
+  } catch (error) {
+    const detail = commandFailureText(error);
+    if (detail.includes("ERR_PNPM_NO_OFFLINE_TARBALL")) {
+      const diagnostic = [
+        "Windows disposable offline install could not complete because the local pnpm store is incomplete.",
+        "Root dependency topology reuse is intentionally not allowed on Windows because it can change Expo Router resolution and produce a false runtime.",
+        detail,
+      ].join("\n");
+      fs.writeFileSync(logPath, diagnostic, "utf8");
+      throw new Error(`Disposable dependency preparation is blocked: ${diagnostic}`);
+    }
+    fs.writeFileSync(logPath, detail, "utf8");
+    throw new Error(`Disposable dependency preparation failed: ${detail}`);
+  }
 }
 
 function runWebBuild(
@@ -283,6 +381,7 @@ function runWebBuild(
   preparationRoot: string,
   phase: "baseline" | "patched",
 ): void {
+  fs.mkdirSync(preparationRoot, { recursive: true });
   const logPath = path.join(preparationRoot, `${phase}-build.log`);
   try {
     const invocation = pnpmInvocation(["run", "build:web"]);
@@ -535,6 +634,15 @@ async function startWebRuntime(
         browserDiagnostics.push(`console:${message.type()}:${message.text()}`),
       );
       page.on("pageerror", (error) => browserDiagnostics.push(`pageerror:${error.message}`));
+      page.on("response", (response) => {
+        if (response.status() >= 400)
+          browserDiagnostics.push(`response:${response.status()}:${response.url()}`);
+      });
+      page.on("requestfailed", (request) =>
+        browserDiagnostics.push(
+          `requestfailed:${request.url()}:${request.failure()?.errorText ?? "unknown"}`,
+        ),
+      );
       return await callback(page);
     } finally {
       await browser.close();
@@ -593,6 +701,10 @@ async function prepareWebRuntime(
 ): Promise<{
   patch: PatchPreparation;
   runtimeSanity: RuntimeSanity;
+  patched_dist_root: string;
+  patched_runtime_url: string;
+  patched_runtime_title: string;
+  served_html: string;
 }> {
   const reset = initialStateForChallenge(challenge);
   const baseline = await runWebRuntimePhase(disposable, preparationRoot, "baseline", challenge);
@@ -611,6 +723,12 @@ async function prepareWebRuntime(
       scenario: reset.scenario,
       observation: "The patched runtime was reset after post-patch sanity on the same server.",
     };
+    const servedResponse = await fetch(`${patchedRuntime.baseUrl}/`, {
+      signal: AbortSignal.timeout(2_000),
+    });
+    if (servedResponse.status !== 200)
+      throw new Error("Patched runtime HTML readiness probe failed");
+    const servedHtml = await servedResponse.text();
     const runtimeSanity: RuntimeSanity = {
       platform: "web",
       baseline,
@@ -626,25 +744,21 @@ async function prepareWebRuntime(
       "post_patch_sanity",
       "scored_initial_state_reset",
     ];
-    fs.writeFileSync(
-      path.join(preparationRoot, "runtime-sanity.json"),
-      JSON.stringify(
-        {
-          platform: "web",
-          baseline,
-          patched: runtimeSanity.patched,
-          patch,
-          scored_initial_state_reset: scoredInitialStateReset,
-          order,
-        },
-        null,
-        2,
-      ),
-      "utf8",
-    );
+    writeCanonicalJsonFile(path.join(preparationRoot, "runtime-sanity.json"), {
+      platform: "web",
+      baseline,
+      patched: runtimeSanity.patched,
+      patch,
+      scored_initial_state_reset: scoredInitialStateReset,
+      order,
+    });
     return {
       patch,
       runtimeSanity,
+      patched_dist_root: path.join(disposable, "dist"),
+      patched_runtime_url: patchedRuntime.baseUrl,
+      patched_runtime_title: patchedRuntime.readiness.title,
+      served_html: servedHtml,
     };
   } finally {
     await patchedRuntime.stop();
@@ -673,6 +787,14 @@ export async function prepareChallenge(input: {
   runId: string;
   runDir: string;
   runtimeVariantId?: string | null;
+  preparedRuntimeUrl?: string;
+  allowedOrigins?: readonly string[];
+  hostProfileRevision?: `sha256:${string}`;
+  modelConfigurationIdentifier?: string;
+  hostCapabilityReceipt?: HostCapabilityReceipt;
+  runtimeHandoffReceipt?: RuntimeHandoffReceipt;
+  hostCapabilityReceiptPath?: string;
+  runtimeHandoffReceiptPath?: string;
   model?: string;
 }): Promise<ChallengePreparation> {
   const rootDir = input.rootDir ?? process.cwd();
@@ -691,18 +813,125 @@ export async function prepareChallenge(input: {
     answerKeySchema,
     "training/agentic-qa/instructor/answer-key/" + input.challengeId + ".json",
   );
-  const artifactRoot = path.join(rootDir, ".artifacts", "agentic-qa", runId, input.challengeId);
+  const runtimeVariant =
+    runtimeVariantId === null ? undefined : getRuntimeVariant(runtimeVariantId);
+  if (runtimeVariant !== undefined) {
+    if (challenge.target_platform !== runtimeVariant.platform)
+      throw new Error("Challenge platform does not match the requested Runtime Variant");
+    for (const coverage of challenge.required_coverage) {
+      if (coverage.viewport_or_device !== runtimeVariant.viewport_or_device)
+        throw new Error(
+          `Coverage ${coverage.coverage_id} does not match the requested Runtime Variant`,
+        );
+    }
+  }
+  const artifactRoot = agenticQaRunRoot(rootDir, runId);
+  const existingIdentityPath = path.join(artifactRoot, "trusted", "run-identity.json");
+  if (fs.existsSync(existingIdentityPath)) {
+    const existingIdentity = readCanonicalJsonFile<{ run_id?: unknown; challenge_id?: unknown }>(
+      existingIdentityPath,
+    );
+    if (existingIdentity.run_id !== runId || existingIdentity.challenge_id !== input.challengeId)
+      throw new Error(
+        `Official run identity is already bound to challenge ${String(existingIdentity.challenge_id)}`,
+      );
+  }
+  const existingBenchmarkManifestPath = path.join(
+    artifactRoot,
+    "trusted",
+    "benchmark-manifest.json",
+  );
+  if (fs.existsSync(existingBenchmarkManifestPath)) {
+    const existingBenchmarkManifest = parseJsonWithSchema(
+      readCanonicalJsonFile(existingBenchmarkManifestPath),
+      benchmarkManifestSchema,
+      "existing canonical benchmark manifest",
+    );
+    const expectedChallengePath = `training/agentic-qa/challenges/${input.challengeId}/challenge.json`;
+    if (existingBenchmarkManifest.challenge.path !== expectedChallengePath)
+      throw new Error(
+        `Official run already contains a different benchmark challenge: ${existingBenchmarkManifest.challenge.path}`,
+      );
+  }
+  const hostCapabilityReceipt =
+    input.hostCapabilityReceipt ??
+    (input.hostCapabilityReceiptPath === undefined
+      ? undefined
+      : parseJsonWithSchema(
+          readCanonicalJsonFile(input.hostCapabilityReceiptPath),
+          hostCapabilityReceiptSchema,
+          "host capability receipt",
+        ));
+  const runtimeHandoffReceipt =
+    input.runtimeHandoffReceipt ??
+    (input.runtimeHandoffReceiptPath === undefined
+      ? undefined
+      : parseJsonWithSchema(
+          readCanonicalJsonFile(input.runtimeHandoffReceiptPath),
+          runtimeHandoffReceiptSchema,
+          "runtime handoff receipt",
+        ));
+  if (
+    runtimeHandoffReceipt !== undefined &&
+    input.preparedRuntimeUrl !== undefined &&
+    new URL(input.preparedRuntimeUrl).toString() !== runtimeHandoffReceipt.runtime_url
+  )
+    throw new Error("Prepared Runtime URL does not match the trusted Runtime Handoff receipt");
+  if (runtimeHandoffReceipt !== undefined) {
+    if (
+      runtimeHandoffReceipt.run_id !== runId ||
+      runtimeHandoffReceipt.challenge_id !== input.challengeId
+    )
+      throw new Error("Runtime Handoff receipt run or Challenge identity differs from Preparation");
+  }
+  if (hostCapabilityReceipt !== undefined && hostCapabilityReceipt.run_id !== runId)
+    throw new Error("Host Capability Receipt run identity differs from Preparation");
+  if (
+    hostCapabilityReceipt !== undefined &&
+    runtimeVariant !== undefined &&
+    hostCapabilityReceipt.runtime_variant_id !== runtimeVariant.runtime_variant_id
+  )
+    throw new Error("Host Capability Receipt Runtime Variant differs from requested Variant");
+  fs.mkdirSync(path.join(artifactRoot, "trusted"), { recursive: true });
+  writeCanonicalJsonFile(path.join(artifactRoot, "trusted", "run-identity.json"), {
+    schema_version: 1,
+    run_id: runId,
+    challenge_id: input.challengeId,
+  });
+  if (hostCapabilityReceipt !== undefined)
+    writeCanonicalJsonFile(
+      path.join(artifactRoot, "trusted", "host-capability-receipt.json"),
+      hostCapabilityReceipt,
+    );
+  const preparationRoot = path.join(artifactRoot, "trusted", "preparation");
+  fs.mkdirSync(preparationRoot, { recursive: true });
+  const patchFile = fs.existsSync(paths.patch) ? paths.patch : null;
+  const protectedPatchValidation =
+    patchFile === null ? undefined : validateProtectedPatch({ rootDir, patchPath: patchFile });
+  if (protectedPatchValidation !== undefined) assertProtectedPatch(protectedPatchValidation);
+  if (protectedPatchValidation !== undefined)
+    writeCanonicalJsonFile(
+      path.join(artifactRoot, "trusted", "preparation", "protected-patch-validation.json"),
+      protectedPatchValidation,
+    );
   const learnerBundle = buildLearnerBundle(
     rootDir,
     challenge,
-    path.join(artifactRoot, "learner-spec"),
+    path.join(preparationRoot, "learner-spec"),
   );
-  const patchFile = fs.existsSync(paths.patch) ? paths.patch : null;
   const tool = copyToolProfile(rootDir);
-  const runnerProfile = createRunnerProfile({
-    model: input.model ?? "local-deterministic-runner",
+  const model =
+    hostCapabilityReceipt?.model_identifier ?? input.model ?? "local-deterministic-runner";
+  const modelConfigurationIdentifier =
+    hostCapabilityReceipt?.model_configuration_identifier ?? input.modelConfigurationIdentifier;
+  const hostProfileRevision =
+    hostCapabilityReceipt?.host_profile_revision ?? input.hostProfileRevision;
+  let runnerProfile = createRunnerProfile({
+    model,
     toolProfileRevision: tool.revision,
     challenge,
+    ...(modelConfigurationIdentifier === undefined ? {} : { modelConfigurationIdentifier }),
+    ...(hostProfileRevision === undefined ? {} : { hostProfileRevision }),
   });
   const benchmarkRevision = createBenchmarkRevision({
     rootDir,
@@ -716,15 +945,24 @@ export async function prepareChallenge(input: {
         : `training/agentic-qa/instructor/challenge-patches/${challenge.challenge_id}.patch`,
     runnerProfile,
   });
-  const preparationRoot = path.join(artifactRoot, "preparation");
-  fs.mkdirSync(preparationRoot, { recursive: true });
   const disposable = copyDisposableSource(rootDir);
   let patch: PatchPreparation;
   let runtimeSanity: RuntimeSanity;
   let isolatedRoot: IsolatedRunnerRoot | undefined;
   let forbiddenProbe: ForbiddenProbeResult[] | undefined;
   let actualToolScope: ActualToolScope | undefined;
+  let preparedWebRuntime: Awaited<ReturnType<typeof prepareWebRuntime>> | undefined;
+  let preparedTarget: PreparedTargetHandoff | undefined;
+  let runnerInputPackage: RunnerInputPackage | undefined;
+  let stagedPreparedTargetRoot: string | undefined;
+  let disposableCleaned = false;
+  const cleanup = (): void => {
+    if (disposableCleaned) return;
+    cleanupDisposableSource(disposable);
+    disposableCleaned = true;
+  };
   try {
+    prepareDisposableDependencies(rootDir, disposable, preparationRoot);
     if (challenge.target_platform !== "web")
       throw new Error(`Runtime sanity adapter is not implemented for ${challenge.target_platform}`);
     const prepared = await prepareWebRuntime(
@@ -734,14 +972,140 @@ export async function prepareChallenge(input: {
       preparationRoot,
       challenge,
     );
+    preparedWebRuntime = prepared;
     patch = prepared.patch;
     runtimeSanity = prepared.runtimeSanity;
+    if (runtimeVariant !== undefined) {
+      stagedPreparedTargetRoot = path.join(artifactRoot, "trusted", "prepared-target");
+      const stagedWebDist = path.join(stagedPreparedTargetRoot, "web-dist");
+      fs.mkdirSync(stagedPreparedTargetRoot, { recursive: true });
+      copyDirectoryWithoutSymlinks(prepared.patched_dist_root, stagedWebDist);
+      if (runtimeHandoffReceipt === undefined)
+        writeArtifactManifest(
+          path.join(stagedPreparedTargetRoot, "artifact-manifest.json"),
+          createArtifactManifest(stagedWebDist, "prepared_target", true),
+        );
+    }
+    if (preparedWebRuntime === undefined)
+      throw new Error("Preparation did not retain the patched runtime record");
+    // The staged dist no longer depends on the disposable source. Make the
+    // cleanup fact true before the Prepared Target is finalized.
+    cleanup();
+    if (
+      runtimeVariant !== undefined &&
+      stagedPreparedTargetRoot !== undefined &&
+      runtimeHandoffReceipt !== undefined
+    ) {
+      preparedTarget = finalizePreparedTargetHandoff({
+        rootDir,
+        targetRoot: stagedPreparedTargetRoot,
+        runId,
+        challengeId: challenge.challenge_id,
+        benchmarkRevision: benchmarkRevision.revision,
+        runtimeVariant,
+        sourceHeadSha: benchmarkRevision.manifest.source_head_sha,
+        patchSha256: patchFile === null ? null : canonicalSha256File(patchFile),
+        runtimeHandoffReceipt,
+        ...(input.allowedOrigins === undefined ? {} : { allowedOrigins: input.allowedOrigins }),
+        sourceCleanupCompleted: true,
+      });
+      const discoveredResources = discoverServedResources({
+        runtimeUrl: runtimeHandoffReceipt.runtime_url,
+        html: preparedWebRuntime.served_html,
+        artifactPaths: readArtifactManifest(preparedTarget.artifactManifestPath).files.map(
+          (file) => file.path,
+        ),
+      });
+      const boundaryProbe = createNotExecutedResourceBoundaryProbe({
+        runId,
+        artifactSha256: preparedTarget.targetRuntime.artifact_sha256,
+        resources: discoveredResources,
+        evidenceRefPrefix: `${agenticQaRef(runId, "trusted")}/`,
+      });
+      writeCanonicalJsonFile(
+        path.join(artifactRoot, "trusted", "resource-boundary-probe.json"),
+        boundaryProbe,
+      );
+      const initialState = deriveInitialStateGroup({ challenge, runtimeVariant });
+      const outputContract = createDefaultOutputContract(runId);
+      const skillRevision = canonicalSha256File(
+        path.join(rootDir, "training", "agentic-qa", "skills", "scored-v1.md"),
+      );
+      const runnerInput = createRunnerInput({
+        runId,
+        challenge,
+        learnerBundle,
+        runtimeUrl: preparedTarget.targetRuntime.runtime_url,
+        runtimeVariant,
+        initialState,
+        ...(input.allowedOrigins === undefined ? {} : { allowedOrigins: input.allowedOrigins }),
+        skillRevision,
+        runbookSha256: canonicalSha256File(
+          path.join(
+            rootDir,
+            "training",
+            "agentic-qa",
+            "challenges",
+            challenge.challenge_id,
+            "runbook.md",
+          ),
+        ),
+        challengeSha256: canonicalSha256File(paths.challenge),
+        outputContract,
+      });
+      runnerInputPackage = writeRunnerInputPackage({
+        rootDir,
+        inputRoot: path.join(artifactRoot, "input"),
+        challenge,
+        learnerBundle,
+        runnerInput,
+        outputContract,
+        learnerSafeInputArtifactManifestPath: path.join(
+          artifactRoot,
+          "trusted",
+          "learner-safe-input-artifact-manifest.json",
+        ),
+      });
+      if (
+        hostCapabilityReceipt !== undefined &&
+        hostCapabilityReceipt.learner_safe_input_artifact_sha256 !==
+          runnerInputPackage.learnerSafeInputArtifactManifest.artifact_sha256
+      )
+        throw new Error(
+          "Host Capability Receipt is not bound to the frozen learner-safe input artifact",
+        );
+      runnerProfile = createRunnerProfile({
+        model,
+        toolProfileRevision: tool.revision,
+        challenge,
+        ...(modelConfigurationIdentifier === undefined ? {} : { modelConfigurationIdentifier }),
+        skillRevision,
+        outputContractRevision: outputContract.revision,
+        ...(hostProfileRevision === undefined ? {} : { hostProfileRevision }),
+      });
+      if (
+        runnerProfile.model_configuration_identifier !== undefined &&
+        runnerProfile.skill_revision !== undefined &&
+        runnerProfile.output_contract_revision !== undefined &&
+        runnerProfile.host_profile_revision !== undefined
+      )
+        writeCanonicalJsonFile(
+          path.join(artifactRoot, "trusted", "runner-profile.json"),
+          officialRunnerProfileSchema.parse(runnerProfile),
+        );
+    }
     isolatedRoot = createIsolatedRunnerRoot({
-      outputRoot: path.join(artifactRoot, "isolated-run-root"),
+      outputRoot: path.join(artifactRoot, "trusted", "preparation", "isolated-run-root"),
       learnerBundle,
-      challengeDirectory: paths.directory,
       challenge,
+      ...(runnerInputPackage === undefined
+        ? { challengeDirectory: paths.directory }
+        : { frozenInputRoot: runnerInputPackage.inputRoot }),
     });
+    writeArtifactManifest(
+      path.join(preparationRoot, "isolated-run-root-artifact-manifest.json"),
+      createArtifactManifest(isolatedRoot.root, "isolated_runner_root", true),
+    );
     actualToolScope = {
       measured: false,
       source: "unavailable",
@@ -758,72 +1122,45 @@ export async function prepareChallenge(input: {
       "forbidden-probe",
     );
     assertForbiddenProbePasses(tool.profile, forbiddenProbe);
-    fs.writeFileSync(
-      path.join(preparationRoot, "forbidden-probe.json"),
-      `${JSON.stringify(forbiddenProbe, null, 2)}\n`,
-      "utf8",
+    writeCanonicalJsonFile(path.join(preparationRoot, "forbidden-probe.json"), forbiddenProbe);
+    writeCanonicalJsonFile(path.join(preparationRoot, "tool-scope.json"), actualToolScope);
+    if (isolatedRoot === undefined || forbiddenProbe === undefined || actualToolScope === undefined)
+      throw new Error("Preparation did not execute the isolated-root and Forbidden Probe step");
+    const revisionIdentity = benchmarkIdentity(
+      challenge.challenge_id,
+      benchmarkRevision.revision,
+      runtimeVariantId,
     );
-    fs.writeFileSync(
-      path.join(preparationRoot, "tool-scope.json"),
-      `${JSON.stringify(actualToolScope, null, 2)}\n`,
-      "utf8",
+    const preparationOrder = [...OFFICIAL_PREPARATION_SEQUENCE];
+    writeCanonicalJsonFile(path.join(preparationRoot, "preparation-order.json"), preparationOrder);
+    writeCanonicalJsonFile(
+      path.join(artifactRoot, "trusted", "benchmark-manifest.json"),
+      JSON.parse(benchmarkRevision.serialized_manifest) as unknown,
     );
+    return {
+      challenge,
+      answer_key: answerKey,
+      learner_bundle: learnerBundle,
+      benchmark_revision: benchmarkRevision,
+      benchmark_identity: revisionIdentity,
+      runner_profile: runnerProfile,
+      patch,
+      ...(protectedPatchValidation === undefined
+        ? {}
+        : { protected_patch_validation: protectedPatchValidation }),
+      runtime_sanity: runtimeSanity,
+      isolated_root: isolatedRoot,
+      forbidden_probe: forbiddenProbe,
+      actual_tool_scope: actualToolScope,
+      tool_scope_validated: false,
+      preparation_order: preparationOrder,
+      run_dir: input.runDir,
+      ...(preparedTarget === undefined ? {} : { prepared_target: preparedTarget }),
+      ...(runnerInputPackage === undefined ? {} : { runner_input_package: runnerInputPackage }),
+    };
   } finally {
-    cleanupDisposableSource(disposable);
+    cleanup();
   }
-  if (isolatedRoot === undefined || forbiddenProbe === undefined || actualToolScope === undefined)
-    throw new Error("Preparation did not execute the isolated-root and Forbidden Probe step");
-  const revisionIdentity = benchmarkIdentity(
-    challenge.challenge_id,
-    benchmarkRevision.revision,
-    runtimeVariantId,
-  );
-  const preparationOrder = [
-    "machine_contract_validation",
-    "required_coverage_derive",
-    "learner_safe_spec_bundle",
-    "benchmark_revision_and_identity",
-    "runner_profile",
-    "disposable_source_copy",
-    "baseline_build_serve_install",
-    "pre_patch_baseline_sanity",
-    "baseline_runtime_cleanup",
-    "git_apply_check_and_apply",
-    "patched_build_serve_install",
-    "post_patch_sanity",
-    "scored_initial_state_reset",
-    "isolated_execution_root",
-    "actual_tool_scope_unavailable",
-    "positive_tool_allowlist_and_forbidden_probe",
-    "runtime_stop_and_disposable_cleanup",
-  ];
-  fs.writeFileSync(
-    path.join(preparationRoot, "preparation-order.json"),
-    `${JSON.stringify(preparationOrder, null, 2)}\n`,
-    "utf8",
-  );
-  fs.mkdirSync(input.runDir, { recursive: true });
-  fs.writeFileSync(
-    path.join(input.runDir, `benchmark-manifest-${challenge.challenge_id}.json`),
-    benchmarkRevision.serialized_manifest,
-    "utf8",
-  );
-  return {
-    challenge,
-    answer_key: answerKey,
-    learner_bundle: learnerBundle,
-    benchmark_revision: benchmarkRevision,
-    benchmark_identity: revisionIdentity,
-    runner_profile: runnerProfile,
-    patch,
-    runtime_sanity: runtimeSanity,
-    isolated_root: isolatedRoot,
-    forbidden_probe: forbiddenProbe,
-    actual_tool_scope: actualToolScope,
-    tool_scope_validated: false,
-    preparation_order: preparationOrder,
-    run_dir: input.runDir,
-  };
 }
 
 function isMainModule(): boolean {
@@ -839,10 +1176,20 @@ async function main(): Promise<void> {
   challengeIdSchema.parse(challengeId);
   const runDir = requiredOptionValue(args, "--run-dir");
   const model = optionValue(args, "--model");
+  const modelConfigurationIdentifier = optionValue(args, "--model-configuration");
+  const hostCapabilityReceiptPath = optionValue(args, "--host-capability-receipt");
+  const runtimeHandoffReceiptPath = optionValue(args, "--runtime-handoff-receipt");
+  const runtimeVariantId = optionValue(args, "--runtime-variant");
+  const preparedRuntimeUrl = optionValue(args, "--runtime-url");
   const result = await prepareChallenge({
     challengeId,
     runId: path.basename(runDir),
     runDir,
+    ...(runtimeVariantId === undefined ? {} : { runtimeVariantId }),
+    ...(preparedRuntimeUrl === undefined ? {} : { preparedRuntimeUrl }),
+    ...(modelConfigurationIdentifier === undefined ? {} : { modelConfigurationIdentifier }),
+    ...(hostCapabilityReceiptPath === undefined ? {} : { hostCapabilityReceiptPath }),
+    ...(runtimeHandoffReceiptPath === undefined ? {} : { runtimeHandoffReceiptPath }),
     ...(model === undefined ? {} : { model }),
   });
   console.log(

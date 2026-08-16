@@ -26,7 +26,7 @@ Supporting Harness`.
 
 - Normal (default): `qa-charter.json` の `spec_refs[]` と Required Coverage を使い、既存のアプリ・テスト・生成物を読み取り専用で観察します。通常の変更境界は `.codex/runs/<run_id>/` と `.artifacts/` です。Source Working Tree に追加差分を作りません。
 - Gray-box: Normal と同じ Readonly Boundary を保ちつつ、許可された Seed、Test Control、Narrow Log、Accessibility/DOM などの検証補助を使います。Source、Test、Patch、Answer Key は見ません。
-- Black-box Scored: Agent自体の未知不具合探索能力を評価する場合だけ使用します。ChallengeのLearner-safe Bundle、Runbook、Challengeだけをisolated execution rootに配置し、Fresh Coding Agent Session、trusted session identity、Tool Isolation、trusted Actual Tool Scopeを必要とします。
+- Black-box Scored: Agent自体の未知不具合探索能力を評価する場合だけ使用します。ChallengeのLearner-safe Bundle、Runbook、自己完結した`training/agentic-qa/skills/scored-v1.md`、Canonical Runner Input、Source-free Prepared Runtimeだけを境界内へ配置し、Fresh Coding Agent Session、trusted session identity、Tool Isolation、trusted Actual Tool Scopeを必要とします。
 
 Normal / Gray-box の `qa-findings.json` は `charter_id` と `working_tree_snapshot`（before／after／comparison）を持ち、`challenge_id`、`benchmark_revision`、`runtime_variant_id`、`runner_profile` は `null` です。Black-box Scored は逆に `charter_id` が `null` で、Challenge、Benchmark Revision、Runtime Variant、Runner Profile を必ず記録します。モード間で結果やMetricを混ぜません。
 
@@ -62,32 +62,35 @@ Evidence は `.artifacts/` に保存するスクリーンショット、DOM/Acce
 
 ## Scored preparation and evaluation
 
-Challenge Preparation の順序は固定です。
+Challenge Preparation のCanonical sequenceは固定です。
 
 ```text
-Machine Contract validation
-→ Learner-safe Bundle / Benchmark Revision / Runner Profile
-→ disposable clean source copy
-→ Baseline Build / Serve / Install
-→ Pre-patch Baseline Sanity
-→ runtime cleanup / clean status
-→ git apply --check → git apply
-→ Patched Build / Serve / Install
-→ Post-patch Sanity
-→ Scored Initial State Reset
-→ isolated root / Tool Allowlist / Forbidden Probe
-→ runtime stop / disposable cleanup
-→ Fresh Coding Agent Session (provided by the Agent runtime / host)
-→ Frozen qa-findings.json
-→ Separate Evaluator
-→ evaluation.json
+machine_contract_challenge_spec_validation
+→ protected_patch_validation
+→ learner_safe_specification_bundle_benchmark_identity
+→ disposable_source_dependency_preparation
+→ baseline_build_pre_patch_sanity
+→ patch_apply
+→ patched_build_post_patch_sanity
+→ scored_initial_state_deterministic_reset_sanity
+→ source_free_prepared_target_copy_hash_validation
+→ learner_safe_runner_input_skill_runbook_output_contract_freeze
+→ isolated_runner_root_from_frozen_input
+→ repository_forbidden_boundary_preflight
+→ disposable_source_cleanup
+→ host_trusted_runtime_capability_handoff
 ```
 
 Challenge Patch は Instructor-only Unified Diff です。Application Branchへ適用してCommitせず、Runner Rootへコピーしません。Pre-patchで対象Defectが既に存在する、Post-patchで再現条件が成立しない、Patch checkが失敗する場合はScored Runを開始しません。
 
-Preparation HarnessはCoding Agentを起動せず、Agent Session生成、Tool routing、retryも担当しません。Fresh SessionがRuntime/Hostから提供されない場合、またはPreparationがpatched Target Runtimeをlive URL／booted deviceとしてFresh Sessionへsource-freeに引き渡すlifecycleを持たない場合は、Official Scoredを開始せず `BLOCKED / DEFERRED / NOT EXECUTED` と記録します。Repository独自のRunner／LLM wrapper／Session Managerで解決しません。
+Preparation HarnessはCoding Agentを起動せず、Agent Session生成、Tool routing、retryも担当しません。Host Capability Receiptがない、required proofが`proven`でない、またはSource-free Prepared Targetをtrusted URLとしてFresh Sessionへ引き渡せない場合は、Official Scoredを開始せず `BLOCKED / DEFERRED / NOT EXECUTED` と記録します。Repository独自のRunner／LLM wrapper／Session Managerで解決しません。未取得のHost証跡をRepository側で推測してPASSへ補完しません。
 
-Benchmark Identity は `challenge_id + benchmark_revision + runtime_variant_id`、同条件のRunner比較はこれに完全一致する Runner Profile を加えたものです。Clean committed inputだけ `git:<40 lowercase hex>`、それ以外は Runner Profileを除外したCanonical Benchmark Manifest Inputの `sha256:<64 lowercase hex>` を使います。Runner Profileだけが異なる比較ではBenchmark Revision／Identityは同じで、sameRunnerConditionだけがfalseになります。
+Repository-side deterministic implementationはHostなしでも進められますが、Official
+executionまたは`valid_for_scoring=true`にはHost Capability evidenceが必須です。
+`Sec-Fetch-Dest`は偽装可能なDefense-in-depth／browser UX情報であり、Security Boundary
+ではありません。正本はHost-trusted Tool IsolationとActual Resource Negative Probeです。
+
+Benchmark Identity は `challenge_id + benchmark_revision + runtime_variant_id`、同条件のRunner比較はこれにPrepared Target hash、Canonical Runner Input hash、Runner Profileを加えたものです。Clean committed inputだけ `git:<40 lowercase hex>`、それ以外はRuntime VariantとRunner Profileを除外したCanonical Benchmark Manifest Inputの `sha256:<64 lowercase hex>` を使います。Runtime Variantを変えてもBenchmark Revisionは変わらず、Benchmark IdentityとRunner Input hashが変わります。
 
 Evaluator は Frozen Finding を書き換えません。`invalid_non_atomic` は一 Finding = 一 FP、`FP_non_defect` は Precision の FP へ一度だけ加算しつつ FPR の `fp_non_defect` にも加算します。Environment/Harness による `blocked_environment` は `valid_for_scoring=false` と `invalid_reasons` に `environment_blocker` を付けます。真の Unexpected Valid Finding は元Runを再採点せず、Ground Truth更新後に新Revision + Fresh Re-runを行います。
 
@@ -107,5 +110,9 @@ Coverage = completed_required_coverage_items / required_coverage_items
 - `scripts/agentic-qa/validate-contracts.ts`: Cross-file と Run Artifact validation。
 - `scripts/agentic-qa/build-learner-bundle.ts`: `spec_refs[]` からの決定的Bundle。
 - `scripts/agentic-qa/prepare-challenge.ts`: disposable patch preparation、isolation、Forbidden Probe。Coding Agentは起動しない。
+- `scripts/agentic-qa/canonical-json.ts` / `canonical-artifact-manifest.ts`: identity-bearing JSONとPrepared/Frozen Artifactの共有正本。
+- `scripts/agentic-qa/runner-input.ts` / `prepared-runtime-lifecycle.ts`: Learner-safe Input、Scored Skill、Source-free Prepared Targetのfreezeとhash検証。
+- `scripts/agentic-qa/initial-state-bootstrap.ts` / `resource-boundary-probe.ts`: generic Initial State、Runtime Control、実配信resourceのnegative probe契約。
+- `scripts/agentic-qa/runner-output-import.ts` / `official-verification.ts` / `host-capability-gate.ts`: constrained output、Evidence Mapping、Host証跡のfail-close検証。
 - `scripts/agentic-qa/runner.ts` / `evaluate.ts`: Frozen Runner Result と Separate Evaluator。`runner.ts`はCoding Agentを起動しない。
 - `scripts/agentic-qa/working-tree-snapshot.ts`: Normal / Gray-box前後Snapshotと追加Source差分の比較。
