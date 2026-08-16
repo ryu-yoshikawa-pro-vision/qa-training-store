@@ -1,157 +1,242 @@
-# Codex Full Access 共通Git安全制御 / PreToolUse修復 実装計画
+# Codex Full Access 最小安全ガード / PreToolUse 修復計画
 
 ## 0. 目的
 
-Codex を Full Access で使用しても、**明確に危険なGit操作だけはproject共通ポリシーとして拒否する**。
+Codex を Full Access で使うときも、**明確に破壊的な操作だけは repository 共通ポリシーとして拒否する**。
 
-通常のGit作業まで制限しない。
+通常の開発作業は止めない。
 
-このPlanで扱うのは次の2点だけ。
+この Plan の責務は次の2点だけとする。
 
-1. 現在の `PreToolUse` Hook を installed Codex の actual runtime contract に合わせて正常動作させる。
-2. Full Accessでも残すべき destructive / history-rewrite 系の共通denyを実装・検証する。
+1. 現在の `PreToolUse` Hook を現行 Codex contract に合わせて正常化する。
+2. Full Access でも残すべき最小限の destructive guard を実装・検証する。
 
-## 1. ゴール
+通常 Git workflow、stage ownership、shell parser、追加 Hook、独自安全基盤は作らない。
 
-### 許可するもの
+---
 
-危険なoptionや対象でない限り、通常のGit操作は原則として制限しない。
+## 1. 最終設計
 
-例:
+### 1.1 Hook は1種類だけ使う
 
-```text
-git add
-git commit
-git push <feature-branch>
-git fetch
-git switch / checkout
-git merge
-git cherry-pick
-git revert
-git stash
-git tag
-git worktree
-```
-
-これらを包括的allowlistで管理しない。
-
-### Full Accessでも拒否するもの
-
-共通denyは、明確に次のいずれかへ該当する操作に限定する。
-
-1. 履歴を書き換える操作
-2. 作業中データを強制破棄する操作
-3. force push / ref強制更新
-4. default/protected branchへの直接更新
-5. destructiveなremote/ref/repository操作
-
-## 2. 完了条件
-
-### Hook runtime
-
-- [ ] installed Codex versionを記録する。
-- [ ] project `PreToolUse` Hookがloadされる。
-- [ ] Hook変更後のtrust / enabled stateを確認する。
-- [ ] root cwd / nested cwd / WindowsでHook commandが解決できる。
-- [ ] safe caseは `exit 0 / stdout empty / stderr empty` で継続する。
-- [ ] deny caseはinstalled runtimeが実際にblockと解釈する形式を返す。
-- [ ] malformed input等、Hook内部で検知した安全判定不能ケースはblockする。
-- [ ] Hook起動失敗は成功扱いせずverification failureとする。
-
-### Full Access common deny
-
-最低限、次を拒否する。
-
-#### History rewrite / ref rewrite
-
-- [ ] `git reset` family
-- [ ] `git rebase` family
-- [ ] `git commit --amend`
-- [ ] `git push --force`
-- [ ] `git push -f`
-- [ ] `git push --force-with-lease`
-- [ ] force refspec（先頭 `+` 等）
-- [ ] `git branch -f`
-- [ ] `git tag -f`
-- [ ] `git update-ref`
-- [ ] `git replace`
-- [ ] `git filter-branch`
-
-#### Working tree / data destruction
-
-- [ ] `git clean` family
-- [ ] destructive `git restore`（例: working tree変更の破棄）
-- [ ] destructive `git checkout`（例:強制破棄系option）
-- [ ] `git switch -C`
-- [ ] `git switch --discard-changes`
-- [ ] local branch削除 (`git branch -d` / `-D`)
-- [ ] `git rm`
-- [ ] `git stash drop`
-- [ ] `git stash clear`
-- [ ] `git reflog expire`
-- [ ] destructive prune / gc
-
-#### Remote / protected branch
-
-- [ ] default/protected branch上での直接commitを拒否する。
-- [ ] default/protected branchへの直接pushを拒否する。
-- [ ] pushによるremote branch/tag削除を拒否する。
-- [ ] `git push --mirror`
-- [ ] destructive remote mutation (`remote remove`, `set-url` 等)
-
-### 通常Git操作の回帰確認
-
-次が common guard によって一律禁止されていないことを確認する。
-
-- [ ] `git add`
-- [ ] 通常 `git commit`
-- [ ] feature branchへの通常 `git push`
-- [ ] `git fetch`
-- [ ] 通常branch切替
-- [ ] `git merge`
-- [ ] `git cherry-pick`
-- [ ] `git revert`
-- [ ] `git stash`
-- [ ] 通常tag操作
-- [ ] `git worktree`
-
-ただし、各commandに上記common denyへ該当する危険optionが付く場合は拒否する。
-
-## 3. Safety boundary
-
-### Required local layers
+使用する lifecycle Hook は **`PreToolUse` のみ**とする。
 
 ```text
-execpolicy
-  -> 明確なhigh-risk commandをstatic deny
-
-PreToolUse
-  -> protected/default branch等、contextが必要なdeny
-  -> static ruleだけでは表現しにくいdangerous option判定
-
-wrapper / verify
-  -> unsafe overrideやHook不成立を検知
+Hooks framework
+└─ PreToolUse
+   └─ Bash only
+      └─ .codex/hooks/pre_tool_use_policy.mjs
 ```
 
-### GitHub Ruleset / Branch Protection
+追加しないもの:
 
-GitHub Ruleset / Branch Protectionは存在する場合の追加防御として扱う。
+- `PermissionRequest`
+- `PostToolUse`
+- `SessionStart` / `SessionEnd`
+- `UserPromptSubmit`
+- Subagent 系 Hook
 
-- このPlanのlocal safety成立条件には数えない。
-- Ruleset作成・同期は今回のscope外。
-- server-side protectionがあってもlocal guardの代替にはしない。
+理由:
 
-### PreToolUseの限界
+- 今回必要なのは「危険操作を tool 実行前に止めること」だけである。
+- `PermissionRequest` は approval が発生する場合の Hook であり、Full Access 共通ガードの正本にしない。
+- `PostToolUse` は side effect 発生後なので破壊防止には使わない。
 
-PreToolUse単独を完全なenforcement boundaryとはみなさない。
+### 1.2 Matcher は `Bash` だけにする
 
-Hookが観測できない実行経路まで完全監視する仕組みは今回作らない。
+現行 Codex では shell / unified exec は Hook 上 `Bash` として扱われる。
 
-そのため、shell / REPL / script実行をFull Accessで包括的に禁止することもしない。
+よって matcher は次を正本とする。
 
-## 4. Protected branch の定義
+```toml
+[[hooks.PreToolUse]]
+matcher = "^Bash$"
+```
 
-repository-local common guardでは次をprotected扱いする。
+`Shell` / `PowerShell` 等の非 canonical alias を並べない。
+
+`apply_patch` も今回の matcher から外す。
+
+理由:
+
+- repository の既存方針では command-based deletion と意図的な patch edit を分離している。
+- `apply_patch` の通常 Add / Update / Delete / Move は開発作業として許可する。
+- Full Access の通常リファクタリングまで Hook で妨げない。
+
+### 1.3 Canonical Hook は Node.js 1本
+
+```text
+.codex/hooks/pre_tool_use_policy.mjs
+```
+
+- PowerShell / Python に policy logic を重複させない。
+- 現在の `.ps1` / `.py` は config 参照を外し、検証後に削除する。
+- Node.js は repository の既存 runtime を使い、新Dependencyは追加しない。
+
+### 1.4 Config は現行 canonical keyへ寄せる
+
+```toml
+[features]
+hooks = true
+```
+
+deprecated alias `codex_hooks` は残さない。
+
+Hook command は repository root を解決して script を呼ぶ。
+
+- macOS / Linux: `command`
+- Windows: `command_windows` または installed runtime が受理する canonical Windows field
+
+current working directory が repository subdirectory でも起動できることを確認する。
+
+### 1.5 Hook の出力は最小化する
+
+Safe:
+
+```text
+exit 0
+stdout empty
+stderr empty
+```
+
+Deny:
+
+- 現行 Codex の structured `PreToolUse` deny output を正本とする。
+- non-empty reason を返す。
+
+Malformed JSON / Hook 内部例外:
+
+- exit code `2` + stderr reason で block する。
+
+Wave 0 で installed runtime が両形式を実際に block と扱うことを確認する。
+
+---
+
+## 2. 現状の問題
+
+### 2.1 Hook 設定が古い
+
+現在:
+
+```toml
+[features]
+codex_hooks = true
+```
+
+`codex_hooks` は deprecated alias なので `hooks` へ変更する。
+
+### 2.2 Matcher が広すぎる
+
+現在:
+
+```text
+Bash|Shell|PowerShell|apply_patch|Edit|Write
+```
+
+今回必要なのは `Bash` だけである。
+
+### 2.3 Hook implementation が二重化している
+
+現在:
+
+- `.codex/hooks/pre_tool_use_policy.ps1`
+- `.codex/hooks/pre_tool_use_policy.py`
+
+ほぼ同じ policy が2箇所に存在し、drift risk がある。
+
+Node.js 1本へ統一する。
+
+### 2.4 Hook command が `pwsh` + relative path 固定
+
+現在:
+
+```text
+pwsh ... -File .codex/hooks/pre_tool_use_policy.ps1
+```
+
+これは `pwsh` availability と cwd に依存する。
+
+repository root 解決型の command へ変更する。
+
+### 2.5 Payload 全体を recursive scan している
+
+現在は `command`, `content`, `text`, `patch` 等を広く再帰走査している。
+
+そのため documentation / source / fixture に危険 command 文字列を書いただけでも false positive になり得る。
+
+新 Hook は `tool_name == "Bash"` の `tool_input.command` だけを見る。
+
+### 2.6 Git 通常操作を一律禁止している
+
+現在の Hook / execpolicy は `git add`, `git commit`, `git push` を blanket deny している。
+
+これは解除する。
+
+### 2.7 `apply_patch` の Delete / Move block は今回削除する
+
+intentional patch edit は通常開発操作として扱う。
+
+command-based deletion と patch edit を同一視しない。
+
+---
+
+## 3. Full Access common deny
+
+### 3.1 原則
+
+**allowlist は作らない。**
+
+```text
+明確な destructive pattern
+  -> deny
+
+それ以外
+  -> common guard では deny しない
+```
+
+通常の mutation を「安全だと証明できるまで禁止する」設計にはしない。
+
+### 3.2 Git — 必ず deny
+
+#### History / ref rewrite
+
+- `git reset` family
+- `git rebase` family
+- `git commit --amend`
+- `git push --force`
+- `git push -f`
+- `git push --force-with-lease`
+- push の force refspec (`+...`)
+- `git branch -f`
+- `git branch -D`
+- `git tag -f`
+- `git update-ref`
+- `git replace`
+- `git filter-branch`
+
+#### Working data loss
+
+- `git clean` family
+- `git rm`
+- `git stash drop`
+- `git stash clear`
+- working tree を破棄する `git restore`
+- path を破棄する `git checkout -- ...`
+- `git switch -C`
+- `git switch --discard-changes`
+- `git reflog expire`
+- destructive / aggressive prune
+
+通常の `git checkout <branch>` / `git switch <branch>` は許可する。
+
+#### Remote destruction
+
+- push による remote branch / tag delete
+- `git push --mirror`
+
+### 3.3 Protected branch — direct update を deny
+
+repository-local protected set:
 
 ```text
 main
@@ -159,106 +244,94 @@ master
 resolved repository default branch
 ```
 
-Default branchはlocal `origin/HEAD` 等のread-only metadataから解決する。
+Default branch は local `origin/HEAD` 等の read-only metadata から解決する。
 
-解決不能時は最低限 `main` / `master` を保護する。
+Protected branch では、直接 history を進める操作を拒否する。
 
-GitHub Rulesetで追加保護されているbranchを動的取得する仕組みは追加しない。
+最低対象:
 
-## 5. Hook修復方針
+- `git commit`
+- `git merge`
+- `git cherry-pick`
+- `git revert`
+- `git pull`
 
-### 5.1 Installed runtimeを正本にする
+また protected branch への直接 push を拒否する。
 
-実装時の優先順位:
-
-```text
-1. installed Codex actual behavior
-2. installed versionに対応するofficial OpenAI docs / schema
-3. current openai/codex implementation
-4. repository legacy implementation
-```
-
-Wave 0で次を実測する。
-
-- installed Codex version
-- project Hook discovery / trust
-- actual `PreToolUse` matcher alias
-- shell / apply_patch のactual `tool_input`
-- safe output contract
-- deny output contract
-- Full Access経路でもHookが発火するか
-- Full Access経路で観測されるactual `permission_mode`
-
-`permission_mode` の値は事前に固定しない。
-
-### 5.2 Node.jsへ単一化
-
-Canonical implementation:
+例:
 
 ```text
-.codex/hooks/pre_tool_use_policy.mjs
+git push origin main                 -> deny
+git push origin HEAD:main            -> deny
+main 上で bare git push              -> deny
+feature branch の通常 git push       -> allow
 ```
 
-- PowerShell / Pythonへpolicy logicを重複させない。
-- `.ps1` / `.py` のruntime参照をなくす。
-- 旧ファイルは参照ゼロ確認後に削除する。
+GitHub Ruleset 全体を API で同期する仕組みは作らない。
 
-### 5.3 Tool inputだけを見る
+### 3.4 通常 Git 操作は許可
 
-Payload全体をrecursive scanしない。
-
-- shell tool -> actual command fieldだけ解析
-- `apply_patch` -> actual patch operationだけ解析
-- Markdown / source / fixture本文の危険command文字列はblockしない
-
-`apply_patch` では actual Delete / Move operationだけをdeny対象とし、本文中の同文字列を誤検知しない。
-
-## 6. Git deny policy
-
-### 6.1 基本原則
-
-**allowlist + unknown deny方式にはしない。**
-
-通常Git操作は原則通し、明示したdangerous patternだけをdenyする。
-
-```text
-matches common destructive deny
-  -> deny
-
-otherwise
-  -> Hook common policyではdenyしない
-```
-
-### 6.2 Context-sensitive deny
-
-次だけGit context resolverを使う。
-
-- current branchがprotected/default branchか
-- push destinationがprotected/default branchか
-
-resolverはHook内部から固定argvのread-only Git commandで実行し、user-provided shell stringを再利用しない。
-
-### 6.3 Shell composition
-
-危険操作をwrapperへ埋め込むだけで回避できないようにする。
-
-最低限、shell commandとして受け取った実行文字列内にcommon deny対象Git commandが含まれる場合はblockする。
-
-ただし、完全なshell parserを作らない。
-
-通常のshell / REPL / one-shot script自体をFull Accessで包括禁止しない。
-
-## 7. execpolicy同期
-
-`.codex/rules/30-destructive-forbidden.rules` から次のblanket forbiddenを外す。
+common guard では次を一律禁止しない。
 
 ```text
 git add
-git commit
-git push
+git commit                  # non-protected branch
+git push                    # non-protected destination
+git fetch
+git pull                    # non-protected branch
+git switch
+git checkout                # branch switch
+git merge                   # non-protected branch
+git cherry-pick             # non-protected branch
+git revert                  # non-protected branch
+git stash push/apply/pop
+git tag                     # non-force
+git worktree
 ```
 
-代わりに、staticに表現できる明確なhigh-risk操作だけをforbiddenとして残す / 追加する。
+---
+
+## 4. 非Git destructive guard
+
+この PR では新しい非Gitポリシーを増やさない。
+
+現在 Hook が持つ非Git判定は次の基準で整理する。
+
+### Full Access common deny として残す
+
+明確に破壊・削除を行うものだけ:
+
+- command-based file deletion (`rm`, `del`, `erase`, `rmdir`, `unlink`, `Remove-Item`)
+- `find ... -delete`
+- `rsync --delete`
+- `robocopy /MIR`
+- forced overwrite (`mv -f`, `Move-Item -Force`, `Rename-Item -Force`)
+- Docker prune
+- `terraform destroy`
+- `kubectl delete`
+- `helm uninstall`
+- `aws s3 rm`
+- `az group delete`
+- `gcloud projects delete`
+- remote script piping to shell / `Invoke-Expression`
+
+### Full Access common Hook から外す
+
+通常の変更操作まで hard deny しない。
+
+- `terraform apply`
+- `kubectl apply`
+- `apply_patch` Delete / Move
+
+`npm publish` 等、Hook外の既存 execpolicy ポリシーは今回の目的と直接関係しないため、この PR では再設計しない。
+
+---
+
+## 5. execpolicy と PreToolUse の責務
+
+### 5.1 execpolicy
+
+static に表現できる destructive prefix の正本とする。
 
 例:
 
@@ -268,207 +341,256 @@ git rebase
 git clean
 git rm
 git update-ref
-git replace
 obvious force push
+rm / Remove-Item
+terraform destroy
+kubectl delete
+...
 ```
 
-protected branchやcurrent branchのようなcontext-sensitive判定はPreToolUseへ寄せる。
+現行 Rules は単純な shell chain を分割して各 command に適用できるため、custom shell parser は作らない。
 
-safe / auto-net等のpreset役割は今回変更しない。
+### 5.2 PreToolUse
 
-## 8. テスト
+次の補完だけ担当する。
 
-正本:
+1. argument 内に現れる destructive option
+   - `commit --amend`
+   - force push variants
+   - push delete / mirror / force refspec
+   - destructive restore / checkout 等
+2. context-sensitive protected branch 判定
+3. execpolicy だけでは表しづらい既存 destructive pattern
+
+### 5.3 同じ parser を二重実装しない
+
+- execpolicy は prefix / command argv 判定
+- PreToolUse は Bash command text + repository context の最小判定
+
+完全な shell grammar を再実装しない。
+
+PreToolUse が観測しない path や `write_stdin` 等まで完全に監視する仕組みも作らない。
+
+Hooks は guardrail であり完全な sandbox ではない、という前提を documentation に残す。
+
+---
+
+## 6. 実装 Wave
+
+### Wave 0 — installed runtime確認
+
+実装前に次だけ実測する。
+
+- Codex version
+- project Hook discovery / trust
+- `features.hooks`
+- `PreToolUse` matcher `Bash`
+- `tool_input.command`
+- safe output behavior
+- structured deny behavior
+- exit `2` deny behavior
+- actual Full Access 経路で Hook が発火すること
+- actual `permission_mode`
+- Full Access で execpolicy `forbidden` が有効か
+
+重要:
+
+- Full Access と特定 `permission_mode` を事前に同一視しない。
+- Full Access で execpolicy が有効なら static deny は Rules を正本とする。
+- Full Access で execpolicy が無効なら、同じ最小 static deny set を PreToolUse 側にも保持する。
+- この確認前に `git add/commit/push` blanket deny を解除しない。
+
+### Wave 1 — Hook runtime修復
+
+- `[features].hooks = true`
+- matcher `^Bash$`
+- Node canonical Hook追加
+- root-resolved `command`
+- Windows command override
+- `.ps1` / `.py` runtime参照削除
+- `/hooks` で changed Hook を review / trust
+
+### Wave 2 — minimal destructive policy
+
+- Git destructive deny
+- protected branch direct-update deny
+-既存の明確な非Git destructive denyのみ移植
+- `git add/commit/push` blanket deny削除
+- `terraform apply` / `kubectl apply` を common Hook hard deny から除外
+- `apply_patch` guard削除
+
+### Wave 3 — execpolicy同期
+
+- static destructive rulesを整理
+- blanket `git add/commit/push` forbidden削除
+- HookとRulesの責務重複を最小化
+- unrelated policyは変更しない
+
+### Wave 4 — tests / verify
+
+Contract test正本:
 
 ```text
 tests/contracts/codex-pre-tool-use-policy.test.ts
 ```
 
-### Hook contract
-
-- safe input -> continue
-- policy deny -> block
-- malformed input -> block
-- Hook process失敗をverificationで検知
-- Hook変更後のtrust / invocation確認
-
-### Must deny
-
 最低限:
 
+#### Allow
+
 ```text
-git reset --hard HEAD~1
+git add file.ts
+git commit -m test                  # feature branch
+git push                            # feature branch
+git push origin feature/x
+git fetch origin
+git switch feature/x
+git checkout feature/x
+git merge feature/y                 # feature branch
+git cherry-pick <sha>               # feature branch
+git revert <sha>                    # feature branch
+git stash push
+git tag v1.0.0
+git worktree add ...
+terraform apply ...
+kubectl apply ...
+```
+
+#### Deny
+
+```text
+git reset --hard HEAD
 git reset --soft HEAD~1
 git rebase main
-git commit --amend -m test
+git commit --amend
 git push --force origin feature/x
 git push --force-with-lease origin feature/x
 git push origin +feature/x
 git clean -fd
-git rm file.txt
+git rm file.ts
 git branch -D feature/x
-git update-ref ...
-git remote set-url origin ...
-protected/default branch commit
-protected/default branch push
+git stash clear
+git push origin --delete feature/x
+git push --mirror
+git push origin main
+main 上の git commit
+main 上の git merge
+rm file.txt
+terraform destroy
+kubectl delete pod x
 ```
 
-### Must not blanket deny
+#### False positive
 
-最低限:
+- source / Markdown / fixture に `git push --force` と書くだけ -> allow
+- `apply_patch` normal Add / Update / Delete / Move -> Hook対象外
 
-```text
-git add file.txt
-git commit -m test
-git push origin feature/x
-git fetch origin
-git switch feature/x
-git merge feature/y
-git cherry-pick <sha>
-git revert <sha>
-git stash push
-git tag v1.0.0
-git worktree add ...
-```
+### Wave 5 — actual acceptance
 
-### False positive
+Production checkout で destructive probe を実行しない。
 
-- Markdownに `git push --force` と記載 -> file edit自体はallow
-- test fixtureへdestructive command文字列を保存 -> allow
-- normal `apply_patch` Add / Update -> allow
-- actual `apply_patch` Delete / Move -> deny
+Temporary clone + local bare remote で確認する。
 
-## 9. Real-run acceptance
+Normal / Full Access 双方で:
 
-Production checkoutでdestructive probeを実行しない。
+- Hook invocation evidence
+- normal Git operation succeeds
+- protected branch direct update blocked
+- destructive operation blocked
 
-temporary clone + local bare remoteをtest harness側で準備する。
+Full Access ではさらに:
 
-candidate Codex session外でfixtureを構築する。
-
-確認:
-
-### Normal mode
-
-- Hook invocationあり
-- `git add` 成功
-- 通常commit成功
-- feature branch通常push成功
-- destructive probeはblock
-
-### Full Access
-
-- ユーザーが実際に使用するFull Access経路で起動
 - actual `permission_mode` を記録
-- Hook invocationあり
-- 通常Git操作成功
-- destructive Git probeがtool execution前にblock
-- local / remote sentinel stateが不変
+- static Rules が有効かを記録
+- Hook deny が tool 実行前に効くことを確認
+- deny 後に local / remote sentinel が変化していないことを確認
 
-Full AccessでHookが発火しない、またはdenyしても実行される場合はBLOCKEDとする。
+### Wave 6 — docs同期
 
-## 10. 実装Wave
-
-### Wave 0 — Runtime contract確認
-
-- installed Codex version
-- Hook discovery / trust
-- matcher / input / output contract
-- Full Access Hook invocation
-
-このGateが通るまではblanket `git add/commit/push` forbiddenを解除しない。
-
-### Wave 1 — Hook runtime修復
-
-- `.codex/config.toml` をinstalled runtimeへ合わせる
-- Node canonical Hook追加
-- Windows / nested cwd起動確認
-- legacy Hook logic除去
-
-### Wave 2 — Common destructive deny実装
-
-- history rewrite
-- force push / forced ref update
-- destructive working tree操作
-- protected/default branch direct update
-- destructive remote/ref操作
-
-通常Git操作のallowlistは作らない。
-
-### Wave 3 — execpolicy同期
-
-- blanket `git add/commit/push`禁止解除
-- static high-risk deny維持
-- mode-specific rulesとの矛盾除去
-
-### Wave 4 — Tests / verify
-
-- Hook contract tests
-- common deny tests
-- normal Git regression tests
-- false-positive tests
-- wrapper / verify同期
-
-### Wave 5 — Real-run
-
-- disposable repositoryでNormal run
-- disposable repositoryでactual Full Access run
-- destructive operationがblockされることを確認
-
-### Wave 6 — Docs同期
+必要な範囲だけ更新する。
 
 - `AGENTS.md`
 - `docs/reference/codex-safety-harness.md`
 - `.codex/rules/README.md`
 - `.codex/requirements.toml`
 
-実装内容と一致する範囲だけ更新する。
+---
 
-## 11. Non-goals
+## 7. Non-goals
 
 今回やらないこと:
 
-- 通常Git workflowの設計
-- Git commandの包括的allowlist
-- unknown Git mutationの一律deny
-- clean working tree強制
+- Hook種類の追加
+- `PermissionRequest` / `PostToolUse`導入
+- `apply_patch`監視
+- Git allowlist
+- unknown Git mutation一律deny
 - stage ownership管理
-- `git add`対象path制限
-- 1 commit / 1 add制限
+- clean working tree強制
+- safe Git workflow設計
+- bare push禁止
 - merge / cherry-pick / revert / stash / tag / worktreeの包括禁止
-- shell / REPLの包括禁止
-- safe / auto-net presetの再設計
-- GitHub Ruleset自動同期
-- remote URL監査基盤
-- 完全shell parser
-- arbitrary child processの完全監視
+- shell / REPL全面禁止
+- custom shell parser
+- `write_stdin` workaround基盤
+- arbitrary child process監視
+- GitHub Ruleset同期
+- remote URL監査
+- preset再設計
+-新しい安全platform
 
-## 12. 最終成功判定
+---
 
-次をすべて満たした場合のみ完了。
+## 8. 完了条件
+
+次をすべて満たしたら完了とする。
 
 ```text
-PreToolUseがinstalled Codexで正常動作
+PreToolUse only
 +
-Full Access経路でもHook発火
+Bash matcher only
 +
-通常 add / commit / feature push がcommon guardで止まらない
+Node Hook 1本
 +
-明確なdestructive/history-rewrite Git操作だけblock
+canonical hooks feature key
 +
-default/protected branch直接更新block
+root / nested cwd / Windows invocation PASS
 +
-execpolicyのblanket add/commit/push禁止解除
+Full Access でも Hook invocation PASS
 +
-static high-risk deny維持
+normal Git operations are not blanket blocked
++
+normal apply_patch is not Hook-blocked
++
+clear destructive Git operations blocked
++
+protected/default branch direct update blocked
++
+clear existing non-Git destructive operations blocked
++
+no custom shell parser
 +
 contract tests PASS
 +
-Normal real-run PASS
+Normal acceptance PASS
 +
-Full Access destructive probe PASS
+Full Access acceptance PASS
 +
-既存safety docsと実装が一致
+docs / rules / Hook behavior一致
 ```
 
-このPlanの目的は、**Full Accessを実質的に制限モードへ戻すことではなく、Full Accessでも越えてはいけない最小限の破壊的境界だけを残すこと**である。
+この Plan の基準は一つだけである。
+
+> **Full Access を実質的な制限モードへ戻さず、取り返しのつきにくい破壊だけを最小限止める。**
+
+---
+
+## 9. 実装時の参照優先順位
+
+1. installed Codex actual behavior
+2. OpenAI Codex Hooks official documentation
+3. OpenAI Codex Config Reference
+4. OpenAI Codex Rules official documentation
+5. repository existing policy / implementation
+
+Current upstream の仕様と installed runtime が食い違う場合は、実測結果を記録して Plan を更新してから進める。
