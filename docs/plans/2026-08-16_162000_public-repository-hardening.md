@@ -114,7 +114,7 @@ Deployment Credential まで信頼できない主体には write-capable access 
 
 - trust classification は Repository Owner の明示判断とする
 - 実装者 / AI agent は GitHub role、過去の commit、account 名、所属 Organization 等から trust を推定しない
-- 実装者 / AI agent は Owner の明示指示なしに collaborator / App 等の権限を変更しない
+- 実装者 / AI agent は Owner の明示指示なしに collaborator / App / Deploy Key 等の権限を変更しない
 - classification 未確定でも他の Hardening は進めてよい
 - classification 未確定のまま Cloudflare trust boundary を完了扱いにしない
 
@@ -247,6 +247,7 @@ Ruleset の最終 Required check は P-14 に従って `validate` とする。
 
 - direct collaborator の Write / Maintain / Admin
 - Contents / Workflows 等の write 権限を持つ GitHub App installation
+- write access が有効な Deploy Key
 - Repository owner が Organization へ変わっている場合は team 経由の write-capable access
 
 Deployment Credential trust は Repository Owner の明示判断で確定する。
@@ -266,7 +267,7 @@ Owner判断が未確定
 
 実装者 / AI agent は trust を推定しない。
 
-実装者 / AI agent は Owner の明示指示なしに collaborator / App 等の権限を変更しない。
+実装者 / AI agent は Owner の明示指示なしに collaborator / App / Deploy Key 等の権限を変更しない。
 
 Cloudflare Token は provider 側で可能な限り必要最小権限にする。
 
@@ -644,17 +645,18 @@ CODE_REVIEW.md              # 既存記載と矛盾する場合のみ最小修�
 4. self-hosted runner 不在確認
 5. direct collaborator の Write / Maintain / Admin を Inventory
 6. Contents / Workflows 等の write 権限を持つ GitHub App installation を Inventory
-7. Repository owner が Organization へ変わっている場合は team 経由の write-capable access を Inventory
-8. Owner に各 write-capable principal の Deployment Credential trust classification を確認
-9. 実装者 / AI agent は trust を推定しない
-10. Owner の明示指示なしに collaborator / App 等の権限を変更しない
-11. Cloudflare Secret / Token scope を確認
-12. Preview / Production の Token / Pages project 共有状態と blast radius を確認
-13. Token 共有を継続する場合は Owner の明示承認と P-05 の代替制御を確認
-14. GitHub Settings Current State 確認
-15. Existing vulnerability / malware / secret findings を Inventory
-16. `main-protection` Current State を確認
-17. `verify.if: always()` / `validate.if: always()` の Current State を確認
+7. write access が有効な Deploy Key を Inventory
+8. Repository owner が Organization へ変わっている場合は team 経由の write-capable access を Inventory
+9. Owner に各 write-capable principal の Deployment Credential trust classification を確認
+10. 実装者 / AI agent は trust を推定しない
+11. Owner の明示指示なしに collaborator / App / Deploy Key 等の権限を変更しない
+12. Cloudflare Secret / Token scope を確認
+13. Preview / Production の Token / Pages project 共有状態と blast radius を確認
+14. Token 共有を継続する場合は Owner の明示承認と P-05 の代替制御を確認
+15. GitHub Settings Current State 確認
+16. Existing vulnerability / malware / secret findings を Inventory
+17. `main-protection` Current State を確認
+18. `verify.if: always()` / `validate.if: always()` の Current State を確認
 
 Owner の trust classification が未確定でも、権限変更を伴わない Repository Hardening は継続してよい。
 
@@ -977,10 +979,10 @@ Dependency / CI:
 Cloudflare trust:
 
 - 全 write-capable principal を Inventory 済み
-- direct collaborator に加え、該当する GitHub App installation / team access を確認済み
+- direct collaborator に加え、該当する GitHub App installation / write-enabled Deploy Key / team access を確認済み
 - Owner の trust classification を確認済み、または未確定として明示済み
 - 実装者 / AI agent が trust を推定していない
-- Owner の明示指示なしに collaborator / App 等の権限を変更していない
+- Owner の明示指示なしに collaborator / App / Deploy Key 等の権限を変更していない
 - Cloudflare Token permission / resource scope確認済み
 - Preview / Production の Token / Pages project 共有状態と blast radius確認済み
 - Token 共有継続時は Owner の明示承認と P-05 の代替制御を確認済み、または未完了として明示済み
