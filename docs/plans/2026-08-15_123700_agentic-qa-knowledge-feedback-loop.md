@@ -1,9 +1,9 @@
 # QA Training・Agentic QA 継続改善・知見循環計画
 
-- Plan Revision: `v12`
+- Plan Revision: `v13`
 - Status: `Draft / Review Required`
 - Created: 2026-08-15 JST
-- Revised: 2026-08-15 JST
+- Revised: 2026-08-16 JST
 - Scope: Test Target / Test Automation / Agentic QA / Experiment / Knowledge Promotion / Curriculum Operating Plan
 
 ## 0. 位置づけ
@@ -24,7 +24,7 @@ Agentic QAのFailureはSkill / HarnessだけでなくSpecification、Test Target
 このPlanの中心は「Agentを使うこと」「機能を増やすこと」「教材を増やすこと」ではない。
 
 > **Test Target、Curriculum、QA SystemをExperimentとEvidenceで継続的に改善し、
-> より現実的で難しいQAを高品質に実行・学習できるRepositoryへ育てる。**
+> より現実的で意味のあるQAを高品質に実行・学習できるRepositoryへ育てる。**
 
 目的は次の10点である。
 
@@ -36,12 +36,46 @@ Agentic QAのFailureはSkill / HarnessだけでなくSpecification、Test Target
 6. Known Regressionを適切なTest LayerへDeterministic Automationとして固定できる。
 7. CurriculumをTest Target、QA Risk、Tooling、Agentic QAの進化へ追従させる。
 8. False Positive、False Negative、Scope Violation、Regression、Flake等を減らす改善Loopを作る。
-9. 実験結果を再利用可能なKnowledgeへ変換し、必要なArtifactへPromotionできる。
-10. Promotion後の効果を正式なExperimentで再評価し、新しいQuestionへ戻せる。
+9. 再利用価値のある実験結果だけをKnowledgeへ変換し、必要なArtifactへPromotionできる。
+10. Promotion後の効果を必要な強さで再評価し、新しいQuestionへ戻せる。
 
 特定のAgent構成、Model、Tool、QA Mode、Skill、Harness、Test Architecture、Curriculum構成を
 永続的な正解として固定しない。
 現在のRepository Architecture、Test Target、Curriculum、QA System自体もEvaluation対象とする。
+
+### 0.1 Simple-first原則
+
+このPlanのために新しい基盤を先に作らない。
+
+標準運用は次の順序とする。
+
+```text
+Gapを見つける
+↓
+通常変更で十分か？ ── Yes → 通常の実装・Review・Testで完了
+↓ No
+Lightweight Experiment
+↓
+比較・一般化・Best Practice化が必要か？ ── Yes → Confirmatory / Comparative Contractを追加
+↓
+再利用価値のあるResultか？ ── No → Experiment Recordで完了
+↓ Yes
+Knowledge化
+↓
+実装価値があるか？ ── No → Knowledgeだけ残す
+↓ Yes
+必要なTargetだけ変更
+↓
+Target-specific Validation
+↓
+効果を主張する場合だけPost-promotion Experiment
+↓
+次のGapへ
+```
+
+「PlanにExperimentがあるからExperiment Platformを作る」のではない。
+Git、Markdown / YAML、既存Artifact、既存CI、既存Skill / Harness / Testを優先し、
+反復する実測Pain Pointが出るまで新しいRegistry、Database、Dashboard、Runner等を追加しない。
 
 ---
 
@@ -49,33 +83,25 @@ Agentic QAのFailureはSkill / HarnessだけでなくSpecification、Test Target
 
 ```text
 External Knowledge / Industry Practice ─┐
-                                        │
 Repository QA Failure ──────────────────┤
-                                        │
 Test Target Gap ────────────────────────┤
-                                        │
 Curriculum / Learner Gap ───────────────┤
-                                        │
 Harness / Tool / Automation Pain ───────┤
                                         ↓
                                      Question
                                         ↓
-                              Hypothesis / Goal
+                              Experiment / Validation
                                         ↓
-                               Controlled Experiment
+                                Evidence / Result
                                         ↓
-                                Evidence / Metrics
-                                        ↓
-                            Reproduction / Refutation
-                                        ↓
-                              Knowledge Consolidation
+                         Reusable Knowledge if valuable
           ┌───────────────┬──────────────┼──────────────┬──────────────┬─────────────┐
           ↓               ↓              ↓              ↓              ↓             ↓
      Test Target   Regression       QA Policy        Skill         Harness      Curriculum
       / Spec       Automation
           └───────────────┴──────────────┼──────────────┴──────────────┴─────────────┘
                                         ↓
-                           Repository-wide Re-evaluation
+                           Target-specific Validation
                                         ↓
                          Failure / Improvement / New Gap
                                         ↓
@@ -90,15 +116,13 @@ Harness / Tool / Automation Pain ───────┤
 
 重要なQuestionについて最低限次を説明できることを成果とする。
 
-- 何を試し、何と比較したか。
+- 何を試し、必要なら何と比較したか。
 - Product / QA / TrainingのどのGapを解消しようとしたか。
-- QAのどのOutcomeを改善しようとしたか。
 - 何が改善し、何が悪化し、何が変わらなかったか。
 - どの条件で成立し、どの条件では成立しないか。
-- 再現したか、支持されなかったか、反証されたか、何がまだ不明か。
 - Test Target / Specification / Regression Automation / QA Policy / Skill / Harness / Curriculumの
   どこへ反映すべきか。
-- 反映後に対象領域とRepository全体が本当に改善したか。
+- 反映後に必要なValidationを通ったか。
 
 ---
 
@@ -123,11 +147,10 @@ Formal Test、Curriculum要件は各領域の正本を優先する。
 このPlanが定義する範囲は次に限定する。
 
 - Test Target / Curriculum / QA SystemのGapをQuestionへ変換する方法。
-- Experimentの開始、比較、停止方法。
-- EvidenceからKnowledgeへの判断方法。
-- Knowledgeの再検証方法。
+- Experimentの必要性と強度を決める方法。
+- Evidenceから再利用可能なKnowledgeを作る条件。
 - KnowledgeをどのArtifactへPromotionするかの判断方法。
-- Promotion後の改善を正式なExperimentで再評価する方法。
+- Promotion後に必要なValidationを決める方法。
 
 Official ScoreやMetricの厳密な計算式は複製せず、各SSOTを参照する。
 
@@ -161,65 +184,58 @@ Test Targetを難しくするためにExpected Behaviorを曖昧にしない。
 
 ### 3.1 Study Intent、Design Type、Target Areaを分離する
 
-実験目的、比較設計、改善対象を同一Enumにしない。
-各Experimentは3軸を独立して指定する。
+各Experimentは必要な範囲で3軸を指定する。
 
 #### Study Intent
 
 | Intent | 目的 | 主な要求 |
 | --- | --- | --- |
-| `exploratory` | 未知のFailure・Gap・挙動・仮説候補を発見する | ObservationとEvidence |
-| `confirmatory` | 重要仮説を反証可能な形で確認する | 事前登録、独立Run、反復、Decision Rule |
+| `exploratory` | 未知のFailure・Gap・挙動・仮説候補を発見する | Lightweight RecordとEvidence |
+| `confirmatory` | 重要仮説を反証可能な形で確認する | 事前固定、独立Run、Decision Rule |
 
 #### Design Type
 
 | Design | 意味 | 主な要求 |
 | --- | --- | --- |
-| `single_variant` | 一つの条件・Approachを観測する | Observation条件を固定する |
-| `comparative` | 2つ以上の条件・Approachを比較する | Variant、比較条件、Evaluationを事前固定する |
+| `single_variant` | 一つの条件・Approachを観測する | 条件を識別可能にする |
+| `comparative` | 2つ以上の条件・Approachを比較する | Variantと比較条件を実行前に固定する |
 
 #### Target Area
 
 | Area | 主な対象 |
 | --- | --- |
 | `test_target` | Feature、State、Role、Risk、Testability、Specification、QA難易度 |
-| `regression_automation` | Playwright、Maestro、Unit / Integration / Contract Test等のKnown Regression検知 |
+| `regression_automation` | Playwright、Maestro、Unit / Integration / Contract Test等 |
 | `qa_execution` | Agent、Model、Context、Prompt、QA Mode、Review / Repair Flow |
 | `harness` | Isolation、Evidence、Scoring、Deterministic Control、Artifact Integrity |
 | `training` | Learner Flow、Curriculum、Competency、Training Environment、難易度設計 |
 
-例:
-
-- `study_intent=exploratory` + `design_type=single_variant` + `target_area=test_target`
-- `study_intent=confirmatory` + `design_type=comparative` + `target_area=qa_execution`
-- `study_intent=exploratory` + `design_type=single_variant` + `target_area=harness`
-- `study_intent=confirmatory` + `design_type=comparative` + `target_area=training`
-
 Exploratory Observationを、そのままConfirmatoryな結論へ昇格させない。
 
-### 3.2 Questionから開始する
+### 3.2 Questionから開始し、必要以上にExperiment化しない
 
-「機能を増やす」「Agentを増やす」「新Modelを試す」「Skillを追加する」「教材を増やす」だけでは
-Experimentとしない。
+通常のBug Fix、Specification Maintenance、Curriculum Maintenance、明らかなRegression修正まで
+Experimentへ変換しない。
+
+Experimentを使うのは、主に次の場合である。
+
+- どのApproachが有効か不明で、Evidenceを取りたい。
+- 複数の選択肢を比較したい。
+- QA / Training Outcomeへの効果を主張したい。
+- Best PracticeやReusable Knowledgeとして一般化したい。
 
 ```text
-Question
+Question / Goal
 ↓
-HypothesisまたはExploratory Goal
-↓
-Study Intent / Design / Target Area
-↓
-Evaluation Method
-↓
-Execution
+必要な強度のExperiment
 ↓
 Result
 ↓
 Interpretation
 ↓
-Knowledge Decision
+Reusable Knowledgeにする価値があるか判断
 ↓
-Promotion Decision
+必要な場合だけPromotion
 ```
 
 `Result`は観測・計測した事実、`Interpretation`はそこから導いた推論として分離する。
@@ -228,13 +244,13 @@ Promotion Decision
 ### 3.3 Negative Evidenceを残す
 
 Failure、Block、False Positive、False Negative、Human Intervention、Unexpected Regression、
-Contradictory Result、Protocol Violation、Learning Failure、Test Target GapもKnowledge Sourceとして保存する。
+Contradictory Result、Protocol Violation、Learning Failure、Test Target GapもExperiment Evidenceとして残す。
 
 未実行、Evidence不足、Capability不明、Environment BlockをPASSやAgent Successへ変換しない。
 Agentの自己申告だけをGround Truthにしない。
 
-同一Question / Hypothesisに関する失敗Experimentを、後続の成功Experimentだけで上書きしない。
-Experiment Family単位でPositive / Negative / Invalid Evidenceを追跡する。
+同一Question / Hypothesisを繰り返す場合、成功Resultだけを後から選ばない。
+必要な場合はExperiment FamilyでPositive / Negative / Invalid Evidenceを束ねる。
 
 ### 3.4 同じOutcomeだけを比較する
 
@@ -259,25 +275,23 @@ Human QA、Deterministic Automation、Agentic QAを常に同列の競合手段�
 ### 3.5 Agent比較は単一Runで一般化しない
 
 AI Agentは非決定的である。
-`design_type=comparative`または`study_intent=confirmatory`でAgent性能差を論じる場合、
-必要な独立Run数またはRun Count決定ルールを実行前に定める。
+Agent性能差やRecommended Practiceを論じる場合、必要な独立Run数またはRun Count決定ルールを実行前に定める。
 
-最低限、RunごとのResult、代表値、ばらつき、Best / Worst、Failure率、Protocol Invalid Run数を区別する。
+最低限、RunごとのResult、代表値、ばらつき、Failure率、Protocol Invalid Run数を区別する。
 単一Runだけを根拠にAgent構成、Model、Skill、PromptをRecommendedへ昇格させない。
 
 ### 3.6 Confirmatoryは支持・反証条件まで事前固定する
 
-`study_intent=confirmatory`ではMetricを列挙するだけでは不十分である。
-結果を見る前に最低限以下を固定する。
+`study_intent=confirmatory`では結果を見る前に最低限以下を固定する。
 
 - Hypothesis
 - Variant / Comparison
 - Primary Outcome
-- Secondary Outcome / Guardrail Outcomeがある場合の扱い
+- Guardrail Outcomeがある場合の扱い
 - Evaluation Method
 - Support Rule
 - Refutation Rule
-- Minimum Practical Effectまたは意味のある差の基準
+- Minimum Practical Effectまたは`not_applicable_reason`
 - Aggregation Rule
 - Stop Condition
 - Invalid Run Condition
@@ -291,7 +305,6 @@ guardrail_outcomes:
   recall: "degradation <= 3pp"
 minimum_practical_effect:
   value: "+5 percentage points"
-  not_applicable_reason:
 aggregation_rule: median_across_independent_runs
 decision_rule:
   support_if: "precision improves >= 5pp and recall degradation <= 3pp"
@@ -299,23 +312,16 @@ decision_rule:
   otherwise: not_supported
 ```
 
-Minimum Practical Effectを合理的に定義できないテーマでは、無理に数値を置かず、
-`not_applicable_reason`をExecution前に記録する。
-
 厳密な統計検定をすべてのExperimentへ必須にはしない。
-ただしResult確認後に都合のよいMetricだけを選んでHypothesis Supportと判定しない。
+Result確認後に都合のよいMetricだけを選んでHypothesis Supportと判定しない。
 Support Rule未達を自動的にRefutationへ変換しない。
 
 ### 3.7 事後調整を同一成功として扱わない
 
-ConfirmatoryまたはComparative Designでは、実行前Designを固定する。
-
-Result確認後にFeature、Specification、Prompt、Skill、Tool Scope、Metric、Decision Rule、条件等を変えた場合は、
-同一Experimentの成功として扱わず、Variantまたは新しいExperiment Revisionとして扱う。
+ConfirmatoryまたはComparative Designで、Result確認後にFeature、Specification、Prompt、Skill、Tool Scope、Metric、
+Decision Rule、条件等を変えた場合は、同一Experimentの成功として扱わず新Variantまたは新Revisionとする。
 
 ### 3.8 BenchmarkやGround Truthへの過適合をQA改善とみなさない
-
-Scored ChallengeやBenchmarkの数字だけを改善する変更をQA強化と扱わない。
 
 以下を禁止する。
 
@@ -325,25 +331,22 @@ Scored ChallengeやBenchmarkの数字だけを改善する変更をQA強化と�
 - Scoreを上げるためにQA ScopeやEvidence要件を縮小する。
 - Benchmark専用の不自然なProduct BehaviorをTest Targetへ追加する。
 
-改善は、事前定義したOutcomeとEvidence Integrityを維持したまま成立していることを確認する。
-
 ### 3.9 Test Targetを複雑化すること自体をGoalにしない
 
 Test Target変更は、QA学習価値、QA実験価値、Product Realismのいずれかを明確に改善する場合に行う。
 
-Test Target Gapの候補例:
+Gap候補例:
 
 - State Transitionが浅く、状態依存QAを学べない。
 - Role / Permission差分が少なく、Authorization Riskを扱えない。
 - Boundary / Validationが単純で、境界値設計を十分に学べない。
-- Async / Loading / Partial Failure / Retry / Recoveryが少なく、現実的な非同期Riskを扱えない。
+- Async / Loading / Partial Failure / Retry / Recoveryが少ない。
 - Persistence / Session / Cross-screen Consistencyが弱い。
 - Web / Native固有のLifecycleやResponsive Riskが不足している。
-- Error / Empty / Loading Stateが不足している。
 - Accessibility / Localization / Date-Time等、必要なQuality Characteristicを扱えない。
 
-ただし、上記を機械的なFeature Checklistとして全部実装しない。
-変更候補ごとに最低限以下を説明する。
+すべてをFeature Checklistとして実装しない。
+変更候補では最低限次を説明する。
 
 ```yaml
 test_target_change:
@@ -351,7 +354,6 @@ test_target_change:
   capability_or_feature:
   qa_risk:
   learning_value:
-  agentic_qa_value:
   realism_value:
   added_complexity:
   expected_test_layers: []
@@ -359,96 +361,127 @@ test_target_change:
   specification_impact:
 ```
 
+Agentic QA固有の価値が判断に必要な場合だけ`agentic_qa_value`を追加する。
 「現実のECにありそう」「難しい方が勉強になる」だけでは実装理由にしない。
-Added Complexityに対してQA / Training上のInformation Gainが小さい場合は追加しない。
 
 ### 3.10 Industry AlignmentはInputであり正解ではない
 
 Industry Practice、Official Documentation、QA / Security / Accessibility等の標準的Practice、
 一般的なProduct Patternは、Repositoryを現実に近づけるInputとして利用する。
 
-ただし外部Practiceを無検証でRepositoryへコピーしない。
-
 - Normative Constraintは制約として扱う。
 - Tool Factは一次情報で確認する。
 - Product / QA PracticeはCurrent RepositoryのGap候補として扱う。
-- Empirical Claimは原則Experimentで検証する。
+- Empirical Claimは必要ならExperimentで検証する。
 
-「業界標準に近い」を、ArchitectureやFeature数を増やす免罪符にしない。
+「業界標準に近い」をArchitectureやFeature数を増やす免罪符にしない。
 
 ### 3.11 Test Target RevisionとQA System性能を混同しない
 
-Test TargetはこのPlanによって継続的に変化し、同時にQAの難易度も変わり得る。
 異なるTest Target Revision上のRecall、Precision、Coverage、Finding Quality等をそのまま比較し、
 Agent、Skill、Model、Harness等の改善・劣化として解釈しない。
 
-Agentic QAまたはQA System自体の性能差を比較するExperimentでは、原則としてVariant間で
-同一の`test_target_revision_ref`を使用する。
-Official Scored QAでは、既存SSOTが定義するBenchmark Identityも一致させる。
+QA System自体の性能差を比較する場合、原則としてVariant間で同一の`target_revision_ref`を使用する。
+Official Scored QAでは既存SSOTが定義するBenchmark Identityも一致させる。
 
-Test Targetを変更した場合は、そのRevision上で新しいBaselineを取得する。
-長期的なAgentic QA能力を比較する必要がある場合は、同一Test Target RevisionまたはFrozen / Holdout Challengeを使用する。
-
-`target_area=test_target`のExperimentではTest Target差分自体をIndependent Variableとして扱ってよいが、
-その結果をAgent能力の時系列改善と混同しない。
+Test Target変更後は、そのRevision上で新しいBaselineを取得する。
+長期比較が必要な場合は同一RevisionまたはFrozen / Holdout Challengeを利用する。
 
 ---
 
 ## 4. Experiment Lifecycleと記録
 
-Lifecycleは次の9段階とする。
+Experiment Recordは**Lightweightを標準**とし、Confirmatory / Comparativeで必要な項目だけ追加する。
+全Experimentに研究用のFull Schemaを要求しない。
 
-1. `Question`
-2. `Classify`
-3. `Design`
-4. `Pre-register when required`
-5. `Execute`
-6. `Evaluate`
-7. `Reproduce / Refute`
-8. `Knowledge Decision`
-9. `Promotion Decision`
+### 4.1 Lightweight Experiment Record
 
-Designでは最低限、Experiment ID、Experiment Family、Study Intent、Design Type、Target Area、Question、
-Hypothesis / Goal、Task、Capability、Comparison、Controlled Variables、Agent / Model、Context Policy、
-Tool Scope、Revision、Environment、Evaluation Method、Required Metrics、Stop / Invalid条件、Run Countを決める。
+通常のExploratory Experimentは、再現と判断に必要な最小情報だけ残す。
 
-既存のRepository Harness、Run Artifact、QA Artifact、Formal Test、Scored E2E等を可能な限り再利用する。
-Experiment専用Infrastructureは最小化する。
+```yaml
+experiment_id:
+study_intent: exploratory | confirmatory
+design_type: single_variant | comparative
+target_area:
+question_or_goal:
+target_revision_ref:
+execution_conditions_ref:
+runs:
+  - run_id:
+    variant_id:
+    status: completed | failure | invalid
+    artifact_ref:
+    failure_codes: []
+    invalid_reason:
+    evaluation_status: valid | partial | invalid | not_computable
+    missing_evidence: []
+    evidence_refs: []
+results: []
+interpretation:
+next_action:
+```
 
-### 4.1 Experiment FamilyとLineage
+ルール:
 
-同一Question / Hypothesisの複数Experimentを束ね、成功したExperimentだけを後から引用するSelection Biasを防ぐ。
+- `target_revision_ref`はProduct / Specification / Challenge等、QA対象Revisionを特定できるimmutable Referenceとする。
+- `execution_conditions_ref`はExecutor / Environment / Tool Scope等を再現できる既存Artifactまたはimmutable Referenceとする。
+- AI Agent ExperimentではModel / Prompt or Skill / Context Policy / Tool Scopeを追跡できることを必須とする。
+- 該当しないOptional fieldを空欄で埋めるためだけのRecordを作らない。
+- Run Artifactが既存SSOTに十分な情報を持つ場合は重複コピーせずReferenceする。
+
+### 4.2 Confirmatory / Comparative Extension
+
+比較・一般化・Best Practice化に必要な場合だけ、Lightweight Recordへ次を追加する。
 
 ```yaml
 experiment_family_id:
-experiment_id:
 parent_experiment_id:
 derived_from: []
+variants: []
+controlled_variables: []
+required_capabilities: []
+pre_registration_ref:
+confirmatory_contract:
+  primary_outcome:
+  guardrail_outcomes: {}
+  minimum_practical_effect:
+    value:
+    not_applicable_reason:
+  aggregation_rule:
+  decision_rule:
+    support_if:
+    refute_if:
+    otherwise:
+execution:
+  planned_run_count:
+  stop_condition:
+  invalid_conditions: []
+evaluation:
+  method:
+  ground_truth_ref:
+  required_metrics: []
 ```
+
+`confirmatory_contract`は`study_intent=confirmatory`でRequiredとする。
+Comparativeでも結果解釈に必要なVariant、Controlled Variables、Run Ruleは実行前に固定する。
+
+### 4.3 Experiment FamilyとLineageは必要な場合だけ使う
+
+同一Question / Hypothesisを複数Experimentで追う場合、成功Resultだけを引用するSelection Biasを防ぐためFamilyを使う。
+単発Exploratory Experimentへ機械的にFamily Recordを作らない。
 
 - `experiment_family_id`: 同一Question / Hypothesisを追う一連のExperimentを束ねる。
-- `parent_experiment_id`: 直前のExperimentから直接派生した場合に記録する。
-- `derived_from`: 複数ExperimentやExternal Evidenceを基に設計した場合の参照を持つ。
+- `parent_experiment_id`: 直前のExperimentから直接派生した場合に使う。
+- `derived_from`: 複数ExperimentやExternal Evidenceを基に設計した場合だけ使う。
 
-Feature、Specification、Prompt、Skill、Tool、Model、条件を変えて成功するまで試行した場合も、
-同一Family内の失敗履歴を残す。
-Knowledge Consolidationでは単一Experimentだけでなく、関連Family全体のEvidenceを確認する。
+### 4.4 Pre-registrationは必要なExperimentだけ行う
 
-### 4.2 Pre-registrationの固定証跡
+Confirmatory Experimentおよび事前固定が必要なComparative Designでは、Execution開始前のDesignを追跡可能にする。
+Git Commit SHA、Artifact digest等、書き換えを判別できるReferenceを使う。
 
-Confirmatory Experimentおよび事前固定を必要とするComparative Designでは、Execution開始前のDesignを追跡可能にする。
-大規模Registryは作らずGitまたは既存Artifactのimmutable referenceを利用する。
+単純なExploratory ObservationまでPre-registrationを必須にしない。
 
-```yaml
-design_revision:
-pre_registered_at:
-pre_registration_ref:
-```
-
-`pre_registration_ref`はCommit SHA、Artifact digest等、実行後の書き換えを判別できるReferenceとする。
-事後修正したDesignを元から事前登録済みだったものとして扱わない。
-
-### 4.3 Failure、Evaluation Invalid、Invalid Runを分離する
+### 4.5 Failure、Evaluation Invalid、Invalid Runを分離する
 
 `RUN_INVALID`はAgentやProductが失敗したRunを都合よく除外するために使わない。
 Runの成否と、そのRunからEvaluation値を算出できるかを別に扱う。
@@ -463,24 +496,21 @@ Runの成否と、そのRunからEvaluation値を算出できるかを別に扱�
 - Evaluator / Ground Truth破損。
 - 実行対象のFailureではなく計測・収集Protocolの破損でRequired Evidenceを取得できない。
 
-以下は原則として通常Result / Failureとして残す。
+以下は原則として通常Failureとして残す。
 
 - AgentがTool操作に失敗した。
 - AgentがTimeout / Budget Exhaustionした。
 - Agentが完走できなかった。
 - Browser / Runtime / Environment Failure。
 - Agent起因のHuman Intervention。
-- Test Target自体が想定したRiskを十分に生成できなかった。
 
 Tool / Runtime / Agent Failureの結果としてRequired Evidenceが欠損した場合、Run自体は通常Failureとして保持する。
 欠損したEvidence、Failure Code、理由を保存し、そのEvidenceを必要とするMetricまたはEvaluationだけを
 `invalid`または`not_computable`とする。
 
-Invalid Runは理由とEvidenceを必須とし、Variant別のInvalid率も報告する。
+### 4.6 Human Baseline
 
-### 4.4 Human Baseline
-
-Human Baselineを使う場合は、比較可能性に影響する範囲で次を記録する。
+Human Baselineを使う場合だけ、比較可能性に影響する範囲で次を記録する。
 
 - Experience band / Role
 - Tool allowance
@@ -489,124 +519,32 @@ Human Baselineを使う場合は、比較可能性に影響する範囲で次を
 - Training Environment familiarity
 
 個人評価を目的とせず、不要な個人情報は記録しない。
-Participantを識別できるPerformance DataはRepositoryへ保存しない。
-必要な場合は匿名化・集計する。
-
-### 4.5 実行主体と実行条件のIdentityを残す
-
-Experimentを後から再現・比較・再検証できるよう、Raw Experiment Record側でExecutor Identityを保持する。
-
-AI Agentを使用するExperimentでは取得可能な範囲で最低限以下を記録する。
-
-```yaml
-executor:
-  type:
-  role:
-  model_or_runtime:
-  configuration_ref:
-  prompt_or_skill_ref:
-  context_policy:
-  tool_scope_ref:
-```
-
-- `model_or_runtime`: 実際に使用したModel / Runtime identity。証明できない場合は`unknown`。
-- `configuration_ref`: Reasoning、Agent設定、Runner profile等のReference。
-- `prompt_or_skill_ref`: Prompt / Skill / Agent instructionのRevisionまたはimmutable Reference。
-- `context_policy`: Fresh / inherited、Gray-box / Black-box等のContext条件。
-- `tool_scope_ref`: 利用可能Toolと制約を特定できるReference。
-
-Identityが取得できないことを隠さず`unknown`として記録する。
-HumanまたはDeterministic Automationで該当しない項目は`not_applicable`としてよい。
-
-### 4.6 最小Experiment Record
-
-初期段階ではDatabaseやExperiment Management Applicationを作らない。
-既存Artifactまたは軽量なMachine-readable Recordを使う。
-
-```yaml
-experiment_family_id:
-experiment_id:
-parent_experiment_id:
-derived_from: []
-study_intent:
-design_type:
-target_area:
-question:
-hypothesis_or_goal:
-capability:
-source_revision:
-test_target_revision_ref:
-required_capabilities: []
-optional_capabilities: []
-promotion_targets: []
-variants: []
-controlled_variables: []
-environment: {}
-executor:
-  type:
-  role:
-  model_or_runtime:
-  configuration_ref:
-  prompt_or_skill_ref:
-  context_policy:
-  tool_scope_ref:
-design_revision:
-pre_registered_at:
-pre_registration_ref:
-confirmatory_contract:
-  primary_outcome:
-  guardrail_outcomes: {}
-  secondary_outcomes: []
-  minimum_practical_effect:
-    value:
-    not_applicable_reason:
-  aggregation_rule:
-  decision_rule:
-    support_if:
-    refute_if:
-    otherwise:
-execution:
-  planned_run_count:
-  completed_run_count:
-  invalid_run_count:
-  stop_condition:
-  invalid_conditions: []
-runs:
-  - run_id:
-    variant_id:
-    status: completed | failure | invalid
-    artifact_ref:
-    failure_codes: []
-    invalid_reason:
-    evaluation_status: valid | partial | invalid | not_computable
-    missing_evidence: []
-    evidence_refs: []
-evaluation:
-  method:
-  ground_truth_ref:
-  required_metrics: []
-results: []
-interpretation:
-conclusion:
-knowledge_refs: []
-next_action:
-```
-
-`confirmatory_contract`は`study_intent=confirmatory`でRequiredとする。
-AI Agent Experimentでは`executor`をRequiredとし、不明なIdentityは省略せず`unknown`として残す。
-`test_target_revision_ref`はProduct / Specification / Challenge等、QA対象Revisionを特定できるimmutable Referenceとする。
-各Runは`run_id`で一意に追跡し、既存Run Artifactを正本とする場合は改変されない`artifact_ref`を必須とする。
-Run、Variant、Failure / Invalid理由、Evaluation可否、Evidenceの対応はRun単位で追跡する。
-集約`results`はRun Recordを正本として算出し、Run単位Evidenceの代替にはしない。
 
 ---
 
 ## 5. EvidenceとKnowledge Model
 
-Knowledgeを単一の成熟度階段で管理しない。
-Evidenceの蓄積状態、Claimへの判定、再現範囲、外部支持、ArtifactへのPromotionを分離する。
+### 5.1 すべてのExperimentをKnowledge化しない
 
-### 5.1 Evidence State
+Knowledge Recordを作るのは、次のいずれかに該当するResultだけとする。
+
+- 別Task / Revisionでも再利用する可能性がある。
+- Best Practice / Anti-patternとして一般化する価値がある。
+- Test Target / Regression Automation / QA Policy / Skill / Harness / CurriculumへPromotion候補になる。
+- 将来のRevalidation対象として追跡する価値がある。
+- Contradictory / Negative Evidenceとして後続判断へ重要な影響を持つ。
+
+単発Observation、低価値Result、単なる実行Failure、通常Bug Fixの確認結果はExperiment Recordだけで完了してよい。
+
+```text
+Experiment Result
+↓
+再利用・一般化・Promotion・再検証の価値があるか？
+├─ No → Experiment Recordで完了
+└─ Yes → Knowledge Recordを作る
+```
+
+### 5.2 Evidence State
 
 | State | 定義 |
 | --- | --- |
@@ -615,21 +553,19 @@ Evidenceの蓄積状態、Claimへの判定、再現範囲、外部支持、Arti
 | `reproduced` | 独立Runで複数回再現 |
 | `conflicting` | 有効なEvidence同士が矛盾している |
 
-同一RunのRetry、実質同一Contextの再試行、失敗後に条件調整した成功だけでは`reproduced`としない。
-
-### 5.2 Claim Assessment
+### 5.3 Claim Assessment
 
 | Assessment | 定義 |
 | --- | --- |
 | `untested` | 有効な判定をまだ行っていない |
-| `supported` | 事前定義したSupport Ruleまたは十分なEvidenceによりClaimを支持 |
-| `not_supported` | Support Ruleを満たさないが、反対命題まで支持するEvidenceはない |
-| `refuted` | 事前定義したRefutation Ruleまたは十分な反証EvidenceによりClaimを反証 |
-| `inconclusive` | Conflict、Evidence不足等で支持・反証を判定できない |
+| `supported` | 事前定義したRuleまたは十分なEvidenceによりClaimを支持 |
+| `not_supported` | Support Ruleを満たさないが反対命題まで支持していない |
+| `refuted` | 事前定義したRuleまたは十分なEvidenceによりClaimを反証 |
+| `inconclusive` | Conflict、Evidence不足等で判断不能 |
 
 `not_supported`と`refuted`を同一視しない。
 
-### 5.3 Replication Scope
+### 5.4 Replication Scope
 
 ```yaml
 replication_scope:
@@ -640,13 +576,12 @@ replication_scope:
   cross_environment: false
 ```
 
-同一条件での再現と、異なるTask / Platform / Modelでの再現を同じ強さとして扱わない。
-Promotion判断ではClaimの`applies_to`とReplication Scopeを対応させる。
+Claimが単一Platform / Taskに限定される場合、無関係なCross-platform / Cross-task Validationを要求しない。
+広い一般化を主張する場合だけ、そのScopeを裏付けるEvidenceを要求する。
 
-Claimが単一Platform / Taskに限定される場合、無関係なCross-platform / Cross-task Validationを必須にしない。
-広い一般化を主張する場合だけ、そのScopeを裏付けるHoldout / Cross-task / Cross-platform Evidenceを要求する。
+### 5.5 External Support
 
-### 5.4 External Support
+必要なKnowledgeだけ外部支持を記録する。
 
 | Status | 定義 |
 | --- | --- |
@@ -656,14 +591,13 @@ Claimが単一Platform / Taskに限定される場合、無関係なCross-platfo
 | `conflicting` | 主要外部Evidenceと衝突 |
 | `not_applicable` | 外部支持が不要または適用不能 |
 
-### 5.5 Promotion StatusとTarget
+### 5.6 PromotionはSparseに記録する
 
-Knowledgeは「成熟したら何か1つへ昇格する」とは限らない。
-Promotion TargetごとにStatusを持つ。
+Promotion Targetは関係するTargetだけ記録する。
+全Knowledgeに6 Target分の`not_applicable`を埋めない。
 
 Status:
 
-- `not_applicable`
 - `experimental`
 - `candidate`
 - `recommended`
@@ -672,33 +606,29 @@ Status:
 
 Target:
 
-- `test_target`: QA対象としてのFeature、State、Risk、Testability、Specificationを改善する。
-- `regression_automation`: Known Regression / Contractを適切なTest LayerへDeterministicに固定する。
-- `qa_policy`: Repository全体のAgentic QA Contract、Gate、禁止事項、QA Mode等。
-- `skill`: Agentの判断・探索・Tool利用・Failure Analysis等の再利用可能な手順知識。
-- `harness`: DeterministicなIsolation、Evidence、Evaluation、Scoring、Artifact Integrity等。
-- `curriculum`: 学習教材、演習、Competency、Failure Lesson、難易度設計等。
+- `test_target`
+- `regression_automation`
+- `qa_policy`
+- `skill`
+- `harness`
+- `curriculum`
 
 例:
 
 ```yaml
 promotion:
-  test_target: not_applicable
-  regression_automation: candidate
-  qa_policy: candidate
-  skill: recommended
-  harness: not_applicable
-  curriculum: candidate
+  - target: skill
+    status: recommended
+  - target: curriculum
+    status: candidate
 ```
 
+記載されていないTargetは対象外として扱う。
 一つのKnowledgeが複数Targetへ適用できる場合も、それぞれ独立して判断する。
-Skillで有効だからHarnessへ実装する、Harnessで有効だからFormal Regressionへ入れる、
-Productが複雑だからCurriculumのBest Practiceにする、と自動変換しない。
 
-### 5.6 Atomic Knowledge ClaimとPractical Effect
+### 5.7 Atomic Knowledge ClaimとPractical Effect
 
 Knowledge Claimは反証可能な最小単位にする。
-「Fresh ContextはAgentic QAを改善する」「Productを複雑にすると学習効果が上がる」のような広すぎるClaimを避ける。
 
 ```yaml
 claim:
@@ -718,13 +648,11 @@ effect:
     not_applicable_reason:
 ```
 
-0.1ポイントの差と、意思決定を変える差を同じ`improve`として扱わない。
-適用不能なテーマでは`not_applicable_reason`を残す。
+異なるOutcome、Platform、QA Modeで結果が分かれる場合は別Knowledgeとして扱う。
 
-異なるOutcome、Platform、QA Modeで結果が分かれる場合は別Knowledgeとして管理する。
-上位Patternが必要な場合は複数Atomic Knowledgeを参照して一般化する。
+### 5.8 Knowledge Recordは必要項目だけ持つ
 
-### 5.7 Knowledge IdentityとTraceability
+Knowledge RecordのCoreは次とする。
 
 ```yaml
 knowledge_id:
@@ -736,118 +664,70 @@ applies_to: []
 does_not_apply_to: []
 evidence_state:
 claim_assessment:
-replication_scope: {}
-external_support:
-promotion:
-  test_target:
-  regression_automation:
-  qa_policy:
-  skill:
-  harness:
-  curriculum:
 experiment_family_refs: []
 evidence_refs: []
-conflicting_evidence_refs: []
+promotion: []
 validated_at:
 validated_against:
-  model_or_runtime:
-  tool_revision:
   repository_revision:
   executor_condition_refs: []
   environment_refs: []
+```
+
+次は必要な場合だけ追加する。
+
+```yaml
+replication_scope: {}
+external_support:
+conflicting_evidence_refs: []
 promotion_artifacts: []
-knowledge_reviews:
-  - review_ref:
-    reviewer_identity:
-    reviewed_revision:
-    independence_check:
-    decision:
+knowledge_reviews: []
 revalidation_triggers: []
 supersedes: []
 superseded_by: []
 ```
 
-`executor_condition_refs`と`environment_refs`はRaw Experiment側のimmutable条件を参照し、
-Prompt、Skill、Configuration、Context Policy、Tool Scope等をKnowledge Recordへ重複コピーしない。
+Prompt、Skill、Configuration、Context Policy、Tool Scope等はRaw Experiment側のimmutable条件を参照し、
+Knowledge Recordへ重複コピーしない。
 
-Knowledge Reviewでは手書きされた`experiment_family_refs`だけに依存しない。
-Canonical Experiment Record Locationを検索し、参照対象Familyの全Recordを確認する。
-同一FamilyのNegative / Invalid Evidenceを意図的または偶発的に除外しない。
-
-### 5.8 Promotion昇格
+### 5.9 Recommended昇格
 
 `recommended`は単一Runや単一成功だけで付与しない。
 最低限次を確認する。
 
 - Claim Assessmentが`supported`である。
-- 複数Runまたは必要な複数条件でEvidenceが支持される。
-- Replication ScopeがClaim ScopeとPromotion Targetに対して十分である。
+- Claim Scopeに必要なEvidenceがある。
 - 重大なConflicting Evidenceが未整理で残っていない。
 - Applicable / Non-applicable Conditionsを説明できる。
-- Failure SignとRecovery / Rollbackを説明できる。
 - Practical Effectが意思決定上十分、または適用不能理由が妥当である。
 - Promotion先の責務境界に適合する。
 - Promotion先に必要なTarget-specific Validationを完了している。
-- 効果Claimを伴うPromotionでは、5.9のPost-promotion Experimentを完了している。
+- 効果Claimを伴うPromotionでは必要なPost-promotion Experimentを完了している。
 
 `recommended`への昇格はIndependent Knowledge ReviewをRequiredとする。
-対象Knowledge Revisionに対するReview Reference、Reviewer Identity、Review対象Revision、
-独立性確認結果、Decisionを保存する。
+Review Reference、Reviewer Identity、Review対象Revision、独立性確認結果、Decisionを保存する。
+Review証跡がない場合は最大`candidate`までとする。
 
-Review証跡がない場合、または独立Reviewerを用意できない場合、最大`candidate`までとする。
+### 5.10 Promotion後ValidationはTargetに応じて行う
 
-### 5.9 Promotion後ValidationはTargetに応じて行う
-
-Promotion Artifactへ変更を入れた時点で改善完了とは扱わない。
 すべてのPromotion Targetは、そのTargetに適したValidation Referenceを残す。
 
-Test Target、Regression Automation、QA Policy、Skill、HarnessでQA / Training Outcomeへの効果を主張する場合、
-またはCurriculumでLearning Effectを主張する場合は、原則として次のいずれかでPost-promotion Experimentを実施する。
+QA / Training Outcomeへの効果を主張する場合は、元Experiment FamilyのChild Experimentまたは
+新しいConfirmatory Experimentで効果を検証する。
 
-- 元Experiment FamilyのChild Experiment。
-- Promotion Effectを検証する新しいConfirmatory Experiment。
+Curriculumの誤記修正、Current Repositoryとの整合、手順の実行可能性等は、
+Fresh Learner ValidationやDeterministic Curriculum Validationでよい。
+「この教材順序でCompletionが上がる」等のLearning Effectを主張する場合だけ`target_area=training`のExperimentを行う。
 
-最低限、元Knowledgeが期待するEffectをPrimary OutcomeまたはGuardrail Outcomeへ接続し、
-結果を見る前にDecision Ruleを固定する。
+### 5.11 CandidateとMainline Baselineを分離する
 
-Curriculumの誤記修正、Current Repositoryとの整合、手順の実行可能性等については、
-Fresh Learner ValidationやDeterministic Curriculum ValidationをTarget-specific Validationとして使用してよい。
-一方、「この教材順序でCompletionが上がる」「Failure Analysis能力が改善する」等のLearning Effectを主張する場合は、
-`target_area=training`のExperimentで検証する。
+`candidate`はRepositoryの正式Baselineへ定着済みであることを意味しない。
 
-```text
-Knowledge supported
-↓
-Promotion Target = candidate
-↓
-Target Artifact Change
-↓
-Target-specific Validation
-↓
-必要な場合はPost-promotion Experiment + Guardrail確認
-↓
-Independent Knowledge Review
-↓
-recommended / candidate維持 / stale / revert
-```
+可能な場合はBranch、Worktree、Disposable Copy、Isolated Artifact等でCandidate Changeを検証する。
+技術的または運用上の理由で先に`main`へ統合する場合も、その事実だけで`recommended`へ昇格させない。
 
-「変更後に一度QAしたら良さそうだった」をPromotion成功としない。
-
-### 5.10 CandidateとMainline Baselineを分離する
-
-`candidate`はKnowledge / Promotion上の成熟状態であり、Repositoryの正式Baselineへ定着済みであることを意味しない。
-
-可能な場合、Candidate ChangeはBranch、Worktree、Disposable Copy、Isolated Artifact等で検証し、
-Target-specific ValidationまたはPost-promotion Experimentを行ってから正式Baselineへの定着を判断する。
-
-技術的または運用上の理由でCandidate Changeを先に`main`へ統合する場合も、その事実だけで`recommended`へ昇格させない。
-`main`上に存在していてもPromotion Statusは`candidate`のまま保持できる。
-
-通常のProduct Development、Bug Fix、Specification Update、Curriculum Maintenance等として変更を行う場合は、
+通常のProduct Development、Bug Fix、Specification Update、Curriculum Maintenance等として行う変更は、
 Experiment Promotionと混同しない。
-後から効果を評価する場合は対象Artifact Revisionを固定し、そのRevisionを新しいBaselineまたはExperiment Variantとして扱う。
-
-`recommended`への昇格も通常のRepository Review、CI、Merge Gateを迂回する権限を与えない。
 
 ---
 
@@ -880,17 +760,14 @@ Experiment Promotionと混同しない。
 | `RUN_INVALID` | Protocol破損によりExperiment Resultとして解釈不能 |
 
 分類不能・重複が増えた場合にTaxonomyを改訂する。
-Agent能力不足、Specification不足、Test Target不足、Curriculum不足、Tool不足、Environment不足を混同しない。
-`RUN_INVALID`の適用は4.3に従う。
-
 Failure Taxonomyは原因分類の正本であり、調査開始Evidenceの固定Pathまでは定義しない。
-Browser、MCP、Maestro、CLI、CI等で適切なEvidence経路は異なるため、Evidence取得・Troubleshooting手順は
-各Execution / Curriculum SSOTを正とする。
+Evidence取得・Troubleshooting手順は各Execution / Curriculum SSOTを正とする。
 
 ### 6.2 Metrics
 
 MetricはQuestionに必要なものだけ選択し、Official Agentic QAの計算式は既存SSOTを正とする。
-候補は以下とする。
+
+候補:
 
 - QA: Recall、Precision、FPR、Coverage、Reproduction Rate
 - Review: Defect Detection、Duplicate Rate、Severity Accuracy、Scope Accuracy
@@ -902,12 +779,8 @@ MetricはQuestionに必要なものだけ選択し、Official Agentic QAの計�
 - Cost: Agent Runtime、Tool Action、CI Runtime、Agent Cost
 - Education: Completion、Failure Analysis Success、Time to Competency、Instructor Intervention、Difficulty Fit
 
-Test TargetのFeature数、Test Case数、教材ページ数、AI生成コード率、Agent利用回数、Automation率、Token量、PR数、
-Finding件数を単独のSuccess KPIにしない。
-
-Confirmatory ExperimentではPrimary OutcomeとDecision Ruleを事前固定し、
-複数Metricの中から事後的に都合のよいものだけを成功判定へ使わない。
-3.11に従い、異なるTest Target Revision間のQA Metric差をAgentic QA性能差として直接解釈しない。
+Feature数、Test Case数、教材ページ数、AI生成コード率、Agent利用回数、Automation率、Token量、PR数、Finding件数を
+単独のSuccess KPIにしない。
 
 ---
 
@@ -920,118 +793,65 @@ Confirmatory ExperimentではPrimary OutcomeとDecision Ruleを事前固定し�
 | `Normative / Constraint` | Security、Accessibility、Repository policy、Tool制約 | 制約として扱う |
 | `Tool Fact` | Official Documentation上のAPI仕様 | 一次情報で確認する |
 | `Product / QA Practice` | 一般的なState、Role、Recovery、Test Design Pattern | Gap候補として比較する |
-| `Empirical Claim` | Agent構成が品質を改善する等 | 原則Hypothesisとして検証する |
+| `Empirical Claim` | Agent構成が品質を改善する等 | 必要ならHypothesisとして検証する |
 | `Anecdotal Observation` | Blog、Conference Talk、個別事例 | 仮説候補とする |
 
-外部情報をすべて仮説とは扱わないが、Product / QA PracticeやEmpirical Claimを
-RepositoryのBest Practiceへ直接昇格させない。
-
-```yaml
-claim:
-claim_class:
-source:
-source_type:
-published_or_observed_at:
-verified_at:
-applicable_version:
-why_relevant:
-current_gap_or_assumption_challenged:
-proposed_target_area:
-proposed_experiment:
-priority:
-```
-
-`Tool Fact`は確認日時と対象Versionを残し、Tool更新後に古いFactを無条件に使い続けない。
-長文要約の蓄積自体を目的にしない。
-Industry Alignmentを固定周期の調査作業にせず、10.3のRevalidation Triggerで重要変更が発生した場合に再確認する。
+外部情報の長文要約を蓄積すること自体を目的にしない。
+必要な情報だけ、Source、確認日時 / Version、Current Gapとの関係を残す。
+Industry Alignmentは固定周期の調査作業にせず、10.3の重要Trigger時に必要な範囲だけ再確認する。
 
 ---
 
 ## 8. Knowledge Promotion
 
-Experiment Resultを直接Product、Formal Test、Skill、Harness、QA Policy、Curriculumへ反映しない。
+PromotionはSection 1のNorth StarとSection 5の判断規則に従う。
+ここではTargetごとの責務だけを定義し、同じLifecycleを再定義しない。
 
-```text
-Experiment Result
-↓
-Knowledge Review
-↓
-Promotion Decision
-↓
-Target Artifact Change as candidate
-↓
-Target-specific Validation
-↓
-必要な場合はPost-promotion Experiment
-↓
-Independent Review
-↓
-recommended / maintain candidate / revise / stale / revert
-```
+### 8.1 Test Target / Specification
 
-### 8.1 Test Target / Specification Promotion
+Evidence付きでQA / Training価値を上げるGapが確認された場合に候補とする。
 
-Test TargetへPromotionするのは、QA / Training価値を上げるProduct GapまたはSpecification Gapが
-Evidence付きで確認された場合である。
+例:
 
-候補例:
-
-- MeaningfulなState Transition追加。
-- Role / Permission差分追加。
-- Boundary / Validationの現実的な拡張。
-- Async / Loading / Error / Retry / Recovery State追加。
-- Persistence / Session / Cross-screen Risk追加。
-- Web / Native特有Riskの追加。
+- MeaningfulなState Transition。
+- Role / Permission差分。
+- Boundary / Validation。
+- Async / Loading / Error / Retry / Recovery State。
+- Persistence / Session / Cross-screen Risk。
+- Web / Native特有Risk。
 - Specification Clarification。
 - Testability改善。
 
-Test Target変更はProduct RequirementとNormative Specificationへ正しく反映する。
-「Agentを困らせるため」のFeatureや、Benchmark専用の罠を追加しない。
+Test Target変更時は、Product Specification、Formal Regression、Agentic QA、Visual Specification、Curriculumへの影響を確認する。
 
-Test Target変更後は最低限、次への影響を確認する。
+### 8.2 Regression Automation
 
-- Product Specification。
-- Formal Regression Automation。
-- Agentic QA Challenge / Charter / Coverage。
-- Visual Specification。
-- Curriculum / Workbook / Exercise。
-
-### 8.2 Regression Automation Promotion
-
-Regression AutomationへPromotionするのは、Expected Behaviorと判定方法が安定し、
-Agentによる未知探索ではなくDeterministicに継続検知する方が適切なKnown Regression / Contractである。
-
-候補例:
+Expected Behaviorと判定方法が安定し、Deterministicに継続検知する方が適切なKnown Regression / Contractを対象とする。
 
 - Web Runtime Regression → Playwright。
-- Native Runtime Regression → Maestro等のNative Runtime Test。
+- Native Runtime Regression → Maestro等。
 - Component / Logic Contract → Unit / Component / Integration Test。
 - CI / Repository Contract → Contract Test / Validator。
 
 すべてのAgent FindingをE2Eへ追加しない。
-Suggested Regression Layer、Risk、Failure Diagnostic Value、実行Cost、Flake Riskを見てLayerを選ぶ。
+Risk、Diagnostic Value、実行Cost、Flake RiskでTest Layerを選ぶ。
 
-### 8.3 Skill Promotion
+### 8.3 Skill
 
-SkillへPromotionするのは、Agentの判断・手順・Tool利用方法として再利用する価値があるKnowledgeである。
+Agentの判断・手順・Tool利用方法として再利用する価値があるKnowledgeを対象とする。
 
-候補例:
-
-- Explorationの進め方。
+- Exploration。
 - Specificationの読み方。
 - FindingのAtomic化。
-- Failure Diagnosisの手順。
-- Evidence確認順序の判断原則。
-- 修正前後のReview戦略。
+- Failure Diagnosis。
+- Evidence確認順序。
+- Review戦略。
 
-Skillへ入れる内容は特定Benchmarkの答えではなく、Claim Scopeに応じた再利用可能な判断原則にする。
 Specification GapやKnown RegressionをSkillルールで無理に吸収しない。
 
-### 8.4 Harness Promotion
+### 8.4 Harness
 
-HarnessへPromotionするのは、Deterministicに保証した方がQAの再現性・Evidence Integrity・Evaluation信頼性を高めるKnowledgeである。
-
-候補例:
+Deterministicに保証した方がQAの再現性・Evidence Integrity・Evaluation信頼性を高めるKnowledgeを対象とする。
 
 - Fresh Session / Context保証。
 - Test Data Reset。
@@ -1039,16 +859,13 @@ HarnessへPromotionするのは、Deterministicに保証した方がQAの再現�
 - Artifact Integrity。
 - Required Evidence検証。
 - Scoring / Evaluation Contract。
-- TimeoutやCleanupのDeterministic Control。
+- Timeout / Cleanup。
 
 Agentの判断を丸ごとHarnessへ移さない。
-Harness追加は「Agentが失敗したから自動化する」ではなく、同種Failureが反復し、Deterministic保証が適切であるEvidenceがある場合に限る。
 
-### 8.5 QA Policy Promotion
+### 8.5 QA Policy
 
-QA PolicyへPromotionするのは、個別SkillやHarnessを超えてRepository全体で守るべきContractである。
-
-候補例:
+個別SkillやHarnessを超えてRepository全体で守るべきContractを対象とする。
 
 - Official QA Modeの境界。
 - 必須Evidence。
@@ -1058,203 +875,106 @@ QA PolicyへPromotionするのは、個別SkillやHarnessを超えてRepository�
 - AgentとEvaluatorの責務分離。
 - Known RegressionとExploratory QAの責務分離。
 
-Policyは実装詳細を複製せず、各SSOTへの参照を使う。
+### 8.6 Curriculum
 
-### 8.6 Curriculum Promotion
-
-CurriculumはTest TargetやQA Systemとは別の後付けDocumentationではない。
 Current RepositoryのRisk・Automation・Agentic QA Practiceを学習可能な形へ変換する。
 
 #### Core / Practice
 
-推奨Practiceとして教える内容は`promotion.curriculum=recommended`を要求する。
-Fresh Learner Validationを通し、Why、Applicable / Non-applicable Conditions、Failure Signs、Evidence、Trade-off、Recoveryを含める。
-
-Test Target変更で新しいRiskやTest Layerが追加された場合、必要に応じてCurriculumのGoal、Exercise、Workbook、
-Competency、Difficultyを再評価する。
-CurriculumのLearning Effectを主張する場合は5.9に従い`target_area=training`のExperimentで検証する。
+推奨Practiceとして教える内容は`recommended`を要求する。
+Why、Applicable / Non-applicable Conditions、Failure Signs、Evidence、Trade-off、Recoveryを必要な範囲で含める。
 
 #### Advanced / Research
 
 `experimental`、`not_supported`、`refuted`、`inconclusive`、`conflicting`なKnowledgeも、
 比較演習、研究課題、Failure Analysis教材として利用できる。
-ただしBest Practiceとして教えず、未確定状態を明示する。
+Best Practiceとしては扱わない。
 
 ### 8.7 Knowledge-onlyを認める
 
 すべてのKnowledgeを実装へPromotionする必要はない。
+Effectが小さい、条件が狭い、Evidence不足、Costが高い、現在のDecisionへ影響しない場合はKnowledgeだけ残す。
 
-- Effectが小さい。
-- 条件が狭すぎる。
-- Evidenceが不足している。
-- 実装Costが高い。
-- 現在のProduct / QA / Training Decisionへ影響しない。
+### 8.8 Promotion Artifact Traceability
 
-この場合はKnowledge Recordだけを残し、新Feature、新Test、新Infrastructure、新Skillを作らない。
-
-### 8.8 再利用可能Artifactとして残す
-
-PromotionしたKnowledgeは、後から「なぜこのFeature / Test / Skill / Harness / Policy / Curriculumが存在するか」を
-追跡できる形にする。
+Promotionした場合だけ、KnowledgeとArtifactをつなぐ最小Traceabilityを残す。
 
 ```yaml
 promotion_artifact:
-  target: test_target | regression_automation | qa_policy | skill | harness | curriculum
+  target:
   artifact_ref:
   artifact_revision_ref:
   knowledge_id:
-  source_experiment_family_refs: []
-  applies_to: []
-  does_not_apply_to: []
   expected_effect:
-  failure_signs: []
-  rollback_or_recovery:
   validation_ref:
   validation_experiment_ref:
 ```
 
-`artifact_revision_ref`はCommit SHA、Blob SHA、Artifact digest等、検証したRevisionを特定できるimmutable Referenceとする。
-MutableなPathだけを検証済みArtifactのIdentityにしない。
-`validation_ref`はTarget-specific Validationの証跡を持つ。
-効果Claimを正式Experimentで検証した場合だけ`validation_experiment_ref`へExperimentを参照する。
-
-このRecordはKnowledgeと実装Artifactをつなぐ最小Traceabilityであり、専用RegistryやDatabaseを要求しない。
-Git、Markdown、YAML、既存Artifact Referenceで開始する。
+`applies_to`、`does_not_apply_to`、`failure_signs`、`rollback_or_recovery`等は必要なTargetだけ追加する。
+専用RegistryやDatabaseを要求しない。
 
 ---
 
 ## 9. Repository Continuous Improvement Loop
 
-### 9.1 Learning SourceをQA Runだけに限定しない
+### 9.1 Learning Source
 
-次をQuestion / Experiment Inputとして回収する。
+Question候補は次から得る。
 
-#### Repository QA / Agentic QA
+- Repository QA / Agentic QAのFailure、False Positive / Negative、Scope Violation、Evidence欠損。
+- Test Target / SpecificationのRisk不足、Testability Gap、Ambiguity。
+- Regression AutomationのKnown Regression Gap、Flake、Layer不適合。
+- Curriculum / Learnerの難易度、説明、Current Repositoryとのズレ。
+- External Knowledge / Industry Practiceとの意味ある差分。
 
-- FindingのFalse Positive / False Negative。
-- 見逃したRisk。
-- Duplicate Finding。
-- Scope Violation。
-- Repair Failure / Regression。
-- Tool / Runtime Failure。
-- Evidence欠損。
-- Agentが停止した箇所。
-- Human Interventionが必要だった箇所。
-- Repeated Manual Workaround。
-
-#### Test Target / Specification
-
-- QA対象として単純すぎるFeature。
-- 現実的なState / Role / Boundary / Async / Recovery Risk不足。
-- Testability Gap。
-- Specification Ambiguity。
-- Web / Native間で学習可能なRisk差が不足している箇所。
-
-#### Regression Automation
-
-- Agentが繰り返し見つけるKnown Regression。
-- Formal Test Layerが不適切なFinding。
-- FlakeやDiagnostic Value不足。
-- Test Gap / Redundant Test。
-
-#### Curriculum / Learner
-
-- Learnerが暗黙知なしで進められない箇所。
-- 難易度が急すぎる / 低すぎる箇所。
-- Test TargetのCurrent Behaviorと教材がずれている箇所。
-- Tool操作はできるがRisk / Oracle / Failure Analysisを理解できない箇所。
-- Agentic QAとDeterministic Automationの使い分けを学べない箇所。
-
-#### External Knowledge / Industry Practice
-
-- Current Repositoryにない重要Risk Pattern。
-- Tool / Platformの新しいCapability。
-- Standard Practiceとの意味ある差分。
-- Current Assumptionと衝突するEvidence。
-
-単発Observationへ場当たり的に変更を足さず、反復性、影響、学習価値、再現性、Costを見てQuestionへ変換する。
+単発Observationへ場当たり的に変更を足さず、影響、学習価値、反復性、Costを見て優先する。
 
 ### 9.2 改善の優先順位
-
-領域ごとに局所最適化せず、Repository全体のQA / Training Valueで優先する。
-
-優先度が高い候補:
 
 1. Critical Defect / False Negativeや重大なOracle FailureにつながるGap。
 2. Ground Truth、Evidence Integrity、Isolationを壊すGap。
 3. Test Targetが単純すぎて重要なQA Riskを学習・検証できないGap。
 4. False Positive、Duplicate、Scope Violationを増やすGap。
 5. CurriculumがCurrent Product / QA Practiceと乖離しているGap。
-6. Failure Diagnosis / Repair / Regression Protectionの不足。
+6. Failure Diagnosis / Repair / Regression Protection不足。
 7. Flake、Tool Failure、Environment Failure。
 8. Human Active Time / Agent Cost。
 
-速度やCost、Feature数、難易度のためにRecall、Precision、Evidence Integrity、Learning Clarityを弱めない。
-
 ### 9.3 3領域の変更を相互にImpact Reviewする
 
-#### Test Targetを変更した場合
+#### Test Target変更時
 
-最低限確認する。
+- Normative Specification。
+- Formal Regression。
+- Agentic QA Charter / Challenge / Coverage。
+- Visual Specification。
+- Curriculum / Exercise / Competency。
 
-- Normative Specificationは更新が必要か。
-- Existing Formal Regressionは十分か。
-- Agentic QA Charter / Challenge / Coverageは更新が必要か。
-- Visual Specificationは更新が必要か。
-- Curriculum / Workbook / Exercise / Competencyは更新が必要か。
+への影響を確認する。
 
-#### Curriculum Gapを発見した場合
+#### Curriculum Gap発見時
 
-教材文だけで解決すべきかを決め打ちしない。
+教材だけで解決すべきかを決め打ちせず、Test Target、Specification、Training Environment、Curriculum自身を切り分ける。
 
-- Test Targetに適切な学習対象が存在しないのか。
-- Specificationが説明不足なのか。
-- Training Environment / Test Controlが不足しているのか。
-- Curriculumの順序・難易度・説明だけの問題なのか。
+#### Agentic QA Failure発見時
 
-を分離する。
+Skill追加を既定解にせず、Specification、Test Target、Regression Automation、Skill / Context、Harness / Environment、
+Evaluation Contractを切り分ける。
 
-#### Agentic QA Failureを発見した場合
+### 9.4 Promotion後は必要な強さで再評価する
 
-Skill追加を既定解にしない。
+- 単純な整合・実行可能性確認 → Target-specific Validation。
+- QA / Training Outcomeへの効果Claim → Confirmatory Experiment。
+- 広い一般化 → Claim Scopeに必要なHoldout / Cross-task / Cross-platform Evidence。
 
-- Specification Gapか。
-- Test Target Gapか。
-- Known Regression Automation Gapか。
-- Agent Skill / Context問題か。
-- Harness / Environment問題か。
-- Evaluation Contract問題か。
-
-をFailure TaxonomyとEvidenceで分離する。
-
-### 9.4 Promotion後はTarget-specific Validationと必要なExperimentで再評価する
-
-Promotion Artifactへ変更を入れた時点で改善完了とは扱わない。
-5.9のValidation Contractを使う。
-
-効果Claimを伴うPost-promotion Experimentでは最低限次を事前固定する。
-
-- Primary Outcome。
-- Guardrail Outcome。
-- Decision Rule。
-- Applicable Scope。
-- 必要なHoldout / Cross-task / Cross-platform範囲。
-- Rollback条件。
-
-Claim Scopeを超えた一般化のためにCross-task等を無条件要求せず、
-Claim Scopeに必要な範囲だけ再検証する。
-
-変更が期待Effectを再現しなければ`candidate`へ戻す、`stale`へ移す、またはRevertする。
+期待Effectを再現しなければ`candidate`維持、`stale`、またはRevertとする。
 
 ### 9.5 Repository Data Boundary
-
-ExperimentとKnowledgeはRepository内で再現可能なDataを基本とする。
 
 - Repository外の非公開Sourceを無断で持ち込まない。
 - Credential / Secret / TokenをExperiment Artifactへ保存しない。
 - 個人を識別できるLearner / Human Performance Dataを保存しない。
 - External Knowledgeは公開可能なSource Referenceまたは安全な要約を使う。
-- Raw Artifactに不要な秘密情報が含まれる場合はKnowledge化前に除外する。
 
 このPlanのために独自のSecurity PlatformやSanitization Systemを新設しない。
 
@@ -1264,25 +984,22 @@ ExperimentとKnowledgeはRepository内で再現可能なDataを基本とする�
 
 ### 10.1 Logical Roles
 
-一人が複数Roleを兼任してよいが、責務は概念上分離する。
+一人が複数Roleを兼任してよい。Roleごとの専用組織やWorkflowを作る必要はない。
 
 | Role | 責務 |
 | --- | --- |
 | Experiment Owner | Question、Design、Execution |
 | Evaluator | Evaluation Contractに基づくResult評価 |
-| Knowledge Reviewer | 一般化、適用範囲、Promotion変更 |
-| Test Target Maintainer | Product / Specification変更とProduct Validation |
-| Automation Maintainer | Formal Regression Layerへの反映とValidation |
-| Agentic QA Maintainer | Skill / Harness / QA Policyへの反映とValidation |
-| Curriculum Reviewer | Curriculum / Competency / Difficulty反映可否 |
+| Knowledge Reviewer | 一般化、適用範囲、Promotion判断 |
+| Test Target Maintainer | Product / Specification変更 |
+| Automation Maintainer | Formal Regression反映 |
+| Agentic QA Maintainer | Skill / Harness / QA Policy反映 |
+| Curriculum Reviewer | Curriculum反映可否 |
 
 Official Score、Ground Truth Match、Critical FindingはAgentまたはExperiment Ownerの自己申告だけで確定しない。
 `recommended`昇格にはIndependent Knowledge Reviewを必須とする。
 
 ### 10.2 Independent Reviewの最低条件
-
-Independent Reviewerは単に別の時刻・別のPromptで同じConclusionを追認する役割ではない。
-最低限以下を満たす。
 
 - Result生成Contextから独立している。
 - Raw EvidenceとPre-registrationを変更しない。
@@ -1290,33 +1007,23 @@ Independent Reviewerは単に別の時刻・別のPromptで同じConclusionを�
 - Evidenceから独立してConclusion / Applicability / Promotion Targetを評価できる。
 
 Human Reviewer、Fresh Independent Agent、別担当Reviewerのいずれも利用できる。
-Independent Reviewの実施要件だけでなく、Knowledge RecordへReview証跡を残す。
 
 ### 10.3 Revalidation Trigger
 
-以下の変化がClaimの成立条件へ影響し得る場合、該当Promotionを`stale`へ移し再検証する。
+次の変化がClaimの成立条件へ影響し得る場合、該当Knowledge / Promotionを再確認する。
 
-- Test TargetのFeature / State / Role / Architectureの重要変更。
-- Normative Specificationの重要変更。
-- Agent Model Familyまたは重要Behavior変更。
-- Agentic ToolのMajor Behavior変更。
-- Prompt / Skill / Agent configurationの重要変更。
-- Context Policy / Tool Scopeの重要変更。
+- Test Target / Specificationの重要変更。
+- Agent Model / Tool / Prompt / Skill / Context Policyの重要変更。
 - Playwright / Maestro等の重要Tool変更。
-- Formal Regression Layer / Contractの重要変更。
-- Harness / Evaluation Contractの重要変更。
-- Curriculum Goal / Competency / Training Environmentの重要変更。
-- Relevant Standard / Official Guidance / Tool Capabilityの重要変更により、Current GapやPractice前提が変わり得る場合。
+- Formal Regression / Harness / Evaluation Contractの重要変更。
+- Curriculum Goal / Training Environmentの重要変更。
+- Relevant Standard / Official Guidanceの重要変更。
 - 新しいConflicting Evidence。
-- 高品質なExternal Evidenceとの衝突。
 
-Raw Experimentの`executor` IdentityとKnowledgeの`validated_against`を用いて影響範囲を判断する。
-すべてのVersion変更で機械的にStale化せず、Claimへの影響をKnowledge Reviewerが判断する。
-Industry Alignmentも固定周期ではなく、上記の重要Triggerが発生した場合に必要な範囲だけ再確認する。
+すべてのVersion変更で機械的にStale化しない。
+影響があるKnowledgeだけを対象にする。
 
 ### 10.4 Continue / Stop / Park
-
-成功数やFeature追加数を目標にしない。
 
 Continue候補:
 
@@ -1324,7 +1031,6 @@ Continue候補:
 - Reproduction不足。
 - QA / Training Decisionへの影響が大きい。
 - False Negativeや重大Failureへ関係する。
-- Test Target / Curriculum / QA Systemの間に重要なGapが残っている。
 
 Stop / Park候補:
 
@@ -1333,7 +1039,7 @@ Stop / Park候補:
 - Added Complexity / Costに対するInformation Gainが小さい。
 - より重要なUnknownがある。
 
-Hypothesisが支持されなくても条件を無限調整して成功させず、非成立自体をKnowledgeとして受け入れる。
+Hypothesisが支持されなくても条件を無限調整して成功させない。
 
 ---
 
@@ -1341,12 +1047,12 @@ Hypothesisが支持されなくても条件を無限調整して成功させず�
 
 ### 11.1 Foundation CapabilityはGlobal Gateにしない
 
-Current Foundationとして次のCapabilityを利用する。
+Current Foundationとして次を利用する。
 
 - `test_target`: Current Web / Native ProductとNormative Specification。
 - `formal_regression`: Existing Web / Native / Unit / Integration / Contract Test。
-- `official_scored_qa`: Official Agentic QAをEvidence付きで評価できるScored Capability。
-- `visual_oracle`: Screen / Important StateをSpecificationへ接続できるVisual Oracle。
+- `official_scored_qa`: Official Agentic QAのScored Capability。
+- `visual_oracle`: Screen / Important StateをSpecificationへ接続するVisual Oracle。
 - `training_environment`: Formal Regressionと分離されたTraining Environment。
 
 Current implementation reference:
@@ -1356,33 +1062,23 @@ Current implementation reference:
 - PR #25: Test Automation Curriculum / Training Environment
 
 PR番号は現時点の実装参照であり、永続Gateではない。
-最終仕様は各SSOTと最新`main`を正とする。
+各Experimentが必要なCapabilityだけ確認する。
 
-各Experimentが必要なCapabilityだけを`required_capabilities`として宣言する。
-Blocked Capabilityは、そのCapabilityを必要とするExperimentだけをBlockする。
-
-### 11.2 Capability ReadinessはEvidenceで判定する
+### 11.2 Capability Readinessは必要時に既存Evidenceで確認する
 
 ```yaml
 capability_id:
 status: ready | degraded | blocked | unknown
 validation_ref:
-validated_revision:
-validated_at:
 known_limitations: []
 ```
-
-- `ready`: 必要ContractをValidation Evidence付きで満たす。
-- `degraded`: 制約がPrimary OutcomeまたはEvidence Integrityを損なわず、Design上説明できる場合のみ利用可能。
-- `blocked`: 必須Contractを満たさず実行不可。
-- `unknown`: Readiness Evidence不足。
 
 新しいCapability RegistryをRequiredにしない。
 既存SSOT、CI、Validation ArtifactをReferenceとして利用する。
 
 ### 11.3 Stabilization / Feature Freeze
 
-原則として、Evidenceなしに次を追加しない。
+Evidenceなしに次を追加しない。
 
 - 大規模Feature / Domain拡張。
 - 新Agent Framework。
@@ -1394,38 +1090,24 @@ known_limitations: []
 - Skillの細分化・増殖。
 - Formal E2E Testの無制限追加。
 
-新規基盤や大きなProduct Complexityを検討できるのは、実ExperimentまたはGap Analysisで
-次のいずれかがEvidence付きで確認された場合に限る。
-
-- 必要なQA / Training RiskをCurrent Test Targetで扱えない。
-- 必要なExperimentが既存Capabilityでは実行不能。
-- Evidence Integrityを保証できない。
-- Known RegressionがRepeated Agent Workになっている。
-- 同一Manual Workaroundが反復し、Experiment / Training throughputまたは信頼性を実際に阻害する。
-
-「将来必要そう」「あると便利そう」「一般的なECにはある」は根拠にしない。
+新規基盤や大きなProduct Complexityを検討するのは、Current Artifactで実際に不足が確認された場合だけとする。
 
 ### 11.4 Experiment Readiness Gate
 
-最初の正式Experimentを開始する前に次を確定する。
+最初の正式Experimentを開始する前に、最低限次だけ決める。
 
-- Experiment RecordのCanonical Location。
-- Knowledge RecordのCanonical Location。
-- Experiment / Knowledge / Experiment Family ID Convention。
-- Pre-registration Reference方式。
-- Run ID / Run Artifact Reference方式。
-- Evidence Reference方式。
-- Executor IdentityのReference方式。
-- Promotion Artifact / Revision Reference方式。
-- 対象ExperimentのRequired Capability確認とValidation Reference。
-- Evaluator / Knowledge Reviewer。
+- Experiment Recordの置き場所。
+- Knowledge Recordの置き場所。
+- ID Convention。
+- Artifact / Evidence Reference方式。
+- Confirmatoryで使うPre-registration Reference方式。
+- 必要なCapabilityのReadiness確認方法。
 
 このGateのためにDashboard、Database、専用SaaSを作らない。
-Markdown / YAML / Git Commit等の最小手段で開始する。
 
 ### 11.5 Initial Baseline Assessment
 
-最初のExperimentを選ぶ前に、完璧な監査ではなく軽量なBaseline Assessmentを一度行う。
+最初のExperimentを選ぶ前に軽量なBaseline Assessmentを一度行う。
 
 #### Test Target
 
@@ -1451,7 +1133,7 @@ AssessmentはGap候補を作るためのものであり、全Gapを一括修正�
 
 ### 11.6 Baseline Experiment Candidates
 
-初期候補は次とする。Required Task Listではない。
+初期候補でありRequired Task Listではない。
 
 #### Agentic QA
 
@@ -1466,39 +1148,20 @@ AssessmentはGap候補を作るためのものであり、全Gapを一括修正�
 
 #### Test Target / Training
 
-1. State / Role / Boundary等の不足がQA Finding Qualityへ与える影響。
-2. Test Target変更前後でのTest Design Variety / Failure Analysis Value比較。
-3. Curriculum Exercise難易度とFresh Learner Completion / Failure Analysis Successの適合確認。
-4. Known RegressionをAgent探索からDeterministic Automationへ移した際のQA Information Gain比較。
+1. State / Role / Boundary不足とQA Finding Quality。
+2. Test Target変更前後のTest Design Variety / Failure Analysis Value。
+3. Curriculum Exercise難易度とFresh Learner Outcome。
+4. Known RegressionをDeterministic Automationへ移した際のQA Information Gain。
 
-現在の不確実性、QA / Trainingへの影響、Cost、利用可能Capabilityで優先する。
+現在の不確実性、Impact、Cost、利用可能Capabilityで優先する。
 
 ### 11.7 改善Loop
 
-```text
-Baseline Assessment / New Gap
-↓
-Question / Experiment
-↓
-Knowledge Consolidation
-↓
-Promotion Decision
-↓
-Test Target / Regression Automation / QA Policy / Skill / Harness / Curriculum
-↓
-Target-specific Validation
-↓
-必要な場合はPost-promotion Experiment
-↓
-Repository-wide Re-evaluation
-↓
-Failure / Improvement / New Gap
-↓
-New Question
-```
+詳細なLifecycleはSection 0.1、Section 1、Section 9を正とする。
+このSectionでは重複定義しない。
 
-このLoopを回すこと自体が目的ではない。
-QA / Training Valueが改善しない変更を増やさない。
+最初は**Gapを1件選び、既存Artifactで1周回す**。
+反復する不足だけを次の改善対象にする。
 
 ---
 
@@ -1508,60 +1171,48 @@ QA / Training Valueが改善しない変更を増やさない。
 
 | Risk | 対策 |
 | --- | --- |
-| Product Bloat | Test Target変更にQA / Training ValueとAdded Complexityの説明を要求 |
-| Synthetic Complexity | AgentやLearnerを困らせるだけのFeature / Benchmark専用罠を禁止 |
-| Test Target Confounding | QA System性能比較では同一Target Revisionを使い、Target変更後はBaselineを再取得 |
-| Candidate Leakage | Candidate StatusとMainline Baselineを分離し、main上の存在だけでRecommendedにしない |
-| Infrastructure開発へ戻る | Current Artifact再利用、Manual Record許容、Evidence付きPain Pointまで自動化しない |
-| Confirmation Bias | 反証可能なHypothesis、Support / Refutation Rule事前固定、immutable pre-registration reference |
-| Result Selection Bias | Experiment Family全RecordとRun Artifactを確認する |
-| Claim Overstatement | `not_supported`と`refuted`を分離する |
-| Metric Cherry-picking | Primary / Guardrail Outcome、Practical Threshold、Aggregation / Decision Ruleを事前固定する |
-| Benchmark Overfitting | Ground Truth隔離、答えのSkill埋め込み禁止、Claim Scopeに応じたHoldout再評価 |
-| Skill Sprawl | EvidenceとPromotion ReviewなしにSkillを増やさない |
-| Harness Sprawl | Deterministic保証が必要な反復FailureだけHarness候補にする |
-| Regression E2E Sprawl | Suggested Layer、Risk、Cost、Flake、Diagnostic ValueでTest Layerを選ぶ |
-| Curriculum Drift | Test Target / QA System変更時にCurriculum Impactを確認する |
-| Curriculum Overfitting | Tool操作暗記ではなくRisk / Oracle / Failure Analysisを評価する |
-| Execution Identity Loss | Model / Prompt / Skill / Context / Tool ScopeをRaw Experimentへ記録する |
-| Governance Evidence Loss | Independent Reviewの対象Revisionと証跡をKnowledgeへ保持する |
-| Metrics Gaming | 単一Metric最適化を避けTrade-offを見る |
-| Knowledge Staleness | Revalidation Triggerと`stale`を使う |
-| Repository Complexity | Product、Formal Test、QA Contract、Training、Experiment Artifactの責務を分離する |
+| Product Bloat | QA / Training ValueとAdded Complexityで判断 |
+| Synthetic Complexity | Benchmark専用罠や難易度のための難易度を禁止 |
+| Test Target Confounding | 同一Target RevisionでQA System性能を比較 |
+| Governance Bloat | Lightweight Recordを標準とし、Confirmatory項目は必要時のみ追加 |
+| Knowledge Bloat | 再利用価値のあるResultだけKnowledge化 |
+| Promotion Ceremony | 関係するTargetだけSparseに記録 |
+| Infrastructure開発へ戻る | Current Artifact再利用、実測Pain Pointまで自動化しない |
+| Confirmation Bias | Confirmatoryだけ事前固定を強化 |
+| Result Selection Bias | 必要なExperiment FamilyでNegative Evidenceも確認 |
+| Benchmark Overfitting | Ground Truth隔離、答えのSkill埋め込み禁止 |
+| Skill / Harness Sprawl | Evidenceなしに追加しない |
+| Regression E2E Sprawl | Risk、Cost、Flake、Diagnostic ValueでLayer選択 |
+| Curriculum Drift | Test Target / QA System変更時にImpact確認 |
+| Knowledge Staleness | 影響のあるKnowledgeだけRevalidation |
 
 ### 12.2 Non-goals
 
-このPlanだけでは、Experiment SaaS / Dashboard / Leaderboard、Knowledge Graph / Vector DB、
-Custom Agent Runtime / Job Queue / Universal MCP Gateway、Human QA完全代替、
-AI AgentへのMerge権限自動付与、AI QA Required CI化、全Experiment / Metricの完全自動化、
-Model性能ランキング基盤を実装しない。
+このPlanだけでは次を実装しない。
 
-また、次もGoalにしない。
+- Experiment SaaS / Dashboard / Leaderboard。
+- Knowledge Graph / Vector DB。
+- Custom Agent Runtime / Job Queue / Universal MCP Gateway。
+- Human QA完全代替。
+- AI AgentへのMerge権限自動付与。
+- AI QA Required CI化。
+- 全Experiment / Metricの完全自動化。
+- Model性能ランキング基盤。
 
-- Test TargetのFeature数最大化。
-- 難易度のための難易度。
-- Skill / Harness / Agent数最大化。
-- Formal E2E Test数最大化。
-- Curriculum文書数最大化。
-- 外部Practiceの網羅的コピー。
-
-必要性がExperiment EvidenceまたはGap Analysisから確認された場合のみ別Planまたは通常変更として実装する。
+また、Feature数、難易度、Skill / Harness / Agent数、E2E Test数、Curriculum文書数、外部Practice取り込み量をGoalにしない。
 
 ### 12.3 Open Questions
 
-Plan Approval時点で未確定でもよいが、11.4のReadiness Gateまでに必要なものはそこで確定する。
+Plan Approval時点で未確定でもよい。
 
-1. Experiment Recordの物理配置。
-2. Knowledge Recordの物理配置。
-3. Promotion Artifact Referenceの物理形式。
-4. Failure TaxonomyをMachine-readableにする時期。
-5. External Knowledge IntakeをRepository / Issue等のどこに置くか。
-6. Test Target Baseline Assessmentの最小Artifact形式。
-7. Human Active Time / Agent Costの収集精度。
+1. Experiment / Knowledge Recordの物理配置。
+2. Promotion Artifact Referenceの物理形式。
+3. Failure TaxonomyをMachine-readableにする時期。
+4. External Knowledge Intakeを置く場所。
+5. Test Target Baseline Assessmentの最小Artifact形式。
+6. Human Active Time / Agent Costの収集精度。
 
-Pre-registration Traceability、Experiment Family / Run Traceability、Confirmatory Decision Rule、Executor Identity、
-Independent Review Evidence、Promotion Target、Post-promotion Experiment、Revalidation Ruleは
-Open QuestionではなくRequired Policyとする。
+必要になる前に専用仕組みを作らない。
 
 ### 12.4 Plan DoD
 
@@ -1569,40 +1220,25 @@ Open QuestionではなくRequired Policyとする。
 
 - North StarがTest Target / Curriculum / QA Systemの継続改善に一意化されている。
 - 既存SSOT境界が明確である。
-- Test Target / Specificationの責務境界が明確である。
 - Skill / Harness / Regression Automation / QA Policyの責務境界が明確である。
-- Study Intent / Design Type / Target Areaが分離され、`test_target`と`training`を第一級に扱える。
-- Test Target変更にQA Learning Value / Realism / Added Complexityの判断規則がある。
+- Test Target変更にQA / Training ValueとAdded Complexityの判断規則がある。
 - Industry AlignmentをInputとして扱い、無検証でBest Practice化しない。
 - Test Target Revision変更とQA System性能変化を分離して評価できる。
-- Experiment Lifecycleと事前固定ルールがある。
-- ConfirmatoryにPrimary / Guardrail Outcome、Support / Refutation Rule、Practical Effect、Aggregation Ruleがある。
-- Pre-registrationの実行前Revisionを追跡できる。
-- Experiment Family / LineageでPositive / Negative Evidenceを束ねられる。
-- Run ID / Artifact ReferenceでRun、Variant、Failure / Invalid理由、Evidenceを追跡できる。
+- Lightweight Experiment Recordが標準になっている。
+- Confirmatory / Comparativeだけ必要な追加Contractを要求する。
 - Run FailureとEvaluation InvalidとProtocol Invalid Runの境界がある。
-- Evidence StateとClaim Assessmentが分離されている。
-- `not_supported`と`refuted`が区別されている。
-- Replication ScopeとClaim Scopeが対応している。
-- Atomic Knowledge ClaimとPractical Effectがある。
-- AI Agent ExperimentでExecutor Identityを残す。
-- Knowledgeが検証対象Executor / Environment条件をimmutable Referenceで追跡できる。
-- Promotion TargetがTest Target / Regression Automation / QA Policy / Skill / Harness / Curriculumに分離されている。
+- Run Artifact / Executor条件を必要な粒度で追跡できる。
+- すべてのExperimentをKnowledge化せず、再利用価値のあるResultだけKnowledge化する。
+- `not_supported`と`refuted`を区別できる。
+- Promotion TargetをSparseに記録できる。
 - Promotion Artifact Revisionをimmutable Referenceで追跡できる。
 - Candidate StatusとMainline Baselineの境界が明確である。
-- Promotion後にTarget-specific Validationを行い、効果Claimは正式なExperiment Contractへ戻る。
-- Curriculumの整合性ValidationとLearning Effect Experimentを区別できる。
-- `recommended`昇格にIndependent ReviewとReview証跡が必要である。
-- Failure Taxonomy v1がTest Target / Regression / Curriculum Gapも分類できる。
-- Failure調査Evidenceの詳細は各Execution / Curriculum SSOTへ委譲する。
-- Test Target / Regression Automation / Skill / Harness Promotionの条件が分離されている。
-- Core / PracticeとAdvanced / Research CurriculumのPromotion Ruleがある。
+- Target-specific Validationと効果Experimentを区別できる。
+- `recommended`昇格にIndependent Reviewが必要である。
+- Test Target / Regression Automation / Skill / Harness / CurriculumのPromotion責務が分離されている。
 - Test Target変更時にSpecification / Formal Test / Agentic QA / Visual / Curriculum Impactを確認する。
-- Curriculum GapをTest Target / Specification / Training Environment / Curriculum自身へ正しくRoutingできる。
-- Agentic QA FailureをSkillだけでなく複数Root CauseへRoutingできる。
-- Foundation CapabilityがExperiment単位のDependency Gateである。
-- Capability ReadinessをValidation Evidenceで判定する。
-- Experiment Readiness Gateがある。
+- Curriculum GapとAgentic QA Failureを複数Root CauseへRoutingできる。
+- CapabilityをGlobal Gateにしない。
 - EvidenceなしにProduct Complexity、大規模Infrastructure、Skill、E2E Testを追加しない。
 
 ### 12.5 次のAction
@@ -1611,14 +1247,14 @@ Open QuestionではなくRequired Policyとする。
 2. PR #23 / #24 / #25を含むFoundationの最新状態を`main`で確認する。
 3. Planを最新`main`へrebaselineする。
 4. Test Target / Curriculum / QA Systemの軽量Baseline Assessmentを行う。
-5. Experiment / Knowledge / Promotion ArtifactのCanonical Locationを最小構成で決める。
-6. Stabilization / Feature Freezeを適用する。
-7. QA / Trainingへの影響が大きく、利用可能Capabilityで実行できるQuestionを1件選ぶ。
-8. Current ArtifactでExperimentを実行し、不足を実測する。
-9. Knowledgeを作成し、必要なTargetだけへ`candidate`としてPromotionする。
-10. Target-specific Validationと、必要な場合はPost-promotion Experimentで効果とGuardrailを再評価する。
-11. Independent Review後に`recommended / candidate / stale / revert`を判断する。
-12. Failure / Improvement / New Gapから次のQuestionを作る。
+5. Experiment / Knowledge ArtifactのCanonical Locationを最小構成で決める。
+6. QA / TrainingへのImpactが大きいQuestionを1件選ぶ。
+7. Current ArtifactでLightweight Experimentを実行する。
+8. 比較・一般化が必要な場合だけConfirmatory / Comparative Contractを追加する。
+9. 再利用価値がある場合だけKnowledgeを作る。
+10. 必要なTargetだけ`candidate`として変更する。
+11. Target-specific Validationと、必要な場合だけPost-promotion Experimentを行う。
+12. 次のGapへ進む。
 
 ---
 
@@ -1629,16 +1265,14 @@ Open QuestionではなくRequired Policyとする。
 
 > Test Targetは、現実的で意味のあるQA Riskを十分に持っているか。
 >
-> Curriculumは、そのRiskを段階的に理解・設計・自動化・分析できるようになっているか。
+> Curriculumは、そのRiskを段階的に理解・設計・自動化・分析できるか。
 >
 > QA Systemは、Known RegressionをDeterministicに守りつつ、AI Agentが未知のRiskを正確かつ再現可能にQAできるか。
 >
-> Known Regressionは適切なDeterministic Testへ固定されているか。
+> 必要な改善だけを、既存Artifactを優先し、小さく検証して追加できているか。
 >
-> Agentの判断FailureはSkill、保証FailureはHarness、ContractはQA Policyへ正しく分離できているか。
->
-> その改善判断を再現可能なEvidenceで説明できるか。
+> その判断を必要十分なEvidenceで説明できるか。
 
 Repositoryは答えを固定する場所ではなく、
-**Test Target、Curriculum、QA SystemをExperimentとEvidenceで継続的に磨き、
-QAと学習の両方を強くするPlatform**として運用する。
+**Test Target、Curriculum、QA Systemを小さなExperimentとEvidenceで継続的に磨き、
+必要なものだけを実装するPlatform**として運用する。
