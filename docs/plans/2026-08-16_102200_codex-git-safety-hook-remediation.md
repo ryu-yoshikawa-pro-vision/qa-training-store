@@ -178,6 +178,22 @@ intentional patch edit は通常開発操作として扱う。
 
 command-based deletion と patch edit を同一視しない。
 
+### 2.8 Hard forbidden に通常操作が混ざっている
+
+現在の `.codex/rules/30-destructive-forbidden.rules` には、Full Access 共通 hard deny としては広すぎる項目がある。
+
+最低限次を見直す。
+
+```text
+git add / commit / push blanket forbidden
+python -c / python - blanket forbidden
+kubectl apply
+terraform apply
+Invoke-Expression / iex blanket forbidden
+```
+
+`Invoke-Expression` 自体を全面禁止する代わりに、remote download を直接 `iex` / `Invoke-Expression` へ pipe する明確な危険形だけを common deny とする。
+
 ---
 
 ## 3. Full Access common deny
@@ -291,15 +307,13 @@ git worktree
 
 ---
 
-## 4. 非Git destructive guard
+## 4. 非Git Full Access common deny
 
-この PR では新しい非Gitポリシーを増やさない。
+新しい非Gitポリシーは増やさない。
 
-現在 Hook が持つ非Git判定は次の基準で整理する。
+現在の hard deny / Hook deny を **「明確な破壊・削除か」** だけで整理する。
 
-### Full Access common deny として残す
-
-明確に破壊・削除を行うものだけ:
+### 4.1 残す
 
 - command-based file deletion (`rm`, `del`, `erase`, `rmdir`, `unlink`, `Remove-Item`)
 - `find ... -delete`
@@ -313,17 +327,20 @@ git worktree
 - `aws s3 rm`
 - `az group delete`
 - `gcloud projects delete`
-- remote script piping to shell / `Invoke-Expression`
+- remote script piping to shell / `iex` / `Invoke-Expression`
 
-### Full Access common Hook から外す
+### 4.2 Full Access hard deny から外す
 
-通常の変更操作まで hard deny しない。
+通常の変更・実行そのものは hard deny しない。
 
 - `terraform apply`
 - `kubectl apply`
-- `apply_patch` Delete / Move
+- `python -c`
+- `python -`
+- standalone `iex` / `Invoke-Expression`
+- `apply_patch` Add / Update / Delete / Move
 
-`npm publish` 等、Hook外の既存 execpolicy ポリシーは今回の目的と直接関係しないため、この PR では再設計しない。
+`npm publish` / `unpublish` / `version`、`pip uninstall` 等の既存 external/release/environment policy は今回の中心課題ではないため、挙動を変更しない。
 
 ---
 
@@ -414,17 +431,32 @@ Hooks は guardrail であり完全な sandbox ではない、という前提を
 
 - Git destructive deny
 - protected branch direct-update deny
--既存の明確な非Git destructive denyのみ移植
-- `git add/commit/push` blanket deny削除
-- `terraform apply` / `kubectl apply` を common Hook hard deny から除外
+- 既存の明確な非Git destructive denyのみ移植
 - `apply_patch` guard削除
 
 ### Wave 3 — execpolicy同期
 
-- static destructive rulesを整理
-- blanket `git add/commit/push` forbidden削除
-- HookとRulesの責務重複を最小化
-- unrelated policyは変更しない
+`.codex/rules/30-destructive-forbidden.rules` を Full Access common hard-deny 方針へ合わせる。
+
+削除:
+
+```text
+git add / commit / push blanket forbidden
+python -c / python - blanket forbidden
+terraform apply forbidden
+kubectl apply forbidden
+standalone iex / Invoke-Expression forbidden
+```
+
+維持 / 強化:
+
+- 明確な destructive prefix
+- history rewrite
+- force push
+- command-based deletion
+- infrastructure / cloud deletion
+
+Hook と Rules で同じ複雑な parser を二重実装しない。
 
 ### Wave 4 — tests / verify
 
@@ -452,6 +484,7 @@ git revert <sha>                    # feature branch
 git stash push
 git tag v1.0.0
 git worktree add ...
+python -c "print('ok')"
 terraform apply ...
 kubectl apply ...
 ```
@@ -537,7 +570,8 @@ Full Access ではさらに:
 - GitHub Ruleset同期
 - remote URL監査
 - preset再設計
--新しい安全platform
+- 新しい安全platform
+- npm / package release policy全体の再設計
 
 ---
 
@@ -559,6 +593,8 @@ root / nested cwd / Windows invocation PASS
 Full Access でも Hook invocation PASS
 +
 normal Git operations are not blanket blocked
++
+python -c / terraform apply / kubectl apply are not Full Access hard-blocked
 +
 normal apply_patch is not Hook-blocked
 +
