@@ -46,7 +46,7 @@
     "training/agentic-qa/skills/scored-v1.md"
   ],
   "validation": {
-    "status": "completed",
+    "status": "failed",
     "commands": [
       "corepack pnpm exec prettier --write <changed files> => passed",
       "corepack pnpm exec vitest run tests/contracts/official-black-box-contracts.test.ts tests/contracts/spec-agentic-qa.test.ts --reporter=dot => passed: 2 files / 34 tests",
@@ -64,7 +64,7 @@
       "corepack pnpm run test:unit => passed: 13 files / 66 tests",
       "corepack pnpm run test:integration => passed: 9 files / 98 tests",
       "corepack pnpm run test:component:web => passed: 11 files / 76 tests",
-      "corepack pnpm run test:contracts -- --reporter=dot => failed: 24 files / 202 tests passed; node:sqlite bundling environment error",
+      "corepack pnpm run test:contracts => FAIL: 24 files中23 files / 195 tests passed; 1 file (native-sqlite-transactions.test.ts) could not start due to Vite node:sqlite bundling environment error",
       "bash scripts/verify => not runnable under Git Bash because repository script has CRLF shebang parsing on this Windows host",
       "git diff --check => passed",
       "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260812-210947-JST -Write -Check => passed: 4 files / 0 residual findings",
@@ -109,5 +109,5 @@
   },
   "evaluation_path": null,
   "status": "completed",
-  "primary_failure_category": "host_capability_gate"
+  "primary_failure_category": null
 }

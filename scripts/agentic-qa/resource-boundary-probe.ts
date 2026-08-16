@@ -1,14 +1,14 @@
 import {
   parseJsonWithSchema,
+  resourceProbeCapabilitySchema,
   resourceBoundaryProbeSchema,
   type ResourceBoundaryProbe,
-  type RuntimeVariant,
+  type ResourceProbeCapability,
 } from "./contracts";
 import { compareCodeUnits } from "./contracts";
 
 type ResourceKind = ResourceBoundaryProbe["results"][number]["resource_kind"];
-type ProbeCapability = ResourceBoundaryProbe["results"][number]["probe_capability"];
-type DiscoveredResource = {
+export type DiscoveredResource = {
   resource_url: string;
   resource_kind: ResourceKind;
   discovery_source: string;
@@ -20,7 +20,7 @@ function resourceKind(url: string): ResourceKind | null {
   if (/\.css$/.test(pathname)) return "css";
   if (/\.js(?:on)?$/.test(pathname) || /\.mjs$/.test(pathname))
     return pathname.endsWith(".json") ? "manifest" : "javascript";
-  if (/manifest(?:\.webmanifest)?$/.test(pathname)) return "manifest";
+  if (/(?:^|\/)(?:[^/]+\.webmanifest|manifest(?:\.json)?)$/.test(pathname)) return "manifest";
   return null;
 }
 
@@ -72,22 +72,33 @@ export function createNotExecutedResourceBoundaryProbe(input: {
   runId: string;
   artifactSha256: string;
   resources: readonly DiscoveredResource[];
-  probeCapability?: ProbeCapability;
   evidenceRefPrefix: string;
 }): ResourceBoundaryProbe {
-  const probeCapability = input.probeCapability ?? "direct_navigation";
-  const results = input.resources.map((resource, index) => ({
-    ...resource,
-    probe_capability: probeCapability,
-    expected: "denied" as const,
-    observed: "not_executed" as const,
-    evidence_ref: `${input.evidenceRefPrefix}resource-boundary-${String(index + 1).padStart(3, "0")}.json`,
-  }));
+  const probeCapabilities: readonly ResourceProbeCapability[] = [
+    "direct_navigation",
+    "direct_read",
+    "response_body",
+    "arbitrary_fetch",
+  ];
+  const resources = [...input.resources].sort((left, right) =>
+    compareCodeUnits(left.resource_url, right.resource_url),
+  );
+  const results = resources.flatMap((resource, resourceIndex) =>
+    probeCapabilities.map((probeCapability, capabilityIndex) => ({
+      ...resource,
+      probe_capability: probeCapability,
+      expected: "denied" as const,
+      observed: "not_executed" as const,
+      evidence_ref: `${input.evidenceRefPrefix}resource-boundary-${String(resourceIndex * probeCapabilities.length + capabilityIndex + 1).padStart(3, "0")}.json`,
+    })),
+  );
   return parseJsonWithSchema(
     {
       schema_version: 1,
       run_id: input.runId,
       artifact_sha256: input.artifactSha256,
+      expected_resource_urls: resources.map((resource) => resource.resource_url),
+      expected_probe_capabilities: [...probeCapabilities],
       results,
       passed: false,
     },
@@ -99,16 +110,26 @@ export function createNotExecutedResourceBoundaryProbe(input: {
 export function createResourceBoundaryProbe(input: {
   runId: string;
   artifactSha256: string;
+  expectedResources: readonly DiscoveredResource[];
+  expectedProbeCapabilities?: readonly ResourceProbeCapability[];
   observations: readonly ResourceBoundaryProbe["results"][number][];
 }): ResourceBoundaryProbe {
+  const expectedProbeCapabilities = input.expectedProbeCapabilities ?? [
+    ...resourceProbeCapabilitySchema.options,
+  ];
+  const expectedResources = [...input.expectedResources].sort((left, right) =>
+    compareCodeUnits(left.resource_url, right.resource_url),
+  );
   const passed =
-    input.observations.length > 0 &&
+    input.observations.length === expectedResources.length * expectedProbeCapabilities.length &&
     input.observations.every((result) => result.observed === "denied");
   return parseJsonWithSchema(
     {
       schema_version: 1,
       run_id: input.runId,
       artifact_sha256: input.artifactSha256,
+      expected_resource_urls: expectedResources.map((resource) => resource.resource_url),
+      expected_probe_capabilities: [...expectedProbeCapabilities],
       results: input.observations,
       passed,
     },
@@ -122,13 +143,4 @@ export function assertResourceBoundaryProbePassed(probe: ResourceBoundaryProbe):
     throw new Error(
       "Actual served resource boundary probe did not prove denial for every resource",
     );
-}
-
-export function assertRuntimeVariantForResourceProbe(
-  variant: RuntimeVariant,
-  runtimeUrl: string,
-): void {
-  const origin = new URL(runtimeUrl).origin;
-  if (!variant.platform || origin === "null")
-    throw new Error("Resource probe requires a web Runtime Variant and URL");
 }

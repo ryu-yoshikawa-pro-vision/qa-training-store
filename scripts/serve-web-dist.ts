@@ -109,32 +109,6 @@ function send405(response: ServerResponse): void {
   response.end("Method Not Allowed");
 }
 
-function send403(response: ServerResponse): void {
-  response.statusCode = 403;
-  response.setHeader("Content-Type", "text/plain; charset=utf-8");
-  response.setHeader("Cache-Control", "no-store");
-  response.end("Forbidden");
-}
-
-function isImplementationResource(pathname: string): boolean {
-  return (
-    /\.(?:js|mjs|css|map)$/i.test(pathname) ||
-    /(?:^|\/)manifest(?:\.webmanifest|\.json)?$/i.test(pathname)
-  );
-}
-
-function isNormalSubresourceRequest(request: {
-  headers: Record<string, string | string[] | undefined>;
-}): boolean {
-  const destination = request.headers["sec-fetch-dest"];
-  return (
-    destination === "script" ||
-    destination === "style" ||
-    destination === "manifest" ||
-    destination === "font"
-  );
-}
-
 function sendHead(response: ServerResponse, fileSize: number, mime: string): void {
   response.statusCode = 200;
   response.setHeader("Content-Length", fileSize);
@@ -225,10 +199,6 @@ const server = createServer((request, response) => {
   stat(resolved)
     .then((fileStat) => {
       if (fileStat.isFile()) {
-        if (isImplementationResource(pathname) && !isNormalSubresourceRequest(request)) {
-          send403(response);
-          return;
-        }
         const mime = contentTypes[extname(resolved)] ?? "application/octet-stream";
         if (method === "HEAD") {
           sendHead(response, fileStat.size, mime);

@@ -7,6 +7,7 @@ import {
   type HostCapabilityReceipt,
 } from "./contracts";
 import { readCanonicalJsonFile, writeCanonicalJsonFile } from "./canonical-json";
+import { assertActualViewportMatchesVariant, getRuntimeVariant } from "./runtime-variant";
 
 export type HostCapabilityGateResult = {
   status: "PASS" | "BLOCKED";
@@ -15,7 +16,16 @@ export type HostCapabilityGateResult = {
 };
 
 export function validateHostCapabilityReceipt(value: unknown): HostCapabilityReceipt {
-  return parseJsonWithSchema(value, hostCapabilityReceiptSchema, "host capability receipt");
+  const receipt = parseJsonWithSchema(
+    value,
+    hostCapabilityReceiptSchema,
+    "host capability receipt",
+  );
+  assertActualViewportMatchesVariant(
+    receipt.actual_browser_configuration,
+    getRuntimeVariant(receipt.runtime_variant_id),
+  );
+  return receipt;
 }
 
 export function writeHostCapabilityReceipt(filePath: string, receipt: HostCapabilityReceipt): void {

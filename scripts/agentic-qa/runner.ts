@@ -2,6 +2,7 @@ import fs from "node:fs";
 import path from "node:path";
 import {
   parseJsonWithSchema,
+  officialRunnerProfileSchema,
   qaFindingsSchema,
   type Challenge,
   type ActualToolScope,
@@ -56,13 +57,14 @@ export function createRunnerProfile(input: {
 }
 
 export function assertOfficialRunnerProfile(profile: RunnerProfile): void {
-  if (
-    profile.model_configuration_identifier === undefined ||
-    profile.skill_revision === undefined ||
-    profile.output_contract_revision === undefined ||
-    profile.host_profile_revision === undefined
-  )
-    throw new Error("Official Runner Profile is missing a model, Skill, Output, or Host revision");
+  try {
+    officialRunnerProfileSchema.parse(profile);
+  } catch (error) {
+    throw new Error(
+      `Official Runner Profile is incomplete: ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
 }
 
 export function freezeScoredFindings(input: {

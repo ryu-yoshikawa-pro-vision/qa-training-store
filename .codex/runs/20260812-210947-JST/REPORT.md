@@ -228,3 +228,13 @@
 - Self-review: Product／Native／Android／Visual／Curriculum／CI、Git mutation、Custom Agent Runner／LLM wrapperは未変更。Official Host証跡が無い項目をPASSへ補完していない。
 - Final decision: Repository側実装、deterministic validation、Documentation、Run Artifactは完了。Official E2E／scoreだけはtrusted Host入力が現Hostに存在しないため未実行・未採点とする。
 - Progress: 100% (21/21)
+
+## 2026-08-13 15:49 (JST) — 事実整合Correction entry（append-only）
+
+- 既存entryは削除・並べ替え・意味変更していない。21:37の後に21:36が記録されている既存順序も履歴として保持し、この末尾へCorrectionを追加した。
+- `run.json.validation.status`を、既存REPORTの実測に合わせて`failed`へ補正した。`run.status=completed`はRun artifact生成が完了した事実として維持した。
+- Contract testの実測を補正した。24 files中23 files / 195 testsはPASS、`native-sqlite-transactions.test.ts` 1 fileはViteの`node:sqlite` bundling environment errorで起動できず、未実行として数えない。以前の`24 files / 202 tests passed`という集計は使用しない。
+- `pnpm run verify`はnested PATH問題で開始前停止したという既存実測を維持し、後続品質ゲートをPASSへ補完していない。
+- このRunではsubagentを使用していない。対象worktree内の直接差分とレビュー入力を親Agentが一貫して突合し、ユーザーがGit mutationとworktree外変更を禁止しているため、delegationを行わなかった。`agents_used=[]`、`subagents.records=[]`は事実として維持する。
+- 旧RunにはStrict `evaluation.json`が存在しないため、過去結果を推測で補う評価artifactは追加しない。今回の修正Runでは既存schema準拠のevaluation artifactを新規保存する。
+- `run.json.primary_failure_category`はevaluation artifactが無い旧Runで設定できないため`null`へ補正した。今回の修正Runだけが、schema準拠evaluationの`primary_failure_category=missing_context`を参照する。

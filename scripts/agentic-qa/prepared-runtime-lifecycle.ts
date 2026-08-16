@@ -4,8 +4,10 @@ import path from "node:path";
 import {
   parseJsonWithSchema,
   preparedTargetSchema,
+  runtimeHandoffReceiptSchema,
   runtimeVariantSchema,
   type PreparedTarget,
+  type RuntimeHandoffReceipt,
   type RuntimeVariant,
 } from "./contracts";
 import {
@@ -21,6 +23,7 @@ import {
 import { readCanonicalJsonFile, writeCanonicalJsonFile } from "./canonical-json";
 import { getRuntimeVariant } from "./runtime-variant";
 import { compareCodeUnits } from "./contracts";
+import { agenticQaRunRoot } from "./artifact-layout";
 
 export type PreparedTargetHandoff = {
   targetRoot: string;
@@ -52,9 +55,8 @@ export function createPreparedTargetHandoff(input: {
   runtimeVariant: RuntimeVariant;
   sourceHeadSha: string | null;
   patchSha256: `sha256:${string}` | null;
-  runtimeUrl: string;
+  runtimeHandoffReceipt: RuntimeHandoffReceipt;
   allowedOrigins?: readonly string[];
-  readinessTitle: string;
   sourceCleanupCompleted: true;
 }): PreparedTargetHandoff {
   runtimeVariantSchema.parse(input.runtimeVariant);
@@ -72,14 +74,19 @@ export function finalizePreparedTargetHandoff(input: {
   runtimeVariant: RuntimeVariant;
   sourceHeadSha: string | null;
   patchSha256: `sha256:${string}` | null;
-  runtimeUrl: string;
+  runtimeHandoffReceipt: RuntimeHandoffReceipt;
   allowedOrigins?: readonly string[];
-  readinessTitle: string;
   sourceCleanupCompleted: true;
 }): PreparedTargetHandoff {
   const runtimeVariant = runtimeVariantSchema.parse(input.runtimeVariant);
-  const runtimeUrl = new URL(input.runtimeUrl).toString();
-  const runtimeUrlOrigin = new URL(runtimeUrl).origin;
+  const handoff = runtimeHandoffReceiptSchema.parse(input.runtimeHandoffReceipt);
+  if (
+    handoff.run_id !== input.runId ||
+    handoff.challenge_id !== input.challengeId ||
+    handoff.runtime_variant_id !== runtimeVariant.runtime_variant_id
+  )
+    throw new Error("Runtime Handoff receipt identity does not match the Prepared Target");
+  const runtimeUrlOrigin = handoff.runtime_url_origin;
   const allowedOrigins = [...new Set([runtimeUrlOrigin, ...(input.allowedOrigins ?? [])])].sort(
     compareCodeUnits,
   );
@@ -88,10 +95,19 @@ export function finalizePreparedTargetHandoff(input: {
   assertNoSymlinks(webDistRoot);
   assertSourceFreeArtifact(webDistRoot);
   const manifest = createArtifactManifest(webDistRoot, "prepared_target", true);
+  if (handoff.prepared_artifact_sha256 !== manifest.artifact_sha256)
+    throw new Error("Runtime Handoff receipt is not bound to the Prepared Target artifact hash");
   const artifactManifestPath = path.join(input.targetRoot, "artifact-manifest.json");
   const targetRuntimePath = path.join(input.targetRoot, "target-runtime.json");
+  const runtimeHandoffReceiptPath = path.join(
+    agenticQaRunRoot(input.rootDir, input.runId),
+    "trusted",
+    "runtime-handoff-receipt.json",
+  );
   fs.mkdirSync(input.targetRoot, { recursive: true });
+  writeCanonicalJsonFile(runtimeHandoffReceiptPath, handoff);
   writeArtifactManifest(artifactManifestPath, manifest);
+  const runtimeUrl = handoff.runtime_url;
   const targetRuntime = preparedTargetSchema.parse({
     schema_version: 1,
     run_id: input.runId,
@@ -105,8 +121,12 @@ export function finalizePreparedTargetHandoff(input: {
     runtime_url: runtimeUrl,
     runtime_url_origin: runtimeUrlOrigin,
     allowed_origins: allowedOrigins,
-    readiness: { status: 200, title: input.readinessTitle },
+    readiness: {
+      status: handoff.readiness.observed_status,
+      title: handoff.readiness.observed_title,
+    },
     artifact_manifest_ref: repoRelative(input.rootDir, artifactManifestPath),
+    runtime_handoff_receipt_ref: repoRelative(input.rootDir, runtimeHandoffReceiptPath),
     created_at: new Date().toISOString(),
   });
   writeCanonicalJsonFile(targetRuntimePath, targetRuntime);
@@ -138,6 +158,26 @@ export function readPreparedTargetHandoff(input: {
   if (artifactManifestDigest(manifest) !== manifest.artifact_sha256)
     throw new Error("Prepared Target Artifact Manifest digest is invalid");
   const webDistRoot = path.join(path.dirname(input.targetRuntimePath), "web-dist");
+  const runtimeHandoffReceiptPath = path.resolve(
+    input.rootDir,
+    targetRuntime.runtime_handoff_receipt_ref,
+  );
+  const handoff = parseJsonWithSchema(
+    readCanonicalJsonFile(runtimeHandoffReceiptPath),
+    runtimeHandoffReceiptSchema,
+    "runtime handoff receipt",
+  );
+  if (
+    handoff.run_id !== targetRuntime.run_id ||
+    handoff.challenge_id !== targetRuntime.challenge_id ||
+    handoff.runtime_variant_id !== targetRuntime.runtime_variant_id ||
+    handoff.prepared_artifact_sha256 !== targetRuntime.artifact_sha256 ||
+    handoff.runtime_url !== targetRuntime.runtime_url ||
+    handoff.runtime_url_origin !== targetRuntime.runtime_url_origin ||
+    targetRuntime.readiness.status !== handoff.readiness.observed_status ||
+    targetRuntime.readiness.title !== handoff.readiness.observed_title
+  )
+    throw new Error("Prepared Target is not bound to the trusted Runtime Handoff receipt");
   assertNoSymlinks(webDistRoot);
   assertSourceFreeArtifact(webDistRoot);
   assertArtifactManifestMatches(webDistRoot, manifest);

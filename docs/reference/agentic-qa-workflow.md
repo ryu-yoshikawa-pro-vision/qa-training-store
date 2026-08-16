@@ -178,30 +178,27 @@ Black-boxのRequired CoverageはChallenge Definitionだけから導出します�
 Supporting fileや任意Specを自動追加しません。Challenge／RunbookのMissionは中立文にし、
 Answer KeyとPatchはCoding Agentへ渡しません。
 
-Preparation Harnessの順序は次のとおりです。
+Preparation HarnessのCanonical sequenceは、コードと契約テストで次の14項目へ固定します。
 
-    machine_contract_validation
-    required_coverage_derive
-    learner_safe_spec_bundle
-    benchmark_revision_and_identity
-    runner_profile
-    disposable_source_copy
-    baseline_build_serve_install
-    pre_patch_baseline_sanity
-    baseline_runtime_cleanup
-    git_apply_check_and_apply
-    patched_build_serve_install
-    post_patch_sanity
-    scored_initial_state_reset
-    isolated_execution_root
-    actual_tool_scope_unavailable
-    positive_tool_allowlist_and_forbidden_probe
+    machine_contract_challenge_spec_validation
     protected_patch_validation
-    source_free_prepared_target
-    learner_safe_runner_input
-    runtime_stop_and_disposable_cleanup
-    host_capability_gate_and_trusted_bootstrap
-    constrained_output_import_and_freeze
+    learner_safe_specification_bundle_benchmark_identity
+    disposable_source_dependency_preparation
+    baseline_build_pre_patch_sanity
+    patch_apply
+    patched_build_post_patch_sanity
+    scored_initial_state_deterministic_reset_sanity
+    source_free_prepared_target_copy_hash_validation
+    learner_safe_runner_input_skill_runbook_output_contract_freeze
+    isolated_runner_root_from_frozen_input
+    repository_forbidden_boundary_preflight
+    disposable_source_cleanup
+    host_trusted_runtime_capability_handoff
+
+Host handoffが無いRepository-side deterministic preparationでも、source-free Prepared
+Artifactのcopy/hashまでは行えます。ただしtarget runtimeのreadiness、Host Tool Scope、
+Fresh Context等をRepositoryが自己申告してはいけません。Host receiptが無い場合は、
+Official executionとvalid_for_scoringをBLOCKEDにします。
 
 Preparation HarnessはChallenge validation、Answer Key validation、learner-safe bundle、
 disposable source、protected patch、baseline／patched sanity、Canonical Artifact Manifest、
@@ -212,6 +209,16 @@ Agent Session、Fresh Context、Actual Tool Scope、Origin／Resource Boundary�
 constrained outputはHostのtrusted receiptが正本です。receiptがない、またはrequired proofが
 `proven`でない場合、Official Scored E2Eは`BLOCKED / DEFERRED / NOT EXECUTED`です。これを
 解決するためRepository独自のRunner、LLM wrapper、Session Manager、MCP orchestrationは追加しません。
+
+Runner Inputとisolated rootはhash一致だけでなく、frozen inputから導出したcanonical file setへ
+完全一致しなければなりません。Official artifact／trusted evidenceのpath chainでは、Run Rootから
+leafまでのancestor directory symlinkも拒否します。
+さらにBenchmark ManifestのLearner Spec／Challenge／Runbook byte identityをRunner Inputの対応hashへ
+直接比較し、内部整合した別Inputのrebindingを同じBenchmark Resultとして受理しません。
+
+Static serverの`Sec-Fetch-Dest`はブラウザUX上の補助情報に過ぎず、偽装可能なため
+Security Boundaryではありません。Official Boundaryの正本はHost-trusted Tool Isolationと
+実配信Runtimeに対する完全なResource Negative Probeです。
 
 Baselineで対象Defectが既に存在する、Patch checkが失敗する、Post-patchで再現条件が
 成立しない場合はScored Runを開始しません。PatchはApplication Branchへ適用してCommit

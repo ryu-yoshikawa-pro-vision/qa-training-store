@@ -28,6 +28,10 @@ function canonicalize(value: unknown, path = "$", seen = new Set<object>()): Can
     if (Array.isArray(value))
       return value.map((item, index) => canonicalize(item, `${path}[${index}]`, seen));
 
+    const prototype = Object.getPrototypeOf(value);
+    if (prototype !== Object.prototype && prototype !== null)
+      throw new Error(`Canonical JSON requires a plain object at ${path}`);
+
     const record = value as Record<string, unknown>;
     const result: Record<string, CanonicalJsonValue> = {};
     for (const key of Object.keys(record).sort(compareCodeUnits)) {

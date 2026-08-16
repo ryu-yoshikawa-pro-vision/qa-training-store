@@ -266,6 +266,6 @@ export function sameRunnerCondition(
 ): boolean {
   return (
     sameBenchmarkIdentity(leftIdentity, rightIdentity) &&
-    JSON.stringify(leftRunnerProfile) === JSON.stringify(rightRunnerProfile)
+    canonicalJson(leftRunnerProfile) === canonicalJson(rightRunnerProfile)
   );
 }

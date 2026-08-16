@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "run_id": "20260813-080447-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_context",
+  "failure_categories": [
+    "missing_context",
+    "missing_validation",
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Repository側のOfficial Machine Contract、valid artifact chain、mutation tests、Windows deterministic preparation、Chromium E2Eは完了した。Trusted Host Capabilityが無いためOfficial execution/scoreは未実行である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "official-artifact-chain 22 tests、preparation 1 test、Chromium 27 testsがPASS"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はAgentic QA、関連docs/tests、Run artifactへ限定し、Product UI、Native implementation、Android、unrelated CI、Git indexを変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "Git mutation、command-based deletion、subagent delegationは実行していない"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Contract suite 26 files/240 tests、typecheck、lint、spec、security、preparation、Chromium E2EはPASSした。一方、全体format checkは既存381 filesで停止し、Linux CIは現Hostで実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "pnpm run test:contracts => 26 files / 240 tests passed"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "pnpm run verify => repository-wide format:checkでFAIL、後段は未実行"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "unknown、unproven、not_executed、Host evidence missingをOfficial PASSへ変換せず、Runtime handoffとHost receiptが無い状態をBLOCKED/invalidとして保持した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/agentic-qa/official-verification.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "Official artifact verificationをintrinsic mandatoryにした"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Canonical layout、shared parser/schema、preparation sequence、valid fixtureとmutation matrix、Run reportを同じSSOTへ接続した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/official-artifact-chain.test.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "valid chain PASSとidentity/boundary mutation invalidを固定した"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Artifact layout、origin、patch path、Canonical JSON、resource probe capabilityを重複実装せず共有helper/schemaへ寄せた。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/agentic-qa/artifact-layout.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "Official v1のrun rootとref patternを集中定義した"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Windowsではoffline hoisted disposable installでpreparationとChromium sanityがPASSした。Linux/macOSのsymlink branchはコードとcontractへ反映したが、Linux CI自体はこのHostで実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "pnpm run test:agentic-qa:preparation => 1/1 passed"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_context",
+      "severity": "high",
+      "evidence": "現HostからTrusted Host Capability Receipt、Fresh Context、Actual Tool Isolation、Trusted Runtime Handoffを取得できない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "Host capability不足のためOfficial executionを開始しなかった"
+        }
+      ],
+      "detail": "Repository deterministic contractsは検証可能だが、Host evidenceが無い状態でvalid_for_scoring=trueやOfficial scoreを生成してはいけない。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "このWindows HostではLinux CIの実ランタイムを起動していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "Linux-specific preparation executionはNOT EXECUTED"
+        }
+      ],
+      "detail": "Linux/macOSはroot dependency topologyを壊さない一時symlink branchへ分離し、Linux CIで再検証する前提をRunへ記録した。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "repository-wide format:checkは既存381 filesの未整形でFAILした。全体testではNative purchase screenの5秒timeoutが一度発生したが、単独30秒実行では15 tests PASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "今回のAgentic QA変更と無関係な既存format/timing状態"
+        }
+      ],
+      "detail": "変更対象ファイルは個別Prettier PASSで、Native sourceは変更していない。既存全体formatの一括修正はscope外とした。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "Official Host integration",
+      "evidence": "Repository側はHost receipt schemaとfail-close verifierを提供したが、現Hostはreceiptを発行できない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/agentic-qa/contracts.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "Host CapabilityとRuntime Handoffのmachine-readable contract"
+        }
+      ],
+      "expected_impact": "Trusted identity、Tool Isolation、Runtime readinessをOfficial runへ接続できる。",
+      "recommendation": "Host側でFresh Context、Actual Tool Scope、deny probe、Runtime URL/artifact hash handoff、budget/finalization receiptを発行し、Repository verifierへ渡す。Repository内に新しいRunner/Proxy/Session Managerを追加しない。"
+    }
+  ]
+}

@@ -420,9 +420,11 @@ describe("Static web server contract", () => {
     expect(res2.headers["cache-control"]).toContain("no-store");
   });
 
-  it("denies direct navigation to implementation resources", async () => {
-    const res = await fetchResponse(`${baseUrl}/app.js`);
-    expect(res.status).toBe(403);
-    expect(res.body.toString("utf-8")).toBe("Forbidden");
+  it("does not treat Sec-Fetch-Dest as an authorization boundary", async () => {
+    const direct = await fetchResponse(`${baseUrl}/app.js`);
+    const browserLike = await fetchSubresource(`${baseUrl}/app.js`);
+    expect(direct.status).toBe(200);
+    expect(browserLike.status).toBe(200);
+    expect(direct.body.toString("utf-8")).toBe(browserLike.body.toString("utf-8"));
   });
 });

@@ -22,6 +22,7 @@ import { assertLearnerBundleHasOwners, buildLearnerBundle } from "./build-learne
 import { resolveSpecReferences } from "./spec-refs";
 import { compareWorkingTreeSnapshots } from "./working-tree-snapshot";
 import { assertProtectedPatch, validateProtectedPatch } from "./protected-patch-validation";
+import { canonicalJson } from "./canonical-json";
 
 export type ContractValidationSummary = {
   challenges: string[];
@@ -349,7 +350,58 @@ export function validateTrainingContracts(rootDir = process.cwd()): ContractVali
             evaluation.challenge_id !== findings.challenge_id ||
             evaluation.benchmark_revision !== findings.benchmark_revision ||
             evaluation.runtime_variant_id !== findings.runtime_variant_id ||
-            JSON.stringify(evaluation.runner_profile) !== JSON.stringify(findings.runner_profile) ||
+            canonicalJson(evaluation.runner_profile) !== canonicalJson(findings.runner_profile) ||
+            evaluation.execution_kind !== findings.execution_kind ||
+            evaluation.runner_session_id !== findings.runner_session_id ||
+            evaluation.evaluator_session_id === findings.runner_session_id ||
+            evaluation.fresh_session !== findings.fresh_session ||
+            evaluation.tool_scope_validated !== findings.tool_scope_validated)
+        )
+          throw new Error(
+            `Evaluation identity does not match Frozen Findings: ${relativeFromRoot(rootDir, evaluationFile)}`,
+          );
+      }
+    }
+  }
+
+  const officialRunDirectories = fs.existsSync(path.join(rootDir, ".artifacts", "agentic-qa"))
+    ? fs
+        .readdirSync(path.join(rootDir, ".artifacts", "agentic-qa"), { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => path.join(rootDir, ".artifacts", "agentic-qa", entry.name))
+    : [];
+  for (const directory of officialRunDirectories) {
+    const manifestFile = path.join(directory, "trusted", "benchmark-manifest.json");
+    if (fs.existsSync(manifestFile)) {
+      parseJsonWithSchema(
+        readJson(manifestFile, rootDir),
+        benchmarkManifestSchema,
+        relativeFromRoot(rootDir, manifestFile),
+      );
+      validatedManifests.push(relativeFromRoot(rootDir, manifestFile));
+    }
+    const evaluationFile = path.join(directory, "evaluation", "evaluation.json");
+    const findingsFile = path.join(directory, "runner", "output", "qa-findings.json");
+    if (fs.existsSync(evaluationFile)) {
+      const evaluation = parseJsonWithSchema(
+        readJson(evaluationFile, rootDir),
+        evaluationSchema,
+        relativeFromRoot(rootDir, evaluationFile),
+      );
+      validatedEvaluations.push(relativeFromRoot(rootDir, evaluationFile));
+      if (fs.existsSync(findingsFile)) {
+        const findings = parseJsonWithSchema(
+          readJson(findingsFile, rootDir),
+          qaFindingsSchema,
+          relativeFromRoot(rootDir, findingsFile),
+        );
+        if (
+          findings.mode === "black-box-scored" &&
+          (evaluation.run_id !== findings.run_id ||
+            evaluation.challenge_id !== findings.challenge_id ||
+            evaluation.benchmark_revision !== findings.benchmark_revision ||
+            evaluation.runtime_variant_id !== findings.runtime_variant_id ||
+            canonicalJson(evaluation.runner_profile) !== canonicalJson(findings.runner_profile) ||
             evaluation.execution_kind !== findings.execution_kind ||
             evaluation.runner_session_id !== findings.runner_session_id ||
             evaluation.evaluator_session_id === findings.runner_session_id ||
@@ -375,14 +427,20 @@ export function validateTrainingContracts(rootDir = process.cwd()): ContractVali
     validatedCharters.push(relativeFromRoot(rootDir, file));
   }
 
-  const findingsFiles = runDirectories.flatMap((directory) => {
-    const results: string[] = [];
-    for (const findingsName of FINDINGS_ARTIFACT_NAMES) {
-      const file = path.join(directory, findingsName);
-      if (fs.existsSync(file)) results.push(file);
-    }
-    return results;
-  });
+  const findingsFiles = [
+    ...runDirectories.flatMap((directory) => {
+      const results: string[] = [];
+      for (const findingsName of FINDINGS_ARTIFACT_NAMES) {
+        const file = path.join(directory, findingsName);
+        if (fs.existsSync(file)) results.push(file);
+      }
+      return results;
+    }),
+    ...officialRunDirectories.flatMap((directory) => {
+      const file = path.join(directory, "runner", "output", "qa-findings.json");
+      return fs.existsSync(file) ? [file] : [];
+    }),
+  ];
   const validatedFindings: string[] = [];
   for (const file of findingsFiles) {
     if (validatedFindings.includes(relativeFromRoot(rootDir, file))) continue;

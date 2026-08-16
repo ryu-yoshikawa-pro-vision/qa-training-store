@@ -26,22 +26,50 @@ export const PROTECTED_PATCH_PREFIXES = [
   "pnpm-lock.yaml",
 ] as const;
 
-function normalizePatchPath(value: string): string | null {
-  if (value === "/dev/null") return null;
-  const normalized = value.replace(/\\/g, "/");
-  const match = /^(?:a|b)\/(.+)$/.exec(normalized);
-  if (match?.[1] === undefined || match[1].startsWith("/") || match[1].split("/").includes(".."))
+function normalizePatchPath(value: string, allowGitPrefix = true): string | null {
+  const raw = value.trim();
+  if (raw === "/dev/null") return null;
+  if (
+    raw === "" ||
+    raw.includes("\\") ||
+    raw.includes('"') ||
+    raw.includes("'") ||
+    raw.startsWith("/") ||
+    /^[A-Za-z]:[\\/]/.test(raw) ||
+    raw.split("/").includes("..")
+  )
     throw new Error(`Challenge patch contains an unsafe path: ${value}`);
-  return match[1];
+  const match = allowGitPrefix ? /^(?:a|b)\/(.+)$/.exec(raw) : null;
+  const normalized = match?.[1] ?? raw;
+  if (normalized === undefined || normalized === "" || normalized.startsWith("/"))
+    throw new Error(`Challenge patch contains an unsafe path: ${value}`);
+  return normalized;
 }
 
 export function patchTouchedPaths(patchText: string): string[] {
   const paths = new Set<string>();
   for (const line of patchText.split(/\r?\n/)) {
-    if (!line.startsWith("--- ") && !line.startsWith("+++ ")) continue;
-    const raw = line.slice(4).split("\t", 1)[0] ?? "";
-    const normalized = normalizePatchPath(raw);
-    if (normalized !== null) paths.add(normalized);
+    if (line.startsWith("diff --git ")) {
+      const match = /^diff --git (a\/\S+) (b\/\S+)$/.exec(line);
+      if (match?.[1] === undefined || match[2] === undefined)
+        throw new Error(`Challenge patch contains an unsafe diff header: ${line}`);
+      for (const raw of [match[1], match[2]]) {
+        const normalized = normalizePatchPath(raw);
+        if (normalized !== null) paths.add(normalized);
+      }
+      continue;
+    }
+    const metadata = /^(?:rename|copy) (?:from|to) (.+)$/.exec(line);
+    if (metadata?.[1] !== undefined) {
+      const normalized = normalizePatchPath(metadata[1], false);
+      if (normalized !== null) paths.add(normalized);
+      continue;
+    }
+    if (line.startsWith("--- ") || line.startsWith("+++ ")) {
+      const raw = line.slice(4).split("\t", 1)[0] ?? "";
+      const normalized = normalizePatchPath(raw);
+      if (normalized !== null) paths.add(normalized);
+    }
   }
   return [...paths].sort(compareCodeUnits);
 }

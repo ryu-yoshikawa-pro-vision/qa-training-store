@@ -139,6 +139,9 @@ export function createInitialStateReceipt(input: {
   }
   if (input.requestedState.viewport_or_device !== input.runtimeVariant.viewport_or_device)
     throw new Error("Initial State viewport does not match Runtime Variant");
+  const expectedSessionPresent = input.requestedState.session_requirement === "present";
+  if (input.sessionPresent !== expectedSessionPresent)
+    throw new Error("Initial State session presence does not match the requested requirement");
   if (input.initialPath !== input.requestedState.initial_route)
     throw new Error("Initial State path does not match the requested route");
   return initialStateReceiptSchema.parse({
@@ -149,6 +152,8 @@ export function createInitialStateReceipt(input: {
     runner_session_id: input.runnerSessionId,
     requested_seed: input.requestedState.seed,
     requested_role: input.requestedState.role,
+    requested_session_requirement: input.requestedState.session_requirement,
+    requested_initial_route: input.requestedState.initial_route,
     observed_role: input.observedRole,
     session_present: input.sessionPresent,
     initial_path: input.initialPath,

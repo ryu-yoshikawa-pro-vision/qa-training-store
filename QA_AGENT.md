@@ -62,35 +62,33 @@ Evidence は `.artifacts/` に保存するスクリーンショット、DOM/Acce
 
 ## Scored preparation and evaluation
 
-Challenge Preparation の順序は固定です。
+Challenge Preparation のCanonical sequenceは固定です。
 
 ```text
-Machine Contract validation
-→ Learner-safe Bundle / Benchmark Revision / Runner Profile
-→ disposable clean source copy
-→ Baseline Build / Serve / Install
-→ Pre-patch Baseline Sanity
-→ runtime cleanup / clean status
-→ git apply --check → git apply
-→ Patched Build / Serve / Install
-→ Post-patch Sanity
-→ Scored Initial State Reset
-→ Protected Patch validation
-→ Source-free Prepared Target / Canonical Artifact Manifest
-→ Learner-safe Scored Skill / Runner Input freeze
-→ isolated root / Tool Allowlist / Forbidden Probe
-→ runtime stop / disposable cleanup
-→ Host Capability Gate / trusted bootstrap handoff
-→ Fresh Coding Agent Session (provided by the Agent runtime / host)
-→ bounded output import / Evidence Mapping / Frozen Artifact
-→ Frozen qa-findings.json
-→ Separate Evaluator
-→ evaluation.json
+machine_contract_challenge_spec_validation
+→ protected_patch_validation
+→ learner_safe_specification_bundle_benchmark_identity
+→ disposable_source_dependency_preparation
+→ baseline_build_pre_patch_sanity
+→ patch_apply
+→ patched_build_post_patch_sanity
+→ scored_initial_state_deterministic_reset_sanity
+→ source_free_prepared_target_copy_hash_validation
+→ learner_safe_runner_input_skill_runbook_output_contract_freeze
+→ isolated_runner_root_from_frozen_input
+→ repository_forbidden_boundary_preflight
+→ disposable_source_cleanup
+→ host_trusted_runtime_capability_handoff
 ```
 
 Challenge Patch は Instructor-only Unified Diff です。Application Branchへ適用してCommitせず、Runner Rootへコピーしません。Pre-patchで対象Defectが既に存在する、Post-patchで再現条件が成立しない、Patch checkが失敗する場合はScored Runを開始しません。
 
 Preparation HarnessはCoding Agentを起動せず、Agent Session生成、Tool routing、retryも担当しません。Host Capability Receiptがない、required proofが`proven`でない、またはSource-free Prepared Targetをtrusted URLとしてFresh Sessionへ引き渡せない場合は、Official Scoredを開始せず `BLOCKED / DEFERRED / NOT EXECUTED` と記録します。Repository独自のRunner／LLM wrapper／Session Managerで解決しません。未取得のHost証跡をRepository側で推測してPASSへ補完しません。
+
+Repository-side deterministic implementationはHostなしでも進められますが、Official
+executionまたは`valid_for_scoring=true`にはHost Capability evidenceが必須です。
+`Sec-Fetch-Dest`は偽装可能なDefense-in-depth／browser UX情報であり、Security Boundary
+ではありません。正本はHost-trusted Tool IsolationとActual Resource Negative Probeです。
 
 Benchmark Identity は `challenge_id + benchmark_revision + runtime_variant_id`、同条件のRunner比較はこれにPrepared Target hash、Canonical Runner Input hash、Runner Profileを加えたものです。Clean committed inputだけ `git:<40 lowercase hex>`、それ以外はRuntime VariantとRunner Profileを除外したCanonical Benchmark Manifest Inputの `sha256:<64 lowercase hex>` を使います。Runtime Variantを変えてもBenchmark Revisionは変わらず、Benchmark IdentityとRunner Input hashが変わります。
 

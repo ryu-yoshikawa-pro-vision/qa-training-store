@@ -1,8 +1,30 @@
 import { z } from "zod";
+import {
+  OFFICIAL_RUNNER_EVIDENCE_REF_PATTERN,
+  OFFICIAL_RUNNER_EVIDENCE_REF_PREFIX_PATTERN,
+  officialRunnerEvidenceRefPrefix,
+} from "./artifact-layout";
 
 export const SCHEMA_VERSION = 1 as const;
 export const STOP_CONDITION =
   "required_coverage_and_candidates_resolved_or_budget_exhausted" as const;
+
+export const OFFICIAL_PREPARATION_SEQUENCE = [
+  "machine_contract_challenge_spec_validation",
+  "protected_patch_validation",
+  "learner_safe_specification_bundle_benchmark_identity",
+  "disposable_source_dependency_preparation",
+  "baseline_build_pre_patch_sanity",
+  "patch_apply",
+  "patched_build_post_patch_sanity",
+  "scored_initial_state_deterministic_reset_sanity",
+  "source_free_prepared_target_copy_hash_validation",
+  "learner_safe_runner_input_skill_runbook_output_contract_freeze",
+  "isolated_runner_root_from_frozen_input",
+  "repository_forbidden_boundary_preflight",
+  "disposable_source_cleanup",
+  "host_trusted_runtime_capability_handoff",
+] as const;
 
 const nonEmpty = z.string().min(1);
 const schemaVersion = z.literal(SCHEMA_VERSION);
@@ -18,6 +40,16 @@ export function compareCodeUnits(left: string, right: string): number {
   }
   return left.length - right.length;
 }
+
+/** A URL origin without path, query, fragment, credentials, or trailing slash. */
+export const originStringSchema = z.url().refine((value) => {
+  try {
+    const parsed = new URL(value);
+    return (parsed.protocol === "http:" || parsed.protocol === "https:") && parsed.origin === value;
+  } catch {
+    return false;
+  }
+}, "must be a canonical bare http(s) origin");
 
 const repoRelativePath = nonEmpty
   .refine(
@@ -498,6 +530,20 @@ export const runnerProfileSchema = z
   })
   .strict();
 
+export const officialRunnerProfileSchema = z
+  .object({
+    model: nonEmpty,
+    model_configuration_identifier: nonEmpty,
+    tool_profile_revision: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    skill_revision: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    output_contract_revision: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    host_profile_revision: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    max_duration_seconds: z.number().int().positive().nullable(),
+    max_tool_actions: z.number().int().positive().nullable(),
+    stop_condition: z.literal(STOP_CONDITION),
+  })
+  .strict();
+
 const requiredHostClaims = [
   "fresh_session",
   "fresh_context",
@@ -530,6 +576,15 @@ export const hostToolIsolationSchema = z
         path: ["denied_capabilities"],
         message: "denied capabilities must be unique",
       });
+    const overlap = value.allowed_capabilities.filter((capability) =>
+      value.denied_capabilities.includes(capability),
+    );
+    if (overlap.length > 0)
+      context.addIssue({
+        code: "custom",
+        path: ["denied_capabilities"],
+        message: `allowed and denied capabilities must be disjoint: ${overlap.join(", ")}`,
+      });
     if (value.enforced && (!value.measured || !value.deny_probe_passed))
       context.addIssue({
         code: "custom",
@@ -547,6 +602,7 @@ export const hostCapabilityReceiptSchema = z
     session_artifact_identifier: nonEmpty,
     model_identifier: nonEmpty,
     model_configuration_identifier: nonEmpty,
+    learner_safe_input_artifact_sha256: z.string().regex(/^sha256:[0-9a-f]{64}$/),
     host_identifier: nonEmpty,
     host_profile_revision: z.string().regex(/^sha256:[0-9a-f]{64}$/),
     runtime_variant_id: z.string().regex(/^web-chromium-(?:desktop|tablet|mobile)-v1$/),
@@ -580,7 +636,7 @@ export const hostCapabilityReceiptSchema = z
     origin_boundary: z
       .object({
         enforced: z.boolean(),
-        allowed_origins: z.array(z.string().url()),
+        allowed_origins: z.array(originStringSchema),
         evidence_ref: repoRelativePath,
       })
       .strict(),
@@ -714,6 +770,34 @@ export const runtimeVariantSchema = z
       });
   });
 
+export const runtimeHandoffReceiptSchema = z
+  .object({
+    schema_version: schemaVersion,
+    run_id: runIdSchema,
+    challenge_id: challengeIdSchema,
+    runtime_variant_id: z.string().regex(/^web-chromium-(?:desktop|tablet|mobile)-v1$/),
+    prepared_artifact_sha256: z.string().regex(/^sha256:[0-9a-f]{64}$/),
+    runtime_url: z.url(),
+    runtime_url_origin: originStringSchema,
+    readiness: z
+      .object({
+        observed_status: z.literal(200),
+        observed_title: nonEmpty,
+      })
+      .strict(),
+    trusted_source: nonEmpty,
+    captured_at: isoTimestamp,
+  })
+  .strict()
+  .superRefine((value, context) => {
+    if (new URL(value.runtime_url).origin !== value.runtime_url_origin)
+      context.addIssue({
+        code: "custom",
+        path: ["runtime_url_origin"],
+        message: "runtime URL origin does not match the canonical runtime URL",
+      });
+  });
+
 export const artifactFileSchema = z
   .object({
     path: repoRelativePath,
@@ -725,7 +809,12 @@ export const artifactFileSchema = z
 export const artifactManifestSchema = z
   .object({
     schema_version: schemaVersion,
-    artifact_kind: z.enum(["prepared_target", "frozen_runner"]),
+    artifact_kind: z.enum([
+      "prepared_target",
+      "frozen_runner",
+      "learner_safe_input",
+      "isolated_runner_root",
+    ]),
     source_free: z.boolean(),
     symlink_count: z.literal(0),
     files: z.array(artifactFileSchema).min(1),
@@ -767,10 +856,11 @@ export const preparedTargetSchema = z
       .nullable(),
     source_cleanup_completed: z.literal(true),
     runtime_url: z.string().url(),
-    runtime_url_origin: z.string().url(),
-    allowed_origins: z.array(z.string().url()),
+    runtime_url_origin: originStringSchema,
+    allowed_origins: z.array(originStringSchema),
     readiness: z.object({ status: z.literal(200), title: nonEmpty }).strict(),
     artifact_manifest_ref: repoRelativePath,
+    runtime_handoff_receipt_ref: repoRelativePath,
     created_at: isoTimestamp,
   })
   .strict()
@@ -780,6 +870,12 @@ export const preparedTargetSchema = z
         code: "custom",
         path: ["allowed_origins"],
         message: "runtime origin must be allowlisted",
+      });
+    if (new URL(value.runtime_url).origin !== value.runtime_url_origin)
+      context.addIssue({
+        code: "custom",
+        path: ["runtime_url_origin"],
+        message: "runtime URL origin does not match the canonical runtime URL",
       });
     if (new Set(value.allowed_origins).size !== value.allowed_origins.length)
       context.addIssue({
@@ -866,6 +962,8 @@ export const initialStateReceiptSchema = z
     runner_session_id: nonEmpty,
     requested_seed: nonEmpty,
     requested_role: role,
+    requested_session_requirement: z.enum(["absent", "present"]),
+    requested_initial_route: nonEmpty,
     observed_role: role,
     session_present: z.boolean(),
     initial_path: nonEmpty,
@@ -873,18 +971,22 @@ export const initialStateReceiptSchema = z
     session_operation_id: nonEmpty,
     target_runtime_artifact_sha256: z.string().regex(/^sha256:[0-9a-f]{64}$/),
     runtime_variant_id: z.string().regex(/^web-chromium-(?:desktop|tablet|mobile)-v1$/),
-    runtime_url_origin: z.string().url(),
+    runtime_url_origin: originStringSchema,
     completed_at: isoTimestamp,
     trusted_source: nonEmpty,
   })
   .strict()
   .superRefine((value, context) => {
-    const expectedPresent = value.requested_role !== "guest";
-    if (value.session_present !== expectedPresent || value.observed_role !== value.requested_role)
+    const expectedPresent = value.requested_session_requirement === "present";
+    if (
+      value.session_present !== expectedPresent ||
+      value.observed_role !== value.requested_role ||
+      value.initial_path !== value.requested_initial_route
+    )
       context.addIssue({
         code: "custom",
         path: ["observed_role"],
-        message: "initial state role/session does not satisfy request",
+        message: "initial state role/session/route does not satisfy request",
       });
     if (new Set(value.coverage_ids).size !== value.coverage_ids.length)
       context.addIssue({
@@ -957,9 +1059,7 @@ export const outputContractSchema = z
     max_final_output_bytes: z.number().int().positive(),
     finalization_timeout_seconds: z.number().int().positive(),
     max_final_output_writes: z.literal(1),
-    final_evidence_ref_prefix: z
-      .string()
-      .regex(/^\.artifacts\/agentic-qa\/[0-9]{8}-[0-9]{6}-JST\/runner\/evidence\/$/),
+    final_evidence_ref_prefix: z.string().regex(OFFICIAL_RUNNER_EVIDENCE_REF_PREFIX_PATTERN),
   })
   .strict();
 
@@ -975,14 +1075,13 @@ export const runnerInputSchema = z
     output_contract_revision: z.string().regex(/^sha256:[0-9a-f]{64}$/),
     runtime_url: z.string().url(),
     runtime_variant_id: z.string().regex(/^web-chromium-(?:desktop|tablet|mobile)-v1$/),
-    allowed_origins: z.array(z.string().url()),
+    allowed_origins: z.array(originStringSchema),
     initial_state: initialStateGroupSchema,
+    coverage_ids: z.array(coverageId).min(1),
     allowed_runtime_controls: z.array(runtimeControl),
     exploration_budget: explorationBudgetSchema,
     stop_condition: z.literal(STOP_CONDITION),
-    evidence_ref_prefix: z
-      .string()
-      .regex(/^\.artifacts\/agentic-qa\/[0-9]{8}-[0-9]{6}-JST\/runner\/evidence\/$/),
+    evidence_ref_prefix: z.string().regex(OFFICIAL_RUNNER_EVIDENCE_REF_PREFIX_PATTERN),
     runner_input_sha256: z.string().regex(/^sha256:[0-9a-f]{64}$/),
   })
   .strict()
@@ -1009,17 +1108,19 @@ export const learnerSafeInputManifestSchema = z
   })
   .strict();
 
+export const resourceProbeCapabilitySchema = z.enum([
+  "direct_navigation",
+  "direct_read",
+  "response_body",
+  "arbitrary_fetch",
+]);
+
 export const resourceBoundaryProbeResultSchema = z
   .object({
     resource_url: z.string().url(),
     resource_kind: z.enum(["javascript", "css", "manifest", "source_map"]),
     discovery_source: nonEmpty,
-    probe_capability: z.enum([
-      "direct_navigation",
-      "direct_read",
-      "response_body",
-      "arbitrary_fetch",
-    ]),
+    probe_capability: resourceProbeCapabilitySchema,
     expected: z.literal("denied"),
     observed: z.enum(["denied", "allowed", "not_executed"]),
     evidence_ref: repoRelativePath,
@@ -1031,13 +1132,71 @@ export const resourceBoundaryProbeSchema = z
     schema_version: schemaVersion,
     run_id: runIdSchema,
     artifact_sha256: z.string().regex(/^sha256:[0-9a-f]{64}$/),
-    results: z.array(resourceBoundaryProbeResultSchema),
+    expected_resource_urls: z.array(z.string().url()).min(1),
+    expected_probe_capabilities: z.array(resourceProbeCapabilitySchema).min(4),
+    results: z.array(resourceBoundaryProbeResultSchema).min(1),
     passed: z.boolean(),
   })
   .strict()
   .superRefine((value, context) => {
+    const expectedCapabilities = [...resourceProbeCapabilitySchema.options].sort(compareCodeUnits);
+    const actualCapabilities = [...value.expected_probe_capabilities].sort(compareCodeUnits);
+    if (
+      new Set(value.expected_probe_capabilities).size !==
+        value.expected_probe_capabilities.length ||
+      JSON.stringify(actualCapabilities) !== JSON.stringify(expectedCapabilities)
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["expected_probe_capabilities"],
+        message: "expected probe capabilities must be the complete canonical set",
+      });
+    const expectedResources = [...value.expected_resource_urls].sort(compareCodeUnits);
+    if (
+      new Set(value.expected_resource_urls).size !== value.expected_resource_urls.length ||
+      JSON.stringify(expectedResources) !== JSON.stringify(value.expected_resource_urls)
+    )
+      context.addIssue({
+        code: "custom",
+        path: ["expected_resource_urls"],
+        message: "expected resource URLs must be unique and code-unit sorted",
+      });
+    const seen = new Set<string>();
+    for (const result of value.results) {
+      const key = `${result.resource_url}\u0000${result.probe_capability}`;
+      if (seen.has(key))
+        context.addIssue({
+          code: "custom",
+          path: ["results"],
+          message: `duplicate resource probe row: ${key}`,
+        });
+      seen.add(key);
+      if (!value.expected_resource_urls.includes(result.resource_url))
+        context.addIssue({
+          code: "custom",
+          path: ["results"],
+          message: "probe row references a resource outside the expected resource set",
+        });
+      if (!value.expected_probe_capabilities.includes(result.probe_capability))
+        context.addIssue({
+          code: "custom",
+          path: ["results"],
+          message: "probe row references a capability outside the expected capability set",
+        });
+    }
+    const expectedKeys = new Set(
+      value.expected_resource_urls.flatMap((resourceUrl) =>
+        value.expected_probe_capabilities.map((capability) => `${resourceUrl}\u0000${capability}`),
+      ),
+    );
+    if (seen.size !== expectedKeys.size || [...expectedKeys].some((key) => !seen.has(key)))
+      context.addIssue({
+        code: "custom",
+        path: ["results"],
+        message: "resource boundary probe must contain the complete resource/capability matrix",
+      });
     const passed =
-      value.results.length > 0 && value.results.every((item) => item.observed === "denied");
+      seen.size === expectedKeys.size && value.results.every((item) => item.observed === "denied");
     if (value.passed !== passed)
       context.addIssue({
         code: "custom",
@@ -1093,8 +1252,18 @@ export const evidenceMappingSchema = z
         .object({
           canonical_ref: z
             .string()
-            .regex(/^\.artifacts\/agentic-qa\/[0-9]{8}-[0-9]{6}-JST\/runner\/evidence\/.+/),
-          physical_output_path: z.string().regex(/^output\/evidence\/.+/),
+            .regex(OFFICIAL_RUNNER_EVIDENCE_REF_PATTERN)
+            .refine(
+              (value) => !value.includes("\\") && !value.split("/").includes(".."),
+              "canonical evidence ref must not contain traversal or backslashes",
+            ),
+          physical_output_path: z
+            .string()
+            .regex(/^output\/evidence\/.+/)
+            .refine(
+              (value) => !value.includes("\\") && !value.split("/").includes(".."),
+              "physical evidence path must not contain traversal or backslashes",
+            ),
         })
         .strict(),
     ),
@@ -1102,11 +1271,45 @@ export const evidenceMappingSchema = z
   .strict()
   .superRefine((value, context) => {
     const refs = value.mappings.map((mapping) => mapping.canonical_ref);
+    const physicalPaths = value.mappings.map((mapping) => mapping.physical_output_path);
+    const canonicalPrefix = officialRunnerEvidenceRefPrefix(value.run_id);
+    for (const mapping of value.mappings) {
+      if (!mapping.canonical_ref.startsWith(canonicalPrefix))
+        context.addIssue({
+          code: "custom",
+          path: ["mappings"],
+          message: "canonical evidence refs must belong to the current run",
+        });
+      else {
+        const evidenceTail = mapping.canonical_ref.slice(canonicalPrefix.length);
+        if (mapping.physical_output_path !== `output/evidence/${evidenceTail}`)
+          context.addIssue({
+            code: "custom",
+            path: ["mappings"],
+            message: "physical evidence path must preserve the canonical evidence ref",
+          });
+      }
+    }
     if (new Set(refs).size !== refs.length)
       context.addIssue({
         code: "custom",
         path: ["mappings"],
         message: "canonical evidence refs must be unique",
+      });
+    if (new Set(physicalPaths).size !== physicalPaths.length)
+      context.addIssue({
+        code: "custom",
+        path: ["mappings"],
+        message: "physical evidence output paths must be unique",
+      });
+    const sorted = [...value.mappings].sort((left, right) =>
+      compareCodeUnits(left.canonical_ref, right.canonical_ref),
+    );
+    if (JSON.stringify(sorted) !== JSON.stringify(value.mappings))
+      context.addIssue({
+        code: "custom",
+        path: ["mappings"],
+        message: "evidence mappings must be canonical-ref sorted",
       });
   });
 
@@ -1613,9 +1816,11 @@ export type AnswerKey = z.infer<typeof answerKeySchema>;
 export type AnswerItem = z.infer<typeof answerItemSchema>;
 export type ToolProfile = z.infer<typeof toolProfileSchema>;
 export type RunnerProfile = z.infer<typeof runnerProfileSchema>;
+export type OfficialRunnerProfile = z.infer<typeof officialRunnerProfileSchema>;
 export type BenchmarkManifest = z.infer<typeof benchmarkManifestSchema>;
 export type HostCapabilityReceipt = z.infer<typeof hostCapabilityReceiptSchema>;
 export type RuntimeVariant = z.infer<typeof runtimeVariantSchema>;
+export type RuntimeHandoffReceipt = z.infer<typeof runtimeHandoffReceiptSchema>;
 export type ArtifactManifest = z.infer<typeof artifactManifestSchema>;
 export type PreparedTarget = z.infer<typeof preparedTargetSchema>;
 export type InitialStateGroup = z.infer<typeof initialStateGroupSchema>;
@@ -1628,6 +1833,7 @@ export type OutputContract = z.infer<typeof outputContractSchema>;
 export type RunnerInput = z.infer<typeof runnerInputSchema>;
 export type LearnerSafeInputManifest = z.infer<typeof learnerSafeInputManifestSchema>;
 export type ResourceBoundaryProbe = z.infer<typeof resourceBoundaryProbeSchema>;
+export type ResourceProbeCapability = z.infer<typeof resourceProbeCapabilitySchema>;
 export type RunnerExecutionSummary = z.infer<typeof runnerExecutionSummarySchema>;
 export type EvidenceMapping = z.infer<typeof evidenceMappingSchema>;
 export type FrozenRunnerArtifact = z.infer<typeof frozenRunnerArtifactSchema>;

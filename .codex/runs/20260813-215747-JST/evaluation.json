@@ -1,0 +1,19 @@
+{
+  "schema_version": 1,
+  "run_id": "20260813-215747-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue"],
+  "dimensions": {
+    "scope_control": {"rating": "pass", "evidence": "変更はOfficial verifier、artifact-chain tests、関連docs、Run Artifactに限定した。", "evidence_refs": []},
+    "validation_confidence": {"rating": "warn", "evidence": "focused 69 tests、全contracts 271 tests、preparation、Chromium 27 tests等がPASS。repository-wide format:checkは既存baselineでFAILした。", "evidence_refs": []},
+    "safety_compliance": {"rating": "pass", "evidence": "Git mutation、fake Host receipt、fake score、architecture redesignを行っていない。", "evidence_refs": []},
+    "reviewability": {"rating": "pass", "evidence": "3つのfully-rebound negative testがBenchmark mismatchの具体的failure reasonを検証する。", "evidence_refs": []},
+    "maintainability": {"rating": "pass", "evidence": "既存sha256Canonical、sha256File、runner input helper、manifest toolingを再利用した。", "evidence_refs": []},
+    "reproducibility": {"rating": "pass", "evidence": "同一package scriptsとdeterministic fixtureで再実行可能。", "evidence_refs": []}
+  },
+  "findings": [
+    {"category": "flaky_or_env_issue", "severity": "low", "evidence": "pnpm run format:checkは今回変更対象外を含むrepository-wide baselineでFAILした。", "detail": "変更対象限定Prettier checkはPASSしており、今回の修正によるregressionではない。"}
+  ],
+  "improvement_candidates": []
+}

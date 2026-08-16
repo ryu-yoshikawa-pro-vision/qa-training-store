@@ -8,6 +8,7 @@ import {
   parseJsonWithSchema,
   qaFindingsSchema,
   runnerExecutionSummarySchema,
+  compareCodeUnits,
   type EvidenceMapping,
   type FrozenRunnerArtifact,
   type OutputContract,
@@ -16,6 +17,7 @@ import {
 } from "./contracts";
 import {
   assertNoSymlinks,
+  assertSourceFreeArtifact,
   createArtifactManifest,
   readArtifactManifest,
   writeArtifactManifest,
@@ -27,6 +29,7 @@ import {
   sha256File,
   writeCanonicalJsonFile,
 } from "./canonical-json";
+import { agenticQaRef } from "./artifact-layout";
 
 function assertSafeRelative(value: string): void {
   if (
@@ -47,7 +50,7 @@ function evidenceRefs(findings: QaFindings): string[] {
 }
 
 function evidenceTail(ref: string, runId: string): string | null {
-  const prefix = `.artifacts/agentic-qa/${runId}/runner/evidence/`;
+  const prefix = `${agenticQaRef(runId, "runner", "evidence")}/`;
   if (ref.startsWith("http:") || ref.startsWith("https:")) return null;
   if (!ref.startsWith(prefix))
     throw new Error(`Evidence ref is outside the current runner evidence boundary: ${ref}`);
@@ -166,11 +169,7 @@ export function importRunnerOutput(input: {
     schema_version: 1,
     run_id: input.runId,
     mappings: mappingItems.sort((left, right) =>
-      left.canonical_ref < right.canonical_ref
-        ? -1
-        : left.canonical_ref > right.canonical_ref
-          ? 1
-          : 0,
+      compareCodeUnits(left.canonical_ref, right.canonical_ref),
     ),
   });
   const findingsPath = path.join(input.destinationRoot, "output", "qa-findings.json");
@@ -194,6 +193,7 @@ export function freezeRunnerOutput(input: {
 }): FrozenRunnerArtifact {
   const outputRoot = path.join(input.destinationRoot, "output");
   assertNoSymlinks(outputRoot);
+  assertSourceFreeArtifact(outputRoot);
   const manifest = createArtifactManifest(outputRoot, "frozen_runner", true);
   const artifactManifestPath = path.join(input.destinationRoot, "artifact-manifest.json");
   writeArtifactManifest(artifactManifestPath, manifest);

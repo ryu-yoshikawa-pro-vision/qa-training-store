@@ -49,6 +49,22 @@ function assertDirectory(rootDir: string): void {
     throw new Error(`Artifact root must be a real directory: ${rootDir}`);
 }
 
+/** Reject physical symlink ancestors between a canonical root and a path. */
+export function assertNoSymlinkInPath(rootDir: string, candidatePath: string): void {
+  const root = path.resolve(rootDir);
+  const candidate = path.resolve(candidatePath);
+  const relative = path.relative(root, candidate);
+  if (relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative))
+    throw new Error(`Path escapes the canonical artifact root: ${candidatePath}`);
+  assertDirectory(root);
+  let current = root;
+  for (const segment of relative === "" ? [] : relative.split(path.sep)) {
+    current = path.join(current, segment);
+    const stat = fs.lstatSync(current);
+    if (stat.isSymbolicLink()) throw new Error(`Path contains a symlink ancestor: ${current}`);
+  }
+}
+
 function walkRegularFiles(rootDir: string, currentDir = rootDir): string[] {
   const files: string[] = [];
   for (const entry of fs.readdirSync(currentDir, { withFileTypes: true })) {
@@ -105,6 +121,7 @@ export function createArtifactManifest(
   artifactKind: ArtifactKind,
   sourceFree = false,
 ): ArtifactManifest {
+  if (sourceFree) assertSourceFreeArtifact(rootDir);
   const unsigned = manifestForFiles(rootDir, artifactKind, sourceFree);
   return artifactManifestSchema.parse({
     ...unsigned,

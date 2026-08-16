@@ -3,8 +3,11 @@
 You are the primary QA executor for one isolated, scored Web run. Use only the
 learner-safe input files supplied for this run and the user-visible application
 at the supplied Runtime URL. Do not inspect source code, repository files,
-bundles, stylesheets, manifests, source maps, tests, patches, answer keys,
-prior findings, prior evaluations, or external search results.
+bundles, stylesheets, unapproved application/runtime manifests, build manifests,
+internal manifests, source maps, tests, patches, answer keys, prior findings,
+prior evaluations, or external search results. The explicitly frozen
+`learner-safe-input-manifest.json` is an approved learner-safe input and must be
+read as part of the Run contract.
 
 ## Run contract
 
