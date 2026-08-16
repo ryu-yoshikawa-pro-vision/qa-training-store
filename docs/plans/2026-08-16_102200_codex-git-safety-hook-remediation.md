@@ -317,6 +317,8 @@ git reset HEAD~1
 - `git switch -C`
 - `git switch --discard-changes`
 - `git reflog expire`
+- `git reflog delete`
+- `git reflog drop`
 - `git prune`
 - `git gc --prune=now`
 - `git gc --prune=all`
@@ -413,6 +415,17 @@ Bare / implicit push は、current branch と configured upstream / push destina
 
 multi-ref push は、いずれかのdestinationがprotected、またはdestinationを安全に解決できない場合、そのpush全体をdenyする。
 
+Protected local branch を fetch destination として直接更新するrefspecもdenyする。
+
+```text
+git fetch origin refs/heads/feature:refs/heads/main
+git fetch origin +refs/heads/feature:refs/heads/main
+```
+
+- fetch refspec の destination が `refs/heads/<protected>` に解決される場合はdenyする。
+- `git fetch --update-head-ok ...` は現在checkout中branchの更新保護を外すため、common guardでdenyする。
+- 通常の `git fetch origin` は引き続きallowする。
+
 ### 3.6 Protected branch guarantee の境界
 
 context-sensitive protected branch 判定は、**current working repository で直接実行される認識可能な Git command** を保証対象とする。
@@ -437,7 +450,7 @@ context-sensitive protected branch 判定は、**current working repository で�
 git add
 git commit                  # non-protected branch
 git push                    # resolved non-protected destination
-git fetch
+git fetch                   # normal fetch; protected local destination / --update-head-ok は除く
 git pull                    # non-protected branch
 git switch
 git checkout                # normal branch switch
@@ -501,6 +514,9 @@ git rebase
 git clean
 git rm
 git update-ref
+git reflog delete
+git reflog drop
+git fetch --update-head-ok
 rm / Remove-Item
 terraform destroy
 kubectl delete
@@ -517,6 +533,7 @@ kubectl delete
    - `commit --amend`
    - force push variants
    - push delete / prune / mirror / force refspec
+   - fetch destination が protected local branch となるrefspec
    - destructive reset / restore / checkout
 2. context-sensitive protected branch判定
 3. execpolicyだけでは表しづらい既存 destructive pattern
@@ -605,7 +622,10 @@ Full Access検証は、ユーザーが実際に使用する Full Access route �
 - destructive Git deny
 - path-based reset / staged restoreはallow
 - destructive checkout / restore / resetだけdeny
+- `git reflog expire/delete/drop` deny
 - protected branch direct-update deny
+- protected local branchをdestinationとするfetch refspec deny
+- `git fetch --update-head-ok` deny
 - protected branch上の `git am` deny
 - remote delete variants deny
 - 既存の明確な非Git destructive denyのみ移植
@@ -724,6 +744,8 @@ git restore --staged --worktree file.ts
 git switch -C feature/x main
 git switch --discard-changes feature/x
 git reflog expire --expire=now --all
+git reflog delete HEAD@{1}
+git reflog drop refs/heads/feature/x
 git prune
 git gc --prune=now
 git gc --prune=all
@@ -733,6 +755,8 @@ git checkout --force feature/x
 git checkout -B feature/x main
 git checkout -- file.ts
 git checkout HEAD -- file.ts
+
+git fetch --update-head-ok origin refs/heads/feature:refs/heads/main
 
 git push origin --delete feature/x
 git push origin -d feature/x
@@ -754,6 +778,8 @@ git pull
 git am
 git push origin main
 git push origin HEAD:main
+git fetch origin refs/heads/feature:refs/heads/main
+git fetch origin +refs/heads/feature:refs/heads/main
 bare / implicit push whose destination resolves to protected branch
 multi-ref push containing protected branch
 multi-ref / implicit push whose destination cannot be safely resolved
@@ -762,6 +788,7 @@ multi-ref / implicit push whose destination cannot be safely resolved
 追加ケース:
 
 - `origin/HEAD -> origin/trunk` の場合 `trunk`をprotectedとしてdeny
+- protected setが`trunk`の場合、fetch destination `refs/heads/trunk`もdeny
 - `origin/HEAD`なし -> `main` / `master`保護だけで動作
 - broken `origin/HEAD` -> `main` / `master`保護だけで動作
 - detached HEAD -> detachedであることだけを理由にcommitをdenyしない
@@ -847,9 +874,13 @@ Windows native上のTemporary clone + local bare remoteで確認する。
 - Hook invocation evidence
 - Hook trusted / enabled
 - normal Git operation succeeds
+- normal `git fetch origin` succeeds
 - path-based unstage succeeds
 - protected branch direct update blocked
+- protected local branch destination fetch blocked
+- `git fetch --update-head-ok` blocked
 - destructive reset / checkout / force push / remote delete blocked
+- reflog expire / delete / drop blocked
 - static Rulesが有効か記録
 - denyがtool実行前に効く
 - deny後にlocal / remote sentinelが変化していない
@@ -940,11 +971,19 @@ Windows native onlyでRequired verification完結
 +
 normal Git operations are not common blanket blocked
 +
+normal git fetch remains allowed
++
 path-based git reset / restore --staged are not blocked
 +
 all declared Git deny vectors have contract tests
 +
+reflog expire / delete / drop blocked
++
 protected branch git am blocked
++
+protected local branch destination fetch blocked
++
+git fetch --update-head-ok blocked
 +
 protected/default branch resolution scope documented and tested
 +
