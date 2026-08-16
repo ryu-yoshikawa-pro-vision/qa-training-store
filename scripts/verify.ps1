@@ -49,10 +49,19 @@ function Invoke-Check {
 function Get-Decision([string]$Raw) {
     $json = $Raw | ConvertFrom-Json
     $decisionProperty = $json.PSObject.Properties['decision']
-    if ($null -eq $decisionProperty -or [string]::IsNullOrWhiteSpace([string]$decisionProperty.Value)) {
-        return 'allow'
+    if ($null -ne $decisionProperty -and -not [string]::IsNullOrWhiteSpace([string]$decisionProperty.Value)) {
+        return [string]$decisionProperty.Value
     }
-    return [string]$decisionProperty.Value
+
+    $matchedRulesProperty = $json.PSObject.Properties['matchedRules']
+    if ($null -ne $matchedRulesProperty -and $null -ne $matchedRulesProperty.Value) {
+        $matchedRules = @($matchedRulesProperty.Value)
+        if ($matchedRules.Count -eq 0) {
+            return 'allow'
+        }
+    }
+
+    throw "Execpolicy output is missing an explicit decision and does not prove matchedRules is empty"
 }
 
 function Test-TemplateContract {
@@ -322,7 +331,12 @@ function Test-ExecpolicyBaseline {
 
 function Test-WrapperPreflight {
     & powershell.exe -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly > $null
+    $safeExitCode = $LASTEXITCODE
+    if ($safeExitCode -ne 0) { throw "safe wrapper preflight failed (exit=$safeExitCode)" }
+
     & powershell.exe -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -Preset auto-net -PreflightOnly > $null
+    $autoNetExitCode = $LASTEXITCODE
+    if ($autoNetExitCode -ne 0) { throw "auto-net wrapper preflight failed (exit=$autoNetExitCode)" }
 }
 
 function Test-PowerShellHasCodex {

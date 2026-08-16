@@ -1,0 +1,120 @@
+# Report (append-only)
+
+- 行動のたびに追記する（調査/編集/判断も含む）
+- コマンドや確認結果は必ず記録する
+
+## Evidence Record (optional)
+
+- Record ID:
+- Round:
+- Query:
+- Source:
+- Supports/Refutes:
+- Confidence:
+- Decision:
+- Rationale:
+- Open Issues:
+- Next Action:
+
+## YYYY-MM-DD HH:MM (JST)
+
+- Summary:
+- Completed:
+- Changes:
+- Commands:
+  - `...` => result
+- Notes/Decisions:
+- New tasks:
+- Remaining:
+- Progress: NN% (done/total)
+
+## Deletion candidates
+
+- Codex はファイルやディレクトリを削除しない。
+- 不要に見えるファイルは、ユーザーが手動確認できるようにここへ記録する。
+
+| Path | Reason | Suggested action |
+|---|---|---|
+|  |  |  |
+
+## 2026-08-17 07:48 (JST)
+
+- Summary: PR #30レビューのmust-fixを、指定範囲だけ最小修正した。
+- Completed:
+  - Node Hookへ入口の`trimStart()`、明示されたshort-option bundle／attached判定、Git context timeout、UTF-8 stdin、rsync delete variantsを追加した。
+  - Windows launcherをapproved verbの`Stop-Launcher`へ同期し、stdout／stderrの`ReadToEndAsync()`同時開始、5秒timeout、timeout時kill、stderr付きexit 2を実装した。
+  - PowerShell execpolicy判定を`decision`優先、`matchedRules == []`のみ暗黙allow、それ以外errorへ統一し、`verify.ps1`でsafe／auto-net child preflightの`$LASTEXITCODE`を直後に確認するようにした。
+  - Static Rules、Contract Test、指定2件のRun Manifest矛盾を更新した。EOL設定、`codex-task`契約、過去Runの他項目は変更していない。
+- Changes:
+  - `.codex/hooks/pre_tool_use_policy.mjs`
+  - `.codex/hooks/pre_tool_use_policy_windows.ps1`
+  - `scripts/codex-safe.ps1`
+  - `scripts/verify.ps1`
+  - `.codex/rules/30-destructive-forbidden.rules`
+  - `tests/contracts/codex-hook-contract.test.ts`
+  - `.codex/runs/20260816-210818-JST/run.json`
+  - `.codex/runs/20260817-063858-JST/run.json`
+- Commands:
+  - `node --check .codex/hooks/pre_tool_use_policy.mjs` => PASS
+  - `git diff --check` => PASS（core.autocrlf由来のwarningのみ）
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1` => 初回は追加hung-child testがVitest既定5秒timeoutと競合してFAIL、test timeoutだけ15秒へ修正後に24 tests PASS
+- Notes/Decisions:
+  - Repair Loop iteration 1: input findingは追加テストのテストtimeout競合。allowed fileは`tests/contracts/codex-hook-contract.test.ts`、製品launcherの5秒timeoutは維持し、test側に15秒timeoutを明示して再実行した。remaining deltaはfocused test上なし、decision=`continue`。
+  - `git_mutation_attempt_blocked`は、既存EOL Runの直接形式`git add --renormalize .`がblockされた実績と一致させた。Hook Runの`hook_event_count`は`PreToolUse: 5`へ一致させた。
+- New tasks: なし
+- Remaining: Run Artifact sanitizer／schema validation、最終evaluation／manifest確定。
+- Progress: 63% (5/8)
+
+## 2026-08-17 08:31 (JST)
+
+- Summary: focused／Required Gate、full Contract、Windows Full Access Acceptance、最終diff reviewを完了した。対象差分起因の実装／Contract failureは残っていない。
+- Completed:
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`は3/3 PASS、`bash scripts/verify`は2 PASS／2 SKIP（WSL側codex未解決）だった。
+  - `pnpm run format:check`、markdown／spec／visual／curriculum validationは`pnpm run verify`内でPASSした。`pnpm exec eslint . --ignore-pattern .artifacts`は0 errors／64 warnings、`pnpm run typecheck`、`pnpm run security:check`はPASSした。
+  - tracked範囲の`pnpm exec vitest run tests/contracts --exclude '.artifacts/**' --no-file-parallelism --maxWorkers=1`は30 files／347 tests PASSした。最終の`pnpm run test:contracts`は87 files／993 tests中991 PASS、失敗2件は`.artifacts/native-local/eol-branch-switch-20260817-070500`内のstale `scored-v1.json`に由来し、現行tracked範囲ではない。
+  - `pnpm run verify`はformat、markdown、spec、visual、curriculumまでPASSし、lintで`.artifacts`内temporary cloneの2 errorsにより停止した。現行tracked範囲のlint errorはない。
+  - Static Rulesの`git clean -f`／`--force`、`git tag --force`と既存variantは`codex execpolicy check`でforbiddenを確認した。
+  - 新しいtemporary clone＋local bare remoteでFull Access代表Acceptanceを実行した。ALLOWのgit add／feature commit／feature push／path-based unstageはexit 0、DENYのreset hard／rebase／force push／protected commit／rmはすべて`Command blocked by PreToolUse hook`だった。feature remote ref、protected／delete sentinelは保持された。
+  - `node --check`、`git diff --check`、対象変更のdiff reviewを再実行し、追加parser／dependency／codex-task変更／EOL変更／commit／pushはないことを確認した。
+- Commands:
+  - `pnpm run verify` => FAIL（`.artifacts`内temporary cloneのlint 2 errorsで停止。前段format／markdown／spec／visual／curriculumはPASS）
+  - `pnpm run test:contracts` => FAIL（991/993 PASS。残り2件は`.artifacts`内stale artifact contract）
+  - `pnpm exec vitest run tests/contracts --exclude '.artifacts/**' --no-file-parallelism --maxWorkers=1` => PASS、30 files／347 tests
+  - `pnpm exec eslint . --ignore-pattern .artifacts` => PASS、0 errors／64 warnings
+  - `pnpm run typecheck` => PASS
+  - `pnpm run security:check` => PASS
+  - `git diff --check` => PASS（core.autocrlf由来のwarningのみ）
+- Notes/Decisions:
+  - Repair Loop iteration 2: full Matrixがvariant追加でVitest既定5秒を超えたため、`tests/contracts/codex-hook-contract.test.ts`のMatrix testだけ15秒へ拡張した。source timeoutは5秒のまま、focused／tracked ContractはPASS。decision=`continue`。
+  - `.artifacts`はEOL受入用のignored temporary cloneであり、stale artifact／lint failureを現在PRへ混ぜない。既存cloneの削除・修正、ESLint ignore設計変更、無関係なfixture修正は行わない。
+  - Full Access acceptanceのraw logは`.artifacts/native-local/pr30-full-access-acceptance-20260817-085000/`へ隔離した。
+- New tasks: なし
+- Remaining: Run Artifact sanitizer／schema validation、最終evaluation／manifest確定。
+- Progress: 88% (7/8)
+
+## 2026-08-17 08:35 (JST)
+
+- Summary: Strict Repair Runを完了し、評価・Manifest・Artifact検証を確定した。
+- Completed:
+  - `evaluation.json`を`result=partial`として確定した。partialの理由は、今回の差分ではなくignored `.artifacts` temporary cloneに含まれるstale artifact contract／lint failureである。
+  - `run.json`へbranch、changed files、全validation、Full Access acceptance log、safety blocked attempt、evaluation path、warningsを反映した。
+  - Run内のPLAN／TASKS／REPORT／run.json／evaluation.jsonを日本語の履歴として保存した。
+- Commands:
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260817-073746-JST -Write -Check` => PASS、5 files／0 changes／0 residual findings
+  - `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260817-073746-JST/evaluation.json` => PASS
+  - `ConvertFrom-Json`による`run.json`／`evaluation.json` UTF-8 parse => PASS
+- Notes/Decisions:
+  - 変更対象の実装、focused／tracked validation、Windows Acceptanceは完了している。ignored temporary cloneの修正・削除、global設定変更、PRへのcommit／pushは行わない。
+  - Evaluationの残差は`artifact_contract_gap`／`flaky_or_env_issue`として根拠と次の対応境界を記録した。今回の修正範囲へ追加改善はない。
+- New tasks: なし
+- Remaining: なし（評価上のbaseline／環境warningは`evaluation.json`へ記録済み）。
+- Progress: 100% (8/8)
+
+## 2026-08-17 08:38 (JST)
+
+- Summary: ユーザー指定の全体フォーマットを実行し、作業ツリーの追加変更がないことを確認した。
+- Commands:
+  - `pnpm run format` => PASS、Prettier対象はすべて`unchanged`
+  - `scripts/sanitize-codex-artifacts.ps1 -Write -Check` => PASS、5 files／0 changes／0 residual findings
+  - evaluation／run ManifestのUTF-8 JSON parse => PASS、ローカル絶対Path残差なし
+- Progress: 100% (8/8)

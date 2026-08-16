@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "run_id": "20260817-073746-JST",
+  "result": "partial",
+  "primary_failure_category": "artifact_contract_gap",
+  "failure_categories": [
+    "artifact_contract_gap",
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "PR #30で指定されたHook、Windows launcher、PowerShell fail-closed、verify child exit、Static Rules、Regression Test、Run Manifestの修正を完了した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/pre_tool_use_policy.mjs",
+          "summary": "先頭空白、short-option、timeout、UTF-8、rsync variantを修正したNode Hook。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 08:31",
+          "summary": "修正内容と最終検証を記録したRun Report。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はレビュー指定のHook、launcher、PowerShell、Rules、Contract Test、2件のRun ManifestとRun Artifactに限定した。EOL、codex-task、Product code、CI architecture、global Git設定は変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260817-073746-JST/run.json",
+          "summary": "変更ファイルとscope violation=falseを記録したRun Manifest。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Hook Contract 24/24、tracked Contract 30 files／347 tests、PowerShell／Bash verify、typecheck、security、format、spec系はPASSした。Full verifyとpackage全Contractはignored .artifacts内temporary cloneの既存lint／stale artifact 4件により全体判定がpartialになった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 08:31",
+          "summary": "Required Gate、tracked Contract、full gateの結果と因果分類。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Windows Full Access Acceptanceはtemporary cloneとlocal bare remoteだけで実行し、通常のfeature add／commit／push／path unstageは許可、reset hard／rebase／force push／protected commit／rmは実行前にHookでblockされた。",
+      "evidence_refs": [
+        {
+          "kind": "log_event",
+          "path": ".artifacts/native-local/pr30-full-access-acceptance-20260817-085000/",
+          "summary": "ALLOW／DENY、remote ref、sentinel integrityのraw acceptance log。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "レビューの明示された代表例をNode Hookの既存Policy Matrixへ追加し、Contract TestはMatrixをdata-drivenに検証した。最終diff reviewで新parser、不要framework、非対象変更がないことを確認した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "summary": "leading whitespace、G5／G7／G9、N2、UTF-8、launcher timeoutのRegression Test。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Node HookをSSOTのまま維持し、短いoption判定と有限timeoutだけを補完した。新Dependency、Git parser、shell parser、共通parser library、CI architectureは追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/pre_tool_use_policy_windows.ps1",
+          "summary": "transport-only launcherに並行stream読取と有限timeoutを追加した差分。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/codex-safe.ps1",
+          "summary": "PowerShell側のfail-closed decision parser。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Windows nativeの実Runtime AcceptanceでALLOW／DENYの代表動作を再現し、Hook Contractとtracked Contract suiteも再実行した。Bash側のcodex依存チェックはWSL環境にcodexがなくskipされた。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 08:31",
+          "summary": "Windows Acceptanceと各環境の検証結果。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "最終`pnpm run test:contracts`は87 files／993 tests中991 PASSで、2 failuresは`.artifacts/native-local/eol-branch-switch-20260817-070500`内のstale `scored-v1.json`由来だった。`.artifacts`除外のtracked Contractは30 files／347 tests PASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 08:31",
+          "summary": "full／tracked Contractの件数とfailure scopeを記録した。"
+        }
+      ],
+      "detail": "既存EOL受入用temporary cloneがVitest探索へ含まれた環境境界であり、今回のtracked差分へfixture修正やcleanupを追加しなかった。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "`pnpm run verify`はformat、markdown、spec、visual、curriculumまでPASSし、`.artifacts`内temporary cloneの既存lint 2 errorsで停止した。現行tracked範囲を`.artifacts`除外でlintすると0 errors／64 warningsだった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 08:31",
+          "summary": "verify停止箇所と変更差分との因果分類。"
+        }
+      ],
+      "detail": "ignored temporary cloneやESLint ignore設計を今回のPRへ変更せず、WSL側codex未解決のskipも環境条件として記録した。"
+    }
+  ],
+  "improvement_candidates": []
+}

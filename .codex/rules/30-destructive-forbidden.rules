@@ -8,9 +8,9 @@ prefix_rule(
 )
 
 prefix_rule(
-  pattern = ["git", "clean", ["-fd", "-fdx"]],
+  pattern = ["git", "clean", ["-f", "-fd", "-fdx", "--force"]],
   decision = "forbidden",
-  match = ["git clean -fd", "git clean -fdx"],
+  match = ["git clean -f", "git clean -fd", "git clean -fdx", "git clean --force"],
 )
 
 prefix_rule(
@@ -32,9 +32,9 @@ prefix_rule(
 )
 
 prefix_rule(
-  pattern = ["git", "tag", "-f"],
+  pattern = ["git", "tag", ["-f", "--force"]],
   decision = "forbidden",
-  match = ["git tag -f release"],
+  match = ["git tag -f release", "git tag --force release"],
 )
 
 prefix_rule(

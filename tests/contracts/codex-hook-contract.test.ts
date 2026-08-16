@@ -123,6 +123,19 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(result.stderr).toBe("");
   });
 
+  it("reads UTF-8 command payloads without changing safe semantics", () => {
+    const result = runNodeHook(
+      JSON.stringify({
+        tool_name: "Bash",
+        tool_input: { command: "printf '日本語の確認'" },
+      }),
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("");
+    expect(result.stderr).toBe("");
+  });
+
   it("returns the structured PreToolUse deny shape", () => {
     const result = runNodeHook(
       JSON.stringify({
@@ -153,7 +166,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       }),
     ) as PolicyCase[];
 
-    expect(matrix.length).toBeGreaterThanOrEqual(31);
+    expect(matrix.length).toBeGreaterThanOrEqual(41);
     expect(new Set(matrix.map((testCase) => testCase.id))).toEqual(
       new Set([
         "G1",
@@ -201,7 +214,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         );
       }
     }
-  });
+  }, 15000);
 
   it("keeps explicit matrix contexts data-driven for feature-branch allow cases", () => {
     const matrix = JSON.parse(
@@ -330,4 +343,26 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       removeFixture(fakeNodeDirectory);
     }
   });
+
+  it("terminates a hung Node Hook with finite timeout and stderr", () => {
+    if (process.platform !== "win32") return;
+
+    const fixture = makeGitFixture();
+    const fakeNodeDirectory = fs.mkdtempSync(path.join(os.tmpdir(), "codex-hook-hung-node-"));
+    const fakeNode = path.join(fakeNodeDirectory, "node.cmd");
+    fs.writeFileSync(fakeNode, "@echo off\r\n:loop\r\ngoto loop\r\n", "utf8");
+    try {
+      const startedAt = performance.now();
+      const env = { ...process.env, PATH: `${fakeNodeDirectory};${process.env.PATH ?? ""}` };
+      const result = runWindowsLauncher(fixture, safePayload, env);
+
+      expect(result.status).toBe(2);
+      expect(result.stdout).toBe("");
+      expect(result.stderr.trim()).not.toBe("");
+      expect(performance.now() - startedAt).toBeLessThan(10000);
+    } finally {
+      removeFixture(fixture);
+      removeFixture(fakeNodeDirectory);
+    }
+  }, 15000);
 });

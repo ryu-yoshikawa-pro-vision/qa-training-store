@@ -272,6 +272,28 @@ function Invoke-ExecpolicyCheck {
     return ($jsonText | ConvertFrom-Json)
 }
 
+function Get-ExecpolicyDecision {
+    param(
+        [Parameter(Mandatory = $true)][object]$Result,
+        [Parameter(Mandatory = $true)][string]$Command
+    )
+
+    $decisionProperty = $Result.PSObject.Properties['decision']
+    if ($null -ne $decisionProperty -and -not [string]::IsNullOrWhiteSpace([string]$decisionProperty.Value)) {
+        return [string]$decisionProperty.Value
+    }
+
+    $matchedRulesProperty = $Result.PSObject.Properties['matchedRules']
+    if ($null -ne $matchedRulesProperty -and $null -ne $matchedRulesProperty.Value) {
+        $matchedRules = @($matchedRulesProperty.Value)
+        if ($matchedRules.Count -eq 0) {
+            return 'allow'
+        }
+    }
+
+    throw "Execpolicy output is missing an explicit decision for '$Command' and does not prove matchedRules is empty"
+}
+
 function Invoke-Preflight {
     param(
         [string]$CodexExe,
@@ -319,13 +341,7 @@ function Invoke-Preflight {
 
     foreach ($test in $tests) {
         $result = Invoke-ExecpolicyCheck -CodexExe $CodexExe -RuleFiles $RuleFiles -CommandTokens $test.Tokens
-        $decisionProperty = $result.PSObject.Properties['decision']
-        $decision = if ($null -eq $decisionProperty -or [string]::IsNullOrWhiteSpace([string]$decisionProperty.Value)) {
-            'allow'
-        }
-        else {
-            [string]$decisionProperty.Value
-        }
+        $decision = Get-ExecpolicyDecision -Result $result -Command ($test.Tokens -join ' ')
         if ($decision -notin $test.Decisions) {
             throw "Execpolicy preflight mismatch for '$($test.Tokens -join ' ')': expected [$($test.Decisions -join ', ')], got '$decision'"
         }

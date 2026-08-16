@@ -49,7 +49,7 @@
     "safety":  {
                    "network":  false,
                    "delete_attempt_blocked":  false,
-                   "git_mutation_attempt_blocked":  false,
+                   "git_mutation_attempt_blocked":  true,
                    "scope_violation":  false
                },
     "artifact_summary":  {

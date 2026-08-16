@@ -1,7 +1,7 @@
 {
     "schema_version":  1,
-    "run_id":  "20260816-210818-JST",
-    "task_type":  "implementation",
+    "run_id":  "20260817-073746-JST",
+    "task_type":  "repair",
     "workflow_level":  "strict",
     "preset":  "safe",
     "runtime":  "host",
@@ -15,55 +15,46 @@
 
                            ],
     "changed_files":  [
-        ".codex/config.toml",
         ".codex/hooks/pre_tool_use_policy.mjs",
         ".codex/hooks/pre_tool_use_policy_windows.ps1",
-        ".codex/hooks/pre_tool_use_policy.ps1",
-        ".codex/hooks/pre_tool_use_policy.py",
-        ".codex/requirements.toml",
-        ".codex/rules-auto-net/30-auto-net-forbidden.rules",
         ".codex/rules/30-destructive-forbidden.rules",
-        ".codex/rules/README.md",
-        "docs/PROJECT_CONTEXT.md",
-        "docs/adr/0016-codex-pretooluse-node-policy.md",
-        "docs/history/2026-08-16_214147_codex-full-access-safety-hook.md",
-        "docs/reference/codex-implementation-harness.md",
-        "docs/reference/codex-safety-harness.md",
         "scripts/codex-safe.ps1",
-        "scripts/codex-safe.sh",
-        "scripts/codex-task.ps1",
-        "scripts/codex-task.sh",
-        "scripts/verify",
         "scripts/verify.ps1",
         "tests/contracts/codex-hook-contract.test.ts",
-        ".codex/runs/20260816-210818-JST/"
+        ".codex/runs/20260816-210818-JST/run.json",
+        ".codex/runs/20260817-063858-JST/run.json",
+        ".codex/runs/20260817-073746-JST/PLAN.md",
+        ".codex/runs/20260817-073746-JST/TASKS.md",
+        ".codex/runs/20260817-073746-JST/REPORT.md",
+        ".codex/runs/20260817-073746-JST/run.json",
+        ".codex/runs/20260817-073746-JST/evaluation.json"
     ],
     "validation":  {
                        "status":  "passed_with_warnings",
                        "commands":  [
-                           "node --check .codex/hooks/pre_tool_use_policy.mjs; Matrix count check",
+                           "node --check .codex/hooks/pre_tool_use_policy.mjs",
                            "pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1",
                            "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1",
                            "bash scripts/verify",
+                           "pnpm run format:check (via pnpm run verify)",
+                           "pnpm run lint (via pnpm run verify)",
+                           "pnpm exec eslint . --ignore-pattern .artifacts",
                            "pnpm run typecheck",
-                           "pnpm run lint",
                            "pnpm run security:check",
-                           "pnpm run lint:markdown",
-                           "pnpm run validate:spec",
-                           "pnpm run validate:curriculum",
-                           "pnpm run validate:image-manifest",
-                           "git diff --check",
-                           "pnpm run format:check",
+                           "pnpm exec vitest run tests/contracts --exclude .artifacts/** --no-file-parallelism --maxWorkers=1",
                            "pnpm run test:contracts",
-                           "Full Access temporary clone acceptance",
-                           "pnpm exec eslint tests/contracts/codex-hook-contract.test.ts"
+                           "pnpm run verify",
+                           "codex execpolicy check for added static variants",
+                           "Windows Full Access temporary clone／local bare remote acceptance",
+                           "git diff --check",
+                           "scripts/sanitize-codex-artifacts.ps1 -Write -Check",
+                           "scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260817-073746-JST/evaluation.json"
                        ],
                        "warnings":  [
-                           "pnpm run format:checkは今回未変更の既存93ファイルでfail",
-                           "pnpm run test:contractsは今回未変更artifact／fixtureの3件でfail",
-                           "bash scripts/verifyはWSL側Node未解決のためexecpolicy／Bash wrapperをskip",
-                           "codex doctorは20秒超timeout",
-                           "temporary cloneではHook trust review persist前の通常経路で発火せず、公式one-off hook-trust bypassを使用"
+                           "pnpm run verifyはignored .artifacts temporary cloneのlint 2 errorsで停止した",
+                           "pnpm run test:contractsはignored .artifacts temporary cloneのstale artifact contract 2件で991/993 PASS",
+                           "bash verifyのWSL側execpolicy／Bash wrapperはcodex未解決でSKIP",
+                           "Full Access acceptanceはtemporary cloneとlocal bare remote、Hook trust bypassを使用した"
                        ]
                    },
     "safety":  {
@@ -74,19 +65,19 @@
                },
     "artifact_summary":  {
                              "codex_task_report_count":  0,
-                             "hook_event_count":  5,
+                             "hook_event_count":  0,
                              "subagent_run_count":  0,
                              "evaluation_present":  true
                          },
     "hook_observations":  {
                               "log_paths":  [
-                                  ".artifacts/native-local/codex-full-access-acceptance-20260816-214540/"
+                                  ".artifacts/native-local/pr30-full-access-acceptance-20260817-085000/"
                               ],
                               "event_counts":  {
-                                  "PreToolUse":  5
-                              },
-                              "blocking_event_count":  5,
-                              "safety_blocked_count":  5,
+
+                                               },
+                              "blocking_event_count":  0,
+                              "safety_blocked_count":  0,
                               "observation_error_count":  0
                           },
     "subagents":  {
@@ -101,7 +92,7 @@
                                       "used_in_final_plan":  0
                                   }
                   },
-    "evaluation_path":  ".codex/runs/20260816-210818-JST/evaluation.json",
+    "evaluation_path":  ".codex/runs/20260817-073746-JST/evaluation.json",
     "status":  "completed",
     "primary_failure_category":  "artifact_contract_gap"
 }
