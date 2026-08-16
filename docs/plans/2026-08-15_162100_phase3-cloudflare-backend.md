@@ -1453,7 +1453,7 @@ Web UI -> Application/API Client -> Worker -> D1
 
 PresentationへAPI URLを直書きしない。
 
-### 17.2 Environment
+### 17.2 Environment / Build-time API Origin Contract
 
 ```text
 local
@@ -1467,6 +1467,47 @@ production
 ```
 
 `EXPO_PUBLIC_API_BASE_URL`等で明示する。
+
+`EXPO_PUBLIC_*`はWeb bundle生成時のbuild-time inputとして扱う。**一度build済みの`web-dist-automation`へ、後続Jobの環境変数だけでAPI Originを差し替えられる前提にしない。**
+
+Current CIの「automation Webを1回buildしてArtifact化し、複数Jobで再利用する」構造を維持するため、Phase 3 v1のCanonical Automation API Originを次で固定する。
+
+```text
+Canonical Automation Backend API Origin
+http://127.0.0.1:8787
+
+Current Web runtime examples
+Formal Web    http://127.0.0.1:8081
+Training Web  http://127.0.0.1:8082
+```
+
+`build-automation`は少なくとも次のbuild-time inputで1回だけWeb artifactを生成する。
+
+```text
+EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8787
+        ↓
+build:web
+        ↓
+web-dist-automation
+```
+
+Formal E2E、Training Web baseline、UI Review等のconsumerは**同じ`web-dist-automation`をdownloadして再利用**し、consumerごとにWebを再buildしない。各CI Job / matrix executionは自身のRunner上でLocal Workerを`127.0.0.1:8787`へ起動し、Local D1とFresh Sandboxを用意する。
+
+GitHub Actions JobはRunnerが分離されるため、異なるJobが同じloopback port `8787`を使ってもJob間port collisionを理由にArtifactを分けない。同一developer machine上で複数Backend stackを同時起動する特殊なlocal workflowだけは明示overrideを許容するが、そのbuildはCanonical CI Artifactと同一identityとして扱わない。
+
+Production Web artifactはproduction Worker originをbuild-timeに埋め込む。最低guard:
+
+```text
+automation artifact
+-> production Worker originを含まない
+-> Canonical Automation API Originを含む
+
+production artifact
+-> production Worker originを含む
+-> localhost / 127.0.0.1 API originを含まない
+```
+
+Required local automationをmutableなproduction Workerへ接続してCurrent CIの決定性を失わせない。
 
 ### 17.3 Dexie
 
@@ -1512,8 +1553,8 @@ PR BではCurrent QA FoundationをBackend-aware化する。
 Local Formal E2Eは以下をdeterministically起動する。
 
 ```text
-Web dist
-Local Worker
+web-dist-automation
+Local Worker :8787
 Local D1
 Fresh Sandbox
 ```
@@ -1522,21 +1563,27 @@ Formal TestのfixtureがScenario reset / auth tokenをBackend Contract経由で�
 
 ### 18.2 Training Web
 
-Current `playwright.training.config.ts`のFormal Runtimeとのport分離を維持する。
+Current `playwright.training.config.ts`のFormal RuntimeとのWeb port分離を維持する。
 
 Training Web baselineもBackendが必要になるため、Training専用Web runtimeとFresh Sandboxを準備する。
 
 TrainingがFormal Sandboxを共有しない。
 
+CIではTrainingも同じprebuilt `web-dist-automation`を利用し、自身のRunner上でCanonical Automation API Origin `http://127.0.0.1:8787`へLocal Workerを起動する。
+
 ### 18.3 UI Review
 
 UI Review desktop/tablet/mobile/small-mobileもfresh deterministic Sandboxでcaptureする。
+
+各UI Review Jobは同じprebuilt `web-dist-automation`を利用し、自身のRunner上でLocal Worker `:8787` + Local D1を起動する。
 
 同時実行でstate collisionしない。
 
 ### 18.4 Production Smoke
 
 Production build smokeでもBackend dependencyを明示し、単に`index.html`がserveできるだけをProduct smoke PASSとしない。
+
+Production artifactはproduction API originへ接続し、localhost API originを含まないことを検証する。
 
 ### 18.5 Native
 
@@ -1545,6 +1592,36 @@ NativeはPhase 3 Backend migration対象外。
 Current Native SQLite regressionはそのまま維持する。
 
 Web Backend化のためにNative Repository/Applicationを不用意に壊さない。
+
+### 18.6 Prebuilt Automation Artifact Contract
+
+Current CIの効率性と再現性を維持するため、Required automation pathは次をCanonicalとする。
+
+```text
+build-automation
+  EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8787
+        ↓
+  build:web once
+        ↓
+  web-dist-automation
+        ↓
+  +----------------------+----------------------+----------------------+
+  |                      |                      |                      |
+Formal E2E          Training Web            UI Review          Agentic QA prep
+  |                      |                      |                      |
+Local Worker :8787  Local Worker :8787     Local Worker :8787  Local Worker :8787
+Local D1            Local D1               Local D1            Local D1
+Fresh Sandbox       Fresh Sandbox          Fresh Sandbox       Fresh Sandbox
+```
+
+原則:
+
+- consumer Jobごとに`build:web`をやり直さない
+- consumer Jobのruntime envだけでbuild済みAPI Originが変わると仮定しない
+- Required local automationをproduction Workerへ向けない
+- Backend code / migration / seedは各consumerがtrusted setupとして用意する
+- SandboxだけでなくBackend readinessを確認してからBrowser testを開始する
+- Artifact identityにはbuild-time API Originを含むものとして扱う
 
 ---
 
@@ -1585,7 +1662,24 @@ seed_version
 runtime_variant_id
 ```
 
+Phase 3 v1のCanonical local Prepared Runtimeは次とする。
+
+```text
+Prepared frontend artifact
+  built with EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8787
++
+Pinned backend artifact / trusted backend code identity
++
+Local Worker http://127.0.0.1:8787
++
+Fresh local D1 at the bound schema/seed version
++
+Fresh Sandbox
+```
+
 Remote Production Workerを使う場合も、mutable aliasだけでBenchmark Identityを成立させない。Immutable deployment/version identityをtrusted receiptへ含める。
+
+将来Immutable Remote WorkerをOfficial Scored Runtimeとして追加する場合、build-time API Originがlocal variantと異なるため、**別`runtime_variant_id` / 別frontend artifact hash**として扱う。Local向けprebuilt artifactのAPI Originを実行時にRemoteへ差し替えたことにしない。
 
 ### 19.3 Runtime Origins
 
@@ -1597,6 +1691,8 @@ API origin
 ```
 
 Prepared Target `allowed_origins` / Host-trusted resource boundaryへAPI Originを含める。
+
+Canonical local variantではAPI Originを`http://127.0.0.1:8787`へ固定する。
 
 ただしAllowed Originを広く`*`へするのではなく、actual prepared runtimeへ必要なoriginだけをtrusted inputとして固定する。
 
@@ -1628,9 +1724,9 @@ Repository-side preparationは必要に応じて次をdeterministically準備す
 ```text
 Disposable source
 ↓
-Baseline Web build
+Baseline Web build with bound API origin
 ↓
-Backend local build/runtime
+Backend local build/runtime at :8787
 ↓
 Fresh local D1 migration
 ↓
@@ -1644,7 +1740,7 @@ Patched Web/backend build as touched scope requires
 ↓
 Fresh deterministic Initial State
 ↓
-Prepared Target artifact/hash
+Prepared Target artifact/hash + runtime identity
 ↓
 Source cleanup
 ↓
@@ -1679,6 +1775,7 @@ Current `scored_initial_state_deterministic_reset_sanity`相当をBackend Sandbo
 PR B Final Gateで最低:
 
 - Current deterministic preparation test PASS
+- canonical local API origin binding test
 - backend-aware Prepared Target hash/identity test
 - allowed origin / API origin validation
 - source-free artifact validation
@@ -1991,12 +2088,14 @@ Workers Logsを取得できないPreview URLだけをCPU Gate正本にしない�
 
 ```text
 Expo Web local/static dist
-Worker local
+Worker local :8787 for Canonical Automation Runtime
 D1 local
 Fresh Sandbox per execution context
 ```
 
 Required functional/integration testの主対象。
+
+Canonical CI Web artifactは`EXPO_PUBLIC_API_BASE_URL=http://127.0.0.1:8787`でbuildする。
 
 ### 25.2 Remote Compatibility Gate
 
@@ -2030,6 +2129,8 @@ Pages Preview
 -> production Worker
 -> fresh Public-safe Sandbox
 ```
+
+Preview Web buildは接続するproduction Worker originをbuild-timeに明示する。Canonical local automation artifactをruntime envだけでPreview用へ転用しない。
 
 PR BでBackend breaking changeを同時に入れないことが前提。
 
@@ -2113,6 +2214,8 @@ Free quotaを100%使い切るcapacityを目標にしない。
 PR A/B/CはCurrent Required Gateを置き換えず、その上へPhase 3 Gateを追加する。
 
 `.github/workflows/ci.yml`のCurrent jobsを不要に統合・削除しない。
+
+Current `build-automation -> web-dist-automation -> consumer jobs`のprebuilt artifact reuseもCurrent Foundationの一部として扱い、Backend追加を理由にconsumerごとの再buildへ退行させない。
 
 ### 28.2 PR A Required Gate
 
@@ -2223,16 +2326,21 @@ API parity smoke
 22. Production-build smoke
 23. Dexie production guard
 24. duplicate server business orchestration guard
-25. API base URL validation
-26. Guide Public/Local/Platform-specific display
-27. UI Review 4 viewports backend-aware
-28. Final Visual Specification gate
-29. Training Web baseline backend-aware
-30. Agentic QA deterministic preparation backend-aware
-31. Prepared Target backend identity binding
-32. Allowed origin / API origin validation
-33. Source-free artifact validation
-34. Current Native regression
+25. API base URL build-time validation
+26. automation artifact is built once with `http://127.0.0.1:8787`
+27. Formal / Training / UI Review reuse the same prebuilt automation artifact
+28. each Required local consumer starts Local Worker at canonical `:8787` + Local D1 + Fresh Sandbox
+29. automation artifact contains no production Worker origin
+30. production artifact contains production Worker origin and no localhost API origin
+31. Guide Public/Local/Platform-specific display
+32. UI Review 4 viewports backend-aware
+33. Final Visual Specification gate
+34. Training Web baseline backend-aware
+35. Agentic QA deterministic preparation backend-aware
+36. Prepared Target backend identity / bound API origin
+37. Allowed origin / API origin validation
+38. Source-free artifact validation
+39. Current Native regression
 
 ### 28.5 PR C Required Gate
 
@@ -2365,6 +2473,8 @@ bounded independent HTTP mutationへ分解し、Current partial-success result�
 - backend-aware formal E2E
 - backend-aware Training
 - backend-aware UI Review
+- prebuilt automation artifact reuse
+- canonical local API origin binding
 - Current visual final gate
 - Agentic QA prepared runtime
 
@@ -2490,11 +2600,14 @@ PBKDF2 FAILならAuth-dependent workを止めるが、独立作業は継続す�
 #### Wave B0: Current Foundation Baseline
 
 - Current Web/Training/UI Review/Agentic preparation baseline
+- current `build-automation -> web-dist-automation -> consumer` topology確認
 - visual final gate baseline
 
 #### Wave B1: API Client / Sandbox Bootstrap
 
-- API base URL
+- API base URL build-time contract
+- Canonical Automation API Origin `http://127.0.0.1:8787`
+- production API origin separation
 - Sandbox create/reuse/expiry
 - pending Create key
 - initialAuth
@@ -2525,19 +2638,26 @@ PBKDF2 FAILならAuth-dependent workを止めるが、独立作業は継続す�
 
 #### Wave B6: Formal / Training / UI Review Runtime
 
+- build `web-dist-automation` once with canonical local API origin
+- reuse the same prebuilt artifact across consumer Jobs
+- Local Worker `:8787` + Local D1 per CI execution context
 - one fresh Sandbox per independent execution
+- no per-consumer Web rebuild
+- no Required local automation dependency on production Worker
 - Formal fixtures backend-aware
 - Training runtime backend-aware
 - UI Review backend-aware
-- production smoke backend-aware
+- production smoke backend-aware with production API origin
 
 #### Wave B7: Agentic QA Prepared Runtime
 
 - backend runtime identity
 - frontend/backend artifact binding
+- canonical local API origin binding
+- frontend artifact hash changes when runtime variant/API origin changes
 - schema/seed binding
 - API origin allowed origin
-- local D1/sandbox bootstrap
+- local Worker `:8787` / D1 / sandbox bootstrap
 - source-free validation
 - initial state deterministic reset
 - Current harness ownership維持
@@ -2545,6 +2665,7 @@ PBKDF2 FAILならAuth-dependent workを止めるが、独立作業は継続す�
 #### Wave B8: Visual / Guide / Final
 
 - Guide Scenario classification
+- automation/production artifact API-origin guard
 - no unnecessary canonical screenshot churn
 - visual final gate
 - Current Foundation full regression
@@ -2721,6 +2842,14 @@ package.json
 - Web authoritative persistence = Worker/D1
 - production business persistenceからDexie除去
 - API base URL configuration
+- Canonical Automation API Origin = `http://127.0.0.1:8787`
+- automation Web artifactをcanonical local API originで1回build
+- Formal / Training / UI Reviewが同じprebuilt automation artifactを再利用
+- each Required local consumerがLocal Worker `:8787` + Local D1 + Fresh Sandboxを準備
+- consumerごとのWeb再buildなし
+- Required local automationがproduction Workerへ依存しない
+- automation artifactにproduction Worker originなし
+- production artifactにlocalhost API originなし
 - browser -> Worker -> D1 E2E
 - cross-origin CORS PASS
 - Request ID Browser可視
@@ -2746,6 +2875,8 @@ package.json
 - frontend artifact identity固定
 - backend immutable identity固定
 - API origin固定
+- canonical local variantはAPI origin `http://127.0.0.1:8787`
+- Remote variantを追加する場合は別runtime variant / frontend artifact identity
 - schema/seed version固定
 - fresh Sandbox initial state
 - deterministic reset sanity
@@ -2826,6 +2957,8 @@ Formal/Training/UI Review/Agentic QAが同Sandboxを共有すると並列CIでst
 Gate:
 
 - one independent execution context = one fresh Sandbox
+- CI JobごとにRunnerが分離されるためcanonical backend port `8787`は共通利用
+- 同一local machineで複数stackを並列起動する場合だけ明示overrideし、canonical artifact identityと混同しない
 
 ### Risk 6: Curriculum scope creep
 
@@ -2933,6 +3066,19 @@ Gate:
 
 - QA learning valueを説明できないServiceは追加しない
 
+### Risk 18: Build-time API Origin drift
+
+`EXPO_PUBLIC_API_BASE_URL`をruntime configurableと誤認すると、同じ`web-dist-automation`がconsumerごとに異なるBackendへ接続できる前提になり、Current prebuilt artifact reuseまたはtest determinismのどちらかを壊す。
+
+Gate:
+
+- Canonical Automation API Originを`http://127.0.0.1:8787`へ固定
+- `build-automation`で1回だけAPI originを埋め込む
+- Formal / Training / UI Review / Agentic preparationが同じartifactを再利用
+- 各consumerは自身のRunner上でLocal Worker `:8787` + Local D1を起動
+- automation artifactからproduction Worker originを排除
+- production artifactからlocalhost API originを排除
+
 ---
 
 ## 34. Non-goals
@@ -2962,6 +3108,8 @@ Gate:
 - Agentic QA HarnessによるCoding Agent orchestration
 - Cloudflare accountをCurriculum必須条件にすること
 - Datasource変更だけを理由にCanonical Screenshotを全再生成すること
+- consumer Jobごとのautomation Web rebuild
+- build済みautomation artifactのAPI Originをruntime envだけで差し替える設計
 
 ---
 
@@ -2987,6 +3135,7 @@ Gate:
 - Client correlation ID教材
 - Capability Token HMAC化
 - Backend-changing Official Scored Challenge
+- Immutable Remote Workerを使う別Official Scored Runtime Variant
 
 ---
 
@@ -3010,6 +3159,8 @@ Current Required FoundationにPhase 3起因Regressionが残る
 Backend-aware Agentic QA Prepared Runtime identityをtrustedに固定できない
 Black-box Source-free boundaryをBackend化後も維持できない
 Training/Formal Sandbox isolationをCurrent CI内で成立させられない
+Current prebuilt automation artifact reuseを維持したままdeterministic local API originを固定できない
+Automation artifactとProduction artifactのAPI Origin境界をfail-closeで検証できない
 ```
 
 禁止:
@@ -3026,6 +3177,8 @@ Training/Formal Sandbox isolationをCurrent CI内で成立させられない
 - Existing Required Gateを削ってPhase 3 CIを軽くする
 - Curriculum validatorを無効化して教材差分を通す
 - Canonical ScreenshotをObserved Behaviorへ合わせてSpecを逆転させる
+- Current prebuilt artifact reuseを壊してconsumerごとにWebを再buildする
+- Build済みWeb artifactのAPI Originをruntime envで差し替えたことにする
 - Overengineeringで制約を隠す
 
 ---
@@ -3115,6 +3268,9 @@ Observable Temporary Worker Remote CPU Gate
 Worker Bundle / Startup Gate
 Synthetic Test Data Only
 One Fresh Sandbox Per Independent QA Execution
+Prebuilt Automation Web Artifact Reuse
+Canonical Automation API Origin http://127.0.0.1:8787
+Automation / Production Artifact API Origin Separation
 Current Visual Specification Compatibility
 Current Training Compatibility
 Backend-aware Agentic QA Prepared Runtime Identity
@@ -3123,7 +3279,7 @@ Local-first API / Backend QA Curriculum
 
 PR AでAPI parity、Transaction Invariant、Public Sandbox atomicity、response-loss recovery、Capability Token Contract、Checkout Idempotency、Remote CPU Gateを完成させずPR Bへ進まない。
 
-PR BでWebだけ動かして完了とせず、Formal E2E、Training、UI Review、Visual Final Gate、Agentic QA deterministic preparationがBackend-aware runtimeで成立するところまで完了する。
+PR BでWebだけ動かして完了とせず、Current `web-dist-automation`のbuild-once/reuse構造を維持したまま、Formal E2E、Training、UI Review、Visual Final Gate、Agentic QA deterministic preparationがCanonical local API originを使うBackend-aware runtimeで成立するところまで完了する。
 
 PR Cでは新しいTraining Frameworkを作るのではなく、Current CurriculumへAPI / Backend QAを最小限の追加で接続する。
 
