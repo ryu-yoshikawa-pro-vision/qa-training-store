@@ -68,6 +68,8 @@ Security boundary 自体が成立していない項目は、単に「権限不�
 - top-level `permissions: contents: read`
 - `actions/checkout` の `persist-credentials: false`
 - aggregate required job `verify`
+- `verify.if: always()`
+- `validate.if: always()`
 - Production deploy は `main` push のみ
 
 これらは維持する。
@@ -99,7 +101,7 @@ Security boundary 自体が成立していない項目は、単に「権限不�
 
 現行 `ci.yml` は same-repo PR の Preview と `main` の Production Deployment で Cloudflare Repository Secrets を利用している。
 
-今回の単純化した trust policy は次とする。
+今回の trust policy は次とする。
 
 > **Write 権限を持つ主体は、Repository code だけでなく Cloudflare Deployment Credential を利用できる範囲まで trusted とみなせる主体に限定する。**
 
@@ -187,7 +189,14 @@ with:
   fail-on-scopes: runtime, development, unknown
   license-check: false
   show-openssf-scorecard: false
+  comment-summary-in-pr: never
 ```
+
+PR comment は使用しない。
+
+Dependency Review のために `pull-requests: write` を追加しない。
+
+既存 top-level `permissions: contents: read` を維持し、write permission は今回増やさない。
 
 Event contract:
 
@@ -197,6 +206,20 @@ pull_request
 
 push / schedule / workflow_dispatch
 → dependency-review == skipped
+```
+
+`verify` は既存の `if: always()` を必ず維持する。
+
+`dependency-review` が non-PR event で `skipped` でも、`verify` 自体は実行して結果を明示判定する。
+
+`verify` の結果判定:
+
+```text
+pull_request
+→ dependency-review == success を要求
+
+push / schedule / workflow_dispatch
+→ dependency-review == skipped を要求
 ```
 
 `success OR skipped` のような曖昧な判定にはしない。
@@ -225,17 +248,23 @@ Preview / Production が同一 Token を共有している場合は記録する�
 
 ### P-06: Preview は normal same-repo PR のみ
 
-`deploy-preview` eligible:
+`deploy-preview` の実装条件は次を基本とする。
 
-```text
-pull_request
-AND pull_request.head.repo.full_name == github.repository
-AND pull_request.user.login != dependabot[bot]
-AND verify == success
-AND build-automation == success
+```yaml
+if: >-
+  always() &&
+  github.event_name == 'pull_request' &&
+  github.event.pull_request.head.repo.full_name == github.repository &&
+  github.event.pull_request.user.login != 'dependabot[bot]' &&
+  needs.verify.result == 'success' &&
+  needs.build-automation.result == 'success'
 ```
 
 PR author を Dependabot 判定の基準にする。
+
+`github.actor` 単独で Dependabot 判定しない。
+
+`github.event.pull_request.head.repo.full_name == github.repository` により fork PR を Preview 対象外にする。
 
 Cloudflare Secret の存在を eligibility 条件にはしない。
 
@@ -257,7 +286,27 @@ push / schedule / workflow_dispatch
 
 normal same-repo PR で Cloudflare Secret が欠落している場合は Fail する。
 
-`validate` は上記を明示的に判定し、PRであれば常に Preview success を要求する現在の実装を修正する。
+`validate` は既存の `if: always()` を必ず維持する。
+
+`deploy-preview` が Dependabot / fork / non-PR event で `skipped` でも、`validate` 自体は実行して expected result を判定する。
+
+`validate` の結果判定:
+
+```text
+normal same-repo PR
+→ verify == success
+→ deploy-preview == success
+
+Dependabot PR / fork PR
+→ verify == success
+→ deploy-preview == skipped
+
+push / schedule / workflow_dispatch
+→ verify == success
+→ deploy-preview == skipped
+```
+
+PRであれば常に Preview success を要求する現在の実装を修正する。
 
 Cloudflare Credential を Dependabot Secrets や fork 用 Secret として複製しない。
 
@@ -466,6 +515,8 @@ Git history rewrite は revoke / rotate より優先しない。
 
 - top-level `permissions: contents: read`
 - checkout `persist-credentials: false`
+- `verify.if: always()`
+- `validate.if: always()`
 
 今回、approval 数や Merge Queue 等を追加で強化しない。
 
@@ -516,6 +567,7 @@ CODE_REVIEW.md              # 既存記載と矛盾する場合のみ最小修�
 8. GitHub Settings Current State 確認
 9. Existing vulnerability / malware / secret findings を Inventory
 10. `main-protection` Current State 確認
+11. `verify.if: always()` / `validate.if: always()` の Current State を確認
 
 Write-capable主体を Deployment まで trust できない場合は、Repository変更を進める前に権限を見直す。
 
@@ -526,6 +578,7 @@ Exit:
 - remote Action pinning 対象が列挙済み
 - Critical / High と Moderate / Low の Existing finding 件数が把握済み
 - Malware / Secret Alert の状態が把握済み
+- `always()` を維持すべき aggregate / validation job が確認済み
 
 ### Phase 2: Repository Changes
 
@@ -543,9 +596,13 @@ Exit:
 
 - Dependency Review job追加
 - Dependency Review → `verify` integration
-- `deploy-preview` を normal same-repo PR のみに限定
+- Dependency Review PR commentは無効のまま
+- `pull-requests: write` を追加しない
+- `verify.if: always()` を維持
+- `deploy-preview` を P-06 の実YAML条件へ変更
 - Dependabot / fork PR は Preview skip
 - `validate` を Preview eligibility と整合
+- `validate.if: always()` を維持
 - `pull_request_target` は追加しない
 
 #### GitHub Actions
@@ -582,7 +639,10 @@ Exit:
 - Dependabot / forkがCloudflare Secret不足だけで失敗しない
 - normal same-repo PR のPreviewは維持
 - `verify` が Dependency Review を aggregate
+- non-PRでも`verify`がskippedにならず結果判定する
+- Dependabot / forkでも`validate`がskippedにならず結果判定する
 - 全 remote Action が full SHA
+- write permissionを不要に増やしていない
 
 ### Phase 3: Pre-merge Validation
 
@@ -607,17 +667,26 @@ Dependabot / fork 相当:
 
 - Dependency Review実行
 - Required CI実行
-- `verify` contract維持
+- `verify` success
 - Preview skipped
 - `validate` success
+
+non-PR event contract:
+
+- Dependency Review skipped
+- `verify` 自体は実行
+- `verify` が Dependency Review skipped を expected result として判定
+- `validate` 自体は実行
+- Preview skipped を expected result として判定
 
 実際のDependabot PRを作るために脆弱Dependencyを導入しない。
 
 Static validation でよい項目:
 
-- PR authorによるDependabot判定
-- fork判定
+- `github.event.pull_request.user.login` による Dependabot 判定
+- `github.event.pull_request.head.repo.full_name` による fork 判定
 - Cloudflare SecretをDependabotへ複製していない
+- Dependency Reviewに`pull-requests: write`を与えていない
 
 Security findings:
 
@@ -634,6 +703,7 @@ Exit:
 - `git diff --check` PASS
 - Required PR CI PASS
 - Preview contract PASS
+- `verify.if: always()` / `validate.if: always()` 維持確認
 - Repository変更は review / merge 判断可能
 
 この時点で実装者が勝手に `main` へ merge しない。
@@ -676,6 +746,7 @@ Security PR が生成された場合:
 - author が `dependabot[bot]`
 - Preview skipped
 - Dependency Review / Required CI 実行
+- `verify` / `validate` が success
 - auto-mergeされない
 
 Security PR が生成されない場合は失敗扱いしない。
@@ -694,9 +765,21 @@ Rulesetを外さない。
 
 Advisory / scope / dependency を確認し、実測根拠がある場合だけ設定を最小調整する。
 
+### `verify` が non-PR event で skipped
+
+`dependency-review` を `needs` に追加したことで `verify.if: always()` が失われていないか確認する。
+
+`verify` の event別結果判定を修正し、Required check自体を外さない。
+
+### `validate` が Dependabot / fork PR で skipped
+
+`deploy-preview` が skipped でも `validate.if: always()` により実行されることを確認する。
+
+PreviewをDependabot / forkへ広げず、`validate` の expected-result判定を修正する。
+
 ### normal PR が Preview Deploy されない
 
-eligibility / `validate` を修正する。
+P-06 の `github.event.pull_request` 条件、`needs`、`validate` を確認する。
 
 Dependabot / fork へ Secret を広げない。
 
@@ -748,12 +831,19 @@ Repository files:
 Dependency / CI:
 
 - Dependency Reviewが `ci.yml` へ統合
+- `comment-summary-in-pr: never`
+- Dependency Reviewのための`pull-requests: write`なし
 - `verify` がDependency Review結果を判定
+- `verify.if: always()` 維持
 - PRでDependency Review success
 - non-PRでDependency Review skipped
+- non-PRでも`verify`自体は実行
+- P-06の`github.event.pull_request...`条件を使用
 - normal same-repo PRでPreview success
 - Dependabot / forkでPreview skipped
-- `validate` が上記契約と整合
+- `validate.if: always()` 維持
+- Dependabot / forkでも`validate`自体は実行
+- `validate` がPreview契約と整合
 - `pull_request_target` 未追加
 
 Cloudflare trust:
