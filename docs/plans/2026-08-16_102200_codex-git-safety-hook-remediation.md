@@ -268,20 +268,53 @@ Node 一本化後に旧 Hook file を Required Path として残さない。
 
 ### 3.2 Git — history / ref rewrite
 
+#### Git leading global option の最小正規化
+
+直接認識できる `git ...` invocation は、destructive / protected 判定の前に **Git 自身の leading global option だけ**を table-driven に読み飛ばして subcommand を解決する。
+
+対象は Git documented global option のみとし、shell grammar は解析しない。少なくとも value-taking option (`-C`, `-c`, `--git-dir`, `--work-tree`, `--namespace` 等) と flag option (`--no-pager` 等) の arity を区別する。
+
+```text
+git -C . status
+-> status として判定 -> allow
+
+git -C . reset --hard HEAD
+-> reset として判定 -> deny
+
+git -c color.ui=false clean -fd
+-> clean として判定 -> deny
+```
+
+`git -C` / `git -c` 自体を blanket deny しない。これは任意 shell の parser ではなく、直接 Git invocation の subcommand 解決だけを目的とする。
+
+#### State-changing history / ref rewrite
+
 必ず deny:
 
-- `git rebase` family
+- `git rebase` の開始 / `--continue` / `--skip` 等、履歴を書き換える form
 - `git commit --amend`
 - `git push --force`
 - `git push -f`
 - `git push --force-with-lease`
-- force refspec (`+...`)
-- `git branch -f`
+- **push** force refspec (`+...`)
+- `git branch -f` / `git branch --force`
+- `git branch -M`
+- `git branch -C`
 - `git branch -D`
-- `git tag -f`
+- `git tag -f` / `git tag --force`
 - `git update-ref`
-- `git replace`
+- `git replace` の作成 / 削除 form
 - `git filter-branch`
+
+明示的 recovery / inspection は common guard で止めない:
+
+```text
+git rebase --abort
+git rebase --quit
+git rebase --show-current-patch
+```
+
+`git rebase` を execpolicy で family blanket forbidden にせず、state-changing form と recovery / inspection form を区別する。
 
 #### `git reset` は destructive form だけ deny
 
@@ -309,24 +342,28 @@ git reset HEAD~1
 
 必ず deny:
 
-- `git clean` family
+- `git clean` destructive form
 - `git rm`
 - `git stash drop`
 - `git stash clear`
 - working tree を変更する `git restore`
 - `git switch -C`
 - `git switch --discard-changes`
+- `git switch -f` / `git switch --force`
 - `git reflog expire`
 - `git reflog delete`
 - `git reflog drop`
 - `git prune`
 - `git gc --prune=now`
 - `git gc --prune=all`
+- `git worktree add -B ...`
+- `git worktree remove -f ...` / `git worktree remove --force ...`
 
 Allow:
 
 ```text
 git restore --staged <path>
+git worktree add <path> [<commit-ish>]
 ```
 
 Deny:
@@ -356,6 +393,8 @@ git checkout feature/x
 git switch feature/x
 ```
 
+short / long equivalent の force option は同じ policy decision とする。代表 alias を contract test に含め、片方だけ抜ける実装にしない。
+
 ### 3.4 Git — remote destruction
 
 必ず deny:
@@ -369,6 +408,16 @@ git push --mirror
 ```
 
 空source refspecによるremote ref deleteもdenyする。
+
+`+refspec` の common hard deny は **push に限定**する。fetch では remote-tracking ref の更新に `+src:dst` を使えるため、destination が protected local branch でない通常 fetch は許可する。
+
+```text
+git fetch origin +refs/heads/feature:refs/remotes/origin/feature
+-> allow
+
+git fetch origin +refs/heads/feature:refs/heads/main
+-> protected local destination なので deny
+```
 
 ### 3.5 Protected branch direct update
 
@@ -395,14 +444,30 @@ master
 
 Detached HEAD は protected branch 自体を直接進めないため、それだけを理由に `git commit` を blanket deny しない。
 
-Protected branch 上では最低限次を deny:
+Protected branch 上では state-changing form を最低限 deny:
 
 - `git commit`
-- `git merge`
-- `git cherry-pick`
-- `git revert`
+- `git merge` の開始 / `--continue`
+- `git cherry-pick` の開始 / `--continue` / `--skip`
+- `git revert` の開始 / `--continue` / `--skip`
 - `git pull`
-- `git am`
+- `git am` の開始 / `--continue` / `--skip` / `--retry`
+
+明示的 recovery / inspection は protected branch 上でも common guard で止めない:
+
+```text
+git merge --abort
+git merge --quit
+git cherry-pick --abort
+git cherry-pick --quit
+git revert --abort
+git revert --quit
+git am --abort
+git am --quit
+git am --show-current-patch
+```
+
+安全ガード自身が conflict / sequencer 状態からの recovery を妨害しない。
 
 Protected branch への直接 push も deny:
 
@@ -424,7 +489,7 @@ git fetch origin +refs/heads/feature:refs/heads/main
 
 - fetch refspec の destination が `refs/heads/<protected>` に解決される場合はdenyする。
 - `git fetch --update-head-ok ...` は現在checkout中branchの更新保護を外すため、common guardでdenyする。
-- 通常の `git fetch origin` は引き続きallowする。
+- 通常の `git fetch origin` と protected local destination ではない forced fetch refspec は引き続きallowする。
 
 ### 3.6 Protected branch guarantee の境界
 
@@ -438,7 +503,9 @@ context-sensitive protected branch 判定は、**current working repository で�
 - compound command 全般
 - arbitrary child process
 
-これらは protected-branch context guarantee の範囲外であることを documentation に明記する。
+ただし、直接認識できる `git -C ... <subcommand>` は 3.2 の Git leading global option 正規化により subcommand の static destructive 判定を行う。`git -C` を使った別repositoryの protected-branch context まで保証するという意味ではない。
+
+これらの context-changing form は protected-branch context guarantee の範囲外であることを documentation に明記する。
 
 一方、static destructive command は execpolicy / Hook の認識可能範囲で引き続きdenyする。
 
@@ -452,14 +519,14 @@ git commit                  # non-protected branch
 git push                    # resolved non-protected destination
 git fetch                   # normal fetch; protected local destination / --update-head-ok は除く
 git pull                    # non-protected branch
-git switch
+git switch                  # non-force normal branch switch
 git checkout                # normal branch switch
-git merge                   # non-protected branch
-git cherry-pick             # non-protected branch
-git revert                  # non-protected branch
+git merge                   # non-protected branch / recovery form
+git cherry-pick             # non-protected branch / recovery form
+git revert                  # non-protected branch / recovery form
 git stash push/apply/pop
 git tag                     # non-force
-git worktree
+git worktree                # non-destructive forms
 git reset -- <path>         # unstage
 git restore --staged <path> # unstage
 ```
@@ -505,13 +572,12 @@ Full Access common hard deny から外す:
 
 ### 5.1 common execpolicy
 
-static に表現できる destructive prefix の正本とする。
+static に表現でき、safe sub-form と衝突しない destructive prefix の正本とする。
 
 例:
 
 ```text
-git rebase
-git clean
+git clean -fdx
 git rm
 git update-ref
 git reflog delete
@@ -523,27 +589,31 @@ kubectl delete
 ...
 ```
 
-非破壊path formを許可する必要があるcommandをfamily blanket forbiddenにしない。
+safe recovery / inspection form を許可する必要がある command (`git rebase` 等) や、非破壊path formを許可する必要があるcommandを family blanket forbidden にしない。
+
+Rules の canonical prefix を leading Git global option で迂回できる形は PreToolUse の薄い Git option normalization で補完する。
 
 ### 5.2 PreToolUse
 
 次の補完だけ担当する。
 
-1. argument / refspec 内に現れる destructive option
+1. direct Git invocation の leading global option を最小正規化して subcommand を解決
+2. argument / refspec 内に現れる destructive option
+   - `rebase` state-changing form と recovery / inspection form の区別
    - `commit --amend`
-   - force push variants
+   - force push variants / force aliases
    - push delete / prune / mirror / force refspec
    - fetch destination が protected local branch となるrefspec
-   - destructive reset / restore / checkout
-2. context-sensitive protected branch判定
-3. execpolicyだけでは表しづらい既存 destructive pattern
-4. Hook input schema validation
+   - destructive reset / restore / checkout / switch / worktree
+3. context-sensitive protected branch判定
+4. execpolicyだけでは表しづらい既存 destructive pattern
+5. Hook input schema validation
 
 ### 5.3 同じ parser を二重実装しない
 
 - execpolicy は prefix / argv で表現できる範囲。
 - PreToolUse は actual Bash command text + repository context の最小判定。
-- 完全な shell grammar を再実装しない。
+- Git leading global option の table-driven 正規化は行うが、任意 shell grammar は再実装しない。
 - `write_stdin` / arbitrary child process まで完全監視する仕組みは作らない。
 
 Hooks は guardrail であり、完全な sandbox / enforcement boundary とは扱わない。
@@ -598,7 +668,8 @@ Full Access検証は、ユーザーが実際に使用する Full Access route �
 重要:
 
 - Full Access と特定 `permission_mode` を事前に同一視しない。
-- Full Accessでexecpolicyが有効なら static denyはRulesを正本とする。
+- Full Accessでexecpolicyが有効なら static canonical prefix はRulesを正本とする。
+- PreToolUseはGit leading global optionやcontext-sensitive formを補完する。
 - Full Accessでexecpolicyが無効なら、必要なstatic denyをPreToolUse側でも保持する。
 - Hookがdisabled / untrustedでactual Full Access routeから発火しない状態は Acceptance FAIL とする。
 - `execpolicy無効 + Hook無効`を別安全層で救済するfallback基盤は作らない。
@@ -619,14 +690,19 @@ Full Access検証は、ユーザーが実際に使用する Full Access route �
 
 ### Wave 2 — minimal destructive policy
 
+- direct Git invocation の leading global option 最小正規化
 - destructive Git deny
+- `git rebase` 等のstate-changing formをdenyし、explicit recovery / inspectionはallow
 - path-based reset / staged restoreはallow
-- destructive checkout / restore / resetだけdeny
+- destructive checkout / restore / reset / switchだけdeny
+- destructive `git worktree add -B` / `worktree remove --force` deny
+- force option のshort / long equivalentを同じdecisionにする
 - `git reflog expire/delete/drop` deny
 - protected branch direct-update deny
+- protected branch上でもexplicit recovery / inspectionはallow
 - protected local branchをdestinationとするfetch refspec deny
 - `git fetch --update-head-ok` deny
-- protected branch上の `git am` deny
+- push force refspecはdeny、通常のforced remote-tracking fetchはallow
 - remote delete variants deny
 - 既存の明確な非Git destructive denyのみ移植
 - `apply_patch` guard削除
@@ -637,6 +713,7 @@ Full Access検証は、ユーザーが実際に使用する Full Access route �
 
 同時に:
 
+- `git rebase` 等、safe recovery formと衝突するfamily blanket forbiddenを置かない
 - `scripts/codex-safe.ps1` preflight expectation更新
 - `scripts/codex-safe.sh` preflight expectation更新
 - `scripts/verify.ps1` の Required Hook pathを `.mjs` へ更新
@@ -693,6 +770,8 @@ git commit -m test                  # feature branch
 git push                            # resolved feature branch destination
 git push origin feature/x
 git fetch origin
+git fetch origin +refs/heads/feature:refs/remotes/origin/feature
+git -C . status
 git switch feature/x
 git checkout feature/x
 git merge feature/y                 # feature branch
@@ -702,30 +781,56 @@ git stash push
 git stash apply
 git stash pop
 git tag v1.0.0
-git worktree add ...
+git worktree add ../wt feature/x
 git reset -- file.ts
 git reset HEAD -- file.ts
 git restore --staged file.ts
+git rebase --abort
+git rebase --quit
+git rebase --show-current-patch
 python -c "print('ok')"
 terraform apply ...
 kubectl apply ...
+```
+
+Protected branch上のrecovery / inspection allow contract:
+
+```text
+git merge --abort
+git merge --quit
+git cherry-pick --abort
+git cherry-pick --quit
+git revert --abort
+git revert --quit
+git am --abort
+git am --quit
+git am --show-current-patch
 ```
 
 #### Git deny — policy宣言と1:1で対応
 
 ```text
 git rebase main
+git rebase --continue
+git rebase --skip
 git commit --amend
 git push --force origin feature/x
 git push -f origin feature/x
 git push --force-with-lease origin feature/x
 git push origin +feature/x
 git branch -f feature/x HEAD~1
+git branch --force feature/x HEAD~1
+git branch -M feature/x feature/y
+git branch -C feature/x feature/y
 git branch -D feature/x
 git tag -f v1 HEAD~1
+git tag --force v1 HEAD~1
 git update-ref refs/heads/feature/x HEAD~1
 git replace <old> <new>
 git filter-branch ...
+
+git -C . reset --hard HEAD
+git -c color.ui=false clean -fd
 
 git reset --soft HEAD~1
 git reset --mixed HEAD~1
@@ -743,12 +848,17 @@ git restore --worktree file.ts
 git restore --staged --worktree file.ts
 git switch -C feature/x main
 git switch --discard-changes feature/x
+git switch -f feature/x
+git switch --force feature/x
 git reflog expire --expire=now --all
 git reflog delete HEAD@{1}
 git reflog drop refs/heads/feature/x
 git prune
 git gc --prune=now
 git gc --prune=all
+git worktree add -B feature/x ../wt main
+git worktree remove -f ../wt
+git worktree remove --force ../wt
 
 git checkout -f feature/x
 git checkout --force feature/x
@@ -767,15 +877,22 @@ git push --mirror
 
 #### Protected branch deny
 
-Temporary repositoryでprotected branch上から:
+Temporary repositoryでprotected branch上から state-changing formを確認:
 
 ```text
 git commit
-git merge
-git cherry-pick
-git revert
+git merge feature/x
+git merge --continue
+git cherry-pick <sha>
+git cherry-pick --continue
+git cherry-pick --skip
+git revert <sha>
+git revert --continue
+git revert --skip
 git pull
-git am
+git am <patch>
+git am --continue
+git am --skip
 git push origin main
 git push origin HEAD:main
 git fetch origin refs/heads/feature:refs/heads/main
@@ -792,6 +909,7 @@ multi-ref / implicit push whose destination cannot be safely resolved
 - `origin/HEAD`なし -> `main` / `master`保護だけで動作
 - broken `origin/HEAD` -> `main` / `master`保護だけで動作
 - detached HEAD -> detachedであることだけを理由にcommitをdenyしない
+- `git -C . reset --hard HEAD` のようなdirect Git invocationはglobal option越しでもstatic destructive判定が効く
 
 #### 非Git deny
 
@@ -821,6 +939,9 @@ irm ... | iex
 
 - source / Markdown / fixtureに `git push --force` と書くだけ -> allow
 - `apply_patch` Add / Update / Delete / Move -> Hook対象外
+- `git -C . status` -> `git -C`自体を理由にdenyしない
+- forced fetch refspecのdestinationが`refs/remotes/origin/*` -> allow
+- explicit recovery / inspection form -> common guardではdenyしない
 
 #### Windows launcher
 
@@ -847,6 +968,7 @@ Windowsで:
 - `scripts/codex-safe.ps1 -PreflightOnly` PASS
 - `git add` 等の旧blanket-forbidden expectationが残っていない
 - destructive command expectationはforbiddenのまま
+- safe recovery formをfamily blanket forbiddenに戻していない
 - `scripts/verify.ps1` が Node HookをRequired Pathとして検証
 - legacy `.py` / `.ps1` Hook削除後もverifyがPASS
 
@@ -874,12 +996,16 @@ Windows native上のTemporary clone + local bare remoteで確認する。
 - Hook invocation evidence
 - Hook trusted / enabled
 - normal Git operation succeeds
+- `git -C . status` succeeds
 - normal `git fetch origin` succeeds
+- forced remote-tracking fetch succeeds
+- explicit recovery / inspection form is not common-blocked
 - path-based unstage succeeds
 - protected branch direct update blocked
 - protected local branch destination fetch blocked
 - `git fetch --update-head-ok` blocked
-- destructive reset / checkout / force push / remote delete blocked
+- leading Git global option越しのdestructive command blocked
+- destructive reset / checkout / switch / worktree / force push / remote delete blocked
 - reflog expire / delete / drop blocked
 - static Rulesが有効か記録
 - denyがtool実行前に効く
@@ -921,6 +1047,7 @@ Windows nativeがPrimary / Required、macOS / Linuxはbest-effort compatibility�
 - merge / cherry-pick / revert / stash / tag / worktreeの包括禁止
 - `cd` / `git -C` / compound command / shell wrapperのblanket deny
 - complete shell parser
+- arbitrary shell grammar parsing
 - `write_stdin` workaround基盤
 - arbitrary child process監視
 - execpolicy / Hook両無効を救済する第三のfallback enforcement
@@ -933,6 +1060,8 @@ Windows nativeがPrimary / Required、macOS / Linuxはbest-effort compatibility�
 - npm / package release policy全体の再設計
 - WSL必須化
 - macOS / LinuxをRequired Acceptanceにすること
+
+Git leading global option の table-driven normalization は direct Git invocation の subcommand 解決に限定し、complete shell parserには拡張しない。
 
 ---
 
@@ -971,23 +1100,33 @@ Windows native onlyでRequired verification完結
 +
 normal Git operations are not common blanket blocked
 +
-normal git fetch remains allowed
+Git leading global option越しのdestructive command blocked
++
+normal git fetch / forced remote-tracking fetch remain allowed
 +
 path-based git reset / restore --staged are not blocked
 +
+explicit Git recovery / inspection forms are not common-blocked
++
 all declared Git deny vectors have contract tests
++
+destructive worktree variants blocked
++
+short / long equivalent force aliases share the same decision
 +
 reflog expire / delete / drop blocked
 +
-protected branch git am blocked
+protected branch state-changing merge/cherry-pick/revert/am blocked
++
+protected branch recovery / inspection forms not common-blocked
 +
 protected local branch destination fetch blocked
 +
 git fetch --update-head-ok blocked
 +
-protected/default branch resolution scope documented and tested
+push force refspec / remote delete / prune / mirror blocked
 +
-force push / remote delete / prune / mirror blocked
+protected/default branch resolution scope documented and tested
 +
 all declared non-Git common deny vectors have contract coverage
 +
