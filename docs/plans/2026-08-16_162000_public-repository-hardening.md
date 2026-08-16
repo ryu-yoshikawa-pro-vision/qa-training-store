@@ -10,6 +10,7 @@ Application 機能や教材内容は変更せず、Public Repository の運用�
 - Vulnerability / Malware / Secret Reporting
 - Pull Request / Issue の標準化
 - GitHub Actions の最小権限と Supply Chain Hardening
+- Cloudflare Deployment Credential の trust boundary
 - Dependabot が生成する Security PR と CI の整合
 - `main` の保護と Required CI の維持
 - GitHub Security Settings
@@ -30,13 +31,18 @@ Community Health File を網羅することや、依存 Package / GitHub Actions
 - Node.js Baseline: 24
 - Reviewed GitHub State: 2026-08-16
 
-実装開始時には最新 `main`、Open PR、GitHub Settings、Security Alerts を再取得する。
+実装開始時には最新 `main`、Open PR、GitHub Settings、Collaborator 権限、Security Alerts を再取得する。
 
 既に安全側へ設定済みの項目を後退させない。
 
 この Plan は Repository 変更と GitHub Settings 変更を含むが、実装ブランチ上で勝手に `main` へ merge することを要求しない。
 
-Repository Settings の変更権限がない実装者は、設定項目を完了扱いにせず、Owner Checklist として明示的に残す。
+Repository Settings の変更権限がない実装者は、設定項目を完了扱いにせず Owner Checklist へ残す。
+
+Owner Checklist は次の2種類を明確に区別する。
+
+- Open Action Item: 未完了なら Repository Hardening DoD を満たさない
+- Accepted Platform Limitation: GitHub Plan / UI / provider 制約等で実施不能だが、理由・影響・fallback が記録済みなら DoD を妨げない
 
 ## 3. 現状認識
 
@@ -68,7 +74,8 @@ Repository Settings の変更権限がない実装者は、設定項目を完了
 - Bug / Feature Issue Forms
 - Issue chooser から Security Reporting への非公開導線
 - Dependency Review の CI enforcement
-- Dependabot Security PR と Cloudflare Preview Deployment の安全な共存
+- Dependabot / Fork PR と Cloudflare Preview Deployment の安全な共存
+- same-repo PR と Cloudflare Credential の trust boundary 明文化
 - GitHub Actions の full-length commit SHA pinning
 - SHA-pinned GitHub Actions の Security Advisory 監視方針
 - Dependabot Malware Alerts の確認
@@ -106,7 +113,7 @@ Repository merge settings:
 
 今回これらを新規作成しない。実装時に Current State を再確認し、不足分だけ補完する。
 
-### 3.3 Contribution Policy
+### 3.3 Contribution / Collaborator Trust Boundary
 
 現在の Pull Request creation policy は `collaborators_only`。
 
@@ -115,6 +122,18 @@ Repository merge settings:
 - Issue: Public contributor の入口
 - Pull Request: Collaborator 中心
 - Security vulnerability: Private Vulnerability Reporting
+
+2026-08-16 の確認では Owner 以外にも Write 権限を持つ direct collaborator が存在し、GitHub Environments は未作成である。
+
+現行 `ci.yml` は Preview と Production の Cloudflare Deployment で Repository Secrets を利用している。
+
+したがって、次を暗黙前提にしてはならない。
+
+```text
+same-repo PR == 自動的に Secret を渡してよい trusted code
+```
+
+Repository への Write 権限を持つ主体は Workflow 自体を変更できるため、Cloudflare Credential を渡してよい trusted maintainer かどうかを明示的に確認する。
 
 Fork PR の安全性は現在の主運用ではないが、将来 policy を変更しても Secret が露出しない Defense-in-depth として扱う。
 
@@ -144,42 +163,76 @@ Dependency Update を行う正当な理由:
 
 Patch / Minor / Major のいずれでも、理由がなければ自動更新しない。
 
-### 4.4 Security Update と Version Update を分離する
+### 4.4 Package Security と Version Update を分離する
 
 今回の方針:
 
 - Dependency graph: ON / 維持
-- Dependabot alerts: ON / 維持
+- Dependabot Alerts: ON / 維持
 - Dependabot Malware Alerts: ON / 維持
-- Dependabot Security Updates の Repository-wide toggle: OFF
-- Custom Auto-triage Rule: Moderate / High / Critical かつ修正版が利用可能な Package vulnerability だけ Security PR 化
-- Dependabot version updates: OFF
+- Repository-wide Dependabot Security Updates: OFF
+- Dependabot Version Updates: OFF
 - `.github/dependabot.yml`: 追加しない
+- GitHub preset Auto-triage Rules: Current State を確認し、low-impact development dependency 用 preset は原則維持
+- Custom Auto-triage Rule: preset 等で先に dismiss されていない Moderate / High / Critical かつ fix available の Package vulnerability を Security PR 化
 
-Low severity は Alert として可視化するが、自動 PR 化しない。
+重要なのは Dependency Review と Auto-triage の役割を混同しないことである。
 
-これにより、Dependency Review の Required Gate と Security PR 自動生成の閾値を `moderate` 以上で揃える。
+```text
+新規 Dependency 導入
+→ Dependency Review
+→ Moderate 以上を Required Gate で block
 
-Custom Auto-triage Rule の「Pull Requestを開く」Actionが実装時点の Repository / Plan で利用できない場合は、Dependabot Security Updates を一括 ON に戻さない。
+既存 Dependency Alert
+→ GitHub preset / Custom Auto-triage
+→ low-impact development finding は preset の判断を尊重
+→ 残る Moderate / High / Critical + fix available を Security PR 候補化
+```
 
-その場合は次とする。
+したがって「全 Moderate 以上の既存 Alert が必ず PR 化される」とは定義しない。
+
+Custom Auto-triage Rule の PR 作成 Action が利用不能な場合は Repository-wide Security Updates を一括 ON に戻さない。
+
+その場合:
 
 - Alerts / Malware Alerts は ON
-- Moderate 以上の fix available finding を手動 Triage
+- Moderate 以上の fix available finding を manual triage
 - 必要なものだけ Security Update PR を作成
-- 利用不能理由を Owner Checklist に記録
+- 制約は Accepted Platform Limitation として理由・fallback を記録する
 
-### 4.5 Secret を増やさない
+### 4.5 Deployment Secret の trust boundary を明示する
 
-Dependabot PR や Fork PR の Preview Deploy のためだけに Cloudflare Credential を Dependabot Secrets 等へ複製しない。
+Dependabot PR / Fork PR のためだけに Cloudflare Credential を追加・複製しない。
 
-Secret を利用できない信頼境界では、Secret を必要とする処理だけを実行対象外とする。
+同時に、same-repo PR も無条件には trust しない。
 
-コード品質、テスト、Build、Dependency Review は維持する。
+実装開始時に Write / Maintain / Admin 権限を持つ Collaborator を Inventory し、次を判断する。
+
+#### 全 Write-capable Collaborator を trusted maintainer とみなせる場合
+
+- same-repo normal PR の Preview Deployment を継続可能
+- その trust decision を作業記録へ残す
+- Cloudflare Token は provider 側で必要最小権限にする
+- Preview / Production Credential の分離が実用的なら分離する
+- Repository-level Secret を使い続ける場合も、その Secret を参照できる主体と blast radius を理解したうえで採用する
+
+#### trusted maintainer とみなせない Write-capable Collaborator がいる場合
+
+同じ Secret model のまま進めない。
+
+まず次のいずれかを行う。
+
+1. Repository 権限を必要最小限へ下げる
+2. GitHub Environment + Required Reviewer 等で Secret 利用前の承認境界を設ける
+3. Secret を使う PR Preview 自体をその主体には実行しない構成へ変更する
+
+Environment は untrusted Write 権限そのものを安全にする代替ではない。Repository の code / merge 権限まで信頼できない主体に Write を残す場合は、その Repository governance 自体を先に見直す。
+
+現在 Environments が0件であることから、Environment 導入は自動的な前提ではなく、Collaborator trust review の結果に応じた必要最小限の対策として扱う。
 
 ### 4.6 Preview eligibility と Secret availability を分離する
 
-Preview eligibility は PR 自体の属性で判定する。
+Cloudflare Credential を渡してよい Collaborator trust boundary が成立した後で、Preview eligibility を PR 属性から判定する。
 
 Primary condition:
 
@@ -189,9 +242,13 @@ AND pull_request.head.repo.full_name == github.repository
 AND pull_request.user.login != dependabot[bot]
 ```
 
-追加防御として `github.actor != 'dependabot[bot]'` も併用する。
+追加防御:
 
-概念上の条件:
+```text
+github.actor != dependabot[bot]
+```
+
+概念上:
 
 ```yaml
 ${{
@@ -210,9 +267,12 @@ Preview ineligible:
 
 - Dependabot PR
 - Fork PR
+- trust boundary 上 Preview を許可しない PR
 - Pull Request 以外の Event
 
 これらでは `deploy-preview` の Skip を正常状態とする。
+
+GitHub Environment の Required Reviewer 方式を採用した場合は、対象 job が approval pending になることを別契約として扱い、`validate` が誤って success / skip と解釈しないよう設計する。
 
 ### 4.7 Public Repository の外部入力を信頼しない
 
@@ -235,7 +295,7 @@ PR / Issue / Dependabot / Fork 由来の値を shell script 本文へ直接埋�
 - `actions/setup-java`
 - `pnpm/action-setup`
 - `cloudflare/wrangler-action`
-- 実装時 Inventory で確認されたその他 remote Action / reusable workflow
+- その他 remote Action / reusable workflow
 
 SHA pinning は Version Update ではない。
 
@@ -249,44 +309,46 @@ Human-readable comment は可能な限り exact release tag を残す。
 uses: actions/checkout@<full-commit-sha> # v4.2.2
 ```
 
-exact release tag を一意に特定できない場合は、解決元 tag と解決日など、後から追跡できる根拠を残す。
+exact release tag を一意に特定できない場合は、解決元 tag と解決日等の根拠を残す。
 
-新規 Dependency Review Action だけは、実装時点の official supported major を選び、full SHA へ pin する。
+新規 Dependency Review Action だけは、実装時点の official supported major を選び full SHA へ pin する。
 
 ### 4.9 SHA-pinned Actions は Package Dependencies と別に監視する
 
-GitHub Actionsをfull SHAへpinすると、GitHub標準のDependabot AlertだけをAction脆弱性監視のSSOTとして期待できない。
+GitHub Actions を full SHA へ pin した後は Dependabot Alert だけを Action 脆弱性監視の SSOT として期待しない。
 
-そのため監視経路を分離する。
-
-Package dependency:
+監視経路:
 
 ```text
-Dependency graph
+Package dependency
+→ Dependency graph
 → Dependabot Alerts / Malware Alerts
-→ Moderate以上かつfix availableのみSecurity PR
-→ Dependency Review
+→ Auto-triage / Dependency Review
+
+GitHub Actions
+→ full SHA pin
+→ Action 採用時 / 変更時に Advisory Review
+→ Repository の通常 Security Review の一部として定期確認
+→ 該当 Advisory があれば minimum patched release の SHA へ更新
 ```
 
-GitHub Actions:
+Action の更新理由は Security Advisory、Runtime / Runner deprecation、Compatibility issue 等に限定し、最新版追従を目的にしない。
 
-```text
-full SHA pin
-→ 採用時 / 変更時にGitHub Advisory Database・公式Security情報を確認
-→ Security-only定期確認
-→ 該当Advisoryがあればminimum patched releaseのSHAへ更新
-```
+固定の「月1回」SLAは設けない。
 
-Action の更新理由は Security Advisory、Runtime / Runner deprecation、Compatibility issue 等に限定し、最新版追従は行わない。
+必須なのは次である。
 
-Security-only 定期確認は少なくとも月1回を目安とし、GitHub Actionsを更新するための定期作業ではなく、現在pinしているSHAに既知の問題がないかを確認する作業とする。
+- Hardening 実装時の初回確認
+- Action 追加 / 変更 PR 時の確認
+- Security Advisory / Incident を把握した際の確認
+- 既存の Repository Security Review cadence がある場合、その中へ含める
 
-今回、独自 scheduled scanner workflow は追加しない。
+今回、独自 scheduled advisory scanner workflow は追加しない。
 
-### 4.10 Security Scanner の結果を同じ尺度で扱わない
+### 4.10 Security Finding を同じ尺度で扱わない
 
-- Dependabot / CodeQL: vulnerability severity で判断
-- Malware Alert: 悪意あるPackageの利用有無で判断
+- Dependabot / CodeQL: vulnerability severity と exposure で判断
+- Malware Alert: malicious package の利用有無で判断
 - Secret scanning: credential の有効性と漏えい影響で判断
 
 有効または有効性不明の credential leak は Severity に関係なく優先対応する。
@@ -328,31 +390,46 @@ CODE_REVIEW.md              # 既存記載と矛盾する場合だけ最小修�
 
 `.github/dependabot.yml` は追加しない。
 
+GitHub Environment は Collaborator trust review の結果、必要な場合だけ追加する。
+
 ## 6. Canonical Decisions
 
-### D-01: Dependabot Security Updates の一括ONは使用しない
+### D-01: Repository-wide Dependabot Security Updates は OFF を保証する
 
-Repository-wide `Dependabot security updates` toggle は OFF を維持する。
+Repository-wide `Dependabot security updates` toggle は OFF とする。
 
-理由:
+実装開始時点で ON だった場合:
 
-- fix可能なLow severityまで自動PR化する可能性を避ける
-- 「必要な更新だけ行う」方針を維持する
-- Dependency Reviewの`moderate` thresholdと整合させる
+1. Current State を記録
+2. 既に作成済みの Dependabot Security PR を Inventory
+3. Repository-wide toggle を OFF に変更
+4. 既存 Security PR は自動 close / merge せず個別 Triage
+5. Custom Auto-triage Rule を Active にする前に OFF 状態を再確認
 
-Package vulnerabilityのSecurity PR自動化はCustom Auto-triage Ruleを使用する。
+「ONにしない」だけではなく、「OFFであることを保証する」。
 
-Rule intent:
+### D-02: GitHub preset Auto-triage Rule を尊重する
+
+Public Repository で有効になっている GitHub preset / Custom Auto-triage Rules を Wave 0 で Inventory する。
+
+low-impact development-scoped dependency 用の GitHub preset は、具体的な不都合が確認されない限り維持する。
+
+Custom Security PR Rule は preset 等で先に dismiss されていない Alert に対して適用する。
+
+想定 policy:
 
 ```text
-severity in [moderate, high, critical]
-AND patched version / fix available
-→ open Dependabot security pull request
+GitHub preset により low-impact development finding として dismiss
+→ 自動PR化しない
+
+それ以外の Moderate / High / Critical
+AND fix available
+→ Dependabot Security PR
 ```
 
-Rule作成時は、既存Alertに対してどのように適用されるかを確認してからActiveにする。
+新規 Dependency 導入時は Auto-triage の dismiss policy に関係なく Dependency Review の `moderate` gate を維持する。
 
-### D-02: Version Updates は自動化しない
+### D-03: Version Updates は自動化しない
 
 実施しない:
 
@@ -362,65 +439,65 @@ Rule作成時は、既存Alertに対してどのように適用されるかを�
 - Dependabot auto-merge
 - 自動 Approve
 
-### D-03: 計画的Dependency Updateは通常変更として扱う
+### D-04: 計画的 Dependency Update は通常変更として扱う
 
-Security以外の更新時に確認する。
+Security 以外の更新時に確認する。
 
 - 更新理由
 - Release Notes / Breaking Changes
-- Lockfile差分
+- Lockfile 差分
 - Expo / React Native compatibility
 - Build
 - Unit / Integration / Component / Contract Test
 - Web E2E
-- 必要に応じNative Build / Runtime Test
+- 必要に応じ Native Build / Runtime Test
 
-### D-04: Security ReportはPrivate Vulnerability ReportingをPrimaryにする
+### D-05: Security Report は Private Vulnerability Reporting を Primary にする
 
 `SECURITY.md`:
 
-- current `main` / latest deployment を基本supported scopeとする
-- Public Issue / PRにvulnerabilityを投稿しない
-- Private Vulnerability Reportingを案内
+- current `main` / latest deployment を基本 supported scope とする
+- Public Issue / PR に vulnerability を投稿しない
+- Private Vulnerability Reporting を案内
 - 個人メールアドレスを公開しない
-- 固定SLAを約束しない
+- 固定 SLA を約束しない
 - Summary / reproduction / impact / environment / evidence を案内
 
-PVRがSettings側で無効なままなのに、文書だけで利用可能に見せない。
+PVR が Settings 側で無効なままなのに、文書だけで利用可能に見せない。
 
-### D-05: PVRの通知経路まで確認する
+### D-06: PVR の通知経路まで確認する
 
-Owner operational checkとして次を確認する。
+Owner operational check:
 
 - Private Vulnerability Reporting: ON
-- Repository / Security alert notifications が受信可能
-- Web / Email等、実際に確認できる通知経路がある
+- Repository / Security notifications が受信可能
+- Web / Email 等、実際に確認できる通知経路がある
 
-通知経路の確認不能をPVR有効化済みだけで完了扱いにしない。
+通知確認不能なら Open Action Item とする。
 
-### D-06: Issue chooserからSecurity Reportingへ直接誘導する
+### D-07: Issue chooser の Security link は Reporter 向け入口へ誘導する
 
-`.github/ISSUE_TEMPLATE/config.yml`:
+`.github/ISSUE_TEMPLATE/config.yml` は次を基本とする。
 
 ```yaml
 blank_issues_enabled: false
 contact_links:
   - name: Report a security vulnerability
-    url: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/security/advisories/new
-    about: Do not report security vulnerabilities in a public issue.
+    url: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/security
+    about: Do not report security vulnerabilities in a public issue. Use "Report a vulnerability" from the Security page.
 ```
 
-実装時およびdefault branch反映後に、PVRの実際の入口URLとして機能することを確認する。
+`/security/advisories/new` を Reporter 向けの固定入口として使用しない。
 
-利用不能なら誤ったリンクを残さず、GitHub UIで正しいRepository-scoped entry pointを確認して修正する。
+PVR 有効化後に、maintainer ではなく通常 Reporter 視点で `Report a vulnerability` 導線が利用できることを確認する。
 
-### D-07: Dependency Reviewは既存`ci.yml`へ統合する
+GitHub がより安定した Repository-scoped Reporter URL を提供していることを実装時に確認できた場合のみ、そのURLへ置き換える。
 
-新規Workflowを増やさず、`.github/workflows/ci.yml`に`dependency-review` jobを追加する。
+### D-08: Dependency Review は既存 `ci.yml` へ統合する
 
-実装時にcurrent supported major / Runner requirementを再確認し、full SHAへpinする。
+新規 Workflow を増やさず `.github/workflows/ci.yml` に `dependency-review` job を追加する。
 
-Policy:
+実装時に current supported major / Runner requirement を再確認し full SHA へ pin する。
 
 ```yaml
 with:
@@ -433,15 +510,14 @@ with:
 
 意図:
 
-- Moderate / High / Criticalの新規導入をblock
-- runtime / development / unknownを対象
-- LowはRequired Gateではblockしない
-- License policyは今回対象外
-- OpenSSF Scorecardは今回対象外
+- Moderate / High / Critical の新規導入を block
+- runtime / development / unknown を対象
+- Low は Required Gate では block しない
+- License / OpenSSF は今回の Required Gate 外
 
-### D-08: Dependency ReviewはPR EventだけRequired
+### D-09: Dependency Review は PR Event だけ Required
 
-`dependency-review`は`pull_request`のみ実行。
+`dependency-review` は `pull_request` のみ実行する。
 
 `verify` contract:
 
@@ -453,33 +529,50 @@ push / schedule / workflow_dispatch
 → dependency-review == skipped
 ```
 
-`success OR skipped`の曖昧判定にしない。
+`success OR skipped` の曖昧判定にしない。
 
-### D-09: `verify`をRequired Quality Gateのaggregateとして維持
+### D-10: `verify` を Required Quality Gate の aggregate として維持
 
-Ruleset Required checkは`verify`のみを維持する。
+Ruleset Required check は `verify` のみを維持する。
 
-Dependency Reviewを`verify.needs`と結果判定へ追加する。
+Dependency Review を `verify.needs` と結果判定へ追加する。
 
-Preview Deploymentは`verify`後段のままにする。
+Preview Deployment は `verify` 後段のままにする。
 
-### D-10: Preview trust classificationはPR authorをPrimaryにする
+### D-11: Cloudflare Credential trust decision を先に行う
 
-`deploy-preview` eligible:
+Preview condition 実装より先に Collaborator trust review を完了する。
 
-- event == pull_request
+記録する:
+
+- Write / Maintain / Admin collaborator
+- 各主体を Deployment Credential まで渡してよい trusted maintainer とみなすか
+- 現在の Cloudflare Secret scope
+- Preview / Production が同一 Credential を共有しているか
+- Environment 採用要否
+- Provider 側 least privilege の確認結果
+
+全 Write-capable collaborator を trusted とみなせない場合は、現行 same-repo Secret model のまま Wave 3 を完了させない。
+
+### D-12: Preview trust classification は PR author を Primary にする
+
+Collaborator trust boundary が成立した場合の `deploy-preview` eligible:
+
+- event == `pull_request`
 - `github.event.pull_request.head.repo.full_name == github.repository`
 - `github.event.pull_request.user.login != 'dependabot[bot]'`
-- defense-in-depthとして`github.actor != 'dependabot[bot]'`
+- defense-in-depth として `github.actor != 'dependabot[bot]'`
 - `needs.verify.result == 'success'`
 - `needs.build-automation.result == 'success'`
 
-Secret存在はeligibilityに含めない。
+Secret 存在は eligibility に含めない。
 
-### D-11: `validate` contractを明示する
+### D-13: `validate` contract を明示する
+
+基本契約:
 
 ```text
-same-repo normal PR
+trusted normal same-repo PR
 → deploy-preview success
 
 Dependabot PR
@@ -488,15 +581,20 @@ Dependabot PR
 fork PR
 → deploy-preview skipped
 
+trust boundary 上 Preview 非許可の PR
+→ deploy-preview skipped
+
 push / schedule / workflow_dispatch
 → deploy-preview skipped
 ```
 
-通常PRの意図しないSkipをSuccess扱いしない。
+通常 trusted PR の意図しない Skip を Success 扱いしない。
 
-### D-12: Dependabot PRへSecretを複製しない
+Environment Required Reviewer を採用した場合は approval pending を別状態として設計し、上記 contract をそのまま流用しない。
 
-Dependabot Security PRでも次は維持する。
+### D-14: Dependabot / Fork PR へ Secret を複製しない
+
+Dependabot Security PR でも次は維持する。
 
 - Format / Markdown lint
 - Specification validation
@@ -509,13 +607,13 @@ Dependabot Security PRでも次は維持する。
 - Dependency Review
 - `verify`
 
-Cloudflare PreviewだけSkipする。
+Cloudflare Preview だけ Skip する。
 
-### D-13: `pull_request_target`でSecret制約を回避しない
+### D-15: `pull_request_target` で Secret 制約を回避しない
 
-Secret利用のためだけに`pull_request_target`でuntrusted head codeをCheckout / Executeしない。
+Secret 利用のためだけに `pull_request_target` で untrusted head code を Checkout / Execute しない。
 
-### D-14: Pull Request Templateは説明標準化に限定
+### D-16: Pull Request Template は説明標準化に限定
 
 含める:
 
@@ -528,9 +626,9 @@ Secret利用のためだけに`pull_request_target`でuntrusted head codeをChec
 - Security / Dependency Impact
 - Related Issue / Plan
 
-CIコマンドの巨大Checkboxリストは作らない。
+CI コマンドの巨大 Checkbox リストは作らない。
 
-### D-15: Bug Issue FormはQA再利用可能な形式
+### D-17: Bug Issue Form は QA 再利用可能な形式
 
 最低限:
 
@@ -554,9 +652,9 @@ Platform:
 - iOS
 - Other
 
-Security vulnerability用ではないことを明記する。
+Security vulnerability 用ではないことを明記する。
 
-### D-16: Feature RequestはProblem-first
+### D-18: Feature Request は Problem-first
 
 最低限:
 
@@ -567,68 +665,67 @@ Security vulnerability用ではないことを明記する。
 - Scope / Constraints
 - Additional Context
 
-### D-17: CodeQLはDefault Setup
+### D-19: CodeQL は Default Setup
 
-GitHub SettingsからDefault Setupを有効化する。
+GitHub Settings から Default Setup を有効化する。
 
-custom workflowは追加しない。
+custom workflow は追加しない。
 
-最低1回successful analysisを確認する。
+最低1回 successful analysis を確認する。
 
-### D-18: GitHub Actionsはfull SHAへpin
+### D-20: GitHub Actions は full SHA へ pin
 
-全remote `uses:`をInventoryしてfull SHAへpinする。
+全 remote `uses:` を Inventory して full SHA へ pin する。
 
 確認:
 
 - expected owner / repository
-- unused / unknown Actionがない
-- `persist-credentials: false`を維持
-- Secret Jobへ不要write permissionを追加しない
-- exact release tagが特定できる場合はcommentへ記録
-- 特定できない場合は解決元tag / 日付等の根拠を記録
-- pinningだけを理由にAction Versionを変更しない
+- unused / unknown Action がない
+- `persist-credentials: false` を維持
+- Secret Job へ不要 write permission を追加しない
+- exact release tag が特定できる場合は comment へ記録
+- 特定できない場合は解決元 tag / 日付等の根拠を記録
+- pinning だけを理由に Action Version を変更しない
 
-### D-19: SHA-pinned Actions向けSecurity Reviewを補完する
-
-ActionをSHA pinしたことでDependabot Alertだけに依存できない前提とする。
+### D-21: SHA-pinned Actions 向け Security Review を補完する
 
 実装時:
 
-- 採用中の全remote Actionについて既知Security Advisoryを確認
-- 現在pin予定のSHA / releaseが既知脆弱Versionに該当しないことを確認
+- 採用中の全 remote Action の既知 Security Advisory を確認
+- pin 予定 SHA / release が既知脆弱 Version に該当しないことを確認
 
 継続運用:
 
-- 少なくとも月1回security-only review
-- WorkflowでActionを追加・変更するPRでは必ずadvisory review
-- Security Advisory該当時だけminimum patched releaseのSHAへ更新
+- Action 追加 / 変更 PR で advisory review
+- Security Advisory / Incident 把握時に review
+- Repository の通常 Security Review cadence に含める
+- 該当時のみ minimum patched release の SHA へ更新
 
-通常の最新版確認は目的にしない。
+固定月次 SLA は設けない。
 
-### D-20: Action SHA enforcementはdefault branch反映後
+### D-22: Action SHA enforcement は default branch 反映後
 
-Repository Settingsにfull-length SHA requirementが利用可能なら、全Workflow pinningが`main`へ入った後にON。
+Repository Settings に full-length SHA requirement が利用可能なら、全 Workflow pinning が `main` へ入った後に ON。
 
-利用不能でもworkflow file自体のSHA pinningは必須。
+利用不能でも Workflow file 自体の SHA pinning は必須。
 
-### D-21: Dependabot Malware Alertsを有効化する
+### D-23: Dependabot Malware Alerts を有効化する
 
-npm / pnpm supply chain向けにMalware AlertsをON / 維持する。
+npm / pnpm supply chain 向けに Malware Alerts を ON / 維持する。
 
-Malware Alert発生時:
+Malware Alert 発生時:
 
-- 使用中Packageか確認
+- 使用中 Package か確認
 - 使用中なら除去または安全な代替へ変更
 - 既に除去済みなら根拠を確認
-- false positive扱いする場合は根拠を記録
-- 自動Version Updateへ拡大しない
+- false positive 扱いする場合は根拠を記録
+- 自動 Version Update へ拡大しない
 
-### D-22: Self-hosted runnerはPublic PR Workflowで使用しない
+### D-24: Self-hosted runner は Public PR Workflow で使用しない
 
-`.github/workflows/**`に`self-hosted` runnerがないことをInventoryで確認する。
+`.github/workflows/**` に `self-hosted` runner がないことを Inventory で確認する。
 
-### D-23: `main-protection`は既存設定を維持
+### D-25: `main-protection` は既存設定を維持
 
 維持期待値:
 
@@ -641,18 +738,20 @@ Malware Alert発生時:
 - deletion restricted
 - force push blocked
 - squash only
-- bypassなし
+- bypass なし
 
-### D-24: Actions default permissionはread-only
+Collaborator trust review の結果、Write 権限自体を信頼できない主体が存在する場合は approvals 0 を機械的に維持せず、Repository governance の別問題として見直す。
+
+### D-26: Actions default permission は read-only
 
 確認:
 
 - Workflow permissions: Read repository contents and packages
 - Allow GitHub Actions to create and approve pull requests: OFF
 
-write権限が必要な場合は該当Workflow / Jobだけへ最小権限を明示する。
+write 権限が必要な場合は該当 Workflow / Job だけへ最小権限を明示する。
 
-### D-25: Existing vulnerability findings
+### D-27: Existing vulnerability findings
 
 今回差分が原因:
 
@@ -660,39 +759,40 @@ write権限が必要な場合は該当Workflow / Jobだけへ最小権限を明�
 
 Existing Critical / High:
 
-- 必ずTriage
-- actual exposure / fix availability /対応判断を記録
-- 未評価のままRepository Hardening完了にしない
+- 必ず Triage
+- actual exposure / fix availability / 対応判断を記録
+- 未評価のまま Repository Hardening 完了にしない
 
 Existing Moderate / Low:
 
 - Triage
+- preset / custom rule の適用結果を確認
 - 一括最新版化しない
-- actual exposureと更新riskを比較
+- actual exposure と更新 risk を比較
 
-### D-26: Existing Secret scanning alerts
+### D-28: Existing Secret scanning alerts
 
 Active / validity unknown:
 
-- 即時revoke / rotate
-- GitHub Secrets等の正規参照先を更新
+- 即時 revoke / rotate
+- GitHub Secrets 等の正規参照先を更新
 - 影響範囲確認
-- 必要に応じaudit / access log確認
+- 必要に応じ audit / access log 確認
 
 Revoked / expired:
 
 - 無効である根拠を確認
-- 適切な理由でresolve
+- 適切な理由で resolve
 
 False positive / test value:
 
-- 根拠を確認してresolve
+- 根拠を確認して resolve
 
-Git history rewriteはrevoke / rotateより優先しない。
+Git history rewrite は revoke / rotate より優先しない。
 
-### D-27: Existing Malware Alerts
+### D-29: Existing Malware Alerts
 
-Alertがある場合:
+Alert がある場合:
 
 - Package / Version
 - direct / transitive
@@ -700,22 +800,50 @@ Alertがある場合:
 - 除去 / 代替方針
 - resolution reason
 
-を確認する。
+使用中の malicious dependency を未評価のまま完了扱いにしない。
 
-使用中のmalicious dependencyを未評価のまま完了扱いにしない。
+### D-30: Owner Checklist の扱いを明確化する
+
+#### Open Action Item
+
+例:
+
+- PVR通知確認未実施
+- Active Secret Alert未対応
+- Collaborator trust decision未確定
+- Security Updates toggleをOFFにできていない
+
+未完了なら Repository Hardening DoD は NG。
+
+#### Accepted Platform Limitation
+
+例:
+
+- GitHub Plan上 Auto-triage PR Actionが利用不能
+- SHA enforcement UIが利用不能
+
+次が記録されていれば DoD を妨げない。
+
+- 制約
+- Security / Operation への影響
+- fallback
+- 確認日
 
 ## 7. Implementation Waves
 
-### Wave 0: Rebaseline / Inventory
+### Wave 0: Rebaseline / Trust Inventory
 
 実施:
 
-1. 最新`main` HEAD取得
-2. Open PR /競合確認
+1. 最新 `main` HEAD取得
+2. Open PR / 競合確認
 3. Repository files再確認
-4. `.github/workflows/**`全`uses:` Inventory
+4. `.github/workflows/**` 全 `uses:` Inventory
 5. self-hosted runner不在確認
-6. Settings Current State確認
+6. Write / Maintain / Admin CollaboratorをInventory
+7. Cloudflare Secret利用箇所とPreview / Production credential共有状態をInventory
+8. GitHub Environments Current State確認
+9. Settings Current State確認
    - Ruleset / merge settings
    - PR creation policy
    - Actions permissions
@@ -724,14 +852,15 @@ Alertがある場合:
    - Dependabot Alerts
    - Dependabot Malware Alerts
    - Dependabot Security Updates toggle
-   - Custom Auto-triage Rules availability / current rules
+   - GitHub preset Auto-triage Rules
+   - Custom Auto-triage Rules
    - Private Vulnerability Reporting
    - Secret scanning / Push protection
    - CodeQL
-7. Existing Dependabot Alerts記録
-8. Existing Malware Alerts記録
-9. Existing Secret scanning alerts記録
-10. PVR notification state確認可能性を確認
+10. Existing Dependabot Alerts記録
+11. Existing Malware Alerts記録
+12. Existing Secret scanning alerts記録
+13. PVR notification state確認可能性を確認
 
 Exit:
 
@@ -740,6 +869,8 @@ Exit:
 - Version Update非自動化を維持
 - Action pinning対象を列挙
 - vulnerability / malware / secret findingsの初期状態を記録
+- Collaborator trust boundaryが確定、またはOpen Action Itemとして明示
+- Cloudflare Credentialのblast radiusが把握できている
 
 ### Wave 1: Security Reporting / Contribution Entry Point
 
@@ -754,14 +885,15 @@ Exit:
 `config.yml`:
 
 - `blank_issues_enabled: false`
-- PVRへの`contact_links`
+- Repository Security pageへの Reporter向け `contact_links`
 
 Security vulnerabilityをPublic Issueへ誘導しない。
 
 Exit:
 
 - Security / Bug / Feature入口が分離
-- Security contact linkがRepository-scoped PVR URLを指す
+- Security contact linkがRepository Security pageへ到達
+- PVR有効化後のReporter向け導線検証方法が明確
 - PR Templateが既存レビュー運用と矛盾しない
 
 ### Wave 2: GitHub Actions / Supply Chain Hardening
@@ -794,27 +926,39 @@ Exit:
 
 ### Wave 3: CI Trust Boundary / Preview Contract
 
-`deploy-preview` eligibilityを修正する。
+Wave 0のCollaborator trust decisionを前提とする。
 
-Primary:
+#### Trusted same-repo modelを継続する場合
+
+`deploy-preview` eligibility:
 
 - same repository PR
 - PR author != `dependabot[bot]`
-
-Defense-in-depth:
-
 - actor != `dependabot[bot]`
+- `verify` / build success
 
-Dependabot / forkではPreview Skip。
+Dependabot / fork / trust boundary外PRではPreview Skip。
 
-通常same-repo PRではCloudflare Secrets必須。欠落はFail。
+通常trusted same-repo PRではCloudflare Secrets必須。欠落はFail。
 
-`validate`:
+#### Environment approval modelが必要な場合
+
+- Preview SecretをEnvironmentへ移す
+- Required Reviewer等の保護を設定
+- approval pendingのCI contractを明示
+- SecretをRepository-levelへ複製して回避しない
+
+#### `validate`
+
+採用したtrust modelに応じて明示的に判定する。
+
+基本:
 
 ```text
-normal same-repo PR → preview success
+trusted normal same-repo PR → preview success
 Dependabot PR → preview skipped
 fork PR → preview skipped
+trust boundary外PR → preview skipped
 non-PR → preview skipped
 ```
 
@@ -822,8 +966,9 @@ Untrusted contextはshellへ直接埋め込まない。
 
 Exit:
 
-- Dependabot PRがSecret不足だけで失敗しない
-- normal PRのPreview regressionを検出
+- Cloudflare Secretを受け取れる主体が明確
+- Dependabot / forkがSecret不足だけで失敗しない
+- trusted normal PRのPreview regressionを検出
 - `pull_request_target`未導入
 - Required Quality Gate維持
 
@@ -844,7 +989,7 @@ CONTRIBUTING:
 - PR policyは`collaborators_only`
 - GitHub Actionsはfull SHA pin
 - Action変更時はSecurity Advisory確認
-- Security理由以外の定期最新版追従をしない
+- 定期最新版追従をしない
 
 CODE_REVIEW:
 
@@ -854,10 +999,11 @@ Exit:
 
 - README / CONTRIBUTING / Template / Security Policyが整合
 - Action security review policyのSSOTが明確
+- Deployment trust policyが必要な範囲で文書化されている
 
 ### Wave 5: Pre-merge Settings Hardening
 
-default branch反映前でも安全に有効化できるものだけ扱う。
+default branch反映前でも安全に設定できるものだけ扱う。
 
 確認 / 有効化:
 
@@ -871,13 +1017,21 @@ default branch反映前でも安全に有効化できるものだけ扱う。
 - Actions default permission read-only
 - Actions create / approve PR OFF
 
-このWaveでは次を実施しない。
+Dependabot Security Updates:
 
-- Repository-wide Dependabot Security Updates ON
-- Moderate以上Security PRを生成するCustom Auto-triage RuleのActive化
-- Action SHA enforcement ON
+- Current StateがONなら、既存Security PRをInventoryしてからOFF
+- 既存PRは自動close / mergeしない
+- Wave終了時点でOFFを保証
 
-理由: Dependabot PRを生成する設定は、Dependabot-safe CIがdefault branchへ反映された後に有効化する。
+Auto-triage:
+
+- GitHub preset RulesをInventory
+- low-impact development presetは原則維持
+- Security PR Custom RuleはまだActive化しない
+
+SHA enforcement:
+
+- まだONにしない
 
 Security validation:
 
@@ -886,12 +1040,14 @@ Security validation:
 - Malware Alerts Triage
 - Secret scanning alerts Triage
 - Active / unknown credentialはrevoke / rotate
-- PVR通知経路を確認、またはOwner Checklistへ残す
+- PVR通知経路を確認、またはOpen Action Item化
 
 Exit:
 
 - Pre-merge可能なSecurity Settingsが安全側
-- PR生成系の設定はまだ未Active
+- Repository-wide Security Updates OFF
+- PR生成Custom Rule未Active
+- preset RulesのCurrent State記録済み
 - 未評価Secret / malicious packageを放置しない
 
 ### Wave 6: Pre-merge Validation
@@ -907,7 +1063,7 @@ git diff --check
 
 GitHub Actions実測:
 
-Normal same-repo PR:
+Trusted normal same-repo PR:
 
 - Dependency Review success
 - required CI success
@@ -915,9 +1071,9 @@ Normal same-repo PR:
 - `verify` success
 - `validate` success
 
-Dependabot / untrusted相当:
+Dependabot / fork / trust boundary外PR相当:
 
-- Preview skipped
+- Preview skipped、またはEnvironment review modelに従う
 - Dependency Review実行
 - required tests / build実行
 - `verify` contract確認
@@ -938,8 +1094,8 @@ Exit:
 - `pnpm run verify` PASS
 - `git diff --check` PASS
 - Required PR CI PASS
-- normal Preview PASS
-- Dependabot / forkがSecretを要求しない契約確認
+- 採用trust modelに応じたPreview contract PASS
+- Secretを受け取れる主体が意図通り
 - Repository変更はPR-ready
 
 この時点で実装者がDoD達成のため勝手にmergeしない。
@@ -953,7 +1109,7 @@ Repository変更が正規手順で`main`へ反映された後だけ実施する�
 確認:
 
 - Dependabot-safe Preview condition
-- PR author based classification
+- Collaborator trust model
 - updated `validate`
 - Dependency Review → `verify`
 - Action full SHA pinning
@@ -961,12 +1117,15 @@ Repository変更が正規手順で`main`へ反映された後だけ実施する�
 
 #### 7.2 Package Security PR policyをActive化
 
-Repository-wide Dependabot Security Updates toggleはOFFのまま。
+Repository-wide Dependabot Security Updates toggleがOFFであることを再確認する。
 
-Custom Auto-triage Ruleを作成 / Active化:
+GitHub preset Rulesを再確認する。
+
+Custom Ruleを作成 / Active化:
 
 ```text
-Moderate / High / Critical
+GitHub preset等で先にdismissされていない
+AND severity in [moderate, high, critical]
 AND fix available
 → Dependabot Security PR
 ```
@@ -975,9 +1134,9 @@ Active化直前にExisting Alerts件数と適用影響を確認する。
 
 Rule機能が利用不能なら:
 
-- Security Updates一括ONへフォールバックしない
+- Security Updates一括ONへfallbackしない
 - Moderate以上をmanual triage
-- Owner Checklistへ制約記録
+- Accepted Platform Limitationとして理由 / fallbackを記録
 
 #### 7.3 Dependabot PR validation
 
@@ -999,6 +1158,8 @@ Security PRが生成された場合:
 
 利用可能なら`main`の全Action pinning確認後にON。
 
+利用不能ならAccepted Platform Limitationとして理由を記録する。
+
 #### 7.5 Repository UI / Security validation
 
 確認:
@@ -1007,23 +1168,25 @@ Security PRが生成された場合:
 - PR Template自動挿入
 - Security tabから`SECURITY.md`
 - Issue chooserのSecurity contact link
-- Private Vulnerability Reporting利用可能
+- Reporter視点でPVR導線利用可能
 - PVR通知経路確認済み
 - Dependabot Alerts ON
 - Dependabot Malware Alerts ON
 - Repository-wide Dependabot Security Updates OFF
-- Custom Auto-triage Ruleが想定policy、または利用不能理由記録
+- GitHub preset Rulesが意図通り
+- Custom Auto-triage Ruleが意図通り、またはAccepted Platform Limitation記録
 - `.github/dependabot.yml`なし
 - CodeQL successful
 - Secret scanning / Push protection ON
 - Ruleset active
-- SHA enforcement ON、または利用不能理由記録
+- SHA enforcement ON、またはAccepted Platform Limitation記録
 
 Exit:
 
-- Package Security PR policyが`moderate`以上に限定
-- Low severityの不要な自動PRを発生させない
+- Package Security PR policyが不要なLow更新を増やさない
+- GitHub presetとの優先関係を理解した設定になっている
 - Dependabot PRが安全なCI contractで処理可能
+- Deployment Secret trust boundaryが明確
 - Settingsとdefault branchが整合
 
 ## 8. Finding Triage
@@ -1036,13 +1199,13 @@ Critical / High:
 - affected Dependency / Code
 - actual exposure
 - fix availability
--対応判断
+- 対応判断
 
 未評価のままRepository Hardening完了にしない。
 
 Moderate:
 
-- Custom Auto-triage Rule対象
+- GitHub preset / Custom Ruleの適用結果を確認
 - fix availableならSecurity PR候補
 - 実利用 / regression riskを確認してmerge判断
 
@@ -1058,7 +1221,7 @@ Low:
 
 - Package / Version
 - direct / transitive
--実利用
+- 実利用
 - 除去 / 代替
 - resolution reason
 
@@ -1087,16 +1250,16 @@ Git history rewriteは第一選択にしない。
 
 ### 8.4 GitHub Actions Security Advisory
 
-Actionごとに次を確認する。
+Actionごとに確認:
 
 - owner / repository
 - pinned SHA
-- exact release tag /解決根拠
+- exact release tag / 解決根拠
 - known advisory有無
 - minimum patched release
--対応要否
+- 対応要否
 
-該当時はminimum patched releaseのSHAへ更新し、通常のCIを完走する。
+該当時はminimum patched releaseのSHAへ更新し、通常CIを完走する。
 
 最新版へ一括更新しない。
 
@@ -1106,19 +1269,31 @@ Actionごとに次を確認する。
 
 Rulesetを解除しない。
 
-Severity / Scope / actual dependency / Advisoryを確認し、実測根拠がある場合だけ最小調整。
+Severity / Scope / actual dependency / Advisoryを確認し、実測根拠がある場合だけ最小調整する。
 
-### Preview条件変更でnormal PRがDeployされない
+### Preview条件変更でtrusted normal PRがDeployされない
 
-Eligibilityを修正する。
+Eligibility / trust configurationを修正する。
 
 Dependabot / forkへSecretを広げない。
 
-normal PRのSecret不足をSkipへ弱体化しない。
+normal trusted PRのSecret不足をSkipへ弱体化しない。
+
+### Collaborator trust reviewで問題が見つかった
+
+同じSecret modelのまま進めない。
+
+優先順位:
+
+1. 不要なWrite権限を減らす
+2. 必要ならEnvironment approvalを追加
+3. Secret-dependent Preview対象を狭める
+
+「same-repoだから安全」として無視しない。
 
 ### Action SHA pinningでWorkflow破損
 
-SHA / owner / path / resolved tagを再確認。
+SHA / owner / path / resolved tagを再確認する。
 
 安易にmovable tagへ戻さない。
 
@@ -1126,32 +1301,34 @@ SHA / owner / path / resolved tagを再確認。
 
 一括mergeしない。
 
-Rule条件 / severity / fix availabilityを再確認。
+preset / Custom Ruleの優先順位、severity、fix availabilityを再確認する。
 
-必要ならRuleを一時停止して条件を修正する。
+必要ならCustom Ruleを一時停止して条件を修正する。
 
 Repository-wide Security Updatesを代替としてONにしない。
 
 ### PVR contact linkが無効
 
-GitHub UIで正しいRepository-scoped reporting entry pointを確認し修正する。
+Repository Security pageのReporter導線を確認して修正する。
+
+`/security/advisories/new`へ安易に置き換えない。
 
 Public IssueへのSecurity報告をfallbackにしない。
 
 ### Secret leak
 
-Alert closeよりcredential revoke / rotateを優先。
+Alert closeよりcredential revoke / rotateを優先する。
 
 履歴改変は影響とGit safety policyを確認せず実施しない。
 
 ## 10. Non-goals
 
-- `LICENSE`追加 /選定
+- `LICENSE`追加 / 選定
 - Dependency定期Version Update
 - Dependency一括最新版化
 - Dependabot Version Update PR
 - Repository-wide Dependabot Security Updates ON
-- Low severity vulnerabilityの自動PR化
+- Low severity vulnerabilityの一律自動PR化
 - Dependabot auto-merge
 - Renovate
 - CODEOWNERS
@@ -1162,6 +1339,7 @@ Alert closeよりcredential revoke / rotateを優先。
 - 独自Security Dashboard
 - 独自Dependency Bot
 - GitHub Actions用独自scheduled advisory scanner
+- 固定月次Action Update / Review SLA
 - Merge Queue
 - Signed Commit強制
 - CodeQL Advanced Setup
@@ -1171,6 +1349,7 @@ Alert closeよりcredential revoke / rotateを優先。
 - License policy enforcement
 - テスト目的の既知脆弱Dependency導入
 - Secret除去だけを目的とする無条件Git history rewrite
+- Collaborator trust未確認のままSecret利用を拡大すること
 
 ## 11. Definition of Done
 
@@ -1184,7 +1363,7 @@ PR-ready DoDとRepository Hardening DoDを分離する。
 - PR Template
 - Bug / Feature Issue Forms
 - Issue Template config
-- Security contact link
+- Security contact linkはRepository Security pageを基本とする
 - `.github/dependabot.yml`を不要に追加していない
 - README / CONTRIBUTING整合
 - CONTRIBUTINGが`collaborators_only`と整合
@@ -1196,7 +1375,17 @@ PR-ready DoDとRepository Hardening DoDを分離する。
 - Moderate以上のruntime / development / unknownをblock
 - License / OpenSSFはRequired Gate外
 - Dependabot Version Updates設定なし
-- Repository-wide Dependabot Security UpdatesをONにする変更なし
+- Repository-wide Security UpdatesがOFF
+- GitHub preset Auto-triage RulesのCurrent Stateを把握
+- Custom Security PR Ruleはまだ未Active
+
+#### Deployment Trust Boundary
+
+- Write / Maintain / Admin collaboratorをInventory済み
+- Cloudflare Credentialを渡してよいtrusted maintainer範囲が明確
+- 現在のPreview / Production credential共有状態を把握
+- trustできないWrite-capable主体がいる場合、権限縮小 / Environment / Preview制限のいずれかを実施またはOpen Action Item化
+- trust decision未確定のままPR-readyにしない
 
 #### GitHub Actions
 
@@ -1212,9 +1401,9 @@ PR-ready DoDとRepository Hardening DoDを分離する。
 - Dependency Review → `verify`
 - PRでDependency Review success
 - non-PRでskipped
-- normal same-repo Preview success
-- missing Cloudflare Secretはnormal PRでFail
-- Dependabot / fork Preview skip
+- trusted normal same-repo Preview success
+- missing Cloudflare Secretはtrusted normal PRでFail
+- Dependabot / fork / trust boundary外PRはPreview skip、または採用Environment modelに従う
 - PR author based Dependabot classification
 - `validate`が正常 / ineligibleを区別
 - `pull_request_target`未追加
@@ -1226,6 +1415,7 @@ PR-ready DoDとRepository Hardening DoDを分離する。
 - Dependency graph ON
 - Dependabot Alerts ON
 - Malware Alerts ON
+- Repository-wide Security Updates OFF
 - PVR ON
 - Secret scanning ON
 - Push protection ON
@@ -1233,20 +1423,12 @@ PR-ready DoDとRepository Hardening DoDを分離する。
 - Actions default permission read-only
 - Actions create / approve PR OFF
 
-この段階では:
-
-- Repository-wide Security Updates OFF
-- Auto-triage Security PR Rule未Active
-- SHA enforcement未Active
-
 Security findings:
 
 - Critical / High vulnerability Triage済み
 - Malware Alerts Triage済み
 - Secret Alerts Triage済み
 - Active / unknown credential revoke / rotate済み
-
-権限不足はOwner Checklistへ残す。
 
 #### Branch Protection
 
@@ -1261,13 +1443,16 @@ Security findings:
 - strict OFF
 - bypass追加なし
 
+Collaborator trust reviewでWrite governance自体に問題が出た場合は、approvals 0の維持を自動的なDoDとせずOpen Action Itemとして扱う。
+
 #### Quality
 
 - `pnpm run verify` PASS
 - `git diff --check` PASS
 - Required PR CI PASS
-- normal Preview PASS
+- 採用trust modelに応じたPreview PASS
 - Action pinning regressionなし
+- Open Action Itemのうちmerge前に解決必須のものが残っていない
 
 ここまででRepository変更はレビュー / merge判断可能。
 
@@ -1280,7 +1465,8 @@ Default branch反映後に評価する。
 - `SECURITY.md`をSecurity tabから参照可能
 - Issue Forms表示
 - PR Template自動挿入
-- Security contact linkがPVRへ到達
+- Security contact linkがRepository Security pageへ到達
+- Reporter視点で`Report a vulnerability`導線利用可能
 - README / CONTRIBUTING整合
 
 #### Package Supply Chain
@@ -1289,10 +1475,11 @@ Default branch反映後に評価する。
 - Dependabot Alerts ON
 - Malware Alerts ON
 - Repository-wide Dependabot Security Updates OFF
-- Moderate / High / Critical + fix availableだけSecurity PR化するCustom Auto-triage RuleがActive
-  - または機能利用不能理由とmanual fallbackがOwner Checklistに明示
+- GitHub preset Auto-triage Rulesの採用状態が記録済み
+- Custom Ruleが「preset等でdismissされていない Moderate / High / Critical + fix available」をSecurity PR化
+  - または機能利用不能がAccepted Platform Limitationとして記録済み
 - Version Updates設定なし
-- Low severityの不要な自動PRなし
+- Low severityの不要な自動PRを増やしていない
 
 Security PRが生成された場合:
 
@@ -1306,12 +1493,14 @@ Security PRが生成されない場合:
 - PR不在を失敗扱いしない
 - Dependabot PR pathをStatic Review済み
 
-#### GitHub Actions Supply Chain
+#### Deployment / GitHub Actions Supply Chain
 
+- Deployment Credential trust boundaryが記録済み
+- trustできないWrite-capable主体へRepository-level Secretを無条件に渡す構成になっていない
 - `main`上で全remote Action full SHA
 - 全採用Actionの初回Advisory Review済み
-- Security-only定期確認の運用方針が文書化
-- SHA enforcement ON、または利用不能理由記録
+- Action追加 / 変更時のSecurity Review方針が文書化
+- SHA enforcement ON、またはAccepted Platform Limitation記録
 
 #### Security
 
@@ -1338,41 +1527,49 @@ Security PRが生成されない場合:
 - strict OFF
 - bypass追加なし
 
+Write collaborator governanceを見直す必要があると判定した場合は、そのOpen Action Itemが解消済みである。
+
 #### Final Consistency
 
 - GitHub Settingsとdefault branchが整合
 - 既存Application / QA behaviorに回帰なし
-- 未完了Owner Checklistなし
+- 未完了のOpen Action Itemなし
+- Accepted Platform Limitationは理由 / 影響 / fallback / 確認日が記録済み
 
 ## 12. 実装順序
 
 1. 最新`main` / Open PR / Settings / AlertsをRebaseline
-2. `SECURITY.md`
-3. PR Template
-4. Bug / Feature Issue Forms + config + PVR contact link
-5. 全remote Action Inventory
-6. 現在のeffective commitへfull SHA pin
-7. exact release tag /解決根拠記録
-8. 採用ActionのSecurity Advisory確認
-9. Dependency Review追加
-10. Dependency Review → `verify`
-11. Preview eligibilityをPR author基準へ修正
-12. `validate` contract修正
-13. README / CONTRIBUTING /必要なCODE_REVIEW整合
-14. Pre-merge Security Settings確認 /有効化
-15. CodeQL / vulnerability / malware / secret findings Triage
-16. PVR通知経路を確認、またはOwner Checklist化
-17. `pnpm run verify` / `git diff --check` / PR CI完走
-18. PR-ready DoD確認
-19. 正規運用でdefault branchへ反映
-20. default branchのDependabot-safe / SHA-pinned状態再確認
-21. Repository-wide Dependabot Security UpdatesがOFFであることを確認
-22. Moderate以上 + fix availableのCustom Auto-triage RuleをActive化
-23. Security PRが生成された場合はCI contractを実測、なければStatic Review
-24. 利用可能ならAction SHA enforcementをON
-25. Issue Forms / PR Template / PVR contact link / Security Settings実状態確認
-26. PVR通知経路最終確認
-27. Critical / High / Malware / Secret findingsの未評価なしを確認
-28. Repository Hardening DoDを満たして完了
+2. Write / Maintain / Admin collaboratorとCloudflare Secret trust boundaryをInventory
+3. Preview / Production credential共有状態とEnvironment有無を確認
+4. Repository-wide Dependabot Security UpdatesがONなら既存Security PRをInventory後OFF
+5. GitHub preset / Custom Auto-triage RulesをInventory
+6. `SECURITY.md`
+7. PR Template
+8. Bug / Feature Issue Forms + config + Repository Security contact link
+9. 全remote Action Inventory
+10. 現在のeffective commitへfull SHA pin
+11. exact release tag / 解決根拠記録
+12. 採用ActionのSecurity Advisory確認
+13. Dependency Review追加
+14. Dependency Review → `verify`
+15. Collaborator trust decisionに基づきPreview eligibility / Environment modelを確定
+16. `validate` contract修正
+17. README / CONTRIBUTING / 必要なCODE_REVIEW整合
+18. Pre-merge Security Settings確認 / 有効化
+19. CodeQL / vulnerability / malware / secret findings Triage
+20. PVR通知経路を確認、未確認ならOpen Action Item化
+21. `pnpm run verify` / `git diff --check` / PR CI完走
+22. PR-ready DoD確認
+23. 正規運用でdefault branchへ反映
+24. default branchのDependabot-safe / SHA-pinned / deployment-trust状態再確認
+25. Repository-wide Dependabot Security UpdatesがOFFであることを再確認
+26. presetの適用を確認しCustom Auto-triage RuleをActive化
+27. Security PRが生成された場合はCI contractを実測、なければStatic Review
+28. 利用可能ならAction SHA enforcementをON
+29. Issue Forms / PR Template / Reporter向けPVR導線 / Security Settings実状態確認
+30. PVR通知経路最終確認
+31. Critical / High / Malware / Secret findingsの未評価なしを確認
+32. Open Action Itemがなく、Accepted Platform Limitationが適切に記録されていることを確認
+33. Repository Hardening DoDを満たして完了
 
-この順序により、不要なVersion Updateを導入せず、Package vulnerabilityは必要なseverityだけ自動PR化し、GitHub ActionsはimmutableなSHA pinningを維持しながらSecurity Advisoryを別経路で監視する。
+この順序により、不要なVersion Updateを導入せず、Package vulnerabilityは必要なものだけ自動PR化し、GitHub ActionsはimmutableなSHA pinningを維持しながらSecurity Advisoryを別経路で監視する。また、Fork / Dependabotだけでなくsame-repo collaboratorを含むCloudflare Credentialのtrust boundaryを明示し、Public RepositoryとしてSecret利用の前提を曖昧にしない。
