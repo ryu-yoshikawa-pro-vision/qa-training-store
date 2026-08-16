@@ -1,0 +1,106 @@
+{
+    "schema_version":  1,
+    "run_id":  "20260813-174221-JST",
+    "task_type":  "repair",
+    "workflow_level":  "strict",
+    "preset":  "safe",
+    "runtime":  "host",
+    "agents_used":  [
+
+                    ],
+    "repo":  "qa-training-store",
+    "branch":  "feat/implement-official-black-box-scored-e2e",
+    "base_branch":  "main",
+    "codex_task_reports":  [
+
+                           ],
+    "changed_files":  [
+        "docs/PROJECT_CONTEXT.md",
+        "docs/adr/0013-official-black-box-scored-e2e-artifact-boundary.md",
+        "docs/plans/2026-08-11_194000_official-black-box-scored-e2e.md",
+        "docs/reference/run-artifacts.md",
+        "docs/history/2026-08-13_181500_official-input-evidence-chain.md",
+        "scripts/agentic-qa/contracts.ts",
+        "scripts/agentic-qa/isolation.ts",
+        "scripts/agentic-qa/official-verification.ts",
+        "scripts/agentic-qa/prepare-challenge.ts",
+        "scripts/agentic-qa/runner-input.ts",
+        "scripts/agentic-qa/trusted-evidence.ts",
+        "tests/contracts/official-artifact-chain.test.ts",
+        "tests/contracts/official-black-box-contracts.test.ts",
+        ".codex/runs/20260813-174221-JST/PLAN.md",
+        ".codex/runs/20260813-174221-JST/TASKS.md",
+        ".codex/runs/20260813-174221-JST/REPORT.md",
+        ".codex/runs/20260813-174221-JST/run.json",
+        ".codex/runs/20260813-174221-JST/evaluation.json"
+    ],
+    "validation":  {
+                       "status":  "failed",
+                       "commands":  [
+                           "pnpm exec vitest run official-artifact-chain + official-black-box-contracts --no-file-parallelism --maxWorkers=1 --reporter=dot => PASS: 2 files / 61 tests",
+                           "pnpm exec tsc --noEmit --pretty false => PASS",
+                           "pnpm run lint:markdown => PASS: 247 files / 0 issues",
+                           "pnpm run validate:spec => PASS: 3 challenges",
+                           "pnpm run build:spec => PASS: 21 pages",
+                           "pnpm run lint => PASS: 0 errors / 64 warnings",
+                           "pnpm run typecheck => PASS: app and native-tests",
+                           "pnpm exec tsx scripts/agentic-qa/validate-contracts.ts => PASS: 3 challenges / 1 charter / 25 findings / 52 manifests / 2 evaluations",
+                           "pnpm run test:contracts => PASS: 26 files / 263 tests",
+                           "pnpm run test:agentic-qa:preparation -- --reporter=dot => PASS: 1 file / 1 test",
+                           "pnpm run test:e2e:chromium => PASS: 27 tests",
+                           "pnpm run build:web => PASS: Expo Web bundle",
+                           "pnpm run validate:image-manifest => PASS",
+                           "pnpm run security:check => PASS: 233 runtime files / 290 credential-scan files",
+                           "pnpm run format:check => FAIL: pre-existing repository-wide formatting issues in 379 files",
+                           "pnpm run verify => FAIL at the same pre-existing format:check gate; later stages were not executed",
+                           "changed-file Prettier check => PASS",
+                           "git diff --check => PASS: no whitespace errors"
+                       ],
+                       "warnings":  [
+                           "Official Host Capability Receipt、Fresh Context、Actual Tool Isolation、trusted Runtime Handoffが現Hostに無いため、Official execution/scoreはBLOCKED/NOT EXECUTED。",
+                           "format:checkとverifyは今回の変更対象外を含む既存379 filesでFAIL。無関係な全体format修正は行わない。",
+                           "Linux CI自体は未提供だが、platform-specific preparation branchを維持し、Windows上のdeterministic preparationはPASS。",
+                           "subagentは使用していない。No child subagent delegation方針と、serial implementation scopeの判断を親agentだけで完結できたため。",
+                           "生成image manifestの内容変更はなく、build後のCRLF/LF差分ノイズだけを機械的に正規化した。"
+                       ]
+                   },
+    "safety":  {
+                   "network":  false,
+                   "delete_attempt_blocked":  false,
+                   "git_mutation_attempt_blocked":  false,
+                   "scope_violation":  false
+               },
+    "artifact_summary":  {
+                             "codex_task_report_count":  0,
+                             "hook_event_count":  0,
+                             "subagent_run_count":  0,
+                             "evaluation_present":  true,
+                             "evaluation_path":  ".codex/runs/20260813-174221-JST/evaluation.json"
+                         },
+    "hook_observations":  {
+                              "log_paths":  [
+
+                                            ],
+                              "event_counts":  {
+
+                                               },
+                              "blocking_event_count":  0,
+                              "safety_blocked_count":  0,
+                              "observation_error_count":  0
+                          },
+    "subagents":  {
+                      "records":  [
+
+                                  ],
+                      "summary":  {
+                                      "total":  0,
+                                      "read_only":  0,
+                                      "writable":  0,
+                                      "scope_violations":  0,
+                                      "used_in_final_plan":  0
+                                  }
+                  },
+    "evaluation_path":  ".codex/runs/20260813-174221-JST/evaluation.json",
+    "status":  "completed",
+    "primary_failure_category":  "flaky_or_env_issue"
+}

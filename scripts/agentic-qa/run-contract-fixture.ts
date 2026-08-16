@@ -16,6 +16,8 @@ import { benchmarkRevisionFromManifest } from "./benchmark-revision";
 import { createRunnerProfile, freezeScoredFindings, writeFrozenFindings } from "./runner";
 import { probeForbiddenCapabilities, assertForbiddenProbePasses } from "./isolation";
 import { optionValue, requiredOptionValue } from "./cli";
+import { agenticQaRef, agenticQaRunRoot } from "./artifact-layout";
+import { writeCanonicalJsonFile } from "./canonical-json";
 
 /**
  * This file validates the deterministic Agentic QA contract path.
@@ -101,11 +103,9 @@ export function runContractFixture(input: {
   const profileFile = path.join(rootDir, "training/agentic-qa/tool-profiles/scored-v1.json");
   const profile = parseJsonWithSchema(readJson(profileFile), toolProfileSchema, "scored-v1.json");
   const isolatedRoot = path.join(
-    rootDir,
-    ".artifacts",
-    "agentic-qa",
-    runId,
-    input.challengeId,
+    agenticQaRunRoot(rootDir, runId),
+    "trusted",
+    "preparation",
     "isolated-run-root",
   );
   const actualToolScope = {
@@ -115,19 +115,20 @@ export function runContractFixture(input: {
   };
   const probe = probeForbiddenCapabilities(isolatedRoot, profile, actualToolScope);
   assertForbiddenProbePasses(profile, probe);
-  const challengeManifestFile = path.join(
-    input.runDir,
-    `benchmark-manifest-${input.challengeId}.json`,
+  const manifestFile = path.join(
+    agenticQaRunRoot(rootDir, runId),
+    "trusted",
+    "benchmark-manifest.json",
   );
-  const manifestFile = fs.existsSync(challengeManifestFile)
-    ? challengeManifestFile
-    : path.join(input.runDir, "benchmark-manifest.json");
   const manifest = parseJsonWithSchema(
     readJson(manifestFile),
     benchmarkManifestSchema,
     path.relative(rootDir, manifestFile),
   );
   const benchmarkRevision = benchmarkRevisionFromManifest(manifestFile, manifest);
+  // This helper deliberately creates a contract_fixture, not an Official run.
+  // Official evaluation never consumes this fallback; it requires the frozen
+  // trusted/runner-profile.json artifact instead.
   const runnerProfile =
     manifest.runner_profile ??
     createRunnerProfile({
@@ -135,7 +136,7 @@ export function runContractFixture(input: {
       toolProfileRevision: `sha256:${sha256File(profileFile)}`,
       challenge,
     });
-  const evidenceDirectory = path.join(rootDir, ".artifacts", "agentic-qa", runId);
+  const evidenceDirectory = path.join(agenticQaRunRoot(rootDir, runId), "runner");
   fs.mkdirSync(evidenceDirectory, { recursive: true });
   const runnerSessionFile = path.join(evidenceDirectory, "runner-session.json");
   if (fs.existsSync(runnerSessionFile))
@@ -148,35 +149,23 @@ export function runContractFixture(input: {
   const freshSessionCandidate = sessionArtifactNew && !priorSessionIds.includes(runnerSessionId);
   const toolScopeProbePassed =
     actualToolScope.measured && probe.every((result) => !result.available);
-  const forbiddenProbeRef = `.artifacts/agentic-qa/${runId}/forbidden-probe.json`;
-  fs.writeFileSync(
-    path.join(rootDir, forbiddenProbeRef),
-    `${JSON.stringify(probe, null, 2)}\n`,
-    "utf8",
-  );
-  fs.writeFileSync(
-    runnerSessionFile,
-    `${JSON.stringify(
-      {
-        run_id: runId,
-        runner_session_id: runnerSessionId,
-        execution_kind: "contract_fixture",
-        model_identifier: null,
-        benchmark_revision: benchmarkRevision,
-        runtime_variant_id: manifest.runtime_variant_id,
-        fresh_session: freshSessionCandidate,
-        session_artifact_new: sessionArtifactNew,
-        prior_runner_session_ids: priorSessionIds,
-        tool_scope_probe_passed: toolScopeProbePassed,
-        actual_tool_scope: actualToolScope,
-        forbidden_probe_artifact: forbiddenProbeRef,
-        forbidden_probe: probe,
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
+  const forbiddenProbeRef = agenticQaRef(runId, "runner", "forbidden-probe.json");
+  writeCanonicalJsonFile(path.join(rootDir, forbiddenProbeRef), probe);
+  writeCanonicalJsonFile(runnerSessionFile, {
+    run_id: runId,
+    runner_session_id: runnerSessionId,
+    execution_kind: "contract_fixture",
+    model_identifier: null,
+    benchmark_revision: benchmarkRevision,
+    runtime_variant_id: manifest.runtime_variant_id,
+    fresh_session: freshSessionCandidate,
+    session_artifact_new: sessionArtifactNew,
+    prior_runner_session_ids: priorSessionIds,
+    tool_scope_probe_passed: toolScopeProbePassed,
+    actual_tool_scope: actualToolScope,
+    forbidden_probe_artifact: forbiddenProbeRef,
+    forbidden_probe: probe,
+  });
   const recordedSession = parseJsonWithSchema(
     readJson(runnerSessionFile),
     runnerSessionSchema,
@@ -186,7 +175,8 @@ export function runContractFixture(input: {
     recordedSession.runner_session_id === runnerSessionId &&
     recordedSession.session_artifact_new &&
     recordedSession.fresh_session;
-  const evidenceRef = `.artifacts/agentic-qa/${runId}/runner-observation.txt`;
+  const evidenceRef = agenticQaRef(runId, "runner", "evidence", "runner-observation.txt");
+  fs.mkdirSync(path.dirname(path.join(rootDir, evidenceRef)), { recursive: true });
   fs.writeFileSync(
     path.join(rootDir, evidenceRef),
     "Local deterministic runner fixture observed the patched challenge boundary. This is a contract E2E artifact, not a model-comparison result.\n",
@@ -248,7 +238,7 @@ export function runContractFixture(input: {
       actual_tool_scope: recordedSession.actual_tool_scope,
     },
   });
-  writeFrozenFindings(input.runDir, result);
+  writeFrozenFindings(path.join(agenticQaRunRoot(rootDir, runId), "runner", "output"), result);
 }
 
 function isMainModule(): boolean {

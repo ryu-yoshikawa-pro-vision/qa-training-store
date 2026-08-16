@@ -47,8 +47,10 @@ Coding Agent → Skill → Runtime → Artifact → Script であり、Script �
    Official Runを開始します。提供できない場合は BLOCKED です。
 
 Normal／Gray-boxはSource Working TreeをReadonlyで扱い、Evidenceは
-.codex/runs/<run_id>/ と .artifacts/へ保存します。Black-boxは learner-spec/、
-runbook/、challenge/ だけのisolated rootを使います。
+.codex/runs/<run_id>/ と .artifacts/へ保存します。Black-boxは learner-safe
+specification、Challenge Runbook、`training/agentic-qa/skills/scored-v1.md` の
+exact snapshot、Canonical `runner-input.json`、Runtime URLだけを境界内へ渡します。
+Instructor material、Source、`.git`、Bundle、Prior RunはRunner-visibleになりません。
 
 ## Normal / Gray-box bootstrap
 
@@ -176,36 +178,47 @@ Black-boxのRequired CoverageはChallenge Definitionだけから導出します�
 Supporting fileや任意Specを自動追加しません。Challenge／RunbookのMissionは中立文にし、
 Answer KeyとPatchはCoding Agentへ渡しません。
 
-Preparation Harnessの順序は次のとおりです。
+Preparation HarnessのCanonical sequenceは、コードと契約テストで次の14項目へ固定します。
 
-    machine_contract_validation
-    required_coverage_derive
-    learner_safe_spec_bundle
-    benchmark_revision_and_identity
-    runner_profile
-    disposable_source_copy
-    baseline_build_serve_install
-    pre_patch_baseline_sanity
-    baseline_runtime_cleanup
-    git_apply_check_and_apply
-    patched_build_serve_install
-    post_patch_sanity
-    scored_initial_state_reset
-    isolated_execution_root
-    actual_tool_scope_unavailable
-    positive_tool_allowlist_and_forbidden_probe
-    runtime_stop_and_disposable_cleanup
+    machine_contract_challenge_spec_validation
+    protected_patch_validation
+    learner_safe_specification_bundle_benchmark_identity
+    disposable_source_dependency_preparation
+    baseline_build_pre_patch_sanity
+    patch_apply
+    patched_build_post_patch_sanity
+    scored_initial_state_deterministic_reset_sanity
+    source_free_prepared_target_copy_hash_validation
+    learner_safe_runner_input_skill_runbook_output_contract_freeze
+    isolated_runner_root_from_frozen_input
+    repository_forbidden_boundary_preflight
+    disposable_source_cleanup
+    host_trusted_runtime_capability_handoff
+
+Host handoffが無いRepository-side deterministic preparationでも、source-free Prepared
+Artifactのcopy/hashまでは行えます。ただしtarget runtimeのreadiness、Host Tool Scope、
+Fresh Context等をRepositoryが自己申告してはいけません。Host receiptが無い場合は、
+Official executionとvalid_for_scoringをBLOCKEDにします。
 
 Preparation HarnessはChallenge validation、Answer Key validation、learner-safe bundle、
-disposable source、patch apply、baseline／patched sanity、initial state、isolated root、
-Tool Profile validation、Forbidden Probeだけを担当します。Coding Agent起動、Agent
-Session生成、Tool routing、retry、lifecycle managementは担当しません。Fresh Coding
-Agent SessionはAgent Runtime／Hostが提供します。Current Hostからtrusted Fresh
-Session／session identity／Tool Isolation／Actual Tool Scopeを取得できない、または
-Preparationがpatched Target Runtimeをlive URL／booted deviceとしてFresh Sessionへ
-source-freeに引き渡すlifecycleを持たない場合、Official Scored E2Eは
-`BLOCKED / DEFERRED / NOT EXECUTED`です。これを解決するためRepository独自のRunner、
-LLM wrapper、Session Manager、MCP orchestrationは追加しません。
+disposable source、protected patch、baseline／patched sanity、Canonical Artifact Manifest、
+Source-free Prepared Target、Runner Input、isolated root、Tool Profile validation、Forbidden
+Probe、output import、Evidence Mapping、Freeze、Evaluationだけを担当します。Coding Agent起動、
+Agent Session生成、Tool routing、retry、lifecycle managementは担当しません。Fresh Coding
+Agent Session、Fresh Context、Actual Tool Scope、Origin／Resource Boundary、Budget、
+constrained outputはHostのtrusted receiptが正本です。receiptがない、またはrequired proofが
+`proven`でない場合、Official Scored E2Eは`BLOCKED / DEFERRED / NOT EXECUTED`です。これを
+解決するためRepository独自のRunner、LLM wrapper、Session Manager、MCP orchestrationは追加しません。
+
+Runner Inputとisolated rootはhash一致だけでなく、frozen inputから導出したcanonical file setへ
+完全一致しなければなりません。Official artifact／trusted evidenceのpath chainでは、Run Rootから
+leafまでのancestor directory symlinkも拒否します。
+さらにBenchmark ManifestのLearner Spec／Challenge／Runbook byte identityをRunner Inputの対応hashへ
+直接比較し、内部整合した別Inputのrebindingを同じBenchmark Resultとして受理しません。
+
+Static serverの`Sec-Fetch-Dest`はブラウザUX上の補助情報に過ぎず、偽装可能なため
+Security Boundaryではありません。Official Boundaryの正本はHost-trusted Tool Isolationと
+実配信Runtimeに対する完全なResource Negative Probeです。
 
 Baselineで対象Defectが既に存在する、Patch checkが失敗する、Post-patchで再現条件が
 成立しない場合はScored Runを開始しません。PatchはApplication Branchへ適用してCommit
@@ -232,11 +245,11 @@ invalid_reasons[] はenum、重複なし、辞書順です。正式Metricはvali
 
 Benchmark RevisionはClean committed inputだけ git:<40 lowercase hex>、未Commit／混在
 入力はCanonical Benchmark Manifest Inputの sha256:<64 lowercase hex> を使います。
-Canonical Inputはsource／working tree／learner spec／challenge／Answer Key／patch／
-runtime variantを含み、Runner Profileを含みません。Benchmark Identityは
-challenge_id + benchmark_revision + runtime_variant_id、同条件比較にはRunner Profile
-完全一致を要求します。したがってRunner Profileだけが異なる場合、Revision／Identityは
-同じで、sameRunnerConditionだけがfalseになります。Ground Truth変更時は元Runを付け替えず、
+Canonical Inputはsource／working tree／learner spec／challenge／Answer Key／patch／Runbookを
+含み、Runtime VariantとRunner Profileを含みません。Benchmark Identityは
+challenge_id + benchmark_revision + runtime_variant_id、同条件比較にはPrepared Target hash、
+Runner Input hash、Runner Profile完全一致を要求します。Runtime Variantだけが異なる場合、
+Revisionは同じで、IdentityとRunner Input hashが変わります。Ground Truth変更時は元Runを付け替えず、
 元Runを無効化して新RevisionとFresh Re-runを行います。
 
 ## Platform note

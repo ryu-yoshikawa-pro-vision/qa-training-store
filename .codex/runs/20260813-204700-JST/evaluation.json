@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "run_id": "20260813-204700-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {"rating": "pass", "evidence": "指定された3つのTrust Boundary問題を修正し、focused／contract／preparation／Chromium検証が成功した。", "evidence_refs": []},
+    "scope_control": {"rating": "pass", "evidence": "変更はAgentic QA boundary、関連docs、contract tests、Run Artifactに限定した。", "evidence_refs": []},
+    "validation_confidence": {"rating": "warn", "evidence": "267 contract tests、preparation、typecheck、lint、security、Chromium 27 testsを実測した。repository-wide format:checkは既存379ファイルで失敗した。", "evidence_refs": []},
+    "safety_compliance": {"rating": "pass", "evidence": "Git mutation、Host証跡捏造、独自Runner／Gateway追加を行っていない。", "evidence_refs": []},
+    "reviewability": {"rating": "pass", "evidence": "allowlistとancestor symlinkのroot contract、positive chain、mutation tests、docsを確認可能な形で残した。", "evidence_refs": []},
+    "maintainability": {"rating": "pass", "evidence": "既存canonical manifest／lstat／artifact verifierを再利用し、新規frameworkを追加していない。", "evidence_refs": []},
+    "reproducibility": {"rating": "pass", "evidence": "package scriptとfocused commandで同一のdeterministic testを再実行できる。", "evidence_refs": []}
+  },
+  "findings": [
+    {"category": "flaky_or_env_issue", "severity": "low", "evidence": "pnpm run format:checkは今回の変更対象外を含む既存379ファイルでFAILし、変更対象限定Prettier checkはPASSした。", "detail": "今回の3境界修正によるregressionではない。"}
+  ],
+  "improvement_candidates": []
+}

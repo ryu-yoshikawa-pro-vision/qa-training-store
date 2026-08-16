@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "run_id": "20260813-174221-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue", "missing_context"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Official artifact chainの実装、positive evaluation、required mutation matrixを完了した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "official-artifact-chain 42 testsとofficial-black-box-contracts 19 testsを含むfocused 61 testsがPASS"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はAgentic QA契約、関連テスト、必要なreference、Run Artifactに限定し、Product UI・Native・Gateway・Git mutationを行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/agentic-qa/official-verification.ts",
+          "selector": null,
+          "event_id": null,
+          "summary": "Official verifierのidentity/evidence boundary修正"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "契約263 tests、Preparation、Chromium、lint、typecheck、spec、security、web buildはPASS。format:checkとverifyは既存379ファイルのformat差分でFAILし、verifyは後続工程へ進まなかった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "pnpm run format:check / pnpm run verify は既存repository-wide format差分でFAIL"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Host capability不足をRepository側で補完せず、Official executionとscoreは生成していない。Git mutationもない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Run Artifactへ実測結果、未解決Host Gate、subagent未使用理由、既存format gate failureを追記した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存Canonical JSON、Artifact Manifest、schema、compareCodeUnitsを再利用し、trusted evidence resolverのみ共通helperとして追加した。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Windows上のdeterministic preparationは1/1 PASS。Linux CI topologyはplatform-specific root symlink経路を維持しており、Ubuntu実機での実行結果はこのRunでは未実行。"
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "pnpm run format:checkが379 filesの既存format差分を報告した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "format:checkの実測結果"
+        }
+      ],
+      "detail": "今回の対象外であるrepository-wide format baselineは別対応が必要。今回の変更対象ファイルは個別Prettier checkをPASSしている。"
+    },
+    {
+      "category": "missing_context",
+      "severity": "high",
+      "evidence": "実HostのTrusted Capability ReceiptとRuntime Handoffを発行できる環境ではない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "Host evidence不足のためOfficial executionはBLOCKED"
+        }
+      ],
+      "detail": "Synthetic receiptはcontract fixture内だけで使用し、Official scoreへ昇格していない。"
+    }
+  ],
+  "improvement_candidates": [
+    {
+      "target": "repository-wide Prettier baseline",
+      "evidence": "format:checkが既存379 filesを報告した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "format:check failure"
+        }
+      ],
+      "expected_impact": "verifyの後続品質ゲートが実行可能になる。",
+      "recommendation": "無関係なPRへformat変更を混ぜず、別のbaseline整備タスクとして扱う。"
+    }
+  ]
+}
