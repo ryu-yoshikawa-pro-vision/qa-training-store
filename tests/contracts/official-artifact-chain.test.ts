@@ -29,6 +29,8 @@ import {
   runnerInputSchema,
   toolProfileSchema,
   type HostCapabilityReceipt,
+  type AnswerKey,
+  type Challenge,
   type RunnerProfile,
   type RunnerInput,
 } from "../../scripts/agentic-qa/contracts";
@@ -524,7 +526,17 @@ function buildFixture() {
     isolatedRunnerRootPath: path.join(trustedRoot, "preparation", "isolated-run-root"),
     hostReceiptPath: path.join(trustedRoot, "host-capability-receipt.json"),
     benchmarkManifestPath: path.join(trustedRoot, "benchmark-manifest.json"),
+    bootstrapPath: path.join(trustedRoot, "bootstrap-operations.json"),
+    runtimeControlPath: path.join(trustedRoot, "runtime-control-operations.json"),
     profilePath: path.join(trustedRoot, "runner-profile.json"),
+    evaluatorChallengePath: path.join(
+      rootDir,
+      "training/agentic-qa/challenges/CHALLENGE-BASIC-001/challenge.json",
+    ),
+    evaluatorAnswerKeyPath: path.join(
+      rootDir,
+      "training/agentic-qa/instructor/answer-key/CHALLENGE-BASIC-001.json",
+    ),
     targetRuntimePath: path.join(preparedTargetRoot, "target-runtime.json"),
     initialStatePath: path.join(trustedRoot, "initial-state-receipt.json"),
     resourceProbePath: path.join(trustedRoot, "resource-boundary-probe.json"),
@@ -601,12 +613,115 @@ function fullyRebindInputArtifacts(fixture: ReturnType<typeof buildFixture>): vo
   );
 }
 
+function evaluateOfficialFixture(input: {
+  fixture: ReturnType<typeof buildFixture>;
+  challenge: Challenge;
+  answerKey: AnswerKey;
+  evaluatorChallengePath: string;
+  evaluatorAnswerKeyPath: string;
+}) {
+  const { fixture, challenge, answerKey, evaluatorChallengePath, evaluatorAnswerKeyPath } = input;
+  const parsedFindings = parseJsonWithSchema(
+    readCanonicalJsonFile(path.join(fixture.runnerRoot, "output", "qa-findings.json")),
+    qaFindingsSchema,
+    "frozen findings",
+  );
+  if (parsedFindings.mode !== "black-box-scored")
+    throw new Error("Official fixture must contain scored findings");
+  const profile = parseJsonWithSchema(
+    readCanonicalJsonFile(fixture.profilePath),
+    officialRunnerProfileSchema,
+    "trusted runner profile",
+  );
+  const toolProfile = parseJsonWithSchema(
+    readRepoJson("training/agentic-qa/tool-profiles/scored-v1.json"),
+    toolProfileSchema,
+    "tool profile",
+  );
+  const benchmarkManifest = parseJsonWithSchema(
+    readCanonicalJsonFile(fixture.benchmarkManifestPath),
+    benchmarkManifestSchema,
+    "benchmark manifest",
+  );
+  const evaluatorSessionId = `${fixture.runId}-evaluator-session`;
+  fs.mkdirSync(path.join(fixture.runRoot, "evaluation"), { recursive: true });
+  writeCanonicalJsonFile(path.join(fixture.runRoot, "evaluation", "evaluator-session.json"), {
+    runner_session_id: parsedFindings.runner_session_id,
+    evaluator_session_id: evaluatorSessionId,
+    answer_key_read: true,
+    runner_session_reused: false,
+  });
+  return evaluateBlackBox(challenge, answerKey, parsedFindings, {
+    rootDir,
+    expectedBenchmarkRevision: benchmarkRevisionFromManifest(
+      fixture.benchmarkManifestPath,
+      benchmarkManifest,
+    ),
+    expectedRuntimeVariantId: benchmarkManifest.runtime_variant_id,
+    expectedRunnerProfile: profile,
+    expectedToolProfileRevision: profile.tool_profile_revision,
+    expectedToolProfile: toolProfile,
+    evaluatorSessionId,
+    evaluatorChallengePath,
+    evaluatorAnswerKeyPath,
+    officialArtifactLocations: {
+      rootDir,
+      runRoot: fixture.runRoot,
+      evaluatorChallengePath,
+      evaluatorAnswerKeyPath,
+    },
+  });
+}
+
+function runtimeControlOperation(
+  fixture: ReturnType<typeof buildFixture>,
+  operation: string,
+  input: {
+    status?: "passed" | "failed" | "environment_blocked";
+    invariantVerified?: boolean;
+    runtimeDisposition?: "usable" | "discarded";
+    runnerSessionId?: string;
+    suffix?: string;
+  } = {},
+): Record<string, unknown> {
+  const frozen = readCanonicalJsonFile<Record<string, unknown>>(fixture.frozenPath);
+  const suffix = input.suffix ?? operation;
+  const evidenceRef = agenticQaRef(fixture.runId, "trusted", "runtime-controls", `${suffix}.json`);
+  writeTrustedEvidence(rootDir, evidenceRef);
+  return {
+    schema_version: 1,
+    operation_id: `${fixture.runId}:runtime-control:${suffix}`,
+    runner_session_id: input.runnerSessionId ?? String(frozen.runner_session_id),
+    operation,
+    status: input.status ?? "passed",
+    counted_as_tool_action: true,
+    invariant_verified: input.invariantVerified ?? true,
+    runtime_disposition: input.runtimeDisposition ?? "usable",
+    evidence_ref: evidenceRef,
+    completed_at: "2026-08-13T00:00:02.000Z",
+  };
+}
+
+function writeRuntimeControlOperations(
+  fixture: ReturnType<typeof buildFixture>,
+  operations: readonly Record<string, unknown>[],
+): void {
+  const log = readCanonicalJsonFile<Record<string, unknown>>(fixture.runtimeControlPath);
+  log.operations = operations;
+  writeCanonicalJsonFile(fixture.runtimeControlPath, log);
+}
+
 describe("complete Official artifact chain", () => {
   it("valid fixture passes validateOfficialArtifacts", () => {
     const fixture = buildFixture();
     try {
-      const result = validateOfficialArtifacts({ rootDir, runRoot: fixture.runRoot });
-      expect(result.valid).toBe(true);
+      const result = validateOfficialArtifacts({
+        rootDir,
+        runRoot: fixture.runRoot,
+        evaluatorChallengePath: fixture.evaluatorChallengePath,
+        evaluatorAnswerKeyPath: fixture.evaluatorAnswerKeyPath,
+      });
+      expect(result.valid, result.failures.join("\n")).toBe(true);
       expect(result.failures).toEqual([]);
     } finally {
       fs.rmSync(fixture.runRoot, { recursive: true, force: true });
@@ -670,20 +785,135 @@ describe("complete Official artifact chain", () => {
         expectedToolProfileRevision: profile.tool_profile_revision,
         expectedToolProfile: toolProfile,
         evaluatorSessionId,
-        officialArtifactLocations: { rootDir, runRoot: fixture.runRoot },
+        evaluatorChallengePath: fixture.evaluatorChallengePath,
+        evaluatorAnswerKeyPath: fixture.evaluatorAnswerKeyPath,
+        officialArtifactLocations: {
+          rootDir,
+          runRoot: fixture.runRoot,
+          evaluatorChallengePath: fixture.evaluatorChallengePath,
+          evaluatorAnswerKeyPath: fixture.evaluatorAnswerKeyPath,
+        },
       });
       writeCanonicalJsonFile(
         path.join(fixture.runRoot, "evaluation", "evaluation.json"),
         evaluation,
       );
+      const persistedEvaluation = evaluationSchema.parse(
+        readCanonicalJsonFile(path.join(fixture.runRoot, "evaluation", "evaluation.json")),
+      );
       expect(
-        evaluationSchema.parse(
-          readCanonicalJsonFile(path.join(fixture.runRoot, "evaluation", "evaluation.json")),
-        ).valid_for_scoring,
+        persistedEvaluation.valid_for_scoring,
+        persistedEvaluation.invalid_reasons.join("\n"),
       ).toBe(true);
-      expect(evaluation.valid_for_scoring).toBe(true);
+      expect(evaluation.valid_for_scoring, evaluation.invalid_reasons.join("\n")).toBe(true);
       expect(evaluation.invalid_reasons).toEqual([]);
       expect(evaluation.metrics.coverage).not.toBeNull();
+    } finally {
+      fs.rmSync(fixture.runRoot, { recursive: true, force: true });
+      fs.rmSync(fixture.runnerOutputRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an evaluator Answer Key changed after Benchmark Manifest creation", () => {
+    const fixture = buildFixture();
+    try {
+      const challengeId = "CHALLENGE-BASIC-001" as const;
+      const challenge = parseJsonWithSchema(
+        readRepoJson(`training/agentic-qa/challenges/${challengeId}/challenge.json`),
+        challengeSchema,
+        challengeId,
+      );
+      const answerKey = parseJsonWithSchema(
+        readRepoJson(`training/agentic-qa/instructor/answer-key/${challengeId}.json`),
+        answerKeySchema,
+        "answer key",
+      );
+      const changedAnswerKey = answerKeySchema.parse({
+        ...answerKey,
+        items: answerKey.items.map((item, index) =>
+          index === 0 ? { ...item, title: `${item.title} (changed after preparation)` } : item,
+        ),
+      });
+      const evaluatorAnswerKeyPath = path.join(
+        fixture.runRoot,
+        "evaluation",
+        "evaluator-answer-key.json",
+      );
+      fs.mkdirSync(path.dirname(evaluatorAnswerKeyPath), { recursive: true });
+      writeCanonicalJsonFile(evaluatorAnswerKeyPath, changedAnswerKey);
+      const evaluation = evaluateOfficialFixture({
+        fixture,
+        challenge,
+        answerKey: changedAnswerKey,
+        evaluatorChallengePath: fixture.evaluatorChallengePath,
+        evaluatorAnswerKeyPath,
+      });
+      expect(evaluation.valid_for_scoring).toBe(false);
+      expect(evaluation.invalid_reasons).toContain("official_verification_failure");
+      const result = validateOfficialArtifacts({
+        rootDir,
+        runRoot: fixture.runRoot,
+        evaluatorChallengePath: fixture.evaluatorChallengePath,
+        evaluatorAnswerKeyPath,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.failures).toContain(
+        "benchmark manifest: Evaluator Answer Key byte identity differs",
+      );
+    } finally {
+      fs.rmSync(fixture.runRoot, { recursive: true, force: true });
+      fs.rmSync(fixture.runnerOutputRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an evaluator Challenge changed after Benchmark Manifest creation", () => {
+    const fixture = buildFixture();
+    try {
+      const challengeId = "CHALLENGE-BASIC-001" as const;
+      const originalChallenge = parseJsonWithSchema(
+        readRepoJson(`training/agentic-qa/challenges/${challengeId}/challenge.json`),
+        challengeSchema,
+        challengeId,
+      );
+      const changedChallenge = challengeSchema.parse({
+        ...originalChallenge,
+        required_coverage: originalChallenge.required_coverage.map((coverage, index) =>
+          index === 0
+            ? { ...coverage, mission: `${coverage.mission} (changed after preparation)` }
+            : coverage,
+        ),
+      });
+      const answerKey = parseJsonWithSchema(
+        readRepoJson(`training/agentic-qa/instructor/answer-key/${challengeId}.json`),
+        answerKeySchema,
+        "answer key",
+      );
+      const evaluatorChallengePath = path.join(
+        fixture.runRoot,
+        "evaluation",
+        "evaluator-challenge.json",
+      );
+      fs.mkdirSync(path.dirname(evaluatorChallengePath), { recursive: true });
+      writeCanonicalJsonFile(evaluatorChallengePath, changedChallenge);
+      const evaluation = evaluateOfficialFixture({
+        fixture,
+        challenge: changedChallenge,
+        answerKey,
+        evaluatorChallengePath,
+        evaluatorAnswerKeyPath: fixture.evaluatorAnswerKeyPath,
+      });
+      expect(evaluation.valid_for_scoring).toBe(false);
+      expect(evaluation.invalid_reasons).toContain("official_verification_failure");
+      const result = validateOfficialArtifacts({
+        rootDir,
+        runRoot: fixture.runRoot,
+        evaluatorChallengePath,
+        evaluatorAnswerKeyPath: fixture.evaluatorAnswerKeyPath,
+      });
+      expect(result.valid).toBe(false);
+      expect(result.failures).toContain(
+        "benchmark manifest: Evaluator Challenge byte identity differs",
+      );
     } finally {
       fs.rmSync(fixture.runRoot, { recursive: true, force: true });
       fs.rmSync(fixture.runnerOutputRoot, { recursive: true, force: true });
@@ -1054,6 +1284,130 @@ describe("complete Official artifact chain", () => {
       },
     ],
     [
+      "bootstrap seed_reset failed",
+      (fixture) => {
+        const bootstrap = readCanonicalJsonFile<Record<string, unknown>>(fixture.bootstrapPath);
+        const operations = bootstrap.operations as Record<string, unknown>[];
+        const operation = operations.find((item) => item.operation === "seed_reset");
+        if (operation === undefined) throw new Error("seed_reset fixture operation is missing");
+        operation.status = "failed";
+        operation.error = "fixture failure";
+        writeCanonicalJsonFile(fixture.bootstrapPath, bootstrap);
+      },
+      "bootstrap operation log: required operation did not pass (seed_reset)",
+    ],
+    [
+      "bootstrap session_reconcile failed",
+      (fixture) => {
+        const bootstrap = readCanonicalJsonFile<Record<string, unknown>>(fixture.bootstrapPath);
+        const operations = bootstrap.operations as Record<string, unknown>[];
+        const operation = operations.find((item) => item.operation === "session_reconcile");
+        if (operation === undefined)
+          throw new Error("session_reconcile fixture operation is missing");
+        operation.status = "failed";
+        operation.error = "fixture failure";
+        writeCanonicalJsonFile(fixture.bootstrapPath, bootstrap);
+      },
+      "bootstrap operation log: required operation did not pass (session_reconcile)",
+    ],
+    [
+      "bootstrap initial_route_normalize failed",
+      (fixture) => {
+        const bootstrap = readCanonicalJsonFile<Record<string, unknown>>(fixture.bootstrapPath);
+        const operations = bootstrap.operations as Record<string, unknown>[];
+        const operation = operations.find((item) => item.operation === "initial_route_normalize");
+        if (operation === undefined)
+          throw new Error("initial_route_normalize fixture operation is missing");
+        operation.status = "failed";
+        operation.error = "fixture failure";
+        writeCanonicalJsonFile(fixture.bootstrapPath, bootstrap);
+      },
+      "bootstrap operation log: required operation did not pass (initial_route_normalize)",
+    ],
+    [
+      "initial state reset operation identity mismatch",
+      (fixture) => {
+        const receipt = readCanonicalJsonFile<Record<string, unknown>>(fixture.initialStatePath);
+        receipt.reset_operation_id = `${String(receipt.reset_operation_id)}-mismatch`;
+        writeCanonicalJsonFile(fixture.initialStatePath, receipt);
+      },
+      "initial state receipt: reset operation identity mismatch",
+    ],
+    [
+      "initial state session operation identity mismatch",
+      (fixture) => {
+        const receipt = readCanonicalJsonFile<Record<string, unknown>>(fixture.initialStatePath);
+        receipt.session_operation_id = `${String(receipt.session_operation_id)}-mismatch`;
+        writeCanonicalJsonFile(fixture.initialStatePath, receipt);
+      },
+      "initial state receipt: session operation identity mismatch",
+    ],
+    [
+      "duplicate bootstrap seed_reset operation",
+      (fixture) => {
+        const bootstrap = readCanonicalJsonFile<Record<string, unknown>>(fixture.bootstrapPath);
+        const operations = bootstrap.operations as Record<string, unknown>[];
+        const seedReset = operations.find((item) => item.operation === "seed_reset");
+        if (seedReset === undefined) throw new Error("seed_reset fixture operation is missing");
+        operations.splice(1, 0, {
+          ...seedReset,
+          operation_id: `${String(seedReset.operation_id)}-duplicate`,
+        });
+        writeCanonicalJsonFile(fixture.bootstrapPath, bootstrap);
+      },
+      "bootstrap operation log: required operation is not unique (seed_reset)",
+    ],
+    [
+      "bootstrap session identity differs from Initial State",
+      (fixture) => {
+        const bootstrap = readCanonicalJsonFile<Record<string, unknown>>(fixture.bootstrapPath);
+        bootstrap.runner_session_id = "different-bootstrap-session";
+        writeCanonicalJsonFile(fixture.bootstrapPath, bootstrap);
+      },
+      "bootstrap operation log: run or session identity mismatch",
+    ],
+    [
+      "runtime control operation is not allowed",
+      (fixture) => {
+        writeRuntimeControlOperations(fixture, [runtimeControlOperation(fixture, "clock")]);
+      },
+      "runtime control operation log: operation is not allowed by Runner Input (clock)",
+    ],
+    [
+      "runtime control operation session mismatch",
+      (fixture) => {
+        writeRuntimeControlOperations(fixture, [
+          runtimeControlOperation(fixture, "seed_reset", {
+            runnerSessionId: "different-runtime-control-session",
+          }),
+        ]);
+      },
+      "runtime control operation log: runner session identity mismatch",
+    ],
+    [
+      "runtime control failed seed_reset",
+      (fixture) => {
+        writeRuntimeControlOperations(fixture, [
+          runtimeControlOperation(fixture, "seed_reset", {
+            status: "failed",
+            invariantVerified: false,
+            runtimeDisposition: "discarded",
+          }),
+        ]);
+      },
+      "runtime control operation log: operation did not complete with a reusable verified runtime",
+    ],
+    [
+      "runtime control operation budget contradiction",
+      (fixture) => {
+        writeRuntimeControlOperations(fixture, [
+          runtimeControlOperation(fixture, "seed_reset", { suffix: "seed-reset-budget" }),
+          runtimeControlOperation(fixture, "app_restart", { suffix: "app-restart-budget" }),
+        ]);
+      },
+      "execution summary: tool action count is lower than trusted runtime control operation count",
+    ],
+    [
       "incomplete Resource Boundary Probe",
       (fixture) => {
         const probe = readCanonicalJsonFile<Record<string, unknown>>(fixture.resourceProbePath);
@@ -1171,7 +1525,12 @@ describe("complete Official artifact chain", () => {
     const fixture = buildFixture();
     try {
       mutate(fixture);
-      const result = validateOfficialArtifacts({ rootDir, runRoot: fixture.runRoot });
+      const result = validateOfficialArtifacts({
+        rootDir,
+        runRoot: fixture.runRoot,
+        evaluatorChallengePath: fixture.evaluatorChallengePath,
+        evaluatorAnswerKeyPath: fixture.evaluatorAnswerKeyPath,
+      });
       expect(result.valid).toBe(false);
       expect(result.failures.length).toBeGreaterThan(0);
       if (expectedFailure !== undefined) expect(result.failures).toContain(expectedFailure);

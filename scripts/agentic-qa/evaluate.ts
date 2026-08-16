@@ -51,6 +51,8 @@ export type EvaluationOptions = {
   runnerSessionArtifactPath?: string;
   forbiddenProbeArtifactPath?: string;
   evaluatorSessionArtifactPath?: string;
+  evaluatorChallengePath?: string;
+  evaluatorAnswerKeyPath?: string;
   isolationFailure?: boolean;
   toolScopeFailure?: boolean;
   preparationFailure?: boolean;
@@ -335,9 +337,44 @@ function evidenceIntegrityIsValid(
   );
 }
 
+function evaluatorInputIdentityFailures(
+  options: EvaluationOptions,
+  challenge: Challenge,
+  answerKey: AnswerKey,
+): string[] {
+  const failures: string[] = [];
+  const challengePath =
+    options.evaluatorChallengePath ?? options.officialArtifactLocations?.evaluatorChallengePath;
+  const answerKeyPath =
+    options.evaluatorAnswerKeyPath ?? options.officialArtifactLocations?.evaluatorAnswerKeyPath;
+  const verify = <T>(
+    filePath: string | undefined,
+    schema: Parameters<typeof parseJsonWithSchema>[1],
+    expected: T,
+    label: "Challenge" | "Answer Key",
+  ): void => {
+    const failure = `benchmark manifest: Evaluator ${label} byte identity differs`;
+    if (filePath === undefined) {
+      failures.push(failure);
+      return;
+    }
+    try {
+      const actual = parseJsonWithSchema(readJson(filePath), schema, `evaluator ${label}`);
+      if (canonicalJson(actual) !== canonicalJson(expected)) failures.push(failure);
+    } catch {
+      failures.push(failure);
+    }
+  };
+  verify(challengePath, challengeSchema, challenge, "Challenge");
+  verify(answerKeyPath, answerKeySchema, answerKey, "Answer Key");
+  return failures;
+}
+
 function officialVerificationFailures(
   options: EvaluationOptions,
   findings: Extract<QaFindings, { mode: "black-box-scored" }>,
+  challenge: Challenge,
+  answerKey: AnswerKey,
 ): string[] {
   const failures: string[] = [];
   const expectedToolProfile = options.expectedToolProfile;
@@ -365,6 +402,7 @@ function officialVerificationFailures(
     expectedRuntimeVariantId !== findings.runtime_variant_id
   )
     failures.push("runtime variant differs from the evaluator expectation");
+  failures.push(...evaluatorInputIdentityFailures(options, challenge, answerKey));
 
   const rootDir = options.rootDir ?? process.cwd();
   let embeddedForbiddenProbe: ForbiddenProbeResult[] | undefined;
@@ -494,12 +532,17 @@ function officialVerificationFailures(
     }
   }
   if (findings.execution_kind === "official_model_backed") {
-    const artifactVerification = validateOfficialArtifacts(
-      options.officialArtifactLocations ?? {
-        rootDir,
-        runRoot: agenticQaRunRoot(rootDir, findings.run_id),
-      },
-    );
+    const evaluatorChallengePath =
+      options.evaluatorChallengePath ?? options.officialArtifactLocations?.evaluatorChallengePath;
+    const evaluatorAnswerKeyPath =
+      options.evaluatorAnswerKeyPath ?? options.officialArtifactLocations?.evaluatorAnswerKeyPath;
+    const artifactVerification = validateOfficialArtifacts({
+      rootDir,
+      runRoot: agenticQaRunRoot(rootDir, findings.run_id),
+      ...options.officialArtifactLocations,
+      ...(evaluatorChallengePath === undefined ? {} : { evaluatorChallengePath }),
+      ...(evaluatorAnswerKeyPath === undefined ? {} : { evaluatorAnswerKeyPath }),
+    });
     failures.push(
       ...artifactVerification.failures.map((failure) => `official artifact: ${failure}`),
     );
@@ -510,6 +553,8 @@ function officialVerificationFailures(
 function invalidReasonSet(
   options: EvaluationOptions,
   findings: Extract<QaFindings, { mode: "black-box-scored" }>,
+  challenge: Challenge,
+  answerKey: AnswerKey,
 ): string[] {
   const reasons = new Set<string>();
   if (
@@ -554,7 +599,7 @@ function invalidReasonSet(
   if (hasExpectedRuntimeVariant && expectedRuntimeVariantId !== findings.runtime_variant_id)
     reasons.add("benchmark_identity_mismatch");
   if (findings.execution_kind === "official_model_backed") {
-    if (officialVerificationFailures(options, findings).length > 0)
+    if (officialVerificationFailures(options, findings, challenge, answerKey).length > 0)
       reasons.add("official_verification_failure");
     if (!evidenceIntegrityIsValid(findings, options.rootDir ?? process.cwd()))
       reasons.add("evidence_integrity_failure");
@@ -872,7 +917,7 @@ export function evaluateBlackBox(
     }
   }
 
-  const invalidReasons = invalidReasonSet(effectiveOptions, findings);
+  const invalidReasons = invalidReasonSet(effectiveOptions, findings, challenge, answerKey);
   if (matches.some((match) => match.classification === "review_needed"))
     invalidReasons.push("preparation_failure");
   const uniqueReasons = [...new Set(invalidReasons)].sort(compareCodeUnits);
@@ -983,24 +1028,29 @@ if (isMainModule()) {
     throw new Error("Usage: evaluate.ts --run-dir <run-dir> --challenge <challenge-id>");
   challengeIdSchema.parse(challengeId);
   const rootDir = process.cwd();
+  const evaluatorChallengePath = path.join(
+    rootDir,
+    "training",
+    "agentic-qa",
+    "challenges",
+    challengeId,
+    "challenge.json",
+  );
+  const evaluatorAnswerKeyPath = path.join(
+    rootDir,
+    "training",
+    "agentic-qa",
+    "instructor",
+    "answer-key",
+    `${challengeId}.json`,
+  );
   const challenge = parseJsonWithSchema(
-    readJson(
-      path.join(rootDir, "training", "agentic-qa", "challenges", challengeId, "challenge.json"),
-    ),
+    readJson(evaluatorChallengePath),
     challengeSchema,
     challengeId,
   );
   const answerKey = parseJsonWithSchema(
-    readJson(
-      path.join(
-        rootDir,
-        "training",
-        "agentic-qa",
-        "instructor",
-        "answer-key",
-        `${challengeId}.json`,
-      ),
-    ),
+    readJson(evaluatorAnswerKeyPath),
     answerKeySchema,
     challengeId,
   );
@@ -1082,9 +1132,13 @@ if (isMainModule()) {
     expectedToolProfileRevision,
     expectedToolProfile: profile,
     evaluatorSessionId,
+    evaluatorChallengePath,
+    evaluatorAnswerKeyPath,
     officialArtifactLocations: {
       rootDir,
       runRoot: agenticQaRunRoot(rootDir, findings.run_id),
+      evaluatorChallengePath,
+      evaluatorAnswerKeyPath,
     },
   });
   const evaluationPath = path.join(

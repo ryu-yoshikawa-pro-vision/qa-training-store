@@ -64,6 +64,8 @@ export type OfficialArtifactLocations = {
   learnerSafeInputArtifactManifestPath?: string;
   isolatedRunnerRootArtifactManifestPath?: string;
   outputContractPath?: string;
+  evaluatorChallengePath?: string;
+  evaluatorAnswerKeyPath?: string;
   initialStateReceiptPath?: string;
   bootstrapOperationsPath?: string;
   runtimeControlOperationsPath?: string;
@@ -119,6 +121,26 @@ function readRequired<T>(
   } catch (error) {
     failures.push(`${label}: ${error instanceof Error ? error.message : String(error)}`);
     return undefined;
+  }
+}
+
+function assertEvaluatorInputIdentity(
+  filePath: string | undefined,
+  expectedSha256: string,
+  label: "Challenge" | "Answer Key",
+  failures: string[],
+): void {
+  const failure = `benchmark manifest: Evaluator ${label} byte identity differs`;
+  if (filePath === undefined) {
+    failures.push(failure);
+    return;
+  }
+  try {
+    const stat = fs.lstatSync(filePath);
+    if (stat.isSymbolicLink() || !stat.isFile()) throw new Error("not a regular file");
+    if (sha256File(filePath) !== `sha256:${expectedSha256}`) failures.push(failure);
+  } catch {
+    failures.push(failure);
   }
 }
 
@@ -468,6 +490,18 @@ export function validateOfficialArtifacts(
   if (benchmarkManifest !== undefined) {
     try {
       benchmarkRevisionFromManifest(benchmarkManifestPath, benchmarkManifest);
+      assertEvaluatorInputIdentity(
+        locations.evaluatorChallengePath,
+        benchmarkManifest.challenge.sha256,
+        "Challenge",
+        failures,
+      );
+      assertEvaluatorInputIdentity(
+        locations.evaluatorAnswerKeyPath,
+        benchmarkManifest.answer_key.sha256,
+        "Answer Key",
+        failures,
+      );
       if (runnerInput !== undefined) {
         assertLearnerSafeInputFileSet(
           path.join(runRoot, "input"),
@@ -922,7 +956,52 @@ export function validateOfficialArtifacts(
       bootstrap.runner_session_id !== frozenRunnerArtifact?.runner_session_id)
   )
     failures.push("bootstrap operation log: run or session identity mismatch");
+  if (bootstrap !== undefined && initialState !== undefined) {
+    if (bootstrap.run_id !== initialState.run_id)
+      failures.push("bootstrap operation log: run identity differs from Initial State Receipt");
+    if (bootstrap.runner_session_id !== initialState.runner_session_id)
+      failures.push(
+        "bootstrap operation log: runner session identity differs from Initial State Receipt",
+      );
+  }
   if (bootstrap !== undefined) {
+    for (const requiredOperation of [
+      "seed_reset",
+      "session_reconcile",
+      "initial_route_normalize",
+    ] as const) {
+      const matchingOperations = bootstrap.operations.filter(
+        (operation) => operation.operation === requiredOperation,
+      );
+      if (matchingOperations.length > 1)
+        failures.push(
+          `bootstrap operation log: required operation is not unique (${requiredOperation})`,
+        );
+      const operation = matchingOperations[0];
+      if (operation !== undefined && operation.status !== "passed")
+        failures.push(
+          `bootstrap operation log: required operation did not pass (${requiredOperation})`,
+        );
+      if (operation === undefined && matchingOperations.length === 0)
+        failures.push(
+          `bootstrap operation log: required operation is missing (${requiredOperation})`,
+        );
+    }
+    if (initialState !== undefined) {
+      const seedReset = bootstrap.operations.find(
+        (operation) => operation.operation === "seed_reset",
+      );
+      const sessionReconcile = bootstrap.operations.find(
+        (operation) => operation.operation === "session_reconcile",
+      );
+      if (seedReset !== undefined && initialState.reset_operation_id !== seedReset.operation_id)
+        failures.push("initial state receipt: reset operation identity mismatch");
+      if (
+        sessionReconcile !== undefined &&
+        initialState.session_operation_id !== sessionReconcile.operation_id
+      )
+        failures.push("initial state receipt: session operation identity mismatch");
+    }
     for (const operation of bootstrap.operations) {
       try {
         resolveRequiredTrustedEvidenceRef({
@@ -953,6 +1032,26 @@ export function validateOfficialArtifacts(
     failures.push("runtime control operation log: run or session identity mismatch");
   if (controls !== undefined) {
     for (const operation of controls.operations) {
+      if (
+        runnerInput !== undefined &&
+        !runnerInput.allowed_runtime_controls.includes(operation.operation)
+      )
+        failures.push(
+          `runtime control operation log: operation is not allowed by Runner Input (${operation.operation})`,
+        );
+      if (
+        operation.runner_session_id !== controls.runner_session_id ||
+        operation.runner_session_id !== frozenRunnerArtifact?.runner_session_id
+      )
+        failures.push("runtime control operation log: runner session identity mismatch");
+      if (
+        operation.status !== "passed" ||
+        !operation.invariant_verified ||
+        operation.runtime_disposition !== "usable"
+      )
+        failures.push(
+          "runtime control operation log: operation did not complete with a reusable verified runtime",
+        );
       try {
         resolveRequiredTrustedEvidenceRef({
           rootDir,
@@ -1034,6 +1133,15 @@ export function validateOfficialArtifacts(
       failures.push("execution summary: runner session identity mismatch");
     if (summary.run_id !== runnerInput.run_id)
       failures.push("execution summary: run identity mismatch");
+  }
+  if (controls !== undefined && summary !== undefined) {
+    const trustedRuntimeControlCount = controls.operations.filter(
+      (operation) => operation.counted_as_tool_action,
+    ).length;
+    if (summary.tool_actions < trustedRuntimeControlCount)
+      failures.push(
+        "execution summary: tool action count is lower than trusted runtime control operation count",
+      );
   }
 
   return {
