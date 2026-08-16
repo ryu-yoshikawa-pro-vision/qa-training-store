@@ -2834,7 +2834,7 @@ Backend追加を理由に大規模な新Curriculum体系を作る危険。
 Gate:
 
 - existing Competencyを先に拡張
--新IDは必要性が実証された場合のみ
+- 新IDは必要性が実証された場合のみ
 
 ### Risk 7: D1 write quota
 
