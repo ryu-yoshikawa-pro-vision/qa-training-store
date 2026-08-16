@@ -375,7 +375,6 @@
 - Disposable Source buildは、Windowsではoffline local installを使い、Linux/macOSではroot `node_modules` directory topologyを一時symlinkで再利用する。Linux CIのpnpm／tsxリンク解決を壊さず、Source cleanup後のLearner／Prepared Target／Runner rootへ`node_modules`やSourceは公開しない。
 - 2026-08-13時点のdeterministic validationでは、Official black-box contract 34 tests、served-dist contract 23 tests、Preparation 1/1、Spec validation／HTML build、Unit／Integration／Web Component、Security／Image ManifestがPASSした。Full TypeScriptには既存`/guide` route型エラー、Full Contractには環境の`node:sqlite` bundling failureが残る。Host-trusted Receipt未提供のため、Official E2E／scoreは未実行・未採点である。
 
-<<<<<<< HEAD
 ## Test Automation Curriculum / Training Environment（2026-08-12）
 
 - Required Curriculumは `docs/curriculum/test-automation/` の22文書へ固定した。`02_competency-rubric.md` はC01〜C12／Level 0〜3の評価正本、`03_instructor-reference.md` はExpected Contract、Alternative Design、Anti-pattern、Facilitation、Troubleshootingの公開Referenceである。Agentic QA教材はOptional ReferenceとしてRequired Part 1から分離する。
@@ -431,11 +430,10 @@
 - Batch artifactは`batch.manifest.json`とRegistryから導出したraw/per-case manifestを持ち、`complete=true`、expected/captured case set一致、source SHA、同一run APK SHA-256、API34 canonical profile、PNG存在を全件検証する。partial/incomplete/stale/mixed provenanceはpromotionせず、Final Gateへ昇格しない。
 - `apply:android-spec-visuals`は全件validation後にtemporary WebPを生成し、canonical pathへ反映する。Android statusはartifact存在から自動capturedにせず、実capture成功後の明示execution state変更でのみblocked→capturedへ遷移する。
 - State A実装直後はユーザーpush待ちであり、GitHub Actions canonical capture、25件promotion、Android status transition、Final Visual Gate PASSは未実行である。
-=======
+
 ## PR #23 Official Artifact Chain再レビュー修正（2026-08-13）
 
 - Runner-visibleな`input/**`は、`trusted/learner-safe-input-artifact-manifest.json`でfile setとbyte hashをfreezeする。Official verifierはRunner Inputのrun／Challenge／spec／Runbook／Skill／Output Contract／self hash bindingと、入力snapshotの実FSを再検証する。Host Capability Receiptの`learner_safe_input_artifact_sha256`はこのManifestのartifact hashへexact bindする。
 - Repository-side `trusted/preparation/isolated-run-root/`も専用Manifestでfreezeし、frozen inputのspecification／Runbook／Challenge snapshotとのbyte identityを検査する。これはHost sandboxの証明ではなく、Host isolationの正本は引き続きTrusted Host Receiptである。
 - Prepared TargetはCanonical Benchmark Manifestのrevision／source HEAD／patch hashとRunner Inputのallowed originsへexact bindする。Trusted evidence_refはcurrent runの`trusted/**`にある非symlink regular fileへ解決できるものだけをOfficial proofとして受理する。
 - Official chainのgolden contract fixtureは、実Evidence file、別Evaluator session、`evaluateBlackBox()`の`valid_for_scoring=true`、空の`invalid_reasons`、非null coverage metricまで検証する。現HostのTrusted Capability不足はRepository実装を止めないが、Official execution／scoreはBLOCKED／NOT EXECUTEDのままとする。
->>>>>>> 65415ab (Implement learner-safe input & trusted-evidence)
