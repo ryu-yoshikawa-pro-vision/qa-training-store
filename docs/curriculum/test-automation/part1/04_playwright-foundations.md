@@ -16,31 +16,33 @@
 
 主に次を参照します。
 
-- `playwright.config.ts`
-- `e2e/web/`
+- [`docs/spec/features/cart.md`](../../../spec/features/cart.md)のBR / AC
+- `playwright.training.config.ts`
+- `training/playwright/baseline/`
+- `training/playwright/exercises/`
 - Scenario Shopの商品一覧・商品詳細・Cart
 
-既存の `phase1-required.spec.ts` は最初の演習後に比較対象として読みます。
+Formal `playwright.config.ts` と `e2e/web/phase1-required.spec.ts` は、演習後に設計を比較するためのFormal Regression教材です。
 
 ## 演習コードの扱い
 
 このカリキュラムでは、受講者が最初から既存 `phase1-required.spec.ts` や他の正式Regressionへ追記することを前提にしません。
 
-教材提供時には、受講者用Playwright Testを既存Regressionから分離して保存・実行できるTraining境界を用意します。
-
-例えば次のような概念上の分離を想定しますが、具体的なPath、Project名、Script名は教材実装時にRepositoryの最新構成へ合わせて確定します。
+受講者用Playwright Testは、実装済みのTraining境界へ保存・実行します。具体的なPath、Project、ScriptはCurrent Repositoryで固定されています。
 
 ```text
 既存Regression
 └ e2e/web/...
 
 Training用
-└ 受講者専用spec領域
+├ training/playwright/baseline/
+├ training/playwright/exercises/
+└ training/playwright/failure-exercises/
 ```
 
-現行 `playwright.config.ts` と `package.json` は既存Suiteを実行するための設定です。この文書整備だけでTraining用ProjectやScriptを追加したものとは扱いません。
+`playwright.config.ts` はFormal Regression専用です。Trainingは `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`だけを使います。Training specを `e2e/web/`へ追加してはいけません。
 
-受講者は、用意されたTraining実行入口で自分のTestを実行し、演習完了後に既存Regressionと比較します。
+受講者は `PLAYWRIGHT_BASE_URL` をこのworktreeのRuntimeへ設定し、`pnpm run training:web:baseline`または `pnpm run training:web:mobile`で確認します。未指定時のfallbackは `127.0.0.1:8082`で、8081 / 8083を再利用しません。
 
 ## Lesson 0: Playwrightを書くためのJavaScript / TypeScript最小知識
 
@@ -51,7 +53,7 @@ PlaywrightのTestを読み書きするために必要な範囲から学び、必
 ### 変数と文字列
 
 ```ts
-const productName = "ベーシックTシャツ";
+const productName = "対象商品の表示名";
 ```
 
 `const` は、後から別の値へ代入しない変数を宣言します。
@@ -91,7 +93,7 @@ Browser操作は完了まで時間がかかるため、Playwrightでは非同期
 
 ```ts
 await page.goto("/products");
-await page.getByRole("button", { name: "カートに追加" }).click();
+await page.getByRole("button", { name: "対象操作" }).click();
 ```
 
 最初はPromiseの内部実装を理解する必要はありません。
@@ -161,11 +163,15 @@ PlaywrightはBrowserを操作し、Web UIを自動テストするためのFramew
 ```ts
 import { test, expect } from "@playwright/test";
 
+const productName = "対象商品の表示名";
+
 test("商品詳細を表示できる", async ({ page }) => {
-  await page.goto("/products/product-basic-shirt");
-  await expect(page.getByRole("heading", { name: "ベーシックTシャツ" })).toBeVisible();
+  await page.goto("/products/<product-id>");
+  await expect(page.getByRole("heading", { name: productName })).toBeVisible();
 });
 ```
+
+このSnippetの具体的な商品ID、表示名、操作名は期待挙動の定義ではありません。実装前にNormative Specificationと対象Scenarioを確認し、WorkbookへTraceします。
 
 このコードには次の要素があります。
 
@@ -214,7 +220,7 @@ Locatorは壊れにくさと意味の分かりやすさを重視します。
 例:
 
 ```ts
-page.getByRole("button", { name: "カートに追加" });
+page.getByRole("button", { name: "対象操作" });
 page.getByLabel("数量");
 ```
 

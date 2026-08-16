@@ -33,3 +33,24 @@ Native Customer Scenarioは `NATIVE_CUSTOMER_SCENARIOS` に限定します。Nat
 ## Canonical Sources
 
 State Typeは `src/domain/contracts/entities.ts`、遷移Policyは `src/domain/policies/state-transitions.ts`、Reset Protocolは `src/test-controls/`、Native Scenario Allowlistは `src/seeds/metadata.ts`、Web Test Controlは `src/test-controls/` と `e2e/fixtures/`を参照してください。
+
+## Screen Contracts
+
+### SCREEN-TEST-CONTROL — Admin Test Control
+
+Screen Catalog: [Screen Catalog](./screen-catalog.md)
+
+#### Functions
+
+- Automation WebでScenario、Clock、Payment Delay、Seed Resetを操作する。
+- Test-only surfaceであり、Product BehaviorのCanonical Visual対象には含めない。
+
+#### Important UI States
+
+| State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
+|---|---|---|---|---|---|---|---|---|
+| `default` | baseline | `admin` | `default` | Test Controlの操作項目と結果を表示する。 | `not-applicable` | `-` | `reason: Test-only operational surfaceでありCanonical Visualの対象外` | [State and Scenarios](./state-and-scenarios.md#scenario-control) |
+
+#### Visual References
+
+##### `default`

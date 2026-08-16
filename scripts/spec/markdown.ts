@@ -112,21 +112,32 @@ export function escapeHtml(value: string): string {
 export function renderInline(
   value: string,
   linkTarget: (target: string) => string = (target) => target,
+  imageTarget: (target: string) => string = linkTarget,
 ): string {
   const tokens: string[] = [];
-  const tokenized = value.replace(
-    /(!?)\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
-    (_all, image: string, label: string, target: string) => {
-      const href = linkTarget(target);
-      const rendered =
-        image === "!"
-          ? `<span class="image-placeholder">${escapeHtml(label)}</span>`
-          : `<a href="${escapeHtml(href)}">${renderInline(label, linkTarget)}</a>`;
-      const token = `\u0000${tokens.length}\u0000`;
-      tokens.push(rendered);
-      return token;
-    },
-  );
+  const addToken = (rendered: string): string => {
+    const token = `\u0000${tokens.length}\u0000`;
+    tokens.push(rendered);
+    return token;
+  };
+  const renderImage = (label: string, source: string, href: string): string =>
+    `<a class="canonical-image-link" href="${escapeHtml(imageTarget(href))}"><img src="${escapeHtml(imageTarget(source))}" alt="${escapeHtml(label)}" loading="lazy" /></a>`;
+  const tokenized = value
+    .replace(
+      /\[!\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
+      (_all, label: string, source: string, href: string) =>
+        addToken(renderImage(label, source, href)),
+    )
+    .replace(
+      /(!?)\[([^\]]+)\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g,
+      (_all, image: string, label: string, target: string) => {
+        const rendered =
+          image === "!"
+            ? renderImage(label, target, target)
+            : `<a href="${escapeHtml(linkTarget(target))}">${renderInline(label, linkTarget)}</a>`;
+        return addToken(rendered);
+      },
+    );
   let rendered = escapeHtml(tokenized)
     .replace(/`([^`]+)`/g, "<code>$1</code>")
     .replace(/\*\*([^*]+)\*\*/g, "<strong>$1</strong>")

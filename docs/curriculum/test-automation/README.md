@@ -30,19 +30,19 @@
 
 ## この文書群のスコープ
 
-このディレクトリは、テスト自動化学習の**カリキュラム設計と教材要件**を定義するものです。
+このディレクトリは、テスト自動化学習の**カリキュラム本文と提供時の実行契約**を定義するものです。本文、Competency Rubric、Instructor Reference、CSV Workbook、Training Web / Native入口、検証Script、CI Templateを同じCurrent Repositoryで管理します。
 
-この段階では、次の実装そのものは行いません。
+Expected Product Behaviorは [`docs/spec/README.md`](../../spec/README.md) を入口とするNormative SpecificationをOracleにします。既存UI、既存Test、README、Observed Behaviorから教材用の期待動作を逆算して固定しません。
 
-- 受講者専用のPlaywright ProjectやConfigの追加
-- 受講者専用のspec実行Scriptの追加
-- 演習用GitHub Actions Workflowの追加
-- Google SheetsへImportするCSVや実ファイルテンプレートの追加
-- Root READMEやApplication Codeの変更
+Current保証は次のとおりです。
 
-各モジュールに記載する「実装する」「実行する」という表現は、**カリキュラム提供時に必要な教材実行環境が用意されていることを前提とした学習行為**を表します。
+| Platform | Current Guarantee | Curriculumでの扱い |
+| --- | --- | --- |
+| Web | Formal RegressionとTraining baselineを分離して実行 | `training-chromium` / `training-mobile-chromium` |
+| Android | Build + Runtime E2E | Training Maestroは既存Formal Native Runtimeを再利用 |
+| iOS | Build-only | Runtime / Simulator / Maestro PASSとして記録しない |
 
-現行Repositoryの完成済みPlaywright / Maestro / CI/CDは、参照教材・比較教材として利用します。受講者向けの安全な実行境界をどのように用意するかは、このカリキュラム設計をもとに後続の教材実装で決定します。
+Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` に分離します。`failure-exercises/` は明示実行時だけ使い、通常のRequired baselineへ混在させません。
 
 ## 教材
 
@@ -77,7 +77,7 @@
 8. POMは必須パターンではなく、保守上の問題を解決する選択肢の一つとして扱います。
 9. Part 2ではGit/GitHub自体を目的化せず、一般的な開発プロセスと自動テストの接続を学びます。
 10. 最終演習では完成済みのCI構成を先に正解として見せず、自分で設計した後に現在のRepositoryと比較します。
-11. 教材実装では、学習用の変更が現在のRegression Suiteや本番向けCI/CDへ意図せず混入しない境界を用意します。
+11. Training実装では、学習用の変更が現在のRegression Suiteや本番向けCI/CDへ意図せず混入しない境界を使用します。
 12. 学習者がRepositoryへ直接Pushできることを前提にせず、Part 2ではForkや演習用Copyを利用できる構成にします。
 13. Part 1をZIPなどGit管理されていないCopyで進めた受講者は、Part 2開始時にGit Historyを持つ同じ `qa-training-store` の演習用Copyへ成果物を引き継ぎます。
 14. CIハンズオンでは、Training Workflowと教材元のProduction / Deploy Workflowが同時起動しないことを開始条件とし、本番Secretを配布して既存Workflowを通す方法は採用しません。
@@ -88,6 +88,8 @@
 
 1. [学習方針と進め方](./00_learning-design.md)
 2. [スプレッドシートによるテスト分析・設計](./01_spreadsheet-test-design.md)
+3. [Competency Rubric（評価正本）](./02_competency-rubric.md)
+4. [Instructor Reference（講師向け）](./03_instructor-reference.md)
 
 ### Part 1: テスト自動化の基礎と実践
 
@@ -99,8 +101,7 @@
 6. [テスト実行・結果分析・改善](./part1/06_execution-and-failure-analysis.md)
 7. [MaestroによるNative UI自動化](./part1/07_maestro-native-automation.md)
 8. [テスト管理と保守性改善](./part1/08_test-management-and-maintainability.md)
-9. [Specification と Agentic QA](./part1/09_specification-agentic-qa.md)
-10. [Part 1 総合演習](./part1/10_part1-capstone.md)
+9. [Part 1 総合演習](./part1/09_part1-capstone.md)
 
 ### Part 2: 開発プロセスへの組み込みと実務導入
 
@@ -121,7 +122,9 @@ Part 2では、Part 1で作成した自動テストを「どのように開発�
 
 Part 1を配布ZIPなどで実施した場合も、Part 2で別教材へ切り替えるわけではありません。Git Historyを持つ同じScenario Shopの演習用CopyへPart 1成果物を引き継いで続行します。
 
-Git / GitHubの基本操作ではForkも利用できますが、CIハンズオンはProduction Workflowとの競合を避けるため、安全に分離された演習用Copyを標準とします。ForkでCIを行う場合は、教材元から継承したProduction / Deploy Workflowが演習中に起動しないよう、教材提供時に明示的な開始手順を用意します。
+Git / GitHubの基本操作ではForkも利用できますが、CIハンズオンはProduction Workflowとの競合を避けるため、安全に分離された演習用Copyを標準とします。`training:copy:prepare`と`training:copy:validate`で、教材元から継承したProduction / Deploy Workflowをactive allowlistから外し、Training Workflowだけを検証します。
+
+`part1/09_specification-agentic-qa.md` はOptional Reference、`part1/10_part1-capstone.md` はLegacy Aliasとして保存しています。Required Navigation、Rubric、Validatorはcanonical `part1/09_part1-capstone.md`だけを対象にします。
 
 ## 学習成果物
 
@@ -141,20 +144,19 @@ Git / GitHubの基本操作ではForkも利用できますが、CIハンズオ�
 - CI実行結果とArtifact分析
 - Scenario ShopへのCI導入設計
 
-## 教材提供前に必要な後続実装
+## 提供済みのTraining入口
 
-このカリキュラムを実際の受講教材として提供する際は、別対応として最低限次を用意します。
+本Planの実装対象として、次の入口をCurrent Repositoryへ接続しています。
 
-1. Part 1用のPlaywright演習コードを既存Regressionと分離して実行できる入口。
-2. Web起動、Playwright、Android Emulator、Maestroまでの環境準備手順と開始確認。
-3. Google Sheetsで利用するWorkbookテンプレート、または同等の複製可能なひな形。
-4. Part 2で既存本番向けCI/CDやSecretsへ影響せずGitHub Actionsを試せる演習用Copy、または同等に安全なTraining CI境界。
-5. ForkでCI演習を許可する場合、GitHub Actionsを利用可能にする手順と、教材元から継承したProduction / Deploy Workflowを演習中に無効化・除外し、Training Workflowだけを意図どおり起動させる手順。
-6. Repositoryへ直接Push権限がなくても進められるFork / Copy方式。
-7. Part 1をZIPなどで進めた受講者が、Git Historyを持つ演習用CopyへTraining Test・学習成果物を安全に引き継ぐ手順。
-8. 教材入口からこのカリキュラムへ迷わず到達できるナビゲーション。
+1. `playwright.training.config.ts` の `training-chromium` / `training-mobile-chromium`。
+2. `training/playwright/baseline/`、`exercises/`、`failure-exercises/`。
+3. `training/maestro/` のbaseline / exerciseと、既存Formal Runtimeを再利用する実行Script。
+4. `training/workbook/` のCSV canonical template。
+5. `scripts/validate-curriculum.ts`、`scripts/training/`、Training TypeScript typecheck。
+6. `.github/workflows/`へコピーするためのleast-privilege Training Workflow Template。
+7. `ci.yml`のRequired Phase 1 curriculum validation / Training Web baseline、`native-ci.yml`のTraining Maestro baseline接続。
 
-これらはカリキュラムの学習内容を成立させるための**教材実装要件**であり、この文書整備ブランチでは実装しません。
+受講者が使用するWeb Base URLは `PLAYWRIGHT_BASE_URL` で明示します。未指定時のローカルfallbackはこのworktree専用の `http://127.0.0.1:8082` であり、Formal / Visual RuntimeのPortを再利用しません。
 
 ## 完成済みコードの扱い
 

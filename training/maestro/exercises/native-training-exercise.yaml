@@ -1,0 +1,5 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+# Learners extend the baseline with one risk-based native assertion.
+- runFlow: ../baseline/native-training-baseline.yaml
+- assertVisible: "Scenario Shop"

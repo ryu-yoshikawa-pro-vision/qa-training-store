@@ -34,16 +34,14 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 
 ## この文書群と教材実装の関係
 
-このディレクトリでは、学習順序、教材内容、演習、到達条件を定義します。
+このディレクトリでは、学習順序、教材内容、演習、到達条件を定義します。Repositoryには、本文を実行可能にするTraining Web / Native入口、CSV Workbook、Validator、TypeScript gate、CI Templateも同じPlanで実装済みです。
 
-受講者専用のPlaywright Project、演習用GitHub Actions、Google Sheets実テンプレートなどの実装は、この設計をもとに後続対応で用意します。
+各Lessonは、次の2種類を明示的に区別します。
 
-そのため各Lessonは、次の2種類を区別して記述します。
+- **Normative Oracleを読む学習**: [`docs/spec/README.md`](../../spec/README.md)とFeatureのBR / ACを起点にする。
+- **Training境界で行う演習**: `training/`と`playwright.training.config.ts`を使い、Formal RegressionやProduction Workflowへ変更を混在させない。
 
-- **現在のRepositoryで読む・観察する教材**: 既存Playwright、Maestro、CI/CD、Seed Scenarioなど。
-- **教材提供時に受講者が作成・実行する演習**: 既存Regressionや本番CI/CDと分離した学習用実行境界で行うもの。
-
-学習者が完成済みRegression Suiteへ直接練習コードを混在させたり、本番向けSecretを必要とするWorkflowを教材として直接変更したりすることは前提にしません。
+既存の `e2e/web/`、`maestro/`、Formal CIは比較教材・正式Regressionであり、Learner Testの保存先ではありません。本番Secret、OIDC、Deploy権限はTrainingへ持ち込みません。
 
 ## 対象者
 
@@ -85,25 +83,28 @@ Part 1ではGitHubアカウントを必須にしません。
 
 受講者が必要なのは、Scenario ShopとPlaywrightをローカルで扱える環境です。Repository取得方法はGit Cloneに限定せず、必要に応じて配布ZIPなども利用できます。
 
-Maestroへ進む時点ではNative実行環境が追加で必要です。教材提供時には、少なくとも次の開始確認を用意します。
+Maestroへ進む時点ではNative実行環境が追加で必要です。開始確認は、Current RepositoryのAndroid runbook、Training baseline、Native CI contractで行います。
 
 ### Web / Playwright開始Gate
 
 - 対応Node.js / pnpmを利用できる。
 - DependencyをInstallできる。
-- Scenario Shop Webを起動できる。
-- Chromiumを使ったPlaywrightの最小実行が成功する。
+- Scenario Shop Webをこのworktree専用の `PLAYWRIGHT_BASE_URL` で起動できる。
+- `pnpm run training:web:baseline` が `training-chromium` で成功する。
+- `pnpm run training:web:mobile` が `training-mobile-chromium` で成功する。
 
 ### Native / Maestro開始Gate
 
-標準ハンズオンはAndroid Emulatorを基準とします。
+Windows Localの標準ハンズオンは、USB接続されたPhysical Android Deviceを基準とします。Android Emulator / AVDは任意の補助経路であり、Part 1完了条件ではありません。
 
 - JDK / Android SDKを利用できる。
-- Android Emulatorを起動できる。
+- Android端末でDeveloper Options、USB debugging、ADB authorizationを設定できる。
+- `adb devices -l`で対象serialのstatusが`device`であることを確認できる。
+- 端末を起動・unlockし、Maestroから操作できる状態にできる。
 - Scenario Shop NativeアプリをBuild / Installできる。
 - Maestroから最小Flowを実行できる。
 
-Mac環境が利用できる場合はiOS Simulatorでも確認できますが、Part 1で全受講者へiOS環境を必須にしません。iOS CIの設計・実行環境はPart 2で扱います。
+Android Runtimeを標準のNative learner pathとします。iOSはCurrent formal guaranteeがBuild-onlyのため、Part 1 / Part 2のRuntime完了条件にしません。iOS Simulatorを説明・比較に使う場合も、Runtime PASSとして記録しません。
 
 Git、GitHub、Pull Request、GitHub ActionsはPart 2で扱います。
 
@@ -113,7 +114,7 @@ Part 2ではGitHubを扱うため、GitHubアカウントを利用できるこ�
 
 ただし、受講者がこのRepository本体へのPush権限を持つことは前提にしません。
 
-Git / GitHubの基本演習では、教材提供時の標準経路として次のいずれかを利用できます。
+Git / GitHubの基本演習では、次の標準経路を利用できます。
 
 - 自分のGitHub AccountへForkする。
 - 講師または組織が用意した演習用Copyを使用する。
@@ -146,7 +147,7 @@ GitHub Remote / Fork / Pull Requestへ進む
 
 ここで別の教材アプリへ切り替えるわけではありません。**コードベースとテスト対象は同じScenario Shopのまま、変更管理できる作業環境へ移行します。**
 
-Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。教材提供時には、Git Historyを持つ演習用CopyへPart 1成果物を安全に引き継ぐ手順を用意します。
+Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。`training:copy:prepare`へ完全なSource SHAを渡し、Git Historyを持つdisposable Training CopyへPart 1成果物を安全に引き継ぎます。
 
 ## ノーコード・ローコード経験との接続
 
@@ -199,7 +200,7 @@ Part 2では、Part 1で作成したテストを一般的な開発プロセス�
 4. CIの必要性を理解する。
 5. GitHub Actionsでテストを実行する。
 6. Playwright ReportやArtifactを管理する。
-7. MaestroをAndroid / iOS CIで実行する考え方を学ぶ。
+7. Android Build + Runtime E2Eと、iOS Build-onlyの保証境界を学ぶ。
 8. Quality Gate、Build、Deploy、Smokeを設計する。
 9. Scenario Shopを題材に導入設計演習を行う。
 

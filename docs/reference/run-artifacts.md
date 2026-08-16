@@ -51,6 +51,14 @@ Both are validated by schema / validator.
 - runner は evaluation result を自動判断しません。
 - runner が行うのは `evaluation.json` の template 作成、存在確認、JSON / schema validation、`run_id` 一致確認、manifest summary field 更新だけです。
 - `evidence` 文字列は required のまま維持し、必要に応じて `evidence_refs` で `run.json` / report / JSONL / subagent record / validation command などへの structured reference を追加できます。
+- Strict Codex Runのgeneric `evaluation.json`は既存toolingどおり
+  `.codex/runs/<run_id>/evaluation.json`へ保存します。`run.json.evaluation_path`はこの相対path、
+  `artifact_summary.evaluation_present`はこの実体の存在を示し、`primary_failure_category`は
+  generic evaluationの値からだけ転記します。未実行の評価をこのfieldへ手書きしません。
+- Agentic QAのScored evaluationは別のAgentic契約として、同じOfficial Run Rootの
+  `.artifacts/agentic-qa/<run_id>/evaluation/evaluation.json`へCanonical JSONで保存します。
+  これは`scripts/agentic-qa/contracts.ts`の`valid_for_scoring`／`invalid_reasons[]`が正本であり、
+  generic Codex Runの`primary_failure_category`へ読み替えません。
 
 ### Agentic QA evaluation boundary
 
@@ -58,11 +66,73 @@ Both are validated by schema / validator.
 - Contract Fixtureは`execution_kind=contract_fixture`として保存できる診断成果物ですが、`fixture_not_official`を付与し、`valid_for_scoring=false`かつMetric `null`でなければなりません。
 - Official model-backed Scored Runは、patched runtimeの実測、Forbidden Probe、Fresh Runner、Required Evidence、Atomic Freeze、別Evaluator Sessionのすべてが証明できた場合だけ有効です。未実行の工程を`PASS`や`true`へ補完しません。
 
-### Challenge-specific Benchmark Manifest
+### Benchmark Manifest
 
-- `benchmark-manifest-<challenge-id>.json`をChallenge単位の正本とします。同じRunで複数ChallengeをPreparationする場合も、Challenge-specific manifestを上書きせず個別に保存します。
-- `benchmark-manifest.json`は過去Runとの互換性のためだけにfallback読込を許可するhistorical / legacy generic manifestです。複数Challenge Runでは正本ではなく、新規Preparationで生成・上書きしません。
-- Evaluatorはchallenge-specific manifestを必ず優先し、存在しない場合だけlegacy generic manifestを読みます。
+- Official v1は`1 run_id = 1 challenge`です。Benchmark Manifestは同じCanonical Run Rootの
+  `trusted/benchmark-manifest.json`だけを正本とし、同じ`run_id`へ別Challengeを静かに
+  上書きしません。
+
+Learner-safe InputはManifestのhash一致だけでなく、Benchmark Manifestから導出したcanonical
+allowlisted file／directory setとの完全一致を要求します。Isolated Runner Rootもfrozen inputから
+導出されるcanonical setだけを許可します。Official Artifact／Trusted EvidenceのpathはCanonical
+Run Rootからleafまでancestor directory symlinkを許可しません。
+
+### Official Black-box Scored artifact chain
+
+Official v1では、次のartifactを同じRun IDへCanonical JSONとして保存します。
+
+```text
+.artifacts/agentic-qa/<run_id>/
+├─ input/
+│  ├─ runner-input.json
+│  ├─ learner-safe-input-manifest.json
+│  ├─ output-contract.json
+│  ├─ scored-skill.md
+│  ├─ runbook.md
+│  ├─ challenge/challenge.json
+│  └─ specification/**
+├─ trusted/
+│  ├─ benchmark-manifest.json
+│  ├─ runner-profile.json
+│  ├─ runtime-handoff-receipt.json
+│  ├─ prepared-target/target-runtime.json
+│  ├─ prepared-target/artifact-manifest.json
+│  ├─ initial-state-receipt.json
+│  ├─ host-capability-receipt.json
+│  ├─ learner-safe-input-artifact-manifest.json
+│  ├─ preparation/isolated-run-root-artifact-manifest.json
+│  ├─ bootstrap-operations.json
+│  ├─ runtime-control-operations.json
+│  └─ resource-boundary-probe.json
+├─ runner/
+│  ├─ runner-session.json
+│  ├─ output/qa-findings.json
+│  ├─ output/evidence/**
+│  ├─ evidence-mapping.json
+│  ├─ execution-summary.json
+│  ├─ artifact-manifest.json
+│  └─ frozen-runner-artifact.json
+└─ evaluation/
+   ├─ evaluator-session.json
+   └─ evaluation.json
+```
+
+`canonical-json.ts`がobject key order、UTF-8/LF、trailing newline、duplicate-key
+拒否を含む共有Serializerです。Runtime VariantはBenchmark Revision digestから除外し、
+`challenge_id + benchmark_revision + runtime_variant_id`のIdentity dimensionとして扱います。
+`host-capability-receipt.json`がない、またはrequired proofが`proven`でない場合は、
+他の準備artifactが揃っていても`valid_for_scoring=false`です。unknown / unmeasured /
+not executedを推測でPASSへ変換しません。
+
+`trusted/learner-safe-input-artifact-manifest.json`は`input/**`全体（Manifest自身を除く）
+のfile set／byte hashをfreezeし、Official verifierは評価時にも実FSと完全一致させます。
+Host Capability Receiptの`learner_safe_input_artifact_sha256`はこのManifestの
+`artifact_sha256`と一致しなければなりません。同様に
+`trusted/preparation/isolated-run-root-artifact-manifest.json`はRepository-side
+preflight rootの完全なfile setをfreezeします。trusted evidence_refはcurrent runの
+`trusted/**`配下にある実regular fileへ解決できる場合だけproofとして扱います。
+Official verifierへ渡すartifact pathもCanonical Run Root内に限定し、required artifactや
+evidenceのsymlink、Run Root外参照、cross-run参照は受理しません。
 
 ## Runner Completion Options
 

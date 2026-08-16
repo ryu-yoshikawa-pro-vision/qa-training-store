@@ -13,6 +13,8 @@
 
 **このモジュールでは、このリポジトリ `qa-training-store` と、その実際のPull Request構成を使用します。**
 
+レビューのOracleは [`docs/spec/README.md`](../../../spec/README.md)、対象FeatureのBR / AC、Competency Rubricです。Training変更は `training/`とTraining Configへ置き、Formal Regressionへ混在させません。
+
 教材用に別のテスト対象へ切り替えません。
 
 ただし、受講者が `ryu-yoshikawa-pro-vision/qa-training-store` 本体へのPush権限を持つことは前提にしません。
@@ -129,7 +131,7 @@ Scenario Shop本体では、現在のCIで次のような検証があります�
 
 ここでは詳細Workflowをまだ作り込まず、PRと自動検証結果が紐付く仕組みを理解します。
 
-重要なのは、本体RepositoryのChecksをそのまま演習環境へ複製することではありません。後続モジュールでは、SecretsやDeployに依存しない最小の演習用CIから始めます。
+重要なのは、本体RepositoryのChecksをそのまま演習環境へ複製することではありません。`training:copy:prepare`へ完全なSource SHAを渡し、active Workflowを `training-ci.yml` / `training-native-ci.yml`の2件へ限定したうえで、SecretsやDeployに依存しないTraining CIをReviewします。
 
 ## Lesson 7: Merge判断
 
@@ -188,3 +190,4 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 - Pull Requestの役割を説明できる。
 - Test変更をReviewする観点を5つ以上挙げられる。
 - PR本文へTest Designとの対応とValidationを記録できる。
+- 将来の任意Operational validationとしてDelivery Readinessを扱う場合、Web / Android baselineのPASSとexpected-failureの実際のFAILを別の結論として扱える。

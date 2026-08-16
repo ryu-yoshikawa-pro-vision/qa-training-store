@@ -14,15 +14,17 @@
 
 主な参照先:
 
-- `playwright.config.ts`
-- `output/playwright/`
-- `e2e/web/`
+- `playwright.training.config.ts`
+- `training/playwright/baseline/`
+- `training/playwright/failure-exercises/`
+- `output/training/playwright/`
+- `playwright.config.ts` / `output/playwright/`（Formal比較教材）
 
 Part 1-5と同様に、この段階では `e2e/web/fixtures.ts` の内部設計は読み解きません。Training Test HarnessがSeed Scenario Resetや必要なEvidence収集を提供する前提で、まずFailureを観測・分類・改善することに集中します。
 
 ## 実行コマンドの扱い
 
-現行Repositoryには、正式Regressionを目的別に実行するScriptがあります。
+現行Repositoryには、Formal RegressionとTrainingを目的別に実行するScriptがあります。
 
 例:
 
@@ -33,9 +35,9 @@ pnpm run test:a11y
 pnpm run test:e2e:cross-role
 ```
 
-これらは**既存Suiteの構成を理解するための教材**です。
+これらは**既存Suiteの構成を理解するためのFormal比較教材**です。
 
-Part 1で受講者自身が作成したTraining用specは、教材提供時に用意されるTraining専用の実行入口で実行します。現行Scriptが受講者の新規specを自動的に実行するものとは扱いません。
+Part 1で受講者自身が作成したTraining用specは、`PLAYWRIGHT_BASE_URL`をTraining Runtimeへ向け、`pnpm run training:web:baseline`または対象specをTraining Configで実行します。Formal ScriptがTraining specを自動的に実行することはありません。
 
 ## Lesson 1: テストを目的別に実行する
 
@@ -81,7 +83,7 @@ Scenario Shopの設定ではFailure時のTraceを保持します。
 - Assertion時の画面はどうなっていたか。
 - NetworkやConsoleに異常がなかったか。
 
-Training実行環境でも同等のEvidenceを取得できることを教材要件とします。
+Training実行環境では `output/training/playwright/`へTrace、Screenshot、Video、HTML Reportを保存します。
 
 ## Lesson 4: Screenshot / Video
 

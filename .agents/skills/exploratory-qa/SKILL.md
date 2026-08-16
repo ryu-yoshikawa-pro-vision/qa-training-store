@@ -59,6 +59,13 @@ If the active Coding Agent Runtime cannot provide those Black-box capabilities,
 the Official Scored Run is `BLOCKED`; do not implement a repository-specific
 LLM wrapper or Agent Runner to bypass the blocker.
 
+For Official v1 the Runner-visible skill is the exact, hash-verified
+`training/agentic-qa/skills/scored-v1.md` snapshot packaged under the current
+run's learner-safe input. This repository-level skill is an operator-facing
+mode-selection and preparation guide; it is never a fallback for the Scored
+Skill, and the Runner must not read `.agents/skills/**`, `QA_AGENT.md`, source,
+Answer Keys, patches, or prior run artifacts.
+
 Do not treat a repository-level readonly boundary as Black-box isolation. Do
 not expose source, `.git`, tests, patches, Answer Keys, build artifacts,
 search, generic shell, arbitrary browser evaluation, network response bodies,
@@ -213,9 +220,11 @@ Charter creation / validation
 ```
 
 Use same-format snapshots from the same Run and Mode. For Black-box,
-Preparation may create a disposable patched runtime, learner-safe bundle,
-isolated root, Tool Profile, and Forbidden Capability Probe; it does not create
-or launch the Coding Agent Session.
+Preparation may create a disposable patched runtime, protected-patch receipt,
+Source-free Prepared Target, Canonical Artifact Manifest, learner-safe input,
+isolated root, Tool Profile, and Forbidden Capability Probe; it does not create,
+launch, wrap, or manage the Coding Agent Session. Host Capability, Fresh Context,
+Budget, and constrained output claims must come from trusted Host receipts.
 
 All run artifacts use repo-relative references. Raw screenshots, traces, ADB
 logs, and MCP logs belong under `.artifacts/`, not in durable Run Artifact

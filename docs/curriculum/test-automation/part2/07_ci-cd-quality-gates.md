@@ -21,6 +21,8 @@
 - `.github/workflows/native-ios-ci.yml`
 - `tests/contracts/ci-workflow.test.ts`
 - `tests/contracts/native-ci-workflow.test.ts`
+- `scripts/validate-curriculum.ts`
+- `training/github-actions/`
 - Cloudflare Pages Preview / Production経路
 
 ## Lesson 1: Quality Gate
@@ -151,6 +153,8 @@ Scenario Shopの`verify` / `validate`ではJob Resultを明示的に確認しま
 
 「Workflowが最後まで走った」ことと「必要条件がすべて成功した」ことを区別します。
 
+Curriculum側でも `validate:curriculum`、Training Web baseline、Training Maestro baselineをRequired経路へ接続します。Intentional FailureはManual / Instructor向けの実際のFAILを確認するためのもので、通常のRequired PASSへ混在させません。
+
 ## Lesson 9: 並列化
 
 独立した処理は並列化するとWall-clockを短縮できます。
@@ -275,3 +279,4 @@ Scenario Shopの現在のWeb CI/CDを図示します。
 - Scenario ShopのWeb CI/CD経路を図示・説明できる。
 - Build Artifact、Preview、Production、Smokeの関係を説明できる。
 - 品質Gateを弱めないCI改善案を1件以上説明できる。
+- Android Build + Runtime E2EとiOS Build-onlyのQuality Gate差を説明できる。

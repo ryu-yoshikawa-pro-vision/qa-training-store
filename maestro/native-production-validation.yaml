@@ -1,7 +1,6 @@
 appId: com.ryuyoshikawa.scenarioshop
 ---
-- launchApp:
-    clearState: true
+- launchApp
 - extendedWaitUntil:
     visible: "Scenario Shop"
     timeout: 30000

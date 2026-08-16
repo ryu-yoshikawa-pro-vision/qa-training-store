@@ -271,15 +271,19 @@ Repository実装前のWave 0で、以下のCapability Matrixを**実測**する�
 | duration accounting | | | | | |
 | top-level tool action accounting | | | | | |
 
-必要Capabilityが1つでも満たせなければWave 1以降へ進まない。
+Host Capability不足はOfficial executionへ進めない条件である。ただし、Repository-side
+deterministic contract implementation／準備／検証はHostなしでも進めてよい。
 
 ```text
 sufficient
-→ implementation start
+→ Repository implementation / deterministic validation may proceed
+→ Official execution and valid_for_scoring=true may proceed only after Host Gate PASS
 
 insufficient
 → Official Run = BLOCKED
-→ Custom Runnerを作らず終了
+→ no fake receipt
+→ no fake score
+→ Official score = NOT EXECUTED
 ```
 
 ---
@@ -997,15 +1001,28 @@ Cross-session / wrong runtime / wrong role / stale receiptをrejectする。
 
 ## 18. Runner Input / Output Contract
 
-Runner root:
+Official Runner-visible Artifact RootはCanonical Run Rootの`input/`と`runner/`で分離する。
 
 ```text
-isolated-run-root/
-  input/      # learner-safe read-only
-  output/     # constrained write only
+.artifacts/agentic-qa/<run_id>/
+  input/**    # learner-safe frozen input; read-only
+  trusted/**  # Preparation / Host evidence; Runner write禁止
+  runner/**   # constrained output only
+  evaluation/**
 ```
 
-Runnerは `output/**` 以外へwriteできない。
+Preparation内部の`trusted/preparation/isolated-run-root/`はrepository-side preflight用であり、
+RunnerへRuntime Artifact、Source、`node_modules`を公開しない。Runnerは`runner/output/**`以外へwriteできない。
+
+`trusted/learner-safe-input-artifact-manifest.json`は`input/**`全体のbytes／file setをfreezeし、
+`trusted/preparation/isolated-run-root-artifact-manifest.json`はpreflight rootをfreezeする。
+Official verifierは両Manifestを実FSと比較し、Host Receiptの
+`learner_safe_input_artifact_sha256`とtrusted evidenceの実体も同じRun Rootへbindする。
+Runner-visible snapshotのChallengeは`input/challenge/challenge.json`へ固定し、
+`runner-input.json`／Learner-safe ManifestのChallenge hashと実byteをOfficial verifierで再検証する。
+さらにInputとisolated rootはManifestへ含まれる任意の追加ファイルを許容せず、導出された
+canonical file setと完全一致させる。Canonical Run RootからArtifact／Evidence leafまでのancestor
+directory symlinkもfail-closeする。
 
 必要ならTool Profileへ `runner_output_write` を追加するが、これはGeneric File WriteではなくHostによるpath-confined write capabilityとする。
 
@@ -1022,7 +1039,7 @@ Runnerは `output/**` 以外へwriteできない。
 
 ## 19. Runner Evidence Mapping Contract
 
-現行Evidence Contractは `.artifacts/**` canonical refを正本としている。
+Official Evidence Contractは`.artifacts/agentic-qa/<run_id>/runner/evidence/**`のcanonical refを正本としている。
 
 Runner physical filesystemとfinal canonical Evidence Refを1:1 mappingする。
 
@@ -1049,7 +1066,7 @@ canonical ref
 ↔ expected physical output path
 ```
 
-の対応を検証し、physical fileを`.artifacts/**`へcopy/importする。
+の対応を検証し、同じCanonical Run Rootの`runner/output/evidence/**`へcopy/importする。
 
 Screenshot等のHost Runtime ToolもこのMappingへ従う必要がある。
 
@@ -1079,6 +1096,7 @@ Directory / Permissionでも分離する。
 
 ```text
 .artifacts/agentic-qa/<run_id>/
+  input/**
   trusted/**
   runner/**
   evaluation/**
@@ -1296,35 +1314,40 @@ Official verification failure時は `valid_for_scoring=false`、metricsは有効
 
 ```text
 .codex/runs/<run_id>/
-  challenge reference
-  learner-safe-spec-bundle.json
-  benchmark-manifest-<challenge_id>.json
-  runner-profile.json
-  qa-findings.json or frozen ref
-  evaluation.json
-  REPORT.md
+  PLAN.md / TASKS.md / REPORT.md / run.json
 
 .artifacts/agentic-qa/<run_id>/
-  trusted/
+  input/
     runner-input.json
     learner-safe-input-manifest.json
-    runtime-variant.json
-    target-runtime.json
-    prepared-artifact-manifest.json
-    runner-session.json
-    forbidden-probe.json
+    output-contract.json
+    scored-skill.md / runbook.md / specification/**
+  trusted/
+    benchmark-manifest.json
+    runner-profile.json
+    learner-safe-input-artifact-manifest.json
+    preparation/isolated-run-root-artifact-manifest.json
+    host-capability-receipt.json
+    runtime-handoff-receipt.json
+    prepared-target/{target-runtime.json,artifact-manifest.json}
     resource-boundary-probe.json
     initial-state-receipt.json
-    runner-execution-summary.json
+    bootstrap-operations.json
     runtime-control-operations.json
-    prepared-target/**
   runner/
-    qa-findings.json
-    evidence/**
-    frozen-runner-artifact-manifest.json
+    output/{qa-findings.json,evidence/**}
+    evidence-mapping.json
+    execution-summary.json
+    artifact-manifest.json
+    frozen-runner-artifact.json
   evaluation/
-    evaluator-execution.json
+    evaluator-session.json
+    evaluation.json
 ```
+
+Official v1は`1 run_id = 1 challenge`とし、Challenge-specific hidden subrootや
+run root直下の別layoutは生成しない。`evaluation.json`の正本は
+`.artifacts/agentic-qa/<run_id>/evaluation/evaluation.json`である。
 
 `runtime-control-operations.json` は探索中Runtime Controlが使われた場合のtrusted operation logとし、未使用時は空配列または明示的な未使用状態をMachine Contractで固定する。
 
@@ -1362,7 +1385,8 @@ Official verification failure時は `valid_for_scoring=false`、metricsは有効
 - duration / budgeted top-level tool action accounting
 - bounded final output finalization
 
-未達ならRepository Implementationを開始しない。
+未達ならOfficial executionを開始しない。Repository-side deterministic contract implementation
+とその検証は継続できるが、未取得Host証跡をRepository自己申告で補完しない。
 
 ---
 
@@ -1392,9 +1416,14 @@ Official verification failure時は `valid_for_scoring=false`、metricsは有効
 Exit:
 
 ```text
-sufficient → Wave 1
-insufficient → BLOCKED / STOP
+sufficient → Repository deterministic implementation may proceed
+sufficient + all Host evidence → Official execution / scoring may proceed
+insufficient → Official execution BLOCKED / no fake receipt / no fake score
 ```
+
+Repository-side deterministic implementation may proceed without Host evidence. Official executionと
+`valid_for_scoring=true`だけが全Host Capability evidenceを要求し、Host Gate missingは
+Official execution BLOCKED、fake receiptなし、fake scoreなしとする。
 
 ### Wave 1 — Machine / Identity / Ownership Contracts
 
@@ -1461,23 +1490,25 @@ insufficient → BLOCKED / STOP
 
 Exit: Runner inputだけでScored workflowを理解でき、Runner-visible値の変更が`runner_input_sha256`へ反映される。
 
-### Wave 3 — Source-free Runtime / Canonical Hash / Protected Patch
+### Canonical Scored Preparation Sequence
 
-1. Disposable Source
-2. Protected Path validation
-3. Baseline Build / Sanity
-4. Patch Apply
-5. Patched Build / Sanity
-6. `dist/**` copy
-7. prohibited artifact / nested symlink検査
-8. Canonical File Manifest / hash
-9. Disposable Source cleanup
-10. Runtime start from Prepared Artifact only
-11. hash reverify
-12. readiness
-13. Runtime Variant / Origin確定
-14. actual served resource URL discovery / negative probe準備
-15. cleanup test
+すべてのChallengeで次の一列を使い、コード、Contract、Runbook、QA_AGENT.md、Workflowの
+記述を分岐させない。
+
+1. machine contract / Challenge / Spec validation
+2. Protected Patch validation
+3. learner-safe Specification Bundle / Benchmark identity input確定
+4. disposable source / dependency preparation
+5. baseline build + pre-patch sanity
+6. patch apply
+7. patched build + post-patch sanity
+8. scored initial-state deterministic reset/sanity
+9. source-free Prepared Target artifact copy/hash/validation
+10. learner-safe Runner Input / Skill / Runbook / Output Contract freeze
+11. isolated Runner Rootをfrozen inputから構築
+12. repository-side forbidden-boundary preflight
+13. disposable source cleanup
+14. Host-trusted Runtime/Capability handoffが存在する場合だけOfficial executionへ進む
 
 ### Wave 4 — Trusted Initial State Bootstrap
 
@@ -1980,10 +2011,11 @@ Hostがtrusted / machine-readableに以下を提供・enforceできる
 - Budget Accounting
 - Bounded Finalization
         ↓ YES
-Official Black-box Scored E2EをSkill-firstで実装する
+Official Black-box Scored execution / scoring may proceed
 
         ↓ NO
-Official RunはBLOCKEDのまま維持する
+Repository deterministic contractsは実装・検証できる
+Official RunはBLOCKED、Official scoreはNOT EXECUTEDのまま維持する
 Custom Agent Runnerは作らない
 ```
 

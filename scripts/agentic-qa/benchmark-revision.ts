@@ -12,6 +12,7 @@ import {
   type Challenge,
   type RunnerProfile,
 } from "./contracts";
+import { canonicalJson, sha256Bytes } from "./canonical-json";
 import type { LearnerBundle } from "./build-learner-bundle";
 
 export type WorkingTreeEntry = {
@@ -95,7 +96,12 @@ function parseStatusRecord(
       throw new Error("Git status rename/copy record is missing its source path");
     return [entryFor(rootDir, "D", renameSource), entryFor(rootDir, "A", rawPath)];
   }
-  if (statusCode === "??" || statusCode.includes("A")) return [entryFor(rootDir, "A", rawPath)];
+  if (statusCode === "??") return [entryFor(rootDir, "A", rawPath)];
+  // An index-added/worktree-deleted (AD) record represents the current
+  // filesystem as deleted, so it must not be emitted as an added entry with a
+  // missing digest while the user is resolving a rebase conflict.
+  if (statusCode[1] === "D") return [entryFor(rootDir, "D", rawPath)];
+  if (statusCode.includes("A")) return [entryFor(rootDir, "A", rawPath)];
   if (statusCode.includes("D")) return [entryFor(rootDir, "D", rawPath)];
   return [entryFor(rootDir, "M", rawPath)];
 }
@@ -137,13 +143,14 @@ function manifestFile(rootDir: string, relativePath: string): { path: string; sh
   return { path: relativePath, sha256: sha256File(absolutePath) };
 }
 
-function canonicalJson(value: unknown): string {
-  return `${JSON.stringify(value, null, 2)}\n`;
-}
-
 function canonicalBenchmarkRevisionInput(manifest: BenchmarkManifest): string {
-  const { runner_profile: ignoredRunnerProfile, ...revisionInput } = manifest;
+  const {
+    runner_profile: ignoredRunnerProfile,
+    runtime_variant_id: ignoredRuntimeVariant,
+    ...revisionInput
+  } = manifest;
   void ignoredRunnerProfile;
+  void ignoredRuntimeVariant;
   return canonicalJson(revisionInput);
 }
 
@@ -178,6 +185,7 @@ export function createBenchmarkRevision(input: {
   void input.runnerProfile;
   const challengePath = `training/agentic-qa/challenges/${input.challenge.challenge_id}/challenge.json`;
   const answerKeyPath = `training/agentic-qa/instructor/answer-key/${input.challenge.challenge_id}.json`;
+  const runbookPath = `training/agentic-qa/challenges/${input.challenge.challenge_id}/runbook.md`;
   const patch = input.patchPath === null ? null : manifestFile(input.rootDir, input.patchPath);
   const manifest = parseJsonWithSchema(
     {
@@ -190,17 +198,15 @@ export function createBenchmarkRevision(input: {
       challenge: manifestFile(input.rootDir, challengePath),
       answer_key: manifestFile(input.rootDir, answerKeyPath),
       challenge_patch: patch,
+      runbook: manifestFile(input.rootDir, runbookPath),
       runtime_variant_id: input.runtimeVariantId,
     },
     benchmarkManifestSchema,
     "benchmark manifest",
   );
   const serialized_manifest = canonicalJson(manifest);
-  const digest = crypto
-    .createHash("sha256")
-    .update(canonicalBenchmarkRevisionInput(manifest), "utf8")
-    .digest("hex");
-  let revision: BenchmarkRevision["revision"] = `sha256:${digest}`;
+  const digest = sha256Bytes(canonicalBenchmarkRevisionInput(manifest));
+  let revision: BenchmarkRevision["revision"] = digest;
   const entries = manifest.working_tree_entries;
   const tracked = (relativePath: string): boolean => {
     try {
@@ -260,6 +266,6 @@ export function sameRunnerCondition(
 ): boolean {
   return (
     sameBenchmarkIdentity(leftIdentity, rightIdentity) &&
-    JSON.stringify(leftRunnerProfile) === JSON.stringify(rightRunnerProfile)
+    canonicalJson(leftRunnerProfile) === canonicalJson(rightRunnerProfile)
   );
 }

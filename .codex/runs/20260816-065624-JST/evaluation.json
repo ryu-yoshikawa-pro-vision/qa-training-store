@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "run_id": "20260816-065624-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation",
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "現在のconflict fileはworking tree上で解消されmarkerもないが、rebase todoにはPR #23の後続4 commitが残っており、全rebase完了状態ではない。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "mainのScreen Catalog、Visual Specification、Curriculum、Training Environmentを保持し、PR #23のAgentic QA境界へ限定した。Git index/history mutation、custom runner、Trust Boundary緩和は行っていない。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "preparation、validator、typecheck、lint、spec、securityはPASSした。一方、最新mainから変更のないWindows CRLF依存testが1件失敗し、後続commitが追加するfully-rebound suiteは未適用で未実行である。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "許可されたread-only Git commandだけを使用し、ファイル編集はapply_patchまたは対象限定のPrettierに留めた。公式Host ReceiptのないSynthetic fixtureをOfficial PASSへ昇格していない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "conflict判断、ADR番号整理、AD status parserの原因と修正、検証結果、未適用commitの制約をPLAN/TASKS/REPORT/evaluationへ記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "ADをworktree削除として扱う最小条件分岐と回帰testだけを追加し、既存のBenchmark revision contractを変更していない。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "lockfile固定offline install後は依存解決が再現したが、Windows CRLFと全体format baselineのためmain既存ゲートに環境差が残る。"
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "test:contractsは最新mainから変更のないtraining-curriculum.test.tsの`- launchApp\\n`固定assertionがCRLF入力で失敗し、246 testsは通過した。",
+      "detail": "main側のNative YAML/testを今回のconflict解消で改変せず、Windows baseline/environment issueとして保留した。"
+    },
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "official-artifact-chain.test.tsとidentity bindingの実装はrebase todoの後続commitに存在するが、現在のworking treeにはまだ適用されていない。",
+      "detail": "ユーザーが現conflictをstageしてrebase --continueした後、後続commit適用後にfully-rebound 3ケースとpositive Official chainを実行する。"
+    }
+  ],
+  "improvement_candidates": []
+}

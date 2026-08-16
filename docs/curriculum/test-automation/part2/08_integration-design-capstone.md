@@ -18,7 +18,7 @@ Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Maestro�
 
 - Web `ci.yml`: PR / main / schedule / manualを含むWeb CI/CD。
 - Android `native-ci.yml`: PR / manualで動くNative CI。
-- iOS `native-ios-ci.yml`: 現時点では `workflow_dispatch` による手動実行のiOS CI baseline。
+- iOS `native-ios-ci.yml`: 現時点では `workflow_dispatch` による手動実行のiOS Build-only baseline。
 
 特に、iOSが現在PR Required Gateへ自動的に入っていると誤解しないようにします。
 
@@ -36,7 +36,7 @@ Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Maestro�
 >
 > しかし、自動テストの実行は担当者が必要に応じて手動で行っており、Merge前に必ず実行される保証はない。
 >
-> WebはBuildして公開し、NativeはAndroid / iOSでBuild・実行する必要がある。
+> WebはBuildして公開し、NativeはAndroidでBuild + Runtime E2E、iOSでBuild-onlyの保証を設計する必要がある。
 
 この状態からCI/CD設計を作成します。
 
@@ -63,7 +63,7 @@ Repositoryを確認し、次を一覧化します。
 - Web Automation Build
 - Web Production Build
 - Android Build
-- iOS Simulator Build
+- iOS `iphonesimulator` Build Artifact
 
 ### Deploy
 
@@ -179,7 +179,7 @@ Part 2-6でAndroidのTraining Native Workflowを実際に動かした経験を�
 | Gradle Build | Gradle Log |
 | APK Install | adb / Runtime Log |
 | Maestro Assertion | JUnit / Screenshot |
-| iOS Launch | simctl / Xcode Log |
+| iOS Build | Xcode Build Log / Build Artifact |
 | Deploy | Deploy Log / URL |
 | Deploy後Smoke | Playwright Evidence |
 
@@ -280,8 +280,8 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 6. Artifact再利用
 7. Native変更判定
 8. Android Build / Runtime境界
-9. iOS Simulator経路
-10. iOSが現在Manual baselineである理由と将来の配置候補
+9. iOS Build-only経路
+10. iOSが現在Manual baselineである理由と将来の配置候補（Runtime PASSとは別）
 11. Preview / Production
 12. Failure Evidence
 

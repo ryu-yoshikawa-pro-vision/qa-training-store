@@ -300,7 +300,7 @@
 
 ## PR #14追加指示後の現行Runtime／Artifact契約（2026-08-09）
 
-- Android Automationの全16 Flowは、`launchApp(clearState: true)`後に既存の`Native test runtime listening`を30秒待ってから`Scenario Shop`を確認する。Production FlowはRuntime listeningを待たず、`Scenario Shop`を30秒待ってからRuntime／Test Control／Contract Harnessの非表示を確認する。
+- Android AutomationのFormal Flowは、`scripts/native/android-maestro-run.sh`でforce-stop→`pm clear`→再force-stop→PID消失確認を完了してからMaestroを起動する。Training baselineも同じstartup helperを使い、Automation APK上で実行してからProduction-validation APKへ進む。Production FlowはRuntime listeningを待たず、`Scenario Shop`を30秒待ってからRuntime／Test Control／Contract Harnessの非表示を確認する。
 - iOS正式CIはBuild-onlyのまま、Automation／Productionの生成`.app`についてSource側Resolved metadataに加えて、`EXConstants.bundle/app.config`のembedded `appEnvironment`／`buildKind`／`testMode`を直接検証する。Production marker Bundle Guard、固定名Artifact、fail-close Build Gateは維持する。
 - Iteration 29でこの起動順序とembedded metadataをContractへ追加し、focused 61 tests、全Contract 173 tests、全local verify、Android RuntimeSuite／BoundarySuite各5/5をPASSした。Maestro-MCPはDevice Server `UNAVAILABLE`だったため、同一端末のLocal Runbook CLI結果で代替確認した。
 
@@ -339,6 +339,14 @@
 - この文書はプロジェクト固有の実態に合わせて上書きしてよい。
 - 標準経路は host 上の `codex-safe` / `codex-task --run-id <run_id>`。Docker sandbox は experimental かつ opt-in。
 
+## Screen Catalog / Visual Specification（2026-08-12）
+
+- Current `app/**` route scanはCatalog Universe 38件（Product 31、Supporting 4、Boundary 2、Test-only 1）で、`docs/spec/screen-catalog.md`へ固定した。Catalogはindexであり、Expected Product BehaviorのSSOTではない。Normative ownerは各Feature / root SpecificationのScreen Contractとし、cross-cutting `native-customer.md`はScreen Stateを所有しない。
+- `scripts/spec/visual-registry.ts`はCapture Case metadataとPlatform単位statusを持ち、`scripts/spec/visual-contract.ts`はCatalog / owner / state / target / asset / Markdown reference / routeのintegrityをfail-closeで検証する。ScreenshotはNon-normative Referenceであり、Product Bugや未解決behaviorをcanonicalizeしない。
+- 既存UI Reviewを再利用したWeb captureでCanonical WebP 69件を生成した。Markdownと`output/spec-site`のGenerated HTMLはactual image、lazy loading、canonical assetへのclick-throughを持つ。Repository asset budgetは1件1 MiB以下、合計100 MiB以下で検証する。
+- Android canonical profileはNative CIのAPI 34 / `google_apis` / `x86_64` / `pixel_2`、ja-JP、font scale 1.0、light、portraitとし、`workflow_dispatch`の`capture_spec_visuals=true`だけでRaw PNG + source SHA + Automation APK SHA-256 manifestを生成する。Physical Androidはpromotion inputではない。
+- この実装Runでは、Windows local Release buildの初期失敗を明示Virtual Store引数で修正し、API30 ARM physical deviceのRelease Build／Install／Smoke／Runtime／Boundary／Purchaseはpassedした。ただしAPI34／`google_apis`／`x86_64`／`pixel_2` emulator、AVD、API34 system imageはlocalに存在せず、Android 25 targetはcanonical capture未実行のblockedを維持する。Review FlowはMaestro-MCPの段階診断で、先頭から7件目への`speed: 10` timeoutと物理日本語IMEの非同期dismiss raceを分離し、`maestro/native-review.yaml`へ最初のscrollの`speed: 50`、animation待機、IME表示時だけの条件付きBackを反映した。標準Native入口でReview Flow 1/1を確認したが、Physical deviceはcanonical promotion inputではない。Webのcheckout processingは当初blocked登録だったが、2026-08-13の現worktree fresh UI ReviewでProcessing見出しをready判定し、canonical WebPとMarkdown referenceを生成した。Review repair前の履歴ではformatter-only baseline normalization後の`pnpm run verify`までpassedしているが、現在はFinal GateがAndroid target未完了をfail-closeする。詳細は`docs/history/2026-08-13_004500_screen-catalog-review-maestro-mcp.md`、最新Run REPORT、ADR-0013を参照する。
+
 ## PR #16 Skill-first + Harness-backed architecture (2026-08-10)
 
 - Agentic QAのPrimary Entry PointはCoding Agent + Exploratory QA Skillである。Normal／Gray-boxを日常QAのPrimary Use Caseとし、Black-box Scoredは評価用途に限定する。
@@ -358,3 +366,74 @@
 - 実装・修正作業は、完了報告の前にリポジトリで定義された全品質ゲートとテストを実行する。通常のローカル入口は`pnpm run verify`とし、CIの変更パス条件で追加されるゲート（例：Native変更時の`pnpm dlx expo-doctor@1.17.6`、Native／E2E／Artifact検証）も該当する場合は省略しない。未実行のゲートをPASSとして扱わず、実行できない場合は理由と次の実行者・アクションを報告する。
 - 品質ゲートのエラーは、当該作業の直接範囲外に見えても自動的に保留しない。Baseline、現在の差分、共有依存、CI／テスト契約、実行環境を調査し、現在の変更が原因である、または検証に不可欠である場合は現在の作業で最小修正する。真に無関係・環境依存・unsafe・要件判断が必要な場合だけ、根拠、未実行検証、残差、次の対応をRun Artifactと完了報告へ記録する。
 - 完了報告には、実行した全ゲート／テストのコマンドと結果、警告、未実行項目、主要変更ファイルを含める。ローカル環境固有の警告はリポジトリ起因のFailureと混同せず、CI相当条件での再確認結果とともに記録する。
+
+## PR #23 Official Black-box Scored E2E Repository Contract（2026-08-13）
+
+- Official Black-box Scored E2EのRepository側基盤として、Shared Canonical JSON、Canonical Artifact Manifest、Runtime Variant Registry、Protected Patch、Source-free Prepared Target、Learner-safe Scored Skill／Runner Input、Initial State Bootstrap、Runtime Control、Output／Evidence Mapping／Freeze、Strict Official Verificationを実装した。
+- Benchmark RevisionのdigestにはRuntime Variantを含めず、Benchmark Identity、Prepared Target、Runner Input、実ブラウザ条件では独立したIdentity dimensionとして扱う。Runner-visibleな変更はCanonical `runner-input.json`のhashへ反映する。
+- Official Host証跡はRepository自己申告で補完しない。Fresh Session／Context、no-inheritance、Actual Tool Scope、Tool Isolation、Origin／Resource Boundary、source-free root、constrained output、exact Scored Skill source／revision／fallback禁止、Browser Variantをtrusted Host Receiptで検証し、欠落・不一致・未実行Probeはfail-closeする。Repository独自Agent Runner／LLM wrapperは追加しない。
+- Disposable Source buildは、Windowsではoffline local installを使い、Linux/macOSではroot `node_modules` directory topologyを一時symlinkで再利用する。Linux CIのpnpm／tsxリンク解決を壊さず、Source cleanup後のLearner／Prepared Target／Runner rootへ`node_modules`やSourceは公開しない。
+- 2026-08-13時点のdeterministic validationでは、Official black-box contract 34 tests、served-dist contract 23 tests、Preparation 1/1、Spec validation／HTML build、Unit／Integration／Web Component、Security／Image ManifestがPASSした。Full TypeScriptには既存`/guide` route型エラー、Full Contractには環境の`node:sqlite` bundling failureが残る。Host-trusted Receipt未提供のため、Official E2E／scoreは未実行・未採点である。
+
+## Test Automation Curriculum / Training Environment（2026-08-12）
+
+- Required Curriculumは `docs/curriculum/test-automation/` の22文書へ固定した。`02_competency-rubric.md` はC01〜C12／Level 0〜3の評価正本、`03_instructor-reference.md` はExpected Contract、Alternative Design、Anti-pattern、Facilitation、Troubleshootingの公開Referenceである。Agentic QA教材はOptional ReferenceとしてRequired Part 1から分離する。
+- Expected Product Behaviorの教材Oracleは `docs/spec/` のNormative Specificationである。Current UI、既存Test、README、Observed Behaviorから新しい期待動作を逆算しない。Workbookは `training/workbook/` の4 CSVをcanonical templateとし、`spec_ref` → `br_ids` / `ac_ids` → `risk_id` → `test_case_id` → implementation / evidenceのTraceabilityを保持する。
+- Formal Webは `playwright.config.ts` / `e2e/web/`、Formal Nativeは `maestro/` を正本とする。Training Webは `playwright.training.config.ts` と `training/playwright/` の `training-chromium`／`training-mobile-chromium`へ分離し、Training Nativeは `training/maestro/`へ分離する。Intentional Failureは通常baselineへ混在させない。
+- Training Webの既定local runtimeはworktree専用の `PLAYWRIGHT_BASE_URL`（未指定時 `http://127.0.0.1:8082`）であり、Formal / Visual runtimeのPortを再利用しない。Training TypeScriptは `tsconfig.training.json` と `typecheck:training`を経由してRepository quality gateへ接続する。
+- `training/github-actions/` はSecret不要、Deployなし、`permissions: contents: read`、GitHub-hosted Ubuntu runnerのTraining Workflow Templateを持つ。Training Copyは完全なSource commit SHAを指定し、active Workflow allowlistを `training-ci.yml`／`training-native-ci.yml`の2件へ検証する。Production／Deploy Workflow、Secret、OIDC、EnvironmentはTraining Copyへ持ち込まない。
+- PR #25のRequired DoDはCurriculum / Training Environmentの完成とCurrent PR HEADのRequired CI・Local / CI Training baselineまでとし、Instructor管理remote Training Copy Delivery、Final Delivery 3 run、候補SHA freeze、SHA equality、Final Delivery RecordはFuture operational validation / optional instructor validationとして扱う。`prepare-training-copy` / `validate-training-copy`自体は安全な教材CopyのRequired Assetとして維持する。
+- Required Phase 1 CIは `validate:curriculum` とTraining Web baselineを実行し、Native CIは `training/maestro/**`をchange detectionへ含め、既存Android Runtime／Emulator／APK／Maestro基盤でTraining baselineを実行する。不要な第二Formal Native基盤は作らない。
+- GitHub Native CIのAndroid Training Runtimeは API 34 / `google_apis` / `x86_64`、単一の対象serial、package service ready、有限timeoutを必須とし、Maestro 2.8.0は展開先のnested `maestro/bin/maestro`をversion checkしてからbaselineを実行する。Windows Local runnerはPhysical DeviceをCanonicalとし、PATH上の`maestro.bat`をshell経由で解決して明示serialへFlowを渡す。Formal NativeのBuild／Runtime／cleanup契約を弱めず、Training専用の第二基盤は作らない。
+- Current Native GuaranteeはAndroid = Build + Runtime E2E、iOS = Build-only（ADR-0011）である。Curriculum、Training Evidence、完了報告のいずれもiOS Simulator／Maestro／Runtime PASSを記録しない。
+
+## PR #24 Screen Catalog / Visual Specification Review Repair（2026-08-13）
+
+- `pnpm run validate:spec`はStructural Validationであり、Catalog grammar、Screen ownership、State／Capture Case／Asset／Markdown reference／Oracle integrityを検証する。正当な`blocked`／`pending` Targetはここでは許容する。Structural PASSはVisual Specification完成を意味しない。
+- `pnpm run validate:spec-visuals:final`はFinal Completion Validationとして`pendingTargetCount === 0`、`blockedTargetCount === 0`、`capturedTargetCount === captureTargetCount`をfail-closeで要求する。`pnpm run verify`はこのFinal Gateを含むため、Android canonical captureが残る間は失敗することが正しい。
+- Visual ValidatorはCapture RoleとImportant UI State Audience、platform／audienceのallowlist順序と重複、Screen Contract inner grammar、`shared`のdirect required captured reference、Normative BR／AC／local anchor Oracle、Canonical image alt、1 MiB per asset／100 MiB total budgetを検査する。CatalogやRegistryへExpected Behaviorを複製しない。
+- Android manifestは期待値のコピーではなく、Native CI EmulatorのAPI／ABI／locale／font scale／UI mode／orientation／resolution／densityをruntime observationとして記録し、`validate-profile`と`validateAndroidVisualManifest`でCanonical Profileへ比較する。`system_image`と`avd_profile`はworkflow configuration由来としてmanifest provenanceへ明示する。
+- Android canonical expected resolution／densityはAPI 34 `google_apis` `x86_64` `pixel_2`のCurrent workflowに固定し、`1080x1920`／`440`を使用する。既存CI runではcaptureが無効でresolutionのruntime evidenceしか得られず、densityはPixel 2 AVD configurationとの照合値であるため、manual captureでruntime実測が一致するまでFinal DoDへ昇格しない。参照: [AOSP Pixel 2 AVD config](https://android.googlesource.com/platform/external/adt-infra/+/refs/heads/emu-master-dev/emu-image/templates/avd/Pixel2.avd/config.ini)。
+- Native manual dispatchには`capture_case_key`を追加し、`android-visual-capture.ts describe-case`でRegistryのroute／scenario／role／setup／ready／capture modeを解決する。PR CIはcaptureを実行しない。Artifact download後のmanifest／source SHA／APK SHA-256／profile／output path検証とdeterministic WebP promotionは`android-visual-capture.ts promote`を正式CLIとする。
+- Checkout Processing Web TargetはProduct codeを変更せず、既存UI Reviewの`payment-processing` scenario、route、ready headingを使ってfresh captureした。Targetは`captured`、canonical WebPとMarkdown referenceは存在する。Final DoDの残存blockerはAPI34 Android required targetsのみである。
+
+## PR #24 Review Repair iteration 2（2026-08-13）
+
+- Checkout Processing WebのCapture Caseは、`支払いを処理しています`のexact semantic headingだけをready conditionとして受理する。Failed headingを同じmatcherへ含めず、Product codeやFailed画面をcanonical化する変更は行わない。
+- Android Capture Caseは自然言語の`setup`／`ready`をshellで解釈しない。Registryからmachine-readableな`nativeSetupId`／`nativeReadyId`を解決し、既存Maestro subflowでguest cart／customer loginを実行し、role／route／ready conditionを実画面でassertした後だけscreenshotを取得する。Payment Processingは`customer-login-processing` setupで決済遷移の実行猶予を明示する。
+- `scripts/native/android-maestro-run.sh`はAndroid workflow専用の起動前処理としてforce-stop→`pm clear`→PID消失確認→Maestro launchを実行する。共通Maestro YAMLから`launchApp(clearState: true)`を除去し、iOS互換のdeep-link subflowは維持する。timeout増加や無条件retryではstartup raceを隠さない。
+
+## PR #24 Review Repair iteration 3（2026-08-13）
+
+- AndroidのCheckout Address／Payment／Confirm Capture Caseは、customer roleと`regular-member` scenarioだけを宣言して終わらせず、`customer-checkout-address`／`customer-checkout-payment`／`customer-checkout-confirm`のmachine setup IDへ接続する。各setupは既存customer loginとNative Checkout操作を再利用し、Addressでactive Checkout Sessionを開始し、Paymentで住所を確定し、Confirmで`TEST-SUCCESS`を選択してから、registryのcanonical routeとready testIDをassertする。
+- `native_checkout_step`と`CHECKOUT_STEP`はCapture CaseからMaestro subflowへ渡す実行契約であり、setupの自然言語をshellで解析しない。step固有の遷移が失敗した場合、screenshot取得・manifest生成・canonical promotionへ進まない。
+- このsetup追加はNative Product codeやFinal Gateを変更しない。API34／`google_apis`／`x86_64`／`pixel_2` Emulatorでの実測captureとpromotionが完了するまで、Android 25 Targetはblocked、Final Visual DoDはBLOCKEDのまま維持する。
+- Phase 1 CIのStyle Quality Required pathはStructural Validationの後にFinal Visual Specification gateを実行する。`validate:spec`のPASSは構造整合性のみを意味し、`validate:spec-visuals:final`／`verify`はpending／blockedが残る間fail-closeする。
+
+## PR #24 Review Repair iteration 4（2026-08-13）
+
+- `regular-member`のNative Test Control resetはcustomer Sessionと会員Cartを復元するため、Android visual captureではcustomer loginを重複実行しない。既存seedを使うTargetは`customer-seeded-session`、default／review／processingのようにguest seedからcustomer化が必要なTargetは既存`customer-login`系setupを使う。
+- Checkout visual setupは、seeded customer roleとbasic-shirt Cartをassertした後、Address画面でactive Checkout Sessionを開始する。Paymentは住所保存後に`native-checkout-payment-session-ready`、Confirmはconfirmationロード後の既存`native-checkout-confirm-submit`をassertしてからcaptureへ進む。
+- Native ready matcherはProduct ListとCategoryを専用heading testID（`native-product-list-heading`／`native-category-heading`）で分離する。Checkout Addressはactive session marker、Paymentはvalid session marker、Confirmはloaded confirmationのsubmit markerをroot testIDと併せて要求し、Shell navigationの同名ラベルやroute rootだけの誤受理を防ぐ。
+- これらはCapture Caseのmachine metadataと既存Native UI stateを一致させるための最小変更であり、Final Gate、Android canonical profile、startup helper、manual dispatch境界、Productの業務挙動は変更しない。API34 capture未実行中はAndroid 25 Target blocked／Final Visual DoD BLOCKEDを維持する。
+
+## PR #25 Windows Local Physical Device Canonical分離（2026-08-14）
+
+- Windows Local Fresh Learner / Part 1 NativeのCanonical Android Runtimeは、USB接続・ADB authorization済み・起動済み・画面ロック解除済みのPhysical Android Deviceである。複数端末時はserialを明示し、`scripts/native/windows/android-local.ps1 -RequirePhysicalDevice`がADB status、Emulator property、`app.config.ts`の`minSdkVersion`、ABI、package service、awake、unlockedをfail-closeで確認する。
+- Windows LocalのDevice ABIは`Auto`検出を維持し、arm64-v8a等へ固定しない。Build、APK integrity、Install、Smoke、Test Control、Training Maestro baseline、Evidenceは同じserialへ接続する。API 30は最低対応APIとして固定せず、`app.config.ts`をSource of Truthとする。
+- Windows LocalのAndroid Emulator / AVDはFresh Learner完了条件から外した。Local専用で未検証だった`scripts/training/android-emulator.ps1`は削除し、AVD作成・起動・cleanupの保証はGitHub Native CI Workflowへ限定する。
+- GitHub Native CIは従来どおりUbuntu GitHub-hosted runner上のAndroid API 34 / `google_apis` / `x86_64` Emulator、Formal Maestro、Training Maestro baselineを保証する。iOSは変更せずBuild-onlyである。Local Physical DeviceとCI Emulatorの結果を相互に代替しない。
+
+## PR #24 Android canonical batch capture infrastructure（2026-08-15）
+
+- Android manual captureはsingle case互換を維持しつつ、`capture_case_key=all`では`visual-registry.ts`からAndroid case keyをdeterministicに導出し、1 APK build／1 API34 Emulator／1 profile normalization／1 install上でcaseごとに既存reset・setup・route・role・ready・screenshot・manifestを実行する。25件をworkflow YAMLへ複製しない。
+- Batch artifactは`batch.manifest.json`とRegistryから導出したraw/per-case manifestを持ち、`complete=true`、expected/captured case set一致、source SHA、同一run APK SHA-256、API34 canonical profile、PNG存在を全件検証する。partial/incomplete/stale/mixed provenanceはpromotionせず、Final Gateへ昇格しない。
+- `apply:android-spec-visuals`は全件validation後にtemporary WebPを生成し、canonical pathへ反映する。Android statusはartifact存在から自動capturedにせず、実capture成功後の明示execution state変更でのみblocked→capturedへ遷移する。
+- State A実装直後はユーザーpush待ちであり、GitHub Actions canonical capture、25件promotion、Android status transition、Final Visual Gate PASSは未実行である。
+
+## PR #23 Official Artifact Chain再レビュー修正（2026-08-13）
+
+- Runner-visibleな`input/**`は、`trusted/learner-safe-input-artifact-manifest.json`でfile setとbyte hashをfreezeする。Official verifierはRunner Inputのrun／Challenge／spec／Runbook／Skill／Output Contract／self hash bindingと、入力snapshotの実FSを再検証する。Host Capability Receiptの`learner_safe_input_artifact_sha256`はこのManifestのartifact hashへexact bindする。
+- Repository-side `trusted/preparation/isolated-run-root/`も専用Manifestでfreezeし、frozen inputのspecification／Runbook／Challenge snapshotとのbyte identityを検査する。これはHost sandboxの証明ではなく、Host isolationの正本は引き続きTrusted Host Receiptである。
+- Prepared TargetはCanonical Benchmark Manifestのrevision／source HEAD／patch hashとRunner Inputのallowed originsへexact bindする。Trusted evidence_refはcurrent runの`trusted/**`にある非symlink regular fileへ解決できるものだけをOfficial proofとして受理する。
+- Official chainのgolden contract fixtureは、実Evidence file、別Evaluator session、`evaluateBlackBox()`の`valid_for_scoring=true`、空の`invalid_reasons`、非null coverage metricまで検証する。現HostのTrusted Capability不足はRepository実装を止めないが、Official execution／scoreはBLOCKED／NOT EXECUTEDのままとする。

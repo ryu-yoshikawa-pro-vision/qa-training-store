@@ -1,4 +1,5 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import type { CheckoutConfirmationDto } from "@/application/contracts/commerce";
 import { ApplicationError } from "@/application/errors";
 import type { CheckoutSession, ShippingAddressSnapshot } from "@/domain/contracts";
 import { router, useLocalSearchParams } from "expo-router";
@@ -100,7 +101,7 @@ describe("Native customer purchase screens", () => {
       }),
     );
     await waitFor(() => expect(mockRouterReplace).toHaveBeenCalledWith("/"));
-  });
+  }, 15_000);
 
   it("surfaces an unexpected checkout lookup error after login", async () => {
     const login = jest.fn().mockResolvedValue({ user: { role: "customer" } });
@@ -282,6 +283,7 @@ describe("Native customer purchase screens", () => {
 
     const screen = await render(<NativeCheckoutPaymentScreen />);
     await waitFor(() => expect(screen.getByTestId("native-checkout-payment-screen")).toBeTruthy());
+    expect(screen.getByTestId("native-checkout-payment-session-ready")).toBeTruthy();
     await act(async () => {
       fireEvent.press(screen.getByTestId("native-payment-method-TEST-DECLINED"));
     });
@@ -297,6 +299,61 @@ describe("Native customer purchase screens", () => {
       }),
     );
     expect(mockRouterPush).toHaveBeenCalledWith("/checkout/confirm");
+  });
+
+  it("does not expose the Payment ready marker without a valid checkout session", async () => {
+    runtime({
+      checkout: {
+        getActive: jest.fn().mockRejectedValue(
+          new ApplicationError({
+            code: "CHECKOUT_STEP_INCOMPLETE",
+            messageKey: "checkout.payment.locked",
+            retryable: false,
+          }),
+        ),
+      },
+    });
+
+    const screen = await render(<NativeCheckoutPaymentScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-checkout-payment-screen")).toBeTruthy());
+    expect(screen.queryByTestId("native-checkout-payment-session-ready")).toBeNull();
+  });
+
+  it("exposes the Confirm ready marker only after confirmation data is loaded", async () => {
+    let resolveConfirmation: ((value: CheckoutConfirmationDto) => void) | undefined;
+    const confirmationPromise = new Promise<CheckoutConfirmationDto>((resolve) => {
+      resolveConfirmation = resolve;
+    });
+    const confirmation: CheckoutConfirmationDto = {
+      checkoutSessionId: checkoutSession.id,
+      checkoutActionVersion: checkoutSession.version,
+      cartVersion: checkoutSession.cartVersion,
+      items: [],
+      address,
+      paymentMethodCode: "TEST-SUCCESS",
+      subtotalAmount: 0,
+      discountAmount: 0,
+      shippingAmount: 0,
+      totalAmount: 0,
+      membershipRank: "regular",
+    };
+    runtime({
+      checkout: {
+        getActive: jest.fn().mockResolvedValue({
+          ...checkoutSession,
+          paymentMethodCode: "TEST-SUCCESS",
+          unlockedStep: "confirm",
+        }),
+        getConfirmation: jest.fn().mockReturnValue(confirmationPromise),
+      },
+    });
+
+    const screen = await render(<NativeCheckoutConfirmScreen />);
+    await waitFor(() => expect(screen.queryByTestId("native-checkout-confirm-submit")).toBeNull());
+    expect(screen.queryByTestId("native-checkout-confirm-screen")).toBeNull();
+    expect(resolveConfirmation).toBeDefined();
+    await act(async () => resolveConfirmation?.(confirmation));
+    await waitFor(() => expect(screen.getByTestId("native-checkout-confirm-submit")).toBeTruthy());
   });
 
   it("selects a saved delivery address before advancing checkout", async () => {
@@ -337,6 +394,7 @@ describe("Native customer purchase screens", () => {
     await waitFor(() =>
       expect(screen.getByTestId("native-checkout-saved-address-address-native-test")).toBeTruthy(),
     );
+    expect(screen.getByTestId("native-checkout-address-session-ready")).toBeTruthy();
     await act(async () => {
       fireEvent.press(screen.getByTestId("native-checkout-saved-address-address-native-test"));
     });

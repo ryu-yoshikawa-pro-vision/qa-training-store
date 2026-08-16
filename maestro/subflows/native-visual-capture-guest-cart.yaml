@@ -1,0 +1,41 @@
+appId: com.ryuyoshikawa.scenarioshop
+---
+- openLink: "scenario-shop://products/product-basic-shirt"
+- runFlow: accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-product-detail-screen"
+    timeout: 30000
+- scrollUntilVisible:
+    element:
+      id: "native-variant-variant-basic-shirt-02"
+    direction: DOWN
+    speed: 10
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-variant-variant-basic-shirt-02"
+- scrollUntilVisible:
+    element:
+      id: "native-add-to-cart"
+    direction: DOWN
+    speed: 10
+    visibilityPercentage: 100
+    centerElement: true
+    timeout: 30000
+- tapOn:
+    id: "native-add-to-cart"
+- extendedWaitUntil:
+    visible:
+      id: "native-cart-add-message"
+    timeout: 10000
+- assertVisible:
+    id: "native-cart-add-message"
+- openLink: "scenario-shop://cart"
+- runFlow: accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-persisted-state-ready"
+    timeout: 30000
+- assertVisible:
+    id: "native-cart-item-product-basic-shirt-variant-basic-shirt-02"

@@ -10,6 +10,7 @@ import {
   challengeSchema,
   compareCodeUnits,
   evidenceRefSyntaxError,
+  evidenceMappingSchema,
   evaluationSchema,
   parseJsonWithSchema,
   qaFindingsSchema,
@@ -17,6 +18,7 @@ import {
   runIdSchema,
   toolProfileSchema,
   forbiddenProbeResultsSchema,
+  officialRunnerProfileSchema,
   type AnswerItem,
   type AnswerKey,
   type Challenge,
@@ -29,7 +31,10 @@ import {
 import { assertCoverageIntegrity } from "./coverage";
 import { assertForbiddenProbePasses, type ForbiddenProbeResult } from "./isolation";
 import { createRunnerProfile } from "./runner";
+import { canonicalJson, readCanonicalJsonFile, writeCanonicalJsonFile } from "./canonical-json";
 import { optionValue } from "./cli";
+import { validateOfficialArtifacts, type OfficialArtifactLocations } from "./official-verification";
+import { agenticQaRef, agenticQaRunRoot } from "./artifact-layout";
 
 type ActiveAnswerItem = Extract<AnswerItem, { kind: "defect" | "non-defect" }>;
 
@@ -46,12 +51,15 @@ export type EvaluationOptions = {
   runnerSessionArtifactPath?: string;
   forbiddenProbeArtifactPath?: string;
   evaluatorSessionArtifactPath?: string;
+  evaluatorChallengePath?: string;
+  evaluatorAnswerKeyPath?: string;
   isolationFailure?: boolean;
   toolScopeFailure?: boolean;
   preparationFailure?: boolean;
   environmentBlocker?: boolean;
   benchmarkGroundTruthChanged?: boolean;
   evaluatorSessionId?: string;
+  officialArtifactLocations?: OfficialArtifactLocations;
 };
 
 function coverageComplete(findings: QaFindings, coverageId: string): boolean {
@@ -71,7 +79,7 @@ export function safeArtifactPath(rootDir: string, runId: string, ref: string): s
     path.isAbsolute(runId)
   )
     return null;
-  const runPrefix = `.artifacts/agentic-qa/${runId}/`;
+  const runPrefix = `${agenticQaRef(runId, "input").slice(0, -"input".length)}`;
   if (
     !ref.startsWith(runPrefix) ||
     ref.includes("\\") ||
@@ -82,7 +90,7 @@ export function safeArtifactPath(rootDir: string, runId: string, ref: string): s
   const root = path.resolve(rootDir);
   const candidate = path.resolve(root, ...ref.split("/"));
   const rootRelative = path.relative(root, candidate);
-  const currentRunRoot = path.resolve(root, ".artifacts", "agentic-qa", runId);
+  const currentRunRoot = agenticQaRunRoot(root, runId);
   const relative = path.relative(currentRunRoot, candidate);
   if (
     rootRelative === ".." ||
@@ -272,24 +280,46 @@ function allNullMetrics(): Evaluation["metrics"] {
   };
 }
 
-function hasOptionValue<K extends keyof EvaluationOptions>(
-  options: EvaluationOptions,
-  key: K,
-): boolean {
-  return options[key] !== undefined;
-}
-
 function evidenceIntegrityIsValid(
   findings: Extract<QaFindings, { mode: "black-box-scored" }>,
   rootDir: string,
 ): boolean {
+  const runRoot = agenticQaRunRoot(rootDir, findings.run_id);
+  const evidenceMappingPath = path.join(runRoot, "runner", "evidence-mapping.json");
+  let evidenceMapping: ReturnType<typeof evidenceMappingSchema.parse>;
+  try {
+    evidenceMapping = parseJsonWithSchema(
+      readCanonicalJsonFile(evidenceMappingPath),
+      evidenceMappingSchema,
+      "frozen evidence mapping",
+    );
+  } catch {
+    return false;
+  }
+  const physicalByCanonicalRef = new Map(
+    evidenceMapping.mappings.map((mapping) => [
+      mapping.canonical_ref,
+      mapping.physical_output_path,
+    ]),
+  );
   const validate = (ref: string, type: Parameters<typeof evidenceRefSyntaxError>[1]): boolean => {
     if (evidenceRefSyntaxError(ref, type) !== null) return false;
     if (type === "url") return true;
-    const filePath = safeArtifactPath(rootDir, findings.run_id, ref);
-    if (filePath === null || !fs.existsSync(filePath)) return false;
+    const physicalOutputPath = physicalByCanonicalRef.get(ref);
+    if (physicalOutputPath === undefined) return false;
+    const runnerRoot = path.join(runRoot, "runner");
+    const filePath = path.resolve(runnerRoot, ...physicalOutputPath.split("/"));
+    const relative = path.relative(runnerRoot, filePath);
+    if (
+      relative === "" ||
+      relative === ".." ||
+      relative.startsWith(`..${path.sep}`) ||
+      path.isAbsolute(relative) ||
+      !fs.existsSync(filePath)
+    )
+      return false;
     try {
-      return fs.statSync(filePath).isFile();
+      return fs.lstatSync(filePath).isFile();
     } catch {
       return false;
     }
@@ -307,24 +337,47 @@ function evidenceIntegrityIsValid(
   );
 }
 
+function evaluatorInputIdentityFailures(
+  options: EvaluationOptions,
+  challenge: Challenge,
+  answerKey: AnswerKey,
+): string[] {
+  const failures: string[] = [];
+  const challengePath =
+    options.evaluatorChallengePath ?? options.officialArtifactLocations?.evaluatorChallengePath;
+  const answerKeyPath =
+    options.evaluatorAnswerKeyPath ?? options.officialArtifactLocations?.evaluatorAnswerKeyPath;
+  const verify = <T>(
+    filePath: string | undefined,
+    schema: Parameters<typeof parseJsonWithSchema>[1],
+    expected: T,
+    label: "Challenge" | "Answer Key",
+  ): void => {
+    const failure = `benchmark manifest: Evaluator ${label} byte identity differs`;
+    if (filePath === undefined) {
+      failures.push(failure);
+      return;
+    }
+    try {
+      const actual = parseJsonWithSchema(readJson(filePath), schema, `evaluator ${label}`);
+      if (canonicalJson(actual) !== canonicalJson(expected)) failures.push(failure);
+    } catch {
+      failures.push(failure);
+    }
+  };
+  verify(challengePath, challengeSchema, challenge, "Challenge");
+  verify(answerKeyPath, answerKeySchema, answerKey, "Answer Key");
+  return failures;
+}
+
 function officialVerificationFailures(
   options: EvaluationOptions,
   findings: Extract<QaFindings, { mode: "black-box-scored" }>,
+  challenge: Challenge,
+  answerKey: AnswerKey,
 ): string[] {
   const failures: string[] = [];
   const expectedToolProfile = options.expectedToolProfile;
-  if (!hasOptionValue(options, "expectedBenchmarkRevision"))
-    failures.push("benchmark expectation is missing");
-  if (!hasOptionValue(options, "expectedRunnerProfile"))
-    failures.push("runner profile expectation is missing");
-  if (!hasOptionValue(options, "expectedToolProfileRevision"))
-    failures.push("tool profile revision expectation is missing");
-  if (expectedToolProfile === undefined) failures.push("tool profile expectation is missing");
-  if (
-    !hasOptionValue(options, "expectedRuntimeVariantId") &&
-    !hasOptionValue(options, "runtimeVariantId")
-  )
-    failures.push("runtime variant expectation is missing");
   if (
     options.expectedBenchmarkRevision !== undefined &&
     options.expectedBenchmarkRevision !== findings.benchmark_revision
@@ -332,7 +385,7 @@ function officialVerificationFailures(
     failures.push("benchmark identity differs from the evaluator expectation");
   if (
     options.expectedRunnerProfile !== undefined &&
-    JSON.stringify(options.expectedRunnerProfile) !== JSON.stringify(findings.runner_profile)
+    canonicalJson(options.expectedRunnerProfile) !== canonicalJson(findings.runner_profile)
   )
     failures.push("runner profile differs from the evaluator expectation");
   if (
@@ -349,6 +402,7 @@ function officialVerificationFailures(
     expectedRuntimeVariantId !== findings.runtime_variant_id
   )
     failures.push("runtime variant differs from the evaluator expectation");
+  failures.push(...evaluatorInputIdentityFailures(options, challenge, answerKey));
 
   const rootDir = options.rootDir ?? process.cwd();
   let embeddedForbiddenProbe: ForbiddenProbeResult[] | undefined;
@@ -356,7 +410,7 @@ function officialVerificationFailures(
     rootDir,
     findings.run_id,
     options.runnerSessionArtifactPath,
-    `.artifacts/agentic-qa/${findings.run_id}/runner-session.json`,
+    agenticQaRef(findings.run_id, "runner", "runner-session.json"),
   );
   let runnerSession: ReturnType<typeof runnerSessionSchema.parse> | undefined;
   if (runnerSessionFile === null) {
@@ -458,7 +512,7 @@ function officialVerificationFailures(
     rootDir,
     findings.run_id,
     options.evaluatorSessionArtifactPath,
-    `.artifacts/agentic-qa/${findings.run_id}/evaluator-session.json`,
+    agenticQaRef(findings.run_id, "evaluation", "evaluator-session.json"),
   );
   if (evaluatorSessionFile === null || !fs.existsSync(evaluatorSessionFile)) {
     failures.push("evaluator session artifact is missing");
@@ -477,12 +531,30 @@ function officialVerificationFailures(
       failures.push("evaluator session artifact is invalid");
     }
   }
+  if (findings.execution_kind === "official_model_backed") {
+    const evaluatorChallengePath =
+      options.evaluatorChallengePath ?? options.officialArtifactLocations?.evaluatorChallengePath;
+    const evaluatorAnswerKeyPath =
+      options.evaluatorAnswerKeyPath ?? options.officialArtifactLocations?.evaluatorAnswerKeyPath;
+    const artifactVerification = validateOfficialArtifacts({
+      rootDir,
+      runRoot: agenticQaRunRoot(rootDir, findings.run_id),
+      ...options.officialArtifactLocations,
+      ...(evaluatorChallengePath === undefined ? {} : { evaluatorChallengePath }),
+      ...(evaluatorAnswerKeyPath === undefined ? {} : { evaluatorAnswerKeyPath }),
+    });
+    failures.push(
+      ...artifactVerification.failures.map((failure) => `official artifact: ${failure}`),
+    );
+  }
   return failures;
 }
 
 function invalidReasonSet(
   options: EvaluationOptions,
   findings: Extract<QaFindings, { mode: "black-box-scored" }>,
+  challenge: Challenge,
+  answerKey: AnswerKey,
 ): string[] {
   const reasons = new Set<string>();
   if (
@@ -515,7 +587,7 @@ function invalidReasonSet(
     reasons.add("benchmark_identity_mismatch");
   if (
     options.expectedRunnerProfile !== undefined &&
-    JSON.stringify(options.expectedRunnerProfile) !== JSON.stringify(findings.runner_profile)
+    canonicalJson(options.expectedRunnerProfile) !== canonicalJson(findings.runner_profile)
   )
     reasons.add("runner_profile_mismatch");
   const hasExpectedRuntimeVariant =
@@ -527,7 +599,7 @@ function invalidReasonSet(
   if (hasExpectedRuntimeVariant && expectedRuntimeVariantId !== findings.runtime_variant_id)
     reasons.add("benchmark_identity_mismatch");
   if (findings.execution_kind === "official_model_backed") {
-    if (officialVerificationFailures(options, findings).length > 0)
+    if (officialVerificationFailures(options, findings, challenge, answerKey).length > 0)
       reasons.add("official_verification_failure");
     if (!evidenceIntegrityIsValid(findings, options.rootDir ?? process.cwd()))
       reasons.add("evidence_integrity_failure");
@@ -845,7 +917,7 @@ export function evaluateBlackBox(
     }
   }
 
-  const invalidReasons = invalidReasonSet(effectiveOptions, findings);
+  const invalidReasons = invalidReasonSet(effectiveOptions, findings, challenge, answerKey);
   if (matches.some((match) => match.classification === "review_needed"))
     invalidReasons.push("preparation_failure");
   const uniqueReasons = [...new Set(invalidReasons)].sort(compareCodeUnits);
@@ -938,9 +1010,14 @@ function isMainModule(): boolean {
 }
 
 export function selectBenchmarkManifestFile(runDir: string, challengeId: string): string {
-  const challengeManifestFile = path.join(runDir, `benchmark-manifest-${challengeId}.json`);
-  if (fs.existsSync(challengeManifestFile)) return challengeManifestFile;
-  return path.join(runDir, "benchmark-manifest.json");
+  const rootDir = path.resolve(runDir, "..", "..", "..");
+  const runRoot = agenticQaRunRoot(rootDir, path.basename(runDir));
+  const manifestFile = path.join(runRoot, "trusted", "benchmark-manifest.json");
+  if (!fs.existsSync(manifestFile))
+    throw new Error(
+      `Canonical benchmark manifest is missing for ${challengeId}: ${path.relative(rootDir, manifestFile)}`,
+    );
+  return manifestFile;
 }
 
 if (isMainModule()) {
@@ -951,29 +1028,41 @@ if (isMainModule()) {
     throw new Error("Usage: evaluate.ts --run-dir <run-dir> --challenge <challenge-id>");
   challengeIdSchema.parse(challengeId);
   const rootDir = process.cwd();
+  const evaluatorChallengePath = path.join(
+    rootDir,
+    "training",
+    "agentic-qa",
+    "challenges",
+    challengeId,
+    "challenge.json",
+  );
+  const evaluatorAnswerKeyPath = path.join(
+    rootDir,
+    "training",
+    "agentic-qa",
+    "instructor",
+    "answer-key",
+    `${challengeId}.json`,
+  );
   const challenge = parseJsonWithSchema(
-    readJson(
-      path.join(rootDir, "training", "agentic-qa", "challenges", challengeId, "challenge.json"),
-    ),
+    readJson(evaluatorChallengePath),
     challengeSchema,
     challengeId,
   );
   const answerKey = parseJsonWithSchema(
-    readJson(
-      path.join(
-        rootDir,
-        "training",
-        "agentic-qa",
-        "instructor",
-        "answer-key",
-        `${challengeId}.json`,
-      ),
-    ),
+    readJson(evaluatorAnswerKeyPath),
     answerKeySchema,
     challengeId,
   );
   const findings = parseJsonWithSchema(
-    readJson(path.join(runDir, "qa-findings.json")),
+    readCanonicalJsonFile(
+      path.join(
+        agenticQaRunRoot(rootDir, path.basename(runDir)),
+        "runner",
+        "output",
+        "qa-findings.json",
+      ),
+    ),
     qaFindingsSchema,
     "qa-findings.json",
   );
@@ -995,53 +1084,68 @@ if (isMainModule()) {
   const profileFile = path.join(rootDir, "training/agentic-qa/tool-profiles/scored-v1.json");
   const profile = parseJsonWithSchema(readJson(profileFile), toolProfileSchema, "scored-v1.json");
   const expectedToolProfileRevision = `sha256:${sha256File(profileFile)}` as `sha256:${string}`;
-  const runnerProfile =
-    manifest.runner_profile ??
-    createRunnerProfile({
-      model: optionValue(cliArgs, "--model") ?? "local-deterministic-runner",
-      toolProfileRevision: expectedToolProfileRevision,
-      challenge,
-    });
-  const expectedBenchmarkRevision = benchmarkRevisionFromManifest(selectedManifestFile, manifest);
-  const evaluatorSessionId = crypto.randomUUID();
   if (findings.mode !== "black-box-scored")
     throw new Error("Evaluator accepts scored findings only");
+  const trustedRunnerProfilePath = path.join(
+    agenticQaRunRoot(rootDir, path.basename(runDir)),
+    "trusted",
+    "runner-profile.json",
+  );
+  const runnerProfile: RunnerProfile | undefined =
+    findings.execution_kind === "official_model_backed"
+      ? fs.existsSync(trustedRunnerProfilePath)
+        ? parseJsonWithSchema(
+            readCanonicalJsonFile(trustedRunnerProfilePath),
+            officialRunnerProfileSchema,
+            "trusted runner profile",
+          )
+        : undefined
+      : // Contract fixtures may reconstruct a local profile because they are
+        // intentionally outside the Official scoring path. The branch above
+        // has no fallback: a missing trusted profile makes Official invalid.
+        (manifest.runner_profile ??
+        createRunnerProfile({
+          model: optionValue(cliArgs, "--model") ?? "local-deterministic-runner",
+          toolProfileRevision: expectedToolProfileRevision,
+          challenge,
+        }));
+  const expectedBenchmarkRevision = benchmarkRevisionFromManifest(selectedManifestFile, manifest);
+  const evaluatorSessionId = crypto.randomUUID();
   if (findings.runner_session_id === evaluatorSessionId)
     throw new Error("Evaluator session must differ from runner session");
   const evaluatorEvidenceDirectory = path.join(
-    rootDir,
-    ".artifacts",
-    "agentic-qa",
-    path.basename(runDir),
+    agenticQaRunRoot(rootDir, path.basename(runDir)),
+    "evaluation",
   );
   fs.mkdirSync(evaluatorEvidenceDirectory, { recursive: true });
-  fs.writeFileSync(
-    path.join(evaluatorEvidenceDirectory, "evaluator-session.json"),
-    `${JSON.stringify(
-      {
-        runner_session_id: findings.runner_session_id,
-        evaluator_session_id: evaluatorSessionId,
-        answer_key_read: true,
-        runner_session_reused: findings.runner_session_id === evaluatorSessionId,
-      },
-      null,
-      2,
-    )}\n`,
-    "utf8",
-  );
+  writeCanonicalJsonFile(path.join(evaluatorEvidenceDirectory, "evaluator-session.json"), {
+    runner_session_id: findings.runner_session_id,
+    evaluator_session_id: evaluatorSessionId,
+    answer_key_read: true,
+    runner_session_reused: findings.runner_session_id === evaluatorSessionId,
+  });
   const evaluation = evaluateBlackBox(challenge, answerKey, findings, {
     sourceHeadSha: manifest.source_head_sha,
     expectedBenchmarkRevision,
     expectedRuntimeVariantId: manifest.runtime_variant_id,
-    expectedRunnerProfile: runnerProfile,
+    ...(runnerProfile === undefined ? {} : { expectedRunnerProfile: runnerProfile }),
     expectedToolProfileRevision,
     expectedToolProfile: profile,
     evaluatorSessionId,
+    evaluatorChallengePath,
+    evaluatorAnswerKeyPath,
+    officialArtifactLocations: {
+      rootDir,
+      runRoot: agenticQaRunRoot(rootDir, findings.run_id),
+      evaluatorChallengePath,
+      evaluatorAnswerKeyPath,
+    },
   });
-  fs.writeFileSync(
-    path.join(runDir, "evaluation.json"),
-    `${JSON.stringify(evaluation, null, 2)}\n`,
-    "utf8",
+  const evaluationPath = path.join(
+    agenticQaRunRoot(rootDir, findings.run_id),
+    "evaluation",
+    "evaluation.json",
   );
-  console.log(`Evaluation written: ${path.join(runDir, "evaluation.json")}`);
+  writeCanonicalJsonFile(evaluationPath, evaluation);
+  console.log(`Evaluation written: ${evaluationPath}`);
 }

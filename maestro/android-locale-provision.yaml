@@ -1,0 +1,38 @@
+appId: com.android.settings
+---
+- extendedWaitUntil:
+    visible:
+      id: "com.android.settings:id/add_language"
+    timeout: 30000
+- tapOn:
+    id: "com.android.settings:id/add_language"
+- extendedWaitUntil:
+    visible:
+      id: "android:id/locale_search_menu"
+    timeout: 30000
+- tapOn:
+    id: "android:id/locale_search_menu"
+- inputText: "Japanese"
+- extendedWaitUntil:
+    visible: "Japanese"
+    timeout: 30000
+- extendedWaitUntil:
+    visible:
+      id: "android:id/locale"
+    timeout: 30000
+- tapOn:
+    id: "android:id/locale"
+- runFlow:
+    when:
+      visible:
+        id: "android:id/locale"
+    commands:
+      - tapOn:
+          id: "android:id/locale"
+- runFlow:
+    when:
+      visible:
+        id: "android:id/button1"
+    commands:
+      - tapOn:
+          id: "android:id/button1"

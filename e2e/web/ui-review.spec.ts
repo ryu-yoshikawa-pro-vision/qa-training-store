@@ -1,8 +1,13 @@
-import { mkdir, readdir } from "node:fs/promises";
+import { copyFile, mkdir, readdir } from "node:fs/promises";
 import path from "node:path";
 import type { Locator, Page, TestInfo } from "@playwright/test";
 import { expect, addDefaultAddress, login, test } from "./fixtures";
 import type { PhaseOneScenario } from "@/seeds/metadata";
+import {
+  VISUAL_CAPTURE_CASES,
+  VISUAL_CAPTURE_CASE_BY_KEY,
+  visualAssetPath,
+} from "../../scripts/spec/visual-registry";
 
 type ViewportKind = "desktop" | "tablet" | "mobile" | "small-mobile";
 
@@ -13,6 +18,8 @@ interface CaptureRoute {
   mainSelector: string;
   ready: (page: Page) => Locator;
   prepare: (page: Page) => Promise<void>;
+  visualCaptureCaseKey?: string;
+  reviewViewports?: readonly ViewportKind[];
   mobileMainSelector?: string;
   mobileReady?: (page: Page) => Locator;
 }
@@ -92,6 +99,23 @@ function routeFileName(routePath: string, suffix?: string) {
 
 function viewportOutputFolder(viewport: ViewportKind) {
   return viewport;
+}
+
+function visualPlatformForViewport(viewport: ViewportKind) {
+  return `web-${viewport}` as const;
+}
+
+async function rawVisualScreenshotPath(
+  captureCase: (typeof VISUAL_CAPTURE_CASES)[number],
+  screenshot: string,
+) {
+  const relative = visualAssetPath(captureCase)
+    .replace("docs/spec/assets/screens/", "output/spec-visuals/raw/web/")
+    .replace(/\.webp$/, ".png");
+  const output = path.resolve(relative);
+  await mkdir(path.dirname(output), { recursive: true });
+  await copyFile(screenshot, output);
+  return output;
 }
 
 async function gotoPath(page: Page, routePath: string) {
@@ -183,6 +207,46 @@ async function ensureViewportFolderAvailable(viewport: ViewportKind) {
 
 async function captureRoute(page: Page, testInfo: TestInfo, route: CaptureRoute) {
   const viewport = viewportLabel(testInfo.project.name);
+  const routeRegistryCases = VISUAL_CAPTURE_CASES.filter(
+    (captureCase) =>
+      captureCase.route === route.path &&
+      captureCase.scenario === route.scenario &&
+      captureCase.platform.startsWith("web-"),
+  );
+  const registryCases =
+    route.visualCaptureCaseKey === undefined
+      ? routeRegistryCases
+      : (() => {
+          const exact = VISUAL_CAPTURE_CASE_BY_KEY.get(route.visualCaptureCaseKey);
+          if (exact !== undefined) return [exact];
+          return VISUAL_CAPTURE_CASES.filter((captureCase) =>
+            captureCase.captureCaseKey.startsWith(`${route.visualCaptureCaseKey}/`),
+          );
+        })();
+  if (route.path !== "/admin/test-control") {
+    expect(
+      registryCases.length,
+      `${route.fileName} must resolve to a typed visual capture case`,
+    ).toBeGreaterThan(0);
+  }
+  const viewportCases = registryCases.filter(
+    (captureCase) => captureCase.platform === visualPlatformForViewport(viewport),
+  );
+  expect(
+    viewportCases.length,
+    `${route.fileName} must have at most one target per viewport`,
+  ).toBeLessThanOrEqual(1);
+  const captureMode = viewportCases[0]?.captureMode ?? "page";
+  if (registryCases.length > 0) {
+    await testInfo.attach("visual-capture-cases", {
+      body: JSON.stringify(
+        registryCases.map((captureCase) => captureCase.captureCaseKey),
+        null,
+        2,
+      ),
+      contentType: "application/json",
+    });
+  }
   await waitForRouteReady(page, route, viewport);
   await page.evaluate(() => {
     window.scrollTo(0, 0);
@@ -194,10 +258,12 @@ async function captureRoute(page: Page, testInfo: TestInfo, route: CaptureRoute)
   const outputPath = await screenshotPath(viewport, route.fileName);
   await page.screenshot({
     path: outputPath,
-    fullPage: true,
+    fullPage: captureMode !== "viewport",
     animations: "disabled",
     caret: "hide",
   });
+  if (viewportCases.length === 1 && viewportCases[0]!.status === "pending")
+    await rawVisualScreenshotPath(viewportCases[0]!, outputPath);
   await expectNoHorizontalOverflow(page, route);
   if (
     (viewport === "mobile" || viewport === "small-mobile") &&
@@ -328,13 +394,22 @@ const coreRoutes: CaptureRoute[] = [
   ),
   createPublicRoute("/products", (page) => page.getByRole("heading", { name: "すべての商品" })),
   createPublicRoute("/search", (page) => page.getByRole("heading", { name: "商品検索" })),
+  {
+    ...createPublicRoute("/guide", (page) =>
+      page.getByRole("heading", { name: "安全な模擬環境で、Role差分と初期化手順を確認する" }),
+    ),
+    reviewViewports: ["desktop", "tablet"],
+  },
   createPublicRoute("/categories/category-apparel", (page) =>
     page.getByRole("heading", { name: "ファッション" }),
   ),
   createPublicRoute("/products/product-basic-shirt", (page) =>
     page.getByRole("heading", { name: "ベーシックTシャツ" }),
   ),
-  createPublicRoute("/login", (page) => page.getByRole("heading", { name: "ログイン" })),
+  {
+    ...createPublicRoute("/login", (page) => page.getByRole("heading", { name: "ログイン" })),
+    visualCaptureCaseKey: "SCREEN-AUTH-LOGIN/default/web-desktop",
+  },
   createPublicRoute("/signup", (page) => page.getByRole("heading", { name: "新規登録" })),
   createPublicRoute("/forbidden", (page) =>
     page.getByRole("heading", { name: "このページを表示する権限がありません" }),
@@ -349,14 +424,17 @@ const coreRoutes: CaptureRoute[] = [
   createPublicRoute("/legal/commerce", (page) =>
     page.getByRole("heading", { name: "模擬取引表示" }),
   ),
-  createPublicRoute(
-    "/cart",
-    (page) => page.getByRole("heading", { name: "カート", exact: true }),
-    async (page) => {
-      await addProductToCart(page);
-      await gotoPath(page, "/cart");
-    },
-  ),
+  {
+    ...createPublicRoute(
+      "/cart",
+      (page) => page.getByRole("heading", { name: "カート", exact: true }),
+      async (page) => {
+        await addProductToCart(page);
+        await gotoPath(page, "/cart");
+      },
+    ),
+    visualCaptureCaseKey: "SCREEN-STOREFRONT-CART/default/web-desktop",
+  },
   createCustomerRoute(
     "/checkout/address",
     "regular-member",
@@ -378,7 +456,7 @@ const coreRoutes: CaptureRoute[] = [
   createCustomerRoute(
     "/checkout/processing?orderId=order-payment-failed",
     "payment-processing",
-    (page) => page.getByRole("heading", { name: "支払いを処理しています" }),
+    (page) => page.getByRole("heading", { name: "支払いを処理しています", exact: true }),
     async (page) => {
       await loginRegular(page);
       await gotoPath(page, "/checkout/processing?orderId=order-payment-failed");
@@ -397,7 +475,7 @@ const coreRoutes: CaptureRoute[] = [
   ),
   createCustomerRoute(
     "/checkout/failed?orderId=order-payment-failed",
-    "default",
+    "payment-declined",
     (page) => page.getByRole("heading", { name: "支払いを完了できませんでした" }),
     async (page) => {
       await loginRegular(page);
@@ -408,7 +486,7 @@ const coreRoutes: CaptureRoute[] = [
   createCustomerRoute(
     "/orders",
     "regular-member",
-    (page) => page.getByRole("heading", { name: "注文履歴" }),
+    (page) => page.getByRole("heading", { name: "注文履歴", exact: true }),
     async (page) => {
       await loginRegular(page);
       await gotoPath(page, "/orders");
@@ -423,15 +501,18 @@ const coreRoutes: CaptureRoute[] = [
       await gotoPath(page, "/orders/order-delivered");
     },
   ),
-  createCustomerRoute(
-    "/reviews/order-delivered-item-9",
-    "reviewable-orders",
-    (page) => page.getByRole("heading", { name: "レビューを投稿" }),
-    async (page) => {
-      await loginRegular(page);
-      await gotoPath(page, "/reviews/order-delivered-item-9");
-    },
-  ),
+  {
+    ...createCustomerRoute(
+      "/reviews/order-delivered-item-9",
+      "reviewable-orders",
+      (page) => page.getByRole("heading", { name: "レビューを投稿" }),
+      async (page) => {
+        await loginRegular(page);
+        await gotoPath(page, "/reviews/order-delivered-item-9");
+      },
+    ),
+    visualCaptureCaseKey: "SCREEN-REVIEWS-EDITOR/default/web-desktop",
+  },
   createCustomerRoute(
     "/account/profile",
     "regular-member",
@@ -475,14 +556,17 @@ const coreRoutes: CaptureRoute[] = [
       await prepareAdminRoute(page, "operator", "/admin/products/new");
     },
   ),
-  createAdminRoute(
-    "/admin/products/product-basic-shirt",
-    "default",
-    (page) => page.getByRole("heading", { name: "ベーシックTシャツ" }),
-    async (page) => {
-      await prepareAdminRoute(page, "operator", "/admin/products/product-basic-shirt");
-    },
-  ),
+  {
+    ...createAdminRoute(
+      "/admin/products/product-basic-shirt",
+      "default",
+      (page) => page.getByRole("heading", { name: "ベーシックTシャツ" }),
+      async (page) => {
+        await prepareAdminRoute(page, "operator", "/admin/products/product-basic-shirt");
+      },
+    ),
+    visualCaptureCaseKey: "SCREEN-ADMIN-PRODUCT-DETAIL/default",
+  },
   createAdminRoute(
     "/admin/categories",
     "default",
@@ -499,17 +583,20 @@ const coreRoutes: CaptureRoute[] = [
       await prepareAdminRoute(page, "operator", "/admin/brands");
     },
   ),
-  createAdminRoute(
-    "/admin/inventories",
-    "default",
-    (page) => page.getByRole("heading", { name: "在庫管理" }),
-    async (page) => {
-      await prepareAdminRoute(page, "operator", "/admin/inventories");
-    },
-  ),
+  {
+    ...createAdminRoute(
+      "/admin/inventories",
+      "default",
+      (page) => page.getByRole("heading", { name: "在庫管理" }),
+      async (page) => {
+        await prepareAdminRoute(page, "operator", "/admin/inventories");
+      },
+    ),
+    visualCaptureCaseKey: "SCREEN-ADMIN-INVENTORIES/default",
+  },
   createAdminRoute(
     "/admin/orders",
-    "default",
+    "orders-phase1-statuses",
     (page) => page.getByRole("heading", { name: "注文管理" }),
     async (page) => {
       await prepareAdminRoute(page, "operator", "/admin/orders");
@@ -517,7 +604,7 @@ const coreRoutes: CaptureRoute[] = [
   ),
   createAdminRoute(
     "/admin/orders/order-paid",
-    "default",
+    "orders-phase1-statuses",
     (page) => page.getByRole("heading", { name: "ORD-20260701-0002" }),
     async (page) => {
       await prepareAdminRoute(page, "operator", "/admin/orders/order-paid");
@@ -572,6 +659,18 @@ const smallMobileRoutePaths = new Set([
 
 const edgeRoutes: ViewportCaptureRoute[] = [
   {
+    route: {
+      ...createPublicRoute(
+        "/",
+        (page) => page.getByText("表示できる商品がありません"),
+        undefined,
+        "home-empty",
+      ),
+      scenario: "empty-catalog",
+    },
+    viewports: ["desktop"],
+  },
+  {
     route: createPublicRoute(
       "/search?q=該当なし",
       (page) => page.getByRole("heading", { name: "条件に一致するデータがありません" }),
@@ -592,10 +691,123 @@ const edgeRoutes: ViewportCaptureRoute[] = [
   },
   {
     route: {
+      ...createPublicRoute(
+        "/products",
+        (page) => page.getByRole("heading", { name: "すべての商品" }),
+        undefined,
+        "products-many",
+      ),
+      scenario: "many-products",
+    },
+    viewports: ["desktop"],
+  },
+  {
+    route: {
+      ...createPublicRoute(
+        "/cart",
+        (page) => page.getByRole("heading", { name: "カート", exact: true }),
+        async (page) => {
+          await gotoPath(page, "/cart");
+        },
+        "cart-empty",
+      ),
+      visualCaptureCaseKey: "SCREEN-STOREFRONT-CART/empty/web-desktop",
+    },
+    viewports: ["desktop"],
+  },
+  {
+    route: {
+      ...createPublicRoute(
+        "/products/product-basic-shirt",
+        (page) => page.getByRole("heading", { name: "ベーシックTシャツ" }),
+        async (page) => {
+          await gotoPath(page, "/products/product-basic-shirt");
+        },
+        "product-low-stock",
+      ),
+      scenario: "low-stock",
+    },
+    viewports: ["desktop"],
+  },
+  {
+    route: createCustomerRoute(
+      "/checkout/address",
+      "checkout-resume",
+      (page) => page.getByRole("heading", { name: "配送先を選択" }),
+      async (page) => {
+        await gotoPath(page, "/checkout/address");
+      },
+      "checkout-address-resume",
+    ),
+    viewports: ["desktop"],
+  },
+  {
+    route: createCustomerRoute(
+      "/checkout/confirm",
+      "cart-version-invalidates-checkout",
+      (page) => page.getByRole("heading", { name: "購入手続きを続けられません" }),
+      async (page) => {
+        await gotoPath(page, "/checkout/confirm");
+      },
+      "checkout-confirm-stale",
+    ),
+    viewports: ["desktop"],
+  },
+  {
+    route: createCustomerRoute(
+      "/orders",
+      "orders-empty",
+      (page) => page.getByRole("heading", { name: "注文履歴はありません", exact: true }),
+      async (page) => {
+        await gotoPath(page, "/orders");
+      },
+      "orders-empty",
+    ),
+    viewports: ["desktop"],
+  },
+  {
+    route: createCustomerRoute(
+      "/orders/order-delivered",
+      "reviewable-orders",
+      (page) => page.getByRole("heading", { name: "ORD-20260701-0005" }),
+      async (page) => {
+        await loginRegular(page);
+        await gotoPath(page, "/orders/order-delivered");
+      },
+      "orders-detail-reviewable",
+    ),
+    viewports: ["desktop"],
+  },
+  {
+    route: {
+      ...createCustomerRoute(
+        "/reviews/order-delivered-item-9",
+        "reviewable-orders",
+        (page) => page.getByRole("heading", { name: "レビューを編集" }),
+        async (page) => {
+          await loginRegular(page);
+          await gotoPath(page, "/orders/order-delivered");
+          await page.locator('a[href="/reviews/order-delivered-item-9"]').click();
+          await page.getByLabel("5つ星").check();
+          await page.getByLabel("タイトル（任意）").fill("Visual Reference公開レビュー");
+          await page.getByLabel("本文").fill("Visual Reference用の公開レビューです。");
+          await page.getByRole("button", { name: "投稿する" }).click();
+          await expect(page.getByRole("status")).toContainText("投稿しました");
+          await expect(page.getByRole("heading", { name: "レビューを編集" })).toBeVisible();
+        },
+        "review-published",
+      ),
+      visualCaptureCaseKey: "SCREEN-REVIEWS-EDITOR/published/web-desktop",
+    },
+    viewports: ["desktop"],
+  },
+  {
+    route: {
       ...createPublicRoute("/products/product-out-of-stock", (page) =>
         page.getByRole("heading", { name: "スポーツボトル" }),
       ),
       fileName: "product-out-of-stock",
+      scenario: "out-of-stock",
     },
     viewports: ["desktop", "tablet", "mobile", "small-mobile"],
   },
@@ -628,28 +840,34 @@ const edgeRoutes: ViewportCaptureRoute[] = [
     viewports: ["desktop", "tablet", "mobile", "small-mobile"],
   },
   {
-    route: createPublicRoute(
-      "/login",
-      (page) => page.getByRole("heading", { name: "入力内容を確認してください" }),
-      async (page) => {
-        await gotoPath(page, "/login");
-        await page.getByRole("button", { name: "ログイン", exact: true }).click();
-      },
-      "login-validation-error",
-    ),
+    route: {
+      ...createPublicRoute(
+        "/login",
+        (page) => page.getByRole("heading", { name: "入力内容を確認してください" }),
+        async (page) => {
+          await gotoPath(page, "/login");
+          await page.getByRole("button", { name: "ログイン", exact: true }).click();
+        },
+        "login-validation-error",
+      ),
+      visualCaptureCaseKey: "SCREEN-AUTH-LOGIN/validation-error/web-desktop",
+    },
     viewports: ["desktop", "tablet", "mobile", "small-mobile"],
   },
   {
-    route: createAdminRoute(
-      "/admin/products/product-basic-shirt",
-      "default",
-      (page) => page.getByRole("alertdialog", { name: "販売終了にしますか" }),
-      async (page) => {
-        await prepareAdminRoute(page, "operator", "/admin/products/product-basic-shirt");
-        await page.getByRole("button", { name: "販売終了", exact: true }).click();
-      },
-      "admin-product-discontinue-confirm",
-    ),
+    route: {
+      ...createAdminRoute(
+        "/admin/products/product-basic-shirt",
+        "default",
+        (page) => page.getByRole("alertdialog", { name: "販売終了にしますか" }),
+        async (page) => {
+          await prepareAdminRoute(page, "operator", "/admin/products/product-basic-shirt");
+          await page.getByRole("button", { name: "販売終了", exact: true }).click();
+        },
+        "admin-product-discontinue-confirm",
+      ),
+      visualCaptureCaseKey: "SCREEN-ADMIN-PRODUCT-DETAIL/discontinue-confirm/web-desktop",
+    },
     viewports: ["desktop", "tablet"],
   },
   {
@@ -664,6 +882,21 @@ const edgeRoutes: ViewportCaptureRoute[] = [
     ),
     viewports: ["desktop", "tablet"],
   },
+  {
+    route: {
+      ...createAdminRoute(
+        "/admin/inventories",
+        "default",
+        (page) => page.getByRole("heading", { name: "在庫管理" }),
+        async (page) => {
+          await prepareAdminRoute(page, "operator", "/admin/inventories");
+        },
+        "admin-inventories-stock-boundaries",
+      ),
+      visualCaptureCaseKey: "SCREEN-ADMIN-INVENTORIES/stock-boundaries",
+    },
+    viewports: ["desktop"],
+  },
 ];
 
 function routesForViewport(viewport: ViewportKind) {
@@ -675,12 +908,15 @@ function routesForViewport(viewport: ViewportKind) {
     viewport === "small-mobile"
       ? [...coreRoutes.filter((route) => smallMobileRoutePaths.has(route.path)), ...applicableEdges]
       : [...coreRoutes, ...applicableEdges];
+  const viewportRoutes = routes.filter(
+    (route) => route.reviewViewports === undefined || route.reviewViewports.includes(viewport),
+  );
 
   if (requestedFileNames.size > 0) {
-    return routes.filter((route) => requestedFileNames.has(route.fileName));
+    return viewportRoutes.filter((route) => requestedFileNames.has(route.fileName));
   }
 
-  return routes;
+  return viewportRoutes;
 }
 
 test.describe("UI review screenshots", () => {

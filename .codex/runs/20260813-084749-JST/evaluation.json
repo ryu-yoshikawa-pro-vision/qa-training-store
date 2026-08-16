@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "run_id": "20260813-084749-JST",
+  "objective": "PR #24 Screen Catalog / Visual Specification review findingsをPrimary Planの契約へ再整合する",
+  "status": "partial",
+  "criteria": [
+    {
+      "id": "structural-validation",
+      "status": "complete",
+      "evidence": [
+        "pnpm run validate:spec が PASS",
+        "Catalog 38、State 58、Target 94、Captured 69、Pending 0、Blocked 25、Canonical Asset 69"
+      ]
+    },
+    {
+      "id": "final-visual-gate",
+      "status": "blocked",
+      "evidence": [
+        "pnpm run validate:spec-visuals:final が blockedTargetCount 25 と capturedTargetCount 69/94 でfail-close",
+        "pnpm run verify が同じFinal Gateで停止"
+      ],
+      "remaining": [
+        "API34 canonical Android target capture／promotion"
+      ]
+    },
+    {
+      "id": "android-observed-profile-and-promotion",
+      "status": "partial",
+      "evidence": [
+        "Native CIへruntime profile observation、assert、manifest provenance、case selection、promotion CLIを実装",
+        "manifest／source SHA／APK SHA-256／canonical output pathのnegative contract testsがPASS"
+      ],
+      "remaining": [
+        "このworktreeではAPI34 Emulator captureを実行していないため、runtime observationとcanonical asset promotionは未完了"
+      ]
+    },
+    {
+      "id": "validator-and-materializer-contracts",
+      "status": "complete",
+      "evidence": [
+        "role／platform／audience／inner grammar／shared／Oracle／alt／asset budgetのnegative testsがPASS",
+        "Materializer 2回実行で2回目の差分なしをPASS"
+      ]
+    },
+    {
+      "id": "web-and-native-static-validation",
+      "status": "complete",
+      "evidence": [
+        "全Test、Chromium 27/27、UI Review各viewport、A11y 4/4、mobile boundary 4/4、cross-role 4/4",
+        "Native route／EAS／production bundle guard／doctor commandを確認"
+      ]
+    },
+    {
+      "id": "android-checkout-state-preparation",
+      "status": "complete",
+      "evidence": [
+        "regular-member seedのcustomer session／member Cartを根拠にcustomer-seeded-sessionを導入し、visual checkout subflowで重複loginを行わない",
+        "customer-checkout-address／customer-checkout-payment／customer-checkout-confirmをRegistryへ接続し、Address／Payment／Confirmのstep progressionとready assertionを契約化",
+        "component／workflow／visual contract testsがPASS"
+      ]
+    },
+    {
+      "id": "category-and-ready-contract",
+      "status": "complete",
+      "evidence": [
+        "Product ListとCategoryに専用heading testIDとnativeReadyIdを追加",
+        "Paymentはactive CheckoutSession marker、Confirmはloaded confirmation submitをready条件に使用",
+        "Payment invalid session negative test、Confirm loading negative test、Category contract testがPASS"
+      ]
+    },
+    {
+      "id": "checkout-address-default-semantics",
+      "status": "complete",
+      "evidence": [
+        "SCREEN-CHECKOUT-ADDRESS/default/androidをcustomer-seeded-sessionへ変更し、setup側の二重route navigationを除去",
+        "regular-memberのcustomer session／active member Cart／basic-shirt item／current active Cartに紐づくactive Checkout Session不在をContract Testで検証",
+        "Payment／Confirm専用setupと共通capture flowを維持し、全Contract Test 222件がPASS"
+      ]
+    }
+  ],
+  "remaining": [
+    "Android canonical targets 25件はAPI34 manual capture待ち",
+    "Final Visual DoDはBLOCKED。Structural ValidationはPASS。"
+  ]
+}

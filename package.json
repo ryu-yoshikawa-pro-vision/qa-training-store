@@ -13,7 +13,8 @@
     "lint": "eslint .",
     "typecheck:app": "tsc --noEmit --project tsconfig.json",
     "typecheck:native-tests": "tsc --noEmit --project tsconfig.native-tests.json",
-    "typecheck": "pnpm run typecheck:app && pnpm run typecheck:native-tests",
+    "typecheck:training": "tsc --noEmit --project tsconfig.training.json",
+    "typecheck": "pnpm run typecheck:app && pnpm run typecheck:native-tests && pnpm run typecheck:training",
     "test:unit": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration",
     "test:repository": "vitest run tests/repository-contract",
@@ -32,9 +33,23 @@
     "test:e2e:smoke:firefox": "playwright test --project=firefox-smoke",
     "test:e2e:smoke:webkit": "playwright test --project=webkit-smoke",
     "test:smoke": "playwright test e2e/web/smoke.spec.ts --project=deployed-smoke",
+    "training:web:baseline": "playwright test training/playwright/baseline --config=playwright.training.config.ts --project=training-chromium",
+    "training:web:mobile": "playwright test training/playwright/baseline --config=playwright.training.config.ts --project=training-mobile-chromium",
+    "training:web:mobile:exercise": "playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-mobile-chromium",
+    "training:web:expected-failure": "playwright test training/playwright/failure-exercises --config=playwright.training.config.ts --project=training-chromium",
+    "training:web:check-expected-failure": "tsx scripts/training/run-expected-failure.ts",
+    "training:native:baseline": "tsx scripts/training/run-maestro-baseline.ts",
+    "training:copy:prepare": "tsx scripts/training/prepare-training-copy.ts",
+    "training:copy:validate": "tsx scripts/training/validate-training-copy.ts",
     "security:check": "tsx scripts/security-static-check.ts",
     "validate:spec": "tsx scripts/spec/validate-all.ts",
+    "validate:spec-visuals": "tsx scripts/spec/validate-all.ts",
+    "validate:spec-visuals:final": "tsx scripts/spec/validate-all.ts --visuals-final",
+    "apply:android-spec-visuals": "tsx scripts/spec/android-visual-capture.ts apply-batch",
+    "validate:curriculum": "tsx scripts/validate-curriculum.ts",
     "build:spec": "tsx scripts/spec/build-spec.ts",
+    "promote:spec-visuals": "tsx scripts/spec/promote-web-visuals.ts",
+    "materialize:spec-visual-references": "tsx scripts/spec/materialize-visual-references.ts",
     "summarize:spec-impact": "tsx scripts/spec/summarize-impact.ts",
     "agentic-qa:snapshot": "tsx scripts/agentic-qa/working-tree-snapshot.ts",
     "validate:eas:config": "tsx scripts/validate-eas-static-config.ts",
@@ -59,21 +74,21 @@
     "native:android:test:boundary": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action BoundarySuite",
     "native:android:evidence": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Evidence",
     "native:android:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action All",
-    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run validate:spec && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
+    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run validate:curriculum && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
   },
   "dependencies": {
-    "@expo/metro-runtime": "57.0.9",
+    "@expo/metro-runtime": "57.0.10",
     "@fontsource/inter": "^5.3.0",
     "@fontsource/noto-sans-jp": "^5.3.0",
     "@hookform/resolvers": "5.5.7",
     "dexie": "4.4.4",
-    "expo": "57.0.12",
-    "expo-build-properties": "57.0.10",
-    "expo-constants": "57.0.10",
+    "expo": "57.0.13",
+    "expo-build-properties": "57.0.11",
+    "expo-constants": "57.0.11",
     "expo-crypto": "57.0.1",
-    "expo-dev-client": "57.0.11",
-    "expo-linking": "57.0.5",
-    "expo-router": "57.0.12",
+    "expo-dev-client": "57.0.12",
+    "expo-linking": "57.0.6",
+    "expo-router": "57.0.13",
     "expo-sqlite": "57.0.1",
     "expo-system-ui": "~57.0.2",
     "react": "19.2.3",
@@ -112,11 +127,12 @@
     "sharp": "0.35.3",
     "tsx": "4.23.1",
     "typescript": "6.0.3",
-    "vitest": "4.1.10"
+    "vitest": "4.1.10",
+    "yaml": "2.9.0"
   },
   "pnpm": {
     "overrides": {
-      "expo-constants": "57.0.10"
+      "expo-constants": "57.0.11"
     },
     "packageExtensions": {
       "@react-native/jest-preset@0.86.2": {

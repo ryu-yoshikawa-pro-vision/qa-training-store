@@ -28,15 +28,15 @@ Git / GitHubの基本演習ではForkも利用できますが、**GitHub Actions
 - 教材元から継承したProduction / Deploy Workflowが同時起動しない。
 - 本番向けCloudflare Deployを実行しない。
 - `CLOUDFLARE_API_TOKEN` など本番Secretを要求しない。
-- 最初はUnit Test / Quality Checkだけを対象にする。
-- 後続LessonでPlaywrightを追加できる。
+- Curriculum validator、Automation Web build、Training Playwright baselineをRepository-owned commandで実行する。
+- Androidは別のGitHub-hosted Training Native WorkflowでAPI 34 / `google_apis` / `x86_64` Emulator → Build / Install → Maestro baselineを実行する。これはWindows Local Fresh LearnerのCanonical Physical Device経路とは分離したCI保証である。
 - 本体RepositoryのRequired CheckやProduction Workflowへ影響しない。
 
 ### Forkを使ってCI演習する場合
 
 個人Forkを利用する構成も可能ですが、Training Workflowを追加するだけでは安全な演習境界になりません。
 
-教材元には `pull_request` で起動する既存Workflowが含まれており、Cloudflare Previewなど本番向けSecretを必要とする経路もあります。そのため、ForkでActionsを利用する場合は、教材提供時の開始手順で少なくとも次を確認します。
+教材元には `pull_request` で起動する既存Workflowが含まれており、Cloudflare Previewなど本番向けSecretを必要とする経路もあります。そのため、ForkでActionsを利用する場合は、`training:copy:prepare`後の開始Gateで少なくとも次を確認します。
 
 ```text
 Fork作成
@@ -50,11 +50,11 @@ Training Workflowだけが意図したTriggerで起動することを確認す�
 Training CI演習開始
 ```
 
-ここでいう「無効化」は、教材実装時に採用した方法に従います。受講者へ本番Secretを配布して既存Workflowを無理に成功させる方法は採用しません。
+ここでいう「無効化」は、`training:copy:prepare`が既存Workflowをarchiveへ移し、active allowlistを2件へ再構成することを指します。受講者へ本番Secretを配布して既存Workflowを無理に成功させる方法は採用しません。
 
 演習用CopyでもForkでも、**PRを作成したときにTraining Workflow以外の本番向けWorkflowが意図せず起動しないこと**を開始Gateとします。
 
-この文書整備ではTraining用Workflowや演習Repository自体は追加しません。
+Training Workflow templateは `training/github-actions/training-ci.yml` と `training-native-ci.yml` に固定しています。Training Copyへ配置するactive Workflowはこの2件だけで、`permissions: contents: read`、Secret不要、Deployなし、GitHub-hosted runnerを守ります。
 
 現在の `ci.yml` は、最小構成を理解した後に「実案件ではどこまで発展するか」を読む比較教材とします。
 
@@ -82,7 +82,7 @@ Result
 
 ## Lesson 2: GitHub Actionsの構造
 
-Training用の最小例として次を読みます。
+Training用の最小例として `training/github-actions/training-ci.yml` を読みます。
 
 ```yaml
 name: Training CI

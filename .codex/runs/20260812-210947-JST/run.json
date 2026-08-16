@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "run_id": "20260812-210947-JST",
+  "task_type": "implementation",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "feat/implement-official-black-box-scored-e2e",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".agents/skills/exploratory-qa/SKILL.md",
+    "QA_AGENT.md",
+    ".codex/runs/20260812-210947-JST/PLAN.md",
+    ".codex/runs/20260812-210947-JST/TASKS.md",
+    ".codex/runs/20260812-210947-JST/REPORT.md",
+    ".codex/runs/20260812-210947-JST/run.json",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/adr/0015-official-black-box-scored-e2e-artifact-boundary.md",
+    "docs/history/2026-08-13_001630_official-black-box-scored-e2e-repository-contract.md",
+    "docs/reference/agentic-qa-workflow.md",
+    "docs/reference/run-artifacts.md",
+    "scripts/agentic-qa/benchmark-revision.ts",
+    "scripts/agentic-qa/canonical-artifact-manifest.ts",
+    "scripts/agentic-qa/canonical-json.ts",
+    "scripts/agentic-qa/contracts.ts",
+    "scripts/agentic-qa/evaluate.ts",
+    "scripts/agentic-qa/host-capability-gate.ts",
+    "scripts/agentic-qa/initial-state-bootstrap.ts",
+    "scripts/agentic-qa/official-verification.ts",
+    "scripts/agentic-qa/prepare-challenge.ts",
+    "scripts/agentic-qa/prepared-runtime-lifecycle.ts",
+    "scripts/agentic-qa/protected-patch-validation.ts",
+    "scripts/agentic-qa/resource-boundary-probe.ts",
+    "scripts/agentic-qa/runner-input.ts",
+    "scripts/agentic-qa/runner-output-import.ts",
+    "scripts/agentic-qa/runner.ts",
+    "scripts/agentic-qa/runtime-variant.ts",
+    "scripts/agentic-qa/validate-contracts.ts",
+    "scripts/serve-web-dist.ts",
+    "tests/contracts/official-black-box-contracts.test.ts",
+    "tests/contracts/serve-web-dist.test.ts",
+    "tests/runtime/agentic-qa-preparation.test.ts",
+    "training/agentic-qa/skills/scored-v1.md"
+  ],
+  "validation": {
+    "status": "failed",
+    "commands": [
+      "corepack pnpm exec prettier --write <changed files> => passed",
+      "corepack pnpm exec vitest run tests/contracts/official-black-box-contracts.test.ts tests/contracts/spec-agentic-qa.test.ts --reporter=dot => passed: 2 files / 34 tests",
+      "corepack pnpm exec vitest run tests/contracts/serve-web-dist.test.ts --reporter=dot => passed: 1 file / 23 tests",
+      "corepack pnpm run test:agentic-qa:preparation -- --reporter=dot => passed: 1/1",
+      "corepack pnpm exec tsx scripts/agentic-qa/validate-contracts.ts => passed: 3 challenges / 1 charter / 3 findings / 8 manifests / 2 evaluations",
+      "corepack pnpm run lint => passed: 0 errors / 64 warnings",
+      "corepack pnpm run lint:markdown => passed: 244 files / 0 issues",
+      "corepack pnpm exec tsc --noEmit --project tsconfig.native-tests.json --pretty false => passed",
+      "corepack pnpm exec tsc --noEmit --project tsconfig.json --pretty false => failed: existing /guide route errors x6",
+      "corepack pnpm run validate:spec => passed: 3 challenges",
+      "corepack pnpm run build:spec => passed: 21 pages",
+      "corepack pnpm run validate:image-manifest => passed",
+      "corepack pnpm run security:check => passed",
+      "corepack pnpm run test:unit => passed: 13 files / 66 tests",
+      "corepack pnpm run test:integration => passed: 9 files / 98 tests",
+      "corepack pnpm run test:component:web => passed: 11 files / 76 tests",
+      "corepack pnpm run test:contracts => FAIL: 24 files中23 files / 195 tests passed; 1 file (native-sqlite-transactions.test.ts) could not start due to Vite node:sqlite bundling environment error",
+      "bash scripts/verify => not runnable under Git Bash because repository script has CRLF shebang parsing on this Windows host",
+      "git diff --check => passed",
+      "powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260812-210947-JST -Write -Check => passed: 4 files / 0 residual findings",
+      "Official Host E2E => not executed; trusted Host Capability Receipt is absent"
+    ],
+    "warnings": [
+      "Official Host Capability Receipt、Fresh Runner、trusted Bootstrap、実Resource Boundary、bounded finalizationの証跡は現Hostに無く、Official E2E／scoreは未実行・未採点。",
+      "Full typecheckの失敗は既存の6件の/guide route型エラー。",
+      "Full Contractの失敗はnode:sqliteをViteがbundleできない環境エラー。",
+      "bash scripts/verifyはCRLF shebangのためWindows Git Bashでは起動できず、個別ゲートをcorepack pnpmで実行した。",
+      "Product、Native、Android、Git mutation、Custom Agent Runner／LLM wrapperは変更していない。"
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": null,
+  "status": "completed",
+  "primary_failure_category": null
+}
