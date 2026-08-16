@@ -13,6 +13,18 @@ Codex を Full Access で使うときも、**明確に破壊的な操作だけ�
 
 通常 Git workflow、stage ownership、shell parser、追加 Hook、独自安全基盤は作らない。
 
+**Primary / Required execution environment は Windows native とする。**
+
+```text
+Windows native
+├─ Codex
+├─ Git for Windows
+├─ Node.js
+└─ Windows PowerShell (`powershell.exe`)
+```
+
+WSL は必須にしない。macOS / Linux 対応は壊さないが、この Plan の Required Acceptance には含めない。
+
 ---
 
 ## 1. 最終設計
@@ -53,6 +65,8 @@ Hooks framework
 matcher = "^Bash$"
 ```
 
+`Bash` は Hook 上の canonical tool name であり、Windows で Bash / WSL を起動するという意味ではない。
+
 `Shell` / `PowerShell` 等の非 canonical alias を並べない。
 
 `apply_patch` も今回の matcher から外す。
@@ -72,8 +86,9 @@ matcher = "^Bash$"
 - PowerShell / Python に policy logic を重複させない。
 - 現在の `.ps1` / `.py` は config 参照を外し、検証後に削除する。
 - Node.js は repository の既存 runtime を使い、新Dependencyは追加しない。
+- Windows PowerShell は launcher に限定し、安全判定ロジックを持たせない。
 
-### 1.4 Config は現行 canonical keyへ寄せる
+### 1.4 Config は Windows を正本にする
 
 ```toml
 [features]
@@ -82,12 +97,25 @@ hooks = true
 
 deprecated alias `codex_hooks` は残さない。
 
-Hook command は repository root を解決して script を呼ぶ。
+Windows では `command_windows` を正本とする。
 
-- macOS / Linux: `command`
-- Windows: `command_windows` または installed runtime が受理する canonical Windows field
+```toml
+[[hooks.PreToolUse.hooks]]
+type = "command"
+command = "..."         # macOS / Linux fallback
+command_windows = "powershell.exe -NoProfile -Command \"... resolve repo root ...; node ...pre_tool_use_policy.mjs\""
+timeout = 30
+```
 
-current working directory が repository subdirectory でも起動できることを確認する。
+方針:
+
+- `command_windows` は Windows native の Required path とする。
+- `powershell.exe` は repository root 解決と Node Hook 起動だけに使う。
+- policy 本体は `.codex/hooks/pre_tool_use_policy.mjs` に一本化する。
+- `pwsh` を必須依存にしない。
+- WSL を要求しない。
+- current working directory が repository root / repository subdirectory のどちらでも起動できることを Windows で必須確認する。
+- macOS / Linux 用 `command` は互換性維持のため残すが、未検証でも Windows Required Acceptance の完了を妨げない。
 
 ### 1.5 Hook の出力は最小化する
 
@@ -108,7 +136,7 @@ Malformed JSON / Hook 内部例外:
 
 - exit code `2` + stderr reason で block する。
 
-Wave 0 で installed runtime が両形式を実際に block と扱うことを確認する。
+Wave 0 で installed runtime が両形式を実際に block と扱うことを Windows native で確認する。
 
 ---
 
@@ -154,9 +182,9 @@ Node.js 1本へ統一する。
 pwsh ... -File .codex/hooks/pre_tool_use_policy.ps1
 ```
 
-これは `pwsh` availability と cwd に依存する。
+これは PowerShell 7 (`pwsh`) availability と cwd に依存する。
 
-repository root 解決型の command へ変更する。
+Windows native の正本は `command_windows` + `powershell.exe` launcher + Node Hook とする。
 
 ### 2.5 Payload 全体を recursive scan している
 
@@ -394,15 +422,17 @@ Hooks は guardrail であり完全な sandbox ではない、という前提を
 
 ## 6. 実装 Wave
 
-### Wave 0 — installed runtime確認
+### Wave 0 — installed runtime確認（Windows Required）
 
-実装前に次だけ実測する。
+Windows native で実装前に次だけ実測する。
 
 - Codex version
 - project Hook discovery / trust
 - `features.hooks`
 - `PreToolUse` matcher `Bash`
 - `tool_input.command`
+- `command_windows` が実際に使用されること
+- root cwd / nested cwd の双方から Hook 起動
 - safe output behavior
 - structured deny behavior
 - exit `2` deny behavior
@@ -416,14 +446,17 @@ Hooks は guardrail であり完全な sandbox ではない、という前提を
 - Full Access で execpolicy が有効なら static deny は Rules を正本とする。
 - Full Access で execpolicy が無効なら、同じ最小 static deny set を PreToolUse 側にも保持する。
 - この確認前に `git add/commit/push` blanket deny を解除しない。
+- WSL / macOS / Linux の確認を Wave 0 Gate にしない。
 
 ### Wave 1 — Hook runtime修復
 
 - `[features].hooks = true`
 - matcher `^Bash$`
 - Node canonical Hook追加
-- root-resolved `command`
-- Windows command override
+- Windows `command_windows` を正本化
+- `powershell.exe` は root resolver + Node launcher のみに限定
+- root / nested cwd Windows smoke
+- macOS / Linux fallback `command` は互換性維持のため残す
 - `.ps1` / `.py` runtime参照削除
 - `/hooks` で changed Hook を review / trust
 
@@ -458,7 +491,7 @@ standalone iex / Invoke-Expression forbidden
 
 Hook と Rules で同じ複雑な parser を二重実装しない。
 
-### Wave 4 — tests / verify
+### Wave 4 — tests / verify（Windows Required）
 
 Contract test正本:
 
@@ -466,7 +499,7 @@ Contract test正本:
 tests/contracts/codex-pre-tool-use-policy.test.ts
 ```
 
-最低限:
+Windows native で最低限次を検証する。
 
 #### Allow
 
@@ -508,7 +541,7 @@ git push --mirror
 git push origin main
 main 上の git commit
 main 上の git merge
-rm file.txt
+Remove-Item file.txt
 terraform destroy
 kubectl delete pod x
 ```
@@ -518,11 +551,19 @@ kubectl delete pod x
 - source / Markdown / fixture に `git push --force` と書くだけ -> allow
 - `apply_patch` normal Add / Update / Delete / Move -> Hook対象外
 
-### Wave 5 — actual acceptance
+#### Windows invocation
+
+- repository root から Hook 発火 -> PASS
+- repository subdirectory から Hook 発火 -> PASS
+- `command_windows` -> `powershell.exe` -> Node Hook 起動 -> PASS
+- `pwsh` が PATH に無くても Required Hook path が成立 -> PASS
+- WSL 無しで Required verification が完結 -> PASS
+
+### Wave 5 — actual acceptance（Windows Required）
 
 Production checkout で destructive probe を実行しない。
 
-Temporary clone + local bare remote で確認する。
+Windows native 上の Temporary clone + local bare remote で確認する。
 
 Normal / Full Access 双方で:
 
@@ -538,6 +579,10 @@ Full Access ではさらに:
 - Hook deny が tool 実行前に効くことを確認
 - deny 後に local / remote sentinel が変化していないことを確認
 
+Windows Required Acceptance が PASS すれば、この Plan の platform gate は満たす。
+
+macOS / Linux は利用可能なら smoke を行うが、未実施を BLOCKED / FAIL としない。
+
 ### Wave 6 — docs同期
 
 必要な範囲だけ更新する。
@@ -546,6 +591,8 @@ Full Access ではさらに:
 - `docs/reference/codex-safety-harness.md`
 - `.codex/rules/README.md`
 - `.codex/requirements.toml`
+
+Windows native が Primary / Required environment、macOS / Linux は best-effort compatibility であることも同期する。
 
 ---
 
@@ -572,6 +619,8 @@ Full Access ではさらに:
 - preset再設計
 - 新しい安全platform
 - npm / package release policy全体の再設計
+- WSL必須化
+- macOS / LinuxをRequired Acceptanceにすること
 
 ---
 
@@ -588,9 +637,13 @@ Node Hook 1本
 +
 canonical hooks feature key
 +
-root / nested cwd / Windows invocation PASS
+Windows command_windows path PASS
 +
-Full Access でも Hook invocation PASS
+Windows root / nested cwd invocation PASS
++
+Windows Full Access Hook invocation PASS
++
+Windows native onlyでRequired verification完結
 +
 normal Git operations are not blanket blocked
 +
@@ -608,12 +661,14 @@ no custom shell parser
 +
 contract tests PASS
 +
-Normal acceptance PASS
+Windows Normal acceptance PASS
 +
-Full Access acceptance PASS
+Windows Full Access acceptance PASS
 +
 docs / rules / Hook behavior一致
 ```
+
+macOS / Linux smoke は optional evidence とし、未実施でも完了可能とする。
 
 この Plan の基準は一つだけである。
 
@@ -623,10 +678,10 @@ docs / rules / Hook behavior一致
 
 ## 9. 実装時の参照優先順位
 
-1. installed Codex actual behavior
+1. installed Codex actual behavior on Windows native
 2. OpenAI Codex Hooks official documentation
 3. OpenAI Codex Config Reference
 4. OpenAI Codex Rules official documentation
 5. repository existing policy / implementation
 
-Current upstream の仕様と installed runtime が食い違う場合は、実測結果を記録して Plan を更新してから進める。
+Current upstream の仕様と installed Windows runtime が食い違う場合は、実測結果を記録して Plan を更新してから進める。
