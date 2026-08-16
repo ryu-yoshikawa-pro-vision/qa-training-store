@@ -85,6 +85,7 @@ Security boundary 自体が成立していない項目は、単に「権限不�
 - Required approvals: 0
 - Review thread resolution required
 - Required status check: `verify`
+- Required check expected source: GitHub Actions（current `integration_id: 15368`）
 - Strict branch update: OFF
 - Linear history required
 - Deletion blocked
@@ -95,6 +96,10 @@ Security boundary 自体が成立していない項目は、単に「権限不�
 現在は `verify` が Required check だが、今回の Hardening 完了後は最終判定を行う `validate` を Required check とする。
 
 `verify` は内部 quality aggregate として維持し、Ruleset では `validate` のみを最終 Required check とする。
+
+Required check の expected source は GitHub Actions のまま維持する。
+
+`integration_id: 15368` は 2026-08-16 時点の確認値であり、固定値として実装しない。Ruleset 切替時に `validate` check-run の発行元を再取得し、GitHub Actions であることを確認してから expected source を設定する。
 
 `validate` の修正版が `main` に反映され、正常に成功することを確認する前に Ruleset を切り替えない。
 
@@ -573,6 +578,7 @@ Hardening 完了後の `main-protection` 期待値:
 
 - PR required
 - Required status check: `validate`
+- Required check expected source: GitHub Actions
 - `verify` は Ruleset Required ではなく内部 aggregate として維持
 - conversation resolution required
 - linear history required
@@ -586,12 +592,16 @@ Hardening 完了後の `main-protection` 期待値:
 
 `validate` が `verify` と Preview expected result の両方を最終判定するため、Ruleset の最終 Gate は `validate` だけでよい。
 
+Required check の expected source は、既存 `verify` と同様に GitHub Actions へ固定する。check 名だけを `validate` に変更して expected source 制約を外さない。
+
 Ruleset 移行手順:
 
 1. Phase 2 の修正版 `validate` を通常手順で `main` へ反映
 2. `main` 上で `validate` が正常に実行・成功することを確認
-3. `main-protection` の Required check を `verify` から `validate` へ変更
-4. 変更後、通常 PR で `validate` が merge block の最終 Gate になることを確認
+3. `validate` check-run の発行元 App が GitHub Actions であることと、実装時点の integration / App ID を確認
+4. `main-protection` を `verify` + GitHub Actions から `validate` + GitHub Actions へ変更
+5. Ruleset を再取得し、Required check context が `validate`、expected source が GitHub Actions のままであることを確認
+6. 変更後、通常 PR で `validate` が merge block の最終 Gate になることを確認
 
 既存 Workflow の次も維持する。
 
@@ -655,7 +665,7 @@ CODE_REVIEW.md              # 既存記載と矛盾する場合のみ最小修�
 14. Token 共有を継続する場合は Owner の明示承認と P-05 の代替制御を確認
 15. GitHub Settings Current State 確認
 16. Existing vulnerability / malware / secret findings を Inventory
-17. `main-protection` Current State を確認
+17. `main-protection` Current State と Required check expected source を確認
 18. `verify.if: always()` / `validate.if: always()` の Current State を確認
 
 Owner の trust classification が未確定でも、権限変更を伴わない Repository Hardening は継続してよい。
@@ -673,7 +683,7 @@ Exit:
 - remote Action pinning 対象が列挙済み
 - Critical / High と Moderate / Low の Existing finding 件数が把握済み
 - Malware / Secret Alert の状態が把握済み
-- Current Ruleset / `always()` state が確認済み
+- Current Ruleset / Required check expected source / `always()` state が確認済み
 
 ### Phase 2: Repository Changes
 
@@ -813,11 +823,13 @@ Repository変更が正規手順で `main` へ反映された後に実施する�
 順序:
 
 1. `main` 上の修正版 `validate` が正常実行・成功することを確認
-2. `main-protection` Required check を `verify` から `validate` へ変更
-3. `validate` が最終 merge Gate として機能することを確認
-4. Dependabot-safe Preview / `validate` が `main` に存在することを再確認
-5. Dependabot Security Updates を ON
-6. その他 Security Settings を最終状態へ揃える
+2. `validate` check-run の発行元 App が GitHub Actions であることと実装時点の integration / App ID を確認
+3. `main-protection` Required check を `verify` + GitHub Actions から `validate` + GitHub Actions へ変更
+4. Ruleset を再取得し、Required check context / expected source の両方を確認
+5. `validate` が最終 merge Gate として機能することを確認
+6. Dependabot-safe Preview / `validate` が `main` に存在することを再確認
+7. Dependabot Security Updates を ON
+8. その他 Security Settings を最終状態へ揃える
 
 Settings 最終状態:
 
@@ -834,6 +846,7 @@ Settings 最終状態:
 - Actions default permission read-only
 - Actions create / approve PR OFF
 - `main-protection` Required check: `validate`
+- `main-protection` Required check expected source: GitHub Actions
 
 UI / Runtime 確認:
 
@@ -846,6 +859,7 @@ UI / Runtime 確認:
 - CodeQL JavaScript / TypeScript successful
 - CodeQL `actions` successful
 - `main-protection` の Required check が `validate`
+- `validate` の Required check expected source が GitHub Actions
 
 Security PR が生成された場合:
 
@@ -889,7 +903,9 @@ PreviewをDependabot / forkへ広げず、`validate` の PR 種別 / expected-re
 
 修正版 `validate` が `main` で成功済みか確認する。
 
-Rulesetを無効化せず、Required check設定だけを確認・修正する。
+`validate` check-run の発行元が GitHub Actions であることを確認する。
+
+Rulesetを無効化せず、Required check の context と expected source の両方を確認・修正する。
 
 `verify` と `validate` の両方を恒久的に Required にして複雑化しない。
 
@@ -1011,8 +1027,9 @@ Quality:
 - `git diff --check` PASS
 - Required PR CI PASS
 - 修正版 `validate` PASS
+- PR-ready 時点の `verify` Required check expected source が GitHub Actions のまま維持されている
 
-PR-ready時点では `main-protection` Required check が既存 `verify` のままでもよい。
+PR-ready時点では `main-protection` Required check が既存 `verify` のままでよい。
 
 Ruleset切替は修正版`validate`が`main`へ反映された後にPhase 4で行う。
 
@@ -1038,6 +1055,7 @@ Default branch反映後:
 - Actions create / approve PR OFF
 - `main`上の全remote Action full SHA
 - `main-protection` Required check は `validate`
+- `validate` の Required check expected source は GitHub Actions
 - `verify` は内部 aggregate として維持
 - normal PRでPreview failure時に`validate`がfailしmerge blockされる構造
 - Dependabot / forkではPreview skippedを`validate`が正常扱いできる構造
