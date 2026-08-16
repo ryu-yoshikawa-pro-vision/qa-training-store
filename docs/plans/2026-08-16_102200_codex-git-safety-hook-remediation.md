@@ -608,7 +608,7 @@ Full Access検証は、ユーザーが実際に使用する Full Access route �
 - protected branch direct-update deny
 - protected branch上の `git am` deny
 - remote delete variants deny
--既存の明確な非Git destructive denyのみ移植
+- 既存の明確な非Git destructive denyのみ移植
 - `apply_patch` guard削除
 
 ### Wave 3 — execpolicy / wrapper / verify同期
