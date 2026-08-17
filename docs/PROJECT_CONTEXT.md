@@ -450,3 +450,9 @@
 - Repository-side `trusted/preparation/isolated-run-root/`も専用Manifestでfreezeし、frozen inputのspecification／Runbook／Challenge snapshotとのbyte identityを検査する。これはHost sandboxの証明ではなく、Host isolationの正本は引き続きTrusted Host Receiptである。
 - Prepared TargetはCanonical Benchmark Manifestのrevision／source HEAD／patch hashとRunner Inputのallowed originsへexact bindする。Trusted evidence_refはcurrent runの`trusted/**`にある非symlink regular fileへ解決できるものだけをOfficial proofとして受理する。
 - Official chainのgolden contract fixtureは、実Evidence file、別Evaluator session、`evaluateBlackBox()`の`valid_for_scoring=true`、空の`invalid_reasons`、非null coverage metricまで検証する。現HostのTrusted Capability不足はRepository実装を止めないが、Official execution／scoreはBLOCKED／NOT EXECUTEDのままとする。
+
+## Lightweight Experiment Record運用（2026-08-17）
+
+- 初回の継続改善Loopで使うExperiment RecordのCanonical Locationは`docs/experiments/`、ID Conventionは`EXP-YYYYMMDD-NNN`とする。物理配置・Reference方式の詳細は`docs/adr/0018-lightweight-experiment-records.md`と`docs/experiments/README.md`が持つ。
+- `target_revision_ref`はclean committed inputの`git:<40桁小文字SHA>`または既存Canonical Manifestの`sha256:<64桁小文字digest>`を参照する。`execution_conditions_ref`、`artifact_ref`、`evidence_refs`は既存`.codex/runs/`／`.artifacts/`へのrepo-relative Referenceとし、Raw Evidenceや条件を重複コピーしない。
+- ExperimentのGovernance、強度、Failure Taxonomy、Knowledge化、Promotion判断の正本は`docs/plans/2026-08-15_123700_agentic-qa-knowledge-feedback-loop.md`のままである。初回Recordは専用DB／Registry／Validatorを追加せず、Result／InterpretationとPositive／Negative／Blocked Evidenceを分離して保存する。
