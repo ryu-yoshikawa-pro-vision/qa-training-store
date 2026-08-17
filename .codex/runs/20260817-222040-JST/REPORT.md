@@ -257,3 +257,20 @@
 - `pnpm run lint:markdown` => PASS、288 Markdown files／0 issues。
 - この追補はPlanのチェック状態だけで、Product／Specification／Formal Regression／Agentic QA Contract／Curriculumの内容を変更していない。
 - Progress: 100% (9/9)
+
+## 2026-08-18 08:06 (JST) — PR #32 Review Fix / Correction
+
+- Review finding classification: 既存の22:55／22:59記録は、その時点で実際に行ったYAML／Reference確認の行動記録として変更しない。ただしPRのmerge対象としては、これをFormal ExperimentではなくExperiment Record ConventionのAcceptance／Readiness Validationへ再分類する。
+- GAP-02の最終判断:
+  - Question: Canonical Location／ID／Reference方式をどうするか。
+  - Decision: Simple Git/YAML + existing Artifact Referenceで十分。
+  - Action: 通常のDocumentation／ADR変更として `docs/experiments/README.md` と ADR-0018を整備する。
+  - Validation: README／ADRの整合、Format／Markdown／既存Quality Gateを確認する。
+  - Formal Experiment: `NOT EXECUTED`。
+- `docs/experiments/EXP-20260817-001-record-traceability.yaml` は正式Experimentとしてmerge対象から除外した。これにより、Convention自体のAcceptance ValidationにFormal Experimentの`target_revision_ref`を付与する問題も解消した。
+- Official Scored separation: Official Black-box Scoredは今回のExperiment ReadinessのRequired Capabilityではない。今回確認できるHost-trusted Receipt／Actual Tool Scope Evidenceがないため、GAP-01として別途 `BLOCKED / NOT EXECUTED` と扱う。今回RunのFailure、`ENVIRONMENT_FAILURE`、`evaluation_status: partial`の根拠にはしない。
+- Current result: Review Fixは `success / completed`。Knowledge: `none`。Promotion: `none`。
+- Baseline Revision `fc9e497817e6c3cff8d89ebd7b37244e759e9484` はBaseline Revisionとしてのみ保持し、Formal Experiment Target Revisionとは扱わない。
+- Next Question: Known RegressionとAgentic ExplorationのCoverage／Layer重複、Experiment ResultをCurriculumへ戻す条件、Official ScoredのTrusted Evidence提供後のreadinessを、次タスクでImpact／Uncertainty／Cost／Available Capabilityから再選定する。今回ここから新しいExperimentは追加しない。
+- Iteration 1 decision: `stop_success`。Review Fixのallowed filesは指定Documentation、対象Run Artifact、削除対象EXP YAML、現Run Artifactに限定し、Product／Specification／Formal Regression／Curriculum／Skill／Harnessは変更しない。
+- Progress: 100% (10/10)

@@ -453,6 +453,8 @@
 
 ## Lightweight Experiment Record運用（2026-08-17）
 
-- 初回の継続改善Loopで使うExperiment RecordのCanonical Locationは`docs/experiments/`、ID Conventionは`EXP-YYYYMMDD-NNN`とする。物理配置・Reference方式の詳細は`docs/adr/0018-lightweight-experiment-records.md`と`docs/experiments/README.md`が持つ。
-- `target_revision_ref`はclean committed inputの`git:<40桁小文字SHA>`または既存Canonical Manifestの`sha256:<64桁小文字digest>`を参照する。`execution_conditions_ref`、`artifact_ref`、`evidence_refs`は既存`.codex/runs/`／`.artifacts/`へのrepo-relative Referenceとし、Raw Evidenceや条件を重複コピーしない。
-- ExperimentのGovernance、強度、Failure Taxonomy、Knowledge化、Promotion判断の正本は`docs/plans/2026-08-15_123700_agentic-qa-knowledge-feedback-loop.md`のままである。初回Recordは専用DB／Registry／Validatorを追加せず、Result／InterpretationとPositive／Negative／Blocked Evidenceを分離して保存する。
+- Formal Experiment RecordのCanonical Locationは`docs/experiments/`、ID Conventionは`EXP-YYYYMMDD-NNN`とする。物理配置・Reference方式の正本は`docs/adr/0018-lightweight-experiment-records.md`と`docs/experiments/README.md`である。
+- Formal Recordでは、immutableな`target_revision_ref`、既存Run Artifactを参照する`execution_conditions_ref`、repo-relativeなEvidence Referenceを使い、Raw Evidenceを重複コピーしない。専用Validator／Registry／Dashboard／Databaseは現時点で追加しない。
+- ExperimentのGovernance、強度、Failure Taxonomy、Knowledge化、Promotion判断の正本は`docs/plans/2026-08-15_123700_agentic-qa-knowledge-feedback-loop.md`のままである。
+- このPRではExperiment Readiness（Canonical Location／ID／Reference ConventionとAcceptance Validation）だけを整備し、Formal Experimentは実行していない。最初のFormal Experimentは、本当にExperimentが必要なQA／Training Questionを選択した時点で作成する。
+- Baseline Revision `fc9e497817e6c3cff8d89ebd7b37244e759e9484` はBaselineの追跡用であり、Formal Experiment Target Revisionとは別である。Official Black-box Scoredは、受理可能なHost-trusted Receipt／Actual Tool Scope Evidenceがないため別Gapとして`BLOCKED / NOT EXECUTED`で扱い、今回のReadiness変更のFailureとはしない。

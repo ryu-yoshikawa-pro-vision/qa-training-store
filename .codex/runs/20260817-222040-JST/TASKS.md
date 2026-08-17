@@ -14,6 +14,7 @@
 ## Discovered
 
 - [x] D1. Baselineで実装に影響する新しいGapが確認された場合だけ、最小の追加Taskを登録する（新しい実装起因Gapなし）
+- [x] D2. PR #32 review指摘を反映し、Formal ExperimentではなくExperiment Readinessとして再分類する（EXP YAML除外、Documentation／Run Artifact整合、Validation、push）
 
 ## Blocked
 

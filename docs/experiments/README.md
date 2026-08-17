@@ -1,14 +1,15 @@
 # Experiment Records
 
-このディレクトリは、Test Target、Curriculum、QA Systemの継続改善で実施した
-Lightweight Experimentを、既存のRun Artifact／Evidenceへ参照接続するためのCanonical
-Locationです。Experiment DB、Dashboard、Registry、Knowledge Graphの代替ではありません。
+このディレクトリは、Test Target、Curriculum、QA Systemの継続改善で正式なExperimentを
+実施するときに、既存のRun Artifact／Evidenceへ参照接続するためのCanonical Locationです。
+Experiment DB、Dashboard、Registry、Knowledge Graphの代替ではありません。
 
 ## ID Convention
 
 - 形式は `EXP-YYYYMMDD-NNN`（JST日付、同日内の3桁連番）です。
 - File nameは `<experiment_id>-<短いslug>.yaml` とし、1 Experimentを1 Fileへ保存します。
 - `experiment_id` は別のRun IDやKnowledge IDと兼用しません。
+- 1 Experiment = 1 YAMLを維持し、不要な空Recordや複数Experimentの混在を作りません。
 
 ## Reference Convention
 
@@ -22,10 +23,21 @@ Locationです。Experiment DB、Dashboard、Registry、Knowledge Graphの代替
   Trace、MCP／ADB logなどのRaw Evidenceは `.artifacts/` に置き、Recordには相対Referenceだけを残します。
 - Credential、Token、個人識別可能なLearner／Human data、OS固有の絶対Pathは保存しません。
 
+## Experiment ReadinessとFormal Experimentの境界
+
+- Convention自体のparse確認、Reference解決確認、配置確認、Markdown／既存品質ゲート確認は
+  Acceptance／Readiness Validationです。これらはFormal Experimentとして扱わず、Experiment IDや
+  Experiment YAMLを作成しません。
+- `Experiment Readiness` と `Formal Experiment` は別の状態です。通常のDocumentation／ADR変更と
+  Acceptance Validationで解消できる運用上のGapは、正式なExperimentへ昇格させません。
+- Formal Experimentは、対象Planに沿ったQA／Training Questionについて、通常変更だけでは答えられず、
+  Experimentが必要だと判断した時点で初めて作成します。
+
 ## Record rules
 
 - Standardは `study_intent: exploratory`、必要最小限の `design_type` です。
-- `result`／`results` は観測・計測された事実、`interpretation` はそこから導く推論です。
+- `results` は対象PlanのLightweight Experiment Record Schemaに従う観測・計測された事実で、
+  `interpretation` はそこから導く推論です。
   因果を証明していない単一Runから、Agent・Model・Skillの改善を断定しません。
 - `completed`、`failure`、`invalid` は実行状態です。Tool／Runtime／Environment／AgentのFailureは
   通常Failureとして残し、Protocol破損だけを `RUN_INVALID` とします。未実行・Blocked・Evidence不足を
