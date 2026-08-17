@@ -4,16 +4,24 @@
 
 ## Changes
 
-<!-- What changed, and why? -->
+<!-- What changed? -->
 
-## Verification
+## Scope / Non-goals
 
-<!-- List the commands or checks you ran and their results. -->
+<!-- State the affected area and what is intentionally out of scope. -->
 
-## Scope / Constraints
+## Validation / Evidence
 
-<!-- State the affected area, non-goals, and any known limitations. -->
+<!-- List the checks run and link to relevant evidence. -->
 
-## Additional Context
+## Impact
 
-<!-- Link related issues, plans, screenshots, or follow-up work. -->
+<!-- Describe the user, runtime, or workflow impact. -->
+
+## Security / Dependency Impact
+
+<!-- Describe security or dependency effects, or state none. -->
+
+## Related Issue / Plan
+
+<!-- Link related issues, plans, or follow-up work. -->

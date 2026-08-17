@@ -7,17 +7,31 @@ body:
       value: |
         Do not report security vulnerabilities in a public Issue. Use [SECURITY.md](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/SECURITY.md) and GitHub Private Vulnerability Reporting instead.
   - type: textarea
-    id: problem-motivation
+    id: problem-background
     attributes:
-      label: Problem / Motivation
-      description: What problem would this solve, and for whom?
+      label: Problem / Background
+      description: Describe the problem, background, and who is affected.
     validations:
       required: true
   - type: textarea
-    id: proposed-behavior
+    id: expected-behavior
     attributes:
-      label: Proposed behavior
+      label: Expected Behavior
       description: Describe the behavior or outcome you would like.
+    validations:
+      required: true
+  - type: textarea
+    id: qa-training-value
+    attributes:
+      label: QA / Training Value
+      description: Explain the QA, learning, or training value.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Describe alternatives or workarounds considered.
     validations:
       required: true
   - type: textarea
@@ -30,5 +44,5 @@ body:
   - type: textarea
     id: additional-context
     attributes:
-      label: Additional context
+      label: Additional Context
       description: Add examples, links, screenshots, or other context that is safe to share publicly.

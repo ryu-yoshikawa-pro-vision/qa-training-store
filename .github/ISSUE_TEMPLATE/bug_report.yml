@@ -7,40 +7,68 @@ body:
       value: |
         Do not report security vulnerabilities in a public Issue. Use [SECURITY.md](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/SECURITY.md) and GitHub Private Vulnerability Reporting instead.
   - type: textarea
-    id: description
+    id: summary
     attributes:
-      label: Description
-      description: What is wrong?
+      label: Summary
+      description: Summarize the problem.
     validations:
       required: true
   - type: textarea
-    id: reproduction
+    id: platform
     attributes:
-      label: Reproduction
+      label: Platform
+      description: Identify the affected platform, device, or operating system.
+    validations:
+      required: true
+  - type: textarea
+    id: environment-browser
+    attributes:
+      label: Environment / Browser
+      description: Include browser, browser version, app version, or relevant runtime details.
+    validations:
+      required: true
+  - type: textarea
+    id: preconditions
+    attributes:
+      label: Preconditions
+      description: State any setup or data required before reproducing the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Reproduction Steps
       description: List the smallest reliable reproduction steps.
     validations:
       required: true
   - type: textarea
-    id: expected-behavior
+    id: expected-result
     attributes:
-      label: Expected behavior
+      label: Expected Result
     validations:
       required: true
   - type: textarea
-    id: actual-behavior
+    id: actual-result
     attributes:
-      label: Actual behavior
+      label: Actual Result
     validations:
       required: true
   - type: textarea
-    id: environment
+    id: reproducibility
     attributes:
-      label: Environment
-      description: Include platform, browser or device, OS, and relevant version information.
+      label: Reproducibility
+      description: State how often the issue occurs and under what conditions.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Add logs, screenshots, links, or other evidence safe to share publicly.
     validations:
       required: true
   - type: textarea
     id: additional-context
     attributes:
-      label: Additional context
-      description: Add logs, screenshots, links, or other context that is safe to share publicly.
+      label: Additional Context
+      description: Add any other context that is safe to share publicly.

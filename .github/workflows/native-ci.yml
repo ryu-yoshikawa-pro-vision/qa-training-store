@@ -37,7 +37,7 @@ jobs:
     outputs:
       native_changed: ${{ steps.paths.outputs.native_changed }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -110,13 +110,13 @@ jobs:
     if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -143,13 +143,13 @@ jobs:
     if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -171,13 +171,13 @@ jobs:
       EXPO_PUBLIC_DEFAULT_SEED: default
       ANDROID_COMPILE_API_LEVEL: "36"
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -186,7 +186,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - name: Configure Gradle cache
-        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        uses: gradle/actions/setup-gradle@f236b35da9d031e13b1005234ebe4392ed54c580 # v5.0.0
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Install dependencies
@@ -308,7 +308,7 @@ jobs:
           cp "$APK_PATH" "$RUNNER_TEMP/native-apks/native-automation.apk"
           echo "AUTOMATION_APK_PATH=$RUNNER_TEMP/native-apks/native-automation.apk" >> "$GITHUB_ENV"
       - name: Upload Automation Release APK
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: native-android-apk-${{ github.run_id }}
           path: ${{ runner.temp }}/native-apks/native-automation.apk
@@ -363,7 +363,7 @@ jobs:
             echo "Automation Release APK was not generated." \
               > "$RUNNER_TEMP/native-build-evidence/apk-status.txt"
           fi
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: native-android-build-evidence-${{ github.run_id }}
@@ -384,13 +384,13 @@ jobs:
       EXPO_PUBLIC_DEFAULT_SEED: default
       ANDROID_COMPILE_API_LEVEL: "36"
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -399,7 +399,7 @@ jobs:
           distribution: temurin
           java-version: "17"
       - name: Configure Gradle cache
-        uses: gradle/actions/setup-gradle@ed408507eac070d1f99cc633dbcf757c94c7933a # v4.4.3
+        uses: gradle/actions/setup-gradle@f236b35da9d031e13b1005234ebe4392ed54c580 # v5.0.0
         with:
           cache-read-only: ${{ github.event_name == 'pull_request' }}
       - name: Install dependencies
@@ -526,7 +526,7 @@ jobs:
           done <<< "$bundle_entries"
           ls -lh "$PRODUCTION_APK_PATH"
       - name: Upload Production-validation Release APK
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: native-android-production-apk-${{ github.run_id }}
           path: ${{ runner.temp }}/native-apks/native-production-validation.apk
@@ -567,7 +567,7 @@ jobs:
             echo "Production-validation APK was not generated." \
               > "$RUNNER_TEMP/native-production-build-evidence/production-apk-status.txt"
           fi
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: native-android-production-build-evidence-${{ github.run_id }}
@@ -587,10 +587,10 @@ jobs:
     env:
       ANDROID_API_LEVEL: "34"
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1 # v4
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
         if: ${{ inputs.capture_spec_visuals == true }}
         with:
           version: ${{ env.PNPM_VERSION }}
@@ -847,7 +847,7 @@ jobs:
           "$ADB" shell settings put global animator_duration_scale 0
           "$ADB" shell input keyevent 82
       - name: Cache pinned Maestro CLI
-        uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4.3.0
+        uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
         with:
           path: ~/.cache/maestro/${{ env.MAESTRO_VERSION }}
           key: maestro-${{ runner.os }}-${{ env.MAESTRO_VERSION }}-${{ env.MAESTRO_CACHE_SCHEMA }}
@@ -1063,7 +1063,7 @@ jobs:
           echo "ANDROID_OBSERVED_PROFILE_JSON=$profile_json" >> "$GITHUB_ENV"
       - name: Download Automation Release APK
         if: ${{ !cancelled() && needs.android-automation-build.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: native-android-apk-${{ github.run_id }}
           path: ${{ runner.temp }}/native-apk
@@ -1376,7 +1376,7 @@ jobs:
           fi
       - name: Upload Android Screen Catalog raw visuals
         if: ${{ always() && steps.android_visual_capture.outcome != 'skipped' }}
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: native-android-screen-catalog-visuals-${{ github.run_id }}
           path: ${{ runner.temp }}/spec-visuals
@@ -1750,7 +1750,7 @@ jobs:
             --junit-output "$RUNNER_TEMP/maestro-training-baseline.xml"
       - name: Download Production-validation Release APK
         if: ${{ !cancelled() && needs.android-production-build.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4.3.0
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: native-android-production-apk-${{ github.run_id }}
           path: ${{ runner.temp }}/native-production-apk
@@ -1971,7 +1971,7 @@ jobs:
             echo "Maestro artifact directory was not created." \
               > "$RUNNER_TEMP/native-runtime-evidence/test-control-contract-signals.txt"
           fi
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: native-android-runtime-evidence-${{ github.run_id }}
