@@ -34,13 +34,16 @@
       "pnpm run test",
       "pnpm run build:web",
       "pnpm run build:spec",
-      "pnpm run verify"
+      "pnpm run verify",
+      "git diff --check",
+      "scripts/sanitize-codex-artifacts.ps1 -Write -Check"
     ],
     "warnings": [
       "lintは0 errors／64 existing warnings。",
       "Native component testのReact act console warningとNode SQLite experimental warningは既存観測。",
       "Formal ExperimentはNOT EXECUTED。Knowledge／Promotionはnone。",
-      "Official ScoredのTrusted Evidence不足は今回RunのFailureではなく、Baseline GAP-01として別途BLOCKED／NOT EXECUTED。"
+      "Official ScoredのTrusted Evidence不足は今回RunのFailureではなく、Baseline GAP-01として別途BLOCKED／NOT EXECUTED。",
+      "PR #32 headは0a6f6d7442ca7e006776a13cd561b91b8e1fc8c9。Phase 1 CIは確認時点でin_progress、Native CIはsuccess、CodeRabbit checkはsuccess。"
     ]
   },
   "safety": {
@@ -73,6 +76,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "pending",
+  "status": "completed",
   "primary_failure_category": null
 }
