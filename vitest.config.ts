@@ -1,5 +1,5 @@
 import path from "node:path";
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 
 export default defineConfig({
   resolve: {
@@ -15,7 +15,7 @@ export default defineConfig({
     restoreMocks: true,
     clearMocks: true,
     unstubGlobals: true,
-    exclude: ["**/.artifacts/**"],
+    exclude: [...configDefaults.exclude, "**/.artifacts/**"],
     coverage: {
       provider: "v8",
       reporter: ["text", "json-summary"],

@@ -170,3 +170,41 @@
 - Evaluation: `evaluation.json`を`result=pass`、`primary_failure_category=null`へ更新し、旧failureは今回の探索境界修正で解消済みとして反映した。`run.json`のchanged files／warningsも現状へ同期した。
 - Decision: stop_success。temporary cloneの修正・削除、commit／push、GitHub側操作は行わない。
 - Progress: 100% (9/9)
+
+## 2026-08-17 14:54 (JST) — PR #30 最新レビュー対応
+
+- Summary: 最新レビューで指定された残存2テーマだけを最小差分で修正した。
+- Repair Loop iteration: 2。
+- Input findings:
+  - G4 `git clean` の`-qf`／`-fq`／`-qfd`漏れ。
+  - G5 `git checkout -B`と`git switch --force-create=<branch>`漏れ。
+  - G7／G8 `git push`の`-q`／`-v`／複合short optionとremote delete漏れ。
+  - G9 `git branch -vD`／`-M`／`-C`、`git tag -af`漏れ。
+  - G10 protected branch上の`git push origin @`未解決。
+  - `vitest.config.ts`がVitest default excludeを置換していた。
+- Triage:
+  - `must_fix`: 上記2テーマ。
+  - `defer`／`reject`: shell parser、Git global option／alias／plumbing、env／sudo／wrapper、approval policy、依存・framework、無関係なCodeRabbit指摘。
+- Repair plan: operation-specificなshort-option集合だけを拡張し、`--force-create`はoptional valueのfocused helperで処理する。`HEAD`と`@`だけをcurrent branchへ解決し、Vitestは`configDefaults.exclude`をspreadして`.artifacts/**`を追加する。
+- Allowed files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、`vitest.config.ts`、active Run Artifact。
+- Changed files: 上記3ファイルとactive Run Artifactのみ。
+- Changes:
+  - G4／G5／G7／G8／G9の指定variantをdenyし、既存のfalse-positive regressionを維持した。
+  - G10でprotected branch上の`HEAD`／`@`をdenyし、feature branch上の`@`をallowするContract Testを追加した。
+  - `vitest.config.ts`を`exclude: [...configDefaults.exclude, "**/.artifacts/**"]`へ修正した。
+- Validation:
+  - `node --check .codex/hooks/pre_tool_use_policy.mjs` => PASS。
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1` => PASS、1 file／52 tests。
+  - `pnpm run format` => PASS、Prettier対象は全てunchanged。
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint` => PASS、0 errors／64 warnings（既存warning）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run security:check` => PASS。
+  - `pnpm run test:contracts` => PASS、30 files／375 tests。
+  - `pnpm run verify` => PASS、全工程、native Jest 12 suites／49 testsを含む。
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1` => PASS=3／FAIL=0／SKIP=0。
+  - `bash scripts/verify` => PASS=2／FAIL=0／SKIP=2（WSL側codex未解決）。
+  - `git diff --check` => PASS。
+- Remaining delta: なし。並列ゲート実行は環境競合でタイムアウトしたが、指定順の個別実行は全て成功した。
+- Decision: `stop_success`（修正・検証完了。commit／pushは次工程）。
+- Progress: 100% (10/10)

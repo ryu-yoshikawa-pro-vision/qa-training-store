@@ -16,6 +16,7 @@
 - D1. Windows nativeが利用できない場合は既存のtemporary clone／local bare remote方式を確認し、未実行理由を記録する。
 - D2. 全体Gateの既存failureはbaselineと変更差分の因果を確認してからdeferする。
 - [x] D3. ignored `.artifacts` をESLint／Vitestの探索対象から除外し、全体Gateを再実行する。
+- [x] D4. PR #30最新レビューの残存2テーマを最小修正し、Required Quality Gateを再実行する。
 
 ## Blocked
 

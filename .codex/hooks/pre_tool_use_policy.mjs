@@ -16,17 +16,32 @@ const DENY_CASES = [
   { id: "G2", expected: "deny", command: "git rebase main" },
   { id: "G3", expected: "deny", command: "git commit --amend -m \"rewrite\"" },
   { id: "G4", expected: "deny", command: "git clean -fd" },
+  { id: "G4", expected: "deny", command: "git clean -qf" },
+  { id: "G4", expected: "deny", command: "git clean -fq" },
+  { id: "G4", expected: "deny", command: "git clean -qfd" },
   { id: "G5", expected: "deny", command: "git restore sentinel.txt" },
   { id: "G5", expected: "deny", command: "git checkout -fq feature" },
+  { id: "G5", expected: "deny", command: "git checkout -B existing-branch" },
   { id: "G5", expected: "deny", command: "git switch -Cfeature" },
+  { id: "G5", expected: "deny", command: "git switch --force-create=feature" },
   { id: "G6", expected: "deny", command: "git stash drop stash@{0}" },
   { id: "G7", expected: "deny", command: "git push --force origin feature" },
   { id: "G7", expected: "deny", command: "git push -uf origin feature" },
   { id: "G7", expected: "deny", command: "git push -fu origin feature" },
+  { id: "G7", expected: "deny", command: "git push -qf origin feature" },
+  { id: "G7", expected: "deny", command: "git push -fq origin feature" },
+  { id: "G7", expected: "deny", command: "git push -vf origin feature" },
+  { id: "G7", expected: "deny", command: "git push -fv origin feature" },
   { id: "G7", expected: "deny", command: "git push --force-with-lease=feature origin feature" },
   { id: "G8", expected: "deny", command: "git push --delete origin old-feature" },
+  { id: "G8", expected: "deny", command: "git push -qd origin old-feature" },
+  { id: "G8", expected: "deny", command: "git push -fd origin old-feature" },
   { id: "G9", expected: "deny", command: "git branch -D old-feature" },
   { id: "G9", expected: "deny", command: "git branch -Df old-feature" },
+  { id: "G9", expected: "deny", command: "git branch -vD old-feature" },
+  { id: "G9", expected: "deny", command: "git branch -M old new" },
+  { id: "G9", expected: "deny", command: "git branch -C source target" },
+  { id: "G9", expected: "deny", command: "git tag -af -m \"message\" v1" },
   {
     id: "G10",
     expected: "deny",
@@ -105,6 +120,10 @@ function tailHasOption(tail, option) {
   return new RegExp(`(?:^|\\s)${escapeRegExp(option)}(?=\\s|$)`, "i").test(tail);
 }
 
+function tailHasOptionWithOptionalValue(tail, option) {
+  return new RegExp("(?:^|\\s)" + escapeRegExp(option) + "(?:=\\S+)?(?=\\s|$)", "i").test(tail);
+}
+
 function tailHasShortOption(tail, optionTokenPattern) {
   return new RegExp(`(?:^|\\s)-${optionTokenPattern}(?=\\s|$)`).test(tail);
 }
@@ -135,7 +154,7 @@ function evaluateGitClean(command) {
   const tail = getOperationTail(command, "git", "clean");
   return (
     tail !== null &&
-    (tailHasShortOption(tail, "[dfx]*f[dfx]*") || tailHasOption(tail, "--force"))
+    (tailHasShortOption(tail, "[qdfx]*f[qdfx]*") || tailHasOption(tail, "--force"))
   );
 }
 
@@ -210,21 +229,21 @@ function evaluateGitPush(command, context) {
 
   if (
     /(?:^|\s)(?:--force(?:-with-lease)?)(?:=|\s|$)/i.test(tail) ||
-    tailHasShortOption(tail, "[uf]*f[uf]*") ||
+    tailHasShortOption(tail, "[quvf]*f[quvf]*") ||
     /(?:^|\s)\+[^\s]+/.test(tail)
   ) {
     return { id: "G7", reason: "G7: force push is forbidden by the common policy." };
   }
   if (
     /(?:^|\s)(?:--delete|--prune|--mirror)(?:\s|$)/i.test(tail) ||
-    tailHasShortOption(tail, "d") ||
+    tailHasShortOption(tail, "[dquvf]*d[dquvf]*") ||
     /(?:^|\s):[^\s]+/.test(tail)
   ) {
     return { id: "G8", reason: "G8: remote ref deletion or mirroring is forbidden by the common policy." };
   }
 
   const destinations = getPushDestinations(tail, context.remoteNames ?? []).map((destination) =>
-    destination === "HEAD" ? context.currentBranch || destination : destination,
+    destination === "HEAD" || destination === "@" ? context.currentBranch || destination : destination,
   );
   if (destinations.some((destination) => isProtectedRef(destination, context.protectedBranches))) {
     return { id: "G10", reason: "G10: pushing directly to a protected branch is forbidden." };
@@ -291,6 +310,7 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   if (
     checkoutTail !== null &&
     (/(?:^|\s)--(?:\s|$)/.test(checkoutTail) ||
+      tailHasShortOption(checkoutTail, "[Bfq]*B[Bfq]*") ||
       tailHasShortOption(checkoutTail, "[fq]*f[fq]*") ||
       tailHasOption(checkoutTail, "--force"))
   ) {
@@ -300,7 +320,7 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   if (
     switchTail !== null &&
     (tailHasShortOption(switchTail, "C\\S*") ||
-      tailHasOption(switchTail, "--force-create") ||
+      tailHasOptionWithOptionalValue(switchTail, "--force-create") ||
       tailHasOption(switchTail, "--discard-changes"))
   ) {
     return { id: "G5", reason: "G5: destructive branch switching is forbidden by the common policy." };
@@ -317,13 +337,18 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   const branchTail = getOperationTail(normalizedCommand, "git", "branch");
   if (
     branchTail !== null &&
-    (tailHasShortOption(branchTail, "(?:D|[dD]*f[dD]*)") ||
+    (tailHasShortOption(branchTail, "[vD]*D[vD]*") ||
+      tailHasShortOption(branchTail, "[dD]*f[dD]*") ||
+      tailHasShortOption(branchTail, "[MC]") ||
       tailHasOption(branchTail, "--force"))
   ) {
     return { id: "G9", reason: "G9: force branch rewrite or deletion is forbidden." };
   }
   const tagTail = getOperationTail(normalizedCommand, "git", "tag");
-  if (tagTail !== null && (tailHasShortOption(tagTail, "f") || tailHasOption(tagTail, "--force"))) {
+  if (
+    tagTail !== null &&
+    (tailHasShortOption(tagTail, "[af]*f[af]*") || tailHasOption(tagTail, "--force"))
+  ) {
     return { id: "G9", reason: "G9: force tag rewrite is forbidden." };
   }
 

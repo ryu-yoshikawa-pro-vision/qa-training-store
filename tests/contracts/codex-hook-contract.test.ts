@@ -222,11 +222,26 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     { command: "git clean -efoo -n", expected: "allow" },
     { command: "mv source destination", expected: "allow" },
     { command: "git clean --force", expected: "G4" },
+    { command: "git clean -qf", expected: "G4" },
+    { command: "git clean -fq", expected: "G4" },
+    { command: "git clean -qfd", expected: "G4" },
     { command: "git checkout --force feature", expected: "G5" },
+    { command: "git checkout -B existing-branch", expected: "G5" },
     { command: "git switch --force-create feature", expected: "G5" },
+    { command: "git switch --force-create=feature", expected: "G5" },
     { command: "mv -vf source destination", expected: "N2" },
     { command: "mv --force source destination", expected: "N2" },
     { command: "git push -d origin old-feature", expected: "G8" },
+    { command: "git push -qf origin feature", expected: "G7" },
+    { command: "git push -fq origin feature", expected: "G7" },
+    { command: "git push -vf origin feature", expected: "G7" },
+    { command: "git push -fv origin feature", expected: "G7" },
+    { command: "git push -qd origin old-feature", expected: "G8" },
+    { command: "git push -fd origin old-feature", expected: "G8" },
+    { command: "git branch -vD old-feature", expected: "G9" },
+    { command: "git branch -M old new", expected: "G9" },
+    { command: "git branch -C source target", expected: "G9" },
+    { command: 'git tag -af -m "message" v1', expected: "G9" },
   ])("keeps focused option and push regressions explicit: $command", ({ command, expected }) => {
     const result = runNodeHook(
       JSON.stringify({
@@ -269,6 +284,48 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     expect(JSON.parse(result.stdout)).toMatchObject({ id: "G10" });
+  });
+
+  it("blocks a protected branch push whose destination is @", () => {
+    const moduleUrl = pathToFileURL(hookPath).href;
+    const script = [
+      "import { evaluateCommand } from " + JSON.stringify(moduleUrl) + ";",
+      'const decision = evaluateCommand("git push origin @", {',
+      '  currentBranch: "main",',
+      '  protectedBranches: ["main"],',
+      '  remoteNames: ["origin"],',
+      "});",
+      "process.stdout.write(JSON.stringify(decision));",
+    ].join("\n");
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(JSON.parse(result.stdout)).toMatchObject({ id: "G10" });
+  });
+
+  it("allows @ from a feature branch", () => {
+    const moduleUrl = pathToFileURL(hookPath).href;
+    const script = [
+      "import { evaluateCommand } from " + JSON.stringify(moduleUrl) + ";",
+      'const decision = evaluateCommand("git push origin @", {',
+      '  currentBranch: "feature/safe",',
+      '  protectedBranches: ["main"],',
+      '  remoteNames: ["origin"],',
+      "});",
+      "process.stdout.write(JSON.stringify(decision));",
+    ].join("\n");
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(JSON.parse(result.stdout)).toBeNull();
   });
 
   it("keeps explicit matrix contexts data-driven for feature-branch allow cases", () => {

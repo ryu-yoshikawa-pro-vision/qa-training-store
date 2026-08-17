@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "PR #30で指定された修正に加え、ignored `.artifacts` が品質Gateへ混入しないroot探索境界の修正を完了した。",
+      "evidence": "PR #30最新レビューで指定された通常Git表現のdeny漏れ2テーマを修正し、Vitest default excludeと`.artifacts/**`の追加excludeを維持した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -17,8 +17,8 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 12:55",
-          "summary": "修正内容、追加の探索境界修正、最終検証を記録したRun Report。"
+          "selector": "2026-08-17 14:54",
+          "summary": "PR #30最新レビューの2テーマ、最小差分、最終検証を記録したRun Report。"
         }
       ]
     },
@@ -35,13 +35,13 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "`pnpm run lint`は0 errors／64 warnings、`pnpm run test:contracts`は30 files／358 tests PASS、`pnpm run verify`は全工程PASSとなった。focused Hook Contract 35 tests、PowerShell verify 3/3、Bash verify 2 PASS／2 SKIP、format／typecheck／security／diff checkも確認した。",
+      "evidence": "`pnpm run lint`は0 errors／64 warnings、`pnpm run test:contracts`は30 files／375 tests PASS、`pnpm run verify`は全工程PASSとなった。focused Hook Contract 52 tests、PowerShell verify 3/3、Bash verify 2 PASS／2 SKIP、format／typecheck／security／diff checkも確認した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 12:55",
-          "summary": "探索境界修正後のRequired Gate、Contract、full verifyの結果。"
+          "selector": "2026-08-17 14:54",
+          "summary": "PR #30最新レビュー対応後のRequired Gate、Contract、full verifyの結果。"
         }
       ]
     },
@@ -63,7 +63,7 @@
         {
           "kind": "changed_file",
           "path": "tests/contracts/codex-hook-contract.test.ts",
-          "summary": "leading whitespace、G5／G7／G9、N2、UTF-8、launcher timeoutのRegression Test。"
+          "summary": "G4／G5／G7／G8／G9の指定variant、G10のHEAD／@ context、false-positive regressionのContract Test。"
         }
       ]
     },
@@ -90,8 +90,8 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 12:55",
-          "summary": "Windows Acceptanceと探索境界修正後の各環境の検証結果。"
+          "selector": "2026-08-17 14:54",
+          "summary": "Windows／Bash verifyとPR #30最新レビュー対応後の各環境の検証結果。"
         }
       ]
     }

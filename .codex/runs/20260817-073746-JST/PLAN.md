@@ -76,3 +76,12 @@
 - 2026-08-17 12:55 JST: ユーザーの追加指示を受け、前回の残存failureを再調査した。原因はtemporary cloneの内容ではなく、rootのESLint／VitestがGit管理外の`.artifacts`まで探索していたことだった。
 - 追加方針: temporary cloneを変更・削除せず、`eslint.config.js`と`vitest.config.ts`で`.artifacts/**`だけを探索除外する。これは無視対象の作業成果物を品質Gateへ混入させないための最小の共有設定修正である。
 - 追加検証のExit Criteria: `pnpm run lint`、`pnpm run test:contracts`、`pnpm run verify`がexit 0となり、既存のHook／PowerShell／Bash検証も再確認できること。
+
+## Follow-up Repair — 2026-08-17 14:54 JST
+
+- Input findings: PR #30最新レビューで指定された、通常Git表現のdeny漏れとVitest default exclude置換の2テーマ。
+- Triage: 2テーマとも安全性・正しさ・品質Gateに直結するため`must_fix`。env／wrapper／Git parser全体、依存、無関係なCodeRabbit指摘は`defer`／`reject`。
+- Allowed files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、`vitest.config.ts`、active Run Artifact。
+- Repair plan: 操作別short-option patternを拡張し、`--force-create=<branch>`と`HEAD`／`@`のcurrent branch解決を追加する。Contract Matrixとcontext testを追加し、Vitestは`configDefaults.exclude`へ`.artifacts/**`だけを追加する。
+- Validation exit criteria: focused Hook Contract、format／lint／typecheck／security／全Contract／`pnpm run verify`、Windows／Bash verify、diff checkが成功すること。
+- User instruction: このiterationでは品質Gate成功後に新規commitを作成し、feature branchへ通常pushする。新PRは作成しない。
