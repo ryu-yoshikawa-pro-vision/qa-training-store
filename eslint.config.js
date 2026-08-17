@@ -5,6 +5,7 @@ module.exports = defineConfig([
   ...expoConfig,
   {
     ignores: [
+      ".artifacts/**",
       ".codex/**",
       ".agents/**",
       ".expo/**",

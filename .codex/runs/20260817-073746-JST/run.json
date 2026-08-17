@@ -21,6 +21,8 @@
         "scripts/codex-safe.ps1",
         "scripts/verify.ps1",
         "tests/contracts/codex-hook-contract.test.ts",
+        "eslint.config.js",
+        "vitest.config.ts",
         ".codex/runs/20260816-210818-JST/run.json",
         ".codex/runs/20260817-063858-JST/run.json",
         ".codex/runs/20260817-073746-JST/PLAN.md",
@@ -51,8 +53,7 @@
                            "scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260817-073746-JST/evaluation.json"
                        ],
                        "warnings":  [
-                           "pnpm run verifyはignored .artifacts temporary cloneのlint 2 errorsで停止した",
-                           "pnpm run test:contractsはignored .artifacts temporary cloneのstale artifact contract 2件で991/993 PASS",
+                           "pnpm run verifyはJest Haste mapでignored .artifacts temporary clone由来のnon-failing module naming collision warningを出した",
                            "bash verifyのWSL側execpolicy／Bash wrapperはcodex未解決でSKIP",
                            "Full Access acceptanceはtemporary cloneとlocal bare remote、Hook trust bypassを使用した"
                        ]
@@ -94,5 +95,5 @@
                   },
     "evaluation_path":  ".codex/runs/20260817-073746-JST/evaluation.json",
     "status":  "completed",
-    "primary_failure_category":  "artifact_contract_gap"
+    "primary_failure_category":  null
 }

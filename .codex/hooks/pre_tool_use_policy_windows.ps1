@@ -48,7 +48,7 @@ try {
     [Console]::OpenStandardInput().CopyTo($process.StandardInput.BaseStream)
     $process.StandardInput.Close()
 
-    $timeoutMilliseconds = 5000
+    $timeoutMilliseconds = 15000
     if (-not $process.WaitForExit($timeoutMilliseconds)) {
         if (-not $process.HasExited) {
             $process.Kill()

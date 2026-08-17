@@ -330,11 +330,11 @@ function Test-ExecpolicyBaseline {
 }
 
 function Test-WrapperPreflight {
-    & powershell.exe -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly > $null
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly > $null
     $safeExitCode = $LASTEXITCODE
     if ($safeExitCode -ne 0) { throw "safe wrapper preflight failed (exit=$safeExitCode)" }
 
-    & powershell.exe -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -Preset auto-net -PreflightOnly > $null
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -Preset auto-net -PreflightOnly > $null
     $autoNetExitCode = $LASTEXITCODE
     if ($autoNetExitCode -ne 0) { throw "auto-net wrapper preflight failed (exit=$autoNetExitCode)" }
 }

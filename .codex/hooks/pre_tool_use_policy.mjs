@@ -105,10 +105,8 @@ function tailHasOption(tail, option) {
   return new RegExp(`(?:^|\\s)${escapeRegExp(option)}(?=\\s|$)`, "i").test(tail);
 }
 
-function tailHasShortOption(tail, option) {
-  return new RegExp(
-    `(?:^|\\s)-(?=[^-\\s])(?=[^\\s]*${escapeRegExp(option)})[^\\s]*(?=\\s|$)`,
-  ).test(tail);
+function tailHasShortOption(tail, optionTokenPattern) {
+  return new RegExp(`(?:^|\\s)-${optionTokenPattern}(?=\\s|$)`).test(tail);
 }
 
 function isRecoveryOperation(tail) {
@@ -135,7 +133,10 @@ function evaluateGitRestore(command) {
 
 function evaluateGitClean(command) {
   const tail = getOperationTail(command, "git", "clean");
-  return tail !== null && tailHasShortOption(tail, "f");
+  return (
+    tail !== null &&
+    (tailHasShortOption(tail, "[dfx]*f[dfx]*") || tailHasOption(tail, "--force"))
+  );
 }
 
 function getGitCommandContext(cwd) {
@@ -209,19 +210,22 @@ function evaluateGitPush(command, context) {
 
   if (
     /(?:^|\s)(?:--force(?:-with-lease)?)(?:=|\s|$)/i.test(tail) ||
-    tailHasShortOption(tail, "f") ||
+    tailHasShortOption(tail, "[uf]*f[uf]*") ||
     /(?:^|\s)\+[^\s]+/.test(tail)
   ) {
     return { id: "G7", reason: "G7: force push is forbidden by the common policy." };
   }
   if (
     /(?:^|\s)(?:--delete|--prune|--mirror)(?:\s|$)/i.test(tail) ||
+    tailHasShortOption(tail, "d") ||
     /(?:^|\s):[^\s]+/.test(tail)
   ) {
     return { id: "G8", reason: "G8: remote ref deletion or mirroring is forbidden by the common policy." };
   }
 
-  const destinations = getPushDestinations(tail, context.remoteNames ?? []);
+  const destinations = getPushDestinations(tail, context.remoteNames ?? []).map((destination) =>
+    destination === "HEAD" ? context.currentBranch || destination : destination,
+  );
   if (destinations.some((destination) => isProtectedRef(destination, context.protectedBranches))) {
     return { id: "G10", reason: "G10: pushing directly to a protected branch is forbidden." };
   }
@@ -284,13 +288,20 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
     return { id: "G5", reason: "G5: restore would discard working-tree changes." };
   }
   const checkoutTail = getOperationTail(normalizedCommand, "git", "checkout");
-  if (checkoutTail !== null && (/(?:^|\s)--(?:\s|$)/.test(checkoutTail) || tailHasShortOption(checkoutTail, "f"))) {
+  if (
+    checkoutTail !== null &&
+    (/(?:^|\s)--(?:\s|$)/.test(checkoutTail) ||
+      tailHasShortOption(checkoutTail, "[fq]*f[fq]*") ||
+      tailHasOption(checkoutTail, "--force"))
+  ) {
     return { id: "G5", reason: "G5: destructive checkout is forbidden by the common policy." };
   }
   const switchTail = getOperationTail(normalizedCommand, "git", "switch");
   if (
     switchTail !== null &&
-    (tailHasShortOption(switchTail, "C") || tailHasOption(switchTail, "--discard-changes"))
+    (tailHasShortOption(switchTail, "C\\S*") ||
+      tailHasOption(switchTail, "--force-create") ||
+      tailHasOption(switchTail, "--discard-changes"))
   ) {
     return { id: "G5", reason: "G5: destructive branch switching is forbidden by the common policy." };
   }
@@ -306,8 +317,7 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   const branchTail = getOperationTail(normalizedCommand, "git", "branch");
   if (
     branchTail !== null &&
-    (tailHasShortOption(branchTail, "f") ||
-      tailHasShortOption(branchTail, "D") ||
+    (tailHasShortOption(branchTail, "(?:D|[dD]*f[dD]*)") ||
       tailHasOption(branchTail, "--force"))
   ) {
     return { id: "G9", reason: "G9: force branch rewrite or deletion is forbidden." };
@@ -332,7 +342,7 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
       normalizedCommand,
     ) ||
     /\brobocopy\b[^\r\n;&|]*\s\/mir(?:\s|$)/i.test(normalizedCommand) ||
-    /(?:^|[\r\n;&|]\s*)mv\s+-f(?:\s|$)/i.test(normalizedCommand) ||
+    /(?:^|[\r\n;&|]\s*)mv\s+(?:-[fv]*f[fv]*|--force)(?:\s|$)/i.test(normalizedCommand) ||
     /\b(?:Move-Item|Rename-Item)\b[^\r\n;&|]*\s-Force(?:\s|$)/i.test(normalizedCommand)
   ) {
     return { id: "N2", reason: "N2: destructive sync or forced overwrite is forbidden." };

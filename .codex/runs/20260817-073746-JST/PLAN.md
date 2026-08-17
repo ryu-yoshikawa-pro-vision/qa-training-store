@@ -70,3 +70,9 @@
 - 2026-08-17 07:37 JST: PowerShell側の現状はdecision欠落をallowへ寄せ、verifyのchild exit codeも見ていない。Shell実装が既に持つ`matchedRules == []`条件へ合わせる。
 - 2026-08-17 08:28 JST: Windows Full Access代表Acceptanceを新しいHook／launcher／Rulesで一時clone＋local bare remote上に再実行し、ALLOW 4系統とDENY 5系統の実測を取得した。製品worktreeのGit stateは変更していない。
 - 2026-08-17 08:30 JST: full `verify`／`test:contracts`は、`.artifacts`に保持されたEOL用temporary cloneが通常のVitest／ESLint探索へ含まれ、stale `scored-v1.json` 2件と既存lint 2件を出した。現行tracked範囲のContract 30 files／347 testsと、`.artifacts`除外ESLintはPASSしたため、無関係なcloneやglobal設定を修正せずartifact baselineとして記録する。
+
+## Follow-up Repair
+
+- 2026-08-17 12:55 JST: ユーザーの追加指示を受け、前回の残存failureを再調査した。原因はtemporary cloneの内容ではなく、rootのESLint／VitestがGit管理外の`.artifacts`まで探索していたことだった。
+- 追加方針: temporary cloneを変更・削除せず、`eslint.config.js`と`vitest.config.ts`で`.artifacts/**`だけを探索除外する。これは無視対象の作業成果物を品質Gateへ混入させないための最小の共有設定修正である。
+- 追加検証のExit Criteria: `pnpm run lint`、`pnpm run test:contracts`、`pnpm run verify`がexit 0となり、既存のHook／PowerShell／Bash検証も再確認できること。

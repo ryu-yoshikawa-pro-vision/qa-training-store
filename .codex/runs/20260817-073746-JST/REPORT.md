@@ -118,3 +118,55 @@
   - `scripts/sanitize-codex-artifacts.ps1 -Write -Check` => PASS、5 files／0 changes／0 residual findings
   - evaluation／run ManifestのUTF-8 JSON parse => PASS、ローカル絶対Path残差なし
 - Progress: 100% (8/8)
+
+## 2026-08-17 11:40 (JST) — PR #30 最新レビュー対応
+
+- Summary: ユーザー指定の実不具合4項目だけを、既存方針を維持したまま最小差分で修正した。
+- Input findings: short-option false positive／force同義形不足、git push -d、protected branch上のgit push origin HEAD、Windows launcher timeout、verify.ps1 child PowerShellの-NoProfile。
+- Repair plan: must_fixは4つのソース／テストファイルへ限定し、env／shell parser、codex-task、EOL、Run Artifact全面整理はdefer／rejectとした。
+- Allowed files: .codex/hooks/pre_tool_use_policy.mjs、.codex/hooks/pre_tool_use_policy_windows.ps1、scripts/verify.ps1、tests/contracts/codex-hook-contract.test.ts。
+- Changed files: 上記4ファイルのみ。Run Reportはrepair-loopの証跡として追記した。
+- Changes: 操作別の短縮option token判定、--force／--force-create、-d、HEADのcurrent branch解決、launcher 15000ms、focused regression 11件を追加した。
+- Validation:
+  - node --check .codex/hooks/pre_tool_use_policy.mjs => PASS。
+  - pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1 => 35 tests PASS。
+  - powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1 => PASS=3 FAIL=0 SKIP=0。
+  - bash scripts/verify => PASS=2 SKIP=2（WSL側codex未解決）。
+  - pnpm run format:check => PASS。
+  - pnpm exec eslint . --ignore-pattern .artifacts => 0 errors／64 warnings。
+  - pnpm run typecheck／pnpm run security:check => PASS。
+  - pnpm run test:contracts => 88 files／1004 tests中1002 PASS。2件はignored .artifacts内stale scored-v1.jsonのcanonical-form不一致。
+  - pnpm run verify => format／markdown／spec／visual／curriculum PASS後、ignored .artifacts内temporary clone 2件のlint errorで停止。
+  - git diff --check => PASS（CRLF warningのみ）。
+- CI evidence: PR head 6ae352b...の既存CodeRabbit status、Native CI、Phase 1 CIはいずれもsuccess。今回の未commitローカル差分はCIへ送信していない。
+- Remaining delta: ignored .artifactsのstale artifact／lint failureのみ。今回の4ファイルとの因果はなく、修正・cleanup・ignore設計変更は行わない。
+- Decision: stop_success（指定されたrepair scope完了）。commit／push、GitHub側のコメント返信・解決は未実施。
+- Progress: 100% (8/8)
+
+## 2026-08-17 11:43 (JST) — 最終確認
+
+- Summary: 最終diff reviewと追加の直接behavior matrixを完了した。
+- Evidence: focused direct matrix 28 cases PASS、Node syntax check PASS、git diff --check PASS、Run Artifact sanitizer Write／Checkは5 files・0 residual findings、evaluation schema validation PASS。
+- Scope review: 変更は4対象ファイルと本REPORTの追記のみ。package／lockfile、codex-task、EOL設定、shell／Git parser、dependency、commit／pushに変更なし。
+- Progress: 100% (8/8)
+
+## 2026-08-17 12:55 (JST) — 残存品質ゲート修正
+
+- Summary: 前回残っていた`.artifacts`由来のlint／Contract failureを、temporary cloneへ触れずrootの探索境界修正で解消した。
+- Input findings: ignored `.artifacts`内temporary cloneがESLint／Vitestの探索対象となり、stale `scored-v1.json` 2件とReact Hooks lint 2件を全体Gateへ混入させていた。
+- Repair plan: `eslint.config.js`のignoreと`vitest.config.ts`のexcludeへ`.artifacts/**`を追加し、既存のartifact内容・削除・cleanupは行わない。
+- Allowed files: `eslint.config.js`、`vitest.config.ts`、既存修正4ファイル、Run Artifact。
+- Changed files: `eslint.config.js`、`vitest.config.ts`、TASKS／PLAN／REPORT／run.json／evaluation.json。
+- Validation:
+  - `pnpm run format` => PASS、Prettier対象はすべてunchanged。
+  - `pnpm run lint` => PASS、0 errors／64 warnings。
+  - `pnpm run test:contracts` => PASS、30 files／358 tests。
+  - `pnpm run verify` => PASS、全工程（buildを含む）。native Jestは12 suites／49 tests PASS。
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1` => PASS=3／FAIL=0／SKIP=0。
+  - `bash scripts/verify` => PASS=2／SKIP=2（WSL側codex未解決）。
+  - focused Hook Contract => 35 tests PASS、direct policy matrix => 28 cases PASS。
+  - `node --check .codex/hooks/pre_tool_use_policy.mjs`、`git diff --check`、format:check、typecheck、security:check => PASS。
+- Validation result: 失敗していた全体Gateはexit 0へ回復した。Jest Haste mapのmodule naming collisionはignored artifact由来のnon-failing warningとして残る。
+- Evaluation: `evaluation.json`を`result=pass`、`primary_failure_category=null`へ更新し、旧failureは今回の探索境界修正で解消済みとして反映した。`run.json`のchanged files／warningsも現状へ同期した。
+- Decision: stop_success。temporary cloneの修正・削除、commit／push、GitHub側操作は行わない。
+- Progress: 100% (9/9)

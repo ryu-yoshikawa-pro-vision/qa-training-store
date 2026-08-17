@@ -1,16 +1,13 @@
 {
   "schema_version": 1,
   "run_id": "20260817-073746-JST",
-  "result": "partial",
-  "primary_failure_category": "artifact_contract_gap",
-  "failure_categories": [
-    "artifact_contract_gap",
-    "flaky_or_env_issue"
-  ],
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "PR #30で指定されたHook、Windows launcher、PowerShell fail-closed、verify child exit、Static Rules、Regression Test、Run Manifestの修正を完了した。",
+      "evidence": "PR #30で指定された修正に加え、ignored `.artifacts` が品質Gateへ混入しないroot探索境界の修正を完了した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -20,14 +17,14 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 08:31",
-          "summary": "修正内容と最終検証を記録したRun Report。"
+          "selector": "2026-08-17 12:55",
+          "summary": "修正内容、追加の探索境界修正、最終検証を記録したRun Report。"
         }
       ]
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "変更はレビュー指定のHook、launcher、PowerShell、Rules、Contract Test、2件のRun ManifestとRun Artifactに限定した。EOL、codex-task、Product code、CI architecture、global Git設定は変更していない。",
+      "evidence": "変更はレビュー指定のHook、launcher、PowerShell、Contract Testと、ignored `.artifacts` の探索境界を定義するroot設定に限定した。temporary cloneの内容、EOL、codex-task、Product code、CI architecture、global Git設定は変更していない。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -37,14 +34,14 @@
       ]
     },
     "validation_confidence": {
-      "rating": "warn",
-      "evidence": "Hook Contract 24/24、tracked Contract 30 files／347 tests、PowerShell／Bash verify、typecheck、security、format、spec系はPASSした。Full verifyとpackage全Contractはignored .artifacts内temporary cloneの既存lint／stale artifact 4件により全体判定がpartialになった。",
+      "rating": "pass",
+      "evidence": "`pnpm run lint`は0 errors／64 warnings、`pnpm run test:contracts`は30 files／358 tests PASS、`pnpm run verify`は全工程PASSとなった。focused Hook Contract 35 tests、PowerShell verify 3/3、Bash verify 2 PASS／2 SKIP、format／typecheck／security／diff checkも確認した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 08:31",
-          "summary": "Required Gate、tracked Contract、full gateの結果と因果分類。"
+          "selector": "2026-08-17 12:55",
+          "summary": "探索境界修正後のRequired Gate、Contract、full verifyの結果。"
         }
       ]
     },
@@ -72,7 +69,7 @@
     },
     "maintainability": {
       "rating": "pass",
-      "evidence": "Node HookをSSOTのまま維持し、短いoption判定と有限timeoutだけを補完した。新Dependency、Git parser、shell parser、共通parser library、CI architectureは追加していない。",
+      "evidence": "Node HookをSSOTのまま維持し、短いoption判定と有限timeoutを補完した。探索境界修正も既存設定のignore／exclude追加だけで、新Dependency、Git parser、shell parser、共通parser library、CI architectureは追加していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -93,41 +90,12 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 08:31",
-          "summary": "Windows Acceptanceと各環境の検証結果。"
+          "selector": "2026-08-17 12:55",
+          "summary": "Windows Acceptanceと探索境界修正後の各環境の検証結果。"
         }
       ]
     }
   },
-  "findings": [
-    {
-      "category": "artifact_contract_gap",
-      "severity": "medium",
-      "evidence": "最終`pnpm run test:contracts`は87 files／993 tests中991 PASSで、2 failuresは`.artifacts/native-local/eol-branch-switch-20260817-070500`内のstale `scored-v1.json`由来だった。`.artifacts`除外のtracked Contractは30 files／347 tests PASSした。",
-      "evidence_refs": [
-        {
-          "kind": "validation_command",
-          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 08:31",
-          "summary": "full／tracked Contractの件数とfailure scopeを記録した。"
-        }
-      ],
-      "detail": "既存EOL受入用temporary cloneがVitest探索へ含まれた環境境界であり、今回のtracked差分へfixture修正やcleanupを追加しなかった。"
-    },
-    {
-      "category": "flaky_or_env_issue",
-      "severity": "low",
-      "evidence": "`pnpm run verify`はformat、markdown、spec、visual、curriculumまでPASSし、`.artifacts`内temporary cloneの既存lint 2 errorsで停止した。現行tracked範囲を`.artifacts`除外でlintすると0 errors／64 warningsだった。",
-      "evidence_refs": [
-        {
-          "kind": "validation_command",
-          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 08:31",
-          "summary": "verify停止箇所と変更差分との因果分類。"
-        }
-      ],
-      "detail": "ignored temporary cloneやESLint ignore設計を今回のPRへ変更せず、WSL側codex未解決のskipも環境条件として記録した。"
-    }
-  ],
+  "findings": [],
   "improvement_candidates": []
 }

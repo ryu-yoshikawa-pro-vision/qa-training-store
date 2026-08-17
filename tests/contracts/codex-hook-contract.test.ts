@@ -216,6 +216,61 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     }
   }, 15000);
 
+  it.each([
+    { command: "git checkout -bfeature", expected: "allow" },
+    { command: "git tag -mfoo v1", expected: "allow" },
+    { command: "git clean -efoo -n", expected: "allow" },
+    { command: "mv source destination", expected: "allow" },
+    { command: "git clean --force", expected: "G4" },
+    { command: "git checkout --force feature", expected: "G5" },
+    { command: "git switch --force-create feature", expected: "G5" },
+    { command: "mv -vf source destination", expected: "N2" },
+    { command: "mv --force source destination", expected: "N2" },
+    { command: "git push -d origin old-feature", expected: "G8" },
+  ])("keeps focused option and push regressions explicit: $command", ({ command, expected }) => {
+    const result = runNodeHook(
+      JSON.stringify({
+        tool_name: "Bash",
+        tool_input: { command },
+      }),
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    if (expected === "allow") {
+      expect(result.stdout).toBe("");
+      return;
+    }
+
+    const output = JSON.parse(result.stdout) as {
+      hookSpecificOutput?: { permissionDecisionReason?: string };
+    };
+    expect(output.hookSpecificOutput?.permissionDecisionReason).toMatch(
+      new RegExp("^" + expected + ":"),
+    );
+  });
+
+  it("blocks a protected branch push whose destination is HEAD", () => {
+    const moduleUrl = pathToFileURL(hookPath).href;
+    const script = `
+      import { evaluateCommand } from ${JSON.stringify(moduleUrl)};
+      const decision = evaluateCommand("git push origin HEAD", {
+        currentBranch: "main",
+        protectedBranches: ["main"],
+        remoteNames: ["origin"],
+      });
+      process.stdout.write(JSON.stringify(decision));
+    `;
+    const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    });
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(JSON.parse(result.stdout)).toMatchObject({ id: "G10" });
+  });
+
   it("keeps explicit matrix contexts data-driven for feature-branch allow cases", () => {
     const matrix = JSON.parse(
       execFileSync(process.execPath, [hookPath, "--print-policy-matrix"], {
@@ -359,10 +414,10 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       expect(result.status).toBe(2);
       expect(result.stdout).toBe("");
       expect(result.stderr.trim()).not.toBe("");
-      expect(performance.now() - startedAt).toBeLessThan(10000);
+      expect(performance.now() - startedAt).toBeLessThan(20000);
     } finally {
       removeFixture(fixture);
       removeFixture(fakeNodeDirectory);
     }
-  }, 15000);
+  }, 20000);
 });
