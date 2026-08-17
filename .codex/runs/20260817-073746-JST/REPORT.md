@@ -289,3 +289,39 @@
 - Remaining delta: なし。lint 64 warnings、Native JestのReact `act(...)` warning、SQLite ExperimentalWarningは既存warningであり今回差分との因果なし。D1／D2はcheckbox化していない。
 - Decision: `continue`（validation成功。commit／pushへ進む）。
 - Progress: 100% (11/11)
+
+## 2026-08-17 20:12 (JST) — 最終repair実装開始
+
+- Summary: 今回を最終repair iterationとし、`mv`の通常option前置後のeffective force検出、`--`境界、N2代表case、active Run評価同期だけを対象にした。
+- Input finding: `evaluateMvForce()`が未知の通常optionで走査を終了し、`mv -T -f`／`mv -b -f`／`mv --verbose --force`を見逃し得る。また、`mv -- -f destination`の`-f`をoptionとして誤認し得る。`evaluation.json`の5 dimensionsは前回G5/N2実績のままだった。
+- Triage: 上記2テーマを`must_fix`。GNU getopt完全実装、shell／Git parser化、option引数完全解析、wrapper／env／sudo、過去Run整理、CodeRabbit再レビュー、D1／D2、dependency、unrelated refactorは`defer`／`reject`。
+- Implementation: `evaluateMvForce()`は認識外の短／長optionをmode変更なしで読み飛ばし、`--`でmode解析を終了する。N2 `DENY_CASES`へ`mv -T -f`を1件だけ追加し、Contractへ標準option前置3件と`--` false-positive回帰を追加した。
+- Allowed files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、active Runの`PLAN.md`／`REPORT.md`／`evaluation.json`。`TASKS.md`と禁止対象は変更しない。
+- Validation status: focused／full validation、CI確認、evaluation同期、sanitize／schema検証、commit／通常pushを実施予定。
+- Decision: `continue`（実装差分を確認後、focused validationへ進む）。
+
+## 2026-08-17 20:24 (JST) — 最終repair validation完了
+
+- Summary: `mv`の標準option前置後のeffective force漏れと`--`境界を修正し、最終repairのローカルValidationを完了した。
+- Repair Loop iteration: 5（今回を最終repairとする）。
+- Changes:
+  - `evaluateMvForce()`は`-T`／`-b`／`-v`などの通常短optionと`--verbose`などの通常long optionをmode変更なしで読み飛ばし、後続の`-f`／`--force`を評価するようにした。
+  - `--`を見つけた後はoption mode解析を停止するようにした。
+  - `DENY_CASES`へN2代表`mv -T -f source destination`を1件だけ追加した。
+  - Contractへ`mv -T -f`、`mv -b -f`、`mv --verbose --force`のdeny regressionと`mv -- -f destination`のallow regressionを追加した。
+- Focused validation:
+  - `node --check .codex/hooks/pre_tool_use_policy.mjs` => PASS。
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1` => PASS、1 file／69 tests。
+  - direct mv behavior matrix => PASS、deny 8件／allow 6件。
+- Required Gate:
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint` => PASS、0 errors／64 warnings（既存warning）。
+  - `pnpm run typecheck` => PASS（app／native-tests／training）。
+  - `pnpm run security:check` => PASS、233 runtime files／316 credential-scan files。
+  - `pnpm run test:contracts` => PASS、30 files／392 tests。
+  - `pnpm run verify` => PASS、全工程（format／markdown／spec／visual／curriculum／lint／typecheck／image manifest／security／全test／web build／spec build）。全test内Native Jest 49 testsもPASS。
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1` => PASS=3／FAIL=0／SKIP=0。
+  - `git diff --check` => PASS（CRLF→LFのGit warningのみ）。
+- Scope: product／implementation差分は`.codex/hooks/pre_tool_use_policy.mjs`と`tests/contracts/codex-hook-contract.test.ts`の2ファイル。Run ArtifactはPLAN／REPORT／evaluationだけを更新し、`TASKS.md`、`run.json`、禁止対象、package／lockfile、application codeは変更していない。
+- Remaining delta: なし。lint 64 warnings、Native JestのReact `act(...)` warning、SQLite ExperimentalWarningは既存warningで今回差分との因果なし。CIはpush後に確認する。
+- Decision: `continue`（evaluation同期、artifact sanitize／schema検証、commit／通常push、push後CI確認へ進む）。

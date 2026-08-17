@@ -101,3 +101,11 @@
 - Allowed files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、`.codex/runs/20260817-073746-JST/evaluation.json`、`.codex/runs/20260817-073746-JST/REPORT.md`、active Runの`PLAN.md`のみ。
 - Repair plan: `mv`専用の小さなeffective-mode helperで`f`／`i`／`n`と対応long optionの最後のモードだけを評価し、focused regressionへ指定deny／allowを追加する。`evaluation.json`のscope_controlは最新repair iterationのproduct差分とactive Run累積`run.json.changed_files`を明示的に分離する。
 - Validation exit criteria: Node syntax、focused Hook Contract、direct N2 behavior、Required Gate、Windows verify、diff／artifact sanitizer／evaluation schema validationが成功し、D1／D2と非対象ファイルを変更しないこと。
+
+## Follow-up Repair — 2026-08-17 20:12 JST
+
+- Input findings: `evaluateMvForce()`が`-T`／`-b`／`--verbose`などの通常optionを見つけると後続のforce option走査を終了し、`--`以降もoptionとして扱う残存漏れ。active Runの`evaluation.json`が前回N2 iterationの実績を参照している。
+- Triage: 通常option前置後のeffective force検出、`--`境界、N2代表case、focused regression、最新validation実績へのevaluation同期を`must_fix`とする。GNU getopt完全実装、shell／Git parser化、wrapper／env／sudo、過去Run整理、CodeRabbit再レビュー、D1／D2変更、dependency、unrelated refactorは`defer`／`reject`。
+- Allowed files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、`.codex/runs/20260817-073746-JST/PLAN.md`、`REPORT.md`、`evaluation.json`のみ。`TASKS.md`は変更しない。
+- Repair plan: `mv`専用helperで未知の短／長optionをmode変更なしで読み飛ばし、`--`でmode走査を停止する。N2代表caseを1件だけmatrixへ追加し、focused regressionへ指定3 denyと`--` false-positive回帰を追加する。全Validation後にevaluationの5 dimensionsを最新実績へ同期する。
+- Exit criteria: focused Contract、Required Gate、Windows verify、CI確認可能な範囲、diff／artifact sanitizer／evaluation schema validationが成功し、通常commit／push後にHEADとupstreamが一致すること。CodeRabbitへの再レビュー依頼は行わない。

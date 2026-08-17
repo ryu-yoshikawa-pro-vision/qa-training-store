@@ -7,29 +7,34 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "PR #30最新レビューで指定されたG5の通常Git表現5件（switch force 3件、checkout attached -B 2件）のdeny漏れを修正し、既存allow表現を維持した。",
+      "evidence": "最終repairで`mv`のeffective force判定の残存漏れを修正し、`-T`／`-b`／`--verbose`などの標準option前置後もforceを検出できるようにした。`-i`／`-f`／`-n`とlong optionの最後のmodeによるallow precedence、および`--`以降をoperandとして扱う境界も維持した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": ".codex/hooks/pre_tool_use_policy.mjs",
-          "summary": "先頭空白、short-option、timeout、UTF-8、rsync variantを修正したNode Hook。"
+          "summary": "mv専用effective force helperが通常optionを読み飛ばして走査継続し、`--`でoption解析を終了するNode Hook。N2代表caseも1件追加した。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "summary": "標準option前置後のforce deny 3件と`--` false-positiveなしのallow regressionを追加したContract Test。"
         },
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 15:23",
-          "summary": "G5最終2テーマの最小差分、直接behavior、Required Gateを記録したRun Report。"
+          "selector": "2026-08-17 20:24",
+          "summary": "最終repairの実装、focused／full validation、Windows verify、scope、残差を記録したRun Report。"
         }
       ]
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "このscope_controlは最新の最終repair iteration（2026-08-17 19:55 JST）を評価対象とする。当該iterationのproduct／implementation repair差分は`.codex/hooks/pre_tool_use_policy.mjs`と`tests/contracts/codex-hook-contract.test.ts`の2ファイルに限定した。`PLAN.md`、`REPORT.md`、`evaluation.json`はRun Artifactの証跡更新であり、product／implementation差分には含めない。`run.json.changed_files`はactive Run全体で累積された変更ファイルを表し、当該iteration単独の変更ファイル一覧ではない。",
+      "evidence": "このscope_controlは最新の最終repair iteration（2026-08-17 20:12–20:24 JST）を評価対象とする。当該iterationのproduct／implementation repair差分は`.codex/hooks/pre_tool_use_policy.mjs`と`tests/contracts/codex-hook-contract.test.ts`の2ファイルに限定した。`PLAN.md`、`REPORT.md`、`evaluation.json`はRun Artifactの証跡更新であり、product／implementation差分には含めない。`run.json.changed_files`はactive Run全体で累積された変更ファイルを表し、当該iteration単独の変更ファイル一覧ではない。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 19:55",
+          "selector": "2026-08-17 20:24",
           "summary": "最新の最終repair iterationで、N2実装、Contract追加、全Validation、product差分とRun Artifact更新の区別を記録したRun Report。"
         },
         {
@@ -41,13 +46,13 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "`pnpm run lint`は0 errors／64 warnings、`pnpm run test:contracts`は30 files／380 tests PASS、`pnpm run verify`は全工程PASSとなった。focused Hook Contract 57 tests、PowerShell verify 3/3、format／typecheck／security／diff checkも確認した。",
+      "evidence": "最終repairのfocused Hook Contractは1 file／69 tests、`pnpm run test:contracts`は30 files／392 tests、`pnpm run verify`は全工程PASSとなった。`pnpm run lint`は0 errors／64 warnings、typecheck／security／format、Windows verify PASS=3／FAIL=0／SKIP=0、`git diff --check`も確認した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 15:23",
-          "summary": "G5最終2テーマ対応後のRequired Gate、Contract、full verifyの結果。"
+          "selector": "2026-08-17 20:24",
+          "summary": "最終repairのfocused 69 tests、full Contract 392 tests、Required Gate、Windows verify、diff checkの実測結果。"
         }
       ]
     },
@@ -64,40 +69,47 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "レビューの明示されたG5代表5例を既存focused regression tableへ追加し、直接behaviorでdeny／allowを確認した。最終diff reviewで新parser、不要framework、非対象変更がないことを確認した。",
+      "evidence": "最終repairではmv option precedenceを既存mode判定のまま維持し、標準option前置のforce deny 3例、既存の`-if`／`-ivf`等、`--`以降を誤検出しないallow regressionをContractと直接behaviorで確認した。通常optionを読み飛ばすだけで、full parserへ拡張していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "tests/contracts/codex-hook-contract.test.ts",
-          "summary": "G5 switch force 3例、checkout attached -B 2例と既存false-positive／allow regressionのContract Test。"
+          "summary": "mv option precedence、標準option前置deny、`--` false-positiveなし、既存allow／denyを同じfocused tableで検証するContract Test。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 20:24",
+          "summary": "最終repairのdirect mv behavior matrixとfull validation結果。"
         }
       ]
     },
     "maintainability": {
       "rating": "pass",
-      "evidence": "Node HookをSSOTのまま維持し、switch／checkout専用の短いoption判定だけを補完した。新Dependency、Git parser、shell parser、共通parser library、設定変更は追加していない。",
+      "evidence": "`evaluateMvForce()`をmv専用helperに限定し、force／interactive／no-clobberのmode precedenceと通常optionの読み飛ばし、`--`境界だけを扱った。generic shell parserやGNU getopt完全実装は追加せず、existing Node Hook SSOTを維持し、新dependencyもない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
-          "path": ".codex/hooks/pre_tool_use_policy_windows.ps1",
-          "summary": "transport-only launcherに並行stream読取と有限timeoutを追加した差分。"
+          "path": ".codex/hooks/pre_tool_use_policy.mjs",
+          "summary": "mv専用helperの最小変更とN2代表caseのみを含む。"
         },
         {
-          "kind": "changed_file",
-          "path": "scripts/codex-safe.ps1",
-          "summary": "PowerShell側のfail-closed decision parser。"
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 20:24",
+          "summary": "generic parser／dependency／非対象変更を追加していないことを含む最終scope記録。"
         }
       ]
     },
     "reproducibility": {
       "rating": "pass",
-      "evidence": "Hook Contract、tracked Contract suite、指定G5直接behavior matrix、Windows verifyを同一作業ツリーで再実行した。",
+      "evidence": "最終repairのfocused Contract 69 tests、full Contract 392 tests、Required Gateの`pnpm run verify`、Windows verify、直接mv behavior matrixを同一作業ツリーで再実行した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 15:23",
-          "summary": "Windows verifyとG5最終2テーマ対応後の各環境の検証結果。"
+          "selector": "2026-08-17 20:24",
+          "summary": "最終repairのfocused／full Contract、Required Gate、Windows verify、直接behaviorの再現手順と実測結果。"
         }
       ]
     }
