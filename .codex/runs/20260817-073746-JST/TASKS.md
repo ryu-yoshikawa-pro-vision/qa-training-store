@@ -17,6 +17,7 @@
 - D2. 全体Gateの既存failureはbaselineと変更差分の因果を確認してからdeferする。
 - [x] D3. ignored `.artifacts` をESLint／Vitestの探索対象から除外し、全体Gateを再実行する。
 - [x] D4. PR #30最新レビューの残存2テーマを最小修正し、Required Quality Gateを再実行する。
+- [x] D5. G5のswitch force表現とcheckout attached -B表現を最小修正し、Required Quality Gateを再実行する。
 
 ## Blocked
 

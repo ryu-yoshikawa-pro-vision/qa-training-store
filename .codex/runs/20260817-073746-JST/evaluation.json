@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "PR #30最新レビューで指定された通常Git表現のdeny漏れ2テーマを修正し、Vitest default excludeと`.artifacts/**`の追加excludeを維持した。",
+      "evidence": "PR #30最新レビューで指定されたG5の通常Git表現5件（switch force 3件、checkout attached -B 2件）のdeny漏れを修正し、既存allow表現を維持した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -17,14 +17,14 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 14:54",
-          "summary": "PR #30最新レビューの2テーマ、最小差分、最終検証を記録したRun Report。"
+          "selector": "2026-08-17 15:23",
+          "summary": "G5最終2テーマの最小差分、直接behavior、Required Gateを記録したRun Report。"
         }
       ]
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "変更はレビュー指定のHook、launcher、PowerShell、Contract Testと、ignored `.artifacts` の探索境界を定義するroot設定に限定した。temporary cloneの内容、EOL、codex-task、Product code、CI architecture、global Git設定は変更していない。",
+      "evidence": "今回の実装差分はHookとContract Testの2ファイルに限定した。vitest.config.ts、eslint.config.js、launcher、scripts、rules、EOL、codex-task、Product code、dependencyは今回変更していない。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -35,13 +35,13 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "`pnpm run lint`は0 errors／64 warnings、`pnpm run test:contracts`は30 files／375 tests PASS、`pnpm run verify`は全工程PASSとなった。focused Hook Contract 52 tests、PowerShell verify 3/3、Bash verify 2 PASS／2 SKIP、format／typecheck／security／diff checkも確認した。",
+      "evidence": "`pnpm run lint`は0 errors／64 warnings、`pnpm run test:contracts`は30 files／380 tests PASS、`pnpm run verify`は全工程PASSとなった。focused Hook Contract 57 tests、PowerShell verify 3/3、format／typecheck／security／diff checkも確認した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 14:54",
-          "summary": "PR #30最新レビュー対応後のRequired Gate、Contract、full verifyの結果。"
+          "selector": "2026-08-17 15:23",
+          "summary": "G5最終2テーマ対応後のRequired Gate、Contract、full verifyの結果。"
         }
       ]
     },
@@ -58,18 +58,18 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "レビューの明示された代表例をNode Hookの既存Policy Matrixへ追加し、Contract TestはMatrixをdata-drivenに検証した。最終diff reviewで新parser、不要framework、非対象変更がないことを確認した。",
+      "evidence": "レビューの明示されたG5代表5例を既存focused regression tableへ追加し、直接behaviorでdeny／allowを確認した。最終diff reviewで新parser、不要framework、非対象変更がないことを確認した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "tests/contracts/codex-hook-contract.test.ts",
-          "summary": "G4／G5／G7／G8／G9の指定variant、G10のHEAD／@ context、false-positive regressionのContract Test。"
+          "summary": "G5 switch force 3例、checkout attached -B 2例と既存false-positive／allow regressionのContract Test。"
         }
       ]
     },
     "maintainability": {
       "rating": "pass",
-      "evidence": "Node HookをSSOTのまま維持し、短いoption判定と有限timeoutを補完した。探索境界修正も既存設定のignore／exclude追加だけで、新Dependency、Git parser、shell parser、共通parser library、CI architectureは追加していない。",
+      "evidence": "Node HookをSSOTのまま維持し、switch／checkout専用の短いoption判定だけを補完した。新Dependency、Git parser、shell parser、共通parser library、設定変更は追加していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -85,13 +85,13 @@
     },
     "reproducibility": {
       "rating": "pass",
-      "evidence": "Windows nativeの実Runtime AcceptanceでALLOW／DENYの代表動作を再現し、Hook Contractとtracked Contract suiteも再実行した。Bash側のcodex依存チェックはWSL環境にcodexがなくskipされた。",
+      "evidence": "Hook Contract、tracked Contract suite、指定G5直接behavior matrix、Windows verifyを同一作業ツリーで再実行した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260817-073746-JST/REPORT.md",
-          "selector": "2026-08-17 14:54",
-          "summary": "Windows／Bash verifyとPR #30最新レビュー対応後の各環境の検証結果。"
+          "selector": "2026-08-17 15:23",
+          "summary": "Windows verifyとG5最終2テーマ対応後の各環境の検証結果。"
         }
       ]
     }

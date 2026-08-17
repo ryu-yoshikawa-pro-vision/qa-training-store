@@ -311,6 +311,7 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
     checkoutTail !== null &&
     (/(?:^|\s)--(?:\s|$)/.test(checkoutTail) ||
       tailHasShortOption(checkoutTail, "[Bfq]*B[Bfq]*") ||
+      tailHasShortOption(checkoutTail, "[fq]*B\\S+") ||
       tailHasShortOption(checkoutTail, "[fq]*f[fq]*") ||
       tailHasOption(checkoutTail, "--force"))
   ) {
@@ -320,6 +321,8 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   if (
     switchTail !== null &&
     (tailHasShortOption(switchTail, "C\\S*") ||
+      tailHasShortOption(switchTail, "[fq]*f[fq]*") ||
+      tailHasOption(switchTail, "--force") ||
       tailHasOptionWithOptionalValue(switchTail, "--force-create") ||
       tailHasOption(switchTail, "--discard-changes"))
   ) {

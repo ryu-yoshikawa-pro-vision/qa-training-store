@@ -209,6 +209,31 @@
 - Decision: `stop_success`（修正・検証完了。commit／pushは次工程）。
 - Progress: 100% (10/10)
 
+## 2026-08-17 15:23 (JST) — G5最終2テーマ対応
+
+- Summary: ユーザー指定のG5 deny漏れ5表現だけを最小修正した。
+- Repair Loop iteration: 3。
+- Input findings: `git switch -f feature`／`--force`／`-qf`と、`git checkout -Btarget`／`-qBtarget`が未検出だった。
+- Triage: 上記5表現のdenyと既存allow回帰の維持を`must_fix`。Git parser化、short option全網羅、shell wrapper解析、sudo／env、Vitest設定、依存追加、無関係な整理は`defer`／`reject`。
+- Allowed files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、active Run Artifactのみ。
+- Changed files: 実装は上記2ファイルのみ。`vitest.config.ts`、禁止対象、application code、package／lockfileは変更していない。
+- Changes: switch専用に`-f`／`-qf`／`-fq`／`--force`を追加し、checkout専用に`-B<non-space>`／`-qB<non-space>`を追加した。Contractへ指定deny 5件を追加し、既存allow回帰を維持した。
+- Validation:
+  - `node --check .codex/hooks/pre_tool_use_policy.mjs` => PASS。
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1` => PASS、1 file／57 tests。
+  - 直接behavior matrix（指定deny 5件＋allow 4件）=> PASS。
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint` => PASS、0 errors／64 warnings（既存warning）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run security:check` => PASS、233 runtime files／316 credential-scan files。
+  - `pnpm run test:contracts` => PASS、30 files／380 tests。
+  - `pnpm run verify` => PASS、全工程、Native Jest 12 suites／49 testsを含む。
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1` => PASS=3／FAIL=0／SKIP=0。
+  - `git diff --check` => PASS。
+- Remaining delta: なし。新parser、dependency、非対象設定変更なし。
+- Decision: `continue`（commit／pushへ進む）。
+- Progress: 100% (11/11)
+
 ## 2026-08-17 14:57 (JST) — Commit／Push完了
 
 - Summary: Required Quality Gate成功後、feature branchへ新規commitを通常pushした。

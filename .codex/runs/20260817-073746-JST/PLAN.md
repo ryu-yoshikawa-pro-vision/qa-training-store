@@ -85,3 +85,11 @@
 - Repair plan: 操作別short-option patternを拡張し、`--force-create=<branch>`と`HEAD`／`@`のcurrent branch解決を追加する。Contract Matrixとcontext testを追加し、Vitestは`configDefaults.exclude`へ`.artifacts/**`だけを追加する。
 - Validation exit criteria: focused Hook Contract、format／lint／typecheck／security／全Contract／`pnpm run verify`、Windows／Bash verify、diff checkが成功すること。
 - User instruction: このiterationでは品質Gate成功後に新規commitを作成し、feature branchへ通常pushする。新PRは作成しない。
+
+## Follow-up Repair — 2026-08-17 15:23 JST
+
+- Input findings: G5の`git switch -f`／`--force`／`-qf`と、`git checkout -Btarget`／`-qBtarget`のdeny漏れ。
+- Triage: 5表現のdenyと既存allow回帰の維持を`must_fix`とし、Git parser化、short option全網羅、wrapper／env／sudo、Vitest設定、依存追加、無関係な整理は`defer`／`reject`。
+- Allowed files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、active Run Artifactのみ。
+- Repair plan: switch専用の`-f` bundle／`--force`判定と、checkout専用のattached `-B`判定を追加し、focused regression tableへ指定5ケースを追加する。
+- Validation exit criteria: focused Contract、Required Gate、Windows verify、diff checkが全て成功し、変更ファイルが実装2ファイルとactive Run Artifactだけであること。
