@@ -72,6 +72,7 @@ describe("Phase 1 CI deployment boundaries", () => {
 
     expect(verify).toContain("if: always()");
     for (const dependency of [
+      "dependency-review",
       "style-quality",
       "code-quality",
       "vitest",
@@ -148,10 +149,15 @@ describe("Phase 1 CI deployment boundaries", () => {
     expect(validate).toContain("DEPLOY_PREVIEW_RESULT: ${{ needs.deploy-preview.result }}");
     expect(validate).toContain('require_success "verify" "$VERIFY_RESULT"');
     expect(validate).toContain('if [[ "$EVENT_NAME" == "pull_request" ]]; then');
-    expect(validate).toContain('require_success "deploy-preview" "$DEPLOY_PREVIEW_RESULT"');
-    expect(validate).toContain('elif [[ "$DEPLOY_PREVIEW_RESULT" != "skipped" ]]; then');
     expect(validate).toContain(
-      'echo "::error title=Unexpected Preview result::deploy-preview result was ${DEPLOY_PREVIEW_RESULT}"',
+      'if [[ "$PR_HEAD_REPO_FULL_NAME" == "$REPOSITORY" && "$PR_AUTHOR_LOGIN" != "dependabot[bot]" ]]; then',
+    );
+    expect(validate).toContain('require_success "deploy-preview" "$DEPLOY_PREVIEW_RESULT"');
+    expect(validate).toContain('elif [[ "$PR_AUTHOR_LOGIN" == "dependabot[bot]" ]]; then');
+    expect(validate).toContain('elif [[ "$PR_HEAD_REPO_FULL_NAME" != "$REPOSITORY" ]]; then');
+    expect(validate).toContain('require_skipped "deploy-preview" "$DEPLOY_PREVIEW_RESULT"');
+    expect(validate).toContain(
+      'elif [[ "$EVENT_NAME" == "push" || "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" ]]; then',
     );
   });
 
@@ -258,7 +264,7 @@ describe("Phase 1 CI deployment boundaries", () => {
   });
 
   it("keeps checkout credentials disabled and avoids leaking Cloudflare secrets to unrelated steps", () => {
-    const checkoutMatches = [...workflow.matchAll(/- uses: actions\/checkout@v4/g)];
+    const checkoutMatches = [...workflow.matchAll(/- uses: actions\/checkout@[0-9a-f]{40}/g)];
     expect(checkoutMatches.length).toBeGreaterThan(0);
     for (const match of checkoutMatches) {
       const start = match.index!;
