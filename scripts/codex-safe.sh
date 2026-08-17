@@ -172,7 +172,7 @@ check_unsafe_passthrough() {
         fail_with_message "$log_path" "Unsafe Codex argument blocked: '$token' (approval policy is fixed by wrapper)"
         ;;
       --profile|--profile=*)
-        fail_with_message "$log_path" "Unsafe Codex argument blocked: '$token' (profiles are fixed by wrapper presets)"
+        fail_with_message "$log_path" "Unsafe Codex argument blocked: '$token' (project profiles are not accepted by this wrapper)"
         ;;
       --cd|--cd=*)
         fail_with_message "$log_path" "Unsafe Codex argument blocked: '$token' (working root is fixed by wrapper)"
@@ -198,7 +198,7 @@ check_unsafe_passthrough() {
         fail_with_message "$log_path" "Unsafe Codex argument blocked: '$token' (approval policy is fixed by wrapper)"
         ;;
       -p|-p?*)
-        fail_with_message "$log_path" "Unsafe Codex argument blocked: '$token' (profiles are fixed by wrapper presets)"
+        fail_with_message "$log_path" "Unsafe Codex argument blocked: '$token' (project profiles are not accepted by this wrapper)"
         ;;
       -C|-C?*)
         fail_with_message "$log_path" "Unsafe Codex argument blocked: '$token' (working root is fixed by wrapper)"
@@ -242,11 +242,16 @@ decision_from_output() {
   local decision
   decision="${output##*\"decision\":\"}"
   decision="${decision%%\"*}"
-  if [[ -z "$decision" || "$decision" == "$output" ]]; then
-    echo "Unable to parse decision from output: $output" >&2
-    return 1
+  if [[ -n "$decision" && "$decision" != "$output" ]]; then
+    printf '%s' "$decision"
+    return 0
   fi
-  printf '%s' "$decision"
+  if [[ "$output" == *'"matchedRules":[]'* ]]; then
+    printf 'allow'
+    return 0
+  fi
+  echo "Unable to parse decision from output: $output" >&2
+  return 1
 }
 
 execpolicy_decision() {
@@ -274,7 +279,15 @@ assert_decision() {
 run_preflight() {
   assert_decision allow git status
   assert_decision allow rg --files docs
-  assert_decision forbidden git add .
+  if [[ "$preset" == "auto-net" ]]; then
+    assert_decision forbidden git add .
+    assert_decision forbidden python -c "print(1)"
+    assert_decision forbidden python -
+  else
+    assert_decision allow git add .
+    assert_decision allow python -c "print(1)"
+    assert_decision allow python -
+  fi
   assert_decision forbidden git reset --hard HEAD~1
   assert_decision forbidden terraform destroy -auto-approve
   if [[ "$preset" == "auto-net" ]]; then
@@ -302,17 +315,17 @@ preset_config() {
     safe)
       sandbox_mode="workspace-write"
       approval_policy="untrusted"
-      profile_name="repo_safe"
+      network_access_override=0
       ;;
     readonly)
       sandbox_mode="read-only"
       approval_policy="untrusted"
-      profile_name="repo_readonly"
+      network_access_override=0
       ;;
     auto-net)
       sandbox_mode="workspace-write"
       approval_policy="never"
-      profile_name="repo_auto_net"
+      network_access_override=1
       ;;
     *)
       echo "Unsupported preset: $preset" >&2
@@ -367,7 +380,10 @@ fi
 
 preset_config
 
-final_args=(--profile "$profile_name" -C "$cwd" --sandbox "$sandbox_mode" --ask-for-approval "$approval_policy")
+final_args=(-C "$cwd" --sandbox "$sandbox_mode" --ask-for-approval "$approval_policy")
+if (( network_access_override )); then
+  final_args+=(-c 'sandbox_workspace_write.network_access=true')
+fi
 if (( allow_search )); then
   final_args+=(--search)
 fi
@@ -378,7 +394,7 @@ fi
 if (( print_command )); then
   write_log "$log_path" "print_command" ",\"cwd\":\"$(json_escape "$cwd")\""
   if command -v python3 >/dev/null 2>&1; then
-    python3 - "$codex_cmd" "$preset" "$run_id" "$log_path" "$cwd" "$profile_name" "${final_args[@]}" <<'PY'
+    python3 - "$codex_cmd" "$preset" "$run_id" "$log_path" "$cwd" "${final_args[@]}" <<'PY'
 import json
 import sys
 
@@ -387,15 +403,14 @@ preset = sys.argv[2]
 run_id = sys.argv[3]
 log_path = sys.argv[4]
 cwd = sys.argv[5]
-profile = sys.argv[6]
-args = sys.argv[7:]
+args = sys.argv[6:]
 
 print(json.dumps({
     "codex": codex,
     "args": args,
     "preflight": True,
     "preset": preset,
-    "profile": profile,
+    "network_access_override": preset == "auto-net",
     "run_id": run_id,
     "log_path": log_path,
     "cwd": cwd,

@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "run_id": "20260817-063858-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Repository EOL contract、renormalize、代表属性確認、clean checkoutのA→B→A、format:check、verify、diff checkを完了した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-063858-JST/REPORT.md",
+          "selector": "最終検証",
+          "summary": "EOL対策と全検証結果を記録したRun Report。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はRepository EOL設定、関連Documentation、renormalize、検証Artifactに限定した。global Git設定、Hook実装、Product code、CI architecture、新Dependencyは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".gitattributes",
+          "summary": "Repository checkout EOLの正本。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".editorconfig",
+          "summary": "Editor側の最小LF契約。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".prettierrc.json",
+          "summary": "Prettier側のLF指定。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "clean checkoutで代表ファイルのCRLFが0、A→B→Aの各format:checkがPASSし、product worktreeのpnpm run verifyもexit 0だった。global core.autocrlf=trueは変更せず、Repository属性による実効結果を独立確認した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-063858-JST/REPORT.md",
+          "selector": "Windows Native相当の受入確認",
+          "summary": "clean checkoutとbranch switchのformat:check結果。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-063858-JST/REPORT.md",
+          "selector": "pnpm run verify",
+          "summary": "Required quality gateの成功結果。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "global設定変更、reset／destructive checkout、commit／pushは行っていない。renormalizeはユーザー明示の対象として実行し、既存変更を保持した。branch switch受入は一時refとignored temporary cloneで行った。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-063858-JST/REPORT.md",
+          "selector": "renormalize前後",
+          "summary": "staged／unstaged境界と既存変更保持の確認。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "ADR、PROJECT_CONTEXT履歴、計画、Run Reportへ、EOLの責務分担、renormalizeの差分判断、受入条件、残留する一時検証refを記録した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/adr/0017-repository-eol-contract.md",
+          "summary": "EOL契約の設計判断。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/history/2026-08-17_064054_repository-eol-contract.md",
+          "summary": "PROJECT_CONTEXT更新の履歴。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Repository設定だけでEOL契約を表現し、新しいEOL script、framework、dependency、CI architecture、拡張子例外を追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".gitattributes",
+          "summary": "Git checkoutの単一契約。"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".editorconfig",
+          "summary": "Editorの補助契約。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "global core.autocrlf=trueの環境でも、設定を含むfresh checkoutを作り、A→B→Aの各checkoutでformat:checkとLFバイト確認を再現した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-063858-JST/REPORT.md",
+          "selector": "fresh checkout acceptance",
+          "summary": "clean checkoutの実効EOLとbranch switch結果。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

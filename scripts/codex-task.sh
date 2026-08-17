@@ -1152,7 +1152,7 @@ parse_args() {
         block_unsafe_argument "$1" "approval policy is fixed by wrapper"
         ;;
       --profile|--profile=*|-p|-p*)
-        block_unsafe_argument "$1" "profiles are fixed by wrapper presets"
+        block_unsafe_argument "$1" "project profiles are not accepted by this wrapper"
         ;;
       --cd|--cd=*|-C|-C*)
         block_unsafe_argument "$1" "working root is fixed by wrapper"
@@ -1352,12 +1352,8 @@ main() {
 
   sandbox_mode="workspace-write"
   approval_policy="never"
-  profile_name="repo_safe"
   if [[ "$preset" == "readonly" ]]; then
     sandbox_mode="read-only"
-    profile_name="repo_readonly"
-  elif [[ "$preset" == "auto-net" ]]; then
-    profile_name="repo_auto_net"
   fi
 
   if [[ -n "${CODEX_BIN:-}" ]]; then
@@ -1376,7 +1372,10 @@ main() {
   if [[ "$runtime" == "host" ]]; then
     cmd=()
     append_command cmd "$codex_bin"
-    cmd+=(--profile "$profile_name" --ask-for-approval "$approval_policy")
+    cmd+=(--ask-for-approval "$approval_policy")
+    if [[ "$preset" == "auto-net" ]]; then
+      cmd+=(-c "sandbox_workspace_write.network_access=true")
+    fi
     if (( allow_search )); then
       cmd+=(--search)
     fi
@@ -1416,7 +1415,10 @@ main() {
     if [[ -n "${OPENAI_API_KEY:-}" ]]; then
       docker_cmd+=(-e OPENAI_API_KEY)
     fi
-    docker_cmd+=("${CODEX_DOCKER_IMAGE}" codex --profile "$profile_name" --ask-for-approval "$approval_policy")
+    docker_cmd+=("${CODEX_DOCKER_IMAGE}" codex --ask-for-approval "$approval_policy")
+    if [[ "$preset" == "auto-net" ]]; then
+      docker_cmd+=(-c "sandbox_workspace_write.network_access=true")
+    fi
     if (( allow_search )); then
       docker_cmd+=(--search)
     fi

@@ -20,11 +20,35 @@ prefix_rule(
 )
 
 prefix_rule(
+  pattern = ["git", ["add", "commit", "push"]],
+  decision = "forbidden",
+  match = ["git add .", "git commit -m test", "git push origin feature"],
+)
+
+prefix_rule(
+  pattern = [["python", "python3", "py"], ["-c", "-"]],
+  decision = "forbidden",
+  match = ["python -c 'import os'", "python -"],
+)
+
+prefix_rule(
+  pattern = ["terraform", "apply"],
+  decision = "forbidden",
+  match = ["terraform apply -auto-approve"],
+)
+
+prefix_rule(
+  pattern = ["kubectl", "apply"],
+  decision = "forbidden",
+  match = ["kubectl apply -f deploy.yaml"],
+)
+
+prefix_rule(
   pattern = [["pnpm", "yarn"], ["publish", "npm", "dlx", "create"]],
   decision = "forbidden",
   match = ["pnpm publish", "yarn npm publish", "pnpm dlx create-app"],
 )
 
 # Remote script piping such as `curl ... | bash` and `iwr ... | iex` is
-# enforced by `.codex/hooks/pre_tool_use_policy.py`; prefix rules cannot safely
+# enforced by `.codex/hooks/pre_tool_use_policy.mjs`; prefix rules cannot safely
 # express pipe-position checks.

@@ -69,8 +69,15 @@ decision_from_json() {
   local decision
   decision="${output##*\"decision\":\"}"
   decision="${decision%%\"*}"
-  [[ -n "$decision" && "$decision" != "$output" ]] || return 1
-  printf '%s' "$decision"
+  if [[ -n "$decision" && "$decision" != "$output" ]]; then
+    printf '%s' "$decision"
+    return 0
+  fi
+  if [[ "$output" == *'"matchedRules":[]'* ]]; then
+    printf 'allow'
+    return 0
+  fi
+  return 1
 }
 
 contains() {
@@ -109,8 +116,10 @@ check_template_contract() {
   [[ -f .codex/agents/implementation_worker.toml ]] || return 1
   [[ -f .codex/agents/test_investigator.toml ]] || return 1
   [[ -f .codex/agents/quality_gate_runner.toml ]] || return 1
-  [[ -f .codex/hooks/pre_tool_use_policy.py ]] || return 1
-  [[ -f .codex/hooks/pre_tool_use_policy.ps1 ]] || return 1
+  [[ -f .codex/hooks/pre_tool_use_policy.mjs ]] || return 1
+  [[ -f .codex/hooks/pre_tool_use_policy_windows.ps1 ]] || return 1
+  [[ ! -e .codex/hooks/pre_tool_use_policy.py ]] || return 1
+  [[ ! -e .codex/hooks/pre_tool_use_policy.ps1 ]] || return 1
   [[ -f .codex/templates/PLAN.md ]] || return 1
   [[ -f .codex/templates/RUN_MANIFEST.json ]] || return 1
   [[ -f .codex/templates/EVALUATION.md ]] || return 1
@@ -257,10 +266,13 @@ check_template_contract() {
   contains "[agents]" .codex/config.toml || return 1
   contains "default_subagent_model =" .codex/config.toml || return 1
   contains "default_subagent_reasoning_effort =" .codex/config.toml || return 1
-  contains "[profiles.repo_auto_net]" .codex/config.toml || return 1
-  contains "network_access = true" .codex/config.toml || return 1
-  contains "codex_hooks = true" .codex/config.toml || return 1
-  contains "pre_tool_use_policy.ps1" .codex/config.toml || return 1
+  ! contains "[profiles.repo_auto_net]" .codex/config.toml || return 1
+  contains "hooks = true" .codex/config.toml || return 1
+  contains 'matcher = "^Bash$"' .codex/config.toml || return 1
+  contains "command_windows" .codex/config.toml || return 1
+  contains "pre_tool_use_policy.mjs" .codex/config.toml || return 1
+  if contains 'pre_tool_use_policy.ps1' .codex/config.toml; then return 1; fi
+  ! contains "codex_hooks = true" .codex/config.toml || return 1
   contains "name = \"code_researcher\"" .codex/agents/code_researcher.toml || return 1
   contains "name = \"implementation_researcher\"" .codex/agents/implementation_researcher.toml || return 1
   contains "name = \"test_investigator\"" .codex/agents/test_investigator.toml || return 1
@@ -443,7 +455,23 @@ check_execpolicy_baseline() {
 
   out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$add_subcmd" .)" || return 1
   decision="$(decision_from_json "$out")" || return 1
-  [[ "$decision" == "forbidden" ]] || return 1
+  [[ "$decision" == "allow" ]] || return 1
+
+  out="$(codex execpolicy check "${rule_args[@]}" -- python -c 'print(1)')" || return 1
+  decision="$(decision_from_json "$out")" || return 1
+  [[ "$decision" == "allow" ]] || return 1
+
+  out="$(codex execpolicy check "${rule_args[@]}" -- python -)" || return 1
+  decision="$(decision_from_json "$out")" || return 1
+  [[ "$decision" == "allow" ]] || return 1
+
+  out="$(codex execpolicy check "${rule_args[@]}" -- terraform apply -auto-approve)" || return 1
+  decision="$(decision_from_json "$out")" || return 1
+  [[ "$decision" == "prompt" ]] || return 1
+
+  out="$(codex execpolicy check "${rule_args[@]}" -- kubectl apply -f deploy.yaml)" || return 1
+  decision="$(decision_from_json "$out")" || return 1
+  [[ "$decision" == "prompt" ]] || return 1
 
   out="$(codex execpolicy check "${rule_args[@]}" -- "$git_bin" "$reset_subcmd" "$hard_flag" HEAD~1)" || return 1
   decision="$(decision_from_json "$out")" || return 1
@@ -465,7 +493,9 @@ check_execpolicy_baseline() {
 }
 
 check_codex_available() {
-  command -v codex >/dev/null 2>&1 && codex --version >/dev/null 2>&1
+  command -v codex >/dev/null 2>&1 &&
+    codex --version >/dev/null 2>&1 &&
+    codex execpolicy check -- git status >/dev/null 2>&1
 }
 
 check_bash_wrapper_preflight() {

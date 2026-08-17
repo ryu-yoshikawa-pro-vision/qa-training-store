@@ -48,7 +48,20 @@ function Invoke-Check {
 
 function Get-Decision([string]$Raw) {
     $json = $Raw | ConvertFrom-Json
-    return $json.decision
+    $decisionProperty = $json.PSObject.Properties['decision']
+    if ($null -ne $decisionProperty -and -not [string]::IsNullOrWhiteSpace([string]$decisionProperty.Value)) {
+        return [string]$decisionProperty.Value
+    }
+
+    $matchedRulesProperty = $json.PSObject.Properties['matchedRules']
+    if ($null -ne $matchedRulesProperty -and $null -ne $matchedRulesProperty.Value) {
+        $matchedRules = @($matchedRulesProperty.Value)
+        if ($matchedRules.Count -eq 0) {
+            return 'allow'
+        }
+    }
+
+    throw "Execpolicy output is missing an explicit decision and does not prove matchedRules is empty"
 }
 
 function Test-TemplateContract {
@@ -65,8 +78,8 @@ function Test-TemplateContract {
         ".codex/agents/test_investigator.toml",
         ".codex/agents/implementation_worker.toml",
         ".codex/agents/quality_gate_runner.toml",
-        ".codex/hooks/pre_tool_use_policy.py",
-        ".codex/hooks/pre_tool_use_policy.ps1",
+        ".codex/hooks/pre_tool_use_policy.mjs",
+        ".codex/hooks/pre_tool_use_policy_windows.ps1",
         ".codex/templates/PLAN.md",
         ".codex/rules/10-readonly-allow.rules",
         ".codex/rules-auto-net/10-auto-net-allow.rules",
@@ -233,10 +246,14 @@ function Test-TemplateContract {
     if ($config -notmatch [regex]::Escape('[agents]')) { throw "config missing agents section" }
     if ($config -notmatch '(?m)^\s*default_subagent_model\s*=') { throw "config missing default subagent model key" }
     if ($config -notmatch '(?m)^\s*default_subagent_reasoning_effort\s*=') { throw "config missing default subagent reasoning effort key" }
-    if ($config -notmatch [regex]::Escape('[profiles.repo_auto_net]')) { throw "config missing repo_auto_net profile" }
-    if ($config -notmatch [regex]::Escape('network_access = true')) { throw "config missing auto-net network" }
-    if ($config -notmatch [regex]::Escape('codex_hooks = true')) { throw "config missing hook feature flag" }
-    if ($config -notmatch [regex]::Escape('pre_tool_use_policy.ps1')) { throw "config missing pre-tool hook command" }
+    if ($config -match [regex]::Escape('[profiles.repo_auto_net]')) { throw "config contains unsupported repo_auto_net profile" }
+    if ($config -notmatch [regex]::Escape('hooks = true')) { throw "config missing hook feature flag" }
+    if ($config -notmatch [regex]::Escape('matcher = "^Bash$"')) { throw "config missing Bash-only matcher" }
+    if ($config -notmatch [regex]::Escape('command_windows')) { throw "config missing Windows launcher command" }
+    if ($config -notmatch [regex]::Escape('pre_tool_use_policy.mjs')) { throw "config missing Node pre-tool hook command" }
+    if ($config -match '(?m)^\s*command\s*=\s*"[^"]*pre_tool_use_policy\.ps1') { throw "config references legacy PowerShell policy" }
+    if ($config -match [regex]::Escape('codex_hooks = true')) { throw "config references deprecated hook feature key" }
+    if ((Test-Path ".codex/hooks/pre_tool_use_policy.py") -or (Test-Path ".codex/hooks/pre_tool_use_policy.ps1")) { throw "legacy policy Hook file remains" }
 }
 
 function Test-StrictHarnessContract {
@@ -288,7 +305,19 @@ function Test-ExecpolicyBaseline {
     if ((Get-Decision ($allow | Out-String)) -ne 'allow') { throw "git status should be allow" }
 
     $gitAdd = & $codex execpolicy check @ruleArgs -- git add . 2>&1
-    if ((Get-Decision ($gitAdd | Out-String)) -ne 'forbidden') { throw "git add . should be forbidden" }
+    if ((Get-Decision ($gitAdd | Out-String)) -ne 'allow') { throw "git add . should not be forbidden by common rules" }
+
+    $pythonInline = & $codex execpolicy check @ruleArgs -- python -c "print(1)" 2>&1
+    if ((Get-Decision ($pythonInline | Out-String)) -ne 'allow') { throw "python -c should not be forbidden by common rules" }
+
+    $pythonStdin = & $codex execpolicy check @ruleArgs -- python - 2>&1
+    if ((Get-Decision ($pythonStdin | Out-String)) -ne 'allow') { throw "python - should not be forbidden by common rules" }
+
+    $terraformApply = & $codex execpolicy check @ruleArgs -- terraform apply -auto-approve 2>&1
+    if ((Get-Decision ($terraformApply | Out-String)) -ne 'prompt') { throw "terraform apply should remain prompt-class, not forbidden" }
+
+    $kubectlApply = & $codex execpolicy check @ruleArgs -- kubectl apply -f deploy.yaml 2>&1
+    if ((Get-Decision ($kubectlApply | Out-String)) -ne 'prompt') { throw "kubectl apply should remain prompt-class, not forbidden" }
 
     $forbidden = & $codex execpolicy check @ruleArgs -- git reset --hard HEAD~1 2>&1
     if ((Get-Decision ($forbidden | Out-String)) -ne 'forbidden') { throw "git reset should be forbidden" }
@@ -301,7 +330,13 @@ function Test-ExecpolicyBaseline {
 }
 
 function Test-WrapperPreflight {
-    & powershell.exe -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly > $null
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -PreflightOnly > $null
+    $safeExitCode = $LASTEXITCODE
+    if ($safeExitCode -ne 0) { throw "safe wrapper preflight failed (exit=$safeExitCode)" }
+
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/codex-safe.ps1 -Preset auto-net -PreflightOnly > $null
+    $autoNetExitCode = $LASTEXITCODE
+    if ($autoNetExitCode -ne 0) { throw "auto-net wrapper preflight failed (exit=$autoNetExitCode)" }
 }
 
 function Test-PowerShellHasCodex {

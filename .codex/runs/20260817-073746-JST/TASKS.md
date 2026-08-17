@@ -1,0 +1,24 @@
+# Tasks
+
+## Now
+
+- [x] 1. PLANを確定する
+- [x] 2. レビュー要求、対象Plan、現行実装、既存Runの事実を確認する
+- [x] 3. must-fix／defer／rejectを分類し、allowed filesを確定する
+- [x] 4. Hook／launcher／PowerShell／rulesを最小修正する
+- [x] 5. Contract Testと指定Run Manifestを最小修正する
+- [x] 6. focused validationとRequired Gateを実行する
+- [x] 7. Windows代表Acceptanceと最終diff reviewを実行する
+- [x] 8. Run Artifactをsanitize／schema検証し完了判定する
+
+## Discovered
+
+- D1. Windows nativeが利用できない場合は既存のtemporary clone／local bare remote方式を確認し、未実行理由を記録する。
+- D2. 全体Gateの既存failureはbaselineと変更差分の因果を確認してからdeferする。
+- [x] D3. ignored `.artifacts` をESLint／Vitestの探索対象から除外し、全体Gateを再実行する。
+- [x] D4. PR #30最新レビューの残存2テーマを最小修正し、Required Quality Gateを再実行する。
+- [x] D5. G5のswitch force表現とcheckout attached -B表現を最小修正し、Required Quality Gateを再実行する。
+
+## Blocked
+
+- なし

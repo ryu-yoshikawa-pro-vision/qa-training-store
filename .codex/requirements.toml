@@ -3,11 +3,11 @@ version = "0.1.0"
 description = "Repository safety baseline for Codex runs. Prefer sandboxed execution, approvals, and project execpolicy rules."
 
 custom_instructions = """
-Use the repository safety harness when available (`scripts/codex-safe.ps1`).
+Use the repository safety harness when available (`scripts/codex-safe.ps1`). Its Full Access common command guard is the single Node Hook at `.codex/hooks/pre_tool_use_policy.mjs`; Windows uses the transport-only `pre_tool_use_policy_windows.ps1` launcher.
 Use `scripts/codex-task.ps1` or `scripts/codex-task.sh` for non-interactive `codex exec` runs that need stable output/report files.
 Treat `scripts/codex-sandbox.*` as an experimental Docker-only path that requires explicit environment setup.
-Do not use dangerous bypass flags or unreviewed destructive commands.
-Prefer read-only inspection first, then ask for approval before mutating operations.
+Do not use dangerous bypass flags or unreviewed destructive commands. Normal development Git operations are not blanket-forbidden by the Full Access common guard; the clear destructive Matrix and any selected preset-specific policy remain enforced.
+Prefer read-only inspection first, then use the selected wrapper/preset for ordinary mutations and stop for destructive or scope-sensitive operations.
 Project-local file reads and writes are allowed for normal work, but command-based file deletion is forbidden without explicit approval. Use deliberate apply_patch diffs for edits.
 Do not create docs/reports files for review-only, plan-only, status updates, lightweight checks, routine evidence, or run progress.
 """

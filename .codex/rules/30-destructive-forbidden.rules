@@ -1,4 +1,5 @@
-# Explicitly forbidden high-risk command prefixes.
+# Defense-in-depth for the static destructive prefixes in the common Matrix.
+# The Node PreToolUse Hook remains the Full Access policy source of truth.
 
 prefix_rule(
   pattern = ["git", "reset", "--hard"],
@@ -7,39 +8,45 @@ prefix_rule(
 )
 
 prefix_rule(
-  pattern = ["git", "clean", "-fdx"],
+  pattern = ["git", "clean", ["-f", "-fd", "-fdx", "--force"]],
   decision = "forbidden",
-  match = ["git clean -fdx"],
+  match = ["git clean -f", "git clean -fd", "git clean -fdx", "git clean --force"],
 )
 
 prefix_rule(
-  pattern = ["git", "push", ["--force", "-f"]],
+  pattern = ["git", "push", ["--force", "-f", "--force-with-lease"]],
   decision = "forbidden",
-  match = ["git push --force"],
+  match = ["git push --force", "git push -f", "git push --force-with-lease"],
 )
 
 prefix_rule(
-  pattern = ["git", ["add", "commit", "push"]],
+  pattern = ["git", "push", ["--delete", "--prune", "--mirror"]],
   decision = "forbidden",
-  match = ["git add .", "git commit -m test", "git push origin main"],
+  match = ["git push --delete origin old-feature", "git push --prune", "git push --mirror"],
 )
 
 prefix_rule(
-  pattern = ["npm", ["publish", "unpublish", "version"]],
+  pattern = ["git", "branch", ["-f", "-D"]],
   decision = "forbidden",
-  match = ["npm publish", "npm unpublish package", "npm version patch"],
+  match = ["git branch -f feature", "git branch -D feature"],
 )
 
 prefix_rule(
-  pattern = [["pip", "pip3"], ["uninstall"]],
+  pattern = ["git", "tag", ["-f", "--force"]],
   decision = "forbidden",
-  match = ["pip uninstall package"],
+  match = ["git tag -f release", "git tag --force release"],
 )
 
 prefix_rule(
-  pattern = [["python", "python3", "py"], ["-c", "-"]],
+  pattern = ["git", "stash", ["drop", "clear"]],
   decision = "forbidden",
-  match = ["python -c 'import os'", "python -"],
+  match = ["git stash drop stash@{0}", "git stash clear"],
+)
+
+prefix_rule(
+  pattern = ["git", "rm"],
+  decision = "forbidden",
+  match = ["git rm file.txt"],
 )
 
 prefix_rule(
@@ -56,57 +63,15 @@ prefix_rule(
 )
 
 prefix_rule(
-  pattern = ["git", "rm"],
+  pattern = ["docker", ["system", "volume", "network", "image"], "prune"],
   decision = "forbidden",
-  match = ["git rm file.txt"],
-)
-
-# Additional destructive patterns are covered by the PreToolUse hook because
-# prefix rules cannot safely express contains-style checks:
-# find ... -delete, rsync --delete, robocopy /MIR, mv -f,
-# Move-Item -Force, Rename-Item -Force.
-
-
-prefix_rule(
-  pattern = [["dd", "mkfs", "fdisk", "parted", "diskpart", "format", "Format-Volume"]],
-  decision = "forbidden",
-  match = ["dd if=/dev/zero of=/dev/sda", "diskpart /s script.txt"],
-)
-
-prefix_rule(
-  pattern = [["shutdown", "reboot", "halt", "Stop-Computer", "Restart-Computer"]],
-  decision = "forbidden",
-  match = ["shutdown /r /t 0", "reboot"],
-)
-
-prefix_rule(
-  pattern = [["iex", "Invoke-Expression"]],
-  decision = "forbidden",
-  match = ["Invoke-Expression whoami", "iex whoami"],
-)
-
-prefix_rule(
-  pattern = ["docker", "system", "prune"],
-  decision = "forbidden",
-  match = ["docker system prune -a --volumes"],
-)
-
-prefix_rule(
-  pattern = ["docker", ["volume", "network", "image"], "prune"],
-  decision = "forbidden",
-  match = ["docker volume prune -f", "docker image prune -a"],
+  match = ["docker system prune -a --volumes", "docker volume prune -f", "docker image prune -a"],
 )
 
 prefix_rule(
   pattern = ["kubectl", "delete"],
   decision = "forbidden",
   match = ["kubectl delete pod x"],
-)
-
-prefix_rule(
-  pattern = ["kubectl", "apply"],
-  decision = "forbidden",
-  match = ["kubectl apply -f deploy.yaml"],
 )
 
 prefix_rule(
@@ -119,12 +84,6 @@ prefix_rule(
   pattern = ["terraform", "destroy"],
   decision = "forbidden",
   match = ["terraform destroy -auto-approve"],
-)
-
-prefix_rule(
-  pattern = ["terraform", "apply"],
-  decision = "forbidden",
-  match = ["terraform apply -auto-approve"],
 )
 
 prefix_rule(
@@ -144,3 +103,20 @@ prefix_rule(
   decision = "forbidden",
   match = ["gcloud projects delete my-project"],
 )
+
+# These release/environment rules predate this Matrix and remain outside the
+# Full Access common policy redesign, as specified by the remediation plan.
+prefix_rule(
+  pattern = ["npm", ["publish", "unpublish", "version"]],
+  decision = "forbidden",
+  match = ["npm publish", "npm unpublish package", "npm version patch"],
+)
+
+prefix_rule(
+  pattern = [["pip", "pip3"], "uninstall"],
+  decision = "forbidden",
+  match = ["pip uninstall package"],
+)
+
+# Contains-style N2/N4 checks are intentionally left to the Node Hook because
+# prefix rules cannot safely express rsync/robocopy/delete or remote piping.

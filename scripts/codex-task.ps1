@@ -1531,7 +1531,7 @@ while ($i -lt $Arguments.Count) {
         { $_ -like '--config*' -or $_ -like '-c*' } { Block-UnsafeArgument -Token $token -Reason "user config overrides are blocked; wrapper injects fixed safety settings" -LogPath $state.log_path -ReportPath $state.report_path -Report $report }
         { $_ -like '--sandbox*' -or $_ -like '-s*' } { Block-UnsafeArgument -Token $token -Reason "sandbox mode is fixed by wrapper" -LogPath $state.log_path -ReportPath $state.report_path -Report $report }
         { $_ -like '--ask-for-approval*' -or $_ -like '-a*' } { Block-UnsafeArgument -Token $token -Reason "approval policy is fixed by wrapper" -LogPath $state.log_path -ReportPath $state.report_path -Report $report }
-        { $_ -like '--profile*' -or $_ -like '-p*' } { Block-UnsafeArgument -Token $token -Reason "profiles are fixed by wrapper presets" -LogPath $state.log_path -ReportPath $state.report_path -Report $report }
+        { $_ -like '--profile*' -or $_ -like '-p*' } { Block-UnsafeArgument -Token $token -Reason "project profiles are not accepted by this wrapper" -LogPath $state.log_path -ReportPath $state.report_path -Report $report }
         { $_ -like '--cd*' -or $_ -like '-C*' } { Block-UnsafeArgument -Token $token -Reason "working root is fixed by wrapper" -LogPath $state.log_path -ReportPath $state.report_path -Report $report }
         { $_ -like '--enable*' -or $_ -like '--disable*' } { Block-UnsafeArgument -Token $token -Reason "feature flags are blocked in safe wrapper" -LogPath $state.log_path -ReportPath $state.report_path -Report $report }
         '--search' { Block-UnsafeArgument -Token $token -Reason "web search is disabled by default in safe wrapper" -LogPath $state.log_path -ReportPath $state.report_path -Report $report }
@@ -1715,18 +1715,16 @@ $script:codexTaskMainTryActive = $true
 try {
 $sandboxMode = if ($state.preset -eq "readonly") { "read-only" } else { "workspace-write" }
 $approvalPolicy = "never"
-$profileName = switch ($state.preset) {
-    "readonly" { "repo_readonly" }
-    "auto-net" { "repo_auto_net" }
-    default { "repo_safe" }
-}
 $codexCmd = try { Get-CodexCommand } catch { $null }
 if (-not $codexCmd) {
     Fail-Task -Status "codex_missing" -Message "codex command not found in PATH" -LogPath $state.log_path -ReportPath $state.report_path -Report $report
 }
 
 Write-TaskLog -Path $state.log_path -Event "codex_exec_start" -Data @{ runtime = $state.runtime; output_file = $state.output_file }
-$codexArgs = @("--profile", $profileName, "--ask-for-approval", $approvalPolicy)
+$codexArgs = @("--ask-for-approval", $approvalPolicy)
+if ($state.preset -eq "auto-net") {
+    $codexArgs += @("-c", "sandbox_workspace_write.network_access=true")
+}
 if ($state.allow_search) {
     $codexArgs += "--search"
 }
@@ -1789,7 +1787,10 @@ else {
         $dockerArgs += @("-e", "OPENAI_API_KEY")
     }
 
-    $containerArgs = @("codex", "--profile", $profileName, "--ask-for-approval", $approvalPolicy)
+    $containerArgs = @("codex", "--ask-for-approval", $approvalPolicy)
+    if ($state.preset -eq "auto-net") {
+        $containerArgs += @("-c", "sandbox_workspace_write.network_access=true")
+    }
     if ($state.allow_search) {
         $containerArgs += "--search"
     }

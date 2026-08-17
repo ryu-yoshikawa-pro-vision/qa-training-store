@@ -183,7 +183,7 @@ function Test-UserArguments {
             '^--config(=|$)' { Throw-UnsafeArgument $token "user config overrides are blocked; wrapper injects fixed safety settings" }
             '^--sandbox(=|$)' { Throw-UnsafeArgument $token "sandbox mode is fixed by wrapper" }
             '^--ask-for-approval(=|$)' { Throw-UnsafeArgument $token "approval policy is fixed by wrapper" }
-            '^--profile(=|$)' { Throw-UnsafeArgument $token "profiles are fixed by wrapper presets" }
+            '^--profile(=|$)' { Throw-UnsafeArgument $token "project profiles are not accepted by this wrapper" }
             '^--cd(=|$)' { Throw-UnsafeArgument $token "working root is fixed by wrapper" }
             '^--enable(=|$)' { Throw-UnsafeArgument $token "feature flags are blocked in safe wrapper" }
             '^--disable(=|$)' { Throw-UnsafeArgument $token "feature flags are blocked in safe wrapper" }
@@ -198,8 +198,8 @@ function Test-UserArguments {
             '^-s.+' { Throw-UnsafeArgument $token "sandbox mode is fixed by wrapper" }
             '^-a$' { Throw-UnsafeArgument $token "approval policy is fixed by wrapper" }
             '^-a.+' { Throw-UnsafeArgument $token "approval policy is fixed by wrapper" }
-            '^-p$' { Throw-UnsafeArgument $token "profiles are fixed by wrapper presets" }
-            '^-p.+' { Throw-UnsafeArgument $token "profiles are fixed by wrapper presets" }
+            '^-p$' { Throw-UnsafeArgument $token "project profiles are not accepted by this wrapper" }
+            '^-p.+' { Throw-UnsafeArgument $token "project profiles are not accepted by this wrapper" }
             '^-C$' { Throw-UnsafeArgument $token "working root is fixed by wrapper" }
             '^-C.+' { Throw-UnsafeArgument $token "working root is fixed by wrapper" }
             default { }
@@ -272,6 +272,28 @@ function Invoke-ExecpolicyCheck {
     return ($jsonText | ConvertFrom-Json)
 }
 
+function Get-ExecpolicyDecision {
+    param(
+        [Parameter(Mandatory = $true)][object]$Result,
+        [Parameter(Mandatory = $true)][string]$Command
+    )
+
+    $decisionProperty = $Result.PSObject.Properties['decision']
+    if ($null -ne $decisionProperty -and -not [string]::IsNullOrWhiteSpace([string]$decisionProperty.Value)) {
+        return [string]$decisionProperty.Value
+    }
+
+    $matchedRulesProperty = $Result.PSObject.Properties['matchedRules']
+    if ($null -ne $matchedRulesProperty -and $null -ne $matchedRulesProperty.Value) {
+        $matchedRules = @($matchedRulesProperty.Value)
+        if ($matchedRules.Count -eq 0) {
+            return 'allow'
+        }
+    }
+
+    throw "Execpolicy output is missing an explicit decision for '$Command' and does not prove matchedRules is empty"
+}
+
 function Invoke-Preflight {
     param(
         [string]$CodexExe,
@@ -283,13 +305,20 @@ function Invoke-Preflight {
     @(
         @{ Tokens = @('git', 'status'); Decisions = @('allow') },
         @{ Tokens = @('rg', '--files', 'docs'); Decisions = @('allow') },
-        @{ Tokens = @('git', 'add', '.'); Decisions = @('forbidden') },
+        @{ Tokens = @('git', 'add', '.'); Decisions = @('allow') },
         @{ Tokens = @('git', 'reset', '--hard', 'HEAD~1'); Decisions = @('forbidden') },
         @{ Tokens = @('terraform', 'destroy', '-auto-approve'); Decisions = @('forbidden') },
+        @{ Tokens = @('python', '-c', 'print(1)'); Decisions = @('allow') },
+        @{ Tokens = @('python', '-'); Decisions = @('allow') },
         @{ Tokens = @('rm', 'file.txt'); Decisions = @('forbidden') },
         @{ Tokens = @('Remove-Item', 'file.txt'); Decisions = @('forbidden') },
         @{ Tokens = @('git', 'rm', 'file.txt'); Decisions = @('forbidden') }
     ) | ForEach-Object { $tests.Add($_) }
+
+    $presetSpecificForbidden = $PresetName -eq 'auto-net'
+    $tests[2].Decisions = if ($presetSpecificForbidden) { @('forbidden') } else { @('allow') }
+    $tests[5].Decisions = if ($presetSpecificForbidden) { @('forbidden') } else { @('allow') }
+    $tests[6].Decisions = if ($presetSpecificForbidden) { @('forbidden') } else { @('allow') }
 
     if ($PresetName -eq 'auto-net') {
         @(
@@ -312,8 +341,9 @@ function Invoke-Preflight {
 
     foreach ($test in $tests) {
         $result = Invoke-ExecpolicyCheck -CodexExe $CodexExe -RuleFiles $RuleFiles -CommandTokens $test.Tokens
-        if ($result.decision -notin $test.Decisions) {
-            throw "Execpolicy preflight mismatch for '$($test.Tokens -join ' ')': expected [$($test.Decisions -join ', ')], got '$($result.decision)'"
+        $decision = Get-ExecpolicyDecision -Result $result -Command ($test.Tokens -join ' ')
+        if ($decision -notin $test.Decisions) {
+            throw "Execpolicy preflight mismatch for '$($test.Tokens -join ' ')': expected [$($test.Decisions -join ', ')], got '$decision'"
         }
     }
 }
@@ -325,21 +355,21 @@ function Get-PresetConfig {
             return @{
                 Sandbox = 'workspace-write'
                 Approval = 'untrusted'
-                Profile  = 'repo_safe'
+                NetworkAccessOverride = $false
             }
         }
         'readonly' {
             return @{
                 Sandbox = 'read-only'
                 Approval = 'untrusted'
-                Profile  = 'repo_readonly'
+                NetworkAccessOverride = $false
             }
         }
         'auto-net' {
             return @{
                 Sandbox = 'workspace-write'
                 Approval = 'never'
-                Profile  = 'repo_auto_net'
+                NetworkAccessOverride = $true
             }
         }
         default {
@@ -417,11 +447,14 @@ if ($PreflightOnly) {
 }
 
 $finalArgs = @(
-    '--profile', $presetConfig.Profile,
     '-C', $cwd,
     '--sandbox', $presetConfig.Sandbox,
     '--ask-for-approval', $presetConfig.Approval
 )
+
+if ($presetConfig.NetworkAccessOverride) {
+    $finalArgs += @('-c', 'sandbox_workspace_write.network_access=true')
+}
 
 if ($AllowSearch) {
     $finalArgs += '--search'
@@ -435,7 +468,7 @@ if ($PrintCommand) {
     Write-HarnessLog -Path $resolvedLogPath -Event 'print_command' -Data @{
         cwd = $cwd
         final_args = (Get-ArgsSummary -Args $finalArgs)
-        profile_hint = $presetConfig.Profile
+        network_access_override = $presetConfig.NetworkAccessOverride
     }
     [pscustomobject]@{
         codex = $codexCmd
@@ -443,7 +476,7 @@ if ($PrintCommand) {
         rules = ($rules | ForEach-Object { $_.Name })
         preflight = (-not $SkipPreflight.IsPresent)
         preset = $Preset
-        profile = $presetConfig.Profile
+        network_access_override = $presetConfig.NetworkAccessOverride
         run_id = $RunId
         log_path = $resolvedLogPath
     } | ConvertTo-Json -Depth 4
@@ -453,7 +486,7 @@ if ($PrintCommand) {
 Write-HarnessLog -Path $resolvedLogPath -Event 'codex_exec_start' -Data @{
     cwd = $cwd
     final_args = (Get-ArgsSummary -Args $finalArgs)
-    profile_hint = $presetConfig.Profile
+    network_access_override = $presetConfig.NetworkAccessOverride
 }
 
 & $codexCmd @finalArgs

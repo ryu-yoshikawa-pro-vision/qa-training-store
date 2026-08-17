@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "run_id": "20260817-073746-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "最終repairで`mv`のeffective force判定の残存漏れを修正し、`-T`／`-b`／`--verbose`などの標準option前置後もforceを検出できるようにした。`-i`／`-f`／`-n`とlong optionの最後のmodeによるallow precedence、および`--`以降をoperandとして扱う境界も維持した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/pre_tool_use_policy.mjs",
+          "summary": "mv専用effective force helperが通常optionを読み飛ばして走査継続し、`--`でoption解析を終了するNode Hook。N2代表caseも1件追加した。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "summary": "標準option前置後のforce deny 3件と`--` false-positiveなしのallow regressionを追加したContract Test。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 20:24",
+          "summary": "最終repairの実装、focused／full validation、Windows verify、scope、残差を記録したRun Report。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "このscope_controlは最新の最終repair iteration（2026-08-17 20:12–20:24 JST）を評価対象とする。当該iterationのproduct／implementation repair差分は`.codex/hooks/pre_tool_use_policy.mjs`と`tests/contracts/codex-hook-contract.test.ts`の2ファイルに限定した。`PLAN.md`、`REPORT.md`、`evaluation.json`はRun Artifactの証跡更新であり、product／implementation差分には含めない。`run.json.changed_files`はactive Run全体で累積された変更ファイルを表し、当該iteration単独の変更ファイル一覧ではない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 20:24",
+          "summary": "最新の最終repair iterationで、N2実装、Contract追加、全Validation、product差分とRun Artifact更新の区別を記録したRun Report。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260817-073746-JST/run.json",
+          "summary": "active Run全体の累積changed_filesを記録したRun Manifest。最終repair iteration単独の変更ファイル一覧としては使用していない。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "最終repairのfocused Hook Contractは1 file／69 tests、`pnpm run test:contracts`は30 files／392 tests、`pnpm run verify`は全工程PASSとなった。`pnpm run lint`は0 errors／64 warnings、typecheck／security／format、Windows verify PASS=3／FAIL=0／SKIP=0、`git diff --check`も確認した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 20:24",
+          "summary": "最終repairのfocused 69 tests、full Contract 392 tests、Required Gate、Windows verify、diff checkの実測結果。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Windows Full Access Acceptanceはtemporary cloneとlocal bare remoteだけで実行し、通常のfeature add／commit／push／path unstageは許可、reset hard／rebase／force push／protected commit／rmは実行前にHookでblockされた。",
+      "evidence_refs": [
+        {
+          "kind": "log_event",
+          "path": ".artifacts/native-local/pr30-full-access-acceptance-20260817-085000/",
+          "summary": "ALLOW／DENY、remote ref、sentinel integrityのraw acceptance log。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "最終repairではmv option precedenceを既存mode判定のまま維持し、標準option前置のforce deny 3例、既存の`-if`／`-ivf`等、`--`以降を誤検出しないallow regressionをContractと直接behaviorで確認した。通常optionを読み飛ばすだけで、full parserへ拡張していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "summary": "mv option precedence、標準option前置deny、`--` false-positiveなし、既存allow／denyを同じfocused tableで検証するContract Test。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 20:24",
+          "summary": "最終repairのdirect mv behavior matrixとfull validation結果。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "`evaluateMvForce()`をmv専用helperに限定し、force／interactive／no-clobberのmode precedenceと通常optionの読み飛ばし、`--`境界だけを扱った。generic shell parserやGNU getopt完全実装は追加せず、existing Node Hook SSOTを維持し、新dependencyもない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/pre_tool_use_policy.mjs",
+          "summary": "mv専用helperの最小変更とN2代表caseのみを含む。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 20:24",
+          "summary": "generic parser／dependency／非対象変更を追加していないことを含む最終scope記録。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "最終repairのfocused Contract 69 tests、full Contract 392 tests、Required Gateの`pnpm run verify`、Windows verify、直接mv behavior matrixを同一作業ツリーで再実行した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 20:24",
+          "summary": "最終repairのfocused／full Contract、Required Gate、Windows verify、直接behaviorの再現手順と実測結果。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}
