@@ -255,3 +255,37 @@
 - GitHub操作: 既存PR #30を更新するbranch pushのみ。新規PR作成・コメント操作は行っていない。
 - Decision: `stop_success`。
 - Progress: 100% (10/10)
+
+## 2026-08-17 19:55 (JST) — CodeRabbit再レビュー対応
+
+- Summary: CodeRabbit再レビューで妥当と判断したN2のeffective force順序とactive Runのscope_control記述だけを最小修正した。
+- Repair Loop iteration: 4。
+- Input findings:
+  - `mv -if`、`mv -ivf`、`mv -i -f`で最後の上書きモードがforceになる場合のN2 deny漏れ。
+  - `evaluation.json`のscope_controlが、最新repair iterationのproduct差分とactive Run全体の累積変更を混同していた。
+- Triage:
+  - `must_fix`: `mv`のeffective force判定、focused regression、scope_controlの評価単位明示。
+  - `defer`／`reject`: shell／Git parser化、env／command／sudo対応、過去Run Artifact全面修正、codex-task policy、PROTECTED_UPDATE_OPERATIONS共通化、docstring、D1／D2のcheckbox化、dependency、unrelated refactor。
+- Allowed files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、`.codex/runs/20260817-073746-JST/evaluation.json`、`.codex/runs/20260817-073746-JST/REPORT.md`、active Runの`PLAN.md`のみ。
+- Changed files: product／implementationは`.codex/hooks/pre_tool_use_policy.mjs`と`tests/contracts/codex-hook-contract.test.ts`の2ファイル。Run Artifactは`PLAN.md`、`REPORT.md`、`evaluation.json`を更新した。
+- Changes:
+  - `evaluateMvForce()`を追加し、`mv`のoption部分で`-f`／`-i`／`-n`と`--force`／`--interactive`／`--no-clobber`の最後のeffective modeだけを評価するようにした。
+  - focused regressionへN2 deny 4件（`-if`、`-ivf`、`-i -f`、`--interactive --force`）とallow 4件（`-fi`、`-f -i`、`-fn`、`--force --interactive`）を追加した。既存`mv` allow／denyも維持した。
+  - `evaluation.json`のscope_controlで、最新repair iterationのproduct差分2ファイル、Run Artifact更新、`run.json.changed_files`のactive Run累積性を分離して記述した。
+- Validation:
+  - `node --check .codex/hooks/pre_tool_use_policy.mjs` => PASS。
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1` => PASS、1 file／65 tests。
+  - direct N2 behavior matrix => PASS、deny 5件（`-if`／`-ivf`／`-i -f`／`-vf`／`--force`）とallow 5件（plain／`-fi`／`-f -i`／`--force --interactive`／`-fn`）。
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint` => PASS、0 errors／64 warnings（既存warning）。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run security:check` => PASS、233 runtime files／316 credential-scan files。
+  - `pnpm run test:contracts` => PASS、30 files／388 tests。
+  - `pnpm run test` => PASS、unit 66／integration 98／repository 33／web component 76／native Jest 49／Contract 388。
+  - `pnpm run build:web`／`pnpm run build:spec` => PASS。
+  - `pnpm run verify` => 初回はコードエラーなしで6分上限に到達。工程分解後に再実行し、format／markdown／spec／visual／curriculum／lint／typecheck／image manifest／security／全test／web build／spec buildの全工程PASS。
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1` => PASS=3／FAIL=0／SKIP=0。
+  - `git diff --check` => PASS。
+- Remaining delta: なし。lint 64 warnings、Native JestのReact `act(...)` warning、SQLite ExperimentalWarningは既存warningであり今回差分との因果なし。D1／D2はcheckbox化していない。
+- Decision: `continue`（validation成功。commit／pushへ進む）。
+- Progress: 100% (11/11)

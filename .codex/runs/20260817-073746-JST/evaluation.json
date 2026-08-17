@@ -24,12 +24,18 @@
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "今回の実装差分はHookとContract Testの2ファイルに限定した。vitest.config.ts、eslint.config.js、launcher、scripts、rules、EOL、codex-task、Product code、dependencyは今回変更していない。",
+      "evidence": "このscope_controlは最新の最終repair iteration（2026-08-17 19:55 JST）を評価対象とする。当該iterationのproduct／implementation repair差分は`.codex/hooks/pre_tool_use_policy.mjs`と`tests/contracts/codex-hook-contract.test.ts`の2ファイルに限定した。`PLAN.md`、`REPORT.md`、`evaluation.json`はRun Artifactの証跡更新であり、product／implementation差分には含めない。`run.json.changed_files`はactive Run全体で累積された変更ファイルを表し、当該iteration単独の変更ファイル一覧ではない。",
       "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260817-073746-JST/REPORT.md",
+          "selector": "2026-08-17 19:55",
+          "summary": "最新の最終repair iterationで、N2実装、Contract追加、全Validation、product差分とRun Artifact更新の区別を記録したRun Report。"
+        },
         {
           "kind": "run_manifest",
           "path": ".codex/runs/20260817-073746-JST/run.json",
-          "summary": "変更ファイルとscope violation=falseを記録したRun Manifest。"
+          "summary": "active Run全体の累積changed_filesを記録したRun Manifest。最終repair iteration単独の変更ファイル一覧としては使用していない。"
         }
       ]
     },

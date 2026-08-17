@@ -128,6 +128,35 @@ function tailHasShortOption(tail, optionTokenPattern) {
   return new RegExp(`(?:^|\\s)-${optionTokenPattern}(?=\\s|$)`).test(tail);
 }
 
+function evaluateMvForce(command) {
+  const tail = /(?:^|[\r\n;&|]\s*)mv\s+([^\r\n;&|]*)/i.exec(command)?.[1];
+  if (tail === undefined) return false;
+
+  let mode = null;
+  for (const token of tail.trim().split(/\s+/)) {
+    const longOption = token.toLowerCase();
+    if (longOption === "--force") {
+      mode = "force";
+      continue;
+    }
+    if (longOption === "--interactive") {
+      mode = "interactive";
+      continue;
+    }
+    if (longOption === "--no-clobber") {
+      mode = "no-clobber";
+      continue;
+    }
+    if (!/^-[fivn]+$/.test(token)) break;
+    for (const option of token.slice(1)) {
+      if (option === "f") mode = "force";
+      if (option === "i") mode = "interactive";
+      if (option === "n") mode = "no-clobber";
+    }
+  }
+  return mode === "force";
+}
+
 function isRecoveryOperation(tail) {
   return /(?:^|\s)--(?:abort|quit|show-current-patch)(?:\s|$)/i.test(tail);
 }
@@ -370,7 +399,7 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
       normalizedCommand,
     ) ||
     /\brobocopy\b[^\r\n;&|]*\s\/mir(?:\s|$)/i.test(normalizedCommand) ||
-    /(?:^|[\r\n;&|]\s*)mv\s+(?:-[fv]*f[fv]*|--force)(?:\s|$)/i.test(normalizedCommand) ||
+    evaluateMvForce(normalizedCommand) ||
     /\b(?:Move-Item|Rename-Item)\b[^\r\n;&|]*\s-Force(?:\s|$)/i.test(normalizedCommand)
   ) {
     return { id: "N2", reason: "N2: destructive sync or forced overwrite is forbidden." };

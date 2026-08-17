@@ -93,3 +93,11 @@
 - Allowed files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、active Run Artifactのみ。
 - Repair plan: switch専用の`-f` bundle／`--force`判定と、checkout専用のattached `-B`判定を追加し、focused regression tableへ指定5ケースを追加する。
 - Validation exit criteria: focused Contract、Required Gate、Windows verify、diff checkが全て成功し、変更ファイルが実装2ファイルとactive Run Artifactだけであること。
+
+## Follow-up Repair — 2026-08-17 19:26 JST
+
+- Input findings: CodeRabbit再レビューで、`mv -if`など最終的にforceが有効になる上書きモード順序のN2判定漏れと、active Runの`evaluation.json`におけるscope_controlの評価単位の曖昧さが指摘された。
+- Triage: effective forceの安全判定とscope証跡の誤解防止を`must_fix`とする。shell／Git parser化、過去Run Artifact全面修正、D1／D2のcheckbox化、protected operation共通化、docstring、依存追加、無関係な指摘は`defer`／`reject`。
+- Allowed files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、`.codex/runs/20260817-073746-JST/evaluation.json`、`.codex/runs/20260817-073746-JST/REPORT.md`、active Runの`PLAN.md`のみ。
+- Repair plan: `mv`専用の小さなeffective-mode helperで`f`／`i`／`n`と対応long optionの最後のモードだけを評価し、focused regressionへ指定deny／allowを追加する。`evaluation.json`のscope_controlは最新repair iterationのproduct差分とactive Run累積`run.json.changed_files`を明示的に分離する。
+- Validation exit criteria: Node syntax、focused Hook Contract、direct N2 behavior、Required Gate、Windows verify、diff／artifact sanitizer／evaluation schema validationが成功し、D1／D2と非対象ファイルを変更しないこと。
