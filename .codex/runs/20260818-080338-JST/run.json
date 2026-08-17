@@ -43,7 +43,8 @@
       "Native component testのReact act console warningとNode SQLite experimental warningは既存観測。",
       "Formal ExperimentはNOT EXECUTED。Knowledge／Promotionはnone。",
       "Official ScoredのTrusted Evidence不足は今回RunのFailureではなく、Baseline GAP-01として別途BLOCKED／NOT EXECUTED。",
-      "PR #32 headは0a6f6d7442ca7e006776a13cd561b91b8e1fc8c9。Phase 1 CIは確認時点でin_progress、Native CIはsuccess、CodeRabbit checkはsuccess。"
+      "PR #32の中間修正commit 0a6f6d7442ca7e006776a13cd561b91b8e1fc8c9では、Phase 1 CIがin_progress、Native CIがsuccess、CodeRabbit checkがsuccessだった。",
+      "Run Artifact同期後のPR #32 headは60462677e8ed6255e8b3551eac81c66ea86bd192。Phase 1 CI run 32082104247はin_progress、Native CI run 32082104376はsuccess、CodeRabbit checkはsuccess。"
     ]
   },
   "safety": {
