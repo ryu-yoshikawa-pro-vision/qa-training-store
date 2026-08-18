@@ -1,6 +1,11 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
+const allWorkflows = readdirSync(".github/workflows")
+  .filter((file) => file.endsWith(".yml") || file.endsWith(".yaml"))
+  .map((file) => readFileSync(join(".github/workflows", file), "utf8"))
+  .join("\n");
 
 function jobBlock(jobName: string, nextJobName?: string) {
   const start = workflow.indexOf(`  ${jobName}:`);
@@ -72,6 +77,7 @@ describe("Phase 1 CI deployment boundaries", () => {
 
     expect(verify).toContain("if: always()");
     for (const dependency of [
+      "dependency-review",
       "style-quality",
       "code-quality",
       "vitest",
@@ -148,10 +154,15 @@ describe("Phase 1 CI deployment boundaries", () => {
     expect(validate).toContain("DEPLOY_PREVIEW_RESULT: ${{ needs.deploy-preview.result }}");
     expect(validate).toContain('require_success "verify" "$VERIFY_RESULT"');
     expect(validate).toContain('if [[ "$EVENT_NAME" == "pull_request" ]]; then');
-    expect(validate).toContain('require_success "deploy-preview" "$DEPLOY_PREVIEW_RESULT"');
-    expect(validate).toContain('elif [[ "$DEPLOY_PREVIEW_RESULT" != "skipped" ]]; then');
     expect(validate).toContain(
-      'echo "::error title=Unexpected Preview result::deploy-preview result was ${DEPLOY_PREVIEW_RESULT}"',
+      'if [[ "$PR_HEAD_REPO_FULL_NAME" == "$REPOSITORY" && "$PR_AUTHOR_LOGIN" != "dependabot[bot]" ]]; then',
+    );
+    expect(validate).toContain('require_success "deploy-preview" "$DEPLOY_PREVIEW_RESULT"');
+    expect(validate).toContain('elif [[ "$PR_AUTHOR_LOGIN" == "dependabot[bot]" ]]; then');
+    expect(validate).toContain('elif [[ "$PR_HEAD_REPO_FULL_NAME" != "$REPOSITORY" ]]; then');
+    expect(validate).toContain('require_skipped "deploy-preview" "$DEPLOY_PREVIEW_RESULT"');
+    expect(validate).toContain(
+      'elif [[ "$EVENT_NAME" == "push" || "$EVENT_NAME" == "schedule" || "$EVENT_NAME" == "workflow_dispatch" ]]; then',
     );
   });
 
@@ -258,7 +269,9 @@ describe("Phase 1 CI deployment boundaries", () => {
   });
 
   it("keeps checkout credentials disabled and avoids leaking Cloudflare secrets to unrelated steps", () => {
-    const checkoutMatches = [...workflow.matchAll(/- uses: actions\/checkout@v4/g)];
+    const checkoutMatches = [
+      ...workflow.matchAll(/- uses: actions\/checkout@[0-9a-f]{40}(?=\s|$)/g),
+    ];
     expect(checkoutMatches.length).toBeGreaterThan(0);
     for (const match of checkoutMatches) {
       const start = match.index!;
@@ -280,6 +293,17 @@ describe("Phase 1 CI deployment boundaries", () => {
       ]) {
         expect(stepBlock(job, stepName)).not.toContain("CLOUDFLARE_");
       }
+    }
+  });
+
+  it("pins every remote workflow action to a strict 40-character commit SHA", () => {
+    const remoteUses = [...allWorkflows.matchAll(/^\s*(?:-\s*)?uses:\s*([^\s#]+)/gm)]
+      .map((match) => match[1])
+      .filter((ref): ref is string => ref !== undefined && !ref.startsWith("./"));
+
+    expect(remoteUses.length).toBeGreaterThan(0);
+    for (const ref of remoteUses) {
+      expect(ref).toMatch(/@[0-9a-f]{40}(?=\s|$)/);
     }
   });
 

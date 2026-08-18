@@ -10,6 +10,7 @@ Review -> Repair -> Validate の反復を、停止条件と証跡つきで扱う
 - `code-review` skill は findings を作る。
 - `repair-loop` skill は findings を triage し、bounded な修正・検証・停止判断へ接続する。
 - review-only task では repair loop を始めない。
+- CodeRabbit など外部レビューサービスの full review / 再レビューは、明示的な実行指示または承認を得た場合のみ起動する。レビュー完了後は結果を報告してrepair loopを停止し、指摘の修正・thread操作・再レビューはユーザーの判断を受けるまで実行しない。既存レビュー結果・thread状態の参照はread-only確認として継続できる。
 
 ## 品質ゲートの範囲外エラー
 

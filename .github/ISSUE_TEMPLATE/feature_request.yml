@@ -1,0 +1,48 @@
+name: Feature request
+description: Suggest a product, documentation, or training improvement. Do not use this form for security vulnerabilities.
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report security vulnerabilities in a public Issue. Use [SECURITY.md](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/SECURITY.md) and GitHub Private Vulnerability Reporting instead.
+  - type: textarea
+    id: problem-background
+    attributes:
+      label: Problem / Background
+      description: Describe the problem, background, and who is affected.
+    validations:
+      required: true
+  - type: textarea
+    id: expected-behavior
+    attributes:
+      label: Expected Behavior
+      description: Describe the behavior or outcome you would like.
+    validations:
+      required: true
+  - type: textarea
+    id: qa-training-value
+    attributes:
+      label: QA / Training Value
+      description: Explain the QA, learning, or training value.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives
+      description: Describe alternatives or workarounds considered.
+    validations:
+      required: true
+  - type: textarea
+    id: scope-constraints
+    attributes:
+      label: Scope / Constraints
+      description: Note affected areas, non-goals, compatibility, or implementation constraints.
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add examples, links, screenshots, or other context that is safe to share publicly.

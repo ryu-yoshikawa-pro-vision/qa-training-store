@@ -32,7 +32,7 @@ jobs:
       EXPO_PUBLIC_TEST_MODE: "true"
       EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
       - name: Select Xcode 26.4.1 or newer
@@ -43,10 +43,10 @@ jobs:
           test -n "$XCODE_APP"
           sudo xcode-select -s "$XCODE_APP/Contents/Developer"
           xcodebuild -version
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -119,7 +119,7 @@ jobs:
           cp -R "$APP_PATH" "$ARTIFACT_APP_PATH"
           test -d "$ARTIFACT_APP_PATH"
       - name: Upload Automation iOS Simulator app
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: native-ios-app-${{ github.run_id }}
           path: ${{ runner.temp }}/native-ios-app
@@ -140,7 +140,7 @@ jobs:
           else
             echo "iOS Simulator app was not generated." > "$RUNNER_TEMP/native-ios-build-evidence/app-status.txt"
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: native-ios-build-evidence-${{ github.run_id }}
@@ -159,7 +159,7 @@ jobs:
       EXPO_PUBLIC_TEST_MODE: "false"
       EXPO_PUBLIC_DEFAULT_SEED: default
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
         with:
           persist-credentials: false
       - name: Select Xcode 26.4.1 or newer
@@ -170,10 +170,10 @@ jobs:
           test -n "$XCODE_APP"
           sudo xcode-select -s "$XCODE_APP/Contents/Developer"
           xcodebuild -version
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
         with:
           version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: pnpm
@@ -254,7 +254,7 @@ jobs:
           cp -R "$PRODUCTION_BUILD_APP_PATH" "$PRODUCTION_ARTIFACT_APP_PATH"
           test -d "$PRODUCTION_ARTIFACT_APP_PATH"
       - name: Upload Production-validation iOS Simulator app
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
           name: native-ios-production-app-${{ github.run_id }}
           path: ${{ runner.temp }}/native-ios-production-app
@@ -270,7 +270,7 @@ jobs:
             cp "$RUNNER_TEMP/ios-production-build.log" "$RUNNER_TEMP/native-ios-production-evidence/ios-production-build.log"
           fi
           xcodebuild -version > "$RUNNER_TEMP/native-ios-production-evidence/xcode-version.txt" || true
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         if: always()
         with:
           name: native-ios-production-evidence-${{ github.run_id }}

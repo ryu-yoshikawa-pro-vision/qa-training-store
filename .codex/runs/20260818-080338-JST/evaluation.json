@@ -1,0 +1,96 @@
+{
+  "schema_version": 1,
+  "run_id": "20260818-080338-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "CodeRabbit 3件、P-11 template alignment、Node 24 Action migration、Expo Doctor compatibility fixを実装し、local validationを通過した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".github/workflows/ci.yml",
+          "summary": "Preview cache無効化、Wrangler version固定、workflow Action pinを含む。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "package.json",
+          "summary": "Expo Doctor対象6 packageとoverrideのpatch alignment。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は指定されたworkflow、template、CONTRIBUTING、contract test、Expo直接依存とlockfile、Run Artifactに限定した。Application、Native source、教材、GitHub Settingsは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260818-080338-JST/REPORT.md",
+          "selector": "Validation iteration 2 / self-review",
+          "summary": "差分範囲と非対象領域のself-review記録。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "pnpm install、format、Markdown lint、focused contract test、Expo Doctor 17/17、pnpm run verify、git diff --check、YAML parse、static invariant、sanitizer、およびPR push後のPhase 1 CI / Native CIが成功した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260818-080338-JST/REPORT.md",
+          "selector": "commit/push・PR #31 post-push CI",
+          "summary": "local validationとPR push後CIの実測結果。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "GitHub Settings、Ruleset、PVR、CodeQL、Dependabot Security Updates、Cloudflare trust boundaryを変更せず、workflowのread-only permissions、secret boundary、no pull_request_target、no self-hostedを維持した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260818-080338-JST/REPORT.md",
+          "selector": "Validation iteration 2 / self-review",
+          "summary": "security invariantとscopeの検証記録。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Action pin、template、contract test、Expo patch変更は既存構造の延長で、remote uses検証はlocal reusable workflowを除外する単純な正規表現契約として実装した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/ci-workflow.test.ts",
+          "summary": "strict full SHA regexと全remote uses contract。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "新しいworkflow、dependency automation、permission、独自bot、YAML parserは追加せず、Wrangler本体は3.90.0を維持した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".github/workflows/ci.yml",
+          "summary": "既存jobを維持した最小workflow差分。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "同一workspaceでfrozen install、focused contract、Expo Doctor、formal verifyを再実行し、成功結果をRun Reportへ記録した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260818-080338-JST/run.json",
+          "summary": "実行commandとvalidation状態のmanifest。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

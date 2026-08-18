@@ -16,6 +16,7 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 
 - 複雑なタスク、明示的な計画依頼、Plan Mode のときは `PLANS.md` を読み、`.agents/skills/feature-plan/SKILL.md` を使う。Plan では planning に集中し、実装やレビューを混ぜない。
 - レビュー依頼または `/review` のときは `CODE_REVIEW.md` を読み、`.agents/skills/code-review/SKILL.md` を使う。Review では findings を返し、実装や設計相談へ逸れない。
+- CodeRabbit など外部レビューサービスの full review / 再レビューは、明示的な実行指示または承認を得た場合に限り起動する。レビュー完了後は結果を報告して停止し、指摘の修正・thread操作・再レビューをユーザーの判断なしに続けない。既存のreview結果・thread状態の参照はこの確認とは別に行ってよい。
 - review findings や validation failure の修正では `docs/reference/repair-loop.md` を読み、`.agents/skills/repair-loop/SKILL.md` を使う。Repair loop は bounded workflow であり、無制限再試行ではない。
 - 実行結果や評価結果から harness 自体の改善候補を作るときは `docs/reference/harness-improvement-loop.md` を読み、`.agents/skills/harness-improvement/SKILL.md` を使う。実装修正と harness improvement は分離する。
 - 探索的QA、仕様ベースQA、Agentic QA、実Runtimeを操作してProduct Behaviorを確認する依頼では、`QA_AGENT.md` と `.agents/skills/exploratory-qa/SKILL.md` を使用する。Exploratory QA SkillがQA実行のPrimary Entry Pointである。

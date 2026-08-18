@@ -1,0 +1,74 @@
+name: Bug report
+description: Report a reproducible product or documentation bug. Do not use this form for security vulnerabilities.
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Do not report security vulnerabilities in a public Issue. Use [SECURITY.md](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/SECURITY.md) and GitHub Private Vulnerability Reporting instead.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: Summarize the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: platform
+    attributes:
+      label: Platform
+      description: Identify the affected platform, device, or operating system.
+    validations:
+      required: true
+  - type: textarea
+    id: environment-browser
+    attributes:
+      label: Environment / Browser
+      description: Include browser, browser version, app version, or relevant runtime details.
+    validations:
+      required: true
+  - type: textarea
+    id: preconditions
+    attributes:
+      label: Preconditions
+      description: State any setup or data required before reproducing the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction-steps
+    attributes:
+      label: Reproduction Steps
+      description: List the smallest reliable reproduction steps.
+    validations:
+      required: true
+  - type: textarea
+    id: expected-result
+    attributes:
+      label: Expected Result
+    validations:
+      required: true
+  - type: textarea
+    id: actual-result
+    attributes:
+      label: Actual Result
+    validations:
+      required: true
+  - type: textarea
+    id: reproducibility
+    attributes:
+      label: Reproducibility
+      description: State how often the issue occurs and under what conditions.
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Add logs, screenshots, links, or other evidence safe to share publicly.
+    validations:
+      required: true
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context that is safe to share publicly.

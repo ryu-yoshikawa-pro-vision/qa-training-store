@@ -13,6 +13,10 @@
 3. `.agents/skills/code-review/SKILL.md` を読む。
 4. 必要に応じて `.agents/skills/code-review/references/review-workflow.md` を読む。
 
+## 外部レビューサービスの実行承認
+
+CodeRabbit など外部レビューサービスの full review / 再レビューは、明示的な実行指示または承認を得てから起動する。レビュー完了後は結果を報告して停止し、指摘の修正、thread操作、再レビューはユーザーの判断を受けるまで実行しない。既存レビューの取得、reviewDecisionの確認、inline thread状態の参照は、レビュー起動とは別のread-only確認として扱う。
+
 ## Review objective
 
 1. correctness
