@@ -6,8 +6,8 @@
 - [x] 2. Repository mappingを行い、Foundationの既存SSOT・Test Target・Curriculum・QA Systemを確認する
 - [x] 3. Initial Baseline Assessment、Gap Routing、最初のQuestion選択を確定する
 - [x] 4. Experiment要否、Canonical Location、ID Convention、Reference方式を確定する
-- [x] 5. 最小のExperiment Record運用を実装する
-- [x] 6. 初回Lightweight Experimentを実行し、Result／Interpretation／Negative／Blocked Evidenceを保存する
+- [x] 5. Formal Experiment RecordのCanonical Location／ID／Reference Conventionを整備する
+- [x] 6. Experiment Record ConventionのAcceptance／Readiness Validationを実行し、Formal Experiment不要の判断を保存する
 - [x] 7. Relevant validation、最終diff、Sanitizerを実行する
 - [x] 8. REPORT／run.json／TASKSを同期し、DoDとNext Questionを確定する
 

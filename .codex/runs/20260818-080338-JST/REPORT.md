@@ -102,3 +102,10 @@
 - `Phase 1 CI`は非終端のため完了PASSとは扱わないが、CI起動は確認済みであり、今回のローカルValidationはすべてPASSである。
 - Run状態は`completed`、Validationは`passed`、`primary_failure_category`は`null`のまま。Formal Experiment／Knowledge／Promotionはそれぞれ`NOT EXECUTED`／`none`／`none`。
 - Progress: 100% (8/8)
+
+## 2026-08-18 09:34 (JST) — PR metadata snapshot clarification
+
+- これまでのPR Head／CI状態の記録は、それぞれの時点で取得した観測Snapshotであり、Current GitHub Stateの正本ではない。
+- 最新PR Head／CI状態はGitHubをCanonical Sourceとし、Run Artifact更新によってHEADが変化するたびに最新SHAやCI run IDを再同期しない。
+- このRunの完了判定は、Run Artifactの整合性、Validation結果、GitHub上で確認したCI起動を根拠とする。
+- このCorrection後にRun Artifact全体を最終確定し、Sanitizerを最後に実行する。Sanitizer後はRun Artifactを変更しない。
