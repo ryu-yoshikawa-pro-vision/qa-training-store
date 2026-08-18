@@ -46,6 +46,8 @@
                                       "pnpm run test:unit",
                                       "gh run view 32104879897 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
                                       "gh run view 32104880047 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+                                      "gh run view 32108806074 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+                                      "gh run view 32108806403 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
                                       "gh pr checks 31 --repo ryu-yoshikawa-pro-vision/qa-training-store",
                                       "gh pr view 31 --repo ryu-yoshikawa-pro-vision/qa-training-store --json headRefOid,reviewDecision,mergeStateStatus,mergeable",
                                       "github_list_pull_request_review_threads(pr_number=31)",
@@ -59,8 +61,9 @@
                                       "CodeRabbit review submissionの総合stateはCHANGES_REQUESTEDのままで、inline thread解決とは別状態。",
                                       "今回の継続作業では、historyとRun Artifactのみを変更し、package / lockfile / workflow / sourceは変更しない。",
                                       "最新Phase 1 CI run 32104879897 と Native CI run 32104880047 は必要なjobを含めてsuccess。",
+                                      "最終HEADのPhase 1 CI run 32108806074 と Native CI run 32108806403 は必要なjobを含めてsuccess。",
                                       "旧CodeRabbit CHANGES_REQUESTED submissionによりPR mergeStateStatusはBLOCKED。CodexはdismissせずOwner判断待ち。",
-                                      "CodeRabbit full review / 再レビューはユーザーの明示指示または承認なしに起動しない運用ルールを関連文書へ追記した。"
+                                      "CodeRabbit full review / 再レビューはユーザーの明示指示または承認なしに起動せず、レビュー後の修正・thread操作はユーザー判断まで停止する運用ルールを関連文書へ追記した。"
                                    ]
                    },
     "safety":  {

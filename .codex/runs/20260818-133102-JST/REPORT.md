@@ -195,3 +195,13 @@
 - 今後の運用ルールを `AGENTS.md`、`CODE_REVIEW.md`、`docs/reference/repair-loop.md` に追記し、レビュー起動、結果報告、修正・thread操作の開始を明確に分離した。
 - 最終証跡commit後の新CIは Phase 1 `32107880460`、Native `32107880618` として起動中であり、現時点でfailureはない。完了後の結果はこのRunの最終報告へ反映する。
 - Progress: 100% (20/20)
+
+### 2026-08-18 16:23 (JST) — 最終HEADのCI / review state確認
+
+- 規約更新後の最終HEADは `f344efe85dfa4f9e07d1ddbf8d4483ae5c600a87`。Phase 1 CI `32108806074` は successとなり、Dependency Review、`verify`、`deploy-preview`、`validate` が success、`deploy-production` は skippedだった。
+- 同HEADの Native CI `32108806403` は successとなり、Native Static、Expo Doctor、Android build、Android Runtime / Maestro、iOS build、`native-ci / verify` を含む必要jobがすべて successだった。
+- `gh pr checks 31` で最終HEADのPhase 1 / Native / CodeQLを再確認した。CodeRabbit checkは `Review skipped: manual review required for this OSS repository` であり、今回のユーザー訂正後にfull review / 再レビューを起動していない。
+- `github_list_pull_request_review_threads` の再取得結果は6件すべて `is_resolved=true`、unresolved 0件。新しいthread操作は行っていない。
+- `gh pr view` は `reviewDecision=CHANGES_REQUESTED`、`mergeStateStatus=BLOCKED`、`mergeable=MERGEABLE`、`state=OPEN`。旧CodeRabbit submissionが実際のmerge blockerとして残るため、ユーザー / Owner判断待ちとする。
+- 最終判断は `PR #31 merge-ready = NO`。理由は旧review submissionのblockのみで、P-13 triage、CI、thread state、文書化は完了している。`Repository Hardening Complete = NO`、post-merge設定は未変更。
+- Progress: 100% (20/20)
