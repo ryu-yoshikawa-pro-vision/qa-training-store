@@ -168,3 +168,22 @@
 - `git diff --check` => success。
 - 次は4ファイルの修正をcommit / pushし、Native CI完了後に新3threadの状態を再取得する。full reviewは追加実行しない。
 - Progress: 83% (15/18)
+
+### 2026-08-18 15:10 (JST) — CodeRabbit thread整理完了
+
+- `github_list_pull_request_review_threads` で最新状態を再取得し、unresolved threadは0件になった。
+- 最新full reviewの3追加threadについて、evaluation / historyの2件は `03a8d3f` で修正済み、過去Run PLANの1件はWorking Agreementによるimmutable boundaryを返信し、過去ファイルを変更せずscope外としてresolveした。
+- 従来の3thread（ci workflow / CONTRIBUTING / contract test）も `is_resolved=true`、`is_outdated=true` のまま維持されている。Review submissionのdismissは行っていない。
+- `gh pr view` の `reviewDecision=CHANGES_REQUESTED` はCodeRabbit旧submissionの状態として残っており、最新thread解決とは別である。dismissはせず、Ownerの再review判断に委ねる。
+- Progress: 89% (17/19)
+
+### 2026-08-18 15:37 (JST) — push後CIと最終pre-merge判定
+
+- 修正後HEAD `03a8d3f9f7edd27ec520d2852cb6eefcaf4673cb` に対する Phase 1 CI run `32104879897` を確認した。Dependency Review、`verify`、`deploy-preview`、`validate` は success、PR eventの `deploy-production` は skipped だった。
+- 同HEADに対する Native CI run `32104880047` を確認した。Native Static、Expo Doctor、Android Production-validation / Automation build、iOS Automation / Production-validation build、Android Runtime / Maestro、`native-ci / verify` を含む全ジョブが success だった。
+- `github_list_pull_request_review_threads` の再取得結果は unresolved 0件。元の3件と最新full review由来の3件を含め、全threadがresolvedである。CodeRabbit full reviewは今回1回だけ実行し、追加実行はしていない。
+- `gh pr view 31 --json headRefOid,reviewDecision,mergeStateStatus,mergeable` => headは `03a8d3f9f7edd27ec520d2852cb6eefcaf4673cb`、`mergeable=MERGEABLE`、`reviewDecision=CHANGES_REQUESTED`、`mergeStateStatus=BLOCKED`。旧CodeRabbit review submissionはdismissしておらず、inline threadのresolved状態とは別にmerge blockerとして残っているため、Ownerのdismiss / 再review判断待ちとする。
+- 7件のHighはすべてP-13 triage済みで、alert dismissおよび今回のalert remediation dependency updateは行っていない。nanoidは vulnerable `< 3.3.18`、Dependabot first patched `3.3.18`、effective remediation `>= 3.3.18`を採用した。
+- `pnpm run verify` のローカルtimeoutは既存の警告として残るが、個別gateは成功し、remote Phase 1 CIの `verify` も successである。今回の変更範囲外のsource修正は行わない。
+- Final decision: P-13 triage、history / Run Artifact更新、CI確認、thread整理は完了。ただし旧review submissionの実merge blockerがあるため `PR #31 merge-ready = NO`。post-merge設定を変更しておらず、`Repository Hardening Complete = NO`。
+- Progress: 100% (19/19)

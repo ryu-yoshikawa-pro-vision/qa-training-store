@@ -83,3 +83,11 @@
 - 2026-08-18: #2/#3の `brace-expansion` 1.1.x chainは、#2単体のfirst patched `1.1.17`ではなく、後発#3を含むeffective target `>= 1.1.18`を採用する。#7/#6の`image-size`はpatched version未提供としてupstream / dependency-chain follow-upと記録する。
 - 2026-08-18: 証跡更新の変更対象は `docs/history/2026-08-17_224000_public-repository-hardening.md` と既存Run Artifactだけ。package / lockfile / workflow / application / native / 教材 / settingsは変更しない。
 - 2026-08-18: 最新CodeRabbit full reviewのうち、現Run / historyに対する評価整合性の指摘は最小修正する。過去Run `20260818-080338-JST` の書き換え要求は、Working Agreementと今回指示の過去Run immutable方針に反するため採用せず、現Runへ境界と理由を記録する。full reviewは今回1回のみとし、再実行しない。
+
+## Final Evidence Update
+
+- 2026-08-18: 修正後HEAD `03a8d3f9f7edd27ec520d2852cb6eefcaf4673cb` の Phase 1 CI run `32104879897` は Dependency Review、verify、deploy-preview、validate が成功し、PRのため deploy-production は skipped だった。
+- 2026-08-18: 同HEADの Native CI run `32104880047` は Native Static、Expo Doctor、Android / iOS build、Android Runtime / Maestro、native-ci / verify を含む全ジョブが成功した。
+- 2026-08-18: CodeRabbitの最新full reviewは1回実行済み。3件の追加threadは2件を修正し、過去Runの1件はimmutable boundaryを返信したうえでscope外としてresolveした。最新thread取得時点のunresolvedは0件である。
+- 2026-08-18: `gh pr view` では `reviewDecision=CHANGES_REQUESTED`、`mergeStateStatus=BLOCKED` が残る。inline thread解決とは別の旧CodeRabbit submission状態であり、Codexはdismissせず、Owner判断待ちとする。
+- 2026-08-18: P-13 triage、証跡保存、CI確認は完了したが、旧review submissionが実際のmerge blockerであるため `PR #31 merge-ready = NO`、`Repository Hardening Complete = NO` と判定する。

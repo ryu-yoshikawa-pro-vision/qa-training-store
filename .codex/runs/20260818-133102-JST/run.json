@@ -40,14 +40,22 @@
                                       "pnpm run validate:curriculum",
                                       "pnpm run lint",
                                       "pnpm run typecheck",
-                                      "pnpm run test:unit"
+                                      "pnpm run test:unit",
+                                      "gh run view 32104879897 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+                                      "gh run view 32104880047 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+                                      "gh pr checks 31 --repo ryu-yoshikawa-pro-vision/qa-training-store",
+                                      "gh pr view 31 --repo ryu-yoshikawa-pro-vision/qa-training-store --json headRefOid,reviewDecision,mergeStateStatus,mergeable",
+                                      "github_list_pull_request_review_threads(pr_number=31)",
+                                      "gh pr comment 31 --repo ryu-yoshikawa-pro-vision/qa-training-store --body @coderabbitai full review"
                                     ],
                        "warnings":  [
                                       "依存関係の修正そのものは今回PR scope外であり、7件のalertはopenのままfollow-up対象とした。",
                                       "full pnpm verifyは300秒でtimeoutしたが、主要な前段gateとunit testを個別に実行して成功を確認した。",
                                       "CodeRabbit review submissionの総合stateはCHANGES_REQUESTEDのままで、inline thread解決とは別状態。",
-                                      "今回の継続作業では、historyとRun Artifactのみを変更し、package / lockfile / workflow / sourceは変更しない。"
-                                    ]
+                                      "今回の継続作業では、historyとRun Artifactのみを変更し、package / lockfile / workflow / sourceは変更しない。",
+                                      "最新Phase 1 CI run 32104879897 と Native CI run 32104880047 は必要なjobを含めてsuccess。",
+                                      "旧CodeRabbit CHANGES_REQUESTED submissionによりPR mergeStateStatusはBLOCKED。CodexはdismissせずOwner判断待ち。"
+                                   ]
                    },
     "safety":  {
                    "network":  true,
@@ -86,5 +94,5 @@
                   },
     "evaluation_path":  ".codex/runs/20260818-133102-JST/evaluation.json",
     "status":  "completed",
-    "primary_failure_category":  null
+    "primary_failure_category":  "review_gap"
 }
