@@ -61,3 +61,12 @@ Progress: 10% (1/10)
 - `.codex/runs/20260818-080338-JST/evaluation.json`をschemaに沿って作成した。local implementation / scope / safety / reproducibilityはpass、PR push後CI未確認のためvalidation confidenceはwarn、run全体はpartialとした。
 - `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260818-080338-JST/evaluation.json`は成功した。evaluation作成後もRun Artifact sanitizerのWrite / Checkを再実行し、files_scanned 5、files_changed 0、residual findings 0を確認した。
 - Strict pre-push時点: Progress: 80% (8/10)。次は指定commitを作成し、feature branchへ通常pushする。
+
+### 2026-08-18 JST — commit/push・PR #31 post-push CI
+
+- `fix: address Public Repository Hardening review feedback` を commit し、commit SHA `4d8bf651425f59ee485fb5352b5dc04bd04d242b` を `feat/implement-public-repository-hardening` へ通常 push した。mainへのpush、force push、merge、Settings変更は行っていない。
+- Phase 1 CI run `32082426505` は success。`Dependency Review`、`verify`、normal same-repo PRの`deploy-preview`、`validate`がすべて success、`deploy-production`は skipped だった。Style / Code Quality、build、Vitest、UI Review、Chromium E2E、artifact sanitizationも成功した。
+- Native CI run `32082426641` は success。`Native Static / Run Expo Doctor`、Android Production-validation / Automation Build、Android Runtime / Maestro、iOS Production-validation / Automation Build、iOS Native CI Verify、`native-ci / verify`がすべて成功した。
+- Node 24 Action migration、Preview cache無効化、Wrangler 3.90.0固定、P-11 template、contract test、Expo Doctor対象6 packageの今回差分に起因するCI failureは確認されなかった。追加repairは不要だった。
+- push時のGitHub通知にdefault branchの既存 Dependabot finding（7 High、1 Moderate）が表示された。今回の差分起因とは判定しておらず、依存関係の一括更新やSettings変更は行っていない。
+- 最終進捗: Progress: 100% (10/10)。PR-readyの実装・local validation・feature branch push・PR CI確認を完了した。Repository Hardening Completeとは判定しない。

@@ -40,12 +40,15 @@
       "YAML parse for .github/workflows/*.yml and .github/ISSUE_TEMPLATE/*.yml",
       "static workflow invariant script: 91 remote uses / full SHA / permissions / boundary checks",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260818-080338-JST -Write -Check",
-      "python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260818-080338-JST/evaluation.json"
+      "python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260818-080338-JST/evaluation.json",
+      "GitHub connector: Phase 1 CI run 32082426505 jobs",
+      "GitHub connector: Native CI run 32082426641 jobs"
     ],
     "warnings": [
       "pnpm run verify の lint は既存 warning 64件を出したが error 0件だった",
       "初回 expo-doctor はlockfileの旧Expo peer snapshotで1/17 failureとなり、fix-lockfile後の再実行で17/17 passedした",
-      "gh CLIは利用できず、GitHub情報はconnectorで確認した"
+      "gh CLIは利用できず、GitHub情報はconnectorで確認した",
+      "push時にdefault branchの既存Dependabot finding 7 High / 1 Moderate通知が表示されたが、今回差分起因とは判定していない"
     ]
   },
   "safety": {
@@ -90,7 +93,7 @@
     "pnpm-lock.yaml"
   ],
   "evaluation_path": ".codex/runs/20260818-080338-JST/evaluation.json",
-  "status": "in_progress",
+  "status": "completed",
   "primary_failure_category": null,
   "max_iterations": 2
 }

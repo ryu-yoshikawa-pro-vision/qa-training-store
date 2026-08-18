@@ -10,8 +10,8 @@
 - [x] remote `uses:` full SHA contract test を厳密化・一般化する
 - [x] local validation と static security invariant を実行する
 - [x] diff self-review、Run Artifact sanitizer、strict evaluation を完了する
-- [ ] feature branch へ指定 commit を作成して push する
-- [ ] PR #31 の Phase 1 CI / Native CI を確認し、必要なら最小 repair を1回だけ行って最終報告する
+- [x] feature branch へ指定 commit を作成して push する
+- [x] PR #31 の Phase 1 CI / Native CI を確認し、必要なら最小 repair を1回だけ行って最終報告する
 
 ## Discovered
 
