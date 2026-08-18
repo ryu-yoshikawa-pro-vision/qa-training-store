@@ -30,4 +30,4 @@ Application、Native、教材の機能・内容は変更していない。既存
 - #2 の advisory 単体の first patched version は `1.1.17` だが、後発 #3 と同じ 1.1.x chain の effective remediation target は `>= 1.1.18` とする。#2 を `1.1.17` で完了扱いにしない。
 - #7 / #6 は upstream image-size に現時点で patched version が提示されていない。upstream image-size と Expo / Metro dependency chain の更新を follow-up で追跡し、今回無理に override しない。
 - 7件はいずれも PR #31 より前から存在し、今回の Hardening 差分が新規導入した High finding ではない。Alert は dismiss していない。
-- 今回は dependency update を行わず、各 finding を個別 Security Update / upstream follow-up として扱う。High finding を無視したのではなく、P-13 の pre-merge triage を完了した。
+- PR #31 では Expo SDK 57 compatibility のため Expo 関連 dependency が更新されたが、今回の Dependabot Alert triage では7件を remediation する dependency update を行わず、各 finding を個別 Security Update / upstream follow-up として扱う。High finding を無視したのではなく、P-13 の pre-merge triage を完了した。

@@ -147,3 +147,24 @@
 - `pnpm run test:unit` => 13 files / 66 tests passed。`verify`全体はunit test後の後続gateを含むため、今回のdocs / Run Artifactのみの差分を原因とする失敗とは確認できない。無目的な再試行やsource修正は行わない。
 - `git status --short` で意図しないsource / package / workflow差分がないことを確認した。
 - Progress: 67% (12/18)
+
+### 2026-08-18 15:00 (JST) — CodeRabbit latest full review対応判断
+
+- `gh pr comment 31 --repo ryu-yoshikawa-pro-vision/qa-training-store --body "@coderabbitai full review"` を最新HEAD `c95340c51dc71ebc726a8d89eea1f6e31313a239` に対して1回実行した。CodeRabbit review `PRR_kwDOTj-WlM8AAAABJ3-jPQ` は2026-08-18 14:49:53 JSTに `CHANGES_REQUESTED` として完了し、追加actionable commentは3件だった。
+- `docs/history/2026-08-17_224000_public-repository-hardening.md` の指摘は、PR #31全体でExpo SDK 57 compatibility dependencyが更新された事実と、7件のDependabot Alert remediation updateは今回triageで行っていない事実を分離するため修正する。
+- `.codex/runs/20260818-133102-JST/evaluation.json` の `result=pass` / validation confidenceは、未完了taskと `pnpm run verify` timeoutを反映して `partial` / `warn`へ補正する。
+- `.codex/runs/20260818-080338-JST/PLAN.md` のplaceholder編集要求は採用しない。AGENTS.mdの過去Run書き換え禁止、今回指示の「過去Run Artifactを削除・書き換えない」、既存履歴保存の契約が優先されるためである。現RunのPLANにこの判断を記録し、過去Runは変更しない。
+- 最新thread state取得時点では、従来の3threadは `is_resolved=true` / `is_outdated=true`、新規3threadは `is_resolved=false` / `is_outdated=false`。現Run/historyの2件は今回修正後に再確認・必要なresolveを行う。過去Runの1件は未修正のまま残し、履歴保全によるscope blockerとして報告する。
+- Progress: 72% (13/18)
+
+### 2026-08-18 15:05 (JST) — latest review指摘の最小修正と再検証
+
+- CodeRabbitの現Run / historyに対する2件を修正した。PR #31全体ではExpo SDK 57 compatibility dependencyが更新済みであるため、historyは「7件のDependabot Alert remediation updateは今回のtriageでは行っていない」と対象を限定した。
+- `evaluation.json` は未完了taskと `pnpm run verify` timeoutを反映し、`result=partial`、`primary_failure_category=missing_validation`、task completion / validation confidenceを `warn` にした。
+- `.codex/runs/20260818-080338-JST/` は変更していない。過去Runのimmutable契約が今回のCodeRabbit提案より優先されるため、現RunのPLAN / REPORTへ判断を記録した。
+- `pnpm run lint:markdown` => 0 issues。
+- `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260818-133102-JST/evaluation.json` => success。
+- sanitizer Write / Check => `files_scanned: 5`、`files_changed: 0`、`residual_findings: 0`。
+- `git diff --check` => success。
+- 次は4ファイルの修正をcommit / pushし、Native CI完了後に新3threadの状態を再取得する。full reviewは追加実行しない。
+- Progress: 83% (15/18)

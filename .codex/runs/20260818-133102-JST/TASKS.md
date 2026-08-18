@@ -18,11 +18,13 @@
 - [x] REPORT、PLAN、TASKS、run.json、evaluation.jsonへ今回の訂正と継続結果を反映する
 - [x] markdown / diff / schema / sanitizerを実行する（verifyはsource/package無変更のためCI結果と合わせて判断）
 - [x] diffをself-reviewし、許可されたファイルだけをstageする
-- [ ] feature branchへ通常commit / pushする
+- [x] feature branchへ通常commit / pushする
 - [ ] push後にPRのPhase 1 CI / Native CIを確認する
-- [ ] 最新HEADでCodeRabbit full reviewを1回実行する
+- [x] 最新HEADでCodeRabbit full reviewを1回実行する
 - [ ] review threadを再取得し、unresolved 0を確認する
 - [ ] PR #31のmerge-readyとRepository Hardening Completeの最終判定を記録する
+
+- [x] 最新CodeRabbitの現Run / historyに対する2件を最小修正し、過去Run書き換え要求はWorking Agreementに基づき採用しない
 
 ## Blocked
 
