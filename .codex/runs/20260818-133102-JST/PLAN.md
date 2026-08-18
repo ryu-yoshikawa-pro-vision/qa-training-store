@@ -91,3 +91,7 @@
 - 2026-08-18: CodeRabbitの最新full reviewは1回実行済み。3件の追加threadは2件を修正し、過去Runの1件はimmutable boundaryを返信したうえでscope外としてresolveした。最新thread取得時点のunresolvedは0件である。
 - 2026-08-18: `gh pr view` では `reviewDecision=CHANGES_REQUESTED`、`mergeStateStatus=BLOCKED` が残る。inline thread解決とは別の旧CodeRabbit submission状態であり、Codexはdismissせず、Owner判断待ちとする。
 - 2026-08-18: P-13 triage、証跡保存、CI確認は完了したが、旧review submissionが実際のmerge blockerであるため `PR #31 merge-ready = NO`、`Repository Hardening Complete = NO` と判定する。
+
+## User Policy Update
+
+- 2026-08-18: ユーザーの訂正に基づき、CodeRabbitなど外部レビューサービスは明示的な指示または承認があれば再レビューできるが、レビュー完了後は結果報告で停止し、指摘の修正・thread操作・再レビューをユーザー判断なしに続けないルールを `AGENTS.md`、`CODE_REVIEW.md`、`docs/reference/repair-loop.md` に追記する。既存review結果・thread状態のread-only確認は許可する。

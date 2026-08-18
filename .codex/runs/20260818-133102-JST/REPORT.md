@@ -187,3 +187,11 @@
 - `pnpm run verify` のローカルtimeoutは既存の警告として残るが、個別gateは成功し、remote Phase 1 CIの `verify` も successである。今回の変更範囲外のsource修正は行わない。
 - Final decision: P-13 triage、history / Run Artifact更新、CI確認、thread整理は完了。ただし旧review submissionの実merge blockerがあるため `PR #31 merge-ready = NO`。post-merge設定を変更しておらず、`Repository Hardening Complete = NO`。
 - Progress: 100% (19/19)
+
+### 2026-08-18 15:45 (JST) — CodeRabbit起動に関するユーザー指示の文書化
+
+- ユーザーから、CodeRabbitのfull review / 再レビューは実行要否を検討したうえで、勝手に起動せず明示的な指示または承認を得るよう指示を受けた。
+- その後、ユーザーから「明示的な指示または承認があれば再レビューは実行してよいが、レビュー後の対応はユーザー判断まで停止する」と訂正された。今回の最終push後はCodeRabbitを追加起動していない。
+- 今後の運用ルールを `AGENTS.md`、`CODE_REVIEW.md`、`docs/reference/repair-loop.md` に追記し、レビュー起動、結果報告、修正・thread操作の開始を明確に分離した。
+- 最終証跡commit後の新CIは Phase 1 `32107880460`、Native `32107880618` として起動中であり、現時点でfailureはない。完了後の結果はこのRunの最終報告へ反映する。
+- Progress: 100% (20/20)

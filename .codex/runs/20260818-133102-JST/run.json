@@ -15,6 +15,9 @@
 
                            ],
     "changed_files":  [
+                         "AGENTS.md",
+                         "CODE_REVIEW.md",
+                         "docs/reference/repair-loop.md",
                          "docs/history/2026-08-17_224000_public-repository-hardening.md",
                          ".codex/runs/20260818-133102-JST/PLAN.md",
                          ".codex/runs/20260818-133102-JST/TASKS.md",
@@ -46,7 +49,9 @@
                                       "gh pr checks 31 --repo ryu-yoshikawa-pro-vision/qa-training-store",
                                       "gh pr view 31 --repo ryu-yoshikawa-pro-vision/qa-training-store --json headRefOid,reviewDecision,mergeStateStatus,mergeable",
                                       "github_list_pull_request_review_threads(pr_number=31)",
-                                      "gh pr comment 31 --repo ryu-yoshikawa-pro-vision/qa-training-store --body @coderabbitai full review"
+                                      "gh pr comment 31 --repo ryu-yoshikawa-pro-vision/qa-training-store --body @coderabbitai full review",
+                                      "git diff --name-only",
+                                      "git diff --check"
                                     ],
                        "warnings":  [
                                       "依存関係の修正そのものは今回PR scope外であり、7件のalertはopenのままfollow-up対象とした。",
@@ -54,7 +59,8 @@
                                       "CodeRabbit review submissionの総合stateはCHANGES_REQUESTEDのままで、inline thread解決とは別状態。",
                                       "今回の継続作業では、historyとRun Artifactのみを変更し、package / lockfile / workflow / sourceは変更しない。",
                                       "最新Phase 1 CI run 32104879897 と Native CI run 32104880047 は必要なjobを含めてsuccess。",
-                                      "旧CodeRabbit CHANGES_REQUESTED submissionによりPR mergeStateStatusはBLOCKED。CodexはdismissせずOwner判断待ち。"
+                                      "旧CodeRabbit CHANGES_REQUESTED submissionによりPR mergeStateStatusはBLOCKED。CodexはdismissせずOwner判断待ち。",
+                                      "CodeRabbit full review / 再レビューはユーザーの明示指示または承認なしに起動しない運用ルールを関連文書へ追記した。"
                                    ]
                    },
     "safety":  {

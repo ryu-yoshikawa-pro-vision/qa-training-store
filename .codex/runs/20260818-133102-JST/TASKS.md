@@ -25,6 +25,7 @@
 - [x] PR #31のmerge-readyとRepository Hardening Completeの最終判定を記録する
 
 - [x] 最新CodeRabbitの現Run / historyに対する2件を最小修正し、過去Run書き換え要求はWorking Agreementに基づき採用しない
+- [x] CodeRabbit起動の事前確認・承認ルールを関連文書へ追記する
 
 ## Blocked
 

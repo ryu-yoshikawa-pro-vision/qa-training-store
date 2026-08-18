@@ -19,7 +19,7 @@
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "Application、Native、教材、package.json、pnpm-lock.yaml、workflow、GitHub Settings、Ruleset、alert stateを変更していない。変更はhistoryと本Run Artifactに限定した。",
+      "evidence": "Application、Native、教材、package.json、pnpm-lock.yaml、workflow、GitHub Settings、Ruleset、alert stateを変更していない。変更はhistory、関連する作業規約・レビュー運用文書、および本Run Artifactに限定した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -43,7 +43,7 @@
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "依存更新、alert dismiss、Settings変更、Ruleset変更、mainへのpush、force push、mergeを行っていない。resolveしたのはユーザーが指定した修正済み3 threadだけである。",
+      "evidence": "依存更新、alert dismiss、Settings変更、Ruleset変更、mainへのpush、force push、mergeを行っていない。CodeRabbitの追加full reviewは起動せず、既存review stateをread-only確認した。resolveしたのはユーザーが指定した修正済みthreadだけである。",
       "evidence_refs": [
         {
           "kind": "validation_command",
