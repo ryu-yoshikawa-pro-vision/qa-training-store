@@ -95,3 +95,9 @@
 ## User Policy Update
 
 - 2026-08-18: ユーザーの訂正に基づき、CodeRabbitなど外部レビューサービスは明示的な指示または承認があれば再レビューできるが、レビュー完了後は結果報告で停止し、指摘の修正・thread操作・再レビューをユーザー判断なしに続けないルールを `AGENTS.md`、`CODE_REVIEW.md`、`docs/reference/repair-loop.md` に追記する。既存review結果・thread状態のread-only確認は許可する。
+
+## Decision Update — Review HEAD chronology
+
+- 2026-08-18: CodeRabbit full review自体は `c95340c51dc71ebc726a8d89eea1f6e31313a239` に対して1回実施済みで、3件の追加threadが生成された。2件は修正し、過去Runへの1件はimmutable boundaryを説明してresolve済みである。
+- 2026-08-18: その後、review結果への対応およびdocs / Run Artifact更新としてcommitが追加され、現在確認済みのbranch HEADは `8abc2f492dc0360d3524a7984aaf8630dad65205` になった。したがって、full review実施済みとcurrent HEAD review済みは別の事実である。
+- 2026-08-18: current HEADへの最終CodeRabbit reviewとstale `CHANGES_REQUESTED` reviewの扱いはPR-side operationとして別途handoffする。この実装修正ではCodeRabbitを起動せず、review dismissal / thread mutationも実施しない。

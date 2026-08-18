@@ -205,3 +205,12 @@
 - `gh pr view` は `reviewDecision=CHANGES_REQUESTED`、`mergeStateStatus=BLOCKED`、`mergeable=MERGEABLE`、`state=OPEN`。旧CodeRabbit submissionが実際のmerge blockerとして残るため、ユーザー / Owner判断待ちとする。
 - 最終判断は `PR #31 merge-ready = NO`。理由は旧review submissionのblockのみで、P-13 triage、CI、thread state、文書化は完了している。`Repository Hardening Complete = NO`、post-merge設定は未変更。
 - Progress: 100% (20/20)
+
+### 2026-08-18 22:12 (JST) — CodeRabbit review HEADの時系列を明確化
+
+- CodeRabbit full reviewの実施HEADは `c95340c51dc71ebc726a8d89eea1f6e31313a239`。このreviewで3件の追加threadが生成され、2件は修正、過去Runへの1件はimmutable boundaryを説明してresolve済みである。
+- その後、current branchにはreview対応およびdocs-only / Run Artifact関連commitが追加され、現在確認済みHEADは `8abc2f492dc0360d3524a7984aaf8630dad65205` である。したがって、「full review済み」と「current HEAD review済み」は別である。
+- current HEADへの最終CodeRabbit reviewとstale `CHANGES_REQUESTED` reviewの扱いはPR-side handoffとする。今回の事実整合性修正ではCodeRabbit review / dismiss / thread mutationを実施していない。
+- Application / Native / Workflow / package / lockfileは変更していない。証跡commitから新HEADを作り、さらにCI証跡commitを積む連鎖も今回作成しない。push後の最終PR CI確認はPR側handoffとする。
+- 今回の変更対象は既存Run Artifactの事実記録のみである。
+- Progress: 100% (20/20)

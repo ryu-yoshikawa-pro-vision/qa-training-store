@@ -63,7 +63,8 @@
                                       "最新Phase 1 CI run 32104879897 と Native CI run 32104880047 は必要なjobを含めてsuccess。",
                                       "最終HEADのPhase 1 CI run 32108806074 と Native CI run 32108806403 は必要なjobを含めてsuccess。",
                                       "旧CodeRabbit CHANGES_REQUESTED submissionによりPR mergeStateStatusはBLOCKED。CodexはdismissせずOwner判断待ち。",
-                                      "CodeRabbit full review / 再レビューはユーザーの明示指示または承認なしに起動せず、レビュー後の修正・thread操作はユーザー判断まで停止する運用ルールを関連文書へ追記した。"
+                                      "CodeRabbit full reviewは実施時HEAD c95340c51dc71ebc726a8d89eea1f6e31313a239に対して実施済み。その後のcurrent HEAD 8abc2f492dc0360d3524a7984aaf8630dad65205への追加full reviewは未実施で、current HEAD reviewはPR-side handoffとする。",
+                                      "今回の事実整合性修正ではCodeRabbit review起動、dismiss、thread mutationを行わない。"
                                    ]
                    },
     "safety":  {

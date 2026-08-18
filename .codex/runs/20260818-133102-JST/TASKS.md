@@ -7,8 +7,8 @@
 - [x] `gh auth status` / `gh pr view`を実行し、CLI可否とfallbackを記録する
 - [x] Dependabot APIからopen High alertを取得する
 - [x] P-13必須項目で全High alertを個別triageする
-- [x] CodeRabbit最新reviewとreview thread stateを取得する
-- [x] 修正済み古いCodeRabbit threadをcurrent HEADへ照合し、必要なものをresolveする
+- [x] CodeRabbit reviewとreview thread stateを取得する（review実施時HEAD: `c95340c51dc71ebc726a8d89eea1f6e31313a239`）
+- [x] 修正済み古いCodeRabbit threadをreview対象HEAD `c95340c51dc71ebc726a8d89eea1f6e31313a239`へ照合し、必要なものをresolveする
 - [x] Run Artifactを更新し、sanitizer / evaluation / 最終pre-merge判定を完了する
 
 ## Discovered
@@ -20,7 +20,7 @@
 - [x] diffをself-reviewし、許可されたファイルだけをstageする
 - [x] feature branchへ通常commit / pushする
 - [x] push後にPRのPhase 1 CI / Native CIを確認する
-- [x] 最新HEADでCodeRabbit full reviewを1回実行する
+- [x] CodeRabbit full reviewを1回実行する（実施時HEAD: `c95340c51dc71ebc726a8d89eea1f6e31313a239`）
 - [x] review threadを再取得し、unresolved 0を確認する
 - [x] PR #31のmerge-readyとRepository Hardening Completeの最終判定を記録する
 
@@ -29,4 +29,4 @@
 
 ## Blocked
 
-（なし）
+- PR-side handoff（実装修正の対象外）: current HEAD `8abc2f492dc0360d3524a7984aaf8630dad65205` に対する最終CodeRabbit reviewと、stale `CHANGES_REQUESTED` reviewの扱いは、PR側で別途判断・実施する。今回のRunではreview起動、dismiss、thread mutationを行わない。
