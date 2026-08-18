@@ -101,3 +101,10 @@
 - 2026-08-18: CodeRabbit full review自体は `c95340c51dc71ebc726a8d89eea1f6e31313a239` に対して1回実施済みで、3件の追加threadが生成された。2件は修正し、過去Runへの1件はimmutable boundaryを説明してresolve済みである。
 - 2026-08-18: その後、review結果への対応およびdocs / Run Artifact更新としてcommitが追加され、現在確認済みのbranch HEADは `8abc2f492dc0360d3524a7984aaf8630dad65205` になった。したがって、full review実施済みとcurrent HEAD review済みは別の事実である。
 - 2026-08-18: current HEADへの最終CodeRabbit reviewとstale `CHANGES_REQUESTED` reviewの扱いはPR-side operationとして別途handoffする。この実装修正ではCodeRabbitを起動せず、review dismissal / thread mutationも実施しない。
+
+## Decision Update — Observation log boundary and non-self-referential HEAD evidence
+
+- 2026-08-18: CodeRabbit full review対象HEADは `c95340c51dc71ebc726a8d89eea1f6e31313a239` であり、その後にreview対応、docs、Run Artifact更新のcommitが追加された。
+- 2026-08-18: `8abc2f492dc0360d3524a7984aaf8630dad65205` はその証跡更新途中時点のHEADであり、永続的な「current HEAD」として扱わない。今回のcommitでもHEADは変化するため、Run Artifactには固定SHAをcurrent HEADとして記録しない。
+- 2026-08-18: 最新PR HEADに対する最終CodeRabbit reviewとstale `CHANGES_REQUESTED` reviewの扱いはPR-side handoffとする。レビュー対象SHAは実行時にGitHubから最新HEADを再取得して確定する。
+- 2026-08-18: `.codex/observations/hooks.jsonl` はlocal-generated artifactであり、Public Repositoryでtracking不要と判断した。`.gitignore`へ `.codex/observations/` を追加し、observe hook自体の修正は今回scope外とする。

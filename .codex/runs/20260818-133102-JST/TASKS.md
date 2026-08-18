@@ -29,4 +29,4 @@
 
 ## Blocked
 
-- PR-side handoff（実装修正の対象外）: current HEAD `8abc2f492dc0360d3524a7984aaf8630dad65205` に対する最終CodeRabbit reviewと、stale `CHANGES_REQUESTED` reviewの扱いは、PR側で別途判断・実施する。今回のRunではreview起動、dismiss、thread mutationを行わない。
+- PR-side handoff（実装修正の対象外）: CodeRabbit full review実施後に追加されたdocs / Run Artifact更新を含む最新PR HEADに対する最終CodeRabbit reviewと、stale `CHANGES_REQUESTED` reviewの扱いは、PR側で別途判断・実施する。対象SHAはレビュー実行時にGitHubから最新PR HEADを取得して確定する。今回のRunではreview起動、dismiss、thread mutationを行わない。

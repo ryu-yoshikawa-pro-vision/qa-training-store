@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "最新Dependabot APIのopen High 7件をP-13必須項目付きで再確認し、nanoidのfirst patched 3.3.18とbrace-expansionのeffective target >= 1.1.18をhistory / Run Artifactへ記録した。CodeRabbit full reviewは実施時HEAD c95340c51dc71ebc726a8d89eea1f6e31313a239に対して1回実施済みで、追加3threadを含むunresolved threadは0件である。その後のcurrent HEAD 8abc2f492dc0360d3524a7984aaf8630dad65205への追加full reviewは実施しておらず、旧CodeRabbit CHANGES_REQUESTED submissionによりPRのmergeStateStatusはBLOCKEDである。",
+      "evidence": "最新Dependabot APIのopen High 7件をP-13必須項目付きで再確認し、nanoidのfirst patched 3.3.18とbrace-expansionのeffective target >= 1.1.18をhistory / Run Artifactへ記録した。CodeRabbit full reviewは実施時HEAD c95340c51dc71ebc726a8d89eea1f6e31313a239に対して1回実施済みで、追加3threadを含むunresolved threadは0件である。その後のdocs / Run Artifact更新を含む最新PR HEADへの追加full reviewは実施しておらず、旧CodeRabbit CHANGES_REQUESTED submissionによりPRのmergeStateStatusはBLOCKEDである。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -19,7 +19,7 @@
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "Application、Native、教材、package.json、pnpm-lock.yaml、workflow、GitHub Settings、Ruleset、alert stateを変更していない。変更はhistory、関連する作業規約・レビュー運用文書、および本Run Artifactに限定した。",
+      "evidence": "Application、Native、教材、package.json、pnpm-lock.yaml、workflow、GitHub Settings、Ruleset、alert stateを変更していない。今回の追加変更はRun Artifactの事実整合性修正と、local observation logをGit管理対象外にする`.gitignore`更新のみである。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -31,7 +31,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "gh auth status、最新Dependabot API、GitHub Advisory API、pnpm why、source参照検索、Metro supported extension確認、PR/review/thread API、schema validation、git diff --check、artifact sanitizerを実行した。pnpm run verifyは300秒でtimeoutしたが、個別gateとremote Phase 1 CI / Native CIはsuccess。c95340c51dc71ebc726a8d89eea1f6e31313a239に対するfull reviewは実施済みで、その後のdocs-only commitを含むcurrent HEAD 8abc2f492dc0360d3524a7984aaf8630dad65205への追加full reviewは実施していない。旧review submissionのdismissは行っていない。",
+      "evidence": "gh auth status、最新Dependabot API、GitHub Advisory API、pnpm why、source参照検索、Metro supported extension確認、PR/review/thread API、schema validation、git diff --check、artifact sanitizerを実行した。pnpm run verifyは300秒でtimeoutしたが、個別gateとremote Phase 1 CI / Native CIはsuccess。c95340c51dc71ebc726a8d89eea1f6e31313a239に対するfull reviewは実施済みで、その後のdocs-only commitを含む最新PR HEADへの追加full reviewは実施していない。対象SHAはレビュー実行時にGitHubから取得するPR-side handoffであり、旧review submissionのdismissは行っていない。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -43,7 +43,7 @@
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "依存更新、alert dismiss、Settings変更、Ruleset変更、mainへのpush、force push、mergeを行っていない。c95340c51dc71ebc726a8d89eea1f6e31313a239に対するCodeRabbit full reviewは過去に実施済みだが、その後のcurrent HEAD 8abc2f492dc0360d3524a7984aaf8630dad65205への追加full review、review dismissal、thread mutationは今回実施していない。",
+      "evidence": "依存更新、alert dismiss、Settings変更、Ruleset変更、mainへのpush、force push、mergeを行っていない。c95340c51dc71ebc726a8d89eea1f6e31313a239に対するCodeRabbit full reviewは過去に実施済みだが、その後のdocs / Run Artifact更新を含む最新PR HEADへの追加full review、review dismissal、thread mutationは今回実施していない。",
       "evidence_refs": [
         {
           "kind": "validation_command",

@@ -19,6 +19,7 @@
                          "CODE_REVIEW.md",
                          "docs/reference/repair-loop.md",
                          "docs/history/2026-08-17_224000_public-repository-hardening.md",
+                         ".gitignore",
                          ".codex/runs/20260818-133102-JST/PLAN.md",
                          ".codex/runs/20260818-133102-JST/TASKS.md",
                          ".codex/runs/20260818-133102-JST/REPORT.md",
@@ -59,12 +60,13 @@
                                       "依存関係の修正そのものは今回PR scope外であり、7件のalertはopenのままfollow-up対象とした。",
                                       "full pnpm verifyは300秒でtimeoutしたが、主要な前段gateとunit testを個別に実行して成功を確認した。",
                                       "CodeRabbit review submissionの総合stateはCHANGES_REQUESTEDのままで、inline thread解決とは別状態。",
-                                      "今回の継続作業では、historyとRun Artifactのみを変更し、package / lockfile / workflow / sourceは変更しない。",
+                                      "今回の継続作業では、history / Run Artifactと.gitignoreのみを変更し、package / lockfile / workflow / sourceは変更しない。local observation logはGit trackingから除外した。",
                                       "最新Phase 1 CI run 32104879897 と Native CI run 32104880047 は必要なjobを含めてsuccess。",
                                       "最終HEADのPhase 1 CI run 32108806074 と Native CI run 32108806403 は必要なjobを含めてsuccess。",
                                       "旧CodeRabbit CHANGES_REQUESTED submissionによりPR mergeStateStatusはBLOCKED。CodexはdismissせずOwner判断待ち。",
-                                      "CodeRabbit full reviewは実施時HEAD c95340c51dc71ebc726a8d89eea1f6e31313a239に対して実施済み。その後のcurrent HEAD 8abc2f492dc0360d3524a7984aaf8630dad65205への追加full reviewは未実施で、current HEAD reviewはPR-side handoffとする。",
-                                      "今回の事実整合性修正ではCodeRabbit review起動、dismiss、thread mutationを行わない。"
+                                      "CodeRabbit full reviewは実施時HEAD c95340c51dc71ebc726a8d89eea1f6e31313a239に対して実施済み。その後のdocs / Run Artifact更新を含む最新PR HEADへの追加full reviewは未実施で、対象SHAは実行時にGitHubから取得するPR-side handoffとする。",
+                                      "今回の事実整合性修正ではCodeRabbit review起動、dismiss、thread mutationを行わない。",
+                                      "ローカル生成の.codex/observations/hooks.jsonlはGit trackingから除外し、.gitignoreへ.codex/observations/を追加した。observe hook自体は変更していない。"
                                    ]
                    },
     "safety":  {

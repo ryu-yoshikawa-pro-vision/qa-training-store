@@ -214,3 +214,23 @@
 - Application / Native / Workflow / package / lockfileは変更していない。証跡commitから新HEADを作り、さらにCI証跡commitを積む連鎖も今回作成しない。push後の最終PR CI確認はPR側handoffとする。
 - 今回の変更対象は既存Run Artifactの事実記録のみである。
 - Progress: 100% (20/20)
+
+### 2026-08-18 22:39 (JST) — Observation log追跡除外・HEAD表現整理
+
+- 最新commit確認時、`.codex/observations/hooks.jsonl` が意図せずGit管理対象へ追加されていることを確認した。同ファイルはlocal hook observation用の生成物であり、Public Repositoryへ保存する必要がないため、作業ファイルを残したままGit trackingを解除した。
+- `.gitignore` に `.codex/observations/` を追加し、今後の誤stageを防止した。ローカルログの生成・保持は妨げず、`.codex/hooks/observe.ps1` は変更していない。
+- CodeRabbit full review対象HEADは `c95340c51dc71ebc726a8d89eea1f6e31313a239`。`8abc2f492dc0360d3524a7984aaf8630dad65205` はreview後の証跡更新途中時点のHEADであり、永続的なcurrent HEADとしては扱わない。
+- 最新PR HEADに対するCodeRabbit reviewとstale `CHANGES_REQUESTED` reviewの扱いはPR-side handoffとし、レビュー実行時にGitHubから対象SHAを取得する。今回CodeRabbit起動、review dismissal、thread mutationは実施していない。
+- Application / Native / Workflow / package / lockfileは変更していない。今回の追加変更は `.gitignore` と既存Run Artifactの事実整合性記録だけである。
+- Progress: 100% (20/20)
+
+### 2026-08-18 22:42 (JST) — Repair Loop validation
+
+- iteration 1: input findingはlocal observation logの誤trackとRun Artifactの固定SHAによるcurrent HEAD表現。allowed filesは `.gitignore`、既存Runの `PLAN.md` / `TASKS.md` / `REPORT.md` / `evaluation.json` / `run.json` および追跡解除対象の `.codex/observations/hooks.jsonl` に限定した。
+- `pnpm run format:check` は成功、`pnpm run lint:markdown` は0 issues、`git diff --check` は成功した。
+- `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260818-133102-JST/evaluation.json`、`python -m json.tool`（run.json / evaluation.json）は成功した。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260818-133102-JST -Write -Check` は `files_scanned: 5`、`files_changed: 0`、`residual_findings: 0` で成功した。
+- `git check-ignore -v .codex/observations/hooks.jsonl` は `.gitignore:31` の `.codex/observations/` に一致し、`git ls-files .codex/observations/hooks.jsonl` は空だった。ローカルファイルは保持されている。
+- 固定SHA表現との誤結合検索結果は0件。許可範囲外のsource / native / workflow / package / lockfile差分はない。
+- remaining deltaはなく、decisionは `stop_success`。CodeRabbit起動、PR comment、review dismissal、thread mutation、mergeは実施していない。
+- Progress: 100% (20/20)
