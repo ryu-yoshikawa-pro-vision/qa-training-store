@@ -350,7 +350,7 @@ jobs:
           path: dist
 
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install chromium
 
       - name: Verify Agentic QA deterministic preparation
         if: matrix.name == 'required'
@@ -424,7 +424,7 @@ jobs:
           path: dist
 
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install chromium
 
       - name: Capture UI review screenshots
         run: pnpm exec playwright test e2e/web/ui-review.spec.ts --project="${{ matrix.project }}" --workers=1
@@ -472,7 +472,7 @@ jobs:
           path: dist
 
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install chromium
 
       - name: Smoke production artifact locally
         run: pnpm run test:smoke
@@ -535,7 +535,12 @@ jobs:
           name: web-dist-automation
           path: dist
 
-      - name: Install ${{ matrix.browser }}
+      - name: Install Chromium
+        if: matrix.browser == 'chromium'
+        run: pnpm exec playwright install chromium
+
+      - name: Install browser with system dependencies
+        if: matrix.browser != 'chromium'
         run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
 
       - name: Run extended E2E
@@ -708,7 +713,7 @@ jobs:
           fi
 
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install chromium
 
       - name: Smoke deployed preview
         env:
@@ -852,7 +857,7 @@ jobs:
           fi
 
       - name: Install Chromium
-        run: pnpm exec playwright install --with-deps chromium
+        run: pnpm exec playwright install chromium
 
       - name: Smoke deployed production
         env:

@@ -116,9 +116,9 @@ test.describe("UI/UX improvement flows A-J", () => {
   test("Flow E: Role別Home CTA、Guide、Empty Catalog", async ({ page, scenario }) => {
     await scenario("default");
     await page.goto("/");
-    await expect(page.getByRole("link", { name: "商品を見る", exact: true })).toHaveClass(
-      /button--primary/,
-    );
+    const productLink = page.getByRole("link", { name: "商品を見る", exact: true });
+    await expect(productLink).toHaveClass(/button--primary/);
+    await expect(productLink).toHaveCSS("font-family", /Noto Sans JP/);
     await expect(page.getByRole("link", { name: "ログインして購入" })).toBeVisible();
     await page.goto("/guide");
     await expect(page.getByRole("heading", { name: /Role差分/ })).toBeVisible();
