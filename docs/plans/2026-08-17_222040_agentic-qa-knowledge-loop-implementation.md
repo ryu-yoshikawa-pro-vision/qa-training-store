@@ -109,3 +109,19 @@
 - Formal Experiment Target Revision: 今回は設定しない。Formal Experimentは`NOT EXECUTED`、Knowledgeは`none`、Promotionは`none`。
 - Official Scored GAP-01: Host-trusted Receipt／Actual Tool Scope Evidence不足による`BLOCKED / NOT EXECUTED`のまま。latest-main deltaによる状態変更はない。
 - Evidence contract: `.artifacts/`はgitignore対象のephemeral Raw Evidence、Committed Formal Evidenceの標準はfresh cloneで解決できるtracked Run Artifact／Manifest／Summary等のrepo-relative referenceとする。新しいexternal storageは追加しない。
+
+## Latest-main Delta Rebaseline / 2026-08-20
+
+- Original Historical Baseline: `fc9e497817e6c3cff8d89ebd7b37244e759e9484`。これは当時のOriginal assessmentとして保持する。
+- Previous Rebaseline: `d297497e2d2aeb0fa1ff17c48dd0ae7a86e9455a`。これは2026-08-19時点のrebaseline evidenceとして保持する。
+- Current Latest-main Rebaseline: `f21155f2bdc95e0d5f58ed846665f1a0051dcac6`。
+- Delta Evidence: `git log --oneline d297497e2d2aeb0fa1ff17c48dd0ae7a86e9455a..f21155f2bdc95e0d5f58ed846665f1a0051dcac6`でPR #34 `fix: Playwright CIのChromiumインストールを安定化する (#34)`を確認した。Chromium固定jobのinstallを`pnpm exec playwright install chromium`へ変更し、`extended-e2e`ではChromiumとFirefox／WebKitのinstall条件を分岐した。既存CI contract testへinstall条件を追加し、PR #34のRun／PlanにはCI、rerun、mobile-chromium診断のevidenceが記録されている。
+- Supplementary UI/E2E Delta: PR #34には`src/presentation/styles/global.css`のanchor font inheritanceと、`e2e/web/ui-ux-improvements.spec.ts`のfont assertionも含まれる。これはbrowser-only installによるfont fallback補正とそのfocused regressionであり、Product Specification／Formal Regression target／Training targetの意味を変更しない。
+- Test Target: `unchanged`。Application behaviorの受け入れ対象、Product Specification、Formal Regression本体、Training targetに意味的な変更はない。
+- Curriculum: `unchanged`。`docs/curriculum/**`、`training/**`、Curriculum contractにdeltaはない。
+- QA System: `updated`。Chromium系GitHub Actions jobからruntime apt／Ubuntu mirror dependencyを除去し、Chromium browser binary installは維持した。install条件をCI contractで固定し、PR #34の実CI／同一commit rerun／workflow_dispatch evidenceで安定性を確認した。
+- GAP-02: `decision unchanged`。Experiment Readiness／Artifact operating contractをlightweight Documentation／ADRで扱う判断を維持する。
+- Experiment Readiness: `decision unchanged`。今回のCI安定性deltaは既存Conventionを変更しない。
+- Formal Experiment: `NOT EXECUTED`。Formal Experiment Target Revisionは今回も設定しない。
+- Knowledge: `none`。Promotion: `none`。
+- Official Scored GAP-01: `BLOCKED / NOT EXECUTED`。Host-trusted Receipt／Actual Tool Scope Evidence不足による既存判断を維持する。
