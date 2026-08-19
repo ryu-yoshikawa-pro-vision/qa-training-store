@@ -24,6 +24,13 @@ type HookResult = {
   stderr: string;
 };
 
+type PolicyDecision = { id: string; reason: string } | null;
+
+type ContextualEvaluation = {
+  id: string;
+  decision: PolicyDecision;
+};
+
 const repoRoot = path.resolve(process.cwd());
 const hookPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy.mjs");
 const launcherPath = path.join(repoRoot, ".codex", "hooks", "pre_tool_use_policy_windows.ps1");
@@ -60,6 +67,32 @@ function runWindowsLauncher(
       input: payload,
     },
   );
+  return {
+    status: result.status ?? -1,
+    stdout: result.stdout ?? "",
+    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
+  };
+}
+
+function runNodeHookWithExplicitContexts(testCases: PolicyCase[]): HookResult {
+  const moduleUrl = pathToFileURL(hookPath).href;
+  const script = [
+    `import { evaluateCommand } from ${JSON.stringify(moduleUrl)};`,
+    "const cases = JSON.parse(process.env.CODEX_POLICY_CONTEXT_CASES);",
+    "const results = cases.map(({ id, command, context }) => ({",
+    "  id,",
+    "  decision: evaluateCommand(command, context),",
+    "}));",
+    "process.stdout.write(JSON.stringify(results));",
+  ].join("\n");
+  const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
+    cwd: repoRoot,
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      CODEX_POLICY_CONTEXT_CASES: JSON.stringify(testCases),
+    },
+  });
   return {
     status: result.status ?? -1,
     stdout: result.stdout ?? "",
@@ -187,7 +220,27 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       ]),
     );
 
+    const contextualCases = matrix.filter((testCase) => testCase.context !== undefined);
+    const contextualResult = runNodeHookWithExplicitContexts(contextualCases);
+    expect(contextualResult.status).toBe(0);
+    expect(contextualResult.stderr).toBe("");
+    const contextualEvaluations = JSON.parse(contextualResult.stdout) as ContextualEvaluation[];
+    const contextualById = new Map(
+      contextualEvaluations.map((evaluation) => [evaluation.id, evaluation.decision]),
+    );
+
     for (const testCase of matrix) {
+      if (testCase.context !== undefined) {
+        const decision = contextualById.get(testCase.id);
+        expect(decision, testCase.id).toBeDefined();
+        if (testCase.expected === "allow") {
+          expect(decision, testCase.id).toBeNull();
+        } else {
+          expect(decision?.id, testCase.id).toBe(testCase.id);
+        }
+        continue;
+      }
+
       const result = runNodeHook(
         JSON.stringify({
           tool_name: "Bash",
@@ -353,31 +406,11 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       }),
     ) as PolicyCase[];
     const contextualCases = matrix.filter((testCase) => testCase.context !== undefined);
-    const moduleUrl = pathToFileURL(hookPath).href;
-    const script = `
-      import { evaluateCommand } from ${JSON.stringify(moduleUrl)};
-      const cases = JSON.parse(process.env.CODEX_POLICY_CONTEXT_CASES);
-      const results = cases.map(({ id, command, context }) => ({
-        id,
-        decision: evaluateCommand(command, context),
-      }));
-      process.stdout.write(JSON.stringify(results));
-    `;
-    const result = spawnSync(process.execPath, ["--input-type=module", "-e", script], {
-      cwd: repoRoot,
-      encoding: "utf8",
-      env: {
-        ...process.env,
-        CODEX_POLICY_CONTEXT_CASES: JSON.stringify(contextualCases),
-      },
-    });
+    const result = runNodeHookWithExplicitContexts(contextualCases);
 
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
-    const evaluated = JSON.parse(result.stdout) as {
-      id: string;
-      decision: unknown;
-    }[];
+    const evaluated = JSON.parse(result.stdout) as ContextualEvaluation[];
     expect(evaluated).toEqual(
       contextualCases.map((testCase) => ({ id: testCase.id, decision: null })),
     );
