@@ -9,8 +9,8 @@
 
 - In:
   - `.codex/runs/20260817-222040-JST/TASKS.md`のFormal Experiment表現をReadiness状態へ同期する。
-  - `.codex/runs/20260818-080338-JST/run.json`の`changed_files`を最終PR変更ファイルへ同期し、volatileなPR／CI情報を除去する。
-  - `.codex/runs/20260818-080338-JST/REPORT.md`末尾へsnapshot扱いのCorrectionを1回追記する。
+  - `.codex/runs/20260818-080339-JST/run.json`の`changed_files`を最終PR変更ファイルへ同期し、volatileなPR／CI情報を除去する。
+  - `.codex/runs/20260818-080339-JST/REPORT.md`末尾へsnapshot扱いのCorrectionを1回追記する。
   - 本RunのPLAN／TASKS／REPORT／run.jsonを更新し、Validation後にSanitizerを最後に実行する。
 - Out:
   - Product source、`docs/spec/**`、`e2e/**`、`maestro/**`、`docs/curriculum/**`、`training/**`、`QA_AGENT.md`、`.agents/skills/**`、`scripts/agentic-qa/**`、package／lockfile、CI workflow。
@@ -20,7 +20,7 @@
 ## Assumptions
 
 - 既存のFormal Experiment未実行、Knowledge／Promotion none、Official Scored別GAP-01という結論は維持する。
-- `20260818-080338-JST/run.json`の最終PR変更ファイル一覧は、origin/mainとの差分に現れる13ファイルから削除済みEXP YAMLを除いた一覧とする。
+- `20260818-080339-JST/run.json`の最終PR変更ファイル一覧は、origin/mainとの差分に現れる13ファイルから削除済みEXP YAMLを除いた一覧とする。
 - PR Head／CIはGitHubを正本とし、Run Artifactへ固定値として追加しない。
 
 ## Questions / Ambiguity

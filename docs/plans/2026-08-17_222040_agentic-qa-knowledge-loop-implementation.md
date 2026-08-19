@@ -2,7 +2,7 @@
 
 ## 0. 依頼概要
 
-- 依頼内容: `2026-08-15_123700_agentic-qa-knowledge-feedback-loop.md` を最新 `main` (`fc9e497`) 基準で実装する。
+- 依頼内容: `2026-08-15_123700_agentic-qa-knowledge-feedback-loop.md` を当時のHistorical Original Baseline (`fc9e497817e6c3cff8d89ebd7b37244e759e9484`) 基準で実装する。
 - 背景: 既存のTest Target、Curriculum、QA Systemを再利用し、最初の継続改善Loopを1周成立させる。
 - 期待成果: 軽量Baseline Assessment、Gap選定、Experiment Readiness、Canonical Location／ID／Reference方式、ConventionのAcceptance Validation、Formal Experiment要否の判断。
 
@@ -21,7 +21,7 @@
 ## 2. 現状理解と前提
 
 - Current understanding:
-  - Baselineの `main` は `fc9e497` であり、Review Fix branchのHEADはFormal Experiment Target Revisionとして扱わない。
+  - Original assessment時のBaselineは `fc9e497817e6c3cff8d89ebd7b37244e759e9484` であり、これはHistorical Baselineである。Review Fix branchのHEADはFormal Experiment Target Revisionとして扱わない。
   - Normative Spec、Formal Regression、Agentic QA、Screen Catalog／Visual Contract、Curriculum／Training Environmentは既存実装として存在する。
   - `docs/experiments/` のREADMEはCanonical Location／Reference Conventionを定めるが、Formal Recordはまだ存在しない。
   - Official Black-box Scoredは今回のReadinessに必要なCapabilityではない。今回確認できる受理可能なHost-trusted Receipt／Actual Tool Scope Evidenceがないため、別GapとしてBLOCKED／NOT EXECUTEDと扱う。
@@ -96,3 +96,16 @@
 ## 9. 備考
 
 - Product／Curriculum／QA Contractは今回のBaselineで実際のGapが確認されない限り変更しない。
+
+## Post-merge Rebaseline / 2026-08-19
+
+- Original assessment revision（Historical Baseline）: `fc9e497817e6c3cff8d89ebd7b37244e759e9484`。
+- Current latest-main rebaseline: `d297497e2d2aeb0fa1ff17c48dd0ae7a86e9455a`。
+- Delta Evidence: `git log --oneline fc9e497817e6c3cff8d89ebd7b37244e759e9484..origin/main`でPR #31 Public Repository HardeningとPR #33 Codex Hook Contract Testのbranch-context fixを確認した。`git diff --name-status`ではrepository policy、workflow、dependency／lockfile、CI contract、Codex Hook contractと各Run／Living Documentationが変化している。
+- Test Target: `app/`、`src/`、`docs/spec/`、`e2e/`、`maestro/`、Formal Regression本体にdeltaはなく、結論は`unchanged`。
+- Curriculum: `docs/curriculum/`、`training/`およびCurriculum contractにdeltaはなく、結論は`unchanged`。
+- QA System: latest-main baselineへPublic Repository Hardening、Dependency Review、Preview／validate event contract、GitHub Actions full SHA pin、Security／repository operation policy、Codex Hook contract branch-independence fix、protected branch commit G10 regression coverageを反映する。
+- GAP-02: Experiment Readiness／Artifact operating contractのGapをlightweight Documentation／ADRで解消する判断を維持する。Evidenceは実diffと既存Run／Validationの記録で十分であり、新しいFormal Experimentは不要と判断する。
+- Formal Experiment Target Revision: 今回は設定しない。Formal Experimentは`NOT EXECUTED`、Knowledgeは`none`、Promotionは`none`。
+- Official Scored GAP-01: Host-trusted Receipt／Actual Tool Scope Evidence不足による`BLOCKED / NOT EXECUTED`のまま。latest-main deltaによる状態変更はない。
+- Evidence contract: `.artifacts/`はgitignore対象のephemeral Raw Evidence、Committed Formal Evidenceの標準はfresh cloneで解決できるtracked Run Artifact／Manifest／Summary等のrepo-relative referenceとする。新しいexternal storageは追加しない。

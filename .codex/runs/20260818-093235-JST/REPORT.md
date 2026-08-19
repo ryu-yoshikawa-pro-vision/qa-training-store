@@ -74,3 +74,10 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-08-19 13:25 (JST) — Previous Run Reference Correction
+
+- このRunのcurrent previous-Agentic-QA referenceは`.codex/runs/20260818-080339-JST/REPORT.md`および`run.json`へ接続した。
+- 旧080338はmain側Hardening RunのCanonical IDであり、Agentic QA側のReferenceとしては使用しない。
+- 過去のcommand output／観測値は機械置換せず、今回のCorrectionだけをappendした。
+- Progress: 100% (6/6)

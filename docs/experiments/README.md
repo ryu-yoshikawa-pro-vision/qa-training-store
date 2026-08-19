@@ -19,8 +19,13 @@ Experiment DB、Dashboard、Registry、Knowledge Graphの代替ではありま�
 - `execution_conditions_ref` は、Executor、Model（該当時）、Prompt／Skill revision、
   Context Policy、QA Mode、Tool Scope、Environment、Platformを記録した既存Run Artifactを
   指します。Recordへ同じ条件を重複コピーしません。
-- `artifact_ref` と `evidence_refs` はRepository相対Pathだけを使います。大きなScreenshot、
-  Trace、MCP／ADB logなどのRaw Evidenceは `.artifacts/` に置き、Recordには相対Referenceだけを残します。
+- `artifact_ref` と `evidence_refs` はRepository相対Pathだけを使います。Committed Formal Recordから
+  長期参照するEvidenceは、fresh cloneで解決できるGit管理されたRun Artifact／Manifest／Summary等の
+  tracked durable referenceを標準とします。今回、新しいexternal storage contractは追加しません。
+- `.artifacts/` はlocal／CI実行中のRaw Evidence（Screenshot、Trace、MCP／ADB log、大容量一時成果物）の
+  保存先です。`.gitignore`対象のephemeral領域であり、Repository cloneだけでは再取得できないため、
+  Committed Formal Recordの唯一のdurable Evidence sourceにしてはいけません。Raw Evidenceが必要な場合も、
+  tracked referenceへ必要な要約、digest、取得条件を残し、`.artifacts/`だけをEvidence Referenceにしません。
 - Credential、Token、個人識別可能なLearner／Human data、OS固有の絶対Pathは保存しません。
 
 ## Experiment ReadinessとFormal Experimentの境界

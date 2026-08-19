@@ -458,3 +458,12 @@
 - ExperimentのGovernance、強度、Failure Taxonomy、Knowledge化、Promotion判断の正本は`docs/plans/2026-08-15_123700_agentic-qa-knowledge-feedback-loop.md`のままである。
 - このPRではExperiment Readiness（Canonical Location／ID／Reference ConventionとAcceptance Validation）だけを整備し、Formal Experimentは実行していない。最初のFormal Experimentは、本当にExperimentが必要なQA／Training Questionを選択した時点で作成する。
 - Baseline Revision `fc9e497817e6c3cff8d89ebd7b37244e759e9484` はBaselineの追跡用であり、Formal Experiment Target Revisionとは別である。Official Black-box Scoredは、受理可能なHost-trusted Receipt／Actual Tool Scope Evidenceがないため別Gapとして`BLOCKED / NOT EXECUTED`で扱い、今回のReadiness変更のFailureとはしない。
+
+## Agentic QA Feedback Loop Post-merge Rebaseline（2026-08-19）
+
+- Original assessment revision（Historical Baseline）は`fc9e497817e6c3cff8d89ebd7b37244e759e9484`、Latest rebaseline revisionは`d297497e2d2aeb0fa1ff17c48dd0ae7a86e9455a`である。Original BaselineをCurrent Stateとして扱わない。
+- `fc9e497..d297497`の実diffはPR #31／#33のQA System、repository policy、workflow／Dependency Review／Preview-validate contract、full SHA pin、Codex Hook contractと関連Run／文書の変更であり、Test Target／Product Specification／Curriculum／Trainingの結論は`unchanged`である。
+- QA System baselineは、Public Repository Hardening、Security／repository operation policy、Codex Hookのbranch-independence、protected branch commit G10 regression coverageを含むlatest-mainへ更新した。
+- GAP-02はlightweight Documentation／ADRで解消する判断を維持する。Experiment Readiness／Formal Experiment境界も維持し、Formal Experiment Target Revisionは設定しない。Formal Experimentは`NOT EXECUTED`、Knowledgeは`none`、Promotionは`none`である。
+- Official Scored GAP-01はHost-trusted Evidence不足による`BLOCKED / NOT EXECUTED`のままである。
+- `.artifacts/`はlocal／CIのephemeral Raw Evidence専用で、Committed Formal Evidenceはfresh cloneで解決できるtracked Run Artifact／Manifest／Summary等を標準とする。新しいexternal storageやInfrastructureは追加しない。

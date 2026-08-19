@@ -76,3 +76,9 @@
 - 2026-08-18 08:03 JST: 新しいReview Fix taskなので、完了済みの前Run `20260817-222040-JST`は再利用せず、新しいRun `20260818-080338-JST`を初期化した。
 - 2026-08-18 08:05 JST: PR head `96ed9e6`はローカル／origin Branchと一致。GitHub connectorはreview threadなし、CodeRabbitはreview limit commentのみ、`gh` CLIは未導入だった。User提示の11項目を正式な入力findingとする。
 - 2026-08-18 08:06 JST: 全findingをmust_fixとして分類したが、変更範囲はDocumentation／対象Run Artifact／EXP YAML削除に限定する。Formal Experimentや新Infrastructureは追加しない。
+
+## Current Reference Correction / 2026-08-19
+
+- このDirectoryのcanonical Run IDは`20260818-080339-JST`であり、structured metadataの`run_id`と一致させた。
+- mainへmerge済みの別タスクRun `20260818-080338-JST`（Public Repository Hardening）とのidentity collisionを解消した。
+- 上記の旧Thinking LogおよびREPORTに残る080338は、当時のSnapshot／Historical Entryとして保持する。今後のReferenceは080339を使用する。

@@ -109,3 +109,11 @@
 - 最新PR Head／CI状態はGitHubをCanonical Sourceとし、Run Artifact更新によってHEADが変化するたびに最新SHAやCI run IDを再同期しない。
 - このRunの完了判定は、Run Artifactの整合性、Validation結果、GitHub上で確認したCI起動を根拠とする。
 - このCorrection後にRun Artifact全体を最終確定し、Sanitizerを最後に実行する。Sanitizer後はRun Artifactを変更しない。
+
+## 2026-08-19 13:25 (JST) — Run Identity Collision Correction
+
+- PR #31 merge後のlatest mainに、別タスクの正式なPublic Repository Hardening Run `20260818-080338-JST`が存在することを確認した。
+- Repository上でRun identity collisionが発生するため、Agentic QA側のCanonical Run IDを`20260818-080339-JST`に確定した。
+- Directory名とstructured metadata（`run.json.run_id`、self-reference）を一致させた。
+- 過去Entryの080338表記は当時のSnapshot／Historical Entryとして残している。今後のReferenceは080339を使用する。
+- Progress: 100% (8/8)
