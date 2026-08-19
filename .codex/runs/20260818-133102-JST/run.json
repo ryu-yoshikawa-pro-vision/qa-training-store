@@ -1,0 +1,110 @@
+{
+    "schema_version":  1,
+    "run_id":  "20260818-133102-JST",
+    "task_type":  "investigation",
+    "workflow_level":  "strict",
+    "preset":  "safe",
+    "runtime":  "host",
+    "agents_used":  [
+
+                    ],
+    "repo":  "qa-training-store",
+    "branch":  "feat/implement-public-repository-hardening",
+    "base_branch":  "main",
+    "codex_task_reports":  [
+
+                           ],
+    "changed_files":  [
+                         "AGENTS.md",
+                         "CODE_REVIEW.md",
+                         "docs/reference/repair-loop.md",
+                         "docs/history/2026-08-17_224000_public-repository-hardening.md",
+                         ".gitignore",
+                         ".codex/runs/20260818-133102-JST/PLAN.md",
+                         ".codex/runs/20260818-133102-JST/TASKS.md",
+                         ".codex/runs/20260818-133102-JST/REPORT.md",
+                         ".codex/runs/20260818-133102-JST/run.json",
+                         ".codex/runs/20260818-133102-JST/evaluation.json"
+                       ],
+    "validation":  {
+                       "status":  "passed_with_warnings",
+                       "commands":  [
+                                      "gh auth status --hostname github.com",
+                                      "gh api /repos/ryu-yoshikawa-pro-vision/qa-training-store/dependabot/alerts?state=open&severity=high&per_page=100",
+                                      "gh api /advisories/GHSA-2v37-7h3g-55p8",
+                                      "pnpm why nanoid image-size js-yaml brace-expansion --recursive",
+                                      "gh pr view 31 --repo ryu-yoshikawa-pro-vision/qa-training-store --json state,baseRefName,headRefName,headRefOid,reviewDecision,statusCheckRollup",
+                                      "git diff --check",
+                                      "python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260818-133102-JST/evaluation.json",
+                                      "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260818-133102-JST -Write -Check",
+                                      "pnpm run verify",
+                                      "pnpm run format:check",
+                                      "pnpm run validate:spec",
+                                      "pnpm run validate:spec-visuals:final",
+                                      "pnpm run validate:curriculum",
+                                      "pnpm run lint",
+                                      "pnpm run typecheck",
+                                      "pnpm run test:unit",
+                                      "gh run view 32104879897 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+                                      "gh run view 32104880047 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+                                      "gh run view 32108806074 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+                                      "gh run view 32108806403 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+                                      "gh pr checks 31 --repo ryu-yoshikawa-pro-vision/qa-training-store",
+                                      "gh pr view 31 --repo ryu-yoshikawa-pro-vision/qa-training-store --json headRefOid,reviewDecision,mergeStateStatus,mergeable",
+                                      "github_list_pull_request_review_threads(pr_number=31)",
+                                      "gh pr comment 31 --repo ryu-yoshikawa-pro-vision/qa-training-store --body @coderabbitai full review",
+                                      "git diff --name-only",
+                                      "git diff --check"
+                                    ],
+                       "warnings":  [
+                                      "依存関係の修正そのものは今回PR scope外であり、7件のalertはopenのままfollow-up対象とした。",
+                                      "full pnpm verifyは300秒でtimeoutしたが、主要な前段gateとunit testを個別に実行して成功を確認した。",
+                                      "CodeRabbit review submissionの総合stateはCHANGES_REQUESTEDのままで、inline thread解決とは別状態。",
+                                      "今回の継続作業では、history / Run Artifactと.gitignoreのみを変更し、package / lockfile / workflow / sourceは変更しない。local observation logはGit trackingから除外した。",
+                                      "最新Phase 1 CI run 32104879897 と Native CI run 32104880047 は必要なjobを含めてsuccess。",
+                                      "最終HEADのPhase 1 CI run 32108806074 と Native CI run 32108806403 は必要なjobを含めてsuccess。",
+                                      "旧CodeRabbit CHANGES_REQUESTED submissionによりPR mergeStateStatusはBLOCKED。CodexはdismissせずOwner判断待ち。",
+                                      "CodeRabbit full reviewは実施時HEAD c95340c51dc71ebc726a8d89eea1f6e31313a239に対して実施済み。その後のdocs / Run Artifact更新を含む最新PR HEADへの追加full reviewは未実施で、対象SHAは実行時にGitHubから取得するPR-side handoffとする。",
+                                      "今回の事実整合性修正ではCodeRabbit review起動、dismiss、thread mutationを行わない。",
+                                      "ローカル生成の.codex/observations/hooks.jsonlはGit trackingから除外し、.gitignoreへ.codex/observations/を追加した。observe hook自体は変更していない。"
+                                   ]
+                   },
+    "safety":  {
+                   "network":  true,
+                   "delete_attempt_blocked":  false,
+                   "git_mutation_attempt_blocked":  false,
+                   "scope_violation":  false
+               },
+    "artifact_summary":  {
+                             "codex_task_report_count":  0,
+                             "hook_event_count":  0,
+                             "subagent_run_count":  0,
+                             "evaluation_present":  true
+                         },
+    "hook_observations":  {
+                              "log_paths":  [
+
+                                            ],
+                              "event_counts":  {
+
+                                               },
+                              "blocking_event_count":  0,
+                              "safety_blocked_count":  0,
+                              "observation_error_count":  0
+                          },
+    "subagents":  {
+                      "records":  [
+
+                                  ],
+                      "summary":  {
+                                      "total":  0,
+                                      "read_only":  0,
+                                      "writable":  0,
+                                      "scope_violations":  0,
+                                      "used_in_final_plan":  0
+                                  }
+                  },
+    "evaluation_path":  ".codex/runs/20260818-133102-JST/evaluation.json",
+    "status":  "completed",
+    "primary_failure_category":  "review_gap"
+}

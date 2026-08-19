@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "run_id": "20260818-133102-JST",
+  "result": "partial",
+  "primary_failure_category": "review_gap",
+  "failure_categories": ["missing_validation", "review_gap"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "最新Dependabot APIのopen High 7件をP-13必須項目付きで再確認し、nanoidのfirst patched 3.3.18とbrace-expansionのeffective target >= 1.1.18をhistory / Run Artifactへ記録した。CodeRabbit full reviewは実施時HEAD c95340c51dc71ebc726a8d89eea1f6e31313a239に対して1回実施済みで、追加3threadを含むunresolved threadは0件である。その後のdocs / Run Artifact更新を含む最新PR HEADへの追加full reviewは実施しておらず、旧CodeRabbit CHANGES_REQUESTED submissionによりPRのmergeStateStatusはBLOCKEDである。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260818-133102-JST/REPORT.md",
+          "selector": "2026-08-18 14:20 (JST)",
+          "summary": "最新APIに基づく7件のHigh inventory、nanoid訂正、effective target整理、thread整理の記録。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "Application、Native、教材、package.json、pnpm-lock.yaml、workflow、GitHub Settings、Ruleset、alert stateを変更していない。今回の追加変更はRun Artifactの事実整合性修正と、local observation logをGit管理対象外にする`.gitignore`更新のみである。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260818-133102-JST/REPORT.md",
+          "selector": "Changes / git status",
+          "summary": "historyとRun Artifactのみを変更し、source/package/workflow差分がないことを記録。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "gh auth status、最新Dependabot API、GitHub Advisory API、pnpm why、source参照検索、Metro supported extension確認、PR/review/thread API、schema validation、git diff --check、artifact sanitizerを実行した。pnpm run verifyは300秒でtimeoutしたが、個別gateとremote Phase 1 CI / Native CIはsuccess。c95340c51dc71ebc726a8d89eea1f6e31313a239に対するfull reviewは実施済みで、その後のdocs-only commitを含む最新PR HEADへの追加full reviewは実施していない。対象SHAはレビュー実行時にGitHubから取得するPR-side handoffであり、旧review submissionのdismissは行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260818-133102-JST/REPORT.md",
+          "selector": "Commands / evidence",
+          "summary": "最新APIを正とするP-13 triageとreview stateの再現可能な確認コマンド。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "依存更新、alert dismiss、Settings変更、Ruleset変更、mainへのpush、force push、mergeを行っていない。c95340c51dc71ebc726a8d89eea1f6e31313a239に対するCodeRabbit full reviewは過去に実施済みだが、その後のdocs / Run Artifact更新を含む最新PR HEADへの追加full review、review dismissal、thread mutationは今回実施していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260818-133102-JST/REPORT.md",
+          "selector": "Finding classification / CodeRabbit thread整理",
+          "summary": "外部状態変更の範囲と禁止操作なしを記録。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "warn",
+      "evidence": "各alertをAdvisory ID、依存経路、actual exposure、fix availability、対応判断で分離し、同一advisoryの複数version findingも個別に記録した。inline threadは0件だが、旧CodeRabbit review submissionのCHANGES_REQUESTEDがPRをBLOCKEDにしている。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260818-133102-JST/REPORT.md",
+          "summary": "P-13 triage tableとCodeRabbit thread ID一覧。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存Highを理由に一括dependency updateやoverrideを追加せず、fixあり・fixなし・build tooling exposureを区別してfollow-up判断に分離した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260818-133102-JST/REPORT.md",
+          "selector": "Finding classification",
+          "summary": "今回PR scope外のsecurity fixを無断実装しない判断。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "同一branch HEAD、固定されたAPI endpoint、pnpm lockfile、PR head SHAを使用して確認し、結果をRun Artifactへ保存した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260818-133102-JST/run.json",
+          "summary": "branch、validation command、artifact状態を記録。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": [
+    {
+      "target": "pre-merge security triage preflight",
+      "evidence": "Run開始時点ではgh CLI未導入でDependabot APIを取得できず、認証後に同じread-only queryを再実行してtriageを完了した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260818-133102-JST/REPORT.md",
+          "selector": "Commands / evidence",
+          "summary": "gh auth statusとDependabot APIの実行結果。"
+        }
+      ],
+      "expected_impact": "Security alert triageの開始時に認証不足を早く検出できる。",
+      "recommendation": "strict investigationの初期preflightにgh executableとgh auth statusの確認を含め、失敗時はAPI query前に明示する。"
+    }
+  ]
+}

@@ -101,6 +101,13 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 - Agentic QA Workflow: [`docs/reference/agentic-qa-workflow.md`](docs/reference/agentic-qa-workflow.md)
 - Learner-safe Challenge: [`training/agentic-qa/`](training/agentic-qa/)
 
+## Contribution / Security
+
+- Bug report: [Bug report Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=bug_report.yml)
+- Feature request: [Feature request Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=feature_request.yml)
+- Pull Request: [`CONTRIBUTING.md`](CONTRIBUTING.md) と Pull Request Template を確認してください。
+- Security vulnerability: Public Issue / Pull Request には投稿せず、[`SECURITY.md`](SECURITY.md) の GitHub Private Vulnerability Reporting を使用してください。
+
 ## Test Automation Curriculum / Training
 
 - Curriculum入口: [`docs/curriculum/test-automation/README.md`](docs/curriculum/test-automation/README.md)

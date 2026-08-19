@@ -1,0 +1,115 @@
+{
+  "schema_version": 1,
+  "run_id": "20260819-090421-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Matrix代表testのcontext付きcaseを明示contextで評価する修正と、protected branch commitのG10回帰testを実装し、focused 70/70、full contracts 30 files / 394 tests、verifyを成功させた。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "summary": "contextなしcaseとcontextありcaseの評価経路を分離し、明示context helperを共通化した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260819-090421-JST/REPORT.md",
+          "selector": "Repair Loop Iteration 2 — verify / self-review",
+          "summary": "verifyの完走と追加G10 regression testの完了を記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "source変更はallowed_filesであるtests/contracts/codex-hook-contract.test.tsの1ファイルだけで、Hook本体、workflow、package、lockfile、Application / Native sourceは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260819-090421-JST/REPORT.md",
+          "selector": "Repair Loop Iteration 2 — verify / self-review",
+          "summary": "git diff scopeと非対象ファイルの確認結果。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "focused contract 70/70、full contracts 30 files / 394 tests、format、lint、typecheck、diff check、verifyが成功した。lintは0 errors / 64 existing warningsである。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260819-090421-JST/REPORT.md",
+          "selector": "Repair Loop Iteration 2 — contracts validation",
+          "summary": "full contracts 394 testsの実測結果。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260819-090421-JST/REPORT.md",
+          "selector": "Repair Loop Iteration 2 — verify / self-review",
+          "summary": "品質gateとverifyの実測結果。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "G10 policy本体、protected branch判定、CI workflow、main branchは変更せず、mainへの直接push・force push・PR操作も行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/pre_tool_use_policy.mjs",
+          "summary": "git diffで変更なし。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260819-090421-JST/REPORT.md",
+          "selector": "2026-08-19 09:30",
+          "summary": "非対象ファイルとGit操作範囲のself-review。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "既存contextual evaluationのchild Node方式を小さなhelperへ抽出し、matrix代表testではcontextありcaseだけがevaluateCommand(command, context)を使うことが明示されている。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "selector": "runNodeHookWithExplicitContexts",
+          "summary": "context-aware評価の共通helperとmatrix分岐。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "test基盤の大規模変更や依存追加を行わず、既存のdata-driven matrixとevaluateCommand exportを再利用した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "summary": "重複していたcontext評価scriptをhelperへ統合した。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Windows Node v24.12.0 / pnpm 9.10.0でfocused 70/70、full contracts 394、verifyを再実行し、同じsource差分で成功した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260819-090421-JST/run.json",
+          "summary": "strict repair runの実行事実を保持する。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260819-090421-JST/REPORT.md",
+          "selector": "Repair Loop Iteration 2 — 2026-08-19 09:59",
+          "summary": "追加G10 testのfocused validation結果。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

@@ -20,6 +20,21 @@ Scenario Shopへ変更を加えるときの最小限の入口をまとめる。
 - 既存のArchitecture ContractとPlatform Dependency Checkを維持する。
 - 実行していない検証を成功と記録しない。
 
+## Issue / Pull Request / Security
+
+- Bug report は [Bug report Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=bug_report.yml) を使用する。
+- Feature request は [Feature request Issue Form](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/new?template=feature_request.yml) を使用する。
+- Pull Request は [Pull Request Template](./.github/pull_request_template.md) を使用し、検証結果と Scope / Non-goals を記載する。
+- Security vulnerability は Public Issue / Pull Request に投稿せず、[`SECURITY.md`](./SECURITY.md) の GitHub Private Vulnerability Reporting を使用する。
+
+## Dependency / Workflow Changes
+
+- Dependency version update には、既知脆弱性、EOL / Support 終了、互換性問題、計画済み基盤更新、新機能のいずれかの理由を記載する。新しいという理由だけで更新しない。
+- GitHub Actions の remote `uses:` は full-length commit SHA へ pin し、変更時に official source、release tag、Security Advisory を確認する。
+- Dependabot Version UpdatesやRenovateなど、通常の自動バージョン更新は有効化しない。
+- Dependabot Security Updatesは通常のVersion Updatesとは別に扱い、Public Repository Hardeningのpost-merge taskとして有効化・検証する。
+- Fork PRではCloudflare Preview Deploymentを実行しない。
+
 ## 実装前
 
 - 変更対象のEntry Point、依存方向、既存Testを確認する。
