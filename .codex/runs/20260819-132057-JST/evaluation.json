@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "run_id": "20260819-132057-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "080339のcanonical Run ID、093235のcurrent reference、latest-main rebaseline、durable Evidence contractを修正し、Formal Experiment／Knowledge／PromotionはNOT EXECUTED／none／noneを維持した。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".codex/runs/20260818-080339-JST/run.json", "summary": "run_idとself-referenceを080339へ統一した。"},
+        {"kind": "changed_file", "path": "docs/plans/2026-08-17_222040_agentic-qa-knowledge-loop-implementation.md", "summary": "Original／Current RebaselineとGAP判断を追記した。"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は対象Run、Experiment／Living Documentation、新しいRepair Runに限定し、080338 Hardening Run、Application／Native／Spec／Curriculum／Harness／Skill／Workflow／package／lockfileを変更していない。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260819-132057-JST/REPORT.md", "selector": "2026-08-19 13:30 (JST) — Bounded Repair反映", "summary": "protected pathとHardening Run無変更の確認結果。"}
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "指定quality gate、full test 394件、build、verify、git diff --checkが成功した。lintは0 errors／64 existing warningsである。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260819-132057-JST/REPORT.md", "selector": "2026-08-19 14:05 (JST) — Validation", "summary": "全quality gateの実測結果。"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "force push、rebase、reset、PR操作を行わず、main側080338 Hardening Runと#31/#33由来のprotected pathsを変更していない。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260819-132057-JST/REPORT.md", "selector": "2026-08-19 13:30 (JST) — Bounded Repair反映", "summary": "scopeと禁止範囲の確認結果。"}
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Historical entryを機械置換せず、CorrectionとPost-merge Rebaseline sectionでCurrent Referenceを区別した。README／ADRはephemeral raw artifactとtracked durable referenceを明示する。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "docs/experiments/README.md", "summary": "durable Evidence contractを明示した。"},
+        {"kind": "changed_file", "path": ".codex/runs/20260818-080339-JST/REPORT.md", "summary": "append-only Correctionを末尾へ追加した。"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "新しいArtifact Server、Registry、Database、Validator、Workflowを追加せず、既存Git／Run Artifact／Markdown conventionだけを最小修正した。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "docs/adr/0018-lightweight-experiment-records.md", "summary": "tracked durable referenceを標準としてADRを整合させた。"}
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Node v24.12.0／pnpm 9.10.0でstatic consistencyと指定Validationを再実行し、Run ID mismatch 0、duplicate 0、Sanitizer対象を確定した。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260819-132057-JST/run.json", "summary": "allowed／expected filesとvalidation commandを記録する。"},
+        {"kind": "validation_command", "path": ".codex/runs/20260819-132057-JST/REPORT.md", "selector": "2026-08-19 14:05 (JST) — Validation", "summary": "実行環境とValidation結果を記録する。"}
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": [
+    {
+      "id": "pr32-ci-and-rereview",
+      "status": "deferred",
+      "detail": "PR #32の新HEADでPhase 1 CI完了と再レビューを確認する。PR操作とCodeRabbit full reviewはユーザー承認後に行う。"
+    }
+  ]
+}

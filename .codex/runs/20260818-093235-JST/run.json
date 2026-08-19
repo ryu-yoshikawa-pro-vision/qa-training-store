@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "run_id": "20260818-093235-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "feat/agentic-qa-knowledge-feedback-loop",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".codex/runs/20260817-222040-JST/TASKS.md",
+    ".codex/runs/20260818-080339-JST/REPORT.md",
+    ".codex/runs/20260818-080339-JST/run.json",
+    ".codex/runs/20260818-093235-JST/PLAN.md",
+    ".codex/runs/20260818-093235-JST/TASKS.md",
+    ".codex/runs/20260818-093235-JST/REPORT.md",
+    ".codex/runs/20260818-093235-JST/run.json"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm run format:check",
+      "pnpm run lint:markdown",
+      "pnpm run validate:spec",
+      "pnpm run validate:spec-visuals:final",
+      "pnpm run validate:curriculum",
+      "pnpm exec tsx scripts/agentic-qa/validate-contracts.ts",
+      "pnpm run test:agentic-qa:preparation",
+      "pnpm run lint",
+      "pnpm run typecheck",
+      "pnpm run security:check",
+      "pnpm run test",
+      "pnpm run build:web",
+      "pnpm run build:spec",
+      "pnpm run verify",
+      "git diff --check",
+      "scripts/sanitize-codex-artifacts.ps1 -Write -Check"
+    ],
+    "warnings": [
+      "既存Lintの64 warningsとNative test／Node SQLiteの既存warningは今回修正しない。",
+      "Formal ExperimentはNOT EXECUTED。Knowledge／Promotionはnone。",
+      "Official ScoredのTrusted Evidence不足は今回RunのFailureではなく、Baseline GAP-01としてBLOCKED／NOT EXECUTED。",
+      "PR Head／CI状態はRun Artifactへ保存せず、GitHubをCanonical Sourceとする。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": null,
+  "status": "completed",
+  "primary_failure_category": null
+}

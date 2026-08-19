@@ -450,3 +450,30 @@
 - Repository-side `trusted/preparation/isolated-run-root/`も専用Manifestでfreezeし、frozen inputのspecification／Runbook／Challenge snapshotとのbyte identityを検査する。これはHost sandboxの証明ではなく、Host isolationの正本は引き続きTrusted Host Receiptである。
 - Prepared TargetはCanonical Benchmark Manifestのrevision／source HEAD／patch hashとRunner Inputのallowed originsへexact bindする。Trusted evidence_refはcurrent runの`trusted/**`にある非symlink regular fileへ解決できるものだけをOfficial proofとして受理する。
 - Official chainのgolden contract fixtureは、実Evidence file、別Evaluator session、`evaluateBlackBox()`の`valid_for_scoring=true`、空の`invalid_reasons`、非null coverage metricまで検証する。現HostのTrusted Capability不足はRepository実装を止めないが、Official execution／scoreはBLOCKED／NOT EXECUTEDのままとする。
+
+## Lightweight Experiment Record運用（2026-08-17）
+
+- Formal Experiment RecordのCanonical Locationは`docs/experiments/`、ID Conventionは`EXP-YYYYMMDD-NNN`とする。物理配置・Reference方式の正本は`docs/adr/0018-lightweight-experiment-records.md`と`docs/experiments/README.md`である。
+- Formal Recordでは、immutableな`target_revision_ref`、既存Run Artifactを参照する`execution_conditions_ref`、repo-relativeなEvidence Referenceを使い、Raw Evidenceを重複コピーしない。専用Validator／Registry／Dashboard／Databaseは現時点で追加しない。
+- ExperimentのGovernance、強度、Failure Taxonomy、Knowledge化、Promotion判断の正本は`docs/plans/2026-08-15_123700_agentic-qa-knowledge-feedback-loop.md`のままである。
+- このPRではExperiment Readiness（Canonical Location／ID／Reference ConventionとAcceptance Validation）だけを整備し、Formal Experimentは実行していない。最初のFormal Experimentは、本当にExperimentが必要なQA／Training Questionを選択した時点で作成する。
+- Baseline Revision `fc9e497817e6c3cff8d89ebd7b37244e759e9484` はBaselineの追跡用であり、Formal Experiment Target Revisionとは別である。Official Black-box Scoredは、受理可能なHost-trusted Receipt／Actual Tool Scope Evidenceがないため別Gapとして`BLOCKED / NOT EXECUTED`で扱い、今回のReadiness変更のFailureとはしない。
+
+## Agentic QA Feedback Loop Post-merge Rebaseline（2026-08-19）
+
+- Original assessment revision（Historical Baseline）は`fc9e497817e6c3cff8d89ebd7b37244e759e9484`、当時のPrevious Rebaseline revisionは`d297497e2d2aeb0fa1ff17c48dd0ae7a86e9455a`である。Original BaselineをCurrent Stateとして扱わない。
+- `fc9e497..d297497`の実diffはPR #31／#33のQA System、repository policy、workflow／Dependency Review／Preview-validate contract、full SHA pin、Codex Hook contractと関連Run／文書の変更であり、Test Target／Product Specification／Curriculum／Trainingの結論は`unchanged`である。
+- QA System baselineは、Public Repository Hardening、Security／repository operation policy、Codex Hookのbranch-independence、protected branch commit G10 regression coverageを含むlatest-mainへ更新した。
+- GAP-02はlightweight Documentation／ADRで解消する判断を維持する。Experiment Readiness／Formal Experiment境界も維持し、Formal Experiment Target Revisionは設定しない。Formal Experimentは`NOT EXECUTED`、Knowledgeは`none`、Promotionは`none`である。
+- Official Scored GAP-01はHost-trusted Evidence不足による`BLOCKED / NOT EXECUTED`のままである。
+- `.artifacts/`はlocal／CIのephemeral Raw Evidence専用で、Committed Formal Evidenceはfresh cloneで解決できるtracked Run Artifact／Manifest／Summary等を標準とする。新しいexternal storageやInfrastructureは追加しない。
+
+## Agentic QA Feedback Loop Latest-main Delta Rebaseline（2026-08-20）
+
+- Original Historical Baselineは`fc9e497817e6c3cff8d89ebd7b37244e759e9484`、Previous Rebaselineは`d297497e2d2aeb0fa1ff17c48dd0ae7a86e9455a`、Current Latest-main Rebaselineは`f21155f2bdc95e0d5f58ed846665f1a0051dcac6`である。3世代を混同しない。
+- `d297497..f21155f`の実diffはPR #34のPlaywright Chromium install stability、CI contract、Run／Plan evidence、font fallback補正とfocused E2E assertionである。Chromium固定jobはbrowser-only install、`extended-e2e`はChromiumとFirefox／WebKitのinstall条件を分離し、Firefox／WebKitの既存`--with-deps`は維持した。
+- Test Target: `unchanged`。PR #34のUI／E2E補正はCI／表示安定性のためのもので、Product Specification、Formal Regression target、Training targetの意味を変更しない。
+- Curriculum: `unchanged`。`docs/curriculum/**`、`training/**`、Curriculum contractにdeltaはない。
+- QA System: `updated`。Chromium系jobからruntime apt／Ubuntu mirror dependencyを除去し、browser binary installを維持した。install条件をCI contractで固定し、PR #34の実CI／rerun／workflow_dispatch evidenceを反映した。
+- GAP-02とExperiment Readinessの判断は`unchanged`。Formal Experimentは`NOT EXECUTED`、Formal Experiment Target Revisionは設定しない。Knowledgeは`none`、Promotionは`none`。
+- Official Scored GAP-01はHost-trusted Evidence不足による`BLOCKED / NOT EXECUTED`のまま変更しない。

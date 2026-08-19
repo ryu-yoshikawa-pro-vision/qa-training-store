@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "run_id": "20260819-153144-JST",
+  "task_type": "repair",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "feat/agentic-qa-knowledge-feedback-loop",
+  "base_branch": "main",
+  "allowed_files": [
+    ".codex/runs/20260819-132057-JST/REPORT.md",
+    ".codex/runs/20260819-153144-JST/PLAN.md",
+    ".codex/runs/20260819-153144-JST/TASKS.md",
+    ".codex/runs/20260819-153144-JST/REPORT.md",
+    ".codex/runs/20260819-153144-JST/run.json",
+    ".codex/runs/20260819-153144-JST/evaluation.json"
+  ],
+  "expected_changed_files": [
+    ".codex/runs/20260819-132057-JST/REPORT.md",
+    ".codex/runs/20260819-153144-JST/PLAN.md",
+    ".codex/runs/20260819-153144-JST/TASKS.md",
+    ".codex/runs/20260819-153144-JST/REPORT.md",
+    ".codex/runs/20260819-153144-JST/run.json",
+    ".codex/runs/20260819-153144-JST/evaluation.json"
+  ],
+  "codex_task_reports": [],
+  "changed_files": [
+    ".codex/runs/20260819-132057-JST/REPORT.md",
+    ".codex/runs/20260819-153144-JST/PLAN.md",
+    ".codex/runs/20260819-153144-JST/TASKS.md",
+    ".codex/runs/20260819-153144-JST/REPORT.md",
+    ".codex/runs/20260819-153144-JST/run.json",
+    ".codex/runs/20260819-153144-JST/evaluation.json"
+  ],
+  "validation": {
+    "status": "passed_with_warnings",
+    "commands": [
+      "git fetch origin",
+      "git show --no-patch --format=fuller 70f374bb1978fe399b39596e8462de4733dd49b5",
+      "git show --no-patch --format=fuller 449cf75f3d6b5e11b07b75d66230933510fa6e5e",
+      "git show 70f374bb1978fe399b39596e8462de4733dd49b5:.codex/runs/20260819-132057-JST/REPORT.md",
+      "git diff 70f374bb1978fe399b39596e8462de4733dd49b5 449cf75f3d6b5e11b07b75d66230933510fa6e5e -- .codex/runs/20260819-132057-JST/REPORT.md .codex/runs/20260819-132057-JST/TASKS.md",
+      "pnpm run format:check",
+      "pnpm run lint:markdown",
+      "git diff --check",
+      "pnpm run verify",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260819-132057-JST,.codex/runs/20260819-153144-JST -Write -Check"
+    ],
+    "warnings": [
+      "lintは0 errors／64 warnings。",
+      "Native component testのReact act console warningとNode SQLite experimental warningは既存観測。",
+      "push後の新HEADに対するPhase 1 CI／Native CI完了とPR再レビューはRemaining。"
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260819-153144-JST/evaluation.json",
+  "status": "completed",
+  "primary_failure_category": null
+}

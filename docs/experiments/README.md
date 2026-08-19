@@ -1,0 +1,57 @@
+# Experiment Records
+
+このディレクトリは、Test Target、Curriculum、QA Systemの継続改善で正式なExperimentを
+実施するときに、既存のRun Artifact／Evidenceへ参照接続するためのCanonical Locationです。
+Experiment DB、Dashboard、Registry、Knowledge Graphの代替ではありません。
+
+## ID Convention
+
+- 形式は `EXP-YYYYMMDD-NNN`（JST日付、同日内の3桁連番）です。
+- File nameは `<experiment_id>-<短いslug>.yaml` とし、1 Experimentを1 Fileへ保存します。
+- `experiment_id` は別のRun IDやKnowledge IDと兼用しません。
+- 1 Experiment = 1 YAMLを維持し、不要な空Recordや複数Experimentの混在を作りません。
+
+## Reference Convention
+
+- `target_revision_ref` は、QA対象の不変Revisionを示します。Clean committed inputは
+  `git:<40桁の小文字SHA>` を使い、作業ツリー混在時は既存のCanonical Manifest等の
+  `sha256:<64桁の小文字digest>` を参照します。
+- `execution_conditions_ref` は、Executor、Model（該当時）、Prompt／Skill revision、
+  Context Policy、QA Mode、Tool Scope、Environment、Platformを記録した既存Run Artifactを
+  指します。Recordへ同じ条件を重複コピーしません。
+- `artifact_ref` と `evidence_refs` はRepository相対Pathだけを使います。Committed Formal Recordから
+  長期参照するEvidenceは、fresh cloneで解決できるGit管理されたRun Artifact／Manifest／Summary等の
+  tracked durable referenceを標準とします。今回、新しいexternal storage contractは追加しません。
+- `.artifacts/` はlocal／CI実行中のRaw Evidence（Screenshot、Trace、MCP／ADB log、大容量一時成果物）の
+  保存先です。`.gitignore`対象のephemeral領域であり、Repository cloneだけでは再取得できないため、
+  Committed Formal Recordの唯一のdurable Evidence sourceにしてはいけません。Raw Evidenceが必要な場合も、
+  tracked referenceへ必要な要約、digest、取得条件を残し、`.artifacts/`だけをEvidence Referenceにしません。
+- Credential、Token、個人識別可能なLearner／Human data、OS固有の絶対Pathは保存しません。
+
+## Experiment ReadinessとFormal Experimentの境界
+
+- Convention自体のparse確認、Reference解決確認、配置確認、Markdown／既存品質ゲート確認は
+  Acceptance／Readiness Validationです。これらはFormal Experimentとして扱わず、Experiment IDや
+  Experiment YAMLを作成しません。
+- `Experiment Readiness` と `Formal Experiment` は別の状態です。通常のDocumentation／ADR変更と
+  Acceptance Validationで解消できる運用上のGapは、正式なExperimentへ昇格させません。
+- Formal Experimentは、対象Planに沿ったQA／Training Questionについて、通常変更だけでは答えられず、
+  Experimentが必要だと判断した時点で初めて作成します。
+
+## Record rules
+
+- Standardは `study_intent: exploratory`、必要最小限の `design_type` です。
+- `results` は対象PlanのLightweight Experiment Record Schemaに従う観測・計測された事実で、
+  `interpretation` はそこから導く推論です。
+  因果を証明していない単一Runから、Agent・Model・Skillの改善を断定しません。
+- `completed`、`failure`、`invalid` は実行状態です。Tool／Runtime／Environment／AgentのFailureは
+  通常Failureとして残し、Protocol破損だけを `RUN_INVALID` とします。未実行・Blocked・Evidence不足を
+  PASSへ変換しません。
+- `evaluation_status` は、Runの成否とMetric／Evaluationの算出可否を分けて記録します。
+- Knowledge Recordは、別Task／Revisionで再利用する価値、Best Practice／Anti-pattern、Promotion候補、
+  将来のRevalidation価値、または重要なNegative／Conflicting Evidenceがある場合だけ作ります。
+- Promotionを行った場合だけ、対象ArtifactのRevision、期待Effect、Validation ReferenceをRecordへ接続します。
+  `recommended` はIndependent ReviewとTarget-specific Validationなしには付けません。
+
+このConvention自体に専用Validatorは追加しません。将来、同じ記録上のPain Pointが反復した場合だけ、
+既存のValidation／Contractへ接続する追加判断を行います。
