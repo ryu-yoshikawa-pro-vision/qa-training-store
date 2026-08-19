@@ -177,3 +177,12 @@
 - Evaluation: `evaluation.json`は`result: pass`、`primary_failure_category: null`へ更新。initial UI regressionはrepairで解消済みとして、final evidenceと履歴をREPORTへ保持した。
 - Decision: stop_success。未解決事項はpost-mergeのdeploy-production確認のみで、merge禁止のため実施しない。
 - Progress: 100% (19/19)（旧Blocked 2件はタスク17／18で再開・完了し、分母外）。
+
+## 2026-08-19 22:46 (JST)
+
+- Summary: Run Artifact記録commit後の最終branch head `d5b5924598dde451022640948a99fbe974f831da`でもPR Phase 1 CIを確認した。
+- Final head CI: run `32259314564`でrequired、accessibility、mobile-boundary、cross-role、training-web-baseline、UI Review desktop／tablet／mobile／small-mobile、production-smoke、deploy-preview、verify、validateがsuccess。extended-e2eとdeploy-productionはPR条件でskip。Native CI `32259314778`もsuccess。
+- Final head install log: Chromium対象11 job（`96088772497`、`96088772454`、`96088772275`、`96088772305`、`96088772263`、`96088772217`、`96088772331`、`96088772258`、`96088772319`、`96088756571`、`96089759023`）すべてでbrowser-only command 1件、旧`--with-deps chromium` 0件、apt／`Installing dependencies...`／mirror marker 0件。
+- Repository state: `HEAD`と`origin/fix/playwright-ci-install-stability`は一致し、working treeはclean。canonical planは未変更、mergeは未実施。
+- Decision: stop_success。追加のsource変更、rerun、workflow_dispatchは不要。
+- Progress: 100% (19/19)（旧Blocked 2件はタスク17／18で再開・完了し、分母外）。
