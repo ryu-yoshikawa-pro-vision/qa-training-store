@@ -214,6 +214,42 @@ describe("Phase 1 CI deployment boundaries", () => {
     }
   });
 
+  it("installs Chromium without system dependencies in Chromium-only jobs", () => {
+    const chromiumJobs = [
+      ["e2e-chromium", "ui-review"],
+      ["ui-review", "production-smoke"],
+      ["production-smoke", "extended-e2e"],
+      ["deploy-preview", "validate"],
+      ["deploy-production", undefined],
+    ] as const;
+
+    for (const [jobName, nextJobName] of chromiumJobs) {
+      const job = jobBlock(jobName, nextJobName);
+      const install = stepBlock(job, "Install Chromium");
+
+      expect(install).toContain("run: pnpm exec playwright install chromium");
+      expect(job).not.toContain("pnpm exec playwright install --with-deps chromium");
+    }
+  });
+
+  it("branches extended-e2e browser installation by the matrix browser", () => {
+    const extended = jobBlock("extended-e2e", "verify");
+    const chromium = stepBlock(extended, "Install Chromium");
+    const nonChromium = stepBlock(extended, "Install browser with system dependencies");
+
+    expect(chromium).toContain("if: matrix.browser == 'chromium'");
+    expect(chromium).toContain("run: pnpm exec playwright install chromium");
+    expect(chromium).not.toContain("--with-deps");
+
+    expect(nonChromium).toContain("if: matrix.browser != 'chromium'");
+    expect(nonChromium).toContain(
+      "run: pnpm exec playwright install --with-deps ${{ matrix.browser }}",
+    );
+    expect(
+      extended.split("run: pnpm exec playwright install --with-deps ${{ matrix.browser }}"),
+    ).toHaveLength(2);
+  });
+
   it("validates each deployment URL before passing it to the matching smoke test", () => {
     const preview = jobBlock("deploy-preview", "validate");
     const production = jobBlock("deploy-production");

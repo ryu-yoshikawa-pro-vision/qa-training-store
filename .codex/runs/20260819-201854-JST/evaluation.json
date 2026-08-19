@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "run_id": "20260819-201854-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Chromium install安定化、Linkのfont-family継承修正、focused regression test、local gate、PR初回runと同一commit rerun 2回、workflow_dispatchを完了し、visual acceptanceを満たした。",
+      "evidence_refs": [
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 22:34",
+          "summary": "修正版のPhase 1 CI、rerun、workflow_dispatch、visual確認の完了結果を記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "source変更は元のworkflow／contract 2ファイルと、今回明示されたglobal.css／ui-ux-improvements.spec.tsの4ファイルに限定した。package、lockfile、Playwright config、その他app／UI sourceは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 22:00",
+          "summary": "repair-loopのallowed-filesとsource差分の範囲を記録している。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "format、Markdown lint、lint、typecheck、contract suite、focused E2Eが成功し、PR初回run／rerun 2回／workflow_dispatchのChromium install、E2E、UI Review、smoke、verify、validateを確認した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 22:00",
+          "summary": "repair後のlocal quality gateとfocused E2Eの成功を記録している。"
+        },
+        {
+          "kind": "log_event",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 22:34",
+          "summary": "PR 3 runのjob／install logとworkflow_dispatchの結果を記録している。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "既存PR #34だけを使用し、新規PR、merge、履歴改変、推測によるapt package追加、禁止されたworkflow gate変更を行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 20:42",
+          "summary": "既存branchへの通常pushと禁止操作を行っていないことを記録している。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "固定5 jobのbrowser-only command、extended-e2eの条件分岐、focused contract、CSS regression test、3 runのinstall log、baseline／修正版artifact、workflow_dispatchのmobile logを記録した。",
+      "evidence_refs": [
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 22:34",
+          "summary": "command／条件／job／artifact／visual比較の最終証拠を記録している。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存job／step名、既存parser helper、既存Flow Eを維持し、font-family継承のCSSと必要なfocused assertionだけを追加した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/ci-workflow.test.ts",
+          "selector": "Chromium install contract tests",
+          "summary": "既存jobBlock／stepBlockを使ったfocused contractを追加している。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "同一commitの初回PR runと追加rerun 2回がすべて主要checks success、Chromium installのapt非実行、UI Review 4 viewport正常で完了し、workflow_dispatchのmobile-chromiumも14 tests successとなった。",
+      "evidence_refs": [
+        {
+          "kind": "log_event",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 22:34",
+          "summary": "同一commit 3 runとworkflow_dispatchの再現結果を記録している。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}
