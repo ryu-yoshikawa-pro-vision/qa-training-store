@@ -67,3 +67,9 @@
 - 2026-08-19 JST: input failureをmust_fix、allowed_filesを`tests/contracts/codex-hook-contract.test.ts`に固定した。
 - 2026-08-19 JST: `main` / `origin/main` / fix branchはすべて指定HEAD `7a045d6…`で一致し、working treeはコード上cleanだった。
 - 2026-08-19 JST: ADR-0016によりHook本体のNode policyがSSOTであり、今回の修正はcontract test側に限定する。
+
+## Decision Update — PR #33 再レビュー
+
+- 2026-08-19 JST: 再レビューの残存findingを`must_fix`として受領した。protected branch上の通常commitをG10 denyする明示的regression testが不足していた。
+- allowed_files / expected_changed_filesは引き続き`tests/contracts/codex-hook-contract.test.ts`のみ。既存`runNodeHookWithExplicitContexts()`を再利用し、Hook本体・helper仕様・workflow・packageは変更しない。
+- Repair iteration 2の停止条件は、追加testと既存A4/A5・protected push契約の全validation成功、scope violationなし、通常commit / push完了とする。

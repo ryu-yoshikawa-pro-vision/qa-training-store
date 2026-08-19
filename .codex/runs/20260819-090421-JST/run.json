@@ -28,7 +28,7 @@
   "validation": {
     "status": "passed_with_warnings",
     "commands": [
-      "node node_modules/vitest/vitest.mjs run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1 --pool=threads",
+      "pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1",
       "pnpm run test:contracts",
       "pnpm run format:check",
       "pnpm run lint",
@@ -81,7 +81,8 @@
     "pushed": true,
     "pull_request_created": false
   },
-  "status": "completed",
+  "status": "in_progress",
   "primary_failure_category": null,
-  "max_iterations": 2
+  "max_iterations": 2,
+  "repair_iteration": 2
 }

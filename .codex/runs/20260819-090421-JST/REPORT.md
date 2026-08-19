@@ -134,3 +134,53 @@
 - New tasks: なし。
 - Remaining: PR作成、PR CI確認、merge後main CI確認、#31 post-merge Hardening再開はユーザー指定どおり別途対応。
 - Progress: 100% (10/10)
+
+## Repair Loop Iteration 2 — 2026-08-19 09:59 (JST)
+
+- input_findings: PR #33再レビューのmust_fix finding「protected branch上の通常commitをG10 denyする明示的Contract Testが不足」。
+- repair_plan: 既存`runNodeHookWithExplicitContexts()`を再利用し、`currentBranch: "main"`、`protectedBranches: ["main"]`、`remoteNames: ["origin"]`で`git commit -m "feature change"`を評価するtestを1件追加する。
+- allowed_files: `tests/contracts/codex-hook-contract.test.ts`。Run Artifactは既存Run継続更新のみ。
+- changed_files: `tests/contracts/codex-hook-contract.test.ts`、既存RunのPLAN/TASKS/REPORT。
+- validation_commands: `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1`。
+- validation_result: 1 file / 70 tests passed、0 failed。
+- remaining_delta: full contracts、format、lint、typecheck、diff check、可能ならverify、sanitizer、commit / push。
+- decision: continue
+- Notes/Decisions: Hook本体、既存helper、A4/A5、protected push testsは未変更。新規testは明示contextだけでG10 commit denyを検証する。
+- Progress: 91% (10/11)
+
+## Repair Loop Iteration 2 — contracts validation — 2026-08-19 10:02 (JST)
+
+- Summary: full contracts regression passed after the protected-branch commit test was added.
+- Commands:
+  - `pnpm run test:contracts` => 30 files passed、394 tests passed、0 failed。
+- validation_result: pass
+- remaining_delta: format、lint、typecheck、diff check、可能ならverify、sanitizer、commit / push。
+- decision: continue
+- Progress: 91% (10/11)
+
+## Repair Loop Iteration 2 — quality gates — 2026-08-19 10:05 (JST)
+
+- Summary: focused/full contracts後の必須quality gateが成功した。
+- Commands:
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint` => 0 errors / 64 existing warnings。
+  - `pnpm run typecheck` => app / native-tests / training PASS。
+  - `git diff --check` => PASS。
+- validation_result: pass
+- remaining_delta: verify、self-review、sanitizer、evaluation整合、commit / push。
+- decision: continue
+- Notes/Decisions: lint warningは既存で今回test追加起因ではない。Run ArtifactのCRLF warningはGitのEOL normalization noticeであり、diff check failureではない。
+- Progress: 91% (10/11)
+
+## Repair Loop Iteration 2 — verify / self-review — 2026-08-19 10:12 (JST)
+
+- Summary: 総合verifyとself-reviewが成功し、PR #33 findingのsource修正は完了した。
+- Commands:
+  - `pnpm run verify` => exit 0。format / Markdown / spec / visual spec / curriculum / lint / typecheck / image manifest / security / unit 66 / integration 98 / repository 33 / component web 76 + native 49 / contracts 394 / web build / spec buildが成功。
+  - `git diff --numstat -- .codex/hooks/pre_tool_use_policy.mjs` => 出力なし。
+  - `git diff --numstat -- .github/workflows/ci.yml package.json pnpm-lock.yaml` => 出力なし。
+- validation_result: pass
+- remaining_delta: evaluation / run.json整合、sanitizer、commit / push。
+- decision: continue
+- Notes/Decisions: 新規testは既存`runNodeHookWithExplicitContexts()`のみを再利用。A4 feature allow、protected push G10 deny、Hook本体非変更を差分と既存testで確認した。verifyのlint 64 warnings、Native act console error、SQLite ExperimentalWarningは既存warningでありfailureではない。
+- Progress: 91% (10/11)

@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "Matrix代表testのcontext付きcaseを明示contextで評価する修正を実装し、focused 69/69、full contracts 30 files / 393 tests、verifyを成功させた。",
+      "evidence": "Matrix代表testのcontext付きcaseを明示contextで評価する修正と、protected branch commitのG10回帰testを実装し、focused 70/70、full contracts 30 files / 394 tests、verifyを成功させた。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -17,8 +17,8 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260819-090421-JST/REPORT.md",
-          "selector": "2026-08-19 09:30",
-          "summary": "verifyの完走と主要test/build結果を記録している。"
+          "selector": "Repair Loop Iteration 2 — verify / self-review",
+          "summary": "verifyの完走と追加G10 regression testの完了を記録している。"
         }
       ]
     },
@@ -29,25 +29,25 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260819-090421-JST/REPORT.md",
-          "selector": "2026-08-19 09:30",
+          "selector": "Repair Loop Iteration 2 — verify / self-review",
           "summary": "git diff scopeと非対象ファイルの確認結果。"
         }
       ]
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "focused contract、full contracts、format、lint、typecheck、diff check、verifyが成功した。lintは0 errors / 64 existing warningsである。",
+      "evidence": "focused contract 70/70、full contracts 30 files / 394 tests、format、lint、typecheck、diff check、verifyが成功した。lintは0 errors / 64 existing warningsである。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260819-090421-JST/REPORT.md",
-          "selector": "2026-08-19 09:20",
-          "summary": "focused/full contracts、format、lint、typecheck、diff checkの実測結果。"
+          "selector": "Repair Loop Iteration 2 — contracts validation",
+          "summary": "full contracts 394 testsの実測結果。"
         },
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260819-090421-JST/REPORT.md",
-          "selector": "2026-08-19 09:30",
+          "selector": "Repair Loop Iteration 2 — verify / self-review",
           "summary": "品質gateとverifyの実測結果。"
         }
       ]
@@ -94,7 +94,7 @@
     },
     "reproducibility": {
       "rating": "pass",
-      "evidence": "Windows Node v24.12.0 / pnpm 9.10.0でfocused、full contracts、verifyを再実行し、同じsource差分で成功した。package-script focused invocationはtimeoutしたが、直接Vitest threads poolとfull verifyで検証を完了した。",
+      "evidence": "Windows Node v24.12.0 / pnpm 9.10.0でfocused 70/70、full contracts 394、verifyを再実行し、同じsource差分で成功した。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -104,8 +104,8 @@
         {
           "kind": "validation_command",
           "path": ".codex/runs/20260819-090421-JST/REPORT.md",
-          "selector": "2026-08-19 09:15",
-          "summary": "package-script timeoutと直接Vitest fallbackの理由・結果。"
+          "selector": "Repair Loop Iteration 2 — 2026-08-19 09:59",
+          "summary": "追加G10 testのfocused validation結果。"
         }
       ]
     }

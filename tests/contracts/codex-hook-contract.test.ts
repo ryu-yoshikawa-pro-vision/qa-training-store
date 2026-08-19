@@ -377,6 +377,28 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(JSON.parse(result.stdout)).toMatchObject({ id: "G10" });
   });
 
+  it("blocks commits on a protected branch", () => {
+    const result = runNodeHookWithExplicitContexts([
+      {
+        id: "G10",
+        expected: "deny",
+        command: 'git commit -m "feature change"',
+        context: {
+          currentBranch: "main",
+          protectedBranches: ["main"],
+          remoteNames: ["origin"],
+        },
+      },
+    ]);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const evaluated = JSON.parse(result.stdout) as ContextualEvaluation[];
+    expect(evaluated).toHaveLength(1);
+    expect(evaluated[0]?.id).toBe("G10");
+    expect(evaluated[0]?.decision).toMatchObject({ id: "G10" });
+  });
+
   it("allows @ from a feature branch", () => {
     const moduleUrl = pathToFileURL(hookPath).href;
     const script = [
