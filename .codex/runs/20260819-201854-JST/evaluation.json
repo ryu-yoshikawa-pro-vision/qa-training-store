@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "run_id": "20260819-201854-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "指定されたworkflow／contract実装、local gate、PR初回CI、install log確認までは完了したが、UI Reviewで明確なfont fallback退行を確認したため、planのpre-merge完了条件は未達である。",
+      "evidence_refs": [
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 21:05",
+          "summary": "初回CIの成功結果と4 viewportのvisual退行を記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "source変更は.github/workflows/ci.ymlとtests/contracts/ci-workflow.test.tsに限定し、package、lockfile、Playwright config、E2E、app／UI sourceを変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 21:05",
+          "summary": "source差分の範囲と未変更境界を記録している。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "format、Markdown lint、contract suiteは成功し、PRのChromium／UI／smoke／verify／validateもsuccessした。ただしUI artifact比較でbaselineと異なる日本語表示が4 viewportに再現し、rerun／workflow_dispatchは未実施である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 20:35",
+          "summary": "local quality gateの成功を記録している。"
+        },
+        {
+          "kind": "log_event",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 21:05",
+          "summary": "PR job logとUI artifact比較の結果を記録している。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "既存PR #34を使用し、新規PR、merge、履歴改変、推測によるapt package追加、禁止されたworkflow gate変更を行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 20:42",
+          "summary": "既存branchへの通常pushと禁止操作を行っていないことを記録している。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "固定5 jobのbrowser-only command、extended-e2eの条件分岐、focused contract、PR install log、baseline／current artifact IDを記録し、visual退行をmerge前に識別できた。",
+      "evidence_refs": [
+        {
+          "kind": "codex_task_report",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 21:05",
+          "summary": "command／条件／job／artifactのレビュー証拠を記録している。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存job／step名と既存parser helperを維持し、今回の契約に必要なfocused testだけを追加した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/ci-workflow.test.ts",
+          "selector": "Chromium install contract tests",
+          "summary": "既存jobBlock／stepBlockを使ったfocused contractを追加している。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "同一commitの初回PR runではChromium installとtestが成功したが、runner側font fallback差異が4 viewportで再現したため、browser-only pathのvisual再現性は受け入れ可能と確認できていない。",
+      "evidence_refs": [
+        {
+          "kind": "log_event",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 21:05",
+          "summary": "同一runのinstall logと4 viewport visual差異を記録している。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "high",
+      "evidence": "PR run 32248129288のcurrent UI Review 4 viewportで日本語の一部が豆腐文字になり、baseline artifactでは正常表示だった。current／baseline web-distのCSSとNoto Sans JP 400／600／700 woff2 hashは一致し、app／UI source差分はない。",
+      "evidence_refs": [
+        {
+          "kind": "log_event",
+          "path": ".codex/runs/20260819-201854-JST/REPORT.md",
+          "selector": "2026-08-19 21:05",
+          "summary": "UI Review artifact ID、font asset hash、visual差異を記録している。"
+        }
+      ],
+      "detail": "--with-deps削除でrunner側font fallbackが失われ、browser-only installでもChromium launch／test自体は成功する一方、UI Reviewの日本語表示契約を満たさない可能性が高い。追加apt packageやUI変更を推測で行わず、必要dependencyまたは代替案を別途再設計すべきである。"
+    }
+  ],
+  "improvement_candidates": []
+}

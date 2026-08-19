@@ -76,3 +76,4 @@
 
 - 2026-08-19 JST: `origin/main`、branch、PR #34のbaseはplanのbase commit `d297497e2d2aeb0fa1ff17c48dd0ae7a86e9455a`で一致したため、planのbase更新は不要と判断した。
 - 2026-08-19 JST: PR #34のplan-only初回Phase 1 CIでは、複数Chromium／UI Review jobが成功する一方、Chromium E2E requiredが`Install Chromium`で実行中だった。実装前baselineとして記録する。
+- 2026-08-19 JST: 初回browser-only UI ReviewでLink由来の日本語font fallback退行を確認したため、repair-loopのallowed-filesを`src/presentation/styles/global.css`と`e2e/web/ui-ux-improvements.spec.ts`へ限定した。`a[href]`の`font-family`継承と既存Flow Eのcomputed CSS assertionを1 iterationで適用し、local E2E／lint／typecheck／contractを通過した後にremote検証へ進む。

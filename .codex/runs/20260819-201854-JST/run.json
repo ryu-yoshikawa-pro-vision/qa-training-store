@@ -20,20 +20,24 @@
         ".codex/runs/20260819-201854-JST/PLAN.md",
         ".codex/runs/20260819-201854-JST/TASKS.md",
         ".codex/runs/20260819-201854-JST/REPORT.md",
-        ".codex/runs/20260819-201854-JST/run.json"
+        ".codex/runs/20260819-201854-JST/run.json",
+        ".codex/runs/20260819-201854-JST/evaluation.json"
     ],
     "validation":  {
-                       "status":  "passed",
+                       "status":  "passed_with_warnings",
                        "commands":  [
                            "pnpm install --frozen-lockfile --ignore-scripts",
                            "pnpm run format:check",
                            "pnpm run lint:markdown",
                            "pnpm run test:contracts",
-                           "git diff --check"
+                           "git diff --check",
+                           "python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260819-201854-JST/evaluation.json",
+                           "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260819-201854-JST -Write -Check"
                        ],
                        "warnings":  [
                            "初回3 gateはnode_modules未導入で開始前失敗。依存導入後の再実行は成功。",
-                           "PR #34のplan-only Phase 1 CI run 32246170451は確認時点でChromium E2E requiredの旧Install Chromiumがin_progress。"
+                           "PR #34のplan-only Phase 1 CI run 32246170451は確認時点でChromium E2E requiredの旧Install Chromiumがin_progress。",
+                           "PR #34のbrowser-only UI Review 4 viewportで明確な日本語font fallback退行を確認。plan §23の条件によりrerun／workflow_dispatchは未実施。"
                        ]
                    },
     "safety":  {
@@ -46,7 +50,7 @@
                              "codex_task_report_count":  0,
                              "hook_event_count":  0,
                              "subagent_run_count":  0,
-                             "evaluation_present":  false
+                             "evaluation_present":  true
                          },
     "hook_observations":  {
                               "log_paths":  [
@@ -71,7 +75,7 @@
                                       "used_in_final_plan":  0
                                   }
                   },
-    "evaluation_path":  null,
-    "status":  "in_progress",
-    "primary_failure_category":  null
+    "evaluation_path":  ".codex/runs/20260819-201854-JST/evaluation.json",
+    "status":  "completed",
+    "primary_failure_category":  "flaky_or_env_issue"
 }
