@@ -115,3 +115,13 @@ Progress: 20% (2/10)
 - CI: pushによりPR #32の新HEAD向けCI起動を委譲した。CIの終端状態はこのAgent環境では確認していないため、`CI pending / read-only follow-up`として残す。PR comment、workflow rerun、override、merge、CodeRabbit full reviewは行わない。
 - Decision: Review -> Repair -> Validateは`stop_success`。修正findingのremaining deltaはなく、CI完了とPR再レビューだけをFollow-upとする。
 - Progress: 100% (10/10)
+
+## 2026-08-19 15:34 (JST) — Chronology / Sanitizer Evidence Correction
+
+- Git履歴との再照合により、既存の`14:05 Validation`、`14:15 Final Artifact Preparation`、`14:20 Sanitizer Pre-final`のheading timestampは、正確なwall-clock timeではないことを確認した。
+- commit `70f374b`は2026-08-19 13:58:40 JSTに作成されており、当該3 Entryはそのcommit treeに既に含まれている。したがって、各headingの14時台timestampは記録誤りである。
+- 各commandの正確な実行時刻は現在のEvidenceから復元できないため、「本当は13:XXだった」などの推定timestampへの置換は行わない。
+- Evidenceから確認可能な処理順序は`Validation -> Final Artifact Preparation -> Sanitizer -> 70f374b commit`である。これは時刻ではなく、既存REPORT内容とGit treeから確定できるexecution orderとして扱う。
+- その後のcommit `449cf75`（2026-08-19 14:00:23 JST）でREPORT.md／TASKS.mdへ追加変更が行われたため、既存14:20 Entryの「Sanitizer後はRun Artifactを変更しない」という記述は、最終Git履歴全体には適用できない。
+- ただし、これは「最終Artifactが未Sanitize」という意味ではない。`449cf75`を含む時点のfinal committed stateについては、GitHub Actionsの`Codex artifact sanitization (ubuntu-latest)`および`Codex artifact sanitization (windows-latest)`のPASSをCanonical Sourceとする。CI run IDや一時的なstatusはこのREPORTへ固定しない。
+- このCorrectionは過去Entryを改変せず、timestamp誤記と最終sanitization provenanceを明示するためのappend-only correctionである。
