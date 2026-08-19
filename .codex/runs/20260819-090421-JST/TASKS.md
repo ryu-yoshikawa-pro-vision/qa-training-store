@@ -11,7 +11,7 @@
 - [x] 7. format:check、lint、typecheck、git diff --checkを実行する
 - [x] 8. 可能ならverifyを実行し、self-reviewを完了する
 - [x] 9. sanitizer Write / Checkとstrict evaluationを完了する
-- [ ] 10. commitしてfeature branchへpushし、PR操作なしで停止する
+- [x] 10. commitしてfeature branchへpushし、PR操作なしで停止する
 
 ## Discovered
 
