@@ -10,8 +10,8 @@
 - [x] 6. PROJECT_CONTEXT、implementation plan、new historyへCurrent Rebaselineを記録する
 - [x] 7. Static consistency、self-review、指定Validationを実行する
 - [x] 8. Run Artifactを最終化し、Sanitizer Write／Checkを最後に実行する
-- [ ] 9. 通常commit／pushを行い、新HEADとCI起動状態をread-only確認する
-- [ ] 10. REPORT／run.json／evaluationを同期し、stop_successで完了判定する
+- [x] 9. 通常commit／pushを行い、新HEADとCI起動状態をread-only確認する
+- [x] 10. REPORT／run.json／evaluationを同期し、stop_successで完了判定する
 
 ## Discovered
 
