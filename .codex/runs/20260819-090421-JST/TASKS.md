@@ -15,7 +15,7 @@
 
 ## Discovered
 
-- [ ] D1. PR #33再レビューfindingとしてprotected branch上の通常commit G10 deny回帰testを追加し、指定validationとpushを完了する
+- [x] D1. PR #33再レビューfindingとしてprotected branch上の通常commit G10 deny回帰testを追加し、指定validationとpushを完了する
 
 ## Blocked
 

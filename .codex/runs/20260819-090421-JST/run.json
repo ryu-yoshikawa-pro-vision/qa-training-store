@@ -77,11 +77,13 @@
   "git": {
     "implementation_commit_sha": "ac50fd603c37fba4e2f9219a717cfaf1ee360b40",
     "implementation_commit_message": "fix: make Codex hook contract branch-independent",
+    "repair_commit_sha": "b9ff1a6",
+    "repair_commit_message": "test: cover protected branch commit policy",
     "pushed_remote_branch": "origin/fix/codex-hook-contract-branch-context",
     "pushed": true,
     "pull_request_created": false
   },
-  "status": "in_progress",
+  "status": "completed",
   "primary_failure_category": null,
   "max_iterations": 2,
   "repair_iteration": 2

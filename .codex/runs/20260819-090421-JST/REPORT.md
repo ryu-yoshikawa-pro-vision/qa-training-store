@@ -184,3 +184,17 @@
 - decision: continue
 - Notes/Decisions: 新規testは既存`runNodeHookWithExplicitContexts()`のみを再利用。A4 feature allow、protected push G10 deny、Hook本体非変更を差分と既存testで確認した。verifyのlint 64 warnings、Native act console error、SQLite ExperimentalWarningは既存warningでありfailureではない。
 - Progress: 91% (10/11)
+
+## Repair Loop Iteration 2 — commit / push完了 — 2026-08-19 10:20 (JST)
+
+- Summary: PR #33再レビューfindingの最小修正、全validation、commit、feature branch pushを完了した。
+- Completed: protected branch commit G10 deny regression test、Run Artifact更新、通常commit / push。
+- Changes: `tests/contracts/codex-hook-contract.test.ts`へtest 1件（22行）を追加。既存RunのPLAN/TASKS/REPORT/evaluation/run metadataを更新した。新規Run・新規plan・Hook本体・workflow・packageは追加・変更していない。
+- Commands:
+  - `git commit -m "test: cover protected branch commit policy"` => commit `b9ff1a6`。
+  - `git push origin fix/codex-hook-contract-branch-context` => `da310cb..b9ff1a6`としてremote push成功。
+- validation_result: focused 70/70、full contracts 30 files / 394 tests、format / lint / typecheck / diff check / verifyすべてpass。
+- remaining_delta: なし。PR再レビュー、PR側のscope表現、merge後main CI確認はユーザー指定どおり別途。
+- decision: stop_success
+- Notes/Decisions: remoteのDependabot alert warning 8件はdefault branchの既存通知であり、今回修正のfailureではない。PR作成、コメント、CodeRabbit、thread操作、merge、main pushは行っていない。
+- Progress: 100% (11/11)
