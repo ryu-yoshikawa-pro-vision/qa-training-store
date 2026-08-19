@@ -17,6 +17,8 @@
     "changed_files":  [
         ".github/workflows/ci.yml",
         "tests/contracts/ci-workflow.test.ts",
+        "src/presentation/styles/global.css",
+        "e2e/web/ui-ux-improvements.spec.ts",
         ".codex/runs/20260819-201854-JST/PLAN.md",
         ".codex/runs/20260819-201854-JST/TASKS.md",
         ".codex/runs/20260819-201854-JST/REPORT.md",
@@ -29,15 +31,21 @@
                            "pnpm install --frozen-lockfile --ignore-scripts",
                            "pnpm run format:check",
                            "pnpm run lint:markdown",
+                           "pnpm run lint",
+                           "pnpm run typecheck",
                            "pnpm run test:contracts",
+                           "pnpm exec playwright test e2e/web/ui-ux-improvements.spec.ts --project=chromium",
                            "git diff --check",
                            "python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260819-201854-JST/evaluation.json",
-                           "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260819-201854-JST -Write -Check"
+                           "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260819-201854-JST -Write -Check",
+                           "gh run rerun 32255760945 (attempt 2)",
+                           "gh run rerun 32255760945 (attempt 3)",
+                           "gh workflow run .github/workflows/ci.yml --ref fix/playwright-ci-install-stability"
                        ],
                        "warnings":  [
-                           "初回3 gateはnode_modules未導入で開始前失敗。依存導入後の再実行は成功。",
-                           "PR #34のplan-only Phase 1 CI run 32246170451は確認時点でChromium E2E requiredの旧Install Chromiumがin_progress。",
-                           "PR #34のbrowser-only UI Review 4 viewportで明確な日本語font fallback退行を確認。plan §23の条件によりrerun／workflow_dispatchは未実施。"
+                           "lintは既存warning 64件を出力したが、errorは0件で成功。",
+                           "workflow_dispatchのFirefox／WebKitは既存の--with-depsとapt／mirror経路を通過してsuccess。今回のChromium pathではapt非実行を確認。",
+                           "deploy-productionはPR／workflow_dispatchイベント条件によりskip。"
                        ]
                    },
     "safety":  {
@@ -77,5 +85,5 @@
                   },
     "evaluation_path":  ".codex/runs/20260819-201854-JST/evaluation.json",
     "status":  "completed",
-    "primary_failure_category":  "flaky_or_env_issue"
+    "primary_failure_category":  null
 }

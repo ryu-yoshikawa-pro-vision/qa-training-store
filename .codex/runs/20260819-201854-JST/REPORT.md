@@ -154,3 +154,26 @@
 - Remaining delta: local browserではcomputed font-family assertionと既存Flowが成功したが、修正版commitのPR CI、4 viewport artifact比較、順次rerun、workflow_dispatchは未実施である。
 - Decision: continue。修正版を既存PR #34へ反映し、remote evidenceでvisual acceptanceを確認する。
 - Progress: 65% (11/17)（旧Blocked 2件は分母外）。
+
+## 2026-08-19 22:36 (JST)
+
+- Summary: Repair iteration 1を既存PR #34へ反映し、初回Phase 1 CI、同一commit rerun 2回、workflow_dispatch 1回、install log、UI artifact比較を完了した。日本語font regressionは解消され、Chromium browser-only pathの安定化と両立した。
+- Commit／PR: `09596e9a9ecc280812263740501a14611d1f512a`（`fix: inherit bundled web fonts for links`）を`fix/playwright-ci-install-stability`へpush。PR #34はopen／未mergeのまま維持し、新規PR／merge／履歴改変は行っていない。
+- 修正版Phase 1初回run: `32255760945` attempt 1。required、accessibility、mobile-boundary、cross-role、training-web-baseline、UI Review desktop／tablet／mobile／small-mobile、production-smoke、deploy-preview、verify、validateがsuccess。extended-e2eとdeploy-productionはPR条件でskip。
+- Chromium install log: 上記runの11 job（required、accessibility、mobile-boundary、cross-role、training-web-baseline、UI Review 4件、production-smoke、deploy-preview）すべてで`Run pnpm exec playwright install chromium`が1件、旧`--with-deps chromium`が0件、`apt`／`apt-get`／`Installing dependencies...`／`apt-mirrors`／package mirror markerが0件。Chromium E2E／launch／smokeもsuccess。
+- UI Review artifact比較: baseline run `32246170451`の4 viewportと、修正版artifact desktop `9366332723`、tablet `9366326515`、mobile `9366303541`、small-mobile `9366260575`を目視比較した。home、legal-privacy、products、product detail系で、ヘッダー／モバイルナビゲーション／商品名／カテゴリ名／「商品を見る」／「一覧を見る」／footerの日本語が正常。豆腐文字は再現せず、font-size／font-weight／改行／文字幅の明確な差、horizontal overflowは確認しなかった。
+- 同一commit rerun: attempt 2とattempt 3を前run完了後に順次実行。両runとも上記主要job、verify、validateがsuccess（extended-e2e／deploy-productionはPR条件skip）。各11 install logでbrowser-only command 1件、旧command 0件、apt／mirror marker 0件。attempt 3 UI artifact（desktop `9366869917`、tablet `9366862337`、mobile `9366843957`、small-mobile `9366803966`）のhomeを目視し、日本語表示正常を確認した。
+- workflow_dispatch: run `32257976378`を同一branchで1回実行。mobile-chromium job `96084440819`は`pnpm exec playwright install chromium`、Chromium download、`pnpm run test:e2e:mobile`、14 tests success。mobile logにapt／`Installing dependencies...`なし。Firefox job `96084440499`とWebKit job `96084440574`もsuccessし、両者は従来どおり`--with-deps`とapt markerを通過したがfailureは発生しなかった。verify `96086241824`／validate `96086269569`もsuccess、deploy-preview／deploy-productionはworkflow_dispatch条件でskip。
+- Plan／scope: canonical plan `docs/plans/2026-08-19_190200_playwright-ci-install-stability.md`、workflow、CI contract、package／lockfile、Playwright config以外の既存境界は維持。今回の追加CSS／E2E変更はユーザー指定のrepair scopeに明示されており、plan本文は不要な事実更新がないため変更していない。
+- Remaining delta: なし。PRはmergeせず、post-mergeのdeploy-production確認はイベント条件上未実施。
+- Decision: stop_success。evaluationを`pass`へ更新し、schema validation／sanitizer Write・Check後にRun Artifactを確定する。
+- Progress: 100% (19/19)（旧Blocked 2件はタスク17／18で再開・完了し、分母外）。
+
+## 2026-08-19 22:37 (JST)
+
+- Summary: 最終Run Artifact validationを完了した。
+- Commands: `pnpm run format:check` => PASS。`pnpm run lint:markdown` => PASS、0 issues。`git diff --check` => PASS（run.jsonのCRLF warningのみ）。`python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260819-201854-JST/evaluation.json` => success。`ConvertFrom-Json`によるrun／evaluation parse => PASS。
+- Sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260819-201854-JST -Write -Check` => 5 files、0 changes、0 replacements、0 residual findings。
+- Evaluation: `evaluation.json`は`result: pass`、`primary_failure_category: null`へ更新。initial UI regressionはrepairで解消済みとして、final evidenceと履歴をREPORTへ保持した。
+- Decision: stop_success。未解決事項はpost-mergeのdeploy-production確認のみで、merge禁止のため実施しない。
+- Progress: 100% (19/19)（旧Blocked 2件はタスク17／18で再開・完了し、分母外）。

@@ -13,12 +13,12 @@
 - [x] 9. PR required checks、Chromium install log、UI Review 4 viewportを確認する
 - [x] 12. Firefox／WebKitの結果を切り分け、Run Artifact sanitizer／evaluation／完了報告を行う
 - [x] 13. Repair iteration 1でLinkのfont-family継承とfocused regression assertionを追加し、local validationを完了する
-- [ ] 14. 修正版を既存branch／PR #34へcommit／pushする
-- [ ] 15. 修正版PRのPhase 1 CI、Chromium install log、required checksを確認する
-- [ ] 16. 修正版UI Review 4 viewportをbaselineと目視比較する
-- [ ] 17. visual acceptance後、同一commitの追加rerunを前run完了後に2回実行・確認する
-- [ ] 18. visual acceptance後、`workflow_dispatch`でmobile-chromiumのinstall／launch／testを確認する
-- [ ] 19. 修正版のevaluation、sanitizer、Run Artifact、最終報告を更新する
+- [x] 14. 修正版を既存branch／PR #34へcommit／pushする
+- [x] 15. 修正版PRのPhase 1 CI、Chromium install log、required checksを確認する
+- [x] 16. 修正版UI Review 4 viewportをbaselineと目視比較する
+- [x] 17. visual acceptance後、同一commitの追加rerunを前run完了後に2回実行・確認する
+- [x] 18. visual acceptance後、`workflow_dispatch`でmobile-chromiumのinstall／launch／testを確認する
+- [x] 19. 修正版のevaluation、sanitizer、Run Artifact、最終報告を更新する
 
 ## Discovered
 
@@ -26,5 +26,5 @@
 
 ## Blocked
 
-- 10. 同一commitの追加rerun（旧タスク）: 初回UI Reviewで明確なfont fallback退行が判明したため保留していた。修正版のvisual acceptance後にタスク17として再開する。
-- 11. `workflow_dispatch` mobile-chromium（旧タスク）: pre-merge visual acceptance未達のため保留していた。修正版のvisual acceptance後にタスク18として再開する。
+- 10. 同一commitの追加rerun（旧タスク）: 初回UI Reviewで保留していたが、修正版visual acceptance後にタスク17として再開し、attempt 2／3をsuccessで完了。
+- 11. `workflow_dispatch` mobile-chromium（旧タスク）: 初回UI Reviewで保留していたが、修正版visual acceptance後にタスク18として再開し、mobile-chromiumをsuccessで完了。
