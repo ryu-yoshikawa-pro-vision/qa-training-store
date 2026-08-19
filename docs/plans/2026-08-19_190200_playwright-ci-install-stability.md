@@ -139,6 +139,22 @@ Firefox / WebKit は既存 CI に含まれるが、今回の問題調査・修�
 
 Firefox / WebKit は現行挙動を維持する。
 
+### 6.3 `verify` / `validate` の gate は変更しない
+
+今回、Firefox / WebKit の apt / mirror failure を `workflow_dispatch` 診断 run 上で「今回の Chromium 修正を否定する blocking failure ではない」と人間が分類する場合がある。
+
+ただし、これは **診断結果の評価ルール** であり、CI gate 自体を緩める理由にはしない。
+
+`.github/workflows/ci.yml` の既存 `verify` / `validate` の成功条件は変更しない。
+
+特に以下を維持する。
+
+- pull request では既存仕様どおり `extended-e2e` の skip を許容する
+- `main` push / schedule / `workflow_dispatch` などの非 PR event では、既存仕様どおり `extended-e2e` の success を `verify` が要求する
+- `validate` の fail-closed behavior を維持する
+
+今回の都合で Firefox / WebKit の failure を workflow 上で無視する変更は行わない。
+
 ## 7. 修正方針
 
 ### Phase 1: Chromium 固定 5 job から `--with-deps` を外す
@@ -188,7 +204,7 @@ matrix 自体を再設計せず、install step の条件分岐だけを追加す
 
 既存の `tests/contracts/ci-workflow.test.ts` に最小限の assertion を追加する。
 
-少なくとも以下を契約化する。
+Chromium 固定 job について、少なくとも以下を契約化する。
 
 - `e2e-chromium` が `pnpm exec playwright install chromium` を使う
 - `ui-review` が `pnpm exec playwright install chromium` を使う
@@ -196,8 +212,33 @@ matrix 自体を再設計せず、install step の条件分岐だけを追加す
 - `deploy-preview` が `pnpm exec playwright install chromium` を使う
 - `deploy-production` が `pnpm exec playwright install chromium` を使う
 - 上記 Chromium 固定 job に `playwright install --with-deps chromium` が存在しない
-- `extended-e2e` に Chromium 用 browser-only install 分岐が存在する
-- `extended-e2e` の非 Chromium path では既存 `--with-deps ${{ matrix.browser }}` を維持する
+
+`extended-e2e` については、コマンド文字列の存在だけでなく条件式まで固定する。
+
+Chromium step:
+
+```yaml
+if: matrix.browser == 'chromium'
+run: pnpm exec playwright install chromium
+```
+
+非 Chromium step:
+
+```yaml
+if: matrix.browser != 'chromium'
+run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
+```
+
+さらに以下を契約化する。
+
+- `extended-e2e` に Chromium 用 browser-only install step が存在する
+- Chromium step に `if: matrix.browser == 'chromium'` が存在する
+- 非 Chromium step に `if: matrix.browser != 'chromium'` が存在する
+- 非 Chromium step は既存 `--with-deps ${{ matrix.browser }}` を維持する
+- `extended-e2e` に無条件の `pnpm exec playwright install --with-deps ${{ matrix.browser }}` が存在しない
+- `verify` / `validate` の既存 gate behavior を変更していない
+
+これにより、Chromium が browser-only install 後に誤って `--with-deps` step も通る regression を検知する。
 
 新しい contract test framework や validator は作らない。
 
@@ -207,14 +248,18 @@ matrix 自体を再設計せず、install step の条件分岐だけを追加す
 
 ```bash
 pnpm run format:check
+pnpm run lint:markdown
 pnpm run test:contracts
 ```
 
 目的:
 
 - workflow / contract test のフォーマット不備を検出する
+- plan を含む Markdown lint を確認する
 - 今回の Chromium install 契約を確認する
 - CI workflow の既存構造を壊していないことを確認する
+
+`.prettierignore` では `docs` / `*.md` が除外されているため、`format:check` だけを Markdown 品質確認として扱わない。
 
 新しい lint dependency は追加しない。
 
@@ -323,6 +368,8 @@ PR workflow は `cancel-in-progress` が有効なため、PR run / rerun を重�
 
 そのため PR 側の検証完了後、branch `fix/playwright-ci-install-stability` を指定して `workflow_dispatch` を 1 回実行する。
 
+この `workflow_dispatch` は既存 workflow の gate behavior を変更せず、そのまま実行する。
+
 ### 13.2 今回の必須確認対象
 
 今回の必須確認は `mobile-chromium` に限定する。
@@ -334,27 +381,58 @@ PR workflow は `cancel-in-progress` が有効なため、PR run / rerun を重�
 
 ### 13.3 Firefox / WebKit の扱い
 
-Firefox / WebKit は今回変更していないため、`workflow_dispatch` 全体の green を pre-merge 条件にはしない。
+Firefox / WebKit は今回変更していないため、診断 run の workflow 全体の green を Chromium 修正の合否条件にはしない。
 
 Firefox / WebKit が正常に成功した場合はその結果を記録する。
 
-一方、Firefox / WebKit が既存の次の step 内で apt / mirror 起因の失敗をした場合は、今回の PR の blocking failure としない。
+一方、Firefox / WebKit が既存の次の step 内で apt / mirror 起因の失敗をした場合は、今回の Chromium 修正を否定する blocking evidence としない。
 
 ```bash
 pnpm exec playwright install --with-deps ${{ matrix.browser }}
 ```
 
-ただし次の場合は別扱いとする。
+ただし、非 PR event では現行 `verify` が `extended-e2e` 全体の success を要求するため、Firefox / WebKit が失敗した診断 run では `verify` / `validate` も failure になり得る。
+
+これは **期待される既存 gate behavior** であり、その failure を避けるために `verify` / `validate` を変更してはならない。
+
+次の場合は regression として修正する。
 
 - 今回の workflow 変更によって Firefox / WebKit job が実行されなくなった
 - 条件分岐誤りで Firefox / WebKit の browser install が行われない
+- Chromium が browser-only install 後に非 Chromium 用 `--with-deps` step も実行する
 - browser install 後に、今回の変更に起因すると考えられる新しい workflow failure が発生する
-
-この場合は regression として修正する。
 
 `workflow_dispatch` は `mobile-chromium` の実動作確認用の診断 run であり、Firefox / WebKit の既知 apt flake を解消するための run ではない。
 
-## 14. `deploy-production` の確認
+## 14. Known residual risk: Firefox / WebKit の runtime apt 依存
+
+今回の修正後も、CI 全体から runtime apt 依存が完全になくなるわけではない。
+
+`extended-e2e` の Firefox / WebKit は、引き続き次を使用する。
+
+```bash
+pnpm exec playwright install --with-deps ${{ matrix.browser }}
+```
+
+したがって、Firefox / WebKit では Ubuntu package mirror 由来の flake が残る。
+
+非 PR event では `extended-e2e` success が `verify` の必須条件であるため、Firefox / WebKit の apt / mirror failure が発生すると以下の流れで CI を止める可能性がある。
+
+```text
+Firefox / WebKit apt failure
+  -> extended-e2e failure
+  -> verify failure
+  -> validate failure
+  -> deploy-production skipped
+```
+
+これは今回の Chromium path 修正の失敗とは区別する。
+
+今回の PR では gate を緩めず、Firefox / WebKit の apt 依存も変更しない。
+
+Firefox / WebKit 側でも同種の apt / mirror failure が実際に反復観測された場合は、今回の PR へ追加対応せず、別 issue / plan / PR で対処する。
+
+## 15. `deploy-production` の確認
 
 `deploy-production` は `push` かつ `refs/heads/main` の場合のみ実行されるため、PR 上では job 自体を直接検証できない。
 
@@ -368,7 +446,22 @@ merge 後の `main` run で以下を確認する。
 - install log で apt が起動しない
 - deployed production smoke が成功する
 
-## 15. Post-merge で `deploy-production` だけ失敗した場合
+### 15.1 Firefox / WebKit residual risk で `deploy-production` まで到達しない場合
+
+merge 後の `main` run で Firefox / WebKit の既存 apt / mirror failure のみが原因で `extended-e2e` -> `verify` が失敗し、`deploy-production` が skip された場合は、Chromium 修正の regression と誤分類しない。
+
+その場合は以下を記録する。
+
+- `mobile-chromium` が browser-only install と test まで成功したか
+- Chromium 固定 job の install log で apt が起動していないか
+- Firefox / WebKit の失敗箇所が既存 `--with-deps` 内の apt / mirror であるか
+- `deploy-production` が Chromium 修正ではなく upstream gate failure により skip されたこと
+
+Firefox / WebKit の residual risk が反復する場合は別対応を起票する。
+
+今回の都合で `verify` を緩めたり、Firefox / WebKit を今回の PR に追加修正したりしない。
+
+## 16. Post-merge で `deploy-production` だけ失敗した場合
 
 `deploy-production` は Cloudflare production deployment 後に Chromium install と deployed smoke を行う。
 
@@ -387,7 +480,7 @@ browser-only install / Chromium launch の dependency 不足が原因と確認�
 
 一方、deployed smoke がアプリケーション挙動で失敗している場合は、本 CI install 変更とは分離して原因を調査する。
 
-## 16. browser-only install が成立しない場合
+## 17. browser-only install が成立しない場合
 
 Chromium launch または test で system dependency 不足が判明した場合、推測で package を追加しない。
 
@@ -409,7 +502,7 @@ Playwright 公式 Docker image を利用する場合は、リポジトリで使�
 
 今回の初回実装では Docker 化しない。
 
-## 17. GitHub-hosted runner への依存というトレードオフ
+## 18. GitHub-hosted runner への依存というトレードオフ
 
 `--with-deps` を外す場合、Chromium 実行に必要な Linux runtime dependency が GitHub-hosted runner image に存在することへ依存する。
 
@@ -419,7 +512,7 @@ Playwright 公式 Docker image を利用する場合は、リポジトリで使�
 
 将来 GitHub runner image 更新後に system dependency 不足で Chromium launch が失敗した場合は、本 plan の fallback 方針に従って再評価する。
 
-## 18. 並列数の扱い
+## 19. 並列数の扱い
 
 初回修正では以下を変更しない。
 
@@ -434,7 +527,7 @@ Chromium の apt 依存を除去した後も Playwright job が不安定な場�
 
 並列数削減は必要性が確認された場合に限り、別の修正として扱う。
 
-## 19. 今回変更しないもの
+## 20. 今回変更しないもの
 
 初回 PR では以下をスコープ外とする。
 
@@ -449,44 +542,54 @@ Chromium の apt 依存を除去した後も Playwright job が不安定な場�
 - Playwright Docker image への移行
 - Firefox / WebKit の `--with-deps` 削除
 - Firefox / WebKit の system dependency 再設計
+- `verify` / `validate` gate の緩和
 - visual regression framework の新規導入
 - 新しい CI contract test framework / validator の導入
 - Playwright version の更新
 - Node / pnpm version の更新
 
-## 20. Pre-merge 完了条件
+## 21. Pre-merge 完了条件
 
 以下をすべて満たすこと。
 
 - 変更ファイルが原則として `.github/workflows/ci.yml`、`tests/contracts/ci-workflow.test.ts`、本 plan に限定されている
 - Chromium 固定 5 job が `playwright install chromium` になっている
 - `extended-e2e` の Chromium path が browser-only install になっている
+- Chromium install step に `if: matrix.browser == 'chromium'` が設定されている
+- 非 Chromium install step に `if: matrix.browser != 'chromium'` が設定されている
+- `extended-e2e` に無条件の `--with-deps ${{ matrix.browser }}` step が残っていない
 - Firefox / WebKit の既存 `--with-deps` behavior を維持している
+- `verify` / `validate` の既存 gate behavior を変更していない
 - `tests/contracts/ci-workflow.test.ts` に今回の Chromium install 契約が追加されている
 - `pnpm run format:check` が成功する
+- `pnpm run lint:markdown` が成功する
 - `pnpm run test:contracts` が成功する
 - PR CI の Chromium E2E 全 matrix が成功する
 - UI Review 全 viewport が成功する
 - production-smoke が成功する
 - internal PR の deploy-preview が成功する
-- verify が成功する
-- validate が成功する
+- PR 上の verify が成功する
+- PR 上の validate が成功する
 - Chromium install log で apt / OS dependency installation が起動していない
 - UI Review を比較可能な baseline と比較し退行がない、または baseline 取得不能時の fallback visual 確認を完了している
 - 同一 commit の追加 rerun でも Chromium install 起因の timeout / cancel が発生しない
 - PR 側検証後の `workflow_dispatch` で `mobile-chromium` が browser-only install とテストまで成功する
-- Firefox / WebKit の apt / mirror failure のみを理由に今回の PR を blocking していない
+- 診断 run で Firefox / WebKit の既存 apt / mirror failure により workflow / verify / validate が red になっても、gate を緩めず原因を正しく分類している
 - `max-parallel` を変更していない
 
-## 21. Post-merge 必須確認
+## 22. Post-merge 必須確認
+
+原則として以下を確認する。
 
 - `main` push の Phase 1 CI を確認する
 - `deploy-production` の Chromium install で apt が起動しない
 - deployed production smoke が成功する
 
-Post-merge で browser-only install / Chromium launch の dependency 不足だけが失敗した場合は、CI runner 側の検証環境問題として最小 hotfix / revert を行う。
+ただし Firefox / WebKit の既存 apt / mirror failure によって upstream の `extended-e2e` / `verify` が失敗し、`deploy-production` が実行されなかった場合は、Chromium 修正の失敗と断定しない。
 
-## 22. ロールバック / 再設計条件
+その場合は §15.1 の residual risk 手順に従って記録・切り分けし、必要なら別対応とする。
+
+## 23. ロールバック / 再設計条件
 
 以下の場合は Chromium の `--with-deps` 削除をそのまま merge しない。
 
@@ -494,12 +597,14 @@ Post-merge で browser-only install / Chromium launch の dependency 不足だ�
 - UI Review で明確な font / rendering 退行が出る
 - browser-only install に起因する新しい再現性のある failure が発生する
 - `extended-e2e` の `mobile-chromium` が system dependency 不足で失敗する
+- Chromium が非 Chromium 用 `--with-deps` step まで実行してしまう
 - 条件分岐によって Firefox / WebKit の既存挙動を壊す
+- `verify` / `validate` gate を緩めないと成立しない
 - 既存 CI contract と矛盾し、今回の意図を最小変更で契約化できない
 
 その場合は不足 dependency または workflow contract の不整合を特定し、必要最小限の代替案を再設計する。
 
-## 23. 実施順序
+## 24. 実施順序
 
 1. `main` の最新状態を確認する
 2. `main` が進んでいれば必要に応じて取り込み、base / baseline commit を更新する
@@ -507,23 +612,28 @@ Post-merge で browser-only install / Chromium launch の dependency 不足だ�
 4. なければ workflow 修正前の branch commit で baseline 取得を 1 回だけ試す
 5. Chromium 固定 5 job の `--with-deps` を外す
 6. `extended-e2e` で Chromium のみ browser-only install に分岐する
-7. `tests/contracts/ci-workflow.test.ts` に今回の契約を追加する
-8. `pnpm run format:check` を実行する
-9. `pnpm run test:contracts` を実行する
-10. internal PR の初回 Phase 1 CI を完了させる
-11. Chromium install log から apt が起動していないことを確認する
-12. UI Review artifact を baseline と比較する。baseline取得不能なら fallback visual 確認を行う
-13. 同一 commit の PR rerun を順番に実行し、必要回数を完了させる
-14. PR 側の検証完了後、branch の `workflow_dispatch` を 1 回実行する
-15. `mobile-chromium` の browser-only install と test 成功を確認する
-16. Firefox / WebKit が失敗した場合は、既存 `--with-deps` 内の apt / mirror failure か、今回の regression かを切り分ける
-17. Pre-merge 完了条件を満たしたら CI 安定化 PR を merge する
-18. merge 後の `main` run で `deploy-production` まで確認する
-19. 問題なければ PR #32 の branch に最新 `main` を取り込む
-20. PR #32 の CI を再実行する
-21. PR #32 自体の品質判断を行う
+7. `verify` / `validate` の既存 gate behavior が変更されていないことを確認する
+8. `tests/contracts/ci-workflow.test.ts` にコマンドと条件式を含む今回の契約を追加する
+9. `pnpm run format:check` を実行する
+10. `pnpm run lint:markdown` を実行する
+11. `pnpm run test:contracts` を実行する
+12. internal PR の初回 Phase 1 CI を完了させる
+13. Chromium install log から apt が起動していないことを確認する
+14. UI Review artifact を baseline と比較する。baseline取得不能なら fallback visual 確認を行う
+15. 同一 commit の PR rerun を順番に実行し、必要回数を完了させる
+16. PR 側の検証完了後、branch の `workflow_dispatch` を 1 回実行する
+17. `mobile-chromium` の browser-only install と test 成功を確認する
+18. Firefox / WebKit が失敗した場合は、既存 `--with-deps` 内の apt / mirror failure か、今回の regression かを切り分ける
+19. 診断 run が residual risk だけで red の場合でも `verify` / `validate` は変更しない
+20. Pre-merge 完了条件を満たしたら CI 安定化 PR を merge する
+21. merge 後の `main` run を確認する
+22. `deploy-production` まで到達した場合は Chromium install と deployed smoke を確認する
+23. Firefox / WebKit residual risk で到達しない場合は §15.1 に従って記録し、必要なら別対応を起票する
+24. 問題なければ PR #32 の branch に最新 `main` を取り込む
+25. PR #32 の CI を再実行する
+26. PR #32 自体の品質判断を行う
 
-## 24. PR #32 との関係
+## 25. PR #32 との関係
 
 この CI 安定化は PR #32 の機能変更とは独立しているため、別 PR とする。
 
