@@ -2,503 +2,435 @@
 
 ## 0. 依頼概要
 
-- 依頼内容:
-  - PR #35 で追加・確定した `maintenance-investigation` / `repository-audit` の2レポートを正本Evidenceとして、実際に対応が必要なRoot Causeを整理し、実装順序・PR分割・検証方法まで具体化する。
-  - Finding IDを機械的に1件1タスク化せず、重複・Decision Gate・対応不要を分離する。
-- 背景:
-  - PR #35 は `main` へマージ済み。
-  - 基準 `main` は `314a8f958072f19e672e3bc37089558d74e42feb`（`docs: Repository全体のメンテナンス調査レポートを追加 (#35)`）。
-  - 監査ではCritical 0、High 2（REP-001 / REP-002）、Medium中心のProduct / Test / Tooling / Documentation / Training / CI Findingが確認された。
-  - Reconciliationにより `REP-009` / `REP-014` は同一Root Cause、`REP-013` はunresolved contract ambiguity、`REP-019` はlocal worktree observationとして整理済み。
-  - Maintenance Report側では `MNT-001` と `REP-003`、`MNT-002` と `REP-018` が同じRoot Causeを別監査から確認している。
-- 期待成果:
-  - 最上位のProduct correctnessを先に修正する。
-  - QA/Test/Toolingのfalse-green / false-negative要因をProduct修正と分離して直す。
-  - 判断が必要な項目は、Evidence不足のまま実装しない。
-  - Documentation / Curriculumは、Current implementation / CIが確定してから最後に同期する。
-  - 各Root Causeを、追加判断なしで実装できる粒度のPR sliceへ分割する。
-
-## 1. ゴール / 完了条件
-
-### ゴール
-
-PR #35の監査結果を、Current Repositoryの正本契約に従った安全な修正へ段階的に変換し、Product correctness → Native consistency → QA/Test reliability → Tooling/CI reliability → Documentation/Training alignmentの順でRepositoryを整合させる。
-
-### 完了条件（DoD）
-
-1. REP-002のCheckout result integrityがWeb/Nativeともpersisted Order/Payment stateに基づく。
-2. REP-001のNative Customer CatalogがSession-aware Viewer / Membership Rankを解決する。
-3. REP-006のNative Customer-only direct routeがGuest/非CustomerをScreen service実行前に安全なboundaryへ送る。
-4. MNT-001 / REP-003のNative Storefront scopeをCurrent Normative Specificationと一致させる。Current Specを維持する場合は、欠けているNative capabilityとRegression coverageを実装する。
-5. REP-004のWeb Search Suggestionが通常のtypingでdiscoverableになる。
-6. REP-005のWeb Cart repositoryが`cartId`と`itemId`の所属Invariantを検証する。
-7. REP-007のAuthentication visual/spec stateが実際のscenario/setupと同じfailure pathを表す。
-8. REP-012のFlow JがShipment transition未確認のままPASSしない。
-9. MNT-003のNative Production Bundle GuardがHermes `.hbc` raw文字列検索へ依存せず、Automation/Production boundaryを有効に検証する。
-10. MNT-002 / REP-018のAgentic QA challenge patchがWindows/Linuxのline-ending差で壊れず、patch compatibilityを高コスト処理前にfail-fast確認できる。
-11. REP-011のWindows contract timeout riskを、global timeout緩和ではなく対象caseのcost/timeout budgetで安定化する。
-12. MNT-004のWeb exportがroute-less artifactをexit 0で後段へ渡さない検証を持つ。
-13. REP-015のGenerated image manifestがbuild中の上書きだけでdriftを隠さず、committed generated outputの整合性をread-onlyに検証できる。
-14. REP-016のTraining Workflow remote action policyがRepository-wide policyと明示的に一致する。原則full SHA pinningとする。
-15. REP-008、REP-009/014、REP-010のCurrent documentation / Curriculum driftを、関連実装・CIが確定した後に同期する。
-16. REP-013、REP-017、MNT-005はDecision Gateの結論を記録し、結論が`fix`の場合のみ別sliceで実装する。
-17. REP-019はRepository implementation taskへ昇格させない。
-18. 各sliceでfocused validationと該当Required CIを通し、最後にCurrent `main` 相当のFull Required Validationを通す。
-19. 監査Report自体はHistorical Evidenceとして保持し、Finding closureのために過去Reportを大量書換えしない。
-
-## 2. 現状理解と前提
-
-### Current understanding
-
-#### 基準
-
+- 対象Repository: `ryu-yoshikawa-pro-vision/qa-training-store`
 - Base branch: `main`
 - Base SHA: `314a8f958072f19e672e3bc37089558d74e42feb`
 - Evidence:
   - `docs/reports/2026-08-20_010734_maintenance-investigation.md`
   - `docs/reports/2026-08-20_103937_repository-audit.md`
+- 目的:
+  - PR #35 の2つの監査ReportをEvidenceとして、本当に対応が必要なRoot Causeだけを実装対象へ残す。
+  - Finding IDを機械的に1件1タスク化しない。
+  - Product correctness、Test/QA reliability、Tooling integrity、Current documentation alignmentを必要最小限の変更で修正する。
+  - 実表示・実動作が関係する修正は、利用可能であればPlaywright-MCP / Maestro-MCPを積極的に使用して検証する。
 
-#### P0 Product correctness
+## 1. 基本方針
 
-- REP-002:
-  - Web `OrderResultContent` はOrderを取得するが、heading / retry / explanationをURL側の`kind`だけで決定している。
-  - Native Completeは`orderId`が任意で、Order lookupなしに`注文完了`を表示する。
-  - Native FailedはOrderを取得するが、`payment_failed`との整合を確認せずfailure/retry UIを表示する。
-- REP-001:
-  - `src/bootstrap/native-runtime.ts` はCurrent Session Storeを初期化している一方、CatalogUseCasesへ`new GuestActorResolver()`を固定で渡している。
-  - Native Customer Catalogのrank visibility / membership priceがSessionと接続されていない。
+1. **必要な修正だけを行う。**
+   - Audit Findingになったことだけを理由に実装しない。
+   - 実害、Current Normative Specification、Repository Policy、Executable Contractを確認してから修正する。
+2. **Current Normative Specificationを正本とする。**
+   - `docs/spec/` とCurrent executable contractが一致しない場合、Known DeviationがなければCurrent implementationをSpecへ戻す。
+3. **過剰設計を避ける。**
+   - 新Framework、新State Machine、新Generated Artifact基盤、大規模RefactorをFinding対応へ混ぜない。
+4. **Testを弱めてGreenにしない。**
+   - retry追加、global timeout引上げ、assertion削除、failure maskingを第一手段にしない。
+5. **実画面・実動作を検証する。**
+   - Product/UI/Native behaviorは静的確認・Unit/Component Testだけで完了扱いにしない。
+   - 利用可能ならPlaywright-MCP / Maestro-MCPで操作し、Rendered UIも目視確認する。
+6. **ReportはHistorical Evidenceとして保持する。**
+   - Finding closureのためにPR #35の監査Reportを大量更新しない。
 
-#### Native capability / authorization
+## 2. Scope
 
-- MNT-001 / REP-003:
-  - `NativeCatalogScreen` はBrand/Priceを固定empty/null、`page: 1`、`pageSize: 20`で送信する。
-  - `NativeSearchScreen` はkeyword-onlyでSuggestion / Brand / Price / Pagination UIを持たない。
-  - Current Storefront SpecificationはWeb/Native共通のViewer / Filter / Pagination / Suggestion contractを記述しており、Known DeviationにNative縮小保証はない。
-- REP-006:
-  - `NativeShell` は`currentUser !== null && role !== customer`をblockedにするが、Guest `currentUser === null` をCustomer-only routeで止めない。
-  - Direct Customer deep linkで各Screen serviceまで到達し、`auth.required`相当のgeneric errorになる。
+### 2.1 必須対応
 
-#### Web behavior / persistence
+| ID | Root Cause | 判定 |
+|---|---|---|
+| REP-002 | Checkout resultがpersisted Order/Payment stateではなくroute kindを信用する | Must Fix |
+| REP-001 | Native Customer CatalogがsessionではなくGuest actorで評価される | Must Fix |
+| REP-006 | Native Customer-only direct routeでGuestをScreen実行前にguardしない | Must Fix |
+| MNT-001 / REP-003 | Native StorefrontがCurrent common Storefront contractを満たさない | Must Fix |
+| REP-004 | Web Search Suggestionが通常typingだけではdiscoverableにならない | Must Fix |
+| REP-005 | Web Cart mutationが`cartId`と`itemId`の所属Invariantを検証しない | Fix |
+| REP-007 | Login visual/spec stateのscenario mappingが矛盾する | Fix, minimal |
+| REP-012 | Flow Jがshipment transition未確認でもPASSできる | Must Fix |
+| MNT-003 | Native Production Bundle GuardがHermes `.hbc`でfalse negativeになる | Must Fix |
+| MNT-002 / REP-018 | Agentic QA patchがWindows EOL差でstrict applyできない | Must Fix |
+| REP-011 | Windows contract testsが5秒境界でfalse negativeになる | Fix, local |
+| REP-016 | Training workflow action tagがRepository SHA-pin policyと矛盾する | Fix |
+| REP-008 | Design System referenceがCurrent executable tokenとdriftする | Docs Fix |
+| REP-010 | iOS CurriculumがCurrent Build-only Required Gateとdriftする | Curriculum Fix |
+| REP-009 / REP-014 | `e2e_design.md`がCurrent-lookingな古いCI/E2E設計を保持する | Docs Fix after CI split |
 
-- REP-004:
-  - Search Comboboxはasync suggestionsを取得するが、通常typing後にPopoverが自動でdiscoverableにならない。
-  - Existing component testはArrowDownでmenuを開く経路に偏っている。
-- REP-005:
-  - Dexie Cart update/deleteは`cartId`と`itemId`を独立取得し、`currentItem.cartId === currentCart.id`を検証しない。
-  - Native SQL pathは`id + cart_id` predicateを持つ。
+### 2.2 確認のみ。Defaultはコード変更なし
 
-#### QA / Specification oracle
+| ID | 確認事項 | Default |
+|---|---|---|
+| REP-013 | raw expected-failure Workflowとchecker wrapperの責務 | Current machine contractを維持。必要なら教材に役割差を明記 |
+| REP-017 | GitHub Ruleset / Branch ProtectionがNative main assuranceを保証するか | 保証済みならRepository変更なし |
 
-- REP-007:
-  - `SCREEN-AUTH-LOGIN/validation-error` はcondition/scenarioを`storage-write-failure`としながら、Expected UIはrequired input Summaryを要求する。
-  - Current visual captureはempty submitを実行しており、storage write failureを証明していない。
-- REP-012:
-  - Flow Jは`発送準備を開始` buttonが存在する場合だけclick/assertし、存在しない場合にprecondition / already-transitioned stateをassertしない。
-- MNT-005:
-  - Native Review Flowはsave successを保証するが、入力literalの保存内容までは保証しない。IME変換条件もあり、Product defectではなくoracle scopeの判断が必要。
+### 2.3 今回の実装対象から外す
 
-#### Tooling / CI / generated artifacts
+| ID | 理由 |
+|---|---|
+| MNT-004 | stale Metro cacheの環境依存再現。clean runnerで再現するまで防御層追加を必須化しない |
+| REP-015 | Current generated outputsは同期済み。将来drift detection改善であり、現時点の必須修正ではない |
+| MNT-005 | Exact Review body mappingはComponent Testで保証済み。Maestroはsave journey保証として成立し、IME変換はProduct defectではない |
+| REP-019 | pre-existing user-owned local PNG。Repository defectではない |
 
-- MNT-003:
-  - `validate-native-production-bundle.ts` は`.js|hbc|map|json`をUTF-8 textとして結合し、marker substringでAutomation/Productionを検査する。
-  - Hermes `.hbc`では正常なAutomation markerをraw検索できずfalse negativeになる。
-- MNT-002 / REP-018:
-  - `.gitattributes` は`* text=auto eol=lf`。
-  - Agentic QA preparationはpatch fileをraw textとしてstrict `git apply --check` / `git apply`し、Windows worktreeのCRLF patchとLF targetで失敗する。
-  - Ubuntu PR CIではPASSしたため、Universal failureではなくWindows portability issueとして扱う。
-- REP-011:
-  - WindowsでPowerShell subprocess / large PNG fixture generationがVitest default 5s境界へ到達する。
-  - Ubuntu CIはPASSしているため、global timeout問題とは扱わない。
-- MNT-004:
-  - stale Metro cache条件で`expo export`がexit 0のroute-less artifactを生成し、`--clear`後は正常化した。
-  - clean GitHub runnerで恒常再現するProduct defectではない。
-- REP-015:
-  - `build:web`は`generate:image-manifest`でtracked TS/JSONを上書きしてからvalidate/buildする。
-  - Current validatorはJSON/config/assetsを検査するが、tracked TS generated outputとの決定的driftをbuild前にfail-closeしない。
-
-#### Training / policy / docs
-
-- REP-013:
-  - Training workflowはraw `training:web:expected-failure`を実行する。
-  - `workflow-contract.ts`もraw commandを明示的に許可し、wrapperをapproved entrypointにしていない。
-  - Curriculumは`training:web:check-expected-failure`をFailure Artifact lessonとして案内する。
-  - Intentional responsibility splitの可能性があるため、confirmed SCRIPT_DRIFTではない。
-- REP-016:
-  - Training templatesは`actions/checkout@v4`等のmutable tagを使う。
-  - Current Repository policyはremote `uses:`のfull SHA pinningを要求する。
-  - `workflow-contract.ts`自体がmutable tagsをapproved actionとして固定している。
-- REP-017:
-  - Native CIは`pull_request` / `workflow_dispatch`で、`push`を持たない。
-  - Legacy branch metadataだけではRuleset / direct-push prohibitionの完全な保証を確認できない。
-- REP-008:
-  - `docs/05_ui/design_system.md`のtoken/breakpoint/image ratioとcurrent code/configがdriftしている。
-- REP-009 / REP-014:
-  - `docs/08_testing/e2e_design.md`が古いPhase / E2E count / trigger modelをCurrent-lookingに保持している。同一Root Causeとして扱う。
-- REP-010:
-  - CurriculumのiOS manual-only説明が、current reusable Build-only Required Gate contractとdriftしている。
-- Current `main`には`docs/plans/2026-08-20_132500_chromium-required-ci-cross-browser-split.md`があり、Cross Browser CI構造は今後さらに変わる予定。E2E/CI文書同期はその実装後に行う方が再修正を減らせる。
-- `plan/phase3-cloudflare-backend`系の将来計画があるため、REP-005のWeb Dexie修正は局所Invariant修正に留め、大規模Persistence再設計へ広げない。
-
-### Assumptions
-
-- `docs/spec/`のCurrent Normative SpecificationをExpected Product Behaviorの正本とする。
-- Native Storefrontについて新しいKnown Deviation / Owner Decisionが実装開始時点で存在しなければ、Current common Storefront contractをAndroidへ適用する。
-- Checkout result修正ではOrder/Payment domain state machineを新設せず、既存DTO/stateを使ってpresentation consistencyを保証する。
-- Native authorizationは各Screenへ重複guardを追加せず、Shell / route-boundaryの共通判定へ寄せる。
-- Tooling修正ではfalse negativeを避けるためにsecurity/guardを弱めない。検査方法を実出力形式へ適合させる。
-- Flake修正はretry増加・global timeout拡大を第一手段にしない。
-- Generated artifact対応では新しい生成Frameworkを導入せず、既存generatorのdeterministic compare/checkを追加する。
-- Documentationは実装より先にExpected Realityを書き換えない。
-
-### Non-goals
+## 3. Non-goals
 
 - Phase 3 Backend / Cloudflare Workers / D1実装。
-- Native Admin実装。
-- iOS Runtime/Maestro保証の追加。
+- Native Admin追加。
+- iOS Runtime/Maestro保証追加。
 - Guest Checkout追加。
 - UI全面リデザイン。
-- Dependency / Expo / Playwright / Maestroの不要なversion upgrade。
-- 全E2Eの再設計。
-- 全Generated Artifact基盤の作り直し。
-- Agentic QAの新Runner / Orchestrator / Session Manager追加。
-- Rootのuser-owned untracked PNGをRepository修正として扱うこと。
-- Historical audit ReportのFinding ID削除・再番号付け。
+- Dependencyの不要なversion upgrade。
+- GitHub ActionsのAction version upgradeをSHA pinningへ混ぜること。
+- 全E2E再設計。
+- Generated Artifact Framework新設。
+- Agentic QA Runner / Orchestrator新設。
+- Metro cache問題に対する無条件`--clear`導入。
+- Historical audit ReportのFinding削除・改番。
 
-## 3. 質問 / 曖昧性
+## 4. Current Contractから確定できる判断
 
-### 必ず質問する不透明点
+### 4.1 Native StorefrontはDecision Gateにしない
 
-実装開始時点で以下のDecision GateがRepository Evidenceだけで解消できない場合、そのsliceだけ停止してOwner判断を求める。他の独立sliceは進めてよい。
+`docs/spec/features/storefront.md` はStorefrontをWeb/Native共通挙動として定義し、`BR-STOREFRONT-002` はKeyword、Category、Brand、価格、在庫、Sale、最低評価、total/pageを要求する。
 
-1. **DG-01 Native Storefront scope**
-   - Current Specを維持し、Suggestion / Brand / Price / PaginationまでAndroidへ実装するか。
-   - Default: New Known DeviationがなければCurrent Specを維持し実装する。
-2. **DG-02 Training expected-failure responsibility（REP-013）**
-   - Workflowを意図的にredにする教材なのか、Expected Failure Contractをgreenで検証する教材なのか。
-   - Default: Current machine contractがraw commandを明示許可しているため、コード変更せず責務を確認する。
-3. **DG-03 Native main assurance（REP-017）**
-   - GitHub Ruleset / Branch Protectionでdirect main pushを禁止しNative PR Gateをrequiredにしているか。
-   - 外部設定で保証済みならpush-trigger追加をしない。
-4. **DG-04 Native Review oracle（MNT-005）**
-   - Formal Flowの保証対象が「non-empty review save」か「入力literalの永続化」か。
-   - Default: Product defectとして扱わず、契約がliteral integrityを要求すると確認できた場合だけTest oracleを強化する。
+`docs/spec/features/native-customer.md` もNative CustomerはWeb共有Application契約へ従い、Native専用の簡略業務Ruleを作らないと定義する。
 
-### 仮定してよい細部
+`docs/spec/known-deviations.md` にActive deviationはない。
 
-- 同じRoot Causeかつ同じvalidation surfaceなら1PRへまとめてよい。
-- Root Causeが別なら、変更行数が小さくても原則別PRにする。
-- Error UIの細かい文言は既存ApplicationError / UI contractに従う。
-- Test IDは既存命名規則に従い、既存consumerを壊さない範囲で追加してよい。
+したがって、実装開始時点で新しいNormative変更が入っていなければ、MNT-001 / REP-003は**既存Contractへの復元**として修正する。新Feature扱いにしない。
 
-### 未回答の重要質問
+### 4.2 REP-007はScenario mappingだけを第一選択とする
 
-- Plan保存時点ではなし。上記4件は実装Wave内のDecision Gateとして扱う。
+Current visual registryはLogin `validation-error`を`submit empty login form`で生成している。
 
-## 4. 影響範囲
+一方Specだけが同Stateへ`storage-write-failure`を関連付けており、Expected UIはrequired field Summaryである。
 
-### Impacted areas
+第一選択はSpecのCondition/Scenarioを実際のrequired-field validationへ合わせること。
 
-| Area | Finding / Root Cause | Priority | Main change surface |
-|---|---|---:|---|
-| Checkout result integrity | REP-002 | P0 | Web/Native presentation + regression tests |
-| Native customer identity | REP-001 | P0 | Native runtime actor/session resolution |
-| Native route authorization | REP-006 | P1 | Native Shell / route boundary |
-| Native Storefront capability | MNT-001 / REP-003 | P1 | Native service surface / UI / tests |
-| Web Search suggestion | REP-004 | P1 | Search ComboBox + component/E2E |
-| Web Cart ownership | REP-005 | P2 | Dexie repository contract + negative test |
-| Auth visual/spec oracle | REP-007 | P1 | Spec state/scenario + visual/test setup |
-| Cross-role E2E oracle | REP-012 | P1 | Flow J assertions/fixture state |
-| Native bundle guard | MNT-003 | P1 | Validation script + Native CI contract |
-| Agentic QA patch portability | MNT-002 / REP-018 | P1 | Patch/preflight/EOL contracts |
-| Contract timeout | REP-011 | P2 | Focused tests/fixture cost/per-test budget |
-| Web artifact reproducibility | MNT-004 | P2 | Build/artifact validation |
-| Generated image manifest drift | REP-015 | P2 | Generator/check/CI |
-| Training action policy | REP-016 | P2 | Training templates + workflow validator |
-| Design/current docs | REP-008 | P2 | Design doc/current SSOT wording |
-| E2E/CI docs | REP-009 / REP-014 | P2 dependent | Testing design docs after CI split |
-| iOS curriculum | REP-010 | P2 | Curriculum after current CI contract fixed |
-| Expected-failure contract | REP-013 | Decision | Training policy/curriculum only after DG-02 |
-| Native push assurance | REP-017 | Decision | GitHub setting or workflow after DG-03 |
-| Native Review oracle | MNT-005 | Decision/low | Maestro oracle only after DG-04 |
-| Local PNG observation | REP-019 | Reject | No Repository code change |
+新しいStorage Failure Scenario / Visual Assetは、既存BR/ACがCanonical Visualを要求しているEvidenceが別途確認された場合だけ追加する。
 
-### Files to inspect
+### 4.3 MNT-003ではNormative Contractを弱めない
 
-実装開始時に最新mainへrebaseし、最低限以下を再確認する。
+`AC-NATIVE-002` のProduction保証は維持する。
 
-#### Product / Native
+ToolがHermes `.hbc`をUTF-8 textとしてraw substring scanしていることが問題であり、Tool failureを理由にMarker/Module/Screen/Service非存在Contractを削除・縮小しない。
 
-- `src/bootstrap/native-runtime.ts`
-- `src/application/use-cases/catalog-use-cases.ts`
-- `src/application/customer-capabilities.ts`
-- `src/infrastructure/database/sqlite/native-customer-repositories.ts`
-- `src/presentation/native/native-screens.tsx`
-- `src/presentation/native/native-shell.tsx`
-- `src/presentation/native/native-purchase-screens.tsx`
-- `src/presentation/pages/checkout-order-pages.tsx`
-- `src/application/use-cases/checkout-order-use-cases.ts`
+Hermes outputへ適合した最小の検証方法へ置き換える。
 
-#### Web / persistence
+## 5. 推奨PR Slice
 
-- `src/presentation/components/search-combobox.tsx`
-- `src/infrastructure/database/dexie/cart-checkout-repositories.ts`
-- `src/application/use-cases/cart-use-cases.ts`
+原則は1 Root Cause = 1 PR。変更境界とValidationが明確に同じ場合だけ束ねる。
 
-#### Test / Specification
+| Slice | Suggested branch | Findings | 備考 |
+|---|---|---|---|
+| R1 | `fix/checkout-result-state-integrity` | REP-002 | 最優先 |
+| R2 | `fix/native-customer-session-boundaries` | REP-001, REP-006 | 同じNative session/route boundary |
+| R3 | `fix/native-storefront-contract-parity` | MNT-001, REP-003 | Current Specへの復元 |
+| R4 | `fix/web-search-suggestion-open-state` | REP-004 | 独立 |
+| R5 | `fix/cart-item-ownership-invariant` | REP-005 | 最小predicate + test |
+| R6 | `fix/auth-visual-state-contract` | REP-007 | Spec/registry mapping中心 |
+| R7 | `test/cross-role-shipment-oracle` | REP-012 | Product変更なしを基本 |
+| R8 | `fix/native-production-bundle-guard` | MNT-003 | Contractを維持してToolを修正 |
+| R9 | `fix/agentic-qa-patch-portability` | MNT-002, REP-018 | Windows/Linux EOL |
+| R10 | `test/windows-contract-timeout-budget` | REP-011 | affected testsのみ |
+| R11 | `fix/training-workflow-action-pinning` | REP-016 | version upgradeしない |
+| R12 | `docs/current-design-contract-alignment` | REP-008, REP-010 | 現行Realityへの同期 |
+| R13 | `docs/e2e-design-supersession` | REP-009, REP-014 | Cross Browser CI split実装後 |
+| C1 | confirmation only | REP-013 | 原則コード変更なし |
+| C2 | GitHub settings check | REP-017 | 保証済みなら変更なし |
 
-- `tests/component/checkout-order-pages.test.tsx`
-- `tests/component/native/**`
-- `tests/repository-contract/**`
-- `tests/contracts/**`
-- `e2e/web/ui-ux-improvements.spec.ts`
-- `e2e/web/cross-role-lifecycle.spec.ts`
-- `docs/spec/features/checkout-and-payment.md`
-- `docs/spec/features/storefront.md`
-- `docs/spec/features/authentication.md`
-- `docs/spec/roles-and-permissions.md`
-- `src/seeds/scenarios.ts`
-- `scripts/spec/visual-registry.ts`
-
-#### Tooling / CI / Training
-
-- `scripts/validate-native-production-bundle.ts`
-- `.github/workflows/native-ci.yml`
-- `scripts/agentic-qa/prepare-challenge.ts`
-- `training/agentic-qa/instructor/challenge-patches/*.patch`
-- `.gitattributes`
-- `tests/runtime/agentic-qa-preparation.test.ts`
-- `vitest.config.ts`
-- `scripts/generate-image-manifest.ts`
-- `scripts/validate-image-manifest.ts`
-- `package.json`
-- `training/github-actions/training-ci.yml`
-- `training/github-actions/training-native-ci.yml`
-- `scripts/training/workflow-contract.ts`
-- `CONTRIBUTING.md`
-
-#### Documentation / Curriculum
-
-- `docs/05_ui/design_system.md`
-- `docs/spec/ui-ux-contract.md`
-- `docs/08_testing/e2e_design.md`
-- `docs/curriculum/test-automation/part2/05_playwright-ci.md`
-- `docs/curriculum/test-automation/part2/06_native-ci-maestro.md`
-- `docs/curriculum/test-automation/part2/08_integration-design-capstone.md`
-- `docs/PROJECT_CONTEXT.md`
-- `docs/plans/2026-08-20_132500_chromium-required-ci-cross-browser-split.md`
-
-## 5. 変更方針
-
-### Change strategy
-
-原則は**1 Root Cause = 1 PR**。同一境界・同一原因・同一validationであることを説明できる場合だけまとめる。
-
-実行順は、重大度だけでなく「後続変更の前提を壊しているか」を優先する。
+## 6. 実行順序
 
 ```text
-P0 Product correctness
+R1 Checkout integrity
   ↓
-Native session / route boundary
+R2 Native session / authorization
   ↓
-Native Storefront contract
+R3 Native Storefront contract
   ↓
-Web behavior / persistence
+R4 / R5 Web behavior / persistence
   ↓
-QA oracle / Specification
+R6 / R7 Spec/Test oracle
   ↓
-Tooling / CI reliability
+R8 / R9 / R10 Tooling reliability
   ↓
-Training / policy
+R11 Training security policy
   ↓
-Documentation / Curriculum sync
+R12 Current docs/curriculum
   ↓
-Final cross-layer regression
+R13 E2E historical/superseded docs after CI split
 ```
 
-### 推奨PR slice
+R4〜R12は依存がなければ別worktreeで並列化してよい。ただし同一fileを触るsliceはserializeする。
 
-| Slice | Suggested branch | Findings | Dependency |
-|---|---|---|---|
-| R1 | `fix/checkout-result-state-integrity` | REP-002 | none |
-| R2 | `fix/native-customer-session-boundaries` | REP-001, REP-006 | R1 independent |
-| R3 | `feat/native-storefront-contract-parity` | MNT-001, REP-003 | R2 + DG-01 |
-| R4 | `fix/web-search-suggestion-open-state` | REP-004 | none |
-| R5 | `fix/cart-item-ownership-invariant` | REP-005 | keep minimal due Phase 3 plan |
-| R6 | `fix/auth-visual-state-contract` | REP-007 | none |
-| R7 | `test/cross-role-shipment-oracle` | REP-012 | none |
-| R8 | `fix/native-production-bundle-guard` | MNT-003 | none |
-| R9 | `fix/agentic-qa-patch-portability` | MNT-002, REP-018 | none |
-| R10 | `test/windows-contract-timeout-budget` | REP-011 | after isolated measurement |
-| R11 | `fix/web-export-artifact-validation` | MNT-004 | avoid unconditional cache clear first |
-| R12 | `fix/generated-image-manifest-drift` | REP-015 | none |
-| R13 | `fix/training-workflow-action-pinning` | REP-016 | may touch same Training files as DG-02; serialize |
-| R14 | `docs/current-qa-contract-alignment` | REP-008, REP-009/014, REP-010 | after Cross Browser CI split implementation |
-| D1 | decision only | REP-013 | DG-02 |
-| D2 | decision/settings or code | REP-017 | DG-03 |
-| D3 | decision/test only | MNT-005 | DG-04 |
+## 7. 実装タスク
 
-### 実行タスク
+### Wave 0 — Rebaseline
 
-#### Wave 0 — Rebaseline / conflict check
+- [ ] 最新`main`へrebaseし、Findingが他PRで既に修正されていないか確認する。
+- [ ] `qa-training-store-ci-chromium-required-cross-browser-split`の状態と変更範囲を確認する。
+- [ ] 各sliceを`open / already-fixed / changed-by-other-work`へ再分類する。
+- [ ] 実装時はRepository契約に従って必要なRun Artifactを初期化する。
 
-- [ ] 1. 実装開始時の最新`main`へrebaseし、PR #35 ReportとCurrent sourceの差分を再確認する。
-- [ ] 2. `qa-training-store-ci-chromium-required-cross-browser-split`およびPhase 3関連作業との変更ファイル重複を確認する。
-- [ ] 3. 各Findingを`open / already-fixed / changed-by-other-work / decision-required`へ再分類する。
-- [ ] 4. Active implementation runをRepository契約どおり初期化し、slice単位でTASKS/REPORTを更新する。
+### Wave 1 — R1 Checkout result state integrity
 
-#### Wave 1 — R1 Checkout result state integrity（最優先）
-
-- [ ] 5. Web/Nativeで利用できるOrder detail DTOの`orderStatus`、ownership、action versionを確認する。
-- [ ] 6. URL route kindをExpected stateとして信用せず、取得したOrder stateとの整合を判定する共通方針を決める。
-- [ ] 7. Web Complete/Failedで、missing order / opposite state / unauthorized orderをsafe stateへ落とす。
-- [ ] 8. Failed画面のRetryは`payment_failed`等のretry可能stateだけで表示・実行可能にする。
-- [ ] 9. Native CompleteもOrder lookupを必須にし、missing `orderId`でsuccess表示しない。
-- [ ] 10. Native FailedもOrder stateを確認してからfailure/retry UIを出す。
-- [ ] 11. Web/Native component testへpaid→failed URL、failed→complete URL、missing ID、ownership negativeを追加する。
-- [ ] 12. Formal E2E/Native flowは正常checkout pathを維持し、direct result boundaryのfocused regressionを追加する。
+- [ ] Web/Nativeで既存Order DTOからownership、`orderStatus`、retry可能状態を確認する。
+- [ ] route `complete/failed`を状態の正本として信用しない。
+- [ ] Web Complete/Failedはpersisted Order stateとroute expectationを照合し、不一致・missing・unauthorizedをsafe error/not-foundへ送る。
+- [ ] Retryは`payment_failed`等の実際にretry可能なstateだけで表示する。
+- [ ] Native Completeは`orderId`を必須境界として扱い、Order lookupなしに成功表示しない。
+- [ ] Native FailedもOrder stateを照合する。
+- [ ] paid→failed route、failed→complete route、missing ID、ownership negativeをRegression Testへ追加する。
 
 実装原則:
-- 新しいPayment state machineは作らない。
-- Existing `getMyOrder` / current DTOを使う。
-- Retry idempotency contractを弱めない。
+- 新Payment State Machineを作らない。
+- Existing Order DTO / use caseを使用する。
+- Retry idempotencyを弱めない。
 
-#### Wave 2 — R2 Native Customer session / authorization boundary
+### Wave 2 — R2 Native Customer session / route boundary
 
-- [ ] 13. Catalog actorをCurrent Sessionから解決できる既存Identity abstractionへ接続する。Webのactor resolutionを参考にするがNative-specific storage boundaryを壊さない。
-- [ ] 14. Guest / Customer / unsupported roleのCatalog viewer mappingをcontract testで固定する。
-- [ ] 15. Native ShellにCustomer-only route classificationを追加するか、既存route metadataから共通判定できる最小構造を採用する。
-- [ ] 16. Guest direct Customer routeはLoginへ、unsupported roleは既存Native対象外boundaryへ送る。
-- [ ] 17. Profile / Addresses / Orders / Checkoutの主要deep link negative casesを追加する。
-- [ ] 18. Gold/Platinum Customerのrank visibility / membership priceをNative repository/component/runtimeで検証する。
+- [ ] Catalog viewerをCurrent Sessionから解決する既存Identity abstractionへ接続する。
+- [ ] Guest / regular / gold / platinumのviewer/rank mappingをContract Testで固定する。
+- [ ] Native Customer-only route判定をShell/route boundaryへ集約する。
+- [ ] Guest direct Customer routeはLoginへ送る。
+- [ ] unsupported management roleは既存Native unsupported boundaryへ送る。
+- [ ] Profile / Address / Order / Checkoutの代表deep link negative caseを追加する。
+- [ ] Gold/Platinumのrank visibility / membership pricingをNative Component/Runtimeで確認する。
 
-実装原則:
-- 各Screenで個別に`auth.required`をcatchしてredirectしない。
-- Native Admin supportを増やさない。
+各Screenへ個別redirect logicを複製しない。
 
-#### Wave 3 — R3 Native Storefront contract parity
+### Wave 3 — R3 Native Storefront contract parity
 
-- [ ] 19. DG-01を再確認する。Current Specが変わっていなければ共通Storefront contractを採用する。
-- [ ] 20. Missing capabilityをSuggestion、Brand、Price range、Pagination、Facet countへ分解する。
-- [ ] 21. `CustomerCatalogGateway` / Native service surfaceへSuggestion等、Current Specで必要なcapabilityを追加する。
-- [ ] 22. Catalog/Search screenでcurrent request fieldsを固定empty/nullにせずUI stateから渡す。
-- [ ] 23. Page/total/facetのUIをNativeの既存Design Systemで最小実装する。
-- [ ] 24. Native Component / Contract / Maestroへ各capabilityの代表Regressionを追加する。
-- [ ] 25. Web/Native共通Business semanticsは共有Application layerで保証し、UI pixel parityは要求しない。
+- [ ] Current Storefront Specが変更されていないことを再確認する。Known Deviationが無ければそのまま実装する。
+- [ ] Suggestion、Brand、Price range、Pagination、Facet/totalをCurrent service surfaceへ最小追加する。
+- [ ] Native Catalog/Searchの固定`[]`/`null`/`page: 1`をUI stateへ接続する。
+- [ ] Product List/SearchでユーザーがCurrent Contractのfilter/pageを操作できる最小UIを実装する。
+- [ ] Underlying SQLite/Application contractを再利用し、Web UIをpixel-copyしない。
+- [ ] Native Component / Contract / Maestroへ代表Regressionを追加する。
 
-注意:
-- このWaveはR2より大きいため、SuggestionとFilter/Paginationを2PRへ分割してもよい。
-- Current Specを縮小するOwner Decisionが入った場合は実装を止め、Spec/Known Deviation更新を別Planとして扱う。
+必要ならSuggestionとFilter/Paginationを別PRへ分割してよい。
 
-#### Wave 4 — R4 / R5 Web behavior and persistence
+### Wave 4 — R4 Web Search Suggestion
 
-- [ ] 26. Search ComboBoxでasync items到着後のopen-stateをReact Aria contractに沿って制御し、typingだけでpointer/touch/keyboardユーザーが候補を認識できるようにする。
-- [ ] 27. 2文字未満、0 suggestions、stale request、Enter search、Arrow navigationの現行挙動を維持する。
-- [ ] 28. Component testはArrowDownを前提にせず、通常typing後のpopup stateをassertする。
-- [ ] 29. Dexie Cart update/deleteで`currentItem.cartId === currentCart.id`をmutation前に検証する。
-- [ ] 30. 2 Cartを使ったforeign item negative repository contractを追加し、Native/Web error semanticsを必要な範囲で揃える。
-- [ ] 31. Phase 3 Backend計画へ先回りしてRepository abstractionを再設計しない。
+- [ ] async suggestion到着後のComboBox open-stateをReact Aria contractに沿って制御する。
+- [ ] 2文字未満、no-result、stale async request、Enter、Arrow navigationを維持する。
+- [ ] Component Testを「ArrowDownしない通常typing」から開始し、候補がdiscoverableになることをassertする。
+- [ ] pointer/touch/keyboardの代表interactionをRuntimeで確認する。
 
-#### Wave 5 — R6 / R7 QA oracle and Specification
+### Wave 5 — R5 Cart ownership invariant
 
-- [ ] 32. Authentication `validation-error` visual referenceが実際にrequired-field validationを表すことを正本化する。
-- [ ] 33. `storage-write-failure`を別Important Stateとして保証する必要があるか、既存BR/AC/Application error contractを確認する。
-- [ ] 34. 必要ならstorage failure用scenario/capture/assertionを追加し、不要なら誤ったscenario mappingを解消する。
-- [ ] 35. Visual asset rename/regenerationが必要な場合、Screen Catalog/Visual Specificationの既存promotion contractに従う。
-- [ ] 36. Flow Jの初期shipment stateを明示assertし、`button existsなら実行、無ければskip`を廃止する。
-- [ ] 37. `not_started`ならtransitionを実行して結果assert、既に許可済みstateならそのstateを明示assertする。想定外stateはFAILする。
-- [ ] 38. MNT-005はDG-04の結論が出た場合のみ、review body literal/reload assertionを別sliceで追加する。
+- [ ] Dexie update/deleteでmutation前に`currentItem.cartId === currentCart.id`を検証する。
+- [ ] 2 Cart + foreign item negative repository testを追加する。
+- [ ] Native SQLと同等のownership semanticsを必要な範囲で合わせる。
+- [ ] Phase 3 Backendへ先回りしたRepository abstraction再設計はしない。
 
-#### Wave 6 — Tooling / CI reliability
+### Wave 6 — R6 Login visual/spec mapping
 
-##### R8 Native Production Bundle Guard
+- [ ] `SCREEN-AUTH-LOGIN/validation-error`のCondition/Scenarioを実際の`submit empty login form` required validationへ合わせる。
+- [ ] Visual RegistryとSpecのState slug / Expected UI / setupが同じ意味になることを確認する。
+- [ ] 既存BR/ACがStorage Failure Canonical Visualを要求していない限り、新Scenario・新Screenshotは追加しない。
+- [ ] `validate:spec` / visual contractを通す。
 
-- [ ] 39. Automation/Production boundaryで本当に保証したいContractを、`marker raw bytes`ではなく`module resolution + runtime unavailability`として再定義する。
-- [ ] 40. Hermes `.hbc`をUTF-8 substring scanする現在方式を除去または補助Evidenceへ降格する。
-- [ ] 41. Existing static module-resolution contractとProduction Runtime/Test Control unavailable checkでfail-closeできる最小構造を選ぶ。
-- [ ] 42. CIとlocal guardで同じContractを検証し、Automation正常bundleをfalse negativeにしない。
-- [ ] 43. ProductionへTest Control/Harnessが漏れた場合に確実にFAILするnegative fixture/contractを維持する。
+### Wave 7 — R7 Flow J false-green
 
-##### R9 Agentic QA patch portability
+- [ ] `button existsならtransition、無ければskip`を廃止する。
+- [ ] Initial shipment/order stateを明示assertする。
+- [ ] transition前stateなら操作して結果をassertする。
+- [ ] 既に許可されたpost-stateならそのstateを明示assertする。
+- [ ] 想定外stateはFAILする。
 
-- [ ] 44. patch artifactのLF contractを明示し、Git attributes / generation / validationのどこで保証するか1箇所に決める。
-- [ ] 45. full preparation/buildより前に`git apply --check`相当のfast preflightを実行する。
-- [ ] 46. strictnessを保ったままWindows/Linuxで同じsemantic patchが適用可能になるようnormalization boundaryを実装する。
-- [ ] 47. `--ignore-whitespace`を無条件採用してmalformed patchを通す修正はしない。
-- [ ] 48. Windows line-ending caseとLinux LF caseをdeterministic testで固定する。
+### Wave 8 — R8 Native Production Bundle Guard
 
-##### R10 Contract timeout budget
+- [ ] `AC-NATIVE-002`のMarker / Module / Screen / Service非存在Contractを維持する。
+- [ ] Hermes `.hbc`をUTF-8 raw textとして読む現在方式を置き換える。
+- [ ] Existing static module-resolution contract、no-bytecode projection、runtime Test Control unavailable、Hermes-aware inspection等を比較し、最小でfail-closeする組合せを選ぶ。
+- [ ] Automation buildをfalse negativeにしないPositive Controlを追加する。
+- [ ] ProductionへTest Control/Harnessが漏れた場合にFAILするNegative Controlを維持する。
+- [ ] Toolを通すためにNormative guaranteeを弱めない。
 
-- [ ] 49. Hook subprocess case / Android visual batch caseを個別に測定し、安定p95とfixture costを取得する。
-- [ ] 50. fixture costを下げられる場合は先に削減する。
-- [ ] 51. 必要なcaseだけper-test timeoutを設定し、Vitest global timeoutを無意味に引き上げない。
-- [ ] 52. timeout時も「assertion failure」と「budget timeout」が判別できるdiagnosticを維持する。
+### Wave 9 — R9 Agentic QA patch portability
 
-##### R11 Web export artifact validation
+- [ ] Patch artifactのLF contractを明示する。
+- [ ] line-ending normalization boundaryを1箇所に限定する。
+- [ ] 高コストPreparation前にstrict `git apply --check`相当のfast preflightを入れる。
+- [ ] malformed patchを許容する`--ignore-whitespace`常用はしない。
+- [ ] Windows CRLF checkout caseとLinux LF caseをdeterministic testで固定する。
 
-- [ ] 53. Build outputへminimum route/runtime presence checkを追加し、route-less artifactをBuild successとして後段へ渡さない。
-- [ ] 54. `--clear`を常時強制する前に、deterministic validationで異常artifactをfail-fastできるかを優先する。
-- [ ] 55. clean/warm cache controlをfocused test/scriptで確認する。
+### Wave 10 — R10 Windows contract timeout
 
-##### R12 Generated image manifest drift
+- [ ] 対象2系統だけをWindowsで2〜3回程度boundedに再実行する。
+- [ ] PNG fixture生成等のcostを簡単に削減できる場合は先に削減する。
+- [ ] それでも5秒境界へ到達するcaseだけexplicit per-test timeoutを設定する。
+- [ ] global Vitest timeoutは変更しない。
+- [ ] retryでGreenにしない。
 
-- [ ] 56. Generator outputをmemory/tempへ生成し、committed TS/JSONと比較するread-only checkを追加する。
-- [ ] 57. `generate`（意図的更新）と`check`（CI検証）を分離する。
-- [ ] 58. `build:web`がtracked filesを暗黙上書きしてdrift Evidenceを消さない構成にする。
-- [ ] 59. Config / JSON / TypeScriptの3者が同じsourceから決定的に一致するContract testを追加する。
+p95測定や性能Benchmark基盤は作らない。
 
-#### Wave 7 — Training / Security policy
+### Wave 11 — R11 Training action pinning
 
-##### R13 Training action pinning
+- [ ] Training templateの各remote actionについて、**現在使用しているversion/tagに対応するexact commit SHA**を確認する。
+- [ ] 同じversionのfull SHAへpinする。
+- [ ] 今回のFinding対応を理由にAction version upgradeを行わない。
+- [ ] SHA横のcommentでversion readabilityを維持する。
+- [ ] `APPROVED_TRAINING_ACTIONS`をexact SHA allowlistへ変更する。
+- [ ] mutable tagを拒否するContract Testを追加する。
 
-- [ ] 60. Training templatesのremote action tagsを、Current approved production workflowと同じfull SHA policyへ合わせる。
-- [ ] 61. Human readabilityはSHA横のversion commentで維持する。
-- [ ] 62. `APPROVED_TRAINING_ACTIONS`をexact full SHA allowlistへ更新する。
-- [ ] 63. Training Copy validationがmutable `@v4`等を拒否するnegative contractを追加する。
+### Wave 12 — R12 Current Design / iOS Curriculum alignment
 
-##### D1 REP-013
+#### REP-008
 
-- [ ] 64. raw expected-failure workflowと`check-expected-failure` wrapperの責務をDG-02で確定する。
-- [ ] 65. Intentional red CI exerciseならmachine contractを維持し、Curriculumへ役割差を明記する。
-- [ ] 66. Evidence Contractをgreenで保証することが正本ならWorkflowをwrapperまたはequivalent fail-closed checkへ変更する。
-- [ ] 67. Owner Decision前に`if-no-files-found: warn`だけを単独で変更して意味を混ぜない。
+- [ ] Current executable token/breakpoint/image ratioを正本として`docs/05_ui/design_system.md`を同期する。
+- [ ] Codeを古いDocument値へ戻さない。
+- [ ] このFindingだけのためにtoken→Markdown自動生成基盤を作らない。
 
-#### Wave 8 — D2 Native main assurance
+#### REP-010
 
-- [ ] 68. GitHub Ruleset / Branch Protectionの実設定を確認する。
-- [ ] 69. Direct main push禁止 + Native PR check requiredが保証されているならRepository docsへ契約を明記し、push Native CIを追加しない。
-- [ ] 70. Direct pushが許可される運用なら、Ruleset強化を第一候補にし、必要な場合のみNative CI `push: main`を追加する。
-- [ ] 71. 高コストNative CIの二重実行を避けるため、PR Gateとpost-merge Gateの目的を分離する。
+- [ ] iOS CurriculumをCurrent reusable Build-only Required Gateへ同期する。
+- [ ] `workflow_call` + Native `verify` dependencyを正しく説明する。
+- [ ] iOS Runtime/Maestro保証へ拡大しない。
 
-#### Wave 9 — Documentation / Curriculum alignment
+REP-010はCross Browser CI splitを待つ必要はない。
 
-- [ ] 72. Cross Browser CI splitの実装状態を確認し、古いCI構造を先に文書化しない。
-- [ ] 73. `docs/05_ui/design_system.md`をCurrent executable tokens / breakpoint / image ratioへ同期する。Code側を古いDocument値へ戻さない。
-- [ ] 74. `docs/08_testing/e2e_design.md`をCurrent/Supersededのどちらか明確に分類する。Currentとして残す場合は最新suite/triggerへ更新する。
-- [ ] 75. REP-009 / REP-014は1 Root Causeとして一度だけ直す。
-- [ ] 76. CurriculumのiOS gate説明をCurrent reusable Build-only Required Gateへ同期し、Runtime/Maestro保証へ拡大しない。
-- [ ] 77. DG-02の結論がCurriculumへ影響する場合、Expected Failure lessonも同じPRで同期する。
-- [ ] 78. `docs/PROJECT_CONTEXT.md`のliving contractを更新し、Repository ruleに従ってhistory / ADRが必要な変更だけ記録する。
+### Wave 13 — R13 E2E design supersession
 
-#### Wave 10 — Final cross-layer verification
+Cross Browser CI split実装後に行う。
 
-- [ ] 79. Finding→Fix→Regression test mappingをRoot Cause単位で確認する。
-- [ ] 80. Web Product fixesはPlaywright focused runtimeで再現不能になったことを確認する。
-- [ ] 81. Android Native Product fixesはCurrent canonical Native pathでComponent/Contract/Maestroを確認する。
-- [ ] 82. Tooling fixesはWindows/Linux差、Hermes/JS差、clean/warm cache差を対象のcontrolとして確認する。
-- [ ] 83. `pnpm run verify`と該当Native CI / Phase 1 CIを実行し、未実行をPASS扱いしない。
-- [ ] 84. PR #35のHistorical Reportは変更せず、各PR本文/Run Artifactへ対応Finding IDとvalidation evidenceを残す。
+- [ ] `docs/08_testing/e2e_design.md`をCurrent documentとして継続更新する必要があるか確認する。
+- [ ] Defaultは**Historical / Superseded classification**とし、Current CI正本へのリンクを明示する。
+- [ ] Currentとして残す明確な理由がある場合だけ、最新suite/count/triggerへ更新する。
+- [ ] REP-009 / REP-014は1 Root Causeとして一度だけ対応する。
 
-## 6. 検証方法
+古い固定test countを今後も手動同期し続ける設計は避ける。
 
-### Validation plan
+## 8. 確認タスク
 
-#### Global baseline
+### C1 — REP-013 Training expected-failure responsibility
 
-各sliceで変更範囲に応じて以下を使用する。
+コード変更を前提にしない。
+
+- [ ] raw `training:web:expected-failure`が「CIで意図的に赤いFailureを体験する入口」、wrapperが「Expected Failure Evidence Contract Checker」という責務分離か確認する。
+- [ ] Current machine contractと教材意図が一致するならコードは変更しない。
+- [ ] 必要ならCurriculumへ役割差を短く明記する。
+- [ ] 明確なOwner/Contract Evidenceがない状態でWorkflowをwrapperへ置換しない。
+
+### C2 — REP-017 Native main assurance
+
+- [ ] GitHub Ruleset / Branch Protection実設定を確認する。
+- [ ] `main` direct push禁止 + Native PR check requiredなら変更なし。
+- [ ] direct pushが許可される場合だけ、Ruleset強化を第一候補として検討する。
+- [ ] push Native CI追加はRulesetだけで保証できない場合の次案とする。
+
+高コストNative CIを理由なくPR後・push後の二重実行にしない。
+
+## 9. Deferred / No-op
+
+### MNT-004 — Web stale Metro cache
+
+Current implementation taskへ入れない。
+
+追加対応する条件:
+
+1. clean GitHub-hosted runnerまたはcontrolled clean environmentでroute-less exit 0が再現する、または
+2. existing smokeより前の段階でinvalid artifactが実運用上流出するEvidenceが得られる。
+
+条件を満たさなければclose/deferする。
+
+### REP-015 — Generated image manifest
+
+Current filesは同期済みで、Current validatorもhash/metadata/config整合を検証している。
+
+実際のdrift事故、レビュー事故、CIでのsource overwrite問題がmaterial化するまではFollow-up improvementとして保持する。
+
+### MNT-005 — Native Review oracle
+
+Exact body mappingはComponent Testで既に保証されている。Maestroは実機上のReview save journeyを保証する責務として扱う。
+
+IMEによる入力変換だけを理由にMaestroへLower-layer assertionを重複追加しない。
+
+### REP-019
+
+Repository changeなし。
+
+## 10. MCP / Runtime検証方針
+
+### 10.1 原則
+
+Product/UI/Nativeの修正では、利用可能であれば**Playwright-MCP / Maestro-MCPを積極的に使用する**。
+
+MCPは単なる既存Test再実行の代替ではなく、修正対象Behaviorを実際に操作して確認するために使う。
+
+Static analysis / Unit / Component / Contract TestがPASSしていても、Runtime behaviorがFindingの中心ならそれだけで完了扱いにしない。
+
+### 10.2 Playwright-MCP
+
+Web関連では可能な範囲で以下を確認する。
+
+- 実BrowserでMain pathとFinding reproduction pathを操作する。
+- Direct URL / reload / back / repeated actionを必要に応じて確認する。
+- pointer / keyboard / touch相当のinteractionを確認する。
+- Error / Empty / opposite-state / unauthorized boundaryを確認する。
+- DOM/ARIA snapshotだけで終わらずRendered UIを実際に視覚確認する。
+
+対象Slice:
+
+- R1 Checkout result integrity
+- R4 Search Suggestion
+- R7 Flow J
+- 必要に応じてR6 visual/spec mapping
+
+### 10.3 Maestro-MCP
+
+Native関連では可能な範囲で以下を確認する。
+
+- launch / deep link / navigation
+- login/session
+- tap / input / scroll
+- state transition
+- invalid direct route
+- reload/relaunch/persistenceがRelevantな場合
+- Gold/Platinum rank behavior
+- Storefront Suggestion/Filter/Pagination
+- Checkout Complete/Failed boundary
+
+対象Slice:
+
+- R1 Native Checkout
+- R2 Native session / authorization
+- R3 Native Storefront
+- R8 Production boundaryでRuntime確認が適用可能な部分
+
+### 10.4 Visual Inspection
+
+MCPで画面を取得できる場合、実際のRendered UIを視認する。
+
+最低限確認する。
+
+- false success / false failure表示が残っていないか
+- missing/unauthorized stateが正常画面に見えないか
+- Search popupがtyping後に表示されるか
+- Native Filter/Paginationが操作可能か
+- error/retry UIが正しいstateでだけ出るか
+- layout overlap / clipping / text truncation / modal overflow等の副作用がないか
+
+主観的なデザイン改善はFinding対応へ混ぜない。
+
+### 10.5 MCPが利用不能な場合
+
+- 利用不能理由をRun Artifact / PRへ記録する。
+- 未実行をPASS扱いしない。
+- Existing CLI / Playwright / Maestro / ADB等の最も近いRuntime手段で代替する。
+- MCP環境構築だけのために本PlanのScopeを広げない。
+
+## 11. Slice別Validation
+
+### Global
+
+変更範囲に応じてFocused Validationを先に行い、PR完了時はRepository Required Gateを省略しない。
+
+候補:
 
 ```text
 pnpm run format:check
 pnpm run lint:markdown
+pnpm run validate:spec
+pnpm run validate:curriculum
 pnpm run lint
 pnpm run typecheck
 pnpm run test:unit
@@ -509,209 +441,200 @@ pnpm run test:component:native
 pnpm run test:contracts
 ```
 
-全コマンドを全sliceで機械的に毎回実行するのではなく、focused validation → Repository Required Validationの順に行う。PR完了時はRepository contract上のRequired Gateを省略しない。
-
-#### R1 Checkout
+### R1 Checkout
 
 - Web component:
-  - paid order + `/failed`
-  - payment_failed order + `/complete`
+  - paid order + failed route
+  - failed order + complete route
   - missing orderId
   - unauthorized/not-found
-  - retry visible only in retryable state
+  - retryable state only
 - Native component:
-  - Complete missing ID does not show success
+  - missing ID does not show success
   - opposite state does not show false result
-  - Failed retry only for valid failed state
-- Runtime:
-  - normal success
-  - payment failure → retry → complete
-  - direct result URL/deep link boundary
+  - Failed retry only in retryable state
+- Playwright-MCP:
+  - opposite-state direct URLs
+  - normal checkout success/failure
+- Maestro-MCP:
+  - Complete/Failed deep-link boundary
+  - payment retry journey
+- Rendered result screenを視覚確認する。
 
-#### R2/R3 Native
+### R2 Native session / authorization
 
 - Native component/service contract
-- repository contract
-- route dependency check
-- Runtime/Boundary Suite
-- Maestro representative flows
-- Gold/Platinum rank visibility/price
-- direct Guest Customer route
-- Search filter/pagination representative state
+- Guest/regular/gold/platinum actor mapping
+- Guest direct Customer route
+- unsupported management role
+- Maestro-MCPでdeep link/login/rank behaviorを確認
+- Gold/Platinumの表示価格・rank visibilityを実画面確認
 
-#### R4/R5 Web
+### R3 Native Storefront
 
-- Search ComboBox component normal typing / no-result / stale async request
-- Chromium focused E2E for pointer/keyboard
-- Dexie 2-cart foreign-item repository test
+- Native Component / Contract
+- Suggestion / Brand / Price / Pagination代表case
+- many-products scenario
+- Maestro-MCPで実際にFilter/Pageを操作
+- total/resultが選択条件に一致することを確認
+- Rendered filter controlsと結果を視覚確認
 
-#### R6/R7 Oracle
+### R4 Search Suggestion
 
-- `validate:spec`
-- `validate:spec-visuals:final` when visual registry/assets change
-- focused UI Review capture
-- Flow J focused E2E ensuring no silent branch
+- Component normal typing / no result / stale async request
+- Playwright-MCPで通常typingのみからpopupが開くことを確認
+- mouse/pointer、keyboard、mobile-widthで代表caseを確認
+- `aria-expanded`だけでなく実際に候補が画面表示されることを確認
 
-#### R8 Native bundle guard
+### R5 Cart
 
-- automation resolution positive
-- production resolution negative
+- 2 Cart foreign-item Repository Test
+- 正常update/delete regression
+
+### R6 Spec/Visual
+
+- `pnpm run validate:spec`
+- `pnpm run validate:spec-visuals:final`
+- 必要な場合だけPlaywright-MCPでempty submit stateを再確認
+
+### R7 Flow J
+
+- focused Playwright run
+- Playwright-MCPでtransition前後の実状態を確認可能なら確認
+- Missing controlでsilent PASSしないこと
+
+### R8 Native Bundle Guard
+
+- Automation Positive Control
+- Production Negative Control
 - Hermes current output
-- production Runtime/Test Control unavailable path
-- contract negative fixture
+- module/surface contract
+- Runtime Test Control unavailable確認が適用可能なら実施
 
-#### R9 Agentic QA
+### R9 Agentic QA
 
+- fast strict patch preflight
 - `pnpm run test:agentic-qa:preparation`
-- strict apply preflight
-- Windows EOL fixture/control
+- Windows EOL fixture
 - Linux CI control
-- full preparation only after fast preflight passes
 
-#### R10 Timeout
+### R10 Timeout
 
-- isolated affected tests multiple bounded runs
+- affected testsをWindowsでbounded repeat
 - no retry-based green
-- current Ubuntu CI still green
+- global timeout unchanged
 
-#### R11 Web artifact
+### R11 Training Action pinning
 
-- stale/warm cache reproduction fixture or controlled condition
-- route presence validation fails bad artifact
-- normal automation/production artifact passes
-- production smoke remains green
-
-#### R12 Generated manifest
-
-- deliberate temp drift negative test
-- committed generated TS/JSON positive check
-- build does not silently change tracked source
-
-#### R13 Training security
-
-- training workflow contract
+- Training workflow contract
 - mutable tag negative test
 - Training Web baseline
-- Native Training baseline when applicable
+- Native Training baseline when relevant
+- versionが変更されていないことをdiffで確認
 
-#### Docs/Curriculum
+### R12 / R13 Docs
 
 - `pnpm run lint:markdown`
 - `pnpm run validate:curriculum`
-- `pnpm run validate:spec` where linked contracts change
-- path/command/workflow references are current after dependent CI work
+- `pnpm run validate:spec` when relevant
+- Path/command/workflow referencesをCurrent Repositoryと照合
 
-### 成功判定
+## 12. 成功判定
 
-- P0/P1 Findingの再現手順が修正後に失敗し、対応Regression TestがPASSする。
-- Test/Tooling Findingは「テストを弱める」「retryで隠す」「global timeoutを上げる」ことなく解消する。
-- Decision Gate項目はEvidenceとOwner Decisionが明示されるまで実装しない。
-- No-op / Reject itemを変更しない。
+- P0/P1 Product Findingの既存再現手順が修正後に再現しない。
+- 対応Regression TestがPASSする。
+- Product/UI/Native Findingは、MCPが利用可能な場合MCP Runtime確認まで完了する。
+- 実画面確認が可能なFindingではRendered UIを確認する。
+- Test/Tooling修正でassertionを弱めていない。
+- global timeout / retry / cache clearで問題を隠していない。
+- Deferred itemを「ついで」に実装していない。
+- Action pinningにversion upgradeを混ぜていない。
+- MNT-003でNormative Production Contractを弱めていない。
 - Current Required CIがGreen。
-- Native変更時はNative CIの実Jobを実行し、docs-only skipをNative validationの代替にしない。
+- Native変更時はNative CIの実Jobを実行し、docs-only skipを代替にしない。
 
-## 7. リスクと未解決論点
-
-### Risks
+## 13. リスク
 
 1. **Native Storefront scope creep**
-   - Current common specを機械的に全UIへコピーすると大きくなり得る。
-   - 対策: Business capability parityとpixel/UI parityを分離し、DG-01でsemantic contractだけを確定する。
-2. **Checkout修正の過剰抽象化**
-   - Result resolver用の新frameworkを作ると単純なstate validationより複雑になる。
-   - 対策: existing Order DTO + small pure helperを優先する。
+   - 対策: semantic contract parityだけを要求し、Web UI pixel parityは要求しない。
+2. **Checkout過剰抽象化**
+   - 対策: Existing Order DTO + small state checkを優先する。
 3. **Native auth guard重複**
-   - 各Screenでredirectすると将来driftする。
    - 対策: Shell/route boundaryへ集約する。
 4. **Hermes guard弱体化**
-   - raw scanを削るだけではProduction leak検出が弱くなる。
-   - 対策: static resolution contractとruntime unavailable verificationの二層を保つ。
+   - 対策: ToolをContractへ合わせ、ContractをToolへ合わせない。
 5. **Patch strictness低下**
-   - `--ignore-whitespace`だけで直すとmalformed patchを通す可能性がある。
-   - 対策: LF normalization/provenanceを先に直し、strict applyを維持する。
-6. **Flakeをtimeout増加で隠す**
-   - REP-011/MNT-004を雑にtimeout/cache clearで回避するとroot causeが残る。
-   - 対策: fail-fast validationと対象cost削減を優先する。
+   - 対策: LF normalization/provenanceを直し、strict applyを維持する。
+6. **Timeout対応の過剰調査**
+   - 対策: 2〜3回のbounded reproductionで十分。Benchmark基盤を作らない。
 7. **Concurrent CI workとの競合**
-   - Cross Browser CI splitが`.github/workflows/ci.yml`やdocs/testsを更新する。
-   - 対策: CI/E2E documentation sliceはその実装後にrebaseして実施する。
+   - 対策: REP-009/014だけCross Browser CI split後に処理する。
 8. **Phase 3 Backendとの二重投資**
-   - Web Dexie層を大幅再設計すると将来Backend移行で捨てる可能性がある。
-   - 対策: REP-005はownership predicate + contract testの最小修正に限定する。
-9. **Historical audit reportの可読性悪化**
-   - closureのたびにReportへ追記すると監査Evidenceが実装ログ化する。
-   - 対策: ReportはHistoricalとして固定し、closureはPR/Run Artifactへ残す。
+   - 対策: REP-005は局所Invariantだけ修正する。
+9. **MCP availability依存**
+   - 対策: MCP unavailableはBlockerとして記録し、既存CLI等で代替。未実行をPASS扱いしない。
 
-### Open questions
-
-- DG-01〜DG-04のみ。各Decision Gateは独立sliceを止めるが、他sliceを止めない。
-
-## 8. 成果物
-
-### 今回のPlan branch
-
-- Branch: `plan/repository-audit-remediation`
-- Plan: `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
-
-### 実装時の主な成果物
-
-- Root CauseごとのProduct/Test/Tooling/Docs変更。
-- 既存Test Layerに沿ったRegression test。
-- 必要な場合のみ`docs/PROJECT_CONTEXT.md` / history / ADR更新。
-- Repository契約に従った`.codex/runs/<run_id>/`。
-
-### 変更しない成果物
-
-- PR #35の2つのAudit ReportはHistorical Evidenceとして原則変更しない。
-- REP-019のlocal PNGはRepository taskとして変更しない。
-
-## 9. 実装優先順位まとめ
+## 14. 優先順位
 
 ### Must Fix first
 
 1. REP-002 — Checkout result state integrity
-2. REP-001 — Native Customer session-aware rank/catalog semantics
-3. REP-006 — Native Customer route authorization boundary
-4. MNT-003 — Native Production Bundle Guard false negative
+2. REP-001 / REP-006 — Native session / route boundary
+3. MNT-001 / REP-003 — Native Storefront Current Contract parity
+4. MNT-003 — Native Production Bundle Guard
 5. MNT-002 / REP-018 — Windows Agentic QA patch portability
-6. REP-012 — Cross-role Flow J false-green
-7. REP-004 — Web Search Suggestion discoverability
+6. REP-012 — Flow J false-green
+7. REP-004 — Web Search Suggestion
 
-### Fix after boundary confirmation / next priority
+### Next
 
-8. MNT-001 / REP-003 — Native Storefront parity（DG-01）
-9. REP-005 — Web Cart ownership invariant
-10. REP-007 — Authentication visual/spec oracle
-11. REP-011 — Windows contract timeout budget
-12. MNT-004 — Web export artifact validation
-13. REP-015 — Generated manifest drift guard
-14. REP-016 — Training remote action pinning
+8. REP-005 — Cart ownership invariant
+9. REP-007 — Login spec/visual mapping
+10. REP-011 — Windows local timeout budget
+11. REP-016 — Training remote action SHA pinning
+12. REP-008 — Design System docs
+13. REP-010 — iOS Curriculum
 
-### Documentation / Curriculum after implementation dependencies settle
+### After dependent CI work
 
-15. REP-008 — Design System drift
-16. REP-009 / REP-014 — E2E design current/historical drift（1 Root Cause）
-17. REP-010 — iOS curriculum gate drift
+14. REP-009 / REP-014 — E2E design Historical/Superseded classification
 
-### Decision only before any code change
+### Confirmation only
 
-18. REP-013 — Training expected-failure responsibility
-19. REP-017 — Native main push assurance / GitHub settings
-20. MNT-005 — Native Review oracle scope
+- REP-013 — expected-failure responsibility
+- REP-017 — GitHub Ruleset / Branch Protection
 
-### Reject / no Repository implementation
+### Deferred / no change
 
-- REP-019 — pre-existing user-owned local PNG observation
-- Reconciled Integration timeout
-- Native Search default IME input conversion itself
-- favicon 404 from temporary server
-- manual image helper orphan candidate
+- MNT-004
+- REP-015
+- MNT-005
+- REP-019
 
-## 10. 実装時の停止条件
+## 15. 実装時の停止条件
 
-- P0/P1の1件を直しただけで全計画完了とはしない。
-- ただし全Root Causeを1つの巨大PRへ入れない。
-- 各sliceはfocused validationとRequired Gateを通したら独立してmerge可能とする。
-- Decision GateでOwner判断が必要になった場合、そのsliceだけ`BLOCKED`にし、独立sliceを進める。
-- 新しいMaterial Findingが出た場合、既存Root Causeのaffected areaか新Root Causeかを判定してからscopeへ追加する。
-- ついでのrefactor、dependency update、UI redesignは追加しない。
+- 全Root Causeを1つの巨大PRへ入れない。
+- 各sliceはFocused Validation + Required Gateを通したら独立merge可能とする。
+- MCPで新しいMaterial Findingを発見しても、今回Root Causeのaffected areaか別Root Causeかを判定してからScopeへ追加する。
+- 別Root Causeなら「ついで修正」せず別対応へ分離する。
+- Deferred itemは明確な追加Evidenceがない限り実装しない。
+- Dependency update、UI redesign、大規模Refactorを追加しない。
+
+## 16. 成果物
+
+### Plan branch
+
+- Branch: `plan/repository-audit-remediation`
+- Plan: `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+
+### 実装時
+
+- Root Causeごとの必要最小限のProduct/Test/Tooling/Docs変更。
+- 既存Test Layerに沿ったRegression Test。
+- Repository契約で必要なRun Artifact。
+- PR本文へFinding ID、Runtime/MCP検証、未実行項目、残Riskを記録する。
+
+### 変更しないもの
+
+- PR #35のAudit ReportはHistorical Evidenceとして原則変更しない。
+- Deferred / no-op項目をFinding数合わせのために実装しない。
