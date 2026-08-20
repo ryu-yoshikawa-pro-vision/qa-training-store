@@ -7,12 +7,14 @@
   - Firefox / WebKit の smoke は削除せず、Phase 1 CI から独立した非ブロッキング workflow へ分離する。
   - 2026-08-20 JST の GitHub Actions run `32272685727` で発生した Firefox / WebKit の OS dependency install 停止が、`verify` / `validate` を巻き込む構造を解消する。
 - 背景:
-  - `Extended E2E (firefox)` / `Extended E2E (webkit)` はテスト開始前の `playwright install --with-deps` で Ubuntu package mirror への apt 処理が進まず、30分 timeout で `cancelled` となった。
+  - `Extended E2E (firefox)` / `Extended E2E (webkit)` は、テスト開始前の `playwright install --with-deps` で Ubuntu package mirror への apt 処理が進まず、30分 timeout で `cancelled` となった。
   - Chromium 系 job は `playwright install chromium` に切り替えられており、同runでは主要な Chromium 系 job は成功した。
   - Firefox / WebKit は現状 `e2e/web/smoke.spec.ts` 1本ずつであり、主要な機能品質は Chromium E2E の方が広く深く検証している。
+  - PR #34 で `tests/contracts/ci-workflow.test.ts` に CI 構造の contract が追加され、現在の Firefox / WebKit matrix と `--with-deps` 分岐も明示的に固定されているため、workflow変更と同時に contract test の更新が必要である。
 - 期待成果:
   - PR / main push の必須品質ゲートが Firefox / WebKit の環境構築不調で失敗しない。
   - Firefox / WebKit のブラウザエンジン差分確認は、定期・手動の独立 workflow で継続する。
+  - CI contract test も変更後構成へ更新し、ローカルの `test:contracts` と CI の Vitest contracts が一致する。
   - CI設計変更を `docs/PROJECT_CONTEXT.md`、history、ADR、run artifact にも整合させ、リポジトリの正本ドキュメントを古い状態にしない。
 
 ## 1. ゴール / 完了条件
@@ -36,17 +38,22 @@ Phase 1 CI を Chromium 系の required quality gate として安定化し、Fir
 7. `Cross Browser Smoke` は `mcr.microsoft.com/playwright:v1.62.0-noble` を使用し、project側 `@playwright/test` とversionが一致している。
 8. `Cross Browser Smoke` は automation build を1回だけ行い、Firefox / WebKit を1回の Playwright invocation で実行する。
 9. `Cross Browser Smoke` に `PLAYWRIGHT_USE_PREBUILT_DIST=true` と既存 `build-automation` 相当のautomation envが設定されている。
-10. 新workflowは30分 timeoutを持つ。
-11. 新workflow YAML が既存 `yaml` package で parse できる。
-12. PR event の Phase 1 CI で `verify` / `validate` がsuccessになる。
-13. feature branch を指定した既存 `ci.yml` の `workflow_dispatch` で `Extended E2E (mobile-chromium)` / `verify` / `validate` がsuccessになる。
-14. `docs/PROJECT_CONTEXT.md` が変更後の現行CI状態を説明している。
-15. `docs/PROJECT_CONTEXT.md` 更新前の状態が `docs/history/` に既存規約どおり保存されている。
-16. Chromium required / Firefox・WebKit non-blocking / isolated Playwright container の設計判断が新規ADRに記録されている。
-17. 既存 `docs/adr/0002-ci-artifact-pipeline.md` は歴史的ADRとして書き換えず、新ADR側で関係性を説明している。
-18. `AGENTS.md` に従い、実装時のactive `.codex/runs/<run_id>/` を初期化または再利用し、PLAN / TASKS / REPORT 等の必要artifactへ判断・進捗・検証結果を記録している。
-19. Codex Run Artifact は完了前に既存sanitize契約に従って検証されている。
-20. アプリケーションコード、E2E test body、Playwright project definition、package versionに不要な変更がない。
+10. `Cross Browser Smoke` の checkout は既存CI契約どおり `persist-credentials: false` を明示する。
+11. 新workflowは30分 timeoutを持つ。
+12. 新workflow YAML が既存 `yaml` package で parse できる。
+13. `tests/contracts/ci-workflow.test.ts` の旧 `extended-e2e` matrix / `--with-deps` contract が変更後構成へ更新されている。
+14. `tests/contracts/ci-workflow.test.ts` が新しい `Cross Browser Smoke` の重要契約を focused test で固定している。
+15. `pnpm run test:contracts` がsuccessになる。
+16. PR event の Phase 1 CI で `verify` / `validate` がsuccessになる。
+17. feature branch を指定した既存 `ci.yml` の `workflow_dispatch` で `Extended E2E (mobile-chromium)` / `verify` / `validate` がsuccessになる。
+18. `docs/PROJECT_CONTEXT.md` が変更後の現行CI状態を説明している。
+19. `docs/PROJECT_CONTEXT.md` が「Phase 1 CI内のbuild-once artifact contract」と「独立Cross Browser Smoke内のbuild-once」を区別している。
+20. `docs/PROJECT_CONTEXT.md` 更新前の状態が `docs/history/` に既存規約どおり保存されている。
+21. Chromium required / Firefox・WebKit non-blocking / isolated Playwright container の設計判断が新規ADRに記録されている。
+22. 既存 `docs/adr/0002-ci-artifact-pipeline.md` は歴史的ADRとして書き換えず、新ADR側で関係性を説明している。
+23. `AGENTS.md` に従い、実装時のactive `.codex/runs/<run_id>/` を初期化または再利用し、PLAN / TASKS / REPORT 等の必要artifactへ判断・進捗・検証結果を記録している。
+24. Codex Run Artifact は完了前に既存sanitize契約に従って検証されている。
+25. アプリケーションコード、E2E test body、Playwright project definition、package versionに不要な変更がない。
 
 #### マージ後の運用開始確認
 
@@ -67,6 +74,10 @@ container pull failure、job timeout、runner cancellation など、artifact upl
 - `.github/workflows/ci.yml`
   - Phase 1 CI のrequired経路。
   - `pull_request`、`main` push、weekly schedule、`workflow_dispatch` を持つ。
+- `tests/contracts/ci-workflow.test.ts`
+  - `.github/workflows/ci.yml` の job / step 契約と、`.github/workflows/*` の remote action SHA pinning を固定する。
+  - PR #34 で `extended-e2e` の Chromium / non-Chromium install 分岐を contract 化している。
+  - 現状の `branches extended-e2e browser installation by the matrix browser` は今回の変更後には成立しないため更新必須である。
 - `playwright.config.ts`
   - `firefox-smoke` / `webkit-smoke` project を定義する。
 - `e2e/web/smoke.spec.ts`
@@ -74,8 +85,11 @@ container pull failure、job timeout、runner cancellation など、artifact upl
 - `package.json`
   - `@playwright/test: 1.62.0`。
   - `test:e2e:smoke:firefox` / `test:e2e:smoke:webkit` を保持する。
+  - `test:contracts` は `vitest run tests/contracts --no-file-parallelism --maxWorkers=1` を実行する。
 - `docs/PROJECT_CONTEXT.md`
   - リポジトリのliving documentであり、CI/CD構成と最新のQA/CI状態を保持する。
+  - 「Automation / Production の `dist/` はPhase 1 CI workflow内でそれぞれ一度だけBuildし、後続jobへartifact共有する」という既存契約を持つ。
+  - 全 Checkout は `persist-credentials: false` とする既存CI/CD契約を持つ。
 - `docs/adr/0002-ci-artifact-pipeline.md`
   - Phase 1 CI の並列job / artifact pipeline / `verify` / `validate` の既存設計判断を保持する。
 - `AGENTS.md` / `PLANS.md` / `.agents/skills/feature-plan/**`
@@ -104,16 +118,23 @@ validate
 
 ```text
 Phase 1 CI / required
+├─ build-automation ×1
+│  └─ web-dist-automation artifact
 └─ extended-e2e
    └─ mobile-chromium
 
 Cross Browser Smoke / non-blocking
 └─ 1 Playwright container job
-   ├─ automation build ×1
+   ├─ automation build ×1（このworkflow内だけ）
    └─ smoke.spec.ts
       ├─ firefox-smoke
       └─ webkit-smoke
 ```
+
+Cross Browser Smoke は別workflowであり、Phase 1 CI run の `web-dist-automation` artifact をworkflow横断で再利用しない。したがって「build once」は次の2つの独立した境界として扱う。
+
+- Phase 1 CI: workflow内で automation / production build を各1回生成しartifact共有する。
+- Cross Browser Smoke: 独立workflow内で automation buildを1回だけ生成し、そのまま同一jobのFirefox / WebKitへ使う。
 
 #### Key abstractions
 
@@ -124,6 +145,9 @@ Cross Browser Smoke / non-blocking
   - 現行matrixで表示されているcheck名を単一job化後も維持する。
 - `validate`:
   - Required Check互換性のため維持する。
+- `tests/contracts/ci-workflow.test.ts`:
+  - CI構造変更と同時に更新する必要があるrepo-local regression contract。
+  - 既存string-based helper / assertion方式を維持し、新しいparser / test frameworkは導入しない。
 - `PLAYWRIGHT_USE_PREBUILT_DIST=true`:
   - Playwright test時の `build:web` 再実行を防ぐ。
 - automation env:
@@ -165,11 +189,21 @@ Firefox / WebKit はどちらも `e2e/web/smoke.spec.ts` を実行する。
 
 そのため Firefox / WebKit を「Chromium smoke の完全な重複」とは扱わない。一方、automation build自体はChromiumのより広いPhase 1 E2Eで検証されているため、Firefox / WebKit smokeの主な追加価値はブラウザエンジン差分の確認である。
 
+現行 `tests/contracts/ci-workflow.test.ts` には少なくとも次の関連contractがある。
+
+- Chromium-only jobでは `playwright install chromium` を使う。
+- `extended-e2e` はmatrix browserに応じてChromium / non-Chromium installを分岐する。
+- 全remote workflow actionはfull-length commit SHAへpinする。
+- Phase 1 CIの後続consumerはdownload済みartifactを再buildしない。
+
+今回 `extended-e2e` のmatrix contractは意図的に変更するため、旧assertionを残してはいけない。
+
 #### Safe change surface
 
 今回安全に変更する範囲は次に限定する。
 
 - GitHub Actions workflow構成
+- CI contract test
 - CI/CDのliving documentation
 - PROJECT_CONTEXT history
 - CI方針を記録する新規ADR
@@ -183,6 +217,7 @@ Firefox / WebKit はどちらも `e2e/web/smoke.spec.ts` を実行する。
 - 実装時点で対応する official Playwright image exact tag が利用可能か。
 - 実装開始時にactive runが既に存在するか。
 - 実装時点でADR `0019` が未使用か。
+- 実装時点で `tests/contracts/ci-workflow.test.ts` に追加変更が入っていないか。
 
 これらは既存repo状態から実装時に確認できる。前提が崩れた場合は勝手に代替せず、本プランの該当箇所を再評価する。
 
@@ -192,6 +227,7 @@ Firefox / WebKit はどちらも `e2e/web/smoke.spec.ts` を実行する。
 - Firefox / WebKit は正式削除ではなく、non-blocking cross-browser smokeとして保持する。
 - Firefox / WebKit の現行1本ずつのsmoke規模では、build共有 + artifact + matrixの3-job構成より1-job構成を優先する。
 - 新workflow専用のSlack通知等は追加せず、GitHub Actionsの既存run確認運用で扱う。
+- CI contract testは既存のraw text / helper方式を踏襲し、新規YAML parserや別validator frameworkを導入しない。
 - 新規ADR番号は現在の連番上 `0019` を想定するが、実装時に使用済みなら次の空き番号を使う。
 
 ### Non-goals
@@ -210,6 +246,7 @@ Firefox / WebKit はどちらも `e2e/web/smoke.spec.ts` を実行する。
 - Playwright version不一致imageへのfallback
 - `latest` / canary imageへの無条件切替
 - cross-browser workflow専用通知基盤追加
+- CI contract test用の新しいparser / validator framework追加
 - 既存ADR-0002の履歴を書き換えること
 - 過去の `docs/PROJECT_CONTEXT.md` 内のPR #34等の歴史的記述を、今回の現行状態に合わせて改変すること
 
@@ -235,6 +272,7 @@ Firefox / WebKit はどちらも `e2e/web/smoke.spec.ts` を実行する。
 - PROJECT_CONTEXT historyのtimestampは実装時JSTで決める。
 - actionsのSHAは実装時の既存 `ci.yml` と同じpinを再利用する。
 - container user optionは初期実装では追加しない。実runで権限問題が確認された場合のみ再評価する。
+- CI contract testのtest名は既存命名規則に合わせて局所的に決めてよい。
 
 ### 未回答の重要質問
 
@@ -251,9 +289,10 @@ Firefox / WebKit はどちらも `e2e/web/smoke.spec.ts` を実行する。
 
 1. Phase 1 CI required browser構成
 2. non-blocking cross-browser smoke運用
-3. CI/CD living documentation
-4. CI architecture decision record
-5. Codex implementation run artifacts
+3. CI workflow contract test
+4. CI/CD living documentation
+5. CI architecture decision record
+6. Codex implementation run artifacts
 
 ### Files to inspect
 
@@ -264,6 +303,7 @@ Firefox / WebKit はどちらも `e2e/web/smoke.spec.ts` を実行する。
 - `.agents/skills/feature-plan/SKILL.md`
 - `.agents/skills/feature-plan/references/planning-workflow.md`
 - `.github/workflows/ci.yml`
+- `tests/contracts/ci-workflow.test.ts`
 - `package.json`
 - `playwright.config.ts`
 - `e2e/web/smoke.spec.ts`
@@ -279,6 +319,7 @@ Firefox / WebKit はどちらも `e2e/web/smoke.spec.ts` を実行する。
 
 - `.github/workflows/ci.yml`
 - `.github/workflows/cross-browser-smoke.yml`（新規）
+- `tests/contracts/ci-workflow.test.ts`
 - `docs/PROJECT_CONTEXT.md`
 - `docs/history/<implementation-JST-timestamp>_project-context-before-chromium-required-ci-cross-browser-split.md`（新規。既存history conventionに合わせる）
 - `docs/adr/0019-chromium-required-ci-cross-browser-smoke.md`（新規。実装時に0019が使用済みなら次の空き番号）
@@ -440,9 +481,19 @@ env:
   EXPO_PUBLIC_BUILD_SHA: ${{ github.sha }}
 ```
 
+Checkoutは既存CI/CD security contractを明示的に維持する。
+
+```yaml
+- uses: actions/checkout@<既存ci.ymlと同じfull-length SHA>
+  with:
+    persist-credentials: false
+```
+
+残りのremote actionも既存 `ci.yml` と同じfull-length SHA pinを再利用する。
+
 Steps:
 
-1. checkout
+1. checkout (`persist-credentials: false`)
 2. pnpm setup
 3. Node 24 setup
 4. `pnpm install --frozen-lockfile --ignore-scripts`
@@ -477,7 +528,55 @@ playwright-cross-browser-${{ github.run_id }}-${{ github.run_attempt }}
 
 `if: ${{ failure() }}` で `output/playwright` をuploadする。ただしこれはPlaywright test step開始後の通常failureを対象とする。container pull failure、job timeout、runner cancellationなど、upload stepに到達しないfailureではartifactを保証しない。
 
-#### 5.5 Living documentation を更新する
+#### 5.5 CI contract testを変更後構成へ更新する
+
+対象:
+
+```text
+tests/contracts/ci-workflow.test.ts
+```
+
+PR #34で追加された現在の次のcontractは、今回の変更後には意図的に成立しなくなる。
+
+```text
+branches extended-e2e browser installation by the matrix browser
+```
+
+このtestを削除して無保証にするのではなく、変更後のrequired contractへ置き換える。
+
+##### `extended-e2e` のfocused contract
+
+既存 `jobBlock()` / `stepBlock()` 等のstring-based方式をそのまま使い、最低限次を固定する。
+
+- `extended-e2e` job idが存在する。
+- `name: Extended E2E (mobile-chromium)` を持つ。
+- `matrix.browser` / Firefox / WebKit entryを持たない。
+- `Install Chromium` が `pnpm exec playwright install chromium` を実行する。
+- `extended-e2e` job内に `--with-deps` が存在しない。
+- `pnpm run test:e2e:mobile` を実行する。
+- `PLAYWRIGHT_USE_PREBUILT_DIST: "true"` を維持する。
+
+##### `Cross Browser Smoke` のfocused contract
+
+`cross-browser-smoke.yml` を同test fileから読み、既存のraw-text contract方式で重要な構造だけ固定する。
+
+最低限:
+
+- workflow nameが `Cross Browser Smoke`。
+- `schedule` / `workflow_dispatch` が存在し、`push` / `pull_request` をtriggerにしない。
+- `timeout-minutes: 30`。
+- container imageが `mcr.microsoft.com/playwright:v1.62.0-noble`。
+- checkoutに `persist-credentials: false`。
+- automation envと `PLAYWRIGHT_USE_PREBUILT_DIST=true`。
+- `pnpm run build:web` は1回だけ。
+- Firefox / WebKit projectを同じPlaywright invocationで指定する。
+- `playwright install` / `--with-deps` を実行しない。
+
+既存の `allWorkflows` による「全remote actionは40文字SHA pin」のcontractは新workflowにも自動適用されるため、同等assertionを重複追加しない。
+
+新しいYAML parser / validator / helper frameworkは追加しない。既存contract testを変更後構成へ最小限追従させる。
+
+#### 5.6 Living documentation を更新する
 
 ##### `docs/history/`
 
@@ -500,10 +599,13 @@ docs/history/<implementation-JST-timestamp>_project-context-before-chromium-requ
 - `Cross Browser Smoke` はmain / PRをblockしない。
 - Firefox / WebKitはofficial Playwright containerで実行し、Phase 1 CIの `--with-deps` 依存を除去。
 - package / container image version一致を維持する。
+- 全 Checkout の `persist-credentials: false` 契約を新workflowでも維持する。
+- Phase 1 CIのautomation / production `dist` は従来どおりworkflow内で各1回だけbuildしartifact共有する。
+- Cross Browser Smokeは別workflowなのでPhase 1 artifactを横断再利用せず、そのworkflow内でautomation buildを1回だけ行う。
 
 既存 `Agentic QA Feedback Loop Latest-main Delta Rebaseline` 等にある「PR #34時点ではFirefox / WebKitの`--with-deps`を維持した」という記述は、その時点の歴史的事実なので書き換えない。必要ならその後のcurrent-state deltaを新しく追記する。
 
-#### 5.6 新規ADRへCI方針変更を記録する
+#### 5.7 新規ADRへCI方針変更を記録する
 
 現在の連番では次を想定する。
 
@@ -524,6 +626,7 @@ Decisionには次を記録する。
 - package / image versionを一致させる。
 - Firefox / WebKit test自体は削除しない。
 - 将来正式サポート要件が変わればrequired化を再評価する。
+- Phase 1 CIのbuild-once artifact pipelineは維持し、Cross Browser Smokeは独立workflow内でのみautomation buildを1回行う。
 
 既存 `ADR-0002` との関係も明記する。
 
@@ -532,7 +635,7 @@ Decisionには次を記録する。
 - 今回はPhase 1 CI全体をcontainer化するのではなく、**隔離したnon-blocking cross-browser workflowだけに限定して公式containerを採用する追加判断**である。
 - ADR-0002を過去に遡って書き換えない。
 
-#### 5.7 Run artifactを更新・sanitizeする
+#### 5.8 Run artifactを更新・sanitizeする
 
 実装中は `AGENTS.md` に従い、active runのTASKS / REPORT等を更新する。
 
@@ -546,14 +649,16 @@ Decisionには次を記録する。
 - [ ] 2. Playwright package / official image exact version整合を確認する。
 - [ ] 3. `.github/workflows/ci.yml` の `extended-e2e` をmobile Chromium専用へ単純化する。
 - [ ] 4. `.github/workflows/cross-browser-smoke.yml` を1-job構成で追加する。
-- [ ] 5. 新workflow YAMLとCI contractを静的確認する。
-- [ ] 6. PROJECT_CONTEXT更新前のhistoryを保存する。
-- [ ] 7. `docs/PROJECT_CONTEXT.md` を現行CI構成へ更新する。
-- [ ] 8. 新規ADRへrequired browser / cross-browser container判断を記録する。
-- [ ] 9. PR eventのPhase 1 CIを確認する。
-- [ ] 10. feature branch指定 `ci.yml` workflow_dispatchで非PR経路を確認する。
-- [ ] 11. run artifactsへ検証結果を記録しsanitizeする。
-- [ ] 12. マージ後、`Cross Browser Smoke` をworkflow_dispatchで即時確認する。
+- [ ] 5. `tests/contracts/ci-workflow.test.ts` を変更後CI契約へ最小更新する。
+- [ ] 6. 新workflow YAMLとCI contractを静的確認する。
+- [ ] 7. focused `pnpm run test:contracts` を実行する。
+- [ ] 8. PROJECT_CONTEXT更新前のhistoryを保存する。
+- [ ] 9. `docs/PROJECT_CONTEXT.md` を現行CI構成へ更新する。
+- [ ] 10. 新規ADRへrequired browser / cross-browser container判断を記録する。
+- [ ] 11. PR eventのPhase 1 CIを確認する。
+- [ ] 12. feature branch指定 `ci.yml` workflow_dispatchで非PR経路を確認する。
+- [ ] 13. run artifactsへ検証結果を記録しsanitizeする。
+- [ ] 14. マージ後、`Cross Browser Smoke` をworkflow_dispatchで即時確認する。
 
 ## 6. 検証方法
 
@@ -580,6 +685,7 @@ node -e "const fs=require('fs'); const YAML=require('yaml'); YAML.parse(fs.readF
 - timeout 30分
 - package / container image version一致
 - existing action SHA pinning方針と一致
+- checkoutに `persist-credentials: false`
 - automation envが存在
 - `PLAYWRIGHT_USE_PREBUILT_DIST=true`
 - `pnpm run build:web` が1回だけ
@@ -588,9 +694,26 @@ node -e "const fs=require('fs'); const YAML=require('yaml'); YAML.parse(fs.readF
 - `extended-e2e` job id維持
 - `Extended E2E (mobile-chromium)` check name維持
 
-#### 6.2 リポジトリ標準検証
+#### 6.2 Focused CI contract gate
 
-workflow / Markdown / docs変更を含むため、変更範囲に応じて最低限次を実行する。
+今回CI workflow contract自体を変更するため、次を**必須**で実行する。
+
+```bash
+pnpm run test:contracts
+```
+
+成功条件:
+
+- 既存contract suiteが全件success。
+- 旧 Firefox / WebKit matrix contractが変更後contractへ置き換わっている。
+- new `Cross Browser Smoke` focused contractがsuccess。
+- 既存all-workflows action SHA pin contractもsuccess。
+
+`test:contracts` を通さずPR CIだけで変更を確定しない。
+
+#### 6.3 リポジトリ標準検証
+
+workflow / TypeScript contract test / Markdown / docs変更を含むため、変更範囲に応じて最低限次を実行する。
 
 ```bash
 pnpm run format:check
@@ -598,6 +721,8 @@ pnpm run lint:markdown
 pnpm run lint
 pnpm run typecheck
 ```
+
+`pnpm run test:contracts` は6.2で必須実行する。
 
 必要に応じて標準全体入口も実行する。
 
@@ -607,12 +732,14 @@ pnpm run verify
 
 実行できない検証がある場合は、未実行項目・理由・残るriskをrun reportへ記録する。
 
-#### 6.3 PR eventで確認すること
+#### 6.4 PR eventで確認すること
 
 PRでは `extended-e2e` は `if: github.event_name != 'pull_request'` によりskipされる。
 
 確認事項:
 
+- Style / Code Quality success
+- Vitest contracts success
 - Chromium E2E success
 - UI Review success
 - production-smoke success
@@ -620,7 +747,7 @@ PRでは `extended-e2e` は `if: github.event_name != 'pull_request'` によりs
 - `verify` がPR時の `extended-e2e=skipped` を許容してsuccess
 - `validate` success
 
-#### 6.4 feature branch指定の既存 Phase 1 CI `workflow_dispatch`
+#### 6.5 feature branch指定の既存 Phase 1 CI `workflow_dispatch`
 
 `ci.yml` はdefault branchに既に存在するため、feature branch refを指定して変更後の非PR経路を確認する。
 
@@ -629,11 +756,12 @@ PRでは `extended-e2e` は `if: github.event_name != 'pull_request'` によりs
 - `Extended E2E (mobile-chromium)` が実行されsuccess
 - `Extended E2E (firefox)` が存在しない
 - `Extended E2E (webkit)` が存在しない
+- Vitest contracts success
 - `verify` success
 - `validate` success
 - `deploy-preview` はworkflow_dispatch契約どおりskipped
 
-#### 6.5 マージ後 `Cross Browser Smoke` 手動確認
+#### 6.6 マージ後 `Cross Browser Smoke` 手動確認
 
 新workflowはdefault branchに存在した後に `workflow_dispatch` する。
 
@@ -642,6 +770,7 @@ PRでは `extended-e2e` は `if: github.event_name != 'pull_request'` によりs
 - workflowを手動起動できる
 - official Playwright containerをpullできる
 - dependency install成功
+- checkout credential persistenceを有効化していない
 - automation envでbuildが1回だけ実行される
 - `dist/index.html` が存在
 - Firefox smokeが実行される
@@ -651,9 +780,10 @@ PRでは `extended-e2e` は `if: github.event_name != 'pull_request'` によりs
 
 通常のPlaywright test failureを確認する必要が生じた場合のみ、failure artifact経路が成立することを確認する。artifact確認のために意図的にテストを壊す変更はしない。
 
-#### 6.6 ドキュメント整合確認
+#### 6.7 ドキュメント整合確認
 
 - `docs/PROJECT_CONTEXT.md` のcurrent stateがworkflow実装と一致する。
+- PROJECT_CONTEXTがPhase 1のbuild-once artifact contractとCross Browser Smoke内のbuild-onceを区別している。
 - 歴史的PR #34記述を事後的に書き換えていない。
 - history fileがPROJECT_CONTEXT更新前の状態を保持する。
 - 新ADRが `Context / Decision / Consequences` を含む。
@@ -663,7 +793,7 @@ PRでは `extended-e2e` は `if: github.event_name != 'pull_request'` によりs
 
 ### 成功判定
 
-マージ前DoDをすべて満たし、PR / feature-branch workflow_dispatch の Phase 1 CI required pathがsuccessになること。
+マージ前DoDをすべて満たし、focused `test:contracts`、PR CI、feature-branch workflow_dispatch の Phase 1 CI required pathがsuccessになること。
 
 そのうえでマージ後の `Cross Browser Smoke` 初回manual runがFirefox / WebKitの実テストまで到達して両方successになれば、運用開始まで完了とする。
 
@@ -677,7 +807,20 @@ PRでは `extended-e2e` は `if: github.event_name != 'pull_request'` によりs
 
 現状は1本のsmokeのみで、主要機能品質はChromium E2Eがより深く確認しているため許容する。
 
-#### 7.2 Playwright package / Docker image versionずれ
+#### 7.2 CI contract testが旧構造を固定している
+
+PR #34で追加された `tests/contracts/ci-workflow.test.ts` は、現行 `extended-e2e` のmatrix browser分岐とnon-Chromium `--with-deps` を意図的に固定している。
+
+workflowだけ変更すると `pnpm run test:contracts` / Vitest contractsが失敗する。
+
+対策:
+
+- workflow変更と同じ差分でcontract testを更新する。
+- 旧contractを単純削除せず、新しいmobile-Chromium-only contractへ置き換える。
+- Cross Browser Smokeの重要構造もfocused contractとして追加する。
+- 新parser / frameworkは導入しない。
+
+#### 7.3 Playwright package / Docker image versionずれ
 
 versionがずれるとcontainer内browserとproject側Playwrightが整合しない可能性がある。
 
@@ -688,13 +831,13 @@ Playwright update時は次を同時変更する。
 
 workflow内にもversion一致が必要である旨をコメントする。
 
-#### 7.3 official image tag公開タイミング
+#### 7.4 official image tag公開タイミング
 
 release直後など、packageとimage公開タイミングがずれる可能性がある。
 
 exact tagが利用できなければ異なるversionで代用せず、本プランを再評価する。
 
-#### 7.4 Microsoft Container Registry / GitHub Actions一時障害
+#### 7.5 Microsoft Container Registry / GitHub Actions一時障害
 
 cross-browser workflowが失敗してもPhase 1 CI / main / PRはblockしない。
 
@@ -706,19 +849,20 @@ scheduled runが失敗した場合は次の順で扱う。
 4. 同じFirefox / WebKit failureが再現する場合、browser固有不具合またはtest不具合として通常調査する。
 5. 原因確認なしにFirefox / WebKitをPhase 1 CI requiredへ戻さない。
 
-#### 7.5 新workflowはマージ前に実runner確認できない
+#### 7.6 新workflowはマージ前に実runner確認できない
 
 新規 `workflow_dispatch` workflowはdefault branchへ入るまでUIから直接起動できない。
 
 対策:
 
 - YAML parse
+- focused CI contract test
 - workflow静的確認
 - PR CI
 - 既存 `ci.yml` のfeature branch workflow_dispatch
 - マージ直後のCross Browser Smoke manual run
 
-#### 7.6 Failure artifactの限界
+#### 7.7 Failure artifactの限界
 
 `if: failure()` のartifact uploadは、upload stepへ到達できる通常failureを対象とする。
 
@@ -731,7 +875,30 @@ scheduled runが失敗した場合は次の順で扱う。
 
 artifactがないこと自体を「Playwright artifact生成失敗」と誤判定しない。
 
-#### 7.7 Living documentationの履歴破壊
+#### 7.8 Living documentationのbuild境界を混同するリスク
+
+Phase 1 CIには既存の「automation / production buildを各1回生成してartifact共有する」契約がある。
+
+Cross Browser Smokeは独立workflowなので、そのartifactを再利用せず別途automation buildを1回実行する。
+
+これを曖昧に書くと、将来「build once契約に違反している」と誤解される可能性がある。
+
+対策:
+
+- PROJECT_CONTEXTと新ADRで、Phase 1 workflow内のbuild-onceとCross Browser Smoke workflow内のbuild-onceを別境界として明記する。
+
+#### 7.9 Checkout credential contractの脱落
+
+既存PROJECT_CONTEXTは全Checkoutで `persist-credentials: false` を要求している。
+
+新workflowで省略するとrepo-local security contractとの不整合になる。
+
+対策:
+
+- Cross Browser Smokeのcheckoutに明示する。
+- focused CI contractでも確認する。
+
+#### 7.10 Living documentationの履歴破壊
 
 `docs/PROJECT_CONTEXT.md` の過去時点の事実を、現在の実装へ合わせて上書きすると履歴の意味を壊す。
 
@@ -751,6 +918,7 @@ blocking open questionはなし。
 - exact official image tagが利用可能か。
 - ADR next numberが0019のままか。
 - active runを再利用すべきか新規作成すべきか。
+- CI contract testが実装開始までに追加変更されていないか。
 
 いずれもrepo状態から確定できるため、現時点でユーザー回答を必要としない。
 
@@ -762,6 +930,7 @@ blocking open questionはなし。
 
 - `.github/workflows/ci.yml`
 - `.github/workflows/cross-browser-smoke.yml`
+- `tests/contracts/ci-workflow.test.ts`
 - `docs/PROJECT_CONTEXT.md`
 - `docs/history/<implementation-JST-timestamp>_project-context-before-chromium-required-ci-cross-browser-split.md`
 - `docs/adr/0019-chromium-required-ci-cross-browser-smoke.md` または実装時点の次の空き連番
@@ -792,14 +961,17 @@ plan-only / implementation progressのために `docs/reports/` へ新規report 
 #### Cross Browser Smokeだけに問題がある場合
 
 1. `cross-browser-smoke.yml` を無効化または削除する。
-2. Chromium required CIは維持する。
-3. Firefox / WebKitの実行方式だけを再評価する。
+2. Cross Browser Smoke向けcontract testを同時に戻す。
+3. Chromium required CIは維持する。
+4. Firefox / WebKitの実行方式だけを再評価する。
 
 non-blocking workflowの問題を理由に、Firefox / WebKitを即座にPhase 1 CI requiredへ戻さない。
 
 #### Chromium requiredへの分離自体に問題がある場合
 
 必要性を再評価したうえでFirefox / WebKitを `ci.yml` へ戻す。
+
+その場合は `tests/contracts/ci-workflow.test.ts` も復元後構成に合わせて変更する。
 
 ただし今回問題となった `playwright install --with-deps` をそのまま復活させず、環境構築方式も同時に再設計する。
 
@@ -822,6 +994,12 @@ Cross Browser Smoke / non-blocking
    └─ smoke.spec.ts
       ├─ firefox-smoke
       └─ webkit-smoke
+
+CI contract
+└─ tests/contracts/ci-workflow.test.ts
+   ├─ mobile-Chromium-only extended-e2e contract
+   ├─ Cross Browser Smoke isolation contract
+   └─ existing all-workflow action SHA pin contract
 ```
 
 Chromiumを日常のrequired quality gateとする。
@@ -829,5 +1007,7 @@ Chromiumを日常のrequired quality gateとする。
 Firefox / WebKitは削除せず、Phase 1 CIから完全に切り離した軽量な1-job workflowで補完確認する。
 
 現時点のcross-browser test規模に対してbuild共有・artifact受け渡し・matrix並列化は導入せず、必要になった時点で拡張する。
+
+CI workflow変更とcontract test変更を同一実装単位として扱い、required gateとrepo-local contractの不整合を残さない。
 
 これを今回の最小かつ現実的な変更範囲とする。
