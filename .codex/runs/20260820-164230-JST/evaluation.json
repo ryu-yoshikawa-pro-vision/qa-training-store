@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "run_id": "20260820-164230-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Phase 1 required browserをChromium系へ限定し、extended-e2eのjob idとverify/validate構造を維持したままmobile Chromium単一jobへ変更した。Firefox/WebKitは削除せずCross Browser Smokeへ分離した。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".github/workflows/ci.yml", "summary": "extended-e2eをmobile Chromium単一jobへ変更した。"},
+        {"kind": "changed_file", "path": ".github/workflows/cross-browser-smoke.yml", "summary": "Firefox/WebKitの独立non-blocking workflowを追加した。"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "許可したworkflow、CI contract、PROJECT_CONTEXT、history、ADRだけを変更し、package/config/E2E body/ADR-0002/application codeは変更していない。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260820-164230-JST/run.json", "summary": "allowed_filesとexpected_changed_filesを記録した。"},
+        {"kind": "validation_command", "path": ".codex/runs/20260820-164230-JST/REPORT.md", "selector": "2026-08-20 17:13 (JST)", "summary": "protected path unchangedとhistory snapshot一致を確認した。"}
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "YAML parse、30 contract files/397 tests、format、Markdown lint、lint、typecheck、verifyはsuccessした。ただしGitHub実runnerでのworkflow実行はcommit/push禁止のため未確認である。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260820-164230-JST/REPORT.md", "selector": "2026-08-20 16:59 (JST)", "summary": "YAML parse successを記録した。"},
+        {"kind": "validation_command", "path": ".codex/runs/20260820-164230-JST/REPORT.md", "selector": "2026-08-20 17:02 (JST)", "summary": "focused contract successを記録した。"},
+        {"kind": "validation_command", "path": ".codex/runs/20260820-164230-JST/REPORT.md", "selector": "2026-08-20 17:12 (JST)", "summary": "repository verify successを記録した。"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "Git commit/push/PR操作、削除、permission緩和、protected file変更、timeout延長、apt retry、新dependency追加を行っていない。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260820-164230-JST/run.json", "summary": "安全状態と変更scopeを記録した。"}
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "旧matrix contractを無保証の削除にせずmobile-Chromium-onlyおよびCross Browser Smoke focused contractへ置換し、PROJECT_CONTEXTの変更前snapshotとADR-0002関係を保存した。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "tests/contracts/ci-workflow.test.ts", "summary": "変更後CI構造をraw string contractで固定した。"},
+        {"kind": "changed_file", "path": "docs/history/2026-08-20_164957_project-context-before-chromium-required-ci-cross-browser-split.md", "summary": "PROJECT_CONTEXT変更前snapshotを保存した。"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "新workflowは1 job、build 1回、Playwright 1 invocationの最小構成で、matrix/artifact共有/reusable workflow/custom imageを追加していない。既存toolchainとremote action pinを再利用した。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".github/workflows/cross-browser-smoke.yml", "summary": "最小のsingle-job container workflow。"},
+        {"kind": "changed_file", "path": "docs/adr/0019-chromium-required-ci-cross-browser-smoke.md", "summary": "設計判断と将来再評価条件を記録した。"}
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Node 24、pnpm 9.10.0、packageManager、Playwright package/image 1.62.0をcontractで一致確認し、lockfile固定installを行った。実際のcontainer pullとGitHub Actions runは未確認である。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260820-164230-JST/REPORT.md", "selector": "2026-08-20 17:02 (JST)", "summary": "toolchain/image/version contractを含む397 testsのsuccess。"}
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": [
+    {
+      "target": "GitHub上のCross Browser Smoke運用開始確認",
+      "evidence": "新workflowはlocal YAML/contract/static validationまでで、container pull、Firefox/WebKit実行、failure artifact到達は未確認である。",
+      "expected_impact": "実runnerでcontainer、build、dist存在、Firefox/WebKit両方の実行到達を確認できる。",
+      "recommendation": "merge後にdefault branch上でworkflow_dispatchを1回実行し、結果を別Runまたは運用記録へ保存する。"
+    }
+  ]
+}
