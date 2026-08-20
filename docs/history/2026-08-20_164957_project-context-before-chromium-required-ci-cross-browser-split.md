@@ -86,14 +86,6 @@
 - Production デプロイは `cloudflare-production` の Job concurrency により同時実行しない。Cloudflare Secret 不足はデプロイ対象 Job 内の認証確認 Stepで明示的に失敗させ、認証情報はその確認 StepとWrangler Action Inputに限定する。全 Checkout は `persist-credentials: false` とする。UI Review Artifact は `UI_REVIEW_STAGE` をUpload pathへ再利用し、Preview branch名は許可文字を検証する。
 - forkリポジトリからのPull RequestはCloudflare Preview用Secretを利用せず、`deploy-preview` を Skip とする。Dependabot PRも同様にPreviewを実行しない。`validate` はPRのhead repositoryとauthorを明示判定し、通常の同一リポジトリPRだけPreview成功を要求し、fork／Dependabot PRではPreview Skipを要求して成功する。同一リポジトリ内の通常PRでSecretが不足する場合はデプロイJob内で明示的に失敗し、fork PRを通すために `pull_request_target`、untrusted head checkout、またはself-hosted runnerを追加しない。全remote Actionはfull-length commit SHAで固定する。
 
-## Required Browser CIとCross Browser Smoke（2026-08-20）
-
-- Phase 1 CIのrequired browser guaranteeはChromium系に限定する。`extended-e2e`はjob idを維持したmobile Chromium専用の単一jobで、check nameは`Extended E2E (mobile-chromium)`とする。`verify`／`validate`の既存required gate構造と`build-automation`→`web-dist-automation`→`extended-e2e`のartifact consumer経路は維持する。
-- Firefox／WebKitのPlaywright project、npm script、`e2e/web/smoke.spec.ts`は削除しない。これらのsmokeはPhase 1 CIから`Cross Browser Smoke`へ分離し、`schedule`＋`workflow_dispatch` onlyで実行する。PR／main required gateをblockするworkflowではない。
-- `Cross Browser Smoke`はFirefox／WebKitの両方をofficial Playwright container `mcr.microsoft.com/playwright:v1.62.0-noble`内で実行する。packageの`@playwright/test` versionとcontainer image versionは一致させ、Node／pnpmはPhase 1 CIの正本値（Node 24／pnpm 9.10.0）を再利用し、pnpmは`package.json#packageManager`とも一致させる。Phase 1 CIからFirefox／WebKit向け`playwright install --with-deps`は除去し、Cross Browser Smokeではbrowser install step自体を持たない。
-- Build boundaryをworkflow単位で分ける。Phase 1 CIはautomation build ×1とproduction build ×1を行い、それぞれの`dist/`をworkflow内artifactとして後続jobへ共有する。Cross Browser SmokeはPhase 1 CI artifactをworkflow横断で再利用せず、独立workflow内でautomation build ×1を行い、その同じdistをFirefox／WebKitの1回のPlaywright invocationで共用する。
-- Environment boundaryも分ける。build-time automation envは`EXPO_PUBLIC_APP_ENV`、`EXPO_PUBLIC_BUILD_KIND`、`EXPO_PUBLIC_TEST_MODE`、`EXPO_PUBLIC_DEFAULT_SEED`に加えてbuild時だけ`EXPO_PUBLIC_BUILD_SHA=${{ github.sha }}`を持つ。既存artifactを消費する`extended-e2e`は`PLAYWRIGHT_USE_PREBUILT_DIST=true`を使い、`EXPO_PUBLIC_BUILD_SHA`を追加しない。新workflowを含む全Checkoutは`persist-credentials: false`を維持する。
-
 ## Phase 2前半 Native Foundation（2026-08-02）
 
 - WebとNativeのRoot／Route／Shellを分離した。Webは既存のApp FrameとDexie Runtimeを継続し、Nativeは`NativeAppRuntimeProvider`、Native Shell、Native Customer SQLiteを使う。全Routeの分類は[`docs/plans/2026-08-02_215142_route-inventory.md`](./plans/2026-08-02_215142_route-inventory.md)に記録する。

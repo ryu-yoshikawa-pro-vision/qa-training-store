@@ -488,24 +488,10 @@ jobs:
 
   extended-e2e:
     if: github.event_name != 'pull_request'
-    name: Extended E2E (${{ matrix.name }})
+    name: Extended E2E (mobile-chromium)
     needs: build-automation
     runs-on: ubuntu-latest
     timeout-minutes: 30
-    strategy:
-      fail-fast: false
-      max-parallel: 3
-      matrix:
-        include:
-          - name: mobile-chromium
-            browser: chromium
-            command: pnpm run test:e2e:mobile
-          - name: firefox
-            browser: firefox
-            command: pnpm run test:e2e:smoke:firefox
-          - name: webkit
-            browser: webkit
-            command: pnpm run test:e2e:smoke:webkit
     env:
       PLAYWRIGHT_USE_PREBUILT_DIST: "true"
       EXPO_PUBLIC_APP_ENV: automation
@@ -536,21 +522,16 @@ jobs:
           path: dist
 
       - name: Install Chromium
-        if: matrix.browser == 'chromium'
         run: pnpm exec playwright install chromium
 
-      - name: Install browser with system dependencies
-        if: matrix.browser != 'chromium'
-        run: pnpm exec playwright install --with-deps ${{ matrix.browser }}
-
       - name: Run extended E2E
-        run: ${{ matrix.command }}
+        run: pnpm run test:e2e:mobile
 
       - name: Upload Playwright artifacts on failure
         if: ${{ failure() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
         with:
-          name: playwright-${{ matrix.name }}-${{ github.run_id }}-${{ github.run_attempt }}
+          name: playwright-mobile-chromium-${{ github.run_id }}-${{ github.run_attempt }}
           path: output/playwright
           if-no-files-found: warn
           retention-days: 14

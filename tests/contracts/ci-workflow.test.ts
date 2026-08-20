@@ -2,6 +2,11 @@ import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
 const workflow = readFileSync(".github/workflows/ci.yml", "utf8");
+const crossBrowserWorkflow = readFileSync(".github/workflows/cross-browser-smoke.yml", "utf8");
+const packageJson = JSON.parse(readFileSync("package.json", "utf8")) as {
+  packageManager?: string;
+  devDependencies?: Record<string, string>;
+};
 const allWorkflows = readdirSync(".github/workflows")
   .filter((file) => file.endsWith(".yml") || file.endsWith(".yaml"))
   .map((file) => readFileSync(join(".github/workflows", file), "utf8"))
@@ -232,22 +237,85 @@ describe("Phase 1 CI deployment boundaries", () => {
     }
   });
 
-  it("branches extended-e2e browser installation by the matrix browser", () => {
+  it("keeps extended-e2e as a mobile-Chromium-only job", () => {
     const extended = jobBlock("extended-e2e", "verify");
     const chromium = stepBlock(extended, "Install Chromium");
-    const nonChromium = stepBlock(extended, "Install browser with system dependencies");
 
-    expect(chromium).toContain("if: matrix.browser == 'chromium'");
+    expect(extended).toContain("name: Extended E2E (mobile-chromium)");
+    expect(extended).not.toContain("strategy:");
+    expect(extended).not.toContain("matrix:");
+    expect(extended).not.toContain("matrix.browser");
+    expect(extended).not.toContain("matrix.command");
+    expect(extended).not.toContain("firefox");
+    expect(extended).not.toContain("webkit");
+    expect(extended).not.toContain("Install browser with system dependencies");
+    expect(chromium).not.toContain("if:");
     expect(chromium).toContain("run: pnpm exec playwright install chromium");
     expect(chromium).not.toContain("--with-deps");
-
-    expect(nonChromium).toContain("if: matrix.browser != 'chromium'");
-    expect(nonChromium).toContain(
-      "run: pnpm exec playwright install --with-deps ${{ matrix.browser }}",
+    expect(extended).toContain("run: pnpm run test:e2e:mobile");
+    expect(extended).not.toContain("pnpm exec playwright install --with-deps");
+    expect(extended).toContain('PLAYWRIGHT_USE_PREBUILT_DIST: "true"');
+    expect(extended).not.toContain("EXPO_PUBLIC_BUILD_SHA");
+    expect(extended).toContain(
+      "name: playwright-mobile-chromium-${{ github.run_id }}-${{ github.run_attempt }}",
     );
-    expect(
-      extended.split("run: pnpm exec playwright install --with-deps ${{ matrix.browser }}"),
-    ).toHaveLength(2);
+  });
+
+  it("keeps Cross Browser Smoke isolated and aligned with CI toolchain", () => {
+    const nodeVersion = workflow.match(/^  NODE_VERSION: "([^"]+)"$/m)?.[1] ?? "";
+    const pnpmVersion = workflow.match(/^  PNPM_VERSION: "([^"]+)"$/m)?.[1] ?? "";
+    const packagePnpmVersion = packageJson.packageManager?.match(/^pnpm@(.+)$/)?.[1] ?? "";
+    const packagePlaywrightVersion = packageJson.devDependencies?.["@playwright/test"] ?? "";
+    const containerVersion =
+      crossBrowserWorkflow.match(/image: mcr\.microsoft\.com\/playwright:v([^\s-]+)-noble/)?.[1] ??
+      "";
+    const jobsStart = crossBrowserWorkflow.indexOf("jobs:\n");
+    const jobs = crossBrowserWorkflow.slice(jobsStart);
+    const checkoutStart = crossBrowserWorkflow.indexOf("- uses: actions/checkout@");
+    const nextStep = crossBrowserWorkflow.indexOf("\n      -", checkoutStart + 1);
+    const checkout = crossBrowserWorkflow.slice(
+      checkoutStart,
+      nextStep === -1 ? undefined : nextStep,
+    );
+    const smokeStart = crossBrowserWorkflow.indexOf("      - name: Run Cross Browser Smoke");
+    const uploadStart = crossBrowserWorkflow.indexOf(
+      "\n      - name: Upload Playwright artifacts on failure",
+      smokeStart + 1,
+    );
+    const smokeStep = crossBrowserWorkflow.slice(
+      smokeStart,
+      uploadStart === -1 ? undefined : uploadStart,
+    );
+
+    expect(crossBrowserWorkflow).toContain("name: Cross Browser Smoke");
+    expect(crossBrowserWorkflow).toContain("schedule:");
+    expect(crossBrowserWorkflow).toContain("workflow_dispatch:");
+    expect(crossBrowserWorkflow).not.toContain("\n  push:");
+    expect(crossBrowserWorkflow).not.toContain("\n  pull_request:");
+    expect(crossBrowserWorkflow).toContain("permissions:\n  contents: read");
+    expect(jobs.match(/^  [a-z0-9-]+:$/gm)).toEqual(["  cross-browser-smoke:"]);
+    expect(crossBrowserWorkflow).toContain("timeout-minutes: 30");
+    expect(crossBrowserWorkflow).toContain("image: mcr.microsoft.com/playwright:v1.62.0-noble");
+    expect(containerVersion).toBe(packagePlaywrightVersion);
+    expect(crossBrowserWorkflow).toContain(`NODE_VERSION: "${nodeVersion}"`);
+    expect(crossBrowserWorkflow).toContain(`PNPM_VERSION: "${pnpmVersion}"`);
+    expect(pnpmVersion).toBe(packagePnpmVersion);
+    expect(checkout).toContain("persist-credentials: false");
+    expect(crossBrowserWorkflow).toContain('PLAYWRIGHT_USE_PREBUILT_DIST: "true"');
+    expect(crossBrowserWorkflow).toContain("EXPO_PUBLIC_BUILD_SHA: ${{ github.sha }}");
+    expect(crossBrowserWorkflow.match(/pnpm run build:web/g)).toHaveLength(1);
+    expect(smokeStep.match(/pnpm exec playwright test/g)).toHaveLength(1);
+    expect(smokeStep).toContain("e2e/web/smoke.spec.ts");
+    expect(smokeStep).toContain("--project=firefox-smoke");
+    expect(smokeStep).toContain("--project=webkit-smoke");
+    expect(crossBrowserWorkflow).not.toContain("playwright install");
+    expect(crossBrowserWorkflow).not.toContain("--with-deps");
+    expect(crossBrowserWorkflow).toContain(
+      "name: playwright-cross-browser-${{ github.run_id }}-${{ github.run_attempt }}",
+    );
+    expect(crossBrowserWorkflow).toContain("path: output/playwright");
+    expect(crossBrowserWorkflow).toContain("if-no-files-found: warn");
+    expect(crossBrowserWorkflow).toContain("retention-days: 14");
   });
 
   it("validates each deployment URL before passing it to the matching smoke test", () => {
