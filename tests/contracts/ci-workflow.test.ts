@@ -293,6 +293,8 @@ describe("Phase 1 CI deployment boundaries", () => {
     expect(crossBrowserWorkflow).not.toContain("\n  push:");
     expect(crossBrowserWorkflow).not.toContain("\n  pull_request:");
     expect(crossBrowserWorkflow).toContain("permissions:\n  contents: read");
+    expect(crossBrowserWorkflow).not.toContain("strategy:");
+    expect(crossBrowserWorkflow).not.toContain("matrix:");
     expect(jobs.match(/^  [a-z0-9-]+:$/gm)).toEqual(["  cross-browser-smoke:"]);
     expect(crossBrowserWorkflow).toContain("timeout-minutes: 30");
     expect(crossBrowserWorkflow).toContain("image: mcr.microsoft.com/playwright:v1.62.0-noble");
