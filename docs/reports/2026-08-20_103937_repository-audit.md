@@ -44,13 +44,13 @@
 
 ## 14. Cross-layer Audit Log
 
-## 15. Findings
+## 15. Findings — Reserved
 
-## 16. Reconciliations
+## 16. Reconciliations — Reserved
 
-## 17. Blocked / Not Executed
+## 17. Blocked / Not Executed — Reserved
 
-## 18. Source Integrity Log
+## 18. Source Integrity Log — Initial
 
 ### 2026-08-20 10:39:37 JST — Initial baseline
 
@@ -224,7 +224,7 @@
 - Web runtimeではSearch suggestion、Checkout result direct URL、Login validationを操作して、Static候補と画面表示を独立に再確認した。Android physical runtimeではCatalog/Search/Customer route/Checkout direct URLをADB deep linkで確認し、Rendered screenも視認した。
 - Static quality gatesの大半はPASSしたが、Contract suiteの5秒既定timeout異常とAgentic QA deterministic preparationのpatch apply failureは、Product behaviorとは別の品質／運用リスクとしてFinding化した。
 
-## 15. Findings
+## 15. Findings — Audit Results
 
 ### REP-001
 
@@ -1043,7 +1043,7 @@
 - Requires change?: maybe
 - Notes: Audit did not delete, move, rename, or stage these files.
 
-## 16. Reconciliations
+## 16. Reconciliations — Audit Results
 
 ### Reconciliation: OBS-001 — Integration `many-products` timeout
 
@@ -1080,7 +1080,7 @@
 - No formal REP ID was deleted, renumbered, downgraded, or converted to false positive/duplicate after assignment.
 - No formal Finding is classified `false_positive` or `duplicate` at audit close.
 
-## 17. Blocked / Not Executed
+## 17. Blocked / Not Executed — Final
 
 - Playwright MCP callable tool: unavailable. Real Chromium was operated through the repository Playwright CLI with semantic snapshots, direct interactions, console inspection, and rendered screenshots.
 - Maestro MCP callable tool: unavailable. Native verification used existing local Android helper/CLI, ADB deep links, and fresh screenshots.
@@ -1093,7 +1093,7 @@
 - Full formal E2E/Maestro suite: not re-run wholesale. Targeted runtime checks were selected for information gain; existing PASS evidence was reviewed without treating unexecuted paths as PASS.
 - Intentional expected-failure Training workflow: not executed; its caller/evidence contract was audited statically in REP-013.
 
-## 18. Source Integrity Log
+## 18. Source Integrity Log — Final
 
 ### Final pre-synthesis checkpoint
 
@@ -1277,3 +1277,47 @@ iOS Runtime/Visual and Remote CI; Playwright MCP and Maestro MCP direct tools; N
 - Target is covered by `.gitignore:22` (`output/`); filenames and byte sizes were preserved.
 - Reconciliation of REP-019: the original audit observation remains append-only historical evidence; the current root-level hygiene condition has been addressed by this user-requested move.
 - No Product, Test, Specification, CI, Config, Generated source, or Git history was changed.
+
+## Reconciliation Addendum — PR #35 Evidence
+
+### Reconciliation: REP-018 — Ubuntu PR CI evidence
+
+- Previous evidence: Windows local worktree reproduced strict patch-apply failure for the Agentic QA preparation path under the observed CRLF patch / LF source combination.
+- Additional evidence: PR #35 GitHub-hosted Ubuntu CI passed `Verify Agentic QA deterministic preparation`.
+- Current interpretation: REP-018 is not a universal Agentic QA preparation failure. Current evidence scopes it to Windows / line-ending portability under the observed checkout configuration.
+- Current affected environment: Windows checkout/worktree with the observed line-ending configuration.
+- Not demonstrated: Failure on GitHub-hosted Ubuntu.
+- Current status: `reproduced` on Windows; cross-platform scope narrowed.
+
+### Reconciliation: REP-011 — Ubuntu CI control
+
+- Windows local: the 5-second timeout boundary was reproduced in the contract execution described in the original Finding.
+- PR #35 Ubuntu CI: the Vitest Contracts job passed.
+- Interpretation: Current evidence supports a Windows/local timing-budget reliability risk, not a currently reproduced Ubuntu CI failure.
+- Finding remains: yes; host-dependent timeout-budget risk remains under the original ID.
+
+### Reconciliation: REP-019 — Local worktree classification
+
+- Original observation: three untracked Native screenshots existed at repository root before the audit.
+- Additional interpretation: the files predated the audit, were not tracked Repository content, and were user-owned local artifacts. The later user-requested move to `output/mobile-native/` is recorded above and does not convert the original observation into a Repository defect.
+- Final classification: `local_worktree_observation`.
+- Repository defect: no.
+- Requires repository change: no.
+- Reason retained: the original evidence remains in the report under the append-only contract, while REP-019 is excluded from current Repository maintenance candidates.
+
+### Reconciliation — Final Markdown validation
+
+- Earlier observation: `pnpm run lint:markdown` passed against an intermediate state of this Report.
+- PR CI observation: the final committed Report failed Markdown lint with four `MD024/no-duplicate-heading` errors.
+- Root cause: append-only reporting added final section headings that duplicated the initial Skeleton headings.
+- Interpretation: the earlier PASS was valid only for the intermediate Report state and did not validate the final committed artifact.
+- Resolution in this PR: only the duplicate Report headings were made unique. No Finding content or Product/Test/Specification source was repaired.
+- Final validation: `pnpm run format:check` PASS and `pnpm run lint:markdown` PASS on the final report state after the heading-only correction.
+
+## Final Synthesis — PR CI Reconciliation
+
+- Windows-scoped findings: REP-011 remains a host-dependent local timeout-budget risk; REP-018 remains reproduced on Windows with the cross-platform claim narrowed. The corresponding maintenance report entries MNT-002 and MNT-004 are reconciled below in their own report.
+- Ubuntu CI control: PR #35 passed the Agentic QA deterministic-preparation check and the relevant Contract/Web build and downstream browser jobs cited by the review evidence; no current Ubuntu failure is inferred from the Windows observations.
+- Local-only observation: REP-019 remains an append-only historical ID but is not a Repository defect or current Repository maintenance candidate.
+- Formal Finding identifiers and historical counts are retained; no Finding was deleted, merged, renumbered, or repaired.
+- This PR changes report structure and evidence interpretation only. Product, Test, Specification, Curriculum, CI, Config, Script, Fixture, Seed, Agent, Skill, Harness, Dependency, and Generated source were not changed.

@@ -1091,3 +1091,28 @@ Progress: 100% (16/16; MCP Runtime補完フェーズ完了)
 - Runtime用の一時server port 8081〜8084、8090、8091は最終確認時にListenしていない。
 - Report-only Sanitizer Write/Check: files_scanned 1、files_changed 0、replacements_total 0、residual_findings 0。
 - このGoalでは修正、追加テスト、Specification/Curriculum/CI変更、Snapshot/Visual promotion、Git mutationを一切実施していない。
+
+## Reconciliation Addendum — PR #35 Evidence
+
+### Reconciliation: MNT-002 — Ubuntu PR CI control
+
+- Previous evidence: Windows local execution failed during strict `git apply --check` because the challenge patch was CRLF while the applied source/context was LF.
+- Additional evidence: PR #35 GitHub-hosted Ubuntu CI passed `Verify Agentic QA deterministic preparation`.
+- Current interpretation: MNT-002 is a Windows portability / line-ending compatibility issue, not a cross-platform universal failure.
+- Current status: `reproduced` on Windows; cross-platform scope narrowed.
+- Not demonstrated: Failure of the preparation check on GitHub-hosted Ubuntu.
+
+### Reconciliation: MNT-004 — PR CI control
+
+- Local stale-cache condition: route-less Web export was reproduced with stale Metro cache.
+- Clear/warm local control: clear and warm routeful exports passed the corresponding smoke controls.
+- PR #35 GitHub Actions: the review evidence records successful `build-automation`, `build-production`, `production-smoke`, required Chromium, accessibility, mobile-boundary, cross-role, and UI Review viewport jobs.
+- Current interpretation: MNT-004 is an environment/cache-sensitive local Automation and reproducibility risk. No evidence currently shows a constant GitHub CI Web build defect.
+- Finding remains: yes; the local stale-cache route-less artifact observation is retained under the original ID.
+
+## Final Synthesis — PR CI Reconciliation
+
+- MNT-002 is scoped to Windows line-ending portability; the Ubuntu preparation control passed and is not currently failing in the PR CI evidence.
+- MNT-004 is scoped to the observed local stale Metro cache condition; the PR Web build, smoke, and downstream browser controls passed.
+- The original MNT IDs, Evidence, and historical Final Synthesis entries remain intact. These are append-only interpretations, not Finding deletion, merging, or repair.
+- No Product, Test, Specification, Curriculum, CI, Config, Script, Fixture, Seed, Agent, Skill, Harness, Dependency, or Generated source was changed.
