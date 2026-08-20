@@ -70,9 +70,14 @@ pnpm exec playwright install chromium
 - console error がないこと
 - page error がないこと
 
-同じ `smoke.spec.ts` は Chromium の `deployed-smoke` でも実行されている。
+テスト本体は Chromium の `deployed-smoke` と共通だが、実行対象は完全には同一ではない。
 
-したがって Firefox / WebKit の現状の主な価値は、独自シナリオの検証ではなく、同じ smoke contract を Gecko / WebKit エンジンでも通すクロスブラウザ確認にある。
+- `deployed-smoke` は production artifact を対象にする。
+- 現行 Firefox / WebKit の `extended-e2e` は automation artifact を対象にする。
+
+したがって Firefox / WebKit を「Chromium smoke の完全な重複」とは扱わない。
+
+一方で automation build 自体は Chromium の `phase1-required.spec.ts` など、より広い Phase 1 E2E で深く検証されている。そのため、現状の Firefox / WebKit smoke が追加で提供している主な価値は、同じ smoke contract を Gecko / WebKit エンジンでも通すブラウザエンジン差分の確認にある。
 
 主要な機能品質は Chromium E2E の方が深く検証しているため、Firefox / WebKit をPR・main pushの必須ゲートから外すことによる品質低下は現状では限定的と判断する。
 
@@ -86,7 +91,7 @@ pnpm exec playwright install chromium
 
 既存の `Extended E2E (mobile-chromium)` は維持する。これは `phase1-required.spec.ts` を mobile Chromium でも実行するため、Firefox / WebKit の smoke と異なり Chromium 必須品質の補完として価値がある。
 
-### 4.2 `extended-e2e` は1件だけになるため matrix を外して単純化する
+### 4.2 `extended-e2e` は mobile Chromium 専用jobへ単純化する
 
 Firefox / WebKit を除外すると `extended-e2e` の matrix は `mobile-chromium` 1件だけになる。
 
@@ -103,7 +108,7 @@ extended-e2e:
   timeout-minutes: 30
   # existing automation envを維持
   steps:
-    # existing setup steps
+    # existing setup / artifact download steps
     - name: Install Chromium
       run: pnpm exec playwright install chromium
 
@@ -127,6 +132,12 @@ extended-e2e:
 
 ```text
 .github/workflows/cross-browser-smoke.yml
+```
+
+workflow名は明示的に次とする。
+
+```yaml
+name: Cross Browser Smoke
 ```
 
 実行トリガーは次だけとする。
@@ -164,7 +175,7 @@ Firefox / WebKit workflow では GitHub-hosted Ubuntu 上で毎回 `playwright i
 "@playwright/test": "1.62.0"
 ```
 
-したがって候補 image は次とする。
+使用する image は次とする。
 
 ```text
 mcr.microsoft.com/playwright:v1.62.0-noble
@@ -243,6 +254,12 @@ Chromium install と実行commandは直接記述する。
 `verify` / `validate` のロジックは、Firefox / WebKit を参照している個別条件がない限り変更しない。
 
 ### 5.2 `.github/workflows/cross-browser-smoke.yml` を新規追加
+
+#### workflow name
+
+```yaml
+name: Cross Browser Smoke
+```
 
 #### Trigger
 
@@ -419,6 +436,7 @@ Chromium / Firefox / WebKit で同じ smoke contract を共有する現在の構
 - package manager / Node / Playwright のversion update
 - branch protection の緩和
 - Playwright versionが異なるDocker imageへのフォールバック
+- cross-browser workflow専用の通知基盤追加
 
 特に timeout 延長は、今回のような apt hang の待ち時間を伸ばすだけなので対策としない。
 
@@ -451,6 +469,7 @@ Chromium / Firefox / WebKit で同じ smoke contract を共有する現在の構
 
 `.github/workflows/cross-browser-smoke.yml` を追加する。
 
+- `name: Cross Browser Smoke`
 - weekly schedule
 - manual dispatch
 - Playwright公式Docker image pinned to exact package version
@@ -463,13 +482,24 @@ Chromium / Firefox / WebKit で同じ smoke contract を共有する現在の構
 
 を実装する。
 
-### Step 4: 静的確認
+### Step 4: マージ前の静的確認
 
-最低限、次を確認する。
+新規 `cross-browser-smoke.yml` はマージ前に実ランナーで `workflow_dispatch` できないため、静的確認方法を曖昧にしない。
 
-- YAML syntax が正しい
+まずリポジトリに既に存在する `yaml` package を使い、少なくともYAMLとしてparse可能であることを確認する。
+
+```bash
+node -e "const fs=require('fs'); const YAML=require('yaml'); YAML.parse(fs.readFileSync('.github/workflows/cross-browser-smoke.yml','utf8'));"
+```
+
+この確認は GitHub Actions 固有の semantic validation の完全な代替ではない。目的は、マージ前に基本的な YAML syntax error を除去することである。
+
+加えて、最低限次を確認する。
+
+- YAML parse が成功する
+- workflow名が `Cross Browser Smoke` である
 - action pinning 方針が既存 workflow と整合している
-- `permissions: contents: read` だけで成立する
+- `permissions: contents: read` だけで成立する設計である
 - `package.json` の Playwright version と Docker image version が一致している
 - `ci.yml` 内に Firefox / WebKit の `--with-deps` が残っていない
 - `extended-e2e` のmatrixが不要に残っていない
@@ -512,6 +542,7 @@ PRでは現行仕様上 `extended-e2e` は `if: github.event_name != 'pull_reque
 
 確認事項:
 
+- `Cross Browser Smoke` を手動実行できる
 - container image を正常にpullできる
 - dependency install が成功する
 - automation envでbuildが1回だけ実行される
@@ -537,17 +568,19 @@ PRでは現行仕様上 `extended-e2e` は `if: github.event_name != 'pull_reque
 5. `extended-e2e` job id は維持されている。
 6. `extended-e2e` の1要素matrixは削除され、mobile Chromium専用jobとして単純化されている。
 7. Firefox / WebKit の Playwright project と既存npm scriptは削除されていない。
-8. separate workflow は `schedule` と `workflow_dispatch` のみをtriggerとして持つ。
-9. separate workflow は `push` / `pull_request` の必須CIに含まれない。
-10. separate workflow の Playwright Docker image version が `@playwright/test` version と一致する。
-11. separate workflow に既存 `build-automation` と同等のautomation envが設定されている。
-12. separate workflow に `PLAYWRIGHT_USE_PREBUILT_DIST=true` が設定されている。
-13. separate workflow のbuildは1回だけである。
-14. separate workflow は Firefox / WebKit を1回のPlaywright invocationで実行する。
-15. separate workflow のjob timeoutが明示されている。
-16. PR eventのPhase 1 CIで `verify` / `validate` がsuccessになる。
-17. feature branch指定の既存 `ci.yml` workflow_dispatchで `Extended E2E (mobile-chromium)` / `verify` / `validate` がsuccessになる。
-18. アプリケーションコード、E2E test body、Playwright project definition に不要な変更がない。
+8. separate workflow のnameが `Cross Browser Smoke` である。
+9. separate workflow は `schedule` と `workflow_dispatch` のみをtriggerとして持つ。
+10. separate workflow は `push` / `pull_request` の必須CIに含まれない。
+11. separate workflow の Playwright Docker image version が `@playwright/test` version と一致する。
+12. separate workflow に既存 `build-automation` と同等のautomation envが設定されている。
+13. separate workflow に `PLAYWRIGHT_USE_PREBUILT_DIST=true` が設定されている。
+14. separate workflow のbuildは1回だけである。
+15. separate workflow は Firefox / WebKit を1回のPlaywright invocationで実行する。
+16. separate workflow のjob timeoutが明示されている。
+17. `cross-browser-smoke.yml` が `yaml` packageで正常にparseできる。
+18. PR eventのPhase 1 CIで `verify` / `validate` がsuccessになる。
+19. feature branch指定の既存 `ci.yml` workflow_dispatchで `Extended E2E (mobile-chromium)` / `verify` / `validate` がsuccessになる。
+20. アプリケーションコード、E2E test body、Playwright project definition に不要な変更がない。
 
 ### 8.2 マージ後の運用開始条件
 
@@ -560,7 +593,7 @@ PRでは現行仕様上 `extended-e2e` は `if: github.event_name != 'pull_reque
 5. apt dependency installを実行していない。
 6. failure時のartifact取得経路が成立している。
 
-## 9. リスクと対策
+## 9. リスクと運用
 
 ### 9.1 Firefox / WebKit の不具合検知がPR単位ではなくなる
 
@@ -609,11 +642,26 @@ Microsoft Container Registry からimageを取得できない場合、cross-brow
 
 対策として、マージ前は次を確認する。
 
+- `yaml` packageによるYAML parse
 - workflow静的確認
 - PR CI
 - 既存 `ci.yml` のfeature branch指定workflow_dispatch
 
 マージ直後にcross-browser workflowを手動実行し、運用開始確認を完了させる。
+
+### 9.6 定期 Cross Browser Smoke が失敗した場合
+
+scheduled run の失敗は Phase 1 CI / main / PR をブロックしない。ただし、非ブロッキングであることを「放置してよい」という意味にはしない。
+
+最低限、次の順で扱う。
+
+1. failed run のログと Playwright artifact を確認する。
+2. container pull、GitHub Actions、外部registryなど一時的な環境要因が疑われる場合は、`workflow_dispatch` で1回手動再実行する。
+3. 手動再実行で成功した場合は一時的なCI環境要因として扱い、Phase 1 CIの必須ゲートへ戻さない。
+4. 同じFirefox / WebKit failureが再現する場合は、ブラウザ固有不具合またはテスト不具合として通常の調査対象にする。
+5. failureが継続しても、原因確認なしに Firefox / WebKit を `ci.yml` の必須ゲートへ戻さない。
+
+今回の変更ではSlack等の新しい通知基盤は追加しない。GitHub Actions のrun結果を既存運用の範囲で確認する。
 
 ## 10. ロールバック
 
