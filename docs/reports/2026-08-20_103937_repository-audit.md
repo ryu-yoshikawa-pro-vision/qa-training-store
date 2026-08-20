@@ -1321,3 +1321,70 @@ iOS Runtime/Visual and Remote CI; Playwright MCP and Maestro MCP direct tools; N
 - Local-only observation: REP-019 remains an append-only historical ID but is not a Repository defect or current Repository maintenance candidate.
 - Formal Finding identifiers and historical counts are retained; no Finding was deleted, merged, renumbered, or repaired.
 - This PR changes report structure and evidence interpretation only. Product, Test, Specification, Curriculum, CI, Config, Script, Fixture, Seed, Agent, Skill, Harness, Dependency, and Generated source were not changed.
+
+## Reconciliation Addendum — Latest Review: Three Logical Inconsistencies
+
+### Cross-report Mapping Clarification
+
+- `REP-018` corresponds to `MNT-002`. Both describe the Windows / CRLF-LF line-ending portability problem in Agentic QA deterministic preparation.
+- `REP-011` has no corresponding formal `MNT-*` Finding. The Maintenance Investigation observed Contract timeout behavior, but later reconciled that observation as environment / resource contention without promoting it to a formal Maintenance Finding.
+- `MNT-004` is an independent stale-Metro-cache Web artifact reproducibility Finding. It does not correspond to `REP-011` and has a separate root cause.
+- Cross-report Root Cause analysis must not pair `REP-011` with `MNT-004`.
+- This clarification is the latest interpretation of the cross-report mapping. Earlier wording that could be read as pairing `REP-011` / `REP-018` with `MNT-002` / `MNT-004` remains preserved as historical report text under the append-only contract.
+
+### Reconciliation: REP-014 — Root-cause deduplication
+
+- Additional comparison: `REP-009` and `REP-014` both originate from `docs/08_testing/e2e_design.md`.
+- Shared root cause: the document represents an older Phase / E2E design model without a clear Historical / Superseded classification, while the current Repository has moved to a different Web / Native / CI assurance model.
+- `REP-009` captures the broader Phase / Native / current-versus-historical boundary drift.
+- `REP-014` captures the Web E2E count / trigger / UI Review manifestation of the same stale document.
+- Current interpretation: retain both historical Finding IDs under the append-only contract, but treat `REP-014` as a child / duplicate manifestation of `REP-009` for Root Cause prioritization.
+- Unique maintenance root cause: one for `REP-009` and `REP-014`.
+- Finding deletion: no.
+- Requires separate implementation fixes: no; both should be handled through the same `docs/08_testing/e2e_design.md` maintenance decision.
+
+### Reconciliation: REP-013 — Training expected-failure contract
+
+- Additional evidence: `scripts/training/workflow-contract.ts:13-19` explicitly permits `pnpm run training:web:expected-failure` as a Training Workflow command.
+- Additional evidence: the same executable command allowlist does not list or approve `pnpm run training:web:check-expected-failure` as the Training Workflow entrypoint. The package script and curriculum still define the wrapper as a separate evidence-checking command (`package.json:40`; `docs/curriculum/test-automation/part2/05_playwright-ci.md:204-208`).
+- Previous interpretation: the Training Workflow was treated as bypassing the evidence-enforcing wrapper and therefore as confirmed `SCRIPT_DRIFT`.
+- Current interpretation: the Repository does not currently prove that this bypass is accidental. The raw command may be intentionally used so that the CI exercise visibly fails, while the wrapper may serve a separate local / contract verification purpose.
+- Remaining inconsistency: Curriculum documentation refers to the wrapper as part of Failure Artifact validation, while the executable Training Workflow contract intentionally permits the raw command.
+- Current status: `unresolved` / contract ambiguity.
+- Current category: curriculum / executable-contract inconsistency, rather than confirmed `SCRIPT_DRIFT`.
+- Severity: medium.
+- Confidence: medium.
+- Requires change?: maybe.
+- Suggested follow-up: clarify the intended responsibility split between (1) raw expected-failure CI execution, (2) evidence-contract validation wrapper, and (3) learner-facing curriculum; then align documentation or executable contract only if required.
+- False positive decision: not confirmed as a false positive. The evidence establishes an unresolved contract boundary, not which artifact is the sole current SSOT.
+
+### Finding Count versus Root Cause Count
+
+- Formal Finding ID count remains `19` for historical traceability.
+- `19 IDs` must not be read as `19 independent maintenance root causes`; at minimum, `REP-009` and `REP-014` are one stale-`e2e_design.md` root cause with two manifestations.
+- Current actionable candidate count and fully deduplicated Root Cause count are intentionally not re-computed in this reconciliation. `REP-019` remains excluded from current Repository maintenance candidates as a local-worktree observation.
+- No Finding was deleted, merged, renumbered, or mechanically changed to `duplicate`; the relationship is recorded for prioritization only.
+
+## Final Synthesis — Root Cause Reconciliation
+
+### Cross-report mapping
+
+- `REP-018` ↔ `MNT-002`: shared Windows / line-ending portability root cause in Agentic QA deterministic preparation.
+- `REP-011` ↔ formal `MNT-*` Findingなし: the Maintenance observation was reconciled as environment / resource contention and was not promoted.
+- `MNT-004`: independent stale-Metro-cache Web artifact reproducibility Finding.
+
+### Root-cause deduplication
+
+- `REP-009` and `REP-014` remain separate historical Finding IDs but represent one maintenance root cause in `docs/08_testing/e2e_design.md`.
+- Formal Finding ID count, current actionable candidate count, and unique root-cause count are separate measures. The report does not claim `19 IDs = 19 independent root causes`.
+
+### REP-013
+
+- `workflow-contract.ts` explicitly permits the raw expected-failure command and does not approve the wrapper as the Training Workflow entrypoint.
+- The prior confirmed-`SCRIPT_DRIFT` interpretation is therefore narrowed to an unresolved curriculum / executable-contract inconsistency; intentional responsibility separation remains possible.
+- `REP-013` is not classified as a false positive. Follow-up is to clarify the contract intent before deciding whether any documentation or executable-contract alignment is required.
+
+### Scope preservation
+
+- `REP-016`, `REP-017`, and all other Finding bodies remain unchanged by this addendum.
+- This addendum changes only cross-report mapping and interpretation. No Product, Test, Specification, Curriculum, Training Workflow, CI, Config, Script, Fixture, Seed, Agent, Skill, Harness, Dependency, or Generated source was changed.
