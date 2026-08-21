@@ -13,9 +13,12 @@
 - [x] 9. R3 Native Suggestionの`CustomerCatalogGateway` / `CatalogUseCases.suggest()`経路を明示する
 - [x] 10. `Main flow` / `Key abstractions` / `Files to inspect` / `Unknowns`をMain Planへ復元する
 - [x] 11. R8 hard merge prerequisiteをProduction isolation surface変更時だけに限定する
-- [ ] 12. `sanitize-codex-artifacts`をWrite + Checkで実行する
-- [ ] 13. `pnpm run format:check`を実行する
-- [ ] 14. `pnpm run lint:markdown`を実行する
+- [x] 12. R2aをviewer contextのUseCase→Gateway→Repository→SQLite伝播まで拡張する
+- [x] 13. R3 SuggestionをNative Search UI→Service→UseCase→Gateway→Repository→SQLiteまで明示する
+- [x] 14. Main Plan / Planning Run ArtifactをR2a / R3のEnd-to-End経路へ同期する
+- [ ] 15. `sanitize-codex-artifacts`をWrite + Checkで実行する
+- [ ] 16. `pnpm run format:check`を実行する
+- [ ] 17. `pnpm run lint:markdown`を実行する
 
 ## Discovered
 
@@ -25,9 +28,11 @@
 - D4. REP-012はProduct Runtime FindingではなくTest Oracle Finding → Focused Playwrightを正本Validationへ変更済み。
 - D5. Native SuggestionはUIだけでなく`CustomerCatalogGateway` capability自体が欠けている → R3へApplication/Gateway経路を反映済み。
 - D6. Native CIのProduction Build / Runtime JobにもStandalone validatorと同系統のraw Hermes marker scanがある → R8へ同一Root Causeとして反映済み。
+- D7. R2aはActor Resolverだけでなく、Gatewayがviewerを捨て、SQLiteがGuest visibility/pricingを前提にしている → viewer context End-to-End伝播をR2aへ反映済み。
+- D8. Native Suggestionは`NativeCatalogService` / `NativeCustomerCatalogRepository` / `NativeCustomerSQLiteRepository` / Native Search UIにも経路がない → R3へ全経路を反映済み。
 
 ## Blocked
 
-- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 12〜14はRepositoryをローカル取得できる環境で実行する。
+- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 15〜17はRepositoryをローカル取得できる環境で実行する。
 
 現在のPlanning RunはValidation未完了のため100%完了扱いにしない。
