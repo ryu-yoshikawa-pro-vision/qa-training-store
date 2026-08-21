@@ -21,9 +21,10 @@
 - [x] 17. R2a / R3の重複Testとspeculative async frameworkを削る
 - [x] 18. MCP / R8 validationをFindingに必要な操作と既存Harness再利用へ限定する
 - [x] 19. C2 / REP-017をread-only confirmationへ固定し、設定変更・追加CI実装を別対応へ分離する
-- [ ] 20. `sanitize-codex-artifacts`をWrite + Checkで実行する
-- [ ] 21. `pnpm run format:check`を実行する
-- [ ] 22. `pnpm run lint:markdown`を実行する
+- [x] 20. C1 / REP-013をread-only confirmationへ固定し、intent不明時は変更せず報告で止める
+- [ ] 21. `sanitize-codex-artifacts`をWrite + Checkで実行する
+- [ ] 22. `pnpm run format:check`を実行する
+- [ ] 23. `pnpm run lint:markdown`を実行する
 
 ## Discovered
 
@@ -38,9 +39,10 @@
 - D9. R2aとR3は同じNative Catalog boundaryを変更しR3がR2aへ依存するため、別PRより同一Groupの方が変更・Validationが単純 → G2へ統合済み。
 - D10. Native Suggestionのstale protectionは現実のasync overlapがある場合だけ必要で、専用Cancellation frameworkは不要 → Planへ制約追加済み。
 - D11. REP-017は外部Repository設定の確認Findingであり、confirmationからRuleset変更や追加CI実装へ自動移行させるべきではない → read-onlyへ固定済み。
+- D12. REP-013は監査Reconciliationでintent未確定のconfirmation Findingへ狭められているため、確認結果だけを理由に修正へ自動移行しない → read-onlyへ固定済み。
 
 ## Blocked
 
-- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 20〜22はRepositoryをローカル取得できる環境で実行する。
+- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 21〜23はRepositoryをローカル取得できる環境で実行する。
 
 現在のPlanning RunはValidation未完了のため100%完了扱いにしない。
