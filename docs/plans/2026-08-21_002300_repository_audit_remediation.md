@@ -30,7 +30,7 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 6. MCPが利用可能な場合は積極的に使用し、Rendered UIも確認している。
 7. MCPが利用不能な場合は未実行をPASS扱いせず、代替Runtime Evidenceと理由を記録している。
 8. MNT-003はActual Production Hermes Build Outputそのもの、またはそこから決定的に導出されるArtifact graphをEvidenceに含めている。
-9. Native Product変更を含むPRは、信頼できるProduction isolation gateが先にmainへ入っている状態でmergeする。
+9. Production isolation surfaceを変更するNative PRはR8を先にmainへmergeしている。通常のNative Product変更はR8と並列merge可能だが、Current Native Production Build + Maestro production-validationの実Job成功を必須とする。
 10. Native変更PRはNative CIの実Jobを実行し、docs-only skipを代替Evidenceにしない。
 11. Required CIがGreenである。
 12. Deferred / No-op項目を「ついで」に実装していない。
@@ -45,6 +45,8 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 - Native StorefrontはWeb/Native共通Product Behaviorとして定義されている。
 - `BR-STOREFRONT-002` / `AC-STOREFRONT-002` は、Keyword、Category、Brand、価格、在庫、Sale、最低評価、total、page、Facet件数、stable sortまで一貫することを要求する。
 - Current `NATIVE_CUSTOMER_SCENARIOS` に`gold-member` / `platinum-member`はない。
+- Current Native `CatalogUseCases.suggest()`は`customerGateway`経路で空配列を返し、`CustomerCatalogGateway`には`suggest()` capabilityがない。
+- Current Native CIにはStandalone bundle validatorとは別に、Production Build JobとRuntime Jobの2箇所でHermes bundleへraw marker scanを行う重複検査がある。
 - `qa-training-store-ci-chromium-required-cross-browser-split` branchにはCI分離実装があるが、Current `main`には未反映である。
 - Phase 3 Backend PRは別計画であり、本Planでは先回りしたBackend abstractionを作らない。
 
@@ -96,7 +98,9 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 - Storefront:
   - `docs/spec/features/storefront.md`
   - Native Catalog/Search presentation
-  - Catalog Application / SQLite contract
+  - `src/application/use-cases/catalog-use-cases.ts`
+  - `src/application/customer-capabilities.ts`
+  - Native Customer Catalog Gateway / SQLite contract
 - Web Search:
   - Search ComboBox / async suggestion state
 - Cart:
@@ -105,13 +109,37 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
   - Cross-role Flow J
   - Contract tests
 - Tooling:
-  - Native production bundle validator
+  - `scripts/validate-native-production-bundle.ts`
+  - `.github/workflows/native-ci.yml`
+  - `tests/contracts/native-ci-workflow.test.ts`
   - Agentic QA patch preparation
   - Training workflow contract
 - Docs:
   - `docs/05_ui/design_system.md`
   - iOS Curriculum
   - `docs/08_testing/e2e_design.md`
+
+### Main flow
+
+```text
+Route / Screen
+  → Application Use Case
+  → Gateway / Repository
+  → Persisted State / Platform Adapter
+  → Presentation
+```
+
+NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runtime composition / Test Control routing / Production APK / Runtime validationの順に保証する。
+
+### Key abstractions
+
+- `SessionIdentityResolver` / Current Actor resolution
+- `CatalogUseCases`
+- `CustomerCatalogGateway`
+- Checkout / Order / Payment persisted state
+- Native Shell / route authorization boundary
+- Native Test Control / Contract Harness production boundary
+- Native CI Production Build / Runtime validation
 
 ### Existing validation layers
 
@@ -124,6 +152,30 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 - `validate:spec`
 - `validate:spec-visuals:final`
 - `validate:curriculum`
+
+### Files to inspect
+
+| Slice | Primary files / areas |
+|---|---|
+| R1 | Checkout/Order Use Case、Web/Native result screens、checkout/payment tests |
+| R2a | Native Runtime composition、session identity、CatalogUseCases、Native catalog tests |
+| R2b | Native Shell / route boundary、customer deep-link tests |
+| R3 | `catalog-use-cases.ts`、`customer-capabilities.ts`、Native Catalog Gateway、Native Search/Storefront UI、SQLite query contract |
+| R4 | Web Search ComboBox、search component/E2E tests |
+| R5 | Dexie cart repository、repository contract tests |
+| R6 | Login visual registry/spec、visual validation tests |
+| R7 | Cross-role Flow J、related seed/state helpers |
+| R8 | `validate-native-production-bundle.ts`、`native-ci.yml`、`native-ci-workflow.test.ts`、production-validation Maestro flow |
+| R9 | Agentic QA patch/preparation scripts、Windows/Linux contract tests |
+| R10 | affected Windows contract tests / fixtures |
+| R11 | Training workflow/templates、workflow contract tests |
+| R12/R13 | affected Design System / Curriculum / E2E design docs and validators |
+
+### Unknowns
+
+- R8のHermes inspectionをどのartifact representationでfail-closeにするか。
+- REP-013のraw expected-failureとwrapperの責務分離が意図的か。
+- REP-017のGitHub Ruleset / Branch Protection実設定。
 
 ## 5. Scope
 
@@ -163,24 +215,23 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 
 ### Native Production isolation gate
 
-R8はNative Product修正の開発自体をBlockしない。
+R8は高優先度のparallel remediationとし、通常のNative Product修正の開発・mergeを一律にはBlockしない。
 
-ただし、次のNative Product変更をmergeする前にR8をmainへmergeし、Production isolation gateを信頼できる状態へ戻す。
+R8をhard merge prerequisiteにするのは、Production isolation surfaceを直接変更するPRに限定する。
 
-- R1のNative側変更
-- R2a
-- R2b
-- R3
+対象例:
 
-推奨:
+- `src/test-controls/**`
+- `src/bootstrap/native-runtime.ts`
+- `app.config.ts`
+- `EXPO_PUBLIC_*` build-kind branching
+- Native build config
+- Production bundle guard
+- Test Control / Contract Harness routing
 
-```text
-R8を並列実装
-  ↓
-R8をmainへ先行merge
-  ↓
-Native Product PRをmerge
-```
+上記へ触れない通常のNative Product Presentation/Application修正はR8と並列merge可能とする。ただしCurrent Native CIで、Actual Production-validation BuildとMaestro production-validationを含む実Job成功を必須とする。
+
+R2aがNative Runtime composition / Production isolation surfaceへ触れる実装になった場合のみR8先行mergeを必須化する。
 
 ### R3 dependency
 
@@ -242,9 +293,10 @@ R13は`qa-training-store-ci-chromium-required-cross-browser-split`がmainへmerg
 - 既に実装済み・正しいdimensionは変更しない。
 - 欠けているdimensionだけを最小実装する。
 - fixed `[]` / `null` / `page: 1` をCurrent UI stateへ接続する。
+- Native Suggestionは`CustomerCatalogGateway`へ最小の`suggest()` capabilityを追加し、`CatalogUseCases.suggest()`の`customerGateway`経路をNative Gatewayへ委譲する。Web側の既存Repository-based suggest経路は変更しない。
 - Underlying SQLite / Application contractを再利用する。
 - Web UIのpixel copyはしない。
-- Component / Contractで全dimensionを網羅し、Maestroでは代表的なFilter / Pagination / Suggestionを実操作する。
+- 全dimensionは既存coverageをrebaselineし、不足するContractだけ追加する。Native Component Testは実際に追加・修正したUI controlとrequest mappingを確認し、Maestroでは代表Filter + Pagination + Suggestionを実操作する。
 
 ### R4 — Web Search Suggestion
 
@@ -284,13 +336,27 @@ MCP:
 
 ### R8 — Native Production Bundle Guard
 
+Affected Surface:
+
+- `scripts/validate-native-production-bundle.ts`
+- `.github/workflows/native-ci.yml`
+  - Production-validation Build JobのProduction APK bundle scan
+  - Runtime Jobのdownloaded Production APK bundle scan
+- `tests/contracts/native-ci-workflow.test.ts`
+- `maestro/native-production-validation.yaml`はRuntime補助Evidenceとして維持する。
+
+方針:
+
 - Marker / Module / Screen / Service非存在Contractを維持する。
-- Hermes `.hbc`をUTF-8 raw textとして読む方式を置き換える。
+- Hermes `.hbc`をUTF-8/raw bytesへのmarker substring searchだけで判定する方式を置き換える。
+- Standalone validatorだけ直してWorkflow内の重複raw scanを残さない。
+- 可能ならCorrected Production Artifact inspectionを一つの責務へ集約し、Build Job / Runtime Jobの重複検査は同じ正しいinspection contractを再利用する。新しい汎用Frameworkは作らない。
+- `native-ci-workflow.test.ts`は旧`grep -aE`実装そのものを固定せず、corrected fail-close contractを固定するよう更新する。
 - Actual Production Hermes Build Output、またはそこから決定的に導出されるArtifact graphを必須Evidenceにする。
 - `--no-bytecode` projectionだけをProduction保証の代替にしない。
 - Automation Positive Controlを維持する。
 - ProductionへTest Control/Harnessが漏れた場合にFAILするNegative Controlを維持する。
-- Runtime Test Control unavailable確認は補助Evidenceとして利用してよい。
+- Maestro Production-validationによるRuntime Test Control unavailable確認は補助Evidenceとして維持する。
 
 ### R9 — Agentic QA patch portability
 
@@ -444,12 +510,12 @@ pnpm run test:contracts
 - R1: opposite-state / missing ID / unauthorized + Web/Native Runtime Before/After。
 - R2a: Guest / regular / gold / platinum actor semantics。
 - R2b: Guest direct route / unsupported role + Maestro deep-link。
-- R3: BR/AC全dimensionのContract確認 + Maestro代表操作。
+- R3: BR/AC全dimensionの既存coverageをrebaselineし、不足するContract/Componentだけ追加 + Maestro代表Filter / Pagination / Suggestion。
 - R4: normal typing / no result / stale request + Playwright-MCP。
 - R5: foreign-item Repository Test。
 - R6: `validate:spec` / `validate:spec-visuals:final`。
 - R7: Focused Playwrightでfalse-greenをfail-closeへ変更したことを確認。MCPは補助。
-- R8: Automation Positive Control + Production Negative Control + Actual Hermes Artifact Evidence。
+- R8: Standalone validator + Production Build Job + downloaded Production APK検証のcorrected contract、Automation Positive Control、Production Negative Control、Actual Hermes Artifact Evidence、Maestro production-validation。
 - R9: Windows EOL + Linux control。
 - R10: Windows bounded repeat。
 - R11: upstream SHA / Advisory / mutable-tag negative test。
@@ -483,8 +549,8 @@ pnpm run lint:markdown
    - Current Boundary patternを再利用する。
 3. Native auth guard重複
    - Shell / route boundaryへ集約する。
-4. Hermes guard弱体化
-   - Actual Production Artifact由来Evidenceを必須にする。
+4. Hermes guard弱体化 / 重複実装
+   - Actual Production Artifact由来Evidenceを必須にし、Standalone validatorとWorkflowのinspection contractを可能な範囲で共有する。
 5. Patch strictness低下
    - strict applyを維持する。
 6. Timeout対応の過剰調査
@@ -493,10 +559,12 @@ pnpm run lint:markdown
    - Test Controlを検証都合で拡張しない。
 8. Concurrent CI workとの競合
    - R13だけdependency blockedとする。
+9. R8によるProduct fixの不必要な遅延
+   - hard prerequisiteをProduction isolation surface変更時だけに限定する。
 
 ## 13. Priority
 
-### Merge gate first / parallel implementation allowed
+### High-priority parallel tooling
 
 1. R8 — Native Production Bundle Guard
 
