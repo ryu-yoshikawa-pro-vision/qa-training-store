@@ -268,3 +268,36 @@
   - `pnpm run format:check`
   - `pnpm run lint:markdown`
 - Progress: 88% (21/24)
+
+## 2026-08-22 00:58 (JST) — Git Execution Contract Simplification
+
+- Summary:
+  - G0 Safe Git Write Policy Alignmentはユーザー要望に対して過剰だったため撤回し、既存Repository Policyを変更しないGit Execution Contractへ置き換えた。
+  - Parent Codexのsafe / standard feature branchだけでnormal add / commit / pushを行い、`implementation_worker` / auto-netのGit write禁止は維持する。
+- Completed:
+  - `AGENTS.md`を再確認し、Git writeの明示禁止は`implementation_worker`と`auto-net`へ限定され、Parentの通常safe / standard workflowを一律禁止していないことを確認した。
+  - Common Hook / Common Rulesがfeature-branch normal add / commit / pushを既に許可していることを再確認した。
+  - G0をImplementation Group / permission変更Scopeから削除した。
+  - `AGENTS.md` / `.codex/rules-auto-net/**` / Common Hook / Contract TestのGit permission変更をNon-goalへ移した。
+  - auto-netのGit write禁止を維持し、Git writeが必要な場合はParent safe / standard workflowへ戻る方針へ変更した。
+  - Parentは明示Pathだけstageし、`git add .` / `-A` / `--all` / `-u`、`git commit -a` / `--all`を使わない契約へ強化した。
+  - commit前に`git diff --cached`でstage済み差分を再確認する手順を追加した。
+  - protected branch direct update / force push / remote delete / rebase / amend / destructive reset/clean/rm / PR merge禁止を維持した。
+  - Main Plan / Run PLAN / TASKSを同じGit Execution Contractへ同期した。
+- Changes:
+  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+  - `.codex/runs/20260821-174900-JST/PLAN.md`
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+- Commands / tools:
+  - GitHub connectorでCurrent `AGENTS.md`、Common Hook、Common Rules、auto-net rules、Safety Harness documents、Main Plan / Run Artifactを確認。
+  - GitHub contents APIでMain Plan / Run Artifactを更新。
+- Notes/Decisions:
+  - permission / approval contract自体を変更しないため、G0用のStrict workflow / run.json / evaluation追加は不要と判断した。
+  - auto-netまでGit writeを許可するとstage-all / commit-all guard等の追加Policy実装が必要になりscopeが膨らむため、変更しない。
+  - PR作成はユーザー明示依頼時のみ。PR mergeは実施しない。
+- Remaining:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check`
+  - `pnpm run format:check`
+  - `pnpm run lint:markdown`
+- Progress: 88% (21/24)
