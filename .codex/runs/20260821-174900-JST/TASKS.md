@@ -22,9 +22,10 @@
 - [x] 18. MCP / R8 validationをFindingに必要な操作と既存Harness再利用へ限定する
 - [x] 19. C2 / REP-017をread-only confirmationへ固定し、設定変更・追加CI実装を別対応へ分離する
 - [x] 20. C1 / REP-013をread-only confirmationへ固定し、intent不明時は変更せず報告で止める
-- [ ] 21. `sanitize-codex-artifacts`をWrite + Checkで実行する
-- [ ] 22. `pnpm run format:check`を実行する
-- [ ] 23. `pnpm run lint:markdown`を実行する
+- [x] 21. G0 Safe Git Write Policy Alignmentを実装前提として追加し、safe add / commit / push許可とPR merge禁止をPlanへ固定する
+- [ ] 22. `sanitize-codex-artifacts`をWrite + Checkで実行する
+- [ ] 23. `pnpm run format:check`を実行する
+- [ ] 24. `pnpm run lint:markdown`を実行する
 
 ## Discovered
 
@@ -40,9 +41,10 @@
 - D10. Native Suggestionのstale protectionは現実のasync overlapがある場合だけ必要で、専用Cancellation frameworkは不要 → Planへ制約追加済み。
 - D11. REP-017は外部Repository設定の確認Findingであり、confirmationからRuleset変更や追加CI実装へ自動移行させるべきではない → read-onlyへ固定済み。
 - D12. REP-013は監査Reconciliationでintent未確定のconfirmation Findingへ狭められているため、確認結果だけを理由に修正へ自動移行しない → read-onlyへ固定済み。
+- D13. Common Hookはsafe feature-branchの通常`git add` / `git commit` / `git push`を既に許可する一方、`AGENTS.md`とauto-net rulesがblanket forbiddenにしている → G0で上位Policyを既存Common Safety境界へ整合する計画を追加済み。
 
 ## Blocked
 
-- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 21〜23はRepositoryをローカル取得できる環境で実行する。
+- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 22〜24はRepositoryをローカル取得できる環境で実行する。
 
 現在のPlanning RunはValidation未完了のため100%完了扱いにしない。
