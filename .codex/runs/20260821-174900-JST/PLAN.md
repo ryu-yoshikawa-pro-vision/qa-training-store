@@ -100,7 +100,7 @@ NativeSearchScreen
 - G5: normal typingでWeb Suggestionを開く。既存keyboard/stale contractを維持。
 - G6: Cart item ownershipをmutation前に検証しforeign-item testを追加。
 - G7: Flow JのTest Oracleだけをfail-closeに修正。
-- G8: Patch line endingを1 boundaryで扱い、strict apply preflightを高コスト処理前へ置く。
+- G8: 既存`.gitattributes`のLF contractを先に使い、challenge patchをLFへ揃えてstrict apply preflightを高コスト処理前へ置く。それでも再現する場合だけscript normalizationを検討する。
 - G9: Current action versionを原則維持しfull SHAへpin。Security upgradeが必要なら別対応。
 
 ## Common rules
@@ -123,7 +123,7 @@ Focused Validationを先に実行し、その後変更面に必要なRepository 
 - G5: normal typing / no-result / keyboard + Runtime Before/After
 - G6: foreign-item repository test
 - G7: Focused Playwright false-green regression
-- G8: Windows CRLF + Linux LF control
+- G8: `.gitattributes`準拠のLF patch + Windows strict apply + Linux control。script normalizationは追加した場合だけその境界をtestする
 - G9: upstream SHA / advisory + mutable-tag negative contract
 
 候補Repository gates:
@@ -158,6 +158,7 @@ MCP / RuntimeはUI/Runtime FindingのBefore / Afterに必要な範囲だけ使�
 - Active remediationが9Groupへ縮小されている。
 - Docs / confirmation / blocked itemsがFollow-up / Deferredへ移っている。
 - G3とG1の必要なEnd-to-End / fail-close詳細は維持されている。
+- G8は既存`.gitattributes`を優先し、不要なEOL normalization処理を先に作らない方針になっている。
 - Git / MCP / validation説明の重複が削減されている。
 - Main PlanとRun Artifactが同期している。
 - Planning branchはPlan + Run Artifact以外を変更していない。
@@ -173,9 +174,11 @@ pnpm run lint:markdown
 
 - 簡素化でG3のviewer contextやG1のHermes fail-closeを表層修正へ落とさない。
 - Follow-up FindingをActiveへ戻してScopeを再膨張させない。
+- G8で既存Git EOL contractだけで足りるのに新しいnormalization utilityを追加しない。
 - 新Frameworkや重複Testを追加しない。
 
 ## Thinking Log
 
 - 2026-08-21〜2026-08-22: 監査Findingの技術reconciliation、scope整理、Git execution contract整理を反復。
 - 2026-08-22 01:26 JST: 「本当に必要なもの」に再評価し、Active remediationを9Groupへ縮小。R6/R10/R12/R13/C1/C2をFollow-upへ移し、Git/MCP/validation説明の重複を削減。技術的に重要なG1/G3詳細だけ維持した。
+- 2026-08-22 01:36 JST: G8を再簡素化。Repository既定の`.gitattributes` LF contractを先に使い、script側normalizationはLF patch + strict applyでも問題が残るEvidenceがある場合だけ検討する方針へ変更。
