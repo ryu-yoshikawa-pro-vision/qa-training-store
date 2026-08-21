@@ -2,17 +2,16 @@
 
 ## Objective
 
-- PR #35の監査結果を基にしたRepository Audit Remediation Planを再レビュー指摘へ合わせて修正し、実装者が追加判断なしでRoot Cause単位の修正へ進める状態にする。
+- Repository Audit Remediation Planを最新レビューへ合わせて修正し、実装者が追加判断を最小化してRoot Cause単位で進められる状態にする。
 
 ## Scope
 
 - In:
-  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md` のPlanning Contract準拠化。
-  - MNT-003のActual Production Hermes Artifact Evidence要件追加。
-  - REP-002の不整合時UXをCurrent Boundary Contractへ委ねるよう修正。
-  - REP-001 / REP-006、REP-008 / REP-010のPR Slice分離。
-  - MCP Before/After、Gold/Platinum Runtime制約、Artifact保存契約の追加。
-  - Oracle PriorityとTraining Action SHA pinning手順のRepository Policy整合。
+  - R3 Storefront parityをCurrent BR/AC全dimensionのrebaselineへ修正する。
+  - R7 Flow Jの正本ValidationをFocused Playwrightへ修正する。
+  - R8をNative Product PRのmerge gateとして明示する。
+  - Plan branchのsanitize / format / markdown lintを完了条件へ追加する。
+  - Planning Runの完了状態を未実行Validationに合わせて訂正する。
 - Out:
   - Product / Test / CI / Curriculum本体の実装修正。
   - Audit Report本文の修正。
@@ -20,60 +19,56 @@
 
 ## Assumptions
 
-- Current `main`はPR #35マージ後の`314a8f958072f19e672e3bc37089558d74e42feb`。
-- Cross Browser CI split実装branchはR13以外のSliceをBlockしない。
-- Runtime検証のためだけにNative Test Control Scenarioを拡張しない。
+- Current Plan branchは`plan/repository-audit-remediation`。
+- Repositoryをローカル取得できる環境でsanitize / format / markdown lintを実行できる。
+- 実装時は各Sliceを最新`main`へrebaseする。
 
 ## Questions / Ambiguity
 
-- 必ず質問する不透明点:
-  - 全体Planを止めるBlocking Questionはなし。
-- 仮定してよい細部:
-  - Current Repository conventionで決まるTest file配置、既存Boundary UXの再利用先。
-- 未回答の重要質問:
-  - REP-013、REP-017は各confirmation taskで確認する。
-  - MNT-003の最小Hermes検証方式はR8実装調査で決定する。
+- 全体Planを止めるBlocking Questionはなし。
+- REP-013 / REP-017は各confirmation taskで確認する。
+- MNT-003の最小Hermes検証方式はR8実装時に決めるが、Actual Production Artifact由来Evidenceは必須とする。
 
 ## Hypotheses
 
-- H1: Product/UI/Native FindingはBefore/After Runtime Evidenceを明示することで、Static-only false closureを防げる。
-- H2: Root Cause単位へPR Sliceを分けることで、依存関係とレビュー境界を明確化できる。
+- H1: Storefront Contractをdimension一覧でrebaselineすれば、既存実装を不要に触らず欠落だけ修正できる。
+- H2: Flow Jのfalse-greenはRuntime画面確認ではなくFocused Playwrightのfail-closeで保証すべきである。
+- H3: Native Product変更前にR8をmerge gateへ戻せば、Production isolationのfalse-negativeを残したままNative変更を積み増すRiskを避けられる。
 
 ## Research Plan
 
-- Round 1 Query:
-  - `PLANS.md`、`docs/plans/TEMPLATE.md`、feature-plan contract、AGENTS.mdを確認する。
-- Round 2 Query:
-  - Checkout Spec、Oracle Priority、Native scenario allowlist、Cross Browser CI split branchを確認する。
-- Exit Criteria:
-  - 前回レビュー7点がPlanへ明示的に反映されている。
-  - 実装コードへ変更がない。
-  - Planning Run Artifactが保存されている。
+- Repository Planning / Review Contractを確認する。
+- Storefront BR/AC、Flow J Finding、Native Production Contractを確認する。
+- PlanとRun Artifactへ最新判断を反映する。
+- branch差分を確認する。
+- ローカル環境でsanitize / format / markdown lintを実行して完了判定する。
 
 ## Approach
 
-1. Repository Planning / Review Contractを再確認する。
-2. Current Planの不足をRoot Cause単位で修正する。
-3. PlanをTemplate必須項目へ再整理する。
-4. Planning Run Artifactへ判断・変更・残Riskを記録する。
-5. Branch差分を確認し、Plan + Run Artifact以外の変更がないことを確認する。
+1. Main Planを最新レビューへ合わせて修正する。
+2. Planning Run Artifactへ訂正を反映する。
+3. Branch差分を確認する。
+4. Repositoryをローカル取得できる環境で最終Validationを実行する。
+5. PASS後にPlanning Runを100%完了へ更新する。
 
 ## Definition of Done
 
-- Main PlanにGoal/DoD、Current understanding、Assumptions、Non-goals、Impacted areas、Files to inspect、Change strategy、Validation、Risks、Open questions、Follow-up notesがある。
-- MNT-003はActual Production Hermes Build Output由来Evidenceを必須にしている。
-- REP-002はPlanだけで新しいerror/not-found UXを確定していない。
-- R2a/R2b、R12a/R12bへRoot Cause単位で分離されている。
-- MCP Before/After、Gold/Platinum制約、`.artifacts`保存契約がある。
-- Oracle PriorityとAction SHA pinning確認がRepository Policyと整合する。
+- R3がKeyword / Category / Brand / Price / Inventory / Sale / Minimum rating / total / page / Facet counts / stable sort / Suggestionをrebaselineする。
+- R7がFocused Playwrightを正本Validationとし、MCPを補助へ下げている。
+- R8がNative Product PRのmerge gateとして明示されている。
+- Planning Runがsanitize未実行のまま100%完了扱いされていない。
+- `sanitize-codex-artifacts` Write + CheckがPASSする。
+- `pnpm run format:check`がPASSする。
+- `pnpm run lint:markdown`がPASSする。
+- Plan + Run Artifact以外の変更がない。
 
 ## Risks / Unknowns
 
-- GitHub connector経由の編集ではRepositoryのsanitize scriptを直接実行できないため、Run Artifactにはローカル絶対Pathを記載しない。
-- Cross Browser CI split branchはmain未反映のため、R13はdependency blockedのまま保持する。
+- GitHub connector環境ではRepository scriptを直接実行できないため、最終Validationはローカル実行が必要。
+- Cross Browser CI splitはmain未反映のため、R13はdependency blockedのまま保持する。
 
 ## Thinking Log
 
-- 2026-08-21 17:49 JST: 再レビュー結果を受け、Planを単純追記ではなくRepository Template構造へ再整理する方針を採用。
-- 2026-08-21 17:49 JST: Runtime Evidenceを増やすためのTest Control scope拡張は過剰対応になるため禁止を明文化。
-- 2026-08-21 17:49 JST: Production Hermes Guardはprojection-onlyで完了できないようActual Production Artifact由来EvidenceをDoDへ追加。
+- 2026-08-21 17:49 JST: 初回Plan修正を実施。
+- 2026-08-21 20:24 JST: 再レビューでR3全dimension、R7 Oracle、R8 merge gate、Plan branch validation不足を確認。
+- 2026-08-21 20:24 JST: Main Planを必要な契約だけに再整理し、Planning Runの完了条件を訂正。
