@@ -234,3 +234,37 @@
   - `pnpm run format:check`
   - `pnpm run lint:markdown`
 - Progress: 87% (20/23)
+
+## 2026-08-22 00:44 (JST) — Safe Git Write Policy Planning
+
+- Summary:
+  - 実装時にfeature branch上で`git add` / `git commit` / normal `git push`まで行えるよう、G0 Safe Git Write Policy AlignmentをMain Planへ追加した。
+  - PR merge、protected branch direct update、history rewrite等の禁止は維持した。
+- Completed:
+  - Current Common Hookがexplicit-path add / feature-branch normal commit / normal pushを許可し、rebase / amend / force push / protected branch direct update等を拒否することを再確認した。
+  - Current `AGENTS.md`とauto-net rulesがnormal add / commit / pushをblanket forbiddenにしており、Common Policyと不整合であることを確認した。
+  - G0を他のwritable implementation groupより前の実装前提として追加した。
+  - Git writeはParent Codexだけが担当し、`implementation_worker`はSource編集だけを担当する責務分離を維持した。
+  - Parentは確認済みの明示Pathだけをstageし、`git add .` / `-A` / `--all`を使用しない契約を追加した。
+  - PR作成はユーザー明示依頼時のみ、PR mergeは実施しない契約を追加した。
+  - state-changing rebaseを自動実行せず、各Group開始時は`git fetch` + latest `origin/main` rebaselineへ変更した。
+  - Current Codex run内のwritable implementationはserial、read-only researchのみ必要時並列へ実行モデルを整理した。
+  - G0のAffected Surface、Validation、rollbackを具体化した。
+  - Main Plan / Run PLAN / TASKSを同期した。
+- Changes:
+  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+  - `.codex/runs/20260821-174900-JST/PLAN.md`
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+- Commands / tools:
+  - GitHub connectorで`AGENTS.md`、`.codex/rules/README.md`、`.codex/rules-auto-net/*`、`.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`を確認。
+  - GitHub contents APIでPlan / Run Artifactを更新。
+- Notes/Decisions:
+  - 今回のPlanning branchではG0のPolicy本体は変更せず、実装計画だけを追加した。
+  - G0実装時もCommon Hook本体は、新しい安全要件不足が確認されない限り変更しない。
+  - G0でunsafe regressionが出た場合はProduct実装へ進まず、通常のcontent edit + follow-up commitでrollbackする。rebase / force push / hard reset等は使わない。
+- Remaining:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check`
+  - `pnpm run format:check`
+  - `pnpm run lint:markdown`
+- Progress: 88% (21/24)
