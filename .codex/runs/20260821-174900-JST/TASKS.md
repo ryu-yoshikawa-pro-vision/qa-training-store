@@ -22,30 +22,32 @@
 - [x] 18. MCP / R8 validationをFindingに必要な操作と既存Harness再利用へ限定する
 - [x] 19. C2 / REP-017をread-only confirmationへ固定し、設定変更・追加CI実装を別対応へ分離する
 - [x] 20. C1 / REP-013をread-only confirmationへ固定し、intent不明時は変更せず報告で止める
-- [x] 21. G0 Policy変更を撤回し、既存Policy上のGit Execution ContractとしてParent safe/standardのexplicit-path add / commit / pushとPR merge禁止を固定する
-- [ ] 22. `sanitize-codex-artifacts`をWrite + Checkで実行する
-- [ ] 23. `pnpm run format:check`を実行する
-- [ ] 24. `pnpm run lint:markdown`を実行する
+- [x] 21. G0 Policy変更を撤回し、既存Policy上のGit Execution Contractへ縮小する
+- [x] 22. Active remediationを必要性の高い9Groupへ絞り、R6/R10/R12/R13/C1/C2をFollow-upへ移し、Git/MCP/validation重複を削る
+- [ ] 23. `sanitize-codex-artifacts`をWrite + Checkで実行する
+- [ ] 24. `pnpm run format:check`を実行する
+- [ ] 25. `pnpm run lint:markdown`を実行する
 
 ## Discovered
 
 - D1. Current Native Test Control scenario allowlistに`gold-member` / `platinum-member`がないため、Runtime検証だけを目的としたscenario追加は禁止する → Plan反映済み。
-- D2. Cross Browser CI splitは実装branchに存在するがmain未反映のため、R13を`BLOCKED_BY_DEPENDENCY`とする → Plan反映済み。
-- D3. `BR-STOREFRONT-002` / `AC-STOREFRONT-002`は在庫・Sale・最低評価・Facet件数・stable sortも要求する → R3へ全dimensionを反映済み。
-- D4. REP-012はProduct Runtime FindingではなくTest Oracle Finding → Focused Playwrightを正本Validationへ変更済み。
-- D5. Native SuggestionはUIだけでなく`CustomerCatalogGateway` capability自体が欠けている → R3へApplication/Gateway経路を反映済み。
-- D6. Native CIのProduction Build / Runtime JobにもStandalone validatorと同系統のraw Hermes marker scanがある → R8へ同一Root Causeとして反映済み。
-- D7. R2aはActor Resolverだけでなく、Gatewayがviewerを捨て、SQLiteがGuest visibility/pricingを前提にしている → viewer context End-to-End伝播をR2aへ反映済み。
-- D8. Native Suggestionは`NativeCatalogService` / `NativeCustomerCatalogRepository` / `NativeCustomerSQLiteRepository` / Native Search UIにも経路がない → R3へ全経路を反映済み。
-- D9. R2aとR3は同じNative Catalog boundaryを変更しR3がR2aへ依存するため、別PRより同一Groupの方が変更・Validationが単純 → G2へ統合済み。
-- D10. Native Suggestionのstale protectionは現実のasync overlapがある場合だけ必要で、専用Cancellation frameworkは不要 → Planへ制約追加済み。
-- D11. REP-017は外部Repository設定の確認Findingであり、confirmationからRuleset変更や追加CI実装へ自動移行させるべきではない → read-onlyへ固定済み。
-- D12. REP-013は監査Reconciliationでintent未確定のconfirmation Findingへ狭められているため、確認結果だけを理由に修正へ自動移行しない → read-onlyへ固定済み。
-- D13. Common HookはParent safe/standardのfeature-branch `git add` / `git commit` / normal `git push`を既に許可し、`AGENTS.md`の明示禁止は`implementation_worker`と`auto-net`へ限定される → Git permission policy変更は不要。
-- D14. auto-netまでGit writeを許可するとstage-all / commit-all等への追加Guardが必要になりscopeが膨らむ → auto-net禁止を維持し、Parent safe/standardのExecution Contractだけを使用する。
+- D2. Cross Browser CI splitは実装branchに存在するがmain未反映のため、R13はActive implementationから外しFollow-upとする。
+- D3. `BR-STOREFRONT-002` / `AC-STOREFRONT-002`は在庫・Sale・最低評価・Facet件数・stable sortも要求する → G3へ必要dimensionを維持。
+- D4. REP-012はProduct Runtime FindingではなくTest Oracle Finding → G7でFocused Playwrightを正本Validationとする。
+- D5. Native SuggestionはUIだけでなく`CustomerCatalogGateway` capability自体が欠けている → G3へApplication/Gateway経路を維持。
+- D6. Native CIのProduction Build / Runtime JobにもStandalone validatorと同系統のraw Hermes marker scanがある → G1で同一Root Causeとして扱う。
+- D7. REP-001はActor ResolverだけでなくGatewayがviewerを捨て、SQLiteがGuest visibility/pricingを前提にしている → G3でviewer context End-to-Endを維持。
+- D8. Native SuggestionはService / Repository / SQLite / UIにも経路がない → G3で全経路を維持。
+- D9. R2aとR3は同じNative Catalog boundaryを変更しR3がR2aへ依存する → G3へ統合。
+- D10. Native Suggestionのstale protectionは実際のasync overlapがある場合だけ必要 → 専用Cancellation framework禁止。
+- D11. REP-017は外部Repository設定のconfirmation Finding → Active implementationから除外。
+- D12. REP-013はintent未確定のconfirmation Finding → Active implementationから除外。
+- D13. Parentのfeature-branch add / commit / pushは既存Policyで扱える → Git permission policy変更は不要。
+- D14. auto-netまでGit writeを許可すると追加Guardが必要になりscopeが膨らむ → auto-net禁止を維持。
+- D15. 監査Findingをすべて同じMust Fix粒度で持つとPlanが監査Report化する → Product correctness / authorization / test reliability / CI-securityに直接効く9GroupだけActiveとする。
 
 ## Blocked
 
-- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 22〜24はRepositoryをローカル取得できる環境で実行する。
+- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 23〜25はRepositoryをローカル取得できる環境で実行する。
 
 現在のPlanning RunはValidation未完了のため100%完了扱いにしない。
