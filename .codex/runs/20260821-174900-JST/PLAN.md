@@ -7,11 +7,12 @@
 ## Scope
 
 - In:
-  - R3 Storefront parityをCurrent BR/AC全dimensionのrebaselineへ修正する。
-  - R7 Flow Jの正本ValidationをFocused Playwrightへ修正する。
-  - R8をNative Product PRのmerge gateとして明示する。
-  - Plan branchのsanitize / format / markdown lintを完了条件へ追加する。
-  - Planning Runの完了状態を未実行Validationに合わせて訂正する。
+  - R8のAffected SurfaceをStandalone validator / Native CI inline scans / Contract Testまで拡張する。
+  - R3 Native SuggestionのApplication/Gateway経路を明示する。
+  - Repository Planning Contractの`Main flow` / `Key abstractions` / `Files to inspect` / `Unknowns`を復元する。
+  - R8のhard merge gateをProduction isolation surface変更時だけに限定する。
+  - R3のValidationを既存coverage rebaseline + 不足分追加へ簡素化する。
+  - Plan branchのsanitize / format / markdown lintを完了条件として維持する。
 - Out:
   - Product / Test / CI / Curriculum本体の実装修正。
   - Audit Report本文の修正。
@@ -31,14 +32,16 @@
 
 ## Hypotheses
 
-- H1: Storefront Contractをdimension一覧でrebaselineすれば、既存実装を不要に触らず欠落だけ修正できる。
-- H2: Flow Jのfalse-greenはRuntime画面確認ではなくFocused Playwrightのfail-closeで保証すべきである。
-- H3: Native Product変更前にR8をmerge gateへ戻せば、Production isolationのfalse-negativeを残したままNative変更を積み増すRiskを避けられる。
+- H1: Storefront Contractを全dimensionでrebaselineし、不足coverageだけ追加すれば過剰な重複Testを避けられる。
+- H2: Native Suggestionは`CustomerCatalogGateway`へ最小capabilityを追加し、`CatalogUseCases.suggest()`を委譲すればWeb経路を壊さず修正できる。
+- H3: R8のinspection contractをStandalone validatorとNative CIの重複scanで整合させれば、Hermes false-negativeを部分修正で残さずに済む。
+- H4: R8のhard merge prerequisiteをProduction isolation surface変更時に限定すれば、High-priority Product Fixを不要に遅延させない。
 
 ## Research Plan
 
 - Repository Planning / Review Contractを確認する。
-- Storefront BR/AC、Flow J Finding、Native Production Contractを確認する。
+- Current CatalogUseCases / CustomerCatalogGatewayを確認する。
+- Current Native bundle validator / Native CI / Contract Testを確認する。
 - PlanとRun Artifactへ最新判断を反映する。
 - branch差分を確認する。
 - ローカル環境でsanitize / format / markdown lintを実行して完了判定する。
@@ -53,9 +56,11 @@
 
 ## Definition of Done
 
-- R3がKeyword / Category / Brand / Price / Inventory / Sale / Minimum rating / total / page / Facet counts / stable sort / Suggestionをrebaselineする。
-- R7がFocused Playwrightを正本Validationとし、MCPを補助へ下げている。
-- R8がNative Product PRのmerge gateとして明示されている。
+- R8が`validate-native-production-bundle.ts` / `native-ci.yml`の2つのraw scan / `native-ci-workflow.test.ts`を同一Root Causeとして扱う。
+- R3がNative Suggestionの`CustomerCatalogGateway` / `CatalogUseCases.suggest()`経路を明記する。
+- `Main flow` / `Key abstractions` / `Files to inspect` / `Unknowns`がMain Planに存在する。
+- R8のhard merge prerequisiteがProduction isolation surface変更時だけに限定される。
+- R3が全dimensionへの重複Test追加ではなく、既存coverage rebaseline + 不足分追加になっている。
 - Planning Runがsanitize未実行のまま100%完了扱いされていない。
 - `sanitize-codex-artifacts` Write + CheckがPASSする。
 - `pnpm run format:check`がPASSする。
@@ -70,5 +75,6 @@
 ## Thinking Log
 
 - 2026-08-21 17:49 JST: 初回Plan修正を実施。
-- 2026-08-21 20:24 JST: 再レビューでR3全dimension、R7 Oracle、R8 merge gate、Plan branch validation不足を確認。
-- 2026-08-21 20:24 JST: Main Planを必要な契約だけに再整理し、Planning Runの完了条件を訂正。
+- 2026-08-21 20:24 JST: R3全dimension、R7 Oracle、R8 merge gate、Plan branch validation不足を確認して反映。
+- 2026-08-21 20:40 JST: R8の重複Hermes scan、R3 Suggestion gateway欠落、repo mapping必須項目、R8 gate過剰性を確認。
+- 2026-08-21 20:40 JST: Main Planを上記4点へ限定して修正。
