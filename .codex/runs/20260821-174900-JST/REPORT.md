@@ -301,3 +301,31 @@
   - `pnpm run format:check`
   - `pnpm run lint:markdown`
 - Progress: 88% (21/24)
+
+## 2026-08-22 01:26 (JST) — Active Scope Reduction
+
+- Summary:
+  - Planを監査Findingの網羅表ではなく実装者向けRemediation Planへ戻すため、本当に実装価値が高い項目だけへActive scopeを縮小した。
+  - 技術的に重要なNative Catalog / StorefrontとProduction Bundle Guardの詳細は維持し、それ以外の重複説明を削った。
+- Completed:
+  - Active remediationを9Groupへ限定した。
+  - R6 / R10 / R12a / R12b / R13をFollow-up / Deferredへ移した。
+  - C1 / REP-013とC2 / REP-017をActive implementationから外し、confirmation-only follow-upへ移した。
+  - Git Execution Contractの重複を削り、Execution notesへ集約した。
+  - MCP / Runtime validationをUI/Runtime Findingの必要範囲だけへ簡素化した。
+  - R2a + R3のviewer context / Suggestion End-to-End設計、R8のActual Production Hermes Artifact fail-close要件は削らず維持した。
+  - Main Plan / Run PLAN / TASKSを同じActive scopeへ同期した。
+- Changes:
+  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+  - `.codex/runs/20260821-174900-JST/PLAN.md`
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+- Notes/Decisions:
+  - Product correctness / authorization / test reliability / CI-security contractに直接効かないFindingは、正しい指摘でも今回のActive implementationへ入れない。
+  - Planを短くすること自体ではなく、実装判断に不要な重複と低優先項目を削ることを目的とした。
+  - 新Frameworkや重複Testを増やす方向の再拡張はしない。
+- Remaining:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check`
+  - `pnpm run format:check`
+  - `pnpm run lint:markdown`
+- Progress: 88% (22/25)
