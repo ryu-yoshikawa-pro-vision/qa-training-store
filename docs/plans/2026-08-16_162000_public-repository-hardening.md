@@ -605,7 +605,7 @@ Ruleset 移行手順:
 1. Phase 2 の修正版 `validate` を通常手順で `main` へ反映
 2. `main` 上で `validate` が正常に実行・成功することを確認
 3. `validate` check-run の発行元 App が GitHub Actions であることと、実装時点の integration / App ID を確認
-4. `main-protection` を `verify` + GitHub Actions` から `validate` + GitHub Actions へ変更
+4. `main-protection` を `verify` + GitHub Actions から `validate` + GitHub Actions へ変更
 5. Ruleset を再取得し、Required check context が `validate`、expected source が GitHub Actions のままであることを確認
 6. 変更後、通常 PR で `validate` が merge block の最終 Gate になることを確認
 
