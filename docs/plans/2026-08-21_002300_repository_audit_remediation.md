@@ -11,7 +11,7 @@
   - `docs/reports/2026-08-20_103937_repository-audit.md`
 - 目的:
   - 監査Findingを機械的に全実装せず、Current Contract上で本当に修正が必要なRoot Causeだけを解消する。
-  - Product / Test / Tooling / DocumentationをRoot Cause単位の小さなPRへ分ける。
+  - 同じ変更面・依存関係を持つFindingは無理に別PRへ分割せず、レビュー可能な最小の実装単位へまとめる。
   - Product/UI/NativeのBehavior修正は、可能な限りPlaywright-MCP / Maestro-MCPを使い、修正前後の実Runtimeを確認する。
 
 ## 1. Goal / Definition of Done
@@ -22,19 +22,19 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 
 ### Definition of Done
 
-1. 各Slice開始時に最新`main`へrebaseし、Findingが未修正であることを再確認している。
+1. 各実装Group開始時に最新`main`へrebaseし、対象Findingが未修正であることを再確認している。
 2. Product BehaviorはNormative Specificationへ一致する。
 3. Route / App ID / Test ID / Seed ID / Design Token / Build Config等、SpecがExecutable Canonical Sourceへ委譲する低レベル値はCode / Configへ一致する。
 4. Test修正でassertion弱体化、無条件retry、global timeout増加、failure maskingを行っていない。
 5. Runtime Findingは、可能な場合、最新`main`でBeforeを再現し、修正後に同じ操作でAfterを確認している。
-6. MCPが利用可能な場合は積極的に使用し、Rendered UIも確認している。
+6. MCPが利用可能な場合は積極的に使用し、Findingに関係するRendered UIを確認している。
 7. MCPが利用不能な場合は未実行をPASS扱いせず、代替Runtime Evidenceと理由を記録している。
 8. MNT-003はActual Production Hermes Build Outputそのもの、またはそこから決定的に導出されるArtifact graphをEvidenceに含めている。
 9. Production isolation surfaceを変更するNative PRはR8を先にmainへmergeしている。通常のNative Product変更はR8と並列merge可能だが、Current Native Production Build + Maestro production-validationの実Job成功を必須とする。
 10. Native変更PRはNative CIの実Jobを実行し、docs-only skipを代替Evidenceにしない。
 11. Required CIがGreenである。
 12. Deferred / No-op項目を「ついで」に実装していない。
-13. Root CauseごとにPRを分離し、別Root Causeを巨大PRへ混ぜていない。
+13. PRはRoot Cause数ではなく変更面・依存関係・Validation単位で切り、無関係な領域だけを同じPRへ混ぜない。
 14. Run Artifact、MCP Evidence、PR本文がRepository契約に従っている。
 
 ## 2. Current Understanding
@@ -58,8 +58,8 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 
 ### Assumptions
 
-- 実装時は各Sliceを最新`main`へrebaseする。
-- 他PRで既に修正済みなら、そのSliceを`already-fixed`へ変更する。
+- 実装時は各実装Groupを最新`main`へrebaseする。
+- 他PRで既に修正済みなら、そのFindingを`already-fixed`へ変更する。
 - Runtime検証のためだけにProduct capabilityやTest Control capabilityを追加しない。
 - MCP availabilityは環境依存であり、MCP unavailable自体をProduct defectにしない。
 
@@ -77,6 +77,7 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 - Agentic QA Runner / Orchestrator新設。
 - Metro cacheへの無条件`--clear`導入。
 - MCP検証だけのためのNative Test Control Scenario拡張。
+- Native Suggestionだけのための新しいCancellation / Request orchestration framework。
 - Audit ReportのFinding削除・改番。
 
 ### Open Questions
@@ -85,7 +86,7 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 - REP-017: GitHub Ruleset / Branch ProtectionがNative main assuranceを十分に保証しているか。
 - MNT-003: Actual Production Hermes Artifactへ対する最小fail-close検証方式。
 
-上記は全体Blockerではなく、該当Sliceのconfirmation gateとする。
+上記は全体Blockerではなく、該当Finding / Groupのconfirmation gateとする。
 
 ## 4. Repo Mapping
 
@@ -245,7 +246,43 @@ NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runti
 - MNT-005: exact body mappingはLower Layerで保証済み。現状変更なし。
 - REP-019: Repository defectではないため変更なし。
 
-## 6. Dependencies / Merge Order
+## 6. Implementation Groups / Dependencies
+
+### Grouping principle
+
+SliceはFinding追跡単位として残すが、PRはSlice数に合わせて機械的に増やさない。
+
+同じPRへまとめてよい条件:
+
+- 同じ主要ファイル / abstractionを変更する。
+- 一方が他方の前提であり、分けると同じboundaryを連続して変更する。
+- 同じValidationで安全に確認できる。
+
+分ける条件:
+
+- Product / CI / Docsなど責務が異なる。
+- rollback / review riskが明確に異なる。
+- merge dependencyが異なる。
+
+### Preferred implementation groups
+
+| Group | Included slices | 理由 |
+|---|---|---|
+| G1 | R1 | Checkout state integrityは独立したProduct boundary。 |
+| G2 | R2a + R3 | Native Catalog/Storefrontの同じRuntime・UseCase・Gateway・Repository・SQLiteを連続して変更し、R3はR2aを前提とする。 |
+| G3 | R2b | Route authorizationはStorefront data pathと別boundary。 |
+| G4 | R4 | Web Search UIの独立修正。 |
+| G5 | R5 | Cart repository invariantの独立修正。 |
+| G6 | R6 | Spec/visual mappingの独立修正。 |
+| G7 | R7 | Test Oracleのみの独立修正。 |
+| G8 | R8 | Native Production isolation tooling/CIの独立修正。 |
+| G9 | R9 | Agentic QA patch portabilityの独立修正。 |
+| G10 | R10 | Windows timeout false-negativeの局所修正。 |
+| G11 | R11 | Training workflow SHA policyの独立修正。 |
+| G12 | R12a + R12b | どちらも小さいCurrent-documentation alignmentで、Product codeを変更しない。 |
+| G13 | R13 | Cross Browser CI split merge後のみ実施。 |
+
+C1 / C2は確認だけで終わる場合PRを作らない。
 
 ### Native Production isolation gate
 
@@ -267,9 +304,9 @@ R8をhard merge prerequisiteにするのは、Production isolation surfaceを直
 
 上記へ触れない通常のNative Product Presentation/Application修正はR8と並列merge可能とする。ただしCurrent Native CIで、Actual Production-validation BuildとMaestro production-validationを含む実Job成功を必須とする。
 
-### R3 dependency
+### G2 dependency
 
-R3はR2aのviewer context伝播修正後にmergeする。Guest固定またはviewer contextがRepositoryまで届かない状態でStorefront parityを完成扱いにしない。
+G2内ではR2aのviewer context伝播を先に成立させ、その上でR3のStorefront parityを完成させる。PRは同一でも、実装順序とcommit単位は分けてよい。
 
 ### R13 dependency
 
@@ -302,9 +339,10 @@ SessionIdentityResolver / Current Actor
 ```
 
 - `createNativeCustomerCatalogGateway()`でviewer kindを検証するだけで捨てず、repository inputへviewer contextを渡す。
-- Native repository / SQLite側でGuest固定visibilityや`viewerUnitPrice(..., null)`を使わず、既存Domainのvisibility / rank / pricing semanticsをviewer contextに適用する。
+- 既存の`ProductViewer` / Storefront query contractを優先し、Native専用viewer modelを新設しない。
+- 可視性は既存`canViewerSeeProduct()`、価格は既存`effectiveUnitPrice()` / `viewerUnitPrice()`等のCurrent Domain semanticsを再利用する。
 - Homeの商品可視性、Category/Brand count、Search result、Facet、Product Detail、rank restriction、membership pricingを同じviewer contractで揃える。
-- Guest / regular / gold / platinumのactor semanticsをComponent / Contract / Repository-level coverageで固定する。
+- Guest / regular / gold / platinumは、既存Test layerをrebaselineして不足する最小Regressionだけ追加する。全rankをComponent / Contract / Repositoryの各layerへ重複追加しない。
 - Native専用の新Pricing rule / visibility ruleを作らない。
 - Runtime確認だけのためにGold/Platinum scenarioを追加しない。
 
@@ -313,7 +351,7 @@ SessionIdentityResolver / Current Actor
 - Customer-only route guardをShell / route boundaryへ集約する。
 - Guest direct routeは既存Login boundaryへ送る。
 - unsupported management roleは既存forbidden / unsupported boundaryへ送る。
-- Profile / Address / Order / Checkoutの代表deep-link negative caseを追加する。
+- Guestと代表的な非Customer roleでdeep-link negative caseを確認し、全role×全routeの組合せTestは作らない。
 - Screenごとのredirect重複は作らない。
 
 ### R3 — Native Storefront contract parity
@@ -355,16 +393,17 @@ NativeSearchScreen
 - `CatalogUseCases.suggest()`の`customerGateway`経路は空配列固定をやめ、Native Gatewayへ委譲する。Web側の既存Repository-based suggest経路は変更しない。
 - `NativeCatalogService`とRuntime compositionへ`suggest()`を公開し、Native Search UIから利用できるようにする。
 - SQLite Suggestionは2文字以上、最大8件、R2aで確立したviewer条件、既存の決定的sort/visibility semanticsを再利用する。
-- Native Search UIでは入力変更時のstale resultを表示せず、Suggestion選択から既存の検索/商品導線へ進める。Web Search UIのpixel copyはしない。
-- Underlying SQLite / Application contractを再利用する。
-- 全dimensionは既存coverageをrebaselineし、不足するContractだけ追加する。Native Component Testは実際に追加・修正したUI controlとrequest mappingを確認し、Maestroでは代表Filter + Pagination + Suggestionを実操作する。
+- Suggestion選択は既存の検索/商品導線へ接続する。
+- async応答の前後入替が実際に起こり得る構造の場合だけ、最小のrequest sequence guard等で古い結果を表示しない。専用Cancellation frameworkは作らない。
+- Underlying SQLite / Application contractを再利用し、Web Search UIのpixel copyはしない。
+- 全dimensionは既存coverageをrebaselineし、不足するContractだけ追加する。Native Component Testは実際に追加・修正したUI controlとrequest mappingだけを確認し、Maestroは代表Filter + Pagination + Suggestionに限定する。
 
 ### R4 — Web Search Suggestion
 
 - async suggestion到着後のComboBox open-stateをReact Aria contractに沿って制御する。
-- 2文字未満、no-result、stale request、Enter、Arrow navigationを維持する。
+- 2文字未満、no-result、既存のstale request protection、Enter、Arrow navigationを維持する。
 - Component TestはArrowDownなしの通常typingから開始する。
-- Playwright-MCP / Runtimeでpointer / keyboard / mobile-widthを代表確認する。
+- RuntimeではFinding再現に必要な通常typingと代表的なkeyboard / pointer操作を確認する。網羅的なdevice/input matrixは作らない。
 
 ### R5 — Cart ownership invariant
 
@@ -392,7 +431,7 @@ NativeSearchScreen
 
 MCP:
 
-- Shipment / Order画面の実状態確認には使ってよい。
+- Shipment / Order画面の実状態確認が必要な場合だけ補助的に使う。
 - MCPだけで「false-greenが修正された」と判定しない。
 
 ### R8 — Native Production Bundle Guard
@@ -410,14 +449,13 @@ Affected Surface:
 
 - Marker / Module / Screen / Service非存在Contractを維持する。
 - Hermes `.hbc`をUTF-8/raw bytesへのmarker substring searchだけで判定する方式を置き換える。
-- Standalone validatorだけ直してWorkflow内の重複raw scanを残さない。
-- 可能ならCorrected Production Artifact inspectionを一つの責務へ集約し、Build Job / Runtime Jobの重複検査は同じ正しいinspection contractを再利用する。新しい汎用Frameworkは作らない。
+- Standalone validatorだけ直してWorkflow内の同系統false-negativeを残さない。
+- 既存validatorをWorkflowから再利用できるなら再利用し、Build Job / Runtime Jobごとの新しいinspection実装を増やさない。
+- 新しい汎用Bundle Inspection Frameworkは作らない。
 - `native-ci-workflow.test.ts`は旧`grep -aE`実装そのものを固定せず、corrected fail-close contractを固定するよう更新する。
 - Actual Production Hermes Build Output、またはそこから決定的に導出されるArtifact graphを必須Evidenceにする。
 - `--no-bytecode` projectionだけをProduction保証の代替にしない。
-- Automation Positive Controlを維持する。
-- ProductionへTest Control/Harnessが漏れた場合にFAILするNegative Controlを維持する。
-- Maestro Production-validationによるRuntime Test Control unavailable確認は補助Evidenceとして維持する。
+- Existing Automation Positive Control / Production Negative Control / Maestro production-validationを再利用し、新しい重複Harnessを作らない。
 
 ### R9 — Agentic QA patch portability
 
@@ -441,7 +479,7 @@ Affected Surface:
 - Current versionのSecurity Advisoryを確認する。
 - 同versionのfull SHAへpinする。
 - `APPROVED_TRAINING_ACTIONS`をexact SHA allowlistへ変更する。
-- mutable tagを拒否するContract Testを追加する。
+- mutable tagを拒否する既存Contract Testを更新、または不足する最小negative caseだけ追加する。
 - Security理由でversion upgradeが必要なら別対応へ切り出す。
 
 ### R12a — Design System docs
@@ -467,7 +505,7 @@ Cross Browser CI split merge後に:
 - DefaultはHistorical / Superseded classificationとする。
 - Current CIの正本へのリンクを明記する。
 - Current文書として残す明確な理由がある場合だけ最新suite/count/triggerへ同期する。
-- REP-009 / REP-014は1 Root Causeとして一度だけ対応する。
+- REP-009 / REP-014は一度のdocs対応で閉じる。
 
 ## 8. Confirmation Tasks
 
@@ -492,11 +530,11 @@ Cross Browser CI split merge後に:
 Runtime Findingは原則:
 
 ```text
-latest mainで再現
+latest mainでFindingを再現
   ↓
 修正
   ↓
-同じMCP / Runtime操作を再実行
+同じ操作を再実行
   ↓
 Finding消失 + 正常経路維持を確認
 ```
@@ -504,40 +542,34 @@ Finding消失 + 正常経路維持を確認
 対象の中心:
 
 - R1
-- R2a
+- R2a / R3（G2）
 - R2b
-- R3
 - R4
 
-R7はFocused Playwrightが正本で、MCPは補助とする。
+R7はFocused Playwrightが正本で、MCPは必要時の補助とする。
 
-### Playwright-MCP
+### MCPの使用範囲
 
-- Main path / reproduction path
-- direct URL / reload / back / repeated action
-- pointer / keyboard / touch相当
-- opposite-state / unauthorized / error boundary
-- DOM / ARIAだけでなくRendered UI
+- Findingの再現と修正確認に必要な操作だけを行う。
+- direct URL / reload / back / pointer / keyboard / touch等は、対象Findingに関係するものだけ選ぶ。
+- DOM / ARIAだけでなくRendered UIを確認する。
+- MCPを理由に周辺機能の探索範囲を広げない。
 
-### Maestro-MCP
+### Native Runtime
 
-- launch / deep link / navigation
-- login / session
-- tap / input / scroll
-- invalid direct route
-- Storefront Suggestion / Filter / Pagination
-- Checkout Complete / Failed boundary
+- launch / deep link / navigation / session等は対象Findingに必要なものだけ使う。
+- G2ではStorefrontの代表Filter / Pagination / Suggestionを確認する。
+- R1ではCheckout Complete / Failed boundaryを確認する。
 
 Gold/Platinum:
 
-- Component / Contract Testで必須保証する。
-- Current deterministic setupで安全に作れる場合だけRuntime確認する。
+- Repository / Contract等のdeterministicな既存Test layerで必須保証する。
+- Current deterministic Runtime setupで安全に作れる場合だけ追加確認する。
 - Runtime確認のためだけにNative Test Control Scenarioを追加しない。
-- 安全なsetupがなければRuntimeは`BLOCKED`として記録する。
 
 ### Evidence storage
 
-- screenshot / trace / raw MCP log / ADB logcatは`.artifacts/<slice>/<run>/`へ保存する。
+- screenshot / trace / raw MCP log / ADB logcatは`.artifacts/<group>/<run>/`へ保存する。
 - Repository rootへ出さない。
 - `.codex/runs/**/REPORT.md`とPR本文には要約だけ記録する。
 - MCP unavailableをPASS扱いしない。
@@ -546,7 +578,7 @@ Gold/Platinum:
 
 ### Global
 
-Focused Validation後、変更に対応するRequired Gateを通す。
+まず変更箇所に対応するFocused Validationを実行する。その後、RepositoryのRequired Gate / PR Gateとして必要なcommandだけを実行する。
 
 候補:
 
@@ -566,21 +598,24 @@ pnpm run test:component:native
 pnpm run test:contracts
 ```
 
-### Slice-specific
+全Groupで上記を機械的に全部実行するという意味ではない。変更面とRepository gateに応じて選択し、CIで必須のものはCIへ委ねてもよい。
 
-- R1: opposite-state / missing ID / unauthorized + Web/Native Runtime Before/After。
-- R2a: Guest / regular / gold / platinumについて、viewer contextがUseCase→Gateway→Repositoryまで保持され、Home / Search / Facet / Detail / membership pricingがCurrent Contractへ一致することを確認する。
-- R2b: Guest direct route / unsupported role + Maestro deep-link。
-- R3: BR/AC全dimensionの既存coverageをrebaselineし、不足するContract/Componentだけ追加。SuggestionはUI→Service→UseCase→Gateway→Repository→SQLiteのdelegation、2文字未満、最大8件、stale result、viewer条件を確認し、Maestroで代表Filter / Pagination / Suggestionを実操作する。
-- R4: normal typing / no result / stale request + Playwright-MCP。
-- R5: foreign-item Repository Test。
-- R6: `validate:spec` / `validate:spec-visuals:final`。
-- R7: Focused Playwrightでfalse-greenをfail-closeへ変更したことを確認。MCPは補助。
-- R8: Standalone validator + Production Build Job + downloaded Production APK検証のcorrected contract、Automation Positive Control、Production Negative Control、Actual Hermes Artifact Evidence、Maestro production-validation。
-- R9: Windows EOL + Linux control。
-- R10: Windows bounded repeat。
-- R11: upstream SHA / Advisory / mutable-tag negative test。
-- R12a / R12b / R13: Markdown / spec / curriculum validation。
+### Group / Slice-specific
+
+- G1 / R1: opposite-state / missing ID / unauthorized + Web/Native Runtime Before/After。
+- G2 / R2a: viewer contextがUseCase→Gateway→Repository→SQLiteまで保持され、Guest / regular / gold / platinum semanticsがCurrent Contractへ一致することを既存coverage + 不足する最小Regressionで確認する。
+- G2 / R3: BR/AC全dimensionの既存coverageをrebaselineし、不足するContract/Componentだけ追加。SuggestionはUI→Service→UseCase→Gateway→Repository→SQLiteのdelegation、2文字未満、最大8件、viewer条件を確認し、Maestroで代表Filter / Pagination / Suggestionを実操作する。stale protectionは実際にasync overlapがある場合だけ確認する。
+- G3 / R2b: Guest + 代表的な非Customer roleのdirect route negative case + 必要なMaestro deep-link。
+- G4 / R4: normal typing / no result / 既存stale protection + 代表keyboard/pointer Runtime。
+- G5 / R5: foreign-item Repository Test。
+- G6 / R6: `validate:spec` / `validate:spec-visuals:final`。
+- G7 / R7: Focused Playwrightでfalse-greenをfail-closeへ変更したことを確認。MCPは必要時のみ。
+- G8 / R8: corrected Production Artifact inspection contract、Existing Positive / Negative Control、Actual Hermes Artifact Evidence、Maestro production-validation。
+- G9 / R9: Windows EOL + Linux control。
+- G10 / R10: Windows bounded repeat。
+- G11 / R11: upstream SHA / Advisory / mutable-tag negative case。
+- G12 / R12a / R12b: Markdown / spec / curriculum validationのうち変更対象に必要なもの。
+- G13 / R13: dependency merge後のMarkdown / current-reference validation。
 
 ## 11. Plan Branch Completion Validation
 
@@ -607,71 +642,62 @@ pnpm run lint:markdown
 1. Native Storefront scope creep
    - 全dimensionをrebaselineし、欠けているものだけ修正する。
 2. Native viewer contextの表層修正
-   - Actor Resolverだけで終わらせず、Gateway / Repository / SQLiteまでviewerを伝播する。
-3. Checkout UX新設
+   - Actor Resolverだけで終わらせず、既存`ProductViewer`とDomain semanticsをSQLiteまで伝播する。
+3. PRの過剰分割
+   - R2a + R3、R12a + R12bはPreferred Groupとしてまとめ、同じboundaryを何度も変更しない。
+4. Checkout UX新設
    - Current Boundary patternを再利用する。
-4. Native auth guard重複
-   - Shell / route boundaryへ集約する。
-5. Hermes guard弱体化 / 重複実装
-   - Actual Production Artifact由来Evidenceを必須にし、Standalone validatorとWorkflowのinspection contractを可能な範囲で共有する。
-6. Patch strictness低下
+5. Native auth guard重複
+   - Shell / route boundaryへ集約し、全role×全route matrixは作らない。
+6. Hermes guard弱体化 / 重複実装
+   - Actual Production Artifact由来Evidenceを必須にし、既存validatorを可能ならWorkflowから再利用する。新Frameworkは作らない。
+7. Patch strictness低下
    - strict applyを維持する。
-7. Timeout対応の過剰調査
+8. Timeout対応の過剰調査
    - bounded reproductionで止める。
-8. MCP scope creep
-   - Test Controlを検証都合で拡張しない。
-9. Concurrent CI workとの競合
+9. MCP scope creep
+   - Findingに必要な操作だけに限定し、検証都合でProduct/Test Controlを拡張しない。
+10. Concurrent CI workとの競合
    - R13だけdependency blockedとする。
-10. R8によるProduct fixの不必要な遅延
-   - hard prerequisiteをProduction isolation surface変更時だけに限定する。
-11. Suggestionの部分実装
-   - UIだけ、Gatewayだけで終わらせず、Native Search UIからSQLiteまで同一contractで接続する。
+11. Suggestionの過剰な非同期設計
+   - raceが実際にある場合だけ最小guardを入れ、Cancellation frameworkは作らない。
 
-## 13. Priority
+## 13. Priority / Execution Order
 
-### High-priority parallel tooling
+並列実装可能なGroupはworktree等で並列化してよい。番号は優先順位であり、必ず直列に実装する意味ではない。
 
-1. R8 — Native Production Bundle Guard
+1. G8 — R8 Native Production Bundle Guard（parallel tooling）
+2. G1 — R1 Checkout result integrity
+3. G2 — R2a + R3 Native Catalog / Storefront contract
+4. G3 — R2b Native route guard
+5. G4 — R4 Web Search Suggestion
+6. G9 — R9 Agentic QA patch portability
+7. G7 — R7 Flow J false-green
+8. G5 — R5 Cart ownership invariant
+9. G6 — R6 Login spec/visual mapping
+10. G10 — R10 Windows timeout budget
+11. G11 — R11 Training action pinning
+12. G12 — R12a + R12b Current docs alignment
+13. G13 — R13 E2E design supersession after dependency merge
 
-### Highest product priority
-
-2. R1 — Checkout result integrity
-3. R2a — Native Catalog viewer context
-4. R2b — Native route guard
-5. R3 — Native Storefront parity
-6. R4 — Web Search Suggestion
-
-### QA / Tooling
-
-7. R9 — Agentic QA patch portability
-8. R7 — Flow J false-green
-9. R5 — Cart ownership invariant
-10. R6 — Login spec/visual mapping
-11. R10 — Windows timeout budget
-12. R11 — Training action pinning
-
-### Documentation
-
-13. R12a — Design System
-14. R12b — iOS Curriculum
-15. R13 — E2E design supersession after dependency merge
-
-### Confirmation only
+Confirmation only:
 
 - C1 / REP-013
 - C2 / REP-017
 
 ## 14. Follow-up / Stop Conditions
 
-- 別Root Causeを「ついで」に修正しない。
+- 別Root Causeを「ついで」に修正しない。ただし同じ変更面・依存関係で一体となるFindingはPreferred Group内でまとめてよい。
 - Deferred itemは追加Evidenceがない限り実装しない。
 - Dependency update、UI redesign、大規模Refactorを追加しない。
 - Product ContractにないUXをPlan都合で新設しない。
-- MCPで新Findingを見つけた場合、今回Root Causeと別なら別対応へ分離する。
+- 新しいAbstraction / Frameworkは、既存構造ではFindingを安全に直せない具体的Evidenceがある場合だけ検討する。
+- MCPで新Findingを見つけた場合、今回の修正に不可欠でなければ別対応へ分離する。
 
 ## 15. Deliverables
 
 - Plan: `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
 - Planning Run Artifact: `.codex/runs/20260821-174900-JST/`
-- 実装時: Root Causeごとの小PR、Regression Test、Run Artifact、Runtime Evidence、残Risk記録。
+- 実装時: Preferred implementation group単位の小PR、必要なRegression Test、Run Artifact、Runtime Evidence、残Risk記録。
+- Confirmation-only項目がNo-opならPRを作らない。
 - PR #35のAudit ReportはHistorical Evidenceとして原則変更しない。
