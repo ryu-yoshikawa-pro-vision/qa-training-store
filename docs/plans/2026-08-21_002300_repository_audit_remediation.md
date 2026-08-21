@@ -237,7 +237,7 @@ NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runti
 ### Confirmation only
 
 - C1 / REP-013: 原則コード変更なし。
-- C2 / REP-017: GitHub settings確認。保証済みならRepository変更なし。
+- C2 / REP-017: GitHub settingsのread-only確認のみ。保証不足でもこのPlan中に設定変更しない。
 
 ### Deferred / No-op
 
@@ -282,7 +282,7 @@ SliceはFinding追跡単位として残すが、PRはSlice数に合わせて機�
 | G12 | R12a + R12b | どちらも小さいCurrent-documentation alignmentで、Product codeを変更しない。 |
 | G13 | R13 | Cross Browser CI split merge後のみ実施。 |
 
-C1 / C2は確認だけで終わる場合PRを作らない。
+C1 / C2は確認だけで終わるため、設定変更やPR作成へ自動移行しない。
 
 ### Native Production isolation gate
 
@@ -518,10 +518,12 @@ Cross Browser CI split merge後に:
 
 ### C2 — REP-017
 
-- GitHub Ruleset / Branch Protection実設定を確認する。
-- `main` direct push禁止 + Native PR check requiredなら変更なし。
-- direct push可能ならRuleset強化を第一候補にする。
-- push Native CI追加はRulesetだけで保証できない場合の次案とする。
+- GitHub Ruleset / Branch Protection実設定をread-onlyで確認する。
+- `main` direct push禁止 + 必要なNative PR checkがrequiredならNo-opとして終了する。
+- 保証不足なら、現在値・不足している保証・推奨するRuleset / Branch Protection変更内容を報告する。
+- GitHub Ruleset / Branch Protection自体はこのPlanの実装中に変更しない。
+- push時Native CI追加などRepository側の追加実装も、確認結果だけを理由に自動追加しない。
+- 設定変更や追加実装が必要なら、ユーザーの明示承認後に別対応として実施する。
 
 ## 9. MCP / Runtime Validation Contract
 
@@ -661,6 +663,8 @@ pnpm run lint:markdown
    - R13だけdependency blockedとする。
 11. Suggestionの過剰な非同期設計
    - raceが実際にある場合だけ最小guardを入れ、Cancellation frameworkは作らない。
+12. Confirmationからのscope creep
+   - C2はread-only確認に限定し、Repository外設定変更や追加CI実装へ自動移行しない。
 
 ## 13. Priority / Execution Order
 
@@ -683,7 +687,7 @@ pnpm run lint:markdown
 Confirmation only:
 
 - C1 / REP-013
-- C2 / REP-017
+- C2 / REP-017（read-only。変更が必要なら明示承認後の別対応）
 
 ## 14. Follow-up / Stop Conditions
 
@@ -693,11 +697,12 @@ Confirmation only:
 - Product ContractにないUXをPlan都合で新設しない。
 - 新しいAbstraction / Frameworkは、既存構造ではFindingを安全に直せない具体的Evidenceがある場合だけ検討する。
 - MCPで新Findingを見つけた場合、今回の修正に不可欠でなければ別対応へ分離する。
+- Confirmation-onlyで外部設定や追加実装が必要と判明しても、このPlan中では変更せず、ユーザーへ報告して停止する。
 
 ## 15. Deliverables
 
 - Plan: `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
 - Planning Run Artifact: `.codex/runs/20260821-174900-JST/`
 - 実装時: Preferred implementation group単位の小PR、必要なRegression Test、Run Artifact、Runtime Evidence、残Risk記録。
-- Confirmation-only項目がNo-opならPRを作らない。
+- Confirmation-only項目はread-onlyで完結し、設定変更や追加実装を行わない。
 - PR #35のAudit ReportはHistorical Evidenceとして原則変更しない。
