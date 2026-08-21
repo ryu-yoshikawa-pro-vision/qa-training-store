@@ -45,7 +45,11 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 - Native StorefrontはWeb/Native共通Product Behaviorとして定義されている。
 - `BR-STOREFRONT-002` / `AC-STOREFRONT-002` は、Keyword、Category、Brand、価格、在庫、Sale、最低評価、total、page、Facet件数、stable sortまで一貫することを要求する。
 - Current `NATIVE_CUSTOMER_SCENARIOS` に`gold-member` / `platinum-member`はない。
+- Current Native RuntimeはCatalog actorに`GuestActorResolver`を固定している。
+- Current `createNativeCustomerCatalogGateway()`はviewer kindを検証するが、viewer contextをNative repositoryへ渡していない。
+- Current `NativeCustomerSQLiteRepository`はGuest可視性とGuest pricingを前提にHome / Search / Detailを計算している。
 - Current Native `CatalogUseCases.suggest()`は`customerGateway`経路で空配列を返し、`CustomerCatalogGateway`には`suggest()` capabilityがない。
+- Current `NativeCatalogService` / `NativeCustomerCatalogRepository` / `NativeCustomerSQLiteRepository` / Native Search UIにもSuggestion経路がない。
 - Current Native CIにはStandalone bundle validatorとは別に、Production Build JobとRuntime Jobの2箇所でHermes bundleへraw marker scanを行う重複検査がある。
 - `qa-training-store-ci-chromium-required-cross-browser-split` branchにはCI分離実装があるが、Current `main`には未反映である。
 - Phase 3 Backend PRは別計画であり、本Planでは先回りしたBackend abstractionを作らない。
@@ -92,15 +96,21 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
   - Checkout / Order Application Use Case
   - Web / Native result screens
 - Native identity / authorization:
-  - Native Runtime composition
+  - `src/bootstrap/native-runtime.ts`
   - Session / Identity abstraction
+  - `src/application/use-cases/catalog-use-cases.ts`
+  - `src/application/customer-capabilities.ts`
+  - `src/application/native/guest-storefront.ts`
+  - `src/infrastructure/database/sqlite/native-customer-repositories.ts`
   - Native Shell / route boundary
 - Storefront:
   - `docs/spec/features/storefront.md`
-  - Native Catalog/Search presentation
+  - `src/presentation/native/native-screens.tsx`
+  - `src/bootstrap/native-runtime.ts`
   - `src/application/use-cases/catalog-use-cases.ts`
   - `src/application/customer-capabilities.ts`
-  - Native Customer Catalog Gateway / SQLite contract
+  - `src/application/native/guest-storefront.ts`
+  - `src/infrastructure/database/sqlite/native-customer-repositories.ts`
 - Web Search:
   - Search ComboBox / async suggestion state
 - Cart:
@@ -129,6 +139,27 @@ Route / Screen
   → Presentation
 ```
 
+Native Catalog viewer contextは次の経路で途切れず伝播させる。
+
+```text
+Current Session / Identity Resolver
+  → CatalogUseCases
+  → CustomerCatalogGateway
+  → NativeCustomerCatalogRepository
+  → NativeCustomerSQLiteRepository
+```
+
+Native Suggestionは次の経路を完成させる。
+
+```text
+NativeSearchScreen
+  → NativeCatalogService.suggest()
+  → CatalogUseCases.suggest()
+  → CustomerCatalogGateway.suggest()
+  → NativeCustomerCatalogRepository.suggest()
+  → NativeCustomerSQLiteRepository.suggest()
+```
+
 NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runtime composition / Test Control routing / Production APK / Runtime validationの順に保証する。
 
 ### Key abstractions
@@ -136,6 +167,9 @@ NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runti
 - `SessionIdentityResolver` / Current Actor resolution
 - `CatalogUseCases`
 - `CustomerCatalogGateway`
+- `NativeCatalogService`
+- `NativeCustomerCatalogRepository`
+- `NativeCustomerSQLiteRepository`
 - Checkout / Order / Payment persisted state
 - Native Shell / route authorization boundary
 - Native Test Control / Contract Harness production boundary
@@ -158,9 +192,9 @@ NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runti
 | Slice | Primary files / areas |
 |---|---|
 | R1 | Checkout/Order Use Case、Web/Native result screens、checkout/payment tests |
-| R2a | Native Runtime composition、session identity、CatalogUseCases、Native catalog tests |
+| R2a | `src/bootstrap/native-runtime.ts`、session identity、`CatalogUseCases`、`CustomerCatalogGateway`、`NativeCustomerCatalogRepository`、`NativeCustomerSQLiteRepository`、Native catalog tests |
 | R2b | Native Shell / route boundary、customer deep-link tests |
-| R3 | `catalog-use-cases.ts`、`customer-capabilities.ts`、Native Catalog Gateway、Native Search/Storefront UI、SQLite query contract |
+| R3 | `native-screens.tsx`、`native-runtime.ts`、`catalog-use-cases.ts`、`customer-capabilities.ts`、`guest-storefront.ts`、`native-customer-repositories.ts`、Native Storefront tests |
 | R4 | Web Search ComboBox、search component/E2E tests |
 | R5 | Dexie cart repository、repository contract tests |
 | R6 | Login visual registry/spec、visual validation tests |
@@ -184,7 +218,7 @@ NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runti
 | Slice | Finding | Root Cause |
 |---|---|---|
 | R1 | REP-002 | Checkout resultがpersisted Order/Payment stateではなくroute presentationを信用する |
-| R2a | REP-001 | Native Catalog actorがCustomer sessionではなくGuest固定 |
+| R2a | REP-001 | Native Catalog viewer contextがGuest固定かつGateway/Repository境界で失われる |
 | R2b | REP-006 | Native Customer-only direct routeのGuest guard欠落 |
 | R3 | MNT-001 / REP-003 | Native StorefrontがCurrent common contractを満たさない |
 | R4 | REP-004 | Web Search Suggestionが通常typingで表示されない |
@@ -222,20 +256,20 @@ R8をhard merge prerequisiteにするのは、Production isolation surfaceを直
 対象例:
 
 - `src/test-controls/**`
-- `src/bootstrap/native-runtime.ts`
+- `src/bootstrap/native-runtime.ts`内のBuild Kind / Test Control / Contract Harness composition
 - `app.config.ts`
 - `EXPO_PUBLIC_*` build-kind branching
 - Native build config
 - Production bundle guard
 - Test Control / Contract Harness routing
 
-上記へ触れない通常のNative Product Presentation/Application修正はR8と並列merge可能とする。ただしCurrent Native CIで、Actual Production-validation BuildとMaestro production-validationを含む実Job成功を必須とする。
+同じ`src/bootstrap/native-runtime.ts`でも、Catalog identity wiringなどProduction isolation contractへ影響しない変更だけならR8 hard prerequisiteとはしない。
 
-R2aがNative Runtime composition / Production isolation surfaceへ触れる実装になった場合のみR8先行mergeを必須化する。
+上記へ触れない通常のNative Product Presentation/Application修正はR8と並列merge可能とする。ただしCurrent Native CIで、Actual Production-validation BuildとMaestro production-validationを含む実Job成功を必須とする。
 
 ### R3 dependency
 
-R3はR2aのCatalog actor修正後にmergeする。Guest固定actorのままStorefront parityを完成扱いにしない。
+R3はR2aのviewer context伝播修正後にmergeする。Guest固定またはviewer contextがRepositoryまで届かない状態でStorefront parityを完成扱いにしない。
 
 ### R13 dependency
 
@@ -254,11 +288,24 @@ R13は`qa-training-store-ci-chromium-required-cross-browser-split`がmainへmerg
 - paid→failed、failed→complete、missing ID、unauthorizedをRegressionへ追加する。
 - 新Payment State Machineは作らない。
 
-### R2a — Native Customer Catalog actor
+### R2a — Native Customer Catalog viewer context
 
-- Catalog viewerをCurrent Sessionから解決するExisting Identity abstractionへ接続する。
-- Guest / regular / gold / platinumのactor semanticsをComponent / Contract Testで固定する。
-- rank visibility / membership pricingがCurrent sessionへ従うことを確認する。
+- `GuestActorResolver`固定をやめ、Current Sessionからviewerを解決するExisting Identity abstractionへCatalogを接続する。
+- viewer contextを次の経路で途切れず伝播させる。
+
+```text
+SessionIdentityResolver / Current Actor
+  → CatalogUseCases
+  → CustomerCatalogGateway
+  → NativeCustomerCatalogRepository
+  → NativeCustomerSQLiteRepository
+```
+
+- `createNativeCustomerCatalogGateway()`でviewer kindを検証するだけで捨てず、repository inputへviewer contextを渡す。
+- Native repository / SQLite側でGuest固定visibilityや`viewerUnitPrice(..., null)`を使わず、既存Domainのvisibility / rank / pricing semanticsをviewer contextに適用する。
+- Homeの商品可視性、Category/Brand count、Search result、Facet、Product Detail、rank restriction、membership pricingを同じviewer contractで揃える。
+- Guest / regular / gold / platinumのactor semanticsをComponent / Contract / Repository-level coverageで固定する。
+- Native専用の新Pricing rule / visibility ruleを作らない。
 - Runtime確認だけのためにGold/Platinum scenarioを追加しない。
 
 ### R2b — Native Customer route guard
@@ -293,9 +340,23 @@ R13は`qa-training-store-ci-chromium-required-cross-browser-split`がmainへmerg
 - 既に実装済み・正しいdimensionは変更しない。
 - 欠けているdimensionだけを最小実装する。
 - fixed `[]` / `null` / `page: 1` をCurrent UI stateへ接続する。
-- Native Suggestionは`CustomerCatalogGateway`へ最小の`suggest()` capabilityを追加し、`CatalogUseCases.suggest()`の`customerGateway`経路をNative Gatewayへ委譲する。Web側の既存Repository-based suggest経路は変更しない。
+- Suggestionは次の経路をEnd-to-Endで完成させる。
+
+```text
+NativeSearchScreen
+  → NativeCatalogService.suggest()
+  → CatalogUseCases.suggest()
+  → CustomerCatalogGateway.suggest()
+  → NativeCustomerCatalogRepository.suggest()
+  → NativeCustomerSQLiteRepository.suggest()
+```
+
+- `CustomerCatalogGateway`と`NativeCustomerCatalogRepository`へ最小の`suggest()` contractを追加する。
+- `CatalogUseCases.suggest()`の`customerGateway`経路は空配列固定をやめ、Native Gatewayへ委譲する。Web側の既存Repository-based suggest経路は変更しない。
+- `NativeCatalogService`とRuntime compositionへ`suggest()`を公開し、Native Search UIから利用できるようにする。
+- SQLite Suggestionは2文字以上、最大8件、R2aで確立したviewer条件、既存の決定的sort/visibility semanticsを再利用する。
+- Native Search UIでは入力変更時のstale resultを表示せず、Suggestion選択から既存の検索/商品導線へ進める。Web Search UIのpixel copyはしない。
 - Underlying SQLite / Application contractを再利用する。
-- Web UIのpixel copyはしない。
 - 全dimensionは既存coverageをrebaselineし、不足するContractだけ追加する。Native Component Testは実際に追加・修正したUI controlとrequest mappingを確認し、Maestroでは代表Filter + Pagination + Suggestionを実操作する。
 
 ### R4 — Web Search Suggestion
@@ -508,9 +569,9 @@ pnpm run test:contracts
 ### Slice-specific
 
 - R1: opposite-state / missing ID / unauthorized + Web/Native Runtime Before/After。
-- R2a: Guest / regular / gold / platinum actor semantics。
+- R2a: Guest / regular / gold / platinumについて、viewer contextがUseCase→Gateway→Repositoryまで保持され、Home / Search / Facet / Detail / membership pricingがCurrent Contractへ一致することを確認する。
 - R2b: Guest direct route / unsupported role + Maestro deep-link。
-- R3: BR/AC全dimensionの既存coverageをrebaselineし、不足するContract/Componentだけ追加 + Maestro代表Filter / Pagination / Suggestion。
+- R3: BR/AC全dimensionの既存coverageをrebaselineし、不足するContract/Componentだけ追加。SuggestionはUI→Service→UseCase→Gateway→Repository→SQLiteのdelegation、2文字未満、最大8件、stale result、viewer条件を確認し、Maestroで代表Filter / Pagination / Suggestionを実操作する。
 - R4: normal typing / no result / stale request + Playwright-MCP。
 - R5: foreign-item Repository Test。
 - R6: `validate:spec` / `validate:spec-visuals:final`。
@@ -545,22 +606,26 @@ pnpm run lint:markdown
 
 1. Native Storefront scope creep
    - 全dimensionをrebaselineし、欠けているものだけ修正する。
-2. Checkout UX新設
+2. Native viewer contextの表層修正
+   - Actor Resolverだけで終わらせず、Gateway / Repository / SQLiteまでviewerを伝播する。
+3. Checkout UX新設
    - Current Boundary patternを再利用する。
-3. Native auth guard重複
+4. Native auth guard重複
    - Shell / route boundaryへ集約する。
-4. Hermes guard弱体化 / 重複実装
+5. Hermes guard弱体化 / 重複実装
    - Actual Production Artifact由来Evidenceを必須にし、Standalone validatorとWorkflowのinspection contractを可能な範囲で共有する。
-5. Patch strictness低下
+6. Patch strictness低下
    - strict applyを維持する。
-6. Timeout対応の過剰調査
+7. Timeout対応の過剰調査
    - bounded reproductionで止める。
-7. MCP scope creep
+8. MCP scope creep
    - Test Controlを検証都合で拡張しない。
-8. Concurrent CI workとの競合
+9. Concurrent CI workとの競合
    - R13だけdependency blockedとする。
-9. R8によるProduct fixの不必要な遅延
+10. R8によるProduct fixの不必要な遅延
    - hard prerequisiteをProduction isolation surface変更時だけに限定する。
+11. Suggestionの部分実装
+   - UIだけ、Gatewayだけで終わらせず、Native Search UIからSQLiteまで同一contractで接続する。
 
 ## 13. Priority
 
@@ -571,7 +636,7 @@ pnpm run lint:markdown
 ### Highest product priority
 
 2. R1 — Checkout result integrity
-3. R2a — Native Catalog actor
+3. R2a — Native Catalog viewer context
 4. R2b — Native route guard
 5. R3 — Native Storefront parity
 6. R4 — Web Search Suggestion
