@@ -46,7 +46,7 @@ SHA-pinned GitHub Actions では Dependabot Alert / Security PR を監視手段�
 
 ## 3. Plan Status
 
-- Status: Implementation-ready
+- Status: Completed
 - Repository: `ryu-yoshikawa-pro-vision/qa-training-store`
 - Baseline Branch: `main`
 - Baseline Commit: `314a8f958072f19e672e3bc37089558d74e42feb`
@@ -86,22 +86,22 @@ Dependabot Security Updates は `.github/dependabot.yml` なしで Repository Se
 
 | Setting / Check | Target | Before | After / Evidence |
 | --- | --- | --- | --- |
-| Dependency graph | root dependencies が認識される | 未確認 | 未実施 |
-| Dependabot Alerts | ON | 未確認 | 未実施 |
-| Dependabot Security Updates | ON | 未確認 | 未実施 |
-| Dependabot Version Updates | 導入しない | 未確認 | 未実施 |
-| `.github/dependabot.yml` | 存在しない | なし | 再確認待ち |
-| Low-impact development auto-dismiss preset | OFF | 未確認 | 未実施 |
-| Dependabot Malware Alerts | ON | 未確認 | 未実施 |
-| `Dismiss package malware alerts` preset | OFF | 未確認 | 未実施 |
-| Dependabot auto-approve / auto-merge | なし | 未確認 | 未実施 |
-| Secret scanning / Secret Protection | ON | 未確認 | 未実施 |
-| Push protection | ON | 未確認 | 未実施 |
-| CodeQL Default Setup | ON、JS/TS と Actions の初回解析成功 | 未確認 | 未実施 |
-| Private Vulnerability Reporting | ON、Reporter 視点の導線確認 | 未確認 | 未実施 |
-| PVR notification | Owner / Admin が受信可能 | 未確認 | 未実施 |
-| Actions permissions | default read-only、Actions の PR create / approve OFF | 未確認 | 未実施 |
-| `main-protection` | SSOT P-14 と一致 | 未確認 | 未実施 |
+| Dependency graph | root dependencies が認識される | 未確認 | Completed — SBOM APIが成功し、`package.json` / `pnpm-lock.yaml`のnpm依存とGitHub Actions依存を認識 |
+| Dependabot Alerts | ON | 未確認 | Completed — GraphQL `hasVulnerabilityAlertsEnabled=true`、UI `8 Open / 0 Closed` |
+| Dependabot Security Updates | ON | 未確認 | Completed — Owner/Adminブラウザ確認、security-onlyのdynamic Dependabot workflowを再確認 |
+| Dependabot Version Updates | 導入しない | 未確認 | Completed — `.github/dependabot.yml`なし、通常Version Update workflowなし、dynamic workflowはsecurity-only |
+| `.github/dependabot.yml` | 存在しない | なし | Completed — `Test-Path .github/dependabot.yml` は `False` |
+| Low-impact development auto-dismiss preset | OFF | 未確認 | Completed — Owner/AdminブラウザでOFFを確認。現open alertのdismiss metadataもnullで、機械的Reopenは未実施 |
+| Dependabot Malware Alerts | ON | 未確認 | Completed — Owner/Adminブラウザ確認、Malware UI `0 Open / 0 Closed` |
+| `Dismiss package malware alerts` preset | OFF | 未確認 | Completed — Owner/AdminブラウザでOFFを確認 |
+| Dependabot auto-approve / auto-merge | なし | 未確認 | Completed — workflow検索で該当実装なし、open Dependabot PR 0件、Owner/Admin設定確認 |
+| Secret scanning / Secret Protection | ON | 未確認 | Completed — Owner/AdminブラウザでONを確認。credential commit／pushの破壊的テストは未実施 |
+| Push protection | ON | 未確認 | Completed — Owner/AdminブラウザでONを確認。実credentialを使ったテストは未実施 |
+| CodeQL Default Setup | ON、JS/TS と Actions の初回解析成功 | 未確認 | Completed — 既存dynamic Default Setupを維持し、PR #39のJS/TS・Actions解析successを確認。独自workflow/SARIF/Advancedは追加・変更なし |
+| Private Vulnerability Reporting | ON、Reporter 視点の導線確認 | 未確認 | Completed — API `enabled=true`、Security OverviewにEnabled、通常Reporter視点で`Report a vulnerability`導線を確認 |
+| PVR notification | Owner / Admin が受信可能 | 未確認 | Completed — Owner/Adminブラウザで通知経路を確認。ダミー脆弱性レポートは送信していない |
+| Actions permissions | default read-only、Actions の PR create / approve OFF | 未確認 | Completed — Owner/Adminブラウザで確認。既存top-level `contents: read`とCI実行時read-onlyも維持。現Write tokenではAdmin API再取得のみ不可 |
+| `main-protection` | SSOT P-14 と一致 | 未確認 | Completed — active、`validate`のみ（GitHub Actions integration 15368）、PR/conversation resolution/linear history、deletion/non-fast-forward block、squash only、strict=false、bypassなし |
 
 Low-impact development dependency を自動 dismiss する GitHub preset は、patch 可能な脆弱性を Security PR 対象から意図せず外さないため OFF とする。
 
@@ -289,14 +289,14 @@ Workflow を変更した場合のみ、該当する CI contract test / targeted 
 
 | Item | Result / Evidence |
 | --- | --- |
-| Settings | 未実施 |
-| Dependabot Security PR | 未確認 |
-| Security findings | 未確認 |
-| CodeQL initial analysis | 未確認 |
-| PVR / notification | 未確認 |
-| Ruleset / `validate` | 未確認 |
-| Final Status | Implementation-ready |
-| Reason / Follow-up | 未確認 |
+| Settings | Completed — Owner/Admin設定をブラウザで確認。現在のCLI／Chrome認証主体はWriteのため、Admin専用APIの再取得結果は403/404となる項目があるが、PVRはAPI/UI双方で`enabled`を再確認 |
+| Dependabot Security PR | Completed — open PR 0件。nanoid / brace-expansion / js-yaml / uuidのsecurity-only実行は`security_update_not_possible`。設定失敗ではなく、依存制約による別Security fix PR / follow-upとして記録 |
+| Security findings | Completed — Dependabot 8件（High 7、Moderate 1、open、dismiss metadataなし）、Malware 0 Open / 0 Closed、CodeQLは既存Medium 1件、Secret Protection設定と既存Alert確認をOwner/Adminブラウザで実施 |
+| CodeQL initial analysis | Completed — PR #39の`Analyze (javascript-typescript)`、`Analyze (actions)`がsuccess。CodeQLをRuleset Requiredには追加していない |
+| PVR / notification | Completed — `private-vulnerability-reporting.enabled=true`、Security OverviewのEnabled表示、通常Reporterの`Report a vulnerability`導線、Owner/Adminの通知経路を確認 |
+| Ruleset / `validate` | Completed — PR #38で再実行を1回実施。実行中は`mergeStateStatus=BLOCKED`、`validate` success後は`CLEAN`。失敗履歴でも通常same-repo PRの`validate` failureを確認。`verify`はRequiredでない |
+| Final Status | Completed |
+| Reason / Follow-up | 設定・gate検証は完了。既存Dependabot / CodeQL findingと`security_update_not_possible`はP-13に従い別Security fix / follow-upで扱う |
 
 ---
 
