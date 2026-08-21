@@ -177,6 +177,7 @@ Dependabot Version Updates は有効化しない。
 - Dependabot Version Updates: OFF
 - Dependabot auto-merge: OFF
 - Dependabot auto-approve: OFF
+- `Dismiss low impact issues for development-scoped dependencies` preset: OFF
 
 Security Updates は、Dependabot-safe CI が `main` へ反映された後に ON にする。
 
@@ -185,6 +186,10 @@ Security PR は通常の PR と同様に CI を通し、人間が merge 要否�
 Low severity を含む Security PR の量が実際に運用問題になった場合のみ、別タスクで selective auto-triage を検討する。
 
 今回 Custom Auto-triage Rule は作らない。
+
+GitHub 既定の `Dismiss low impact issues for development-scoped dependencies` preset も初期運用では OFF とし、Security PR の運用量を実測する前から patch 可能な脆弱性を自動除外しない。
+
+過去にこの preset で auto-dismiss された alert は再評価し、未解消かつ現在も該当するものは原則 Reopen する。人間が根拠付きで dismiss した alert、Fixed、false positive、non-applicable は機械的に Reopen しない。
 
 `Dismiss package malware alerts` preset は OFF を維持する。
 
@@ -513,6 +518,7 @@ Bug / Feature Form には Security vulnerability 用ではないことを明記�
 - Dependabot Alerts: ON
 - Dependabot Security Updates: ON
 - Dependabot Malware Alerts: ON
+- `Dismiss low impact issues for development-scoped dependencies` preset: OFF
 - Private Vulnerability Reporting: ON
 - Secret scanning: ON
 - Push protection: ON
@@ -599,7 +605,7 @@ Ruleset 移行手順:
 1. Phase 2 の修正版 `validate` を通常手順で `main` へ反映
 2. `main` 上で `validate` が正常に実行・成功することを確認
 3. `validate` check-run の発行元 App が GitHub Actions であることと、実装時点の integration / App ID を確認
-4. `main-protection` を `verify` + GitHub Actions から `validate` + GitHub Actions へ変更
+4. `main-protection` を `verify` + GitHub Actions` から `validate` + GitHub Actions へ変更
 5. Ruleset を再取得し、Required check context が `validate`、expected source が GitHub Actions のままであることを確認
 6. 変更後、通常 PR で `validate` が merge block の最終 Gate になることを確認
 
@@ -828,8 +834,9 @@ Repository変更が正規手順で `main` へ反映された後に実施する�
 4. Ruleset を再取得し、Required check context / expected source の両方を確認
 5. `validate` が最終 merge Gate として機能することを確認
 6. Dependabot-safe Preview / `validate` が `main` に存在することを再確認
-7. Dependabot Security Updates を ON
-8. その他 Security Settings を最終状態へ揃える
+7. `Dismiss low impact issues for development-scoped dependencies` preset を OFF にし、既存 auto-dismissed alert を再評価
+8. Dependabot Security Updates を ON
+9. その他 Security Settings を最終状態へ揃える
 
 Settings 最終状態:
 
@@ -837,6 +844,7 @@ Settings 最終状態:
 - Dependabot Alerts ON
 - Dependabot Malware Alerts ON
 - `Dismiss package malware alerts` preset OFF
+- `Dismiss low impact issues for development-scoped dependencies` preset OFF
 - Dependabot Security Updates ON
 - Dependabot Version Updates OFF
 - PVR ON
@@ -1044,6 +1052,7 @@ Default branch反映後:
 - Dependabot Version Updates OFF
 - Dependabot auto-merge / auto-approveなし
 - `Dismiss package malware alerts` preset OFF
+- `Dismiss low impact issues for development-scoped dependencies` preset OFF
 - PVR ON
 - Reporter向けPVR導線確認済み
 - PVR notification確認済み
