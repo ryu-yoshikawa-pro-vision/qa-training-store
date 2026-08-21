@@ -6,7 +6,7 @@
 - [x] 2. Main PlanをTemplate必須項目へ再整理する
 - [x] 3. MNT-003 / REP-002 / PR Slice / MCP / Oracle / SHA pinning指摘を反映する
 - [x] 4. Planning Run Artifactを追加する
-- [ ] 5. Branch差分を確認し、Plan + Run Artifact以外の変更がないことを確認する
+- [x] 5. Branch差分を確認し、Plan + Run Artifact以外の変更がないことを確認する
 
 ## Discovered
 
