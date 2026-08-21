@@ -59,3 +59,32 @@
 - Remaining:
   - Plan実装開始前の最新main rebaseline。
 - Progress: 100% (5/5)
+
+## 2026-08-21 20:24 (JST) — Completion Reconciliation
+
+- Summary:
+  - 前回の`Progress: 100%`はRepository Completion Contractに対して早すぎたため、append-onlyで訂正する。
+  - sanitize / format / markdown lintが未実行のため、Planning Runは現在未完了である。
+- Completed:
+  - R3を`BR-STOREFRONT-002` / `AC-STOREFRONT-002`の全dimension rebaselineへ修正。
+  - R7 Flow Jの正本ValidationをFocused Playwrightへ修正し、MCPを補助へ変更。
+  - R8をNative Product PRのmerge gateとして明示。
+  - Main PlanにPlan branch completion validationを追加。
+  - TASKSを再openし、未実行Validationを明示。
+- Changes:
+  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+  - `.codex/runs/20260821-174900-JST/PLAN.md`
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+- Commands / tools:
+  - GitHub connectorでCurrent Spec / Audit Finding / Run Artifactを確認。
+  - GitHub contents API経由でPlan / Run Artifactを更新。
+- Notes/Decisions:
+  - `sanitize-codex-artifacts` Write + Check、`pnpm run format:check`、`pnpm run lint:markdown`がPASSするまでPlanning Runを100%完了扱いにしない。
+  - GitHub connector環境ではRepository commandを直接実行できないため、上記3Validationはローカル取得可能な環境で実行する。
+  - 作業中に無関係なPR #1のタイトルを誤って変更したが、元タイトル`feat: QA学習用ECアプリのPhase 1を実装`へ即時復元した。内容・state・bodyには変更していない。
+- Remaining:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check`
+  - `pnpm run format:check`
+  - `pnpm run lint:markdown`
+- Progress: 70% (7/10)
