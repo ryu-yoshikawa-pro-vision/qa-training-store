@@ -16,9 +16,13 @@
 - [x] 12. R2aをviewer contextのUseCase→Gateway→Repository→SQLite伝播まで拡張する
 - [x] 13. R3 SuggestionをNative Search UI→Service→UseCase→Gateway→Repository→SQLiteまで明示する
 - [x] 14. Main Plan / Planning Run ArtifactをR2a / R3のEnd-to-End経路へ同期する
-- [ ] 15. `sanitize-codex-artifacts`をWrite + Checkで実行する
-- [ ] 16. `pnpm run format:check`を実行する
-- [ ] 17. `pnpm run lint:markdown`を実行する
+- [x] 15. PR分割をRoot Cause数ベースから変更面・依存関係ベースへ簡素化する
+- [x] 16. R2a + R3、R12a + R12bをPreferred implementation groupへまとめる
+- [x] 17. R2a / R3の重複Testとspeculative async frameworkを削る
+- [x] 18. MCP / R8 validationをFindingに必要な操作と既存Harness再利用へ限定する
+- [ ] 19. `sanitize-codex-artifacts`をWrite + Checkで実行する
+- [ ] 20. `pnpm run format:check`を実行する
+- [ ] 21. `pnpm run lint:markdown`を実行する
 
 ## Discovered
 
@@ -30,9 +34,11 @@
 - D6. Native CIのProduction Build / Runtime JobにもStandalone validatorと同系統のraw Hermes marker scanがある → R8へ同一Root Causeとして反映済み。
 - D7. R2aはActor Resolverだけでなく、Gatewayがviewerを捨て、SQLiteがGuest visibility/pricingを前提にしている → viewer context End-to-End伝播をR2aへ反映済み。
 - D8. Native Suggestionは`NativeCatalogService` / `NativeCustomerCatalogRepository` / `NativeCustomerSQLiteRepository` / Native Search UIにも経路がない → R3へ全経路を反映済み。
+- D9. R2aとR3は同じNative Catalog boundaryを変更しR3がR2aへ依存するため、別PRより同一Groupの方が変更・Validationが単純 → G2へ統合済み。
+- D10. Native Suggestionのstale protectionは現実のasync overlapがある場合だけ必要で、専用Cancellation frameworkは不要 → Planへ制約追加済み。
 
 ## Blocked
 
-- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 15〜17はRepositoryをローカル取得できる環境で実行する。
+- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 19〜21はRepositoryをローカル取得できる環境で実行する。
 
 現在のPlanning RunはValidation未完了のため100%完了扱いにしない。
