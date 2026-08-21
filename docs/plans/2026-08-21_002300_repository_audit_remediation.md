@@ -78,6 +78,7 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 - Metro cacheへの無条件`--clear`導入。
 - MCP検証だけのためのNative Test Control Scenario拡張。
 - Native Suggestionだけのための新しいCancellation / Request orchestration framework。
+- Confirmation-only Findingの確認結果だけを理由にしたCurriculum / Workflow / executable contract / external settingsの自動変更。
 - Audit ReportのFinding削除・改番。
 
 ### Open Questions
@@ -236,7 +237,7 @@ NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runti
 
 ### Confirmation only
 
-- C1 / REP-013: 原則コード変更なし。
+- C1 / REP-013: raw expected-failure / wrapper / Curriculumの責務をread-onlyで確認し、intentが確定しない限り変更しない。
 - C2 / REP-017: GitHub settingsのread-only確認のみ。保証不足でもこのPlan中に設定変更しない。
 
 ### Deferred / No-op
@@ -282,7 +283,7 @@ SliceはFinding追跡単位として残すが、PRはSlice数に合わせて機�
 | G12 | R12a + R12b | どちらも小さいCurrent-documentation alignmentで、Product codeを変更しない。 |
 | G13 | R13 | Cross Browser CI split merge後のみ実施。 |
 
-C1 / C2は確認だけで終わるため、設定変更やPR作成へ自動移行しない。
+C1 / C2はread-only確認だけで終わり、Documentation / Workflow / executable contract / external settingsの変更やPR作成へ自動移行しない。
 
 ### Native Production isolation gate
 
@@ -511,10 +512,11 @@ Cross Browser CI split merge後に:
 
 ### C1 — REP-013
 
-- raw expected-failureとwrapperの責務分離を確認する。
-- Current machine contractと教材意図が一致するならコード変更しない。
-- 必要ならCurriculumへ短い役割説明だけ追加する。
-- EvidenceなしにWorkflowをwrapperへ置換しない。
+- raw expected-failureとwrapperの責務分離をread-onlyで確認する。
+- Current machine contract、package script、Curriculumの役割が一致しているならNo-opとして終了する。
+- 意図が一意に確定できない場合は推測でWorkflow / wrapper / Curriculumを変更しない。
+- 現在のEvidence、考えられる責務分離、必要な判断事項、推奨alignment案を報告する。
+- Documentation / executable contract変更が必要なら、ユーザーの明示承認後に別対応として実施する。
 
 ### C2 — REP-017
 
@@ -664,7 +666,7 @@ pnpm run lint:markdown
 11. Suggestionの過剰な非同期設計
    - raceが実際にある場合だけ最小guardを入れ、Cancellation frameworkは作らない。
 12. Confirmationからのscope creep
-   - C2はread-only確認に限定し、Repository外設定変更や追加CI実装へ自動移行しない。
+   - C1 / C2はread-only確認に限定し、intent未確定のDocumentation / Workflow / executable contract変更、Repository外設定変更、追加CI実装へ自動移行しない。
 
 ## 13. Priority / Execution Order
 
@@ -686,7 +688,7 @@ pnpm run lint:markdown
 
 Confirmation only:
 
-- C1 / REP-013
+- C1 / REP-013（read-only。intentが一意に確定しない場合は報告で止める）
 - C2 / REP-017（read-only。変更が必要なら明示承認後の別対応）
 
 ## 14. Follow-up / Stop Conditions
@@ -697,12 +699,12 @@ Confirmation only:
 - Product ContractにないUXをPlan都合で新設しない。
 - 新しいAbstraction / Frameworkは、既存構造ではFindingを安全に直せない具体的Evidenceがある場合だけ検討する。
 - MCPで新Findingを見つけた場合、今回の修正に不可欠でなければ別対応へ分離する。
-- Confirmation-onlyで外部設定や追加実装が必要と判明しても、このPlan中では変更せず、ユーザーへ報告して停止する。
+- Confirmation-onlyでDocumentation / Workflow / executable contract / 外部設定 / 追加実装が必要と判明しても、このPlan中では変更せず、ユーザーへ報告して停止する。
 
 ## 15. Deliverables
 
 - Plan: `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
 - Planning Run Artifact: `.codex/runs/20260821-174900-JST/`
 - 実装時: Preferred implementation group単位の小PR、必要なRegression Test、Run Artifact、Runtime Evidence、残Risk記録。
-- Confirmation-only項目はread-onlyで完結し、設定変更や追加実装を行わない。
+- Confirmation-only項目はread-onlyで完結し、変更せずにEvidence・判断事項・推奨案を報告する。
 - PR #35のAudit ReportはHistorical Evidenceとして原則変更しない。
