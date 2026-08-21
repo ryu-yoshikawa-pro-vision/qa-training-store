@@ -2,7 +2,7 @@
 
 ## Objective
 
-- Repository Audit Remediation Planを、実装者が迷わない詳細さは維持しつつ、PR過剰分割・重複Test・不要なFramework・検証マトリクスを削った実装可能な状態にする。
+- Repository Audit Remediation Planを、実装者が迷わない詳細さは維持しつつ、PR過剰分割・重複Test・不要なFramework・検証マトリクス・confirmationからのscope creepを削った実装可能な状態にする。
 
 ## Scope
 
@@ -16,11 +16,14 @@
   - Native Suggestionのstale protectionは実際にasync overlapがある場合だけ最小guardを入れ、新Cancellation frameworkを禁止する。
   - MCP / Runtime確認をFindingの再現と修正確認に必要な操作だけへ限定する。
   - R8は既存validator / Existing Harnessを可能な限り再利用し、新Bundle Inspection Frameworkを作らない。
+  - C2 / REP-017はread-only確認に限定し、外部設定変更や追加CI実装へ自動移行しない。
   - Plan branchのsanitize / format / markdown lintを完了条件として維持する。
 - Out:
   - Product / Test / CI / Curriculum本体の実装修正。
   - Audit Report本文の修正。
   - Deferred Findingの実装。
+  - GitHub Ruleset / Branch Protectionの変更。
+  - C2確認結果だけを理由にした追加CI実装。
   - Planの短文化自体を目的とした情報削除。
 
 ## Assumptions
@@ -33,6 +36,7 @@
 
 - 全体Planを止めるBlocking Questionはなし。
 - REP-013 / REP-017は各confirmation taskで確認する。
+- REP-017で保証不足が見つかっても、変更はユーザーの明示承認後の別対応とする。
 - MNT-003の最小Hermes検証方式はR8実装時に決めるが、Actual Production Artifact由来Evidenceは必須とする。
 
 ## Hypotheses
@@ -42,6 +46,7 @@
 - H3: Native SuggestionはUI→Service→UseCase→Gateway→Repository→SQLiteを完成させる必要があるが、async raceが実在しない限り専用Cancellation機構は不要である。
 - H4: R8は既存validatorをWorkflowから再利用できれば、Hermes false-negativeを直しつつinspection実装の重複を減らせる。
 - H5: Runtime/MCP確認をFindingのBefore/Afterへ限定すれば、必要なEvidenceを保ちながら探索scope creepを避けられる。
+- H6: C2をread-onlyに固定すれば、監査確認からRepository外設定変更へ意図せずscopeが広がることを防げる。
 
 ## Research Plan
 
@@ -50,6 +55,7 @@
 - Web側のviewer-aware Storefront query / permission / pricing semanticsを確認する。
 - Current Native bundle validator / Native CI / Contract Testを確認する。
 - Main PlanのPR grouping、Validation、MCP、Framework制約を簡素化する。
+- C2 / REP-017をread-only confirmationとして固定する。
 - branch差分を確認する。
 - ローカル環境でsanitize / format / markdown lintを実行して完了判定する。
 
@@ -58,9 +64,10 @@
 1. 技術的に必要なEnd-to-End修正範囲は維持する。
 2. 同一変更面を持つSliceをPreferred implementation groupへまとめる。
 3. 重複Test / 不要な検証matrix / speculative frameworkを削る。
-4. Main PlanとPlanning Run Artifactを同期する。
-5. Repositoryをローカル取得できる環境で最終Validationを実行する。
-6. PASS後にPlanning Runを100%完了へ更新する。
+4. Confirmation-onlyはread-onlyに固定し、外部変更へ自動移行させない。
+5. Main PlanとPlanning Run Artifactを同期する。
+6. Repositoryをローカル取得できる環境で最終Validationを実行する。
+7. PASS後にPlanning Runを100%完了へ更新する。
 
 ## Definition of Done
 
@@ -73,6 +80,7 @@
 - R3のstale protectionが実際のasync overlap時だけの最小guardに限定されている。
 - MCP / Runtime validationがFindingに必要な操作だけへ限定されている。
 - R8が新しい汎用Frameworkや重複Harnessを作らない方針になっている。
+- C2 / REP-017がread-only確認に限定され、設定変更や追加CI実装は明示承認後の別対応になっている。
 - Planning Runがsanitize未実行のまま100%完了扱いされていない。
 - `sanitize-codex-artifacts` Write + CheckがPASSする。
 - `pnpm run format:check`がPASSする。
@@ -83,6 +91,7 @@
 
 - GitHub connector環境ではRepository scriptを直接実行できないため、最終Validationはローカル実行が必要。
 - Cross Browser CI splitはmain未反映のため、R13はdependency blockedのまま保持する。
+- REP-017の実設定は確認時点までUnknownだが、このPlanでは変更せず結果報告で止める。
 
 ## Thinking Log
 
@@ -91,3 +100,4 @@
 - 2026-08-21 20:40 JST: R8の重複Hermes scan、R3 Suggestion gateway欠落、repo mapping必須項目、R8 gate過剰性を確認。
 - 2026-08-21 20:53 JST: R2a / R3をEnd-to-End pathへ修正し、Run Artifactを同期。
 - 2026-08-21 21:20 JST: Planの長さ自体は維持し、PR過剰分割・重複Test・MCP matrix・speculative frameworkだけを簡素化する方針へ変更。
+- 2026-08-21 22:23 JST: C2 / REP-017をread-only confirmationへ固定し、Ruleset / Branch Protection変更や追加CI実装は明示承認後の別対応へ分離。
