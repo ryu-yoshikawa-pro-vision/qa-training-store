@@ -15,7 +15,7 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "Markdown lint、diff check、artifact sanitization、JSON parse、PVR API/UI、既存PR CI、CodeQL success、Ruleset readback、live pending BLOCKED、validate success CLEAN、historical validate failureを確認した。"
+      "evidence": "Markdown lint、diff check、artifact sanitization、JSON parse、PVR API/UI、既存PR CI、最新PR #39 CI（32 success / 8 skipped / 0 failure / 0 pending）、CodeQL success、Ruleset readback、live pending BLOCKED、validate success CLEAN、historical validate failureを確認した。"
     },
     "safety_compliance": {
       "rating": "pass",

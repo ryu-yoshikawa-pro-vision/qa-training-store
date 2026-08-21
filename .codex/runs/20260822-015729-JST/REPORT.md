@@ -215,6 +215,26 @@
 - Iteration decision: `continue`（PR本文反映と最終Validation後に`stop_success`へ更新する）。
 - Progress: 100% (10/10)
 
+## 2026-08-22 08:24 (JST) — Repair validation / PR CI
+
+- Summary: 記録修正をcommit／pushし、PR #39の最新CIと最終Validationを確認した。
+- Completed:
+  - commit `8b29ccf6ae7a6a1e388b76d6ad6d09be87de5948`（`docs: reconcile security triage records`）を対象Branchへpushした。
+  - PR #39はOpen/Draft、headは上記commit、`mergeStateStatus=CLEAN`。PR差分はPolicy 1件、Security Automation Plan 1件、Run Artifact 5件の7ファイル。
+  - 最新PR CIは失敗0件、成功32件、skip 8件、Pending 0件。Phase 1 CI run `32536357722`のDependency Review、verify、deploy-preview、validateを含めてsuccess。Native CI run `32536357827`もsuccess。
+  - CodeQL run `32536355475`の`Analyze (javascript-typescript)`、`Analyze (actions)`がsuccess。既存CodeQL Default Setup／対象解析は維持され、CodeQL workflowは追加していない。
+  - `pnpm run lint:markdown` => PASS（302 files、0 issues）。
+  - `git diff --check` => PASS（出力なし）。
+  - `run.json`／`evaluation.json`のJSON parse => `JSON OK`。
+  - `scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/20260822-015729-JST' -Write -Check` => PASS（5 files scanned、0 changed、0 replacements、residual 0）。
+  - 最終Dependabot再確認はopen 8件（High 7、Moderate 1）、dismiss metadata null 8件、open Dependabot PR 0件。High 7件の個別P-13表とModerate inventoryはPlan／本REPORTへ保存済み。
+- Scope check:
+  - `git diff --name-only -- .github/dependabot.yml package.json pnpm-lock.yaml '.github/workflows' src scripts` => 出力なし。
+  - `.github/dependabot.yml`、package.json、pnpm-lock.yaml、Workflow、CodeQL、Ruleset、Repository Security Settings、Application codeは変更していない。
+- Decision: `stop_success`。記録・整合性の3点を完了し、既存のPlan／Run／Evaluationの`Completed`を維持する。
+- Remaining: Pending — 既存Dependabot High／Moderateのdependency remediationは別Security fix PR / follow-up。image-sizeはAdvisory API上patched version未提供であり、今回の設定失敗とは扱わない。
+- Progress: 100% (10/10)
+
 ## 2026-08-22 03:17 (JST) — Final Sanitizer
 
 - Summary: 最終Run Artifact Sanitizerを再実行し、保存対象の安全性を確認した。

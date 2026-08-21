@@ -33,7 +33,9 @@
       "gh pr view 38 --repo ryu-yoshikawa-pro-vision/qa-training-store --json mergeable,mergeStateStatus,statusCheckRollup",
       "gh run view 32502267798 --repo ryu-yoshikawa-pro-vision/qa-training-store --json jobs",
       "gh pr edit 39 --repo ryu-yoshikawa-pro-vision/qa-training-store --body-file <PR_BODY>",
-      "gh pr view 39 --repo ryu-yoshikawa-pro-vision/qa-training-store --json body,files,statusCheckRollup"
+      "gh pr view 39 --repo ryu-yoshikawa-pro-vision/qa-training-store --json body,files,statusCheckRollup",
+      "gh pr checks 39 --repo ryu-yoshikawa-pro-vision/qa-training-store --watch --interval 20",
+      "gh pr view 39 --repo ryu-yoshikawa-pro-vision/qa-training-store --json headRefOid,state,isDraft,mergeStateStatus,files,statusCheckRollup"
     ],
     "warnings": [
       "現CLI／Chrome認証主体はWriteのため、Admin専用設定APIの一部は再取得不可。Owner/Adminブラウザ完了報告を採用し、PVRはAPI/UIで再確認した。",
@@ -70,7 +72,7 @@
       "scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/20260822-015729-JST' -Write -Check",
       "run.json / evaluation.json JSON parse"
     ],
-    "validation_result": "PASS — pnpm run lint:markdown、git diff --check、run.json / evaluation.json JSON parse、Artifact Sanitizer",
+    "validation_result": "PASS — pnpm run lint:markdown、git diff --check、run.json / evaluation.json JSON parse、Artifact Sanitizer、PR #39 latest CI（32 success / 8 skipped / 0 failure / 0 pending）",
     "remaining_delta": "依存remediationは別Security fix PR / follow-up。今回のPRではdependency updateを行わない。",
     "decision": "stop_success"
   },
