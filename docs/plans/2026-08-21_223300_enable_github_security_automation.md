@@ -42,6 +42,8 @@ SSOT と本 Plan が矛盾する場合は SSOT を優先し、矛盾を記録し
 - 将来 Security PR 数が実運用上の問題になった場合のみ、別タスクで ON を再検討する
 - この選択は SSOT より優先しない
 
+GitHub が Public Repository に対して既定有効化する Dependabot preset は、今回の方針と衝突しない限り機械的に無効化しない。特に低影響な development-scoped dependency を自動 dismiss する既定 preset は現状を記録し、Finding Inventory では dismissed alert も確認対象に含める。
+
 ---
 
 ## 3. Plan Status
@@ -154,6 +156,8 @@ Public Repository の Dependency graph は GitHub 標準の有効状態を前提
 | SEC-19 | Actions default workflow permission | Read repository contents | SSOT | 未確認 | 未実施 |
 | SEC-20 | Actions create / approve PR | OFF | SSOT | 未確認 | 未実施 |
 | SEC-21 | Repository `allow_auto_merge` | `false` | Verification | `false` | 再確認待ち |
+| SEC-22 | Default low-impact development Dependabot preset | 現状確認・変更しない | Verification | 未確認 | 未実施 |
+| SEC-23 | PVR Reporter-view entry point | 非Admin / Reporter視点で表示確認 | SSOT | 未確認 | 未実施 |
 | RULE-01 | `main-protection` PR required | ON | SSOT | 未確認 | 未実施 |
 | RULE-02 | Required status check | `validate` のみ | SSOT | 未確認 | 未実施 |
 | RULE-03 | `verify` required | NO | SSOT | 未確認 | 未実施 |
@@ -165,8 +169,11 @@ Public Repository の Dependency graph は GitHub 標準の有効状態を前提
 | RULE-09 | Merge method | squash only | SSOT | 未確認 | 未実施 |
 | RULE-10 | Strict branch update | OFF | SSOT | 未確認 | 未実施 |
 | RULE-11 | Bypass | なし | SSOT | 未確認 | 未実施 |
+| RULE-12 | `validate` merge-gate runtime verification | 通常PRで merge block / release を実動作確認 | SSOT | 未確認 | 未実施 |
 
 `SEC-04` は本Planの初期運用選択であり、SSOT の Security Policy を追加・変更するものではない。
+
+`SEC-22` は既定 preset を新たなPolicyとして採用する項目ではない。GitHub既定状態を把握し、Finding Inventory の見落としを防ぐための確認項目である。
 
 ---
 
@@ -224,19 +231,20 @@ Repository file に drift がなければ変更しない。
 
 Target / Implementation Record 表の `Before` を更新する。
 
-対象は `SEC-01` 〜 `SEC-21` と `RULE-01` 〜 `RULE-11`。
+対象は `SEC-01` 〜 `SEC-23` と `RULE-01` 〜 `RULE-12`。
 既に Target と一致する項目は再操作しない。
 
 ### Phase 3: Dependabot
 
 1. `SEC-02` Dependabot alerts を ON。
-2. 既存 Dependabot alerts を確認。
-3. `SEC-04` Grouped security updates を初期運用として OFF。
-4. `SEC-03` Dependabot security updates を ON。
-5. `SEC-05` Dependabot malware alerts を ON。
-6. `SEC-06` が OFF であることを確認。
-7. `SEC-07` / `SEC-08` を再確認。
-8. `SEC-09` を維持。
+2. 既存 Dependabot alerts を確認する。Openだけでなく dismissed alerts も確認対象に含める。
+3. `SEC-22` の GitHub既定 low-impact development preset の現在値を記録し、今回変更しない。
+4. `SEC-04` Grouped security updates を初期運用として OFF。
+5. `SEC-03` Dependabot security updates を ON。
+6. `SEC-05` Dependabot malware alerts を ON。
+7. `SEC-06` が OFF であることを確認。
+8. `SEC-07` / `SEC-08` を再確認。
+9. `SEC-09` を維持。
 
 Security Updates 有効化直後に Security PR が生成されても自動 merge しない。
 
@@ -296,22 +304,26 @@ analysis 判定:
 - failure: 原因調査し、成功扱いにしない
 - 実装セッション内に完了しない: `Pending external verification`
 
+今回の CodeQL は **detect / alert / triage** を目的とする。CodeQL check を `main-protection` の Required status check へ追加することは本PlanのScope外とし、merge-block policy を強化する場合は SSOT を更新する別タスクで判断する。
+
 独自 `.github/workflows/codeql.yml` は追加しない。
 
 ### Phase 6: PVR / Actions
 
 1. `SEC-17` PVR を ON。
-2. Security > Advisories に `Report a vulnerability` 導線があることを確認。
-3. `SECURITY.md` と実 UI の整合を確認。
-4. Repository Owner / Admin の Repository Watch を確認。
+2. Repository Admin 側で Security > Advisories の状態を確認。
+3. `SEC-23` として、非Admin / 通常Reporter視点で `Report a vulnerability` 導線が表示され利用開始できることを確認する。
+4. 確認のためだけにダミー脆弱性レポートを送信しない。ボタン / 導線の表示確認までとする。
+5. `SECURITY.md` と実 UI の整合を確認。
+6. Repository Owner / Admin の Repository Watch を確認。
    - `All Activity`
    - または `Custom` で `Security alerts`
-5. Account notification settings で Watching 通知が有効であることを確認。
-6. Email 等で受信する場合は通知先が有効であることを確認。
-7. 実際の通知経路を `SEC-18` の Evidence に記録。
-8. `SEC-19` / `SEC-20` を確認。
+7. Account notification settings で Watching 通知が有効であることを確認。
+8. Email 等で受信する場合は通知先が有効であることを確認。
+9. 実際の通知経路を `SEC-18` の Evidence に記録。
+10. `SEC-19` / `SEC-20` を確認。
 
-PVR 確認のためだけにダミー脆弱性レポートを送信しない。
+Admin / Security権限を持つアカウントの画面だけを Reporter-view 確認の代替にしない。
 
 Dependabot auto-merge / auto-approve の確認では Workflow 内の次も確認する。
 
@@ -322,6 +334,20 @@ Dependabot auto-merge / auto-approve の確認では Workflow 内の次も確認
 無関係な Workflow 権限は機械的に削除しない。
 
 ### Phase 7: End-to-End Verification
+
+#### Ruleset / 通常PR
+
+`RULE-02` を `validate` のみへ切り替えた後、通常の same-repo PR で `RULE-12` を確認する。
+
+- `validate` が Required check として表示される
+- `validate` が pending / failure の間は merge が block される
+- `validate` success 後に、その Required check による block が解除される
+- `verify` が Required check として二重登録されていない
+- expected source が GitHub Actions のまま維持される
+
+実動作確認が未完了なら `Pending external verification` とし、Configuration DoD を満たした扱いにしない。
+
+#### Dependabot Security PR
 
 Dependabot Security PR が生成された場合:
 
@@ -355,6 +381,8 @@ Security automation の設定完了と、検出 finding の修正完了を混同
 **この Branch の原則Scopeは Security Settings / verification / record であり、既存 Application code や dependency の修正ではない。**
 
 ### 8.1 Dependency vulnerability
+
+Dependabot Alert は open だけでなく dismissed も確認し、既定 auto-triage preset によって自動 dismiss された finding を Inventory から落とさない。
 
 Dependabot Security PR が生成済み:
 
@@ -485,9 +513,9 @@ Plan / docs のみ変更:
 
 Target / Implementation Record の次を確認済みにする。
 
-- SSOT required: `SEC-01` 〜 `SEC-03`, `SEC-05` 〜 `SEC-12`, `SEC-14` 〜 `SEC-20`
-- Verification: `SEC-13`, `SEC-21`
-- Ruleset: `RULE-01` 〜 `RULE-11`
+- SSOT required: `SEC-01` 〜 `SEC-03`, `SEC-05` 〜 `SEC-12`, `SEC-14` 〜 `SEC-20`, `SEC-23`
+- Verification: `SEC-13`, `SEC-21`, `SEC-22`
+- Ruleset: `RULE-01` 〜 `RULE-12`
 - Initial operational choice: `SEC-04` は OFF で記録
 
 さらに:
@@ -503,12 +531,14 @@ Target / Implementation Record の次を確認済みにする。
 - Required Setting を確認・変更できない
 - CodeQL configuration conflict が未解決
 - Ruleset の Target drift が残る
+- `validate` の通常PR merge-gate runtime verification が未完了
+- Reporter視点の PVR 導線確認が未完了
 
 ### 10.2 Finding Triage DoD
 
 有効化時点の findings を種類別に確認する。
 
-- Dependabot vulnerability alerts
+- Dependabot vulnerability alerts（open / dismissed）
 - Dependabot malware alerts
 - Secret scanning alerts
 - CodeQL alerts
@@ -516,7 +546,7 @@ Target / Implementation Record の次を確認済みにする。
 完了条件:
 
 - Dependency Critical / High: Security PR、または生成不能理由・Exposure・remediation 経路を記録済み
-- Dependency Moderate / Low: triage 済み
+- Dependency Moderate / Low: dismissed を含め triage 済み
 - CodeQL Critical / High: Exposure・remediation 経路・follow-up を記録済み
 - CodeQL Moderate / Low: triage 済み
 - Malware: 使用状況と対応方針を評価済み
@@ -528,11 +558,13 @@ Target / Implementation Record の次を確認済みにする。
 
 最終 Status は次のいずれか。
 
-- `Completed`: Configuration DoD と Finding Triage DoD を満たす
-- `Pending external verification`: CodeQL 等の外部処理が terminal state に到達していない
+- `Completed`: **本 Security Automation Plan** の Configuration DoD と Finding Triage DoD を満たす
+- `Pending external verification`: CodeQL / Ruleset runtime verification 等の外部処理・実動作確認が完了していない
 - `Blocked - Repository Admin action required`: Required Setting を Admin 権限不足で変更できない
 - `Blocked - CodeQL configuration decision required`: 既存 CodeQL configuration と Default Setup の安全な移行判断が未解決
 - `Blocked - Security remediation required`: Active Secret / Malware 等、先に対応すべき finding がある
+
+`Completed` は本Planの完了だけを意味し、SSOT の `Repository Hardening Complete` を自動的に意味しない。Cloudflare trust boundary、write-capable principal の trust classification、Token scope / blast radius など、SSOT P-05 を含む他Hardening項目はSSOT側のDoDで別途判定する。
 
 `Pending` / `Blocked` を `Completed` として記録しない。
 
@@ -554,6 +586,7 @@ Finding は次の表へ記録する。
 Final:
 
 - Final Plan Status: `Implementation-ready`
+- Repository Hardening overall status: SSOT の DoD で別途判定
 - Blocked / Pending reason: なし
 - Required follow-up: 未確認
 
@@ -566,16 +599,21 @@ Final:
 - Dependabot Security PR と本 Branch で同じ dependency を重複更新しない。
 - Alert があっても patched version 不在等で PR が作成されない場合がある。
 - Grouped security updates OFF は初期運用選択であり SSOT の追加Policyではない。
+- GitHub既定 auto-triage preset の存在により、Open alerts だけでは Finding Inventory が不完全になる可能性がある。
 - Malware Alert は Security Update PR が自動生成される前提で扱わない。
 - `Dismiss package malware alerts` preset は OFF を維持する。
 - CodeQL Default Setup は既存 Advanced Setup / SARIF upload を評価してから有効化する。
+- CodeQL は今回 detect / alert / triage 用であり、Required merge gate の追加はScope外。
 - 既存 CodeQL finding の修正を本 Branch へ混在させない。
 - active secret は revoke / rotate を最優先する。
 - Ruleset は read-only 確認と Admin による変更を分離する。
 - `validate` が `main` で正常に機能することを確認してから Required check を変更する。
+- Ruleset変更後は通常PRで `validate` のmerge blockを実動作確認する。
 - `verify` と `validate` の両方を Required にしない。
+- PVRはAdmin画面だけでなくReporter視点の導線も確認する。
 - GitHub UI の名称変更時は名前だけで判断せず同等機能か確認する。
 - Admin 権限不足や CodeQL conflict を workaround で隠さず Blocked とする。
+- 本PlanのCompletedとRepository Hardening全体のCompleteを混同しない。
 
 ---
 
@@ -584,12 +622,13 @@ Final:
 1. 最新 `main` / CI contract / auto-merge guard / open Dependabot PR を確認
 2. Target / Implementation Record の Before inventory
 3. `main-protection` を read-only 確認し、drift がある場合だけ Admin が修正
-4. Dependabot alerts / security updates / malware alerts を有効化し、Grouped security updates を初期 OFF
+4. Dependabot alerts / dismissed alerts /既定auto-triage presetを確認し、security updates / malware alerts を有効化、Grouped security updates を初期 OFF
 5. Secret Protection / Push protection / Secret finding triage
 6. CodeQL existing configuration を評価し、競合がなければ Default Setup → initial analysis
-7. PVR / notification / Actions permission を確認
-8. 初回 Alert / Security PR / CodeQL scan を検証
-9. Finding Triage
-10. Section 5 / Section 11 / Final Status を更新
+7. PVR Reporter-view / notification / Actions permission を確認
+8. Ruleset変更後の通常PR merge-gate runtime verification
+9. 初回 Alert / Security PR / CodeQL scan を検証
+10. Finding Triage
+11. Section 5 / Section 11 / Final Status を更新
 
 最優先は、不要な通常 Version Update を発生させず、既知脆弱性を検出し、修正可能な場合だけ Security PR を生成する状態を成立させることである。
