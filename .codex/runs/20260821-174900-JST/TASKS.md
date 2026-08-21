@@ -24,9 +24,10 @@
 - [x] 20. C1 / REP-013をread-only confirmationへ固定し、intent不明時は変更せず報告で止める
 - [x] 21. G0 Policy変更を撤回し、既存Policy上のGit Execution Contractへ縮小する
 - [x] 22. Active remediationを必要性の高い9Groupへ絞り、R6/R10/R12/R13/C1/C2をFollow-upへ移し、Git/MCP/validation重複を削る
-- [ ] 23. `sanitize-codex-artifacts`をWrite + Checkで実行する
-- [ ] 24. `pnpm run format:check`を実行する
-- [ ] 25. `pnpm run lint:markdown`を実行する
+- [x] 23. G8で既存`.gitattributes`のLF contractを優先し、script normalizationをEvidenceがある場合だけに限定する
+- [ ] 24. `sanitize-codex-artifacts`をWrite + Checkで実行する
+- [ ] 25. `pnpm run format:check`を実行する
+- [ ] 26. `pnpm run lint:markdown`を実行する
 
 ## Discovered
 
@@ -45,9 +46,10 @@
 - D13. Parentのfeature-branch add / commit / pushは既存Policyで扱える → Git permission policy変更は不要。
 - D14. auto-netまでGit writeを許可すると追加Guardが必要になりscopeが膨らむ → auto-net禁止を維持。
 - D15. 監査Findingをすべて同じMust Fix粒度で持つとPlanが監査Report化する → Product correctness / authorization / test reliability / CI-securityに直接効く9GroupだけActiveとする。
+- D16. `.gitattributes`は既に`* text=auto eol=lf`を定義している → G8はまず既存LF contractでpatchを揃え、script側normalizationはstrict apply問題が残るEvidenceがある場合だけ検討する。
 
 ## Blocked
 
-- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 23〜25はRepositoryをローカル取得できる環境で実行する。
+- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 24〜26はRepositoryをローカル取得できる環境で実行する。
 
 現在のPlanning RunはValidation未完了のため100%完了扱いにしない。
