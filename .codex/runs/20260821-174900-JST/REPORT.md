@@ -88,3 +88,32 @@
   - `pnpm run format:check`
   - `pnpm run lint:markdown`
 - Progress: 70% (7/10)
+
+## 2026-08-21 20:40 (JST) — Scope Reconciliation
+
+- Summary:
+  - 再レビューで確認したR8の重複Hermes scan、R3 Native Suggestion gateway欠落、repo mapping不足、R8 gate過剰性をPlanへ反映した。
+  - Product/Test/CI本体は変更していない。
+- Completed:
+  - R8のAffected Surfaceを`validate-native-production-bundle.ts`、`native-ci.yml`のProduction Build / Runtime raw scans、`native-ci-workflow.test.ts`まで拡張。
+  - R8でStandalone validatorだけ直してWorkflowの同系統false-negativeを残さない方針を追加。
+  - R3へ`CustomerCatalogGateway.suggest()`と`CatalogUseCases.suggest()`のNative delegation経路を明記。
+  - R3のTest方針を「全dimensionをrebaselineし、不足coverageだけ追加」へ簡素化。
+  - `Main flow` / `Key abstractions` / `Files to inspect` / `Unknowns`をMain Planへ復元。
+  - R8 hard merge prerequisiteをProduction isolation surface変更時だけに限定し、通常のNative Product修正はCurrent Production Build + Maestro production-validation成功を条件に並列merge可能とした。
+- Changes:
+  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+  - `.codex/runs/20260821-174900-JST/PLAN.md`
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+- Commands / tools:
+  - GitHub connectorで`CatalogUseCases`、`CustomerCatalogGateway`、Native bundle validator、Native CI、Native CI Contract Test、Planning Contractを確認。
+  - GitHub contents APIでPlan / Run Artifactを更新。
+- Notes/Decisions:
+  - R8はhigh-priority parallel toolingであり、全Native Product修正を一律にBlockしない。
+  - R8のcorrected inspection contractはActual Production Hermes Artifact由来Evidenceを必須とし、Maestro production-validationはRuntime補助Evidenceとして維持する。
+- Remaining:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check`
+  - `pnpm run format:check`
+  - `pnpm run lint:markdown`
+- Progress: 79% (11/14)
