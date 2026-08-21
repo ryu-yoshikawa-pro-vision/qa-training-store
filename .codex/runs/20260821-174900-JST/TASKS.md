@@ -25,9 +25,9 @@
 - [x] 21. G0 Policy変更を撤回し、既存Policy上のGit Execution Contractへ縮小する
 - [x] 22. Active remediationを必要性の高い9Groupへ絞り、R6/R10/R12/R13/C1/C2をFollow-upへ移し、Git/MCP/validation重複を削る
 - [x] 23. G8で既存`.gitattributes`のLF contractを優先し、script normalizationをEvidenceがある場合だけに限定する
-- [ ] 24. `sanitize-codex-artifacts`をWrite + Checkで実行する
-- [ ] 25. `pnpm run format:check`を実行する
-- [ ] 26. `pnpm run lint:markdown`を実行する
+- [x] 24. `sanitize-codex-artifacts`をWrite + Checkで実行する
+- [x] 25. `pnpm run format:check`を実行する
+- [x] 26. `pnpm run lint:markdown`を実行する
 
 ## Discovered
 
@@ -50,6 +50,6 @@
 
 ## Blocked
 
-- B1. GitHub connector環境ではRepository script / pnpm commandを直接実行できないため、Task 24〜26はRepositoryをローカル取得できる環境で実行する。
+- なし。
 
-現在のPlanning RunはValidation未完了のため100%完了扱いにしない。
+Planning Runは全26Task完了。ローカルworktreeで3ValidationがPASSしたことを確認済みとして記録する。
