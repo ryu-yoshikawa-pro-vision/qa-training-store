@@ -146,3 +146,37 @@
   - `pnpm run format:check`
   - `pnpm run lint:markdown`
 - Progress: 82% (14/17)
+
+## 2026-08-21 21:20 (JST) — Simplicity / Overengineering Reconciliation
+
+- Summary:
+  - Planの長さは実装者が迷わないため維持し、実装そのものの過剰さだけを削った。
+  - Product correctnessに必要なR2a / R3 / R8のEnd-to-End範囲は維持した。
+- Completed:
+  - 「Root Causeごとに必ず別PR」を撤廃し、変更面・依存関係・Validation単位でPRを切る方針へ変更。
+  - R2a + R3をG2 Native Catalog / StorefrontとしてPreferred implementation groupへ統合。
+  - R12a + R12bをG12 Current docs alignmentとして統合。
+  - R2aで既存`ProductViewer`、`canViewerSeeProduct()`、`effectiveUnitPrice()` / `viewerUnitPrice()`等を再利用し、Native専用viewer/ruleを作らない制約を追加。
+  - Guest / regular / gold / platinumの確認を全Test layerへ重複追加せず、既存coverage + 不足する最小Regressionへ変更。
+  - Native Suggestionのstale protectionは実際にasync overlapがある場合だけ最小guardを入れ、新Cancellation frameworkを作らない方針へ変更。
+  - R2bのnegative validationを全role×全route matrixではなく代表caseへ限定。
+  - MCP / Runtime validationをFindingのBefore/Afterに必要な操作だけへ限定。
+  - R8は既存validator / Existing Harnessを優先再利用し、新しいBundle Inspection Framework / 重複Harnessを禁止。
+  - Global validationは全commandを全Groupで機械的に実行せず、変更面とRepository gateに応じて選択することを明記。
+- Changes:
+  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+  - `.codex/runs/20260821-174900-JST/PLAN.md`
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+- Commands / tools:
+  - GitHub connectorでCurrent Plan、Repository Planning Contract、Web canonical Storefront query / permission / pricing implementationを確認。
+  - GitHub contents APIでPlan / Run Artifactを更新。
+- Notes/Decisions:
+  - Planの文章量を減らすこと自体は目的にしない。実装判断を固定する有用な詳細は残す。
+  - 技術的に必要なEnd-to-End修正を「シンプル化」の名目で表層修正へ縮小しない。
+  - 新しいAbstraction / Frameworkは、既存構造ではFindingを安全に解消できない具体的Evidenceがある場合だけ検討する。
+- Remaining:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check`
+  - `pnpm run format:check`
+  - `pnpm run lint:markdown`
+- Progress: 86% (18/21)
