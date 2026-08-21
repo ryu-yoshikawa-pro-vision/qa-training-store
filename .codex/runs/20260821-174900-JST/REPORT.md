@@ -180,3 +180,30 @@
   - `pnpm run format:check`
   - `pnpm run lint:markdown`
 - Progress: 86% (18/21)
+
+## 2026-08-21 22:23 (JST) — Confirmation Scope Reconciliation
+
+- Summary:
+  - C2 / REP-017をread-only confirmationへ固定し、外部Repository設定の確認から設定変更・追加CI実装へscopeが膨らまないようにした。
+- Completed:
+  - C2はGitHub Ruleset / Branch Protectionのread-only確認だけを行う方針へ変更。
+  - `main` direct push禁止 + 必要なNative PR check requiredが確認できればNo-opで終了する。
+  - 保証不足なら現在値・不足保証・推奨変更内容だけを報告する。
+  - Ruleset / Branch Protection変更、push時Native CI追加等はこのPlanから除外し、ユーザーの明示承認後の別対応へ分離した。
+  - Main Plan / Run PLAN / TASKSを同じ契約へ同期した。
+- Changes:
+  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+  - `.codex/runs/20260821-174900-JST/PLAN.md`
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+- Commands / tools:
+  - GitHub connectorでCurrent Plan、Repository review/planning contract、Run Artifactを確認。
+  - GitHub contents APIでPlan / Run Artifactを更新。
+- Notes/Decisions:
+  - Confirmation-only Findingを、Evidence確認なしに実装Taskへ昇格させない。
+  - GitHub外部設定の変更は明示承認なしに実施しない。
+- Remaining:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check`
+  - `pnpm run format:check`
+  - `pnpm run lint:markdown`
+- Progress: 86% (19/22)
