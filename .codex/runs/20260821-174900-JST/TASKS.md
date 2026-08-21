@@ -22,7 +22,7 @@
 - [x] 18. MCP / R8 validationをFindingに必要な操作と既存Harness再利用へ限定する
 - [x] 19. C2 / REP-017をread-only confirmationへ固定し、設定変更・追加CI実装を別対応へ分離する
 - [x] 20. C1 / REP-013をread-only confirmationへ固定し、intent不明時は変更せず報告で止める
-- [x] 21. G0 Safe Git Write Policy Alignmentを実装前提として追加し、safe add / commit / push許可とPR merge禁止をPlanへ固定する
+- [x] 21. G0 Policy変更を撤回し、既存Policy上のGit Execution ContractとしてParent safe/standardのexplicit-path add / commit / pushとPR merge禁止を固定する
 - [ ] 22. `sanitize-codex-artifacts`をWrite + Checkで実行する
 - [ ] 23. `pnpm run format:check`を実行する
 - [ ] 24. `pnpm run lint:markdown`を実行する
@@ -41,7 +41,8 @@
 - D10. Native Suggestionのstale protectionは現実のasync overlapがある場合だけ必要で、専用Cancellation frameworkは不要 → Planへ制約追加済み。
 - D11. REP-017は外部Repository設定の確認Findingであり、confirmationからRuleset変更や追加CI実装へ自動移行させるべきではない → read-onlyへ固定済み。
 - D12. REP-013は監査Reconciliationでintent未確定のconfirmation Findingへ狭められているため、確認結果だけを理由に修正へ自動移行しない → read-onlyへ固定済み。
-- D13. Common Hookはsafe feature-branchの通常`git add` / `git commit` / `git push`を既に許可する一方、`AGENTS.md`とauto-net rulesがblanket forbiddenにしている → G0で上位Policyを既存Common Safety境界へ整合する計画を追加済み。
+- D13. Common HookはParent safe/standardのfeature-branch `git add` / `git commit` / normal `git push`を既に許可し、`AGENTS.md`の明示禁止は`implementation_worker`と`auto-net`へ限定される → Git permission policy変更は不要。
+- D14. auto-netまでGit writeを許可するとstage-all / commit-all等への追加Guardが必要になりscopeが膨らむ → auto-net禁止を維持し、Parent safe/standardのExecution Contractだけを使用する。
 
 ## Blocked
 
