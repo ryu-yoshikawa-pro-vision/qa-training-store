@@ -207,3 +207,30 @@
   - `pnpm run format:check`
   - `pnpm run lint:markdown`
 - Progress: 86% (19/22)
+
+## 2026-08-22 00:23 (JST) — REP-013 Confirmation Scope Reconciliation
+
+- Summary:
+  - C1 / REP-013をread-only confirmationへ固定し、intent未確定の状態からCurriculum / Training Workflow / executable contract修正へ自動移行しないようにした。
+- Completed:
+  - 監査ReconciliationでREP-013が「intent確認後にalignment要否を決める」Findingへ狭められていることを再確認。
+  - C1はraw expected-failure / wrapper / package script / Curriculumの責務をread-onlyで確認する方針へ変更。
+  - intentが一意に確定しない場合は、Evidence・考えられる責務分離・必要な判断事項・推奨alignment案を報告して停止する。
+  - Documentation / executable contract変更はユーザーの明示承認後の別対応へ分離した。
+  - Main Plan / Run PLAN / TASKSを同じconfirmation contractへ同期した。
+- Changes:
+  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+  - `.codex/runs/20260821-174900-JST/PLAN.md`
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+- Commands / tools:
+  - GitHub connectorでCurrent Plan、監査ReportのREP-013 Reconciliation、Planning Run Artifactを確認。
+  - GitHub contents APIでPlan / Run Artifactを更新。
+- Notes/Decisions:
+  - C1 / C2はどちらもconfirmation-onlyとしてread-onlyで完結させる。
+  - Confirmation結果だけを根拠にRepository sourceや外部設定を自動変更しない。
+- Remaining:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check`
+  - `pnpm run format:check`
+  - `pnpm run lint:markdown`
+- Progress: 87% (20/23)
