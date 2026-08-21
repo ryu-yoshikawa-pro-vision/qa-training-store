@@ -42,6 +42,7 @@
 - Cross-role Flow Jはtransition未確認でもPASSできるTest Oracle defectがある。
 - Native Production Bundle GuardはHermes artifactへのraw marker scanでfalse-negativeになり得る。
 - Agentic QA challenge patchはWindows line ending条件でstrict applyに失敗する。
+- Current `.gitattributes`は`* text=auto eol=lf`でRepository textのLF checkoutを既に正本化している。
 - Training workflowはRepositoryのAction SHA pinning方針と一致していない。
 
 ## 3. Assumptions
@@ -92,7 +93,7 @@ Active remediationは次の9Groupに限定する。
 | G5 | Web Search ComboBox / suggestion state、component/E2E tests |
 | G6 | Dexie cart repository、repository contract tests |
 | G7 | Cross-role Flow J、related seed/state helpers |
-| G8 | Agentic QA patch/preparation scripts、challenge patch、Windows/Linux tests |
+| G8 | `.gitattributes`、Agentic QA preparation script、challenge patch、related deterministic tests |
 | G9 | Training workflow templates、action allowlist / workflow contract tests |
 
 ## 7. Change strategy
@@ -185,10 +186,11 @@ NativeSearchScreen
 
 ### G8 — Agentic QA patch portability
 
-- Patch artifactのline ending contractを1箇所で正規化する。
-- 高コストPreparation前にstrict `git apply --check`相当のpreflightを置く。
-- `--ignore-whitespace`常用はしない。
-- Windows CRLF / Linux LFの代表caseをdeterministic testで固定する。
+- まず既存`.gitattributes`の`* text=auto eol=lf`を正本として、対象challenge patchがRepository / checkout上でLFになる状態へ揃える。
+- 高コストPreparation前にstrict `git apply --check`相当のpreflightを置き、line ending incompatibilityを早期にfail-closeする。
+- `--ignore-whitespace`を通常経路には使わない。
+- patchをLFへ揃えたWindows checkoutとLinux controlでstrict applyを確認する。
+- それでもworktree EOL条件でstrict applyが再現する場合だけ、Evidenceを確認してPreparation script側の最小normalizationを検討する。無条件のEOL normalization utilityは作らない。
 
 ### G9 — Training Action SHA pinning
 
@@ -220,7 +222,7 @@ NativeSearchScreen
 - G5: normal typing / no-result / keyboard path + Web Runtime Before / After。
 - G6: foreign-item repository contract test。
 - G7: Focused Playwrightでfalse-greenがfail-closeになったことを確認。
-- G8: Windows CRLF + Linux LF control。
+- G8: `.gitattributes`準拠のLF patch + Windows strict apply + Linux control。script normalizationは追加した場合だけその境界をtestする。
 - G9: upstream SHA / advisory確認 + mutable-tag negative contract。
 
 ### Repository gates
