@@ -329,3 +329,29 @@
   - `pnpm run format:check`
   - `pnpm run lint:markdown`
 - Progress: 88% (22/25)
+
+## 2026-08-22 01:36 (JST) — G8 EOL Simplification
+
+- Summary:
+  - G8のAgentic QA patch portabilityで、Preparation scriptにEOL normalization処理を先に追加する方針を撤回した。
+  - Repository既定の`.gitattributes` LF contractを最初に使い、既存仕組みで解けるなら新しい処理を作らない方針へ変更した。
+- Completed:
+  - `.gitattributes`の`* text=auto eol=lf`をG8の正本としてPlanへ明記した。
+  - challenge patchをLFへ揃えた上で、Windows checkoutとLinux controlでstrict `git apply --check`を確認する順序へ変更した。
+  - 高コストPreparation前のstrict apply preflightは維持した。
+  - `--ignore-whitespace`を通常経路に使わない方針を維持した。
+  - Preparation script側normalizationは、LF patchでもworktree EOL条件でstrict apply failureが残るEvidenceがある場合だけ検討するよう制限した。
+  - Main Plan / Run PLAN / TASKSを同期した。
+- Changes:
+  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+  - `.codex/runs/20260821-174900-JST/PLAN.md`
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+- Notes/Decisions:
+  - 既存`.gitattributes`で解決できる場合は、EOL normalization utilityや追加abstractionを作らない。
+  - Active remediation 9Groupの構成は変更しない。
+- Remaining:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check`
+  - `pnpm run format:check`
+  - `pnpm run lint:markdown`
+- Progress: 88% (23/26)
