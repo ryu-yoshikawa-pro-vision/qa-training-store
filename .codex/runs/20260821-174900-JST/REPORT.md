@@ -117,3 +117,32 @@
   - `pnpm run format:check`
   - `pnpm run lint:markdown`
 - Progress: 79% (11/14)
+
+## 2026-08-21 20:53 (JST) — Native Catalog Path Reconciliation
+
+- Summary:
+  - 再レビューで、REP-001がActor Resolver差し替えだけでは解消せず、viewer contextがGateway / Repository境界で失われることを確認した。
+  - Native SuggestionもGatewayだけでなくService / Repository / SQLite / UIまで未接続であることを確認した。
+  - Main PlanとPlanning Run ArtifactをEnd-to-End pathへ修正した。
+- Completed:
+  - R2aを`SessionIdentityResolver / Current Actor → CatalogUseCases → CustomerCatalogGateway → NativeCustomerCatalogRepository → NativeCustomerSQLiteRepository`までviewer contextを保持する計画へ拡張。
+  - R2aへHome / Search / Facet / Product Detail / rank restriction / membership pricingのviewer-aware確認を追加。
+  - R3 Suggestionを`NativeSearchScreen → NativeCatalogService.suggest() → CatalogUseCases.suggest() → CustomerCatalogGateway.suggest() → NativeCustomerCatalogRepository.suggest() → NativeCustomerSQLiteRepository.suggest()`まで明示。
+  - R3へ2文字未満、最大8件、stale result、viewer条件、Suggestion選択導線のValidationを追加。
+  - `src/bootstrap/native-runtime.ts`のCatalog identity wiringだけではProduction isolation gate変更と見なさず、Build Kind / Test Control / Harness contractへ直接影響する場合だけR8 hard prerequisiteとするようdependency表現を明確化。
+- Changes:
+  - `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
+  - `.codex/runs/20260821-174900-JST/PLAN.md`
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+- Commands / tools:
+  - GitHub connectorで`src/bootstrap/native-runtime.ts`、`src/application/native/guest-storefront.ts`、`src/infrastructure/database/sqlite/native-customer-repositories.ts`、`src/presentation/native/native-screens.tsx`、Storefront Specを確認。
+  - GitHub contents APIでPlan / Run Artifactを更新。
+- Notes/Decisions:
+  - Native専用の新Pricing / Visibility ruleは作らず、Current Domain semanticsをviewer contextへ適用する。
+  - Native SuggestionはWeb UIのpixel copyを行わず、Current common behavior contractを満たす最小UIとする。
+- Remaining:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check`
+  - `pnpm run format:check`
+  - `pnpm run lint:markdown`
+- Progress: 82% (14/17)
