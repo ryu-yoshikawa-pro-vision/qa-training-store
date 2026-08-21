@@ -169,6 +169,52 @@
   - Pending — 既存Dependabot alertの依存remediation（nanoid / brace-expansion / js-yaml / uuid）は別Security fix PR / follow-upで扱う。今回のPlanの完了を妨げない。
 - Progress: 100% (10/10)
 
+## 2026-08-22 08:12 (JST) — Review repair iteration 1
+
+- Summary: レビュー指摘の「記録・整合性」3点だけを修正した。Security設定、Workflow、依存関係、Application codeは変更していない。
+- Input findings:
+  - SSOT P-13に対するHigh Dependabot 7件の個別Triage情報が不足していた。
+  - PR #39本文が「Plan / Security Policyのみ」「mainとの差分2ファイル」と記載しており、実際の7ファイル差分・設定確認・Run Artifactと不一致だった。
+  - `PLAN.md`の「PR #39がmainへ反映済みでなければSettings変更をCompleted扱いにしない」というAssumptionが、Repository全体へ即時反映される設定と既存Completed判定に矛盾していた。
+- Allowed files:
+  - `docs/plans/2026-08-21_223300_enable_github_security_automation.md`
+  - `.codex/runs/20260822-015729-JST/PLAN.md`
+  - `.codex/runs/20260822-015729-JST/TASKS.md`
+  - `.codex/runs/20260822-015729-JST/REPORT.md`
+  - `.codex/runs/20260822-015729-JST/run.json`
+  - `.codex/runs/20260822-015729-JST/evaluation.json`
+- Completed:
+  - Dependabot Alert APIのopen 8件（High 7、Moderate 1）を再取得し、dismiss metadataが全件nullであることを確認した。
+  - `package.json`の直接依存一覧と`pnpm-lock.yaml`／`pnpm why`を突合した。High 7件は全てtransitiveで、直接importは確認されなかった。
+  - High 7件について、Advisory ID、dependency/current version、Direct/Transitive、runtime/developmentまたはbuild/test経路、exploit条件、patched version、Security PR生成理由、別Security fixの対応先を以下へ記録した。
+
+### P-13 High Dependabot Triage
+
+| Advisory / Finding ID | Dependency | Direct / Transitive | Severity | Actual Exposure | Fix Availability | Dependabot Security PR | Decision / Follow-up |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Alert #2 — GHSA-mh99-v99m-4gvg / CVE-2026-14257 | `brace-expansion@1.1.16` | Transitive。`@react-native/jest-preset`／`@testing-library/react-native` → Jest／`test-exclude` → `minimatch` | High | Development／test toolingのみ。悪意あるbrace patternによる展開長増大・OOMが条件。アプリruntimeの直接import／user input経路は確認されない | vulnerable `< 1.1.17`、first patched `1.1.17`。#3を含むeffective targetは`>= 1.1.18` | `security_update_not_possible`、open PRなし | 別Security fix PR / Planでdependency remediation。今回更新しない |
+| Alert #3 — GHSA-rgw5-rvv9-x895 / CVE-2026-69152 | `brace-expansion@1.1.16` | Transitive。同じJest／`test-exclude` → `minimatch`のdevelopment chain | High | Development／test toolingのみ。unbounded intermediate arraysによるDoSが条件。アプリruntimeの直接import／user input経路は確認されない | vulnerable `< 1.1.18`、first patched `1.1.18` | `security_update_not_possible`、open PRなし | 別Security fix PR / Planでdependency remediation。今回更新しない |
+| Alert #4 — GHSA-rgw5-rvv9-x895 / CVE-2026-69152 | `brace-expansion@5.0.8` | Transitive。Expo CLI／config／glob → `minimatch`のbuild／prebuild chain | High | Dependabot metadataはruntimeだが実利用はExpo build／config tooling。悪意あるbrace patternがCLI／config処理へ入る場合のDoS条件で、アプリruntimeの直接importは確認されない | vulnerable `>= 4.0.0, < 5.0.9`、first patched `5.0.9` | `security_update_not_possible`、open PRなし | 別Security fix PR / Planでdependency remediation。今回更新しない |
+| Alert #5 — GHSA-5p4m-2wfm-xmqj | `js-yaml@4.3.0` | Transitive。`@expo/xcpretty`／ESLint config chain | High | Build／test toolingのみ。crafted `!!omap` YAMLによるquadratic CPUが条件。アプリruntimeの直接import／user input経路は確認されない | vulnerable `>= 4.0.0, < 4.3.1`、first patched `4.3.1` | `security_update_not_possible`、open PRなし | 別Security fix PR / Planでdependency remediation。今回更新しない |
+| Alert #6 — GHSA-5p2g-fcmc-qvqq / CVE-2025-71329 | `image-size@1.2.1` | Transitive。Expo／React NativeのMetro `0.84.4` → `image-size` | High | Metroのbuild-time image parser。canonical product assetsはWebPで直接importはない。JXL／HEIFのuntrusted inputが別build経路へ到達する可能性は`Unknown / 要追加確認` | vulnerable `<= 2.0.2`、Advisory APIのfirst patched versionは`null` | `no patched version`、open PRなし | upstream／dependency-chain修正版を追跡し、別Security fix PRで対応。今回override／更新しない |
+| Alert #7 — GHSA-w3rx-r6r6-pgpr / CVE-2025-71330 | `image-size@1.2.1` | Transitive。Expo／React NativeのMetro `0.84.4` → `image-size` | High | Metroのbuild-time image parser。canonical product assetsはWebPでICNSの直接利用はない。untrusted ICNS inputが別build経路へ到達する可能性は`Unknown / 要追加確認` | vulnerable `<= 2.0.2`、Advisory APIのfirst patched versionは`null` | `no patched version`、open PRなし | upstream／dependency-chain修正版を追跡し、別Security fix PRで対応。今回override／更新しない |
+| Alert #8 — GHSA-2v37-7h3g-55p8 / CVE-2026-67213 | `nanoid@3.3.16` | Transitive。Expo Metro config／PostCSS、およびVitest／Viteのdevelopment chain | High | Build／development tooling。zero-size custom generator呼出しが無限loop条件。repoの直接import／該当API呼出しは確認されない | vulnerable `< 3.3.18`、first patched `3.3.18` | `security_update_not_possible`、open PRなし | 別Security fix PR / Planでdependency remediation。今回更新しない |
+
+### P-13 Moderate Inventory
+
+| Advisory / Finding ID | Dependency | Severity | 対象概要 |
+| --- | --- | --- | --- |
+| Alert #1 — GHSA-w5hq-g745-h8pq / CVE-2026-41907 | `uuid@7.0.3`（transitive、Expo config／`xcode` build／prebuild tooling） | Moderate | buf指定時のv3/v5/v6 bounds check不足。package.jsonに直接importはなく、アプリruntimeではなくbuild／prebuild経路。first patched `11.1.1`、open PRなし。別Security fixで扱う |
+
+- Decision: `security_update_not_possible`は設定失敗と扱わない。patched versionのあるfindingは依存制約を解消する別Security fix PR / Plan、patched version未提供のimage-sizeはupstream／dependency-chain follow-upへ分離する。今回のPRではdependency remediationを行わない。
+- PR #39本文を現在の実態へ更新した。実際のPR差分はPolicy 1件、Plan 1件、Run Artifact 5件の合計7ファイルであり、Repository SettingsはOwner/Adminがブラウザで設定済み、PR #39は記録PRとして扱う旨を明記した。
+- `PLAN.md`、`TASKS.md`、`run.json`、`evaluation.json`、Security Automation PlanのCompleted判定を同じAssumptionへ整合させた。Preflight時の権限境界は履歴として残し、現在のBlocked項目とは扱わない。
+- No scope expansion: `.github/dependabot.yml`、package.json、pnpm-lock.yaml、`.github/workflows/**`、CodeQL workflow、Ruleset、Dependabot／Secret／PVR／Actions Settings、Application codeは変更していない。
+- Validation commands: `pnpm run lint:markdown`、`git diff --check`、`run.json`／`evaluation.json` JSON parse、Artifact Sanitizerを最終修正後に実行する。
+- Remaining delta: Pending — 既存Dependabot High／Moderate findingのdependency remediationは別Security fix PR / follow-up。今回のPlanのCompleted判定は維持する。
+- Iteration decision: `continue`（PR本文反映と最終Validation後に`stop_success`へ更新する）。
+- Progress: 100% (10/10)
+
 ## 2026-08-22 03:17 (JST) — Final Sanitizer
 
 - Summary: 最終Run Artifact Sanitizerを再実行し、保存対象の安全性を確認した。

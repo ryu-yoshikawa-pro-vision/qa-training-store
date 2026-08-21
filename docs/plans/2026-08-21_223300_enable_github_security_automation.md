@@ -56,7 +56,9 @@ SHA-pinned GitHub Actions では Dependabot Alert / Security PR を監視手段�
 
 Dependabot / CodeQL / Secret scanning / Push protection / PVR / Ruleset は Repository 全体へ即時反映される。
 
-Admin 権限が必要な変更を実施できない場合は推測や代替実装で済ませず、未実施項目と理由を記録して `Blocked` とする。
+PR #39 の merge は Repository Settings 変更の前提条件とはしない。GitHub Repository Settings は Repository 全体へ即時反映されるため、本 Run では Target State の実設定と検証完了をもって `Completed` を判定する。PR #39 はその方針・実施結果・Evidence を `main` へ反映するための記録 PR として扱う。
+
+Admin 専用設定は Owner/Admin のブラウザ確認を一次証跡とし、現 CLI／Chrome の Write 認証で一部 API を再取得できないこと自体は設定失敗と扱わない。必要な設定が実際に未実施で残る場合のみ `Blocked` とする。
 
 ---
 
@@ -234,6 +236,28 @@ Finding の扱いは SSOT P-13 に従う。
 
 この Branch 自身の変更が新しい finding を発生させた場合だけ、今回変更した範囲で修正する。
 
+### Existing Dependabot High Triage（SSOT P-13）
+
+2026-08-22 に Dependabot Alert API、`pnpm-lock.yaml`、`package.json`、`pnpm why` の結果を突合した。API の `dependency.scope` は8件とも `runtime` だが、lockfile の実際の root 経路では全件が package.json の直接依存ではなく、Jest／Expo／Metro／PostCSS 等の transitive tooling である。Alert の dismiss metadata は8件すべて `null` で、機械的な dismiss／reopen は行っていない。
+
+| Advisory / Finding ID | Dependency | Direct / Transitive | Severity | Actual Exposure | Fix Availability | Dependabot Security PR | Decision / Follow-up |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| Alert #2 — GHSA-mh99-v99m-4gvg / CVE-2026-14257 | `brace-expansion@1.1.16` | Transitive。`@react-native/jest-preset`／`@testing-library/react-native` → Jest／`test-exclude` → `minimatch`。package.jsonに直接記載なし | High | Development／test toolingのみ。悪意ある brace pattern による展開長増大・OOM が条件。アプリ実行時の直接 import／user input 経路は確認されない | 現在 `1.1.16`、vulnerable range `< 1.1.17`、first patched `1.1.17`。後発 #3 のため effective target は `>= 1.1.18` | `security_update_not_possible`。open PRなし | `Follow-up: dependency remediation用の別Security fix PR / Planを作成する`。今回のPRでは更新しない |
+| Alert #3 — GHSA-rgw5-rvv9-x895 / CVE-2026-69152 | `brace-expansion@1.1.16` | Transitive。同じ Jest／`test-exclude` → `minimatch` の development chain | High | Development／test toolingのみ。unbounded intermediate arrays による DoS が条件。アプリ実行時の直接 import／user input 経路は確認されない | 現在 `1.1.16`、vulnerable range `< 1.1.18`、first patched `1.1.18` | `security_update_not_possible`。open PRなし | `Follow-up: dependency remediation用の別Security fix PR / Planを作成する`。今回のPRでは更新しない |
+| Alert #4 — GHSA-rgw5-rvv9-x895 / CVE-2026-69152 | `brace-expansion@5.0.8` | Transitive。Expo CLI／config／glob → `minimatch`。root dependencyのExpoから参照されるbuild／prebuild chain | High | Dependabot metadataはruntimeだが、実利用はExpoのbuild／config tooling。悪意ある brace pattern がCLI／config処理へ入る場合のDoSが条件で、アプリruntimeの直接 import は確認されない | 現在 `5.0.8`、vulnerable range `>= 4.0.0, < 5.0.9`、first patched `5.0.9` | `security_update_not_possible`。open PRなし | `Follow-up: dependency remediation用の別Security fix PR / Planを作成する`。今回のPRでは更新しない |
+| Alert #5 — GHSA-5p4m-2wfm-xmqj | `js-yaml@4.3.0` | Transitive。`@expo/xcpretty`／ESLint config chain。package.jsonに直接記載なし | High | Build／test toolingのみ。crafted `!!omap` YAMLによるquadratic CPUが条件。アプリruntimeの直接 import／user input 経路は確認されない | 現在 `4.3.0`、vulnerable range `>= 4.0.0, < 4.3.1`、first patched `4.3.1` | `security_update_not_possible`。open PRなし | `Follow-up: dependency remediation用の別Security fix PR / Planを作成する`。今回のPRでは更新しない |
+| Alert #6 — GHSA-5p2g-fcmc-qvqq / CVE-2025-71329 | `image-size@1.2.1` | Transitive。Expo／React Native の Metro `0.84.4` → `image-size`。package.jsonに直接記載なし | High | Metroのbuild-time image parser。canonical product assetsはWebPで、repoの直接 import はない。JXL／HEIFのuntrusted inputが別のbuild経路へ到達する可能性は `Unknown / 要追加確認` とする | 現在 `1.2.1`、vulnerable range `<= 2.0.2`、first patched versionはAPI上 `null` | `no patched version`。open PRなし | `Follow-up: upstream／dependency-chainの修正版を追跡し、別Security fix PRで対応する`。今回override／更新はしない |
+| Alert #7 — GHSA-w3rx-r6r6-pgpr / CVE-2025-71330 | `image-size@1.2.1` | Transitive。Expo／React Native の Metro `0.84.4` → `image-size`。package.jsonに直接記載なし | High | Metroのbuild-time image parser。canonical product assetsはWebPで、ICNSのrepo直接利用は確認されない。untrusted ICNS inputが別のbuild経路へ到達する可能性は `Unknown / 要追加確認` とする | 現在 `1.2.1`、vulnerable range `<= 2.0.2`、first patched versionはAPI上 `null` | `no patched version`。open PRなし | `Follow-up: upstream／dependency-chainの修正版を追跡し、別Security fix PRで対応する`。今回override／更新はしない |
+| Alert #8 — GHSA-2v37-7h3g-55p8 / CVE-2026-67213 | `nanoid@3.3.16` | Transitive。Expo Metro config／PostCSS、およびVitest／Viteのdevelopment chain。package.jsonに直接記載なし | High | Build／development tooling。zero-size custom generatorの呼出しが無限loop条件。repoに直接 import／該当API呼出しは確認されない | 現在 `3.3.16`、vulnerable range `< 3.3.18`、first patched `3.3.18` | `security_update_not_possible`。open PRなし | `Follow-up: dependency remediation用の別Security fix PR / Planを作成する`。今回のPRでは更新しない |
+
+### Existing Dependabot Moderate Inventory（SSOT P-13）
+
+| Advisory / Finding ID | Dependency | Severity | 対象概要 |
+| --- | --- | --- | --- |
+| Alert #1 — GHSA-w5hq-g745-h8pq / CVE-2026-41907 | `uuid@7.0.3`（transitive、Expo config／`xcode` build／prebuild tooling） | Moderate | buf指定時のv3/v5/v6 bounds check不足。package.jsonに直接 importはなく、アプリruntimeではなくbuild／prebuild経路。first patched `11.1.1`、open PRなし。別Security fixで扱う |
+
+High 7件とModerate 1件は本Runの記録修正前から存在し、今回のPlan／Run Artifact変更が新たなfindingを発生させたものではない。`security_update_not_possible` は設定失敗ではなく、依存制約による別Security fix PR／Planの対象として扱う。依存関係、lockfile、application codeは今回変更しない。
+
 ### Validation command
 
 Plan / docs のみ変更した場合:
@@ -290,13 +314,13 @@ Workflow を変更した場合のみ、該当する CI contract test / targeted 
 | Item | Result / Evidence |
 | --- | --- |
 | Settings | Completed — Owner/Admin設定をブラウザで確認。現在のCLI／Chrome認証主体はWriteのため、Admin専用APIの再取得結果は403/404となる項目があるが、PVRはAPI/UI双方で`enabled`を再確認 |
-| Dependabot Security PR | Completed — open PR 0件。nanoid / brace-expansion / js-yaml / uuidのsecurity-only実行は`security_update_not_possible`。設定失敗ではなく、依存制約による別Security fix PR / follow-upとして記録 |
-| Security findings | Completed — Dependabot 8件（High 7、Moderate 1、open、dismiss metadataなし）、Malware 0 Open / 0 Closed、CodeQLは既存Medium 1件、Secret Protection設定と既存Alert確認をOwner/Adminブラウザで実施 |
+| Dependabot Security PR | Completed — open PR 0件。High 7件は個別にP-13 triage済み。brace-expansion／js-yaml／nanoidは`security_update_not_possible`、image-size 2件は`no patched version`。設定失敗ではなく、依存制約またはupstream未修正による別Security fix PR / follow-upとして記録 |
+| Security findings | Completed — Dependabot 8件（High 7、Moderate 1、open、dismiss metadataなし）をSection 7の表で個別整理。Malware 0 Open / 0 Closed、CodeQLは既存Medium 1件、Secret Protection設定と既存Alert確認をOwner/Adminブラウザで実施 |
 | CodeQL initial analysis | Completed — PR #39の`Analyze (javascript-typescript)`、`Analyze (actions)`がsuccess。CodeQLをRuleset Requiredには追加していない |
 | PVR / notification | Completed — `private-vulnerability-reporting.enabled=true`、Security OverviewのEnabled表示、通常Reporterの`Report a vulnerability`導線、Owner/Adminの通知経路を確認 |
 | Ruleset / `validate` | Completed — PR #38で再実行を1回実施。実行中は`mergeStateStatus=BLOCKED`、`validate` success後は`CLEAN`。失敗履歴でも通常same-repo PRの`validate` failureを確認。`verify`はRequiredでない |
 | Final Status | Completed |
-| Reason / Follow-up | 設定・gate検証は完了。既存Dependabot / CodeQL findingと`security_update_not_possible`はP-13に従い別Security fix / follow-upで扱う |
+| Reason / Follow-up | 設定・gate検証とP-13 triageは完了。既存Dependabot High 7件（patchedあり／なしを区別）、Moderate 1件、CodeQL findingは別Security fix / follow-upで扱う。PR #39のmergeは設定完了の前提条件としない |
 
 ---
 
