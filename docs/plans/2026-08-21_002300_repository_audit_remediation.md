@@ -13,7 +13,7 @@
   - 監査Findingを機械的に全実装せず、Current Contract上で本当に修正が必要なRoot Causeだけを解消する。
   - 同じ変更面・依存関係を持つFindingは無理に別PRへ分割せず、レビュー可能な最小の実装単位へまとめる。
   - Product/UI/NativeのBehavior修正は、可能な限りPlaywright-MCP / Maestro-MCPを使い、修正前後の実Runtimeを確認する。
-  - 実装Agentが安全なfeature branch上で`git add` / `git commit` / 通常の`git push`まで進められるよう、既存Common Git Safety Policyと上位Repository Policyの不整合を実装開始前に解消する。
+  - 既存Repository Policyを変更せず、Parent Codexがsafe / standard workflowのfeature branch上で確認済み差分を`git add` / `git commit` / 通常の`git push`まで安全に完了できる実行契約を明確にする。
 
 ## 1. Goal / Definition of Done
 
@@ -23,8 +23,8 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 
 ### Definition of Done
 
-1. G0でSafe Git Write Policy Alignmentを先に完了し、Parent Codexがfeature branch上で確認済み差分を`git add` / `git commit` / 通常の`git push`できる契約へ揃えている。
-2. `main` / `master`等のprotected branchへの直接commit / push、force push、remote ref削除、history rewrite、PR mergeは引き続き禁止されている。
+1. Parent Codexはsafe / standard workflowのfeature branch上で、差分とValidationを確認した後、明示Pathのみをstageし、通常のcommit / pushまで実施してよい。
+2. `implementation_worker`と`auto-net`の既存Git write禁止は変更せず、protected branchへの直接commit / push、force push、remote ref削除、history rewrite、PR mergeも引き続き禁止する。
 3. 各実装Group開始時に`git fetch`等で最新`origin/main`を確認し、対象Findingの存続とCurrent Contractとの差分をrebaselineしている。state-changing rebaseは自動実行しない。
 4. Product BehaviorはNormative Specificationへ一致する。
 5. Route / App ID / Test ID / Seed ID / Design Token / Build Config等、SpecがExecutable Canonical Sourceへ委譲する低レベル値はCode / Configへ一致する。
@@ -58,8 +58,8 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 - Phase 3 Backend PRは別計画であり、本Planでは先回りしたBackend abstractionを作らない。
 - Current Common Hook `.codex/hooks/pre_tool_use_policy.mjs` は、feature branch上の通常`git add` / `git commit` / `git push`を許可し、rebase、commit amend、force push、remote ref削除、protected branch直接更新等を拒否するContractを既に持つ。
 - `.codex/rules/README.md`も通常の`git add` / `git commit` / `git push`をCommon Rulesでblanket forbiddenにしない方針を記載している。
-- 一方でCurrent `AGENTS.md`と`.codex/rules-auto-net/30-auto-net-forbidden.rules`は通常の`git add` / `git commit` / `git push`まで禁止しており、Common Git Safety Policyと上位実行契約が不整合である。
-- ユーザー方針として、安全なfeature branchで`git add` / `git commit` / 通常の`git push`は許可し、PR mergeは実施しない。
+- Current `AGENTS.md`でGit writeを明示禁止しているのは`implementation_worker`と`auto-net`であり、Parent Codexの通常safe / standard workflowまで一律禁止する契約ではない。
+- ユーザー方針として、安全なfeature branchでParent Codexが`git add` / `git commit` / 通常の`git push`まで実施してよい。PR mergeは実施しない。
 
 ## 3. Assumptions / Non-goals / Open Questions
 
@@ -70,8 +70,11 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 - 他PRで既に修正済みなら、そのFindingを`already-fixed`へ変更する。
 - Runtime検証のためだけにProduct capabilityやTest Control capabilityを追加しない。
 - MCP availabilityは環境依存であり、MCP unavailable自体をProduct defectにしない。
-- Git writeはParent Codexが担当し、`implementation_worker`は引き続きParent-defined scope内のSource編集だけを担当する。
-- Parent CodexはValidationと差分確認後、確認済みの明示Pathだけをstageする。`git add .` / `git add -A` / `git add --all`は使わない。
+- Git writeはParent Codexがsafe / standard workflowで担当し、`implementation_worker`は引き続きParent-defined scope内のSource編集だけを担当する。
+- `auto-net`のGit write禁止は変更しない。Git writeが必要な場合はParentがsafe / standard workflowへ戻って実施する。
+- Parent CodexはValidationと差分確認後、確認済みの明示Pathだけをstageする。
+- `git add .` / `git add -A` / `git add --all` / `git add -u`は使わない。
+- `git commit -a` / `git commit --all`は使わない。
 - PR作成はユーザーが明示的に依頼した場合だけ実施する。PR mergeは実施しない。
 
 ### Non-goals
@@ -90,6 +93,8 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 - MCP検証だけのためのNative Test Control Scenario拡張。
 - Native Suggestionだけのための新しいCancellation / Request orchestration framework。
 - Confirmation-only Findingの確認結果だけを理由にしたCurriculum / Workflow / executable contract / external settingsの自動変更。
+- `AGENTS.md` / `.codex/rules-auto-net/**` / Common Hook等のGit permission policy変更。
+- auto-netでのGit write許可。
 - PR mergeの自動化。
 - force push / force-with-lease、remote branch削除、mirror、history rewrite、`git reset --hard`、`git clean`、`git rm`の許可拡大。
 - state-changing rebase / commit amendの許可拡大。
@@ -108,14 +113,11 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 
 ### Entry points / Safe change surface
 
-- Safe Git write policy:
+- Git execution contract（read-only確認対象。変更しない）:
   - `AGENTS.md`
   - `.codex/rules/README.md`
-  - `.codex/rules-auto-net/10-auto-net-allow.rules`
-  - `.codex/rules-auto-net/30-auto-net-forbidden.rules`
-  - `.codex/hooks/pre_tool_use_policy.mjs`（Current safety contractの確認対象。新要件不足がない限り変更しない）
-  - `tests/contracts/codex-hook-contract.test.ts`
-  - auto-net / execpolicy関連の既存Contract Test
+  - `.codex/hooks/pre_tool_use_policy.mjs`
+  - `.codex/rules-auto-net/**`
 - Checkout:
   - `docs/spec/features/checkout-and-payment.md`
   - Checkout / Order Application Use Case
@@ -156,13 +158,16 @@ Current Product Contract、Repository Policy、Executable Contractに反する�
 
 ### Main flow
 
-Safe Git write:
+Git execution:
 
 ```text
-Parent validates scope + diff + tests
+Parent on safe / standard feature-branch workflow
+  → git status / git diffで対象差分を確認
+  → required Validationを確認
   → git add -- <explicit confirmed paths>
-  → normal git commit on feature branch
-  → normal git push to same feature branch
+  → git diff --cachedでstage済み差分を再確認
+  → normal git commit
+  → normal git push to current feature branch
   → PR creation only when explicitly requested
   → PR merge is never performed
 ```
@@ -203,8 +208,8 @@ NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runti
 ### Key abstractions
 
 - Parent Codex / `implementation_worker` responsibility boundary
+- safe / standard / auto-net execution-mode boundary
 - Common PreToolUse Git Safety Policy
-- auto-net execpolicy rules
 - protected branch / feature branch boundary
 - `SessionIdentityResolver` / Current Actor resolution
 - `CatalogUseCases`
@@ -232,9 +237,9 @@ NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runti
 
 ### Files to inspect
 
-| Slice / Group | Primary files / areas |
+| Slice / Contract | Primary files / areas |
 |---|---|
-| G0 | `AGENTS.md`、`.codex/rules/README.md`、`.codex/rules-auto-net/10-auto-net-allow.rules`、`.codex/rules-auto-net/30-auto-net-forbidden.rules`、`.codex/hooks/pre_tool_use_policy.mjs`、Git policy Contract tests |
+| Git execution | `AGENTS.md`、`.codex/rules/README.md`、`.codex/hooks/pre_tool_use_policy.mjs`、`.codex/rules-auto-net/**`（read-only確認） |
 | R1 | Checkout/Order Use Case、Web/Native result screens、checkout/payment tests |
 | R2a | `src/bootstrap/native-runtime.ts`、session identity、`CatalogUseCases`、`CustomerCatalogGateway`、`NativeCustomerCatalogRepository`、`NativeCustomerSQLiteRepository`、Native catalog tests |
 | R2b | Native Shell / route boundary、customer deep-link tests |
@@ -257,16 +262,16 @@ NativeのProduction isolationは別Boundaryとして、Build Kind / Native Runti
 
 ## 5. Scope
 
-### Implementation prerequisite
+### Git Execution Contract
 
-#### G0 — Safe Git Write Policy Alignment
+監査Findingでも実装Sliceでもない。既存Repository Policyを変更せず、本Plan実装時のParent CodexのGit操作境界として適用する。
 
-監査Findingではないが、本Planを実装Agentが安全に遂行するためのRepository execution contract整合として先に対応する。
-
-- feature branch上の通常`git add` / `git commit` / `git push`をParent Codexへ許可する。
-- protected branch直接更新、history rewrite、force push、remote ref削除、PR mergeは禁止を維持する。
-- `implementation_worker`へGit write責務を広げない。
+- Parent Codexはsafe / standard workflowのfeature branch上で通常`git add` / `git commit` / `git push`を実施してよい。
+- stageは確認済みの明示Pathに限定する。
+- `implementation_worker`と`auto-net`のGit write禁止は維持する。
+- protected branch直接更新、history rewrite、force push、remote ref削除、PR mergeは禁止する。
 - PR作成はユーザー明示依頼時のみとする。
+- この契約を満たすためのRepository policy / Hook / rules変更は行わない。
 
 ### Must Fix / Fix
 
@@ -322,7 +327,6 @@ SliceはFinding追跡単位として残すが、PRはSlice数に合わせて機�
 
 | Group | Included slices | 理由 |
 |---|---|---|
-| G0 | Safe Git Write Policy Alignment | 本Planの実装前提。既存Common Hookの安全境界へ`AGENTS.md` / auto-net policyを揃える。 |
 | G1 | R1 | Checkout state integrityは独立したProduct boundary。 |
 | G2 | R2a + R3 | Native Catalog/Storefrontの同じRuntime・UseCase・Gateway・Repository・SQLiteを連続して変更し、R3はR2aを前提とする。 |
 | G3 | R2b | Route authorizationはStorefront data pathと別boundary。 |
@@ -339,13 +343,16 @@ SliceはFinding追跡単位として残すが、PRはSlice数に合わせて機�
 
 C1 / C2はread-only確認だけで終わり、Documentation / Workflow / executable contract / external settingsの変更やPR作成へ自動移行しない。
 
-### G0 gate
+### Git execution boundary
 
-- G0は他のwritable implementation groupより先に完了する。
-- G0完了前は、Current Repository Policyどおり通常の`git add` / `git commit` / `git push`を自動実行しない。
-- G0完了後はParent Codexだけが、確認済みfeature branchで`git add -- <explicit paths>` → normal commit → normal pushを実施してよい。
+- Git writeはParent Codexがsafe / standard workflowで実施する。
 - `implementation_worker`は引き続きGit mutationを行わない。
-- PR mergeはG0後も禁止する。
+- `auto-net`ではGit writeしない。必要ならParentがsafe / standard workflowへ戻って実施する。
+- Parentは`git status` / `git diff` / Validation確認後、`git add -- <explicit paths>`でstageする。
+- commit前に`git diff --cached`でstage済み差分を確認する。
+- current feature branchへnormal pushする。
+- `git add .` / `-A` / `--all` / `-u`、`git commit -a` / `--all`は使わない。
+- PR mergeは実施しない。PR作成は明示依頼時のみとする。
 
 ### Native Production isolation gate
 
@@ -377,56 +384,33 @@ R13は`qa-training-store-ci-chromium-required-cross-browser-split`がmainへmerg
 
 ## 7. Change Strategy
 
-### G0 — Safe Git Write Policy Alignment
+### Git Execution Contract — no repository policy change
 
-目的:
-
-- Current Common Hookが既に持つ「safe feature-branch writeを許可し、dangerous/protected updatesを拒否する」境界へ、`AGENTS.md`とauto-net rulesを整合させる。
-- 実装Agentがコード修正・Validation後に安全なfeature branchへcommit / pushまで完結できるようにする。
-- PR mergeや履歴破壊まで許可範囲を広げない。
-
-方針:
-
-1. `AGENTS.md`のGit write契約をParent / Workerで分離する。
-   - Parent Codex:
-     - 変更Scopeとdiffを確認する。
-     - 必要なValidationを実行・解釈する。
-     - 確認済みの明示Pathだけを`git add -- <paths>`でstageしてよい。
-     - feature branch上で通常の`git commit`を実行してよい。
-     - 同じfeature branchへ通常の`git push`を実行してよい。
-   - `implementation_worker`:
-     - Parent-defined scope内のSource編集だけを行う。
-     - `git add` / `git commit` / `git push`は行わない。
-2. stage-allを許可しない。
-   - `git add .`
-   - `git add -A`
-   - `git add --all`
-   は使用しない。
-3. 次は引き続き禁止する。
-   - protected branch (`main` / `master` / default branch)への直接commit / push
-   - `git push --force` / `-f` / `--force-with-lease`
-   - remote ref deletion / prune / mirror
-   - state-changing `git rebase`
-   - `git commit --amend`
-   - destructive `git reset` / `git clean` / `git restore` / `git rm`
-   - branch/tagの強制rewrite / delete
-   - PR merge
-4. PR作成は自動化しない。
-   - ユーザーが明示的にPR作成を依頼した場合だけ作成してよい。
-   - PRを作成してもmergeしない。
-5. `.codex/rules-auto-net/30-auto-net-forbidden.rules`の通常`git add` / `git commit` / `git push` blanket forbiddenを除去する。
-6. auto-netで通常Git writeを承認なしに実行させる必要がある場合だけ、`.codex/rules-auto-net/10-auto-net-allow.rules`へ最小のallow ruleを追加する。
-   - destructive / protected caseはCommon HookとCommon forbidden rulesが引き続きfail-closeすることをContract Testで確認する。
-   - auto-net allowをCommon safetyより優先させる設計にはしない。
-7. `.codex/hooks/pre_tool_use_policy.mjs`はCurrent Contractでsafe add / commit / pushとprotected / destructive拒否を既に持つため、新しい安全要件不足が確認されない限り変更しない。
-8. 新しいGit wrapper / Git workflow framework / worktree managerは作らない。
-
-Rollback:
-
-- G0のValidationでunsafeな許可拡大や既存safe modeの退行が確認された場合は、Product実装へ進まない。
-- `AGENTS.md` / auto-net rulesの変更を前の内容へ通常のファイル編集で戻し、通常のfollow-up commitでrollbackする。
-- rollbackに`git reset --hard` / rebase / force push / history rewriteを使わない。
-- Common Hookは原則変更しないため、rollback中もprotected branch / force push等の防御を維持する。
+- Current Common Hook / Common Rulesのsafe feature-branch write契約をそのまま利用する。
+- `AGENTS.md` / `.codex/rules-auto-net/**` / HookをGit write許可のために変更しない。
+- Parent Codexはsafe / standard workflowでのみGit writeする。
+- `implementation_worker` / auto-netへGit write責務を広げない。
+- Git write前に次を確認する。
+  1. Current branchがprotected/default branchではない。
+  2. `git status` / `git diff`で対象差分を確認する。
+  3. 必要なValidation結果を確認する。
+  4. `git add -- <explicit paths>`だけでstageする。
+  5. `git diff --cached`で意図した差分だけがstageされていることを確認する。
+  6. 通常の`git commit`を実行する。
+  7. current feature branchへ通常の`git push`を実行する。
+- 次は実行しない。
+  - `git add .` / `git add -A` / `git add --all` / `git add -u`
+  - `git commit -a` / `git commit --all`
+  - protected branch (`main` / `master` / default branch)への直接commit / push
+  - `git push --force` / `-f` / `--force-with-lease`
+  - remote ref deletion / prune / mirror
+  - state-changing `git rebase`
+  - `git commit --amend`
+  - destructive `git reset` / `git clean` / `git restore` / `git rm`
+  - branch/tagの強制rewrite / delete
+  - PR merge
+- PR作成はユーザーが明示的に依頼した場合だけ実施する。
+- Git操作のための新Wrapper / Policy / Hook / Contract Testは追加しない。
 
 ### R1 — Checkout result state integrity
 
@@ -717,16 +701,23 @@ pnpm run test:contracts
 
 全Groupで上記を機械的に全部実行するという意味ではない。変更面とRepository gateに応じて選択し、CIで必須のものはCIへ委ねてもよい。
 
+### Git execution validation
+
+Git permission policyを変更しないため、新しいHook / execpolicy Contract Testは追加しない。
+
+実装GroupのGit write時は次を操作契約として確認する。
+
+- current branchがprotected/default branchではない。
+- `git status` / `git diff`で対象差分を確認済み。
+- 必要なValidation結果を確認済み。
+- `git add -- <explicit paths>`だけを使用する。
+- `git diff --cached`でstage済み差分を再確認する。
+- normal commit / current feature branchへのnormal pushだけを使用する。
+- `implementation_worker` / auto-netではGit writeしない。
+- PR mergeは実施しない。
+
 ### Group / Slice-specific
 
-- G0:
-  - Common Hookの既存ALLOW: explicit-path `git add`、feature branch normal commit、feature branch normal pushを維持する。
-  - protected branch direct commit / pushを拒否する。
-  - force push / force-with-leaseを拒否する。
-  - rebase / amend / destructive reset / clean / rmを拒否する。
-  - auto-netの通常`git add` / `git commit` / `git push` blanket forbiddenを解消しつつ、Common Hook safetyがfail-closeすることを確認する。
-  - `AGENTS.md`でParentだけがGit writeを担当し、`implementation_worker`はGit writeしないことをContractとして確認する。
-  - PR mergeは禁止、PR作成は明示依頼時のみというContractを確認する。
 - G1 / R1: opposite-state / missing ID / unauthorized + Web/Native Runtime Before/After。
 - G2 / R2a: viewer contextがUseCase→Gateway→Repository→SQLiteまで保持され、Guest / regular / gold / platinum semanticsがCurrent Contractへ一致することを既存coverage + 不足する最小Regressionで確認する。
 - G2 / R3: BR/AC全dimensionの既存coverageをrebaselineし、不足するContract/Componentだけ追加。SuggestionはUI→Service→UseCase→Gateway→Repository→SQLiteのdelegation、2文字未満、最大8件、viewer条件を確認し、Maestroで代表Filter / Pagination / Suggestionを実操作する。stale protectionは実際にasync overlapがある場合だけ確認する。
@@ -744,7 +735,7 @@ pnpm run test:contracts
 
 ## 11. Plan Branch Completion Validation
 
-このPlan branch自体はMarkdown + Run Artifactのみの変更である。G0のPolicy本体はこのPlanning branchではまだ変更しない。
+このPlan branch自体はMarkdown + Run Artifactのみの変更である。Git permission policy本体は変更しない。
 
 branchを完了扱いにする前に、Repositoryをローカル取得できる環境で次を実行する。
 
@@ -764,59 +755,58 @@ pnpm run lint:markdown
 
 ## 12. Risks
 
-1. G0のPermission scope拡大
-   - Common Hookの既存safe境界を正本にし、通常のfeature-branch add/commit/push以外へ許可を広げない。
-2. 誤stage
-   - Parentは明示Pathだけstageし、`git add .` / `-A` / `--all`を使わない。
+1. Git writeの誤用
+   - Parentのsafe / standard workflowだけで実施し、`implementation_worker` / auto-netへGit write責務を広げない。
+2. 誤stage / 誤commit
+   - 明示Pathだけstageし、stage前後のdiffを確認する。stage-all / commit-all shorthandを使用しない。
 3. Protected branch / history破壊
-   - Common Hook / Common Rulesのprotected branch、force push、rebase、amend、reset/clean等のfail-closeを維持する。
+   - protected branch direct update、force push、rebase、amend、reset/clean等の既存fail-closeを維持する。
 4. PR mergeの自動化
    - 明示的に禁止し、PR作成もユーザー明示依頼時だけに限定する。
-5. Git policy変更のrollback
-   - unsafe regression時は通常のcontent edit + follow-up commitで戻し、history rewriteを使わない。
-6. Native Storefront scope creep
+5. Native Storefront scope creep
    - 全dimensionをrebaselineし、欠けているものだけ修正する。
-7. Native viewer contextの表層修正
+6. Native viewer contextの表層修正
    - Actor Resolverだけで終わらせず、既存`ProductViewer`とDomain semanticsをSQLiteまで伝播する。
-8. PRの過剰分割
+7. PRの過剰分割
    - R2a + R3、R12a + R12bはPreferred Groupとしてまとめ、同じboundaryを何度も変更しない。
-9. Checkout UX新設
+8. Checkout UX新設
    - Current Boundary patternを再利用する。
-10. Native auth guard重複
+9. Native auth guard重複
    - Shell / route boundaryへ集約し、全role×全route matrixは作らない。
-11. Hermes guard弱体化 / 重複実装
+10. Hermes guard弱体化 / 重複実装
    - Actual Production Artifact由来Evidenceを必須にし、既存validatorを可能ならWorkflowから再利用する。新Frameworkは作らない。
-12. Patch strictness低下
+11. Patch strictness低下
    - strict applyを維持する。
-13. Timeout対応の過剰調査
+12. Timeout対応の過剰調査
    - bounded reproductionで止める。
-14. MCP scope creep
+13. MCP scope creep
    - Findingに必要な操作だけに限定し、検証都合でProduct/Test Controlを拡張しない。
-15. Concurrent CI workとの競合
+14. Concurrent CI workとの競合
    - R13だけdependency blockedとする。
-16. Suggestionの過剰な非同期設計
+15. Suggestionの過剰な非同期設計
    - raceが実際にある場合だけ最小guardを入れ、Cancellation frameworkは作らない。
-17. Confirmationからのscope creep
+16. Confirmationからのscope creep
    - C1 / C2はread-only確認に限定し、intent未確定のDocumentation / Workflow / executable contract変更、Repository外設定変更、追加CI実装へ自動移行しない。
 
 ## 13. Priority / Execution Order
 
 Current Codex run内のwritable implementationはserialで進める。read-only researchは必要な場合だけ並列化してよい。ユーザーが外側で別worktree / 別sessionを明示的に管理する運用は本PlanのParent/worker orchestration責務外とする。
 
-1. G0 — Safe Git Write Policy Alignment
-2. G8 — R8 Native Production Bundle Guard（high-priority tooling）
-3. G1 — R1 Checkout result integrity
-4. G2 — R2a + R3 Native Catalog / Storefront contract
-5. G3 — R2b Native route guard
-6. G4 — R4 Web Search Suggestion
-7. G9 — R9 Agentic QA patch portability
-8. G7 — R7 Flow J false-green
-9. G5 — R5 Cart ownership invariant
-10. G6 — R6 Login spec/visual mapping
-11. G10 — R10 Windows timeout budget
-12. G11 — R11 Training action pinning
-13. G12 — R12a + R12b Current docs alignment
-14. G13 — R13 E2E design supersession after dependency merge
+Git Execution Contractは全Groupへ適用するが、実装GroupではなくRepository sourceを変更しない。
+
+1. G8 — R8 Native Production Bundle Guard（high-priority tooling）
+2. G1 — R1 Checkout result integrity
+3. G2 — R2a + R3 Native Catalog / Storefront contract
+4. G3 — R2b Native route guard
+5. G4 — R4 Web Search Suggestion
+6. G9 — R9 Agentic QA patch portability
+7. G7 — R7 Flow J false-green
+8. G5 — R5 Cart ownership invariant
+9. G6 — R6 Login spec/visual mapping
+10. G10 — R10 Windows timeout budget
+11. G11 — R11 Training action pinning
+12. G12 — R12a + R12b Current docs alignment
+13. G13 — R13 E2E design supersession after dependency merge
 
 Confirmation only:
 
@@ -825,8 +815,9 @@ Confirmation only:
 
 ## 14. Follow-up / Stop Conditions
 
-- G0がGreenになるまで、他Groupで新しいGit write許可を使用しない。
+- Git writeはParent Codexのsafe / standard workflowだけで行う。`implementation_worker` / auto-netでは実行しない。
 - Parentが`git add`する前に対象Pathとdiffを確認し、無関係な変更をstageしない。
+- `git add .` / `-A` / `--all` / `-u`、`git commit -a` / `--all`を実行しない。
 - protected branchへ直接commit / pushしない。
 - force push / remote delete / mirror / rebase / amend / destructive reset / clean / rmを実行しない。
 - PR mergeを実行しない。
@@ -844,9 +835,9 @@ Confirmation only:
 - Plan: `docs/plans/2026-08-21_002300_repository_audit_remediation.md`
 - Planning Run Artifact: `.codex/runs/20260821-174900-JST/`
 - 実装時:
-  - G0でSafe Git Write Policyを整合する。
   - Preferred implementation group単位で必要なSource / Regression Test / Run Artifact / Runtime Evidence / 残Riskを更新する。
-  - G0完了後、Parent Codexは確認済みfeature branchで明示Pathのstage、normal commit、normal pushまで実施してよい。
+  - Parent Codexはsafe / standard feature branchで、確認済み明示Pathのstage、normal commit、normal pushまで実施してよい。
+  - `implementation_worker` / auto-netにはGit writeを行わせない。
   - PR作成はユーザーが明示依頼した場合だけ実施する。
   - PR mergeは実施しない。
 - Confirmation-only項目はread-onlyで完結し、変更せずにEvidence・判断事項・推奨案を報告する。
