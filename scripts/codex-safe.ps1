@@ -354,14 +354,14 @@ function Get-PresetConfig {
         'safe' {
             return @{
                 Sandbox = 'workspace-write'
-                Approval = 'untrusted'
+                Approval = 'on-request'
                 NetworkAccessOverride = $false
             }
         }
         'readonly' {
             return @{
                 Sandbox = 'read-only'
-                Approval = 'untrusted'
+                Approval = 'on-request'
                 NetworkAccessOverride = $false
             }
         }

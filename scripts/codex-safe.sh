@@ -314,12 +314,12 @@ preset_config() {
   case "$preset" in
     safe)
       sandbox_mode="workspace-write"
-      approval_policy="untrusted"
+      approval_policy="on-request"
       network_access_override=0
       ;;
     readonly)
       sandbox_mode="read-only"
-      approval_policy="untrusted"
+      approval_policy="on-request"
       network_access_override=0
       ;;
     auto-net)
