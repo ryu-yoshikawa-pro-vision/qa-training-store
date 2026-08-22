@@ -27,7 +27,7 @@
     ".codex/runs/20260822-151533-JST/run.json"
   ],
   "validation": {
-    "status": "failed",
+    "status": "blocked",
     "commands": [
       {
         "name": "pnpm exec vitest run tests/component/checkout-order-pages.test.tsx tests/component/presentation-foundation.test.tsx",
@@ -175,6 +175,26 @@
         "status": "skipped",
         "conclusion": "cancelled",
         "observed_head": "fb003d11426f020af9b9076180ea55600b79a4b7"
+      },
+      {
+        "name": "GitHub Actions Phase 1 CI run 32572482787",
+        "status": "passed",
+        "conclusion": "success",
+        "observed_head": "a34d1891f4f77ace95c367fa8782dac979a8f01d"
+      },
+      {
+        "name": "GitHub Actions Native Static job 97029905729",
+        "status": "failed",
+        "conclusion": "failure",
+        "observed_head": "a34d1891f4f77ace95c367fa8782dac979a8f01d",
+        "failure": "Run Expo Doctor: Expo SDK patch-version mismatch"
+      },
+      {
+        "name": "GitHub Actions Native CI run 32572482928",
+        "status": "blocked",
+        "workflow_status": "in_progress",
+        "observed_head": "a34d1891f4f77ace95c367fa8782dac979a8f01d",
+        "detail": "Native Static failure is confirmed; Android/iOS follow-up jobs and final verify are not complete"
       }
     ],
     "warnings": [
