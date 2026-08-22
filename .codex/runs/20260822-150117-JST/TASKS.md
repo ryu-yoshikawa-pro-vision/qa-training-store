@@ -8,7 +8,7 @@
 - [x] 4. G3 Native UIの不足dimension/SuggestionとG4 Native route boundaryを実装し代表negative testを追加する
 - [x] 5. Focused Validationと変更面に必要なRepository gateを実行する
 - [x] 6. Run artifactをSanitizeし、REPORT/evaluation/最終報告を更新する
-- [ ] 7. feature branchの差分を確認し、必要ならnormal commit/pushする（PR mergeはしない）
+- [x] 7. feature branchの差分を確認し、必要ならnormal commit/pushする（PR mergeはしない）
 
 ## Discovered
 

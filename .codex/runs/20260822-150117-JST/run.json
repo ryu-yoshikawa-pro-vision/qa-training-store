@@ -54,7 +54,11 @@
       "adb devices",
       "python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260822-150117-JST/evaluation.json",
       "ConvertFrom-Json run.json/evaluation.json",
-      "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260822-150117-JST -Write -Check"
+      "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260822-150117-JST -Write -Check",
+      "git diff --cached --check",
+      "git commit -m feat: align native catalog and route authorization",
+      "git push origin feat/native-catalog-storefront-authorization",
+      "git status --short --branch"
     ],
     "warnings": [
       "Android physical device 354955112942476 was unauthorized; Native runtime Before/After was not executed.",

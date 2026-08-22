@@ -109,6 +109,23 @@
   - feature branchのnormal commit/push、最終差分確認。
 - Progress: 86% (6/7)
 
+## 2026-08-22 16:07 (JST)
+
+- Summary: feature branchへのnormal commit／pushと最終差分確認を完了した。
+- Completed:
+  - commit `b925479`（`feat: align native catalog and route authorization`）を作成した。
+  - `git push origin feat/native-catalog-storefront-authorization`が成功し、remote branchへ反映した。
+  - PR作成、PR merge、force push、rebase、amend、protected branch direct pushは実施していない。
+- Commands:
+  - `git commit -m "feat: align native catalog and route authorization"` => 成功。
+  - `git push origin feat/native-catalog-storefront-authorization` => 成功。
+  - push時にdefault branchの既存Dependabot vulnerability 7 high / 1 moderateのremote noticeが表示された。今回差分のFailureとは判定していない。
+- Notes/Decisions:
+  - Run artifactの最終Task／Report更新後、Sanitizerを再実行してからRun記録だけをnormal commitで追補する。
+- Remaining:
+  - Run artifact最終追補commit／pushのみ。
+- Progress: 100% (7/7)
+
 ## 2026-08-22 16:05 (JST)
 
 - Summary: 追加のUseCase integration validationを完了し、full contract suiteの実行状態を整理した。
