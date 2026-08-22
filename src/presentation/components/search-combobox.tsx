@@ -89,7 +89,12 @@ export function SearchCombobox({
       className="search-combobox"
       items={items}
       inputValue={inputValue}
-      onInputChange={setInputValue}
+      onInputChange={(value: string) => {
+        setInputValue(value);
+        if (loadSuggestions !== undefined && shouldOpenSuggestions) {
+          setShouldOpenSuggestions(false);
+        }
+      }}
       onOpenChange={setShouldOpenSuggestions}
       onSelectionChange={(key: Key | null) => {
         if (key !== null) {
@@ -100,6 +105,7 @@ export function SearchCombobox({
         }
       }}
       allowsEmptyCollection
+      allowsCustomValue
       menuTrigger="input"
     >
       <SearchSuggestionsOpenController shouldOpen={shouldOpenSuggestions} />
@@ -116,6 +122,7 @@ export function SearchCombobox({
             event.currentTarget.value.trim().length > 0 &&
             event.currentTarget.getAttribute("aria-expanded") !== "true"
           ) {
+            event.preventDefault();
             router.push(`/search?q=${encodeURIComponent(event.currentTarget.value.trim())}`);
           }
         }}

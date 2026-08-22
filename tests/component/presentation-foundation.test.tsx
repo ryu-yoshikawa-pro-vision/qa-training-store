@@ -151,8 +151,8 @@ describe("presentation foundation", () => {
       fireEvent.keyDown(input, { key: "Enter" });
     });
     expect(routerPush).not.toHaveBeenCalledWith(first.href);
+    expect(input).toHaveValue("abc");
 
-    fireEvent.change(input, { target: { value: "abc" } });
     await waitFor(() => expect(loadSuggestions).toHaveBeenCalledWith("abc"));
     await act(async () => resolveSecond?.([second]));
     expect(await screen.findByRole("option", { name: /新しい候補/ })).toBeVisible();

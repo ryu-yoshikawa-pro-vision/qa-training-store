@@ -18,15 +18,15 @@
 
 ## YYYY-MM-DD HH:MM (JST)
 
-- Summary:
-- Completed:
-- Changes:
-- Commands:
-  - `...` => result
-- Notes/Decisions:
-- New tasks:
-- Remaining:
-- Progress: NN% (done/total)
+- 概要:
+- 完了:
+- 変更:
+- コマンド:
+  - `...` => 結果
+- メモ／判断:
+- 新規タスク:
+- 残件:
+- 進捗: NN% (完了/合計)
 
 ## 2026-08-22 15:25 (JST)
 
@@ -90,7 +90,7 @@
 - Codex はファイルやディレクトリを削除しない。
 - 不要に見えるファイルは、ユーザーが手動確認できるようにここへ記録する。
 
-| Path | Reason | Suggested action |
+| パス | 理由 | 推奨対応 |
 |---|---|---|
 |  |  |  |
 
@@ -278,5 +278,41 @@
   - `git diff --check` => PASS
 - validation_result: Focused Testと関連gateは最終的にすべてPASS。Search testは初回、React Ariaの空コレクションに対するEnter処理でcontrolled inputが空になるためB request待ちに到達せず失敗したが、原因を確認して同じRegression内でBクエリを再入力する最小修正を1回行い、対象testと全Focused Testを再実行してPASSした。
 - remaining_delta: 今回の3 findingに残差なし。PR #43のNative StaticにあるExpo Doctor patch-version mismatchは今回差分と無関係なScope外のbaseline failureであり、依存・CI設定は変更しない。
+- decision: `stop_success`
+- Progress: 100% (13/13)
+
+## 2026-08-22 22:50 (JST)
+
+- Repair Loop iteration 3を実施した。
+- input_findings:
+  - Search loading中のArrowDown／Enterでcontrolled queryが空になるProduct回帰。
+  - REPORT先頭の未記入テンプレートと削除候補tableに残る一般英語ラベル。
+- repair_plan:
+  - 新query入力時、実際に開いているasync suggestionだけを閉じ、旧候補を破棄してloadingを開始する。
+  - React Ariaのcommit処理で検索queryをリセットしないよう、検索ComboBoxの任意query契約を維持する。
+  - Regressionからquery Bの再入力workaroundを削除し、ArrowDown／Enter後も`abc`を保持することを検証する。
+  - REPORT先頭の未記入templateと空table headerだけを日本語化し、過去entryは変更しない。
+- allowed_files:
+  - `src/presentation/components/search-combobox.tsx`
+  - `tests/component/presentation-foundation.test.tsx`
+  - `.codex/runs/20260822-151533-JST/REPORT.md`
+  - `.codex/runs/20260822-151533-JST/run.json`
+- changed_files:
+  - `src/presentation/components/search-combobox.tsx`
+  - `tests/component/presentation-foundation.test.tsx`
+  - `.codex/runs/20260822-151533-JST/REPORT.md`
+- validation_commands:
+  - `pnpm exec vitest run tests/component/presentation-foundation.test.tsx` => 12 tests passed。
+  - `pnpm run test:component:web` => 11 files / 83 tests passed。
+  - `pnpm run typecheck` => PASS（app／native-tests／training）。
+  - `pnpm run lint` => 0 errors / 64 warnings。
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint:markdown` => 0 issues。
+  - `git diff --check` => PASS。
+- validation_result:
+  - 最初にeffect内で無条件にopen stateをfalseへ更新する案を検証したが、初回async入力でもReact Ariaの空Collection closeが発生し、4 testsが失敗した。原因を確認し、現在開いているsuggestionだけを`onInputChange`で閉じる実装へ修正した。
+  - その後、対象Regressionの残り2件でReact Ariaの`commitValue`がcontrolled queryを空にする経路を確認した。`allowsCustomValue`と通常検索Enterの既定処理抑止を追加し、Focused TestおよびWeb component gateをPASSさせた。
+  - query Bの再入力はRegressionから削除し、ArrowDown／Enter後の`input`値`abc`、旧href未遷移、B候補表示を同一の初回入力で確認した。
+- remaining_delta: 今回の2 findingsに残差なし。既存run.jsonの`validation.status`はcollectorの保守的な`blocked`を維持し、Native StaticのExpo Doctor patch-version mismatchは今回Scope外として変更していない。
 - decision: `stop_success`
 - Progress: 100% (13/13)
