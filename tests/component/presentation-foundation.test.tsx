@@ -97,13 +97,61 @@ describe("presentation foundation", () => {
     expect(input).toHaveAttribute("aria-expanded", "true");
   });
 
-  it("does not request suggestions before two characters", () => {
+  it("does not request suggestions before two characters even after the debounce interval", () => {
     const loadSuggestions = vi.fn(async () => []);
+    vi.useFakeTimers();
+    try {
+      render(<SearchCombobox loadSuggestions={loadSuggestions} />);
+      fireEvent.change(screen.getByRole("combobox", { name: "商品を検索" }), {
+        target: { value: "あ" },
+      });
+      act(() => vi.advanceTimersByTime(200));
+      expect(loadSuggestions).not.toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("clears displayed suggestions when a new async request starts", async () => {
+    let resolveFirst: ((value: SearchSuggestion[]) => void) | undefined;
+    let resolveSecond: ((value: SearchSuggestion[]) => void) | undefined;
+    const first = {
+      id: "product:first",
+      label: "最初の候補",
+      description: "商品",
+      href: "/products/first" as const,
+    };
+    const second = {
+      id: "product:second",
+      label: "新しい候補",
+      description: "商品",
+      href: "/products/second" as const,
+    };
+    const loadSuggestions = vi.fn(
+      (query: string) =>
+        new Promise<SearchSuggestion[]>((resolve) => {
+          if (query === "ab") resolveFirst = resolve;
+          else resolveSecond = resolve;
+        }),
+    );
     render(<SearchCombobox loadSuggestions={loadSuggestions} />);
-    fireEvent.change(screen.getByRole("combobox", { name: "商品を検索" }), {
-      target: { value: "あ" },
-    });
-    expect(loadSuggestions).not.toHaveBeenCalled();
+    const input = screen.getByRole("combobox", { name: "商品を検索" });
+    act(() => input.focus());
+    fireEvent.change(input, { target: { value: "ab" } });
+    await waitFor(() => expect(loadSuggestions).toHaveBeenCalledWith("ab"));
+
+    await act(async () => resolveFirst?.([first]));
+    expect(await screen.findByRole("option", { name: /最初の候補/ })).toBeVisible();
+
+    fireEvent.change(input, { target: { value: "abc" } });
+    await waitFor(() => expect(loadSuggestions).toHaveBeenCalledWith("abc"));
+    expect(screen.queryByRole("option", { name: /最初の候補/ })).toBeNull();
+
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(routerPush).not.toHaveBeenCalledWith(first.href);
+
+    await act(async () => resolveSecond?.([second]));
   });
 
   it("keeps stale async results out of the open suggestion list", async () => {

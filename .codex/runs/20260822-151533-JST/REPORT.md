@@ -210,3 +210,21 @@
 - New tasks: なし。
 - Remaining: PR #43の新head remote checksは一部実行中。Native Staticは上記baseline failure。PR mergeは行わない。
 - Progress: 100% (9/9)
+
+## 2026-08-22 21:00 (JST)
+
+- 訂正: `16:58` JSTの実行記録は、`17:00` JSTの記録を先に追記した後に追加されたため、REPORT.mdのファイル上の記録順と実行時刻順が一致していない。
+- 実行時刻順は`16:58 → 17:00`である。append-only方針により既存記録は並べ替えず、本項で時系列の関係だけを補足する。
+
+## 2026-08-22 21:14 (JST)
+
+- Repair Loop iteration 1を実施した。
+- Input findings: Native再決済失敗時のBoundary遷移、Search新規要求中の旧候補選択、1文字入力テストのdebounce検証、Run Artifactのvalidation status／見出し／時系列不整合。
+- Triage: いずれもG2/G5または今回Artifactのcorrectness／contractに関わる`must_fix`。PR Description不足とCodeRabbit Docstring Coverageは今回Scope外の`defer`とした。
+- Repair plan: `loadMessage`と`retryMessage`を分離し、検索要求開始時に`items`を空にし、指定Regressionを追加する。既存collectorで構造化validationを再集約し、PLAN見出しとREPORT末尾の訂正を追記する。
+- Allowed files: Native/Searchの実装とRegression 4 files、既存Run Artifact 4 filesの計8 files。
+- Changed files: `src/presentation/native/native-purchase-screens.tsx`、`src/presentation/components/search-combobox.tsx`、対応するNative／Web test、既存Run Artifact 4 filesだけ。
+- Validation: Focused Web 12 tests、Native 22 tests、Repository 5 tests、Repository gate 35 tests、Web component 83 tests、Native component 54 tests、typecheck 3系統、lint 0 errors、Web build、format／markdown lintがPASS。collector再集約後の`validation.status`はNative Static／native-ci verifyの実測failureを反映して`failed`、commandsは全件構造化された。Sanitizerはresidual 0、`git diff --check`はclean。
+- Remaining delta: 現HEADのGitHub Native StaticはExpo Doctor patch-version mismatchでfailure。`package.json`／lockfile／Native CI設定は変更せず、別対応として残す。新修正のcommit／pushと新HEAD CI確認が残る。
+- Decision: `continue`（normal commit／push後に新HEADのPhase 1 CI／Native CIを確認する）。
+- Progress: 100% (13/13)

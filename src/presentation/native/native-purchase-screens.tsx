@@ -1007,21 +1007,22 @@ function NativeCheckoutResultScreen() {
   const { ready, error, retry, services } = usePurchaseServices();
   const { orderId } = useLocalSearchParams<{ orderId?: string }>();
   const [order, setOrder] = useState<OrderDetailDto | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [loadMessage, setLoadMessage] = useState<string | null>(null);
+  const [retryMessage, setRetryMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const validOrderId = typeof orderId === "string" && orderId.length > 0;
   useEffect(() => {
     if (services === null || !validOrderId) return;
     let active = true;
     setOrder(null);
-    setMessage(null);
+    setLoadMessage(null);
     void services.checkout
       .getMyOrder(orderId)
       .then((next: OrderDetailDto) => {
         if (active) setOrder(next);
       })
       .catch((caught: unknown) => {
-        if (active) setMessage(asPurchaseError(caught).message);
+        if (active) setLoadMessage(asPurchaseError(caught).message);
       });
     return () => {
       active = false;
@@ -1029,8 +1030,8 @@ function NativeCheckoutResultScreen() {
   }, [orderId, services, validOrderId]);
   if (!ready || services === null)
     return <RuntimePanel title="支払い結果画面を初期化できません" error={error} retry={retry} />;
-  if (!validOrderId || message !== null) {
-    return <NativeCheckoutResultBoundary message={message ?? "注文IDを確認できません。"} />;
+  if (!validOrderId || loadMessage !== null) {
+    return <NativeCheckoutResultBoundary message={loadMessage ?? "注文IDを確認できません。"} />;
   }
   if (order === null) return <NativeStatePanel title="注文結果を読み込み中…" />;
   const kind = resolveCheckoutResultKind(order);
@@ -1055,6 +1056,7 @@ function NativeCheckoutResultScreen() {
   }
   const retryPayment = () => {
     if (services === null) return;
+    setRetryMessage(null);
     setBusy(true);
     void services.checkout
       .retryPayment({
@@ -1065,7 +1067,7 @@ function NativeCheckoutResultScreen() {
       .then((result) =>
         router.replace({ pathname: "/checkout/processing", params: { orderId: result.orderId } }),
       )
-      .catch((caught: unknown) => setMessage(asPurchaseError(caught).message))
+      .catch((caught: unknown) => setRetryMessage(asPurchaseError(caught).message))
       .finally(() => setBusy(false));
   };
   return (
@@ -1078,7 +1080,7 @@ function NativeCheckoutResultScreen() {
         disabled={busy}
         testID="native-payment-retry"
       />
-      <ErrorMessage message={message} />
+      <ErrorMessage message={retryMessage} />
     </ScrollView>
   );
 }

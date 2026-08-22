@@ -1,4 +1,12 @@
-import { useContext, useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Context,
+  type KeyboardEvent,
+} from "react";
 import { useRouter, type Href } from "expo-router";
 import {
   ComboBox,
@@ -8,6 +16,7 @@ import {
   ListBox,
   ListBoxItem,
   Popover,
+  type ComboBoxState,
   type Key,
 } from "react-aria-components";
 import { Icon } from "@/presentation/components/icon";
@@ -55,6 +64,7 @@ export function SearchCombobox({
       setShouldOpenSuggestions(false);
       return;
     }
+    setItems([]);
     setLoading(true);
     const timer = window.setTimeout(() => {
       void loadSuggestions(query)
@@ -133,7 +143,9 @@ export function SearchCombobox({
 }
 
 function SearchSuggestionsOpenController({ shouldOpen }: { shouldOpen: boolean }) {
-  const comboBoxState = useContext(ComboBoxStateContext);
+  const comboBoxState = useContext(
+    ComboBoxStateContext as Context<ComboBoxState<SearchSuggestion, "single"> | null>,
+  );
 
   useEffect(() => {
     if (comboBoxState === null) {

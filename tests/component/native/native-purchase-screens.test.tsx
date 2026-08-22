@@ -390,6 +390,35 @@ describe("Native customer purchase screens", () => {
     expect(screen.queryByTestId("native-checkout-complete-screen")).toBeNull();
   });
 
+  it("keeps the failed result and retry action after retryPayment fails", async () => {
+    mockUseLocalSearchParams.mockReturnValue({ orderId: nativeFailedOrder.orderId });
+    const getMyOrder = jest.fn().mockResolvedValue(nativeFailedOrder);
+    const retryPayment = jest.fn().mockRejectedValue(new Error("再決済に失敗しました"));
+    runtime({ checkout: { getMyOrder, retryPayment } });
+
+    const screen = await render(<NativeCheckoutFailedScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-checkout-failed-screen")).toBeTruthy());
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("native-payment-retry"));
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("native-purchase-error")).toHaveTextContent("再決済に失敗しました"),
+    );
+    expect(screen.getByTestId("native-checkout-failed-screen")).toBeTruthy();
+    expect(screen.queryByTestId("native-checkout-result-boundary")).toBeNull();
+    expect(screen.getByTestId("native-payment-retry")).toBeTruthy();
+    expect(screen.getByTestId("native-payment-retry").props.accessibilityState).toEqual({
+      disabled: false,
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("native-payment-retry"));
+    });
+    expect(retryPayment).toHaveBeenCalledTimes(2);
+  });
+
   it("does not expose the Payment ready marker without a valid checkout session", async () => {
     runtime({
       checkout: {
