@@ -485,3 +485,9 @@
 - QA System: `updated`。Chromium系jobからruntime apt／Ubuntu mirror dependencyを除去し、browser binary installを維持した。install条件をCI contractで固定し、PR #34の実CI／rerun／workflow_dispatch evidenceを反映した。
 - GAP-02とExperiment Readinessの判断は`unchanged`。Formal Experimentは`NOT EXECUTED`、Formal Experiment Target Revisionは設定しない。Knowledgeは`none`、Promotionは`none`。
 - Official Scored GAP-01はHost-trusted Evidence不足による`BLOCKED / NOT EXECUTED`のまま変更しない。
+
+## G3/G4 Native Catalog・Route Authorization（2026-08-22）
+
+- Native Catalogは`SessionIdentityResolver`で現在Sessionから`ProductViewer`を解決し、`CatalogUseCases` → `CustomerCatalogGateway` → `NativeCustomerCatalogRepository` → `NativeCustomerSQLiteRepository`までviewerを保持する。Native SQLiteのvisibility、membership pricing、active sale、検索、facet、pagination、stable sort、Suggestionは既存Domain／Web Storefront semanticsを基準にする。
+- Native Catalog/Search画面は既存のProductSearchRequest／ProductSearchResultを使い、Keyword、Category、Brand、Price、Inventory、Sale、Minimum rating、facet counts、total/page、paginationを送受信する。Search SuggestionはNative service surfaceからUseCase／Gateway／Repositoryへ接続し、2文字以上・最大8件・viewer-aware・deterministicとする。
+- Native ShellはCustomer-only routeのGuest direct navigationを既存Login boundaryへ送り、management roleは既存unsupported boundaryでCustomer画面をmountしない。Guest storefront／cartは引き続き利用可能なrouteとして扱う。

@@ -15,6 +15,9 @@ import { AccountUseCases } from "@/application/use-cases/account-use-cases";
 import { CartUseCases } from "@/application/use-cases/cart-use-cases";
 import { CheckoutOrderUseCases } from "@/application/use-cases/checkout-order-use-cases";
 import { CustomerReviewUseCases } from "@/application/use-cases/review-user-use-cases";
+import { CatalogUseCases } from "@/application/use-cases/catalog-use-cases";
+import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
+import { createNativeCustomerCatalogGateway } from "@/application/native/guest-storefront";
 import type {
   Clock,
   CurrentSessionStore,
@@ -38,17 +41,20 @@ type Row = Record<string, unknown>;
  */
 class NodeSQLiteDatabase {
   private readonly database = new DatabaseSync(":memory:");
+  readonly queryLog: string[] = [];
 
   async execAsync(sql: string): Promise<void> {
     this.database.exec(sql);
   }
 
   async getFirstAsync<T extends Row>(sql: string, ...params: unknown[]): Promise<T | null> {
+    this.queryLog.push(sql);
     const row = this.database.prepare(sql).get(...(params as never[]));
     return (row as T | undefined) ?? null;
   }
 
   async getAllAsync<T extends Row>(sql: string, ...params: unknown[]): Promise<T[]> {
+    this.queryLog.push(sql);
     return this.database.prepare(sql).all(...(params as never[])) as T[];
   }
 
@@ -72,6 +78,10 @@ class NodeSQLiteDatabase {
   close(): void {
     this.database.close();
   }
+
+  resetQueryLog(): void {
+    this.queryLog.length = 0;
+  }
 }
 
 async function createNativeContractHandle() {
@@ -88,6 +98,85 @@ async function createNativeContractHandle() {
 createCustomerRepositoryContractSuite(createNativeContractHandle);
 
 describe("Native SQLite Node runtime contract", () => {
+  it("preserves the session viewer through UseCase, Gateway, Repository, and SQLite", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("default"),
+    );
+    const repositories = createNativeCustomerApplicationRepositories(
+      database as unknown as SQLiteDatabase,
+    );
+    const sessionId = "session-user-customer-gold";
+    await database.runAsync(
+      "INSERT INTO sessions (id, user_id, created_at) VALUES (?, ?, ?)",
+      sessionId,
+      "user-customer-gold",
+      "2026-07-01T03:00:00.000Z",
+    );
+    let currentSessionId: string | null = sessionId;
+    const sessionStore: CurrentSessionStore = {
+      getSessionId: async () => currentSessionId,
+      setSessionId: async (value) => {
+        currentSessionId = value;
+      },
+      clear: async () => {
+        currentSessionId = null;
+      },
+    };
+    const useCases = new CatalogUseCases({
+      identity: new SessionIdentityResolver(
+        repositories.users,
+        repositories.sessions,
+        sessionStore,
+      ),
+      customerGateway: createNativeCustomerCatalogGateway(
+        new NativeCustomerSQLiteRepository(database as unknown as SQLiteDatabase),
+      ),
+      clock: { now: () => "2026-07-01T03:00:00.000Z" },
+    });
+
+    const home = await useCases.getHome();
+    expect(home.newProducts.map((product) => product.productId)).toContain("product-running-shoes");
+    const result = await useCases.search({
+      keyword: null,
+      categoryIds: [],
+      brandIds: [],
+      minimumPrice: 6000,
+      maximumPrice: 6100,
+      inStockOnly: true,
+      onSaleOnly: true,
+      minimumRating: 4,
+      sort: "price_asc",
+      page: 1,
+      pageSize: 20,
+    });
+    expect(result.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          productId: "product-running-shoes",
+          minimumViewerUnitPrice: 6080,
+        }),
+      ]),
+    );
+    expect(result.total).toBe(1);
+    expect(result.facets.categories).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "category-sports", count: 1 })]),
+    );
+    expect(result.facets.brands).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "brand-scenario-active", count: 1 })]),
+    );
+    expect(result.facets.inStockCount).toBe(1);
+    expect(result.facets.onSaleCount).toBe(1);
+    await expect(useCases.suggest({ keyword: "ラン", limit: 8 })).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "product", id: "product-running-shoes" }),
+      ]),
+    );
+    database.close();
+  });
+
   it("distinguishes forbidden existing products from missing products", async () => {
     const database = new NodeSQLiteDatabase();
     await database.execAsync(CUSTOMER_SCHEMA_SQL);
@@ -100,6 +189,7 @@ describe("Native SQLite Node runtime contract", () => {
     await expect(
       repository.getProductDetail({
         productId: "product-running-shoes",
+        viewer: { kind: "guest" },
         now: "2026-07-01T03:00:00.000Z",
       }),
     ).rejects.toMatchObject<Partial<ApplicationError>>({
@@ -109,9 +199,79 @@ describe("Native SQLite Node runtime contract", () => {
     await expect(
       repository.getProductDetail({
         productId: "product-does-not-exist",
+        viewer: { kind: "guest" },
         now: "2026-07-01T03:00:00.000Z",
       }),
     ).resolves.toBeNull();
+    database.close();
+  });
+
+  it("bulk-loads catalog relations and keeps detail reads scoped to one product", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("default"),
+    );
+    const repository = new NativeCustomerSQLiteRepository(database as unknown as SQLiteDatabase);
+    const guest = { kind: "guest" } as const;
+    const now = "2026-07-01T03:00:00.000Z";
+
+    database.resetQueryLog();
+    await repository.getHome({ viewer: guest, now });
+    expect(
+      database.queryLog.filter((sql) => sql.includes("FROM product_variants WHERE product_id IN")),
+    ).toHaveLength(1);
+    expect(
+      database.queryLog.filter((sql) => sql.includes("FROM product_images WHERE product_id IN")),
+    ).toHaveLength(1);
+    expect(
+      database.queryLog.filter((sql) =>
+        sql.includes("FROM product_review_summaries WHERE product_id IN"),
+      ),
+    ).toHaveLength(1);
+    expect(database.queryLog.some((sql) => sql.includes("WHERE product_id = ?"))).toBe(false);
+
+    database.resetQueryLog();
+    await repository.search({
+      keyword: "Tシャツ",
+      categoryIds: [],
+      brandIds: [],
+      minimumPrice: null,
+      maximumPrice: null,
+      inStockOnly: false,
+      onSaleOnly: false,
+      minimumRating: null,
+      sort: "newest",
+      page: 1,
+      pageSize: 20,
+      viewer: guest,
+      now,
+    });
+    expect(database.queryLog.some((sql) => sql.includes("WHERE product_id = ?"))).toBe(false);
+
+    database.resetQueryLog();
+    await repository.suggest({ keyword: "Tシ", limit: 8, viewer: guest, now });
+    expect(database.queryLog.some((sql) => sql.includes("WHERE product_id = ?"))).toBe(false);
+
+    database.resetQueryLog();
+    await repository.getProductDetail({
+      productId: "product-basic-shirt",
+      viewer: guest,
+      now,
+    });
+    expect(database.queryLog.some((sql) => sql.includes("FROM products ORDER BY"))).toBe(false);
+    expect(
+      database.queryLog.filter((sql) => sql.includes("FROM product_variants WHERE product_id = ?")),
+    ).toHaveLength(1);
+    expect(
+      database.queryLog.filter((sql) => sql.includes("FROM product_images WHERE product_id = ?")),
+    ).toHaveLength(1);
+    expect(
+      database.queryLog.filter((sql) =>
+        sql.includes("FROM product_review_summaries WHERE product_id = ?"),
+      ),
+    ).toHaveLength(1);
     database.close();
   });
 

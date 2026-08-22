@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "run_id": "20260822-223302-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "対象Component Testの7 tests、関連Native Componentの13 tests、前回修正面の5 files / 80 tests、static gatesがPASSし、act warning scanも0件だった。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "Product code、package.json、pnpm-lock.yaml、CI、Maestro flow、CodeRabbit threadは変更せず、source変更は対象Component Testの未await fireEventだけに限定した。"
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "target suiteのstdout/stderrを直接scanし、7/7 PASSかつact warnings from this suite: 0を確認した。関連Component、contract、typecheck、lint、format、markdown、route dependency、diffもPASSした。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "timeout、sleep、retry、console suppression、assertion弱体化、dependency変更、force push、rebase、amend、reset、clean、PR mergeを行っていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "stale Search、stale Suggestion、短縮invalidatingのDeferred scenarioを維持した。旧Run REPORTの以前のEOF確認が誤っていたことを検出し、既存履歴を変更せず旧Runの真の物理EOFへcanonical correctionをappendした。repair Run REPORTのcanonical correctionは既に物理EOFであることを再確認し、最新repair REPORTにも前回の検証ミスをappend-onlyで記録した。CodeRabbit threadはread-only再確認のみ実施した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "RNTL 14.0.1のasync API契約に合わせて未awaitのfireEventだけを修正し、helperやProduct codeを再設計していない。"
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "対象suiteはwarning scan付きで再実行可能なfocused commandにより7/7 PASSした。"
+    }
+  },
+  "findings": [
+    {
+      "category": "review_gap",
+      "severity": "low",
+      "evidence": "修正前の対象suiteで未await fireEventに起因するact warningを再現し、修正後の同一commandで0件を確認した。",
+      "detail": "RNTL 14.0.1ではfireEventもasyncであるため、対象testの5箇所をawaitした。race assertionとDeferred Promiseは維持した。"
+    }
+  ],
+  "improvement_candidates": []
+}
