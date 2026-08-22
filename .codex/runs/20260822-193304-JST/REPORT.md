@@ -298,3 +298,16 @@
 - New tasks: なし。
 - Remaining: 今回修正のFocused／contract／Repository validation、normal push後のPR #44最新HEAD CI確認。
 - Progress: 22% (2/9)
+
+## Correction: 2026-08-22 22:56 (JST)
+
+- Summary: 前Correctionに残っていた進捗表記の帰属を補正した。既存entryはappend-only契約を維持するため削除・変更・移動せず、このCorrectionをcanonicalな補足記録として追加した。
+- Correction details:
+  - 前Correctionの`Remaining`および`Progress: 22% (2/9)`は、旧Run `20260822-193304-JST` 自体の進捗ではない。
+  - それらはPR #44 review remediationとして開始したRepair Run `20260822-214522-JST`の進捗を参照した記録である。
+  - 旧Run `20260822-193304-JST` 自体の`evaluation.json`は`result=pass`、`run.json`は`status=completed`のままであり、このCorrectionによって旧Runを再openしたものではない。
+- Notes/Decisions:
+  - Review remediationの進捗、validation、完了状態は`.codex/runs/20260822-214522-JST/`を正本とする。
+  - 旧Runの完了状態と、前Correctionに残ったRepair Run由来の進捗表記を混同しない。
+- Remaining: なし。
+- Progress: 100% (11/11)

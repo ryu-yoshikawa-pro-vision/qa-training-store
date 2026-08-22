@@ -156,3 +156,22 @@
 - CI観測結果とRun完了状態を反映するため、このCorrectionを含むnormal follow-up commit／pushを1回実施する。これはartifact整合性の更新であり、merge、force push、rebase、amend、destructive reset／cleanではない。
 - setup-java v4のdeprecated状態は記録済みであり、v5 compatibility validation／migrationは別PRのfollow-upとする。このPRではv5へupgradeしない。
 - Progress: 100% (9/9)
+
+## Correction: 2026-08-22 22:56 (JST)
+
+- Summary: Repair RunのREPORTに記載された一部JST表示時刻と、修正commitのGit timestampとの不整合を明示した。既存entryはappend-only契約を維持するため削除・変更・移動せず、このCorrectionを追加した。
+- Correction details:
+  - `097435f40c8eaf967c6675be442b219f5ae3385b`（`fix: address PR 44 review findings`）のGit author／committer timestampは`2026-08-22 22:10:19 JST`である。
+  - そのcommitに含まれるREPORTの`2026-08-22 22:14 (JST)`および`2026-08-22 22:25 (JST)`という表示時刻は、上記Git commit timestampと整合しない。
+  - 原因を示す証拠は確認できていないため、Windowsの時計、JST変換、Gitの時計など特定の原因は断定しない。現時点ではtimestamp source間の不整合として扱う。
+  - 該当entryの`22:14`／`22:25`は厳密なwall-clock timestampのEvidenceとして扱わず、正しい実行時刻へ推測で修正しない。
+  - 実行順序はREPORT内の既存canonical chronologyを正本とする。commit／push／CIなどGitHub上で確認できるイベントの時刻は、GitHub側timestampを正本とする。
+- Notes/Decisions:
+  - このCorrectionは監査上の時刻解釈を補足するものであり、実装・validationの`pass`、`run.json`の`status=completed`、`evaluation.json`の`result=pass`を変更しない。
+- Re-review validation:
+  - `pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1` => PASS（1 file、9 tests）。
+  - `pnpm run validate:curriculum` => PASS（22 required documents、4 workbook files、2 training projects）。
+  - `pnpm run format:check`、`pnpm run lint`、`pnpm run typecheck`、`pnpm run lint:markdown`、`pnpm run security:check`、`pnpm run test:contracts`、`git diff --check` => すべてPASS。lintは0 errors、既存warning 64件。
+  - 旧Run／Repair RunへsanitizerのWrite／Checkを実行し、各5 files scanned、files changed 0、residual findings 0。指定JSONのparseも成功した。
+- Remaining: なし。
+- Progress: 100% (9/9)
