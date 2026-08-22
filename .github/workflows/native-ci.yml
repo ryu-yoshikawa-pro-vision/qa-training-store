@@ -628,7 +628,7 @@ jobs:
             validator_args+=(--production-bundle-path "$path")
           done
 
-          pnpm run validate:native-production-bundle -- "${validator_args[@]}"
+          pnpm run validate:native-production-bundle "${validator_args[@]}"
 
   android-runtime:
     name: Android Runtime / Maestro

@@ -187,7 +187,12 @@ describe("Native CI workflow contracts", () => {
     expect(productionGuard).toContain("^assets/.*\\.(bundle|hbc)$");
     expect(productionGuard).toContain("--automation-bundle-path");
     expect(productionGuard).toContain("--production-bundle-path");
-    expect(productionGuard).toContain("pnpm run validate:native-production-bundle");
+    expect(productionGuard).toContain(
+      'pnpm run validate:native-production-bundle "${validator_args[@]}"',
+    );
+    expect(productionGuard).not.toContain(
+      'pnpm run validate:native-production-bundle -- "${validator_args[@]}"',
+    );
     expect(productionGuard).not.toContain("grep -aE");
 
     for (const source of [production, runtime]) {
