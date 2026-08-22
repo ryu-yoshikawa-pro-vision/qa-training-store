@@ -353,6 +353,8 @@ describe("Native Test Control Maestro contracts", () => {
       '- extendedWaitUntil:\n    visible: "Contract HarnessはAutomation専用です"',
     );
     const harnessLabelIndex = source.indexOf('assertNotVisible: "Native Contract Harness"');
+    const harnessActionIndex = source.indexOf('assertNotVisible: "Run native contract"');
+    const harnessPassedIndex = source.indexOf('assertNotVisible: "Native contract passed"');
 
     expect(launchIndex).toBeGreaterThanOrEqual(0);
     expect(source.slice(launchIndex, launchIndex + 20)).toContain("- launchApp\n");
@@ -363,12 +365,16 @@ describe("Native Test Control Maestro contracts", () => {
     expect(testControlLinkIndex).toBeGreaterThan(runtimeStatusIndex);
     expect(harnessReadyIndex).toBeGreaterThan(testControlLinkIndex);
     expect(harnessLabelIndex).toBeGreaterThan(harnessReadyIndex);
+    expect(harnessActionIndex).toBeGreaterThan(harnessLabelIndex);
+    expect(harnessPassedIndex).toBeGreaterThan(harnessActionIndex);
     expect(source).not.toContain('- assertVisible: "Scenario Shop"');
     expect(source).not.toContain('visible: "Native test runtime listening"\n    timeout: 30000');
     expect(source).toContain('assertNotVisible: "Native test runtime listening"');
     expect(source).toContain('id: "native-test-runtime-status"');
     expect(source).toContain("Contract HarnessはAutomation専用です");
     expect(source).toContain('assertNotVisible: "Native Contract Harness"');
+    expect(source).toContain('assertNotVisible: "Run native contract"');
+    expect(source).toContain('assertNotVisible: "Native contract passed"');
     expect(source).not.toContain("scenario-shop://test-control/reset");
   });
 

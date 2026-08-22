@@ -26,6 +26,7 @@ function expectInOrder(source: string, fragments: string[]): void {
 }
 
 const nativeWorkflow = readWorkflow(".github/workflows/native-ci.yml");
+const nativeBundleValidator = readWorkflow("scripts/validate-native-production-bundle.ts");
 const iosWorkflow = readWorkflow(".github/workflows/native-ios-ci.yml");
 const phaseOneWorkflow = readWorkflow(".github/workflows/ci.yml");
 const androidStartupHelper = readWorkflow("scripts/native/android-maestro-run.sh");
@@ -42,6 +43,21 @@ const customerLoginSetupFlow = readWorkflow(
 const webUiReview = readWorkflow("e2e/web/ui-review.spec.ts");
 
 describe("Native CI workflow contracts", () => {
+  it("inspects Hermes bytecode through the shared decoded-artifact contract", () => {
+    expect(nativeBundleValidator).toContain('require.resolve("hermes-compiler/package.json")');
+    expect(nativeBundleValidator).toContain('["-dump-bytecode", path]');
+    expect(nativeBundleValidator).toContain("--automation-bundle-path");
+    expect(nativeBundleValidator).toContain("--production-bundle-path");
+    expect(nativeBundleValidator).toContain(
+      "Automation Hermes artifacts are missing decoded markers",
+    );
+    expect(nativeBundleValidator).toContain(
+      "Production Hermes artifacts contain decoded Automation/Test Control markers",
+    );
+    expect(nativeBundleValidator).not.toContain("readFileSync");
+    expect(nativeBundleValidator).not.toContain("grep");
+  });
+
   it("accepts only the Processing heading for Checkout Processing visual capture", () => {
     expect(webUiReview).toContain(
       'page.getByRole("heading", { name: "支払いを処理しています", exact: true })',
@@ -58,7 +74,11 @@ describe("Native CI workflow contracts", () => {
       "android-automation-build",
       "android-production-build",
     );
-    const production = jobBlock(nativeWorkflow, "android-production-build", "android-runtime");
+    const production = jobBlock(
+      nativeWorkflow,
+      "android-production-build",
+      "production-bundle-guard",
+    );
 
     expect(automation).toContain("name: Android Automation Build");
     expect(production).toContain("name: Android Production-validation Build");
@@ -104,7 +124,11 @@ describe("Native CI workflow contracts", () => {
       "android-automation-build",
       "android-production-build",
     );
-    const production = jobBlock(nativeWorkflow, "android-production-build", "android-runtime");
+    const production = jobBlock(
+      nativeWorkflow,
+      "android-production-build",
+      "production-bundle-guard",
+    );
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
 
     for (const contract of [
@@ -143,30 +167,41 @@ describe("Native CI workflow contracts", () => {
     expect(runtime).toContain("id: production_install");
   });
 
-  it("guards downloaded Production APK by reading every JavaScript bundle body", () => {
-    const production = jobBlock(nativeWorkflow, "android-production-build", "android-runtime");
+  it("guards Actual Production APK Hermes artifacts through the shared validator", () => {
+    const production = jobBlock(
+      nativeWorkflow,
+      "android-production-build",
+      "production-bundle-guard",
+    );
+    const productionGuard = jobBlock(nativeWorkflow, "production-bundle-guard", "android-runtime");
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
+
+    expect(productionGuard).toContain(
+      "needs: [detect, android-automation-build, android-production-build]",
+    );
+    expect(productionGuard).toContain("Download Automation Release APK");
+    expect(productionGuard).toContain("Download Production-validation Release APK");
+    expect(productionGuard).toContain("Inspect Actual Hermes artifacts with shared validator");
+    expect(productionGuard).toContain('unzip -Z1 "$apk_path"');
+    expect(productionGuard).toContain('unzip -p "$apk_path" "$entry"');
+    expect(productionGuard).toContain("^assets/.*\\.(bundle|hbc)$");
+    expect(productionGuard).toContain("--automation-bundle-path");
+    expect(productionGuard).toContain("--production-bundle-path");
+    expect(productionGuard).toContain("pnpm run validate:native-production-bundle");
+    expect(productionGuard).not.toContain("grep -aE");
 
     for (const source of [production, runtime]) {
       expect(source).toContain('unzip -Z1 "$PRODUCTION_APK_PATH"');
       expect(source).toContain("^assets/.*\\.(bundle|hbc)$");
       expect(source).toContain('test -n "$bundle_entries"');
-      expect(source).toContain('unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry"');
-      const markerScan =
-        source.match(
-          /if unzip -p "\$PRODUCTION_APK_PATH" "\$bundle_entry" \|[\s\S]*?\n\s*then/,
-        )?.[0] ?? "";
-      expect(markerScan).toContain(
-        "grep -aE '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService' > /dev/null",
-      );
-      expect(markerScan).not.toMatch(/\bgrep\b[^\r\n]*(?:-q|--quiet)/);
-      for (const marker of [
-        "__SCENARIO_SHOP_NATIVE_AUTOMATION__",
-        "__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__",
-        "NativeTestControlService",
-      ]) {
-        expect(source).toContain(marker);
-      }
+      expect(source).not.toContain("grep -aE");
+    }
+    for (const marker of [
+      "__SCENARIO_SHOP_NATIVE_AUTOMATION__",
+      "__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__",
+      "NativeTestControlService",
+    ]) {
+      expect(nativeWorkflow).not.toContain(marker);
     }
     expect(runtime).not.toContain(
       'unzip -l "$PRODUCTION_APK_PATH" | grep -Eq \'__SCENARIO_SHOP_NATIVE_AUTOMATION__',
@@ -177,11 +212,12 @@ describe("Native CI workflow contracts", () => {
     const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
 
     expect(runtime).toContain(
-      "needs: [detect, android-automation-build, android-production-build]",
+      "needs: [detect, android-automation-build, android-production-build, production-bundle-guard]",
     );
     expect(runtime).toContain("always()");
     expect(runtime).toContain("needs.android-automation-build.result == 'success'");
     expect(runtime).toContain("needs.android-production-build.result == 'success'");
+    expect(runtime).toContain("needs.production-bundle-guard.result == 'success'");
     expect(runtime).not.toContain("assembleRelease");
     expect(runtime).not.toContain("expo prebuild");
     expect(runtime).not.toContain("gradle/actions/setup-gradle");
@@ -447,6 +483,8 @@ describe("Native CI workflow contracts", () => {
     expect(automationInstall).toContain('shell am start -W -n "$MAIN_ACTIVITY"');
     expect(automationInstall).not.toContain("shell monkey");
     expect(productionInstall).toContain("needs.android-production-build.result == 'success'");
+    expect(productionInstall).toContain("needs.production-bundle-guard.result == 'success'");
+    expect(productionFlow).toContain("needs.production-bundle-guard.result == 'success'");
     expect(productionFlow).toContain("steps.production_install.outcome == 'success'");
     expect(productionFlow).not.toContain("android_automation_install");
     expect(productionFlow).toContain("android-maestro-run.sh");
