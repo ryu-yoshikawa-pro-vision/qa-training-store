@@ -316,3 +316,19 @@
 - remaining_delta: 今回の2 findingsに残差なし。既存run.jsonの`validation.status`はcollectorの保守的な`blocked`を維持し、Native StaticのExpo Doctor patch-version mismatchは今回Scope外として変更していない。
 - decision: `stop_success`
 - Progress: 100% (13/13)
+
+## 2026-08-22 22:54 (JST)
+
+- Repair Loop iteration 3の最終確認を追記する。
+- `git diff --name-only`で許可された3 filesだけを確認し、package／lockfile／workflow／G2／G6／Native checkoutの変更がないことを確認した。
+- `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260822-151533-JST -Write -Check` => files_scanned 4、files_changed 0、residual_findings 0。
+- Commit `024213a19907ab572ebb1e68f9f10c09346710ba`を通常作成し、`origin/fix/commerce-web-correctness`へforceなしでpushした。
+- 新HEAD `024213a19907ab572ebb1e68f9f10c09346710ba`のGitHub Actionsを確認した。
+  - CodeQL: `success`
+  - Phase 1 CI: `queued`
+  - Native CI: `in_progress`
+  - Native Static: `failure`（失敗stepは`Run Expo Doctor`。Expo patch-version mismatchの既知baseline）
+- 旧HEADの結果を新HEADの検証へ流用せず、CodeRabbit再レビュー、review thread操作、PR mergeは実施していない。
+- remaining_delta: Product／Regressionの2 findingsは解消。Phase 1 CIとNative CIの最終状態はGitHub上で継続中であり、Native Static baseline failureは今回Scope外の別対応として残る。
+- decision: `stop_success`
+- Progress: 100% (13/13)
