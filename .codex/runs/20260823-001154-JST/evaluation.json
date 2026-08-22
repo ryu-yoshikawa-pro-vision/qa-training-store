@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "run_id": "20260823-001154-JST",
+  "status": "in_progress",
+  "objective": "Expo SDK 57の7つのpatch依存をExpo Doctor要求値へ揃え、main baselineのNative CI failureを解消する",
+  "criteria": [
+    {
+      "id": "expo-patch-alignment",
+      "status": "complete",
+      "evidence": [
+        "package.jsonの7 direct dependencyとexpo-constants overrideを要求patchへ更新",
+        "pnpm-lock.yamlはExpo 57.0.15 chainの必要範囲だけ更新",
+        "CI相当条件のexpo-doctor@1.17.6で17/17 checks passed"
+      ]
+    },
+    {
+      "id": "local-validation",
+      "status": "complete",
+      "evidence": [
+        "frozen install、Native component、route、EAS、typecheck、lint、format、markdown、diff checkがPASS",
+        "pnpm run testは30 files、397 testsがPASS"
+      ]
+    },
+    {
+      "id": "scope-control",
+      "status": "complete",
+      "evidence": [
+        "tracked product差分はpackage.jsonとpnpm-lock.yamlのみ",
+        ".github/workflows/native-ci.yml、React、React Native、TypeScript、Playwrightは未変更"
+      ]
+    },
+    {
+      "id": "remote-native-ci",
+      "status": "pending",
+      "evidence": [
+        "PR作成後にNative Static、各build、runtime、Production Bundle Guard、verifyを確認する"
+      ]
+    }
+  ],
+  "remaining": [
+    "commit、push、PR作成",
+    "remote Native CIの全job確認",
+    "remote結果をREPORTへ追記し、Sanitizerを最終実行"
+  ]
+}
