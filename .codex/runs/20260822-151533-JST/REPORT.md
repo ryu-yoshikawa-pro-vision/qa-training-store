@@ -184,3 +184,16 @@
 - New tasks: なし。
 - Remaining: PR #43のGitHub checksは一部実行中。Native Staticのbaseline dependency mismatchは別対応であり、PR mergeは行わない。
 - Progress: 100% (9/9)
+
+## 2026-08-22 17:23 (JST)
+
+- Summary: 追加Run Artifactを通常commit／pushし、PR #43の新headを確認した。
+- Completed:
+  - Commit `f35dd75`（`chore: record final validation findings`）を通常作成し、`origin/fix/commerce-web-correctness`へforceなしでpushした。
+  - `gh pr view 43`でPRはOPEN、merge未実施、新headは`f35dd75`であることを確認した。
+  - `gh pr diff 43 --name-only`で変更ファイルは14 filesのまま、G2/G5/G6のsource/test、Plan、Run Artifactだけであることを確認した。
+- Notes/Decisions:
+  - push後のGitHub checksは新headで再実行中。旧headの結果を新headのGreen証跡として扱わない。
+- New tasks: なし。
+- Remaining: 新headのGitHub checks完了待ち。PR mergeは行わない。
+- Progress: 100% (9/9)

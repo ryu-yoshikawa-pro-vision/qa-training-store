@@ -64,6 +64,7 @@
       ,"PR #43のremote checksは最終観測時点で実行中／queued。mergeは実行していない"
       ,"PR branchは最新mainを通常mergeで同期し、PR差分を14 filesへ限定した"
       ,"PR #43のNative StaticはExpo Doctorの既存patch-version mismatchで失敗。package.json／lockfile／CI設定は今回変更していないため、Scope外の依存更新は行わない"
+      ,"追加Run Artifact commit f35dd75を通常push。新headのGitHub checksは再実行中で、旧headの結果を流用しない"
     ]
   },
   "safety": {
