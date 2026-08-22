@@ -65,7 +65,7 @@
     {
       "category": "flaky_or_env_issue",
       "severity": "medium",
-      "evidence": "Remote Native CI run 32575898683のNative Static / Expo Doctorは16/17 checks passed、1 check failedで、6つのExpo patch version mismatchを報告した。",
+      "evidence": "Remote Native CI run 32575898683のNative Static / Expo Doctorは16/17 checks passed、1 check failedで、7つのExpo patch version mismatch（@expo/metro-runtime、expo、expo-build-properties、expo-constants、expo-dev-client、expo-linking、expo-router）を報告した。",
       "detail": "G1 Guard、Actual APK inspection、Android Runtime／Maestroはsuccess。Expo dependency updateはPR #45へ混ぜず、別PRで扱う。",
       "evidence_refs": [
         {

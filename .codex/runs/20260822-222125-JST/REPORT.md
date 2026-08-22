@@ -133,3 +133,20 @@
 - Evaluation: `.codex/runs/20260822-222125-JST/evaluation.json`を`result=partial`、`primary_failure_category=flaky_or_env_issue`として保存した。partialはRemote aggregateが既存Expo Doctor failureをfail-closeで反映したためで、G1 task completionはpassと評価した。
 - Remaining: G1 scope内の未完了事項なし。Expo dependency patch mismatchとaggregate green化は別PRで扱う。
 - Progress: 100% (6/6)
+
+## 2026-08-22 23:58 (JST)
+
+- Summary: Previous Evidence Correctionとして、Remote Native CIのExpo Doctor実ログに合わせてパッケージ数と一覧の誤記を訂正した。
+- Completed:
+  - 実CIログを再確認し、mismatch対象は6件ではなく7パッケージであることを確認した。
+  - 抜けていたパッケージ`expo`を特定した。
+- Corrected Evidence:
+  - 正しい対象一覧は`@expo/metro-runtime`、`expo`、`expo-build-properties`、`expo-constants`、`expo-dev-client`、`expo-linking`、`expo-router`。
+  - 実ログの表現は`7 packages out of date.`。
+- Scope/Decision:
+  - この追記はEvidence記録のみの訂正であり、G1 implementation／validation resultに変更はない。
+  - Production Bundle Guard、Actual APK Hermes inspection、Android Runtime／Maestroは引き続きPASSとして保持する。
+  - Expo dependency updateは今回のPRへ追加せず、別PR対象として維持する。
+- Changes: 既存の過去記録は変更せず、この訂正エントリをREPORT末尾へappend-onlyで追加した。
+- Remaining: なし。
+- Progress: 100% (5/5)
