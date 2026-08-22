@@ -135,3 +135,20 @@
 - New tasks: なし。
 - Remaining: scope/Git確認、Run Artifact Sanitizer、normal commit/push。
 - Progress: 78% (7/9)
+
+## 2026-08-22 17:03 (JST)
+
+- Summary: normal commit／pushとPR作成を完了した。mergeは実行していない。
+- Completed:
+  - Commit `86bb87b`（`fix: enforce checkout result and ownership invariants`）を通常作成し、`origin/fix/commerce-web-correctness`へforceなしでpushした。
+  - PR #43を`main`向けに作成した。URL: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/43
+  - 最終確認時点でPRはOPEN、MERGEABLE、CodeRabbitはSUCCESS、その他GitHub Checksは実行中／queuedだった。Agentはmergeや再レビュー起動を行わない。
+- Commands/Results:
+  - `git push -u origin fix/commerce-web-correctness` => `86bb87b`をremoteへpush。
+  - `gh pr create --base main --head fix/commerce-web-correctness` => PR #43 created、未merge。
+  - `gh pr view 43 --json state,mergeable,mergeStateStatus,statusCheckRollup` => OPEN／MERGEABLE／checks in progress。
+- Notes/Decisions:
+  - Remote CIは外部非同期状態のため、最終観測を記録して停止する。ローカル必須ゲートはすべて成功済み。
+- New tasks: なし。
+- Remaining: なし（PRのremote checks完了はGitHub側の非同期処理）。
+- Progress: 100% (9/9)

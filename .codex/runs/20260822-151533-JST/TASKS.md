@@ -10,7 +10,7 @@
 - [x] 6. Focused Testを実行し、失敗時はRoot Causeを修正して再検証する
 - [x] 7. 変更面に必要なRepository gate、Web/Native runtime Before/After確認を実行する
 - [x] 8. scope/Git確認、Run Artifact Sanitizer、REPORT/run manifestを更新する
-- [ ] 9. normal commit/pushを実施し、PRをmergeせず結果を報告する
+- [x] 9. normal commit/pushを実施し、PRをmergeせず結果を報告する
 
 ## Discovered
 
