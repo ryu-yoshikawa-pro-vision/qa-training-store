@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "run_id": "20260822-214522-JST",
-  "result": "partial",
+  "result": "pass",
   "primary_failure_category": null,
   "failure_categories": [],
   "dimensions": {
     "task_completion": {
-      "rating": "partial",
-      "evidence": "G7、G9、教材、既存Run Artifact correctionの実装と指定ローカルvalidationは完了した。PR #44修正後HEADのRequired CIはpush後確認待ちである。",
+      "rating": "pass",
+      "evidence": "G7、G9、教材、既存Run Artifact correctionの実装と指定ローカルvalidationを完了した。PR #44へpushした修正後HEADの観測時点で、Phase 1／Nativeを含むRequired CIが全てpassした。",
       "evidence_refs": [
         {"kind": "run_report", "path": ".codex/runs/20260822-214522-JST/REPORT.md", "selector": "Repository gate", "summary": "Focused／contract／Repository validation"}
       ]
@@ -60,7 +60,6 @@
   "findings": [],
   "improvement_candidates": [],
   "follow_up": [
-    "actions/setup-java v4のv5 migration／compatibility validationは別PRで対応する。",
-    "PR #44の修正後HEAD Required CIをpush後に確認する。"
+    "actions/setup-java v4のv5 migration／compatibility validationは別PRで対応する。"
   ]
 }

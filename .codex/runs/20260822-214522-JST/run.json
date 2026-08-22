@@ -33,11 +33,12 @@
                                       {"command": "pnpm run security:check", "status": "passed"},
                                       {"command": "pnpm run test:contracts", "status": "passed"},
                                       {"command": "git diff --check", "status": "passed"},
-                                      {"command": "exact SHA／mutable tag scan", "status": "passed"}
+                                      {"command": "exact SHA／mutable tag scan", "status": "passed"},
+                                      {"command": "gh pr checks 44 --repo ryu-yoshikawa-pro-vision/qa-training-store (PR head at observation time 097435f)", "status": "passed", "notes": "Phase 1／Nativeを含むRequired CIは全てpass"}
                                   ],
                        "warnings":  [
                                       "lintは既存warning 64件を出力したがerror 0件。",
-                                      "PR #44の修正後CIはpush後に確認する。"
+                                      "097435fはPR head at observation timeであり、永久的なfinal headを意味しない。PRの現在HEADはGitHubを正本とする。"
                                   ]
                    },
     "safety":  {
@@ -76,6 +77,6 @@
                                   }
                   },
     "evaluation_path":  ".codex/runs/20260822-214522-JST/evaluation.json",
-    "status":  "pending",
+    "status":  "completed",
     "primary_failure_category":  null
 }

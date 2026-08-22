@@ -146,3 +146,13 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## Correction: 2026-08-22 22:18 (JST)
+
+- 既存entryはappend-only契約のため削除・移動せず、このCorrectionを今回Runのcanonical chronologyとして追記した。
+- Canonical chronology: G7 initial state／transition／Customer assertion修正 → G9 upstream／advisory確認とcheckout SSOT修正 → Focused／contract／curriculum validation → Repository gates／artifact JSON／sanitizer → normal commit `097435f40c8eaf967c6675be442b219f5ae3385b` → branch push → push後のPR #44 Required CI確認。
+- `gh pr checks 44 --repo ryu-yoshikawa-pro-vision/qa-training-store`で観測したPR head `097435f40c8eaf967c6675be442b219f5ae3385b`は、Chromium E2E（required／cross-role／accessibility／training-web-baseline／mobile-boundary）、Vitest（integration／contracts等）、UI Review、Phase 1 quality／security、Codex artifact sanitization、Native `native-ci / verify`を含めて全てPASSだった。Native変更検知によりAndroid／iOS実行系はskipであり、失敗ではない。CodeRabbitはOSS手動レビューが必要というskip表示で、CI failureではない。
+- `097435f...`は「PR head at observation time」であり、永続的な「final PR head」ではない。Git commitは自身のSHAを自身のcontentへ事前記録できないため、このRun Artifactでは今後head更新だけを目的とするcommitを追加せず、PRの現在HEADはGitHub側を正本とする。
+- CI観測結果とRun完了状態を反映するため、このCorrectionを含むnormal follow-up commit／pushを1回実施する。これはartifact整合性の更新であり、merge、force push、rebase、amend、destructive reset／cleanではない。
+- setup-java v4のdeprecated状態は記録済みであり、v5 compatibility validation／migrationは別PRのfollow-upとする。このPRではv5へupgradeしない。
+- Progress: 100% (9/9)

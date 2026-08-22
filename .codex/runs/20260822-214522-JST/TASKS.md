@@ -9,8 +9,8 @@
 - [x] 5. 既存evaluation.jsonとREPORT.mdへ事実整合Correctionを追記し、setup-java follow-upを記録する
 - [x] 6. Focused／contract／curriculum validationを実行する
 - [x] 7. Repository gates、diff scope、JSON parse、sanitizerを実行する
-- [ ] 8. normal commit／pushし、PR #44の修正後HEADを確認する
-- [ ] 9. 修正後HEADのPhase 1 CI／Native CIを含むRequired CIを確認し、Runを完了する
+- [x] 8. normal commit／pushし、PR #44の修正後HEADを確認する
+- [x] 9. 修正後HEADのPhase 1 CI／Native CIを含むRequired CIを確認し、Runを完了する
 
 ## Discovered
 
