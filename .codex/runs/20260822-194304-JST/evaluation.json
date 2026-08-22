@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "run_id": "20260822-194304-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "PR #42で確認されたNative Search同期・stale response、SQLite N+1/detail scan、Guest rank negative coverage、Search Component Test、代表Native runtimeを完了した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260822-194304-JST/REPORT.md",
+          "selector": "2026-08-22 21:36",
+          "summary": "最終focused test、Build、Install、Native Search flowの結果。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はPR #42のNative Search、Native SQLite Catalog、Guest regression test、既存Search Maestro flow、Run Artifactに限定され、Expo依存やCustomerCatalogGateway再構成は行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "src/presentation/native/native-screens.tsx",
+          "summary": "Search状態同期と独立serialのみを修正。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "summary": "Catalog relation bulk loadingとDetail単品取得を修正。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused test、typecheck、lint、format、Markdown、route dependency、physical Android Build/Install/Search flowは成功した。MaestroのIME入力経路だけは端末環境上安定しないため、route initial deep-linkをRuntimeに使用し、キーボード操作はComponent Testで検証した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260822-194304-JST/REPORT.md",
+          "selector": "Native final validation",
+          "summary": "Release Build、Install、Native Search flowのPASS記録。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260822-194304-JST/REPORT.md",
+          "selector": "focused",
+          "summary": "Component、Repository、Contract、typecheck、lint等の結果。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "force push、rebase、amend、reset、clean、PR merge、dependency変更、timeout増加、retryによるfailure maskingは行っていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Deferred Promiseによるstale regression、SQLite query shape、Guest negative assertion、Maestro static contract、旧REPORT訂正をRun Artifactへ記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存ProductViewer、domain visibility/pricing、既存Repository、request serial pattern、Login boundary、既存Maestro deep-link helperを再利用し、新Frameworkを追加していない。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "focused commandとphysical Android flowは再実行可能だが、MaestroのReact Native IME入力は端末環境依存であり、route initial flowとComponent Testを分担させている。"
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "物理端末でMaestro inputTextがReact Native Search入力欄を更新しない状態を確認した。",
+      "detail": "timeout、sleep、assertion弱体化は行わず、Runtimeは安定したroute initial q=0001経路、キーボード入力とrequest payloadはComponent Testで検証した。"
+    }
+  ],
+  "improvement_candidates": []
+}
