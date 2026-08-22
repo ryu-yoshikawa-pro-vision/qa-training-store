@@ -116,3 +116,12 @@
   - PR #42固有のRemaining: なし。
   - Separate prerequisite: Expo SDK 57 patch alignment（`@expo/metro-runtime`、`expo`、`expo-build-properties`、`expo-constants`、`expo-dev-client`、`expo-linking`、`expo-router`）。このPRではdependency／lockfile／CI設定を変更していないため別PRで対応する。
 - Progress: 100% (7/7)
+
+## 2026-08-22 23:24 (JST) — EOF検証誤りの訂正（append-only）
+
+- Previous verification incorrectly concluded that the old REPORT correction was at the physical EOF。以前、「旧REPORTとrepair REPORTの訂正ブロックは物理的な末尾にある」と判定したのは誤りだった。
+- GitHub上の実ファイルを再確認した結果、旧REPORTの22:40訂正は21:41、16:07、16:08、16:05の既存記録より前に挿入されていることを確認した。これは物理EOFではなかった。
+- 既存履歴を編集・削除・移動せず、旧REPORTの本当のEOFへ新しいcanonical correctionをappendした。`20260822-194304-JST/REPORT.md`のCanonical execution order correctionは元から物理EOFにあり、正しいことを再確認した。
+- 今回はProduct code、Test code、dependency、CI、Maestroを変更していない。この訂正によって、旧Runの時系列、repair RunのEOF、最新repair Runの検証ミスの記録が整合した。
+- CodeRabbitのREPORT chronology findingは、旧Runの真のEOFへの訂正追加によりFixedとして扱える状態である。既存のreview submission／threadは変更していない。
+- Progress: 100% (7/7)

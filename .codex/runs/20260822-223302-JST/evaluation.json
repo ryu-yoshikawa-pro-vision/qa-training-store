@@ -23,7 +23,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "stale Search、stale Suggestion、短縮invalidatingのDeferred scenarioを維持し、両REPORTの既存記録を変更せず末尾訂正を追加した。CodeRabbit threadはread-only再確認のみ実施した。"
+      "evidence": "stale Search、stale Suggestion、短縮invalidatingのDeferred scenarioを維持した。旧Run REPORTの以前のEOF確認が誤っていたことを検出し、既存履歴を変更せず旧Runの真の物理EOFへcanonical correctionをappendした。repair Run REPORTのcanonical correctionは既に物理EOFであることを再確認し、最新repair REPORTにも前回の検証ミスをappend-onlyで記録した。CodeRabbit threadはread-only再確認のみ実施した。"
     },
     "maintainability": {
       "rating": "pass",

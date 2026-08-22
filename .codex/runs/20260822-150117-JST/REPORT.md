@@ -172,3 +172,12 @@
 - Remaining:
   - feature branchのnormal commit/push、最終差分確認。
 - Progress: 86% (6/7)
+
+## 2026-08-22 23:24 (JST) — 最終canonical時系列訂正（append-only）
+
+- 22:40の訂正は「ファイルの実際の末尾へ追加した」と記録していた。しかし実ファイルおよびremote HEADを再確認した結果、22:40ブロックは既存の21:41ブロックより前に挿入され、その後ろに16:07、16:08、16:05の既存記録が続いていた。したがって、22:40記録の「物理的EOFへ追加済み」という記載は誤りである。
+- 既存記録は一切移動・変更・削除せず、このブロックを実際の物理EOFへ追加した。旧Runのcanonical execution orderは、16:05 追加validation、16:07 feature branch commit／push、16:08 Run Artifact追補commit／pushである。
+- 16:05ブロックはlate appendであり、16:07／16:08の後に実行されたものではない。16:08時点で旧Runは実装、validation、Run Artifact保存、commit／pushまで完了しており、commit／push後にRemainingへ戻ったわけではない。
+- 21:41および22:40の訂正エントリはappend-onlyの履歴として保持する。過去記録を無効化・削除するものではないが、時系列の解釈については、この物理EOFの訂正を旧Runに関する唯一の最新canonical recordとする。
+- PR #42のrepairは別Run `20260822-194304-JST`で実施された。今回のremote確認で、同Runの既存Canonical execution order correctionは物理EOFにあることも確認した。
+- Progress: 100% (7/7)
