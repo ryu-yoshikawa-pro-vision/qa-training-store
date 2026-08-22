@@ -3,7 +3,6 @@
 # explicit sandbox/approval flags and block unsafe overrides.
 
 sandbox_mode = "workspace-write"
-approval_policy = "untrusted"
 web_search = "cached"
 allow_login_shell = false
 
