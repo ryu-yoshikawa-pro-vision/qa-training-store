@@ -14,7 +14,7 @@
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "変更はG7 Test Oracle、G8 Preparation preflight、G9 Training workflow／contract／regression testとRun Artifactに限定し、Product behavior、patch、EOL contract、依存、PR、Git履歴を変更していない。",
+      "evidence": "変更はG7 Test Oracle、G8 Preparation preflight、G9 Training workflow／contract／regression testとRun Artifactに限定した。Product behavior、patch、EOL contract、依存は変更していない。normal commit、branch push、PR #44 creation、follow-up commit／pushは実施済みであり、PR merge、force push、rebase、amend、destructive reset／cleanは未実施である。",
       "evidence_refs": [
         {"kind": "validation_command", "path": ".codex/runs/20260822-193304-JST/REPORT.md", "selector": "git diff --name-only", "summary": "最終変更範囲"}
       ]

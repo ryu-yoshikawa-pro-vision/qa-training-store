@@ -1,7 +1,10 @@
 import { parse } from "yaml";
 
+export const APPROVED_TRAINING_CHECKOUT_ACTION =
+  "actions/checkout@11d5960a326750d5838078e36cf38b85af677262";
+
 export const APPROVED_TRAINING_ACTIONS = new Set([
-  "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+  APPROVED_TRAINING_CHECKOUT_ACTION,
   "pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
   "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
   "actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3",
@@ -158,7 +161,7 @@ export function validateTrainingWorkflow(workflowName: string, text: string): vo
         if (typeof step.uses !== "string" || !APPROVED_TRAINING_ACTIONS.has(step.uses)) {
           fail(workflowName, `unapproved action: ${String(step.uses)}`);
         }
-        if (step.uses === "actions/checkout@11d5960a326750d5838078e36cf38b85af677262") {
+        if (step.uses === APPROVED_TRAINING_CHECKOUT_ACTION) {
           const checkoutOptions = step.with;
           if (!isRecord(checkoutOptions) || checkoutOptions["persist-credentials"] !== false) {
             fail(workflowName, `job ${jobName} checkout must set persist-credentials: false`);

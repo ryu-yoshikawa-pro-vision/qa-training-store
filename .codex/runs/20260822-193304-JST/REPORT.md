@@ -268,3 +268,33 @@
 - New tasks: なし。
 - Remaining: なし。
 - Progress: 100% (11/11)
+
+## Correction: 2026-08-22 21:52 (JST)
+
+- Summary: PR #44作成後の実行事実とREPORTの時系列表現を補正した。既存entryはappend-only契約を維持するため削除・移動せず、このCorrectionをcanonical chronologyとして追加した。
+- Correction details:
+  - `evaluation.json`のscope evidenceに、実施済みのnormal commit、branch push、PR #44 creation、follow-up commit／pushを明記し、未実施のPR merge、force push、rebase、amend、destructive reset／cleanを明確に分離した。
+  - 実行ステップ順のcanonical chronologyは次のとおりである。
+    1. G7初回mapping／Test Oracle修正とFocused入口確認。
+    2. 依存準備前のG7 Focused試行が`node_modules`不足で失敗したことを確認し、lockfile固定のdependency preparationを実施。
+    3. G7 successful focused validationと一時negative control（unexpected already-transitioned stateがFAIL）を確認。
+    4. G8 strict apply preflight（Windows／Linux control）を確認。
+    5. G8 preparation validationを実施し、既存strict apply／runtime contractがPASSしたことを確認。
+    6. G9 official upstream／advisory確認、full SHA pin、exact contract／mutable-tag negative testを完了。
+    7. Repository gates、diff scope、Run Artifact sanitizer／JSON parseを完了。
+    8. normal commitを作成。
+    9. `fix/qa-repository-hardening`をoriginへpush。
+    10. main向けPR #44を作成。
+    11. PR作成後のfollow-up commitを作成してpush。
+  - 既存の`20:15`、`20:00`、`19:42` entryは、実行記録を時刻順へ再配置するとappend-only契約に反するため保持した。上記一覧が監査時に参照するcanonical chronologyである。
+  - 既存の「PR #44の最終headが`1230c10...`」という表現は、`1230c10...`がその記録commit作成前に観測したPR headであり、PRの永久的なfinal headを意味しないことを明記する。今後は`PR head at observation time`を使い、現在HEADはGitHub側を正本とする。
+  - setup-java v4の公式deprecationを確認した。`actions/setup-java` v5 compatibility validation／migrationは別PRで扱い、このPRではv5へupgradeしない。
+- Commands:
+  - `ConvertFrom-Json`（old `evaluation.json`）=> correction後もJSON parse成功。
+  - `rg`（old REPORTのsection headings）=> 既存entryは移動せず、Correction内へcanonical chronologyを追加する方針を確認。
+- Notes/Decisions:
+  - Run Artifactへ「Git操作をしていない」という事実と矛盾する表現を残さない。
+  - final PR headを更新するためだけのcommitは追加しない。以後のcommit後にPR headを観測する場合も観測時点表現を使う。
+- New tasks: なし。
+- Remaining: 今回修正のFocused／contract／Repository validation、normal push後のPR #44最新HEAD CI確認。
+- Progress: 22% (2/9)
