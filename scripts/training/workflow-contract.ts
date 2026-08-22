@@ -1,11 +1,11 @@
 import { parse } from "yaml";
 
 export const APPROVED_TRAINING_ACTIONS = new Set([
-  "actions/checkout@v4",
-  "pnpm/action-setup@v4",
-  "actions/setup-node@v4",
-  "actions/setup-java@v4",
-  "actions/upload-artifact@v4",
+  "actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+  "pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
+  "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
+  "actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3",
+  "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
 ]);
 
 export const APPROVED_TRAINING_RUNNERS = new Set(["ubuntu-24.04"]);
@@ -158,7 +158,7 @@ export function validateTrainingWorkflow(workflowName: string, text: string): vo
         if (typeof step.uses !== "string" || !APPROVED_TRAINING_ACTIONS.has(step.uses)) {
           fail(workflowName, `unapproved action: ${String(step.uses)}`);
         }
-        if (step.uses === "actions/checkout@v4") {
+        if (step.uses === "actions/checkout@11d5960a326750d5838078e36cf38b85af677262") {
           const checkoutOptions = step.with;
           if (!isRecord(checkoutOptions) || checkoutOptions["persist-credentials"] !== false) {
             fail(workflowName, `job ${jobName} checkout must set persist-credentials: false`);

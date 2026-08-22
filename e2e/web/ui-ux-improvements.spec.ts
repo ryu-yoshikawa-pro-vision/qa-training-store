@@ -338,10 +338,11 @@ test.describe("UI/UX improvement flows A-J", () => {
     await page.goto("/admin/inventories");
     await expect(page.getByRole("heading", { name: "在庫管理" })).toBeVisible();
     await page.goto("/admin/orders/order-paid");
-    if (await page.getByRole("button", { name: "発送準備を開始" }).count()) {
-      await page.getByRole("button", { name: "発送準備を開始" }).click();
-      await expect(page.getByText("発送準備中", { exact: true })).toBeVisible();
-    }
+    const startPreparationButton = page.getByRole("button", { name: "発送準備を開始" });
+    await expect(startPreparationButton).toHaveCount(1);
+    await expect(startPreparationButton).toBeVisible();
+    await startPreparationButton.click();
+    await expect(page.getByText("発送準備中", { exact: true })).toBeVisible();
     await login(page, "regular@example.com");
     await page.goto("/orders/order-paid");
     await expect(page.getByRole("heading", { name: "ORD-20260701-0002" })).toBeVisible();

@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "run_id": "20260822-193304-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Repository Audit Remediation PlanのG7、G8、G9だけを実装し、指定されたfocused／strict／contract validationを完了した。",
+      "evidence_refs": [
+        {"kind": "run_report", "path": ".codex/runs/20260822-193304-JST/REPORT.md", "selector": "2026-08-22 20:17", "summary": "最終gateと完了範囲"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はG7 Test Oracle、G8 Preparation preflight、G9 Training workflow／contract／regression testとRun Artifactに限定し、Product behavior、patch、EOL contract、依存、PR、Git履歴を変更していない。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260822-193304-JST/REPORT.md", "selector": "git diff --name-only", "summary": "最終変更範囲"}
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "Flow Jの正常系とunexpected state negative control、Windows／Linux strict apply、Preparation contract、G9 contract／mutable-tag negative、format／lint／typecheck／security／全contractを確認した。",
+      "evidence_refs": [
+        {"kind": "run_report", "path": ".codex/runs/20260822-193304-JST/REPORT.md", "selector": "2026-08-22 19:57", "summary": "G7 runtime validation"},
+        {"kind": "run_report", "path": ".codex/runs/20260822-193304-JST/REPORT.md", "selector": "2026-08-22 20:08", "summary": "G9 exact SHA validation"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "ignore-whitespace、normalization utility、retry、skip、timeout増加、version upgrade、削除、rename、force push、rebase、amend、reset-clean、PR mergeを行っていない。",
+      "evidence_refs": [
+        {"kind": "run_report", "path": ".codex/runs/20260822-193304-JST/REPORT.md", "selector": "Notes/Decisions", "summary": "安全制約と非採用判断"}
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "指定Plan、仮説、初回環境失敗、G7／G8／G9の根拠、validation、最終diffを日本語Run Artifactへ追記した。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260822-193304-JST/run.json", "summary": "Run metadataとvalidation一覧"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存のTest Oracle、Preparation sequence、Training workflow contractとallowlistを最小差分で強化し、新しいframework／abstractionを追加していない。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "scripts/agentic-qa/prepare-challenge.ts", "summary": "既存sequence前段のstrict preflight"},
+        {"kind": "changed_file", "path": "scripts/training/workflow-contract.ts", "summary": "exact SHA allowlist"}
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "G7はFocused Chromiumとbounded negative control、G8はWindowsおよび隔離Linux fixture、G9は公式API／contract／negative testで再現可能な証跡を残した。",
+      "evidence_refs": [
+        {"kind": "run_report", "path": ".codex/runs/20260822-193304-JST/REPORT.md", "selector": "2026-08-22 20:15", "summary": "G8 platform control"}
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}
