@@ -154,12 +154,13 @@ async function runNativeCustomerContracts(
   scope: NativeContractHarnessScope,
 ): Promise<NativeContractHarnessResult> {
   const repository = new NativeCustomerSQLiteRepository(database);
-  const home = await repository.getHome({ now: BASE_CLOCK });
+  const home = await repository.getHome({ viewer: { kind: "guest" }, now: BASE_CLOCK });
   if (home.newProducts.length === 0 && home.saleProducts.length === 0) {
     throw new Error("Native contract catalog returned no products");
   }
   const detail = await repository.getProductDetail({
     productId: "product-basic-shirt",
+    viewer: { kind: "guest" },
     now: BASE_CLOCK,
   });
   const variant = detail?.variants.find((candidate) => candidate.stockQuantity > 0);

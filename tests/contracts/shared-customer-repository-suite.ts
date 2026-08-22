@@ -38,6 +38,7 @@ export function createCustomerRepositoryContractSuite(
 ): void {
   describe("shared customer repository contract", () => {
     let handle: CustomerRepositoryContractHandle;
+    const guestViewer = { kind: "guest" } as const;
 
     beforeEach(async () => {
       handle = await createHandle();
@@ -48,7 +49,10 @@ export function createCustomerRepositoryContractSuite(
     });
 
     it("returns the seeded Guest storefront and hides rank-restricted products", async () => {
-      const home = await handle.adapter.catalog.getHome({ now: BASE_CLOCK });
+      const home = await handle.adapter.catalog.getHome({
+        viewer: guestViewer,
+        now: BASE_CLOCK,
+      });
       expect(home.categories.length).toBeGreaterThan(0);
       expect(home.newProducts.map((product) => product.productId)).toContain("product-basic-shirt");
     });
@@ -56,11 +60,13 @@ export function createCustomerRepositoryContractSuite(
     it("supports deterministic keyword search and product detail", async () => {
       const result = await handle.adapter.catalog.search({
         ...searchRequest({ keyword: "Tシャツ" }),
+        viewer: guestViewer,
         now: BASE_CLOCK,
       });
       expect(result.items.map((item) => item.productId)).toContain("product-basic-shirt");
       const detail = await handle.adapter.catalog.getProductDetail({
         productId: "product-basic-shirt",
+        viewer: guestViewer,
         now: BASE_CLOCK,
       });
       expect(detail).toMatchObject({

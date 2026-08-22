@@ -15,6 +15,9 @@ import { AccountUseCases } from "@/application/use-cases/account-use-cases";
 import { CartUseCases } from "@/application/use-cases/cart-use-cases";
 import { CheckoutOrderUseCases } from "@/application/use-cases/checkout-order-use-cases";
 import { CustomerReviewUseCases } from "@/application/use-cases/review-user-use-cases";
+import { CatalogUseCases } from "@/application/use-cases/catalog-use-cases";
+import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
+import { createNativeCustomerCatalogGateway } from "@/application/native/guest-storefront";
 import type {
   Clock,
   CurrentSessionStore,
@@ -88,6 +91,85 @@ async function createNativeContractHandle() {
 createCustomerRepositoryContractSuite(createNativeContractHandle);
 
 describe("Native SQLite Node runtime contract", () => {
+  it("preserves the session viewer through UseCase, Gateway, Repository, and SQLite", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("default"),
+    );
+    const repositories = createNativeCustomerApplicationRepositories(
+      database as unknown as SQLiteDatabase,
+    );
+    const sessionId = "session-user-customer-gold";
+    await database.runAsync(
+      "INSERT INTO sessions (id, user_id, created_at) VALUES (?, ?, ?)",
+      sessionId,
+      "user-customer-gold",
+      "2026-07-01T03:00:00.000Z",
+    );
+    let currentSessionId: string | null = sessionId;
+    const sessionStore: CurrentSessionStore = {
+      getSessionId: async () => currentSessionId,
+      setSessionId: async (value) => {
+        currentSessionId = value;
+      },
+      clear: async () => {
+        currentSessionId = null;
+      },
+    };
+    const useCases = new CatalogUseCases({
+      identity: new SessionIdentityResolver(
+        repositories.users,
+        repositories.sessions,
+        sessionStore,
+      ),
+      customerGateway: createNativeCustomerCatalogGateway(
+        new NativeCustomerSQLiteRepository(database as unknown as SQLiteDatabase),
+      ),
+      clock: { now: () => "2026-07-01T03:00:00.000Z" },
+    });
+
+    const home = await useCases.getHome();
+    expect(home.newProducts.map((product) => product.productId)).toContain("product-running-shoes");
+    const result = await useCases.search({
+      keyword: null,
+      categoryIds: [],
+      brandIds: [],
+      minimumPrice: 6000,
+      maximumPrice: 6100,
+      inStockOnly: true,
+      onSaleOnly: true,
+      minimumRating: 4,
+      sort: "price_asc",
+      page: 1,
+      pageSize: 20,
+    });
+    expect(result.items).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          productId: "product-running-shoes",
+          minimumViewerUnitPrice: 6080,
+        }),
+      ]),
+    );
+    expect(result.total).toBe(1);
+    expect(result.facets.categories).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "category-sports", count: 1 })]),
+    );
+    expect(result.facets.brands).toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: "brand-scenario-active", count: 1 })]),
+    );
+    expect(result.facets.inStockCount).toBe(1);
+    expect(result.facets.onSaleCount).toBe(1);
+    await expect(useCases.suggest({ keyword: "ラン", limit: 8 })).resolves.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ type: "product", id: "product-running-shoes" }),
+      ]),
+    );
+    database.close();
+  });
+
   it("distinguishes forbidden existing products from missing products", async () => {
     const database = new NodeSQLiteDatabase();
     await database.execAsync(CUSTOMER_SCHEMA_SQL);
@@ -100,6 +182,7 @@ describe("Native SQLite Node runtime contract", () => {
     await expect(
       repository.getProductDetail({
         productId: "product-running-shoes",
+        viewer: { kind: "guest" },
         now: "2026-07-01T03:00:00.000Z",
       }),
     ).rejects.toMatchObject<Partial<ApplicationError>>({
@@ -109,6 +192,7 @@ describe("Native SQLite Node runtime contract", () => {
     await expect(
       repository.getProductDetail({
         productId: "product-does-not-exist",
+        viewer: { kind: "guest" },
         now: "2026-07-01T03:00:00.000Z",
       }),
     ).resolves.toBeNull();
