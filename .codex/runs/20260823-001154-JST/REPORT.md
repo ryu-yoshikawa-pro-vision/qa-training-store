@@ -175,3 +175,37 @@
 - Remaining:
   - commit／push／PR作成、remote Native CI全job確認、最終判定。
 - Progress: 80% (8/10)
+
+## 2026-08-23 01:25 (JST)
+
+- Summary: commit／push／独立PR作成とremote Native CIを完了し、指定jobおよびPR全体のcheckを確認した。
+- Completed:
+  - commit `bb0e249`（`fix: align Expo SDK 57 patch dependencies`）を作成し、`fix/expo-sdk-57-patch-alignment`をoriginへpushした。
+  - PR [#47](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/47)を作成した。タイトルは`fix: align Expo SDK 57 patch dependencies`で、#42/#43/#45に共通するmain baseline failureの独立修正であることとfeature変更を含めないことを明記した。
+  - Native CI run `32582733887`は全job PASSだった。
+    - Detect Native Changes
+    - Native Static（lockfile frozen、Native component 12 suites / 49 tests、route 38、EAS config、Expo Doctor 17/17）
+    - Production Bundle Guard
+    - Android Automation Build
+    - Android Production-validation Build
+    - Android Runtime / Maestro
+    - Native iOS CI / iOS Automation Build
+    - Native iOS CI / iOS Production-validation Build
+    - Native iOS CI / iOS Native CI Verify
+    - `native-ci / verify`
+  - PR checksも、Code Quality、Vitest、Static、E2E、build、Native CIを含めPASSした。deploy-productionとExtended E2Eのskippingはworkflow条件による想定結果だった。
+  - CodeRabbitは自動checkが`Review skipped: manual review required for this OSS repository`となった。再レビュー起動やthread操作は行っていない。
+- Commands:
+  - `git commit -m "fix: align Expo SDK 57 patch dependencies"` => PASS、commit `bb0e249`。
+  - `git push -u origin fix/expo-sdk-57-patch-alignment` => PASS。
+  - `gh pr create ...` => PR #47作成。
+  - `gh run view 32582733887 ...` => status `completed`、conclusion `success`。
+  - `gh run view --job 97054456512 --log`のNative Static抽出 => `Lockfile is up to date`、component 12/12・49/49、route 38、EAS PASS、Doctor `17/17 checks passed`。
+  - `gh pr checks 47` => 指定Native jobおよびPR checkはPASS。CodeRabbitはmanual review skip、workflow条件によるskip以外のfailureなし。
+- Notes/Decisions:
+  - scope外として、Windowsのnpm config warning、既存lint warning 64件、既存Jest haste／act／SQLite warning、GitHub push時に表示されたdefault branch vulnerability noticeは修正しない。今回の7 package patch alignmentとの因果は確認できず、PRへ便乗修正していない。
+  - Native build／runtime／bundle guard／verifyに新しいdependency起因のregressionは観測されなかった。
+  - Merge、CodeRabbit再レビュー、review thread操作は実施していない。
+- New tasks: なし。
+- Remaining: なし。
+- Progress: 100% (10/10)

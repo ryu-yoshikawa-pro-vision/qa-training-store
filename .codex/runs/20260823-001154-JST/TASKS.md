@@ -10,8 +10,8 @@
 - [x] 6. 指定local validation（Native component、route、EAS、typecheck、lint、format、markdown、diff check）を実行する
 - [x] 7. 可能なら`pnpm run test`を実行し、failureの因果を分類する
 - [x] 8. 最終差分、Run Artifact、Sanitizerを確認する
-- [ ] 9. commit／push／PR作成とremote Native CIを確認する
-- [ ] 10. 最終判定、未完了事項、次アクションを記録する
+- [x] 9. commit／push／PR作成とremote Native CIを確認する
+- [x] 10. 最終判定、未完了事項、次アクションを記録する
 
 ## Discovered
 

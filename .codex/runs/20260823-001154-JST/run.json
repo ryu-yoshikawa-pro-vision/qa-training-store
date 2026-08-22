@@ -21,7 +21,7 @@
     ".codex/runs/20260823-001154-JST/evaluation.json"
   ],
   "validation": {
-    "status": "passed_with_environment_note",
+    "status": "passed",
     "commands": [
       "pnpm install --frozen-lockfile",
       "pnpm dlx expo-doctor@1.17.6 (CI equivalent: npm_config_loglevel=error)",
@@ -71,6 +71,6 @@
     }
   },
   "evaluation_path": ".codex/runs/20260823-001154-JST/evaluation.json",
-  "status": "in_progress",
+  "status": "complete",
   "primary_failure_category": "baseline-expo-doctor-patch-mismatch"
 }
