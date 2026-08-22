@@ -94,3 +94,25 @@
 - Remaining:
   - normal commit/push、remote HEAD、PR OPEN状態の最終確認。
 - Progress: 86% (6/7)
+
+## 2026-08-22 22:49 (JST)
+
+- Summary: test／REPORT差分をnormal commit／pushし、remoteとPRの状態を確認した。
+- Git evidence:
+  - commit `64cea0c9def1c5a9bb93177de02bc8a61b901fa4`（`test: remove native catalog act warnings`）を作成した。
+  - `git push origin feat/native-catalog-storefront-authorization` => 成功。local HEADとremote feature branchは同一SHA。
+  - `git status --short --branch` => clean。
+- PR / CI evidence:
+  - PR #42はOPEN、URLは`https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/42`、mergeしていない。
+  - push後のPhase 1 CIとNative CIは確認時点でqueued／in progress。push前のNative CIではAndroid Runtime/Maestro、Android/iOS buildはPASSし、Native Static／rollupだけがExpo Doctor mismatchでFAILしていた。
+  - CodeRabbitは2026-08-22 07:21:37 UTCの旧6 findingsが`CHANGES_REQUESTED`として残っている。再レビュー起動、コメント返信、thread操作は行っていない。
+- Finding status:
+  - Native Catalog Component `act()` warning: Fixed。RNTL 14.0.1のasync `fireEvent`を5箇所awaitし、7/7とwarning scan 0件。
+  - SQLite N+1、Detail全商品scan、Search/Suggestion stale、`initialKeyword`、Guest rank negative: Fixed。前回repair Runのsource／focused evidenceを確認済み。
+  - `CustomerCatalogGateway` duplicate: False positive。共有interfaceをimport/type re-exportしており、local duplicate declarationなし。
+  - REPORT chronology: Fixed。旧REPORTとrepair REPORTの物理的な末尾にappend-only訂正を追加。
+- Final status:
+  - Product code changes: none（今回の最終repair差分ではProduct sourceを変更していない）。
+  - PR #42固有のRemaining: なし。
+  - Separate prerequisite: Expo SDK 57 patch alignment（`@expo/metro-runtime`、`expo`、`expo-build-properties`、`expo-constants`、`expo-dev-client`、`expo-linking`、`expo-router`）。このPRではdependency／lockfile／CI設定を変更していないため別PRで対応する。
+- Progress: 100% (7/7)
