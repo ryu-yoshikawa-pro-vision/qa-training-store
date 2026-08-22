@@ -47,6 +47,7 @@ vi.mock("@/presentation/guards/route-guard", () => ({
 
 import {
   CheckoutAddressPage,
+  CheckoutCompletePage,
   CheckoutConfirmPage,
   CheckoutFailedPage,
   CheckoutPaymentPage,
@@ -111,6 +112,15 @@ const confirmation: CheckoutConfirmationDto = {
   membershipRank: "regular",
 };
 
+const succeededPaymentAttempt: OrderDetailDto["paymentAttempts"][number] = {
+  attemptNumber: 1,
+  methodCode: "TEST-SUCCESS",
+  status: "succeeded",
+  errorDisplayKey: null,
+  createdAt: "2026-07-01T03:00:00.000Z",
+  processedAt: "2026-07-01T03:00:01.000Z",
+};
+
 const detail: OrderDetailDto = {
   orderId: "order-new",
   orderNumber: "ORD-20260701-0006",
@@ -144,16 +154,7 @@ const detail: OrderDetailDto = {
       image: confirmation.items[0]!.image,
     },
   ],
-  paymentAttempts: [
-    {
-      attemptNumber: 1,
-      methodCode: "TEST-SUCCESS",
-      status: "succeeded",
-      errorDisplayKey: null,
-      createdAt: "2026-07-01T03:00:00.000Z",
-      processedAt: "2026-07-01T03:00:01.000Z",
-    },
-  ],
+  paymentAttempts: [succeededPaymentAttempt],
   shipment: {
     status: "pending",
     carrierName: null,
@@ -173,6 +174,19 @@ const detail: OrderDetailDto = {
       createdAt: "2026-07-01T03:00:01.000Z",
     },
   ],
+};
+
+const failedDetail: OrderDetailDto = {
+  ...detail,
+  orderStatus: "payment_failed",
+  paymentAttempts: [
+    {
+      ...succeededPaymentAttempt,
+      status: "failed",
+      errorDisplayKey: "payment.errors.DECLINED",
+    },
+  ],
+  shipment: null,
 };
 
 describe("checkout and order pages", () => {
@@ -256,13 +270,33 @@ describe("checkout and order pages", () => {
     expect(screen.getByText("認証失敗による支払い失敗を再現します。")).toBeVisible();
   });
 
-  it("keeps payment retry primary and order detail secondary after a failure", async () => {
+  it("uses the persisted paid state even when the failed route is requested", async () => {
     render(<CheckoutFailedPage />);
+    expect(await screen.findByRole("heading", { name: "ご注文が完了しました" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "支払いを再試行" })).not.toBeInTheDocument();
+  });
+
+  it("uses the persisted failed state even when the complete route is requested", async () => {
+    checkout.getMyOrder.mockResolvedValue(failedDetail);
+    render(<CheckoutCompletePage />);
     expect(
       await screen.findByRole("heading", { name: "支払いを完了できませんでした" }),
     ).toBeVisible();
     expect(screen.getByRole("button", { name: "支払いを再試行" })).toHaveClass("button--primary");
     expect(screen.getByRole("link", { name: "注文詳細" })).toHaveClass("button--secondary");
+  });
+
+  it("uses the existing not-found boundary when orderId is missing", async () => {
+    localParams = {};
+    render(<CheckoutCompletePage />);
+    expect(await screen.findByRole("heading", { name: "ページが見つかりません" })).toBeVisible();
+    expect(checkout.getMyOrder).not.toHaveBeenCalled();
+  });
+
+  it("uses the existing not-found boundary for an unauthorized order", async () => {
+    checkout.getMyOrder.mockRejectedValue(new Error("order is not owned by the customer"));
+    render(<CheckoutCompletePage />);
+    expect(await screen.findByRole("heading", { name: "ページが見つかりません" })).toBeVisible();
   });
 
   it("resumes processing and routes from the deterministic result", async () => {

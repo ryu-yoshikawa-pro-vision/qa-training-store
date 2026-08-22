@@ -219,6 +219,7 @@ export class DexieCartRepository implements CartRepository {
     ]);
     const currentCart = requireEntity(cart, "errors.cart.notFound");
     const currentItem = requireEntity(item, "errors.cartItem.notFound");
+    assertCartItemBelongsToCart(currentItem, currentCart);
     assertExpectedVersion(currentCart.version, input.cartExpectedVersion);
     assertExpectedVersion(currentItem.version, input.itemExpectedVersion);
     const variantRecord = requireEntity(
@@ -259,6 +260,7 @@ export class DexieCartRepository implements CartRepository {
     ]);
     const currentCart = requireEntity(cart, "errors.cart.notFound");
     const currentItem = requireEntity(item, "errors.cartItem.notFound");
+    assertCartItemBelongsToCart(currentItem, currentCart);
     assertExpectedVersion(currentCart.version, input.cartExpectedVersion);
     assertExpectedVersion(currentItem.version, input.itemExpectedVersion);
     await this.db.cart_items.delete(currentItem.id);
@@ -572,6 +574,16 @@ export class DexieCartRepository implements CartRepository {
         retryable: false,
       });
     }
+  }
+}
+
+function assertCartItemBelongsToCart(item: CartItem, cart: Cart): void {
+  if (item.cartId !== cart.id) {
+    throw new ApplicationError({
+      code: "NOT_FOUND",
+      messageKey: "errors.cartItem.notFound",
+      retryable: false,
+    });
   }
 }
 

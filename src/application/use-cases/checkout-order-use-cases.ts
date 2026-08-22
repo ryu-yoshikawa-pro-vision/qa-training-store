@@ -55,6 +55,26 @@ interface CheckoutOrderDependencies {
 
 type BeginOrderResult = OrderProcessingDto | OrderResultDto;
 
+export type CheckoutResultKind = "complete" | "failed";
+
+export function resolveCheckoutResultKind(
+  order: Pick<OrderDetailDto, "orderStatus" | "paymentAttempts">,
+): CheckoutResultKind | null {
+  const latestPayment = order.paymentAttempts.at(-1);
+  if (latestPayment === undefined) return null;
+  if (order.orderStatus === "payment_failed" && latestPayment.status === "failed") {
+    return "failed";
+  }
+  if (
+    order.orderStatus !== "pending_payment" &&
+    order.orderStatus !== "payment_failed" &&
+    latestPayment.status === "succeeded"
+  ) {
+    return "complete";
+  }
+  return null;
+}
+
 const STEP_ORDER: Record<CheckoutStep, number> = {
   address: 0,
   payment: 1,

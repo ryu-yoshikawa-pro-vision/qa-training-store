@@ -1,12 +1,22 @@
-import { useEffect, useMemo, useRef, useState, type KeyboardEvent } from "react";
+import {
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type Context,
+  type KeyboardEvent,
+} from "react";
 import { useRouter, type Href } from "expo-router";
 import {
   ComboBox,
+  ComboBoxStateContext,
   Input,
   Label,
   ListBox,
   ListBoxItem,
   Popover,
+  type ComboBoxState,
   type Key,
 } from "react-aria-components";
 import { Icon } from "@/presentation/components/icon";
@@ -35,6 +45,7 @@ export function SearchCombobox({
   const [items, setItems] = useState(suggestions);
   const [inputValue, setInputValue] = useState("");
   const [loading, setLoading] = useState(false);
+  const [shouldOpenSuggestions, setShouldOpenSuggestions] = useState(false);
   const sequence = useRef(0);
 
   useEffect(() => {
@@ -46,17 +57,21 @@ export function SearchCombobox({
       return;
     }
     const requestId = ++sequence.current;
-    if (inputValue.trim().length < 2) {
+    const query = inputValue.trim();
+    if (query.length < 2) {
       setItems([]);
       setLoading(false);
+      setShouldOpenSuggestions(false);
       return;
     }
+    setItems([]);
     setLoading(true);
     const timer = window.setTimeout(() => {
-      void loadSuggestions(inputValue.trim())
+      void loadSuggestions(query)
         .then((result) => {
           if (sequence.current === requestId) {
             setItems(result);
+            setShouldOpenSuggestions(true);
           }
         })
         .finally(() => {
@@ -74,7 +89,13 @@ export function SearchCombobox({
       className="search-combobox"
       items={items}
       inputValue={inputValue}
-      onInputChange={setInputValue}
+      onInputChange={(value: string) => {
+        setInputValue(value);
+        if (loadSuggestions !== undefined && shouldOpenSuggestions) {
+          setShouldOpenSuggestions(false);
+        }
+      }}
+      onOpenChange={setShouldOpenSuggestions}
       onSelectionChange={(key: Key | null) => {
         if (key !== null) {
           const selected = indexed.get(String(key));
@@ -83,8 +104,11 @@ export function SearchCombobox({
           }
         }
       }}
+      allowsEmptyCollection
+      allowsCustomValue
       menuTrigger="input"
     >
+      <SearchSuggestionsOpenController shouldOpen={shouldOpenSuggestions} />
       <Label className="sr-only">{label}</Label>
       <span className="search-combobox__icon" aria-hidden="true">
         <Icon name="search" size={18} />
@@ -98,6 +122,7 @@ export function SearchCombobox({
             event.currentTarget.value.trim().length > 0 &&
             event.currentTarget.getAttribute("aria-expanded") !== "true"
           ) {
+            event.preventDefault();
             router.push(`/search?q=${encodeURIComponent(event.currentTarget.value.trim())}`);
           }
         }}
@@ -122,4 +147,23 @@ export function SearchCombobox({
       </Popover>
     </ComboBox>
   );
+}
+
+function SearchSuggestionsOpenController({ shouldOpen }: { shouldOpen: boolean }) {
+  const comboBoxState = useContext(
+    ComboBoxStateContext as Context<ComboBoxState<SearchSuggestion, "single"> | null>,
+  );
+
+  useEffect(() => {
+    if (comboBoxState === null) {
+      return;
+    }
+    if (shouldOpen && comboBoxState.isFocused && !comboBoxState.isOpen) {
+      comboBoxState.open(null, "input");
+    } else if (!shouldOpen && comboBoxState.isOpen) {
+      comboBoxState.close();
+    }
+  }, [comboBoxState, shouldOpen]);
+
+  return null;
 }
