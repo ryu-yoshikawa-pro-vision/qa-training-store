@@ -9,6 +9,10 @@ let mockPathname = "/";
 
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: React.ReactNode }) => children,
+  Redirect: ({ href }: { href: string }) => {
+    const { Text: NativeText } = require("react-native") as typeof import("react-native");
+    return <NativeText testID="native-route-redirect">{href}</NativeText>;
+  },
   usePathname: () => mockPathname,
 }));
 
@@ -55,6 +59,7 @@ describe("NativeShell customer boundary", () => {
   });
 
   it("does not mount customer children while role resolution is pending", async () => {
+    mockPathname = "/admin/products";
     const currentUser = deferred<CurrentUserDto | null>();
     const getCurrentUser = jest.fn().mockReturnValue(currentUser.promise);
     const logout = jest.fn().mockResolvedValue(undefined);
@@ -85,6 +90,23 @@ describe("NativeShell customer boundary", () => {
       await Promise.resolve();
     });
     await waitFor(() => expect(logout).toHaveBeenCalledTimes(1));
+  });
+
+  it("redirects a Guest deep link to a Customer-only route to the Login boundary", async () => {
+    mockPathname = "/account/profile";
+    const getCurrentUser = jest.fn().mockResolvedValue(null);
+    const logout = jest.fn().mockResolvedValue(undefined);
+    setRuntime(getCurrentUser, logout);
+
+    const screen = await render(
+      <NativeShell>
+        <Text testID="native-shell-customer-child">Customer child</Text>
+      </NativeShell>,
+    );
+
+    await waitFor(() => expect(screen.getByTestId("native-route-redirect")).toBeTruthy());
+    expect(screen.getByTestId("native-route-redirect").props.children).toBe("/login");
+    expect(screen.queryByTestId("native-shell-customer-child")).toBeNull();
   });
 
   it("keeps the mounted customer route while refreshing the session after navigation", async () => {

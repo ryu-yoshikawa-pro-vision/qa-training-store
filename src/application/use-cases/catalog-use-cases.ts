@@ -95,8 +95,10 @@ export class CatalogUseCases {
     if (request.keyword.trim().length < 2) {
       return [];
     }
-    if (this.customerGateway !== null) return [];
     const [viewer, now] = await Promise.all([this.identity.getViewer(), this.now()]);
+    if (this.customerGateway !== null) {
+      return this.customerGateway.suggest({ ...request, viewer, now });
+    }
     return this.products!.suggest({ ...request, viewer, now });
   }
 

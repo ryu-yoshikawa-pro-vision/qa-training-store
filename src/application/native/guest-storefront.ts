@@ -4,7 +4,9 @@ import type {
   ProductDetail,
   ProductSearchRequest,
   ProductSearchResult,
+  ProductViewer,
   HomeCatalogDto,
+  SearchSuggestion,
   UpdateCartItemQuantityRequest,
   RemoveCartItemRequest,
 } from "@/application/contracts";
@@ -15,9 +17,21 @@ import type {
 } from "@/application/customer-capabilities";
 
 export interface NativeCustomerCatalogRepository {
-  getHome(input: { now: string }): Promise<HomeCatalogDto>;
-  search(input: ProductSearchRequest & { now: string }): Promise<ProductSearchResult>;
-  getProductDetail(input: { productId: string; now: string }): Promise<ProductDetail | null>;
+  getHome(input: { viewer: ProductViewer; now: string }): Promise<HomeCatalogDto>;
+  search(
+    input: ProductSearchRequest & { viewer: ProductViewer; now: string },
+  ): Promise<ProductSearchResult>;
+  suggest(input: {
+    keyword: string;
+    limit: 8;
+    viewer: ProductViewer;
+    now: string;
+  }): Promise<SearchSuggestion[]>;
+  getProductDetail(input: {
+    productId: string;
+    viewer: ProductViewer;
+    now: string;
+  }): Promise<ProductDetail | null>;
   getCategoryName(categoryId: string): Promise<string | null>;
 }
 
@@ -56,15 +70,19 @@ export function createNativeCustomerCatalogGateway(
   return {
     getHome: ({ viewer, now }) => {
       assertSupportedViewer(viewer.kind);
-      return repository.getHome({ now });
+      return repository.getHome({ viewer, now });
     },
     search: ({ viewer, now, ...request }) => {
       assertSupportedViewer(viewer.kind);
-      return repository.search({ ...request, now });
+      return repository.search({ ...request, viewer, now });
+    },
+    suggest: ({ viewer, now, ...request }) => {
+      assertSupportedViewer(viewer.kind);
+      return repository.suggest({ ...request, viewer, now });
     },
     getProductDetail: ({ viewer, productId, now }) => {
       assertSupportedViewer(viewer.kind);
-      return repository.getProductDetail({ productId, now });
+      return repository.getProductDetail({ productId, viewer, now });
     },
     getCategoryName: (categoryId) => repository.getCategoryName(categoryId),
   };

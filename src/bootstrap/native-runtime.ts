@@ -1,5 +1,5 @@
 import type { SQLiteDatabase } from "expo-sqlite";
-import { GuestActorResolver } from "@/application/identity/guest-actor-resolver";
+import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import { CatalogUseCases } from "@/application/use-cases/catalog-use-cases";
 import { CartUseCases } from "@/application/use-cases/cart-use-cases";
 import { AuthUseCases } from "@/application/use-cases/auth-use-cases";
@@ -28,6 +28,7 @@ import { MockPaymentGateway } from "@/infrastructure/payment/mock-payment-gatewa
 export interface NativeCatalogService {
   getHome: CatalogUseCases["getHome"];
   search: CatalogUseCases["search"];
+  suggest: CatalogUseCases["suggest"];
   getProductDetail: CatalogUseCases["getProductDetail"];
   getCategoryName: CatalogUseCases["getCategoryName"];
 }
@@ -108,7 +109,6 @@ async function createNativeRuntimeServices(
     const parsed = Number(raw ?? DEFAULT_PAYMENT_DELAY_MS);
     return Number.isFinite(parsed) ? parsed : DEFAULT_PAYMENT_DELAY_MS;
   });
-  const actor = new GuestActorResolver();
   const persistedSessionId = await currentSessionStore.getSessionId();
   if (persistedSessionId !== null) {
     const persistedSession = await database.getFirstAsync<{ id: string }>(
@@ -129,6 +129,11 @@ async function createNativeRuntimeServices(
   // Initialize the deterministic seed identity only on first launch. The
   // store must retain a user-created/persisted Guest ID across restarts.
   await guestIdentityStore.getOrCreateGuestId();
+  const actor = new SessionIdentityResolver(
+    repositories.users,
+    repositories.sessions,
+    currentSessionStore,
+  );
   const catalogUseCases = new CatalogUseCases({
     identity: actor,
     customerGateway: createNativeCustomerCatalogGateway(storefrontRepository),
@@ -193,6 +198,7 @@ async function createNativeRuntimeServices(
     catalog: {
       getHome: () => catalogUseCases.getHome(),
       search: (request) => catalogUseCases.search(request),
+      suggest: (request) => catalogUseCases.suggest(request),
       getProductDetail: (productId) => catalogUseCases.getProductDetail(productId),
       getCategoryName: (categoryId) => catalogUseCases.getCategoryName(categoryId),
     },

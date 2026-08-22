@@ -1,4 +1,4 @@
-import { Link, usePathname } from "expo-router";
+import { Link, Redirect, usePathname } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -12,6 +12,7 @@ import {
   nativeSpacing,
   nativeTypography,
 } from "./native-components";
+import { buildLoginHref } from "@/presentation/return-to";
 
 export function NativeShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
@@ -63,6 +64,8 @@ export function NativeShell({ children }: { children: ReactNode }) {
   }, [refreshCurrentUser]);
   const unsupportedRole =
     currentUserLoaded && currentUser !== null && currentUser.role !== "customer";
+  const guestCustomerRoute =
+    currentUserLoaded && currentUser === null && isNativeCustomerOnlyRoute(pathname);
   const logoutUnsupportedRole = () => {
     if (services === null) return;
     setLogoutError(null);
@@ -148,6 +151,8 @@ export function NativeShell({ children }: { children: ReactNode }) {
                 : `ログアウトに失敗しました。Sessionを再確認しています。${logoutError.message}`
             }
           />
+        ) : guestCustomerRoute ? (
+          <Redirect href={buildLoginHref(pathname)} />
         ) : (
           children
         )}
@@ -189,6 +194,22 @@ export function NativeShell({ children }: { children: ReactNode }) {
         </View>
       )}
     </SafeAreaView>
+  );
+}
+
+function isNativeCustomerOnlyRoute(pathname: string): boolean {
+  return (
+    pathname === "/account/profile" ||
+    pathname === "/account/addresses" ||
+    pathname === "/orders" ||
+    pathname.startsWith("/orders/") ||
+    pathname.startsWith("/reviews/") ||
+    pathname === "/checkout/address" ||
+    pathname === "/checkout/payment" ||
+    pathname === "/checkout/confirm" ||
+    pathname === "/checkout/processing" ||
+    pathname === "/checkout/complete" ||
+    pathname === "/checkout/failed"
   );
 }
 

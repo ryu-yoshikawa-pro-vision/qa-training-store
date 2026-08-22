@@ -8,6 +8,7 @@ import type {
   ProductSearchResult,
   ProductViewer,
   RemoveCartItemRequest,
+  SearchSuggestion,
   UpdateCartItemQuantityRequest,
 } from "@/application/contracts";
 
@@ -17,6 +18,12 @@ export interface CustomerCatalogGateway {
   search(
     input: ProductSearchRequest & { viewer: ProductViewer; now: string },
   ): Promise<ProductSearchResult>;
+  suggest(input: {
+    keyword: string;
+    limit: 8;
+    viewer: ProductViewer;
+    now: string;
+  }): Promise<SearchSuggestion[]>;
   getProductDetail(input: {
     productId: string;
     viewer: ProductViewer;
