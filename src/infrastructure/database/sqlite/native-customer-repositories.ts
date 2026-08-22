@@ -24,6 +24,7 @@ import {
 import { normalizeComparisonText } from "@/domain/services/normalization";
 import { maximumCartQuantity } from "@/domain/services/cart";
 import type {
+  Brand,
   Category,
   Product,
   ProductImage,
@@ -42,6 +43,7 @@ import {
   mapNativeCategory,
   mapNativeCart,
   mapNativeImage,
+  mapNativeBrand,
   mapNativeProduct,
   mapNativeReviewSummary,
   mapNativeVariant,
@@ -104,6 +106,12 @@ function assetSnapshot(assetId: string | null, altText: string | null) {
 }
 
 type IgnoredFilter = "category" | "brand" | "rating" | "stock" | "sale" | null;
+
+type NativeCatalogRelations = {
+  variantsByProductId: Map<string, ProductVariant[]>;
+  imagesByProductId: Map<string, ProductImage[]>;
+  summariesByProductId: Map<string, ProductReviewSummary>;
+};
 
 interface NativeCatalogCandidate {
   product: Product;
@@ -349,10 +357,24 @@ export class NativeCustomerSQLiteRepository
         retryable: false,
       });
     }
-    const candidate = (await this.buildCandidates(input.viewer, input.now)).find(
-      (entry) => entry.product.id === product.id,
-    );
-    if (candidate === undefined) return null;
+    const [variants, images, summary, category, brand] = await Promise.all([
+      this.getVariants(product.id),
+      this.getImages(product.id),
+      this.getSummary(product.id),
+      this.getCategory(product.categoryId),
+      this.getBrand(product.brandId),
+    ]);
+    const candidate = this.createCandidate({
+      product,
+      variants,
+      images,
+      summary,
+      categoryName: category?.name ?? "",
+      brandName: brand?.name ?? "",
+      viewer: input.viewer,
+      now: input.now,
+    });
+    if (candidate === null) return null;
     const membershipRank = input.viewer.kind === "customer" ? input.viewer.membershipRank : null;
     return {
       ...candidate.item,
@@ -591,58 +613,111 @@ export class NativeCustomerSQLiteRepository
     ]);
     const categoryNames = new Map(categories.map((row) => [String(row.id), String(row.name)]));
     const brandNames = new Map(brands.map((row) => [String(row.id), String(row.name)]));
-    const membershipRank = viewer.kind === "customer" ? viewer.membershipRank : null;
-    const candidates = await Promise.all(
-      products.map(async (product): Promise<NativeCatalogCandidate | null> => {
-        const [variants, images, summary] = await Promise.all([
-          this.getVariants(product.id),
-          this.getImages(product.id),
-          this.getSummary(product.id),
-        ]);
-        if (variants.length === 0) return null;
-        const categoryName = categoryNames.get(product.categoryId) ?? "";
-        const brandName = brandNames.get(product.brandId) ?? "";
-        const viewerPrices = variants.map((variant) =>
-          viewerUnitPrice(effectiveUnitPrice(variant, now), membershipRank),
-        );
-        const primary = images.find((image) => image.isPrimary) ?? images[0] ?? null;
-        const reviewSummary = summary ?? emptyReviewSummary(product.id);
-        return {
-          product,
-          categoryName,
-          brandName,
-          variants,
-          images,
-          summary: reviewSummary,
-          viewerPrices,
-          item: {
-            productId: product.id,
-            productCode: product.productCode,
-            name: product.name,
-            brandName,
-            primaryImage: assetSnapshot(primary?.assetId ?? null, primary?.altText ?? null),
-            minimumViewerUnitPrice: Math.min(...viewerPrices),
-            maximumViewerUnitPrice: Math.max(...viewerPrices),
-            hasPurchasableStock: variants.some((variant) => variant.stockQuantity > 0),
-            hasActiveSale: variants.some((variant) => isSaleActive(variant, now)),
-            ratingAverage: reviewSummary.ratingAverage,
-            publishedReviewCount: reviewSummary.publishedCount,
-          },
-          searchableText: normalizeComparisonText(
-            [
-              product.name,
-              product.productCode,
-              categoryName,
-              brandName,
-              ...variants.map((variant) => variant.sku),
-            ].join(" "),
-          ),
-        };
+    const relations = await this.loadCandidateRelations(products.map((product) => product.id));
+    const candidates = products.map((product) =>
+      this.createCandidate({
+        product,
+        variants: relations.variantsByProductId.get(product.id) ?? [],
+        images: relations.imagesByProductId.get(product.id) ?? [],
+        summary: relations.summariesByProductId.get(product.id) ?? null,
+        categoryName: categoryNames.get(product.categoryId) ?? "",
+        brandName: brandNames.get(product.brandId) ?? "",
+        viewer,
+        now,
       }),
     );
     return candidates.filter(
       (candidate): candidate is NativeCatalogCandidate => candidate !== null,
     );
+  }
+
+  private createCandidate(input: {
+    product: Product;
+    variants: ProductVariant[];
+    images: ProductImage[];
+    summary: ProductReviewSummary | null;
+    categoryName: string;
+    brandName: string;
+    viewer: ProductViewer;
+    now: string;
+  }): NativeCatalogCandidate | null {
+    if (input.variants.length === 0) return null;
+    const membershipRank = input.viewer.kind === "customer" ? input.viewer.membershipRank : null;
+    const viewerPrices = input.variants.map((variant) =>
+      viewerUnitPrice(effectiveUnitPrice(variant, input.now), membershipRank),
+    );
+    const primary = input.images.find((image) => image.isPrimary) ?? input.images[0] ?? null;
+    const reviewSummary = input.summary ?? emptyReviewSummary(input.product.id);
+    return {
+      product: input.product,
+      categoryName: input.categoryName,
+      brandName: input.brandName,
+      variants: input.variants,
+      images: input.images,
+      summary: reviewSummary,
+      viewerPrices,
+      item: {
+        productId: input.product.id,
+        productCode: input.product.productCode,
+        name: input.product.name,
+        brandName: input.brandName,
+        primaryImage: assetSnapshot(primary?.assetId ?? null, primary?.altText ?? null),
+        minimumViewerUnitPrice: Math.min(...viewerPrices),
+        maximumViewerUnitPrice: Math.max(...viewerPrices),
+        hasPurchasableStock: input.variants.some((variant) => variant.stockQuantity > 0),
+        hasActiveSale: input.variants.some((variant) => isSaleActive(variant, input.now)),
+        ratingAverage: reviewSummary.ratingAverage,
+        publishedReviewCount: reviewSummary.publishedCount,
+      },
+      searchableText: normalizeComparisonText(
+        [
+          input.product.name,
+          input.product.productCode,
+          input.categoryName,
+          input.brandName,
+          ...input.variants.map((variant) => variant.sku),
+        ].join(" "),
+      ),
+    };
+  }
+
+  private async loadCandidateRelations(productIds: string[]): Promise<NativeCatalogRelations> {
+    const empty: NativeCatalogRelations = {
+      variantsByProductId: new Map(),
+      imagesByProductId: new Map(),
+      summariesByProductId: new Map(),
+    };
+    if (productIds.length === 0) return empty;
+    const placeholders = productIds.map(() => "?").join(", ");
+    const [variantRows, imageRows, summaryRows] = await Promise.all([
+      this.database.getAllAsync<NativeProductVariantRow>(
+        `SELECT * FROM product_variants WHERE product_id IN (${placeholders}) AND is_active = 1 ORDER BY product_id ASC, id ASC`,
+        ...productIds,
+      ),
+      this.database.getAllAsync<NativeProductImageRow>(
+        `SELECT * FROM product_images WHERE product_id IN (${placeholders}) ORDER BY product_id ASC, sort_order ASC, id ASC`,
+        ...productIds,
+      ),
+      this.database.getAllAsync<Record<string, unknown>>(
+        `SELECT * FROM product_review_summaries WHERE product_id IN (${placeholders})`,
+        ...productIds,
+      ),
+    ]);
+    for (const row of variantRows) {
+      const variants = empty.variantsByProductId.get(row.product_id) ?? [];
+      variants.push(mapNativeVariant(row));
+      empty.variantsByProductId.set(row.product_id, variants);
+    }
+    for (const row of imageRows) {
+      const images = empty.imagesByProductId.get(row.product_id) ?? [];
+      images.push(mapNativeImage(row));
+      empty.imagesByProductId.set(row.product_id, images);
+    }
+    for (const row of summaryRows) {
+      const summary = mapNativeReviewSummary(row);
+      empty.summariesByProductId.set(summary.productId, summary);
+    }
+    return empty;
   }
 
   private async createFacets(
@@ -733,6 +808,14 @@ export class NativeCustomerSQLiteRepository
       id,
     );
     return row === null ? null : mapNativeCategory(row);
+  }
+
+  private async getBrand(id: string): Promise<Brand | null> {
+    const row = await this.database.getFirstAsync<Record<string, unknown>>(
+      "SELECT * FROM brands WHERE id = ?",
+      id,
+    );
+    return row === null ? null : mapNativeBrand(row);
   }
 
   private async getVariants(productId: string): Promise<ProductVariant[]> {

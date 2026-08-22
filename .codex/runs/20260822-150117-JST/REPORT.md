@@ -109,6 +109,15 @@
   - feature branchのnormal commit/push、最終差分確認。
 - Progress: 86% (6/7)
 
+## 2026-08-22 21:41 (JST) — 時系列訂正およびPR #42修復追補
+
+- 時系列訂正: 上記の`16:05`記録は、ファイル上では`16:07`／`16:08`記録の後ろに追記されている。これは実行順を並べ替えたものではなく、遅れて追記された履歴であり、`16:05`の実行が`16:07`／`16:08`の後に行われたことを意味しない。
+- 状態訂正: `16:07`のcommit／push完了後、または`16:08`のRun Artifact追補push完了後に、作業状態が`Remaining`へ戻ったわけではない。元Runの正しい完了状態は、`16:08`時点で実装、Validation、Run Artifact保存、feature branchへのnormal pushが完了し、Remainingなしである。
+- PR #42修復の正しい現在状態: `20260822-194304-JST`で、Native Searchのstate同期とSearch/Suggestion独立stale guard、initialKeyword同期、Native SQLite relation bulk loading／Detail単品取得、Guest rank negative assertion、Search Component Test、既存Search Maestro flowを修正・検証した。旧Runの完了状態を再オープンしたものではない。
+- 修復Validation: Search Component 7/7、Native Component＋Shell 2 suites / 13 tests、Repository／Contract／Storefront／Runtime／Maestro focused 5 files / 80 tests、typecheck、lint（0 errors）、format、Markdown lint、route dependency、git diff --checkがPASS。最終APKのBuild／Install／Native Search flow（Suggestion、検索結果、Brand filter後empty state）もPASSした。
+- 未混入: `CustomerCatalogGateway`整理、Expo dependency更新、Expo Doctor ignore／skip、Docstring bulk追加、Admin／Guest Checkout等の対象外変更は行っていない。
+- 外部Failure: Native CIのExpo Doctor patch mismatch（`expo`、`expo-router`、`expo-constants`、`expo-dev-client`、`expo-linking`、`expo-build-properties`、`@expo/metro-runtime`）はPR #42の差分起因ではなく、別PR対応とする。今回の修復でpackage.json／pnpm-lock.yamlは変更していない。
+
 ## 2026-08-22 16:07 (JST)
 
 - Summary: feature branchへのnormal commit／pushと最終差分確認を完了した。

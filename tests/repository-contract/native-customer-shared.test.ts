@@ -41,17 +41,20 @@ type Row = Record<string, unknown>;
  */
 class NodeSQLiteDatabase {
   private readonly database = new DatabaseSync(":memory:");
+  readonly queryLog: string[] = [];
 
   async execAsync(sql: string): Promise<void> {
     this.database.exec(sql);
   }
 
   async getFirstAsync<T extends Row>(sql: string, ...params: unknown[]): Promise<T | null> {
+    this.queryLog.push(sql);
     const row = this.database.prepare(sql).get(...(params as never[]));
     return (row as T | undefined) ?? null;
   }
 
   async getAllAsync<T extends Row>(sql: string, ...params: unknown[]): Promise<T[]> {
+    this.queryLog.push(sql);
     return this.database.prepare(sql).all(...(params as never[])) as T[];
   }
 
@@ -74,6 +77,10 @@ class NodeSQLiteDatabase {
 
   close(): void {
     this.database.close();
+  }
+
+  resetQueryLog(): void {
+    this.queryLog.length = 0;
   }
 }
 
@@ -196,6 +203,75 @@ describe("Native SQLite Node runtime contract", () => {
         now: "2026-07-01T03:00:00.000Z",
       }),
     ).resolves.toBeNull();
+    database.close();
+  });
+
+  it("bulk-loads catalog relations and keeps detail reads scoped to one product", async () => {
+    const database = new NodeSQLiteDatabase();
+    await database.execAsync(CUSTOMER_SCHEMA_SQL);
+    await seedNativeDataset(
+      database as unknown as SQLiteDatabase,
+      createScenarioDataset("default"),
+    );
+    const repository = new NativeCustomerSQLiteRepository(database as unknown as SQLiteDatabase);
+    const guest = { kind: "guest" } as const;
+    const now = "2026-07-01T03:00:00.000Z";
+
+    database.resetQueryLog();
+    await repository.getHome({ viewer: guest, now });
+    expect(
+      database.queryLog.filter((sql) => sql.includes("FROM product_variants WHERE product_id IN")),
+    ).toHaveLength(1);
+    expect(
+      database.queryLog.filter((sql) => sql.includes("FROM product_images WHERE product_id IN")),
+    ).toHaveLength(1);
+    expect(
+      database.queryLog.filter((sql) =>
+        sql.includes("FROM product_review_summaries WHERE product_id IN"),
+      ),
+    ).toHaveLength(1);
+    expect(database.queryLog.some((sql) => sql.includes("WHERE product_id = ?"))).toBe(false);
+
+    database.resetQueryLog();
+    await repository.search({
+      keyword: "Tシャツ",
+      categoryIds: [],
+      brandIds: [],
+      minimumPrice: null,
+      maximumPrice: null,
+      inStockOnly: false,
+      onSaleOnly: false,
+      minimumRating: null,
+      sort: "newest",
+      page: 1,
+      pageSize: 20,
+      viewer: guest,
+      now,
+    });
+    expect(database.queryLog.some((sql) => sql.includes("WHERE product_id = ?"))).toBe(false);
+
+    database.resetQueryLog();
+    await repository.suggest({ keyword: "Tシ", limit: 8, viewer: guest, now });
+    expect(database.queryLog.some((sql) => sql.includes("WHERE product_id = ?"))).toBe(false);
+
+    database.resetQueryLog();
+    await repository.getProductDetail({
+      productId: "product-basic-shirt",
+      viewer: guest,
+      now,
+    });
+    expect(database.queryLog.some((sql) => sql.includes("FROM products ORDER BY"))).toBe(false);
+    expect(
+      database.queryLog.filter((sql) => sql.includes("FROM product_variants WHERE product_id = ?")),
+    ).toHaveLength(1);
+    expect(
+      database.queryLog.filter((sql) => sql.includes("FROM product_images WHERE product_id = ?")),
+    ).toHaveLength(1);
+    expect(
+      database.queryLog.filter((sql) =>
+        sql.includes("FROM product_review_summaries WHERE product_id = ?"),
+      ),
+    ).toHaveLength(1);
     database.close();
   });
 

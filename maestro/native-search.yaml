@@ -11,15 +11,19 @@ appId: com.ryuyoshikawa.scenarioshop
     visible: "Native test runtime ready"
     timeout: 30000
 - tapOn:
-    id: "native-nav-products"
+    id: "native-nav-search"
 - assertVisible:
-    id: "native-nav-products"
+    id: "native-search-screen"
+- openLink: "scenario-shop://search?q=0001"
+- runFlow: subflows/accept-ios-deep-link.yaml
+- extendedWaitUntil:
+    visible:
+      id: "native-suggestion-product-product-basic-shirt"
+    timeout: 30000
+- assertVisible:
+    id: "native-suggestion-product-product-basic-shirt"
 - tapOn:
-    id: "native-catalog-search-input"
-- inputText: "P-0001"
-- hideKeyboard
-- tapOn:
-    id: "native-catalog-search-button"
+    id: "native-search-submit"
 - scrollUntilVisible:
     element:
       id: "native-product-card-product-basic-shirt"
@@ -27,11 +31,12 @@ appId: com.ryuyoshikawa.scenarioshop
     timeout: 30000
 - assertVisible:
     id: "native-product-card-product-basic-shirt"
-- takeScreenshot: native-search-product-found
 - tapOn:
-    id: "native-product-card-product-basic-shirt"
-- extendedWaitUntil:
-    visible:
-      id: "native-product-detail-screen"
+    id: "native-filter-brand-brand-scenario-life"
+- scrollUntilVisible:
+    element:
+      text: "該当する商品がありません"
+    direction: DOWN
     timeout: 30000
-- takeScreenshot: native-search-product-detail
+- assertVisible: "該当する商品がありません"
+- takeScreenshot: native-search-filtered-empty

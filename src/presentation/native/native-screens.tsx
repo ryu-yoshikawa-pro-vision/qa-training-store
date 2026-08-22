@@ -310,57 +310,138 @@ function NativeSearchWithInitial({ initialKeyword }: { initialKeyword: string })
   const [result, setResult] = useState<ProductSearchResult | null>(null);
   const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
   const [error, setError] = useState<Error | null>(null);
-  const search = useCallback(() => {
-    if (services === null) return;
-    setError(null);
-    void services.catalog
-      .search({
-        keyword: keyword.trim() || null,
-        categoryIds,
-        brandIds,
-        minimumPrice: parseNativePrice(minimumPriceInput),
-        maximumPrice: parseNativePrice(maximumPriceInput),
-        inStockOnly,
-        onSaleOnly,
-        minimumRating,
-        sort,
-        page,
-        pageSize: 20,
-      })
-      .then(setResult)
-      .catch((caught: unknown) => setError(asError(caught)));
-  }, [
-    brandIds,
-    categoryIds,
-    inStockOnly,
-    keyword,
-    maximumPriceInput,
-    minimumPriceInput,
-    minimumRating,
-    onSaleOnly,
-    page,
-    services,
-    sort,
-  ]);
+  const searchSerial = useRef(0);
+  const suggestionSerial = useRef(0);
+  const searchStartedRef = useRef(false);
+  const initialRenderRef = useRef(true);
+  const processedInitialKeywordRef = useRef<string | null>(null);
+  const pendingInitialSearchKeywordRef = useRef<string | null>(null);
+  const suppressPageResetSearchRef = useRef(false);
+  const keywordRef = useRef(keyword);
+  const pageRef = useRef(page);
+
+  useEffect(() => {
+    keywordRef.current = keyword;
+    pageRef.current = page;
+  }, [keyword, page]);
+
+  const search = useCallback(
+    (overrides: { keyword?: string; page?: number } = {}) => {
+      if (services === null) return;
+      searchStartedRef.current = true;
+      const requestId = ++searchSerial.current;
+      setError(null);
+      void services.catalog
+        .search({
+          keyword: (overrides.keyword ?? keywordRef.current).trim() || null,
+          categoryIds,
+          brandIds,
+          minimumPrice: parseNativePrice(minimumPriceInput),
+          maximumPrice: parseNativePrice(maximumPriceInput),
+          inStockOnly,
+          onSaleOnly,
+          minimumRating,
+          sort,
+          page: overrides.page ?? pageRef.current,
+          pageSize: 20,
+        })
+        .then((next) => {
+          if (requestId === searchSerial.current) setResult(next);
+        })
+        .catch((caught: unknown) => {
+          if (requestId === searchSerial.current) setError(asError(caught));
+        });
+    },
+    [
+      brandIds,
+      categoryIds,
+      inStockOnly,
+      maximumPriceInput,
+      minimumPriceInput,
+      minimumRating,
+      onSaleOnly,
+      services,
+      sort,
+    ],
+  );
   const loadSuggestions = useCallback(
     (value: string) => {
-      if (services === null) return;
+      const requestId = ++suggestionSerial.current;
       const normalized = value.trim();
       if (normalized.length < 2) {
         setSuggestions([]);
         return;
       }
+      if (services === null) return;
       void services.catalog
         .suggest({ keyword: normalized, limit: 8 })
-        .then(setSuggestions)
-        .catch(() => setSuggestions([]));
+        .then((next) => {
+          if (requestId === suggestionSerial.current) setSuggestions(next);
+        })
+        .catch(() => {
+          if (requestId === suggestionSerial.current) setSuggestions([]);
+        });
     },
     [services],
   );
+
   useEffect(() => {
-    if (initialKeyword.length > 0) search();
-    if (initialKeyword.length > 0) loadSuggestions(initialKeyword);
-  }, [initialKeyword, loadSuggestions, search]);
+    if (services === null || processedInitialKeywordRef.current === initialKeyword) return;
+    const isInitialRender = initialRenderRef.current;
+    initialRenderRef.current = false;
+    processedInitialKeywordRef.current = initialKeyword;
+    keywordRef.current = initialKeyword;
+    setKeyword(initialKeyword);
+    suppressPageResetSearchRef.current = false;
+    const normalized = initialKeyword.trim();
+    loadSuggestions(initialKeyword);
+    if (normalized.length === 0) {
+      pendingInitialSearchKeywordRef.current = null;
+      searchStartedRef.current = false;
+      searchSerial.current += 1;
+      setPage(1);
+      setResult(null);
+      setError(null);
+      return;
+    }
+    searchStartedRef.current = true;
+    if (pageRef.current === 1) {
+      pendingInitialSearchKeywordRef.current = null;
+      if (isInitialRender) suppressPageResetSearchRef.current = true;
+      search({ keyword: initialKeyword, page: 1 });
+      return;
+    }
+    pendingInitialSearchKeywordRef.current = initialKeyword;
+    pageRef.current = 1;
+    setPage(1);
+  }, [initialKeyword, loadSuggestions, search, services]);
+
+  useEffect(() => {
+    if (!searchStartedRef.current) return;
+    if (pendingInitialSearchKeywordRef.current !== null) {
+      const nextKeyword = pendingInitialSearchKeywordRef.current;
+      pendingInitialSearchKeywordRef.current = null;
+      search({ keyword: nextKeyword, page: 1 });
+      return;
+    }
+    if (suppressPageResetSearchRef.current && page === 1) {
+      suppressPageResetSearchRef.current = false;
+      return;
+    }
+    search();
+  }, [
+    brandIds,
+    categoryIds,
+    inStockOnly,
+    maximumPriceInput,
+    minimumPriceInput,
+    minimumRating,
+    onSaleOnly,
+    page,
+    search,
+    sort,
+  ]);
+
   const openSuggestion = (suggestion: SearchSuggestion) => {
     setSuggestions([]);
     if (suggestion.type === "product") router.push(`/products/${suggestion.id}`);
@@ -375,8 +456,13 @@ function NativeSearchWithInitial({ initialKeyword }: { initialKeyword: string })
         <NativeTextField
           value={keyword}
           onChangeText={(value) => {
+            keywordRef.current = value;
             setKeyword(value);
-            setPage(1);
+            if (pageRef.current !== 1) {
+              suppressPageResetSearchRef.current = true;
+              pageRef.current = 1;
+              setPage(1);
+            }
             loadSuggestions(value);
           }}
           onSubmitEditing={search}

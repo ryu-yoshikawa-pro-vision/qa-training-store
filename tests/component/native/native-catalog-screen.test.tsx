@@ -1,4 +1,4 @@
-import { render, userEvent, waitFor } from "@testing-library/react-native";
+import { act, fireEvent, render, userEvent, waitFor } from "@testing-library/react-native";
 import type {
   ProductListItem,
   ProductSearchResult,
@@ -7,10 +7,12 @@ import type {
 import { NativeCatalogScreen, NativeSearchScreen } from "@/presentation/native/native-screens";
 import { useNativeRuntime } from "@/presentation/native/native-runtime-provider";
 
+let mockSearchParams: { q?: string; keyword?: string } = {};
+
 jest.mock("expo-router", () => ({
   Link: ({ children }: { children: unknown }) => children,
   router: { push: jest.fn(), replace: jest.fn() },
-  useLocalSearchParams: () => ({}),
+  useLocalSearchParams: () => mockSearchParams,
 }));
 
 jest.mock("@/presentation/native/native-runtime-provider", () => ({
@@ -19,7 +21,7 @@ jest.mock("@/presentation/native/native-runtime-provider", () => ({
 
 const useNativeRuntimeMock = jest.mocked(useNativeRuntime);
 
-function product(): ProductListItem {
+function product(overrides: Partial<ProductListItem> = {}): ProductListItem {
   return {
     productId: "product-basic-shirt",
     productCode: "P-0001",
@@ -36,12 +38,13 @@ function product(): ProductListItem {
     hasActiveSale: false,
     ratingAverage: 4.5,
     publishedReviewCount: 2,
+    ...overrides,
   };
 }
 
-function result(page: number): ProductSearchResult {
+function result(page: number, item: ProductListItem = product()): ProductSearchResult {
   return {
-    items: [product()],
+    items: [item],
     page,
     pageSize: 20,
     total: 21,
@@ -58,6 +61,25 @@ function result(page: number): ProductSearchResult {
   };
 }
 
+function deferred<T>() {
+  let resolve: (value: T) => void = () => undefined;
+  const promise = new Promise<T>((nextResolve) => {
+    resolve = nextResolve;
+  });
+  return { promise, resolve };
+}
+
+async function resolveAndFlush<T>(
+  pending: { promise: Promise<T>; resolve: (value: T) => void },
+  value: T,
+) {
+  await act(async () => {
+    pending.resolve(value);
+    await pending.promise;
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  });
+}
+
 function setCatalogRuntime(search: jest.Mock, suggest: jest.Mock): void {
   useNativeRuntimeMock.mockReturnValue({
     ready: true,
@@ -71,7 +93,8 @@ function setCatalogRuntime(search: jest.Mock, suggest: jest.Mock): void {
 
 describe("Native Catalog / Search contract surface", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
+    jest.resetAllMocks();
+    mockSearchParams = {};
   });
 
   it("requests deterministic viewer-aware Suggestions while typing", async () => {
@@ -88,8 +111,7 @@ describe("Native Catalog / Search contract surface", () => {
     setCatalogRuntime(search, suggest);
 
     const screen = await render(<NativeSearchScreen />);
-    const user = userEvent.setup();
-    await user.type(screen.getByTestId("native-search-input"), "ラン");
+    fireEvent.changeText(screen.getByTestId("native-search-input"), "ラン");
 
     await waitFor(() => expect(suggest).toHaveBeenCalledWith({ keyword: "ラン", limit: 8 }));
     expect(screen.getByTestId("native-suggestion-product-product-running-shoes")).toBeTruthy();
@@ -133,5 +155,160 @@ describe("Native Catalog / Search contract surface", () => {
       2,
       "ページ",
     ]);
+  });
+
+  it("re-searches page 2 after a query entered from the initial empty state", async () => {
+    const search = jest.fn((request: { page: number }) => Promise.resolve(result(request.page)));
+    const suggest = jest.fn().mockResolvedValue([]);
+    setCatalogRuntime(search, suggest);
+
+    const screen = await render(<NativeSearchScreen />);
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("native-search-input"), "Tシャツ");
+    await user.press(screen.getByTestId("native-search-submit"));
+
+    await waitFor(() =>
+      expect(search).toHaveBeenCalledWith(
+        expect.objectContaining({ keyword: "Tシャツ", page: 1, pageSize: 20 }),
+      ),
+    );
+    await user.press(screen.getByTestId("native-catalog-page-next"));
+
+    await waitFor(() =>
+      expect(search).toHaveBeenCalledWith(
+        expect.objectContaining({ keyword: "Tシャツ", page: 2, pageSize: 20 }),
+      ),
+    );
+  });
+
+  it("re-searches with a changed Brand filter after an initial empty search", async () => {
+    const search = jest.fn((request: { page: number }) => Promise.resolve(result(request.page)));
+    const suggest = jest.fn().mockResolvedValue([]);
+    setCatalogRuntime(search, suggest);
+
+    const screen = await render(<NativeSearchScreen />);
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("native-search-input"), "Tシャツ");
+    await user.press(screen.getByTestId("native-search-submit"));
+    await waitFor(() => expect(screen.getByTestId("native-catalog-total")).toBeTruthy());
+
+    await user.press(screen.getByTestId("native-filter-brand-brand-a"));
+
+    await waitFor(() =>
+      expect(search).toHaveBeenLastCalledWith(
+        expect.objectContaining({ brandIds: ["brand-a"], keyword: "Tシャツ", page: 1 }),
+      ),
+    );
+  });
+
+  it("keeps the latest Search response when an older request resolves later", async () => {
+    const first = deferred<ProductSearchResult>();
+    const second = deferred<ProductSearchResult>();
+    const firstProduct = product({ productId: "product-search-a", name: "検索A" });
+    const secondProduct = product({ productId: "product-search-b", name: "検索B" });
+    const search = jest
+      .fn()
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise);
+    const suggest = jest.fn().mockResolvedValue([]);
+    setCatalogRuntime(search, suggest);
+
+    const screen = await render(<NativeSearchScreen />);
+    const user = userEvent.setup();
+    await user.type(screen.getByTestId("native-search-input"), "Tシャツ");
+    await user.press(screen.getByTestId("native-search-submit"));
+    await waitFor(() => expect(search).toHaveBeenCalledTimes(1));
+    await user.press(screen.getByTestId("native-search-sort-price_asc"));
+    await waitFor(() => expect(search).toHaveBeenCalledTimes(2));
+
+    await resolveAndFlush(second, result(1, secondProduct));
+    await waitFor(() =>
+      expect(screen.getByTestId("native-product-card-product-search-b")).toBeTruthy(),
+    );
+    await resolveAndFlush(first, result(1, firstProduct));
+    await waitFor(() =>
+      expect(screen.getByTestId("native-product-card-product-search-b")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("native-product-card-product-search-a")).toBeNull();
+    await screen.unmount();
+  });
+
+  it("synchronizes input, Search, and Suggestion with a changed initialKeyword", async () => {
+    mockSearchParams = { q: "ラン" };
+    const search = jest.fn().mockResolvedValue(result(1));
+    const suggest = jest.fn().mockResolvedValue([]);
+    setCatalogRuntime(search, suggest);
+
+    const screen = await render(<NativeSearchScreen />);
+    await waitFor(() => {
+      expect(search).toHaveBeenCalledWith(expect.objectContaining({ keyword: "ラン", page: 1 }));
+      expect(suggest).toHaveBeenCalledWith({ keyword: "ラン", limit: 8 });
+    });
+
+    mockSearchParams = { q: "Tシャツ" };
+    await screen.rerender(<NativeSearchScreen />);
+    await waitFor(() => {
+      expect(screen.getByTestId("native-search-input").props.value).toBe("Tシャツ");
+      expect(search).toHaveBeenLastCalledWith(
+        expect.objectContaining({ keyword: "Tシャツ", page: 1 }),
+      );
+      expect(suggest).toHaveBeenLastCalledWith({ keyword: "Tシャツ", limit: 8 });
+    });
+    const user = userEvent.setup();
+    await user.press(screen.getByTestId("native-filter-brand-brand-a"));
+    await waitFor(() =>
+      expect(search).toHaveBeenLastCalledWith(
+        expect.objectContaining({ keyword: "Tシャツ", brandIds: ["brand-a"], page: 1 }),
+      ),
+    );
+    expect(suggest).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps the latest Suggestion and ignores a response after input becomes shorter", async () => {
+    const short = deferred<SearchSuggestion[]>();
+    const first = deferred<SearchSuggestion[]>();
+    const second = deferred<SearchSuggestion[]>();
+    const firstSuggestion: SearchSuggestion = {
+      type: "product",
+      id: "product-search-a",
+      label: "検索A",
+    };
+    const secondSuggestion: SearchSuggestion = {
+      type: "product",
+      id: "product-search-b",
+      label: "検索B",
+    };
+    const suggest = jest
+      .fn()
+      .mockImplementationOnce(() => short.promise)
+      .mockImplementationOnce(() => first.promise)
+      .mockImplementationOnce(() => second.promise);
+    const search = jest.fn().mockResolvedValue(result(1));
+    setCatalogRuntime(search, suggest);
+
+    const screen = await render(<NativeSearchScreen />);
+    fireEvent.changeText(screen.getByTestId("native-search-input"), "ラン");
+    fireEvent.changeText(screen.getByTestId("native-search-input"), "ラ");
+
+    fireEvent.changeText(screen.getByTestId("native-search-input"), "ラン");
+    fireEvent.changeText(screen.getByTestId("native-search-input"), "Tシャツ");
+    await waitFor(() => expect(suggest).toHaveBeenCalledWith({ keyword: "Tシャツ", limit: 8 }));
+
+    await resolveAndFlush(second, [secondSuggestion]);
+    await waitFor(() =>
+      expect(screen.getByTestId("native-suggestion-product-product-search-b")).toBeTruthy(),
+    );
+    await resolveAndFlush(first, [firstSuggestion]);
+    await waitFor(() =>
+      expect(screen.getByTestId("native-suggestion-product-product-search-b")).toBeTruthy(),
+    );
+    expect(screen.queryByTestId("native-suggestion-product-product-search-a")).toBeNull();
+
+    await resolveAndFlush(short, [firstSuggestion]);
+    await waitFor(() =>
+      expect(screen.getByTestId("native-suggestion-product-product-search-b")).toBeTruthy(),
+    );
+
+    await screen.unmount();
   });
 });

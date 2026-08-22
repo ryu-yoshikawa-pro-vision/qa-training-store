@@ -55,6 +55,9 @@ export function createCustomerRepositoryContractSuite(
       });
       expect(home.categories.length).toBeGreaterThan(0);
       expect(home.newProducts.map((product) => product.productId)).toContain("product-basic-shirt");
+      expect(home.newProducts.map((product) => product.productId)).not.toContain(
+        "product-running-shoes",
+      );
     });
 
     it("supports deterministic keyword search and product detail", async () => {
