@@ -133,6 +133,9 @@ importers:
       fake-indexeddb:
         specifier: 6.2.4
         version: 6.2.4
+      hermes-compiler:
+        specifier: 250829098.0.16
+        version: 250829098.0.16
       jest:
         specifier: 29.7.0
         version: 29.7.0(@types/node@26.1.1)
