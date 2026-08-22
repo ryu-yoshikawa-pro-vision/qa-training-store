@@ -355,3 +355,27 @@
   - `pnpm run format:check`
   - `pnpm run lint:markdown`
 - Progress: 88% (23/26)
+
+## 2026-08-22 08:58 (JST) — Planning Validation Complete
+
+- Summary:
+  - ローカルworktreeでPlanning branchの最終3Validationを実行し、すべてPASSしたとのユーザー報告を受けてRun Artifactを完了状態へ同期した。
+- Completed:
+  - `./scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260821-174900-JST -Write -Check` PASS。
+  - `pnpm run format:check` PASS。
+  - `pnpm run lint:markdown` PASS。
+  - TASKS 24〜26を完了へ更新。
+  - PR #38本文のValidationを3件PASSへ更新。
+- Changes:
+  - `.codex/runs/20260821-174900-JST/TASKS.md`
+  - `.codex/runs/20260821-174900-JST/REPORT.md`
+  - PR #38 metadata body。
+- Commands / tools:
+  - 3Validationはユーザーがローカルworktreeで実行。
+  - GitHub connectorでRun ArtifactとPR本文を同期。
+- Notes/Decisions:
+  - 3Validationの実行自体はAssistant側で再実行していない。ユーザー実行結果を完了Evidenceとして記録する。
+  - Product / Test / CI / Specification / Curriculum本体には変更していない。
+- Remaining:
+  - PR CIの最終結果確認のみ。
+- Progress: 100% (26/26)
