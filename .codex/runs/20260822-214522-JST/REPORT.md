@@ -175,3 +175,14 @@
   - 旧Run／Repair RunへsanitizerのWrite／Checkを実行し、各5 files scanned、files changed 0、residual findings 0。指定JSONのparseも成功した。
 - Remaining: なし。
 - Progress: 100% (9/9)
+
+## Correction: 2026-08-22 23:24 (JST)
+
+- Summary: 前Correctionに残っていたfollow-up commit／pushの予定表現を、確認済みのhistorical factとして閉じた。既存entryはappend-only契約に従い、削除・書換え・移動していない。
+- 前Correctionで予定していたnormal follow-up commit／pushは実施済みである。
+- Historical follow-up commitは b11e3a699790c9cefe65d7b26e3877988720409c（docs: record PR 44 CI result）であり、fix/qa-repository-hardeningへのnormal branch pushも実施済みである。
+- b11e3a...の後にもreview remediationの追加commitが存在するため、これをPRのfinal headとして扱わない。current／final PR headと最新CI状態はGitHub側を正本とする。
+- Versioned Run Artifactは、そのArtifact自身を含むcommitのSHAを事前に自身へ記録できない。そのため、このCorrectionを追加するcommit自身のSHAをREPORTへ追記するためだけの追加commitは作成しない。
+- latest PR headとそのCI状態はGitHub側を正本とし、CI記録だけを目的とする追加commitループは作成しない。
+- Remaining: なし。
+- Progress: 100% (9/9)

@@ -9,7 +9,8 @@
       "rating": "pass",
       "evidence": "G7、G9、教材、既存Run Artifact correctionの実装と指定ローカルvalidationを完了した。PR #44へpushした修正後HEADの観測時点で、Phase 1／Nativeを含むRequired CIが全てpassした。",
       "evidence_refs": [
-        {"kind": "run_report", "path": ".codex/runs/20260822-214522-JST/REPORT.md", "selector": "Repository gate", "summary": "Focused／contract／Repository validation"}
+        {"kind": "run_report", "path": ".codex/runs/20260822-214522-JST/REPORT.md", "selector": "Repository gate", "summary": "Focused／contract／Repository validation"},
+        {"kind": "run_report", "path": ".codex/runs/20260822-214522-JST/REPORT.md", "selector": "Correction: 2026-08-22 22:18 (JST)", "summary": "PR #44 Required CI確認"}
       ]
     },
     "scope_control": {

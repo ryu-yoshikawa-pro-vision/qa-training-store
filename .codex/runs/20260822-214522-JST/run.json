@@ -23,7 +23,7 @@
     "validation":  {
                        "status":  "passed",
                        "commands":  [
-                                      {"command": "pnpm run test:e2e:chromium -- --grep Flow J", "status": "passed"},
+                                      {"command": "pnpm run test:e2e:chromium -- --grep \"Flow J\"", "status": "passed"},
                                       {"command": "pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1", "status": "passed"},
                                       {"command": "pnpm run validate:curriculum", "status": "passed"},
                                       {"command": "pnpm run format:check", "status": "passed"},
