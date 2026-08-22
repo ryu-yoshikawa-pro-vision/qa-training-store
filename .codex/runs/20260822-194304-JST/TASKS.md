@@ -8,7 +8,7 @@
 - [x] 4. Native SQLite bulk loading/detail最適化、query trace regression、Guest rank negative assertionを実装する
 - [x] 5. 既存Maestro Search flowを最小更新し、Native Doctor以降のruntime validationを実行する
 - [x] 6. Focused/repository gates、diff self-review、REPORT訂正、Sanitizer/schema validationを完了する
-- [ ] 7. feature branchの差分を確認し、normal commit/pushする（PR mergeはしない）
+- [x] 7. feature branchの差分を確認し、normal commit/pushする（PR mergeはしない）
 
 ## Discovered
 

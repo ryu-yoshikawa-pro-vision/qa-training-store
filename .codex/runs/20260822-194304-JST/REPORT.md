@@ -230,3 +230,15 @@
 - External: Native CIのExpo Doctor patch mismatchは依然として別PR対象。今回のpackage.json／pnpm-lock.yamlは無変更。
 - Remaining: normal commit／pushのみ。
 - Progress: 86% (6/7)
+
+## 2026-08-22 21:45 (JST)
+
+- Summary: feature branchへのnormal commit／pushを完了した。
+- Git evidence:
+  - commit `60c67eb785a3962a52780a1151525f2c22bb9146`（`fix: repair native catalog review findings`）を作成した。
+  - `git push origin feat/native-catalog-storefront-authorization` => 成功。
+  - local HEADとremote branchが同一commitであることを確認した。force push、rebase、amend、reset、clean、protected branch push、PR mergeは行っていない。
+  - PR #42はOPENのままであり、mergeしていない。
+- Final status: PR #42固有の修正、focused validation、Native runtime代表確認、Run Artifact、旧REPORT訂正は完了。CI rollupはpush後に実行中で、Expo Doctor mismatchは既知の外部Failureとして別PRへ分離する。
+- Remaining: なし。
+- Progress: 100% (7/7)
