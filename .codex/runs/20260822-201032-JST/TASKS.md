@@ -7,7 +7,7 @@
 - [x] 3. Native CIをActual APK artifact download／extract／validator再利用へ接続し、重複raw scanを削除する
 - [x] 4. Workflow contractとProduction-validation Maestro contractを更新する
 - [x] 5. Positive／negative／swapped control、実Production Hermes artifact、focused repository gatesを検証する
-- [ ] 6. Run Artifactを更新・sanitizeし、差分確認後にnormal commit／push可否を判断する
+- [x] 6. Run Artifactを更新・sanitizeし、差分確認後にnormal commit／push可否を判断する
 
 ## Discovered
 

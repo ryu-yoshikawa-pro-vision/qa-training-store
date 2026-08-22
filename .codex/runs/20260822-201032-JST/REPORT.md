@@ -93,3 +93,14 @@
 - Notes / Decisions: B2（Local APK／Maestro）とB3（Remote Native CI）は外部実行条件のためBlockedとして保持する。G1の実装DoDはStandalone Actual Production Hermes outputとWorkflow／contract接続で判定可能な状態になった。
 - Remaining: 最終差分確認後のnormal commit／push。Push後もPR作成／mergeは行わない。
 - Progress: 83% (5/6)
+
+## 2026-08-22 21:23 (JST)
+
+- Summary: 指定branchへの通常commit／pushを完了した。
+- Completed:
+  - `git commit -m "fix: inspect native production Hermes artifacts"` => PASS。commit `5ea9382ace563d07ec8f7ce36eea788f3815671f`。
+  - `git push origin fix/native-production-bundle-guard` => PASS。remote branchへ通常pushした。
+  - Push前後のworking treeはclean。`origin/main`は`a3a58ae4b4168c34307e6dd0f2d21c039a972fab`のままで、G1 branchは最新mainからの変更だけを含む。
+- Notes / Decisions: PRは作成せず、merge／force push／rebase／amendは行っていない。B2／B3（Local APK／Remote Native CI）は未実行境界として保持する。
+- Remaining: なし（G1 implementation scope）。Remote Native CI／Maestroの実Runは別途実行者が必要。
+- Progress: 100% (6/6)
