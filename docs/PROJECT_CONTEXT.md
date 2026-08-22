@@ -314,7 +314,7 @@
 - iOSのSimulator boot／install／launch、Maestro、実`expo-sqlite` Contract Harness、Production-validation Runtime、`simctl diagnose`、Runtime Evidenceは正式Gateから除外した。Jobをskipやsuccessへ偽装するのではなく、Runtime Job自体をWorkflow topologyから削除している。
 - iOS Artifactの現行契約はAutomation `native-ios-app-${{ github.run_id }}`／`native-automation.app`、Production `native-ios-production-app-${{ github.run_id }}`／`native-production-validation.app`である。`tests/contracts/native-ci-workflow.test.ts`は各BuildのRelease-iphonesimulator検出、固定名保存、Upload、両BuildのみのAggregateを固定する。
 - Maestroの全16 Native Flowにあるcustom scheme `openLink` 38箇所とiOS conditional handlerは、Android回帰を避けるため共通ソースに保持する。ただし、これらをiOS Runtime PASSやiOS正式Gateの根拠にはしない。
-- Android Production APKはBuild時とRuntime Download後の双方で、`unzip -Z1`で`assets/`配下のbundleを列挙し、`unzip -p`で本文のAutomation／Contract Harness／`NativeTestControlService` marker不在を確認する。bundleがない場合はfail-closeする。
+- Android Production APKはBuild時にJavaScript／Hermes candidate assetの存在だけを確認し、両Android Release APKのUpload後、`production-bundle-guard`が実ArtifactをDownloadしてcandidate assetを展開する。展開したbytecodeはStandaloneと同じ`hermesc -dump-bytecode` validatorへ渡し、Automationの3 marker存在とProductionの3 marker不在をdecoded disassemblyでfail-closeに判定する。RuntimeのProduction APK install／MaestroはGuard success後だけ実行する。raw APK marker scanはWorkflowから除去した。
 - 2026-08-09の最新APKによるAndroid実機はBuild（Metro初回生成を含む）／Install／Smoke／Test Control 1/1、Runtime 5/5、Boundary 5/5をPASSした。Review単体は保存操作まで進んだが、標準日本語IMEがASCII本文を変換し、保存完了assertionへ到達しなかったため、物理端末のIME依存Failureとして記録する。Reviewの2回目`hideKeyboard`は復元しない。
 - iOS Runtimeを正式Gateから外す理由は、iOS Simulatorを継続的にローカル再現・デバッグできる環境を現行運用で保持しないため、GitHub-hosted macOS Runnerだけに依存するRuntime CIの保守性が低いからである。Androidは継続的に再現・デバッグできるためRuntime Gateを維持する。
 - Windowsでは`xcodebuild`／`xcrun`／`simctl`／`gh`が未提供であり、iOS Buildのローカル実行、修正HeadのRemote Native CI／最終`native-ci / verify`は未確認である。iOS Runtimeは正式Gate対象外であり、未実行をPASSへ繰り上げない。Remote Gate結果が未取得のためPhase 2 final DoDはpendingとする。
@@ -485,6 +485,14 @@
 - QA System: `updated`。Chromium系jobからruntime apt／Ubuntu mirror dependencyを除去し、browser binary installを維持した。install条件をCI contractで固定し、PR #34の実CI／rerun／workflow_dispatch evidenceを反映した。
 - GAP-02とExperiment Readinessの判断は`unchanged`。Formal Experimentは`NOT EXECUTED`、Formal Experiment Target Revisionは設定しない。Knowledgeは`none`、Promotionは`none`。
 - Official Scored GAP-01はHost-trusted Evidence不足による`BLOCKED / NOT EXECUTED`のまま変更しない。
+
+## G1 Native Production Bundle Guard（2026-08-22）
+
+- `scripts/validate-native-production-bundle.ts`はExpo Android exportの実`.hbc`を固定versionの`hermes-compiler`に含まれる`hermesc -dump-bytecode`でdecodeし、raw UTF-8 byte scanを行わない。CIからは`--automation-bundle-path`／`--production-bundle-path`で実APKから導出したartifactを入力できる。
+- `.github/workflows/native-ci.yml`の`production-bundle-guard`はAutomation／Production Release APK artifactをdownloadし、`unzip`でcandidate assetを一時`.hbc`へ展開して共通validatorを実行する。Production build／Runtime側はmarker判定を重複せず、Production-validation MaestroはGuard後にHarness／Test Control／成功ラベルの不在を確認する。
+- Localでは実Production Hermes exportのAutomation positive／Production negativeと逆入力failureを確認した。今回取得したActual APKでは3 markerのraw binary上の存在も確認されており、旧raw scanのfalse-negative自体を再現したものではない。raw binary substring scanはHermes bytecodeの内部表現へ依存するため、artifact形式の妥当性とmarker presence/absenceはHermes compilerによるdecoded bytecode inspectionでfail-closeに検証する。
+- 修正Head `8e52136` のRemote Native CI run `32575898683`では、Actual Automation／Production APK artifactをdownloadし、APK内candidateを抽出して共通validatorへ接続したProduction Bundle GuardがPASSした。Automation decoded marker 3件を検出し、Production decoded markerは0件だった。Android Runtime／MaestroもGuard成功後にProduction APKをdownload／verify／installし、`native-production-validation`をPASSした。
+- 同Remote runのAndroid Automation Build、Android Production-validation Build、Production Bundle Guard、Android Runtime／Maestro、iOS Automation／Production Build、Native iOS CI VerifyはPASSした。一方、`Native Static / Expo Doctor`は`@expo/metro-runtime`、`expo`、`expo-build-properties`、`expo-constants`、`expo-dev-client`、`expo-linking`、`expo-router`の7パッケージのpatch version mismatchでFAILし、`native-ci / verify`はこのfailureをfail-closeに反映してFAILした。これはG1のCLI接続修正とは独立した既存failureであり、Expo dependency updateは今回のPRへ追加しない。
 
 ## G3/G4 Native Catalog・Route Authorization（2026-08-22）
 
