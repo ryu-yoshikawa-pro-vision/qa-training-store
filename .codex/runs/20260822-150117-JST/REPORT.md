@@ -126,6 +126,22 @@
   - Run artifact最終追補commit／pushのみ。
 - Progress: 100% (7/7)
 
+## 2026-08-22 16:08 (JST)
+
+- Summary: Run artifactの最終追補commit／pushまで完了し、作業ツリーをcleanにした。
+- Completed:
+  - commit `4a0592a`（`chore: finalize g3 g4 run artifacts`）を作成した。
+  - `git push origin feat/native-catalog-storefront-authorization`が成功した。
+  - feature branchはremoteと一致し、PRは作成・mergeしていない。
+- Commands:
+  - `git status --short --branch` => 最終作業ツリーclean、feature branchはremote trackingと一致。
+  - Sanitizer／JSON parse／evaluation schema validationは最終追補前に成功し、追補後のRun filesには絶対Path残存なしを確認した。
+- Notes/Decisions:
+  - 実装・Focused Validation・Run artifact保存・normal pushまで完了。Physical Android runtimeとfull contracts suiteは既報の通り未完了／未実行で、最終報告でもPASS扱いしない。
+- Remaining:
+  - なし。
+- Progress: 100% (7/7)
+
 ## 2026-08-22 16:05 (JST)
 
 - Summary: 追加のUseCase integration validationを完了し、full contract suiteの実行状態を整理した。
