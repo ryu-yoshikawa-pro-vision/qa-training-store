@@ -29,7 +29,8 @@
   - `--preset auto-net` 指定時だけ追加で読み込む execpolicy ルール
   - network / package manager / build / test 系を allow に寄せ、shell wrapper 系は hook 検証後まで forbidden にする
 - `.codex/config.toml`
-  - project-scoped default: `sandbox_mode = "workspace-write"`, `approval_policy = "on-request"`, `web_search = "cached"`
+  - project-scoped default: `sandbox_mode = "workspace-write"`, `web_search = "cached"`
+  - project config では approval policy を固定せず、`codex-safe` wrapper の `safe` / `readonly` preset が `--ask-for-approval on-request` を明示注入する
   - workspace-write sandbox は `network_access = false`, `writable_roots = []`
   - login shell は `allow_login_shell = false`
   - Codex 0.147.0で有効なproject profileに依存せず、wrapperがpresetごとのsandbox／approvalを明示注入する
