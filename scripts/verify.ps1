@@ -240,7 +240,7 @@ function Test-TemplateContract {
 
     $config = Get-Content -Raw .codex/config.toml
     if ($config -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "config missing workspace-write sandbox" }
-    if ($config -notmatch [regex]::Escape('approval_policy = "untrusted"')) { throw "config missing untrusted approval policy" }
+    if ($config -match '(?m)^\s*approval_policy\s*=') { throw "project config must not set approval_policy" }
     if ($config -notmatch [regex]::Escape('web_search = "cached"')) { throw "config missing cached web_search" }
     if ($config -notmatch [regex]::Escape('network_access = false')) { throw "config missing disabled workspace-write network" }
     if ($config -notmatch [regex]::Escape('[agents]')) { throw "config missing agents section" }
