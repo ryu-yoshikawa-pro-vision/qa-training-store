@@ -6,8 +6,8 @@
 - [x] 2. PLANとrepair iteration（must_fix／defer／allowed files）を確定する。
 - [x] 3. Workflowの余分な`--`を除去し、CLI接続Contractを強化する。
 - [x] 4. Focused／Standalone／swapped control／quality gatesを実行し、必要な最小修正がないことを確認する。
-- [ ] 5. 修正HeadをPR #45へ通常pushし、Remote Native CIのActual APK Guard／Runtime／aggregateを確認する。
-- [ ] 6. Remote結果でPROJECT_CONTEXT／履歴／Run Artifactを更新し、Sanitizerと完了判定を行う。
+- [x] 5. 修正HeadをPR #45へ通常pushし、Remote Native CIのActual APK Guard／Runtime／aggregateを確認する。
+- [x] 6. Remote結果でPROJECT_CONTEXT／履歴／Run Artifactを更新し、Sanitizerと完了判定を行う。
 
 ## Discovered
 
