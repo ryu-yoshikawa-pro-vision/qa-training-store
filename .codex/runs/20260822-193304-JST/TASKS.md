@@ -16,8 +16,8 @@
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
 - 作業中に発見したタスクはここへ追記する（checkbox taskを分母へ加算する）
-- [ ] 10. ユーザー承認済みの変更を通常コミットし、fix/qa-repository-hardeningをoriginへpushする
-- [ ] 11. main向けPRを作成し、URLと作成後のCI状態を記録する
+- [x] 10. ユーザー承認済みの変更を通常コミットし、fix/qa-repository-hardeningをoriginへpushする
+- [x] 11. main向けPRを作成し、URLと作成後のCI状態を記録する
 
 ## Blocked
 

@@ -234,3 +234,22 @@
   - 通常commit／pushとPR作成だけを追加実行する。PR merge、force push、rebase、amend、destructive reset-cleanは行わない。
 - Remaining: 通常commit、push、PR作成、作成後CI状態の記録。
 - Progress: 82% (9/11)
+
+## 2026-08-22 20:31 (JST)
+
+- Summary: 通常commit、branch push、main向けPR作成を完了した。
+- Completed:
+  - Commit `012deee`（`fix: harden QA oracle and training workflows`）を作成した。
+  - `fix/qa-repository-hardening`を`origin`へpushした。
+  - PR #44を作成した: `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/44`
+  - PRはOPEN／非Draft、base=`main`、mergeは実施していない。
+- Commands:
+  - `git commit -m "fix: harden QA oracle and training workflows"` => PASS（11 files）。
+  - `git push -u origin fix/qa-repository-hardening` => PASS（`a3a58ae..012deee`）。
+  - `gh pr create --base main --head fix/qa-repository-hardening ...` => PR #44作成。
+  - `gh pr view 44`／`gh pr checks 44` => CodeRabbitは`pass`（manual review requiredでskip）、GitHub Actions／CodeQL／Native CI／Phase 1 CIは確認時点で`pending`または`in_progress`、PR mergeStateStatusは`BLOCKED`。
+- Notes/Decisions:
+  - push後のCIは外部状態のため、確認時点のpending状態を記録して停止した。CIの再実行、PR merge、レビューthread操作は行っていない。
+- New tasks: なし。
+- Remaining: なし。
+- Progress: 100% (11/11)
