@@ -253,3 +253,18 @@
 - New tasks: なし。
 - Remaining: なし。
 - Progress: 100% (11/11)
+
+## 2026-08-22 20:33 (JST)
+
+- Summary: PR作成後のRun記録用follow-up commitをpushし、PRの最終headを確認した。
+- Completed:
+  - follow-up commit `1230c10`（`docs: record PR creation and CI status`）をpushした。
+  - PR #44の最終headが`1230c10c84aefaf9823c90f2a41e9cfb72a58907`、state=`OPEN`、isDraft=`false`、base=`main`であることを確認した。
+- Commands:
+  - `git push` => PASS（`012deee..1230c10`）。
+  - `gh pr view 44`／`gh pr checks 44` => CodeQL／Native CIは確認時点でpendingまたはin progress、CodeRabbitは`pass`（manual review requiredでskip）、mergeStateStatus=`BLOCKED`。
+- Notes/Decisions:
+  - PR merge、CI再実行、レビューthread操作は行わず、外部CIの確認時点状態を記録して停止した。
+- New tasks: なし。
+- Remaining: なし。
+- Progress: 100% (11/11)
