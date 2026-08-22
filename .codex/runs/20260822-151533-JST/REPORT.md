@@ -197,3 +197,16 @@
 - New tasks: なし。
 - Remaining: 新headのGitHub checks完了待ち。PR mergeは行わない。
 - Progress: 100% (9/9)
+
+## 2026-08-22 17:27 (JST)
+
+- Summary: PR #43新headのNative Static failureを再確認し、基線問題として確定した。
+- Completed:
+  - 新head `2f670c6`の`Native Static`が`Run Expo Doctor`でfailureになったことを確認した。
+  - 同じ現行treeで`pnpm dlx expo-doctor@1.17.6`を実行し、16/17 checks passed、Expo SDK patch-version mismatch 1件となることを再確認した。
+  - `git diff origin/main...HEAD`に`package.json`、`pnpm-lock.yaml`、Native CI設定の変更がないことを再確認した。
+- Notes/Decisions:
+  - Native StaticをGreenにするためのExpo依存更新は今回のG2/G5/G6 Scope外であり、実装PRへ混在させない。今回のProduct実装のFocused／local Repository gate／Web・Native runtime証跡とは独立したbaseline remediationとして扱う。
+- New tasks: なし。
+- Remaining: PR #43の新head remote checksは一部実行中。Native Staticは上記baseline failure。PR mergeは行わない。
+- Progress: 100% (9/9)

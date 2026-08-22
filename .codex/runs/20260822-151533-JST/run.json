@@ -65,6 +65,7 @@
       ,"PR branchは最新mainを通常mergeで同期し、PR差分を14 filesへ限定した"
       ,"PR #43のNative StaticはExpo Doctorの既存patch-version mismatchで失敗。package.json／lockfile／CI設定は今回変更していないため、Scope外の依存更新は行わない"
       ,"追加Run Artifact commit f35dd75を通常push。新headのGitHub checksは再実行中で、旧headの結果を流用しない"
+      ,"新head 2f670c6でもNative StaticはExpo Doctorの同一baseline mismatchで失敗。G2/G5/G6のsource/package/CI diffに起因しないためScope外修正は行わない"
     ]
   },
   "safety": {
