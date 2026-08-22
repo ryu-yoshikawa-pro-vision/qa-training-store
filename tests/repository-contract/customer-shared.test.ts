@@ -1,5 +1,9 @@
 import Dexie from "dexie";
-import type { ProductSearchRequest } from "@/application/contracts";
+import type {
+  ProductSearchRequest,
+  ProductViewer,
+  SearchSuggestion,
+} from "@/application/contracts";
 import { createScenarioDataset } from "@/seeds/scenarios";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
@@ -29,11 +33,25 @@ createCustomerRepositoryContractSuite(async () => {
   };
   const adapter = {
     catalog: {
-      getHome: ({ now }: { now: string }) => catalog.getHome({ viewer: guest, now }),
-      search: (input: ProductSearchRequest & { now: string }) =>
-        products.search({ ...input, viewer: guest }),
-      getProductDetail: ({ productId, now }: { productId: string; now: string }) =>
-        products.getDetail({ productId, viewer: guest, now }),
+      getHome: ({ viewer, now }: { viewer: ProductViewer; now: string }) =>
+        catalog.getHome({ viewer, now }),
+      search: (input: ProductSearchRequest & { viewer: ProductViewer; now: string }) =>
+        products.search(input),
+      suggest: (input: {
+        keyword: string;
+        limit: 8;
+        viewer: ProductViewer;
+        now: string;
+      }): Promise<SearchSuggestion[]> => products.suggest(input),
+      getProductDetail: ({
+        productId,
+        viewer,
+        now,
+      }: {
+        productId: string;
+        viewer: ProductViewer;
+        now: string;
+      }) => products.getDetail({ productId, viewer, now }),
       getCategoryName: async (categoryId: string) =>
         (await database.categories.get(categoryId))?.name ?? null,
     },

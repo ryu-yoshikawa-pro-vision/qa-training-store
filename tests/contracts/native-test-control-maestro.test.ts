@@ -101,7 +101,7 @@ describe("Native Test Control Maestro contracts", () => {
       totalHandlers += handlerIndexes.length;
     }
 
-    expect(totalOpenLinks).toBe(38);
+    expect(totalOpenLinks).toBe(39);
     expect(totalHandlers).toBe(totalOpenLinks);
   });
 
@@ -216,22 +216,28 @@ describe("Native Test Control Maestro contracts", () => {
     }
 
     const searchSource = readFlow("native-search.yaml");
-    expect(searchSource).toContain('inputText: "P-0001"');
+    expect(searchSource).toContain('openLink: "scenario-shop://search?q=0001"');
+    expect(searchSource).toContain('id: "native-search-screen"');
+    expect(searchSource).toContain('id: "native-search-submit"');
+    expect(searchSource).toContain('id: "native-suggestion-product-product-basic-shirt"');
     expect(searchSource).toContain('id: "native-product-card-product-basic-shirt"');
-    expect(searchSource).toContain('id: "native-catalog-search-input"');
-    expect(searchSource).toContain('id: "native-catalog-search-button"');
-    expect(searchSource).toContain('id: "native-product-detail-screen"');
-    expect(searchSource).toContain('- tapOn:\n    id: "native-product-card-product-basic-shirt"');
-    expect(searchSource).toContain("native-search-product-detail");
-    expect(searchSource.indexOf('inputText: "P-0001"')).toBeLessThan(
+    expect(searchSource).toContain('id: "native-filter-brand-brand-scenario-life"');
+    expect(searchSource).toContain("該当する商品がありません");
+    expect(searchSource.indexOf('id: "native-search-screen"')).toBeLessThan(
+      searchSource.indexOf('id: "native-suggestion-product-product-basic-shirt"'),
+    );
+    expect(
+      searchSource.indexOf('id: "native-suggestion-product-product-basic-shirt"'),
+    ).toBeLessThan(searchSource.indexOf('id: "native-search-submit"'));
+    expect(searchSource.indexOf('id: "native-search-submit"')).toBeLessThan(
       searchSource.indexOf('id: "native-product-card-product-basic-shirt"'),
     );
     expect(searchSource.indexOf('id: "native-product-card-product-basic-shirt"')).toBeLessThan(
-      searchSource.indexOf('- tapOn:\n    id: "native-product-card-product-basic-shirt"'),
+      searchSource.indexOf('id: "native-filter-brand-brand-scenario-life"'),
     );
-    expect(
-      searchSource.indexOf('- tapOn:\n    id: "native-product-card-product-basic-shirt"'),
-    ).toBeLessThan(searchSource.indexOf('id: "native-product-detail-screen"'));
+    expect(searchSource.indexOf('id: "native-filter-brand-brand-scenario-life"')).toBeLessThan(
+      searchSource.indexOf("該当する商品がありません"),
+    );
   });
 
   it.each(["native-low-stock.yaml", "native-purchase-limit.yaml"] as const)(
@@ -353,6 +359,8 @@ describe("Native Test Control Maestro contracts", () => {
       '- extendedWaitUntil:\n    visible: "Contract HarnessはAutomation専用です"',
     );
     const harnessLabelIndex = source.indexOf('assertNotVisible: "Native Contract Harness"');
+    const harnessActionIndex = source.indexOf('assertNotVisible: "Run native contract"');
+    const harnessPassedIndex = source.indexOf('assertNotVisible: "Native contract passed"');
 
     expect(launchIndex).toBeGreaterThanOrEqual(0);
     expect(source.slice(launchIndex, launchIndex + 20)).toContain("- launchApp\n");
@@ -363,12 +371,16 @@ describe("Native Test Control Maestro contracts", () => {
     expect(testControlLinkIndex).toBeGreaterThan(runtimeStatusIndex);
     expect(harnessReadyIndex).toBeGreaterThan(testControlLinkIndex);
     expect(harnessLabelIndex).toBeGreaterThan(harnessReadyIndex);
+    expect(harnessActionIndex).toBeGreaterThan(harnessLabelIndex);
+    expect(harnessPassedIndex).toBeGreaterThan(harnessActionIndex);
     expect(source).not.toContain('- assertVisible: "Scenario Shop"');
     expect(source).not.toContain('visible: "Native test runtime listening"\n    timeout: 30000');
     expect(source).toContain('assertNotVisible: "Native test runtime listening"');
     expect(source).toContain('id: "native-test-runtime-status"');
     expect(source).toContain("Contract HarnessはAutomation専用です");
     expect(source).toContain('assertNotVisible: "Native Contract Harness"');
+    expect(source).toContain('assertNotVisible: "Run native contract"');
+    expect(source).toContain('assertNotVisible: "Native contract passed"');
     expect(source).not.toContain("scenario-shop://test-control/reset");
   });
 

@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "run_id": "20260822-223302-JST",
+  "task_type": "repair",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "feat/native-catalog-storefront-authorization",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    "tests/component/native/native-catalog-screen.test.tsx"
+  ],
+  "validation": {
+    "status": "passed_with_warnings",
+    "commands": [
+      "pnpm exec jest --config jest.config.cjs tests/component/native/native-catalog-screen.test.tsx --runInBand --verbose",
+      "pnpm exec jest --config jest.config.cjs tests/component/native/native-catalog-screen.test.tsx tests/component/native/native-shell.test.tsx --runInBand --verbose",
+      "pnpm exec vitest run tests/contracts/native-runtime-service-surface.test.ts tests/repository-contract/native-customer-shared.test.ts tests/repository-contract/customer-shared.test.ts tests/repository-contract/storefront-catalog.test.ts tests/contracts/native-test-control-maestro.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm run typecheck:app",
+      "pnpm run typecheck:native-tests",
+      "pnpm run lint",
+      "pnpm run format:check",
+      "pnpm run lint:markdown",
+      "pnpm run check:native-route-dependencies",
+      "git diff --check",
+      "python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260822-223302-JST/evaluation.json",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260822-223302-JST -Write -Check"
+    ],
+    "warnings": [
+      "全体pnpm run verifyと全Repository testは未実行。変更面のfocused gateを優先した。",
+      "Native APK再Build／Maestro再実行はProduct code未変更のため未実行。前回Runの最新Product code evidenceを参照した。",
+      "Native CIのExpo Doctor patch mismatchとCodeRabbit旧threadは別途最終報告する。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260822-223302-JST/evaluation.json",
+  "status": "completed",
+  "primary_failure_category": null
+}
