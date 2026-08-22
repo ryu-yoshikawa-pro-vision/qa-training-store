@@ -51,13 +51,17 @@
       "git diff --check",
       "git commit -m \"fix: enforce checkout result and ownership invariants\"",
       "git push -u origin fix/commerce-web-correctness",
-      "gh pr create --base main --head fix/commerce-web-correctness"
+      "gh pr create --base main --head fix/commerce-web-correctness",
+      "gh pr update-branch 43",
+      "git pull --ff-only origin fix/commerce-web-correctness",
+      "gh pr diff 43 --name-only"
     ],
     "warnings": [
       "pnpm run lint: 0 errors / 64 existing warnings",
       "Native初回BuildはWindows path／Virtual Store条件でCXX1428となったが、Runbookの短いJunction＋外部Virtual Storeで再検証し成功した",
       "Native Build中にSDKのcmdline-tools latest-2重複配置warningが出たが、直接原因ではないためVersion整理は行っていない"
       ,"PR #43のremote checksは最終観測時点で実行中／queued。mergeは実行していない"
+      ,"PR branchは最新mainを通常mergeで同期し、PR差分を14 filesへ限定した"
     ]
   },
   "safety": {

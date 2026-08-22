@@ -152,3 +152,20 @@
 - New tasks: なし。
 - Remaining: なし（PRのremote checks完了はGitHub側の非同期処理）。
 - Progress: 100% (9/9)
+
+## 2026-08-22 17:10 (JST)
+
+- Summary: PR branchを最新mainへ通常mergeで同期し、PR差分をG2/G5/G6だけに整えた。
+- Completed:
+  - `gh pr update-branch 43`でrebaseを使わず、最新`main`をPR branchへmergeした。作成されたmerge commitは`0d84706`。
+  - `git pull --ff-only origin fix/commerce-web-correctness`でローカルをremote merge commitへ同期した。
+  - `gh pr diff 43 --name-only`で、PR差分がG2/G5/G6の9 source/test files、Plan、今回Run Artifactの14 filesだけであることを確認した。
+- Commands/Results:
+  - `gh pr view 43 --json baseRefOid,headRefOid` => base `a3a58ae...`、head `0d84706...`。
+  - `gh pr diff 43 --name-only` => 14 files、Codex安全設定やG3/G4の差分なし。
+- Notes/Decisions:
+  - これはPR自体のmergeではなく、最新mainをfeature branchへ取り込む通常merge。rebase／force push／amendは行っていない。
+  - source/testの検証結果はmerge前と同一tree差分のため維持し、GitHub remote checksの再実行は非同期状態として記録する。
+- New tasks: なし。
+- Remaining: なし（PRはOPEN、merge未実施）。
+- Progress: 100% (9/9)
