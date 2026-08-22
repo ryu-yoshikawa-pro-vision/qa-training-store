@@ -39,6 +39,7 @@
       "pnpm run lint",
       "pnpm run build:web",
       "pnpm exec playwright test e2e/web/phase1-required.spec.ts --project=chromium --grep '04|05|07'",
+      "scripts/native/windows/android-local.ps1 -Action Test -Flow maestro/native-payment-retry.yaml -RepositoryAlias <REPO_ROOT> -VirtualStoreDir <PNPM_VIRTUAL_STORE> -AndroidSdkRoot <ANDROID_SDK_ROOT>",
       "scripts/native/windows/android-local.ps1 -Action Doctor",
       "scripts/native/windows/android-local.ps1 -Action Prepare",
       "scripts/native/windows/android-local.ps1 -Action Build",
@@ -62,6 +63,7 @@
       "Native Build中にSDKのcmdline-tools latest-2重複配置warningが出たが、直接原因ではないためVersion整理は行っていない"
       ,"PR #43のremote checksは最終観測時点で実行中／queued。mergeは実行していない"
       ,"PR branchは最新mainを通常mergeで同期し、PR差分を14 filesへ限定した"
+      ,"PR #43のNative StaticはExpo Doctorの既存patch-version mismatchで失敗。package.json／lockfile／CI設定は今回変更していないため、Scope外の依存更新は行わない"
     ]
   },
   "safety": {

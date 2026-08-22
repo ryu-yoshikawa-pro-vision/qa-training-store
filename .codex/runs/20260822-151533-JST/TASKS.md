@@ -17,6 +17,7 @@
 - D1. Native Cart adapterは`WHERE id = ? AND cart_id = ?`で既にownershipを絞っているため、G6の変更対象はDexie repositoryに限定する。
 - D2. G2のOrder detail DTOは`orderStatus`と`paymentAttempts`を既に持つため、Payment State Machineの追加は不要。
 - D3. React Aria公式契約では`allowsEmptyCollection`がempty結果でもPopoverを開くために必要で、`onOpenChange`がopen state変更を受け取る。
+- D4. PR #43の`Native Static`はExpo Doctorの既存patch-version不一致で失敗した。`origin/main`の`package.json`も同じ値で、依頼Scope外の依存更新は行わない。
 
 ## Blocked
 

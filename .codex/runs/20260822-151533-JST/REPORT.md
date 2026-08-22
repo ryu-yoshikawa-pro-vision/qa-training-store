@@ -169,3 +169,18 @@
 - New tasks: なし。
 - Remaining: なし（PRはOPEN、merge未実施）。
 - Progress: 100% (9/9)
+
+## 2026-08-22 17:20 (JST)
+
+- Summary: Native G2の既存runtime Flowを追加確認し、PR remote failureのRoot Causeを基線比較で切り分けた。
+- Completed:
+  - `powershell ... android-local.ps1 -Action Test -Flow maestro/native-payment-retry.yaml ...` => 既存Native Flow 1/1 passed。支払い失敗結果、再試行、完了結果を実端末で確認した。
+  - `pnpm dlx expo-doctor@1.17.6`を現行treeで再現し、16/17 checks passed、Expo SDK patch-version mismatch 1件で終了した。
+  - `origin/main:package.json`を確認し、`expo`、`@expo/metro-runtime`、`expo-build-properties`等の検出値が現行と同一であることを確認した。今回のdiffには`package.json`／lockfile／CI設定の変更がない。
+  - PR #43の`Native Static`は`Run Expo Doctor`で失敗しており、他の完了済みremote checksと区別して記録した。
+- Notes/Decisions:
+  - Expo依存のpatch更新はG2/G5/G6以外の変更となるため、Scopeを拡張して修正しない。Native Staticのbaseline remediationは別対応とする。
+  - G2のNative実runtimeは新Scenarioを追加せず、既存`maestro/native-payment-retry.yaml`で補強した。反対route、missing、unauthorizedはWeb/Native Component Regressionで固定し、Web実Chromiumでも確認済み。
+- New tasks: なし。
+- Remaining: PR #43のGitHub checksは一部実行中。Native Staticのbaseline dependency mismatchは別対応であり、PR mergeは行わない。
+- Progress: 100% (9/9)
