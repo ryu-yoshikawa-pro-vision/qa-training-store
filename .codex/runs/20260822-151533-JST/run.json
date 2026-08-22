@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "run_id": "20260822-151533-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "fix/commerce-web-correctness",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    "src/application/use-cases/checkout-order-use-cases.ts",
+    "src/infrastructure/database/dexie/cart-checkout-repositories.ts",
+    "src/presentation/components/search-combobox.tsx",
+    "src/presentation/native/native-purchase-screens.tsx",
+    "src/presentation/pages/checkout-order-pages.tsx",
+    "tests/component/checkout-order-pages.test.tsx",
+    "tests/component/native/native-purchase-screens.test.tsx",
+    "tests/component/presentation-foundation.test.tsx",
+    "tests/repository-contract/cart-mutations.test.ts",
+    "docs/plans/2026-08-22_151533_repository-audit-g2-g5-g6-implementation.md",
+    ".codex/runs/20260822-151533-JST/PLAN.md",
+    ".codex/runs/20260822-151533-JST/TASKS.md",
+    ".codex/runs/20260822-151533-JST/REPORT.md",
+    ".codex/runs/20260822-151533-JST/run.json"
+  ],
+  "validation": {
+    "status": "success",
+    "commands": [
+      "pnpm exec vitest run tests/component/checkout-order-pages.test.tsx tests/component/presentation-foundation.test.tsx",
+      "pnpm exec vitest run tests/repository-contract/cart-mutations.test.ts",
+      "pnpm exec jest --config jest.config.cjs tests/component/native/native-purchase-screens.test.tsx --runInBand",
+      "pnpm run test:repository",
+      "pnpm run test:component:web",
+      "pnpm run test:component:native",
+      "pnpm run typecheck",
+      "pnpm run lint",
+      "pnpm run build:web",
+      "pnpm exec playwright test e2e/web/phase1-required.spec.ts --project=chromium --grep '04|05|07'",
+      "scripts/native/windows/android-local.ps1 -Action Doctor",
+      "scripts/native/windows/android-local.ps1 -Action Prepare",
+      "scripts/native/windows/android-local.ps1 -Action Build",
+      "scripts/native/windows/android-local.ps1 -Action Install",
+      "scripts/native/windows/android-local.ps1 -Action Smoke",
+      "scripts/native/windows/android-local.ps1 -Action Test -Flow maestro/native-test-control.yaml",
+      "scripts/native/windows/android-local.ps1 -Action RuntimeSuite",
+      "scripts/native/windows/android-local.ps1 -Action BoundarySuite",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260822-151533-JST -Write -Check",
+      "git diff --check"
+    ],
+    "warnings": [
+      "pnpm run lint: 0 errors / 64 existing warnings",
+      "Native初回BuildはWindows path／Virtual Store条件でCXX1428となったが、Runbookの短いJunction＋外部Virtual Storeで再検証し成功した",
+      "Native Build中にSDKのcmdline-tools latest-2重複配置warningが出たが、直接原因ではないためVersion整理は行っていない"
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": null,
+  "status": "pending",
+  "primary_failure_category": null
+}

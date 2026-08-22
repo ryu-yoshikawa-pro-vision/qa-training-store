@@ -4,6 +4,7 @@ import { ScenarioShopDatabase } from "@/infrastructure/database/dexie/database";
 import { createScenarioDataset } from "@/seeds/scenarios";
 import { loadSeedDataset } from "@/seeds/load-seed";
 import { BASE_CLOCK, DEFAULT_GUEST_ID } from "@/seeds/metadata";
+import type { Cart } from "@/domain/contracts";
 
 describe("cart mutation repository contract", () => {
   let database: ScenarioShopDatabase;
@@ -60,6 +61,64 @@ describe("cart mutation repository contract", () => {
       version: item!.version,
       quantity: item!.quantity,
     });
+  });
+
+  it("rejects quantity updates for an item owned by another cart", async () => {
+    const cart = (await carts.getActiveByUser("user-customer-regular"))!;
+    const item = (await database.cart_items.get("cart-item-regular-shirt"))!;
+    const foreignCart: Cart = {
+      ...cart,
+      id: "cart-foreign",
+      ownerType: "guest",
+      userId: null,
+      guestId: "guest-foreign",
+    };
+    await database.carts.add(foreignCart);
+    await database.cart_items.update(item.id, { cartId: foreignCart.id });
+
+    await expect(
+      carts.setQuantityAndTouchCart({
+        cartId: cart.id,
+        itemId: item.id,
+        quantity: 2,
+        cartExpectedVersion: cart.version,
+        itemExpectedVersion: item.version,
+        now: BASE_CLOCK,
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(await database.cart_items.get(item.id)).toMatchObject({
+      cartId: foreignCart.id,
+      quantity: item.quantity,
+    });
+    expect(await database.carts.get(cart.id)).toMatchObject({ version: cart.version });
+  });
+
+  it("rejects deletion for an item owned by another cart", async () => {
+    const cart = (await carts.getActiveByUser("user-customer-regular"))!;
+    const item = (await database.cart_items.get("cart-item-regular-shirt"))!;
+    const foreignCart: Cart = {
+      ...cart,
+      id: "cart-foreign",
+      ownerType: "guest",
+      userId: null,
+      guestId: "guest-foreign",
+    };
+    await database.carts.add(foreignCart);
+    await database.cart_items.update(item.id, { cartId: foreignCart.id });
+
+    await expect(
+      carts.deleteItemAndTouchCart({
+        cartId: cart.id,
+        itemId: item.id,
+        cartExpectedVersion: cart.version,
+        itemExpectedVersion: item.version,
+        now: BASE_CLOCK,
+      }),
+    ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(await database.cart_items.get(item.id)).toMatchObject({
+      cartId: foreignCart.id,
+    });
+    expect(await database.carts.get(cart.id)).toMatchObject({ version: cart.version });
   });
 
   it("counts adjusted and fully excluded merge items without overlap", async () => {
