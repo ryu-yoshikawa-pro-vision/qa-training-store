@@ -73,6 +73,15 @@ const checkoutSession: CheckoutSession = {
   version: 2,
 };
 
+const nativeSucceededPaymentAttempt: OrderDetailDto["paymentAttempts"][number] = {
+  attemptNumber: 1,
+  methodCode: "TEST-SUCCESS",
+  status: "succeeded",
+  errorDisplayKey: null,
+  createdAt: "2026-07-01T03:01:00.000Z",
+  processedAt: "2026-07-01T03:01:01.000Z",
+};
+
 const nativePaidOrder: OrderDetailDto = {
   orderId: "order-native-result",
   orderNumber: "ORD-NATIVE-RESULT",
@@ -86,16 +95,7 @@ const nativePaidOrder: OrderDetailDto = {
   membershipRankSnapshot: "regular",
   shippingAddress: address,
   items: [],
-  paymentAttempts: [
-    {
-      attemptNumber: 1,
-      methodCode: "TEST-SUCCESS",
-      status: "succeeded",
-      errorDisplayKey: null,
-      createdAt: "2026-07-01T03:01:00.000Z",
-      processedAt: "2026-07-01T03:01:01.000Z",
-    },
-  ],
+  paymentAttempts: [nativeSucceededPaymentAttempt],
   shipment: {
     status: "pending",
     carrierName: null,
@@ -111,7 +111,7 @@ const nativeFailedOrder: OrderDetailDto = {
   orderStatus: "payment_failed",
   paymentAttempts: [
     {
-      ...nativePaidOrder.paymentAttempts[0]!,
+      ...nativeSucceededPaymentAttempt,
       status: "failed",
       errorDisplayKey: "payment.errors.DECLINED",
       processedAt: "2026-07-01T03:01:01.000Z",

@@ -1,20 +1,20 @@
-# Report (append-only)
+# レポート（追記専用）
 
 - 行動のたびに追記する（調査/編集/判断も含む）
 - コマンドや確認結果は必ず記録する
 
-## Evidence Record (optional)
+## 証跡記録（任意）
 
-- Record ID:
-- Round:
-- Query:
-- Source:
-- Supports/Refutes:
-- Confidence:
-- Decision:
-- Rationale:
-- Open Issues:
-- Next Action:
+- 記録ID:
+- ラウンド:
+- 問い合わせ:
+- 出典:
+- 支持／反証:
+- 確信度:
+- 判断:
+- 根拠:
+- 未解決事項:
+- 次のアクション:
 
 ## YYYY-MM-DD HH:MM (JST)
 
@@ -85,7 +85,7 @@
 - Remaining: Repository gate、Web/Native runtime Before/After、scope/Git確認、Sanitizer、commit/push。
 - Progress: 67% (6/9)
 
-## Deletion candidates
+## 削除候補
 
 - Codex はファイルやディレクトリを削除しない。
 - 不要に見えるファイルは、ユーザーが手動確認できるようにここへ記録する。
@@ -236,3 +236,47 @@
 - Native CI run `32572482928` は確認時点で`in_progress`。Production Bundle GuardはSUCCESS、Native Static job `97029905729` はExpo Doctorの同じExpo SDK patch-version mismatchでFAILURE、Android／iOS後続Buildとfinal verifyは未完了である。
 - これは新HEADで再確認した事実であり、旧HEADのCI結果を流用していない。Expo依存、lockfile、Native CI設定は変更しない。
 - Repair Loop iteration 1のremote validationはNative Static failureとNative CI未完了を残差として`continue`とする。
+
+## 2026-08-22 22:04 (JST)
+
+- Repair Loop iteration 2を実施した。
+- input_findings:
+  - Search debounce中の旧候補残留Regressionが、Bのrequest開始後にしか候補を確認していなかった。
+  - 今回PRで追加されたWeb／Native payment fixtureとCart foreign-item testに非nullアサーションが残っていた。
+  - TASKS.mdとREPORT.mdの一般的な英語見出しに日本語ルールの残差があった。
+- repair_plan:
+  - B入力直後に旧option不存在と旧href未遷移を検証し、その後にB requestと新候補表示を確認する。
+  - payment attempt fixtureを独立させ、Cartの取得結果は明示的なRuntime Checkで検証する。
+  - TASKS.mdとREPORT.mdの未記入テンプレート部分の一般見出しだけを日本語化し、既存REPORT記録は並べ替えない。
+- allowed_files:
+  - `tests/component/presentation-foundation.test.tsx`
+  - `tests/component/checkout-order-pages.test.tsx`
+  - `tests/component/native/native-purchase-screens.test.tsx`
+  - `tests/repository-contract/cart-mutations.test.ts`
+  - `.codex/runs/20260822-151533-JST/TASKS.md`
+  - `.codex/runs/20260822-151533-JST/REPORT.md`
+  - `.codex/runs/20260822-151533-JST/run.json`
+- changed_files:
+  - `tests/component/presentation-foundation.test.tsx`
+  - `tests/component/checkout-order-pages.test.tsx`
+  - `tests/component/native/native-purchase-screens.test.tsx`
+  - `tests/repository-contract/cart-mutations.test.ts`
+  - `.codex/runs/20260822-151533-JST/TASKS.md`
+  - `.codex/runs/20260822-151533-JST/REPORT.md`
+- validation_commands:
+  - `pnpm exec vitest run tests/component/presentation-foundation.test.tsx` => 12 tests passed
+  - `pnpm exec vitest run tests/component/checkout-order-pages.test.tsx` => 14 tests passed
+  - `pnpm exec jest --config jest.config.cjs tests/component/native/native-purchase-screens.test.tsx --runInBand` => 22 tests passed
+  - `pnpm exec vitest run tests/repository-contract/cart-mutations.test.ts` => 5 tests passed
+  - `pnpm run test:repository` => 5 files / 35 tests passed
+  - `pnpm run test:component:web` => 11 files / 83 tests passed
+  - `pnpm run test:component:native` => 12 suites / 54 tests passed
+  - `pnpm run typecheck` => PASS
+  - `pnpm run lint` => 0 errors / 64 existing warnings
+  - `pnpm run format:check` => PASS
+  - `pnpm run lint:markdown` => 0 issues
+  - `git diff --check` => PASS
+- validation_result: Focused Testと関連gateは最終的にすべてPASS。Search testは初回、React Ariaの空コレクションに対するEnter処理でcontrolled inputが空になるためB request待ちに到達せず失敗したが、原因を確認して同じRegression内でBクエリを再入力する最小修正を1回行い、対象testと全Focused Testを再実行してPASSした。
+- remaining_delta: 今回の3 findingに残差なし。PR #43のNative StaticにあるExpo Doctor patch-version mismatchは今回差分と無関係なScope外のbaseline failureであり、依存・CI設定は変更しない。
+- decision: `stop_success`
+- Progress: 100% (13/13)

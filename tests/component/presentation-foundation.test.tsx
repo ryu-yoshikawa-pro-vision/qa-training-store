@@ -144,14 +144,18 @@ describe("presentation foundation", () => {
     expect(await screen.findByRole("option", { name: /最初の候補/ })).toBeVisible();
 
     fireEvent.change(input, { target: { value: "abc" } });
-    await waitFor(() => expect(loadSuggestions).toHaveBeenCalledWith("abc"));
     expect(screen.queryByRole("option", { name: /最初の候補/ })).toBeNull();
 
-    fireEvent.keyDown(input, { key: "ArrowDown" });
-    fireEvent.keyDown(input, { key: "Enter" });
+    act(() => {
+      fireEvent.keyDown(input, { key: "ArrowDown" });
+      fireEvent.keyDown(input, { key: "Enter" });
+    });
     expect(routerPush).not.toHaveBeenCalledWith(first.href);
 
+    fireEvent.change(input, { target: { value: "abc" } });
+    await waitFor(() => expect(loadSuggestions).toHaveBeenCalledWith("abc"));
     await act(async () => resolveSecond?.([second]));
+    expect(await screen.findByRole("option", { name: /新しい候補/ })).toBeVisible();
   });
 
   it("keeps stale async results out of the open suggestion list", async () => {

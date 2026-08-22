@@ -112,6 +112,15 @@ const confirmation: CheckoutConfirmationDto = {
   membershipRank: "regular",
 };
 
+const succeededPaymentAttempt: OrderDetailDto["paymentAttempts"][number] = {
+  attemptNumber: 1,
+  methodCode: "TEST-SUCCESS",
+  status: "succeeded",
+  errorDisplayKey: null,
+  createdAt: "2026-07-01T03:00:00.000Z",
+  processedAt: "2026-07-01T03:00:01.000Z",
+};
+
 const detail: OrderDetailDto = {
   orderId: "order-new",
   orderNumber: "ORD-20260701-0006",
@@ -145,16 +154,7 @@ const detail: OrderDetailDto = {
       image: confirmation.items[0]!.image,
     },
   ],
-  paymentAttempts: [
-    {
-      attemptNumber: 1,
-      methodCode: "TEST-SUCCESS",
-      status: "succeeded",
-      errorDisplayKey: null,
-      createdAt: "2026-07-01T03:00:00.000Z",
-      processedAt: "2026-07-01T03:00:01.000Z",
-    },
-  ],
+  paymentAttempts: [succeededPaymentAttempt],
   shipment: {
     status: "pending",
     carrierName: null,
@@ -181,7 +181,7 @@ const failedDetail: OrderDetailDto = {
   orderStatus: "payment_failed",
   paymentAttempts: [
     {
-      ...detail.paymentAttempts[0]!,
+      ...succeededPaymentAttempt,
       status: "failed",
       errorDisplayKey: "payment.errors.DECLINED",
     },

@@ -64,8 +64,10 @@ describe("cart mutation repository contract", () => {
   });
 
   it("rejects quantity updates for an item owned by another cart", async () => {
-    const cart = (await carts.getActiveByUser("user-customer-regular"))!;
-    const item = (await database.cart_items.get("cart-item-regular-shirt"))!;
+    const cart = await carts.getActiveByUser("user-customer-regular");
+    if (cart === null) throw new Error("Expected seeded customer cart");
+    const item = await database.cart_items.get("cart-item-regular-shirt");
+    if (item === undefined) throw new Error("Expected seeded cart item");
     const foreignCart: Cart = {
       ...cart,
       id: "cart-foreign",
@@ -94,8 +96,10 @@ describe("cart mutation repository contract", () => {
   });
 
   it("rejects deletion for an item owned by another cart", async () => {
-    const cart = (await carts.getActiveByUser("user-customer-regular"))!;
-    const item = (await database.cart_items.get("cart-item-regular-shirt"))!;
+    const cart = await carts.getActiveByUser("user-customer-regular");
+    if (cart === null) throw new Error("Expected seeded customer cart");
+    const item = await database.cart_items.get("cart-item-regular-shirt");
+    if (item === undefined) throw new Error("Expected seeded cart item");
     const foreignCart: Cart = {
       ...cart,
       id: "cart-foreign",

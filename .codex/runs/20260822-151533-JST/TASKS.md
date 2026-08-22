@@ -1,6 +1,6 @@
-# Tasks
+# タスク
 
-## Now
+## 現在のタスク
 
 - [x] 1. 指定Plan、Project Context、ADR、直近Run、AGENTS、最新main/PR #38を確認する
 - [x] 2. G2/G5/G6のrepo mapping、Root Cause、既存Boundary/Test、React Aria契約を確認する
@@ -12,7 +12,7 @@
 - [x] 8. scope/Git確認、Run Artifact Sanitizer、REPORT/run manifestを更新する
 - [x] 9. normal commit/pushを実施し、PRをmergeせず結果を報告する
 
-## Discovered
+## 作業中に発見したタスク
 
 - D1. Native Cart adapterは`WHERE id = ? AND cart_id = ?`で既にownershipを絞っているため、G6の変更対象はDexie repositoryに限定する。
 - D2. G2のOrder detail DTOは`orderStatus`と`paymentAttempts`を既に持つため、Payment State Machineの追加は不要。
@@ -23,6 +23,6 @@
 - [x] D7. Native再決済失敗、候補残留、debounce経過後の1文字入力をRegressionで固定する。
 - [x] D8. Run Artifactのvalidation結果と見出し・時系列記録を既存collector契約に合わせて補正する。
 
-## Blocked
+## ブロック中
 
 - なし（Native runtime capabilityは検証時に実行可否を記録する）
