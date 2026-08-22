@@ -111,7 +111,7 @@ describe("Native Catalog / Search contract surface", () => {
     setCatalogRuntime(search, suggest);
 
     const screen = await render(<NativeSearchScreen />);
-    fireEvent.changeText(screen.getByTestId("native-search-input"), "ラン");
+    await fireEvent.changeText(screen.getByTestId("native-search-input"), "ラン");
 
     await waitFor(() => expect(suggest).toHaveBeenCalledWith({ keyword: "ラン", limit: 8 }));
     expect(screen.getByTestId("native-suggestion-product-product-running-shoes")).toBeTruthy();
@@ -287,11 +287,11 @@ describe("Native Catalog / Search contract surface", () => {
     setCatalogRuntime(search, suggest);
 
     const screen = await render(<NativeSearchScreen />);
-    fireEvent.changeText(screen.getByTestId("native-search-input"), "ラン");
-    fireEvent.changeText(screen.getByTestId("native-search-input"), "ラ");
+    await fireEvent.changeText(screen.getByTestId("native-search-input"), "ラン");
+    await fireEvent.changeText(screen.getByTestId("native-search-input"), "ラ");
 
-    fireEvent.changeText(screen.getByTestId("native-search-input"), "ラン");
-    fireEvent.changeText(screen.getByTestId("native-search-input"), "Tシャツ");
+    await fireEvent.changeText(screen.getByTestId("native-search-input"), "ラン");
+    await fireEvent.changeText(screen.getByTestId("native-search-input"), "Tシャツ");
     await waitFor(() => expect(suggest).toHaveBeenCalledWith({ keyword: "Tシャツ", limit: 8 }));
 
     await resolveAndFlush(second, [secondSuggestion]);

@@ -109,6 +109,15 @@
   - feature branchのnormal commit/push、最終差分確認。
 - Progress: 86% (6/7)
 
+## 2026-08-22 22:40 (JST) — 最終時系列訂正（append-only）
+
+- このエントリは既存記録を削除・変更・並べ替えず、ファイルの実際の末尾へ追加した最終訂正である。
+- 旧Runの正しい実行順は、16:05の追加validation、16:07のcommit／feature branch push、16:08のRun Artifact追補pushである。
+- ファイル上は16:07、16:08のブロックの後ろに16:05の記録が遅れて追記されており、これは実行順ではない。16:05記録はlate appendであり、commit／push完了後にRunがRemainingへ戻ったことを意味しない。
+- 既存の21:41訂正もファイル途中に入っているため、この末尾エントリを時系列判断のcanonical recordとする。16:08時点でG3/G4の実装・focused validation・Run Artifact保存・normal pushは完了し、旧RunのRemainingはなしだった。
+- PR #42のreview finding repairは旧Runではなく、別Run `20260822-194304-JST`で実施された。今回のrepairの変更・validation・既知のExpo Doctor dependency mismatchは同RunのREPORTを正本とする。
+- Progress: 100% (7/7)
+
 ## 2026-08-22 21:41 (JST) — 時系列訂正およびPR #42修復追補
 
 - 時系列訂正: 上記の`16:05`記録は、ファイル上では`16:07`／`16:08`記録の後ろに追記されている。これは実行順を並べ替えたものではなく、遅れて追記された履歴であり、`16:05`の実行が`16:07`／`16:08`の後に行われたことを意味しない。

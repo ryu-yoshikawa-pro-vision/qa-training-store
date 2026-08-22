@@ -249,3 +249,29 @@
 - Git evidence: artifact追補commit `f458f4da889c1557be4c088d4351ebaaba476db1`（`chore: finalize native catalog repair run`）を作成・pushした。local HEADとremote feature branchは同一commitで、working treeはcleanである。
 - Final status: PR #42はOPEN、mergeしていない。PR #42固有のRemainingはなく、Expo Doctor dependency alignmentだけを別PRへ分離する。
 - Progress: 100% (7/7)
+
+## 2026-08-22 22:40 (JST) — Canonical execution order correction（append-only）
+
+- 既存の全記録は変更・削除・並べ替えず、このブロックをファイルの実際の末尾へ追記した。本文中の時刻ラベルには記録順と一致しないものがあるため、時刻を勝手に補正せず、既存内容・Run ID・artifactの実行結果を正本にする。
+- Canonical sequence:
+  1. PR #42のreview findingを現HEADへ再確認し、Gateway duplicateをfalse positive、前回修正済みのSQLite/Search/Guest findingをrejectまたはfixedとして分類。
+  2. Native Searchのstate同期、独立Search/Suggestion serial、initialKeyword同期を最小修正。
+  3. SQLite bulk loading／Detail全商品scan解消を実装。
+  4. Component、Repository、UseCase、contract focused testを実行。
+  5. Android Doctorを実行し、authorized physical deviceのpreflightを確認。
+  6. `Prepare`でAndroid projectとGradle wrapperを生成。
+  7. 最初のBuild `20260822-194304-JST-build-2051`が長い実体Path上のNitro CMake `CreateProcess error=2`でFAIL。
+  8. `Prepare` `20260822-194304-JST-prepare-2119`で`CI=true`とvirtual store条件を成立させる。
+  9. `Build` `20260822-194304-JST-build-2125`がPASS。
+  10. `install-2051`、`smoke-2056`、`control-2057`がPASS。
+  11. 初回Search Maestro `search-flow-2100`がSuggestion表示でFAIL。
+  12. 中間のSearch flow確認を経て、初期query後のBrand filterで旧結果が残る問題を`search-flow-2145`で発見。
+  13. 初期query page 1のskip flagだけを最小修正し、Product codeの追加リファクタリングは行わない。
+  14. Component Testと静的Maestro contractを再実行。
+  15. `build-2120`、`install-2138`、`control-2140`、`search-flow-2143`をPASSし、最終`build-2151`、`install-2154`、`search-flow-2155`もPASS。
+  16. lint、typecheck、format、markdown、route dependency、diff、Run Artifact schema／sanitizerを最終実行。
+  17. source／validation commit `60c67eb`をnormal commit／push。
+  18. Run Artifact追補commit `f458f4d`をnormal commit／push。
+- 上記は「時刻の訂正」ではなく、timestamp is likely misstatedな箇所をRun ID／command sequenceで監査可能にするための訂正である。既存の時刻ラベルを新しい推測値へ置き換えていない。
+- 現在のrepair完了状態は、PR #42固有の修正・focused validation・既存Native runtime evidence・artifact訂正が完了し、Product codeを今回のact warning修正で変更していない状態である。PR #42はOPENのままで、Expo Doctorのpatch alignmentだけが別PR対象である。
+- Progress: 100% (7/7)
