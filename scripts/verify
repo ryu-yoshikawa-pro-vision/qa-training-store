@@ -260,7 +260,7 @@ check_template_contract() {
   contains "Examples" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "Failure modes" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "sandbox_mode = \"workspace-write\"" .codex/config.toml || return 1
-  contains "approval_policy = \"untrusted\"" .codex/config.toml || return 1
+  if contains 'approval_policy = "untrusted"' .codex/config.toml; then return 1; fi
   contains "web_search = \"cached\"" .codex/config.toml || return 1
   contains "network_access = false" .codex/config.toml || return 1
   contains "[agents]" .codex/config.toml || return 1
