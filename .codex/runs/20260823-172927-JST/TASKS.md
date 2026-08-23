@@ -9,7 +9,7 @@
 
 ## Discovered
 
-- [ ] D1. ユーザー明示依頼に従い、今回の修正とRun Artifactをcommitして現在のブランチへpushする
+- [x] D1. ユーザー明示依頼に従い、今回の修正とRun Artifactをcommitして現在のブランチへpushする
 
 ## Blocked
 

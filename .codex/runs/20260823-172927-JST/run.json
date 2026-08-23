@@ -22,7 +22,12 @@
       "rg -n -F 'Cross-Browser Smoke' docs/plans/2026-08-23_114600_ci-workflow-display-name-renaming.md",
       "rg -n -F 'Cross Browser Smoke' docs/plans/2026-08-23_114600_ci-workflow-display-name-renaming.md",
       "Workflow target diff scope check",
-      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-172927-JST -Write -Check"
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-172927-JST -Write -Check",
+      "git diff --cached --check",
+      "git commit -m 'docs: correct cross-browser workflow name in plan'",
+      "git push origin chore/rename-ci-workflows",
+      "git rev-parse HEAD and @{upstream}",
+      "git status --short --branch"
     ],
     "warnings": [
       "Contract TestとE2Eはユーザー指定どおり再実行していない。"
