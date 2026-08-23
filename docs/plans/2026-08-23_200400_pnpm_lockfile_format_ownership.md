@@ -196,7 +196,17 @@ pnpm install --frozen-lockfile --ignore-scripts
 
 - exit code 0
 
-失敗した場合は後続 Task を実行せず、原因を確認する。
+失敗した場合は後続 Task を実行せず、まず最初の異常を確認して次の 2 種類に分類する。
+
+1. `package.json` と `pnpm-lock.yaml` の不整合、frozen lockfile mismatch など lockfile / manifest 整合性が原因
+   - Issue #51 の前提が崩れているため、dependency version や resolution を変更して回避せず停止する
+   - 原因と今回の normalization との因果関係を Run Artifact に記録し、計画を再評価する
+2. network / registry / pnpm store / filesystem / 権限 / 一時的な実行環境など、lockfile semantic content と無関係な原因
+   - semantic change や Issue #51 の前提崩壊とは扱わない
+   - `AGENTS.md` の再試行停止ルールに従って原因を確認する
+   - 解消できない場合は environment block として根拠・未完了検証・次アクションを Run Artifact に記録し、Implementation completion とはせず停止する
+
+どちらの場合も、この Task を通すための dependency update、pnpm version update、CI / registry 設定変更を Issue #51 に混ぜない。
 
 この Task により fresh clone / `node_modules` 未作成環境でも、後続 Task で Repository の `yaml` / `prettier` を利用できる状態にする。
 
@@ -362,6 +372,8 @@ ownership conflict 解消の核心条件は以下 3 点。
   - 対策: lockfile 全体の YAML deep equality を必須化
 - fresh clone で `yaml` / `prettier` が未導入のまま検証を開始する
   - 対策: normalization 直後に frozen install を実行してから semantic / Prettier 検証を行う
+- frozen install failure を lockfile 不整合と誤認する
+  - 対策: lockfile / manifest mismatch と network / registry / filesystem 等の environment failure を Task 5 で分類する
 - pnpm version 差で再変換される
   - 対策: 9.10.0 を実行前に確認
 - 2 回目 no-op を HEAD diff で誤判定する
@@ -377,7 +389,9 @@ ownership conflict 解消の核心条件は以下 3 点。
 
 なし。
 
-semantic equality が崩れた場合、または Task 5 の frozen install が失敗した場合は、Issue #51 の前提が変わったものとして再調査する。
+semantic equality が崩れた場合、または Task 5 が lockfile / manifest 不整合で失敗した場合は、Issue #51 の前提が変わったものとして再調査する。
+
+Task 5 が実行環境要因で失敗した場合は前提変更とは扱わず、environment block として記録して停止する。
 
 ## 8. 成果物
 
