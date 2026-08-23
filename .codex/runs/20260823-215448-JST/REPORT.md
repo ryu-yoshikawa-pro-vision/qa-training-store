@@ -411,3 +411,21 @@
   - workerは対象native-shell以外を変更せず、Git mutationも実行していない。
 - Remaining: D1〜D3。
 - Progress: 77% (10/13)
+
+## 2026-08-23 22:42 (JST)
+
+- Summary: 最終validation済みの変更とRun Artifactをcommitした。
+- Completed:
+  - D1のimplementation commitを作成した。
+- Commands:
+  - `git diff --cached --name-status` => 4 tracked source/plan filesと現在Run Artifactのみ。
+  - `git diff --cached --check` => PASS。
+  - `git commit -m "fix: make pnpm the lockfile format owner"` => PASS。
+- Evidence:
+  - commit SHA: `68eecd7`（`fix: make pnpm the lockfile format owner`）。
+  - commit内容: `.prettierignore`、Plan末尾LF、`pnpm-lock.yaml`、`src/presentation/native/native-shell.tsx`、現在Run Artifact。
+- Notes/Decisions:
+  - commit後のRun Artifact記録は別の記録commitとして追加する。force push、履歴改変は行わない。
+- New tasks: なし。
+- Remaining: D2（push）、D3（PR #52/CI確認）。
+- Progress: 85% (11/13)

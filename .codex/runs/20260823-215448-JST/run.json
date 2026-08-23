@@ -38,11 +38,14 @@
       "pnpm run typecheck:app (repair iteration 3)",
       "git diff -- src/presentation/native/native-shell.tsx",
       "git diff --check",
+      "git diff --cached --name-status",
+      "git diff --cached --check",
+      "git commit -m 'fix: make pnpm the lockfile format owner'",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-215448-JST -Write -Check"
     ],
     "warnings": [
       "ESLintは既存warning 65件を出力したが、errorは0件。SQLite/React act等のruntime warningも検出されたが、validationは成功した。",
-      "commit、push、PR/CI確認はD1〜D3として未実行。"
+      "push、PR/CI確認はD2〜D3として未実行。"
     ]
   },
   "safety": {
