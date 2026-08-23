@@ -44,7 +44,10 @@
                            "git diff --check",
                            "git diff -- docs/plans/2026-08-23_113300_mobile-web-image-overflow.md",
                            "pnpm run format:check",
-                           "pnpm run verify"
+                           "pnpm run verify",
+                           "gh pr view 49 --repo ryu-yoshikawa-pro-vision/qa-training-store --json headRefOid,title,body",
+                           "gh run view 32632257863 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+                           "gh run view 32632257965 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs"
                        ],
                        "warnings":  [
                            "初回はNative実機がADB unauthorizedだったが、端末側RSA許可後にDoctor / preflight / Build / Install / Smoke / Runtime EvidenceがPASS。",

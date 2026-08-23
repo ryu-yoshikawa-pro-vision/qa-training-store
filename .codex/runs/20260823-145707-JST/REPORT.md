@@ -624,3 +624,14 @@
 - Remaining delta: Run Artifact sanitizer、commit / push、PR #49のHEADとrequired CI完了確認。
 - Decision: `continue`。
 - Progress: 97% (30/31)
+
+### 2026-08-23 19:26 (JST)
+
+- Commit / push前の差分確認: `AGENTS.md`、Active Runの`TASKS.md` / `REPORT.md` / `run.json`のみを対象とし、商品画像実装・Web code・test code・PR metadataは変更していない。
+- Commit / push: `1e54ecf3edb829070788120ba933e0835ac2a737`（`docs: clarify quality gate failure policy`）を`origin/fix/mobile-web-image-overflow`へpush済み。PR #49のhead SHA、branch、title、bodyを確認し、PR metadataは変更していない。
+- Web CI: run `32632257863`はcompleted / success。Static、test、build、Chromium E2E、UI Review（desktop / tablet / mobile / small-mobile）、production smoke、verify、preview deploy、artifact sanitizerを含むrequired jobがPASS。CodeQL / Dependency ReviewもPASS。
+- Mobile App CI: run `32632257965`はcompleted / success。Detect Native Changes、Android Automation / Production-validation Build、Native Static、iOS Automation / Production-validation Build、Production Bundle Guard、Android Runtime / Maestro、iOS Native CI Verify、`native-ci / verify`の全ジョブがPASS。
+- PR反映確認: `gh pr view 49`でhead SHAが`1e54ecf3edb829070788120ba933e0835ac2a737`、対象branchが`fix/mobile-web-image-overflow`であることを確認した。
+- Final validation: `pnpm run lint:markdown` PASS（313 files / 0 issues）、`git diff --check` PASS、`run.json` JSON parse PASS、`pnpm run verify` PASS（format / markdown / spec / visual spec / curriculum、lint 0 errors、typecheck、全test、buildを完了）。
+- Run Artifact sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-145707-JST -Write -Check` PASS（`files_scanned: 4`、`residual_findings: 0`）。
+- Progress: 100% (31/31)
