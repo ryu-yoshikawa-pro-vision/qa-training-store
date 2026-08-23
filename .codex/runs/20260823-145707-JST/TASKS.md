@@ -53,3 +53,12 @@ Progress: 100% (23/23)
 - [x] D16. ユーザー指定のcommitを作成し、`fix/mobile-web-image-overflow`をoriginへpushする。
 
 Progress: 100% (27/27)
+
+## Repair iteration 3: review指摘の矛盾整理
+
+- [x] D17. `AGENTS.md`の品質ゲートFAIL対応を§7の例外と§8の単一ルールへ整理し、§8.1の重複記載を削除する。
+- [x] D18. `run.json`の旧「今回差分外」warningを最終状態に合う事実表現へ修正し、JSON parseを確認する。
+- [x] D19. `pnpm run lint:markdown`、`git diff --check`、`pnpm run verify`、Run Artifact sanitizerを実行する。
+- [ ] D20. 変更差分を確認してcommit / pushし、PR #49のHEADとrequired CI完了状態を確認する。
+
+Progress: 97% (30/31)

@@ -602,3 +602,25 @@
 - Run Artifact更新commit `e8e2184 chore: record quality gate delivery`を作成し、`git push origin fix/mobile-web-image-overflow`が成功した（`accdc3e..e8e2184`）。
 - `HEAD`と`origin/fix/mobile-web-image-overflow`が一致していることを確認した。最終作業ツリーに未commit変更はない。
 - Final Progress: 100% (27/27)
+
+## Repair iteration 3: review指摘の矛盾整理
+
+### 2026-08-23 18:45 (JST)
+
+- Input findings: `AGENTS.md`の§8に旧来の「独立して修正可能な問題は別PRへdeferする」記述が残り、§8.1の「安全なら範囲外でも修正する」記述と矛盾していた。`run.json`にも対象Planを「今回差分外」とする旧warningが残っていた。
+- Triage: いずれも`must_fix`。品質ゲート対応の運用正本と、最終状態を表すmachine-readable summaryの正確性に関わるため、指定Active Run内で修正する。
+- Allowed files: `AGENTS.md`、`.codex/runs/20260823-145707-JST/run.json`、同Runの`TASKS.md` / `REPORT.md`。
+- `AGENTS.md`: §7に品質ゲートFAIL対応時の最小例外を明示し、FAIL対応の手順・安全上の停止条件・範囲外／既存／baselineでも安全に修正可能なら必ず対応する方針を§8へ集約した。旧§8のdefer記述を置換し、重複していた§8.1を削除した。通常のscope制限と破壊的操作・権限不足・secrets／credentials・不可逆な外部副作用・要件判断・再試行停止条件の停止条件は維持した。
+- `run.json`: `validation.status = "passed"`、`primary_failure_category = null`は維持し、warningを「PRで追加した対象PlanのMD047で初回verifyが停止したが、末尾改行修正後に最終verifyがPASSした」という事実表現へ置換した。JSON parseはPASS。
+- Lightweight validation: `pnpm run lint:markdown`は313 files / 0 issuesでPASS、`git diff --check`はPASS、旧い「今回差分外」／§8.1／defer記述の検索結果は該当なし。
+- Remaining delta: `pnpm run verify`、Run Artifact sanitizer、commit / push、PR #49のCI完了確認。
+- Decision: `continue`。
+- Progress: 94% (29/31)
+
+### 2026-08-23 18:52 (JST)
+
+- Validation: `pnpm run verify`を最初から最後まで実行し、終了コード`0`でPASSした。format / markdown / spec / final visual spec / curriculum、ESLint（0 errors / 65 warnings）、app・Native test・training typecheck、image manifest、security、unit 66、integration 98、repository 37、component web 83、component native 62、contracts 398、Web build、spec buildを完了した。
+- Warning: ESLintの65 warningとNative testの既存`act(...)` console warningは残ったが、errorは0件でverifyのFAIL原因ではない。今回の修正対象に無関係な既存コードの修正は行わない。
+- Remaining delta: Run Artifact sanitizer、commit / push、PR #49のHEADとrequired CI完了確認。
+- Decision: `continue`。
+- Progress: 97% (30/31)

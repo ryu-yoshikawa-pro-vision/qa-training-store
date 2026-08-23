@@ -49,7 +49,7 @@
                        "warnings":  [
                            "初回はNative実機がADB unauthorizedだったが、端末側RSA許可後にDoctor / preflight / Build / Install / Smoke / Runtime EvidenceがPASS。",
                            "Web UI Review初回は依存未準備でCLIがunknown command testとなったが、lockfile固定の依存準備後retry stageで2 tests passed。",
-                           "pnpm run verifyはformat:check後、今回差分外の対象Plan末尾改行違反（MD047）で停止。後続verify stepは未実行。",
+                           "初回の pnpm run verify は、PRで追加した対象Planの末尾改行違反（MD047）で停止したが、末尾改行を修正後に最終 pnpm run verify はPASSした。",
                            "Native targeted testは13 suites / 62 tests passed。React runtime-providerの既存act console warningのみ。",
                            "対象Planの末尾改行を修正し、最終pnpm run lint:markdown / pnpm run verifyはPASS。lintには既存のwarning 65件（error 0件）が残る。"
                        ]
