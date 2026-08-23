@@ -181,7 +181,7 @@ Native の商品画像が画面または想定コンテナからはみ出す直�
 - [ ] 1. Active Run を初期化 / 再利用し、Native 再現仮説と確認対象を記録する。
 - [ ] 2. Native を再現し、原因判定基準に従って直接原因を特定する。特定できなければ Native 修正を Blocked とする。
 - [ ] 3. 原因を特定できた場合のみ Native を最小修正する。
-- [ ] 4. Native を修正した場合は、現在の変更を含む Runtime で修正画面を再確認する。shared style 変更時のみ代表画面も確認する。
+- [ ] 4. Native を修正した場合は、現在の変更を含む Runtime で修正画面を再確認する。shared style 変更時は下記の代表画面ルールに従う。
 - [ ] 5. 変更箇所に対応する Native targeted test を必要最小限更新 / 実行する。
 - [ ] 6. Native の結果に関係なく Web UI review を 390x844 / 320x700 で実行し、対象2 route の overflow と screenshot を確認する。
 - [ ] 7. Web UI review がFAILした場合は原因を分類する。画像 / layout 起因と確認できなければ Web production code を変更せず、必要に応じて Web を Blocked とする。
@@ -197,7 +197,16 @@ Native の商品画像が画面または想定コンテナからはみ出す直�
 - 修正前は問題が報告された実Runtime / 画面で現象を確認する。
 - Native production code を変更した場合、修正後確認に使う Runtime が現在の変更を含むことを確認する。
 - 修正後は画像の左右端だけでなく、直接親 container / card の境界内に収まることを確認する。
-- shared style を変更した場合のみ、その style を使用する代表画面を追加確認する。
+- shared style を変更した場合は、変更した style に応じて次の代表画面だけを追加確認する。無関係な全画面確認へ広げない。
+
+| shared style / constraint | 追加確認する代表画面 |
+| --- | --- |
+| `styles.productImage` | Catalog の商品card + Product Detail |
+| `styles.productImageDetail` | Home のhero画像 + Product Detail |
+| `styles.productImageThumbnail` | Cart。Purchase系thumbnailにも同じ変更が届く場合のみ該当Purchase画面も確認 |
+| `styles.row` / row配下の共通constraint | Catalog + Search。Cartのrowにも変更が影響する場合のみCartも確認 |
+| `styles.scroll` / 共通content constraint | 最初の再現画面 + Product Detail。再現画面がProduct DetailならCatalogを追加確認 |
+
 - 既存の狭幅Runtimeを追加設定なしで利用できる場合だけ補助確認に使う。今回のために viewport harness や端末設定を新設しない。
 
 ### Native targeted test
@@ -242,6 +251,7 @@ component test の style assertion を実Runtimeのviewport確認の代替には
 6. UI review がFAILした場合は、商品画像 / layout 起因か、環境・build・fixture・test harness 起因かを先に分類する。後者で評価不能なら Web を Blocked とし、production code を変更しない。
 7. 非再現なら Web test file 自体も変更しない。
 8. Web を修正した場合は変更後に同じ確認を再実行し、修正前後を別の `UI_REVIEW_STAGE` で残す。
+9. 同じstageのviewport folderにPNGが存在すると既存UI Reviewは再利用を拒否する。途中FAIL等で再実行が必要な場合も既存証跡を削除せず、`image-overflow-before-${RUN_ID}-retry-01` / `image-overflow-after-${RUN_ID}-retry-01` のような未使用stageを使う。再試行ごとに `retry-02` のように増やす。
 
 `RUN_ID` / `$runId` には新しい値を生成せず、実装開始時に初期化または再利用した active Run の実際の `run_id` を設定する。
 
@@ -267,7 +277,7 @@ pnpm exec playwright test e2e/web/ui-review.spec.ts `
   --project=ui-review-small-mobile
 ```
 
-Web を修正した場合は `image-overflow-after-$RUN_ID` / `image-overflow-after-$runId` のように未使用の stage 名へ変更して同じコマンドを再実行する。今回のための npm script は追加しない。
+Web を修正した場合は `image-overflow-after-${RUN_ID}` / `image-overflow-after-$runId` のように未使用の stage 名へ変更して同じコマンドを再実行する。途中FAIL等による再試行では上記の `-retry-01` ルールを使う。今回のための npm script は追加しない。
 
 ### 最終品質ゲート
 
@@ -297,18 +307,19 @@ pnpm run lint:markdown
 
 ### Run Artifact sanitizer
 
-Run Artifact 更新後、作業完了前に repository rule に従って sanitizer を実行する。
+Run Artifact 更新後、作業完了前に repository rule に従って sanitizer を実行する。`$runId` には上記と同じ active Run の実際の `run_id` を使う。
 
 ```powershell
+$runId = "20260823-123800-JST" # 既に設定済みなら再設定不要
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 `
-  -Path ".codex/runs/<run_id>" -Write -Check
+  -Path ".codex/runs/$runId" -Write -Check
 ```
 
 sanitizer がFAILした場合は未完了とし、残存するローカル絶対Path等を解消して再確認する。
 
 ### 成功判定
 
-- Native 修正を実施した場合: 現在の変更を含む Runtime で再現画面を確認し、画像が想定 container 内に収まり、原因箇所だけが変更され、targeted test が成功する。
+- Native 修正を実施した場合: 現在の変更を含む Runtime で再現画面を確認し、画像が想定 container 内に収まり、原因箇所だけが変更され、targeted test が成功する。shared style を変更した場合は上記対応表の代表画面確認も完了する。
 - Native を再現 / 原因特定できない場合: 推測修正せず Native を Blocked として evidence が残る。
 - Web 非再現の場合: 390 / 320 の対象2 routeで overflow test と screenshot 確認が完了し、Web production code / test を変更していない。
 - Web を修正した場合: 修正後の新しい stage で同じ2 route × 2 viewportを再実行し、overflow test と screenshot の両方で問題解消を確認する。
@@ -325,10 +336,11 @@ sanitizer がFAILした場合は未完了とし、残存するローカル絶対
 | --- | --- |
 | 原因不明の防御styleで症状だけ隠す | 原因判定基準に従い、特定できなければ Native を Blocked とする |
 | 古いAPK / Runtimeで修正後確認する | Native変更後は現在の変更を含む Runtime であることを確認してから検証する |
-| shared style 変更で他画面を壊す | shared style を変更した場合だけ代表利用箇所を追加確認する |
+| shared style 変更で他画面を壊す | shared style変更時は対応表の代表画面だけを追加確認する |
 | Webのdocument overflowだけ見て画像表示異常を見落とす | UI review screenshotも必ず確認する |
 | `cover` の通常cropを不具合と誤認する | 現行 `object-fit: cover` を維持し、container overflow / 異常拡大等だけを対象にする |
 | Web UI review の環境 / harness FAIL を画像不具合と誤認する | FAILの最初の異常を分類し、評価不能なら Web production code を変更せず Blocked とする |
+| UI Reviewの途中FAIL後に同じstageを再利用して証跡衝突する | 既存PNGを削除せず未使用の `-retry-NN` stageへ切り替える |
 | Web修正後の狭幅再確認が抜ける | Web変更時は新しい stage で同じ UI review を再実行する |
 | Native BlockedでWeb確認まで止める | NativeとWebの結果を分離し、評価可能な側は継続する |
 | 既存テストと重複した仕組みを増やす | 既存 component test / UI reviewを優先し、新規harnessを作らない |
