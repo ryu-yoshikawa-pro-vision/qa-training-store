@@ -1,21 +1,48 @@
 # pnpm-lock.yaml のフォーマット所有権を pnpm に統一する実装プラン
 
-## 目的
+## 0. 依頼概要
 
-Issue #51 の対応として、`pnpm-lock.yaml` のフォーマット所有権を Prettier から pnpm に一本化する。
-
-現在は pnpm が生成する canonical lockfile を Prettier が再整形するため、dependency 変更がなくても `pnpm install --lockfile-only --ignore-scripts` によって約 12,000〜13,000 行規模の formatting diff が発生する状態になっている。
-
-このプランでは、`pnpm-lock.yaml` を pnpm 9.10.0 の canonical 形式へ一度だけ normalization し、その後は pnpm を再実行しても lockfile が変化しない状態にする。
+- 依頼内容: Issue #51 の対応として、`pnpm-lock.yaml` のフォーマット所有権を Prettier から pnpm に一本化する
+- 背景: dependency 変更なしの `pnpm install --lockfile-only --ignore-scripts` でも約 12,000〜13,000 行の formatting diff が発生し、security remediation 等の最小差分レビューを阻害している
+- 期待成果: `pnpm-lock.yaml` を pnpm 9.10.0 の canonical 形式へ一度だけ normalization し、その後 pnpm / Prettier のどちらを実行しても不要な lockfile formatting churn が発生しない状態にする
 
 関連:
 
 - Issue #51: `pnpm-lock.yaml のフォーマット所有権を pnpm に統一する`
 - PR #50: `security: investigate Dependabot remediation blocker for js-yaml`
 
-## 背景
+## 1. ゴール / 完了条件
 
-PR #50 の Dependabot Alert #5 (`js-yaml` / `GHSA-5p4m-2wfm-xmqj`) 調査で、security remediation より先に lockfile ownership conflict が存在することが判明した。
+### ゴール
+
+`pnpm-lock.yaml` の唯一の format owner を pnpm 9.10.0 とし、Prettier から除外する。
+
+今回の変更では dependency graph を変更せず、次回以降の dependency update で formatting-only の大規模差分が混ざらない状態を作る。
+
+### 完了条件（DoD）
+
+#### Local validation
+
+- [ ] `.prettierignore` に `pnpm-lock.yaml` が追加されている
+- [ ] normalization に pnpm 9.10.0 を使用している
+- [ ] normalization 前後の `pnpm-lock.yaml` を YAML parse し、全体の deep equality が成立している
+- [ ] dependency version / resolution / integrity / importer / package / snapshot / override / settings / checksum に semantic change がない
+- [ ] 1 回目の normalization 後と、2 回目の `pnpm install --lockfile-only --ignore-scripts` 後の `pnpm-lock.yaml` の SHA-256 が一致している
+- [ ] `pnpm exec prettier --file-info pnpm-lock.yaml --ignore-path .prettierignore` で `ignored: true` を確認している
+- [ ] `pnpm install --frozen-lockfile --ignore-scripts` が成功する
+- [ ] `pnpm run format:check` が成功する
+- [ ] `pnpm run verify` が成功する
+
+#### PR-level validation
+
+- [ ] Web CI が成功する
+- [ ] Mobile App CI が成功する
+- [ ] `js-yaml` remediation が混在していない
+- [ ] unrelated dependency update / application behavior change が混在していない
+
+## 2. 現状理解と前提
+
+### Current understanding
 
 確認済みの事実:
 
@@ -24,116 +51,177 @@ PR #50 の Dependabot Alert #5 (`js-yaml` / `GHSA-5p4m-2wfm-xmqj`) 調査で、s
 - Mobile App CI の `PNPM_VERSION` は `9.10.0`
 - `.prettierignore` には現在 `pnpm-lock.yaml` が含まれていない
 - `pnpm run format` / `pnpm run format:check` は `.prettierignore` を使用する
-- dependency 変更なしで `pnpm install --lockfile-only --ignore-scripts` を実行すると、大規模な formatting diff が発生する
-- pnpm が生成した lockfile に対する `prettier --check` は fail する
-- その lockfile に `prettier --write` をかけると Repository HEAD の lockfile と一致する
-- YAML semantic comparison では dependency graph は同一であることが PR #50 の調査で確認されている
+- dependency 変更なしの `pnpm install --lockfile-only --ignore-scripts` で大規模な formatting diff が発生する
+- pnpm canonical lockfile に対する Prettier check は fail する
+- その canonical lockfile に Prettier write をかけると現行 Repository の lockfile と一致する
+- PR #50 の調査では、normalization 前後の dependency graph が semantic に同一であることを確認済み
+- `.github/workflows/native-ci.yml` の change detection には `pnpm-lock.yaml` が含まれているため、今回の PR では Mobile App CI が実行対象になる
 
-したがって、今回の修正対象は dependency graph ではなく、lockfile の serializer / formatter ownership である。
+### Assumptions
 
-## スコープ
+以下の前提が崩れた場合は、そのまま実装を続けず計画を見直す。
 
-### 変更対象
+- 実装開始時点でも `package.json` の dependency 定義に Issue #51 と無関係な変更が入っていない
+- pnpm 9.10.0 を利用できる実行環境で作業できる
+- Issue #51 の目的は lockfile ownership conflict の解消であり、dependency remediation は別対応のままである
 
-原則として変更するファイルは次の 2 ファイルだけとする。
+### Non-goals
+
+以下は今回実施しない。
+
+- `js-yaml` の脆弱性修正
+- Dependabot Alert #5 の remediation / dismiss
+- dependency version update
+- dependency resolution の意図的変更
+- pnpm / Prettier の version update
+- CI workflow の変更
+- Dependabot 設定の変更
+- application code の変更
+- test の追加・変更
+- format / lint / security gate の弱体化
+- YAML 全体を Prettier 対象外にする変更
+- lockfile ownership 検証専用の恒久スクリプト追加
+- native change detection の変更による CI 回避
+
+## 3. 質問 / 曖昧性
+
+### 必ず質問する不透明点
+
+なし。
+
+Issue #51 と既存 Repository 設定から、目的・変更範囲・成功条件は確定している。
+
+### 仮定してよい細部
+
+- temporary snapshot / hash 値の保存先は Git 管理外の一時領域を使用してよい
+- Windows / Linux で snapshot 作成方法が異なる場合、同等の安全なコマンドを使用してよい
+
+### 未回答の重要質問
+
+なし。
+
+## 4. 影響範囲
+
+### Impacted areas
+
+#### 実装上の変更対象
 
 - `.prettierignore`
 - `pnpm-lock.yaml`
 
-必要な変更:
+#### 記録 Artifact として追加・更新を許容するもの
 
-1. `.prettierignore` に `pnpm-lock.yaml` を追加する
-2. `pnpm-lock.yaml` を pnpm 9.10.0 で canonical 形式へ一度だけ normalization する
+- この Plan file
+- `AGENTS.md` に従って実装 Run で生成・更新される `.codex/runs/<run_id>/**`
 
-### 非対象
+上記 Artifact は実装上の変更対象とは分けて扱う。
 
-以下はこの Issue / PR では実施しない。
+上記以外の product / config / source / dependency 関連ファイルを変更しない。
 
-- `js-yaml` の脆弱性修正
-- Dependabot Alert #5 の remediation
-- Dependabot Alert の dismiss
-- dependency version の更新
-- dependency resolution の意図的変更
-- pnpm の version update
-- Prettier の version update
-- CI workflow の変更
-- Dependabot 設定の変更
-- application code の変更
-- format / lint / security gate の弱体化
-- YAML 全体を Prettier 対象外にする変更
-- lockfile ownership 検証専用の恒久スクリプト追加
+### Files to inspect
 
-## 実装方針
+実装開始前に最低限以下を確認する。
 
-実装は「ownership の一本化」と「一度限りの normalization」に限定する。
+- `package.json`
+- `.prettierignore`
+- `pnpm-lock.yaml`
+- `.github/workflows/ci.yml`
+- `.github/workflows/native-ci.yml`
+- `AGENTS.md`
 
-恒久的な設定変更は `.prettierignore` の `pnpm-lock.yaml` 追加だけとする。
+### Safe change surface
 
-`pnpm-lock.yaml` の大規模差分は pnpm 9.10.0 自身による serializer normalization として扱う。ただし、formatting diff に dependency graph の変更が混入していないことを機械的に確認する。
+恒久的な設定変更は `.prettierignore` の `pnpm-lock.yaml` 1 行追加だけとする。
 
-## 実装手順
+`pnpm-lock.yaml` の大規模差分は pnpm 9.10.0 自身による一度限りの serializer normalization として扱う。
 
-### 1. 作業開始時の状態を確認する
+## 5. 変更方針
 
-実装開始前に以下を確認する。
+### Change strategy
+
+1. 作業開始時の version / working tree を確認する
+2. normalization 前 lockfile を Git 管理外へ snapshot する
+3. `.prettierignore` に `pnpm-lock.yaml` を追加する
+4. pnpm 9.10.0 で lockfile を normalization する
+5. before / after の YAML semantic equality を機械的に検証する
+6. normalized lockfile の SHA-256 を取得する
+7. 同じ pnpm command を再実行し、SHA-256 が不変であることを確認する
+8. Prettier が `pnpm-lock.yaml` を ignore していることを `--file-info` で直接確認する
+9. frozen install / format gate / verify を実行する
+10. 最終 diff を確認し、scope 外の変更を除外する
+11. PR 上で Web CI / Mobile App CI を確認する
+
+### 実行タスク
+
+#### Task 1: 作業開始時の状態確認
 
 ```bash
 pnpm --version
 git status --short
 ```
 
-期待値:
+成功条件:
 
 - `pnpm --version` が `9.10.0`
 - Issue #51 と無関係な未コミット変更がない
 
-pnpm が 9.10.0 でない場合は、そのまま normalization を実行しない。
+`pnpm --version != 9.10.0` の場合:
 
-Repository が `packageManager: pnpm@9.10.0` を定義しているため、Corepack 等を使用して Repository 指定版へ合わせてから作業する。
+- normalization を実行しない
+- Repository 指定の pnpm 9.10.0 が利用できる環境へ合わせてから再開する
+- `package.json` や CI の pnpm version を変更して合わせない
 
-### 2. normalization 前の lockfile semantic snapshot を保存する
+#### Task 2: normalization 前 snapshot を保存する
 
-`pnpm-lock.yaml` を normalization する前に、比較用 snapshot を一時領域へ保存する。
+`pnpm-lock.yaml` を Git 管理外の一時領域へコピーする。
 
 例:
 
-```bash
-cp pnpm-lock.yaml <temporary-before-path>
+```text
+<temporary-path>/pnpm-lock.before.yaml
 ```
 
-Windows の場合は同等の PowerShell コマンドでよい。
+この snapshot はコミットしない。
 
-snapshot はコミット対象にしない。
+#### Task 3: `.prettierignore` を変更する
 
-### 3. `.prettierignore` に `pnpm-lock.yaml` を追加する
-
-`.prettierignore` に次の 1 行を追加する。
+`.prettierignore` に次の 1 行だけを追加する。
 
 ```text
 pnpm-lock.yaml
 ```
 
-既存の ignore 範囲を広げない。
+禁止:
 
-`*.yaml` / `*.yml` のような広域指定にはしない。
+- `*.yaml`
+- `*.yml`
+- unrelated ignore rule の追加・整理
 
-### 4. pnpm 9.10.0 で lockfile を canonical normalization する
+#### Task 4: pnpm 9.10.0 で normalization する
 
 ```bash
 pnpm install --lockfile-only --ignore-scripts
 ```
 
-この時点では `pnpm-lock.yaml` に大量の formatting diff が発生してよい。
+この時点で `pnpm-lock.yaml` に大規模な formatting diff が発生すること自体は許容する。
 
-ただし、`package.json` や dependency version を変更しない。
+`package.json` を変更してはならない。
 
-### 5. normalization 前後の semantic equality を検証する
+#### Task 5: YAML semantic equality を検証する
 
-最重要検証として、normalization 前後の lockfile を YAML として parse し、semantic に同一であることを確認する。
+Repository 既存の `yaml` package と Node.js を使い、temporary snapshot と normalized `pnpm-lock.yaml` を YAML parse したうえで、`node:assert/strict` の `deepStrictEqual` で全体比較する。
 
-比較対象は一部キーだけではなく、原則として parse 後の lockfile 全体とする。
+比較対象を一部 key に限定しない。
 
-特に以下に差分がないことを確認する。
+成功条件:
+
+```text
+parse(before) deepStrictEqual parse(after)
+```
+
+かつ command exit code が 0。
+
+確認対象には結果的に以下も含まれる。
 
 - `lockfileVersion`
 - `settings`
@@ -146,101 +234,100 @@ pnpm install --lockfile-only --ignore-scripts
 - peer dependency resolution
 - integrity
 
-Repository には `yaml` package が存在するため、一時的な `node -e` 等で比較してよい。ただし、この検証専用スクリプトは Repository に追加しない。
+専用スクリプトは Repository に追加しない。one-shot の Node command でよい。
 
-概念的には以下を満たすこと。
+##### 停止条件
+
+semantic equality が成立しない場合は、その時点で Issue #51 の実装を停止する。
+
+以下のいずれかが見つかった場合も normalization として一括処理しない。
+
+- dependency version の変化
+- importer の変化
+- package / snapshot の追加・削除
+- integrity の変化
+- peer dependency resolution の変化
+- override / settings / checksum の変化
+
+その場合は、前提が変わったものとして原因調査へ戻る。
+
+#### Task 6: 2 回目 pnpm の no-op 性を SHA-256 で確認する
+
+1 回目 normalization 完了後の `pnpm-lock.yaml` の SHA-256 を取得する。
 
 ```text
-parse(before pnpm-lock.yaml) === parse(after pnpm-lock.yaml)
+hash_before_second_run = SHA256(pnpm-lock.yaml)
 ```
 
-### 停止条件
-
-semantic equality が成立しない場合は実装を停止する。
-
-以下のいずれかが発生した場合も normalization として一括コミットしてはならない。
-
-- dependency version が変化した
-- importer が変化した
-- package / snapshot が追加・削除された
-- integrity が変化した
-- peer dependency resolution が変化した
-- override / settings / checksum が意図せず変化した
-
-その場合は Issue #51 の前提と現状が変わっているため、原因を再調査する。
-
-### 6. pnpm の no-op 性を確認する
-
-normalization 完了後の `pnpm-lock.yaml` を基準として、もう一度以下を実行する。
+その後、同じ command を再実行する。
 
 ```bash
 pnpm install --lockfile-only --ignore-scripts
 ```
 
-2 回目の実行によって `pnpm-lock.yaml` に追加差分が発生しないことを確認する。
-
-この確認は Issue #51 の本質的な受け入れ条件とする。
-
-期待状態:
+再実行後にもう一度 SHA-256 を取得する。
 
 ```text
-pnpm 9.10.0
-  -> pnpm-lock.yaml を生成
-  -> 再度 pnpm 9.10.0 を実行
-  -> pnpm-lock.yaml の変更 0
+hash_after_second_run = SHA256(pnpm-lock.yaml)
 ```
 
-### 7. Prettier が lockfile を変更しないことを確認する
-
-まず format gate を確認する。
-
-```bash
-pnpm run format:check
-```
-
-その後、ownership をより直接確認するため、必要に応じて以下を実行する。
-
-```bash
-pnpm run format
-```
-
-実行前後で `pnpm-lock.yaml` の内容が変化していないことを確認する。
-
-`format` 実行で他ファイルに意図しない変更が発生した場合は、その変更を Issue #51 に混ぜず元に戻す。
-
-期待状態:
+成功条件:
 
 ```text
-pnpm -> pnpm-lock.yaml を管理
-Prettier -> pnpm-lock.yaml を無視
+hash_before_second_run == hash_after_second_run
 ```
 
-### 8. frozen lockfile install を確認する
+`git diff` は HEAD との差分が既に大きいため、この no-op 判定には使用しない。
+
+hash が一致しない場合は実装を停止し、差分原因を調査する。
+
+#### Task 7: Prettier ignore を直接確認する
+
+Repository 全体への `pnpm run format` は実行しない。
+
+今回確認したいのは `pnpm-lock.yaml` が `.prettierignore` によって除外されることだけなので、次を実行する。
+
+```bash
+pnpm exec prettier --file-info pnpm-lock.yaml --ignore-path .prettierignore
+```
+
+成功条件:
+
+- 出力で `ignored: true` を確認できる
+
+これにより、unrelated file へ format write を発生させず ownership を直接検証する。
+
+#### Task 8: frozen lockfile install を確認する
 
 ```bash
 pnpm install --frozen-lockfile --ignore-scripts
 ```
 
-成功することを確認する。
+成功条件:
 
-これにより、`package.json` と canonicalized `pnpm-lock.yaml` が pnpm 9.10.0 で整合していることを確認する。
+- exit code 0
+- 実行後に `pnpm-lock.yaml` が変化しない
 
-### 9. Repository verification を実行する
+必要に応じて Task 6 と同様に実行前後の SHA-256 を比較する。
 
-最低限、以下を実行する。
+#### Task 9: Repository validation を実行する
 
 ```bash
 pnpm run format:check
 pnpm run verify
 ```
 
-`verify` が成功することを確認する。
+成功条件:
 
-この変更では `pnpm-lock.yaml` が変更されるため、PR 上では Web CI だけでなく Mobile App CI も実行対象になる可能性が高い。Mobile 側の change detection には `pnpm-lock.yaml` が含まれているため、この Issue で native change detection を変更して CI を回避しない。
+- 両方 exit code 0
 
-### 10. 最終 diff を確認する
+`verify` 内で `format:check` が再実行されても問題ない。今回はリポジトリ標準の全体検証入口を維持するため両方を実行する。
 
-最終状態で以下を確認する。
+品質ゲートが失敗した場合は `AGENTS.md` の failure handling に従い、今回の差分起因かを判定する。
+
+ただし、Issue #51 と無関係な dependency update や CI policy 変更を解決策として混ぜない。
+
+#### Task 10: 最終 diff を確認する
 
 ```bash
 git status --short
@@ -249,7 +336,7 @@ git diff -- .prettierignore
 git diff -- pnpm-lock.yaml
 ```
 
-原則として変更ファイルは以下のみであること。
+実装上の変更は次だけであること。
 
 ```text
 .prettierignore
@@ -259,9 +346,9 @@ pnpm-lock.yaml
 想定差分:
 
 - `.prettierignore`: `pnpm-lock.yaml` 1 行追加
-- `pnpm-lock.yaml`: pnpm 9.10.0 canonical serializer による大規模 formatting normalization
+- `pnpm-lock.yaml`: pnpm 9.10.0 canonical serializer による formatting normalization
 
-以下に差分があれば、Issue #51 の scope に必要かを再確認し、不要なら除外する。
+Plan / Run Artifact 以外で以下に差分があれば scope を再確認し、Issue #51 に不要なら含めない。
 
 - `package.json`
 - `.github/workflows/**`
@@ -270,79 +357,102 @@ pnpm-lock.yaml
 - Dependabot config
 - その他 dependency 関連ファイル
 
-## レビュー時の重点確認
+#### Task 11: PR-level CI を確認する
 
-大規模な lockfile diff を目視で全行レビューするのではなく、以下を中心にレビューする。
+この変更では `pnpm-lock.yaml` が Native change detection 対象のため、Web CI と Mobile App CI の双方を確認する。
 
-1. `.prettierignore` の変更が `pnpm-lock.yaml` だけに限定されているか
-2. normalization に使用した pnpm が 9.10.0 か
-3. before / after の semantic equality が証明されているか
-4. 2 回目の `pnpm install --lockfile-only --ignore-scripts` が no-op か
-5. `pnpm run format` が lockfile を再変更しないか
-6. frozen install が成功するか
-7. `pnpm run verify` が成功するか
-8. dependency remediation が混入していないか
+成功条件:
 
-## リスクと対策
+- Web CI: success
+- Mobile App CI: success
 
-### リスク 1: formatting diff に dependency 変更が隠れる
+CI を軽くするために native change detection を変更しない。
 
-約 12,000〜13,000 行規模の変更になるため、目視だけでは semantic change を見落としやすい。
+## 6. 検証方法
+
+### Validation plan
+
+| 検証 | 方法 | 成功判定 |
+| --- | --- | --- |
+| pnpm version | `pnpm --version` | `9.10.0` |
+| semantic equality | YAML parse + `deepStrictEqual` | exit code 0 |
+| normalization idempotency | 2 回目 pnpm 前後 SHA-256 比較 | hash 一致 |
+| Prettier ownership | `prettier --file-info` | `ignored: true` |
+| frozen install | `pnpm install --frozen-lockfile --ignore-scripts` | exit code 0 |
+| format gate | `pnpm run format:check` | exit code 0 |
+| repository verify | `pnpm run verify` | exit code 0 |
+| Web CI | GitHub Actions | success |
+| Mobile App CI | GitHub Actions | success |
+
+### 成功判定
+
+以下の 3 点をすべて満たしたら ownership conflict 解消と判断する。
+
+1. pnpm 9.10.0 が生成した lockfile が 2 回目実行で変わらない
+2. Prettier が `pnpm-lock.yaml` を明示的に ignore する
+3. normalization 前後で YAML semantic content が完全一致する
+
+## 7. リスクと未解決論点
+
+### Risks
+
+#### Risk 1: formatting diff に dependency change が隠れる
 
 対策:
 
-- YAML parse 後の before / after deep equality を必須にする
+- 目視レビューではなく YAML parse 後の full deep equality を必須にする
 - equality 不成立なら即停止する
 
-### リスク 2: pnpm version 差で lockfile が再変換される
-
-異なる pnpm version で normalization すると、CI / 開発環境で再度差分が生じる可能性がある。
+#### Risk 2: pnpm version 差で再度 lockfile が変換される
 
 対策:
 
-- `package.json` と CI で固定済みの pnpm 9.10.0 を使用する
-- 実行前に `pnpm --version` を確認する
+- package / CI で固定済みの pnpm 9.10.0 を使用する
+- 実行前に version を必ず確認する
 
-### リスク 3: `format` が無関係ファイルを変更する
-
-`pnpm run format` は Repository 全体を対象とするため、既存の formatting drift がある場合に別ファイルまで更新する可能性がある。
+#### Risk 3: no-op 判定を HEAD diff で誤判定する
 
 対策:
 
-- `format` は ownership 確認目的で使用する
-- Issue #51 と無関係な差分はコミットしない
+- 2 回目実行前後の SHA-256 比較で判定する
+- HEAD に対する巨大 diff は no-op 判定に使わない
 
-### リスク 4: security remediation を同時に行いたくなる
-
-Issue #51 の normalization 後は `js-yaml` remediation を進めやすくなるが、同じ PR に混ぜると lockfile normalization と dependency update の境界が再び不明瞭になる。
+#### Risk 4: validation のために unrelated file を書き換える
 
 対策:
 
-- この PR では Alert #5 を変更しない
-- Issue #51 merge 後に新しい security remediation Run / PR で再評価する
+- Repository 全体への `pnpm run format` は実行しない
+- Prettier ownership は `--file-info` で read-only に確認する
 
-## Definition of Done
+#### Risk 5: security remediation を同じ PR に混ぜる
 
-以下をすべて満たしたら Issue #51 の実装完了とする。
+対策:
 
-- [ ] `.prettierignore` に `pnpm-lock.yaml` が追加されている
-- [ ] normalization に pnpm 9.10.0 を使用している
-- [ ] committed `pnpm-lock.yaml` が pnpm 9.10.0 の canonical 形式になっている
-- [ ] normalization 前後の YAML semantic equality が成立している
-- [ ] dependency version / resolution / integrity に変更がない
-- [ ] 2 回目の `pnpm install --lockfile-only --ignore-scripts` で lockfile 変更が 0
-- [ ] `pnpm run format` を実行しても `pnpm-lock.yaml` が変化しない
-- [ ] `pnpm install --frozen-lockfile --ignore-scripts` が成功する
-- [ ] `pnpm run format:check` が成功する
-- [ ] `pnpm run verify` が成功する
-- [ ] Web CI が成功する
-- [ ] Mobile App CI が成功する
-- [ ] `js-yaml` remediation が混在していない
-- [ ] dependency update が混在していない
-- [ ] application behavior の変更がない
+- Alert #5 / `js-yaml` をこの PR では変更しない
+- Issue #51 merge 後に別 Run / branch / PR で再評価する
 
-## 実装完了後の Follow-up
+### Open questions
 
-Issue #51 の PR を merge した後、PR #50 で BLOCKED となっている Dependabot Alert #5 (`js-yaml@4.3.0`) の最小 remediation を、新しい Run / branch で再評価する。
+なし。
+
+実装中に semantic equality が崩れた場合のみ、前提が変わったものとして新しい調査事項を起こす。
+
+## 8. 成果物
+
+### 実装変更
+
+- `.prettierignore`
+- `pnpm-lock.yaml`
+
+### 付随ドキュメント / Artifact
+
+- `docs/plans/2026-08-23_200400_pnpm_lockfile_format_ownership.md`
+- `AGENTS.md` に従って実装 Run で作成・更新される `.codex/runs/<run_id>/**`
+
+恒久的な validation script、ADR、CI workflow 変更は追加しない。
+
+## 9. Follow-up notes
+
+Issue #51 の PR merge 後、PR #50 で BLOCKED となっている Dependabot Alert #5 (`js-yaml@4.3.0`) の最小 remediation を、新しい Run / branch / PR で再評価する。
 
 この Follow-up は Issue #51 の実装には含めない。
