@@ -50,4 +50,6 @@ Progress: 100% (23/23)
 - [x] D13. 対象Planのsingle trailing newlineを修正し、品質ゲート失敗時の必須対応ルールをAGENTS.mdへ追記する。
 - [x] D14. 修正後に`pnpm run lint:markdown`と`pnpm run verify`を実行し、全品質ゲートPASSを確認する。
 - [x] D15. Active Run Artifactを更新し、sanitizerのWrite / CheckをPASSさせる。
-- [ ] D16. ユーザー指定のcommitを作成し、`fix/mobile-web-image-overflow`をoriginへpushする。
+- [x] D16. ユーザー指定のcommitを作成し、`fix/mobile-web-image-overflow`をoriginへpushする。
+
+Progress: 100% (27/27)
