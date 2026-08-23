@@ -142,6 +142,7 @@ describe("Training curriculum contracts", () => {
   });
 
   it("fails closed for unapproved structured workflow actions and commands", () => {
+    const pinnedCheckoutAction = "actions/checkout@11d5960a326750d5838078e36cf38b85af677262";
     const validWorkflow = `
 name: Training fixture
 on: pull_request
@@ -152,7 +153,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: ${pinnedCheckoutAction}
         with:
           persist-credentials: false
       - name: Validate
@@ -162,7 +163,13 @@ jobs:
     expect(() =>
       validateTrainingWorkflow(
         "fixture.yml",
-        validWorkflow.replace("actions/checkout@v4", "evil/action@v1"),
+        validWorkflow.replace(pinnedCheckoutAction, "evil/action@v1"),
+      ),
+    ).toThrow(/unapproved action/);
+    expect(() =>
+      validateTrainingWorkflow(
+        "fixture.yml",
+        validWorkflow.replace(pinnedCheckoutAction, "actions/checkout@v4"),
       ),
     ).toThrow(/unapproved action/);
     expect(() =>

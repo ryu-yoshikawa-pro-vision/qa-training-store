@@ -95,21 +95,23 @@ permissions:
 
 jobs:
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
         with:
           version: 9.10.0
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm run test:unit
 ```
+
+このRepositoryでは、remote Actionをmutableなtagではなくofficial sourceで確認したfull commit SHAへpinします。元となるmajor／releaseを更新するときは、official sourceとSecurity Advisoryを確認してからSHAを更新します。
 
 ここから次を読み分けます。
 
