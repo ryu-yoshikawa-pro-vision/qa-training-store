@@ -12,7 +12,7 @@
 ## Discovered
 
 - [x] D1. 既存lockfileを変更しないfrozen installでテスト実行環境を準備する
-- [ ] D2. ユーザー依頼に基づき、対象差分をcommitして現在のupstreamへpushする
+- [x] D2. ユーザー依頼に基づき、対象差分をcommitして現在のupstreamへpushする
 
 ## Blocked
 

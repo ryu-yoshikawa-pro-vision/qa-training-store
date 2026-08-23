@@ -37,7 +37,15 @@
       "git diff --name-only",
       "git diff --check",
       "git diff --stat",
-      "git log -1 --oneline"
+      "git log -1 --oneline",
+      "git add <対象3 WorkflowとRun Artifact>",
+      "git diff --cached --name-only",
+      "git diff --cached --check",
+      "git commit -m \"ci: rename workflow display names\"",
+      "git push",
+      "git status --short --branch",
+      "git rev-parse HEAD",
+      "git rev-parse '@{upstream}'"
     ],
     "warnings": [
       "最初のContract Test実行はnode_modules未準備のためvitest未認識で終了した。既存lockfileのfrozen install後、同じContract TestはPASSした。"
@@ -73,6 +81,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "in_progress",
+  "status": "complete",
   "primary_failure_category": null
 }

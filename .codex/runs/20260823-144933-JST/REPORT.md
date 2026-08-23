@@ -199,3 +199,26 @@
 - New tasks: なし。
 - Remaining: 明示stage、commit、push、push後確認、Run Artifact最終記録。
 - Progress: 88% (7/8)
+
+## 2026-08-23 15:30 (JST)
+
+- Summary: 対象差分をcommitし、現在のupstreamへpushした。remote反映と作業ツリーcleanを確認した。
+- Completed:
+  - commit `b1a0161cf06d69fd4646781e60a73e0d31f82f3b`（`ci: rename workflow display names`）を作成した。
+  - `git push` => PASS。`chore/rename-ci-workflows -> chore/rename-ci-workflows`、`aaa5ec4..b1a0161`。
+  - `HEAD`と`@{upstream}`が同一SHA `b1a0161cf06d69fd4646781e60a73e0d31f82f3b`であることを確認した。
+  - `git status --short --branch` => clean working tree。
+  - `git diff --name-only`および`git diff --check` => 出力なし／PASS。
+- Changes: 実装3 Workflowと標準Run Artifact 4ファイルをcommit／pushした。
+- Commands:
+  - `git add .github/workflows/ci.yml .github/workflows/native-ci.yml .github/workflows/native-ios-ci.yml .codex/runs/20260823-144933-JST` => PASS。
+  - `git diff --cached --name-only` / `git diff --cached --check` => 対象7ファイル、check PASS。
+  - `git commit -m "ci: rename workflow display names"` => PASS、commit `b1a0161`。
+  - `git push` => PASS、現在のupstreamへ反映。
+  - `git status --short --branch` / `git rev-parse HEAD` / `git rev-parse '@{upstream}'` => clean、SHA一致。
+- Notes/Decisions:
+  - ユーザーの明示依頼に基づきcommit／pushを実行した。PR作成・更新、force push、branch操作は行っていない。
+  - push時にGitHubからdefault branchの脆弱性通知（7 high、1 moderate）が表示されたが、今回のWorkflow表示名変更とは無関係のため修正していない。
+- New tasks: なし。
+- Remaining: なし。
+- Progress: 100% (8/8)
