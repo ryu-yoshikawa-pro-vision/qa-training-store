@@ -179,7 +179,7 @@ pnpm exec vitest run \
 
 今回の名称変更のためだけに新しいテストや YAML validator は追加しない。通常の CI では既存の Contract Test 全体が実行されるため、ローカル確認は直接影響する 2 ファイルに絞る。
 
-### 5. 旧 Workflow 名が現在有効な参照から消えたことを確認する
+### 5. 旧 Workflow 名の残存参照を確認する
 
 変更後に同じ検索を実行する。
 
@@ -187,9 +187,14 @@ pnpm exec vitest run \
 git grep -n -E 'Phase 1 CI|Native CI|Native iOS CI' -- . ':(exclude)docs/plans/**'
 ```
 
-期待結果は 0 件である。
+検索結果が残っている場合は内容を確認する。0 件であること自体は必須条件にしない。
 
-`Phase 1` や `Native` を含む別の一般用語・技術用語まで消す必要はない。
+判断基準:
+
+- 現在の Workflow 表示名、人間向け Contract Test suite 名、または Workflow 名への実際の文字列依存として旧名称が残っている場合は修正する。
+- CHANGELOG、履歴、移行経緯など、旧名称を歴史的事実として記録している箇所は変更しない。
+- 今回の目的と無関係な記録を 0 件にするためだけの一括置換は行わない。
+- `Phase 1` や `Native` を含む別の一般用語・技術用語まで消す必要はない。
 
 ### 6. 差分を検証する
 
@@ -246,7 +251,7 @@ git grep -n -E '^name: (Web CI|Mobile App CI|Mobile App iOS CI)$' -- .github/wor
 - `tests/contracts/ci-workflow.test.ts` の対応する suite 名が `Web CI deployment boundaries` になっている。
 - `tests/contracts/native-ci-workflow.test.ts` の対応する suite 名が `Mobile App CI workflow contracts` / `Mobile App iOS CI workflow contracts` になっている。
 - `Cross-Browser Smoke` は変更されていない。
-- `docs/plans/**` を除く現在有効な参照に旧 Workflow 名 `Phase 1 CI` / `Native CI` / `Native iOS CI` が残っていない。
+- 旧 Workflow 名が残っている場合、それが現在の Workflow 名・人間向け suite 名・実際の文字列依存ではなく、歴史的記録または今回の目的外の参照であることを確認できている。
 - 実装による変更ファイルが原則として上記 5 ファイルだけである。
 - 実装差分が原則として上記 6 行の置換だけである。
 - 対象 Contract Test 2 ファイルが成功する。
