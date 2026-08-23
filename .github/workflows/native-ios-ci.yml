@@ -1,4 +1,4 @@
-name: Native iOS CI
+name: Mobile App iOS CI
 
 on:
   workflow_call:
