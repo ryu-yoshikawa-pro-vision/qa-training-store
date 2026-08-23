@@ -1,350 +1,243 @@
-# Implementation Plan: Mobile / Web 画像横オーバーフロー修正
+# Implementation Plan: Mobile / Web 商品画像オーバーフロー修正
 
 - 作成日: 2026-08-23
 - Issue: N/A
 - Status: Draft
 - Verification Level: Standard
 
-## 1. 概要
+## 0. 依頼概要
 
-### 背景
+- 依頼内容:
+  - Mobile で商品画像が画面内に収まらない問題を調査し、原因箇所だけを修正する。
+  - Web でも同種の問題がないか確認する。
+- 背景:
+  - Native の共通画像コンポーネントは既に `width: "100%"`、`aspectRatio`、`resizeMode` を使用しているため、元画像サイズだけを理由に画像ファイルや画像コンポーネントへ追加の縮小処理を入れるべきではない。
+  - Web には 390x844 / 320x700 の UI review と横オーバーフロー検証が既に存在するため、今回のために同等のテスト基盤を新設する必要はない。
+- 期待成果:
+  - Native で実際の原因を特定し、最小限のレイアウト修正で商品画像を画面 / コンテンツ領域内に収める。
+  - Web は既存テストで確認し、問題が再現した場合のみ本体コードを修正する。
+  - 不要な共通化、wrapper 追加、グローバル CSS、専用テスト基盤は追加しない。
 
-Mobile で商品画像が画面幅を超えて表示されるケースが確認されている。
+## 1. ゴール / 完了条件
 
-現状の `NativeProductImage` は `width: "100%"`、`aspectRatio`、`resizeMode` を使用しており、単純に「元画像が大きいのにリサイズしていない」実装ではない。そのため、画像単体ではなく、`ScrollView`、カード、row レイアウトなどの祖先要素が viewport より広がり、その幅を基準に画像の `100%` が計算されている可能性を優先して確認する。
+### ゴール
 
-Web の共通 `ProductImage` は画像要素に `width: 100%`、`height: 100%`、`object-fit: cover` 相当の制約があり、Mobile より防御的な実装になっている。ただし、親要素の flex/grid 制約などによる横オーバーフローの可能性は残るため、Web も同時に再現確認し、必要な場合のみ本体コードを修正する。
+Native の商品画像が画面または想定コンテナからはみ出す原因を特定し、その直接原因だけを修正する。Web は既存の狭幅 UI review を利用して同種の退行がないことを確認する。
 
-### 目的
+### 完了条件（DoD）
 
-- Mobile で横オーバーフローを発生させている最初のレイアウト要素を特定する。
-- 症状である画像だけを場当たり的に縮めるのではなく、原因となるレイアウト制約を最小限修正する。
-- Web についても同じ画像導線を確認し、横オーバーフローが存在する場合のみ原因箇所を修正する。
-- 320px / 390px の狭幅で再発を検出できる回帰テストを追加する。
+- Native:
+  - 問題が確認された商品画像画面で、画像が画面 / カード / コンテンツ領域からはみ出さない。
+  - 修正箇所が、実際に幅を押し広げている要素またはその直接原因に限定されている。
+  - 既存の画像比率と `resizeMode` の意図を維持する。
+  - 固定端末幅、機種別分岐、不要な wrapper、症状を隠すだけの clipping を追加しない。
+  - 可能な実Runtimeで標準 390x844 と境界 320x700 相当を確認する。実行環境上どちらかを再現できない場合は、未実施理由と代替確認結果を run artifact に記録する。
+- Web:
+  - 既存の UI review / mobile boundary の仕組みで `/products` と代表商品詳細を確認する。
+  - 390x844 / 320x700 で横オーバーフローが再現しない場合、Web production code と Web test は変更しない。
+  - 再現した場合のみ、原因となる既存 container / flex / grid / image style を局所修正し、既存テストへ必要最小限の回帰検証を追加または強化する。
+- 共通:
+  - 今回の変更に直接関係する targeted test が通る。
+  - 最終的に `pnpm run verify` が通る。実行不能な項目がある場合は未実施理由を記録する。
 
-### スコープ
+## 2. 現状理解と前提
 
-対象:
+### Current understanding
 
-- Native の商品画像を表示する一覧・詳細・購入系画面
-- `NativeProductImage` と、その親となる共通レイアウト / row / card / `ScrollView` の幅制約
-- Web の商品一覧・商品詳細など、共通 `ProductImage` を使用する主要画面
-- Mobile / Web の狭幅レイアウト回帰テスト
+- Native の `NativeProductImage` は直接 `Image` を返し、共通 `styles.productImage` に `width: "100%"` と画像比率が設定されている。
+- Native の `productImageDetail` は detail 用比率、`productImageThumbnail` は固定 thumbnail size を持つ。
+- Native の主要画面は `ScrollView` の `contentContainerStyle={styles.scroll}` を共通利用している。
+- `styles.row` は `flexDirection: "row"` と `gap` を持つため、画像以外の row 子要素が幅を押し広げる可能性もある。
+- Web の `ProductImage` は共通 wrapper 内で `img` を表示し、CSS 側で画像を container 内へ収める構成になっている。
+- Web の `ui-review.spec.ts` は route 単位で横オーバーフローを検証しており、`/products` と代表商品詳細を含む。
+- Playwright には 390x844 の `ui-review-mobile` と 320x700 の `ui-review-small-mobile` が既にある。
+- `e2e/web/mobile-boundary.spec.ts` にも横オーバーフロー確認 helper が既に存在する。
+- `native:android:test:boundary` は viewport 幅の検証ではなく、再起動・在庫・購入上限等の状態境界 Maestro suite であるため、今回の画像サイズ検証の必須手段にはしない。
 
-対象外:
+### Assumptions
 
-- 画像アセット自体の圧縮・変換・CDN 最適化
-- 商品画像の差し替え
-- デザイン刷新
-- バックエンド / API / DB の変更
+- 現象は商品画像そのもの、または画像を含む親 / 兄弟レイアウトの幅計算による表示オーバーフローである可能性が高い。
+- 「横オーバーフロー」が第一候補だが、実Runtimeで別方向のサイズ計算問題と判明した場合は、同じ方針で実際の原因を修正する。
+- Web は現行実装と既存 UI review から問題がない可能性が高いが、実行結果で判断する。
+
+### Non-goals
+
+- 画像アセットの圧縮・変換・差し替え
+- CDN / backend / API / DB の変更
+- 商品カードや商品詳細のデザイン刷新
 - 横オーバーフローと無関係なレスポンシブ改善
+- 新しい Native viewport test harness の構築
+- 新しい Web responsive E2E ファイルの新設
+- Firefox 固有のレイアウト検証追加
+- 画像読み込み失敗 / fallback の追加検証（今回の原因に関係すると判明した場合を除く）
+- 長い商品名 / badge / price 等の網羅テスト（原因要素と判明した場合を除く）
 
-## 2. 要件 / 受け入れ条件
+## 3. 質問 / 曖昧性
 
-### Mobile
+### 必ず質問する不透明点
 
-- 390x844 で、対象となる商品画像画面に横方向のはみ出しがないこと。
-- 320x700 でも、対象となる商品画像画面に横方向のはみ出しがないこと。
-- 商品画像がカードまたはコンテンツ領域の幅を超えないこと。
-- 修正後も画像のアスペクト比と既存の `resizeMode` の意図を維持し、画像を不自然に引き伸ばさないこと。
-- 長い商品名、価格、バッジ、ボタン等の兄弟要素が幅を押し広げている場合は、その要素側を修正すること。
-- 端末幅をハードコードして回避しないこと。
+- なし。実装前の再現確認で原因箇所を特定できるため、現時点でユーザー判断が必要な blocking question はない。
 
-### Web
+### 仮定してよい細部
 
-- Chromium の通常デスクトップ幅で既存レイアウトを壊さないこと。
-- Firefox の通常デスクトップ幅で既存レイアウトを壊さないこと。
-- Chrome mobile 390x844 で root document の横オーバーフローが発生しないこと。
-- 境界幅 320x700 でも root document の横オーバーフローが発生しないこと。
-- 商品画像の bounding box が viewport / 想定コンテナを超えないこと。
-- Web で問題が再現しない場合、`ProductImage` や CSS を予防目的だけで変更しないこと。回帰テスト追加に留めること。
+- Native の修正対象ファイルは、再現時に最初に幅を超える要素を持つ既存 screen / shared component とする。
+- Web は既存 UI review の結果を正本とし、非再現なら変更しない。
 
-### 共通
+### 未回答の重要質問
 
-- `overflow-x: hidden` などで根本原因を隠す修正を主対応にしないこと。
-- 最初に viewport を超える祖先要素を特定してから修正すること。
-- 既存の lint / typecheck / component test / relevant E2E を通すこと。
+- なし。
 
-## 3. 設計方針
+## 4. 影響範囲
 
-### 3.1 調査は必要だが、範囲を限定する
+### Impacted areas
 
-今回、修正前の調査は必要とする。ただし「画像周辺を広く調べる」こと自体を目的にせず、以下だけを短時間で確認してそのまま実装修正に進む。
+- Native の商品画像を表示する Home / Catalog / Product Detail / Cart・購入系のうち、実際に症状が再現する画面
+- Native の共通画像 / row / card / ScrollView content style のうち、原因と特定された箇所
+- Web の `/products` と代表商品詳細の確認
+- 原因箇所を変更した場合の既存 component / E2E test
 
-1. 390x844 と 320x700 で症状を再現する。
-2. 画像から祖先要素へ遡り、最初に viewport 幅を超える要素を特定する。
-3. その要素を広げている直接要因を特定する。
-   - `width` / `minWidth`
-   - row 内の子要素の shrink 不足
-   - `flex` / `alignSelf`
-   - padding と固定幅の合算
-   - ScrollView content の幅拘束不足
-4. 原因箇所だけを修正する。
+### Files to inspect
 
-元画像の pixel size が大きいことだけを根拠に、画像ファイルや `Image` のサイズ指定を変更しない。
-
-### 3.2 Native の優先修正順
-
-以下の順に原因を確認し、上位で解決できる場合は下位への防御コードを増やさない。
-
-1. 各画面の共通 content / `ScrollView` の幅制約
-2. card / row / text / action 領域の flex 制約
-3. `NativeProductImage` の wrapper
-4. `NativeProductImage` 本体
-
-想定される修正候補は、原因に応じて `width: "100%"`、`alignSelf: "stretch"`、`flexShrink: 1`、`minWidth: 0` 相当の制約を適切なレイヤーへ置くこととする。
-
-ただし、実測前にこれらを一律追加しない。
-
-### 3.3 Web は再現有無で変更範囲を分岐する
-
-Web の共通 `ProductImage` は現状の画像制約を維持する。
-
-- Web で横オーバーフローが再現しない:
-  - production code は変更しない。
-  - 横オーバーフロー回帰テストのみ追加 / 強化する。
-- Web で再現する:
-  - overflow を発生させている最初の flex/grid/card/container を特定する。
-  - `min-width: 0`、`max-width: 100%` 等、原因に対応した局所修正を行う。
-  - グローバルな `overflow-x: hidden` では隠さない。
-
-### 3.4 テスト方針
-
-React Native の component test だけでは実 viewport のレイアウト計算を完全には再現できないため、役割を分ける。
-
-- Native component test:
-  - 共通画像コンポーネント / 変更した style contract の退行防止
-- Native boundary 実行:
-  - 320 / 390 幅における実画面の表示確認
-- Web Playwright:
-  - `document.documentElement.scrollWidth <= document.documentElement.clientWidth`
-  - 対象画像 / カードの bounding box が viewport 外へ出ていないこと
-
-## 4. 実装ステップ
-
-### Step 0. 実装開始時の作業記録を初期化する
-
-実装担当者はこのブランチを継続利用する。
-
-- Branch: `fix/mobile-web-image-overflow`
-
-リポジトリルールに従い、実装開始時に `.codex/runs/<timestamp>_mobile-web-image-overflow/` を初期化し、調査結果・変更理由・検証結果を記録する。
-
-この計画作成時点では実装コードおよび run artifact は作成しない。
-
-### Step 1. Native の再現箇所と原因要素を特定する
-
-確認対象:
+Native:
 
 - `src/presentation/native/native-components.tsx`
 - `src/presentation/native/native-screens.tsx`
 - `src/presentation/native/native-purchase-screens.tsx`
-
-実施内容:
-
-1. `NativeProductImage` の全 call site を列挙する。
-2. 商品一覧、商品詳細、カート / 購入導線など、実際に画像を表示する代表画面を特定する。
-3. 390x844 と 320x700 で対象画面を確認する。
-4. 画像自身と祖先 View / card / row / `ScrollView` content の幅を比較する。
-5. viewport より大きくなる最初の要素を原因候補として記録する。
-6. その要素が広がる理由を特定してから Step 2 へ進む。
-
-停止条件:
-
-- 「どの要素が最初に viewport を超えるか」が特定できた時点で調査を終了する。
-- 原因が特定できているのに追加の網羅調査を続けない。
-
-### Step 2. Native の原因箇所を最小修正する
-
-実施内容:
-
-1. Step 1 で特定した最上流の原因箇所を修正する。
-2. row 内の text / action 等が押し広げている場合は画像側ではなく兄弟要素の shrink / minWidth を修正する。
-3. 共通 content 自体が広がっている場合は screen / ScrollView 側で viewport 内へ拘束する。
-4. 画像 wrapper に追加防御が必要な場合のみ `NativeProductImage` を変更する。
-5. 固定 pixel 幅や特定機種専用分岐は追加しない。
-6. 390x844 と 320x700 の双方で再確認する。
-
-### Step 3. Native の回帰テストを追加 / 更新する
-
-候補:
-
 - `tests/component/native/native-components.test.tsx`
-- `tests/component/native/native-product-detail.test.tsx`
-- `tests/component/native/native-purchase.test.tsx`
+- `tests/component/native/native-catalog-screen.test.tsx`
+- `tests/component/native/native-product-detail-screen.test.tsx`
+- `tests/component/native/native-cart-screen.test.tsx`
+- `tests/component/native/native-purchase-screens.test.tsx`
 
-実施内容:
-
-1. 変更した共通 style contract を component test で固定する。
-2. 商品詳細 / 購入画面の変更を伴う場合、該当 screen test に必要最小限の回帰ケースを追加する。
-3. 実 viewport 固有の挙動を Jest の style assertion だけで「検証済み」と扱わない。
-
-### Step 4. Web の横オーバーフローを再現確認する
-
-確認対象:
+Web:
 
 - `src/presentation/components/product-image.tsx`
-- `ProductImage` の style 定義
+- Web の既存 style 定義ファイル
+- `e2e/web/ui-review.spec.ts`
 - `e2e/web/mobile-boundary.spec.ts`
-- 必要に応じて `e2e/web/responsive-layout.spec.ts`
-- 商品一覧 / 商品詳細の関連 E2E
+- `playwright.config.ts`
 
-実施内容:
+上記は調査候補であり、原因と無関係なファイルは変更しない。
 
-1. Chromium desktop で商品一覧 / 商品詳細を確認する。
-2. Firefox desktop でも主要画面を確認する。
-3. mobile-chromium 390x844 と 320x700 で確認する。
-4. `scrollWidth` と `clientWidth` を比較する。
-5. overflow がある場合は、画面上の要素の `getBoundingClientRect()` を確認し、viewport を超える最初のコンテナを特定する。
-6. Web で問題が再現しなければ production code を変更せず Step 6 へ進む。
+## 5. 変更方針
 
-### Step 5. Web で再現した場合のみ原因箇所を修正する
+### Change strategy
 
-実施内容:
+1. Native で症状を再現する。
+2. 画像自身から親方向へ確認し、画面 / 想定 container を最初に超える要素を特定する。
+3. その要素を広げている直接原因だけを修正する。
+4. 修正画面と、同じ shared style を使う代表画面だけを再確認する。
+5. Web は既存 UI review で確認し、再現しなければ変更しない。
+6. targeted test 後に `pnpm run verify` を実行する。
 
-1. 親 flex/grid/card/container の制約を局所的に修正する。
-2. `ProductImage` 自体に既に存在する画像フィット制御を重複実装しない。
-3. グローバル CSS で横スクロールを強制的に隠さない。
-4. desktop / 390 / 320 の全対象幅で再確認する。
+原因確認時に見る候補:
 
-### Step 6. Web の回帰テストを追加 / 強化する
+- `width` / `minWidth`
+- `flex` / `flexShrink`
+- row 子要素の幅拘束
+- padding と固定幅の合算
+- `ScrollView` content の幅
+- 画像自身の `width` / `aspectRatio`
 
-主対象:
+候補 style を一律追加してはならない。実測または実画面確認で原因と判断した箇所だけを変更する。
 
-- `e2e/web/mobile-boundary.spec.ts`
+### 実行タスク
 
-必要に応じて:
+- [ ] 1. 実装開始時にリポジトリルールに従って active run を初期化 / 再利用する。
+- [ ] 2. Native で問題が確認できる商品画像画面を再現する。
+- [ ] 3. 画像 → 親 container の順に確認し、最初に画面 / 想定 content 幅を超える要素と直接原因を特定する。
+- [ ] 4. 原因箇所だけを最小修正する。
+- [ ] 5. 修正画面を再確認し、同じ shared style を変更した場合のみ影響する代表画面も確認する。
+- [ ] 6. 変更した contract に対応する既存 Native test を必要最小限更新する。style assertion だけで実viewport確認を代替しない。
+- [ ] 7. Web の既存 `ui-review.spec.ts` を 390x844 / 320x700 の既存 project で実行し、`/products` と代表商品詳細を確認する。
+- [ ] 8. Web で再現しなければ Web production code / test を変更しない。再現した場合のみ原因箇所と既存テストを最小修正する。
+- [ ] 9. targeted test と `pnpm run verify` を実行し、結果を run artifact に記録する。
 
-- `e2e/web/responsive-layout.spec.ts`
-- 商品一覧 / 商品詳細 E2E
+### 禁止する対応
 
-最低限追加する検証:
+- 原因特定前に `overflow: hidden` / clipping を追加して症状だけを隠す
+- `NativeProductImage` のためだけに wrapper を新設する
+- 320px / 390px 固有の固定 width を追加する
+- Web で問題が再現していないのに `max-width` 等を予防目的で追加する
+- 既存 UI review と同等の新規 E2E を重複追加する
+- 今回のために Native viewport 専用 harness を新設する
 
-1. 390x844 で root document に横オーバーフローがない。
-2. 320x700 で root document に横オーバーフローがない。
-3. 代表的な商品画像の右端が viewport を超えない。
-4. 画像を含む主要カード / 詳細領域が viewport を超えない。
+## 6. 検証方法
 
-汎用 helper を追加する場合は、テスト内で利用価値が複数箇所ある場合だけ共通化する。1 回しか使わない helper は作らない。
+### Validation plan
 
-### Step 7. 最終検証を行う
+#### Native
 
-変更範囲に応じて、最低限以下を実行する。
+- 実Runtimeで、症状が出る画面を修正前後で確認する。
+- リポジトリの基準に合わせ、可能なら 390x844 と 320x700 相当で確認する。
+- shared style を変更した場合のみ、その style を使用する代表画面を追加確認する。
+- 変更した component / screen に既存 component test がある場合、そのテストを targeted test として実行する。
+- `native:android:test:boundary` は今回の viewport 検証手段としては使用しない。
 
-```bash
-pnpm run format:check
-pnpm run lint
-pnpm run typecheck
-pnpm run test:component:native
-pnpm run test:e2e:mobile-boundary
-```
+#### Web
 
-Web production code または Web E2E を変更した場合:
+既存 UI review を利用する。
 
-```bash
-pnpm run test:component:web
-pnpm run test:e2e:chromium
-pnpm run test:e2e:smoke:firefox
-```
+- `ui-review-mobile`: 390x844
+- `ui-review-small-mobile`: 320x700
+- 対象 route:
+  - `/products`
+  - `/products/product-basic-shirt`
+- 既存 `expectNoHorizontalOverflow` による `scrollWidth <= clientWidth + 1` の結果を確認する。
+- 画像または container が見た目上はみ出している疑いが残る場合のみ、既存テスト内で対象要素の bounding box assertion を追加する。
+- Web で非再現なら test file 自体も変更しない。
 
-最終的にリポジトリ全体の品質ゲートも確認する。
+#### 最終品質ゲート
+
+開発中は変更範囲に対応する targeted test のみ実行し、最後に以下を実行する。
 
 ```bash
 pnpm run verify
 ```
 
-環境依存で Native 実機 / Android boundary suite を実行可能な場合は、以下も実施する。
+Web UI review の実行コマンドは `package.json` の現行 script / Playwright project 定義を確認し、既存コマンドを使用する。今回のための新規 script は追加しない。
 
-```bash
-pnpm run native:android:test:boundary
-```
+### 成功判定
 
-実行不能な場合は成功扱いにせず、未実施理由と代替確認結果を run artifact に記録する。
+- Native の再現画面で商品画像が想定 container 内に収まる。
+- 修正が原因箇所に限定されている。
+- 同じ shared style を使う代表画面に退行がない。
+- Web は既存 390 / 320 UI review で対象 route に横オーバーフローがない、または再現した問題を最小修正後に解消している。
+- `pnpm run verify` が成功する、または環境依存で実行不能な項目が明確に記録されている。
 
-## 5. テスト計画
+## 7. リスクと未解決論点
 
-| 対象 | 条件 | 期待結果 |
-| --- | --- | --- |
-| Native 商品一覧 | 390x844 | 商品画像 / card が viewport を超えない |
-| Native 商品一覧 | 320x700 | 商品画像 / card が viewport を超えない |
-| Native 商品詳細 | 390x844 | 詳細画像が content 幅以内に収まる |
-| Native 商品詳細 | 320x700 | 詳細画像が content 幅以内に収まる |
-| Native 購入系画面 | 320 / 390 | 画像を含む row が横へ押し広がらない |
-| Native component | unit / component | 変更した style contract が維持される |
-| Web 商品一覧 | Chromium desktop | 既存 desktop レイアウトに退行がない |
-| Web 商品詳細 | Firefox desktop | 既存 desktop レイアウトに退行がない |
-| Web 商品一覧 / 詳細 | 390x844 | `scrollWidth <= clientWidth` |
-| Web 商品一覧 / 詳細 | 320x700 | `scrollWidth <= clientWidth` |
-| Web 商品画像 | 320 / 390 | bounding box が viewport 外へ出ない |
-
-追加で確認するエッジケース:
-
-- 長い商品名
-- 長い価格 / バッジ表示
-- 画像読み込み成功時
-- 画像読み込み失敗時 / fallback 表示
-- 商品画像が複数カードで連続する一覧
-
-## 6. リスクと対策
+### Risks
 
 | リスク | 内容 | 対策 |
 | --- | --- | --- |
-| 症状だけを隠す | `overflow: hidden` や画像の強制縮小で本当の原因を残す | 最初に viewport を超える祖先要素を特定して修正する |
-| 過剰修正 | 共通 screen style を広く変えて無関係な画面を壊す | 共通変更は call site と影響範囲を確認し、最小の style だけ変更する |
-| 画像比率の退行 | 幅修正により画像が潰れる / 不自然に crop される | `aspectRatio` / `resizeMode` / `object-fit` の既存意図を維持する |
-| Web の不要変更 | Mobile の症状だけを根拠に Web CSS まで変更する | Web は再現した場合のみ production code を変更する |
-| テストの偽陽性 | root の `scrollWidth` だけでは一部 clipping を見逃す | 代表画像 / card の bounding box も確認する |
-| Jest で実画面を代替 | React Native component test では viewport layout を完全再現できない | boundary 実行 / 実機確認を別レイヤーで実施する |
-| 320px だけの局所対応 | 320px を直して 390px / desktop を壊す | 320 / 390 / desktop をセットで確認する |
+| 症状だけを隠す | clipping や画像縮小だけで親レイアウト問題を残す | 最初に幅を超える要素と直接原因を確認する |
+| 共通 style の過剰修正 | 1画面の問題で他画面を壊す | shared style を変える場合だけ代表 call site を追加確認する |
+| テストの過剰追加 | 既存 UI review と重複した E2E を増やす | 既存テストを優先し、非再現なら Web test を変更しない |
+| Native test の誤用 | style assertion や状態 boundary suite を viewport 検証と誤認する | 実Runtime確認を主とし、component test は contract 退行防止に限定する |
+| 画像比率の退行 | width 修正で画像が潰れる / crop が変わる | 既存 `aspectRatio` / `resizeMode` の意図を維持する |
 
-## 7. ロールバック方針
+### Open questions
 
-- DB / API / 永続データ変更はないため migration rollback は不要。
-- レイアウト変更で退行が発生した場合は、原因箇所の style 変更と対応する回帰テストを同じ単位で revert する。
-- Web で再現しなかった場合は production code を触らないため、Web 側の rollback 対象は原則テストのみとなる。
-- グローバル CSS 変更を避け、ロールバック範囲を局所化する。
+- なし。実Runtime再現時に判明する原因は実装判断として局所的に処理できる。
 
-## 8. 変更対象ファイル
+## 8. 成果物
 
-### 調査対象
+### 変更ファイル
 
-- `src/presentation/native/native-components.tsx`
-- `src/presentation/native/native-screens.tsx`
-- `src/presentation/native/native-purchase-screens.tsx`
-- `src/presentation/components/product-image.tsx`
-- `ProductImage` の style 定義ファイル
-- `tests/component/native/native-components.test.tsx`
-- `tests/component/native/native-product-detail.test.tsx`
-- `tests/component/native/native-purchase.test.tsx`
-- `e2e/web/mobile-boundary.spec.ts`
-- `e2e/web/responsive-layout.spec.ts`
+必須の固定リストは設けない。実際の原因に応じて以下のみ変更する。
 
-### 変更候補
+- 原因を持つ Native screen / shared component
+- 変更した contract を担保する既存 Native test（必要な場合のみ）
+- Web で問題が再現した場合のみ、原因となる既存 Web style / component と既存 E2E
 
-必須とはせず、原因に応じて変更する。
+### 付随ドキュメント
 
-- Native で最初に viewport を超える原因を持つ screen / shared component
-- Native の関連 component test
-- `e2e/web/mobile-boundary.spec.ts`
-- Web で overflow が再現した場合のみ、原因となる Web container / style
-- 必要な場合のみ関連 Web E2E
+- `.codex/runs/<run_id>/` の既存ルールに従い、調査結果・変更理由・検証結果を記録する。
+- 新規 `docs/reports/` は作成しない。
 
-### 変更しない方針のもの
+## 9. 備考
 
-- 画像アセット
-- API / domain / repository 層
-- `ProductImage` の既存 fit 処理（Web で原因と判明しない限り）
-- グローバルな横スクロール禁止設定
-
-## 9. 実装開始前チェック
-
-- [ ] `fix/mobile-web-image-overflow` を作業ブランチとして使用している
-- [ ] `.codex/runs/` の作業記録を初期化した
-- [ ] `NativeProductImage` の call site を確認した
-- [ ] 390x844 で症状を再現 / 非再現として記録した
-- [ ] 320x700 で症状を再現 / 非再現として記録した
-- [ ] viewport を超える最初の祖先要素を特定した
-- [ ] 原因特定前に `overflow: hidden` や画像の固定サイズを追加していない
-- [ ] Web の商品一覧 / 商品詳細を確認した
-- [ ] Web で再現しない場合は production code を変更しない方針を維持している
-- [ ] 修正後の 320 / 390 / desktop の確認手順を確保した
+- Branch: `fix/mobile-web-image-overflow`
+- この plan の作成・修正時点では実装コードを変更しない。
+- 実装中に原因が画像以外の row / text / button 等だと判明した場合も、今回の症状の直接原因であればスコープ内とする。ただし関連のないレスポンシブ改善へ広げない。
