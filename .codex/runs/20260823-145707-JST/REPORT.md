@@ -463,3 +463,129 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## Repair iteration 1: review finding triage and cause confirmation
+
+### 2026-08-23 17:38 (JST)
+
+- Input finding: Product Detailの`ImageView`が`[48,339][1032,1917]`まで伸び、`aspectRatio = 6 / 5`から期待される約820px高を大きく超えている。横方向の`maxWidth: "100%"`修正は維持する。
+- Classification: `must_fix`。直接原因が実機で再現済みで、現在のNative画像componentのstatic source sizingに限定して修正可能。
+- Repair allowed files: `src/presentation/native/native-components.tsx`、`tests/component/native/native-components.test.tsx`、Active Run Artifact。Web code、親container、row、wrapper、clipping、`flexShrink`は対象外。
+- Cause evidence: React Native 0.86.2 Androidの`Image.android.js`はstatic `require(...)`を解決したsourceの`width` / `height`をstyleへ注入する。対象assetは720×720で、現在のcustom styleにはheight overrideがないため、`styles.productImageDetail.aspectRatio`だけでは注入heightを置き換えない。実機のImageViewがviewport下端まで続いたことと整合する。
+- Repair plan: `styles.productImage`に`height: "auto"`を追加し、static sourceの固定heightを解除する。既存`aspectRatio`（card 4/5、detail 6/5）、`maxWidth: "100%"`、`resizeMode`、thumbnail固定寸法は維持する。testでheight contractを確認する。
+- Validation command: `pnpm run test:component:native`
+- Validation result: PASS（13 suites / 62 tests）。既存runtime-provider由来の`act(...)` console warningのみ。
+- Decision: `continue`。修正を含むAPKのBuild / Install / Smoke / 実機Runtime確認へ進む。
+- Progress: 86% (18/21)
+
+## Repair iteration 1: first runtime validation result
+
+### 2026-08-23 17:58 (JST)
+
+- Build / Install / Smoke / `native-test-control`はPASSし、`height: "auto"`を含むAPKを実機へ反映した。
+- Product Detailの実機ScreenshotとUI hierarchyでは、ImageViewが依然として`[48,339][1032,1917]`まで続き、画像contentも縦中央にcontainされていた。`height: "auto"`単独ではstatic sourceの固定heightを解除できなかった。
+- Classification: `SOURCE_FIX_INSUFFICIENT`。同じ条件の無目的な再実行はせず、次の切り分けへ進む。
+- Revised hypothesis: `maxWidth`だけではstatic sourceのwidthがlayout計算に残る。custom styleでwidthをcontent幅へ明示し、`height: "auto"`と既存detail `aspectRatio`を同時に適用する必要がある。
+- Next minimal change: `styles.productImage`へ既存の横幅指定`width: "100%"`を戻し、確認済みの`maxWidth: "100%"`を併用する。`aspectRatio` / `resizeMode` / 親layoutは変更しない。
+- Decision: `continue`。width変更を含むtargeted test後、同条件の一意なAPKで実機検証する。
+- Progress: 86% (18/21)
+
+## Repair iteration 1: second Native preflight hypothesis
+
+### 次の実行仮説（2026-08-23 18:00 JST）
+
+#### 観測事実
+
+- `height: "auto"`だけではProduct Detail ImageViewのvisible boundsが変わらなかった。
+- static `Image`にはsource寸法が注入され、現在の`maxWidth`だけではwidth計算の基準がcustom aspect ratioへ切り替わらない。
+- sourceでは`width: "100%"`と`maxWidth: "100%"`を併用し、`height: "auto"`を維持する候補へ変更した。`aspectRatio` / `resizeMode` / parent layoutは未変更。
+
+#### 最有力仮説
+
+- 明示的なresponsive widthと`height: "auto"`により、Yogaが既存`productDetailImageAspectRatio`から高さを算出し、maxWidthがcontent内側を守る。
+
+#### 今回変更する条件
+
+- source / testのstyle contractだけ。Native Project、依存、Cache、端末、Build worker条件は変更しない。
+
+#### 成功条件
+
+- Build / Install / SmokeがPASSする。
+- Product Detail ImageViewが幅984px、height約820px（許容±数px）となり、y339付近からy1159付近で終わる。
+- Home / Catalogの画像が各既存container内に収まり、横overflow修正を維持する。
+
+#### 失敗した場合に次に確認する情報
+
+- 最初のBuild / Runtime異常を保存し、同じstyle候補を再実行しない。必要ならReact Nativeのresolved sourceをruntimeで確認する。
+
+## Repair iteration 1: Native build preflight
+
+### 次の実行仮説（2026-08-23 17:40 JST）
+
+#### 観測事実
+
+- source / targeted testに`height: "auto"`を追加した。横方向の`maxWidth: "100%"`は変更していない。
+- 直近成功条件はNested Repository Alias、短いVirtual Store、`CI=true`、Architecture Auto、MaxWorkers 1、物理端末API 30である。
+
+#### 原因仮説
+
+1. 現在のNative Project / Autolinkingが直近成功条件を維持していれば、追加のPrepareなしでsource変更を含むBundleをRelease APKへ反映できる。
+2. preflight不一致時はBuildを開始せず、最初の環境異常だけを記録する。
+
+#### 最有力仮説
+
+- source変更のみなので、直近成功した生成状態とBuild条件を再利用できる。
+
+#### 成功条件
+
+- Doctor、Node / pnpm / Java / javac / adb / SDK / disk / Gradle wrapper、物理端末状態がPASSする。
+- preflight不一致・上流失敗があればBuild / Install以降は実行しない。
+
+#### 失敗した場合に次に確認する情報
+
+- 最初のDoctor / Gradle / Autolinking異常と派生エラーを分離し、同じ条件の無目的な再実行はしない。
+
+### 2026-08-23 17:41 (JST)
+
+- Command: Android Runbook §5.1.1の同一Shell preflight、および`android-local.ps1 -Action Doctor`を`<REPO_ROOT_ALIAS_NESTED>` / `<PNPM_VIRTUAL_STORE>` / 物理端末条件で実行。
+- Result: PASS。Node v24.12.0、pnpm 9.10.0、Java / javac 17.0.20、Gradle 9.3.1、ADB 1.0.41、Maestro 2.8.0、物理端末API 30 / arm64 ABI、SDK command、Cドライブ容量を確認。
+- Generated state: `node_modules/.modules.yaml`は`<PNPM_VIRTUAL_STORE>` / max length 20、Autolinkingに旧worktree / `pnpm-local` markerなし。既存Native Projectを再生成する必要はない。
+- Classification: `PASS`。Build開始条件を満たした。
+- Decision: `continue`。今回のsource変更を含む一意なRelease APK Buildへ進む。
+- Progress: 86% (18/21)
+
+## Repair iteration 1: final validation
+
+### 2026-08-23 18:04 (JST)
+
+- 直接原因の最終判定: React Native Android 0.86.2のstatic `Image` sourceが720×720のwidth / heightをhost styleへ注入するため、`styles.productImageDetail.aspectRatio = 6 / 5`だけではProduct Detailのheightが決まらず、ImageViewがScrollViewの下端まで伸びていた。`height: "auto"`単独では実機で解消しなかった。`width: "100%"`を明示し、`height: "auto"`と既存`aspectRatio`を併用したところ、Yogaがcontent幅から高さを算出した。
+- 最小変更: `styles.productImage`へ`height: "auto"`を追加し、横方向の`width: "100%"`を復元して既存`maxWidth: "100%"`と併用した。`aspectRatio`、`resizeMode`、親ScrollView、wrapper、row、clipping、thumbnail styleは変更していない。
+- Native targeted test: `pnpm exec jest --config jest.config.cjs tests/component/native/native-components.test.tsx --runInBand` => 1 suite / 4 tests passed、終了コード`0`。
+- Native Runtime: 現在のsourceを含むAPKのBuild / Install / Smoke / `native-test-control.yaml`はPASS。Product DetailはScrollView `[0,291][1080,1917]`、ImageView `[48,339][1032,1159]`となり、幅984px・高さ820pxで期待値に一致した。スクリーンショットでも画像直下から商品名・価格が続き、上下の長い不要余白は解消した。
+- Native shared-style代表画面: Home heroのImageView `[123,1365][957,1917]`、Catalogの商品カードImageView `[51,370][1029,1593]`を同じAPKで確認し、各container内への収まりと既存比率を確認した。
+- Native evidence: `.artifacts/native-local/20260823-145707-JST-build-repair-width-height/`、`install-repair-width-height/`、`smoke-repair-width-height/`、`test-repair-width-height/`、`runtime-detail-repair-width-height/evidence/`、`runtime-home-repair-width-height/evidence/`、`runtime-catalog-card2-repair-width-height/evidence/`。
+- Web UI Review: 新stage `image-overflow-repair-20260823-145707-JST`で`products` / `products-product-basic-shirt`を`ui-review-mobile`（390x844）と`ui-review-small-mobile`（320x700）で実行し、2 tests passed。`expectNoHorizontalOverflow`、4 screenshotの目視、画像containerのviewport内収まり、比率、隣接UIへの侵入なしを確認した。Web production / test codeは変更していない。`object-fit: cover`による通常cropも不具合扱いしていない。
+- Web evidence: `output/ui-review/image-overflow-repair-20260823-145707-JST/mobile/products.png`、`mobile/products-product-basic-shirt.png`、`small-mobile/products.png`、`small-mobile/products-product-basic-shirt.png`。
+- Quality gate: `pnpm run verify`は`format:check` PASS後、今回変更していない`docs/plans/2026-08-23_113300_mobile-web-image-overflow.md:369:56`の`MD047/single-trailing-newline`で停止し、終了コード`1`。今回のsource / test差分にPlan変更はなく、無関係な整形修正は行わない。後続verify stepは上流lint停止のため未実行。`git diff --check`はPASS。
+- Blocked / 未完了: 実機確認、targeted test、Web UI Reviewは完了。未通過gateは今回差分と因果関係のない既存PlanのMD047のみ。Gitのcommit / push / merge / rebaseは行っていない。
+- Run Artifact sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-145707-JST -Write -Check`を次に実行する。
+- Progress: 100% (23/23)
+
+### 2026-08-23 18:05 (JST)
+
+- Run Artifact sanitizerを実行し、`files_scanned: 4`、`residual_findings: 0`でWrite / CheckともPASSした。未サニタイズのローカル絶対Pathは残っていない。
+- Final Progress: 100% (23/23)
+
+## Repair iteration 2: quality gate policy and delivery
+
+### 2026-08-23 18:22 (JST)
+
+- Input finding: 前回`pnpm run verify`を停止させた対象Planの`MD047/single-trailing-newline`を修正する。追加要望に従い、品質ゲート失敗を「範囲外」だけで保留しない運用を`AGENTS.md`へ明文化する。
+- Classification: `must_fix`。lint failureは解消可能な直接差分であり、AGENTS.mdのworkflow policy変更はユーザーが明示承認した。
+- Allowed files: `docs/plans/2026-08-23_113300_mobile-web-image-overflow.md`、`AGENTS.md`、Active Run Artifact。
+- Changes: Plan末尾へsingle trailing newlineを追加。AGENTS.mdへ、品質ゲート失敗時のbaseline / diff / dependency / contract / environment調査、原因が独立していても安全・権限内なら最小修正すること、破壊的操作や要件判断が必要な場合の停止記録を追記。
+- Validation: `pnpm run lint:markdown` PASS（312 files / 0 issues）。最終`pnpm run verify` PASS。format、markdown、spec / visual spec、curriculum、lint（0 errors / 65 warnings）、typecheck、image manifest、security、unit 66、integration 98、repository 37、component web 83、component native 62、contracts 398、web build、spec buildを完了した。
+- Remaining delta: D16のcommit / pushのみ未実施。
+- Decision: `continue`。Run Artifactをsanitizer確認後、明示依頼されたcommit / pushを実施する。
+- Pre-delivery checks: `run.json` parse PASS、`pnpm run lint:markdown` PASS、`git diff --check` PASS、Run Artifact sanitizer Write / Check PASS（`residual_findings: 0`）。
+- Progress: 96% (26/27)

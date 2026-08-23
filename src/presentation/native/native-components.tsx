@@ -232,7 +232,9 @@ export const styles = StyleSheet.create({
     aspectRatio: tokens.layout.productCardImageAspectRatio,
     backgroundColor: nativeColors.surfaceSubtle,
     borderRadius: nativeRadius.medium,
+    height: "auto",
     maxWidth: "100%",
+    width: "100%",
   },
   productImageDetail: { aspectRatio: tokens.layout.productDetailImageAspectRatio },
   productImageThumbnail: {

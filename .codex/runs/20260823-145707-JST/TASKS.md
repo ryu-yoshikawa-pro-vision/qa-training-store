@@ -33,3 +33,21 @@
 解消記録:
 
 - B1は端末側RSA許可後にDoctor / preflightがPASSし、実機Runtime確認まで完了した。初期Blocked記録は履歴として保持する。
+
+## Repair iteration 1
+
+- [x] D7. 現在のレビュー指摘を`must_fix`に分類し、repairのallowed filesをNative画像component・対応test・Active Run Artifactへ限定する。
+- [x] D8. React Native Androidのstatic `Image` source寸法注入と、Product Detail ImageViewの実機boundsを照合して、固定heightが`aspectRatio`を無効化する直接原因を確定する。
+- [x] D9. 注入されたstatic heightを`height: "auto"`で解除し、既存`aspectRatio`を使う契約testを最小追加する。
+- [x] D10. 修正を含むAPKでInstall / Smoke / Product Detailを再確認し、Home / Catalogのshared style影響も確認する。
+- [x] D11. 既存Web UI Reviewを新stageで再確認し、Native変更によるWeb影響がないことを確認する。
+- [x] D12. targeted test、`pnpm run verify`、Run Artifact sanitizerを実行し、repair iterationを記録する。
+
+Progress: 100% (23/23)
+
+## Repair iteration 2: quality gate policy and delivery
+
+- [x] D13. 対象Planのsingle trailing newlineを修正し、品質ゲート失敗時の必須対応ルールをAGENTS.mdへ追記する。
+- [x] D14. 修正後に`pnpm run lint:markdown`と`pnpm run verify`を実行し、全品質ゲートPASSを確認する。
+- [x] D15. Active Run Artifactを更新し、sanitizerのWrite / CheckをPASSさせる。
+- [ ] D16. ユーザー指定のcommitを作成し、`fix/mobile-web-image-overflow`をoriginへpushする。

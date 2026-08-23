@@ -15,6 +15,8 @@
 
                            ],
     "changed_files":  [
+        "AGENTS.md",
+        "docs/plans/2026-08-23_113300_mobile-web-image-overflow.md",
         "src/presentation/native/native-components.tsx",
         "tests/component/native/native-components.test.tsx",
         ".codex/runs/20260823-145707-JST/PLAN.md",
@@ -23,7 +25,7 @@
         ".codex/runs/20260823-145707-JST/run.json"
     ],
     "validation":  {
-                       "status":  "partial",
+                       "status":  "passed",
                        "commands":  [
                            "adb devices -l",
                            "android-local.ps1 -Action Doctor -RequirePhysicalDevice",
@@ -40,13 +42,16 @@
                            "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-145707-JST -Write -Check",
                            "pnpm run lint:markdown",
                            "git diff --check",
-                           "git diff -- docs/plans/2026-08-23_113300_mobile-web-image-overflow.md"
+                           "git diff -- docs/plans/2026-08-23_113300_mobile-web-image-overflow.md",
+                           "pnpm run format:check",
+                           "pnpm run verify"
                        ],
                        "warnings":  [
                            "初回はNative実機がADB unauthorizedだったが、端末側RSA許可後にDoctor / preflight / Build / Install / Smoke / Runtime EvidenceがPASS。",
                            "Web UI Review初回は依存未準備でCLIがunknown command testとなったが、lockfile固定の依存準備後retry stageで2 tests passed。",
                            "pnpm run verifyはformat:check後、今回差分外の対象Plan末尾改行違反（MD047）で停止。後続verify stepは未実行。",
-                           "Native targeted testは13 suites / 62 tests passed。React runtime-providerの既存act console warningのみ。"
+                           "Native targeted testは13 suites / 62 tests passed。React runtime-providerの既存act console warningのみ。",
+                           "対象Planの末尾改行を修正し、最終pnpm run lint:markdown / pnpm run verifyはPASS。lintには既存のwarning 65件（error 0件）が残る。"
                        ]
                    },
     "safety":  {
@@ -86,5 +91,5 @@
                   },
     "evaluation_path":  null,
     "status":  "completed",
-    "primary_failure_category":  "baseline_lint_failure"
+    "primary_failure_category":  null
 }
