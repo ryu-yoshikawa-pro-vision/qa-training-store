@@ -8,7 +8,7 @@
 - [x] 4. 新しい仮説に基づく候補を必要な場合だけ1回評価し、採否またはBLOCKEDを決定する（Candidate 4不採用、Alert #5 BLOCKED）
 - [x] 5. remediation結果に応じたaudit / why / list / verifyと最終差分を確認する
 - [x] 6. 新repair Runと既存REPORTを最終化し、Sanitizer Write/CheckとMarkdown lintを完了する
-- [ ] 7. 明示ファイルをcommit/pushし、PR #50のCIとAlert #5状態を確認する
+- [x] 7. 明示ファイルをcommit/pushし、PR #50のCIとAlert #5状態を確認する
 
 ## Discovered
 

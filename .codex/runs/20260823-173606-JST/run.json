@@ -32,13 +32,18 @@
                                      "pnpm why js-yaml --json (exit 0; supplementary tree evidence)",
                                      "pnpm run verify (not run: dependency files unchanged and Alert #5 BLOCKED)",
                                      "sanitize-codex-artifacts.ps1 -Write -Check (old/new final: exit 0, 4 files each, 0 replacements, 0 residual findings)",
-                                     "pnpm run lint:markdown (exit 0, 312 files, 0 issues)"
+                                     "pnpm run lint:markdown (exit 0, 312 files, 0 issues)",
+                                     "git commit -m \"fix: address Dependabot remediation review findings\" (a4226a49064d7ec480b1525eca0eefa2bfda95a7)",
+                                     "git push origin fix/dependabot-security-vulnerability-remediation (exit 0)",
+                                     "gh pr checks 50 --watch (32 pass, 8 skipped, 0 failing, 0 pending)",
+                                     "gh api dependabot/alerts/5 (state open, runtime, transitive; fixed_at null)"
                                     ],
                        "warnings":  [
                                      "Alert #5 remains IN_SCOPE / BLOCKED; no safe supported narrow remediation was found.",
                                      "pnpm audit exits 1 because the eight known alerts remain; this is a finding result, not an execution blocker.",
                                      "pnpm run verify was intentionally not executed under the Plan non-mutation rule; it is not a success claim.",
-                                     "No subagents were used because AGENTS.md specifies No child subagent delegation and the investigation was performed by the Parent."
+                                     "No subagents were used because AGENTS.md specifies No child subagent delegation and the investigation was performed by the Parent.",
+                                     "GitHub Alert #5 remains open because the safe remediation was correctly left BLOCKED; CI success does not change the Alert classification."
                                     ]
                    },
     "safety":  {

@@ -131,3 +131,13 @@ Allowed files: 既存Runの`REPORT.md`、本RunのPLAN/TASKS/REPORT/run.json、�
 - `pnpm run lint:markdown` => exit code 0、312 files、0 issues。Markdown修正は発生しなかった。
 - Local completion boundary: dependency remediationは成功していないため、`pnpm run verify`を成功扱いにはしない。local Artifact finalization後に明示ファイルのみcommit/pushし、push後のPR checksとAlert #5状態を確認する。
 - Progress: 86% (6/7)
+
+## 2026-08-23 18:05 (JST) — commit / push / remote gates
+
+- 明示した5ファイルだけをstageし、`git commit -m "fix: address Dependabot remediation review findings"`を実行した。commit SHAは`a4226a49064d7ec480b1525eca0eefa2bfda95a7`。
+- `git push origin fix/dependabot-security-vulnerability-remediation` => exit code 0。force pushは使用していない。PR #50の最新HEADは同SHA、titleは`security: investigate Dependabot remediation blocker for js-yaml`のままで、title/bodyは変更していない。
+- `gh pr checks 50 --watch` => 0 failing、32 successful、8 skipped、0 pending。Phase 1の`verify`、`validate`、Code Quality、Style Quality、build-production、Dependency Review、Native `native-ci / verify`を含むrequired checksはpass。Native/Android等のskipはworkflow判定によるもの。
+- `gh api /repos/ryu-yoshikawa-pro-vision/qa-training-store/dependabot/alerts/5` => state `open`、package `js-yaml`、`dependency.scope=runtime`、relationship `transitive`、`fixed_at=null`。lockfile上のaffected resolutionが残るため、Alert #5は`IN_SCOPE / BLOCKED`であり、FIXED相当とは扱わない。
+- No execution blocker: GitHub API、npm registry、push、CI確認はいずれも実行可能だった。CIは成功したが、dependency remediationの安全な候補がないというBLOCKED判断を変更しない。
+- Final decision: review findingのappend-only監査訂正、新repair Run保存、boundedな再調査、不要なdependency差分なし、commit/push、remote checks確認まで完了。Alert #5の解消自体は未完了である。
+- Progress: 100% (7/7)
