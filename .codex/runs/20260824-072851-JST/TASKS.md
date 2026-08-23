@@ -9,7 +9,7 @@
 - [x] 5. 重要Evidenceのpath/line/symbol/spec/test/workflow対応とReport単独性をcross-checkする
 - [x] 6. JST timestamp付きReport 2件を新規作成し、scope外変更がないことを確認する
 - [x] 7. Markdown lint、absolute path scan、sanitizer、diff scope validationを完了する
-- [ ] 8. Runを完了し、同一Branchへcommit/pushしてPR #53への反映を確認する
+- [x] 8. Runを完了し、同一Branchへcommit/pushしてPR #53への反映を確認する
 
 ## Discovered
 

@@ -83,3 +83,4 @@
 - 2026-08-24 07:28 JST: 複雑なdurable artifact作成のため`feature-plan` Skillを使用する。ユーザーの明示Scopeを優先し、計画は新Run内へ保存する。
 - 2026-08-24 07:28 JST: 過去Runは変更せずProvenanceとして参照し、Reportへ完成成果を再構成する。
 - 2026-08-24 07:54 JST: 2 Reportを全指定sectionへ再構成し、Native Decision A/B、C01〜C12、P1/P2全Lesson、Risk 16件、Hotspot、Traceability、Resolved Assumptionsをcross-checkした。変更Scopeは新Runと新Report 2件だけである。
+- 2026-08-24 08:00 JST: Local documentation validationを全件PASSし、content commitを既存Branchへpushした。PR #53がOPENでReport 2件と新Runを含むことを確認し、PR本文をdurable reportの役割とCurrent validationへ更新した。
