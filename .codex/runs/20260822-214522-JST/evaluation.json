@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "run_id": "20260822-214522-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "G7、G9、教材、既存Run Artifact correctionの実装と指定ローカルvalidationを完了した。PR #44へpushした修正後HEADの観測時点で、Phase 1／Nativeを含むRequired CIが全てpassした。",
+      "evidence_refs": [
+        {"kind": "run_report", "path": ".codex/runs/20260822-214522-JST/REPORT.md", "selector": "Repository gate", "summary": "Focused／contract／Repository validation"},
+        {"kind": "run_report", "path": ".codex/runs/20260822-214522-JST/REPORT.md", "selector": "Correction: 2026-08-22 22:18 (JST)", "summary": "PR #44 Required CI確認"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はFlow J Test Oracle、G9 checkout contract SSOT、Training curriculum、明示対象の既存Run Artifact correction、計画／新Run Artifactに限定した。G8、Product code、依存、Action major version、frameworkは変更していない。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260822-214522-JST/REPORT.md", "selector": "git diff --name-only", "summary": "変更範囲確認"}
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "Flow J focused、initial／Customer negative control、G9 contract／curriculum、format／lint／typecheck／markdown／security／full contractをPASSした。",
+      "evidence_refs": [
+        {"kind": "run_report", "path": ".codex/runs/20260822-214522-JST/REPORT.md", "selector": "G7", "summary": "Flow J正常系とbounded negative control"},
+        {"kind": "run_report", "path": ".codex/runs/20260822-214522-JST/REPORT.md", "selector": "G9", "summary": "exact SHA contract"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "retry、skip、timeout増加、ignore-whitespace、EOL normalization、dependency／major upgrade、PR merge、force push、rebase、amend、destructive reset／cleanを行っていない。",
+      "evidence_refs": [
+        {"kind": "run_plan", "path": ".codex/runs/20260822-214522-JST/PLAN.md", "summary": "Non-goalsと安全境界"}
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "レビューfinding、triage、upstream evidence、repair plan、validation、setup-java follow-up、REPORT correctionを日本語Run Artifactへ記録した。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260822-214522-JST/run.json", "summary": "Run metadata"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "checkout exact refを1定数へ集約し、既存validator／contract／PageHeader／shipment scope patternを再利用した。新しいframework／abstractionは追加していない。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "scripts/training/workflow-contract.ts", "summary": "checkout ref SSOT"},
+        {"kind": "changed_file", "path": "e2e/web/ui-ux-improvements.spec.ts", "summary": "Test Oracle only"}
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "official upstream API／release／history／advisory、Focused test、contract、negative control、Repository gateをRunへ記録した。",
+      "evidence_refs": [
+        {"kind": "run_report", "path": ".codex/runs/20260822-214522-JST/REPORT.md", "selector": "Evidence Record", "summary": "G9 official upstream evidence"}
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": [],
+  "follow_up": [
+    "actions/setup-java v4のv5 migration／compatibility validationは別PRで対応する。"
+  ]
+}

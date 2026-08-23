@@ -18,7 +18,7 @@ describe("Native application service surface", () => {
     expect(source).not.toMatch(/cart:\s*CartUseCases/);
     expect(source).toContain("acceptPriceChanges");
     expect(source).not.toContain("listReviews");
-    expect(source).not.toContain("catalog.suggest");
+    expect(source).toContain("suggest: (request) => catalogUseCases.suggest(request)");
     expect(
       readFileSync(
         resolve(process.cwd(), "src/presentation/native/native-purchase-screens.tsx"),
