@@ -429,3 +429,25 @@
 - New tasks: なし。
 - Remaining: D2（push）、D3（PR #52/CI確認）。
 - Progress: 85% (11/13)
+
+## 2026-08-23 22:41 (JST)
+
+- Summary: implementation commitとRun記録commitを対象branchへforceなしでpushし、PR #52への反映と初期CI状態を確認した。
+- Completed:
+  - D2 pushを完了した。
+  - D3としてPR #52のhead SHA、OPEN状態、Web CI/Mobile App CIのcheck状態を確認した。
+- Commands:
+  - `git push origin fix/pnpm-lockfile-format-ownership` => PASS。`c91cb15..2c853eb`をpush。
+  - `gh pr view 52 --repo ryu-yoshikawa-pro-vision/qa-training-store --json ...` => PR #52 OPEN、head `2c853ebc5d1e38870716c1a6081415ccfc8ef821`、implementation commit `68eecd718fef1cc9b52f79ebeae82daf5fb4ce2d`を含む。
+  - `gh run list --repo ryu-yoshikawa-pro-vision/qa-training-store --branch fix/pnpm-lockfile-format-ownership --limit 10 --json ...` => 最新Web CIは`in_progress`、最新Mobile App CIは`queued`。
+- Evidence:
+  - Web CI run `32643047348`: `in_progress`。
+  - Mobile App CI run `32643047538`: `queued`。
+  - Detect Native Changes: SUCCESS、Dependency Review: SUCCESS。CodeQLとCodeRabbitは確認時点で実行中/pending。
+  - push時にdefault branchの既存脆弱性通知（7 high、1 moderate）が表示されたが、Issue #51の非対象として変更していない。
+- Notes/Decisions:
+  - CIは確認時点で未完了であり、成功扱いにしない。workflow/change detectionの変更は行わない。
+  - Run Artifact更新後の記録commitを追加してpushするため、最終PR headはその記録commitになる。implementation commitは履歴に含まれる。
+- New tasks: なし。
+- Remaining: なし（CIは外部runの完了待ち）。
+- Progress: 100% (13/13)

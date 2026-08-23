@@ -41,11 +41,14 @@
       "git diff --cached --name-status",
       "git diff --cached --check",
       "git commit -m 'fix: make pnpm the lockfile format owner'",
+      "git push origin fix/pnpm-lockfile-format-ownership",
+      "gh pr view 52 --repo ryu-yoshikawa-pro-vision/qa-training-store",
+      "gh run list --repo ryu-yoshikawa-pro-vision/qa-training-store --branch fix/pnpm-lockfile-format-ownership",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-215448-JST -Write -Check"
     ],
     "warnings": [
       "ESLintは既存warning 65件を出力したが、errorは0件。SQLite/React act等のruntime warningも検出されたが、validationは成功した。",
-      "push、PR/CI確認はD2〜D3として未実行。"
+      "確認時点でWeb CIはin_progress、Mobile App CIはqueued。CI成功は未確認。"
     ]
   },
   "safety": {
@@ -98,6 +101,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "pending",
+  "status": "complete",
   "primary_failure_category": null
 }

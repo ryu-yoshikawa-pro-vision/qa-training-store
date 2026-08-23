@@ -16,8 +16,8 @@
 ## Discovered
 
 - [x] D1. ユーザー明示のcommitを作成する
-- [ ] D2. 対象branchへforce pushなしでpushする
-- [ ] D3. 既存PR #52への反映とWeb CI / Mobile App CI状態を確認する
+- [x] D2. 対象branchへforce pushなしでpushする
+- [x] D3. 既存PR #52への反映とWeb CI / Mobile App CI状態を確認する
 
 ## Blocked
 
