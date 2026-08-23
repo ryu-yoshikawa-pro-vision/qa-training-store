@@ -88,6 +88,8 @@ CI の job、step、テスト、実行条件、Workflow ファイル名、内部
 - CI の統合・分割・高速化
 - 新しい Workflow validator、actionlint、専用テストの追加
 
+Required status check の名前は job 名を基準とする。今回は job 名を変更しないため、トップレベル Workflow 名の rename に伴う branch protection / ruleset の required check 更新は不要と判断する。
+
 ### 意図的に残す旧名称の例
 
 `.github/workflows/native-ci.yml` には、トップレベル Workflow 名とは別に次の人間向け表示・ログが存在する。
@@ -166,9 +168,9 @@ git grep -n -E '^name: (Phase 1 CI|Native CI|Native iOS CI)$' -- .github/workflo
 期待結果:
 
 ```text
-.github/workflows/ci.yml:name: Phase 1 CI
-.github/workflows/native-ci.yml:name: Native CI
-.github/workflows/native-ios-ci.yml:name: Native iOS CI
+.github/workflows/ci.yml:1:name: Phase 1 CI
+.github/workflows/native-ci.yml:1:name: Native CI
+.github/workflows/native-ios-ci.yml:1:name: Native iOS CI
 ```
 
 この検索は行頭の `name:` だけを対象にするため、インデントされた job / step の `name:` は対象にしない。
@@ -237,9 +239,9 @@ git grep -n -E '^name: (Web CI|Mobile App CI|Mobile App iOS CI)$' -- .github/wor
 期待結果:
 
 ```text
-.github/workflows/ci.yml:name: Web CI
-.github/workflows/native-ci.yml:name: Mobile App CI
-.github/workflows/native-ios-ci.yml:name: Mobile App iOS CI
+.github/workflows/ci.yml:1:name: Web CI
+.github/workflows/native-ci.yml:1:name: Mobile App CI
+.github/workflows/native-ios-ci.yml:1:name: Mobile App iOS CI
 ```
 
 job / step / Contract Test に旧名称が残っていても、今回の完了条件には影響しない。
