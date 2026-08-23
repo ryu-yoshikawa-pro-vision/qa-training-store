@@ -25,10 +25,10 @@ dependency graph は変更しない。
 
 - [ ] `.prettierignore` に `pnpm-lock.yaml` が追加されている
 - [ ] pnpm 9.10.0 で normalization している
+- [ ] normalization 後の `pnpm install --frozen-lockfile --ignore-scripts` が成功する
 - [ ] normalization 前後の YAML parse 結果が `deepStrictEqual` で一致する
-- [ ] 2 回目の `pnpm install --lockfile-only --ignore-scripts` 前後で canonical snapshot と現在の `pnpm-lock.yaml` が byte-for-byte 一致する
+- [ ] 2 回目の `pnpm install --lockfile-only --ignore-scripts` 後も canonical snapshot と現在の `pnpm-lock.yaml` が byte-for-byte 一致する
 - [ ] Prettier `--file-info` で `pnpm-lock.yaml` が `ignored: true` になる
-- [ ] `pnpm install --frozen-lockfile --ignore-scripts` が成功する
 - [ ] `pnpm run format:check` が成功する
 - [ ] `pnpm run verify` が成功する
 - [ ] 最終 diff に Issue #51 と無関係な実装変更がない
@@ -57,6 +57,7 @@ PR が別途作成された場合の受け入れ条件とする。
 - PR #50 の調査では、pnpm normalization 前後の dependency graph は semantic に同一だった
 - Native change detection に `pnpm-lock.yaml` が含まれている
 - `.artifacts/` は `.gitignore` 対象であり、一時検証ファイルの保存先として利用できる
+- `yaml` と `prettier` は Repository の devDependencies であるため、fresh clone では通常 install 後に利用可能になる
 
 ### Assumptions
 
@@ -100,6 +101,24 @@ PR が別途作成された場合の受け入れ条件とする。
 - `AGENTS.md` に従って実装 Run で作成・更新される `.codex/runs/<run_id>/**`
 
 Plan / Run Artifact を除き、上記 2 ファイル以外の product / config / source / dependency file は変更しない。
+
+### Task-specific scope rule
+
+この Issue は、lockfile normalization と dependency / security remediation を分離すること自体が目的の一部である。
+
+そのため、`pnpm run verify` 等で Issue #51 と無関係な既存 failure を検出しても、修正に `.prettierignore` / `pnpm-lock.yaml` / Run Artifact 以外の tracked file 変更が必要な場合は、この実装では修正しない。
+
+その場合は次を行う。
+
+1. failure の最初の異常を特定する
+2. 今回の diff との因果関係を確認する
+3. Issue #51 と無関係である根拠を Run Artifact に記録する
+4. 未完了の検証と次アクションを記録する
+5. Implementation completion とはせず停止する
+
+これは、Issue #51 を最小差分で独立させるというユーザー合意済みの task-specific scope として、`AGENTS.md` §8 の一般的な repair rule より優先する。
+
+一方、failure が今回の `.prettierignore` / `pnpm-lock.yaml` 変更に起因し、この 2 ファイル内で安全に修正できる場合は、`AGENTS.md` の failure handling に従って最小修正と再検証を行う。
 
 ### Files to inspect
 
@@ -165,7 +184,23 @@ pnpm install --lockfile-only --ignore-scripts
 
 `package.json` や dependency 定義は変更しない。
 
-### Task 5: semantic equality を確認する
+### Task 5: frozen install を実行する
+
+normalization 直後に、canonicalized lockfile が `package.json` と整合することを確認し、後続の semantic / Prettier 検証で使用する Repository devDependencies を利用可能にする。
+
+```bash
+pnpm install --frozen-lockfile --ignore-scripts
+```
+
+成功条件:
+
+- exit code 0
+
+失敗した場合は後続 Task を実行せず、原因を確認する。
+
+この Task により fresh clone / `node_modules` 未作成環境でも、後続 Task で Repository の `yaml` / `prettier` を利用できる状態にする。
+
+### Task 6: semantic equality を確認する
 
 Repository 既存の `yaml` package で normalization 前後を parse し、`node:assert/strict` の `deepStrictEqual` で lockfile 全体を比較する。
 
@@ -188,7 +223,7 @@ lockfile 全体を比較するため、dependency version / importer / packages 
 
 semantic change を formatting normalization としてコミットしてはならない。
 
-### Task 6: pnpm の no-op 性を byte equality で確認する
+### Task 7: pnpm の no-op 性を byte equality で確認する
 
 1 回目 normalization 後の `pnpm-lock.yaml` を canonical snapshot として保存する。
 
@@ -217,7 +252,7 @@ HEAD に対する巨大 diff は既に存在するため、2 回目の no-op 判
 
 byte equality が成立しない場合は停止して原因を調査する。
 
-### Task 7: Prettier が lockfile を ignore することを確認する
+### Task 8: Prettier が lockfile を ignore することを確認する
 
 Repository 全体への `pnpm run format` は実行しない。
 
@@ -233,21 +268,23 @@ ignored: true
 
 これにより unrelated file を write せず、ownership を直接確認する。
 
-### Task 8: lockfile / Repository validation を実行する
+### Task 9: Repository validation を実行する
 
 ```bash
-pnpm install --frozen-lockfile --ignore-scripts
 pnpm run format:check
 pnpm run verify
 ```
 
 すべて exit code 0 を必須とする。
 
-frozen install 後の追加 hash / snapshot 比較は行わない。Task 6 で pnpm の idempotency を直接確認済みであり、Task 9 の最終 diff で scope 外変更を確認するため、重複検証は追加しない。
+Task 5 ですでに frozen install を実施済みのため、ここでは再実行しない。
 
-品質ゲート failure は `AGENTS.md` の failure handling に従って原因を分類する。ただし Issue #51 と無関係な dependency update / CI policy change を解決策として混ぜない。
+品質ゲート failure は `AGENTS.md` の failure handling と本 Plan の「Task-specific scope rule」に従って分類する。
 
-### Task 9: 最終 diff を確認する
+- 今回の 2 ファイルの変更に起因し、この 2 ファイル内で解消できる failure: 最小修正して再検証する
+- Issue #51 と無関係で、他の tracked file 変更が必要な failure: 修正せず記録して停止する
+
+### Task 10: 最終 diff を確認する
 
 ```bash
 git status --short
@@ -295,10 +332,10 @@ CI 回避のために workflow / change detection を変更しない。
 | 検証 | 成功判定 |
 | --- | --- |
 | pnpm version | `9.10.0` |
+| frozen install | normalization 後に exit code 0 |
 | semantic equality | YAML parse 後 `deepStrictEqual` 成功 |
 | pnpm idempotency | canonical snapshot と 2 回目実行後 lockfile が byte-for-byte 一致 |
 | Prettier ownership | `--file-info` で `ignored: true` |
-| frozen install | exit code 0 |
 | format gate | `pnpm run format:check` 成功 |
 | full verify | `pnpm run verify` 成功 |
 | final diff | Issue #51 の実装変更が `.prettierignore` / `pnpm-lock.yaml` に限定される |
@@ -323,12 +360,16 @@ ownership conflict 解消の核心条件は以下 3 点。
 
 - 大規模 diff に semantic change が隠れる
   - 対策: lockfile 全体の YAML deep equality を必須化
+- fresh clone で `yaml` / `prettier` が未導入のまま検証を開始する
+  - 対策: normalization 直後に frozen install を実行してから semantic / Prettier 検証を行う
 - pnpm version 差で再変換される
   - 対策: 9.10.0 を実行前に確認
 - 2 回目 no-op を HEAD diff で誤判定する
   - 対策: canonical snapshot との byte equality で比較
 - ownership 確認のために unrelated file を書き換える
   - 対策: `pnpm run format` ではなく `prettier --file-info` を使用
+- `verify` の既存 failure を直すために Issue #51 の scope が膨らむ
+  - 対策: task-specific scope rule により、他 tracked file の修正が必要な unrelated failure は記録して停止する
 - `js-yaml` remediation を同じ PR に混ぜる
   - 対策: Issue #51 merge 後に別 Run / branch / PR で実施
 
@@ -336,7 +377,7 @@ ownership conflict 解消の核心条件は以下 3 点。
 
 なし。
 
-semantic equality が崩れた場合のみ、Issue #51 の前提が変わったものとして再調査する。
+semantic equality が崩れた場合、または Task 5 の frozen install が失敗した場合は、Issue #51 の前提が変わったものとして再調査する。
 
 ## 8. 成果物
 
