@@ -20,7 +20,10 @@ import type {
 } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import type { CheckoutSession, Review, ShippingAddressSnapshot } from "@/domain/contracts";
-import { PAYMENT_METHODS } from "@/application/use-cases/checkout-order-use-cases";
+import {
+  PAYMENT_METHODS,
+  resolveCheckoutResultKind,
+} from "@/application/use-cases/checkout-order-use-cases";
 import { resolveCustomerLoginDestination } from "@/presentation/return-to";
 import { useNativeRuntime } from "./native-runtime-provider";
 import {
@@ -993,53 +996,78 @@ export function NativeCheckoutProcessingScreen() {
 }
 
 export function NativeCheckoutCompleteScreen() {
-  const { orderId } = useLocalSearchParams<{ orderId?: string }>();
-  return (
-    <ScrollView contentContainerStyle={styles.scroll} testID="native-checkout-complete-screen">
-      <Text style={styles.heading}>注文完了</Text>
-      <Text style={styles.body}>ご注文を受け付けました。</Text>
-      {orderId !== undefined && (
-        <Text style={styles.body} testID="native-complete-order-id">
-          注文ID：{orderId}
-        </Text>
-      )}
-      <NativeButton
-        label="注文一覧を見る"
-        onPress={() => router.replace("/orders")}
-        testID="native-complete-orders"
-      />
-    </ScrollView>
-  );
+  return <NativeCheckoutResultScreen />;
 }
 
 export function NativeCheckoutFailedScreen() {
+  return <NativeCheckoutResultScreen />;
+}
+
+function NativeCheckoutResultScreen() {
   const { ready, error, retry, services } = usePurchaseServices();
-  const { orderId } = useLocalSearchParams<{ orderId: string }>();
+  const { orderId } = useLocalSearchParams<{ orderId?: string }>();
   const [order, setOrder] = useState<OrderDetailDto | null>(null);
-  const [message, setMessage] = useState<string | null>(null);
+  const [loadMessage, setLoadMessage] = useState<string | null>(null);
+  const [retryMessage, setRetryMessage] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const validOrderId = typeof orderId === "string" && orderId.length > 0;
   useEffect(() => {
-    if (services !== null && orderId !== undefined)
-      void services.checkout
-        .getMyOrder(orderId)
-        .then(setOrder)
-        .catch((caught: unknown) => setMessage(asPurchaseError(caught).message));
-  }, [orderId, services]);
+    if (services === null || !validOrderId) return;
+    let active = true;
+    setOrder(null);
+    setLoadMessage(null);
+    void services.checkout
+      .getMyOrder(orderId)
+      .then((next: OrderDetailDto) => {
+        if (active) setOrder(next);
+      })
+      .catch((caught: unknown) => {
+        if (active) setLoadMessage(asPurchaseError(caught).message);
+      });
+    return () => {
+      active = false;
+    };
+  }, [orderId, services, validOrderId]);
   if (!ready || services === null)
-    return <RuntimePanel title="支払い失敗画面を初期化できません" error={error} retry={retry} />;
+    return <RuntimePanel title="支払い結果画面を初期化できません" error={error} retry={retry} />;
+  if (!validOrderId || loadMessage !== null) {
+    return <NativeCheckoutResultBoundary message={loadMessage ?? "注文IDを確認できません。"} />;
+  }
+  if (order === null) return <NativeStatePanel title="注文結果を読み込み中…" />;
+  const kind = resolveCheckoutResultKind(order);
+  if (kind === null) {
+    return <NativeCheckoutResultBoundary message="注文結果を確認できません。" />;
+  }
+  if (kind === "complete") {
+    return (
+      <ScrollView contentContainerStyle={styles.scroll} testID="native-checkout-complete-screen">
+        <Text style={styles.heading}>注文完了</Text>
+        <Text style={styles.body}>ご注文を受け付けました。</Text>
+        <Text style={styles.body} testID="native-complete-order-id">
+          注文ID：{order.orderId}
+        </Text>
+        <NativeButton
+          label="注文一覧を見る"
+          onPress={() => router.replace("/orders")}
+          testID="native-complete-orders"
+        />
+      </ScrollView>
+    );
+  }
   const retryPayment = () => {
-    if (order === null || orderId === undefined) return;
+    if (services === null) return;
+    setRetryMessage(null);
     setBusy(true);
     void services.checkout
       .retryPayment({
-        orderId,
+        orderId: order.orderId,
         orderActionVersion: order.orderActionVersion,
         methodCode: "TEST-SUCCESS",
       })
       .then((result) =>
         router.replace({ pathname: "/checkout/processing", params: { orderId: result.orderId } }),
       )
-      .catch((caught: unknown) => setMessage(asPurchaseError(caught).message))
+      .catch((caught: unknown) => setRetryMessage(asPurchaseError(caught).message))
       .finally(() => setBusy(false));
   };
   return (
@@ -1049,10 +1077,28 @@ export function NativeCheckoutFailedScreen() {
       <NativeButton
         label={busy ? "再試行中…" : "成功テストで再試行"}
         onPress={retryPayment}
-        disabled={busy || order === null}
+        disabled={busy}
         testID="native-payment-retry"
       />
-      <ErrorMessage message={message} />
+      <ErrorMessage message={retryMessage} />
+    </ScrollView>
+  );
+}
+
+function NativeCheckoutResultBoundary({ message }: { message: string }) {
+  return (
+    <ScrollView contentContainerStyle={styles.scroll} testID="native-checkout-result-boundary">
+      <NativeStatePanel
+        title="支払い結果を確認できません"
+        body={message}
+        action={
+          <NativeButton
+            label="注文一覧を見る"
+            onPress={() => router.replace("/orders")}
+            testID="native-result-orders"
+          />
+        }
+      />
     </ScrollView>
   );
 }
