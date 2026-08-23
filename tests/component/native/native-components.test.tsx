@@ -41,6 +41,8 @@ describe("Native component foundation", () => {
     expect(StyleSheet.flatten(styles.productImage).aspectRatio).toBe(
       tokens.layout.productCardImageAspectRatio,
     );
+    expect(StyleSheet.flatten(styles.productImage).width).toBeUndefined();
+    expect(StyleSheet.flatten(styles.productImage).maxWidth).toBe("100%");
     expect(StyleSheet.flatten(styles.productImageDetail).aspectRatio).toBe(
       tokens.layout.productDetailImageAspectRatio,
     );
