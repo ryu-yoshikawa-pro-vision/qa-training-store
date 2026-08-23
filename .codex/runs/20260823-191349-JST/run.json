@@ -30,12 +30,17 @@
                            "gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/dependabot/alerts/5",
                            "git diff -- package.json pnpm-lock.yaml",
                            "pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-191349-JST -Write -Check",
-                           "pnpm run lint:markdown"
+                           "pnpm run lint:markdown",
+                           "git commit -m chore: investigate pnpm lockfile formatting ownership",
+                           "git push origin fix/dependabot-security-vulnerability-remediation",
+                           "gh pr checks 50 --watch",
+                           "gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/dependabot/alerts/5"
                        ],
                        "warnings":  [
                            "Prettier checkはcanonical lockfileのformatting不一致によりexit 1。",
                            "pnpm auditは既知Alertによりexit 1。",
-                           "最終dependency/source差分が0のため、frozen installとfull verifyは未実行。成功扱いにはしない。"
+                           "最終dependency/source差分が0のため、frozen installとfull verifyは未実行。成功扱いにはしない。",
+                           "Alert #5はOpen / IN_SCOPE / BLOCKEDのまま。"
                        ]
                    },
     "safety":  {
@@ -74,6 +79,6 @@
                                   }
                   },
     "evaluation_path":  null,
-    "status":  "in_progress",
-    "primary_failure_category":  "investigation"
+    "status":  "complete",
+    "primary_failure_category":  "dependency_remediation_blocked"
 }

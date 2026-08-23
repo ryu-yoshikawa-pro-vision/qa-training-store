@@ -8,7 +8,7 @@
 - [x] 4. canonical lockfileをno-opで一時生成し、semantic comparisonを行う
 - [x] 5. Prettier check/writeを各1回実行し、A/B/Cを比較してCASEを判定する
 - [x] 6. baselineへ復元し、audit、Alert #5、final dependency diff、未実行validationを記録する
-- [ ] 7. Run Artifactをfinalizeし、Sanitizer、Markdown lint、commit/push、PR CIを確認する
+- [x] 7. Run Artifactをfinalizeし、Sanitizer、Markdown lint、commit/push、PR CIを確認する
 
 ## Discovered
 
@@ -18,3 +18,5 @@
 ## Blocked
 
 - なし（Alert #5自体は実験後も`IN_SCOPE / BLOCKED`として記録する）。
+
+Progress: 100% (7/7)

@@ -107,6 +107,25 @@
 - Remaining: Run Artifact finalization、Sanitizer/Markdown lint、final working tree、commit/push、PR CI、Alert再確認。
 - Progress: 86% (6/7)
 
+## 2026-08-23 20:45 JST
+
+- Summary: 新Run Artifactを明示stageしてcommit/pushし、push後のPR #50最新HEADに対するCIとAlert #5を確認した。Prettier conflictの実証は完了したが、js-yaml remediation自体は実施していない。
+- Completed: commit、forceなしpush、PR metadata/CI、Alert #5再確認。今回のRunのbounded investigationをfinalizeする。
+- Commands / Results:
+  - `git add .codex/runs/20260823-191349-JST/PLAN.md .codex/runs/20260823-191349-JST/TASKS.md .codex/runs/20260823-191349-JST/REPORT.md .codex/runs/20260823-191349-JST/run.json` => 新Run Artifact 4ファイルだけをstage。`git add .`は使用していない。
+  - `git commit -m "chore: investigate pnpm lockfile formatting ownership"` => `e63d9f951d3db8341bc79cfe34193388d4e6a93e`。
+  - `git push origin fix/dependabot-security-vulnerability-remediation` => exit code 0、`da6a5b3..e63d9f9`をforceなしでpush。
+  - `gh pr checks 50 --watch` => exit code 0、最新HEAD `e63d9f9`で`0 failing / 32 successful / 8 skipped / 0 pending`。Web CI `verify`、`validate`、`Dependency Review`、`Style Quality`、`Code Quality`、build/Chromium/UI/Vitest、Web/Ubuntu・Windows Codex artifact sanitization、Mobile `native-ci / verify`、CodeQLを含む。Android/iOS等のskipはworkflow条件によるskipでfailureではない。
+  - `gh pr view 50 --json ...` => PR #50はOPEN、base `main`、head branchは対象どおり、head `e63d9f9`、titleは`security: investigate Dependabot remediation blocker for js-yaml`のまま。PR title/bodyは変更していない。
+  - `gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/dependabot/alerts/5` => `open / js-yaml / high / runtime / transitive / GHSA-5p4m-2wfm-xmqj / affected >=4.0.0,<4.3.1 / patched 4.3.1 / fixed_at=null`。Alertはdismissしていない。
+- Final decision:
+  - **CASE P: PRETTIER / PNPM LOCKFILE OWNERSHIP CONFLICT CONFIRMED**。
+  - no-op生成BはHEAD Aとsemantic equalityだがformattingが異なり、Prettier checkはfail、write後CはAと完全一致した。原因はpnpm canonical serializerとRepository Prettier formatting policyの衝突である。
+  - PR #50では`.prettierignore`変更、lockfile normalization、js-yaml remediationを行わない。次PR案`chore/pnpm-lockfile-format-ownership`でlockfile ownershipを分離し、normalization後に別Runでsecurity remediationを再評価する。
+  - Alert #5は`IN_SCOPE / BLOCKED`。脆弱性解消済み・remediation完了とは扱わない。
+- Remaining: このpost-push evidence追記を含むRun ArtifactのSanitizer/lint、artifact-only commit/push後のlatest HEAD確認。
+- Progress: 100% (7/7)
+
 ## 2026-08-23 19:36 JST
 
 - Summary: commit前の最終working treeを確認した。
