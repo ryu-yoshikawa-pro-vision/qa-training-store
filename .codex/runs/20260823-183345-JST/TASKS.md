@@ -8,7 +8,7 @@
 - [x] 4. `pnpm install --lockfile-only --ignore-scripts`を1回だけ実行し、直後のdiffとsemantic evidenceを取得する。
 - [x] 5. no-op結果に応じてtoolchain/config/CI/historyをread-only調査し、H1/H2、CASE A/B、Alert #5の判定を確定する。
 - [x] 6. final audit/Alert確認、Run Artifact記録、Sanitizer、Markdown lint、final dependency diff確認を完了する。
-- [ ] 7. 新Run Artifactだけを明示stageしてcommit/pushし、PR CI、Alert #5、最終working treeを確認してfinalizeする。
+- [x] 7. 新Run Artifactだけを明示stageしてcommit/pushし、PR CI、Alert #5、最終working treeを確認してfinalizeする。
 
 ## Discovered
 

@@ -33,14 +33,20 @@
                                      "gh api dependabot/alerts/5 (open, high, runtime, transitive, js-yaml@4.3.0)",
                                      "pnpm list js-yaml --depth Infinity --parseable (3.15.1 / 4.3.0 / 5.2.2)",
                                      "sanitize-codex-artifacts.ps1 -Write -Check (exit 0; 4 files; 0 replacements; 0 residual findings)",
-                                     "pnpm run lint:markdown (exit 0; 313 files; 0 issues)"
+                                     "pnpm run lint:markdown (exit 0; 313 files; 0 issues)",
+                                     "git commit -m \"chore: investigate pnpm lockfile regeneration behavior\" (e66f87610f157d4095b4d5da20714fe2fda606a9)",
+                                     "git push origin fix/dependabot-security-vulnerability-remediation (exit 0; force pushなし)",
+                                     "gh pr checks 50 --watch (32 successful, 8 skipped, 0 failing, 0 pending)",
+                                     "gh pr view 50 (OPEN; title unchanged; head e66f87610f157d4095b4d5da20714fe2fda606a9)",
+                                     "gh api dependabot/alerts/5 (open; js-yaml; high; runtime; transitive; fixed_at null)"
                                     ],
                        "warnings":  [
                                      "H1 supported as lockfile formatting/generation drift; CASE A: normalization separate PR",
                                      "Alert #5 remains IN_SCOPE / BLOCKED; no dependency remediation was adopted",
                                      "pnpm run verify and frozen install were not run because final dependency files are unchanged and this investigation does not modify them",
                                      "Candidate 1〜4、--resolution-only、新しいupdate variationは実行していない",
-                                     "subagentは使用していない。AGENTS.mdのNo child subagent delegationに従った"
+                                     "subagentは使用していない。AGENTS.mdのNo child subagent delegationに従った",
+                                     "CASE A: NO-OP DRIFT DETECTED; lockfile normalizationは別PR、Alert #5はIN_SCOPE / BLOCKED"
                                     ]
                    },
     "safety":  {
@@ -79,6 +85,6 @@
                                   }
                   },
     "evaluation_path":  null,
-    "status":  "pending",
+    "status":  "complete",
     "primary_failure_category":  "dependency_remediation_blocked"
 }

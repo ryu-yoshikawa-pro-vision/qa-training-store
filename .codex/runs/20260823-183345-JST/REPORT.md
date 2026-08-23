@@ -103,3 +103,23 @@
 - Validation classification: dependency filesを変更していないため、このRunではfrozen installと`pnpm run verify`を実行しない。これは成功扱いではない。既存Run/Remote CIの成功結果と混同しない。
 - Remaining: Artifact final gateの再実行、stage前diff確認、明示stage、commit/push、push後PR CI/Alert確認、Run finalization。
 - Progress: 86% (6/7)
+
+## 2026-08-23 18:50 JST
+
+- Summary: 新Run Artifactを明示stageしてcommit/pushし、push後のPR #50最新HEADに対するCIとAlert #5を確認した。今回の調査・記録作業は完了したが、js-yaml脆弱性自体は解消していない。
+- Completed: commit、forceなしpush、PR metadata/check確認、Alert #5再取得、final working tree確認。
+- Commands / Results:
+  - `git commit -m "chore: investigate pnpm lockfile regeneration behavior"` => commit `e66f87610f157d4095b4d5da20714fe2fda606a9`（新Run 4 files、295 insertions）。
+  - `git push origin fix/dependabot-security-vulnerability-remediation` => exit code 0、`8ae98b4..e66f876`をforceなしでpush。
+  - `gh pr checks 50 --watch` => `0 failing / 32 successful / 8 skipped / 0 pending`。`Web CI / verify`、`Web CI / validate`、`Web CI / Dependency Review`、`Web CI / Codex artifact sanitization (ubuntu-latest/windows-latest)`、Web CI、Native `native-ci / verify`を含む。
+  - `gh pr view 50` => state `OPEN`、head `e66f87610f157d4095b4d5da20714fe2fda606a9`、base `main`、branch名は対象どおり、titleは`security: investigate Dependabot remediation blocker for js-yaml`のまま。PR title/body変更コマンドは実行していない。
+  - `gh api .../dependabot/alerts/5` => state `open`、`js-yaml`、High、runtime、transitive、GHSA `GHSA-5p4m-2wfm-xmqj`、affected `>=4.0.0, <4.3.1`、patched `4.3.1`、`fixed_at=null`。Alertはdismissしていない。
+  - `git rev-parse HEAD` => `e66f87610f157d4095b4d5da20714fe2fda606a9`。`git status --short`、`git diff --stat`、`git diff -- package.json pnpm-lock.yaml` => clean、dependency diffなし。
+- Final conclusion:
+  - **CASE A: NO-OP DRIFT DETECTED**。no-opだけで12,858行のformatting/generation diffが発生し、semantic resolutionは完全一致した。`f0a21218...`のlockfile整形履歴から、現在lockfileにはtoolchain version driftではなくlockfile normalization/generation driftがあると判断する。
+  - PR #50へlockfile normalizationを混ぜない。別PRでlockfile/toolchain normalizationを検討し、merge後に新Runでjs-yaml remediationを再評価する。
+  - Alert #5は**IN_SCOPE / BLOCKED**を維持する。今回のRunで`js-yaml@4.3.0`を解消済みとは扱わない。
+- Execution blocker: なし。GitHub API、npm registry、CI確認、pushは実行可能だった。
+- Follow-up: 別PR案（例: `chore/pnpm-lockfile-normalization`、Plan案: `docs/plans/2026-08-23_..._pnpm_lockfile_normalization.md`）を人間が承認・作成し、normalization後にsecurity remediationを再調査する。別PRは自動作成していない。
+- Subagent: 使用なし。AGENTS.mdの`No child subagent delegation`に従った。
+- Progress: 100% (7/7)
