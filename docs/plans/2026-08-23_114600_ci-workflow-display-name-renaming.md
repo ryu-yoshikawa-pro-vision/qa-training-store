@@ -15,7 +15,7 @@ CI の job、step、テスト、実行条件、Workflow ファイル名、内部
 | `.github/workflows/ci.yml` | `Phase 1 CI` | `Web CI` |
 | `.github/workflows/native-ci.yml` | `Native CI` | `Mobile App CI` |
 | `.github/workflows/native-ios-ci.yml` | `Native iOS CI` | `Mobile App iOS CI` |
-| `.github/workflows/cross-browser-smoke.yml` | `Cross-Browser Smoke` | 変更なし |
+| `.github/workflows/cross-browser-smoke.yml` | `Cross Browser Smoke` | 変更なし |
 
 ## 命名理由
 
@@ -83,7 +83,7 @@ CI の job、step、テスト、実行条件、Workflow ファイル名、内部
 - `nativeWorkflow`、`native_changed`、`*.native.tsx`、`src/presentation/native/**`、`generate:native-assets` などの `native` / `Native` 識別子
 - Workflow の `on:`、permissions、timeout、matrix、artifact、job dependency
 - concurrency の実装
-- `Cross-Browser Smoke` の表示名
+- `Cross Browser Smoke` の表示名
 - required check / branch protection / ruleset
 - CI の統合・分割・高速化
 - 新しい Workflow validator、actionlint、専用テストの追加
@@ -251,7 +251,7 @@ job / step / Contract Test に旧名称が残っていても、今回の完了�
 - `.github/workflows/ci.yml` のトップレベル表示名が `Web CI` になっている。
 - `.github/workflows/native-ci.yml` のトップレベル表示名が `Mobile App CI` になっている。
 - `.github/workflows/native-ios-ci.yml` のトップレベル表示名が `Mobile App iOS CI` になっている。
-- `Cross-Browser Smoke` は変更されていない。
+- `Cross Browser Smoke` は変更されていない。
 - 実装による変更ファイルが原則として上記3ファイルだけである。
 - 実装差分が原則として上記3行の置換だけである。
 - 対象 Contract Test 2ファイルが成功する。
