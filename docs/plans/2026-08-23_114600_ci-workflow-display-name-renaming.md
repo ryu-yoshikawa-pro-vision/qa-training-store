@@ -2,132 +2,169 @@
 
 ## 目的
 
-GitHub Actions の CI 名を、開発フェーズ由来の一時的な名称ではなく、対象プラットフォームが直感的に分かる恒常的な名称へ整理する。
+GitHub Actions の Workflow 表示名を、開発フェーズ由来の一時的な名称ではなく、対象プラットフォームを直感的に識別できる恒常的な名称へ整理する。
 
-今回の変更では CI の実行内容・発火条件・job 構成・内部識別子は変更せず、GitHub Actions 上で人間が確認する Workflow 表示名だけを最小限変更する。
+今回の実装はトップレベルの `name:` 3 行だけを変更する。CI の job、実行条件、テスト内容、Workflow ファイル名、技術的な `native` 識別子は変更しない。
 
 ## 背景
 
-現在は以下の Workflow 名になっている。
+現在の Workflow 表示名は以下となっている。
 
-- `.github/workflows/ci.yml`: `Phase 1 CI`
-- `.github/workflows/native-ci.yml`: `Native CI`
-- `.github/workflows/native-ios-ci.yml`: `Native iOS CI`
-- `.github/workflows/cross-browser-smoke.yml`: `Cross-Browser Smoke`
+| Workflow | 現在の表示名 | 変更後 |
+| --- | --- | --- |
+| `.github/workflows/ci.yml` | `Phase 1 CI` | `Web CI` |
+| `.github/workflows/native-ci.yml` | `Native CI` | `Mobile App CI` |
+| `.github/workflows/native-ios-ci.yml` | `Native iOS CI` | `Mobile App iOS CI` |
+| `.github/workflows/cross-browser-smoke.yml` | `Cross-Browser Smoke` | 変更なし |
 
-`Phase 1 CI` は開発段階を示す名称であり、現在の恒常的な CI の役割を表していない。実際には Web build、Vitest、Chromium E2E、アクセシビリティ、Web の mobile-boundary など Web 側の品質ゲートをまとめているため、`Web CI` の方が役割を正確に表す。
+`Phase 1 CI` は開発段階を示す名称であり、恒常運用する CI の名称として役割が分かりにくい。`.github/workflows/ci.yml` は Web Build、Chromium E2E、Accessibility、UI Review など Web 向けの検証を主担当としつつ、Vitest、型チェック、静的解析、Contract Test などリポジトリ共通の品質ゲートも含む。Actions 一覧での主要な役割を端的に示す名称として `Web CI` を採用する。
 
-また `Native CI` は Expo / React Native ベースのモバイルアプリ向け CI であり、GitHub Actions 一覧を見た人にとっては `Mobile App CI` の方が対象を理解しやすい。単なる `Mobile CI` だと Web 側にも存在する mobile viewport / mobile-boundary 系テストと混同する余地があるため採用しない。
+`Native CI` は Expo / React Native ベースのモバイルアプリ向け CI であるため、人間向けの分類名として `Mobile App CI` の方が明確である。`Mobile CI` だけでは Web 側の mobile viewport / mobile-boundary 系テストと混同しやすいため採用しない。
 
-## 採用する名称
+内部コードの `Native` / `native` は React Native / Expo 上の技術的な意味を持つため、今回の表示名整理とは分離して維持する。
 
-| 現在 | 変更後 |
-| --- | --- |
-| `Phase 1 CI` | `Web CI` |
-| `Native CI` | `Mobile App CI` |
-| `Native iOS CI` | `Mobile App iOS CI` |
-| `Cross-Browser Smoke` | 変更なし |
+## 実装範囲
 
-## 変更対象
+以下の 3 箇所だけを変更する。
 
-### 1. `.github/workflows/ci.yml`
+### `.github/workflows/ci.yml`
 
-Workflow 先頭の表示名のみ変更する。
-
-```yaml
-name: Web CI
+```diff
+-name: Phase 1 CI
++name: Web CI
 ```
 
-現在の `name: Phase 1 CI` を置き換える。
+### `.github/workflows/native-ci.yml`
 
-### 2. `.github/workflows/native-ci.yml`
-
-Workflow 先頭の表示名のみ変更する。
-
-```yaml
-name: Mobile App CI
+```diff
+-name: Native CI
++name: Mobile App CI
 ```
 
-現在の `name: Native CI` を置き換える。
+### `.github/workflows/native-ios-ci.yml`
 
-### 3. `.github/workflows/native-ios-ci.yml`
-
-Workflow 先頭の表示名のみ変更する。
-
-```yaml
-name: Mobile App iOS CI
+```diff
+-name: Native iOS CI
++name: Mobile App iOS CI
 ```
 
-現在の `name: Native iOS CI` を置き換える。
+## 既知の影響
 
-## 変更しないもの
+`.github/workflows/ci.yml` の concurrency group は `${{ github.workflow }}` を使用している。
 
-今回の目的は GitHub Actions 上の Workflow 表示名整理であり、技術的な `native` 用語の全面置換ではない。以下は変更しない。
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event.pull_request.number || github.ref }}
+```
+
+`github.workflow` は Workflow の表示名を参照するため、`Phase 1 CI` から `Web CI` への変更後は concurrency group の先頭文字列も変わる。
+
+例:
+
+```text
+Phase 1 CI-pull_request-123
+↓
+Web CI-pull_request-123
+```
+
+これは今回の名称変更に伴う意図された副作用として許容する。rename 後も同じ Workflow・event・PR/ref 単位で排他されるため、concurrency の設計自体は変更しない。
+
+ただし rename の切り替え時点で旧名称の Workflow run がまだ実行中の場合、新名称の run とは別 group になるため、一時的に相互 cancel されない可能性がある。これは移行時だけの影響であり、恒常的な問題ではないため追加対応しない。
+
+`.github/workflows/native-ci.yml` などの concurrency group は固定文字列を使用しているため、この表示名変更による同様の影響はない。
+
+## 実装しないこと
+
+今回の変更を名称整理以上に広げない。以下は変更しない。
 
 - Workflow ファイル名
-  - `.github/workflows/ci.yml`
-  - `.github/workflows/native-ci.yml`
-  - `.github/workflows/native-ios-ci.yml`
-- job ID / job 名
-- `native_changed` などの output・変数名
-- `Detect Native Changes` / `Native Static` など内部の job 表示名
-- `*.native.ts` / `*.native.tsx`
-- `src/presentation/native/**` などのディレクトリ名
-- `generate:native-assets` など既存 script 名
-- Maestro / Android / iOS の処理内容
-- `on:`、permissions、concurrency、timeout、matrix、artifact 名
-- `Cross-Browser Smoke` の Workflow 名
+- job ID / job 表示名
+- `native_changed`、`*.native.tsx`、`src/presentation/native/**`、`generate:native-assets` など技術的な `native` 識別子
+- Workflow の `on:`、permissions、timeout、matrix、artifact、job dependency
+- concurrency の実装
+- `Cross-Browser Smoke` の表示名
+- CI の統合・分割・高速化
+- required check / branch protection / ruleset の再設計
+- 新しい Workflow validator や actionlint の導入
 
-理由は、これらの `native` は React Native / Expo における技術上の意味を持っており、今回の UI 上の分類名変更とは責務が異なるため。
+ファイル名や内部の `Native` 命名まで整理する場合は影響範囲が異なるため、必要になった時点で別タスクとして扱う。
 
 ## 実装手順
 
-1. `.github/workflows/ci.yml` の `name` を `Phase 1 CI` から `Web CI` に変更する。
-2. `.github/workflows/native-ci.yml` の `name` を `Native CI` から `Mobile App CI` に変更する。
-3. `.github/workflows/native-ios-ci.yml` の `name` を `Native iOS CI` から `Mobile App iOS CI` に変更する。
-4. 差分を確認し、上記 3 行以外に意図しない変更が入っていないことを確認する。
-5. Workflow を文字列として検証する既存 contract test への影響を確認する。特に `tests/contracts/native-ci-workflow.test.ts` は `.github/workflows/ci.yml`、`native-ci.yml`、`native-ios-ci.yml` を直接読み込んでいるため、既存テストを実行して回帰がないことを確認する。
-6. GitHub Actions の YAML として構文上問題がないことを確認する。
+### 1. 旧 Workflow 名の参照を確認する
 
-## 検証
+変更前に以下を実行する。
 
-最低限、以下を実施する。
+```bash
+git grep -n -E 'Phase 1 CI|Native CI|Native iOS CI'
+```
+
+確認目的は、Workflow の表示名を文字列として依存している現在有効なコード・設定・テスト・運用ドキュメントがないことを確認するためである。
+
+判断基準:
+
+- `.github/workflows/*.yml` の対象 `name:` は今回の変更対象。
+- `docs/plans/` など過去の経緯を記録した文書に旧名称が残っていても一括置換しない。
+- 現在有効なコード・設定・テストが Workflow 表示名そのものに依存している場合だけ影響を確認する。
+- 今回の目的と無関係な `Phase 1` / `Native` という一般的な用語は変更しない。
+
+レビュー時点では、変更対象 3 Workflow 以外に表示名変更を必須とする箇所は確認されていない。そのため、通常の実装差分は 3 行のみを期待する。
+
+### 2. Workflow 表示名を変更する
+
+以下をそのまま変更する。
+
+1. `.github/workflows/ci.yml`: `Phase 1 CI` → `Web CI`
+2. `.github/workflows/native-ci.yml`: `Native CI` → `Mobile App CI`
+3. `.github/workflows/native-ios-ci.yml`: `Native iOS CI` → `Mobile App iOS CI`
+
+それ以外の行は編集しない。
+
+### 3. 既存 Contract Test を実行する
+
+`tests/contracts/native-ci-workflow.test.ts` は対象 Workflow ファイルを直接読み込んでいるため、既存 Contract Test で回帰を確認する。
 
 ```bash
 pnpm run test:contracts
 ```
 
-リポジトリに既存の Workflow/YAML 検証コマンドがある場合は、それも実行する。
+今回の 3 行変更のためだけに新しいテストや YAML validator は追加しない。
 
-さらに差分を確認する。
+### 4. 差分を検証する
 
 ```bash
-git diff -- .github/workflows/ci.yml .github/workflows/native-ci.yml .github/workflows/native-ios-ci.yml
+git diff --check
+
+git diff -- \
+  .github/workflows/ci.yml \
+  .github/workflows/native-ci.yml \
+  .github/workflows/native-ios-ci.yml
 ```
 
-期待する差分は原則として各 Workflow の先頭 `name:` の 3 行のみ。
+期待する実装差分は、各 Workflow 先頭の `name:` 1 行ずつ、合計 3 行の置換だけである。
+
+変更後の名称も確認する。
+
+```bash
+git grep -n -E '^name: (Web CI|Mobile App CI|Mobile App iOS CI)$' -- .github/workflows
+```
+
+以下の 3 件が確認できればよい。
+
+```text
+.github/workflows/ci.yml:name: Web CI
+.github/workflows/native-ci.yml:name: Mobile App CI
+.github/workflows/native-ios-ci.yml:name: Mobile App iOS CI
+```
 
 ## 完了条件
 
-- GitHub Actions 上の Workflow 名が以下になる。
-  - `Web CI`
-  - `Mobile App CI`
-  - `Mobile App iOS CI`
-  - `Cross-Browser Smoke`
-- CI の実行条件・処理・job 構成に変更がない。
-- 内部の技術用語としての `native` は維持されている。
-- 既存 contract test が通る。
-- 意図しないファイル変更がない。
-
-## スコープ外
-
-以下は今回実施しない。
-
-- `ci.yml` を `web-ci.yml` にリネームすること
-- `native-ci.yml` を `mobile-app-ci.yml` にリネームすること
-- `native-ios-ci.yml` を `mobile-app-ios-ci.yml` にリネームすること
-- job 名やコード上の `Native` / `native` の一括リネーム
-- CI 構成の統合・分割・高速化
-- required check / branch protection の再設計
-
-ファイル名まで整理する場合は参照元・contract test・ドキュメント・branch protection 等への影響範囲が広がるため、必要性が出た時点で別途検討する。
+- `.github/workflows/ci.yml` の表示名が `Web CI` になっている。
+- `.github/workflows/native-ci.yml` の表示名が `Mobile App CI` になっている。
+- `.github/workflows/native-ios-ci.yml` の表示名が `Mobile App iOS CI` になっている。
+- `Cross-Browser Smoke` は変更されていない。
+- 実装差分が原則として上記 3 行だけである。
+- `pnpm run test:contracts` が成功する。
+- `git diff --check` が成功する。
+- CI の job、実行条件、内部識別子、concurrency 実装に意図しない変更がない。
+- `Web CI` への rename に伴い `${{ github.workflow }}` ベースの concurrency group 名が変わることを既知の影響として受け入れている。
