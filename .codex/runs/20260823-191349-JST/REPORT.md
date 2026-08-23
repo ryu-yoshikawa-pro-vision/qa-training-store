@@ -158,6 +158,6 @@
 - Current state:
   - Investigation Task 1〜7は完了済みで、Runの `status=complete` / `Progress: 100% (7/7)` は維持する。
   - Alert #5は引き続き `Open / IN_SCOPE / BLOCKED` であり、js-yaml remediation完了とは扱わない。
-  - 次対応はIssueで分離し、PR #50へlockfile ownership修正やnormalizationを混ぜない。
+  - 次対応はIssue #51で分離し、PR #50へlockfile ownership修正やnormalizationを混ぜない。
 - Remaining: なし（この監査訂正commit自体のCIはPR上で確認する）。
 - Progress: 100% (7/7)
