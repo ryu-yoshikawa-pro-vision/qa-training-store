@@ -147,3 +147,17 @@
 - Notes/Decisions: この追記後にSanitizer Write/CheckとMarkdown lintを再実行する。以後、commit/pushに必要なGit操作と、push後CIの事実記録以外でdependency/source/test/workflowを変更しない。
 - Remaining: final Sanitizer/lint、final working tree、明示stage、commit/push、PR CI、Alert再確認。
 - Progress: 86% (6/7)
+
+## 2026-08-23 19:42 JST
+
+- Summary: Run Artifactの監査記録をappend-onlyで訂正した。既存entryは削除・並べ替えせず、誤った時刻とRemaining表記の解釈だけを訂正する。
+- Corrections:
+  - `## 2026-08-23 20:45 JST` は時刻の誤記。GitHub上の当該post-push evidence追記commitは2026-08-23 19:29 JST頃に作成されており、20:45 JSTではない。
+  - 当該entryの `Remaining: このpost-push evidence追記を含むRun ArtifactのSanitizer/lint、artifact-only commit/push後のlatest HEAD確認。` は、その後のlatest HEAD `1f09edbbe504ee132a042ec030c8a3c7da1c07f3` に対するWeb CI / Mobile App CI / Style Quality / Dependency Review / aggregate `verify` / final `validate` / Codex artifact sanitization (Windows / Ubuntu) がすべて成功したことで解消済みとして扱う。
+  - 過去entryの順序や内容は監査証跡として保持し、この訂正entryを正本の補足として解釈する。
+- Current state:
+  - Investigation Task 1〜7は完了済みで、Runの `status=complete` / `Progress: 100% (7/7)` は維持する。
+  - Alert #5は引き続き `Open / IN_SCOPE / BLOCKED` であり、js-yaml remediation完了とは扱わない。
+  - 次対応はIssueで分離し、PR #50へlockfile ownership修正やnormalizationを混ぜない。
+- Remaining: なし（この監査訂正commit自体のCIはPR上で確認する）。
+- Progress: 100% (7/7)
