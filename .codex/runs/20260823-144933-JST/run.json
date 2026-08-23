@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "run_id": "20260823-144933-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "chore/rename-ci-workflows",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".github/workflows/ci.yml",
+    ".github/workflows/native-ci.yml",
+    ".github/workflows/native-ios-ci.yml",
+    ".codex/runs/20260823-144933-JST/PLAN.md",
+    ".codex/runs/20260823-144933-JST/TASKS.md",
+    ".codex/runs/20260823-144933-JST/REPORT.md",
+    ".codex/runs/20260823-144933-JST/run.json"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "git grep -n -E '^name: (Phase 1 CI|Native CI|Native iOS CI)$' -- .github/workflows",
+      "pnpm install --frozen-lockfile --ignore-scripts",
+      "pnpm exec vitest run tests/contracts/ci-workflow.test.ts tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1",
+      "git diff --name-only",
+      "git diff --check",
+      "git diff -- .github/workflows/ci.yml .github/workflows/native-ci.yml .github/workflows/native-ios-ci.yml",
+      "git grep -n -E '^name: (Web CI|Mobile App CI|Mobile App iOS CI)$' -- .github/workflows",
+      "git diff -- .github/workflows/cross-browser-smoke.yml",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-144933-JST -Write -Check",
+      "git status --short --branch",
+      "git branch --show-current",
+      "git rev-parse --abbrev-ref --symbolic-full-name '@{upstream}'",
+      "git diff --name-only",
+      "git diff --check",
+      "git diff --stat",
+      "git log -1 --oneline"
+    ],
+    "warnings": [
+      "最初のContract Test実行はnode_modules未準備のためvitest未認識で終了した。既存lockfileのfrozen install後、同じContract TestはPASSした。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": null,
+  "status": "in_progress",
+  "primary_failure_category": null
+}
