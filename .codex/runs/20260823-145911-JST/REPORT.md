@@ -122,3 +122,17 @@ Target: PR #50 / `fix/dependabot-security-vulnerability-remediation`
 - Evidence: pnpm 9.10.0の`pnpm help install`で`--lockfile-only`と`--resolution-only`を確認した。親限定overrideの`parent>dependency`記法は公式pnpm設定文書（https://github.com/pnpm/pnpm.io/blob/main/versioned_docs/version-10.x/settings.md#overrides）で確認した。network-required executionはRunの`auto-net`前提で実行した。
 - Remaining: 最終状態のread-only audit / why / list、BLOCKED理由を反映したRun Artifact finalization、Sanitizer Write/Check、Markdown lint、final status/diff確認。
 - Progress: 56% (5/9)
+
+## 2026-08-23 17:37 (JST) — append-only訂正
+
+- 監査証跡の訂正: 15:25のjs-yaml remediation候補記録が、15:41の`Final gates`記録より後ろに配置されている。これは過去ログの追記順による記録上の不整合である。
+- このため、15:41のSanitizer記録は「最後のArtifact変更後に実行された最終Sanitizer」とは扱わない。15:25記録の後に既存REPORT.mdへ今回の訂正をappendしているため、15:41記録のfinalization主張を遡って補強・改変しない。
+- 既存記録は削除・移動・書換えせず、append-onlyで訂正した。今回のrepair RunでREPORT.mdへのこの追記を含むArtifact変更を確定した後、Sanitizer Write / CheckとMarkdown lintを改めて実行する。
+- 修正範囲: `.codex/runs/20260823-145911-JST/REPORT.md`のみ。dependency files、PR title/body、application source、workflowは変更していない。
+- Progress: 20% (1/5)
+
+## 2026-08-23 17:55 (JST) — finalization再実行記録
+
+- 既存REPORT.mdへの17:37 append-only訂正後、指定どおり`pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1 -Path ".codex/runs/20260823-145911-JST" -Write -Check`を再実行した。
+- 結果: exit code 0、4 files scanned、0 files changed、0 replacements、0 residual findings。
+- この記録の追記自体がArtifact変更であるため、今回のrepair Runで最終記録を確定した後にSanitizer Write/Checkをもう一度実行し、その後は本REPORT.mdを変更しない。
