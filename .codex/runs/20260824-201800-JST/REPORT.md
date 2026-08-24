@@ -219,3 +219,27 @@
   - Step 0 local validation / Sanitizer / PR-ready diff確認。
   - Master Plan publication PR 作成 / PR CI / review / merge。
 - Progress: 84% (32/38)
+
+## 2026-08-25 08:31 (JST)
+
+- Summary:
+  - 最新レビューで残った3点だけを修正し、Master Plan と active Run の状態管理を簡素化した。
+  - Remediation Matrix を live status tracker から実行割当表へ変更した。
+  - active Run の完了境界を Master Plan publication PR の merge-ready 時点へ変更した。
+- Completed:
+  - Matrix は Planned disposition / Primary owner / Follow-up verification だけを定義し、進捗・resolved状態を保持しない契約へ変更した。
+  - 各 PR / Phase の実際の対応結果は child Plan / PR / Phase 6 durable report / Run Artifact で記録する方針へ統一した。
+  - Phase 0 は Finding の存否と owner 妥当性の再確認に限定し、後続 owner で Evidence が必要な Finding を Phase 0 だけで最終判断しないよう修正した。
+  - RA-L1 の Primary owner を PR 4 とし、Phase 0 では Required navigation / completion への影響だけ判定する契約に変更した。
+  - Run は final PR head の CI / review が green で merge-ready になった時点で `complete` とし、merge 後に Run Artifact を追加更新しない契約へ変更した。
+  - Master Plan publication PR の merge は Run 完了後にユーザーの明示承認を受けて実施し、merge状態は GitHub PR を正本とするよう明記した。
+  - D28〜D30 を追加・完了し、Now task は merge-ready までに限定した。
+- Validation:
+  - 今回は Master Plan / Run Artifact の文書修正のみ。
+  - Product / Curriculum / Training implementation は変更していない。
+  - RA-M7 の実コード修正、local validation、Sanitizer、PR CI はまだ未実施。
+- Remaining:
+  - Step 0: RA-M7 required path の最小修正。
+  - local validation / Sanitizer / PR-ready diff確認。
+  - Master Plan publication PR 作成 / final head CI / review / merge-ready確認。
+- Progress: 88% (35/40)
