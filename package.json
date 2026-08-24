@@ -133,7 +133,9 @@
   },
   "pnpm": {
     "overrides": {
-      "expo-constants": "57.0.13"
+      "expo-constants": "57.0.13",
+      "@eslint/eslintrc@3.3.6>js-yaml": "4.3.1",
+      "@expo/xcpretty@4.4.4>js-yaml": "4.3.1"
     },
     "packageExtensions": {
       "@react-native/jest-preset@0.86.2": {
