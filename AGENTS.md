@@ -158,6 +158,20 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 - 明示的な依頼と外部 sandbox がない限り、`--dangerously-bypass-approvals-and-sandbox` は使わない。
 - repository の execpolicy ルールは `.codex/rules/*.rules` 配下で管理する。
 
+## 7.1 Git Branch Safety / Protected Branch Safety
+
+Git mutation（commit、push、merge、cherry-pick、branch設定変更を含む）が許可されたタスクでも、現在いるbranchへ無条件にmutationしてよいとは解釈しない。詳細な復旧手順は [`docs/reference/git-branch-safety.md`](docs/reference/git-branch-safety.md) を正本とする。
+
+- `main`、`master`、またはrepositoryのdefault branchへCodexが直接commit/pushしてはいけない。ユーザーがdefault branchへの直接反映を明示的に指定した場合だけ、別途その意図と安全条件を確認して実行対象にできる。
+- PR、Issue、feature、fix branchが作業対象として存在する場合は、GitHubのPR `headRefName`またはユーザー指定branchを作業対象の正本とし、必ずそのbranchを使用する。
+- Git mutationを伴うタスクの開始時、PR対応では次を確認する。`git status --short`、`git branch --show-current`、`git branch -vv`、および `gh pr view <number> --json headRefName,headRefOid,state`。current branchはPR `headRefName`と一致しなければならない。
+- `git commit`直前に `git branch --show-current` を再実行する。期待branchと異なる場合はcommitせず、mainへ自動switchして続行せず、現在HEADをrescue branchで保護してから復旧手順へ移る。
+- `git push`直前にも `git branch --show-current`、`git status --short`、`git branch -vv` を再実行する。PR対応ではcurrent branchとPR `headRefName`の完全一致を必須とする。一致しない場合はpushしない。
+- branch一致を確認していない状態でbare `git push`を実行しない。PR branchへは、確認済みの明示refspec `git push origin HEAD:<expected-branch>` を優先する。current branchがmainのときに `git push -u origin HEAD` を使ってはいけない。
+- cleanup、最新化、タスク終了処理を理由にactive task branchから勝手にmainへswitchしない。別branchへswitchする場合は、理由、切替前後のbranch、uncommitted changeの有無を確認してから実行する。
+- 期待branchとcurrent branchが異なる状態で変更またはcommitを発見した場合は、mutationを停止し、current HEADをrescue branchで保護し、remoteをfetchしてmain汚染とancestryを確認する。fast-forward可能なら `--ff-only`、それ以外は対象commitだけを古い順にcherry-pickする。救出確認前のreset、branch delete、force pushは禁止する。
+- `git push --force`、`git push -f`、`git branch -D`、`git clean -fd`は禁止する。`git reset --hard`も原則禁止だが、ユーザーが明示した復旧で、対象commitがrescue branchと期待branchの両方で保護され、remote状態を確認済みの場合に限り、ローカルbranchをcanonical remoteへ戻す目的で限定的に使用できる。remote mainの履歴を書き換えるforce pushは常に禁止する。
+
 ## 8. 必須検証
 
 - 必要に応じて次の一部または全部を実行する。
