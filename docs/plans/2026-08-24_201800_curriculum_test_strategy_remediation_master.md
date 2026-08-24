@@ -45,6 +45,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 - [ ] 共通卒業像は entry-level の汎用 Test Automation Engineer とし、C08 / Physical Android / Native CI / Native Capstone は specialization として扱う。
 - [ ] Decision B が Product / Formal Native Regression / Android Runtime Gate / iOS Build-only Gate の保証を弱めていない。
 - [ ] E2E command / Gate、Cross-role PR Gate、Playwright project 名、Seed Version、Native / iOS Gate などの Current Documentation Drift が解消されている。
+- [ ] Curriculum canonical filename と `validate:curriculum` の required-file contract が Current Repository と一致している。
 - [ ] 変わりやすい件数・Versionを不要に文書へ重複保持せず、可能な箇所は executable / implementation SSOT 参照へ寄せている。
 - [ ] Test Strategy が Test Level / Test Type、Test Perspective、Execution / Platform / CI Gate を区別している。
 - [ ] Requirement / AC → representative regression と Risk / Technique / Level / Gate の最小 Traceability がある。
@@ -58,6 +59,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 - [ ] Part 1 / Part 2 の Lesson 数と大順序を維持しつつ、Core / Extension / Reference の深さが整合している。
 - [ ] Repository Audit §4.1〜§4.16 の全 Refactoring candidate が Phase 6 で分類され、候補の抜け落ちがない。
 - [ ] Phase 6 の全 candidate の Evidence / classification / rationale が Refactoring Necessity Review の durable report に保存されている。
+- [ ] Phase 6 の確定前に調査 baseline から最新 `main` までの candidate 関連差分を確認し、変更された candidate だけ再検証して最終確認 SHA を report に記録している。
 - [ ] Technical Debt 候補は size 単独ではなく churn / repair history / blast radius / test protection / boundary の Evidence で判断されている。
 - [ ] 実変更を伴う各 child PR に個別 Plan があり、各 PR 単体で正本間の矛盾を残さず Validation できる。
 
@@ -77,6 +79,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
   - Current Test Strategy が Native / Training / parity / operational contract を十分に説明していない。
   - Lesson → Competency → Minimum Evidence の direct mapping 不足。
   - Training Native で Baseline と Learner Exercise の direct entry / artifact / assessment 境界が薄い。
+- Current Repository の canonical learning design file は `docs/curriculum/test-automation/00_learning-design.md` だが、`scripts/validate-curriculum.ts` の required-file contract は `00_learning_design.md` を要求しており、Current filename と validator contract に事実差がある。
 - `CHANGELOG.md` は履歴であり、過去 entry を Current 値へ書き換える正本ではない。
 - Current Seed Version の implementation SSOT は `src/config/versions.ts` である。
 - Native learner exercise YAML は既に存在するが、canonical package command / runner / CI artifact contract は baseline より薄い。
@@ -157,7 +160,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 ### Curriculum
 
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning_design.md`
+- `docs/curriculum/test-automation/00_learning-design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - `docs/curriculum/test-automation/03_instructor-reference.md`
 - `docs/curriculum/test-automation/part1/03_test-design-and-automation-selection.md`
@@ -216,6 +219,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 | RA-M4 | Seed Version の Current Documentation / implementation 差 | `to_revalidate` | `fix` | PR 1 | なし |
 | RA-M5 | Test Strategy / Acceptance / E2E 文書が Native を future / Phase 1 外として扱う | `to_revalidate` | `fix` | PR 1 | PR 2 / PR 3 |
 | RA-M6 | Curriculum の iOS manual-only 説明と Native change 時 Build-only Required Gate の差 | `to_revalidate` | `fix` | PR 1 | PR 2 / PR 3 |
+| RA-M7 | Curriculum canonical filename と `validate:curriculum` required-file contract の差 | `to_revalidate` | `fix` | PR 1 | PR 3 |
 | RA-G1 | Requirement / Test ID → Product Regression code の direct reference 不足 | `to_revalidate` | `fix` | PR 2 | なし |
 | RA-G2 | Lesson → Competency → Minimum Evidence の direct mapping 不足 | `to_revalidate` | `fix` | PR 3 | PR 4 / PR 5 |
 | RA-G3 | Technique → Formal Test mapping metadata 不足 | `to_revalidate` | `fix` | PR 2 | PR 3 |
@@ -304,12 +308,14 @@ Exit criteria:
 - Seed Version の Current SSOT。
 - Native を future / Phase 1 外とする古い Current Documentation。
 - iOS の `manual dispatch`、Native change 時 Required Build-only、Runtime 非保証の区別。
+- Curriculum canonical file `docs/curriculum/test-automation/00_learning-design.md` と `scripts/validate-curriculum.ts` の required-file contract の不一致。
 
 SSOT rule:
 
 - Web E2E は「N本」を Current contract として重複保持する必要がなければ、`package.json` の `test:e2e:chromium`、対象 spec、CI matrix / verify を Current execution SSOT として説明する。
 - Seed Version は `src/config/versions.ts` を Current implementation SSOT とする。
 - `docs/07_testability/seed_catalog.md` は Current 値と一致させるか、SSOT参照へ寄せる。
+- Curriculum filename は Current Repository に実在し、既存 Curriculum Report / navigation と整合する `00_learning-design.md` を canonical とし、validator 側の required-file contract を合わせる。不要な file rename は行わない。
 - `CHANGELOG.md` の過去 entry は履歴なので書き換えない。
 - Native Current Guarantee の修正は事実説明だけとし、Decision B の learner Required / specialization 設計を混ぜない。
 
@@ -320,6 +326,9 @@ SSOT rule:
 - `docs/12_quality/requirements_traceability.md` の factual statement のみ
 - `docs/12_quality/acceptance_criteria.md` の factual statement のみ
 - `docs/07_testability/seed_catalog.md`
+- `docs/curriculum/test-automation/00_learning-design.md`（canonical filename の確認。rename はしない）
+- `scripts/validate-curriculum.ts` の required curriculum path
+- `tests/contracts/training-curriculum.test.ts`（既存 contract で回帰確認し、必要な場合だけ最小変更）
 - `docs/curriculum/test-automation/part2/06_native-ci-maestro.md` の Current Gate 事実のみ
 - `docs/curriculum/test-automation/part2/08_integration-design-capstone.md` の Current Gate 事実のみ
 
@@ -327,19 +336,21 @@ Non-goal:
 
 - Curriculum Required / specialization 再設計。
 - Test Strategy 全面再設計。
-- CI / Test code の変更。
+- Product CI / Formal Test code の変更。
 - Historical CHANGELOG の改変。
+- Canonical Curriculum file の不要な rename。
 
 Validation:
 
 - `pnpm run lint:markdown`
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
-- Current config / workflow / version SSOT との manual cross-check
+- Current config / workflow / version SSOT / canonical curriculum path との manual cross-check
 
 Exit criteria:
 
 - Current fact が executable SSOT / ADR / implementation と一致する。
+- `00_learning-design.md` と validator required-file contract が一致し、`validate:curriculum` / `test:contracts` が filename mismatch で失敗しない。
 - 不要な volatile duplicate を増やしていない。
 - PR 1 Primary owner の Matrix 行が `resolved` である。
 
@@ -424,7 +435,7 @@ Exit criteria:
   - 共通卒業像: entry-level Test Automation Engineer。
   - C08 / Physical Android / Native CI / Native Capstone は specialization。
   - Product Native quality gate は変更しない。
-- `README.md` / `00_learning_design.md` へ North Star と Required / specialization 境界を反映する。
+- `README.md` / `00_learning-design.md` へ North Star と Required / specialization 境界を反映する。
 - C01〜C12 それぞれに以下を定義する。
   - bounded Level 2 の意味。
   - Minimum Evidence。
@@ -443,7 +454,7 @@ Exit criteria:
 
 - `docs/adr/<next>-test-automation-curriculum-native-specialization.md`
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning_design.md`
+- `docs/curriculum/test-automation/00_learning-design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - `docs/curriculum/test-automation/03_instructor-reference.md`
 - `scripts/validate-curriculum.ts`
@@ -578,7 +589,7 @@ Validation:
 
 - `pnpm run typecheck:training`
 - `pnpm run training:web:baseline`
-- Web learner exercise command
+- `pnpm run training:web:mobile:exercise`
 - `pnpm run training:web:check-expected-failure`
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
@@ -610,6 +621,7 @@ Exit criteria:
 - PR 2 の Formal Test Strategy / Traceability が merge 済みであること。
 - PR 3〜5 の完了は必須ではない。
 - 調査自体は PR 3〜5 と並行してよい。
+- 調査開始時の `main` SHA を Phase 6 investigation baseline として durable report に記録する。
 
 調査母集団:
 
@@ -641,9 +653,13 @@ Exit criteria:
 
 - Phase 6 では Product code を refactor しない。
 - 調査完了時に最新 `main` から decision-only branch を作る。
+- decision-only PR を作る前に、investigation baseline → 最新 `main` の差分を確認する。
+  - Audit §4.1〜§4.16 candidate に関係する path が変更されていなければ全面再調査は行わない。
+  - 関係 path が変更されていた candidate だけ、blast radius / test protection / boundary / classification を最新 `main` 基準で再確認する。
+  - 最終確認に使用した `main` SHA を durable report に記録する。
 - Repository Audit §4.1〜§4.16 の全 candidate について、Evidence / classification / rationale を `docs/reports/{yyyy-mm-dd}_{HHMMSS}_refactoring_necessity_review.md` に保存する。この durable report を Phase 6 の個別判定結果の SSOT とする。
 - decision-only PR には Phase 6 の durable report、必要な Remediation Matrix 更新だけを含め、Product refactor を混ぜない。
-- RA-C1 は §4.1〜§4.16 の全 candidate が durable report に分類・記録された時点で Necessity Review 完了として `resolved` へ更新できる。個別 candidate に `needs_more_evidence` があっても、Review 自体を未完了扱いにはしない。
+- RA-C1 は §4.1〜§4.16 の全 candidate が durable report に分類・記録され、上記 freshness check が完了した時点で Necessity Review 完了として `resolved` へ更新できる。個別 candidate に `needs_more_evidence` があっても、Review 自体を未完了扱いにはしない。
 - RA-Q1 は Domain → Application type dependency を `refactor_now` / `refactor_when_touched` / `keep_as_is` のいずれかへ根拠付きで判断できた場合だけ `resolved` へ更新する。`needs_more_evidence` の場合は `Disposition=defer` を維持し、durable report に不足 Evidence と再判断条件を記録する。
 - `refactor_now` の対象だけ decision-only PR merge 後に別 Plan / 別 PR を作る。
 - size / 見た目の巨大さ / 主観だけでは `refactor_now` にしない。
@@ -653,6 +669,7 @@ Exit criteria:
 
 - Repository Audit §4.1〜§4.16 の全 candidate に classification がある。
 - durable report から各 candidate の Evidence / classification / rationale を一意に確認できる。
+- durable report に investigation baseline SHA と最終確認 `main` SHA があり、その間で変更された candidate は再確認済みである。
 - 各 `refactor_now` は size 以外の Evidence で必要性を説明できる。
 - decision-only PR に Product code change が含まれていない。
 - RA-C1 は `resolved`、RA-Q1 は根拠付きの確定判断なら `resolved`、`needs_more_evidence` なら不足 Evidence / 再判断条件を記録した `defer` である。
@@ -687,7 +704,7 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
 - [ ] 3. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を整える。
 - [ ] 4. PR 3 merge 後の最新 `main` から PR 4 branch を作り、Curriculum Core / Extension / Reference を整える。
 - [ ] 5. PR 4 merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / Native learner exercise / specialization opt-in workflow を整える。
-- [ ] 6. PR 2 merge 後から Repository Audit §4.1〜§4.16 の Refactoring Necessity Review を並行調査してよい。調査完了時は最新 `main` から decision-only PR を作り、durable report / Matrix を確定する。`refactor_now` のみその後に個別 Plan / PR へ切り出す。
+- [ ] 6. PR 2 merge 後から Repository Audit §4.1〜§4.16 の Refactoring Necessity Review を並行調査してよい。調査開始 SHA を記録し、確定前に latest `main` との差分で変更 candidate だけ再確認してから、最新 `main` から decision-only PR を作り durable report / Matrix を確定する。`refactor_now` のみその後に個別 Plan / PR へ切り出す。
 - [ ] 7. Repository remediation 完了後、必要に応じて Pilot Feedback を収集する。
 
 ## 9. 検証方法
@@ -729,7 +746,7 @@ Master Plan branch を `main` へ merge する前に、今回の Plan / Run Arti
 
 - `pnpm run typecheck:training`
 - `pnpm run training:web:baseline`
-- 対象 learner exercise command
+- `pnpm run training:web:mobile:exercise`
 - `pnpm run training:web:check-expected-failure`
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
@@ -757,6 +774,7 @@ Master Plan branch を `main` へ merge する前に、今回の Plan / Run Arti
 - Test Level、Perspective、Execution / Platform Gate を同じ概念として扱っていない。
 - Traceability のために Test implementation の保守コストを不必要に増やしていない。
 - Repository Audit §4.1〜§4.16 の Refactoring candidate が漏れなく分類されている。
+- Phase 6 の最終 classification が latest `main` で変更された candidate の再確認を反映している。
 - Refactoring は追加 Evidence によって必要性を説明できる対象だけ実装候補になる。
 
 ## 10. リスクと停止条件
@@ -785,9 +803,11 @@ Master Plan branch を `main` へ merge する前に、今回の Plan / Run Arti
     - Repository Audit §4.1〜§4.16 を母集団SSOTにする。
 11. Phase 6 の個別判定が chat / run-local log だけに残り、後続 Refactor 判断で再構成が必要になる。
     - 全 candidate の Evidence / classification / rationale を durable report に保存する。
-12. 巨大ファイルを見ただけで refactor する。
+12. Phase 6 を並行調査した後に PR 3〜5 で candidate 関連 path が変わり、古い Evidence のまま decision-only PR を確定する。
+    - investigation baseline → latest `main` の差分を確認し、変更 candidate だけ再検証して最終確認 SHA を report に記録する。
+13. 巨大ファイルを見ただけで refactor する。
     - churn / repair / blast radius / test protection / boundary を中核 Evidence にする。
-13. Finding tracking 自体が Drift する。
+14. Finding tracking 自体が Drift する。
     - Remediation Matrix だけを status 正本とし、Primary owner を1つに固定する。
 
 ### 実装時の停止条件
@@ -805,6 +825,7 @@ Master Plan branch を `main` へ merge する前に、今回の Plan / Run Arti
 - Native specialization opt-in を成立させるために Common Core workflow を複雑に分岐させる必要が生じた。
 - C08 learner-authored evidence を判定するために新しい専用状態DB / scoring framework が必要になった。
 - Phase 6 で Audit §4.1〜§4.16 の候補を分類できる Evidence が不足し、推測で `refactor_now` を付ける必要が生じた。
+- Phase 6 の freshness check で candidate 関連 path の変更が見つかったのに、最新 `main` で再確認できない。
 - Refactor の必要性が size / 主観だけでしか説明できない。
 - Native Environment failure と learner / source failure を分離できない。
 
