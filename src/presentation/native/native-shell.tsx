@@ -1,4 +1,4 @@
-import { Link, Redirect, usePathname } from "expo-router";
+import { Link, Redirect, usePathname, type Href } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AppState, Pressable, StyleSheet, Text, View } from "react-native";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -152,7 +152,7 @@ export function NativeShell({ children }: { children: ReactNode }) {
             }
           />
         ) : guestCustomerRoute ? (
-          <Redirect href={buildLoginHref(pathname)} />
+          <Redirect href={buildLoginHref(pathname) as Href} />
         ) : (
           children
         )}

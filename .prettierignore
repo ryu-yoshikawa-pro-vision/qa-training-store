@@ -23,6 +23,7 @@ expo-env.d.ts
 scripts/*.ps1
 scripts/*.sh
 scripts/native/*.sh
+pnpm-lock.yaml
 *.md
 *.toml
 *.py
