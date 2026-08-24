@@ -170,7 +170,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 ### Curriculum
 
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning_design.md`
+- `docs/curriculum/test-automation/00_learning-design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - `docs/curriculum/test-automation/03_instructor-reference.md`
 - `docs/curriculum/test-automation/part1/03_test-design-and-automation-selection.md`
@@ -511,7 +511,7 @@ Exit criteria:
 
 - `docs/adr/<next>-test-automation-curriculum-native-specialization.md`
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning_design.md`
+- `docs/curriculum/test-automation/00_learning-design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - `docs/curriculum/test-automation/03_instructor-reference.md`
 - `scripts/validate-curriculum.ts`
