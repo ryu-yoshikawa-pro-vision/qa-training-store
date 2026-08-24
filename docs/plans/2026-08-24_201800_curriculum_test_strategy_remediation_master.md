@@ -511,7 +511,7 @@ Exit criteria:
 
 - `docs/adr/<next>-test-automation-curriculum-native-specialization.md`
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning-design.md`
+- `docs/curriculum/test-automation/00_learning_design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - `docs/curriculum/test-automation/03_instructor-reference.md`
 - `scripts/validate-curriculum.ts`
