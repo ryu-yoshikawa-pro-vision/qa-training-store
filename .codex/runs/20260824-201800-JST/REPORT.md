@@ -125,3 +125,41 @@
 ## Deletion candidates
 
 なし。
+
+## 2026-08-24 22:31 (JST)
+
+- Summary:
+  - 最新 Master Plan と Repository rule / active Run Artifact / Training Web contract を再確認し、残っていた3 finding を bounded repair で反映した。
+  - RA-M7 の separate hotfix branch / Run を廃止し、Master Plan branch の同一PRへ最小CI unblockerを統合する方針へ簡素化した。
+  - active Run Artifact の古い未完了状態を最新 Master Plan へ整合させ、PR 5 に Web Desktop learner exercise の canonical command を追加した。
+- Input Findings:
+  - must_fix: RA-M7 separate hotfix branch が active Run reuse contract と衝突し、運用を複雑化する。
+  - must_fix: `TASKS.md` の D11〜D16 と `REPORT.md` Remaining が Master Plan の現状より古い。
+  - should_fix: PR 5 の Web / Native 共通契約に Desktop learner exercise の canonical `training:web:exercise` がない。
+- Repair Plan / Allowed Files:
+  - `docs/plans/2026-08-24_201800_curriculum_test_strategy_remediation_master.md`
+  - `.codex/runs/20260824-201800-JST/PLAN.md`
+  - `.codex/runs/20260824-201800-JST/TASKS.md`
+  - `.codex/runs/20260824-201800-JST/REPORT.md`
+  - Product / Curriculum / Training implementation は変更しない。
+- Completed:
+  - Master Plan の Step 0 を `Master Plan + RA-M7 CI unblocker PR` へ一本化し、別 branch / 別 Run / 先行 hotfix PR を削除した。
+  - RA-M7 Primary owner を `Master Plan + RA-M7 CI unblocker PR` へ変更した。
+  - Step 0 に active Run Artifact の意味上整合を Sanitizer より前に実施する手順を追加した。
+  - Step 0 Validation に `validate:curriculum` / `test:contracts` / `typecheck` / format / markdown / Sanitizer / required CI を統合した。
+  - PR 5 に `training:web:exercise` を `training/playwright/exercises` + `training-chromium` の canonical Desktop learner command として追加した。
+  - stock Web exercise PASS を competency evidence とみなさず、Web Training CI への learner exercise Required化は C07 Minimum Evidence 上必要な場合だけとした。
+  - D11〜D16 を完了へ更新し、D17〜D19 を追加・完了した。
+  - Run `PLAN.md` の Scope / Approach / DoD / Risks を最新 Master Plan と整合させた。
+- Validation:
+  - この repair iteration は planning / Run Artifact の文書修正のみ。
+  - `scripts/validate-curriculum.ts` の RA-M7 実修正はまだ実施していない。Master Plan の Step 0 で同一PRへ追加する。
+  - `pnpm run validate:curriculum` / `test:contracts` / `typecheck` / `format:check` / `lint:markdown` / Sanitizer Write・Check はまだ未実行。
+  - GitHub connector 上の文書更新のみ確認した。
+- Remaining:
+  - 設計修正の残差はなし。
+  - merge readiness の次工程は、Step 0 の RA-M7 required path 最小修正 → Run Artifact Sanitizerを含むValidation → required CI → PR作成・merge。
+- Decision:
+  - repair loop decision: `stop_success`。
+  - これ以上の設計追加は行わず、次は merge readiness / Step 0 execution へ移る。
+- Progress: 100% (24/24)
