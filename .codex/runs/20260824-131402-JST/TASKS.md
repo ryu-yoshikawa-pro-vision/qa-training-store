@@ -8,8 +8,8 @@
 - [x] 4. R1 targeted lockfile-only remediationを1回評価する
 - [x] 5. R1不採用時だけR2 parent-scoped overrideを1回評価する
 - [x] 6. 採用candidateのdependency validationとrepository quality gateを実行する
-- [ ] 7. Run Artifactをfinalizeし、Sanitizer/lint/final diffを確認する
-- [ ] 8. explicit stage、commit、ordinary push、PR #50 CI/Alertを確認する
+- [x] 7. Run Artifactをfinalizeし、Sanitizer/lint/final diffを確認する
+- [x] 8. explicit stage、commit、ordinary push、PR #50 CI/Alertを確認する
 
 ## Discovered
 
@@ -20,4 +20,4 @@
 
 - なし
 
-Progress: 75% (6/8)
+Progress: 100% (8/8)

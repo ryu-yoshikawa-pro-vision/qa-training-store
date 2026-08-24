@@ -152,3 +152,18 @@
 - Execution blocker: なし。未実行の必須validationは現時点でなし。PR CIとpush後Alert再取得はcommit/push後に実施する。
 - Remaining: Sanitizer/lint、final diff、explicit stage、commit、ordinary push、PR CI/Alert再確認。
 - Progress: 75% (6/8)
+
+## 2026-08-24 14:19 JST
+
+- Summary: 実装commit `baca0836de12a45dda7f19fc93efa0befc4743d0` のpush後CIとAlert #5を確認した。全CIチェックが完了し、今回変更起因のfailureはなかった。
+- Push後CI: GitHub Actions run `32690826306`（実装commit `baca0836de12a45dda7f19fc93efa0befc4743d0`）は `completed / success`。`gh pr checks 50` の集計は `40 pass / 2 skipped / 0 failing / 0 cancelled`。
+  - Web CI: Dependency Review、Style Quality、Code Quality、Codex artifact sanitization Windows/Ubuntu、Chromium E2E required、aggregate `verify`、`validate`、build、production smokeを成功確認。Extended E2Eとproduction deployはworkflow条件によりskip。
+  - Mobile App CI: Android production-validation build、Android automation build、Android Runtime/Maestro、iOS automation build、iOS production-validation build、iOS native verify、Native Static、Production Bundle Guardを成功確認。
+  - CodeQLの各解析とCodeRabbitのskip判定も完了。failure、cancelledは0件。
+- PR metadata: `gh pr view 50`でheadが上記commit、state `OPEN`、mergeable `MERGEABLE`、base `main`、head branchは対象branchであることを確認。PR title/bodyは変更していない。mergeは実施していない。
+- Alert #5 post-push snapshot: `gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/dependabot/alerts/5` => state `open`、package `js-yaml`、severity `high`、scope `runtime`、relationship `transitive`、advisory `GHSA-5p4m-2wfm-xmqj`、affected `>= 4.0.0, < 4.3.1`、patched `4.3.1`、`fixed_at=null`。default branch未mergeのGitHub Alert stateであり、branch lockfile/audit上のremediation判定とは分離する。
+- Branch remediation evidence: final lockfileには対象経路の`js-yaml@4.3.1`のみが残り、safe `3.15.1` / `5.2.2`を維持し、affected `4.3.0`は存在しない。したがってbranch dispositionは`IN_SCOPE / FIX`、GitHub Alertはmerge後確認待ちとする。
+- Finalization action: このCI/Alert結果を含む本追記後に、Run ArtifactのTASKS/run.jsonを完了状態へ更新し、Sanitizer Write/CheckとMarkdown lintを再実行する。その後、Artifact証跡のみを明示stageして通常commit/pushする。後続のArtifact-only commitでsource/dependency stateは変わらない。
+- Subagent: 省略。AGENTS.mdのNo child subagent delegationに従った。
+- Remaining: 本追記を含むArtifact finalization、final diff確認、証跡commit/push、最新HEAD CI確認。
+- Progress: 75% (6/8)

@@ -31,11 +31,14 @@
                            "pnpm audit",
                            "pnpm run format:check",
                            "pnpm run verify",
-                           "git diff --check"
+                           "git diff --check",
+                           "gh pr checks 50 --repo ryu-yoshikawa-pro-vision/qa-training-store --json name,state,bucket,workflow",
+                           "gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/dependabot/alerts/5"
                        ],
                        "warnings":  [
                            "pnpm auditは独立Alert由来の7 vulnerabilities（6 high / 1 moderate）のためexit 1。Alert #5由来のfindingは消失した",
-                           "ESLint warning、React act warning、Node SQLite experimental warningは今回変更と無関係"
+                           "ESLint warning、React act warning、Node SQLite experimental warningは今回変更と無関係",
+                           "GitHub Alert #5は未mergeのdefault branch基準のためopen。branch remediationはlockfile/auditでFIX相当"
                        ]
                    },
     "safety":  {
@@ -74,6 +77,6 @@
                                   }
                   },
     "evaluation_path":  null,
-    "status":  "in_progress",
+    "status":  "complete",
     "primary_failure_category":  null
 }
