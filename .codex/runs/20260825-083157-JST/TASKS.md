@@ -7,9 +7,9 @@
 - [x] 3. rescue branchを作成し、main非包含とPR branch ancestryを確認する
 - [x] 4. AGENTS.mdとgit branch safety詳細referenceを追加する
 - [x] 5. 文書差分、upstream、branch invariant、artifact sanitizerを検証する
-- [ ] 6. 対象ファイルを明示stageしてcommitする
-- [ ] 7. explicit refspecでPR branchへpushし、remote状態を再確認する
-- [ ] 8. PR branchへ戻った最終状態とPR #58未mergeを確認して報告する
+- [x] 6. 対象ファイルを明示stageしてcommitする
+- [x] 7. explicit refspecでPR branchへpushし、remote状態を再確認する
+- [x] 8. PR branchへ戻った最終状態とPR #58未mergeを確認して報告する
 
 ## Discovered
 

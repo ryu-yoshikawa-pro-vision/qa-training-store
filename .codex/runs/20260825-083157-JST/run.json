@@ -34,14 +34,18 @@
                            "pnpm run lint:markdown",
                            "pnpm run format:check",
                            "git diff --check",
-                           "scripts/sanitize-codex-artifacts.ps1 -Write/-Check"
+                           "scripts/sanitize-codex-artifacts.ps1 -Write/-Check",
+                           "git commit -m docs: enforce safe git branch operations",
+                           "git push origin HEAD:fix/dependabot-brace-expansion-r2-metadata-evaluation",
+                           "gh pr view 58 --json headRefName,headRefOid,state"
                        ],
                        "warnings":  [
-                           "PR #58は未merge。rescue branchは保持する。"
+                           "PR #58は未merge。rescue branchは保持する。",
+                           "PR #58のmergeStateStatusはBLOCKEDだが、今回のbranch recovery scopeでは変更しない。"
                        ]
                    },
     "safety":  {
-                   "network":  false,
+                   "network":  true,
                    "delete_attempt_blocked":  false,
                    "git_mutation_attempt_blocked":  false,
                    "scope_violation":  false
@@ -76,6 +80,6 @@
                                   }
                   },
     "evaluation_path":  null,
-    "status":  "in_progress",
+    "status":  "complete",
     "primary_failure_category":  null
 }

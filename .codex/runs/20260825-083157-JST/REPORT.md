@@ -101,6 +101,32 @@
 - Remaining: commit直前branch再確認、commit、push直前確認、explicit refspec push、push後確認。
 - Progress: 62% (5/8)
 
+## 2026-08-25 08:42 (JST)
+
+- Summary: 文書commitを正しいPR branchへexplicit refspecでpushし、remote/local状態を確認した。
+- Completed:
+  - commit `fc94dbfffe3113401e4ab692dd6bfad63cfa6d92`（`docs: enforce safe git branch operations`）を作成した。
+  - `git push origin HEAD:fix/dependabot-brace-expansion-r2-metadata-evaluation` がfast-forward成功した。
+  - local HEAD、`origin/fix/dependabot-brace-expansion-r2-metadata-evaluation`、PR #58 headはすべて `fc94dbf` で一致した。
+  - `origin/main` とlocal `main`は `74834bf9ac859db5d9aec1f34bd8c6337f4698c8` のままで変化していない。
+  - `rescue/pr58-branch-recovery` は保持され、元の5コミットをすべて参照している。
+  - worktreeはclean、current branchはPR branch、PR #58はOPEN・未mergeである。
+- Commands:
+  - `git fetch origin` => 成功。
+  - `git push origin HEAD:fix/dependabot-brace-expansion-r2-metadata-evaluation` => `f735e66..fc94dbf` fast-forward。
+  - `git rev-parse HEAD` / `git rev-parse origin/fix/dependabot-brace-expansion-r2-metadata-evaluation` => 同一SHA。
+  - `git rev-parse origin/main` / `git rev-parse main` => 同一SHA `74834bf`。
+  - `gh pr view 58 --json headRefName,headRefOid,state,mergeable,mergeStateStatus,url` => head branch/sha一致、OPEN、未merge。GitHubの現在mergeStateStatusは `BLOCKED` だが、今回のbranch recoveryでは変更しない。
+  - `git merge-base --is-ancestor fe0d58c origin/main` => exit 1、5コミットはremote mainに含まれない。
+  - `git diff HEAD^..HEAD -- package.json pnpm-lock.yaml` => 空。
+- Notes/Decisions:
+  - PR branchとrescue branchが同一f735e66だったため、CASE Aとしてcherry-pick/resetを行わなかった。
+  - remote mainへpushしていないため、mainの修復操作は不要だった。
+  - rescue branchはユーザー確認まで保持し、remoteへはpushしない。
+  - PR #58はmergeしない。nanoid等の次Issueにも進まない。
+- Remaining: なし。最終状態はPR branchで固定する。
+- Progress: 100% (8/8)
+
 ## 2026-08-25 08:39 (JST)
 
 - Summary: 文書検証を完了し、初回のMarkdown lint違反を修正した。
