@@ -141,3 +141,20 @@
 - 最終Mobile結果では、Android Automation/Production-validation Build、Android Runtime/Maestro、iOS Automation/Production-validation Build、iOS Native CI Verify、Production Bundle Guardがsuccessした。
 - 最終Native Staticのfailureも`expo-doctor@1.17.6`のExpo SDK patch mismatch 7件だけであり、brace-expansionのresolutionとは無関係。今回の依存差分へ追加修正は行わない。
 - `0de5aed`はRun Artifactだけの記録commitで、dependency remediationは`fe0d58cc347a395ebc564df7b1327cc0977cf081`のまま不変。PR #58はOPEN・未merge、merge stateは`UNSTABLE`。
+
+## 2026-08-25 07:15 (JST) レビュー指摘に対する既存Runの事実訂正
+
+- 以下は過去のCI記録を削除せずに行う最新状態の訂正であり、このブロックが`7a20fdeb786339086023383e27affc15bca40e5b`に対する解釈の正本である。
+- Final validation head: `7a20fdeb786339086023383e27affc15bca40e5b`。
+- Web CI run [32734755434](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32734755434): success。
+- Mobile App CI run [32734755542](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32734755542): failure。
+  - [Native Static](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32734755542/job/97454864945): `expo-doctor@1.17.6`がpatch mismatch 7件（`@expo/metro-runtime`、`expo`、`expo-build-properties`、`expo-constants`、`expo-crypto`、`expo-dev-client`、`expo-router`）でfailure。brace-expansion差分との直接関係はない。
+  - [Android Automation Build](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32734755542/job/97454864930): `org.gradle.toolchains.foojay-resolver-convention:1.0.0`のplugin artifactをresolveできずfailure。brace-expansion差分との直接関係はない。
+  - [Android Production-validation Build](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32734755542/job/97454864911): success。
+  - iOS Automation / Production-validation Build: success。Native iOS CI Verify: success。
+  - [Android Runtime / Maestro](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32734755542/job/97459249578)のjob conclusionはsuccess。ただしAutomation APK download/installの条件が`Android Automation Build == success`であり、Automation APKが生成されなかったため、Test Control、Contract Harness、Storefront等の主要Maestro flowは実行されずskipされた。したがってこれは「Maestro実flow PASS」ではなく「job successだが実flow未完了」と記録する。
+  - [native-ci / verify](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32734755542/job/97462323739)はNative CIの集約gate。`Native Static`と`Android Automation Build`の両方を含むsuccess条件を満たさないためfailureであり、Native Staticだけの派生failureではない。
+- `production-bundle-guard`はAutomation Build failureによりskipped。workflowのgateはNative Static、Production Bundle Guard、Android Automation Build、Android Production Build、Android Runtime、Native iOSを要求する。
+- CI evidence ownershipの終端ルール: このRun Artifactを更新するcommit自体が新しいGitHub Actions runを発生させるため、最終Artifact commit後のCI結果をArtifactへ追記するためだけのcommitは作成しない。dependency remediation/local validationの正本はRun Artifact、最終branch headのCIはPR #58およびIssue #54のGitHub metadataを正本とする。
+- このRunのR2依存実装（`fe0d58cc347a395ebc564df7b1327cc0977cf081`）は変更しない。PR #58は未merge、Alert #2/#3/#4はmerge前のためopen、Alert #5はfixed。nanoidへは進まない。
+- Progress: 100% (8/8)
