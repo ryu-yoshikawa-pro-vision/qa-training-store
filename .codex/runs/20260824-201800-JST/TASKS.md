@@ -7,12 +7,11 @@
 - [x] 3. `main` から計画用 branch を作成する
 - [x] 4. Report Findings を依存関係順に整理した Master Plan を `docs/plans/` に保存する
 - [x] 5. Master Plan を、前提・実施内容・Validation・停止条件だけで理解できる実行用文書へ整理する
-- [ ] 6. Step 0 として RA-M7 の `scripts/validate-curriculum.ts` required path を最小修正し、Matrix / Run Artifact を実状態へ更新する
+- [ ] 6. Step 0 として RA-M7 の `scripts/validate-curriculum.ts` required path を最小修正し、Run Artifact を実状態へ更新する
 - [ ] 7. `validate:curriculum` / `test:contracts` / `typecheck` / format / markdown / Sanitizer Write・Check を実行し、結果を Run Artifact へ記録する
 - [ ] 8. 最終 diff を確認し、Step 0 scope 内で PR 作成可能な状態を確定する
 - [ ] 9. Master Plan publication PR を作成する
-- [ ] 10. PR-triggered CI と review を確認し、必要な bounded repair を完了する
-- [ ] 11. PR を `main` へ merge し、RA-M7 解消と `main` 反映を確認して active Run を完了する
+- [ ] 10. PR-triggered CI / review / bounded repair を完了し、final PR head で Run Artifact を最終化して merge-ready を確認する
 
 ## Discovered
 
@@ -43,9 +42,18 @@
 - [x] D25. Master Plan と Run `PLAN.md` から review history / hypothesis / thinking log を除き、実施事項だけで理解できる構成へ整理する
 - [x] D26. Step 0 を RA-M7 最小修正 + local validation + Sanitizer + PR-ready 確認までに限定し、PR作成 / GitHub CI / merge を後続工程へ分離する
 - [x] D27. Run manifest は `task_type: plan` を維持し、最終 status は Repository convention の `complete` を使用する
+- [x] D28. Remediation Matrix を live status tracker ではなく Planned disposition / Primary owner の実行割当表へ限定する
+- [x] D29. active Run は Master Plan publication PR の final head が merge-ready になった時点で完了し、merge 後に Run Artifact を追加更新しない契約へ変更する
+- [x] D30. RA-L1 は Phase 0 で影響を判定し、修正が必要な場合だけ PR 4 scope へ追加する契約を明記する
+
+## After Run
+
+- Master Plan publication PR の merge は、Run 完了後にユーザーの明示承認を受けて実施する。
+- merge 後は GitHub PR を merge 状態の正本とし、Run Artifact を追加更新しない。
+- `main` への反映確認後、最新 `main` から PR 1 を開始する。
 
 ## Blocked
 
 - なし
 
-Progress: 84% (32/38)
+Progress: 88% (35/40)
