@@ -32,7 +32,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - Product Native の Current Guarantee は Android Runtime + iOS Build-only。iOS Runtime / Maestro PASS は Required Guarantee ではない。
 - Repository Audit §4.1〜§4.16 は Refactoring candidate inventory の正本であり、`CANDIDATE` / `COMPLEXITY` は Refactor 必須を意味しない。
 
-## 3. Assumptions / fixed decisions
+## 3. Fixed decisions
 
 次を固定条件として扱う。
 
@@ -46,7 +46,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - Analysis → Design → Selection → Implementation → Failure → Maintainability → Development Process の大順序を維持する。
 - Part 1 / Part 2 の Lesson 数と大順序は維持する。
 - 各 Finding は Remediation Matrix で Primary owner を1つだけ持つ。
-- 後続 PR の verification は Primary owner を置き換えない。
+- Follow-up verification は Primary owner を置き換えない。
 
 ## 4. Non-goals
 
@@ -145,9 +145,11 @@ Repository Audit §4.1〜§4.16 の次の16候補を全件扱う。
 
 ## 7. Remediation Matrix
 
-この Matrix を Finding status の正本とする。
+この Matrix は、Finding の予定 Disposition、Primary owner、Follow-up verification を定義する実行割当表とする。進捗や完了状態はこの Matrix では管理しない。
 
-| ID | Finding | Initial disposition | Primary owner | Follow-up verification |
+実際の対応結果は、各 child Plan / PR、Phase 6 durable report、Run Artifact で記録・確認する。
+
+| ID | Finding | Planned disposition | Primary owner | Follow-up verification |
 | --- | --- | --- | --- | --- |
 | RA-M1 | Required Web E2E 件数 / command の文書差 | fix | PR 1 | PR 2 |
 | RA-M2 | Cross-role を PR 外とする文書と Current PR Gate の差 | fix | PR 1 | PR 2 |
@@ -163,7 +165,7 @@ Repository Audit §4.1〜§4.16 の次の16候補を全件扱う。
 | RA-G5 | Native failure exercise が README のみで executable flow がない | defer を第一候補。C08 Minimum Evidence に不可欠な場合だけ fix | PR 5 | なし |
 | RA-G6 | Test Strategy が Current Native / Training / parity / operational contract を十分に説明しない | fix | PR 2 | PR 3 |
 | RA-Q1 | Domain → Application type dependency の妥当性が未確定 | Evidence で判断 | Phase 6 | なし |
-| RA-L1 | Legacy P1 Capstone の Maestro 2 flows と canonical / Rubric 1 flow の限定的差 | reject を第一候補。Required navigation に影響する場合だけ fix | Phase 0 | PR 4 |
+| RA-L1 | Legacy P1 Capstone の Maestro 2 flows と canonical / Rubric 1 flow の限定的差 | reject を第一候補。Required navigation に影響する場合だけ fix | PR 4 | Phase 0 |
 | RA-C1 | Hotspot / duplication / large file 等の Refactoring candidate 群 | Necessity Review | Phase 6 | なし |
 | CUR-H1 | Universal path と Audience / Level の不整合 | fix | PR 3 | PR 4 |
 | CUR-H2 | Lesson から Competency Minimum Evidence への Trace 不足 | fix | PR 3 | PR 4 / PR 5 |
@@ -180,21 +182,23 @@ Repository Audit §4.1〜§4.16 の次の16候補を全件扱う。
 | CUR-L1 | Spiral と説明重複の境界が薄い | 最小ラベル整理 | PR 4 | なし |
 | CUR-L2 | Pilot 実測値がない | defer | Follow-up | なし |
 
-Phase 0 で RA-M7 以外の行を Current `main` で再検証し、`fix` / `defer` / `reject` / `resolved` を確定する。Primary owner が完了した行は Matrix 上で `resolved` に更新する。
+Phase 0 では Current `main` で Finding の存否と Primary owner の妥当性を再確認する。Evidence を後続 Phase / PR で収集する Finding は、Phase 0 だけで最終判断しない。
 
 ## 8. Change strategy and execution order
 
 実行順序は次のとおり。
 
 1. Step 0: Master Plan publication PR に含める RA-M7 の最小修正と local validation を完了する。
-2. Master Plan publication PR を作成し、GitHub CI / review を通して `main` へ merge する。
-3. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。
-4. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
-5. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。
-6. PR 3 merge 後の最新 `main` から PR 4 branch を作り、Curriculum Core / Extension / Reference を実施する。
-7. PR 4 merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
-8. Phase 6 は PR 2 merge 後から PR 3〜5 と並行して調査してよい。decision-only PR は最新 `main` へ追従して確定する。
-9. Repository remediation 完了後、必要に応じて Pilot Feedback を収集する。
+2. Master Plan publication PR を作成し、GitHub CI / review を通して merge-ready にする。
+3. Run Artifact を merge-ready の final PR head で確定する。
+4. ユーザーの明示承認後に Master Plan publication PR を `main` へ merge する。
+5. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。
+6. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
+7. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。
+8. PR 3 merge 後の最新 `main` から PR 4 branch を作り、Curriculum Core / Extension / Reference を実施する。
+9. PR 4 merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
+10. Phase 6 は PR 2 merge 後から PR 3〜5 と並行して調査してよい。decision-only PR は最新 `main` へ追従して確定する。
+11. Repository remediation 完了後、必要に応じて Pilot Feedback を収集する。
 
 ### Branch / PR rules
 
@@ -212,7 +216,6 @@ Master Plan branch 上で次だけを変更する。
 
 - `scripts/validate-curriculum.ts` の required curriculum path を `00_learning_design.md` から `00_learning-design.md` へ変更する。
 - `tests/contracts/training-curriculum.test.ts` が同じ誤 literal を直接保持している場合だけ、その literal を最小修正する。
-- Remediation Matrix の RA-M7 を `resolved` へ更新する。
 - active Run Artifact を実状態へ更新する。
 
 次は変更しない。
@@ -230,7 +233,8 @@ Master Plan branch 上で次だけを変更する。
 - 実変更は `run.json.changed_files` に追加する。
 - Validation 実行結果は `run.json.validation` と `REPORT.md` に記録する。
 - `REPORT.md` は append-only とする。
-- 全タスク完了時の `run.json.status` は Repository convention に合わせて `complete` とする。
+- Run は Master Plan publication PR が final head で merge-ready になった時点で完了する。
+- Run 完了後の実際の merge 状態は GitHub PR を正本とし、merge 後に Run Artifact を追加更新しない。
 
 ### Local validation
 
@@ -271,12 +275,14 @@ Step 0 完了後に Master Plan publication PR を作成する。
 
 ### Required checks
 
-- PR diff が Step 0 scope 内であることを確認する。
-- GitHub Actions の pull request CI を完了させる。
-- Required check がすべて PASS していることを確認する。
-- review finding がある場合は、今回の diff に起因するものだけ修正する。
-- review / CI 完了後に `main` へ merge する。
-- merge 後の `main` で RA-M7 が解消済みであることを確認する。
+1. PR diff が Step 0 scope 内であることを確認する。
+2. GitHub Actions の pull request CI を完了させる。
+3. review finding がある場合は、今回の diff に起因するものだけ bounded repair する。
+4. local validation / CI / review が green になったら、Run Artifact に PR、final head、Validation / CI / review 結果、残タスクなしを記録し、`run.json.status` を `complete` にする。
+5. Run Artifact の最終化を含む final head で pull request CI が PASS していることを確認する。失敗した場合は `status` を `pending` に戻して必要な bounded repair を行う。
+6. final head が green で merge-ready であることを確認する。
+7. merge はユーザーの明示承認後に行う。
+8. merge 後は GitHub PR を merge 状態の正本とし、Run Artifact を追加更新しない。
 
 Master Plan publication PR が merge されるまで PR 1〜5 / Phase 6 の実変更を開始しない。
 
@@ -287,16 +293,22 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
 ### Actions
 
 - Audit baseline と Current `main` の差分を確認する。
-- RA-M7 以外の Matrix 行を implementation / workflow / docs で再確認する。
-- 各行を `fix` / `defer` / `reject` / `resolved` へ確定する。
-- 既に解消済みの Finding は再修正しない。
+- RA-M7 以外の Matrix 行について、Finding がまだ存在するか、Primary owner が適切かを implementation / workflow / docs で再確認する。
+- 既に解消済みの Finding は child Plan の実装対象から外す。
+- Current `main` の変化で Planned disposition または Primary owner を変更する必要がある場合は、該当 child Plan に理由と最終対応を記載する。本 Master Plan を live status tracker として更新しない。
+- Evidence が後続 owner で必要な Finding は、Phase 0 だけで `fix` / `defer` / `reject` の最終判断を行わない。
 - RA-M7 は regression がないことだけ確認する。
+- RA-L1 は Required navigation / completion への影響を確認する。
+  - 影響がなければ PR 4 では変更しない。
+  - 影響があれば PR 4 child Plan の scope に最小修正を追加する。
 - Phase 0 の結果を反映して PR 1 child Plan の scope を確定する。
 
 ### Completion
 
-- 全 Matrix 行の disposition と Primary owner が Current `main` 基準で確定している。
+- Current `main` 基準で Finding の存否と Primary owner の妥当性を確認している。
 - PR 1 の scope が確定している。
+- 後続 owner で Evidence を集める Finding を Phase 0 だけで推測確定していない。
+- RA-L1 の PR 4 での扱いが決まっている。
 
 ## 12. PR 1 — Current Documentation / SSOT Repair
 
@@ -342,7 +354,7 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
 - Current Documentation が implementation / workflow / ADR と一致する。
 - RA-M7 が regression していない。
 - 不要な volatile duplicate を増やしていない。
-- PR 1 Primary owner の Matrix 行が `resolved` である。
+- Matrix で Primary owner が PR 1 の Finding を child Plan / PR の Evidence で対応・検証している。
 
 ## 13. PR 2 — Formal Test Strategy / Perspective / Traceability
 
@@ -412,7 +424,7 @@ Traceability は次を最小単位として結ぶ。
 - Requirement / AC → regression と Risk / technique / gate を追跡できる。
 - Formal Regression と Training Test を同じ coverage count として扱っていない。
 - 全 Test title / file の大量編集を行っていない。
-- PR 2 Primary owner の Matrix 行が `resolved` である。
+- Matrix で Primary owner が PR 2 の Finding を child Plan / PR の Evidence で対応・検証している。
 
 ## 14. PR 3 — Decision B / Competency / Assessment Contract
 
@@ -475,7 +487,7 @@ Lesson depth、Practice量、Core / Extension / Reference の整理は PR 4 に�
 - Native実行なしでも Common Core completion が成立する。
 - C08 completion は learner-authored change と successful runtime evidence の両方を要求する。
 - PR 4 前でも Curriculum 正本間の Required / specialization 境界が一致している。
-- PR 3 Primary owner の Matrix 行が `resolved` である。
+- Matrix で Primary owner が PR 3 の Finding を child Plan / PR の Evidence で対応・検証している。
 
 ## 15. PR 4 — Curriculum Core / Extension / Reference
 
@@ -497,7 +509,9 @@ PR 3 の評価契約を維持したまま Lesson の深さと説明重複を整�
   - Lifecycle / Regression inventory は Part 2 bridge へ寄せる
 - P1-9: Web Core Capstoneを簡潔化し、Native specialization evidence と Baseline / learner-authored flow を分ける。
 - Role / State / Seed / Reset の反復は Canonical Definition と Application Practice を区別する。
-- Legacy P1-10 は Required navigation 外であることを確認し、Required completion に影響しなければ変更しない。
+- RA-L1 は Phase 0 の確認結果に従う。
+  - Required navigation / completion に影響しなければ Legacy P1-10 は変更しない。
+  - 影響があれば canonical completion と矛盾する箇所だけ最小修正する。
 
 ### Part 2 changes
 
@@ -521,8 +535,9 @@ PR 3 の評価契約を維持したまま Lesson の深さと説明重複を整�
 - Core / Extension / Reference が PR 3 の評価契約と一致する。
 - PR 3 の Required / specialization 境界を変更していない。
 - Lesson 数と大順序を維持している。
+- RA-L1 を Phase 0 の確認結果どおり扱っている。
 - 重複削減のために新しい抽象概念を増やしていない。
-- PR 4 Primary owner の Matrix 行が `resolved` である。
+- Matrix で Primary owner が PR 4 の Finding を child Plan / PR の Evidence で対応・検証している。
 
 ## 16. PR 5 — Training Baseline / Exercise / Artifact / Completion Evidence
 
@@ -587,7 +602,7 @@ Harness 正常性と Learner competency の実行入口と Evidence を分離し
 - Training Native workflow は specialization opt-in である。
 - Web / Common Core learner PR に Native runtime を無条件要求しない。
 - Product Required Formal Gate に learner exercise が入っていない。
-- PR 5 Primary owner の Matrix 行が `resolved` または根拠付き `defer` / `reject` で確定している。
+- Matrix で Primary owner が PR 5 の Finding を child Plan / PR の Evidence で対応・検証し、RA-G5 は根拠付きで `fix` / `defer` / `reject` を確定している。
 
 ## 17. Phase 6 — Refactoring Necessity Review
 
@@ -637,7 +652,6 @@ PR作成前とmerge直前に Current `main` で candidate 関連差分を再確�
 ### Output
 
 - `docs/reports/{yyyy-mm-dd}_{HHMMSS}_refactoring_necessity_review.md`
-- 必要な Remediation Matrix 更新
 
 Durable report には全16 candidate の Evidence / classification / rationale、investigation baseline SHA、merge直前の最終確認 `main` SHA を記録する。
 
@@ -647,8 +661,8 @@ Decision-only PR に Product refactor を含めない。`refactor_now` だけ de
 
 - 16 candidate 全件に classification がある。
 - size 単独で `refactor_now` を付けていない。
-- RA-C1 は Necessity Review 完了として `resolved`。
-- RA-Q1 は根拠付きで確定できた場合 `resolved`。`needs_more_evidence` の場合は `defer` とし、不足 Evidence と再判断条件を記録する。
+- RA-C1 の Necessity Review 結果が durable report に記録されている。
+- RA-Q1 は根拠付きで判断できた場合は最終 classification を記録し、`needs_more_evidence` の場合は不足 Evidence と再判断条件を記録する。
 - decision-only PR に Product code change がない。
 
 ## 18. Validation plan
@@ -739,7 +753,7 @@ Repository remediation 完了後、必要に応じて Pilot で次を収集す�
 ## 22. Definition of Done
 
 - Master Plan publication PR が `main` に merge 済みで、RA-M7 が解消されている。
-- Phase 0 で全 Matrix 行の disposition / owner が Current `main` 基準で確定している。
+- Phase 0 で Current `main` 基準の Finding 存否と owner 妥当性を再確認し、必要な scope 調整を該当 child Plan に反映している。
 - PR 1 の Current Documentation / SSOT drift が解消されている。
 - PR 2 の Formal Test Strategy / Traceability が Current Formal Suite と一致している。
 - PR 3 の Common Core / Native specialization / Competency / Minimum Evidence 契約が一意である。
@@ -748,4 +762,5 @@ Repository remediation 完了後、必要に応じて Pilot で次を収集す�
 - Product Formal Native Regression / Android Runtime / iOS Build-only Gate が維持されている。
 - Repository Audit §4.1〜§4.16 の全 candidate が Phase 6 durable report で分類されている。
 - `refactor_now` 以外を不要に実装タスクへ変換していない。
+- Master Plan を live progress tracker として運用していない。
 - 新 LMS / DB / Test Management / third traceability SSOT / permanent call graph 基盤を追加していない。
