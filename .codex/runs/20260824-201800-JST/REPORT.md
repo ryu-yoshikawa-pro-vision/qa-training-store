@@ -94,6 +94,34 @@
   - Master Plan の再レビュー。
 - Progress: 100% (15/15)
 
+## 2026-08-24 21:08 (JST)
+
+- Summary:
+  - 修正版 Master Plan を review workflow で再度徹底レビューした。
+  - 前回 D4〜D10 は概ね解消されたが、Matrix 運用と実行順序に新たな実装時 ambiguity / over-serialization を確認した。
+- Completed:
+  - `AGENTS.md`、修正版 Master Plan 全文、Current Native Training runner / exercise YAML / Training Native workflow を照合。
+  - Remediation Matrix、DoD、各 PR Exit criteria、execution order、Refactoring dependency を相互確認。
+- Findings:
+  - High: DoD は `fix` Finding の担当 PR / Phase が一意であることを要求する一方、Matrix は `PR 2 / PR 3`、`PR 2 / PR 5` 等の複数 Owner を持ち、完了責任が一意でない。
+  - High: Remediation Matrix を唯一の正本として PR 完了ごとに更新する設計だが、Master Plan 自身を main へ先に publish / merge する gate と、child branch の base / Matrix update rule が未定義。
+  - Medium: PR #53 の Next step は Test Strategy / Test Perspective Review だが、Current order は Decision / Competency と Curriculum depth を先に進め、Formal Strategy を後置している。C05 / C12 等の再作業余地がある。
+  - Medium: RA-G4 は direct Native learner exercise entry / Artifact boundary を `fix` としているが、PR 5 は direct entry 追加を「必要な場合だけ」と残している。Current package は `training:native:baseline` のみ、runner は baseline YAML / output name を hardcode、exercise YAML は存在するが canonical command がない。
+  - Medium: Refactoring Necessity Review は churn / failure / blast radius 等を根拠にする review-only phaseであり、Training Evidence 完了まで待つ依存は不要。Formal Test Strategy 確定後に並行可能。
+  - Low/Medium: PR order table、実行タスク、優先順位が同じ順序情報を重複保持しており、今後の reorder で Plan 内 drift を起こしやすい。
+- Evidence:
+  - Master Plan DoD: `fix` Finding は担当 PR / Phase が一意とする。
+  - Matrix: CUR-H1 / M2 / M3 / M5 / M7 / M8 等は複数 Owner、RA-L1 は Phase 0 / PR 3。
+  - `scripts/training/run-maestro-baseline.ts` は `native-training-baseline.yaml` と `training-native-baseline.xml` を固定。
+  - `training/maestro/exercises/native-training-exercise.yaml` は存在するが、Current package / workflow は baseline のみを canonical 実行入口として持つ。
+  - `training/github-actions/training-native-ci.yml` は `pnpm run training:native:baseline` のみを実行する。
+- Decision:
+  - Verdict: Changes required before implementation。
+  - Master Plan 本体は review-only のため変更せず、D11〜D16 を TASKS.md に追加した。
+- Remaining:
+  - D11〜D16 を Master Plan に反映し、再レビューする。
+- Progress: 71% (15/21)
+
 ## Deletion candidates
 
 なし。
