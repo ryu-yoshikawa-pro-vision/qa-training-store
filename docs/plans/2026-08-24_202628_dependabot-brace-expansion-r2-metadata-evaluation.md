@@ -77,3 +77,10 @@
 ## 9. 備考
 
 - 以前の「peer metadataがあるためreject」は、今回の証明結果に基づき過剰拒否だったかどうかを明記する。
+
+## 10. 実績
+
+- R2はCASE Aとして採用した。`bufferutil` / `utf-8-validate` に関係する差分は、version、integrity、dependency edge、importer、actual peer resolutionを変えないmetadata-only差分であり、二回目のno-opでも安定した。
+- `fe0d58cc347a395ebc564df7b1327cc0977cf081`をcommitし、PR #58を作成した。mergeは行っていない。
+- Web CIとAndroid/iOSの主要jobは成功した。Native StaticはExpo Doctorの既存patch mismatch 7件で失敗し、別のExpo依存更新は行わず独立failureとして記録した。
+- 今回はbrace-expansionで停止し、nanoidへ進まない。

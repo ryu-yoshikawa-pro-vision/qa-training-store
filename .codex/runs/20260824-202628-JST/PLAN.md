@@ -73,3 +73,4 @@
 - 2026-08-24 20:26 JST: 前Runの未追跡Artifactは削除せずstashで保全し、`origin/main` から新規branchを作成した。
 - 2026-08-24 20:46 JST: R2はCASE A候補。非target package entry、integrity、dependency edge、importer、settingsは不変で、`@react-native/metro-config` の差分は `transitivePeerDependencies` 集合から2名が除去されたmetadata-only差分だった。
 - 2026-08-24 20:46 JST: R2適用後の二回目no-opはpatch/hash不変。前Runの「peer metadataがあるためreject」は安全側に過剰だったと判断し、R2を採用候補として扱う。
+- 2026-08-24 21:22 JST: PR #58を作成しCIを確認した。Web CI、Android/iOS build/runtimeは成功。Native Staticは今回のdependency diffと無関係なExpo Doctorのpatch mismatch 7件で失敗し、派生`native-ci / verify`も失敗した。scope外のExpo更新は行わず、独立failureとして記録してbrace-expansionで停止する。

@@ -25,7 +25,7 @@
         ".codex/runs/20260824-202628-JST/evaluation.json"
     ],
     "validation":  {
-        "status":  "passed",
+        "status":  "partial",
                        "commands":  [
                            "git fetch origin --prune",
                            "git branch fix/dependabot-brace-expansion-r2-metadata-evaluation origin/main",
@@ -40,11 +40,18 @@
                            "pnpm audit",
                            "pnpm run format:check",
                            "pnpm run verify",
-                           "git diff --check"
+                           "git diff --check",
+                           "gh pr checks 58 --repo ryu-yoshikawa-pro-vision/qa-training-store",
+                           "gh issue comment 54 --repo ryu-yoshikawa-pro-vision/qa-training-store",
+                           "scripts/sanitize-codex-artifacts.ps1 -Mode Write",
+                           "scripts/sanitize-codex-artifacts.ps1 -Mode Check",
+                           "pnpm run lint:markdown",
+                           "evaluation schema/linkage validation"
                        ],
                        "warnings":  [
                            "pnpm auditはbrace-expansion以外のOpen Alert 4件（image-size 2、nanoid 1、uuid 1）でexit 1",
-                           "既存lint warning 65件、SQLite/React act warningあり。今回差分起因のfailureなし"
+                           "既存lint warning 65件、SQLite/React act warningあり。今回差分起因のfailureなし",
+                           "PR #58のMobile App CI Native Staticはexpo-doctorの既存Expo patch mismatch 7件でfailure。native-ci / verifyは派生failure。広範なExpo更新はscope外のため実施していない。"
                        ]
                    },
     "safety":  {
@@ -57,7 +64,7 @@
                              "codex_task_report_count":  0,
                              "hook_event_count":  0,
                              "subagent_run_count":  0,
-                             "evaluation_present":  false
+        "evaluation_present":  true
                          },
     "hook_observations":  {
                               "log_paths":  [
@@ -83,6 +90,6 @@
                                   }
                   },
     "evaluation_path":  ".codex/runs/20260824-202628-JST/evaluation.json",
-    "status":  "in_progress",
-    "primary_failure_category":  null
+    "status":  "complete",
+    "primary_failure_category":  "flaky_or_env_issue"
 }

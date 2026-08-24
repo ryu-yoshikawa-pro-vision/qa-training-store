@@ -2,12 +2,12 @@
   "schema_version": 1,
   "run_id": "20260824-202628-JST",
   "result": "partial",
-  "primary_failure_category": null,
-  "failure_categories": [],
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue"],
   "dimensions": {
     "task_completion": {
-      "rating": "warn",
-      "evidence": "R2の採用条件とrepository validationは満たしたが、commit/push/PR/CI確認が未完了。"
+      "rating": "pass",
+      "evidence": "R2の採用条件、repository validation、commit/push/PR作成、CI確認まで完了した。mergeは依頼範囲外で実施していない。"
     },
     "scope_control": {
       "rating": "pass",
@@ -34,6 +34,13 @@
       "evidence": "origin/main、Node/pnpm、baseline hash、R2 selector、二回目no-op hashを固定している。"
     }
   },
-  "findings": [],
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "Mobile App CI Native Static: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32723878566/job/97420869737",
+      "detail": "expo-doctor@1.17.6が、@expo/metro-runtime、expo、expo-build-properties、expo-constants、expo-crypto、expo-dev-client、expo-routerのpatch mismatch 7件を報告して失敗した。Native component tests、Android/iOS build/runtimeは成功し、native-ci / verifyはNative Static結果の派生failureだった。今回のbrace-expansion resolution差分とは独立しており、scope外の広範なExpo更新は行わなかった。"
+    }
+  ],
   "improvement_candidates": []
 }

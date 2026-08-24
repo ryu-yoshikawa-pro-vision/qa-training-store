@@ -79,3 +79,38 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-08-24 21:22 (JST)
+
+- Summary: R2をCASE Aとして採用し、依存変更commit、ordinary push、Issue #54対応PR #58作成、CI確認まで完了した。mergeは実施せず、brace-expansionで停止する。
+- Completed:
+  - `git add .`を使わず、`package.json`、`pnpm-lock.yaml`、Run Artifact、planを明示stageした。
+  - `fe0d58cc347a395ebc564df7b1327cc0977cf081` (`fix: remediate brace-expansion vulnerabilities`) を作成し、ordinary pushした。
+  - PR [#58](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/58) を作成した。本文に `Closes #54`、Alert #2/#3/#4、advisory、Before/After、dependency path、R2判定、validation、merge後のFixed確認を記載した。
+  - Issue #54へR2採用根拠、metadata-only判定、lockfile安定性、PR/CI状況を追記した。
+  - merge前のDependabot stateを確認した。#2/#3/#4は`open`、#5 js-yamlは`fixed`（fixed_at=`2026-08-24T10:37:48Z`）。
+  - Web CIは成功し、Dependency Review、verify、validate、sanitizerを含む関連jobは成功した。Mobile App CIもAndroid/iOS build・runtime・Maestroは成功した。
+  - Mobile App CIの`Native Static`だけが失敗した。root causeは`expo-doctor@1.17.6`が報告した既存のExpo patch mismatch 7件（@expo/metro-runtime、expo、expo-build-properties、expo-constants、expo-crypto、expo-dev-client、expo-router）であり、brace-expansion変更のresolution差分ではない。`native-ci / verify`の失敗はこの結果を伝播した派生failureだった。
+  - CI failureに対して、禁止されている広範なExpo依存更新や別Alert remediationを行わず、独立failureとして記録した。
+  - Run ArtifactのSanitizer Write/Check、evaluation schema/linkage、`pnpm run lint:markdown`、`git diff --check`を再確認する。
+- Changes: dependency変更は`package.json`の2つのparent-scoped overrideと、対応する`pnpm-lock.yaml`のtarget resolution/edgeおよび証明済みmetadata差分だけ。source、test、workflow、Dependabot設定、別Alert packageは変更していない。
+- Commands:
+  - `gh pr checks 58 --repo ryu-yoshikawa-pro-vision/qa-training-store` => SUCCESS 38、FAILURE 2（Native Staticと派生`native-ci / verify`）、SKIPPED 2（PR条件によるExtended E2E/deploy-production）。
+  - `gh issue comment 54 --repo ryu-yoshikawa-pro-vision/qa-training-store` => R2判定とCI結果を追記。
+  - `scripts/sanitize-codex-artifacts.ps1 -Mode Write` / `-Mode Check` => 成功、未サニタイズ絶対pathなし。
+- Notes/Decisions: 前Runの「peer metadataがあるためreject」は、今回、version/integrity/dependency edge/importer/actual peer resolutionが不変、metadata差分が具体的に限定され、二回目no-op diffが0であることを確認したため、安全側に過剰だった。R2を採用する。PRはopenのまま、merge前Alert #2/#3/#4がopenであることは期待状態である。
+- Remaining: PR #58のレビュー/merge後にcanonical mainでAlert #2/#3/#4のFixedを確認し、その後、新しいRunでIssue #55 nanoid remediationを開始する。今回のRunではnanoidへ進まない。
+- Progress: 100% (8/8)
+
+## Evidence Record (CI)
+
+- PR: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/58
+- Web CI: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32723878180 => success
+- Mobile App CI: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32723878566 => Native Static failureのみ。Native Static job: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32723878566/job/97420869737
+- Derived failure: `native-ci / verify` https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32723878566/job/97428642826
+
+## 2026-08-24 21:28 (JST) Correction
+
+- `scripts/sanitize-codex-artifacts.ps1 -Mode Write/-Mode Check` は当該scriptに存在しないparameter名だったため実行できなかった。
+- scriptのparameter定義を確認し、正しい `-Path .codex/runs/20260824-202628-JST -Write` / `-Check` を実行した。Write/Checkとも files_changed=0、replacements_total=0、residual_findings=0で成功した。
+- evaluation schema、JSON parse/linkage、`pnpm run lint:markdown`、`pnpm run format:check`、`git diff --check`も成功した。
