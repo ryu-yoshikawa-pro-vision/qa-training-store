@@ -43,6 +43,7 @@
                            "git diff --check",
                            "gh pr checks 58 --repo ryu-yoshikawa-pro-vision/qa-training-store",
                            "gh issue comment 54 --repo ryu-yoshikawa-pro-vision/qa-training-store",
+                           "gh run view 32727135610 --repo ryu-yoshikawa-pro-vision/qa-training-store",
                            "scripts/sanitize-codex-artifacts.ps1 -Mode Write",
                            "scripts/sanitize-codex-artifacts.ps1 -Mode Check",
                            "pnpm run lint:markdown",
@@ -51,7 +52,7 @@
                        "warnings":  [
                            "pnpm auditはbrace-expansion以外のOpen Alert 4件（image-size 2、nanoid 1、uuid 1）でexit 1",
                            "既存lint warning 65件、SQLite/React act warningあり。今回差分起因のfailureなし",
-                           "PR #58のMobile App CI Native Staticはexpo-doctorの既存Expo patch mismatch 7件でfailure。native-ci / verifyは派生failure。広範なExpo更新はscope外のため実施していない。"
+                           "PR #58最終head d930a5bのMobile App CIはNative Staticのexpo-doctor既存Expo patch mismatch 7件でfailure。native-ci / verifyは派生failure。Web CI、Android/iOS build/runtime、Maestroはsuccess。広範なExpo更新はscope外のため実施していない。"
                        ]
                    },
     "safety":  {

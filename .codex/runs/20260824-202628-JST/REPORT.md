@@ -114,3 +114,22 @@
 - `scripts/sanitize-codex-artifacts.ps1 -Mode Write/-Mode Check` は当該scriptに存在しないparameter名だったため実行できなかった。
 - scriptのparameter定義を確認し、正しい `-Path .codex/runs/20260824-202628-JST -Write` / `-Check` を実行した。Write/Checkとも files_changed=0、replacements_total=0、residual_findings=0で成功した。
 - evaluation schema、JSON parse/linkage、`pnpm run lint:markdown`、`pnpm run format:check`、`git diff --check`も成功した。
+
+## 2026-08-24 22:05 (JST) Final CI / inventory correction
+
+- `inventory_at=2026-08-24 22:05:24 +09:00` にGitHub API `repos/ryu-yoshikawa-pro-vision/qa-training-store/dependabot/alerts --paginate` を再取得した。
+  - #1 uuid / `GHSA-w5hq-g745-h8pq` / medium / runtime-transitive / `pnpm-lock.yaml` / `< 11.1.1` / patched `11.1.1` / open
+  - #2 brace-expansion / `GHSA-mh99-v99m-4gvg` / high / runtime-transitive / `pnpm-lock.yaml` / `< 1.1.17` / patched `1.1.17` / open
+  - #3 brace-expansion / `GHSA-rgw5-rvv9-x895` / high / runtime-transitive / `pnpm-lock.yaml` / `< 1.1.18` / patched `1.1.18` / open
+  - #4 brace-expansion / `GHSA-rgw5-rvv9-x895` / high / runtime-transitive / `pnpm-lock.yaml` / `>= 4.0.0, < 5.0.9` / patched `5.0.9` / open
+  - #5 js-yaml / `GHSA-5p4m-2wfm-xmqj` / high / runtime-transitive / `pnpm-lock.yaml` / `>= 4.0.0, < 4.3.1` / patched `4.3.1` / fixed
+  - #6 image-size / `GHSA-5p2g-fcmc-qvqq` / high / runtime-transitive / `pnpm-lock.yaml` / `<= 2.0.2` / patched versionなし / open
+  - #7 image-size / `GHSA-w3rx-r6r6-pgpr` / high / runtime-transitive / `pnpm-lock.yaml` / `<= 2.0.2` / patched versionなし / open
+  - #8 nanoid / `GHSA-2v37-7h3g-55p8` / high / runtime-transitive / `pnpm-lock.yaml` / `< 3.3.18` / patched `3.3.18` / open
+- 最終PR headは `d930a5b6a797231514d69869ca8a9a74ea0155d1`。Web CI run [32727135572](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32727135572) はsuccess。Mobile App CI run [32727135610](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32727135610) はfailure。
+- 最終PR check集計は success 38、failure 2、skipped 2。failureは [Native Static](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32727135610/job/97430907404) と、その結果を伝播した [native-ci / verify](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32727135610/job/97441481647)。skippedはPR条件によるExtended E2Eとdeploy-production。
+- 最終Mobile結果では、Android Automation/Production-validation Build、Android Runtime/Maestro、iOS Automation/Production-validation Build、iOS Native CI Verify、Production Bundle Guardがsuccessした。
+- 最終Native Static failureのrootは、`expo-doctor@1.17.6` の「packages match versions required by installed Expo SDK」check。patch mismatchは7件（`@expo/metro-runtime`、`expo`、`expo-build-properties`、`expo-constants`、`expo-crypto`、`expo-dev-client`、`expo-router`）で、brace-expansionのdependency resolution変更ではない。今回のscope外なのでExpo更新は実施しない。
+- 最終CI確認後もPR #58はOPEN・未merge、merge stateは`UNSTABLE`。merge前Alert #2/#3/#4はopen、#5はfixedである。
+- `evaluation.json`のNative Static evidenceを最終run/jobへ更新した。dependency commitは`fe0d58cc347a395ebc564df7b1327cc0977cf081`、記録commitは`d930a5b6a797231514d69869ca8a9a74ea0155d1`。
+- 今回の実装はbrace-expansionで完了し、nanoidへ進まない。
