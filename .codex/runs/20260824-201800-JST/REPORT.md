@@ -65,6 +65,35 @@
   - D4〜D10 を Master Plan に反映して再レビューする。
 - Progress: 53% (8/15)
 
+## 2026-08-24 20:46 (JST)
+
+- Summary:
+  - Review finding D4〜D10 を Master Plan へ反映した。
+  - 設計思想は維持し、誤参照・Finding tracking・taxonomy・SSOT・PR transition・Plan 階層・Refactoring criteria を簡素化・具体化した。
+- Completed:
+  - `requirements_traceability.md` / `acceptance_criteria.md` の path を `docs/12_quality/` へ修正。
+  - Audit / Curriculum Finding を追跡する Remediation Matrix を Master Plan 内へ追加。
+  - Phase 0 は別 child Plan を作らず、Remediation Matrix の Current `main` 再検証で完了する構成へ変更。
+  - PR 1 に volatile fact / executable SSOT / Seed SSOT / CHANGELOG history の扱いを明記。
+  - PR 2 に Native canonical asset と common graduation Required を分離する transition contract を追加。
+  - PR 4 を Test Level / Test Perspective / Execution・Platform・CI Gate の3軸へ整理。
+  - Stable Risk ID は必要な場合だけ導入する方針へ変更。
+  - Native failure exercise は対称性だけで実装せず、Minimum Evidence に必要な場合だけ最小実装する方針へ変更。
+  - Refactoring の中核 Evidence を churn / defect・repair / blast radius / test protection・boundary へ限定し、cognitive cost は補助 Evidence に変更。
+  - Pilot は Repository remediation の必須タスクから Follow-up へ移動。
+- Decisions:
+  - Finding の状態管理は Master Plan の Remediation Matrix を唯一の追跡表とし、新しい管理 DB / spreadsheet は作らない。
+  - PR 1〜5 は各 PR 単体で正本の矛盾を残さず green にできる scope とする。
+  - Historical CHANGELOG entry は Current version へ書き換えない。
+  - Legacy P1 Capstone は Required navigation へ漏れていなければ修正しない方向を第一候補とする。
+- Validation:
+  - Plan / Run Artifact の文書変更のみ。Product / Test / Workflow は未変更。
+  - GitHub connector 経由の更新のため local markdownlint / sanitizer は未実行。
+  - 変更対象は Master Plan と既存 Run Artifact のみ。
+- Remaining:
+  - Master Plan の再レビュー。
+- Progress: 100% (15/15)
+
 ## Deletion candidates
 
 なし。
