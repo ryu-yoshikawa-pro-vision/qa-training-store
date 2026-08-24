@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "run_id": "20260823-215448-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [
+    "implementation_worker",
+    "implementation_worker (repair iteration 3)"
+  ],
+  "repo": "qa-training-store",
+  "branch": "fix/pnpm-lockfile-format-ownership",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".prettierignore",
+    "docs/plans/2026-08-23_200400_pnpm_lockfile_format_ownership.md",
+    "pnpm-lock.yaml",
+    "src/presentation/native/native-shell.tsx"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm --version",
+      "git status --short",
+      "git branch --show-current",
+      "pnpm install --lockfile-only --ignore-scripts",
+      "pnpm install --frozen-lockfile --ignore-scripts",
+      "node semantic equality one-shot",
+      "pnpm install --lockfile-only --ignore-scripts (idempotency rerun)",
+      "node byte equality one-shot",
+      "pnpm exec prettier --file-info pnpm-lock.yaml --ignore-path .prettierignore",
+      "pnpm run format:check",
+      "pnpm run verify",
+      "pnpm run format:check (repair iteration 2)",
+      "pnpm run verify (repair iteration 2)",
+      "pnpm run typecheck:app (repair iteration 3)",
+      "git diff -- src/presentation/native/native-shell.tsx",
+      "git diff --check",
+      "git diff --cached --name-status",
+      "git diff --cached --check",
+      "git commit -m 'fix: make pnpm the lockfile format owner'",
+      "git push origin fix/pnpm-lockfile-format-ownership",
+      "gh pr view 52 --repo ryu-yoshikawa-pro-vision/qa-training-store",
+      "gh run list --repo ryu-yoshikawa-pro-vision/qa-training-store --branch fix/pnpm-lockfile-format-ownership",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-215448-JST -Write -Check"
+    ],
+    "warnings": [
+      "ESLintは既存warning 65件を出力したが、errorは0件。SQLite/React act等のruntime warningも検出されたが、validationは成功した。",
+      "確認時点でWeb CIはin_progress、Mobile App CIはqueued。CI成功は未確認。"
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "agent_id": "01a02eb2-5d18-7462-8135-f045eae973a0",
+        "agent_type": "implementation_worker",
+        "status": "completed",
+        "scope": [
+          ".prettierignore",
+          "pnpm-lock.yaml"
+        ],
+        "result": "Task 3-4を実行。Git mutation、Run Artifact変更、frozen install以降の検証は未実行。"
+      },
+      {
+        "agent_id": "01a02ecd-6e9b-7760-a0b4-69805331fb3c",
+        "agent_type": "implementation_worker",
+        "status": "completed",
+        "scope": [
+          "src/presentation/native/native-shell.tsx"
+        ],
+        "result": "repair iteration 3のHref import/castのみを実装。Git mutation、指定外ファイル変更、検証は未実行。"
+      }
+    ],
+    "summary": {
+      "total": 2,
+      "read_only": 0,
+      "writable": 1,
+      "scope_violations": 0,
+      "used_in_final_plan": 2
+    }
+  },
+  "evaluation_path": null,
+  "status": "complete",
+  "primary_failure_category": null
+}
