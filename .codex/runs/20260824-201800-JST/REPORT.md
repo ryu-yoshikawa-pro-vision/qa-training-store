@@ -163,3 +163,36 @@
   - repair loop decision: `stop_success`。
   - これ以上の設計追加は行わず、次は merge readiness / Step 0 execution へ移る。
 - Progress: 100% (24/24)
+
+## 2026-08-25 07:02 (JST)
+
+- Summary:
+  - 「本当に問題ないか」の再レビューで、前回の `stop_success` 判定後にも5件の実装時矛盾が残っていたことを確認し、Master Plan / active Run Artifact を再修正した。
+  - PR 3でDecision Bを正本化した直後にNative Required wordingが残る中間矛盾を解消するため、P1-7 / P1-9 / P2-6 / P2-8のRequired境界だけをPR 3へ移した。
+  - active RunはStep 0未実施のため再度pending状態に戻し、Phase 6はcurrent `main`でcaller / dependencyを再発見するfreshness契約へ補強した。
+- Input Findings:
+  - must_fix: PR 3でRubric等をspecialization化しても、P1-7 / P1-9 / P2-6 / P2-8がNative RequiredのままだとPR 4まで正本が矛盾する。
+  - must_fix: Master Planの変更対象pathに実在しない `00_learning_design.md` が残っている。
+  - must_fix: `TASKS.md` / `run.json`がcompleted / 100%なのに同じRunでStep 0を続ける契約になっている。
+  - should_fix: Phase 6 freshness checkが初回に特定した関連pathだけでは後から追加された新規callerを見落とす。
+  - should_fix: Phase 6 decision-only PRで追加child Planが必要かどうかが曖昧。
+- Completed:
+  - Master Planのcanonical変更対象pathを `00_learning-design.md` へ統一し、underscore表記はCurrent validator mismatchの説明に限定した。
+  - PR 3へP1-7 / P1-9 / P2-6 / P2-8のRequired / specialization boundaryとcompletion wordingの最小同期を追加した。
+  - PR 4はPR 3の境界を再設計せず、Lesson depth / Core / Extension / Reference整理だけを担当する契約へ変更した。
+  - Phase 6でPR作成前・merge直前にcurrent `main`のdirect caller / dependency discoveryを再実行し、集合が増減したcandidateだけ再評価する契約を追加した。
+  - Phase 6 decision-only PRは本Master Planを直接使用し、inventory / Evidence criteria / output scopeが変わる場合だけ別Planへ切り出すことを明記した。
+  - `TASKS.md`へStep 0 implementation / Validation / required CIの未完了taskを追加し、review finding D20〜D24を完了記録した。
+  - `PLAN.md`を最新Master Planへ合わせ、Step 0開始時の`run.json`更新契約を追加した。
+  - `run.json.status`を`pending`へ戻し、Step 0未実施であることをwarningへ明記した。
+- Validation:
+  - 今回はplanning / Run Artifactの修正のみであり、Product / Curriculum / Training実装コードは変更していない。
+  - `scripts/validate-curriculum.ts` のRA-M7実修正はまだ未実施。
+  - `pnpm run validate:curriculum` / `test:contracts` / `typecheck` / `format:check` / `lint:markdown` / Sanitizer Write・Check / Repository required CI はまだ未実行。
+- Remaining:
+  - Step 0: RA-M7 required pathの最小実修正。
+  - Step 0 ValidationとSanitizer Write・Check。
+  - Repository required CI / PR diff確認とmerge readiness確定。
+- Decision:
+  - Master Plan review / repair自体は完了したが、active Run全体は未完了。Step 0完了まで`stop_success` / `completed`へ戻さない。
+- Progress: 91% (29/32)
