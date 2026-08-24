@@ -443,7 +443,7 @@ Exit criteria:
 
 - `docs/adr/<next>-test-automation-curriculum-native-specialization.md`
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning-design.md`
+- `docs/curriculum/test-automation/00_learning_design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - `docs/curriculum/test-automation/03_instructor-reference.md`
 - `scripts/validate-curriculum.ts`
@@ -643,7 +643,8 @@ Exit criteria:
 - 調査完了時に最新 `main` から decision-only branch を作る。
 - Repository Audit §4.1〜§4.16 の全 candidate について、Evidence / classification / rationale を `docs/reports/{yyyy-mm-dd}_{HHMMSS}_refactoring_necessity_review.md` に保存する。この durable report を Phase 6 の個別判定結果の SSOT とする。
 - decision-only PR には Phase 6 の durable report、必要な Remediation Matrix 更新だけを含め、Product refactor を混ぜない。
-- RA-Q1 / RA-C1 は Audit §4.1〜§4.16 の判定結果が durable report に記録された時点で Phase 6 の outcome として `resolved` へ更新できる。個別candidateの `refactor_now` は別 child Plan / PR の開始条件であり、RA-C1 を未解決のまま保持する理由にはしない。
+- RA-C1 は §4.1〜§4.16 の全 candidate が durable report に分類・記録された時点で Necessity Review 完了として `resolved` へ更新できる。個別 candidate に `needs_more_evidence` があっても、Review 自体を未完了扱いにはしない。
+- RA-Q1 は Domain → Application type dependency を `refactor_now` / `refactor_when_touched` / `keep_as_is` のいずれかへ根拠付きで判断できた場合だけ `resolved` へ更新する。`needs_more_evidence` の場合は `Disposition=defer` を維持し、durable report に不足 Evidence と再判断条件を記録する。
 - `refactor_now` の対象だけ decision-only PR merge 後に別 Plan / 別 PR を作る。
 - size / 見た目の巨大さ / 主観だけでは `refactor_now` にしない。
 - Evidence が弱ければ `keep_as_is` または `needs_more_evidence` で終了してよい。
@@ -654,7 +655,7 @@ Exit criteria:
 - durable report から各 candidate の Evidence / classification / rationale を一意に確認できる。
 - 各 `refactor_now` は size 以外の Evidence で必要性を説明できる。
 - decision-only PR に Product code change が含まれていない。
-- RA-Q1 / RA-C1 の Matrix outcome が確定している。
+- RA-C1 は `resolved`、RA-Q1 は根拠付きの確定判断なら `resolved`、`needs_more_evidence` なら不足 Evidence / 再判断条件を記録した `defer` である。
 - `refactor_now` 以外を無理に実装タスクへ変換していない。
 
 ### Follow-up — Pilot Feedback
