@@ -2,7 +2,7 @@
 
 ## Objective
 
-`docs/plans/2026-08-24_201800_curriculum_test_strategy_remediation_master.md` を実行可能な Master Plan として確定し、RA-M7 の最小修正、local validation、Master Plan publication PR の作成・CI・review・mergeまでを完了する。
+`docs/plans/2026-08-24_201800_curriculum_test_strategy_remediation_master.md` を実行可能な Master Plan として確定し、RA-M7 の最小修正、local validation、Master Plan publication PR の作成・CI・reviewを完了して merge-ready にする。
 
 ## Fixed decisions
 
@@ -13,6 +13,8 @@
 - RA-M7 のために別 branch / 別 Run / 専用 child Plan は作らない。
 - PR 1〜5 は Master Plan publication PR merge 後に開始する。
 - Refactoring candidate は Evidence を確認してから実装要否を判断する。
+- この Run は Master Plan publication PR が final head で merge-ready になった時点で完了する。
+- 実際の merge 状態は GitHub PR を正本とし、merge 後に Run Artifact を追加更新しない。
 
 ## Scope
 
@@ -28,10 +30,13 @@
 - Master Plan publication PR の作成
 - PR-triggered CI / review の確認
 - 必要な bounded repair
-- Master Plan publication PR の merge と `main` 反映確認
+- final PR head の merge-ready 確認
+- active Run Artifact の最終化
 
 ### Out
 
+- Master Plan publication PR の merge 実行
+- merge 後の Run Artifact 更新
 - PR 1〜5 の実装
 - Curriculum semantic change
 - Product behavior / Formal Test / Product CI の変更
@@ -52,13 +57,12 @@
 1. `run.json.task_type` を `plan` として維持する。
 2. `scripts/validate-curriculum.ts` の required curriculum path を `00_learning_design.md` から `00_learning-design.md` へ変更する。
 3. `tests/contracts/training-curriculum.test.ts` が同じ誤 literal を直接保持する場合だけ最小修正する。
-4. Master Plan の Remediation Matrix で RA-M7 を `resolved` へ更新する。
-5. `run.json.changed_files` を実変更と一致させる。
-6. local validation を実行する。
-7. Validation結果を `run.json.validation` と `REPORT.md` に記録する。
-8. Sanitizer Write / Check を実行する。
-9. 最終diffを確認し、Step 0 scope 外の変更がないことを確認する。
-10. TASKS の Step 0 task を完了し、PR作成可能状態を記録する。
+4. `run.json.changed_files` を実変更と一致させる。
+5. local validation を実行する。
+6. Validation結果を `run.json.validation` と `REPORT.md` に記録する。
+7. Sanitizer Write / Check を実行する。
+8. 最終diffを確認し、Step 0 scope 外の変更がないことを確認する。
+9. TASKS の Step 0 task を完了し、PR作成可能状態を記録する。
 
 ### Local validation
 
@@ -85,11 +89,13 @@
 2. PR diff が Step 0 scope 内であることを確認する。
 3. PR-triggered CI を完了させる。
 4. review finding がある場合は今回のdiffに起因するものだけ bounded repair する。
-5. local validation / CI / review が green であることを確認する。
-6. PR を `main` へ merge する。
-7. merge 後の `main` で RA-M7 解消と Master Plan / Run Artifact の反映を確認する。
-8. TASKS / REPORT / run.json を最終状態へ更新する。
-9. `run.json.status` を `complete` とする。
+5. local validation / CI / review が green になったら、Run Artifact に PR、final head、Validation / CI / review 結果、残タスクなしを記録する。
+6. `run.json.status` を `complete` にし、TASKS / REPORT / run.json の最終化を同じ PR に含める。
+7. Run Artifact の最終化を含む final head で pull request CI が PASS していることを確認する。
+8. final head の CI が失敗した場合は `run.json.status` を `pending` に戻し、必要な bounded repair を行う。
+9. final head が green で merge-ready であることを確認して、この Run を完了する。
+
+PR の merge はこの Run の完了後、ユーザーの明示承認を受けて実施する。merge 後は GitHub PR を merge 状態の正本とし、Run Artifact を追加更新しない。
 
 ## Stop conditions
 
@@ -105,9 +111,11 @@
 
 ## Completion criteria
 
-- Master Plan が `main` に保存されている。
-- RA-M7 が `main` で解消されている。
-- local validation と PR-triggered CI が PASS している。
-- active Run Artifact が実際の変更・Validation・merge結果と一致している。
+- Master Plan publication PR が作成されている。
+- RA-M7 が PR head で解消されている。
+- local validation と final PR head の PR-triggered CI が PASS している。
+- review finding の bounded repair が完了している。
+- active Run Artifact が final PR head の変更・Validation・CI・review結果と一致している。
 - `run.json.status` が `complete` である。
+- PR が merge-ready である。
 - PR 1〜5 / Phase 6 の実装をこのRunに混ぜていない。
