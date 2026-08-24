@@ -196,3 +196,26 @@
 - Decision:
   - Master Plan review / repair自体は完了したが、active Run全体は未完了。Step 0完了まで`stop_success` / `completed`へ戻さない。
 - Progress: 91% (29/32)
+
+## 2026-08-25 07:27 (JST)
+
+- Summary:
+  - Master Plan と active Run `PLAN.md` を、過去のレビュー経緯や思考過程ではなく、実装者が単独で読んで実行できる内容へ整理した。
+  - Step 0 を RA-M7 最小修正 + local validation + Sanitizer + PR-ready 確認までに限定し、PR作成 / GitHub CI / review / merge を後続工程へ分離した。
+  - Run manifest の metadata を Repository convention に合わせた。
+- Completed:
+  - Master Plan を Goal / Current facts / Fixed decisions / Scope / Matrix / Execution order / 各PRの Actions / Validation / Stop conditions / DoD の構成へ全面整理した。
+  - Master Plan から review history、hypothesis、thinking log、会話依存の説明を除去した。
+  - Run `PLAN.md` を Step 0 の実行手順だけで理解できる内容へ書き直した。
+  - `TASKS.md` で Step 0 と Master Plan publication PR の工程を分離した。
+  - `run.json.task_type` を `plan` に修正し、Step 0開始時にも変更しない契約へ統一した。
+  - 最終 status は Repository convention の `complete` を使用することを明記した。
+- Validation:
+  - 今回は Plan / Run Artifact の文書修正のみ。
+  - RA-M7 の実コード修正と local validation はまだ未実施。
+  - `pnpm run validate:curriculum` / `test:contracts` / `typecheck` / `format:check` / `lint:markdown` / Sanitizer Write・Check は未実行。
+- Remaining:
+  - Step 0: RA-M7 required path の最小修正。
+  - Step 0 local validation / Sanitizer / PR-ready diff確認。
+  - Master Plan publication PR 作成 / PR CI / review / merge。
+- Progress: 84% (32/38)
