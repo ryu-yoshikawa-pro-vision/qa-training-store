@@ -133,3 +133,11 @@
 - 最終CI確認後もPR #58はOPEN・未merge、merge stateは`UNSTABLE`。merge前Alert #2/#3/#4はopen、#5はfixedである。
 - `evaluation.json`のNative Static evidenceを最終run/jobへ更新した。dependency commitは`fe0d58cc347a395ebc564df7b1327cc0977cf081`、記録commitは`d930a5b6a797231514d69869ca8a9a74ea0155d1`。
 - 今回の実装はbrace-expansionで完了し、nanoidへ進まない。
+
+## 2026-08-24 22:45 (JST) Final head CI correction
+
+- 記録commit `0de5aedb16c7fb177fbc719199bc7ef8207b023f`後の最終head CIを確認した。Web CI [32730848663](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32730848663) はsuccess、Mobile App CI [32730848917](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32730848917) はfailure。
+- 最終PR check集計は success 38、failure 2、skipped 2。failureは [Native Static](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32730848917/job/97442559991) と派生 [native-ci / verify](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32730848917/job/97453917750)。skippedはExtended E2Eとdeploy-production。
+- 最終Mobile結果では、Android Automation/Production-validation Build、Android Runtime/Maestro、iOS Automation/Production-validation Build、iOS Native CI Verify、Production Bundle Guardがsuccessした。
+- 最終Native Staticのfailureも`expo-doctor@1.17.6`のExpo SDK patch mismatch 7件だけであり、brace-expansionのresolutionとは無関係。今回の依存差分へ追加修正は行わない。
+- `0de5aed`はRun Artifactだけの記録commitで、dependency remediationは`fe0d58cc347a395ebc564df7b1327cc0977cf081`のまま不変。PR #58はOPEN・未merge、merge stateは`UNSTABLE`。
