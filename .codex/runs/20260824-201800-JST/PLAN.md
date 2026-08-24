@@ -2,7 +2,7 @@
 
 ## Objective
 
-`docs/plans/2026-08-24_201800_curriculum_test_strategy_remediation_master.md` を実行可能な Master Plan として確定し、Master Plan publication PR に必要な RA-M7 最小修正と local validation を完了する。
+`docs/plans/2026-08-24_201800_curriculum_test_strategy_remediation_master.md` を実行可能な Master Plan として確定し、RA-M7 の最小修正、local validation、Master Plan publication PR の作成・CI・review・mergeまでを完了する。
 
 ## Fixed decisions
 
@@ -25,6 +25,10 @@
 - local validation
 - Codex Run Artifact Sanitizer Write / Check
 - PR作成前の diff / scope 確認
+- Master Plan publication PR の作成
+- PR-triggered CI / review の確認
+- 必要な bounded repair
+- Master Plan publication PR の merge と `main` 反映確認
 
 ### Out
 
@@ -32,7 +36,6 @@
 - Curriculum semantic change
 - Product behavior / Formal Test / Product CI の変更
 - Refactoring 実装
-- Master Plan publication PR の作成・review・merge
 
 ## Files allowed in Step 0
 
@@ -44,7 +47,7 @@
 - `scripts/validate-curriculum.ts`
 - `tests/contracts/training-curriculum.test.ts`（同じ誤 literal を直接保持し、修正が必要な場合だけ）
 
-## Execution steps
+## Phase A — Step 0
 
 1. `run.json.task_type` を `plan` として維持する。
 2. `scripts/validate-curriculum.ts` の required curriculum path を `00_learning_design.md` から `00_learning-design.md` へ変更する。
@@ -57,7 +60,7 @@
 9. 最終diffを確認し、Step 0 scope 外の変更がないことを確認する。
 10. TASKS の Step 0 task を完了し、PR作成可能状態を記録する。
 
-## Validation
+### Local validation
 
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
@@ -66,6 +69,27 @@
 - `pnpm run lint:markdown`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Write`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Check`
+
+### Step 0 completion
+
+- RA-M7 が解消されている。
+- required curriculum path が canonical `00_learning-design.md` を指している。
+- local validation が PASS している。
+- Sanitizer Check の residual finding が0件である。
+- diff が Step 0 allowed files / scope 内に限定されている。
+- Master Plan publication PR を作成できる状態である。
+
+## Phase B — Master Plan publication
+
+1. Step 0完了後のbranchからMaster Plan publication PRを作成する。
+2. PR diff が Step 0 scope 内であることを確認する。
+3. PR-triggered CI を完了させる。
+4. review finding がある場合は今回のdiffに起因するものだけ bounded repair する。
+5. local validation / CI / review が green であることを確認する。
+6. PR を `main` へ merge する。
+7. merge 後の `main` で RA-M7 解消と Master Plan / Run Artifact の反映を確認する。
+8. TASKS / REPORT / run.json を最終状態へ更新する。
+9. `run.json.status` を `complete` とする。
 
 ## Stop conditions
 
@@ -77,16 +101,13 @@
 - Validation failure が今回の filename mismatch と無関係で、既存失敗との境界を分離できない。
 - contract test 修正が単一 literal / direct contract correction を超える。
 - active Run の履歴を削除・並べ替え・意味変更しないと整合できない。
+- PR review / CI failure の修正が Step 0 scope を大きく超える。
 
 ## Completion criteria
 
-Step 0 は次を満たした時点で完了する。
-
-- RA-M7 が解消されている。
-- required curriculum path が canonical `00_learning-design.md` を指している。
-- local validation が PASS している。
-- Sanitizer Check の residual finding が0件である。
-- diff が Step 0 allowed files / scope 内に限定されている。
-- Master Plan publication PR を作成できる状態である。
-
-Master Plan publication PR の作成・GitHub CI・review・merge は Step 0 完了後に別工程として実施する。
+- Master Plan が `main` に保存されている。
+- RA-M7 が `main` で解消されている。
+- local validation と PR-triggered CI が PASS している。
+- active Run Artifact が実際の変更・Validation・merge結果と一致している。
+- `run.json.status` が `complete` である。
+- PR 1〜5 / Phase 6 の実装をこのRunに混ぜていない。
