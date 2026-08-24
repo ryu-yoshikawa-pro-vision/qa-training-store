@@ -37,6 +37,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 ### 完了条件（DoD）
 
 - [ ] Master Plan の plan-only PR が `main` に merge されてから Phase 0 / child PR を開始している。
+- [ ] Master Plan の plan-only PR は `pnpm run format:check` / `pnpm run lint:markdown` / Codex Run Artifact Sanitizer Write・Check を PASS してから merge している。
 - [ ] Remediation Matrix の全 Finding が `fix` / `defer` / `reject` / `resolved` のいずれかに確定している。
 - [ ] `fix` Finding は Primary owner が1つに定まり、Primary owner 完了時に `resolved` へ更新される。
 - [ ] Follow-up verification は Primary owner を置き換えず、後続 PR で回帰確認だけを行う。
@@ -56,6 +57,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 - [ ] Learner exercise を Product Required Formal Gate に混入させていない。
 - [ ] Part 1 / Part 2 の Lesson 数と大順序を維持しつつ、Core / Extension / Reference の深さが整合している。
 - [ ] Repository Audit §4.1〜§4.16 の全 Refactoring candidate が Phase 6 で分類され、候補の抜け落ちがない。
+- [ ] Phase 6 の全 candidate の Evidence / classification / rationale が Refactoring Necessity Review の durable report に保存されている。
 - [ ] Technical Debt 候補は size 単独ではなく churn / repair history / blast radius / test protection / boundary の Evidence で判断されている。
 - [ ] 実変更を伴う各 child PR に個別 Plan があり、各 PR 単体で正本間の矛盾を残さず Validation できる。
 
@@ -245,6 +247,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 - 本 Master Plan は plan-only PR として最初に `main` へ merge する。
 - Phase 0、PR 1〜5、Phase 6 は Master Plan を含む最新 `main` を基準に開始する。
 - Master Plan merge 前に Product / Curriculum / Test Strategy 実装へ進まない。
+- Step 0 の plan-only Validation を全て PASS してから merge する。
 
 ### Child branch rule
 
@@ -440,7 +443,7 @@ Exit criteria:
 
 - `docs/adr/<next>-test-automation-curriculum-native-specialization.md`
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning_design.md`
+- `docs/curriculum/test-automation/00_learning-design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - `docs/curriculum/test-automation/03_instructor-reference.md`
 - `scripts/validate-curriculum.ts`
@@ -638,9 +641,9 @@ Exit criteria:
 
 - Phase 6 では Product code を refactor しない。
 - 調査完了時に最新 `main` から decision-only branch を作る。
-- 後続判断で再利用する価値がある場合は Refactoring Necessity Review の durable report を保存する。単純な軽量確認で十分なら新規 report を強制しない。
-- decision-only PR には Phase 6 の判定結果、必要な Remediation Matrix 更新、作成した場合の durable report のみを含め、Product refactor を混ぜない。
-- RA-Q1 / RA-C1 は Audit §4.1〜§4.16 の判定結果が記録された時点で Phase 6 の outcome として `resolved` へ更新できる。個別candidateの `refactor_now` は別 child Plan / PR の開始条件であり、RA-C1 を未解決のまま保持する理由にはしない。
+- Repository Audit §4.1〜§4.16 の全 candidate について、Evidence / classification / rationale を `docs/reports/{yyyy-mm-dd}_{HHMMSS}_refactoring_necessity_review.md` に保存する。この durable report を Phase 6 の個別判定結果の SSOT とする。
+- decision-only PR には Phase 6 の durable report、必要な Remediation Matrix 更新だけを含め、Product refactor を混ぜない。
+- RA-Q1 / RA-C1 は Audit §4.1〜§4.16 の判定結果が durable report に記録された時点で Phase 6 の outcome として `resolved` へ更新できる。個別candidateの `refactor_now` は別 child Plan / PR の開始条件であり、RA-C1 を未解決のまま保持する理由にはしない。
 - `refactor_now` の対象だけ decision-only PR merge 後に別 Plan / 別 PR を作る。
 - size / 見た目の巨大さ / 主観だけでは `refactor_now` にしない。
 - Evidence が弱ければ `keep_as_is` または `needs_more_evidence` で終了してよい。
@@ -648,6 +651,7 @@ Exit criteria:
 Exit criteria:
 
 - Repository Audit §4.1〜§4.16 の全 candidate に classification がある。
+- durable report から各 candidate の Evidence / classification / rationale を一意に確認できる。
 - 各 `refactor_now` は size 以外の Evidence で必要性を説明できる。
 - decision-only PR に Product code change が含まれていない。
 - RA-Q1 / RA-C1 の Matrix outcome が確定している。
@@ -676,33 +680,51 @@ Pilot は Repository remediation 完了条件から外す。
 
 PR番号、依存順、実行順はこの checklist を正本とする。別の PR 順序表や P0 / P1 / P2 表は作らない。
 
-- [ ] 0. 本 Master Plan の plan-only PR を作成・レビュー・`main` へ merge する。
+- [ ] 0. 本 Master Plan の plan-only PR を作成し、Section 9 の Step 0 Validation を全て PASS したことを確認してからレビュー・`main` へ merge する。
 - [ ] 1. 最新 `main` から PR 1 branch を作り、Phase 0 再検証 → Matrix 更新 → PR 1 child Plan → Current Documentation / SSOT Repair を行う。
 - [ ] 2. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を整える。
 - [ ] 3. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を整える。
 - [ ] 4. PR 3 merge 後の最新 `main` から PR 4 branch を作り、Curriculum Core / Extension / Reference を整える。
 - [ ] 5. PR 4 merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / Native learner exercise / specialization opt-in workflow を整える。
-- [ ] 6. PR 2 merge 後から Repository Audit §4.1〜§4.16 の Refactoring Necessity Review を並行調査してよい。調査完了時は最新 `main` から decision-only PR を作り、判定結果 / Matrix を確定する。`refactor_now` のみその後に個別 Plan / PR へ切り出す。
+- [ ] 6. PR 2 merge 後から Repository Audit §4.1〜§4.16 の Refactoring Necessity Review を並行調査してよい。調査完了時は最新 `main` から decision-only PR を作り、durable report / Matrix を確定する。`refactor_now` のみその後に個別 Plan / PR へ切り出す。
 - [ ] 7. Repository remediation 完了後、必要に応じて Pilot Feedback を収集する。
 
 ## 9. 検証方法
 
+### Step 0 — Master Plan plan-only PR
+
+Master Plan branch を `main` へ merge する前に、今回の Plan / Run Artifact に必要な品質ゲートだけを実行する。
+
+- `pnpm run format:check`
+- `pnpm run lint:markdown`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Write`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Check`
+
+成功条件:
+
+- formatter / Markdown lint が PASS する。
+- Sanitizer Write 後の Check が PASS し、residual finding がない。
+- Sanitizer Write で Run Artifact が変更された場合は、その差分も plan-only PR に含めたうえで再度 Check を PASS させる。
+- Plan-only PR では Product behavior / Test behavior を変更しないため、Product unit / E2E / Native runtime の実行は原則不要とする。ただし Repository の required CI が追加検証を実行する場合は、その結果も merge 前に確認する。
+
+### Child PR Validation
+
 各 child Plan では対象変更に必要な Validation だけを選ぶ。無関係な full suite を機械的に毎回実行しない。
 
-### Documentation / Curriculum
+#### Documentation / Curriculum
 
 - `pnpm run format:check`
 - `pnpm run lint:markdown`
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
 
-### Test Strategy / Specification
+#### Test Strategy / Specification
 
 - `pnpm run lint:markdown`
 - `pnpm run validate:spec`
 - `pnpm run test:contracts`
 
-### Training implementation
+#### Training implementation
 
 - `pnpm run typecheck:training`
 - `pnpm run training:web:baseline`
@@ -711,12 +733,12 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
 
-### TypeScript / workflow contract への影響がある場合
+#### TypeScript / workflow contract への影響がある場合
 
 - `pnpm run typecheck`
 - 対象 unit / contract test
 
-### Wider implementation impact がある場合のみ
+#### Wider implementation impact がある場合のみ
 
 - `pnpm run test`
 - `pnpm run verify`
@@ -760,9 +782,11 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
    - baseline / exercise は共通実行処理を最小限再利用する。
 10. Phase 6 の候補を Plan 内の短い一覧だけで判断し、Audit candidate を落とす。
     - Repository Audit §4.1〜§4.16 を母集団SSOTにする。
-11. 巨大ファイルを見ただけで refactor する。
+11. Phase 6 の個別判定が chat / run-local log だけに残り、後続 Refactor 判断で再構成が必要になる。
+    - 全 candidate の Evidence / classification / rationale を durable report に保存する。
+12. 巨大ファイルを見ただけで refactor する。
     - churn / repair / blast radius / test protection / boundary を中核 Evidence にする。
-12. Finding tracking 自体が Drift する。
+13. Finding tracking 自体が Drift する。
     - Remediation Matrix だけを status 正本とし、Primary owner を1つに固定する。
 
 ### 実装時の停止条件
@@ -794,8 +818,8 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
 - Competency / Minimum Evidence 契約
 - Curriculum Core / Extension / Reference 調整
 - Training Evidence / Native learner exercise / specialization opt-in workflow
+- Refactoring Necessity Review の durable report
 - Phase 6 decision-only PR
-- Refactoring Necessity Review の durable report（後続判断で再利用する必要がある場合のみ）
 - `refactor_now` と判定した対象だけの個別 Refactor Plan
 
 ### 作らないもの
