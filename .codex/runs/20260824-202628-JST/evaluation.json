@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "run_id": "20260824-202628-JST",
+  "result": "partial",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "R2の採用条件とrepository validationは満たしたが、commit/push/PR/CI確認が未完了。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "R2の2つのparent-scoped overrideと対応lockfile差分だけを扱い、R1・別Alert・global overrideは実施していない。"
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "R2後no-opが安定し、frozen install、why/list、target finding確認、format:check、verifyが成功した。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "force操作、reset/clean、audit --fix、manual lockfile edit、global overrideを使用していない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "差分をTARGET、metadata-only、semantic changeに分類し、各判断をRun Artifactへ記録した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "依存family限定のparent-scoped overrideで、アプリケーションコード変更はない。"
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "origin/main、Node/pnpm、baseline hash、R2 selector、二回目no-op hashを固定している。"
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

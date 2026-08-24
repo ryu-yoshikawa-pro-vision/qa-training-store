@@ -135,7 +135,9 @@
     "overrides": {
       "expo-constants": "57.0.13",
       "@eslint/eslintrc@3.3.6>js-yaml": "4.3.1",
-      "@expo/xcpretty@4.4.4>js-yaml": "4.3.1"
+      "@expo/xcpretty@4.4.4>js-yaml": "4.3.1",
+      "minimatch@3.1.5>brace-expansion": "1.1.18",
+      "minimatch@10.2.5>brace-expansion": "5.0.9"
     },
     "packageExtensions": {
       "@react-native/jest-preset@0.86.2": {
