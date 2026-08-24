@@ -20,6 +20,12 @@
 - [x] D8. PR 2 → PR 3 の中間状態でも Curriculum navigation / specialization boundary / validator が矛盾しない transition contract を明記する
 - [x] D9. Phase 0 の別 child Plan と Pilot を必須実装タスクにする構成を簡素化し、Phase 0 は Master Plan 内 Matrix の再検証、Pilot は follow-up として扱う
 - [x] D10. Stable Risk ID と Refactoring evidence の必須項目を再検討し、必要性が未証明の新しい管理契約や主観的指標を増やさない
+- [ ] D11. Remediation Matrix の `fix` Finding は Primary Owner を1つに固定し、複数 PR が関与する場合は Verification / Follow-up を分離して DoD の一意 owner 契約と一致させる
+- [ ] D12. Master Plan を Phase 0 / child PR の正本として使うため、plan-only PR を先に main へ merge する publication gate と、各 child branch の base / Matrix update ルールを明記する
+- [ ] D13. PR #53 の次工程と依存関係に合わせ、Test Strategy / Traceability を Curriculum depth 変更より先に実施する順序へ再整理し、不要な手戻りを避ける
+- [ ] D14. RA-G4 を `fix` とするなら canonical Native learner exercise entry を明示し、既存 serial / cleanup / Maestro invocation を重複実装せず再利用する最小方針を PR 5 に固定する
+- [ ] D15. Refactoring Necessity Review の依存を PR 1〜5 全完了から外し、Formal Test Strategy が確定した後に Training Evidence と並行可能な review-only phase として扱う
+- [ ] D16. PR order / 実行タスク / 優先順位の重複表現を減らし、実行順序の正本を1つに寄せて Plan 内 drift を防ぐ
 
 ## Blocked
 
