@@ -32,6 +32,39 @@
   - なし。次工程は Phase 0 child Plan の作成。
 - Progress: 100% (8/8)
 
+## 2026-08-24 20:38 (JST)
+
+- Summary:
+  - Master Plan を review workflow に従って再レビューした。
+  - 方向性、Decision B のガードレール、Fact → Contract → Curriculum → Strategy → Training → Refactoring の順序は妥当。
+  - 実装開始前に修正すべき具体的な不足と過剰設計候補を確認した。
+- Completed:
+  - `CODE_REVIEW.md` / code-review skill / review workflow / Coding Standards を確認。
+  - Master Plan 全文を分割取得して review。
+  - Current curriculum validator / training contract test / Rubric / Test Strategy / E2E Design / Seed SSOT / CHANGELOG / docs directory を照合。
+  - Audit / Curriculum durable report の Finding と Master Plan の coverage を照合。
+- Findings:
+  - High: `docs/08_testing/requirements_traceability.md` / `acceptance_criteria.md` は実在せず、正しい path は `docs/12_quality/` 配下。
+  - High: 全 Finding を child PR / disposition へ一対一で割り当てる matrix がなく、Native failure exercise、Legacy Capstone mismatch、CUR-L1 などが実装時に落ちる余地がある。
+  - Medium: PR 4 が Test Level、Perspective、Training boundary、Platform guarantee、CI Gate を単一 layer inventory に混在させている。
+  - Medium: PR 1 が E2E 件数や Seed Version を単純更新すると同種 drift を再発させる。volatile duplicate は可能な限り SSOT 参照へ寄せ、CHANGELOG の過去 entry は書き換えない。
+  - Medium: PR 2 → PR 3 の中間状態で Rubric / navigation / Native specialization / validator が一貫する transition contract が不足。
+  - Medium: Phase 0 専用 child Plan は Master Plan と重複しやすく、Pilot は repository remediation の main execution task から follow-up へ外せる。
+  - Low/Medium: Stable Risk ID を必須解決策として先に固定せず、最小 Traceability に必要な場合だけ採用する。Refactoring の cognitive cost は補助 Evidence とし必須測定にしない。
+- Evidence:
+  - `docs/08_testing/` は `e2e_design.md` / `test_strategy.md` のみ。
+  - `docs/12_quality/` に `requirements_traceability.md` / `acceptance_criteria.md` が存在。
+  - `src/config/versions.ts` の `SEED_VERSION = 11` に対し `seed_catalog.md` は9、`CHANGELOG.md` v15 は履歴として10を記録。
+  - Current validator は22文書をRequired assetとして存在確認し、Native Lesson / physical routeのtokenも検証している。
+  - Current `test_strategy.md` の Test Level table は Test Level中心であり、追加するPerspective / Platform / Gateは別軸として表現した方が明確。
+- Decision:
+  - Verdict: Changes required before implementation。
+  - Master Plan 本体は review-only のためこの時点では変更しない。
+  - 修正項目を TASKS.md の D4〜D10 として記録した。
+- Remaining:
+  - D4〜D10 を Master Plan に反映して再レビューする。
+- Progress: 53% (8/15)
+
 ## Deletion candidates
 
 なし。
