@@ -1,6 +1,7 @@
 # Test Automation Curriculum Validity Review
 
 - Review date: 2026-08-24 JST
+- Repository baseline commit: `4ed5374dcd5e98bf96c05f0fdecef56b42064a0c`（Repository Auditと同一の監査対象Repository状態）
 - Scope: `docs/curriculum/test-automation/` のRequired 22文書、Optional / Legacy境界、Training assets、Workbook、Rubric、Validator、Curriculumに関係するCurrent CI契約
 - Provenance: [Curriculum Review Run](../../.codex/runs/20260824-063354-JST/REPORT.md)
 - Repository evidence baseline: [Repository Audit Run](../../.codex/runs/20260823-225103-JST/REPORT.md)
