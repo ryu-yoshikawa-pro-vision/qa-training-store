@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "run_id": "20260823-225103-JST",
+  "task_type": "investigation",
+  "workflow_level": "standard",
+  "preset": "readonly",
+  "runtime": "host",
+  "agents_used": [
+    "curriculum_evidence",
+    "test_strategy_evidence",
+    "architecture_hotspots",
+    "spec_traceability"
+  ],
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    ".codex/runs/20260823-225103-JST/PLAN.md",
+    ".codex/runs/20260823-225103-JST/TASKS.md",
+    ".codex/runs/20260823-225103-JST/REPORT.md",
+    ".codex/runs/20260823-225103-JST/run.json"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "read-only inventory and traceability evidence commands",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-225103-JST -Write -Check",
+      "ConvertFrom-Json run manifest validation",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260823-225103-JST -Check"
+    ],
+    "warnings": [
+      "Product/Test/Build/Runtime gates were not rerun because this task is a read-only repository investigation.",
+      "Recent full verify and Native CI PASS records are cited only as historical evidence."
+    ]
+  },
+  "safety": {
+    "network": false,
+    "delete_attempt_blocked": true,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 4,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "name": "curriculum_evidence",
+        "mode": "read_only",
+        "scope": "Phase 1 Curriculum / Competency / Lesson / Training / Validator evidence",
+        "status": "completed",
+        "adoption": "adopted after parent cross-check"
+      },
+      {
+        "name": "test_strategy_evidence",
+        "mode": "read_only",
+        "scope": "Phase 2 risk / perspective / layer / Formal-Training / CI evidence",
+        "status": "completed",
+        "adoption": "adopted after parent cross-check"
+      },
+      {
+        "name": "architecture_hotspots",
+        "mode": "read_only",
+        "scope": "Phase 3 architecture / hotspot / dependency / history evidence",
+        "status": "completed",
+        "adoption": "adopted after parent cross-check"
+      },
+      {
+        "name": "spec_traceability",
+        "mode": "read_only",
+        "scope": "Phase 0 and Phase 4 specification / bidirectional traceability evidence",
+        "status": "completed",
+        "adoption": "adopted after parent cross-check"
+      }
+    ],
+    "summary": {
+      "total": 4,
+      "read_only": 4,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 4
+    }
+  },
+  "evaluation_path": null,
+  "status": "complete",
+  "primary_failure_category": null
+}

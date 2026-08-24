@@ -1,0 +1,91 @@
+{
+  "schema_version": 1,
+  "run_id": "20260824-072851-JST",
+  "task_type": "documentation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [
+    "code_researcher",
+    "implementation_researcher"
+  ],
+  "repo": "qa-training-store",
+  "branch": "research/curriculum-test-strategy-refactor-audit",
+  "base_branch": "main",
+  "codex_task_reports": [
+    "docs/reports/2026-08-24_074656_curriculum-test-strategy-refactor-repository-audit.md",
+    "docs/reports/2026-08-24_074011_curriculum-validity-review.md"
+  ],
+  "changed_files": [
+    ".codex/runs/20260824-072851-JST/PLAN.md",
+    ".codex/runs/20260824-072851-JST/TASKS.md",
+    ".codex/runs/20260824-072851-JST/REPORT.md",
+    ".codex/runs/20260824-072851-JST/run.json",
+    "docs/reports/2026-08-24_074656_curriculum-test-strategy-refactor-repository-audit.md",
+    "docs/reports/2026-08-24_074011_curriculum-validity-review.md"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm dlx markdownlint-cli2@0.23.2 docs/reports/2026-08-24_074656_curriculum-test-strategy-refactor-repository-audit.md docs/reports/2026-08-24_074011_curriculum-validity-review.md",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-072851-JST -Write -Check",
+      "run.json parse and standard artifact existence check",
+      "local absolute path scan",
+      "git status scope allowlist and git diff --check"
+    ],
+    "warnings": [
+      "Report-only change: Product test, build, and Runtime validation were not run."
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 2,
+    "hook_event_count": 0,
+    "subagent_run_count": 3,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [
+      {
+        "name": "repository_report_inventory",
+        "role": "code_researcher",
+        "mode": "read_only",
+        "result": "adopted"
+      },
+      {
+        "name": "curriculum_report_inventory",
+        "role": "code_researcher",
+        "mode": "read_only",
+        "result": "adopted"
+      },
+      {
+        "name": "hotspot_trace_evidence",
+        "role": "implementation_researcher",
+        "mode": "read_only",
+        "result": "adopted"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "read_only": 3,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 3
+    }
+  },
+  "evaluation_path": null,
+  "status": "complete",
+  "primary_failure_category": null
+}
