@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "run_id": "20260824-201800-JST",
-  "task_type": "planning",
+  "task_type": "plan",
   "workflow_level": "standard",
   "preset": "safe",
   "runtime": "host",
@@ -21,8 +21,9 @@
     "status": "not_run",
     "commands": [],
     "warnings": [
-      "Master Plan review / repair is complete, but Step 0 is still pending: RA-M7 implementation, local validation, sanitizer Write/Check, required CI, and merge-readiness review have not been executed yet.",
-      "When Step 0 starts, update task_type / changed_files / validation / status to match the actual implementation run before final completion."
+      "Step 0 is pending: RA-M7 implementation, local validation, sanitizer Write/Check, and PR-ready diff review have not been executed yet.",
+      "After Step 0, the Master Plan publication PR, PR-triggered CI, review, and merge remain separate pending tasks.",
+      "Keep task_type as plan for this run; record execution progress in TASKS.md, REPORT.md, changed_files, validation, and status. Use status=complete only after the tracked publication task is finished."
     ]
   },
   "safety": {
