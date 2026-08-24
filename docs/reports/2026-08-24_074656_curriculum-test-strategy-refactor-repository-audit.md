@@ -2,7 +2,7 @@
 
 - Audit date: 2026-08-23〜2026-08-24 JST
 - Durable report saved: 2026-08-24 JST
-- Repository baseline commit: `4ed5374dcd5e98bf96c05f0fdecef56b42064a0c`（監査開始時の`main` / PR base。以降の本PR内commitはRun / Report Artifactのみを変更）
+- Repository baseline commit: `4ed5374dcd5e98bf96c05f0fdecef56b42064a0c`（監査対象Repository状態）
 - Provenance: [Repository Audit Run](../../.codex/runs/20260823-225103-JST/REPORT.md)
 - Follow-up review: [Curriculum Validity Review Run](../../.codex/runs/20260824-063354-JST/REPORT.md)
 - Evidence basis: Current repository source、Normative Specification、Curriculum、Formal / Training Test、Harness、CI、recent ADR / Run / Plan
