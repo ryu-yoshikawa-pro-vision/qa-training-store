@@ -51,8 +51,11 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 - [ ] Lesson / Exercise / Artifact から Competency / Minimum Evidence を直接追跡できる。
 - [ ] Baseline receipt と Learner-authored evidence が明確に分離されている。
 - [ ] Native learner exercise に canonical local command があり、baseline と exercise の Evidence を区別できる。
+- [ ] C08 / Native specialization の Completion Evidence は learner-authored exercise diff + successful Maestro artifact を要求し、stock exercise の PASS だけでは合格にしない。
+- [ ] Training Native workflow は specialization opt-in であり、Web / Common Core だけの learner PR で Android build / emulator / Maestro を無条件実行しない。
 - [ ] Learner exercise を Product Required Formal Gate に混入させていない。
 - [ ] Part 1 / Part 2 の Lesson 数と大順序を維持しつつ、Core / Extension / Reference の深さが整合している。
+- [ ] Repository Audit §4.1〜§4.16 の全 Refactoring candidate が Phase 6 で分類され、候補の抜け落ちがない。
 - [ ] Technical Debt 候補は size 単独ではなく churn / repair history / blast radius / test protection / boundary の Evidence で判断されている。
 - [ ] 実変更を伴う各 child PR に個別 Plan があり、各 PR 単体で正本間の矛盾を残さず Validation できる。
 
@@ -75,6 +78,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 - `CHANGELOG.md` は履歴であり、過去 entry を Current 値へ書き換える正本ではない。
 - Current Seed Version の implementation SSOT は `src/config/versions.ts` である。
 - Native learner exercise YAML は既に存在するが、canonical package command / runner / CI artifact contract は baseline より薄い。
+- Current Training Native workflow は `pull_request` で起動可能であり、Decision B 適用後は Web / Common Core learner PR まで Native runtime を無条件要求しないよう specialization opt-in boundary が必要である。
 - `package.json` には `validate:curriculum`、`test:contracts`、Training Web / Native baseline 等の既存 validation entry がある。
 - Report の `COMPLEXITY` / `CANDIDATE` は Refactor 必須を意味しない。
 
@@ -85,6 +89,7 @@ Report の Findings を機械的に全部修正するのではなく、以下の
   - Web Automation / Failure / Maintainability / Git / PR / bounded Web CI を共通 Core とする。
   - C08 Native Automation、Physical Android Hands-on、Native CI、Native Capstone は specialization とする。
 - Native specialization 化は Curriculum の learner Required / specialization 境界だけを変更する。
+- Training Native workflow も learner側では specialization opt-in とし、Common Core completion に Native runtime を暗黙要求しない。
 - Formal Product Regression、Android Runtime Gate、iOS Build-only Gate、Native implementation の保証は別契約であり弱めない。
 - Native Lesson / Training asset は specialization の canonical asset として残す。specialization 化は asset 削除を意味しない。
 - Normative Specification を Oracle とする既存方針を維持する。
@@ -177,19 +182,21 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 - `training/github-actions/**`
 - `scripts/training/**`
 
-### Refactoring Evidence Candidates
+### Refactoring Evidence Scope
 
-- `src/infrastructure/database/sqlite/native-customer-application-repositories.ts`
-- `src/infrastructure/database/sqlite/native-customer-repositories.ts`
-- `src/presentation/native/native-purchase-screens.tsx`
-- `src/presentation/native/native-screens.tsx`
-- `src/presentation/pages/admin-product-pages.tsx`
-- `.github/workflows/native-ci.yml`
-- `src/presentation/styles/global.css`
-- `src/seeds/**`
-- `scripts/agentic-qa/**`
-- Maestro cleanup duplication
-- Domain → Application type dependency
+- Phase 6 の調査母集団は `docs/reports/2026-08-24_074656_curriculum-test-strategy-refactor-repository-audit.md` の **§4.1〜§4.16** を正本とする。
+- 本 Master Plan に候補を再定義しない。Audit §4.1〜§4.16 に載る candidate を全件 classification 対象とし、Plan側の一覧漏れで候補を落とさない。
+- 優先着手候補は次であり、母集団を限定するものではない。
+  - Native customer application / compatibility repositories
+  - Native CI workflow
+  - Global Web CSS
+  - Native purchase / storefront screens
+  - Admin product pages
+  - shared Seed SSOT
+  - Agentic QA Harness
+  - Maestro cleanup helpers
+  - Domain → Application type dependency
+- Audit に含まれる Checkout / Order use case、Review / User use cases、Admin Product use case、Web E2E fixture、Dexie / SQLite adapters 等も Phase 6 の対象から除外しない。
 
 ## 5. Remediation Matrix
 
@@ -260,11 +267,12 @@ Report の Findings を機械的に全部修正するのではなく、以下の
 1. **Fact repair と design change を分ける。**
 2. **Formal Test Strategy を Curriculum 契約より先に整える。** C05 / C12 などの評価契約が古い Test Strategy を前提にしないようにする。
 3. **Curriculum specialization 化を Product Quality Gate の弱体化へ波及させない。**
-4. **各 PR 終了時点で正本間の矛盾を残さない。** 次 PR で直す前提の一時的不整合を merge しない。
-5. **Volatile fact は SSOT 参照を優先する。** 件数・Versionを複数文書へ固定値として複製しない。
-6. **Traceability は最小構成にする。** 全 Test title ID化、新 DB、新しい第三の traceability file を作らない。
-7. **Training は Baseline と Learner Evidence を分ける。** Formal Required Gate に learner exercise を混ぜない。
-8. **Refactoring は Evidence 後に判断する。** size は investigation trigger であり refactor reason ではない。
+4. **Training specialization は learner opt-in にする。** Common Core だけの learner PR に Native runtime を暗黙要求しない。
+5. **各 PR 終了時点で正本間の矛盾を残さない。** 次 PR で直す前提の一時的不整合を merge しない。
+6. **Volatile fact は SSOT 参照を優先する。** 件数・Versionを複数文書へ固定値として複製しない。
+7. **Traceability は最小構成にする。** 全 Test title ID化、新 DB、新しい第三の traceability file を作らない。
+8. **Training は Baseline と Learner Evidence を分ける。** Formal Required Gate に learner exercise を混ぜず、stock exercise PASS を Competency PASS とみなさない。
+9. **Refactoring は Evidence 後に判断する。** size は investigation trigger であり refactor reason ではない。
 
 ### Phase 0 — Current `main` 再検証
 
@@ -424,6 +432,7 @@ Exit criteria:
 - C10 は「実在する保守問題の診断 + 理由付き最小改善」を共通 Core にする。
 - C12 は bounded Web CI の Trigger / Gate / Artifact / Failure Evidence を共通 Level 2 とし、full multi-platform / delivery は Advanced / specialization とする。
 - Baseline receipt と Learner-authored Exercise evidence を別物として定義する。
+- C08 specialization の Minimum Evidence は少なくとも `learner-authored native exercise diff + successful Maestro execution artifact` とし、repository-provided stock exercise の PASS だけでは Level 2 / completion と判定しない。
 - Instructor が Lesson を再構成しなくても C01〜C12 を採点できる mapping を作る。
 - Validator / contract test は Native asset の存在と、Native common graduation Required を別契約として検証する。
 
@@ -449,6 +458,7 @@ Exit criteria:
 - Rubric だけで各 Competency の Minimum Evidence が分かる。
 - Native specialization と Product Native Gate が明確に分離されている。
 - Native Lesson / Training asset は canonical asset として残りつつ common graduation Required とは読めない。
+- C08 specialization は learner-authored change と successful runtime evidence の両方を要求し、stock exercise PASS だけでは completion と読めない。
 - PR 4 前でも README / Learning Design / Rubric / Instructor Guidance / Validator に矛盾がない。
 - PR 3 Primary owner の Matrix 行が `resolved` である。
 
@@ -514,7 +524,7 @@ Exit criteria:
 
 ### PR 5 — Training Baseline / Exercise / Artifact / Completion Evidence
 
-目的: Harness 正常性と Learner competency を実行入口・Evidenceでも分離する。
+目的: Harness 正常性と Learner competency を実行入口・Evidenceでも分離し、Native specialization を Common Core learner へ暗黙強制しない。
 
 #### Web / Native 共通契約
 
@@ -523,6 +533,7 @@ Exit criteria:
 - Artifact: learner execution evidence。
 - Completion Evidence: Rubric に渡す証拠。
 - Formal Product CI と Training learner workflow を分ける。
+- Repository-provided stock exercise の PASS は harness / starter evidence であり、learner competency evidence そのものではない。
 
 #### Native learner exercise の最小実装方針
 
@@ -532,11 +543,19 @@ Current Native exercise YAML は保持し、直接実行入口を追加する。
 - baseline と exercise で Android serial 解決、cleanup、Maestro invocation を丸ごと複製しない。
 - 既存 `run-maestro-baseline.ts` の共通実行部分を最小限 parameterize / extract し、baseline と exercise が同じ実行処理を再利用する。
 - baseline / exercise で flow path、JUnit / evidence 名を明確に分ける。
-- `training/github-actions/training-native-ci.yml` は Training workflow として baseline の後に learner exercise を実行し、exercise evidence を識別可能に upload する。
+- C08 / Native specialization の Completion Evidence は `learner-authored exercise diff + successful Maestro artifact` とする。
+- learner-authored diff は `training/maestro/exercises/native-training-exercise.yaml` 等の specialization exercise に対する意味のある変更を指し、既存 stock YAML を無変更で実行しただけでは completion にしない。
+- Training Copy の source SHA / Git diff を利用し、専用の新しい learner-state DB や scoring system は作らない。
+- `training/github-actions/training-native-ci.yml` は specialization opt-in workflow とする。
+  - `workflow_dispatch` は残し、明示的な Native specialization 実行を可能にする。
+  - `pull_request` は Native specialization asset / runner / workflow に関係する変更でのみ起動する `paths` 制御を使う。
+  - 少なくとも `training/maestro/**`、Native Maestro runner / invocation / serial resolution、`training/github-actions/training-native-ci.yml` を対象とする。
+  - broad な `training/**` や Curriculum docs 全体を trigger にせず、Web / Common Core だけの learner PR で Android build / emulator / Maestro を無条件実行しない。
+- Native specialization workflow が起動した場合は baseline の後に learner exercise を実行し、exercise evidence を識別可能に upload する。
 - `.github/workflows/native-ci.yml` 等の Product Required Formal Gate には learner exercise を追加しない。
 - Native failure exercise は Web との対称性だけを理由に executable flow 化しない。
   - C08 Minimum Evidence に不可欠なら最小実装する。
-  - 既存 exercise / artifact で十分なら `defer` または `reject` とし README の役割だけ明確化する。
+  - learner-authored exercise + artifact で十分なら `defer` または `reject` とし README の役割だけ明確化する。
 
 対象候補:
 
@@ -547,7 +566,9 @@ Current Native exercise YAML は保持し、直接実行入口を追加する。
 - `training/github-actions/training-native-ci.yml`
 - `scripts/training/run-maestro-baseline.ts`
 - `scripts/training/maestro-invocation.ts`
+- `scripts/training/serial-resolution.ts`
 - 必要な最小 shared runner / helper
+- Training workflow contract / Training Copy validation の必要最小限
 - Curriculum / Instructor Reference の Evidence section
 
 Validation:
@@ -559,6 +580,11 @@ Validation:
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
 - `training:native:exercise` の structural / contract validation
+- Training Native workflow contract で以下を確認する。
+  - `workflow_dispatch` が利用可能。
+  - Native specialization path の変更では Native workflow が対象になる。
+  - Web / Common Core のみの代表変更は Native runtime trigger 対象に含まれない。
+  - broad path で全 Training PR に Native runtime を強制していない。
 - Native runtime validation は実行環境がある場合のみ。Environment failure と learner / source failure を分離する。
 
 Exit criteria:
@@ -566,19 +592,27 @@ Exit criteria:
 - Baseline PASS と learner competency PASS の意味が文書・command・Artifactで区別できる。
 - `training:native:exercise` から learner YAML を直接実行できる。
 - Native exercise evidence が baseline evidence と識別できる。
+- C08 completion は learner-authored diff + successful Maestro artifact の両方を要求し、stock exercise PASS だけでは成立しない。
+- Training Native workflow は specialization opt-in であり、Web / Common Core learner PR に Native runtime を無条件要求しない。
 - Native specialization の Completion Evidence が baseline だけに依存しない。
 - Product Required Formal Gate に learner exercise を混入させていない。
 - PR 5 Primary owner の Matrix 行が `resolved` または根拠付き `defer` / `reject` で確定している。
 
 ### Phase 6 — Refactoring Necessity Review
 
-目的: Audit の `COMPLEXITY` / `CANDIDATE` を「大きいから直す」にしない。
+目的: Audit の `COMPLEXITY` / `CANDIDATE` を「大きいから直す」にせず、Auditで挙がった候補を漏れなくEvidenceで分類する。
 
 開始条件:
 
 - PR 2 の Formal Test Strategy / Traceability が merge 済みであること。
 - PR 3〜5 の完了は必須ではない。
 - 調査自体は PR 3〜5 と並行してよい。
+
+調査母集団:
+
+- Repository Audit §4.1〜§4.16 を candidate inventory の正本とする。
+- Plan 内の優先候補だけを調査して終了しない。
+- §4.1〜§4.16 の各候補について少なくとも1つの classification を記録する。
 
 最低限確認する Evidence:
 
@@ -600,13 +634,24 @@ Exit criteria:
 - `keep_as_is`
 - `needs_more_evidence`
 
-重要:
+結果の確定方法:
 
 - Phase 6 では Product code を refactor しない。
-- `refactor_now` の対象だけ別 Plan / 別 PR を作る。
+- 調査完了時に最新 `main` から decision-only branch を作る。
+- 後続判断で再利用する価値がある場合は Refactoring Necessity Review の durable report を保存する。単純な軽量確認で十分なら新規 report を強制しない。
+- decision-only PR には Phase 6 の判定結果、必要な Remediation Matrix 更新、作成した場合の durable report のみを含め、Product refactor を混ぜない。
+- RA-Q1 / RA-C1 は Audit §4.1〜§4.16 の判定結果が記録された時点で Phase 6 の outcome として `resolved` へ更新できる。個別candidateの `refactor_now` は別 child Plan / PR の開始条件であり、RA-C1 を未解決のまま保持する理由にはしない。
+- `refactor_now` の対象だけ decision-only PR merge 後に別 Plan / 別 PR を作る。
 - size / 見た目の巨大さ / 主観だけでは `refactor_now` にしない。
 - Evidence が弱ければ `keep_as_is` または `needs_more_evidence` で終了してよい。
-- 調査を PR 3〜5 と並行した場合、durable report / Matrix 更新を merge するときは最新 `main` から conflict なく反映する。
+
+Exit criteria:
+
+- Repository Audit §4.1〜§4.16 の全 candidate に classification がある。
+- 各 `refactor_now` は size 以外の Evidence で必要性を説明できる。
+- decision-only PR に Product code change が含まれていない。
+- RA-Q1 / RA-C1 の Matrix outcome が確定している。
+- `refactor_now` 以外を無理に実装タスクへ変換していない。
 
 ### Follow-up — Pilot Feedback
 
@@ -636,8 +681,8 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
 - [ ] 2. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を整える。
 - [ ] 3. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を整える。
 - [ ] 4. PR 3 merge 後の最新 `main` から PR 4 branch を作り、Curriculum Core / Extension / Reference を整える。
-- [ ] 5. PR 4 merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / Native learner exercise entry を整える。
-- [ ] 6. PR 2 merge 後から Refactoring Necessity Review の調査を開始してよい。`refactor_now` のみ個別 Plan / PR へ切り出す。
+- [ ] 5. PR 4 merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / Native learner exercise / specialization opt-in workflow を整える。
+- [ ] 6. PR 2 merge 後から Repository Audit §4.1〜§4.16 の Refactoring Necessity Review を並行調査してよい。調査完了時は最新 `main` から decision-only PR を作り、判定結果 / Matrix を確定する。`refactor_now` のみその後に個別 Plan / PR へ切り出す。
 - [ ] 7. Repository remediation 完了後、必要に応じて Pilot Feedback を収集する。
 
 ## 9. 検証方法
@@ -684,8 +729,11 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
 - Curriculum Required / specialization / Advanced / Reference の境界が README、Learning Design、Rubric、Lesson、Instructor Reference 間で矛盾しない。
 - C01〜C12 の Minimum Evidence が一意に追跡できる。
 - Product Formal Gate と Curriculum Learner Gate を混同していない。
+- Native specialization を選んでいない learner に Native runtime を暗黙要求していない。
+- C08 は learner-authored change と successful runtime evidence の両方で評価される。
 - Test Level、Perspective、Execution / Platform Gate を同じ概念として扱っていない。
 - Traceability のために Test implementation の保守コストを不必要に増やしていない。
+- Repository Audit §4.1〜§4.16 の Refactoring candidate が漏れなく分類されている。
 - Refactoring は追加 Evidence によって必要性を説明できる対象だけ実装候補になる。
 
 ## 10. リスクと停止条件
@@ -704,13 +752,17 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
    - executable / implementation SSOT 参照を優先する。
 6. Traceability を過剰実装する。
    - 既存2文書 + validator / contract test を優先し、新 DB / 全 title ID 化を禁止する。
-7. Baseline PASS を Learner competency と誤認する。
-   - Baseline / Exercise / Artifact / Completion Evidence を別 entry とする。
-8. Native exercise runner を複製して maintenance cost を増やす。
+7. Baseline / stock exercise PASS を Learner competency と誤認する。
+   - C08 は learner-authored exercise diff + successful Maestro artifact を Minimum Evidence とする。
+8. Native specialization が Common Core learner のCI負荷として残る。
+   - Training Native workflow を specialization opt-in とし、Web / Common Core だけの PR を broad path で拾わない。
+9. Native exercise runner を複製して maintenance cost を増やす。
    - baseline / exercise は共通実行処理を最小限再利用する。
-9. 巨大ファイルを見ただけで refactor する。
-   - churn / repair / blast radius / test protection / boundary を中核 Evidence にする。
-10. Finding tracking 自体が Drift する。
+10. Phase 6 の候補を Plan 内の短い一覧だけで判断し、Audit candidate を落とす。
+    - Repository Audit §4.1〜§4.16 を母集団SSOTにする。
+11. 巨大ファイルを見ただけで refactor する。
+    - churn / repair / blast radius / test protection / boundary を中核 Evidence にする。
+12. Finding tracking 自体が Drift する。
     - Remediation Matrix だけを status 正本とし、Primary owner を1つに固定する。
 
 ### 実装時の停止条件
@@ -725,6 +777,9 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
 - Traceability のために全 Test title / 全 Test file の大量編集が必要になった。
 - Stable Risk ID が必要な理由を説明できない。
 - Native learner exercise を追加するために Product Formal Gate 変更が必要になった。
+- Native specialization opt-in を成立させるために Common Core workflow を複雑に分岐させる必要が生じた。
+- C08 learner-authored evidence を判定するために新しい専用状態DB / scoring framework が必要になった。
+- Phase 6 で Audit §4.1〜§4.16 の候補を分類できる Evidence が不足し、推測で `refactor_now` を付ける必要が生じた。
 - Refactor の必要性が size / 主観だけでしか説明できない。
 - Native Environment failure と learner / source failure を分離できない。
 
@@ -738,7 +793,8 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
 - Formal Test Strategy / Traceability 修正
 - Competency / Minimum Evidence 契約
 - Curriculum Core / Extension / Reference 調整
-- Training Evidence / Native learner exercise entry
+- Training Evidence / Native learner exercise / specialization opt-in workflow
+- Phase 6 decision-only PR
 - Refactoring Necessity Review の durable report（後続判断で再利用する必要がある場合のみ）
 - `refactor_now` と判定した対象だけの個別 Refactor Plan
 
@@ -747,6 +803,7 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
 - Phase 0 専用 child Plan / durable report
 - Finding tracking 専用 DB / spreadsheet / third-party tool
 - 新しい第三の Traceability 正本
+- Learner-authored state 判定専用 DB / scoring framework
 - Pilot 管理専用システム
 - 必要性が証明されていない Refactor PR
 - baseline / exercise ごとの重複した Native runner 実装
@@ -755,6 +812,7 @@ PR番号、依存順、実行順はこの checklist を正本とする。別の 
 
 - 本 Master Plan は Report の全 Finding を「全部直す」指示ではない。全 Finding を追跡し、根拠を持って `fix` / `defer` / `reject` / `resolved` を判断する。
 - `MISMATCH` と Curriculum High Finding を優先する。
-- `CANDIDATE` は追加 Evidence を見てから扱う。
+- `CANDIDATE` は Repository Audit §4.1〜§4.16 を母集団として追加 Evidence を見てから扱う。
 - Formal Test Strategy を Curriculum 評価契約より先に確定することで、C05 / C12 などの再作業を避ける。
+- Native specialization は curriculum wording だけでなく learner workflow / evidence contract でも Common Core と分離する。
 - 目的は Repository を綺麗に見せることではなく、Curriculum / Formal Test Strategy / Training / Formal Regression の責務境界を明確にし、今後の変更判断を容易にすることである。
