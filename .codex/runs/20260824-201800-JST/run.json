@@ -21,7 +21,8 @@
     "status": "not_run",
     "commands": [],
     "warnings": [
-      "Plan-only task created through the GitHub connector; local sanitizer and markdownlint were not executable in this workflow."
+      "Master Plan review / repair is complete, but Step 0 is still pending: RA-M7 implementation, local validation, sanitizer Write/Check, required CI, and merge-readiness review have not been executed yet.",
+      "When Step 0 starts, update task_type / changed_files / validation / status to match the actual implementation run before final completion."
     ]
   },
   "safety": {
@@ -54,6 +55,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "completed",
+  "status": "pending",
   "primary_failure_category": null
 }
