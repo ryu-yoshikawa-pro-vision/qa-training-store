@@ -6,7 +6,10 @@
 - [x] 2. Repository の planning rule / template / current validation entry を確認する
 - [x] 3. `main` から計画用 branch を作成する
 - [x] 4. Report Findings を依存関係順に整理した Master Plan を `docs/plans/` に保存する
-- [x] 5. Run Artifact を保存し、Plan-only task として完了状態を記録する
+- [x] 5. Run Artifact を保存し、Master Plan review / repair を完了する
+- [ ] 6. Step 0 として RA-M7 の `scripts/validate-curriculum.ts` required path を最小修正し、Matrix / Run Artifact を実状態へ更新する
+- [ ] 7. `validate:curriculum` / `test:contracts` / `typecheck` / format / markdown / Sanitizer Write・Check を実行し、結果を Run Artifact へ記録する
+- [ ] 8. Repository required CI と PR diff を確認し、Master Plan + RA-M7 CI unblocker PR の merge readiness を確定する
 
 ## Discovered
 
@@ -27,11 +30,16 @@
 - [x] D15. Refactoring Necessity Review の依存を PR 1〜5 全完了から外し、Formal Test Strategy が確定した後に Training Evidence と並行可能な review-only phase として扱う
 - [x] D16. PR order / 実行タスク / 優先順位の重複表現を減らし、実行順序の正本を1つに寄せて Plan 内 drift を防ぐ
 - [x] D17. RA-M7 の separate hotfix branch / Run を廃止し、Master Plan branch の同一PRへ required path の最小CI unblockerを統合して、CI循環と active Run 分散を同時に避ける
-- [x] D18. active Run Artifact の古い TASKS / Remaining / Scope を最新 Master Plan と意味上整合させ、REPORT は append-only で今回の review / repair 結果を追記する
+- [x] D18. active Run Artifact の古い TASKS / Remaining / Scope を最新 Master Plan と意味上整合させ、REPORT は append-only で review / repair 結果を追記する
 - [x] D19. PR 5 の Web / Native 共通契約に Desktop learner exercise の canonical `training:web:exercise` を追加し、Mobile command・stock exercise・CI competency gate の境界を明確にする
+- [x] D20. PR 3 で Decision B を正本化した直後に Required / specialization の中間矛盾を残さないよう、P1-7 / P1-9 / P2-6 / P2-8 の境界 wording だけ PR 3 へ移し、深さ・構造調整は PR 4 に残す
+- [x] D21. Master Plan の変更対象 path に残る `00_learning_design.md` 誤表記を canonical `00_learning-design.md` へ統一し、validator の現状誤りを説明する literal だけ underscore を残す
+- [x] D22. active Run を `completed` / 100% のまま Step 0 継続する矛盾を解消し、Step 0 実装・Validation・CI を未完了 task として追跡する
+- [x] D23. Phase 6 freshness check で既存関連pathの変更だけでなく、current `main` で direct caller / dependency discovery を再実行し、新規callerの増減も検出する
+- [x] D24. Phase 6 decision-only PR は本 Master Plan を直接使用し、scope が変わらない限り追加 child Plan を作らないことを明記する
 
 ## Blocked
 
 - なし
 
-Progress: 100% (24/24)
+Progress: 91% (29/32)
