@@ -22,8 +22,8 @@
     "commands": [],
     "warnings": [
       "Step 0 is pending: RA-M7 implementation, local validation, sanitizer Write/Check, and PR-ready diff review have not been executed yet.",
-      "After Step 0, the Master Plan publication PR, PR-triggered CI, review, and merge remain separate pending tasks.",
-      "Keep task_type as plan for this run; record execution progress in TASKS.md, REPORT.md, changed_files, validation, and status. Use status=complete only after the tracked publication task is finished."
+      "After Step 0, the Master Plan publication PR, PR-triggered CI, review, and merge-ready confirmation remain pending tasks in this run.",
+      "Keep task_type as plan for this run. Set status=complete only after the final PR head, including finalized Run Artifacts, has green CI/review and is merge-ready. The actual merge is outside this run and GitHub PR is the source of truth for merge state."
     ]
   },
   "safety": {
