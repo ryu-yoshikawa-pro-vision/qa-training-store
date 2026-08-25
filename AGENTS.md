@@ -158,6 +158,16 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 - 明示的な依頼と外部 sandbox がない限り、`--dangerously-bypass-approvals-and-sandbox` は使わない。
 - repository の execpolicy ルールは `.codex/rules/*.rules` 配下で管理する。
 
+### Pull Request の言語ルール
+
+- Codex がこのリポジトリで作成・更新する Pull Request のタイトルと本文は、原則として日本語で記載する。
+- PR本文のsection heading、Summary、変更内容、検証結果、CI結果、リスク、対象外などの説明文も日本語を使用する。
+- package名、function名、class名、file path、branch名、commit SHA、CLI command、コード、GitHub Actions job名などの技術識別子は無理に翻訳しない。
+- ユーザーが明示的に英語または別言語を指定した場合のみ、その指定を優先する。
+- 既存PRを更新する場合も、ユーザーから別言語の指定がない限り、PRタイトル・本文を日本語へ統一する。
+- `gh pr create` / `gh pr edit` などで自動生成された英語本文をそのまま残さない。
+- PR作成・更新後は、タイトルと本文が日本語になっていることを確認してから完了報告する。
+
 ## 8. 必須検証
 
 - 必要に応じて次の一部または全部を実行する。
