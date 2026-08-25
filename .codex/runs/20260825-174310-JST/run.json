@@ -26,7 +26,7 @@
                          "docs/plans/2026-08-25_174310_pr63_conflict_resolution_latest_main.md"
                       ],
     "validation":  {
-                       "status":  "passed",
+                       "status":  "blocked",
                        "commands":  [
                                     "git fetch origin",
                                     "pnpm --version",
@@ -39,12 +39,17 @@
                                     "uuid/xcode CommonJS smoke",
                                     "pnpm run verify",
                                     "git diff --check",
-                                    "scripts/sanitize-codex-artifacts.ps1 -Write -Check"
-                                    ],
+                                    "scripts/sanitize-codex-artifacts.ps1 -Write -Check",
+                                    "gh pr checks 63 --json ...",
+                                    "gh pr view 63 --json ...",
+                                    "gh pr edit 63 --title ... --body-file -"
+                                   ],
                        "warnings":  [
                                     "git checkout --theirs was blocked by PreToolUse G5; no destructive checkout was used",
                                     "lint: 65 warnings, 0 errors",
-                                    "initial smoke script had a path calculation error and was corrected; final smoke passed"
+                                    "initial smoke script had a path calculation error and was corrected; final smoke passed",
+                                    "CI Android Runtime / Maestro failed twice consecutively at the same Native test runtime listening assertion; native-ci / verify was a derived failure",
+                                    "PR body/title was updated with the latest CI results; Dependabot Alert #1 remains unverified until after merge"
                                     ]
                    },
     "safety":  {
@@ -83,7 +88,7 @@
                                   }
                   },
     "evaluation_path":  null,
-    "status":  "in_progress",
+    "status":  "blocked",
     "primary_failure_category":  "ci_android_runtime_maestro_or_runner_baseline",
     "merge_commit_sha":  "de81457c9959dd94b8bfde3e847346445754a970",
     "merge_parents":  [
@@ -94,6 +99,29 @@
                 "status":  "pushed",
                 "force":  false,
                 "target":  "origin/investigate/issue-57-uuid-remediation",
-                "head_sha":  "388cf76cfffbb1b7ba43bd04a91fa490abe394a9"
+                "head_sha":  "f4299fe327d66098a6caf76a7b02ac376a416bfc"
+            },
+    "pr":  {
+                "number":  63,
+                "url":  "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/63",
+                "title":  "fix: xcode依存uuidの脆弱性対応を最新mainへ統合",
+                "head_sha":  "f4299fe327d66098a6caf76a7b02ac376a416bfc",
+                "mergeable":  "MERGEABLE",
+                "merge_state_status":  "UNSTABLE",
+                "ci":  {
+                              "pass":  38,
+                              "skipped":  2,
+                              "failed":  2,
+                              "pending":  0,
+                              "failed_checks":  [
+                                                     "Android Runtime / Maestro",
+                                                     "native-ci / verify"
+                                                   ],
+                              "web":  "passed",
+                              "expo_doctor":  "passed",
+                              "android_runtime":  "blocked_after_two_identical_failures",
+                              "ios_native":  "passed",
+                              "security":  "passed"
+                          }
             }
 }
