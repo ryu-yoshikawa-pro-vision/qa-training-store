@@ -11,7 +11,7 @@
     "quality_gates": "pass: focused／全contracts、format、lint、typecheck、verifyを実行。lintは既存warningのみ",
     "self_review_and_scope": "pass: code-review観点でfinding 0件。依存、launcher、config、#63、unrelated scopeの混入なし",
     "artifact_sanitization": "pass: Write／Check、5 files、0 residual findings",
-    "commit_push_pr": "pending",
+    "commit_push_pr": "partial: 実装commit f85d437を作成。push／PRは未実施",
     "post_pr_final_confirmation": "pending"
   },
   "evidence": {
@@ -34,6 +34,6 @@
     ]
   },
   "open_items": [
-    "Hook実装、contract検証、quality gate、self-review、commit/push/PR、最終確認"
+    "push、PR作成、PR後のbranch／diff／metadata最終確認"
   ]
 }

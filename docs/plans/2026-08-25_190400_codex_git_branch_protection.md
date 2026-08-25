@@ -81,7 +81,7 @@ Issue #60では、`git switch -c ... origin/main` は拒否された一方、`gi
 
 ## 10. rollback plan
 
-PRのcommitをrevert可能な単一commitとして作成し、必要な場合は変更commitだけをrevertする。作業中は`main`の履歴変更、force push、reset、clean、branch削除を行わない。
+実装commitをrevert可能なcommitとして作成し、必要な場合は実装commitだけをrevertする。Run Artifactの完了記録はdocs-onlyの後続commitへ分離する。作業中は`main`の履歴変更、force push、reset、clean、branch削除を行わない。
 
 ## 11. 完了条件
 

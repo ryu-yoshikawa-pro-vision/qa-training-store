@@ -137,3 +137,20 @@
 - New tasks: なし。
 - Remaining: commit、push、PR、PR後最終確認。
 - Progress: 69% (9/13)
+
+## 2026-08-25 19:42（JST）
+
+- Summary: 指定branchで実装commitを作成した。
+- Completed:
+  - commit直前に`git branch --show-current`で`fix/codex-git-branch-protection`を確認した。
+  - staged対象11 files、`git diff --cached --check` PASSを確認した。
+  - `f85d437 fix: enforce Git branch protection in PreToolUse`を作成した。
+- Changes: 実装commitにはHook、contract test、reference／living docs、plan、Run Artifactを含めた。
+- Commands:
+  - `git commit -m "fix: enforce Git branch protection in PreToolUse"` => PASS、11 files changed、820 insertions、4 deletions。
+- Notes/Decisions:
+  - commit後のRun進捗／評価更新はdocs-onlyの後続commitへ分離し、実装commitは変更しない。
+  - main／master／default branchへのcommitではなく、指定feature branch上でcommitした。
+- New tasks: なし。
+- Remaining: Run完了記録commit、push、PR、PR後最終確認。
+- Progress: 77% (10/13)
