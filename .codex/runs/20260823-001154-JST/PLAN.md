@@ -78,3 +78,12 @@
 - frozen install、Expo install check、Expo Doctor 17/17、Native Static相当、format、verify、diff check、remote Native CI全gateを完了条件とする。
 - pnpm peer warning、lint warning、Native Jestのact warning、SQLite ExperimentalWarningは依存更新の成否と分離して記録する。
 - 未解決のblocking questionはない。remote CI failure時は最初のfailureと今回の依存変更との因果を確認してから bounded に対応する。
+
+## 2026-08-25 Final remote validation and mergeability
+
+- 最新head `3893a807b490ce8a3104171326d89ba5ad6929cc` を明示refspecでpushし、PR #62を作成した。
+- Web CI run `32796357783` は success。Code Quality、Style、Vitest、build、E2E、UI review、verify、validateを確認した。
+- Mobile App CI run `32796357887` は success。Native Static（Expo Doctor `17/17 checks passed`）、Android Automation／Production build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation／Production build、Native iOS Verify、`native-ci / verify`を確認した。
+- Android Runtime / MaestroではAutomation／Production-validation APKのdownload、verify、install／launch、全Maestro flow、evidence収集がsuccessだった。Maestro flowはskippedではない。
+- PR #62はOPENだが、GitHubの`mergeStateStatus=DIRTY`、`mergeable=CONFLICTING`。origin/mainとの差分に既存Run Artifact、package.json、pnpm-lock.yaml等の競合がある。
+- 依頼の「mergeしない」「mainへswitchしない」「force pushしない」「新branch／worktreeを作成しない」に従い、競合解消操作は行わない。実装とCIは完了したが、ユーザー承認なしではマージ可能状態にできないため最終判定はNOT READY TO MERGEとする。

@@ -22,10 +22,10 @@
 - [x] D5. frozen install、Expo contract、Native Static相当を実行する
 - [x] D6. format、verify、diff checkを実行し、warningとfailureの因果を分類する
 - [x] D7. Follow-up Run Artifactを更新し、Sanitizer Write／Checkと最終差分を確認する
-- [ ] D8. branch safety確認後にcommit／explicit refspec pushし、必要なら新PRを作成する
-- [ ] D9. 最新headのGitHub Actions全required Native／Web／Android／iOS gateを確認する
-- [ ] D10. PR／Issue／scope／merge状態を含む最終判定を記録する
+- [x] D8. branch safety確認後にcommit／explicit refspec pushし、必要なら新PRを作成する
+- [x] D9. 最新headのGitHub Actions全required Native／Web／Android／iOS gateを確認する
+- [x] D10. PR／Issue／scope／merge状態を含む最終判定を記録する
 
 ## Blocked
 
-- なし
+- B1. PR #62はOPENだが`mergeStateStatus=DIRTY`／`mergeable=CONFLICTING`。branch同期・競合解消にはユーザー承認が必要。

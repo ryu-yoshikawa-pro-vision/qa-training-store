@@ -45,14 +45,22 @@
       "2026-08-25: pnpm run validate:eas:config",
       "2026-08-25: pnpm run format:check",
       "2026-08-25: pnpm run verify",
-      "2026-08-25: git diff --check"
+      "2026-08-25: git diff --check",
+      "2026-08-25: gh workflow run ci.yml => run 32796357783 completed/success",
+      "2026-08-25: gh workflow run native-ci.yml => run 32796357887 completed/success",
+      "2026-08-25: gh run view 32796357887 --json jobs => all required Web/Native/Android/iOS jobs success",
+      "2026-08-25: gh run view --job 97648391128 --log => Expo Doctor 17/17 checks passed",
+      "2026-08-25: gh api jobs/97651630254 => APK download/verify/install/launch and all Maestro flows success",
+      "2026-08-25: gh pr view 62 => OPEN, mergeStateStatus DIRTY, mergeable CONFLICTING"
     ],
     "warnings": [
       "通常のWindows pnpm dlx実行では既存npm設定warningにより16/17となるが、CI相当条件では17/17。",
       "lintはerror 0、既存warning 64件。",
       "Native Jestに既存のhaste collisionおよびact warningあり。",
       "2026-08-25: pnpm peer warning（react-native-worklets／React Native metro-config）、lint 64 warnings、SQLite ExperimentalWarningは非blockingとして分類。",
-      "2026-08-25: pnpm serializerのlockfile形式差分はPrettier正規化後の再解決差分0を確認。"
+      "2026-08-25: pnpm serializerのlockfile形式差分はPrettier正規化後の再解決差分0を確認。",
+      "2026-08-25: PR eventのcheck rollupにWeb/Mobile workflowが現れなかったため、同一headへworkflow_dispatchを各1回実行した。",
+      "2026-08-25: PR #62はmergeability conflict。依頼でmerge/rebase/force push/branch再作成が禁止されているため解消していない。"
     ]
   },
   "safety": {
@@ -85,15 +93,24 @@
     }
   },
   "evaluation_path": ".codex/runs/20260823-001154-JST/evaluation.json",
-  "status": "in_progress",
+  "status": "completed",
   "follow_up": {
     "date": "2026-08-25",
     "issue": 59,
     "previous_pr": 47,
     "previous_pr_state": "merged",
     "local_validation_status": "passed",
-    "remote_validation_status": "pending",
-    "current_head_before_commit": "2188e2073f65038665b5a0600d804fe62d119424"
+    "remote_validation_status": "passed",
+    "current_head_before_commit": "2188e2073f65038665b5a0600d804fe62d119424",
+    "current_head": "3893a807b490ce8a3104171326d89ba5ad6929cc",
+    "pr_number": 62,
+    "pr_url": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/62",
+    "web_ci_run": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32796357783",
+    "native_ci_run": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32796357887",
+    "mergeability": "CONFLICTING",
+    "merge_state_status": "DIRTY",
+    "final_judgment": "NOT READY TO MERGE",
+    "merge_blocker": "PR #62のbranchがorigin/mainと競合しており、依頼で禁止された同期操作なしには解消できない。"
   },
   "primary_failure_category": "baseline-expo-doctor-patch-mismatch"
 }

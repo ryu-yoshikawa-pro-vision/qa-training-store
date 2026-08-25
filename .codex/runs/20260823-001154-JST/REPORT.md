@@ -263,3 +263,35 @@
   - branch safety確認、commit／explicit refspec push、新PR作成。
   - 最新headのGitHub Actions全required gate確認と最終判定。
 - Progress: 84% (16/19)
+
+## 2026-08-25 10:41 (JST)
+
+- Summary: Issue #59 follow-up headをcommit／pushし、PR #62を作成した。最新headに対するWeb CIとMobile App CIの手動実行を完了し、全Native／Android／iOS gateがsuccessであることを実ログとjob stepで確認した。
+- Completed:
+  - commit `3893a807b490ce8a3104171326d89ba5ad6929cc`を作成し、`git push origin HEAD:fix/expo-sdk-57-patch-alignment`で明示refspec pushした。新しいbranch／worktree、force push、main pushは行っていない。
+  - PR [#62](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/62)を作成した。PR #47はMERGED済み、PR #58とIssue #60は変更していない。
+  - Web CI run [32796357783](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32796357783)は`completed / success`。Code Quality、Style Quality、Vitest（contracts／repository／unit／integration／component）、build、production smoke、E2E、UI review、`verify`、`validate`をsuccessで確認した。workflow_dispatchによるDependency Reviewとdeploy系のskipは想定条件である。
+  - Mobile App CI run [32796357887](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32796357887)は`completed / success`。Detect Native Changes、Native Static、Android／iOS build、Runtime、Bundle Guard、Verifyを含む全jobがsuccessだった。
+  - Native Static job logで、Native assets 9件、generated asset diff、image manifest、Native component 12 suites／49 tests、Native route 38、EAS config、Expo Doctor `17/17 checks passed. No issues detected!`を確認した。
+  - Android Automation BuildとAndroid Production-validation Buildはbuild、verify、APK保存、uploadまでsuccessだった。Android Runtime / MaestroはAutomation／Production-validation APKのdownload、verify、install／launch、evidence収集をsuccessで実行した。
+  - Android Runtime / Maestroの実flowはTest Control、Contract Harness、Not Found、Storefront、Cart、Search、Restart Persistence、Reset Dirty State、Out of Stock、Low Stock、Purchase Limit、Native Purchase、Native Review、Native Payment Retry、Native Session Checkout Restart、Training baseline、Native Production-validationの全てがsuccessだった。Maestro flowのskipはなかった。
+  - Native iOS CI / iOS Automation Build、iOS Production-validation Build、iOS Native CI Verify、`native-ci / verify`は全てsuccessだった。
+  - PR #62はOPENだが、`gh pr view 62`で`mergeStateStatus=DIRTY`、`mergeable=CONFLICTING`を確認した。origin/mainとの差分にはRun Artifact、package.json、pnpm-lock.yaml等の競合があり、依頼で禁止されたmerge／rebase／force push／branch再作成なしには解消できない。
+- Commands:
+  - `git branch --show-current`、`git branch -vv`、`git status --short`、`git fetch origin` => branch `fix/expo-sdk-57-patch-alignment`、upstream `origin/fix/expo-sdk-57-patch-alignment`、push前後のtree cleanを確認した。
+  - `git push origin HEAD:fix/expo-sdk-57-patch-alignment` => PASS、remote head `3893a807b490ce8a3104171326d89ba5ad6929cc`。
+  - `gh pr create ...` => PR #62作成。`gh pr view 62 --json ...` => OPEN、head `3893a807...`、`DIRTY / CONFLICTING`。
+  - `gh workflow run ci.yml --repo ryu-yoshikawa-pro-vision/qa-training-store --ref fix/expo-sdk-57-patch-alignment` => run `32796357783` success。
+  - `gh workflow run native-ci.yml --repo ryu-yoshikawa-pro-vision/qa-training-store --ref fix/expo-sdk-57-patch-alignment` => run `32796357887` success。
+  - `gh run view 32796357887 --json jobs` => Native Static、Android Automation／Production、Production Bundle Guard、Android Runtime / Maestro、iOS Automation／Production、Native iOS Verify、`native-ci / verify`を全てsuccess。
+  - `gh run view --job 97648391128 --log`の抽出 => `17/17 checks passed. No issues detected!`。
+  - `gh api .../jobs/97651630254` => Automation／Production APK download、verify、install／launch、全Maestro flow、evidence収集を全て`completed / success`。
+  - `scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/20260823-001154-JST' -Write -Check` => PASS、5 files scanned、0 residual findings。
+- Notes/Decisions:
+  - remote CIはPR eventのcheck rollupに現れなかったため、同一最新headに対してworkflow_dispatchを各1回だけ実行した。無目的なrerunは行っていない。
+  - CodeQLのPR checkはsuccess。CodeRabbitはOSS repositoryのmanual review requiredにより自動reviewがskipされたが、再review／thread操作は行っていない。
+  - local validation、remote CI、dependency scopeはいずれもIssue #59の完了条件を満たす。残る問題はコード／CI failureではなく、PR #62のmergeabilityだけである。
+- Remaining:
+  - PR #62の`DIRTY / CONFLICTING`を解消するには、ユーザーが既存branchのmain同期方法（通常merge、rebase、または別途許可された手順）を承認する必要がある。今回の依頼の禁止事項に抵触するため、Codexは操作せず停止する。
+- Final judgment: `NOT READY TO MERGE`（blocking item: PR #62のmerge conflict）。
+- Progress: 100% (19/19)
