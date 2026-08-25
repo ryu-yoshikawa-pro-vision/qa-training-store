@@ -155,6 +155,28 @@
 - Remaining: push、PR #63最新head/CI確認、PR本文更新、Run finalization。
 - Progress: 77% (10/13)
 
+## 2026-08-25 18:42 (JST)
+
+- Summary: push後のPR #63 CIを完了まで確認した。Web系、Expo Doctor、Android/iOS build、iOS Native CI Verify、security系は成功したが、Android Runtime / Maestroと依存する`native-ci / verify`が失敗した。
+- Completed:
+  - `388cf76cfffbb1b7ba43bd04a91fa490abe394a9`に対するCIが終了し、38 checks success、2 skipped、2 failure、pending 0を確認した。
+  - `Native Static / Run Expo Doctor`は成功し、PR #62のExpo整合性は維持されている。
+  - Android Automation/Production-validation Build、iOS Automation/Production-validation Build、iOS Native CI Verify、Production Bundle Guard、Web CI、Dependency Review、CodeQLを確認した。
+  - 失敗の最初の異常をログで確認した。`Android Runtime / Maestro`の最初のflowで`Native test runtime listening`が表示されず、続く全Maestro flowと`native-ci / verify`が派生失敗した。APK install/launcher activity解決は成功し、fatal React Native logcat検出はなかった。
+  - 比較としてPR #62 head `325aa51fd48cf5234181c031a29d0ac00eacabe7`のMobile App CI run `32808804423`ではAndroid Runtime / Maestroを含め成功し、今回のPR #63旧head `c8606ec1f6b3d13f665dcfbaa3d882706fbc7273`でもAndroid Runtimeは成功していた。
+- Commands:
+  - `gh pr checks 63 --json ...` => `pass 38 / skipping 2 / fail 2 / pending 0`。
+  - `gh run view 32830158292 --job 97751545649 --log-failed` => 最初の失敗は`native-test-control`の`Native test runtime listening` assertion。全flowが同じruntime表示待ちで失敗。
+  - `gh run view 32830158292 --job 97755662585 --log-failed` => `native-ci / verify`は`ANDROID_RUNTIME_RESULT=failure`を受けた派生失敗。
+  - `gh run view 32808804423` / `gh run view 32805070284` => main/PR #62相当の成功ベースラインとPR #63旧headの比較を確認。
+  - `git diff --name-only origin/main...HEAD` => product source、workflow変更はなく、mainとの差分はpackage/lockfileとRun/plan等に限定されることを再確認。
+- Notes/Decisions:
+  - 現時点の証拠では、failureはuuid scoped overrideのdependency edgeではなく、Android runtime/test harnessまたはrunner環境の失敗と分類する。Expo Doctorやbuildは成功しており、application source/workflowの追加修正は行わない。
+  - skip、allow-failure、timeout延長、manual rerunは使用しない。Run Artifact更新を通常commit/pushする際の自然なCI再実行で再確認する余地を残す。
+- New tasks: D4を`TASKS.md`へ追加する。
+- Remaining: Android Runtime failureの再確認、PR本文更新、Run finalization。
+- Progress: 77% (10/13)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

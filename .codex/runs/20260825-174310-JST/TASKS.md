@@ -21,6 +21,7 @@
 - D1. 既に`MERGE_HEAD=47ea147`の通常mergeが進行中であり、同じmergeを再実行せず引き継ぐ。
 - D2. `AGENTS.md`、`.github/pull_request_template.md`、過去Run/planはmain-side staged changeとして存在するため、PR #64と履歴を保持する。
 - D3. PR #63本文にはPR #62 merge前のExpo Doctor failure説明があるため、push後の最新CI結果で更新する。
+- D4. push後CIではAndroid Runtime / Maestroが`Native test runtime listening` assertionで失敗し、`native-ci / verify`が派生失敗した。PR #62成功runとPR #63旧headの比較、現headの差分範囲から、追加修正せず自然な次回CIで再確認する。
 
 ## Blocked
 

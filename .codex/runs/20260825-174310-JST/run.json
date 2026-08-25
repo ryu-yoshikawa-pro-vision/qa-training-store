@@ -84,15 +84,16 @@
                   },
     "evaluation_path":  null,
     "status":  "in_progress",
-    "primary_failure_category":  null,
+    "primary_failure_category":  "ci_android_runtime_maestro_or_runner_baseline",
     "merge_commit_sha":  "de81457c9959dd94b8bfde3e847346445754a970",
     "merge_parents":  [
                          "c8606ec1f6b3d13f665dcfbaa3d882706fbc7273",
                          "47ea1477dda468864d3b053bedcfef0a6afb887e"
                        ],
     "push":  {
-                "status":  "not_pushed",
+                "status":  "pushed",
                 "force":  false,
-                "target":  "origin/investigate/issue-57-uuid-remediation"
-              }
+                "target":  "origin/investigate/issue-57-uuid-remediation",
+                "head_sha":  "388cf76cfffbb1b7ba43bd04a91fa490abe394a9"
+            }
 }
