@@ -33,33 +33,11 @@
       "id": "remote-native-ci",
       "status": "complete",
       "evidence": [
-        "Mobile App CI run 32796357887はcompleted/success",
-        "Native Static、Android Automation／Production、Production Bundle Guard、Android Runtime / Maestro、iOS Automation／Production、Native iOS Verify、native-ci / verifyがsuccess",
-        "Native Static logでExpo Doctor 17/17 checks passed、Android Runtime stepでAPK download/verify/install/launchと全Maestro flow success"
-      ]
-    },
-    {
-      "id": "remote-web-ci",
-      "status": "complete",
-      "evidence": [
-        "Web CI run 32796357783はcompleted/success",
-        "Code Quality、Style、Vitest、build、E2E、UI review、verify、validateがsuccess"
-      ]
-    },
-    {
-      "id": "mergeability-assessment",
-      "status": "complete",
-      "evidence": [
-        "PR #62はOPENだがGitHub reports mergeStateStatus=DIRTY、mergeable=CONFLICTING",
-        "merge/rebase/force push/branch再作成を行わず、NOT READY TO MERGEとしてユーザー承認待ちにした"
+        "Native CI run 32582733887の指定jobが全件success",
+        "Native Staticでfrozen install、component 12/12・49/49、route 38、EAS、Expo Doctor 17/17を確認",
+        "PR #47の全主要checkがpass"
       ]
     }
   ],
-  "remaining": [
-    "PR #62のmerge conflictを解消するためのbranch同期方法についてユーザー承認が必要"
-  ],
-  "final_judgment": "NOT READY TO MERGE",
-  "blockers": [
-    "PR #62のmergeStateStatus=DIRTY、mergeable=CONFLICTING"
-  ]
+  "remaining": []
 }

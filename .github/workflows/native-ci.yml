@@ -1,4 +1,4 @@
-name: Native CI
+name: Mobile App CI
 
 on:
   pull_request:
@@ -136,27 +136,6 @@ jobs:
         run: pnpm run validate:eas:config
       - name: Run Expo Doctor
         run: pnpm dlx expo-doctor@${{ env.EXPO_DOCTOR_VERSION }}
-
-  production-bundle-guard:
-    name: Production Bundle Guard
-    needs: detect
-    if: needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
-        with:
-          version: ${{ env.PNPM_VERSION }}
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: pnpm
-      - name: Install dependencies
-        run: pnpm install --frozen-lockfile
-      - name: Run Production Bundle Guard
-        run: pnpm run validate:native-production-bundle
 
   android-automation-build:
     name: Android Automation Build
@@ -516,14 +495,7 @@ jobs:
             exit 1
           fi
           test -n "$bundle_entries"
-          while IFS= read -r bundle_entry; do
-            if unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry" |
-              grep -aE '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService' > /dev/null
-            then
-              echo "Production-validation APK contains Automation/Test Control markers." >&2
-              exit 1
-            fi
-          done <<< "$bundle_entries"
+          printf 'Production Hermes candidate entries:\n%s\n' "$bundle_entries"
           ls -lh "$PRODUCTION_APK_PATH"
       - name: Upload Production-validation Release APK
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6.0.0
@@ -575,13 +547,97 @@ jobs:
           if-no-files-found: warn
           retention-days: 7
 
-  android-runtime:
-    name: Android Runtime / Maestro
+  production-bundle-guard:
+    name: Production Bundle Guard
     needs: [detect, android-automation-build, android-production-build]
     if: >-
       always() &&
       (needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch') &&
-      (needs.android-automation-build.result == 'success' || needs.android-production-build.result == 'success')
+      needs.android-automation-build.result == 'success' &&
+      needs.android-production-build.result == 'success'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+      - uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Download Automation Release APK
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: native-android-apk-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-bundle-guard/automation
+      - name: Download Production-validation Release APK
+        uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
+        with:
+          name: native-android-production-apk-${{ github.run_id }}
+          path: ${{ runner.temp }}/native-bundle-guard/production
+      - name: Inspect Actual Hermes artifacts with shared validator
+        shell: bash
+        run: |
+          set -euo pipefail
+          AUTOMATION_APK_PATH="$RUNNER_TEMP/native-bundle-guard/automation/native-automation.apk"
+          PRODUCTION_APK_PATH="$RUNNER_TEMP/native-bundle-guard/production/native-production-validation.apk"
+          test -f "$AUTOMATION_APK_PATH"
+          test -s "$AUTOMATION_APK_PATH"
+          test -f "$PRODUCTION_APK_PATH"
+          test -s "$PRODUCTION_APK_PATH"
+
+          declare -a HBC_PATHS=()
+          extract_hermes_candidates() {
+            local apk_path="$1"
+            local output_dir="$2"
+            local entry
+            local index=0
+            local -a entries=()
+
+            mkdir -p "$output_dir"
+            mapfile -t entries < <(
+              unzip -Z1 "$apk_path" |
+                grep -E '^assets/.*\.(bundle|hbc)$' || true
+            )
+            if ((${#entries[@]} == 0)); then
+              echo "APK has no JavaScript/Hermes candidate asset: $apk_path" >&2
+              return 1
+            fi
+
+            HBC_PATHS=()
+            for entry in "${entries[@]}"; do
+              local output_path="$output_dir/bundle-${index}.hbc"
+              unzip -p "$apk_path" "$entry" > "$output_path"
+              test -s "$output_path"
+              HBC_PATHS+=("$output_path")
+              index=$((index + 1))
+            done
+          }
+
+          validator_args=()
+          extract_hermes_candidates "$AUTOMATION_APK_PATH" "$RUNNER_TEMP/native-bundle-guard/automation-hbc"
+          for path in "${HBC_PATHS[@]}"; do
+            validator_args+=(--automation-bundle-path "$path")
+          done
+          extract_hermes_candidates "$PRODUCTION_APK_PATH" "$RUNNER_TEMP/native-bundle-guard/production-hbc"
+          for path in "${HBC_PATHS[@]}"; do
+            validator_args+=(--production-bundle-path "$path")
+          done
+
+          pnpm run validate:native-production-bundle "${validator_args[@]}"
+
+  android-runtime:
+    name: Android Runtime / Maestro
+    needs: [detect, android-automation-build, android-production-build, production-bundle-guard]
+    if: >-
+      always() &&
+      (needs.detect.outputs.native_changed == 'true' || github.event_name == 'workflow_dispatch') &&
+      (needs.android-automation-build.result == 'success' || needs.android-production-build.result == 'success') &&
+      (needs.production-bundle-guard.result == 'success' || needs.production-bundle-guard.result == 'skipped')
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     env:
@@ -1749,13 +1805,13 @@ jobs:
             --test-output-dir "$TRAINING_MAESTRO_OUTPUT_DIR" \
             --junit-output "$RUNNER_TEMP/maestro-training-baseline.xml"
       - name: Download Production-validation Release APK
-        if: ${{ !cancelled() && needs.android-production-build.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
+        if: ${{ !cancelled() && needs.android-production-build.result == 'success' && needs.production-bundle-guard.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7.0.0
         with:
           name: native-android-production-apk-${{ github.run_id }}
           path: ${{ runner.temp }}/native-production-apk
       - name: Verify downloaded Production-validation Release APK
-        if: ${{ !cancelled() && needs.android-production-build.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
+        if: ${{ !cancelled() && needs.android-production-build.result == 'success' && needs.production-bundle-guard.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -1767,18 +1823,11 @@ jobs:
               grep -E '^assets/.*\.(bundle|hbc)$' || true
           )
           test -n "$bundle_entries"
-          while IFS= read -r bundle_entry; do
-            if unzip -p "$PRODUCTION_APK_PATH" "$bundle_entry" |
-              grep -aE '__SCENARIO_SHOP_NATIVE_AUTOMATION__|__SCENARIO_SHOP_NATIVE_CONTRACT_HARNESS__|NativeTestControlService' > /dev/null
-            then
-              echo "Downloaded Production-validation APK contains Automation/Test Control markers." >&2
-              exit 1
-            fi
-          done <<< "$bundle_entries"
+          printf 'Guarded Production Hermes candidate entries:\n%s\n' "$bundle_entries"
           echo "PRODUCTION_APK_PATH=$PRODUCTION_APK_PATH" >> "$GITHUB_ENV"
       - name: Install and launch Production-validation APK
         id: production_install
-        if: ${{ !cancelled() && needs.android-production-build.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
+        if: ${{ !cancelled() && needs.android-production-build.result == 'success' && needs.production-bundle-guard.result == 'success' && steps.android_emulator_ready.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -1792,7 +1841,7 @@ jobs:
             -c android.intent.category.LAUNCHER \
             1
       - name: Run Maestro Native Production-validation flow
-        if: ${{ !cancelled() && steps.production_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
+        if: ${{ !cancelled() && needs.production-bundle-guard.result == 'success' && steps.production_install.outcome == 'success' && steps.maestro_cli.outcome == 'success' }}
         shell: bash
         run: |
           set -euo pipefail

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "run_id": "20260822-222125-JST",
+  "task_type": "repair",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "fix/native-production-bundle-guard",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".github/workflows/native-ci.yml",
+    "tests/contracts/native-ci-workflow.test.ts",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/history/2026-08-22_230145_g1-cli-connection-repair.md"
+  ],
+  "validation": {
+    "status": "partial",
+    "commands": [
+      "pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts tests/contracts/native-test-control-maestro.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm run validate:native-production-bundle",
+      "pnpm run typecheck",
+      "pnpm run lint",
+      "pnpm run format:check",
+      "pnpm run lint:markdown",
+      "git diff --check",
+      "gh run view 32575898683 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs"
+    ],
+    "warnings": [
+      "Remote Native CIのNative Static / Expo Doctorは既存Expo patch version mismatchでfailure、native-ci / verifyはfail-closeでfailure",
+      "Aggregate failureの修正は今回のG1 scope外であり、Expo dependency updateは別PRへ分離"
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260822-222125-JST/evaluation.json",
+  "status": "partial",
+  "primary_failure_category": "flaky_or_env_issue"
+}

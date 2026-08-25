@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "run_id": "20260822-150117-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": ["missing_validation"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "G3/G4のviewer伝播、Storefront parity、Suggestion、Native UI、Guest deep-link、management unsupported boundaryを実装し、Focused Validationが成功した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "src/bootstrap/native-runtime.ts",
+          "summary": "SessionIdentityResolverとNative Catalog Suggestion serviceを接続した。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "src/infrastructure/database/sqlite/native-customer-repositories.ts",
+          "summary": "viewer-aware candidate、filter、facet、pagination、Suggestionを実装した。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更対象はG3/G4のNative Catalog、Storefront、route boundary、必要な既存契約呼出しとFocused test、living documentationに限定され、他GroupのProduct codeは変更していない。"
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Node SQLite、repository contract、Native component、route boundary、UseCase integration、typecheck、lint、route dependency gateは成功した。一方、ADB端末がunauthorizedで、full contracts suiteもVitest workerが完了しなかったため、物理Native runtime Before/Afterは未実行である。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "force push、rebase、amend、reset、clean、protected branch push、PR merge、新framework、unconditional retry、global timeout変更を行っていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "実装Plan、PROJECT_CONTEXT履歴、Run REPORT、focused test、変更面のvalidation結果を保存し、viewer経路とroute boundaryの判断を追跡可能にした。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存ProductViewer、canViewerSeeProduct、pricing semantics、既存Shell unsupported/Login boundary、既存request serialとDTOを再利用した。"
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "依存はlockfile固定・ignore-scriptsで解決し、Focused commandは再実行可能である。物理Android検証だけは認証済み端末が必要で未実行である。"
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "`adb devices`で接続端末が`unauthorized`と報告され、Android physical Native runtime Before/Afterを安全に実行できなかった。",
+      "detail": "既存Node SQLite／Native component／route boundary testsで代替検証を実施したが、physical runtimeの実画面結果とfull contracts suiteの完了結果は未確認として引き継ぐ。"
+    }
+  ],
+  "improvement_candidates": []
+}

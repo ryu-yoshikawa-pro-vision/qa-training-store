@@ -5,7 +5,10 @@ import type {
   CustomerOrderDetailDto,
   OrderDetailDto,
 } from "@/application/contracts";
-import { PAYMENT_METHODS } from "@/application/use-cases/checkout-order-use-cases";
+import {
+  PAYMENT_METHODS,
+  resolveCheckoutResultKind,
+} from "@/application/use-cases/checkout-order-use-cases";
 import type { PaymentMethodCode, UserAddress } from "@/domain/contracts";
 import { AccountNavigation } from "@/presentation/components/account-navigation";
 import { formatYen } from "@/presentation/components/product-card";
@@ -498,22 +501,22 @@ function CheckoutProcessingContent() {
 }
 
 export function CheckoutCompletePage() {
-  return <OrderResultPage kind="complete" />;
+  return <OrderResultPage />;
 }
 
 export function CheckoutFailedPage() {
-  return <OrderResultPage kind="failed" />;
+  return <OrderResultPage />;
 }
 
-function OrderResultPage({ kind }: { kind: "complete" | "failed" }) {
+function OrderResultPage() {
   return (
     <CustomerPage>
-      <OrderResultContent kind={kind} />
+      <OrderResultContent />
     </CustomerPage>
   );
 }
 
-function OrderResultContent({ kind }: { kind: "complete" | "failed" }) {
+function OrderResultContent() {
   const { orderId } = useLocalSearchParams<{ orderId: string }>();
   const services = useApplicationServices();
   const router = useRouter();
@@ -528,6 +531,8 @@ function OrderResultContent({ kind }: { kind: "complete" | "failed" }) {
   );
   if (!state.loaded) return <StatePanel kind="loading" />;
   if (state.error !== null || state.value === null) return <StatePanel kind="not-found" />;
+  const kind = resolveCheckoutResultKind(state.value);
+  if (kind === null) return <StatePanel kind="not-found" />;
   const retry = async () => {
     setSubmitting(true);
     try {

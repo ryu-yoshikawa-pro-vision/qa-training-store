@@ -1,12 +1,14 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
-import type { CheckoutConfirmationDto } from "@/application/contracts/commerce";
+import type { CheckoutConfirmationDto, OrderDetailDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import type { CheckoutSession, ShippingAddressSnapshot } from "@/domain/contracts";
 import { router, useLocalSearchParams } from "expo-router";
 import { usePreventRemove } from "expo-router/react-navigation";
 import {
   NativeCheckoutAddressScreen,
+  NativeCheckoutCompleteScreen,
   NativeCheckoutConfirmScreen,
+  NativeCheckoutFailedScreen,
   NativeCheckoutPaymentScreen,
   NativeLoginScreen,
   NativeOrderDetailScreen,
@@ -69,6 +71,53 @@ const checkoutSession: CheckoutSession = {
   createdAt: "2026-07-01T03:00:00.000Z",
   updatedAt: "2026-07-01T03:00:00.000Z",
   version: 2,
+};
+
+const nativeSucceededPaymentAttempt: OrderDetailDto["paymentAttempts"][number] = {
+  attemptNumber: 1,
+  methodCode: "TEST-SUCCESS",
+  status: "succeeded",
+  errorDisplayKey: null,
+  createdAt: "2026-07-01T03:01:00.000Z",
+  processedAt: "2026-07-01T03:01:01.000Z",
+};
+
+const nativePaidOrder: OrderDetailDto = {
+  orderId: "order-native-result",
+  orderNumber: "ORD-NATIVE-RESULT",
+  orderStatus: "paid",
+  totalAmount: 2500,
+  orderActionVersion: 2,
+  createdAt: "2026-07-01T03:00:00.000Z",
+  subtotalAmount: 2000,
+  discountAmount: 0,
+  shippingAmount: 500,
+  membershipRankSnapshot: "regular",
+  shippingAddress: address,
+  items: [],
+  paymentAttempts: [nativeSucceededPaymentAttempt],
+  shipment: {
+    status: "pending",
+    carrierName: null,
+    trackingNumber: null,
+    shippedAt: null,
+    deliveredAt: null,
+  },
+  timeline: [],
+};
+
+const nativeFailedOrder: OrderDetailDto = {
+  ...nativePaidOrder,
+  orderStatus: "payment_failed",
+  paymentAttempts: [
+    {
+      ...nativeSucceededPaymentAttempt,
+      status: "failed",
+      errorDisplayKey: "payment.errors.DECLINED",
+      processedAt: "2026-07-01T03:01:01.000Z",
+    },
+  ],
+  shipment: null,
 };
 
 function authenticationRequiredError(): ApplicationError {
@@ -299,6 +348,75 @@ describe("Native customer purchase screens", () => {
       }),
     );
     expect(mockRouterPush).toHaveBeenCalledWith("/checkout/confirm");
+  });
+
+  it.each([
+    [NativeCheckoutCompleteScreen, nativeFailedOrder, "native-checkout-failed-screen"],
+    [NativeCheckoutFailedScreen, nativePaidOrder, "native-checkout-complete-screen"],
+  ] as const)(
+    "renders the persisted result state instead of the route presentation (%s)",
+    async (Screen, order, expectedTestId) => {
+      mockUseLocalSearchParams.mockReturnValue({ orderId: order.orderId });
+      const getMyOrder = jest.fn().mockResolvedValue(order);
+      runtime({ checkout: { getMyOrder } });
+
+      const screen = await render(<Screen />);
+
+      await waitFor(() => expect(getMyOrder).toHaveBeenCalledWith(order.orderId));
+      expect(screen.getByTestId(expectedTestId)).toBeTruthy();
+    },
+  );
+
+  it("uses the result boundary when orderId is missing without looking up an order", async () => {
+    mockUseLocalSearchParams.mockReturnValue({});
+    const getMyOrder = jest.fn();
+    runtime({ checkout: { getMyOrder } });
+
+    const screen = await render(<NativeCheckoutCompleteScreen />);
+
+    await waitFor(() => expect(screen.getByTestId("native-checkout-result-boundary")).toBeTruthy());
+    expect(getMyOrder).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("native-checkout-complete-screen")).toBeNull();
+  });
+
+  it("uses the result boundary for an unauthorized order", async () => {
+    mockUseLocalSearchParams.mockReturnValue({ orderId: nativePaidOrder.orderId });
+    const getMyOrder = jest.fn().mockRejectedValue(new Error("order is not owned by the customer"));
+    runtime({ checkout: { getMyOrder } });
+
+    const screen = await render(<NativeCheckoutCompleteScreen />);
+
+    await waitFor(() => expect(screen.getByTestId("native-checkout-result-boundary")).toBeTruthy());
+    expect(screen.queryByTestId("native-checkout-complete-screen")).toBeNull();
+  });
+
+  it("keeps the failed result and retry action after retryPayment fails", async () => {
+    mockUseLocalSearchParams.mockReturnValue({ orderId: nativeFailedOrder.orderId });
+    const getMyOrder = jest.fn().mockResolvedValue(nativeFailedOrder);
+    const retryPayment = jest.fn().mockRejectedValue(new Error("再決済に失敗しました"));
+    runtime({ checkout: { getMyOrder, retryPayment } });
+
+    const screen = await render(<NativeCheckoutFailedScreen />);
+    await waitFor(() => expect(screen.getByTestId("native-checkout-failed-screen")).toBeTruthy());
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("native-payment-retry"));
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId("native-purchase-error")).toHaveTextContent("再決済に失敗しました"),
+    );
+    expect(screen.getByTestId("native-checkout-failed-screen")).toBeTruthy();
+    expect(screen.queryByTestId("native-checkout-result-boundary")).toBeNull();
+    expect(screen.getByTestId("native-payment-retry")).toBeTruthy();
+    expect(screen.getByTestId("native-payment-retry").props.accessibilityState).toEqual({
+      disabled: false,
+    });
+
+    await act(async () => {
+      fireEvent.press(screen.getByTestId("native-payment-retry"));
+    });
+    expect(retryPayment).toHaveBeenCalledTimes(2);
   });
 
   it("does not expose the Payment ready marker without a valid checkout session", async () => {

@@ -914,6 +914,16 @@ export async function prepareChallenge(input: {
       path.join(artifactRoot, "trusted", "preparation", "protected-patch-validation.json"),
       protectedPatchValidation,
     );
+  if (patchFile !== null) {
+    try {
+      execFileSync("git", ["apply", "--check", "--", patchFile], {
+        cwd: rootDir,
+        stdio: "pipe",
+      });
+    } catch (error) {
+      throw new Error(`Challenge patch preflight failed: ${commandFailureText(error)}`);
+    }
+  }
   const learnerBundle = buildLearnerBundle(
     rootDir,
     challenge,
