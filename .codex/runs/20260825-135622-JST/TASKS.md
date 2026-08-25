@@ -8,8 +8,8 @@
 - [x] 3. `AGENTS.md`へPR日本語運用ルールを追加し、既存templateを最小修正する
 - [x] 4. JSON parse、Markdown lint、format、diff check、sanitizerを実行する
 - [x] 5. branch safetyを確認し、変更ファイルだけをcommit・explicit refspecでpushする
-- [ ] 6. 日本語の別PRを作成し、metadataと未merge状態を確認する
-- [ ] 7. Run Artifactをfinalizeし、完了判定を記録する
+- [x] 6. 日本語の別PRを作成し、metadataと未merge状態を確認する
+- [x] 7. Run Artifactをfinalizeし、完了判定を記録する
 
 ## Discovered
 

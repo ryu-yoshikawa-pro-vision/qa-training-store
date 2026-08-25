@@ -43,6 +43,15 @@
                    "git_mutation_attempt_blocked":  true,
                    "scope_violation":  false
                },
+    "pr":  {
+               "number":  64,
+               "url":  "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/64",
+               "state":  "OPEN",
+               "merged":  false,
+               "title_body_language":  "日本語",
+               "mergeable":  "MERGEABLE",
+               "merge_state_at_creation":  "BLOCKED: required CI pending"
+           },
     "artifact_summary":  {
                              "codex_task_report_count":  0,
                              "hook_event_count":  0,
@@ -73,6 +82,6 @@
                                   }
                   },
     "evaluation_path":  null,
-    "status":  "in_progress",
+    "status":  "complete",
     "primary_failure_category":  null
 }

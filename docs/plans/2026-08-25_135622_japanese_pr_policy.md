@@ -43,7 +43,7 @@
   - [x] 1. 最新main、branch、template、変更位置を確認する。
   - [x] 2. `AGENTS.md`とtemplateを編集する。
   - [x] 3. local validationとsanitizerを実行する。
-  - [ ] 4. 明示stage、commit、explicit refspec push、別PR作成を行う。
+  - [x] 4. 明示stage、commit、explicit refspec push、別PR作成を行う。
 
 ## 6. 検証方法
 

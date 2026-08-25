@@ -81,3 +81,23 @@
 - New tasks: なし。
 - Remaining: この追記のdocs-only push、別PR作成・metadata確認、Run finalization。
 - Progress: 71% (5/7)
+
+## 2026-08-25 14:06 (JST)
+
+- Summary: Bの日本語運用ルールPRを作成し、Run Artifactをrepository-local作業としてfinalizeした。
+- Completed:
+  - PR #64（`https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/64`）を日本語title/bodyで作成した。
+  - PR metadataでbase=`main`、head=`docs/japanese-pull-request-policy`、state=`OPEN`、mergedAt=null、title/body日本語を確認した。
+  - `mergeable=MERGEABLE`を確認した。作成直後のrequired CI pendingにより`mergeStateStatus=BLOCKED`であることも確認した。
+  - B用RunのTASKS、plan、run manifestを完了状態へ更新する。
+- Changes: PR #64のremote CI結果はこのRunへ書き戻さず、PR metadataを正本とする。
+- Commands:
+  - `gh pr create --base main --head docs/japanese-pull-request-policy` => PR #64を作成。
+  - `gh pr view 64 --json ...` => title/body日本語、base/head、OPEN、未merge、MERGEABLEを確認。
+- Notes/Decisions:
+  - PR #64はPR #62とは別branch・別PRであり、どちらもmergeしない。
+  - Run Artifactはrepository-localの計画、編集、validation、commit、push、PR作成確認を記録してfinalizeする。
+  - post-PR remote CIはPR #64 metadataを正本とし、CI結果だけを書き戻す追加commitは作成しない。
+- New tasks: なし。
+- Remaining: なし。PR #64はCI pendingのためGitHub上のmergeStateStatusがBLOCKEDだが、今回の作業はmergeせず停止する。
+- Progress: 100% (7/7)
