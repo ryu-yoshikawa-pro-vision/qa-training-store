@@ -84,5 +84,15 @@
                   },
     "evaluation_path":  null,
     "status":  "in_progress",
-    "primary_failure_category":  null
+    "primary_failure_category":  null,
+    "merge_commit_sha":  "de81457c9959dd94b8bfde3e847346445754a970",
+    "merge_parents":  [
+                         "c8606ec1f6b3d13f665dcfbaa3d882706fbc7273",
+                         "47ea1477dda468864d3b053bedcfef0a6afb887e"
+                       ],
+    "push":  {
+                "status":  "not_pushed",
+                "force":  false,
+                "target":  "origin/investigate/issue-57-uuid-remediation"
+              }
 }

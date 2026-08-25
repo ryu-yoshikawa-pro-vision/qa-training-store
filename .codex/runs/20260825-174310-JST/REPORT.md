@@ -137,6 +137,24 @@
 - Remaining: merge commit、push、push後CI/PR本文、Run finalization。
 - Progress: 69% (9/13)
 
+## 2026-08-25 18:06 (JST)
+
+- Summary: 通常のmerge commitを作成し、親commitとmain基準差分を確認した。
+- Completed:
+  - merge commit `de81457c9959dd94b8bfde3e847346445754a970`を作成した。
+  - first parentはPR #63側`c8606ec1f6b3d13f665dcfbaa3d882706fbc7273`、second parentは`origin/main=47ea1477dda468864d3b053bedcfef0a6afb887e`である。
+  - `rebase`、`reset --hard`、force push、mainへのpushは使用していない。
+  - merge後のworking treeはclean、unmerged pathは0。`origin/main...HEAD`のpackage/lockfile差分は予定どおりscoped uuid remediationだけである。
+- Commands:
+  - `git commit --no-edit` => merge commit `de81457c9959dd94b8bfde3e847346445754a970`。
+  - `git show -s --format='%H%n%P%n%s' HEAD` => first/second parentを確認。
+  - `git status --short --branch` => working tree clean、feature remoteに対してpush前。
+  - `git diff --stat origin/main...HEAD` / `git diff origin/main...HEAD -- package.json pnpm-lock.yaml` => main基準の変更範囲を確認。
+- Notes/Decisions: Run Artifactのmerge SHA記録を追加してから、指定branchへ通常pushする。
+- New tasks: なし。
+- Remaining: push、PR #63最新head/CI確認、PR本文更新、Run finalization。
+- Progress: 77% (10/13)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

@@ -11,7 +11,7 @@
 - [x] 7. frozen install、dependency graph、Expo check/Doctorを実行する
 - [x] 8. `expo config`、uuid/xcode CommonJS/generateUuid smoke、repository validationを実行する
 - [x] 9. diff、format、sanitizerを確認し、merge commit前の安全条件を確定する
-- [ ] 10. 必要ファイルをstageして通常のmerge commitを作成する
+- [x] 10. 必要ファイルをstageして通常のmerge commitを作成する
 - [ ] 11. 指定branchへforceなしでpushし、最新head/mergeable/checksを確認する
 - [ ] 12. PR #63本文を日本語で最新状態へ更新し、更新後metadataを確認する
 - [ ] 13. Run Artifactをfinalizeし、未完了事項と最終結果を記録する
