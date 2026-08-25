@@ -1,0 +1,88 @@
+{
+    "schema_version":  1,
+    "run_id":  "20260825-174310-JST",
+    "task_type":  "implementation",
+    "workflow_level":  "standard",
+    "preset":  "safe",
+    "runtime":  "host",
+    "agents_used":  [
+
+                    ],
+    "repo":  "qa-training-store",
+    "branch":  "investigate/issue-57-uuid-remediation",
+    "base_branch":  "main",
+    "codex_task_reports":  [
+
+                           ],
+    "changed_files":  [
+                         "package.json",
+                         "pnpm-lock.yaml",
+                         "AGENTS.md",
+                         ".github/pull_request_template.md",
+                         ".codex/runs/20260825-174310-JST/PLAN.md",
+                         ".codex/runs/20260825-174310-JST/TASKS.md",
+                         ".codex/runs/20260825-174310-JST/REPORT.md",
+                         ".codex/runs/20260825-174310-JST/run.json",
+                         "docs/plans/2026-08-25_174310_pr63_conflict_resolution_latest_main.md"
+                      ],
+    "validation":  {
+                       "status":  "passed",
+                       "commands":  [
+                                    "git fetch origin",
+                                    "pnpm --version",
+                                    "pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile",
+                                    "pnpm install --frozen-lockfile",
+                                    "pnpm why/list uuid/xcode",
+                                    "pnpm exec expo install --check",
+                                    "pnpm dlx expo-doctor@1.17.6",
+                                    "pnpm exec expo config --json",
+                                    "uuid/xcode CommonJS smoke",
+                                    "pnpm run verify",
+                                    "git diff --check",
+                                    "scripts/sanitize-codex-artifacts.ps1 -Write -Check"
+                                    ],
+                       "warnings":  [
+                                    "git checkout --theirs was blocked by PreToolUse G5; no destructive checkout was used",
+                                    "lint: 65 warnings, 0 errors",
+                                    "initial smoke script had a path calculation error and was corrected; final smoke passed"
+                                    ]
+                   },
+    "safety":  {
+                   "network":  true,
+                   "delete_attempt_blocked":  false,
+                   "git_mutation_attempt_blocked":  true,
+                   "scope_violation":  false
+               },
+    "artifact_summary":  {
+                             "codex_task_report_count":  0,
+                             "hook_event_count":  0,
+                             "subagent_run_count":  0,
+                             "evaluation_present":  false
+                         },
+    "hook_observations":  {
+                              "log_paths":  [
+
+                                            ],
+                              "event_counts":  {
+
+                                               },
+                              "blocking_event_count":  0,
+                              "safety_blocked_count":  0,
+                              "observation_error_count":  0
+                          },
+    "subagents":  {
+                      "records":  [
+
+                                  ],
+                      "summary":  {
+                                      "total":  0,
+                                      "read_only":  0,
+                                      "writable":  0,
+                                      "scope_violations":  0,
+                                      "used_in_final_plan":  0
+                                  }
+                  },
+    "evaluation_path":  null,
+    "status":  "in_progress",
+    "primary_failure_category":  null
+}
