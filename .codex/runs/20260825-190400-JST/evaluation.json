@@ -11,7 +11,7 @@
     "quality_gates": "pass: focused／全contracts、format、lint、typecheck、verifyを実行。lintは既存warningのみ",
     "self_review_and_scope": "pass: code-review観点でfinding 0件。依存、launcher、config、#63、unrelated scopeの混入なし",
     "artifact_sanitization": "pass: Write／Check、5 files、0 residual findings",
-    "commit_push_pr": "partial: 実装commit f85d437とRun記録commit 993d7baを作成し、指定remote branchへpush。PRは未作成",
+    "commit_push_pr": "pass: 実装commit f85d437、Run記録commit 993d7ba／e68d513を作成し、指定remote branchへpush、PR #65を作成",
     "post_pr_final_confirmation": "pending"
   },
   "evidence": {
@@ -22,6 +22,13 @@
     "implementation_commit": "f85d437",
     "run_artifact_commit": "993d7ba",
     "pushed_head": "993d7ba",
+    "pr_number": 65,
+    "pr_url": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/65",
+    "pr_title": "fix: CodexのGitブランチ保護をPreToolUseで強化する",
+    "pr_state": "OPEN",
+    "pr_is_draft": false,
+    "pr_base": "main",
+    "pr_head": "fix/codex-git-branch-protection",
     "expected_changed_files": [
       ".codex/hooks/pre_tool_use_policy.mjs",
       ".codex/runs/20260825-190400-JST/PLAN.md",

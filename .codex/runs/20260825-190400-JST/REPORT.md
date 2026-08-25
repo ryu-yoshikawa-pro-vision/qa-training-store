@@ -171,3 +171,20 @@
 - New tasks: なし。
 - Remaining: push後Run記録commit、PR、PR後最終確認。
 - Progress: 85% (11/13)
+
+## 2026-08-25 19:44（JST）
+
+- Summary: 日本語のOPEN PR #65を作成した。PRはmergeしていない。
+- Completed:
+  - base `main`、head `fix/codex-git-branch-protection`でPRを作成した。
+  - 日本語タイトル、本文、`Closes #60`、検証結果、安全性、対象外を反映した。
+  - PR metadataでOPEN、非Draft、head／base一致を確認した。
+- Changes: GitHub上にPR #65を作成した。ローカルのsource変更はない。
+- Commands:
+  - `gh pr create --repo ryu-yoshikawa-pro-vision/qa-training-store --base main --head fix/codex-git-branch-protection ...` => PASS。
+  - `gh pr view 65 --json number,title,state,isDraft,baseRefName,headRefName,headRefOid,url,body` => OPEN、非Draft、base／head一致、日本語本文、`Closes #60`を確認。
+- Notes/Decisions:
+  - PRはmergeしない。CIは作成後の最終確認で開始状況だけ確認し、無制限に待機しない。
+- New tasks: なし。
+- Remaining: PR作成後のbranch／diff／SHA／PR metadata／CI開始状況の最終確認。
+- Progress: 92% (12/13)
