@@ -1,0 +1,94 @@
+{
+    "schema_version":  1,
+    "run_id":  "20260825-120944-JST",
+    "task_type":  "repair",
+    "workflow_level":  "strict",
+    "preset":  "safe",
+    "runtime":  "host",
+    "agents_used":  [
+
+                    ],
+    "repo":  "qa-training-store",
+    "branch":  "fix/expo-sdk-57-patch-alignment",
+    "base_branch":  "main",
+    "codex_task_reports":  [
+
+                           ],
+    "changed_files":  [
+                         ".codex/runs/20260825-120944-JST/PLAN.md",
+                         ".codex/runs/20260825-120944-JST/TASKS.md",
+                         ".codex/runs/20260825-120944-JST/REPORT.md",
+                         ".codex/runs/20260825-120944-JST/run.json",
+                         ".codex/runs/20260825-120944-JST/evaluation.json",
+                         "docs/plans/2026-08-25_120944_pr62_conflict_resolution.md",
+                         "package.json",
+                         "pnpm-lock.yaml"
+                       ],
+    "validation":  {
+                       "status":  "passed_with_warnings",
+                       "commands":  [
+                                    "git -C . merge origin/main",
+                                    "pnpm install --lockfile-only --ignore-scripts",
+                                    "pnpm install --frozen-lockfile",
+                                    "pnpm exec expo install --check",
+                                    "pnpm dlx expo-doctor@1.17.6",
+                                    "pnpm run generate:native-assets",
+                                    "pnpm run validate:image-manifest",
+                                    "pnpm run test:component:native",
+                                    "pnpm run check:native-route-dependencies",
+                                    "pnpm run validate:eas:config",
+                                    "pnpm run format:check",
+                                    "pnpm run verify",
+                                    "git diff --check"
+                                  ],
+                       "warnings":  [
+                                    "既存lint warning 65件",
+                                    "Native Jest act warning",
+                                    "SQLite ExperimentalWarning",
+                                   "pnpm peer warning: react-native-worklets / @react-native/metro-config"
+                                 ]
+                   },
+    "finalization":  {
+                       "repository_local":  "complete",
+                       "remote_final_head_evidence":  "PR #62本文を正本として確認",
+                       "post_commit_ci_writeback_commit":  false
+                   },
+    "safety":  {
+                   "network":  false,
+                   "delete_attempt_blocked":  false,
+                   "git_mutation_attempt_blocked":  false,
+                   "scope_violation":  false
+               },
+    "artifact_summary":  {
+                             "codex_task_report_count":  0,
+                             "hook_event_count":  0,
+                             "subagent_run_count":  0,
+                             "evaluation_present":  true
+                         },
+    "hook_observations":  {
+                              "log_paths":  [
+
+                                            ],
+                              "event_counts":  {
+
+                                               },
+                              "blocking_event_count":  0,
+                              "safety_blocked_count":  0,
+                              "observation_error_count":  0
+                          },
+    "subagents":  {
+                      "records":  [
+
+                                  ],
+                      "summary":  {
+                                      "total":  0,
+                                      "read_only":  0,
+                                      "writable":  0,
+                                      "scope_violations":  0,
+                                      "used_in_final_plan":  0
+                                  }
+                  },
+    "evaluation_path":  ".codex/runs/20260825-120944-JST/evaluation.json",
+    "status":  "complete",
+    "primary_failure_category":  null
+}
