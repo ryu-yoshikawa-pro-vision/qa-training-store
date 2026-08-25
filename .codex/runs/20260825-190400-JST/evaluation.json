@@ -2,7 +2,7 @@
   "schema_version": 1,
   "run_id": "20260825-190400-JST",
   "task": "Issue #60のPreToolUse Git branch protection強化を実装し、検証・commit・push・OPEN PR作成まで完了する",
-  "status": "in_progress",
+  "status": "complete",
   "criteria": {
     "baseline_and_branch_safety": "pass: 最新origin/mainを確認し、指定branchのcleanな既存worktreeを安全に継続利用する",
     "git_invocation_normalization": "pass: Git global option／subcommand解析を共通化し、git -C variantを既存policyへ接続",
@@ -12,7 +12,7 @@
     "self_review_and_scope": "pass: code-review観点でfinding 0件。依存、launcher、config、#63、unrelated scopeの混入なし",
     "artifact_sanitization": "pass: Write／Check、5 files、0 residual findings",
     "commit_push_pr": "pass: 実装commit f85d437、Run記録commit 993d7ba／e68d513を作成し、指定remote branchへpush、PR #65を作成",
-    "post_pr_final_confirmation": "pending"
+    "post_pr_final_confirmation": "pass: local／remote HEAD d5b8d64一致、origin/main不変、PR #65 OPEN／非Draft／base main／head一致。CIは開始済みでnative-ci verify pass、他はpending／skippingあり"
   },
   "evidence": {
     "main_sha_at_start": "690274a4829ebd1edc1463704990f085bc5895bd",
@@ -29,6 +29,9 @@
     "pr_is_draft": false,
     "pr_base": "main",
     "pr_head": "fix/codex-git-branch-protection",
+    "final_checked_head": "d5b8d64ec1f656c0124c09f4ee014eaaa4cc4703",
+    "origin_main_at_final_check": "690274a4829ebd1edc1463704990f085bc5895bd",
+    "ci_at_final_check": "native-ci / verify pass; Detect Native Changes pass; CodeQL pending; native matrix jobs skipping; CodeRabbit manual review requiredでskip",
     "expected_changed_files": [
       ".codex/hooks/pre_tool_use_policy.mjs",
       ".codex/runs/20260825-190400-JST/PLAN.md",
@@ -43,7 +46,5 @@
       "tests/contracts/codex-hook-contract.test.ts"
     ]
   },
-  "open_items": [
-    "push、PR作成、PR後のbranch／diff／metadata最終確認"
-  ]
+  "open_items": []
 }

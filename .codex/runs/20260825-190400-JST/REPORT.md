@@ -188,3 +188,25 @@
 - New tasks: なし。
 - Remaining: PR作成後のbranch／diff／SHA／PR metadata／CI開始状況の最終確認。
 - Progress: 92% (12/13)
+
+## 2026-08-25 19:46（JST）
+
+- Summary: PR作成後のbranch、diff、SHA、PR metadata、CI開始状況を最終確認した。
+- Completed:
+  - `git fetch origin`後、current branch、working tree、local／remote SHA、origin/main、diff checkを確認した。
+  - local HEADと`origin/fix/codex-git-branch-protection`は`d5b8d64ec1f656c0124c09f4ee014eaaa4cc4703`で一致した。
+  - `origin/main`は`690274a4829ebd1edc1463704990f085bc5895bd`で、今回branch commitがmainへ直接pushされていないことを確認した。
+  - PR #65はOPEN、非Draft、base `main`、head `fix/codex-git-branch-protection`、日本語タイトル／本文、`Closes #60`を確認した。
+  - CI開始状況を確認した。`native-ci / verify`と`Detect Native Changes`はpass、CodeQLはpending、native matrix jobsはskipping、CodeRabbitはOSS manual review requiredでskipだった。CI完了は待機していない。
+- Changes: Run Artifactへ最終評価を反映した。PRはmergeしていない。
+- Commands:
+  - `git fetch origin`、`git branch --show-current`、`git status --short`、`git rev-parse HEAD`、`git rev-parse origin/fix/codex-git-branch-protection`、`git rev-parse origin/main`、`git diff --check` => branch／SHA／clean／diff契約PASS。
+  - `git diff --stat origin/main...HEAD` => 11 expected files、903 insertions、4 deletions。
+  - `gh pr view 65 --repo ryu-yoshikawa-pro-vision/qa-training-store --json ...` => OPEN、非Draft、base／head一致、日本語本文、Issue #60紐付け。
+  - `gh pr checks 65 --repo ryu-yoshikawa-pro-vision/qa-training-store` => CI開始済み。pending／skippingを含むためexit 1だが、失敗原因とは扱わない。
+- Notes/Decisions:
+  - PRはmergeせず停止する。
+  - 以後のRun完了記録commitはdocs-onlyで、source／test／PR本文を変更しない。
+- New tasks: なし。
+- Remaining: なし。最終Run記録のdocs-only commitとremote反映後に、同一確認を再実行する。
+- Progress: 100% (13/13)

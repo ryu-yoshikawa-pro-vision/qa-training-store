@@ -22,7 +22,7 @@
 - [x] 14. commit前確認後、指定branchでcommitする。
 - [x] 15. push前確認後、明示refspecでremoteへpushする。
 - [x] 16. 日本語タイトル・本文でbase `main`のOPEN PRを作成する。mergeはしない。
-- [ ] 17. PR作成後にbranch、diff、SHA、PR metadata、CI開始状況を最終確認する。
+- [x] 17. PR作成後にbranch、diff、SHA、PR metadata、CI開始状況を最終確認する。
 
 ## Discovered
 
