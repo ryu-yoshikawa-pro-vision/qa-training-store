@@ -810,6 +810,292 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     }
   });
 
+  it.each([
+    { command: 'git push "--force" origin feature/safe', decisionId: "G7" },
+    { command: 'git commit "--amend" -m "x"', decisionId: "G3" },
+    { command: 'git clean "-fd"', decisionId: "G4" },
+    { command: 'git branch "-D" old-feature', decisionId: "G9" },
+    { command: 'git checkout "-B" existing-branch', decisionId: "G5" },
+    { command: 'git switch "-C" existing-branch', decisionId: "G5" },
+    { command: 'git push origin "HEAD:main"', decisionId: "G10" },
+  ])(
+    "evaluates quoted Git options as ordinary argument tokens: $command",
+    ({ command, decisionId }) => {
+      const result = runNodeHookWithExplicitContexts([
+        {
+          id: "quoted-option",
+          expected: "deny",
+          command,
+          context: {
+            currentBranch: "feature/safe",
+            protectedBranches: ["main", "master"],
+            remoteNames: ["origin"],
+          },
+        },
+      ]);
+
+      expect(result.status).toBe(0);
+      expect(result.stderr).toBe("");
+      const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
+      expect(evaluations[0]?.decision?.id).toBe(decisionId);
+    },
+  );
+
+  it("treats git.exe as the same Git executable as git", () => {
+    const safe = runNodeHook(
+      JSON.stringify({
+        tool_name: "Bash",
+        tool_input: { command: "git.exe status" },
+      }),
+    );
+    expect(safe.status).toBe(0);
+    expect(safe.stdout).toBe("");
+    expect(safe.stderr).toBe("");
+
+    const denied = runNodeHookWithExplicitContexts([
+      {
+        id: "git-exe-commit",
+        expected: "deny",
+        command: "git.exe -C . commit -m bad",
+        context: { currentBranch: "main", protectedBranches: ["main", "master"] },
+      },
+      {
+        id: "git-exe-force",
+        expected: "deny",
+        command: "git.exe push --force origin feature/safe",
+        context: { currentBranch: "feature/safe", protectedBranches: ["main", "master"] },
+      },
+      {
+        id: "git-exe-protected-push",
+        expected: "deny",
+        command: "git.exe -C . push origin HEAD:main",
+        context: {
+          currentBranch: "feature/safe",
+          protectedBranches: ["main", "master"],
+          remoteNames: ["origin"],
+        },
+      },
+    ]);
+
+    expect(denied.status).toBe(0);
+    expect(denied.stderr).toBe("");
+    const evaluations = JSON.parse(denied.stdout) as ContextualEvaluation[];
+    expect(evaluations.map((evaluation) => evaluation.decision?.id)).toEqual(["G10", "G7", "G10"]);
+  });
+
+  it("fails closed for implicit, bulk, matching, wildcard, and URL-only push forms", () => {
+    const context = {
+      currentBranch: "feature/safe",
+      protectedBranches: ["main", "master"],
+      remoteNames: ["origin"],
+    };
+    const cases: PolicyCase[] = [
+      { id: "push-implicit", expected: "deny", command: "git push", context },
+      { id: "push-remote-only", expected: "deny", command: "git push origin", context },
+      { id: "push-all", expected: "deny", command: "git push --all origin", context },
+      { id: "push-branches", expected: "deny", command: "git push --branches origin", context },
+      { id: "push-matching", expected: "deny", command: "git push origin :", context },
+      {
+        id: "push-wildcard",
+        expected: "deny",
+        command: 'git push origin "refs/heads/*:refs/heads/*"',
+        context,
+      },
+      {
+        id: "push-url-only",
+        expected: "deny",
+        command: "git push https://example.test/repo.git",
+        context,
+      },
+    ];
+    const result = runNodeHookWithExplicitContexts(cases);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
+    expect(evaluations).toHaveLength(cases.length);
+    for (const [index, evaluation] of evaluations.entries()) {
+      expect(evaluation.id).toBe(cases[index]?.id);
+      expect(evaluation.decision?.id).toMatch(/^(G8|G10)$/);
+    }
+  });
+
+  it("allows only explicit safe feature push destinations", () => {
+    const context = {
+      currentBranch: "feature/safe",
+      protectedBranches: ["main", "master"],
+      remoteNames: ["origin"],
+    };
+    const cases: PolicyCase[] = [
+      { id: "safe-ref", expected: "allow", command: "git push origin feature/safe", context },
+      {
+        id: "safe-head-ref",
+        expected: "allow",
+        command: "git push origin HEAD:feature/safe",
+        context,
+      },
+      {
+        id: "safe-upstream-short",
+        expected: "allow",
+        command: "git push -u origin HEAD:feature/safe",
+        context,
+      },
+      {
+        id: "safe-upstream-long",
+        expected: "allow",
+        command: "git push --set-upstream origin HEAD:feature/safe",
+        context,
+      },
+    ];
+    const result = runNodeHookWithExplicitContexts(cases);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(JSON.parse(result.stdout)).toEqual(
+      cases.map((testCase) => ({ id: testCase.id, decision: null })),
+    );
+  });
+
+  it("fails closed for runtime Git config and environment overrides on mutations", () => {
+    const featureRepo = makeGitFixture();
+    const mainRepo = makeGitFixture();
+    const mainGitDir = path.join(mainRepo, ".git");
+    try {
+      setFixtureBranch(featureRepo, "feature/safe");
+      setFixtureBranch(mainRepo, "main");
+      const quotedMainRepo = quoteCommandPath(mainRepo);
+      const quotedMainGitDir = quoteCommandPath(mainGitDir);
+
+      const cases: string[] = [
+        `git -c alias.p="push origin HEAD:main" p`,
+        `git --config alias.p="push origin HEAD:main" p`,
+        `git -c remote.origin.push=HEAD:main push origin feature/safe`,
+        `git -c push.default=matching push origin feature/safe`,
+        `git --config-env=remote.origin.push=GIT_PUSH_SPEC push origin feature/safe`,
+        `GIT_DIR=${quotedMainGitDir} GIT_WORK_TREE=${quotedMainRepo} git commit -m "bad"`,
+        `GIT_DIR=${quotedMainGitDir} git push origin feature/safe`,
+        `GIT_CONFIG_COUNT=1 GIT_CONFIG_KEY_0=remote.origin.push GIT_CONFIG_VALUE_0=HEAD:main git push origin`,
+        `$env:GIT_DIR=${quotedMainGitDir}; git commit -m "bad"`,
+      ];
+
+      for (const command of cases) {
+        const result = runNodeHook(
+          JSON.stringify({ tool_name: "Bash", tool_input: { command } }),
+          featureRepo,
+        );
+        expect(result.status, command).toBe(0);
+        expect(result.stderr, command).toBe("");
+        expect(JSON.parse(result.stdout), command).toMatchObject({
+          hookSpecificOutput: {
+            permissionDecision: "deny",
+            permissionDecisionReason: expect.stringMatching(/^G10:/),
+          },
+        });
+      }
+
+      const readOnly = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: { command: 'git -c alias.p="push origin HEAD:main" status' },
+        }),
+        featureRepo,
+      );
+      expect(readOnly.status).toBe(0);
+      expect(readOnly.stdout).toBe("");
+      expect(readOnly.stderr).toBe("");
+    } finally {
+      removeFixture(featureRepo);
+      removeFixture(mainRepo);
+    }
+  });
+
+  it("protects local branch destinations in fetch, update-ref, and worktree", () => {
+    const context = {
+      currentBranch: "feature/safe",
+      protectedBranches: ["main", "master", "trunk"],
+      remoteNames: ["origin"],
+    };
+    const cases: PolicyCase[] = [
+      { id: "fetch-safe", expected: "allow", command: "git fetch origin", context },
+      { id: "fetch-feature", expected: "allow", command: "git fetch origin feature/safe", context },
+      {
+        id: "fetch-main",
+        expected: "deny",
+        command: "git fetch origin main:main",
+        context,
+      },
+      {
+        id: "fetch-main-full-ref",
+        expected: "deny",
+        command: "git fetch origin main:refs/heads/main",
+        context,
+      },
+      {
+        id: "fetch-main-force",
+        expected: "deny",
+        command: "git fetch origin +main:refs/heads/main",
+        context,
+      },
+      {
+        id: "fetch-wildcard",
+        expected: "deny",
+        command: 'git fetch origin "+refs/heads/*:refs/heads/*"',
+        context,
+      },
+      {
+        id: "update-ref-main",
+        expected: "deny",
+        command: "git update-ref refs/heads/main 0123456789012345678901234567890123456789",
+        context,
+      },
+      {
+        id: "update-ref-delete-main",
+        expected: "deny",
+        command: "git update-ref -d refs/heads/main",
+        context,
+      },
+      {
+        id: "update-ref-feature",
+        expected: "allow",
+        command: "git update-ref refs/heads/feature/safe 0123456789012345678901234567890123456789",
+        context,
+      },
+      {
+        id: "worktree-list",
+        expected: "allow",
+        command: "git worktree list",
+        context,
+      },
+      {
+        id: "worktree-main",
+        expected: "deny",
+        command: "git worktree add -B main ../tmp HEAD",
+        context,
+      },
+      {
+        id: "worktree-force-unknown",
+        expected: "deny",
+        command: "git worktree add --force ../tmp main",
+        context,
+      },
+    ];
+    const result = runNodeHookWithExplicitContexts(cases);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
+    expect(evaluations).toHaveLength(cases.length);
+    for (const [index, testCase] of cases.entries()) {
+      const evaluation = evaluations[index];
+      expect(evaluation?.id).toBe(testCase.id);
+      if (testCase.expected === "allow") {
+        expect(evaluation?.decision).toBeNull();
+      } else {
+        expect(evaluation?.decision?.id).toBe("G10");
+      }
+    }
+  });
+
   it("blocks a protected branch push whose destination is HEAD", () => {
     const moduleUrl = pathToFileURL(hookPath).href;
     const script = `

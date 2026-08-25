@@ -33,6 +33,8 @@
 - Windows native Codex `0.147.0`のproject Hookは、`[features].hooks = true`、`PreToolUse` matcher `^Bash$`、`command_windows`を正本とする。deprecatedな`codex_hooks`、project-local profile、旧PowerShell／Python policy Hookには依存しない。
 - Full Access common policyの正本は`.codex/hooks/pre_tool_use_policy.mjs`一つであり、G1-G10／N1-N4の明確な破壊代表だけをdenyする。schema-invalid inputはfail-close、safeは無出力、denyはstructured `hookSpecificOutput`を返す。
 - Git operationはshell boundary内の各invocationを独立して解析し、`git -C <path> ...`でも同一policyを適用する。複数`-C`は出現順に累積してeffective repositoryを解決し、context未指定時のprotected branch判定はinvocationごとのrepositoryを対象にする。同一command内の後続Git operationも見逃さない。`--git-dir`／`--work-tree`を使うcontext-sensitive mutationはfail-closeし、read-only operationはblanket denyしない。
+- Git executableはBash系の`git`とWindows／PowerShellの`git.exe`を同一視する。subcommand以降はquote-aware argument tokenで評価し、push destination、fetch refspec、`update-ref` target、`worktree add -B` targetもmutation targetとして静的に検査する。explicit safe push以外のimplicit／bulk／matching／wildcard／複数refspec、URL／pathだけのpushはfail-closeする。
+- `-c`／`--config`／`--config-env`とinline `GIT_DIR`／`GIT_WORK_TREE`／`GIT_CONFIG_*`がrepository／mutation／push semanticsを変える場合はcontext-sensitive mutationをfail-closeする。read-only Git operationは必要以上に禁止しない。完全なshell／Git parser、alias expansion、wrapper、`.git`直接filesystem書換えは対象外である。
 - Windows launcher `.codex/hooks/pre_tool_use_policy_windows.ps1`はstdin／stdout／stderrとNode exit codeのtransportだけを担当する。Rulesはstatic prefixのdefense-in-depth、`auto-net`のRulesとwrapper制約は別preset契約である。
 - 通常の`git add`／feature branch上のcommit・push／fetch／normal switch、path-based unstage、明示的recovery、`python -c`／`python -`／`terraform apply`／`kubectl apply`はcommon Hookでblanket denyしない。`apply_patch`はmatcher外である。
 

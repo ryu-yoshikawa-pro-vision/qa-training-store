@@ -107,3 +107,46 @@ Issue #60では、`git switch -c ... origin/main` は拒否された一方、`gi
 ## 12. Open questions
 
 - なし。Issue本文と既存repository contractで目的、scope、完了判定、検証方法が確定している。
+
+## 13. 追加修正で確定する安全境界
+
+### Git executableとinvocation単位
+
+- Bash系の`git`とWindows／PowerShellの`git.exe`を同じGit executableとして扱う。arbitrary absolute pathのGit executableは対象外とする。
+- 既存の`;`、`&&`、`||`、改行のshell boundary内にある全Git invocationを列挙する。GitContextはcommand単位ではなくGit invocation単位で評価し、同じsubcommandが複数ある場合も各invocationを独立評価する。
+- 各invocationはsubcommand、shell quote除去済み`argumentTokens`、`changeDirectories`、`repositoryChanging`、`runtimeConfigChanging`、inline environment override、`parseError`を保持し、subcommand以降をraw stringだけで判定しない。
+- `git push "--force" origin feature`、`git commit "--amend" -m test`、`git clean "-fd"`、`git branch "-D" old`、`git push origin "HEAD:main"`は、quoteなしの同じtokenと同じG1〜G10判定にする。
+
+### Git global optionとrepository context
+
+- 正式な`-C <path>`だけを扱い、複数`-C`は出現順にeffective cwdを更新する。各invocationは元のprocess cwdから開始し、後続の相対`-C`は直前のeffective cwdを基準に解決する。空pathはcwdを変更しない。
+- `--git-dir`／`--work-tree`はrepository選択を変えるoptionとして、`-c`／`--config`／`--config-env`等の単なるsubcommand前optionと区別する。
+- `--git-dir`／`--work-tree`の完全なsemanticsを再実装せず、context-sensitive mutationではG10相当でfail-closeする。read-only operationまでblanket denyしない。
+- unsupportedなrepository-changing syntaxや、context／mutation targetを安全に決定できないsyntaxを曖昧なcontextでALLOWしない。
+
+### argument tokenとruntime semantics
+
+- G1〜G10の危険option、push destination、fetch refspec、update-ref target、worktree branchはargument token単位で評価する。single quote／double quote／空白を含むpathの既存契約を維持し、完全なshell／Git parserは作らない。
+- `-c`、`--config`、`--config-env`のseparator／`=`形式をruntimeConfigChangingとして検出する。`alias.*`のinline alias、`remote.origin.push`、`push.default`、`--config-env`による注入を含むcontext-sensitive mutationはfail-closeする。safe read-only operationは維持する。
+- inline `GIT_DIR`、`GIT_WORK_TREE`、`GIT_CONFIG_COUNT`、`GIT_CONFIG_KEY_*`、`GIT_CONFIG_VALUE_*`等を限定的に検出し、repository／push／mutation semanticsへ影響するmutationはfail-closeする。PowerShellの完全なstate trackingは実装しない。
+
+### push policy
+
+- destinationを静的に一意判定できる明示的な単一refspecだけをALLOW候補にする。`origin feature/safe`、`origin HEAD:feature/safe`、`-u origin HEAD:feature/safe`、`--set-upstream origin HEAD:feature/safe`を維持する。
+- protected destination、force／force-with-lease、delete／mirror、`--all`／`--branches`、matching `:`, wildcard、複数refspec、remoteだけのimplicit push、URL／filesystem pathだけを指定したpush、runtime configでdestinationが変わるpushはDENYまたはfail-closeする。
+- 最初のposition argumentをremote名でない場合にrefspecと誤認しない。remote名、URL、filesystem pathのいずれであってもrepository positionとして扱い、refspecがない場合は安全判定不能としてDENYする。
+
+### protected local ref mutation
+
+- `git fetch origin`と`git fetch origin feature/safe`はALLOWするが、`main:main`、`main:refs/heads/main`、`+main:refs/heads/main`、protected headsを含み得るwildcard destinationはDENYする。remote-tracking refはlocal protected branchと混同しない。
+- `git update-ref`の`refs/heads/main`、`refs/heads/master`、`origin/HEAD`由来default branch、protected `HEAD`の更新・削除をDENYする。targetを安全に解析できないsyntaxはfail-closeし、feature refは必要以上に禁止しない。
+- `git worktree add -B <protected>`とtargetを安全に特定できないforce相当のprotected branch resetをDENYする。`git worktree list`とfeature branchの通常`worktree add`はALLOWする。
+
+### 実装順、テスト、非目標
+
+1. `parseGitInvocation()`をargument token、runtime option、repository option、environment情報を返す共通解析へ拡張する。
+2. `evaluateCommand()`で全invocationを出現順に独立評価し、1件でもDENYならcommand全体をDENYした後、元commandへN1〜N4を適用する。
+3. push、fetch、update-ref、worktreeのmutation targetを既存G1〜G10相当のdecisionへ接続する。
+4. POLICY_MATRIXはduplicate IDをMap keyにせず、配列indexで全caseを1対1比較する。通常形式、`git -C` variant、代表的な`git.exe` variantを個別検証する。
+5. 危険Git commandは実行せず、Hook／`evaluateCommand()`へ文字列を渡して判定だけを確認する。Windows launcherはtransportのまま変更しない。
+6. 完全なshell parser、完全なGit CLI parser、alias expansion engine、Git config resolver、PowerShell AST、`command git`／`env git`、`bash -lc`／`sh -c`、command substitution、arbitrary executable path、`.git/refs/**`直接書換え、wrapper、branch／worktree manager、expected PR branch state managerは対象外とする。必要なら別Issue候補として記録するが、今回実装・Issue作成は行わない。

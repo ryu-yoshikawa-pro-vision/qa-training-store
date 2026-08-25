@@ -6,7 +6,40 @@ import path from "node:path";
 
 const HOOK_EVENT_NAME = "PreToolUse";
 const PROTECTED_FALLBACK_BRANCHES = ["main", "master"];
-const GIT_CONTEXT_OPERATIONS = new Set(["push", "commit", "merge", "cherry-pick", "revert", "pull", "am"]);
+const GIT_CONTEXT_OPERATIONS = new Set([
+  "push",
+  "commit",
+  "merge",
+  "cherry-pick",
+  "revert",
+  "pull",
+  "am",
+  "fetch",
+  "update-ref",
+  "worktree",
+]);
+const GIT_MUTATION_OPERATIONS = new Set([
+  ...GIT_CONTEXT_OPERATIONS,
+  "reset",
+  "rebase",
+  "clean",
+  "restore",
+  "checkout",
+  "switch",
+  "stash",
+  "rm",
+  "branch",
+  "tag",
+  "config",
+]);
+const GIT_READ_ONLY_OPERATIONS = new Set([
+  "status",
+  "log",
+  "diff",
+  "show",
+  "rev-parse",
+  "remote",
+]);
 const GIT_GLOBAL_OPTIONS_WITH_VALUE = new Set([
   "-c",
   "--config",
@@ -15,6 +48,7 @@ const GIT_GLOBAL_OPTIONS_WITH_VALUE = new Set([
   "--namespace",
   "--work-tree",
 ]);
+const GIT_RUNTIME_CONFIG_OPTIONS = new Set(["-c", "--config", "--config-env"]);
 const GIT_REPOSITORY_CHANGING_OPTIONS = new Set(["--git-dir", "--work-tree"]);
 const GIT_PROTECTED_BRANCH_OPERATIONS = new Set(["commit", "merge", "cherry-pick", "revert", "pull", "am"]);
 
@@ -112,10 +146,6 @@ const EMPTY_CONTEXT = Object.freeze({
   remoteNames: [],
 });
 
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function tokenizeGitArguments(segment) {
   const tokens = [];
   let tokenStart = null;
@@ -158,15 +188,50 @@ function tokenizeGitArguments(segment) {
   }
 
   appendToken(segment.length);
-  return tokens;
+  return {
+    tokens,
+    parseError: quote === null ? null : "unterminated shell quote",
+  };
+}
+
+function parseInlineEnvironment(prefix) {
+  const tokenized = tokenizeGitArguments(prefix);
+  let repositoryEnvironmentChanging = false;
+  let runtimeEnvironmentChanging = false;
+
+  for (const token of tokenized.tokens.map(({ value }) => value)) {
+    const assignment = /^(?:\$env:)?([A-Za-z_][A-Za-z0-9_]*)=(.*)$/i.exec(token);
+    if (!assignment) continue;
+    const name = assignment[1].toUpperCase();
+    if (name === "GIT_DIR" || name === "GIT_WORK_TREE") {
+      repositoryEnvironmentChanging = true;
+    }
+    if (name.startsWith("GIT_CONFIG_")) {
+      runtimeEnvironmentChanging = true;
+    }
+  }
+
+  return {
+    repositoryEnvironmentChanging,
+    runtimeEnvironmentChanging,
+    parseError: tokenized.parseError,
+  };
 }
 
 function parseGitInvocation(segment) {
-  const tokens = tokenizeGitArguments(segment);
+  const tokenized = tokenizeGitArguments(segment);
+  const tokens = tokenized.tokens;
   let tokenIndex = 0;
   const changeDirectories = [];
   let repositoryChanging = false;
+  let runtimeConfigChanging = false;
+  const runtimeConfigValues = [];
   let parseError = null;
+
+  const recordRuntimeConfig = (value) => {
+    runtimeConfigChanging = true;
+    if (value !== undefined) runtimeConfigValues.push(value);
+  };
 
   while (tokenIndex < tokens.length) {
     const token = tokens[tokenIndex]?.value ?? "";
@@ -202,6 +267,28 @@ function parseGitInvocation(segment) {
       parseError = `unsupported repository-changing option ${token}`;
       break;
     }
+
+    const lowerToken = token.toLowerCase();
+    if (GIT_RUNTIME_CONFIG_OPTIONS.has(lowerToken)) {
+      const valueToken = tokens[tokenIndex + 1];
+      if (valueToken === undefined) {
+        parseError = `missing ${token} value`;
+        break;
+      }
+      recordRuntimeConfig(valueToken.value);
+      tokenIndex += 2;
+      continue;
+    }
+    if (/^--(?:config|config-env)=/i.test(token)) {
+      recordRuntimeConfig(token.slice(token.indexOf("=") + 1));
+      tokenIndex += 1;
+      continue;
+    }
+    if (/^-c.+/i.test(token)) {
+      recordRuntimeConfig(token.slice(2));
+      tokenIndex += 1;
+      continue;
+    }
     if (token === "--" || !token.startsWith("-") || token === "-") break;
 
     if (GIT_GLOBAL_OPTIONS_WITH_VALUE.has(token)) {
@@ -216,38 +303,63 @@ function parseGitInvocation(segment) {
   }
 
   const subcommandToken = tokens[tokenIndex];
+  if (!subcommandToken && (repositoryChanging || runtimeConfigChanging)) {
+    parseError ??= "missing Git subcommand";
+  }
   return {
     subcommand: subcommandToken?.value.toLowerCase() ?? "",
-    tail: subcommandToken ? segment.slice(subcommandToken.end) : "",
+    argumentTokens: subcommandToken ? tokens.slice(tokenIndex + 1).map(({ value }) => value) : [],
     changeDirectories,
     repositoryChanging,
-    parseError,
+    runtimeConfigChanging,
+    runtimeConfigValues,
+    parseError: parseError ?? tokenized.parseError,
   };
 }
 
 function getGitInvocations(command) {
   const invocations = [];
-  const pattern = /(?:^|[\r\n;&|]\s*)git(?=\s|$)([^\r\n;&|]*)/gi;
+  const pattern = /(?:^|[\r\n;&|])(?<prefix>[ \t]*(?:(?:[A-Za-z_][A-Za-z0-9_]*|\$env:[A-Za-z_][A-Za-z0-9_]*)=(?:"(?:\\.|[^"])*"|'[^']*'|[^\s\r\n;&|]*)[ \t]+)*)(?:git(?:\.exe)?)(?=\s|$)(?<arguments>[^\r\n;&|]*)/gi;
   for (const match of command.matchAll(pattern)) {
-    invocations.push(parseGitInvocation(match[1] ?? ""));
+    const prefix = match.groups?.prefix ?? "";
+    const parsed = parseGitInvocation(match.groups?.arguments ?? "");
+    const inlineEnvironment = parseInlineEnvironment(prefix);
+    const powerShellEnvironmentChanging = /(?:^|[\r\n;&|])[ \t]*\$env:(?:GIT_DIR|GIT_WORK_TREE|GIT_CONFIG_[A-Za-z0-9_]+)[ \t]*=/i.test(
+      command.slice(0, match.index ?? 0),
+    );
+    invocations.push({
+      ...parsed,
+      repositoryEnvironmentChanging:
+        inlineEnvironment.repositoryEnvironmentChanging || powerShellEnvironmentChanging,
+      runtimeEnvironmentChanging:
+        inlineEnvironment.runtimeEnvironmentChanging || powerShellEnvironmentChanging,
+      sourceIndex: match.index ?? 0,
+    });
   }
   return invocations;
 }
 
-function getInvocationTail(invocation, operation) {
-  return invocation.subcommand === operation.toLowerCase() ? invocation.tail : null;
+function getInvocationArguments(invocation, operation) {
+  return invocation.subcommand === operation.toLowerCase() ? invocation.argumentTokens : null;
 }
 
-function tailHasOption(tail, option) {
-  return new RegExp(`(?:^|\\s)${escapeRegExp(option)}(?=\\s|$)`, "i").test(tail);
+function argumentHasLongOption(argumentsList, option) {
+  return argumentsList.some(
+    (argument) => argument.toLowerCase() === option.toLowerCase() || argument.toLowerCase().startsWith(`${option.toLowerCase()}=`),
+  );
 }
 
-function tailHasOptionWithOptionalValue(tail, option) {
-  return new RegExp("(?:^|\\s)" + escapeRegExp(option) + "(?:=\\S+)?(?=\\s|$)", "i").test(tail);
-}
-
-function tailHasShortOption(tail, optionTokenPattern) {
-  return new RegExp(`(?:^|\\s)-${optionTokenPattern}(?=\\s|$)`).test(tail);
+function argumentsHaveShortFlag(argumentsList, flag, allowedCharacters = flag) {
+  for (const argument of argumentsList) {
+    if (argument === "--") break;
+    if (!/^-([A-Za-z]+)$/.test(argument)) continue;
+    const body = argument.slice(1);
+    const flagIndex = body.indexOf(flag);
+    if (flagIndex >= 0 && [...body.slice(0, flagIndex + 1)].every((character) => allowedCharacters.includes(character))) {
+      return true;
+    }
+  }
+  return false;
 }
 
 function evaluateMvForce(command) {
@@ -281,33 +393,32 @@ function evaluateMvForce(command) {
   return mode === "force";
 }
 
-function isRecoveryOperation(tail) {
-  return /(?:^|\s)--(?:abort|quit|show-current-patch)(?:\s|$)/i.test(tail);
+function isRecoveryOperation(argumentsList) {
+  return argumentsList.some((argument) =>
+    ["--abort", "--quit", "--show-current-patch"].includes(argument.toLowerCase()),
+  );
 }
 
 function evaluateGitReset(invocation) {
-  const tail = getInvocationTail(invocation, "reset");
-  if (tail === null) return false;
-  if (tailHasOption(tail, "--hard")) return true;
-  if (/(?:^|\s)--\s+\S/.test(tail)) return false;
-
-  const positional = tail
-    .replace(/^\s+(?:--[^\s]+|-[^\s]+)(?:\s+|$)/g, "")
-    .trim();
-  return positional.length > 0;
+  const argumentsList = getInvocationArguments(invocation, "reset");
+  if (argumentsList === null) return false;
+  if (argumentHasLongOption(argumentsList, "--hard")) return true;
+  const separatorIndex = argumentsList.indexOf("--");
+  if (separatorIndex >= 0 && argumentsList.length > separatorIndex + 1) return false;
+  return argumentsList.some((argument) => !argument.startsWith("-"));
 }
 
 function evaluateGitRestore(invocation) {
-  const tail = getInvocationTail(invocation, "restore");
-  if (tail === null) return false;
-  return !tailHasOption(tail, "--staged") || tailHasOption(tail, "--worktree");
+  const argumentsList = getInvocationArguments(invocation, "restore");
+  if (argumentsList === null) return false;
+  return !argumentHasLongOption(argumentsList, "--staged") || argumentHasLongOption(argumentsList, "--worktree");
 }
 
 function evaluateGitClean(invocation) {
-  const tail = getInvocationTail(invocation, "clean");
+  const argumentsList = getInvocationArguments(invocation, "clean");
   return (
-    tail !== null &&
-    (tailHasShortOption(tail, "[qdfx]*f[qdfx]*") || tailHasOption(tail, "--force"))
+    argumentsList !== null &&
+    (argumentsHaveShortFlag(argumentsList, "f", "qdfx") || argumentHasLongOption(argumentsList, "--force"))
   );
 }
 
@@ -365,70 +476,307 @@ function isProtectedRef(value, protectedBranches) {
   return protectedBranches.some((branch) => normalized === branch.toLowerCase());
 }
 
-function getPushDestinations(tail, remoteNames) {
-  const values = tail
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .filter((value) => !value.startsWith("-"));
-  if (values.length === 0) return [];
+function isProtectedLocalRef(value, protectedBranches) {
+  const normalizedValue = value.trim();
+  if (/^refs\/(?:remotes|tags)\//i.test(normalizedValue)) return false;
+  if (/^origin\//i.test(normalizedValue)) return false;
+  return isProtectedRef(normalizedValue, protectedBranches);
+}
 
-  let refs = values;
-  const first = values[0].toLowerCase();
-  if (remoteNames.includes(first)) refs = values.slice(1);
-  if (refs.length === 0) return [];
+const PUSH_OPTIONS_WITH_VALUE = new Set(["--exec", "--receive-pack", "--push-option", "--repo", "-o"]);
+const PUSH_SAFE_OPTIONS = new Set([
+  "--atomic",
+  "--dry-run",
+  "--follow-tags",
+  "--ipv4",
+  "--ipv6",
+  "--no-atomic",
+  "--no-progress",
+  "--no-signed",
+  "--no-thin",
+  "--no-verify",
+  "--porcelain",
+  "--progress",
+  "--quiet",
+  "--set-upstream",
+  "--signed",
+  "--thin",
+  "--verbose",
+  "--verify",
+]);
 
-  return refs.map((ref) => {
-    const separator = ref.lastIndexOf(":");
-    return separator >= 0 ? ref.slice(separator + 1) : ref;
-  });
+function parsePushArguments(argumentsList) {
+  const positional = [];
+  let repository = null;
+  let endOfOptions = false;
+
+  for (let index = 0; index < argumentsList.length; index += 1) {
+    const argument = argumentsList[index];
+    const lowerArgument = argument.toLowerCase();
+    if (!endOfOptions && argument === "--") {
+      endOfOptions = true;
+      continue;
+    }
+    if (!endOfOptions && argument.startsWith("-") && argument !== "-") {
+      if (/^--force(?:-with-lease)?(?:=|$)/i.test(argument) || lowerArgument === "--force-if-includes") {
+        return { decision: { id: "G7", reason: "G7: force push is forbidden by the common policy." } };
+      }
+      if (/^--(?:delete|prune)(?:=|$)/i.test(argument)) {
+        return {
+          decision: {
+            id: "G8",
+            reason: "G8: remote ref deletion or mirroring is forbidden by the common policy.",
+          },
+        };
+      }
+      if (["--mirror"].includes(lowerArgument)) {
+        return {
+          decision: {
+            id: "G8",
+            reason: "G8: remote ref deletion or mirroring is forbidden by the common policy.",
+          },
+        };
+      }
+      if (["--all", "--branches", "--tags"].includes(lowerArgument)) {
+        return {
+          decision: {
+            id: "G10",
+            reason: "G10: bulk push destinations cannot be determined safely.",
+          },
+        };
+      }
+      if (/^-[A-Za-z]+$/.test(argument)) {
+        if (argument.includes("d")) {
+          return {
+            decision: {
+              id: "G8",
+              reason: "G8: remote ref deletion or mirroring is forbidden by the common policy.",
+            },
+          };
+        }
+        if (argument.includes("f")) {
+          return { decision: { id: "G7", reason: "G7: force push is forbidden by the common policy." } };
+        }
+        if (/^-[quv]+$/.test(argument) || argument === "-u") continue;
+      }
+
+      const optionName = lowerArgument.split("=", 1)[0];
+      if (PUSH_OPTIONS_WITH_VALUE.has(optionName)) {
+        if (argument.includes("=")) {
+          if (optionName === "--repo") repository = argument.slice(argument.indexOf("=") + 1);
+          continue;
+        }
+        const value = argumentsList[index + 1];
+        if (value === undefined) return { parseError: `missing ${argument} value` };
+        if (optionName === "--repo") repository = value;
+        index += 1;
+        continue;
+      }
+      if (PUSH_SAFE_OPTIONS.has(lowerArgument)) continue;
+      if (lowerArgument === "--repo") {
+        const value = argumentsList[index + 1];
+        if (value === undefined) return { parseError: "missing --repo value" };
+        repository = value;
+        index += 1;
+        continue;
+      }
+      return { decision: { id: "G10", reason: "G10: unsupported push option cannot be evaluated safely." } };
+    }
+    positional.push(argument);
+  }
+
+  if (repository === null) repository = positional.shift() ?? null;
+  return { repository, refspecs: positional };
+}
+
+function getPushDestination(refspec, currentBranch) {
+  if (refspec === ":" || refspec.startsWith(":")) return { kind: "delete" };
+  if (refspec.startsWith("+")) return { kind: "force" };
+  if (refspec.includes("*")) return { kind: "wildcard" };
+  const separator = refspec.lastIndexOf(":");
+  const destination = separator >= 0 ? refspec.slice(separator + 1) : refspec;
+  if (!destination) return { kind: "delete" };
+  return {
+    kind: "explicit",
+    destination:
+      destination === "HEAD" || destination === "@" ? currentBranch || destination : destination,
+  };
 }
 
 function evaluateGitPush(invocation, context) {
-  const tail = getInvocationTail(invocation, "push");
-  if (tail === null) return null;
+  const argumentsList = getInvocationArguments(invocation, "push");
+  if (argumentsList === null) return null;
 
-  if (
-    /(?:^|\s)(?:--force(?:-with-lease)?)(?:=|\s|$)/i.test(tail) ||
-    tailHasShortOption(tail, "[quvf]*f[quvf]*") ||
-    /(?:^|\s)\+[^\s]+/.test(tail)
-  ) {
+  const parsed = parsePushArguments(argumentsList);
+  if (parsed.decision) return parsed.decision;
+  if (parsed.parseError) {
+    return { id: "G10", reason: `G10: push arguments cannot be evaluated safely (${parsed.parseError}).` };
+  }
+  if (!parsed.repository || parsed.refspecs?.length !== 1) {
+    return { id: "G10", reason: "G10: push destination must be an explicit single refspec." };
+  }
+
+  const destination = getPushDestination(parsed.refspecs[0], context.currentBranch);
+  if (destination.kind === "force") {
     return { id: "G7", reason: "G7: force push is forbidden by the common policy." };
   }
-  if (
-    /(?:^|\s)(?:--delete|--prune|--mirror)(?:\s|$)/i.test(tail) ||
-    tailHasShortOption(tail, "[dquvf]*d[dquvf]*") ||
-    /(?:^|\s):[^\s]+/.test(tail)
-  ) {
-    return { id: "G8", reason: "G8: remote ref deletion or mirroring is forbidden by the common policy." };
+  if (destination.kind === "delete") {
+    return {
+      id: "G8",
+      reason: "G8: remote ref deletion or mirroring is forbidden by the common policy.",
+    };
+  }
+  if (destination.kind === "wildcard") {
+    return { id: "G10", reason: "G10: wildcard push destinations cannot be determined safely." };
   }
 
-  const destinations = getPushDestinations(tail, context.remoteNames ?? []).map((destination) =>
-    destination === "HEAD" || destination === "@" ? context.currentBranch || destination : destination,
-  );
-  if (destinations.some((destination) => isProtectedRef(destination, context.protectedBranches))) {
+  if (isProtectedRef(destination.destination, context.protectedBranches)) {
     return { id: "G10", reason: "G10: pushing directly to a protected branch is forbidden." };
-  }
-
-  const hasExplicitDestination = destinations.length > 0;
-  if (
-    !hasExplicitDestination &&
-    (isProtectedRef(context.currentBranch, context.protectedBranches) ||
-      isProtectedRef(context.upstreamBranch, context.protectedBranches))
-  ) {
-    return { id: "G10", reason: "G10: updating a protected branch directly is forbidden." };
   }
   return null;
 }
 
+function getFetchRefspecs(argumentsList) {
+  const values = [];
+  let endOfOptions = false;
+  for (const argument of argumentsList) {
+    if (!endOfOptions && argument === "--") {
+      endOfOptions = true;
+      continue;
+    }
+    if (!endOfOptions && argument.startsWith("-") && argument !== "-") continue;
+    values.push(argument);
+  }
+  return values.length > 0 ? values.slice(1) : [];
+}
+
+function evaluateGitFetch(invocation, context) {
+  const argumentsList = getInvocationArguments(invocation, "fetch");
+  if (argumentsList === null) return null;
+
+  for (const refspec of getFetchRefspecs(argumentsList)) {
+    if (refspec.includes("*")) {
+      return { id: "G10", reason: "G10: wildcard fetch destinations cannot be determined safely." };
+    }
+    const separator = refspec.lastIndexOf(":");
+    if (separator < 0) continue;
+    const destination = refspec.slice(separator + 1);
+    if (destination && isProtectedLocalRef(destination, context.protectedBranches)) {
+      return { id: "G10", reason: "G10: fetch cannot update a protected local branch." };
+    }
+  }
+  return null;
+}
+
+function getUpdateRefTarget(argumentsList) {
+  let endOfOptions = false;
+  for (let index = 0; index < argumentsList.length; index += 1) {
+    const argument = argumentsList[index];
+    if (!endOfOptions && argument === "--") {
+      endOfOptions = true;
+      continue;
+    }
+    if (!endOfOptions && argument === "--stdin") return null;
+    if (!endOfOptions && argument.startsWith("-")) continue;
+    return argument;
+  }
+  return null;
+}
+
+function evaluateGitUpdateRef(invocation, context) {
+  const argumentsList = getInvocationArguments(invocation, "update-ref");
+  if (argumentsList === null) return null;
+  const target = getUpdateRefTarget(argumentsList);
+  if (!target) {
+    return { id: "G10", reason: "G10: update-ref target cannot be determined safely." };
+  }
+  if (
+    target.toUpperCase() === "HEAD"
+      ? isProtectedRef(context.currentBranch, context.protectedBranches)
+      : isProtectedLocalRef(target, context.protectedBranches)
+  ) {
+    return { id: "G10", reason: "G10: update-ref cannot change a protected local branch." };
+  }
+  return null;
+}
+
+function evaluateGitWorktree(invocation, context) {
+  const argumentsList = getInvocationArguments(invocation, "worktree");
+  if (argumentsList === null || argumentsList[0]?.toLowerCase() !== "add") return null;
+
+  let protectedBranchTarget = null;
+  let force = false;
+  for (let index = 1; index < argumentsList.length; index += 1) {
+    const argument = argumentsList[index];
+    if (argument === "-B") {
+      const target = argumentsList[index + 1];
+      if (target === undefined) {
+        return { id: "G10", reason: "G10: worktree branch target cannot be determined safely." };
+      }
+      protectedBranchTarget = target;
+      index += 1;
+      continue;
+    }
+    if (/^-B.+/.test(argument)) {
+      protectedBranchTarget = argument.slice(2);
+      continue;
+    }
+    if (argument === "--force" || argument === "-f") force = true;
+  }
+
+  if (protectedBranchTarget && isProtectedRef(protectedBranchTarget, context.protectedBranches)) {
+    return { id: "G10", reason: "G10: worktree cannot reset a protected branch." };
+  }
+  if (force) {
+    return { id: "G10", reason: "G10: forced worktree branch changes cannot be evaluated safely." };
+  }
+  return null;
+}
+
+function isReadOnlyGitInvocation(invocation) {
+  if (GIT_READ_ONLY_OPERATIONS.has(invocation.subcommand)) return true;
+  const argumentsList = invocation.argumentTokens;
+  if (invocation.subcommand === "branch") {
+    return argumentsList.length === 0 || argumentHasLongOption(argumentsList, "--show-current");
+  }
+  if (invocation.subcommand === "worktree") {
+    return argumentsList[0]?.toLowerCase() === "list";
+  }
+  if (invocation.subcommand === "config") {
+    return argumentsList.some((argument) => /^(?:--)?get(?:-|$)/i.test(argument));
+  }
+  return false;
+}
+
+function isContextSensitiveMutation(invocation) {
+  if (isRecoveryOperation(invocation.argumentTokens)) return false;
+  if (isReadOnlyGitInvocation(invocation)) return false;
+  if (GIT_MUTATION_OPERATIONS.has(invocation.subcommand)) return true;
+  return Boolean(invocation.subcommand);
+}
+
 function evaluateRepositoryChangingOption(invocation) {
-  if (!invocation.repositoryChanging || !GIT_CONTEXT_OPERATIONS.has(invocation.subcommand)) {
+  if (!invocation.repositoryChanging || !isContextSensitiveMutation(invocation)) {
     return null;
   }
-  if (isRecoveryOperation(invocation.tail)) return null;
   return {
     id: "G10",
     reason: "G10: repository-changing Git global options are forbidden for context-sensitive mutations.",
+  };
+}
+
+function evaluateRuntimeChangingOption(invocation) {
+  if (
+    (!invocation.runtimeConfigChanging &&
+      !invocation.repositoryEnvironmentChanging &&
+      !invocation.runtimeEnvironmentChanging) ||
+    !isContextSensitiveMutation(invocation)
+  ) {
+    return null;
+  }
+  return {
+    id: "G10",
+    reason: "G10: runtime Git configuration or environment overrides are forbidden for context-sensitive mutations.",
   };
 }
 
@@ -437,7 +785,7 @@ function evaluateProtectedBranchUpdate(invocation, context) {
   if (!GIT_PROTECTED_BRANCH_OPERATIONS.has(invocation.subcommand)) {
     return null;
   }
-  if (!isRecoveryOperation(invocation.tail)) {
+  if (!isRecoveryOperation(invocation.argumentTokens)) {
     return { id: "G10", reason: "G10: state-changing updates on a protected branch are forbidden." };
   }
   return null;
@@ -455,76 +803,89 @@ function evaluateGitInvocation(invocation, context) {
     return { id: "G1", reason: "G1: reset would rewrite local history or discard the working tree." };
   }
 
-  const rebaseTail = getInvocationTail(invocation, "rebase");
-  if (rebaseTail !== null && !isRecoveryOperation(rebaseTail)) {
+  const rebaseArguments = getInvocationArguments(invocation, "rebase");
+  if (rebaseArguments !== null && !isRecoveryOperation(rebaseArguments)) {
     return { id: "G2", reason: "G2: state-changing rebase is forbidden by the common policy." };
   }
 
-  if (getInvocationTail(invocation, "commit")?.match(/(?:^|\s)--amend(?:\s|$)/i)) {
+  const commitArguments = getInvocationArguments(invocation, "commit");
+  if (commitArguments !== null && argumentHasLongOption(commitArguments, "--amend")) {
     return { id: "G3", reason: "G3: commit amend rewrites local history." };
   }
 
   if (evaluateGitClean(invocation)) {
     return { id: "G4", reason: "G4: destructive git clean is forbidden by the common policy." };
   }
-  if (getInvocationTail(invocation, "rm") !== null) {
+  if (getInvocationArguments(invocation, "rm") !== null) {
     return { id: "G4", reason: "G4: git rm deletes working data." };
   }
 
   if (evaluateGitRestore(invocation)) {
     return { id: "G5", reason: "G5: restore would discard working-tree changes." };
   }
-  const checkoutTail = getInvocationTail(invocation, "checkout");
+  const checkoutArguments = getInvocationArguments(invocation, "checkout");
   if (
-    checkoutTail !== null &&
-    (/(?:^|\s)--(?:\s|$)/.test(checkoutTail) ||
-      tailHasShortOption(checkoutTail, "[Bfq]*B[Bfq]*") ||
-      tailHasShortOption(checkoutTail, "[fq]*B\\S+") ||
-      tailHasShortOption(checkoutTail, "[fq]*f[fq]*") ||
-      tailHasOption(checkoutTail, "--force"))
+    checkoutArguments !== null &&
+    (checkoutArguments.includes("--") ||
+      argumentsHaveShortFlag(checkoutArguments, "B", "Bfq") ||
+      argumentsHaveShortFlag(checkoutArguments, "f", "Bfq") ||
+      argumentHasLongOption(checkoutArguments, "--force"))
   ) {
     return { id: "G5", reason: "G5: destructive checkout is forbidden by the common policy." };
   }
-  const switchTail = getInvocationTail(invocation, "switch");
+  const switchArguments = getInvocationArguments(invocation, "switch");
   if (
-    switchTail !== null &&
-    (tailHasShortOption(switchTail, "C\\S*") ||
-      tailHasShortOption(switchTail, "[fq]*f[fq]*") ||
-      tailHasOption(switchTail, "--force") ||
-      tailHasOptionWithOptionalValue(switchTail, "--force-create") ||
-      tailHasOption(switchTail, "--discard-changes"))
+    switchArguments !== null &&
+    (argumentsHaveShortFlag(switchArguments, "C", "Cfq") ||
+      argumentsHaveShortFlag(switchArguments, "f", "Cfq") ||
+      argumentHasLongOption(switchArguments, "--force") ||
+      argumentHasLongOption(switchArguments, "--force-create") ||
+      argumentHasLongOption(switchArguments, "--discard-changes"))
   ) {
     return { id: "G5", reason: "G5: destructive branch switching is forbidden by the common policy." };
   }
 
-  const stashTail = getInvocationTail(invocation, "stash");
-  if (stashTail !== null && /(?:^|\s)(?:drop|clear)(?:\s|$)/i.test(stashTail)) {
+  const stashArguments = getInvocationArguments(invocation, "stash");
+  if (stashArguments !== null && ["drop", "clear"].includes(stashArguments[0]?.toLowerCase())) {
     return { id: "G6", reason: "G6: deleting stash recovery data is forbidden." };
-  }
-
-  const pushDecision = evaluateGitPush(invocation, context);
-  if (pushDecision) return pushDecision;
-
-  const branchTail = getInvocationTail(invocation, "branch");
-  if (
-    branchTail !== null &&
-    (tailHasShortOption(branchTail, "[vD]*D[vD]*") ||
-      tailHasShortOption(branchTail, "[dD]*f[dD]*") ||
-      tailHasShortOption(branchTail, "[MC]") ||
-      tailHasOption(branchTail, "--force"))
-  ) {
-    return { id: "G9", reason: "G9: force branch rewrite or deletion is forbidden." };
-  }
-  const tagTail = getInvocationTail(invocation, "tag");
-  if (
-    tagTail !== null &&
-    (tailHasShortOption(tagTail, "[af]*f[af]*") || tailHasOption(tagTail, "--force"))
-  ) {
-    return { id: "G9", reason: "G9: force tag rewrite is forbidden." };
   }
 
   const repositoryChangingDecision = evaluateRepositoryChangingOption(invocation);
   if (repositoryChangingDecision) return repositoryChangingDecision;
+
+  const runtimeChangingDecision = evaluateRuntimeChangingOption(invocation);
+  if (runtimeChangingDecision) return runtimeChangingDecision;
+
+  const pushDecision = evaluateGitPush(invocation, context);
+  if (pushDecision) return pushDecision;
+
+  const fetchDecision = evaluateGitFetch(invocation, context);
+  if (fetchDecision) return fetchDecision;
+
+  const updateRefDecision = evaluateGitUpdateRef(invocation, context);
+  if (updateRefDecision) return updateRefDecision;
+
+  const worktreeDecision = evaluateGitWorktree(invocation, context);
+  if (worktreeDecision) return worktreeDecision;
+
+  const branchArguments = getInvocationArguments(invocation, "branch");
+  if (
+    branchArguments !== null &&
+    (argumentsHaveShortFlag(branchArguments, "D", "vD") ||
+      argumentsHaveShortFlag(branchArguments, "f", "dDf") ||
+      argumentsHaveShortFlag(branchArguments, "M", "M") ||
+      argumentsHaveShortFlag(branchArguments, "C", "C") ||
+      argumentHasLongOption(branchArguments, "--force"))
+  ) {
+    return { id: "G9", reason: "G9: force branch rewrite or deletion is forbidden." };
+  }
+  const tagArguments = getInvocationArguments(invocation, "tag");
+  if (
+    tagArguments !== null &&
+    (argumentsHaveShortFlag(tagArguments, "f", "af") || argumentHasLongOption(tagArguments, "--force"))
+  ) {
+    return { id: "G9", reason: "G9: force tag rewrite is forbidden." };
+  }
 
   const protectedDecision = evaluateProtectedBranchUpdate(invocation, context);
   if (protectedDecision) return protectedDecision;

@@ -142,6 +142,9 @@ bash scripts/codex-safe.sh --preset auto-net
 - Git operationは既存のshell boundary内にある各Git invocationを独立して共通解析し、`git -C <path> <subcommand> ...` でも通常形式と同じG1-G10／N1-N4のpolicyを適用する。1つでもDENY対象のinvocationがあればcommand全体をDENYする。
 - 複数の`-C <path>`は出現順に累積し、後続pathを直前のeffective cwdから解決する。context未指定時のprotected branch判定は、各invocationが選択したeffective repositoryを対象にする。同じsubcommandが複数あるcommandでも全invocationを評価する。
 - `--git-dir`／`--git-dir=<path>`／`--work-tree`／`--work-tree=<path>`はrepository-changing global optionとして区別する。完全なGit CLI parserは実装せず、commit／merge／cherry-pick／revert／pull／am／pushなどcontext-sensitive mutationではfail-closeし、read-only operationはblanket denyしない。解析不能なGit invocationは曖昧なcontextでALLOWしない。
+- Bash系の`git`とWindows／PowerShellの`git.exe`は同一Git executableとして扱う。subcommand後はquote-awareなargument tokenで評価し、quote付きの`--force`、`--amend`、`-fd`、`-D`、`HEAD:main`も通常の危険optionと同じ判定になる。
+- pushは明示的に一意な単一refspecだけをALLOW候補とし、protected destination、force／delete、`--all`／`--branches`、matching、wildcard、複数refspec、remote／URL／pathだけのimplicit push、runtime config／environmentでdestinationが変わるpushはfail-closeする。通常の`git fetch`は維持しつつ、protected local ref destination、`update-ref`、`worktree add -B`によるprotected branch変更はDENYする。
+- `-c`／`--config`／`--config-env`、inline `GIT_DIR`／`GIT_WORK_TREE`／`GIT_CONFIG_*`によるruntime semantics変更を完全に解決せず、context-sensitive mutationではfail-closeする。完全なshell／Git parser、alias expansion、PowerShell state tracking、wrapper、`.git`直接書換えは対象外である。
 - `.codex/config.toml` は `features.hooks = true` を使い、deprecatedな `codex_hooks` や旧PowerShell／Python policyは参照しない。`apply_patch` はmatcher外であり、common HookはそのAdd／Update／Delete／Moveを検査しない。
 - `.codex/rules/**` はstatic prefixだけのdefense-in-depthであり、common policyの正本ではない。`auto-net` のshell wrapper禁止などpreset固有のrulesは別契約として維持する。
 - Phase 1 では shell wrapper 系の `bash -lc`, `sh -c`, `pwsh -Command`, `cmd /c` は auto-net rules 側で forbidden 寄りに扱う。
