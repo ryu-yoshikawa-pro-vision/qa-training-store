@@ -210,3 +210,18 @@
 - New tasks: なし。
 - Remaining: なし。最終Run記録のdocs-only commitとremote反映後に、同一確認を再実行する。
 - Progress: 100% (13/13)
+
+## 2026-08-25 19:48（JST）
+
+- Summary: 最終docs-only完了記録の前段で、CI状態を現headに合わせて訂正した。
+- Completed:
+  - parent head `3f5669f4308ce8a12678771dfcc321645c84a463`時点のlocal／remote SHA一致、origin/main不変、PR #65 OPEN／非Draft／base／head一致を確認した。
+  - 新headでCIが再起動し、`native-ci / verify` pending、`Detect Native Changes` pass、CodeQL pending、native matrix skipping、CodeRabbit manual review required skipであることを確認した。
+- Changes: `evaluation.json`のfinal CI evidenceを現headのpending状態へ訂正し、README相当のRun REPORTへ追記した。source／test／PR本文は変更していない。
+- Commands:
+  - `gh pr checks 65 --repo ryu-yoshikawa-pro-vision/qa-training-store` => pending／skippingを含むためexit 1。開始済み状態を記録し、無制限監視はしない。
+- Notes/Decisions:
+  - 最後の記録commit自体もdocs-onlyであり、実装差分の再検証は不要と判断した。最終push後にbranch／SHA／PR OPENを再確認して停止する。
+- New tasks: なし。
+- Remaining: 最終記録commit、push、同一確認の再実行。
+- Progress: 100% (13/13)

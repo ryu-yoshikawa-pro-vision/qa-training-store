@@ -12,7 +12,7 @@
     "self_review_and_scope": "pass: code-review観点でfinding 0件。依存、launcher、config、#63、unrelated scopeの混入なし",
     "artifact_sanitization": "pass: Write／Check、5 files、0 residual findings",
     "commit_push_pr": "pass: 実装commit f85d437、Run記録commit 993d7ba／e68d513を作成し、指定remote branchへpush、PR #65を作成",
-    "post_pr_final_confirmation": "pass: local／remote HEAD d5b8d64一致、origin/main不変、PR #65 OPEN／非Draft／base main／head一致。CIは開始済みでnative-ci verify pass、他はpending／skippingあり"
+    "post_pr_final_confirmation": "pass: parent head 3f5669fでlocal／remote HEAD一致、origin/main不変、PR #65 OPEN／非Draft／base main／head一致。docs-only完了記録更新後のCIはpending／skippingを含むため待機していない"
   },
   "evidence": {
     "main_sha_at_start": "690274a4829ebd1edc1463704990f085bc5895bd",
@@ -29,9 +29,9 @@
     "pr_is_draft": false,
     "pr_base": "main",
     "pr_head": "fix/codex-git-branch-protection",
-    "final_checked_head": "d5b8d64ec1f656c0124c09f4ee014eaaa4cc4703",
+    "final_checked_head": "3f5669f4308ce8a12678771dfcc321645c84a463",
     "origin_main_at_final_check": "690274a4829ebd1edc1463704990f085bc5895bd",
-    "ci_at_final_check": "native-ci / verify pass; Detect Native Changes pass; CodeQL pending; native matrix jobs skipping; CodeRabbit manual review requiredでskip",
+    "ci_at_final_check": "native-ci / verify pending; Detect Native Changes pass; CodeQL pending; native matrix jobs skipping; CodeRabbit manual review requiredでskip",
     "expected_changed_files": [
       ".codex/hooks/pre_tool_use_policy.mjs",
       ".codex/runs/20260825-190400-JST/PLAN.md",
