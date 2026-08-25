@@ -172,6 +172,16 @@ Git mutation（commit、push、merge、cherry-pick、branch設定変更を含む
 - 期待branchとcurrent branchが異なる状態で変更またはcommitを発見した場合は、mutationを停止し、current HEADをrescue branchで保護し、remoteをfetchしてmain汚染とancestryを確認する。fast-forward可能なら `--ff-only`、それ以外は対象commitだけを古い順にcherry-pickする。救出確認前のreset、branch delete、force pushは禁止する。
 - `git push --force`、`git push -f`、`git branch -D`、`git clean -fd`は禁止する。`git reset --hard`も原則禁止だが、ユーザーが明示した復旧で、対象commitがrescue branchと期待branchの両方で保護され、remote状態を確認済みの場合に限り、ローカルbranchをcanonical remoteへ戻す目的で限定的に使用できる。remote mainの履歴を書き換えるforce pushは常に禁止する。
 
+### Pull Request の言語ルール
+
+- Codex がこのリポジトリで作成・更新する Pull Request のタイトルと本文は、原則として日本語で記載する。
+- PR本文のsection heading、Summary、変更内容、検証結果、CI結果、リスク、対象外などの説明文も日本語を使用する。
+- package名、function名、class名、file path、branch名、commit SHA、CLI command、コード、GitHub Actions job名などの技術識別子は無理に翻訳しない。
+- ユーザーが明示的に英語または別言語を指定した場合のみ、その指定を優先する。
+- 既存PRを更新する場合も、ユーザーから別言語の指定がない限り、PRタイトル・本文を日本語へ統一する。
+- `gh pr create` / `gh pr edit` などで自動生成された英語本文をそのまま残さない。
+- PR作成・更新後は、タイトルと本文が日本語になっていることを確認してから完了報告する。
+
 ## 8. 必須検証
 
 - 必要に応じて次の一部または全部を実行する。
