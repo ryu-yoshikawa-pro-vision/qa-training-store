@@ -64,3 +64,20 @@
 - New tasks: なし。
 - Remaining: branch safety、明示commit/push、別PR作成・metadata確認、Run finalization。
 - Progress: 57% (4/7)
+
+## 2026-08-25 14:04 (JST)
+
+- Summary: Bの初回commitを明示refspecでremote branchへpushした。
+- Completed:
+  - commit `e0f0b21251653fcc3b257b60fc51554a26c9d0f8`を`docs/japanese-pull-request-policy`へ作成した。
+  - `git push origin HEAD:docs/japanese-pull-request-policy`が成功し、remoteに新branchを作成した。
+- Changes: push結果のrepository-local記録をRun Artifactへ追記する。AGENTS.md、PR template、dependency、workflow、application code、test code以外のsource変更はない。
+- Commands:
+  - `git fetch origin` => 成功。
+  - `git branch --show-current` / `git branch -vv` / `git status --short --branch` => branchは`docs/japanese-pull-request-policy`、base/upstreamは`origin/main`、working tree clean。
+  - `git push origin HEAD:docs/japanese-pull-request-policy` => 成功。force pushとbare pushは未使用。
+- Notes/Decisions:
+  - push完了記録はrepository-local作業の証跡であり、remote CI結果のRun Artifact書き戻しではない。
+- New tasks: なし。
+- Remaining: この追記のdocs-only push、別PR作成・metadata確認、Run finalization。
+- Progress: 71% (5/7)

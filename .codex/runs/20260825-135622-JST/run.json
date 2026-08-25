@@ -30,7 +30,8 @@
                                     "pnpm exec markdownlint-cli2 AGENTS.md .github/pull_request_template.md",
                                     "pnpm exec prettier --check AGENTS.md .github/pull_request_template.md",
                                     "git diff --check",
-                                    "scripts/sanitize-codex-artifacts.ps1 -Write -Check -ChangedOnly"
+                                    "scripts/sanitize-codex-artifacts.ps1 -Write -Check -ChangedOnly",
+                                    "git push origin HEAD:docs/japanese-pull-request-policy"
                                   ],
                        "warnings":  [
 
