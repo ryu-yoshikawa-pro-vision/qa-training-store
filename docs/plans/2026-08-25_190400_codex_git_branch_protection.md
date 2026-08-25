@@ -150,3 +150,37 @@ Issue #60では、`git switch -c ... origin/main` は拒否された一方、`gi
 4. POLICY_MATRIXはduplicate IDをMap keyにせず、配列indexで全caseを1対1比較する。通常形式、`git -C` variant、代表的な`git.exe` variantを個別検証する。
 5. 危険Git commandは実行せず、Hook／`evaluateCommand()`へ文字列を渡して判定だけを確認する。Windows launcherはtransportのまま変更しない。
 6. 完全なshell parser、完全なGit CLI parser、alias expansion engine、Git config resolver、PowerShell AST、`command git`／`env git`、`bash -lc`／`sh -c`、command substitution、arbitrary executable path、`.git/refs/**`直接書換え、wrapper、branch／worktree manager、expected PR branch state managerは対象外とする。必要なら別Issue候補として記録するが、今回実装・Issue作成は行わない。
+
+## 14. 最終hardening batchの安全境界
+
+### shell execution state
+
+- PreToolUse Hookはshell command実行前に評価するため、同一commandの前半でbranch、cwd、repository、environmentを変更すると、後半Git invocationの実行contextとHook評価contextが一致しない可能性がある。
+- `git switch`、branch switching formの`git checkout`、`cd`、`chdir`、`pushd`、`Set-Location`、`sl`、およびGit repository／environmentを変更する前半operationの後にcontext-sensitive Git mutationが続くcompound commandは、branch／cwd／environmentをsimulationせずfail-closeする。
+- `git switch main`、`git checkout main`、cwd変更単独、cwd変更後のread-only Git commandは、既存契約を維持して必要以上にDENYしない。
+- `git config`のstate-changing formはpersistentに後続Git semanticsを変更できるためDENYし、read-only modeだけをALLOWする。
+
+### invocation、token、shell normalization
+
+- Git executableはBash系の`git`とWindows／PowerShellの`git.exe`を同一invocationとして扱う。arbitrary absolute path、`command git`、`env git`、wrapper経由は対象外とする。
+- Git invocationはshell boundary（`;`、`&&`、`||`、改行）内で列挙し、各invocationをsubcommand、quote除去済みargument token、effective repository context、mutation targetの単位で独立評価する。1件でもDENYならcommand全体をDENYする。
+- subcommand後をraw stringで判定せず、single／double quoteを除去したtokenをG1〜G10とmutation target解析へ渡す。既存のquoted path／space-containing path契約を維持する。
+- Bash系の`\\` + `\\n`／`\\r\\n` line continuationをGit invocation抽出前に安全にnormalizeし、single quote内の内容は変更しない。unquoted option token内の限定的なbackslash escape（`-f\\d`、`-\\D`、`--\\amend`）はGit argvと同じtokenへ正規化する。Windows pathのbackslashを一律削除せず、曖昧なmutationはparse errorとしてfail-closeする。
+
+### mutation target resolution
+
+- `update-ref -m <reason> <ref> ...`では`-m`の値を消費してからref targetを取得する。`--stdin`、未知option、missing value、target不明はfail-closeする。
+- `fetch`／`pull`のrefspec解析は共有helperで行い、`--refmap=<refspec>`、`--refmap <refspec>`、`--stdin`を検出したらlocal ref targetを静的に判定できないためfail-closeする。protected local branch destination、force refspec、wildcard destinationはDENYする。通常の`fetch origin`とfeature-onlyの安全な形式は維持する。
+- `pull <repository> <refspec...>`にもfetch-side protected local ref guardを適用し、feature contextからの`main:refs/heads/main`、`+main:refs/heads/main`、protected wildcardをDENYする。protected current branch上の通常pullは既存G10を維持する。
+- `branch -d`／`--delete`、`branch -m`／`--move`のprotected source／destination、source省略時のprotected current branchをDENYする。feature branchのdelete／renameは、targetを安全に判定でき、既存force ruleに該当しない場合はALLOWする。`-D`、`-M`、`-C`等の既存G9は維持する。
+- pushはexplicit safe destinationだけをALLOWし、implicit／bulk／matching／wildcard／複数refspec／URL-only／path-onlyをfail-closeする既存契約を維持する。
+
+### implementation、tests、rollback
+
+1. 既存parser／evaluatorを小さく拡張し、compound context transition guard、共有fetch/pull解析、update-ref option消費、state-changing config判定、protected branch delete／rename判定を追加する。
+2. regression testでbranch transition、cwd transition、persistent environment、update-ref、fetch／pull、config、line continuation、backslash escape、branch delete／rename、既存ALLOW／DENYをHook判定だけで固定する。危険Git mutationは実行しない。
+3. focused contract、全contracts、format、markdown lint、lint、typecheck、verify、diff check、Run Artifact sanitizer、Windows launcher contractを実行する。実行していない結果をPASSと記録しない。
+4. self-reviewでrepository／branch／mutation targetの静的評価境界、safe feature operationの過剰DENY、parser肥大化、unrelated変更、依存追加、Windows launcher変更を確認する。
+5. rollbackは今回の追加commit単位のrevertを使用し、rebase、amend、force push、reset、clean、branch削除、mainへの反映は行わない。
+
+今回の対象外は、完全なshell／Git parser、Bash／PowerShell AST、Git alias expansion、full Git config resolver、特殊Git plumbingの網羅、`command git`／`env git`、wrapper／arbitrary executable path、command substitution、`.git/refs/**`直接書換え、branch／worktree manager、PR expected branch state managerである。

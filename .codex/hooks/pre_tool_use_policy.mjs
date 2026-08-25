@@ -17,6 +17,7 @@ const GIT_CONTEXT_OPERATIONS = new Set([
   "fetch",
   "update-ref",
   "worktree",
+  "branch",
 ]);
 const GIT_MUTATION_OPERATIONS = new Set([
   ...GIT_CONTEXT_OPERATIONS,
@@ -51,6 +52,79 @@ const GIT_GLOBAL_OPTIONS_WITH_VALUE = new Set([
 const GIT_RUNTIME_CONFIG_OPTIONS = new Set(["-c", "--config", "--config-env"]);
 const GIT_REPOSITORY_CHANGING_OPTIONS = new Set(["--git-dir", "--work-tree"]);
 const GIT_PROTECTED_BRANCH_OPERATIONS = new Set(["commit", "merge", "cherry-pick", "revert", "pull", "am"]);
+const GIT_CONFIG_READ_ONLY_ACTIONS = new Set([
+  "--get",
+  "--get-all",
+  "--get-regexp",
+  "--get-urlmatch",
+  "--list",
+  "-l",
+]);
+const GIT_CONFIG_READ_ONLY_OPTIONS = new Set([
+  "--blob",
+  "--file",
+  "--fixed-value",
+  "--global",
+  "--includes",
+  "--local",
+  "--name-only",
+  "--null",
+  "--show-origin",
+  "--show-scope",
+  "--system",
+  "--worktree",
+]);
+const FETCH_OPTIONS_WITH_VALUE = new Set([
+  "--depth",
+  "--deepen",
+  "--filter",
+  "--negotiation-tip",
+  "--server-option",
+  "--shallow-exclude",
+  "--shallow-since",
+  "--submodule-prefix",
+  "--upload-pack",
+  "-j",
+]);
+const FETCH_SAFE_OPTIONS = new Set([
+  "--all",
+  "--append",
+  "--atomic",
+  "--auto-maintenance",
+  "--dry-run",
+  "--keep",
+  "--multiple",
+  "--no-auto-gc",
+  "--no-auto-maintenance",
+  "--no-progress",
+  "--no-prune",
+  "--no-recurse-submodules",
+  "--no-tags",
+  "--prune",
+  "--progress",
+  "--recurse-submodules",
+  "--tags",
+  "--unshallow",
+  "--update-head-ok",
+  "--update-shallow",
+  "-p",
+  "-P",
+  "-q",
+  "-v",
+]);
+const PULL_SAFE_OPTIONS = new Set([
+  "--autostash",
+  "--commit",
+  "--edit",
+  "--ff-only",
+  "--no-autostash",
+  "--no-commit",
+  "--no-edit",
+  "--no-ff",
+  "--no-rebase",
+  "--rebase",
+  "--squash",
+]);
 
 /** @typedef {{ currentBranch?: string, upstreamBranch?: string, protectedBranches?: string[], remoteNames?: string[] }} GitContext */
 /** @typedef {{ id: string, expected: "allow" | "deny", command: string, context?: GitContext }} PolicyCase */
@@ -146,11 +220,59 @@ const EMPTY_CONTEXT = Object.freeze({
   remoteNames: [],
 });
 
+function normalizeShellContinuations(segment) {
+  let normalized = "";
+  let quote = null;
+
+  for (let index = 0; index < segment.length; index += 1) {
+    const character = segment[index];
+    const nextCharacter = segment[index + 1];
+
+    if (quote === "'") {
+      normalized += character;
+      if (character === "'") quote = null;
+      continue;
+    }
+    if (quote === '"') {
+      if (character === "\\" && nextCharacter === '"') {
+        normalized += character + nextCharacter;
+        index += 1;
+        continue;
+      }
+      if (character === '"') quote = null;
+      normalized += character;
+      continue;
+    }
+
+    if (character === "'" || character === '"') {
+      quote = character;
+      normalized += character;
+      continue;
+    }
+    if (character === "\\" && nextCharacter === "\n") {
+      index += 1;
+      continue;
+    }
+    if (character === "\\" && nextCharacter === "\r" && segment[index + 2] === "\n") {
+      index += 2;
+      continue;
+    }
+    normalized += character;
+  }
+
+  return normalized;
+}
+
+function canNormalizeUnquotedOptionEscape(tokenValue) {
+  return /^--?[A-Za-z]*$/.test(tokenValue);
+}
+
 function tokenizeGitArguments(segment) {
   const tokens = [];
   let tokenStart = null;
   let tokenValue = "";
   let quote = null;
+  let parseError = null;
 
   const appendToken = (end) => {
     if (tokenStart === null) return;
@@ -178,6 +300,24 @@ function tokenizeGitArguments(segment) {
       quote = character;
       continue;
     }
+    if (character === "\\") {
+      const nextCharacter = segment[index + 1];
+      if (nextCharacter === undefined) {
+        tokenStart ??= index;
+        tokenValue += character;
+        parseError ??= "trailing shell escape";
+        continue;
+      }
+      if (canNormalizeUnquotedOptionEscape(tokenValue)) {
+        tokenStart ??= index;
+        tokenValue += nextCharacter;
+        index += 1;
+        continue;
+      }
+      tokenStart ??= index;
+      tokenValue += character;
+      continue;
+    }
     if (/\s/.test(character)) {
       appendToken(index);
       continue;
@@ -190,7 +330,7 @@ function tokenizeGitArguments(segment) {
   appendToken(segment.length);
   return {
     tokens,
-    parseError: quote === null ? null : "unterminated shell quote",
+    parseError: parseError ?? (quote === null ? null : "unterminated shell quote"),
   };
 }
 
@@ -215,6 +355,19 @@ function parseInlineEnvironment(prefix) {
     repositoryEnvironmentChanging,
     runtimeEnvironmentChanging,
     parseError: tokenized.parseError,
+  };
+}
+
+function hasPersistentGitEnvironmentChange(commandPrefix) {
+  const bashRepositoryAssignment = /(?:^|[\r\n;&|])[ \t]*export[ \t]+(?:GIT_DIR|GIT_WORK_TREE)[ \t]*=/i;
+  const bashRuntimeAssignment = /(?:^|[\r\n;&|])[ \t]*export[ \t]+GIT_CONFIG_[A-Za-z0-9_]*[ \t]*=/i;
+  return {
+    repositoryEnvironmentChanging:
+      bashRepositoryAssignment.test(commandPrefix) ||
+      /(?:^|[\r\n;&|])[ \t]*\$env:(?:GIT_DIR|GIT_WORK_TREE)[ \t]*=/i.test(commandPrefix),
+    runtimeEnvironmentChanging:
+      bashRuntimeAssignment.test(commandPrefix) ||
+      /(?:^|[\r\n;&|])[ \t]*\$env:GIT_CONFIG_[A-Za-z0-9_]*[ \t]*=/i.test(commandPrefix),
   };
 }
 
@@ -324,15 +477,13 @@ function getGitInvocations(command) {
     const prefix = match.groups?.prefix ?? "";
     const parsed = parseGitInvocation(match.groups?.arguments ?? "");
     const inlineEnvironment = parseInlineEnvironment(prefix);
-    const powerShellEnvironmentChanging = /(?:^|[\r\n;&|])[ \t]*\$env:(?:GIT_DIR|GIT_WORK_TREE|GIT_CONFIG_[A-Za-z0-9_]+)[ \t]*=/i.test(
-      command.slice(0, match.index ?? 0),
-    );
+    const persistentEnvironment = hasPersistentGitEnvironmentChange(command.slice(0, match.index ?? 0));
     invocations.push({
       ...parsed,
       repositoryEnvironmentChanging:
-        inlineEnvironment.repositoryEnvironmentChanging || powerShellEnvironmentChanging,
+        inlineEnvironment.repositoryEnvironmentChanging || persistentEnvironment.repositoryEnvironmentChanging,
       runtimeEnvironmentChanging:
-        inlineEnvironment.runtimeEnvironmentChanging || powerShellEnvironmentChanging,
+        inlineEnvironment.runtimeEnvironmentChanging || persistentEnvironment.runtimeEnvironmentChanging,
       sourceIndex: match.index ?? 0,
     });
   }
@@ -341,6 +492,89 @@ function getGitInvocations(command) {
 
 function getInvocationArguments(invocation, operation) {
   return invocation.subcommand === operation.toLowerCase() ? invocation.argumentTokens : null;
+}
+
+function isReadOnlyGitConfig(argumentsList) {
+  let readOnlyAction = false;
+  let endOfOptions = false;
+
+  for (let index = 0; index < argumentsList.length; index += 1) {
+    const argument = argumentsList[index];
+    const lowerArgument = argument.toLowerCase();
+    if (endOfOptions) continue;
+    if (argument === "--") {
+      endOfOptions = true;
+      continue;
+    }
+    if (GIT_CONFIG_READ_ONLY_ACTIONS.has(lowerArgument)) {
+      readOnlyAction = true;
+      continue;
+    }
+    if (GIT_CONFIG_READ_ONLY_ACTIONS.has(lowerArgument.split("=", 1)[0])) {
+      readOnlyAction = true;
+      continue;
+    }
+    if (GIT_CONFIG_READ_ONLY_OPTIONS.has(lowerArgument)) {
+      if (lowerArgument === "--file" || lowerArgument === "--blob") {
+        if (argumentsList[index + 1] === undefined) return false;
+        index += 1;
+      }
+      continue;
+    }
+    if (lowerArgument.startsWith("--file=") || lowerArgument.startsWith("--blob=")) continue;
+    if (argument.startsWith("-")) return false;
+  }
+
+  return readOnlyAction;
+}
+
+function isBranchChangingInvocation(invocation) {
+  const argumentsList = invocation.argumentTokens;
+  if (invocation.subcommand === "switch") {
+    if (argumentsList.length === 0 || argumentHasLongOption(argumentsList, "--show-current")) return false;
+    return (
+      argumentsList.some((argument) => !argument.startsWith("-")) ||
+      argumentsList.some((argument) => /^(?:--(?:create|force-create|detach|orphan)(?:=|$)|-[cCdD])/.test(argument))
+    );
+  }
+  if (invocation.subcommand !== "checkout") return false;
+  const separatorIndex = argumentsList.indexOf("--");
+  const beforeSeparator = separatorIndex >= 0 ? argumentsList.slice(0, separatorIndex) : argumentsList;
+  if (beforeSeparator.length === 0) return false;
+  return (
+    beforeSeparator.some((argument) => !argument.startsWith("-")) ||
+    beforeSeparator.some((argument) => /^(?:--(?:orphan)(?:=|$)|-[bB])/.test(argument))
+  );
+}
+
+function hasCwdChangingShellOperation(commandPrefix) {
+  return /(?:^|[\r\n;&|])[ \t]*(?:cd|chdir|pushd|set-location|sl)(?=\s|$)/i.test(commandPrefix);
+}
+
+function evaluateCompoundContextTransition(invocation, invocations, command) {
+  if (!isContextSensitiveMutation(invocation)) return null;
+  const previousInvocations = invocations.filter((candidate) => candidate.sourceIndex < invocation.sourceIndex);
+  if (previousInvocations.some(isBranchChangingInvocation)) {
+    return {
+      id: "G10",
+      reason: "G10: context-changing Git operation cannot precede a context-sensitive mutation in one shell command.",
+    };
+  }
+  const commandPrefix = command.slice(0, invocation.sourceIndex);
+  if (hasCwdChangingShellOperation(commandPrefix)) {
+    return {
+      id: "G10",
+      reason: "G10: cwd-changing shell operation cannot precede a context-sensitive Git mutation in one shell command.",
+    };
+  }
+  const persistentEnvironment = hasPersistentGitEnvironmentChange(commandPrefix);
+  if (persistentEnvironment.repositoryEnvironmentChanging || persistentEnvironment.runtimeEnvironmentChanging) {
+    return {
+      id: "G10",
+      reason: "G10: persistent Git environment changes cannot precede a context-sensitive mutation in one shell command.",
+    };
+  }
+  return null;
 }
 
 function argumentHasLongOption(argumentsList, option) {
@@ -636,25 +870,59 @@ function evaluateGitPush(invocation, context) {
   return null;
 }
 
-function getFetchRefspecs(argumentsList) {
-  const values = [];
+function parseFetchLikeArguments(argumentsList, operation) {
+  const positional = [];
   let endOfOptions = false;
-  for (const argument of argumentsList) {
-    if (!endOfOptions && argument === "--") {
+  const safeOptions = new Set([...FETCH_SAFE_OPTIONS, ...(operation === "pull" ? PULL_SAFE_OPTIONS : [])]);
+
+  for (let index = 0; index < argumentsList.length; index += 1) {
+    const argument = argumentsList[index];
+    const lowerArgument = argument.toLowerCase();
+    if (endOfOptions) {
+      positional.push(argument);
+      continue;
+    }
+    if (argument === "--") {
       endOfOptions = true;
       continue;
     }
-    if (!endOfOptions && argument.startsWith("-") && argument !== "-") continue;
-    values.push(argument);
+    if (lowerArgument === "--stdin") {
+      return { parseError: "fetch refspecs supplied through stdin cannot be evaluated safely" };
+    }
+    if (lowerArgument === "--refmap" || lowerArgument.startsWith("--refmap=")) {
+      return { parseError: "fetch refmap can change local ref destinations" };
+    }
+    if (argument.startsWith("-") && argument !== "-") {
+      const optionName = lowerArgument.split("=", 1)[0];
+      if (FETCH_OPTIONS_WITH_VALUE.has(optionName)) {
+        if (!lowerArgument.includes("=") && argumentsList[index + 1] === undefined) {
+          return { parseError: `missing ${argument} value` };
+        }
+        if (!lowerArgument.includes("=")) index += 1;
+        continue;
+      }
+      if (safeOptions.has(lowerArgument)) continue;
+      return { parseError: `unsupported ${operation} option ${argument}` };
+    }
+    positional.push(argument);
   }
-  return values.length > 0 ? values.slice(1) : [];
+
+  return {
+    repository: positional[0] ?? null,
+    refspecs: positional.slice(1),
+  };
 }
 
-function evaluateGitFetch(invocation, context) {
-  const argumentsList = getInvocationArguments(invocation, "fetch");
+function evaluateGitFetchLike(invocation, context, operation) {
+  const argumentsList = getInvocationArguments(invocation, operation);
   if (argumentsList === null) return null;
 
-  for (const refspec of getFetchRefspecs(argumentsList)) {
+  const parsed = parseFetchLikeArguments(argumentsList, operation);
+  if (parsed.parseError) {
+    return { id: "G10", reason: `G10: ${operation} arguments cannot be evaluated safely (${parsed.parseError}).` };
+  }
+
+  for (const refspec of parsed.refspecs) {
     if (refspec.includes("*")) {
       return { id: "G10", reason: "G10: wildcard fetch destinations cannot be determined safely." };
     }
@@ -668,6 +936,14 @@ function evaluateGitFetch(invocation, context) {
   return null;
 }
 
+function evaluateGitFetch(invocation, context) {
+  return evaluateGitFetchLike(invocation, context, "fetch");
+}
+
+function evaluateGitPull(invocation, context) {
+  return evaluateGitFetchLike(invocation, context, "pull");
+}
+
 function getUpdateRefTarget(argumentsList) {
   let endOfOptions = false;
   for (let index = 0; index < argumentsList.length; index += 1) {
@@ -676,8 +952,16 @@ function getUpdateRefTarget(argumentsList) {
       endOfOptions = true;
       continue;
     }
-    if (!endOfOptions && argument === "--stdin") return null;
-    if (!endOfOptions && argument.startsWith("-")) continue;
+    if (endOfOptions) return argument;
+    if (argument === "--stdin") return null;
+    if (argument === "-d" || argument === "--no-deref") continue;
+    if (argument === "-m" || argument === "--message") {
+      if (argumentsList[index + 1] === undefined) return null;
+      index += 1;
+      continue;
+    }
+    if (argument.startsWith("--message=")) continue;
+    if (argument.startsWith("-")) return null;
     return argument;
   }
   return null;
@@ -733,17 +1017,109 @@ function evaluateGitWorktree(invocation, context) {
   return null;
 }
 
+function getBranchMutation(argumentsList) {
+  let mode = null;
+  let endOfOptions = false;
+  const targets = [];
+  const unknownOptions = [];
+  const optionsWithValue = new Set(["--color", "--contains", "--format", "--merged", "--no-contains", "--no-merged", "--sort"]);
+
+  for (let index = 0; index < argumentsList.length; index += 1) {
+    const argument = argumentsList[index];
+    const lowerArgument = argument.toLowerCase();
+    if (endOfOptions) {
+      targets.push(argument);
+      continue;
+    }
+    if (argument === "--") {
+      endOfOptions = true;
+      continue;
+    }
+    if (argument === "-d" || lowerArgument === "--delete") {
+      mode = "delete";
+      continue;
+    }
+    if (argument === "-m" || lowerArgument === "--move") {
+      mode = "rename";
+      continue;
+    }
+    if (argument.startsWith("-")) {
+      if (/^-([A-Za-z]+)$/.test(argument)) {
+        const shortOptions = argument.slice(1);
+        if (shortOptions.includes("d")) {
+          if (!/^[dv]+$/.test(shortOptions)) return { parseError: `unsupported branch option ${argument}` };
+          mode = "delete";
+        }
+        if (shortOptions.includes("m")) {
+          if (!/^[mv]+$/.test(shortOptions)) return { parseError: `unsupported branch option ${argument}` };
+          mode = "rename";
+        }
+        if (mode) continue;
+      }
+      const optionName = lowerArgument.split("=", 1)[0];
+      if (optionsWithValue.has(optionName)) {
+        if (!lowerArgument.includes("=") && argumentsList[index + 1] === undefined) return { parseError: "missing branch option value" };
+        if (!lowerArgument.includes("=")) index += 1;
+        continue;
+      }
+      if (lowerArgument === "--force" || lowerArgument === "-d" || lowerArgument === "-m") continue;
+      if (/^-(?:[lv]+)$/.test(lowerArgument)) continue;
+      if (lowerArgument === "--list" || lowerArgument === "--show-current") continue;
+      unknownOptions.push(argument);
+      continue;
+    }
+    targets.push(argument);
+  }
+
+  return {
+    mode,
+    targets,
+    parseError: mode && unknownOptions.length > 0 ? `unsupported branch option ${unknownOptions[0]}` : null,
+  };
+}
+
+function evaluateProtectedBranchReferenceMutation(invocation, context) {
+  const argumentsList = getInvocationArguments(invocation, "branch");
+  if (argumentsList === null) return null;
+  const parsed = getBranchMutation(argumentsList);
+  if (parsed.parseError) {
+    return { id: "G10", reason: `G10: branch targets cannot be evaluated safely (${parsed.parseError}).` };
+  }
+  if (!parsed.mode) return null;
+
+  const targets = [...parsed.targets];
+  if (targets.length === 0 || (parsed.mode === "rename" && targets.length > 2)) {
+    return { id: "G10", reason: "G10: branch mutation target cannot be determined safely." };
+  }
+  if (parsed.mode === "rename" && targets.length === 1) {
+    if (!context.currentBranch) {
+      return { id: "G10", reason: "G10: current branch rename target cannot be determined safely." };
+    }
+    targets.unshift(context.currentBranch);
+  }
+  if (targets.some((target) => isProtectedRef(target, context.protectedBranches))) {
+    return { id: "G10", reason: "G10: protected branch deletion or rename is forbidden." };
+  }
+  return null;
+}
+
 function isReadOnlyGitInvocation(invocation) {
   if (GIT_READ_ONLY_OPERATIONS.has(invocation.subcommand)) return true;
   const argumentsList = invocation.argumentTokens;
   if (invocation.subcommand === "branch") {
-    return argumentsList.length === 0 || argumentHasLongOption(argumentsList, "--show-current");
+    if (getBranchMutation(argumentsList).mode) return false;
+    return (
+      argumentsList.length === 0 ||
+      argumentHasLongOption(argumentsList, "--show-current") ||
+      argumentHasLongOption(argumentsList, "--list") ||
+      argumentsList.some((argument) => ["-l", "-v", "-vv"].includes(argument.toLowerCase()))
+    );
   }
   if (invocation.subcommand === "worktree") {
     return argumentsList[0]?.toLowerCase() === "list";
   }
   if (invocation.subcommand === "config") {
-    return argumentsList.some((argument) => /^(?:--)?get(?:-|$)/i.test(argument));
+    return isReadOnlyGitConfig(argumentsList);
   }
   return false;
 }
@@ -778,6 +1154,12 @@ function evaluateRuntimeChangingOption(invocation) {
     id: "G10",
     reason: "G10: runtime Git configuration or environment overrides are forbidden for context-sensitive mutations.",
   };
+}
+
+function evaluateGitConfig(invocation) {
+  const argumentsList = getInvocationArguments(invocation, "config");
+  if (argumentsList === null || isReadOnlyGitConfig(argumentsList)) return null;
+  return { id: "G10", reason: "G10: state-changing git config is forbidden by the common policy." };
 }
 
 function evaluateProtectedBranchUpdate(invocation, context) {
@@ -862,11 +1244,17 @@ function evaluateGitInvocation(invocation, context) {
   const fetchDecision = evaluateGitFetch(invocation, context);
   if (fetchDecision) return fetchDecision;
 
+  const pullDecision = evaluateGitPull(invocation, context);
+  if (pullDecision) return pullDecision;
+
   const updateRefDecision = evaluateGitUpdateRef(invocation, context);
   if (updateRefDecision) return updateRefDecision;
 
   const worktreeDecision = evaluateGitWorktree(invocation, context);
   if (worktreeDecision) return worktreeDecision;
+
+  const configDecision = evaluateGitConfig(invocation);
+  if (configDecision) return configDecision;
 
   const branchArguments = getInvocationArguments(invocation, "branch");
   if (
@@ -887,6 +1275,9 @@ function evaluateGitInvocation(invocation, context) {
     return { id: "G9", reason: "G9: force tag rewrite is forbidden." };
   }
 
+  const protectedBranchReferenceDecision = evaluateProtectedBranchReferenceMutation(invocation, context);
+  if (protectedBranchReferenceDecision) return protectedBranchReferenceDecision;
+
   const protectedDecision = evaluateProtectedBranchUpdate(invocation, context);
   if (protectedDecision) return protectedDecision;
 
@@ -894,15 +1285,29 @@ function evaluateGitInvocation(invocation, context) {
 }
 
 export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
-  const normalizedCommand = command.trimStart();
-  for (const invocation of getGitInvocations(normalizedCommand)) {
+  const normalizedCommand = normalizeShellContinuations(command).trimStart();
+  const invocations = getGitInvocations(normalizedCommand);
+  for (const invocation of invocations) {
     const context =
       suppliedContext ??
       (GIT_CONTEXT_OPERATIONS.has(invocation.subcommand)
         ? getGitCommandContext(getEffectiveGitCwd(invocation, cwd))
         : EMPTY_CONTEXT);
+    if (
+      !suppliedContext &&
+      GIT_CONTEXT_OPERATIONS.has(invocation.subcommand) &&
+      isContextSensitiveMutation(invocation) &&
+      !context.currentBranch
+    ) {
+      return {
+        id: "G10",
+        reason: "G10: Git repository or branch context could not be resolved safely for a mutation.",
+      };
+    }
     const decision = evaluateGitInvocation(invocation, context);
     if (decision) return decision;
+    const transitionDecision = evaluateCompoundContextTransition(invocation, invocations, normalizedCommand);
+    if (transitionDecision) return transitionDecision;
   }
 
   if (/(?:^|[\r\n;&|]\s*)(?:rm|del|erase|rmdir|unlink)(?=\s|$)/i.test(normalizedCommand)) {
