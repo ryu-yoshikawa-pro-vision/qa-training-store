@@ -154,3 +154,20 @@
 - New tasks: なし。
 - Remaining: Run完了記録commit、push、PR、PR後最終確認。
 - Progress: 77% (10/13)
+
+## 2026-08-25 19:44（JST）
+
+- Summary: 指定branchを明示refspecでremoteへpushした。
+- Completed:
+  - push直前にbranch、status、branch tracking、origin/main、ahead commitを再確認した。
+  - `origin/fix/codex-git-branch-protection` が未存在であることを確認し、新規remote branchとしてpushした。
+- Changes: remote branch `fix/codex-git-branch-protection`を作成し、HEAD `993d7ba`まで公開した。
+- Commands:
+  - `git fetch origin` => PASS。`origin/main=690274a`。
+  - `git push -u origin HEAD:fix/codex-git-branch-protection` => PASS。new branch、HEAD `993d7ba`。
+- Notes/Decisions:
+  - bare `git push`、main宛push、force push、force-with-leaseは使用していない。
+  - remote側のDependabot vulnerability noticeは今回Issueの対象外で、依存変更は行わない。
+- New tasks: なし。
+- Remaining: push後Run記録commit、PR、PR後最終確認。
+- Progress: 85% (11/13)
