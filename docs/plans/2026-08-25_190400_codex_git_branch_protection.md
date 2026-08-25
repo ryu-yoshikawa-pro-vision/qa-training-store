@@ -2,24 +2,25 @@
 
 ## 1. 目的
 
-既存の `.codex/hooks/pre_tool_use_policy.mjs` を最小差分で拡張し、`git -C <path> <subcommand> ...` の形式でも通常のGit invocationと同じG1〜G10／N1〜N4の安全判定を適用する。特に、`-C` が指すrepositoryのbranch contextを使ってprotected/default branchのmutationを判定し、既存安全ガードの迂回を防ぐ。
+既存の `.codex/hooks/pre_tool_use_policy.mjs` を最小差分で拡張し、1つのshell commandに含まれる各Git invocationを、そのinvocation自身が操作するrepository contextで独立評価する。`git -C <path> <subcommand> ...` の形式でも通常のGit invocationと同じG1〜G10／N1〜N4の安全判定を適用し、protected/default branchのmutationとrepository選択による既存安全ガードの迂回を防ぐ。
 
 ## 2. 背景
 
-Issue #60では、`git switch -c ... origin/main` は拒否された一方、`git -C . switch -c ... origin/main` は通過する事象が確認された。Git global optionをsubcommandとして誤認する既存のoperation検出が、同じGit operationの判定差を生んでいる。
+Issue #60では、`git switch -c ... origin/main` は拒否された一方、`git -C . switch -c ... origin/main` は通過する事象が確認された。Git global optionをsubcommandとして誤認する既存のoperation検出が、同じGit operationの判定差を生んでいる。さらに、command全体で最初のcontext-required invocationだけを使う構造、複数`-C`の非累積解決、`--git-dir`／`--work-tree`をcontext選択へ反映しない構造、duplicate IDをMapで集約するregression testが安全性と検証完全性を損なう。
 
 ## 3. 現状実装
 
-- Git operation検出は `getOperationTail()`／`hasOperation()` の正規表現を共通利用している。
-- 現在の検出はshell boundary後の `git <subcommand>` を前提とし、subcommand前のGit global optionを正規化していない。
-- context未指定時の `getGitCommandContext(cwd)` は、呼び出し時のcwdを対象にbranch、upstream、remote、`origin/HEAD`を取得する。
-- `evaluateCommand(command, suppliedContext, cwd)` は、明示contextがあればそれを使い、なければcontextが必要なGit operationだけ実repositoryから取得する。
+- Git operation検出は `getGitInvocations()` と `getOperationTail()` のfirst-match結果を各policyから参照しているため、同一command内の後続invocationや同一subcommandの後続ケースを独立評価できていない。
+- `parseGitInvocation()` はsubcommand前のglobal optionを一部読み飛ばすが、`-C`を1値だけ保持し、複数`-C`の累積path semanticsを表現していない。
+- `--git-dir`／`--work-tree`はsubcommand検出のために読み飛ばされるだけで、実際のrepository context選択またはcontext-sensitive mutationのfail-closeへ接続されていない。
+- context未指定時の `getGitCommandContext(cwd)` は、対象invocationのeffective cwdを基準にbranch、upstream、remote、`origin/HEAD`を取得する必要がある。
+- `evaluateCommand(command, suppliedContext, cwd)` は、Git invocationごとにcontextを決定して既存G1〜G10 evaluatorへ渡し、1件でもDENYならcommand全体をDENYした後、元commandへN1〜N4を適用する構造へ改める。
 - Windows launcherはNode Hookへのstdin／stdout／stderr／exit codeのtransportだけを担当しており、今回の主変更対象ではない。
 - Contract testはHookのpolicy matrix、明示context、Windows launcherのroot／nested cwd契約を既に持つ。
 
 ## 4. 原因
 
-`getOperationTail()` と `needsGitContext()` が `git` の直後に対象operationがある場合だけ一致するため、`git -C <path> commit` などではoperation検出とcontext取得の両方が行われない。結果として、危険operationのdeny判定およびprotected branch判定を迂回できる。
+`getOperationTail()`／`needsGitContext()` がcommand全体のfirst-matchに依存し、`git -C <path>`の実subcommandとinvocation固有contextを安全評価単位として扱っていないためである。結果として、危険operationのdeny判定、後続invocationの検出、protected branch判定を迂回できる。加えて、repositoryを選択するglobal optionを単なるsubcommand前optionとして読み飛ばすと、cwd側のfeature contextを使ってprotected repositoryへのmutationをALLOWできる。
 
 ## 5. 変更対象
 
@@ -50,19 +51,25 @@ Issue #60では、`git switch -c ... origin/main` は拒否された一方、`gi
 
 ## 6. 実装方法
 
-1. 既存のshell boundary検出を維持し、`git` invocation単位の小さなtoken解析を追加する。引用符付きtokenを扱い、最低限 `-C <path>`（および同形式の短縮値）を読み飛ばして、最初の実subcommandとoperation argumentsを取得する。完全なGit CLI parserやshell parserは実装しない。
-2. `getOperationTail()`／`hasOperation()` と `needsGitContext()` を共通解析結果へ接続し、通常形式と`git -C`形式で既存のoperation evaluatorを共有する。
-3. context未指定時は、context対象のGit invocationに`-C`があれば、そのpathを現在の実行cwdから解決して `getGitCommandContext()`へ渡す。明示された`suppliedContext`は既存契約どおりテスト／呼び出し側のcontextとして優先する。
-4. `main`／`master`／`origin/HEAD`由来のdefault branch、force push、reset、clean、branch delete、protected branch mutation、recovery operation、feature branchの通常操作の既存semanticsは変更しない。
-5. テストでは危険Git commandを実行せず、Hookまたは`evaluateCommand()`の判定だけを検証する。temporary Git fixtureのbranch symbolic-refとread-only context取得だけを使う。
+1. 既存の`;`、`&&`、`||`、改行によるshell boundaryを維持し、boundary内の各`git` invocationを小さなtoken解析で列挙する。引用符付きtokenを扱うが、完全なGit CLI parserやshell parserは実装しない。
+2. invocationごとにsubcommand、operation tail、`-C`列、repository-changing optionの有無、解析不能状態を保持する。正式な`-C <path>`だけを扱い、`-Cpath`の独自attached形式は追加しない。
+3. 複数`-C`は出現順に、空pathならcwdを維持し、非空pathなら直前のeffective cwdを基準に`path.resolve()`して累積する。各invocationのeffective cwdはprocess cwdから独立に開始する。
+4. repository選択を変える`--git-dir`／`--git-dir=<path>`／`--work-tree`／`--work-tree=<path>`は、subcommand前の単なるglobal optionと区別して記録する。完全なsemanticsを再実装せず、commit、merge、cherry-pick、revert、pull、am、pushなどのcontext-sensitive mutationではG10相当でfail-closeする。recoveryまたは既存の常時DENY判定は既存semanticsを優先し、read-only操作をblanket denyしない。
+5. `evaluateCommand()`はGit invocationをcommand単位の単一contextで評価せず、invocationごとにcontextを決定して既存G1〜G10 evaluatorへ渡す。1件でもDENYならそのdecisionを返し、その後に元commandへN1〜N4等のnon-Git policyを適用する。明示`suppliedContext`は既存契約どおり各invocationのcontextとして優先する。
+6. unsupportedまたは解析不能なrepository選択構文をcontext-sensitive mutationとして安全に特定できない場合は、曖昧なcontextでALLOWせずfail-closeする。新しいGit wrapper、branch manager、worktree managerは作らない。
+7. `main`／`master`／`origin/HEAD`由来のdefault branch、force push、reset、clean、branch delete、protected branch mutation、recovery operation、feature branchの通常操作の既存semanticsは変更しない。
+8. テストでは危険Git commandを実行せず、Hookまたは`evaluateCommand()`の判定だけを検証する。temporary Git fixtureのbranch symbolic-refとread-only context取得だけを使う。
 
 ## 7. テスト方法
 
-- 既存 `POLICY_MATRIX` からGit commandを選び、`git`直後へ`-C .`を挿入したvariantの判定が通常形式と一致することをdata-drivenに確認する。
+- 既存 `POLICY_MATRIX` からGit commandを選び、`git`直後へ`-C .`を挿入したvariantの判定が通常形式と一致することをdata-drivenに確認する。caseとevaluationは配列indexで1対1に比較し、duplicate IDをMap keyにしてcaseを上書きしない。
 - `git -C .` のprotected branch上commit／merge／cherry-pick、state-changing rebase、protected push、force push、reset、clean、branch deleteをDENYで確認する。
 - `status`、`log`、`diff`、`fetch`、`branch --show-current`、`switch main`、feature branch上の通常commit／pushをALLOWで確認する。
 - `repo A`から別の`repo B`へ`git -C ...`するfixtureで、BがmainならDENY、Bがfeature branchならALLOWとなることを確認する。
-- 空白を含むquoted `-C` pathを確認する。
+- 1 command内の複数Git invocationをそれぞれ独立contextで評価し、先行feature repositoryの後続main repository mutationをDENYする。また、feature/featureの複数commitはALLOWする。
+- 同一subcommandの後続危険操作（safe push後のforce push、safe reset後の`reset --hard`）を見逃さないことを確認する。
+- 複数`-C`を出現順に累積解決し、最終対象repositoryがmainならDENY、featureならALLOWする。空白を含むquoted pathもこのfixtureで確認する。
+- `--git-dir`／`--git-dir=<path>`と`--work-tree`／`--work-tree=<path>`を含むcommit／pushをDENYし、read-only operationを不必要にDENYしないことを確認する。
 - `echo ok; git -C . reset --hard HEAD`等のshell chainingをDENYで確認する。
 - Windows launcher契約は既存contract testを実行し、launcher本体は変更しない。
 
@@ -75,9 +82,10 @@ Issue #60では、`git switch -c ... origin/main` は拒否された一方、`gi
 
 ## 9. リスク
 
+- invocation列挙や評価の誤りが後続Git operationの見逃しにつながるため、複数invocation、同一subcommand、commandごとのcontext fixtureを固定する。
+- 複数`-C`のpath解決を誤ると別repositoryのbranch contextを誤判定するため、出現順のA/B fixtureで最終effective repositoryを検証する。
+- `--git-dir`／`--work-tree`を完全実装するとGit CLI parserへ拡張し過ぎるため、repository-changing optionを検出してcontext-sensitive mutationをfail-closeする最小実装に限定する。
 - token解析が既存のshell chainingや引用符付き引数を壊す可能性があるため、既存boundaryを保ち、quoted pathとchainingをcontract testで固定する。
-- `-C` path解決を誤ると別repositoryのbranch contextを誤判定するため、A/B fixtureでeffective repositoryを検証する。
-- global optionを過剰に解析するとGit CLI parser化するため、対象はsubcommand前の小さな正規化に限定する。
 
 ## 10. rollback plan
 
@@ -85,8 +93,12 @@ Issue #60では、`git switch -c ... origin/main` は拒否された一方、`gi
 
 ## 11. 完了条件
 
+- 1 command内の全Git invocationが独立列挙・独立contextで評価され、1件でもDENYならcommand全体がDENYになる。
+- 同一subcommandの後続危険操作が見逃されず、safe push後のforce pushとsafe reset後の`reset --hard`がDENYになる。
+- 複数`-C`が出現順に累積解決され、最終対象repositoryのprotected/default branch contextで判定される。
+- `--git-dir`／`--work-tree`を使うcontext-sensitive mutationがfail-closeし、read-only operationをblanket denyしない。
 - `git -C <path>` の有無で同一operationのDENY／ALLOW結果が一致する。
-- `-C` が指すrepositoryのbranch contextでprotected/default branch判定が行われる。
+- `POLICY_MATRIX`のduplicate IDを含む全variantがcase単位で個別検証される。
 - Issue #60のDENY／ALLOW、quoted path、shell chaining、Windows launcher契約がcontract testで確認できる。
 - 指定されたfocused contract、全contracts、format、lint、typecheck、統一verifyを実行し、結果を記録する。
 - 差分をself-reviewし、unrelated change、依存追加、#63変更混入がないことを確認する。

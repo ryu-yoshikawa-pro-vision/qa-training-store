@@ -11,6 +11,12 @@
 - `git -C` variant、protected／feature branch、別repository、quoted path、shell chainingのcontract testを追加した。
 - Windows launcher、sandbox／approval、branch manager、Git wrapper、依存関係は変更していない。
 
+## PR #65 レビュー修正追補（2026-08-25）
+
+- 1つのshell command内の各Git invocationを独立評価し、invocationごとのeffective repository contextを既存G1〜G10へ渡す契約へ修正した。
+- 複数`-C`を出現順に累積解決し、`--git-dir`／`--work-tree`を含むcontext-sensitive mutationはG10相当でfail-closeする回帰を追加した。
+- 同一subcommandの後続dangerous operationと、duplicate IDを持つ`POLICY_MATRIX`全variantを配列indexで個別検証する契約を追加した。
+
 ## 検証結果
 
 - focused Codex Hook contract: 75/75 PASS。

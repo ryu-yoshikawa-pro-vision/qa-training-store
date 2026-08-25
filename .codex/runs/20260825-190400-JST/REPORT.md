@@ -225,3 +225,70 @@
 - New tasks: なし。
 - Remaining: 最終記録commit、push、同一確認の再実行。
 - Progress: 100% (13/13)
+
+## 2026-08-25 20:57（JST）
+
+- Summary: PR #65レビュー指摘4点の修正方針を既存planへ反映し、Hookとcontract testのbounded repairを実施した。
+- Completed:
+  - `docs/plans/2026-08-25_190400_codex_git_branch_protection.md`へ、Git invocation単位のcontext評価、複数`-C`の累積、repository-changing optionのfail-close、duplicate IDを使わないmatrix検証、非目標を追記した。
+  - `.codex/hooks/pre_tool_use_policy.mjs`を、全Git invocationの独立評価、invocationごとのeffective cwd／GitContext、正式な`-C <path>`の累積解決、`--git-dir`／`--work-tree`のmutation fail-closeへ修正した。
+  - `tests/contracts/codex-hook-contract.test.ts`のmatrix比較を配列indexの1対1比較へ変更し、複数invocation、後続force push／`reset --hard`、multiple`-C`、separator／`=`形式のrepository-changing option、read-only維持を追加した。
+  - `docs/reference/codex-safety-harness.md`、`docs/PROJECT_CONTEXT.md`、既存historyへ最終contractを同期した。
+- Commands:
+  - `node --check .codex/hooks/pre_tool_use_policy.mjs` => PASS。
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1` => PASS、1 file／79 tests。
+  - `git diff --check` => PASS。
+- Notes/Decisions:
+  - 解析不能なGit invocationはG10相当でfail-closeし、repository-changing optionを伴う既存recovery／常時DENY semanticsは既存判定を優先する。
+  - `-Cpath`の独自attached形式は追加せず、完全なGit／shell parserや新しいwrapperは作らない。
+- New tasks: なし。
+- Remaining: 全quality gate、self-review、Run Artifact更新／sanitizer、追加commit、明示push、PR #65最終確認。
+- Progress: 82% (18/22)
+
+## 2026-08-25 21:12（JST）
+
+- iteration_number: 1
+- input_findings: 複数Git invocationのcontext共有、multiple`-C`の非累積解決、`--git-dir`／`--work-tree`のcontext迂回、POLICY_MATRIX duplicate ID上書き。
+- triage: 4件すべて`must_fix`。should_fix／defer／reject／needs_humanは0件。
+- repair_plan: Git parserの結果をinvocation単位へ変更し、invocationごとのeffective cwd／GitContextを既存G1〜G10へ渡す。正式な`-C <path>`を累積解決し、repository-changing optionと解析不能構文をfail-closeする。matrixは配列indexで個別比較する。
+- allowed_files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、既存plan／reference／PROJECT_CONTEXT／history、同一RunのPLAN／TASKS／REPORT／run.json／evaluation.json。
+- changed_files: 上記allowed_files内のみ。package／lockfile、Windows launcher、config、rules、wrapper、#63関連は変更なし。
+- validation_commands:
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1` => PASS、79/79。
+  - `pnpm run test:contracts` => PASS、30 files／407/407。
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint:markdown` => PASS、0 issues。
+  - `pnpm run lint` => PASS、0 errors／既存warning 65件。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run verify` => PASS、全quality gate、unit 66、integration 98、repository 37、web component 83、native component 62、contracts 407、web／spec buildを含む。
+  - `git diff --check` => PASS。
+- review: code-review skillのdiff triage／deep reviewを実施し、correctness、security、behavioral regression、missing tests、scopeで差分起因finding 0件。残余は完全なGit／shell parserを対象外とした契約上のものだけである。
+- validation_result: PASS。focused／全contracts／verifyが修正後の最終sourceで通過した。
+- remaining_delta: Run Artifact sanitizer、commit、push、PR #65更新後の最終確認。
+- decision: continue。
+- Progress: 91% (20/22)
+
+## 2026-08-25 21:13（JST）
+
+- Summary: Run Artifactのevaluation／run manifestをレビュー修正内容へ更新し、sanitizer Write／Checkを完了した。
+- Commands:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260825-190400-JST -Write -Check` => PASS、5 files scanned、0 replacements、0 residual findings。
+- Changes: `evaluation.json`へrepair iteration 1の入力finding、triage、allowed／changed files、validation、`stop_success`条件を記録し、`run.json`へmarkdown lint／diff check／evaluation存在を反映した。既存REPORTの過去記録は削除・並べ替えしていない。
+- Remaining: 最終quality gate再実行、commit、push、PR #65更新後の最終確認。
+- Progress: 95% (21/22)
+
+## 2026-08-25 21:23（JST）
+
+- Summary: 最終source修正を含むquality gateを再実行し、commit前の検証を完了した。
+- Commands:
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1` => PASS、79/79。
+  - `pnpm run test:contracts` => PASS、30 files／407/407。
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint:markdown` => PASS、0 issues。
+  - `pnpm run lint` => PASS、0 errors／既存warning 65件。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run verify` => PASS。spec／curriculum／security、unit 66、integration 98、repository 37、web component 83、native component 62、contracts 407、web／spec buildを含む。
+  - `git diff --check` => PASS。
+- Safety: destructive Git commandは実行していない。生成物による想定外のtracked changeはなく、変更ファイルは宣言済みscope内の9 files（Run Artifactを含む）だけである。
+- Remaining: 最終sanitizer、commit前branch／diff確認、追加commit、明示push、PR #65更新後のbranch／PR／CI確認。
+- Progress: 95% (21/22)

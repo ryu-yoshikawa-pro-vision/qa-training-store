@@ -29,9 +29,11 @@
       "pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1",
       "pnpm run test:contracts",
       "pnpm run format:check",
+      "pnpm run lint:markdown",
       "pnpm run lint",
       "pnpm run typecheck",
       "pnpm run verify",
+      "git diff --check",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260825-190400-JST -Write -Check"
     ],
     "warnings": [
@@ -48,7 +50,7 @@
     "codex_task_report_count": 0,
     "hook_event_count": 0,
     "subagent_run_count": 0,
-    "evaluation_present": false
+    "evaluation_present": true
   },
   "hook_observations": {
     "log_paths": [],

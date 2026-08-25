@@ -32,7 +32,7 @@
 
 - Windows native Codex `0.147.0`のproject Hookは、`[features].hooks = true`、`PreToolUse` matcher `^Bash$`、`command_windows`を正本とする。deprecatedな`codex_hooks`、project-local profile、旧PowerShell／Python policy Hookには依存しない。
 - Full Access common policyの正本は`.codex/hooks/pre_tool_use_policy.mjs`一つであり、G1-G10／N1-N4の明確な破壊代表だけをdenyする。schema-invalid inputはfail-close、safeは無出力、denyはstructured `hookSpecificOutput`を返す。
-- Git operationはsubcommand前のglobal optionを共通解析し、`git -C <path> ...`でも同一policyを適用する。context未指定時のprotected branch判定は`-C`のeffective repositoryを対象にする。
+- Git operationはshell boundary内の各invocationを独立して解析し、`git -C <path> ...`でも同一policyを適用する。複数`-C`は出現順に累積してeffective repositoryを解決し、context未指定時のprotected branch判定はinvocationごとのrepositoryを対象にする。同一command内の後続Git operationも見逃さない。`--git-dir`／`--work-tree`を使うcontext-sensitive mutationはfail-closeし、read-only operationはblanket denyしない。
 - Windows launcher `.codex/hooks/pre_tool_use_policy_windows.ps1`はstdin／stdout／stderrとNode exit codeのtransportだけを担当する。Rulesはstatic prefixのdefense-in-depth、`auto-net`のRulesとwrapper制約は別preset契約である。
 - 通常の`git add`／feature branch上のcommit・push／fetch／normal switch、path-based unstage、明示的recovery、`python -c`／`python -`／`terraform apply`／`kubectl apply`はcommon Hookでblanket denyしない。`apply_patch`はmatcher外である。
 

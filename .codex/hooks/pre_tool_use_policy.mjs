@@ -15,6 +15,8 @@ const GIT_GLOBAL_OPTIONS_WITH_VALUE = new Set([
   "--namespace",
   "--work-tree",
 ]);
+const GIT_REPOSITORY_CHANGING_OPTIONS = new Set(["--git-dir", "--work-tree"]);
+const GIT_PROTECTED_BRANCH_OPERATIONS = new Set(["commit", "merge", "cherry-pick", "revert", "pull", "am"]);
 
 /** @typedef {{ currentBranch?: string, upstreamBranch?: string, protectedBranches?: string[], remoteNames?: string[] }} GitContext */
 /** @typedef {{ id: string, expected: "allow" | "deny", command: string, context?: GitContext }} PolicyCase */
@@ -162,30 +164,64 @@ function tokenizeGitArguments(segment) {
 function parseGitInvocation(segment) {
   const tokens = tokenizeGitArguments(segment);
   let tokenIndex = 0;
-  let changeDirectory;
+  const changeDirectories = [];
+  let repositoryChanging = false;
+  let parseError = null;
 
   while (tokenIndex < tokens.length) {
     const token = tokens[tokenIndex]?.value ?? "";
     if (token === "-C") {
-      changeDirectory = tokens[tokenIndex + 1]?.value;
+      const pathToken = tokens[tokenIndex + 1];
+      if (pathToken === undefined) {
+        parseError = "missing -C path";
+        break;
+      }
+      changeDirectories.push(pathToken.value);
       tokenIndex += 2;
       continue;
     }
     if (/^-C.+/i.test(token)) {
-      changeDirectory = token.slice(2);
-      tokenIndex += 1;
+      parseError = "attached -C path syntax is unsupported";
+      break;
+    }
+    const repositoryOption = /^(--git-dir|--work-tree)(?:=(.*))?$/i.exec(token);
+    if (repositoryOption && GIT_REPOSITORY_CHANGING_OPTIONS.has(repositoryOption[1].toLowerCase())) {
+      repositoryChanging = true;
+      if (repositoryOption[2] === undefined) {
+        if (tokens[tokenIndex + 1] === undefined) {
+          parseError = `missing ${repositoryOption[1]} path`;
+          break;
+        }
+        tokenIndex += 2;
+      } else {
+        tokenIndex += 1;
+      }
       continue;
+    }
+    if (/^--(?:git-dir|work-tree)/i.test(token)) {
+      parseError = `unsupported repository-changing option ${token}`;
+      break;
     }
     if (token === "--" || !token.startsWith("-") || token === "-") break;
 
-    tokenIndex += GIT_GLOBAL_OPTIONS_WITH_VALUE.has(token) ? 2 : 1;
+    if (GIT_GLOBAL_OPTIONS_WITH_VALUE.has(token)) {
+      if (tokens[tokenIndex + 1] === undefined) {
+        parseError = `missing ${token} value`;
+        break;
+      }
+      tokenIndex += 2;
+      continue;
+    }
+    tokenIndex += 1;
   }
 
   const subcommandToken = tokens[tokenIndex];
   return {
     subcommand: subcommandToken?.value.toLowerCase() ?? "",
     tail: subcommandToken ? segment.slice(subcommandToken.end) : "",
-    changeDirectory,
+    changeDirectories,
+    repositoryChanging,
+    parseError,
   };
 }
 
@@ -198,28 +234,8 @@ function getGitInvocations(command) {
   return invocations;
 }
 
-function getOperationTail(command, executable, operation) {
-  if (executable.toLowerCase() === "git") {
-    return (
-      getGitInvocations(command).find(
-        (invocation) => invocation.subcommand === operation.toLowerCase(),
-      )?.tail ?? null
-    );
-  }
-
-  const pattern = new RegExp(
-    "(?:^|[\\r\\n;&|]\\s*)" +
-      escapeRegExp(executable) +
-      "\\s+" +
-      escapeRegExp(operation) +
-      "(?=\\s|$)([^\\r\\n;&|]*)",
-    "i",
-  );
-  return pattern.exec(command)?.[1] ?? null;
-}
-
-function hasOperation(command, executable, operation) {
-  return getOperationTail(command, executable, operation) !== null;
+function getInvocationTail(invocation, operation) {
+  return invocation.subcommand === operation.toLowerCase() ? invocation.tail : null;
 }
 
 function tailHasOption(tail, option) {
@@ -269,8 +285,8 @@ function isRecoveryOperation(tail) {
   return /(?:^|\s)--(?:abort|quit|show-current-patch)(?:\s|$)/i.test(tail);
 }
 
-function evaluateGitReset(command) {
-  const tail = getOperationTail(command, "git", "reset");
+function evaluateGitReset(invocation) {
+  const tail = getInvocationTail(invocation, "reset");
   if (tail === null) return false;
   if (tailHasOption(tail, "--hard")) return true;
   if (/(?:^|\s)--\s+\S/.test(tail)) return false;
@@ -281,14 +297,14 @@ function evaluateGitReset(command) {
   return positional.length > 0;
 }
 
-function evaluateGitRestore(command) {
-  const tail = getOperationTail(command, "git", "restore");
+function evaluateGitRestore(invocation) {
+  const tail = getInvocationTail(invocation, "restore");
   if (tail === null) return false;
   return !tailHasOption(tail, "--staged") || tailHasOption(tail, "--worktree");
 }
 
-function evaluateGitClean(command) {
-  const tail = getOperationTail(command, "git", "clean");
+function evaluateGitClean(invocation) {
+  const tail = getInvocationTail(invocation, "clean");
   return (
     tail !== null &&
     (tailHasShortOption(tail, "[qdfx]*f[qdfx]*") || tailHasOption(tail, "--force"))
@@ -328,12 +344,12 @@ function getGitCommandContext(cwd) {
   };
 }
 
-function getEffectiveGitCwd(command, cwd) {
-  const contextInvocation = getGitInvocations(command).find((invocation) =>
-    GIT_CONTEXT_OPERATIONS.has(invocation.subcommand),
+function getEffectiveGitCwd(invocation, cwd) {
+  return invocation.changeDirectories.reduce(
+    (effectiveCwd, changeDirectory) =>
+      changeDirectory === "" ? effectiveCwd : path.resolve(effectiveCwd, changeDirectory),
+    cwd,
   );
-  if (!contextInvocation?.changeDirectory) return cwd;
-  return path.resolve(cwd, contextInvocation.changeDirectory);
 }
 
 function normalizedRef(value) {
@@ -368,8 +384,8 @@ function getPushDestinations(tail, remoteNames) {
   });
 }
 
-function evaluateGitPush(command, context) {
-  const tail = getOperationTail(command, "git", "push");
+function evaluateGitPush(invocation, context) {
+  const tail = getInvocationTail(invocation, "push");
   if (tail === null) return null;
 
   if (
@@ -405,55 +421,60 @@ function evaluateGitPush(command, context) {
   return null;
 }
 
-function needsGitContext(command) {
-  return getGitInvocations(command).some((invocation) =>
-    GIT_CONTEXT_OPERATIONS.has(invocation.subcommand),
-  );
+function evaluateRepositoryChangingOption(invocation) {
+  if (!invocation.repositoryChanging || !GIT_CONTEXT_OPERATIONS.has(invocation.subcommand)) {
+    return null;
+  }
+  if (isRecoveryOperation(invocation.tail)) return null;
+  return {
+    id: "G10",
+    reason: "G10: repository-changing Git global options are forbidden for context-sensitive mutations.",
+  };
 }
 
-function evaluateProtectedBranchUpdate(command, context) {
+function evaluateProtectedBranchUpdate(invocation, context) {
   if (!isProtectedRef(context.currentBranch, context.protectedBranches)) return null;
-  for (const operation of ["commit", "merge", "cherry-pick", "revert", "pull", "am"]) {
-    const tail = getOperationTail(command, "git", operation);
-    if (tail !== null && !isRecoveryOperation(tail)) {
-      return { id: "G10", reason: "G10: state-changing updates on a protected branch are forbidden." };
-    }
+  if (!GIT_PROTECTED_BRANCH_OPERATIONS.has(invocation.subcommand)) {
+    return null;
+  }
+  if (!isRecoveryOperation(invocation.tail)) {
+    return { id: "G10", reason: "G10: state-changing updates on a protected branch are forbidden." };
   }
   return null;
 }
 
-export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
-  const normalizedCommand = command.trimStart();
-  const context =
-    suppliedContext ??
-    (needsGitContext(normalizedCommand)
-      ? getGitCommandContext(getEffectiveGitCwd(normalizedCommand, cwd))
-      : EMPTY_CONTEXT);
+function evaluateGitInvocation(invocation, context) {
+  if (invocation.parseError) {
+    return {
+      id: "G10",
+      reason: `G10: Git invocation context could not be resolved safely (${invocation.parseError}).`,
+    };
+  }
 
-  if (evaluateGitReset(normalizedCommand)) {
+  if (evaluateGitReset(invocation)) {
     return { id: "G1", reason: "G1: reset would rewrite local history or discard the working tree." };
   }
 
-  const rebaseTail = getOperationTail(normalizedCommand, "git", "rebase");
+  const rebaseTail = getInvocationTail(invocation, "rebase");
   if (rebaseTail !== null && !isRecoveryOperation(rebaseTail)) {
     return { id: "G2", reason: "G2: state-changing rebase is forbidden by the common policy." };
   }
 
-  if (getOperationTail(normalizedCommand, "git", "commit")?.match(/(?:^|\s)--amend(?:\s|$)/i)) {
+  if (getInvocationTail(invocation, "commit")?.match(/(?:^|\s)--amend(?:\s|$)/i)) {
     return { id: "G3", reason: "G3: commit amend rewrites local history." };
   }
 
-  if (evaluateGitClean(normalizedCommand)) {
+  if (evaluateGitClean(invocation)) {
     return { id: "G4", reason: "G4: destructive git clean is forbidden by the common policy." };
   }
-  if (hasOperation(normalizedCommand, "git", "rm")) {
+  if (getInvocationTail(invocation, "rm") !== null) {
     return { id: "G4", reason: "G4: git rm deletes working data." };
   }
 
-  if (evaluateGitRestore(normalizedCommand)) {
+  if (evaluateGitRestore(invocation)) {
     return { id: "G5", reason: "G5: restore would discard working-tree changes." };
   }
-  const checkoutTail = getOperationTail(normalizedCommand, "git", "checkout");
+  const checkoutTail = getInvocationTail(invocation, "checkout");
   if (
     checkoutTail !== null &&
     (/(?:^|\s)--(?:\s|$)/.test(checkoutTail) ||
@@ -464,7 +485,7 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   ) {
     return { id: "G5", reason: "G5: destructive checkout is forbidden by the common policy." };
   }
-  const switchTail = getOperationTail(normalizedCommand, "git", "switch");
+  const switchTail = getInvocationTail(invocation, "switch");
   if (
     switchTail !== null &&
     (tailHasShortOption(switchTail, "C\\S*") ||
@@ -476,15 +497,15 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
     return { id: "G5", reason: "G5: destructive branch switching is forbidden by the common policy." };
   }
 
-  const stashTail = getOperationTail(normalizedCommand, "git", "stash");
+  const stashTail = getInvocationTail(invocation, "stash");
   if (stashTail !== null && /(?:^|\s)(?:drop|clear)(?:\s|$)/i.test(stashTail)) {
     return { id: "G6", reason: "G6: deleting stash recovery data is forbidden." };
   }
 
-  const pushDecision = evaluateGitPush(normalizedCommand, context);
+  const pushDecision = evaluateGitPush(invocation, context);
   if (pushDecision) return pushDecision;
 
-  const branchTail = getOperationTail(normalizedCommand, "git", "branch");
+  const branchTail = getInvocationTail(invocation, "branch");
   if (
     branchTail !== null &&
     (tailHasShortOption(branchTail, "[vD]*D[vD]*") ||
@@ -494,7 +515,7 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   ) {
     return { id: "G9", reason: "G9: force branch rewrite or deletion is forbidden." };
   }
-  const tagTail = getOperationTail(normalizedCommand, "git", "tag");
+  const tagTail = getInvocationTail(invocation, "tag");
   if (
     tagTail !== null &&
     (tailHasShortOption(tagTail, "[af]*f[af]*") || tailHasOption(tagTail, "--force"))
@@ -502,8 +523,26 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
     return { id: "G9", reason: "G9: force tag rewrite is forbidden." };
   }
 
-  const protectedDecision = evaluateProtectedBranchUpdate(normalizedCommand, context);
+  const repositoryChangingDecision = evaluateRepositoryChangingOption(invocation);
+  if (repositoryChangingDecision) return repositoryChangingDecision;
+
+  const protectedDecision = evaluateProtectedBranchUpdate(invocation, context);
   if (protectedDecision) return protectedDecision;
+
+  return null;
+}
+
+export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
+  const normalizedCommand = command.trimStart();
+  for (const invocation of getGitInvocations(normalizedCommand)) {
+    const context =
+      suppliedContext ??
+      (GIT_CONTEXT_OPERATIONS.has(invocation.subcommand)
+        ? getGitCommandContext(getEffectiveGitCwd(invocation, cwd))
+        : EMPTY_CONTEXT);
+    const decision = evaluateGitInvocation(invocation, context);
+    if (decision) return decision;
+  }
 
   if (/(?:^|[\r\n;&|]\s*)(?:rm|del|erase|rmdir|unlink)(?=\s|$)/i.test(normalizedCommand)) {
     return { id: "N1", reason: "N1: command-based file deletion is forbidden." };

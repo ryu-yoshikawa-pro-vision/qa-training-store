@@ -249,19 +249,20 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(contextualResult.status).toBe(0);
     expect(contextualResult.stderr).toBe("");
     const contextualEvaluations = JSON.parse(contextualResult.stdout) as ContextualEvaluation[];
-    const contextualById = new Map(
-      contextualEvaluations.map((evaluation) => [evaluation.id, evaluation.decision]),
-    );
+    expect(contextualEvaluations).toHaveLength(contextualCases.length);
 
+    let contextualIndex = 0;
     for (const testCase of matrix) {
       if (testCase.context !== undefined) {
-        const decision = contextualById.get(testCase.id);
-        expect(decision, testCase.id).toBeDefined();
+        const evaluation = contextualEvaluations[contextualIndex];
+        expect(evaluation?.id, testCase.id).toBe(testCase.id);
+        const decision = evaluation?.decision;
         if (testCase.expected === "allow") {
           expect(decision, testCase.id).toBeNull();
         } else {
           expect(decision?.id, testCase.id).toBe(testCase.id);
         }
+        contextualIndex += 1;
         continue;
       }
 
@@ -371,17 +372,18 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       command: addGitC(testCase.command),
       context: testCase.context ?? featureContext,
     }));
+    expect(new Set(variants.map((testCase) => testCase.id)).size).toBeLessThan(variants.length);
     const result = runNodeHookWithExplicitContexts(variants);
 
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
-    const byId = new Map(evaluations.map((evaluation) => [evaluation.id, evaluation.decision]));
+    expect(evaluations).toHaveLength(variants.length);
 
-    for (const testCase of variants) {
-      const decision = byId.get(testCase.id);
-      expect(decision, testCase.id).toBeDefined();
-      if (decision === undefined) continue;
+    for (const [index, testCase] of variants.entries()) {
+      const evaluation = evaluations[index];
+      expect(evaluation?.id, testCase.id).toBe(testCase.id);
+      const decision = evaluation?.decision;
       if (testCase.expected === "allow") {
         expect(decision, testCase.id).toBeNull();
       } else {
@@ -480,10 +482,11 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(result.status).toBe(0);
     expect(result.stderr).toBe("");
     const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
-    const byId = new Map(evaluations.map((evaluation) => [evaluation.id, evaluation.decision]));
+    expect(evaluations).toHaveLength(cases.length);
 
-    for (const testCase of cases) {
-      expect(byId.get(testCase.id)?.id, testCase.id).toBe(testCase.decisionId);
+    for (const [index, testCase] of cases.entries()) {
+      expect(evaluations[index]?.id, testCase.id).toBe(testCase.id);
+      expect(evaluations[index]?.decision?.id, testCase.id).toBe(testCase.decisionId);
     }
   });
 
@@ -591,6 +594,219 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     } finally {
       removeFixture(repoA);
       removeFixture(repoB);
+    }
+  });
+
+  it("evaluates every Git invocation with its own repository context", () => {
+    const repoA = makeGitFixture();
+    const repoB = makeGitFixture();
+    const command =
+      "git -C " +
+      quoteCommandPath(repoA) +
+      ' commit -m "safe"; git -C ' +
+      quoteCommandPath(repoB) +
+      ' commit -m "bad"';
+
+    try {
+      setFixtureBranch(repoA, "feature/safe");
+      setFixtureBranch(repoB, "main");
+      const denied = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: { command },
+        }),
+        repoA,
+      );
+
+      expect(denied.status).toBe(0);
+      expect(denied.stderr).toBe("");
+      expect(JSON.parse(denied.stdout)).toMatchObject({
+        hookSpecificOutput: {
+          permissionDecision: "deny",
+          permissionDecisionReason: expect.stringMatching(/^G10:/),
+        },
+      });
+
+      setFixtureBranch(repoB, "feature/other");
+      const allowed = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: { command },
+        }),
+        repoA,
+      );
+
+      expect(allowed.status).toBe(0);
+      expect(allowed.stdout).toBe("");
+      expect(allowed.stderr).toBe("");
+    } finally {
+      removeFixture(repoA);
+      removeFixture(repoB);
+    }
+  });
+
+  it("evaluates later dangerous invocations after an earlier safe invocation", () => {
+    const forcePush = runNodeHook(
+      JSON.stringify({
+        tool_name: "Bash",
+        tool_input: {
+          command: "git push origin feature/safe; git push --force origin feature/safe",
+        },
+      }),
+    );
+    expect(forcePush.status).toBe(0);
+    expect(forcePush.stderr).toBe("");
+    expect(JSON.parse(forcePush.stdout)).toMatchObject({
+      hookSpecificOutput: {
+        permissionDecisionReason: expect.stringMatching(/^G7:/),
+      },
+    });
+
+    const hardReset = runNodeHook(
+      JSON.stringify({
+        tool_name: "Bash",
+        tool_input: {
+          command: "git reset HEAD -- file.txt; git reset --hard HEAD",
+        },
+      }),
+    );
+    expect(hardReset.status).toBe(0);
+    expect(hardReset.stderr).toBe("");
+    expect(JSON.parse(hardReset.stdout)).toMatchObject({
+      hookSpecificOutput: {
+        permissionDecisionReason: expect.stringMatching(/^G1:/),
+      },
+    });
+  });
+
+  it("resolves multiple git -C options cumulatively", () => {
+    const repoA = makeGitFixture();
+    const repoB = makeGitFixture();
+    const relativeRepoB = path.relative(repoA, repoB);
+    const command =
+      "git -C " +
+      quoteCommandPath(repoA) +
+      " -C " +
+      quoteCommandPath(relativeRepoB) +
+      ' commit -m "change"';
+
+    expect(relativeRepoB).toContain(" ");
+    try {
+      setFixtureBranch(repoA, "feature/safe");
+      setFixtureBranch(repoB, "main");
+      const denied = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: { command },
+        }),
+        repoA,
+      );
+
+      expect(denied.status).toBe(0);
+      expect(denied.stderr).toBe("");
+      expect(JSON.parse(denied.stdout)).toMatchObject({
+        hookSpecificOutput: {
+          permissionDecision: "deny",
+          permissionDecisionReason: expect.stringMatching(/^G10:/),
+        },
+      });
+
+      setFixtureBranch(repoA, "main");
+      setFixtureBranch(repoB, "feature/safe");
+      const allowed = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: { command },
+        }),
+        repoA,
+      );
+
+      expect(allowed.status).toBe(0);
+      expect(allowed.stdout).toBe("");
+      expect(allowed.stderr).toBe("");
+    } finally {
+      removeFixture(repoA);
+      removeFixture(repoB);
+    }
+  });
+
+  it("fails closed for repository-changing Git global options on mutations", () => {
+    const featureRepo = makeGitFixture();
+    const mainRepo = makeGitFixture();
+    const gitDir = path.join(mainRepo, ".git");
+    const quotedGitDir = quoteCommandPath(gitDir);
+    const quotedMainRepo = quoteCommandPath(mainRepo);
+
+    try {
+      setFixtureBranch(featureRepo, "feature/safe");
+      setFixtureBranch(mainRepo, "main");
+
+      const separatorCommit = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: {
+            command: `git --git-dir ${quotedGitDir} --work-tree ${quotedMainRepo} commit -m "bad"`,
+          },
+        }),
+        featureRepo,
+      );
+      expect(separatorCommit.status).toBe(0);
+      expect(separatorCommit.stderr).toBe("");
+      expect(JSON.parse(separatorCommit.stdout)).toMatchObject({
+        hookSpecificOutput: {
+          permissionDecisionReason: expect.stringMatching(/^G10: repository-changing/),
+        },
+      });
+
+      const equalsPush = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: {
+            command: `git --git-dir=${quotedGitDir} --work-tree=${quotedMainRepo} push`,
+          },
+        }),
+        featureRepo,
+      );
+      expect(equalsPush.status).toBe(0);
+      expect(equalsPush.stderr).toBe("");
+      expect(JSON.parse(equalsPush.stdout)).toMatchObject({
+        hookSpecificOutput: {
+          permissionDecisionReason: expect.stringMatching(/^G10: repository-changing/),
+        },
+      });
+
+      const unsupportedAttachedC = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: {
+            command: `git -C${quoteCommandPath(featureRepo)} commit -m "unsupported"`,
+          },
+        }),
+        featureRepo,
+      );
+      expect(unsupportedAttachedC.status).toBe(0);
+      expect(unsupportedAttachedC.stderr).toBe("");
+      expect(JSON.parse(unsupportedAttachedC.stdout)).toMatchObject({
+        hookSpecificOutput: {
+          permissionDecisionReason: expect.stringMatching(/^G10: Git invocation context/),
+        },
+      });
+
+      const readOnly = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: {
+            command: `git --git-dir=${quotedGitDir} --work-tree=${quotedMainRepo} status`,
+          },
+        }),
+        featureRepo,
+      );
+      expect(readOnly.status).toBe(0);
+      expect(readOnly.stdout).toBe("");
+      expect(readOnly.stderr).toBe("");
+    } finally {
+      removeFixture(featureRepo);
+      removeFixture(mainRepo);
     }
   });
 
