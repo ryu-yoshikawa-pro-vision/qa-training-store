@@ -45,8 +45,13 @@
                                     "既存lint warning 65件",
                                     "Native Jest act warning",
                                     "SQLite ExperimentalWarning",
-                                    "pnpm peer warning: react-native-worklets / @react-native/metro-config"
-                                  ]
+                                   "pnpm peer warning: react-native-worklets / @react-native/metro-config"
+                                 ]
+                   },
+    "finalization":  {
+                       "repository_local":  "complete",
+                       "remote_final_head_evidence":  "PR #62本文を正本として確認",
+                       "post_commit_ci_writeback_commit":  false
                    },
     "safety":  {
                    "network":  false,
@@ -84,6 +89,6 @@
                                   }
                   },
     "evaluation_path":  ".codex/runs/20260825-120944-JST/evaluation.json",
-    "status":  "in_progress",
+    "status":  "complete",
     "primary_failure_category":  null
 }

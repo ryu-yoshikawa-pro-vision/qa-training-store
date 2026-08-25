@@ -11,10 +11,16 @@
 - [x] 7. unmerged/marker/diffとdependency contractを検証する
 - [x] 8. Native Static相当、format、verify、diff checkを実行する
 - [x] 9. 明示stage、merge commit、履歴とmain差分を確認する
-- [ ] 10. push前安全確認後、explicit refspecでpushする
-- [ ] 11. PR mergeabilityと最新headのWeb/Mobile CIを確認する
-- [ ] 12. Android Runtime/Maestro実step、iOS/native verify、PR本文を確認・同期する
-- [ ] 13. sanitizer、Run Artifact、最終REPORT、完了判定を確定する
+- [x] 10. push前安全確認後、explicit refspecでpushした
+- [x] 11. PR mergeabilityとfinal-headのWeb/Mobile CIをPR本文を正本として確認した
+- [x] 12. Android Runtime/Maestro実step、iOS/native verify、PR本文を最新headへ同期した
+- [x] 13. repository-local Run Artifactをfinalizeし、sanitizer・最終REPORT・完了判定を確定した
+
+## 完了時の責務分離
+
+- repository-localのconflict解消、dependency contract、local validation、merge commit、pushはこのRun Artifactへ完了記録する。
+- post-commit / final-headのGitHub Actions結果、PR mergeability、Android Runtime / Maestro、iOS、native verifyの最終EvidenceはPR #62本文を正本とする。
+- このRun Artifactはrepository-local作業完了時点でfinalizeし、final-head CI結果を書き戻すためだけの追加commitは作成しない。
 
 ## Discovered
 
