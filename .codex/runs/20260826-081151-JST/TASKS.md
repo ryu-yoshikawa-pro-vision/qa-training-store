@@ -11,7 +11,7 @@
 - [x] 7. `pnpm run lint:markdown` と `git diff --check` を実行する。
 - [x] 8. sanitizer Write / Checkを実行し、Run Artifactを完了状態へ更新する。
 - [x] 9. commit前確認を行い、docsとRun Artifactだけをcommitする。
-- [ ] 10. branch safetyを再確認してexplicit refspec pushし、push後のPR headとworking treeを確認する。
+- [x] 10. branch safetyを再確認してexplicit refspec pushし、push後のPR headとworking treeを確認する。
 
 ## Discovered
 
