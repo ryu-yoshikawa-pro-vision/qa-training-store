@@ -77,6 +77,18 @@
 - Remaining: PR作成、PR URL/CI初期状態確認、Run Artifact最終status更新。
 - Progress: 88% (7/8)
 
+## 2026-08-25 12:44 (JST)
+
+- Summary: PRを作成し、Run Artifactの最終記録を確定した。
+- PR: `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/63`（OPEN、base `main`、head `investigate/issue-57-uuid-remediation`）。
+- Commands / results:
+  - `gh pr create --repo ryu-yoshikawa-pro-vision/qa-training-store --base main --head investigate/issue-57-uuid-remediation ...` => PR #63作成成功。
+  - `gh pr view 63 --json ...` => title、branch、base、body、URLを確認。`mergeStateStatus=BLOCKED`はrequired checks実行中の状態。
+  - `gh pr checks 63 --json name,state,bucket,workflow` => Dependency Review、CodeRabbitはPASS。Web CI、Mobile App CI、CodeQLの各checkは初期状態IN_PROGRESS。失敗は確認されていない。
+- Final decision: Recommendedは`xcode@3.0.1>uuid: 11.1.1` parent-scoped override。global override、direct uuid、Expo/RN/Metro major、parent単独upgradeは採用しない。
+- Not Run / residual: WindowsのためiOS prebuild/CocoaPods/Xcode build、Android emulatorを使うnative validationは未実行。PRのmacOS/Android CI完了をマージ前条件とする。
+- Progress: 100% (8/8)
+
 - 行動のたびに追記する（調査/編集/判断も含む）
 - コマンドや確認結果は必ず記録する
 

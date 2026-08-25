@@ -9,7 +9,7 @@
 - [x] 5. native / iOS validationの実行可否をpreflightし、Not Runを記録する
 - [x] 6. self-review、差分scope、sanitization、Run Artifactを確定する
 - [x] 7. commitしてimplementation branchをpushする
-- [ ] 8. PRを作成し、URL、CI初期状態、完了条件を確認する
+- [x] 8. PRを作成し、URL、CI初期状態、完了条件を確認する
 
 ## Discovered
 
