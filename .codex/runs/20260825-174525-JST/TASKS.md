@@ -11,7 +11,7 @@
 - [x] 7. frozen install、brace-expansion、audit、Expo check／Doctorを確認する。
 - [x] 8. format、verify、必要なNative Static相当、diff checkを確認する。
 - [x] 9. Run Artifact sanitizerのWrite／Checkを実行する。
-- [ ] 10. cached diffとmerge前branch safetyを確認し、通常merge commitを作成する。
+- [x] 10. cached diffとmerge前branch safetyを確認し、通常merge commitを作成する。
 - [ ] 11. post-merge main基準diffを確認し、explicit refspecでPR branchへpushする。
 - [ ] 12. push後latest headのWeb／Mobile CI、Native／Android／iOS実行結果を確認する。
 - [ ] 13. review thread、PR metadata、Issue #54 DoDを確認する。

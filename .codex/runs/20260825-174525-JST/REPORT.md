@@ -124,6 +124,28 @@
 - Remaining: cached diff最終監査、merge commit、explicit push、latest CI／review／PR metadata、PR本文更新、最終判定。
 - Progress: 60% (9/15)
 
+## 2026-08-25 18:09（JST）
+
+- Summary: `origin/main`を通常mergeしたmerge commitを作成し、main基準でbehind 0とPR固有dependency差分を確認した。
+- Completed:
+  - merge commit `1e7459f3942f002a81947eb0ca485ea95378031b`を作成した。
+  - first parentはmerge前head `58ed3791de80b3640da44e656aae4dbacc5db795`、second parentは`origin/main` `47ea1477dda468864d3b053bedcfef0a6afb887e`で、rebaseは使用していない。
+  - unmerged file 0、working tree clean、merge-base=`origin/main`、mainに対してbehind 0を確認した。
+  - main基準のPR固有差分はpackage override 2件、lockfile remediation差分、既存PR #58 Run／branch safety docsと今回Run／planであることを確認した。
+- Changes: `origin/main`をfeature branchへ取り込んだmerge commitを追加した。PR #58はまだpush／mergeしていない。
+- Commands:
+  - `git commit --no-edit` => `1e7459f3942f002a81947eb0ca485ea95378031b`。
+  - `git show -s --format=... HEAD` => parent1=`58ed379...`、parent2=`47ea147...`。
+  - `git rev-list --left-right --count origin/main...HEAD` => `0 8`。
+  - `git merge-base HEAD origin/main` => `47ea1477dda468864d3b053bedcfef0a6afb887e`。
+  - `git diff origin/main...HEAD -- package.json` => brace-expansion override 2件のみ。
+  - `git diff origin/main...HEAD -- pnpm-lock.yaml --numstat` => 10 additions / 8 deletions。
+  - `git diff --name-only --diff-filter=U`、`git diff --check` => PASS。
+- Notes/Decisions: merge commitは通常mergeの2 parentを保持している。`MERGE_HEAD`はcommit後に消え、PR head更新とremote CI確認へ進む。
+- New tasks: なし。
+- Remaining: post-merge Run記録、explicit refspec push、latest head CI／review／PR metadata、PR本文更新、最終判定。
+- Progress: 67% (10/15)
+
 ## 2026-08-25 18:08（JST）
 
 - Summary: merge commit直前のcached diffとbranch safetyを最終確認した。
