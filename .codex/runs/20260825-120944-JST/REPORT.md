@@ -120,6 +120,29 @@
 - Remaining: staged diff最終監査、merge commit、push、PR mergeability/最新CI確認。
 - Progress: 62% (8/13)
 
+## 2026-08-25 12:36 (JST)
+
+- Summary: conflict解消結果を明示stageし、通常のmerge commitを作成して履歴とmain基準差分を確認した。
+- Completed:
+  - merge commit `d83496c42e34a71fb43a66d241d59e393efa6c40` を作成した。
+  - first parentはconflict解消前feature側のdocs commit `efbd95e...`、second parentは`origin/main` `74834bf...`で、rebaseではない。
+  - merge後のworking treeはclean、unmerged fileは0。
+  - `git diff origin/main...HEAD`でPR固有差分を確認した。
+- Changes: merge commitにmainの変更を取り込み、main基準では新Run/plan、package.json、pnpm-lock.yamlだけがPR差分として残った。
+- Commands:
+  - `git commit --no-edit` => merge commit `d83496c42e34a71fb43a66d241d59e393efa6c40`。
+  - `git log -10 --oneline --decorate --graph` => merge parentとPR固有履歴を確認。
+  - `git status --short` => clean。
+  - `git diff origin/main...HEAD --stat` => 8 files only。
+  - `git diff origin/main...HEAD -- package.json` => 7 direct Expo patch + expo-constants overrideのみ。js-yaml 2件、React/React Native、expo-linkingはmain値。
+  - `git diff --numstat origin/main...HEAD -- pnpm-lock.yaml` => 462 additions / 225 deletions。
+- Notes/Decisions:
+  - merge前のfeature remote head `6ebaf458...`は変更せず、merge前docs commit `efbd95e...`をfirst parentに含めた。
+  - main側の既存変更をfeature差分として巻き戻していないことを、merge後のmain基準diffで確認した。
+- New tasks: なし。
+- Remaining: push前安全確認、explicit refspec push、PR mergeabilityと最新CI。
+- Progress: 69% (9/13)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

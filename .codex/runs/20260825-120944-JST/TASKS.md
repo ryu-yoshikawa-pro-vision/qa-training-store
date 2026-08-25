@@ -10,7 +10,7 @@
 - [x] 6. pnpm-lock.yamlをmain baselineから再生成し、差分を監査する
 - [x] 7. unmerged/marker/diffとdependency contractを検証する
 - [x] 8. Native Static相当、format、verify、diff checkを実行する
-- [ ] 9. 明示stage、merge commit、履歴とmain差分を確認する
+- [x] 9. 明示stage、merge commit、履歴とmain差分を確認する
 - [ ] 10. push前安全確認後、explicit refspecでpushする
 - [ ] 11. PR mergeabilityと最新headのWeb/Mobile CIを確認する
 - [ ] 12. Android Runtime/Maestro実step、iOS/native verify、PR本文を確認・同期する

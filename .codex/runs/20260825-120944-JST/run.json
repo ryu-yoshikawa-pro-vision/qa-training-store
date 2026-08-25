@@ -27,11 +27,26 @@
     "validation":  {
                        "status":  "passed_with_warnings",
                        "commands":  [
-
-                                    ],
+                                    "git -C . merge origin/main",
+                                    "pnpm install --lockfile-only --ignore-scripts",
+                                    "pnpm install --frozen-lockfile",
+                                    "pnpm exec expo install --check",
+                                    "pnpm dlx expo-doctor@1.17.6",
+                                    "pnpm run generate:native-assets",
+                                    "pnpm run validate:image-manifest",
+                                    "pnpm run test:component:native",
+                                    "pnpm run check:native-route-dependencies",
+                                    "pnpm run validate:eas:config",
+                                    "pnpm run format:check",
+                                    "pnpm run verify",
+                                    "git diff --check"
+                                  ],
                        "warnings":  [
-
-                                    ]
+                                    "既存lint warning 65件",
+                                    "Native Jest act warning",
+                                    "SQLite ExperimentalWarning",
+                                    "pnpm peer warning: react-native-worklets / @react-native/metro-config"
+                                  ]
                    },
     "safety":  {
                    "network":  false,

@@ -10,7 +10,7 @@
     "package_contract": "pass: 7 Expo patch、expo-constants override、js-yaml override 2件",
     "lockfile": "pass: main baselineから再生成、再resolution追加差分0",
     "local_validation": "pass: frozen install、Expo check/Doctor、Native Static相当、format、verify、diff check",
-    "merge_commit_push_ci": "pending"
+    "merge_commit_push_ci": "merge commit pass; push/CI pending"
   },
   "evidence": {
     "merge_before_head": "6ebaf458b4f5b04b8d40c7f85c4551060b2f452f",
@@ -21,6 +21,13 @@
     "native_routes": 38,
     "native_assets": 9,
     "expo_doctor": "17/17 checks passed"
+  },
+  "merge": {
+    "commit": "d83496c42e34a71fb43a66d241d59e393efa6c40",
+    "first_parent": "efbd95eda0d8d0bd16017586497cb1bd897533ab",
+    "second_parent": "74834bf9ac859db5d9aec1f34bd8c6337f4698c8",
+    "working_tree": "clean",
+    "unmerged_files": 0
   },
   "open_items": [
     "merge commit作成",
