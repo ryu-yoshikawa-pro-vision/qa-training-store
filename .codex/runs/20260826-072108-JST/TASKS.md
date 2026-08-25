@@ -11,7 +11,7 @@
 - [x] 7. durable reportへFollow-up validationをappendし、Candidate BのRecommendationを再判定する。
 - [x] 8. Run Artifactを完了状態に更新し、sanitizer Write / Checkとproduction file scope確認を行う。
 - [x] 9. commit前差分確認を行い、調査成果物だけをcommitする。
-- [ ] 10. branch safetyを再確認してexplicit refspec pushし、push後のPR headを確認する。
+- [x] 10. branch safetyを再確認してexplicit refspec pushし、push後のPR headを確認する。
 
 ## Discovered
 

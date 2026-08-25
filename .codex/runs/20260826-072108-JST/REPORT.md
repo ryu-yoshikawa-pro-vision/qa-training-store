@@ -203,3 +203,23 @@
 - New tasks: なし。
 - Remaining: 最終precommit確認、commit、push、push後PR head確認。
 - Progress: 90% (9/10)
+
+## 2026-08-26 07:41 (JST)
+
+- Summary: 追加検証成果物をcommit・pushし、push後のPR #66 headを確認した。Runを完了状態へ更新した。
+- Completed:
+  - commit `44223d9` (`docs: validate nanoid targeted remediation candidate`) を作成した。
+  - `git push origin HEAD:investigate/issue-55-nanoid-remediation` が成功した。
+  - push後のPR確認で `headRefName=investigate/issue-55-nanoid-remediation`、`headRefOid=44223d936ce04631dff008fd3c31e8006ee1b84c`、`state=OPEN`、`isDraft=false` を確認した。
+  - Task 10を完了し、`run.json`を`status=complete`へ更新した。
+  - PR #66のReady状態、Issue #55、production dependency、product code、test codeは変更していない。
+- Changes: first push対象は既存durable reportのFollow-up validationと今回Run Artifact 4件。Run完了状態の追補は次のdocs-only commitで反映する。
+- Commands:
+  - `git branch --show-current` => `investigate/issue-55-nanoid-remediation`。
+  - push直前の`git status --short` => clean。
+  - `gh pr view 66 --json headRefName,headRefOid,state,isDraft` => push前は旧head、push後は上記head、OPEN・Readyを確認。
+  - `git push origin HEAD:investigate/issue-55-nanoid-remediation` => 成功。
+- Notes/Decisions: Recommendation Bを維持する。今回の追加EvidenceはCandidate Bのpeer metadata帰属を訂正したが、生成lockfileに残る共通Metro edgeを安全に分離できないためproduction remediationは保留する。
+- New tasks: なし。
+- Remaining: Run完了状態の追補commitとpush後確認。
+- Progress: 100% (10/10)
