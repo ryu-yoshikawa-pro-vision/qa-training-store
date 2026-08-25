@@ -139,6 +139,7 @@ bash scripts/codex-safe.sh --preset auto-net
 - Full Access common policyの正本は `.codex/hooks/pre_tool_use_policy.mjs` だけである。`PreToolUse` の `Bash` matcher（`^Bash$`）から `tool_input.command` だけを受け取り、Section 3 Matrix相当のG1-G10／N1-N4を判定する。
 - Windows nativeでは `command_windows` から `.codex/hooks/pre_tool_use_policy_windows.ps1` を経由してNodeへstdinを転送する。repository rootはroot／nested cwdのどちらからも解決する。
 - malformed／schema-invalid inputはstdout空、stderr非空、exit 2でfail-closeする。denyは `hookSpecificOutput.permissionDecision = "deny"` のstructured output、safeはexit 0かつ無出力とする。
+- Git operationは `git` 直後のglobal optionを共通解析し、`git -C <path> <subcommand> ...` でも通常形式と同じG1-G10／N1-N4のpolicyを適用する。context未指定時のprotected branch判定は、`-C` が指すeffective repositoryを対象にする。
 - `.codex/config.toml` は `features.hooks = true` を使い、deprecatedな `codex_hooks` や旧PowerShell／Python policyは参照しない。`apply_patch` はmatcher外であり、common HookはそのAdd／Update／Delete／Moveを検査しない。
 - `.codex/rules/**` はstatic prefixだけのdefense-in-depthであり、common policyの正本ではない。`auto-net` のshell wrapper禁止などpreset固有のrulesは別契約として維持する。
 - Phase 1 では shell wrapper 系の `bash -lc`, `sh -c`, `pwsh -Command`, `cmd /c` は auto-net rules 側で forbidden 寄りに扱う。

@@ -115,6 +115,30 @@ function removeFixture(root: string) {
   fs.rmSync(root, { force: true, recursive: true });
 }
 
+function setFixtureBranch(root: string, branch: string) {
+  execFileSync("git", ["symbolic-ref", "HEAD", `refs/heads/${branch}`], {
+    cwd: root,
+    stdio: "pipe",
+  });
+}
+
+function quoteCommandPath(value: string) {
+  return `"${value}"`;
+}
+
+function readPolicyMatrix() {
+  return JSON.parse(
+    execFileSync(process.execPath, [hookPath, "--print-policy-matrix"], {
+      cwd: repoRoot,
+      encoding: "utf8",
+    }),
+  ) as PolicyCase[];
+}
+
+function addGitC(command: string) {
+  return command.replace(/^(\s*)git\s+/i, "$1git -C . ");
+}
+
 describe("Codex PreToolUse/Bash Node Hook contract", () => {
   it("uses the current Bash-only config and keeps apply_patch outside the matcher", () => {
     const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
@@ -333,6 +357,241 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(output.hookSpecificOutput?.permissionDecisionReason).toMatch(
       new RegExp("^" + expected + ":"),
     );
+  });
+
+  it("keeps git -C variants equivalent to Git commands in the policy matrix", () => {
+    const featureContext = {
+      currentBranch: "feature/safe",
+      protectedBranches: ["main", "master"],
+      remoteNames: ["origin"],
+    };
+    const matrix = readPolicyMatrix().filter(({ command }) => /^\s*git\s+/i.test(command));
+    const variants = matrix.map((testCase) => ({
+      ...testCase,
+      command: addGitC(testCase.command),
+      context: testCase.context ?? featureContext,
+    }));
+    const result = runNodeHookWithExplicitContexts(variants);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
+    const byId = new Map(evaluations.map((evaluation) => [evaluation.id, evaluation.decision]));
+
+    for (const testCase of variants) {
+      const decision = byId.get(testCase.id);
+      expect(decision, testCase.id).toBeDefined();
+      if (decision === undefined) continue;
+      if (testCase.expected === "allow") {
+        expect(decision, testCase.id).toBeNull();
+      } else {
+        expect(decision?.id, testCase.id).toBe(testCase.id);
+      }
+    }
+  });
+
+  it("denies dangerous git -C variants under the existing policy semantics", () => {
+    const protectedContext = {
+      currentBranch: "main",
+      protectedBranches: ["main", "master"],
+      remoteNames: ["origin"],
+    };
+    const cases: (PolicyCase & { decisionId: string })[] = [
+      {
+        id: "git-c-commit",
+        expected: "deny",
+        command: 'git -C . commit -m "change"',
+        context: protectedContext,
+        decisionId: "G10",
+      },
+      {
+        id: "git-c-merge",
+        expected: "deny",
+        command: "git -C . merge feature/test",
+        context: protectedContext,
+        decisionId: "G10",
+      },
+      {
+        id: "git-c-cherry-pick",
+        expected: "deny",
+        command: "git -C . cherry-pick 0123456",
+        context: protectedContext,
+        decisionId: "G10",
+      },
+      {
+        id: "git-c-rebase",
+        expected: "deny",
+        command: "git -C . rebase feature/test",
+        context: protectedContext,
+        decisionId: "G2",
+      },
+      {
+        id: "git-c-push-main",
+        expected: "deny",
+        command: "git -C . push origin main",
+        context: protectedContext,
+        decisionId: "G10",
+      },
+      {
+        id: "git-c-push-head-main",
+        expected: "deny",
+        command: "git -C . push origin HEAD:main",
+        context: protectedContext,
+        decisionId: "G10",
+      },
+      {
+        id: "git-c-push-force",
+        expected: "deny",
+        command: "git -C . push --force origin feature/test",
+        context: protectedContext,
+        decisionId: "G7",
+      },
+      {
+        id: "git-c-push-short-force",
+        expected: "deny",
+        command: "git -C . push -f origin feature/test",
+        context: protectedContext,
+        decisionId: "G7",
+      },
+      {
+        id: "git-c-reset-hard",
+        expected: "deny",
+        command: "git -C . reset --hard HEAD",
+        context: protectedContext,
+        decisionId: "G1",
+      },
+      {
+        id: "git-c-clean",
+        expected: "deny",
+        command: "git -C . clean -fd",
+        context: protectedContext,
+        decisionId: "G4",
+      },
+      {
+        id: "git-c-branch-delete",
+        expected: "deny",
+        command: "git -C . branch -D old-feature",
+        context: protectedContext,
+        decisionId: "G9",
+      },
+    ];
+    const result = runNodeHookWithExplicitContexts(cases);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
+    const byId = new Map(evaluations.map((evaluation) => [evaluation.id, evaluation.decision]));
+
+    for (const testCase of cases) {
+      expect(byId.get(testCase.id)?.id, testCase.id).toBe(testCase.decisionId);
+    }
+  });
+
+  it("allows safe and feature-branch git -C variants", () => {
+    const cases: PolicyCase[] = [
+      { id: "git-c-status", expected: "allow", command: "git -C . status" },
+      { id: "git-c-log", expected: "allow", command: "git -C . log" },
+      { id: "git-c-diff", expected: "allow", command: "git -C . diff" },
+      { id: "git-c-fetch", expected: "allow", command: "git -C . fetch" },
+      {
+        id: "git-c-branch-show-current",
+        expected: "allow",
+        command: "git -C . branch --show-current",
+      },
+      {
+        id: "git-c-switch-main",
+        expected: "allow",
+        command: "git -C . switch main",
+        context: { currentBranch: "main", protectedBranches: ["main", "master"] },
+      },
+      {
+        id: "git-c-feature-commit",
+        expected: "allow",
+        command: 'git -C . commit -m "feature change"',
+        context: { currentBranch: "feature/safe", protectedBranches: ["main", "master"] },
+      },
+      {
+        id: "git-c-feature-push",
+        expected: "allow",
+        command: "git -C . push origin feature/safe",
+        context: {
+          currentBranch: "feature/safe",
+          protectedBranches: ["main", "master"],
+          remoteNames: ["origin"],
+        },
+      },
+    ];
+    const result = runNodeHookWithExplicitContexts(cases);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
+    expect(evaluations).toEqual(cases.map((testCase) => ({ id: testCase.id, decision: null })));
+  });
+
+  it("detects a dangerous git -C operation inside shell chaining", () => {
+    const result = runNodeHook(
+      JSON.stringify({
+        tool_name: "Bash",
+        tool_input: { command: "echo ok; git -C . reset --hard HEAD" },
+      }),
+    );
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    expect(JSON.parse(result.stdout)).toMatchObject({
+      hookSpecificOutput: {
+        hookEventName: "PreToolUse",
+        permissionDecision: "deny",
+        permissionDecisionReason: expect.stringMatching(/^G1:/),
+      },
+    });
+  });
+
+  it("uses the repository selected by quoted git -C path for branch context", () => {
+    const repoA = makeGitFixture();
+    const repoB = makeGitFixture();
+    const relativeRepoB = path.relative(repoA, repoB);
+    const command = "git -C " + quoteCommandPath(relativeRepoB) + ' commit -m "change"';
+
+    expect(relativeRepoB).toContain(" ");
+    try {
+      setFixtureBranch(repoA, "feature/safe");
+      setFixtureBranch(repoB, "main");
+      const denied = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: { command },
+        }),
+        repoA,
+      );
+
+      expect(denied.status).toBe(0);
+      expect(denied.stderr).toBe("");
+      expect(JSON.parse(denied.stdout)).toMatchObject({
+        hookSpecificOutput: {
+          permissionDecision: "deny",
+          permissionDecisionReason: expect.stringMatching(/^G10:/),
+        },
+      });
+
+      setFixtureBranch(repoA, "main");
+      setFixtureBranch(repoB, "feature/safe");
+      const allowed = runNodeHook(
+        JSON.stringify({
+          tool_name: "Bash",
+          tool_input: { command },
+        }),
+        repoA,
+      );
+
+      expect(allowed.status).toBe(0);
+      expect(allowed.stdout).toBe("");
+      expect(allowed.stderr).toBe("");
+    } finally {
+      removeFixture(repoA);
+      removeFixture(repoB);
+    }
   });
 
   it("blocks a protected branch push whose destination is HEAD", () => {

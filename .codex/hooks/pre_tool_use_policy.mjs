@@ -6,6 +6,15 @@ import path from "node:path";
 
 const HOOK_EVENT_NAME = "PreToolUse";
 const PROTECTED_FALLBACK_BRANCHES = ["main", "master"];
+const GIT_CONTEXT_OPERATIONS = new Set(["push", "commit", "merge", "cherry-pick", "revert", "pull", "am"]);
+const GIT_GLOBAL_OPTIONS_WITH_VALUE = new Set([
+  "-c",
+  "--config",
+  "--config-env",
+  "--git-dir",
+  "--namespace",
+  "--work-tree",
+]);
 
 /** @typedef {{ currentBranch?: string, upstreamBranch?: string, protectedBranches?: string[], remoteNames?: string[] }} GitContext */
 /** @typedef {{ id: string, expected: "allow" | "deny", command: string, context?: GitContext }} PolicyCase */
@@ -105,9 +114,105 @@ function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
+function tokenizeGitArguments(segment) {
+  const tokens = [];
+  let tokenStart = null;
+  let tokenValue = "";
+  let quote = null;
+
+  const appendToken = (end) => {
+    if (tokenStart === null) return;
+    tokens.push({ value: tokenValue, end });
+    tokenStart = null;
+    tokenValue = "";
+  };
+
+  for (let index = 0; index < segment.length; index += 1) {
+    const character = segment[index];
+    if (quote !== null) {
+      if (character === quote) {
+        quote = null;
+      } else if (character === "\\" && quote === '"' && segment[index + 1] === '"') {
+        tokenValue += '"';
+        index += 1;
+      } else {
+        tokenValue += character;
+      }
+      continue;
+    }
+
+    if (character === '"' || character === "'") {
+      tokenStart ??= index;
+      quote = character;
+      continue;
+    }
+    if (/\s/.test(character)) {
+      appendToken(index);
+      continue;
+    }
+
+    tokenStart ??= index;
+    tokenValue += character;
+  }
+
+  appendToken(segment.length);
+  return tokens;
+}
+
+function parseGitInvocation(segment) {
+  const tokens = tokenizeGitArguments(segment);
+  let tokenIndex = 0;
+  let changeDirectory;
+
+  while (tokenIndex < tokens.length) {
+    const token = tokens[tokenIndex]?.value ?? "";
+    if (token === "-C") {
+      changeDirectory = tokens[tokenIndex + 1]?.value;
+      tokenIndex += 2;
+      continue;
+    }
+    if (/^-C.+/i.test(token)) {
+      changeDirectory = token.slice(2);
+      tokenIndex += 1;
+      continue;
+    }
+    if (token === "--" || !token.startsWith("-") || token === "-") break;
+
+    tokenIndex += GIT_GLOBAL_OPTIONS_WITH_VALUE.has(token) ? 2 : 1;
+  }
+
+  const subcommandToken = tokens[tokenIndex];
+  return {
+    subcommand: subcommandToken?.value.toLowerCase() ?? "",
+    tail: subcommandToken ? segment.slice(subcommandToken.end) : "",
+    changeDirectory,
+  };
+}
+
+function getGitInvocations(command) {
+  const invocations = [];
+  const pattern = /(?:^|[\r\n;&|]\s*)git(?=\s|$)([^\r\n;&|]*)/gi;
+  for (const match of command.matchAll(pattern)) {
+    invocations.push(parseGitInvocation(match[1] ?? ""));
+  }
+  return invocations;
+}
+
 function getOperationTail(command, executable, operation) {
+  if (executable.toLowerCase() === "git") {
+    return (
+      getGitInvocations(command).find(
+        (invocation) => invocation.subcommand === operation.toLowerCase(),
+      )?.tail ?? null
+    );
+  }
+
   const pattern = new RegExp(
-    `(?:^|[\\r\\n;&|]\\s*)${escapeRegExp(executable)}\\s+${escapeRegExp(operation)}(?=\\s|$)([^\\r\\n;&|]*)`,
+    "(?:^|[\\r\\n;&|]\\s*)" +
+      escapeRegExp(executable) +
+      "\\s+" +
+      escapeRegExp(operation) +
+      "(?=\\s|$)([^\\r\\n;&|]*)",
     "i",
   );
   return pattern.exec(command)?.[1] ?? null;
@@ -223,6 +328,14 @@ function getGitCommandContext(cwd) {
   };
 }
 
+function getEffectiveGitCwd(command, cwd) {
+  const contextInvocation = getGitInvocations(command).find((invocation) =>
+    GIT_CONTEXT_OPERATIONS.has(invocation.subcommand),
+  );
+  if (!contextInvocation?.changeDirectory) return cwd;
+  return path.resolve(cwd, contextInvocation.changeDirectory);
+}
+
 function normalizedRef(value) {
   return value
     .trim()
@@ -293,8 +406,8 @@ function evaluateGitPush(command, context) {
 }
 
 function needsGitContext(command) {
-  return /(?:^|[\r\n;&|]\s*)git\s+(?:push|commit|merge|cherry-pick|revert|pull|am)(?:\s|$)/i.test(
-    command,
+  return getGitInvocations(command).some((invocation) =>
+    GIT_CONTEXT_OPERATIONS.has(invocation.subcommand),
   );
 }
 
@@ -313,7 +426,9 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   const normalizedCommand = command.trimStart();
   const context =
     suppliedContext ??
-    (needsGitContext(normalizedCommand) ? getGitCommandContext(cwd) : EMPTY_CONTEXT);
+    (needsGitContext(normalizedCommand)
+      ? getGitCommandContext(getEffectiveGitCwd(normalizedCommand, cwd))
+      : EMPTY_CONTEXT);
 
   if (evaluateGitReset(normalizedCommand)) {
     return { id: "G1", reason: "G1: reset would rewrite local history or discard the working tree." };
