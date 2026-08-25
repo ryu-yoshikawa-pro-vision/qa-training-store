@@ -14,7 +14,7 @@
 - [x] 10. 複数候補比較または互換性疑義がある場合のみ既存 focused validation を実行する。
 - [x] 11. 最終候補を isolated copy で `pnpm install --frozen-lockfile`、graph確認等により検証する。
 - [x] 12. implementation用 safe change surface、rollback、実装時validation、残リスク、再評価条件を確定する。
-- [ ] 13. durable report とRun Artifactを完成し、sanitizer Check、commit、push、push後確認を完了する。
+- [x] 13. durable report とRun Artifactを完成し、sanitizer Check、commit、push、push後確認を完了する。
 
 ## Discovered
 

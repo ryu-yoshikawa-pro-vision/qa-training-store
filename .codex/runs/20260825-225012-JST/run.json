@@ -10,11 +10,26 @@
   "branch": "investigate/issue-55-nanoid-remediation",
   "base_branch": "main",
   "codex_task_reports": [],
-  "changed_files": [],
+  "changed_files": [
+    ".codex/runs/20260825-225012-JST/PLAN.md",
+    ".codex/runs/20260825-225012-JST/TASKS.md",
+    ".codex/runs/20260825-225012-JST/REPORT.md",
+    ".codex/runs/20260825-225012-JST/run.json",
+    "docs/plans/2026-08-25_205100_nanoid_vulnerability_remediation_investigation.md",
+    "docs/reports/2026-08-25_231239_nanoid_vulnerability_remediation_investigation.md"
+  ],
   "validation": {
-    "status": "not_run",
-    "commands": [],
-    "warnings": []
+    "status": "partial",
+    "commands": [
+      "pnpm run lint:markdown",
+      "git diff --check",
+      "scripts/sanitize-codex-artifacts.ps1 -Path docs/reports/2026-08-25_231239_nanoid_vulnerability_remediation_investigation.md -Write -Check",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260825-225012-JST -Write -Check"
+    ],
+    "warnings": [
+      "最終candidateが成立しなかったため、Task 11のcandidate install/graph validationは実行していない。",
+      "pnpm run verify、Web CI、Native CIは実装PRで実施する。"
+    ]
   },
   "safety": {
     "network": false,
@@ -46,6 +61,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "in_progress",
+  "status": "complete",
   "primary_failure_category": null
 }
