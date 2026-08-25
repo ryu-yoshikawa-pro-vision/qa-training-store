@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "run_id": "20260825-120944-JST",
+  "task": "PR #62へorigin/mainを通常mergeしてconflictを解消する",
+  "status": "complete",
+  "criteria": {
+    "指定worktree_branch_upstream": "pass",
+    "merge方式": "pass: git merge origin/main、rebaseなし",
+    "conflict一覧と個別解消": "pass: 7件を列挙し、過去Runはmain、package/lockfileは再構成",
+    "package_contract": "pass: 7 Expo patch、expo-constants override、js-yaml override 2件",
+    "lockfile": "pass: main baselineから再生成、再resolution追加差分0",
+    "local_validation": "pass: frozen install、Expo check/Doctor、Native Static相当、format、verify、diff check",
+    "merge_commit_push_ci": "pass: merge commit作成、explicit refspec push成功。final-headのremote CIとmergeabilityはPR #62本文を正本として確認",
+    "artifact_responsibility": "pass: repository-local作業をfinalizeし、post-commit CIを書き戻すための再commitは行わない"
+  },
+  "evidence": {
+    "merge_before_head": "6ebaf458b4f5b04b8d40c7f85c4551060b2f452f",
+    "main_sha": "74834bf9ac859db5d9aec1f34bd8c6337f4698c8",
+    "merge_base": "a3a58ae4b4168c34307e6dd0f2d21c039a972fab",
+    "ahead_behind": "main 10 ahead / feature 4 ahead",
+    "native_component": "13 suites / 62 tests",
+    "native_routes": 38,
+    "native_assets": 9,
+    "expo_doctor": "17/17 checks passed",
+    "final_head": "55b82e7d54fd16fcd70b95efd7cb1bef9ab69819",
+    "remote_final_head_source_of_truth": "PR #62本文（Web/Mobile CI、Native Static、Android Runtime / Maestro、iOS、native verify、mergeability）"
+  },
+  "merge": {
+    "commit": "d83496c42e34a71fb43a66d241d59e393efa6c40",
+    "first_parent": "efbd95eda0d8d0bd16017586497cb1bd897533ab",
+    "second_parent": "74834bf9ac859db5d9aec1f34bd8c6337f4698c8",
+    "working_tree": "clean",
+    "unmerged_files": 0
+  },
+  "open_items": []
+}
