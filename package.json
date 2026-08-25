@@ -134,6 +134,7 @@
   "pnpm": {
     "overrides": {
       "expo-constants": "57.0.14",
+      "xcode@3.0.1>uuid": "11.1.1",
       "@eslint/eslintrc@3.3.6>js-yaml": "4.3.1",
       "@expo/xcpretty@4.4.4>js-yaml": "4.3.1",
       "minimatch@3.1.5>brace-expansion": "1.1.18",
