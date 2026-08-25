@@ -11,9 +11,9 @@
     "quality_gates": "pass: focused／全contracts、format、markdown lint、lint、typecheck、verifyを実行。lintは既存warningのみ",
     "self_review_and_scope": "pass: code-review観点で差分起因finding 0件。依存、launcher、config、#63、unrelated scopeの混入なし",
     "review_repair": "pass: iteration 1で4件のレビュー指摘をmust_fixとして修正し、focused／全contracts／verifyを再実行してremaining deltaなし",
-    "artifact_sanitization": "pass: Write／Check、5 files、0 residual findings",
-    "commit_push_pr": "pass: 実装commit f85d437、Run記録commit 993d7ba／e68d513を作成し、指定remote branchへpush、PR #65を作成",
-    "post_pr_final_confirmation": "pass: parent head 3f5669fでlocal／remote HEAD一致、origin/main不変、PR #65 OPEN／非Draft／base main／head一致。docs-only完了記録更新後のCIはpending／skippingを含むため待機していない"
+    "artifact_sanitization": "pass: 最終Write／Check、5 files、0 replacements、0 residual findings",
+    "commit_push_pr": "pass: 修正commit 36b79c8を指定branchへ通常追加し、明示refspecでpush。PR #65本文を更新し、mergeしていない",
+    "post_pr_final_confirmation": "pass: head 36b79c8でlocal／remote HEAD一致、origin/main=5fd3575、PR #65 OPEN／非Draft／base main／head一致。CIはpass／pending／skippingを確認し、無制限待機していない"
   },
   "evidence": {
     "main_sha_at_start": "690274a4829ebd1edc1463704990f085bc5895bd",
@@ -30,13 +30,15 @@
     "pr_is_draft": false,
     "pr_base": "main",
     "pr_head": "fix/codex-git-branch-protection",
-    "final_checked_head": "3f5669f4308ce8a12678771dfcc321645c84a463",
-    "origin_main_at_final_check": "690274a4829ebd1edc1463704990f085bc5895bd",
-    "ci_at_final_check": "native-ci / verify pending; Detect Native Changes pass; CodeQL pending; native matrix jobs skipping; CodeRabbit manual review requiredでskip",
+    "final_checked_head": "36b79c8636fc0191d3b10c5e1767681acefb7ed3",
+    "origin_main_at_final_check": "5fd3575d608ac18839a7cd1e099c1dcbecd088ea",
+    "ci_at_final_check": "native-ci / verify pass; Vitest contracts pass; CodeQL／Dependency Review／Code Quality／build／artifact sanitization pass; UI／Chromium E2E pending; native matrix skipping; CodeRabbit manual review requiredでskip",
     "origin_main_at_repair_start": "5fd3575",
     "focused_contract_after_repair": "79/79 PASS",
     "contracts_after_repair": "30 files、407/407 PASS",
     "verify_after_repair": "PASS",
+    "repair_commit": "36b79c8636fc0191d3b10c5e1767681acefb7ed3",
+    "repair_pushed_head": "36b79c8636fc0191d3b10c5e1767681acefb7ed3",
     "expected_changed_files": [
       ".codex/hooks/pre_tool_use_policy.mjs",
       ".codex/runs/20260825-190400-JST/PLAN.md",

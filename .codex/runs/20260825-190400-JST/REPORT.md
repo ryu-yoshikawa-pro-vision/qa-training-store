@@ -292,3 +292,14 @@
 - Safety: destructive Git commandは実行していない。生成物による想定外のtracked changeはなく、変更ファイルは宣言済みscope内の9 files（Run Artifactを含む）だけである。
 - Remaining: 最終sanitizer、commit前branch／diff確認、追加commit、明示push、PR #65更新後のbranch／PR／CI確認。
 - Progress: 95% (21/22)
+
+## 2026-08-25 21:27（JST）
+
+- Summary: 修正commitを既存PR #65へpushし、PR本文と最終metadataを更新・確認した。
+- Commit: `36b79c8636fc0191d3b10c5e1767681acefb7ed3 fix: close Git context bypasses in PreToolUse`。指定branch `fix/codex-git-branch-protection`上の通常追加commitであり、rebase／force push／履歴書き換えは行っていない。
+- Push: `git push origin HEAD:fix/codex-git-branch-protection` => PASS。local HEADとremote branch HEADは`36b79c8636fc0191d3b10c5e1767681acefb7ed3`で一致した。
+- PR: `gh pr edit 65`で日本語本文を最終contractへ更新。PR #65はOPEN、非Draft、base`main`、head`fix/codex-git-branch-protection`、`Closes #60`を確認した。新しいPRは作成していない。
+- CI: `gh pr checks 65`で、Native verify／Vitest contracts／CodeQL／Dependency Review／Code Quality／build／artifact sanitizationはpass、UI／Chromium E2Eはpending、native matrixはskipping、CodeRabbitはOSS manual review requiredでskipを確認した。failureは確認していないため、無制限監視はしない。
+- Final Git: current branchは`fix/codex-git-branch-protection`、working tree clean、`origin/main=5fd3575d608ac18839a7cd1e099c1dcbecd088ea`。mainへのcommit／push、destructive Git command、PR mergeは行っていない。
+- Remaining: なし。PRはmergeせず停止する。
+- Progress: 100% (22/22)

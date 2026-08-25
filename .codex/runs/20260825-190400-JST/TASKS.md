@@ -43,4 +43,4 @@
 - [x] R6. 全contracts、format、markdown lint、lint、typecheck、verify、diff checkを実行する。
 - [x] R7. code-review skillでself-reviewし、差分・scope・既存semantics・Windows launcher非変更を確認する。
 - [x] R8. Run Artifactをappend-onlyで更新し、sanitizer Write／Checkとevaluationを完了する。
-- [ ] R9. commit前確認、追加commit、明示refspec push、PR #65 metadata／CI／SHA最終確認を行う。PRはmergeしない。
+- [x] R9. commit前確認、追加commit、明示refspec push、PR #65 metadata／CI／SHA最終確認を行う。PRはmergeしない。
