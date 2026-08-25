@@ -8,7 +8,7 @@
 - [x] 4. `pnpm run verify`と必要なfocused validationを実行する
 - [x] 5. native / iOS validationの実行可否をpreflightし、Not Runを記録する
 - [x] 6. self-review、差分scope、sanitization、Run Artifactを確定する
-- [ ] 7. commitしてimplementation branchをpushする
+- [x] 7. commitしてimplementation branchをpushする
 - [ ] 8. PRを作成し、URL、CI初期状態、完了条件を確認する
 
 ## Discovered
