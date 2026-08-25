@@ -1,0 +1,37 @@
+{
+  "schema_version": 1,
+  "run_id": "20260825-174525-JST",
+  "task": "PR #58へ最新origin/mainを通常mergeし、最新headでbrace-expansion remediationとCIを再検証する",
+  "status": "in_progress",
+  "criteria": {
+    "worktree_branch_safety": "pending",
+    "main_merge_and_conflict_resolution": "pass: AGENTS.mdのみをsection単位で解消し、unmerged/marker 0",
+    "package_contract": "pass: mainとの差分はbrace-expansion parent-scoped override 2件、Expo/js-yaml契約を維持",
+    "lockfile_stability": "pass: main baselineから再生成、2回目hash不変、追加diff 0、affected resolution不在",
+    "local_validation": "pass: frozen install、why/list、Expo check、Expo Doctor 17/17、format、verify、Native Static相当、diff check、sanitizer pass。auditは対象外4 findingでnon-zero",
+    "merge_commit_and_push": "partial: merge commit pass、push pending",
+    "latest_head_ci": "pending",
+    "pr_metadata_and_final_judgment": "pending"
+  },
+  "evidence": {
+    "merge_before_head": "58ed3791de80b3640da44e656aae4dbacc5db795",
+    "main_sha_at_start": "47ea1477dda468864d3b053bedcfef0a6afb887e",
+    "merge_base_at_start": "74834bf9ac859db5d9aec1f34bd8c6337f4698c8",
+    "ahead_behind_at_start": "main 2 ahead / feature 7 ahead",
+    "unresolved_files_at_start": ["AGENTS.md"],
+    "unresolved_files_after_resolution": [],
+    "final_head": "1e7459f3942f002a81947eb0ca485ea95378031b"
+  },
+  "merge": {
+    "merge_head": "47ea1477dda468864d3b053bedcfef0a6afb887e",
+    "orig_head": "58ed3791de80b3640da44e656aae4dbacc5db795",
+    "commit": "1e7459f3942f002a81947eb0ca485ea95378031b",
+    "first_parent": "58ed3791de80b3640da44e656aae4dbacc5db795",
+    "second_parent": "47ea1477dda468864d3b053bedcfef0a6afb887e",
+    "working_tree": "clean",
+    "unmerged_files": []
+  },
+  "open_items": [
+    "merge解消、local validation、push後CI、PR metadataを確認する"
+  ]
+}

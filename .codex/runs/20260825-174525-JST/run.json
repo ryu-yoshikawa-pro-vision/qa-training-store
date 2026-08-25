@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "run_id": "20260825-174525-JST",
+  "task_type": "implementation",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "fix/dependabot-brace-expansion-r2-metadata-evaluation",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [],
+  "validation": {
+    "status": "in_progress",
+    "commands": [],
+    "warnings": []
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260825-174525-JST/evaluation.json",
+  "status": "in_progress",
+  "primary_failure_category": null
+}
