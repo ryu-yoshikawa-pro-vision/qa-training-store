@@ -303,3 +303,12 @@
 - Final Git: current branchは`fix/codex-git-branch-protection`、working tree clean、`origin/main=5fd3575d608ac18839a7cd1e099c1dcbecd088ea`。mainへのcommit／push、destructive Git command、PR mergeは行っていない。
 - Remaining: なし。PRはmergeせず停止する。
 - Progress: 100% (22/22)
+
+## 2026-08-25 21:30（JST）
+
+- Summary: 最終確認時点のbranch headをRun Artifactへ補正した。
+- Evidence: PR #65の最終確認headは`d7da3b4a34f10ceb84ea8f46f0eb92f085fde157`、local／remote SHA一致、working tree clean、base／head／OPEN／非Draft契約PASS。`origin/main=5fd3575d608ac18839a7cd1e099c1dcbecd088ea`。
+- CI: `native-ci / verify`と`Detect Native Changes`はpass、CodeQLはpending、native matrixはskipping、CodeRabbitはmanual review requiredでskip。開始直後のCIを無制限に待機していない。
+- Changes: `evaluation.json`の`final_checked_head`とCI要約を実際の最終headへ同期した。source／test／PR本文は変更していない。
+- Remaining: なし。PRはmergeせず停止する。
+- Progress: 100% (22/22)
