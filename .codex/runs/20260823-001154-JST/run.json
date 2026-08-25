@@ -33,12 +33,26 @@
       "pnpm run format:check",
       "pnpm run lint:markdown",
       "git diff --check",
-      "pnpm run test"
+      "pnpm run test",
+      "2026-08-25: pnpm install --frozen-lockfile",
+      "2026-08-25: pnpm exec expo install --check",
+      "2026-08-25: pnpm dlx expo-doctor@1.17.6",
+      "2026-08-25: pnpm run generate:native-assets",
+      "2026-08-25: git diff --exit-code -- src/generated/native-product-assets.ts",
+      "2026-08-25: pnpm run validate:image-manifest",
+      "2026-08-25: pnpm run test:component:native",
+      "2026-08-25: pnpm run check:native-route-dependencies",
+      "2026-08-25: pnpm run validate:eas:config",
+      "2026-08-25: pnpm run format:check",
+      "2026-08-25: pnpm run verify",
+      "2026-08-25: git diff --check"
     ],
     "warnings": [
       "通常のWindows pnpm dlx実行では既存npm設定warningにより16/17となるが、CI相当条件では17/17。",
       "lintはerror 0、既存warning 64件。",
-      "Native Jestに既存のhaste collisionおよびact warningあり。"
+      "Native Jestに既存のhaste collisionおよびact warningあり。",
+      "2026-08-25: pnpm peer warning（react-native-worklets／React Native metro-config）、lint 64 warnings、SQLite ExperimentalWarningは非blockingとして分類。",
+      "2026-08-25: pnpm serializerのlockfile形式差分はPrettier正規化後の再解決差分0を確認。"
     ]
   },
   "safety": {
@@ -71,6 +85,15 @@
     }
   },
   "evaluation_path": ".codex/runs/20260823-001154-JST/evaluation.json",
-  "status": "complete",
+  "status": "in_progress",
+  "follow_up": {
+    "date": "2026-08-25",
+    "issue": 59,
+    "previous_pr": 47,
+    "previous_pr_state": "merged",
+    "local_validation_status": "passed",
+    "remote_validation_status": "pending",
+    "current_head_before_commit": "2188e2073f65038665b5a0600d804fe62d119424"
+  },
   "primary_failure_category": "baseline-expo-doctor-patch-mismatch"
 }

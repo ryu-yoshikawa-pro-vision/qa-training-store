@@ -58,3 +58,23 @@
 
 - 2026-08-23 00:16 JST: `origin/main`をfetchし、作業ブランチのHEADと同一SHAであることを確認。強制branch recreateは安全ガードに拒否されたため、固有コミットがない既存branchを継続利用する。
 - 2026-08-23 00:16 JST: main frozen install後Doctorは15/17 checks passed、package version checkを含む2 failure。7 packageのexpected／foundは依頼記載と一致し、config schema checkはExpo API timeoutも併発した。
+
+## 2026-08-25 Issue #59 follow-up
+
+### Current understanding
+
+- `fix/expo-sdk-57-patch-alignment` と `origin/fix/expo-sdk-57-patch-alignment` は既存の `2188e20` で一致し、指定 worktree を継続利用する。
+- Issue #59 は OPEN。旧PR #47は既にMERGEDであり、旧PRやPR #58を更新せず、今回の追加patch alignmentは新しいPRとして扱う。
+- 現行 Expo CLI と `expo-doctor@1.17.6` は、Issue記載どおり7 packageをそれぞれ1 patch更新する契約を返す。
+
+### Change strategy
+
+- `package.json`の7 direct dependencyと`expo-constants` overrideだけを更新する。`expo-linking`、React、React Native、workflow、source、testは変更しない。
+- `pnpm install --lockfile-only --ignore-scripts`で再解決し、pnpm serializerの引用符差分は既存Prettier形式へ正規化する。再解決→整形のnormalized diff一致をstable条件とする。
+- local Native Static相当と通常品質ゲートを完了後、Run Artifactを追記・Sanitizer確認し、branch safety確認後にexplicit refspecでpushする。
+
+### Validation and open questions
+
+- frozen install、Expo install check、Expo Doctor 17/17、Native Static相当、format、verify、diff check、remote Native CI全gateを完了条件とする。
+- pnpm peer warning、lint warning、Native Jestのact warning、SQLite ExperimentalWarningは依存更新の成否と分離して記録する。
+- 未解決のblocking questionはない。remote CI failure時は最初のfailureと今回の依存変更との因果を確認してから bounded に対応する。

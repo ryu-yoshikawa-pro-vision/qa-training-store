@@ -209,3 +209,57 @@
 - New tasks: なし。
 - Remaining: なし。
 - Progress: 100% (10/10)
+
+## 2026-08-25 09:58 (JST)
+
+- Summary: Issue #59の現行Expo SDK 57 patch mismatchを再確認し、既存実装との差分として7 direct dependencyと`expo-constants` overrideを次のrequired patchへ更新した。既存worktree／branchを継続利用し、旧PR #47とPR #58は変更していない。
+- Completed:
+  - 指定worktree、current branch、upstream、worktree一覧を確認した。current branchは`fix/expo-sdk-57-patch-alignment`、upstreamは`origin/fix/expo-sdk-57-patch-alignment`、HEADとremote feature branchは`2188e20`で一致した。
+  - `git fetch origin`後、`origin/main`は`74834bf`、mainには旧PR #47のsquash commitが含まれることを確認した。Issue #59はOPEN、対応branchの旧PR #47はMERGEDで新規open PRは存在しない。
+  - `pnpm install --frozen-lockfile`後に現行契約を実測した。`pnpm exec expo install --check`は7件のoutdatedでexit 1、`pnpm dlx expo-doctor@1.17.6`は16/17 checks passedで同じ7件だけを報告した。
+  - Expo CLIの対象指定installを実行し、次の7 direct dependencyを更新した。`@expo/metro-runtime` 57.0.12→57.0.13、`expo` 57.0.15→57.0.16、`expo-build-properties` 57.0.13→57.0.14、`expo-constants` 57.0.13→57.0.14、`expo-crypto` 57.0.1→57.0.2、`expo-dev-client` 57.0.14→57.0.15、`expo-router` 57.0.15→57.0.16。`expo-constants` overrideも57.0.13→57.0.14へ揃えた。
+  - `pnpm install --lockfile-only --ignore-scripts`を実行し、必要なExpo 57.0.16 transitive chainを解決した。pnpmのserializer差分をPrettierで既存形式へ戻し、再解決→整形の`normalized_diff_stable=true`を確認した。
+  - Native Static定義どおり、Native asset生成（9 assets）、generated asset diff、image manifest、Native component 12 suites／49 tests、Native route 38、EAS config、Expo Doctor 17/17をPASSした。
+  - `pnpm run format:check`、`pnpm run verify`、`git diff --check`をPASSした。verifyでは全test 30 files／397 tests、Web build、spec buildまで完了した。
+- Changes:
+  - tracked product／workflow／source差分は`package.json`と`pnpm-lock.yaml`のみ。`expo-linking`、React、React Native、Playwright、workflowは変更していない。
+  - lockfileはdirect importer、対象7 package、Expo 57.0.16に必要なtransitive／peer contextを更新した。manifest上のdirect dependency変更は7件だけである。
+- Commands:
+  - `git fetch origin`、`git branch --show-current`、`git branch -vv`、`git status --short`、`git log -8 --oneline --decorate`、`git worktree list` => branch／upstream／worktreeは指定値と一致、初期statusはclean。
+  - `gh issue view 59 --repo ryu-yoshikawa-pro-vision/qa-training-store` => Issue #59 OPEN。`gh pr list --head fix/expo-sdk-57-patch-alignment --state all` => 旧PR #47 MERGED。
+  - `pnpm exec expo install --check`（更新前）=> 7 mismatches、exit 1。`pnpm dlx expo-doctor@1.17.6`（更新前）=> 16/17、7 mismatches。
+  - `pnpm exec expo install @expo/metro-runtime expo expo-build-properties expo-constants expo-crypto expo-dev-client expo-router` => PASS、指定7件のみ更新。
+  - `pnpm install --lockfile-only --ignore-scripts`、`pnpm exec prettier --write pnpm-lock.yaml` => PASS。canonical形式後の再解決差分0。
+  - `pnpm install --frozen-lockfile` => PASS、`Lockfile is up to date`。`pnpm exec expo install --check` => `Dependencies are up to date`。`pnpm dlx expo-doctor@1.17.6` => `17/17 checks passed. No issues detected!`。
+  - `pnpm run generate:native-assets`、`git diff --exit-code -- src/generated/native-product-assets.ts`、`pnpm run validate:image-manifest`、`pnpm run test:component:native`、`pnpm run check:native-route-dependencies`、`pnpm run validate:eas:config` => 全てPASS。
+  - `pnpm run format:check`、`pnpm run verify`、`git diff --check` => 全てPASS。raw logは`.artifacts/issue-59/`配下へ保存し、Run Artifactには要約のみ記録した。
+- Notes/Decisions:
+  - `pnpm install`のpeer warning（react-native-worklets／React Native metro-config）、lintの既存64 warning、Native Jestの既存act warning、SQLite ExperimentalWarningはerrorではなく、今回のpatch mismatchとは別分類した。React／React Nativeの更新やwarning回避設定は追加していない。
+  - `expo.install.exclude`、Expo Doctor skip、`continue-on-error`、Native Static gate変更は追加していない。
+  - local Native／Web PASSはremote CI PASSの代替にはしない。次はRun Artifact Sanitizer、commit／push、必要な新PR、最新headのremote CI確認である。
+- New tasks: D7〜D10を追加した。
+- Remaining:
+  - Run ArtifactのSanitizer Write／Check、最終差分確認。
+  - branch safety確認、追加修正がある場合のみcommit、explicit refspec push、新PR作成。
+  - 最新headのWeb CI、Mobile App CI各Native／Android／iOS gate、`native-ci / verify`確認。
+- Progress: 79% (15/19)
+
+## 2026-08-25 10:02 (JST)
+
+- Summary: Follow-up Run Artifactと最終差分の事前監査を完了した。
+- Completed:
+  - `run.json`／`evaluation.json`のJSON parseをPASSした。local validationをpassed、remote validationをpendingとして現行follow-up状態へ更新した。
+  - `scripts/sanitize-codex-artifacts.ps1 -Path '.codex/runs/20260823-001154-JST' -Write -Check`を実行し、5 files scanned、0 residual findingsを確認した。
+  - `git status --short`で変更対象がRunのPLAN／REPORT／TASKS、`package.json`、`pnpm-lock.yaml`だけであることを確認した。workflow、source、testの差分はない。
+  - manifest scope assertionでdirect dependency変更がIssue #59の7 packageだけ、overrideが57.0.14、React／React Nativeがbaselineと同一であることを確認した。禁止回避設定のpatternも0件だった。
+- Commands:
+  - `scripts/sanitize-codex-artifacts.ps1 ... -Write -Check` => PASS、`files_scanned=5`、`residual_findings=0`。
+  - JSON parse => PASS。
+  - `git diff --stat` => Run Artifact 3 files、`package.json`、`pnpm-lock.yaml`のみ。
+  - `git diff --check` => PASS。
+- Notes/Decisions:
+  - commit前のworking treeには依存更新とRun Artifactだけを残し、`.artifacts/issue-59/`のraw logはtracked差分へ含めない。
+- Remaining:
+  - branch safety確認、commit／explicit refspec push、新PR作成。
+  - 最新headのGitHub Actions全required gate確認と最終判定。
+- Progress: 84% (16/19)
