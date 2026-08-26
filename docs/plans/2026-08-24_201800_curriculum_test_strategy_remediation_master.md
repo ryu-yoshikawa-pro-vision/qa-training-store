@@ -42,6 +42,31 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - 一部のファイルでは内部 Lesson が数行程度で終わり、独立した学習目的・説明・Practice・到達確認が弱い箇所がある。短いこと自体ではなく、独立した学習単位として成立しているかを確認する必要がある。
 - Learner-facing 文書には日本語と英語の一般用語が混在している。固有名詞や code identifier 以外は、受講者の認知負荷を下げる観点で統一基準が必要である。
 
+### Assumptions
+
+- PR #53 の2レポートは Master Plan の初期入力として有効だが、各 child PR 開始時に Current `main` で再検証する。
+- Current Repository の局所差分は Phase 0 / 各 child Plan の repo mapping で解消でき、Master Plan の大順序を崩す必要はない。
+- PR 4 の全文監査で新規 Finding が出ることは想定するが、Product behavior変更や Formal Regression 再設計が必要になった場合は本 remediation へ無理に取り込まない。
+- Fresh Learner Review は Repository 内の教材UX / executabilityを確認する最終Gateであり、実際の受講時間や講師支援量を測る Pilot の代替にはしない。
+
+### Safe change surface
+
+- Current Fact / SSOT の文書修正。
+- Curriculum の Required / specialization / Core / Extension / Reference 境界の明確化。
+- Lesson 内部構成、説明深度、用語・表記、navigation、Practice / Evidence 接続の整理。
+- Training learner entry / artifact / validation contract の必要最小限の追加・修正。
+- Normative Specification の semantics-preserving な editorial correction。ただし Product behavior の意味を変えない範囲に限る。
+- Validator / contract test は、既存 canonical contract と文書の不整合を防ぐために必要な最小変更だけ行う。
+
+### Unknowns
+
+- Required Curriculum 全文を同一基準で監査したときに発生する P0〜P3 Finding の具体件数と分布。
+- PR 4 の Curriculum structural change と Specification editorial change を1 PRで安全にレビューできる規模かどうか。
+- Learner-facing 用語のうち、日本語化すべき一般語と公式英語を維持すべき語の最終境界。
+- Fresh Learner Review で初めて発見される navigation / prerequisite / completion blocker の有無。
+
+これらは推測で先に固定せず、本文で定義した分割条件・停止条件に従って扱う。
+
 ## 3. Fixed decisions
 
 次を固定条件として扱う。
@@ -155,6 +180,19 @@ Learner-facing 文書では次を基準とする。
 
 同一概念について日本語と英語を理由なく行き来しない。用語統一のためだけに新しい glossary file は作らず、README / Learning Design / Instructor Reference の既存責務で表現できるかを先に検討する。
 
+PR 4 child Plan の Pre-change audit では、実際に統一判断が必要な語だけを対象に `Terminology Decision Table` を作る。これは child Plan 内の一時的な実行判断表であり、新しい permanent glossary / SSOT は作らない。
+
+最低限、次を記録する。
+
+| 項目 | 内容 |
+| --- | --- |
+| Current terms | Required path 内で実際に使われている表記 |
+| Canonical learner-facing term | 今回統一する表記 |
+| Treatment | 日本語化 / 公式英語維持 / 初出のみ日本語説明追加 / machine contract のため変更禁止 |
+| Rationale | なぜその扱いにするか |
+
+`Risk`、`Business Risk`、`Regression`、`Evidence`、`Scenario`、`Action`、`Assertion`、`Result`、`Test Layer`、`Expected Behavior`、`Current Guarantee` など、実際に表記揺れがある語を監査対象とする。表に載せる語を先に固定して全Repository用語集へ拡張しない。
+
 ### 5.7 Maintainability / information architecture
 
 - 同一説明を複数 Lesson に複製しない。
@@ -192,7 +230,7 @@ PR 4 child Plan の詳細監査では各 Finding を次で分類する。
 ### Curriculum
 
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning-design.md`
+- `docs/curriculum/test-automation/00_learning_design.md`
 - `docs/curriculum/test-automation/01_spreadsheet-test-design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - `docs/curriculum/test-automation/03_instructor-reference.md`
@@ -318,9 +356,9 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 5. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。RA-M8 をここで解消する。
 6. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
 7. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。
-8. PR 3 merge 後の最新 `main` から PR 4 branch を作る。実装前に Required Curriculum 全文を §5 の基準で監査し、P0〜P3 Finding を child Plan に記録してから Curriculum Core / Extension / Reference / language / learning-flow remediation を実施する。
-9. PR 4 merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
-10. PR 5 の validation 後、Required path を Fresh Learner 視点で end-to-end walkthrough する。Repository remediation の DoD に必要な blocker は該当 owner PR へ戻して修正する。
+8. PR 3 merge 後の最新 `main` から PR 4 branch を作る。実装前に Required Curriculum 全文を §5 の基準で監査し、P0〜P3 Finding を child Plan に記録してから Curriculum Core / Extension / Reference / language / learning-flow remediation を実施する。PR 4 の分割条件に該当した場合は PR 4A / PR 4B として扱う。
+9. PR 4 stage（PR 4A、必要な場合は PR 4B）merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
+10. PR 5 の validation 後、Fresh context で Required path を end-to-end walkthrough する。P0 / P1 blocker が見つかった場合は latest `main` から bounded repair branch を作り、修正・Validation・Fresh Learner Review再実行を行う。
 11. Phase 6 は PR 2 merge 後から PR 3〜5 と並行して調査してよい。decision-only PR は最新 `main` へ追従して確定する。
 12. Repository remediation 完了後、必要に応じて Pilot Feedback を収集する。
 
@@ -329,7 +367,8 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 - Child branch は依存 PR merge 後の最新 `main` から作る。
 - 原則 stacked PR は使わない。
 - PR 1〜5 はそれぞれ child Plan を `docs/plans/` に保存してから実装する。
-- PR 4 child Plan は Required Curriculum 全文監査の Finding 一覧を含める。別の permanent audit SSOT は追加しない。
+- PR 4 child Plan は Required Curriculum 全文監査の Finding 一覧と Terminology Decision Table を含める。別の permanent audit SSOT / glossary は追加しない。
+- PR 4 の分割が必要な場合、PR 4A / PR 4B は同じ PR 4 child Plan の責務を分割して実施する。新しい Master Plan や第三の tracking SSOT は作らない。
 - Phase 6 decision-only PR は本 Master Plan を直接使用する。candidate inventory、Evidence criteria、output scope が変わる場合だけ別 Plan を作る。
 - `refactor_now` と判定した実装だけ Phase 6 decision-only PR merge 後に別 Plan / 別 PR を作る。
 
@@ -420,7 +459,7 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
 
 - Audit baseline と Current `main` の差分を確認する。
 - RA-M7 以外の Matrix 行について、Finding がまだ存在するか、Primary owner が適切かを implementation / workflow / docs で再確認する。
-- RA-M8 は Curriculum の Test Case ID 例、`training/workbook/02_test-cases.csv`、`scripts/validate-curriculum.ts`、contract test を照合し、canonical grammar を Current `main` で確定する。
+- RA-M8 は Curriculum の Test Case ID 例、`training/workbook/02_test-cases.csv`、`training/workbook/README.md`、`scripts/validate-curriculum.ts`、contract test を照合し、canonical grammar を Current `main` で確定する。
 - 既に解消済みの Finding は child Plan の実装対象から外す。
 - Current `main` の変化で Planned disposition または Primary owner を変更する必要がある場合は、該当 child Plan に理由と最終対応を記載する。本 Master Plan を live status tracker として更新しない。
 - Evidence が後続 owner で必要な Finding は、Phase 0 だけで `fix` / `defer` / `reject` の最終判断を行わない。
@@ -461,7 +500,10 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
   - Current validator / Workbook を照合して canonical grammar を確定する。
   - canonical が `TC-<DOMAIN>-NNN` 形式である場合、Curriculum の `CART-001` / `PRODUCT-001` 等の learner-facing 例を canonical 形式へ揃える。
   - Validator を教材の誤例へ合わせて緩めない。
-  - ID grammar を説明する箇所が複数ある場合、同一例が一貫することを確認する。
+  - `training/workbook/README.md` を learner-facing な Test Case ID grammar の canonical explanation とし、validator の regex / validation rule を executable contract として一致させる。
+  - Curriculum 側は grammar 自体を複数箇所で再定義せず、必要な箇所では canonical explanation を参照し、具体例だけを置く。
+  - Contract test は Workbook sample / validator rule の整合を bounded に確認する。全 Markdown を解析する新しい parser は作らない。
+  - Required Curriculum を検索し、非canonicalな learner-facing Test Case ID例が残っていないことを確認する。
 
 ### Candidate files
 
@@ -475,6 +517,7 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
 - `docs/curriculum/test-automation/01_spreadsheet-test-design.md`
 - `docs/curriculum/test-automation/part1/04_playwright-foundations.md`
 - その他 Test Case ID の例を持つ Required Curriculum
+- `training/workbook/README.md`
 - `training/workbook/02_test-cases.csv`
 - `scripts/validate-curriculum.ts`
 - `tests/contracts/training-curriculum.test.ts`
@@ -489,6 +532,7 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
 - Current config / workflow / version SSOT / Workbook / validator grammar との manual cross-check
+- Required Curriculum の Test Case ID 例を検索し、canonical grammar に反する learner-facing example が残っていないことを確認する。
 
 ### Completion
 
@@ -496,6 +540,7 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
 - RA-M7 が regression していない。
 - Curriculum の Test Case ID 例と canonical Workbook / validator grammar が一致する。
 - Learner が Curriculum の例をそのまま Workbook へ適用して validator mismatch を起こさない。
+- Learner-facing grammar の説明元が `training/workbook/README.md` に一意化され、Validator executable contract と矛盾しない。
 - 不要な volatile duplicate を増やしていない。
 - Matrix で Primary owner が PR 1 の Finding を child Plan / PR の Evidence で対応・検証している。
 
@@ -607,7 +652,7 @@ Lesson depth、Practice量、language / terminology、learning-unit completeness
 
 - `docs/adr/<next>-test-automation-curriculum-native-specialization.md`
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning-design.md`
+- `docs/curriculum/test-automation/00_learning_design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - `docs/curriculum/test-automation/03_instructor-reference.md`
 - 上記4 Lesson / Capstone
@@ -640,6 +685,17 @@ PR 3 の評価契約を維持したまま、Required Curriculum 全文を §5 �
 
 PR 4 は単純な文章リライトではない。まず Current `main` の Required path を全件監査して Finding を child Plan に記録し、その後 P0 → P1 → P2 → P3 の順で必要な修正だけ行う。
 
+### PR split rule
+
+Pre-change audit 完了後、実変更へ入る前に PR 4 の reviewability を判定する。
+
+- Default は `PR 4A: Curriculum structure / learning flow / Core-Extension-Reference / learner-facing terminology` とする。
+- `docs/spec/**` に実変更が不要、または typo / punctuation / spacing 程度で Product behavior の意味確認が不要なら PR 4A 内で扱ってよい。
+- `docs/spec/**` に複数箇所の文言修正、BR / AC周辺の表現修正、machine-consumed heading / parser contract 変更など、Specification content を独立してsemantic reviewすべき変更が必要になった場合は `PR 4B: semantics-preserving Specification editorial` へ分割する。
+- Product behavior の意味変更、仕様判断、Current implementationとの意味差解消が必要な Finding は PR 4B にも含めず、Specification clarification の別 Issue / Plan へ送る。
+- PR 4B が必要になった場合、PR 5 は PR 4A / PR 4B の必要な両方が merge されるまで開始しない。
+- 分割は reviewability と semantic safety のためであり、新しい恒久的な管理レイヤーや Master Plan を追加しない。
+
 ### Pre-change audit
 
 Required Curriculum について、ファイル単位・内部 Lesson 単位で次を確認する。
@@ -669,6 +725,8 @@ Finding は child Plan 内に次を最低限記録する。
 - related contract / validation
 
 既存 Report と重複する Finding は新しい permanent report に複製せず、既存 Matrix ID を参照する。
+
+Pre-change audit 完了時に §5.6 の `Terminology Decision Table` を確定し、PR 4A の用語変更はその表に従う。途中で新しい表記判断が必要になった場合は child Plan の表へ追記してから変更し、ファイルごとに場当たり的な判断をしない。
 
 ### Part 1 changes
 
@@ -711,6 +769,7 @@ Finding は child Plan 内に次を最低限記録する。
 - `Locator`、`Fixture` など公式用語を残す場合、初出で必要な日本語説明を付ける。
 - 同一文書内・Required path 全体で表記を揃える。
 - 機械契約へ使われている文字列は単純置換しない。
+- 実装者は Pre-change audit で確定した Terminology Decision Table に従い、用語判断をファイル単位で再発明しない。
 
 ### Normative Specification editorial review
 
@@ -722,6 +781,7 @@ Finding は child Plan 内に次を最低限記録する。
 - Product behavior の解釈が変わり得る文言、複数解釈がある仕様、Current implementation と Normative Specification の意味差は editorial fix に含めない。
 - 上記は Product Decision / Specification clarification の follow-up Finding として記録する。
 - machine-consumed heading / parser contract を変更する場合は `validate:spec` / contract test と同一変更で扱う。不要なら見出しは維持する。
+- §16のPR split ruleに該当する場合、実際のSpecification編集はPR 4Bへ分離する。
 
 ### Required / Optional / Legacy discoverability
 
@@ -731,27 +791,44 @@ Finding は child Plan 内に次を最低限記録する。
 
 ### Candidate files
 
+PR 4A:
+
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning-design.md`
+- `docs/curriculum/test-automation/00_learning_design.md`
 - `docs/curriculum/test-automation/01_spreadsheet-test-design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`（PR 3 contract を変更しない範囲）
 - `docs/curriculum/test-automation/03_instructor-reference.md`
 - `docs/curriculum/test-automation/part1/**`
 - `docs/curriculum/test-automation/part2/**`
+- 必要な場合のみ curriculum validator / contract test
+
+PR 4B が必要な場合:
+
 - `docs/spec/README.md`
 - Curriculum が直接参照する `docs/spec/features/**`
-- 必要な場合のみ validator / contract test
+- 必要な場合のみ spec validator / contract test
 
 ### Validation
+
+PR 4A:
 
 - `pnpm run format:check`
 - `pnpm run lint:markdown`
 - `pnpm run validate:curriculum`
-- `pnpm run validate:spec`
 - `pnpm run test:contracts`
 - Curriculum navigation / specialization boundary の manual cross-check
 - Workbook / validator / ID grammar の manual cross-check
 - Required Curriculum の internal link / command / path / next-action walkthrough
+- Terminology Decision Table と実際の Required path 表記の manual cross-check
+
+PR 4B がある場合:
+
+- `pnpm run format:check`
+- `pnpm run lint:markdown`
+- `pnpm run validate:spec`
+- `pnpm run test:contracts`
+- BR / AC / Oracle meaning の manual semantic-equivalence cross-check
+- Curriculum 参照元との link / terminology cross-check
 
 ### Completion
 
@@ -761,11 +838,12 @@ Finding は child Plan 内に次を最低限記録する。
 - 内部 Lesson は独立した学習単位として成立するか、同一ファイル内で適切に統合されている。
 - 内容の薄い Lesson を文章の水増しで維持していない。
 - 各 Required Lesson の学習目標・説明・Practice / Exercise・Completion Evidence の接続を確認している。
-- Learner-facing 一般用語の日本語 / 英語混在が整理され、英語を残す基準が一貫している。
+- Learner-facing 一般用語の日本語 / 英語混在が整理され、英語を残す基準が Terminology Decision Table と一致している。
 - Normative Specification の Product behavior を editorial cleanup で変更していない。
 - Required / Optional / Reference / Legacy の境界が初見で判断できる。
 - RA-L1 を Phase 0 の確認結果どおり扱っている。
 - 重複削減のために新しい抽象概念や恒久的な管理ファイルを増やしていない。
+- PR 4A / PR 4B の分割有無が audit evidence に基づいて決まり、不要な巨大diffまたは不要なPR分割をしていない。
 - Matrix で Primary owner が PR 4 の Finding を child Plan / PR の Evidence で対応・検証している。
 
 ## 17. PR 5 — Training Baseline / Exercise / Artifact / Completion Evidence
@@ -773,6 +851,11 @@ Finding は child Plan 内に次を最低限記録する。
 ### Objective
 
 Harness 正常性と Learner competency の実行入口と Evidence を分離し、Native specialization を Common Core learner へ暗黙強制しない。
+
+### Start condition
+
+- PR 4A が merge 済みである。
+- PR 4B が必要と判定された場合は PR 4B も merge 済みである。
 
 ### Web changes
 
@@ -831,7 +914,7 @@ Harness 正常性と Learner competency の実行入口と Evidence を分離し
 - Training Native workflow は specialization opt-in である。
 - Web / Common Core learner PR に Native runtime を無条件要求しない。
 - Product Required Formal Gate に learner exercise が入っていない。
-- PR 4 で定義した Learner-facing command / path / completion wording と実行入口が一致する。
+- PR 4 stage で定義した Learner-facing command / path / completion wording と実行入口が一致する。
 - Matrix で Primary owner が PR 5 の Finding を child Plan / PR の Evidence で対応・検証し、RA-G5 は根拠付きで `fix` / `defer` / `reject` を確定している。
 
 ## 18. Final Fresh Learner Review
@@ -840,13 +923,24 @@ PR 5 の実装・Validation後、Repository remediation の最終確認として
 
 これは Pilot 実測の代替ではなく、Repository内だけで確認できる教材UX / executability の最終Gateである。
 
+### Fresh context requirement
+
+Fresh Learner Review は PR 1〜5 の設計・修正経緯を知らない context で実施する。
+
+優先順は次とする。
+
+1. 新規 Agent / 新規 Session を使い、最新 `main` と `docs/curriculum/test-automation/README.md` だけを入口として渡す。
+2. 実行環境上、新規 Agent / Session を利用できない場合は、設計経緯・過去 Review Finding・Master Plan の内容を入力へ渡さず、README からのみ開始する隔離した manual walkthrough を行う。
+
+「前に何を直したか」を知っていることを前提に不足説明を補完しない。
+
 ### Method
 
-- Part 1-1 から Required path を順番に追う。
-- 過去の設計意図を知っている前提で補完しない。
+- `docs/curriculum/test-automation/README.md` から開始し、Part 1-1 以降の Required path を順番に追う。
 - README / Learning Design が案内する path だけで次の教材へ進めるか確認する。
 - 指示された file、command、Workbook、Training asset が実在するか確認する。
 - 「何を考えるか」「何を作るか」「何を実行するか」「何を証拠として残すか」「どこで完了か」が判断できるか確認する。
+- walkthrough 中に参照した path、停止した箇所、補完が必要だった説明を記録する。
 
 ### Checklist
 
@@ -862,12 +956,22 @@ PR 5 の実装・Validation後、Repository remediation の最終確認として
 - 短い内部 Lesson が、意味のない細切れとして残っていない。
 - 一般用語の日本語 / 英語表記が不要に揺れていない。
 
+### Result recording
+
+- 新しい `docs/reports/` file は作らない。
+- Fresh Learner Review を実施する final-validation Run の `REPORT.md` に、入口、walkthrough 範囲、Finding、Validation結果、remaining blocker を記録する。
+- repair PR を作成した場合は、そのPR本文またはsummaryにも、Fresh Learner Findingと修正・再検証結果を要約する。
+
 ### Handling findings
 
-- P0 / P1 は Repository remediation の DoD blocker とする。Primary owner に最も近い PR scope の bounded follow-up で修正する。
+- P0 / P1 は Repository remediation の DoD blocker とする。
+- P0 / P1 が見つかった場合、既にmerge済みの旧PRへ「戻す」のではなく、latest `main` から bounded repair branch を作る。
+- repair branch では Finding の最小修正だけを行い、影響範囲の機械Validationを再実行する。
+- repair merge 後、最新 `main` から Fresh context を作り直し、Fresh Learner Review を README から再実行する。
 - P2 は学習停止や誤解につながる場合だけ DoD blocker とする。それ以外は follow-up 可。
 - P3 は follow-up 可。
 - Product behavior の解釈が必要な Specification finding はその場で書き換えず、Product Decision / Specification clarification へ分離する。
+- 同じ blocker が修正後も残る、同じ工程で繰り返し停止する、新しいEvidenceなしで再試行する状態になった場合は `docs/reference/repair-loop.md` の停止条件に従い、推測修正を続けない。
 
 ## 19. Phase 6 — Refactoring Necessity Review
 
@@ -965,10 +1069,12 @@ Decision-only PR に Product refactor を含めない。`refactor_now` だけ de
 
 ### Fresh Learner manual validation
 
+- Fresh context で `docs/curriculum/test-automation/README.md` から開始する。
 - Required navigation を Part 1-1 から順に追う。
 - file / path / command / ID / Evidence / completion を Cross-check する。
 - learner-facing terminology と prerequisite の不整合を確認する。
 - Specification を参照する Lesson は Normative source へ正しく到達できることを確認する。
+- P0 / P1 repair 後は Fresh context を作り直し、READMEから再実行する。
 
 ### Wider impact
 
@@ -989,6 +1095,8 @@ Product runtime / broad contract に影響する場合だけ次を追加する�
 - Decision B と矛盾する Current ADR / Normative requirement が見つかる。
 - PR 3 の Required boundary 修正が対象4 Lesson / Capstoneの最小 wording変更を超えて構造変更を必要とする。
 - PR 4 の教材改善がトップレベル Curriculum 全面再設計を必要とする。
+- PR 4A に Curriculum structural change と semantic review が必要な Specification変更を同居させないと完了できない。この場合は PR 4B へ分割する。
+- PR 4B でも Product behavior の意味を変えないと解消できない。この場合は Specification clarification へ分離する。
 - Lesson の不足を埋めるために、目的不明の大量説明追加が必要になる。
 - 日本語化によって Tool / API / ID / machine contract の意味を変える必要がある。
 - Normative Specification の用語整理中に Product behavior の意味変更または Product Decision が必要になる。
@@ -998,6 +1106,7 @@ Product runtime / broad contract に影響する場合だけ次を追加する�
 - Native specialization opt-in のために Common Core workflow を複雑に分岐させる必要がある。
 - C08 evidence 判定に新しい専用 DB / scoring framework が必要になる。
 - `training:web:exercise` に新 runner / framework が必要になる。
+- Fresh Learner Review の P0 / P1 repairで同じ blockerが残る、同じ工程で繰り返し停止する、新しいEvidenceなしの再試行になる。この場合は repair-loop stop condition に従う。
 - Phase 6 の Evidence が不足し、推測で `refactor_now` を付ける必要がある。
 - Phase 6 freshness のために新しい常設解析基盤が必要になる。
 - Refactor 必要性を size / 主観だけでしか説明できない。
@@ -1013,8 +1122,10 @@ Blocking question はなし。
 - child branch名: Repository conventionに従う。
 - Traceabilityの最終表形式: 既存文書内で最小変更になる形式を選ぶ。
 - Curriculum の内部 Lesson 統合単位: PR 4 の全文監査で learner outcome と前後関係を見て決め、行数だけでは判断しない。
-- Learner-facing Japanese / English の境界: §5.6 を基準とし、公式名称・machine contract の必要性を file ごとに確認する。
+- Learner-facing Japanese / English の境界: §5.6 と PR 4 child Plan の Terminology Decision Table を基準とし、公式名称・machine contract の必要性を file ごとに確認する。
+- PR 4A / PR 4B 分割要否: Pre-change audit で actual Specification edit scope を確認し、§16 の split rule で決める。
 - Normative Specification の editorial change 可否: semantic equivalence を確認できない場合は変更しない。
+- Fresh Learner Review の実行主体: 新規 Agent / Session を優先し、利用不可の場合だけ隔離した manual walkthrough を使用する。
 - Phase 6 candidate ごとの consumer / dependency / reference の具体的取得方法: 既存 code search / Git history / tests で確認し、新しい常設解析基盤は作らない。
 
 ## 23. Follow-up notes
@@ -1039,15 +1150,19 @@ Normative Specification の監査で Product Decision が必要と判定した F
 - Master Plan publication PR が `main` に merge 済みで、RA-M7 が解消されている。
 - Phase 0 で Current `main` 基準の Finding 存否と owner 妥当性を再確認し、必要な scope 調整を該当 child Plan に反映している。
 - PR 1 の Current Documentation / SSOT drift と RA-M8 Test Case ID grammar mismatch が解消されている。
+- Test Case ID grammar の learner-facing canonical explanation と validator executable contract が一意に整合している。
 - PR 2 の Formal Test Strategy / Traceability が Current Formal Suite と一致している。
 - PR 3 の Common Core / Native specialization / Competency / Minimum Evidence 契約が一意である。
 - PR 4 で Required Curriculum 全文を共通基準で監査し、P0 / P1 Finding を解消している。
+- PR 4 child Plan の Terminology Decision Table と Required path の表記が一致している。
+- PR 4A / PR 4B の分割有無が audit evidence と split rule に基づいて決まり、Specification semantic review を巨大な Curriculum diff に埋め込んでいない。
 - PR 4 の Core / Extension / Reference が PR 3 の評価契約と一致している。
 - Required Curriculum の内部 Lesson が独立した学習単位として成立するか、同一ファイル内で適切に統合されている。
 - Learner-facing 一般用語の日本語 / 英語混在と表記揺れが、定義した基準に従って整理されている。
 - Normative Specification の editorial review で Product behavior を変更していない。
 - PR 5 の Baseline / Exercise / Artifact / Completion Evidence と Native specialization workflow が一意である。
-- Final Fresh Learner Review で P0 / P1 blocker が残っていない。
+- Final Fresh Learner Review を Fresh context で実施し、結果を final-validation Run Artifact に記録している。
+- Final Fresh Learner Review で P0 / P1 blocker が残っていない。修正が必要だった場合は latest `main` の bounded repair と Fresh context 再実行まで完了している。
 - Fresh Learner が Required path から file / command / Exercise / Evidence / completion / next action を判断できる。
 - Product Formal Native Regression / Android Runtime / iOS Build-only Gate が維持されている。
 - Repository Audit §4.1〜§4.16 の全 candidate が Phase 6 durable report で分類されている。
