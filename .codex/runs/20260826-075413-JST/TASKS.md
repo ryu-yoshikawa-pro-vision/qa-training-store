@@ -11,9 +11,9 @@
 - [x] 6. focused／contracts／format／markdown lint／lint／typecheck／verify／diff checkを実行する
 - [x] 7. code-review／repair-loopでself-reviewし、必要ならboundedに修正する
 - [x] 8. Run Artifactを更新・sanitizer実行し、commit前確認を行う
-- [ ] 9. 通常追加commitを作成し、明示refspecでpushする
-- [ ] 10. PR #65本文を最終事実へ更新し、PR metadata／CI状態を確認する
-- [ ] 11. REPORT／evaluation／run manifestを最終結果へ同期し完了判定する
+- [x] 9. 通常追加commitを作成し、明示refspecでpushする
+- [x] 10. PR #65本文を最終事実へ更新し、PR metadata／CI状態を確認する
+- [x] 11. REPORT／evaluation／run manifestを最終結果へ同期し完了判定する
 
 ## Discovered
 

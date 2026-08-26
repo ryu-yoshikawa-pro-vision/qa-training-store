@@ -45,7 +45,8 @@
                        "warnings":  [
 
                            "pnpm run lint: 65 existing warnings, 0 errors",
-                           "pnpm run verify: existing React act warnings in native component tests"
+                           "pnpm run verify: existing React act warnings in native component tests",
+                           "CI latest source head: core quality checks PASS、UI／E2E checks PENDING"
                        ]
                    },
     "safety":  {
@@ -84,6 +85,6 @@
                                   }
                   },
     "evaluation_path":  ".codex/runs/20260826-075413-JST/evaluation.json",
-    "status":  "in_progress",
+    "status":  "completed",
     "primary_failure_category":  null
 }

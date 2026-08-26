@@ -124,6 +124,23 @@
 - Remaining: Run Artifact再sanitizer、追加commit、明示refspec push、PR本文／CI最終確認。
 - Progress: 72% (8/11)
 
+## 2026-08-26 09:47（JST）
+
+- Summary: source修正、最終検証、commit／push、PR #65本文更新、Run Artifact最終同期を完了した。
+- Completed:
+  - source fix commit `c4767cc52d07116b7ba5886a5865e6a3b62a065c`を通常commitとして作成し、`git push origin HEAD:fix/codex-git-branch-protection`でpushした。
+  - PR #65はOPEN、非Draft、base `main`、head `fix/codex-git-branch-protection`、head SHAは`c4767cc52d07116b7ba5886a5865e6a3b62a065c`と確認した。mergeCommitはnull。
+  - PR本文を日本語の最終実装・検証結果・対象外・CI状態へ更新し、`Closes #60`を維持した。
+  - 最新source headのCIでは、Vitest contracts、Vitest unit／integration／repository／component、Code Quality、Style Quality、build、Dependency Review、Codex artifact sanitization、CodeQL、native-ci / verify、production-smokeがPASS。UI review／Chromium E2Eの一部はPENDING、native変更対象外jobはSKIPPING。failureは残っていない。
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260826-075413-JST -Write -Check` => PASS、5 files scanned／0 replacements／0 residual findings。
+  - `git status --short` => clean。`git rev-parse HEAD`と`git rev-parse origin/fix/codex-git-branch-protection`は一致。`origin/main`へ今回commitはpushしていない。
+- Notes/Decisions:
+  - CIの過去failureは3回目の最新結果まで最初の異常を確認し、今回diff由来のcontext decision順序を最小修正してfocused／contracts／verifyで再確認した。無目的なrerunはしていない。
+  - CIのPENDING job完了を無制限に監視せず、確認時点の状態をPRと最終報告へ記録する。
+  - 危険Git mutation、force push、rebase、reset、clean、branch削除、PR mergeは実行していない。
+- Remaining: なし。CIのPENDING jobはGitHub側で継続実行中。
+- Progress: 100% (11/11)
+
 ## 2026-08-26 09:34（JST）
 
 - Summary: 最新push後CIの残存failureを追加調査し、全Git invocation評価を完了する形へ修正した。
