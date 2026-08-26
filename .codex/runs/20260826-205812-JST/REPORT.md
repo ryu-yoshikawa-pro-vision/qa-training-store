@@ -438,3 +438,9 @@
 - Final artifact checks: append後のsanitizer Write / Check、`pnpm run lint:markdown`、dependency selector / affected count、changed files（unexpected 0）、`git status`、`git diff --check`を指定順でPASS確認した。`run.json`はcompleted、TASKSは15/15 checked。
 - Decision: `stop_success`。3 selector採用とsecurity remediation成立を確定し、未完了項目はない。
 - Progress: 100% (15/15)
+
+## 2026-08-27 01:55 (JST)
+
+- Post-closeout correction: 上記F4 completion記録を含む最新Run Artifact commitは`c716d2d2a037098dc3ff004dc889239d927783d8`です。push後に同SHAのcurrent PR headで[CodeQL run 32990837999](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32990837999)がcompleted / successとなったため、PR本文にも反映しました。
+- `c716d2d...`までの差分はRun Artifactのみで、3 selector dependency candidateとそのWeb / Mobile採用gateの検証対象head `9901254...`は不変です。これはRun Artifactの履歴補正であり、採用判断・scope・validation結果の変更ではありません。
+- Decision: `stop_success`。未完了項目はなく、Progress: 100% (15/15)
