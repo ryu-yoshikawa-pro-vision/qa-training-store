@@ -308,3 +308,70 @@
 - F3 remaining: PR #69へ3 selector candidateを反映し、Web CI / Dependency Review / Mobile App CI / Native gatesを確認する。
 - Decision: `continue`
 - Progress: 87% (13/15)
+
+## 2026-08-27 00:23 (JST)
+
+- Chronology continuation: 23:38のF3 CI開始記録は変更せず、その後の3 selector CI完了、PR本文更新、最終化確認をこの追記として確定した。
+- Authoritative follow-up result: candidate head `9fb87918fea5414ba68c84c1bcbffdf69b9693b6`のWeb CI run `32981509172`とMobile App CI run `32981509803`はcompleted / success。Android / iOS build、Android Runtime / Maestro、Native iOS CI Verify、`native-ci / verify`を含む対象gateは全てsuccess。
+- Authoritative finalization result: sanitizer Write / Check、Markdown lint、Metro selector count（3）、affected lock count（0）、scope changed files、`git diff --check`を指定順でPASS確認した。PR #69本文は3 selectorと実CI headへ更新済み。
+- Remaining mutation: Run Artifact最終差分のcommit / push、push後に更新されるPR head CIの確認、最終PR head / status確認。
+- Decision: `continue`
+- Progress: 93% (14/15)
+
+## 2026-08-27 00:18 (JST)
+
+- F3 CI result: 3 selector candidateのPR CI adoption gateを完了した。
+  - candidate head: `9fb87918fea5414ba68c84c1bcbffdf69b9693b6`
+  - [Web CI run 32981509172](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32981509172): completed / success。Code Quality、Style Quality、Dependency Review、production build / smoke、Chromium E2E required / accessibility / cross-role / mobile-boundary / training baseline、UI Review、verify、artifact sanitizationを確認した。workflow上のdeploy-production / Extended E2Eはskippedで、failureではない。
+  - [Mobile App CI run 32981509803](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32981509803): completed / success。Detect Native Changes、Native Static、Android Automation Build、Android Production-validation Build、Production Bundle Guard、Android Runtime / Maestro、Native iOS CI / iOS Automation Build、Native iOS CI / iOS Production-validation Build、Native iOS CI / iOS Native CI Verify、`native-ci / verify`を全てsuccessで確認した。
+- Adoption decision: `3 selector採用`。metro-core overrideなしでもactual `metro-core` edgeは`0.84.5`へ解決し、affected `metro@0.84.4 -> image-size@1.2.1` pathおよび対象GHSAにaffectedなresolved `image-size` instanceは復活しなかった。Web / Android / iOSのlocal preflightとPR CI compatibility gateもsuccessしたため、`metro-core`はsecurity remediationにも互換性維持にも不要と判断した。
+- Local / CI limitation: Windows localではXcode native build、物理Android端末install、local Maestroは実施していない。iOS / Androidのcanonical validationは上記Mobile App CIでsuccessしており、未実施項目をlocal PASSとは記録していない。
+- Evidence: Web / Mobileのraw JSON summaryは`.artifacts/metro-issue-68/followup-3-selector/task3-ci/`、local validationログは`.artifacts/metro-issue-68/followup-3-selector/task3-local/`に保存した。
+- Decision: `stop_success`。F4のRun Artifact / PR本文更新と最終化のみ残る。
+- Progress: 93% (14/15)
+
+## 2026-08-27 00:20 (JST)
+
+- F4 PR update: PR #69本文を3 selectorの実結果へ更新した。
+  - selector一覧、before / after graph、affected `image-size` 0件、lockfile評価、local / CI validation、scope、residual risk、dependency commit `9fb87918fea5414ba68c84c1bcbffdf69b9693b6`を反映した。
+  - `metro-core`はaffected pathではなく、overrideなしでもactual resolutionが`0.84.5`で、security remediation / compatibilityが成立したため不要だったことを明記した。
+  - PR本文に旧candidateのselector一覧、旧head SHA、旧CI runを残していないことを確認した。PRはOPEN、headは`9fb87918fea5414ba68c84c1bcbffdf69b9693b6`。
+- F4 remaining: Run Artifactのsanitizer、Markdown lint、最終dependency diff、changed files、status、diff checkを指定順で実行し、Run finalization commitを作成・pushする。
+- Decision: `continue`
+- Progress: 93% (14/15)
+
+## 2026-08-27 00:26 (JST)
+
+- F4 finalization checks: ユーザー指定順でRun Artifactの最終確認を実行した。
+  1. sanitizer `-Write`: files_scanned 4、files_changed 0、residual_findings 0。
+  2. sanitizer `-Check`: files_scanned 4、residual_findings 0。
+  3. `pnpm run lint:markdown`: 336 files、0 issues。
+  4. 最終dependency diff: `package.json`のpnpm overrides全体は9件で、そのうち今回のMetro family selectorは3件。baselineとの差分は`package.json` 3 additions、`pnpm-lock.yaml` 8 additions / 210 deletions。lock selector lineは3件、affected `image-size` / Metro 0.84.4 / `queue@6.0.2` countは全て0。unrelated semantic dependency changeなし。
+  5. changed files: `package.json`、`pnpm-lock.yaml`、`.codex/runs/20260826-205812-JST/{PLAN,TASKS,REPORT,run}.md/json`のみ。unexpected changed file 0件。
+  6. `git status --short`: Run Artifactの`REPORT.md`、`TASKS.md`、`run.json`の3件（commit前の想定差分）。
+  7. `git diff --check`: PASS。
+- F4 execution note: dependency diff集計の初回はlock diff抽出regexのPowerShell引用符エラーで実行前に終了した。依存ファイルは変更されておらず、regexを外した同じstepを再実行してselector数、lock counts、numstat、scopeをPASS確認した。sanitizerによる変更はなかったため、Markdown lint / final diff確認を追加再実行する必要は発生しなかった。
+- Evidence: finalization logsは`.artifacts/metro-issue-68/followup-3-selector/task4-finalization/`に保存した。
+- Adoption decision: `3 selector採用`、`continue`。candidate dependency差分は保持し、PR #69本文とRun Artifactを3 selectorの実結果へ更新した。Run Artifact最終差分のcommit / pushと、push後のPR head CI確認が未完了。
+- Progress: 93% (14/15)
+
+## 2026-08-26 23:38 (JST)
+
+- F3 CI phase started: local gate PASS後、3 selector candidateをcommit / pushした。
+  - commit: `9fb87918fea5414ba68c84c1bcbffdf69b9693b6` (`security: Metro remediationを3 selectorへ縮小`)
+  - explicit refspec `git push origin HEAD:security/metro-0.84.5-image-size-remediation`: PASS、force pushなし。
+  - push後のhead: `9fb87918fea5414ba68c84c1bcbffdf69b9693b6`。
+  - Web CI run `32981509172`: queued。
+  - Mobile App CI run `32981509803`: in progress。
+- Push note: remoteがdefault branch上の既存3 vulnerabilities（3 high）を通知したが、Dependabot Alertのdismiss / scope外remediationは行っていない。
+- Decision: `continue`
+- Progress: 87% (13/15)
+
+## 2026-08-27 00:24 (JST)
+
+- Chronology continuation: 23:38のF3 CI開始記録は変更せず、その後の3 selector CI完了、PR本文更新、最終化確認をこの追記として確定した。
+- Authoritative follow-up result: candidate head `9fb87918fea5414ba68c84c1bcbffdf69b9693b6`のWeb CI run `32981509172`とMobile App CI run `32981509803`はcompleted / success。Android / iOS build、Android Runtime / Maestro、Native iOS CI Verify、`native-ci / verify`を含む対象gateは全てsuccess。
+- Authoritative finalization result: sanitizer Write / Check、Markdown lint、Metro selector count（3）、affected lock count（0）、scope changed files、`git diff --check`を指定順でPASS確認した。PR #69本文は3 selectorと実CI headへ更新済み。
+- Remaining mutation: Run Artifact最終差分のcommit / push、push後に更新されるPR head CIの確認、最終PR head / status確認。
+- Decision: `continue`
+- Progress: 93% (14/15)

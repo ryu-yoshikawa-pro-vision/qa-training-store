@@ -46,6 +46,8 @@
       ,"pnpm install --frozen-lockfile --ignore-scripts (3 selector)"
       ,"pnpm why image-size / metro / metro-config / metro-core (3 selector)"
       ,"3-selector local validation / Web regression / Markdown lint / git diff --check"
+      ,"PR #69 candidate head 9fb87918 Web CI run 32981509172 / Mobile App CI run 32981509803"
+      ,"finalization ordered checks: sanitizer Write / Check, pnpm run lint:markdown, dependency diff, changed files, git status --short, git diff --check"
     ],
     "warnings": [
       "Windows環境のためXcode native buildはlocal未実施。PR上のiOS Automation/Production buildとiOS Native CI Verifyはsuccess。",
@@ -54,6 +56,7 @@
       "Task 10の初回selector assertionはPowerShell regex過剰escapeで誤判定し、修正版を再実行してPASS。"
       ,"3-selector follow-upのgraph証跡ラッパー初回は予約変数名のため引数未渡しで失敗。ラッパーのみ修正し、同じgraph commandはPASS。"
       ,"3-selector lockfileの4-selectorとの差分にpnpm生成のoptional transitive peer metadata削除があるが、package/version/integrity/edge/importer/actual peer resolutionの変更なし。"
+      ,"final dependency diff集計の初回はPowerShell regex引用符エラーで実行前終了。regexを外した再実行で同じscope/count/numstat確認はPASS。"
     ]
   },
   "safety": {

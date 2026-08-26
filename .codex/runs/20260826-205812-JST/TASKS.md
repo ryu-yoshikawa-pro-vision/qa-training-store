@@ -18,7 +18,7 @@
 
 - [x] F1. レビュー指摘をtriageし、4 selectorから`metro-core`だけを外した3 selector candidateを適用する。
 - [x] F2. pnpm 9.10.0でlockfileを二回正規再生成し、frozen installと3 selectorのactual graph / semantic diffを確認する。
-- [ ] F3. 3 selector candidateのlocal validation、PR CI adoption gate、採用判断を再実行する。
+- [x] F3. 3 selector candidateのlocal validation、PR CI adoption gate、採用判断を再実行する。
 - [ ] F4. Run ArtifactとPR本文を3 selectorの実結果へ追記・更新し、sanitizer / lint / diff / status確認後にcommit / pushする。
 
 ## Blocked
