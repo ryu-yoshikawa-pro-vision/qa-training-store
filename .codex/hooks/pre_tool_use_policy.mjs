@@ -1297,6 +1297,7 @@ function requiresResolvedGitContext(invocation) {
 export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   const normalizedCommand = normalizeShellContinuations(command).trimStart();
   const invocations = getGitInvocations(normalizedCommand);
+  let deferredContextDecision = null;
   for (const invocation of invocations) {
     const context =
       suppliedContext ??
@@ -1306,14 +1307,16 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
     const decision = evaluateGitInvocation(invocation, context);
     if (decision) return decision;
     if (!suppliedContext && requiresResolvedGitContext(invocation) && !context.currentBranch) {
-      return {
+      deferredContextDecision ??= {
         id: "G10",
         reason: "G10: Git repository or branch context could not be resolved safely for a mutation.",
       };
     }
     const transitionDecision = evaluateCompoundContextTransition(invocation, invocations, normalizedCommand);
-    if (transitionDecision) return transitionDecision;
+    if (transitionDecision) deferredContextDecision ??= transitionDecision;
   }
+
+  if (deferredContextDecision) return deferredContextDecision;
 
   if (/(?:^|[\r\n;&|]\s*)(?:rm|del|erase|rmdir|unlink)(?=\s|$)/i.test(normalizedCommand)) {
     return { id: "N1", reason: "N1: command-based file deletion is forbidden." };

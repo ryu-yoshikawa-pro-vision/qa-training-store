@@ -4,7 +4,7 @@
   "workflow": "repair",
   "issue": "#60",
   "pull_request": "#65",
-  "status": "completed",
+  "status": "in_progress",
   "iteration": 1,
   "findings": {
     "must_fix": [],
@@ -59,5 +59,5 @@
       "result": "PR CIのVitest contractsで、detached HEADのbranch context未解決時にoperation固有のG3／G7／G8／G9と通常fetchまで先にG10となる13件のfailureを確認した。既知のoperation-specific denyをcontext availability判定より先に返し、local branch destinationのないsafe fetchはcontext不要とする最小修正を行った。focused 96/96、contracts 424/424、verifyはPASS。"
     }
   ],
-  "decision": "stop_success"
+  "decision": "in_progress"
 }

@@ -123,3 +123,20 @@
   - `git diff --check` => PASS。
 - Remaining: Run Artifact再sanitizer、追加commit、明示refspec push、PR本文／CI最終確認。
 - Progress: 72% (8/11)
+
+## 2026-08-26 09:34（JST）
+
+- Summary: 最新push後CIの残存failureを追加調査し、全Git invocation評価を完了する形へ修正した。
+- Finding:
+  - 最新PR merge checkoutのjob `98015143453`は、`evaluates later dangerous invocations after an earlier safe invocation`の1件のみfailureとなった。
+  - 先行safe pushのcontext未解決G10を即時returnしたため、後続`git push --force`のG7まで到達していなかった。これは今回追加したcontext fail-close処理のreturn順序が原因であり、依存・runner・既存テスト環境の問題ではない。
+- Repair:
+  - context未解決のG10を保留し、後続invocationを継続評価するように変更した。後続に具体的なoperation denyがあればそのdecisionを返し、具体的denyがなければ保留G10を返す。
+  - これによりdetached HEADでもsafe push後のforce push、safe operation後の後続危険operationを見逃さず、既存G3／G7／G8／G9のdecisionも維持する。
+- Commands:
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1` => PASS、1 file／96 tests。
+  - `pnpm run test:contracts` => PASS、30 files／424 tests。
+  - `pnpm run verify` => PASS。unit 66、integration 98、repository 37、web component 83、native component 62、contracts 424を含む。
+  - `pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run lint`、`pnpm run typecheck` => PASS。lintは0 errors／既存warning 65件。
+- Remaining: Run Artifact再sanitizer、追加commit、明示refspec push、PR本文／CI最終確認。
+- Progress: 72% (8/11)

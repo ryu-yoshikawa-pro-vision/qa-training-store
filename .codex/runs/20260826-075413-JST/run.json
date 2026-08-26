@@ -84,6 +84,6 @@
                                   }
                   },
     "evaluation_path":  ".codex/runs/20260826-075413-JST/evaluation.json",
-    "status":  "completed",
+    "status":  "in_progress",
     "primary_failure_category":  null
 }
