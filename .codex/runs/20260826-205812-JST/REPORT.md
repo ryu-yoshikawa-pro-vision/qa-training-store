@@ -318,6 +318,14 @@
 - Decision: `continue`
 - Progress: 93% (14/15)
 
+## 2026-08-27 01:45 (JST)
+
+- F4 completion candidate: Run Artifactの最終CI成功記録と`run.json` completed更新を含む`edc5d8378b2ebf68ab5f19d296bee9f0a00d894c`（`docs: finalize Metro 3 selector CI evidence`）を、同一branchへforceなしのexplicit refspecでpushした。
+- Validation target: security / dependency / Web / Nativeの最終検証対象headは`9901254bc219df087cf66e67316bf06144d31423`。このheadから`edc5d...`までの差分はRun Artifactのみで、`package.json`、`pnpm-lock.yaml`、application code、build config、CI workflowに変更はない。
+- PR #69の最終head反映、Run Artifact closeout、push後のclean status確認を完了させるため、sanitizer Write / Check、Markdown lint、dependency diff、changed files、status、`git diff --check`をこの追記後にも再実行する。
+- Decision: `continue`。3 selector採用、final-head CI success、scope内変更を確定済み。残りはこのcloseout追記の最終checks / commitとPR本文のcurrent head同期のみ。
+- Progress: 93% (14/15)
+
 ## 2026-08-27 01:39 (JST)
 
 - F4 final-head CI recovery: GitHub Actions復旧後に、PR #69 head `9901254bc219df087cf66e67316bf06144d31423`を対象とするCIを確認した。
@@ -413,4 +421,11 @@
 - Authoritative finalization result: sanitizer Write / Check、Markdown lint、Metro selector count（3）、affected lock count（0）、scope changed files、`git diff --check`を指定順でPASS確認した。PR #69本文は3 selectorと実CI headへ更新済み。
 - Remaining mutation: Run Artifact最終差分のcommit / push、push後に更新されるPR head CIの確認、最終PR head / status確認。
 - Decision: `continue`
+- Progress: 93% (14/15)
+
+## 2026-08-27 01:45 (JST)
+
+- F4 completion candidate: Run Artifactの最終CI成功記録と`run.json` completed更新を含む`edc5d8378b2ebf68ab5f19d296bee9f0a00d894c`（`docs: finalize Metro 3 selector CI evidence`）を、同一branchへforceなしのexplicit refspecでpushした。
+- Validation target `9901254bc219df087cf66e67316bf06144d31423`では、CodeQL `32986767712`、Web CI `32986839351`、Mobile App CI `32986840802`が全てcompleted / success。`edc5d...`までの差分はRun Artifactのみで、検証済みdependency / application / build / CI scopeは変わらない。
+- Decision: `continue`。3 selector採用、final-head CI success、scope内変更を確定済み。closeout後に最終PR headとPR本文を同期する。
 - Progress: 93% (14/15)
