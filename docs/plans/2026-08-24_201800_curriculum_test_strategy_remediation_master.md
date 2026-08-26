@@ -22,7 +22,8 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - Curriculum / Workbook / Validator / Training asset / Normative Specification の参照契約に矛盾がない。
 - `docs/spec/**` の learner-facing / normative text が同一の言語・用語方針で監査され、Product behavior を変えずに必要な editorial correction が行われている。
 - Training の Baseline と Learner-authored Evidence を区別できる。
-- コース開始時の対象受講者像が明文化され、コードベースの自動化未経験者を前提に教材の説明深度と自己確認方法を判断できる。後続Lessonでは正規の前段Lessonで明示的に学んだ内容を既習知識として利用できる。
+- コース開始時の対象受講者像が明文化され、コードベースの自動化未経験者を前提に教材の説明深度と自己確認方法を判断できる。後続 Common Core Lesson では、それ以前の Common Core Required Lesson で明示的に学んだ内容だけを既習知識として利用できる。
+- Common Core completion は specialization / Extension / Reference を受講していなくても成立し、これらの内容を後続 Common Core の隠れ前提にしない。
 - Learner Required path と、Learner が選択した specialization の learner-facing material では、学習内容の説明、演習判断、答え合わせ、学習上のRecovery、完了判定を learner-facing material だけで進められる。
 - Instructor / 運営は、環境準備・アカウント・権限・端末・演習Repository / Training Copy・Infrastructure / Toolchain 等、受講内容の外側を支援する担当として利用可能である。
 - Instructor / 運営向け資料は、上記の受講内容外支援だけへ限定されている。
@@ -49,6 +50,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - Learner-facing 文書には日本語と英語の一般用語が混在している。固有名詞や code identifier 以外は、受講者の認知負荷を下げる観点で統一基準が必要である。
 - `docs/spec/` には Feature spec だけでなく、README、Glossary、Product Scope、Role / Permission、State / Scenario、UI / UX Contract、Change Process、Known Deviations、Template 等の text contract があり、Curriculum から直接参照されない文書も learner / maintainer の仕様理解へ影響する。
 - Current Curriculum は `03_instructor-reference.md` を持ち、Facilitation / Troubleshooting / evaluation guidance を Instructor 向けに記載している。また Rubric や一部 Lesson には講師支援・採点・提出を前提とした表現があり、Learner Required path と specialization の learner-facing material だけで自己確認できる情報との責務分離が必要である。
+- Current Learning Design では Maestro / Native が Part 1 の途中に置かれ、その後の保守性改善 Lesson が Playwright / Maestro の両方を前提にする記述を持つため、Native specialization 化後は後続 Common Core が specialization を暗黙前提にしないよう整理が必要である。
 - Current validator の required-file list は Repository上存在必須の curriculum asset を表しており、受講者が修了のために必ず読む Learner Required path と同義ではない。`03_instructor-reference.md` は前者には含め得るが、後者には含めない。
 
 ### Assumptions
@@ -58,6 +60,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - PR 4 の全文監査で新規 Finding が出ることは想定するが、Product behavior変更や Formal Regression 再設計が必要になった場合は本 remediation へ無理に取り込まない。
 - Instructor / 運営は、環境準備、端末、アカウント、権限、演習Repository / Training Copy、Infrastructure / Toolchain障害を支援する担当として利用可能であることを運用前提とする。
 - 自己学習品質で禁止する依存は、Learner Required path または選択した specialization の learner-facing material の理解、演習の選択・判断、答え合わせ、学習上のRecovery、完了判定を Instructor の口頭説明・個別判断・非公開情報に依存させることである。
+- Common Core の後続 Lesson は、specialization / Extension / Reference を未受講でも成立することを前提とする。
 - 受講者視点レビューは Repository remediation の最終Gateではなく、教材を運用しながら繰り返す継続的な品質改善活動として扱う。
 - 受講者視点レビューは初見受講者だけに限定しない。対象受講者像に近い初見受講者が利用できる場合は初見レビューとして実施し、教材変更後などは同一または別のレビュアーによる再レビューも許容する。
 - 受講者視点レビューの実施回数、実際の完走率、所要時間、支援回数は Pilot / 継続運用で確認し、本 Master Plan の完了をブロックしない。
@@ -77,7 +80,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 
 ### Unknowns
 
-- Learner Required path と learner-facing specialization material を同一基準で監査したときに発生する P0〜P3 Finding の具体件数と分布。
+- Learner Required path と learner-facing specialization material を同一基準で監査したときに発生する Curriculum P0〜P3 Finding の具体件数と分布。
 - `docs/spec/**` 全 text document の監査で、実変更が必要な editorial Finding が発生するかどうか。
 - Learner-facing 用語のうち、日本語化すべき一般語と公式英語を維持すべき語の最終境界。
 - Instructor Reference にしか存在しない学習上の判断・Recovery・評価観点がどの程度あるか。
@@ -94,8 +97,11 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - コース開始時の想定受講者は、テスト自動化の目的・基本概念を理解している。
 - コース開始時の想定受講者は、ノーコード / ローコードのテスト自動化ツールを触ったことがある、または仕組み・利用イメージを理解している程度を標準とする。
 - コース開始時は Playwright などコードベースの自動化ツールは未経験を標準とし、プログラミング経験を必須前提にしない。
-- 各 Lesson / specialization で前提にできる知識は、コース開始時の対象受講者像に加え、その時点までの正規の前段Lessonで明示的に学んだ内容に限定する。教材外の実務経験・経験者の暗黙知は前提にしない。
-- specialization は、開始前に必要な前提Lesson / completionを README / Learning Design / 対象Lessonのいずれかで明示する。
+- Common Core Lesson で前提にできる学習済み知識は、コース開始時の対象受講者像に加え、その時点より前の Common Core Required Lesson で明示的に学んだ内容に限定する。
+- specialization / Extension / Reference で学ぶ内容を、その後の Common Core Lesson の必須前提・完了条件へ暗黙に持ち込まない。これらを未受講でも Common Core completion が成立する。
+- specialization Lesson で前提にできる知識は、コース開始時の対象受講者像、明示された Common Core prerequisite、同一 specialization 内でそれ以前に必須として明示された Lesson / completion に限定する。
+- 教材外の実務経験・経験者の暗黙知は Common Core / specialization のどちらでも前提にしない。
+- specialization は、開始前に必要な Common Core prerequisite と、specialization 内の必要な前段Lesson / completionを README / Learning Design / 対象Lessonのいずれかで明示する。
 - Web Automation、Failure Analysis、Maintainability、Git / PR、bounded Web CI を Common Core とする。
 - C08 Native Automation、Physical Android Hands-on、Native CI、Native Capstone は specialization とする。
 - Native specialization 化は Curriculum learner の Required / specialization 境界だけを変更する。
@@ -127,7 +133,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - Learner-facing な一般説明は日本語を基本とする。ただし Tool / Product / API / Code identifier / file path / command / ID grammar / Official concept name は意味を壊さない範囲で英語を維持する。
 - Machine-consumed heading、ID、path、token、validator contract は単純翻訳しない。変更が必要な場合は parser / validator / contract test と同一変更単位で扱う。
 - Normative Specification の日本語整理では Product behavior の意味を変更しない。意味が変わる可能性がある文言は editorial change として処理せず、Product Decision が必要な別課題として記録する。
-- `docs/spec/**` の実変更は、Pre-change audit で `PR 4B` Disposition と判定した bounded な semantics-preserving Finding だけを Curriculum 変更へ混ぜず PR 4B として分離する。純粋なP3だけではPR 4Bを発生させない。
+- `docs/spec/**` の実変更は、Pre-change audit で `PR 4B` Disposition と判定した bounded な semantics-preserving Finding だけを Curriculum 変更へ混ぜず PR 4B として分離する。typo / punctuation / spacing 等の軽微な editorial Finding だけでは PR 4B を発生させない。
 - PR 4B が必要な場合は PR 4A merge 後の最新 `main` から branch を作り、stacked PR にしない。
 
 ## 4. Non-goals
@@ -179,12 +185,14 @@ PR 4 の child Plan 作成時に、Learner Required path 全文と learner-facin
 
 ### 5.3 Learning flow / prerequisites
 
-- 各Lessonでは、コース開始時の対象受講者像に加え、そのLessonまでの正規の学習経路で明示的に学んだ内容を前提知識として利用してよい。前段で学んだ内容を後続Lessonでゼロから再説明しない。
-- 正規の前段Lessonで説明していない概念や、教材外の実務経験・経験者の暗黙知を当然の前提として使用しない。
+- Common Core Lesson では、コース開始時の対象受講者像に加え、それ以前の Common Core Required Lesson で明示的に学んだ内容を前提知識として利用してよい。前段 Common Core で学んだ内容を後続 Common Core でゼロから再説明しない。
+- specialization / Extension / Reference の内容を後続 Common Core の必須前提にしない。これらを未受講でも Common Core の学習・演習・完了条件が成立する。
+- specialization Lesson では、明示された Common Core prerequisite と、同一 specialization 内の必須前段Lesson / completionだけを既習として扱ってよい。
+- 正規の前提経路で説明していない概念や、教材外の実務経験・経験者の暗黙知を当然の前提として使用しない。
 - Test Target → Risk → Design → Layer → Automation → Implementation の順序を壊していない。
 - Playwright / Maestro / Git / CI の Tool 操作より、必要な判断能力を先に学べる。
-- コース開始時のPlaywright等コードベース自動化未経験・プログラミング非必須という前提から学習を開始できる。後続Lessonでは正規の前段Lessonで学んだPlaywright / TypeScript / Git / CI等を既習として扱ってよい。
-- specialization は開始に必要な前提Lesson / completionが learner-facing navigation または対象Lessonから一意に分かる。
+- コース開始時のPlaywright等コードベース自動化未経験・プログラミング非必須という前提から学習を開始できる。後続 Common Core では前段 Common Core で学んだ Playwright / TypeScript / Git / CI 等を既習として扱ってよい。
+- specialization は開始に必要な Common Core prerequisite と specialization 内の前提Lesson / completionが learner-facing navigation または対象Lessonから一意に分かる。
 - Core / Extension / Reference / specialization の境界が各 Lesson で一貫する。
 
 ### 5.4 Exercise / Evidence / Assessment alignment
@@ -256,20 +264,21 @@ PR 4 child Plan の Pre-change audit では、実際に統一判断が必要な�
 - Canonical Definition と Application Practice を区別する。
 - Learner Required / Extension / Reference / Legacy / specialization が directory browse でも誤解しにくい。
 - Optional / Legacy asset が Learner Required completion と競合しない。
+- specialization / Extension / Reference が後続 Common Core の隠れ prerequisite になっていない。
 - Repository owner 向け運用契約を Learner Required text に過剰露出しない。
 - Instructor Reference に learner-facing learning content を置かない。
 - Repository-required curriculum asset と Learner Required path を同じ「Required」として曖昧に表示しない。
 
-### 5.8 Finding severity
+### 5.8 Curriculum Finding severity
 
-PR 4 child Plan の詳細監査では各 Finding を次で分類する。
+PR 4 child Plan の Curriculum Finding は次で分類する。Specification Findingにはこの severity を適用せず、§16 の Specification Disposition だけで扱う。
 
 - `P0`: 教材どおり進めると実行不能、誤った Expected Behavior、validator / implementation contract と矛盾する。
 - `P1`: 学習目標・演習・評価の不整合、前提知識の飛躍、Lesson が学習単位として成立しない、または learner-facing learning content / self-check が Instructor の追加説明に依存するなど学習成果へ大きく影響する。
 - `P2`: 日本語 / 英語混在、重複、Learner Required / specialization / Reference 発見性、情報量の偏りなど理解・保守性へ影響する。
 - `P3`: 語尾、軽微な表記、文章上の微修正。
 
-修正境界は次で固定する。
+Curriculum Finding の修正境界は次で固定する。
 
 - `P0` / `P1`: PR 4A の blocker とし、Pre-change audit で確認したものは PR 4A で必ず解消する。
 - `P2`: 本 Master Plan の目的である learner-facing の自己学習品質、navigation、用語一貫性、重複削減、保守性へ直接関係し、かつ bounded な変更で解消できるものだけ `fix_now` とする。それ以外は `defer` とし、PR 4A の scope を広げない。ただし Goal / Fixed decisions / Definition of Done の成立に必要な P2 は規模だけを理由に `defer` しない。必要な P2 が bounded に収まらない場合は、無理に defer せず stop condition として PR 4 child Plan の scope を見直す。
@@ -284,6 +293,7 @@ Learner Required path と、Learner が選択した specialization の learner-f
 各対象 Lesson / Exercise で次を確認する。
 
 - 何を開始条件として満たせばよいかが分かる。端末・アカウント・権限・演習Repository等を Instructor / 運営が提供する場合も、Learner が受領後に確認する条件を明示する。
+- Common Core Lesson の開始条件に specialization / Extension / Reference completion を含めない。
 - 学習内容を理解するために Instructor の口頭説明・追加資料・非公開 Answer Key を必要としない。
 - Exercise で何を作る・実行する・記録するかが明確である。
 - Self-check は、Learner が「自分の回答・成果物がその学習目標を満たしているか」を合理的に判定できる具体性を持つ。単に Rubric / Spec / Reference へのリンクがあるだけで、該当する評価条件・BR / AC・確認観点を特定できない場合は self-check とみなさない。
@@ -306,7 +316,9 @@ Learner Required path と、Learner が選択した specialization の learner-f
 - Git / GitHub / CI / Maestro などは、そのLessonで説明される前の知識として補完しない。
 - Repository固有のpath、Training command、Seed、Formal Test、Workflow構成を事前に知っている前提にしない。
 
-各Lesson / specialization の説明深度と受講者視点レビューでは、このコース開始時プロフィールに、その時点までの正規の前段Lessonで明示的に学んだ内容を加えた状態を基準とする。前段で学んだ Playwright / TypeScript / Git / CI 等は既習として扱ってよいが、教材外の実務経験、過去の運用知識、経験者の暗黙知で不足を補完しない。specialization は必要な前提Lesson / completionを learner-facing に明示する。
+Common Core Lesson の説明深度と受講者視点レビューでは、このコース開始時プロフィールに、それ以前の Common Core Required Lesson で明示的に学んだ内容だけを加えた状態を基準とする。specialization / Extension / Reference で得る知識は Common Core の必須前提として扱わない。
+
+specialization の説明深度と受講者視点レビューでは、このコース開始時プロフィールに、明示された Common Core prerequisite と同一 specialization 内の必須前段Lessonで学んだ内容を加えた状態を基準とする。どちらの経路でも教材外の実務経験、過去の運用知識、経験者の暗黙知で不足を補完しない。
 
 ## 6. Impacted areas
 
@@ -463,8 +475,8 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 4. ユーザーの明示承認後に Master Plan publication PR を `main` へ merge する。
 5. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。RA-M8 をここで解消する。
 6. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
-7. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。ここでコース開始時の対象受講者像と既習知識の扱い、Repository-required curriculum asset / Learner Required path、Learner-facing Rubric、Instructor Referenceの責務境界を正本化する。Instructor Reference本体は冒頭のtransition noticeだけを最小修正し、既存Facilitation / 判断 / Recovery / 評価観点の実仕分け・移行はPR 4Aで行う。
-8. PR 3 merge 後の最新 `main` から PR 4A branch を作る。実装前に Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract 全件を監査し、P0〜P3 Finding と Terminology Decision Table を child Plan に記録する。PR 4A では Curriculum Core / Extension / Reference / specialization / language / learning-flow / self-study remediation、Instructor Reference内情報の仕分け・移行、継続的な受講者視点レビュー用チェックリストの追加、Curriculum側の安定した用語ルール反映を実施する。
+7. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。ここでコース開始時の対象受講者像、Common Core / specialization の既習知識境界、Repository-required curriculum asset / Learner Required path、Learner-facing Rubric、Instructor Referenceの責務境界を正本化する。Instructor Reference本体は冒頭のtransition noticeだけを最小修正し、既存Facilitation / 判断 / Recovery / 評価観点の実仕分け・移行はPR 4Aで行う。
+8. PR 3 merge 後の最新 `main` から PR 4A branch を作る。実装前に Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract 全件を監査し、Curriculum P0〜P3 Finding、Specification Finding の Disposition、Terminology Decision Table を child Plan に記録する。PR 4A では Curriculum Core / Extension / Reference / specialization / language / learning-flow / self-study remediation、Instructor Reference内情報の仕分け・移行、継続的な受講者視点レビュー用チェックリストの追加、Curriculum側の安定した用語ルール反映を実施する。
 9. Spec監査で `PR 4B` Disposition の Finding が1件以上ある場合は、PR 4A merge 後の最新 `main` から PR 4B branch を作り、bounded な semantics-preserving Specification editorial を実施する。`PR 4B` Disposition がなければ PR 4B は作らない。
 10. PR 4 stage（PR 4A、必要な場合は PR 4B）merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
 11. PR 5 では継続レビュー用チェックリストの command / Artifact / Environment block 観点が実際のTraining入口と矛盾しないことを確認する。
@@ -477,7 +489,7 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 - Child branch は依存 PR merge 後の最新 `main` から作る。
 - 原則 stacked PR は使わない。
 - PR 1〜5 はそれぞれ child Plan を `docs/plans/` に保存してから実装する。
-- PR 4 child Plan は Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` text contract の監査 Finding 一覧と Terminology Decision Table を含める。Curriculum Finding には `fix_now` / `defer` の Disposition を記載し、§5.8 の修正境界に従う。別の permanent audit SSOT / glossary は追加しない。
+- PR 4 child Plan は Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` text contract の監査 Finding 一覧と Terminology Decision Table を含める。Curriculum Finding にだけ `P0`〜`P3` severity と `fix_now` / `defer` の Disposition を記載し、§5.8 の修正境界に従う。Specification Finding は §16 の `no_change` / `PR 4B` / `Specification clarification` だけで扱う。別の permanent audit SSOT / glossary は追加しない。
 - PR 4A で `docs/reference/curriculum-self-study-review.md` を追加し、継続的な受講者視点レビューのチェックリストだけを保存する。個別レビュー結果やレビュー履歴は保存しない。
 - PR 4B が必要な場合は、PR 4A merge 後の最新 `main` から作成し、PR 4Aで保存済みの同一 child Planを入力として使用する。新しい Master Plan や第三の tracking SSOT は作らない。
 - PR 4Aへ `docs/spec/**` の実変更を含めない。Specの実変更は `PR 4B` Disposition としたboundedなsemantics-preserving FindingだけをPR 4Bへ含める。
@@ -730,14 +742,15 @@ Traceability は次を最小単位として結ぶ。
 
 ### Objective
 
-共通卒業像、コース開始時の対象受講者像と既習知識の扱い、C01〜C12 の評価契約、Learner Required / specialization 境界、Repository-required curriculum asset / Learner Required path、Learner self-check の共通 Evidence 契約を正本化する。
+共通卒業像、コース開始時の対象受講者像と Common Core / specialization の既習知識境界、C01〜C12 の評価契約、Learner Required / specialization 境界、Repository-required curriculum asset / Learner Required path、Learner self-check の共通 Evidence 契約を正本化する。
 
 ### Changes
 
 - 次の空き ADR で Decision B を記録する。
 - README / Learning Design に共通卒業像と Learner Required / specialization 境界を記載する。
-- README / Learning Design に §5.10 のコース開始時の対象受講者像と、各Lessonで「コース開始時プロフィール + 正規の前段Lessonで明示的に学んだ内容」を前提にできるルールを記載する。
-- specialization の開始に必要な前提Lesson / completionを README / Learning Design / 対象Lessonのいずれかで一意に確認できるようにする。
+- README / Learning Design に §5.10 のコース開始時の対象受講者像を記載する。
+- README / Learning Design に、Common Core Lesson が前提にできる既習知識を「コース開始時プロフィール + それ以前の Common Core Required Lesson」に限定し、specialization / Extension / Reference を後続 Common Core の必須前提にしないルールを記載する。
+- specialization の開始に必要な Common Core prerequisite と、specialization 内の前提Lesson / completionを README / Learning Design / 対象Lessonのいずれかで一意に確認できるようにする。
 - README / Learning Design に Repository-required curriculum asset と Learner Required path の違いを記載する。
   - `03_instructor-reference.md` は Repository-required support asset として残してよいが、Learner Required path から外す。
   - README の navigation でも受講者必修教材と Instructor / 運営向け支援資料を明確に分ける。
@@ -798,16 +811,17 @@ Lesson depth、Practice量、language / terminology、learning-unit completeness
 - `pnpm run test:contracts`
 - TypeScript contract を変更した場合は `pnpm run typecheck`
 - README / Learning Design / Rubric / Instructor Reference冒頭 / 対象Lesson の manual cross-check
-- コース開始時の対象受講者像と、各Lessonで利用できる正規の既習知識ルールが README / Learning Design / Rubric / Lesson の説明深度と矛盾しないことを manual cross-check
-- specialization の開始条件から必要な前提Lesson / completionを一意に辿れることを manual cross-check
+- コース開始時の対象受講者像と、Common Core / specialization で利用できる既習知識ルールが README / Learning Design / Rubric / Lesson の説明深度と矛盾しないことを manual cross-check
+- specialization / Extension / Reference を未受講でも後続 Common Core Lesson / completion が成立することを manual cross-check
+- specialization の開始条件から必要な Common Core prerequisite と specialization 内の前提Lesson / completionを一意に辿れることを manual cross-check
 - Repository-required curriculum asset と Learner Required path がREADME / Learning Design / Validator説明で混同されていないことを manual cross-check
 - Instructor Reference が Learner Required path / specialization の学習正本として案内されておらず、冒頭にPR 4Aまでのtransition contractが明記され、既存の学習内容を PR 4A の実仕分け前に削除していないことを manual cross-check
 
 ### Completion
 
 - コース開始時の対象受講者像が一意で、Playwright等のコードベース自動化未経験・プログラミング非必須の前提が正本間で一致している。
-- 後続Lessonは、コース開始時プロフィールに正規の前段Lessonで明示的に学んだ内容だけを加えた状態を前提にし、教材外の暗黙知へ依存していない。
-- specialization の開始に必要な前提Lesson / completionが learner-facing に一意である。
+- Common Core の後続Lessonは、コース開始時プロフィールにそれ以前の Common Core Required Lesson で明示的に学んだ内容だけを加えた状態を前提にし、specialization / Extension / Reference や教材外の暗黙知へ依存していない。
+- specialization の開始に必要な Common Core prerequisite と specialization 内の前提Lesson / completionが learner-facing に一意である。
 - Instructor / 運営が受講内容外の環境支援担当として利用可能であるという運用前提が README / Learning Design と一致している。
 - 各 Competency の Minimum Evidence を Rubric から Learner 自身が確認できる。
 - 外部評価を行う場合も同じ公開Rubric / Minimum Evidence / Artifact を使い、Required completion に非公開採点基準がない。
@@ -830,7 +844,7 @@ PR 3 の評価契約を維持したまま、Learner Required path 全文、learn
 - `PR 4A`: Curriculum structure / learning flow / Core-Extension-Reference-specialization / learner-facing terminology / self-study completeness、Repository-required asset / Learner Required path境界、Instructor Reference 内情報の仕分け・移行、継続レビュー用チェックリスト、Learner Required path + learner-facing specialization material + `docs/spec/**` text contract のPre-change auditを担当する。
 - `docs/spec/**` に `PR 4B` Disposition の Finding がなければ PR 4B は作らない。
 - `PR 4B` は、`docs/spec/glossary.md` / `_templates/**` / canonical terminology との不整合、または learner / maintainer の読解・保守へ実害があり、Product behavior を変えず bounded に解消できる editorial Finding を対象とする。
-- typo、punctuation、spacing等の純粋なP3は、それ単独ではPR 4Bを発生させない。PR 4Bで別理由により同一箇所を変更する場合だけ、周辺の局所cleanupとして併せて直してよい。
+- typo、punctuation、spacing等の軽微な editorial Finding は、それ単独ではPR 4Bを発生させない。PR 4Bで別理由により同一箇所を変更する場合だけ、周辺の局所cleanupとして併せて直してよい。
 - Product behavior の意味変更、仕様判断、Current implementationとの意味差解消が必要な Finding は PR 4B に含めず、Specification clarification の別 Issue / Plan へ送る。
 - bounded な editorial correction を超えて広範囲cleanupが必要になる場合は、PR 4Bへ膨張させず stop condition としてscopeを見直す。
 - PR 4B は PR 4A merge 後の最新 `main` から branch を作る。
@@ -856,7 +870,9 @@ Learner Required path と learner-facing specialization material について、
 - Duplicate / canonical definition
 - Next action / next lesson
 
-specialization は選択後の learner-facing 学習経路として同じself-study基準で監査するが、specializationの環境・実行・EvidenceをCommon Core completionへ昇格させない。各specializationについて、開始前に必要な前提Lesson / completionがlearner-facingに明示されているかも確認する。
+Common Core について、specialization / Extension / Reference を未受講でも後続 Lesson の学習・Exercise・Completion が成立するかを確認する。途中に配置された Native specialization 等を後続 Common Core の隠れ prerequisite にしない。
+
+specialization は選択後の learner-facing 学習経路として同じself-study基準で監査するが、specializationの環境・実行・EvidenceをCommon Core completionへ昇格させない。各specializationについて、開始前に必要な Common Core prerequisite と specialization 内の前提Lesson / completionがlearner-facingに明示されているかも確認する。
 
 Repository-required support asset について次を確認する。
 
@@ -873,26 +889,36 @@ Repository-required support asset について次を確認する。
 - BR / AC / ID / path / code identifier / machine-consumed heading のcanonical form。
 - Product behavior の意味を変えずにeditorial correctionできるか。
 - Current implementationとの意味差、複数解釈、Product Decisionが必要な箇所はeditorial fixから除外できるか。
-- 純粋なtypo / punctuation / spacingだけでPR 4Bを発生させようとしていないか。
+- typo / punctuation / spacing等の軽微なeditorial issueだけでPR 4Bを発生させようとしていないか。
 
-Finding は child Plan 内に次を最低限記録する。
+Finding は child Plan 内に次の形式で記録する。
+
+共通項目:
 
 - ID
-- severity (`P0` / `P1` / `P2` / `P3`)
 - file / heading
 - current state
 - problem
 - learner impact または specification readability / maintainability impact
+
+Curriculum Findingだけに追加する項目:
+
+- severity (`P0` / `P1` / `P2` / `P3`)
 - minimum fix
 - related contract / validation
-- Curriculum Findingの場合は `fix_now` / `defer` のDisposition
-- Specification Findingの場合は `no_change` / `PR 4B` / `Specification clarification` のDisposition
+- `fix_now` / `defer` のDisposition
+
+Specification Findingに追加する項目:
+
+- `no_change` / `PR 4B` / `Specification clarification` のDisposition
+- Disposition理由
+- `PR 4B` の場合だけ minimum bounded fix / validation
 
 Specification Finding の Disposition は次で決める。
 
 - `Specification clarification`: Product behavior の意味変更、複数解釈、Current implementationとの意味差解消、Product Decisionが必要。
 - `PR 4B`: canonical terminology / glossary / templateとの不整合、または読解・保守上の実害があり、semantics-preservingかつboundedに解消できる。
-- `no_change`: 上記に該当しない、または純粋なP3のみ。純粋なP3は別の`PR 4B`変更箇所の周辺cleanupとしてのみ修正してよい。
+- `no_change`: 上記に該当しない、またはtypo / punctuation / spacing等の軽微なeditorial issueのみ。軽微なeditorial issueは別の`PR 4B`変更箇所の周辺cleanupとしてのみ修正してよい。
 
 既存 Report と重複する Finding は新しい permanent report に複製せず、既存 Matrix ID を参照する。
 
@@ -910,9 +936,10 @@ Pre-change audit 完了時に §5.6 の `Terminology Decision Table` を確定�
   - Core: Cart / explicit reset / 代表 Boundary / 代表 Mobile
   - Extension: Payment / Cross-role / Internal Inspection / Accessibility execution
 - P1-6: meaningful failure diagnosis を Completion Evidence にする。
-- P1-7: Native specialization 内の depth / navigation / Practice量を整理し、§5.9と同じself-study completenessを適用する。開始前に必要な前提Lesson / completionをlearner-facingに明示し、前段で学んだPlaywright等は既習として扱ってよい。Physical Android canonical path は残す。
+- P1-7: Native specialization 内の depth / navigation / Practice量を整理し、§5.9と同じself-study completenessを適用する。開始前に必要な Common Core prerequisite / completionをlearner-facingに明示し、同一 specialization 内の前段で学んだ内容は既習として扱ってよい。Physical Android canonical path は残す。
 - P1-8:
-  - Core: 実在する保守問題の診断 + 最小改善1件
+  - Core: 実在する保守問題の診断 + 最小改善1件。
+  - Native specialization 未選択でも、Playwright のみで学習・Exercise・Completion が成立する構成にする。Maestro / Native の比較・例は specialization 選択者向けの追加例として扱ってよいが、Common Core completion に要求しない。
   - Reference: POM / Helper / Fixture / Flow pattern catalog
   - Lifecycle / Regression inventory は Part 2 bridge へ寄せる
 - P1-9: Web Core Capstoneを簡潔化し、Native specialization evidence と Baseline / learner-authored flow を分ける。
@@ -924,20 +951,22 @@ Pre-change audit 完了時に §5.6 の `Terminology Decision Table` を確定�
 ### Part 2 changes
 
 - P2-1〜P2-8 についても内部 Lesson の成立性、前提知識、演習、自己確認、Recovery、完了条件を同じ基準で確認する。
+- Part 2 の Common Core Lessonも、Native specialization未選択で学習・Exercise・Completionが成立することを維持する。
 - P2-2: Branch / Diff / Commit を Core、exact SHA / copy mechanics を Reference。
 - P2-3: 他人から実際のReviewを受けることを Learner Required completion にしない。既存 / 教材用DiffのReview、自分のPRのself-review、公開されたReview checklistでC11を自己確認できるようにする。Fork / Remote / Push の概念は Learner Required として学ぶが、演習Repository / Training Copy のProvisioning自体は Instructor / 運営が担当してよく、Learner自身による環境ProvisioningをCompletion条件にしない。Learnerは提供済みの演習Repositoryまたは自分のForkを使い、書き込み可能なRemoteへのPushとPR作成を学ぶ。
 - P2-4: Trigger / Job / Failure / least privilege を Core、allowlist / parser / pin 詳細を Reference。
 - P2-5: Web CI / Artifact / failure evidence を Core。
-- P2-6: Native CI specialization 内の Repository 固有詳細を Reference へ寄せ、選択後のlearner-facing内容には§5.9と同じself-study completenessを適用する。必要な前提Lesson / completionを開始条件として明示する。
+- P2-6: Native CI specialization 内の Repository 固有詳細を Reference へ寄せ、選択後のlearner-facing内容には§5.9と同じself-study completenessを適用する。必要な Common Core prerequisite と specialization 内の前提Lesson / completionを開始条件として明示する。
 - P2-7: Gate / Artifact / fail-closed を Core、vendor / production deployment detail を Advanced / Reference。
-- P2-8: Web CI / Gate / Artifact / Failure reasoning を Common Capstone とし、Native / iOS / full CD を specialization / Advanced とする。specialization側も選択後はlearner-facing教材だけで進行・自己確認できるようにする。
+- P2-8: Web CI / Gate / Artifact / Failure reasoning を Common Capstone とし、Native / iOS / full CD を specialization / Advanced とする。Common Capstone は Native specialization 未受講でも成立させ、specialization側も選択後はlearner-facing教材だけで進行・自己確認できるようにする。
 
 ### Self-study changes
 
 PR 4Aで Learner Required path と learner-facing specialization material 全体へ次を適用する。
 
 - 各 Lesson / Exercise に、必要に応じて開始条件、自己確認、Recovery、完了条件、次の行動を learner-facing に明示する。
-- 各Lessonの開始条件では、コース開始時プロフィールに加えて前提としてよい正規の前段Lesson / completionを必要に応じて明示し、教材外の経験を暗黙前提にしない。
+- Common Core Lesson の開始条件では、コース開始時プロフィールに加えて前提としてよい Common Core Required Lesson / completionだけを必要に応じて明示し、specialization / Extension / Reference や教材外の経験を暗黙前提にしない。
+- specialization Lesson の開始条件では、必要な Common Core prerequisite と同一 specialization 内の前提Lesson / completionを明示する。
 - Self-check は Learner が自分の回答・成果物の充足を合理的に判定できる具体性を必須とする。単なるReferenceリンクだけでは不十分な場合、該当する評価条件・BR / AC・確認観点まで特定する。
 - 確認問題は、回答例と理由、または正答に最低限含むべき具体的チェックポイントで Learner が自分の理解を検証できるようにする。
 - 設計問題・Trade-off問題は一意の模範解答を作らず、最低限考慮すべき観点と許容される判断理由の条件を示す。
@@ -959,8 +988,9 @@ PR 4A で `docs/reference/curriculum-self-study-review.md` を追加し、継続
 | 項目 | 確認内容 |
 | --- | --- |
 | Lesson / Exercise | Learner Required または選択したspecializationの対象教材・演習 |
-| 開始条件 | Learnerが開始可能か、必要な環境受領条件と前提Lesson / completionが分かるか |
+| 開始条件 | Learnerが開始可能か、必要な環境受領条件と正規の前提Lesson / completionが分かるか |
 | 学習内容の自己完結 | 教材外の口頭説明なしで理解できるか |
+| Common Core独立性 | specialization / Extension / Referenceを未受講でもCommon Coreが進行・完了できるか |
 | 演習内容 | 何を作る・実行する・記録するか明確か |
 | 自己確認 | 回答・成果物の充足をLearner自身で判断できるか |
 | Recovery | 学習上の失敗と環境障害を切り分け、次の確認が分かるか |
@@ -970,7 +1000,7 @@ PR 4A で `docs/reference/curriculum-self-study-review.md` を追加し、継続
 | 環境 / Toolchain支援 | 環境側の支援が必要だったか |
 | Finding / 備考 | その場で修正指示へ落とすべき改善候補、未検証理由、補足Evidence |
 
-レビュー時は §5.10 のコース開始時対象受講者像と、レビュー対象Lessonまでに正規の前段Lessonで明示的に学んだ内容を基準にする。経験者の教材外知識・暗黙知で教材不足を補完しない。
+レビュー時は §5.10 のコース開始時対象受講者像と、対象経路で正規に前提としてよい学習済み内容だけを基準にする。Common Coreレビューではspecialization / Extension / Referenceの知識で教材不足を補完せず、specializationレビューでは明示されたCommon Core prerequisiteと同一specialization内の前段知識だけを利用する。経験者の教材外知識・暗黙知で教材不足を補完しない。
 
 ### Language / terminology changes
 
@@ -995,7 +1025,7 @@ PR 4Bが必要な場合だけ次を行う。
 - BR / AC / ID / path / code identifier は canonical form を維持する。
 - 文言変更は Product behavior の意味が変わらないことを確認できる場合だけ行う。
 - Product behavior の解釈が変わり得る文言、複数解釈がある仕様、Current implementation と Normative Specification の意味差は editorial fix に含めない。
-- 純粋なtypo / punctuation / spacing等のP3は、それ単独ではPR 4Bへ含めない。別の`PR 4B` Findingで同一箇所を変更する場合だけ周辺cleanupとして修正する。
+- typo / punctuation / spacing等の軽微なeditorial Findingは、それ単独ではPR 4Bへ含めない。別の`PR 4B` Findingで同一箇所を変更する場合だけ周辺cleanupとして修正する。
 - machine-consumed heading / parser contract を変更する場合は `validate:spec` / contract test と同一変更で扱う。不要なら見出しは維持する。
 - `PR 4B` Disposition が広範囲に及びboundedなeditorial correctionを超える場合は実装を止め、scopeを再検討する。
 
@@ -1039,8 +1069,9 @@ PR 4A:
 - `pnpm run test:contracts`
 - Curriculum navigation / specialization boundary の manual cross-check
 - Repository-required curriculum asset / Learner Required path 境界の manual cross-check
-- コース開始時の対象受講者像、正規の既習知識ルール、Lessonの前提知識・説明深度の manual cross-check
-- specialization の開始条件から必要な前提Lesson / completionを一意に辿れることの manual cross-check
+- コース開始時の対象受講者像、Common Core / specialization の既習知識ルール、Lessonの前提知識・説明深度の manual cross-check
+- specialization / Extension / Reference 未受講でも後続 Common Core の internal link / command / path / Exercise / Completion が成立することの manual cross-check
+- specialization の開始条件から必要な Common Core prerequisite と specialization 内の前提Lesson / completionを一意に辿れることの manual cross-check
 - Workbook / validator / ID grammar の manual cross-check
 - Learner Required path と learner-facing specialization material の internal link / command / path / next-action walkthrough
 - Learner Required Lesson と specialization learner-facing Lesson の self-check / Recovery / Completion が learner-facing に存在し、Instructor-only情報を必須にしていないことの manual cross-check
@@ -1050,9 +1081,9 @@ PR 4A:
 - `docs/reference/curriculum-self-study-review.md` が §18 の継続レビュー契約と一致することを manual cross-check
 - Terminology Decision Table と実際の learner-facing curriculum 表記の manual cross-check
 - `docs/spec/**` text audit の全対象に Disposition があることを確認する。
-- Curriculum Finding が §5.8 に従って `fix_now` / `defer` に分類され、`fix_now` が実差分で解消されていることを確認する。
+- Curriculum Finding が §5.8 に従って severity と `fix_now` / `defer` に分類され、`fix_now` が実差分で解消されていることを確認する。
 - `defer` とした Curriculum P2 が Goal / Fixed decisions / Definition of Done の成立を妨げないことを確認する。
-- Specification Finding が本Sectionの境界に従って `no_change` / `PR 4B` / `Specification clarification` に分類され、純粋なP3だけで `PR 4B` を発生させていないことを確認する。
+- Specification Finding が severity を持たず、本Sectionの境界に従って `no_change` / `PR 4B` / `Specification clarification` に分類され、軽微なeditorial Findingだけで `PR 4B` を発生させていないことを確認する。
 - PR 4A diff に `docs/spec/**` の実変更が含まれていないことを確認する。
 
 PR 4B がある場合:
@@ -1064,15 +1095,16 @@ PR 4B がある場合:
 - BR / AC / Oracle meaning の manual semantic-equivalence cross-check
 - `docs/spec/glossary.md` / `_templates/**` / changed spec の用語整合を確認する。
 - Curriculum 参照元との link / terminology cross-check
-- PR 4B diff が `PR 4B` Disposition のboundedなeditorial Findingと、その同一変更箇所周辺の局所P3 cleanupだけであることを確認する。
+- PR 4B diff が `PR 4B` Disposition のboundedなeditorial Findingと、その同一変更箇所周辺の局所的な軽微editorial cleanupだけであることを確認する。
 
 ### Completion
 
 - Core / Extension / Reference / specialization が PR 3 の評価契約と一致する。
 - PR 3 の Learner Required / specialization 境界を変更していない。
 - Repository-required curriculum asset と Learner Required path が navigation / validator contract 上混同されていない。
-- コース開始時の対象受講者像と、正規の前段Lessonで学んだ内容だけを既習として扱うルールが learner-facing material の前提知識・説明深度と一致している。
-- specialization の開始に必要な前提Lesson / completionが learner-facing に一意である。
+- コース開始時の対象受講者像と Common Core / specialization の既習知識ルールが learner-facing material の前提知識・説明深度と一致している。
+- specialization / Extension / Reference を未受講でも後続 Common Core Lesson / Exercise / Completion が成立する。
+- specialization の開始に必要な Common Core prerequisite と specialization 内の前提Lesson / completionが learner-facing に一意である。
 - トップレベル教材ファイル数と大順序を維持している。
 - 内部 Lesson は独立した学習単位として成立するか、同一ファイル内で適切に統合されている。
 - 内容の薄い Lesson を文章の水増しで維持していない。
@@ -1083,12 +1115,13 @@ PR 4B がある場合:
 - Self-check がLearner自身で学習目標の充足を合理的に判定できる具体性を持ち、generic Referenceだけに逃げていない。
 - Pre-change audit で確認した Curriculum P0 / P1 を解消している。
 - Curriculum P2 / P3 は §5.8 の境界に従って `fix_now` / `defer` を明示し、`fix_now` だけをboundedに解消している。`defer`したP2がGoal / Fixed decisions / DoDの成立を妨げていない。
+- Specification Findingには Curriculum severity を付けず、`no_change` / `PR 4B` / `Specification clarification` のDispositionと必要な理由・bounded fixだけを記録している。
 - 継続的な受講者視点レビューの再利用可能なチェックリストが `docs/reference/curriculum-self-study-review.md` に定義されている。
 - 個別レビュー結果やレビュー履歴の保存要件を追加していない。
 - Learner-facing 一般用語の日本語 / 英語混在が整理され、英語を残す基準が Terminology Decision Table と一致している。
 - 将来の再発防止に必要な最小の用語・言語ルールが既存 Curriculum 正本へ残っている。
 - `docs/spec/**` の Markdown / text contract 全件を監査し、各FindingのDispositionが確定している。
-- `PR 4B` Disposition の Finding がある場合だけ PR 4B を作成し、純粋なP3だけを理由にPR 4Bを発生させていない。
+- `PR 4B` Disposition の Finding がある場合だけ PR 4B を作成し、軽微なeditorial Findingだけを理由にPR 4Bを発生させていない。
 - PR 4Bを実施した場合、`docs/spec/glossary.md` / 必要なtemplate / changed specが同じ用語ルールに整合し、boundedなsemantics-preserving editorial correctionに限定されている。
 - Normative Specification の Product behavior を editorial cleanup で変更していない。
 - Learner Required / specialization / Optional / Reference / Legacy / Instructor support の境界が初見で判断できる。
@@ -1191,13 +1224,14 @@ Harness 正常性と Learner competency の実行入口と Evidence を分離し
 
 ### Target learner profile / prerequisite
 
-レビューは §5.10 のコース開始時対象受講者像を起点とする。対象Lessonが後続Lessonまたはspecializationの場合は、そのLessonまでの正規の前段Lessonで明示的に学んだ内容を既習として扱ってよい。
+レビューは §5.10 のコース開始時対象受講者像を起点とする。
 
 - コース開始時は、テスト自動化の目的・基本概念を理解している。
 - コース開始時は、ノーコード / ローコードのテスト自動化ツールについて、操作経験または概要理解がある。
 - コース開始時は Playwright 等のコードベース自動化ツールは未経験である。
 - コース開始時のプログラミング経験を前提にしない。
-- レビュー対象Lessonより前の正規Lessonで明示的に学んだ Playwright / TypeScript / Git / CI / Maestro 等は既習として扱ってよい。
+- Common Core Lesson のレビューでは、それ以前の Common Core Required Lesson で明示的に学んだ Playwright / TypeScript / Git / CI 等だけを既習として扱ってよい。specialization / Extension / Reference の知識で不足を補完しない。
+- specialization のレビューでは、明示された Common Core prerequisite と同一 specialization 内の必須前段Lessonで学んだ内容だけを既習として扱ってよい。
 - その時点までに未説明の Git / GitHub / CI / Maestro 等の知識は補完しない。
 - Repository固有の知識や過去の教材修正経緯、教材外の実務経験を前提にしない。ただし再レビューでは過去の確認経験自体は許容し、教材に書かれていない内容をその記憶で補完しない。
 
@@ -1226,7 +1260,8 @@ Harness 正常性と Learner competency の実行入口と Evidence を分離し
 
 最低限、次を確認する。
 
-- 開始条件と、必要な前提Lesson / completionが分かる。
+- 開始条件と、対象経路で前提としてよいLesson / completionが分かる。
+- Common Coreでは specialization / Extension / Reference 未受講でも進められる。
 - 教材だけで学習内容を理解できる。
 - 何を作る・実行する・記録するか分かる。
 - Self-checkが具体的で、自分の回答・成果物の充足を判断できる。
@@ -1235,7 +1270,7 @@ Harness 正常性と Learner competency の実行入口と Evidence を分離し
 - 完了条件が分かる。
 - 次のLesson / Exerciseが分かる。
 - Instructor Referenceを読まないと受講内容を理解できない箇所がない。
-- 対象Lessonまでに未説明のPlaywright / TypeScript / Git / CI / Maestro等の知識を当然の前提にしていない。
+- 対象経路で未説明のPlaywright / TypeScript / Git / CI / Maestro等の知識を当然の前提にしていない。
 
 ### Review handling
 
@@ -1360,8 +1395,9 @@ Decision-only PR に Product refactor を含めない。`refactor_now` だけ de
 
 本 Master Plan の完了確認では、実際の受講者視点レビューを必須実行しない。次の準備状態だけを確認する。
 
-- §5.10 のコース開始時対象受講者像と、後続Lessonで利用できる正規の既習知識ルールが README / Learning Design と一致する。
-- specialization の開始に必要な前提Lesson / completionが learner-facing に明示されている。
+- §5.10 のコース開始時対象受講者像と Common Core / specialization の既習知識ルールが README / Learning Design と一致する。
+- specialization / Extension / Reference 未受講でも後続 Common Core の学習・Exercise・Completion が成立する。
+- specialization の開始に必要な Common Core prerequisite と specialization 内の前提Lesson / completionが learner-facing に明示されている。
 - Instructor / 運営が受講内容外の環境支援担当として利用可能であるという運用前提が README / Learning Design と一致する。
 - Instructor Reference が受講内容外の支援へ限定されている。
 - `docs/reference/curriculum-self-study-review.md` に §16 / §18 のチェック項目が定義されている。
@@ -1398,7 +1434,9 @@ Product runtime / broad contract に影響する場合だけ次を追加する�
 - Lesson の不足を埋めるために、目的不明の大量説明追加が必要になる。
 - 自己学習化のために Instructor / 運営の環境準備・権限・端末・Toolchain支援までRepositoryだけで自動化する必要があるように見える。この場合は学習内容と環境運用の境界を再確認する。
 - specialization の自己学習品質を理由に Native環境・Runtime Evidence を Common Core completion へ昇格させる必要があるように見える。この場合は Required / specialization 境界へ戻る。
+- 後続 Common Core の自己学習品質を理由に specialization / Extension / Reference を必須前提へ昇格させる必要があるように見える。この場合は Common Core の独立性を維持する。
 - 後続Lessonの自己学習品質を理由に、前段で既に学んだPlaywright / TypeScript / Git / CI等を毎回再説明する必要があるように見える。この場合は§5.3 / §5.10の既習知識ルールへ戻る。
+- Specification Findingへ Curriculum P0〜P3 severityを付けて PR 4A blocker と誤解しそうになる。この場合は§5.8と§16の責務分離へ戻る。
 - 自己確認のために設計判断・自由記述を全件自動採点する新しい scoring engine / AI grader が必要になる。この場合はRubric /回答例/観点による自己確認を優先する。
 - P2 / P3 Finding の全件修正を理由に PR 4A のscopeが拡大する。この場合は §5.8 の `fix_now` / `defer` 境界へ戻す。
 - 受講者視点レビュー結果を本 Master Plan の完了条件へ戻そうとする。この場合は §18 の「継続タスク」と本Plan DoDの境界を維持する。
@@ -1428,7 +1466,7 @@ Blocking question はなし。
 - Curriculum の内部 Lesson 統合単位: PR 4 の全文監査で learner outcome と前後関係を見て決め、行数だけでは判断しない。
 - Learner-facing Japanese / English の境界: §5.6 と PR 4 child Plan の Terminology Decision Table を基準とし、公式名称・machine contract の必要性を file ごとに確認する。
 - Self-check の形式: command / validator / Artifactで判定できるものは機械Evidence、知識問題は回答例+理由または具体的チェックポイント、設計判断は必須観点+許容理由、Specification参照は具体的BR / AC / sectionを使い、Learnerが自分の成果物の充足を合理的に判定できる最小方法を選ぶ。
-- PR 4B の要否: `docs/spec/**` text audit で `PR 4B` Disposition の Finding が1件以上ある場合だけ作成する。純粋なtypo / punctuation / spacing等のP3だけでは作成しない。
+- PR 4B の要否: `docs/spec/**` text audit で `PR 4B` Disposition の Finding が1件以上ある場合だけ作成する。typo / punctuation / spacing等の軽微なeditorial Findingだけでは作成しない。
 - Normative Specification の editorial change 可否: semantic equivalence を確認できない場合は変更しない。
 - Phase 6 candidate ごとの consumer / dependency / reference の具体的取得方法: 既存 code search / Git history / tests で確認し、新しい常設解析基盤は作らない。
 
@@ -1475,8 +1513,9 @@ Normative Specification の監査で Product Decision が必要と判定した F
 - PR 2 の Formal Test Strategy / Traceability が Current Formal Suite と一致している。
 - PR 3 の Common Core / Native specialization / Competency / Minimum Evidence 契約が一意である。
 - コース開始時の対象受講者像が README / Learning Design に明記され、テスト自動化の基本理解 + ノーコード / ローコード経験または理解、Playwright等コードベース自動化未経験、プログラミング非必須という前提が一意である。
-- 後続Lessonでは、コース開始時プロフィールに正規の前段Lessonで明示的に学んだ内容だけを加えた状態を前提にでき、教材外の実務経験・暗黙知へ依存していない。
-- specialization の開始に必要な前提Lesson / completionが learner-facing に明示されている。
+- Common Core の後続Lessonでは、コース開始時プロフィールにそれ以前の Common Core Required Lesson で明示的に学んだ内容だけを加えた状態を前提にでき、specialization / Extension / Reference や教材外の実務経験・暗黙知へ依存していない。
+- specialization / Extension / Reference を未受講でも Common Core completion が成立する。
+- specialization の開始に必要な Common Core prerequisite と specialization 内の前提Lesson / completionが learner-facing に明示されている。
 - Instructor / 運営が環境・アカウント・権限・端末・Repository / Training Copy・Infrastructure / Toolchain等の受講内容外支援担当として利用可能であるという運用前提が README / Learning Design に明記されている。
 - PR 3 で Repository-required curriculum asset と Learner Required path が一意に区別され、Instructor Reference がLearner Required pathではないことをREADME / Learning Designから判断できる。
 - PR 3 で Instructor Reference を受講内容外支援assetへ限定する責務契約が正本化され、Instructor Reference本体にPR 4Aまでのtransition noticeがあり、現行Instructor Reference内情報の実仕分け・移行をPR 4Aへ残している。
@@ -1485,6 +1524,7 @@ Normative Specification の監査で Product Decision が必要と判定した F
 - PR 4A で Instructor Reference 内の受講内容・判断・Recovery・評価観点を仕分けし、Learner Required completionまたはspecialization completionに必要な情報を learner-facing 正本へ移したうえで、Instructor Reference を受講内容外支援だけへ限定している。
 - PR 4A の Pre-change audit で確認した Curriculum P0 / P1 Finding を解消している。
 - PR 4A の Curriculum P2 は本 Master Plan の目的へ直接関係し bounded に修正できるものだけ `fix_now` として解消し、その他は `defer` として child Plan で明示している。Goal / Fixed decisions / DoD の成立に必要なP2は規模だけを理由にdeferしていない。P3 は変更箇所周辺の局所修正だけを `fix_now` とし、全件一括修正を要求していない。
+- Specification Findingには Curriculum P0〜P3 severityを付けず、`no_change` / `PR 4B` / `Specification clarification` のDispositionで扱っている。
 - Learner Required path と learner-facing specialization material の学習目標・説明・演習・自己確認・学習上のRecovery・完了条件・次の行動が learner-facing material でつながっている。
 - Learner Required learning content と specialization learner-facing learning content が Instructor の追加説明や非公開Answer Keyに依存していない。
 - specialization の環境・実行・Evidence を Common Core completion に要求していない。
@@ -1492,13 +1532,13 @@ Normative Specification の監査で Product Decision が必要と判定した F
 - PR 4 child Plan の Terminology Decision Table と learner-facing curriculum の表記が一致している。
 - 将来の再発防止に必要な最小の言語・用語ルールが既存 Curriculum 正本へ反映されている。
 - `docs/spec/**` 全 text contract を監査し、`no_change` / `PR 4B` / `Specification clarification` のDispositionが確定している。
-- `PR 4B` Disposition の Finding がある場合だけ PR 4B を PR 4A merge 後の最新 `main` から実施し、boundedなsemantics-preserving editorial correctionに限定している。純粋なP3だけを理由にPR 4Bを作成していない。
+- `PR 4B` Disposition の Finding がある場合だけ PR 4B を PR 4A merge 後の最新 `main` から実施し、boundedなsemantics-preserving editorial correctionに限定している。軽微なeditorial Findingだけを理由にPR 4Bを作成していない。
 - PR 4B を実施した場合は `docs/spec/glossary.md` / 必要なtemplate / changed specを整合させている。
 - PR 4 の Core / Extension / Reference / specialization が PR 3 の評価契約と一致している。
 - Learner-facing Curriculum の内部 Lesson が独立した学習単位として成立するか、同一ファイル内で適切に統合されている。
 - Learner-facing 一般用語の日本語 / 英語混在と表記揺れが、定義した基準に従って整理されている。
 - Normative Specification の editorial review で Product behavior を変更していない。
-- `docs/reference/curriculum-self-study-review.md` に、継続的な受講者視点レビューのコース開始時対象受講者像、既習知識の扱い、Learner Required / specializationの対象範囲、チェックリスト、Instructor / 運営支援境界が定義されている。
+- `docs/reference/curriculum-self-study-review.md` に、継続的な受講者視点レビューのコース開始時対象受講者像、Common Core / specialization の既習知識境界、Learner Required / specializationの対象範囲、チェックリスト、Instructor / 運営支援境界が定義されている。
 - 個別の受講者視点レビュー結果やレビュー履歴を保存する要件を設けていない。
 - PR 5 の Baseline / Exercise / Artifact / Completion Evidence と Native specialization workflow が一意である。
 - 機械確認できる Learner Required Exercise と specialization exercise は Learner が command / validator / Artifact から自己確認できる。
