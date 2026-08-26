@@ -15,6 +15,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - Formal Test Strategy が Current Formal Suite、Test Perspective、Execution / Platform / CI Gate を説明する。
 - Requirement / Risk / Technique / Formal Test / CI Gate の最小 Traceability がある。
 - Curriculum の共通卒業要件と Native specialization の境界が一意である。
+- Common Core の共通卒業能力は C01〜C07 と C09〜C12 の bounded Level 2 とし、C08 Native Automation は specialization として分離されている。
 - C01〜C12 の Minimum Evidence を Lesson / Exercise / Artifact から追跡できる。
 - 各 Learner Required Lesson が、独立した学習単位として成立するか、または前後の内容へ統合されている。
 - 学習目標 → 説明 → Practice / Exercise → Completion Evidence が矛盾なくつながる。
@@ -104,13 +105,12 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - specialization Lesson で前提にできる知識は、コース開始時の対象受講者像、明示された Learner Required path 上の Common Core prerequisite、同一 specialization 内でそれ以前に必須として明示された Lesson / completion に限定する。
 - 教材外の実務経験・経験者の暗黙知は Common Core / specialization のどちらでも前提にしない。
 - specialization は、開始前に必要な Learner Required path 上の Common Core prerequisite と、specialization 内の必要な前段Lesson / completionを README / Learning Design / 対象Lessonのいずれかで明示する。
-- Native specialization の canonical navigation は、トップレベルファイルの番号・配置を変えず branch / rejoin を明示する。
-  - Part 1 Common Core: `P1-6 → P1-8 → P1-9`。
+- Native specialization の分岐周辺の canonical navigation は、トップレベルファイルの番号・配置を変えず branch / rejoin を明示する。次の経路はCommon Core全体ではなくNative分岐前後の局所経路を示す。
+  - Part 1 Native分岐周辺の Common Core: `P1-6 → P1-8 → P1-9`。
   - Part 1 Native specialization 選択時: `P1-6 → P1-7 → P1-8 → P1-9`。P1-7 完了後は P1-8 の Common Core へ復帰する。
-  - Part 2 Common Core: `P2-5 → P2-7 → P2-8` の Common Core 範囲。
+  - Part 2 Native分岐周辺の Common Core: `P2-5 → P2-7 → P2-8` の Common Core 範囲。
   - Part 2 Native specialization 選択時: P2-6 の prerequisite を満たした後に `P2-6 → P2-7 → P2-8` へ進み、P2-7 で Common Core に復帰する。P2-8 の Native / full multi-platform 部分は specialization / Advanced として Common completion から分離する。
-- Web Automation、Failure Analysis、Maintainability、Git / PR、bounded Web CI を Common Core とする。
-- C08 Native Automation、Physical Android Hands-on、Native CI、Native Capstone は specialization とする。
+- Common Core の能力契約は C01〜C07 と C09〜C12 の bounded Level 2 とする。C08 Native Automation は Native specialization とし、Physical Android Hands-on、Native CI、Native Capstoneもspecializationとして扱う。
 - Native specialization 化は Curriculum learner の Required / specialization 境界だけを変更する。
 - Product Formal Native Regression、Android Runtime Gate、iOS Build-only Gate は維持する。
 - Native Lesson / Training asset は specialization の canonical asset として残す。
@@ -148,6 +148,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 ## 4. Non-goals
 
 - Product behavior の変更。
+- `docs/spec/**` 全件を Current implementation と総当たり照合する Product behavior conformance audit。
 - Curriculum 軽量化を理由に Formal Regression を削減すること。
 - Product Native CI / iOS Build-only Gate の Optional 化。
 - Curriculum 全面書き直しやトップレベル教材ファイルの大量追加。
@@ -180,7 +181,8 @@ PR 4 の child Plan 作成時に、Learner Required path 全文と learner-facin
 - Curriculum / Workbook / Validator / Training asset / Specification の同一概念が矛盾しない。
 - Expected Behavior を Current UI / test code / README から逆算していない。
 - Normative Specification と Supporting Evidence の責務を混同していない。
-- Normative Specification が明確なのに Current implementation が異なる場合、その差を Specification clarification と誤分類せず Product implementation deviation として分離する。
+- Editorial change の semantic equivalence確認、Learner Required / 選択したspecializationのExpected Behavior確認、または監査中に実際の不一致を発見した場合だけ、必要な範囲でCurrent implementationと照合する。全SpecのProduct behaviorを能動的に実装と総当たり照合しない。
+- 上記の必要な照合で Normative Specification が明確なのに Current implementation が異なる場合、その差を Specification clarification と誤分類せず Product implementation deviation として分離する。
 
 ### 5.2 Learning-unit completeness
 
@@ -293,7 +295,7 @@ PR 4 child Plan の Curriculum Finding は次で分類する。Specification Fin
 
 Curriculum Finding の修正境界は次で固定する。
 
-- `P0` / `P1`: PR 4A の blocker とし、Pre-change audit で確認したものは PR 4A で必ず解消する。ただし解消に未決の `Specification clarification` が必要な場合は Expected Behavior を推測して修正しない。関連する Specification Finding を child Plan 上で紐付け、clarification が解消するまで当該 Curriculum P0 / P1 を PR 4A completion blocker のまま維持する。
+- `P0` / `P1`: PR 4A の blocker とし、Pre-change audit で確認したものは PR 4A で必ず解消する。ただし解消に未決の `Specification clarification` が必要な場合は Expected Behavior を推測して修正しない。関連する Specification Finding を child Plan 上で紐付け、clarification が解消するまで当該 Curriculum P0 / P1 を PR 4A completion blocker のまま維持する。明確なSpecに対する `Product implementation deviation` が Learner Required completion、選択したspecialization completion、または本Plan DoDを実際に阻害する場合も、Product側の解消まで関連するCurriculum P0 / P1を解消扱いにしない。Learner経路・DoDを阻害しないProduct deviationはfollow-upへ分離し、PR 4A blockerにしない。
 - `P2`: 本 Master Plan の目的である learner-facing の自己学習品質、navigation、用語一貫性、重複削減、保守性へ直接関係し、かつ bounded な変更で解消できるものだけ `fix_now` とする。それ以外は `defer` とし、PR 4A の scope を広げない。ただし Goal / Fixed decisions / Definition of Done の成立に必要な P2 は規模だけを理由に `defer` しない。必要な P2 が bounded に収まらない場合は、無理に defer せず stop condition として PR 4 child Plan の scope を見直す。
 - `P3`: PR 4A で実際に変更する箇所の周辺を局所修正する場合だけ `fix_now` とする。P3 全件の一括cleanupは行わず、それ以外は `defer` とする。
 
@@ -368,7 +370,9 @@ Audit scope:
 - `README.md`、`change-process.md`、`glossary.md`、`known-deviations.md`、`product-scope.md`、`roles-and-permissions.md`、`screen-catalog.md`、`state-and-scenarios.md`、`ui-ux-contract.md`、`_templates/**`、`features/**` を含む。
 - binary / image asset は内容監査対象外。ただし text document からの参照整合は確認する。
 
-Specification は Oracle であるため、実変更は semantics-preserving な用語・表現整理に限定する。Product behavior の意味に触れる可能性がある Finding は変更せず follow-up へ分離する。Current implementation との意味差は、Specification 自体が曖昧なら `Specification clarification`、Specification が明確なら `Product implementation deviation` として区別する。
+この全件監査は、text contractの用語・表記・内部整合・semantic safetyを確認するための監査であり、全Product behaviorをCurrent implementationと照合するconformance auditではない。Current implementationとの照合は、editorial changeのsemantic equivalence確認、Learnerが参照するExpected Behavior確認、または監査中に実際の不一致を発見した場合だけ必要な範囲で行う。
+
+Specification は Oracle であるため、実変更は semantics-preserving な用語・表現整理に限定する。Product behavior の意味に触れる可能性がある Finding は変更せず follow-up へ分離する。必要な照合でCurrent implementation との意味差を確認した場合は、Specification 自体が曖昧なら `Specification clarification`、Specification が明確なら `Product implementation deviation` として区別する。
 
 ### Validation / Training
 
@@ -474,7 +478,7 @@ PR 1 / PR 4 では追加で次を確認する。
 | CUR-L1 | Spiral と説明重複の境界が薄い | 最小ラベル整理 | PR 4 | なし |
 | CUR-L2 | Pilot 実測値がない | defer | Follow-up | なし |
 | CUR-L3 | Learner-facing 一般用語の日本語 / 英語混在と表記揺れ | fix | PR 4 | 継続的な受講者視点レビュー |
-| CUR-L4 | `docs/spec/**` を含む learner-facing / normative reference の用語・言語一貫性が未監査 | 全 text contract を audit。bounded な semantics-preserving editorial Finding だけ PR 4B、Specification clarification / Product implementation deviation は別課題 | PR 4 | `validate:spec` / 継続的な受講者視点レビュー |
+| CUR-L4 | `docs/spec/**` を含む learner-facing / normative reference の用語・言語一貫性が未監査 | 全 text contract を audit。bounded な semantics-preserving editorial Finding だけ PR 4B、Specification clarification / Product implementation deviation は別課題。全Product behaviorの実装適合監査はscope外 | PR 4 | `validate:spec` / 継続的な受講者視点レビュー |
 | CUR-L5 | 初出用語・前提知識・次アクションが不明瞭で Learner が停止し得る箇所 | audit + fix | PR 4 | PR 5 / 継続的な受講者視点レビュー |
 
 Phase 0 では Current `main` で Finding の存否と Primary owner の妥当性を再確認する。Evidence を後続 Phase / PR で収集する Finding は、Phase 0 だけで最終判断しない。
@@ -489,8 +493,8 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 4. ユーザーの明示承認後に Master Plan publication PR を `main` へ merge する。
 5. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。RA-M8 をここで解消する。
 6. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
-7. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。ここでコース開始時の対象受講者像、Common Core / specialization の既習知識境界と branch / rejoin navigation、Repository-required curriculum asset / Learner Required path、Learner-facing Rubric、Instructor Referenceの責務境界を正本化する。Instructor Reference本体は冒頭のtransition noticeだけを最小修正し、既存Facilitation / 判断 / Recovery / 評価観点の実仕分け・移行はPR 4Aで行う。
-8. PR 3 merge 後の最新 `main` から PR 4A branch を作る。実装前に Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract 全件を監査し、Curriculum P0〜P3 Finding、Specification Finding の Disposition、Terminology Decision Table を child Plan に記録する。PR 4A では Curriculum Core / Extension / Reference / specialization / language / learning-flow / self-study remediation、Instructor Reference内情報の仕分け・移行、継続的な受講者視点レビュー用チェックリストの追加、Curriculum側の安定した用語ルール反映を実施する。
+7. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。ここでコース開始時の対象受講者像、Common Core / specialization の既習知識境界と branch / rejoin navigation、Common Core=C01〜C07+C09〜C12 / C08=specialization の能力契約、Repository-required curriculum asset / Learner Required path、Learner-facing Rubric、Instructor Referenceの責務境界を正本化する。Instructor Reference本体は冒頭のtransition noticeだけを最小修正し、既存Facilitation / 判断 / Recovery / 評価観点の実仕分け・移行はPR 4Aで行う。
+8. PR 3 merge 後の最新 `main` から PR 4A branch を作る。実装前に Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract 全件を監査し、Curriculum P0〜P3 Finding、Specification Finding の Disposition、Terminology Decision Table を child Plan に記録する。Spec監査はtext contractの用語・表記・semantic safetyを対象とし、全Product behaviorの実装適合監査へ拡張しない。PR 4A では Curriculum Core / Extension / Reference / specialization / language / learning-flow / self-study remediation、Instructor Reference内情報の仕分け・移行、継続的な受講者視点レビュー用チェックリストの追加、Curriculum側の安定した用語ルール反映を実施する。
 9. Spec監査で `PR 4B` Disposition の Finding が1件以上ある場合は、PR 4A merge 後の最新 `main` から PR 4B branch を作り、bounded な semantics-preserving Specification editorial を実施する。`PR 4B` Disposition がなければ PR 4B は作らない。`Specification clarification` / `Product implementation deviation` は PR 4B へ入れない。
 10. PR 4 stage（PR 4A、必要な場合は PR 4B）merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
 11. PR 5 では継続レビュー用チェックリストの command / Artifact / Environment block 観点が実際のTraining入口と矛盾しないことを確認する。
@@ -756,16 +760,17 @@ Traceability は次を最小単位として結ぶ。
 
 ### Objective
 
-共通卒業像、コース開始時の対象受講者像と Common Core / specialization の既習知識境界・branch / rejoin navigation、C01〜C12 の評価契約、Learner Required / specialization 境界、Repository-required curriculum asset / Learner Required path、Learner self-check の共通 Evidence 契約を正本化する。
+共通卒業像、コース開始時の対象受講者像と Common Core / specialization の既習知識境界・branch / rejoin navigation、Common Core=C01〜C07+C09〜C12 / C08=Native specialization の能力契約、C01〜C12 の評価契約、Learner Required / specialization 境界、Repository-required curriculum asset / Learner Required path、Learner self-check の共通 Evidence 契約を正本化する。
 
 ### Changes
 
 - 次の空き ADR で Decision B を記録する。
 - README / Learning Design に共通卒業像と Learner Required / specialization 境界を記載する。
+- README / Learning Design / Rubric に、C01〜C07とC09〜C12のbounded Level 2をCommon Core、C08をNative specializationとする能力契約を一意に記載する。Native分岐周辺の局所navigationをCommon Core全体の定義として扱わない。
 - README / Learning Design に §5.10 のコース開始時の対象受講者像を記載する。
 - README / Learning Design に、Common Core Lesson が前提にできる既習知識を「コース開始時プロフィール + Learner Required path 上でそれ以前に学んだ Common Core 内容」に限定し、specialization / Extension / Reference を後続 Common Core の必須前提にしないルールを記載する。
 - specialization の開始に必要な Learner Required path 上の Common Core prerequisite と、specialization 内の前提Lesson / completionを README / Learning Design / 対象Lessonのいずれかで一意に確認できるようにする。
-- README / Learning Design に Part 1 / Part 2 の Native specialization の branch / skip / rejoin navigation を明示する。トップレベルファイルの番号・配置は変えず、§3 の canonical navigation に従う。
+- README / Learning Design に Part 1 / Part 2 の Native specialization の branch / skip / rejoin navigation を明示する。トップレベルファイルの番号・配置は変えず、§3 のNative分岐周辺のcanonical navigationに従う。
 - README / Learning Design に Repository-required curriculum asset と Learner Required path の違いを記載する。
   - `03_instructor-reference.md` は Repository-required support asset として残してよいが、Learner Required path から外す。
   - README の navigation でも受講者必修教材と Instructor / 運営向け支援資料を明確に分ける。
@@ -826,6 +831,7 @@ Lesson depth、Practice量、language / terminology、learning-unit completeness
 - `pnpm run test:contracts`
 - TypeScript contract を変更した場合は `pnpm run typecheck`
 - README / Learning Design / Rubric / Instructor Reference冒頭 / 対象Lesson の manual cross-check
+- Common Core=C01〜C07+C09〜C12 bounded Level 2 / C08=Native specialization の能力契約が README / Learning Design / Rubric / 対象Lessonで一意であることを manual cross-check
 - コース開始時の対象受講者像と、Common Core / specialization で利用できる既習知識ルールが README / Learning Design / Rubric / Lesson の説明深度と矛盾しないことを manual cross-check
 - specialization / Extension / Reference を未受講でも後続 Common Core Lesson / completion が成立することを manual cross-check
 - Part 1 / Part 2 の learner-facing navigation で specialization の skip / branch / rejoin を一意に辿れることを manual cross-check
@@ -836,6 +842,7 @@ Lesson depth、Practice量、language / terminology、learning-unit completeness
 ### Completion
 
 - コース開始時の対象受講者像が一意で、Playwright等のコードベース自動化未経験・プログラミング非必須の前提が正本間で一致している。
+- Common Core の能力契約が C01〜C07 と C09〜C12 の bounded Level 2、C08がNative specializationとして正本間で一意である。
 - Common Core の後続Lessonは、コース開始時プロフィールに Learner Required path 上でそれ以前に明示的に学んだ Common Core 内容だけを加えた状態を前提にし、specialization / Extension / Reference や教材外の暗黙知へ依存していない。
 - specialization の開始に必要な Learner Required path 上の Common Core prerequisite と specialization 内の前提Lesson / completionが learner-facing に一意である。
 - Part 1 / Part 2 の Native specialization について、選択しないLearnerのskip先と、選択したLearnerのCommon Core rejoin pointが learner-facing navigation で一意である。
@@ -854,7 +861,7 @@ Lesson depth、Practice量、language / terminology、learning-unit completeness
 
 ### Objective
 
-PR 3 の評価契約を維持したまま、Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract を共通基準で監査し、Curriculum の Lesson 深度・学習単位・説明重複・用語・学習動線・self-study completeness を整理する。Instructor Reference 内の学習情報を learner-facing 正本へ仕分け・移行し、継続的な受講者視点レビューを運用できる最小チェックリストもここで整備する。Specification は監査のみPR 4Aで行い、Pre-change auditで `PR 4B` Disposition の Finding が1件以上ある場合だけ、そのboundedなsemantics-preserving実変更をPR 4Bへ分離する。
+PR 3 の評価契約を維持したまま、Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract を共通基準で監査し、Curriculum の Lesson 深度・学習単位・説明重複・用語・学習動線・self-study completeness を整理する。Instructor Reference 内の学習情報を learner-facing 正本へ仕分け・移行し、継続的な受講者視点レビューを運用できる最小チェックリストもここで整備する。Specification はtext contractの用語・表記・内部整合・semantic safetyをPR 4Aで監査し、全Product behaviorの実装適合監査は行わない。Pre-change auditで `PR 4B` Disposition の Finding が1件以上ある場合だけ、そのboundedなsemantics-preserving実変更をPR 4Bへ分離する。
 
 ### PR split rule
 
@@ -906,9 +913,10 @@ Repository-required support asset について次を確認する。
 - `_templates/**` が新規Specへ古い表記揺れを再生成しないか。
 - BR / AC / ID / path / code identifier / machine-consumed heading のcanonical form。
 - Product behavior の意味を変えずにeditorial correctionできるか。
-- Specification 自体が曖昧・不足・複数解釈可能か、Product Decisionが必要か。
-- Normative Specification は明確だが Current implementation だけが異なる deviation か。
+- Specification 自体の文面だけでは意味が曖昧・不足・複数解釈可能か、Product Decisionが必要か。
 - typo / punctuation / spacing等の軽微なeditorial issueだけでPR 4Bを発生させようとしていないか。
+
+Current implementationとの照合は、上記text auditの全項目へ一律に要求しない。editorial changeのsemantic equivalence確認、Learner Required / 選択したspecializationのExpected Behavior確認、または監査中に実際のSpec-vs-implementation不一致を発見した場合だけ、該当範囲を確認する。その確認でNormative Specificationが明確なのにCurrent implementationだけが異なる場合は`Product implementation deviation`として扱う。
 
 Finding は child Plan 内に次の形式で記録する。
 
@@ -936,11 +944,13 @@ Specification Findingに追加する項目:
 Specification Finding の Disposition は次で決める。
 
 - `Specification clarification`: Normative Specification 自体が曖昧・不足している、複数解釈できる、または Product Decision が必要。
-- `Product implementation deviation`: Normative Specification は一意であるが Current implementation がその Product behavior と異なる。Specification は変更せず、Product修正の別 Issue / Planへ送る。
+- `Product implementation deviation`: 必要な範囲の照合で Normative Specification は一意であるが Current implementation がその Product behavior と異なることを確認した。Specification は変更せず、Product修正の別 Issue / Planへ送る。
 - `PR 4B`: canonical terminology / glossary / templateとの不整合、または読解・保守上の実害があり、semantics-preservingかつboundedに解消できる。
 - `no_change`: 上記に該当しない、またはtypo / punctuation / spacing等の軽微なeditorial issueのみ。軽微なeditorial issueは別の`PR 4B`変更箇所の周辺cleanupとしてのみ修正してよい。
 
 Curriculum P0 / P1 が未決の `Specification clarification` に依存する場合は、Expected Behaviorを実装やObserved Behaviorから推測して修正しない。関連Findingを相互に参照し、clarificationが解消するまで当該Curriculum P0 / P1をPR 4A completion blockerとして扱う。
+
+`Product implementation deviation` が Learner Required completion、選択したspecialization completion、または本Plan DoDを実際に阻害する場合は、関連するCurriculum P0 / P1と相互参照し、Product側でdeviationが解消されるまで当該P0 / P1をPR 4A completion blockerとして維持する。Learner経路・DoDを阻害しないdeviationはProduct側follow-upへ分離し、PR 4A completionをブロックしない。
 
 既存 Report と重複する Finding は新しい permanent report に複製せず、既存 Matrix ID を参照する。
 
@@ -1049,7 +1059,7 @@ PR 4Bが必要な場合だけ次を行う。
 - BR / AC / ID / path / code identifier は canonical form を維持する。
 - 文言変更は Product behavior の意味が変わらないことを確認できる場合だけ行う。
 - Product behavior の解釈が変わり得る文言、複数解釈がある仕様は `Specification clarification` とし、editorial fix に含めない。
-- Normative Specification が明確なのに Current implementation が異なる場合は `Product implementation deviation` とし、Specificationを実装へ合わせない。
+- 必要な範囲の照合で Normative Specification が明確なのに Current implementation が異なる場合は `Product implementation deviation` とし、Specificationを実装へ合わせない。
 - typo / punctuation / spacing等の軽微なeditorial Findingは、それ単独ではPR 4Bへ含めない。別の`PR 4B` Findingで同一箇所を変更する場合だけ周辺cleanupとして修正する。
 - machine-consumed heading / parser contract を変更する場合は `validate:spec` / contract test と同一変更で扱う。不要なら見出しは維持する。
 - `PR 4B` Disposition が広範囲に及びboundedなeditorial correctionを超える場合は実装を止め、scopeを再検討する。
@@ -1075,7 +1085,7 @@ PR 4A:
 - `docs/curriculum/test-automation/part1/**`
 - `docs/curriculum/test-automation/part2/**`
 - `docs/reference/curriculum-self-study-review.md`
-- `docs/spec/**` の Markdown / text contract（監査のみ。実変更は禁止）
+- `docs/spec/**` の Markdown / text contract（text / semantic auditのみ。実変更と全Product behaviorのimplementation conformance auditは禁止）
 - 必要な場合のみ curriculum validator / contract test
 
 PR 4B が必要な場合:
@@ -1095,6 +1105,7 @@ PR 4A:
 - `pnpm run test:contracts`
 - Curriculum navigation / specialization boundary の manual cross-check
 - Repository-required curriculum asset / Learner Required path 境界の manual cross-check
+- Common Core=C01〜C07+C09〜C12 bounded Level 2 / C08=Native specialization の能力契約がPR 3から維持されていることの manual cross-check
 - コース開始時の対象受講者像、Common Core / specialization の既習知識ルール、Lessonの前提知識・説明深度の manual cross-check
 - specialization / Extension / Reference 未受講でも後続 Common Core の internal link / command / path / Exercise / Completion が成立することの manual cross-check
 - Part 1 / Part 2 の specialization skip / branch / rejoin が learner-facing navigation から一意に辿れることの manual cross-check
@@ -1108,10 +1119,12 @@ PR 4A:
 - `docs/reference/curriculum-self-study-review.md` が §18 の継続レビュー契約と一致することを manual cross-check
 - Terminology Decision Table と実際の learner-facing curriculum 表記の manual cross-check
 - `docs/spec/**` text audit の全対象に Disposition があることを確認する。
+- Spec auditがtext contractの用語・表記・内部整合・semantic safetyに限定され、全Product behaviorのCurrent implementation適合監査へ拡張していないことを確認する。
 - Curriculum Finding が §5.8 に従って severity と `fix_now` / `defer` に分類され、`fix_now` が実差分で解消されていることを確認する。
 - `defer` とした Curriculum P2 が Goal / Fixed decisions / Definition of Done の成立を妨げないことを確認する。
 - Specification Finding が severity を持たず、本Sectionの境界に従って `no_change` / `PR 4B` / `Specification clarification` / `Product implementation deviation` に分類され、軽微なeditorial Findingだけで `PR 4B` を発生させていないことを確認する。
 - `Specification clarification` が必要な Curriculum P0 / P1 を推測修正または解消扱いにしていないことを確認する。
+- Learner Required completion / 選択したspecialization completion / 本Plan DoDを阻害する `Product implementation deviation` に依存する Curriculum P0 / P1 を、Product側解消前に解消扱いにしていないことを確認する。阻害しないdeviationはPR 4A blockerにしていないことも確認する。
 - `Product implementation deviation` で Normative Specification を Current implementation に合わせて変更していないことを確認する。
 - PR 4A diff に `docs/spec/**` の実変更が含まれていないことを確認する。
 
@@ -1129,6 +1142,7 @@ PR 4B がある場合:
 ### Completion
 
 - Core / Extension / Reference / specialization が PR 3 の評価契約と一致する。
+- Common Core の能力契約が C01〜C07 と C09〜C12 の bounded Level 2、C08がNative specializationとして維持されている。
 - PR 3 の Learner Required / specialization 境界を変更していない。
 - Repository-required curriculum asset と Learner Required path が navigation / validator contract 上混同されていない。
 - コース開始時の対象受講者像と Common Core / specialization の既習知識ルールが learner-facing material の前提知識・説明深度と一致している。
@@ -1143,10 +1157,11 @@ PR 4B がある場合:
 - specialization の環境・実行・Evidence を Common Core completion に要求していない。
 - Instructor Reference の受講内容・学習上の判断・Recovery・評価基準を learner-facing 正本へ必要に応じて移したうえで、Instructor Reference が受講内容外支援だけへ限定されている。
 - Self-check がLearner自身で学習目標の充足を合理的に判定できる具体性を持ち、generic Referenceだけに逃げていない。
-- Pre-change audit で確認した Curriculum P0 / P1 を解消している。未決の `Specification clarification` に依存するP0 / P1がある場合は解消扱いにせず、clarification解消までPR 4A completion blockerとして残している。
+- Pre-change audit で確認した Curriculum P0 / P1 を解消している。未決の `Specification clarification` に依存するP0 / P1がある場合は解消扱いにせず、clarification解消までPR 4A completion blockerとして残している。Learner Required completion / 選択したspecialization completion / 本Plan DoDを実際に阻害する `Product implementation deviation` に依存するP0 / P1もProduct側解消までblockerとして残し、阻害しないdeviationはfollow-upへ分離している。
 - Curriculum P2 / P3 は §5.8 の境界に従って `fix_now` / `defer` を明示し、`fix_now` だけをboundedに解消している。`defer`したP2がGoal / Fixed decisions / DoDの成立を妨げていない。
 - Specification Findingには Curriculum severity を付けず、`no_change` / `PR 4B` / `Specification clarification` / `Product implementation deviation` のDispositionと必要な理由・bounded fixだけを記録している。
-- 明確な Normative Specification と Current implementation の差は `Product implementation deviation` として分離し、SpecificationをObserved Behaviorへ寄せていない。
+- 明確な Normative Specification と Current implementation の差は、必要な範囲の照合で発見した場合に `Product implementation deviation` として分離し、SpecificationをObserved Behaviorへ寄せていない。
+- `docs/spec/**` 全text contractの用語・表記・内部整合・semantic safetyを監査しつつ、全Product behaviorのimplementation conformance auditへscopeを広げていない。
 - 継続的な受講者視点レビューの再利用可能なチェックリストが `docs/reference/curriculum-self-study-review.md` に定義されている。
 - 個別レビュー結果やレビュー履歴の保存要件を追加していない。
 - Learner-facing 一般用語の日本語 / 英語混在が整理され、英語を残す基準が Terminology Decision Table と一致している。
@@ -1428,6 +1443,7 @@ Decision-only PR に Product refactor を含めない。`refactor_now` だけ de
 本 Master Plan の完了確認では、実際の受講者視点レビューを必須実行しない。次の準備状態だけを確認する。
 
 - §5.10 のコース開始時対象受講者像と Common Core / specialization の既習知識ルールが README / Learning Design と一致する。
+- Common Core の能力契約が C01〜C07 と C09〜C12 の bounded Level 2、C08がNative specializationとして README / Learning Design / Rubric で一致する。
 - specialization / Extension / Reference 未受講でも後続 Common Core の学習・Exercise・Completion が成立する。
 - Part 1 / Part 2 の specialization skip / branch / rejoin が learner-facing navigation に明示されている。
 - specialization の開始に必要な Learner Required path 上の Common Core prerequisite と specialization 内の前提Lesson / completionが learner-facing に明示されている。
@@ -1462,7 +1478,8 @@ Product runtime / broad contract に影響する場合だけ次を追加する�
 - PR 4 の教材改善がトップレベル Curriculum 全面再設計を必要とする。
 - Goal / Fixed decisions / Definition of Done の成立に必要な Curriculum P2 が bounded なPR 4A差分に収まらない。この場合は `defer` して完了扱いにせず、PR 4 child Plan のscopeを見直す。
 - Curriculum P0 / P1 の正しい修正が未決の `Specification clarification` に依存する。この場合は Expected Behavior を Current implementation / UI / test から推測せず、clarification 解消まで PR 4A completion blocker として維持する。
-- Normative Specification が明確なのに Current implementation が異なる。この場合は Specification を実装へ寄せず、`Product implementation deviation` として別 Issue / Plan へ分離する。
+- Normative Specification が明確なのに Current implementation が異なる場合は、Specification を実装へ寄せず `Product implementation deviation` として別 Issue / Plan へ分離する。そのdeviationがLearner Required completion、選択したspecialization completion、または本Plan DoDを阻害する場合だけ、関連Curriculum P0 / P1をProduct側解消までcompletion blockerとして維持する。阻害しないdeviationはfollow-upとし、本Planを止めない。
+- Spec auditで全Product behaviorをCurrent implementationと総当たり照合する必要があるように見える。この場合はtext contractの用語・表記・semantic safety監査へ戻し、必要な局所照合だけに限定する。
 - PR 4A のSpec auditで `PR 4B` Dispositionが発生した場合は、PR 4Aへ実変更を混ぜずPR 4Bへ分離する。
 - PR 4B の対象がboundedなsemantics-preserving editorial correctionを超えて広範囲cleanupになる。この場合はPR 4Bを拡大せずscopeを見直す。
 - PR 4B でも Product behavior の意味を変えないと解消できない。この場合は Specification clarification へ分離する。
@@ -1471,6 +1488,7 @@ Product runtime / broad contract に影響する場合だけ次を追加する�
 - specialization の自己学習品質を理由に Native環境・Runtime Evidence を Common Core completion へ昇格させる必要があるように見える。この場合は Required / specialization 境界へ戻る。
 - 後続 Common Core の自己学習品質を理由に specialization / Extension / Reference を必須前提へ昇格させる必要があるように見える。この場合は Common Core の独立性を維持する。
 - Native specialization の optional 化を理由にトップレベルファイルを移動・renumberする必要があるように見える。この場合は既存配置を維持し、learner-facing branch / skip / rejoin navigation で解決する。
+- Native分岐周辺の局所navigationをCommon Core全体の能力・教材範囲として扱おうとする。この場合はC01〜C07+C09〜C12 bounded Level 2の能力契約とLearner Required pathへ戻る。
 - 後続Lessonの自己学習品質を理由に、前段で既に学んだPlaywright / TypeScript / Git / CI等を毎回再説明する必要があるように見える。この場合は§5.3 / §5.10の既習知識ルールへ戻る。
 - Specification Findingへ Curriculum P0〜P3 severityを付けて PR 4A blocker と誤解しそうになる。この場合は§5.8と§16の責務分離へ戻る。
 - 自己確認のために設計判断・自由記述を全件自動採点する新しい scoring engine / AI grader が必要になる。この場合はRubric /回答例/観点による自己確認を優先する。
@@ -1538,7 +1556,7 @@ Learner Required pathまたは選択したspecializationのlearner-facing materi
 
 Normative Specification の監査で Specification 自体の曖昧さ・不足・Product Decision が必要と判定した Finding は、Curriculum editorial cleanup に混ぜず、`Specification clarification` の別 Issue / Plan として扱う。
 
-Normative Specification が明確なのに Current implementation が異なる Finding は、Specification を変更せず `Product implementation deviation` の別 Issue / Plan として扱う。
+必要な範囲の照合で Normative Specification が明確なのに Current implementation が異なる Finding は、Specification を変更せず `Product implementation deviation` の別 Issue / Plan として扱う。Learner Required completion、選択したspecialization completion、本Plan DoDを阻害しない限り、本Planの完了はブロックしない。
 
 実測値がない状態で Required Duration や専用管理システムを作らない。
 
@@ -1550,28 +1568,30 @@ Normative Specification が明確なのに Current implementation が異なる F
 - Test Case ID grammar の learner-facing canonical explanation と validator executable contract が一意に整合している。
 - PR 2 の Formal Test Strategy / Traceability が Current Formal Suite と一致している。
 - PR 3 の Common Core / Native specialization / Competency / Minimum Evidence 契約が一意である。
+- Common Core の能力契約が C01〜C07 と C09〜C12 の bounded Level 2、C08がNative specializationとして README / Learning Design / Rubric で一意である。
 - コース開始時の対象受講者像が README / Learning Design に明記され、テスト自動化の基本理解 + ノーコード / ローコード経験または理解、Playwright等コードベース自動化未経験、プログラミング非必須という前提が一意である。
 - Common Core の後続Lessonでは、コース開始時プロフィールに Learner Required path 上でそれ以前に明示的に学んだ Common Core 内容だけを加えた状態を前提にでき、specialization / Extension / Reference や教材外の実務経験・暗黙知へ依存していない。
 - specialization / Extension / Reference を未受講でも Common Core completion が成立する。
-- Part 1 / Part 2 の Native specialization の skip / branch / rejoin が learner-facing navigation で一意である。
+- Part 1 / Part 2 の Native specialization の skip / branch / rejoin が learner-facing navigation で一意であり、分岐周辺の局所経路をCommon Core全体の定義として扱っていない。
 - specialization の開始に必要な Learner Required path 上の Common Core prerequisite と specialization 内の前提Lesson / completionが learner-facing に明示されている。
 - Instructor / 運営が環境・アカウント・権限・端末・Repository / Training Copy・Infrastructure / Toolchain等の受講内容外支援担当として利用可能であるという運用前提が README / Learning Design に明記されている。
 - PR 3 で Repository-required curriculum asset と Learner Required path が一意に区別され、Instructor Reference がLearner Required pathではないことをREADME / Learning Designから判断できる。
 - PR 3 で Instructor Reference を受講内容外支援assetへ限定する責務契約が正本化され、Instructor Reference本体にPR 4Aまでのtransition noticeがあり、現行Instructor Reference内情報の実仕分け・移行をPR 4Aへ残している。
 - Learner self-check / assessment criteria が learner-facing material にあり、Instructor-onlyの説明・評価基準へ依存していない。
 - PR 4A で Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` Markdown / text contract 全件を共通基準で監査し、各FindingのDispositionを確定している。
+- PR 4A のSpec監査はtext contractの用語・表記・内部整合・semantic safetyに限定され、全Product behaviorのCurrent implementation適合監査へ拡張していない。
 - PR 4A で Instructor Reference 内の受講内容・判断・Recovery・評価観点を仕分けし、Learner Required completionまたはspecialization completionに必要な情報を learner-facing 正本へ移したうえで、Instructor Reference を受講内容外支援だけへ限定している。
-- PR 4A の Pre-change audit で確認した Curriculum P0 / P1 Finding を解消している。未決の `Specification clarification` に依存する P0 / P1 がある場合は推測修正せず、clarification 解消まで PR 4A completion blocker として扱っている。
+- PR 4A の Pre-change audit で確認した Curriculum P0 / P1 Finding を解消している。未決の `Specification clarification` に依存する P0 / P1 がある場合は推測修正せず、clarification 解消まで PR 4A completion blocker として扱っている。Learner Required completion / 選択したspecialization completion / 本Plan DoDを阻害する `Product implementation deviation` に依存するP0 / P1もProduct側解消までblockerとして扱い、阻害しないdeviationはfollow-upへ分離している。
 - PR 4A の Curriculum P2 は本 Master Plan の目的へ直接関係し bounded に修正できるものだけ `fix_now` として解消し、その他は `defer` として child Plan で明示している。Goal / Fixed decisions / DoD の成立に必要なP2は規模だけを理由にdeferしていない。P3 は変更箇所周辺の局所修正だけを `fix_now` とし、全件一括修正を要求していない。
 - Specification Findingには Curriculum P0〜P3 severityを付けず、`no_change` / `PR 4B` / `Specification clarification` / `Product implementation deviation` のDispositionで扱っている。
-- 明確な Normative Specification と Current implementation の差を `Product implementation deviation` として分離し、Observed Behaviorへ合わせてSpecificationを変更していない。
+- 必要な範囲の照合で確認した明確な Normative Specification と Current implementation の差を `Product implementation deviation` として分離し、Observed Behaviorへ合わせてSpecificationを変更していない。
 - Learner Required path と learner-facing specialization material の学習目標・説明・演習・自己確認・学習上のRecovery・完了条件・次の行動が learner-facing material でつながっている。
 - Learner Required learning content と specialization learner-facing learning content が Instructor の追加説明や非公開Answer Keyに依存していない。
 - specialization の環境・実行・Evidence を Common Core completion に要求していない。
 - Self-check がLearner自身で学習目標の充足を合理的に判定できる具体性を持ち、単なるgeneric Reference提示で完了扱いしていない。
 - PR 4 child Plan の Terminology Decision Table と learner-facing curriculum の表記が一致している。
 - 将来の再発防止に必要な最小の言語・用語ルールが既存 Curriculum 正本へ反映されている。
-- `docs/spec/**` 全 text contract を監査し、`no_change` / `PR 4B` / `Specification clarification` / `Product implementation deviation` のDispositionが確定している。
+- `docs/spec/**` 全 text contract をtext / semantic scopeで監査し、`no_change` / `PR 4B` / `Specification clarification` / `Product implementation deviation` のDispositionが確定している。
 - `PR 4B` Disposition の Finding がある場合だけ PR 4B を PR 4A merge 後の最新 `main` から実施し、boundedなsemantics-preserving editorial correctionに限定している。軽微なeditorial Findingだけを理由にPR 4Bを作成していない。
 - PR 4B を実施した場合は `docs/spec/glossary.md` / 必要なtemplate / changed specを整合させている。
 - PR 4 の Core / Extension / Reference / specialization が PR 3 の評価契約と一致している。
