@@ -10,9 +10,9 @@
 - [x] 6. Android production bundle preflight（Automation / Production export、Hermes bundle guard）を実行する。
 - [x] 7. iOS Metro production export preflightを実行する。
 - [x] 8. `pnpm run verify`、Web Chromium regression、local diff checkを実行する。
-- [ ] 9. local gate成功後、PR #69へcommit / pushし、Web CI / Dependency Review / Mobile App CIのPlan指定gateを確認する。
-- [ ] 10. Planの採用 / 不採用DoDとscopeを照合し、candidateを残すかbaselineへ戻すか確定する。
-- [ ] 11. Run Artifactを指定順でsanitizer、Markdown lint、最終diff / status確認まで実施して最終化する。
+- [x] 9. local gate成功後、PR #69へcommit / pushし、Web CI / Dependency Review / Mobile App CIのPlan指定gateを確認する。
+- [x] 10. Planの採用 / 不採用DoDとscopeを照合し、candidateを残すかbaselineへ戻すか確定する。
+- [x] 11. Run Artifactを指定順でsanitizer、Markdown lint、最終diff / status確認まで実施して最終化する。
 
 ## Discovered
 

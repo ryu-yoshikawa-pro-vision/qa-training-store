@@ -185,3 +185,70 @@
 - New tasks: なし。
 - Remaining: Task 9でPR #69への反映とWeb / Dependency Review / Mobile App CIの全gate確認を行う。
 - Progress: 73% (8/11)
+
+## 2026-08-26 22:13 (JST)
+
+- Summary: local gate成功後にcandidateをPR #69へpushし、対象headでWeb / Dependency Review / Mobile App CIの全adoption gateがsuccessした。
+- Completed:
+  - commit `6b173479aba74bfe1aafdefe047d7f0994ab6517`を作成し、`security/metro-0.84.5-image-size-remediation`へexplicit refspecでpushした。force pushは行っていない。
+  - Web CI run `32969307730`（head `6b173479aba74bfe1aafdefe047d7f0994ab6517`）=> completed / success。
+  - Web CIの`Dependency Review`=> success。candidateによる新規vulnerabilityは検出されなかった。
+  - Mobile App CI run `32969307803`（同head）=> completed / success。
+  - Mobile gate: `Detect Native Changes`、`Native Static`、`Android Automation Build`、`Android Production-validation Build`、`Production Bundle Guard`、`Android Runtime / Maestro`、`Native iOS CI / iOS Automation Build`、`Native iOS CI / iOS Production-validation Build`、`Native iOS CI / iOS Native CI Verify`、`native-ci / verify`の10 jobがすべてsuccessした。
+  - CodeQL run `32969304647`のPython / JavaScript-TypeScript / Actions analysisもsuccessした。
+- Commands / evidence:
+  - `git push origin HEAD:security/metro-0.84.5-image-size-remediation` => exit 0。
+  - `gh run view 32969307730 ...`、`gh run view 32969307803 ...`、`gh run view 32969304647 ...`、`gh pr view 69 ...` => head SHA一致と全gate successを検証した。
+  - raw CI summary: `.artifacts/metro-issue-68/task9-ci/web-ci.json`、`mobile-app-ci.json`、`codeql.json`、`pr-checks.json`。
+- Notes/Decisions: Planのlocal gate / PR CI adoption gateを満たしたためcandidateを採用する。Task 10でDoD、graph、scope、semantic diffを最終照合し、Task 11のsanitizer / finalizationへ進む。
+- New tasks: なし。
+- Remaining: Task 10で採用DoDとscopeを最終照合し、candidate採用を確定する。
+- Progress: 82% (9/11)
+
+## 2026-08-26 22:15 (JST)
+
+- Summary: Planの採用DoDとScopeを最終照合し、candidateの採用を確定した。
+- Decision: 採用。
+- Baseline graph:
+  - `@react-native/community-cli-plugin@0.86.2 -> metro@0.84.4 -> image-size@1.2.1`。
+  - 同pluginの直接`metro-config` / `metro-core` edge、および`@react-native/metro-config@0.86.1 -> metro-config@0.84.4 -> metro@0.84.4`がaffected parent pathだった。
+- Candidate graph:
+  - 上記の必要4 selectorにより、RN CLI / RN metro-configのaffected Metro family edgeは`metro`、`metro-config`、`metro-core`すべて0.84.5へ解決された。
+  - `metro@0.84.4`と`image-size@1.2.1`はresolved graph / lockfileから消滅した。
+  - `metro-runtime@0.84.4`等の別pathはaffected `metro`へ到達せず、global Metro family overrideは追加していない。
+- DoD result:
+  - affected image-size instance: 0件。
+  - baselineで存在したaffected `metro@0.84.4 -> image-size@1.2.1` path: 全消滅。
+  - parent-scoped selector: Task 2で確定した4件のみ。
+  - lockfile semantic diff: pnpm正規生成による対象Metro family / image-size / queue除去と、対象parent edgeのresolution更新に限定。Expo / React Native / community-cli-plugin version、unrelated integrity / dependency edge / importer変更なし。
+  - Web / Android / iOS local preflight、local quality gate、Web CI、Dependency Review、Mobile App CIの全gate success。
+- Scope confirmation: `package.json`、`pnpm-lock.yaml`、Run Artifact以外の変更なし。Expo / React Native / community-cli-plugin upgrade、application / build config / CI変更、direct image-size、global override、fork、patch-package、test skip、unrelated vulnerability remediationは行っていない。
+- Commands / evidence:
+  - `pnpm why image-size` => outputなし、`pnpm list image-size --depth Infinity --json` => root packageのみ。
+  - candidate `pnpm why metro` / `metro-config` / `metro-core` => affected RN pathは0.84.5。
+  - lock count check => `image-size`、`metro@0.84.4`、`metro-config@0.84.4`、`metro-core@0.84.4`、0.84.4 direct edgeすべて0件。
+  - corrected selector assertion => 4 selectors、`package.json` 4 additions、`git diff --check` PASS。evidenceは`.artifacts/metro-issue-68/task10-decision/`。
+- Verification note: 最初のTask 10 selector assertionはPowerShell regexの過剰escapeにより誤って0件判定で終了した。依存graph・tracked fileは変更せず、regexを修正した同じ検証を再実行してPASSを確認した。これはcandidate validation failureではない。
+- Notes/Decisions: Planの採用条件を全て満たしたため、candidate dependency差分をbaselineへ戻さず残す。Task 11でRun Artifactを指定順に最終化する。
+- New tasks: なし。
+- Remaining: Task 11でsanitizer、Markdown lint、最終dependency diff、changed files、status、diff checkを指定順に実行する。
+- Progress: 91% (10/11)
+
+## 2026-08-26 22:19 (JST)
+
+- Summary: Run Artifact最終化を完了した。
+- Completed（指定順）:
+  1. sanitizer `-Write`: files_scanned 4、files_changed 0、residual_findings 0。
+  2. sanitizer `-Check`: files_scanned 4、residual_findings 0。
+  3. `pnpm run lint:markdown`: 336 files、0 issues。
+  4. 最終dependency diff: `package.json` 4 additions、`pnpm-lock.yaml` 11 additions / 210 deletions。lock countでaffected `image-size` / Metro 0.84.4 pathは0件。
+  5. changed files: `package.json`、`pnpm-lock.yaml`、`.codex/runs/20260826-205812-JST/{PLAN,TASKS,REPORT,run}.md/json`のみ。
+  6. `git status --short`: Run Artifact 4ファイルの最終追記のみが未commit。
+  7. `git diff --check`: PASS。
+- Commands / evidence:
+  - sanitizer logs: `.artifacts/metro-issue-68/task11-finalization/sanitizer-write-pre-final.log`、`sanitizer-check-pre-final.log`。
+  - Markdown / final diff summary: `.artifacts/metro-issue-68/task11-finalization/markdown-lint-pre-final.log`、`final-diff-status.log`。
+- Notes/Decisions: candidate dependency差分は採用状態で保持し、Run Artifactをcompletedとして最終化した。PR #69本文は実結果へ更新済み。
+- New tasks: なし。
+- Remaining: なし。
+- Progress: 100% (11/11)

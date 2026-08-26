@@ -81,3 +81,6 @@ PlanのTask 1〜11を順番どおり実行する。
 - 2026-08-26 21:19 JST: Android bundle preflightはAutomation marker存在、Production marker不在、Hermes bundle guard PASSとなった。Plan順にiOS exportへ進む。
 - 2026-08-26 21:20 JST: Windows上のPlan指定iOS Metro production exportはexit 0で完了した。Xcode native buildは環境上実行せず、PR CIで確認する。
 - 2026-08-26 21:33 JST: `pnpm run verify`、Chromium 27 tests、candidate dependency diff checkがすべてPASSした。local gateを満たしたため、PR #69へ反映してCI adoption gateを確認する。
+- 2026-08-26 22:13 JST: commit `6b173479aba74bfe1aafdefe047d7f0994ab6517`をPR #69へpushした。Web CI / Dependency Review / Mobile App CIの全必須gate（Native iOS CI Verify、Android Runtime/Maestro、`native-ci / verify`を含む）がsuccessとなったため、candidate採用条件は成立したと判断する。
+- 2026-08-26 22:15 JST: 最終graphでaffected image-size 0件、baseline affected path全消滅、4 selector以外のunrelated dependency semantic changeなし、全local/CI gate successを確認した。candidate採用を確定し、Run Artifact最終化へ進む。
+- 2026-08-26 22:19 JST: sanitizer Write / Check、Markdown lint、最終dependency diff、changed files、git status、git diff --checkを指定順で完了した。Run Artifactをcompletedとして最終化する。
