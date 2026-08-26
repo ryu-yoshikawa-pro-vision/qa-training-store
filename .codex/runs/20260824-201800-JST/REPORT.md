@@ -315,3 +315,35 @@
 - Decision:
   - review finding repairは完了。active Run全体は未完了のため`complete`にはしない。
 - Progress: 90% (47/52)
+
+## 2026-08-26 14:21 (JST)
+
+- Summary:
+  - Curriculumを受講者が自己学習できる品質にする前提をMaster Planへ反映した。
+  - 自己学習をInstructor完全排除とは定義せず、環境・端末・アカウント・権限・演習Repository・Infrastructure / Toolchain支援は許容し、学習内容・演習・自己確認・学習上のRecovery・完了判定はlearner-facing materialで完結させる境界を固定した。
+- Input Findings:
+  - must_fix: Master Planの評価契約に`InstructorがC01〜C12を直接採点`する前提があり、Learner自身のself-check契約が弱かった。
+  - must_fix: `03_instructor-reference.md`にFacilitation / 問い返し / Recovery観点があり、Required learning contentとの責務境界が未定義だった。
+  - should_fix: Required Lessonの確認問題・設計演習に、Learner自身が正誤・十分性を確認する方法を必須化していなかった。
+  - clarification: Instructor / 運営による環境準備やToolchain障害支援は許容し、排除対象にしない。
+- Completed:
+  - Goal / Assumptions / Fixed decisions / Non-goalsへself-study品質の境界を追加した。
+  - `CUR-H5`としてInstructor依存のRequired learning content / self-check / learning Recoveryを、`CUR-M12`としてLearner self-checkとInstructor evaluationのEvidence契約不整合をMatrixへ追加した。
+  - PR 3を、LearnerがRubric / Minimum Evidenceで自己確認でき、Instructorが必要な場合に同じ公開Evidenceで評価する契約へ修正した。
+  - PR 4Aへ`Self-study completeness`監査を追加し、開始条件、演習、自己確認、Recovery、完了条件、次の行動をlearner-facing materialで確認する契約にした。
+  - Instructor Referenceは削除せず、環境支援 / Facilitation / Troubleshooting / 最終フィードバックの補助に限定し、Required learning contentの唯一の正本にしない方針を明記した。
+  - PR 5ではcommand / validator / Artifactで機械確認できる結果をLearnerが自己確認できる契約を追加し、新しいscoring engine / AI graderは作らない方針を維持した。
+  - Final Fresh Learner ReviewでEnvironment / Toolchain supportとlearning-content supportを分離し、後者がRequired pathで必要ならP1 Findingとして扱うよう修正した。
+  - TASKSへD43〜D46を追加し、Run `PLAN.md`を同じ境界へ整合した。
+- Validation:
+  - 今回はMaster Plan / Run Artifactのplanning文書だけを変更した。
+  - Curriculum本体、Instructor Reference本体、Rubric本体、Training implementation、RA-M7実コードは変更していない。
+  - `validate:curriculum` / `test:contracts` / `typecheck` / `format:check` / `lint:markdown` / Sanitizer Write・Checkはまだ未実行。
+  - Step 0未完了のためactive Run statusは`pending`を維持する。
+- Remaining:
+  - Step 0: RA-M7 required pathの最小実修正。
+  - Step 0 local validation / Sanitizer / PR-ready diff確認。
+  - Master Plan publication PRのfinal head CI / review / merge-ready確認。
+- Decision:
+  - 自己学習品質の定義は、環境運用まで自己完結させる過剰設計を避けつつ、学習内容をInstructorの追加説明に依存させない境界で確定した。
+- Progress: 91% (51/56)
