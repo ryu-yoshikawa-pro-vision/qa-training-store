@@ -318,6 +318,17 @@
 - Decision: `continue`
 - Progress: 93% (14/15)
 
+## 2026-08-27 01:39 (JST)
+
+- F4 final-head CI recovery: GitHub Actions復旧後に、PR #69 head `9901254bc219df087cf66e67316bf06144d31423`を対象とするCIを確認した。
+  - [CodeQL run 32986767712](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32986767712): completed / success。
+  - [Web CI run 32986839351](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32986839351): completed / success。WebのCode Quality、Style Quality、Dependency Review、production build、Chromium E2E、UI Review、verify、artifact sanitizationを含むworkflow gateを確認した。workflow上のdeploy-production / Extended E2Eはskippedで、failureではない。
+  - [Mobile App CI run 32986840802](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32986840802): completed / success。Detect Native Changes、Native Static、Android Automation Build、Android Production-validation Build、Production Bundle Guard、Android Runtime / Maestro、Native iOS CI / iOS Automation Build、Native iOS CI / iOS Production-validation Build、Native iOS CI / iOS Native CI Verify、`native-ci / verify`を全てsuccessで確認した。
+- CI execution note: Actions outage中にPR eventで開始されなかったため、復旧後に同じworkflowを`workflow_dispatch`で同一branch・同一headへ再実行した。workflow、gate、skip条件の変更は行っていない。
+- Evidence: 最終headのraw JSONは`.artifacts/metro-issue-68/followup-3-selector/task4-finalization/{codeql-final-head,web-final-head,mobile-final-head}.json`へ保存した。
+- Decision: `continue`。最終head CIは全てsuccess。残りはRun Artifactの最終状態更新、PR本文の最終head反映、completion commit / push、最終status確認のみ。
+- Progress: 93% (14/15)
+
 ## 2026-08-27 01:02 (JST)
 
 - Post-push result: Run Artifact finalization commit `f256c36b11993b0b8f20d05f4728086b84fe085e`を同一branchへexplicit refspecでpush済み。working treeはclean、PR #69 headは同SHAでOPEN。
