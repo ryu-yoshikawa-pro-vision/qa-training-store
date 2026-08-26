@@ -18,20 +18,28 @@
     ".codex/runs/20260826-190631-JST/run.json"
   ],
   "validation": {
-    "status": "in_progress",
+    "status": "passed",
     "commands": [
       "pnpm install --frozen-lockfile --ignore-scripts",
       "pnpm why image-size",
       "pnpm why metro",
       "公式GHSA / npm / upstream / Dependabot API照合",
-      "exact Metro source / Repository asset / input path read-only inspection"
+      "exact Metro source / Repository asset / input path read-only inspection",
+      "sanitizer -Write",
+      "sanitizer -Check",
+      "pnpm run lint:markdown",
+      "git diff baseline..HEAD -- package.json pnpm-lock.yaml",
+      "git diff --name-only baseline..HEAD",
+      "git status --short",
+      "dependency / application / build / CI semantic scope check",
+      "git diff --check baseline..HEAD"
     ],
     "warnings": [
       "Native / Web buildはPlanの必要条件に該当しないため未実施。別Runのtargeted remediation validationで実施する。"
     ]
   },
   "safety": {
-    "network": false,
+    "network": true,
     "delete_attempt_blocked": true,
     "git_mutation_attempt_blocked": false,
     "scope_violation": false
@@ -60,6 +68,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "in_progress",
+  "status": "completed",
   "primary_failure_category": null
 }

@@ -10,7 +10,7 @@
 - [x] 6. affected pathが残る場合だけ、既存境界によるworkaroundの5条件を確認する。
 - [x] 7. durable reportを作成し、結論、candidate decision matrix、第一候補 / fallback / 見送り理由 / 残存リスク / follow-upを記録する。
 - [x] 8. PR #67本文を調査完了状態へ必要最小限更新し、Run Artifactを更新する。
-- [ ] 9. sanitizer Write / Check、Markdown lint、final diff / status / semantic scope確認を行い、docs-only commit / explicit push後にPR #67を再確認する。
+- [x] 9. sanitizer Write / Check、Markdown lint、final diff / status / semantic scope確認を行い、docs-only commit / explicit push後にPR #67を再確認する。
 
 ## Discovered
 
