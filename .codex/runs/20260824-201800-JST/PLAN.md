@@ -13,6 +13,11 @@
 - RA-M7 のために別 branch / 別 Run / 専用 child Plan は作らない。
 - PR 1〜5 は Master Plan publication PR merge 後に開始する。
 - Refactoring candidate は Evidence を確認してから実装要否を判断する。
+- Master Plan は `Current understanding` と `Assumptions / Safe change surface / Unknowns` を分離する。
+- PR 4 は Pre-change audit 後に reviewability / semantic safety を判定し、必要な場合だけ PR 4A / PR 4B に分割する。
+- PR 4 child Plan で実際に揺れている用語だけの Terminology Decision Table を作り、新しい permanent glossary は作らない。
+- Final Fresh Learner Review は fresh context で実施し、P0 / P1 があれば latest `main` から bounded repair して fresh context で再実行する。
+- RA-M8 は `training/workbook/README.md` の learner-facing grammar と validator executable contract を一致させ、全Markdown解析の新基盤は作らない。
 - この Run は Master Plan publication PR が final head で merge-ready になった時点で完了する。
 - 実際の merge 状態は GitHub PR を正本とし、merge 後に Run Artifact を追加更新しない。
 
@@ -22,6 +27,7 @@
 
 - Master Plan の保存・更新
 - active Run Artifact の更新
+- Master Plan review finding の bounded repair
 - RA-M7 の required curriculum path 最小修正
 - RA-M7 に必要な contract literal の最小修正
 - local validation
@@ -115,7 +121,7 @@ PR の merge はこの Run の完了後、ユーザーの明示承認を受け�
 - RA-M7 が PR head で解消されている。
 - local validation と final PR head の PR-triggered CI が PASS している。
 - review finding の bounded repair が完了している。
-- active Run Artifact が final PR head の変更・Validation・CI・review結果と一致している。
+- active Run Artifact が final PR head の変更・Validation / CI / review結果と一致している。
 - `run.json.status` が `complete` である。
 - PR が merge-ready である。
 - PR 1〜5 / Phase 6 の実装をこのRunに混ぜていない。
