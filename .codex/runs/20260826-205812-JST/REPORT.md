@@ -252,3 +252,59 @@
 - New tasks: なし。
 - Remaining: なし。
 - Progress: 100% (11/11)
+
+## 2026-08-26 23:14 (JST)
+
+- Summary: 既存candidateの最小selector性に対するレビュー指摘を受け、`metro-core` overrideだけを外した3 selector構成の追加検証を開始した。
+- Input finding / triage:
+  - 指摘: `@react-native/community-cli-plugin@0.86.2>metro-core` -> `0.84.5`はaffected `metro@0.84.4 -> image-size@1.2.1` path除去ではなくMetro family coherenceのために追加されており、Planの最小scopeを満たさない可能性がある。
+  - 分類: `must_fix`。security remediationのaffected path除去条件と最小selector条件に直接関係するため、実graphで再検証する。
+  - 公開PR review API上のinline commentは確認できなかったが、今回のユーザー指定findingを検証対象の正本とした。CodeRabbitは自動レビュー未実行コメントのみだった。
+- Repair iteration:
+  - `iteration_number`: 1
+  - `repair_plan`: 4 selector candidateから`metro-core` selectorだけを削除し、他3 selectorを変更せず、同じpnpm 9.10.0手順とPlanのgraph / compatibility / CI gateを再実行する。3 selectorで成立しない場合は具体的failureを記録して停止し、別方式は試さない。
+  - `allowed_files`: `package.json`、`pnpm-lock.yaml`、`.codex/runs/20260826-205812-JST/REPORT.md`、同Runの`TASKS.md` / `run.json`、PR #69本文。
+  - `expected_changed_files`: 上記allowed filesのうち実際に必要なものだけ。application / build config / CI workflow / 新規override / 新規branch / 新規PRは対象外。
+  - `changed_files`: `.codex/runs/20260826-205812-JST/TASKS.md`（追加検証タスクの登録）のみ。
+  - `validation_commands`: `git status --short`、`git branch --show-current`、`git branch -vv`、`gh pr view 69 --json headRefName,headRefOid,state,title,statusCheckRollup`、PR comments / reviews API確認、selector / Plan / report確認。
+  - `validation_result`: 開始条件PASS。working tree clean、current branch / PR headは`security/metro-0.84.5-image-size-remediation` / `5761fba4e1797c99e7290cb00cb6e188ce47c0ac`で一致、PR OPEN、既存CIはsuccess。
+  - `remaining_delta`: 3 selector candidateのdependency graph、lockfile stability、local / CI validation、採用判断、PR / Run Artifact更新が未完了。
+  - `decision`: `continue`
+- Scope note: 現在の4 selector差分、Expo / React Native / community-cli-plugin version、application / build / CI変更は未変更。`metro-core`削除以外のselectorは変更しない。
+- F1 result: `package.json`から`@react-native/community-cli-plugin@0.86.2>metro-core` -> `0.84.5`だけを削除した。残るMetro selectorは次の3件で、いずれもtarget `0.84.5`のまま。`pnpm --version`は`9.10.0`。
+  - `@react-native/community-cli-plugin@0.86.2>metro`
+  - `@react-native/community-cli-plugin@0.86.2>metro-config`
+  - `@react-native/metro-config@0.86.1>metro-config`
+- F1 validation: JSON selector assertion PASS、package diffは対象1行削除のみ、working treeは想定したRun Artifactと`package.json`だけ。
+- F2 result: `pnpm 9.10.0`で3 selector candidateのlockfileを正規再生成し、graphとsemantic diffを確認した。
+  - 1回目 `pnpm install --lockfile-only --ignore-scripts`: PASS。変更後lockfile SHA-256は`1E340DCBEC7DE6E583D7335BC6C698FCA69C8389F1EDE7899FBBB43B74938A03`。
+  - 2回目の同一コマンド: PASS。実行前後のSHA-256とworking-tree diff（`0/3 pnpm-lock.yaml`）が一致し、追加diff 0。
+  - `pnpm install --frozen-lockfile --ignore-scripts`: PASS。
+  - `pnpm why image-size`: 出力なし。`pnpm list image-size --depth Infinity --json`: root packageのみ。resolved affected `image-size` instanceは0件。
+  - `pnpm why metro`: community CLI plugin配下の`metro` / `metro-config`は`0.84.5`。`@react-native/metro-config@0.86.1`からの`metro-config`も`0.84.5`。
+  - `pnpm why metro-config` / `pnpm why metro-core`: RN / Expoの実resolved Metro familyは`0.84.5`。`metro-core` overrideなしでもcommunity CLI pluginのactual `metro-core` edgeは`0.84.5`で、`0.84.4`へ戻らなかった。
+  - lockfile assertion: `image-size`、`metro@0.84.4`、`metro-config@0.84.4`、`metro-core@0.84.4`、`queue@6.0.2`は各0件。community CLI plugin snapshotは`metro: 0.84.5`、`metro-config: 0.84.5`、`metro-core: 0.84.5`。
+  - before / after graph: baselineは`community-cli-plugin@0.86.2 -> metro@0.84.4 -> image-size@1.2.1`および`@react-native/metro-config@0.86.1 -> metro-config@0.84.4 -> metro@0.84.4`。3 selector後は両pathが`0.84.5`へ解決し、affected pathは全消滅。
+  - 4 selector candidateとの差分は、`package.json`の`metro-core` override削除、lockfileのoverride行削除、pnpmが再生成した`@react-native/metro-config@0.86.1` snapshotのoptional transitive peer metadata（`bufferutil` / `utf-8-validate`）削除のみ。package version、integrity、dependency edge、importer、actual peer resolution、Metro / image-size package snapshotは変わらず、unrelated semantic dependency changeはないと判定した。metadata差分は隠さず記録し、lockfile手編集は行っていない。
+- F2 evidence: raw logsは`.artifacts/metro-issue-68/followup-3-selector/task2-lock/`および`task2-graph/`へ保存した。
+- F2 decision: `stop_success`（dependency remediation成立）。後続のPlan local / PR CI gateを再実行する。
+- Progress: 87% (13/15)
+
+## 2026-08-26 23:36 (JST)
+
+- F3 local validation phase: 3 selector candidateを対象にPlanのlocal validationを再実行し、全てPASSした。
+  - production environment contract: `EXPO_PUBLIC_APP_ENV=production`、`EXPO_PUBLIC_BUILD_KIND=production`、`EXPO_PUBLIC_TEST_MODE=false`、`EXPO_PUBLIC_DEFAULT_SEED=default`。
+  - `pnpm run validate:image-manifest`: PASS。
+  - production env `pnpm run build:web`: PASS、Web 2297 modules、`dist/index.html`生成。
+  - `pnpm run validate:native-production-bundle`: PASS。Automation marker検出、Production markerなし。
+  - production env `pnpm exec expo export --platform ios --output-dir output/issue-68-ios-production`: PASS、iOS 2900 modules export。
+  - `pnpm run verify`: PASS。unit 66、integration 98、repository 37、Web component 83、Native component 62、contracts 427、lint error 0。
+  - `pnpm run test:e2e:chromium`: PASS、27 tests。
+  - `pnpm run lint:markdown`: PASS、336 files / 0 issues。
+  - `git diff --check`: PASS。
+- Local scope check: baselineとの差分tracked fileは`package.json`、`pnpm-lock.yaml`、同Runの標準Artifactのみ。application / build / CI変更なし。
+- Warnings: lintの既存warning 65件、Native component testの既存React `act(...)` warning、WindowsのためXcode native build未実施は前回同様。今回のlocal preflightでは物理Android APK / device / Maestroは実行していない。これらの最終判定はPR Mobile App CIで行う。
+- Evidence: raw logsは`.artifacts/metro-issue-68/followup-3-selector/task3-local/`へ保存した。
+- F3 remaining: PR #69へ3 selector candidateを反映し、Web CI / Dependency Review / Mobile App CI / Native gatesを確認する。
+- Decision: `continue`
+- Progress: 87% (13/15)
