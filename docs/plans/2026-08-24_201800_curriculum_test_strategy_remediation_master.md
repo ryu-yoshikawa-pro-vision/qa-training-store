@@ -263,7 +263,13 @@ PR 4 child Plan の詳細監査では各 Finding を次で分類する。
 - `P2`: 日本語 / 英語混在、重複、Learner Required / Reference 発見性、情報量の偏りなど理解・保守性へ影響する。
 - `P3`: 語尾、軽微な表記、文章上の微修正。
 
-修正順は `P0 → P1 → P2 → P3` とし、P3 のために大きな diff を作らない。
+修正境界は次で固定する。
+
+- `P0` / `P1`: PR 4A の blocker とし、Pre-change audit で確認したものは PR 4A で必ず解消する。
+- `P2`: 本 Master Plan の目的である learner-facing の自己学習品質、navigation、用語一貫性、重複削減、保守性へ直接関係し、かつ bounded な変更で解消できるものだけ `fix_now` とする。それ以外は `defer` とし、PR 4A の scope を広げない。
+- `P3`: PR 4A で実際に変更する箇所の周辺を局所修正する場合だけ `fix_now` とする。P3 全件の一括cleanupは行わず、それ以外は `defer` とする。
+
+修正順は `P0 → P1 → P2 → P3` とする。P2 / P3 を見つけたこと自体を、無条件に全件修正する理由にしない。
 
 ### 5.9 Self-study completeness
 
@@ -428,7 +434,7 @@ PR 1 / PR 4 では追加で次を確認する。
 | CUR-M10 | 学習目標 → 本文 → 演習 → 成果物 → Rubric の縦方向整合が Learner Required path 全体で未監査 | audit + fix | PR 4 | PR 5 / 継続的な受講者視点レビュー |
 | CUR-M11 | Learner Required / Extension / Reference / Legacy の発見性が directory browse / lesson navigation で弱い | fix | PR 4 | 継続的な受講者視点レビュー |
 | CUR-M12 | Rubric / assessment contract が Learner の自己確認と外部評価で同じ Evidence を使う契約になっていない | fix | PR 3 | PR 4 |
-| CUR-M13 | 受講者視点レビューの対象受講者profileが未定義で、経験者の暗黙知で教材不足を補完し得る | fix | PR 4 | 継続的な受講者視点レビュー |
+| CUR-M13 | 受講者視点レビューの対象受講者profileが未定義で、経験者の暗黙知で教材不足を補完し得る | fix | PR 3 | PR 4 / 継続的な受講者視点レビュー |
 | CUR-M14 | Self-check が単なる参照先提示で成立し得て、Learner が自分の回答・成果物の充足を判定できない | fix | PR 4 | 継続的な受講者視点レビュー |
 | CUR-M15 | 受講者視点レビューが単発の最終Gateとして扱われ、継続改善とMaster Plan完了境界が競合する | fix | PR 4 | 継続運用 |
 | CUR-L1 | Spiral と説明重複の境界が薄い | 最小ラベル整理 | PR 4 | なし |
@@ -463,7 +469,7 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 - Child branch は依存 PR merge 後の最新 `main` から作る。
 - 原則 stacked PR は使わない。
 - PR 1〜5 はそれぞれ child Plan を `docs/plans/` に保存してから実装する。
-- PR 4 child Plan は Learner Required path 全文、Repository-required support assetとの境界、`docs/spec/**` text contract の監査 Finding 一覧と Terminology Decision Table を含める。別の permanent audit SSOT / glossary は追加しない。
+- PR 4 child Plan は Learner Required path 全文、Repository-required support assetとの境界、`docs/spec/**` text contract の監査 Finding 一覧と Terminology Decision Table を含める。Curriculum Finding には `fix_now` / `defer` の Disposition を記載し、§5.8 の修正境界に従う。別の permanent audit SSOT / glossary は追加しない。
 - PR 4A で `docs/reference/curriculum-self-study-review.md` を追加し、継続的な受講者視点レビューのチェックリストだけを保存する。個別レビュー結果やレビュー履歴は保存しない。
 - PR 4B が必要な場合は、PR 4A merge 後の最新 `main` から作成し、PR 4Aで保存済みの同一 child Planを入力として使用する。新しい Master Plan や第三の tracking SSOT は作らない。
 - PR 4Aへ `docs/spec/**` の実変更を含めない。Specの実変更は件数や軽微さにかかわらず PR 4Bへ分離する。
@@ -862,6 +868,7 @@ Finding は child Plan 内に次を最低限記録する。
 - learner impact または specification readability / maintainability impact
 - minimum fix
 - related contract / validation
+- Curriculum Findingの場合は `fix_now` / `defer` のDisposition
 - Specification Findingの場合は `no_change` / `PR 4B` / `Specification clarification` のDisposition
 
 既存 Report と重複する Finding は新しい permanent report に複製せず、既存 Matrix ID を参照する。
@@ -895,7 +902,7 @@ Pre-change audit 完了時に §5.6 の `Terminology Decision Table` を確定�
 
 - P2-1〜P2-8 についても内部 Lesson の成立性、前提知識、演習、自己確認、Recovery、完了条件を同じ基準で確認する。
 - P2-2: Branch / Diff / Commit を Core、exact SHA / copy mechanics を Reference。
-- P2-3: 他人から実際のReviewを受けることを Learner Required completion にしない。既存 / 教材用DiffのReview、自分のPRのself-review、公開されたReview checklistでC11を自己確認できるようにする。Organization-provided Copyは許容するが、Learner自身が用意できるFork / Training Copy経路を標準として残す。
+- P2-3: 他人から実際のReviewを受けることを Learner Required completion にしない。既存 / 教材用DiffのReview、自分のPRのself-review、公開されたReview checklistでC11を自己確認できるようにする。Fork / Remote / Push の概念は Learner Required として学ぶが、演習Repository / Training Copy のProvisioning自体は Instructor / 運営が担当してよく、Learner自身による環境ProvisioningをCompletion条件にしない。Learnerは提供済みの演習Repositoryまたは自分のForkを使い、書き込み可能なRemoteへのPushとPR作成を学ぶ。
 - P2-4: Trigger / Job / Failure / least privilege を Core、allowlist / parser / pin 詳細を Reference。
 - P2-5: Web CI / Artifact / failure evidence を Core。
 - P2-6: Native CI specialization 内の Repository 固有詳細を Reference へ寄せる。
@@ -1015,6 +1022,7 @@ PR 4A:
 - `docs/reference/curriculum-self-study-review.md` が §18 の継続レビュー契約と一致することを manual cross-check
 - Terminology Decision Table と実際の Learner Required path 表記の manual cross-check
 - `docs/spec/**` text audit の全対象に Disposition があることを確認する。
+- Curriculum Finding が §5.8 に従って `fix_now` / `defer` に分類され、`fix_now` が実差分で解消されていることを確認する。
 - PR 4A diff に `docs/spec/**` の実変更が含まれていないことを確認する。
 
 PR 4B がある場合:
@@ -1040,6 +1048,8 @@ PR 4B がある場合:
 - Learner Required learning content の理解・演習・自己確認・完了判定が Instructor の追加説明に依存していない。
 - Instructor Reference に受講内容・学習上の判断・評価基準が残っていない。
 - Self-check がLearner自身で学習目標の充足を合理的に判定できる具体性を持ち、generic Referenceだけに逃げていない。
+- Pre-change audit で確認した Curriculum P0 / P1 を解消している。
+- Curriculum P2 / P3 は §5.8 の境界に従って `fix_now` / `defer` を明示し、`fix_now` だけをboundedに解消している。
 - 継続的な受講者視点レビューの再利用可能なチェックリストが `docs/reference/curriculum-self-study-review.md` に定義されている。
 - 個別レビュー結果やレビュー履歴の保存要件を追加していない。
 - Learner-facing 一般用語の日本語 / 英語混在が整理され、英語を残す基準が Terminology Decision Table と一致している。
@@ -1349,6 +1359,7 @@ Product runtime / broad contract に影響する場合だけ次を追加する�
 - Lesson の不足を埋めるために、目的不明の大量説明追加が必要になる。
 - 自己学習化のために Instructor / 運営の環境準備・権限・端末・Toolchain支援までRepositoryだけで自動化する必要があるように見える。この場合は学習内容と環境運用の境界を再確認する。
 - 自己確認のために設計判断・自由記述を全件自動採点する新しい scoring engine / AI grader が必要になる。この場合はRubric /回答例/観点による自己確認を優先する。
+- P2 / P3 Finding の全件修正を理由に PR 4A のscopeが拡大する。この場合は §5.8 の `fix_now` / `defer` 境界へ戻す。
 - 受講者視点レビュー結果を本 Master Plan の完了条件へ戻そうとする。この場合は §18 の「継続タスク」と本Plan DoDの境界を維持する。
 - 受講者視点レビュー結果の保存・履歴管理のためだけに新しいIssue / Report / Plan /台帳を作ろうとする。この場合はレビュー結果非保存の方針を維持する。
 - 日本語化によって Tool / API / ID / machine contract の意味を変える必要がある。
@@ -1428,6 +1439,7 @@ Normative Specification の監査で Product Decision が必要と判定した F
 - Learner self-check / assessment criteria が learner-facing material にあり、Instructor-onlyの説明・評価基準へ依存していない。
 - PR 4A で Learner Required path 全文、Repository-required support assetとの境界、`docs/spec/**` Markdown / text contract 全件を共通基準で監査し、各FindingのDispositionを確定している。
 - PR 4A の Pre-change audit で確認した Curriculum P0 / P1 Finding を解消している。
+- PR 4A の Curriculum P2 は本 Master Plan の目的へ直接関係し bounded に修正できるものだけ `fix_now` として解消し、その他は `defer` として child Plan で明示している。P3 は変更箇所周辺の局所修正だけを `fix_now` とし、全件一括修正を要求していない。
 - Learner Required path の学習目標・説明・演習・自己確認・学習上のRecovery・完了条件・次の行動が learner-facing material でつながっている。
 - Learner Required learning content が Instructor の追加説明や非公開Answer Keyに依存していない。
 - Self-check がLearner自身で学習目標の充足を合理的に判定できる具体性を持ち、単なるgeneric Reference提示で完了扱いしていない。
