@@ -16,14 +16,14 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - Requirement / Risk / Technique / Formal Test / CI Gate の最小 Traceability がある。
 - Curriculum の共通卒業要件と Native specialization の境界が一意である。
 - C01〜C12 の Minimum Evidence を Lesson / Exercise / Artifact から追跡できる。
-- 各 Required Lesson が、独立した学習単位として成立するか、または前後の内容へ統合されている。
+- 各 Learner Required Lesson が、独立した学習単位として成立するか、または前後の内容へ統合されている。
 - 学習目標 → 説明 → Practice / Exercise → Completion Evidence が矛盾なくつながる。
 - Learner-facing な一般用語は日本語中心で統一され、Tool / API / Code identifier など英語を維持すべき語との境界が一意である。
 - Curriculum / Workbook / Validator / Training asset / Normative Specification の参照契約に矛盾がない。
 - `docs/spec/**` の learner-facing / normative text が同一の言語・用語方針で監査され、Product behavior を変えずに必要な editorial correction が行われている。
 - Training の Baseline と Learner-authored Evidence を区別できる。
-- Fresh Learner が Required path を追い、何を読み、何を考え、何を実行し、何を成果物として残し、どう自己確認し、どこで完了するかを教材だけから判断できる。
-- 環境準備、アカウント・権限、端末・演習Repositoryの提供、Toolchain / Infrastructure 障害の復旧は Instructor / 運営支援を許容する一方、学習内容の説明、演習判断、答え合わせ、Recovery、完了判定は Required learner-facing material だけで進められる。
+- Fresh Learner が Learner Required path を追い、何を読み、何を考え、何を実行し、何を成果物として残し、どう自己確認し、どこで完了するかを教材だけから判断できる。
+- 環境準備、アカウント・権限、端末・演習Repositoryの提供、Toolchain / Infrastructure 障害の復旧は Instructor / 運営支援を許容する一方、学習内容の説明、演習判断、答え合わせ、Recovery、完了判定は Learner Required path の learner-facing material だけで進められる。
 - Technical Debt 候補は size 単独ではなく Evidence に基づいて分類される。
 
 ## 2. Current understanding
@@ -44,7 +44,8 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - 一部のファイルでは内部 Lesson が数行程度で終わり、独立した学習目的・説明・Practice・到達確認が弱い箇所がある。短いこと自体ではなく、独立した学習単位として成立しているかを確認する必要がある。
 - Learner-facing 文書には日本語と英語の一般用語が混在している。固有名詞や code identifier 以外は、受講者の認知負荷を下げる観点で統一基準が必要である。
 - `docs/spec/` には Feature spec だけでなく、README、Glossary、Product Scope、Role / Permission、State / Scenario、UI / UX Contract、Change Process、Known Deviations、Template 等の text contract があり、Curriculum から直接参照されない文書も learner / maintainer の仕様理解へ影響する。
-- Current Curriculum は `03_instructor-reference.md` を持ち、Facilitation / Troubleshooting / evaluation guidance を Instructor 向けに記載している。また Rubric や一部 Lesson には講師支援・採点・提出を前提とした表現があり、Required learner-facing material だけで自己確認できる情報との責務分離が必要である。
+- Current Curriculum は `03_instructor-reference.md` を持ち、Facilitation / Troubleshooting / evaluation guidance を Instructor 向けに記載している。また Rubric や一部 Lesson には講師支援・採点・提出を前提とした表現があり、Learner Required path だけで自己確認できる情報との責務分離が必要である。
+- Current validator の required-file list は Repository上存在必須の curriculum asset を表しており、受講者が修了のために必ず読む Learner Required path と同義ではない。`03_instructor-reference.md` は前者には含め得るが、後者には含めない。
 
 ### Assumptions
 
@@ -53,12 +54,13 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - PR 4 の全文監査で新規 Finding が出ることは想定するが、Product behavior変更や Formal Regression 再設計が必要になった場合は本 remediation へ無理に取り込まない。
 - Fresh Learner Review は Repository 内の教材UX / executabilityを確認する最終Gateであり、実際の受講時間や講師支援量を測る Pilot の代替にはしない。
 - 自己学習品質は「Instructor / 運営が一切存在しない」ことを意味しない。環境準備、端末、アカウント、権限、演習Repository、Infrastructure / Toolchain 障害の支援は許容する。
-- 自己学習品質で禁止する依存は、Required learning content の理解、演習の選択・判断、答え合わせ、学習上のRecovery、完了判定を Instructor の口頭説明・個別判断・非公開情報に依存させることである。
+- 自己学習品質で禁止する依存は、Learner Required path の理解、演習の選択・判断、答え合わせ、学習上のRecovery、完了判定を Instructor の口頭説明・個別判断・非公開情報に依存させることである。
 
 ### Safe change surface
 
 - Current Fact / SSOT の文書修正。
-- Curriculum の Required / specialization / Core / Extension / Reference 境界の明確化。
+- Curriculum の Learner Required / specialization / Core / Extension / Reference 境界の明確化。
+- Repository-required curriculum asset と Learner Required path の役割分離。
 - Lesson 内部構成、説明深度、用語・表記、navigation、Practice / Evidence 接続の整理。
 - Learner-facing self-check、Recovery、Completion criteria と Instructor Reference の責務分離。
 - Training learner entry / artifact / validation contract の必要最小限の追加・修正。
@@ -67,7 +69,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 
 ### Unknowns
 
-- Required Curriculum 全文を同一基準で監査したときに発生する P0〜P3 Finding の具体件数と分布。
+- Learner Required path 全文を同一基準で監査したときに発生する P0〜P3 Finding の具体件数と分布。
 - `docs/spec/**` 全 text document の監査で、実変更が必要な editorial Finding が発生するかどうか。
 - Learner-facing 用語のうち、日本語化すべき一般語と公式英語を維持すべき語の最終境界。
 - Instructor Reference にしか存在しない学習上の判断・Recovery・評価観点がどの程度あるか。
@@ -91,9 +93,13 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - 各教材ファイル内部の Lesson / subsection 数は固定しない。独立した学習単位として成立しない細切れな Lesson は、同一ファイル内で前後へ統合してよい。
 - Lesson を維持するためだけに文章量を増やさない。内容を追加する価値がなければ統合を優先する。
 - Curriculum Core を簡潔化するために Product behavior / Formal Regression の品質を下げない。
-- Required Curriculum は自己学習を標準とする。学習目標、説明、演習、自己確認、学習上のRecovery、完了条件、次の行動は learner-facing material 内で完結させる。
+- 用語を次の2つへ分離する。
+  - `Repository-required curriculum asset`: Validator / Repository contract 上、存在・整合が必須の教材・支援文書。Learner が修了のために必ず読むことは意味しない。
+  - `Learner Required path`: Learner が共通卒業要件を満たすために読む・実施する必要がある learner-facing material。自己学習品質の監査・Fresh Learner Review はこの path を対象とする。
+- Learner Required path は自己学習を標準とする。学習目標、説明、演習、自己確認、学習上のRecovery、完了条件、次の行動は learner-facing material 内で完結させる。
 - Instructor / 運営による環境構築、端末・アカウント・権限・演習Repositoryの提供、Infrastructure / Toolchain 障害の支援、最終評価・フィードバックは許容する。
-- `03_instructor-reference.md` は削除しないが、Required learning content の唯一の正本にしない。Instructor にしか見えない説明・問い返し・評価観点が学習進行に必要なら learner-facing material へ移すか同等情報を明示する。
+- `03_instructor-reference.md` は Repository-required support asset として残してよいが、Learner Required path には含めない。Instructor にしか見えない説明・問い返し・評価観点が学習進行に必要なら learner-facing material へ移すか同等情報を明示する。
+- README / Learning Design / Validator では Repository-required curriculum asset と Learner Required path を混同しない。README上も Instructor Reference が受講者の必修教材ではないことを判別できるようにする。
 - Rubric / Minimum Evidence は Learner が自己確認でき、Instructor が必要な場合に同じ Evidence で評価できる共通契約とする。Instructor の追加説明や独自採点基準を Required completion にしない。
 - 各 Finding は Remediation Matrix で Primary owner を1つだけ持つ。
 - Follow-up verification は Primary owner を置き換えない。
@@ -127,7 +133,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 
 ## 5. Review policy for Curriculum quality
 
-PR 4 の child Plan 作成時に、Required Curriculum 全文を次の観点で監査する。既存 Report の Finding だけを直して終了せず、Required path 全体へ同じ基準を適用する。
+PR 4 の child Plan 作成時に、Learner Required path 全文を次の観点で監査する。既存 Report の Finding だけを直して終了せず、Learner Required path 全体へ同じ基準を適用する。Repository-required support asset は、Learner Required path との責務境界・参照整合を別途確認する。
 
 ### 5.1 Accuracy / Contract consistency
 
@@ -205,7 +211,7 @@ PR 4 child Plan の Pre-change audit では、実際に統一判断が必要な�
 
 | 項目 | 内容 |
 | --- | --- |
-| Current terms | Required path 内で実際に使われている表記 |
+| Current terms | Learner Required path 内で実際に使われている表記 |
 | Canonical learner-facing term | 今回統一する表記 |
 | Treatment | 日本語化 / 公式英語維持 / 初出のみ日本語説明追加 / machine contract のため変更禁止 |
 | Rationale | なぜその扱いにするか |
@@ -222,38 +228,42 @@ PR 4 child Plan の Pre-change audit では、実際に統一判断が必要な�
 
 - 同一説明を複数 Lesson に複製しない。
 - Canonical Definition と Application Practice を区別する。
-- Required / Extension / Reference / Legacy が directory browse でも誤解しにくい。
-- Optional / Legacy asset が Required completion と競合しない。
+- Learner Required / Extension / Reference / Legacy が directory browse でも誤解しにくい。
+- Optional / Legacy asset が Learner Required completion と競合しない。
 - Repository owner 向け運用契約を Learner Required text に過剰露出しない。
-- Instructor Reference にだけ存在する Required learning content を残さない。
+- Instructor Reference にだけ存在する Learner Required learning content を残さない。
+- Repository-required curriculum asset と Learner Required path を同じ「Required」として曖昧に表示しない。
 
 ### 5.8 Finding severity
 
 PR 4 child Plan の詳細監査では各 Finding を次で分類する。
 
 - `P0`: 教材どおり進めると実行不能、誤った Expected Behavior、validator / implementation contract と矛盾する。
-- `P1`: 学習目標・演習・評価の不整合、前提知識の飛躍、Lesson が学習単位として成立しない、または Required learning content / self-check が Instructor の追加説明に依存するなど学習成果へ大きく影響する。
-- `P2`: 日本語 / 英語混在、重複、Required / Reference 発見性、情報量の偏りなど理解・保守性へ影響する。
+- `P1`: 学習目標・演習・評価の不整合、前提知識の飛躍、Lesson が学習単位として成立しない、または Learner Required learning content / self-check が Instructor の追加説明に依存するなど学習成果へ大きく影響する。
+- `P2`: 日本語 / 英語混在、重複、Learner Required / Reference 発見性、情報量の偏りなど理解・保守性へ影響する。
 - `P3`: 語尾、軽微な表記、文章上の微修正。
 
 修正順は `P0 → P1 → P2 → P3` とし、P3 のために大きな diff を作らない。
 
 ### 5.9 Self-study completeness
 
-Required Curriculum は、環境が開始可能な状態になった後の学習進行を learner-facing material だけで完結させる。
+Learner Required path は、環境が開始可能な状態になった後の学習進行を learner-facing material だけで完結させる。
 
-各 Required Lesson / Exercise で次を確認する。
+各 Learner Required Lesson / Exercise で次を確認する。
 
 - 何を開始条件として満たせばよいかが分かる。端末・アカウント・権限・演習Repository等を Instructor / 運営が提供する場合も、Learner が受領後に確認する条件を明示する。
 - 学習内容を理解するために Instructor の口頭説明・追加資料・非公開 Answer Key を必要としない。
 - Exercise で何を作る・実行する・記録するかが明確である。
-- command / test / validator で判定できる内容は、期待する結果、終了状態、Artifact、確認箇所のいずれかを示す。
-- 設計判断・自由記述・確認問題は、唯一の模範解答を強制せず、回答例、最低限含むべき観点、Rubric、Normative reference のいずれかで自己確認できる。
+- Self-check は、Learner が「自分の回答・成果物がその学習目標を満たしているか」を合理的に判定できる具体性を持つ。単に Rubric / Spec / Reference へのリンクがあるだけで、該当する評価条件・BR / AC・確認観点を特定できない場合は self-check とみなさない。
+- command / test / validator で判定できる内容は、期待する結果、終了状態、Artifact、確認箇所のいずれかを具体的に示す。
+- 知識・確認問題は、回答例と理由、または正答に最低限含むべき具体的チェックポイントで自己確認できるようにする。
+- 設計判断・自由記述・Trade-off問題は、一意の模範解答を強制せず、最低限考慮すべき観点と、許容できる判断理由の条件を示す。
+- Specification を使う自己確認は、関連する BR / AC / section など具体的な参照箇所を示し、Learner が自分の回答と照合できるようにする。
 - 失敗時は、Environment / Toolchain と learning / source failure を区別するための learner-facing Recovery path がある。Instructorへ相談する場合も、その前に確認すべき内容が分かる。
 - 完了条件が Learner 自身で確認でき、Instructor独自の追加判定を待たないと次へ進めない構造にしない。
 - 次に読む Lesson / 実施する Exercise が明確である。
 
-Instructor Reference は環境支援、Facilitation、Troubleshooting、最終フィードバックの補助に使ってよい。ただし上記の Required learning contract を Instructor Reference のみに置かない。
+Instructor Reference は環境支援、Facilitation、Troubleshooting、最終フィードバックの補助に使ってよい。ただし上記の Learner Required learning contract を Instructor Reference のみに置かない。
 
 ## 6. Impacted areas
 
@@ -342,7 +352,7 @@ PR 1 / PR 4 では追加で次を確認する。
 - `scripts/validate-curriculum.ts` の ID / path / header contract
 - Test Case ID を例示している Curriculum 文書
 - `docs/spec/**` の Markdown / text contract と関連 validator / template
-- `docs/curriculum/test-automation/03_instructor-reference.md` と、そこから Required learner-facing material へ移すべき学習上の判断・Recovery・評価観点
+- `docs/curriculum/test-automation/03_instructor-reference.md` と、そこから Learner Required path へ移すべき学習上の判断・Recovery・評価観点
 
 ## 8. Remediation Matrix
 
@@ -367,13 +377,14 @@ PR 1 / PR 4 では追加で次を確認する。
 | RA-G5 | Native failure exercise が README のみで executable flow がない | defer を第一候補。C08 Minimum Evidence に不可欠な場合だけ fix | PR 5 | なし |
 | RA-G6 | Test Strategy が Current Native / Training / parity / operational contract を十分に説明しない | fix | PR 2 | PR 3 |
 | RA-Q1 | Domain → Application type dependency の妥当性が未確定 | Evidence で判断 | Phase 6 | なし |
-| RA-L1 | Legacy P1 Capstone の Maestro 2 flows と canonical / Rubric 1 flow の限定的差 | reject を第一候補。Required navigation に影響する場合だけ fix | PR 4 | Phase 0 |
+| RA-L1 | Legacy P1 Capstone の Maestro 2 flows と canonical / Rubric 1 flow の限定的差 | reject を第一候補。Learner Required navigation に影響する場合だけ fix | PR 4 | Phase 0 |
 | RA-C1 | Hotspot / duplication / large file 等の Refactoring candidate 群 | Necessity Review | Phase 6 | なし |
 | CUR-H1 | Universal path と Audience / Level の不整合 | fix | PR 3 | PR 4 |
 | CUR-H2 | Lesson から Competency Minimum Evidence への Trace 不足 | fix | PR 3 | PR 4 / PR 5 |
 | CUR-H3 | C08 / Physical Android の共通卒業要件 | Decision B を正本化 | PR 3 | PR 4 / PR 5 |
-| CUR-H4 | Required Lesson 内の学習目標・説明・Practice・完了条件が弱く、独立した学習単位として成立しない箇所 | audit + fix | PR 4 | Final Fresh Learner Review |
-| CUR-H5 | Required learning content / self-check / learning Recovery が Instructor の追加説明や非公開判断に依存する箇所 | audit + fix | PR 4 | Final Fresh Learner Review |
+| CUR-H4 | Learner Required Lesson 内の学習目標・説明・Practice・完了条件が弱く、独立した学習単位として成立しない箇所 | audit + fix | PR 4 | Final Fresh Learner Review |
+| CUR-H5 | Learner Required learning content / self-check / learning Recovery が Instructor の追加説明や非公開判断に依存する箇所 | audit + fix | PR 4 | Final Fresh Learner Review |
+| CUR-H6 | Repository-required curriculum asset と Learner Required path が同じ Required 表現で混同され、Instructor Reference 等の役割が曖昧 | fix | PR 3 | PR 4 / Final Fresh Learner Review |
 | CUR-M1 | P1-5 への観点集中 | fix | PR 4 | なし |
 | CUR-M2 | C04 Level 2 と Practice 量の非対称 | fix | PR 3 | PR 4 |
 | CUR-M3 | C09 Failure Evidence が弱くなり得る | fix | PR 3 | PR 4 |
@@ -383,9 +394,11 @@ PR 1 / PR 4 では追加で次を確認する。
 | CUR-M7 | Learner exercise の継続評価境界が薄い | fix | PR 3 | PR 5 |
 | CUR-M8 | C12 scope が広い | fix | PR 3 | PR 4 |
 | CUR-M9 | iOS Current Gate の Documentation Drift | fix | PR 1 | PR 2 / PR 3 |
-| CUR-M10 | 学習目標 → 本文 → 演習 → 成果物 → Rubric の縦方向整合が Required path 全体で未監査 | audit + fix | PR 4 | PR 5 / Final Fresh Learner Review |
-| CUR-M11 | Required / Extension / Reference / Legacy の発見性が directory browse / lesson navigation で弱い | fix | PR 4 | Final Fresh Learner Review |
+| CUR-M10 | 学習目標 → 本文 → 演習 → 成果物 → Rubric の縦方向整合が Learner Required path 全体で未監査 | audit + fix | PR 4 | PR 5 / Final Fresh Learner Review |
+| CUR-M11 | Learner Required / Extension / Reference / Legacy の発見性が directory browse / lesson navigation で弱い | fix | PR 4 | Final Fresh Learner Review |
 | CUR-M12 | Rubric / assessment contract が Learner の自己確認と Instructor の最終評価で同じ Evidence を使う契約になっていない | fix | PR 3 | PR 4 / Final Fresh Learner Review |
+| CUR-M13 | Fresh Learner Review の対象受講者profileと Environment block 時の最終 outcome が未定義で、経験者補完や未検証PASSが起こり得る | fix | PR 4 | Final Fresh Learner Review |
+| CUR-M14 | Self-check が単なる参照先提示で成立し得て、Learner が自分の回答・成果物の充足を判定できない | fix | PR 4 | Final Fresh Learner Review |
 | CUR-L1 | Spiral と説明重複の境界が薄い | 最小ラベル整理 | PR 4 | なし |
 | CUR-L2 | Pilot 実測値がない | defer | Follow-up | なし |
 | CUR-L3 | Learner-facing 一般用語の日本語 / 英語混在と表記揺れ | fix | PR 4 | Final Fresh Learner Review |
@@ -404,11 +417,11 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 4. ユーザーの明示承認後に Master Plan publication PR を `main` へ merge する。
 5. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。RA-M8 をここで解消する。
 6. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
-7. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。ここで Rubric を Learner の自己確認と Instructor の必要時評価で共通利用できる契約へ整える。
-8. PR 3 merge 後の最新 `main` から PR 4A branch を作る。実装前に Required Curriculum 全文と `docs/spec/**` の Markdown / text contract 全件を監査し、P0〜P3 Finding と Terminology Decision Table を child Plan に記録する。PR 4A では Curriculum Core / Extension / Reference / language / learning-flow / self-study remediation と、Curriculum側の安定した用語ルール反映だけを実施する。
+7. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。ここで Repository-required curriculum asset / Learner Required path の境界を正本化し、Rubric を Learner の自己確認と Instructor の必要時評価で共通利用できる契約へ整える。
+8. PR 3 merge 後の最新 `main` から PR 4A branch を作る。実装前に Learner Required path 全文、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract 全件を監査し、P0〜P3 Finding と Terminology Decision Table を child Plan に記録する。PR 4A では Curriculum Core / Extension / Reference / language / learning-flow / self-study remediation と、Curriculum側の安定した用語ルール反映だけを実施する。
 9. Spec監査で `docs/spec/**` に実変更が1件でも必要と判定した場合は、PR 4A merge 後の最新 `main` から PR 4B branch を作り、semantics-preserving Specification editorial を実施する。Spec実変更が不要なら PR 4B は作らない。
 10. PR 4 stage（PR 4A、必要な場合は PR 4B）merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
-11. PR 5 merge 後の最新 `main` で Final Fresh Learner Review 専用の新規 read-only Run を作成し、Fresh context で Required path を end-to-end walkthrough する。環境支援が必要な箇所は Environment block として分離し、学習内容の説明・自己確認・Recoveryが Instructor に依存していないことを確認する。P0 / P1 blocker が見つかった場合は Review Run にFindingを記録して終了し、latest `main` から別 bounded repair Run / branch を作って修正・Validationを行う。repair merge 後は新しい Fresh context で再レビューする。
+11. PR 5 merge 後の最新 `main` で Final Fresh Learner Review 専用の新規 read-only Run を作成し、Target learner profile に固定した Fresh context で Learner Required path を end-to-end walkthrough する。環境支援が必要な箇所は Environment block として分離し、学習内容の説明・自己確認・Recoveryが Instructor に依存していないことを確認する。未実行の Required exercise が残る場合は PASS にせず `not_validated` とする。P0 / P1 blocker が見つかった場合は Review Run にFindingを記録して終了し、latest `main` から別 bounded repair Run / branch を作って修正・Validationを行う。repair merge 後は新しい Fresh context で再レビューする。
 12. Phase 6 は PR 2 merge 後から PR 3〜5 と並行して調査してよい。decision-only PR は最新 `main` へ追従して確定する。
 13. Repository remediation 完了後、必要に応じて Pilot Feedback を収集する。
 
@@ -417,7 +430,7 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 - Child branch は依存 PR merge 後の最新 `main` から作る。
 - 原則 stacked PR は使わない。
 - PR 1〜5 はそれぞれ child Plan を `docs/plans/` に保存してから実装する。
-- PR 4 child Plan は Required Curriculum 全文および `docs/spec/**` text contract の監査 Finding 一覧と Terminology Decision Table を含める。別の permanent audit SSOT / glossary は追加しない。
+- PR 4 child Plan は Learner Required path 全文、Repository-required support assetとの境界、`docs/spec/**` text contract の監査 Finding 一覧と Terminology Decision Table を含める。別の permanent audit SSOT / glossary は追加しない。
 - PR 4B が必要な場合は、PR 4A merge 後の最新 `main` から作成し、PR 4Aで保存済みの同一 child Planを入力として使用する。新しい Master Plan や第三の tracking SSOT は作らない。
 - PR 4Aへ `docs/spec/**` の実変更を含めない。Specの実変更は件数や軽微さにかかわらず PR 4Bへ分離する。
 - Final Fresh Learner Review は PR 5 のRunを再利用せず、最新 `main` から新しい review-only / read-only Run を作る。
@@ -517,7 +530,7 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
 - Current `main` の変化で Planned disposition または Primary owner を変更する必要がある場合は、該当 child Plan に理由と最終対応を記載する。本 Master Plan を live status tracker として更新しない。
 - Evidence が後続 owner で必要な Finding は、Phase 0 だけで `fix` / `defer` / `reject` の最終判断を行わない。
 - RA-M7 は regression がないことだけ確認する。
-- RA-L1 は Required navigation / completion への影響を確認する。
+- RA-L1 は Learner Required navigation / completion への影響を確認する。
   - 影響がなければ PR 4 では変更しない。
   - 影響があれば PR 4 child Plan の scope に最小修正を追加する。
 - Phase 0 の結果を反映して PR 1 child Plan の scope を確定する。
@@ -556,7 +569,7 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
   - `training/workbook/README.md` を learner-facing な Test Case ID grammar の canonical explanation とし、validator の regex / validation rule を executable contract として一致させる。
   - Curriculum 側は grammar 自体を複数箇所で再定義せず、必要な箇所では canonical explanation を参照し、具体例だけを置く。
   - Contract test は Workbook sample / validator rule の整合を bounded に確認する。全 Markdown を解析する新しい parser は作らない。
-  - Required Curriculum を検索し、非canonicalな learner-facing Test Case ID例が残っていないことを確認する。
+  - Learner Required path を検索し、非canonicalな learner-facing Test Case ID例が残っていないことを確認する。
 
 ### Candidate files
 
@@ -568,7 +581,7 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
 - `docs/curriculum/test-automation/00_learning-design.md`
 - `docs/curriculum/test-automation/01_spreadsheet-test-design.md`
 - `docs/curriculum/test-automation/part1/04_playwright-foundations.md`
-- その他 Test Case ID の例を持つ Required Curriculum
+- その他 Test Case ID の例を持つ Learner Required Curriculum
 - `training/workbook/README.md`
 - `training/workbook/02_test-cases.csv`
 - `scripts/validate-curriculum.ts`
@@ -584,7 +597,7 @@ PR 1 branch を最新 `main` から作成した直後に read-only で実施す�
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
 - Current config / workflow / version SSOT / Workbook / validator grammar との manual cross-check
-- Required Curriculum の Test Case ID 例を検索し、canonical grammar に反する learner-facing example が残っていないことを確認する。
+- Learner Required path の Test Case ID 例を検索し、canonical grammar に反する learner-facing example が残っていないことを確認する。
 
 ### Completion
 
@@ -670,19 +683,23 @@ Traceability は次を最小単位として結ぶ。
 
 ### Objective
 
-共通卒業像、C01〜C12 の評価契約、Required / specialization 境界、Learner self-check / Instructor evaluation の共通 Evidence 契約を正本化する。
+共通卒業像、C01〜C12 の評価契約、Learner Required / specialization 境界、Repository-required curriculum asset / Learner Required path、Learner self-check / Instructor evaluation の共通 Evidence 契約を正本化する。
 
 ### Changes
 
 - 次の空き ADR で Decision B を記録する。
-- README / Learning Design に共通卒業像と Required / specialization 境界を記載する。
+- README / Learning Design に共通卒業像と Learner Required / specialization 境界を記載する。
+- README / Learning Design に Repository-required curriculum asset と Learner Required path の違いを記載する。
+  - `03_instructor-reference.md` は Repository-required support asset として残してよいが、Learner Required path から外す。
+  - README の navigation でも受講者必修教材と Instructor / 運営向け支援資料を明確に分ける。
+  - Validator の required-file existence contract は Learner Required path の意味へ読み替えない。
 - README / Learning Design に、自己学習の標準境界を記載する。
   - Instructor / 運営の環境・権限・端末・演習Repository・Toolchain支援は許容する。
   - 学習内容、演習判断、自己確認、学習上のRecovery、完了条件は learner-facing material を正本とする。
 - C01〜C12 に次を定義する。
   - bounded Level 2
   - Minimum Evidence
-  - Required / specialization / advanced
+  - Learner Required / specialization / advanced
 - C04 は技法数 quota ではなく、Spec / Risk に適切な technique を選び理由を説明できることを中心にする。
 - C05 は PR 2 の Test Level / Perspective / Gate 契約を前提にする。
 - C09 は Assertion typo だけでなく Locator / Timing 等を含む meaningful diagnostic evidence を要求する。
@@ -694,10 +711,10 @@ Traceability は次を最小単位として結ぶ。
 - Rubric / Lesson / Exercise / Artifact mapping は、Learner が C01〜C12 の到達条件を自己確認でき、Instructor が必要な場合に同じ Evidence で評価できる形にする。
 - Rubric の Level 定義や採点表に Instructor 支援を学習能力の前提として埋め込まず、例・ヒント・詳細手順を使った状態と自力実施を区別する。
 - `提出` を外部提出必須の意味で使わない。Repository内で成果物 / Evidence を保存・記録すれば成立する箇所は、そのように表現する。
-- `03_instructor-reference.md` は環境支援 / Facilitation / Troubleshooting / 最終フィードバックの補助として残すが、Required learning content / self-check の唯一の参照先にしない。
+- `03_instructor-reference.md` は環境支援 / Facilitation / Troubleshooting / 最終フィードバックの補助として残すが、Learner Required learning content / self-check の唯一の参照先にしない。
 - Validator / contract test では Native asset の存在と Native common graduation Required を別契約として扱う。
 
-PR 3 で次の4文書は Required / specialization boundary と completion wording だけ同期する。
+PR 3 で次の4文書は Learner Required / specialization boundary と completion wording だけ同期する。
 
 - `part1/07_maestro-native-automation.md`
 - `part1/09_part1-capstone.md`
@@ -725,27 +742,29 @@ Lesson depth、Practice量、language / terminology、learning-unit completeness
 - `pnpm run test:contracts`
 - TypeScript contract を変更した場合は `pnpm run typecheck`
 - README / Learning Design / Rubric / Instructor Reference / 対象Lesson の manual cross-check
+- Repository-required curriculum asset と Learner Required path がREADME / Learning Design / Validator説明で混同されていないことを manual cross-check
 - Learner self-check と Instructor evaluation が同じ Rubric / Minimum Evidence を参照し、非公開評価基準を必要としないことを manual cross-check
 
 ### Completion
 
 - 各 Competency の Minimum Evidence を Rubric から Learner 自身が確認できる。
 - Instructor が評価する場合も同じ Rubric / Minimum Evidence / Artifact を使い、Required completion に追加の非公開採点基準がない。
+- Repository-required curriculum asset と Learner Required path が正本上区別され、`03_instructor-reference.md` がLearner Required pathではないことを受講者が判断できる。
 - Native specialization と Product Native Gate が分離されている。
 - Native実行なしでも Common Core completion が成立する。
 - C08 completion は learner-authored change と successful runtime evidence の両方を要求する。
-- PR 4 前でも Curriculum 正本間の Required / specialization / self-study 境界が一致している。
+- PR 4 前でも Curriculum 正本間の Learner Required / specialization / self-study 境界が一致している。
 - Matrix で Primary owner が PR 3 の Finding を child Plan / PR の Evidence で対応・検証している。
 
 ## 16. PR 4 — Curriculum Core / Extension / Reference / Learning Experience
 
 ### Objective
 
-PR 3 の評価契約を維持したまま、Required Curriculum 全文と `docs/spec/**` の Markdown / text contract を共通基準で監査し、Curriculum の Lesson 深度・学習単位・説明重複・用語・学習動線・self-study completeness を整理する。Specification は監査のみPR 4Aで行い、実変更が必要な場合は必ずPR 4Bへ分離する。
+PR 3 の評価契約を維持したまま、Learner Required path 全文、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract を共通基準で監査し、Curriculum の Lesson 深度・学習単位・説明重複・用語・学習動線・self-study completeness を整理する。Specification は監査のみPR 4Aで行い、実変更が必要な場合は必ずPR 4Bへ分離する。
 
 ### PR split rule
 
-- `PR 4A`: Curriculum structure / learning flow / Core-Extension-Reference / learner-facing terminology / self-study completeness と、Required Curriculum + `docs/spec/**` text contract のPre-change auditを担当する。
+- `PR 4A`: Curriculum structure / learning flow / Core-Extension-Reference / learner-facing terminology / self-study completeness、Repository-required asset / Learner Required path境界と、Learner Required path + `docs/spec/**` text contract のPre-change auditを担当する。
 - `docs/spec/**` に実変更が不要なら PR 4B は作らない。
 - `docs/spec/**` に typo、punctuation、spacing、用語統一を含め実変更が1件でも必要なら、PR 4Aへ含めず `PR 4B: semantics-preserving Specification editorial` へ分離する。
 - PR 4B は PR 4A merge 後の最新 `main` から branch を作る。
@@ -754,7 +773,7 @@ PR 3 の評価契約を維持したまま、Required Curriculum 全文と `docs/
 
 ### Pre-change audit
 
-Required Curriculum について、ファイル単位・内部 Lesson 単位で次を確認する。
+Learner Required path について、ファイル単位・内部 Lesson 単位で次を確認する。
 
 - Accuracy / Current contract
 - Learning goal
@@ -771,6 +790,12 @@ Required Curriculum について、ファイル単位・内部 Lesson 単位で�
 - Japanese / English terminology
 - Duplicate / canonical definition
 - Next action / next lesson
+
+Repository-required support asset について次を確認する。
+
+- Learner Required path と同じ必修教材として表示されていないか。
+- Learner Required learning contract の唯一の正本になっていないか。
+- Learner-facing正本との重複がある場合、支援文書側から正本を参照できるか。
 
 `docs/spec/**` の Markdown / text contract 全件について次を確認する。
 
@@ -799,7 +824,7 @@ Pre-change audit 完了時に §5.6 の `Terminology Decision Table` を確定�
 
 ### Part 1 changes
 
-- P1-1 / P1-2 を含む全 Required Lesson で、内部 Lesson が独立学習単位として成立するか確認する。
+- P1-1 / P1-2 を含む全 Learner Required Lesson で、内部 Lesson が独立学習単位として成立するか確認する。
   - 数行でも目的が明確な short reference なら残してよい。
   - 目的・説明・Practice・前後関係が弱く、単独で切る意味がなければ同一ファイル内で統合する。
   - 見出しを残すためだけの説明追加は禁止する。
@@ -817,14 +842,14 @@ Pre-change audit 完了時に §5.6 の `Terminology Decision Table` を確定�
 - P1-9: Web Core Capstoneを簡潔化し、Native specialization evidence と Baseline / learner-authored flow を分ける。
 - Role / State / Seed / Reset の反復は Canonical Definition と Application Practice を区別する。
 - RA-L1 は Phase 0 の確認結果に従う。
-  - Required navigation / completion に影響しなければ Legacy P1-10 は変更しない。
+  - Learner Required navigation / completion に影響しなければ Legacy P1-10 は変更しない。
   - 影響があれば canonical completion と矛盾する箇所だけ最小修正する。
 
 ### Part 2 changes
 
 - P2-1〜P2-8 についても内部 Lesson の成立性、前提知識、演習、自己確認、Recovery、完了条件を同じ基準で確認する。
 - P2-2: Branch / Diff / Commit を Core、exact SHA / copy mechanics を Reference。
-- P2-3: 他人から実際のReviewを受けることを Required completion にしない。既存 / 教材用DiffのReview、自分のPRのself-review、公開されたReview checklistでC11を自己確認できるようにする。Organization-provided Copyは許容するが、Learner自身が用意できるFork / Training Copy経路を標準として残す。
+- P2-3: 他人から実際のReviewを受けることを Learner Required completion にしない。既存 / 教材用DiffのReview、自分のPRのself-review、公開されたReview checklistでC11を自己確認できるようにする。Organization-provided Copyは許容するが、Learner自身が用意できるFork / Training Copy経路を標準として残す。
 - P2-4: Trigger / Job / Failure / least privilege を Core、allowlist / parser / pin 詳細を Reference。
 - P2-5: Web CI / Artifact / failure evidence を Core。
 - P2-6: Native CI specialization 内の Repository 固有詳細を Reference へ寄せる。
@@ -833,15 +858,17 @@ Pre-change audit 完了時に §5.6 の `Terminology Decision Table` を確定�
 
 ### Self-study changes
 
-PR 4Aで Required path 全体へ次を適用する。
+PR 4Aで Learner Required path 全体へ次を適用する。
 
 - 各 Lesson / Exercise に、必要に応じて開始条件、自己確認、Recovery、完了条件、次の行動を learner-facing に明示する。
-- 確認問題は回答を置くだけにせず、回答例、最低限含むべき観点、参照すべき Spec / Rubric のいずれかで Learner が自分の理解を検証できるようにする。
-- 設計問題・Trade-off問題は一意の模範解答を作らず、判断で考慮すべき観点と許容される複数案の条件を示す。
+- Self-check は Learner が自分の回答・成果物の充足を合理的に判定できる具体性を必須とする。単なるReferenceリンクだけでは不十分な場合、該当する評価条件・BR / AC・確認観点まで特定する。
+- 確認問題は、回答例と理由、または正答に最低限含むべき具体的チェックポイントで Learner が自分の理解を検証できるようにする。
+- 設計問題・Trade-off問題は一意の模範解答を作らず、最低限考慮すべき観点と許容される判断理由の条件を示す。
+- Specification参照による自己確認は、該当するBR / AC / sectionを特定する。
 - command / test / validator / artifact で機械確認できるものは、Learner が成功・失敗・Environment blockを区別できる確認方法を示す。
-- `03_instructor-reference.md` にしかない学習上の問い、判断観点、Recovery、評価基準が Required completion に必要なら、README / Learning Design / Rubric / 対象Lessonへ移すか同等情報を公開する。
+- `03_instructor-reference.md` にしかない学習上の問い、判断観点、Recovery、評価基準が Learner Required completion に必要なら、README / Learning Design / Rubric / 対象Lessonへ移すか同等情報を公開する。
 - Instructor Reference には環境支援、Facilitation、Troubleshooting、最終フィードバックの補助情報を残してよい。重複を増やす場合は learner-facing正本を参照する。
-- `講師に確認する`、`レビューしてもらう`、`答え合わせしてもらう` ことだけを Required completion にしない。必要なら自己確認後のOptional feedbackとして扱う。
+- `講師に確認する`、`レビューしてもらう`、`答え合わせしてもらう` ことだけを Learner Required completion にしない。必要なら自己確認後のOptional feedbackとして扱う。
 - 環境・権限・端末・演習Repository提供を Instructor / 運営に依存することは許容するが、受領後の確認手順と学習再開条件は learner-facing にする。
 
 ### Language / terminology changes
@@ -852,7 +879,7 @@ PR 4Aで次を行う。
 - Tool / Product / API / command / path / identifier は公式表記を維持する。
 - `Expected Behavior`、`Learning Goal`、`Failure Analysis` など一般概念は、周辺文脈と役割を確認した上で日本語へ統一する。
 - `Locator`、`Fixture` など公式用語を残す場合、初出で必要な日本語説明を付ける。
-- 同一文書内・Required path 全体で表記を揃える。
+- 同一文書内・Learner Required path 全体で表記を揃える。
 - 機械契約へ使われている文字列は単純置換しない。
 - 実装者は Pre-change audit で確定した Terminology Decision Table に従い、用語判断をファイル単位で再発明しない。
 - 監査結果から抽出した将来も安定する最小の言語・用語ルールを `00_learning-design.md` または Curriculum README の既存責務へ反映する。
@@ -872,8 +899,9 @@ PR 4Bが必要な場合だけ次を行う。
 
 ### Required / Optional / Legacy discoverability
 
-- `09_part1-capstone.md` が canonical Required であることを navigation 上明確にする。
-- Optional Agentic QA と Legacy Capstone が Required completion と誤認されないことを確認する。
+- `09_part1-capstone.md` が canonical Learner Required であることを navigation 上明確にする。
+- Optional Agentic QA と Legacy Capstone が Learner Required completion と誤認されないことを確認する。
+- `03_instructor-reference.md` が Repository-required support asset であり、Learner Required path ではないことを README / navigation 上明確にする。
 - file rename / directory migration はリンク互換と validator contract を壊すため、ラベル改善で十分なら行わない。
 
 ### Candidate files
@@ -906,11 +934,13 @@ PR 4A:
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
 - Curriculum navigation / specialization boundary の manual cross-check
+- Repository-required curriculum asset / Learner Required path 境界の manual cross-check
 - Workbook / validator / ID grammar の manual cross-check
-- Required Curriculum の internal link / command / path / next-action walkthrough
-- Required Lesson の self-check / Recovery / Completion が learner-facing に存在し、Instructor-only情報を必須にしていないことの manual cross-check
-- `03_instructor-reference.md` にのみ残る Required learning contract がないことの manual cross-check
-- Terminology Decision Table と実際の Required path 表記の manual cross-check
+- Learner Required path の internal link / command / path / next-action walkthrough
+- Learner Required Lesson の self-check / Recovery / Completion が learner-facing に存在し、Instructor-only情報を必須にしていないことの manual cross-check
+- `03_instructor-reference.md` にのみ残る Learner Required learning contract がないことの manual cross-check
+- Self-check が単なる generic Reference 提示ではなく、該当する評価条件・回答要素・BR / AC・確認観点まで特定できることを manual cross-check
+- Terminology Decision Table と実際の Learner Required path 表記の manual cross-check
 - `docs/spec/**` text audit の全対象に Disposition があることを確認する。
 - PR 4A diff に `docs/spec/**` の実変更が含まれていないことを確認する。
 
@@ -927,20 +957,22 @@ PR 4B がある場合:
 ### Completion
 
 - Core / Extension / Reference が PR 3 の評価契約と一致する。
-- PR 3 の Required / specialization 境界を変更していない。
+- PR 3 の Learner Required / specialization 境界を変更していない。
+- Repository-required curriculum asset と Learner Required path が navigation / validator contract 上混同されていない。
 - トップレベル教材ファイル数と大順序を維持している。
 - 内部 Lesson は独立した学習単位として成立するか、同一ファイル内で適切に統合されている。
 - 内容の薄い Lesson を文章の水増しで維持していない。
-- 各 Required Lesson の学習目標・説明・Practice / Exercise・Self-check・Recovery・Completion Evidence・Next action の接続を確認している。
-- 環境準備・Toolchain支援を除き、Required learning content の理解・演習・自己確認・完了判定が Instructor の追加説明に依存していない。
-- Instructor Reference にしか存在する Required learning contract がない。
+- 各 Learner Required Lesson の学習目標・説明・Practice / Exercise・Self-check・Recovery・Completion Evidence・Next action の接続を確認している。
+- 環境準備・Toolchain支援を除き、Learner Required learning content の理解・演習・自己確認・完了判定が Instructor の追加説明に依存していない。
+- Instructor Reference にしか存在する Learner Required learning contract がない。
+- Self-check がLearner自身で学習目標の充足を合理的に判定できる具体性を持ち、generic Referenceだけに逃げていない。
 - Learner-facing 一般用語の日本語 / 英語混在が整理され、英語を残す基準が Terminology Decision Table と一致している。
 - 将来の再発防止に必要な最小の用語・言語ルールが既存 Curriculum 正本へ残っている。
 - `docs/spec/**` の Markdown / text contract 全件を監査し、各FindingのDispositionが確定している。
 - Spec変更が必要な場合はPR 4Bへ分離され、PR 4AへSpecification実変更を混ぜていない。
 - PR 4Bを実施した場合、`docs/spec/glossary.md` / 必要なtemplate / changed specが同じ用語ルールに整合している。
 - Normative Specification の Product behavior を editorial cleanup で変更していない。
-- Required / Optional / Reference / Legacy の境界が初見で判断できる。
+- Learner Required / Optional / Reference / Legacy / Instructor support の境界が初見で判断できる。
 - RA-L1 を Phase 0 の確認結果どおり扱っている。
 - 重複削減のために新しい抽象概念や恒久的な管理ファイルを増やしていない。
 - Matrix で Primary owner が PR 4 の Finding を child Plan / PR の Evidence で対応・検証している。
@@ -1011,7 +1043,7 @@ Harness 正常性と Learner competency の実行入口と Evidence を分離し
 ### Completion
 
 - Baseline と learner exercise を別commandで実行できる。
-- 機械確認できる Required Exercise は Learner が command result / Artifact / validator から自己確認できる。
+- 機械確認できる Learner Required Exercise は Learner が command result / Artifact / validator から自己確認できる。
 - C08 completion は learner-authored diff + successful Maestro artifact の両方を要求する。
 - Training Native workflow は specialization opt-in である。
 - Web / Common Core learner PR に Native runtime を無条件要求しない。
@@ -1022,11 +1054,18 @@ Harness 正常性と Learner competency の実行入口と Evidence を分離し
 
 ## 18. Final Fresh Learner Review
 
-PR 5 merge 後、Repository remediation の最終確認として専用の新規 read-only Run を作成し、Required path を Fresh Learner 視点で順番に確認する。
+PR 5 merge 後、Repository remediation の最終確認として専用の新規 read-only Run を作成し、Learner Required path を Fresh Learner 視点で順番に確認する。
 
 これは Pilot 実測の代替ではなく、Repository内だけで確認できる教材UX / executability / self-study completeness の最終Gateである。
 
 環境準備、アカウント・権限、端末、演習Repository、Infrastructure / Toolchain 障害については Instructor / 運営支援を利用してよい。Fresh Learner Review が検証するのは、環境が開始可能になった後に学習内容の説明・演習・自己確認・学習上のRecovery・完了判定を教材だけで進められるかである。
+
+### Start condition
+
+- Common Core の Learner Required path を検証するために、Web / Workbook / Git / Training Copy 等、当該Required exerciseを実行できる標準環境が開始前に利用可能であることを確認する。
+- 環境準備は Instructor / 運営が行ってよい。Learnerには教材に明記された開始Gateの確認だけを行わせる。
+- 開始前からCommon Core Required exerciseを実行不能な環境しか用意できない場合、Fresh Learner Review全体を `PASS` にせず `not_validated` とする。
+- Native specialization のPhysical Android等、Common Core修了に不要なspecialization環境が用意できない場合はCommon Core Reviewを継続してよいが、該当specialization runtime pathは `not_validated` と明記する。
 
 ### Run boundary
 
@@ -1035,6 +1074,17 @@ PR 5 merge 後、Repository remediation の最終確認として専用の新規 
 - Review Run は read-only / review-only とし、Product / Curriculum / Specを変更しない。
 - Review Run の `REPORT.md` に入口、walkthrough範囲、Finding、Validation結果、remaining blockerを記録する。
 - P0 / P1 が見つかった場合、Review RunはFindingを確定して終了する。修正は別のbounded repair Run / branchで実施する。
+
+### Target learner profile
+
+Fresh Learner Review は、Curriculum が明示する対象者・前提知識だけを持つLearnerとして実施する。
+
+- 手動テスト経験は許容する。
+- プログラミング経験は前提にしない。
+- Playwright / Maestro / Git / GitHub Actions / CI の未説明知識を補完しない。
+- Repository固有のpath、Training command、Seed、Formal Test、Workflow構成を事前に知っている前提にしない。
+- Lessonが参照を指示するまでは、Formal Test / implementation code / Instructor Reference から答えを逆算しない。
+- README / Learning Design に追加の前提知識が明示されている場合だけ、その範囲を持っているものとして扱う。
 
 ### Fresh context requirement
 
@@ -1049,28 +1099,32 @@ Fresh Learner Review は PR 1〜5 の設計・修正経緯を知らない contex
 
 ### Method
 
-- `docs/curriculum/test-automation/README.md` から開始し、Part 1-1 以降の Required path を順番に追う。
+- `docs/curriculum/test-automation/README.md` から開始し、Part 1-1 以降の Learner Required path を順番に追う。
 - README / Learning Design が案内する path だけで次の教材へ進めるか確認する。
 - 指示された file、command、Workbook、Training asset が実在するか確認する。
 - 「何を考えるか」「何を作るか」「何を実行するか」「何を証拠として残すか」「どう自己確認するか」「どこで完了か」が判断できるか確認する。
 - Environment / Toolchain で停止した場合は教材不備と即断せず `environment_block` として記録し、Instructor / 運営支援後の再開条件が教材から判断できるか確認する。
+- Common Core の Learner Required exercise が Environment block により実行できないままReviewを終える場合、そのexerciseは未検証とし、Review全体を `PASS` にしない。
 - walkthrough 中に参照した path、停止した箇所、補完が必要だった説明を記録する。
 
 ### Checklist
 
+- Repository-required curriculum asset と Learner Required path を区別でき、Instructor Referenceを受講者必修教材と誤認しない。
 - 未説明の必須用語が突然出ない。
-- Required / Extension / Reference / specialization を区別できる。
+- Learner Required / Extension / Reference / specialization を区別できる。
 - file / path / command が特定できる。
 - expected result / oracle source が特定できる。
 - Workbook の入力例が validator contract と一致する。
 - Practice / Exercise に開始条件と完了条件がある。
-- 確認問題・設計演習に回答例、最低限の評価観点、Rubric、Normative reference のいずれかがあり、Learnerが自己確認できる。
+- Self-check はLearner自身が回答・成果物の充足を合理的に判定できる具体性がある。genericなRubric / Spec / Referenceへのリンクだけで、該当評価条件やBR / AC /確認観点を特定できない状態を許容しない。
+- 知識・確認問題は回答例と理由、または具体的な正答チェックポイントを持つ。
+- 設計演習は最低限考慮すべき観点と許容される判断理由の条件を持つ。
 - Baseline と learner-authored work を区別できる。
 - Environment block と learner / source failure を区別できる。
 - Environment支援を受けた後、どこから学習を再開するか判断できる。
-- Required learning content の説明・演習選択・答え合わせ・完了判定を Instructor に依存していない。
-- `03_instructor-reference.md` を読まないと解けない Required learning step がない。
-- 他人からReviewを受けること自体をRequired completionにしていない。
+- Learner Required learning content の説明・演習選択・答え合わせ・完了判定を Instructor に依存していない。
+- `03_instructor-reference.md` を読まないと解けない Learner Required learning step がない。
+- 他人からReviewを受けること自体をLearner Required completionにしていない。
 - 次に読む場所・実施する内容で迷わない。
 - 短い内部 Lesson が、意味のない細切れとして残っていない。
 - 一般用語の日本語 / 英語表記が不要に揺れていない。
@@ -1078,9 +1132,17 @@ Fresh Learner Review は PR 1〜5 の設計・修正経緯を知らない contex
 
 ### Result recording
 
+Review Run の全体結果は次のいずれかで記録する。
+
+- `PASS`: Common Core の Learner Required pathを必要な実行Evidenceまで含めて検証し、P0 / P1 blockerがない。
+- `FAIL`: P0 / P1 blockerがある。
+- `not_validated`: Environment / Toolchain等の理由でCommon Core Required exerciseの実行確認が完了しておらず、教材品質をPASSと断定できない。教材defectと同義ではない。
+
+Native specialization等の任意pathは、全体結果とは別に `validated` / `not_validated` を記録する。
+
 - 新しい `docs/reports/` file は作らない。
-- Review Run の `REPORT.md` に、入口、walkthrough 範囲、Finding、Validation結果、remaining blocker を記録する。
-- Instructor / 運営支援が発生した場合は `environment/toolchain support` と `learning-content support` を分けて記録する。後者がRequired pathで必要だった場合は教材Findingとして扱う。
+- Review Run の `REPORT.md` に、入口、Target learner profile、walkthrough 範囲、Finding、Environment支援、Validation結果、全体結果、specialization別の検証状態、remaining blocker を記録する。
+- Instructor / 運営支援が発生した場合は `environment/toolchain support` と `learning-content support` を分けて記録する。後者がLearner Required pathで必要だった場合は教材Findingとして扱う。
 - repair PR を作成した場合は、そのPR本文またはsummaryにも、Fresh Learner Findingと修正・再検証結果を要約する。
 
 ### Handling findings
@@ -1088,6 +1150,7 @@ Fresh Learner Review は PR 1〜5 の設計・修正経緯を知らない contex
 - P0 / P1 は Repository remediation の DoD blocker とする。
 - 学習内容の説明・自己確認・学習上のRecoveryが Instructor の追加説明なしでは成立しない Finding は P1 とする。
 - Environment / Toolchain support が必要だったこと自体は defect としない。ただし教材上の開始条件・切り分け・再開条件が不足している場合は Finding とする。
+- Environment / Toolchain blockによりCommon Core Learner Required exerciseを実行できなかった場合は `not_validated` とし、P0 / P1が0件でも `PASS` にしない。
 - P0 / P1 が見つかった場合、既にmerge済みの旧PRへ「戻す」のではなく、latest `main` から別の bounded repair Run / branch を作る。
 - repair branch では Finding の最小修正だけを行い、影響範囲の機械Validationを再実行する。
 - repair merge 後、最新 `main` から新しい Fresh Learner Review Run / Fresh context を作り直し、README から再実行する。
@@ -1193,13 +1256,16 @@ Decision-only PR に Product refactor を含めない。`refactor_now` だけ de
 ### Fresh Learner manual validation
 
 - PR 5 merge 後の最新 `main` で新しいReview Runを作る。
+- Target learner profileを明示し、プログラミング / Playwright / Maestro / Git / CI の未説明知識を補完しない。
 - Fresh context で `docs/curriculum/test-automation/README.md` から開始する。
-- Required navigation を Part 1-1 から順に追う。
+- Learner Required navigation を Part 1-1 から順に追う。
 - file / path / command / ID / Evidence / completion / self-check を Cross-check する。
 - learner-facing terminology と prerequisite の不整合を確認する。
+- Repository-required curriculum asset と Learner Required path の表示・navigation境界を確認する。
 - Environment / Toolchain支援と learning-content支援を分離して記録する。
-- Specification を参照する Lesson は Normative source へ正しく到達できることを確認する。
-- Instructor Referenceを読まなくてもRequired learning contentを進められることを確認する。
+- Common Core Required exerciseが未実行なら `not_validated` とし、P0 / P1が0でもPASSにしない。
+- Specification を参照する Lesson は Normative source の具体的BR / AC / sectionへ正しく到達できることを確認する。
+- Instructor Referenceを読まなくてもLearner Required learning contentを進められることを確認する。
 - P0 / P1 repair 後は別Review Run / Fresh contextを作り直し、READMEから再実行する。
 
 ### Wider impact
@@ -1226,6 +1292,7 @@ Product runtime / broad contract に影響する場合だけ次を追加する�
 - Lesson の不足を埋めるために、目的不明の大量説明追加が必要になる。
 - 自己学習化のために Instructor / 運営の環境準備・権限・端末・Toolchain支援までRepositoryだけで自動化する必要があるように見える。この場合は学習内容と環境運用の境界を再確認する。
 - 自己確認のために設計判断・自由記述を全件自動採点する新しい scoring engine / AI grader が必要になる。この場合はRubric /回答例/観点による自己確認を優先する。
+- Fresh Learner ReviewでCommon Core Required exerciseの実行環境を用意できず、未検証のままPASS判定しそうになる。この場合は `not_validated` として終了し、環境準備後に再実行する。
 - 日本語化によって Tool / API / ID / machine contract の意味を変える必要がある。
 - Normative Specification の用語整理中に Product behavior の意味変更または Product Decision が必要になる。
 - Traceability のために全 Test title / file の大量編集が必要になる。
@@ -1251,7 +1318,7 @@ Blocking question はなし。
 - Traceabilityの最終表形式: 既存文書内で最小変更になる形式を選ぶ。
 - Curriculum の内部 Lesson 統合単位: PR 4 の全文監査で learner outcome と前後関係を見て決め、行数だけでは判断しない。
 - Learner-facing Japanese / English の境界: §5.6 と PR 4 child Plan の Terminology Decision Table を基準とし、公式名称・machine contract の必要性を file ごとに確認する。
-- Self-check の形式: command / validator / Artifactで判定できるものは機械Evidence、設計判断は回答例 / 必須観点 / Rubric / Normative reference のうち最小で有効な方法を選ぶ。
+- Self-check の形式: command / validator / Artifactで判定できるものは機械Evidence、知識問題は回答例+理由または具体的チェックポイント、設計判断は必須観点+許容理由、Specification参照は具体的BR / AC / sectionを使い、Learnerが自分の成果物の充足を合理的に判定できる最小方法を選ぶ。
 - PR 4B の要否: `docs/spec/**` text auditのDispositionで、実変更対象が1件以上ある場合だけ作成する。
 - Normative Specification の editorial change 可否: semantic equivalence を確認できない場合は変更しない。
 - Fresh Learner Review の実行主体: 新規 Agent / Session を優先し、利用不可の場合だけ隔離した manual walkthrough を使用する。
@@ -1271,7 +1338,7 @@ Repository remediation 完了後、必要に応じて Pilot で次を収集す�
 - Learner が停止した Lesson / reason
 - 用語・指示・Expected Behavior の誤解が発生した箇所
 
-Required pathで learning-content support が繰り返し必要になる箇所は、Instructorの支援実績として許容するだけでなく、self-study品質の追加Findingとして扱う。環境・Toolchain support は別カテゴリとして評価する。
+Learner Required pathで learning-content support が繰り返し必要になる箇所は、Instructorの支援実績として許容するだけでなく、self-study品質の追加Findingとして扱う。環境・Toolchain support は別カテゴリとして評価する。
 
 Normative Specification の監査で Product Decision が必要と判定した Finding は、Curriculum editorial cleanup に混ぜず、Specification clarification の別 Issue / Plan として扱う。
 
@@ -1285,25 +1352,28 @@ Normative Specification の監査で Product Decision が必要と判定した F
 - Test Case ID grammar の learner-facing canonical explanation と validator executable contract が一意に整合している。
 - PR 2 の Formal Test Strategy / Traceability が Current Formal Suite と一致している。
 - PR 3 の Common Core / Native specialization / Competency / Minimum Evidence 契約が一意である。
+- PR 3 で Repository-required curriculum asset と Learner Required path が一意に区別され、Instructor Reference がLearner Required pathではないことをREADME / Learning Designから判断できる。
 - PR 3 で Learner self-check と Instructor evaluation が同じ公開Rubric / Minimum Evidence / Artifactを使う契約になり、Instructor独自の非公開基準をRequired completionにしていない。
-- PR 4A で Required Curriculum 全文と `docs/spec/**` Markdown / text contract 全件を共通基準で監査し、各FindingのDispositionを確定している。
+- PR 4A で Learner Required path 全文、Repository-required support assetとの境界、`docs/spec/**` Markdown / text contract 全件を共通基準で監査し、各FindingのDispositionを確定している。
 - PR 4A の Curriculum P0 / P1 Finding を解消している。
-- Required path の学習目標・説明・演習・自己確認・学習上のRecovery・完了条件・次の行動が learner-facing material でつながっている。
-- 環境準備・端末・権限・Toolchain支援を除き、Required learning content が Instructor の追加説明や非公開Answer Keyに依存していない。
-- Instructor Reference にしか存在する Required learning contract がない。
-- PR 4 child Plan の Terminology Decision Table と Required path の表記が一致している。
+- Learner Required path の学習目標・説明・演習・自己確認・学習上のRecovery・完了条件・次の行動が learner-facing material でつながっている。
+- 環境準備・端末・権限・Toolchain支援を除き、Learner Required learning content が Instructor の追加説明や非公開Answer Keyに依存していない。
+- Instructor Reference にしか存在する Learner Required learning contract がない。
+- Self-check がLearner自身で学習目標の充足を合理的に判定できる具体性を持ち、単なるgeneric Reference提示で完了扱いしていない。
+- PR 4 child Plan の Terminology Decision Table と Learner Required path の表記が一致している。
 - 将来の再発防止に必要な最小の言語・用語ルールが既存 Curriculum 正本へ反映されている。
 - Spec実変更が必要な場合は PR 4B を PR 4A merge 後の最新 `main` から実施し、`docs/spec/glossary.md` / 必要なtemplate / changed specを整合させている。
 - PR 4 の Core / Extension / Reference が PR 3 の評価契約と一致している。
-- Required Curriculum の内部 Lesson が独立した学習単位として成立するか、同一ファイル内で適切に統合されている。
+- Learner Required Curriculum の内部 Lesson が独立した学習単位として成立するか、同一ファイル内で適切に統合されている。
 - Learner-facing 一般用語の日本語 / 英語混在と表記揺れが、定義した基準に従って整理されている。
 - Normative Specification の editorial review で Product behavior を変更していない。
 - PR 5 の Baseline / Exercise / Artifact / Completion Evidence と Native specialization workflow が一意である。
-- 機械確認できる Required Exercise は Learner が command / validator / Artifact から自己確認できる。
-- Final Fresh Learner Review を PR 5 merge 後の専用 read-only Run / Fresh context で実施し、結果をそのRun Artifactに記録している。
-- Final Fresh Learner Review で P0 / P1 blocker が残っていない。修正が必要だった場合は latest `main` の別 bounded repair Run / branch と、新しいFresh Learner Review Runでの再実行まで完了している。
-- Fresh Learner が Required path から file / command / Exercise / Evidence / self-check / completion / next action を判断できる。
-- Environment / Toolchain support と learning-content support が区別され、後者をRequired pathの前提にしていない。
+- 機械確認できる Learner Required Exercise は Learner が command / validator / Artifact から自己確認できる。
+- Final Fresh Learner Review を PR 5 merge 後の専用 read-only Run / Target learner profileに固定したFresh context で実施し、結果をそのRun Artifactに記録している。
+- Final Fresh Learner Review の全体結果が `PASS` であり、P0 / P1 blocker が残っていない。Common Core Required exercise がEnvironment blockで未実行なら `not_validated` とし、PASS扱いしていない。
+- 修正が必要だった場合は latest `main` の別 bounded repair Run / branch と、新しいFresh Learner Review Runでの再実行まで完了している。
+- Fresh Learner が Learner Required path から file / command / Exercise / Evidence / self-check / completion / next action を判断できる。
+- Environment / Toolchain support と learning-content support が区別され、後者をLearner Required pathの前提にしていない。
 - Product Formal Native Regression / Android Runtime / iOS Build-only Gate が維持されている。
 - Repository Audit §4.1〜§4.16 の全 candidate が Phase 6 durable report で分類されている。
 - `refactor_now` 以外を不要に実装タスクへ変換していない。
