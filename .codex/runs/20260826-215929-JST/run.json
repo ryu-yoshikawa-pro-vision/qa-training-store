@@ -25,12 +25,24 @@
         ".codex/runs/20260826-215929-JST/evaluation.json"
                       ],
     "validation":  {
-                       "status":  "not_run",
+                       "status":  "partial",
                        "commands":  [
-
+                           "pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1 => PASS (10 tests)",
+                           "pnpm run validate:curriculum => PASS",
+                           "pnpm run format:check => initial FAIL on added test formatting; retry PASS",
+                           "pnpm run lint => PASS (0 errors; 65 existing warnings)",
+                           "pnpm run typecheck => PASS",
+                           "pnpm run lint:markdown => PASS",
+                           "pnpm run security:check => PASS",
+                           "pnpm run test:contracts => PASS (30 files / 428 tests)",
+                           "git diff --check main...HEAD => PASS",
+                           "pnpm run training:copy:prepare -- --source-sha <final-head-sha> --target <TEMP_OUTSIDE_REPO> => PASS",
+                           "pnpm run training:copy:validate -- --root <TEMP_OUTSIDE_REPO> => FAIL: pre-existing cross-browser-smoke.yml allowlist mismatch"
                                     ],
                        "warnings":  [
-
+                           "lintの65 warningsは既存で、今回変更ファイル由来ではない",
+                           "Training Copy validationはsetup-java v5ではなく既存prepare / validate workflow allowlist不整合でblocked",
+                           "上流Training Copy validation FAILのためpush、Native CI workflow_dispatch、Android runtime validation、PR本文更新は未実行"
                                     ]
                    },
     "safety":  {
@@ -43,7 +55,7 @@
                              "codex_task_report_count":  0,
                              "hook_event_count":  0,
                              "subagent_run_count":  0,
-                             "evaluation_present":  false
+                             "evaluation_present":  true
                          },
     "hook_observations":  {
                               "log_paths":  [
@@ -69,6 +81,6 @@
                                   }
                   },
     "evaluation_path":  ".codex/runs/20260826-215929-JST/evaluation.json",
-    "status":  "in_progress",
-    "primary_failure_category":  null
+    "status":  "blocked",
+    "primary_failure_category":  "artifact_contract_gap"
 }

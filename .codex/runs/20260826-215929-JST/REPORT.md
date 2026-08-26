@@ -110,3 +110,75 @@
 - New tasks: なし。
 - Remaining: Tasks 8〜10。
 - Progress: 70% (7/10)
+
+## 2026-08-26 22:20 (JST)
+
+- Summary: 実装・テスト修正を対象branchへcommitし、最終branch diff validationをPASSした。
+- Completed: commit直前にcurrent branch、working tree、branch tracking、PR #70のhead branch / SHAを再確認した。実装3ファイルとRun artifact 4ファイルをcommit `3121ec7465b2c7eb87ad5f212dc9235147175e2e`へ確定した。
+- Commands:
+  - `git branch --show-current` => `chore/issue-46-setup-java-v5-compatibility`。
+  - `git status --short` => 予定したstaged変更のみ。
+  - `git branch -vv` => 対象branchとorigin tracking branchが一致。
+  - `gh pr view 70 --json headRefName,headRefOid,state,baseRefName` => PR #70 OPEN、対象branch一致、commit前head `ec43435d88297c1f7ec85697e3019a9a308b71eb`。
+  - `git commit -m "chore: Training Native CIをsetup-java v5へ移行"` => 成功、commit `3121ec7465b2c7eb87ad5f212dc9235147175e2e`。
+  - `git diff --check main...HEAD` => PASS。
+- Notes/Decisions: commit対象は実装3ファイルと正式Run artifactだけ。指定plan、`.github/workflows/native-ci.yml`、依存 / lockfile、その他のscope外ファイルは変更していない。以降のTraining Copy / Native dispatchはこのSHAを基準にする。
+- New tasks: なし。
+- Remaining: Tasks 9〜10。
+- Progress: 80% (8/10)
+
+## 2026-08-26 23:03 (JST)
+
+- Repair-loop iteration 1:
+  - input_findings: `evaluation.json` の `artifact_contract_gap`、Training Copy validationのactive workflow allowlist failure。
+  - repair_plan: `allowed_files`をIssue #46の3変更対象へ限定し、baseline / diff / generated Copyを再照合する。scope外のCopy prepare / validate経路は変更しない。
+  - allowed_files: `training/github-actions/training-native-ci.yml`、`scripts/training/workflow-contract.ts`、`tests/contracts/training-curriculum.test.ts`。
+  - changed_files: なし。
+  - validation_commands: `git status --short`、`git branch --show-current`、`git branch -vv`、`gh pr view 70 --json ...`、`git log --all -- ...`、`Get-Content scripts/training/prepare-training-copy.ts`、`Get-Content scripts/training/validate-training-copy.ts`。
+  - validation_result: 失敗原因は対象HEADとmainの双方に存在する`cross-browser-smoke.yml`と、同workflowをarchiveしないprepare script / 2件だけを許可するvalidatorの既存不整合で再確認された。setup-java v5に起因するエラーではない。
+  - remaining_delta: Training Copy validation未達。push、workflow_dispatch、Android job runtime validation、PR head一致確認は未実行。
+  - decision: `stop_needs_human`。既存Training Copy経路の変更または一時Copyの手動変更は、指定プランの参照のみ・対象外事項およびセキュリティ契約に抵触するため、承認なしに実施しない。
+- Progress: 80% (8/10)
+
+## 2026-08-26 22:29 (JST)
+
+- Summary: blocked状態の最終整合確認を完了した。実装HEADは固定され、作業ツリーの未コミット差分はRun artifactだけである。
+- Completed: `evaluation.json`を作成しJSON構造を確認した。Sanitizer Write / Checkは`files_scanned=5`、`files_changed=0`、`residual_findings=0`でPASSした。final status確認ではcurrent branchが指定branch、HEADが`3121ec7465b2c7eb87ad5f212dc9235147175e2e`、実装3ファイルのworking-tree差分がないことを確認した。
+- Commands:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260826-215929-JST -Write -Check` => PASS、残存finding 0。
+  - `ConvertFrom-Json`による`evaluation.json` / `run.json`確認 => evaluation `partial`、primary `artifact_contract_gap`、run `blocked` / validation `partial`。
+  - `git status --short` => 未コミット差分は`.codex/runs/20260826-215929-JST/`のREPORT / TASKS / run.json / evaluation.jsonだけ。
+  - `git rev-parse HEAD` / `git branch --show-current` => `3121ec7465b2c7eb87ad5f212dc9235147175e2e` / `chore/issue-46-setup-java-v5-compatibility`。
+  - `gh pr view 70 --json ...` => PR #70 OPEN、head branch一致、remote headは未pushのため旧SHA `ec43435d88297c1f7ec85697e3019a9a308b71eb`のまま。
+  - `git diff HEAD --name-only -- <3 implementation files>` => 出力なし。
+- Notes/Decisions: Training Copy validationが上流でFAILしているため、対象branch push、GitHub-hosted Native CI runtime validation、PR本文更新、PR head SHA一致確認は未実行のまま停止した。`<TEMP_OUTSIDE_REPO>`の生成CopyはRepository外で、今回のFAIL原因確認後も残している。command-based deletionは実行していない。
+- New tasks: なし。
+- Remaining: B1（既存Training Copy prepare / validate contract gapの別対応またはユーザー承認）。
+- Progress: 80% (8/10)
+
+## Deletion candidates update
+
+| Path | Reason | Suggested action |
+|---|---|---|
+| `<TEMP_OUTSIDE_REPO>/qa-training-store-issue-46-20260826-215929` | Training Copy validation FAIL後の原因確認用に残したRepository外の一時生成物 | ユーザーが内容確認後、手動で削除 |
+
+## 2026-08-26 22:23 (JST)
+
+- Summary: 最終SHAからDisposable Training Copyの生成は成功したが、既存workflow allowlist不整合によりvalidationがFAILした。setup-java v5互換性の失敗ではない。
+- Completed: 最終実装HEAD `3121ec7465b2c7eb87ad5f212dc9235147175e2e`を`--source-sha`へ指定し、生成Copyのmanifest / detached HEADが同SHAであることを確認した。validationの最初の異常と、変更差分・baselineの関係を確認した。
+- Commands:
+  - `pnpm run training:copy:prepare -- --source-sha 3121ec7465b2c7eb87ad5f212dc9235147175e2e --target <TEMP_OUTSIDE_REPO>` => PASS。`sourceSha` / `resolvedSourceSha`が同じ完全SHA。
+  - `pnpm run training:copy:validate -- --root <TEMP_OUTSIDE_REPO>` => FAIL。
+  - 失敗内容: `active workflow allowlist must be exactly training-ci.yml, training-native-ci.yml; found cross-browser-smoke.yml, training-ci.yml, training-native-ci.yml`。
+  - `git ls-tree` / `git show main:...` => `.github/workflows/cross-browser-smoke.yml`はmainおよび対象HEADに存在し、トップレベルworkflowは`Cross Browser Smoke`。`prepare-training-copy.ts`は`ci.yml` / `native-ci.yml` / `native-ios-ci.yml`だけをarchiveし、cross-browser workflowをarchiveしない。
+  - `git diff --name-status main...HEAD -- .github/workflows scripts/training/prepare-training-copy.ts scripts/training/validate-training-copy.ts` => 出力なし。該当不整合は今回差分に含まれないbaseline状態。
+- Failure classification:
+  - 失敗した処理: Disposable Training Copyのactive workflow allowlist validation。
+  - エラー内容: 2件のTraining workflowだけを許可するvalidatorが、生成Copyに残った`cross-browser-smoke.yml`を拒否。
+  - 再現条件: `prepare-training-copy`を現在のmain系HEAD（cross-browser workflowを含む）から実行した後、`training:copy:validate`を実行する。
+  - v5移行を阻害している条件: v5ではなく、既存Training Copy prepare / validate経路のworkflow archive対象とactive allowlistの不一致。
+  - 実施済み検証: Local / contract validation全件PASS、最終SHAのCopy生成PASS、baseline / diff / generated Copy read-only確認済み。
+- Notes/Decisions: scope外の`prepare-training-copy.ts` / `validate-training-copy.ts`修正、validator security boundary緩和、Disposable Copyへの手動workflow移動は実施しない。上流のTraining Copy validationがFAILしたため、AGENTSの契約に従いpush、Native CI `workflow_dispatch`、Android job runtime validation、PR本文更新は実行しない。生成Copyは調査用にリポジトリ外へ残し、Repositoryへ追加していない。
+- New tasks: なし。
+- Remaining: Tasks 9〜10。B1解消には、ユーザー承認のもとで既存Training Copy経路の不整合を別対応として修正する必要がある。
+- Progress: 80% (8/10)
