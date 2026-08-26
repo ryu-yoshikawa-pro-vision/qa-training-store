@@ -1,0 +1,76 @@
+{
+  "schema_version": 1,
+  "run_id": "20260825-221850-JST",
+  "task_type": "repair",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "fix/codex-git-branch-protection",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    ".codex/hooks/pre_tool_use_policy.mjs",
+    ".codex/runs/20260825-221850-JST/PLAN.md",
+    ".codex/runs/20260825-221850-JST/TASKS.md",
+    ".codex/runs/20260825-221850-JST/REPORT.md",
+    ".codex/runs/20260825-221850-JST/evaluation.json",
+    ".codex/runs/20260825-221850-JST/run.json",
+    "docs/PROJECT_CONTEXT.md",
+    "docs/history/2026-08-25_221850_codex-git-branch-protection-hardening.md",
+    "docs/plans/2026-08-25_190400_codex_git_branch_protection.md",
+    "docs/reference/codex-safety-harness.md",
+    "tests/contracts/codex-hook-contract.test.ts"
+  ],
+  "validation": {
+    "status": "pass",
+    "commands": [
+      "pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1 (PASS: 1 file / 91 tests)",
+      "pnpm run test:contracts (PASS: 30 files / 419 tests)",
+      "pnpm run format:check (PASS)",
+      "pnpm run lint:markdown (PASS: 0 issues)",
+      "pnpm run lint (PASS: 0 errors; existing 65 warnings)",
+      "pnpm run typecheck (PASS)",
+      "pnpm run verify (PASS)",
+      "git diff --check (PASS)",
+      "scripts/sanitize-codex-artifacts.ps1 -Write -Check (PASS)"
+    ],
+    "warnings": [
+      "lintの65 warningは既存で、今回変更ファイル由来ではない",
+      "native component testのReact act warningは既存挙動"
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260825-221850-JST/evaluation.json",
+  "status": "completed",
+  "primary_failure_category": null
+}

@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "run_id": "20260826-075413-JST",
+  "workflow": "repair",
+  "issue": "#60",
+  "pull_request": "#65",
+  "status": "in_progress",
+  "iteration": 1,
+  "findings": {
+    "must_fix": [],
+    "should_fix": [],
+    "deferred": [
+      "完全なshell／Git parser、AST、alias expansion、full config resolver",
+      "command git／env git、wrapper、arbitrary executable path、command substitution",
+      ".git/refs/**の直接filesystem書換え、特殊Git plumbingの網羅、branch／worktree manager、PR expected branch state manager"
+    ],
+    "self_review_result": "追加の未解決findingなし"
+  },
+  "scope": {
+    "allowed_files": [
+      ".codex/hooks/pre_tool_use_policy.mjs",
+      "tests/contracts/codex-hook-contract.test.ts",
+      "docs/plans/2026-08-25_190400_codex_git_branch_protection.md",
+      "docs/reference/codex-safety-harness.md",
+      "docs/PROJECT_CONTEXT.md",
+      "docs/history/2026-08-26_075413_codex-git-branch-protection-final-hardening.md",
+      ".codex/runs/20260826-075413-JST/**"
+    ],
+    "forbidden_changes_verified": [
+      "package.json",
+      "pnpm-lock.yaml",
+      ".codex/hooks/pre_tool_use_policy_windows.ps1",
+      ".codex/config.toml",
+      "dependency追加",
+      "新しいGit wrapper／branch manager"
+    ]
+  },
+  "validation": {
+    "status": "pass",
+    "focused_tests": "1 file／96 tests",
+    "contract_tests": "30 files／424 tests",
+    "windows_launcher_contract": "PASS、test:contracts経由でskipなし",
+    "format": "PASS",
+    "markdown_lint": "PASS、0 issues",
+    "lint": "PASS、0 errors／既存warning 65件",
+    "typecheck": "PASS",
+    "verify": "PASS",
+    "diff_check": "PASS",
+    "sanitizer": "PASS、5 files scanned／0 residual findings／0 replacements",
+    "dangerous_git_mutations_executed": false,
+    "ci_latest_source_head": "core quality checks PASS／UI・E2E checks PENDING"
+  },
+  "repair_history": [
+    {
+      "iteration": 1,
+      "result": "初回focusedでtransition helperの戻り値判定によりsafe mutationが誤denyされたため、repository／runtime flagを明示評価する最小修正を行った。続くself-reviewでbranch attached optionの曖昧syntaxをG10 fail-closeへ修正した。最終focused、contracts、verifyはPASS。"
+    },
+    {
+      "iteration": 2,
+      "result": "PR CIのVitest contractsで、detached HEADのbranch context未解決時にoperation固有のG3／G7／G8／G9と通常fetchまで先にG10となる13件のfailureを確認した。既知のoperation-specific denyをcontext availability判定より先に返し、local branch destinationのないsafe fetchはcontext不要とする最小修正を行った。focused 96/96、contracts 424/424、verifyはPASS。"
+    },
+    {
+      "iteration": 3,
+      "result": "最新CIで先行safe pushの保留G10が後続force pushのG7評価を止める1件を確認した。context未解決G10を保留して全invocationを継続評価し、具体的denyを優先する最小修正を行った。focused 96/96、contracts 424/424、verifyはPASS。"
+    }
+  ],
+  "decision": "stop_success"
+}
