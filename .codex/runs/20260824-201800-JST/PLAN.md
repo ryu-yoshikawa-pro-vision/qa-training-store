@@ -9,6 +9,10 @@
 - 共通卒業像は entry-level の汎用 Test Automation Engineer とする。
 - C08 Native Automation、Physical Android Hands-on、Native CI、Native Capstone は specialization とする。
 - Product Formal Native Regression、Android Runtime Gate、iOS Build-only Gate は変更しない。
+- Required Curriculum は自己学習を標準とし、学習内容・演習・自己確認・学習上のRecovery・完了条件・次の行動を learner-facing material で完結させる。
+- Instructor / 運営による環境準備、端末・アカウント・権限・演習Repository提供、Infrastructure / Toolchain障害の支援、最終評価・フィードバックは許容する。
+- Instructor Reference は残すが、Required learning content の唯一の正本にしない。Learner self-check と Instructor evaluation は同じ公開 Rubric / Minimum Evidence / Artifact を使う。
+- 自己学習化のために新 LMS / scoring engine / AI grader を追加しない。
 - RA-M7 は Master Plan branch 上で最小修正する。
 - RA-M7 のために別 branch / 別 Run / 専用 child Plan は作らない。
 - PR 1〜5 は Master Plan publication PR merge 後に開始する。
@@ -16,7 +20,7 @@
 - Master Plan は `Current understanding` と `Assumptions / Safe change surface / Unknowns` を分離する。
 - PR 4 は Pre-change audit 後に reviewability / semantic safety を判定し、必要な場合だけ PR 4A / PR 4B に分割する。
 - PR 4 child Plan で実際に揺れている用語だけの Terminology Decision Table を作り、新しい permanent glossary は作らない。
-- Final Fresh Learner Review は fresh context で実施し、P0 / P1 があれば latest `main` から bounded repair して fresh context で再実行する。
+- Final Fresh Learner Review は fresh context で実施し、Environment / Toolchain support と learning-content support を分離して記録する。P0 / P1 があれば latest `main` から bounded repair して fresh context で再実行する。
 - RA-M8 は `training/workbook/README.md` の learner-facing grammar と validator executable contract を一致させ、全Markdown解析の新基盤は作らない。
 - この Run は Master Plan publication PR が final head で merge-ready になった時点で完了する。
 - 実際の merge 状態は GitHub PR を正本とし、merge 後に Run Artifact を追加更新しない。
