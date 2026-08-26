@@ -57,6 +57,10 @@
 - [x] D40. Terminology Decision Tableから抽出した安定ルールを既存Curriculum正本と`docs/spec/glossary.md` / 必要なtemplateへ最小反映する再発防止契約を追加する
 - [x] D41. PR 4BはPR 4A merge後の最新`main`から作成する順序へ固定し、stacked PRを使わない
 - [x] D42. PR 5 merge後にFinal Fresh Learner Review専用の新規read-only Runを作り、P0/P1修正を別bounded repair Run / branchへ分離する
+- [x] D43. 自己学習の定義を「Instructor完全排除」ではなく、環境・権限・端末・Toolchain支援は許容し、学習内容・演習・自己確認・学習上のRecovery・完了判定をlearner-facingで完結させる契約へ固定する
+- [x] D44. PR 3でRubric / Minimum EvidenceをLearnerの自己確認とInstructorの必要時評価で共通利用し、非公開採点基準をRequired completionから排除する
+- [x] D45. PR 4AのRequired Curriculum監査へSelf-study completenessを追加し、Instructor ReferenceにしかないRequired learning contentをlearner-facingへ戻す契約を追加する
+- [x] D46. PR 5 / Final Fresh Learner Reviewで機械確認できる結果のself-checkと、Environment / Toolchain supportとlearning-content supportの切り分けを検証する
 
 ## After Run
 
@@ -68,4 +72,4 @@
 
 - なし
 
-Progress: 90% (47/52)
+Progress: 91% (51/56)
