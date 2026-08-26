@@ -19,9 +19,10 @@
   - `scripts/training/workflow-contract.ts` が同じv5.7.0完全SHAだけを許可し、旧v4 SHAを許可しない。
   - 既存Training workflowのセキュリティ契約を弱めていない。
   - 必要なworkflow / contractテストがPASSする。
-  - 最終PR HEADの完全SHAから生成したDisposable Training CopyがvalidationをPASSする。
-  - 最終PR HEADをrefとして `.github/workflows/native-ci.yml` を `workflow_dispatch` し、`Android Automation Build` と `Android Production-validation Build` がPASSする。
+  - PR提出予定の最終ブランチHEADの完全SHAから生成したDisposable Training CopyがvalidationをPASSする。
+  - PR提出予定の最終ブランチHEADをrefとして `.github/workflows/native-ci.yml` を `workflow_dispatch` し、`Android Automation Build` と `Android Production-validation Build` がPASSする。
   - 上記dispatchでsetup-java v5自身のNode 24 runtime、Java 17、リポジトリ側Node 24、GitHub-hosted runner、既存Gradle cache経路に互換性エラーがない。
+  - Issue #46用PRを作成し、PRのhead SHAが検証済みブランチHEAD SHAと一致している。PR作成後にHEADが変わった場合は、新しいHEADでTraining Copy validationとworkflow dispatchを再実行する。
   - PR #44とは分離したIssue #46用PRとして提出できる状態になっている。
 
 ## 2. 現状理解と前提
@@ -88,11 +89,11 @@
 - [ ] 3. `tests/contracts/training-curriculum.test.ts` に、現在の `training-native-ci.yml` がv5.7.0完全SHAを使用することと、旧v4 SHAへ戻した場合にworkflow contractが拒否することを確認する最小限の回帰テストを追加する。既存generic contract testsは変更しない。
 - [ ] 4. 差分を確認し、Java version、リポジトリ側Node version、runner、Android SDK、build command、Maestro checksum、permissions、checkout設定、cache設定に意図しない変更がないことを確認する。
 - [ ] 5. Focused contract、curriculum validation、全contract test、静的品質チェックを実行する。
-- [ ] 6. 実装・テスト修正をすべてcommitし、PRへ含める最終HEAD SHAを確定する。この後にコードまたはテストを変更した場合は、以降のTraining Copy validationとworkflow dispatchを新しいHEADで再実行する。
-- [ ] 7. 最終HEAD SHAを `training:copy:prepare` の `--source-sha` に指定し、現在のworking tree外の一時ディレクトリへDisposable Training Copyを生成する。`training:copy:validate` を実行しPASSを確認した後、一時ディレクトリを削除する。
-- [ ] 8. 最終HEADをpushし、そのbranch/refに対して `.github/workflows/native-ci.yml` を `workflow_dispatch` する。実行対象commitが最終PR HEADと一致していることを確認する。
+- [ ] 6. 実装・テスト修正をすべてcommitし、PRへ含める予定の最終ブランチHEAD SHAを確定する。`git diff --check main...HEAD` で `main` から最終HEADまでの差分を確認する。この後にコードまたはテストを変更した場合は、以降のTraining Copy validationとworkflow dispatchを新しいHEADで再実行する。
+- [ ] 7. 最終ブランチHEAD SHAを `training:copy:prepare` の `--source-sha` に指定し、現在のworking tree外の一時ディレクトリへDisposable Training Copyを生成する。`training:copy:validate` を実行しPASSを確認した後、一時ディレクトリを削除する。
+- [ ] 8. 最終ブランチHEADをpushし、そのbranch/refに対して `.github/workflows/native-ci.yml` を `workflow_dispatch` する。workflow runの対象commitが検証対象の最終ブランチHEADと一致していることを確認する。
 - [ ] 9. dispatchした `Android Automation Build` と `Android Production-validation Build` がPASSすることを確認する。setup-java step、Java 17、リポジトリ側Node 24、既存Gradle cache経路、両APK buildに互換性エラーがないことを確認する。
-- [ ] 10. 問題がなければIssue #46用PRとして提出する。互換性問題が確認された場合は、回避策を追加して無理に通さず、失敗箇所と移行を阻害する条件を記録して移行を止める。
+- [ ] 10. Issue #46用PRを作成し、PRのhead SHAが検証済みブランチHEAD SHAと一致していることを確認する。一致しない場合は、新しいHEADでTask 7〜9を再実行する。互換性問題が確認された場合は、回避策を追加して無理に通さず、失敗箇所と移行を阻害する条件を記録して移行を止める。
 
 ## 6. 検証方法
 
@@ -107,31 +108,39 @@ pnpm run typecheck
 pnpm run lint:markdown
 pnpm run security:check
 pnpm run test:contracts
-git diff --check
+```
+
+### Final branch diff validation
+
+実装・テスト修正をすべてcommitした後に実行する。
+
+```bash
+git diff --check main...HEAD
 ```
 
 ### Training Copy validation
 
-最終PR HEADの完全SHAを使用する。
+PR提出予定の最終ブランチHEADの完全SHAを使用する。
 
 ```bash
-pnpm run training:copy:prepare -- --source-sha <final-pr-head-sha> --target <temporary-directory-outside-current-working-tree>
+pnpm run training:copy:prepare -- --source-sha <final-branch-head-sha> --target <temporary-directory-outside-current-working-tree>
 pnpm run training:copy:validate -- --root <temporary-directory-outside-current-working-tree>
 ```
 
 - 生成先は現在のworking tree外とし、Repositoryへ追加しない。
 - validation PASS後に生成先を削除する。
-- 最終HEADが変わった場合は新しいSHAで再実行する。
+- 最終ブランチHEADが変わった場合は新しいSHAで再実行する。
 
 ### GitHub-hosted runner runtime validation
 
-- 最終PR HEADをrefとして `.github/workflows/native-ci.yml` を `workflow_dispatch` する。
-- workflow runの対象commitが最終PR HEADと一致していることを確認する。
+- PR提出予定の最終ブランチHEADをrefとして `.github/workflows/native-ci.yml` を `workflow_dispatch` する。
+- workflow runの対象commitが検証対象の最終ブランチHEADと一致していることを確認する。
 - `Android Automation Build` と `Android Production-validation Build` がPASSすることを確認する。
 - setup-java stepが正常に完了し、v5自身のNode 24 runtimeに起因するrunner互換性エラーがないことを確認する。
 - 必要に応じて `Set up job` / setup-javaログからGitHub-hosted runnerがv5の要求を満たしていることを確認する。
 - Java 17がセットアップされ、リポジトリ側Node 24およびAndroid buildと共存していることを確認する。
 - `gradle/actions/setup-gradle` のcache処理が既存設定のままエラーなく完了することを確認する。cache hit/missは成功条件にしない。
+- PR作成後、PRのhead SHAが検証済みブランチHEAD SHAと一致していることを確認する。HEADが変わった場合は、新しいHEADでTraining Copy validationと本dispatchを再実行する。
 
 ## 7. リスクと未解決論点
 
@@ -149,8 +158,9 @@ pnpm run training:copy:validate -- --root <temporary-directory-outside-current-w
 - `tests/contracts/training-curriculum.test.ts`
 - 本計画書 `docs/plans/2026-08-26_205200_setup-java-v5-training-compatibility.md`
 - PR本文に以下を記載する。
-  - 検証した最終PR HEAD SHA
+  - 検証済みブランチHEAD SHAとPR head SHAの一致確認
   - 実行したlocal / contract validation結果
+  - `git diff --check main...HEAD` の結果
   - Training Copy validation結果
   - Native CI `workflow_dispatch` の対象commitとAndroid Automation / Production-validation build結果
 
