@@ -1284,6 +1284,16 @@ function evaluateGitInvocation(invocation, context) {
   return null;
 }
 
+function requiresResolvedGitContext(invocation) {
+  if (!GIT_CONTEXT_OPERATIONS.has(invocation.subcommand) || !isContextSensitiveMutation(invocation)) {
+    return false;
+  }
+  if (invocation.subcommand !== "fetch") return true;
+
+  const parsed = parseFetchLikeArguments(invocation.argumentTokens, "fetch");
+  return Boolean(parsed.parseError) || parsed.refspecs.some((refspec) => refspec.includes(":"));
+}
+
 export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
   const normalizedCommand = normalizeShellContinuations(command).trimStart();
   const invocations = getGitInvocations(normalizedCommand);
@@ -1293,19 +1303,14 @@ export function evaluateCommand(command, suppliedContext, cwd = process.cwd()) {
       (GIT_CONTEXT_OPERATIONS.has(invocation.subcommand)
         ? getGitCommandContext(getEffectiveGitCwd(invocation, cwd))
         : EMPTY_CONTEXT);
-    if (
-      !suppliedContext &&
-      GIT_CONTEXT_OPERATIONS.has(invocation.subcommand) &&
-      isContextSensitiveMutation(invocation) &&
-      !context.currentBranch
-    ) {
+    const decision = evaluateGitInvocation(invocation, context);
+    if (decision) return decision;
+    if (!suppliedContext && requiresResolvedGitContext(invocation) && !context.currentBranch) {
       return {
         id: "G10",
         reason: "G10: Git repository or branch context could not be resolved safely for a mutation.",
       };
     }
-    const decision = evaluateGitInvocation(invocation, context);
-    if (decision) return decision;
     const transitionDecision = evaluateCompoundContextTransition(invocation, invocations, normalizedCommand);
     if (transitionDecision) return transitionDecision;
   }

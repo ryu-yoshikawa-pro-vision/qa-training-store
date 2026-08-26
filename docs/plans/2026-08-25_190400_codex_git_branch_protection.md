@@ -174,6 +174,7 @@ Issue #60では、`git switch -c ... origin/main` は拒否された一方、`gi
 - `pull <repository> <refspec...>`にもfetch-side protected local ref guardを適用し、feature contextからの`main:refs/heads/main`、`+main:refs/heads/main`、protected wildcardをDENYする。protected current branch上の通常pullは既存G10を維持する。
 - `branch -d`／`--delete`、`branch -m`／`--move`のprotected source／destination、source省略時のprotected current branchをDENYする。feature branchのdelete／renameは、targetを安全に判定でき、既存force ruleに該当しない場合はALLOWする。`-D`、`-M`、`-C`等の既存G9は維持する。
 - pushはexplicit safe destinationだけをALLOWし、implicit／bulk／matching／wildcard／複数refspec／URL-only／path-onlyをfail-closeする既存契約を維持する。
+- operation単体で危険性が確定するG1〜G9等のdenyはbranch context未解決でも先に返す。通常の`fetch origin`やlocal branch destinationを持たないsafe fetchはbranch contextに依存せずALLOWし、それ以外のcontext-sensitive mutationはbranch context未解決時にG10でfail-closeする。
 
 ### implementation、tests、rollback
 

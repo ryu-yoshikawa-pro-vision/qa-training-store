@@ -215,6 +215,36 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(output.hookSpecificOutput?.permissionDecisionReason).toMatch(/^G1:/);
   });
 
+  it("keeps context-independent Git decisions stable without a branch context", () => {
+    const cases = [
+      { command: 'git commit --amend -m "rewrite"', expected: "G3" },
+      { command: "git push --force origin feature", expected: "G7" },
+      { command: "git push -d origin old-feature", expected: "G8" },
+      { command: "git branch -D old-feature", expected: "G9" },
+      { command: "git fetch origin", expected: null },
+      { command: "git commit -m change", expected: "G10" },
+    ];
+
+    for (const testCase of cases) {
+      const result = runNodeHook(
+        JSON.stringify({ tool_name: "Bash", tool_input: { command: testCase.command } }),
+        os.tmpdir(),
+      );
+      expect(result.status, testCase.command).toBe(0);
+      expect(result.stderr, testCase.command).toBe("");
+      if (testCase.expected === null) {
+        expect(result.stdout, testCase.command).toBe("");
+      } else {
+        const output = JSON.parse(result.stdout) as {
+          hookSpecificOutput?: { permissionDecisionReason?: string };
+        };
+        expect(output.hookSpecificOutput?.permissionDecisionReason, testCase.command).toMatch(
+          new RegExp(`^${testCase.expected}:`),
+        );
+      }
+    }
+  });
+
   it("executes every common-policy representative from the Hook matrix", () => {
     const matrix = JSON.parse(
       execFileSync(process.execPath, [hookPath, "--print-policy-matrix"], {

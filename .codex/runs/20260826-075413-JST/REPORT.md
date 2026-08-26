@@ -100,3 +100,26 @@
   - Run Artifactの`run.json`／`evaluation.json`は検証結果、scope、対象外、self-review結果を反映した。
 - Remaining: stage確認、commit、明示refspec push、PR #65更新、CI確認。
 - Progress: 72% (8/11)
+
+## 2026-08-26 09:12（JST）
+
+- Summary: push後CIの最初のfailureを調査し、detached HEAD環境でのcontext判定順序を修正した。
+- Finding:
+  - PR merge checkoutでbranch contextが空になるため、known operation-specific denyであるG3／G7／G8／G9と、通常の`git fetch origin`まで先にG10へ置き換わり、`Vitest (contracts)`が13件failureとなった。
+  - logsはjob `98010128752`で確認し、29 files／410 tests PASS、`codex-hook-contract.test.ts`の13 failuresが最初の異常だった。今回のcontext availability guardが原因で、既存CI／依存／環境のfailureではないと判断した。
+- Repair:
+  - `evaluateGitInvocation()`を先に実行し、既知のG1〜G9 decisionをcontext未解決でも維持するようにした。
+  - local branch destinationを持たない通常fetchはbranch context不要とし、protected local destinationを含むfetchやその他のcontext-sensitive mutationは引き続きG10 fail-closeする`requiresResolvedGitContext()`を追加した。
+  - detached／non-repository cwdでもoperation固有decision、通常fetch、context-sensitive commitのfail-closeを固定するregressionを追加した。
+  - plan／safety harness referenceへこの例外境界を追記した。
+- Commands:
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1` => PASS、1 file／96 tests。
+  - `pnpm run test:contracts` => PASS、30 files／424 tests。
+  - `pnpm run format:check` => PASS。
+  - `pnpm run lint:markdown` => PASS、0 issues。
+  - `pnpm run lint` => PASS、0 errors／既存warning 65件。
+  - `pnpm run typecheck` => PASS。
+  - `pnpm run verify` => PASS。unit 66、integration 98、repository 37、web component 83、native component 62、contracts 424を含む。
+  - `git diff --check` => PASS。
+- Remaining: Run Artifact再sanitizer、追加commit、明示refspec push、PR本文／CI最終確認。
+- Progress: 72% (8/11)
