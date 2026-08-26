@@ -318,6 +318,34 @@
 - Decision: `continue`
 - Progress: 93% (14/15)
 
+## 2026-08-27 01:02 (JST)
+
+- Post-push result: Run Artifact finalization commit `f256c36b11993b0b8f20d05f4728086b84fe085e`を同一branchへexplicit refspecでpush済み。working treeはclean、PR #69 headは同SHAでOPEN。
+- PR update: PR本文へ最終Run Artifact head、candidate headと最終headの関係、最終head CIの実状態、GitHub Actions outageを追記した。実行していない最終head gateをPASSとは記載していない。
+- Final-head CI status:
+  - Web CI run `32985168597`: `queued`、job 0件。
+  - CodeQL run `32985103387`: `queued`、job 0件。
+  - Mobile App CI run `32985275008`: initial `startup_failure`（job開始前）後のrerunが`queued`、job 0件。
+  - 3 selector dependency candidate head `9fb87918fea5414ba68c84c1bcbffdf69b9693b6`のWeb CI `32981509172` / Mobile App CI `32981509803`は全gate success済みで、candidateの採用根拠は保持している。
+- External blocker: GitHub Status APIはActionsを`major_outage`、`Incident with Actions`を`investigating`として報告。primary failover後も未解消で、inbound traffic throttlingとupstream Vitessを調査中。最終head CIの開始・結果取得は外部障害待ちで、local / dependency failureではない。
+- F4 remaining: Actions復旧後にqueued runの全gateを確認し、PR本文とRun Artifactの最終CI結果を更新してcompletion commitをpushする。
+- Decision: `continue`
+- Progress: 93% (14/15)
+
+## 2026-08-27 01:01 (JST)
+
+- Post-push result: Run Artifact finalization commit `f256c36b11993b0b8f20d05f4728086b84fe085e`を同一branchへexplicit refspecでpush済み。working treeはclean、PR #69 headは同SHAでOPEN。
+- PR update: PR本文へ最終Run Artifact head、candidate headと最終headの関係、最終head CIの実状態、GitHub Actions outageを追記した。実行していない最終head gateをPASSとは記載していない。
+- Final-head CI status:
+  - Web CI run `32985168597`: `queued`、job 0件。
+  - CodeQL run `32985103387`: `queued`、job 0件。
+  - Mobile App CI run `32985275008`: initial `startup_failure`（job開始前）後のrerunが`queued`、job 0件。
+  - 3 selector dependency candidate head `9fb87918fea5414ba68c84c1bcbffdf69b9693b6`のWeb CI `32981509172` / Mobile App CI `32981509803`は全gate success済みで、candidateの採用根拠は保持している。
+- External blocker: GitHub Status APIはActionsを`major_outage`、`Incident with Actions`を`investigating`として報告。更新内容はprimary failover後も未解消で、inbound traffic throttlingとupstream Vitessを調査中。最終head CIの開始・結果取得は外部障害復旧待ちで、local / dependency failureではない。
+- F4 remaining: Actions復旧後にqueued runの全gateを確認し、PR本文とRun Artifactの最終CI結果を更新してcompletion commitをpushする。
+- Decision: `continue`
+- Progress: 93% (14/15)
+
 ## 2026-08-27 00:18 (JST)
 
 - F3 CI result: 3 selector candidateのPR CI adoption gateを完了した。

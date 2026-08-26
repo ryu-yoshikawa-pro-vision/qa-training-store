@@ -48,6 +48,7 @@
       ,"3-selector local validation / Web regression / Markdown lint / git diff --check"
       ,"PR #69 candidate head 9fb87918 Web CI run 32981509172 / Mobile App CI run 32981509803"
       ,"finalization ordered checks: sanitizer Write / Check, pnpm run lint:markdown, dependency diff, changed files, git status --short, git diff --check"
+      ,"final-head CI: Web 32985168597 / CodeQL 32985103387 / Mobile App CI 32985275008 queued during GitHub Actions major outage"
     ],
     "warnings": [
       "Windows環境のためXcode native buildはlocal未実施。PR上のiOS Automation/Production buildとiOS Native CI Verifyはsuccess。",
@@ -57,6 +58,7 @@
       ,"3-selector follow-upのgraph証跡ラッパー初回は予約変数名のため引数未渡しで失敗。ラッパーのみ修正し、同じgraph commandはPASS。"
       ,"3-selector lockfileの4-selectorとの差分にpnpm生成のoptional transitive peer metadata削除があるが、package/version/integrity/edge/importer/actual peer resolutionの変更なし。"
       ,"final dependency diff集計の初回はPowerShell regex引用符エラーで実行前終了。regexを外した再実行で同じscope/count/numstat確認はPASS。"
+      ,"GitHub Status API: Actions major_outage / Incident with Actions investigating。最終head CIはjob 0件のqueuedで、実行未確認。"
     ]
   },
   "safety": {
