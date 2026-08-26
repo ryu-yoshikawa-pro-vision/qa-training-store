@@ -51,6 +51,12 @@
 - [x] D34. Final Fresh Learner Review を新規 Agent / Session優先の fresh context で実施し、結果を final-validation Run Artifact に記録する契約を追加する
 - [x] D35. Fresh Learner Review の P0 / P1 は latest `main` から bounded repair し、Fresh context で再実行する修正フローを追加する
 - [x] D36. RA-M8 の learner-facing canonical grammar を `training/workbook/README.md`、executable contract を validator に寄せ、bounded contract check と非canonical例検索を追加する
+- [x] D37. Master Plan 全体の Learning Design canonical path を `00_learning-design.md` に再統一し、underscore表記をRA-M7のbroken validator literalだけに限定する
+- [x] D38. `docs/spec/**` の実変更は軽微でも必ずPR 4Bへ分離し、PR 4AではSpec監査だけを行う契約へ単純化する
+- [x] D39. `docs/spec/**` のMarkdown / text contract全件を監査対象へ拡張し、Glossary / Template / Product Scope等の非Feature文書も含める
+- [x] D40. Terminology Decision Tableから抽出した安定ルールを既存Curriculum正本と`docs/spec/glossary.md` / 必要なtemplateへ最小反映する再発防止契約を追加する
+- [x] D41. PR 4BはPR 4A merge後の最新`main`から作成する順序へ固定し、stacked PRを使わない
+- [x] D42. PR 5 merge後にFinal Fresh Learner Review専用の新規read-only Runを作り、P0/P1修正を別bounded repair Run / branchへ分離する
 
 ## After Run
 
@@ -62,4 +68,4 @@
 
 - なし
 
-Progress: 89% (41/46)
+Progress: 90% (47/52)
