@@ -429,3 +429,12 @@
 - Validation target `9901254bc219df087cf66e67316bf06144d31423`では、CodeQL `32986767712`、Web CI `32986839351`、Mobile App CI `32986840802`が全てcompleted / success。`edc5d...`までの差分はRun Artifactのみで、検証済みdependency / application / build / CI scopeは変わらない。
 - Decision: `continue`。3 selector採用、final-head CI success、scope内変更を確定済み。closeout後に最終PR headとPR本文を同期する。
 - Progress: 93% (14/15)
+
+## 2026-08-27 01:50 (JST)
+
+- F4 completion: `151afae1cc9d0beb3b428d3797c6c6e0fce52adb`（`docs: closeout Metro 3 selector revalidation`）を同一branchへforceなしのexplicit refspecでpushし、PR #69本文を現在headへ同期した。PRはOPEN、current headは同SHAである。
+- PR body verification: 3 selector一覧、before / after graph、affected `image-size` 0件、lockfile評価、local / CI validation、scope、residual risk、validation target headを反映し、旧4 selector / 旧head `f256c36...` / outage中のqueued run記述は除去した。
+- Current-head check: docs-only current head `151afae...`に対するCodeQL check [run 32990427491](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32990427491)はcompleted / success。Web / Mobileの採用gateは、dependencyを含む検証対象head `9901254...`の[Web CI 32986839351](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32986839351) / [Mobile App CI 32986840802](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/32986840802)でcompleted / success済みであり、`151afae...`までの追加差分はRun Artifactのみである。
+- Final artifact checks: append後のsanitizer Write / Check、`pnpm run lint:markdown`、dependency selector / affected count、changed files（unexpected 0）、`git status`、`git diff --check`を指定順でPASS確認した。`run.json`はcompleted、TASKSは15/15 checked。
+- Decision: `stop_success`。3 selector採用とsecurity remediation成立を確定し、未完了項目はない。
+- Progress: 100% (15/15)
