@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "run_id": "20260826-205812-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "security/metro-0.84.5-image-size-remediation",
+  "base_branch": "main",
+  "baseline_sha": "e097adff0894e421b28db3c1fd4e3a0c1926eeb1",
+  "codex_task_reports": [],
+  "changed_files": [
+    "package.json",
+    "pnpm-lock.yaml",
+    ".codex/runs/20260826-205812-JST/PLAN.md",
+    ".codex/runs/20260826-205812-JST/TASKS.md",
+    ".codex/runs/20260826-205812-JST/REPORT.md",
+    ".codex/runs/20260826-205812-JST/run.json"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm install --frozen-lockfile --ignore-scripts",
+      "pnpm why image-size / metro / metro-config / metro-core",
+      "pnpm list image-size --depth Infinity --json",
+      "GitHub Advisory API / Dependabot alert status check",
+      "pnpm install --lockfile-only --ignore-scripts (2回)",
+      "pnpm install --frozen-lockfile --ignore-scripts",
+      "pnpm run validate:image-manifest",
+      "pnpm run build:web",
+      "pnpm run validate:native-production-bundle",
+      "expo export --platform ios --output-dir output/issue-68-ios-production",
+      "pnpm run verify",
+      "pnpm run test:e2e:chromium",
+      "git diff --check",
+      "git push origin HEAD:security/metro-0.84.5-image-size-remediation",
+      "PR #69 Web CI / Dependency Review / Mobile App CI / CodeQL status check",
+      "sanitizer -Write",
+      "sanitizer -Check",
+      "pnpm run lint:markdown",
+      "final dependency diff / changed files / git status / git diff --check"
+      ,"review follow-up: remove metro-core selector and regenerate 3-selector lockfile"
+      ,"pnpm install --lockfile-only --ignore-scripts (3 selector, 2回)"
+      ,"pnpm install --frozen-lockfile --ignore-scripts (3 selector)"
+      ,"pnpm why image-size / metro / metro-config / metro-core (3 selector)"
+      ,"3-selector local validation / Web regression / Markdown lint / git diff --check"
+      ,"PR #69 candidate head 9fb87918 Web CI run 32981509172 / Mobile App CI run 32981509803"
+      ,"finalization ordered checks: sanitizer Write / Check, pnpm run lint:markdown, dependency diff, changed files, git status --short, git diff --check"
+      ,"final-head CI: Web 32985168597 / CodeQL 32985103387 / Mobile App CI 32985275008 queued during GitHub Actions major outage"
+      ,"final-head CI recovery: CodeQL 32986767712 / Web CI 32986839351 / Mobile App CI 32986840802 completed successfully on 9901254bc219df087cf66e67316bf06144d31423"
+    ],
+    "warnings": [
+      "Windows環境のためXcode native buildはlocal未実施。PR上のiOS Automation/Production buildとiOS Native CI Verifyはsuccess。",
+      "物理Android端末install / local MaestroはPlanのlocal preflight範囲外。PR上のAndroid Runtime / Maestroはsuccess。",
+      "既存lint warning 65件とNative testのReact act warningはあるが、error 0・exit 0。",
+      "Task 10の初回selector assertionはPowerShell regex過剰escapeで誤判定し、修正版を再実行してPASS。"
+      ,"3-selector follow-upのgraph証跡ラッパー初回は予約変数名のため引数未渡しで失敗。ラッパーのみ修正し、同じgraph commandはPASS。"
+      ,"3-selector lockfileの4-selectorとの差分にpnpm生成のoptional transitive peer metadata削除があるが、package/version/integrity/edge/importer/actual peer resolutionの変更なし。"
+      ,"final dependency diff集計の初回はPowerShell regex引用符エラーで実行前終了。regexを外した再実行で同じscope/count/numstat確認はPASS。"
+      ,"GitHub Status API: Actions major_outage / Incident with Actions investigating。最終head CIはjob 0件のqueuedで、実行未確認。"
+      ,"GitHub Actions復旧後、同一headのworkflow_dispatch再実行でCodeQL / Web CI / Mobile App CIの最終結果を全てsuccess確認。"
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": null,
+  "status": "completed",
+  "primary_failure_category": null
+}
