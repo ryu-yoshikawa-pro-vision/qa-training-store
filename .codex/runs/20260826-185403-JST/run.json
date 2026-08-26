@@ -51,7 +51,7 @@
                              "codex_task_report_count":  0,
                              "hook_event_count":  0,
                              "subagent_run_count":  0,
-                             "evaluation_present":  false
+        "evaluation_present":  true
                          },
     "hook_observations":  {
                               "log_paths":  [

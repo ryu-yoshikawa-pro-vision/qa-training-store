@@ -18,7 +18,8 @@
 ## Discovered
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
-- なし
+- [x] 12. PowerShell alias `popd`を既存cwd transition guardへ追加し、DENY／ALLOW regressionを既存test blockへ統合する
+- [x] 13. `popd`追加後のfocused／全contracts／品質ゲートとself-reviewを完了する
 
 ## Blocked
 

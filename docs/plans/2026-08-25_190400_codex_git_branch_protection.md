@@ -204,14 +204,14 @@ Issue #60では、`git switch -c ... origin/main` は拒否された一方、`gi
 
 ### PowerShell location transition
 
-- `Push-Location`と`Pop-Location`を、`cd`、`chdir`、`pushd`、`Set-Location`、`sl`と同じcwd-changing shell operation familyとして扱う。
+- `Push-Location`と`Pop-Location`、およびPowerShell aliasの`pushd`と`popd`を、`cd`、`chdir`、`Set-Location`、`sl`と同じcwd-changing shell operation familyとして扱う。
 - location変更後にcontext-sensitive Git mutationが続くcompound commandは、戻り先や実行時repositoryをsimulationせずG10でfail-closeする。
 - location変更後のread-only Git commandとlocation変更単独は、既存のALLOW semanticsを維持する。
 
 ### 実装と検証
 
 1. 既存のnormalize → tokenize → Git invocation parse → operation evaluationの流れを拡張し、専用のshell parser、Git parser、AST、state machineを追加しない。
-2. `isBranchChangingInvocation()`へ単独`-`を追加し、cwd-changing operationのmatcherへ`Push-Location`／`Pop-Location`を追加する。
+2. `isBranchChangingInvocation()`へ単独`-`を追加し、cwd-changing operationのmatcherへ`Push-Location`／`Pop-Location`／`popd`を追加する。
 3. contract testへexecutable、escaped subcommand、escaped protected ref、`switch -`／`checkout -` compound、Push／Pop-Locationのdeny／allowを実際のassertとして追加する。
 4. focused contract、全contracts、format、markdown lint、lint、typecheck、verify、diff check、Run Artifact sanitizer、Windows launcher contractを実行し、test件数は実測値を記録する。
 

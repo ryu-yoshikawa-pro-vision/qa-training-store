@@ -68,3 +68,9 @@
 ## Rollback
 
 - 今回の追加commit単位でrevert可能とし、rebase、amend、force push、reset、clean、branch削除、mainへの反映は行わない。
+
+## Follow-up scope: PowerShell `popd`
+
+- 既存のcwd-changing shell operation familyへPowerShell alias `popd`を追加し、`popd`後のcontext-sensitive Git mutationはG10、read-only Git commandは既存どおりALLOWとする。
+- 変更は既存matcherとcompound transition contract testの配列へ限定し、shell parser、Git parser、その他のalias探索は追加しない。
+- focused contract、全contracts、format、markdown lint、lint、typecheck、verify、diff checkを実行し、Run Artifactをsanitizerで確認する。

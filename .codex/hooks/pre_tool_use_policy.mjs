@@ -576,7 +576,7 @@ function isBranchChangingInvocation(invocation) {
 }
 
 function hasCwdChangingShellOperation(commandPrefix) {
-  return /(?:^|[\r\n;&|])[ \t]*(?:cd|chdir|pushd|set-location|sl|push-location|pop-location)(?=\s|$|[\r\n;&|])/i.test(
+  return /(?:^|[\r\n;&|])[ \t]*(?:cd|chdir|pushd|popd|set-location|sl|push-location|pop-location)(?=\s|$|[\r\n;&|])/i.test(
     commandPrefix,
   );
 }

@@ -1418,6 +1418,12 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         context,
       },
       {
+        id: "popd-then-commit",
+        expected: "deny",
+        command: "popd; git commit -m bad",
+        context,
+      },
+      {
         id: "set-location-then-commit",
         expected: "deny",
         command: "Set-Location ../protected; git commit -m bad",
@@ -1475,6 +1481,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       { id: "switch-alone", expected: "allow", command: "git switch main", context },
       { id: "checkout-alone", expected: "allow", command: "git checkout main", context },
       { id: "status-after-cd", expected: "allow", command: "cd ../other && git status", context },
+      { id: "status-after-popd", expected: "allow", command: "popd; git status", context },
       {
         id: "status-then-commit",
         expected: "allow",

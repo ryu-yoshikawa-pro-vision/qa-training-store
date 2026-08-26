@@ -61,6 +61,39 @@
 - Remaining: source、test、検証、self-review、commit、push、GitHub source/test確認、PR本文更新、new-head CI確認。
 - Progress: 18% (2/11)
 
+## 2026-08-26 20:28（JST）
+
+- Summary: PR #65の既存branchへ、PowerShell alias `popd`のcwd transition guardを最小差分で追加した。
+- Completed:
+  - 既存planへPowerShell cwd-changing familyの`popd`を追記した。
+  - `.codex/hooks/pre_tool_use_policy.mjs`の既存cwd matcherへ`popd`を追加した。
+  - `tests/contracts/codex-hook-contract.test.ts`の既存compound transition testへ`popd; git commit -m bad`（G10 DENY）と`popd; git status`（ALLOW）を追加した。
+  - focused contract => PASS、1 file／99 tests。
+  - `pnpm run test:contracts` => PASS、30 files／427 tests。
+  - `pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run lint`、`pnpm run typecheck`、`pnpm run verify`、`git diff --check` => PASS。
+- Self-review:
+  - `Push-Location`／`Pop-Location`／`pushd`の既存matcher挙動を維持し、`popd`だけを同じfamilyへ追加した。
+  - location transition後のmutationはG10、read-only GitはALLOWであることを確認した。
+  - source／test／既存plan／Run Artifact以外の変更、parser拡張、dependency変更、Windows launcher変更はない。
+- Notes/Decisions:
+  - test件数は既存test blockのcase追加のためfocused 99、全contracts 427から変わらない。
+  - lintの65 warningとverify内native React act warningは既存warningであり、今回追加warningはない。
+  - 危険Git mutationは実行せず、Hook判定だけを検証した。
+- Remaining: commit前確認、通常追加commit、明示refspec push、GitHub上のsource／test／PR／new-head CI確認。
+- Progress: 77% (10/13)
+
+## Repair iteration 2
+
+- iteration_number: 2
+- input_findings: PowerShell alias `popd`がcwd-changing shell operation familyから漏れていた。
+- repair_plan: 既存`hasCwdChangingShellOperation()`のmatcherへ`popd`だけを追加し、既存compound transition test配列へDENY／ALLOWを1件ずつ追加する。
+- allowed_files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、`docs/plans/2026-08-25_190400_codex_git_branch_protection.md`、既存Run Artifact。
+- changed_files: `.codex/hooks/pre_tool_use_policy.mjs`、`tests/contracts/codex-hook-contract.test.ts`、`docs/plans/2026-08-25_190400_codex_git_branch_protection.md`、既存Run Artifact。
+- validation_commands: focused contract、`pnpm run test:contracts`、`pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run lint`、`pnpm run typecheck`、`pnpm run verify`、`git diff --check`、Run Artifact sanitizer。
+- validation_result: すべてPASS。focusedは1 file／99 tests、全contractsは30 files／427 tests。lintの65 warningとnative React act warningは既存。
+- remaining_delta: source／test／plan／Run Artifactの追加commit、明示refspec push、PR #65のsource／test／metadata／CI最終確認。
+- decision: continue
+
 ## 2026-08-26 19:07（JST）
 
 - Summary: Pop-Locationのcompound boundaryを修正し、今回追加分を含むfocused contractを再実行した。
