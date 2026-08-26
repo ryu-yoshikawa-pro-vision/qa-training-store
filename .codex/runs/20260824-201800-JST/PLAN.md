@@ -9,9 +9,14 @@
 - 共通卒業像は entry-level の汎用 Test Automation Engineer とする。
 - C08 Native Automation、Physical Android Hands-on、Native CI、Native Capstone は specialization とする。
 - Product Formal Native Regression、Android Runtime Gate、iOS Build-only Gate は変更しない。
-- Required Curriculum は自己学習を標準とし、学習内容・演習・自己確認・学習上のRecovery・完了条件・次の行動を learner-facing material で完結させる。
+- `Repository-required curriculum asset` と `Learner Required path` を分離する。Validator上存在必須でも、受講者必修とは限らない。
+- `03_instructor-reference.md` は Repository-required support asset として残してよいが、Learner Required path には含めない。
+- Learner Required path は自己学習を標準とし、学習内容・演習・自己確認・学習上のRecovery・完了条件・次の行動を learner-facing material で完結させる。
 - Instructor / 運営による環境準備、端末・アカウント・権限・演習Repository提供、Infrastructure / Toolchain障害の支援、最終評価・フィードバックは許容する。
-- Instructor Reference は残すが、Required learning content の唯一の正本にしない。Learner self-check と Instructor evaluation は同じ公開 Rubric / Minimum Evidence / Artifact を使う。
+- Instructor Reference は残すが、Learner Required learning content の唯一の正本にしない。Learner self-check と Instructor evaluation は同じ公開 Rubric / Minimum Evidence / Artifact を使う。
+- Self-check は単なるReference提示ではなく、Learnerが自分の回答・成果物の充足を合理的に判定できる具体性を持たせる。
+- Final Fresh Learner Review は、手動テスト経験は許容するがプログラミング / Playwright / Maestro / Git / CIの未説明知識を前提にしない Target learner profile で実施する。
+- Final Fresh Learner Review は Common Core Required exercise が Environment block で未実行なら `PASS` にせず `not_validated` とする。
 - 自己学習化のために新 LMS / scoring engine / AI grader を追加しない。
 - RA-M7 は Master Plan branch 上で最小修正する。
 - RA-M7 のために別 branch / 別 Run / 専用 child Plan は作らない。
