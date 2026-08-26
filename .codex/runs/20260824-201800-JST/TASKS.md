@@ -61,6 +61,10 @@
 - [x] D44. PR 3でRubric / Minimum EvidenceをLearnerの自己確認とInstructorの必要時評価で共通利用し、非公開採点基準をRequired completionから排除する
 - [x] D45. PR 4AのRequired Curriculum監査へSelf-study completenessを追加し、Instructor ReferenceにしかないRequired learning contentをlearner-facingへ戻す契約を追加する
 - [x] D46. PR 5 / Final Fresh Learner Reviewで機械確認できる結果のself-checkと、Environment / Toolchain supportとlearning-content supportの切り分けを検証する
+- [x] D47. `Repository-required curriculum asset` と `Learner Required path` を分離し、Instructor ReferenceをRepository-required support assetだがLearner Required pathではないと固定する
+- [x] D48. Final Fresh Learner ReviewのTarget learner profileを、手動テスト経験は許容・プログラミング / Playwright / Maestro / Git / CIの未説明知識は前提にしない条件へ固定する
+- [x] D49. Fresh Learner ReviewでCommon Core Required exerciseがEnvironment blockにより未実行なら、P0/P1が0件でも`PASS`にせず`not_validated`とする結果契約を追加する
+- [x] D50. Self-checkをgenericな参照先提示ではなく、回答・成果物の充足をLearner自身が合理的に判定できる具体性へ引き上げ、知識問題・設計問題・Spec参照の最低条件を明記する
 
 ## After Run
 
@@ -72,4 +76,4 @@
 
 - なし
 
-Progress: 91% (51/56)
+Progress: 92% (55/60)
