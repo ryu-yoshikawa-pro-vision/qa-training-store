@@ -23,11 +23,16 @@
       "pnpm run lint",
       "pnpm run typecheck",
       "pnpm run lint:markdown",
-      "pnpm run security:check"
+      "pnpm run security:check",
+      "git diff --check main...HEAD",
+      "pnpm run training:copy:prepare -- --source-sha <final-head-sha> --target <TEMP_ROOT>/qa-training-copy-<final-head-sha>",
+      "pnpm run training:copy:validate -- --root <TEMP_ROOT>/qa-training-copy-<final-head-sha>",
+      "Disposable Copy active/archive workflow enumeration"
     ],
     "warnings": [
       "全contract初回実行で既存codex-hook-contract.test.tsの2件がtimeoutしたが、Hook単体PASS後のfull suite再実行では30 files / 428 testsがPASSした。",
-      "lintは既存65 warnings、0 errors。"
+      "lintは既存65 warnings、0 errors。",
+      "Disposable Copyの直接削除はPreToolUse Hook N1で拒否されたため、手動削除が必要。"
     ]
   },
   "safety": {
@@ -60,6 +65,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "in_progress",
+  "status": "completed",
   "primary_failure_category": null
 }

@@ -159,3 +159,58 @@
 - New tasks: なし。
 - Remaining: 最終差分/scope確認、commit、`git diff --check main...HEAD`、Disposable Copy、push、最終Run記録。
 - Progress: 67% (6/9)
+
+## 2026-08-26 23:55 (JST)
+
+- Summary: commit、最終差分確認、Disposable Training Copyの生成・validation・workflow状態確認を完了した。
+- Completed:
+  - commit `830231852d651fb16be785840b756c5e1c36b817` を対象branchへ作成。
+  - `git diff --check main...HEAD` => PASS。
+  - 最終HEAD SHAからOS Temp配下のworking tree外Copyを生成。
+  - `training:copy:validate` => PASS。
+  - Copy HEADとmanifestの`sourceSha`/`resolvedSourceSha`が最終HEADと一致。
+  - active workflowは`training-ci.yml` / `training-native-ci.yml`の2本。
+  - archiveは`ci.yml` / `cross-browser-smoke.yml` / `native-ci.yml` / `native-ios-ci.yml`の4本。
+- Changes: commit後のSource working treeはclean。branch上のtracked変更はprepare、contract test、Run artifactと既存計画書だけで、validator・Source workflow・Training template・Product codeの差分はない。
+- Commands:
+  - `git diff --check main...HEAD` => PASS。
+  - `pnpm run training:copy:prepare -- --source-sha <final-head-sha> --target <TEMP_ROOT>/qa-training-copy-<final-head-sha>` => PASS、manifest/Copy作成。
+  - `pnpm run training:copy:validate -- --root <TEMP_ROOT>/qa-training-copy-<final-head-sha>` => PASS。
+  - Copy workflow列挙確認 => active 2本、archive 4本。
+- Notes/Decisions: 指定Temp Copyの削除を`Remove-Item`で実行しようとしたが、PreToolUse Hook N1により拒否された。安全ハーネスを迂回する代替手段は使わず、手動削除をBlockedとして記録する。
+- New tasks: なし。
+- Remaining: 対象branchのpush、push後PR #71確認、Run最終記録。Disposable Copyの手動削除。
+- Progress: 78% (7/9)
+
+## 2026-08-26 23:57 (JST)
+
+- Summary: 対象branchをpushし、PR #71のremote head反映を確認した。
+- Completed:
+  - `git push origin HEAD:fix/training-copy-workflow-isolation` => 成功（`1c611aa..8302318`）。
+  - PR #71 APIで`headRefName=fix/training-copy-workflow-isolation`、`headSha=830231852d651fb16be785840b756c5e1c36b817`、state=open、base=mainを確認。
+  - 新しいPRは作成していない。
+- Changes: push後の実装HEADは変わっていない。Run artifactのこの追記は作業記録であり、実装/test commitのHEADは`830231852d651fb16be785840b756c5e1c36b817`。
+- Commands:
+  - `git push origin HEAD:fix/training-copy-workflow-isolation` => PASS。
+  - `git ls-remote origin refs/heads/fix/training-copy-workflow-isolation` => remote branch SHAが最終HEADと一致。
+  - `gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/pulls/71 --jq ...` => PR #71 head SHAが最終HEADと一致。
+- Notes/Decisions: 最終HEADからのDisposable Copy validationはpush前に完了済み。Copy削除だけはHook N1で拒否されたため、手動削除が唯一の残作業。
+- New tasks: なし。
+- Remaining: Disposable Copyの手動削除のみ。
+- Progress: 89% (8/9)
+
+## 2026-08-27 07:15 (JST)
+
+- Summary: ユーザーによるDisposable Training Copy削除を確認し、Runの完了条件を満たした。
+- Completed:
+  - `Test-Path <TEMP_ROOT>/qa-training-copy-830231852d651fb16be785840b756c5e1c36b817` => `False`。
+  - 既存の実装・test commit、validation、PR #71へのpush結果は前回記録どおり維持。
+  - RunのBlocked事項B1を解消済みとして更新。
+- Changes: 現在のローカル差分はこのRun artifact（`REPORT.md`、`TASKS.md`、`run.json`）だけ。Source/test codeの差分はない。
+- Commands:
+  - `Test-Path <TEMP_ROOT>/qa-training-copy-830231852d651fb16be785840b756c5e1c36b817` => Disposable Copy不在を確認。
+  - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260826-232619-JST -Write -Check` => PASS（residual findings 0）。
+- Notes/Decisions: ユーザーが削除したため、安全Hookを迂回した削除操作は行っていない。Run artifactのこの最終更新をcommit・pushする。
+- New tasks: なし。
+- Remaining: なし。
+- Progress: 100% (9/9)
