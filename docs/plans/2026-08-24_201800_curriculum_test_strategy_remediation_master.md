@@ -1255,12 +1255,10 @@ Repository remediation 完了後、次を継続タスクとして扱う。
 
 - 対象受講者像に近い初見受講者が利用できる場合は初見レビューを行う。
 - 教材修正後などは、必要に応じて同一または別のレビュアーで再レビューする。
-- Curriculumの大きな変更、Lesson追加、Training command / Toolchain変更後は必要に応じて再実施する。
-- Common Coreだけでなく、実際に利用するspecializationのlearner-facing教材を対象にする。
-- Pilot / 実受講で繰り返し停止・質問が発生したLessonを優先する。
-- 個別レビュー結果は保存しない。
-- 改善が見つかった場合はその都度具体的な修正指示へ落とし込み、必要な変更単位で対応する。本 Master Planを再オープンしない。
-- 固定の回数・周期・PASS義務は設けない。
+- Curriculumの大きな変更、Lesson追加、Training command / Toolchain変更後は必要に応じてレビューする。
+- Common Coreだけでなく、実際に利用するspecializationのlearner-facing教材も必要に応じてレビューする。
+- Pilotや実受講で繰り返し質問・停止が発生したLessonは優先して再レビューする。
+- レビューで見つかった改善は、その都度具体的な修正指示へ落とし込み、必要な変更単位で対応する。本 Master Planは再オープンしない。
 
 固定の実施回数や周期は設けない。実運用Evidenceに応じて継続する。
 
