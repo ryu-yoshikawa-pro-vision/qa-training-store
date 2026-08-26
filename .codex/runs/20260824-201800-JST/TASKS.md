@@ -45,6 +45,12 @@
 - [x] D28. Remediation Matrix を live status tracker ではなく Planned disposition / Primary owner の実行割当表へ限定する
 - [x] D29. active Run は Master Plan publication PR の final head が merge-ready になった時点で完了し、merge 後に Run Artifact を追加更新しない契約へ変更する
 - [x] D30. RA-L1 は Phase 0 で影響を判定し、修正が必要な場合だけ PR 4 scope へ追加する契約を明記する
+- [x] D31. Master Plan に Assumptions / Safe change surface / Unknowns を追加し、Current understanding と推測・未確定事項を分離する
+- [x] D32. PR 4 に reviewability / semantic safety に基づく PR 4A / PR 4B 分割条件を追加する
+- [x] D33. PR 4 child Plan に Terminology Decision Table を必須化し、日本語 / 英語の判断差を局所的に固定する
+- [x] D34. Final Fresh Learner Review を新規 Agent / Session優先の fresh context で実施し、結果を final-validation Run Artifact に記録する契約を追加する
+- [x] D35. Fresh Learner Review の P0 / P1 は latest `main` から bounded repair し、Fresh context で再実行する修正フローを追加する
+- [x] D36. RA-M8 の learner-facing canonical grammar を `training/workbook/README.md`、executable contract を validator に寄せ、bounded contract check と非canonical例検索を追加する
 
 ## After Run
 
@@ -56,4 +62,4 @@
 
 - なし
 
-Progress: 88% (35/40)
+Progress: 89% (41/46)
