@@ -21,7 +21,7 @@
     "status": "not_run",
     "commands": [],
     "warnings": [
-      "The 2026-08-26 Master Plan review findings were repaired in the planning documents; Step 0 remains pending.",
+      "The latest 2026-08-26 Master Plan review findings were repaired: canonical Learning Design path, full docs/spec text audit boundary, PR 4A/4B sequencing, terminology persistence, and Fresh Learner Review Run boundary are now documented.",
       "Step 0 is pending: RA-M7 implementation, local validation, sanitizer Write/Check, and PR-ready diff review have not been executed yet.",
       "After Step 0, the Master Plan publication PR, PR-triggered CI, review, and merge-ready confirmation remain pending tasks in this run.",
       "Keep task_type as plan for this run. Set status=complete only after the final PR head, including finalized Run Artifacts, has green CI/review and is merge-ready. The actual merge is outside this run and GitHub PR is the source of truth for merge state."
