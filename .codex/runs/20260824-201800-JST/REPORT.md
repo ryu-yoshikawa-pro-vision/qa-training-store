@@ -283,3 +283,35 @@
 - Decision:
   - review finding repair は完了。active Run全体は未完了のため `stop_success` / `complete` にはしない。
 - Progress: 89% (41/46)
+
+## 2026-08-26 14:07 (JST)
+
+- Summary:
+  - 最新の徹底レビューで確認した6 findingを、既存Master Planの構造を維持したまま修正した。
+  - canonical path、Specification audit / edit境界、用語ルールの再発防止、PR 4A→4B順序、Final Fresh Learner Review Run境界を具体化した。
+- Input Findings:
+  - must_fix: canonical Learning Designは`00_learning-design.md`なのに、Master PlanのCurrent understanding / Candidate filesで`00_learning_design.md`が再登場していた。
+  - should_fix: PR 4Aで軽微な`docs/spec/**`変更を許す一方、PR 4A validationに`validate:spec`がなく、Specification変更境界が不整合だった。
+  - should_fix: Specification auditがCurriculumから直接参照するFeature spec中心で、Glossary / Product Scope / Role / State / UI-UX / Template等が漏れていた。
+  - should_fix: Terminology Decision Tableが一時判断だけで終わり、将来の表記揺れ再発防止ルールが既存正本へ残らない。
+  - should_fix: PR 4A / PR 4Bに分割した場合のbranch順序が未定義だった。
+  - should_fix: Final Fresh Learner Review用のRun生成・read-only責務・repair Run境界が未定義だった。
+- Completed:
+  - Master Plan全体のcanonical Learning Design pathを`docs/curriculum/test-automation/00_learning-design.md`へ再統一し、underscore表記はRA-M7のbroken validator literalだけに限定した。
+  - `docs/spec/**`のMarkdown / text contract全件をPR 4Aのaudit対象へ拡張し、binary / image assetは内容監査対象外とした。
+  - `docs/spec/**`に実変更が1件でも必要な場合は、軽微さに関係なくPR 4Bへ分離する単純な契約へ変更した。
+  - PR 4BはPR 4A merge後の最新`main`から作成し、stacked PRを使わない順序へ固定した。
+  - Terminology Decision Tableから将来も安定する最小ルールだけをCurriculum既存正本へ残し、Spec側は既存`docs/spec/glossary.md`と必要な`_templates/**`を利用する契約を追加した。
+  - Final Fresh Learner ReviewはPR 5 merge後の最新`main`から専用の新規read-only Runを作り、P0/P1修正は別bounded repair Run / branchで実施する契約へ変更した。
+  - TASKSへD37〜D42を追加し、今回のrepairを完了記録した。
+- Validation:
+  - 今回はMaster Plan / Run Artifactのplanning文書だけを変更した。
+  - RA-M7の実コード修正、`validate:curriculum` / `test:contracts` / `typecheck` / `format:check` / `lint:markdown` / Sanitizer Write・Checkはまだ未実施。
+  - Step 0未完了のためactive Run statusは`pending`を維持する。
+- Remaining:
+  - Step 0: RA-M7 required pathの最小実修正。
+  - Step 0 local validation / Sanitizer / PR-ready diff確認。
+  - Master Plan publication PRのfinal head CI / review / merge-ready確認。
+- Decision:
+  - review finding repairは完了。active Run全体は未完了のため`complete`にはしない。
+- Progress: 90% (47/52)
