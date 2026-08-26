@@ -243,3 +243,43 @@
   - local validation / Sanitizer / PR-ready diff確認。
   - Master Plan publication PR 作成 / final head CI / review / merge-ready確認。
 - Progress: 88% (35/40)
+
+## 2026-08-26 13:20 (JST)
+
+- Summary:
+  - 2026-08-26 の Master Plan 再レビューで残った6 finding を bounded repair した。
+  - 既存の PR 1〜5 / Phase 6 構造と Decision B は維持し、実装境界・レビュー可能性・Fresh Learner検証の曖昧さだけを解消した。
+- Input Findings:
+  - should_fix: PR 4 が Curriculum structure / terminology / Specification editorial を単一巨大diffへ集約し得る。
+  - should_fix: Repository planning rule が要求する Assumptions / Safe change surface / Unknowns が Master Plan で明示されていない。
+  - should_fix: 日本語 / 英語統一の判断が実装者ごとに揺れ得る。
+  - should_fix: Final Fresh Learner Review が既存設計知識で補完される可能性があり、fresh context と結果記録先が未定義。
+  - should_fix: Fresh Learner Review で P0 / P1 が見つかった場合、merge済みPRへ戻れないのに repair flow が曖昧。
+  - should_fix: RA-M8 の一回修正後に Test Case ID grammar drift が再発し得る。
+- Repair Plan / Allowed Files:
+  - `docs/plans/2026-08-24_201800_curriculum_test_strategy_remediation_master.md`
+  - `.codex/runs/20260824-201800-JST/PLAN.md`
+  - `.codex/runs/20260824-201800-JST/TASKS.md`
+  - `.codex/runs/20260824-201800-JST/REPORT.md`
+  - `.codex/runs/20260824-201800-JST/run.json`
+  - Product / Curriculum / Training implementation、RA-M7実コードは今回変更しない。
+- Completed:
+  - Master Plan の Current understanding 配下へ Assumptions / Safe change surface / Unknowns を追加した。
+  - PR 4 に Pre-change audit 後の split rule を追加し、必要な場合だけ PR 4A（Curriculum）/ PR 4B（semantics-preserving Specification editorial）へ分割する契約にした。
+  - PR 4 child Plan に実際に揺れている用語だけの Terminology Decision Table を追加し、新しい permanent glossary は作らない方針にした。
+  - RA-M8 は `training/workbook/README.md` を learner-facing grammar、validator を executable contract として揃え、bounded contract check と非canonical例検索を追加した。
+  - Final Fresh Learner Review は新規 Agent / Session を優先する fresh context で README から開始し、final-validation Run の `REPORT.md` へ結果を記録する契約にした。
+  - Fresh Learner Review の P0 / P1 は latest `main` から bounded repair branch で修正し、merge後に fresh context で README から再実行する契約にした。
+  - 同じ blocker の反復や新しいEvidenceなしの再試行は `docs/reference/repair-loop.md` の停止条件へ接続した。
+  - `PLAN.md` / `TASKS.md` を今回の repair と整合させた。
+- Validation:
+  - 今回は Master Plan / Run Artifact の planning文書だけを変更した。
+  - RA-M7 の実コード修正と `validate:curriculum` / `test:contracts` / `typecheck` / `format:check` / `lint:markdown` / Sanitizer Write・Check はまだ未実施。
+  - Step 0 未完了のため active Run status は `pending` を維持する。
+- Remaining:
+  - Step 0: RA-M7 required path の最小実修正。
+  - Step 0 local validation / Sanitizer / PR-ready diff確認。
+  - Master Plan publication PR 作成 / final head CI / review / merge-ready確認。
+- Decision:
+  - review finding repair は完了。active Run全体は未完了のため `stop_success` / `complete` にはしない。
+- Progress: 89% (41/46)
