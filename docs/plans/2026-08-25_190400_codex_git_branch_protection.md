@@ -186,3 +186,33 @@ Issue #60では、`git switch -c ... origin/main` は拒否された一方、`gi
 5. rollbackは今回の追加commit単位のrevertを使用し、rebase、amend、force push、reset、clean、branch削除、mainへの反映は行わない。
 
 今回の対象外は、完全なshell／Git parser、Bash／PowerShell AST、Git alias expansion、full Git config resolver、特殊Git plumbingの網羅、`command git`／`env git`、wrapper／arbitrary executable path、command substitution、`.git/refs/**`直接書換え、branch／worktree manager、PR expected branch state managerである。
+
+## 15. 最終source差分で追加するshell token境界
+
+### Git executable、subcommand、protected ref
+
+- Git safety判定に使用するGit executable、Git subcommand、Git option、branch／ref／refspec tokenは、Hookのraw文字列ではなく、通常のshell実行時にGitへ渡る実質的なtoken値を基準にする。
+- Git executable候補は、既存のshell boundary内で`git`または`git.exe`になる代表的なdouble quote、single quote、unquoted backslash escapeを限定的に認識する。`$GIT`、command substitution、`command git`、`env git`、shell function、alias、arbitrary absolute executable pathは対象外とする。
+- subcommandとsecurity-sensitive argumentは既存tokenizerのquote removalと限定的なunquoted backslash escape後の値で比較する。`git co\\mmit`、`git pu\\sh`、`git reb\\ase`、`git cl\\ean`、`m\\ain`を通常tokenと同じpolicyへ接続する。
+- 全backslashを一律削除しない。Windows path等のfilesystem tokenは既存挙動を維持し、安全に一意化できないmutation tokenはfail-closeする。
+
+### branch transition
+
+- `git switch -`と`git checkout -`は直前branchへの移動であり、branch-changing invocationとして扱う。
+- `switch -`／`checkout -`単体はbranch movementとしてALLOWを維持するが、同一shell command内で後続にcontext-sensitive Git mutationがある場合は、branch stateをsimulationせずcommand全体をG10でfail-closeする。
+- `git checkout -- <path>`はbranch transitionに含めず、既存のcheckout mutation判定を維持する。
+
+### PowerShell location transition
+
+- `Push-Location`と`Pop-Location`を、`cd`、`chdir`、`pushd`、`Set-Location`、`sl`と同じcwd-changing shell operation familyとして扱う。
+- location変更後にcontext-sensitive Git mutationが続くcompound commandは、戻り先や実行時repositoryをsimulationせずG10でfail-closeする。
+- location変更後のread-only Git commandとlocation変更単独は、既存のALLOW semanticsを維持する。
+
+### 実装と検証
+
+1. 既存のnormalize → tokenize → Git invocation parse → operation evaluationの流れを拡張し、専用のshell parser、Git parser、AST、state machineを追加しない。
+2. `isBranchChangingInvocation()`へ単独`-`を追加し、cwd-changing operationのmatcherへ`Push-Location`／`Pop-Location`を追加する。
+3. contract testへexecutable、escaped subcommand、escaped protected ref、`switch -`／`checkout -` compound、Push／Pop-Locationのdeny／allowを実際のassertとして追加する。
+4. focused contract、全contracts、format、markdown lint、lint、typecheck、verify、diff check、Run Artifact sanitizer、Windows launcher contractを実行し、test件数は実測値を記録する。
+
+今回のsource差分でも、完全なshell／Git parser、Bash／PowerShell AST、特殊Git plumbing網羅、wrapper、arbitrary executable path、command substitution、`.git/refs/**`直接書換え、branch／worktree manager、PR expected branch state managerは対象外とする。

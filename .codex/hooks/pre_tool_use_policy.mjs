@@ -263,6 +263,15 @@ function normalizeShellContinuations(segment) {
   return normalized;
 }
 
+function normalizeShellSecurityToken(value) {
+  return value.replace(/\\(?=[A-Za-z0-9_.:/@+=*+-])/g, "");
+}
+
+function isGitExecutableToken(value) {
+  const normalized = normalizeShellSecurityToken(value).toLowerCase();
+  return normalized === "git" || normalized === "git.exe";
+}
+
 function canNormalizeUnquotedOptionEscape(tokenValue) {
   return /^--?[A-Za-z]*$/.test(tokenValue);
 }
@@ -276,7 +285,7 @@ function tokenizeGitArguments(segment) {
 
   const appendToken = (end) => {
     if (tokenStart === null) return;
-    tokens.push({ value: tokenValue, end });
+    tokens.push({ value: tokenValue, start: tokenStart, end });
     tokenStart = null;
     tokenValue = "";
   };
@@ -460,7 +469,7 @@ function parseGitInvocation(segment) {
     parseError ??= "missing Git subcommand";
   }
   return {
-    subcommand: subcommandToken?.value.toLowerCase() ?? "",
+    subcommand: subcommandToken ? normalizeShellSecurityToken(subcommandToken.value).toLowerCase() : "",
     argumentTokens: subcommandToken ? tokens.slice(tokenIndex + 1).map(({ value }) => value) : [],
     changeDirectories,
     repositoryChanging,
@@ -472,21 +481,38 @@ function parseGitInvocation(segment) {
 
 function getGitInvocations(command) {
   const invocations = [];
-  const pattern = /(?:^|[\r\n;&|])(?<prefix>[ \t]*(?:(?:[A-Za-z_][A-Za-z0-9_]*|\$env:[A-Za-z_][A-Za-z0-9_]*)=(?:"(?:\\.|[^"])*"|'[^']*'|[^\s\r\n;&|]*)[ \t]+)*)(?:git(?:\.exe)?)(?=\s|$)(?<arguments>[^\r\n;&|]*)/gi;
-  for (const match of command.matchAll(pattern)) {
-    const prefix = match.groups?.prefix ?? "";
-    const parsed = parseGitInvocation(match.groups?.arguments ?? "");
+  let segmentStart = 0;
+
+  const evaluateSegment = (segmentEnd) => {
+    const segment = command.slice(segmentStart, segmentEnd);
+    const tokenized = tokenizeGitArguments(segment);
+    let commandTokenIndex = 0;
+    while (/^(?:\$env:)?[A-Za-z_][A-Za-z0-9_]*=/.test(tokenized.tokens[commandTokenIndex]?.value ?? "")) {
+      commandTokenIndex += 1;
+    }
+    const commandToken = tokenized.tokens[commandTokenIndex];
+    if (!commandToken || !isGitExecutableToken(commandToken.value)) return;
+
+    const prefix = segment.slice(0, commandToken.start);
+    const parsed = parseGitInvocation(segment.slice(commandToken.end));
     const inlineEnvironment = parseInlineEnvironment(prefix);
-    const persistentEnvironment = hasPersistentGitEnvironmentChange(command.slice(0, match.index ?? 0));
+    const persistentEnvironment = hasPersistentGitEnvironmentChange(command.slice(0, segmentStart + commandToken.start));
     invocations.push({
       ...parsed,
       repositoryEnvironmentChanging:
         inlineEnvironment.repositoryEnvironmentChanging || persistentEnvironment.repositoryEnvironmentChanging,
       runtimeEnvironmentChanging:
         inlineEnvironment.runtimeEnvironmentChanging || persistentEnvironment.runtimeEnvironmentChanging,
-      sourceIndex: match.index ?? 0,
+      sourceIndex: segmentStart + commandToken.start,
     });
+  };
+
+  for (let index = 0; index < command.length; index += 1) {
+    if (!/[\r\n;&|]/.test(command[index])) continue;
+    evaluateSegment(index);
+    segmentStart = index + 1;
   }
+  evaluateSegment(command.length);
   return invocations;
 }
 
@@ -529,10 +555,11 @@ function isReadOnlyGitConfig(argumentsList) {
 }
 
 function isBranchChangingInvocation(invocation) {
-  const argumentsList = invocation.argumentTokens;
+  const argumentsList = invocation.argumentTokens.map(normalizeShellSecurityToken);
   if (invocation.subcommand === "switch") {
     if (argumentsList.length === 0 || argumentHasLongOption(argumentsList, "--show-current")) return false;
     return (
+      argumentsList.includes("-") ||
       argumentsList.some((argument) => !argument.startsWith("-")) ||
       argumentsList.some((argument) => /^(?:--(?:create|force-create|detach|orphan)(?:=|$)|-[cCdD])/.test(argument))
     );
@@ -542,13 +569,16 @@ function isBranchChangingInvocation(invocation) {
   const beforeSeparator = separatorIndex >= 0 ? argumentsList.slice(0, separatorIndex) : argumentsList;
   if (beforeSeparator.length === 0) return false;
   return (
+    beforeSeparator.includes("-") ||
     beforeSeparator.some((argument) => !argument.startsWith("-")) ||
     beforeSeparator.some((argument) => /^(?:--(?:orphan)(?:=|$)|-[bB])/.test(argument))
   );
 }
 
 function hasCwdChangingShellOperation(commandPrefix) {
-  return /(?:^|[\r\n;&|])[ \t]*(?:cd|chdir|pushd|set-location|sl)(?=\s|$)/i.test(commandPrefix);
+  return /(?:^|[\r\n;&|])[ \t]*(?:cd|chdir|pushd|set-location|sl|push-location|pop-location)(?=\s|$|[\r\n;&|])/i.test(
+    commandPrefix,
+  );
 }
 
 function evaluateCompoundContextTransition(invocation, invocations, command) {
@@ -698,7 +728,7 @@ function getEffectiveGitCwd(invocation, cwd) {
 }
 
 function normalizedRef(value) {
-  return value
+  return normalizeShellSecurityToken(value)
     .trim()
     .replace(/^refs\/(?:heads|remotes\/origin)\//i, "")
     .replace(/^origin\//i, "");
@@ -711,7 +741,7 @@ function isProtectedRef(value, protectedBranches) {
 }
 
 function isProtectedLocalRef(value, protectedBranches) {
-  const normalizedValue = value.trim();
+  const normalizedValue = normalizeShellSecurityToken(value).trim();
   if (/^refs\/(?:remotes|tags)\//i.test(normalizedValue)) return false;
   if (/^origin\//i.test(normalizedValue)) return false;
   return isProtectedRef(normalizedValue, protectedBranches);
@@ -824,11 +854,12 @@ function parsePushArguments(argumentsList) {
 }
 
 function getPushDestination(refspec, currentBranch) {
-  if (refspec === ":" || refspec.startsWith(":")) return { kind: "delete" };
-  if (refspec.startsWith("+")) return { kind: "force" };
-  if (refspec.includes("*")) return { kind: "wildcard" };
-  const separator = refspec.lastIndexOf(":");
-  const destination = separator >= 0 ? refspec.slice(separator + 1) : refspec;
+  const normalizedRefspec = normalizeShellSecurityToken(refspec);
+  if (normalizedRefspec === ":" || normalizedRefspec.startsWith(":")) return { kind: "delete" };
+  if (normalizedRefspec.startsWith("+")) return { kind: "force" };
+  if (normalizedRefspec.includes("*")) return { kind: "wildcard" };
+  const separator = normalizedRefspec.lastIndexOf(":");
+  const destination = separator >= 0 ? normalizedRefspec.slice(separator + 1) : normalizedRefspec;
   if (!destination) return { kind: "delete" };
   return {
     kind: "explicit",
@@ -923,12 +954,13 @@ function evaluateGitFetchLike(invocation, context, operation) {
   }
 
   for (const refspec of parsed.refspecs) {
-    if (refspec.includes("*")) {
+    const normalizedRefspec = normalizeShellSecurityToken(refspec);
+    if (normalizedRefspec.includes("*")) {
       return { id: "G10", reason: "G10: wildcard fetch destinations cannot be determined safely." };
     }
-    const separator = refspec.lastIndexOf(":");
+    const separator = normalizedRefspec.lastIndexOf(":");
     if (separator < 0) continue;
-    const destination = refspec.slice(separator + 1);
+    const destination = normalizedRefspec.slice(separator + 1);
     if (destination && isProtectedLocalRef(destination, context.protectedBranches)) {
       return { id: "G10", reason: "G10: fetch cannot update a protected local branch." };
     }
@@ -974,10 +1006,11 @@ function evaluateGitUpdateRef(invocation, context) {
   if (!target) {
     return { id: "G10", reason: "G10: update-ref target cannot be determined safely." };
   }
+  const normalizedTarget = normalizeShellSecurityToken(target);
   if (
-    target.toUpperCase() === "HEAD"
+    normalizedTarget.toUpperCase() === "HEAD"
       ? isProtectedRef(context.currentBranch, context.protectedBranches)
-      : isProtectedLocalRef(target, context.protectedBranches)
+      : isProtectedLocalRef(normalizedTarget, context.protectedBranches)
   ) {
     return { id: "G10", reason: "G10: update-ref cannot change a protected local branch." };
   }

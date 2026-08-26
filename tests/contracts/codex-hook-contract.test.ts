@@ -913,6 +913,254 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
     expect(evaluations.map((evaluation) => evaluation.decision?.id)).toEqual(["G10", "G7", "G10"]);
   });
 
+  it("normalizes quoted and escaped Git executables and subcommands", () => {
+    const featureContext = {
+      currentBranch: "feature/safe",
+      protectedBranches: ["main", "master"],
+      remoteNames: ["origin"],
+    };
+    const protectedContext = { ...featureContext, currentBranch: "main" };
+    const cases: PolicyCase[] = [
+      {
+        id: "quoted-executable-commit",
+        expected: "deny",
+        command: '"git" commit -m bad',
+        context: protectedContext,
+      },
+      {
+        id: "single-quoted-executable-commit",
+        expected: "deny",
+        command: "'g'it commit -m bad",
+        context: protectedContext,
+      },
+      {
+        id: "escaped-executable-commit",
+        expected: "deny",
+        command: "g\\it commit -m bad",
+        context: protectedContext,
+      },
+      {
+        id: "quoted-executable-force",
+        expected: "deny",
+        command: '"git.exe" push --force origin feature/safe',
+        context: featureContext,
+      },
+      {
+        id: "escaped-executable-safe-read",
+        expected: "allow",
+        command: "git\\.exe status",
+        context: featureContext,
+      },
+      {
+        id: "escaped-subcommand-commit",
+        expected: "deny",
+        command: "git co\\mmit -m bad",
+        context: protectedContext,
+      },
+      {
+        id: "quoted-subcommand-commit",
+        expected: "deny",
+        command: 'git "commit" -m bad',
+        context: protectedContext,
+      },
+      {
+        id: "escaped-subcommand-force",
+        expected: "deny",
+        command: "git pu\\sh --force origin feature/safe",
+        context: featureContext,
+      },
+      {
+        id: "quoted-subcommand-force",
+        expected: "deny",
+        command: "git 'push' --force origin feature/safe",
+        context: featureContext,
+      },
+      {
+        id: "escaped-subcommand-rebase",
+        expected: "deny",
+        command: "git reb\\ase main",
+        context: featureContext,
+      },
+      {
+        id: "escaped-subcommand-clean",
+        expected: "deny",
+        command: "git cl\\ean -fd",
+        context: featureContext,
+      },
+    ];
+    const result = runNodeHookWithExplicitContexts(cases);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
+    expect(evaluations).toHaveLength(cases.length);
+    const expectedDecisionIds: (string | null)[] = [
+      "G10",
+      "G10",
+      "G10",
+      "G7",
+      null,
+      "G10",
+      "G10",
+      "G7",
+      "G7",
+      "G2",
+      "G4",
+    ];
+    expect(evaluations.map((evaluation) => evaluation.decision?.id ?? null)).toEqual(
+      expectedDecisionIds,
+    );
+  });
+
+  it("normalizes escaped and quoted protected branch and ref targets", () => {
+    const context = {
+      currentBranch: "feature/safe",
+      protectedBranches: ["main", "master"],
+      remoteNames: ["origin"],
+    };
+    const cases: PolicyCase[] = [
+      { id: "push-escaped-main", expected: "deny", command: "git push origin m\\ain", context },
+      {
+        id: "push-escaped-head-main",
+        expected: "deny",
+        command: "git push origin HEAD:m\\ain",
+        context,
+      },
+      {
+        id: "push-escaped-full-main",
+        expected: "deny",
+        command: "git push origin feature:refs/heads/m\\ain",
+        context,
+      },
+      { id: "push-quoted-main", expected: "deny", command: 'git push origin "main"', context },
+      {
+        id: "branch-delete-escaped-main",
+        expected: "deny",
+        command: "git branch -d m\\ain",
+        context,
+      },
+      {
+        id: "branch-delete-quoted-main",
+        expected: "deny",
+        command: 'git branch -d "main"',
+        context,
+      },
+      {
+        id: "branch-rename-escaped-main",
+        expected: "deny",
+        command: "git branch -m m\\ain old-main",
+        context,
+      },
+      {
+        id: "update-ref-escaped-main",
+        expected: "deny",
+        command: "git update-ref refs/heads/m\\ain 0123456789",
+        context,
+      },
+      {
+        id: "update-ref-quoted-main",
+        expected: "deny",
+        command: 'git update-ref "refs/heads/main" 0123456789',
+        context,
+      },
+      {
+        id: "fetch-escaped-main",
+        expected: "deny",
+        command: "git fetch origin feature:refs/heads/m\\ain",
+        context,
+      },
+      {
+        id: "pull-escaped-main",
+        expected: "deny",
+        command: "git pull origin feature:refs/heads/m\\ain",
+        context,
+      },
+    ];
+    const result = runNodeHookWithExplicitContexts(cases);
+
+    expect(result.status).toBe(0);
+    expect(result.stderr).toBe("");
+    const evaluations = JSON.parse(result.stdout) as ContextualEvaluation[];
+    expect(evaluations).toHaveLength(cases.length);
+    for (const [index, evaluation] of evaluations.entries()) {
+      expect(evaluation.id).toBe(cases[index]?.id);
+      expect(evaluation.decision?.id, cases[index]?.id).toBe("G10");
+    }
+  });
+
+  it("guards switch and location transitions before later Git mutations", () => {
+    const context = {
+      currentBranch: "feature/safe",
+      protectedBranches: ["main", "master"],
+      remoteNames: ["origin"],
+    };
+    const deniedCases: PolicyCase[] = [
+      {
+        id: "switch-previous-branch-then-commit",
+        expected: "deny",
+        command: "git switch - && git commit -m bad",
+        context,
+      },
+      {
+        id: "checkout-previous-branch-then-commit",
+        expected: "deny",
+        command: "git checkout - && git commit -m bad",
+        context,
+      },
+      {
+        id: "push-location-then-commit",
+        expected: "deny",
+        command: "Push-Location ../protected; git commit -m bad",
+        context,
+      },
+      {
+        id: "pop-location-then-commit",
+        expected: "deny",
+        command: "Pop-Location; git commit -m bad",
+        context,
+      },
+    ];
+    const deniedResult = runNodeHookWithExplicitContexts(deniedCases);
+
+    expect(deniedResult.status).toBe(0);
+    expect(deniedResult.stderr).toBe("");
+    const deniedEvaluations = JSON.parse(deniedResult.stdout) as ContextualEvaluation[];
+    expect(deniedEvaluations).toHaveLength(deniedCases.length);
+    for (const [index, evaluation] of deniedEvaluations.entries()) {
+      expect(evaluation.id).toBe(deniedCases[index]?.id);
+      expect(evaluation.decision?.id, deniedCases[index]?.id).toBe("G10");
+    }
+
+    const allowedCases: PolicyCase[] = [
+      { id: "switch-previous-branch-alone", expected: "allow", command: "git switch -", context },
+      {
+        id: "checkout-previous-branch-alone",
+        expected: "allow",
+        command: "git checkout -",
+        context,
+      },
+      {
+        id: "push-location-then-status",
+        expected: "allow",
+        command: "Push-Location ../other; git status",
+        context,
+      },
+      {
+        id: "pop-location-then-status",
+        expected: "allow",
+        command: "Pop-Location; git status",
+        context,
+      },
+    ];
+    const allowedResult = runNodeHookWithExplicitContexts(allowedCases);
+
+    expect(allowedResult.status).toBe(0);
+    expect(allowedResult.stderr).toBe("");
+    expect(JSON.parse(allowedResult.stdout)).toEqual(
+      allowedCases.map((testCase) => ({ id: testCase.id, decision: null })),
+    );
+  });
+
   it("fails closed for implicit, bulk, matching, wildcard, and URL-only push forms", () => {
     const context = {
       currentBranch: "feature/safe",
