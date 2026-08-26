@@ -382,7 +382,7 @@ PR 1 / PR 4 では追加で次を確認する。
 
 この Matrix は、Finding の予定 Disposition、Primary owner、Follow-up verification を定義する実行割当表とする。進捗や完了状態はこの Matrix では管理しない。
 
-実際の対応結果は、各 child Plan / PR、Phase 6 durable report で記録・確認する。
+実際の対応結果は、各 child Plan / PR、Phase 6 durable report、Run Artifact で記録・確認する。
 
 | ID | Finding | Planned disposition | Primary owner | Follow-up verification |
 | --- | --- | --- | --- | --- |
@@ -439,17 +439,18 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 
 1. Step 0: Master Plan publication PR に含める RA-M7 の最小修正と local validation を完了する。
 2. Master Plan publication PR を作成し、GitHub CI / review を通して merge-ready にする。
-3. ユーザーの明示承認後に Master Plan publication PR を `main` へ merge する。
-4. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。RA-M8 をここで解消する。
-5. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
-6. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。ここで対象受講者像、Repository-required curriculum asset / Learner Required path、Learner-facing Rubric、Instructor Referenceの責務境界を正本化する。
-7. PR 3 merge 後の最新 `main` から PR 4A branch を作る。実装前に Learner Required path 全文、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract 全件を監査し、P0〜P3 Finding と Terminology Decision Table を child Plan に記録する。PR 4A では Curriculum Core / Extension / Reference / language / learning-flow / self-study remediation、継続的な初見受講者レビュー用チェック表の追加、Curriculum側の安定した用語ルール反映を実施する。
-8. Spec監査で `docs/spec/**` に実変更が1件でも必要と判定した場合は、PR 4A merge 後の最新 `main` から PR 4B branch を作り、semantics-preserving Specification editorial を実施する。Spec実変更が不要なら PR 4B は作らない。
-9. PR 4 stage（PR 4A、必要な場合は PR 4B）merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
-10. PR 5 では継続レビュー用チェック表の command / Artifact / Environment block 観点が実際のTraining入口と矛盾しないことを確認する。
-11. Phase 6 は PR 2 merge 後から PR 3〜5 と並行して調査してよい。decision-only PR は最新 `main` へ追従して確定する。
-12. Repository remediation 完了後は、§18 のチェック表を使った初見受講者レビューを継続タスクとして運用する。実際のレビュー実施・PASSは本 Master Plan の完了条件に含めない。
-13. 必要に応じて Pilot Feedback を収集する。
+3. Run Artifact を merge-ready の final PR head で確定する。
+4. ユーザーの明示承認後に Master Plan publication PR を `main` へ merge する。
+5. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。RA-M8 をここで解消する。
+6. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
+7. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。ここで対象受講者像、Repository-required curriculum asset / Learner Required path、Learner-facing Rubric、Instructor Referenceの責務境界を正本化する。
+8. PR 3 merge 後の最新 `main` から PR 4A branch を作る。実装前に Learner Required path 全文、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract 全件を監査し、P0〜P3 Finding と Terminology Decision Table を child Plan に記録する。PR 4A では Curriculum Core / Extension / Reference / language / learning-flow / self-study remediation、継続的な初見受講者レビュー用チェック表の追加、Curriculum側の安定した用語ルール反映を実施する。
+9. Spec監査で `docs/spec/**` に実変更が1件でも必要と判定した場合は、PR 4A merge 後の最新 `main` から PR 4B branch を作り、semantics-preserving Specification editorial を実施する。Spec実変更が不要なら PR 4B は作らない。
+10. PR 4 stage（PR 4A、必要な場合は PR 4B）merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
+11. PR 5 では継続レビュー用チェック表の command / Artifact / Environment block 観点が実際のTraining入口と矛盾しないことを確認する。
+12. Phase 6 は PR 2 merge 後から PR 3〜5 と並行して調査してよい。decision-only PR は最新 `main` へ追従して確定する。
+13. Repository remediation 完了後は、§18 のチェック表を使った初見受講者レビューを継続タスクとして運用する。実際のレビュー実施・PASSは本 Master Plan の完了条件に含めない。
+14. 必要に応じて Pilot Feedback を収集する。
 
 ### Branch / PR rules
 
@@ -472,6 +473,7 @@ Master Plan branch 上で次だけを変更する。
 
 - `scripts/validate-curriculum.ts` の required curriculum path を `00_learning_design.md` から `00_learning-design.md` へ変更する。
 - `tests/contracts/training-curriculum.test.ts` が同じ誤 literal を直接保持している場合だけ、その literal を最小修正する。
+- active Run Artifact を実状態へ更新する。
 
 次は変更しない。
 
@@ -482,6 +484,16 @@ Master Plan branch 上で次だけを変更する。
 - Product behavior / Formal Test / Product CI
 - PR 1 以降の remediation
 
+### Run Artifact handling
+
+- active Run `20260824-201800-JST` を継続使用する。
+- `run.json.task_type` は `plan` のまま維持する。
+- 実変更は `run.json.changed_files` に追加する。
+- Validation 実行結果は `run.json.validation` と `REPORT.md` に記録する。
+- `REPORT.md` は append-only とする。
+- Run は Master Plan publication PR が final head で merge-ready になった時点で完了する。
+- Run 完了後の実際の merge 状態は GitHub PR を正本とし、merge 後に Run Artifact を追加更新しない。
+
 ### Local validation
 
 次を実行する。
@@ -491,6 +503,10 @@ Master Plan branch 上で次だけを変更する。
 - `pnpm run typecheck`
 - `pnpm run format:check`
 - `pnpm run lint:markdown`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Write`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Check`
+
+Sanitizer Write が Run Artifact を変更した場合は、その変更を確認してから Check を再実行する。
 
 ### Step 0 completion
 
@@ -499,7 +515,8 @@ Master Plan branch 上で次だけを変更する。
 - RA-M7 の filename mismatch が解消されている。
 - `validate:curriculum` / `test:contracts` が filename mismatch で失敗しない。
 - typecheck / format / markdown lint が PASS する。
-- diff が Master Plan と RA-M7最小修正だけに限定されている。
+- Sanitizer Check の residual finding が0件である。
+- diff が Master Plan、active Run Artifact、RA-M7最小修正だけに限定されている。
 - PRを作成できる状態になっている。
 
 GitHub pull request の作成、PR-triggered CI、review、merge は Step 0 に含めない。
@@ -511,6 +528,7 @@ Step 0 完了後に Master Plan publication PR を作成する。
 ### PR contents
 
 - `docs/plans/2026-08-24_201800_curriculum_test_strategy_remediation_master.md`
+- `.codex/runs/20260824-201800-JST/**`
 - RA-M7 の最小修正
 
 ### Required checks
@@ -518,8 +536,11 @@ Step 0 完了後に Master Plan publication PR を作成する。
 1. PR diff が Step 0 scope 内であることを確認する。
 2. GitHub Actions の pull request CI を完了させる。
 3. review finding がある場合は、今回の diff に起因するものだけ bounded repair する。
-4. final head が green で merge-ready であることを確認する。
-5. merge はユーザーの明示承認後に行う。
+4. local validation / CI / review が green になったら、Run Artifact に PR、final head、Validation / CI / review 結果、残タスクなしを記録し、`run.json.status` を `complete` にする。
+5. Run Artifact の最終化を含む final head で pull request CI が PASS していることを確認する。失敗した場合は `status` を `pending` に戻して必要な bounded repair を行う。
+6. final head が green で merge-ready であることを確認する。
+7. merge はユーザーの明示承認後に行う。
+8. merge 後は GitHub PR を merge 状態の正本とし、Run Artifact を追加更新しない。
 
 Master Plan publication PR が merge されるまで PR 1〜5 / Phase 6 の実変更を開始しない。
 
