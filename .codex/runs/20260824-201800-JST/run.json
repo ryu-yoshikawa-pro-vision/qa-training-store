@@ -21,7 +21,8 @@
     "status": "not_run",
     "commands": [],
     "warnings": [
-      "The 2026-08-26 self-study curriculum boundary review was repaired in the planning documents: environment/toolchain support remains allowed, while required learning content, self-check, learning recovery, and completion must be learner-facing.",
+      "The 2026-08-26 self-study review findings were repaired in the planning documents: repository-required curriculum assets are separated from the Learner Required path; Instructor Reference remains a support asset, not learner-required material.",
+      "Final Fresh Learner Review is now constrained to the documented target learner profile, requires concrete self-check criteria, and must return not_validated rather than PASS when Common Core required exercises remain unexecuted due to environment/toolchain blocks.",
       "Step 0 is pending: RA-M7 implementation, local validation, sanitizer Write/Check, and PR-ready diff review have not been executed yet.",
       "After Step 0, PR-triggered CI, review, final Run Artifact completion, and merge-ready confirmation remain pending tasks in this run.",
       "Keep task_type as plan for this run. Set status=complete only after the final PR head, including finalized Run Artifacts, has green CI/review and is merge-ready. The actual merge is outside this run and GitHub PR is the source of truth for merge state."
