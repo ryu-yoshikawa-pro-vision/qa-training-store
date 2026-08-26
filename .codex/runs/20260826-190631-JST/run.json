@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "run_id": "20260826-190631-JST",
+  "task_type": "investigation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "security/image-size-remediation-investigation",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    "docs/reports/2026-08-26_193322_image-size-vulnerability-remediation-investigation.md",
+    ".codex/runs/20260826-190631-JST/PLAN.md",
+    ".codex/runs/20260826-190631-JST/TASKS.md",
+    ".codex/runs/20260826-190631-JST/REPORT.md",
+    ".codex/runs/20260826-190631-JST/run.json"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm install --frozen-lockfile --ignore-scripts",
+      "pnpm why image-size",
+      "pnpm why metro",
+      "公式GHSA / npm / upstream / Dependabot API照合",
+      "exact Metro source / Repository asset / input path read-only inspection",
+      "sanitizer -Write",
+      "sanitizer -Check",
+      "pnpm run lint:markdown",
+      "git diff baseline..HEAD -- package.json pnpm-lock.yaml",
+      "git diff --name-only baseline..HEAD",
+      "git status --short",
+      "dependency / application / build / CI semantic scope check",
+      "git diff --check baseline..HEAD"
+    ],
+    "warnings": [
+      "Native / Web buildはPlanの必要条件に該当しないため未実施。別Runのtargeted remediation validationで実施する。"
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": true,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": null,
+  "status": "completed",
+  "primary_failure_category": null
+}

@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "run_id": "20260826-185403-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "指定された3系統とPowerShell alias `popd`の実装、regression test、focused／full validation、self-reviewが完了している。",
+      "evidence_refs": [
+        { "kind": "changed_file", "path": ".codex/hooks/pre_tool_use_policy.mjs", "selector": "normalizeShellSecurityToken, isGitExecutableToken, isBranchChangingInvocation, hasCwdChangingShellOperation(popd)", "summary": "今回のpolicy実装を確認した。" },
+        { "kind": "changed_file", "path": "tests/contracts/codex-hook-contract.test.ts", "selector": "normalizes quoted and escaped Git executables and subcommands; normalizes escaped and quoted protected branch and ref targets; guards switch and location transitions before later Git mutations", "summary": "今回のregression testを確認した。" }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はpolicy、contract test、既存plan、今回Run Artifactに限定され、Windows launcher、package、lockfile、dependency、wrapper、parser拡張は変更していない。",
+      "evidence_refs": [
+        { "kind": "validation_command", "path": null, "selector": "git diff --name-only", "summary": "変更対象が許可された範囲に収まることを確認した。" }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "focused 99 tests、全contracts 427 tests、format、markdown lint、lint、typecheck、verify、diff checkが最終状態でPASSした。",
+      "evidence_refs": [
+        { "kind": "validation_command", "path": null, "selector": "pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1", "summary": "focused contract 99 testsがPASSした。" },
+        { "kind": "validation_command", "path": null, "selector": "pnpm run verify", "summary": "統一verifyと内包contracts 427 testsがPASSした。" }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "mainへのcommit／push、force push、rebase、amend、reset --hard、clean、branch -D、destructive Git commandの実実行は行っていない。",
+      "evidence_refs": [
+        { "kind": "evaluation_note", "path": null, "selector": null, "summary": "危険操作はHookの判定文字列としてのみ検証した。" }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "token normalization、branch transition、cwd transition（`popd`を含む）を既存のnormalize→tokenize→invocation evaluationの流れへ最小差分で追加し、対象外の完全parserを導入していない。",
+      "evidence_refs": [
+        { "kind": "changed_file", "path": ".codex/hooks/pre_tool_use_policy.mjs", "selector": "getGitInvocations, parseGitInvocation", "summary": "既存invocation評価へ統合されていることを確認した。" }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Git executable、subcommand、protected ref等のsecurity-sensitive tokenだけを限定正規化し、filesystem pathのbackslashを一律除去していない。",
+      "evidence_refs": [
+        { "kind": "changed_file", "path": ".codex/hooks/pre_tool_use_policy.mjs", "selector": "normalizeShellSecurityToken", "summary": "限定的な正規化実装を確認した。" }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "実行コマンド、テスト件数、初回format failureの修正内容、既存warningをRun REPORTへ記録している。",
+      "evidence_refs": [
+        { "kind": "changed_file", "path": ".codex/runs/20260826-185403-JST/REPORT.md", "selector": "2026-08-26 19:28", "summary": "検証結果とself-review記録を確認した。" }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

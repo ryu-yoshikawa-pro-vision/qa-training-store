@@ -1,10 +1,15 @@
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { createRequire } from "node:module";
+import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { parseCsv, validateCurriculum, validateWorkbook } from "../../scripts/validate-curriculum";
 import { buildMaestroInvocation } from "../../scripts/training/maestro-invocation";
 import { resolveTrainingAndroidSerial } from "../../scripts/training/serial-resolution";
 import { validateTrainingWorkflow } from "../../scripts/training/workflow-contract";
+
+const require = createRequire(import.meta.url);
+const tsxCli = require.resolve("tsx/cli");
 
 describe("Training curriculum contracts", () => {
   it("keeps the required curriculum and Training entrypoints connected", () => {
@@ -316,6 +321,99 @@ jobs:
     expect(trainingStep).not.toContain("maestro test");
     expect(standaloneWorkflow).toContain("pnpm run training:native:baseline");
   });
+
+  it("archives every source workflow before installing the Training workflows", () => {
+    const repositoryRoot = process.cwd();
+    const sourceRoot = mkdtempSync(join(tmpdir(), "training-copy-workflow-source-"));
+    const targetParent = mkdtempSync(join(tmpdir(), "training-copy-workflow-target-"));
+    const targetRoot = join(targetParent, "copy");
+    const sourceWorkflows = new Map([
+      ["ci.yml", "name: source-ci\n"],
+      ["native-ci.yml", "name: source-native-ci\n"],
+      ["native-ios-ci.yml", "name: source-native-ios-ci\n"],
+      ["cross-browser-smoke.yml", "name: source-cross-browser-smoke\n"],
+      ["additional-source.yaml", "name: source-additional\n"],
+    ]);
+
+    try {
+      writeFileSync(join(sourceRoot, ".gitattributes"), "* text=auto eol=lf\n", "utf8");
+      mkdirSync(join(sourceRoot, ".github", "workflows"), { recursive: true });
+      mkdirSync(join(sourceRoot, "training", "github-actions"), { recursive: true });
+      for (const [workflowName, contents] of sourceWorkflows) {
+        writeFileSync(join(sourceRoot, ".github", "workflows", workflowName), contents, "utf8");
+      }
+      for (const workflowName of ["training-ci.yml", "training-native-ci.yml"]) {
+        writeFileSync(
+          join(sourceRoot, "training", "github-actions", workflowName),
+          readFileSync(resolve(repositoryRoot, `training/github-actions/${workflowName}`), "utf8"),
+          "utf8",
+        );
+      }
+
+      execFileSync("git", ["init", "--quiet"], { cwd: sourceRoot, stdio: "pipe" });
+      execFileSync("git", ["config", "user.name", "Training Copy Contract"], {
+        cwd: sourceRoot,
+        stdio: "pipe",
+      });
+      execFileSync("git", ["config", "user.email", "training-copy-contract@example.test"], {
+        cwd: sourceRoot,
+        stdio: "pipe",
+      });
+      execFileSync("git", ["add", "--all"], { cwd: sourceRoot, stdio: "pipe" });
+      execFileSync("git", ["commit", "--quiet", "--message", "training copy fixture"], {
+        cwd: sourceRoot,
+        stdio: "pipe",
+      });
+      const sourceSha = execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: sourceRoot,
+        encoding: "utf8",
+        stdio: ["ignore", "pipe", "pipe"],
+      }).trim();
+
+      execFileSync(
+        process.execPath,
+        [
+          tsxCli,
+          resolve(repositoryRoot, "scripts/training/prepare-training-copy.ts"),
+          "--source-sha",
+          sourceSha,
+          "--target",
+          targetRoot,
+        ],
+        { cwd: sourceRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      );
+
+      const activeWorkflowDirectory = join(targetRoot, ".github", "workflows");
+      const archiveDirectory = join(targetRoot, ".github", "training-copy-source-workflows");
+      const activeWorkflows = readdirSync(activeWorkflowDirectory)
+        .filter((name) => name.endsWith(".yml") || name.endsWith(".yaml"))
+        .sort();
+      const archivedWorkflows = readdirSync(archiveDirectory)
+        .filter((name) => name.endsWith(".yml") || name.endsWith(".yaml"))
+        .sort();
+
+      expect(activeWorkflows).toEqual(["training-ci.yml", "training-native-ci.yml"]);
+      expect(archivedWorkflows).toEqual([...sourceWorkflows.keys()].sort());
+      for (const [workflowName, contents] of sourceWorkflows) {
+        expect(readFileSync(join(archiveDirectory, workflowName), "utf8")).toBe(contents);
+      }
+
+      const validationOutput = execFileSync(
+        process.execPath,
+        [
+          tsxCli,
+          resolve(repositoryRoot, "scripts/training/validate-training-copy.ts"),
+          "--root",
+          targetRoot,
+        ],
+        { cwd: targetRoot, encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+      );
+      expect(validationOutput).toContain(`Training Copy validation passed for ${sourceSha}`);
+    } finally {
+      rmSync(targetParent, { recursive: true, force: true });
+      rmSync(sourceRoot, { recursive: true, force: true });
+    }
+  }, 30_000);
 
   it("parses quoted CSV fields and rejects broken workbook references", () => {
     expect(parseCsv("\uFEFFa,b\r\n1,2\r\n")).toEqual([

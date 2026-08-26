@@ -1,27 +1,27 @@
-## Summary
+## 概要
 
-<!-- What is the purpose of this change? -->
+<!-- 変更の目的を記載します。 -->
 
-## Changes
+## 変更内容
 
-<!-- What changed? -->
+<!-- 変更した内容を記載します。 -->
 
-## Scope / Non-goals
+## 対象範囲 / 対象外
 
-<!-- State the affected area and what is intentionally out of scope. -->
+<!-- 影響範囲と、意図的に対象外とする内容を記載します。 -->
 
-## Validation / Evidence
+## 検証 / 証跡
 
-<!-- List the checks run and link to relevant evidence. -->
+<!-- 実行したcheckと関連する証跡へのlinkを記載します。 -->
 
-## Impact
+## 影響
 
-<!-- Describe the user, runtime, or workflow impact. -->
+<!-- ユーザー、runtime、workflowへの影響を記載します。 -->
 
-## Security / Dependency Impact
+## セキュリティ / 依存関係への影響
 
-<!-- Describe security or dependency effects, or state none. -->
+<!-- セキュリティまたは依存関係への影響を記載し、影響がなければその旨を記載します。 -->
 
-## Related Issue / Plan
+## 関連Issue / Plan
 
-<!-- Link related issues, plans, or follow-up work. -->
+<!-- 関連Issue、plan、follow-up workへのlinkを記載します。 -->

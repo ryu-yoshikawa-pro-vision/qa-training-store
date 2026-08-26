@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "run_id": "20260825-070808-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": [
+    "flaky_or_env_issue",
+    "artifact_contract_gap"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Issue #54本文、前Run Artifact、local validationまで完了。PR本文、commit/push、同一head rerun、最終merge判定は未完了。"
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "package.json / pnpm-lock.yaml、source、test、workflowを変更せず、Run Artifact、plan、GitHub metadataに限定した。"
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "frozen install、patched brace-expansion tree、対象findingなし、format、verify、diff check、lockfile no-op、sanitizerを確認した。"
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "force操作、reset/clean、audit --fix、broad dependency update、CI skip追加を行っていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Issue DoD、Run Artifact訂正、Maestro実flowとjob conclusionの分離、native-ci集約gate、CI evidence ownershipを明文化した。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "R2 remediationの既存dependency implementationを変更せず、記録の矛盾だけを修正した。"
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "指定head、origin/main、Node/pnpm、R2 selector、workflow gate条件、既存failed job logを固定した。"
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "既存head 7a20fdeb786339086023383e27affc15bca40e5bのMobile App CI run 32734755542",
+      "detail": "Native StaticはExpo Doctor patch mismatch 7件、Android Automation BuildはFooJay Gradle plugin 1.0.0 resolution failure。Android Runtime / Maestro jobはAutomation APK依存flowを実行していない。Artifact修正後の新headでfailed jobsを1回rerunし、外部resolution failureの一時性を判定する。"
+    },
+    {
+      "category": "artifact_contract_gap",
+      "severity": "high",
+      "evidence": "Issue #54本文と前Run 20260824-202628-JSTのCI記録",
+      "detail": "peer metadata-only許容条件、Android Automation Build root failure、Maestro実flow未完了、native-ci集約gate、Artifact更新の終端ルールが不十分だった。Issue本文と前Run Artifactへ修正を反映した。"
+    }
+  ],
+  "improvement_candidates": []
+}

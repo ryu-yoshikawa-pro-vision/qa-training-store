@@ -1,4 +1,11 @@
-import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  renameSync,
+  writeFileSync,
+} from "node:fs";
 import { basename, join, resolve } from "node:path";
 import { execFileSync } from "node:child_process";
 
@@ -37,9 +44,15 @@ runGit(["checkout", "--detach", sourceSha], target);
 const workflowDirectory = join(target, ".github", "workflows");
 const archiveDirectory = join(target, ".github", "training-copy-source-workflows");
 mkdirSync(archiveDirectory, { recursive: true });
-for (const workflowName of ["ci.yml", "native-ci.yml", "native-ios-ci.yml"]) {
-  const sourcePath = join(workflowDirectory, workflowName);
-  if (existsSync(sourcePath)) renameSync(sourcePath, join(archiveDirectory, workflowName));
+if (existsSync(workflowDirectory)) {
+  const sourceWorkflowNames = readdirSync(workflowDirectory, { withFileTypes: true })
+    .filter(
+      (entry) => entry.isFile() && (entry.name.endsWith(".yml") || entry.name.endsWith(".yaml")),
+    )
+    .map((entry) => entry.name);
+  for (const workflowName of sourceWorkflowNames) {
+    renameSync(join(workflowDirectory, workflowName), join(archiveDirectory, workflowName));
+  }
 }
 
 const activeWorkflowDirectory = workflowDirectory;
