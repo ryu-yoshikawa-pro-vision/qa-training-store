@@ -347,3 +347,35 @@
 - Decision:
   - 自己学習品質の定義は、環境運用まで自己完結させる過剰設計を避けつつ、学習内容をInstructorの追加説明に依存させない境界で確定した。
 - Progress: 91% (51/56)
+
+## 2026-08-26 15:01 (JST)
+
+- Summary:
+  - 自己学習品質を再レビューし、残っていた4 findingをMaster Planへ反映した。
+  - 新しい管理レイヤーは増やさず、Requiredの意味、Fresh Learnerの前提、Environment block時の結果、Self-checkの具体性だけを締めた。
+- Input Findings:
+  - should_fix: Validator上存在必須のcurriculum assetと、受講者が修了のために必ず辿るLearner Required pathが同じRequired表現で混同されていた。
+  - should_fix: Fresh Learner Reviewが過去の修正経緯を知らないことは定義されていたが、対象者の知識レベルが未定義で、経験者が未説明知識を補完できた。
+  - should_fix: Environment / Toolchain blockでRequired exerciseを未実行のままでも、P0 / P1が0件ならPASSできる余地があった。
+  - should_fix: Self-checkがRubric / Spec / Referenceへのgeneric linkだけでも成立し得て、Learnerが自分の回答・成果物の充足を判定できない余地があった。
+- Completed:
+  - `Repository-required curriculum asset` と `Learner Required path` を定義し、`03_instructor-reference.md`はRepository-required support assetだがLearner Required pathではないと固定した。
+  - PR 3でREADME / Learning Design / Validatorの役割を分離し、受講者必修navigationとInstructor支援資料を明確にする契約を追加した。
+  - PR 4Aの監査対象をLearner Required pathとsupport asset境界へ整理し、Matrixに`CUR-H6` / `CUR-M13` / `CUR-M14`を追加した。
+  - Self-checkはLearnerが学習目標の充足を合理的に判定できる具体性を必須とし、知識問題、設計問題、Specification参照の最低条件を明記した。
+  - Final Fresh Learner ReviewにTarget learner profileを追加し、手動テスト経験は許容する一方、プログラミング / Playwright / Maestro / Git / CIの未説明知識を前提にしないよう固定した。
+  - Final Fresh Learner Reviewに`PASS` / `FAIL` / `not_validated`の結果区分を追加し、Common Core Required exerciseがEnvironment blockで未実行ならPASSにしない契約へ変更した。
+  - Native specialization等の任意pathは全体結果と分離して`validated` / `not_validated`を記録するようにした。
+  - TASKSへD47〜D50を追加し、Run `PLAN.md` / `run.json`を同じ契約へ整合した。
+- Validation:
+  - 今回はMaster Plan / Run Artifactのplanning文書だけを変更した。
+  - Curriculum本体、Instructor Reference本体、Rubric本体、Training implementation、RA-M7実コードは変更していない。
+  - `validate:curriculum` / `test:contracts` / `typecheck` / `format:check` / `lint:markdown` / Sanitizer Write・Checkはまだ未実行。
+  - Step 0未完了のためactive Run statusは`pending`を維持する。
+- Remaining:
+  - Step 0: RA-M7 required pathの最小実修正。
+  - Step 0 local validation / Sanitizer / PR-ready diff確認。
+  - Master Plan publication PRのfinal head CI / review / merge-ready確認。
+- Decision:
+  - 自己学習品質の判定基準は、環境支援を許容しつつ未検証をPASSにせず、対象受講者の知識レベルと自己確認の具体性まで含む形で確定した。
+- Progress: 92% (55/60)
