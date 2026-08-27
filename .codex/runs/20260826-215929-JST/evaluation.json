@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "run_id": "20260826-215929-JST",
+  "result": "partial",
+  "primary_failure_category": "artifact_contract_gap",
+  "failure_categories": ["artifact_contract_gap"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "指定3ファイルの実装、回帰テスト、Local / contract validation、commit、final branch diffは完了したが、Training Copy validationが既存workflow allowlist不整合で停止し、push・Native CI dispatch・PR head確認は未実行である。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260826-215929-JST/TASKS.md",
+          "selector": "Tasks 3-10",
+          "summary": "実装とLocal validationの完了、Training Copy以降の未完了を確認できる。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "実装差分はtraining workflow、Training action allowlist、curriculum contract testの3ファイルに限定され、scope外のworkflow・prepare/validate script・依存・lockfile・Product codeは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "git diff --name-status main...HEAD -- .github/workflows scripts/training/prepare-training-copy.ts scripts/training/validate-training-copy.ts",
+          "summary": "scope外workflowとTraining Copy scriptに差分がないことを確認した。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused test、curriculum、format、lint、typecheck、markdown lint、security check、全contract test、final diffはPASSしたが、Training Copy validationはactive workflow allowlist mismatchでFAILし、remote runtime validationは上流FAILのため未実行である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "pnpm run training:copy:validate",
+          "summary": "生成Copyは最終SHAと一致したが、cross-browser-smoke.ymlが残りFAILした。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "mutable ref、major tag、security boundary緩和、scope外修正、一時Copy手動改変、force push、mainへのmutationは行っていない。Training Copy上流FAIL後のpushとdispatchも実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260826-215929-JST/REPORT.md",
+          "selector": "2026-08-26 22:23",
+          "summary": "失敗時に回避策とscope外変更を行わない判断を記録した。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "差分triage / deep self-reviewを実施し、v5 exact SHA同期、Java / Node / runner / Android / Maestro / permission / checkout / cache契約、旧v4拒否テストを確認した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/training-curriculum.test.ts",
+          "selector": "pins Training Native CI to setup-java v5.7.0 and rejects the v4 SHA",
+          "summary": "変更目的に直接対応する最小回帰テストを確認した。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存allowlist方式とTraining Copy検証経路を再利用し、一般化・抽象化・他Action更新を追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/training/workflow-contract.ts",
+          "selector": "APPROVED_TRAINING_ACTIONS",
+          "summary": "完全SHA allowlistの1要素だけを更新した。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "最終SHAを明示したCopy prepare、manifest / detached HEAD一致、validatorの正確なエラー、baselineとdiffの非該当をRun Reportへ記録した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260826-215929-JST/REPORT.md",
+          "selector": "2026-08-26 22:23",
+          "summary": "失敗条件、再現条件、実行結果、未実行の後続処理を確認できる。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "artifact_contract_gap",
+      "severity": "medium",
+      "evidence": "最終SHAでprepare-training-copyを実行すると、.github/workflows/cross-browser-smoke.yml、training-ci.yml、training-native-ci.ymlがactiveとして残り、validatorの2件allowlistに違反した。cross-browser workflowとprepare/validate scriptはmainと対象HEADで既存のままである。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "pnpm run training:copy:validate -- --root <TEMP_OUTSIDE_REPO>",
+          "summary": "active workflow allowlist mismatchを再現した。"
+        },
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260826-215929-JST/REPORT.md",
+          "selector": "Failure classification",
+          "summary": "今回差分と無関係なbaseline contract gapとして分類した。"
+        }
+      ],
+      "detail": "Training Copy validationを成立させるには、既存prepare/validate経路の不整合を別途扱う必要がある。本Issueのscopeでは修正せず、これをsetup-java v5互換性問題とは判定しない。"
+    }
+  ],
+  "improvement_candidates": []
+}
