@@ -52,10 +52,11 @@
     "warnings": [
       "The 2026-08-26 self-study review findings were repaired in the planning documents: repository-required curriculum assets are separated from the Learner Required path; Instructor Reference remains a support asset, not learner-required material.",
       "Final Fresh Learner Review is now constrained to the documented target learner profile, requires concrete self-check criteria, and must return not_validated rather than PASS when Common Core required exercises remain unexecuted due to environment/toolchain blocks.",
-      "Step 0 Current State確認でRA-M7のconsumer mismatchは既に解消済みだった。validatorはcanonical hyphen pathを要求し、contract testにdirect wrong literalはないため、source / contract testの変更は行っていない。",
-      "Step 0のlocal validation（validate:curriculum / test:contracts / typecheck / format:check / lint:markdown）、Run Artifact更新後の最終format / markdown lint、Sanitizer Write / Checkはすべてpassした。",
-      "PR #61のRun Artifact更新を含むcommit e7d84e6a5cfd2d8f23ea9078e5064c7a3f74cd15をpushした。新しいfinal PR headのCI / review確認、Run Artifact finalization、merge-ready確認はpendingである。",
-      "Keep task_type as plan for this run. Set status=complete only after the final PR head, including finalized Run Artifacts, has green CI/review and is merge-ready. The actual merge is outside this run and GitHub PR is the source of truth for merge state."
+      "2026-08-27のcommit済みHEAD / PR head確認で、validatorのrequired pathはcanonical hyphen形式であり、contract testにdirect wrong literalはないことを再確認した。RA-M7はCurrent State確認として扱い、source / contract testは変更していない。",
+      "今回の文書修正後にvalidate:curriculum、test:contracts（30 files / 429 tests）、typecheck、format:check、lint:markdown（339 files / 0 issues）を再実行し、すべてpassした。",
+      "今回のRun Artifact更新後にSanitizer Write / Checkを再実行し、4 files scanned、0 changed、0 residual findingsでpassした。",
+      "現行PR #61 head（観測時点: 3cd0f043c31e1d69b9873c49e8c11342bb69af5b）ではvalidatorとcanonical filenameは一致している。今回の文書修正後に新しいheadが生成されるため、そのheadのCI / review / merge-ready確認は未完了である。",
+      "Run ArtifactはCI確認前に最終化してpushし、push後に観測したPR headのCI / review / merge stateはGitHub PR metadataを正本とする。CI結果やcommit自身のSHAをRun Artifactへ書き戻すためだけの追加commitは作成しない。task_typeはplanのまま維持し、statusはpendingである。"
     ]
   },
   "safety": {

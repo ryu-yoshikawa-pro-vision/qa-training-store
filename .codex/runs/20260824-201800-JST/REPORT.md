@@ -477,3 +477,56 @@
 - Remaining:
   - push後の final PR head CI / review確認、必要時の bounded repair、Run Artifactのfinal head最終化、merge-ready確認は未完了であるため、`run.json.status` は `pending` のままとする。
 - Progress: 98% (59/60)
+
+## 2026-08-27 19:47 (JST) Merge前文書契約 correction
+
+- Summary:
+  - 現行PR #61 head `3cd0f043c31e1d69b9873c49e8c11342bb69af5b` とcommit済みHEADを再確認した。
+  - `scripts/validate-curriculum.ts` は既に canonical `00_learning-design.md` を要求し、`tests/contracts/training-curriculum.test.ts` にも direct wrong literal はないため、RA-M7 は Current State確認として扱うよう文書契約を整合した。
+  - Run Artifactの最終更新とPR-triggered CIの順序を分離し、自己SHA・CI結果を書き戻すための追加commitを作らない終端ルールを追加した。
+- Input finding / triage:
+  - `must_fix`: Current Stateでは不要なRA-M7 source修正を前提に読める文言と、Artifact更新後のCI結果を同じArtifactへ戻す自己参照ループ。
+- Changes:
+  - Master Plan: RA-M7を「確認、必要時のみ最小修正」とし、Run ArtifactをCI確認前に最終化する順序、`PR head at observation time`、GitHub PR metadataの正本性を明記した。
+  - Active Run `PLAN.md` / `TASKS.md` / `run.json`: 同じRA-M7 Current StateとArtifact / CI終端ルールへ更新した。`TASKS.md`のTask 10は未完了、`run.json.status`は`pending`のままとした。
+  - `REPORT.md`: 既存履歴を変更せず、このCorrectionを末尾へ追記した。
+  - validator、contract test、Curriculum本文、Product code、CI workflowは変更していない。
+- Repair-loop iteration:
+  - `iteration_number`: 1
+  - `allowed_files`: Master Plan、active Runの`PLAN.md` / `TASKS.md` / `REPORT.md` / `run.json`
+  - `changed_files`: 上記5ファイル
+  - `decision`: `stop_success`（文書契約のbounded repair完了。PR head CI確認は次工程）
+- Validation:
+  - `pnpm run validate:curriculum` — PASS（22 required documents、4 workbook files）。
+  - `pnpm run test:contracts` — PASS（30 files、429 tests）。
+  - `pnpm run typecheck` — PASS。
+  - `pnpm run format:check` — PASS。
+  - `pnpm run lint:markdown` — PASS（339 files、0 issues）。
+  - `git diff --check` — PASS。
+- Scope:
+  - RA-M7以外のremediation、Curriculum semantic change、file rename、validator refactor、contract test追加、Product behavior、Formal Test、Product CI、dependency更新は実施していない。
+- Remaining:
+  - このCorrectionを含むcommitのpush後に、新しいPR headのCI / review / merge-readyをGitHub metadataで確認する。CI結果をRun Artifactへ書き戻すためだけの追加commitは作成しない。
+  - 上記確認前のため、`run.json.status`は`pending`、Progressは`98% (59/60)`を維持する。
+
+## 2026-08-27 19:53 (JST) Correction validation closeout
+
+- Validation:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Write` — PASS（4 files scanned、0 changed、0 residual findings）。
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Check` — PASS（4 files scanned、0 residual findings）。
+  - Sanitizer結果を`run.json.validation.warnings`へ反映した。`run.json.task_type`は`plan`、`run.json.status`は`pending`のままである。
+- Remaining:
+  - REPORT追記後の最終`pnpm run format:check` / `pnpm run lint:markdown` / Sanitizer Checkを実行する。その後は不要なファイル修正を行わない。
+- Progress: 98% (59/60)
+
+## 2026-08-27 19:58 (JST) Final local artifact checks
+
+- Validation:
+  - REPORT追記後の最終 `pnpm run format:check` — PASS。
+  - REPORT追記後の最終 `pnpm run lint:markdown` — PASS（339 files、0 issues）。
+  - REPORT追記後の最終 Sanitizer Check — PASS（4 files scanned、0 residual findings）。
+- Decision:
+  - 最終ArtifactはCI確認前の `pending` とし、push後のPR head CI / review / merge-readyはGitHub PR metadataで確認する。CI結果や自己SHAを書き戻すための追加commitは作成しない。
+- Remaining:
+  - commit / push後の新しいPR headに対するCI / review / merge-ready確認。Task 10は未完了、`run.json.status`は`pending`のままとする。
+- Progress: 98% (59/60)

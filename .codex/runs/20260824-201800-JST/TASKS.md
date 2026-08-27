@@ -11,7 +11,7 @@
 - [x] 7. `validate:curriculum` / `test:contracts` / `typecheck` / format / markdown / Sanitizer Write・Check を実行し、結果を Run Artifact へ記録する
 - [x] 8. 最終 diff を確認し、Step 0 scope 内で PR 作成可能な状態を確定する
 - [x] 9. 既存の PR #61 を Master Plan publication PR として確認する（再作成しない）
-- [ ] 10. PR-triggered CI / review / bounded repair を完了し、final PR head で Run Artifact を最終化して merge-ready を確認する
+- [ ] 10. Run Artifactを先に最終化してpushし、そのpush後に観測したPR headのCI / review / bounded repair / merge-readyをGitHub metadataで確認する（CI結果を書き戻すための追加commitは作成しない）
 
 ## Discovered
 
@@ -43,7 +43,7 @@
 - [x] D26. Step 0 を RA-M7 最小修正 + local validation + Sanitizer + PR-ready 確認までに限定し、PR作成 / GitHub CI / merge を後続工程へ分離する
 - [x] D27. Run manifest は `task_type: plan` を維持し、最終 status は Repository convention の `complete` を使用する
 - [x] D28. Remediation Matrix を live status tracker ではなく Planned disposition / Primary owner の実行割当表へ限定する
-- [x] D29. active Run は Master Plan publication PR の final head が merge-ready になった時点で完了し、merge 後に Run Artifact を追加更新しない契約へ変更する
+- [x] D29. active Run ArtifactをCI確認前に最終化し、push後にGitHubで観測したPR headのCI / review / merge-readyで完了判定し、merge後にRun Artifactを追加更新しない契約へ変更する
 - [x] D30. RA-L1 は Phase 0 で影響を判定し、修正が必要な場合だけ PR 4 scope へ追加する契約を明記する
 - [x] D31. Master Plan に Assumptions / Safe change surface / Unknowns を追加し、Current understanding と推測・未確定事項を分離する
 - [x] D32. PR 4 に reviewability / semantic safety に基づく PR 4A / PR 4B 分割条件を追加する

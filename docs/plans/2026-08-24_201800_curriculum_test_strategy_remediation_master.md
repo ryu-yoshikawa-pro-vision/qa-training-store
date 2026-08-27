@@ -39,6 +39,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 
 - Curriculum の canonical Learning Design file は `docs/curriculum/test-automation/00_learning-design.md`。
 - `scripts/validate-curriculum.ts` は `docs/curriculum/test-automation/00_learning-design.md` を required file として要求している。
+- RA-M7 は、commit済みHEADで上記 consumer path を確認し、non-canonical literal が残る場合だけ最小修正する。既に canonical なら source / contract test は変更しない。
 - Web CI は pull request で `format:check`、`lint:markdown`、`validate:spec`、`validate:curriculum` などを実行する。
 - Current Seed Version の implementation SSOT は `src/config/versions.ts`。
 - `CHANGELOG.md` は履歴であり、Current 値へ書き換える SSOT ではない。
@@ -446,7 +447,7 @@ PR 1 / PR 4 では追加で次を確認する。
 | RA-M4 | Seed Version の Current Documentation / implementation 差 | fix | PR 1 | なし |
 | RA-M5 | Test Strategy / Acceptance / E2E 文書が Native を future / Phase 1 外として扱う | fix | PR 1 | PR 2 / PR 3 |
 | RA-M6 | Curriculum の iOS manual-only 説明と Native change 時 Build-only Required Gate の差 | fix | PR 1 | PR 2 / PR 3 |
-| RA-M7 | Curriculum canonical filename と `validate:curriculum` required-file contract の差 | fix | Master Plan publication PR | PR 3 |
+| RA-M7 | Curriculum canonical filename と `validate:curriculum` required-file contract の差 | verify; mismatch が残る場合だけ最小修正 | Master Plan publication PR | PR 3 |
 | RA-M8 | Curriculum の Test Case ID 例と canonical Workbook / validator grammar の差 | fix | PR 1 | PR 4 |
 | RA-G1 | Requirement / Test ID → Product Regression code の direct reference 不足 | fix | PR 2 | なし |
 | RA-G2 | Lesson → Competency → Minimum Evidence の direct mapping 不足 | fix | PR 3 | PR 4 / PR 5 |
@@ -491,9 +492,9 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 
 実行順序は次のとおり。
 
-1. Step 0: Master Plan publication PR に含める RA-M7 の最小修正と local validation を完了する。
-2. Master Plan publication PR を作成し、GitHub CI / review を通して merge-ready にする。
-3. Run Artifact を merge-ready の final PR head で確定する。
+1. Step 0: Master Plan publication PR に含める RA-M7 の Current State 確認（必要時のみ最小修正）と local validation を完了する。
+2. Master Plan publication PR を作成し、Run Artifact の最終更新を含む候補headを確定してpushする。
+3. push後にGitHubで観測したPR headのCI / review / merge-readyを確認する。CI結果や自己SHAをRun Artifactへ書き戻すためだけの追加commitは作成しない。
 4. ユーザーの明示承認後に Master Plan publication PR を `main` へ merge する。
 5. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。RA-M8 をここで解消する。
 6. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
@@ -525,7 +526,7 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 
 Master Plan branch 上で次だけを変更する。
 
-- `scripts/validate-curriculum.ts` の required curriculum path が `00_learning-design.md` を指していることを確認する。
+- `scripts/validate-curriculum.ts` の required curriculum path が `00_learning-design.md` を指していることをcommit済みHEADで確認し、non-canonical literal が残る場合だけ最小修正する。
 - `tests/contracts/training-curriculum.test.ts` が同じ誤 literal を直接保持している場合だけ、その literal を最小修正する。
 - active Run Artifact を実状態へ更新する。
 
@@ -545,7 +546,9 @@ Master Plan branch 上で次だけを変更する。
 - 実変更は `run.json.changed_files` に追加する。
 - Validation 実行結果は `run.json.validation` と `REPORT.md` に記録する。
 - `REPORT.md` は append-only とする。
-- Run は Master Plan publication PR が final head で merge-ready になった時点で完了する。
+- Run Artifact は、local validation と `run.json.status: pending` を含む最終更新を先に確定する。
+- その最終Artifact更新を含むpush後に観測したPR headを、CI / review / merge-ready判定の `PR head at observation time` とする。commit自身のSHAをArtifactへ事前記録しない。
+- 最終Artifact commit後のCI / review / PR headはGitHub PR metadataを正本とし、結果を書き戻すためだけの追加commitは作成しない。RunはGitHub metadataでgreenかつmerge-readyを確認した時点で完了判定する。
 - Run 完了後の実際の merge 状態は GitHub PR を正本とし、merge 後に Run Artifact を追加更新しない。
 
 ### Local validation
@@ -566,11 +569,11 @@ Sanitizer Write が Run Artifact を変更した場合は、その変更を確�
 
 次を満たした時点で Step 0 完了とする。
 
-- RA-M7 の filename mismatch が解消されている。
+- RA-M7 の Current State として required path が canonical であることを確認し、non-canonical literal が残る場合だけ最小修正されている。
 - `validate:curriculum` / `test:contracts` が filename mismatch で失敗しない。
 - typecheck / format / markdown lint が PASS する。
 - Sanitizer Check の residual finding が0件である。
-- diff が Master Plan、active Run Artifact、RA-M7最小修正だけに限定されている。
+- diff が Master Plan、active Run Artifact、RA-M7の確認または必要時の最小修正だけに限定されている。
 - PRを作成できる状態になっている。
 
 GitHub pull request の作成、PR-triggered CI、review、merge は Step 0 に含めない。
@@ -583,16 +586,16 @@ Step 0 完了後に Master Plan publication PR を作成する。
 
 - `docs/plans/2026-08-24_201800_curriculum_test_strategy_remediation_master.md`
 - `.codex/runs/20260824-201800-JST/**`
-- RA-M7 の最小修正
+- RA-M7 の確認（必要時のみ最小修正）
 
 ### Required checks
 
 1. PR diff が Step 0 scope 内であることを確認する。
-2. GitHub Actions の pull request CI を完了させる。
-3. review finding がある場合は、今回の diff に起因するものだけ bounded repair する。
-4. local validation / CI / review が green になったら、Run Artifact に PR、final head、Validation / CI / review 結果、残タスクなしを記録し、`run.json.status` を `complete` にする。
-5. Run Artifact の最終化を含む final head で pull request CI が PASS していることを確認する。失敗した場合は `status` を `pending` に戻して必要な bounded repair を行う。
-6. final head が green で merge-ready であることを確認する。
+2. Run Artifact（local validation結果を含む）を `pending` のまま最終化し、その更新を含む通常commitをpushする。
+3. push後にGitHub Actionsのpull request CIとreviewを完了させる。失敗時は `status` を `pending` のまま保持して必要な bounded repair を行う。
+4. push後にGitHubで観測したPR headを `PR head at observation time` として、CI / review / merge-readyを判定する。
+5. CI / review / PR headの結果はGitHub PR metadataを正本とし、Run Artifactへ結果や自己SHAを書き戻すためだけの追加commitは作成しない。
+6. GitHub metadataでgreenかつmerge-readyを確認できた場合にRunを完了判定する。`run.json.status` はその確認前に `complete` へ変更しない。
 7. merge はユーザーの明示承認後に行う。
 8. merge 後は GitHub PR を merge 状態の正本とし、Run Artifact を追加更新しない。
 
