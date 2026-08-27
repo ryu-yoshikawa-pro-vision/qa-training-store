@@ -55,8 +55,8 @@
       "2026-08-27のcommit済みHEAD / PR head確認で、validatorのrequired pathはcanonical hyphen形式であり、contract testにdirect wrong literalはないことを再確認した。RA-M7はCurrent State確認として扱い、source / contract testは変更していない。",
       "今回の文書修正後にvalidate:curriculum、test:contracts（30 files / 429 tests）、typecheck、format:check、lint:markdown（339 files / 0 issues）を再実行し、すべてpassした。",
       "今回のRun Artifact更新後にSanitizer Write / Checkを再実行し、4 files scanned、0 changed、0 residual findingsでpassした。",
-      "現行PR #61 head（観測時点: 3cd0f043c31e1d69b9873c49e8c11342bb69af5b）ではvalidatorとcanonical filenameは一致している。今回の文書修正後に新しいheadが生成されるため、そのheadのCI / review / merge-ready確認は未完了である。",
-      "Run ArtifactはCI確認前に最終化してpushし、push後に観測したPR headのCI / review / merge stateはGitHub PR metadataを正本とする。CI結果やcommit自身のSHAをRun Artifactへ書き戻すためだけの追加commitは作成しない。task_typeはplanのまま維持し、statusはpendingである。"
+      "現行のcommit済みHEAD / PR #61 head（3dfdf9eb5a61ceb127541a461fe3da1dc977eaeb）ではvalidatorとcanonical filenameは一致している。今回の未push文書修正後に新しいheadが生成されるため、そのfinalization headのCI / review / merge-ready確認は未完了である。",
+      "validated headでPR diff、local validation、PR-triggered CI、review、mergeability、scopeを確認してから結果をRun Artifactへ記録し、TASKSの最後のtaskとstatusを完了状態へ更新してfinalization commitを作成する。finalization headのCI / review / mergeabilityはGitHub PR metadataをSSOTとし、CI結果記録だけのRun Artifact再commitは作成しない。現在のtask_typeはplan、statusはpendingである。"
     ]
   },
   "safety": {

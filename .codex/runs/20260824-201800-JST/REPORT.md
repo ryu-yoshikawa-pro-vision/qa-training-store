@@ -530,3 +530,45 @@
 - Remaining:
   - commit / push後の新しいPR headに対するCI / review / merge-ready確認。Task 10は未完了、`run.json.status`は`pending`のままとする。
 - Progress: 98% (59/60)
+
+## 2026-08-28 00:05 (JST) Merge前文書契約再修正
+
+- Summary:
+  - 最新レビューで、RA-M7をこのPRで実コード修正するFindingとして扱う記述と、Current Stateでは既にcanonicalでsource変更不要とする記述が混在していることを確認した。
+  - Current Stateでは `scripts/validate-curriculum.ts` が canonical `docs/curriculum/test-automation/00_learning-design.md` を参照し、contract testにも `00_learning_design.md` のdirect wrong literalがないことを再確認した。
+  - RA-M7を「Current State verification + mismatchが残る場合だけbounded fix」へ統一し、source / contract testは変更しなかった。
+  - Run Artifact finalizationについて、validated headとfinalization headを区別し、finalization headのCI / mergeabilityはGitHub PRをSSOTとすることで自己参照ループを解消した。
+- Current State:
+  - commit済みHEAD / PR #61 headは `3dfdf9eb5a61ceb127541a461fe3da1dc977eaeb`。
+  - `git show HEAD:scripts/validate-curriculum.ts` と `git ls-tree -r --name-only HEAD` の結果はcanonical hyphen pathで一致している。
+  - 今回はcommit済みHEADを変更せず、working treeの文書契約だけを更新している。
+- Changes:
+  - Master PlanのRemediation Matrix、Step 0、Execution order、Required checks、Completion ContractをRA-M7の条件付き扱いへ統一した。
+  - Active Run `PLAN.md`でObjective / Fixed decisions / Scope / Step 0 / Phase B / Completion criteriaを同じ契約へ統一した。
+  - `TASKS.md`のTask 6をCurrent State確認の実態へ合わせ、Task 10は未完了のまま `Progress: 98% (59/60)` を維持した。D17 / D26 / D29 / D37も条件付き扱いとheadモデルへ整合した。
+  - `run.json`のcurrent warningから旧PR headを除き、`task_type: plan`、`status: pending`、changed_files 5件を維持した。
+  - `REPORT.md`は過去entryを削除・修正せず、このCorrectionを末尾へappendした。
+- Repair-loop iteration:
+  - `iteration_number`: 2
+  - `input_findings`: must_fix（RA-M7契約の自己矛盾、Run Artifact finalizationの自己参照ループ）
+  - `allowed_files`: Master Plan、active Runの `PLAN.md` / `TASKS.md` / `REPORT.md` / `run.json`
+  - `changed_files`: 上記5ファイル
+  - `decision`: `stop_success`（boundedな文書修正とlocal validationを完了。Task 10 / PR head確認は未完了）
+- Validation:
+  - `pnpm run validate:curriculum` — PASS（22 required documents、4 workbook files）。
+  - `pnpm run test:contracts` — PASS（30 files、429 tests）。
+  - `pnpm run typecheck` — PASS（app / native-tests / training）。
+  - `pnpm run format:check` — PASS。
+  - `pnpm run lint:markdown` — 初回はExecution orderの番号不連続により10件FAIL。その番号だけを修正し、再実行はPASS（339 files、0 issues）。
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Write` — PASS（4 files scanned、0 changed、0 residual findings）。
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Check` — PASS（4 files scanned、0 residual findings）。
+- Scope:
+  - `scripts/validate-curriculum.ts`、`tests/contracts/training-curriculum.test.ts`、`docs/curriculum/**`、`training/**`、`src/**`、`.github/workflows/**`、dependencyは変更していない。
+  - PR 1〜5 / Phase 6、Product behavior、Formal Test、Product CI、Curriculum本文変更、validator refactorは実施していない。
+  - commit / push / merge / rebase / branch操作 / PR metadata変更は行っていない。
+- Remaining:
+  - 今回の未push文書修正を含む新しいPR headのCI、review、mergeability確認が残っている。
+  - validated head確認後のTask 10完了、Run Artifact finalization、finalization headのCI確認、merge-ready判定は未実施である。
+  - PR本文のRA-M7節は、Current State verificationと必要時のみbounded fixの事実へ別途更新が必要である。
+  - 上記未完了のため `run.json.status` は `pending` のままとする。
+- Progress: 98% (59/60)

@@ -39,7 +39,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 
 - Curriculum の canonical Learning Design file は `docs/curriculum/test-automation/00_learning-design.md`。
 - `scripts/validate-curriculum.ts` は `docs/curriculum/test-automation/00_learning-design.md` を required file として要求している。
-- RA-M7 は、commit済みHEADで上記 consumer path を確認し、non-canonical literal が残る場合だけ最小修正する。既に canonical なら source / contract test は変更しない。
+- Repository Audit 時点では、RA-M7 は Curriculum canonical filename と validator required-file contract の mismatch Finding として記録された。Master Plan publication PR の Step 0 で commit済みHEADを再確認し、non-canonical literal が残る場合だけ最小修正する。Current State で既に canonical なら source / contract test は変更しない。
 - Web CI は pull request で `format:check`、`lint:markdown`、`validate:spec`、`validate:curriculum` などを実行する。
 - Current Seed Version の implementation SSOT は `src/config/versions.ts`。
 - `CHANGELOG.md` は履歴であり、Current 値へ書き換える SSOT ではない。
@@ -168,7 +168,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 - Pilot 実測完了を Repository remediation の blocker にすること。
 - 受講者視点レビューの実施、PASS、所定回数の完了を本 Master Plan の blocker にすること。
 - 受講者視点レビュー結果の保存場所、履歴管理、専用台帳を作ること。
-- RA-M7 修正へ Curriculum semantic change、file rename、validator cleanup を混ぜること。
+- RA-M7 の Current State確認／必要時の最小修正へ Curriculum semantic change、file rename、validator cleanup を混ぜること。
 - Normative Specification の Product Rule を「読みやすさ」の名目で変更すること。
 - 明確な Normative Specification と Current implementation が不一致な場合に、Observed Behaviorへ合わせてSpecificationを変更すること。
 - 全英語を機械的に日本語へ置換すること。
@@ -492,20 +492,22 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 
 実行順序は次のとおり。
 
-1. Step 0: Master Plan publication PR に含める RA-M7 の Current State 確認（必要時のみ最小修正）と local validation を完了する。
-2. Master Plan publication PR を作成し、Run Artifact の最終更新を含む候補headを確定してpushする。
-3. push後にGitHubで観測したPR headのCI / review / merge-readyを確認する。CI結果や自己SHAをRun Artifactへ書き戻すためだけの追加commitは作成しない。
-4. ユーザーの明示承認後に Master Plan publication PR を `main` へ merge する。
-5. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。RA-M8 をここで解消する。
-6. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
-7. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。ここでコース開始時の対象受講者像、Common Core / specialization の既習知識境界と branch / rejoin navigation、Part 1 Common=C01〜C07+C09〜C10 / Part 2 final Common=C01〜C07+C09〜C12 / C08=specialization の能力契約、Repository-required curriculum asset / Learner Required path、Learner-facing Rubric、Instructor Referenceの責務境界を正本化する。Instructor Reference本体は冒頭のtransition noticeだけを最小修正し、既存Facilitation / 判断 / Recovery / 評価観点の実仕分け・移行はPR 4Aで行う。
-8. PR 3 merge 後の最新 `main` から PR 4A branch を作る。実装前に Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract 全件を監査し、Curriculum P0〜P3 Finding、実際に発生した Specification Finding の Disposition、Terminology Decision Table を child Plan に記録する。Spec監査は全対象のcoverageを確認するが、問題がない対象へ人工的な `no_change` Findingを作らない。Spec監査はtext contractの用語・表記・semantic safetyを対象とし、全Product behaviorの実装適合監査へ拡張しない。PR 4A では Curriculum Core / Extension / Reference / specialization / language / learning-flow / self-study remediation、Instructor Reference内情報の仕分け・移行、継続的な受講者視点レビュー用チェックリストの追加、Curriculum側の安定した用語ルール反映を実施する。
-9. Spec監査で `PR 4B` Disposition の Finding が1件以上ある場合は、PR 4A merge 後の最新 `main` から PR 4B branch を作り、bounded な semantics-preserving Specification editorial を実施する。`PR 4B` Disposition がなければ PR 4B は作らない。`Specification clarification` / `Product implementation deviation` は PR 4B へ入れない。
-10. PR 4 stage（PR 4A、必要な場合は PR 4B）merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
-11. PR 5 では継続レビュー用チェックリストの command / Artifact / Environment block 観点が実際のTraining入口と矛盾しないことを確認する。
-12. Phase 6 は PR 2 merge 後から PR 3〜5 と並行して調査してよい。decision-only PR は最新 `main` へ追従して確定する。
-13. Repository remediation 完了後は、§18 のチェックリストを使った受講者視点レビューを継続タスクとして運用する。実際のレビュー実施・PASSは本 Master Plan の完了条件に含めない。
-14. 必要に応じて Pilot Feedback を収集する。
+1. Step 0: Master Plan publication PR に含める RA-M7 の Current State 確認（mismatch が残る場合だけ最小修正）と local validation を完了する。
+2. Master Plan publication PR（PR #61）の validated head で、PR diff、local validation、PR-triggered CI、review、mergeability、scope を確認する。
+3. validated head の結果を Run Artifact へ記録し、TASKS の最後の task を完了、`run.json.status` を `complete` に更新する。
+4. 上記の Run Artifact finalization を含む commit を push し、その commit を含むPR headを finalization head とする。
+5. finalization head の PR-triggered CI / review / mergeability は GitHub PR metadata を最終的なSSOTとして確認する。CI結果をRun Artifactへ記録するためだけの追加commitは作成しない。
+6. ユーザーの明示承認後に Master Plan publication PR を `main` へ merge する。
+7. 最新 `main` から PR 1 branch を作り、Phase 0 → PR 1 child Plan → Current Documentation / SSOT Repair を実施する。RA-M8 をここで解消する。
+8. PR 1 merge 後の最新 `main` から PR 2 branch を作り、Formal Test Strategy / Perspective / Traceability を実施する。
+9. PR 2 merge 後の最新 `main` から PR 3 branch を作り、Decision B / Competency / Assessment Contract を実施する。ここでコース開始時の対象受講者像、Common Core / specialization の既習知識境界と branch / rejoin navigation、Part 1 Common=C01〜C07+C09〜C10 / Part 2 final Common=C01〜C07+C09〜C12 / C08=specialization の能力契約、Repository-required curriculum asset / Learner Required path、Learner-facing Rubric、Instructor Referenceの責務境界を正本化する。Instructor Reference本体は冒頭のtransition noticeだけを最小修正し、既存Facilitation / 判断 / Recovery / 評価観点の実仕分け・移行はPR 4Aで行う。
+10. PR 3 merge 後の最新 `main` から PR 4A branch を作る。実装前に Learner Required path 全文、learner-facing specialization material、Repository-required support assetとの境界、`docs/spec/**` の Markdown / text contract 全件を監査し、Curriculum P0〜P3 Finding、実際に発生した Specification Finding の Disposition、Terminology Decision Table を child Plan に記録する。Spec監査は全対象のcoverageを確認するが、問題がない対象へ人工的な `no_change` Findingを作らない。Spec監査はtext contractの用語・表記・semantic safetyを対象とし、全Product behaviorの実装適合監査へ拡張しない。PR 4A では Curriculum Core / Extension / Reference / specialization / language / learning-flow / self-study remediation、Instructor Reference内情報の仕分け・移行、継続的な受講者視点レビュー用チェックリストの追加、Curriculum側の安定した用語ルール反映を実施する。
+11. Spec監査で `PR 4B` Disposition の Finding が1件以上ある場合は、PR 4A merge 後の最新 `main` から PR 4B branch を作り、bounded な semantics-preserving Specification editorial を実施する。`PR 4B` Disposition がなければ PR 4B は作らない。`Specification clarification` / `Product implementation deviation` は PR 4B へ入れない。
+12. PR 4 stage（PR 4A、必要な場合は PR 4B）merge 後の最新 `main` から PR 5 branch を作り、Training Evidence / learner exercise / specialization workflow を実施する。
+13. PR 5 では継続レビュー用チェックリストの command / Artifact / Environment block 観点が実際のTraining入口と矛盾しないことを確認する。
+14. Phase 6 は PR 2 merge 後から PR 3〜5 と並行して調査してよい。decision-only PR は最新 `main` へ追従して確定する。
+15. Repository remediation 完了後は、§18 のチェックリストを使った受講者視点レビューを継続タスクとして運用する。実際のレビュー実施・PASSは本 Master Plan の完了条件に含めない。
+16. 必要に応じて Pilot Feedback を収集する。
 
 ### Branch / PR rules
 
@@ -520,14 +522,14 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 - Phase 6 decision-only PR は本 Master Plan を直接使用する。candidate inventory、Evidence criteria、output scope が変わる場合だけ別 Plan を作る。
 - `refactor_now` と判定した実装だけ Phase 6 decision-only PR merge 後に別 Plan / 別 PR を作る。
 
-## 10. Step 0 — RA-M7 CI unblocker and PR-ready validation
+## 10. Step 0 — RA-M7 Current State verification and PR-ready validation
 
 ### Changes
 
-Master Plan branch 上で次だけを変更する。
+Master Plan branch 上で次だけを確認・必要時に変更する。
 
-- `scripts/validate-curriculum.ts` の required curriculum path が `00_learning-design.md` を指していることをcommit済みHEADで確認し、non-canonical literal が残る場合だけ最小修正する。
-- `tests/contracts/training-curriculum.test.ts` が同じ誤 literal を直接保持している場合だけ、その literal を最小修正する。
+- Repository Audit 時点の RA-M7 filename mismatch Finding を前提に、`scripts/validate-curriculum.ts` の required curriculum path が `00_learning-design.md` を指していることをcommit済みHEADで確認する。canonical なら変更せず、non-canonical literal が残る場合だけ最小修正する。
+- `tests/contracts/training-curriculum.test.ts` が同じ誤 literal を直接保持している場合だけ、その literal を最小修正する。direct wrong literal がなければ変更しない。
 - active Run Artifact を実状態へ更新する。
 
 次は変更しない。
@@ -546,9 +548,11 @@ Master Plan branch 上で次だけを変更する。
 - 実変更は `run.json.changed_files` に追加する。
 - Validation 実行結果は `run.json.validation` と `REPORT.md` に記録する。
 - `REPORT.md` は append-only とする。
-- Run Artifact は、local validation と `run.json.status: pending` を含む最終更新を先に確定する。
-- その最終Artifact更新を含むpush後に観測したPR headを、CI / review / merge-ready判定の `PR head at observation time` とする。commit自身のSHAをArtifactへ事前記録しない。
-- 最終Artifact commit後のCI / review / PR headはGitHub PR metadataを正本とし、結果を書き戻すためだけの追加commitは作成しない。RunはGitHub metadataでgreenかつmerge-readyを確認した時点で完了判定する。
+- Step 0 の local correction 中は `TASKS` の最後の task を未完了、`run.json.status` を `pending` のままとする。
+- `validated head` は、Run Artifact 最終化の直前に PR diff、required local validation、PR-triggered CI、review、mergeability、scope を確認したPR headとする。
+- validated head の検証結果を Run Artifact に記録し、最後の task と `run.json.status` を完了状態へ更新したうえで、これを含む commit を finalization head とする。
+- `finalization head` は Run Artifact finalization commit を含むPR headであり、そのCI / review / mergeabilityは GitHub PR metadata を最終的なSSOTとする。最終CI結果を記録するためだけに Run Artifact を再更新しない。
+- finalization head のCI失敗または新しいreview findingが発生した場合だけ、Runを `pending` に戻してbounded repairを行い、同じfinalization flowを再実施する。
 - Run 完了後の実際の merge 状態は GitHub PR を正本とし、merge 後に Run Artifact を追加更新しない。
 
 ### Local validation
@@ -570,17 +574,18 @@ Sanitizer Write が Run Artifact を変更した場合は、その変更を確�
 次を満たした時点で Step 0 完了とする。
 
 - RA-M7 の Current State として required path が canonical であることを確認し、non-canonical literal が残る場合だけ最小修正されている。
+- mismatch が存在しなかった場合、source / contract test diff がないこと自体を正常状態として扱う。
 - `validate:curriculum` / `test:contracts` が filename mismatch で失敗しない。
 - typecheck / format / markdown lint が PASS する。
 - Sanitizer Check の residual finding が0件である。
 - diff が Master Plan、active Run Artifact、RA-M7の確認または必要時の最小修正だけに限定されている。
-- PRを作成できる状態になっている。
+- 既存のMaster Plan publication PR #61の次工程へ進める状態になっている。
 
 GitHub pull request の作成、PR-triggered CI、review、merge は Step 0 に含めない。
 
 ## 11. Master Plan publication PR
 
-Step 0 完了後に Master Plan publication PR を作成する。
+Step 0 完了後に、既存の Master Plan publication PR #61 の候補headを確定する。
 
 ### PR contents
 
@@ -590,14 +595,15 @@ Step 0 完了後に Master Plan publication PR を作成する。
 
 ### Required checks
 
-1. PR diff が Step 0 scope 内であることを確認する。
-2. Run Artifact（local validation結果を含む）を `pending` のまま最終化し、その更新を含む通常commitをpushする。
-3. push後にGitHub Actionsのpull request CIとreviewを完了させる。失敗時は `status` を `pending` のまま保持して必要な bounded repair を行う。
-4. push後にGitHubで観測したPR headを `PR head at observation time` として、CI / review / merge-readyを判定する。
-5. CI / review / PR headの結果はGitHub PR metadataを正本とし、Run Artifactへ結果や自己SHAを書き戻すためだけの追加commitは作成しない。
-6. GitHub metadataでgreenかつmerge-readyを確認できた場合にRunを完了判定する。`run.json.status` はその確認前に `complete` へ変更しない。
-7. merge はユーザーの明示承認後に行う。
-8. merge 後は GitHub PR を merge 状態の正本とし、Run Artifact を追加更新しない。
+1. validated head で、PR diff が Step 0 scope 内であること、required local validation がPASSであること、PR-triggered CI / review / mergeability が正常であることを確認する。
+2. validated head の確認結果を Run Artifact（`REPORT.md`、`TASKS.md`、`run.json`）へ記録する。
+3. TASKS の最後の task を完了状態へ更新し、`run.json.status` を `complete` へ変更する。
+4. 上記のRun Artifact finalizationをcommit・pushし、そのcommitを含むPR headを finalization head とする。
+5. finalization head の PR-triggered CI / review / mergeability は GitHub PR metadata を最終的なSSOTとして確認する。greenかつmergeableなら、GitHub PRをmerge-ready状態の正本として扱う。
+6. finalization head のCI結果を記録するためだけに Run Artifact を再度更新しない。
+7. finalization head でCI失敗または新しいreview findingが発生した場合だけ、Runを `pending` としてbounded repairへ戻し、新しい修正commitで同じfinalization flowを実施する。
+8. merge はユーザーの明示承認後に行う。
+9. merge 後は GitHub PR を merge 状態の正本とし、Run Artifact を追加更新しない。
 
 Master Plan publication PR が merge されるまで PR 1〜5 / Phase 6 の実変更を開始しない。
 
@@ -1490,8 +1496,8 @@ Product runtime / broad contract に影響する場合だけ次を追加する�
 
 次の場合は scope を広げず、Plan または判断を見直す。
 
-- RA-M7 が path literal の最小修正だけで解消できない。
-- RA-M7 修正後の失敗が filename mismatch と無関係で、今回 diff との因果を分離できない。
+- RA-M7 が Current State確認、またはmismatch時のpath literal最小修正だけで解消できない。
+- RA-M7のCurrent State確認後に発生した失敗が filename mismatch と無関係で、今回 diff との因果を分離できない。
 - Current `main` で対象 Finding が既に解消済み。
 - RA-M8 の canonical grammar が Current validator / Workbook / contract test 間でも一致しておらず、単純な documentation repair では確定できない。
 - Product behavior / Formal CI Gate の変更が必要になる。
