@@ -379,3 +379,91 @@
 - Decision:
   - 自己学習品質の判定基準は、環境支援を許容しつつ未検証をPASSにせず、対象受講者の知識レベルと自己確認の具体性まで含む形で確定した。
 - Progress: 92% (55/60)
+
+## 2026-08-27 08:33 (JST)
+
+- Summary:
+  - 最新 `main` 取り込み後の PR #61（`plan/curriculum-test-strategy-remediation-master`）で Step 0 の Current State を確認した。
+  - RA-M7 の filename mismatch は現行 branch には残っておらず、`scripts/validate-curriculum.ts` は既に canonical filename を要求していたため、no-op diff を作らず既存状態を採用した。
+- Current State / Search:
+  - `docs/curriculum/test-automation/00_learning-design.md` は存在し、underscore 形式の Curriculum file は存在しない。
+  - `scripts/validate-curriculum.ts:10` は `00_learning-design.md` を要求している。Git blame と文字列履歴でも、validator の初期実装時から hyphen 形式だった。
+  - `tests/contracts/training-curriculum.test.ts` は `validateCurriculum(process.cwd())` を通じて契約を検証しており、`00_learning_design.md` の direct wrong literal は存在しない。
+  - `rg -n --hidden --glob '!.git/**' '00_learning_design\\.md|00_learning-design\\.md' .` で確認した underscore 形式は、Master Plan / 過去 Run Report の mismatch 説明に限られ、consumer code の参照ではなかった。
+- Changes:
+  - `scripts/validate-curriculum.ts`: 変更なし。既に `00_learning-design.md` が canonical だったため。
+  - `tests/contracts/training-curriculum.test.ts`: 変更なし。direct wrong literal が存在しなかったため。
+  - Active Run の `PLAN.md` / `TASKS.md` / `REPORT.md` / `run.json` を実状態と local validation 結果へ更新した。
+- Validation:
+  - `pnpm run validate:curriculum` — PASS（22 required documents、4 workbook files、training-chromium / training-mobile-chromium）。
+  - `pnpm run test:contracts` — PASS（30 files、428 tests）。
+  - `pnpm run typecheck` — PASS。
+  - `pnpm run format:check` — PASS。
+  - `pnpm run lint:markdown` — PASS（338 files、0 issues）。
+  - 実行環境: Node `v24.12.0`、pnpm `9.10.0`（`packageManager: pnpm@9.10.0`）。
+- Scope:
+  - RA-M7 以外の remediation、Curriculum semantic change、Curriculum file rename、validator refactor、contract test追加、Product behavior、Formal Test、Product CI、dependency更新は実施していない。
+  - PR #61 は既存のため、PR作成・close・merge・pushを行っていない。Git は read-only 確認のみ実行した。
+- Remaining:
+  - Run Artifact 更新後の Sanitizer Write / Check と最終 `format:check` / `lint:markdown` を実行する。
+  - このローカル Run Artifact 更新を反映した final PR head の CI / review確認、必要時の bounded repair、Run Artifact finalization、merge-ready確認は未完了であり、`run.json.status` は `pending` のままにする。
+- Progress: 98% (59/60)
+
+## 2026-08-27 08:37 (JST)
+
+- Validation:
+  - Run Artifact更新後の `pnpm run format:check` — PASS（全ファイルが Prettier code style に一致）。
+  - Run Artifact更新後の `pnpm run lint:markdown` — PASS（338 files、0 issues）。
+  - 最終 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Check` — PASS（4 files scanned、0 residual findings）。
+- Remaining:
+  - 上記 local gate と Sanitizer は完了した。今回の未push Run Artifact更新を含む final PR head の CI / review確認、必要時の bounded repair、Run Artifactのfinal head最終化、merge-ready確認は未完了であるため、`run.json.status` は `pending` のままにする。
+- Progress: 98% (59/60)
+
+## 2026-08-27 08:36 (JST)
+
+- Summary:
+  - Active Run の更新後に Codex Run Artifact Sanitizer を実行し、Run Artifact の path sanitization 状態を確認した。
+- Validation:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Write` — PASS（4 files scanned、0 changed、0 residual findings）。
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Check` — PASS（4 files scanned、0 residual findings）。
+  - Run Artifact更新後の最終 `pnpm run format:check`、`pnpm run lint:markdown`、Sanitizer Check はこの記録後に実行する。
+- Remaining:
+  - final PR head の CI / review確認、必要時の bounded repair、Run Artifact の final head 最終化、merge-ready確認は未完了であり、`run.json.status` は `pending` のままにする。
+- Progress: 98% (59/60)
+
+## 2026-08-27 08:39 (JST)
+
+- Validation:
+  - 最終確認 `pnpm run format:check` — PASS。
+  - 最終確認 `pnpm run lint:markdown` — PASS（338 files、0 issues）。
+  - 最終確認 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Check` — PASS（4 files scanned、0 residual findings）。
+- Decision:
+  - 最終確認後は追加のファイル修正を行わない。RA-M7のconsumer codeは既にcanonicalだったため、source / contract test diffはない。
+- Remaining:
+  - 未push Run Artifact更新を含む final PR head の CI / review確認、必要時の bounded repair、Run Artifactのfinal head最終化、merge-ready確認。これらが未完了のため `run.json.status` は `pending` のままとする。
+- Progress: 98% (59/60)
+
+## 2026-08-27 08:42 (JST)
+
+- Changes:
+  - Master Plan の Current understanding と Step 0 action に残っていた、現行実装と矛盾する underscore filename の説明を canonical hyphen filename へ訂正した。
+  - 過去の Report entry は append-only 契約に従い変更していない。
+- Scope:
+  - 変更は既存 Master Plan の事実記述2箇所に限定した。Curriculum、validator構造、contract test、Product behavior、Formal Test、Product CIは変更していない。
+- Validation:
+  - Master Plan変更後の `pnpm run format:check`、`pnpm run lint:markdown`、Sanitizer Check はこの記録後に最終実行する。
+- Remaining:
+  - 未push Run Artifact更新を含む final PR head の CI / review確認、必要時の bounded repair、Run Artifactのfinal head最終化、merge-ready確認。`run.json.status` は `pending` のままとする。
+- Progress: 98% (59/60)
+
+## 2026-08-27 08:59 (JST)
+
+- Validation:
+  - Master Plan訂正後の最終 `pnpm run format:check` — PASS。
+  - Master Plan訂正後の最終 `pnpm run lint:markdown` — PASS（338 files、0 issues）。
+  - Master Plan訂正後の最終 `powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Check` — PASS（4 files scanned、0 residual findings）。
+- Decision:
+  - 最終確認後は追加のファイル修正を行わない。RA-M7 consumer codeは既にcanonicalであり、contract testにも誤 literalはない。
+- Remaining:
+  - 未push Run Artifact更新を含む final PR head の CI / review確認、必要時の bounded repair、Run Artifactのfinal head最終化、merge-ready確認。未完了のため `run.json.status` は `pending` のままとする。
+- Progress: 98% (59/60)

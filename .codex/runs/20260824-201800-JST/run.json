@@ -18,13 +18,43 @@
     ".codex/runs/20260824-201800-JST/run.json"
   ],
   "validation": {
-    "status": "not_run",
-    "commands": [],
+    "status": "pass",
+    "commands": [
+      {
+        "command": "pnpm run validate:curriculum",
+        "status": "pass"
+      },
+      {
+        "command": "pnpm run test:contracts",
+        "status": "pass"
+      },
+      {
+        "command": "pnpm run typecheck",
+        "status": "pass"
+      },
+      {
+        "command": "pnpm run format:check",
+        "status": "pass"
+      },
+      {
+        "command": "pnpm run lint:markdown",
+        "status": "pass"
+      },
+      {
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Write",
+        "status": "pass"
+      },
+      {
+        "command": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260824-201800-JST -Check",
+        "status": "pass"
+      }
+    ],
     "warnings": [
       "The 2026-08-26 self-study review findings were repaired in the planning documents: repository-required curriculum assets are separated from the Learner Required path; Instructor Reference remains a support asset, not learner-required material.",
       "Final Fresh Learner Review is now constrained to the documented target learner profile, requires concrete self-check criteria, and must return not_validated rather than PASS when Common Core required exercises remain unexecuted due to environment/toolchain blocks.",
-      "Step 0 is pending: RA-M7 implementation, local validation, sanitizer Write/Check, and PR-ready diff review have not been executed yet.",
-      "After Step 0, PR-triggered CI, review, final Run Artifact completion, and merge-ready confirmation remain pending tasks in this run.",
+      "Step 0 Current State確認でRA-M7のconsumer mismatchは既に解消済みだった。validatorはcanonical hyphen pathを要求し、contract testにdirect wrong literalはないため、source / contract testの変更は行っていない。",
+      "Step 0のlocal validation（validate:curriculum / test:contracts / typecheck / format:check / lint:markdown）、Run Artifact更新後の最終format / markdown lint、Sanitizer Write / Checkはすべてpassした。",
+      "PR #61は既に存在し、確認時点のhead a0db125には既存CI / reviewの成功結果がある。ただし今回の未push Run Artifact更新を含むfinal PR headのCI確認、Run Artifact finalization、merge-ready確認はpendingである。",
       "Keep task_type as plan for this run. Set status=complete only after the final PR head, including finalized Run Artifacts, has green CI/review and is merge-ready. The actual merge is outside this run and GitHub PR is the source of truth for merge state."
     ]
   },

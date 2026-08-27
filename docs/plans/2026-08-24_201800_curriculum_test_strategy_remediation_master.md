@@ -38,7 +38,7 @@ PR #53 で `main` に保存された次の2レポートを入力として、Repo
 実装開始時に前提とする Current Repository の事実は次のとおり。
 
 - Curriculum の canonical Learning Design file は `docs/curriculum/test-automation/00_learning-design.md`。
-- `scripts/validate-curriculum.ts` は誤って `docs/curriculum/test-automation/00_learning_design.md` を required file として要求している。
+- `scripts/validate-curriculum.ts` は `docs/curriculum/test-automation/00_learning-design.md` を required file として要求している。
 - Web CI は pull request で `format:check`、`lint:markdown`、`validate:spec`、`validate:curriculum` などを実行する。
 - Current Seed Version の implementation SSOT は `src/config/versions.ts`。
 - `CHANGELOG.md` は履歴であり、Current 値へ書き換える SSOT ではない。
@@ -525,7 +525,7 @@ Phase 0 では Current `main` で Finding の存否と Primary owner の妥当�
 
 Master Plan branch 上で次だけを変更する。
 
-- `scripts/validate-curriculum.ts` の required curriculum path を `00_learning_design.md` から `00_learning-design.md` へ変更する。
+- `scripts/validate-curriculum.ts` の required curriculum path が `00_learning-design.md` を指していることを確認する。
 - `tests/contracts/training-curriculum.test.ts` が同じ誤 literal を直接保持している場合だけ、その literal を最小修正する。
 - active Run Artifact を実状態へ更新する。
 

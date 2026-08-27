@@ -70,7 +70,7 @@
 ## Phase A — Step 0
 
 1. `run.json.task_type` を `plan` として維持する。
-2. `scripts/validate-curriculum.ts` の required curriculum path を `00_learning_design.md` から `00_learning-design.md` へ変更する。
+2. `scripts/validate-curriculum.ts` の required curriculum path が canonical `00_learning-design.md` を指していることを確認し、誤 literal が残る場合だけ修正する。
 3. `tests/contracts/training-curriculum.test.ts` が同じ誤 literal を直接保持する場合だけ最小修正する。
 4. `run.json.changed_files` を実変更と一致させる。
 5. local validation を実行する。
@@ -78,6 +78,12 @@
 7. Sanitizer Write / Check を実行する。
 8. 最終diffを確認し、Step 0 scope 外の変更がないことを確認する。
 9. TASKS の Step 0 task を完了し、PR作成可能状態を記録する。
+
+## Step 0 current-state note
+
+- 2026-08-27 の実ファイル確認時点で、`scripts/validate-curriculum.ts` の required path は既に canonical `00_learning-design.md` であり、underscore literal は存在しなかった。
+- `tests/contracts/training-curriculum.test.ts` にも underscore literal は直接保持されていなかった。
+- そのため、RA-M7 の source / contract test は no-op diff を作らず、既存状態を確認したうえで local validation と Run Artifact 更新を行う。
 
 ### Local validation
 

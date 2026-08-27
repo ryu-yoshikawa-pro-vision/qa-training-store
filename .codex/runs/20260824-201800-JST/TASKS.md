@@ -7,10 +7,10 @@
 - [x] 3. `main` から計画用 branch を作成する
 - [x] 4. Report Findings を依存関係順に整理した Master Plan を `docs/plans/` に保存する
 - [x] 5. Master Plan を、前提・実施内容・Validation・停止条件だけで理解できる実行用文書へ整理する
-- [ ] 6. Step 0 として RA-M7 の `scripts/validate-curriculum.ts` required path を最小修正し、Run Artifact を実状態へ更新する
-- [ ] 7. `validate:curriculum` / `test:contracts` / `typecheck` / format / markdown / Sanitizer Write・Check を実行し、結果を Run Artifact へ記録する
-- [ ] 8. 最終 diff を確認し、Step 0 scope 内で PR 作成可能な状態を確定する
-- [ ] 9. Master Plan publication PR を作成する
+- [x] 6. Step 0 として RA-M7 の `scripts/validate-curriculum.ts` required path が canonical であることを確認し、Run Artifact を実状態へ更新する
+- [x] 7. `validate:curriculum` / `test:contracts` / `typecheck` / format / markdown / Sanitizer Write・Check を実行し、結果を Run Artifact へ記録する
+- [x] 8. 最終 diff を確認し、Step 0 scope 内で PR 作成可能な状態を確定する
+- [x] 9. 既存の PR #61 を Master Plan publication PR として確認する（再作成しない）
 - [ ] 10. PR-triggered CI / review / bounded repair を完了し、final PR head で Run Artifact を最終化して merge-ready を確認する
 
 ## Discovered
@@ -76,4 +76,4 @@
 
 - なし
 
-Progress: 92% (55/60)
+Progress: 98% (59/60)
