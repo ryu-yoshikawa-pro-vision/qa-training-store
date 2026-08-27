@@ -7,7 +7,7 @@ export const APPROVED_TRAINING_ACTIONS = new Set([
   APPROVED_TRAINING_CHECKOUT_ACTION,
   "pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1",
   "actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020",
-  "actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3",
+  "actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961",
   "actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02",
 ]);
 

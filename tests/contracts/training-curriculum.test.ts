@@ -65,6 +65,20 @@ describe("Training curriculum contracts", () => {
     }
   });
 
+  it("pins Training Native CI to setup-java v5.7.0 and rejects the v4 SHA", () => {
+    const workflowPath = resolve(process.cwd(), "training/github-actions/training-native-ci.yml");
+    const workflow = readFileSync(workflowPath, "utf8");
+    const v5Action = "actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0";
+    const v4Action = "actions/setup-java@cf277c60eb25467037889841efdb72551f06f6c3";
+
+    expect(workflow).toContain(v5Action);
+    expect(workflow).not.toContain(v4Action);
+    expect(() => validateTrainingWorkflow("training-native-ci.yml", workflow)).not.toThrow();
+    expect(() =>
+      validateTrainingWorkflow("training-native-ci.yml", workflow.replace(v5Action, v4Action)),
+    ).toThrow(/unapproved action/);
+  });
+
   it("separates the Windows physical-device route from the CI Emulator route", () => {
     const root = process.cwd();
     const nativeLesson = readFileSync(
