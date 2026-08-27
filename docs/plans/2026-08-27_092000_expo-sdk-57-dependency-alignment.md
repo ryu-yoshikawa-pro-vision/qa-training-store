@@ -59,7 +59,6 @@ Issue作成時の `pnpm dlx expo-doctor@1.17.6` では以下12 packageのpatch v
 - [ ] `pnpm-lock.yaml` はpnpm 9.10.0で正規再生成され、不要なsemantic dependency changeがない。
 - [ ] `pnpm install --frozen-lockfile` がPASSする。
 - [ ] `pnpm dlx expo-doctor@1.17.6` が17/17 PASSする。
-- [ ] targeted Local validationとしてtypecheckとWeb buildがPASSする。
 - [ ] plan / Run artifactを含むtracked fileをfinalizeした後にfinal commitを作成している。
 - [ ] final commit後、記録したbaseline SHAからの最終diffをレビューし、working treeがcleanである。
 - [ ] PR head SHAがfinal branch HEAD SHAと一致している。
@@ -243,26 +242,24 @@ Task 6で生成した最終lockfileについてdiffを確認したうえで、�
 
 同じlockfile-only installをdeterminism確認目的だけで再実行しない。
 
-### Task 8: targeted Local validationを実行する
+### Task 8: Issue #73固有のLocal validationを実行する
 
 以下だけを実行する。
 
     pnpm dlx expo-doctor@1.17.6
     pnpm list image-size --depth Infinity --json
-    pnpm run typecheck
-    pnpm run build:web
 
 期待結果:
 
 - Expo Doctor 17/17 PASS。
 - current mismatch 0件。
 - 対象2 GHSAにaffectedなresolved `image-size` instance 0件。
-- typecheck PASS。
-- Web build PASS。
 
 ローカルで以下は重複実行しない。
 
 - `pnpm run verify`
+- typecheck
+- Web build
 - Native component tests
 - Native route dependency check
 - EAS config validation
@@ -271,7 +268,7 @@ Task 6で生成した最終lockfileについてdiffを確認したうえで、�
 - Android / iOS native実build
 - Maestro runtime
 
-これらは最終PRのWeb CI / Mobile App CIで判定する。特にNative component / route / EAS / Expo Doctorは`Native Static`、production bundleは実際に生成したAPKを使う`Production Bundle Guard`で確認する。
+これらは最終PRのWeb CI / Mobile App CIで判定する。Web CIではtypecheck、Web build、Vitest、E2E等を、Mobile App CIではNative Static、Android / iOS build、Production Bundle Guard、Maestro等を既存workflowのまま実行する。
 
 ## 6. final commit / 最終差分 / PR
 
@@ -418,7 +415,7 @@ Dependency Reviewで本変更による新規moderate以上の脆弱性が検出�
 - Metro override変更有無。変更した場合は再発したactual pathと変更selector。
 - Expo Doctor 17/17 PASS。
 - lockfile diff / frozen install結果。
-- targeted Local validation結果。
+- Issue #73固有のLocal validation結果。
 - final branch HEAD SHA。
 - PR head SHAがfinal branch HEAD SHAと一致していること。
 - Web CI / Mobile App CI結果。
