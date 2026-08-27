@@ -84,7 +84,7 @@
 
 ## Step 0 current-state note
 
-- Repository Audit 時点ではRA-M7をfilename mismatch Findingとして記録していたが、2026-08-27 のcommit済みHEAD / PR head `3dfdf9eb5a61ceb127541a461fe3da1dc977eaeb` を確認した時点で、`scripts/validate-curriculum.ts` の required path は既に canonical `00_learning-design.md` であり、underscore literal は存在しなかった。
+- Repository Audit 時点ではRA-M7をfilename mismatch Findingとして記録していたが、2026-08-28 のvalidated head / commit済みHEAD / PR head `384d93de4756a87fc52adf300a4761c830737b81` を確認した時点で、`scripts/validate-curriculum.ts` の required path は既に canonical `00_learning-design.md` であり、underscore literal は存在しなかった。
 - `tests/contracts/training-curriculum.test.ts` にも underscore literal は直接保持されていなかった。
 - そのため、RA-M7 の source / contract test は no-op diff を作らず、既存状態を確認したうえで local validation と Run Artifact 更新を行う。mismatch が再確認された場合だけboundedなsingle-literal修正を行う。
 

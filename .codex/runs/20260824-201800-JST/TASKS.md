@@ -11,7 +11,7 @@
 - [x] 7. `validate:curriculum` / `test:contracts` / `typecheck` / format / markdown / Sanitizer Write・Check を実行し、結果を Run Artifact へ記録する
 - [x] 8. 最終 diff を確認し、Step 0 scope 内で既存PR #61の次工程へ進める状態を確定する
 - [x] 9. 既存の PR #61 を Master Plan publication PR として確認する（再作成しない）
-- [ ] 10. validated headのCI / review / mergeability / scopeを確認して結果をRun Artifactへ記録し、Task 10と`run.json.status`を完了状態へ更新してfinalization commitを作成・pushした後、finalization headのCI / review / mergeabilityをGitHub metadataで確認する（CI結果を書き戻すための追加commitは作成しない）
+- [x] 10. validated headのCI / review / mergeability / scopeを確認して結果をRun Artifactへ記録し、Task 10と`run.json.status`を完了状態へ更新してfinalization commitを作成・pushした後、finalization headのCI / review / mergeabilityをGitHub metadataで確認する（CI結果を書き戻すための追加commitは作成しない）
 
 ## Discovered
 
@@ -76,4 +76,4 @@
 
 - なし
 
-Progress: 98% (59/60)
+Progress: 100% (60/60)
