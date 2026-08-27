@@ -94,6 +94,20 @@
 - Remaining: commit後にTask 9〜12。
 - Progress: 62% (8/13)
 
+## 2026-08-28 00:41 (JST)
+
+- Summary: 初回commit後のplan指定final diff reviewを完了した。commit SHAは`2f525341d151686fc47ea2a979c7c83edf19d05f`。
+- Commands:
+  - `git diff --check c0fea8a489286f829cc5e6cb5c5a95aa31465143...HEAD` => PASS。
+  - `git diff --name-only c0fea8a489286f829cc5e6cb5c5a95aa31465143...HEAD` => Run artifact、指定plan、`package.json`、`pnpm-lock.yaml`の7 files。
+  - `git status --short` => clean。
+  - package / lockfile structural review => `package.json`のdirect変更はDoctor対象12件のみ、override変更は`expo-constants`のみ。`.github`、`src`、`tests`、`android`、`ios`、`maestro`にdiffなし。
+- Review: 差分起因のcorrectness / security / regression / scope findingなし。Metro overrideは3 selectorとも不変、`expo.install.exclude`、Doctor skip、CI gate緩和もなし。`image-size` affected instanceは0件、frozen installとExpo Doctor 17/17 PASSを確認済み。
+- Notes/Decisions: このレビュー結果とTask完了状態をRun artifactへ含めるため、commitをamendして最終commitとする。amend後に同じfinal diff commandを再確認する。
+- New tasks: なし。
+- Remaining: Task 10〜12。
+- Progress: 77% (10/13)
+
 ## Deletion candidates
 
 - なし。Codexはファイルやディレクトリを削除しない。
