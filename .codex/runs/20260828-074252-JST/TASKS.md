@@ -15,8 +15,8 @@
 - [x] 11. PR 1 scope、除外Finding、follow-up、stop conditionを確定する。
 - [x] 12. PR 1 child Planを `docs/plans/` に保存する。
 - [x] 13. Plan / Run Artifact validation、Sanitizer、最終diff reviewを実施する。
-- [ ] 14. 対象branchへcommitし、明示refspecでpushしてremote SHAを確認する。
-- [ ] 15. OPEN PRを作成し、PR metadataとchanged filesを確認してIssue #72を更新し、停止する。
+- [x] 14. 対象branchへcommitし、明示refspecでpushしてremote SHAを確認する。
+- [x] 15. OPEN PRを作成し、PR metadataとchanged filesを確認してIssue #72を更新し、停止する。
 
 ## Discovered
 

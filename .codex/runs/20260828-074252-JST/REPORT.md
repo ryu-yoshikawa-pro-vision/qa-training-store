@@ -75,3 +75,25 @@
 - Final scope check: `git diff --cached --name-only` は5 filesのみで、expected scopeとの差分は`unexpected_count=0`、`missing_count=0`。
 - Final diff review: `git diff --cached --check`、`git diff --check`ともPASS。staged statはchild Plan 1件と新規Run Artifact 4件、522 insertionsのみ。Product code、Curriculum / Workbook / validator / test / CI / package / lockfile / Master Plan / 過去Runの変更なし。
 - Progress: 87% (13/15)
+
+## 2026-08-28 08:08 (JST)
+
+- Commit: commit直前にbranch `fix/current-documentation-ssot-repair`、clean status、branch一覧、staged diffを再確認した。`git commit -m "docs: plan current documentation ssot repair"` => `a0dd4a5f3862688040510d0c62c495f149522510`。
+- Push: push直前に期待branchを再確認し、`git push -u origin HEAD:fix/current-documentation-ssot-repair` => 成功。
+- Remote確認: local HEAD `a0dd4a5f3862688040510d0c62c495f149522510`、`origin/fix/current-documentation-ssot-repair`、`git ls-remote`のremote ref SHAが一致した。post-push working treeはclean。
+- Scope: commit / pushにはchild Planと今回Run Artifactだけを含めた。Product / Curriculum / Workbook / validator / test / CI / package / lockfile / Master Plan / 過去Runの実装変更はない。
+- Remaining: OPEN PR作成、PR metadata / changed files確認、Issue #72更新、停止。
+- Progress: 93% (14/15)
+
+## 2026-08-28 08:09 (JST)
+
+- Final handoff readiness: child Plan、Run Artifact、validation、scope review、commit、pushを完了した。次の外部操作でbase `main` / head `fix/current-documentation-ssot-repair`の非Draft OPEN PRを作成し、Issue #72を`PR 1 child Plan review` / `PR 1 implementation`へ更新する。
+- PR body contract: Phase 0再検証済み、PR 1残存FindingはRA-M1〜RA-M6 / RA-M8、RA-M7はregressionなし、RA-L1はRequired navigation / completion影響なし、Implementationは未開始であることを記載する。詳細はchild Planを正本とする。
+- Stop boundary: PR作成後はProduct / Curriculum / Workbook / validator / test / CI / Specificationの実装、追加commit、CI完了待ちを行わず停止する。
+- Run status: 全15タスクを完了扱いとし、Run Artifactの`run.json`を`completed`へ更新した。
+- Progress: 100% (15/15)
+
+## 2026-08-28 08:10 (JST)
+
+- Validation correction: 増分artifact commitのscope補助比較で、Run全体の最終`changed_files`（5件）を今回の増分staged set（3件）へ比較したため、未変更のchild Plan 2件を`missing`と誤検出した。これは比較条件の誤りであり、unexpectedは0件、ファイル変更やscope violationは発生していない。
+- Corrective action: 増分commitでは変更予定のRun Artifact 3件だけを期待値として再比較し、child Planを含む最終scopeは初回commitで既に確認済みと扱う。commit前に再度`git diff --cached --check`と増分scopeを確認する。
