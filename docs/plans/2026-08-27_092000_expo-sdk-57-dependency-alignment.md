@@ -33,35 +33,37 @@ Issue作成時の `pnpm dlx expo-doctor@1.17.6` では以下12 packageのpatch v
 - RepositoryのCIはNode 24、pnpm 9.10.0を使用する。
 - `package.json` / `pnpm-lock.yaml` の変更はNative changeとして検知される。
 - `Native Static` はfrozen install、Native component tests、route dependency check、EAS config validation、Expo Doctorを実行する。
+- Web CIはVitest、build、E2E等の既存品質ゲートを実行する。
 - `package.json` の `pnpm.overrides` には `expo-constants` 固定と、Issue #68で導入したMetro 0.84.5のparent-scoped overrideが存在する。
-- Issue #68では、対象2 GHSAにaffectedなresolved `image-size` instanceを0件にすることを安全条件としている。本IssueのReact Native更新でこれを再発させてはならない。
+- Issue #68では対象2 GHSAにaffectedなresolved `image-size` instanceを0件にすることを安全条件としている。本IssueのReact Native更新でこれを再発させてはならない。
 
 ## 2. ゴール / Definition of Done
 
 ### ゴール
 
-実装開始時点のcurrent Expo Doctor要求を正本として、必要なdirect dependency / devDependencyだけをExpo SDK 57互換versionへ更新し、既存Web / Android / iOS / Maestro品質ゲートとIssue #68のsecurity remediationを維持する。
+実装開始時点のcurrent Expo Doctor要求を正本として、必要なdirect dependency / devDependencyだけをExpo SDK 57互換versionへ更新し、Issue #68のsecurity remediationと既存Web / Native CIを維持する。
 
 ### Definition of Done
 
 - [ ] 実装開始時点でlatest `origin/main` を含み、working treeがcleanである。
 - [ ] Local実行環境がNode 24系、pnpm 9.10.0である。
 - [ ] 変更前に `pnpm dlx expo-doctor@1.17.6` を実行し、current mismatchを確定している。
+- [ ] 変更前にIssue #68対象2 GHSAにaffectedなresolved `image-size` instanceが0件である。
 - [ ] Expo Doctorが要求するdirect dependency / devDependencyだけを必要最小限更新している。
 - [ ] `pnpm.overrides.expo-constants` は削除せず、更新後のdirect `expo-constants`と同じversionへ同期している。
-- [ ] React Native更新後に対象2 GHSAにaffectedなresolved `image-size` instanceが0件である。
+- [ ] React Native更新後も対象2 GHSAにaffectedなresolved `image-size` instanceが0件である。
 - [ ] affected `image-size` instanceが0件ならMetro overrideを追加・変更・cleanupしていない。
-- [ ] affected instanceが再発した場合のみ、Issue #68のremediationを維持するために必要な最小parent-scoped selectorを修正している。
+- [ ] affected instanceが再発した場合のみ、Issue #68の既存remediationを維持するために必要な最小parent-scoped selectorを修正している。
 - [ ] `expo.install.exclude`、Expo Doctor skip、CI gate緩和を使用していない。
 - [ ] Issueと無関係なmajor / minor upgrade、dependency cleanup、stale override cleanupを混在させていない。
-- [ ] `pnpm-lock.yaml` はpnpm 9.10.0の指定手順で正規再生成され、2回目の再生成で追加diffが発生しない。
+- [ ] `pnpm-lock.yaml` はpnpm 9.10.0で正規再生成され、2回目の再生成で追加diffが発生しない。
 - [ ] `pnpm install --frozen-lockfile` がPASSする。
 - [ ] `pnpm dlx expo-doctor@1.17.6` が17/17 PASSする。
-- [ ] Local Web / Native品質ゲートがPASSする。
+- [ ] 必要なtargeted Local validationがPASSする。
 - [ ] plan / Run artifactを含むtracked fileをfinalizeした後にfinal commitを作成している。
 - [ ] final commit後、記録したbaseline SHAからの最終diffをレビューし、working treeがcleanである。
 - [ ] PR head SHAがfinal branch HEAD SHAと一致している。
-- [ ] そのfinal branch HEADに対応する最新PR Web CI / Mobile App CIがPASSする。`pull_request` workflowはGitHubのPR merge ref上で実行されるため、branch HEAD単体を実行したと表現しない。
+- [ ] そのfinal branch HEADに対応する最新PR Web CI / Mobile App CIがPASSする。
 - [ ] 最終PR changed filesがIssue #73に必要なdependency変更、plan、Repository運用上必要なRun artifactだけに限定されている。
 
 ## 3. 変更対象
@@ -71,7 +73,7 @@ Issue作成時の `pnpm dlx expo-doctor@1.17.6` では以下12 packageのpatch v
 - `package.json`
   - current Expo Doctorが要求するdirect dependency / devDependencyのversion整合。
   - `pnpm.overrides.expo-constants` をdirect `expo-constants`と同versionへ同期。
-  - React Native更新後にaffected `image-size` instanceが再発した場合のみ、Issue #68の目的を維持するためのparent-scoped Metro selectorを最小修正。
+  - React Native更新後にaffected `image-size` instanceが再発した場合のみ、Issue #68の既存remediationを維持するためのparent-scoped Metro selectorを最小修正。
 - `pnpm-lock.yaml`
   - 上記変更に伴う正規lockfile差分。
 - `.codex/runs/<run_id>/...`
@@ -86,9 +88,8 @@ Issue作成時の `pnpm dlx expo-doctor@1.17.6` では以下12 packageのpatch v
 - `.github/workflows/ci.yml`
 - `.github/workflows/native-ci.yml`
 - `.github/workflows/native-ios-ci.yml`
-- `app.config.ts`
-- `metro.config.cjs`
-- `scripts/validate-native-production-bundle.ts`
+- `package.json`
+- `pnpm-lock.yaml`
 
 ### 原則変更しない
 
@@ -112,6 +113,7 @@ Issue作成時の `pnpm dlx expo-doctor@1.17.6` では以下12 packageのpatch v
 - CI gateのskip / allow-failure化。
 - `expo-constants` overrideの削除可否の再設計。
 - affected instance再発と無関係なMetro override cleanup。
+- Issue #68のsecurity remediation自体の再調査・再設計。
 - Issue #73と無関係なsecurity alert、dependency、code cleanup。
 
 ## 5. 実装手順
@@ -148,28 +150,15 @@ Issue作成時の `pnpm dlx expo-doctor@1.17.6` では以下12 packageのpatch v
 - mismatchが減っている場合は残っている対象だけを更新する。
 - 別種のfailureが先に出た場合はdependency編集前に原因を切り分ける。
 
-### Task 3: baseline dependency graphを記録する
+### Task 3: Issue #68のbaseline安全条件だけを確認する
 
-最低限以下を実行する。
-
-    pnpm why react-native
-    pnpm why @react-native/community-cli-plugin
-    pnpm why @react-native/metro-config
-    pnpm why metro
-    pnpm why metro-config
-    pnpm why metro-core
-    pnpm why image-size
     pnpm list image-size --depth Infinity --json
 
-確認事項:
+Issue #68で対象とした2 GHSAのaffected rangeに該当するresolved `image-size` instanceが0件であることを確認する。
 
-- mismatch対象packageのdirect declaration / resolved version。
-- direct `expo-constants` と `pnpm.overrides.expo-constants` のversion。
-- React Nativeから解決されるcommunity-cli / metro-config / Metro familyの実version。
-- Issue #68のparent-scoped overrideが適用されているedge。
-- Issue #68で対象とした2 GHSAについて、current affected rangeに該当するresolved `image-size` instanceが0件であること。
+baseline時点でaffected instanceが存在する場合は、本Issueのdependency更新前からIssue #68の前提が崩れているため、Issue #73へ混ぜずBlockerとして報告する。
 
-baseline時点でaffected instanceが存在する場合は、本Issueのdependency更新前からsecurity remediationが崩れているため、Issue #73へ混ぜずBlockerとして報告する。
+この時点ではMetro dependency graphの詳細調査を行わない。
 
 ### Task 4: Expo Doctor対象dependencyだけを更新する
 
@@ -206,13 +195,23 @@ Issue作成時の候補:
 - overrideを削除しない。
 - overrideのscopeを変更しない。
 
-### Task 6: Metro overrideを触らず一度lockfileを生成する
+### Task 6: lockfileを生成し、Issue #68の安全条件を再確認する
 
-Task 4 / 5後、既存Metro overrideは変更せず以下を実行する。
+Task 4 / 5後、既存Metro overrideを変更せず以下を実行する。
 
     pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
+    pnpm list image-size --depth Infinity --json
 
-その状態で更新後graphを確認する。
+#### affected instanceが0件の場合
+
+- Metro overrideを追加しない。
+- Metro overrideを変更しない。
+- React Native更新により旧parent selectorがno-opになっていてもcleanup目的で削除しない。
+- Task 7へ進む。
+
+#### affected instanceが再発した場合
+
+この場合だけ原因を調査する。
 
     pnpm why react-native
     pnpm why @react-native/community-cli-plugin
@@ -221,21 +220,6 @@ Task 4 / 5後、既存Metro overrideは変更せず以下を実行する。
     pnpm why metro-config
     pnpm why metro-core
     pnpm why image-size
-    pnpm list image-size --depth Infinity --json
-
-### Task 7: Issue #68 remediation維持を判定する
-
-Issue #68で対象とした2 GHSAについて、current affected rangeに該当するresolved `image-size` instanceが0件かを判定する。
-
-#### affected instanceが0件の場合
-
-- Metro overrideを追加しない。
-- Metro overrideを変更しない。
-- React Native更新により旧parent selectorがno-opになっていてもcleanup目的で削除しない。
-
-#### affected instanceが再発した場合
-
-まずactual parent pathを特定する。
 
 - Issue #68で除去したMetro経路がReact Native patch更新により再発したものなら、そのaffected pathを除去するために必要な最小parent-scoped selectorだけを修正する。
 - baseline selectorを機械的に新parent versionへ置換しない。
@@ -243,19 +227,16 @@ Issue #68で対象とした2 GHSAについて、current affected rangeに該当�
 - 必要性を説明できないselectorを追加しない。
 - 別系統の新しいaffected pathで、Issue #68 remediationの単純維持では解消できない場合はIssue #73へsecurity remediationを拡張せずBlockerとして報告する。
 
-selectorを修正した場合のみ、再度以下を実行する。
+selectorを修正した場合は以下を実行する。
 
     pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
+    pnpm list image-size --depth Infinity --json
 
-最終条件は「特定の旧pathがない」ではなく、対象2 GHSAにaffectedなresolved `image-size` instanceが0件であること。
+最終条件は対象2 GHSAにaffectedなresolved `image-size` instanceが0件であること。
 
-### Task 8: lockfileを確定する
+### Task 7: lockfileを安定化する
 
-`package.json` の最終内容確定後、以下を実行する。
-
-    pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
-
-差分を確認した後、同じコマンドをもう1回実行する。
+Task 6で最終package構成に対するlockfileを生成済みの状態から、同じコマンドをもう1回実行する。
 
     pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
 
@@ -269,55 +250,42 @@ selectorを修正した場合のみ、再度以下を実行する。
 
 - Issue #73対象packageと必然的なtransitive差分だけである。
 - 無関係なimporter / snapshot / integrity / peer resolution変更がない。
-- 対象2 GHSAにaffectedなresolved `image-size` instanceが0件。
 - frozen installがPASSする。
 
-### Task 9: Local dependency / Native検証
+### Task 8: targeted Local validationを実行する
+
+以下を実行する。
 
     pnpm dlx expo-doctor@1.17.6
-    pnpm why react-native
-    pnpm why metro
-    pnpm why metro-config
-    pnpm why metro-core
-    pnpm why image-size
     pnpm list image-size --depth Infinity --json
-    pnpm run generate:native-assets
-    git diff --exit-code -- src/generated/native-product-assets.ts
-    pnpm run validate:image-manifest
     pnpm run test:component:native
     pnpm run check:native-route-dependencies
     pnpm run validate:eas:config
     pnpm run validate:native-production-bundle
+    pnpm run typecheck
+    pnpm run build:web
 
 期待結果:
 
 - Expo Doctor 17/17 PASS。
 - current mismatch 0件。
-- affected `image-size` instance 0件。
-- Native preflight全件PASS。
+- 対象2 GHSAにaffectedなresolved `image-size` instance 0件。
+- Native component / route / EAS / production bundle validation PASS。
+- typecheck PASS。
+- Web build PASS。
 
-利用可能なローカル環境では `pnpm exec expo export --platform ios` も確認する。iOS native実buildはPR上のNative iOS CIで判定する。
+ローカルで以下は重複実行しない。
 
-### Task 10: Repository標準品質ゲートとWeb回帰
+- `pnpm run verify`
+- `pnpm run test:e2e:chromium`
+- Android / iOS native実build
+- Maestro runtime
 
-    pnpm run verify
-    pnpm run test:e2e:chromium
-
-`verify`が本Issueと無関係な既存failureで途中停止した場合はfirst failureを特定し、未到達の標準gateを個別実行して検証欠落を作らない。
-
-最低限取得する結果:
-
-- format / markdown lint
-- spec / curriculum validation
-- lint / typecheck
-- image manifest / security check
-- unit / integration / repository / component / contract tests
-- Web build / spec build
-- Chromium主要回帰
+これらは最終PRのWeb CI / Mobile App CIで判定する。
 
 ## 6. final commit / 最終差分 / PR
 
-### Task 11: tracked fileをfinalizeしてfinal commitを作成する
+### Task 9: tracked fileをfinalizeしてfinal commitを作成する
 
 Local validation結果を含め、Repositoryへ含めるtracked fileをすべて確定する。
 
@@ -334,7 +302,7 @@ Local validation結果を含め、Repositoryへ含めるtracked fileをすべて
 
 これをfinal branch HEAD SHAとする。
 
-### Task 12: final commitに対して最終diff reviewを行う
+### Task 10: final commitに対して最終diff reviewを行う
 
 Task 1で記録した実装baseline SHAを `<baseline-sha>` として使用する。
 
@@ -352,9 +320,7 @@ Task 1で記録した実装baseline SHAを `<baseline-sha>` として使用す�
 - lockfileに不要な広範囲diffなし。
 - plan / Run artifactを含む最終changed filesがIssue #73の範囲内。
 
-**最終diff reviewはplan / Run artifact finalize前ではなく、final commit後に行う。**
-
-### Task 13: push / PR作成
+### Task 11: push / PR作成
 
 - final branch HEADをpushする。
 - Issue #73をcloseする前提でPRを作成する。
@@ -363,27 +329,32 @@ Task 1で記録した実装baseline SHAを `<baseline-sha>` として使用す�
 
 この後、PR CI結果をRun artifactへ追記するためだけのcommitは作らない。CI結果はPR本文などGitHub metadataへ記録する。
 
-tracked fileを変更した場合は新しいcommitをfinal branch HEADとして扱い直し、Task 12以降をやり直す。
+tracked fileを変更した場合は新しいcommitをfinal branch HEADとして扱い直し、Task 10以降をやり直す。
 
 ## 7. PR上の検証
 
-### Task 14: Web CI
+### Task 12: Web CI
 
 final branch HEADに対応する最新PR Web CIを確認する。
 
-最低限:
+既存workflowが要求するWeb品質ゲートがすべてPASSすること。
+
+主な確認対象:
 
 - Dependency Review
 - Style Quality
 - Code Quality
 - Vitest各suite
-- Web build / E2E等、workflow既存gate
+- Web build
+- Chromium E2Eを含む既存E2E
 
 Dependency Reviewで本変更による新規moderate以上の脆弱性が検出された場合は採用しない。
 
-### Task 15: Mobile App CI
+### Task 13: Mobile App CI
 
-`package.json` / `pnpm-lock.yaml` がNative changeとして検知され、final branch HEADに対応する最新PR runで以下がPASSすること。
+`package.json` / `pnpm-lock.yaml` がNative changeとして検知され、final branch HEADに対応する最新PR runで既存Native gateがすべてPASSすること。
+
+主な確認対象:
 
 - Native Static
   - `Run Expo Doctor` を含む
@@ -397,9 +368,9 @@ Dependency Reviewで本変更による新規moderate以上の脆弱性が検出�
   - iOS Native CI Verify
 - `native-ci / verify`
 
-`pull_request` workflowはGitHubの `refs/pull/<number>/merge` に相当するmerge resultを実行し得るため、「final branch HEAD SHAそのものをcheckoutして実行した」とは記載しない。
+`pull_request` workflowはGitHubのPR merge resultを実行し得るため、「final branch HEAD SHAそのものをcheckoutして実行した」とは記載しない。
 
-確認すべきprovenanceは以下。
+確認するprovenance:
 
 - PR head SHAがfinal branch HEAD SHAと一致している。
 - 最新PR CIがそのfinal head更新後のPR状態に対応している。
@@ -425,7 +396,7 @@ Dependency Reviewで本変更による新規moderate以上の脆弱性が検出�
 
 ### affected `image-size` instanceが再発する
 
-- `pnpm list image-size --depth Infinity --json` と `pnpm why` 系でactual parent pathを特定する。
+- この場合だけ`pnpm why`系でactual parent pathを特定する。
 - Issue #68の既存remediationの単純維持で解消できる場合だけ最小parent-scoped selectorを修正する。
 - 別の新規security remediationが必要ならIssue #73へ混ぜずBlockerとして報告する。
 
@@ -452,14 +423,13 @@ Dependency Reviewで本変更による新規moderate以上の脆弱性が検出�
 - 実装baseline SHA。
 - baselineと更新後のcurrent mismatch対象version。
 - `expo-constants` direct / overrideを同versionへ同期したこと。
-- React Native 0.86.3後のMetro / image-size graph確認結果。
 - 対象2 GHSAにaffectedなresolved `image-size` instanceが0件であること。
 - Metro override変更有無。変更した場合は再発したactual pathと変更selector。
 - Expo Doctor 17/17 PASS。
 - lockfile安定性 / frozen install結果。
-- Local validation結果。
+- targeted Local validation結果。
 - final branch HEAD SHA。
 - PR head SHAがfinal branch HEAD SHAと一致していること。
 - Web CI / Mobile App CI結果。
-- PR CIがPR merge result上でPASSしたこと。
+- PR merge result上で既存gateがPASSしたこと。
 - 最終changed filesがscope内であること。
