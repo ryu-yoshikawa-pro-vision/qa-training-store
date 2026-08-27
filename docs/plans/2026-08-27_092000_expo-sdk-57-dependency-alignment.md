@@ -148,6 +148,7 @@ Issue作成時の `pnpm dlx expo-doctor@1.17.6` では以下12 packageのpatch v
 - 要求versionが変化している場合はcurrent Expo Doctor結果を正本とする。
 - mismatchが減っている場合は残っている対象だけを更新する。
 - 別種のfailureが先に出た場合はdependency編集前に原因を切り分ける。
+- 本Issueでは `expo-doctor@1.17.6` が報告するExpo SDK 57要求versionを実装上の正本とする。Expo Doctor結果に矛盾や不明点がない限り、追加の広範囲なversion調査は行わない。
 
 ### Task 3: Issue #68のbaseline安全条件だけを確認する
 
@@ -228,34 +229,25 @@ selectorを修正した場合は以下を実行する。
 
 最終条件は対象2 GHSAにaffectedなresolved `image-size` instanceが0件であること。
 
-### Task 7: lockfileとinstallを確認する
+### Task 7: lockfile / install / Expo Doctorを最終確認する
 
 Task 6で生成した最終lockfileについてdiffを確認したうえで、以下を実行する。
 
     pnpm install --frozen-lockfile
+    pnpm dlx expo-doctor@1.17.6
 
 確認事項:
 
 - Issue #73対象packageと必然的なtransitive差分だけである。
 - 無関係なimporter / snapshot / integrity / peer resolution変更がない。
 - frozen installがPASSする。
+- Expo Doctorが17/17 PASSする。
+- current mismatchが0件である。
 
 同じlockfile-only installをdeterminism確認目的だけで再実行しない。
+Task 6でaffected `image-size` instance 0件を確認済みのため、依存graphを書き換えないfrozen install後に同じ確認を重複実行しない。
 
-### Task 8: Issue #73固有のLocal validationを実行する
-
-以下だけを実行する。
-
-    pnpm dlx expo-doctor@1.17.6
-    pnpm list image-size --depth Infinity --json
-
-期待結果:
-
-- Expo Doctor 17/17 PASS。
-- current mismatch 0件。
-- 対象2 GHSAにaffectedなresolved `image-size` instance 0件。
-
-ローカルで以下は重複実行しない。
+ローカルでは以下を重複実行しない。
 
 - `pnpm run verify`
 - typecheck
@@ -272,7 +264,7 @@ Task 6で生成した最終lockfileについてdiffを確認したうえで、�
 
 ## 6. final commit / 最終差分 / PR
 
-### Task 9: tracked fileをfinalizeしてfinal commitを作成する
+### Task 8: tracked fileをfinalizeしてfinal commitを作成する
 
 Local validation結果を含め、Repositoryへ含めるtracked fileをすべて確定する。
 
@@ -289,7 +281,7 @@ Local validation結果を含め、Repositoryへ含めるtracked fileをすべて
 
 これをfinal branch HEAD SHAとする。
 
-### Task 10: final commitに対して最終diff reviewを行う
+### Task 9: final commitに対して最終diff reviewを行う
 
 Task 1で記録した実装baseline SHAを `<baseline-sha>` として使用する。
 
@@ -307,7 +299,7 @@ Task 1で記録した実装baseline SHAを `<baseline-sha>` として使用す�
 - lockfileに不要な広範囲diffなし。
 - plan / Run artifactを含む最終changed filesがIssue #73の範囲内。
 
-### Task 11: push / PR作成
+### Task 10: push / PR作成
 
 - final branch HEADをpushする。
 - Issue #73をcloseする前提でPRを作成する。
@@ -316,11 +308,11 @@ Task 1で記録した実装baseline SHAを `<baseline-sha>` として使用す�
 
 この後、PR CI結果をRun artifactへ追記するためだけのcommitは作らない。CI結果はPR本文などGitHub metadataへ記録する。
 
-tracked fileを変更した場合は新しいcommitをfinal branch HEADとして扱い直し、Task 10以降をやり直す。
+tracked fileを変更した場合は新しいcommitをfinal branch HEADとして扱い直し、Task 9以降をやり直す。
 
 ## 7. PR上の検証
 
-### Task 12: Web CI
+### Task 11: Web CI
 
 final branch HEADに対応する最新PR Web CIを確認する。
 
@@ -337,7 +329,7 @@ final branch HEADに対応する最新PR Web CIを確認する。
 
 Dependency Reviewで本変更による新規moderate以上の脆弱性が検出された場合は採用しない。
 
-### Task 13: Mobile App CI
+### Task 12: Mobile App CI
 
 `package.json` / `pnpm-lock.yaml` がNative changeとして検知され、final branch HEADに対応する最新PR runで既存Native gateがすべてPASSすること。
 
@@ -415,7 +407,6 @@ Dependency Reviewで本変更による新規moderate以上の脆弱性が検出�
 - Metro override変更有無。変更した場合は再発したactual pathと変更selector。
 - Expo Doctor 17/17 PASS。
 - lockfile diff / frozen install結果。
-- Issue #73固有のLocal validation結果。
 - final branch HEAD SHA。
 - PR head SHAがfinal branch HEAD SHAと一致していること。
 - Web CI / Mobile App CI結果。
