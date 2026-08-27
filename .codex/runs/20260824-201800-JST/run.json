@@ -54,7 +54,7 @@
       "Final Fresh Learner Review is now constrained to the documented target learner profile, requires concrete self-check criteria, and must return not_validated rather than PASS when Common Core required exercises remain unexecuted due to environment/toolchain blocks.",
       "Step 0 Current State確認でRA-M7のconsumer mismatchは既に解消済みだった。validatorはcanonical hyphen pathを要求し、contract testにdirect wrong literalはないため、source / contract testの変更は行っていない。",
       "Step 0のlocal validation（validate:curriculum / test:contracts / typecheck / format:check / lint:markdown）、Run Artifact更新後の最終format / markdown lint、Sanitizer Write / Checkはすべてpassした。",
-      "PR #61は既に存在し、確認時点のhead a0db125には既存CI / reviewの成功結果がある。ただし今回の未push Run Artifact更新を含むfinal PR headのCI確認、Run Artifact finalization、merge-ready確認はpendingである。",
+      "PR #61のRun Artifact更新を含むcommit e7d84e6a5cfd2d8f23ea9078e5064c7a3f74cd15をpushした。新しいfinal PR headのCI / review確認、Run Artifact finalization、merge-ready確認はpendingである。",
       "Keep task_type as plan for this run. Set status=complete only after the final PR head, including finalized Run Artifacts, has green CI/review and is merge-ready. The actual merge is outside this run and GitHub PR is the source of truth for merge state."
     ]
   },
