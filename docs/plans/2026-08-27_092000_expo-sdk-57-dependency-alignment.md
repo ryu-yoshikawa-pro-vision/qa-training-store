@@ -56,10 +56,10 @@ Issue作成時の `pnpm dlx expo-doctor@1.17.6` では以下12 packageのpatch v
 - [ ] affected instanceが再発した場合のみ、Issue #68の既存remediationを維持するために必要な最小parent-scoped selectorを修正している。
 - [ ] `expo.install.exclude`、Expo Doctor skip、CI gate緩和を使用していない。
 - [ ] Issueと無関係なmajor / minor upgrade、dependency cleanup、stale override cleanupを混在させていない。
-- [ ] `pnpm-lock.yaml` はpnpm 9.10.0で正規再生成され、2回目の再生成で追加diffが発生しない。
+- [ ] `pnpm-lock.yaml` はpnpm 9.10.0で正規再生成され、不要なsemantic dependency changeがない。
 - [ ] `pnpm install --frozen-lockfile` がPASSする。
 - [ ] `pnpm dlx expo-doctor@1.17.6` が17/17 PASSする。
-- [ ] 必要なtargeted Local validationがPASSする。
+- [ ] targeted Local validationとしてtypecheckとWeb buildがPASSする。
 - [ ] plan / Run artifactを含むtracked fileをfinalizeした後にfinal commitを作成している。
 - [ ] final commit後、記録したbaseline SHAからの最終diffをレビューし、working treeがcleanである。
 - [ ] PR head SHAがfinal branch HEAD SHAと一致している。
@@ -211,16 +211,11 @@ Task 4 / 5後、既存Metro overrideを変更せず以下を実行する。
 
 #### affected instanceが再発した場合
 
-この場合だけ原因を調査する。
+まず以下だけを実行してactual parent pathを確認する。
 
-    pnpm why react-native
-    pnpm why @react-native/community-cli-plugin
-    pnpm why @react-native/metro-config
-    pnpm why metro
-    pnpm why metro-config
-    pnpm why metro-core
     pnpm why image-size
 
+- 表示されたactual pathに含まれるpackageだけを必要に応じて追加調査する。
 - Issue #68で除去したMetro経路がReact Native patch更新により再発したものなら、そのaffected pathを除去するために必要な最小parent-scoped selectorだけを修正する。
 - baseline selectorを機械的に新parent versionへ置換しない。
 - global Metro overrideへ変更しない。
@@ -234,15 +229,9 @@ selectorを修正した場合は以下を実行する。
 
 最終条件は対象2 GHSAにaffectedなresolved `image-size` instanceが0件であること。
 
-### Task 7: lockfileを安定化する
+### Task 7: lockfileとinstallを確認する
 
-Task 6で最終package構成に対するlockfileを生成済みの状態から、同じコマンドをもう1回実行する。
-
-    pnpm install --lockfile-only --ignore-scripts --no-frozen-lockfile
-
-2回目で `package.json` / `pnpm-lock.yaml` に追加diffが発生しないことを確認する。
-
-その後:
+Task 6で生成した最終lockfileについてdiffを確認したうえで、以下を実行する。
 
     pnpm install --frozen-lockfile
 
@@ -252,16 +241,14 @@ Task 6で最終package構成に対するlockfileを生成済みの状態から�
 - 無関係なimporter / snapshot / integrity / peer resolution変更がない。
 - frozen installがPASSする。
 
+同じlockfile-only installをdeterminism確認目的だけで再実行しない。
+
 ### Task 8: targeted Local validationを実行する
 
-以下を実行する。
+以下だけを実行する。
 
     pnpm dlx expo-doctor@1.17.6
     pnpm list image-size --depth Infinity --json
-    pnpm run test:component:native
-    pnpm run check:native-route-dependencies
-    pnpm run validate:eas:config
-    pnpm run validate:native-production-bundle
     pnpm run typecheck
     pnpm run build:web
 
@@ -270,18 +257,21 @@ Task 6で最終package構成に対するlockfileを生成済みの状態から�
 - Expo Doctor 17/17 PASS。
 - current mismatch 0件。
 - 対象2 GHSAにaffectedなresolved `image-size` instance 0件。
-- Native component / route / EAS / production bundle validation PASS。
 - typecheck PASS。
 - Web build PASS。
 
 ローカルで以下は重複実行しない。
 
 - `pnpm run verify`
-- `pnpm run test:e2e:chromium`
+- Native component tests
+- Native route dependency check
+- EAS config validation
+- Native production bundle validation
+- Chromium E2E
 - Android / iOS native実build
 - Maestro runtime
 
-これらは最終PRのWeb CI / Mobile App CIで判定する。
+これらは最終PRのWeb CI / Mobile App CIで判定する。特にNative component / route / EAS / Expo Doctorは`Native Static`、production bundleは実際に生成したAPKを使う`Production Bundle Guard`で確認する。
 
 ## 6. final commit / 最終差分 / PR
 
@@ -396,7 +386,8 @@ Dependency Reviewで本変更による新規moderate以上の脆弱性が検出�
 
 ### affected `image-size` instanceが再発する
 
-- この場合だけ`pnpm why`系でactual parent pathを特定する。
+- まず `pnpm why image-size` でactual parent pathを特定する。
+- actual pathに含まれるpackageだけを必要に応じて追加調査する。
 - Issue #68の既存remediationの単純維持で解消できる場合だけ最小parent-scoped selectorを修正する。
 - 別の新規security remediationが必要ならIssue #73へ混ぜずBlockerとして報告する。
 
@@ -426,7 +417,7 @@ Dependency Reviewで本変更による新規moderate以上の脆弱性が検出�
 - 対象2 GHSAにaffectedなresolved `image-size` instanceが0件であること。
 - Metro override変更有無。変更した場合は再発したactual pathと変更selector。
 - Expo Doctor 17/17 PASS。
-- lockfile安定性 / frozen install結果。
+- lockfile diff / frozen install結果。
 - targeted Local validation結果。
 - final branch HEAD SHA。
 - PR head SHAがfinal branch HEAD SHAと一致していること。
