@@ -155,22 +155,35 @@ pnpm install --frozen-lockfile
 
 ### 6. compatible dependency mismatch を確認する
 
-```text
-pnpm exec expo install --check
+最初の `expo install --check` は、専用 step で結果を output に変換して後続分岐に使用する。
+
+実装契約:
+
+```yaml
+- id: expo_check
+  shell: bash
+  run: |
+    if pnpm exec expo install --check; then
+      echo "needs_fix=false" >> "$GITHUB_OUTPUT"
+    else
+      echo "needs_fix=true" >> "$GITHUB_OUTPUT"
+    fi
 ```
 
-最初の `expo install --check` は、mismatch 検出時の non-zero をその場の Workflow failure にせず、exit code を明示的に取得して後続分岐に利用する。
+- `steps.expo_check.outputs.needs_fix == 'false'`: 更新不要として正常終了し、branch / commit / PR を作成しない。
+- `steps.expo_check.outputs.needs_fix == 'true'`: `expo install --fix` へ進む。
 
-- exit code `0`: 更新不要として正常終了し、branch / commit / PR を作成しない。
-- non-zero: 自動修正候補として `expo install --fix` へ進む。
+最初の `expo install --check` の non-zero は mismatch 検出結果として扱い、その場の Workflow failure にはしない。
 
-実装では、最初の check だけ `set +e` / exit code capture、`continue-on-error` + step outcome などの方法で結果を取得してよい。shell の具体的な書き方は固定しない。
+`set +e` / exit code variable / `continue-on-error` など別方式へ広げず、上記 `if` + `$GITHUB_OUTPUT` 方式に統一する。
 
 non-zero だけを根拠に PR を作成せず、後続の fix / safety check がすべて成功した場合だけ PR を作成する。
 
 fix 後に再実行する `expo install --check` は通常どおり non-zero を Workflow failure とし、自動修正を続行しない。
 
 ### 7. compatible dependency を修正する
+
+`needs_fix == 'true'` の場合だけ次を実行する。
 
 ```text
 pnpm exec expo install --fix
@@ -234,11 +247,26 @@ allowlist 確認後から commit まで Repository を変更する command は�
 
 すべての safety check が PASS した場合だけ実施する。
 
+branch name:
+
 ```text
-branch: automation/expo-compatible-dependencies-${GITHUB_RUN_ID}
-commit: chore: align Expo SDK compatible dependencies
-files: package.json, pnpm-lock.yaml
+automation/expo-compatible-dependencies-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}
 ```
+
+commit message:
+
+```text
+chore: align Expo SDK compatible dependencies
+```
+
+commit 対象:
+
+```text
+package.json
+pnpm-lock.yaml
+```
+
+`GITHUB_RUN_ATTEMPT` を含め、Workflow の Re-run でも既存 automation branch と衝突しないようにする。
 
 - Git author は GitHub Actions bot を使用する。
 - force push / force-with-lease は使用しない。
@@ -303,9 +331,9 @@ pnpm install --frozen-lockfile
        ↓
 Expo / React Native major.minor 記録
        ↓
-expo install --check の exit code を取得
-  ├─ 0 -> no-op
-  └─ non-zero
+expo_check step
+  ├─ needs_fix=false -> no-op
+  └─ needs_fix=true
        ↓
 expo install --fix
        ↓
@@ -340,18 +368,19 @@ tests/contracts/expo-dependency-maintenance-workflow.test.ts
 - `workflow_dispatch` で `main` 以外の ref を変更処理前に拒否する guard
 - checkout が `ref: main` / `persist-credentials: false`
 - 既存 CI と同じ pinned Action
-- 最初の `expo install --check` の non-zero を即時 Workflow failure にせず、`--fix` 分岐へ利用する
-- fix 後の `expo install --check` は non-zero を failure とする
-- `expo install --fix`
+- `id: expo_check` が存在する
+- 最初の `expo install --check` を `if` で実行し、`needs_fix=false` / `needs_fix=true` を `$GITHUB_OUTPUT` へ出力する
+- fix は `needs_fix == 'true'` の場合だけ実行する
+- fix 後の `expo install --check` は通常 command として実行し、non-zero を failure とする
 - Expo / React Native major.minor guard
 - post-fix validation で `git diff --check HEAD` を使用する
 - changed-file allowlist が `git diff --name-only HEAD` と `git ls-files --others --exclude-standard` の両方を対象にし、許可ファイルを `package.json` / `pnpm-lock.yaml` のみに限定する
 - duplicate PR guard が base `main` + automation branch prefix で判定される
-- automation branch が run ID を含む
+- automation branch が `GITHUB_RUN_ID` と `GITHUB_RUN_ATTEMPT` の両方を含む
 - `gh workflow run` を含まない
 - auto-merge command を含まない
 
-shell の一行一行、step name、PR body 文言、allowlist step の具体的な位置を文字列順序で固定する fragile test にはしない。既存 `tests/contracts/native-ci-workflow.test.ts` へ maintenance 固有 contract を追加しない。
+shell の全行、step name、PR body 文言、allowlist step の具体的な位置を文字列順序で固定する fragile test にはしない。既存 `tests/contracts/native-ci-workflow.test.ts` へ maintenance 固有 contract を追加しない。
 
 ## Validation
 
@@ -373,7 +402,7 @@ Repository の通常 CI も確認する。依存を意図的に古くして疑�
 実行前に GitHub Actions から branch push / PR 作成が許可されていることを確認する。
 
 mismatch が残っている場合は次を確認する。
-1. `main` の mismatch を検出し、最初の `expo install --check` の non-zero で Workflow が即時終了せず fix へ進む。
+1. `main` の mismatch を検出し、`expo_check` が `needs_fix=true` を返して fix へ進む。
 2. compatible version へ修正する。
 3. Expo / React Native major.minor が変化しない。
 4. post-fix validation 後の最終 changed file が、tracked / untracked を含めて `package.json` / `pnpm-lock.yaml` だけになる。
@@ -383,9 +412,11 @@ mismatch が残っている場合は次を確認する。
 8. Expo Doctor dependency mismatch が解消される。
 9. auto-merge されない。
 
-mismatch が解消済みなら no-op を正常結果とする。
+mismatch が解消済みなら `expo_check` が `needs_fix=false` を返し、branch / commit / PR を作らず no-op で終了することを正常結果とする。
 
 `main` 以外を選択した `workflow_dispatch` は変更処理前に失敗し、branch / commit / PR を作成しないことも確認する。
+
+Workflow の Re-run が必要になった場合は、`GITHUB_RUN_ATTEMPT` により前回とは異なる automation branch 名になることを確認する。
 
 ## Stop 条件
 
@@ -411,6 +442,7 @@ mismatch が解消済みなら no-op を正常結果とする。
 - Android / iOS build / Maestro の変更
 - Web CI / Mobile App CI の変更・明示 dispatch
 - CI polling / retry / 自動修復
+- orphan automation branch の自動 cleanup
 - auto-merge / merge queue
 - reviewer / assignee / label / 通知 / Issue 自動化
 - PAT / GitHub App の追加
@@ -419,9 +451,9 @@ mismatch が解消済みなら no-op を正常結果とする。
 
 1. 最新 `main` と既存 CI の Node / pnpm / Action pin を確認する。
 2. trigger / permission / manual main-ref guard / `main` checkout / concurrency / duplicate PR guard を実装する。
-3. frozen install、major.minor capture、最初の `expo install --check` の exit code capture / 分岐、`expo install --fix` を実装する。
+3. frozen install、major.minor capture、`expo_check` の `if` + `$GITHUB_OUTPUT` 分岐、`expo install --fix` を実装する。
 4. major.minor guard、fix 後 validation（`git diff --check HEAD` を含む）、commit 直前の tracked + untracked final changed-file allowlist を実装する。
-5. automation branch / commit / push / OPEN PR 作成を実装する。
+5. `${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}` を含む automation branch / commit / push / OPEN PR 作成を実装する。
 6. 専用 contract test を追加する。
 7. format / lint / typecheck / contract tests と通常 CI を確認する。
 8. 実装 PR に現在の dependency correction を混ぜず完了する。
