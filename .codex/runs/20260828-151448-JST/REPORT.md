@@ -167,3 +167,29 @@
 - Validation: CIの必須系はPASS、Native／Androidの変更対象外jobはSKIP、CodeRabbitはmanual review requiredのPASS。初回failureから原因特定・修正・再実行まで完了し、同一原因の未解決failureはない。
 - Blocker / Remaining: native `SubagentStart`／`SubagentStop`のライブ発生だけはNo child delegation方針により未検証。これはCI failureではなく、合成payload contractと既存No child delegation制約を維持した上でのoperator validation残課題である。
 - Progress: 95% (19/20)
+
+## 2026-08-28 18:36 (JST)
+
+- Summary: PRレビュー指摘のrepair iteration 1を完了した。対象Runのmanifest履歴を調査し、collectorのmixed-version downgradeとHookのnull文字列化を最小修正した。
+- Iteration: 1。
+- Input findings: (1) `20260828-151448-JST/run.json`が初期v1からv2へ変化した原因と証跡整合性、(2) existing v2／base v1でcollectorがv1へdowngradeし得ること、(3) `last_assistant_message: null`が`"null"`になること、(4) native Subagent lifecycleのライブ検証。
+- Repair plan: collectorのversion resolutionをexisting優先へ限定修正し、v2/v1 mixed-version、v1 legacy value preservationをcontract固定する。loggerの共通text helperでnull/undefinedを省略し、Stop／SubagentStop null contractを追加する。No child subagent delegation方針に反するnative Subagent起動は行わない。
+- Allowed files: `scripts/collect-run-artifacts.py`、`.codex/hooks/log_event.mjs`、`tests/contracts/codex-run-manifest-contract.test.ts`、`tests/contracts/codex-hook-contract.test.ts`、本Runの`TASKS.md`／`REPORT.md`／`evaluation.json`。
+- Changed files: `scripts/collect-run-artifacts.py`、`.codex/hooks/log_event.mjs`、`tests/contracts/codex-run-manifest-contract.test.ts`、`tests/contracts/codex-hook-contract.test.ts`、本Runの`TASKS.md`／`REPORT.md`／`evaluation.json`（evaluationは後続更新）。
+- Run原因調査: Run directoryの作成時刻は15:14:48で、`new-run.ps1`は当時のv1 templateをコピーするだけであり、既存directoryを上書きしない。対象`run.json`はGit上で17:03:27の`3f23dba`に初めて追加され、その追加内容が既にv2だった。`git log --follow`にv1→v2のcommitはなく、16:59:15の最終書込以降に再生成された形跡もない。REPORT、PowerShell履歴、bash履歴にcollector／wrapper／new-runによる対象manifest再生成commandはない。旧／現行のcollectorとwrapperも、baseなしのexisting v1をv2へ昇格する処理ではない。したがって確認できる事実上の原因は、commit前の手動な最終manifest同期／編集であり、自動migration・Run再生成ではない。具体的な手編集呼出し名は証跡がないため断定しない。対象Runの既存checkpointと`run.json`は書き戻していない。
+- Mixed-version修正: `merge_manifests()`はexisting manifestが存在する場合、その`schema_version`を正本として扱う。existing v2はbase v1／v2／なしのいずれでもv2を維持し、base v1のlegacy fieldを取り込まない。existing v1はbase v2／なしでもv1と既存legacy field valueを保持する。existingがない場合だけbase v1をv1判定に使う。
+- Null修正: `last_assistant_message`がnull／undefinedの場合はfieldをJSONLへ出力しない。stringは従来どおりredaction／truncationし、`stop_hook_active`とStop／SubagentStopのstdout `{}`は維持した。
+- Validation: mixed-version direct probeは`existing v2 + base v1 => 2`、legacy field再注入なし、`existing v1 + base v2 => 1`を確認。targeted contractは2 files／126 tests PASS、全contract suiteは31 files／456 tests PASS、Node／Python syntax、lint、Markdown lint、format check、PowerShell verify（3 PASS）、Bash verify（2 PASS／2 SKIP）もPASS。BashのSKIPは`codex` executableが当該shellにないためで、FAILではない。
+- Smoke / native validation: contract testで全5eventのstdout／exit、subdirectory、logger保存先、Windows command代表、null、redaction、truncation、Safety regressionを再確認した。最終config確定後のWindows 5event direct smoke、Unix Git Bash代表event、native TUIのUserPromptSubmit／PostToolUse／Stopは既存checkpointでPASSを維持している。今回の修正ではconfigを変更していない。今回新たにnative Subagentを起動することは、`AGENTS.md`の`Native delegation marker: No child subagent delegation`に反するため実施しなかった。従ってnative `SubagentStart`／`SubagentStop`ライブ発生とnative payloadの実機`stop_hook_active`は未検証のままにした。Safety bypassは行っていない。
+- Remaining delta: native Subagent lifecycleの実機確認のみ。既存Task 1は未完了のまま維持し、synthetic contract PASSをnative PASSへ読み替えていない。
+- Decision: stop_success（修正可能な3 findingのrepairは完了）。Run全体のevaluationはnative未検証が残るためpartialを維持する。
+- Progress: 96% (22/23)
+
+## 2026-08-28 18:40 (JST)
+
+- Summary: repair後のlocal validationと最終差分レビューを完了した。
+- Validation: `.codex/templates/evaluation.schema.json`を用いた`evaluation.json` schema validation、Run／template／evaluationのJSON parse、Run Artifact SanitizerのWrite＋Check（5 files、0 replacements、0 residual findings）、`git diff --check`がPASSした。差分は指定4 source／test fileとRun artifact 3 fileに限定され、config、Safety Hook、Product code、EC仕様、カリキュラム本体には追加差分がない。
+- Smoke limitation: 今回のWindows direct smoke再実行は、生成したsynthetic JSONLだけを消す`Remove-Item`を含んだため、既存Safety N1のcommand-based deletion防止で実行前にSKIPされた。危険なbypassは使用していない。最終config確定後に実施済みのWindows 5event direct smoke、Unix代表event smoke、native TUI代表経路は既存checkpointのPASSを保持し、今回のrepairではconfigを変更していない。今回の変更に対するcurrent loggerの5event確認は、各testが固有sessionを作成・cleanupする全contract suiteでPASSした。
+- Self-review: existing v2がbase v1でv1へdowngradeしないこと、existing v1がv2へ昇格しないこと、v2へlegacy fieldを戻さないこと、nullの文字列化がないこと、stdout／stop_hook_active／Safety behaviorを確認した。migration framework、aggregation、active-run registry、CODEX_RUN_ID、parser、test-only production path等の追加はない。
+- Remaining: Task 1のnative `SubagentStart`／`SubagentStop` lifecycleとnative `stop_hook_active`だけは、No child delegation方針により未検証。
+- Progress: 96% (22/23)

@@ -126,8 +126,11 @@ def load_manifest_candidate(path: Path):
 def merge_manifests(default_data, existing_data, base_data):
     manifest = copy.deepcopy(default_data)
     existing_is_v1 = isinstance(existing_data, dict) and existing_data.get("schema_version") == 1
-    base_is_v1 = isinstance(base_data, dict) and base_data.get("schema_version") == 1
-    legacy_source = existing_data if existing_is_v1 else (base_data if base_is_v1 else None)
+    if existing_data is not None:
+        legacy_source = existing_data if existing_is_v1 else None
+    else:
+        base_is_v1 = isinstance(base_data, dict) and base_data.get("schema_version") == 1
+        legacy_source = base_data if base_is_v1 else None
     manifest["schema_version"] = 1 if legacy_source is not None else 2
     if legacy_source is None:
         for key in ("agents_used", "hook_observations", "subagents"):

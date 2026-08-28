@@ -9,13 +9,13 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Plan §9の実装タスク、契約テスト、Windows 5event smoke、Unix代表event smoke、verify、trust確認、PR CI確認まで完了した。ただし、no-child-delegation方針のためSubagentを実機起動せず、native lifecycle eventのライブ発生だけは未確認である。",
+      "evidence": "Plan §9の実装タスク、レビューrepair iteration 1、契約テスト、Windows 5event smoke、Unix代表event smoke、verify、trust確認、PR CI確認まで完了した。ただし、no-child-delegation方針のためSubagentを実機起動せず、native lifecycle eventのライブ発生だけは未確認である。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
           "path": ".codex/runs/20260828-151448-JST/TASKS.md",
-          "selector": "Tasks 2-20",
-          "summary": "実装、trust、検証タスクの完了状態とTask 1の未確認を確認できる。"
+          "selector": "Tasks 2-23",
+          "summary": "実装、repair、trust、検証タスクの完了状態とTask 1の未確認を確認できる。"
         }
       ]
     },
@@ -33,13 +33,13 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "全contract testは31 files / 452 tests PASS、PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIP、Markdown lint・format・diff check、evaluation schema validation、PR CI全必須ゲートもPASSした。Windows直接smokeは5event、Unix系Git Bash smokeは代表event、native TUIはUserPromptSubmit・PostToolUse・Stopを確認したが、native SubagentStart・SubagentStopの発生は未確認である。",
+      "evidence": "全contract testは31 files / 456 tests PASS、PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIP、Markdown lint・format・diff check、evaluation schema validation、PR CI全必須ゲートもPASSした。Windows直接smokeは5event、Unix系Git Bash smokeは代表event、native TUIはUserPromptSubmit・PostToolUse・Stopを確認したが、native SubagentStart・SubagentStopの発生は未確認である。mixed-version 3ケースとStop／SubagentStopのnull 2ケースもPASSした。",
       "evidence_refs": [
         {
           "kind": "validation_command",
           "path": null,
           "selector": "pnpm exec vitest run tests/contracts",
-          "summary": "31 contract filesと452 testsがPASSした。"
+          "summary": "31 contract filesと456 testsがPASSした。mixed-versionとnull handlingの追加ケースを含む。"
         },
         {
           "kind": "validation_command",
@@ -63,7 +63,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "最終差分をPlanのNon-goals、legacy削除、manifest v2、Safety Hook、REPORT・Hook JSONL・run.jsonの責務分離の観点で確認し、旧stack外の独立dependencyなしというrepo-wide調査結果と整合している。",
+      "evidence": "最終差分をPlanのNon-goals、legacy削除、manifest v2のexisting優先merge、null handling、Safety Hook、REPORT・Hook JSONL・run.jsonの責務分離の観点で確認し、旧stack外の独立dependencyなしというrepo-wide調査結果と整合している。",
       "evidence_refs": [
         {
           "kind": "changed_file",

@@ -17,13 +17,21 @@ type Manifest = {
   validation: Record<string, unknown>;
 };
 
-function runCollector(existingManifest: Record<string, unknown>, includeLegacyFiles = false) {
+function runCollector(
+  existingManifest: Record<string, unknown>,
+  includeLegacyFiles = false,
+  baseManifest?: Record<string, unknown>,
+) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-manifest-contract-"));
   const runId = `contract-${randomUUID()}`;
   const runRoot = path.join(tempRoot, runId);
   const manifestPath = path.join(runRoot, "run.json");
+  const baseManifestPath = path.join(tempRoot, "base-manifest.json");
   fs.mkdirSync(runRoot, { recursive: true });
   fs.writeFileSync(manifestPath, `${JSON.stringify(existingManifest)}\n`, "utf8");
+  if (baseManifest) {
+    fs.writeFileSync(baseManifestPath, `${JSON.stringify(baseManifest)}\n`, "utf8");
+  }
   if (includeLegacyFiles) {
     fs.mkdirSync(path.join(runRoot, "subagents"), { recursive: true });
     fs.writeFileSync(
@@ -45,11 +53,22 @@ function runCollector(existingManifest: Record<string, unknown>, includeLegacyFi
   }
 
   try {
-    const result = spawnSync(
-      process.platform === "win32" ? "python" : "python3",
-      [collectorPath, "--run-id", runId, "--runs-root", tempRoot, "--manifest-path", manifestPath],
-      { cwd: repoRoot, encoding: "utf8" },
-    );
+    const args = [
+      collectorPath,
+      "--run-id",
+      runId,
+      "--runs-root",
+      tempRoot,
+      "--manifest-path",
+      manifestPath,
+    ];
+    if (baseManifest) {
+      args.push("--base-manifest", baseManifestPath);
+    }
+    const result = spawnSync(process.platform === "win32" ? "python" : "python3", args, {
+      cwd: repoRoot,
+      encoding: "utf8",
+    });
     expect(result.status, result.stderr).toBe(0);
     return JSON.parse(fs.readFileSync(manifestPath, "utf8")) as Manifest;
   } finally {
@@ -93,6 +112,69 @@ describe("run manifest v2 contract", () => {
     });
   });
 
+  it("keeps an existing v2 manifest at v2 when the base manifest is v1", () => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        run_id: "existing-v2-run-id",
+        safety: { network: true, scope_violation: false },
+        artifact_summary: { codex_task_report_count: 4, evaluation_present: false },
+        codex_task_reports: ["existing.report.json"],
+        changed_files: ["existing.txt"],
+        validation: { status: "passed", commands: [], warnings: [] },
+      },
+      false,
+      {
+        schema_version: 1,
+        agents_used: ["stale-agent"],
+        hook_observations: { event_counts: { Stop: 4 } },
+        subagents: { summary: { total: 4 } },
+        safety: {
+          delete_attempt_blocked: true,
+          git_mutation_attempt_blocked: true,
+          scope_violation: false,
+        },
+        artifact_summary: {
+          hook_event_count: 4,
+          subagent_run_count: 4,
+          evaluation_present: false,
+        },
+      },
+    );
+
+    expect(manifest.schema_version).toBe(2);
+    expect(manifest).not.toHaveProperty("agents_used");
+    expect(manifest).not.toHaveProperty("hook_observations");
+    expect(manifest).not.toHaveProperty("subagents");
+    expect(manifest.safety).toEqual({ network: true, scope_violation: false });
+    expect(manifest.artifact_summary).toEqual({
+      codex_task_report_count: 1,
+      evaluation_present: false,
+    });
+  });
+
+  it("keeps an existing v2 manifest at v2 when the base manifest is v2", () => {
+    const manifest = runCollector(
+      {
+        schema_version: 2,
+        safety: { network: false, scope_violation: false },
+        artifact_summary: { codex_task_report_count: 0, evaluation_present: false },
+        validation: { status: "not_run", commands: [], warnings: [] },
+      },
+      false,
+      {
+        schema_version: 2,
+        safety: { network: true, scope_violation: false },
+        artifact_summary: { codex_task_report_count: 7, evaluation_present: false },
+      },
+    );
+
+    expect(manifest.schema_version).toBe(2);
+    expect(manifest).not.toHaveProperty("agents_used");
+    expect(manifest).not.toHaveProperty("hook_observations");
+    expect(manifest).not.toHaveProperty("subagents");
+  });
+
   it("preserves existing v1 legacy values without rescanning old files", () => {
     const legacyAgents = ["legacy-agent"];
     const legacyHookObservations = { event_counts: { SafetyBlocked: 2 } };
@@ -121,6 +203,12 @@ describe("run manifest v2 contract", () => {
         validation: { status: "passed", commands: [], warnings: [] },
       },
       true,
+      {
+        schema_version: 2,
+        agents_used: ["must-not-replace-v1"],
+        hook_observations: { event_counts: { UserPromptSubmit: 9 } },
+        subagents: { summary: { total: 9 } },
+      },
     );
 
     expect(manifest.schema_version).toBe(1);

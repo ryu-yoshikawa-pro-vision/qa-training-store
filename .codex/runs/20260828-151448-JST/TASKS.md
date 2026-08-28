@@ -25,8 +25,10 @@
 
 ## Discovered
 
-- なし
+- [x] 21. レビュー指摘として、対象Runのv1→v2変化を履歴・初期化・writer実行記録から調査し、証跡を壊さず原因と判断を記録する。
+- [x] 22. collectorのmixed-version mergeでexisting manifestのversionを正本にし、v2 downgrade防止とv1 legacy value preservationのcontract testを追加する。
+- [x] 23. `last_assistant_message: null`を省略保存へ修正し、`Stop` / `SubagentStop`のnull contract testを追加する。
 
 ## Blocked
 
-- なし
+- Task 1のnative `SubagentStart` / `SubagentStop`ライブ発生確認は、`AGENTS.md`の`No child subagent delegation`により実行しない。

@@ -853,6 +853,32 @@ describe("Codex logging Hook contract", () => {
     });
   });
 
+  it.each([
+    ["SubagentStop", { agent_id: "agent-null", stop_hook_active: true }],
+    ["Stop", { stop_hook_active: false }],
+  ] as const)("omits a null last_assistant_message for %s", (event, fields) => {
+    withLoggingSession(`null-${event}`, (sessionId, logPath) => {
+      const result = runLoggingHook(
+        event,
+        JSON.stringify({
+          ...makeLoggingPayload(event, sessionId),
+          ...fields,
+          last_assistant_message: null,
+        }),
+      );
+
+      expect(result).toEqual({
+        status: 0,
+        stdout: loggingOutputFor(event),
+        stderr: "",
+      });
+      const [record] = readLoggingRecords(logPath);
+      expect(record).not.toHaveProperty("last_assistant_message");
+      expect(JSON.stringify(record)).not.toContain('"last_assistant_message":"null"');
+      expect(record?.stop_hook_active).toBe(fields.stop_hook_active);
+    });
+  });
+
   it("redacts representative credentials before appending JSONL", () => {
     withLoggingSession("redaction", (sessionId, logPath) => {
       const secrets = {

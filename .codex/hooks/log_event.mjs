@@ -26,6 +26,10 @@ function redactSecrets(value) {
 }
 
 function boundedText(value) {
+  if (value === null || value === undefined) {
+    return { value: undefined, truncated: false };
+  }
+
   const text = typeof value === "string" ? value : JSON.stringify(value);
   if (typeof text !== "string") {
     return { value: undefined, truncated: false };
