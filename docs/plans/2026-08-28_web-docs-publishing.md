@@ -92,10 +92,14 @@ Specification 固有の次の処理は `scripts/spec/build-spec.ts` に残す。
 
 - `buildSpecSite()`
 - Specification 用 output path / link 解決
-- Specification navigation
+- Specification navigation の適用・描画
 - `Normative Product Behavior` / `Supporting / Operational` 判定・表示
 - Specification 用 page shell / brand
 - Specification asset 制約
+
+既存 `scripts/spec/markdown.ts` の `extractNavigation()` の配置は変更しない。Curriculum 生成では使用せず、Specification navigation の適用・描画だけを既存どおり `scripts/spec/build-spec.ts` に残す。
+
+既存 CSS は今回の表示に必要な範囲でそのまま再利用し、CSS 構造の再設計・細分化・Design System 化は行わない。
 
 `buildSpecSite({ outputDir })` の既存 API と `pnpm run build:spec` の出力・挙動を維持する。
 
@@ -122,7 +126,7 @@ Curriculum は次の契約とする。
 - Required Curriculum の順序を別ロジックで再構築しない。
 - `README.md` 本文の「全体構成」をそのまま入口・学習順として使う。
 - Specification 固有 label / navigation は表示しない。
-- HTML `<title>` は Curriculum 用にする。
+- HTML `<title>` は Markdown の最初の H1 を使い、`<H1> — Scenario Shop Test Automation Curriculum` の形式とする。
 - header brand は `Scenario Shop Test Automation Curriculum` とし、`/docs/curriculum/` へのリンクにする。
 - 本文の H1 以下は Markdown 本文をそのまま使用し、別の H1 を追加しない。
 - Prev / Next や専用 navigation data は追加しない。
@@ -140,6 +144,15 @@ Specification 内の Markdown リンク変換は既存 `buildSpecSite()` に任�
 ### 6. Curriculum のリンク変換規則を固定する
 
 Curriculum HTML 生成時だけ、Markdown リンクを次の規則で変換する。
+
+`http:` / `https:` / `mailto:` / `tel:` / `//` と同一ページ内の `#anchor` を除くローカルリンクは、URL 変換前に必ず次を実施する。
+
+1. リンク元 Markdown のディレクトリを基準に Repository-relative path を解決する。
+2. 解決結果が Repository root 外へ逸脱する場合は build を失敗させる。
+3. fragment を除いた対象 path が Repository 内に実在しない場合は build を失敗させる。
+4. 実在を確認した後、対象を Curriculum / Specification / その他 Repository 内ファイルのいずれかに分類し、以下の規則で URL を生成する。
+
+壊れたローカルリンクを GitHub URL や生成 HTML URL に変換して隠さない。
 
 #### Curriculum 内の Markdown
 
@@ -169,30 +182,31 @@ docs/spec/**/*.md
 
 #### 公開 Docs 対象外の Repository 内ファイル
 
-`docs/spec/**` と `docs/curriculum/test-automation/**` 以外の Repository 内ファイルへのリンクは、Web Docs の生成対象を広げず GitHub `main` 上の source URL へ変換する。
+`docs/spec/**` と `docs/curriculum/test-automation/**` 以外の Repository 内ファイルへのリンクは、Web Docs の生成対象を広げず次の形式の GitHub source URL へ変換する。
+
+```text
+https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/<repository-relative-path>
+```
 
 現在存在する例:
 
 ```text
 ../../../reference/agentic-qa-workflow.md
-  -> GitHub main の docs/reference/agentic-qa-workflow.md
+  -> https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/docs/reference/agentic-qa-workflow.md
 
 ../../../../QA_AGENT.md
-  -> GitHub main の QA_AGENT.md
+  -> https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/QA_AGENT.md
 ```
-
-Repository 内の対象 path が実在することを確認してから GitHub source URL を生成する。存在しない path を GitHub URL にして隠さない。
 
 #### その他
 
 - `#anchor` はそのまま保持する。
 - `file.md#anchor` は変換後 URL に fragment を保持する。
 - `http:` / `https:` / `mailto:` / `tel:` / `//` は変更しない。
-- Repository root 外へ逸脱する path は許可しない。
 
 今回、新しい汎用 link graph / anchor validation framework は作らない。
 
-既存の `validate:spec` と `validate:curriculum` を継続利用する。
+既存の `validate:spec` と `validate:curriculum` を継続利用する。前述の存在確認は Curriculum HTML のリンク生成処理自身の fail-fast とし、新しい validator suite は追加しない。
 
 ローカル画像が Curriculum に現在存在する場合だけ、表示に必要な画像を `dist/docs/curriculum` 配下へコピーして参照を維持する。存在しない場合は Curriculum 用 asset pipeline を追加しない。
 
@@ -285,9 +299,12 @@ published docs smoke
 
 1. `/docs/spec/` を開き、H1 `Scenario Shop Specification System` が表示される。
 2. `/docs/curriculum/` を開き、H1 `テスト自動化カリキュラム` が表示される。
-3. `/docs/curriculum/part1/04_playwright-foundations.html` を開き、そのページ固有 H1 が表示される。
-4. Curriculum README に現在存在する `docs/spec/README.md` へのリンクを辿り、`/docs/spec/` と `Scenario Shop Specification System` が表示される。
-5. 既存 Storefront smoke で `/products` の SPA route が従来どおり動作する。
+3. Curriculum README に現在存在する `part1/04_playwright-foundations.md` へのリンクを実際に辿り、`/docs/curriculum/part1/04_playwright-foundations.html` とそのページ固有 H1 が表示される。
+4. `/docs/curriculum/` へ戻る。
+5. Curriculum README に現在存在する `docs/spec/README.md` へのリンクを実際に辿り、`/docs/spec/` と `Scenario Shop Specification System` が表示される。
+6. 既存 Storefront smoke で `/products` の SPA route が従来どおり動作する。
+
+子ページを直接 `goto` して済ませず、README 内の実リンクを辿ることで Curriculum 内 Markdown link の URL 変換も確認する。
 
 Docs は HTTP success だけで判定せず、Docs 固有 H1 を確認して SPA fallback の誤成功を防ぐ。
 
@@ -321,6 +338,7 @@ Cloudflare Pages Preview で次を確認する。
 
 - `/docs/spec/`
 - `/docs/curriculum/`
+- Curriculum README から代表 Curriculum 子ページへのリンク
 - Curriculum から Specification への代表 cross-link
 
 ## 主な変更対象
@@ -345,7 +363,8 @@ Scenario Shop の Header / Footer / Mobile navigation は変更しない。
 - Specification の既存 `buildSpecSite()` / `build:spec` / `output/spec-site` 契約を壊していない。
 - Curriculum README が index となり、本文の既存学習順から各教材へ移動できる。
 - Curriculum 内リンク、Curriculum から Specification へのリンクが動作する。
-- 公開 Docs 対象外の既存 Repository リンクが壊れず GitHub source を開く。
+- Curriculum の生成対象 Markdown に存在するローカルリンクが、存在しない対象や Repository root 外を指す場合は build が失敗する。
+- 公開 Docs 対象外の既存 Repository リンクが壊れず、固定した GitHub source URL を開く。
 - `build:web` 後の `dist/` に両 Docs が含まれる。
 - `dist/docs` のみ clean され、Expo Web 成果物を削除しない。
 - Docs directory index と既存 SPA fallback が共存する。
@@ -382,11 +401,11 @@ Scenario Shop の Header / Footer / Mobile navigation は変更しない。
 ## 実装順
 
 1. 最新 `main` を取り込み、現在の Markdown 構文・リンク・画像を確認する。
-2. `scripts/spec/build-spec.ts` の汎用 Markdown 描画部分を `scripts/spec/markdown.ts` から再利用できる最小形へ整理する。
+2. `scripts/spec/build-spec.ts` の汎用 Markdown 描画部分を `scripts/spec/markdown.ts` から再利用できる最小形へ整理する。`extractNavigation()` の配置や CSS 構造は不要に変更しない。
 3. `scripts/docs/build-docs.ts` を追加し、Specification と Curriculum を `dist/docs` へ生成する。
-4. Curriculum のリンク変換を本プランの固定規則どおり実装する。
+4. Curriculum のローカルリンク存在確認とリンク変換を本プランの固定規則どおり実装する。
 5. `package.json` に `build:docs` を追加し、`build:web` の Expo export 後に接続する。
 6. `scripts/serve-web-dist.ts` を directory index 対応にする。
-7. `e2e/web/smoke.spec.ts` 内に `published docs smoke` を追加する。
+7. `e2e/web/smoke.spec.ts` 内に `published docs smoke` を追加し、Curriculum 内リンクと Curriculum → Specification リンクを実際に辿る。
 8. 既存 validator、`build:web`、`build:spec`、smoke を実行する。
-9. Cloudflare Pages Preview で Docs root と代表 cross-link を確認する。
+9. Cloudflare Pages Preview で Docs root、代表 Curriculum 内リンク、代表 cross-link を確認する。
