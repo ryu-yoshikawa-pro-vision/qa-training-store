@@ -31,6 +31,9 @@
 - [x] D15. PR-wide diffとimplementation deltaを分離し、実装開始直前の`IMPLEMENTATION_BASE_SHA...HEAD`でscope判定する
 - [x] D16. Non-functional Requirement Groupへcode referenceを強制せず、Benchmark / UI Review / Static Check / Smoke等の実在するCurrent verificationへ接続する
 - [x] D17. Risk表のRepresentative Formal Test / suiteをstableな代表実行単位、CI Gateを最も近いworkflow job / matrix legへ固定し、`verify` / `validate`だけで一律に埋めない
+- [x] D18. child PlanをRepository標準`docs/plans/TEMPLATE.md`の責務へ再配置し、重複記載を削る
+- [x] D19. Functionalは`Representative Verification`を1列追加し、Non-functionalは既存`検証`列を再利用して重複列を作らない
+- [x] D20. `test_strategy.md`はCurrentで正しい既存説明を維持し、3軸・Risk mapping・接続説明に必要な最小修正だけ行い全面rewriteしない
 
 ## Blocked
 
