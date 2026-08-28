@@ -196,3 +196,42 @@
 - remaining_delta: branch safety再確認、staged diff review、repair commit / push、4 inline threadへのreply / resolve、outside-diff対応comment、CodeRabbit incremental review、最終PR／CI確認、Task 13 / D6の完了。
 - decision: `continue`。
 - Progress: 84% (16/19)。
+
+## 2026-08-28 18:35 JST — Repair commit / thread最終Evidence
+
+- D5 evidence: repair commit `25587bdf6045ccfef14585af231144e2d3a0ef31`（`docs: address PR 75 review artifact findings`）を作成し、`git push origin HEAD:fix/current-documentation-ssot-repair`を実行した。local HEAD、`origin/fix/current-documentation-ssot-repair`、remote refはすべて同SHAで一致した。
+- PR #75 current headは`25587bdf6045ccfef14585af231144e2d3a0ef31`、PRはOPEN／non-Draft／base=`main`／head branch一致、changed files `22`、mergeable=`MERGEABLE`である。
+- CR-1 thread `PRRT_kwDOTj-WlM6dG6-Z`: reply comment `3879524867`を投稿し、`isResolved=true`、`isOutdated=true`を確認した。
+- CR-2 thread `PRRT_kwDOTj-WlM6dG6-e`: reply comment `3879525023`を投稿し、`isResolved=true`、`isOutdated=true`を確認した。
+- CR-3 thread `PRRT_kwDOTj-WlM6dG6-j`: reply comment `3879525262`を投稿し、`isResolved=true`、`isOutdated=false`を確認した。
+- CR-4 thread `PRRT_kwDOTj-WlM6dG6-m`: reply comment `3879525419`を投稿し、`isResolved=true`、`isOutdated=true`を確認した。
+- thread再取得結果: 全8 thread中、unresolved `0`。既存4 threadもresolvedのままで、新規unexpected unresolved threadはない。
+- outside-diff対応comment: `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/75#issuecomment-5450900491`（comment id `5450900491`）。17:15 blockのbackfill、append-only維持、Task 11 / 12同期、TASKSからのCurrent progress再計算、対応commitを記録した。
+- Current CI（repair push後）: Web CIは大部分がsuccessだが、`Chromium E2E (required)`とUI Review 3 jobが取得時点でpending。Mobile App CIの`native-ci / verify`はsuccess、Native変更なしの一部jobはskipping。CodeRabbit checkは`pass`だが`Review skipped: manual review required for this OSS repository`であり、未実行をreview PASSとは扱わない。
+- Issue #72は今回編集していない。Current／Next／Blocked／PR 1 statusは指定状態を維持している。実装13文書へのrepair差分はない。
+- blocking question: なし。次はRun Artifact最終化、D6／Task 13の完了、最終push後のCodeRabbit incremental reviewとPR／CI確認である。
+- Progress: 89% (17/19)。
+
+## 2026-08-28 18:37 JST — Run Artifact最終化
+
+- D6 evidence: CR-1〜CR-4へのreply投稿とthread resolve、outside-diff対応commentを完了した。4対象threadは`isResolved=true`、全8 threadのunresolvedは`0`である。CodeRabbit incremental reviewはRun Artifact finalization push後に単独commentで依頼する。
+- Task 13 evidence: repair対象、validation、scope、commit、push、review thread処理、Issue #72非変更、merge非実行を本REPORTへ整理した。PR #75はOPENのまま維持する。
+- TASKSのNow 13件とDiscovered D1〜D6の合計19 checkboxを実績へ同期し、Task 13 / D6を完了とした。
+- `run.json.status`を`completed`へ戻し、repair_loopの`decision`を`stop_success`、`remaining_delta`を「finalization push後のCodeRabbit incremental reviewと最終PR／CI確認はGitHub metadataで確認し、追加tracked changeは行わない」として最終化する。
+- final scope: repair開始時の`REPAIR_BASE_SHA=ccf637ce7638ba867714236aa80b3b1337088531`からのtracked repair差分は、child Plan、old Run REPORT、active Run REPORT／TASKS／run.jsonの5件だけ。実装13文書、Product、workflow、validator、test、Workbook CSV、Master Plan、Issue #72、active Run `PLAN.md`にrepair差分はない。
+- finalization commit前のCurrent CIは、Web CIの一部jobがpending、Mobile App CIの`native-ci / verify`がsuccess、Native変更なしjobがskippingである。CIの最終状態はfinalization headをGitHubで再確認し、REPORT更新だけの追加commitは作成しない。
+- Progress: 100% (19/19)。
+
+## 2026-08-28 18:39 JST — Run最終化validation結果
+
+- `pnpm run format:check` => PASS（All matched files use Prettier code style）。
+- `pnpm run lint:markdown` => PASS（markdownlint 341 files、0 issues）。
+- `git diff --check` => PASS。CRLF warningのみでwhitespace errorなし。
+- `node --eval "const d=JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-164903-JST/run.json', 'utf8')); if (d.status !== 'completed') process.exit(2); console.log('run.json JSON parse/status completed: PASS')"` => PASS。Sanitizer後の同status確認もPASS。
+- 完全scope command `git diff --name-only -- src app e2e maestro scripts/validate-curriculum.ts tests .github/workflows package.json pnpm-lock.yaml docs/spec CHANGELOG.md docs/curriculum/test-automation/part1/10_part1-capstone.md` => 空。
+- repair delta command `git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 --` => 指定5 tracked filesだけ。
+- 13実装文書の不変性commandは空。active Run `PLAN.md`、Issue #72、Product、workflow、validator、test、Workbook CSV、Master Planにもrepair差分はない。
+- active Run Sanitizer Write => PASS（4 files scanned、0 files changed、0 replacements、residual findings `0`）。active Run Sanitizer Check => PASS（4 files scanned、0 files changed、0 replacements、residual findings `0`）。old Runへは実行していない。
+- finalization validation result: PASS。残差はなく、Run Artifact finalization commitへ進む。CodeRabbit incremental review依頼とfinalization headのGitHub CI／PR確認はpush後に実施する。
+- decision: `stop_success`。
+- Progress: 100% (19/19)。

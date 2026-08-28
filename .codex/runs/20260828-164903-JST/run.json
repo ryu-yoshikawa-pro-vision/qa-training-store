@@ -64,6 +64,7 @@
       "pnpm run lint:markdown",
       "git diff --check",
       "node --eval \"JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-164903-JST/run.json', 'utf8')); console.log('run.json JSON parse: PASS')\"",
+      "node --eval \"const d=JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-164903-JST/run.json', 'utf8')); if (d.status !== 'completed') process.exit(2); console.log('run.json JSON parse/status completed: PASS')\"",
       "scripts/sanitize-codex-artifacts.ps1 -Write -Path .codex/runs/20260828-164903-JST",
       "scripts/sanitize-codex-artifacts.ps1 -Check -Path .codex/runs/20260828-164903-JST"
     ],
@@ -105,11 +106,12 @@
       "scripts/sanitize-codex-artifacts.ps1 -Check -Path .codex/runs/20260828-164903-JST",
       "git diff --name-only -- src app e2e maestro scripts/validate-curriculum.ts tests .github/workflows package.json pnpm-lock.yaml docs/spec CHANGELOG.md docs/curriculum/test-automation/part1/10_part1-capstone.md",
       "git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 --",
-      "git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 -- docs/07_testability/seed_catalog.md docs/08_testing/e2e_design.md docs/08_testing/test_strategy.md docs/12_quality/requirements_traceability.md docs/12_quality/acceptance_criteria.md docs/curriculum/test-automation/00-learning-design.md docs/curriculum/test-automation/01-spreadsheet-test-design.md docs/curriculum/test-automation/part1/04_playwright-foundations.md docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md docs/curriculum/test-automation/part1/07_maestro-native-automation.md docs/curriculum/test-automation/part2/06_native-ci-maestro.md docs/curriculum/test-automation/part2/08_integration-design-capstone.md training/workbook/README.md"
+      "git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 -- docs/07_testability/seed_catalog.md docs/08_testing/e2e_design.md docs/08_testing/test_strategy.md docs/12_quality/requirements_traceability.md docs/12_quality/acceptance_criteria.md docs/curriculum/test-automation/00-learning-design.md docs/curriculum/test-automation/01-spreadsheet-test-design.md docs/curriculum/test-automation/part1/04_playwright-foundations.md docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md docs/curriculum/test-automation/part1/07_maestro-native-automation.md docs/curriculum/test-automation/part2/06_native-ci-maestro.md docs/curriculum/test-automation/part2/08_integration-design-capstone.md training/workbook/README.md",
+      "node --eval \"const d=JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-164903-JST/run.json', 'utf8')); if (d.status !== 'completed') process.exit(2); console.log('run.json JSON parse/status completed: PASS')\""
     ],
-    "validation_result": "PASS。format:check、lint:markdown、git diff --check、active run.json JSON parse、完全scope、repair delta、13実装文書不変性、active Run Sanitizer Write / Checkは成功。thread返信・resolve、push、CodeRabbit再レビュー、最終PR確認は未完了。",
-    "remaining_delta": "D5のcommit / pushとD6のthread返信・resolve、outside-diff comment、CodeRabbit incremental review、最終CI確認、Task 13の完了。",
-    "decision": "continue"
+    "validation_result": "PASS。format:check、lint:markdown、git diff --check、active run.json JSON parse、完全scope、repair delta、13実装文書不変性、active Run Sanitizer Write / Check、repair commit / push、4 thread reply / resolve、outside-diff commentは成功。finalization push後のCodeRabbit incremental reviewと最終PR／CI確認はGitHub metadataで確認し、追加tracked changeは行わない。",
+    "remaining_delta": "finalization push後のCodeRabbit incremental reviewと最終PR／CI確認はGitHub metadataで確認し、追加tracked changeは行わない。",
+    "decision": "stop_success"
   },
   "safety": {
     "network": true,
@@ -141,6 +143,6 @@
     }
   },
   "evaluation_path": null,
-  "status": "in_progress",
+  "status": "completed",
   "primary_failure_category": null
 }
