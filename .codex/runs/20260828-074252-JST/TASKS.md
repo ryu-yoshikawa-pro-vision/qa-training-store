@@ -22,7 +22,7 @@
 - [x] 18. RA-M1の12 WE-CORE Flow、required leg command、PR matrix Gateの境界を補正する。
 - [x] 19. REPORT.mdへPR #75作成・metadata確認・Issue #72更新の最終Evidenceをappendする。
 - [x] 20. bounded diff、read-only SSOT cross-check、Plan-only validation、Sanitizerを確認する。
-- [ ] 21. commit / push後にPR #75のhead・scope・CI・mergeabilityを確認し、PR 1実装を開始せず停止する。
+- [x] 21. commit / push後にPR #75のhead・scope・CI・mergeabilityを確認し、PR 1実装を開始せず停止する。
 
 ## Discovered
 

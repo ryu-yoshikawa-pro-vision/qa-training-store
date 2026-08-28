@@ -160,3 +160,37 @@
 - remaining_delta: correction commit、明示refspec push、PR #75のpush後head / scope / CI / mergeability確認、Task 21の完了記録。
 - decision: `continue`。
 - Progress: 95% (20/21)
+
+## 2026-08-28 14:46 (JST) — Post-push final evidence
+
+- correction commit: `938d60932e849acf5c99b4f36bdbea9ab7a5ceea`（`docs: refine current documentation repair plan`）。
+- push: `git push origin HEAD:fix/current-documentation-ssot-repair` => 成功。local HEAD、`origin/fix/current-documentation-ssot-repair`、`git ls-remote`のremote refはすべて`938d60932e849acf5c99b4f36bdbea9ab7a5ceea`で一致した。post-push working treeはclean。
+
+### PR #75 Current metadata
+
+- PR number: `75`、URL: `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/75`、state: `OPEN`、draft: `false`。
+- base: `main`、head: `fix/current-documentation-ssot-repair`、head SHA: `938d60932e849acf5c99b4f36bdbea9ab7a5ceea`。
+- changed files: `.codex/runs/20260828-074252-JST/PLAN.md`、`.codex/runs/20260828-074252-JST/REPORT.md`、`.codex/runs/20260828-074252-JST/TASKS.md`、`.codex/runs/20260828-074252-JST/run.json`、`docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md`の5件。child Plan＋Run Artifactだけで、PR 1 implementation変更はない。
+- mergeable: `MERGEABLE`。reviewDecisionは未設定、レビュー一覧は空である。
+- CI: 新headに対するcheckが開始され、取得時点ではDependency ReviewとCodeRabbitがpass、その他のWeb / CodeQL / Native関連checkはpendingまたはqueued。failureは確認されていない。CI完了待ちのための追加commitは行わない。
+
+### Issue #72 Current metadata
+
+- `gh issue view 72`でbodyを再確認した。Issueは編集しておらず、stateは`OPEN`。
+- Current: `PR 1 child Plan review`。
+- Next: `PR 1 implementation`。
+- Blocked: `None`。
+- Phase 0: `Complete`。
+- Child Plan: `docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md`。
+- PR 1: `#75`。
+- Status: `Plan ready / implementation not started`。
+
+### Final repair-loop record
+
+- review correction: Run ArtifactのPR / Issue最終Evidence補完、RA-M3のFormal E2E / Smoke project範囲補正、RA-M1の12 Flow / required leg / PR matrix Gate境界補正。
+- final scope: local変更はchild Plan、`REPORT.md`、`TASKS.md`、`run.json`の4 allowed filesのみ。`PLAN.md`を含むRun全体の`changed_files`一覧は維持した。
+- blocking question: なし。
+- PR 1 implementation: 未開始。Product / Curriculum本文 / Workbook / validator / test / workflow / package / Master Plan / Issue #72は変更していない。
+- next: 修正後child Planを再レビューする。承認されるまで同じbranch / PRでPR 1実装を開始しない。
+- decision: `stop_success`。
+- Progress: 100% (21/21)
