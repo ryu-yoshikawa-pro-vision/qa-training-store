@@ -3,61 +3,65 @@
 ## 0. 依頼概要
 
 - 依頼内容:
-  - Codex自身に`.codex/runs/<run_id>/REPORT.md`へ細かな行動を逐次記録させる現行運用を見直し、機械的な実行EvidenceをCodex Hooksと既存wrapperへ移す。
-  - `.codex/runs/`は維持するが、長期保存するRun Artifactの責務を整理する。
-  - `run.json`はCodexが手書きする成果物ではなく、実行事実から機械生成・更新するRun manifestとする。
-  - `evaluation.json`は通常Runの標準成果物から外し、strict workflow、benchmark、harness評価、失敗原因分析など「実行を評価すること」が目的の場合だけ生成する。
-  - `.codex/hooks/observe.ps1` / `observe.sh`が実運用で使用されていない場合は、新しいcanonical Hook loggerへ責務を統合したうえで整理する。
+  - Codex自身に`.codex/runs/<run_id>/REPORT.md`へ細かな行動を逐次記録させる現行運用を見直す。
+  - 「どのような指示を受けたか」「何を実行したか」「どこで・なぜ止まったか」を後から分析できる機械ログをCodex Hooksで残す。
+  - 「何を考えてその方針を選んだか」は、逐語的な内部思考ではなく、外部化できるDecision / Rationale / 計画変更理由としてRun Artifactへ残す。
+  - `.codex/runs/`は維持するが、`REPORT.md`は機械ログではなく意味のあるcheckpoint記録へ縮小する。
+  - `run.json`はCodexが手書きせず、既存の`new-run` / wrapper / collectorで機械生成・更新するmanifestとして扱う。
+  - `evaluation.json`は今回新たに再設計しない。現在の通常Runで既にoptionalなら、そのまま維持する。
+  - `.codex/hooks/observe.ps1` / `observe.sh`が実運用で未使用なら、canonical Hook loggerへ責務を統合したうえで整理する。
+
 - 背景:
   - 現在の`AGENTS.md`と`.codex/templates/REPORT.md`では、調査・編集・判断・コマンド実行を含む行動のたびにCodex自身が`REPORT.md`へ追記する契約になっている。
   - `scripts/codex-task.ps1|sh`にはwrapper lifecycle / validation用JSONLログが既に存在する。
-  - `.codex/hooks/observe.ps1|sh`にはHook観測イベントを書き出す実装が存在するが、現在のproject-scoped Hook設定からは直接呼ばれていない。
-  - `scripts/collect-run-artifacts.py`はHookイベント、wrapper report、subagent、validation等を`run.json`へ集約する基盤を既に持つ。
-  - `evaluation.json`はagent / reviewerによる解釈・評価を記録する設計であり、runnerが機械判定するartifactではない。
+  - `.codex/hooks/observe.ps1|sh`には観測用JSONL writerが存在するが、現在のproject-scoped Hook設定から直接利用されていない。
+  - `scripts/collect-run-artifacts.py`にはHook eventを`run.json`へ集約する基盤が既にある。
+
 - 期待成果:
-  - 機械的な実行事実と、人間・AIが後から読む判断・結果が分離される。
+  - Codexが記録作業のためだけに余計なファイル編集をしなくてよくなる。
+  - 指示、実行、停止、判断理由を後から時系列で追跡できる。
   - Hook log、wrapper log、`REPORT.md`、`run.json`へ同じ情報を重複記録しない。
-  - Codexが記録作業のためだけに余計なファイル編集を行わなくてよくなる。
-  - 未使用コード、未使用path、不要な環境変数契約を残さない。
+  - 既存の安全性・scope・validation基盤を壊さず、変更範囲を必要最小限に留める。
 
 ## 1. ゴール / 完了条件
 
 ### ゴール
 
-Runの情報を次の4層へ整理する。
+Runの記録責務を以下へ整理する。
 
 1. `PLAN.md` / `TASKS.md`
-   - 計画、作業項目、進捗。
+   - 計画、作業項目、進捗、blocked item。
 2. `REPORT.md`
-   - 重要な変更、判断、検証結果の要約、残課題。
-3. Raw JSONL
-   - HookによるTool / Turn Evidenceと、`codex-task`によるwrapper / validation Evidence。
-4. `run.json`
+   - 実行中に発生した重要なDecision / Rationale、計画変更、検証結果、blocker、Remaining。
+3. Hook JSONL
+   - `UserPromptSubmit`: どのような指示を受けたか。
+   - `PostToolUse`: 何を実行したか、結果はどうだったか。
+   - `Stop`: どこで処理を終えたか、終了時の情報、取得可能なら停止理由。
+4. `codex-task` JSONL / report JSON
+   - wrapper lifecycle、preflight、scope、schema validation、verify等。
+5. `run.json`
    - 上記machine-readable artifactを集約した自動生成manifest。
-
-`evaluation.json`は上記の通常Run構成には含めず、評価が必要なworkflowだけの追加artifactとする。
+6. `evaluation.json`
+   - 評価が必要なworkflowだけで利用する既存artifact。今回のHook導入のためには再設計しない。
 
 ### 完了条件（DoD）
 
-- [ ] 現行のログproducer / consumer / durable artifactをrepo-wideで棚卸しし、責務が明文化されている。
-- [ ] 対象Codex CLIで利用可能なHook event、payload、project-scoped config、exit semanticsを実機確認してから実装している。
+- [ ] 対象Codex CLIで`UserPromptSubmit`、`PostToolUse`、`Stop`相当Hookの利用可否、payload、exit semanticsを実機確認している。
 - [ ] Codexが通常作業の各行動ごとに`REPORT.md`へ追記する契約を廃止している。
-- [ ] `REPORT.md`はmeaningful checkpoint単位で、Summary / Changes / Decisions / Validation / Remaining / Progressを残す契約になっている。
-- [ ] Hookで取得可能な機械的EvidenceはGit管理外のJSONLへ自動記録される。
-- [ ] Hook logging用実装は原則1系統に統一され、`observe.ps1|sh`と新loggerが重複して残らない。
-- [ ] `codex-task` JSONLはwrapper lifecycle / preflight / scope / validation / verify等に責務を限定し、Tool単位Hook logと重複させない。
-- [ ] `run.json`はCodexが手編集せず、`new-run`とcollector / wrapperにより機械生成・更新される。
-- [ ] `run.json`へ、Git状態、changed files、validation、Hook summary、wrapper report等の機械取得可能な事実を集約できる。
-- [ ] 同じ事実を`run.json`と`evaluation.json`へ重複保持しない。
-- [ ] `evaluation.json`は通常のlightweight / standard Runでは原則生成しない。
-- [ ] strict workflow、benchmark、harness improvement、明示的な評価依頼など必要時のみ`evaluation.json`を生成・要求する。
-- [ ] `evaluation.json`に機械的事実を手書きせず、評価・解釈とEvidence参照だけを持たせる。
-- [ ] Run IDを安全に取得できる場合だけRun-local logへ関連付ける。「最新Run」等のheuristicで誤紐付けしない。
-- [ ] Hook logging失敗はCodex本作業を原則blockしない。ただし既存`PreToolUse` safety Hookのblocking behaviorは変更しない。
-- [ ] Hook logへcredential / token / authorization header / transcript全文 / 巨大response全文を保存しない。
+- [ ] `REPORT.md`の更新条件が明確に固定されている。
+- [ ] `UserPromptSubmit`で受けた指示を、機密情報を除外し長さを制限した形でJSONLへ記録できる。
+- [ ] `PostToolUse`でTool実行のmachine-readable EvidenceをJSONLへ記録できる。
+- [ ] `Stop`でturnの終了を記録し、Hook payloadで取得できる終了情報を保存できる。
+- [ ] 明示的なstop reasonがHook payloadに存在しない場合、loggerが停止理由を推測・捏造しない。
+- [ ] 停止理由やblockerが意味情報として必要な場合は、`REPORT.md`のcheckpointにRemaining / Blockerとして残せる。
+- [ ] Hook loggerは原則1実装に統一され、`observe.ps1|sh`と新loggerが重複して残らない。
+- [ ] `codex-task` JSONLはwrapper / validation専用のままとし、Hook logと責務を重複させない。
+- [ ] `run.json`はCodexが手編集せず、既存の機械生成経路だけで生成・更新される。
+- [ ] Run IDを持つHook eventだけを`run.json`へ集約する。Run IDなしeventを「最新Run」等へ推測で関連付けない。
+- [ ] `evaluation.json`がstandard Runで既にoptionalなら、evaluation関連コード・schema・templateを変更しない。
+- [ ] Hook logging failureはCodex本作業を原則blockしない。ただし既存`PreToolUse` safety Hookのblocking behaviorは変更しない。
+- [ ] Hook logへcredential / token / authorization header / transcript全文 / 巨大Tool response全文を保存しない。
 - [ ] Raw JSONLはGit管理対象外のままである。
-- [ ] Windows / macOS・Linuxで同じloggingロジックを利用できる構成を優先する。
-- [ ] 既存Bash safety policy、sandbox、approval、scope check、artifact sanitizationを弱めていない。
 - [ ] Product code、ECサイト仕様、カリキュラム本体を変更していない。
 
 ## 2. 現状理解と前提
@@ -65,39 +69,35 @@ Runの情報を次の4層へ整理する。
 ### Current understanding
 
 - `.codex/config.toml`では`[features] hooks = true`になっている。
-- 現在project configに登録されているHookは、Bash向け`PreToolUse` safety policyである。
-- `.codex/hooks/observe.ps1` / `observe.sh`はHook観測eventをJSONLへ出す実装を持つが、現在の`.codex/config.toml`から直接呼ばれていない。
-- `observe.ps1|sh`の既定出力先は`.codex/observations/hooks.jsonl`である。
-- `.codex/logs/.gitignore`は`*.jsonl`をGit対象外にしている。
-- `scripts/codex-task.ps1|sh`はwrapper start、preflight、scope、schema validation、verify、evaluation validation等のmachine-readable eventを独自JSONLへ記録する。
-- `scripts/collect-run-artifacts.py`はHook event schemaを認識し、Run-local logs等から`run.json`へsummaryを集約する。
-- `.codex/templates/RUN_MANIFEST.json`には`changed_files`、`validation`、`safety`、`artifact_summary`、`hook_observations`、`subagents`等のmachine-readable summaryが既に定義されている。
-- `scripts/new-run.*`は`run.json`の初期skeletonを生成できる。
-- `.codex/templates/EVALUATION.md`では、`evaluation.json`はagent / reviewerが作成し、runnerは評価結果を自動判断しないと定義されている。
-- 現行workflow levelではlightweightはevaluation不要、standardは任意、strictは必須としている。
-- 現在の`.codex/templates/REPORT.md`は「行動のたびに追記」「コマンドや確認結果を必ず記録」と定義している。
+- 現在project configに登録されているHookはBash向け`PreToolUse` safety policyである。
+- `.codex/hooks/observe.ps1` / `observe.sh`は観測eventをJSONLへ書く実装を持つが、現在の`.codex/config.toml`から直接呼ばれていない。
+- `observe.ps1|sh`は`CODEX_HOOK_*`環境変数を入力契約としており、native Hook stdin payloadを直接扱う現在のcanonical loggerとして採用する前提にはしない。
+- `.codex/logs/.gitignore`は`*.jsonl`をGit管理対象外にしている。
+- `scripts/codex-task.ps1|sh`はwrapper / validation用のmachine-readable logを既に持つ。
+- `scripts/collect-run-artifacts.py`はHook eventを識別し、Run IDが一致するeventを`run.json`へ集約できる基盤を持つ。
+- `scripts/new-run.*`は`run.json`の初期manifestを生成できる。
+- 現在の`codex-task`ではevaluation template / requireは明示optionであり、標準defaultでは無効になっている。
+- 現在の`.codex/templates/REPORT.md`は「行動のたびに追記」「コマンドや確認結果を必ず記録」としている。
 
 ### Assumptions
 
-- リポジトリ外の個人スクリプトやローカル設定から`observe.ps1|sh`が呼ばれていないとは仮定しない。確認可能な範囲を実装前に調査する。
-- Codex Hook仕様はバージョン依存とし、既存`observe.*`の入力契約をそのまま正としない。
-- Node.jsは既存実行基盤なので、cross-platform Hook loggerを1つ置く場合の第一候補とする。
-- `run.json`へ書ける機械的事実を増やすためだけにdaemon、DB、外部serviceは追加しない。
-- `evaluation.json`を廃止するのではなく、通常Runの必須artifactから外す。
+- Codex Hook仕様はCLI version依存とし、実装前の実機確認結果を正とする。
+- Node.jsは既存実行基盤なので、cross-platform loggerを1つ置く場合の第一候補とする。
+- Run IDなしinteractive eventをRunへ紐付けるためのactive-run registry、DB、daemon、最新Run推測などは追加しない。
+- Hook logの目的は分析可能なEvidenceを残すことであり、完全な監査証跡を構築することではない。
 
 ### Non-goals
 
-- `.codex/runs/`自体を廃止しない。
+- `.codex/runs/`を廃止しない。
+- Run管理基盤全体を再設計しない。
+- `RUN_MANIFEST.json`へ新しい主観評価fieldを増やさない。
+- `evaluation.json`を今回の主目的として再設計しない。
 - `PLAN.md` / `TASKS.md`を機械生成へ置き換えない。
-- `REPORT.md`からDecision / Rationale / Remainingまで削らない。
-- 既存`PreToolUse` safety policyを再設計しない。
-- Hookを完全な監査証跡・セキュリティ境界として扱わない。
-- transcript全文を保存しない。
-- Tool input / response全文を無条件保存しない。
-- 外部ログサービス、クラウドDB、Slack等へログ送信しない。
-- `evaluation.json`の評価内容を単純なscriptで擬似的に自動評価しない。
-- Product code、アプリ機能、カリキュラム機能を変更しない。
-- このプランでは実装・PR作成・既存ファイル削除を行わない。
+- 逐語的な内部思考・private chain-of-thoughtをログへ保存しない。
+- 全Toolのinput / responseを無条件保存しない。
+- `PreToolUse` safety policyを再設計しない。
+- 外部ログサービス、DB、常駐processを導入しない。
+- Product codeやテスト対象機能を変更しない。
 
 ## 3. 質問 / 曖昧性
 
@@ -105,19 +105,19 @@ Runの情報を次の4層へ整理する。
   - 現時点ではなし。
 - 仮定してよい細部:
   - canonical Hook loggerのファイル名。
-  - JSONL内の非本質的metadata key名。
+  - JSONLの非本質的metadata key名。
   - targeted test fixtureの配置場所。
 - 未回答の重要質問:
   - なし。
 
-### 実装中に停止して判断を取り直す条件
+### 実装中の停止条件
 
-- 現行Codex CLIで必要な`PostToolUse` / `Stop`相当Hookをproject-scoped configから利用できない場合、wrapperを過剰拡張して疑似Hookを実装しない。
-- `observe.ps1|sh`に現在も有効なcallerが存在する場合、そのcallerを移行せずに削除しない。
-- Hook eventからRun IDを信頼できる形で取得できない場合、「最新Run」「最新timestamp」等で推測しない。
-- Hook payloadから機密情報を安全に除外できない場合、保存fieldをさらに縮小する。
-- logging Hookが既存safety Hookのmatcher / orderへ干渉する場合、safetyを優先してlogging scopeを縮小する。
-- `run.json`のあるfieldが機械的に確定できずAI判断を必要とする場合、そのfieldをmanifestへ追加せず、必要なら`REPORT.md`または`evaluation.json`へ置く。
+- `UserPromptSubmit` / `PostToolUse` / `Stop`のうち必要eventが現行CLIでproject-scoped Hookから利用できない場合、wrapperへ疑似Hookを大量実装して補わない。利用できるeventだけで最小構成を再評価する。
+- `observe.ps1|sh`に有効なcallerが存在する場合、callerを移行せずに削除しない。
+- Run IDを信頼できる形で取得できないeventは、Runへ推測で紐付けない。
+- Hook payloadからsecretを安全に除外できないfieldは保存対象から外す。
+- logging Hookが既存safety Hookへ干渉する場合、safetyを優先してlogging scopeを縮小する。
+- `run.json`へ追加しようとする情報がAI判断を必要とする場合、その情報はmanifestへ入れない。
 
 ## 4. 影響範囲
 
@@ -125,11 +125,10 @@ Runの情報を次の4層へ整理する。
 
 - Codex project config
 - Hook logger
-- Run manifest生成・集約
-- Run Report運用
-- evaluation artifact運用
+- Hook log aggregation
+- Run Report運用ルール
 - Codex harness documentation
-- Hook / collector / workflow-levelのtargeted test
+- targeted tests
 
 ### Files to inspect
 
@@ -137,28 +136,21 @@ Runの情報を次の4層へ整理する。
 
 - `AGENTS.md`
 - `.codex/config.toml`
-- `.codex/requirements.toml`
 - `.codex/hooks/observe.ps1`
 - `.codex/hooks/observe.sh`
 - `.codex/hooks/pre_tool_use_policy.mjs`
 - `.codex/hooks/pre_tool_use_policy_windows.ps1`
 - `.codex/templates/REPORT.md`
 - `.codex/templates/RUN_MANIFEST.json`
-- `.codex/templates/EVALUATION.md`
-- `.codex/templates/evaluation.schema.json`
 - `.codex/logs/.gitignore`
 - `scripts/new-run.ps1`
 - `scripts/new-run.sh`
-- `scripts/codex-safe.ps1`
-- `scripts/codex-safe.sh`
 - `scripts/codex-task.ps1`
 - `scripts/codex-task.sh`
 - `scripts/collect-run-artifacts.py`
-- `scripts/collect-run-artifacts.ps1`
-- `scripts/collect-run-artifacts.sh`
 - `docs/reference/codex-implementation-harness.md`
 - `docs/reference/codex-safety-harness.md`
-- `scripts/tests/**`
+- 関連する`scripts/tests/**`
 
 ### 実装前repo-wide参照確認
 
@@ -168,340 +160,220 @@ Runの情報を次の4層へ整理する。
 - `observe.sh`
 - `CODEX_OBSERVATION_LOG`
 - `CODEX_HOOK_EVENT`
-- `CODEX_HOOK_SOURCE`
 - `.codex/observations`
 - `hooks.jsonl`
 - `hook_observations`
 - `hook_event_count`
 - `Write-TaskLog`
 - `run.json`
-- `RecordRunManifest`
-- `record-run-manifest`
 - `evaluation.json`
 - `EvaluationTemplate`
 - `RequireEvaluation`
-- `require-evaluation`
 
 ## 5. 変更方針
 
-### Phase 1: Artifact責務を固定する
+### Phase 1: 現状確認と責務固定
 
-最終的な責務を以下に固定する。
+1. 現行Codex CLIのHook仕様を実機確認する。
+2. `observe.ps1|sh`のcallerを確認する。
+3. `run.json`が既に機械生成・更新できる範囲を確認する。
+4. standard Runで`evaluation.json`が既にoptionalであることを確認する。
+5. 以下の責務を固定する。
 
-#### `PLAN.md`
+- `UserPromptSubmit`:
+  - 指示内容のsanitized / bounded copyを記録する。
+  - prompt全文を無制限保存しない。
+- `PostToolUse`:
+  - Tool名、turn / tool use identifier、success / failure相当、必要最小限のTool summaryを記録する。
+  - Toolごとの万能summary engineは作らない。必要なToolだけallowlist方式で扱う。
+- `Stop`:
+  - turn終了、turn ID、取得可能な最終応答情報、Hook payloadに明示される停止情報を記録する。
+  - explicit stop reasonがない場合にlogger側で理由を推測しない。
+- `REPORT.md`:
+  - 指示の再掲や全Tool実行一覧は書かない。
+  - 実装中に発生したDecision / Rationale / 計画変更、重要な検証結果、blocker、Remainingを残す。
+- `codex-task` log:
+  - wrapper / preflight / scope / validation / verify。
+- `run.json`:
+  - 機械的事実だけを集約するmanifest。
 
-- 実装方針
-- 判断基準
-- scope
-- validation plan
+### Phase 2: 最小Hook loggingを実装する
 
-#### `TASKS.md`
+- canonical cross-platform Hook loggerを1つだけ用意する。
+- 原則Node `.mjs`を第一候補とし、PowerShell / shellで同じloggingロジックを二重実装しない。
+- `.codex/config.toml`へ以下のlogging Hookを接続する。
+  - `UserPromptSubmit`
+  - `PostToolUse`
+  - `Stop`
+- 既存Bash safety `PreToolUse`は変更しない。
+- loggerはnative Hook stdin payloadを直接処理する。
+- 保存fieldはwhitelist方式にする。
+- prompt / final message / Tool summary等の文字列は固定上限を設け、超過時はtruncatedであることを記録する。
+- secret-like fieldは保存しない。
+- Hook logger failureは原則non-blockingにする。
+- V1ではHook logの保存先をGit管理外の`.codex/logs/`配下へ統一し、不要な保存rootを増やさない。
+- eventにRun IDが含まれる、または信頼できる既存経路からRun IDを渡せる場合だけ`run_id`を記録する。
+- Run IDなしeventも分析用Raw logとして残すが、`run.json`へは集約しない。
 
-- 実行タスク
-- discovered tasks
-- progress
-- blocked items
+#### `observe.ps1|sh`整理
+
+- callerなし:
+  - 新logger導入後に`observe.ps1` / `observe.sh`を削除する。
+  - `.codex/observations/hooks.jsonl`専用fallbackと不要になった`CODEX_HOOK_*`契約を整理する。
+- callerあり:
+  - callerをcanonical loggerへ移行する。
+  - 移行完了後に旧scriptを削除する。
+  - 移行できない場合だけ残し、その理由をdocumentする。
+
+### Phase 3: Run Artifact運用を簡素化する
 
 #### `REPORT.md`
 
-- 重要な変更
-- Decision / Rationale
-- 検証結果の要約
-- blocker / 発見課題
-- Remaining
+現行の「行動のたびに追記」を廃止し、更新条件を次の3つに固定する。
+
+1. `TASKS.md`の1タスクを完了したとき。
+2. blocker、重要な新規判断、または計画変更が発生したとき。
+3. Runを完了するとき。
+
+各checkpointは最低限以下を持つ。
+
+- Summary
+- Changes
+- Decision / Rationale（新しい判断が発生した場合のみ）
+- Validation
+- Blocker / Remaining
 - Progress
 
-Tool実行の逐次記録や全commandの転記は行わない。
-
-#### Hook JSONL
-
-- Hookで取得可能なTool / Turn単位の機械的Evidence
-- Git管理外
-
-#### `codex-task` JSONL / report JSON
-
-- wrapper lifecycle
-- preflight
-- scope validation
-- output/schema validation
-- verify
-- harnessの実行成否
+全command、全Tool call、全promptはREPORTへ重複転記しない。
 
 #### `run.json`
 
-- machine-generated Run manifest
-- Git / wrapper / Hook / collectorから取得できる事実だけを保持
-- Codexによる手編集は禁止
-- Raw log全文を複製せず、path / count / status / changed files等のsummaryを保持
+- Codexの手編集対象から外す。
+- 既存`new-run` / wrapper / `collect-run-artifacts`で不足なく生成できるなら、それらの実装は変更しない。
+- 新Hook eventを集約するために必要な最小変更だけ`collect-run-artifacts.py`へ入れる。
+- Run ID一致eventだけ集約する。
+- global Raw log内のRun IDなしeventはmanifestへ入れない。
 
 #### `evaluation.json`
 
-- 通常Runでは作らない
-- strict / benchmark / harness evaluation / failure analysis / 明示的評価時だけ作る
-- 実行事実を再記録せず、result、failure interpretation、ratings、findings、improvement candidates、Evidence参照等の「評価」だけを保持
+- standard Runで既にoptionalならコード、schema、templateは変更しない。
+- 今回の変更によってevaluation生成を新たに必須化しない。
+- strict / 明示的評価workflowの既存挙動を壊さないことだけ確認する。
 
-### Phase 2: `run.json`を完全機械生成へ寄せる
+### Phase 4: 検証とドキュメント整合
 
-- `new-run`は初期manifestを生成する。
-- `codex-task` / collectorがRun終了時または必要なcheckpointでmanifestを更新する。
-- 次の情報は可能な限り自動取得する。
-  - run_id
-  - task_type / workflow_level / preset / runtime
-  - repo / branch / base branch
-  - changed files
-  - validation status / commands / warnings
-  - safety summary
-  - Hook log path / event count
-  - codex-task report path / count
-  - subagent summary
-  - evaluationの有無とpath
-  - run status
-- `REPORT.md`やAI回答をparseしてmanifestを埋めない。
-- AIによる主観判断を`run.json`へ入れない。
-- `collect-run-artifacts.*`をcanonicalな再集約経路として維持し、同じfieldを複数scriptが競合更新しないよう責務を確認する。
-
-### Phase 3: evaluation運用を必要時限定へ変更する
-
-workflow policyを以下へ整理する。
-
-| workflow level / purpose | evaluation.json |
-| --- | --- |
-| lightweight | 作成しない |
-| standard | 原則作成しない |
-| strict | 必須 |
-| benchmark / harness improvement | 必須または明示要求 |
-| failure analysis | 必要な場合のみ |
-| ユーザー明示評価依頼 | 作成可能 |
-
-- `standard`で現在template生成やrequireを暗黙要求している経路があれば外す。
-- `--evaluation-template` / `--require-evaluation`は評価が必要なworkflowだけで使用する。
-- `scope_control`、`safety_compliance`等の機械判定可能な事実をevaluationへ複製しない。評価時は`run.json`やlogsをEvidence参照する。
-- `evaluation.json`のschema / docsは、評価専用artifactであることが分かるよう整合させる。
-- evaluationを外した通常Runでも`run.json.status` / validation / safety summaryだけで実行状態を確認できるようにする。
-
-### Phase 4: `observe.ps1|sh`の利用実態を判定する
-
-- repo内callerを完全に確認する。
-- config、wrapper、scripts、docs、collectorの参照を区別する。
-- `collect-run-artifacts.py`が旧schemaを読めることは、`observe.*`が実際に呼ばれている証拠とはみなさない。
-
-判定ルール:
-
-- callerなし、native Hookにも未接続:
-  - `observe.ps1` / `observe.sh`をdead producerとして整理対象にする。
-  - `.codex/observations/hooks.jsonl`専用fallback、不要な`CODEX_HOOK_*`契約も整理する。
-- callerあり:
-  - canonical loggerへ移行する。
-  - caller移行後に旧scriptを削除する。
-  - 安全に移行できなければ残し、残す理由をdocumentする。
-
-旧scriptだけ削除してcollector / docsへdead pathを残すことは禁止する。
-
-### Phase 5: canonical Hook loggerを1実装へ統一する
-
-- Windows / macOS・Linuxで同等ロジックを別実装しない。
-- 原則1つのNode `.mjs` loggerを第一候補とする。
-- native Hook payloadをstdinから受け取り、必要fieldだけwhitelistで保存する。
-- logging目的の最小eventは実機確認後の`PostToolUse`と`Stop`相当を優先する。
-- logging用`PreToolUse`を不要に増やさず、既存Bash safety `PreToolUse`を維持する。
-- Hook logger failureは原則exit successとして本作業を止めない。
-
-### Phase 6: Hook log schemaと保存先を最小化する
-
-最低限の候補field:
-
-- schema version
-- timestamp
-- event
-- run_id（安全に取得できる場合）
-- session / turn ID（payloadに存在する場合）
-- tool name
-- bounded operation / target summary
-- success / failure相当状態
-- logger metadata
-
-保存しないもの:
-
-- transcript全文
-- tool response全文
-- 巨大patch全文
-- credential / token / authorization header
-- 不要な環境変数dump
-- 再生成可能な大容量出力
-
-保存先:
-
-- 信頼できるRun IDあり: `.codex/runs/<run_id>/logs/`
-- Run IDなし: `.codex/logs/`
-- raw JSONLはGit管理外
-- `.codex/observations/`を継続する必然性がなくなれば廃止する
-
-### Phase 7: Collectorをcanonical log / manifestへ合わせる
-
-- 新Hook logger schemaを認識する。
-- 対象Run IDのeventだけを集約する。
-- `artifact_summary.hook_event_count`、`hook_observations`等を更新する。
-- wrapper JSONLをHook eventと誤認しない。
-- 旧`.codex/observations/hooks.jsonl`廃止時はfallbackも削除する。
-- evaluationなしの通常Runを正常状態として扱う。
-- strictでevaluation必須の場合のみ、missing / invalidをfailureとして扱う。
-
-### Phase 8: REPORT契約とドキュメントを整理する
-
-`AGENTS.md`と`.codex/templates/REPORT.md`から以下を外す。
-
-- 行動のたびにREPORTへ追記する要求
-- 全commandを逐一転記する要求
-
-代わりに以下を定義する。
-
-- meaningful checkpointごとに追記する。
-- Summary / Changes / Decisions / Validation / Remaining / Progressを残す。
-- command / Tool単位EvidenceはHook / harness logを正本にする。
-- 重要な失敗、blocker、仕様判断はREPORTへ残す。
-- lightweightは最終1blockでもよい。
-
-以下のdocsも実装と一致させる。
-
-- `docs/reference/codex-implementation-harness.md`
-- 必要に応じて`docs/reference/codex-safety-harness.md`
-- `.codex/requirements.toml`
-- evaluation関連template / docs
+- `AGENTS.md`と`.codex/templates/REPORT.md`を新しいcheckpoint契約へ合わせる。
+- `docs/reference/codex-implementation-harness.md`へHook log / wrapper log / REPORT / run.jsonの責務を明記する。
+- `observe.*`を削除した場合のみ、関連docs / collector fallbackを整理する。
+- evaluation関連ファイルは、実装変更が不要なら変更しない。
 
 ### 実行タスク
 
-- [ ] 1. 現行Codex CLIのHook supportを実機確認する。
-- [ ] 2. Hook / wrapper / run manifest / evaluation関連のrepo-wide参照を棚卸しする。
-- [ ] 3. `PLAN` / `TASKS` / `REPORT` / Hook JSONL / wrapper JSONL / `run.json` / `evaluation.json`の責務境界を確定する。
-- [ ] 4. `run.json`をCodex手編集対象から外し、`new-run` + collector / wrapperによる機械生成・更新へ統一する。
-- [ ] 5. standard workflowの`evaluation.json`を原則不要にし、strict / 評価目的workflowだけで生成・requireするよう契約を整理する。
-- [ ] 6. `observe.ps1|sh`と旧`CODEX_HOOK_*`契約の実利用を確認する。
-- [ ] 7. canonical cross-platform Hook loggerを1つ実装する。
-- [ ] 8. `.codex/config.toml`へ必要最小限のlogging Hookを追加し、既存safety Hookを変更しない。
-- [ ] 9. Hook payload保存fieldをwhitelistし、secret / huge responseを保存しない。
-- [ ] 10. Run IDあり / なしのlog pathを実装し、heuristicなRun紐付けを禁止する。
-- [ ] 11. `collect-run-artifacts.py`をcanonical Hook logとevaluation optional policyへ合わせる。
-- [ ] 12. 移行完了後、不要な`observe.ps1|sh`、`.codex/observations` fallback、旧環境変数契約を整理する。
-- [ ] 13. `AGENTS.md` / `.codex/templates/REPORT.md`をcheckpoint型へ変更する。
-- [ ] 14. implementation harness / evaluation関連docsを新責務へ合わせる。
-- [ ] 15. Hook logger / collector / run manifest / evaluation optional behaviorのtargeted testを追加または既存testへ統合する。
-- [ ] 16. manual interactive / standard `codex-task` / strict evaluation-requiredの3経路でsmoke validationする。
-- [ ] 17. raw JSONLがGit tracking対象外で、変更scopeが本計画内だけであることを確認する。
+- [ ] 1. 現行Codex CLIで`UserPromptSubmit` / `PostToolUse` / `Stop`のpayloadと挙動を実機確認する。
+- [ ] 2. `observe.*`、旧Hook環境変数、collector、run/evaluation関連の参照を棚卸しする。
+- [ ] 3. canonical Hook loggerを1つ実装し、prompt / Tool / Stop情報をsanitized・bounded JSONLとして記録する。
+- [ ] 4. `.codex/config.toml`へ3eventを接続し、既存safety Hookを維持する。
+- [ ] 5. `collect-run-artifacts.py`を必要な場合だけ新Hook schemaへ合わせ、Run ID一致eventだけ集約する。
+- [ ] 6. caller移行後、未使用`observe.ps1|sh`と旧fallback / 契約を整理する。
+- [ ] 7. `AGENTS.md` / `.codex/templates/REPORT.md`を3条件のcheckpoint型へ変更し、`run.json`手編集を禁止する。
+- [ ] 8. implementation harness docsを新責務へ合わせる。evaluationは既にoptionalなら変更しない。
+- [ ] 9. targeted test / smoke validationを実行し、raw JSONLがGit tracking対象外であることを確認する。
 
 ## 6. 検証方法
 
-### A. `run.json`機械生成確認
+### A. Hook lifecycle確認
 
-- `new-run`だけでvalidな初期`run.json`が作成される。
-- Codex自身が`run.json`を編集しなくても、collector / wrapper後に次が反映される。
-  - branch
-  - changed files
-  - validation
-  - safety summary
-  - Hook event count / paths
-  - wrapper report paths
-  - status
-- 同じ入力artifactから再集約したとき、意味のない差分が発生しない。
-- `REPORT.md`本文の自然言語をparseしなくてもmanifestを完成できる。
+同一session / turnで最低限以下を確認する。
 
-### B. evaluation optional確認
+1. `UserPromptSubmit`が記録される。
+2. 1回以上のTool実行後に`PostToolUse`が記録される。
+3. turn終了時に`Stop`が記録される。
+4. session / turn identifierで指示→実行→停止を時系列に追える。
 
-- lightweight: evaluationなしで成功できる。
-- standard: evaluationなしで成功できる。
-- strict: evaluation missingを正しくfailureとして扱う。
-- evaluationありの場合、schema validationと`run.json.evaluation_path`の連携が動く。
-- evaluationなしの場合、`evaluation_path = null`等の正常なsummaryとして扱える。
-- machine factをevaluationへ重複コピーすることを必須にしない。
+### B. 指示ログ確認
 
-### C. dead code / reference確認
+- promptが分析可能な形で記録される。
+- promptが上限超過した場合はtruncateされ、その事実が分かる。
+- secret-like dataをそのまま保存しない。
+- REPORTへprompt全文を二重保存しない。
 
-- `observe.ps1|sh`削除前にcallerを確認する。
-- 削除後、旧path / 旧環境変数 / `.codex/observations`参照が不要なら0件にする。
-- collector / docs / configへdead referenceを残さない。
+### C. Tool実行ログ確認
 
-### D. Hook logger targeted test
+- `PostToolUse`でTool名とidentifierを記録できる。
+- success / failure相当を取得可能なpayloadから記録できる。
+- Tool response全文や巨大patchを保存しない。
+- 未対応Toolのために複雑なsummary実装を追加せず、最低限のeventとして記録できる。
 
-fixture入力で最低限確認する。
+### D. Stop分析確認
 
-- supported Tool eventを1行JSONLへ記録できる。
-- Stop eventを記録できる。
-- Run IDありならRun-local pathを選ぶ。
-- Run IDなしならglobal `.codex/logs/`を選ぶ。
-- malformed / unknown payloadでCodex本作業をblockしない。
-- huge response全文を保存しない。
-- secret相当fieldをそのまま保存しない。
-- Windows / POSIX pathで壊れない。
+- `Stop` eventが必ず記録される。
+- Hook payloadで取得できる最終応答情報をboundedに記録できる。
+- payloadに明示的stop reasonがある場合は保存する。
+- explicit reasonがない場合は`unknown` / `not_provided`等として扱い、loggerが推測しない。
+- blockerやRemainingが実際の停止理由として重要な場合、Runのcheckpoint REPORTから確認できる。
 
-追加依存を増やさず、Node loggerなら`node:test`等の標準機能を優先する。
+### E. `run.json`確認
 
-### E. Collector test
+- `new-run`だけで初期manifestを生成できる既存挙動を維持する。
+- Codexが`run.json`を手編集しなくてもmanifestが更新できる。
+- Run ID一致Hook eventはcollectorでsummaryへ反映できる。
+- Run IDなしeventはglobal Raw logに残るが、どのRunかを推測してmanifestへ入れない。
+- `REPORT.md`自然言語をparseしてmanifestを作らない。
 
-fixture Hook JSONLを使い以下を確認する。
+### F. evaluation回帰確認
 
-- `hook_event_count`が期待件数になる。
-- event別countが正しい。
-- 別Run IDを集約しない。
-- wrapper JSONLをHook eventと誤認しない。
-- malformed JSONLで集約全体を不必要に壊さない。
-- evaluationなしのstandard Runをwarning / failureにしない。
-- strictでevaluation必須の場合だけmissingをfailureにする。
+- standard Runでevaluationなしでも既存どおり成功できることを確認する。
+- 既に満たしている場合、evaluation関連実装・schema・templateには差分を入れない。
+- strict / 明示require経路を変更した場合に限り、その回帰確認を追加する。
 
-### F. Safety regression
+### G. `observe.*` / dead code確認
+
+- 削除前にrepo内callerを確認する。
+- callerがなければ削除後の旧path、旧環境変数、`.codex/observations`参照が不要な範囲で0件になることを確認する。
+- collector / docsへdead fallbackを残さない。
+
+### H. REPORT運用smoke
+
+- Tool実行ごとにREPORTを編集しない。
+- REPORT更新は以下だけで発生する。
+  - TASK完了
+  - blocker / 重要判断 / 計画変更
+  - Run完了
+- Decision / Rationaleには逐語的な内部思考ではなく、実装判断として共有可能な理由だけを記録する。
+
+### I. Safety / Git tracking
 
 - 既存Bash `PreToolUse` safety policyが引き続き動く。
 - logging Hook failureがsafety判定を上書きしない。
-- forbidden commandへの既存blocking behaviorを維持する。
 - sandbox / approval / network policyを変更していない。
-
-### G. REPORT運用smoke
-
-1. Runを初期化する。
-2. harmlessな作業を実施する。
-3. Tool eventが自動JSONLへ残る。
-4. 各Tool executionごとに`REPORT.md`を編集しなくてもEvidenceが残る。
-5. meaningful checkpointでのみ`REPORT.md`へSummary / Decisions / Validation / Remainingを残す。
-6. collector後の`run.json`からRunのmachine summaryを確認できる。
-
-### H. Git tracking / repository validation
-
-- `.codex/logs/*.jsonl`とRun-local raw logsが`git status`へ出ない。
-- durable artifactとraw logを混同してcommitしない。
-- Markdown lint
-- Hook logger test
-- collector / run manifest test
-- evaluation optional / strict required test
-- safety harness targeted test
-- config loading / Hook smoke
-
-Product codeへ変更がないため、本変更と無関係なE2Eを追加要件にはしない。既存`verify`が標準ゲートとして実行する項目はその契約に従う。
+- `.codex/logs/*.jsonl`が`git status`へ出ない。
+- Product codeに差分がない。
 
 ### 成功判定
 
-- Codexが細かな記帳をしなくても必要なmachine Evidenceが残る。
-- `REPORT.md`はsemantic checkpointに限定される。
-- `run.json`はCodexの手編集なしで生成・更新できる。
-- standard Runで不要な`evaluation.json`を作成しない。
-- strict / 評価目的Runでは必要なevaluationを維持できる。
-- Hook / wrapper / REPORT / manifest間に同じ情報の三重記録がない。
-- 未使用`observe.*`を整理する場合にdead referenceが残らない。
-- logging追加で既存safety behaviorが弱くならない。
+- 「どの指示で」「どのToolを使い」「どの結果になり」「どこで停止したか」をRaw logから追える。
+- 「なぜその方針を選んだか」はREPORTのDecision / Rationaleから追える。
+- explicit stop reasonが取れない場合でも、Stop eventと最終応答情報、REPORTのBlocker / Remainingから事実ベースで分析でき、loggerが理由を捏造しない。
+- Codexが細かな記帳をしなくても必要なEvidenceが残る。
+- `run.json`はCodex手編集なしで維持できる。
+- standard Runで不要なevaluation変更を行っていない。
+- Hook / wrapper / REPORT / manifest間に同じ情報の不要な多重記録がない。
+- logging追加で既存safety behaviorが弱くなっていない。
 
 ## 7. リスクと未解決論点
 
 ### Risks
 
-- Codex CLI Hook仕様が旧`observe.*`想定と異なり、単純な配線では動かない可能性がある。
+- Codex CLIのHook payloadがversionによって異なる可能性がある。
+- `UserPromptSubmit`に機密情報が含まれる可能性があるため、保存field / redaction / length capを誤ると情報漏えいリスクになる。
+- Stop payloadだけでは「なぜ停止したか」が明示されない可能性がある。取得できない理由をloggerが推測しないことが重要。
 - `observe.ps1|sh`がproject config外から利用されている可能性がある。
-- Hook payloadを広く保存するとsecret / 大容量データを残す危険がある。
-- Run IDなしsessionを無理にRunへ紐づけると誤ったmanifestになる。
-- `run.json`の責務を広げすぎると、再びAI評価とmachine factが混ざる。
-- evaluationを通常Runから外す際、既存strict / harness evaluation経路まで誤って弱める可能性がある。
-- `collect-run-artifacts.py`が複数種JSONLを走査するため、event判別が曖昧だとwrapper logを誤集約する可能性がある。
-- REPORTを軽量化しすぎてDecision / Rationaleまで失わないようにする必要がある。
+- global Hook logが増大する可能性があるが、V1ではrotation / DB等を導入せず、必要性が確認された場合だけ別タスクで扱う。
+- REPORTを軽量化しすぎるとDecision / Rationaleが失われるため、機械ログと意味情報の境界を維持する必要がある。
 
 ### Open questions
 
-- なし。CLI実機確認で技術的細部が異なる場合だけ局所調整する。
+- なし。Hook payloadの実機確認結果によってfield名や取得可能情報だけを局所調整する。
 
 ## 8. 成果物
 
@@ -512,12 +384,24 @@ Product codeへ変更がないため、本変更と無関係なE2Eを追加要�
 - `.codex/config.toml`
 - `AGENTS.md`
 - `.codex/templates/REPORT.md`
-- `scripts/collect-run-artifacts.py`
+- canonical Hook logger 1ファイル
 - `docs/reference/codex-implementation-harness.md`
 
-run manifest / evaluation整理で変更候補:
+実装確認後、必要な場合だけ変更:
 
+- `scripts/collect-run-artifacts.py`
 - `.codex/templates/RUN_MANIFEST.json`
+- `.codex/logs/.gitignore`
+- `docs/reference/codex-safety-harness.md`
+- 関連する`scripts/tests/**`
+
+整理候補:
+
+- `.codex/hooks/observe.ps1`
+- `.codex/hooks/observe.sh`
+
+原則変更しない:
+
 - `.codex/templates/EVALUATION.md`
 - `.codex/templates/evaluation.schema.json`
 - `scripts/new-run.ps1`
@@ -525,20 +409,7 @@ run manifest / evaluation整理で変更候補:
 - `scripts/codex-task.ps1`
 - `scripts/codex-task.sh`
 
-整理・置換候補:
-
-- `.codex/hooks/observe.ps1`
-- `.codex/hooks/observe.sh`
-- canonical Hook logger 1ファイル
-
-実装結果により変更する可能性があるもの:
-
-- `.codex/requirements.toml`
-- `.codex/logs/.gitignore`
-- `scripts/collect-run-artifacts.ps1`
-- `scripts/collect-run-artifacts.sh`
-- `docs/reference/codex-safety-harness.md`
-- `scripts/tests/**`
+既存挙動が本計画の完了条件を満たさないことが確認された場合だけ、上記「原則変更しない」ファイルを最小範囲で変更する。
 
 ### 付随ドキュメント
 
@@ -547,9 +418,10 @@ run manifest / evaluation整理で変更候補:
 
 ## 9. 備考
 
-- 主眼は「ログを増やすこと」ではなく「記録責務を減らして整理すること」である。
-- `run.json`はdurableなmachine-readable manifestとして残すが、人間やCodexが直接メンテナンスする文書として扱わない。
-- `evaluation.json`は通常Runの標準成果物ではなく、評価workflow専用artifactとして扱う。
-- `observe.ps1|sh`はconfigから未参照という理由だけで即削除せず、producer / caller / consumerを確認してから整理する。
+- 主眼は「ログを増やすこと」ではなく、「Codex自身の機械的な記帳を自動化し、後から分析可能な情報だけを適切な場所に残すこと」である。
+- Hook V1は`UserPromptSubmit` / `PostToolUse` / `Stop`に限定する。それ以外のHook eventは具体的な分析要件が出るまで追加しない。
+- `run.json`はmachine-generated manifestとして残すが、Codexや人間が直接メンテナンスする文書として扱わない。
+- `evaluation.json`は今回の主目的ではない。既存のoptional運用が成立しているなら変更しない。
+- `observe.ps1|sh`はconfig未参照だけを理由に即削除せず、caller確認後に整理する。
+- private chain-of-thoughtは保存対象にせず、共有可能なDecision / Rationaleとして意味情報だけを残す。
 - Hook追加後に`codex-task log + Hook log + REPORT + run.json`へ同じcommand/resultが複製される設計は完了条件未達とする。
-- Raw logは長期保存する正式成果物ではなく、Run Artifactを裏付けるmachine-readable Evidenceとして扱う。
