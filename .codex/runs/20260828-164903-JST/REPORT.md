@@ -95,6 +95,16 @@
 - Decision: scope、Sanitizer、branch safetyのcommit前条件を満たした。次は対象pathだけをstageし、staged diffを確認してからimplementation commitを作成する。
 - Progress: 62% (8/13)
 
+## 2026-08-28 17:23 JST
+
+- Implementation commit: `1a89b102e61d89d3838612bd9878f9f72a512ff0`（message: `docs: align current testing documentation with SSOT`）を作成した。
+- Push: `git push origin HEAD:fix/current-documentation-ssot-repair` => 成功。push後のlocal HEAD、`origin/fix/current-documentation-ssot-repair`、PR #75 headはすべて`1a89b102e61d89d3838612bd9878f9f72a512ff0`で一致した。
+- PR state at implementation push: PR #75はOPEN、非Draft、base=`main`、head branch一致。PR changedFilesは22（既存5＋今回17）だった。mergeは実行していない。
+- Push note: remoteからdefault branchの既存Dependabot vulnerability（1 high）通知が表示された。今回のdocs-only差分やPR #75のscopeに対するvalidation failureではないため、修正を開始していない。
+- Run finalization evidence: changed files、child Plan validation（format／markdown／spec／curriculum／contracts）、Current SSOT cross-check、bounded search、scope review、Sanitizer Write／Check（residual 0）、blocking questionなし、PR branchへ実装push済み、PR 1 implementation完了／review待ちを本Runへ記録した。
+- Decision: 実装差分は確定し、以後はPR本文・Issue進捗・CodeRabbit incremental review・GitHub CI stateの確認に限定する。新しいreview findingが出た場合は追加修正せずユーザーへ報告して停止する。
+- Progress: 77% (10/13)
+
 ## 2026-08-28 17:15 JST
 
 - Validation progress:

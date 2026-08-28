@@ -11,8 +11,8 @@
 - [x] 6. RA-M1〜RA-M6 / RA-M8をFinding単位で自己レビューする（RA-M7 / RA-L1は変更しない）
 - [x] 7. child Plan `8. Validation plan`、bounded search、Current SSOT cross-check、scope reviewを実行する
 - [x] 8. Run Artifactをsanitizeし、commit前Git diffとbranch safetyを確認する
-- [ ] 9. implementation commitを作成してPR branchへpushする
-- [ ] 10. implementation Runをfinalizeする
+- [x] 9. implementation commitを作成してPR branchへpushする
+- [x] 10. implementation Runをfinalizeする
 - [ ] 11. PR #75本文をImplementation Completeへ更新する
 - [ ] 12. Issue #72をimplementation reviewへ更新し、CodeRabbit incremental reviewとCI／PR状態を確認する
 - [ ] 13. 最終Evidenceを整理して報告し、PRをmergeせず停止する
