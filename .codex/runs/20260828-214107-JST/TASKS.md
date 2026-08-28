@@ -23,9 +23,12 @@
 - [x] D7. Platform parityをWeb / Android / iOSのCurrent asymmetric guarantee説明へ限定する
 - [x] D8. Functional / Non-functional Requirement Groupの全既存行へrepresentative regression direct referenceを要求する
 - [x] D9. Risk mappingの`Representative Technique`と`Representative Perspective`を別列へ分離する
-- [x] D10. 下位Traceability代表label 22行を全件Dispositionし、§7後ろの孤立4行も漏れなく扱う契約を追加する
+- [x] D10. 実装開始時点のCurrent下位Traceability代表label全件をDispositionし、Plan作成時点の22行はCurrent evidenceとしてのみ扱う契約へする
 - [x] D11. Current `main` driftのStop条件をPR 2判断へ影響するsemantic contract変更時へ限定する
+- [x] D12. Representative Techniqueを全Risk必須から外し、非適用時の`—` / `Not primary`を許容して推測でのTechnique追加を禁止する
+- [x] D13. `playwright.config.ts`をFormal単位で分類せず、Formal E2E / Smokeと`ui-review-*`をproject責務で区別する
+- [x] D14. 下位Traceabilityの「22行」を固定契約から外し、implementation開始時点のCurrent全行を完了対象とする
 
 ## Blocked
 
-- B1. local plan-only validation / SanitizerはGitHub connector上では未実施。次のlocal作業で実施する。
+- B1. local plan-only validation / SanitizerはGitHub connector上では未実施。implementation開始前にlocal環境で実施する。
