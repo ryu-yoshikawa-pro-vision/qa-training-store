@@ -18,24 +18,7 @@ Web 表示用の Markdown を別管理せず、ビルド時に静的 HTML を生
 - `/docs/spec/`
 - `/docs/curriculum/`
 
-生成物は次の構成とする。
-
-```text
-dist/
-├── index.html
-├── _expo/
-└── docs/
-    ├── spec/
-    │   ├── index.html
-    │   └── **/*.html
-    └── curriculum/
-        ├── index.html
-        ├── **/*.html
-        └── part1/
-            └── **/*.html
-```
-
-Markdown と HTML の基本対応は次のとおり。
+基本的な出力対応は次のとおり。
 
 ```text
 docs/spec/README.md
@@ -57,14 +40,14 @@ docs/curriculum/test-automation/part1/04_playwright-foundations.md
 - `app.config.ts` の `web.output: "single"` は変更しない。
 - Cloudflare Pages のデプロイ対象は既存どおり `dist/` とする。
 - Docs も既存 Scenario Shop と同じ閲覧範囲で配信する。
-- 仕様書の既存生成処理 `scripts/spec/build-spec.ts` / `buildSpecSite()` / `pnpm run build:spec` を維持する。
-- `pnpm run build:spec` の既定出力 `output/spec-site` を変更しない。
+- `pnpm run build:spec` と既定出力 `output/spec-site` は維持する。
 - `docs/curriculum/test-automation/README.md` の本文をカリキュラムの入口・学習順の正本として扱う。
-- 実装開始時点の最新 `main` を取り込んだ状態から作業し、今回変更する `package.json` 等で main 側の更新を巻き戻さない。
+- 実装開始時に最新 `main` を取り込み、`package.json` 等の main 側更新を巻き戻さない。
+- Docs は build artifact として配信する。通常の `pnpm start:web` で Docs を配信する対応は今回行わない。ローカル確認は `pnpm run build:web` 後の `scripts/serve-web-dist.ts` を使用する。
 
 ## 実装内容
 
-### 1. Markdown の現在の配置を維持する
+### 1. Markdown の配置を変更しない
 
 `docs/spec/` と `docs/curriculum/test-automation/` は移動・複製しない。
 
@@ -72,88 +55,110 @@ docs/curriculum/test-automation/part1/04_playwright-foundations.md
 
 - Markdown を `app/` や `public/` へ複製する
 - Web 表示用 JSON / Markdown を別管理する
-- ブラウザから GitHub API / Raw GitHub を取得する
+- ブラウザから GitHub API / Raw GitHub を取得して本文を表示する
 - Docusaurus、VitePress、MkDocs 等を導入する
 - Docs のために Expo Router の出力方式を変更する
 
 ### 2. 現在使用している Markdown 表現だけを確認する
 
-実装前に仕様書とカリキュラムで現在使用している Markdown 構文、ローカルリンク、ローカル画像の有無を確認する。
+実装開始時に、対象 Markdown で現在使用している構文、Markdown リンク、ローカル画像の有無を確認する。
 
-既存 `scripts/spec/markdown.ts` で現在の表現を扱える場合はそのまま再利用する。
-
-不足がある場合も、現在の文書を表示するために必要な処理だけを追加する。
+既存 renderer で扱えない表現がある場合も、現在の文書を表示するために必要な処理だけを追加する。
 
 次は行わない。
 
 - 将来用 Markdown 構文の先行対応
 - Markdown compatibility matrix 等の追加成果物作成
-- 汎用 Markdown framework の新設
+- 新しい Markdown framework の導入
 - 小規模な拡張で対応可能な段階での新しい Markdown parser 導入
 
-### 3. 仕様書生成は既存 `buildSpecSite()` をそのまま利用する
+### 3. 既存 Specification renderer の汎用部分だけを再利用可能にする
 
-Web 配信用の仕様書は、既存 `buildSpecSite()` の `outputDir` に `dist/docs/spec` を指定して生成する。
+既存 `scripts/spec/build-spec.ts` には、Specification 固有処理と Markdown の汎用描画処理が同居している。
 
-次の既存仕様を維持する。
+Curriculum 用に同じ renderer を複製せず、次の汎用部分だけを `scripts/spec/markdown.ts` から再利用できる状態にする。
 
-- `pnpm run build:spec`
-- `output/spec-site`
-- Specification 固有のページ構成
-- Normative / Supporting の表示
-- 既存 Specification validation
+- Markdown 本文の HTML 描画
+- heading / table / list / code block / blockquote の描画
+- TOC 描画
+- 共通 CSS
+- `renderInline()` を含む inline Markdown 描画
 
-今回のために `scripts/spec/build-spec.ts` 全体を Docs 共通 framework へ作り替えない。
+必要に応じて `scripts/spec/build-spec.ts` からこれらを `scripts/spec/markdown.ts` へ小さく移動・exportする。
 
-カリキュラムでは既存 `scripts/spec/markdown.ts` の Markdown 描画処理を再利用する。再利用に必要な export や小さな一般化だけを行い、Specification 固有の表示ロジックは `build-spec.ts` 側に残す。
+汎用 renderer は link resolver と image resolver を引数で受け取れる形にし、Specification と Curriculum のリンク規則を混在させない。
 
-### 4. カリキュラムを静的 HTML 化する
+Specification 固有の次の処理は `scripts/spec/build-spec.ts` に残す。
 
-`docs/curriculum/test-automation/**/*.md` を再帰的に読み込み、`dist/docs/curriculum/**` に HTML を生成する。
+- `buildSpecSite()`
+- Specification 用 output path / link 解決
+- Specification navigation
+- `Normative Product Behavior` / `Supporting / Operational` 判定・表示
+- Specification 用 page shell / brand
+- Specification asset 制約
 
-次を満たすこと。
+`buildSpecSite({ outputDir })` の既存 API と `pnpm run build:spec` の出力・挙動を維持する。
 
-- 対象ルート内のすべての `.md` を生成する。
-- `README.md` は `index.html` にする。
-- 現在のディレクトリ階層をそのまま維持する。
-- Specification 固有の Normative / Supporting 表示は付けない。
-- カリキュラム固有の title / heading を使用する。
-- `README.md` の本文にある現在の「全体構成」をそのまま入口・学習順として使う。
+新しい Docs framework、plugin system、複数階層の Builder abstraction は作らない。
 
-新しいカリキュラム専用 navigation data、frontmatter、Prev / Next、ファイル名順による自動ナビゲーションは追加しない。
+### 4. `scripts/docs/build-docs.ts` で Web 配信用 Docs を生成する
 
-Optional Reference / Legacy Alias の Markdown も対象ルート内に存在する限り HTML は生成する。ただし Required Curriculum の学習順を別ロジックで再構築しない。
+新規 `scripts/docs/build-docs.ts` を Web 配信用 Docs 生成の入口とする。
 
-各子ページからトップへ戻る導線が必要な場合は、固定の `/docs/curriculum/` への簡単なリンクだけにする。
+`pnpm run build:docs` で次を実行する。
 
-### 5. 公開対象 Markdown へのリンクを HTML URL へ変換する
+1. `dist/docs` だけを削除する。
+2. `buildSpecSite({ outputDir: "dist/docs/spec" })` で Specification を生成する。
+3. `docs/curriculum/test-automation/**/*.md` を再帰的に読み、`dist/docs/curriculum/**` へ Curriculum HTML を生成する。
 
-Markdown の正本側の相対リンクは変更せず、HTML 生成時だけ公開 URL へ変換する。
+`dist/index.html`、`dist/_expo/**` 等は削除しない。
 
-最低限、現在使用している次のリンクを扱う。
+Curriculum は次の契約とする。
 
-- 同一 Docs 内の `*.md`
-- 親子ディレクトリをまたぐ `*.md`
-- `README.md`
-- `#anchor`
-- `file.md#anchor`
-- カリキュラムから仕様書へのリンク
-- `http:` / `https:` 等の外部 URL
+- root の `README.md` は `dist/docs/curriculum/index.html` にする。
+- `part1/`、`part2/` 等の現在のディレクトリ階層を維持する。
+- 対象ルート内に存在するすべての `.md` を HTML 化する。
+- Optional Reference / Legacy Alias も HTML は生成する。
+- Required Curriculum の順序を別ロジックで再構築しない。
+- `README.md` 本文の「全体構成」をそのまま入口・学習順として使う。
+- Specification 固有 label / navigation は表示しない。
+- HTML `<title>` は Curriculum 用にする。
+- header brand は `Scenario Shop Test Automation Curriculum` とし、`/docs/curriculum/` へのリンクにする。
+- 本文の H1 以下は Markdown 本文をそのまま使用し、別の H1 を追加しない。
+- Prev / Next や専用 navigation data は追加しない。
 
-公開対象 Markdown へのリンクは、正規化した source path から次へ変換する。
+Curriculum 用 page shell は `scripts/docs/build-docs.ts` 内に最小限実装し、本文 renderer と共通 CSS は前項の既存汎用処理を再利用する。
+
+### 5. Specification 内部リンクは既存処理を変更しない
+
+Specification 内の Markdown リンク変換は既存 `buildSpecSite()` に任せる。
+
+今回のために Specification の既存相対 URL 生成を root-absolute URL へ変更しない。
+
+`output/spec-site` と `dist/docs/spec` は同じ `buildSpecSite()` の出力先違いとして扱う。
+
+### 6. Curriculum のリンク変換規則を固定する
+
+Curriculum HTML 生成時だけ、Markdown リンクを次の規則で変換する。
+
+#### Curriculum 内の Markdown
 
 ```text
-docs/spec/**/*.md
-  -> /docs/spec/**/*.html
-
 docs/curriculum/test-automation/**/*.md
   -> /docs/curriculum/**/*.html
-
-README.md
-  -> 対応ディレクトリの index.html URL
 ```
 
-fragment (`#...`) は変換後 URL に保持する。
+root `README.md` へのリンクは `/docs/curriculum/` とする。
+
+#### Specification への Markdown
+
+```text
+docs/spec/README.md
+  -> /docs/spec/
+
+docs/spec/**/*.md
+  -> /docs/spec/**/*.html
+```
 
 例:
 
@@ -162,44 +167,40 @@ fragment (`#...`) は変換後 URL に保持する。
   -> /docs/spec/features/cart.html
 ```
 
-外部 URL は変更しない。
+#### 公開 Docs 対象外の Repository 内ファイル
 
-公開対象外の Repository 内ファイルは、存在しない Docs URL へ機械的に変換・コピーしない。現在そのようなリンクが存在する場合だけ、実際の用途に必要な最小対応を行う。
+`docs/spec/**` と `docs/curriculum/test-automation/**` 以外の Repository 内ファイルへのリンクは、Web Docs の生成対象を広げず GitHub `main` 上の source URL へ変換する。
 
-Repository root 外へ逸脱する path は生成対象として扱わない。
+現在存在する例:
 
-今回の実装で新しい汎用リンクグラフ検証・アンカー検証基盤は作らない。既存 Specification / Curriculum validator は継続利用する。
+```text
+../../../reference/agentic-qa-workflow.md
+  -> GitHub main の docs/reference/agentic-qa-workflow.md
 
-現在のカリキュラムにローカル画像が存在する場合だけ、表示に必要な画像を生成先へコピーし、参照先を保つ。存在しない場合は汎用 asset pipeline を追加しない。
-
-### 6. `build:docs` を追加する
-
-Web 配信用 Docs 生成の入口を 1 つ追加する。
-
-```bash
-pnpm run build:docs
+../../../../QA_AGENT.md
+  -> GitHub main の QA_AGENT.md
 ```
 
-処理内容は次のみにする。
+Repository 内の対象 path が実在することを確認してから GitHub source URL を生成する。存在しない path を GitHub URL にして隠さない。
 
-1. `dist/docs` を削除する。
-2. `dist/docs/spec` を `buildSpecSite()` で生成する。
-3. `dist/docs/curriculum` を生成する。
+#### その他
 
-`dist/docs` 以外の `dist/` は削除しない。
+- `#anchor` はそのまま保持する。
+- `file.md#anchor` は変換後 URL に fragment を保持する。
+- `http:` / `https:` / `mailto:` / `tel:` / `//` は変更しない。
+- Repository root 外へ逸脱する path は許可しない。
 
-特に次は維持する。
+今回、新しい汎用 link graph / anchor validation framework は作らない。
 
-- `dist/index.html`
-- `dist/_expo/**`
+既存の `validate:spec` と `validate:curriculum` を継続利用する。
 
-削除済み Markdown に対応する古い HTML が残らないよう、Docs 生成前の cleanup は必ず行う。
+ローカル画像が Curriculum に現在存在する場合だけ、表示に必要な画像を `dist/docs/curriculum` 配下へコピーして参照を維持する。存在しない場合は Curriculum 用 asset pipeline を追加しない。
 
-実装は `scripts/docs/build-docs.ts` を中心にまとめ、今回だけのために複数の新しい Builder 階層を作らない。
+### 7. `build:web` の Expo export 後に `build:docs` を追加する
 
-### 7. `build:web` の最後に Docs 生成を追加する
+`package.json` に `build:docs` を追加する。
 
-現在の Expo Web export 後に `build:docs` を実行する。
+`build:web` は次の順序にする。
 
 ```text
 prepare:font-assets
@@ -215,18 +216,19 @@ build:docs
 
 次を守る。
 
-- Docs は `expo export` 後に生成する。
+- Docs は必ず `expo export` 後に生成する。
 - `build:docs` から `build:web` を呼ばない。
 - Expo export や既存前処理を二重実行しない。
-- Cloudflare Pages のデプロイ先・成果物ディレクトリは変更しない。
+- `verify` の既存 `build:spec` は削除しない。
+- `verify` では `build:web -> build:docs` と後続 `build:spec` により Specification が 2 回生成されることを許容し、既存 `output/spec-site` artifact 契約を優先する。
 
 ### 8. `serve-web-dist.ts` で directory index を配信する
 
-既存ローカル静的サーバーで Docs の directory URL が SPA fallback に吸われないよう、解決順を次にする。
+既存ローカル静的サーバーの path 解決順を次にする。
 
-1. 要求パスが通常ファイルならそのファイルを返す。
-2. 要求パスがディレクトリで `<directory>/index.html` が存在すれば `index.html` を返す。
-3. 上記に該当しない既存の extensionless Web route は従来どおり SPA `dist/index.html` へ fallback する。
+1. 要求 path が通常ファイルならそのファイルを返す。
+2. 要求 path がディレクトリで `<directory>/index.html` が存在すればその `index.html` を返す。
+3. 上記に該当しない extensionless Web route は従来どおり SPA `dist/index.html` へ fallback する。
 4. それ以外は既存の 404 処理を維持する。
 
 最低限、次を成立させる。
@@ -241,9 +243,7 @@ build:docs
 
 ## テスト・確認
 
-### 既存 validator
-
-次をそのまま実行し、既存の Markdown / 仕様契約を壊していないことを確認する。
+### 1. 既存 validator
 
 ```bash
 pnpm run validate:spec
@@ -252,129 +252,141 @@ pnpm run validate:curriculum
 
 今回の Web 表示用に同等の validator を重複実装しない。
 
-### Build 確認
+### 2. Build
 
 ```bash
 pnpm run build:web
 ```
 
-実行後、少なくとも次が生成されることを確認する。
+少なくとも次が生成されることを確認する。
 
 ```text
 dist/index.html
 dist/docs/spec/index.html
+dist/docs/spec/features/cart.html
 dist/docs/curriculum/index.html
+dist/docs/curriculum/part1/04_playwright-foundations.html
 ```
 
-加えて、代表的な Specification / Curriculum の子ページが現在のディレクトリ構造どおり生成されることを確認する。
+`pnpm run build:spec` も従来どおり成功し、`output/spec-site/index.html` が生成されることを確認する。
 
-### Web smoke
+### 3. Web smoke
 
-既存 `e2e/web/smoke.spec.ts` に Docs の確認を追加する。
+既存 `e2e/web/smoke.spec.ts` の同じファイル内で Storefront と Docs の test を分ける。
 
-最低限、次を確認する。
+```text
+public storefront smoke
+published docs smoke
+```
 
-1. 既存 Scenario Shop の smoke が従来どおり成功する。
-2. `/docs/spec/` が Scenario Shop SPA ではなく仕様書を表示する。
-3. `/docs/curriculum/` が Scenario Shop SPA ではなくカリキュラムを表示する。
-4. カリキュラムの代表的な子ページを 1 ページ開ける。
-5. 現在存在するカリキュラムから仕様書への代表リンクを 1 つ辿り、対象仕様ページを開ける。
+既存 Storefront smoke の内容は維持する。
 
-Docs の確認では URL や HTTP 成功だけで判定せず、Docs 固有の title / h1 / 本文を確認する。
+`published docs smoke` では最低限次を確認する。
+
+1. `/docs/spec/` を開き、H1 `Scenario Shop Specification System` が表示される。
+2. `/docs/curriculum/` を開き、H1 `テスト自動化カリキュラム` が表示される。
+3. `/docs/curriculum/part1/04_playwright-foundations.html` を開き、そのページ固有 H1 が表示される。
+4. Curriculum README に現在存在する `docs/spec/README.md` へのリンクを辿り、`/docs/spec/` と `Scenario Shop Specification System` が表示される。
+5. 既存 Storefront smoke で `/products` の SPA route が従来どおり動作する。
+
+Docs は HTTP success だけで判定せず、Docs 固有 H1 を確認して SPA fallback の誤成功を防ぐ。
 
 今回のために次は追加しない。
 
-- Docs 専用 E2E suite
+- Docs 専用 E2E file / suite
 - static server 専用 unit test suite
-- 320px 等の responsive 専用 E2E
-- 全 Markdown リンクを巡回する E2E
+- responsive 専用 E2E
+- 全 Markdown リンク巡回 E2E
 
-### CI / Preview
+### 4. CI / Cloudflare Preview
 
-`.github/workflows/ci.yml` は原則変更しない。
+`.github/workflows/ci.yml` は今回変更しない。
 
-`build:web` に Docs 生成が含まれることで、既存の `dist` artifact と Cloudflare Pages Preview に Docs も自動的に含まれる構成にする。
+既存 CI の次の経路をそのまま利用する。
 
-既存 `test:smoke` が production artifact と Cloudflare Preview の両方で実行される経路を利用する。
+```text
+build:web
+  -> dist artifact
+  -> production smoke
 
-既存 CI だけでは今回の smoke が実行されないことが実装時に判明した場合のみ、必要な最小変更を行う。Docs 専用 CI job は作らない。
+build:web
+  -> dist artifact
+  -> Cloudflare Pages Preview
+  -> deployed smoke
+```
+
+`build:web` に Docs が含まれるため、既存 artifact / deploy / `test:smoke` 経路で Docs も検証される。
+
+Cloudflare Pages Preview で次を確認する。
+
+- `/docs/spec/`
+- `/docs/curriculum/`
+- Curriculum から Specification への代表 cross-link
 
 ## 主な変更対象
 
 ```text
 package.json
-scripts/spec/markdown.ts             # 再利用に必要な最小変更のみ
-scripts/docs/build-docs.ts           # 新規。Docs Web 生成の入口
+scripts/spec/markdown.ts
+scripts/spec/build-spec.ts            # 汎用描画部分の最小移動のみ
+scripts/docs/build-docs.ts            # 新規
 scripts/serve-web-dist.ts
 e2e/web/smoke.spec.ts
 ```
 
-`scripts/spec/build-spec.ts` は、既存 `buildSpecSite()` をそのまま利用できない具体的理由がある場合だけ最小変更する。
+`.github/workflows/ci.yml` は変更しない。
 
-`.github/workflows/ci.yml` は既存 CI 経路で不足が判明した場合だけ変更する。
-
-Scenario Shop の Header / Footer / Mobile navigation には今回変更を入れない。
+Scenario Shop の Header / Footer / Mobile navigation は変更しない。
 
 ## 完了条件
 
-- `docs/spec/**/*.md` が正本のまま維持されている。
-- `docs/curriculum/test-automation/**/*.md` が正本のまま維持されている。
-- `/docs/spec/` から仕様書を閲覧できる。
-- `/docs/curriculum/` からカリキュラムを閲覧できる。
-- `README.md` が各 Docs root の `index.html` になる。
-- 子ディレクトリの構造が URL 上でも維持される。
-- 現在のカリキュラム内リンクとカリキュラムから仕様書へのリンクが Web 上で利用できる。
-- `pnpm run build:spec` の既存出力と挙動を壊していない。
-- `pnpm run build:web` の成果物 `dist/` に Docs が含まれる。
-- `serve-web-dist.ts` で Docs directory index と既存 SPA fallback が共存する。
-- 既存 Scenario Shop の smoke が成功する。
-- Docs root と代表的な子ページ・cross-link の smoke が成功する。
-- Cloudflare Pages Preview で同じ Docs URL を閲覧できる。
-- `app.config.ts` の `web.output: "single"` を維持している。
-- Native 向けコード・ナビゲーションへ不要な変更をしていない。
-- Generated HTML を正本として手動管理していない。
+- 対象 Markdown が正本のまま維持されている。
+- `/docs/spec/` と `/docs/curriculum/` を既存 Web デプロイから閲覧できる。
+- Specification の既存 `buildSpecSite()` / `build:spec` / `output/spec-site` 契約を壊していない。
+- Curriculum README が index となり、本文の既存学習順から各教材へ移動できる。
+- Curriculum 内リンク、Curriculum から Specification へのリンクが動作する。
+- 公開 Docs 対象外の既存 Repository リンクが壊れず GitHub source を開く。
+- `build:web` 後の `dist/` に両 Docs が含まれる。
+- `dist/docs` のみ clean され、Expo Web 成果物を削除しない。
+- Docs directory index と既存 SPA fallback が共存する。
+- 既存 Storefront smoke と追加 Docs smoke が成功する。
+- Cloudflare Pages Preview でも同じ Docs URL を閲覧できる。
+- `app.config.ts` の `web.output: "single"` を維持する。
+- Native コード・Scenario Shop navigation・CI workflow に不要な変更をしていない。
 
 ## 対象外
 
-今回の実装に次は含めない。
-
 - Scenario Shop 画面への Docs 導線追加
-- Docs 検索
-- Docs 編集 UI
-- Docs version switching
-- branch / tag 単位の Docs 公開
-- 学習進捗管理
-- Curriculum 専用 navigation system
-- Prev / Next navigation
-- Docs 専用認証
-- Docs analytics
+- `pnpm start:web` での Docs 配信
+- Docs 検索・編集 UI・version switching
+- Curriculum 専用 navigation system / Prev / Next
+- Docs 専用認証・analytics
+- `docs/reference/**` 等への Web Docs 公開範囲拡大
 - 汎用 Markdown link / anchor validation framework
-- 未使用 Markdown 構文への対応
-- Mermaid 等の拡張記法
+- 未使用 Markdown 構文や Mermaid 等への先行対応
 - Docs framework 導入
 - Expo Router の static output 移行
-- Repository 全体の Web 公開
 - Docs 専用 CI job
 - Docs 専用 responsive E2E
 
 ## Stop 条件
 
-次のいずれかが判明した場合は、このタスクの範囲を広げず実装を止め、別対応として整理する。
+次のいずれかが判明した場合は、今回の範囲を広げず別対応として整理する。
 
 - Docs に Scenario Shop と異なる認証・閲覧制限が必要。
 - 現在使用中の Markdown が既存 renderer の小さな拡張では安全に表示できない。
-- `buildSpecSite({ outputDir: "dist/docs/spec" })` を既存仕様を壊さず利用できない。
-- Cloudflare Pages の実 Preview で `/docs/**/index.html` より SPA fallback が優先され、現在の `dist` 配置だけでは解決できない。
-- Web 表示のために現在の Markdown 構造そのものを大幅に変更する必要がある。
+- `buildSpecSite({ outputDir: "dist/docs/spec" })` を既存 `build:spec` 契約を壊さず利用できない。
+- Cloudflare Pages Preview で `dist/docs/**/index.html` が配信できず、現在の `dist` 配置だけでは解決できない。
+- Web 表示のために現在の Markdown 構造を大幅に変更する必要がある。
 
 ## 実装順
 
 1. 最新 `main` を取り込み、現在の Markdown 構文・リンク・画像を確認する。
-2. `scripts/spec/markdown.ts` をカリキュラムでも再利用できる最小状態にする。
-3. `scripts/docs/build-docs.ts` を追加し、`dist/docs/spec` と `dist/docs/curriculum` を生成する。
-4. 現在使用中の Docs 間 Markdown リンクを公開 HTML URL へ変換する。
+2. `scripts/spec/build-spec.ts` の汎用 Markdown 描画部分を `scripts/spec/markdown.ts` から再利用できる最小形へ整理する。
+3. `scripts/docs/build-docs.ts` を追加し、Specification と Curriculum を `dist/docs` へ生成する。
+4. Curriculum のリンク変換を本プランの固定規則どおり実装する。
 5. `package.json` に `build:docs` を追加し、`build:web` の Expo export 後に接続する。
 6. `scripts/serve-web-dist.ts` を directory index 対応にする。
-7. `e2e/web/smoke.spec.ts` に最小 Docs smoke を追加する。
-8. 既存 validator、`build:web`、smoke を実行する。
-9. Cloudflare Pages Preview で `/docs/spec/`、`/docs/curriculum/`、代表 cross-link を確認する。
+7. `e2e/web/smoke.spec.ts` 内に `published docs smoke` を追加する。
+8. 既存 validator、`build:web`、`build:spec`、smoke を実行する。
+9. Cloudflare Pages Preview で Docs root と代表 cross-link を確認する。
