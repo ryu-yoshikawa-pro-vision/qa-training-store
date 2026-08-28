@@ -195,11 +195,11 @@
 - decision: `stop_success`。
 - Progress: 100% (21/21)
 
-## 2026-08-28 15:52 (JST) — Review correction iteration 2 開始
+## 2026-08-28 15:52 (JST) — レビュー修正イテレーション2 開始
 
 - iteration_number: 2。
 - input_findings: CodeRabbitの`CHANGES_REQUESTED`レビューで指定された未解決4 thread（comment database id `3878396455` / `3878396466` / `3878396473` / `3878396480`）。Current thread metadataをGitHubから再取得し、4件すべて`isResolved=false`、`isOutdated=false`であることを確認した。
-- current PR evidence: PR #75は`OPEN`、non-Draft、base `main`、head `fix/current-documentation-ssot-repair`、Current head `601f4431ef362732206c1158bb36894faa66dc47`、`reviewDecision=CHANGES_REQUESTED`、mergeable `MERGEABLE`。PR created_atは`2026-08-27T23:13:27Z`。
+- Current PRの証跡: PR #75は`OPEN`、non-Draft、base `main`、head `fix/current-documentation-ssot-repair`、Current head `601f4431ef362732206c1158bb36894faa66dc47`、`reviewDecision=CHANGES_REQUESTED`、mergeable `MERGEABLE`。PR created_atは`2026-08-27T23:13:27Z`。
 - triage:
   - Finding 1（REPORTのJSON validation command）は`must_fix`。実fileを読まない記録のため、実際にUTF-8で`run.json`を読み`JSON.parse`するvalidationへ訂正する。
   - Finding 2（Task 15 / Issue #72）は`reject`。Current GitHub evidenceと既存Runの時系列からTask 15のPR作成・metadata確認・Issue更新は完了済みであり、後続iterationでIssueを再編集していないことを意味する記録と混同された。Task 15、Issue #72、completed判定は変更しない。
@@ -210,7 +210,7 @@
 - decision: `continue`。
 - Progress: 72% (21/29)
 
-## 2026-08-28 15:54 (JST) — Finding 1 / Finding 2 evidence補足
+## 2026-08-28 15:54 (JST) — Finding 1 / Finding 2 証跡補足
 
 - Finding 1 correction: 既存記録の`node --eval JSON.parse(run.json)`は実fileを読まないため、JSON妥当性のEvidenceとして無効だった。REPORT.mdのappend-only contractに従い、元記録は削除・改変せず、訂正Evidenceを本sectionへ追記した。
 - 実行command: `node --eval "JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-074252-JST/run.json', 'utf8')); console.log('run.json JSON parse: PASS')"`。
@@ -219,10 +219,10 @@
 - Finding 2 disposition: Task 15はOPEN PR作成・PR metadata確認・Issue #72更新を完了済みであるため、未完了へ戻さない。後続review correction iterationの「Issue #72は今回編集していない」は、既に正しい状態を再編集せず確認したという意味であり、Task 15 completionまたは`run.json.status=completed`と矛盾しない。Issue #72は今回も編集しない。
 - Progress: 83% (24/29)
 
-## 2026-08-28 15:55 (JST) — Finding 3 / Finding 4 repair applied
+## 2026-08-28 15:55 (JST) — Finding 3 / Finding 4 修正反映
 
 - Finding 3 disposition: CodeRabbitの「Sanitizer `-Write`がRun Artifactを書き換え得る」という問題意識は部分的に受け入れた。ただし、過去Run ArtifactをSanitizerで変更可能にする一般例外は採用していない。
-- Finding 3 repair: child Planへ、PR 1 implementationは同じbranch / PR #75で継続する一方、新しいactive implementation Runを開始すること、完了済みPhase 0 / child Plan Run `.codex/runs/20260828-074252-JST/`は通常の実装記録・Sanitizer対象として再変更しないこと、`Write-CodexArtifactTextAtomic`を含むSanitizer Write / Checkはactive implementation Runだけへ適用することを明記した。完了済みRunの無差分とactive RunのSanitizer後正式内容は別々に判定する。
+- Finding 3の修正: child Planへ、PR 1 implementationは同じbranch / PR #75で継続する一方、新しいactive implementation Runを開始すること、完了済みPhase 0 / child Plan Run `.codex/runs/20260828-074252-JST/`は通常の実装記録・Sanitizer対象として再変更しないこと、`Write-CodexArtifactTextAtomic`を含むSanitizer Write / Checkはactive implementation Runだけへ適用することを明記した。完了済みRunの無差分とactive RunのSanitizer後正式内容は別々に判定する。
 - Finding 4 disposition: 指摘は妥当。child PlanのRepository-wide旧記載zero-match表現をFinding別bounded searchへ置き換えた。
 - Finding 4 repair: RA-M1〜RA-M3、RA-M4、RA-M5、RA-M6、RA-M8、RA-M7ごとに実変更対象文書を限定し、read-only SSOTはcross-checkのみとした。`CHANGELOG.md`はhistorical record、`docs/curriculum/test-automation/part1/10_part1-capstone.md`はLegacy Aliasとしてzero-match Gateから除外し、意図的に変更しない文書の旧表現はPR 1 failureにしない条件を明記した。
 - changed_files: child Plan、REPORT.md、TASKS.md、run.jsonの4 allowed filesのみ。`PLAN.md`、Issue #72、PR本文、Product / Curriculum / Workbook / validator / test / workflow / package / Master Planは変更していない。
@@ -230,7 +230,7 @@
 - decision: `continue`。
 - Progress: 90% (26/29)
 
-## 2026-08-28 15:58 (JST) — Review correction validation
+## 2026-08-28 15:58 (JST) — レビュー修正の検証
 
 - `pnpm run lint:markdown` => PASS（341 files、0 issues）。
 - `git diff --check` => PASS（exit code `0`。run.jsonのEOL warningのみで、whitespace errorなし）。
@@ -250,7 +250,7 @@
 - result: exit code `0`、stdout `run.json JSON parse: PASS`。実fileのUTF-8読込と`JSON.parse`は成功した。
 - `run.json`の最終statusは`completed`であり、Run全体の`changed_files` 5件一覧も維持している。
 
-## 2026-08-28 16:07 (JST) — Review thread / CodeRabbit request 最終Evidence
+## 2026-08-28 16:07 (JST) — レビューthread / CodeRabbit依頼 最終証跡
 
 - repair commit: `46c03500b147964472f9978587d47dbc5deea44c`。push後のPR headはこのcommitと一致している。
 - Review thread 1: comment `3878396455` / thread `PRRT_kwDOTj-WlM6dFCQl`へreply `3878583657`を投稿し、個別resolveした。Current `isResolved=true`、`isOutdated=false`。
@@ -258,8 +258,8 @@
 - Review thread 3: comment `3878396473` / thread `PRRT_kwDOTj-WlM6dFCQy`へreply `3878586396`を投稿し、個別resolveした。Current `isResolved=true`、`isOutdated=true`（対象行が新commitでoutdatedになった状態）。
 - Review thread 4: comment `3878396480` / thread `PRRT_kwDOTj-WlM6dFCQ4`へreply `3878586564`を投稿し、個別resolveした。Current `isResolved=true`、`isOutdated=false`。
 - thread再取得結果: thread count `4`、unresolved thread count `0`。CodeRabbitによる既存thread内の確認コメントは確認したが、新しい未解決thread / 新規Findingはない。
-- CodeRabbit incremental review request: PR conversationへ単独comment `@coderabbitai review`を投稿した。comment id `5449515520`、URL `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/75#issuecomment-5449515520`、created_at `2026-08-28T07:05:38Z`。投稿は成功した。
-- CodeRabbit request status: GitHub checkは`pass / Review rate limited`を返し、今回の追加reviewはrate limitにより結果取得できなかった。`full review`、`autofix`、別review commandによる回避は行わない。追加Finding数は判定不能だが、Current thread再取得で新規未解決Findingは`0`。
+- CodeRabbit incremental review依頼: PR conversationへ単独comment `@coderabbitai review`を投稿した。comment id `5449515520`、URL `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/75#issuecomment-5449515520`、created_at `2026-08-28T07:05:38Z`。投稿は成功した。
+- CodeRabbit依頼の状態: GitHub checkは`pass / Review rate limited`を返し、今回の追加reviewはrate limitにより結果取得できなかった。`full review`、`autofix`、別review commandによる回避は行わない。追加Finding数は判定不能だが、Current thread再取得で新規未解決Findingは`0`。
 - Current PR metadata: #75は`OPEN`、non-Draft、base `main`、head `fix/current-documentation-ssot-repair`、head `46c03500b147964472f9978587d47dbc5deea44c`、mergeable `MERGEABLE`。既存PRのreviewDecisionは元レビュー由来の`CHANGES_REQUESTED`として残っている。
 - Current Issue #72: Issueは編集していない。`Current: PR 1 child Plan review`、`Next: PR 1 implementation`、`Blocked: None`、Phase 0 Complete、child Plan、PR #75、`Plan ready / implementation not started`を維持している。
 - final scope: 今回のrepairで変更したtracked fileはchild Plan、REPORT.md、TASKS.md、run.jsonの4件のみ。Product implementation、Curriculum implementation、validator、test、workflow、package、Issue #72、`PLAN.md`は変更していない。PR 1 implementationは未開始。
@@ -267,3 +267,10 @@
 - next: CodeRabbit再レビュー結果と修正後child Planをユーザーが確認する。承認されるまでPR 1 implementationを開始しない。
 - decision: `stop_success`。
 - Progress: 100% (29/29)
+
+## 2026-08-28 18:21 JST — 完了済みRunのSanitizer履歴補足
+
+- historical validation evidence: child Plan作成時およびreview correction時に、当時activeだった`.codex/runs/20260828-074252-JST/`を対象としてSanitizer `-Write` / `-Check`を実行した記録が既存REPORTと`run.json`にある。
+- 当時の実行結果: `0 files changed`、`0 replacements`、`residual findings: 0`。Sanitizerによる内容変更は実際には発生していない。
+- 扱い: この記録はhistorical execution evidenceとして保持するものであり、完了済みRunへの再実行手順ではない。implementation boundary確定後は、完了済みのこのRunへSanitizer `-Write` / `-Check`を再実行しない。
+- Current boundary: `Write-CodexArtifactTextAtomic`を含むlocal Sanitizer Writeはactive implementation Runに限定する。今回のreview repairでも、完了済みRunへSanitizer `-Write` / `-Check`は実行していない。

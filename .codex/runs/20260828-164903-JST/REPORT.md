@@ -116,3 +116,83 @@
 - 未実施: Full Playwright E2E、Native build、Maestro runtime、unrelated test suiteはchild Planのdocs-only境界により実行していない。未実施をPASSとは記録しない。
 - Next: 実装後Current SSOT照合とbounded searchを再確認し、active Run ArtifactのSanitizer Write / Checkへ進む。
 - Progress: 46% (6/13)
+
+## 2026-08-28 18:21 JST — Review repair開始
+
+- iteration_number: 1。
+- input_findings: CodeRabbitの新規4 inline Finding（comment database id `3879128410` / `3879128415` / `3879128422` / `3879128426`）、outside-diff Finding（review `5049345617`）、active RunのTask 11 / 12・`run.json.status`不整合をCurrent GitHub stateから再確認した。
+- triage: CR-1〜CR-4、outside-diff、Run Artifact状態不整合は`must_fix`。今回のrepairでProduct / Curriculum実装、workflow、validator、Workbook CSV、contract test、Issue #72の再編集は行わない。
+- repair_plan: 既存active Run `20260828-164903-JST`を継続し、child PlanのSanitizer手順と過去Runのレビュー確認済み形式／historical Evidenceを限定修正する。active REPORTへ完全scope command、時系列訂正、Task 11 / 12のGitHub実績をappendし、TASKSと`run.json`を実績へ同期する。実装済み13文書は変更しない。
+- allowed_files: `docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md`、`.codex/runs/20260828-074252-JST/REPORT.md`、`.codex/runs/20260828-164903-JST/REPORT.md`、`.codex/runs/20260828-164903-JST/TASKS.md`、`.codex/runs/20260828-164903-JST/run.json`。PR本文はCurrent diffとのscope表現が曖昧な場合だけ限定修正する。
+- REPAIR_BASE_SHA: `ccf637ce7638ba867714236aa80b3b1337088531`。pre-repair時点でworking treeはclean、local / remote branch / PR #75 headは一致していた。
+- Current PR evidence: PR #75は`OPEN`、non-Draft、base=`main`、head=`fix/current-documentation-ssot-repair`、changed files `22`、mergeable=`MERGEABLE`。reviewDecisionは`CHANGES_REQUESTED`、CodeRabbitの新規4 threadは未解決、CIはRelevant checksが成功または意図したskipである。
+- Current GitHub task evidence: PR本文はImplementation Complete、Issue #72は`Current: PR 1 implementation review`、`Next: PR 1 completion / merge`、`Blocked: None`、PR 1 status=`Implementation complete / review pending`。Task 11 / 12を`[x]`へ同期し、Task 13は未完了のままとした。`run.json.status`はrepair開始時に`in_progress`へ戻した。
+- repair_loop decision: `continue`。
+- Progress: 63% (12/19)。分母は`## Now` 13 checkbox taskと`## Discovered` D1〜D6の6 checkbox taskの合計19件で再計算した。
+
+## 2026-08-28 18:24 JST — Review repair scope / 実績補正
+
+- D1 evidence: Current GraphQL review threadを再取得し、CR-1〜CR-4のcomment database id `3879128410` / `3879128415` / `3879128422` / `3879128426`、各thread id、未解決状態を確認した。outside-diffはCodeRabbit review `5049345617`のactive REPORT時系列指摘として再確認した。
+- D2 evidence: child Planの6.3 / 6.4、Validation plan、成功判定、Stop conditionを、完了済みRunのhistorical形式・事実補足の限定例外とactive RunだけのSanitizer境界が矛盾しない記載へ修正した。完了済みRunへのSanitizerは実行していない。
+- D3 evidence: 過去Run REPORTのreview correctionイテレーション2の非固定構造見出しを限定的に日本語化し、REPORT末尾へhistorical Sanitizer evidenceをappendした。既存の行動履歴は並べ替え・削除・意味変更していない。
+- D4 evidence: active REPORTへ完全scope command、repair delta、13実装文書の不変性、outside-diffのbackfill説明、Task 11 / 12のGitHub実績をappendした。既存の17:15 blockはappend-onlyのため移動・変更していない。
+
+### 完全scope check
+
+- 実行command: `git diff --name-only -- src app e2e maestro scripts/validate-curriculum.ts tests .github/workflows package.json pnpm-lock.yaml docs/spec CHANGELOG.md docs/curriculum/test-automation/part1/10_part1-capstone.md`
+- result: 空。禁止対象への差分はない。
+
+### Repair delta scope check
+
+- 実行command: `git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 --`
+- result: 次の5 tracked filesだけを検出した。
+  - `.codex/runs/20260828-074252-JST/REPORT.md`
+  - `.codex/runs/20260828-164903-JST/REPORT.md`
+  - `.codex/runs/20260828-164903-JST/TASKS.md`
+  - `.codex/runs/20260828-164903-JST/run.json`
+  - `docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md`
+- 実行command: `git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 -- docs/07_testability/seed_catalog.md docs/08_testing/e2e_design.md docs/08_testing/test_strategy.md docs/12_quality/requirements_traceability.md docs/12_quality/acceptance_criteria.md docs/curriculum/test-automation/00_learning-design.md docs/curriculum/test-automation/01_spreadsheet-test-design.md docs/curriculum/test-automation/part1/04_playwright-foundations.md docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md docs/curriculum/test-automation/part1/07_maestro-native-automation.md docs/curriculum/test-automation/part2/06_native-ci-maestro.md docs/curriculum/test-automation/part2/08_integration-design-capstone.md training/workbook/README.md`
+- implementation-doc invariant result: 空。実装済み13文書へrepair差分はない。
+- 実行command: `git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 -- .codex/runs/20260828-074252-JST`
+- old Run result: `.codex/runs/20260828-074252-JST/REPORT.md`だけ。CR-1 / CR-2の指定された限定修正・補足以外の過去Run変更はない。
+
+### Outside-diff訂正
+
+- CodeRabbit review `5049345617`のoutside-diff指摘は妥当。17:15 JSTのValidation evidenceは実行時刻17:15の記録を後からREPORTへbackfillしたもので、17:23 JSTのcommit記録よりappend順が後ろになった。既存blockはappend-onlyのため並べ替えていない。
+- 既存の`Progress: 46% (6/13)`は17:15時点のhistorical progressであり、タスク進捗が後退したことを意味しない。その後Task 7〜10が進み、17:23時点で`10/13`へ進んだ。GitHub実績上はTask 11 / 12も実施済みだったがTASKSのcheckbox更新が漏れていたため、今回のrepairで実績へ同期した。
+- Current progressは、固定値をコピーせず、TASKSの`## Now` + `## Discovered` checkboxから再計算する。
+
+### Task 11 GitHub evidence
+
+- PR #75本文はImplementation Complete状態へ更新済みである。Current stateは`Phase 0: Complete`、`Child Plan: Complete`、`Implementation: Complete`、`Implementation review: Pending`であり、実装完了状態がPR本文へ反映されている。
+
+### Task 12 GitHub evidence
+
+- Issue #72は`Current: PR 1 implementation review`、`Next: PR 1 completion / merge`、`Blocked: None`、PR 1 Status=`Implementation complete / review pending`である。Issue #72は今回のrepairで編集していない。
+- CodeRabbit incremental reviewは実行済み。最新review idは`5049345617`、stateは`CHANGES_REQUESTED`、新規actionable comment数は4件。今回の4 inline threadとoutside-diffはこのrepair対象として確認した。
+- CIはWeb CIのRelevant checksがsuccess、Mobile App CIの`native-ci / verify`がsuccess。Native変更なしによるMobile App CIの一部jobは意図したskipで、failure / pendingはない。
+
+- D1〜D4: 実績どおり完了へ同期した。次はformat、markdown、JSON parse、active Run Sanitizer、scope review、commit / pushである。
+- Progress: 84% (16/19)。
+
+## 2026-08-28 18:29 JST — PR本文Scope表現のCurrent diff整合
+
+- `gh pr view 75 --repo ryu-yoshikawa-pro-vision/qa-training-store --json body`で、Scopeの「13文書と新しいimplementation Run Artifactだけ」という表現がPR全体のCurrent diffを一意に表さないことを確認した。
+- `gh pr edit 75 --repo ryu-yoshikawa-pro-vision/qa-training-store --body-file -`でScope段落だけを更新した。Implementation phaseの13文書＋active Run、今回のreview repairのchild Plan／Phase 0 Run REPORT限定修正／active Run Artifact、PR全体の22 filesを区別した。
+- Product code、workflow、validator、Workbook CSV、contract test、Master Plan、Legacy Aliasは変更していない。Issue #72、active Run `PLAN.md`も変更していない。
+
+## 2026-08-28 18:30 JST — Repair validation / scope review
+
+- `pnpm run format:check` => PASS（All matched files use Prettier code style）。
+- `pnpm run lint:markdown` => PASS（markdownlint 341 files、0 issues）。
+- `git diff --check` => PASS。CRLFに関するwarningはあるが、whitespace errorはない。
+- `node --eval "JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-164903-JST/run.json', 'utf8')); console.log('run.json JSON parse: PASS')"` => PASS。Sanitizer後の再実行もPASS。
+- 完全scope command `git diff --name-only -- src app e2e maestro scripts/validate-curriculum.ts tests .github/workflows package.json pnpm-lock.yaml docs/spec CHANGELOG.md docs/curriculum/test-automation/part1/10_part1-capstone.md` => 空。禁止対象への差分なし。
+- repair delta command `git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 --` => 指定5 tracked filesだけ。
+- 13実装文書の不変性command `git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 -- docs/07_testability/seed_catalog.md docs/08_testing/e2e_design.md docs/08_testing/test_strategy.md docs/12_quality/requirements_traceability.md docs/12_quality/acceptance_criteria.md docs/curriculum/test-automation/00-learning-design.md docs/curriculum/test-automation/01-spreadsheet-test-design.md docs/curriculum/test-automation/part1/04_playwright-foundations.md docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md docs/curriculum/test-automation/part1/07_maestro-native-automation.md docs/curriculum/test-automation/part2/06_native-ci-maestro.md docs/curriculum/test-automation/part2/08_integration-design-capstone.md training/workbook/README.md` => 空。
+- active Run Sanitizer Write => PASS（4 files scanned、0 files changed、0 replacements、residual findings `0`）。active Run Sanitizer Check => PASS（4 files scanned、0 files changed、0 replacements、residual findings `0`）。過去Runへは実行していない。
+- full Playwright E2E、Native build、Maestro runtimeは今回のrepairで実装13文書を変更していないため未実施。未実施をPASSとは記録しない。
+- scope review: tracked repair差分はchild Plan、old Run REPORT、active Run REPORT／TASKS／run.jsonの5件だけ。Product、workflow、validator、test、Workbook CSV、Master Plan、Issue #72、active Run `PLAN.md`、実装13文書に追加差分なし。
+- remaining_delta: branch safety再確認、staged diff review、repair commit / push、4 inline threadへのreply / resolve、outside-diff対応comment、CodeRabbit incremental review、最終PR／CI確認、Task 13 / D6の完了。
+- decision: `continue`。
+- Progress: 84% (16/19)。

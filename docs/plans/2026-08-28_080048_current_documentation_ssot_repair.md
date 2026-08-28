@@ -108,14 +108,14 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 
 ### 6.3 変更しない対象
 
-`src/**`、`app/**`、`e2e/**`、`maestro/**`、`training/workbook/*.csv`、`scripts/validate-curriculum.ts`、`tests/**`、`.github/workflows/**`、`docs/spec/**`、`package.json`、`pnpm-lock.yaml`、Master Plan、過去Run Artifact。上記read-only対象のうち、6.1に明記した文書以外は変更しない。完了済みのPhase 0 / child Plan Run（`.codex/runs/20260828-074252-JST/`）も、Sanitizerを理由に変更しない。
+`src/**`、`app/**`、`e2e/**`、`maestro/**`、`training/workbook/*.csv`、`scripts/validate-curriculum.ts`、`tests/**`、`.github/workflows/**`、`docs/spec/**`、`package.json`、`pnpm-lock.yaml`、Master Plan、過去Run Artifact。上記read-only対象のうち、6.1に明記した文書以外は変更しない。PR 1 implementation phaseでは、完了済みのPhase 0 / child Plan Run（`.codex/runs/20260828-074252-JST/`）もSanitizerを理由に変更しない。過去Run Artifactは原則immutableとするが、`AGENTS.md`の過去Run変更ルールに基づくreviewで確認された事実誤認・形式破損の限定修正または履歴を失わない補足追記だけは、該当Findingへの対応として許容する。この例外はgeneral cleanup、通常のimplementation記録の追記、完了済みRunへのSanitizer `-Write` / `-Check`の再実行・対象化を許可しない。
 
 ### 6.4 PR 1 implementation Runの境界
 
 - PR 1 implementationは同じ`fix/current-documentation-ssot-repair` branch / PR #75で継続するが、実装開始時に新しいimplementation Runを作成し、そのRunの`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`を実装の正式成果物とする。
-- 完了済みの`.codex/runs/20260828-074252-JST/`はPhase 0 / child Plan作成のRunとして保持し、通常の実装記録やSanitizerのために再変更しない。
+- PR 1 implementation phaseでは、完了済みの`.codex/runs/20260828-074252-JST/`をPhase 0 / child Plan作成のRunとして保持し、通常の実装記録やSanitizerのために再変更しない。implementation後のreview repairで、`AGENTS.md`の過去Run変更ルールに基づくreview確認済みの事実誤認・形式破損の限定修正または履歴を失わない補足追記を行う場合だけ、別途許容する。この例外はgeneral cleanup、通常のimplementation記録の追記、完了済みRunへのSanitizer再実行の許可ではない。
 - Sanitizerの`-Write` / `-Check`は、その時点のactive implementation Run Artifactだけを対象にする。`-Write`が`Write-CodexArtifactTextAtomic`でSanitizer後の内容を保存する場合も、active Runにローカルpath等があり、そのCurrent Runの正式finalizationに必要な形式修正であるときだけ許可する。
-- これは過去Run Artifactへの一般的なSanitizer例外ではない。成功判定では、完了済みPhase 0 / child Plan Runに差分がないことと、active implementation Run ArtifactがSanitizer Write後の正式内容であることを別々に確認する。
+- これは過去Run Artifactへの一般的なSanitizer例外ではない。実装phaseの成功判定では、完了済みPhase 0 / child Plan Runに差分がないことと、active implementation Run ArtifactがSanitizer Write後の正式内容であることを別々に確認する。review repairで上記の限定例外を適用した場合は、その差分をhistorical形式修正または履歴を失わない事実補足として記録し、Sanitizer対象化は行わない。
 
 ## 7. Change strategy
 
@@ -243,8 +243,7 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 
 - `pnpm run lint:markdown`
 - `git diff --check`
-- `scripts/sanitize-codex-artifacts.ps1 -Write -Path .codex/runs/20260828-074252-JST`
-- `scripts/sanitize-codex-artifacts.ps1 -Check -Path .codex/runs/20260828-074252-JST`
+- 当時activeだった`.codex/runs/20260828-074252-JST/`に対するSanitizer `-Write` / `-Check`の実行はhistorical validation evidenceとして保持する。当時の結果は`0 files changed`、`0 replacements`、`residual findings: 0`であり、この記載は完了済みRunへの再実行手順ではない。Run完了後は再実行しない。
 - Phase 0 read-only確認済み: `pnpm run validate:curriculum`、`pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1`、Current workflow / config / ID grammarの`rg`照合。
 
 ### PR 1実装後
@@ -254,6 +253,7 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 - `pnpm run validate:spec`
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
+- Sanitizer `-Write` / `-Check`はactive implementation Runだけを対象とし、完了済みPhase 0 / child Plan Runには実行しない。過去Runの形式・事実修正が必要な場合も、Sanitizer対象へ戻す一般例外は作らない。
 - Current SSOT照合: `package.json` / `playwright.config.ts` / Web workflow、Native workflow / ADR、`src/config/versions.ts`、validator / Workbook / contract test。
 - Finding別bounded search: zero-match assertionは、各Findingで実際に変更する文書だけへ適用し、read-only SSOTやhistorical recordへは適用しない。意図的に変更しない文書の旧表現は、それ自体をPR 1 failureにしない。
   - RA-M1: `docs/08_testing/e2e_design.md`、`docs/08_testing/test_strategy.md`、`docs/12_quality/requirements_traceability.md`、`docs/12_quality/acceptance_criteria.md`だけを対象に、旧E2E Gate / 件数記述を確認する。
@@ -271,8 +271,8 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 
 - Current SSOTと文書記載の不整合が解消される。
 - validator / Workbook / contract testの既存canonical contractが維持される。
-- Product code、test、workflow、package / lockfile、Master Plan、過去Run Artifactに差分がない。
-- 完了済みのPhase 0 / child Plan Runに差分がなく、active implementation Run ArtifactはSanitizer Write後の正式内容として保存されている。Sanitizer以外の差分を形式修正の例外として扱わない。
+- Product code、test、workflow、package / lockfile、Master Planに差分がない。
+- PR 1 implementation phaseでは、完了済みのPhase 0 / child Plan Runに差分がなく、active implementation Run ArtifactはSanitizer Write後の正式内容として保存されている。implementation後のreview repairで`AGENTS.md`に基づくreview確認済みの事実誤認・形式破損の限定修正または履歴を失わない補足追記を行った場合だけ、その限定差分を別途記録する。general cleanup、通常のimplementation記録の追記、完了済みRunへのSanitizer再実行は許容しない。
 - Finding別bounded searchのzero-match assertionは各Findingの実変更対象文書だけに適用され、`CHANGELOG.md`とLegacy Alias `part1/10_part1-capstone.md`をfailure対象にしない。
 - 上記コマンドが成功し、追加の設計判断を要する未解決差がない。
 
@@ -290,7 +290,7 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 - RA-M8のvalidator / Workbook / contract test間のcanonical grammarは一致しているため、grammar選択に関するblocking questionはない。
 - Product behavior、Formal CI Gate、validator / Workbook / contract testの変更、新しい設計判断、Current Findingの解消済み判定、scope外ファイル差分が必要になった場合は、推測で実装せず停止する。
 - 実装前にCurrent SSOTの値が変わっている場合は、Planの事実を再確認し、変更範囲を拡張せずにユーザーへ確認する。
-- 完了済みPhase 0 / child Plan Runの通常記録またはSanitizer変更が必要になった場合、またはSanitizer以外の差分を含むRun Artifact変更が必要になった場合は停止する。
+- 完了済みPhase 0 / child Plan Runへの通常記録の追記、general cleanup、またはSanitizer `-Write` / `-Check`の再実行・対象化が必要になった場合は停止する。ただし、`AGENTS.md`の過去Run変更ルールに基づくreviewで確認された事実誤認・形式破損の限定修正または履歴を失わない補足追記だけは別途許容し、その範囲を超えるRun Artifact変更、またはSanitizer以外の一般変更が必要になった場合は停止する。
 - Repository-wide zero-match、`CHANGELOG.md`またはLegacy Aliasの変更、あるいはFinding別の実変更対象を超える検索・修正が必要になった場合は停止する。
 
 ## 11. Follow-up notes

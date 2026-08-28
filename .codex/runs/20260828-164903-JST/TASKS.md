@@ -13,14 +13,19 @@
 - [x] 8. Run Artifactをsanitizeし、commit前Git diffとbranch safetyを確認する
 - [x] 9. implementation commitを作成してPR branchへpushする
 - [x] 10. implementation Runをfinalizeする
-- [ ] 11. PR #75本文をImplementation Completeへ更新する
-- [ ] 12. Issue #72をimplementation reviewへ更新し、CodeRabbit incremental reviewとCI／PR状態を確認する
+- [x] 11. PR #75本文をImplementation Completeへ更新する
+- [x] 12. Issue #72をimplementation reviewへ更新し、CodeRabbit incremental reviewとCI／PR状態を確認する
 - [ ] 13. 最終Evidenceを整理して報告し、PRをmergeせず停止する
 
 ## Discovered
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
-- D1. （必要になったら追記）
+- [x] D1. CodeRabbit新規4 inline Findingとoutside-diff FindingをCurrent evidenceで再検証する
+- [x] D2. child PlanのSanitizer手順矛盾を修正する
+- [x] D3. 過去Run REPORTの日本語形式とSanitizer履歴Evidenceを限定修正する
+- [x] D4. active Run REPORTのscope command／時系列／progress／task state Evidenceを補正する
+- [ ] D5. validation／scope review／commit／pushを実施する
+- [ ] D6. review thread返信・resolve、outside-diff対応comment、CodeRabbit再レビュー依頼を行う
 
 ## Blocked
 
