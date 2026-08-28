@@ -31,6 +31,7 @@
   - interactive process終了や`Stop`だけを根拠に`status=completed`へ変更しない。
   - Codex nonzero時はCodex exit codeを優先する。Codex zeroかつcollector nonzero時はcollector exit codeを返す。
   - Bash版は`set -euo pipefail`下でもcollector nonzeroを明示的に捕捉し、sync failure log / warning / final exit判定まで継続する。
+  - PowerShell版はcollector child process自体の起動失敗を`try/catch`で捕捉し、collector failure=`1`へ正規化してsync failure log / warning / final exit判定まで継続する。
   - `--no-log` / `-NoLog`でもmanifest同期は実行し、loggingだけ抑止する。
   - PowerShell / Bashで同じ外部契約を満たす。
   - manifest schema / template shape、`codex-task`既存writer、Hook、evaluation責務を変更しない。
@@ -48,6 +49,7 @@
 - `codex-safe.ps1/sh`は`RunId`をlog path等に利用するが、現在はprocess終了後にmanifestを同期しない。
 - 現在の`codex-safe`は存在しない`RunId`でも`.codex/runs/<run_id>/logs`を作成できる余地がある。
 - Bash版`codex-safe.sh`は`set -euo pipefail`を使用し、Codex実行では既にexit codeを明示的に捕捉してから最終exitを決定している。
+- PowerShell版`codex-safe.ps1`は`$ErrorActionPreference = "Stop"`のため、native process自体の起動失敗は例外として捕捉する必要がある。
 - `Stop` / `SubagentStop` Hookはsession / subagent eventの観測用で、Run完了やsuccess / failureを推測しない。
 - `AGENTS.md`には次の4種類の曖昧表現が残っている。
   1. lightweightのrun artifactを「手動作成してよい」が`run.json`まで含むように読める。
@@ -233,10 +235,20 @@ collector wrapperの呼び出しpathはcurrent working directoryに依存させ�
 - PowerShell:
   - `$collectorPath = Join-Path $repoRoot "scripts\\collect-run-artifacts.ps1"`のようにabsolute pathを作る。
   - `collect-run-artifacts.ps1`を同一process内でdirect invocation / dot-sourceせず、child processとして起動する。
+  - `$ErrorActionPreference = "Stop"`下でchild process自体の起動失敗が例外になっても後続処理を継続できるよう、native process呼び出しを`try/catch`で囲む。
+  - 正常にchild processを起動できた場合は`$LASTEXITCODE`をcollector exit codeとして保持し、起動自体が例外になった場合だけcollector failure=`1`へ正規化する。
 
-```text
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File <absolute-repo-root>\scripts\collect-run-artifacts.ps1 -RunId <run_id> -RefreshGitChangedFiles
+```powershell
+try {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $collectorPath -RunId $RunId -RefreshGitChangedFiles
+    $collectorExit = $LASTEXITCODE
+}
+catch {
+    $collectorExit = 1
+}
 ```
+
+新しいgeneric process runner / helper abstractionは追加せず、既存のnative process呼び出しへ最小限の`try/catch`を追加する。
 
 - Bash:
   - `bash "$repo_root/scripts/collect-run-artifacts.sh"`でabsolute pathのwrapperを明示的にBash実行する。
@@ -300,7 +312,8 @@ actual repositoryのworking treeはテスト用に汚さない。Git refresh con
 - Bash collector nonzero時、`set -e`で途中終了せず`manifest_sync_failed` / warning / final exit判定まで到達する。
 - Codex nonzero + collector success/failure: Codex exit code優先。
 - Codex zero + collector failure: collector exit code。
-- collector child process起動失敗: Codex zeroなら1、Codex nonzeroならCodex exit code。
+- collector child process起動失敗時の外部契約は、Codex zeroなら1、Codex nonzeroならCodex exit codeとする。
+- PowerShellのlaunch failureは実装上`try/catch`でcollector failure=`1`へ正規化し、`manifest_sync_failed` / warning / final exit判定まで到達する。
 - `PreflightOnly` / `PrintCommand`: syncなし。
 - logging有効時のsync event。
 - `--no-log` / `-NoLog`でもsync実行。
@@ -310,6 +323,8 @@ runtime依存caseは利用可能shellだけ実行する。
 - Bash contractはBash利用可能環境で実行。
 - PowerShell contractはPowerShell / Windows利用可能環境で実行。
 - runtimeが利用できないcaseは理由を明示してSKIPする。
+- collector child process launch failureのruntime testは、既存test harnessだけで安全かつ単純に再現できる場合のみ実施する。
+- launch failure再現のためにPATH改変、専用shim / fake runtime、production test hook / option、新しいtest infrastructureが必要なら追加しない。実装上の`try/catch`とstatic verificationで確認し、runtime testはSKIP理由を明示する。
 - 利用不能shell再現だけのDocker / emulator / runtime追加は行わない。
 - production codeへtest-only hook / output pathを追加しない。
 
@@ -321,6 +336,7 @@ runtime依存caseは利用可能shellだけ実行する。
 - reference docsのinteractive終了時sync。
 - `Stop` Hookをmanifest更新triggerとして説明していないこと。
 - Bash / PowerShell双方のRun Directory precondition / existing manifest guard / sync経路。
+- PowerShellでcollector launch failureを`try/catch`によりcollector failure=`1`へ正規化し、後続のsync failure handlingへ進む構造。
 
 一般語を禁止するnegative checkやHook logger契約の再定義は行わない。
 
@@ -330,6 +346,7 @@ runtime依存caseは利用可能shellだけ実行する。
 - manifestありRunでinteractive終了後に`changed_files`を同期する。
 - repository配下のサブディレクトリから起動してもcollector syncできる。
 - Bashでcollector failureが発生してもsync failureの記録・warning・final exit判定まで継続する。
+- PowerShellでcollector launch failureを単純に再現できる場合は、collector failure=`1`へ正規化し、sync failureの記録・warning・final exit判定まで継続することを確認する。単純に再現できない場合は無理にruntimeを改変せずSKIP理由を残す。
 - process exitだけで`status=completed`へ変えない。
 - manifest-less Runで`run.json`を生成しない。
 - `--no-log` / `-NoLog`でもsyncする。
@@ -349,9 +366,11 @@ runtime依存caseは利用可能shellだけ実行する。
 - existing manifestだけがinteractive終了時に自動同期される。
 - collector path解決がcurrent working directoryに依存しない。
 - Bashの`set -euo pipefail`下でもcollector failureを捕捉し、sync failure handlingとexit code優先順位を維持できる。
+- PowerShellの`$ErrorActionPreference = "Stop"`下でもcollector process起動失敗を`try/catch`でcollector failure=`1`へ正規化し、sync failure handlingとexit code優先順位を維持できる。
 - existing `changed_files`をcleanupせず保持し、新規Git観測pathだけに`.codex/runs/**`除外を適用できる。
 - tracked / untracked / 日本語・空白pathを`changed_files`へ安全に累積できる。
 - Git refresh testのためにproduction `--repo-root` / `--git-root`等を追加していない。
+- launch failure testのために専用shim / fake runtime / test-only production hookを追加していない。
 - collector default挙動とv1/v2 compatibilityを壊していない。
 - Codex / collector exit semanticsがPowerShell / Bashで一致する。
 - `--no-log`がsyncを無効化しない。
@@ -373,6 +392,8 @@ runtime依存caseは利用可能shellだけ実行する。
   - 対策: repository rootからabsolute collector pathを構築し、サブディレクトリ起動contractで固定する。
 - Bashの`set -e`でcollector nonzero時にwrapperが途中終了する。
   - 対策: collectorを`if ...; then/else`内で実行してexit codeを捕捉し、failure log / warning / final exit判定まで継続する。
+- PowerShellでcollector process自体の起動失敗が例外となり、sync failure handlingを飛ばす。
+  - 対策: native process呼び出しを`try/catch`で囲み、launch failureだけcollector failure=`1`へ正規化して後続処理を継続する。
 - `changed_files` refreshの除外処理でexisting値までcleanupしてしまう。
   - 対策: `.codex/runs/**`除外は新規Git観測pathだけに適用し、existing `changed_files`はそのまま保持してunionする。
 - `changed_files`を失う / Git path quotingで壊す。
@@ -385,6 +406,8 @@ runtime依存caseは利用可能shellだけ実行する。
   - 対策: actual `.codex/runs/<run_id>/run.json`は常にmachine-managedとし、直接生成・編集可なのはtemporary test fixture等に限定する。
 - PowerShell collectorの`exit`で親wrapperが終了する。
   - 対策: collectorをchild process実行し、親でexit codeを評価する。
+- launch failureのruntime test再現のためにtest infrastructureを増やす。
+  - 対策: 既存harnessだけで単純に再現できる場合のみruntime testし、専用shim / PATH改変 / fake runtime / production test hookが必要なら追加せずSKIP理由を残す。
 - logging設定とsync責務が混ざる。
   - 対策: NoLogはlog eventだけ抑止し、syncは継続する。
 - testのためにscopeが広がる。
