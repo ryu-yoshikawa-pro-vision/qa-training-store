@@ -107,7 +107,7 @@ Hook JSONLとは別責務とし、既存のGit管理方針を変更しない。
 - `.codex/templates/subagent-run.schema.json`
 - `.codex/runs/<run_id>/subagents/*.json`を作成・更新する運用
 - `scripts/collect-run-artifacts.py`内の`collect_subagents()`
-- Run-local `subagents/*.json`の走査・validation・aggregation
+- Run-local `subagents/*.json`の走査 / validation / aggregation
 - 旧Subagent JSONを前提とするtests
 - 旧Subagent JSONを前提とするdocs / AGENTS / template記述
 - `parent_decision` / `used_in_final_plan` / Subagent `scope` / Subagent `changed_files`等、旧Subagent JSONからだけ生成していたmanifest集約処理
@@ -115,8 +115,6 @@ Hook JSONLとは別責務とし、既存のGit管理方針を変更しない。
 ### 過去Runの扱い
 
 **過去Runに既に存在する`subagents/*.json`は削除・書換えしない。**
-
-今回の廃止は以下を意味する。
 
 - 新しいRunでは生成しない。
 - 新しい標準運用では参照しない。
@@ -135,13 +133,18 @@ Hook JSONLとは別責務とし、既存のGit管理方針を変更しない。
 - `subagents.summary.scope_violations`
 - `subagents.summary.used_in_final_plan`
 
-`agents_used`は今回削除対象にしない。generic manifest fieldとして現状維持し、旧Subagent JSON廃止のためだけに追加のschema差分を増やさない。
+`agents_used`はrepo-wideでproducer / consumerを確認して判断する。
+
+- 旧Subagent JSONとは独立したactive producerが存在する場合は、fieldとそのproducer責務を維持する。
+- `collect_subagents()`だけが実質producerである場合は、新規v2 manifestから`agents_used`も削除する。
+- 実際にSubagentを使ったのに`agents_used: []`となるような虚偽のmachine-generated fieldは残さない。
+- `agents_used`を維持するためだけに新Hookから`run.json`へ集約する仕組みは追加しない。
 
 `collect_subagents()`削除後は以下をSubagent Hookから復元しない。
 
 - `changed_files`: 既存wrapper / git差分等の非Subagent経路を正本とする。
 - `safety.scope_violation`: 既存scope validationを正本とする。
-- `agents_used`: 既存fieldのまま維持し、新Hookから新規集約しない。
+- `agents_used`: 独立producerがある場合だけその既存経路を維持する。
 
 ---
 
@@ -206,6 +209,7 @@ version migration基盤は作らない。
 - `scripts/new-run.*`は既存どおりtemplateを使って新規`run.json`を自動生成する。
 - `codex-task.ps1/sh`が新規v2 `run.json`を旧v1構造で上書きしない。
 - v2 manifestには削除済み旧Subagent fieldを新規生成しない。
+- `agents_used`は§2のproducer / consumer確認結果に従う。
 - 旧Hook observation fieldはactive利用がないことを確認できた場合だけv2から削除する。
 - collectorのmerge処理、`codex-task.ps1/sh`の既存manifest merge処理の双方で、削除済みv1専用fieldをv2 manifestへ再注入しない。
 - `codex-task` / collectorによるvalidation、safety、changed files、report、evaluation等の既存非廃止対象の自動更新は維持する。
@@ -241,7 +245,12 @@ manifest writer / collectorは既存manifestの`schema_version`を確認し、�
 4. `SubagentStop`
 5. `Stop`
 
-既存Safety `PreToolUse`のmatcher / blocking behaviorは変更しない。
+Logging Hookは各eventのsupported occurrenceをすべて記録する。
+
+- Logging Hookではmatcherを原則省略する。
+- 既存Safety `PreToolUse`だけは現在の`matcher = "^Bash$"`を維持する。
+- Logging HookへSafety HookのBash限定matcherを流用しない。
+- hosted / specialized Tool等、Codex Hook自体で観測できない経路を疑似的に補完しない。
 
 ### cross-platform起動
 
@@ -251,6 +260,8 @@ manifest writer / collectorは既存manifestの`schema_version`を確認し、�
 - Windows: `command_windows`から同じNode loggerを起動する。
 - Windows用にlogging logicをPowerShellへ再実装しない。
 - path解決・quotingは既存`.codex/config.toml`のSafety Hookのcross-platform構成を参考にする。
+- 5つのLogging Hookはすべて`timeout = 5`秒とする。
+- Safety `PreToolUse`の既存timeout / blocking behaviorは変更しない。
 - 主要運用環境であるWindowsでは5eventを実機smokeする。
 - Unix系では同じloggerを起動できることと代表eventを最低1件smokeする。利用可能な環境で5eventを確認できる場合は確認してよいが完了必須条件にはしない。
 
@@ -267,6 +278,14 @@ manifest writer / collectorは既存manifestの`schema_version`を確認し、�
 - 通常時はstdoutへdebug出力しない。
 - V1ではrotation、DB、外部送信、active-run registryを実装しない。
 
+### 保存先の解決
+
+Hook JSONLの保存先は`process.cwd()`やnative payloadの`cwd`を基準にしない。
+
+- logger自身の配置位置（`import.meta.url`等）からrepository内の`.codex/logs/`を決定する。
+- Codexをrepositoryのsubdirectoryから起動しても、常にrepository root配下の`.codex/logs/`へ書き込む。
+- 保存先解決のためだけに毎event `git rev-parse`等のsubprocessを追加しない。
+
 ### sanitization / bounded log
 
 ローカルログであっても不要な機密情報を増やさないため、保存前に最低限sanitizationする。
@@ -275,11 +294,13 @@ manifest writer / collectorは既存manifestの`schema_version`を確認し、�
 
 1. 必要fieldだけnative payloadから取得する。
 2. text値にbest-effort secret redactionを適用する。
-3. 固定上限でtruncateする。
+3. `TEXT_PREVIEW_MAX_CHARS = 2000`を共通上限としてtruncateする。
 4. sanitization後の値だけJSONLへappendする。
 
-方針:
+共通仕様:
 
+- logger observation timestampは`new Date().toISOString()`相当のUTC ISO 8601とする。
+- `prompt` / `tool_input_preview` / `last_assistant_message`は同じ2000文字上限を利用する。
 - native payload全文を保存しない。
 - transcript本文を解析・保存しない。
 - transcript pathを保存しない。
@@ -298,6 +319,7 @@ loggingはbest-effortとし、Codex本作業をprimaryとする。
 - 正常・logging失敗のどちらでも、eventごとに要求される非干渉のstdout / exit semanticsを守る。
 - `SubagentStop` / `Stop`はlogging失敗時も実機確認済みのno-op JSONを返し、continuation / blockを要求しない。
 - logging Hookは原則exit 0とし、Safety `PreToolUse`のblocking責務を横取りしない。
+- loggerがhangした場合もCodex本作業を長時間止めないよう、config側の5秒timeoutを必須とする。
 
 ### `UserPromptSubmit`
 
@@ -332,7 +354,7 @@ loggingはbest-effortとし、Codex本作業をprimaryとする。
 
 1. `tool_input`をgenericにJSON serializationする。
 2. 共通sanitizationを適用する。
-3. 固定文字数でtruncateする。
+3. 共通2000文字上限でtruncateする。
 
 動作:
 
@@ -474,6 +496,7 @@ Subagentを使わなかったこと自体は毎回記録しない。
 
 - Hook JSONLを`run.json`へ新規集約しない。
 - `SubagentStart` / `SubagentStop`から`run.json.subagents`を新規生成しない。
+- `agents_used`を維持するためだけにHook→`run.json`集約を追加しない。
 - `CODEX_RUN_ID`伝播を新設しない。
 - `1 Codex process = 1 Run`という新しい運用制約を導入しない。
 - active-run registryを作らない。
@@ -495,6 +518,7 @@ session単位のローカル詳細ログで今回の目的を満たすため、R
 - `subagent_run_count`
 - `used_in_final_plan`
 - `parent_decision`
+- `agents_used`
 - `scope_violations`
 
 ### 旧Hook observation
@@ -512,11 +536,19 @@ session単位のローカル詳細ログで今回の目的を満たすため、R
 - `SafetyBlocked`
 - `ObservationError`
 
-### Hook log
+### Hook log / config
 
 - `.codex/logs/.gitignore`
 - `.codex/logs`
 - `hooks-*.jsonl`
+- `hooks.UserPromptSubmit`
+- `hooks.PostToolUse`
+- `hooks.SubagentStart`
+- `hooks.SubagentStop`
+- `hooks.Stop`
+- `matcher`
+- `timeout`
+- `command_windows`
 
 ### Manifest / writer
 
@@ -529,41 +561,47 @@ session単位のローカル詳細ログで今回の目的を満たすため、R
 - `artifact_summary`
 - `hook_observations`
 - `subagents`
+- `agents_used`
 - `run.json`
 - `evaluation.json`
 
 停止条件:
 
 - 旧Subagent JSONにactive consumerがある場合、そのconsumerを新運用へ移行せずに削除しない。
+- `agents_used`に旧Subagent JSONとは独立したactive producer / consumerがある場合、その責務を削除しない。
+- `agents_used`の独立producerがない場合、虚偽の空fieldを新規v2へ残さない。
 - 旧Hook observationにactive producer / consumerがある場合、今回そのproducer / consumerのmigrationまでは行わず、削除対象から外す。
 - Hook observation由来のsafety情報に別のactive正本がない場合、そのsafety情報を失うfield / collector削除を行わない。
 - manifest writerのどれかがv1構造をhard-codeしている場合、v2へ揃えずに完了扱いにしない。
 - logging Hookが既存Safety Hookへ干渉する場合、safetyを優先してlogging scopeを縮小する。
 - Hook仕様が実機と計画で異なる場合、現行Codex CLIの実機仕様を優先する。
-- project-local Hookが未trustの場合、trust未設定をlogger不良と誤判定しない。
 - Windowsで`command_windows`からloggerを起動できない場合、Windows Hook動作を未検証のまま完了扱いにしない。
 - Hook JSONLがGit管理対象になっている場合は、既存方針どおりignoreへ戻してから完了する。
+- Logging HookにSafety用のBash限定matcherが誤って設定されている場合は完了扱いにしない。
+- Logging Hookのtimeoutが未設定または長すぎる場合は完了扱いにしない。
+- loggerが`cwd`依存で別階層の`.codex/logs`へ出力する場合は完了扱いにしない。
 
 ---
 
 ## 9. 実行タスク
 
-- [ ] 1. 現行Codex CLIで5eventのinput / stdout / exit semantics、Tool coverage、Hook trust状態を実機確認する。
-- [ ] 2. repo-wide searchで旧Subagent JSON、旧Hook observation、全manifest writer、docs、testsのproducer / consumerを確定する。
-- [ ] 3. canonical Node Hook loggerを1つ実装し、5eventをsanitized / bounded JSONLへ記録する。logging失敗時もCodex本作業をblockしない。
-- [ ] 4. `.codex/config.toml`へ5eventを接続し、Unix `command` / Windows `command_windows`の双方から同じNode loggerを起動する。既存Safety `PreToolUse`は維持する。
+- [ ] 1. 現行Codex CLIで5eventのinput / stdout / exit semantics、Tool coverageを実機確認する。
+- [ ] 2. repo-wide searchで旧Subagent JSON、`agents_used`、旧Hook observation、全manifest writer、docs、testsのproducer / consumerを確定する。
+- [ ] 3. canonical Node Hook loggerを1つ実装し、5eventをsanitized / bounded JSONLへ記録する。保存先はlogger自身の配置位置から解決し、logging失敗時もCodex本作業をblockしない。
+- [ ] 4. `.codex/config.toml`へ5eventを接続する。Logging Hookではmatcherを省略し、Unix `command` / Windows `command_windows`の双方から同じNode loggerを起動する。5eventすべて`timeout = 5`とする。既存Safety `PreToolUse`は変更しない。
 - [ ] 5. `.codex/logs/*.jsonl`が既存どおりGit管理外であることを確認する。Hook JSONL専用のGit追跡例外は追加しない。
 - [ ] 6. `AGENTS.md` / `.codex/templates/REPORT.md`を新責務へ変更し、逐次行動記録を廃止する。Hook JSONLはローカル一時ログとして扱い、durable artifactへ昇格させない。
 - [ ] 7. Subagent利用時はcheckpointで`Delegation / Result / Parent decision`だけをまとめる契約へ変更する。
 - [ ] 8. `.codex/templates/subagent-run.schema.json`を削除する。
 - [ ] 9. `collect_subagents()`とRun-local `subagents/*.json`のvalidation / aggregation機能を削除する。
-- [ ] 10. 旧Subagent JSON専用のmanifest field / tests / docsを新規Run向け構成から削除する。`agents_used`は現状維持する。
+- [ ] 10. 旧Subagent JSON専用のmanifest field / tests / docsを新規Run向け構成から削除する。`agents_used`は独立producerが存在する場合だけ維持し、存在しなければv2から削除する。
 - [ ] 11. 旧Hook observationにactive利用がなければ、`observe.ps1|sh`、旧環境変数契約、`collect_hook_observations()`、`--hook-log`、旧Hook manifest field、関連schema / tests / docsを削除する。active利用があれば今回そのmigrationは行わない。
 - [ ] 12. 新規Run向け`RUN_MANIFEST.json`、collectorの`default_manifest()`、`codex-task.ps1`の`Write-RunManifest`、`codex-task.sh`の`write_run_manifest`をschema v2へ揃える。
 - [ ] 13. collectorおよび`codex-task.ps1/sh`のmerge処理で削除済みv1 fieldを新規v2 manifestへ再注入しないようにし、既存v1を処理する場合はlegacy fieldを破壊的に削除しない。
 - [ ] 14. 旧Subagent / 旧Hook observation削除による`changed_files` / `safety.scope_violation` / validation / evaluationへの副作用を確認し、既存の非廃止対象の正本を維持する。
 - [ ] 15. `docs/reference/codex-implementation-harness.md`等、必要なdocsを新しい責務へ合わせる。
-- [ ] 16. targeted tests、Windows full Hook smoke、Unix代表Hook smokeを実施する。
+- [ ] 16. `.codex/config.toml`とloggerの最終内容が確定した後にproject-local Hookを再確認・trustする。trust前のskipをlogger不良と誤判定しない。
+- [ ] 17. targeted tests、Windows full Hook smoke、Unix代表Hook smokeを実施する。
 
 ---
 
@@ -579,8 +617,9 @@ session単位のローカル詳細ログで今回の目的を満たすため、R
 4. Subagent終了時に`SubagentStop`が記録される。
 5. main turn終了時に`Stop`が記録される。
 6. `session_id` / `turn_id` / `agent_id`等、取得できるstable idからHook JSONL上で時系列を追える。
+7. Logging HookがBash限定ではなく、Hookで観測可能なnon-Bash Toolも`PostToolUse`へ記録されることを代表1件で確認する。
 
-### B. Session scope / Git非管理
+### B. Session scope / Git非管理 / 保存先
 
 - `.codex/logs/hooks-<safe-session-id>.jsonl`へ出力される。
 - 同一session内の複数turnが同じlogへ記録される。
@@ -588,14 +627,15 @@ session単位のローカル詳細ログで今回の目的を満たすため、R
 - Run単位のmachine correlationをV1要件にしない。
 - `hooks-*.jsonl`が`git status`へ出ない。
 - その他の`.codex/logs/*.jsonl`と同様にGit管理外である。
+- repositoryのsubdirectoryからCodexを開始しても、logger自身の配置位置を基準にrepository root配下の`.codex/logs/`へ記録される。
 
-### C. Cross-platform Hook起動
+### C. Cross-platform Hook起動 / timeout / trust
 
 Windows:
 
 - `command_windows`経由で同一Node loggerを起動する。
 - 5eventすべてを実機smokeする。
-- path quoting / repo root解決に失敗しない。
+- path quotingに失敗しない。
 
 Unix系:
 
@@ -603,23 +643,28 @@ Unix系:
 - 代表eventを最低1件smokeする。
 - Windows用PowerShellにlogging logicを二重実装していない。
 
+共通:
+
+- 5つのLogging Hookすべてに`timeout = 5`が設定されている。
+- 最終config / logger変更後にproject-local Hookをtrustした状態でsmokeする。
+- trust前にHookがskipされる事象をlogger不良として扱わない。
+
 ### D. Hook非干渉 / failure-safe
 
-- project-local Hookをtrustした状態でsmokeする。
 - `UserPromptSubmit`の正常時stdoutが空でadditional contextを注入しない。
 - `PostToolUse`の正常時stdoutが空でdecision / feedbackを返さない。
 - `SubagentStart`の正常時stdoutが空でSubagent contextを変更しない。
 - `SubagentStop` / `Stop`は実機確認済みの有効なno-op JSONだけを返し、continuation / blockを発生させない。
 - JSONLのappendを意図的に失敗させても、logging失敗だけでCodex処理をblockしない。
 - logging失敗時もHook protocol上の正常no-op output / exit semanticsを守る。
+- loggerがhangする試験または等価なtimeout確認で、Logging Hookが5秒を超えてCodex本作業を長時間blockしない。
 - stdout debug printがない。
 
 ### E. Sanitization / truncation
 
 - native Hook stdin全文がfileへ保存されていない。
-- promptの上限超過でtruncateされ、その事実が分かる。
-- `tool_input_preview`の上限超過でtruncateされる。
-- Subagent / main final messageの上限超過でtruncateされる。
+- logger observation timestampがUTC ISO 8601形式である。
+- prompt / `tool_input_preview` / Subagent final / main finalが2000文字を超えた場合にtruncateされ、その事実が分かる。
 - 代表的なAPI key / token / Authorization形式をredactできる。
 - arbitrary free-form secret完全検出をテスト要件にしない。
 - `tool_input_preview`生成にTool別parser / AI要約処理が存在しない。
@@ -677,6 +722,7 @@ active利用がある場合:
 - `codex-task.sh`から`write_run_manifest`を実行しても新規v2 manifestをv1構造へ戻さない。
 - wrapper / collectorによる既存の非廃止対象の自動更新が動作する。
 - 新規v2 manifestに旧Subagent JSON専用fieldが残っていない。
+- `agents_used`は独立producerがない場合v2から削除され、独立producerがある場合だけ正しい値として維持される。
 - Hook JSONLを`run.json`へ新規集約していない。
 - `CODEX_RUN_ID`伝播等の新規Run correlation基盤を追加していない。
 - collector / `codex-task.ps1/sh`のmergeで削除済みv1専用fieldがv2へ再注入されない。
@@ -746,6 +792,7 @@ active利用がある場合:
 - `1 Codex process = 1 Run`制約を導入しない。
 - active-run registryを作らない。
 - Subagent専用Structured Artifactを別形式で再発明しない。
+- `agents_used`を残すためだけに新しいSubagent集約経路を作らない。
 - manifest migration utilityを作らない。
 - 全Toolのresult parserを作らない。
 - Tool別input parser / summary engineを作らない。
@@ -769,11 +816,15 @@ active利用がある場合:
 - Hook JSONLは`.codex/logs/*.jsonl`の既存方針どおりGit管理されない。
 - 同一session内で複数Runが混在し得ることを許容し、Run correlation基盤を追加していない。
 - native Hook payload全文を保存していない。
-- Windowsでは5event、Unix系では同じNode loggerの起動と代表eventを確認できる。
+- Logging Hookはsupported occurrence全体を対象とし、Safety HookのBash限定matcherを流用していない。
+- Logging Hookは5秒timeoutで、logger障害によりCodex本作業を長時間停止しない。
+- repositoryのsubdirectoryから開始しても正しい`.codex/logs/`へ記録される。
+- 最終Hook定義をtrustした後に、Windowsでは5event、Unix系では同じNode loggerの起動と代表eventを確認できる。
 - logging失敗だけを理由にCodex処理がblockされない。
 - Subagentを使った場合、REPORTから「何を任せたか」「結果は何だったか」「Parentがどう判断したか」を確認できる。
 - 新規RunではSubagent専用JSONを作成・更新・validation・aggregationする機能が残っていない。
 - 過去RunのSubagent JSONはそのまま保持されている。
+- `agents_used`は独立producerがない場合に新規v2から削除され、虚偽の空fieldを残していない。
 - active利用がない旧Hook observation機能だけを安全に削除し、active利用がある既存機能をmigration目的で広げていない。
 - `run.json`は従来どおり自動生成・自動更新されるが、Hook JSONLの二重集約先にはなっていない。
 - 新規Runはv2 manifestを利用し、`new-run` / `codex-task.ps1/sh` / collectorのどの経路でもv1構造へ戻らない。
