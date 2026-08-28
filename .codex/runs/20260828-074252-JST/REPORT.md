@@ -97,3 +97,66 @@
 
 - Validation correction: 増分artifact commitのscope補助比較で、Run全体の最終`changed_files`（5件）を今回の増分staged set（3件）へ比較したため、未変更のchild Plan 2件を`missing`と誤検出した。これは比較条件の誤りであり、unexpectedは0件、ファイル変更やscope violationは発生していない。
 - Corrective action: 増分commitでは変更予定のRun Artifact 3件だけを期待値として再比較し、child Planを含む最終scopeは初回commitで既に確認済みと扱う。commit前に再度`git diff --cached --check`と増分scopeを確認する。
+
+## 2026-08-28 14:37 (JST) — Review correction iteration 1
+
+- iteration_number: 1。
+- input_findings: PR #75 child Planレビューで確認された3件（Run ArtifactのPR / Issue最終Evidence不足、RA-M3のPlaywright project記述の範囲不足、RA-M1の12 Flow / required leg / PR matrix Gate境界の不足）。
+- triage: 3件とも`must_fix`。`defer`、`reject`、`needs_human`はなし。
+- repair_plan: 既存Runを再利用し、child PlanのRA-M1 / RA-M3だけを補正する。REPORTはappend-onlyでPR #75 / Issue #72の最新metadataを後続sectionへ追加する。Issue #72、PR本文、PLAN.md、PR 1実装対象文書、Product / Curriculum / validator / test / workflowは変更しない。
+- allowed_files: `docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md`、`.codex/runs/20260828-074252-JST/REPORT.md`、`.codex/runs/20260828-074252-JST/TASKS.md`、`.codex/runs/20260828-074252-JST/run.json`。
+- pre-repair evidence: working treeはclean、current branchは`fix/current-documentation-ssot-repair`、local / remote PR headは`e7c9cc2751ed7680ff535440ca9970439d1e7740`、PR #75はOPEN・非Draft・base `main`、Issue #72は`PR 1 child Plan review` / `PR 1 implementation` / `None`、Phase 0 Complete、PR #75、`Plan ready / implementation not started`の状態である。
+- repair applied: child PlanのRA-M3にFormal E2E / Smoke関連project identifierと、別責務の`ui-review-*` projectを区別して追記した。RA-M1に12 WE-CORE Flow＝business-flow / requirement mapping、`pnpm run test:e2e:chromium`＝`required` leg command、PR `e2e-chromium` matrix全体＝複数legのGateを明記し、RA-M2のCross-role責務と分離した。`run.json`を既存conventionの`in_progress`へ戻し、TASKS 16〜21を追加した。
+- changed_files: child Plan、TASKS.md、run.json。REPORT.mdの本section追加を含む最終changed_filesは4件となる予定で、他のsource fileは変更していない。
+- validation_result: 修正後の必須validationは未完了。Current `playwright.config.ts`、`package.json`、`.github/workflows/ci.yml`、WE-CORE traceability、旧E2E記述はread-onlyで再確認済み。
+- remaining_delta: REPORTへの最終PR / Issue evidence、TASKS 17〜21、Plan / Run Artifact validation、commit / push、PR #75最終metadata確認。
+- decision: `continue`。
+- Progress: 76% (16/21)
+
+## 2026-08-28 14:42 (JST) — RA-M3 / RA-M1 correction
+
+- RA-M3 correction: 旧記録の6 project列挙はFormal E2E / Smoke relevant projectだけを列挙したものだった。Current `playwright.config.ts`には別責務の`ui-review-desktop`、`ui-review-tablet`、`ui-review-mobile`、`ui-review-small-mobile`も存在することを確認した。child Planは「RA-M3の対象範囲のproject identifier」と明記する表現へ補正し、UI Review projectはRA-M3の修正scopeへ追加していない。
+- RA-M1 correction: `WE-CORE-001`〜`WE-CORE-012`の12 FlowをRequirement / business-flow mappingとして分離し、executable test countとしないことを明記した。`pnpm run test:e2e:chromium`はCurrent Web CI `e2e-chromium` matrixの`required` leg commandとして整理し、PR Required coverage全体ではないことを明記した。matrix全体の`required` / `accessibility` / `mobile-boundary` / `cross-role` / `training-web-baseline`は別概念として記載し、Cross-role固有の差はRA-M2で扱う境界を維持した。
+- Plan consistency search: child Plan内で`Current project`、`ui-review-*`、`12 Flow`、`required` leg、PR matrix Gate、`test:e2e:chromium`の記載を確認し、12 FlowをCurrent executable test countとする記述、およびCurrent Playwright project全体をFormal E2E / Smokeの6個だけとする記述は残していない。
+- changed_files: child Plan、TASKS.md、REPORT.md、run.jsonの4 allowed files内。Product / Curriculum本文、validator、test、workflow、package、Master Plan、PLAN.md、Issue #72は変更していない。
+- Validation status: Plan / Run Artifact validationの実行待ち。RA-M3 / RA-M1の修正は`continue`。
+- Progress: 86% (18/21)
+
+## 2026-08-28 14:40 (JST) — PR #75 / Issue #72 final evidence
+
+### PR #75
+
+- `gh pr view 75`で再確認した。PR number: `75`、URL: `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/75`、state: `OPEN`、draft: `false`。
+- base: `main`、head branch: `fix/current-documentation-ssot-repair`、Current head SHA: `e7c9cc2751ed7680ff535440ca9970439d1e7740`。
+- changed files: `.codex/runs/20260828-074252-JST/PLAN.md`、`.codex/runs/20260828-074252-JST/REPORT.md`、`.codex/runs/20260828-074252-JST/TASKS.md`、`.codex/runs/20260828-074252-JST/run.json`、`docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md`の5件。
+- scope判定: child Plan 1件とRun Artifact 4件だけで構成され、Product / Curriculum本文 / validator / test / workflow / package / Master Planの変更はない。
+- mergeable: `MERGEABLE`。
+- CI: 取得時点でPR checkは完了済み。Web CIのrequired / accessibility / mobile-boundary / cross-role / training-web-baseline、UI Review、verify、validate、build、test、CodeQL、artifact sanitization等は`SUCCESS`。Native変更検出系の対象外jobは`SKIPPED`で、失敗または実行中のcheckは確認されなかった。
+
+### Issue #72
+
+- `gh issue view 72`でbodyを再確認した。state: `OPEN`。
+- Current: `PR 1 child Plan review`。
+- Next: `PR 1 implementation`。
+- Blocked: `None`。
+- Phase 0: `Complete`。
+- Child Plan: `docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md`。
+- PR 1: `#75`。
+- Status: `Plan ready / implementation not started`。
+- Issue #72は今回編集していない。
+
+- Progress: 90% (19/21)
+
+## 2026-08-28 14:43 (JST) — Review correction validation
+
+- `pnpm run lint:markdown` => PASS（341 files、0 issues）。
+- `git diff --check` => PASS（GitのEOL warningのみで、whitespace errorなし）。
+- `node --eval JSON.parse(run.json)` => PASS。
+- Plan consistency assertion => PASS。RA-M3のFormal E2E / Smoke対象と`ui-review-*`の分離、RA-M1の12 Flow / required leg / PR matrix Gateの分離、RA-M2へのCross-role責務分離、固定executable test countを追加しない方針を確認した。
+- Read-only SSOT cross-check => PASS。`playwright.config.ts`の全project、`package.json`の`test:e2e:chromium` / `test:e2e:cross-role`、`.github/workflows/ci.yml`の5 matrix leg、`requirements_traceability.md`のWE-CORE-001〜012、`e2e_design.md`の旧記述を再確認した。
+- Scope check => PASS。local changed filesはallowed filesの4件だけで、Product / Curriculum本文 / validator / test / workflow / package / Master Plan / PLAN.md / Issue #72に変更なし。
+- Sanitizer Write / Check => PASS（4 files scanned、0 replacements、residual findings 0）。
+- run status: validation完了後、`run.json.status`を`completed`へ戻した。`changed_files`はchild Plan、PLAN.md、TASKS.md、REPORT.md、run.jsonのRun全体一覧を維持した。
+- remaining_delta: correction commit、明示refspec push、PR #75のpush後head / scope / CI / mergeability確認、Task 21の完了記録。
+- decision: `continue`。
+- Progress: 95% (20/21)

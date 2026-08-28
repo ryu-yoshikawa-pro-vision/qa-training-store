@@ -17,6 +17,12 @@
 - [x] 13. Plan / Run Artifact validation、Sanitizer、最終diff reviewを実施する。
 - [x] 14. 対象branchへcommitし、明示refspecでpushしてremote SHAを確認する。
 - [x] 15. OPEN PRを作成し、PR metadataとchanged filesを確認してIssue #72を更新し、停止する。
+- [x] 16. PR #75のPlanレビュー指摘を確認し、bounded repairのallowed filesを固定する。
+- [x] 17. RA-M3のCurrent Playwright project記述をFormal E2E / Smoke対象に限定して補正する。
+- [x] 18. RA-M1の12 WE-CORE Flow、required leg command、PR matrix Gateの境界を補正する。
+- [x] 19. REPORT.mdへPR #75作成・metadata確認・Issue #72更新の最終Evidenceをappendする。
+- [x] 20. bounded diff、read-only SSOT cross-check、Plan-only validation、Sanitizerを確認する。
+- [ ] 21. commit / push後にPR #75のhead・scope・CI・mergeabilityを確認し、PR 1実装を開始せず停止する。
 
 ## Discovered
 

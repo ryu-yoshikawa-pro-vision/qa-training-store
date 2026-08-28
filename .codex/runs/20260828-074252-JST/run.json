@@ -26,7 +26,14 @@
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260828-074252-JST -Write",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260828-074252-JST -Check",
       "pnpm run validate:curriculum",
-      "pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1"
+      "pnpm exec vitest run tests/contracts/training-curriculum.test.ts --no-file-parallelism --maxWorkers=1",
+      "pnpm run lint:markdown (review correction)",
+      "git diff --check (review correction)",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260828-074252-JST -Write (review correction)",
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260828-074252-JST -Check (review correction)",
+      "read-only SSOT cross-check: playwright.config.ts / package.json / .github/workflows/ci.yml / docs/12_quality/requirements_traceability.md / docs/08_testing/e2e_design.md",
+      "child Plan consistency search: RA-M1 / RA-M2 / RA-M3 / 12 Flow / ui-review-* / project identifier",
+      "GitHub read-only: PR #75 metadata / changed files / CI / Issue #72 body"
     ],
     "warnings": [
       "PR 1実装後のformat / spec / curriculum / contractの完全validationは未実施。"

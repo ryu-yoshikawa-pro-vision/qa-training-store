@@ -27,9 +27,9 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 
 - PR #61はMERGEDであり、merge commit `237a2be587fcd5755bd2bd42087ccc7b07e9aed8`はCurrent `origin/main`の祖先である。
 - `docs/08_testing/e2e_design.md`、`docs/08_testing/test_strategy.md`、`docs/12_quality/requirements_traceability.md`、`docs/12_quality/acceptance_criteria.md`は、Phase 1必須Web E2Eを12本と記載している。
-- `package.json`のCurrent `test:e2e:chromium`は、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`--project=chromium`で実行する。Current declaration数はそれぞれ14 / 13である。
+- `package.json`のCurrent `test:e2e:chromium`は、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`--project=chromium`で実行する。このcommandのexecutable test declaration数は、12 WE-CORE FlowのmappingやPR 1の固定文書契約とは別の実行詳細として扱う。
 - `.github/workflows/ci.yml`の`e2e-chromium` matrixには`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`があり、`verify`は`e2e-chromium`の成功を要求する。`cross-role`はPR workflow内のRequired matrix legである。
-- `playwright.config.ts`のCurrent project名は`chromium`、`mobile-chromium`、`cross-role-chromium`、`deployed-smoke`、`firefox-smoke`、`webkit-smoke`である。
+- `playwright.config.ts`のうち、RA-M3で対象とするFormal E2E / Smoke関連のCurrent project identifierは`chromium`、`mobile-chromium`、`cross-role-chromium`、`deployed-smoke`、`firefox-smoke`、`webkit-smoke`である。同じconfigには別責務のUI Review用`ui-review-desktop`、`ui-review-tablet`、`ui-review-mobile`、`ui-review-small-mobile`も存在するが、RA-M3のCurrent Fact repair対象には含めない。
 - `src/config/versions.ts`の`SEED_VERSION`と`tests/integration/seeds.test.ts`の期待値は11である。`docs/07_testability/seed_catalog.md`だけがSeed Versionを9と記載している。`CHANGELOG.md`の9 / 10は歴史記録である。
 - Current Native保証は、`docs/curriculum/test-automation/README.md`、`docs/adr/0011-native-ci-ios-build-only-gate.md`、`.github/workflows/native-ci.yml`により、Android = Build + Runtime E2E、iOS = Build-onlyと定義されている。
 - `.github/workflows/native-ci.yml`はNative変更時に`native-ios-ci.yml` reusable workflowを呼び、`native-ci / verify`でiOS結果のsuccessを要求する。iOS Simulator Runtime / MaestroはRequired保証ではない。
@@ -114,7 +114,7 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 ### 7.1 全体方針
 
 - Current executable contract / workflow / ADRを正本として引用し、同じ事実を文書間で新たに重複定義しない。
-- Webの12項目はRequirement / business-flow mappingとして扱い、実行test件数の固定値として扱わない。実行入口は`package.json`の`test:e2e:chromium`を参照する。
+- `WE-CORE-001`〜`WE-CORE-012`の12 FlowはRequirement / business-flow mappingとして維持し、Current Required executable test declaration数を示すものとして扱わない。実行入口と対象は`package.json`の`test:e2e:chromium`を参照し、PR上のRequired coverage全体はCurrent Web CIの`e2e-chromium` matrixとして別に扱う。
 - NativeはWeb E2Eへ混ぜず、Current Native CIの別契約として説明する。Android Build + Runtime、iOS Build-only、Native変更時のRequired条件、iOS Runtime非保証を混同しない。
 - Seed Versionは`src/config/versions.ts`の`SEED_VERSION`をCurrent SSOTとして参照し、履歴文書は変更しない。
 - Test Case ID grammarのlearner-facing説明は`training/workbook/README.md`へ集約し、Curriculumはその説明を参照して具体例だけをcanonical形式へ揃える。
@@ -123,14 +123,23 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 
 #### RA-M1 — Required Web E2E件数 / commandの文書差
 
-- Current State: 文書は「必須E2E 12本」と記載するが、Current Required commandは`pnpm run test:e2e:chromium`であり、`phase1-required.spec.ts`と`ui-ux-improvements.spec.ts`を`chromium` projectで実行する。
+- Current State:
+  - 12 WE-CORE Flow: `WE-CORE-001`〜`WE-CORE-012`はRequirement / business-flow mappingであり、Current Required executable test declarationが12個という意味ではない。
+  - Required leg command: `package.json`の`pnpm run test:e2e:chromium`がCurrent Web CIの`e2e-chromium` matrixにおける`required` legのcommandであり、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`--project=chromium`で実行する。
+  - PR matrix Gate: PRの`e2e-chromium` matrix全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`の各legで構成され、`verify`はmatrix jobの成功を要求する。`test:e2e:chromium`だけがPR全体の唯一のRequired Gateではない。
+- Current finding: 対象文書には「必須E2E 12本」と、Required leg commandおよびPR matrix Gateの境界を混同し得る記載が残っている。
 - Evidence / SSOT: `package.json`、`e2e/web/phase1-required.spec.ts`、`e2e/web/ui-ux-improvements.spec.ts`、`.github/workflows/ci.yml`、`playwright.config.ts`。
-- Disposition: PR 1でCurrent command / target / Gateの文書記載を修正する。12件のRequirement / business-flow mapping自体は不要に拡張しない。
+- Disposition: PR 1で12 Flow、required leg command / target、PR `e2e-chromium` matrix Gate全体の文書境界を分離して修正する。12 FlowのRequirement / business-flow mapping自体は変更しない。Cross-role leg固有のPR Gate差はRA-M2で扱う。
 - 実際の変更対象: `docs/08_testing/e2e_design.md`、`docs/08_testing/test_strategy.md`、`docs/12_quality/requirements_traceability.md`、`docs/12_quality/acceptance_criteria.md`。
 - 変更しない対象: `package.json`、E2E spec、workflow、Playwright config、WE-CORE mappingの設計、Formal Test。
-- Change strategy: 固定された「12本の実行test」という表現をCurrent command参照へ置き換え、必要な箇所では12項目をbusiness-flow mappingとして明示する。実行test数を別文書へ新たにハードコードしない。
-- Validation: `rg`で各文書のRequired command / project / Gate記載をSSOTと照合し、`pnpm run lint:markdown`、`pnpm run validate:spec`、既存の必要なcontract validationを実行する。
-- Stop condition: Current commandの意味を変更するためにE2E spec / workflow / Formal Testの変更が必要になった場合、または12項目の扱いに設計判断が必要になった場合は停止する。
+- Change strategy:
+  - `WE-CORE-001`〜`WE-CORE-012`の12 Flowはbusiness-flow / requirement mappingとして維持し、executable test countとして扱わない。
+  - `pnpm run test:e2e:chromium`はCurrent Web CIの`e2e-chromium` matrixにおける`required` legのcommandとして記載し、対象specと`chromium` projectはCurrent SSOTを参照する。
+  - PR Required coverage全体を`pnpm run test:e2e:chromium`だけと誤記せず、`e2e-chromium` matrix全体に別legがあることを区別する。
+  - Cross-role legのCurrent PR Gate差はRA-M2で扱い、RA-M1へ統合しない。
+  - Current executable test declaration数を新しい固定契約として文書へ複製せず、Current execution target / commandは`package.json`、workflow、`playwright.config.ts`をSSOTとして参照する。
+- Validation: `rg`で12 Flowがmappingとして扱われ、required leg command / targetとPR matrix Gate全体が別々に記載され、`test:e2e:chromium`をPR全体の唯一のRequired Gateとする記述がないことを確認する。併せて`package.json`、workflow、Playwright configのCurrent SSOTと照合し、`pnpm run lint:markdown`、`pnpm run validate:spec`、既存の必要なcontract validationを実行する。
+- Stop condition: WE-CORE 12 Flow自体の再設計、Formal E2E suiteの構成変更、CI matrix変更、package script変更、executable test数を固定契約として定義し直す判断、またはFormal Test Strategyの再設計が必要になった場合は停止する。Formal Test Strategyの再設計はPR 2へ残す。
 
 #### RA-M2 — Cross-roleをPR外とする文書とCurrent PR Gateの差
 
@@ -145,13 +154,13 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 
 #### RA-M3 — Playwright project名の文書差
 
-- Current State: `e2e_design.md`の`chromium-desktop`等はCurrent configのproject名ではない。Current名は`chromium`、`mobile-chromium`、`cross-role-chromium`、`deployed-smoke`、`firefox-smoke`、`webkit-smoke`である。
+- Current State: `e2e_design.md`の`chromium-desktop`等はCurrent configのproject名ではない。RA-M3の対象となるFormal E2E / Smoke関連のCurrent project identifierは`chromium`、`mobile-chromium`、`cross-role-chromium`、`deployed-smoke`、`firefox-smoke`、`webkit-smoke`である。`playwright.config.ts`には別責務のUI Review用`ui-review-desktop`、`ui-review-tablet`、`ui-review-mobile`、`ui-review-small-mobile`も存在するが、今回のRA-M3 Current Fact repairの対象には含めない。
 - Evidence / SSOT: `playwright.config.ts`、`package.json`、`.github/workflows/ci.yml`。
 - Disposition: PR 1で文書上のproject名と対応する用途 / Gateを修正する。
 - 実際の変更対象: `docs/08_testing/e2e_design.md`。
 - 変更しない対象: `playwright.config.ts`、workflow、package script、Browser matrix。
-- Change strategy: Current configで使用される識別子をそのまま記載し、翻訳・別名を作らない。Current Gateが異なるprojectは用途と実行入口を分けて記載する。
-- Validation: `playwright.config.ts`、`package.json`、workflowのproject / commandと文書表を照合する。
+- Change strategy: RA-M3の対象範囲では、Current configで使用されるFormal E2E / Smoke識別子をそのまま記載し、翻訳・別名を作らない。別責務の`ui-review-*` projectは存在事実として区別するが、RA-M3の変更対象文書・修正scopeへ追加しない。Current Gateが異なるprojectは用途と実行入口を分けて記載する。
+- Validation: `playwright.config.ts`、`package.json`、workflowのFormal E2E / Smoke project・commandと文書表を照合し、`ui-review-*`をRA-M3の変更対象へ追加していないことを確認する。
 - Stop condition: project名変更やCI matrix変更が必要になった場合は停止する。
 
 #### RA-M4 — Seed VersionのCurrent Documentation / implementation差
@@ -250,7 +259,7 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 
 ## 9. Risks
 
-- E2Eのbusiness-flow mapping数と実行test declaration数を混同すると、不要なtest数の固定やFormal Test Strategy変更につながる。実行入口はpackage scriptへ寄せる。
+- WE-COREの12 Flow、required leg command、PRの`e2e-chromium` matrix Gate全体を混同すると、不要なtest数の固定やFormal Test Strategy変更につながる。12 Flowはmappingとして維持し、実行入口・matrix構成はCurrent SSOTへ寄せる。
 - NativeをWeb Phase 1へ取り込む表現にすると、Android Runtime / iOS Build-onlyの既存境界や後続PRの責務を壊す。別contractとして記載する。
 - Seed Versionやproject名などの変動値を複製すると、次回変更時に再びdriftする。可能な箇所はSSOT参照にする。
 - Test Case IDの旧例を一括置換する際、Risk ID、AC ID、UI Test IDを誤って変更しない。Test Case IDとして使われるlearner-facing例だけを対象にする。
