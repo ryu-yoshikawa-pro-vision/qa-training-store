@@ -28,7 +28,7 @@
 - `Stop` / `SubagentStop` Hook、Hook JSONL、Hook configを変更しない。
 - Hook→Run correlation、`CODEX_RUN_ID`伝播、active-run registryを追加しない。
 - Codex本体が非0終了した場合は、そのexit codeを最終exitとして優先する。
-- Codex本体が0終了し、manifest同期だけが失敗した場合はnonzeroで終了する。
+- Codex本体が0終了し、manifest同期だけが失敗した場合はcollectorのexit codeを返す。collector child process自体を起動できない場合だけ`1`を返す。
 - manifest同期のstart / success / skipped / failedを、logging有効時は既存`codex-safe` harness logへ記録する。
 - `--no-log` / `-NoLog`でもmanifest同期は実行する。log eventだけ省略し、同期失敗時のstderr warningは維持する。
 - `PreflightOnly` / `PrintCommand`等、Codex processを実行しない経路ではmanifest同期を行わない。
@@ -78,14 +78,20 @@ interactive終了時は以下をunionして`run.json.changed_files`へ反映す�
 
 ### Git path取得方法
 
-独自のporcelain status parserは作らず、collectorからrepository rootで以下を実行してpathだけ取得する。
+独自のporcelain status parserやGit quote解除処理は作らず、collectorからrepository rootで以下を実行する。
 
 ```text
-git diff --name-only --relative HEAD --
-git ls-files --others --exclude-standard
+git diff --name-only --relative -z HEAD --
+git ls-files --others --exclude-standard -z
 ```
 
-取得結果をnormalizeし、重複排除してexisting `changed_files`とunionする。
+- subprocess outputはtext lineとして扱わずbinaryで受ける。
+- NUL (`\0`) で分割してpathを取得する。
+- pathの文字列化はPythonのfilesystem decoding（例: `os.fsdecode`）を使用し、Gitの`core.quotePath`に依存しない。
+- path separatorをrepository relativeの`/`へnormalizeする。
+- 重複排除してexisting `changed_files`とunionする。
+
+これにより、日本語・空白等を含むpathでもGitのquoted表示をmanifestへ誤格納しない。
 
 ### 除外
 
@@ -93,7 +99,7 @@ git ls-files --others --exclude-standard
 
 ### 失敗時
 
-`--refresh-git-changed-files`指定時に、上記Git commandのいずれかが実行失敗またはnonzero終了した場合はcollector failureとする。古い`changed_files`のまま成功扱いにしない。
+`--refresh-git-changed-files`指定時に、上記Git commandのいずれかが起動失敗またはnonzero終了した場合はcollector failureとする。古い`changed_files`のまま成功扱いにしない。
 
 ### 許容する制約
 
@@ -120,6 +126,7 @@ git ls-files --others --exclude-standard
 - `run.json`の全workflow必須化。
 - `codex-safe`へのverify / evaluation gate等、`codex-task` full workflowの移植。
 - Product code、ECサイト仕様、カリキュラム本体の変更。
+- contract testのためだけのDocker、shell emulator、cross-platform execution基盤の追加。
 
 ### Stop conditions
 
@@ -131,6 +138,7 @@ git ls-files --others --exclude-standard
 - HookからRunIdを解決する必要がある。
 - Run correlation基盤やregistryが必要。
 - `codex-safe`をfull workflow runnerへ拡張する必要がある。
+- PowerShell / Bashのcontract確認のために新しいcross-platform execution基盤が必要になる。
 
 ## 5. 変更対象
 
@@ -242,12 +250,13 @@ PowerShell / Bash双方で以下の順序にする。
 4. existing `run.json`がある場合はmanifest syncを開始する。
 5. logging有効時は`manifest_sync_start`を既存harness logへ記録する。
 6. collectorを`refresh-git-changed-files`付きで1回実行する。
-7. success / failureを取得する。
+7. collector exit codeを取得する。
 8. logging有効時は`manifest_sync_success`または`manifest_sync_failed`を記録する。
 9. failure時はstderrへ短いwarningを出す。
 10. Codex exit codeが非0なら、そのcodeを最終exitとして返す。
-11. Codex exit codeが0かつcollector failureならnonzeroを返す。
-12. collector successまたは正常skipならCodex exit codeを返す。
+11. Codex exit codeが0かつcollector exit codeが非0なら、そのcollector exit codeを返す。
+12. collector child process自体を起動できなかった場合はcollector failureを`1`として扱う。
+13. collector successまたは正常skipならCodex exit codeを返す。
 
 manifestなしでskipする場合、logging有効時は`manifest_sync_skipped`と理由を記録する。
 
@@ -274,13 +283,13 @@ collector wrapper自体の`exit`契約は今回変更しない。
 - [ ] 1. active `run.json` instruction、`codex-safe` / `codex-task` / collector、既存contract testを確認し、Plan記載と現行実装が一致することを確認する。
 - [ ] 2. `AGENTS.md`の4種類の曖昧表現を最小差分で修正し、`new-run` / `codex-task` / `codex-safe` / collectorの責務を明記する。
 - [ ] 3. `codex-safe.ps1/sh`へRunId指定時のRun Directory preconditionを追加する。log path生成より前に判定し、存在しないRunIdでは何も作成しない。
-- [ ] 4. `collect-run-artifacts.py`へ`--refresh-git-changed-files`を追加し、指定時だけcurrent working tree pathsを取得してexisting `changed_files`へunionする。
+- [ ] 4. `collect-run-artifacts.py`へ`--refresh-git-changed-files`を追加し、NUL区切りGit path取得でcurrent working tree pathsを取得してexisting `changed_files`へunionする。
 - [ ] 5. `collect-run-artifacts.ps1`へrefresh optionのpass-throughを追加する。`collect-run-artifacts.sh`は変更しない。
 - [ ] 6. `codex-safe.ps1/sh`へexisting manifestだけを対象とする終了時sync、sync log、stderr warning、exit code優先順位を実装する。PowerShellはcollectorをchild process実行する。
 - [ ] 7. `docs/reference/run-artifacts.md` / `docs/reference/codex-implementation-harness.md`を実装済みlifecycleと一致させる。`Stop` Hookがmanifest更新triggerではないことも明記する。
 - [ ] 8. `tests/contracts/codex-run-manifest-contract.test.ts`をcollector refreshのcontract用に拡張し、`tests/contracts/codex-safe-run-manifest-sync.test.ts`を追加してwrapper lifecycleを固定する。
 - [ ] 9. `scripts/verify` / `scripts/verify.ps1`へmachine-managed契約の最小positive checkを追加する。一般語を禁止する脆いnegative checkは追加しない。
-- [ ] 10. targeted contract tests、Bash / PowerShell verify、Markdown lint、`git diff --check`を実行し、Hook / schema / Product codeへscopeが広がっていないことを確認する。
+- [ ] 10. targeted contract tests、利用可能なBash / PowerShell verify、Markdown lint、`git diff --check`を実行し、Hook / schema / Product codeへscopeが広がっていないことを確認する。
 
 ## 8. 検証方法
 
@@ -294,19 +303,22 @@ collector wrapper自体の`exit`契約は今回変更しない。
 - refresh指定時、existing `changed_files`を保持する。
 - tracked changeを追加できる。
 - untracked fileを追加できる。
+- 日本語・空白を含むpathをGit quoted表現ではなくactual repository-relative pathとして格納できる。
 - 重複排除する。
 - `.codex/runs/**`を追加しない。
 - `run.json.status`を変更しない。
 - Git command failure時はcollector failureになる。
 - v1 manifestを自動v2 migrationしない既存contractを維持する。
 
-テストはtemporary Git repositoryまたは既存テストfixture方式を使用し、production codeへtest-only modeを追加しない。
+テスト方針:
+
+- actual repositoryのworking treeをテスト用に汚さない。
+- temporary Git repositoryを作成し、必要ならcollector scriptをtemporary repo内のrepository-relative位置へコピーして実行する、または既存の安全なshim / fixture方式を再利用する。
+- production codeへtest-only modeやtest-only output pathを追加しない。
 
 ### 8.2 `codex-safe` contract
 
 `tests/contracts/codex-safe-run-manifest-sync.test.ts`を追加する。
-
-既存のshim / temporary directory方式を使い、production codeへtest-only modeやtest-only output pathを追加しない。
 
 確認項目:
 
@@ -316,11 +328,20 @@ collector wrapper自体の`exit`契約は今回変更しない。
 - RunIdあり + existing manifestあり: Codex終了後にcollectorを1回呼ぶ。
 - Codex nonzero + collector success: Codex exit codeを返す。
 - Codex nonzero + collector failure: Codex exit codeを優先し、warning / logへsync failureを残す。
-- Codex zero + collector failure: nonzeroを返す。
+- Codex zero + collector failure: collector exit codeを返す。
+- collector child process起動失敗: Codex zero時は`1`、Codex nonzero時はCodex exit codeを返す。
 - `PreflightOnly` / `PrintCommand`: collectorを呼ばない。
 - logging有効時: start / success / skipped / failedをharness logで確認できる。
 - `--no-log` / `-NoLog`: log eventは作らないがmanifest syncは実行する。
-- PowerShell / Bashで同じcontractを満たす。
+
+runtime別テスト方針:
+
+- Bash wrapper contractはBashを利用できる環境で実行する。
+- PowerShell wrapper contractはPowerShell / Windowsを利用できる環境で実行する。
+- 現在のtest runtimeで対象shellが利用できない場合は、そのruntime依存caseを明示的にSKIPし、SKIPをPASSとして扱わない。
+- 利用できないshellを再現するためだけにDocker、shell emulator、追加runtimeを導入しない。
+- `scripts/verify` / `scripts/verify.ps1`のstatic checkでもPowerShell / Bashの重要契約を補完する。
+- production codeへtest-only optionやtest-only output pathを追加しない。
 
 ### 8.3 Static verification
 
@@ -329,6 +350,7 @@ collector wrapper自体の`exit`契約は今回変更しない。
 - `AGENTS.md`にactual Runの`run.json` machine-managed契約がある。
 - reference docsに`codex-safe` interactive終了時syncが記載されている。
 - `Stop` HookをRun manifest update triggerとして説明していない。
+- Bash / PowerShell双方でRun Directory precondition、existing manifest guard、manifest sync経路が維持されていることを、脆くならない範囲のpositive checkで確認する。
 
 Hook logger内容を今回のverify変更で再定義しない。
 
@@ -344,12 +366,12 @@ Hook logger内容を今回のverify変更で再定義しない。
 6. manifest-less Runでは`run.json`が新規作成されない。
 7. `--no-log` / `-NoLog`でもmanifest syncされる。
 
-環境上BashまたはCodex実機が使えない場合はSKIP理由を明記し、未実行をPASSと記録しない。
+環境上Bash / PowerShell / Codex実機の一部が使えない場合はSKIP理由を明記し、未実行をPASSと記録しない。
 
 ### 8.5 Repository validation
 
 - 変更したcontract test。
-- repository標準のBash / PowerShell verify。
+- 利用可能なrepository標準Bash / PowerShell verify。
 - `pnpm run lint:markdown`。
 - `git diff --check`。
 - 必要に応じてcontract suite全体。
@@ -364,13 +386,16 @@ Hook logger内容を今回のverify変更で再定義しない。
 - interactive `codex-safe`終了時にexisting manifestだけが自動同期される。
 - manifest-less Runを勝手にmanifest化しない。
 - current working treeのtracked / untracked changesを`changed_files`へ累積反映できる。
+- 日本語・空白を含むpathがGit quotingに壊されない。
 - session HEAD / commit attributionを追加していない。
 - collector default挙動とv1/v2 compatibilityを壊していない。
 - Codex / collectorのexit semanticsがPowerShell / Bash双方で固定されている。
+- Codex成功 + collector failure時はcollector exit codeが保持される。
 - `--no-log`がmanifest syncを無効化しない。
 - `Stop` HookをRun完了triggerにしていない。
 - Hook / schema / evaluation責務を変更していない。
-- 関連tests / verify / Markdown / diff checkがPASSしている。
+- unavailable shellのために新しいtest infrastructureを導入していない。
+- 関連tests / verify / Markdown / diff checkがPASSしている。実行不能項目はSKIP理由が明示されている。
 
 ## 10. リスクと対策
 
@@ -390,19 +415,31 @@ Hook logger内容を今回のverify変更で再定義しない。
 
 - 対策: refreshはreplaceではなくexisting値とのunionにする。
 
-### Risk 5: Git refresh失敗を成功扱いする
+### Risk 5: Git path quotingでactual pathを失う
+
+- 対策: Git commandは`-z`を使用し、binary outputをNUL分割してfilesystem decodingする。独自quote parserは作らない。
+
+### Risk 6: Git refresh失敗を成功扱いする
 
 - 対策: refresh指定時のGit command failureはcollector failureにする。
 
-### Risk 6: PowerShell collectorの`exit`が親wrapperを終了させる
+### Risk 7: PowerShell collectorの`exit`が親wrapperを終了させる
 
 - 対策: `codex-safe.ps1`からcollectorをchild processで実行し、exit codeを親で評価する。
 
-### Risk 7: logging設定とsync責務が混ざる
+### Risk 8: collectorの詳細exit codeを失う
+
+- 対策: Codexが0の場合はcollector exit codeをそのまま最終exitとして返す。child process起動失敗だけ`1`へ正規化する。
+
+### Risk 9: logging設定とsync責務が混ざる
 
 - 対策: `--no-log` / `-NoLog`はlog eventだけを抑止し、manifest syncは継続する。
 
-### Risk 8: scopeがRun lifecycle再設計へ広がる
+### Risk 10: contract testのために実装範囲が広がる
+
+- 対策: 利用可能shellのみruntime testし、利用不可shellは明示SKIPする。Docker / emulator / test-only production hookは追加しない。
+
+### Risk 11: scopeがRun lifecycle再設計へ広がる
 
 - 対策: HEAD tracking / registry / correlation / schema変更 / Hook副作用 / new artifact chainをNon-goal・Stop conditionとして維持する。
 
