@@ -224,3 +224,10 @@
 - CI: pushによりPR #76のCI再実行を確認した。Web CI run `33169716618`は確認時点でqueued／Web jobs pending、Mobile App CI run `33169716836`はsuccess、dynamic PR run `33169712862`はsuccessだった。Native実行系は今回の変更対象外としてskipされ、失敗は確認していない。
 - Scope: Product code、Hook実装、Hook config、`AGENTS.md`、`.codex/config.toml`に差分はなく、Run Artifact 4ファイルだけをcommitした。作業前から未追跡だった`scripts/__pycache__/`はstageしていない。
 - Progress: 100% (23/23)
+
+## 2026-08-28 21:15 (JST)
+
+- Summary: 最終push後のPR #76 CI再実行が完了し、Run Artifact／PR反映後の品質ゲートを確認した。
+- Validation: Web CI run `33169941852`、Mobile App CI run `33169941963`、dynamic PR run `33169939545`はいずれもsuccessだった。Webのrequired Chromium、cross-role、mobile-boundary、accessibility、training baseline、全UI Review、Vitest、Code Quality、Style Quality、build、production smoke、verify／validate、deploy-preview、artifact sanitizationをPASSした。Native実行系は今回の変更対象外としてskip、失敗はない。
+- Decision: native lifecycleの実機確認、Run Artifact更新、PR本文更新、CI再実行確認まで完了したため、未検証のmissing_validationは残っていない。Runを完了状態として扱う。
+- Progress: 100% (23/23)
