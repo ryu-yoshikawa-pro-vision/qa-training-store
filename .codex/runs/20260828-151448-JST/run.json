@@ -27,5 +27,5 @@
   },
   "evaluation_path": ".codex/runs/20260828-151448-JST/evaluation.json",
   "status": "completed",
-  "primary_failure_category": "missing_validation"
+  "primary_failure_category": null
 }

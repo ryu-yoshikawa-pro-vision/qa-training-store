@@ -1,21 +1,19 @@
 {
   "schema_version": 1,
   "run_id": "20260828-151448-JST",
-  "result": "partial",
-  "primary_failure_category": "missing_validation",
-  "failure_categories": [
-    "missing_validation"
-  ],
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
   "dimensions": {
     "task_completion": {
-      "rating": "warn",
-      "evidence": "Plan §9の実装タスク、レビューrepair iteration 1、契約テスト、Windows 5event smoke、Unix代表event smoke、verify、trust確認、PR CI（Web run 33160493327／Mobile run 33160493418）確認まで完了した。ただし、no-child-delegation方針のためSubagentを実機起動せず、native lifecycle eventのライブ発生だけは未確認である。",
+      "rating": "pass",
+      "evidence": "Plan §9の全タスク、レビューrepair iteration 1、契約テスト、Windows 5event smoke、Unix代表event smoke、verify、trust確認、PR CI（Web run 33160493327／Mobile run 33160493418）、および新しいCodex sessionでのnative Subagent lifecycle確認が完了した。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
           "path": ".codex/runs/20260828-151448-JST/TASKS.md",
-          "selector": "Tasks 2-23",
-          "summary": "実装、repair、trust、検証タスクの完了状態とTask 1の未確認を確認できる。"
+          "selector": "Tasks 1-23",
+          "summary": "実装、repair、trust、検証タスクを含む全23 taskの完了状態を確認できる。"
         }
       ]
     },
@@ -32,8 +30,8 @@
       ]
     },
     "validation_confidence": {
-      "rating": "warn",
-      "evidence": "全contract testは31 files / 456 tests PASS、PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIP、Markdown lint・format・diff check、evaluation schema validation、PR CI（Web run 33160493327／Mobile run 33160493418）全必須ゲートもPASSした。Windows直接smokeは5event、Unix系Git Bash smokeは代表event、native TUIはUserPromptSubmit・PostToolUse・Stopを確認したが、native SubagentStart・SubagentStopの発生は未確認である。mixed-version 3ケースとStop／SubagentStopのnull 2ケースもPASSした。",
+      "rating": "pass",
+      "evidence": "全contract testは31 files / 456 tests PASS、PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIP、Markdown lint・format・diff check、evaluation schema validation、PR CI（Web run 33160493327／Mobile run 33160493418）全必須ゲートもPASSした。Windows直接smokeは5event、Unix系Git Bash smokeは代表event、native TUIの既存代表経路に加えて、新しいCodex sessionのnative SubagentStart／SubagentStopもPASSした。Start／Stopは同一session_id・同一agent_id、`agent_type=explorer`、`stop_hook_active=false`で、last_assistant_messageは98文字・`truncated=false`として保存された。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -46,6 +44,13 @@
           "path": null,
           "selector": "scripts/verify.ps1; bash scripts/verify",
           "summary": "PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIPでFAILなしだった。"
+        },
+        {
+          "kind": "log_event",
+          "path": ".codex/logs/hooks-01a04835-b02d-72b0-9073-44a3080d0760.jsonl",
+          "selector": "SubagentStart and SubagentStop",
+          "event_id": null,
+          "summary": "native lifecycleのStart／Stop各1件、session_id／agent_id整合、stop_hook_active=falseを確認した。"
         }
       ]
     },
@@ -87,7 +92,7 @@
     },
     "reproducibility": {
       "rating": "pass",
-      "evidence": "Plan、repo-wide調査、実装判断、検証結果、未検証理由をRun artifactへ記録し、同一sessionのHookログとRun単位の意味情報を混同しない契約を維持した。",
+      "evidence": "Plan、repo-wide調査、実装判断、検証結果、native Subagent lifecycleの実機結果をRun artifactへ記録し、同一sessionのHookログとRun単位の意味情報を混同しない契約を維持した。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -98,21 +103,6 @@
       ]
     }
   },
-  "findings": [
-    {
-      "category": "missing_validation",
-      "severity": "medium",
-      "evidence": "native TUIではSubagentを起動していないため、SubagentStart／SubagentStopの実機lifecycle発生を確認できなかった。",
-      "evidence_refs": [
-        {
-          "kind": "evaluation_note",
-          "path": ".codex/runs/20260828-151448-JST/REPORT.md",
-          "selector": "native lifecycle validation limitation",
-          "summary": "no-child-delegation方針により未確認とした理由を記録する。"
-        }
-      ],
-      "detail": "Subagent専用Structured Artifactを再導入せず、実機のSubagent lifecycleを推測でPASSにしない。合成payloadを用いたcontract testと5event直接smokeではloggerのSubagentStart／SubagentStop処理、stdout、stop_hook_active、保存形式を確認済みである。"
-    }
-  ],
+  "findings": [],
   "improvement_candidates": []
 }

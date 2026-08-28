@@ -201,3 +201,18 @@
 - Decision / Rationale: 修正差分に起因するCI failureはなく、PR headは`09741711ce42736f7d8c9cd3a340c602431777ff`で確認済み。native Subagent lifecycleの実機発生だけはCIでも代替されないため、合成contract PASSをnative PASSへ読み替えない。
 - Remaining: Task 1のnative `SubagentStart`／`SubagentStop` lifecycleとnative `stop_hook_active`だけは、`AGENTS.md`のNo child delegation方針により未検証。
 - Progress: 96% (22/23)
+
+## 2026-08-28 20:59 (JST)
+
+- Summary: 新しいCodex sessionでPrimaryからread-onlyの直属child Subagentを1つだけ起動し、native `SubagentStart`／`SubagentStop`のHook JSONL記録を実機確認した。Primaryへの制御も正常に戻った。
+- Completed: Task 1。既存Runの全23 taskを完了状態へ更新した。
+- Subagents:
+  - `explorer`
+    - Delegation: `docs/PROJECT_CONTEXT.md`を読み、ファイルの役割を1〜2文で返すよう依頼。ファイル変更と追加delegationは禁止した。
+    - Result: `docs/PROJECT_CONTEXT.md`の役割を1文で返し、ファイル変更・Git操作・grandchild起動は行わなかった。
+    - Parent decision: 採用。read-onlyかつ最小限のnative lifecycle確認として完了し、Subagent専用Artifactは作成しない。
+- Validation: `.codex/logs/hooks-01a04835-b02d-72b0-9073-44a3080d0760.jsonl`に`SubagentStart` 1件と`SubagentStop` 1件を確認した。両eventの`session_id`はPrimaryの`01a04835-b02d-72b0-9073-44a3080d0760`で一致し、`agent_id`も`01a0483b-19a6-7d62-865e-56254221acbc`で一致した。`agent_type=explorer`、`stop_hook_active=false`（native Boolean）を確認した。`last_assistant_message`は存在し、要約結果98文字、`truncated=false`でboundedに保存されている。nullではなかったため省略条件は今回のrecordには該当しない。
+- Non-interference: lifecycle eventは観測記録として扱い、`SubagentStop`を最終終了とは推測していない。child完了通知を受け、Primaryから後続のHook確認・Run更新へ正常に継続できた。
+- Scope: `agent_id`のunique値は1つ、Start／Stopは各1件であり、childからgrandchildは起動していない。Product code、Hook config、`AGENTS.md`、`.codex/config.toml`は変更していない。
+- Evaluation: native lifecycleの未検証を解消したため、`evaluation.json`を`result=pass`、`primary_failure_category=null`、`findings=[]`へ更新した。Plan §13の全成功条件を確認済みと判断する。
+- Progress: 100% (23/23)

@@ -2,7 +2,7 @@
 
 ## Now
 
-- [ ] 1. 現行Codex CLIで5eventのinput / stdout / exit semantics、Tool coverage、`SubagentStop` / `Stop`の`stop_hook_active`を実機確認する。
+- [x] 1. 現行Codex CLIで5eventのinput / stdout / exit semantics、Tool coverage、`SubagentStop` / `Stop`の`stop_hook_active`を実機確認する。
 - [x] 2. repo-wide searchでlegacy stack内部とlegacy stack外の独立dependencyを切り分ける。
 - [x] 3. `.codex/hooks/log_event.mjs`をcanonical Node Hook loggerとして実装する。
 - [x] 4. `.codex/config.toml`へ5eventをrepo-root基準で接続し、timeoutを5秒にする。
@@ -31,4 +31,4 @@
 
 ## Blocked
 
-- Task 1のnative `SubagentStart` / `SubagentStop`ライブ発生確認は、`AGENTS.md`の`No child subagent delegation`により実行しない。
+- なし。Task 1のnative `SubagentStart` / `SubagentStop`ライブ発生確認を完了した。
