@@ -143,7 +143,7 @@
 ## 11. Automation・Deployment
 
 - Unit、Application Integration、Dexie Contractが成功する。
-- `e2e_design.md`のPhase 1必須Playwright E2E 12本が成功する。
+- `e2e-chromium` matrixの全legが成功する。`required` legは`pnpm run test:e2e:chromium`で`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行し、`e2e_design.md`のWE-CORE-001〜WE-CORE-012はbusiness-flow mappingとして追跡する。
 - `pnpm run build:web`が画像Manifest生成・検証を必ず実行し、Image Manifest検証、Release済みAsset append-only検証、GitHub Token非混入Checkが成功する。Cloudflareも同じCommandを使用する。
 - Cloudflare Production Deploy後のSmokeが成功する。
 - E2E失敗ArtifactへScenario、Clock、Delay、Versionを含める。
@@ -156,11 +156,11 @@
 - `domain_types.md`、`application_contracts.md`、`repository_interfaces.md`のTypeScript契約がSemantic Compileできる。
 - Dexie Schemaでboolean/nullをIndex Keyとして使用せず、DomainとPersistence ProjectionのContract Testが通る。
 - 注文作成ではBuild生成画像CatalogからPathをTransaction開始前に解決し、Transaction内で現在のPrimary assetIdと照合してAlt TextをSnapshotする。
-- Native/SQLite資料は`future/phase2`へ分離され、Phase 1正本として参照されない。変更履歴は`CHANGELOG.md`へ統合されている。
+- Native/SQLiteのCurrent CI contractとWeb Phase 1受入基準の境界が明示される。Native変更時の保証はAndroid Build + Runtime、iOS Build-onlyとし、iOS Runtime / Simulator / Maestro PASSは保証しない。
 
-## 13. Phase 1対象外
+## 13. Web Phase 1対象外
 
-Native、Guest Checkout、Cancel/Return/Refund、Payment Unknown/Reconciliation、Import/Export、Migration Recovery、Public Demo分離、Wishlist、Recommendation、Coupon、Point、売上Chartは受入基準へ含めません。
+Web Phase 1受入基準へNative Runtime / Maestro Flowを統合しません。Native変更時のNative CIは別contractとしてAndroid Build + Runtime、iOS Build-onlyを検証します。iOS Runtime / Simulator / Maestro PASSは保証しません。Guest Checkout、Cancel/Return/Refund、Payment Unknown/Reconciliation、Import/Export、Migration Recovery、Public Demo分離、Wishlist、Recommendation、Coupon、Point、売上Chartは受入基準へ含めません。
 
 ## 実装境界Gate
 

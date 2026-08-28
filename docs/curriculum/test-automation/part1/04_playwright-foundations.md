@@ -306,11 +306,11 @@ Training用specへ次を自分で実装します。
 
 ## ハンズオン2: 商品詳細
 
-Test Case ID `PRODUCT-001` を想定し、商品詳細表示を確認するテストを書きます。
+Test Case ID `TC-PRODUCT-001` を想定し、商品詳細表示を確認するテストを書きます。
 
 ## ハンズオン3: Cart追加
 
-Test Case ID `CART-001` を想定し、Variation選択からCart追加までを書きます。
+Test Case ID `TC-CART-001` を想定し、Variation選択からCart追加までを書きます。
 
 ## ハンズオン4: Locator改善
 

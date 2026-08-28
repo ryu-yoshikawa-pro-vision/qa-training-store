@@ -64,7 +64,7 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 
 | 用語 | このカリキュラムでの意味 |
 | --- | --- |
-| Test Case ID | `CART-001` など、スプレッドシート上のテストケース識別子 |
+| Test Case ID | `TC-CART-001` など、スプレッドシート上のテストケース識別子 |
 | UI Test ID / `testId` | PlaywrightやMaestroからUI要素を安定して特定する識別子 |
 | Seed Scenario | Scenario Shopを決定的な初期状態へResetするためのScenario |
 | Test Scenario / User Journey | 複数の条件・画面を跨いで確認する業務上のテストシナリオ |
@@ -72,6 +72,8 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 | Automation Flow | 複数Pageを跨ぐ共通業務操作をコード上で表現する構造 |
 
 教材本文では原則として上記の正式な呼称を使用し、単に「Test ID」「Scenario」「Flow」と省略して複数の意味を混在させません。
+
+Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../../../training/workbook/README.md)を正本として参照します。
 
 ただし、既存コードのAPI名や変数名、外部Tool固有の名称を引用するときは、その実装上の名称をそのまま使用します。その場合も、教材上どの概念に対応するかを区別します。
 

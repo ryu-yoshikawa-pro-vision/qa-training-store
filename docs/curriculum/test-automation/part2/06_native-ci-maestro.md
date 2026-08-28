@@ -39,11 +39,11 @@ Native変更判定、Static Check、Production Bundle Guard、Android Build、An
 
 ### iOS
 
-`.github/workflows/native-ios-ci.yml` は現時点では `workflow_dispatch` のみです。
+`.github/workflows/native-ios-ci.yml` はstandaloneでは `workflow_dispatch` で起動できるBuild-only入口です。Native変更時は`.github/workflows/native-ci.yml`が`native_changed=true`を検出するとこのreusable workflowを呼び出します。
 
-つまり、iOS Automation / Productionのunsigned Release `iphonesimulator` BuildとArtifactをCI上で確認する**手動実行のBuild-only baseline**であり、Simulator Install／Launch／Maestroは現行正式Gateの対象外です。現在のPR Required Gateへ自動的に含まれているわけではありません。
+standalone実行では、iOS Automation / Productionのunsigned Release `iphonesimulator` BuildとArtifactを確認する**手動実行のBuild-only baseline**です。Native変更時はtop-level `native-ci`のPR連動経路でiOS Buildが実行され、`native-ci / verify`がiOS成功をRequiredとします。Simulator Install／Launch／Maestroは現行正式Gateの保証対象外です。
 
-この差を完成済みの正解として暗記せず、後続演習で「iOSをPR / main / Nightly / Manualのどこへ配置するか」をRiskとCostから考えます。
+このCurrent boundaryを前提に、後続演習では「iOSをPR / main / Nightly / Manualのどこへ配置するか」をRiskとCostから考えます。
 
 ## Training Native Workflowの前提
 
@@ -231,7 +231,7 @@ Build-time metadata / Production guard
 
 iOSではmacOS Runnerが必要で、AndroidとはCost特性が異なります。
 
-現状は `workflow_dispatch` の手動Build baselineであるため、「Build Artifactが生成・検証される」ことと「Simulator Runtime / Maestroが動く」こと、さらに「PR Required Gateへ入っている」ことを区別します。
+standaloneでは `workflow_dispatch` の手動Build baselineであり、Native変更時はtop-level `native-ci`から呼び出されるRequired Build-only経路です。「Build Artifactが生成・検証される」ことと「Simulator Runtime / Maestroが動く」ことを区別します。
 
 ## Lesson 11: Android / iOSを独立して考える
 
@@ -306,7 +306,7 @@ Training Workflowの実行結果をもとに、次を考えます。
 
 現在の `native-ios-ci.yml` を読み、AndroidとiOSで共通する工程と異なる工程を表へ整理します。
 
-さらに、現在iOSがManual baselineであることを踏まえ、次から自分ならどこへ配置するか選びます。
+さらに、現在iOSにstandaloneのManual入口があり、Native変更時にはRequired Build-only経路へ含まれることを踏まえ、次から自分ならどこへ配置するか選びます。
 
 - PR Required
 - PR Optional
@@ -344,5 +344,5 @@ AndroidとiOSを同じ頻度にする必要があるかも含め、Runner Cost�
 - 現在のAndroid Native CIのJob構成を説明できる。
 - Build Artifact再利用の目的を説明できる。
 - iOS CIのBuild → metadata / guard → Artifactの流れを説明できる。
-- 現在のiOS CIが手動Build-only baselineであることを説明できる。
+- 現在のiOS CIがstandaloneでは手動Build-only入口であり、Native変更時にはRequired Build-only経路になることを説明できる。
 - Android / iOSの実行頻度案をCostとRiskから説明できる。

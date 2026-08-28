@@ -62,7 +62,7 @@ Test Case ID
 例:
 
 ```text
-CART-002
+TC-CART-002
 前提: out-of-stock Seed Scenario
 操作: 商品をCartへ追加
 期待: 追加が拒否される
