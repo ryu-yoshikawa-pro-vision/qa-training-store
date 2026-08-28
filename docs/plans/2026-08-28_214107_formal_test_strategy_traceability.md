@@ -25,7 +25,7 @@ PR 2では Product behavior、Test Suite、CI Gateを変更しない。Documenta
 - Requirement Group / ACからrepresentative regression codeを直接辿れる。
 - WE-CORE 12からCurrent representative E2E codeを直接辿れる。
 - 現在の下位Traceability代表label全件について、Current codeへの対応可否が未判定のまま残らない。
-- Risk → Representative Requirement / AC → Representative Technique → Representative Perspective → Primary Test Level → Representative Formal Test / suite → CI Gateを辿れる。
+- Risk → Representative Requirement / AC → applicable Technique / Perspective → Primary Test Level → Representative Formal Test / suite → CI Gateを辿れる。
 - Web / Android / iOSのCurrent guaranteeを正確に説明できる。
 - 第三のTraceability SSOT、Risk Registry、permanent Test Inventoryを追加していない。
 - Test title / test file / workflow / Playwright project / Product codeを変更していない。
@@ -100,9 +100,11 @@ Risk mappingは次の7列で固定する。
 - Techniqueは認知されたTest Design Techniqueを使う。例: Equivalence Partitioning、Boundary Value Analysis、Decision Table、State Transition、Scenario / Use-case Testing。
 - Tool名、runner名、Perspective名をTechniqueとして代用しない。
 - Perspectiveは「何を見るか」、Techniqueは「どう設計するか」、Levelは「どの層で検証するか」として分ける。
+- `Representative Technique`はCurrent risk / requirement / test intentから具体的なTechniqueを説明できる場合に記載する。特定Techniqueが主ではないRiskでは`—`または`Not primary`を許容し、表を埋めるためだけにTechniqueを発明しない。
+- `Representative Perspective`はCurrent risk / test intentに基づく意味のある分類を記載する。
 - Primary Test Levelは原則1つ。
 - supporting suiteが本当に必要な場合だけ短く補足する。
-- Current risk / requirement / test intentからTechniqueを合理的に説明できない場合は推測で発明せずStopする。
+- Techniqueを設定できないことだけをStop理由にしない。Risk → Requirement / AC、Representative Formal Test / suite、CI Gateを合理的に接続できない場合、またはRA-G3全体としてTechnique / Perspectiveとの関係をCurrent evidenceから説明できない場合はStopする。
 - 16 Riskを全Testへ展開しない。
 
 ### 2.5 Requirement Group → representative regression contract
@@ -130,14 +132,14 @@ Risk mappingは次の7列で固定する。
 
 ### 2.7 下位Traceability代表label contract
 
-Current `requirements_traceability.md`には、§6の代表表18行に加えて、`## 7. 更新Rule`の後ろへ表ヘッダーなしで次の4行が残っており、合計22行の下位代表labelが存在する。
+Plan作成時点のCurrent `requirements_traceability.md`には、§6の代表表18行に加えて、`## 7. 更新Rule`の後ろへ表ヘッダーなしで次の4行が残っており、合計22行の下位代表labelが存在する。
 
 - `CT-BOUNDARY-001`
 - `CT-ACTION-VERSION-001`
 - `CT-CLOCK-CATALOG-001`
 - `CT-ORDER-PRICE-001`
 
-実装では**22行すべて**を監査し、各行を必ず次のいずれかへDispositionする。
+この22行はPlan作成時点のCurrent evidenceであり、固定件数の契約にはしない。実装では**実装開始時点に存在するCurrent下位Traceability代表label全件**を監査し、各行を必ず次のいずれかへDispositionする。
 
 1. `exact-title`
    - repository-relative test file path + exact test title
@@ -169,8 +171,8 @@ Current guaranteeを明示することを意味する。
 
 ### 2.9 Formal / Training boundary
 
-- `playwright.config.ts`はFormal側。
-- `playwright.training.config.ts`はTraining側。
+- `playwright.config.ts`はProduct側automation configであり、Formal E2E / Smoke projectsに加えて別責務の`ui-review-*` projectsも含む。configに存在することだけを理由にFormal Regressionへ分類しない。
+- `playwright.training.config.ts`はTraining-only Playwright configとする。
 - `training-web-baseline`がWeb CI matrixで実行されてもFormal Regression coverageへ昇格しない。
 - Training exercise / expected failure / learner evidenceはPR 3 / PR 5の責務であり、本PRでは設計しない。
 
@@ -254,7 +256,7 @@ Test fileは、Risk mappingまたはRequirement direct referenceで実際に参�
 
 #### 下位代表label
 
-- 現在の22行すべてを監査する。
+- 実装開始時点のCurrent下位Traceability代表label全件を監査する。Plan作成時点では22行であることをEvidenceとして扱い、固定件数とはしない。
 - 各行を`exact-title` / `suite-level` / `stop`のいずれかへDispositionする。
 - label taxonomyとCurrent Test Levelの対応を確認する。
 - Current `Test ID Rule`が実態を説明できていなければ、既存labelを変えずtaxonomy説明を補正する。
@@ -319,7 +321,7 @@ workflowで同時に走ることと同じcoverage分類であることを分離�
 
 Current Phase 1重要Risk 16件を、順序・文言を維持して16行で作る。
 
-各行は§2.4の7列をすべて持つ。
+各行は§2.4の7列を持つ。`Representative Technique`は適用可能な場合だけ具体値を記載し、特定Techniqueが主ではないRiskでは`—`または`Not primary`を使う。
 
 - Risk / Risk label
 - Representative Requirement / AC
@@ -346,7 +348,7 @@ Current Phase 1重要Risk 16件を、順序・文言を維持して16行で作�
 
 #### 下位代表label
 
-- 22行すべてをDisposition済みにする。
+- 実装開始時点のCurrent下位Traceability代表label全件をDisposition済みにする。
 - `exact-title`または`suite-level`の行にはverified code referenceを記載する。
 - `stop`が1行でも残る場合はPR 2 completionへ進まずPlanを見直す。
 - §7の後ろに孤立している4行を既存下位代表表へ統合する。
@@ -367,8 +369,8 @@ command / project / CI Gateはこの文書へ重複させず`test_strategy.md`�
 ### Step 8 — bounded self-review
 
 - 変更は2文書 + implementation Runだけか。
-- Requirement Group / WE-CORE / 下位22行の3層がすべて閉じているか。
-- Risk 16行の7列が欠けていないか。
+- Requirement Group / WE-CORE / Current下位Traceability代表label全件の3層がすべて閉じているか。
+- Risk 16行が7列schemaを維持し、Techniqueが適用できない行で無理に値を発明していないか。
 - Technique / Perspective / Level / Gateを混同していないか。
 - Formal / Training、Android / iOS guaranteeを混同していないか。
 - PR 3以降のCompetency / Curriculum / learner evidenceへ踏み込んでいないか。
@@ -398,14 +400,17 @@ TypeScript / validator / test変更も禁止なので`typecheck`はPR 2のrequir
 - Level / Perspective / Execution・Platform・Gateが別軸になっている。
 - TechniqueとPerspectiveが別列である。
 - Formal / Trainingを混同していない。
+- `playwright.config.ts`内のFormal E2E / Smokeと`ui-review-*`を、config単位ではなくproject責務で区別している。
 - Web / Android / iOSのCurrent asymmetric guaranteeを正確に説明している。
 - Currentにないproject / job / command / guaranteeを書いていない。
 
 #### Risk
 
 - 16 Riskすべてが1行ずつ存在する。
-- 各RiskにRepresentative Requirement / AC、Technique、Perspectiveがある。
-- Requirement / AC → technique → perspective → level → suite → gateを辿れる。
+- 各RiskにRepresentative Requirement / ACと意味のあるRepresentative Perspectiveがある。
+- Representative TechniqueはCurrent evidenceから適用可能な場合だけ具体値を持ち、該当しない場合は`—`または`Not primary`である。
+- Requirement / AC → applicable technique / perspective → level → suite → gateを辿れる。
+- Techniqueの非適用だけを理由にRisk mappingを未完了扱いしていない。
 - 新Risk ID / groupを作っていない。
 
 #### Traceability
@@ -414,7 +419,8 @@ TypeScript / validator / test変更も禁止なので`typecheck`はPR 2のrequir
 - Non-functional Groupの全既存行からrepresentative regressionへ辿れる。
 - WE-CORE 12はMapping IDでありexecutable countではない。
 - 各WE-CORE referenceがCurrent file / exact titleに実在する。
-- 下位代表label 22行すべてがDisposition済みで、未判定行がない。
+- 実装開始時点のCurrent下位Traceability代表label全件がDisposition済みで、未判定行がない。
+- Plan作成時点の22行という件数を永続的な契約として扱っていない。
 - `exact-title` / `suite-level`のreferenceはCurrent codeで確認済み。
 - §7の後ろに孤立した4行が残っていない。
 - `CT-*` / `CP-*`等のtaxonomy説明が表の実態と矛盾しない。
@@ -457,9 +463,9 @@ Repository-wide historical zero-matchは要求しない。
 - Curriculum / Training behavior変更が必要になる。
 - RA-G1解消のためTest codeへIDを追加する必要がある。
 - Functional / Non-functional Requirement Groupの重要行でrepresentative regressionをCurrent evidenceから説明できない。
-- 下位22行のいずれかが`stop`になり、Current evidenceだけでは解消できない。
+- 実装開始時点のCurrent下位Traceability代表labelのいずれかが`stop`になり、Current evidenceだけでは解消できない。
 - `CT-*` / `CP-*`等の現行label taxonomyをCurrent evidenceから説明できず、新ID制度設計が必要になる。
-- RA-G3のRiskでRepresentative Techniqueを合理的に説明できず、推測が必要になる。
+- RA-G3のRiskをRepresentative Requirement / AC、Representative Formal Test / suite、CI Gateへ合理的に接続できない、またはRA-G3全体としてTechnique / Perspectiveとの関係をCurrent evidenceから説明できない。
 - RA-G3解消に新しいRisk Registry / Traceability SSOTが必要になる。
 - RA-G6解消にCI Gate / Native guarantee自体の変更が必要になる。
 - PR 3 / PR 4 / PR 5のPrimary owner領域へ踏み込む必要がある。
@@ -471,15 +477,16 @@ Repository-wide historical zero-matchは要求しない。
 - writable scopeが2文書 + implementation Runに限定されている。
 - `test_strategy.md`で3軸を別々に読める。
 - Phase 1 Risk 16件が1 Risk = 1 rowで追跡できる。
-- 各RiskのTechniqueとPerspectiveが分離されている。
+- 各RiskのTechniqueとPerspectiveが別列で、Technique非適用時に推測の値を発明していない。
 - 各RiskからRepresentative Requirement / ACを経由してFormal suite / Gateまで辿れる。
 - Functional / Non-functional Requirement Groupの全既存行からrepresentative regressionへ辿れる。
 - WE-CORE 12からCurrent exact E2Eへ辿れる。
-- 下位代表label 22行すべてが`exact-title`または`suite-level`としてCurrent codeへ接続され、未判定 / `stop`が残っていない。
+- 実装開始時点のCurrent下位Traceability代表label全件が`exact-title`または`suite-level`としてCurrent codeへ接続され、未判定 / `stop`が残っていない。
 - §7の後ろに孤立した下位代表4行が残っていない。
 - WE-COREをexecutable test countとして扱っていない。
 - Current Test ID / Mapping label taxonomyの説明が文書内で自己矛盾していない。
 - Formal / Trainingを混同していない。
+- `playwright.config.ts`に存在することだけを理由に`ui-review-*`をFormal Regressionへ分類していない。
 - Android Runtime / iOS Build-onlyを混同していない。
 - 新Risk ID、第三のTraceability SSOT、permanent inventoryを追加していない。
 - Test code / workflow / validator / Product / Curriculumを変更していない。
