@@ -81,3 +81,20 @@
   - Result: なし
   - Parent decision: なし
 - Progress: 97% (21/22)
+
+## 2026-08-29 06:34 (JST)
+
+- Summary: child Planを実装開始直前の観点で再レビューし、scope判定・Requirement Group Traceability・Risk mapping粒度に残っていた3件の曖昧さを解消した。
+- Changes:
+  - Plan作成と実装を同一branchで行うため、PR-wide diffをそのままimplementation scope判定へ使う契約を廃止した。Plan-only gate完了後かつimplementation変更開始直前のbranch HEADを`IMPLEMENTATION_BASE_SHA`として取得し、`IMPLEMENTATION_BASE_SHA...HEAD`だけをimplementation deltaとしてscope checkする契約へ変更した。child Plan / Plan RunはPR-wide diffに残ってよい。
+  - Functional / Non-functional Requirement Group全行の列を`Representative Verification`へ整理した。FunctionalはCurrent executable regressionがある場合に既存file / suiteへ接続し、Non-functionalはCurrent contractに応じてBenchmark / UI Review / Static Check / Smoke等の実在するverificationへ接続する。automationがないverificationへ架空のcode referenceを作らない。
+  - Risk mappingの`Representative Formal Test / suite`はstableなsuite / package command / Playwright project等の代表実行単位、`CI Gate`はそのsuiteを実行・要求する最も近いworkflow job / matrix legとする粒度を固定した。具体的なjob / legが存在するRiskを最終aggregateの`verify` / `validate`だけで一律に埋めることを禁止した。
+  - TASKSへD15〜D17を追加し、PLANのFixed decisions / Questions / Approach / DoDを最新child Planへ同期した。
+- Decision / Rationale: PR 2はCurrent contractのDocumentation整合が目的であり、Traceability表を埋めるために存在しないautomationを要求しない。Plan差分とimplementation差分を分けることで同一branch運用でもscope checkを再現可能にし、Risk表はCurrent CI上の意味のある最小粒度を保持する。
+- Validation: Current `main`はPlan baseline `12afd144cc81fb63a3c6d3a0edcee1eb6ed2317a`のままでsemantic driftは確認していない。Current `package.json` / Web CI / `test_strategy.md` / `requirements_traceability.md` / `phase1-required.spec.ts`を再照合した。local `pnpm` validation、`git diff --check`、Sanitizer Write / Checkは未実施であり、PASSとは記録しない。
+- Blocker / Remaining: Plan内容の最新レビューFinding反映は完了。残りはTask 8のlocal plan-only validation / Sanitizerのみ。実装は開始しない。
+- Subagents:
+  - Delegation: なし
+  - Result: なし
+  - Parent decision: なし
+- Progress: 98% (24/25)
