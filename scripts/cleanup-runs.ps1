@@ -132,11 +132,6 @@ if (Test-Path -LiteralPath $logsRoot) {
     }
 }
 
-$hookLog = Join-Path $repoRoot ".codex\observations\hooks.jsonl"
-if (Test-Path -LiteralPath $hookLog) {
-    Add-Candidate -Kind "hook_log" -Path $hookLog
-}
-
 Write-Host ("MODE: {0}" -f $(if ($previewOnly) { "preview" } else { "delete" }))
 if ($script:hasOlderThanDays) {
     Write-Host "OLDER_THAN_DAYS: $OlderThanDays"

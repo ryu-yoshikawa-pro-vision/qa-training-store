@@ -1,31 +1,21 @@
 # Report (append-only)
 
-- 行動のたびに追記する（調査/編集/判断も含む）
-- コマンドや確認結果は必ず記録する
-
-## Evidence Record (optional)
-
-- Record ID:
-- Round:
-- Query:
-- Source:
-- Supports/Refutes:
-- Confidence:
-- Decision:
-- Rationale:
-- Open Issues:
-- Next Action:
+- TASK完了、blocker、重要判断、計画変更、Run完了のcheckpointだけ追記する。
+- 過去checkpointは削除・置換・並べ替えず、Summary / Progressも新checkpointとして追記する。
+- Hook JSONLやrunnerが取得するmachine factをREPORTへ逐次転記しない。
+- REPORTにはAIが残す意味情報だけを記録する。
 
 ## YYYY-MM-DD HH:MM (JST)
 
 - Summary:
-- Completed:
 - Changes:
-- Commands:
-  - `...` => result
-- Notes/Decisions:
-- New tasks:
-- Remaining:
+- Decision / Rationale:
+- Validation:
+- Blocker / Remaining:
+- Subagents:
+  - Delegation:
+  - Result:
+  - Parent decision:
 - Progress: NN% (done/total)
 
 ## Deletion candidates

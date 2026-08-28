@@ -10,8 +10,8 @@ run 結果、評価結果、repair loop outcome を、再発防止のための r
 - `evaluation.json`
 - run manifest
 - validation results
-- hook observation artifacts
-- subagent records
+- Hook JSONL logs
+- REPORT checkpoints
 - review comments
 - repeated failure across runs
 
@@ -41,8 +41,8 @@ At least one of:
 - `evaluation.findings[]`
 - `improvement_candidates[]`
 - `run.json.validation.commands`
-- hook-observation JSONL
-- `subagent-run.json`
+- `.codex/logs/hooks-<safe-session-id>.jsonl`
+- REPORT checkpoint
 - review comment
 - repeated failure across runs
 
@@ -78,10 +78,10 @@ If a task fixes product code and also discovers a harness issue, record the harn
 - loop で解決できない structural issue は `strict` か `blocked` の候補として分離する。
 - Nativeの同一工程反復、preflight不足、attempt別ログ上書き、上流失敗後の後続実行は、実行結果を隠すのではなく、反復Failureの具体的なevidenceとしてcandidate化する。runner／safety／schemaを変更する候補は`strict`として自動適用せず、今回のproduct／文書修正から分離する。
 
-## Relationship to observation artifacts
+## Relationship to Hook logs and REPORT checkpoints
 
-- hook observation は blocked action や validation behavior の evidence として使う。
-- subagent records は delegation / scope / reviewability 改善の evidence として使う。
+- Hook JSONLはblocked actionやvalidation behaviorなど、Hookが取得したmachine factのevidenceとして使う。
+- REPORT checkpointはDelegation / Result / Parent decisionなど、agentが残す意味情報のevidenceとして使う。
 
 ## Review and approval
 

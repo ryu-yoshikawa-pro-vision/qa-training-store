@@ -566,13 +566,12 @@ function Write-RunManifest {
     }
 
     $manifest = [ordered]@{
-        schema_version = 1
+        schema_version = 2
         run_id = $State.run_id
         task_type = $State.task_type
         workflow_level = $State.workflow_level
         preset = $State.preset
         runtime = $State.runtime
-        agents_used = @()
         repo = $null
         branch = Get-GitBranch -RepoRoot $RepoRoot
         base_branch = $null
@@ -587,32 +586,11 @@ function Write-RunManifest {
         }
         safety = [ordered]@{
             network = ($State.preset -eq "auto-net" -or $State.allow_search)
-            delete_attempt_blocked = $false
-            git_mutation_attempt_blocked = $false
             scope_violation = $State.scope_violation
         }
         artifact_summary = [ordered]@{
             codex_task_report_count = 0
-            hook_event_count = 0
-            subagent_run_count = 0
             evaluation_present = $false
-        }
-        hook_observations = [ordered]@{
-            log_paths = @()
-            event_counts = [ordered]@{}
-            blocking_event_count = 0
-            safety_blocked_count = 0
-            observation_error_count = 0
-        }
-        subagents = [ordered]@{
-            records = @()
-            summary = [ordered]@{
-                total = 0
-                read_only = 0
-                writable = 0
-                scope_violations = 0
-                used_in_final_plan = 0
-            }
         }
         evaluation_path = $State.evaluation_path
         status = $State.run_status
@@ -628,7 +606,7 @@ function Write-RunManifest {
         }
 
         if ($existing) {
-            $manifest.agents_used = @(Get-SortedUniqueStrings -Values (@(@($existing.agents_used) + @($manifest.agents_used))))
+            $existingIsV1 = $existing.PSObject.Properties.Name -contains 'schema_version' -and [int]$existing.schema_version -eq 1
             $manifest.codex_task_reports = @(Get-SortedUniqueStrings -Values (@(@($existing.codex_task_reports) + @($manifest.codex_task_reports))))
             $manifest.changed_files = @(Get-SortedUniqueStrings -Values (@(@($existing.changed_files) + @($manifest.changed_files))))
             $existingValidation = if ($existing.PSObject.Properties.Name -contains 'validation') { $existing.validation } else { $null }
@@ -641,8 +619,6 @@ function Write-RunManifest {
             $existingSafety = if ($existing.PSObject.Properties.Name -contains 'safety') { $existing.safety } else { $null }
             if ($existingSafety) {
                 $manifest.safety.network = ([bool]$existingSafety.network -or [bool]$manifest.safety.network)
-                $manifest.safety.delete_attempt_blocked = ([bool]$existingSafety.delete_attempt_blocked -or [bool]$manifest.safety.delete_attempt_blocked)
-                $manifest.safety.git_mutation_attempt_blocked = ([bool]$existingSafety.git_mutation_attempt_blocked -or [bool]$manifest.safety.git_mutation_attempt_blocked)
                 $manifest.safety.scope_violation = ([bool]$existingSafety.scope_violation -or [bool]$manifest.safety.scope_violation)
             }
             if ($null -eq $manifest.evaluation_path -and $null -ne $existing.evaluation_path) {
@@ -651,9 +627,27 @@ function Write-RunManifest {
             if ($null -eq $manifest.primary_failure_category -and $null -ne $existing.primary_failure_category) {
                 $manifest.primary_failure_category = $existing.primary_failure_category
             }
-            foreach ($key in @('artifact_summary', 'hook_observations', 'subagents')) {
-                if ($existing.PSObject.Properties.Name -contains $key) {
-                    $manifest[$key] = $existing.$key
+            if ($existingIsV1) {
+                $manifest.schema_version = 1
+                foreach ($key in @('agents_used', 'hook_observations', 'subagents')) {
+                    if ($existing.PSObject.Properties.Name -contains $key) {
+                        $manifest[$key] = $existing.$key
+                    }
+                }
+                if ($existingSafety) {
+                    foreach ($key in @('delete_attempt_blocked', 'git_mutation_attempt_blocked')) {
+                        if ($existingSafety.PSObject.Properties.Name -contains $key) {
+                            $manifest.safety[$key] = $existingSafety.$key
+                        }
+                    }
+                }
+                $existingArtifactSummary = if ($existing.PSObject.Properties.Name -contains 'artifact_summary') { $existing.artifact_summary } else { $null }
+                if ($existingArtifactSummary) {
+                    foreach ($property in $existingArtifactSummary.PSObject.Properties) {
+                        if ($property.Name -notin @('codex_task_report_count', 'evaluation_present')) {
+                            $manifest.artifact_summary[$property.Name] = $property.Value
+                        }
+                    }
                 }
             }
         }

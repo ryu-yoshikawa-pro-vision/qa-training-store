@@ -1,0 +1,118 @@
+{
+  "schema_version": 1,
+  "run_id": "20260828-151448-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "Plan §9の実装タスク、契約テスト、Windows 5event smoke、Unix代表event smoke、verify、trust確認まで完了した。ただし、no-child-delegation方針のためSubagentを実機起動せず、native lifecycle eventのライブ発生だけは未確認である。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260828-151448-JST/TASKS.md",
+          "selector": "Tasks 2-20",
+          "summary": "実装、trust、検証タスクの完了状態とTask 1の未確認を確認できる。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はPlanが指定したHook、manifest writer、cleanup、運用docs、contract test、Run artifactに限定され、Product code、ECサイト仕様、カリキュラム本体には差分がない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "git diff --name-status",
+          "summary": "変更対象を最終セルフレビューで確認した。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "全contract testは31 files / 452 tests PASS、PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIP、Markdown lint・format・diff checkもPASSした。Windows直接smokeは5event、Unix系Git Bash smokeは代表event、native TUIはUserPromptSubmit・PostToolUse・Stopを確認したが、native SubagentStart・SubagentStopの発生は未確認である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "pnpm exec vitest run tests/contracts",
+          "summary": "31 contract filesと452 testsがPASSした。"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "scripts/verify.ps1; bash scripts/verify",
+          "summary": "PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIPでFAILなしだった。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "既存Safety PreToolUseのmatcher・timeout・blocking behaviorを維持し、危険なtrust bypass、force push、履歴書換え、command-based deletion、Product code変更を行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/config.toml",
+          "selector": "PreToolUse Bash safety block",
+          "summary": "既存Safety HookとLogging Hookを別設定として維持した。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "最終差分をPlanのNon-goals、legacy削除、manifest v2、Safety Hook、REPORT・Hook JSONL・run.jsonの責務分離の観点で確認し、旧stack外の独立dependencyなしというrepo-wide調査結果と整合している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "selector": "logging Hook contract",
+          "summary": "Safety／Logging分離、failure-safe、sanitization、truncation、隔離を自動検証している。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "5eventは単一のNode loggerを共有し、Windows／Unixで実装を二重化していない。既存cleanup、wrapper、validationの経路を再利用し、DB・daemon・parser・新frameworkを追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/log_event.mjs",
+          "selector": "canonical logger",
+          "summary": "loggerの配置位置基準の保存先解決と5event allowlistを実装している。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Plan、repo-wide調査、実装判断、検証結果、未検証理由をRun artifactへ記録し、同一sessionのHookログとRun単位の意味情報を混同しない契約を維持した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260828-151448-JST/REPORT.md",
+          "selector": "checkpoint history",
+          "summary": "進捗、判断、検証、未完了事項を時系列で確認できる。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "native TUIではSubagentを起動していないため、SubagentStart／SubagentStopの実機lifecycle発生を確認できなかった。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260828-151448-JST/REPORT.md",
+          "selector": "native lifecycle validation limitation",
+          "summary": "no-child-delegation方針により未確認とした理由を記録する。"
+        }
+      ],
+      "detail": "Subagent専用Structured Artifactを再導入せず、実機のSubagent lifecycleを推測でPASSにしない。合成payloadを用いたcontract testと5event直接smokeではloggerのSubagentStart／SubagentStop処理、stdout、stop_hook_active、保存形式を確認済みである。"
+    }
+  ],
+  "improvement_candidates": []
+}

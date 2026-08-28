@@ -28,6 +28,14 @@
 - `scripts/`: `codex-safe` / `codex-task` / `codex-sandbox` と verify
 - `codex-project.toml`: template 適用後の project metadata
 
+## Codex Hook / Run記録整理（2026-08-28）
+
+- Logging Hookのcanonical loggerは`.codex/hooks/log_event.mjs`であり、`UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`を同じNode実装へ接続する。Logging Hookはmatcherなし・timeout 5秒、既存Safety `PreToolUse`はBash matcherとblocking behaviorを維持する。
+- Hook JSONLはlogger自身の配置位置から解決した`.codex/logs/hooks-<safe-session-id>.jsonl`へ保存し、Git管理しない。Hook JSONLはRunへ自動集約せず、`CODEX_RUN_ID`やactive-run registryによるcorrelationを追加しない。
+- REPORTはTASK完了、blocker、重要判断、計画変更、Run完了のcheckpointだけを追記し、AIが残す意味情報を記録する。Subagent利用時はDelegation / Result / Parent decisionだけをcheckpointへ残し、machine factはHook JSONLへ委ねる。
+- 新規Runのmanifestはschema v2で、report count、changed files、validation、network / scope、evaluationを保持する。旧Subagent／旧Hook observation専用fieldや専用Structured Artifactは新規生成せず、既存v1はlegacy field valueの保持だけを行う。
+- `.codex/logs/*.jsonl`のgeneric cleanupは維持し、旧`.codex/observations/hooks.jsonl`専用cleanupと旧observerは廃止した。Product code、ECサイト仕様、カリキュラム本体はこの整理の対象外である。
+
 ## Codex Full Access Safety Hook（2026-08-16）
 
 - Windows native Codex `0.147.0`のproject Hookは、`[features].hooks = true`、`PreToolUse` matcher `^Bash$`、`command_windows`を正本とする。deprecatedな`codex_hooks`、project-local profile、旧PowerShell／Python policy Hookには依存しない。
