@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "run_id": "20260828-164903-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "fix/current-documentation-ssot-repair",
+  "base_branch": "main",
+  "source_head": "ccf637ce7638ba867714236aa80b3b1337088531",
+  "repair_base_sha": "ccf637ce7638ba867714236aa80b3b1337088531",
+  "codex_task_reports": [],
+  "allowed_files": [
+    "docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md",
+    ".codex/runs/20260828-074252-JST/REPORT.md",
+    ".codex/runs/20260828-164903-JST/REPORT.md",
+    ".codex/runs/20260828-164903-JST/TASKS.md",
+    ".codex/runs/20260828-164903-JST/run.json"
+  ],
+  "expected_changed_files": [
+    "docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md",
+    ".codex/runs/20260828-074252-JST/REPORT.md",
+    ".codex/runs/20260828-164903-JST/REPORT.md",
+    ".codex/runs/20260828-164903-JST/TASKS.md",
+    ".codex/runs/20260828-164903-JST/run.json"
+  ],
+  "changed_files": [
+    "docs/07_testability/seed_catalog.md",
+    "docs/08_testing/e2e_design.md",
+    "docs/08_testing/test_strategy.md",
+    "docs/12_quality/requirements_traceability.md",
+    "docs/12_quality/acceptance_criteria.md",
+    "docs/curriculum/test-automation/00_learning-design.md",
+    "docs/curriculum/test-automation/01_spreadsheet-test-design.md",
+    "docs/curriculum/test-automation/part1/04_playwright-foundations.md",
+    "docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md",
+    "docs/curriculum/test-automation/part1/07_maestro-native-automation.md",
+    "docs/curriculum/test-automation/part2/06_native-ci-maestro.md",
+    "docs/curriculum/test-automation/part2/08_integration-design-capstone.md",
+    "training/workbook/README.md",
+    ".codex/runs/20260828-164903-JST/PLAN.md",
+    ".codex/runs/20260828-164903-JST/TASKS.md",
+    ".codex/runs/20260828-164903-JST/REPORT.md",
+    ".codex/runs/20260828-164903-JST/run.json"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm run format:check",
+      "pnpm run lint:markdown",
+      "pnpm run validate:spec",
+      "pnpm run validate:curriculum",
+      "pnpm run test:contracts",
+      "Current SSOT cross-check and finding-specific bounded search",
+      "scripts/sanitize-codex-artifacts.ps1 -Write -Path .codex/runs/20260828-164903-JST",
+      "scripts/sanitize-codex-artifacts.ps1 -Check -Path .codex/runs/20260828-164903-JST",
+      "git diff --name-only -- src app e2e maestro scripts/validate-curriculum.ts tests .github/workflows package.json pnpm-lock.yaml docs/spec CHANGELOG.md docs/curriculum/test-automation/part1/10_part1-capstone.md",
+      "git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 --",
+      "git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 -- docs/07_testability/seed_catalog.md docs/08_testing/e2e_design.md docs/08_testing/test_strategy.md docs/12_quality/requirements_traceability.md docs/12_quality/acceptance_criteria.md docs/curriculum/test-automation/00_learning-design.md docs/curriculum/test-automation/01_spreadsheet-test-design.md docs/curriculum/test-automation/part1/04_playwright-foundations.md docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md docs/curriculum/test-automation/part1/07_maestro-native-automation.md docs/curriculum/test-automation/part2/06_native-ci-maestro.md docs/curriculum/test-automation/part2/08_integration-design-capstone.md training/workbook/README.md",
+      "git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 -- .codex/runs/20260828-074252-JST",
+      "pnpm run format:check",
+      "pnpm run lint:markdown",
+      "git diff --check",
+      "node --eval \"JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-164903-JST/run.json', 'utf8')); console.log('run.json JSON parse: PASS')\"",
+      "node --eval \"const d=JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-164903-JST/run.json', 'utf8')); if (d.status !== 'completed') process.exit(2); console.log('run.json JSON parse/status completed: PASS')\"",
+      "scripts/sanitize-codex-artifacts.ps1 -Write -Path .codex/runs/20260828-164903-JST",
+      "scripts/sanitize-codex-artifacts.ps1 -Check -Path .codex/runs/20260828-164903-JST"
+    ],
+    "warnings": [
+      "Full Playwright E2E、Native build、Maestro runtime、unrelated test suiteはdocs-only境界のため未実施。"
+    ]
+  },
+  "repair_loop": {
+    "iteration_number": 1,
+    "input_findings": [
+      "CR-1: 完了済みRun REPORTのreview correction用見出しの日本語形式",
+      "CR-2: 完了済みRunのSanitizer履歴Evidence不足",
+      "CR-3: active Run REPORTのscope command省略",
+      "CR-4: child Planの完了済みRun向けSanitizer手順矛盾",
+      "outside-diff: active Run REPORTのbackfill時系列とProgress表示",
+      "active RunのTASKS / run.json / GitHub実績不一致"
+    ],
+    "repair_plan": "指定された5 tracked fileだけを限定修正し、実装済み13文書とactive PLAN.md、Issue #72は変更しない。過去RunへSanitizerを実行せず、active RunだけをSanitizer対象とする。",
+    "allowed_files": [
+      "docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md",
+      ".codex/runs/20260828-074252-JST/REPORT.md",
+      ".codex/runs/20260828-164903-JST/REPORT.md",
+      ".codex/runs/20260828-164903-JST/TASKS.md",
+      ".codex/runs/20260828-164903-JST/run.json"
+    ],
+    "changed_files": [
+      "docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md",
+      ".codex/runs/20260828-074252-JST/REPORT.md",
+      ".codex/runs/20260828-164903-JST/REPORT.md",
+      ".codex/runs/20260828-164903-JST/TASKS.md",
+      ".codex/runs/20260828-164903-JST/run.json"
+    ],
+    "validation_commands": [
+      "pnpm run format:check",
+      "pnpm run lint:markdown",
+      "git diff --check",
+      "node --eval \"JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-164903-JST/run.json', 'utf8')); console.log('run.json JSON parse: PASS')\"",
+      "scripts/sanitize-codex-artifacts.ps1 -Write -Path .codex/runs/20260828-164903-JST",
+      "scripts/sanitize-codex-artifacts.ps1 -Check -Path .codex/runs/20260828-164903-JST",
+      "git diff --name-only -- src app e2e maestro scripts/validate-curriculum.ts tests .github/workflows package.json pnpm-lock.yaml docs/spec CHANGELOG.md docs/curriculum/test-automation/part1/10_part1-capstone.md",
+      "git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 --",
+      "git diff --name-only ccf637ce7638ba867714236aa80b3b1337088531 -- docs/07_testability/seed_catalog.md docs/08_testing/e2e_design.md docs/08_testing/test_strategy.md docs/12_quality/requirements_traceability.md docs/12_quality/acceptance_criteria.md docs/curriculum/test-automation/00-learning-design.md docs/curriculum/test-automation/01-spreadsheet-test-design.md docs/curriculum/test-automation/part1/04_playwright-foundations.md docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md docs/curriculum/test-automation/part1/07_maestro-native-automation.md docs/curriculum/test-automation/part2/06_native-ci-maestro.md docs/curriculum/test-automation/part2/08_integration-design-capstone.md training/workbook/README.md",
+      "node --eval \"const d=JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-164903-JST/run.json', 'utf8')); if (d.status !== 'completed') process.exit(2); console.log('run.json JSON parse/status completed: PASS')\""
+    ],
+    "validation_result": "PASS。format:check、lint:markdown、git diff --check、active run.json JSON parse、完全scope、repair delta、13実装文書不変性、active Run Sanitizer Write / Check、repair commit / push、4 thread reply / resolve、outside-diff commentは成功。finalization push後のCodeRabbit incremental reviewと最終PR／CI確認はGitHub metadataで確認し、追加tracked changeは行わない。",
+    "remaining_delta": "finalization push後のCodeRabbit incremental reviewと最終PR／CI確認はGitHub metadataで確認し、追加tracked changeは行わない。",
+    "decision": "stop_success"
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": null,
+  "status": "completed",
+  "primary_failure_category": null
+}

@@ -80,7 +80,11 @@ function Test-TemplateContract {
         ".codex/agents/quality_gate_runner.toml",
         ".codex/hooks/pre_tool_use_policy.mjs",
         ".codex/hooks/pre_tool_use_policy_windows.ps1",
+        ".codex/hooks/log_event.mjs",
         ".codex/templates/PLAN.md",
+        ".codex/templates/REPORT.md",
+        ".codex/templates/RUN_MANIFEST.json",
+        ".codex/templates/evaluation.schema.json",
         ".codex/rules/10-readonly-allow.rules",
         ".codex/rules-auto-net/10-auto-net-allow.rules",
         ".codex/rules-auto-net/20-auto-net-risky-forbidden.rules",
@@ -213,8 +217,8 @@ function Test-TemplateContract {
     $runArtifacts = Get-Content -Raw docs/reference/run-artifacts.md
     if ($runArtifacts -notmatch [regex]::Escape("run.json")) { throw "run-artifacts doc missing run.json guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("changed_files")) { throw "run-artifacts doc missing changed_files guidance" }
-    if ($runArtifacts -notmatch [regex]::Escape("hook_observations")) { throw "run-artifacts doc missing hook_observations guidance" }
-    if ($runArtifacts -notmatch [regex]::Escape("subagents")) { throw "run-artifacts doc missing subagents guidance" }
+    if ($runArtifacts -notmatch [regex]::Escape(".codex/logs/hooks-")) { throw "run-artifacts doc missing Hook JSONL guidance" }
+    if ($runArtifacts -notmatch [regex]::Escape("checkpoint")) { throw "run-artifacts doc missing checkpoint guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("--max-iterations")) { throw "run-artifacts doc missing max-iterations guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("repair loop")) { throw "run-artifacts doc missing repair loop guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("collect-run-artifacts")) { throw "run-artifacts doc missing collector guidance" }
@@ -228,17 +232,38 @@ function Test-TemplateContract {
     if ($evaluationDoc -notmatch [regex]::Escape("evidence_refs")) { throw "evaluation doc missing evidence_refs guidance" }
     $evaluationTemplate = Get-Content -Raw .codex/templates/EVALUATION.md
     if ($evaluationTemplate -notmatch [regex]::Escape("evidence_refs")) { throw "evaluation template missing evidence_refs guidance" }
-    $hookDoc = Get-Content -Raw docs/reference/hook-observation.md
-    if ($hookDoc -notmatch [regex]::Escape("run.json.hook_observations")) { throw "hook observation doc missing manifest integration guidance" }
-    $subagentDoc = Get-Content -Raw docs/reference/subagent-observation.md
-    if ($subagentDoc -notmatch [regex]::Escape("implementation_worker")) { throw "subagent observation doc missing implementation_worker guidance" }
-    if ($subagentDoc -notmatch [regex]::Escape("allowed_files")) { throw "subagent observation doc missing allowed_files guidance" }
-    if ($subagentDoc -notmatch [regex]::Escape("changed_files")) { throw "subagent observation doc missing changed_files guidance" }
-    if ($subagentDoc -notmatch [regex]::Escape("parent_decision")) { throw "subagent observation doc missing parent_decision guidance" }
-    if ($subagentDoc -notmatch [regex]::Escape("used_in_final_plan")) { throw "subagent observation doc missing used_in_final_plan guidance" }
-    if ($subagentDoc -notmatch [regex]::Escape("run.json.subagents.records")) { throw "subagent observation doc missing manifest integration guidance" }
+    if (Test-Path docs/reference/hook-observation.md) { throw "legacy hook observation doc remains" }
+    if (Test-Path docs/reference/subagent-observation.md) { throw "legacy subagent observation doc remains" }
+
+    $reportTemplate = Get-Content -Raw .codex/templates/REPORT.md
+    if ($reportTemplate -notmatch [regex]::Escape("checkpoint")) { throw "REPORT template missing checkpoint contract" }
+    if ($reportTemplate -match [regex]::Escape("Evidence Record")) { throw "REPORT template still contains legacy action log section" }
+
+    $manifestTemplate = Get-Content -Raw .codex/templates/RUN_MANIFEST.json | ConvertFrom-Json
+    if ([int]$manifestTemplate.schema_version -ne 2) { throw "RUN_MANIFEST template must use schema v2" }
+    foreach ($property in @("agents_used", "hook_observations", "subagents")) {
+        if ($manifestTemplate.PSObject.Properties.Name -contains $property) { throw "v2 manifest contains removed field: $property" }
+    }
+    foreach ($property in @("hook_event_count", "subagent_run_count", "delete_attempt_blocked", "git_mutation_attempt_blocked")) {
+        if ($manifestTemplate.artifact_summary.PSObject.Properties.Name -contains $property -or
+            $manifestTemplate.safety.PSObject.Properties.Name -contains $property) {
+            throw "v2 manifest contains removed field: $property"
+        }
+    }
 
     $config = Get-Content -Raw .codex/config.toml
+    foreach ($event in @("UserPromptSubmit", "PostToolUse", "SubagentStart", "SubagentStop", "Stop")) {
+        $loggingMatch = [regex]::Match($config, "(?s)\[\[hooks\.$event\.hooks\]\](.*?)(?=\r?\n\[\[hooks\.|$)")
+        if (-not $loggingMatch.Success) { throw "missing logging Hook config: $event" }
+        $loggingBlock = $loggingMatch.Value
+        if ($loggingBlock -match '(?m)^\s*matcher\s*=') { throw "logging Hook must not define matcher: $event" }
+        if ($loggingBlock -notmatch '(?m)^\s*timeout\s*=\s*5\s*$') { throw "logging Hook timeout mismatch: $event" }
+        if ($loggingBlock -notmatch [regex]::Escape("log_event.mjs")) { throw "logging Hook logger missing: $event" }
+        if ($loggingBlock -notmatch [regex]::Escape("git rev-parse --show-toplevel")) { throw "logging Hook repo-root resolution missing: $event" }
+        if ($loggingBlock -notmatch [regex]::Escape("Join-Path (git rev-parse --show-toplevel)")) { throw "logging Hook Windows repo-root resolution missing: $event" }
+        if ($loggingBlock -notmatch [regex]::Escape("$event")) { throw "logging Hook expected event missing: $event" }
+    }
+
     if ($config -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "config missing workspace-write sandbox" }
     if ($config -match '(?m)^\s*approval_policy\s*=') { throw "project config must not set approval_policy" }
     if ($config -notmatch [regex]::Escape('web_search = "cached"')) { throw "config missing cached web_search" }
@@ -254,6 +279,12 @@ function Test-TemplateContract {
     if ($config -match '(?m)^\s*command\s*=\s*"[^"]*pre_tool_use_policy\.ps1') { throw "config references legacy PowerShell policy" }
     if ($config -match [regex]::Escape('codex_hooks = true')) { throw "config references deprecated hook feature key" }
     if ((Test-Path ".codex/hooks/pre_tool_use_policy.py") -or (Test-Path ".codex/hooks/pre_tool_use_policy.ps1")) { throw "legacy policy Hook file remains" }
+    if ((Test-Path ".codex/templates/hook-observation.schema.json") -or (Test-Path ".codex/templates/subagent-run.schema.json")) { throw "legacy artifact schema remains" }
+    if ((Test-Path ".codex/hooks/observe.ps1") -or (Test-Path ".codex/hooks/observe.sh")) { throw "legacy observer Hook remains" }
+    if ((Get-Content -Raw scripts/collect-run-artifacts.py) -match "collect_(hook_observations|subagents)") { throw "legacy collector aggregation remains" }
+    if ((Get-Content -Raw scripts/collect-run-artifacts.ps1) -match "HookLog|--hook-log") { throw "legacy HookLog collector contract remains" }
+    if ((Get-Content -Raw scripts/cleanup-runs.ps1) -match [regex]::Escape(".codex\observations\hooks.jsonl")) { throw "legacy observation cleanup branch remains" }
+    if ((Get-Content -Raw scripts/cleanup-runs.sh) -match [regex]::Escape(".codex/observations/hooks.jsonl")) { throw "legacy observation cleanup branch remains" }
 }
 
 function Test-StrictHarnessContract {

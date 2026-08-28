@@ -6,6 +6,12 @@
 
 標準の流れは `spec_ref` → `br_ids` / `ac_ids` → `risk_id` → `test_case_id` → `implementation_path` → `evidence` です。BR / ACなど複数IDは`;`で区切り、区切り前後の空白と同一Field内の重複を禁止します。`spec_ref`、`risk_id`、`test_case_id`などTraceをつなぐIDは、対応する対象がある行では必須です。BR / ACのように直接対応しないIDだけは空欄を許可します。
 
+## Test Case IDの形式
+
+`test_case_id`は`TC-<DOMAIN>-NNN`をCanonical形式とします。`<DOMAIN>`は1文字以上の大文字ASCII英数字、`NNN`はちょうど3桁の数字です。例: `TC-CART-001`、`TC-PRODUCT-001`。
+
+この形式は`test_case_id`の識別子にだけ適用します。Risk ID、AC ID、UI Test ID / `testId`の形式とは別の契約です。ValidatorのCanonical patternは`^TC-[A-Z0-9]+-\d{3}$`です。
+
 ## Progressive disclosure
 
 最初から全列を埋めません。

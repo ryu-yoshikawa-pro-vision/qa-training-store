@@ -5,24 +5,10 @@ import json
 from pathlib import Path
 
 
-HOOK_EVENTS = {
-    "PreToolUse",
-    "PostToolUse",
-    "SubagentStart",
-    "SubagentStop",
-    "Stop",
-    "WrapperStart",
-    "WrapperStop",
-    "SafetyBlocked",
-    "ObservationError",
-}
-
-
 def parse_args():
     parser = argparse.ArgumentParser(description="Aggregate run-local artifacts into run.json.")
     parser.add_argument("--run-id", required=True)
     parser.add_argument("--runs-root")
-    parser.add_argument("--hook-log", action="append", default=[])
     parser.add_argument("--manifest-path")
     parser.add_argument("--base-manifest")
     parser.add_argument("--strict", action="store_true")
@@ -68,13 +54,12 @@ def default_manifest(repo_root: Path, run_id: str):
         data = load_json(template_path)
     else:
         data = {
-            "schema_version": 1,
+            "schema_version": 2,
             "run_id": run_id,
             "task_type": "implementation",
             "workflow_level": "standard",
             "preset": "safe",
             "runtime": "host",
-            "agents_used": [],
             "repo": None,
             "branch": None,
             "base_branch": None,
@@ -83,32 +68,11 @@ def default_manifest(repo_root: Path, run_id: str):
             "validation": {"status": "not_run", "commands": [], "warnings": []},
             "safety": {
                 "network": False,
-                "delete_attempt_blocked": False,
-                "git_mutation_attempt_blocked": False,
                 "scope_violation": False,
             },
             "artifact_summary": {
                 "codex_task_report_count": 0,
-                "hook_event_count": 0,
-                "subagent_run_count": 0,
                 "evaluation_present": False,
-            },
-            "hook_observations": {
-                "log_paths": [],
-                "event_counts": {},
-                "blocking_event_count": 0,
-                "safety_blocked_count": 0,
-                "observation_error_count": 0,
-            },
-            "subagents": {
-                "records": [],
-                "summary": {
-                    "total": 0,
-                    "read_only": 0,
-                    "writable": 0,
-                    "scope_violations": 0,
-                    "used_in_final_plan": 0,
-                },
             },
             "evaluation_path": None,
             "status": "pending",
@@ -142,204 +106,6 @@ def merge_validation_status(base_status: str, commands, warnings):
     return base_status or "not_run"
 
 
-def safety_text(event):
-    parts = []
-    metadata = event.get("metadata")
-    if isinstance(metadata, dict):
-        for key in ("type", "kind", "category", "blocked_type", "operation"):
-            value = metadata.get(key)
-            if isinstance(value, str):
-                parts.append(value.lower())
-    decision = event.get("decision")
-    if isinstance(decision, dict):
-        reason = decision.get("reason")
-        if isinstance(reason, str):
-            parts.append(reason.lower())
-    tool = event.get("tool")
-    if isinstance(tool, dict):
-        for key in ("name", "operation", "target"):
-            value = tool.get(key)
-            if isinstance(value, str):
-                parts.append(value.lower())
-    return " ".join(parts)
-
-
-def collect_hook_observations(repo_root: Path, run_root: Path, run_id: str, explicit_logs):
-    summary = {
-        "log_paths": [],
-        "event_counts": {},
-        "blocking_event_count": 0,
-        "safety_blocked_count": 0,
-        "observation_error_count": 0,
-    }
-    warnings = []
-    safety = {"delete_attempt_blocked": False, "git_mutation_attempt_blocked": False}
-
-    default_hook_log = repo_root / ".codex" / "observations" / "hooks.jsonl"
-    candidate_paths = []
-    explicit_paths = []
-    for raw in explicit_logs:
-        path = Path(raw)
-        if not path.is_absolute():
-            path = repo_root / path
-        explicit_paths.append(path)
-        candidate_paths.append(path)
-    if default_hook_log.exists():
-        candidate_paths.append(default_hook_log)
-    logs_dir = run_root / "logs"
-    if logs_dir.exists():
-        candidate_paths.extend(sorted(logs_dir.glob("*.jsonl")))
-    candidate_paths = unique_list([str(path.resolve()) for path in candidate_paths if path.exists()])
-    explicit_markers = {str(path.resolve()) for path in explicit_paths}
-    if default_hook_log.exists():
-        explicit_markers.add(str(default_hook_log.resolve()))
-
-    for raw_path in candidate_paths:
-        path = Path(raw_path)
-        matched_in_file = 0
-        for index, line in enumerate(path.read_text(encoding="utf-8").splitlines(), start=1):
-            if not line.strip():
-                continue
-            try:
-                payload = json.loads(line)
-            except json.JSONDecodeError as exc:
-                if raw_path in explicit_markers:
-                    add_warning(
-                        warnings,
-                        "hook_observation_invalid_jsonl",
-                        repo_relative(repo_root, path),
-                        f"line {index}: {exc.msg}",
-                    )
-                continue
-            if not isinstance(payload, dict):
-                continue
-            event = payload.get("event")
-            if event not in HOOK_EVENTS or payload.get("run_id") != run_id:
-                continue
-            matched_in_file += 1
-            summary["event_counts"][event] = summary["event_counts"].get(event, 0) + 1
-            if payload.get("blocking") is True:
-                summary["blocking_event_count"] += 1
-            if event == "SafetyBlocked":
-                summary["safety_blocked_count"] += 1
-                text = safety_text(payload)
-                if "delete" in text or "remove-item" in text or " rm " in f" {text} ":
-                    safety["delete_attempt_blocked"] = True
-                if "git " in text or "git_" in text or "git-" in text:
-                    safety["git_mutation_attempt_blocked"] = True
-            if event == "ObservationError":
-                summary["observation_error_count"] += 1
-        if matched_in_file:
-            summary["log_paths"].append(repo_relative(repo_root, path))
-
-    summary["log_paths"] = unique_list(summary["log_paths"])
-    summary["event_counts"] = dict(sorted(summary["event_counts"].items()))
-    return summary, warnings, safety
-
-
-def collect_subagents(repo_root: Path, run_root: Path, run_id: str):
-    records = []
-    warnings = []
-    changed_files = []
-    agents_used = []
-    subagents_dir = run_root / "subagents"
-    if not subagents_dir.exists():
-        return {
-            "records": [],
-            "summary": {
-                "total": 0,
-                "read_only": 0,
-                "writable": 0,
-                "scope_violations": 0,
-                "used_in_final_plan": 0,
-            },
-        }, warnings, changed_files, agents_used
-
-    summary = {
-        "total": 0,
-        "read_only": 0,
-        "writable": 0,
-        "scope_violations": 0,
-        "used_in_final_plan": 0,
-    }
-
-    for path in sorted(subagents_dir.glob("*.json")):
-        try:
-            payload = load_json(path)
-        except (OSError, json.JSONDecodeError) as exc:
-            add_warning(warnings, "subagent_invalid_json", repo_relative(repo_root, path), str(exc))
-            continue
-
-        if not isinstance(payload, dict):
-            add_warning(warnings, "subagent_invalid_json", repo_relative(repo_root, path), "Top-level JSON must be an object")
-            continue
-
-        if payload.get("parent_run_id") != run_id:
-            add_warning(
-                warnings,
-                "subagent_parent_run_mismatch",
-                repo_relative(repo_root, path),
-                f"parent_run_id={payload.get('parent_run_id')!r}",
-            )
-            continue
-
-        allowed_files = payload.get("allowed_files") if isinstance(payload.get("allowed_files"), list) else []
-        file_changes = payload.get("changed_files") if isinstance(payload.get("changed_files"), list) else []
-        mode = payload.get("mode")
-        scope = payload.get("scope") if isinstance(payload.get("scope"), dict) else {}
-        scope_compliant = scope.get("compliant")
-        used_in_final_plan = payload.get("used_in_final_plan") is True
-        parent_decision = payload.get("parent_decision") if isinstance(payload.get("parent_decision"), dict) else {}
-        agent = payload.get("agent") if isinstance(payload.get("agent"), dict) else {}
-        agent_name = agent.get("name")
-
-        if mode == "writable" and len(allowed_files) == 0:
-            add_warning(
-                warnings,
-                "subagent_writable_missing_allowed_files",
-                repo_relative(repo_root, path),
-                "writable subagent should declare allowed_files",
-            )
-        if mode == "read_only" and len(file_changes) != 0:
-            add_warning(
-                warnings,
-                "subagent_read_only_changed_files",
-                repo_relative(repo_root, path),
-                "read-only subagent should have changed_files=[]",
-            )
-
-        records.append(
-            {
-                "path": repo_relative(repo_root, path),
-                "subagent_run_id": payload.get("subagent_run_id"),
-                "agent_name": agent_name,
-                "role": payload.get("role"),
-                "mode": mode,
-                "status": payload.get("status"),
-                "allowed_files_count": len(allowed_files),
-                "changed_files_count": len(file_changes),
-                "scope_compliant": scope_compliant,
-                "used_in_final_plan": used_in_final_plan,
-                "parent_decision": parent_decision.get("action"),
-            }
-        )
-        changed_files.extend(normalize_repo_path(item) for item in file_changes if isinstance(item, str) and item)
-        if isinstance(agent_name, str) and agent_name:
-            agents_used.append(agent_name)
-
-        summary["total"] += 1
-        if mode == "read_only":
-            summary["read_only"] += 1
-        if mode == "writable":
-            summary["writable"] += 1
-        if scope_compliant is False:
-            summary["scope_violations"] += 1
-        if used_in_final_plan:
-            summary["used_in_final_plan"] += 1
-
-    return {"records": records, "summary": summary}, warnings, unique_list(changed_files), unique_list(agents_used)
-
-
 def collect_report_paths(repo_root: Path, run_root: Path):
     reports_dir = run_root / "reports"
     if not reports_dir.exists():
@@ -359,27 +125,58 @@ def load_manifest_candidate(path: Path):
 
 def merge_manifests(default_data, existing_data, base_data):
     manifest = copy.deepcopy(default_data)
+    existing_is_v1 = isinstance(existing_data, dict) and existing_data.get("schema_version") == 1
+    if existing_data is not None:
+        legacy_source = existing_data if existing_is_v1 else None
+    else:
+        base_is_v1 = isinstance(base_data, dict) and base_data.get("schema_version") == 1
+        legacy_source = base_data if base_is_v1 else None
+    manifest["schema_version"] = 1 if legacy_source is not None else 2
+    if legacy_source is None:
+        for key in ("agents_used", "hook_observations", "subagents"):
+            manifest.pop(key, None)
+        safety = manifest.get("safety")
+        if isinstance(safety, dict):
+            for key in ("delete_attempt_blocked", "git_mutation_attempt_blocked"):
+                safety.pop(key, None)
+        summary = manifest.get("artifact_summary")
+        if isinstance(summary, dict):
+            for key in ("hook_event_count", "subagent_run_count"):
+                summary.pop(key, None)
+
     for source in (base_data or {}, existing_data or {}):
-        for key in ("schema_version", "run_id", "task_type", "workflow_level", "preset", "runtime", "repo", "branch", "base_branch", "evaluation_path", "status", "primary_failure_category"):
+        for key in ("run_id", "task_type", "workflow_level", "preset", "runtime", "repo", "branch", "base_branch", "evaluation_path", "status", "primary_failure_category"):
             value = source.get(key)
             if value is not None:
-                manifest[key] = value
-        if "agents_used" in source and isinstance(source.get("agents_used"), list):
-            manifest["agents_used"] = source.get("agents_used")
+                manifest[key] = copy.deepcopy(value)
         if "codex_task_reports" in source and isinstance(source.get("codex_task_reports"), list):
-            manifest["codex_task_reports"] = source.get("codex_task_reports")
+            manifest["codex_task_reports"] = copy.deepcopy(source.get("codex_task_reports"))
         if "changed_files" in source and isinstance(source.get("changed_files"), list):
-            manifest["changed_files"] = source.get("changed_files")
+            manifest["changed_files"] = copy.deepcopy(source.get("changed_files"))
         if "validation" in source and isinstance(source.get("validation"), dict):
-            manifest["validation"] = source.get("validation")
+            manifest["validation"] = copy.deepcopy(source.get("validation"))
         if "safety" in source and isinstance(source.get("safety"), dict):
-            manifest["safety"] = source.get("safety")
+            manifest.setdefault("safety", {})["network"] = bool(source["safety"].get("network"))
+            manifest.setdefault("safety", {})["scope_violation"] = bool(source["safety"].get("scope_violation"))
         if "artifact_summary" in source and isinstance(source.get("artifact_summary"), dict):
-            manifest["artifact_summary"] = source.get("artifact_summary")
-        if "hook_observations" in source and isinstance(source.get("hook_observations"), dict):
-            manifest["hook_observations"] = source.get("hook_observations")
-        if "subagents" in source and isinstance(source.get("subagents"), dict):
-            manifest["subagents"] = source.get("subagents")
+            for key in ("codex_task_report_count", "evaluation_present"):
+                if key in source["artifact_summary"]:
+                    manifest.setdefault("artifact_summary", {})[key] = copy.deepcopy(source["artifact_summary"][key])
+
+    if legacy_source is not None:
+        for key in ("agents_used", "hook_observations", "subagents"):
+            if key in legacy_source:
+                manifest[key] = copy.deepcopy(legacy_source[key])
+        legacy_safety = legacy_source.get("safety")
+        if isinstance(legacy_safety, dict):
+            for key in ("delete_attempt_blocked", "git_mutation_attempt_blocked"):
+                if key in legacy_safety:
+                    manifest.setdefault("safety", {})[key] = copy.deepcopy(legacy_safety[key])
+        legacy_summary = legacy_source.get("artifact_summary")
+        if isinstance(legacy_summary, dict):
+            for key, value in legacy_summary.items():
+                if key not in ("codex_task_report_count", "evaluation_present"):
+                    manifest.setdefault("artifact_summary", {})[key] = copy.deepcopy(value)
     return manifest
 
 
@@ -417,26 +214,13 @@ def main():
         [normalize_repo_path(item) for item in manifest.get("codex_task_reports", []) if isinstance(item, str)] + report_paths
     )
 
-    subagents, subagent_warnings, subagent_changed_files, subagent_agents = collect_subagents(repo_root, run_root, args.run_id)
-    validation_warnings.extend(subagent_warnings)
-    manifest["subagents"] = subagents
-
-    hook_summary, hook_warnings, safety_updates = collect_hook_observations(repo_root, run_root, args.run_id, args.hook_log)
-    validation_warnings.extend(hook_warnings)
-    manifest["hook_observations"] = hook_summary
-
     manifest["changed_files"] = unique_list(
-        [normalize_repo_path(item) for item in manifest.get("changed_files", []) if isinstance(item, str)] + subagent_changed_files
-    )
-    manifest["agents_used"] = unique_list(
-        [item for item in manifest.get("agents_used", []) if isinstance(item, str) and item] + subagent_agents
+        [normalize_repo_path(item) for item in manifest.get("changed_files", []) if isinstance(item, str)]
     )
 
     safety = manifest.get("safety") if isinstance(manifest.get("safety"), dict) else {}
     safety["network"] = bool(safety.get("network"))
-    safety["delete_attempt_blocked"] = bool(safety.get("delete_attempt_blocked")) or safety_updates["delete_attempt_blocked"]
-    safety["git_mutation_attempt_blocked"] = bool(safety.get("git_mutation_attempt_blocked")) or safety_updates["git_mutation_attempt_blocked"]
-    safety["scope_violation"] = bool(safety.get("scope_violation")) or subagents["summary"]["scope_violations"] > 0
+    safety["scope_violation"] = bool(safety.get("scope_violation"))
     manifest["safety"] = safety
 
     evaluation_path = run_root / "evaluation.json"
@@ -464,12 +248,17 @@ def main():
         "commands": unique_list(validation_commands),
         "warnings": unique_list(validation_warnings),
     }
-    manifest["artifact_summary"] = {
+    artifact_summary = {
         "codex_task_report_count": len(manifest["codex_task_reports"]),
-        "hook_event_count": sum(hook_summary["event_counts"].values()),
-        "subagent_run_count": subagents["summary"]["total"],
         "evaluation_present": evaluation_present,
     }
+    if manifest.get("schema_version") == 1:
+        existing_summary = manifest.get("artifact_summary")
+        if isinstance(existing_summary, dict):
+            for key, value in existing_summary.items():
+                if key not in artifact_summary:
+                    artifact_summary[key] = copy.deepcopy(value)
+    manifest["artifact_summary"] = artifact_summary
 
     manifest_path.parent.mkdir(parents=True, exist_ok=True)
     manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=True) + "\n", encoding="utf-8")

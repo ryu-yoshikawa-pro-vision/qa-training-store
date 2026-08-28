@@ -13,6 +13,10 @@
 - `scripts/codex-safe.ps1|sh`
   - 手動対話用の安全 wrapper。
   - preflight、危険引数拒否、sandbox/approval 固定、JSONL ログを提供する。
+- `.codex/config.toml` / `.codex/hooks/log_event.mjs`
+  - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`を同じNode loggerへ接続する。
+  - Logging Hookはmatcherなし、timeout 5秒、repository root基準で起動し、session単位の`.codex/logs/hooks-<safe-session-id>.jsonl`へ保存する。
+  - 既存のSafety `PreToolUse` / Bash matcherは独立したblocking経路として維持する。
 - `scripts/codex-task.ps1|sh`
   - 非対話 `codex exec` 用 wrapper。
   - 実行順は `preflight -> codex exec -> output/schema check -> verify -> report`。
@@ -72,8 +76,8 @@
 - `--run-id <run_id>`
 - `--record-run-manifest`
 - `scripts/collect-run-artifacts.ps1|sh`
-  - run-local artifact を再走査して `run.json` summary を再集約する helper。
-  - `codex-task` からも利用され、report / hook / subagent / evaluation の path と count を更新する。
+  - run-localの`codex-task` reportとevaluationを再走査して、`run.json`の非廃止summaryを更新するhelper。
+  - Hook JSONLやSubagent専用Artifactは再走査・集約しない。
 - `--verify-command <cmd>`
 - `--allow-search`
 - `--skip-preflight`
@@ -123,7 +127,8 @@
   - `--run-id` 指定時: `.codex/runs/<run_id>/logs/codex-task-YYYYMMDD-HHMMSS.jsonl`
 - run manifest:
   - `--record-run-manifest` 指定時のみ `.codex/runs/<run_id>/run.json` を更新する
-  - report / hook / subagent / evaluation summary は `collect-run-artifacts.*` により再集約される
+  - 新規manifestはschema v2とし、report count、changed files、validation、network / scope、evaluationだけをsummaryする
+  - Hook JSONLはsession scopeのまま保持し、`run.json`へ新規集約しない。既存v1はlegacy field valueだけを保持する
   - `validation.warnings` に non-fatal warning を記録できる
   - `expected-missing=warn` を使った場合は `validation.status = "passed_with_warnings"` になる
 
@@ -146,6 +151,8 @@
 - writable subagent は原則 1 タスクにつき 1 つだけ使う。
 - `implementation_worker` の実装後は、親 agent が diff、仕様判断、未検証点、検証結果を確認する。
 - `implementation_worker` は削除、rename、移動、git mutation、delete / rename を含む patch operation、スコープ外リファクタリングを行わない。
+- Subagentの開始・終了のmachine factはHook JSONLへ記録し、専用Structured Artifactは作成しない。
+- Subagentを利用した場合、次のTASK完了またはRun完了checkpointのREPORTへ`Delegation`、`Result`、`Parent decision`だけを一度記録する。`SubagentStop` / `Stop`から最終終了やsuccess / failureを推測しない。
 
 ## 推奨フロー
 

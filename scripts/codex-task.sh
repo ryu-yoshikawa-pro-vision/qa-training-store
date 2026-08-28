@@ -521,13 +521,12 @@ write_run_manifest() {
   ensure_parent_dir "$manifest_path"
   manifest_json="$(cat <<EOF
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "run_id": "$(json_escape "$run_id")",
   "task_type": "$(json_escape "$task_type")",
   "workflow_level": "$(json_escape "$workflow_level")",
   "preset": "$(json_escape "$preset")",
   "runtime": "$(json_escape "$runtime")",
-  "agents_used": [],
   "repo": null,
   "branch": $(if [[ -n "$branch" ]]; then printf '"%s"' "$(json_escape "$branch")"; else printf 'null'; fi),
   "base_branch": null,
@@ -542,32 +541,11 @@ write_run_manifest() {
   },
   "safety": {
     "network": $network_enabled,
-    "delete_attempt_blocked": false,
-    "git_mutation_attempt_blocked": false,
     "scope_violation": $safety_scope_violation
   },
   "artifact_summary": {
     "codex_task_report_count": 0,
-    "hook_event_count": 0,
-    "subagent_run_count": 0,
     "evaluation_present": false
-  },
-  "hook_observations": {
-    "log_paths": [],
-    "event_counts": {},
-    "blocking_event_count": 0,
-    "safety_blocked_count": 0,
-    "observation_error_count": 0
-  },
-  "subagents": {
-    "records": [],
-    "summary": {
-      "total": 0,
-      "read_only": 0,
-      "writable": 0,
-      "scope_violations": 0,
-      "used_in_final_plan": 0
-    }
   },
   "evaluation_path": $(json_nullable_string "$evaluation_path"),
   "status": "$(json_escape "$run_status")",
@@ -604,7 +582,6 @@ def uniq(values):
     return result
 
 
-current["agents_used"] = uniq(existing.get("agents_used", []) + current.get("agents_used", []))
 current["codex_task_reports"] = uniq(existing.get("codex_task_reports", []) + current.get("codex_task_reports", []))
 current["changed_files"] = uniq(existing.get("changed_files", []) + current.get("changed_files", []))
 
@@ -616,7 +593,7 @@ current["validation"] = current_validation
 
 current_safety = current.get("safety", {})
 existing_safety = existing.get("safety", {})
-for key in ("network", "delete_attempt_blocked", "git_mutation_attempt_blocked", "scope_violation"):
+for key in ("network", "scope_violation"):
     current_safety[key] = bool(current_safety.get(key)) or bool(existing_safety.get(key))
 current["safety"] = current_safety
 
@@ -624,9 +601,19 @@ if current.get("evaluation_path") is None and existing.get("evaluation_path") is
     current["evaluation_path"] = existing.get("evaluation_path")
 if current.get("primary_failure_category") is None and existing.get("primary_failure_category") is not None:
     current["primary_failure_category"] = existing.get("primary_failure_category")
-for key in ("artifact_summary", "hook_observations", "subagents"):
-    if key in existing:
-        current[key] = existing[key]
+if existing.get("schema_version") == 1:
+    current["schema_version"] = 1
+    for key in ("agents_used", "hook_observations", "subagents"):
+        if key in existing:
+            current[key] = existing[key]
+    for key in ("delete_attempt_blocked", "git_mutation_attempt_blocked"):
+        if key in existing_safety:
+            current_safety[key] = existing_safety[key]
+    existing_summary = existing.get("artifact_summary", {})
+    if isinstance(existing_summary, dict):
+        for key, value in existing_summary.items():
+            if key not in ("codex_task_report_count", "evaluation_present"):
+                current.setdefault("artifact_summary", {})[key] = value
 
 print(json.dumps(current, ensure_ascii=True, indent=2))
 PY

@@ -44,6 +44,8 @@ Canonical templateは `training/workbook/01_target-risk.csv`、`02_test-cases.cs
 
 複数のBR / ACは `;` で区切ります。対象・Risk・Test Caseをつなぐ主IDは空欄にせず、BR / ACなど直接対応するIDがない列だけ空欄を許容します。`implementation_path`は未実装またはDo not automateで実装Pathが存在しない場合、`evidence`は未実行の場合、`failure_category`はPass / Not runの場合に空欄にできます。`cause` / `action` / `improvement`は調査の進捗に応じて追加します。未実在のPathやEvidenceでセルを埋めません。
 
+Test Case IDの形式は[Training Workbook README](../../../training/workbook/README.md)を参照し、以下では具体例だけを示します。
+
 この4つのファイルがCanonical CSVです。後述する8つのSheet風設計ビューは、4つのCSVを設計上見やすく分けた**conceptual design views**であり、8つのCanonical CSVや8つの必須成果物を意味しません。
 
 | 設計ビュー | Canonical CSV |
@@ -139,7 +141,7 @@ Canonical templateは `training/workbook/01_target-risk.csv`、`02_test-cases.cs
 
 | Column | 例 |
 | --- | --- |
-| Test Case ID | `CART-001` |
+| Test Case ID | `TC-CART-001` |
 | 対象機能 | Cart追加 |
 | Risk ID | `RISK-CART-01` |
 | テスト条件 | 在庫あり商品をGuestが追加する |
@@ -171,7 +173,7 @@ Part 1では実行頻度は参考情報として扱い、PR / main / Nightlyの�
 
 | Column | 内容 |
 | --- | --- |
-| Test Case ID | `CART-001` |
+| Test Case ID | `TC-CART-001` |
 | Test Layer | Unit / Integration / Repository Contract / Component / Web E2E / Native E2E |
 | Platform | Shared / Web / Android / iOS |
 | Tool | Vitest / Jest / Playwright / Maestro / Other |
@@ -339,10 +341,10 @@ Scenario ShopのCartについて、コードを見る前に実際の画面を操
 
 | Test Case ID | 条件 | 初期状態 | 設計根拠 | 期待結果 |
 | --- | --- | --- | --- | --- |
-| CART-001 | 在庫あり商品を追加 | default | 正常系 | Cartへ追加される |
-| CART-002 | 在庫切れ商品を追加 | out-of-stock | 状態分割 | 追加できない |
-| CART-003 | 購入上限を超える | default | 境界値 | 上限超過が拒否される |
-| CART-004 | 商品を削除 | default | 状態遷移 | Empty Stateになる |
+| TC-CART-001 | 在庫あり商品を追加 | default | 正常系 | Cartへ追加される |
+| TC-CART-002 | 在庫切れ商品を追加 | out-of-stock | 状態分割 | 追加できない |
+| TC-CART-003 | 購入上限を超える | default | 境界値 | 上限超過が拒否される |
+| TC-CART-004 | 商品を削除 | default | 状態遷移 | Empty Stateになる |
 
 ケース数を増やすことより、なぜその条件が必要かを説明できることを重視します。
 
@@ -365,7 +367,7 @@ Scenario ShopのCartについて、コードを見る前に実際の画面を操
 例:
 
 ```ts
-// CART-002
+// TC-CART-002
 
 test("在庫切れ商品はカートへ追加できない", async ({ page }) => {
   // ...

@@ -169,10 +169,6 @@ if [[ -d ".codex/logs" ]]; then
   done < <(find ".codex/logs" -mindepth 1 -maxdepth 1 -type f -name '*.jsonl' -print0 2>/dev/null)
 fi
 
-if [[ -f ".codex/observations/hooks.jsonl" || -L ".codex/observations/hooks.jsonl" ]]; then
-  add_candidate "hook_log" ".codex/observations/hooks.jsonl"
-fi
-
 echo "MODE: $(if (( preview_only )); then printf 'preview'; else printf 'delete'; fi)"
 if [[ -n "$older_than_days" ]]; then
   echo "OLDER_THAN_DAYS: $older_than_days"

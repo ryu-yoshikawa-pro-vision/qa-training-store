@@ -31,3 +31,43 @@ command = "node \"$(git rev-parse --show-toplevel)/.codex/hooks/pre_tool_use_pol
 command_windows = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -File "$(git rev-parse --show-toplevel)\\.codex\\hooks\\pre_tool_use_policy_windows.ps1"'
 timeout = 30
 statusMessage = "Checking Bash command safety policy"
+
+[[hooks.UserPromptSubmit]]
+
+[[hooks.UserPromptSubmit.hooks]]
+type = "command"
+command = "node \"$(git rev-parse --show-toplevel)/.codex/hooks/log_event.mjs\" UserPromptSubmit"
+command_windows = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "node (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) UserPromptSubmit"'
+timeout = 5
+
+[[hooks.PostToolUse]]
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = "node \"$(git rev-parse --show-toplevel)/.codex/hooks/log_event.mjs\" PostToolUse"
+command_windows = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "node (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) PostToolUse"'
+timeout = 5
+
+[[hooks.SubagentStart]]
+
+[[hooks.SubagentStart.hooks]]
+type = "command"
+command = "node \"$(git rev-parse --show-toplevel)/.codex/hooks/log_event.mjs\" SubagentStart"
+command_windows = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "node (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) SubagentStart"'
+timeout = 5
+
+[[hooks.SubagentStop]]
+
+[[hooks.SubagentStop.hooks]]
+type = "command"
+command = "node \"$(git rev-parse --show-toplevel)/.codex/hooks/log_event.mjs\" SubagentStop"
+command_windows = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "node (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) SubagentStop"'
+timeout = 5
+
+[[hooks.Stop]]
+
+[[hooks.Stop.hooks]]
+type = "command"
+command = "node \"$(git rev-parse --show-toplevel)/.codex/hooks/log_event.mjs\" Stop"
+command_windows = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "node (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) Stop"'
+timeout = 5
