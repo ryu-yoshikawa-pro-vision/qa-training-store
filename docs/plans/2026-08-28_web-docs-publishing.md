@@ -2,14 +2,16 @@
 
 ## 目的
 
-現在の Markdown を正本として維持したまま、Scenario Shop の既存 Web デプロイ成果物から仕様書とテスト自動化カリキュラムを閲覧できるようにする。
+現在の Markdown と画像を正本として維持したまま、Scenario Shop の既存 Web デプロイ成果物から仕様書とテスト自動化カリキュラムを閲覧できるようにする。
 
 対象は次のとおり。
 
 - 仕様書: `docs/spec/**/*.md`
+- 仕様書画像: `docs/spec/assets/**`
 - テスト自動化カリキュラム: `docs/curriculum/test-automation/**/*.md`
+- カリキュラム画像: `docs/curriculum/test-automation/assets/**`
 
-Web 表示用の Markdown を別管理せず、ビルド時に静的 HTML を生成して既存の `dist/` に同梱する。
+Web 表示用の Markdown や画像を別管理せず、ビルド時に静的 HTML と必要な画像を既存の `dist/` に同梱する。
 
 ## 完了時の状態
 
@@ -27,12 +29,20 @@ docs/spec/README.md
 docs/spec/features/cart.md
   -> dist/docs/spec/features/cart.html
 
+docs/spec/assets/**
+  -> dist/docs/spec/assets/**
+
 docs/curriculum/test-automation/README.md
   -> dist/docs/curriculum/index.html
 
 docs/curriculum/test-automation/part1/04_playwright-foundations.md
   -> dist/docs/curriculum/part1/04_playwright-foundations.html
+
+docs/curriculum/test-automation/assets/**
+  -> dist/docs/curriculum/assets/**
 ```
+
+Markdown 内の画像は、元画像の縦横比を保ち、本文幅を超えない形で Web 上に表示できること。
 
 ## 実装前提
 
@@ -42,28 +52,46 @@ docs/curriculum/test-automation/part1/04_playwright-foundations.md
 - Docs も既存 Scenario Shop と同じ閲覧範囲で配信する。
 - `pnpm run build:spec` と既定出力 `output/spec-site` は維持する。
 - `docs/curriculum/test-automation/README.md` の本文をカリキュラムの入口・学習順の正本として扱う。
+- 仕様書の既存 `docs/spec/assets/**` / image resolver / asset copy 契約を維持する。
 - 実装開始時に最新 `main` を取り込み、`package.json` 等の main 側更新を巻き戻さない。
 - Docs は build artifact として配信する。通常の `pnpm start:web` で Docs を配信する対応は今回行わない。ローカル確認は `pnpm run build:web` 後の `scripts/serve-web-dist.ts` を使用する。
 
 ## 実装内容
 
-### 1. Markdown の配置を変更しない
+### 1. Markdown と画像の正本配置を変更しない
 
 `docs/spec/` と `docs/curriculum/test-automation/` は移動・複製しない。
+
+画像の正本は次に置く。
+
+```text
+Specification: docs/spec/assets/**
+Curriculum:    docs/curriculum/test-automation/assets/**
+```
+
+Markdown からは各文書を基準とした相対パスで画像を参照する。
 
 次は実施しない。
 
 - Markdown を `app/` や `public/` へ複製する
 - Web 表示用 JSON / Markdown を別管理する
+- Web 表示専用の画像コピーを Repository 内に別管理する
 - ブラウザから GitHub API / Raw GitHub を取得して本文を表示する
 - Docusaurus、VitePress、MkDocs 等を導入する
 - Docs のために Expo Router の出力方式を変更する
 
-### 2. 現在使用している Markdown 表現だけを確認する
+### 2. 現在使用している Markdown 表現を既存 renderer で扱う
 
-実装開始時に、対象 Markdown で現在使用している構文、Markdown リンク、ローカル画像の有無を確認する。
+実装開始時に対象 Markdown で現在使用している構文、Markdown リンク、画像記法を確認する。
 
-既存 renderer で扱えない表現がある場合も、現在の文書を表示するために必要な処理だけを追加する。
+既存 renderer で扱えない表現がある場合も、現在の文書と画像を表示するために必要な処理だけを追加する。
+
+画像は既存 `renderInline()` が扱う通常の Markdown image と linked image の表示を維持する。
+
+```md
+![alt](relative/image.webp)
+[![alt](relative/image.webp)](relative/image.webp)
+```
 
 次は行わない。
 
@@ -71,22 +99,22 @@ docs/curriculum/test-automation/part1/04_playwright-foundations.md
 - Markdown compatibility matrix 等の追加成果物作成
 - 新しい Markdown framework の導入
 - 小規模な拡張で対応可能な段階での新しい Markdown parser 導入
+- 画像変換・圧縮・リサイズ・サムネイル生成 pipeline の追加
 
 ### 3. 既存 Specification renderer の汎用部分だけを再利用可能にする
 
 既存 `scripts/spec/build-spec.ts` には、Specification 固有処理と Markdown の汎用描画処理が同居している。
 
-Curriculum 用に同じ renderer を複製せず、次の汎用部分だけを `scripts/spec/markdown.ts` から再利用できる状態にする。
+Curriculum 用に同じ renderer を複製せず、`scripts/spec/build-spec.ts` にある次の汎用描画処理を `scripts/spec/markdown.ts` へ小さく移動・exportし、Specification と Curriculum の双方から再利用する。
 
 - Markdown 本文の HTML 描画
 - heading / table / list / code block / blockquote の描画
 - TOC 描画
 - 共通 CSS
 - `renderInline()` を含む inline Markdown 描画
+- 画像の HTML 描画と responsive 表示用 CSS
 
-必要に応じて `scripts/spec/build-spec.ts` からこれらを `scripts/spec/markdown.ts` へ小さく移動・exportする。
-
-汎用 renderer は link resolver と image resolver を引数で受け取れる形にし、Specification と Curriculum のリンク規則を混在させない。
+汎用 renderer は link resolver と image resolver を引数で受け取れる形にし、Specification と Curriculum のリンク・画像規則を混在させない。
 
 Specification 固有の次の処理は `scripts/spec/build-spec.ts` に残す。
 
@@ -95,11 +123,14 @@ Specification 固有の次の処理は `scripts/spec/build-spec.ts` に残す。
 - Specification navigation の適用・描画
 - `Normative Product Behavior` / `Supporting / Operational` 判定・表示
 - Specification 用 page shell / brand
-- Specification asset 制約
+- Specification image resolver
+- `docs/spec/assets/**` の asset copy と asset 制約
 
 既存 `scripts/spec/markdown.ts` の `extractNavigation()` の配置は変更しない。Curriculum 生成では使用せず、Specification navigation の適用・描画だけを既存どおり `scripts/spec/build-spec.ts` に残す。
 
-既存 CSS は今回の表示に必要な範囲でそのまま再利用し、CSS 構造の再設計・細分化・Design System 化は行わない。
+既存 CSS の画像表示契約である `max-width: 100%` / `height: auto` を維持し、幅の大きいスクリーンショットが文書領域を突き抜けないようにする。
+
+CSS 構造の再設計・細分化・Design System 化は行わない。
 
 `buildSpecSite({ outputDir })` の既存 API と `pnpm run build:spec` の出力・挙動を維持する。
 
@@ -112,8 +143,9 @@ Specification 固有の次の処理は `scripts/spec/build-spec.ts` に残す。
 `pnpm run build:docs` で次を実行する。
 
 1. `dist/docs` だけを削除する。
-2. `buildSpecSite({ outputDir: "dist/docs/spec" })` で Specification を生成する。
+2. `buildSpecSite({ outputDir: "dist/docs/spec" })` で Specification HTML と既存 Specification assets を生成する。
 3. `docs/curriculum/test-automation/**/*.md` を再帰的に読み、`dist/docs/curriculum/**` へ Curriculum HTML を生成する。
+4. `docs/curriculum/test-automation/assets/**` が存在する場合は、ディレクトリ階層を維持して `dist/docs/curriculum/assets/**` へ再帰的にコピーする。
 
 `dist/index.html`、`dist/_expo/**` 等は削除しない。
 
@@ -127,17 +159,30 @@ Curriculum は次の契約とする。
 - `README.md` 本文の「全体構成」をそのまま入口・学習順として使う。
 - Specification 固有 label / navigation は表示しない。
 - HTML `<title>` は Markdown の最初の H1 を使い、`<H1> — Scenario Shop Test Automation Curriculum` の形式とする。
+- Curriculum Markdown に H1 が存在しない場合は build を失敗させ、ファイル名等への fallback は行わない。
 - header brand は `Scenario Shop Test Automation Curriculum` とし、`/docs/curriculum/` へのリンクにする。
 - 本文の H1 以下は Markdown 本文をそのまま使用し、別の H1 を追加しない。
 - Prev / Next や専用 navigation data は追加しない。
 
 Curriculum 用 page shell は `scripts/docs/build-docs.ts` 内に最小限実装し、本文 renderer と共通 CSS は前項の既存汎用処理を再利用する。
 
-### 5. Specification 内部リンクは既存処理を変更しない
+### 5. Specification 内部リンクと画像契約は既存処理を変更しない
 
 Specification 内の Markdown リンク変換は既存 `buildSpecSite()` に任せる。
 
 今回のために Specification の既存相対 URL 生成を root-absolute URL へ変更しない。
+
+Specification のローカル画像は既存どおり `docs/spec/assets/**` 内だけを許可し、`buildSpecSite()` が output directory の `assets/**` へコピーする。
+
+そのため次の両方で同じ画像が表示されること。
+
+```text
+pnpm run build:spec
+  -> output/spec-site/assets/**
+
+pnpm run build:docs
+  -> dist/docs/spec/assets/**
+```
 
 `output/spec-site` と `dist/docs/spec` は同じ `buildSpecSite()` の出力先違いとして扱う。
 
@@ -208,9 +253,48 @@ https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/blob/main/<reposit
 
 既存の `validate:spec` と `validate:curriculum` を継続利用する。前述の存在確認は Curriculum HTML のリンク生成処理自身の fail-fast とし、新しい validator suite は追加しない。
 
-ローカル画像が Curriculum に現在存在する場合だけ、表示に必要な画像を `dist/docs/curriculum` 配下へコピーして参照を維持する。存在しない場合は Curriculum 用 asset pipeline を追加しない。
+### 7. Curriculum の画像解決・コピー規則を固定する
 
-### 7. `build:web` の Expo export 後に `build:docs` を追加する
+Curriculum のローカル画像は `docs/curriculum/test-automation/assets/**` を正本とする。
+
+Markdown 内の相対画像参照は、リンク元 Markdown のディレクトリを基準に解決し、次を満たす場合だけ Web 用 URL に変換する。
+
+1. 解決結果が Repository root 外へ逸脱しない。
+2. 解決結果が `docs/curriculum/test-automation/assets/**` 配下である。
+3. 対象画像ファイルが実在する。
+
+条件を満たさないローカル画像参照は build を失敗させる。存在しない画像を生成 HTML に残して broken image にしない。
+
+ローカル画像はディレクトリ階層とファイル名を変更せず次へコピーする。
+
+```text
+docs/curriculum/test-automation/assets/**
+  -> dist/docs/curriculum/assets/**
+```
+
+生成 HTML の `img src` と、既存 linked-image 表現で画像自身を開く `href` は、現在の HTML ファイルからコピー後画像への相対 URL にする。
+
+`https:` / `http:` / `//` の外部画像 URL はコピーせず、その URL をそのまま使用する。
+
+画像表示は共通 CSS を使い、少なくとも次を満たす。
+
+- `max-width: 100%`
+- `height: auto`
+- alt text を Markdown から維持する
+- 既存 `loading="lazy"` を維持する
+- linked image はクリックして元画像を開ける
+
+今回、画像について次は実装しない。
+
+- 画像の再エンコード
+- サイズ別画像生成
+- 自動圧縮
+- CDN / object storage への分離
+- image manifest
+- lightbox / gallery
+- 画像専用 component framework
+
+### 8. `build:web` の Expo export 後に `build:docs` を追加する
 
 `package.json` に `build:docs` を追加する。
 
@@ -236,7 +320,7 @@ build:docs
 - `verify` の既存 `build:spec` は削除しない。
 - `verify` では `build:web -> build:docs` と後続 `build:spec` により Specification が 2 回生成されることを許容し、既存 `output/spec-site` artifact 契約を優先する。
 
-### 8. `serve-web-dist.ts` で directory index を配信する
+### 9. `serve-web-dist.ts` で directory index を配信する
 
 既存ローカル静的サーバーの path 解決順を次にする。
 
@@ -252,6 +336,8 @@ build:docs
 /docs/curriculum/ -> dist/docs/curriculum/index.html
 /products         -> dist/index.html
 ```
+
+画像要求は通常ファイル配信として処理し、`dist/docs/spec/assets/**` と `dist/docs/curriculum/assets/**` をそのまま返す。
 
 既存の path traversal 防止、symlink 対応、GET / HEAD 制約は変更しない。
 
@@ -278,11 +364,15 @@ pnpm run build:web
 dist/index.html
 dist/docs/spec/index.html
 dist/docs/spec/features/cart.html
+dist/docs/spec/ui-ux-contract.html
+dist/docs/spec/assets/screens/SCREEN-BOUNDARY-NOT-FOUND/default/web-desktop.webp
 dist/docs/curriculum/index.html
 dist/docs/curriculum/part1/04_playwright-foundations.html
 ```
 
-`pnpm run build:spec` も従来どおり成功し、`output/spec-site/index.html` が生成されることを確認する。
+`docs/curriculum/test-automation/assets/**` が存在する場合は、同じ相対パスで `dist/docs/curriculum/assets/**` にコピーされることを確認する。
+
+`pnpm run build:spec` も従来どおり成功し、`output/spec-site/index.html` と既存 Specification assets が生成されることを確認する。
 
 ### 3. Web smoke
 
@@ -298,15 +388,17 @@ published docs smoke
 `published docs smoke` では最低限次を確認する。
 
 1. `/docs/spec/` を開き、H1 `Scenario Shop Specification System` が表示される。
-2. `/docs/curriculum/` を開き、H1 `テスト自動化カリキュラム` が表示される。
-3. Curriculum README に現在存在する `part1/04_playwright-foundations.md` へのリンクを実際に辿り、`/docs/curriculum/part1/04_playwright-foundations.html` とそのページ固有 H1 が表示される。
-4. `/docs/curriculum/` へ戻る。
-5. Curriculum README に現在存在する `docs/spec/README.md` へのリンクを実際に辿り、`/docs/spec/` と `Scenario Shop Specification System` が表示される。
-6. 既存 Storefront smoke で `/products` の SPA route が従来どおり動作する。
+2. `/docs/spec/ui-ux-contract.html` を開き、仕様書本文が表示される。
+3. 現在 `ui-ux-contract.md` に存在する alt text `SCREEN-BOUNDARY-NOT-FOUND default web-desktop` の画像が表示され、画像ロードに成功していることを確認する。単なる `<img>` 要素の存在だけでなく、`naturalWidth > 0` 等で broken image でないことを確認する。
+4. `/docs/curriculum/` を開き、H1 `テスト自動化カリキュラム` が表示される。
+5. Curriculum README に現在存在する `part1/04_playwright-foundations.md` へのリンクを実際に辿り、`/docs/curriculum/part1/04_playwright-foundations.html` とそのページ固有 H1 が表示される。
+6. `/docs/curriculum/` へ戻る。
+7. Curriculum README に現在存在する `docs/spec/README.md` へのリンクを実際に辿り、`/docs/spec/` と `Scenario Shop Specification System` が表示される。
+8. 既存 Storefront smoke で `/products` の SPA route が従来どおり動作する。
 
-子ページを直接 `goto` して済ませず、README 内の実リンクを辿ることで Curriculum 内 Markdown link の URL 変換も確認する。
+子ページを直接 `goto` して済ませず、Curriculum README 内の実リンクを辿ることで Curriculum 内 Markdown link の URL 変換も確認する。
 
-Docs は HTTP success だけで判定せず、Docs 固有 H1 を確認して SPA fallback の誤成功を防ぐ。
+Docs は HTTP success だけで判定せず、Docs 固有 H1 と実画像ロードを確認して SPA fallback や asset 配信失敗の誤成功を防ぐ。
 
 今回のために次は追加しない。
 
@@ -314,6 +406,7 @@ Docs は HTTP success だけで判定せず、Docs 固有 H1 を確認して SPA
 - static server 専用 unit test suite
 - responsive 専用 E2E
 - 全 Markdown リンク巡回 E2E
+- 全画像巡回 E2E
 
 ### 4. CI / Cloudflare Preview
 
@@ -332,11 +425,12 @@ build:web
   -> deployed smoke
 ```
 
-`build:web` に Docs が含まれるため、既存 artifact / deploy / `test:smoke` 経路で Docs も検証される。
+`build:web` に Docs と画像が含まれるため、既存 artifact / deploy / `test:smoke` 経路で Docs の HTML と代表画像も検証される。
 
 Cloudflare Pages Preview で次を確認する。
 
 - `/docs/spec/`
+- Specification の代表スクリーンショット
 - `/docs/curriculum/`
 - Curriculum README から代表 Curriculum 子ページへのリンク
 - Curriculum から Specification への代表 cross-link
@@ -358,18 +452,22 @@ Scenario Shop の Header / Footer / Mobile navigation は変更しない。
 
 ## 完了条件
 
-- 対象 Markdown が正本のまま維持されている。
+- 対象 Markdown と画像が正本のまま維持されている。
 - `/docs/spec/` と `/docs/curriculum/` を既存 Web デプロイから閲覧できる。
-- Specification の既存 `buildSpecSite()` / `build:spec` / `output/spec-site` 契約を壊していない。
+- Markdown 内のローカル画像が Web Docs でも表示され、本文幅を超えず縦横比を維持する。
+- Specification の既存 `docs/spec/assets/**`、image resolver、asset copy、`buildSpecSite()` / `build:spec` / `output/spec-site` 契約を壊していない。
+- Curriculum の `docs/curriculum/test-automation/assets/**` を `dist/docs/curriculum/assets/**` にコピーし、Markdown から相対参照できる。
+- 存在しない、Repository root 外、または許可 asset root 外を指す Curriculum のローカル画像参照は build が失敗する。
+- 代表 Specification 画像について smoke で実際の画像ロード成功を確認できる。
 - Curriculum README が index となり、本文の既存学習順から各教材へ移動できる。
 - Curriculum 内リンク、Curriculum から Specification へのリンクが動作する。
 - Curriculum の生成対象 Markdown に存在するローカルリンクが、存在しない対象や Repository root 外を指す場合は build が失敗する。
 - 公開 Docs 対象外の既存 Repository リンクが壊れず、固定した GitHub source URL を開く。
-- `build:web` 後の `dist/` に両 Docs が含まれる。
+- `build:web` 後の `dist/` に両 Docs と必要な画像が含まれる。
 - `dist/docs` のみ clean され、Expo Web 成果物を削除しない。
-- Docs directory index と既存 SPA fallback が共存する。
+- Docs directory index、画像の通常ファイル配信、既存 SPA fallback が共存する。
 - 既存 Storefront smoke と追加 Docs smoke が成功する。
-- Cloudflare Pages Preview でも同じ Docs URL を閲覧できる。
+- Cloudflare Pages Preview でも同じ Docs URL と代表画像を閲覧できる。
 - `app.config.ts` の `web.output: "single"` を維持する。
 - Native コード・Scenario Shop navigation・CI workflow に不要な変更をしていない。
 
@@ -382,6 +480,7 @@ Scenario Shop の Header / Footer / Mobile navigation は変更しない。
 - Docs 専用認証・analytics
 - `docs/reference/**` 等への Web Docs 公開範囲拡大
 - 汎用 Markdown link / anchor validation framework
+- 画像変換・最適化・CDN・gallery
 - 未使用 Markdown 構文や Mermaid 等への先行対応
 - Docs framework 導入
 - Expo Router の static output 移行
@@ -393,19 +492,19 @@ Scenario Shop の Header / Footer / Mobile navigation は変更しない。
 次のいずれかが判明した場合は、今回の範囲を広げず別対応として整理する。
 
 - Docs に Scenario Shop と異なる認証・閲覧制限が必要。
-- 現在使用中の Markdown が既存 renderer の小さな拡張では安全に表示できない。
-- `buildSpecSite({ outputDir: "dist/docs/spec" })` を既存 `build:spec` 契約を壊さず利用できない。
-- Cloudflare Pages Preview で `dist/docs/**/index.html` が配信できず、現在の `dist` 配置だけでは解決できない。
-- Web 表示のために現在の Markdown 構造を大幅に変更する必要がある。
+- 現在使用中の Markdown / image 記法が既存 renderer の小さな拡張では安全に表示できない。
+- `buildSpecSite({ outputDir: "dist/docs/spec" })` を既存 `build:spec` / Specification asset 契約を壊さず利用できない。
+- Cloudflare Pages Preview で `dist/docs/**/index.html` または `dist/docs/**/assets/**` が配信できず、現在の `dist` 配置だけでは解決できない。
+- Web 表示のために現在の Markdown / image 正本構造を大幅に変更する必要がある。
 
 ## 実装順
 
-1. 最新 `main` を取り込み、現在の Markdown 構文・リンク・画像を確認する。
-2. `scripts/spec/build-spec.ts` の汎用 Markdown 描画部分を `scripts/spec/markdown.ts` から再利用できる最小形へ整理する。`extractNavigation()` の配置や CSS 構造は不要に変更しない。
-3. `scripts/docs/build-docs.ts` を追加し、Specification と Curriculum を `dist/docs` へ生成する。
-4. Curriculum のローカルリンク存在確認とリンク変換を本プランの固定規則どおり実装する。
+1. 最新 `main` を取り込み、現在の Markdown 構文・リンク・画像記法を確認する。
+2. `scripts/spec/build-spec.ts` の汎用 Markdown / image 描画部分を `scripts/spec/markdown.ts` へ最小限移動し、Specification と Curriculum から resolver を差し替えて再利用できるようにする。`extractNavigation()` の配置や CSS 構造は不要に変更しない。
+3. `scripts/docs/build-docs.ts` を追加し、Specification の既存 assets を含めて `dist/docs/spec` へ生成し、Curriculum HTML と `docs/curriculum/test-automation/assets/**` を `dist/docs/curriculum` へ生成・コピーする。
+4. Curriculum のローカルリンク存在確認・リンク変換と、ローカル画像の asset root / existence 確認・URL 解決を本プランの固定規則どおり実装する。
 5. `package.json` に `build:docs` を追加し、`build:web` の Expo export 後に接続する。
-6. `scripts/serve-web-dist.ts` を directory index 対応にする。
-7. `e2e/web/smoke.spec.ts` 内に `published docs smoke` を追加し、Curriculum 内リンクと Curriculum → Specification リンクを実際に辿る。
+6. `scripts/serve-web-dist.ts` を directory index 対応にし、Docs 画像は既存の通常ファイル配信で返す。
+7. `e2e/web/smoke.spec.ts` 内に `published docs smoke` を追加し、実在する Specification 画像のロード、Curriculum 内リンク、Curriculum → Specification リンクを確認する。
 8. 既存 validator、`build:web`、`build:spec`、smoke を実行する。
-9. Cloudflare Pages Preview で Docs root、代表 Curriculum 内リンク、代表 cross-link を確認する。
+9. Cloudflare Pages Preview で Docs root、代表画像、代表 Curriculum 内リンク、代表 cross-link を確認する。
