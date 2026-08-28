@@ -22,7 +22,7 @@ PR 2では Product behavior、Test Suite、CI Gateを変更しない。Documenta
 
 - Test Level / Test Type、Test Perspective、Execution / Platform / CI Gateを別軸として読める。
 - Formal RegressionとTraining Testを同じcoverage分類として扱わない。
-- Requirement Group / ACからrepresentative regression codeを直接辿れる。
+- Requirement Group / ACからCurrentのrepresentative verificationを辿れる。Currentにautomationがある箇所は既存code / suiteへ直接辿れる。
 - WE-CORE 12からCurrent representative E2E codeを直接辿れる。
 - 現在の下位Traceability代表label全件について、Current codeへの対応可否が未判定のまま残らない。
 - Risk → Representative Requirement / AC → applicable Technique / Perspective → Primary Test Level → Representative Formal Test / suite → CI Gateを辿れる。
@@ -67,14 +67,14 @@ PR 2では Product behavior、Test Suite、CI Gateを変更しない。Documenta
 
 ### 2.2 Traceability SSOTと3層の責務
 
-- Requirement / AC → representative regressionは`docs/12_quality/requirements_traceability.md`を正本とする。
+- Requirement / AC → representative verificationは`docs/12_quality/requirements_traceability.md`を正本とする。
 - Risk / Requirement・AC / technique / perspective / level / suite / gateは`docs/08_testing/test_strategy.md`を正本とする。
 - 第三のTraceability fileは作らない。
 - 全Requirement × 全Test declarationの1:1巨大Matrixは作らない。
 
 `requirements_traceability.md`では、次の3層をそれぞれ閉じる。
 
-1. Functional / Non-functional Requirement Group → representative regression
+1. Functional / Non-functional Requirement Group → representative Current verification
 2. WE-CORE 12 Mapping → representative E2E code
 3. 下位Traceability代表label → representative lower-level code / suite
 
@@ -103,21 +103,24 @@ Risk mappingは次の7列で固定する。
 - `Representative Technique`はCurrent risk / requirement / test intentから具体的なTechniqueを説明できる場合に記載する。特定Techniqueが主ではないRiskでは`—`または`Not primary`を許容し、表を埋めるためだけにTechniqueを発明しない。
 - `Representative Perspective`はCurrent risk / test intentに基づく意味のある分類を記載する。
 - Primary Test Levelは原則1つ。
+- `Representative Formal Test / suite`は、Currentのstableなsuite / package command / Playwright project等、Riskを代表して検証する実行単位を記載する。exact test titleをRisk表へ大量複製せず、個別code referenceは`requirements_traceability.md`側を優先する。
+- `CI Gate`は、そのRepresentative suiteを実際に実行する、またはRequired dependencyとして直接要求する最も近いworkflow job / matrix legを記載する。より具体的なjob / legが存在するのに最終aggregateの`verify` / `validate`だけを全Riskへ機械的に記載しない。
 - supporting suiteが本当に必要な場合だけ短く補足する。
 - Techniqueを設定できないことだけをStop理由にしない。Risk → Requirement / AC、Representative Formal Test / suite、CI Gateを合理的に接続できない場合、またはRA-G3全体としてTechnique / Perspectiveとの関係をCurrent evidenceから説明できない場合はStopする。
 - 16 Riskを全Testへ展開しない。
 
-### 2.5 Requirement Group → representative regression contract
+### 2.5 Requirement Group → representative verification contract
 
-`requirements_traceability.md`の既存Functional Requirement Group MatrixとNon-functional Groupの**全既存行**へ、Current codeへ直接辿れる`Representative Regression`を追加する。
+`requirements_traceability.md`の既存Functional Requirement Group MatrixとNon-functional Groupの**全既存行**へ、Currentの検証方法を辿れる`Representative Verification`を追加する。
 
 ルール:
 
-- Group単位のtraceなので、原則repository-relative test file / suite referenceを使う。
-- Groupが広いためexact test titleの列挙は必須にしない。
-- 1〜数個のrepresentative regressionで十分とし、全testを列挙しない。
-- command、Playwright project、CI Gateはここへ重複させず`test_strategy.md`側で管理する。
-- Current codeで代表先を説明できないGroupを無言で残さない。重要Groupで代表先を確定できない場合はStopする。
+- Functional Requirement GroupはCurrent executable regressionが存在する場合、原則repository-relative test file / suite referenceへ接続する。
+- Non-functional GroupはCurrent contractに応じ、automated test / suite、Benchmark、UI Review、Static Check、Smoke等の**実在するCurrent verification**へ接続する。codeが存在しないverificationを架空のcode referenceへ変換しない。
+- Group単位のtraceなのでexact test titleの網羅は必須にしない。
+- 1〜数個のrepresentative verificationで十分とし、全test / 全evidenceを列挙しない。
+- package command、Playwright project、CI Gateの詳細は`test_strategy.md`側で管理し、この文書へ重複させない。
+- 全Groupを確認し、Current verificationを説明できないGroupを無言で残さない。Current evidenceからverificationを確定できず、PR 2内で新Test / 新Gateを作らないと埋められない場合はStopする。
 
 ### 2.6 WE-CORE direct code reference contract
 
@@ -176,6 +179,15 @@ Current guaranteeを明示することを意味する。
 - `training-web-baseline`がWeb CI matrixで実行されてもFormal Regression coverageへ昇格しない。
 - Training exercise / expected failure / learner evidenceはPR 3 / PR 5の責務であり、本PRでは設計しない。
 
+### 2.10 Implementation delta scope
+
+Plan作成と実装を同一branchで行うため、PR-wide diffとimplementation deltaを分けて扱う。
+
+- Plan-only validation / Sanitizer完了後、**implementation Run作成や実装文書変更を開始する直前**のbranch HEADを`IMPLEMENTATION_BASE_SHA`として取得する。
+- `IMPLEMENTATION_BASE_SHA`は新しいimplementation RunのEvidenceへ記録する。
+- implementation scope判定は`IMPLEMENTATION_BASE_SHA...HEAD`で行う。
+- PR-wide diffにはchild Plan / Plan Run Artifactが含まれてよい。それらをimplementation scope violationとして扱わない。
+
 ## 3. Current evidence / implementation preflight
 
 実装開始時にCurrent `main`を再確認する。
@@ -206,7 +218,7 @@ Current guaranteeを明示することを意味する。
 - platform
 - Required Gate / supporting evidence
 
-Test fileは、Risk mappingまたはRequirement direct referenceで実際に参照するものだけ開く。
+Test fileは、Risk mappingまたはRequirement verification / direct referenceで実際に参照するものだけ開く。
 
 ### 3.2 Current Traceability
 
@@ -226,7 +238,9 @@ Test fileは、Risk mappingまたはRequirement direct referenceで実際に参�
 
 ### Step 1 — implementation Run / preflight
 
-- 新しいimplementation Runを作る。Plan Run `20260828-214107-JST`は再利用しない。
+- Plan-only validation / Sanitizer完了後、implementation変更開始直前のbranch HEADを`IMPLEMENTATION_BASE_SHA`として取得する。
+- その後に新しいimplementation Runを作る。Plan Run `20260828-214107-JST`は再利用しない。
+- implementation Run Evidenceへ`IMPLEMENTATION_BASE_SHA`を記録する。
 - latest `main` / branch / Master Plan / PR #75 merge / Issue #72を確認する。
 - §3に従い、PR 2判断へ影響するsemantic contract driftだけをStop判定する。
 
@@ -236,17 +250,20 @@ Test fileは、Risk mappingまたはRequirement direct referenceで実際に参�
 
 - permanent inventory fileは作らない。
 - implementation Run Evidenceとして必要なfactだけ記録する。
-- Risk / direct referenceに必要なtest fileだけ追加確認する。
+- Risk / Requirement verification / direct referenceに必要なtest fileだけ追加確認する。
 
 ### Step 3 — RA-G1 pre-audit
 
-`requirements_traceability.md`をCurrent codeと照合する。
+`requirements_traceability.md`をCurrent contractと照合する。
 
 #### Requirement Group
 
-- Functional Requirement Group Matrixの全既存行についてrepresentative regression候補を確認する。
-- Non-functional Groupの全既存行についてrepresentative regression候補を確認する。
-- group-levelなのでexact titleの網羅はしない。
+- Functional Requirement Group Matrixの全既存行についてrepresentative Current verification候補を確認する。
+- Non-functional Groupの全既存行についてrepresentative Current verification候補を確認する。
+- FunctionalはCurrent executable regressionがある場合にfile / suiteへ接続する。
+- Non-functionalはCurrent contractに応じ、automated suite / Benchmark / UI Review / Static Check / Smoke等の実在するverificationを使う。
+- group-levelなのでexact titleや全Evidenceの網羅はしない。
+- Current verificationが存在しない、またはCurrent evidenceから確定できないGroupを推測で埋めない。
 
 #### WE-CORE
 
@@ -331,15 +348,23 @@ Current Phase 1重要Risk 16件を、順序・文言を維持して16行で作�
 - Representative Formal Test / suite
 - CI Gate
 
-16 Riskをgroup化しない。Requirement / AC詳細全件を二重化しない。
+追加ルール:
+
+- Formal Test / suiteはstableなsuite / package command / Playwright project等の代表実行単位に留め、exact test titleをRisk表へ大量複製しない。
+- CI GateはRepresentative suiteを実行・要求する最も近いworkflow job / matrix legを記載する。
+- より具体的なjob / legがある場合、最終aggregateの`verify` / `validate`だけで全Riskを埋めない。
+- 16 Riskをgroup化しない。Requirement / AC詳細全件を二重化しない。
 
 ### Step 6 — `requirements_traceability.md`修正（RA-G1）
 
 #### Requirement Group
 
-- Functional Requirement Group Matrixの全既存行へ`Representative Regression`を追加する。
-- Non-functional Groupの全既存行へ`Representative Regression`を追加する。
-- 代表file / suiteをboundedに記載し、全Test一覧へ展開しない。
+- Functional Requirement Group Matrixの全既存行へ`Representative Verification`を追加する。
+- Non-functional Groupの全既存行へ`Representative Verification`を追加する。
+- FunctionalはCurrent executable regressionが存在する場合、代表file / suiteへ接続する。
+- Non-functionalはCurrent contractに応じ、automated suite / Benchmark / UI Review / Static Check / Smoke等の実在するCurrent verificationへ接続する。
+- codeが存在しないverificationへ架空のcode referenceを追加しない。
+- 代表verificationをboundedに記載し、全Test / 全Evidence一覧へ展開しない。
 
 #### WE-CORE
 
@@ -354,7 +379,7 @@ Current Phase 1重要Risk 16件を、順序・文言を維持して16行で作�
 - §7の後ろに孤立している4行を既存下位代表表へ統合する。
 - `Test ID Rule`が下位代表labelの実態を説明していない場合は、既存IDをrenameせずtaxonomy / labelの意味が一意になるようDocumentationを整理する。
 
-command / project / CI Gateはこの文書へ重複させず`test_strategy.md`で管理する。
+package command / project / CI Gateの詳細はこの文書へ重複させず`test_strategy.md`で管理する。
 
 ### Step 7 — PR 1 follow-up verification
 
@@ -368,9 +393,12 @@ command / project / CI Gateはこの文書へ重複させず`test_strategy.md`�
 
 ### Step 8 — bounded self-review
 
-- 変更は2文書 + implementation Runだけか。
+- `IMPLEMENTATION_BASE_SHA...HEAD`の変更は2文書 + active implementation Runだけか。
+- PR-wide diffにchild Plan / Plan Runが含まれることをimplementation scope violationとして誤判定していないか。
 - Requirement Group / WE-CORE / Current下位Traceability代表label全件の3層がすべて閉じているか。
+- Requirement GroupをCurrent verificationへ接続しており、codeがない箇所へ架空のreferenceを作っていないか。
 - Risk 16行が7列schemaを維持し、Techniqueが適用できない行で無理に値を発明していないか。
+- Formal Test / suiteとCI Gateを最も近い実行単位で記載し、`verify` / `validate`だけへ潰していないか。
 - Technique / Perspective / Level / Gateを混同していないか。
 - Formal / Training、Android / iOS guaranteeを混同していないか。
 - PR 3以降のCompetency / Curriculum / learner evidenceへ踏み込んでいないか。
@@ -409,14 +437,18 @@ TypeScript / validator / test変更も禁止なので`typecheck`はPR 2のrequir
 - 16 Riskすべてが1行ずつ存在する。
 - 各RiskにRepresentative Requirement / ACと意味のあるRepresentative Perspectiveがある。
 - Representative TechniqueはCurrent evidenceから適用可能な場合だけ具体値を持ち、該当しない場合は`—`または`Not primary`である。
+- Representative Formal Test / suiteがstableな代表実行単位であり、exact titleの大量複製になっていない。
+- CI GateがRepresentative suiteに最も近いCurrent workflow job / matrix legを指している。
+- より具体的なjob / legが存在するRiskを`verify` / `validate`だけで一律に埋めていない。
 - Requirement / AC → applicable technique / perspective → level → suite → gateを辿れる。
 - Techniqueの非適用だけを理由にRisk mappingを未完了扱いしていない。
 - 新Risk ID / groupを作っていない。
 
 #### Traceability
 
-- Functional Requirement Group Matrixの全既存行からrepresentative regressionへ辿れる。
-- Non-functional Groupの全既存行からrepresentative regressionへ辿れる。
+- Functional Requirement Group Matrixの全既存行からrepresentative Current verificationへ辿れる。
+- Non-functional Groupの全既存行からrepresentative Current verificationへ辿れる。
+- Current automationがあるGroupは既存file / suiteへ接続され、automationがないCurrent verificationへ架空のcode referenceを作っていない。
 - WE-CORE 12はMapping IDでありexecutable countではない。
 - 各WE-CORE referenceがCurrent file / exact titleに実在する。
 - 実装開始時点のCurrent下位Traceability代表label全件がDisposition済みで、未判定行がない。
@@ -444,13 +476,22 @@ Repository-wide historical zero-matchは要求しない。
 
 ### 5.4 Scope check
 
-最終diffが原則次だけであることを確認する。
+implementation scopeはPR-wide diffではなく、Step 1で記録した`IMPLEMENTATION_BASE_SHA...HEAD`で確認する。
+
+このimplementation deltaが原則次だけであることを確認する。
 
 - `docs/08_testing/test_strategy.md`
 - `docs/12_quality/requirements_traceability.md`
 - active implementation Run Artifact
 
-それ以外へ差分がある場合はscope violationとして停止する。
+それ以外へimplementation開始後の差分がある場合はscope violationとして停止する。
+
+PR-wide diffには、implementation開始前から存在する次のPlan差分が含まれてよい。
+
+- `docs/plans/2026-08-28_214107_formal_test_strategy_traceability.md`
+- Plan Run `20260828-214107-JST` Artifact
+
+これらを理由にimplementation scope violationと判定しない。
 
 ## 6. Stop conditions
 
@@ -462,7 +503,7 @@ Repository-wide historical zero-matchは要求しない。
 - Product / workflow / package / Playwright config変更が必要になる。
 - Curriculum / Training behavior変更が必要になる。
 - RA-G1解消のためTest codeへIDを追加する必要がある。
-- Functional / Non-functional Requirement Groupの重要行でrepresentative regressionをCurrent evidenceから説明できない。
+- Functional / Non-functional Requirement GroupのいずれかでCurrent verificationをCurrent evidenceから説明できず、新Test / 新Gateを追加しないとTraceabilityを成立させられない。
 - 実装開始時点のCurrent下位Traceability代表labelのいずれかが`stop`になり、Current evidenceだけでは解消できない。
 - `CT-*` / `CP-*`等の現行label taxonomyをCurrent evidenceから説明できず、新ID制度設計が必要になる。
 - RA-G3のRiskをRepresentative Requirement / AC、Representative Formal Test / suite、CI Gateへ合理的に接続できない、またはRA-G3全体としてTechnique / Perspectiveとの関係をCurrent evidenceから説明できない。
@@ -474,12 +515,15 @@ Repository-wide historical zero-matchは要求しない。
 
 次をすべて満たしたらPR 2 implementation完了。
 
-- writable scopeが2文書 + implementation Runに限定されている。
+- `IMPLEMENTATION_BASE_SHA`がimplementation Run Evidenceに記録され、implementation deltaのscopeを再現できる。
+- `IMPLEMENTATION_BASE_SHA...HEAD`のwritable scopeが2文書 + implementation Runに限定されている。
 - `test_strategy.md`で3軸を別々に読める。
 - Phase 1 Risk 16件が1 Risk = 1 rowで追跡できる。
 - 各RiskのTechniqueとPerspectiveが別列で、Technique非適用時に推測の値を発明していない。
 - 各RiskからRepresentative Requirement / ACを経由してFormal suite / Gateまで辿れる。
-- Functional / Non-functional Requirement Groupの全既存行からrepresentative regressionへ辿れる。
+- 各RiskのFormal Test / suiteとCI GateがCurrentの最も近い代表実行単位を示し、aggregate gateだけへ情報を潰していない。
+- Functional / Non-functional Requirement Groupの全既存行からrepresentative Current verificationへ辿れる。
+- Current automationがないverificationへ架空のcode referenceを追加していない。
 - WE-CORE 12からCurrent exact E2Eへ辿れる。
 - 実装開始時点のCurrent下位Traceability代表label全件が`exact-title`または`suite-level`としてCurrent codeへ接続され、未判定 / `stop`が残っていない。
 - §7の後ろに孤立した下位代表4行が残っていない。
