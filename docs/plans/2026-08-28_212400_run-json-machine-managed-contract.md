@@ -27,7 +27,7 @@
   - `codex-safe`は`RunId`指定時、対象Run Directoryが存在しなければlog directory等を作る前にfailする。
   - Run Directoryが存在しても`run.json`がなければmanifest-less RunとしてCodexは実行し、manifest同期だけskipする。
   - existing `run.json`がある場合だけ、interactive Codex process終了後にcollectorを1回実行して同期する。
-  - sync時、既存`changed_files`を保持しつつ終了時working treeのtracked / untracked pathsを累積反映する。
+  - sync時、既存`changed_files`はcleanupせず保持し、今回Gitから新規観測したtracked / untracked pathsだけに`.codex/runs/**`除外を適用して累積反映する。
   - interactive process終了や`Stop`だけを根拠に`status=completed`へ変更しない。
   - Codex nonzero時はCodex exit codeを優先する。Codex zeroかつcollector nonzero時はcollector exit codeを返す。
   - Bash版は`set -euo pipefail`下でもcollector nonzeroを明示的に捕捉し、sync failure log / warning / final exit判定まで継続する。
@@ -198,8 +198,8 @@ git ls-files --others --exclude-standard -z
 - subprocess outputはbinaryで受け、NUL (`\0`) 分割する。
 - path文字列化はPython filesystem decoding（例: `os.fsdecode`）を使用する。
 - repository-relative `/` 区切りへnormalizeする。
-- `.codex/runs/**`を除外する。
-- existing `run.json.changed_files`とunionして重複排除する。
+- `.codex/runs/**`除外は、今回Gitから新規観測したtracked / untracked pathにのみ適用する。
+- existing `run.json.changed_files`は削除・cleanup・再分類せず、そのまま保持して新規観測pathとunionし、重複排除する。existing値に`.codex/runs/**`が含まれていても今回のrefreshでは削除しない。
 - status種別 / session attribution metadataは追加しない。
 - `run.json.status`は変更しない。
 - Git command起動失敗またはnonzero終了はcollector failureとする。
@@ -275,10 +275,11 @@ collector failure後も`manifest_sync_failed`、stderr warning、Codex / collect
 
 - option未指定時の従来挙動。
 - existing `changed_files`保持。
+- existing `changed_files`に`.codex/runs/**`が含まれていてもcleanupせず保持する。
 - tracked / untracked path追加。
+- 新規Git観測pathの`.codex/runs/**`は追加しない。
 - 日本語・空白を含むpathをactual repository-relative pathで保持。
 - 重複排除。
-- `.codex/runs/**`除外。
 - `run.json.status`非変更。
 - Git command failure時のcollector failure。
 - v1を自動v2 migrationしない既存contract維持。
@@ -346,6 +347,7 @@ runtime依存caseは利用可能shellだけ実行する。
 - existing manifestだけがinteractive終了時に自動同期される。
 - collector path解決がcurrent working directoryに依存しない。
 - Bashの`set -euo pipefail`下でもcollector failureを捕捉し、sync failure handlingとexit code優先順位を維持できる。
+- existing `changed_files`をcleanupせず保持し、新規Git観測pathだけに`.codex/runs/**`除外を適用できる。
 - tracked / untracked / 日本語・空白pathを`changed_files`へ安全に累積できる。
 - collector default挙動とv1/v2 compatibilityを壊していない。
 - Codex / collector exit semanticsがPowerShell / Bashで一致する。
@@ -368,6 +370,8 @@ runtime依存caseは利用可能shellだけ実行する。
   - 対策: repository rootからabsolute collector pathを構築し、サブディレクトリ起動contractで固定する。
 - Bashの`set -e`でcollector nonzero時にwrapperが途中終了する。
   - 対策: collectorを`if ...; then/else`内で実行してexit codeを捕捉し、failure log / warning / final exit判定まで継続する。
+- `changed_files` refreshの除外処理でexisting値までcleanupしてしまう。
+  - 対策: `.codex/runs/**`除外は新規Git観測pathだけに適用し、existing `changed_files`はそのまま保持してunionする。
 - `changed_files`を失う / Git path quotingで壊す。
   - 対策: existing値とのunion、`-z` binary output、NUL分割、filesystem decodingを使用する。
 - Git refresh失敗を成功扱いする。
