@@ -29,8 +29,8 @@
 - [x] 25. active implementation Runと過去Run ArtifactのSanitizer境界をchild Planへ明記する。
 - [x] 26. Finding別のValidation検索scopeを更新対象文書へ限定する。
 - [x] 27. bounded diff、validation、Sanitizer、residual finding 0を確認する。
-- [ ] 28. commit / pushし、4 review threadへ個別返信・resolveする。
-- [ ] 29. `@coderabbitai review`を依頼し、受付状態を確認して停止する。
+- [x] 28. commit / pushし、4 review threadへ個別返信・resolveする。
+- [x] 29. `@coderabbitai review`を依頼し、受付状態を確認して停止する。
 
 ## Discovered
 

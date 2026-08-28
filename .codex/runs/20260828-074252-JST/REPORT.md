@@ -249,3 +249,21 @@
 - command: `node --eval "JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-074252-JST/run.json', 'utf8')); console.log('run.json JSON parse: PASS')"`。
 - result: exit code `0`、stdout `run.json JSON parse: PASS`。実fileのUTF-8読込と`JSON.parse`は成功した。
 - `run.json`の最終statusは`completed`であり、Run全体の`changed_files` 5件一覧も維持している。
+
+## 2026-08-28 16:07 (JST) — Review thread / CodeRabbit request 最終Evidence
+
+- repair commit: `46c03500b147964472f9978587d47dbc5deea44c`。push後のPR headはこのcommitと一致している。
+- Review thread 1: comment `3878396455` / thread `PRRT_kwDOTj-WlM6dFCQl`へreply `3878583657`を投稿し、個別resolveした。Current `isResolved=true`、`isOutdated=false`。
+- Review thread 2: comment `3878396466` / thread `PRRT_kwDOTj-WlM6dFCQs`へreply `3878586186`を投稿し、個別resolveした。Current `isResolved=true`、`isOutdated=false`。Task 15とIssue #72は変更していない。
+- Review thread 3: comment `3878396473` / thread `PRRT_kwDOTj-WlM6dFCQy`へreply `3878586396`を投稿し、個別resolveした。Current `isResolved=true`、`isOutdated=true`（対象行が新commitでoutdatedになった状態）。
+- Review thread 4: comment `3878396480` / thread `PRRT_kwDOTj-WlM6dFCQ4`へreply `3878586564`を投稿し、個別resolveした。Current `isResolved=true`、`isOutdated=false`。
+- thread再取得結果: thread count `4`、unresolved thread count `0`。CodeRabbitによる既存thread内の確認コメントは確認したが、新しい未解決thread / 新規Findingはない。
+- CodeRabbit incremental review request: PR conversationへ単独comment `@coderabbitai review`を投稿した。comment id `5449515520`、URL `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/75#issuecomment-5449515520`、created_at `2026-08-28T07:05:38Z`。投稿は成功した。
+- CodeRabbit request status: GitHub checkは`pass / Review rate limited`を返し、今回の追加reviewはrate limitにより結果取得できなかった。`full review`、`autofix`、別review commandによる回避は行わない。追加Finding数は判定不能だが、Current thread再取得で新規未解決Findingは`0`。
+- Current PR metadata: #75は`OPEN`、non-Draft、base `main`、head `fix/current-documentation-ssot-repair`、head `46c03500b147964472f9978587d47dbc5deea44c`、mergeable `MERGEABLE`。既存PRのreviewDecisionは元レビュー由来の`CHANGES_REQUESTED`として残っている。
+- Current Issue #72: Issueは編集していない。`Current: PR 1 child Plan review`、`Next: PR 1 implementation`、`Blocked: None`、Phase 0 Complete、child Plan、PR #75、`Plan ready / implementation not started`を維持している。
+- final scope: 今回のrepairで変更したtracked fileはchild Plan、REPORT.md、TASKS.md、run.jsonの4件のみ。Product implementation、Curriculum implementation、validator、test、workflow、package、Issue #72、`PLAN.md`は変更していない。PR 1 implementationは未開始。
+- blocking question: なし。CodeRabbit再レビューはrate limitedのため結果待ちとせず、今回のbounded repairをここで停止する。
+- next: CodeRabbit再レビュー結果と修正後child Planをユーザーが確認する。承認されるまでPR 1 implementationを開始しない。
+- decision: `stop_success`。
+- Progress: 100% (29/29)
