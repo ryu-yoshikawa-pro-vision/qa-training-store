@@ -43,6 +43,7 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 ## 3. Assumptions
 
 - 実装はこのPlanのレビュー承認後、同じ`fix/current-documentation-ssot-repair` branchで開始する。
+- PR 1は同じbranch / PR #75で継続するが、実装作業自体は新しいimplementation Runを開始して記録する。完了済みのPhase 0 / child Plan Runは実装用Runへ流用しない。
 - Master PlanのFixed decisions、ADR-0011、ADR-0019、およびCurrent executable contractを変更せず、文書をそれらへ合わせる。
 - `package.json`、workflow、validator、Workbook CSV、contract testの変更は、Current Fact repairだけでは解決できない差が新たに確認された場合を除き行わない。
 - 実装時点で変動値が変わっていた場合は、値を複製せず、該当するCurrent SSOTを再確認して参照を更新する。
@@ -107,7 +108,14 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 
 ### 6.3 変更しない対象
 
-`src/**`、`app/**`、`e2e/**`、`maestro/**`、`training/workbook/*.csv`、`scripts/validate-curriculum.ts`、`tests/**`、`.github/workflows/**`、`docs/spec/**`、`package.json`、`pnpm-lock.yaml`、Master Plan、過去Run Artifact。上記read-only対象のうち、6.1に明記した文書以外は変更しない。
+`src/**`、`app/**`、`e2e/**`、`maestro/**`、`training/workbook/*.csv`、`scripts/validate-curriculum.ts`、`tests/**`、`.github/workflows/**`、`docs/spec/**`、`package.json`、`pnpm-lock.yaml`、Master Plan、過去Run Artifact。上記read-only対象のうち、6.1に明記した文書以外は変更しない。完了済みのPhase 0 / child Plan Run（`.codex/runs/20260828-074252-JST/`）も、Sanitizerを理由に変更しない。
+
+### 6.4 PR 1 implementation Runの境界
+
+- PR 1 implementationは同じ`fix/current-documentation-ssot-repair` branch / PR #75で継続するが、実装開始時に新しいimplementation Runを作成し、そのRunの`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`を実装の正式成果物とする。
+- 完了済みの`.codex/runs/20260828-074252-JST/`はPhase 0 / child Plan作成のRunとして保持し、通常の実装記録やSanitizerのために再変更しない。
+- Sanitizerの`-Write` / `-Check`は、その時点のactive implementation Run Artifactだけを対象にする。`-Write`が`Write-CodexArtifactTextAtomic`でSanitizer後の内容を保存する場合も、active Runにローカルpath等があり、そのCurrent Runの正式finalizationに必要な形式修正であるときだけ許可する。
+- これは過去Run Artifactへの一般的なSanitizer例外ではない。成功判定では、完了済みPhase 0 / child Plan Runに差分がないことと、active implementation Run ArtifactがSanitizer Write後の正式内容であることを別々に確認する。
 
 ## 7. Change strategy
 
@@ -247,7 +255,16 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
 - Current SSOT照合: `package.json` / `playwright.config.ts` / Web workflow、Native workflow / ADR、`src/config/versions.ts`、validator / Workbook / contract test。
-- 文書検索: 旧E2E Gate説明、旧project名、旧Seed Version、旧Test Case ID例、Native future / manual-only誤記、RA-M7 wrong literalの残存がないこと。
+- Finding別bounded search: zero-match assertionは、各Findingで実際に変更する文書だけへ適用し、read-only SSOTやhistorical recordへは適用しない。意図的に変更しない文書の旧表現は、それ自体をPR 1 failureにしない。
+  - RA-M1: `docs/08_testing/e2e_design.md`、`docs/08_testing/test_strategy.md`、`docs/12_quality/requirements_traceability.md`、`docs/12_quality/acceptance_criteria.md`だけを対象に、旧E2E Gate / 件数記述を確認する。
+  - RA-M2: `docs/08_testing/e2e_design.md`、`docs/08_testing/test_strategy.md`だけを対象に、Cross-roleの旧PR外記述を確認する。
+  - RA-M3: `docs/08_testing/e2e_design.md`だけを対象に、旧project名を確認する。`playwright.config.ts`、package scripts、workflowはread-only cross-checkとし、`ui-review-*` projectはRA-M3 scopeへ含めない。
+  - RA-M4: `docs/07_testability/seed_catalog.md`だけを対象に、旧Seed VersionのCurrent記述を確認する。`CHANGELOG.md`はhistorical recordとしてzero-match Gateから除外し、残存する過去Versionは許容する。
+  - RA-M5: `docs/08_testing/e2e_design.md`、`docs/08_testing/test_strategy.md`、`docs/12_quality/acceptance_criteria.md`だけを対象に、Native future / Phase 1外の誤記を確認する。
+  - RA-M6: `docs/curriculum/test-automation/part2/06_native-ci-maestro.md`、`docs/curriculum/test-automation/part2/08_integration-design-capstone.md`だけを対象に、iOS manual-only / Required Gate外の誤記を確認する。
+  - RA-M8: `docs/curriculum/test-automation/00_learning-design.md`、`docs/curriculum/test-automation/01_spreadsheet-test-design.md`、`docs/curriculum/test-automation/part1/04_playwright-foundations.md`、`docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md`、`docs/curriculum/test-automation/part1/07_maestro-native-automation.md`、`training/workbook/README.md`だけを対象に、旧Test Case ID例を確認する。`docs/curriculum/test-automation/part1/10_part1-capstone.md`はLegacy Aliasとしてzero-match Gateから除外する。
+  - RA-M7: `scripts/validate-curriculum.ts`、`tests/contracts/training-curriculum.test.ts`、`docs/curriculum/test-automation/README.md`だけでcanonical filename regressionを確認し、Repository全体の類似文字列zero-matchは要求しない。
+  - RA-M1〜RA-M3のread-only SSOTは`package.json`、`playwright.config.ts`、`.github/workflows/ci.yml`、RA-M4は`src/config/versions.ts`とseed test、RA-M5 / RA-M6はNative workflow / ADR / Curriculum README、RA-M8はWorkbook CSV / validator / contract testとし、これらの旧記載残存は文書修正対象のfailureとはしない。
 - docs-onlyのPR 1であるため、Product behavior変更を伴うFull E2E、Native build、Maestro runtimeは実装検証の前提にしない。必要性が生じた場合はStop conditionを適用する。
 
 ### 成功判定
@@ -255,6 +272,8 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 - Current SSOTと文書記載の不整合が解消される。
 - validator / Workbook / contract testの既存canonical contractが維持される。
 - Product code、test、workflow、package / lockfile、Master Plan、過去Run Artifactに差分がない。
+- 完了済みのPhase 0 / child Plan Runに差分がなく、active implementation Run ArtifactはSanitizer Write後の正式内容として保存されている。Sanitizer以外の差分を形式修正の例外として扱わない。
+- Finding別bounded searchのzero-match assertionは各Findingの実変更対象文書だけに適用され、`CHANGELOG.md`とLegacy Alias `part1/10_part1-capstone.md`をfailure対象にしない。
 - 上記コマンドが成功し、追加の設計判断を要する未解決差がない。
 
 ## 9. Risks
@@ -271,6 +290,8 @@ Current Repositoryの実装・workflow・validator・Workbookと、Current Docum
 - RA-M8のvalidator / Workbook / contract test間のcanonical grammarは一致しているため、grammar選択に関するblocking questionはない。
 - Product behavior、Formal CI Gate、validator / Workbook / contract testの変更、新しい設計判断、Current Findingの解消済み判定、scope外ファイル差分が必要になった場合は、推測で実装せず停止する。
 - 実装前にCurrent SSOTの値が変わっている場合は、Planの事実を再確認し、変更範囲を拡張せずにユーザーへ確認する。
+- 完了済みPhase 0 / child Plan Runの通常記録またはSanitizer変更が必要になった場合、またはSanitizer以外の差分を含むRun Artifact変更が必要になった場合は停止する。
+- Repository-wide zero-match、`CHANGELOG.md`またはLegacy Aliasの変更、あるいはFinding別の実変更対象を超える検索・修正が必要になった場合は停止する。
 
 ## 11. Follow-up notes
 

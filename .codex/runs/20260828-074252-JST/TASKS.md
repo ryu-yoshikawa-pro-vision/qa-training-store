@@ -23,6 +23,14 @@
 - [x] 19. REPORT.mdへPR #75作成・metadata確認・Issue #72更新の最終Evidenceをappendする。
 - [x] 20. bounded diff、read-only SSOT cross-check、Plan-only validation、Sanitizerを確認する。
 - [x] 21. commit / push後にPR #75のhead・scope・CI・mergeabilityを確認し、PR 1実装を開始せず停止する。
+- [x] 22. CodeRabbitのCHANGES_REQUESTED 4件をCurrent evidenceと照合し、triageを確定する。
+- [x] 23. REPORT.mdのJSON validation evidenceを実file読込へ訂正する。
+- [x] 24. Task 15 / Issue #72の実績を再確認し、REPORT.mdへ補足Evidenceをappendする。
+- [x] 25. active implementation Runと過去Run ArtifactのSanitizer境界をchild Planへ明記する。
+- [x] 26. Finding別のValidation検索scopeを更新対象文書へ限定する。
+- [x] 27. bounded diff、validation、Sanitizer、residual finding 0を確認する。
+- [ ] 28. commit / pushし、4 review threadへ個別返信・resolveする。
+- [ ] 29. `@coderabbitai review`を依頼し、受付状態を確認して停止する。
 
 ## Discovered
 

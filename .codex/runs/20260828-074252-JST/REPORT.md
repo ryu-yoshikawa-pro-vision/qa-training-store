@@ -194,3 +194,58 @@
 - next: 修正後child Planを再レビューする。承認されるまで同じbranch / PRでPR 1実装を開始しない。
 - decision: `stop_success`。
 - Progress: 100% (21/21)
+
+## 2026-08-28 15:52 (JST) — Review correction iteration 2 開始
+
+- iteration_number: 2。
+- input_findings: CodeRabbitの`CHANGES_REQUESTED`レビューで指定された未解決4 thread（comment database id `3878396455` / `3878396466` / `3878396473` / `3878396480`）。Current thread metadataをGitHubから再取得し、4件すべて`isResolved=false`、`isOutdated=false`であることを確認した。
+- current PR evidence: PR #75は`OPEN`、non-Draft、base `main`、head `fix/current-documentation-ssot-repair`、Current head `601f4431ef362732206c1158bb36894faa66dc47`、`reviewDecision=CHANGES_REQUESTED`、mergeable `MERGEABLE`。PR created_atは`2026-08-27T23:13:27Z`。
+- triage:
+  - Finding 1（REPORTのJSON validation command）は`must_fix`。実fileを読まない記録のため、実際にUTF-8で`run.json`を読み`JSON.parse`するvalidationへ訂正する。
+  - Finding 2（Task 15 / Issue #72）は`reject`。Current GitHub evidenceと既存Runの時系列からTask 15のPR作成・metadata確認・Issue更新は完了済みであり、後続iterationでIssueを再編集していないことを意味する記録と混同された。Task 15、Issue #72、completed判定は変更しない。
+  - Finding 3（Run Artifact変更禁止とSanitizer）は`should_fix`。Sanitizerの形式修正という問題意識は受け入れるが、過去Runへの一般例外は作らず、新しいPR 1 implementation Runだけをactive Sanitizer Write対象とする境界をchild Planへ明記する。
+  - Finding 4（Validation検索scope）は`must_fix`。Repository-wide zero-matchをやめ、Findingごとの実変更対象文書にbounded searchを適用し、`CHANGELOG.md`とLegacy Aliasを明示的に除外する。
+- allowed_files: `docs/plans/2026-08-28_080048_current_documentation_ssot_repair.md`、`.codex/runs/20260828-074252-JST/REPORT.md`、`.codex/runs/20260828-074252-JST/TASKS.md`、`.codex/runs/20260828-074252-JST/run.json`。`PLAN.md`、Issue #72、PR本文、Product / Curriculum / validator / test / workflow / packageは変更しない。
+- repair boundary: 今回はchild Planと既存Run Artifactのbounded correctionだけを行い、PR 1 implementationは開始しない。Issue #72はCurrent state確認のみとし再編集しない。
+- decision: `continue`。
+- Progress: 72% (21/29)
+
+## 2026-08-28 15:54 (JST) — Finding 1 / Finding 2 evidence補足
+
+- Finding 1 correction: 既存記録の`node --eval JSON.parse(run.json)`は実fileを読まないため、JSON妥当性のEvidenceとして無効だった。REPORT.mdのappend-only contractに従い、元記録は削除・改変せず、訂正Evidenceを本sectionへ追記した。
+- 実行command: `node --eval "JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-074252-JST/run.json', 'utf8')); console.log('run.json JSON parse: PASS')"`。
+- 実行結果: exit code `0`、stdout `run.json JSON parse: PASS`。実際の`.codex/runs/20260828-074252-JST/run.json`をUTF-8で読み込み、`JSON.parse`に成功した。正しいcommandは`run.json.validation.commands`へ追加した。
+- Finding 2 Current evidence: Task 15 execution時のPR #75作成は`created_at=2026-08-27T23:13:27Z`、Issue #72の目標状態への更新は`updated_at=2026-08-27T23:13:30Z`であり、時系列が整合する。Current Issue bodyも`Current: PR 1 child Plan review`、`Next: PR 1 implementation`、`Blocked: None`、Phase 0 `Complete`、child Plan path、PR `#75`、`Plan ready / implementation not started`を保持している。
+- Finding 2 disposition: Task 15はOPEN PR作成・PR metadata確認・Issue #72更新を完了済みであるため、未完了へ戻さない。後続review correction iterationの「Issue #72は今回編集していない」は、既に正しい状態を再編集せず確認したという意味であり、Task 15 completionまたは`run.json.status=completed`と矛盾しない。Issue #72は今回も編集しない。
+- Progress: 83% (24/29)
+
+## 2026-08-28 15:55 (JST) — Finding 3 / Finding 4 repair applied
+
+- Finding 3 disposition: CodeRabbitの「Sanitizer `-Write`がRun Artifactを書き換え得る」という問題意識は部分的に受け入れた。ただし、過去Run ArtifactをSanitizerで変更可能にする一般例外は採用していない。
+- Finding 3 repair: child Planへ、PR 1 implementationは同じbranch / PR #75で継続する一方、新しいactive implementation Runを開始すること、完了済みPhase 0 / child Plan Run `.codex/runs/20260828-074252-JST/`は通常の実装記録・Sanitizer対象として再変更しないこと、`Write-CodexArtifactTextAtomic`を含むSanitizer Write / Checkはactive implementation Runだけへ適用することを明記した。完了済みRunの無差分とactive RunのSanitizer後正式内容は別々に判定する。
+- Finding 4 disposition: 指摘は妥当。child PlanのRepository-wide旧記載zero-match表現をFinding別bounded searchへ置き換えた。
+- Finding 4 repair: RA-M1〜RA-M3、RA-M4、RA-M5、RA-M6、RA-M8、RA-M7ごとに実変更対象文書を限定し、read-only SSOTはcross-checkのみとした。`CHANGELOG.md`はhistorical record、`docs/curriculum/test-automation/part1/10_part1-capstone.md`はLegacy Aliasとしてzero-match Gateから除外し、意図的に変更しない文書の旧表現はPR 1 failureにしない条件を明記した。
+- changed_files: child Plan、REPORT.md、TASKS.md、run.jsonの4 allowed filesのみ。`PLAN.md`、Issue #72、PR本文、Product / Curriculum / Workbook / validator / test / workflow / package / Master Planは変更していない。
+- validation status: 変更後の必須validation、bounded search consistency、Sanitizer residual確認、commit / push、thread処理は未完了。
+- decision: `continue`。
+- Progress: 90% (26/29)
+
+## 2026-08-28 15:58 (JST) — Review correction validation
+
+- `pnpm run lint:markdown` => PASS（341 files、0 issues）。
+- `git diff --check` => PASS（exit code `0`。run.jsonのEOL warningのみで、whitespace errorなし）。
+- 正しいJSON parse validation => PASS（exit code `0`、実fileをUTF-8で読み込み`JSON.parse`、`run.json JSON parse: PASS`）。同じcommandを`run.json.validation.commands`へ記録した。
+- Sanitizer Write => PASS（4 files scanned、0 files changed、0 replacements、0 residual findings）。Sanitizer Check => PASS（4 files scanned、0 residual findings）。
+- child Plan bounded search consistency => PASS。Finding別の実変更対象文書、read-only SSOT、`CHANGELOG.md`のhistorical record除外、`part1/10_part1-capstone.md`のLegacy Alias除外、active implementation Run限定、過去Run保護を確認した。
+- read-only SSOT cross-check => PASS。`playwright.config.ts`のFormal E2E / Smoke 6 project＋UI Review 4 project、`package.json`のChromium / cross-role command、`.github/workflows/ci.yml`のe2e-chromium matrix、WE-CORE-001〜012、Sanitizerの`Write-CodexArtifactTextAtomic`を確認した。
+- bounded diff => PASS。変更はchild Plan、REPORT.md、TASKS.md、run.jsonの4 allowed filesのみ。`PLAN.md`、Issue #72、Product / Curriculum / Workbook / validator / test / workflow / package / Master Planに変更なし。
+- remaining actions: `run.json.status`の最終化、commit / push、4 review threadへの個別返信・resolve、`@coderabbitai review`の投稿・受付確認。
+- decision: `continue`。
+- Progress: 93% (27/29)
+
+## 2026-08-28 16:00 (JST) — run.json最終JSON parse確認
+
+- `run.json.status`を最終化した状態で、次のcommandを実際に再実行した。
+- command: `node --eval "JSON.parse(require('node:fs').readFileSync('.codex/runs/20260828-074252-JST/run.json', 'utf8')); console.log('run.json JSON parse: PASS')"`。
+- result: exit code `0`、stdout `run.json JSON parse: PASS`。実fileのUTF-8読込と`JSON.parse`は成功した。
+- `run.json`の最終statusは`completed`であり、Run全体の`changed_files` 5件一覧も維持している。
