@@ -1,217 +1,305 @@
 # Codex HookによるRunログ自動化・既存観測機能整理プラン
 
-## 0. 依頼概要
+## 0. 目的
 
-- Codex自身に`.codex/runs/<run_id>/REPORT.md`へ細かな行動を逐次記録させる現行運用を見直す。
-- Codex Hooksを使い、以下の機械的事実を自動収集する。
-  - どのような指示を受けたか。
-  - Hookで観測可能な範囲で何を実行したか。
-  - Subagentをいつ・どのagent typeで起動し、いつ終了したか。
-  - Subagentが最終的に何を返したか。
-  - main turnがどの応答で終了したか。
-- 「なぜその方針を選んだか」「Subagentへ何を任せ、結果をどう扱ったか」は、逐語的な内部思考ではなく、共有可能なDecision / Rationale / checkpoint要約として`REPORT.md`へ残す。
-- `.codex/runs/`は維持するが、`REPORT.md`は機械ログではなく意味のあるcheckpoint記録へ縮小する。
-- `run.json`はCodexが手書きせず、既存の`new-run` / wrapper / collectorで機械生成・更新するmanifestとして扱う。
-- `evaluation.json`は今回再設計しない。通常Runで既にoptionalな既存挙動を維持する。
-- 現在の`.codex/templates/subagent-run.schema.json`および`.codex/runs/<run_id>/subagents/*.json`は、Codex native Subagent実行から自動生成される仕組みがなく、Parent judgementを含む重い構造化記録になっているため、今回の自動収集構成では廃止する。
-- Subagentの機械情報はHook JSONLを正本とし、collectorがそこから`run.json.subagents`へ直接集約する。
-- `.codex/hooks/observe.ps1` / `observe.sh`が実運用で未使用なら、新しいcanonical Hook loggerへ責務を統合したうえで整理する。
+Codex自身に`.codex/runs/<run_id>/REPORT.md`へ細かな行動を逐次記録させる現行運用を見直し、機械的に取得できる事実はCodex Hooksで自動収集する。
 
-### 背景
+自動収集する対象は以下とする。
 
-- 現在の`AGENTS.md`と`.codex/templates/REPORT.md`では、調査・編集・判断・コマンド実行を含む細かな行動をCodex自身が`REPORT.md`へ記録する契約が残っている。
-- `AGENTS.md`ではSubagent使用時も、委譲内容・結果要約・Parentの採用判断をParentが`REPORT.md`へ記録する契約になっている。
-- `scripts/codex-task.ps1|sh`にはwrapper lifecycle / validation用JSONLログが既に存在する。
-- `.codex/hooks/observe.ps1|sh`には観測用JSONL writerが存在するが、現在のproject-scoped Hook設定から直接利用されていない。
-- `scripts/collect-run-artifacts.py`にはHook eventおよびRun-local `subagents/*.json`を`run.json`へ集約する基盤が既にある。
-- `.codex/templates/subagent-run.schema.json`には`purpose` / `scope` / `changed_files` / `parent_decision` / `used_in_final_plan`等の主観・意味情報までrequiredで定義されているが、これらをHookだけから正確に自動生成することはできない。
-- `scripts/new-run.*`、`codex-safe.*`、`codex-task.*`、現在のproject Hook設定には`subagents/*.json`のproducerが存在しない。
-- Codex公式Hookには`UserPromptSubmit` / `PostToolUse` / `SubagentStart` / `SubagentStop` / `Stop`があり、Subagent lifecycleはnative Hookから観測できる。
+- どのような指示を受けたか。
+- Hookで観測可能な範囲で、どのToolを実行したか。
+- どのSubagentが開始・終了したか。
+- Subagentが最終的に何を返したか。
+- main turnがどの応答で終了したか。
 
-### 期待成果
+一方、以下は機械ログへ無理に押し込まず、共有可能な意味情報として`REPORT.md`へcheckpoint単位で残す。
 
-- Codexが記録作業のためだけに余計なファイル編集をしなくてよくなる。
-- 指示、Tool実行、Subagent lifecycle、turn終了を後から時系列で分析できる。
-- Subagentの開始・終了等の機械情報は完全自動で収集され、専用JSON ArtifactをParentが埋める必要がなくなる。
-- Subagentへの委任意図・結果・Parentの採否は、TASK完了等のcheckpointで`REPORT.md`へ短くまとめる。
-- `REPORT.md`には機械的事実ではなく、重要な判断理由・blocker・Remaining・Subagent利用の意味要約だけを残す。
-- Hook log、wrapper log、`REPORT.md`、`run.json`の責務を重複させない。
-- 既存の安全性・scope・validation基盤を壊さず、変更範囲を必要最小限に留める。
+- なぜその方針を選んだか。
+- Subagentへ何を任せたか。
+- Subagentの結果をどう解釈したか。
+- Parentが採用・一部採用・不採用・保留のどれを選んだか、その理由。
+- blocker / Remaining / 重要な検証結果。
+
+主眼は「ログを増やすこと」ではなく、**機械的な記帳を自動化し、AIにしか書けない意味情報だけをAIに書かせること**である。
 
 ---
 
-## 1. ゴール / 完了条件
+## 1. 最終責務
 
-### ゴール
+### `PLAN.md` / `TASKS.md`
 
-Runの記録責務を以下へ整理する。
+- 計画。
+- 作業項目。
+- 進捗。
+- blocked item。
 
-1. `PLAN.md` / `TASKS.md`
-   - 計画、作業項目、進捗、blocked item。
+### `REPORT.md`
 
-2. `REPORT.md`
-   - 重要なDecision / Rationale。
-   - 計画変更。
-   - 重要な検証結果。
-   - blocker / Remaining。
-   - Subagentを利用したcheckpointでは、委任内容・結果要約・Parentの採否を簡潔にまとめる。
+- 重要なDecision / Rationale。
+- 計画変更。
+- 重要な検証結果。
+- blocker / Remaining。
+- 前回checkpoint以降にSubagentを利用した場合のDelegation / Result / Parent decision要約。
 
-3. Hook JSONL
-   - `UserPromptSubmit`: どのような指示を受けたか。
-   - `PostToolUse`: Hookで観測可能な範囲で、どのToolを実行したか。
-   - `SubagentStart`: どのSubagentが開始したか。
-   - `SubagentStop`: どのSubagentが終了し、どの最終結果を返したか。
-   - `Stop`: main turnが終了した事実と、その時点の最終assistant message。
+### Hook JSONL
 
-4. `codex-task` JSONL / report JSON
-   - wrapper lifecycle、preflight、scope、schema validation、verify等。
+- `UserPromptSubmit`: 指示内容。
+- `PostToolUse`: Hookで観測可能なTool実行。
+- `SubagentStart`: Subagent開始。
+- `SubagentStop`: Subagent終了と最終応答。
+- `Stop`: main turn終了と最終assistant message。
 
-5. `run.json`
-   - Hook / wrapper / validation等の機械的事実を集約する自動生成manifest。
-   - Subagent summaryもHook eventから直接自動集約する。
+Raw Hook JSONLは**ローカル詳細Evidence**であり、Git管理しない。
 
-6. `evaluation.json`
-   - 評価が必要なworkflowだけで利用する既存artifact。
-   - 今回のHook導入では再設計しない。
+### `codex-task` JSONL / report JSON
 
-### 廃止する中間Artifact
+- wrapper lifecycle。
+- preflight。
+- scope validation。
+- schema validation。
+- verify。
+- command execution基盤の結果。
+
+### `run.json`
+
+- durableなmachine-readable snapshot。
+- Hook / wrapper / validation等の集約結果。
+- Subagentの機械metadata summary。
+- Raw prompt、Raw Tool payload、Raw final messageは複製しない。
+
+### `evaluation.json`
+
+- 評価が必要なworkflowだけで利用する既存artifact。
+- 今回は再設計しない。
+
+---
+
+## 2. 廃止する構成
+
+今回の新構成では、以下を標準運用から廃止する。
 
 - `.codex/templates/subagent-run.schema.json`
-- `.codex/runs/<run_id>/subagents/*.json`
-- `scripts/collect-run-artifacts.py`内の`collect_subagents()`を中心としたSubagent Artifact走査・集約ロジック
-- 上記Artifactを前提とするtests / docs / template field
+- 新規Runでの`.codex/runs/<run_id>/subagents/*.json`
+- `scripts/collect-run-artifacts.py`内の`collect_subagents()`を中心とした旧Subagent Artifact走査・集約ロジック
+- 上記Artifactを必須とするtests / docs / template記述
 
-### 完了条件（DoD）
+ただし、**過去Runに既に保存されている`subagents/*.json`は削除しない**。
+
+廃止の意味は以下である。
+
+- 新しいRunでは生成しない。
+- 新しいcollectorでは正本として使わない。
+- template / producer / consumer契約を新構成へ移行する。
+- 過去履歴をcleanup目的で削除しない。
+
+旧契約を維持するためだけの新producerや常設互換レイヤーは追加しない。
+
+---
+
+## 3. 完了条件（DoD）
+
+### Hook基本動作
 
 - [ ] 実装時点のCodex CLIで`UserPromptSubmit` / `PostToolUse` / `SubagentStart` / `SubagentStop` / `Stop`のpayload、stdout / exit semantics、Tool coverageを実機確認している。
 - [ ] project-local Hookのtrust状態を確認し、Hookが実際に有効な状態でsmoke validationしている。
-- [ ] Codexが通常作業の各行動ごとに`REPORT.md`へ追記する契約を廃止している。
-- [ ] `REPORT.md`の更新条件を「TASK完了」「blocker / 重要判断 / 計画変更」「Run完了」の3条件に固定している。
-- [ ] Subagent start / stopごとにREPORTへ記帳しない。
-- [ ] Subagentを使ったTASK完了checkpointでは、必要な場合に委任内容・結果要約・Parentの採否を簡潔に1回まとめる。
-- [ ] `UserPromptSubmit`で指示内容のsanitized / bounded copyをJSONLへ記録できる。
-- [ ] promptが上限超過した場合、切り詰められたことをログから判別できる。
-- [ ] promptに含まれる既知のcredential / token形式はbest-effortでredactし、任意のfree-form secretを完全検出できるとは扱わない。
-- [ ] `PostToolUse`で`tool_name` / `tool_use_id`と必要最小限のbounded summaryを記録できる。
-- [ ] 全Tool共通の`success / failure`を無理に正規化しない。
-- [ ] Hosted `WebSearch`等、Hookで観測できないTool pathが存在することを明記し、「ログにない = 実行していない」と判断しない。
-- [ ] `SubagentStart`で`agent_id` / `agent_type` / `turn_id` / model / permission mode等の取得可能な機械情報を記録できる。
-- [ ] `SubagentStop`で`agent_id` / `agent_type` / `agent_transcript_path` / `stop_hook_active` / bounded `last_assistant_message`等を記録できる。
-- [ ] Subagentの開始・終了は`agent_id`をstable keyとして相関し、時刻や「最新Subagent」等のheuristicで紐付けない。
-- [ ] `spawn_agent`等のTool inputから委任内容を安全にbounded summary化できる場合はRaw Hook logへ残すが、Subagentとのcorrelationを無理に構築しない。
-- [ ] `parent_decision` / `used_in_final_plan`等の意味判断をHook / run.jsonへ自動生成しない。
-- [ ] `.codex/templates/subagent-run.schema.json`と`subagents/*.json`標準Artifactを廃止している。
-- [ ] active consumerがある場合は、新構成へ移行してから旧Subagent Artifact契約を削除し、互換レイヤーを常設しない。
-- [ ] `scripts/collect-run-artifacts.py`がHookの`SubagentStart` / `SubagentStop`から`run.json.subagents`を直接集約できる。
-- [ ] `run.json.subagents.records`はRaw final messageやtranscript本文を複製せず、機械的metadataだけを保持する。
-- [ ] `artifact_summary.subagent_run_count`は対象Runのunique `agent_id`数から算出する。
-- [ ] `run.json.agents_used`はHookから取得できるunique `agent_type`を機械的に反映する。
-- [ ] `Stop`で`turn_id` / `stop_hook_active` / bounded `last_assistant_message`を記録できる。
-- [ ] `Stop`入力には停止理由が直接渡らない前提とし、loggerが「なぜ止まったか」を推測・捏造しない。
-- [ ] 停止理由の分析が必要な場合は、`Stop` event、最終assistant message、`REPORT.md`のBlocker / Remaining、wrapper / validation logを組み合わせて事実ベースで判断できる。
-- [ ] logging HookはCodexの挙動を変更しない観測専用Hookとして実装する。
-- [ ] `UserPromptSubmit` / `PostToolUse` / `SubagentStart`はmodel contextへ追加情報を注入しない。
-- [ ] `SubagentStop` / `Stop`は正常時に有効なno-op JSONをstdoutへ返し、continuation / blockを発生させない。
+- [ ] logging Hookは観測専用で、Codexのprompt、Tool result、Subagent context、continuation判断を変更しない。
 - [ ] logger内部の記録失敗時も、既存Codex作業を可能な限り止めない。
-- [ ] Hook loggerは原則1実装に統一され、`observe.ps1|sh`と新loggerが重複して残らない。
-- [ ] Hook logのcanonical保存先をGit管理外の`.codex/logs/`に統一している。
-- [ ] `scripts/collect-run-artifacts.py`がcanonical Hook logを明示的に読み、`run_id`一致eventだけを`run.json`へ集約する。
-- [ ] 5つのlogging eventがcollectorの認識eventへ反映されている。
-- [ ] `run.json`ではRaw prompt / Tool payload / last messageを複製せず、event count / log path / Subagent metadata等の集約情報だけを保持する。
-- [ ] `codex-safe` / `codex-task`へRun IDを指定した場合だけ、Codex child processとそのHookへ信頼できる`CODEX_RUN_ID`を伝播できる。
-- [ ] Run IDなしeventを「最新Run」等へ推測で関連付けない。
-- [ ] Run IDなしSubagentはglobal Hook logには残すが、任意のRunへ推測集約しない。
-- [ ] `run.json`はCodexが手編集せず、既存の機械生成経路だけで生成・更新される。
-- [ ] `evaluation.json`がstandard Runで既にoptionalなら、evaluation関連コード・schema・templateを変更しない。
 - [ ] 既存Bash `PreToolUse` safety Hookのblocking behaviorを変更しない。
+
+### REPORT運用
+
+- [ ] 「行動のたびにREPORTへ追記」「全commandをREPORTへ記録」の契約を廃止している。
+- [ ] REPORT更新条件を以下の3つに固定している。
+  1. TASK完了。
+  2. blocker / 重要判断 / 計画変更。
+  3. Run完了。
+- [ ] Subagent start / stopごとにREPORTを編集しない。
+- [ ] 前回checkpoint以降にSubagentを1つ以上利用した場合、次のTASK完了またはRun完了checkpointで`Delegation / Result / Parent decision`を1回だけ記録する。
+- [ ] Subagentを使わなかったこと自体は毎回記録しない。
+- [ ] private chain-of-thoughtは記録しない。
+
+### 指示・Toolログ
+
+- [ ] `UserPromptSubmit`でsanitized / bounded prompt copyとtruncated flagを記録できる。
+- [ ] 既知credential / token形式をbest-effortでredactする。
+- [ ] 任意のfree-form secretを完全検出できるとは扱わない。
+- [ ] `PostToolUse`で`tool_name` / `tool_use_id`と必要最小限のbounded summaryを記録できる。
+- [ ] `tool_input` / `tool_response`全文を保存しない。
+- [ ] 全Tool共通の`success / failure`を無理に正規化しない。
+- [ ] hosted `WebSearch`等、Hookで観測できないTool pathが存在することを明記する。
+- [ ] delegation Toolを固定名称前提で実装しない。実機で得られる`tool_name`をgeneric `PostToolUse`として扱う。
+- [ ] delegation inputを安全にbounded summary化できる場合だけRaw Hook eventへ残し、Subagent lifecycleとの完全correlation基盤は作らない。
+
+### Subagentログ・集約
+
+- [ ] `SubagentStart`で取得可能な`agent_id` / `agent_type` / `turn_id` / model / permission mode等をRaw Hook logへ記録できる。
+- [ ] `SubagentStop`で取得可能な`agent_id` / `agent_type` / `agent_transcript_path` / `stop_hook_active` / bounded `last_assistant_message`等をRaw Hook logへ記録できる。
+- [ ] Subagent start / stopは`agent_id`をstable keyとして相関し、時刻や「最新Subagent」等のheuristicを使わない。
+- [ ] collectorはHookからunique `agent_id`単位で`run.json.subagents.records`を構築する。
+- [ ] `started_at`は対象agentの最初の`SubagentStart` timestampとする。
+- [ ] `ended_at`は対象agentの最後の`SubagentStop` timestampとする。
+- [ ] `stop_observed`は1件以上の`SubagentStop`が存在する場合だけtrueとする。
+- [ ] `incomplete`はStartまたはStopのどちらか一方が欠けるunique agent record数とする。
+- [ ] 重複Hook eventを別Subagentとして二重計上しない。
+- [ ] `SubagentStop`だけを根拠にsuccess / failureを推測しない。
+- [ ] `last_assistant_message` / `agent_transcript_path`全文を`run.json`へ複製しない。
+- [ ] `parent_decision` / `used_in_final_plan`等の意味判断をHook / `run.json`へ自動生成しない。
+- [ ] `artifact_summary.subagent_run_count`は対象Runのunique `agent_id`数とする。
+- [ ] `agents_used`はHookから取得できるunique `agent_type`を反映する。
+
+### Run ID
+
+- [ ] Run-managed executionは**1 Codex process/session = 1 Run ID**を原則とする。
+- [ ] `codex-safe` / `codex-task`へRun IDを指定した場合だけ、Codex child processとそのHookへ`CODEX_RUN_ID`を伝播する。
+- [ ] Run ID未指定時は最新Run等を推測しない。
+- [ ] 同じinteractive Codex process内で別Runへ切り替えない。
+- [ ] 別Runを開始する場合は現在のCodex process/sessionを終了し、新しいRun IDでwrapperから再起動する。
+- [ ] wrapper終了後に親processの環境変数を元へ戻す。
+- [ ] Run IDなしeventはglobal Hook logへ残してよいが、任意のRunへ推測集約しない。
+
+### `run.json` durability
+
+- [ ] Raw Hook JSONLはlocal-only詳細Evidence、`run.json`はdurable snapshotとして責務を明記している。
+- [ ] canonical Hook sourceが存在する場合のみ、そのsourceからHook / Subagent summaryを再集約する。
+- [ ] 既存`run.json`にHook / Subagent summaryが存在し、canonical Hook sourceが失われている場合、collectorは既存summaryを空値で上書きしない。
+- [ ] 上記ケースではwarningを残し、既存snapshotを保持する。
+- [ ] 新規RunでHook sourceも既存summaryもない場合は初期空summaryのままでよい。
+- [ ] `run.json`へRaw prompt / Tool payload / main final message / Subagent final messageをコピーしない。
+- [ ] Codexや人間が`run.json`を手編集しない。
+
+### Manifest schema
+
+- [ ] 新構成の`RUN_MANIFEST.json`は`schema_version = 2`とする。
+- [ ] v2では旧Subagent Artifact依存fieldを廃止し、Hook直接集約用の最小Subagent構造にする。
+- [ ] 既存v1 Runをcollector再実行だけで勝手にv2構造へ書き換えない。
+- [ ] v1 Runを扱う場合はv1の既存Subagent sectionを保持し、明示migrationなしで破壊的変更しない。
+- [ ] 新規Runはv2 templateから生成する。
+
+### 旧Subagent Artifact削除の副作用
+
+- [ ] `collect_subagents()`削除後も`agents_used`の情報源をHook `agent_type`へ置き換えている。
+- [ ] `changed_files`はSubagent lifecycle Hookから復元せず、既存wrapper / git差分収集を正本とする。
+- [ ] `safety.scope_violation`はSubagent lifecycle Hookから推測せず、既存scope validationを正本とする。
+- [ ] 旧`subagents/*.json`の`changed_files` / `scope`を前提にした処理が残っていない。
+
+### その他
+
+- [ ] `evaluation.json`がstandard Runで既にoptionalなら、evaluation関連コード・schema・templateを変更しない。
 - [ ] Raw JSONLはGit管理対象外のままである。
 - [ ] Product code、ECサイト仕様、カリキュラム本体を変更していない。
 
 ---
 
-## 2. 現状理解と前提
-
-### Current understanding
+## 4. 現状理解
 
 - `.codex/config.toml`では`[features] hooks = true`になっている。
 - 現在project configに登録されているHookはBash向け`PreToolUse` safety policyのみである。
-- `.codex/hooks/observe.ps1` / `observe.sh`は観測eventをJSONLへ書く実装を持つが、現在の`.codex/config.toml`から直接呼ばれていない。
-- `observe.ps1|sh`は`CODEX_HOOK_*`環境変数を入力契約としており、native Hook stdin payloadを直接扱うcanonical loggerとしてそのまま採用する前提にはしない。
+- `.codex/hooks/observe.ps1` / `observe.sh`は観測用JSONL writerを持つが、現在の`.codex/config.toml`から直接呼ばれていない。
+- `observe.ps1|sh`は`CODEX_HOOK_*`環境変数を入力契約としており、native Hook stdinを扱うcanonical loggerとしてそのまま使う前提にはしない。
 - `.codex/logs/.gitignore`は`*.jsonl`をGit管理対象外にしている。
-- `scripts/codex-task.ps1|sh`はwrapper / validation用machine-readable logを既に持つ。
-- `scripts/codex-safe.ps1|sh` / `codex-task.ps1|sh`はRun ID parameterを持つが、現状はHook向け`CODEX_RUN_ID`をCodex child processへ明示伝播していない。
-- `scripts/collect-run-artifacts.py`はHook eventを識別するが、現状は`.codex/observations/hooks.jsonl`とRun-local `logs/*.jsonl`を主に扱うため、canonical保存先を`.codex/logs/`へ変更するならcollector変更が必要である。
-- collector側Hook event一覧には`PostToolUse` / `Stop` / `SubagentStart` / `SubagentStop`等が含まれるが、`UserPromptSubmit`は含まれていない。
-- `.codex/templates/hook-observation.schema.json`にも`UserPromptSubmit`は含まれていない。
-- `.codex/templates/subagent-run.schema.json`は存在するが、現在の実装にはこれを自動生成するproducerが存在しない。
-- 現在のcollectorはRun-local `subagents/*.json`が存在する場合だけ`run.json.subagents` / `subagent_run_count` / `agents_used`等へ集約する。
-- 現在の`RUN_MANIFEST.json`の`subagents.summary`は`read_only` / `writable` / `scope_violations` / `used_in_final_plan`等、旧Subagent Artifactの意味情報を前提としているため、新しいHook直接集約に合わせて簡素化が必要である。
-- `scripts/new-run.*`は`run.json`の初期manifestを生成できる。
-- 現在の`codex-task`ではevaluation template / requireは明示optionであり、標準defaultでは無効になっている。
-- 現在の`.codex/templates/REPORT.md`は「行動のたびに追記」「コマンドや確認結果を必ず記録」としている。
-
-### Codex Hookの前提
-
-実装時点の公式仕様を正とするが、計画時点では以下を前提とする。
-
-- 共通入力には`session_id`、`cwd`、`hook_event_name`、`model`等があり、turn-scoped Hookには`turn_id`がある。
-- `UserPromptSubmit`は`prompt`を受け取り、plain text stdoutはdeveloper contextとしてCodexへ追加されるため、観測専用Hookではstdoutを空にする。
-- `PostToolUse`は`tool_name`、`tool_use_id`、`tool_input`、`tool_response`を受け取る。
-- `PostToolUse`はBash、`apply_patch`、MCP、その他多くのlocal function toolを観測できるが、hosted `WebSearch`等は観測対象外であり、一部specialized pathもopt-out可能である。
-- `SubagentStart`は`agent_id` / `agent_type` / `turn_id`等を受け取る。
-- `SubagentStop`は`agent_id` / `agent_type` / `agent_transcript_path` / `stop_hook_active` / `last_assistant_message`等を受け取る。
-- `Stop`は`turn_id` / `stop_hook_active` / `last_assistant_message`を受け取る。停止理由そのものは入力fieldとして提供されない。
-- `SubagentStop` / `Stop`はexit 0時にJSON stdoutを期待するため、観測専用loggerはno-op JSONだけを返す。
-- `stopReason`はHookからCodexへ返す出力fieldであり、Codexが停止した理由を受け取る入力fieldではない。
-- project-local Hookは実行環境でtrustされている必要があるため、設定ファイルを追加しただけで動作すると仮定しない。
-
-### Assumptions
-
-- Node.jsは既存実行基盤なので、cross-platform loggerを1つ置く場合の第一候補とする。
-- Run IDなしinteractive eventをRunへ紐付けるためのactive-run registry、DB、daemon、最新Run推測は追加しない。
-- Hook実行processへ`CODEX_RUN_ID`等の信頼できる既存Run IDが継承される場合だけ`run_id`を記録する。
-- Hook logの目的は分析可能なEvidenceを残すことであり、完全な監査証跡を構築することではない。
-- Subagentの結果全文はRaw Hook logに保持し、`run.json`へ複製しない。
-- Subagentの委任意図・結果要約・採否はParent agentがcheckpoint時にREPORTへ簡潔にまとめる。
-- V1ではlog rotation、外部転送、DB化を行わない。
-
-### Non-goals
-
-- `.codex/runs/`を廃止しない。
-- Run管理基盤全体を再設計しない。
-- `RUN_MANIFEST.json`へ主観評価fieldを増やさない。
-- `evaluation.json`を今回の主目的として再設計しない。
-- `PLAN.md` / `TASKS.md`を機械生成へ置き換えない。
-- 逐語的な内部思考・private chain-of-thoughtをログへ保存しない。
-- 全Toolのinput / responseを無条件保存しない。
-- 全Toolの結果を共通statusへ正規化するframeworkを作らない。
-- Hookで観測できないhosted / specialized toolを別の疑似Hookで無理に捕捉しない。
-- Subagent専用の永続JSON Artifactを新たに作らない。
-- Subagentの意味的な採否判断をrun.jsonへ自動生成しない。
-- `spawn_agent`とSubagent lifecycleの完全correlation基盤を作らない。
-- `PreToolUse` safety policyを再設計しない。
-- 外部ログサービス、DB、常駐processを導入しない。
-- Product codeやテスト対象機能を変更しない。
-
-### 実装中の停止条件
-
-- 5つのlogging eventのいずれかが現行CLIでproject-scoped Hookから利用できない場合、wrapperへ疑似Hookを大量実装して補わない。利用可能なeventだけで最小構成を再評価する。
-- Hook commandのstdout / exit挙動が公式仕様と実機で異なる場合、現行実機仕様を優先し、観測HookがCodexをsteerしないことを最優先する。
-- project-local Hookがtrustされていない場合、trust状態を解決せずに「Hookが動かない」と実装不良判定しない。
-- `observe.ps1|sh`に有効なcallerが存在する場合、callerを移行せずに削除しない。
-- `subagent-run.schema.json` / `subagents/*.json`にactive consumerがある場合、そのconsumerを新しいHook / run.json構成へ移行してから削除する。旧契約を残すためだけの常設互換レイヤーは追加しない。
-- Run IDを信頼できる形で取得できないeventは、Runへ推測で紐付けない。
-- prompt / Tool payloadから安全に扱えないfieldは保存対象から外す。
-- logging Hookが既存safety Hookへ干渉する場合、safetyを優先してlogging scopeを縮小する。
-- `run.json`へ追加しようとする情報がAI判断を必要とする場合、その情報はmanifestへ入れずREPORTへ寄せる。
+- `scripts/codex-safe.ps1|sh` / `codex-task.ps1|sh`はRun ID parameterを持つが、Hook向け`CODEX_RUN_ID`をCodex child processへ明示伝播していない。
+- `scripts/collect-run-artifacts.py`は現在、`.codex/observations/hooks.jsonl`とRun-local `logs/*.jsonl`を主にHook sourceとして扱う。
+- collectorのHook event一覧には`SubagentStart` / `SubagentStop`等があるが、`UserPromptSubmit`がない。
+- `.codex/templates/hook-observation.schema.json`にも`UserPromptSubmit`がない。
+- `.codex/templates/subagent-run.schema.json`は存在するが、現在の実装に自動producerは存在しない。
+- `collect_subagents()`は旧Subagent Artifactから`run.json.subagents`だけでなく、`agents_used`、`changed_files`、`safety.scope_violation`へ影響している。
+- 現行`RUN_MANIFEST.json`は`schema_version = 1`で、Subagent summaryに`read_only` / `writable` / `scope_violations` / `used_in_final_plan`等を持つ。
+- 現行`AGENTS.md`では同じ会話session内でも別タスクなら新Runを作成できる。
+- 現行`AGENTS.md`では`.codex/runs/<run_id>/run.json`等をdurableな標準Run Artifactとして扱う一方、再生成可能な生ログは長期保存対象外としている。
+- 現行`.codex/templates/REPORT.md`は「行動のたびに追記」「コマンドや確認結果は必ず記録」としている。
 
 ---
 
-## 3. 影響範囲
+## 5. Hook仕様前提
 
-### Files to inspect
+実装時点の公式仕様と実機結果を正とする。
 
-実装開始時に最低限以下を再確認する。
+### 共通
+
+取得可能なeventでは以下を記録する。
+
+- event
+- timestamp
+- session_id
+- turn_id
+- model
+- permission_mode
+- run_id（有効な`CODEX_RUN_ID`がある場合のみ）
+
+### `UserPromptSubmit`
+
+- `prompt`を受け取る。
+- plain text stdoutはdeveloper contextとして追加されるため、観測専用loggerはstdoutへplain text / additional contextを出さない。
+
+### `PostToolUse`
+
+- `tool_name` / `tool_use_id` / `tool_input` / `tool_response`を受け取る。
+- Bash / apply_patch / MCP / local function tool等を観測できる。
+- hosted `WebSearch`等は観測対象外になり得る。
+- delegation Toolは実機で得られる`tool_name`をgenericに扱い、名称固定の専用parserを作らない。
+
+### `SubagentStart`
+
+- `agent_id` / `agent_type` / `turn_id`等を受け取る。
+- Raw eventへ機械情報だけ記録する。
+- additional contextを注入しない。
+
+### `SubagentStop`
+
+- `agent_id` / `agent_type` / `agent_transcript_path` / `stop_hook_active` / `last_assistant_message`等を受け取る。
+- success / failureを独自推測しない。
+- 有効なno-op JSONだけをstdoutへ返し、Subagent continuationを要求しない。
+
+### `Stop`
+
+- `turn_id` / `stop_hook_active` / `last_assistant_message`を受け取る。
+- 停止理由そのものは入力fieldとして提供されない。
+- `stopReason`はHook出力fieldであり、入力停止理由として扱わない。
+- 有効なno-op JSONだけをstdoutへ返し、main turn continuationを要求しない。
+
+---
+
+## 6. Non-goals
+
+- `.codex/runs/`を廃止しない。
+- Run管理基盤全体を再設計しない。
+- active-run registry、DB、daemon、最新Run推測を作らない。
+- Raw Hook JSONLをGitへ長期保存しない。
+- 全Toolの完全監査ログを作らない。
+- 全Toolのinput / response全文を保存しない。
+- 全Toolの結果を共通statusへ正規化するframeworkを作らない。
+- hosted / specialized toolを疑似Hookで無理に捕捉しない。
+- delegation ToolとSubagent lifecycleの完全correlation基盤を作らない。
+- Subagent専用の新しい永続JSON Artifactを作らない。
+- Subagentの意味的な採否を`run.json`へ入れない。
+- REPORT自然言語をparseして`run.json`を埋めない。
+- `PreToolUse` safety policyを再設計しない。
+- `evaluation.json`を今回の主目的として変更しない。
+- Product codeやテスト対象機能を変更しない。
+
+---
+
+## 7. 実装中の停止条件
+
+- 5つのlogging eventのいずれかが現行CLIでproject-scoped Hookから利用できない場合、wrapperへ疑似Hookを大量実装しない。利用可能なeventだけで最小構成を再評価する。
+- Hook stdout / exit semanticsが公式仕様と実機で異なる場合、実機挙動を優先し、観測HookがCodexをsteerしないことを最優先する。
+- project-local Hookがtrustされていない場合、trust問題を解消せずにlogger不良と判定しない。
+- `observe.ps1|sh`に有効callerが存在する場合、callerを移行せずに削除しない。
+- 旧Subagent Artifactにactive consumerがある場合、consumerを新構成へ移行してからtemplate / collector契約を削除する。
+- 過去Run内の既存`subagents/*.json`は削除しない。
+- Run IDを信頼できる形で取得できないeventを任意のRunへ紐付けない。
+- 同一interactive Codex process内で新Runへの切替が必要になった場合、active-run切替機構を作らず、processを終了して新Run IDで再起動する。
+- canonical Hook sourceが失われている既存Runをcollector再実行する場合、既存Hook / Subagent snapshotを空で上書きしない。
+- v1 manifestを明示migrationなしでv2へ自動変換しない。
+- prompt / Tool payloadから安全に扱えないfieldは保存対象から外す。
+- logging Hookが既存safety Hookへ干渉する場合、safetyを優先してlogging scopeを縮小する。
+- `run.json`へ追加したい情報がAI判断を必要とする場合、その情報はREPORTへ寄せる。
+
+---
+
+## 8. 影響範囲
+
+### 実装開始時に確認するファイル
 
 - `AGENTS.md`
 - `.codex/config.toml`
@@ -236,9 +324,7 @@ Runの記録責務を以下へ整理する。
 - `docs/reference/codex-safety-harness.md`
 - 関連する`scripts/tests/**`
 
-### Repo-wide search
-
-以下をliteral searchし、producer / consumer / docs / testsに分類する。
+### Repo-wide literal search
 
 - `observe.ps1`
 - `observe.sh`
@@ -259,6 +345,9 @@ Runの記録責務を以下へ整理する。
 - `used_in_final_plan`
 - `parent_decision`
 - `agents_used`
+- `scope_violation`
+- `changed_files`
+- `schema_version`
 - `run.json`
 - `evaluation.json`
 - `EvaluationTemplate`
@@ -266,115 +355,90 @@ Runの記録責務を以下へ整理する。
 
 ---
 
-## 4. 変更方針
+## 9. 実装方針
 
-### Phase 1: Hook責務とRun correlationを固定する
+### Phase 1: 現行仕様・consumerを確定する
 
-#### Hook V1
+1. 現行Codex CLIで5eventのpayload / stdout / exit semantics / trustを実機確認する。
+2. 旧`observe.*`のcallerを確認する。
+3. `subagent-run.schema.json` / `subagents/*.json`のactive consumerを確認する。
+4. `collect_subagents()`が現在担っている`subagents` / `agents_used` / `changed_files` / `scope_violation`責務を洗い出す。
+5. `run.json` v1を読むconsumerを確認する。
+6. standard Runでevaluationがoptionalであることを確認する。
 
-`.codex/config.toml`へ、既存Safety `PreToolUse`とは別に以下5eventを接続する。
+### Phase 2: Run ID契約を固定する
 
-- `UserPromptSubmit`
-- `PostToolUse`
-- `SubagentStart`
-- `SubagentStop`
-- `Stop`
+- `codex-safe.ps1|sh` / `codex-task.ps1|sh`にRun IDが指定された場合、Codex child process実行中だけ`CODEX_RUN_ID=<run_id>`を設定する。
+- Codex終了後は元の環境変数値を復元する。
+- Run ID未指定時は何も推測しない。
+- docs / `AGENTS.md`へ**1 Codex process/session = 1 Run ID**を明記する。
+- 同一sessionで別タスクを新Runへ分離する必要がある場合、現在のCodex processを終了し、新Run IDでwrapperを再起動する。
+- `new-run`の最新directory探索等は実装しない。
 
-既存Bash `PreToolUse` safety Hookのmatcher / blocking behaviorは変更しない。
+### Phase 3: canonical Hook loggerを1つ実装する
 
-#### Run ID伝播
-
-- `codex-safe.ps1|sh` / `codex-task.ps1|sh`にRun IDが指定された場合、Codex child processの実行中だけ`CODEX_RUN_ID=<run_id>`を環境へ設定する。
-- Codex終了後は親processの元の環境変数値を復元する。
-- Run ID未指定時は`CODEX_RUN_ID`を新規推測しない。
-- `new-run`の「最新Run」を自動探索して環境へ設定する仕組みは作らない。
-- Run-managed workflowでは、Run-local aggregationを行いたい場合はwrapperへ同じRun IDを渡すことをdocsへ明記する。
-
-### Phase 2: canonical Hook loggerを1つ実装する
-
-- cross-platform loggerは原則Node `.mjs`を1つだけ用意する。
+- cross-platform実装は原則Node `.mjs`を1つだけ用意する。
 - native Hook stdin payloadを直接処理する。
-- Raw eventは`.codex/logs/hooks-<session_id>.jsonl`へ1event=1JSON lineでappendする。
-- session idはsafe filename化する。
-- Raw JSONLはGit管理外とする。
-- 1eventのappendは1回のfile append operationで完結させ、複数Subagent並列時にpartial lineを作らない。
-- loggerは通常時にstdoutへdebug logを出さない。
-- logger内部エラーはstderr等の最小診断に留め、可能な限りCodex本作業を止めない。
-- V1ではrotation、DB、外部送信を実装しない。
-
-#### 共通metadata
-
-取得可能なeventでは以下を記録する。
-
-- event
-- timestamp
-- session_id
-- turn_id
-- model
-- permission_mode
-- run_id（`CODEX_RUN_ID`が妥当な場合のみ）
+- Raw eventは`.codex/logs/hooks-<safe-session-id>.jsonl`へ1event=1JSON lineでappendする。
+- 1eventは1回のappend operationで完結させる。
+- prompt / final message / Tool summaryは固定上限を設ける。
+- redaction / truncateは共通helperへまとめる。
+- 通常時にstdoutへdebug logを出さない。
+- logger内部エラーは最小診断に留め、本作業を可能な限り継続させる。
+- V1ではrotation / DB / 外部送信を実装しない。
 
 #### `UserPromptSubmit`
 
-- sanitized / bounded prompt copyを保存する。
-- truncated flagを保存する。
-- 既知secret patternをbest-effort redactionする。
-- transcript本文は読まない。
-- stdoutへplain text / additionalContextを出さない。
+- sanitized / bounded prompt copy。
+- truncated flag。
+- best-effort known-secret redaction。
+- transcriptは読まない。
+- contextを注入しない。
 
 #### `PostToolUse`
 
-- `tool_name` / `tool_use_id`を保存する。
-- sanitized / bounded input summaryを保存する。
-- 必要なToolだけ、安定取得できるbounded result metadataを保存する。
-- `tool_input` / `tool_response`全文は保存しない。
-- 全Tool共通`success / failure`を作らない。
-- Tool別の万能summary engineを作らない。
-- hosted / specialized toolを完全捕捉できるとは扱わない。
-- `spawn_agent`等のdelegation Toolを専用の永続Artifactへ変換しない。
-- delegation inputを安全にbounded summary化できる場合はRaw Hook event内へ残す。
-- stdoutへdecision / feedback / additionalContextを返さない。
+- `tool_name` / `tool_use_id`。
+- sanitized / bounded input summary。
+- 必要なToolだけstableなbounded result metadata。
+- input / response全文は保存しない。
+- universal status parserを作らない。
+- delegation Toolを名称固定で特別扱いしない。
 
 #### `SubagentStart`
 
-- `agent_id` / `agent_type`等、native payloadから取得できる機械情報をRaw Hook eventへ記録する。
-- Subagent専用JSON fileは作成しない。
-- stdoutへplain text / additionalContextを出さない。
+- `agent_id` / `agent_type` / common metadataをRaw Hook eventへ記録する。
+- 専用Artifactは作らない。
 
 #### `SubagentStop`
 
-- `agent_id` / `agent_type` / `agent_transcript_path` / `stop_hook_active` / sanitized・bounded `last_assistant_message`等をRaw Hook eventへ記録する。
-- `SubagentStop`が来たことだけを根拠に「成功」と断定しない。
-- `parent_decision` / `used_in_final_plan`を生成しない。
-- Subagent専用JSON fileは更新しない。
-- exit 0 + 有効なno-op JSON stdoutを返し、Subagent continuationを要求しない。
+- `agent_id` / `agent_type` / `agent_transcript_path` / `stop_hook_active` / sanitized・bounded `last_assistant_message`をRaw Hook eventへ記録する。
+- success / failureを推測しない。
+- no-op JSON以外をstdoutへ返さない。
 
 #### `Stop`
 
-- `stop_hook_active`とsanitized / bounded `last_assistant_message`を保存する。
-- truncated flagを保存する。
-- `stopReason`を入力から取得しようとしない。
-- logger側で停止理由を分類・推測しない。
-- exit 0 + 有効なno-op JSON stdoutを返し、main turn continuationを要求しない。
+- `stop_hook_active` / sanitized・bounded `last_assistant_message`を記録する。
+- stop reasonを推測しない。
+- no-op JSON以外をstdoutへ返さない。
 
-### Phase 3: Subagent Artifactを廃止し、Hook → run.jsonへ直接集約する
+### Phase 4: Hook → `run.json`直接集約へ移行する
 
-#### 廃止方針
+#### Hook source
 
-- `.codex/templates/subagent-run.schema.json`を削除する。
-- `.codex/runs/<run_id>/subagents/*.json`を標準Run Artifactとして扱わない。
-- `scripts/collect-run-artifacts.py`の`collect_subagents()`およびSubagent Artifact走査ロジックを削除する。
-- Subagent Artifactを生成・検証・参照するtests / docs / template記述を削除または新構成へ移行する。
-- active consumerがある場合は、Hook / `run.json.subagents`へconsumerを移行してから旧契約を削除する。
-- 旧Artifactを維持するためだけの新producerや互換レイヤーは作らない。
+- `.codex/logs/hooks-*.jsonl`をcanonical sourceとする。
+- 対象Run IDと一致するeventだけ集約する。
+- Run IDなしeventは対象Runへ含めない。
+- `codex-task-*.jsonl`をHook sourceとして誤認しない。
 
-#### `run.json.subagents`
+#### Hook summary
 
-collectorが対象RunのRaw Hook eventから直接構築する。
+- `UserPromptSubmit`を認識eventへ追加する。
+- 5eventのevent countを集約する。
+- Raw payloadをmanifestへコピーしない。
 
-`records`へ残すのは機械的に確定できる情報だけとする。
+#### Subagent summary
 
-例:
+unique `agent_id`単位でrecordを構築する。
 
 ```json
 {
@@ -382,11 +446,11 @@ collectorが対象RunのRaw Hook eventから直接構築する。
     "records": [
       {
         "agent_id": "<agent_id>",
-        "agent_type": "code_researcher",
+        "agent_type": "<agent_type-or-null>",
         "model": "<model-or-null>",
         "turn_id": "<turn_id-or-null>",
-        "started_at": "<timestamp-or-null>",
-        "ended_at": "<timestamp-or-null>",
+        "started_at": "<first-start-timestamp-or-null>",
+        "ended_at": "<last-stop-timestamp-or-null>",
         "stop_observed": true
       }
     ],
@@ -400,28 +464,31 @@ collectorが対象RunのRaw Hook eventから直接構築する。
 }
 ```
 
-- `records`はunique `agent_id`単位で構築する。
-- `SubagentStart`のみ存在する場合は`ended_at=null` / `stop_observed=false`とする。
-- `SubagentStop`のみ存在する異常・欠損ケースでもeventを捨てず、取得できる情報だけでrecord化する。
-- `status=success`等の意味評価は入れない。
-- Raw `last_assistant_message`をrun.jsonへコピーしない。
-- `agent_transcript_path`はRaw Hook logにのみ残し、run.jsonへコピーしない。
-- `parent_decision` / `used_in_final_plan` / `purpose` / `scope` / `changed_files`等の主観・別責務情報はrun.jsonへ入れない。
-- `artifact_summary.subagent_run_count`はunique `agent_id`数を使用する。
-- `agents_used`はunique `agent_type`から機械的に生成する。
+集約規則:
 
-#### `RUN_MANIFEST.json`
+- 最初の`SubagentStart`を`started_at`に使う。
+- 最後の`SubagentStop`を`ended_at`に使う。
+- Startだけなら`ended_at = null`、`stop_observed = false`。
+- Stopだけでもrecordを捨てず、`started_at = null`として残す。
+- `incomplete`はStart / Stopの片方が欠けるunique agent数。
+- duplicate eventは別agentとして数えない。
+- `last_assistant_message` / `agent_transcript_path`はrun.jsonへコピーしない。
+- `agents_used`はunique `agent_type`から生成する。
+- `artifact_summary.subagent_run_count`はunique `agent_id`数とする。
 
-現在の旧Subagent Artifact依存fieldをHook直接集約向けに簡素化する。
+#### Raw sourceが失われた場合
 
-削除対象:
+- existing `run.json`に非空の`hook_observations` / `subagents`があり、canonical Hook sourceが存在しない場合は既存snapshotを保持する。
+- 空summaryで上書きしない。
+- `validation.warnings`等へ`hook_source_unavailable`相当のwarningを追加する。
+- fresh Runでsourceも既存summaryもない場合は初期空summaryのままとする。
+- Raw JSONLの存在を長期保存前提にしない。
 
-- `subagents.summary.read_only`
-- `subagents.summary.writable`
-- `subagents.summary.scope_violations`
-- `subagents.summary.used_in_final_plan`
+### Phase 5: `RUN_MANIFEST.json` v2へ移行する
 
-追加・維持候補:
+新規Run用templateを`schema_version = 2`へ変更する。
+
+v2のSubagent summaryは以下へ簡素化する。
 
 - `subagents.records`
 - `subagents.summary.total`
@@ -431,275 +498,278 @@ collectorが対象RunのRaw Hook eventから直接構築する。
 - `artifact_summary.subagent_run_count`
 - `agents_used`
 
-主観評価fieldは追加しない。
+削除する旧summary:
 
-### Phase 4: REPORTを意味要約へ限定する
+- `read_only`
+- `writable`
+- `scope_violations`
+- `used_in_final_plan`
 
-現行の「行動のたびに追記」を廃止し、更新条件を次の3つに固定する。
+v1 Runの扱い:
 
-1. `TASKS.md`の1タスクを完了したとき。
-2. blocker、重要な新規判断、または計画変更が発生したとき。
-3. Runを完了するとき。
+- collectorは`schema_version`を確認する。
+- 既存v1 manifestを単なる再集約でv2へ書き換えない。
+- v1の既存Subagent sectionは明示migrationなしでは保持する。
+- 今回v1→v2の一括migration utilityは作らない。
+- 新規Runだけv2 templateを使う。
 
-記録項目は空欄埋めを要求しない。
+### Phase 6: `collect_subagents()`廃止の副作用を分離する
 
-#### 常時
+旧`collect_subagents()`が担っていた情報は以下の正本へ移す。
 
-- Summary
-- Progress
+- `run.json.subagents` → Hook lifecycle aggregation。
+- `agents_used` → Hook `agent_type`。
+- `changed_files` → 既存wrapper / git差分収集。
+- `safety.scope_violation` → 既存scope validation。
 
-#### 該当時のみ
+Subagent Hookから`changed_files` / `scope_violation`を推測しない。
 
-- Changes
-- Decision / Rationale
-- Validation
-- Blocker / Remaining
-- Subagents
+active consumer移行後に以下を削除する。
 
-#### `Subagents`の扱い
+- `.codex/templates/subagent-run.schema.json`
+- `collect_subagents()`。
+- Run-local `subagents/*.json`を走査するcollector処理。
+- 新規Runで旧Artifactを要求するtests / docs。
 
-TASK完了またはRun完了checkpointまでにSubagentを利用した場合、必要な範囲で各Subagentについて次の意味要約を1回だけ残す。
+過去Run内の旧Artifactは残す。
 
-- Delegation: 何を任せたか / なぜ任せたか。
-- Result: 何が返ってきたかの要点。
-- Parent decision: 採用 / 一部採用 / 不採用 / 保留と、その理由。
+### Phase 7: REPORTをcheckpoint要約へ変更する
 
-例:
+REPORT更新条件は以下だけとする。
 
-```text
-Subagents:
-- code_researcher
-  - Delegation: Hook実装の既存collector影響範囲を調査。
-  - Result: collectorとRUN_MANIFESTのSubagent集約が旧Artifact依存と判明。
-  - Parent decision: 採用。Hook直接集約へ変更。
-```
+1. TASK完了。
+2. blocker / 重要判断 / 計画変更。
+3. Run完了。
 
-- start / stop時刻、agent id、transcript path、Raw final message等はREPORTへ転記しない。
-- 同じSubagentについてstart / stopごとにREPORTを編集しない。
-- Parent decisionは共有可能な判断理由だけを書き、逐語的な内部思考は書かない。
-- Subagentを使わなかったこと自体を毎回REPORTへ記載する義務は設けない。
+常時項目:
 
-### Phase 5: Collector / docs / cleanupを整合させる
+- Summary。
+- Progress。
 
-#### `scripts/collect-run-artifacts.py`
+該当時のみ:
 
-- `.codex/logs/hooks-*.jsonl`を明示的に走査する。
-- `UserPromptSubmit`をHook event一覧へ追加する。
-- `SubagentStart` / `SubagentStop`をHook event countとして維持する。
-- `run_id`が対象Runと一致するeventだけHook summaryへ集約する。
-- Run IDなしeventは対象Runへ含めない。
-- `codex-task-*.jsonl`をHook logとして誤認しない。
-- 旧`.codex/observations/hooks.jsonl`を廃止する場合、legacy fallbackを削除する。
-- Raw prompt / Tool input / response / main last message / Subagent final messageをrun.jsonへ複製しない。
-- `collect_subagents()`とRun-local `subagents/*.json`走査を削除する。
-- `SubagentStart` / `SubagentStop`からunique `agent_id`単位で`run.json.subagents`を構築する。
-- malformed / partial lifecycle eventがあってもcollector全体を不必要に失敗させない。
+- Changes。
+- Decision / Rationale。
+- Validation。
+- Blocker / Remaining。
+- Subagents。
+
+Subagent要約ルール:
+
+- 前回checkpoint以降にSubagentを利用した場合、次のTASK完了またはRun完了checkpointで1回記録する。
+- 各Subagentについて必要な範囲で以下を書く。
+  - Delegation: 何を任せたか / なぜ任せたか。
+  - Result: 返却内容の要点。
+  - Parent decision: 採用 / 一部採用 / 不採用 / 保留と理由。
+- agent id、時刻、transcript path、Raw final message等はREPORTへ書かない。
+- start / stopごとにREPORTを編集しない。
+- 同じ意味情報を複数checkpointへ重複転記しない。
+
+### Phase 8: cleanup / docs整合
 
 #### `AGENTS.md`
 
-- 「各行動をREPORTへ記録する」契約を外す。
-- Subagent使用時に委譲内容・結果要約・Parent採用判断をstart / stop単位で逐次記録する運用にはしない。
-- TASK完了 / Run完了checkpointで、Subagent利用があった場合に意味要約をまとめる契約へ変更する。
-- `run.json`をgenerated manifestとして明記する。
+- 各行動ごとのREPORT記録を廃止する。
+- 1 Codex process/session = 1 Run IDを明記する。
+- 別Run開始時はCodex process再起動を要求する。
+- `run.json`をgenerated durable snapshotとして扱う。
+- Subagentはcheckpoint semantic summaryのみREPORTへ残す。
 
-#### docs
+#### `docs/reference/codex-implementation-harness.md`
 
-- `docs/reference/codex-implementation-harness.md`へHook log / wrapper log / REPORT / run.jsonの責務を明記する。
-- Subagent専用Artifactは廃止し、Hook raw evidence + run.json machine summary + REPORT semantic summaryを正式運用とする。
-- Run-local aggregationを必要とするRun-managed executionではwrapperへRun IDを渡すことを明記する。
-- Tool Hookは完全な監査ログではないことを明記する。
-- `Stop`は停止理由そのものを直接提供するeventではないことを明記する。
-- project-local Hookのtrust確認手順を必要最小限で記載する。
+- Hook raw log / wrapper log / REPORT / run.jsonの責務を明記する。
+- Raw Hook logはlocal-only、run.json / REPORTはdurableであることを明記する。
+- Run-managed executionはwrapperへRun IDを渡す。
+- Tool Hookは完全監査ログではない。
+- Stopは停止理由そのものを直接提供しない。
+- Hook trust確認手順を必要最小限で記載する。
 
-#### `observe.ps1|sh`整理
+#### `observe.ps1|sh`
 
-- callerなし:
-  - 新logger導入後に`observe.ps1` / `observe.sh`を削除する。
-  - `.codex/observations/hooks.jsonl`専用fallbackと不要になった`CODEX_HOOK_*`契約を整理する。
-- callerあり:
-  - callerをcanonical loggerへ移行する。
-  - 移行完了後に旧scriptを削除する。
-  - 安全に移行できない場合だけ残し、その理由をdocumentする。
+callerなし:
+
+- canonical logger導入後に削除する。
+- `.codex/observations/hooks.jsonl` fallbackと不要な`CODEX_HOOK_*`契約を整理する。
+
+callerあり:
+
+- callerをcanonical loggerへ移行する。
+- 移行後に旧scriptを削除する。
+- 安全に移行できない場合だけ理由をdocumentして残す。
 
 #### `evaluation.json`
 
-- standard Runで既にoptionalならコード、schema、templateは変更しない。
-- 今回の変更によってevaluation生成を新たに必須化しない。
-- strict / 明示的評価workflowの既存挙動を壊さないことだけ確認する。
+- standard Runでoptionalな既存挙動を維持する。
+- 今回の変更で必須化しない。
 
 ---
 
-## 5. 実行タスク
+## 10. 実行タスク
 
-- [ ] 1. 現行Codex CLIで5eventのinput / stdout / exit semantics、Tool coverage、Hook trust状態を実機確認する。
-- [ ] 2. repo-wide searchで`observe.*`、Subagent schema / Artifact、Hook schema、collector、RUN_MANIFEST、Run ID関連のproducer / consumer / docs / testsを確定する。
-- [ ] 3. `subagent-run.schema.json` / `subagents/*.json`のactive consumerを新しいHook / run.json構成へ移行する方針を確定する。
-- [ ] 4. `codex-safe.ps1|sh` / `codex-task.ps1|sh`で、明示Run IDだけをCodex child / Hookへ安全に伝播する。
-- [ ] 5. canonical Hook loggerを1つ実装し、共通metadata、prompt、Tool、Subagent lifecycle、Stop情報をsanitized / bounded JSONLとして記録する。
-- [ ] 6. `.codex/config.toml`へ5eventを接続し、既存Safety Hookを維持する。
-- [ ] 7. active consumerがある場合だけ`hook-observation.schema.json`をV1 event / metadataへ最小修正する。
-- [ ] 8. `collect-run-artifacts.py`をcanonical Hook logへ対応させ、Subagent eventをunique `agent_id`単位で`run.json.subagents`へ直接集約する。
-- [ ] 9. `RUN_MANIFEST.json`のSubagent sectionを機械情報だけの最小構造へ変更する。
-- [ ] 10. `.codex/templates/subagent-run.schema.json`、`collect_subagents()`、Run-local `subagents/*.json`前提のtests / docsを削除する。
-- [ ] 11. caller移行後、未使用`observe.ps1|sh`と旧`.codex/observations` fallback / 旧環境変数契約を整理する。
-- [ ] 12. `AGENTS.md` / `.codex/templates/REPORT.md`をcheckpoint型へ変更し、Subagent利用はcheckpoint時の意味要約だけにする。
-- [ ] 13. implementation harness docsを新責務へ合わせる。evaluationは既にoptionalなら変更しない。
-- [ ] 14. targeted test / smoke validationを実行し、Raw JSONLがGit tracking対象外であることを確認する。
+- [ ] 1. 現行Codex CLIで5eventのinput / stdout / exit semantics、Tool coverage、Hook trust状態を確認する。
+- [ ] 2. repo-wide searchで旧Hook / Subagent Artifact / manifest v1 / collector / docs / testsのproducerとconsumerを確定する。
+- [ ] 3. 旧`collect_subagents()`の`agents_used` / `changed_files` / `scope_violation`副作用の移行先を既存コード上で確定する。
+- [ ] 4. `codex-safe.ps1|sh` / `codex-task.ps1|sh`へ明示Run IDの`CODEX_RUN_ID`伝播とrestoreを実装する。
+- [ ] 5. `AGENTS.md`へ1 process/session = 1 Run契約を反映する。
+- [ ] 6. canonical Hook loggerを1つ実装し、5eventをsanitized / bounded JSONLへ記録する。
+- [ ] 7. `.codex/config.toml`へ5eventを接続し、既存Safety Hookを維持する。
+- [ ] 8. active consumerがある場合だけ`hook-observation.schema.json`をV1 event / metadataへ最小修正する。
+- [ ] 9. `collect-run-artifacts.py`をcanonical Hook sourceへ対応させ、Subagent eventをunique `agent_id`単位で集約する。
+- [ ] 10. collectorへ「Raw Hook source不在時は既存durable snapshotを空で上書きしない」guardを追加する。
+- [ ] 11. `RUN_MANIFEST.json`をv2へ変更し、新規Runだけv2で生成する。
+- [ ] 12. v1 Runを自動v2 migrationしないguard / regression testを追加する。
+- [ ] 13. `agents_used`はHook、`changed_files`は既存差分収集、`scope_violation`は既存scope validationへ責務を分離する。
+- [ ] 14. active consumer移行後、`subagent-run.schema.json` / `collect_subagents()` / 新規Run向け旧Artifact tests / docsを削除する。過去Run Artifactは削除しない。
+- [ ] 15. `AGENTS.md` / `.codex/templates/REPORT.md`をcheckpoint型へ変更し、Subagent semantic summaryの必須条件を固定する。
+- [ ] 16. implementation harness docsを新責務・保存寿命・Run切替契約へ合わせる。
+- [ ] 17. caller移行後、未使用`observe.ps1|sh`と旧`.codex/observations` fallback / 旧環境変数契約を整理する。
+- [ ] 18. targeted tests / smoke validationを実行する。
 
 ---
 
-## 6. 検証方法
+## 11. 検証方法
 
 ### A. Hook lifecycle
 
-同一session / turnで最低限以下を確認する。
+同一session / turnで確認する。
 
 1. `UserPromptSubmit`が記録される。
-2. Hookで観測可能なToolを1回以上実行し、`PostToolUse`が記録される。
-3. Subagentを1回以上起動し、`SubagentStart`が記録される。
-4. Subagent終了時に`SubagentStop`が記録される。
-5. main turn終了時に`Stop`が記録される。
-6. `session_id` / `turn_id` / `agent_id`で追跡可能なeventを正しく相関できる。
+2. Hook対象Toolで`PostToolUse`が記録される。
+3. Subagent起動で`SubagentStart`が記録される。
+4. Subagent終了で`SubagentStop`が記録される。
+5. main turn終了で`Stop`が記録される。
+6. `session_id` / `turn_id` / `agent_id`で追跡可能なeventを相関できる。
 
-### B. Hook trust / 非干渉性
+### B. Hook非干渉性
 
-- project-local Hookがtrustされていることを確認してからsmokeする。
-- trust未設定によるskipとlogger実装不良を混同しない。
-- `UserPromptSubmit` / `SubagentStart`がadditional contextを注入しない。
-- `PostToolUse`がdecision / feedback / continuationを返さない。
-- `SubagentStop` / `Stop`が有効なno-op JSONを返し、continuationを発生させない。
-- logger内部で記録に失敗しても、可能な限りCodex本作業を継続する。
+- trust確認後にsmokeする。
+- `UserPromptSubmit` / `SubagentStart`はcontextを注入しない。
+- `PostToolUse`はdecision / feedback / continuationを返さない。
+- `SubagentStop` / `Stop`は有効なno-op JSONだけを返す。
+- logger failureでも可能な限り本作業を継続する。
 - stdout debug printがない。
 
-### C. 指示ログ
+### C. Prompt / Tool安全性
 
-- promptが分析可能なsanitized / bounded copyとして記録される。
-- 上限超過時にtruncateされ、その事実が分かる。
-- 代表的なAPI key / token / Authorization形式をfixtureでredactできる。
-- 任意のfree-form secret完全検出をテスト要件にしない。
-- transcript全文を読まない・保存しない。
+- promptがbounded / sanitizedされる。
+- truncate flagが残る。
+- 代表的credential fixtureをredactできる。
+- Tool input / response全文を保存しない。
+- unknown Toolでもevent logging自体は壊れない。
+- hosted Tool非捕捉をlogger failureと判定しない。
 
-### D. Tool実行ログ
+### D. Subagent集約
 
-- `tool_name` / `tool_use_id`を記録できる。
-- input / response全文を保存しない。
-- allowlist対象Toolだけ必要最小限のsummaryを記録する。
-- 未対応Toolでもevent自体は壊れず記録できる。
-- 全Tool共通statusを作る複雑なparserが存在しない。
-- hosted `WebSearch`がPostToolUse対象外でもlogger failureと判定しない。
+fixtureおよび実機で以下を確認する。
 
-### E. Subagent Hook / run.json直接集約
+- Start + Stop → 1 record、first start / last stop。
+- Start only → incomplete。
+- Stop only → incomplete。
+- duplicate Start / Stop → unique agent数は増えない。
+- 複数agent並列 → agent_idが混同されない。
+- Raw final message / transcript pathはrun.jsonへ入らない。
+- `agents_used`はunique agent type。
+- `subagent_run_count`はunique agent id。
 
-Run IDありのwrapper経由でSubagentを1回以上起動して確認する。
+### E. REPORT Subagent要約
 
-- `SubagentStart` / `SubagentStop`がRaw Hook JSONLへ記録される。
-- Subagent専用JSON fileが生成されない。
-- collector実行後、unique `agent_id`単位で`run.json.subagents.records`が生成される。
-- start / stop双方があるagentは`started_at` / `ended_at` / `stop_observed=true`になる。
-- startだけのagentは`ended_at=null` / `stop_observed=false`で残る。
-- stopだけの欠損ケースもeventを捨てず、取得可能情報だけでrecord化する。
-- `last_assistant_message` / `agent_transcript_path`をrun.jsonへコピーしない。
-- `artifact_summary.subagent_run_count`がunique agent数と一致する。
-- `agents_used`がunique agent typeと一致する。
-- 複数Subagentを並列実行してもagent idが混同されない。
+- start / stopごとにREPORTを編集しない。
+- 前回checkpoint以降にSubagent利用があれば、次checkpointで1回だけDelegation / Result / Parent decisionを記録する。
+- 機械metadataをREPORTへ重複転記しない。
+- private chain-of-thoughtを記録しない。
 
-### F. REPORT Subagent要約
+### F. Run ID切替
 
-Subagentを使うTASKを1つ実行し、TASK完了checkpointで確認する。
+- Run Aでwrapper起動し、Hook eventがAへ集約される。
+- 同じprocess内でRun Bへ切り替える機構が存在しない。
+- Run BはRun A process終了後、新しいwrapper processで開始する。
+- BのeventがAへ混入しない。
+- wrapper終了後に親process環境変数を汚染しない。
+- raw Codex / Run IDなしeventを任意Runへ推測集約しない。
 
-- start / stopごとにREPORTを編集していない。
-- checkpointでSubagent利用をまとめて1回記録している。
-- 各Subagentについて必要な範囲でDelegation / Result / Parent decisionが確認できる。
-- agent id、時刻、transcript path、Raw final message等の機械情報をREPORTへ複製していない。
-- Parent decisionには共有可能な判断理由だけを記録し、private chain-of-thoughtを記録していない。
+### G. Raw source消失耐性
 
-### G. Run ID correlation
+1. Hook sourceありでcollectorを実行し、run.jsonへHook / Subagent snapshotを生成する。
+2. fixture Hook sourceを削除または利用不可にする。
+3. collectorを再実行する。
+4. 既存Hook / Subagent snapshotが空で上書きされないことを確認する。
+5. source unavailable warningが残ることを確認する。
 
-- `codex-safe --run-id` / `codex-task --run-id`相当の経路でHookに同じRun IDが伝播する。
-- wrapper終了後に親processの環境変数を汚染しない。
-- Run IDなしでraw Codexを起動した場合、global Hook logには記録される。
-- Run IDなしeventを任意のRunへ集約しない。
-- 「最新Run」推測が存在しない。
+### H. Manifest v1 / v2
 
-### H. Stop分析
+- 新規Runはschema v2で生成される。
+- v2のSubagent summaryは`total / started / stopped / incomplete`のみを使う。
+- 既存v1 fixtureをcollectorへ渡しても、明示migrationなしでv2構造へ破壊的変換されない。
+- v1の既存Subagent sectionを保持できる。
 
-- `Stop` eventが通常turn終了時に記録される。
-- `stop_hook_active`とbounded `last_assistant_message`を記録できる。
-- `stopReason`を入力fieldとして読もうとしていない。
-- loggerが停止理由を推測するfieldを生成しない。
-- blocker / RemainingがあるケースではREPORTから理由を確認できる。
-- validation / wrapper failureがあるケースでは`codex-task` logから事実を確認できる。
+### I. `collect_subagents()`削除回帰
 
-### I. Collector / `run.json`
-
-- 5eventのevent countが集約される。
-- 対象Run IDと一致するeventだけを数える。
-- Run IDなしeventを対象Runへ含めない。
-- `codex-task-*.jsonl`をHook logとして誤認しない。
-- malformed lineで集約全体を壊さない。
-- `run.json`へRaw prompt / Tool payload / main final message / Subagent final message全文をコピーしない。
-- 旧`subagents/*.json`が存在しなくてもSubagent summaryを生成できる。
-- Codexが`run.json`を手編集しなくてもmanifestを維持できる。
+- `agents_used`がHook agent typeから維持される。
+- `changed_files`が既存差分収集から維持される。
+- `safety.scope_violation`が既存scope validationから維持される。
+- Subagent Hookからscope violationを推測していない。
 
 ### J. 旧Subagent Artifact廃止
 
-- `.codex/templates/subagent-run.schema.json`が削除されている。
-- `collect_subagents()`とRun-local `subagents/*.json`走査が削除されている。
-- docs / tests / templatesに旧Artifact必須の記述が残っていない。
-- 旧Artifactを生成する新しいproducerを追加していない。
-- active consumerがある場合は新構成へ移行済みである。
+- template schemaが新規運用から削除される。
+- `collect_subagents()`が削除される。
+- 新規Run向けdocs / testsに旧Artifact必須記述がない。
+- 過去Run内の既存`subagents/*.json`を削除していない。
+- 旧契約維持だけのproducer / compatibility layerを追加していない。
 
-### K. Safety / Git tracking
+### K. Stop分析
 
-- 既存Bash `PreToolUse` safety policyが引き続き動く。
-- logging Hook failureがsafety判定を上書きしない。
-- sandbox / approval / network policyを変更していない。
-- `.codex/logs/*.jsonl`が`git status`へ出ない。
+- `Stop` / `SubagentStop`からstop reasonを捏造しない。
+- blockerはREPORT、validation failureはwrapper log等、対応するEvidenceから確認する。
+- Stop eventがない異常終了を理由不明として扱う。
+
+### L. Safety / Git tracking
+
+- 既存Bash Safety Hookが維持される。
+- sandbox / approval / network policyに不要な差分がない。
+- `.codex/logs/*.jsonl`がGit trackingされない。
 - Product codeに差分がない。
 
-### L. evaluation回帰
+### M. evaluation回帰
 
-- standard Runでevaluationなしでも既存どおり成功できる。
-- 既に満たしている場合、evaluation関連実装・schema・templateには差分を入れない。
+- standard Runでevaluationなしでも成功する。
+- 既存挙動が満たされていればevaluation関連ファイルを変更しない。
 
 ---
 
-## 7. 成功判定
+## 12. 成功判定
 
-- Raw Hook logから「どの指示で」「Hookで観測可能な範囲でどのToolを使い」「どのSubagentを起動し」「どの応答でturnを終えたか」を追える。
-- `run.json.subagents`から、Subagentのagent type、開始・終了、未完了の機械的状態を確認できる。
-- Subagent専用JSON ArtifactをCodex自身が作成・更新する必要がない。
-- `REPORT.md`から、Subagentへ何を任せ、結果をどう受け取り、Parentがどう判断したかをcheckpoint単位で確認できる。
-- `REPORT.md`から「なぜその方針を選んだか」「何がblockerだったか」を追える。
-- Stop eventだけから停止理由を断定せず、Stop / REPORT / wrapper logを組み合わせて事実ベースで分析できる。
-- Codexが細かな記帳をしなくても必要なEvidenceが残る。
-- Hook logger自身がCodexのprompt、Tool result、Subagent context、turn継続判断へ介入しない。
-- `run.json`はCodex手編集なしで維持できる。
-- standard Runで不要なevaluation変更を行っていない。
+- Raw Hook logから、ローカル環境では「指示 → Tool実行 → Subagent lifecycle → turn終了」の詳細を追える。
+- `run.json`から、Raw Hook logが失われても既に集約済みのdurable machine snapshotを確認できる。
+- `REPORT.md`から、重要な判断理由とSubagentの委任・結果・Parent decisionをcheckpoint単位で確認できる。
+- Subagent専用Structured Artifactを新規生成する必要がない。
+- Codexが細かな機械記帳をしなくても必要なEvidenceが残る。
+- Run A / Run BのHook eventが混在しない。
+- 旧v1 Runを再集約しただけで破壊しない。
+- `collect_subagents()`廃止によって`changed_files` / `scope_violation`等の既存責務を失わない。
 - Hook / wrapper / REPORT / run.json間に同じ情報の不要な多重記録がない。
 - logging追加で既存safety behaviorが弱くなっていない。
 
 ---
 
-## 8. リスク
+## 13. リスク
 
 - Codex CLI Hook仕様がversionによって変わる可能性がある。
 - project-local Hookがtrustされていない場合、設定が正しくてもHookが実行されない。
-- `UserPromptSubmit`には機密情報が含まれる可能性があり、best-effort redactionでは任意のfree-form secretを完全には除去できない。
-- Tool input / responseには機密情報や大容量データが含まれる可能性があるため、全文保存を避ける必要がある。
-- Tool Hookにはhosted `WebSearch`等の非対象pathがあるため、完全な行動監査ログにはならない。
-- `Stop` payloadだけでは「なぜ停止したか」は分からない。
-- `SubagentStop`だけでは成功 / 失敗を必ずしも判定できないため、run.jsonでsuccess / failureを推測しない。
-- `spawn_agent`等のdelegation ToolとSubagent lifecycleを完全にcorrelationできないversionがある可能性がある。V1では完全correlationを要求しない。
-- 複数Subagentが並列実行されるため、session JSONLへのappendは1event=1回のappend operationで破損しないことを検証する必要がある。
-- 旧Subagent Artifactにactive consumerがある場合、削除前に新構成へ移行する必要がある。
-- `CODEX_RUN_ID`伝播はwrapper経由Runだけに限定し、raw Codexへactive-run推測を導入しない。
-- `observe.ps1|sh`がproject config外から利用されている可能性がある。
-- REPORTを軽量化しすぎるとDecision / RationaleやSubagent利用の意味が失われるため、checkpoint要約は維持する必要がある。
+- `UserPromptSubmit`には機密情報が含まれる可能性がある。
+- Tool input / responseには機密情報や大容量データが含まれる可能性がある。
+- Tool Hookは完全監査ログではない。
+- Raw Hook JSONLはGit管理外なので、削除後は詳細時系列を復元できない。durableなのは`run.json` snapshotとREPORT意味要約である。
+- `SubagentStop`だけでは成功 / 失敗を確定できない。
+- delegation ToolとSubagent lifecycleの完全correlationはV1では保証しない。
+- 複数Subagentが並列実行されるため、JSONL append破損をsmokeで確認する必要がある。
+- 旧Subagent Artifactにactive consumerがある場合、削除前に移行が必要である。
+- v1 / v2 manifestを混在させるため、collectorのversion guardが必要である。
+- REPORTを軽量化しすぎるとDecision / Rationaleが失われるため、checkpoint意味要約は省略しない。
 
 ---
 
-## 9. 成果物
+## 14. 成果物
 
 ### 確定変更候補
 
@@ -714,12 +784,12 @@ Subagentを使うTASKを1つ実行し、TASK完了checkpointで確認する。
 - `scripts/codex-task.sh`
 - `scripts/collect-run-artifacts.py`
 - `docs/reference/codex-implementation-harness.md`
-- 関連するtargeted tests
+- 関連targeted tests
 
 ### 廃止候補
 
 - `.codex/templates/subagent-run.schema.json`
-- Run-local `subagents/*.json`前提のtests / docs
+- 新規Run向け`subagents/*.json`前提のtests / docs
 - `scripts/collect-run-artifacts.py`内の`collect_subagents()`と旧Subagent Artifact集約ロジック
 - `.codex/hooks/observe.ps1`
 - `.codex/hooks/observe.sh`
@@ -727,6 +797,7 @@ Subagentを使うTASKを1つ実行し、TASK完了checkpointで確認する。
 - 不要になった`CODEX_HOOK_*`環境変数契約
 
 `observe.*`関連はcaller確認後に削除する。
+過去Run内の既存`subagents/*.json`は削除しない。
 
 ### 利用実態確認後、必要な場合だけ変更
 
@@ -742,21 +813,19 @@ Subagentを使うTASKを1つ実行し、TASK完了checkpointで確認する。
 - `scripts/new-run.ps1`
 - `scripts/new-run.sh`
 
-既存挙動が本計画の完了条件を満たさない場合だけ、原則変更しないファイルを必要最小限で変更する。
+既存挙動が本計画の完了条件を満たさない場合だけ必要最小限で変更する。
 
 ---
 
-## 10. 備考
+## 15. 備考
 
-- 主眼は「ログを増やすこと」ではなく、「機械的に取得できる事実は自動収集し、AIにしか書けない意味情報だけREPORTへ残すこと」である。
 - Hook V1は`UserPromptSubmit` / `PostToolUse` / `SubagentStart` / `SubagentStop` / `Stop`の5eventに限定する。
-- Subagentについては、専用Structured Artifactを維持しない。
-- Subagentの機械情報はHook JSONLをRaw Evidenceとし、`run.json.subagents`へ直接自動集約する。
-- Subagentの委任意図・結果要約・Parentの採否はTASK完了またはRun完了checkpointでREPORTへ簡潔にまとめる。
+- Raw Hook JSONLはlocal-only詳細Evidence、`run.json`はdurable machine snapshot、`REPORT.md`はdurable semantic summaryである。
+- 1 Codex process/sessionに複数Run IDを持たせない。
+- Subagent専用Structured Artifactは新規Runでは維持しない。
 - `run.json`へ主観判断を入れない。
-- `Stop`は停止理由を取得するHookではなく、turn終了と最終assistant messageを観測するHookとして扱う。
-- `run.json`はmachine-generated manifestとして残すが、Codexや人間が直接メンテナンスする文書として扱わない。
-- `evaluation.json`は今回の主目的ではない。既存のoptional運用が成立しているなら変更しない。
-- `observe.ps1|sh`はconfig未参照だけを理由に即削除せず、caller確認後に整理する。
-- private chain-of-thoughtは保存対象にせず、共有可能なDecision / Rationaleとして意味情報だけを残す。
+- `Stop`は停止理由を取得するHookとして扱わない。
+- `run.json`はgenerated artifactであり、Codexや人間の手編集対象にしない。
+- `evaluation.json`は今回の主目的ではない。
+- private chain-of-thoughtは保存しない。
 - Hook追加後に`Hook log + wrapper log + REPORT + run.json`へ同じ情報が不要に複製される設計は完了条件未達とする。
