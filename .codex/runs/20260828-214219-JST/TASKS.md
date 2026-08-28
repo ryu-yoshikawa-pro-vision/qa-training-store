@@ -11,12 +11,13 @@
 - [x] 6. validator、build、standalone Specification build、artifact確認、既存／Docs smokeを実行する
 - [x] 7. mainの並行変更を確認し、必要なら再取り込みして最終検証する
 - [x] 8. Run artifactをsanitizeし、commit前のbranch／diff安全確認を行う
-- [ ] 9. implementation commitを作成し、確認済みrefspecでPR branchへpushする
+- [x] 9. implementation commitを作成し、確認済みrefspecでPR branchへpushする
 - [ ] 10. Runをfinalizeし、PR #77をレビュー可能な状態として報告する
 
 ## Discovered
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
+- [x] 11. Cloudflare Pagesの`.html`からextensionless URLへのcanonicalizationをdeployed smokeへ反映し、生成リンク契約を維持したままPreview経路を再確認する
 
 ## Blocked
 

@@ -118,6 +118,19 @@
   - Parent decision: commit／pushを実行する。
 - Progress: 80% (8/10)
 
+## 2026-08-28 23:28 (JST)
+
+- Summary: implementation commitをPR #77の既存branchへpushした。
+- Changes: `fbdf4cf3385028c84d956e23019b04f4690f6941` を `feat/web-docs-publishing`へ反映した。PRは更新されたが、merge／auto-merge／closeは行っていない。
+- Decision / Rationale: push直前に current branch、clean working tree、`git branch -vv`、PR #77のhead／base／stateを再確認し、完全一致を確認したうえで `git push origin HEAD:feat/web-docs-publishing` を使用した。
+- Validation: push成功。push後のPR metadataはhead `fbdf4cf`、base `main`、state `OPEN`。CodeRabbitはmanual review requiredでskip、既存CI（Web CI／Mobile App CI／CodeQL）は開始直後のpending状態だった。
+- Blocker / Remaining: CI／Cloudflare Preview経路の完了確認、Run finalizationが残っている。Stop条件は未該当。CIのpendingは失敗ではないため、既存workflowの完了をread-only監視する。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: PR #77をレビュー可能な状態として維持し、CI結果を確認する。
+- Progress: 90% (9/10)
+
 ## 2026-08-28 21:45 (JST)
 
 - Summary: 実装対象のbranch／PR／working treeとRun初期化を確定した。
@@ -127,6 +140,19 @@
 - Blocker / Remaining: 最新 `origin/main` のfetch／mergeが次の作業。
 - Subagents:
   - Delegation: なし。
-  - Result: なし。
-  - Parent decision: 親エージェントが直接進める。
+- Result: なし。
+- Parent decision: 親エージェントが直接進める。
 - Progress: 10% (1/10)
+
+## 2026-08-28 22:26 (JST)
+
+- Summary: Cloudflare Pages Previewのdeployed smoke失敗を原因切り分けし、最小修正を反映した。
+- Changes: Cloudflare Pagesは`.html`要求をextensionless URLへ308 redirectするため、`e2e/web/smoke.spec.ts`の代表Curriculum子ページURL確認だけを`.html`またはcanonicalized extensionless URLに許容した。生成HTMLのhrefは従来どおり`.html`のままで、Docs build／link resolverの契約は変更していない。
+- Decision / Rationale: Previewの`/docs/curriculum/`、`/docs/spec/`、代表Spec画像はそれぞれ200で、ページ本文と画像も取得できたため、プランのCloudflare Stop条件には該当しない。Cloudflare特有の正規化をアプリ側の出力変更で回避せず、smokeのURLアサーションのみを配信先互換にする。
+- Validation: 失敗run `33174698747`の最初の異常はdeployed smokeのURL期待値とCloudflareの受信URLの不一致だった。Previewの`.html`要求が308、extensionless要求が200、代表WebPが200／`image/webp`であることを確認した。修正後、同Preview URLに対する `pnpm exec playwright test e2e/web/smoke.spec.ts --project=deployed-smoke --reporter=line` は `2 passed`。
+- Blocker / Remaining: 修正をcommit／pushし、既存CI／Cloudflare Previewを同じPR headで再実行して最終確認する。Stop条件は未該当。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: 生成リンクの`.html`契約とSSOTを保持したまま、deployed smokeのcanonical URL差異だけを受理する。
+- Progress: 91% (10/11)

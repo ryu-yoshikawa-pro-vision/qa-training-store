@@ -59,3 +59,4 @@ PR #77（`feat/web-docs-publishing`）へ、`docs/plans/2026-08-28_web-docs-publ
 
 - 2026-08-28 21:42 JST: 既存の同日Runは別branch（PR #75）で完了済みであり、本タスクのactive Runではないため、新規 Run `20260828-214219-JST` を作成した。
 - 2026-08-28 21:42 JST: PR #77 はOPEN、headは `feat/web-docs-publishing` と一致し、開始時のworking treeはcleanだった。ユーザー指定の既存プランを実装SSOTとして扱う。
+- 2026-08-28 22:26 JST: Cloudflare Pages Previewは`.html`要求をextensionless URLへ308 canonicalizeするが、生成HTMLのhref、`dist/docs`のindex／asset配信、ページ本文は成立している。生成リンクの`.html`契約を変更せず、deployed smokeのURL確認だけをCloudflare canonical URLとローカル静的サーバーの両方に許容する最小修正を採用した。プランのStop条件（index／assetsが配信不能）には該当しない。

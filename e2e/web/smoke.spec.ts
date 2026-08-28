@@ -65,7 +65,7 @@ test("published docs smoke", async ({ page }) => {
   );
   await expect(curriculumLink).toBeVisible();
   await curriculumLink.click();
-  await expect(page).toHaveURL(/\/docs\/curriculum\/part1\/04_playwright-foundations\.html$/);
+  await expect(page).toHaveURL(/\/docs\/curriculum\/part1\/04_playwright-foundations(?:\.html)?$/);
   await expect(
     page.getByRole("heading", { name: "Part 1-4: Playwright基礎", exact: true }),
   ).toBeVisible();
