@@ -170,8 +170,8 @@ pnpm install --frozen-lockfile
     fi
 ```
 
-- `steps.expo_check.outputs.needs_fix == 'false'`: 更新不要として正常終了し、branch / commit / PR を作成しない。
-- `steps.expo_check.outputs.needs_fix == 'true'`: `expo install --fix` へ進む。
+- `steps.expo_check.outputs.needs_fix == 'false'`: 更新不要として正常な no-op で終了し、fix / safety check / post-fix validation / changed-file allowlist / branch / commit / push / PR 作成を実行しない。
+- `steps.expo_check.outputs.needs_fix == 'true'`: update path へ進む。
 
 最初の `expo install --check` の non-zero は mismatch 検出結果として扱い、その場の Workflow failure にはしない。
 
@@ -181,9 +181,17 @@ non-zero だけを根拠に PR を作成せず、後続の fix / safety check �
 
 fix 後に再実行する `expo install --check` は通常どおり non-zero を Workflow failure とし、自動修正を続行しない。
 
+`expo_check` より後の update path の各 step は、同じ条件で実行する。
+
+```yaml
+if: steps.expo_check.outputs.needs_fix == 'true'
+```
+
+この guard の対象は、`expo install --fix` から PR 作成までの update path 全体とする。
+
 ### 7. compatible dependency を修正する
 
-`needs_fix == 'true'` の場合だけ次を実行する。
+`steps.expo_check.outputs.needs_fix == 'true'` の場合だけ次を実行する。
 
 ```text
 pnpm exec expo install --fix
@@ -192,6 +200,8 @@ pnpm exec expo install --fix
 特定 package / version を個別指定しない。command が失敗した場合は Workflow を失敗させ、PR を作成しない。
 
 ### 8. Expo / React Native major.minor を確認する
+
+この step も `steps.expo_check.outputs.needs_fix == 'true'` の場合だけ実行する。
 
 fix 前後で `expo` と `react-native` の major.minor がそれぞれ一致することを必須とする。
 
@@ -205,6 +215,8 @@ react-native: 0.86.x -> 0.86.y
 major / minor が変化した場合は失敗させる。
 
 ### 9. fix 後の dependency contract を再確認し、最終 changed-file allowlist を確認する
+
+この update path も `steps.expo_check.outputs.needs_fix == 'true'` の場合だけ実行する。
 
 Repository を変更し得る validation を先にすべて実行する。
 
@@ -245,7 +257,7 @@ allowlist 確認後から commit まで Repository を変更する command は�
 
 ### 10. automation branch を作成して push する
 
-すべての safety check が PASS した場合だけ実施する。
+`steps.expo_check.outputs.needs_fix == 'true'` かつ、すべての safety check が PASS した場合だけ実施する。
 
 branch name:
 
@@ -275,6 +287,8 @@ pnpm-lock.yaml
 - token を URL / log へ埋め込まない。
 
 ### 11. 修正 PR を OPEN で作成する
+
+`steps.expo_check.outputs.needs_fix == 'true'` かつ、branch / commit / push が成功した場合だけ実施する。
 
 GitHub CLI と `GITHUB_TOKEN` を使用する。
 
@@ -332,7 +346,7 @@ pnpm install --frozen-lockfile
 Expo / React Native major.minor 記録
        ↓
 expo_check step
-  ├─ needs_fix=false -> no-op
+  ├─ needs_fix=false -> success / no-op / update path は全 skip
   └─ needs_fix=true
        ↓
 expo install --fix
@@ -370,7 +384,8 @@ tests/contracts/expo-dependency-maintenance-workflow.test.ts
 - 既存 CI と同じ pinned Action
 - `id: expo_check` が存在する
 - 最初の `expo install --check` を `if` で実行し、`needs_fix=false` / `needs_fix=true` を `$GITHUB_OUTPUT` へ出力する
-- fix は `needs_fix == 'true'` の場合だけ実行する
+- `needs_fix=false` では正常 no-op となり、fix から PR 作成までの update path を実行しない
+- fix から PR 作成までの update path は `steps.expo_check.outputs.needs_fix == 'true'` の場合だけ実行する
 - fix 後の `expo install --check` は通常 command として実行し、non-zero を failure とする
 - Expo / React Native major.minor guard
 - post-fix validation で `git diff --check HEAD` を使用する
@@ -402,7 +417,7 @@ Repository の通常 CI も確認する。依存を意図的に古くして疑�
 実行前に GitHub Actions から branch push / PR 作成が許可されていることを確認する。
 
 mismatch が残っている場合は次を確認する。
-1. `main` の mismatch を検出し、`expo_check` が `needs_fix=true` を返して fix へ進む。
+1. `main` の mismatch を検出し、`expo_check` が `needs_fix=true` を返して update path へ進む。
 2. compatible version へ修正する。
 3. Expo / React Native major.minor が変化しない。
 4. post-fix validation 後の最終 changed file が、tracked / untracked を含めて `package.json` / `pnpm-lock.yaml` だけになる。
@@ -412,7 +427,7 @@ mismatch が残っている場合は次を確認する。
 8. Expo Doctor dependency mismatch が解消される。
 9. auto-merge されない。
 
-mismatch が解消済みなら `expo_check` が `needs_fix=false` を返し、branch / commit / PR を作らず no-op で終了することを正常結果とする。
+mismatch が解消済みなら `expo_check` が `needs_fix=false` を返し、fix / validation / allowlist / branch / commit / push / PR 作成をすべて skip して正常終了することを確認する。
 
 `main` 以外を選択した `workflow_dispatch` は変更処理前に失敗し、branch / commit / PR を作成しないことも確認する。
 
@@ -451,8 +466,8 @@ Workflow の Re-run が必要になった場合は、`GITHUB_RUN_ATTEMPT` によ
 
 1. 最新 `main` と既存 CI の Node / pnpm / Action pin を確認する。
 2. trigger / permission / manual main-ref guard / `main` checkout / concurrency / duplicate PR guard を実装する。
-3. frozen install、major.minor capture、`expo_check` の `if` + `$GITHUB_OUTPUT` 分岐、`expo install --fix` を実装する。
-4. major.minor guard、fix 後 validation（`git diff --check HEAD` を含む）、commit 直前の tracked + untracked final changed-file allowlist を実装する。
+3. frozen install、major.minor capture、`expo_check` の `if` + `$GITHUB_OUTPUT` 分岐を実装し、`needs_fix=false` の no-op path と `needs_fix=true` の update path を分離する。
+4. update path 全体へ `steps.expo_check.outputs.needs_fix == 'true'` guard を適用し、`expo install --fix`、major.minor guard、fix 後 validation、commit 直前の tracked + untracked final changed-file allowlist を実装する。
 5. `${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}` を含む automation branch / commit / push / OPEN PR 作成を実装する。
 6. 専用 contract test を追加する。
 7. format / lint / typecheck / contract tests と通常 CI を確認する。
