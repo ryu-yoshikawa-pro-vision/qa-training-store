@@ -46,3 +46,21 @@
   - Result: なし
   - Parent decision: なし
 - Progress: 93% (14/15)
+
+## 2026-08-29 06:05 (JST)
+
+- Summary: 修正版child Planを再レビューし、RA-G1 / RA-G3の完了境界とStop conditionに残っていた4件の曖昧さを解消した。
+- Changes:
+  - Functional Requirement Group MatrixとNon-functional Groupの全既存行へ、boundedな`Representative Regression` direct referenceを持たせる契約を追加した。Requirement Group → regressionをWE-CORE / 下位labelとは別のTraceability層として明示した。
+  - Risk mappingを7列へ変更し、`Representative Technique`と`Representative Perspective`を分離した。Tool / runner / PerspectiveをTechniqueとして代用しない契約を追加した。
+  - Current `requirements_traceability.md`の下位代表labelは§6の18行 + §7後ろの孤立4行 = 22行と固定し、全行を`exact-title` / `suite-level` / `stop`へ必ずDispositionする契約を追加した。§7後ろの4行は意味を変えず下位代表表へ統合する。
+  - implementation開始時のCurrent `main` driftは、PR 2のTest分類 / Traceability / Gate / platform guaranteeへ影響するsemantic contract変更時だけStopし、無関係変更だけではStopしないよう限定した。
+  - TASKS Task 8を、Plan review済みの実態に合わせて「Plan review反映後のlocal plan-only validation / Sanitizerによるimplementation開始前gate」へ修正した。
+- Decision / Rationale: RA-G1をWE-COREや確認できた下位行だけの部分対応で完了扱いできないよう、Requirement Group / WE-CORE / 下位22行の3層すべてに明示的な完了境界を置いた。RA-G3はTechniqueとPerspectiveを別列へ分け、3軸整理との概念混在を防止した。追加SSOTやTest code変更は依然不要とする。
+- Validation: Current `main`が引き続き`12afd144cc81fb63a3c6d3a0edcee1eb6ed2317a`でPlan baselineからdriftしていないことをGitHubで再確認した。Current `requirements_traceability.md`の§6 18行と§7後ろ4行の構造も再確認した。local `pnpm` validation、`git diff --check`、Sanitizer Write / Checkは未実施であり、PASSとは記録しない。
+- Blocker / Remaining: Plan内容の2回目レビューFinding反映は完了。残りはTask 8のlocal plan-only validation / Sanitizerのみ。実装は開始しない。
+- Subagents:
+  - Delegation: なし
+  - Result: なし
+  - Parent decision: なし
+- Progress: 95% (18/19)

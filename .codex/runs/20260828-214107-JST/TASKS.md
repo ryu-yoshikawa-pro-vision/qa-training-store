@@ -10,7 +10,7 @@
 - [x] 5. Current Formal Suite / Web・Cross-browser・Native workflow / Training boundaryをrepo mappingする
 - [x] 6. RA-G1 / RA-G3 / RA-G6とPR 1 follow-up verificationをchild Planへ具体化する
 - [x] 7. child Planと今回Run Artifactの保存内容を確定し、single plan commitへ含める
-- [ ] 8. local plan-only validation / Sanitizerを実施してPlan reviewへ引き渡す
+- [ ] 8. Plan review反映後にlocal plan-only validation / Sanitizerを実施し、implementation開始前gateを完了する
 
 ## Discovered
 
@@ -21,6 +21,10 @@
 - [x] D5. direct code reference形式を原則`repository-relative file path + exact test title`へ固定する
 - [x] D6. Phase 1 Risk 16件をgroup化せず1 Risk = 1 row、新Stable Risk IDなしへ固定する
 - [x] D7. Platform parityをWeb / Android / iOSのCurrent asymmetric guarantee説明へ限定する
+- [x] D8. Functional / Non-functional Requirement Groupの全既存行へrepresentative regression direct referenceを要求する
+- [x] D9. Risk mappingの`Representative Technique`と`Representative Perspective`を別列へ分離する
+- [x] D10. 下位Traceability代表label 22行を全件Dispositionし、§7後ろの孤立4行も漏れなく扱う契約を追加する
+- [x] D11. Current `main` driftのStop条件をPR 2判断へ影響するsemantic contract変更時へ限定する
 
 ## Blocked
 
