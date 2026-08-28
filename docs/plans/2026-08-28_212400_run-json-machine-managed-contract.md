@@ -159,14 +159,16 @@
 
 `AGENTS.md`とreference docsを次の責務へ統一する。
 
-- actual Runの`run.json`はAgentが直接作成・直接編集しない。
+- actual `.codex/runs/<run_id>/run.json`は、通常workflowだけでなくmanifest writer / collector自身の実装タスクでもAgentが直接作成・直接編集しない。
+- temporary test fixtureとして作成する`run.json`は直接生成・編集してよい。
+- `.codex/templates/RUN_MANIFEST.json`はmanifest仕様変更タスクの対象として直接編集してよい。
+- manifest writer / collectorのsource codeは通常の実装対象として編集してよい。source code編集をactual `run.json`直接編集禁止の例外として扱わない。
 - 通常workflowで新規manifestが必要な場合は`new-run`を正規生成経路とする。
 - collector単体の既存fallback生成能力は変更しない。ただし`codex-safe`はmanifest-less Runに対してcollectorを呼ばない。
 - 非対話更新は`codex-task`が行う。
 - interactive更新は`codex-safe -RunId`終了時にcollectorを利用して行う。
 - 明示的な再集約はcollectorを使用する。
 - `PLAN.md` / `TASKS.md` / `REPORT.md` / `evaluation.json`のAgent-managed責務と区別する。
-- test fixtureやmanifest writer / collector自身の実装・テストは直接編集禁止対象に含めない。
 
 #### 5.2 `codex-safe` RunId precondition
 
@@ -284,7 +286,7 @@ collector failure後も`manifest_sync_failed`、stderr warning、Codex / collect
 - Git command failure時のcollector failure。
 - v1を自動v2 migrationしない既存contract維持。
 
-actual repositoryのworking treeはテスト用に汚さない。temporary Git repositoryまたは既存の安全なfixture方式を使用し、production codeへtest-only optionを追加しない。
+actual repositoryのworking treeはテスト用に汚さない。Git refresh contract testはtemporary Git repositoryを作成し、その`<temp>/scripts/collect-run-artifacts.py`へ現在のcollector scriptをcopyして、copy先のscriptを実行する。collectorは`Path(__file__).resolve().parents[1]`からrepository rootを決めるため、symlinkは使用しない。テスト都合のproduction optionとして`--repo-root` / `--git-root`等を追加せず、production codeへtest-only option / hookを追加しない。
 
 #### `codex-safe` contract
 
@@ -340,7 +342,7 @@ runtime依存caseは利用可能shellだけ実行する。
 
 ### 成功判定
 
-- actual Runの`run.json`直接作成・編集を促すactive instructionが残っていない。
+- actual `.codex/runs/<run_id>/run.json`は実装タスクの種類にかかわらずAgentが直接作成・編集せず、temporary test fixtureだけが直接生成・編集可能な境界になっている。
 - new-run / codex-task / codex-safe / collectorの責務が一貫している。
 - 通常workflowの新規manifest生成は`new-run`を正規経路とし、collectorの既存fallback生成能力は壊していない。
 - 不正RunIdで不完全なRun Directoryを作らない。
@@ -349,6 +351,7 @@ runtime依存caseは利用可能shellだけ実行する。
 - Bashの`set -euo pipefail`下でもcollector failureを捕捉し、sync failure handlingとexit code優先順位を維持できる。
 - existing `changed_files`をcleanupせず保持し、新規Git観測pathだけに`.codex/runs/**`除外を適用できる。
 - tracked / untracked / 日本語・空白pathを`changed_files`へ安全に累積できる。
+- Git refresh testのためにproduction `--repo-root` / `--git-root`等を追加していない。
 - collector default挙動とv1/v2 compatibilityを壊していない。
 - Codex / collector exit semanticsがPowerShell / Bashで一致する。
 - `--no-log`がsyncを無効化しない。
@@ -376,6 +379,10 @@ runtime依存caseは利用可能shellだけ実行する。
   - 対策: existing値とのunion、`-z` binary output、NUL分割、filesystem decodingを使用する。
 - Git refresh失敗を成功扱いする。
   - 対策: refresh時のGit command failureをcollector failureにする。
+- Git refresh testのためにproduction collectorへrepo root overrideを追加してscopeを広げる。
+  - 対策: temporary Git repoの`scripts/`へcollectorをcopyして実行し、symlink / `--repo-root` / `--git-root` / test-only optionを追加しない。
+- actual Runの`run.json`直接編集禁止をmanifest実装タスクの例外として広く解釈する。
+  - 対策: actual `.codex/runs/<run_id>/run.json`は常にmachine-managedとし、直接生成・編集可なのはtemporary test fixture等に限定する。
 - PowerShell collectorの`exit`で親wrapperが終了する。
   - 対策: collectorをchild process実行し、親でexit codeを評価する。
 - logging設定とsync責務が混ざる。
@@ -419,6 +426,7 @@ runtime依存caseは利用可能shellだけ実行する。
 ### Follow-up notes
 
 - 今回の目的は、interactive Runにも既存machine-managed思想を適用し、actual `run.json`の手編集を不要にすることである。
+- actual `.codex/runs/<run_id>/run.json`は実装タスクの種類にかかわらずmachine-managedとし、temporary test fixtureのみ直接生成・編集を許可する。
 - 通常workflowの新規manifest生成は`new-run`を正規経路とするが、collector単体の既存fallback生成能力そのものは今回変更しない。
 - `Stop` Hookは低レベル観測のまま維持し、Run manifest更新triggerにはしない。
 - session中commitまで含む厳密な変更帰属が将来必要になった場合は、本件へ追加せずRun-level attributionの別taskとして扱う。
