@@ -2,147 +2,118 @@
 
 ## 0. 依頼概要
 
-- 通常のCodex Runにおける`.codex/runs/<run_id>/run.json`をmachine-managed artifactとして統一する。
-- `AGENTS.md`等に残る、Agentによるactual Runの`run.json`手動作成・直接編集を許容または示唆するactive instructionを除去する。
-- 非対話の`codex-task`だけでなく、interactiveの`codex-safe`でもCodex process終了時に既存`run.json`を自動同期し、通常運用で手編集を不要にする。
-- `Stop` Hookは低レベル観測のままとし、Run lifecycleの更新triggerにはしない。
+- 依頼内容:
+  - 通常のCodex Runにおける`.codex/runs/<run_id>/run.json`をmachine-managed artifactとして統一する。
+  - `AGENTS.md`等に残る、Agentによるactual Runの`run.json`手動作成・直接編集を許容または示唆するactive instructionを除去する。
+  - 非対話の`codex-task`だけでなく、interactiveの`codex-safe`でもCodex process終了時に既存`run.json`を自動同期し、通常運用で手編集を不要にする。
+- 背景:
+  - `new-run.ps1/sh`は新規Runの`run.json`を生成できる。
+  - `codex-task.ps1/sh`は`--record-run-manifest`経路で`run.json`を自動更新する。
+  - `collect-run-artifacts.py`はrun-local report / `evaluation.json`を再集約できるが、interactive終了時のGit変更を`changed_files`へ再取得しない。
+  - `codex-safe.ps1/sh`は`RunId`を受け取れるが、process終了時にmanifestを同期しない。
+  - `Stop` Hookはsession event観測用であり、Run完了triggerではない。
+- 期待成果:
+  - 新規生成=`new-run`、非対話更新=`codex-task`、interactive終了時更新=`codex-safe` + collectorという責務を固定する。
+  - actual Runの`run.json`をAgentが直接編集しなくてよい通常運用にする。
+  - Hook / schema / evaluation責務を広げずに実現する。
 
 ## 1. ゴール / 完了条件
 
-### ゴール
+- ゴール:
+  - `.codex/runs/<run_id>/run.json`をmachine-managed aggregate manifestとして固定し、interactive Runでも既存の機械経路だけで同期できる状態にする。
+- 完了条件（DoD）:
+  - actual Runの`run.json`をAgentが通常workflowで直接作成・直接編集しない契約が`AGENTS.md`とreference docsで明確になっている。
+  - 新規manifest生成は`new-run.ps1/sh`、非対話更新は既存`codex-task --record-run-manifest`を使用する。
+  - `codex-safe`は`RunId`指定時、対象Run Directoryが存在しなければlog directory等を作る前にfailする。
+  - Run Directoryが存在しても`run.json`がなければmanifest-less RunとしてCodexは実行し、manifest同期だけskipする。
+  - existing `run.json`がある場合だけ、interactive Codex process終了後にcollectorを1回実行して同期する。
+  - sync時、既存`changed_files`を保持しつつ終了時working treeのtracked / untracked pathsを累積反映する。
+  - interactive process終了や`Stop`だけを根拠に`status=completed`へ変更しない。
+  - Codex nonzero時はCodex exit codeを優先する。Codex zeroかつcollector nonzero時はcollector exit codeを返す。
+  - `--no-log` / `-NoLog`でもmanifest同期は実行し、loggingだけ抑止する。
+  - PowerShell / Bashで同じ外部契約を満たす。
+  - manifest schema / template shape、`codex-task`既存writer、Hook、evaluation責務を変更しない。
+  - targeted tests、verify、Markdown lint、diff checkがPASSする。利用不能runtimeは理由を明示してSKIPする。
 
-`.codex/runs/<run_id>/run.json`をmachine-managed aggregate manifestとして固定し、interactive Runでも既存の機械経路だけで同期できる状態にする。
+## 2. 現状理解と前提
 
-### 完了条件（DoD）
+### Current understanding
 
-- `AGENTS.md`に、actual Runの`run.json`をAgentが通常workflowで直接作成・直接編集しないことが明記されている。
-- 新規manifest生成は`scripts/new-run.ps1/sh`を正規経路とする。
-- 非対話実行では`codex-task --record-run-manifest`の既存自動更新を維持する。
-- interactive実行では、`codex-safe`に`RunId`が指定され、対象Run Directoryと既存`run.json`がある場合だけ、Codex process終了後にcollectorを1回実行して同期する。
-- `RunId`未指定時は従来どおり動作し、manifest同期を行わない。
-- `RunId`指定時に`.codex/runs/<run_id>/`が存在しない場合は、Run Directoryやlog directoryを作成せずCodex起動前にfailする。
-- Run Directoryは存在するが`run.json`がない場合はmanifest-less Runとして許可し、Codexは実行するがmanifest同期はskipする。manifestがない理由は推測しない。
-- interactive終了時のcurrent working tree変更を、既存`run.json.changed_files`を失わず累積反映できる。
-- collectorの既存report / evaluation summary再集約を同じ同期で利用する。
-- interactive process終了や`Stop`だけを根拠に`run.json.status`を`completed`へ変更しない。
-- `Stop` / `SubagentStop` Hook、Hook JSONL、Hook configを変更しない。
-- Hook→Run correlation、`CODEX_RUN_ID`伝播、active-run registryを追加しない。
-- Codex本体が非0終了した場合は、そのexit codeを最終exitとして優先する。
-- Codex本体が0終了し、manifest同期だけが失敗した場合はcollectorのexit codeを返す。collector child process自体を起動できない場合だけ`1`を返す。
-- manifest同期のstart / success / skipped / failedを、logging有効時は既存`codex-safe` harness logへ記録する。
-- `--no-log` / `-NoLog`でもmanifest同期は実行する。log eventだけ省略し、同期失敗時のstderr warningは維持する。
-- `PreflightOnly` / `PrintCommand`等、Codex processを実行しない経路ではmanifest同期を行わない。
-- PowerShell / Bashで同じ契約になる。
-- manifest schema / template shape、`codex-task`既存writer、evaluation責務を変更しない。
-- 関連contract test、Bash / PowerShell verify、Markdown lint、diff checkがPASSする。
+- `new-run.ps1/sh`は新規Runの`run.json`を生成できる。
+- `codex-task.ps1/sh`は`--record-run-manifest`指定時に複数checkpointで`run.json`を更新する。
+- `collect-run-artifacts.py`はexisting manifestを読み、run-local report / `evaluation.json`を再集約する。
+- collectorは現在existing `changed_files`を保持するだけで、working treeから再計算しない。
+- collector単体はmanifest不存在時にtemplateから新規manifestを生成できるため、`codex-safe`側でexisting manifest guardが必要である。
+- `codex-safe.ps1/sh`は`RunId`をlog path等に利用するが、現在はprocess終了後にmanifestを同期しない。
+- 現在の`codex-safe`は存在しない`RunId`でも`.codex/runs/<run_id>/logs`を作成できる余地がある。
+- `Stop` / `SubagentStop` Hookはsession / subagent eventの観測用で、Run完了やsuccess / failureを推測しない。
+- `AGENTS.md`には次の4種類の曖昧表現が残っている。
+  1. lightweightのrun artifactを「手動作成してよい」が`run.json`まで含むように読める。
+  2. `RUN_MANIFEST.json`からAgentがactual `run.json`を直接作成できるように読める。
+  3. 同一Run継続時にAgentが`run.json`を直接更新すると読める。
+  4. 「Git操作禁止でもRun Artifactの作成・更新は通常のファイル編集として実施する」が`run.json`まで含むように読める。
 
-## 2. 現状と変更理由
+### Assumptions
 
-### 現行manifest lifecycle
-
-1. `new-run.ps1/sh`が新規Runの`run.json`を生成できる。
-2. `codex-task.ps1/sh`は`--record-run-manifest`指定時に`run.json`を自動更新する。
-3. `collect-run-artifacts.py`は既存manifest、run-local report、`evaluation.json`を再集約できる。
-4. `codex-safe.ps1/sh`は`RunId`を受け取れるが、Codex process終了後にmanifestを同期しない。
-5. 現在の`codex-safe`は、存在しない`RunId`でもlog path生成時に`.codex/runs/<run_id>/logs`を作成できるため、不完全なRun Directoryが生まれる余地がある。
-6. collectorは既存`changed_files`を保持するが、interactive終了時のcurrent working tree変更を再取得しない。
-7. `Stop` Hookはsession eventをJSONLへ記録するだけで、Run完了やsuccess / failureを推測しない。
-
-### `AGENTS.md`で解消する曖昧表現
-
-少なくとも以下を修正する。
-
-1. lightweightではrun artifactを「手動作成してよい」が`run.json`まで含むように読める表現。
-2. `RUN_MANIFEST.json`を元にAgentがactual Runの`run.json`を直接作成できるように読める表現。
-3. 同一Run継続時にAgentが`run.json`を直接「更新する」と読める表現。
-4. 「Git操作禁止でもRun Artifactの作成・更新は通常のファイル編集として実施する」が`run.json`まで含むように読める表現。
-
-### 直接編集禁止の対象境界
-
-禁止対象は、通常のCodex Run運用における`.codex/runs/<run_id>/run.json`とする。
-
-以下は禁止対象に含めない。
-
-- contract test / temporary directory内の`run.json` fixture。
-- `.codex/templates/RUN_MANIFEST.json`自体のmaintenance。
-- manifest writer / collectorの実装・テスト。
-- manifest機能そのものを変更する専用タスク。
-
-## 3. `changed_files`同期契約
-
-interactive終了時は以下をunionして`run.json.changed_files`へ反映する。
-
-- 既存`run.json.changed_files`。
-- process終了時点のcurrent working treeでGitが観測できるtracked change。
-- process終了時点のuntracked file。
-
-### Git path取得方法
-
-独自のporcelain status parserやGit quote解除処理は作らず、collectorからrepository rootで以下を実行する。
-
-```text
-git diff --name-only --relative -z HEAD --
-git ls-files --others --exclude-standard -z
-```
-
-- subprocess outputはtext lineとして扱わずbinaryで受ける。
-- NUL (`\0`) で分割してpathを取得する。
-- pathの文字列化はPythonのfilesystem decoding（例: `os.fsdecode`）を使用し、Gitの`core.quotePath`に依存しない。
-- path separatorをrepository relativeの`/`へnormalizeする。
-- 重複排除してexisting `changed_files`とunionする。
-
-これにより、日本語・空白等を含むpathでもGitのquoted表示をmanifestへ誤格納しない。
-
-### 除外
-
-- `.codex/runs/**`自身のgenerated Run Artifact。
-
-### 失敗時
-
-`--refresh-git-changed-files`指定時に、上記Git commandのいずれかが起動失敗またはnonzero終了した場合はcollector failureとする。古い`changed_files`のまま成功扱いにしない。
-
-### 許容する制約
-
-- session開始時点から既にdirtyだったfileも、終了時working treeに残っていれば含まれ得る。
-- session中にcommitされてworking treeから消えた変更は今回追跡しない。
-- status種別やsession attribution metadataは保存しない。
-
-## 4. Non-goals / Stop conditions
+- collectorからrepository rootのGit状態を読み取れる。
+- `run.json` schema v2のfield追加なしでexisting `changed_files`へ同期できる。
+- interactive process exitとRun完了は別概念であり、status更新を追加しなくても目的を達成できる。
+- Windowsの対象実行環境では`powershell.exe`が利用できる。実装前確認で成立しない場合はruntime abstractionを追加せずStop conditionとして再判断する。
+- session開始前からdirtyだったfileが終了時working treeに残っている場合、今回の`changed_files` refreshに含まれることを許容する。
 
 ### Non-goals
 
-- session開始HEAD / 終了HEADを用いたcommit差分追跡。
+- session開始HEAD / 終了HEADやcommit historyを用いた変更帰属。
 - session中commitされたfileの厳密なRun帰属。
 - pre-existing dirty fileのsession単位の厳密帰属。
 - content hash snapshot / worktree snapshot。
 - `Stop` / `SubagentStop` Hookからcollectorを実行すること。
-- Hook JSONLの`run.json`集約。
-- HookとRunの完全correlation。
-- `CODEX_RUN_ID`伝播、active-run registry、DB、daemon。
+- Hook JSONLを`run.json`へ集約すること。
+- HookとRunの完全correlation、`CODEX_RUN_ID`伝播、active-run registry、DB、daemon。
 - schema version変更、manifest field追加、v1→v2 migration utility。
-- interactive session専用の新しい永続artifact chain。
 - `evaluation.json`の自動評価化・machine-managed化。
 - `PLAN.md` / `TASKS.md` / `REPORT.md`のmachine-managed化。
-- `run.json`の全workflow必須化。
-- `codex-safe`へのverify / evaluation gate等、`codex-task` full workflowの移植。
+- `run.json`を全workflowで必須化すること。
+- `codex-safe`へverify / evaluation gate等`codex-task` full workflowを移植すること。
+- contract testのためだけのDocker、shell emulator、cross-platform execution基盤。
 - Product code、ECサイト仕様、カリキュラム本体の変更。
-- contract testのためだけのDocker、shell emulator、cross-platform execution基盤の追加。
+
+## 3. 質問 / 曖昧性
+
+- 必ず質問する不透明点:
+  - なし。
+- 仮定してよい細部:
+  - Git path normalizationはrepository-relative `/` 区切りとする。
+  - manifest sync eventは既存`codex-safe` harness logへ記録し、新規artifactは作らない。
+- 未回答の重要質問:
+  - なし。
 
 ### Stop conditions
 
 以下が必要になった場合は本タスクを拡張せず停止し、別taskとして再設計する。
 
-- manifest schema / field変更が必要。
-- session HEAD / commit history追跡が必要。
-- snapshot方式が必要。
-- HookからRunIdを解決する必要がある。
-- Run correlation基盤やregistryが必要。
-- `codex-safe`をfull workflow runnerへ拡張する必要がある。
-- PowerShell / Bashのcontract確認のために新しいcross-platform execution基盤が必要になる。
+- manifest schema / field変更。
+- session HEAD / commit history追跡やsnapshot方式。
+- HookからRunIdを解決する仕組み。
+- Run correlation基盤 / registry。
+- `codex-safe`のfull workflow runner化。
+- Windows対象環境で`powershell.exe`が利用できず、新しいruntime detection / abstractionが必要になる場合。
+- PowerShell / Bash contract確認のためだけに新しいcross-platform test infrastructureが必要になる場合。
 
-## 5. 変更対象
+## 4. 影響範囲
 
-### 必須変更
+### Impacted areas
+
+- Run Artifact運用契約。
+- `codex-safe` interactive lifecycle。
+- collectorのoptional Git changed files refresh。
+- PowerShell collector wrapperのoption pass-through。
+- Run manifest contract tests / wrapper lifecycle tests。
+- active reference docs / static verify。
+
+### Files to inspect
+
+#### 変更対象
 
 - `AGENTS.md`
 - `scripts/codex-safe.ps1`
@@ -152,14 +123,14 @@ git ls-files --others --exclude-standard -z
 - `docs/reference/run-artifacts.md`
 - `docs/reference/codex-implementation-harness.md`
 - `tests/contracts/codex-run-manifest-contract.test.ts`
-- `tests/contracts/codex-safe-run-manifest-sync.test.ts`
+- `tests/contracts/codex-safe-run-manifest-sync.test.ts`（新規）
 - `scripts/verify`
 - `scripts/verify.ps1`
 
-### 確認のみ
+#### 確認のみ
 
 - `scripts/collect-run-artifacts.sh`
-  - 現在`"$python_cmd" "$script_dir/collect-run-artifacts.py" "$@"`で全引数をそのままpass-throughするため、refresh option追加に伴うproduction変更は行わない。
+  - 既に`"$@"`をPythonへpass-throughしているためproduction変更しない。
 - `.codex/templates/RUN_MANIFEST.json`
 - `scripts/new-run.ps1`
 - `scripts/new-run.sh`
@@ -170,302 +141,247 @@ git ls-files --others --exclude-standard -z
 - `.agents/skills/**`のactive Run Artifact instruction
 - `docs/guides/**` / `docs/reference/**`のactive `run.json` guidance
 
-### 原則変更しない
+#### 変更しない
 
 - manifest schema / template shape。
-- `codex-task`の既存writer logic。
+- `codex-task`既存manifest lifecycle。
 - Hook logger / Hook config / Safety Hook。
-- `.codex/runs/**`の過去Run。
-- 過去Plan / history。
+- 過去`.codex/runs/**`、過去Plan / history。
 - Product code。
 
-## 6. 実装方針
+## 5. 変更方針
 
-### 6.1 machine-managed契約
+### Change strategy
 
-`AGENTS.md`とreference docsで以下を統一する。
+#### 5.1 machine-managed契約
+
+`AGENTS.md`とreference docsを次の責務へ統一する。
 
 - actual Runの`run.json`はAgentが直接作成・直接編集しない。
-- 新規manifestは`new-run`で生成する。
+- 新規manifestは`new-run`が生成する。
 - 非対話更新は`codex-task`が行う。
-- interactive更新は`codex-safe -RunId`終了時の自動同期で行う。
-- 明示的な再集約が必要な場合はcollectorを使う。
+- interactive更新は`codex-safe -RunId`終了時にcollectorを利用して行う。
+- 明示的な再集約はcollectorを使用する。
 - `PLAN.md` / `TASKS.md` / `REPORT.md` / `evaluation.json`のAgent-managed責務と区別する。
+- test fixtureやmanifest writer / collector自身の実装・テストは直接編集禁止対象に含めない。
 
-### 6.2 `codex-safe` RunId precondition
+#### 5.2 `codex-safe` RunId precondition
 
-PowerShell / Bash双方で、log path生成前にRun Directoryを確認する。
+PowerShell / Bash双方でlog path生成前に判定する。
 
-- `RunId`なし:
-  - 従来どおり実行。
-  - manifest syncなし。
-- `RunId`あり + `.codex/runs/<run_id>/`なし:
-  - Codex起動前にfail。
-  - Run Directory / logs directoryを作成しない。
-- `RunId`あり + Run Directoryあり + `run.json`なし:
-  - manifest-less RunとしてCodexを実行。
-  - process終了後のmanifest syncはskip。
-  - manifestがない理由は推測しない。
-- `RunId`あり + Run Directoryあり + `run.json`あり:
-  - Codexを実行。
-  - process終了後にmanifest sync。
+- `RunId`なし: 従来動作、manifest syncなし。
+- `RunId`あり + Run Directoryなし: Codex起動前にfailし、Run Directory / logsを作らない。
+- `RunId`あり + Run Directoryあり + `run.json`なし: Codex実行、process終了後syncはskip。manifest理由は推測しない。
+- `RunId`あり + existing `run.json`あり: Codex実行、process終了後sync。
+- `PreflightOnly` / `PrintCommand`: Codex processを実行しないためsyncしない。
 
-`PreflightOnly` / `PrintCommand`はCodex processを実行しないためmanifest syncしない。
+#### 5.3 collectorのoptional refresh
 
-### 6.3 collector拡張
-
-`collect-run-artifacts.py`へopt-in optionを1つ追加する。
+`collect-run-artifacts.py`へ次のoptionだけを追加する。
 
 ```text
 --refresh-git-changed-files
 ```
 
-- option未指定時のcollector挙動は変更しない。
-- option指定時だけGit pathを再取得する。
-- existing `changed_files`とunionする。
+option未指定時のcollector挙動は変更しない。
+
+refresh指定時はrepository rootで以下を実行する。
+
+```text
+git diff --name-only --relative -z HEAD --
+git ls-files --others --exclude-standard -z
+```
+
+- subprocess outputはbinaryで受け、NUL (`\0`) 分割する。
+- path文字列化はPython filesystem decoding（例: `os.fsdecode`）を使用する。
+- repository-relative `/` 区切りへnormalizeする。
 - `.codex/runs/**`を除外する。
+- existing `run.json.changed_files`とunionして重複排除する。
+- status種別 / session attribution metadataは追加しない。
 - `run.json.status`は変更しない。
-- report / evaluation summaryの既存再集約はそのまま行う。
-- Git取得失敗はcollector failureとする。
+- Git command起動失敗またはnonzero終了はcollector failureとする。
+- report / evaluation summaryの既存再集約は維持する。
 
-### 6.4 collector wrapper
+#### 5.4 collector wrapper
 
-#### Bash
+- Bash `collect-run-artifacts.sh`は変更しない。
+- PowerShell `collect-run-artifacts.ps1`へ`[switch]$RefreshGitChangedFiles`を追加し、指定時だけPythonへ`--refresh-git-changed-files`を渡す。
+- collector wrapper自体の既存exit契約は変更しない。
 
-`scripts/collect-run-artifacts.sh`は既に`"$@"`をPythonへpass-throughしているため変更しない。
+#### 5.5 `codex-safe`終了時sync / exit semantics
 
-#### PowerShell
+Codex process終了後に次の順序で処理する。
 
-`scripts/collect-run-artifacts.ps1`へ`[switch]$RefreshGitChangedFiles`を追加し、指定時にPythonへ`--refresh-git-changed-files`を渡す。
+1. Codex exit codeを保存する。
+2. existing `run.json`がなければsync skip。
+3. existing `run.json`があればcollectorをrefresh付きで1回実行する。
+4. logging有効時は`manifest_sync_start` / `manifest_sync_success` / `manifest_sync_skipped` / `manifest_sync_failed`を既存harness logへ記録する。
+5. sync failure時はstderrへ短いwarningを出す。
+6. `--no-log` / `-NoLog`でもsync自体は実行する。
+7. Codex exit codeが非0ならCodex exit codeを返す。
+8. Codex exit codeが0かつcollector exit codeが非0ならcollector exit codeを返す。
+9. collector child process自体を起動できなければcollector failure=`1`として扱う。
+10. successまたは正常skipならCodex exit codeを返す。
 
-既存CLI動作は維持する。
-
-### 6.5 `codex-safe`終了時同期
-
-PowerShell / Bash双方で以下の順序にする。
-
-1. Codex processを通常どおり実行する。
-2. Codex exit codeを退避する。
-3. existing `run.json`がない場合はmanifest syncをskipする。
-4. existing `run.json`がある場合はmanifest syncを開始する。
-5. logging有効時は`manifest_sync_start`を既存harness logへ記録する。
-6. collectorを`refresh-git-changed-files`付きで1回実行する。
-7. collector exit codeを取得する。
-8. logging有効時は`manifest_sync_success`または`manifest_sync_failed`を記録する。
-9. failure時はstderrへ短いwarningを出す。
-10. Codex exit codeが非0なら、そのcodeを最終exitとして返す。
-11. Codex exit codeが0かつcollector exit codeが非0なら、そのcollector exit codeを返す。
-12. collector child process自体を起動できなかった場合はcollector failureを`1`として扱う。
-13. collector successまたは正常skipならCodex exit codeを返す。
-
-manifestなしでskipする場合、logging有効時は`manifest_sync_skipped`と理由を記録する。
-
-`--no-log` / `-NoLog`ではmanifest sync自体は省略しない。log eventだけ出さない。
-
-### 6.6 PowerShell collector呼び出し方式
-
-`codex-safe.ps1`から`scripts/collect-run-artifacts.ps1`を同一PowerShell process内でdot-source / direct script invocationしない。
-
-現collector wrapperはfailure時に`exit $LASTEXITCODE`するため、親`codex-safe.ps1`がCodex exit codeとcollector exit codeの優先順位を判断できるよう、collectorはchild processとして起動する。
-
-Windowsでは以下の既存前提を利用する。
+PowerShellでは`collect-run-artifacts.ps1`を同一process内でdirect invocation / dot-sourceせずchild processとして起動する。
 
 ```text
 powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId <run_id> -RefreshGitChangedFiles
 ```
 
-child processのexit codeを`codex-safe.ps1`側で取得し、最終exitを決定する。
+これによりcollector側の`exit`で親`codex-safe.ps1`が終了せず、親側でCodex / collector exit codeを評価できるようにする。
 
-collector wrapper自体の`exit`契約は今回変更しない。
+### 実行タスク
 
-## 7. 実行タスク
+- [ ] 1. active instruction、`codex-safe` / `codex-task` / collector、既存contract testを確認し、Plan前提との差異がないことを確認する。
+- [ ] 2. `AGENTS.md`の4種類の曖昧表現を最小差分で修正する。
+- [ ] 3. `codex-safe.ps1/sh`へRun Directory preconditionを追加する。
+- [ ] 4. `collect-run-artifacts.py`へoptional working tree refreshを追加する。
+- [ ] 5. `collect-run-artifacts.ps1`へrefresh option pass-throughを追加する。Bash collector wrapperは変更しない。
+- [ ] 6. `codex-safe.ps1/sh`へexisting manifestだけを対象とする終了時sync、logging、warning、exit semanticsを実装する。
+- [ ] 7. `run-artifacts.md` / `codex-implementation-harness.md`を実装済みlifecycleと一致させる。
+- [ ] 8. collector / `codex-safe` contract testを追加・更新する。
+- [ ] 9. Bash / PowerShell verifyへ必要最小限のpositive checkを追加する。
+- [ ] 10. targeted tests、利用可能なverify、Markdown lint、`git diff --check`を実行し、Non-goalへscopeが広がっていないことを確認する。
 
-- [ ] 1. active `run.json` instruction、`codex-safe` / `codex-task` / collector、既存contract testを確認し、Plan記載と現行実装が一致することを確認する。
-- [ ] 2. `AGENTS.md`の4種類の曖昧表現を最小差分で修正し、`new-run` / `codex-task` / `codex-safe` / collectorの責務を明記する。
-- [ ] 3. `codex-safe.ps1/sh`へRunId指定時のRun Directory preconditionを追加する。log path生成より前に判定し、存在しないRunIdでは何も作成しない。
-- [ ] 4. `collect-run-artifacts.py`へ`--refresh-git-changed-files`を追加し、NUL区切りGit path取得でcurrent working tree pathsを取得してexisting `changed_files`へunionする。
-- [ ] 5. `collect-run-artifacts.ps1`へrefresh optionのpass-throughを追加する。`collect-run-artifacts.sh`は変更しない。
-- [ ] 6. `codex-safe.ps1/sh`へexisting manifestだけを対象とする終了時sync、sync log、stderr warning、exit code優先順位を実装する。PowerShellはcollectorをchild process実行する。
-- [ ] 7. `docs/reference/run-artifacts.md` / `docs/reference/codex-implementation-harness.md`を実装済みlifecycleと一致させる。`Stop` Hookがmanifest更新triggerではないことも明記する。
-- [ ] 8. `tests/contracts/codex-run-manifest-contract.test.ts`をcollector refreshのcontract用に拡張し、`tests/contracts/codex-safe-run-manifest-sync.test.ts`を追加してwrapper lifecycleを固定する。
-- [ ] 9. `scripts/verify` / `scripts/verify.ps1`へmachine-managed契約の最小positive checkを追加する。一般語を禁止する脆いnegative checkは追加しない。
-- [ ] 10. targeted contract tests、利用可能なBash / PowerShell verify、Markdown lint、`git diff --check`を実行し、Hook / schema / Product codeへscopeが広がっていないことを確認する。
+## 6. 検証方法
 
-## 8. 検証方法
+### Validation plan
 
-### 8.1 collector contract
+#### collector contract
 
 `tests/contracts/codex-run-manifest-contract.test.ts`を拡張する。
 
-確認項目:
+- option未指定時の従来挙動。
+- existing `changed_files`保持。
+- tracked / untracked path追加。
+- 日本語・空白を含むpathをactual repository-relative pathで保持。
+- 重複排除。
+- `.codex/runs/**`除外。
+- `run.json.status`非変更。
+- Git command failure時のcollector failure。
+- v1を自動v2 migrationしない既存contract維持。
 
-- refresh option未指定では従来挙動を維持する。
-- refresh指定時、existing `changed_files`を保持する。
-- tracked changeを追加できる。
-- untracked fileを追加できる。
-- 日本語・空白を含むpathをGit quoted表現ではなくactual repository-relative pathとして格納できる。
-- 重複排除する。
-- `.codex/runs/**`を追加しない。
-- `run.json.status`を変更しない。
-- Git command failure時はcollector failureになる。
-- v1 manifestを自動v2 migrationしない既存contractを維持する。
+actual repositoryのworking treeはテスト用に汚さない。temporary Git repositoryまたは既存の安全なfixture方式を使用し、production codeへtest-only optionを追加しない。
 
-テスト方針:
-
-- actual repositoryのworking treeをテスト用に汚さない。
-- temporary Git repositoryを作成し、必要ならcollector scriptをtemporary repo内のrepository-relative位置へコピーして実行する、または既存の安全なshim / fixture方式を再利用する。
-- production codeへtest-only modeやtest-only output pathを追加しない。
-
-### 8.2 `codex-safe` contract
+#### `codex-safe` contract
 
 `tests/contracts/codex-safe-run-manifest-sync.test.ts`を追加する。
 
-確認項目:
+- RunId未指定: syncなし。
+- RunIdあり + Run Directoryなし: Codex起動前fail、directory非作成。
+- Run Directoryあり + manifestなし: Codex実行、sync skip、manifest非作成。
+- existing manifestあり: process終了後collector 1回。
+- Codex nonzero + collector success/failure: Codex exit code優先。
+- Codex zero + collector failure: collector exit code。
+- collector child process起動失敗: Codex zeroなら1、Codex nonzeroならCodex exit code。
+- `PreflightOnly` / `PrintCommand`: syncなし。
+- logging有効時のsync event。
+- `--no-log` / `-NoLog`でもsync実行。
 
-- RunId未指定: 従来動作、manifest syncなし。
-- RunIdあり + Run Directoryなし: Codex起動前fail、Run Directory / logsを作成しない。
-- RunIdあり + Run Directoryあり + manifestなし: Codex実行、manifest sync正常skip、manifest新規作成なし。
-- RunIdあり + existing manifestあり: Codex終了後にcollectorを1回呼ぶ。
-- Codex nonzero + collector success: Codex exit codeを返す。
-- Codex nonzero + collector failure: Codex exit codeを優先し、warning / logへsync failureを残す。
-- Codex zero + collector failure: collector exit codeを返す。
-- collector child process起動失敗: Codex zero時は`1`、Codex nonzero時はCodex exit codeを返す。
-- `PreflightOnly` / `PrintCommand`: collectorを呼ばない。
-- logging有効時: start / success / skipped / failedをharness logで確認できる。
-- `--no-log` / `-NoLog`: log eventは作らないがmanifest syncは実行する。
+runtime依存caseは利用可能shellだけ実行する。
 
-runtime別テスト方針:
+- Bash contractはBash利用可能環境で実行。
+- PowerShell contractはPowerShell / Windows利用可能環境で実行。
+- runtimeが利用できないcaseは理由を明示してSKIPする。
+- 利用不能shell再現だけのDocker / emulator / runtime追加は行わない。
+- production codeへtest-only hook / output pathを追加しない。
 
-- Bash wrapper contractはBashを利用できる環境で実行する。
-- PowerShell wrapper contractはPowerShell / Windowsを利用できる環境で実行する。
-- 現在のtest runtimeで対象shellが利用できない場合は、そのruntime依存caseを明示的にSKIPし、SKIPをPASSとして扱わない。
-- 利用できないshellを再現するためだけにDocker、shell emulator、追加runtimeを導入しない。
-- `scripts/verify` / `scripts/verify.ps1`のstatic checkでもPowerShell / Bashの重要契約を補完する。
-- production codeへtest-only optionやtest-only output pathを追加しない。
+#### Static verification
 
-### 8.3 Static verification
+`scripts/verify` / `scripts/verify.ps1`へ脆くならない範囲のpositive checkだけ追加する。
 
-`scripts/verify` / `scripts/verify.ps1`で最低限以下を確認する。
+- `AGENTS.md`のactual Run `run.json` machine-managed契約。
+- reference docsのinteractive終了時sync。
+- `Stop` Hookをmanifest更新triggerとして説明していないこと。
+- Bash / PowerShell双方のRun Directory precondition / existing manifest guard / sync経路。
 
-- `AGENTS.md`にactual Runの`run.json` machine-managed契約がある。
-- reference docsに`codex-safe` interactive終了時syncが記載されている。
-- `Stop` HookをRun manifest update triggerとして説明していない。
-- Bash / PowerShell双方でRun Directory precondition、existing manifest guard、manifest sync経路が維持されていることを、脆くならない範囲のpositive checkで確認する。
+一般語を禁止するnegative checkやHook logger契約の再定義は行わない。
 
-Hook logger内容を今回のverify変更で再定義しない。
+#### Manual smoke / repository validation
 
-### 8.4 Manual smoke
-
-利用可能な代表環境で以下を確認する。
-
-1. 存在しないRunIdでCodex起動前にfailし、Run Directoryが作られない。
-2. `new-run`でmanifestありRunを作る。
-3. `codex-safe -RunId`相当で最小interactive sessionを実行し、安全な未commit変更を作る。
-4. process終了後、Agentが`run.json`を直接編集せず`changed_files`が同期されている。
-5. `run.json.status`がprocess exitだけを理由に`completed`へ変わっていない。
-6. manifest-less Runでは`run.json`が新規作成されない。
-7. `--no-log` / `-NoLog`でもmanifest syncされる。
-
-環境上Bash / PowerShell / Codex実機の一部が使えない場合はSKIP理由を明記し、未実行をPASSと記録しない。
-
-### 8.5 Repository validation
-
-- 変更したcontract test。
-- 利用可能なrepository標準Bash / PowerShell verify。
+- 存在しないRunIdでCodex起動前failし、Run Directoryを作らない。
+- manifestありRunでinteractive終了後に`changed_files`を同期する。
+- process exitだけで`status=completed`へ変えない。
+- manifest-less Runで`run.json`を生成しない。
+- `--no-log` / `-NoLog`でもsyncする。
 - `pnpm run lint:markdown`。
 - `git diff --check`。
-- 必要に応じてcontract suite全体。
+- repository標準の利用可能なBash / PowerShell verify。
+- targeted contract tests。必要な場合のみcontract suite全体。
 
-## 9. 成功判定
+利用不能runtime / Codex実機はSKIP理由を明示し、未実行をPASSと記録しない。
 
-以下をすべて満たせば完了とする。
+### 成功判定
 
-- actual Runの`run.json`をAgentが通常workflowで直接作成・編集するactive instructionが残っていない。
+- actual Runの`run.json`直接作成・編集を促すactive instructionが残っていない。
 - new-run / codex-task / codex-safe / collectorの責務が一貫している。
 - 不正RunIdで不完全なRun Directoryを作らない。
-- interactive `codex-safe`終了時にexisting manifestだけが自動同期される。
-- manifest-less Runを勝手にmanifest化しない。
-- current working treeのtracked / untracked changesを`changed_files`へ累積反映できる。
-- 日本語・空白を含むpathがGit quotingに壊されない。
-- session HEAD / commit attributionを追加していない。
+- existing manifestだけがinteractive終了時に自動同期される。
+- tracked / untracked / 日本語・空白pathを`changed_files`へ安全に累積できる。
 - collector default挙動とv1/v2 compatibilityを壊していない。
-- Codex / collectorのexit semanticsがPowerShell / Bash双方で固定されている。
-- Codex成功 + collector failure時はcollector exit codeが保持される。
-- `--no-log`がmanifest syncを無効化しない。
-- `Stop` HookをRun完了triggerにしていない。
-- Hook / schema / evaluation責務を変更していない。
-- unavailable shellのために新しいtest infrastructureを導入していない。
-- 関連tests / verify / Markdown / diff checkがPASSしている。実行不能項目はSKIP理由が明示されている。
+- Codex / collector exit semanticsがPowerShell / Bashで一致する。
+- `--no-log`がsyncを無効化しない。
+- `Stop` Hook、schema、evaluation責務を変更していない。
+- 新しいruntime / correlation / attribution基盤を導入していない。
+- 実行したtests / verify / lint / diff checkがPASSし、未実行項目はSKIP理由がある。
 
-## 10. リスクと対策
+## 7. リスクと未解決論点
 
-### Risk 1: `Stop`とRun完了を混同する
+### Risks
 
-- 対策: Hookは変更せず、manifest syncは`codex-safe` process lifecycle側だけで行う。`status=completed`は設定しない。
+- `Stop`とRun完了を混同する。
+  - 対策: Hookは変更せず、syncは`codex-safe` process lifecycle側だけで行う。
+- 誤RunIdで不完全なRun Directoryを作る。
+  - 対策: log path生成前にexisting Run Directoryを必須確認する。
+- manifest-less Runを勝手にmanifest化する。
+  - 対策: existing `run.json`がある場合だけcollectorを呼ぶ。
+- `changed_files`を失う / Git path quotingで壊す。
+  - 対策: existing値とのunion、`-z` binary output、NUL分割、filesystem decodingを使用する。
+- Git refresh失敗を成功扱いする。
+  - 対策: refresh時のGit command failureをcollector failureにする。
+- PowerShell collectorの`exit`で親wrapperが終了する。
+  - 対策: collectorをchild process実行し、親でexit codeを評価する。
+- logging設定とsync責務が混ざる。
+  - 対策: NoLogはlog eventだけ抑止し、syncは継続する。
+- testのためにscopeが広がる。
+  - 対策: 利用可能runtimeのみ実行し、追加test infrastructureを作らない。
 
-### Risk 2: 誤RunIdで不完全なRun Directoryを作る
+### Open questions
 
-- 対策: log path生成前にexisting Run Directoryを確認し、なければfailする。
+- なし。
+- Assumptions / Stop conditionsが崩れた場合だけ本Planを止めて再判断する。
 
-### Risk 3: manifest-less Runを勝手にmanifest化する
+## 8. 成果物
 
-- 対策: existing `run.json`がある場合だけcollectorを呼ぶ。
+- 変更ファイル:
+  - `AGENTS.md`
+  - `scripts/codex-safe.ps1`
+  - `scripts/codex-safe.sh`
+  - `scripts/collect-run-artifacts.py`
+  - `scripts/collect-run-artifacts.ps1`
+  - `docs/reference/run-artifacts.md`
+  - `docs/reference/codex-implementation-harness.md`
+  - `tests/contracts/codex-run-manifest-contract.test.ts`
+  - `tests/contracts/codex-safe-run-manifest-sync.test.ts`
+  - `scripts/verify`
+  - `scripts/verify.ps1`
+- 付随ドキュメント:
+  - 本Planのみ。
+- 変更しないもの:
+  - `scripts/collect-run-artifacts.sh`
+  - `.codex/config.toml`
+  - `.codex/hooks/log_event.mjs`
+  - manifest schema / template shape
+  - `codex-task`既存manifest lifecycle
+  - Product code
+  - 過去Run / 過去Plan / history
 
-### Risk 4: 過去の`changed_files`を失う
+## 9. 備考
 
-- 対策: refreshはreplaceではなくexisting値とのunionにする。
+### Follow-up notes
 
-### Risk 5: Git path quotingでactual pathを失う
-
-- 対策: Git commandは`-z`を使用し、binary outputをNUL分割してfilesystem decodingする。独自quote parserは作らない。
-
-### Risk 6: Git refresh失敗を成功扱いする
-
-- 対策: refresh指定時のGit command failureはcollector failureにする。
-
-### Risk 7: PowerShell collectorの`exit`が親wrapperを終了させる
-
-- 対策: `codex-safe.ps1`からcollectorをchild processで実行し、exit codeを親で評価する。
-
-### Risk 8: collectorの詳細exit codeを失う
-
-- 対策: Codexが0の場合はcollector exit codeをそのまま最終exitとして返す。child process起動失敗だけ`1`へ正規化する。
-
-### Risk 9: logging設定とsync責務が混ざる
-
-- 対策: `--no-log` / `-NoLog`はlog eventだけを抑止し、manifest syncは継続する。
-
-### Risk 10: contract testのために実装範囲が広がる
-
-- 対策: 利用可能shellのみruntime testし、利用不可shellは明示SKIPする。Docker / emulator / test-only production hookは追加しない。
-
-### Risk 11: scopeがRun lifecycle再設計へ広がる
-
-- 対策: HEAD tracking / registry / correlation / schema変更 / Hook副作用 / new artifact chainをNon-goal・Stop conditionとして維持する。
-
-## 11. 成果物
-
-### 想定変更ファイル
-
-- `AGENTS.md`
-- `scripts/codex-safe.ps1`
-- `scripts/codex-safe.sh`
-- `scripts/collect-run-artifacts.py`
-- `scripts/collect-run-artifacts.ps1`
-- `docs/reference/run-artifacts.md`
-- `docs/reference/codex-implementation-harness.md`
-- `tests/contracts/codex-run-manifest-contract.test.ts`
-- `tests/contracts/codex-safe-run-manifest-sync.test.ts`
-- `scripts/verify`
-- `scripts/verify.ps1`
-- 本Plan
-
-### 変更しないもの
-
-- `scripts/collect-run-artifacts.sh`
-- `.codex/config.toml`
-- `.codex/hooks/log_event.mjs`
-- manifest schema / template shape
-- `codex-task`の既存manifest lifecycle
-- Product code
-- 過去Run / 過去Plan / history
+- 今回の目的は、interactive Runにも既存machine-managed思想を適用し、actual `run.json`の手編集を不要にすることである。
+- `Stop` Hookは低レベル観測のまま維持し、Run manifest更新triggerにはしない。
+- session中commitまで含む厳密な変更帰属が将来必要になった場合は、本件へ追加せずRun-level attributionの別taskとして扱う。
+- 本Planの実装でAssumptions / Stop conditionsが成立する限り、registry / correlation / schema変更等へscopeを広げない。
