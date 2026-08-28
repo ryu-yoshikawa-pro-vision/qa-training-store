@@ -21,13 +21,16 @@
 - [x] D5. direct code reference形式を原則`repository-relative file path + exact test title`へ固定する
 - [x] D6. Phase 1 Risk 16件をgroup化せず1 Risk = 1 row、新Stable Risk IDなしへ固定する
 - [x] D7. Platform parityをWeb / Android / iOSのCurrent asymmetric guarantee説明へ限定する
-- [x] D8. Functional / Non-functional Requirement Groupの全既存行へrepresentative regression direct referenceを要求する
+- [x] D8. Functional / Non-functional Requirement Groupの全既存行へrepresentative verificationを要求し、Current automationがある箇所だけ既存code / suiteへ直接接続する
 - [x] D9. Risk mappingの`Representative Technique`と`Representative Perspective`を別列へ分離する
 - [x] D10. 実装開始時点のCurrent下位Traceability代表label全件をDispositionし、Plan作成時点の22行はCurrent evidenceとしてのみ扱う契約へする
 - [x] D11. Current `main` driftのStop条件をPR 2判断へ影響するsemantic contract変更時へ限定する
 - [x] D12. Representative Techniqueを全Risk必須から外し、非適用時の`—` / `Not primary`を許容して推測でのTechnique追加を禁止する
 - [x] D13. `playwright.config.ts`をFormal単位で分類せず、Formal E2E / Smokeと`ui-review-*`をproject責務で区別する
 - [x] D14. 下位Traceabilityの「22行」を固定契約から外し、implementation開始時点のCurrent全行を完了対象とする
+- [x] D15. PR-wide diffとimplementation deltaを分離し、実装開始直前の`IMPLEMENTATION_BASE_SHA...HEAD`でscope判定する
+- [x] D16. Non-functional Requirement Groupへcode referenceを強制せず、Benchmark / UI Review / Static Check / Smoke等の実在するCurrent verificationへ接続する
+- [x] D17. Risk表のRepresentative Formal Test / suiteをstableな代表実行単位、CI Gateを最も近いworkflow job / matrix legへ固定し、`verify` / `validate`だけで一律に埋めない
 
 ## Blocked
 
