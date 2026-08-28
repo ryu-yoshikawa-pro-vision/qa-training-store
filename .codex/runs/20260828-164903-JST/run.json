@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "run_id": "20260828-164903-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "branch": "fix/current-documentation-ssot-repair",
+  "base_branch": "main",
+  "codex_task_reports": [],
+  "changed_files": [
+    "docs/07_testability/seed_catalog.md",
+    "docs/08_testing/e2e_design.md",
+    "docs/08_testing/test_strategy.md",
+    "docs/12_quality/requirements_traceability.md",
+    "docs/12_quality/acceptance_criteria.md",
+    "docs/curriculum/test-automation/00_learning-design.md",
+    "docs/curriculum/test-automation/01_spreadsheet-test-design.md",
+    "docs/curriculum/test-automation/part1/04_playwright-foundations.md",
+    "docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md",
+    "docs/curriculum/test-automation/part1/07_maestro-native-automation.md",
+    "docs/curriculum/test-automation/part2/06_native-ci-maestro.md",
+    "docs/curriculum/test-automation/part2/08_integration-design-capstone.md",
+    "training/workbook/README.md",
+    ".codex/runs/20260828-164903-JST/PLAN.md",
+    ".codex/runs/20260828-164903-JST/TASKS.md",
+    ".codex/runs/20260828-164903-JST/REPORT.md",
+    ".codex/runs/20260828-164903-JST/run.json"
+  ],
+  "validation": {
+    "status": "passed",
+    "commands": [
+      "pnpm run format:check",
+      "pnpm run lint:markdown",
+      "pnpm run validate:spec",
+      "pnpm run validate:curriculum",
+      "pnpm run test:contracts",
+      "Current SSOT cross-check and finding-specific bounded search",
+      "scripts/sanitize-codex-artifacts.ps1 -Write -Path .codex/runs/20260828-164903-JST",
+      "scripts/sanitize-codex-artifacts.ps1 -Check -Path .codex/runs/20260828-164903-JST"
+    ],
+    "warnings": [
+      "Full Playwright E2E、Native build、Maestro runtime、unrelated test suiteはdocs-only境界のため未実施。"
+    ]
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": false
+  },
+  "hook_observations": {
+    "log_paths": [],
+    "event_counts": {},
+    "blocking_event_count": 0,
+    "safety_blocked_count": 0,
+    "observation_error_count": 0
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": null,
+  "status": "in_progress",
+  "primary_failure_category": null
+}

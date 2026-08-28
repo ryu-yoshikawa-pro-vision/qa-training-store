@@ -168,7 +168,7 @@ Scenario Shopではstable UI Test IDを利用します。
 
 UI Test IDは、自動化のためだけに無秩序に追加するのではなく、UIの意味と安定性を考えて設計します。
 
-`CART-001` のようなTest Case IDとは役割が異なります。Test Case IDは「何をテストするか」を追跡し、UI Test IDは「どのUI要素を操作・確認するか」を特定します。
+`TC-CART-001` のようなTest Case IDとは役割が異なります。Test Case IDは「何をテストするか」を追跡し、UI Test IDは「どのUI要素を操作・確認するか」を特定します。
 
 ## Lesson 4: Deep Link
 

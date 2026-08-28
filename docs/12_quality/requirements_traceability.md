@@ -43,9 +43,9 @@ Phase 1ではRequirement Group単位でUse Case、Data、Screen、Test Suiteを�
 - UX Pattern: `UX-<pattern>-NNN`
 - Benchmark: `BM-<target>-NNN`
 
-## 5. Phase 1必須E2E対応
+## 5. Phase 1 Web E2E対応
 
-E2E Gateは`e2e_design.md`の12本を正本とします。Requirementの全組合せをE2Eへ展開せず、各Flowで代表的な業務結果を確認します。
+`WE-CORE-001`〜`WE-CORE-012`はRequirement / business-flow mappingです。Current executable required legは`pnpm run test:e2e:chromium`で、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行します。PRのE2E coverage全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`からなる`e2e-chromium` matrixとして扱います。Requirementの全組合せをE2Eへ展開せず、各Flowで代表的な業務結果を確認します。
 
 | Test ID | 主なRequirement | Flow |
 |---|---|---|

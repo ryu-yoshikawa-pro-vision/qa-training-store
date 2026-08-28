@@ -66,13 +66,17 @@ PriceCalculator（SKU単価ごとのfloorと明細割引合計）、Shipping Rem
 
 ## 5. E2E Release Gate
 
-Phase 1の必須E2Eは`e2e_design.md`の12本です。次はE2Eへ重複展開せず、下位Testへ割り当てます。
+`e2e_design.md`のWE-CORE-001〜WE-CORE-012はPhase 1のRequirement / business-flow mappingです。Current executable required legは`pnpm run test:e2e:chromium`で、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行します。PRのWeb E2E coverage全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`からなる`e2e-chromium` matrixであり、12件のmappingやrequired leg commandと同一視しません。次はE2Eへ重複展開せず、下位Testへ割り当てます。
 
 - Filter全組合せ、Sort tie-break、Facet件数: Unit/Application
 - 全入力文字数境界、Error Summary詳細: Component/Application
 - 全Conflict・Rollback・Unique制約: Repository Contract
 - Review評価分布Delta、平均未丸め保存・表示丸め、価格/送料全組合せ: Unit/Application
 - Bulk各対象の失敗理由: Application Integration
+
+### Current Native CIとの境界
+
+Web Phase 1のE2E Release GateへNative / Maestro Flowを混在させません。Native変更時のCurrent Native contractは、AndroidがBuild + Runtime / Maestro、iOSがBuild-onlyです。iOSのSimulator Runtime / Maestro PASSは保証せず、standalone `workflow_dispatch`とNative変更時のtop-level `native-ci`からのiOS reusable workflow呼出しを区別します。Native変更時は`native-ci / verify`がiOS成功を要求します。
 
 ## 6. Data方針
 
@@ -103,7 +107,7 @@ many-productsを使いSearch Suggestion、Facet、一覧描画をBenchmarkしま
 ## 10. 完了基準
 
 - Unit/Application/Repository Contract成功。
-- PR Chromium成功。
+- PRのWeb CIで`e2e-chromium` matrix（`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`）が成功する。`required` legのcommandは`pnpm run test:e2e:chromium`。
 - mainでChromium Mobileと可能な範囲のFirefox/WebKit確認。
 - Deployed Smoke成功。
 - Critical/High未解決なし。
@@ -112,4 +116,4 @@ many-productsを使いSearch Suggestion、Facet、一覧描画をBenchmarkしま
 
 在庫履歴、Order/Payment/Shipment、Review Summaryなどの内部整合性はApplication Integration TestとDexie Contract Testを正本とします。E2EはUIを優先し、必要な場合だけAutomation Buildの固定Read-only Inspection DTOを使用します。
 
-- Cross-role LifecycleはPR Gateへ含めず、mainまたは週次で実行します。
+- Cross-role Lifecycleは`e2e-chromium` matrixの`cross-role` legとしてPR Web CIに含めます。

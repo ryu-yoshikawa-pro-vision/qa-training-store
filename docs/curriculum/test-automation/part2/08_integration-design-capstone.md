@@ -18,9 +18,9 @@ Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Maestro�
 
 - Web `ci.yml`: PR / main / schedule / manualを含むWeb CI/CD。
 - Android `native-ci.yml`: PR / manualで動くNative CI。
-- iOS `native-ios-ci.yml`: 現時点では `workflow_dispatch` による手動実行のiOS Build-only baseline。
+- iOS `native-ios-ci.yml`: standaloneでは`workflow_dispatch`による手動実行のiOS Build-only baseline。Native変更時はtop-level `native-ci.yml`がこのreusable workflowを呼び、`native-ci / verify`がiOS成功をRequiredとする。
 
-特に、iOSが現在PR Required Gateへ自動的に入っていると誤解しないようにします。
+standaloneの手動入口、Native変更時のRequired Build-only経路、iOS Runtime / Simulator / Maestro非保証を区別します。
 
 まず「CIがまだ存在しないScenario Shop」という前提で自分の設計を作り、その後で現在の実装と比較します。
 
@@ -281,11 +281,11 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 7. Native変更判定
 8. Android Build / Runtime境界
 9. iOS Build-only経路
-10. iOSが現在Manual baselineである理由と将来の配置候補（Runtime PASSとは別）
+10. iOSのstandalone Manual入口とNative変更時Required Build-only経路（Runtime PASSとは別）
 11. Preview / Production
 12. Failure Evidence
 
-現在のiOS Workflowが `workflow_dispatch` であることも「差分」として扱います。自分の設計がiOSをPRやNightlyへ配置していた場合、どちらが妥当かを理由付きで評価します。
+現在のiOS Workflowがstandaloneでは`workflow_dispatch`であり、Native変更時にはtop-level `native-ci`からRequired Build-only経路として呼び出されることを「差分」として扱います。自分の設計がiOSをPRやNightlyへ配置していた場合、どちらが妥当かを理由付きで評価します。
 
 ## Phase 11: 差分を評価する
 

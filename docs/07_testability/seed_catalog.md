@@ -6,7 +6,7 @@
 |---|---|
 | 基準時刻 | `2026-07-01T03:00:00.000Z`（日本時間12:00） |
 | Schema Version | `1` |
-| Seed Version | `9` |
+| Seed Version | [`SEED_VERSION`](../../src/config/versions.ts)（Current SSOT） |
 | 固定Password | `testpass1` |
 | Guest ID | `guest-default-001` |
 | Image Manifest Version | `1` |
