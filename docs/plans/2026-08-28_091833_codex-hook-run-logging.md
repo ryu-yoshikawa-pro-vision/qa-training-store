@@ -11,7 +11,7 @@ Codex自身に`.codex/runs/<run_id>/REPORT.md`へ細かな行動を逐次記録�
 
 `run.json`自体の自動生成・自動更新は維持する。ただし、新HookログやSubagent lifecycleを`run.json`へ新規集約する仕組みは追加しない。
 
-新Hookが生成するJSONLはnative Hook payloadの生保存ではなく、**必要fieldだけを抽出・redaction・path sanitization・truncationしたSanitized Hook Event Log**とし、Codex session単位の長期EvidenceとしてGit管理する。
+新Hookが生成するJSONLはnative Hook payloadの生保存ではなく、必要fieldだけを抽出・redaction・truncationした**session単位のローカル詳細ログ**とする。`.codex/logs/*.jsonl`は従来どおりGit管理しない。
 
 ---
 
@@ -39,7 +39,7 @@ checkpoint単位で以下の意味情報だけを残す。
 
 全command、全Tool call、Subagent start / stop、native payload、Raw final messageはREPORTへ逐次転記しない。
 
-### Sanitized Hook Event Log
+### Hook JSONL
 
 以下5eventを自動記録する。
 
@@ -57,15 +57,15 @@ checkpoint単位で以下の意味情報だけを残す。
 
 責務:
 
-- Codex session単位のmachine-readableな長期行動Evidence。
+- Codex session単位のmachine-readableなローカル詳細ログ。
 - 1event = 1 JSON line。
-- Git管理する。
+- Git管理しない。
 - Run単位ではなくsession単位で保存する。
 - 同じCodex session内で複数Runを扱った場合、同一JSONLに複数Runのeventが混在し得る。
 - V1ではRun IDを付与せず、Run単位のmachine audit / correlationは提供しない。
-- Run単位の意味・判断・進捗は`REPORT.md`を正本とする。
+- Run単位で長期保存する意味・判断・進捗は`REPORT.md`を正本とする。
 
-保存してよいのはloggerが明示的に抽出・sanitizationしたfieldだけとし、native Hook stdin全文は保存しない。
+保存するのはloggerが明示的に抽出・sanitizationしたfieldだけとし、native Hook stdin全文は保存しない。
 
 ### `codex-task` JSONL / report JSON
 
@@ -78,7 +78,7 @@ checkpoint単位で以下の意味情報だけを残す。
 - verify。
 - command execution基盤の結果。
 
-Sanitized Hook Event Logとは別物であり、既存`codex-task` JSONLを今回Git管理対象へ広げない。
+Hook JSONLとは別責務とし、既存のGit管理方針を変更しない。
 
 ### `run.json`
 
@@ -86,7 +86,7 @@ Sanitized Hook Event Logとは別物であり、既存`codex-task` JSONLを今�
 
 - `new-run` / `codex-task` / collectorによる自動生成・自動更新を維持する。
 - Codexや人間が手編集しない。
-- Sanitized Hook Event Logを新しい入力源として追加しない。
+- Hook JSONLを新しい入力源として追加しない。
 - Subagent lifecycleを`run.json`へ新規集約しない。
 - 旧Subagent JSON専用fieldは新規v2 manifestから廃止する。
 - active利用のない旧Hook observation専用fieldも新規v2 manifestから廃止する。
@@ -141,15 +141,15 @@ Sanitized Hook Event Logとは別物であり、既存`codex-task` JSONLを今�
 
 - `changed_files`: 既存wrapper / git差分等の非Subagent経路を正本とする。
 - `safety.scope_violation`: 既存scope validationを正本とする。
-- `agents_used`: 今回は既存fieldのまま維持し、新Hookから新規集約しない。
+- `agents_used`: 既存fieldのまま維持し、新Hookから新規集約しない。
 
 ---
 
 ## 3. 旧Hook observation機能の整理
 
-新Hook loggerは`.codex/logs/hooks-<session_id>.jsonl`へSanitized Hook Event Logを記録し、`run.json`へ集約しない。
+新Hook loggerは`.codex/logs/hooks-<session_id>.jsonl`へ記録し、`run.json`へ集約しない。
 
-旧`.codex/observations/hooks.jsonl`を前提とした観測機能にactive producer / consumerがないことを確認できた場合だけ、以下を同じ旧observer責務として削除する。
+旧`.codex/observations/hooks.jsonl`を前提とした観測機能にactive producer / consumerがないことを確認できた場合だけ、同じ旧observer責務として削除する。
 
 ### active利用がない場合の削除対象
 
@@ -260,42 +260,23 @@ manifest writer / collectorは既存manifestの`schema_version`を確認し、�
 - Node `.mjs`を使用する。
 - native Hook stdin payloadを直接処理する。
 - PowerShell / shellで同じloggingロジックを二重実装しない。
-- Sanitized Hook Event Logは`.codex/logs/hooks-<safe-session-id>.jsonl`へ1event=1JSON lineでappendする。
+- Hook JSONLは`.codex/logs/hooks-<safe-session-id>.jsonl`へ1event=1JSON lineでappendする。
 - session idはsafe filename化する。
+- `.codex/logs/*.jsonl`は既存どおりGit管理外を維持する。
 - 1eventは1回のappend operationで書き込み、並列Hook実行時にpartial lineを作らない。
 - 通常時はstdoutへdebug出力しない。
 - V1ではrotation、DB、外部送信、active-run registryを実装しない。
 
-### Git管理
-
-`.codex/logs/.gitignore`は**Hook Event Logだけを追跡する例外**へ変更する。
-
-例:
-
-```gitignore
-*.jsonl
-!hooks-*.jsonl
-```
-
-要件:
-
-- `hooks-*.jsonl`はGit管理対象になる。
-- `codex-task-*.jsonl`等、その他の既存JSONLは引き続きGit管理外とする。
-- `.codex/logs/`全体を追跡対象へ変更しない。
-- native Hook payload全文を一時ファイルにも保存しない。
-- Git管理対象になるHook Event Logへ、sanitization前textを書き込まない。
-
 ### sanitization / bounded log
 
-Git管理対象になるため、Hook loggerは**保存前**にsanitizationする。
+ローカルログであっても不要な機密情報を増やさないため、保存前に最低限sanitizationする。
 
 共通処理:
 
 1. 必要fieldだけnative payloadから取得する。
 2. text値にbest-effort secret redactionを適用する。
-3. repo root / user homeなど既知のmachine-specific absolute path prefixを`<REPO_ROOT>` / `<USER_HOME>`等へ置換する。
-4. 固定上限でtruncateする。
-5. sanitization後の値だけJSONLへappendする。
+3. 固定上限でtruncateする。
+4. sanitization後の値だけJSONLへappendする。
 
 方針:
 
@@ -306,7 +287,7 @@ Git管理対象になるため、Hook loggerは**保存前**にsanitizationす�
 - arbitrary free-form secretを完全検出できるとは扱わない。
 - private chain-of-thoughtを保存しない。
 - Tool別parserやAI要約処理を作らない。
-- machine-specific path sanitizationのために汎用path解析基盤を作らない。repo root / user home等の既知prefix置換に留める。
+- Git管理しないため、Hook JSONL専用のcommit前secret scannerやdurable schema管理は今回追加しない。
 
 ### failure-safe
 
@@ -475,6 +456,8 @@ REPORTへ以下を転記しない。
 
 Subagentを使わなかったこと自体は毎回記録しない。
 
+既存REPORT templateにある今回と無関係なSafety用section（例: `Deletion candidates`）は削除しない。
+
 ---
 
 ## 7. `run.json`運用
@@ -489,38 +472,18 @@ Subagentを使わなかったこと自体は毎回記録しない。
 
 ### 今回やらないこと
 
-- Sanitized Hook Event Logを`run.json`へ新規集約しない。
+- Hook JSONLを`run.json`へ新規集約しない。
 - `SubagentStart` / `SubagentStop`から`run.json.subagents`を新規生成しない。
 - `CODEX_RUN_ID`伝播を新設しない。
 - `1 Codex process = 1 Run`という新しい運用制約を導入しない。
 - active-run registryを作らない。
 - HookとRunを完全correlationする基盤を作らない。
 
-session単位でGit履歴に長期保存できれば今回の目的を満たすため、Run correlationは追加しない。
+session単位のローカル詳細ログで今回の目的を満たすため、Run correlationは追加しない。
 
 ---
 
-## 8. AGENTS / 保存ポリシー変更
-
-現行AGENTSでは再生成可能な生ログやsecretを含む可能性があるログを長期保存対象外としている。
-
-今回追加する`hooks-*.jsonl`はnative/raw logではなく、保存前にsanitizationした**session-level durable evidence**として明確に例外化する。
-
-AGENTSへ以下を反映する。
-
-- `.codex/logs/hooks-*.jsonl`は長期保存するsession-level EvidenceでありGit管理する。
-- その他の`.codex/logs/*.jsonl`は従来どおり一時ログとしてGit管理しない。
-- native Hook payload全文は長期保存対象にしない。
-- Hook Event Logにはsanitized / bounded fieldだけを書き込む。
-- Hook Event LogをRun Artifactとは扱わない。session-level Evidenceとして別責務にする。
-- session単位で複数Runのeventが混在し得ることを明記する。
-- Hook Event Logへ機密情報や未sanitized absolute pathを意図的に書き込まない。
-
-既存Run Artifactの保存契約は変更しない。
-
----
-
-## 9. 実装前のrepo-wide確認
+## 8. 実装前のrepo-wide確認
 
 最低限以下をliteral searchし、producer / consumer / docs / testsに分類する。
 
@@ -549,13 +512,11 @@ AGENTSへ以下を反映する。
 - `SafetyBlocked`
 - `ObservationError`
 
-### Hook log / Git管理
+### Hook log
 
 - `.codex/logs/.gitignore`
-- `hooks-*.jsonl`
 - `.codex/logs`
-- `sanitize-codex-artifacts`
-- secret / credential scanningに使える既存validation
+- `hooks-*.jsonl`
 
 ### Manifest / writer
 
@@ -581,19 +542,18 @@ AGENTSへ以下を反映する。
 - Hook仕様が実機と計画で異なる場合、現行Codex CLIの実機仕様を優先する。
 - project-local Hookが未trustの場合、trust未設定をlogger不良と誤判定しない。
 - Windowsで`command_windows`からloggerを起動できない場合、Windows Hook動作を未検証のまま完了扱いにしない。
-- `hooks-*.jsonl`だけをGit管理対象にできず、他の機械ログまで追跡される場合はignore設定を修正してから完了する。
-- sanitization前payloadがtracked fileへ書き込まれる実装は採用しない。
+- Hook JSONLがGit管理対象になっている場合は、既存方針どおりignoreへ戻してから完了する。
 
 ---
 
-## 10. 実行タスク
+## 9. 実行タスク
 
 - [ ] 1. 現行Codex CLIで5eventのinput / stdout / exit semantics、Tool coverage、Hook trust状態を実機確認する。
-- [ ] 2. repo-wide searchで旧Subagent JSON、旧Hook observation、全manifest writer、Git ignore / sanitization関連、docs、testsのproducer / consumerを確定する。
+- [ ] 2. repo-wide searchで旧Subagent JSON、旧Hook observation、全manifest writer、docs、testsのproducer / consumerを確定する。
 - [ ] 3. canonical Node Hook loggerを1つ実装し、5eventをsanitized / bounded JSONLへ記録する。logging失敗時もCodex本作業をblockしない。
 - [ ] 4. `.codex/config.toml`へ5eventを接続し、Unix `command` / Windows `command_windows`の双方から同じNode loggerを起動する。既存Safety `PreToolUse`は維持する。
-- [ ] 5. `.codex/logs/.gitignore`を変更し、`hooks-*.jsonl`だけをGit管理対象、その他JSONLを引き続きignoreする。
-- [ ] 6. `AGENTS.md` / `.codex/templates/REPORT.md`を新責務へ変更し、逐次行動記録を廃止する。AGENTSにはSanitized Hook Event Logの長期保存例外を追加する。
+- [ ] 5. `.codex/logs/*.jsonl`が既存どおりGit管理外であることを確認する。Hook JSONL専用のGit追跡例外は追加しない。
+- [ ] 6. `AGENTS.md` / `.codex/templates/REPORT.md`を新責務へ変更し、逐次行動記録を廃止する。Hook JSONLはローカル一時ログとして扱い、durable artifactへ昇格させない。
 - [ ] 7. Subagent利用時はcheckpointで`Delegation / Result / Parent decision`だけをまとめる契約へ変更する。
 - [ ] 8. `.codex/templates/subagent-run.schema.json`を削除する。
 - [ ] 9. `collect_subagents()`とRun-local `subagents/*.json`のvalidation / aggregation機能を削除する。
@@ -603,11 +563,11 @@ AGENTSへ以下を反映する。
 - [ ] 13. collectorおよび`codex-task.ps1/sh`のmerge処理で削除済みv1 fieldを新規v2 manifestへ再注入しないようにし、既存v1を処理する場合はlegacy fieldを破壊的に削除しない。
 - [ ] 14. 旧Subagent / 旧Hook observation削除による`changed_files` / `safety.scope_violation` / validation / evaluationへの副作用を確認し、既存の非廃止対象の正本を維持する。
 - [ ] 15. `docs/reference/codex-implementation-harness.md`等、必要なdocsを新しい責務へ合わせる。
-- [ ] 16. targeted tests、Git tracking / sanitization validation、Windows full Hook smoke、Unix代表Hook smokeを実施する。
+- [ ] 16. targeted tests、Windows full Hook smoke、Unix代表Hook smokeを実施する。
 
 ---
 
-## 11. 検証方法
+## 10. 検証方法
 
 ### A. Hook lifecycle
 
@@ -618,25 +578,18 @@ AGENTSへ以下を反映する。
 3. Subagentを1回以上起動し、`SubagentStart`が記録される。
 4. Subagent終了時に`SubagentStop`が記録される。
 5. main turn終了時に`Stop`が記録される。
-6. `session_id` / `turn_id` / `agent_id`等、取得できるstable idからHook Event Log上で時系列を追える。
+6. `session_id` / `turn_id` / `agent_id`等、取得できるstable idからHook JSONL上で時系列を追える。
 
-### B. Session scope / durable保存
+### B. Session scope / Git非管理
 
 - `.codex/logs/hooks-<safe-session-id>.jsonl`へ出力される。
 - 同一session内の複数turnが同じlogへ記録される。
 - 同一session内で複数Runを扱った場合、Run単位に自動分離されない。
 - Run単位のmachine correlationをV1要件にしない。
-- `hooks-*.jsonl`がGit管理対象である。
-- commit後もsession-level machine EvidenceとしてGit履歴から参照できる。
+- `hooks-*.jsonl`が`git status`へ出ない。
+- その他の`.codex/logs/*.jsonl`と同様にGit管理外である。
 
-### C. Git ignore境界
-
-- `.codex/logs/hooks-*.jsonl`はignoreされない。
-- `.codex/logs/codex-task-*.jsonl`等、その他JSONLは引き続きignoreされる。
-- `.codex/logs/`全体を誤って追跡対象にしていない。
-- テスト用Hook Event Logを作成した状態で`git status`から追跡対象になることを確認する。
-
-### D. Cross-platform Hook起動
+### C. Cross-platform Hook起動
 
 Windows:
 
@@ -650,7 +603,7 @@ Unix系:
 - 代表eventを最低1件smokeする。
 - Windows用PowerShellにlogging logicを二重実装していない。
 
-### E. Hook非干渉 / failure-safe
+### D. Hook非干渉 / failure-safe
 
 - project-local Hookをtrustした状態でsmokeする。
 - `UserPromptSubmit`の正常時stdoutが空でadditional contextを注入しない。
@@ -661,19 +614,18 @@ Unix系:
 - logging失敗時もHook protocol上の正常no-op output / exit semanticsを守る。
 - stdout debug printがない。
 
-### F. Sanitization / truncation
+### E. Sanitization / truncation
 
 - native Hook stdin全文がfileへ保存されていない。
 - promptの上限超過でtruncateされ、その事実が分かる。
 - `tool_input_preview`の上限超過でtruncateされる。
 - Subagent / main final messageの上限超過でtruncateされる。
 - 代表的なAPI key / token / Authorization形式をredactできる。
-- repo root / user homeの絶対pathが規定tokenへ置換される。
 - arbitrary free-form secret完全検出をテスト要件にしない。
 - `tool_input_preview`生成にTool別parser / AI要約処理が存在しない。
-- transcript本文 / transcript pathがtracked JSONLへ保存されない。
+- transcript本文 / transcript pathがHook JSONLへ保存されない。
 
-### G. 並行書き込み
+### F. 並行書き込み
 
 複数Toolまたは複数Subagentを並行実行できるsmokeで確認する。
 
@@ -682,17 +634,18 @@ Unix系:
 - partial / concatenated lineがない。
 - 問題が確認されない限りlock service / DB / daemonを追加しない。
 
-### H. REPORT
+### G. REPORT
 
 Subagentを利用するTASKで確認する。
 
 - start / stopのたびにREPORTを編集していない。
 - 次のTASK完了またはRun完了checkpointで1回だけ要約している。
 - Delegation / Result / Parent decisionが確認できる。
-- Hook Event Logのmachine factをREPORTへ重複転記していない。
+- Hook JSONLのmachine factをREPORTへ重複転記していない。
 - private chain-of-thoughtを記録していない。
+- 今回と無関係なSafety用sectionを削除していない。
 
-### I. 旧Subagent JSON機能廃止
+### H. 旧Subagent JSON機能廃止
 
 - `.codex/templates/subagent-run.schema.json`が削除されている。
 - 新規Runで`subagents/*.json`が生成されない。
@@ -701,7 +654,7 @@ Subagentを利用するTASKで確認する。
 - tests / docs / templatesに新規Subagent JSON作成を要求する記述が残っていない。
 - 過去Runに既存の`subagents/*.json`は削除・変更していない。
 
-### J. 旧Hook observation機能
+### I. 旧Hook observation機能
 
 active利用がない場合:
 
@@ -716,7 +669,7 @@ active利用がある場合:
 - active producer / consumerを今回無理に新loggerへmigrationしていない。
 - 既存機能を壊す旧observer削除をしていない。
 
-### K. `run.json` / manifest v2
+### J. `run.json` / manifest v2
 
 - `new-run`で新規v2 `run.json`が自動生成される。
 - templateが利用できないcollector fallbackでもv2構造を生成する。
@@ -724,29 +677,29 @@ active利用がある場合:
 - `codex-task.sh`から`write_run_manifest`を実行しても新規v2 manifestをv1構造へ戻さない。
 - wrapper / collectorによる既存の非廃止対象の自動更新が動作する。
 - 新規v2 manifestに旧Subagent JSON専用fieldが残っていない。
-- Sanitized Hook Event Logを`run.json`へ新規集約していない。
+- Hook JSONLを`run.json`へ新規集約していない。
 - `CODEX_RUN_ID`伝播等の新規Run correlation基盤を追加していない。
 - collector / `codex-task.ps1/sh`のmergeで削除済みv1専用fieldがv2へ再注入されない。
 - 過去v1 Runを一括migrationしていない。
 - 既存v1 manifestを処理する場合にlegacy fieldを破壊的に削除していない。
 - 旧Subagent / 旧Hook observation削除後も、`changed_files` / safety / validation / evaluation等の非廃止対象を壊していない。
 
-### L. Cleanup / safety
+### K. Cleanup / safety
 
 - 既存Safety `PreToolUse` policyが引き続き動く。
 - Product code、ECサイト仕様、カリキュラム本体に差分がない。
 - standard Runでevaluationなしでも既存どおり成功する。
 - native/raw Hook payloadを保存する別fileを新設していない。
+- Hook JSONLをGit管理するためだけのscope / clean-git例外やcommit前validationを追加していない。
 
 ---
 
-## 12. 変更対象
+## 11. 変更対象
 
 ### 確定変更候補
 
 - `.codex/config.toml`
 - canonical Hook logger 1ファイル
-- `.codex/logs/.gitignore`
 - `AGENTS.md`
 - `.codex/templates/REPORT.md`
 - `.codex/templates/RUN_MANIFEST.json`
@@ -755,7 +708,9 @@ active利用がある場合:
 - `scripts/codex-task.ps1`
 - `scripts/codex-task.sh`
 - `docs/reference/codex-implementation-harness.md`
-- 旧Subagent JSON / Hook logger / manifest v2 / Hook log sanitizationに関係するtargeted tests
+- 旧Subagent JSON / Hook logger / manifest v2に関係するtargeted tests
+
+`.codex/logs/.gitignore`は原則変更しない。現状の`*.jsonl` ignoreを維持する。
 
 ### active利用がない場合だけ整理
 
@@ -783,9 +738,9 @@ active利用がある場合:
 
 ---
 
-## 13. Non-goals
+## 12. Non-goals
 
-- Sanitized Hook Event Logを`run.json`へ新規集約しない。
+- Hook JSONLを`run.json`へ新規集約しない。
 - HookとRunの完全correlation基盤を作らない。
 - `CODEX_RUN_ID`伝播を追加しない。
 - `1 Codex process = 1 Run`制約を導入しない。
@@ -796,32 +751,33 @@ active利用がある場合:
 - Tool別input parser / summary engineを作らない。
 - hosted / specialized Toolを疑似Hookで捕捉しない。
 - native Hook stdin payload全文を保存しない。
-- `.codex/logs`の全JSONLをGit管理しない。
+- Hook JSONLをGit管理しない。
+- Hook JSONLの長期保存基盤を今回追加しない。
+- Hook JSONL専用のcommit前secret scannerやGit履歴管理を追加しない。
 - private chain-of-thoughtを保存しない。
 - `evaluation.json`を再設計しない。
 - Run管理基盤全体を再設計しない。
-- session単位で十分な今回の要件に対してRun correlationを追加しない。
 
 ---
 
-## 14. 成功判定
+## 13. 成功判定
 
 以下をすべて満たせば完了とする。
 
-- Codexが全行動をREPORTへ逐次記帳しなくても、Sanitized Hook Event Logから指示・Tool実行・Subagent lifecycle・turn終了を確認できる。
-- Sanitized Hook Event Logがsession-scoped durable EvidenceとしてGit管理される。
+- Codexが全行動をREPORTへ逐次記帳しなくても、ローカルHook JSONLから指示・Tool実行・Subagent lifecycle・turn終了を確認できる。
+- Hook JSONLはsession-scopedであり、Run-scoped auditではないことが明確である。
+- Hook JSONLは`.codex/logs/*.jsonl`の既存方針どおりGit管理されない。
 - 同一session内で複数Runが混在し得ることを許容し、Run correlation基盤を追加していない。
-- native Hook payload全文やsanitization前textをGit管理していない。
-- `hooks-*.jsonl`だけがGit管理され、その他の機械JSONLは従来どおりignoreされる。
+- native Hook payload全文を保存していない。
 - Windowsでは5event、Unix系では同じNode loggerの起動と代表eventを確認できる。
 - logging失敗だけを理由にCodex処理がblockされない。
 - Subagentを使った場合、REPORTから「何を任せたか」「結果は何だったか」「Parentがどう判断したか」を確認できる。
 - 新規RunではSubagent専用JSONを作成・更新・validation・aggregationする機能が残っていない。
 - 過去RunのSubagent JSONはそのまま保持されている。
 - active利用がない旧Hook observation機能だけを安全に削除し、active利用がある既存機能をmigration目的で広げていない。
-- `run.json`は従来どおり自動生成・自動更新されるが、Sanitized Hook Event Logの二重集約先にはなっていない。
+- `run.json`は従来どおり自動生成・自動更新されるが、Hook JSONLの二重集約先にはなっていない。
 - 新規Runはv2 manifestを利用し、`new-run` / `codex-task.ps1/sh` / collectorのどの経路でもv1構造へ戻らない。
 - 過去v1 Runを自動migrationしていない。
-- Hook Event Log / REPORT / run.json / wrapper logの責務が重複していない。
+- Hook JSONL / REPORT / run.json / wrapper logの責務が重複していない。
 - 既存Safety Hook、validation、evaluation、Product codeを壊していない。
-- 今回の目的のためにDB、daemon、Run correlation基盤、migration framework、Tool別parser等の追加基盤を導入していない。
+- 今回の目的のためにGit tracking例外、scope / clean-git例外、DB、daemon、Run correlation基盤、migration framework、Tool別parser等の追加基盤を導入していない。
