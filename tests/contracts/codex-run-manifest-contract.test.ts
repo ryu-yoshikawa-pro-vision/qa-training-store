@@ -1,4 +1,5 @@
 import { spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -8,9 +9,17 @@ import { describe, expect, it } from "vitest";
 const repoRoot = path.resolve(process.cwd());
 const collectorPath = path.join(repoRoot, "scripts", "collect-run-artifacts.py");
 
+type Manifest = {
+  [key: string]: unknown;
+  schema_version?: number;
+  safety: Record<string, unknown>;
+  artifact_summary: Record<string, unknown>;
+  validation: Record<string, unknown>;
+};
+
 function runCollector(existingManifest: Record<string, unknown>, includeLegacyFiles = false) {
   const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "codex-manifest-contract-"));
-  const runId = `contract-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const runId = `contract-${randomUUID()}`;
   const runRoot = path.join(tempRoot, runId);
   const manifestPath = path.join(runRoot, "run.json");
   fs.mkdirSync(runRoot, { recursive: true });
@@ -42,7 +51,7 @@ function runCollector(existingManifest: Record<string, unknown>, includeLegacyFi
       { cwd: repoRoot, encoding: "utf8" },
     );
     expect(result.status, result.stderr).toBe(0);
-    return JSON.parse(fs.readFileSync(manifestPath, "utf8")) as Record<string, any>;
+    return JSON.parse(fs.readFileSync(manifestPath, "utf8")) as Manifest;
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -129,7 +138,7 @@ describe("run manifest v2 contract", () => {
   it("keeps every manifest writer on the v2 shape for new runs", () => {
     const template = JSON.parse(
       fs.readFileSync(path.join(repoRoot, ".codex", "templates", "RUN_MANIFEST.json"), "utf8"),
-    ) as Record<string, any>;
+    ) as Manifest;
     const powershell = fs.readFileSync(path.join(repoRoot, "scripts", "codex-task.ps1"), "utf8");
     const shell = fs.readFileSync(path.join(repoRoot, "scripts", "codex-task.sh"), "utf8");
 
