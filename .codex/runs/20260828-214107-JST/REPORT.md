@@ -98,3 +98,21 @@
   - Result: なし
   - Parent decision: なし
 - Progress: 98% (24/25)
+
+## 2026-08-29 06:42 (JST)
+
+- Summary: child PlanをRepository標準Template構造へ整理し、Functional / NFRのRepresentative Verification実装方法と`test_strategy.md`の最小変更境界を固定した。
+- Changes:
+  - `docs/plans/TEMPLATE.md`に合わせてGoal、Current understanding、Assumptions、Non-goals、Questions、Impacted areas、Files to inspect、Change strategy、Validation、Risks、Open questions、Follow-upを明示し、Fixed decision / Step / Validation / DoD間の重複記載を削減した。
+  - Functional Requirement Group Matrixは既存`Test Suite`列を維持して`Representative Verification`を1列追加し、Non-functional Groupは既存`検証`列を再利用して第4列を追加しない契約へ固定した。
+  - `test_strategy.md`はCurrentで正しいPhase 1 Risk、Unit重点、Repository Contract重点、Data方針、Accessibility、UX、性能等を原則維持し、3軸・Risk mapping・接続説明に必要な最小修正だけ行う契約を追加した。
+  - TASKSへD18〜D20を追加した。
+- Decision / Rationale: 追加機能や管理構造ではなく、Repository標準形式への整理と実装判断の固定だけを行う。NFRの既存`検証`列を再利用し二重管理を避け、3軸整理を理由に`test_strategy.md`全体を再構成しない。
+- Validation: Current `main`は引き続き`12afd144cc81fb63a3c6d3a0edcee1eb6ed2317a`。Product / Test Strategy本文 / Traceability本文 / test / workflowの実装変更は未開始。local `pnpm` validation、`git diff --check`、Sanitizer Write / Checkは未実施であり、PASSとは記録しない。
+- Progress correction: 直前checkpointの`98% (24/25)`は算術誤りで、正しくは`96% (24/25)`。今回D18〜D20完了後は`96% (27/28)`。
+- Blocker / Remaining: 残りはTask 8のlocal plan-only validation / Sanitizerのみ。実装は開始しない。
+- Subagents:
+  - Delegation: なし
+  - Result: なし
+  - Parent decision: なし
+- Progress: 96% (27/28)
