@@ -14,9 +14,14 @@
 
 ## Discovered
 
-- 作業中に発見したタスクはここに追記する（セッション内で増える前提）
-- D1. なし
+- [x] D1. Risk mappingへ`Representative Requirement / AC`を追加し、Master Planのend-to-end traceを成立させる
+- [x] D2. `Test ID Rule`と`UT-*` / `CT-*` / `CP-*` / `WE-*`等の既存label taxonomyをimplementation前audit対象として明示する
+- [x] D3. PR 2 implementationのWritable scopeを`test_strategy.md` / `requirements_traceability.md` + implementation Runへ固定する
+- [x] D4. Current Formal Suite Inventoryをentrypoint-firstへ縮小し、参照するtest fileだけ追加確認する
+- [x] D5. direct code reference形式を原則`repository-relative file path + exact test title`へ固定する
+- [x] D6. Phase 1 Risk 16件をgroup化せず1 Risk = 1 row、新Stable Risk IDなしへ固定する
+- [x] D7. Platform parityをWeb / Android / iOSのCurrent asymmetric guarantee説明へ限定する
 
 ## Blocked
 
-- B1. なし
+- B1. local plan-only validation / SanitizerはGitHub connector上では未実施。次のlocal作業で実施する。

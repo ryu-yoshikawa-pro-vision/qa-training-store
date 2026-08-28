@@ -26,3 +26,23 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 | なし | 今回削除対象なし | なし |
+
+## 2026-08-28 21:53 (JST)
+
+- Summary: child Planを目的適合・シンプルさ・実装時の判断余地・オーバーエンジニアリングの観点で再レビューし、7件の改善Findingを反映した。
+- Changes:
+  - Risk mappingへ`Representative Requirement / AC`を必須joinとして追加した。
+  - Current `Test ID Rule`と`UT-*` / `CT-*` / `CP-*` / `WE-*`等の既存label taxonomyをimplementation前auditで確認する契約を追加した。新ID制度やTest codeへのID埋込みは行わない。
+  - Writable scopeを`docs/08_testing/test_strategy.md`、`docs/12_quality/requirements_traceability.md`、新implementation Run Artifactだけへ固定した。`e2e_design.md`、contract test、validator等が必要ならStopしてPlanを見直す。
+  - Current Formal Suite確認をentrypoint-firstへ縮小し、Risk / direct referenceに実際に必要なtest fileだけ追加確認する方針へ変更した。
+  - direct code referenceを原則`repository-relative file path + exact test title`へ固定した。
+  - Phase 1 Risk 16件をgroup化せず1 Risk = 1 rowとし、新Stable Risk IDを作らないことを固定した。
+  - Platform parityを「全platform同一suite」ではなくWeb / Android / iOSのCurrent asymmetric guaranteeを説明する契約へ固定した。
+- Decision / Rationale: PR 2はDocumentation contract整備に限定し、conditional scopeを実装者へ委ねない。Master PlanのCandidate fileをそのままWritableにせず、現在Evidenceで目的達成可能な2文書だけを実装対象にする。TraceabilityはRiskとRequirement / ACのjoinを明示してend-to-endで追跡可能にする。
+- Validation: Current `requirements_traceability.md`を再確認し、`Test ID Rule`が`UT-*` / `RC-*` / `WE-*` / `AX-*` / `UX-*` / `BM-*`を定義する一方、下位代表表には`CT-*` / `CP-*`等が存在することを確認した。このためtaxonomyは実装前にCurrent evidenceで整理し、推測で正式ID扱いしない。local `pnpm` validation、`git diff --check`、Sanitizer Write / Checkは引き続き未実施であり、PASSとは記録しない。
+- Blocker / Remaining: child Plan内容のレビュー修正は完了。残りはlocal plan-only validation / Sanitizerと再レビュー。実装は開始しない。
+- Subagents:
+  - Delegation: なし
+  - Result: なし
+  - Parent decision: なし
+- Progress: 93% (14/15)

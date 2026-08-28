@@ -2,83 +2,74 @@
 
 ## Objective
 
-- Master Plan の PR 2「Formal Test Strategy / Perspective / Traceability」に着手するため、Current `main` の Formal Suite / workflow / test documentation を read-only で確認し、child Plan を `docs/plans/` に保存する。
-- Issue #72 を PR 2 planning 状態へ進め、最新 `main` から専用branchを作成する。
+- Master Plan の PR 2「Formal Test Strategy / Perspective / Traceability」のchild Planをレビュー結果に基づき簡素化・具体化する。
+- PR 2 implementationのWritable scope、Traceability join、code reference形式、Risk mapping形式を実装前に固定する。
 - 今回は実装を開始しない。
 
 ## Scope
 
 ### In
 
-- Repository rule、Master Plan、PR #75 merge状態、Issue #72、Current Formal Suite / workflow / Playwright config / Native contract / Training boundaryのread-only確認。
-- `docs/formal-test-strategy-traceability` branch作成。
-- Issue #72のPR 1完了 / PR 2 planning状態への更新。
-- `docs/plans/2026-08-28_214107_formal_test_strategy_traceability.md` の作成。
-- 今回Run Artifactの作成・保存。
+- child Planのレビュー修正。
+- Writable scopeの2文書固定。
+- Risk mappingへRepresentative Requirement / ACを追加。
+- `Test ID Rule`と`UT-*` / `CT-*` / `CP-*` / `WE-*`等の既存labelの監査方針明確化。
+- entrypoint-first inventoryへの縮小。
+- direct code reference形式の固定。
+- Phase 1 Risk 16件を1 Risk = 1 rowへ固定。
+- Platform parityの意味をCurrent asymmetric guaranteeとして固定。
+- Plan Run Artifactへのレビュー修正Evidence追記。
 
 ### Out
 
-- `docs/08_testing/test_strategy.md`、`docs/12_quality/requirements_traceability.md`、`docs/08_testing/e2e_design.md` の実装修正。
-- Product code、test code、workflow、validator、package script、Playwright projectの変更。
-- PR 2作成、実装、review、merge。
-- PR 3以降、Phase 6の実作業。
+- `docs/08_testing/test_strategy.md` / `docs/12_quality/requirements_traceability.md`の実装修正。
+- `e2e_design.md`、test、contract、validator、workflow、package、Playwright config、Product、Curriculumの変更。
+- PR 2 implementation / PR作成 / merge。
 
-## Assumptions
+## Fixed decisions
 
-- Current baselineはPR #75 merge commit `12afd144cc81fb63a3c6d3a0edcee1eb6ed2317a`。
-- Branchは`docs/formal-test-strategy-traceability`。
-- Issue #72は進捗インデックス専用で、詳細scope / design decisionはchild Planを正本とする。
-- PR 2では既存`test_strategy.md`と`requirements_traceability.md`を優先し、第三のTraceability SSOTを先に追加しない。
+- PR 2の実装Writable scopeは`docs/08_testing/test_strategy.md`と`docs/12_quality/requirements_traceability.md`、新implementation Runだけ。
+- Risk mappingは16件をgroup化せず、Representative Requirement / ACを必須joinにする。
+- 新しいStable Risk ID、第三のTraceability SSOT、permanent inventoryは作らない。
+- WE-COREはMapping IDとして維持し、code referenceは原則`repository-relative file path + exact test title`。
+- `CT-*` / `CP-*`等の意味はCurrent evidenceから確認し、新ID制度を設計しない。
+- Current Formal Suite確認はentrypoint-firstとし、direct referenceに必要なtest fileだけ追加で読む。
+- Platform parityは同一suite実装ではなく、Web / Android / iOSのCurrent guarantee境界を明示する意味とする。
+- `e2e_design.md`やcontract / validator変更が必要なら実装中にscope追加せずStopする。
 
 ## Questions / Ambiguity
 
-- 必ず質問する不透明点: 現時点ではなし。implementation前auditでCurrent Formal SuiteやRisk trackingの前提が変わった場合はchild PlanのStop conditionに従う。
-- 仮定してよい細部: 表の列順、見出し表現等のeditorial detail。
-- 未回答の重要質問: なし。
-
-## Hypotheses
-
-- H1: RA-G1 / RA-G3 / RA-G6は既存2文書を中心としたDocumentation変更でboundedに解消でき、第三のTraceability SSOTは不要。
-- H2: Current executable contract / workflowはread-only SSOTとして利用でき、PR 2でCI GateやTest Suiteのsemantic changeは不要。
-- H3: Phase 1 Riskは既存文言 / labelを再利用して追跡できる可能性が高く、Stable Risk IDを先に新設する必要はない。
-
-## Research Plan
-
-- Round 1: Repository rule、Master Plan、PR #75 merge、Issue #72、Current baselineを固定する。
-- Round 2: `package.json`、Playwright configs、Web / Cross-browser / Native workflows、ADR-0011、test directories、Current testing docsを照合する。
-- Round 3: RA-G1 / RA-G3 / RA-G6とPR 1 follow-up verificationをchild Planへ落とし込む。
-- Exit Criteria:
-  - Issue #72がPR 2 child Plan状態へ更新されている。
-  - 専用branchがPR #75 merge後のCurrent baselineから作成されている。
-  - 実装者が追加判断を最小化できるchild Planが`docs/plans/`へ保存されている。
-  - Product / test / workflow / Current Strategy本文の実装変更を開始していない。
+- 現時点でblocking questionなし。
+- `CT-*` / `CP-*`等のlabel taxonomyをCurrent evidenceから説明できない場合はimplementation時のStop conditionとする。
+- 重要Mappingのrepresentative code referenceが一意でない場合も推測せずStopする。
 
 ## Approach
 
-1. PR #75 mergeとCurrent `main` baselineを確認する。
-2. Issue #72をPR 1 Merged / PR 2 Planningへ更新する。
-3. 最新baselineから`docs/formal-test-strategy-traceability`を作成する。
-4. Current Formal Suite / workflow / Native / Training boundaryをrepo mappingする。
-5. Master Plan PR 2のPrimary Finding / follow-up verificationをchild Planへ具体化する。
-6. PlanとRun Artifactだけをbranchへ保存し、実装前reviewへ引き渡す。
+1. child PlanをレビューFinding 7点に沿って修正する。
+2. 同じPlan RunのTASKS / REPORTへ修正Evidenceを追記する。
+3. Product / Test Strategy本文等へ実装差分がないことを確認する。
+4. local plan-only validation / Sanitizerは未実施のまま事実どおり保持し、次のlocal作業で実施する。
+5. 再レビューへ引き渡す。
 
 ## Definition of Done
 
-- Issue #72が`Current: PR 2 child Plan`、`Next: PR 2 implementation`、`Blocked: None`で、PR 1がMergedとして完了している。
-- `docs/formal-test-strategy-traceability` branchがPR #75 merge commitから作成されている。
-- `docs/plans/2026-08-28_214107_formal_test_strategy_traceability.md` が保存されている。
-- Run Artifactが保存され、今回のplan-only scopeと未実施validationが事実どおり記録されている。
-- 実装対象文書・Product / test / workflowへ変更を入れていない。
-- 次工程はchild Plan reviewであり、実装はまだ開始しない。
+- child Planの目的がMaster Plan PR 2から外れていない。
+- Writable scopeが2文書へ固定されている。
+- Risk → Requirement / AC → technique / perspective → level → suite → gateのjoinが明記されている。
+- WE-CORE / lower-test labelのcode referenceルールが固定されている。
+- Risk group化や新Risk IDの余地がなくなっている。
+- inventory監査がentrypoint-firstへ縮小されている。
+- Platform parityの意味がCurrent asymmetric guaranteeとして一意である。
+- implementationでscope外変更が必要になった場合のStop conditionが明確である。
+- 今回はPlan / Run Artifact以外を変更していない。
 
 ## Risks / Unknowns
 
-- Plan作成後に`main`のFormal Suite / workflowが変わった場合、implementation開始前にCurrent SSOTを再検証する。
-- GitHub connector上のplan-only作業ではlocal `pnpm` validation、`git diff --check`、Sanitizer Write / Checkを実行していないため、これらをPASSとは記録しない。
-- Stable Risk IDや新しいTraceability SSOTが必要になる場合は、推測で追加せずStop conditionに従う。
+- GitHub connector上ではlocal `pnpm` validation、`git diff --check`、Sanitizer Write / Checkを実行できないため、PASSとは記録しない。
+- Plan修正後もlocal plan-only validationが完了するまではimplementationを開始しない。
 
 ## Thinking Log
 
-- 2026-08-28 21:41 JST: PR #75がmerge済みで、merge commit `12afd144cc81fb63a3c6d3a0edcee1eb6ed2317a`をCurrent baselineとして確認した。
-- 2026-08-28 21:41 JST: Current Formal Suite、Web / Cross-browser / Native workflow、Training Playwright config、ADR-0011、testing docsを照合し、PR 2は既存`test_strategy.md` / `requirements_traceability.md`を中心にboundedに計画できると判断した。
-- 2026-08-28 21:41 JST: Issue #72をPR 2 child Plan状態へ更新し、branch `docs/formal-test-strategy-traceability`をCurrent baselineから作成した。
+- 2026-08-28 21:41 JST: 初版child Planを保存した。
+- 2026-08-28 21:53 JST: reviewで、RiskとRequirement / ACのjoin不足、Test ID taxonomyの未整理、conditional writable scopeの広さ、inventoryの過剰範囲、direct reference形式の判断残し、Risk group化余地、Platform parityの曖昧さを確認した。
+- 2026-08-28 21:53 JST: 上記をPlan修正対象とし、実装対象は2文書へ限定する方針を固定した。
