@@ -9,10 +9,14 @@
 - `scripts/new-run.ps1|sh`
   - run directory 初期化用 helper。
   - `.codex/runs/<run_id>/PLAN.md` / `TASKS.md` / `REPORT.md` / `run.json` をまとめて作る。
+  - actual `.codex/runs/<run_id>/run.json`の通常workflowにおける正規生成経路です。Agentはactual `run.json`を直接作成・編集しません。
   - 既存 run は上書きせず、`--force` / `-Force` でも欠けている親 directory を作るだけに留める。
 - `scripts/codex-safe.ps1|sh`
   - 手動対話用の安全 wrapper。
   - preflight、危険引数拒否、sandbox/approval 固定、JSONL ログを提供する。
+  - active Runに紐づくinteractive実行では current `RunId` を `-RunId`／`--run-id` で必ず指定する。省略はactive Runに紐づかないad-hoc実行に限り、manifest syncを行わない。
+  - RunId指定時は既存Run Directoryをログ生成前に確認し、存在しないRunIdではCodexを起動しない。既存 `run.json` がある場合だけ、Codex終了後にabsolute pathのcollectorを一度実行してmanifestを同期する。manifest-less Runは実行するがmanifestを生成しない。
+  - `--no-log`／`-NoLog` はloggingだけを無効にし、manifest syncは無効にしない。Codex終了や `Stop` Hookだけで `status=completed` へ変更しない。
 - `.codex/config.toml` / `.codex/hooks/log_event.mjs`
   - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`を同じNode loggerへ接続する。
   - Logging Hookはmatcherなし、timeout 5秒、repository root基準で起動し、session単位の`.codex/logs/hooks-<safe-session-id>.jsonl`へ保存する。
@@ -129,6 +133,7 @@
   - `--record-run-manifest` 指定時のみ `.codex/runs/<run_id>/run.json` を更新する
   - 新規manifestはschema v2とし、report count、changed files、validation、network / scope、evaluationだけをsummaryする
   - Hook JSONLはsession scopeのまま保持し、`run.json`へ新規集約しない。既存v1はlegacy field valueだけを保持する
+  - interactive `codex-safe` の終了時syncは既存manifestに限定し、`Stop` / `SubagentStop` Hookをtriggerにしない
   - `validation.warnings` に non-fatal warning を記録できる
   - `expected-missing=warn` を使った場合は `validation.status = "passed_with_warnings"` になる
 
