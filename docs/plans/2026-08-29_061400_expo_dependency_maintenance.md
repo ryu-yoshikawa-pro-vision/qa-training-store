@@ -172,9 +172,7 @@ pnpm exec expo install --fix
 
 特定 package / version を個別指定しない。command が失敗した場合は Workflow を失敗させ、PR を作成しない。
 
-### 8. safety check を行う
-
-#### Expo / React Native major.minor
+### 8. Expo / React Native major.minor を確認する
 
 fix 前後で `expo` と `react-native` の major.minor がそれぞれ一致することを必須とする。
 
@@ -187,28 +185,9 @@ react-native: 0.86.x -> 0.86.y
 
 major / minor が変化した場合は失敗させる。
 
-#### changed file
+### 9. fix 後の dependency contract を再確認し、最終 changed-file allowlist を確認する
 
-許可する変更ファイル:
-
-```text
-package.json
-pnpm-lock.yaml
-```
-
-判定対象は tracked diff だけではなく、Repository working tree に存在する変更ファイル全体とする。少なくとも次の両方を集約して判定する。
-
-```text
-git diff --name-only
-git ls-files --others --exclude-standard
-```
-
-- tracked / untracked を合わせた変更ファイル一覧が空なら失敗させる。
-- 一覧が `package.json` / `pnpm-lock.yaml` の subset であることを必須とする。
-- 上記以外が1件でも含まれる場合は失敗させる。
-- native config、source code、generated file、Workflow file、その他の untracked file を自動 PR に含めない。
-
-### 9. fix 後の dependency contract を再確認する
+Repository を変更し得る validation を先にすべて実行する。
 
 ```text
 pnpm install --frozen-lockfile
@@ -219,6 +198,31 @@ git diff --check
 すべて PASS を必須とする。
 
 full `expo-doctor` は maintenance Workflow では実行せず、修正 PR に対する既存 `Mobile App CI` に任せる。
+
+上記 validation がすべて終了した後、commit 直前に Repository の最終変更ファイル一覧を1回だけ確認する。
+
+許可する変更ファイル:
+
+```text
+package.json
+pnpm-lock.yaml
+```
+
+tracked / untracked の両方を対象にする。
+
+```text
+git diff --name-only HEAD
+git ls-files --others --exclude-standard
+```
+
+上記を集約した最終変更ファイル一覧について次を必須とする。
+
+- 一覧が空でない。
+- 一覧が `package.json` / `pnpm-lock.yaml` の subset である。
+- 上記以外が1件でも含まれる場合は失敗させる。
+- native config、source code、generated file、Workflow file、その他の untracked file を自動 PR に含めない。
+
+allowlist 確認後から commit まで Repository を変更する command は実行しない。
 
 ### 10. automation branch を作成して push する
 
@@ -301,11 +305,11 @@ expo install --fix
        ↓
 major.minor guard
        ↓
-tracked + untracked changed-file allowlist
-       ↓
 pnpm install --frozen-lockfile
 expo install --check
 git diff --check
+       ↓
+tracked + untracked final changed-file allowlist
        ↓
 automation branch / commit / push
        ↓
@@ -332,13 +336,13 @@ tests/contracts/expo-dependency-maintenance-workflow.test.ts
 - 既存 CI と同じ pinned Action
 - `expo install --check` / `--fix`
 - Expo / React Native major.minor guard
-- changed-file allowlist が tracked / untracked の両方を対象にし、許可ファイルを `package.json` / `pnpm-lock.yaml` のみに限定する
+- changed-file allowlist が `git diff --name-only HEAD` と `git ls-files --others --exclude-standard` の両方を対象にし、許可ファイルを `package.json` / `pnpm-lock.yaml` のみに限定する
 - duplicate PR guard が base `main` + automation branch prefix で判定される
 - automation branch が run ID を含む
 - `gh workflow run` を含まない
 - auto-merge command を含まない
 
-shell の一行一行や PR body 文言は固定しない。既存 `tests/contracts/native-ci-workflow.test.ts` へ maintenance 固有 contract を追加しない。
+shell の一行一行、step name、PR body 文言、allowlist step の具体的な位置を文字列順序で固定する fragile test にはしない。既存 `tests/contracts/native-ci-workflow.test.ts` へ maintenance 固有 contract を追加しない。
 
 ## Validation
 
@@ -363,7 +367,7 @@ mismatch が残っている場合は次を確認する。
 1. `main` の mismatch を検出する。
 2. compatible version へ修正する。
 3. Expo / React Native major.minor が変化しない。
-4. tracked / untracked を含む changed file が `package.json` / `pnpm-lock.yaml` だけになる。
+4. post-fix validation 後の最終 changed file が、tracked / untracked を含めて `package.json` / `pnpm-lock.yaml` だけになる。
 5. maintenance PR が1件だけ OPEN になる。
 6. PR Workflow run が approval-required 状態になる。
 7. 人間が承認後、既存 Web CI / Mobile App CI が実行される。
@@ -381,7 +385,7 @@ mismatch が解消済みなら no-op を正常結果とする。
 - `expo install --fix` が失敗する。
 - Expo SDK major / minor が変化する。
 - React Native major / minor が変化する。
-- tracked / untracked を含む変更ファイルに `package.json` / `pnpm-lock.yaml` 以外が存在する。
+- post-fix validation 後の最終変更ファイルに `package.json` / `pnpm-lock.yaml` 以外が存在する。
 - fix 後も `expo install --check` が失敗する。
 - compatible dependency update に native config / source code の変更が必要になる。
 - `GITHUB_TOKEN` で branch push / PR creation に必要な権限を確保できない。
@@ -407,7 +411,7 @@ mismatch が解消済みなら no-op を正常結果とする。
 1. 最新 `main` と既存 CI の Node / pnpm / Action pin を確認する。
 2. trigger / permission / manual main-ref guard / `main` checkout / concurrency / duplicate PR guard を実装する。
 3. frozen install、major.minor capture、`expo install --check` / `--fix` を実装する。
-4. major.minor guard、tracked + untracked changed-file allowlist、fix 後 validation を実装する。
+4. major.minor guard、fix 後 validation、commit 直前の tracked + untracked final changed-file allowlist を実装する。
 5. automation branch / commit / push / OPEN PR 作成を実装する。
 6. 専用 contract test を追加する。
 7. format / lint / typecheck / contract tests と通常 CI を確認する。
