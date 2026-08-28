@@ -9,7 +9,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "Plan §9の実装タスク、レビューrepair iteration 1、契約テスト、Windows 5event smoke、Unix代表event smoke、verify、trust確認、PR CI確認まで完了した。ただし、no-child-delegation方針のためSubagentを実機起動せず、native lifecycle eventのライブ発生だけは未確認である。",
+      "evidence": "Plan §9の実装タスク、レビューrepair iteration 1、契約テスト、Windows 5event smoke、Unix代表event smoke、verify、trust確認、PR CI（Web run 33160493327／Mobile run 33160493418）確認まで完了した。ただし、no-child-delegation方針のためSubagentを実機起動せず、native lifecycle eventのライブ発生だけは未確認である。",
       "evidence_refs": [
         {
           "kind": "run_manifest",
@@ -33,7 +33,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "全contract testは31 files / 456 tests PASS、PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIP、Markdown lint・format・diff check、evaluation schema validation、PR CI全必須ゲートもPASSした。Windows直接smokeは5event、Unix系Git Bash smokeは代表event、native TUIはUserPromptSubmit・PostToolUse・Stopを確認したが、native SubagentStart・SubagentStopの発生は未確認である。mixed-version 3ケースとStop／SubagentStopのnull 2ケースもPASSした。",
+      "evidence": "全contract testは31 files / 456 tests PASS、PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIP、Markdown lint・format・diff check、evaluation schema validation、PR CI（Web run 33160493327／Mobile run 33160493418）全必須ゲートもPASSした。Windows直接smokeは5event、Unix系Git Bash smokeは代表event、native TUIはUserPromptSubmit・PostToolUse・Stopを確認したが、native SubagentStart・SubagentStopの発生は未確認である。mixed-version 3ケースとStop／SubagentStopのnull 2ケースもPASSした。",
       "evidence_refs": [
         {
           "kind": "validation_command",

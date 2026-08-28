@@ -193,3 +193,11 @@
 - Self-review: existing v2がbase v1でv1へdowngradeしないこと、existing v1がv2へ昇格しないこと、v2へlegacy fieldを戻さないこと、nullの文字列化がないこと、stdout／stop_hook_active／Safety behaviorを確認した。migration framework、aggregation、active-run registry、CODEX_RUN_ID、parser、test-only production path等の追加はない。
 - Remaining: Task 1のnative `SubagentStart`／`SubagentStop` lifecycleとnative `stop_hook_active`だけは、No child delegation方針により未検証。
 - Progress: 96% (22/23)
+
+## 2026-08-28 18:48 (JST)
+
+- Summary: 修正commit `09741711ce42736f7d8c9cd3a340c602431777ff` に対するPR #76のCIを確認した。
+- Validation: Web CI run `33160493327` はsuccessで、Chromium E2E、contractを含むVitest、Code Quality／Style Quality、build、production smoke、verify、preview deploy、artifact sanitizationをPASSした。Mobile CI run `33160493418` もsuccessで、Detect Native Changesと`native-ci / verify`をPASSし、Native／Android実行系は今回native変更がないためSKIPだった。CodeQLもPASSし、CodeRabbitはmanual review requiredによるreview skipをPASSとして報告した。
+- Decision / Rationale: 修正差分に起因するCI failureはなく、PR headは`09741711ce42736f7d8c9cd3a340c602431777ff`で確認済み。native Subagent lifecycleの実機発生だけはCIでも代替されないため、合成contract PASSをnative PASSへ読み替えない。
+- Remaining: Task 1のnative `SubagentStart`／`SubagentStop` lifecycleとnative `stop_hook_active`だけは、`AGENTS.md`のNo child delegation方針により未検証。
+- Progress: 96% (22/23)
