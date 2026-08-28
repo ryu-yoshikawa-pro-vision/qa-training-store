@@ -64,3 +64,20 @@
   - Result: なし
   - Parent decision: なし
 - Progress: 95% (18/19)
+
+## 2026-08-29 06:23 (JST)
+
+- Summary: child Planの最終内容レビューで確認した3件を反映し、Plan本体とPlan Run Artifactの契約を同期した。
+- Changes:
+  - `Representative Technique`を全Risk必須から外した。Current evidenceから具体的なTechniqueを説明できる場合だけ記載し、特定Techniqueが主ではないRiskでは`—` / `Not primary`を許容する。Technique非適用だけをStop理由にしない。
+  - `playwright.config.ts = Formal`という単純化を廃止し、Product側automation config内のFormal E2E / Smokeと別責務の`ui-review-*`をproject責務で区別する契約へ修正した。`playwright.training.config.ts`はTraining-onlyとして維持する。
+  - Plan作成時点の下位Traceability代表label 22行はCurrent evidenceとして保持する一方、実装契約・Validation・Stop condition・DoDは「実装開始時点のCurrent下位Traceability代表label全件」へ統一した。
+  - TASKSのDiscoveredへ上記3件を追加し、PLANのFixed decisions / Questions / DoDを最新child Planへ同期した。
+- Decision / Rationale: Master Planは全RiskにTechniqueの具体値を要求しておらず、Techniqueの無理な発明はRA-G3の目的から外れる。Formal / Trainingはconfig file単位ではなくproject / coverage責務で区別する。Current行数を永続的な契約にせず、実装開始時点の全Current行を完了対象にすることで将来driftを避ける。
+- Validation: GitHub commit diffでchild Planの直前修正がPlan 1ファイルだけだったことを確認した。今回のRun Artifact同期後もProduct / Test Strategy本文 / Traceability本文 / test / workflowは変更しない。local `pnpm` validation、`git diff --check`、Sanitizer Write / Checkは未実施であり、PASSとは記録しない。
+- Blocker / Remaining: Plan内容レビューとRun Artifact同期は完了。残りはTask 8のlocal plan-only validation / Sanitizerのみ。実装は開始しない。
+- Subagents:
+  - Delegation: なし
+  - Result: なし
+  - Parent decision: なし
+- Progress: 97% (21/22)
