@@ -151,3 +151,11 @@
 - Validation: contract test全体は31 files / 452 tests PASS、PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIP、Markdown lint・format・diff checkはPASSした。Windows直接smokeは5event、Unix系Git Bashは代表event、native TUIはUserPromptSubmit・PostToolUse・Stopの代表経路を確認した。
 - Blocker / Remaining: native SubagentStart／SubagentStopの同一sessionでのライブ発生だけは未検証。合成payloadのcontract testでは両eventのstdout、`stop_hook_active`、sanitization、truncation、保存形式を確認済みであり、追加のlegacy artifactやproduction分岐は作成しない。
 - Progress: 95% (19/20)
+
+## 2026-08-28 17:04 (JST)
+
+- Summary: 実装commitを指定branchへpushし、既存PR #76へ反映した。PR本文の進捗チェックリストも実態へ同期した。
+- Changes: `3f23dba`を`refactor/codex-hook-run-logging`へ通常pushし、PR #76のhead一致とOPEN状態を確認した。
+- Validation: remote branch refとlocal HEADが一致し、PR本文は日本語で実装・検証完了項目とnative Subagent lifecycle未検証を明示している。CIはpush直後のpending状態である。
+- Blocker / Remaining: Plan §13のうちnative `SubagentStart`／`SubagentStop`ライブ発生だけはNo child delegation方針により未検証。CI完了待ちや追加の外部レビュー起動は今回の実装完了条件へ含めず、PR上のCI結果を後続確認事項とする。
+- Progress: 95% (19/20)
