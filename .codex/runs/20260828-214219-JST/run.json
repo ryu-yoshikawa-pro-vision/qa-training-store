@@ -19,7 +19,8 @@
     ".codex/runs/20260828-214219-JST/PLAN.md",
     ".codex/runs/20260828-214219-JST/TASKS.md",
     ".codex/runs/20260828-214219-JST/REPORT.md",
-    ".codex/runs/20260828-214219-JST/run.json"
+    ".codex/runs/20260828-214219-JST/run.json",
+    ".codex/runs/20260828-214219-JST/evaluation.json"
   ],
   "validation": {
     "status": "passed",
@@ -42,10 +43,17 @@
       "Resolver callsite and implementation scope self-review",
       "scripts/sanitize-codex-artifacts.ps1 -Write -Path .codex/runs/20260828-214219-JST",
       "scripts/sanitize-codex-artifacts.ps1 -Check -Path .codex/runs/20260828-214219-JST",
-      "Final git fetch origin main and merge-base check"
+      "Final git fetch origin main and merge-base check",
+      "gh run view 33175681857 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+      "gh run view 33175682191 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,jobs",
+      "gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/actions/jobs/98863789199/logs",
+      "gh pr view 77 --repo ryu-yoshikawa-pro-vision/qa-training-store --json headRefName,headRefOid,state,baseRefName,mergeStateStatus",
+      "python -X utf8 scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260828-214219-JST/evaluation.json",
+      "Get-Content .codex/runs/20260828-214219-JST/run.json -Raw | ConvertFrom-Json; Get-Content .codex/runs/20260828-214219-JST/evaluation.json -Raw | ConvertFrom-Json; git diff --check"
     ],
     "warnings": [
-      "Cloudflare Pages Previewの実URLはpush後の既存CI経路で確認する。"
+      "Mobile App CI run 33175682191 は Native Static の Expo Doctor package check で失敗した。expo 57.0.17 / expo-constants 57.0.15 に対し expected はそれぞれ ~57.0.18 / ~57.0.16。今回のorigin/mainとの差分はpackage scriptのみで依存関係・lockfileを変更しておらず、Docsプラン外の別remediationとして残す。",
+      "PR #77はOPENだが、上記Native Static failureによりmergeStateStatusはUNSTABLE。merge、auto-merge、closeは行っていない。"
     ]
   },
   "safety": {
@@ -54,9 +62,9 @@
   },
   "artifact_summary": {
     "codex_task_report_count": 0,
-    "evaluation_present": false
+    "evaluation_present": true
   },
-  "evaluation_path": null,
-  "status": "in_progress",
+  "evaluation_path": ".codex/runs/20260828-214219-JST/evaluation.json",
+  "status": "completed",
   "primary_failure_category": null
 }

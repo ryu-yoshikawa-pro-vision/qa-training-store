@@ -156,3 +156,43 @@
   - Result: なし。
   - Parent decision: 生成リンクの`.html`契約とSSOTを保持したまま、deployed smokeのcanonical URL差異だけを受理する。
 - Progress: 91% (10/11)
+
+## 2026-08-28 22:42 (JST)
+
+- Summary: 修正後のWeb CI／Cloudflare Preview経路が成功し、別系統のMobile App CI failureを因果関係まで切り分けた。
+- Changes: Web側の追加変更はない。Web CI run `33175681857` は `success` で、build／validator／全 Chromium E2E／production smoke／Cloudflare Preview deploy・deployed smoke／final validateが完了した。
+- Decision / Rationale: Mobile App CI run `33175682191` の `Native Static` は `pnpm dlx expo-doctor@1.17.6` の package checkだけで失敗し、`expo` は expected `~57.0.18`に対して`57.0.17`、`expo-constants`は expected `~57.0.16`に対して`57.0.15`だった。`origin/main...HEAD`のpackage差分は`build:docs`追加と`build:web`接続だけで依存関係／lockfileの変更はなく、`package.json`変更をNative pathとして検出する既存workflowが実行されたものと確認した。依存更新は今回のDocsプラン外かつ要件判断を伴うため、依存関係を変更せず、別対応として記録する。
+- Validation: Web CIの`deploy-preview`、`validate`、`production-smoke`を含む全結果がPASS。Cloudflare Previewでは`.html`要求の308正規化後もDocs本文／代表画像／Curriculum hyperlinkが動作した。Mobile App CIではNative component／route／EAS checksは通過し、Native Staticのみ失敗、Android／iOS buildは同runで継続中。
+- Blocker / Remaining: Web Docs実装のStop条件は未該当。Mobile App CIのExpo patch mismatchは本タスクで安全に仕様拡張せず、別の依存 remediationとして扱う。Run finalization前にMobile App CIの最終状態、最新main、Run artifactを確認する。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: Web実装は受理し、Native依存更新は行わない。CI failureは未修正のまま隠さず最終報告へ明記する。
+- Progress: 91% (10/11)
+
+## 2026-08-28 23:02 (JST)
+
+- Summary: PR #77のDocs実装、指定validation、最新main確認、Run artifact最終化を完了した。
+- Changes: `feat/web-docs-publishing`へ実装commit `fbdf4cf`とCloudflare Pages canonical URL対応の最小修正commit `666cbf0`をpushした。Runのstrict要件として`evaluation.json`を追加し、`run.json`をcompletedへ更新、TASKSを完了状態へ更新した。PR #77はOPENのままで、merge／auto-merge／closeは行っていない。
+- Decision / Rationale: 最終`git fetch origin main`で`origin/main=12afd144cc81fb63a3c6d3a0edcee1eb6ed2317a`、merge-baseも同SHA、ahead 10／behind 0を確認した。Issue #72の並行変更によるCurriculum／Specificationの再取り込みは不要だった。既存Markdown／画像を正本として維持し、`app.config.ts`、`.github/workflows/ci.yml`、Scenario Shop本体、依存関係／lockfileは変更していない。
+- Validation: `pnpm run validate:spec`、`pnpm run validate:curriculum`、`pnpm run build:web`、`pnpm run build:spec`、`pnpm run build:docs`、既存Storefront＋Docs smoke（2 tests）、代表Spec実画像ロード、Curriculum内部リンク、Curriculum→Specificationリンク、`/products` SPA fallback、静的serverのdirectory index／MIME、format／markdown lint／lint／typecheck／security／contract tests（31 files／456 tests）がPASS。Web CI run `33175681857`もbuild、全Web E2E、production smoke、Cloudflare Preview deploy／deployed smoke、final validateを含めPASS。Mobile App CI run `33175682191`はAndroid／iOS build、Maestro、bundle guardはPASSし、Native StaticだけがExpo Doctorの既存patch mismatchでFAILした。
+- Blocker / Remaining: プランのStop条件は未該当で、Docs目的の未完了事項はない。残るNative Static failureは`expo`／`expo-constants`の依存整合性remediationであり、今回のDocs実装差分に起因せず、プランの対象外かつ要件判断を伴うため変更していない。PRのmergeStateStatusはNative failureにより`UNSTABLE`だが、レビュー可能な実装はPR #77へ反映済み。
+- Plan Difference: なし。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: Web Docs実装を完了として受理し、Native依存更新は別タスクへ分離する。
+- Progress: 100% (11/11)
+
+## 2026-08-28 23:04 (JST)
+
+- Summary: 最終Run artifactのJSON／evaluation schema／sanitizer確認を完了した。
+- Changes: 追加のProduct code変更はない。`run.json`へ評価schema validationとJSON parseの実行事実を追記した。
+- Decision / Rationale: `evaluation.json`は`.codex/templates/evaluation.schema.json`に適合し、Run artifact 5 filesのSanitizer Write／Checkはいずれも`files_changed=0`、`residual_findings=0`だったため、Runをcompletedとして確定する。
+- Validation: `python -X utf8 scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260828-214219-JST/evaluation.json` PASS、`run.json`／`evaluation.json`のJSON parse PASS、`git diff --check` PASS。
+- Blocker / Remaining: プランのStop条件は未該当。Native StaticのExpo patch mismatchは前checkpoint記載の別remediationとして残るが、Docs実装の完了判断は変わらない。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: Run artifactをレビュー可能な最終状態として保存する。
+- Progress: 100% (11/11)
