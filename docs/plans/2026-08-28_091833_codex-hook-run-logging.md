@@ -6,7 +6,7 @@ Codex自身に`.codex/runs/<run_id>/REPORT.md`へ細かな行動を逐次記録�
 
 今回の主目的は次の2点である。
 
-1. 指示、Tool実行、Subagent開始・終了、turn終了などの機械的な行動記録をHookへ移し、Codex自身の逐次記帳を減らす。
+1. 指示、Tool実行、Subagent開始・終了関連event、Stop eventなどの機械的な行動記録をHookへ移し、Codex自身の逐次記帳を減らす。
 2. 現在手動記録を前提としているSubagent専用JSON Artifactを、運用だけでなく関連機能まで廃止する。
 
 `run.json`自体の自動生成・自動更新は維持する。ただし、新HookログやSubagent lifecycleを`run.json`へ新規集約する仕組みは追加しない。
@@ -44,9 +44,11 @@ checkpoint単位で、AIにしか残せない意味情報を記録する。
 
 - `UserPromptSubmit`: 受けた指示。
 - `PostToolUse`: Hookで観測可能なTool実行。
-- `SubagentStart`: Subagent開始。
-- `SubagentStop`: Subagent終了と最終応答。
-- `Stop`: main turn終了と最終assistant message。
+- `SubagentStart`: SubagentStart eventの観測。
+- `SubagentStop`: SubagentStop eventの観測と、その時点のassistant message / `stop_hook_active`。
+- `Stop`: Stop eventの観測と、その時点のassistant message / `stop_hook_active`。
+
+`SubagentStop` / `Stop`をlogger単独で「最終終了」と断定しない。他のmatching Hookがcontinuationを要求する可能性があるため、loggerは**eventを観測した事実だけ**を記録する。
 
 保存先:
 
@@ -309,21 +311,27 @@ logging logicはこの1ファイルだけに実装する。PowerShell / shellへ
 
 5eventすべてで同じNode loggerを利用し、**config側からexpected event名を固定CLI引数として渡す**。
 
+loggerの**起動path自体もrepository root基準で解決する**。相対`.codex/hooks/log_event.mjs`をsession `cwd`から直接解決してはならない。
+
 概念形:
 
 ```text
-node .codex/hooks/log_event.mjs UserPromptSubmit
-node .codex/hooks/log_event.mjs PostToolUse
-node .codex/hooks/log_event.mjs SubagentStart
-node .codex/hooks/log_event.mjs SubagentStop
-node .codex/hooks/log_event.mjs Stop
+Unix:
+node "$(git rev-parse --show-toplevel)/.codex/hooks/log_event.mjs" UserPromptSubmit
+node "$(git rev-parse --show-toplevel)/.codex/hooks/log_event.mjs" PostToolUse
+...
+
+Windows:
+既存Safety Hookのcommand_windowsと同じrepository-root解決方式で
+<repo-root>\.codex\hooks\log_event.mjs <EventName>
 ```
 
 要件:
 
-- Unix系: `command`から`.codex/hooks/log_event.mjs <EventName>`を起動する。
-- Windows: `command_windows`から同じ`.codex/hooks/log_event.mjs <EventName>`を起動する。
-- path解決・quotingは既存Safety Hookのcross-platform構成を参考にする。
+- Unix系: `command`は`git rev-parse --show-toplevel`等、既存Safety Hookと同等の方法でrepo rootを解決してから`.codex/hooks/log_event.mjs <EventName>`を起動する。
+- Windows: `command_windows`も既存Safety Hookと同じrepository-root解決方式を使い、session `cwd`に依存せず同じ`.codex/hooks/log_event.mjs <EventName>`を起動する。
+- `command` / `command_windows`で相対`.codex/hooks/log_event.mjs`を直接実行しない。
+- path quotingは空白を含むrepository pathでも動くことを前提にする。
 - 5つのLogging Hookはすべて`timeout = 5`秒とする。
 - Safety `PreToolUse`の既存timeout / matcher / blocking behaviorは変更しない。
 - Windowsでは5eventを実機smokeする。
@@ -355,7 +363,7 @@ Hook JSONLは以下へ1event = 1 JSON lineでappendする。
 
 - `.codex/hooks/log_event.mjs`自身の`import.meta.url`から`.codex/hooks/`を解決し、その親`.codex/`配下の`logs/`を保存先とする。
 - repositoryのsubdirectoryからCodexを開始してもrepository root配下の`.codex/logs/`へ記録する。
-- 保存先解決のためだけに毎event `git rev-parse`等のsubprocessを追加しない。
+- 保存先解決のためだけにlogger内部で毎event `git rev-parse`等のsubprocessを追加しない。repo-root解決はconfig側の起動pathだけに使う。
 
 ### sanitization / bounded log
 
@@ -460,16 +468,18 @@ Subagent専用JSON fileは作らず、REPORTもeventごとに編集しない。
 - agent_id
 - agent_type
 - sanitized / bounded last_assistant_message
+- stop_hook_active
 - truncated flag
 
 以下は行わない。
 
 - Subagent専用JSON file作成 / 更新
 - `SubagentStop`だけを根拠にsuccess / failure推定
+- `SubagentStop`だけを根拠に「これが最終終了」と推定
 - `parent_decision` / `used_in_final_plan`生成
 - agent transcript本文 / transcript path保存
 
-stdoutは`{}`とする。
+`stop_hook_active`はnative payloadの値をそのままbooleanとして保存し、最終終了判定には変換しない。stdoutは`{}`とする。
 
 ### `Stop`
 
@@ -480,9 +490,10 @@ stdoutは`{}`とする。
 - session_id
 - turn_id（取得できる場合）
 - sanitized / bounded last_assistant_message
+- stop_hook_active
 - truncated flag
 
-停止理由を推測せず、`stopReason`を入力fieldとして読もうとしない。stdoutは`{}`とする。
+停止理由や最終終了を推測せず、存在しない`stopReason`を入力fieldとして読もうとしない。`stop_hook_active`はnative payloadの値をそのままbooleanとして保存する。stdoutは`{}`とする。
 
 ---
 
@@ -628,6 +639,8 @@ session単位のローカル詳細ログで今回の目的を満たすため、R
 - `timeout`
 - `command_windows`
 - `hook_event_name`
+- `stop_hook_active`
+- `git rev-parse --show-toplevel`
 
 ### Manifest / writer
 
@@ -665,21 +678,24 @@ session単位のローカル詳細ログで今回の目的を満たすため、R
 - v1互換のために`collect_subagents()` / `collect_hook_observations()`等の廃止機能をversion分岐内へ残さない。
 - logging Hookが既存Safety Hookへ干渉する場合、safetyを優先してlogging scopeを縮小する。
 - Hook仕様が実機と計画で異なる場合、現行Codex CLIの実機仕様を優先する。
-- Windowsで`command_windows`から`.codex/hooks/log_event.mjs <EventName>`を起動できない場合、Windows Hook動作を未検証のまま完了扱いにしない。
+- `command` / `command_windows`がsession `cwd`依存の相対`.codex/hooks/log_event.mjs`を実行する場合は完了扱いにしない。
+- repository subdirectoryから起動してもrepo-root基準でloggerを起動できない場合は完了扱いにしない。
+- Windowsで`command_windows`からrepo-root基準の`.codex/hooks/log_event.mjs <EventName>`を起動できない場合、Windows Hook動作を未検証のまま完了扱いにしない。
 - Hook JSONLがGit管理対象になっている場合は、既存方針どおりignoreへ戻してから完了する。
 - Logging HookにSafety用のBash限定matcherが誤って設定されている場合は完了扱いにしない。
 - Logging Hookのtimeoutが未設定または長すぎる場合は完了扱いにしない。
 - loggerが`cwd`依存で別階層の`.codex/logs`へ出力する場合は完了扱いにしない。
 - malformed payload時にexpected event別stdout契約を守れない場合は完了扱いにしない。
+- `SubagentStop` / `Stop`をlogger側で最終終了と推定している場合は完了扱いにしない。
 
 ---
 
 ## 9. 実行タスク
 
-- [ ] 1. 現行Codex CLIで5eventのinput / stdout / exit semantics、Tool coverageを実機確認する。
+- [ ] 1. 現行Codex CLIで5eventのinput / stdout / exit semantics、Tool coverage、`SubagentStop` / `Stop`の`stop_hook_active`を実機確認する。
 - [ ] 2. repo-wide searchで旧Subagent JSON、`agents_used`、旧Hook observation、旧observer由来safety field、`HookLog`、`cleanup-runs.ps1/sh`、全manifest writer、docs、testsを確認し、legacy stack内部とlegacy stack外の独立dependencyを切り分ける。
-- [ ] 3. `.codex/hooks/log_event.mjs`をcanonical Node Hook loggerとして実装する。expected event名をCLI引数で受け、5eventをsanitized / bounded JSONLへ記録し、malformed payloadやlogging失敗時もevent別stdout契約を守る。
-- [ ] 4. `.codex/config.toml`へ5eventを接続する。Logging Hookではmatcherを省略し、Unix `command` / Windows `command_windows`の双方から`.codex/hooks/log_event.mjs <EventName>`を起動する。5eventすべて`timeout = 5`とする。既存Safety `PreToolUse`は変更しない。
+- [ ] 3. `.codex/hooks/log_event.mjs`をcanonical Node Hook loggerとして実装する。expected event名をCLI引数で受け、5eventをsanitized / bounded JSONLへ記録し、malformed payloadやlogging失敗時もevent別stdout契約を守る。`SubagentStop` / `Stop`では`stop_hook_active`を保存し、最終終了を推定しない。
+- [ ] 4. `.codex/config.toml`へ5eventを接続する。Logging Hookではmatcherを省略する。Unix `command` / Windows `command_windows`の双方で既存Safety Hookと同等のrepo-root解決を行い、そこから`.codex/hooks/log_event.mjs <EventName>`を起動する。相対`.codex/hooks/log_event.mjs`をsession `cwd`から直接実行しない。5eventすべて`timeout = 5`とする。既存Safety `PreToolUse`は変更しない。
 - [ ] 5. `.codex/logs/*.jsonl`が既存どおりGit管理外であることを確認する。Hook JSONL専用のGit追跡例外は追加しない。
 - [ ] 6. `AGENTS.md` / `.codex/templates/REPORT.md`を新責務へ変更する。逐次行動記録を廃止しつつ、REPORTのappend-only契約は維持する。
 - [ ] 7. Subagent利用時はcheckpointで`Delegation / Result / Parent decision`だけをまとめる契約へ変更する。
@@ -692,7 +708,7 @@ session単位のローカル詳細ログで今回の目的を満たすため、R
 - [ ] 14. 新規Run向け`RUN_MANIFEST.json`、collectorの`default_manifest()`、`codex-task.ps1`の`Write-RunManifest`、`codex-task.sh`の`write_run_manifest`をschema v2へ揃える。
 - [ ] 15. collectorおよび`codex-task.ps1/sh`のmerge処理で削除済みv1 fieldを新規v2 manifestへ再注入しないようにする。既存v1はlegacy field valueだけを保持し、旧Subagent / 旧Hook observation機能をv1用に温存しない。
 - [ ] 16. 旧Subagent / 旧Hook observation削除による`changed_files` / `safety.scope_violation` / validation / evaluationへの副作用を確認する。
-- [ ] 17. `tests/contracts/codex-hook-contract.test.ts`を更新し、Safety HookとLogging Hookのmatcher / timeout / command契約、新loggerのstdout / sanitization / truncation / malformed payload contractを明示的に検証する。新しいtest frameworkは作らない。
+- [ ] 17. `tests/contracts/codex-hook-contract.test.ts`を更新し、Safety HookとLogging Hookのmatcher / timeout / repo-root command契約、新loggerのstdout / `stop_hook_active` / sanitization / truncation / malformed payload contractを明示的に検証する。loggerを書き込ませるtestは各testでunique synthetic session IDを使い、対象JSONLがtest開始前に存在しないことを保証し、`afterEach`または`finally`でそのtestが作成したJSONLだけを削除する。新しいtest frameworkやtest-only output path機能は作らない。
 - [ ] 18. `docs/reference/codex-implementation-harness.md`等、必要なdocsを新しい責務へ合わせる。
 - [ ] 19. `.codex/config.toml`と`.codex/hooks/log_event.mjs`の最終内容が確定した後にproject-local Hookを再確認・trustする。trust前のskipをlogger不良と誤判定しない。
 - [ ] 20. targeted tests、Windows full Hook smoke、Unix代表Hook smokeを実施する。
@@ -708,10 +724,11 @@ session単位のローカル詳細ログで今回の目的を満たすため、R
 1. `UserPromptSubmit`が記録される。
 2. Hook対象Toolを1回以上実行し、`PostToolUse`が記録される。
 3. Subagentを1回以上起動し、`SubagentStart`が記録される。
-4. Subagent終了時に`SubagentStop`が記録される。
-5. main turn終了時に`Stop`が記録される。
-6. `session_id` / `turn_id` / `agent_id`等、取得できるstable idからHook JSONL上で時系列を追える。
-7. Hookで観測可能なnon-Bash Toolを代表1件実行し、Logging HookがBash限定になっていないことを確認する。
+4. `SubagentStop` eventを観測したときに`SubagentStop`が記録され、`stop_hook_active`がnative payloadどおり保存される。
+5. `Stop` eventを観測したときに`Stop`が記録され、`stop_hook_active`がnative payloadどおり保存される。
+6. `SubagentStop` / `Stop`の記録だけから「最終終了」と推定していない。
+7. `session_id` / `turn_id` / `agent_id`等、取得できるstable idからHook JSONL上で時系列を追える。
+8. Hookで観測可能なnon-Bash Toolを代表1件実行し、Logging HookがBash限定になっていないことを確認する。
 
 ### B. Session scope / Git非管理 / 保存先
 
@@ -719,20 +736,21 @@ session単位のローカル詳細ログで今回の目的を満たすため、R
 - 同一session内の複数turnが同じlogへ記録される。
 - 同一session内で複数Runを扱ってもRun単位に自動分離されない。
 - `hooks-*.jsonl`が`git status`へ出ない。
-- repositoryのsubdirectoryから開始しても`.codex/hooks/log_event.mjs`自身の配置位置を基準にrepository root配下の`.codex/logs/`へ記録される。
+- repositoryのsubdirectoryから開始しても、config側がrepo rootを解決して`.codex/hooks/log_event.mjs`自体を正しく起動できる。
+- logger起動後の保存先も`.codex/hooks/log_event.mjs`自身の配置位置を基準にrepository root配下の`.codex/logs/`へ記録される。
 
 ### C. Cross-platform Hook起動 / timeout / trust
 
 Windows:
 
-- `command_windows`経由で`.codex/hooks/log_event.mjs <EventName>`を起動する。
+- `command_windows`が既存Safety Hookと同じrepository-root解決方式を使い、subdirectory起動でも`.codex/hooks/log_event.mjs <EventName>`を起動する。
 - 5eventすべてを実機smokeする。
-- path quotingに失敗しない。
+- repository pathに空白があってもpath quotingに失敗しない。
 
 Unix系:
 
-- `command`経由で同じloggerを起動できる。
-- 代表eventを最低1件smokeする。
+- `command`がrepo rootを解決して同じloggerを起動できる。
+- repositoryのsubdirectoryから起動した代表eventを最低1件smokeする。
 - Windows用PowerShellにlogging logicを二重実装していない。
 
 共通:
@@ -752,7 +770,7 @@ Unix系:
 - `Stop`: stdout`{}`、exit 0。
 - malformed JSONでもexpected event CLI引数から正しいstdout契約を返す。
 - event mismatchではログを書かず、Codex本作業をblockしない。
-- `SubagentStop` / `Stop`がcontinuation / blockを発生させない。
+- `SubagentStop` / `Stop`がcontinuation / blockを要求しない。
 - logger hang試験または等価確認で5秒timeoutが効く。
 - stdout debug printがない。
 
@@ -765,6 +783,7 @@ Unix系:
 - arbitrary free-form secret完全検出を要件にしない。
 - `tool_input_preview`生成にTool別parser / AI要約処理が存在しない。
 - transcript本文 / transcript pathがHook JSONLへ保存されない。
+- `SubagentStop` / `Stop`の`stop_hook_active`はnative payloadのbooleanをそのまま保存し、別の終了状態へ変換していない。
 
 ### F. 並行書き込み
 
@@ -844,15 +863,25 @@ legacy stack外に独立dependencyがある場合:
 - 既存Safety `PreToolUse`は`matcher = "^Bash$"`を維持する。
 - 5つのLogging HookにはBash限定matcherを設定しない。
 - 5つのLogging Hookはすべて`timeout = 5`。
-- `command` / `command_windows`が同じ`.codex/hooks/log_event.mjs`と正しいexpected event名を使用する。
+- `command` / `command_windows`がrepository rootを解決して同じ`.codex/hooks/log_event.mjs`と正しいexpected event名を使用する。
+- repository subdirectoryを`cwd`にしてもlogger起動に成功する。
 - loggerの正常payload時stdout契約。
 - malformed payload時stdout契約。
 - event mismatch時にログを書かない。
+- `SubagentStop` / `Stop`で`stop_hook_active`をそのまま保存する。
 - sanitization / truncation。
-- repository subdirectoryから実行しても保存先が正しい。
+- logger起動後の保存先がrepository root配下の`.codex/logs/`である。
 - 既存Safety Hookのdeny / allow contractが回帰していない。
 
 config全体に`matcher = "^Bash$"`が1つ存在することだけを確認する曖昧なassertionではなく、Safety HookとLogging Hookの設定を区別して検証する。
+
+loggerを書き込ませるcontract testは以下で隔離する。
+
+- 各testで衝突しないunique synthetic `session_id`を生成する。
+- test開始前に対応する`.codex/logs/hooks-<safe-session-id>.jsonl`が存在しないことを保証する。
+- test終了時に`afterEach`または`finally`で、そのtestが生成した対象JSONLだけを削除する。
+- 他sessionのHook JSONLや通常運用logは削除しない。
+- loggerへtest-only output pathやtest専用modeを追加しない。
 
 新しいtest frameworkは追加しない。
 
@@ -940,6 +969,8 @@ config全体に`matcher = "^Bash$"`が1つ存在することだけを確認す�
 - 新しいlog rotation / cleanup serviceを作らない。
 - REPORTのappend-only契約を廃止しない。
 - 新しいtest frameworkを作らない。
+- Hook test専用のoutput path / modeをloggerへ追加しない。
+- `SubagentStop` / `Stop`から最終終了状態を推論しない。
 - private chain-of-thoughtを保存しない。
 - `evaluation.json`を再設計しない。
 - Run管理基盤全体を再設計しない。
@@ -950,16 +981,19 @@ config全体に`matcher = "^Bash$"`が1つ存在することだけを確認す�
 
 以下をすべて満たせば完了とする。
 
-- Codexが全行動をREPORTへ逐次記帳しなくても、ローカルHook JSONLから指示・Tool実行・Subagent lifecycle・turn終了を確認できる。
+- Codexが全行動をREPORTへ逐次記帳しなくても、ローカルHook JSONLから指示・Tool実行・Subagent lifecycle event・Stop eventを確認できる。
+- `SubagentStop` / `Stop`はevent観測として記録され、logger単独で最終終了と断定していない。
+- `SubagentStop` / `Stop`の`stop_hook_active`をnative payloadどおり確認できる。
 - Hook JSONLはsession-scopedであり、Run-scoped auditではないことが明確である。
 - Hook JSONLは`.codex/logs/*.jsonl`の既存方針どおりGit管理されない。
 - 同一session内で複数Runが混在し得ることを許容し、Run correlation基盤を追加していない。
 - native Hook payload全文を保存していない。
 - canonical loggerが`.codex/hooks/log_event.mjs`に固定され、Windows / Unixとも同じ実装を使用している。
 - 5eventがconfigからexpected event名をCLI引数として受け、malformed payload時でもevent別stdout契約を守れる。
+- `command` / `command_windows`がrepository rootを解決してloggerを起動し、session `cwd`に依存した相対path実行をしていない。
 - Logging Hookはsupported occurrence全体を対象とし、Safety HookのBash限定matcherを流用していない。
 - Logging Hookは5秒timeoutで、logger障害によりCodex本作業を長時間停止しない。
-- repositoryのsubdirectoryから開始しても正しい`.codex/logs/`へ記録される。
+- repositoryのsubdirectoryから開始してもloggerを起動でき、正しい`.codex/logs/`へ記録される。
 - 最終Hook定義をtrustした後に、Windowsでは5event、Unix系では同じNode loggerの起動と代表eventを確認できる。
 - `UserPromptSubmit` / `PostToolUse` / `SubagentStart`はstdoutなし、`SubagentStop` / `Stop`は`{}`で非干渉に終了する。
 - logging失敗だけを理由にCodex処理がblockされない。
@@ -977,7 +1011,8 @@ config全体に`matcher = "^Bash$"`が1つ存在することだけを確認す�
 - `run.json`は従来どおり自動生成・自動更新されるが、Hook JSONLの二重集約先にはなっていない。
 - 新規Runはv2 manifestを利用し、`new-run` / `codex-task.ps1/sh` / collectorのどの経路でもv1構造へ戻らない。
 - 過去v1 Runを自動migrationしていない。
-- `tests/contracts/codex-hook-contract.test.ts`がSafety HookとLogging Hookを区別し、matcher / timeout / command / stdout / malformed payload / sanitization / truncation contractを検証している。
+- `tests/contracts/codex-hook-contract.test.ts`がSafety HookとLogging Hookを区別し、matcher / timeout / repo-root command / stdout / `stop_hook_active` / malformed payload / sanitization / truncation contractを検証している。
+- loggerのcontract testがunique session IDと対象JSONLの後片付けにより、過去test runや通常運用logへ依存・干渉しない。
 - Hook JSONL / REPORT / run.json / wrapper logの責務が重複していない。
 - 既存Safety Hook、validation、evaluation、Product codeを壊していない。
 - 今回の目的のためにGit tracking例外、scope / clean-git例外、DB、daemon、Run correlation基盤、migration framework、Tool別parser、新規cleanup service、新規test framework等の追加基盤を導入していない。
