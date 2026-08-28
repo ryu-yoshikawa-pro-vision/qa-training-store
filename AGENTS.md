@@ -95,8 +95,9 @@ scripts/sanitize-codex-artifacts.ps1のWriteとCheckを実行する。
 Git管理対象外の`.artifacts`配下へ保存し、Run Artifactには
 必要な要約だけを記載する。
 
-`REPORT.md`のAppend-only契約は、行動記録、判断、検証結果を
-削除、並べ替え、意味変更しないことを指す。
+`REPORT.md`のAppend-only契約は、checkpoint単位の意味情報を
+削除、並べ替え、意味変更しないことを指す。Hook JSONLで取得できる
+machine factをREPORTへ逐次転記しない。
 
 既存記録に含まれるローカル絶対Pathを`<REPO_ROOT>`、`<USER_HOME>`等の
 既定Tokenへ、記録の意味を変えずに置換する場合のみ、
@@ -108,12 +109,12 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 ## 2. 実行ループ
 
 1) `.codex/runs/<run_id>/TASKS.md` のタスクを上から順に実行する。  
-2) 各タスク完了後に次を行う。  
+2) TASK完了、blocker、重要判断、計画変更、Run完了のcheckpointで次を行う。
    - `TASKS.md` のチェックを更新する  
    - `REPORT.md` に JST 時刻の記録を追記する  
    - `Progress: <NN>% (<done>/<total>)` を含める  
 3) 作業中に見つかったタスクは `## Discovered` に追加する。  
-4) 判断メモは `PLAN.md` に、行動ログは `REPORT.md` に追記する。
+4) 判断メモは `PLAN.md` に、意味情報はcheckpointとして `REPORT.md` に追記する。
 
 ## 3. Progress ルール
 
@@ -214,7 +215,7 @@ Git mutation（commit、push、merge、cherry-pick、branch設定変更を含む
 
 - Native delegation marker: No child subagent delegation.
 
-- Parentからdelegationされたchild subagentは独自のRun DirectoryまたはRun Artifactを作成・更新しない。childは結果をParentへ返し、delegation内容、結果、採否はParentがactive Runへ記録する。これはrootの通常Run初期化規則に対するdelegated child専用の例外である。
+- Parentからdelegationされたchild subagentは独自のRun DirectoryまたはRun Artifactを作成・更新しない。childは結果をParentへ返し、delegation内容、結果、採否はParentがTASK完了またはRun完了のcheckpointへ意味情報として一度だけ記録する。これはrootの通常Run初期化規則に対するdelegated child専用の例外である。
 - Standard / StrictのParent Codexだけが、requirement interpretation、plan、delegation、result synthesis、implementation scope decision、final validation set decision、failure interpretation、final completion decisionを行う。
 - project-scoped custom agentsのmodel / reasoning effortは `.codex/config.toml` の `[agents]` にあるproject defaultをSSOTとし、agent TOMLへ個別値を重複記載しない。
 - `code_researcher` は code / dependency / impact investigationを担当する。
@@ -227,7 +228,8 @@ Git mutation（commit、push、merge、cherry-pick、branch設定変更を含む
 - `implementation_worker` はファイル削除、rename、移動、`git add` / `git commit` / `git push` / `git rm` / `git reset` / `git clean` などのGit mutation、delete / renameを含むpatch operationを行わない。scope、設計判断、対象ファイル、検証方法に迷ったら編集せず親 agentに確認事項を返す。
 - すべてのchild agentは追加のsubagentを起動しない（No child subagent delegation）。`agents.max_depth = 1`を維持し、child専用config、hook enforcement、runtime recursion collectorは作らない。
 - subagentの起動・停止・並列実行・結果受領はCodex native delegation機能を利用する。Repositoryのshell / PowerShell / Python / Node scriptからsubagentを起動せず、既存`codex-safe.*` / `codex-task.*`をorchestration engineへ変更しない。
-- read-only調査subagentは編集・作成・削除を行わず、調査結果だけを返す。subagentを使用または省略した場合は `.codex/runs/<run_id>/REPORT.md` に記録する。使用時は委譲内容・要約・Parentの採用判断を、省略時は省略理由を記録する。
+- read-only調査subagentは編集・作成・削除を行わず、調査結果だけを返す。Subagentの開始・終了などのmachine factは`.codex/logs/hooks-<safe-session-id>.jsonl`へ記録し、REPORTへeventごとに転記しない。使用時は次のcheckpointでDelegation・Result・Parent decisionだけを記録し、subagentを使わなかったこと自体は毎回記録しない。
+- Subagent専用Structured Artifactを新規作成・更新せず、`SubagentStop` / `Stop`を最終終了やsuccess / failureの根拠として推測しない。
 - 利用可能なproject-scoped custom agentsは `.codex/agents/` 配下のTOML定義を確認する。
 
 ## 11. 改善ガバナンス

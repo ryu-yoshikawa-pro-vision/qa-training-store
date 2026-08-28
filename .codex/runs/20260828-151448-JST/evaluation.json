@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "run_id": "20260828-151448-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Plan §9の全タスク、レビューrepair iteration 1、契約テスト、Windows 5event smoke、Unix代表event smoke、verify、trust確認、PR CI（Web run 33160493327／Mobile run 33160493418）、および新しいCodex sessionでのnative Subagent lifecycle確認が完了した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260828-151448-JST/TASKS.md",
+          "selector": "Tasks 1-23",
+          "summary": "実装、repair、trust、検証タスクを含む全23 taskの完了状態を確認できる。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はPlanが指定したHook、manifest writer、cleanup、運用docs、contract test、Run artifactに限定され、Product code、ECサイト仕様、カリキュラム本体には差分がない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "git diff --name-status",
+          "summary": "変更対象を最終セルフレビューで確認した。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "全contract testは31 files / 456 tests PASS、PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIP、Markdown lint・format・diff check、evaluation schema validation、PR CI（Web run 33160493327／Mobile run 33160493418）全必須ゲートもPASSした。Windows直接smokeは5event、Unix系Git Bash smokeは代表event、native TUIの既存代表経路に加えて、新しいCodex sessionのnative SubagentStart／SubagentStopもPASSした。Start／Stopは同一session_id・同一agent_id、`agent_type=explorer`、`stop_hook_active=false`で、last_assistant_messageは98文字・`truncated=false`として保存された。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "pnpm exec vitest run tests/contracts",
+          "summary": "31 contract filesと456 testsがPASSした。mixed-versionとnull handlingの追加ケースを含む。"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "scripts/verify.ps1; bash scripts/verify",
+          "summary": "PowerShell verifyは3 PASS、Bash verifyは2 PASS / 2 SKIPでFAILなしだった。"
+        },
+        {
+          "kind": "log_event",
+          "path": ".codex/logs/hooks-01a04835-b02d-72b0-9073-44a3080d0760.jsonl",
+          "selector": "SubagentStart and SubagentStop",
+          "event_id": null,
+          "summary": "native lifecycleのStart／Stop各1件、session_id／agent_id整合、stop_hook_active=falseを確認した。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "既存Safety PreToolUseのmatcher・timeout・blocking behaviorを維持し、危険なtrust bypass、force push、履歴書換え、command-based deletion、Product code変更を行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/config.toml",
+          "selector": "PreToolUse Bash safety block",
+          "summary": "既存Safety HookとLogging Hookを別設定として維持した。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "最終差分をPlanのNon-goals、legacy削除、manifest v2のexisting優先merge、null handling、Safety Hook、REPORT・Hook JSONL・run.jsonの責務分離の観点で確認し、旧stack外の独立dependencyなしというrepo-wide調査結果と整合している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/codex-hook-contract.test.ts",
+          "selector": "logging Hook contract",
+          "summary": "Safety／Logging分離、failure-safe、sanitization、truncation、隔離を自動検証している。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "5eventは単一のNode loggerを共有し、Windows／Unixで実装を二重化していない。既存cleanup、wrapper、validationの経路を再利用し、DB・daemon・parser・新frameworkを追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/log_event.mjs",
+          "selector": "canonical logger",
+          "summary": "loggerの配置位置基準の保存先解決と5event allowlistを実装している。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Plan、repo-wide調査、実装判断、検証結果、native Subagent lifecycleの実機結果をRun artifactへ記録し、同一sessionのHookログとRun単位の意味情報を混同しない契約を維持した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260828-151448-JST/REPORT.md",
+          "selector": "checkpoint history",
+          "summary": "進捗、判断、検証、未完了事項を時系列で確認できる。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

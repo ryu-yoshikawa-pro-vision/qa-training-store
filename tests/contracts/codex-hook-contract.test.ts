@@ -1,4 +1,5 @@
-import { execFileSync, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { randomUUID } from "node:crypto";
 import fs from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -580,7 +581,475 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
       },
     });
   });
+});
 
+const loggingEvents = [
+  "UserPromptSubmit",
+  "PostToolUse",
+  "SubagentStart",
+  "SubagentStop",
+  "Stop",
+] as const;
+
+type LoggingEvent = (typeof loggingEvents)[number];
+
+const loggingHookPath = path.join(repoRoot, ".codex", "hooks", "log_event.mjs");
+
+function loggingOutputFor(event: LoggingEvent) {
+  return event === "SubagentStop" || event === "Stop" ? "{}" : "";
+}
+
+function loggingSafeSessionId(sessionId: string) {
+  const bounded = sessionId.replace(/[^A-Za-z0-9._-]/g, "_").slice(0, 128);
+  return bounded && !/^\.+$/.test(bounded) ? bounded : "unknown";
+}
+
+function loggingPathFor(sessionId: string, root = repoRoot) {
+  return path.join(root, ".codex", "logs", `hooks-${loggingSafeSessionId(sessionId)}.jsonl`);
+}
+
+function withLoggingSession<T>(label: string, callback: (sessionId: string, logPath: string) => T) {
+  const sessionId = `contract-${label}-${process.pid}-${randomUUID()}`;
+  const logPath = loggingPathFor(sessionId);
+  if (fs.existsSync(logPath)) {
+    throw new Error(`synthetic session log unexpectedly exists: ${logPath}`);
+  }
+
+  try {
+    return callback(sessionId, logPath);
+  } finally {
+    if (fs.existsSync(logPath)) {
+      fs.rmSync(logPath, { force: true });
+    }
+  }
+}
+
+async function withLoggingSessionAsync<T>(
+  label: string,
+  callback: (sessionId: string, logPath: string) => Promise<T>,
+) {
+  const sessionId = `contract-${label}-${process.pid}-${randomUUID()}`;
+  const logPath = loggingPathFor(sessionId);
+  if (fs.existsSync(logPath)) {
+    throw new Error(`synthetic session log unexpectedly exists: ${logPath}`);
+  }
+
+  try {
+    return await callback(sessionId, logPath);
+  } finally {
+    if (fs.existsSync(logPath)) {
+      fs.rmSync(logPath, { force: true });
+    }
+  }
+}
+
+function runLoggingHook(
+  expectedEvent: LoggingEvent,
+  payload: string,
+  cwd = repoRoot,
+  hook = loggingHookPath,
+): HookResult {
+  const result = spawnSync(process.execPath, [hook, expectedEvent], {
+    cwd,
+    encoding: "utf8",
+    input: payload,
+  });
+  return {
+    status: result.status ?? -1,
+    stdout: result.stdout ?? "",
+    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
+  };
+}
+
+function runLoggingHookAsync(
+  expectedEvent: LoggingEvent,
+  payload: string,
+  cwd = repoRoot,
+  hook = loggingHookPath,
+) {
+  return new Promise<HookResult>((resolve) => {
+    const child = spawn(process.execPath, [hook, expectedEvent], {
+      cwd,
+      stdio: ["pipe", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout.on("data", (chunk: Buffer | string) => {
+      stdout += chunk.toString();
+    });
+    child.stderr.on("data", (chunk: Buffer | string) => {
+      stderr += chunk.toString();
+    });
+    child.once("error", (error) => {
+      resolve({ status: -1, stdout, stderr: `${stderr}\n${error.message}` });
+    });
+    child.once("close", (status) => {
+      resolve({ status: status ?? -1, stdout, stderr });
+    });
+    child.stdin.end(payload);
+  });
+}
+
+function readLoggingRecords(logPath: string) {
+  return fs
+    .readFileSync(logPath, "utf8")
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as Record<string, unknown>);
+}
+
+function loggingConfigBlock(marker: string) {
+  const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
+  const start = config.indexOf(marker);
+  if (start < 0) {
+    throw new Error(`missing config marker: ${marker}`);
+  }
+  const remainder = config.slice(start + marker.length);
+  const next = remainder.search(/\n\[\[hooks\./);
+  return config.slice(start, next < 0 ? config.length : start + marker.length + next);
+}
+
+function makeLoggingPayload(event: LoggingEvent, sessionId: string) {
+  return {
+    hook_event_name: event,
+    session_id: sessionId,
+    turn_id: "turn-contract",
+  };
+}
+
+describe("Codex logging Hook contract", () => {
+  it("separates the Bash Safety Hook from five matcher-free logging Hooks", () => {
+    const config = fs.readFileSync(path.join(repoRoot, ".codex", "config.toml"), "utf8");
+    const safetyStart = config.indexOf("[[hooks.PreToolUse]]");
+    const firstLoggingStart = config.indexOf("[[hooks.UserPromptSubmit]]");
+    const safetyBlock = config.slice(safetyStart, firstLoggingStart);
+
+    expect(safetyStart).toBeGreaterThanOrEqual(0);
+    expect(firstLoggingStart).toBeGreaterThan(safetyStart);
+    expect(safetyBlock).toContain('matcher = "^Bash$"');
+    expect(safetyBlock).toContain("timeout = 30");
+    expect(safetyBlock).toContain("pre_tool_use_policy.mjs");
+
+    for (const event of loggingEvents) {
+      const block = loggingConfigBlock(`[[hooks.${event}.hooks]]`);
+      expect(block).not.toContain("matcher");
+      expect(block).toContain("timeout = 5");
+      expect(block).toContain("$(git rev-parse --show-toplevel)/.codex/hooks/log_event.mjs");
+      expect(block).toContain("command_windows =");
+      expect(block).toContain("Join-Path (git rev-parse --show-toplevel)");
+      expect(block).toContain(`log_event.mjs) ${event}`);
+    }
+  });
+
+  it("keeps Hook JSONL ignored without adding a logging-specific exception", () => {
+    const ignore = fs.readFileSync(path.join(repoRoot, ".codex", "logs", ".gitignore"), "utf8");
+
+    expect(ignore).toContain("*.jsonl");
+    expect(ignore).toContain("!.gitignore");
+    expect(ignore).not.toContain("hooks-");
+  });
+
+  it.each(loggingEvents)("returns the fixed stdout and exit contract for %s", (event) => {
+    withLoggingSession(`stdout-${event}`, (sessionId, logPath) => {
+      const result = runLoggingHook(event, JSON.stringify(makeLoggingPayload(event, sessionId)));
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe(loggingOutputFor(event));
+      expect(result.stderr).toBe("");
+      expect(fs.existsSync(logPath)).toBe(true);
+    });
+  });
+
+  it.each(loggingEvents)("is failure-safe for malformed JSON and event mismatch: %s", (event) => {
+    withLoggingSession(`invalid-${event}`, (sessionId, logPath) => {
+      const malformed = runLoggingHook(event, "{");
+      expect(malformed.status).toBe(0);
+      expect(malformed.stdout).toBe(loggingOutputFor(event));
+      expect(malformed.stderr.trim()).not.toBe("");
+      expect(fs.existsSync(logPath)).toBe(false);
+
+      const mismatchEvent = event === "Stop" ? "UserPromptSubmit" : "Stop";
+      const mismatch = runLoggingHook(
+        event,
+        JSON.stringify({
+          ...makeLoggingPayload(mismatchEvent, sessionId),
+          hook_event_name: mismatchEvent,
+        }),
+      );
+      expect(mismatch.status).toBe(0);
+      expect(mismatch.stdout).toBe(loggingOutputFor(event));
+      expect(mismatch.stderr.trim()).not.toBe("");
+      expect(fs.existsSync(logPath)).toBe(false);
+    });
+  });
+
+  it("records only the bounded event fields and preserves native stop_hook_active booleans", () => {
+    withLoggingSession("fields", (sessionId, logPath) => {
+      const payloads = [
+        {
+          ...makeLoggingPayload("UserPromptSubmit", sessionId),
+          prompt: "prompt text",
+          transcript_path: "C:/private/transcript.jsonl",
+        },
+        {
+          ...makeLoggingPayload("PostToolUse", sessionId),
+          tool_name: "Read",
+          tool_use_id: "tool-use-1",
+          tool_input: { path: "docs/PROJECT_CONTEXT.md" },
+          tool_response: { private: "do not store" },
+        },
+        {
+          ...makeLoggingPayload("SubagentStart", sessionId),
+          agent_id: "agent-1",
+          agent_type: "code_researcher",
+        },
+        {
+          ...makeLoggingPayload("SubagentStop", sessionId),
+          agent_id: "agent-1",
+          agent_type: "code_researcher",
+          last_assistant_message: "subagent result",
+          stop_hook_active: true,
+        },
+        {
+          ...makeLoggingPayload("Stop", sessionId),
+          last_assistant_message: "main result",
+          stop_hook_active: false,
+        },
+      ];
+
+      for (const payload of payloads) {
+        const event = payload.hook_event_name as LoggingEvent;
+        const result = runLoggingHook(event, JSON.stringify(payload));
+        expect(result.status).toBe(0);
+        expect(result.stdout).toBe(loggingOutputFor(event));
+        expect(result.stderr).toBe("");
+      }
+
+      const records = readLoggingRecords(logPath);
+      expect(records).toHaveLength(5);
+      expect(records.map((record) => record.event)).toEqual([...loggingEvents]);
+      expect(records.every((record) => record.session_id === sessionId)).toBe(true);
+      expect(records.every((record) => typeof record.timestamp === "string")).toBe(true);
+      expect(records.every((record) => record.transcript_path === undefined)).toBe(true);
+      expect(records.every((record) => record.tool_response === undefined)).toBe(true);
+      expect(records[1]).toMatchObject({
+        tool_name: "Read",
+        tool_use_id: "tool-use-1",
+        tool_input_preview: '{"path":"docs/PROJECT_CONTEXT.md"}',
+      });
+      expect(records[2]).toMatchObject({ agent_id: "agent-1", agent_type: "code_researcher" });
+      expect(records[3]).toMatchObject({
+        stop_hook_active: true,
+        last_assistant_message: "subagent result",
+      });
+      expect(records[4]).toMatchObject({
+        stop_hook_active: false,
+        last_assistant_message: "main result",
+      });
+      expect(records[3]?.stop_reason).toBeUndefined();
+      expect(records[4]?.stop_reason).toBeUndefined();
+      expect(records.every((record) => record.truncated === false)).toBe(true);
+    });
+  });
+
+  it.each([
+    ["SubagentStop", { agent_id: "agent-null", stop_hook_active: true }],
+    ["Stop", { stop_hook_active: false }],
+  ] as const)("omits a null last_assistant_message for %s", (event, fields) => {
+    withLoggingSession(`null-${event}`, (sessionId, logPath) => {
+      const result = runLoggingHook(
+        event,
+        JSON.stringify({
+          ...makeLoggingPayload(event, sessionId),
+          ...fields,
+          last_assistant_message: null,
+        }),
+      );
+
+      expect(result).toEqual({
+        status: 0,
+        stdout: loggingOutputFor(event),
+        stderr: "",
+      });
+      const [record] = readLoggingRecords(logPath);
+      expect(record).not.toHaveProperty("last_assistant_message");
+      expect(JSON.stringify(record)).not.toContain('"last_assistant_message":"null"');
+      expect(record?.stop_hook_active).toBe(fields.stop_hook_active);
+    });
+  });
+
+  it("redacts representative credentials before appending JSONL", () => {
+    withLoggingSession("redaction", (sessionId, logPath) => {
+      const secrets = {
+        apiKey: "sk-contract-secret-123456789",
+        token: "token-contract-secret-123456789",
+        authorization: "Bearer authorization-contract-secret-123456789",
+        password: "password-contract-secret-123456789",
+      };
+      const result = runLoggingHook(
+        "UserPromptSubmit",
+        JSON.stringify({
+          ...makeLoggingPayload("UserPromptSubmit", sessionId),
+          prompt: `api_key=${secrets.apiKey} token: ${secrets.token} Authorization: ${secrets.authorization} password=${secrets.password}`,
+        }),
+      );
+
+      expect(result).toEqual({ status: 0, stdout: "", stderr: "" });
+      const serialized = fs.readFileSync(logPath, "utf8");
+      for (const secret of Object.values(secrets)) {
+        expect(serialized).not.toContain(secret);
+      }
+      expect(serialized).toContain("[REDACTED]");
+    });
+  });
+
+  it("truncates prompt, generic tool input, and final-message previews at 2000 characters", () => {
+    withLoggingSession("truncation", (sessionId, logPath) => {
+      const longText = "x".repeat(2100);
+      const cases: Array<[LoggingEvent, Record<string, unknown>]> = [
+        ["UserPromptSubmit", { prompt: longText }],
+        [
+          "PostToolUse",
+          { tool_name: "Read", tool_use_id: "tool-long", tool_input: { value: longText } },
+        ],
+        [
+          "SubagentStop",
+          { agent_id: "agent-long", last_assistant_message: longText, stop_hook_active: true },
+        ],
+        ["Stop", { last_assistant_message: longText, stop_hook_active: false }],
+      ];
+
+      for (const [event, fields] of cases) {
+        const result = runLoggingHook(
+          event,
+          JSON.stringify({ ...makeLoggingPayload(event, sessionId), ...fields }),
+        );
+        expect(result.status).toBe(0);
+        expect(result.stdout).toBe(loggingOutputFor(event));
+      }
+
+      const records = readLoggingRecords(logPath);
+      expect(records).toHaveLength(cases.length);
+      expect(records[0]?.prompt).toHaveLength(2000);
+      expect(records[1]?.tool_input_preview).toHaveLength(2000);
+      expect(records[2]?.last_assistant_message).toHaveLength(2000);
+      expect(records[3]?.last_assistant_message).toHaveLength(2000);
+      expect(records.every((record) => record.truncated === true)).toBe(true);
+    });
+  });
+
+  it("resolves its output from the logger location when launched from a repository subdirectory", () => {
+    withLoggingSession("subdirectory", (sessionId, logPath) => {
+      const result = runLoggingHook(
+        "UserPromptSubmit",
+        JSON.stringify({
+          ...makeLoggingPayload("UserPromptSubmit", sessionId),
+          prompt: "nested cwd",
+        }),
+        path.join(repoRoot, "docs"),
+      );
+
+      expect(result).toEqual({ status: 0, stdout: "", stderr: "" });
+      expect(fs.existsSync(logPath)).toBe(true);
+      expect(readLoggingRecords(logPath)[0]).toMatchObject({
+        event: "UserPromptSubmit",
+        session_id: sessionId,
+        prompt: "nested cwd",
+      });
+    });
+  });
+
+  it("keeps logging failure-safe when the logs path cannot be created", () => {
+    const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "codex-logging-failure-"));
+    const fixtureHook = path.join(fixture, ".codex", "hooks", "log_event.mjs");
+    const fixtureLogs = path.join(fixture, ".codex", "logs");
+    const sessionId = `contract-failure-${process.pid}-${randomUUID()}`;
+    fs.mkdirSync(path.dirname(fixtureHook), { recursive: true });
+    fs.copyFileSync(loggingHookPath, fixtureHook);
+    fs.writeFileSync(fixtureLogs, "not a directory", "utf8");
+
+    try {
+      const result = runLoggingHook(
+        "Stop",
+        JSON.stringify({ ...makeLoggingPayload("Stop", sessionId), stop_hook_active: false }),
+        fixture,
+        fixtureHook,
+      );
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("{}");
+      expect(result.stderr.trim()).not.toBe("");
+    } finally {
+      fs.rmSync(fixture, { force: true, recursive: true });
+    }
+  });
+
+  it("keeps concurrent appends as complete JSON lines", async () => {
+    await withLoggingSessionAsync("concurrent", async (sessionId, logPath) => {
+      const results = await Promise.all(
+        Array.from({ length: 12 }, (_, index) =>
+          runLoggingHookAsync(
+            "PostToolUse",
+            JSON.stringify({
+              ...makeLoggingPayload("PostToolUse", sessionId),
+              tool_name: "Read",
+              tool_use_id: `tool-concurrent-${index}`,
+              tool_input: { index },
+            }),
+          ),
+        ),
+      );
+
+      expect(
+        results.every(
+          (result) => result.status === 0 && result.stdout === "" && result.stderr === "",
+        ),
+      ).toBe(true);
+      const records = readLoggingRecords(logPath);
+      expect(records).toHaveLength(12);
+      expect(records.every((record) => record.event === "PostToolUse")).toBe(true);
+      expect(new Set(records.map((record) => record.tool_use_id)).size).toBe(12);
+    });
+  });
+
+  it("does not add a test-only output path or native payload dump to production logger", () => {
+    const source = fs.readFileSync(loggingHookPath, "utf8");
+
+    expect(source).not.toContain("output_path");
+    expect(source).not.toContain("transcript_path");
+    expect(source).not.toContain("raw_payload");
+    expect(source).not.toContain("process.env");
+  });
+
+  it("executes the configured Windows repo-root command from a nested cwd", () => {
+    if (process.platform !== "win32") return;
+
+    withLoggingSession("windows-command", (sessionId, logPath) => {
+      const command =
+        "node (Join-Path (git rev-parse --show-toplevel) .codex\\\\hooks\\\\log_event.mjs) UserPromptSubmit";
+      const result = spawnSync(
+        "powershell.exe",
+        ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
+        {
+          cwd: path.join(repoRoot, "docs"),
+          encoding: "utf8",
+          input: JSON.stringify({
+            ...makeLoggingPayload("UserPromptSubmit", sessionId),
+            prompt: "windows command",
+          }),
+        },
+      );
+
+      expect(result.status).toBe(0);
+      expect(result.stdout).toBe("");
+      expect(result.stderr).toBe("");
+      expect(fs.existsSync(logPath)).toBe(true);
+    });
+  });
+});
+
+describe("Codex PreToolUse/Bash remaining contract", () => {
   it("uses the repository selected by quoted git -C path for branch context", () => {
     const repoA = makeGitFixture();
     const repoB = makeGitFixture();

@@ -2,7 +2,6 @@
 param(
     [Parameter(Mandatory = $true)][string]$RunId,
     [string]$RunsRoot,
-    [string[]]$HookLog,
     [string]$ManifestPath,
 [string]$BaseManifest,
     [switch]$Strict
@@ -27,9 +26,6 @@ $scriptPath = Join-Path $PSScriptRoot "collect-run-artifacts.py"
 $scriptPath = (Resolve-Path $scriptPath).Path
 $argsList = @($scriptPath, "--run-id", $RunId)
 if ($RunsRoot) { $argsList += @("--runs-root", $RunsRoot) }
-foreach ($path in @($HookLog)) {
-    if ($path) { $argsList += @("--hook-log", $path) }
-}
 if ($ManifestPath) { $argsList += @("--manifest-path", $ManifestPath) }
 if ($BaseManifest) { $argsList += @("--base-manifest", $BaseManifest) }
 if ($Strict) { $argsList += "--strict" }
