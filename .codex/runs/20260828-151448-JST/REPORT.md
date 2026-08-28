@@ -216,3 +216,11 @@
 - Scope: `agent_id`のunique値は1つ、Start／Stopは各1件であり、childからgrandchildは起動していない。Product code、Hook config、`AGENTS.md`、`.codex/config.toml`は変更していない。
 - Evaluation: native lifecycleの未検証を解消したため、`evaluation.json`を`result=pass`、`primary_failure_category=null`、`findings=[]`へ更新した。Plan §13の全成功条件を確認済みと判断する。
 - Progress: 100% (23/23)
+
+## 2026-08-28 21:08 (JST)
+
+- Summary: Run Artifactの更新をcommit `e9721b2777d3818cdf9257fcdf224f3150452f6a`へまとめ、`refactor/codex-hook-run-logging`へ通常pushした。PR #76のhead一致と本文のnative lifecycle完了記載を確認した。
+- Git / PR: current branchは指定branchのまま、PR #76はOPEN、headは`e9721b2777d3818cdf9257fcdf224f3150452f6a`。PR本文のnative `SubagentStart`／`SubagentStop`未検証記載を完了記載へ更新した。force push、履歴書換え、新規PR作成は行っていない。
+- CI: pushによりPR #76のCI再実行を確認した。Web CI run `33169716618`は確認時点でqueued／Web jobs pending、Mobile App CI run `33169716836`はsuccess、dynamic PR run `33169712862`はsuccessだった。Native実行系は今回の変更対象外としてskipされ、失敗は確認していない。
+- Scope: Product code、Hook実装、Hook config、`AGENTS.md`、`.codex/config.toml`に差分はなく、Run Artifact 4ファイルだけをcommitした。作業前から未追跡だった`scripts/__pycache__/`はstageしていない。
+- Progress: 100% (23/23)
