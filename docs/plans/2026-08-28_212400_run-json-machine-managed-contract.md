@@ -30,6 +30,7 @@
   - sync時、既存`changed_files`を保持しつつ終了時working treeのtracked / untracked pathsを累積反映する。
   - interactive process終了や`Stop`だけを根拠に`status=completed`へ変更しない。
   - Codex nonzero時はCodex exit codeを優先する。Codex zeroかつcollector nonzero時はcollector exit codeを返す。
+  - Bash版は`set -euo pipefail`下でもcollector nonzeroを明示的に捕捉し、sync failure log / warning / final exit判定まで継続する。
   - `--no-log` / `-NoLog`でもmanifest同期は実行し、loggingだけ抑止する。
   - PowerShell / Bashで同じ外部契約を満たす。
   - manifest schema / template shape、`codex-task`既存writer、Hook、evaluation責務を変更しない。
@@ -46,6 +47,7 @@
 - collector単体はmanifest不存在時にtemplateから新規manifestを生成できるため、`codex-safe`側でexisting manifest guardが必要である。
 - `codex-safe.ps1/sh`は`RunId`をlog path等に利用するが、現在はprocess終了後にmanifestを同期しない。
 - 現在の`codex-safe`は存在しない`RunId`でも`.codex/runs/<run_id>/logs`を作成できる余地がある。
+- Bash版`codex-safe.sh`は`set -euo pipefail`を使用し、Codex実行では既にexit codeを明示的に捕捉してから最終exitを決定している。
 - `Stop` / `SubagentStop` Hookはsession / subagent eventの観測用で、Run完了やsuccess / failureを推測しない。
 - `AGENTS.md`には次の4種類の曖昧表現が残っている。
   1. lightweightのrun artifactを「手動作成してよい」が`run.json`まで含むように読める。
@@ -235,13 +237,20 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File <absolute-repo-root>\scr
 ```
 
 - Bash:
-  - `"$repo_root/scripts/collect-run-artifacts.sh"`のabsolute pathでwrapperを起動する。
+  - `bash "$repo_root/scripts/collect-run-artifacts.sh"`でabsolute pathのwrapperを明示的にBash実行する。
+  - `codex-safe.sh`は`set -euo pipefail`のため、collectorは裸のcommandとして実行せず`if ...; then/else`内で実行し、nonzeroでもwrapperを即時終了させず`collector_exit`へ保存する。
 
-```text
-"<absolute-repo-root>/scripts/collect-run-artifacts.sh" --run-id <run_id> --refresh-git-changed-files
+```bash
+if bash "$repo_root/scripts/collect-run-artifacts.sh" --run-id "$run_id" --refresh-git-changed-files; then
+  collector_exit=0
+else
+  collector_exit=$?
+fi
 ```
 
-これにより、`codex-safe`をrepository配下のサブディレクトリから起動した場合でもcollector path解決をcurrent working directoryへ依存させず、PowerShell collector側の`exit`でも親`codex-safe.ps1`が終了しない状態でCodex / collector exit codeを評価できるようにする。
+collector failure後も`manifest_sync_failed`、stderr warning、Codex / collector exit codeの優先順位判定まで必ず継続する。collector failure捕捉だけを目的に新しいhelperや例外基盤は追加しない。
+
+これにより、`codex-safe`をrepository配下のサブディレクトリから起動した場合でもcollector path解決をcurrent working directoryへ依存させず、PowerShell / Bash双方でcollector failureを親wrapperが評価できる状態を維持する。
 
 ### 実行タスク
 
@@ -250,7 +259,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File <absolute-repo-root>\scr
 - [ ] 3. `codex-safe.ps1/sh`へRun Directory preconditionを追加する。
 - [ ] 4. `collect-run-artifacts.py`へoptional working tree refreshを追加する。
 - [ ] 5. `collect-run-artifacts.ps1`へrefresh option pass-throughを追加する。Bash collector wrapperは変更しない。
-- [ ] 6. `codex-safe.ps1/sh`へexisting manifestだけを対象とする終了時sync、absolute collector path解決、logging、warning、exit semanticsを実装する。
+- [ ] 6. `codex-safe.ps1/sh`へexisting manifestだけを対象とする終了時sync、absolute collector path解決、collector failure捕捉、logging、warning、exit semanticsを実装する。
 - [ ] 7. `run-artifacts.md` / `codex-implementation-harness.md`を実装済みlifecycleと一致させる。
 - [ ] 8. collector / `codex-safe` contract testを追加・更新する。
 - [ ] 9. Bash / PowerShell verifyへ必要最小限のpositive checkを追加する。
@@ -285,6 +294,7 @@ actual repositoryのworking treeはテスト用に汚さない。temporary Git r
 - Run Directoryあり + manifestなし: Codex実行、sync skip、manifest非作成。
 - existing manifestあり: process終了後collector 1回。
 - repository配下のサブディレクトリをcurrent working directoryとして`codex-safe`を起動しても、absolute collector pathでsyncできる。
+- Bash collector nonzero時、`set -e`で途中終了せず`manifest_sync_failed` / warning / final exit判定まで到達する。
 - Codex nonzero + collector success/failure: Codex exit code優先。
 - Codex zero + collector failure: collector exit code。
 - collector child process起動失敗: Codex zeroなら1、Codex nonzeroならCodex exit code。
@@ -316,6 +326,7 @@ runtime依存caseは利用可能shellだけ実行する。
 - 存在しないRunIdでCodex起動前failし、Run Directoryを作らない。
 - manifestありRunでinteractive終了後に`changed_files`を同期する。
 - repository配下のサブディレクトリから起動してもcollector syncできる。
+- Bashでcollector failureが発生してもsync failureの記録・warning・final exit判定まで継続する。
 - process exitだけで`status=completed`へ変えない。
 - manifest-less Runで`run.json`を生成しない。
 - `--no-log` / `-NoLog`でもsyncする。
@@ -334,6 +345,7 @@ runtime依存caseは利用可能shellだけ実行する。
 - 不正RunIdで不完全なRun Directoryを作らない。
 - existing manifestだけがinteractive終了時に自動同期される。
 - collector path解決がcurrent working directoryに依存しない。
+- Bashの`set -euo pipefail`下でもcollector failureを捕捉し、sync failure handlingとexit code優先順位を維持できる。
 - tracked / untracked / 日本語・空白pathを`changed_files`へ安全に累積できる。
 - collector default挙動とv1/v2 compatibilityを壊していない。
 - Codex / collector exit semanticsがPowerShell / Bashで一致する。
@@ -354,6 +366,8 @@ runtime依存caseは利用可能shellだけ実行する。
   - 対策: existing `run.json`がある場合だけcollectorを呼ぶ。collector単体の既存fallback生成能力は変更しない。
 - collector pathがcurrent working directoryに依存してsyncできない。
   - 対策: repository rootからabsolute collector pathを構築し、サブディレクトリ起動contractで固定する。
+- Bashの`set -e`でcollector nonzero時にwrapperが途中終了する。
+  - 対策: collectorを`if ...; then/else`内で実行してexit codeを捕捉し、failure log / warning / final exit判定まで継続する。
 - `changed_files`を失う / Git path quotingで壊す。
   - 対策: existing値とのunion、`-z` binary output、NUL分割、filesystem decodingを使用する。
 - Git refresh失敗を成功扱いする。
