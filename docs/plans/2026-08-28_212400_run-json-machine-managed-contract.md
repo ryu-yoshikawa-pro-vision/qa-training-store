@@ -13,7 +13,7 @@
   - `codex-safe.ps1/sh`は`RunId`を受け取れるが、process終了時にmanifestを同期しない。
   - `Stop` Hookはsession event観測用であり、Run完了triggerではない。
 - 期待成果:
-  - 新規生成=`new-run`、非対話更新=`codex-task`、interactive終了時更新=`codex-safe` + collectorという責務を固定する。
+  - 通常workflowの新規生成=`new-run`、非対話更新=`codex-task`、interactive終了時更新=`codex-safe` + collectorという責務を固定する。
   - actual Runの`run.json`をAgentが直接編集しなくてよい通常運用にする。
   - Hook / schema / evaluation責務を広げずに実現する。
 
@@ -23,7 +23,7 @@
   - `.codex/runs/<run_id>/run.json`をmachine-managed aggregate manifestとして固定し、interactive Runでも既存の機械経路だけで同期できる状態にする。
 - 完了条件（DoD）:
   - actual Runの`run.json`をAgentが通常workflowで直接作成・直接編集しない契約が`AGENTS.md`とreference docsで明確になっている。
-  - 新規manifest生成は`new-run.ps1/sh`、非対話更新は既存`codex-task --record-run-manifest`を使用する。
+  - 通常workflowで新規manifestが必要な場合は`new-run.ps1/sh`を正規生成経路とし、非対話更新は既存`codex-task --record-run-manifest`を使用する。collector単体の既存fallback生成能力は変更しない。
   - `codex-safe`は`RunId`指定時、対象Run Directoryが存在しなければlog directory等を作る前にfailする。
   - Run Directoryが存在しても`run.json`がなければmanifest-less RunとしてCodexは実行し、manifest同期だけskipする。
   - existing `run.json`がある場合だけ、interactive Codex process終了後にcollectorを1回実行して同期する。
@@ -158,7 +158,8 @@
 `AGENTS.md`とreference docsを次の責務へ統一する。
 
 - actual Runの`run.json`はAgentが直接作成・直接編集しない。
-- 新規manifestは`new-run`が生成する。
+- 通常workflowで新規manifestが必要な場合は`new-run`を正規生成経路とする。
+- collector単体の既存fallback生成能力は変更しない。ただし`codex-safe`はmanifest-less Runに対してcollectorを呼ばない。
 - 非対話更新は`codex-task`が行う。
 - interactive更新は`codex-safe -RunId`終了時にcollectorを利用して行う。
 - 明示的な再集約はcollectorを使用する。
@@ -223,13 +224,24 @@ Codex process終了後に次の順序で処理する。
 9. collector child process自体を起動できなければcollector failure=`1`として扱う。
 10. successまたは正常skipならCodex exit codeを返す。
 
-PowerShellでは`collect-run-artifacts.ps1`を同一process内でdirect invocation / dot-sourceせずchild processとして起動する。
+collector wrapperの呼び出しpathはcurrent working directoryに依存させず、`codex-safe`が解決済みのrepository rootからabsolute pathを構築する。
+
+- PowerShell:
+  - `$collectorPath = Join-Path $repoRoot "scripts\\collect-run-artifacts.ps1"`のようにabsolute pathを作る。
+  - `collect-run-artifacts.ps1`を同一process内でdirect invocation / dot-sourceせず、child processとして起動する。
 
 ```text
-powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId <run_id> -RefreshGitChangedFiles
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File <absolute-repo-root>\scripts\collect-run-artifacts.ps1 -RunId <run_id> -RefreshGitChangedFiles
 ```
 
-これによりcollector側の`exit`で親`codex-safe.ps1`が終了せず、親側でCodex / collector exit codeを評価できるようにする。
+- Bash:
+  - `"$repo_root/scripts/collect-run-artifacts.sh"`のabsolute pathでwrapperを起動する。
+
+```text
+"<absolute-repo-root>/scripts/collect-run-artifacts.sh" --run-id <run_id> --refresh-git-changed-files
+```
+
+これにより、`codex-safe`をrepository配下のサブディレクトリから起動した場合でもcollector path解決をcurrent working directoryへ依存させず、PowerShell collector側の`exit`でも親`codex-safe.ps1`が終了しない状態でCodex / collector exit codeを評価できるようにする。
 
 ### 実行タスク
 
@@ -238,7 +250,7 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-arti
 - [ ] 3. `codex-safe.ps1/sh`へRun Directory preconditionを追加する。
 - [ ] 4. `collect-run-artifacts.py`へoptional working tree refreshを追加する。
 - [ ] 5. `collect-run-artifacts.ps1`へrefresh option pass-throughを追加する。Bash collector wrapperは変更しない。
-- [ ] 6. `codex-safe.ps1/sh`へexisting manifestだけを対象とする終了時sync、logging、warning、exit semanticsを実装する。
+- [ ] 6. `codex-safe.ps1/sh`へexisting manifestだけを対象とする終了時sync、absolute collector path解決、logging、warning、exit semanticsを実装する。
 - [ ] 7. `run-artifacts.md` / `codex-implementation-harness.md`を実装済みlifecycleと一致させる。
 - [ ] 8. collector / `codex-safe` contract testを追加・更新する。
 - [ ] 9. Bash / PowerShell verifyへ必要最小限のpositive checkを追加する。
@@ -272,6 +284,7 @@ actual repositoryのworking treeはテスト用に汚さない。temporary Git r
 - RunIdあり + Run Directoryなし: Codex起動前fail、directory非作成。
 - Run Directoryあり + manifestなし: Codex実行、sync skip、manifest非作成。
 - existing manifestあり: process終了後collector 1回。
+- repository配下のサブディレクトリをcurrent working directoryとして`codex-safe`を起動しても、absolute collector pathでsyncできる。
 - Codex nonzero + collector success/failure: Codex exit code優先。
 - Codex zero + collector failure: collector exit code。
 - collector child process起動失敗: Codex zeroなら1、Codex nonzeroならCodex exit code。
@@ -302,6 +315,7 @@ runtime依存caseは利用可能shellだけ実行する。
 
 - 存在しないRunIdでCodex起動前failし、Run Directoryを作らない。
 - manifestありRunでinteractive終了後に`changed_files`を同期する。
+- repository配下のサブディレクトリから起動してもcollector syncできる。
 - process exitだけで`status=completed`へ変えない。
 - manifest-less Runで`run.json`を生成しない。
 - `--no-log` / `-NoLog`でもsyncする。
@@ -316,8 +330,10 @@ runtime依存caseは利用可能shellだけ実行する。
 
 - actual Runの`run.json`直接作成・編集を促すactive instructionが残っていない。
 - new-run / codex-task / codex-safe / collectorの責務が一貫している。
+- 通常workflowの新規manifest生成は`new-run`を正規経路とし、collectorの既存fallback生成能力は壊していない。
 - 不正RunIdで不完全なRun Directoryを作らない。
 - existing manifestだけがinteractive終了時に自動同期される。
+- collector path解決がcurrent working directoryに依存しない。
 - tracked / untracked / 日本語・空白pathを`changed_files`へ安全に累積できる。
 - collector default挙動とv1/v2 compatibilityを壊していない。
 - Codex / collector exit semanticsがPowerShell / Bashで一致する。
@@ -335,7 +351,9 @@ runtime依存caseは利用可能shellだけ実行する。
 - 誤RunIdで不完全なRun Directoryを作る。
   - 対策: log path生成前にexisting Run Directoryを必須確認する。
 - manifest-less Runを勝手にmanifest化する。
-  - 対策: existing `run.json`がある場合だけcollectorを呼ぶ。
+  - 対策: existing `run.json`がある場合だけcollectorを呼ぶ。collector単体の既存fallback生成能力は変更しない。
+- collector pathがcurrent working directoryに依存してsyncできない。
+  - 対策: repository rootからabsolute collector pathを構築し、サブディレクトリ起動contractで固定する。
 - `changed_files`を失う / Git path quotingで壊す。
   - 対策: existing値とのunion、`-z` binary output、NUL分割、filesystem decodingを使用する。
 - Git refresh失敗を成功扱いする。
@@ -374,6 +392,7 @@ runtime依存caseは利用可能shellだけ実行する。
   - `.codex/hooks/log_event.mjs`
   - manifest schema / template shape
   - `codex-task`既存manifest lifecycle
+  - collector単体の既存manifest fallback生成能力
   - Product code
   - 過去Run / 過去Plan / history
 
@@ -382,6 +401,7 @@ runtime依存caseは利用可能shellだけ実行する。
 ### Follow-up notes
 
 - 今回の目的は、interactive Runにも既存machine-managed思想を適用し、actual `run.json`の手編集を不要にすることである。
+- 通常workflowの新規manifest生成は`new-run`を正規経路とするが、collector単体の既存fallback生成能力そのものは今回変更しない。
 - `Stop` Hookは低レベル観測のまま維持し、Run manifest更新triggerにはしない。
 - session中commitまで含む厳密な変更帰属が将来必要になった場合は、本件へ追加せずRun-level attributionの別taskとして扱う。
 - 本Planの実装でAssumptions / Stop conditionsが成立する限り、registry / correlation / schema変更等へscopeを広げない。
