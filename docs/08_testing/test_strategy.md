@@ -75,22 +75,22 @@ Risk mappingは既存のPhase 1重要Riskを1 Risk = 1 rowで表し、Representa
 
 | Risk / Risk label | Representative Requirement / AC | Representative Technique | Representative Perspective | Primary Test Level | Representative Formal Test / suite | CI Gate |
 |---|---|---|---|---|---|---|
-| Role・Ownership違反 | `FR-AU-*` / `FR-AD-*`、Acceptance §2 | Use Case policy + Route Guard | Role / Ownership、Security / Authorization | Unit | `tests/unit/policies.test.ts` | `Vitest (unit)` |
-| Search/Filter条件と結果件数・Pageの不一致 | `FR-PR-*`、Acceptance §3 | Repository query + deterministic tie-break | Boundary | Repository Contract | `tests/repository-contract/storefront-catalog.test.ts` | `Vitest (repository)` |
-| 商品価格・Sale・会員価格・送料の誤表示 | `FR-MO-*` / `FR-CA-*`、Acceptance §4 | PriceCalculator + Test Clock | Data / Persistence consistency | Unit | `tests/unit/pricing.test.ts` | `Vitest (unit)` |
-| 在庫の過剰販売・二重減算 | `FR-ST-*` / `FR-PY-*`、Acceptance §4 | Transaction + stock revalidation | Failure / Recovery | Application Integration | `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
-| Cart/Checkout Version不整合 | `FR-CA-*` / `FR-CH-*`、Acceptance §5 | Version / Conflict revalidation | State / Lifecycle | Application Integration | `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
-| Payment成功・失敗とOrder状態の不一致 | `FR-PY-*` / `FR-OR-*`、Acceptance §6 | Payment attempt idempotency + state transition | State / Lifecycle、Failure / Recovery | Application Integration | `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
-| Order/Shipment状態の不一致 | `FR-OR-*` / `FR-ST-*`、Acceptance §6 | Order/Shipment transaction + state transition | State / Lifecycle | Application Integration | `tests/integration/admin-operations-use-cases.test.ts` | `Vitest (integration)` |
-| Review Eligibility・Summary・評価分布不整合 | `FR-RV-*` / `FR-PR-017`、Acceptance §7 | Eligibility + summary delta | State / Lifecycle、Data / Persistence consistency | Application Integration | `tests/integration/review-user-use-cases.test.ts` | `Vitest (integration)` |
-| Product Aggregate、SKU、画像Asset関連の部分保存・誤削除 | `FR-PR-*` / `FR-AD-*`、Acceptance §3 | Aggregate transaction + asset/stock boundary | Data / Persistence consistency、Boundary | Application Integration | `tests/integration/admin-product-use-cases.test.ts` | `Vitest (integration)` |
-| Guest Cart統合・Checkout Session再開の不整合 | `FR-CA-*` / `FR-CH-*` / `FR-AU-*`、Acceptance §2・4・5 | Cart merge + Checkout resume | State / Lifecycle、Failure / Recovery | Application Integration | `tests/integration/auth-account.test.ts` + `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
-| Admin Bulk Action・未保存変更の誤操作 | FR-AD-*、Acceptance §8 | Dirty-state guard + bounded bulk action | Boundary、UX / Visual acceptance | Component | `tests/component/admin-product-pages.test.tsx` | `Vitest (component)` |
-| Keyboard、Focus、Mobile Layoutによる操作不能 | `NFR-AX-*` / `NFR-CP-*`、Acceptance §10 | Keyboard/axe + responsive boundary | Accessibility、Responsive / Mobile Web | Web E2E | `e2e/web/accessibility.spec.ts` + `e2e/web/mobile-boundary.spec.ts` | `e2e-chromium / accessibility` + `mobile-boundary` |
-| IndexedDB DataとUIの再読込不整合 | `NFR-RL-*` / `FR-TC-*`、Acceptance §3・5・9 | Fixed Read-only Inspection + reload | State / Lifecycle、Data / Persistence consistency | Web E2E | `e2e/web/phase1-required.spec.ts` | `e2e-chromium / required` |
-| boolean/null IndexedDB Index Keyの不正利用 | NFR-RL-011 / FR-PR-041/050、Acceptance §1 | Persistence projection + unique/index contract | Data / Persistence consistency | Repository Contract | `tests/repository-contract/repositories.test.ts` | `Vitest (repository)` |
-| Password Hash/Seed認証契約の不一致 | `NFR-SC-*` / `FR-AU-*`、Acceptance §2 | PBKDF2 format/verify + seed hash | Security / Authorization | Unit | `tests/unit/password-hasher.test.ts` | `Vitest (unit)` |
-| Admin QueryのPage/Filter/Sort不一致 | FR-AD-* / NFR-MA-011、Acceptance §8 | Repository query Page/Filter/Sort | Boundary | Application Integration | `tests/integration/admin-operations-use-cases.test.ts` | `Vitest (integration)` |
+| Role・Ownership違反 | `FR-AU-*` / `FR-AD-*`、Acceptance §2 | Decision Table | Role / Ownership、Security / Authorization | Unit | `tests/unit/policies.test.ts` | `Vitest (unit)` |
+| Search/Filter条件と結果件数・Pageの不一致 | `FR-PR-*`、Acceptance §3 | — | Boundary | Repository Contract | `tests/repository-contract/storefront-catalog.test.ts` | `Vitest (repository)` |
+| 商品価格・Sale・会員価格・送料の誤表示 | `FR-MO-*` / `FR-CA-*`、Acceptance §4 | Boundary Value Analysis | Data / Persistence consistency | Unit | `tests/unit/pricing.test.ts` | `Vitest (unit)` |
+| 在庫の過剰販売・二重減算 | `FR-ST-*` / `FR-PY-*`、Acceptance §4 | State Transition | Failure / Recovery | Application Integration | `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
+| Cart/Checkout Version不整合 | `FR-CA-*` / `FR-CH-*`、Acceptance §5 | State Transition | State / Lifecycle | Application Integration | `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
+| Payment成功・失敗とOrder状態の不一致 | `FR-PY-*` / `FR-OR-*`、Acceptance §6 | State Transition | State / Lifecycle、Failure / Recovery | Application Integration | `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
+| Order/Shipment状態の不一致 | `FR-OR-*` / `FR-ST-*`、Acceptance §6 | State Transition | State / Lifecycle | Application Integration | `tests/integration/admin-operations-use-cases.test.ts` | `Vitest (integration)` |
+| Review Eligibility・Summary・評価分布不整合 | `FR-RV-*` / `FR-PR-017`、Acceptance §7 | State Transition | State / Lifecycle、Data / Persistence consistency | Application Integration | `tests/integration/review-user-use-cases.test.ts` | `Vitest (integration)` |
+| Product Aggregate、SKU、画像Asset関連の部分保存・誤削除 | `FR-PR-*` / `FR-AD-*`、Acceptance §3 | Decision Table | Data / Persistence consistency、Boundary | Application Integration | `tests/integration/admin-product-use-cases.test.ts` | `Vitest (integration)` |
+| Guest Cart統合・Checkout Session再開の不整合 | `FR-CA-*` / `FR-CH-*` / `FR-AU-*`、Acceptance §2・4・5 | Scenario / Use-case | State / Lifecycle、Failure / Recovery | Application Integration | `tests/integration/auth-account.test.ts` + `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
+| Admin Bulk Action・未保存変更の誤操作 | FR-AD-*、Acceptance §8 | Decision Table | Boundary、UX / Visual acceptance | Component | `tests/component/admin-product-pages.test.tsx` | `Vitest (component)` |
+| Keyboard、Focus、Mobile Layoutによる操作不能 | `NFR-AX-*` / `NFR-CP-*`、Acceptance §10 | Not primary | Accessibility、Responsive / Mobile Web | Web E2E | `e2e/web/accessibility.spec.ts` + `e2e/web/mobile-boundary.spec.ts` | `e2e-chromium / accessibility` + `mobile-boundary` |
+| IndexedDB DataとUIの再読込不整合 | `NFR-RL-*` / `FR-TC-*`、Acceptance §3・5・9 | Not primary | State / Lifecycle、Data / Persistence consistency | Web E2E | `e2e/web/phase1-required.spec.ts` | `e2e-chromium / required` |
+| boolean/null IndexedDB Index Keyの不正利用 | NFR-RL-011 / FR-PR-041/050、Acceptance §1 | — | Data / Persistence consistency | Repository Contract | `tests/repository-contract/repositories.test.ts` | `Vitest (repository)` |
+| Password Hash/Seed認証契約の不一致 | `NFR-SC-*` / `FR-AU-*`、Acceptance §2 | Not primary | Security / Authorization | Unit | `tests/unit/password-hasher.test.ts` | `Vitest (unit)` |
+| Admin QueryのPage/Filter/Sort不一致 | FR-AD-* / NFR-MA-011、Acceptance §8 | Decision Table | Boundary | Application Integration | `tests/integration/admin-operations-use-cases.test.ts` | `Vitest (integration)` |
 
 ## 5. Unit重点
 

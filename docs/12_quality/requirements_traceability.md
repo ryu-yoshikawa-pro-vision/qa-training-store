@@ -25,14 +25,14 @@ Phase 1ではRequirement Group単位でUse Case、Data、Screen、Test Suite、�
 | Requirement | 設計 | Representative Verification |
 |---|---|---|
 | NFR-PE-* | Search/Facet、画像、UI/Repository設計 | many-products Benchmarkの記録・退行比較（Release Gateに固定時間を置かない） |
-| NFR-RL-* | Transaction、Version、UI状態復元 | `tests/repository-contract/repositories.test.ts` — Dexie repository contracts; `tests/integration/checkout-order-use-cases.test.ts` — checkout and customer order application integration; `e2e/web/phase1-required.spec.ts` |
-| NFR-CP-* | Responsive、Browser Project | `e2e/web/mobile-boundary.spec.ts` — Catalog filter responsive boundary; `e2e-chromium / mobile-boundary` |
-| NFR-MA-* | Layer、Interface、Content Dictionary | `pnpm run lint`; `tests/contracts/architecture.test.ts` — architecture boundaries; `tests/contracts/ci-workflow.test.ts` — Phase 1 CI deployment boundaries |
-| NFR-TS-* | Seed/Reset/Clock/Artifact | `tests/contracts/test-api.test.ts` — web test API build boundary; `e2e/web/fixtures.ts` — scenario reset fixture |
-| NFR-AX-* | UI/Design System/Page Pattern | `e2e/web/accessibility.spec.ts` — Accessibility smoke; `tests/component/presentation-foundation.test.tsx` |
-| NFR-UX-* | Storefront/Admin Pattern、Content | `e2e/web/ui-ux-improvements.spec.ts` — UI/UX improvement flows A-J; `ui-review-*` project |
-| NFR-SC-* | Authorization、Mask、Test API | `tests/unit/policies.test.ts` — permission policies; `tests/unit/password-hasher.test.ts` — PBKDF2 password hasher contract; `tests/contracts/test-api.test.ts` |
-| NFR-OP-* | Cloudflare、Version | `e2e/web/smoke.spec.ts` — public storefront smoke; `production-smoke` / deployed smoke |
+| NFR-RL-* | Transaction、Version、UI状態復元 | `tests/repository-contract/repositories.test.ts` — Dexie repository contracts; `tests/integration/checkout-order-use-cases.test.ts` — checkout and customer order application integration; `e2e/web/phase1-required.spec.ts` — order and persistence recovery flow |
+| NFR-CP-* | Responsive、Browser Project | `e2e/web/mobile-boundary.spec.ts` — responsive / mobile boundary verification |
+| NFR-MA-* | Layer、Interface、Content Dictionary | `tests/contracts/architecture.test.ts` — architecture boundary verification; static quality checks |
+| NFR-TS-* | Seed/Reset/Clock/Artifact | `tests/contracts/test-api.test.ts` — web test API build boundary; `e2e/web/fixtures.ts` — deterministic scenario reset fixture |
+| NFR-AX-* | UI/Design System/Page Pattern | `e2e/web/accessibility.spec.ts` — Accessibility smoke; `tests/component/presentation-foundation.test.tsx` — presentation accessibility components |
+| NFR-UX-* | Storefront/Admin Pattern、Content | `e2e/web/ui-ux-improvements.spec.ts` — UI/UX E2E flows A-J; `e2e/web/ui-review.spec.ts` — screenshot UI review |
+| NFR-SC-* | Authorization、Mask、Test API | `tests/unit/policies.test.ts` — permission policies; `tests/unit/password-hasher.test.ts` — password hashing contract; `tests/contracts/test-api.test.ts` — Test API exposure boundary |
+| NFR-OP-* | Cloudflare、Version | `e2e/web/smoke.spec.ts` — public storefront smoke; deployed smoke verification |
 
 ## 4. Test ID / Mapping label taxonomy
 
@@ -77,23 +77,23 @@ Current codeは下表のlabel自体をtest titleへ埋め込んでいないた�
 | UT-CATALOG-001 | FR-PR-002～005/018/034/044～055 | suite-level | `tests/repository-contract/storefront-catalog.test.ts` — storefront catalog repository contract | Viewer価格、Facet、Sort tie-break、新着順、在庫切れ公開商品のHome包含 |
 | CT-PRODUCT-002 | FR-PR-054 | exact-title | `tests/integration/admin-product-use-cases.test.ts` — `creates a draft aggregate, zero summary, and INITIAL_STOCK in one clock` | 商品Aggregate内の単一Clock時刻伝播 |
 | UT-PRICE-001 | FR-MO-*、FR-CA-015 | suite-level | `tests/unit/pricing.test.ts` — pricing policy | Sale適用後・会員割引前Snapshot、SKU単価ごとのfloor、明細割引合計 |
-| CT-DB-KEY-001 | NFR-RL-011、FR-PR-041/050 | exact-title | `tests/repository-contract/repositories.test.ts` — `enforces unique keys and persistence projection consistency` | Dexieのboolean/null Key投影、名称・Code/SKU正規化、重複制約 |
-| CT-TX-001 | FR-AU-011/012/014、FR-ST-009、FR-PY-012 | suite-level | `tests/integration/auth-account.test.ts` — auth and account application integration; `tests/integration/checkout-order-use-cases.test.ts` — checkout and customer order application integration | Login、Rank変更、User Access、在庫履歴のRollback |
-| CT-ADMIN-Q-001 | FR-AD-003/014/016、NFR-MA-011 | exact-title | `tests/integration/admin-operations-use-cases.test.ts` — `searches orders by customer, status, period, total, sort, and page` | Admin全一覧QueryのPage/Filter/Sort、商品在庫Filterのactive SKU合計判定 |
-| CT-CATEGORY-001 | FR-PR-035/047～049 | exact-title | `tests/integration/admin-master-use-cases.test.ts` — `blocks deactivation referenced by a published product without changing the category` | 1階層Category、手動表示順、公開商品参照中の無効化拒否、Brand名称順固定 |
-| CT-CATEGORY-002 | FR-PR-055 | exact-title | `tests/integration/admin-master-use-cases.test.ts` — `creates categories at the end and reorders every ID in steps of ten` | 新規Categoryの末尾sortOrder決定と同一Transaction作成 |
-| CT-CART-ID-001 | FR-CA-017 | suite-level | `tests/repository-contract/cart-mutations.test.ts` — cart mutation repository contract; `tests/integration/cart-use-cases.test.ts` — cart application integration | 新規itemId生成と既存itemId維持 |
+| CT-DB-KEY-001 | NFR-RL-011、FR-PR-041/050 | exact-title | `tests/repository-contract/repositories.test.ts` — `enforces unique keys and persistence projection consistency` | Dexieのunique keyとpersistence projection consistency |
+| CT-TX-001 | FR-PY-012 | suite-level | `tests/contracts/transactions.test.ts` — application transaction contracts | Product Aggregate、Order/Payment/Shipment、Review集計のTransaction原子性とRollback |
+| CT-ADMIN-Q-001 | FR-AD-003/014/016、NFR-MA-011 | suite-level | `tests/integration/admin-operations-use-cases.test.ts` — admin inventory, order, and shipment integration | Admin Order検索のFilter/Sort/PageとSKU在庫Filter |
+| CT-CATEGORY-001 | FR-PR-035/047～049 | suite-level | `tests/integration/admin-master-use-cases.test.ts` — admin overview and master application integration | 1階層Category、手動表示順、公開商品参照中の無効化拒否、Brand名称順固定 |
+| CT-CATEGORY-002 | FR-PR-055 | exact-title | `tests/integration/admin-master-use-cases.test.ts` — `creates categories at the end and reorders every ID in steps of ten` | 新規Categoryの末尾sortOrder決定と全IDの表示順再構成 |
+| CT-CART-ID-001 | FR-CA-017 | suite-level | `tests/integration/cart-use-cases.test.ts` — cart application integration | Cart追加時の新規明細ID生成と既存明細再利用 |
 | CT-CART-002 | FR-CA-018 | exact-title | `tests/repository-contract/cart-mutations.test.ts` — `atomically creates the first cart/item and increments the parent once` | 初回Cart追加のowner解決、active Cart取得/作成、Version不要の原子的加算 |
-| CT-AUTH-001 | NFR-SC-008、FR-AU-001/005/013 | suite-level | `tests/unit/password-hasher.test.ts` — PBKDF2 password hasher contract; `tests/integration/auth-account.test.ts` — auth and account application integration | Email正規化、PBKDF2、Seed Hash、Login照合 |
+| CT-AUTH-001 | NFR-SC-008、FR-AU-001/005/013 | suite-level | `tests/integration/auth-account.test.ts` — auth and account application integration | Email正規化、Seed User Login、Register後のPassword照合 |
 | CT-ORDER-SNAP-001 | FR-MO-006 | exact-title | `tests/integration/checkout-order-use-cases.test.ts` — `creates consistent snapshots and decrements stock exactly once after success` | Order Item画像とOrder金額Snapshot |
 | CT-PAY-IDEMP-001 | FR-PY-010/013、NFR-RL-012 | suite-level | `tests/integration/checkout-order-use-cases.test.ts` — checkout and customer order application integration | Payment再開・競合後の完了結果返却 |
-| UT-REVIEW-SUM-001 | FR-PR-017、FR-RV-006/007 | suite-level | `tests/unit/reviews.test.ts` — review summary | Review平均の未丸め保存、表示丸め、Sort・Filter境界 |
-| CP-FORM-001 | NFR-AX-001/007、NFR-MA-012 | exact-title | `tests/component/presentation-foundation.test.tsx` — `focuses an error summary and links each message to its field` | 共有入力上限、Error Summary、fieldErrors |
-| WE-TEST-INSP-001 | FR-TC-008、NFR-TS-007 | suite-level | `tests/contracts/test-api.test.ts` — web test API build boundary; `e2e/web/fixtures.ts` — scenario reset fixture | 固定Read-only Inspectionのみ公開 |
+| UT-REVIEW-SUM-001 | FR-PR-017、FR-RV-006/007 | suite-level | `tests/unit/reviews.test.ts` — review summary | Review平均の未丸め保存、表示丸め、評価分布Delta |
+| CP-FORM-001 | NFR-AX-001/007 | exact-title | `tests/component/presentation-foundation.test.tsx` — `focuses an error summary and links each message to its field` | Error SummaryへのFocusとfieldErrorsの各field link |
+| WE-TEST-INSP-001 | FR-TC-008、NFR-TS-007 | exact-title | `tests/integration/seeds.test.ts` — `limits mutable controls and returns fixed inspection DTOs` | 固定Read-only Inspection DTOのみ公開 |
 | CT-ADDRESS-001 | FR-AU-006/010/016 | exact-title | `tests/integration/auth-account.test.ts` — `keeps exactly one default address and deterministically reassigns it` | 初回Default、Default切替、削除時後継選択 |
-| CT-RESET-001 | FR-TC-001/006/009 | suite-level | `tests/component/review-user-pages.test.tsx` — review, user, and test-control pages; `e2e/web/fixtures.ts` — scenario reset fixture | DB、Session、Guest IdentityとSeed Guest IDを一連のReset手順で決定的に初期化 |
-| CT-BOUNDARY-001 | FR-AR-001～004、NFR-MA-020～023 | suite-level | `tests/contracts/test-api.test.ts` — web test API build boundary; `tests/contracts/architecture.test.ts` — architecture boundaries | Request/Command境界、Build Manifest、Order Read DTO、Reset制約 |
-| CT-ACTION-VERSION-001 | FR-AU-006、FR-CH-020、FR-PY-008、FR-OR-005～007、FR-RV-004 | suite-level | `tests/integration/checkout-order-use-cases.test.ts` — checkout and customer order application integration; `tests/integration/admin-operations-use-cases.test.ts` — admin inventory, order, and shipment integration | Profile/Checkout/Order/ReviewのAction Version受け渡し |
+| CT-RESET-001 | FR-TC-001/006/009 | exact-title | `tests/integration/seeds.test.ts` — `resets the database and restores only the seed identities` | DB、Session、Guest IdentityとSeed Guest IDを一連のReset手順で決定的に初期化 |
+| CT-BOUNDARY-001 | FR-AR-001～004、NFR-MA-020～023 | suite-level | `tests/contracts/architecture.test.ts` — architecture boundaries | Application/Infrastructure、Native/Web、Native Test Controlの依存・公開境界 |
+| CT-ACTION-VERSION-001 | FR-AU-006、FR-CH-020、FR-PY-008、FR-OR-005～007、FR-RV-004 | suite-level | `tests/integration/checkout-order-use-cases.test.ts` — checkout and customer order application integration | Checkout/Payment/OrderのAction Version受け渡しと再取得 |
 | CT-CLOCK-CATALOG-001 | FR-PR-053 | exact-title | `tests/integration/catalog-use-cases.test.ts` — `uses the half-open sale end from Test Clock` | Test ClockによるCatalog/Sale判定 |
 | CT-ORDER-PRICE-001 | FR-CH-020 | exact-title | `tests/integration/checkout-order-use-cases.test.ts` — `does not create an order when price or rank revalidation fails` | 注文作成Txの価格再検証とRollback |
 

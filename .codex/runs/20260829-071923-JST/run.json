@@ -26,13 +26,16 @@
       {"command": "pnpm run test:contracts", "status": "failed", "notes": "1回目: 31 files中30 PASS、456 tests中454 PASS、codex-hook-contract.test.tsの2 timeout"},
       {"command": "pnpm run test:contracts", "status": "failed", "notes": "2回目: 31 files中30 PASS、456 tests中455 PASS、codex-hook-contract.test.tsの1 timeout"},
       {"command": "pnpm run test:contracts", "status": "failed", "notes": "3回目: 31 files中29 PASS、456 tests中454 PASS、codex-hook-contract.test.tsとandroid-visual-capture-batch.test.tsの各1 timeout"},
+      {"command": "pnpm run test:contracts", "status": "passed", "notes": "repair後の検証。31 files / 456 tests、Duration 206.56s"},
+      {"command": "pnpm run test:contracts", "status": "failed", "notes": "commit前検証。31 files中30 PASS、456 tests中455 PASS。codex-hook-contract.test.tsの`executes every common-policy representative from the Hook matrix`が15秒timeout。Assertion / Contract mismatchではない"},
       {"command": "pnpm exec vitest run tests/contracts --no-file-parallelism --maxWorkers=1 --pool=threads", "status": "passed", "notes": "31 files / 456 tests"},
       {"command": "git diff --check", "status": "passed"},
-      {"command": "manual cross-check / IMPLEMENTATION_BASE_SHA scope check", "status": "passed", "notes": "Risk 16、WE-CORE 12、lower label 22、post-base unexpected 0"},
+      {"command": "manual cross-check / repair Finding verification", "status": "passed", "notes": "Risk 16のTechnique、下位label 22のDisposition（exact-title 11 / suite-level 11 / stop 0）、NFR SSOT、exact title、単一file参照を確認"},
+      {"command": "IMPLEMENTATION_BASE_SHA scope check", "status": "passed", "notes": "full implementation deltaは許可された2文書とactive implementation Runのみ。repair working-tree deltaも同じ許可scope内"},
       {"command": "causal determination / direct dependency diff check", "status": "passed", "notes": "timeout対象と直接依存にbaseからの変更なし、docs参照なし、Assertion failureなし"},
-      {"command": "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-071923-JST -Write -Check", "status": "passed", "notes": "4 files scanned / residual findings 0"}
+      {"command": "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-071923-JST -Write -Check", "status": "passed", "notes": "repair後の最終Write / Check。4 files scanned、files changed 0、replacements 0、residual findings 0"}
     ],
-    "warnings": ["Required validation is inconclusive due to pre-existing/environment-sensitive timeout: required pnpm run test:contractsは3回FAIL。alternate poolは全PASSだがrequired gateの代替として扱わない。"]
+    "warnings": ["commit前required pnpm run test:contractsはenvironment-sensitive timeoutでinconclusive。追加retry、timeout変更、test / workflow変更は行わず、現ユーザー指示に従いrepair済みHEADをPR-triggered CIへ送るためcommit / pushする。finalizationはPR CI / re-review待ち。"]
   },
   "safety": {
   "network": true,
@@ -43,6 +46,6 @@
     "evaluation_present": false
   },
   "evaluation_path": null,
-  "status": "completed",
+  "status": "blocked",
   "primary_failure_category": "flaky_or_env_issue"
 }

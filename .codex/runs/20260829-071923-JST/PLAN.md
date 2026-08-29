@@ -84,3 +84,11 @@
 - 2026-08-29 07:16 JST: Plan-only gate（format、Markdown lint、spec、contracts、diff、existing Run Sanitizer）を完了した。
 - 2026-08-29 07:19 JST: `IMPLEMENTATION_BASE_SHA=fe07e6af99d60a2e5b56504a27df6feb3973ae01`を取得し、active implementation Run `20260829-071923-JST`を初期化した。
 - 2026-08-29 07:31 JST: 2文書をchild Plan §5に従って実装し、Risk 16行、WE-CORE 12件、下位label 22件のCurrent evidence接続を確認した。PR 1 follow-up（RA-M1 / M2 / M3 / M5 / M6 / CUR-M9）とmanual cross-checkは完了した。
+
+## Repair iteration 1 judgment
+
+- 2026-08-29 09:59 JST: implementation reviewの4件のvalid Findingを`must_fix`としてbounded repairへ分類した。Writable scopeは`docs/08_testing/test_strategy.md`、`docs/12_quality/requirements_traceability.md`、active implementation Runだけに限定した。
+- 2026-08-29 09:59 JST: Current test intentを再確認し、Risk 16行のTechniqueを実在するテスト設計技法（Decision Table、Boundary Value Analysis、State Transition、Scenario / Use-case）または`—` / `Not primary`へ整理した。実装機構、testability機構、oracle、verification targetはTechnique欄から除去した。
+- 2026-08-29 09:59 JST: Current下位Traceability 22 labelを再監査した。`exact-title` 9件、`suite-level` 13件、`stop` 0件で、suite-levelは各1 file / suiteに限定した。複数file参照、存在しないtest、title不一致は残していない。
+- 2026-08-29 09:59 JST: NFR GroupのRepresentative Verificationからpackage command、Playwright project、workflow job / matrix legのvolatileな重複を除去し、検証責務と代表file / suiteだけを残した。WE-CORE / execution境界のCurrent説明はchild Planの責務に従い維持した。
+- 2026-08-29 10:19 JST: Dispositionを追加精査し、`CT-DB-KEY-001`と`CT-RESET-001`を1つの既存exact titleで代表できる`exact-title`へ再分類した。下位labelの最終件数は`exact-title` 11、`suite-level` 11、`stop` 0。
