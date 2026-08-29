@@ -1,4 +1,5 @@
 import Dexie from "dexie";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { CurrentSessionStore, GuestIdentityStore, IdGenerator } from "@/application/ports";
 import { AccountUseCases } from "@/application/use-cases/account-use-cases";
 import { AuthUseCases } from "@/application/use-cases/auth-use-cases";
@@ -229,6 +230,54 @@ describe("auth and account application integration", () => {
     await auth.logout();
     expect(sessionStore.value).toBeNull();
     expect(await database.sessions.get("new-session")).toBeUndefined();
+  });
+
+  it("enforces shared input limits at Registration and Profile application boundaries", async () => {
+    const auth = createAuth(["limit-user", "limit-session", "limit-cart"]);
+    await expect(
+      auth.register({
+        email: "limits-password@example.com",
+        password: "x".repeat(INPUT_LIMITS.passwordMax + 1),
+        displayName: "有効な表示名",
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { password: "validation.password.length" },
+    });
+    await expect(
+      auth.register({
+        email: `${"a".repeat(INPUT_LIMITS.email)}@example.com`,
+        password: "secure-pass",
+        displayName: "有効な表示名",
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { email: "validation.email" },
+    });
+
+    const result = await auth.register({
+      email: "limits@example.com",
+      password: "x".repeat(INPUT_LIMITS.passwordMax),
+      displayName: "x".repeat(INPUT_LIMITS.displayName),
+    });
+    expect(result.user.displayName).toHaveLength(INPUT_LIMITS.displayName);
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator([]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    await expect(
+      account.updateProfile({
+        displayName: "x".repeat(INPUT_LIMITS.displayName + 1),
+        phone: null,
+        actionVersion: result.user.actionVersion,
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { displayName: "validation.displayName" },
+    });
   });
 
   it("keeps exactly one default address and deterministically reassigns it", async () => {

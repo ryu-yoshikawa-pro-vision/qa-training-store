@@ -1,9 +1,10 @@
-import type {
-  AddressSuggestion,
-  CreateAddressRequest,
-  DeleteAddressRequest,
-  UpdateAddressRequest,
-  UpdateProfileRequest,
+import {
+  INPUT_LIMITS,
+  type AddressSuggestion,
+  type CreateAddressRequest,
+  type DeleteAddressRequest,
+  type UpdateAddressRequest,
+  type UpdateProfileRequest,
 } from "@/application/contracts";
 import { validationError } from "@/application/errors";
 import type {
@@ -53,7 +54,7 @@ export class AccountUseCases {
     const displayName = request.displayName.trim();
     const phone = request.phone?.replace(/\D/g, "") || null;
     const fieldErrors: Record<string, string> = {};
-    if (displayName.length === 0 || displayName.length > 100) {
+    if (displayName.length === 0 || displayName.length > INPUT_LIMITS.displayName) {
       fieldErrors.displayName = "validation.displayName";
     }
     if (phone !== null && !/^\d{10,11}$/.test(phone)) {

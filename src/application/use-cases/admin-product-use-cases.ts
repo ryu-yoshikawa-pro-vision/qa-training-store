@@ -28,6 +28,7 @@ import type {
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import type { MembershipRank, ProductReviewSummary } from "@/domain/contracts";
 import { effectiveUnitPrice, viewerUnitPrice } from "@/domain/services/pricing";
+import { normalizeCode } from "@/domain/services/normalization";
 import type {
   AdminProductQueryRepository,
   BrandRepository,
@@ -178,7 +179,7 @@ export class AdminProductUseCases {
         })),
         updateVariants: request.updateVariants.map((variant) => ({
           id: variant.variantId,
-          sku: variant.sku.trim(),
+          sku: normalizeCode(variant.sku),
           optionValue: variant.optionValue?.trim() || null,
           regularPrice: variant.regularPrice,
           salePrice: variant.salePrice,
@@ -582,7 +583,7 @@ function previewPublishabilityIssues(input: {
 
 function withoutClientKey(variant: ProductVariantCreateRequest) {
   return {
-    sku: variant.sku.trim(),
+    sku: normalizeCode(variant.sku),
     optionValue: variant.optionValue?.trim() || null,
     regularPrice: variant.regularPrice,
     salePrice: variant.salePrice,
@@ -607,7 +608,7 @@ function normalizedProduct<
 >(product: T): T {
   return {
     ...product,
-    productCode: product.productCode.trim(),
+    productCode: product.productCode.trim().length === 0 ? "" : normalizeCode(product.productCode),
     name: product.name.trim(),
     shortDescription: product.shortDescription.trim(),
     description: product.description.trim(),

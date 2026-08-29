@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { INPUT_LIMITS } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import type { UserAddress } from "@/domain/contracts";
 
@@ -198,6 +199,46 @@ describe("auth and account pages", () => {
       "aria-invalid",
       "true",
     );
+    expect(auth.register).not.toHaveBeenCalled();
+  });
+
+  it("uses shared Signup limits for controls and rejects an over-limit display name", async () => {
+    render(<SignupPage />);
+    expect(screen.getByLabelText("メールアドレス")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.email),
+    );
+    expect(screen.getByLabelText("表示名")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.displayName),
+    );
+    expect(screen.getByLabelText("パスワード")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.passwordMax),
+    );
+    expect(screen.getByLabelText("パスワード（確認）")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.passwordMax),
+    );
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "limits@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("表示名"), {
+      target: { value: "x".repeat(INPUT_LIMITS.displayName + 1) },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "secure-pass" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード（確認）"), {
+      target: { value: "secure-pass" },
+    });
+    fireEvent.click(screen.getByLabelText("学習用環境の注意事項を確認しました"));
+    fireEvent.click(screen.getByRole("button", { name: "登録する" }));
+    expect(
+      await screen.findByRole("link", {
+        name: `表示名は${INPUT_LIMITS.displayName}文字以下で入力してください`,
+      }),
+    ).toHaveAttribute("href", "#displayName");
     expect(auth.register).not.toHaveBeenCalled();
   });
 

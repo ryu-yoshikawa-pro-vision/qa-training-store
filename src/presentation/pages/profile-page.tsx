@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "expo-router";
 import { useForm } from "react-hook-form";
-import type { CurrentUserDto } from "@/application/contracts";
+import { INPUT_LIMITS, type CurrentUserDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { AccountNavigation } from "@/presentation/components/account-navigation";
@@ -113,7 +113,11 @@ function ProfileContent() {
         })}
       >
         <label htmlFor="displayName">表示名</label>
-        <input id="displayName" maxLength={100} {...register("displayName", { required: true })} />
+        <input
+          id="displayName"
+          maxLength={INPUT_LIMITS.displayName}
+          {...register("displayName", { required: true })}
+        />
         <label htmlFor="phone">電話番号（任意）</label>
         <input id="phone" inputMode="tel" placeholder="09000000000" {...register("phone")} />
         <p className="field-help">配送連絡に使用するテスト用番号を入力してください。</p>

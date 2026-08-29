@@ -3,6 +3,7 @@ import { Link, useRouter, type Href } from "expo-router";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { INPUT_LIMITS } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import { content } from "@/presentation/content/dictionary";
 import { FormErrorSummary } from "@/presentation/components/form-error-summary";
@@ -24,17 +25,28 @@ const loginSchema = z.object({
 
 const signupSchema = z
   .object({
-    email: z.email("メールアドレスの形式で入力してください"),
+    email: z
+      .email("メールアドレスの形式で入力してください")
+      .max(INPUT_LIMITS.email, `メールアドレスは${INPUT_LIMITS.email}文字以下で入力してください`),
     password: z
       .string()
-      .min(8, "パスワードは8文字以上で入力してください")
-      .max(72, "パスワードは72文字以下で入力してください"),
+      .min(
+        INPUT_LIMITS.passwordMin,
+        `パスワードは${INPUT_LIMITS.passwordMin}文字以上で入力してください`,
+      )
+      .max(
+        INPUT_LIMITS.passwordMax,
+        `パスワードは${INPUT_LIMITS.passwordMax}文字以下で入力してください`,
+      ),
     confirmation: z.string(),
     displayName: z
       .string()
       .trim()
       .min(1, "表示名を入力してください")
-      .max(100, "表示名は100文字以下で入力してください"),
+      .max(
+        INPUT_LIMITS.displayName,
+        `表示名は${INPUT_LIMITS.displayName}文字以下で入力してください`,
+      ),
     noticeAccepted: z.boolean().refine((value) => value, "学習用環境の注意事項を確認してください"),
   })
   .refine((value) => value.password === value.confirmation, {
@@ -254,6 +266,7 @@ export function SignupPage() {
             id="email"
             type="email"
             autoComplete="email"
+            maxLength={INPUT_LIMITS.email}
             aria-invalid={errors.email !== undefined}
             {...register("email")}
           />
@@ -261,6 +274,7 @@ export function SignupPage() {
           <input
             id="displayName"
             autoComplete="name"
+            maxLength={INPUT_LIMITS.displayName}
             aria-invalid={errors.displayName !== undefined}
             {...register("displayName")}
           />
@@ -269,6 +283,7 @@ export function SignupPage() {
             id="password"
             type="password"
             autoComplete="new-password"
+            maxLength={INPUT_LIMITS.passwordMax}
             aria-invalid={errors.password !== undefined}
             {...register("password")}
           />
@@ -277,6 +292,7 @@ export function SignupPage() {
             id="confirmation"
             type="password"
             autoComplete="new-password"
+            maxLength={INPUT_LIMITS.passwordMax}
             aria-invalid={errors.confirmation !== undefined}
             {...register("confirmation")}
           />

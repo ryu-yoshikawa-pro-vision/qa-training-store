@@ -1,8 +1,9 @@
-import type {
-  CurrentUserDto,
-  LoginRequest,
-  LoginResult,
-  RegisterUserRequest,
+import {
+  INPUT_LIMITS,
+  type CurrentUserDto,
+  type LoginRequest,
+  type LoginResult,
+  type RegisterUserRequest,
 } from "@/application/contracts";
 import { ApplicationError, validationError } from "@/application/errors";
 import type {
@@ -220,13 +221,22 @@ export class AuthUseCases {
 
   private validateRegistration(request: RegisterUserRequest, normalizedEmail: string): void {
     const fieldErrors: Record<string, string> = {};
-    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalizedEmail)) {
+    if (
+      normalizedEmail.length > INPUT_LIMITS.email ||
+      !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(normalizedEmail)
+    ) {
       fieldErrors.email = "validation.email";
     }
-    if (request.password.length < 8 || request.password.length > 72) {
+    if (
+      request.password.length < INPUT_LIMITS.passwordMin ||
+      request.password.length > INPUT_LIMITS.passwordMax
+    ) {
       fieldErrors.password = "validation.password.length";
     }
-    if (request.displayName.trim().length === 0 || request.displayName.trim().length > 100) {
+    if (
+      request.displayName.trim().length === 0 ||
+      request.displayName.trim().length > INPUT_LIMITS.displayName
+    ) {
       fieldErrors.displayName = "validation.displayName";
     }
     if (Object.keys(fieldErrors).length > 0) {
