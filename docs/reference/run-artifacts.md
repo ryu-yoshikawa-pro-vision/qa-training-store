@@ -32,6 +32,8 @@ Both are validated by schema / validator.
 ### `run.json`
 
 - run 全体の aggregate manifest です。
+- actual `.codex/runs/<run_id>/run.json` は常にmachine-managedです。Agentは通常workflowでもmanifest writer / collectorの実装タスクでも直接作成・直接編集せず、temporary test fixtureだけを例外とします。
+- 通常workflowの新規manifestは `scripts/new-run.ps1|sh`、非対話更新は `codex-task --record-run-manifest`、interactive更新は `codex-safe -RunId`／`--run-id`終了時のcollectorを正規経路とします。
 - 複数の `codex-task` report JSON を参照できます。
 - 新規manifestはschema v2とし、task type、workflow level、preset、runtime、changed files、validation summary、`safety.network` / `safety.scope_violation`、evaluation pathを保持します。
 - v2の`artifact_summary`は`codex_task_report_count`と`evaluation_present`だけをsummaryします。
@@ -43,6 +45,14 @@ Both are validated by schema / validator.
 - `run.json.evaluation_path` は `evaluation.json` への summary link です。
 - `run.json.primary_failure_category` は valid な `evaluation.json.primary_failure_category` からだけコピーされる summary field です。
 - `scripts/collect-run-artifacts.sh` / `scripts/collect-run-artifacts.ps1` は on-disk artifact を再走査し、`run.json` summary を再集約できます。
+
+### Interactive `codex-safe` manifest sync
+
+- active Runに紐づくinteractive実行では、current active Runの `RunId` を `codex-safe -RunId`／`--run-id` で明示します。`RunId`省略はactive Runに紐づかないad-hoc interactive実行に限り、manifest syncを行いません。wrapperはRunIdを自動探索・推測・環境変数伝播しません。
+- RunId指定時は、ログdirectoryを作る前に `.codex/runs/<run_id>/` の存在を確認します。存在しない場合はCodexを起動せず、Run Directoryやlogsも作りません。
+- Run Directoryがあっても `run.json` がない場合はCodexを実行しますが、manifestを生成せず、終了時collectorを呼びません。既存 `run.json` がある場合だけ、Codex process終了後にcollectorをrefresh付きで1回実行します。
+- `--refresh-git-changed-files` は `git diff --name-only --relative -z HEAD --` と `git ls-files --others --exclude-standard -z` からtracked／untracked pathを取得します。既存 `changed_files` はcleanupせず保持し、新規観測pathだけ `.codex/runs/**` を除外してunionします。`run.json.status`は変更しません。
+- Codex process終了や `Stop` Hookだけを理由に `status=completed` へ変更しません。`--no-log`／`-NoLog` はloggingだけを抑止し、manifest syncは継続します。Codex nonzeroはCodex exit codeを優先し、Codex zeroかつcollector failure時だけcollector exit codeを返します。
 
 ### `evaluation.json`
 
@@ -207,6 +217,7 @@ evidenceのsymlink、Run Root外参照、cross-run参照は受理しません。
 - 集計の正本というより、追跡・デバッグ用です。
 - Logging Hookは`.codex/hooks/log_event.mjs`を通じて、session単位の`.codex/logs/hooks-<safe-session-id>.jsonl`へ1 event 1 lineでappendします。
 - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`のmachine factを保持します。`SubagentStop` / `Stop`から最終終了を推測しません。
+- `Stop` / `SubagentStop` Hookはsession観測用であり、run manifestの更新triggerではありません。
 - Hook JSONLは`run.json`へ新規集約せず、collectorもHook JSONLやSubagent専用JSONを再走査しません。
 - `.codex/logs/*.jsonl`はGit管理外であり、既存のgeneric cleanup対象です。
 

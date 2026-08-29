@@ -380,6 +380,17 @@ function Get-PresetConfig {
 
 $repoRoot = Get-RepoRoot -ScriptDir $PSScriptRoot
 Assert-RunId -RunId $RunId
+$runRoot = $null
+$manifestPath = $null
+$manifestExists = $false
+if (-not [string]::IsNullOrWhiteSpace($RunId)) {
+    $runRoot = Join-Path $repoRoot (Join-Path ".codex\runs" $RunId)
+    if (-not (Test-Path -LiteralPath $runRoot -PathType Container)) {
+        throw "Run directory not found: .codex/runs/$RunId"
+    }
+    $manifestPath = Join-Path $runRoot "run.json"
+    $manifestExists = Test-Path -LiteralPath $manifestPath -PathType Leaf
+}
 $codexCmd = if (-not [string]::IsNullOrWhiteSpace($env:CODEX_BIN)) {
     $candidate = $env:CODEX_BIN
     if (Test-Path $candidate) {
@@ -496,4 +507,44 @@ Write-HarnessLog -Path $resolvedLogPath -Event 'codex_exec_exit' -Data @{
     exit_code = $codexExit
 }
 
-exit $codexExit
+$collectorExit = 0
+if ($manifestExists) {
+    Write-HarnessLog -Path $resolvedLogPath -Event 'manifest_sync_start' -Data @{
+        run_id = $RunId
+    }
+    $collectorPath = Join-Path $repoRoot "scripts\collect-run-artifacts.ps1"
+    try {
+        & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $collectorPath -RunId $RunId -RefreshGitChangedFiles
+        $collectorExit = $LASTEXITCODE
+    }
+    catch {
+        $collectorExit = 1
+    }
+
+    if ($collectorExit -eq 0) {
+        Write-HarnessLog -Path $resolvedLogPath -Event 'manifest_sync_success' -Data @{
+            run_id = $RunId
+        }
+    }
+    else {
+        Write-HarnessLog -Path $resolvedLogPath -Event 'manifest_sync_failed' -Data @{
+            run_id = $RunId
+            exit_code = $collectorExit
+        }
+        Write-Warning "Manifest sync failed (exit=$collectorExit)."
+    }
+}
+else {
+    $skipReason = if ([string]::IsNullOrWhiteSpace($RunId)) { 'run_id_not_provided' } else { 'manifest_not_found' }
+    Write-HarnessLog -Path $resolvedLogPath -Event 'manifest_sync_skipped' -Data @{
+        reason = $skipReason
+    }
+}
+
+if ($codexExit -ne 0) {
+    exit $codexExit
+}
+if ($collectorExit -ne 0) {
+    exit $collectorExit
+}
+exit 0
