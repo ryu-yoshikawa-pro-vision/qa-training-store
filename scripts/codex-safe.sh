@@ -338,6 +338,21 @@ parse_args "$@"
 validate_preset
 validate_run_id
 
+run_root=""
+manifest_path=""
+manifest_exists=0
+if [[ -n "$run_id" ]]; then
+  run_root="$repo_root/.codex/runs/$run_id"
+  if [[ ! -d "$run_root" ]]; then
+    echo "Run directory not found: .codex/runs/$run_id" >&2
+    exit 1
+  fi
+  manifest_path="$run_root/run.json"
+  if [[ -f "$manifest_path" ]]; then
+    manifest_exists=1
+  fi
+fi
+
 if [[ -n "${CODEX_BIN:-}" ]]; then
   if [[ -x "$CODEX_BIN" || -f "$CODEX_BIN" ]]; then
     codex_cmd="$CODEX_BIN"
@@ -430,4 +445,31 @@ append_command command_prefix "$codex_cmd"
 codex_exit=$?
 set -e
 write_log "$log_path" "codex_exec_exit" ",\"exit_code\":$codex_exit"
-exit "$codex_exit"
+
+collector_exit=0
+if (( manifest_exists )); then
+  write_log "$log_path" "manifest_sync_start" ",\"run_id\":\"$(json_escape "$run_id")\""
+  if bash "$repo_root/scripts/collect-run-artifacts.sh" --run-id "$run_id" --refresh-git-changed-files; then
+    collector_exit=0
+    write_log "$log_path" "manifest_sync_success" ",\"run_id\":\"$(json_escape "$run_id")\""
+  else
+    collector_exit=$?
+    write_log "$log_path" "manifest_sync_failed" ",\"run_id\":\"$(json_escape "$run_id")\",\"exit_code\":$collector_exit"
+    echo "Warning: Manifest sync failed (exit=$collector_exit)." >&2
+  fi
+else
+  if [[ -z "$run_id" ]]; then
+    skip_reason="run_id_not_provided"
+  else
+    skip_reason="manifest_not_found"
+  fi
+  write_log "$log_path" "manifest_sync_skipped" ",\"reason\":\"$skip_reason\""
+fi
+
+if (( codex_exit != 0 )); then
+  exit "$codex_exit"
+fi
+if (( collector_exit != 0 )); then
+  exit "$collector_exit"
+fi
+exit 0

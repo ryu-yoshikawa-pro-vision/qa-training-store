@@ -30,25 +30,28 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 - 同じ会話セッション内で同一タスクを継続する場合は、既存の active run と同じ `run_id`／Run Directory（`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`）を再利用し、新しい Run を作成しない。進捗、判断、検証結果は既存 Artifact へ追記・更新する。
 - 同じ会話セッション内でも、ユーザーが別タスクの開始を明示した場合は新しい Run を作成してよい。会話セッションが変わった場合も、active run の引継ぎが明示されない限り新しい Run を作成する。
 - `standard` / `strict` では `scripts/new-run.sh` または `scripts/new-run.ps1` を優先して run を初期化する。
-- `lightweight` でも run artifact は残す。手動作成してよいが、迷う場合は `new-run` を使う。
+- `lightweight` でも run artifact は残す。`PLAN.md`／`TASKS.md`／`REPORT.md`等は必要に応じて手動作成してよいが、actual `run.json`は手動作成せず、迷う場合は `new-run` を使う。
 - `new-run` を使わず手動初期化する場合は以下をコピーする。
   - `.codex/templates/PLAN.md`
   - `.codex/templates/TASKS.md`
   - `.codex/templates/REPORT.md`
-- `run.json` が必要な workflow では `.codex/templates/RUN_MANIFEST.json` を元に作成するか、`new-run` に生成させる。
+- actual `.codex/runs/<run_id>/run.json` は、通常workflowでもmanifest writer / collectorの実装タスクでもmachine-managedとし、Agentが直接作成・直接編集しない。直接生成・編集してよいのはtemporary test fixture等に限る。
+- 通常workflowで新規manifestが必要な場合は `scripts/new-run.ps1` または `scripts/new-run.sh` を正規生成経路とし、非対話更新は `codex-task --record-run-manifest`、interactive更新は `codex-safe -RunId`／`codex-safe --run-id` 終了時のcollectorに委ねる。
+- active Runに紐づくinteractive実行で `codex-safe` を使う場合は、current active Runの `RunId` を必ず指定する。`RunId`省略はactive Runに紐づかないad-hoc interactive実行に限る。wrapperはRunIdを自動探索・推測・環境変数伝播しない。
+- `.codex/templates/RUN_MANIFEST.json` はmanifest仕様変更タスクの対象として直接編集してよい。manifest writer / collectorのsource codeは通常の実装対象だが、actual `run.json`の直接編集許可を意味しない。
 - run artifact は日本語で書く。
 
 ## 1.1 Run artifact の保存・蓄積方針
 
 - `.codex/runs/<run_id>/` 配下の成果物は、一時的な作業ファイルではなく、作業履歴、判断経緯、検証結果、未完了事項を引き継ぐための正式なリポジトリ成果物として扱う。
 - 作業完了後も Run Directory を保存し、今後の調査、レビュー、修正、再発防止に利用できるよう蓄積する。
-- 同一会話セッション内の継続作業では、既存 Run Artifact を同じものとして使い、`REPORT.md` は append-only で追記し、`PLAN.md`／`TASKS.md`／`run.json` は履歴を失わない範囲で更新する。active run があるのに新しい Run Directory を作成して履歴を分散させない。
+- 同一会話セッション内の継続作業では、既存 Run Artifact を同じものとして使い、`REPORT.md` は append-only で追記し、Agent-managedな`PLAN.md`／`TASKS.md`等は履歴を失わない範囲で更新する。actual `run.json`はmachine-managed writer / collectorの経路だけで更新し、active run があるのに新しい Run Directory を作成して履歴を分散させない。
 - 過去の Run Directory や `PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`、`evaluation.json` を、通常のcleanupや成果物整理を理由に削除しない。
 - 過去Runの内容は原則として上書きせず、修正作業では新しいRunを作成する。既存Runへ補足が必要な場合は、履歴を失わない形で追記する。
 - `.codex/runs/`を`.gitignore`へ追加しない。
 - 個別タスクで「コードのみ変更する」「作業用ファイルを追加しない」「不要なドキュメントを削除する」と指定されていても、標準Run Artifactの作成・更新・保存はその対象外とする。
 - Run Artifactの作成を省略、削除、移動してよいのは、ユーザーが`.codex/runs/`または対象Runを明示して指示した場合に限る。
-- Git操作が禁止されている場合でも、Run Artifactの作成・更新は通常のファイル編集として実施する。ただし、禁止された`git add`、`git commit`、`git push`等は実行しない。
+- Git操作が禁止されている場合でも、Agent-managedなRun Artifactの作成・更新は通常のファイル編集として実施する。ただし、actual `run.json`は直接編集せず、禁止された`git add`、`git commit`、`git push`等も実行しない。
 
 ### 長期保存する標準Run Artifact
 

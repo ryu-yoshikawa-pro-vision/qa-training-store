@@ -4,6 +4,7 @@ param(
     [string]$RunsRoot,
     [string]$ManifestPath,
 [string]$BaseManifest,
+    [switch]$RefreshGitChangedFiles,
     [switch]$Strict
 )
 
@@ -28,6 +29,7 @@ $argsList = @($scriptPath, "--run-id", $RunId)
 if ($RunsRoot) { $argsList += @("--runs-root", $RunsRoot) }
 if ($ManifestPath) { $argsList += @("--manifest-path", $ManifestPath) }
 if ($BaseManifest) { $argsList += @("--base-manifest", $BaseManifest) }
+if ($RefreshGitChangedFiles) { $argsList += "--refresh-git-changed-files" }
 if ($Strict) { $argsList += "--strict" }
 
 & $python @argsList
