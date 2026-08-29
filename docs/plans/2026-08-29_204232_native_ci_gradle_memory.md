@@ -68,15 +68,15 @@
 - Change strategy:
   1. `Build Automation Release APK` のGradle commandを次の形にする。
 
-```bash
-./gradlew :app:assembleRelease \
-  -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" \
-  -PreactNativeArchitectures=x86_64 \
-  --build-cache \
-  --parallel \
-  --stacktrace \
-  2>&1 | tee "$RUNNER_TEMP/gradle-assemble-release.log"
-```
+     ```bash
+     ./gradlew :app:assembleRelease \
+       -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" \
+       -PreactNativeArchitectures=x86_64 \
+       --build-cache \
+       --parallel \
+       --stacktrace \
+       2>&1 | tee "$RUNNER_TEMP/gradle-assemble-release.log"
+     ```
 
   2. `Build Production-validation Release APK` も同じJVM argsを使用する。tee先は既存の `gradle-assemble-production-release.log` を維持する。
   3. architecture、build cache、parallel、stacktrace、evidence保存、APK生成・検証・uploadは変更しない。
