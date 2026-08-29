@@ -66,6 +66,30 @@
 - Remaining: なし。PRは作成していない。
 - Progress: 100% (6/6)
 
+## 2026-08-29 14:18 (JST) - Repair iteration 2
+
+- iteration_number: 2
+- input_findings: PowerShell版のSubagentStop／Stopはnative node processのnonzero exitをcatchできず、exit 0でもUnix版と同じ{} fallbackへ到達しないcontract差があった。
+- classification: must_fix。Logging Hookの公開stdout／exit contractに関わる現在差分のcorrectness findingである。
+- repair_plan: 新しいlauncherを作らず、2つの既存inline commandだけで$LASTEXITCODE -ne 0を確認し、起動例外・nonzero exit・条件不成立時に{}を出力する。正常終了時は既存loggerの{}を重複出力しない。
+- allowed_files: .codex/config.toml、tests/contracts/codex-hook-contract.test.ts、今回Run Artifact
+- changed_files: .codex/config.toml、tests/contracts/codex-hook-contract.test.ts、今回Run Artifact
+- validation_commands: targeted Codex logging Hook contract、全codex-hook contract、pnpm run verify、scripts/verify.ps1、scripts/verify、TOML parse、pnpm run lint:markdown、pnpm run format:check、git diff --check。
+- validation_result: targeted 27 tests PASS、全Hook contract 126 tests PASS、標準verify PASS、PowerShell verify PASS=3 FAIL=0 SKIP=0、Bash verify PASS=2 FAIL=0 SKIP=2、TOML／lint／format／diff check PASS。Windowsでlogger正常終了時の既存stdoutとnonzero終了時のexit 0／{}を確認した。
+- remaining_delta: なし。WSL UbuntuはNode不存在のためUnix logger正常系JSONLは既存SKIP条件を継続する。
+- decision: stop_success
+- note: 初回TOML検証はPowerShellによる$LASTEXITCODE文字列展開で失敗したが、検証コマンドのquoting errorと切り分け、文字列展開を避けた再実行でPASSした。source failureではない。
+- Progress: 100% (7/7)
+
+## 2026-08-29 14:22 (JST) - Pre-commit checkpoint
+
+- Summary: Windows／UnixのSubagentStop／Stop contractを追加確認した。
+- Validation: WSL UbuntuはNode不存在だったが、Unix launcherをrepository root取得成功時とroot取得失敗時に実行し、SubagentStop／Stopの全ケースでexit 0と{}を確認した。Unix logger正常系JSONLは既存SKIP条件を継続する。
+- Self-review: PowerShellはlogger正常終了時に既存{}を重複出力せず、native nonzero終了時・起動例外・root／Node／logger条件不成立時に{}を出力してexit 0となる。Unix側の同一contract、5 eventの一貫性、Safety Hook不変条件、対象外ファイル不変を確認した。
+- Scope: 変更はSubagentStop／Stopの既存inline launcher、対応contract test、今回Run Artifactだけであり、新しいlauncher・runtime・logger内部変更はない。
+- Remaining: この修正のcommitと専用branchへのpushが残っている。
+- Progress: 100% (7/7)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

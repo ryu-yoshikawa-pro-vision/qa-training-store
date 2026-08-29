@@ -14,6 +14,7 @@
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
 - D1. Node不存在の既存WSL再現可否を検証し、困難ならSKIP理由をREPORTへ記録する。
+- [x] D2. PowerShell SubagentStop／Stopのnative nonzero exit時に{} fallbackを確認し、Unix contractと一致させる。
 
 ## Blocked
 

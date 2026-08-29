@@ -61,7 +61,7 @@ timeout = 5
 [[hooks.SubagentStop.hooks]]
 type = "command"
 command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && command -v node >/dev/null 2>&1 && logger=\"$repo_root/.codex/hooks/log_event.mjs\" && [ -f \"$logger\" ] && node \"$logger\" SubagentStop || printf '{}'"
-command_windows = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if ((git rev-parse --show-toplevel 2>$null) -and (Get-Command node -CommandType Application -ErrorAction SilentlyContinue) -and (Test-Path -LiteralPath (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) -PathType Leaf)) { try { node (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) SubagentStop } catch {} } else { [Console]::Write("{}") }; exit 0"'
+command_windows = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if ((git rev-parse --show-toplevel 2>$null) -and (Get-Command node -CommandType Application -ErrorAction SilentlyContinue) -and (Test-Path -LiteralPath (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) -PathType Leaf)) { try { node (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) SubagentStop; if ($LASTEXITCODE -ne 0) { [Console]::Write("{}") } } catch { [Console]::Write("{}") } } else { [Console]::Write("{}") }; exit 0"'
 timeout = 5
 
 [[hooks.Stop]]
@@ -69,5 +69,5 @@ timeout = 5
 [[hooks.Stop.hooks]]
 type = "command"
 command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && command -v node >/dev/null 2>&1 && logger=\"$repo_root/.codex/hooks/log_event.mjs\" && [ -f \"$logger\" ] && node \"$logger\" Stop || printf '{}'"
-command_windows = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if ((git rev-parse --show-toplevel 2>$null) -and (Get-Command node -CommandType Application -ErrorAction SilentlyContinue) -and (Test-Path -LiteralPath (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) -PathType Leaf)) { try { node (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) Stop } catch {} } else { [Console]::Write("{}") }; exit 0"'
+command_windows = 'powershell.exe -NoProfile -ExecutionPolicy Bypass -Command "if ((git rev-parse --show-toplevel 2>$null) -and (Get-Command node -CommandType Application -ErrorAction SilentlyContinue) -and (Test-Path -LiteralPath (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) -PathType Leaf)) { try { node (Join-Path (git rev-parse --show-toplevel) .codex\\hooks\\log_event.mjs) Stop; if ($LASTEXITCODE -ne 0) { [Console]::Write("{}") } } catch { [Console]::Write("{}") } } else { [Console]::Write("{}") }; exit 0"'
 timeout = 5

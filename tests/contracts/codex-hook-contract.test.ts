@@ -801,6 +801,10 @@ describe("Codex logging Hook contract", () => {
       expect(block).toContain("Test-Path -LiteralPath");
       expect(block).toContain("Join-Path (git rev-parse --show-toplevel)");
       expect(block).toContain("exit 0");
+      if (event === "SubagentStop" || event === "Stop") {
+        expect(block).toContain("$LASTEXITCODE -ne 0");
+        expect(block).toContain('[Console]::Write("{}")');
+      }
       expect(block).toContain(`log_event.mjs) ${event}`);
     }
   });
@@ -1042,6 +1046,36 @@ describe("Codex logging Hook contract", () => {
 
       expect(readLoggingRecords(logPath).map((record) => record.event)).toEqual([...loggingEvents]);
     });
+  }, 15000);
+
+  it("falls back to {} when the configured Windows logger exits nonzero", () => {
+    if (process.platform !== "win32") return;
+
+    const fixture = makeGitFixture(false);
+    fs.writeFileSync(
+      path.join(fixture, ".codex", "hooks", "log_event.mjs"),
+      "process.exitCode = 7;\n",
+      "utf8",
+    );
+
+    try {
+      for (const event of ["SubagentStop", "Stop"] as const) {
+        const sessionId =
+          "contract-nonzero-logger-" + event + "-" + process.pid + "-" + randomUUID();
+        const result = runConfiguredLoggingHook(
+          event,
+          JSON.stringify(makeLoggingPayload(event, sessionId)),
+          "windows",
+          fixture,
+        );
+
+        expect(result.status, event).toBe(0);
+        expect(result.stdout, event).toBe("{}");
+        expect(result.stderr, event).toBe("");
+      }
+    } finally {
+      removeFixture(fixture);
+    }
   }, 15000);
 
   it("records JSONL through the configured Unix launcher for every logging event", () => {

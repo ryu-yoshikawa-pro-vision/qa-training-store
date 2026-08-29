@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "5つのLogging HookのUnix／Windows launcherをfail-soft化し、正常系JSONL記録と失敗系exit 0をcontract testで確認した。"
+      "evidence": "5つのLogging HookのUnix／Windows launcherをfail-soft化し、SubagentStop／Stopのnative nonzero exit時を含む正常系JSONL記録と失敗系exit 0をcontract testで確認した。"
     },
     "scope_control": {
       "rating": "pass",
@@ -23,7 +23,7 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "launcher条件、5 eventの一貫性、stdout／JSONL、logger不存在とroot解決不能のcontractをself-reviewで確認した。"
+      "evidence": "launcher条件、5 eventの一貫性、stdout／JSONL、logger不存在・root解決不能・SubagentStop／Stopのnative nonzero exit contractをself-reviewで確認した。"
     },
     "maintainability": {
       "rating": "pass",
