@@ -252,6 +252,7 @@ jobs:
         run: |
           set -o pipefail
           ./gradlew :app:assembleRelease \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" \
             -PreactNativeArchitectures=x86_64 \
             --build-cache \
             --parallel \
@@ -464,6 +465,7 @@ jobs:
         run: |
           set -o pipefail
           ./gradlew :app:assembleRelease \
+            -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g" \
             -PreactNativeArchitectures=x86_64 \
             --build-cache \
             --parallel \
