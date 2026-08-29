@@ -209,7 +209,13 @@ pnpm exec expo install --fix
 - `pnpm.overrides` の他の override は変更しない。
 - 全 override を対象にする汎用同期機構や Expo package 一覧の hard-code は追加しない。
 
-この同期は `pnpm exec expo install --fix` の直後、Expo / React Native major.minor guard の前に実行する。
+この同期は `pnpm exec expo install --fix` の直後、Expo / React Native major.minor guard の前に実行する。`package.json` のoverride設定を同期した後、lockfileも同じ設定へ同期するため、次の command を実行する。
+
+```text
+pnpm install --lockfile-only --no-frozen-lockfile
+```
+
+このlockfile再生成もupdate path内だけで実行し、後続の `pnpm install --frozen-lockfile` は更新後のmanifest / lockfile contractの検証として実行する。
 
 ### 8. Expo / React Native major.minor を確認する
 
@@ -233,6 +239,7 @@ major / minor が変化した場合は失敗させる。
 Repository を変更し得る validation を先にすべて実行する。
 
 ```text
+pnpm install --lockfile-only --no-frozen-lockfile
 pnpm install --frozen-lockfile
 pnpm exec expo install --check
 git diff --check HEAD
@@ -367,6 +374,8 @@ expo install --fix
        ↓
 expo-constants override 同期（存在する場合のみ）
        ↓
+pnpm install --lockfile-only --no-frozen-lockfile
+       ↓
 major.minor guard
        ↓
 pnpm install --frozen-lockfile
@@ -404,6 +413,7 @@ tests/contracts/expo-dependency-maintenance-workflow.test.ts
 - `needs_fix=false` では正常 no-op となり、fix から PR 作成までの update path を実行しない
 - fix から PR 作成までの update path は `steps.expo_check.outputs.needs_fix == 'true'` の場合だけ実行する
 - `pnpm.overrides.expo-constants` が存在する場合、update path 内で `dependencies.expo-constants` を正本として同期し、他の override は変更しない
+- override 同期後、update path 内で `pnpm install --lockfile-only --no-frozen-lockfile` を実行し、major.minor guard と `pnpm install --frozen-lockfile` より前に置く
 - fix 後の `expo install --check` は通常 command として実行し、non-zero を failure とする
 - Expo / React Native major.minor guard
 - post-fix validation で `git diff --check HEAD` を使用する
@@ -487,7 +497,7 @@ Workflow の Re-run が必要になった場合は、`GITHUB_RUN_ATTEMPT` によ
 1. 最新 `main` と既存 CI の Node / pnpm / Action pin を確認する。
 2. trigger / permission / manual main-ref guard / `main` checkout / concurrency / duplicate PR guard を実装する。
 3. frozen install、major.minor capture、`expo_check` の `if` + `$GITHUB_OUTPUT` 分岐を実装し、`needs_fix=false` の no-op path と `needs_fix=true` の update path を分離する。
-4. update path 全体へ `steps.expo_check.outputs.needs_fix == 'true'` guard を適用し、`expo install --fix`、`expo-constants` override同期、major.minor guard、fix 後 validation、commit 直前の tracked + untracked final changed-file allowlist を実装する。
+4. update path 全体へ `steps.expo_check.outputs.needs_fix == 'true'` guard を適用し、`expo install --fix`、`expo-constants` override同期、lockfile-only install、major.minor guard、fix 後 validation、commit 直前の tracked + untracked final changed-file allowlist を実装する。
 5. `${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}` を含む automation branch / commit / push / OPEN PR 作成を実装する。
 6. 専用 contract test を追加する。
 7. format / lint / typecheck / contract tests と通常 CI を確認する。

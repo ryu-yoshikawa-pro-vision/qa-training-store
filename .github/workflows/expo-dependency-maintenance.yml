@@ -54,6 +54,7 @@ jobs:
             gh pr list \
               --base main \
               --state open \
+              --limit 1000 \
               --json headRefName \
               --jq '.[] | select(.headRefName | startswith("automation/expo-compatible-dependencies-")) | .headRefName'
           } | head -n 1)"
@@ -149,6 +150,10 @@ jobs:
           overrides["expo-constants"] = directVersion;
           fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
           NODE
+
+      - name: Regenerate lockfile after override sync
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        run: pnpm install --lockfile-only --no-frozen-lockfile
 
       - name: Verify Expo and React Native major.minor guard
         if: steps.expo_check.outputs.needs_fix == 'true'

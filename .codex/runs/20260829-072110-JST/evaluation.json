@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "Plan SSOTに従うmaintenance Workflowと専用Contract testを修正し、PR #79の指定branch上でcommit／pushまで完了した。",
+      "evidence": "CodeRabbitの4 findingをPlan SSOTに沿ってmaintenance Workflowと専用Contract testへ反映し、PR #79の指定branch上で検証を継続している。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -61,13 +61,13 @@
     },
     "reviewability": {
       "rating": "pass",
-      "evidence": "Contract testは文字列ベースの既存形式に合わせ、重要契約だけをmarkerで検査し、shell全文・step name・PR body細部を過剰に固定していない。",
+      "evidence": "Contract testは文字列ベースの既存形式に合わせ、重要契約だけをmarkerで検査し、shell全文・step name・PR body細部を過剰に固定していない。6つのContract testが実装されている。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "tests/contracts/expo-dependency-maintenance-workflow.test.ts",
           "selector": "contracts",
-          "summary": "5つのContract testが実装され、全てPASSした。"
+        "summary": "6つのContract testが実装され、全てPASSした。"
         }
       ]
     },

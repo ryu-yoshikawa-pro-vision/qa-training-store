@@ -65,6 +65,7 @@ describe("Expo dependency maintenance workflow contracts", () => {
     expect(duplicateCheck).toBeDefined();
     expect(duplicateCheck).toContain("--base main");
     expect(duplicateCheck).toContain("--state open");
+    expect(duplicateCheck).toContain("--limit 1000");
     expect(duplicateCheck).toContain("--json headRefName");
     expect(duplicateCheck).toContain("automation/expo-compatible-dependencies-");
     expect(duplicateCheck).not.toContain("--title");
@@ -148,6 +149,35 @@ describe("Expo dependency maintenance workflow contracts", () => {
     expect(sync).not.toContain("Object.keys");
     expect(syncIndex).toBeGreaterThan(fixIndex);
     expect(syncIndex).toBeLessThan(majorMinorIndex);
+  });
+
+  it("regenerates the lockfile after override synchronization and before safety validation", () => {
+    const fixIndex = steps.findIndex((step) => step.includes("pnpm exec expo install --fix"));
+    const syncIndex = steps.findIndex((step) => step.includes("Sync expo-constants override"));
+    const lockfile = steps.find((step) =>
+      step.includes("pnpm install --lockfile-only --no-frozen-lockfile"),
+    );
+    const lockfileIndex = steps.findIndex((step) =>
+      step.includes("pnpm install --lockfile-only --no-frozen-lockfile"),
+    );
+    const majorMinorIndex = steps.findIndex((step) =>
+      step.includes("Verify Expo and React Native major.minor guard"),
+    );
+    const reinstallIndex = steps.findIndex(
+      (step, index) =>
+        index > majorMinorIndex && step.includes("run: pnpm install --frozen-lockfile"),
+    );
+    const postFixCheckIndex = steps.findIndex((step) =>
+      step.includes("run: pnpm exec expo install --check"),
+    );
+
+    expect(lockfile).toBeDefined();
+    expect(lockfile).toContain(updateGuard);
+    expect(fixIndex).toBeLessThan(syncIndex);
+    expect(syncIndex).toBeLessThan(lockfileIndex);
+    expect(lockfileIndex).toBeLessThan(majorMinorIndex);
+    expect(majorMinorIndex).toBeLessThan(reinstallIndex);
+    expect(reinstallIndex).toBeLessThan(postFixCheckIndex);
   });
 
   it("uses run identity for a non-forced bot branch and creates only a main-based PR", () => {

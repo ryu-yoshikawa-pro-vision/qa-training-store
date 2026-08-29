@@ -12,6 +12,7 @@
   "allowed_files": [
     ".github/workflows/expo-dependency-maintenance.yml",
     "tests/contracts/expo-dependency-maintenance-workflow.test.ts",
+    "docs/plans/2026-08-29_061400_expo_dependency_maintenance.md",
     ".codex/runs/20260829-072110-JST/PLAN.md",
     ".codex/runs/20260829-072110-JST/TASKS.md",
     ".codex/runs/20260829-072110-JST/REPORT.md",

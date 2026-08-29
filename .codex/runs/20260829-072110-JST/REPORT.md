@@ -136,3 +136,35 @@
 - Validation: Plan指定の4コマンドが全て成功。Contract test専用実行も4 tests PASS。
 - Blocker / Remaining: 通常CIの追加静的ゲート、差分scope監査、Run Artifact Sanitizer／Strict評価、完了REPORTが残る。
 - Progress: 63% (5/8)
+
+## 2026-08-29 09:50 (JST)
+
+- Summary: CodeRabbitの最新4 findingを確認し、Repair Loop iteration 1の修正を実装した。
+- Input findings: `run.json.allowed_files`のPlan path不足、duplicate PR検索の取得上限不足、`expo-constants` override同期後のlockfile未再生成、lockfile再生成と順序のContract test不足。
+- Repair plan: 指定7ファイルを許可範囲とし、Workflowへlockfile-only installと`--limit 1000`を追加、Planへlockfile contractを追記、専用Contract testでguard／順序／取得上限を保護する。`package.json`／`pnpm-lock.yaml`は変更しない。
+- Allowed files: `.github/workflows/expo-dependency-maintenance.yml`、`tests/contracts/expo-dependency-maintenance-workflow.test.ts`、`docs/plans/2026-08-29_061400_expo_dependency_maintenance.md`、`.codex/runs/20260829-072110-JST/run.json`、`REPORT.md`、`TASKS.md`、`evaluation.json`。
+- Changes: Workflowのoverride同期直後へ`pnpm install --lockfile-only --no-frozen-lockfile`を追加し、duplicate PR検索へ`--limit 1000`を追加した。Contract testへupdate path guardと`fix < sync < lockfile-only < major.minor < frozen < post-fix check`の順序契約を追加した。`run.json.allowed_files`へPlan pathを追加した。
+- Validation: 修正後の指定Validationは未実行。
+- Remaining delta: 指定Validation、追加scope／YAML／Sanitizer／evaluation確認、commit／push、PR反映とthread状態確認。
+- Decision: continue
+- Progress: 83% (20/24)
+
+## 2026-08-29 10:20 (JST)
+
+- Summary: Repair Loop iteration 1の必須Validationを完了した。
+- Changes: Validation前にContract testのformatを機械的に整えた。Workflow、Plan、`run.json`、`package.json`、`pnpm-lock.yaml`の実装内容は追加変更していない。
+- Decision / Rationale: lockfile-only再生成step、duplicate PR取得上限、Contract testのguard／順序、Run Artifactのallowed pathが指定どおりであることを確認した。今回差分に起因するFAILはなく、次のscope／artifact監査へ進む。
+- Validation: `pnpm run format:check`、`pnpm run lint`、`pnpm run typecheck`、`pnpm run test:contracts`、`pnpm run lint:markdown`、`git diff --check`が全てPASS。全Contract testは32 files／462 tests、lintは0 errors／66 warnings。
+- Remaining delta: YAML parse、changed-file scope、Sanitizer、evaluation schema、commit／push、PR #79反映とthread状態確認。
+- Decision: continue
+- Progress: 88% (21/24)
+
+## 2026-08-29 10:25 (JST)
+
+- Summary: Repair Loop iteration 1の追加監査を完了した。
+- Changes: Sanitizer Write／CheckでRun Artifactの内容を確認した。`run.json.allowed_files`はPlan pathを含み、今回の作業ツリー差分はユーザー指定の7ファイルだけである。
+- Decision / Rationale: Workflow YAML parse、current worktree scope、禁止ファイル、`git diff --check HEAD`、evaluation schema、Run Artifact Sanitizerが全てPASSしたため、branch safety確認後のcommit／pushへ進む。
+- Validation: YAML parse PASS、scope audit PASS、禁止ファイル監査PASS、evaluation schema PASS、Sanitizer Write／Check PASS（5 files scanned、residual findings 0）。
+- Remaining delta: branch safety、commit／push、PR #79反映と4 review threadの状態確認。
+- Decision: continue
+- Progress: 92% (22/24)

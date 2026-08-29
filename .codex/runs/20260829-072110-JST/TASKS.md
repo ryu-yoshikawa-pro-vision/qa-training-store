@@ -26,6 +26,16 @@
 - [x] 15. PR #79への反映、差分、branch、CI開始状態を確認する
 - [x] 16. 完了REPORT／evaluationを更新する
 
+## Review Repair (Iteration 1)
+
+- [x] 17. 最新CodeRabbit thread、Plan、Workflow、Contract test、Run Artifact、dependency manifest／lockfile、branch／PR状態を確認し、4 findingをmust_fixへ分類する
+- [x] 18. lockfile-only再生成、duplicate PR取得上限、対応Contract testを最小修正する
+- [x] 19. Planと`run.json.allowed_files`を実装実態へ更新する
+- [x] 20. 指定Validationを実行し、今回差分に起因するFAILがあれば最小修正する
+- [x] 21. YAML parse、changed-file scope、Sanitizer、evaluation schemaを確認する
+- [ ] 22. branch safetyを再確認してcommitし、通常の明示refspecでpushする
+- [ ] 23. PR #79への反映と4 review threadの状態を確認し、解決操作なしで完了報告する
+
 ## Blocked
 
 - なし
