@@ -201,6 +201,16 @@ pnpm exec expo install --fix
 
 特定 package / version を個別指定しない。command が失敗した場合は Workflow を失敗させ、PR を作成しない。
 
+### 7.1 Repository 固有の `expo-constants` override を同期する
+
+`package.json` に `pnpm.overrides.expo-constants` が存在する場合だけ、update path 内で `dependencies.expo-constants` の現在値を正本として同じ値へ同期する。
+
+- `dependencies.expo-constants` が存在しない、または有効な string でない場合は失敗させる。
+- `pnpm.overrides` の他の override は変更しない。
+- 全 override を対象にする汎用同期機構や Expo package 一覧の hard-code は追加しない。
+
+この同期は `pnpm exec expo install --fix` の直後、Expo / React Native major.minor guard の前に実行する。
+
 ### 8. Expo / React Native major.minor を確認する
 
 この step も `steps.expo_check.outputs.needs_fix == 'true'` の場合だけ実行する。
@@ -355,6 +365,8 @@ expo_check step
        ↓
 expo install --fix
        ↓
+expo-constants override 同期（存在する場合のみ）
+       ↓
 major.minor guard
        ↓
 pnpm install --frozen-lockfile
@@ -391,6 +403,7 @@ tests/contracts/expo-dependency-maintenance-workflow.test.ts
 - 最初の `expo install --check` を `if` で実行し、`needs_fix=false` / `needs_fix=true` を `$GITHUB_OUTPUT` へ出力する
 - `needs_fix=false` では正常 no-op となり、fix から PR 作成までの update path を実行しない
 - fix から PR 作成までの update path は `steps.expo_check.outputs.needs_fix == 'true'` の場合だけ実行する
+- `pnpm.overrides.expo-constants` が存在する場合、update path 内で `dependencies.expo-constants` を正本として同期し、他の override は変更しない
 - fix 後の `expo install --check` は通常 command として実行し、non-zero を failure とする
 - Expo / React Native major.minor guard
 - post-fix validation で `git diff --check HEAD` を使用する
@@ -474,7 +487,7 @@ Workflow の Re-run が必要になった場合は、`GITHUB_RUN_ATTEMPT` によ
 1. 最新 `main` と既存 CI の Node / pnpm / Action pin を確認する。
 2. trigger / permission / manual main-ref guard / `main` checkout / concurrency / duplicate PR guard を実装する。
 3. frozen install、major.minor capture、`expo_check` の `if` + `$GITHUB_OUTPUT` 分岐を実装し、`needs_fix=false` の no-op path と `needs_fix=true` の update path を分離する。
-4. update path 全体へ `steps.expo_check.outputs.needs_fix == 'true'` guard を適用し、`expo install --fix`、major.minor guard、fix 後 validation、commit 直前の tracked + untracked final changed-file allowlist を実装する。
+4. update path 全体へ `steps.expo_check.outputs.needs_fix == 'true'` guard を適用し、`expo install --fix`、`expo-constants` override同期、major.minor guard、fix 後 validation、commit 直前の tracked + untracked final changed-file allowlist を実装する。
 5. `${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}` を含む automation branch / commit / push / OPEN PR 作成を実装する。
 6. 専用 contract test を追加する。
 7. format / lint / typecheck / contract tests と通常 CI を確認する。

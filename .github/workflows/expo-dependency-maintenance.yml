@@ -118,6 +118,38 @@ jobs:
         if: steps.expo_check.outputs.needs_fix == 'true'
         run: pnpm exec expo install --fix
 
+      - name: Sync expo-constants override
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const packageJsonPath = "package.json";
+          const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
+          const overrides = packageJson.pnpm?.overrides;
+          const hasExpoConstantsOverride =
+            overrides !== null &&
+            typeof overrides === "object" &&
+            Object.prototype.hasOwnProperty.call(overrides, "expo-constants");
+
+          if (!hasExpoConstantsOverride) {
+            console.log("pnpm.overrides.expo-constants is not configured; nothing to synchronize.");
+            process.exit(0);
+          }
+
+          const dependencies = packageJson.dependencies ?? {};
+          const directVersion = dependencies["expo-constants"];
+          if (typeof directVersion !== "string" || directVersion.trim() === "") {
+            throw new Error(
+              "dependencies.expo-constants must be a non-empty string when pnpm.overrides.expo-constants exists",
+            );
+          }
+
+          overrides["expo-constants"] = directVersion;
+          fs.writeFileSync(packageJsonPath, `${JSON.stringify(packageJson, null, 2)}\n`);
+          NODE
+
       - name: Verify Expo and React Native major.minor guard
         if: steps.expo_check.outputs.needs_fix == 'true'
         env:

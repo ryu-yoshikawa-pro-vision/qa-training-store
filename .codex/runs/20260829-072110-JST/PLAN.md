@@ -73,3 +73,37 @@
 - 2026-08-29 07:21 JST: Plan全文475行、既存CI、既存Contract test、PR #79、branch、main、Node／pnpm、Action pinを確認した。Planに明確な誤りは見当たらず、独自仕様を追加しない。
 - 2026-08-29 07:21 JST: 現在のExpo dependency mismatchはPlanの対象外であるため、mechanism実装では修正しない。変更面はWorkflowと専用Contract testに限定する。
 - 2026-08-29 07:36 JST: 通常CIのMarkdown lintでPlan本文の空行／末尾改行だけがFAILしたため、意味を変えない最小修正をPlan自身へ適用し、`lint:markdown`を再実行してPASSした。
+
+## Continuation: existing PR #79 contract repair
+
+### Objective
+
+- 既存PR #79の同一branch上で、Repository固有の`expo-constants` override同期とtop-level permissionsの厳密なContract testだけを追加する。
+
+### Scope
+
+- In:
+  - `docs/plans/2026-08-29_061400_expo_dependency_maintenance.md`
+  - `.github/workflows/expo-dependency-maintenance.yml`
+  - `tests/contracts/expo-dependency-maintenance-workflow.test.ts`
+  - `.codex/runs/20260829-072110-JST/*`
+- Out:
+  - `package.json`、`pnpm-lock.yaml`、既存CI、アプリケーションコード、既存Native Contract test
+  - dependency mismatchそのものの修正、generic override同期、追加dependency／semver library
+
+### Change strategy
+
+1. `expo install --fix`直後、major.minor guard前のupdate pathに、`pnpm.overrides.expo-constants`が存在する場合だけ`dependencies.expo-constants`へ同期するNode inline stepを追加する。
+2. direct dependencyが存在しない／有効なstringでない場合は失敗させ、他のoverrideは変更しない契約を維持する。
+3. 既存文字列ベースContract testでtop-level permissionsを`contents: write`／`pull-requests: write`の2項目に限定し、同期処理の対象・guard・順序を検査する。
+4. 指定Validation、scope、Sanitizer、branch safetyを確認してから既存PR branchへcommit／pushし、PR #79の反映だけを確認する。
+
+### Validation plan
+
+- `pnpm run format:check`
+- `pnpm run lint`
+- `pnpm run typecheck`
+- `pnpm run test:contracts`
+- `pnpm run lint:markdown`
+- `git diff --check`
+- `main`との差分、禁止ファイル、PR #79 head／state、CI開始状態

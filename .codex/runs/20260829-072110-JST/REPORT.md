@@ -97,6 +97,16 @@
 - Blocker / Remaining: `git diff`と禁止ファイル監査、Run Artifact Sanitizer Write／Check、Strict evaluation、REPORT／manifest完了更新が残る。commit／push／mergeは行わない。
 - Progress: 78% (7/9)
 
+## 2026-08-29 09:32 (JST)
+
+- Summary: 既存PR #79向けの2 finding修正と指定Validationを完了した。
+- Changes: Workflowの`expo install --fix`直後に、`pnpm.overrides.expo-constants`が存在する場合だけ`dependencies.expo-constants`を正本として同期するRepository固有stepを追加した。専用Contract testでtop-level permissionsを`contents: write`／`pull-requests: write`の2項目へ厳密化し、同期処理の対象・update guard・順序を保護した。Planにも同期契約を追記した。
+- Decision / Rationale: 他override、dependency version、lockfile、既存CI、アプリケーションコード、既存Native Contract testは変更しない。generic override同期、Expo package一覧のhard-code、Plan外の改善は追加しない。
+- Evidence: 対象Workflow／Contract test／PlanのPrettier check PASS、専用Contract test 5/5 PASS、permissionsのtop-level blockは指定2項目のみ。同期stepは`needs_fix == 'true'`、fix直後、major.minor guard前である。
+- Validation: `pnpm run format:check` PASS、`pnpm run lint` PASS（0 errors／66 warnings）、`pnpm run typecheck` PASS、`pnpm run test:contracts` PASS（32 files／461 tests）、`pnpm run lint:markdown` PASS（0 issues）、`git diff --check HEAD` PASS。
+- Blocker / Remaining: 最終scope監査、Run Artifact Sanitizer、commit／push、PR #79反映確認が残る。GitHub Actionsの完了待ち・retry・追加修正は行わない。
+- Progress: 65% (11/17)
+
 ## 2026-08-29 07:36 (JST)
 
 - Summary: Plan指定の実装PR Validationを完了した。

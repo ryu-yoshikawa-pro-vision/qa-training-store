@@ -14,6 +14,19 @@ function workflowSteps(source: string): string[] {
     .map((step) => `      - name: ${step}`);
 }
 
+function topLevelBlockLines(source: string, key: string): string[] {
+  const lines = source.split("\n");
+  const start = lines.findIndex((line) => line === `${key}:`);
+  if (start < 0) return [];
+
+  const blockLines: string[] = [];
+  for (const line of lines.slice(start + 1)) {
+    if (line === "" || !line.startsWith("  ") || line.startsWith("    ")) break;
+    blockLines.push(line.trim());
+  }
+  return blockLines;
+}
+
 const workflow = readWorkflow(".github/workflows/expo-dependency-maintenance.yml");
 const steps = workflowSteps(workflow);
 const updateGuard = "if: steps.expo_check.outputs.needs_fix == 'true'";
@@ -23,8 +36,10 @@ describe("Expo dependency maintenance workflow contracts", () => {
     expect(workflow).toContain('cron: "0 0 * * 1"');
     expect(workflow).toContain("workflow_dispatch:");
     expect(workflow).not.toMatch(/^\s+(pull_request|push):/m);
-    expect(workflow).toContain("permissions:\n  contents: write\n  pull-requests: write");
-    expect(workflow).not.toContain("actions: write");
+    expect(topLevelBlockLines(workflow, "permissions")).toEqual([
+      "contents: write",
+      "pull-requests: write",
+    ]);
     expect(workflow).toContain(
       "concurrency:\n  group: expo-dependency-maintenance\n  cancel-in-progress: false",
     );
@@ -112,6 +127,27 @@ describe("Expo dependency maintenance workflow contracts", () => {
     expect(workflow.indexOf("git ls-files --others --exclude-standard")).toBeLessThan(
       workflow.indexOf("git add package.json pnpm-lock.yaml"),
     );
+  });
+
+  it("synchronizes the repository-specific expo-constants override in the update path", () => {
+    const fixIndex = steps.findIndex((step) => step.includes("pnpm exec expo install --fix"));
+    const sync = steps.find((step) => step.includes("Sync expo-constants override"));
+    const syncIndex = steps.findIndex((step) => step.includes("Sync expo-constants override"));
+    const majorMinorIndex = steps.findIndex((step) =>
+      step.includes("Verify Expo and React Native major.minor guard"),
+    );
+
+    expect(sync).toBeDefined();
+    expect(sync).toContain(updateGuard);
+    expect(sync).toContain("packageJson.pnpm?.overrides");
+    expect(sync).toContain('hasOwnProperty.call(overrides, "expo-constants")');
+    expect(sync).toContain('const directVersion = dependencies["expo-constants"]');
+    expect(sync).toContain('typeof directVersion !== "string"');
+    expect(sync).toContain('overrides["expo-constants"] = directVersion');
+    expect(sync).not.toContain("Object.entries");
+    expect(sync).not.toContain("Object.keys");
+    expect(syncIndex).toBeGreaterThan(fixIndex);
+    expect(syncIndex).toBeLessThan(majorMinorIndex);
   });
 
   it("uses run identity for a non-forced bot branch and creates only a main-based PR", () => {
