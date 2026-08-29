@@ -1,0 +1,252 @@
+name: Expo Dependency Maintenance
+
+on:
+  schedule:
+    - cron: "0 0 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: expo-dependency-maintenance
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "24"
+  PNPM_VERSION: "9.10.0"
+
+jobs:
+  maintain:
+    name: Expo Dependency Maintenance
+    runs-on: ubuntu-latest
+    steps:
+      - name: Reject non-main manual execution
+        if: github.event_name == 'workflow_dispatch' && github.ref != 'refs/heads/main'
+        run: |
+          echo "workflow_dispatch must target refs/heads/main"
+          exit 1
+
+      - name: Checkout main
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          ref: main
+          persist-credentials: false
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@a15d269cd4658e1107c09f1fabf4cbd7bd1f308a # v4.4.0
+        with:
+          version: ${{ env.PNPM_VERSION }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+
+      - name: Check for an open maintenance PR
+        id: duplicate_pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          existing_branch="$({
+            gh pr list \
+              --base main \
+              --state open \
+              --json headRefName \
+              --jq '.[] | select(.headRefName | startswith("automation/expo-compatible-dependencies-")) | .headRefName'
+          } | head -n 1)"
+          if [[ -n "$existing_branch" ]]; then
+            echo "is_duplicate=true" >> "$GITHUB_OUTPUT"
+            echo "Open maintenance PR already exists: $existing_branch"
+          else
+            echo "is_duplicate=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Install dependencies
+        if: steps.duplicate_pr.outputs.is_duplicate != 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Capture Expo and React Native major.minor
+        id: dependency_versions
+        if: steps.duplicate_pr.outputs.is_duplicate != 'true'
+        shell: bash
+        run: |
+          node <<'NODE' >> "$GITHUB_OUTPUT"
+          const fs = require("node:fs");
+
+          const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          const dependencies = packageJson.dependencies ?? {};
+
+          function majorMinor(packageName) {
+            const version = dependencies[packageName];
+            if (typeof version !== "string" || version.trim() === "") {
+              throw new Error(`${packageName} is missing from dependencies`);
+            }
+
+            const matches = [...version.matchAll(/(?:^|[^\d])(\d+)\.(\d+)/g)].map(
+              ([, major, minor]) => `${major}.${minor}`,
+            );
+            const unique = [...new Set(matches)];
+            if (unique.length !== 1) {
+              throw new Error(`${packageName} major.minor is not unique: ${version}`);
+            }
+            return unique[0];
+          }
+
+          console.log(`expo_major_minor=${majorMinor("expo")}`);
+          console.log(`react_native_major_minor=${majorMinor("react-native")}`);
+          NODE
+
+      - name: Check Expo-compatible dependencies
+        id: expo_check
+        if: steps.duplicate_pr.outputs.is_duplicate != 'true'
+        shell: bash
+        run: |
+          if pnpm exec expo install --check; then
+            echo "needs_fix=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "needs_fix=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Finish without changes when dependencies are compatible
+        if: steps.expo_check.outputs.needs_fix == 'false'
+        run: echo "Expo-compatible dependencies are already aligned; no-op."
+
+      - name: Fix Expo-compatible dependencies
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        run: pnpm exec expo install --fix
+
+      - name: Verify Expo and React Native major.minor guard
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        env:
+          EXPECTED_EXPO_MAJOR_MINOR: ${{ steps.dependency_versions.outputs.expo_major_minor }}
+          EXPECTED_REACT_NATIVE_MAJOR_MINOR: ${{ steps.dependency_versions.outputs.react_native_major_minor }}
+        shell: bash
+        run: |
+          EXPECTED_EXPO_MAJOR_MINOR="$EXPECTED_EXPO_MAJOR_MINOR" \
+          EXPECTED_REACT_NATIVE_MAJOR_MINOR="$EXPECTED_REACT_NATIVE_MAJOR_MINOR" \
+          node <<'NODE'
+          const fs = require("node:fs");
+
+          const packageJson = JSON.parse(fs.readFileSync("package.json", "utf8"));
+          const dependencies = packageJson.dependencies ?? {};
+
+          function majorMinor(packageName) {
+            const version = dependencies[packageName];
+            if (typeof version !== "string" || version.trim() === "") {
+              throw new Error(`${packageName} is missing from dependencies`);
+            }
+
+            const matches = [...version.matchAll(/(?:^|[^\d])(\d+)\.(\d+)/g)].map(
+              ([, major, minor]) => `${major}.${minor}`,
+            );
+            const unique = [...new Set(matches)];
+            if (unique.length !== 1) {
+              throw new Error(`${packageName} major.minor is not unique: ${version}`);
+            }
+            return unique[0];
+          }
+
+          const actualExpo = majorMinor("expo");
+          const actualReactNative = majorMinor("react-native");
+          if (actualExpo !== process.env.EXPECTED_EXPO_MAJOR_MINOR) {
+            throw new Error(
+              `Expo major.minor changed from ${process.env.EXPECTED_EXPO_MAJOR_MINOR} to ${actualExpo}`,
+            );
+          }
+          if (actualReactNative !== process.env.EXPECTED_REACT_NATIVE_MAJOR_MINOR) {
+            throw new Error(
+              `React Native major.minor changed from ${process.env.EXPECTED_REACT_NATIVE_MAJOR_MINOR} to ${actualReactNative}`,
+            );
+          }
+          NODE
+
+      - name: Reinstall fixed dependencies
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        run: pnpm install --frozen-lockfile
+
+      - name: Recheck Expo-compatible dependencies
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        run: pnpm exec expo install --check
+
+      - name: Check fixed dependency diff
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        run: git diff --check HEAD
+
+      - name: Verify final changed-file allowlist
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        shell: bash
+        run: |
+          changed_files="$({
+            git diff --name-only HEAD
+            git ls-files --others --exclude-standard
+          } | sed '/^$/d' | sort -u)"
+
+          if [[ -z "$changed_files" ]]; then
+            echo "No changed files were produced by the compatible dependency fix."
+            exit 1
+          fi
+
+          while IFS= read -r file; do
+            case "$file" in
+              package.json|pnpm-lock.yaml)
+                ;;
+              *)
+                echo "Unexpected changed file: $file"
+                exit 1
+                ;;
+            esac
+          done <<< "$changed_files"
+
+          echo "Allowed changed files:"
+          printf '%s\n' "$changed_files"
+
+      - name: Create automation branch
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        shell: bash
+        run: |
+          branch_name="automation/expo-compatible-dependencies-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "AUTOMATION_BRANCH=$branch_name" >> "$GITHUB_ENV"
+          git switch -c "$branch_name"
+
+      - name: Commit compatible dependency changes
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add package.json pnpm-lock.yaml
+          git commit -m "chore: align Expo SDK compatible dependencies"
+
+      - name: Push automation branch
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          gh auth setup-git
+          git push --set-upstream origin "$AUTOMATION_BRANCH"
+
+      - name: Create maintenance pull request
+        if: steps.expo_check.outputs.needs_fix == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          pr_body="$(cat <<'EOF'
+          このPRは、現在のExpo SDK lineに対するcompatible dependency mismatchを定期検知し、自動生成したものです。
+
+          - `pnpm exec expo install --fix`を使用しました。
+          - Expo / React Nativeのmajor.minorは変更していません。
+          - changed fileは`package.json`と`pnpm-lock.yaml`だけです。
+          - fix後の`pnpm exec expo install --check`はPASSしました。
+          - auto-mergeは行いません。
+          EOF
+          )"
+          gh pr create \
+            --base main \
+            --head "$AUTOMATION_BRANCH" \
+            --title "chore: Expo SDK推奨依存へ同期する" \
+            --body "$pr_body"

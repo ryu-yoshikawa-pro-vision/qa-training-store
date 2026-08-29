@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "run_id": "20260829-072110-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Plan SSOTに従うmaintenance Workflowと専用Contract testを追加し、PR #79の指定branch上でcommit／pushなしの実装状態まで完了した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".github/workflows/expo-dependency-maintenance.yml",
+          "selector": null,
+          "summary": "Planで指定されたmaintenance Workflowを実装した。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/expo-dependency-maintenance-workflow.test.ts",
+          "selector": null,
+          "summary": "Planで指定された専用Contract testを追加した。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "tracked／untrackedの集約scope監査で、Plan、指定2実装ファイル、今回Run Artifactだけを確認し、package.json、pnpm-lock.yaml、既存CI、既存Native Contract testに変更はない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "scope-audit",
+          "summary": "mainとの差分とtracked／untracked変更を許可リストへ照合しPASSした。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "必須Validation、追加の通常CI相当静的ゲート、unit／integration／repository／component test、spec／web build、Workflow YAML parseが成功した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260829-072110-JST/REPORT.md",
+          "selector": "Validation",
+          "summary": "指定Validationと追加Validationの結果をRun REPORTへ記録した。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "manual main-ref guard、main checkout、duplicate PR guard、major.minor guard、final allowlist、GITHUB_TOKEN限定、force pushなし、既存CI dispatchなし、auto-mergeなしをWorkflowとContract testで固定した。作業中のcommit／push／mergeは実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".github/workflows/expo-dependency-maintenance.yml",
+          "selector": "safety-guards",
+          "summary": "Plan記載の外部副作用境界と停止条件をWorkflowへ反映した。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Contract testは文字列ベースの既存形式に合わせ、重要契約だけをmarkerで検査し、shell全文・step name・PR body細部を過剰に固定していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/expo-dependency-maintenance-workflow.test.ts",
+          "selector": "contracts",
+          "summary": "4つのContract testが実装され、全てPASSした。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "特定package／patch versionのhard-code、semver library、共通Workflow、retry、polling、通知、認証拡張を追加せず、Planの最小Workflowと既存test frameworkだけを使用した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": null,
+          "selector": "plan-conformance",
+          "summary": "Planから実装範囲を拡張していない。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "Node.js 24／pnpm 9.10.0／既存Action pinを確認し、ローカルValidationは再現した。一方、GitHub-hostedのschedule／workflow_dispatch、branch push、PR creation、approval-required CIはcommit／push禁止のため実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": "docs/plans/2026-08-29_061400_expo_dependency_maintenance.md",
+          "selector": "merge後の初回確認",
+          "summary": "未実行のGitHub Actions運用確認はPlanのmerge後Follow-upへ引き継ぐ。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "low",
+      "evidence": "GitHub Actions上のmaintenance実運用は、今回のcommit／push禁止条件によりローカルでは実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": "docs/plans/2026-08-29_061400_expo_dependency_maintenance.md",
+          "selector": "merge後の初回確認",
+          "summary": "merge後にmainからworkflow_dispatchを1回実行する手順がPlanにある。"
+        }
+      ],
+      "detail": "実装欠陥ではなく、ユーザー指定のcommit／push禁止と、Planが定めるmerge後確認の境界による未実行事項である。"
+    }
+  ],
+  "improvement_candidates": []
+}

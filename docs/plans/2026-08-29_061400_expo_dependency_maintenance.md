@@ -7,6 +7,7 @@ Expo SDK が現在推奨する依存バージョンと `package.json` / `pnpm-lo
 自動化対象は、**現在使用中の Expo SDK line に対する compatible dependency version の不一致だけ**とする。
 
 対象外:
+
 - 一般 dependency update
 - Expo SDK major / minor upgrade
 - React Native major / minor upgrade
@@ -149,6 +150,7 @@ pnpm install --frozen-lockfile
 例: `57.0.17 -> 57.0`、`~0.86.4 -> 0.86`
 
 次の場合は失敗させる。
+
 - `expo` が存在しない。
 - `react-native` が存在しない。
 - major.minor を一意に取得できない。
@@ -298,6 +300,7 @@ title: chore: Expo SDK推奨依存へ同期する
 ```
 
 PR body には次を記載する。
+
 - Expo compatible dependency mismatch の定期検知により自動生成されたこと。
 - `expo install --fix` を使用したこと。
 - Expo / React Native major.minor が不変であること。
@@ -319,6 +322,7 @@ gh workflow run native-ci.yml
 `GITHUB_TOKEN` で作成した PR の `pull_request` Workflow run は approval-required 状態になるため、PR を確認する人が GitHub 上で実行を承認する。
 
 承認後は既存 CI に任せる。
+
 - Web CI / Dependency Review
 - Mobile App CI / Expo Doctor
 - Android / iOS build
@@ -377,6 +381,7 @@ tests/contracts/expo-dependency-maintenance-workflow.test.ts
 既存と同じ Vitest / 文字列ベース contract test を利用し、新しい test framework / YAML parser は追加しない。
 
 確認する contract:
+
 - `schedule` / `workflow_dispatch`
 - permission が `contents: write` / `pull-requests: write` のみ
 - `workflow_dispatch` で `main` 以外の ref を変更処理前に拒否する guard
@@ -417,6 +422,7 @@ Repository の通常 CI も確認する。依存を意図的に古くして疑�
 実行前に GitHub Actions から branch push / PR 作成が許可されていることを確認する。
 
 mismatch が残っている場合は次を確認する。
+
 1. `main` の mismatch を検出し、`expo_check` が `needs_fix=true` を返して update path へ進む。
 2. compatible version へ修正する。
 3. Expo / React Native major.minor が変化しない。
@@ -436,6 +442,7 @@ Workflow の Re-run が必要になった場合は、`GITHUB_RUN_ATTEMPT` によ
 ## Stop 条件
 
 次の場合は自動化範囲を広げず別対応とする。
+
 - `workflow_dispatch` が `main` 以外の ref から実行された。
 - `expo install --fix` が失敗する。
 - Expo SDK major / minor が変化する。
