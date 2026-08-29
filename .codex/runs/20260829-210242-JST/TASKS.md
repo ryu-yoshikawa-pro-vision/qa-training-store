@@ -26,8 +26,8 @@
 - [x] D9. Address / Auth / Product / Master / Review / Inventory / Shipping / SearchのActive Form / Use Case不足を既存`INPUT_LIMITS`へ接続する。
 - [x] D10. Web / Nativeを含む既存Formal Testへ必要な境界確認を最小追加する。
 - [x] D11. Required validation、focused test、manual audit、scope、Sanitizerを今回repair内容で実行する。
-- [ ] D12. Run ArtifactとPR本文を同期し、明示pathでcommit / push後にexact HEADのCIを確認する。
+- [x] D12. Run ArtifactとPR本文を同期し、明示pathでcommit / push後にexact HEADのCIを確認する。
 
 ## Blocked
 
-- なし（required validation、manual review、scope check、Sanitizer、PR #84へのpushとWeb CI確認を完了。Mobile `Native Static`のExpo Doctor patch mismatchは今回差分外として切り分け済みで、残るMobile build jobはGitHub Actions上で継続中）。
+- なし（required validation、manual review、scope check、Sanitizer、PR #84へのpush、exact HEADのWeb / Mobile CI確認、PR本文更新を完了。Mobile `Native Static`のExpo Doctor patch mismatchと集約verify failureは今回差分外として切り分け済み。第三者re-reviewとmergeは未完了工程として残る）。
