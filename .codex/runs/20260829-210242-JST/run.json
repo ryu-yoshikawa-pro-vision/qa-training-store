@@ -147,12 +147,20 @@
       "Sanitizer Write: PASS (residual 0)",
       "Sanitizer Check: PASS (residual 0)",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-210242-JST -Write: PASS (files_scanned 4; residual 0)",
-      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-210242-JST -Check: PASS (files_scanned 4; residual 0)"
+      "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-210242-JST -Check: PASS (files_scanned 4; residual 0)",
+      "git status --short: clean before and after PR #84 push",
+      "git rev-parse HEAD: fd4cd4cea652bf3399e28ae1db6686504e0584e0",
+      "git ls-remote origin refs/heads/fix/pr2-product-contract-gaps: fd4cd4cea652bf3399e28ae1db6686504e0584e0",
+      "gh pr view 84: OPEN, draft=false, base=main, head=fix/pr2-product-contract-gaps, headSha=fd4cd4cea652bf3399e28ae1db6686504e0584e0",
+      "gh run view 33255693788: completed / success at repair HEAD",
+      "gh pr checks 84: Web CI required checks PASS; Mobile Native Static FAIL is known Expo Doctor patch mismatch; Android / iOS build jobs in progress at checkpoint",
+      "gh api Native Static log: expo expected ~57.0.18 found 57.0.17; expo-constants expected ~57.0.16 found 57.0.15"
     ],
     "warnings": [
       "初回のpnpm run format:checkはadmin-product-use-cases.tsのPrettier差分でFAILしたが、変更対象のcode/test filesだけを整形して再実行しPASSした。",
       "repair focused Vitestの初回失敗は、Review limit testが既存review済みfixtureを選択してNOT_ELIGIBLEになったためであり、fixture選択を修正後に同じfocused suiteがPASSした。",
-      "SanitizerのPathなし初回呼び出しは必須引数不足で実行されなかったため、script契約どおりactive Run Pathを指定してWrite / Checkを実行しPASSした。"
+      "SanitizerのPathなし初回呼び出しは必須引数不足で実行されなかったため、script契約どおりactive Run Pathを指定してWrite / Checkを実行しPASSした。",
+      "PR-triggered Mobile App CIのNative StaticはExpo Doctorの既知patch mismatchでFAILした。今回のsource / test / Plan / Run、package、lockfile、workflow、config差分とは独立しており、primary_failure_categoryはnullを維持した。"
     ]
   },
   "safety": {
@@ -164,6 +172,6 @@
     "evaluation_present": false
   },
   "evaluation_path": null,
-  "status": "running",
+  "status": "completed",
   "primary_failure_category": null
 }

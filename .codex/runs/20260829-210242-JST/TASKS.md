@@ -21,8 +21,8 @@
 - [x] D4. bounded auditで対象と判定したAddress / Category / Brand / Review / Inventory consumerを`INPUT_LIMITS`へ接続する。
 - [x] D5. 変更した既存Integration / Component Testでlimit boundaryとForm属性のobservable behaviorを確認する。
 - [x] D6. Plan、Run Artifact、validation実績、scope、Sanitizerをrepair結果へ同期する。
-- [ ] D7. PR #84へcommit / pushし、Web CIと既知のMobile Expo Doctor failureを今回差分と切り分けて確認する。
+- [x] D7. PR #84へcommit / pushし、Web CIと既知のMobile Expo Doctor failureを今回差分と切り分けて確認する。
 
 ## Blocked
 
-- なし（required validation、manual review、scope check、Sanitizerを完了し、ユーザー指定のStop conditionに該当する新事実は未検出）。
+- なし（required validation、manual review、scope check、Sanitizer、PR #84へのpushとWeb CI確認を完了。Mobile `Native Static`のExpo Doctor patch mismatchは今回差分外として切り分け済みで、残るMobile build jobはGitHub Actions上で継続中）。
