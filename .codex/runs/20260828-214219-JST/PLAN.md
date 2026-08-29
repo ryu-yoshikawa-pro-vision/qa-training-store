@@ -2,7 +2,7 @@
 
 ## Objective
 
-PR #77（`feat/web-docs-publishing`）へ、`docs/plans/2026-08-28_web-docs-publishing.md` の設計をそのまま実装し、既存の Expo Web `dist/` 配信から Specification と Test Automation Curriculum を閲覧可能にする。
+PR #77（`feat/web-docs-publishing`）へ、`docs/plans/2026-08-28_214219_web-docs-publishing.md` の設計をそのまま実装し、既存の Expo Web `dist/` 配信から Specification と Test Automation Curriculum を閲覧可能にする。
 
 ## Scope
 
