@@ -10,12 +10,12 @@
 
 - ゴール:
   - Productの`productCode`とvariant `sku`のcreate / update経路が既存`normalizeCode()`を通り、正規化後の値でvalidation・unique index・persistenceへ進む。
-  - NFR-MA-012に直接対応する認証・プロフィールのFormとApplication / Use Caseが既存`INPUT_LIMITS`を参照する。
+  - NFR-MA-012について、`INPUT_LIMITS`に既存canonical keyがあり、CurrentのFormまたはApplication validationに同義の文字数literalが残るconsumerをbounded auditし、該当consumerを既存`INPUT_LIMITS`へ接続する。
   - 変更されたobservable behaviorを既存Integration / Component Testで検証する。
 - 完了条件（DoD）:
   - FR-PR-050のtrim・NFKC・ASCII uppercase・pattern・normalized uniquenessがProduct write pathで成立する。
   - `INPUT_LIMITS`の対象fieldについて、FormとUse Caseのlimit sourceがcanonical constantへ統一される。
-  - Product create / update、Registration / Profileの境界TestがPASSする。
+  - Product create / updateとbounded audit対象consumerのApplication / Form境界TestがPASSする。
   - required validation、focused Test、Sanitizer、scope checkがPASSする。
   - PR #78、coverage-remediation worktree、文書、workflow、schema / migration、CT-CATEGORY-002 / CT-BOUNDARY-001には変更がない。
   - commit / push / PR作成 / mergeは行わない。
@@ -27,8 +27,9 @@
   - `src/domain/services/normalization.ts`に`normalizeCode(value)`があり、trim・NFKC・ASCII uppercase・`[A-Z0-9_-]+`検証を実装している。
   - `src/application/use-cases/admin-product-use-cases.ts`はProduct code / SKUを現在trimのみで整形し、既存helperを参照していない。create、update、variant追加、variant更新が対象経路である。
   - ProductのDexie unique indexは保存値をkeyにするため、Application層でcanonical valueを作ればschema変更なしにnormalized uniquenessを成立させられる。
-  - `src/application/contracts/common.ts`の`INPUT_LIMITS`は既存canonical constantであるが、`src` / `tests`の参照は定義以外にない。
-  - 認証Formのpassword / displayName上限とAuth / Account Use Caseの同じliteral、Profile FormのdisplayName `maxLength`が重複している。
+  - `src/application/contracts/common.ts`の`INPUT_LIMITS`は既存canonical constantであり、認証・プロフィール以外にも同義のForm / Application validation consumerが存在する。
+  - bounded auditで、Address label / recipient、Category / Brand name、Review title / body、Inventory reasonのForm `maxLength`またはApplication文字数判定が既存canonical keyと一致することを確認した。これらを今回の修正対象とし、bulk件数、formatted postal code、pagination、購入数などのliteralは対象外とする。
+  - 認証Formのpassword / displayName上限とAuth / Account Use Case、Profile FormのdisplayNameは前回実装で既に`INPUT_LIMITS`へ接続済みである。
   - NFR-MA-012はEmail正規化、文字数上限、Application Errorを共有関数・共有定数・共有型から参照する契約である。Error Summary / focus / field linkの既存Component Testは今回変更しない。
 - Assumptions:
   - `INPUT_LIMITS`をApplication contractsからPresentationが参照する既存依存方向は許容される。新しいshared moduleやvalidation frameworkは作らない。
@@ -46,8 +47,9 @@
 - Impacted areas:
   - Application Product write normalization
   - Application auth / account validation
-  - Web auth / profile Form schema and native input attributes
-  - Existing Product and auth/account Integration Test、Web Component Test
+  - Web auth / account / master / review / inventory Form schema and native input attributes
+  - Application account / master / review / inventory validation
+  - Existing Product and auth/account/master/review/inventory Integration Test、Web Component Test
 - Files to inspect:
   - `docs/01_requirements/functional_requirements.md`
   - `docs/01_requirements/non_functional_requirements.md`
@@ -61,15 +63,28 @@
   - `tests/integration/admin-product-use-cases.test.ts`
   - `tests/integration/auth-account.test.ts`
   - `tests/component/auth-account-pages.test.tsx`
+  - `src/application/use-cases/admin-master-use-cases.ts`
+  - `src/application/use-cases/review-user-use-cases.ts`
+  - `src/application/use-cases/admin-operations-use-cases.ts`
+  - `src/presentation/pages/addresses-page.tsx`
+  - `src/presentation/pages/admin-master-pages.tsx`
+  - `src/presentation/pages/review-user-pages.tsx`
+  - `src/presentation/pages/admin-operations-pages.tsx`
+  - `tests/integration/admin-master-use-cases.test.ts`
+  - `tests/integration/review-user-use-cases.test.ts`
+  - `tests/integration/admin-operations-use-cases.test.ts`
+  - `tests/component/admin-master-pages.test.tsx`
+  - `tests/component/review-user-pages.test.tsx`
+  - `tests/component/admin-operations-pages.test.tsx`
   - `src/infrastructure/database/dexie/database.ts`
 
 ## 5. 変更方針
 
 - Change strategy:
   1. `normalizeCode`をApplication Product Use Caseへimportし、Product codeの共通正規化、create variant、update variantへ接続する。Product repository、DB schema、migrationは変更しない。
-  2. `INPUT_LIMITS`をAuth / Account Use CaseとSignup / Profile Formから直接参照する。既存のerror key・message・validation timingは維持する。
+  2. `INPUT_LIMITS`にcanonical keyが存在する同義のForm `maxLength` / Application validation literalをbounded auditし、Address、Category、Brand、Review、Inventoryの対象consumerを直接参照へ統一する。既存のerror key・message・validation timingは維持する。
   3. 既存Integration TestでProduct create / updateのcanonical値と、正規化後に衝突するProduct code / SKUのunique拒否を確認する。
-  4. 既存Auth / Account Integration TestとWeb Component TestでApplication/Formのlimit boundaryとFormのshared-backed attributesを確認する。
+  4. 既存Auth / Account / Admin Master / Review / Inventory Integration TestとWeb Component TestでApplication/Formのlimit boundaryとFormのshared-backed attributesを確認する。
   5. 変更箇所をself-reviewし、required validation、focused Test、scope、Sanitizerを完了する。
 - 実行タスク:
   - [x] 1. 最新main、Requirement、helper / constant、write path、既存Testを再確認する。
@@ -93,7 +108,7 @@
   - `pnpm run test:component`
   - `pnpm run test:contracts`
   - `pnpm run test:integration`
-  - `pnpm exec vitest run tests/integration/admin-product-use-cases.test.ts tests/integration/auth-account.test.ts tests/component/auth-account-pages.test.tsx`
+  - `pnpm exec vitest run tests/integration/auth-account.test.ts tests/integration/admin-master-use-cases.test.ts tests/integration/review-user-use-cases.test.ts tests/integration/admin-operations-use-cases.test.ts tests/component/auth-account-pages.test.tsx tests/component/admin-master-pages.test.tsx tests/component/review-user-pages.test.tsx tests/component/admin-operations-pages.test.tsx --no-file-parallelism --maxWorkers=1`
   - `git diff --check`
   - `scripts/sanitize-codex-artifacts.ps1 -Write` と`-Check`
 - 成功判定:

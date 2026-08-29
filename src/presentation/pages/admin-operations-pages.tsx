@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "expo-router";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { AdminOrderDetailDto, InventoryItem } from "@/application/contracts";
 import type { OrderStatus, ShipmentStatus } from "@/domain/contracts";
 import { ProductImage } from "@/presentation/components/product-image";
@@ -245,7 +246,7 @@ function AdminInventoriesContent() {
               理由詳細
               <input
                 value={reasonText}
-                maxLength={200}
+                maxLength={INPUT_LIMITS.inventoryReason}
                 onChange={(event) => setReasonText(event.target.value)}
               />
             </label>

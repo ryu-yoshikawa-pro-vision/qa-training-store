@@ -17,6 +17,11 @@
 
 - D1. `src/application/use-cases/admin-product-use-cases.ts`がProduct identifierのwrite path（Product create/update、variant create/update）を集約している。
 - D2. `INPUT_LIMITS`は既存`src/application/contracts/common.ts`からAuth / Account / Presentationへ直接参照でき、module移動は不要と判断した。
+- [x] D3. PR #84 review Findingを受け、`INPUT_LIMITS` canonical keyとCurrent Form / Application validationの同義literalをbounded auditする。
+- [x] D4. bounded auditで対象と判定したAddress / Category / Brand / Review / Inventory consumerを`INPUT_LIMITS`へ接続する。
+- [x] D5. 変更した既存Integration / Component Testでlimit boundaryとForm属性のobservable behaviorを確認する。
+- [x] D6. Plan、Run Artifact、validation実績、scope、Sanitizerをrepair結果へ同期する。
+- [ ] D7. PR #84へcommit / pushし、Web CIと既知のMobile Expo Doctor failureを今回差分と切り分けて確認する。
 
 ## Blocked
 

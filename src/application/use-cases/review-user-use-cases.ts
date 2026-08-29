@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   AdminReviewDetailDto,
   AdminReviewListItem,
@@ -235,10 +236,10 @@ export class CustomerReviewUseCases {
     }
     const title = input.title?.trim() || null;
     const body = input.body.trim();
-    if (title !== null && title.length > 120) {
+    if (title !== null && title.length > INPUT_LIMITS.reviewTitle) {
       throw validationError("reviews.title.invalid", { title: "reviews.title.invalid" });
     }
-    if (body.length === 0 || body.length > 1000) {
+    if (body.length === 0 || body.length > INPUT_LIMITS.reviewBody) {
       throw validationError("reviews.body.invalid", { body: "reviews.body.invalid" });
     }
     return { rating: input.rating as 1 | 2 | 3 | 4 | 5, title, body };

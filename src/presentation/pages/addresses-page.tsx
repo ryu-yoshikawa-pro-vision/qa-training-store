@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { UserAddress } from "@/domain/contracts";
 import { ApplicationError } from "@/application/errors";
 import { AccountNavigation } from "@/presentation/components/account-navigation";
@@ -230,9 +231,19 @@ function AddressesContent() {
             })}
           >
             <label htmlFor="label">ラベル</label>
-            <input id="label" maxLength={50} required {...register("label")} />
+            <input
+              id="label"
+              maxLength={INPUT_LIMITS.addressLabel}
+              required
+              {...register("label")}
+            />
             <label htmlFor="recipientName">宛名</label>
-            <input id="recipientName" maxLength={100} required {...register("recipientName")} />
+            <input
+              id="recipientName"
+              maxLength={INPUT_LIMITS.recipientName}
+              required
+              {...register("recipientName")}
+            />
             <label htmlFor="postalCode">郵便番号</label>
             <div className="inline-control">
               <input

@@ -127,7 +127,10 @@ export class AccountUseCases {
 
   private validateAddress(request: CreateAddressRequest): void {
     const fieldErrors: Record<string, string> = {};
-    if (request.label.trim().length === 0 || request.label.trim().length > 50) {
+    if (
+      request.label.trim().length === 0 ||
+      request.label.trim().length > INPUT_LIMITS.addressLabel
+    ) {
       fieldErrors.label = "validation.address.label";
     }
     if (request.recipientName.trim().length === 0) {

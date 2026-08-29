@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   AdminOverview,
   BrandAdminSearchQuery,
@@ -218,7 +219,8 @@ export class AdminMasterUseCases {
 
   private validName(value: string, resource: "category" | "brand"): string {
     const name = value.trim();
-    if (name.length === 0 || name.length > 80) {
+    const maxLength = resource === "category" ? INPUT_LIMITS.categoryName : INPUT_LIMITS.brandName;
+    if (name.length === 0 || name.length > maxLength) {
       throw validationError(`validation.${resource}.name`, {
         name: `validation.${resource}.name`,
       });

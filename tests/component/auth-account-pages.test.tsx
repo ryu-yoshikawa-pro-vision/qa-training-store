@@ -281,6 +281,14 @@ describe("auth and account pages", () => {
     render(<AddressesPage />);
     expect(await screen.findByRole("heading", { name: "登録済み配送先（1/5）" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "配送先を追加" })).toBeVisible();
+    expect(screen.getByLabelText("ラベル")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.addressLabel),
+    );
+    expect(screen.getByLabelText("宛名")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.recipientName),
+    );
     fireEvent.click(screen.getByRole("button", { name: "既定にする" }));
     await waitFor(() =>
       expect(account.updateAddress).toHaveBeenCalledWith(

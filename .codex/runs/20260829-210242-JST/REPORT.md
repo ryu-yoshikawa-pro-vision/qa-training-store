@@ -96,3 +96,42 @@
 - Scope / Run: implementation base `dfae7113e33fb9eb3f55fbd940acb285c7f1870c`からの期待変更13 filesのみ、unexpected 0、forbidden 0。`run.status=completed`、`validation.status=passed`、`primary_failure_category=null`、Sanitizer residual 0を維持している。
 - Blocker / Remaining: 本作業のunresolved item / Stop conditionはなし。commit、push、PR作成、mergeは未実施。`CT-CATEGORY-002` / `CT-BOUNDARY-001`は別作業で扱う。
 - Progress: 100% (10/10)
+
+## 2026-08-29 22:18 (JST)
+
+- Summary: PR #84の実装review Finding（NFR-MA-012のbounded consumer audit不足）を受け、既存`INPUT_LIMITS` consumerのrepairを開始した。既存Plan / Runを再利用し、新しいPlan / Runは作成していない。
+- Audit: `INPUT_LIMITS`にcanonical keyがあり、Current FormまたはApplication validationに同義の文字数literalがあるconsumerを再確認した。対象はAddress label / recipient、Category name、Brand name、Review title / body、Inventory reasonである。Signup / Profileは前回修正済みである。
+- Decision / Rationale: Form `maxLength`とApplication validationの意味・値が一致し、置換後もobservable behaviorとerror semanticsを維持できるため、対象consumerをbounded repairする。formatted postal codeの`maxLength=8`、bulk件数、pagination、購入数等はcanonical text limitと意味が異なるため変更しない。Product normalization / FR-PR-050、PR #78、coverage-remediation、workflow / package / configは変更しない。
+- Changes: PlanのNFR-MA-012 scopeを「認証・プロフィール限定」から、既存canonical keyと同義literalを持つForm / Application consumerのbounded auditへ最小修正した。実装変更は監査完了後に記録する。
+- Validation: repair開始時点では新しいvalidationを未実行。`run.status=running`、`validation.status=not_run`へ戻した。
+- Blocker / Remaining: なし。次は対象consumerのcanonical参照化、既存Integration / Component Testの最小更新、required validation、scope、Sanitizerを実施する。
+- Subagents:
+  - Delegation: なし（Native delegation marker: No child subagent delegation）。
+  - Result: 親agentがread-only audit、Plan / Run同期を実施した。
+  - Parent decision: bounded auditで意味が一致するconsumerだけをrepair対象とする。
+- Progress: 65% (13/20)
+
+## 2026-08-29 22:38 (JST)
+
+- Summary: NFR-MA-012のreview Findingに対するbounded repair実装とlocal validationを完了した。
+- Audit: canonical keyと同義のForm / Application文字数consumerを全体検索・read-only確認した。前回接続済みのemail / password / displayNameに加え、今回の対象はAddress label / recipient、Category name、Brand name、Review title / body、Inventory reasonである。
+- Changes: `account-use-cases.ts`のAddress label、`addresses-page.tsx`のlabel / recipient `maxLength`、`admin-master-use-cases.ts`と`admin-master-pages.tsx`のCategory / Brand、`review-user-use-cases.ts`と`review-user-pages.tsx`のReview title / body、`admin-operations-use-cases.ts`と`admin-operations-pages.tsx`のInventory reasonを既存`INPUT_LIMITS`へ接続した。`InlineNameEditor`はCategory / Brandごとのlimitをpropsで受け取る構造にした。既存Integration / Component Testへboundary / attribute確認を追加した。
+- Unchanged audit items: `addresses-page.tsx`のformatted postal code `maxLength=8`、Product / Reviewのbulk target count、pagination / keyword / stock / purchase等の件数・操作制約はtext limitと意味が異なるため変更していない。Auth / Profileの既存canonical consumerも変更していない。Product normalization / FR-PR-050は変更していない。
+- Validation: focused Vitestは初回にReview fixtureの`NOT_ELIGIBLE`で1件失敗したが、未レビューfixture選択へ修正後8 files / 63 tests PASS。`pnpm run format:check` PASS、`pnpm run lint:markdown` PASS（343 files / 0 issues）、`pnpm run validate:spec` PASS、`pnpm run typecheck` PASS（app / native-tests / training）、`pnpm run lint` PASS（0 errors / 66 existing warnings）、`pnpm run test:unit` PASS（13 files / 66 tests）、`pnpm run test:integration` PASS（9 files / 104 tests）、`pnpm run test:component` PASS（Web 11 files / 84 tests、Native 13 suites / 62 tests）、`pnpm run test:contracts` PASS（32 files / 467 tests、今回1回）、`git diff --check` PASS。
+- Scope: review repairのworking deltaは20 filesで、Plan、bounded consumer source 8 files、既存Integration / Component Test 8 files、active Run 3 filesのみ。PR #78、coverage-remediation、Product normalization、workflow / package / config / DB schema / migrationは変更していない。unexpected 0、forbidden 0。
+- Manual Review: error key / message、required / trim semantics、Form behavior、依存方向、対象外literalを確認した。`INPUT_LIMITS`の値は変更していない。NFR-MA-012 consumer auditの未解決項目はない。
+- Run state: validation実績はPASSへ更新したが、PR #84へのcommit / push / PR body updateは未完了のためRunは`status=running`のままとする。`validation.status=passed`、`primary_failure_category=null`。
+- Blocker / Remaining: なし。次はSanitizer Write / Check後に、明示pathだけをcommit・pushし、PR #84のCIと既知のMobile Expo Doctor mismatchを確認する。
+- Subagents:
+  - Delegation: なし（Native delegation marker: No child subagent delegation）。
+  - Result: 親agentがbounded audit、実装、focused / required validation、scope確認を実施した。
+  - Parent decision: 既存canonical sourceへの直接接続でFindingを解消し、unrelated literalは変更しない。
+- Progress: 85% (17/20)
+
+## 2026-08-29 22:40 (JST)
+
+- Summary: repair実装後のactive Run Artifact整合性とSanitizerを確認した。
+- Validation: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-210242-JST -Write` と`-Check`を実行し、4 files scanned、residual finding 0でPASSした。`run.json`はJSON parse PASS、`validation.status=passed`、`primary_failure_category=null`を維持している。
+- Scope / State: repair working deltaは許可したPlan、8 source、8 existing test、active Run 3 filesのみで、unexpected 0 / forbidden 0。Product normalization、PR #78、coverage-remediation、Expo dependency、workflow / package / configは未変更。commit / push前である。
+- Progress correction: 前checkpointの`13/20`表記はcheckbox denominatorと一致していなかったため、履歴を残したまま補正する。`TASKS.md`のcheckboxはNow 10件 + Discovered 5件 = 15件、完了14件、push / PR確認のD7のみ未完了であり、現在のProgressは`93% (14/15)`。
+- Blocker / Remaining: なし。D7としてPR #84同一branchへの明示push、push後CI確認、PR本文同期が残る。

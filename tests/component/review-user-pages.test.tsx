@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { CurrentUserDto } from "@/application/contracts";
+import { INPUT_LIMITS, type CurrentUserDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import { StorefrontShell } from "@/presentation/shells/storefront-shell";
 
@@ -194,6 +194,14 @@ describe("review, user, and test-control pages", () => {
     render(<CustomerReviewPage orderItemId="item-1" />);
     expect(await screen.findByRole("heading", { name: "レビューを投稿" })).toBeVisible();
     expect(screen.getByRole("radiogroup", { name: "星評価" })).toBeVisible();
+    expect(screen.getByLabelText("タイトル（任意）")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.reviewTitle),
+    );
+    expect(screen.getByLabelText("本文")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.reviewBody),
+    );
     fireEvent.click(screen.getByLabelText("3つ星"));
     fireEvent.change(screen.getByLabelText("本文"), { target: { value: "配送後の感想です。" } });
     fireEvent.click(screen.getByRole("button", { name: "投稿する" }));

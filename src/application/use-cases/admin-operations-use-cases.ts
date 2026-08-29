@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   AdjustInventoryRequest,
   AdminOrderDetailDto,
@@ -90,7 +91,7 @@ export class AdminOperationsUseCases {
       !Number.isInteger(request.changeQuantity) ||
       request.changeQuantity === 0 ||
       request.reasonText.trim().length === 0 ||
-      request.reasonText.trim().length > 200
+      request.reasonText.trim().length > INPUT_LIMITS.inventoryReason
     ) {
       throw validationError("inventory.adjustment.invalid");
     }

@@ -1,4 +1,5 @@
 import Dexie from "dexie";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
 import { AdminOperationsUseCases } from "@/application/use-cases/admin-operations-use-cases";
 import { TestClock } from "@/infrastructure/clock/clocks";
@@ -113,6 +114,23 @@ describe("admin inventory, order, and shipment integration", () => {
       version: before.item.version,
     });
     expect(after.histories).toHaveLength(before.histories.length);
+  });
+
+  it("enforces the canonical inventory reason limit", async () => {
+    const before = await useCases.getInventoryDetail("variant-basic-shirt-02");
+    await expect(
+      useCases.adjustInventory({
+        variantId: before.item.variantId,
+        changeQuantity: 1,
+        reasonCode: "CORRECTION",
+        reasonText: "x".repeat(INPUT_LIMITS.inventoryReason + 1),
+        expectedVersion: before.item.version,
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    expect(await useCases.getInventoryDetail(before.item.variantId)).toMatchObject({
+      item: { stockQuantity: before.item.stockQuantity, version: before.item.version },
+      histories: before.histories,
+    });
   });
 
   it("searches orders by customer, status, period, total, sort, and page", async () => {

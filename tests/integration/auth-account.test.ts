@@ -333,6 +333,38 @@ describe("auth and account application integration", () => {
     });
   });
 
+  it("enforces the shared address label limit at the Application boundary", async () => {
+    await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
+    sessionStore.value = "session-user-customer-regular";
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator(["address-limit"]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    const request = (label: string) => ({
+      label,
+      recipientName: "一般テスト会員",
+      postalCode: "1000001",
+      prefecture: "東京都",
+      city: "千代田区千代田",
+      addressLine1: "1-1",
+      addressLine2: null,
+      phone: "09000000000",
+      makeDefault: false,
+    });
+
+    const accepted = await account.createAddress(request("x".repeat(INPUT_LIMITS.addressLabel)));
+    expect(accepted.label).toHaveLength(INPUT_LIMITS.addressLabel);
+    await expect(
+      account.createAddress(request("x".repeat(INPUT_LIMITS.addressLabel + 1))),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { label: "validation.address.label" },
+    });
+  });
+
   it("keeps management roles out of customer profile operations", async () => {
     await database.sessions.add({
       id: "session-admin-profile",
