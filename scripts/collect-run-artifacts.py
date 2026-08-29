@@ -2,7 +2,9 @@
 import argparse
 import copy
 import json
+import os
 from pathlib import Path
+import subprocess
 
 
 def parse_args():
@@ -11,6 +13,7 @@ def parse_args():
     parser.add_argument("--runs-root")
     parser.add_argument("--manifest-path")
     parser.add_argument("--base-manifest")
+    parser.add_argument("--refresh-git-changed-files", action="store_true")
     parser.add_argument("--strict", action="store_true")
     return parser.parse_args()
 
@@ -42,6 +45,41 @@ def unique_list(values):
         seen.add(marker)
         result.append(value)
     return result
+
+
+def collect_git_changed_files(repo_root: Path):
+    commands = (
+        ("git", "diff", "--name-only", "--relative", "-z", "HEAD", "--"),
+        ("git", "ls-files", "--others", "--exclude-standard", "-z"),
+    )
+    changed_files = []
+    for command in commands:
+        try:
+            result = subprocess.run(
+                command,
+                cwd=repo_root,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                check=False,
+            )
+        except OSError as exc:
+            raise RuntimeError(f"Git command failed to start: {command[0]}: {exc}") from exc
+        if result.returncode != 0:
+            detail = os.fsdecode(result.stderr).strip()
+            suffix = f": {detail}" if detail else ""
+            raise RuntimeError(
+                f"Git command failed (exit={result.returncode}): {' '.join(command)}{suffix}"
+            )
+
+        for raw_path in result.stdout.split(b"\0"):
+            if not raw_path:
+                continue
+            normalized = normalize_repo_path(os.fsdecode(raw_path))
+            if normalized == ".codex/runs" or normalized.startswith(".codex/runs/"):
+                continue
+            changed_files.append(normalized)
+
+    return unique_list(changed_files)
 
 
 def load_json(path: Path):
@@ -214,9 +252,12 @@ def main():
         [normalize_repo_path(item) for item in manifest.get("codex_task_reports", []) if isinstance(item, str)] + report_paths
     )
 
-    manifest["changed_files"] = unique_list(
-        [normalize_repo_path(item) for item in manifest.get("changed_files", []) if isinstance(item, str)]
-    )
+    existing_changed_files = [
+        normalize_repo_path(item) for item in manifest.get("changed_files", []) if isinstance(item, str)
+    ]
+    if args.refresh_git_changed_files:
+        existing_changed_files.extend(collect_git_changed_files(repo_root))
+    manifest["changed_files"] = unique_list(existing_changed_files)
 
     safety = manifest.get("safety") if isinstance(manifest.get("safety"), dict) else {}
     safety["network"] = bool(safety.get("network"))

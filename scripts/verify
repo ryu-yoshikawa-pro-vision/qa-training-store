@@ -312,6 +312,18 @@ check_template_contract() {
   contains ".codex/logs/hooks-" docs/reference/run-artifacts.md || return 1
   contains "checkpoint" docs/reference/run-artifacts.md || return 1
   contains "collect-run-artifacts" docs/reference/run-artifacts.md || return 1
+  contains 'actual `.codex/runs/<run_id>/run.json`' AGENTS.md || return 1
+  contains 'active Runに紐づくinteractive実行で' AGENTS.md || return 1
+  contains '### Interactive `codex-safe` manifest sync' docs/reference/run-artifacts.md || return 1
+  contains 'process終了や `Stop` Hookだけを理由に' docs/reference/run-artifacts.md || return 1
+  contains 'Run directory not found' scripts/codex-safe.ps1 || return 1
+  contains 'manifest_sync_start' scripts/codex-safe.ps1 || return 1
+  contains 'Join-Path $repoRoot "scripts\collect-run-artifacts.ps1"' scripts/codex-safe.ps1 || return 1
+  contains 'Run directory not found' scripts/codex-safe.sh || return 1
+  contains 'manifest_sync_start' scripts/codex-safe.sh || return 1
+  contains 'bash "$repo_root/scripts/collect-run-artifacts.sh"' scripts/codex-safe.sh || return 1
+  contains '--refresh-git-changed-files' scripts/collect-run-artifacts.py || return 1
+  contains '--refresh-git-changed-files' scripts/collect-run-artifacts.ps1 || return 1
   contains "schema_version" .codex/templates/RUN_MANIFEST.json || return 1
   contains '"schema_version": 2' .codex/templates/RUN_MANIFEST.json || return 1
   ! contains '"agents_used"' .codex/templates/RUN_MANIFEST.json || return 1
