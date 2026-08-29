@@ -10,7 +10,7 @@
 
 ## Discovered
 
-- なし。
+- [x] D1. plan review指摘を反映し、DoD / Follow-up分離、4 GiB / 1 GiBの位置づけ、完成形Gradle commandを明確化する。
 
 ## Blocked
 

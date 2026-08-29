@@ -47,6 +47,30 @@
   - Parent decision: なし。
 - Progress: 100% (5/5)
 
+## 2026-08-29 20:58 (JST)
+
+- Summary:
+  - Plan reviewの3指摘をbounded repairとして反映した。
+  - 実装対象やGradle tuningの範囲は増やしていない。
+- Changes:
+  - PR #83のDoDからmerge後の#82確認を外し、`Follow-up（PR #83 のDoD外）`へ分離した。
+  - 4 GiB / 1 GiBを「必要十分」と断定せず、現行2 GiB / 512 MiBからの最初の限定的な引き上げとしてCI実測で検証する表現へ修正した。
+  - Automation buildの完成形Gradle commandをdurable planへ明記し、Production-validationは同一JVM args・既存tee先維持とした。
+  - Run-local PLAN / TASKSも同じ境界へ更新した。
+- Decision / Rationale:
+  - `--parallel`削除、worker制限、runner変更、helper/env抽象化は新しい実測なしには追加しない。
+  - #82の組み合わせ確認は重要だが、#83自身の完了条件には含めない。
+- Validation:
+  - 修正対象をPlan / Run Artifactのみに限定し、Workflow実装・dependency・Native sourceは変更していない。
+  - 実装validationは引き続き未実施。plan-only repairとして停止する。
+- Blocker / Remaining:
+  - なし。次はユーザー指示後に同branch / PR #83でPlanを実装する。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: なし。
+- Progress: 100% (6/6)
+
 ## Deletion candidates
 
 | Path | Reason | Suggested action |
