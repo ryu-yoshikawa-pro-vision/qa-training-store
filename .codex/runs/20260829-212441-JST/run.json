@@ -31,13 +31,17 @@
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-212441-JST -Write",
       "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-212441-JST -Check",
       "gh pr checks 83 --json name,state,bucket,link,workflow",
-      "gh run list --branch fix/native-ci-gradle-memory --limit 10 --json databaseId,headSha,status,conclusion,name,event,createdAt,url"
+      "gh run list --branch fix/native-ci-gradle-memory --limit 10 --json databaseId,headSha,status,conclusion,name,event,createdAt,url",
+      "gh run view 33253683885 --json status,conclusion,headSha,jobs",
+      "gh run view 33253683832 --json status,conclusion,headSha,jobs"
     ],
     "warnings": [
       "lintは0 errors、既存warning 66件で終了した。",
       "test:contractsは32 files／467 testsがPASSし、SQLite experimental warningが出力された。",
       "lint:markdownは既存PlanのMD029 4件で初回FAILしたが、意味を変えないコードブロックインデント修正後に343 files／0 issuesでPASSした。",
-      "PR #83の新しいheadに対するAndroid Automation／Production-validation Remote CIは未pushのため未実施。"
+      "PR #83の新head `28a7559a72c232553bef6b8f36c930c0c47d37db`でAndroid Automation BuildとAndroid Production-validation Buildが実行され、両方PASSした。",
+      "Mobile App CIはNative Staticのexpo-doctor dependency mismatchによりoverall failureだが、Android Runtime、iOS関連、Production Bundle GuardはPASSした。",
+      "Web CIはspec-agentic-qa.test.tsの既存contract test timeoutによりfailure。verify／validateは派生failureで、Extended E2Eとdeploy jobはSKIPPEDだった。"
     ]
   },
   "safety": {
@@ -49,6 +53,6 @@
     "evaluation_present": false
   },
   "evaluation_path": null,
-  "status": "in_progress",
+  "status": "completed",
   "primary_failure_category": null
 }

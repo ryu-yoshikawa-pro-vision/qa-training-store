@@ -116,6 +116,35 @@
   - Parent decision: なし。
 - Progress: 83% (5/6)
 
+## 2026-08-29 22:25 (JST)
+
+- Summary:
+  - Run Artifactのsanitizer Write／Checkを、初回のpre-push確認と最終記録更新後の確認で実施した。
+  - commit `28a7559a72c232553bef6b8f36c930c0c47d37db`を`fix/native-ci-gradle-memory`へpushし、PR #83の最新headと一致することを確認した。
+  - PR #83のAndroid Automation／Production-validationの両buildは、実際に実行され、Gradle build、APK検証、artifact uploadまでPASSした。
+- Changes:
+  - `.github/workflows/native-ci.yml`、`tests/contracts/native-ci-workflow.test.ts`、Plan、およびこのRun Artifact以外は変更していない。
+  - PR #82の更新、main反映、CI再実行、追加Gradle tuningは行っていない。
+- Decision / Rationale:
+  - Android Automation Build（job `99103627116`）は15m19sでPASS、Android Production-validation Build（job `99103627121`）は11m47sでPASSした。両jobともSKIPPEDではない。
+  - Mobile App CIの`Native Static`は`expo-doctor@1.17.6`が`expo`（expected `~57.0.18`, found `57.0.17`）と`expo-constants`（expected `~57.0.16`, found `57.0.15`）のpatch mismatchを検出してfailureとなった。これはPlanが別責務として扱う既知のdependency mismatchであり、依存更新はNon-goalのため修正しない。
+  - Web CIの最初の異常は`tests/contracts/spec-agentic-qa.test.ts`の`creates the same mixed-tree benchmark revision for the same input`が5秒timeoutしたことだった。`verify`／`validate`はこのfailureの派生結果であり、今回のNative CI memory変更との因果関係は確認できない。既存のscopeと依存を変更せず、追加修正・retryは行わない。
+- Validation:
+  - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-212441-JST -Write`: PASS（4 files scanned、0 changed、0 residual findings）。
+  - `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-212441-JST -Check`: PASS（4 files scanned、0 residual findings）。
+  - `gh run view 33253683885 --json status,conclusion,headSha,jobs`: Mobile App CIはoverall failureだが、Android Automation／Production-validation、Android Runtime、iOS関連、Production Bundle GuardはPASS。`native-ci / verify`のみNative Static failureを反映してfailure。
+  - `gh run view 33253683832 --json status,conclusion,headSha,jobs`: Web CIはVitest contracts failureによりfailure。Extended E2E、deploy-preview、deploy-productionはSKIPPED。
+  - `gh pr checks 83`: 必須Android 2jobはSUCCESS、Native Static／Vitest contracts／verify／validateはFAILURE、上記Web CI jobはSKIPPEDを確認した。
+  - PR #83 latest head: `28a7559a72c232553bef6b8f36c930c0c47d37db`。branchは`fix/native-ci-gradle-memory`で一致。
+- Blocker / Remaining:
+  - Plan定義のAndroid memory-fix DoD（両Android buildの実行・PASS、build regressionなし、標準validation PASS、scope遵守）は満たした。
+  - PR全体のchecksは、Native Staticの既知dependency mismatchとWeb CIの独立したcontract timeoutが残るため全件greenではない。今回のPlan範囲では修正できず、追加対応は停止した。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: なし。
+- Progress: 100% (6/6)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
