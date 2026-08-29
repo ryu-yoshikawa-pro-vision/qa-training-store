@@ -57,6 +57,22 @@ function runBash(wrapperPath: string, args: string[], cwd = repoRoot, codexPath?
   });
 }
 
+function hasPowerShellRuntime() {
+  const result = spawnSync("powershell.exe", ["-NoProfile", "-Command", "exit 0"], {
+    encoding: "utf8",
+    timeout: 5_000,
+  });
+  return result.status === 0 && !result.error;
+}
+
+function hasBashRuntime() {
+  const result = spawnSync("bash", ["-c", "exit 0"], {
+    encoding: "utf8",
+    timeout: 5_000,
+  });
+  return result.status === 0 && !result.error;
+}
+
 function hasPowerShellCodex() {
   const result = spawnSync(
     "powershell.exe",
@@ -91,6 +107,7 @@ function hasBashCodex() {
     ["-lc", "command -v codex >/dev/null 2>&1 && codex --version >/dev/null 2>&1"],
     {
       encoding: "utf8",
+      timeout: 5_000,
     },
   );
   return result.status === 0 && !result.error;
@@ -173,6 +190,8 @@ function missingRunId() {
   throw new Error("Could not allocate a missing RunId for the contract test");
 }
 
+const powerShellRuntimeAvailable = hasPowerShellRuntime();
+const bashRuntimeAvailable = hasBashRuntime();
 const powerShellCodexAvailable = hasPowerShellCodex();
 const bashCodexAvailable = hasBashCodex();
 const runtimeTestTimeout = 30_000;
@@ -204,30 +223,47 @@ describe("codex-safe run manifest sync contract", () => {
     expect(bash).not.toContain("Stop Hook");
   });
 
-  it("fails before creating logs or a directory for an unknown RunId", () => {
-    const runId = missingRunId();
-    const runPath = path.join(repoRoot, ".codex", "runs", runId);
-    const powerShell = runPowerShell(powerShellWrapperPath, [
-      "-SkipPreflight",
-      "-NoLog",
-      "-RunId",
-      runId,
-      "--version",
-    ]);
-    const bash = runBash(bashWrapperPath, [
-      "--skip-preflight",
-      "--no-log",
-      "--run-id",
-      runId,
-      "--version",
-    ]);
+  it.skipIf(!powerShellRuntimeAvailable)(
+    "PowerShell: fails before creating logs or a directory for an unknown RunId",
+    () => {
+      const runId = missingRunId();
+      const runPath = path.join(repoRoot, ".codex", "runs", runId);
+      const powerShell = runPowerShell(powerShellWrapperPath, [
+        "-SkipPreflight",
+        "-NoLog",
+        "-RunId",
+        runId,
+        "--version",
+      ]);
 
-    expect(powerShell.status).not.toBe(0);
-    expect(`${powerShell.stdout}${powerShell.stderr}`).toContain("Run directory not found");
-    expect(bash.status).not.toBe(0);
-    expect(`${bash.stdout}${bash.stderr}`).toContain("Run directory not found");
-    expect(fs.existsSync(runPath)).toBe(false);
-  });
+      expect(powerShell.status).not.toBe(0);
+      expect(`${powerShell.stdout ?? ""}${powerShell.stderr ?? ""}`).toContain(
+        "Run directory not found",
+      );
+      expect(fs.existsSync(runPath)).toBe(false);
+    },
+    runtimeTestTimeout,
+  );
+
+  it.skipIf(!bashRuntimeAvailable)(
+    "Bash: fails before creating logs or a directory for an unknown RunId",
+    () => {
+      const runId = missingRunId();
+      const runPath = path.join(repoRoot, ".codex", "runs", runId);
+      const bash = runBash(bashWrapperPath, [
+        "--skip-preflight",
+        "--no-log",
+        "--run-id",
+        runId,
+        "--version",
+      ]);
+
+      expect(bash.status).not.toBe(0);
+      expect(`${bash.stdout ?? ""}${bash.stderr ?? ""}`).toContain("Run directory not found");
+      expect(fs.existsSync(runPath)).toBe(false);
+    },
+    runtimeTestTimeout,
+  );
 
   it.skip("SKIP: collector child-process launch failure requires a dedicated runtime alteration", () => {
     throw new Error("This case is intentionally skipped per the Plan stop condition.");

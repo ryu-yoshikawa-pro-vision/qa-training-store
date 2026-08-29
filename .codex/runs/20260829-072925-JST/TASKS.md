@@ -15,7 +15,12 @@
 
 ## Discovered
 
-- 作業中に発見したタスクはここへ追記する。
+- [x] 11. 最新main取り込み後のCI failureと3件の未解決review threadを再確認し、repair scopeを確定する
+- [x] 12. unknown RunId contract testをruntime別・launcher availability gatedへ最小修正する
+- [x] 13. targeted contract、verify、lint、format、diff checkを指定順で実行する
+- [x] 14. collector／codex-safe／Hook／scope／sanitizerのself-reviewを完了する
+- [ ] 15. PR本文更新、review thread reply／resolve、commit／pushを実行する
+- [ ] 16. push後CIとPR状態を再確認し、Run完了checkpointをappendする
 
 ## Blocked
 

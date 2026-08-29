@@ -86,6 +86,47 @@
   - Parent decision: —
 - Progress: 100% (10/10)
 
+## 2026-08-29 20:37 JST
+
+- Summary: 最新main（`dfae7113e33fb9eb3f55fbd940acb285c7f1870c`）取り込み後のPR #80 CI failureと未解決review threadを再確認し、今回のrepair対象を確定した。
+- Changes: まだsource変更は行っていない。repair用TASKとして、runtime availability testの分離、指定validation、self-review、PR／thread整理、push後確認を`TASKS.md`の`## Discovered`へ追加した。
+- Decision / Rationale: `Vitest (contracts)`のunknown RunId共通testは、PowerShell runtime不在時にも両wrapperを起動するため`undefinedundefined`を受け、Must Fixと分類する。unborn HEAD findingは保存済みPlanの「Git command nonzeroはcollector failure」契約と矛盾するためPlan外として今回は採用しない。既存checkpointはREPORTのappend-only契約により書き換えない。
+- Validation: Remote Web CI run `33249042849`（head `7d6d6048582809b0a645ff9b36bed8cce75e1948`）の`Vitest (contracts)` job `99091413844`で、`1 failed / 471 passed / 8 skipped`、失敗は`tests/contracts/codex-safe-run-manifest-sync.test.ts:226`の`undefinedundefined`だった。その他の主要jobとMobile App CIは成功または既存の最終伝播結果だった。
+- Blocker / Remaining: test修正、指定順validation、final scope／sanitizer確認、PR本文／review thread／commit／push、push後CI確認が残っている。
+- Progress: 69% (11/16)
+
+## 2026-08-29 20:39 JST
+
+- Summary: unknown RunId contract testのrepairを完了した。
+- Changes: `tests/contracts/codex-safe-run-manifest-sync.test.ts`でPowerShell／Bashのlauncher runtimeをそれぞれ`<launcher> -c/-Command "exit 0"`相当で確認し、`it.skipIf(...)`でruntime別testへ分離した。Codex executable availabilityはunknown RunId testのskip条件に使用していない。
+- Decision / Rationale: 各testは対応runtimeが起動可能な場合だけwrapperを起動し、nonzero終了、`Run directory not found`、対象Run directory未作成を個別に検証する。fake runtime、shim、PATH変更、production変更は追加していない。
+- Validation: `pnpm exec vitest run tests/contracts/codex-safe-run-manifest-sync.test.ts --no-file-parallelism --maxWorkers=1` は`1 file / 8 passed / 3 skipped`。runtime-dependentな既存ケースとPlan上のcollector launch failure caseは利用条件／Planに従いskipされた。
+- Blocker / Remaining: collector contract、combined targeted、full contract、verify／lint／format／diff、self-review、PR／thread／push後確認が残っている。
+- Progress: 75% (12/16)
+
+## 2026-08-29 20:50 JST
+
+- iteration_number: 3
+- input_findings: PR #80のWeb CIでPowerShell runtime不在時にunknown RunId共通testが`stdout`／`stderr`の`undefined`を連結して失敗していた。保存済みPlanと未解決review threadを入力にした。
+- repair_plan: unknown RunId検証をPowerShell／Bashのruntime別testへ分離し、各launcherの`exit 0`可用性だけを`it.skipIf(...)`条件にする。Codex executableをこのcaseのskip条件にしない。Windowsでの既存Bash Codex availability probeの長時間保持を避けるため、同じtest file内のprobeに5秒timeoutを設定する。
+- allowed_files: `tests/contracts/codex-safe-run-manifest-sync.test.ts`、同一Runのappend-only `TASKS.md`／`REPORT.md`
+- changed_files: `tests/contracts/codex-safe-run-manifest-sync.test.ts`
+- validation_commands: `pnpm exec vitest run tests/contracts/codex-safe-run-manifest-sync.test.ts --no-file-parallelism --maxWorkers=1`; `pnpm exec vitest run tests/contracts/codex-run-manifest-contract.test.ts --no-file-parallelism --maxWorkers=1`; `pnpm exec vitest run tests/contracts/codex-run-manifest-contract.test.ts tests/contracts/codex-safe-run-manifest-sync.test.ts --no-file-parallelism --maxWorkers=1`; `pnpm run test:contracts`
+- validation_result: targetは`1 file / 8 passed / 3 skipped`、collectorは`1 file / 8 passed`、combinedは`2 files / 16 passed / 3 skipped`、full contractは`33 files / 478 passed / 3 skipped`で全てexit 0。初回combinedは既存Bash Codex probeが長時間保持したため停止し、timeout追加後の再実行で成功した。新しいtest failureはない。
+- remaining_delta: verify、lint／format、bash syntax、diff／scope／Hook確認、sanitizer、PR本文／thread／commit／push後CI確認が残っている。
+- decision: continue
+- Progress: 75% (12/16)
+
+## 2026-08-29 21:00 JST
+
+- Summary: ローカル品質ゲートとPlan／scope self-reviewを完了した。
+- Changes: sourceの追加変更はなく、repair差分は`tests/contracts/codex-safe-run-manifest-sync.test.ts`だけである。current Runの`TASKS.md`／`REPORT.md`は履歴を保ったまま追記している。
+- Decision / Rationale: collectorはPlan指定の2 Git commandをnonzero fail-closeのまま維持し、unborn HEAD専用成功分岐を追加していない。codex-safeはRun Directory precondition、existing manifest限定sync、NoLog、collector failure捕捉、exit precedence、status非変更を維持している。PR #81由来の`.codex/config.toml`／`.codex/hooks/log_event.mjs`は`origin/main...HEAD`差分なし。REPORT過去checkpointはappend-only契約によりrewriteしない。
+- Validation: `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/verify.ps1`は`PASS=3 FAIL=0 SKIP=0`、`bash scripts/verify`は`PASS=2 FAIL=0 SKIP=2`、`pnpm run lint:markdown`は`0 issues`、対象ESLint／Prettier、`bash -n scripts/codex-safe.sh`、`git diff --check`はPASS。verbose targetは`8 passed / 3 skipped`で、PowerShell unknown RunIdはPASS、Bash unknown RunIdはlauncher probe timeoutによりSKIP、collector launch failureはPlan上の専用runtime変更禁止によりSKIP、Bash Codex-dependent caseはCodex probe status 127によりSKIP。full contractは`33 files / 478 passed / 3 skipped`でexit 0（その後のformatterは対象testの書式のみ、targeted再確認も`8 passed / 3 skipped`）。
+- Scope: current working diffは`tests/contracts/codex-safe-run-manifest-sync.test.ts`と同一Runのappend-only `TASKS.md`／`REPORT.md`のみ。current `run.json`にdiffはなく、直接編集していない。禁止対象、collector production code、codex-safe、Product codeへのrepair差分はない。
+- Blocker / Remaining: commit／push、PR本文更新、3 review threadへのreply／resolve、push後Remote CI確認、current Run最終checkpointのappendが残っている。
+- Progress: 88% (14/16)
+
 ## 2026-08-29 08:02 JST
 
 - iteration_number: 2
