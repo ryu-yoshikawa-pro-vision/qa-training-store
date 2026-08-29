@@ -33,8 +33,8 @@
 - [x] 19. Planと`run.json.allowed_files`を実装実態へ更新する
 - [x] 20. 指定Validationを実行し、今回差分に起因するFAILがあれば最小修正する
 - [x] 21. YAML parse、changed-file scope、Sanitizer、evaluation schemaを確認する
-- [ ] 22. branch safetyを再確認してcommitし、通常の明示refspecでpushする
-- [ ] 23. PR #79への反映と4 review threadの状態を確認し、解決操作なしで完了報告する
+- [x] 22. branch safetyを再確認してcommitし、通常の明示refspecでpushする
+- [x] 23. PR #79への反映と4 review threadの状態を確認し、解決操作なしで完了報告する
 
 ## Blocked
 

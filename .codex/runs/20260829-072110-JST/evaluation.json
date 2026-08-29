@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "CodeRabbitの4 findingをPlan SSOTに沿ってmaintenance Workflowと専用Contract testへ反映し、PR #79の指定branch上で検証を継続している。",
+      "evidence": "CodeRabbitの4 findingをPlan SSOTに沿ってmaintenance Workflowと専用Contract testへ反映し、commit／pushまで完了した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -37,7 +37,7 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "必須Validation、追加の通常CI相当静的ゲート、unit／integration／repository／component test、spec／web build、Workflow YAML parseが成功した。",
+      "evidence": "必須Validation、追加の通常CI相当静的ゲート、unit／integration／repository／component test、spec／web build、Workflow YAML parse、review repair後のscope／artifact確認が成功した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -49,7 +49,7 @@
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "manual main-ref guard、main checkout、duplicate PR guard、major.minor guard、final allowlist、GITHUB_TOKEN限定、force pushなし、既存CI dispatchなし、auto-mergeなしをWorkflowとContract testで固定した。branch safety確認後に指定branchへcommit／pushし、mergeは実行していない。",
+      "evidence": "manual main-ref guard、main checkout、duplicate PR guard（--limit 1000）、major.minor guard、final allowlist、GITHUB_TOKEN限定、force pushなし、既存CI dispatchなし、auto-mergeなしをWorkflowとContract testで固定した。branch safety確認後に指定branchへcommit／pushし、mergeは実行していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
