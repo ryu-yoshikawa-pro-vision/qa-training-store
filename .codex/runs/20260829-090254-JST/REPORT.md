@@ -1,0 +1,48 @@
+# Report (append-only)
+
+- TASK完了、blocker、重要判断、計画変更、Run完了のcheckpointだけ追記する。
+- 過去checkpointは削除・置換・並べ替えず、Summary / Progressも新checkpointとして追記する。
+- Hook JSONLやrunnerが取得するmachine factをREPORTへ逐次転記しない。
+- REPORTにはAIが残す意味情報だけを記録する。
+
+## YYYY-MM-DD HH:MM (JST)
+
+- Summary: 調査Runを初期化し、Hook設定・実装・ログ・runtimeを確認する計画を確定した。
+- Changes: 調査用Run Artifactのみ作成・更新した。製品コード、Hook設定、manifestは変更していない。
+- Decision / Rationale: 過去の表示原因を推測で修正せず、まず保存済み証跡と現行失敗経路を切り分ける。
+- Validation: 調査継続中。
+- Blocker / Remaining: 原因特定には保存済みHookログの有無確認が必要。
+- Subagents:
+  - Delegation:
+  - Result:
+  - Parent decision:
+- Progress: 20% (1/5)
+
+## 2026-08-29 09:18 (JST)
+
+- Summary: 現行実装・保存済みHook JSONL・Codex内部SQLiteログ・過去セッション履歴・実行環境を突き合わせた。
+- Changes: 製品コード、Hook設定、manifest、過去Run Artifactは変更していない。調査Run Artifactのみ更新した。
+- Decision / Rationale: `.codex/logs`のJSONLは失敗理由を記録しないため、Codex内部ログと過去セッションのcommandExecution結果を根拠にする。過去の実事例として、別worktreeでroot解決後の`log_event.mjs`不存在による`MODULE_NOT_FOUND`／exit 1、および修正途中のTOML parse errorを確認した。
+- Validation: 現行branchは`PostToolUse`を含む5 logging Hookと有効なTOMLを持つ。現行sessionのHook JSONLは`PostToolUse` 247件、`Stop` 2件、`UserPromptSubmit` 3件、malformed 0件で、Node `v24.12.0`はWindows側で利用可能。Bash/WSL側では`node: command not found`を確認した。
+- Blocker / Remaining: 現行Windows commandのcontract testを追加で実行し、過去事例と現行状態を分けて確定する。
+- Progress: 60% (3/5)
+
+## 2026-08-29 09:21 (JST)
+
+- Summary: `PostToolUse hook (failed)` の過去事例について、主因をworktree／project rootの不一致によるHook実体不在と特定した。現行branchでの再発は確認されなかった。
+- Evidence: 2026-08-28 16:36 JSTの保存済みcommandExecutionで、`qa-training-store-issue-57`を`git rev-parse --show-toplevel`のrootとして解決し、`<root>/.codex/hooks/log_event.mjs`が`exists=False`。同じrootでPostToolUse commandを実行するとNodeが`MODULE_NOT_FOUND`、exit 1になった。これはlogger本体のpayload処理ではなく、Hook起動先の実体不在である。
+- Secondary findings: 同日16:38 JSTには、Windows command修正途中の`command_windows`がTOML parse errorになり、`codex exec`がconfig load error・exit 1となった。これは別の一時的な設定編集エラーで、現在のconfigには残っていない。Unix/Bash側ではNodeが`command not found`であり、CodexをWSL側から起動してUnix `command`を使う場合は同様にHook起動失敗になり得る。
+- Current state: `.codex/config.toml:43-49`は`PostToolUse`と5秒timeoutを有し、TOML parse PASS。Windows nested-cwd contract testは1 passed / 120 skipped。現行sessionのHook JSONLは`PostToolUse=260`、`Stop=2`、`UserPromptSubmit=3`、records=265、malformed=0。repo rootは`<REPO_ROOT>`でbranchは`fix/run-json-machine-managed-contract`。
+- Scope decision: 調査のみで完了。Hook、schema、manifest、product code、過去Run Artifact、global configは変更していない。新しいshim、PATH改変、runtime abstractionも追加していない。
+- Validation: `pnpm run lint:markdown` => PASS（342 files / 0 issues）。`git diff --check` => PASS。Run Artifact Sanitizer Write/Check => PASS（4 files、0 changes、0 residual findings）。
+- Blocker / Remaining: 過去表示そのもののUIイベントには失敗理由の永続ログがなく、発生時刻を指定しない限り全履歴から単一イベントを断定することはできない。ただし保存済みの最も具体的な実事例は上記root mismatchで説明できる。再発時は、発生時刻・Codex起動shell・作業cwd・`git rev-parse --show-toplevel`・Hook stderrを同時に採取する。
+- Progress: 100% (5/5)
+
+## Deletion candidates
+
+- Codex はファイルやディレクトリを削除しない。
+- 不要に見えるファイルは、ユーザーが手動確認できるようにここへ記録する。
+
+| Path | Reason | Suggested action |
+|---|---|---|
+|  |  |  |
