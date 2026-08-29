@@ -43,8 +43,8 @@
 - [x] 26. Contract testへ`isCrossRepository`取得とfalse条件の契約を追加する
 - [x] 27. Planへsame repository条件とfork除外を追記する
 - [x] 28. 指定Validationを実行し、今回差分に起因するFAILがあれば最小修正する
-- [ ] 29. YAML parse、changed-file scope、forbidden-file audit、Sanitizer、evaluation schemaを確認し、commit／pushする
-- [ ] 30. PR #79への反映、新規PRなし、CI状態を確認して完了報告する
+- [x] 29. YAML parse、changed-file scope、forbidden-file audit、Sanitizer、evaluation schemaを確認し、commit／pushする
+- [x] 30. PR #79への反映、新規PRなし、CI状態を確認して完了報告する
 
 ## Blocked
 

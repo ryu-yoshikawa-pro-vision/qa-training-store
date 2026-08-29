@@ -200,3 +200,13 @@
 - Remaining delta: YAML parse、changed-file scope、forbidden-file audit、Sanitizer、evaluation schema、commit／push、PR #79反映とCI状態確認。
 - Decision: continue
 - Progress: 94% (29/31)
+
+## 2026-08-29 14:32 (JST)
+
+- Summary: fork由来PRをduplicate maintenance PRとして扱わない修正を最小範囲で実装し、既存PR #79へpushまで完了した。
+- Changes: `b6e9981971b5562fcc98edd3aa254fcb4a86b638`（`fix: ignore fork PRs in Expo maintenance guard`）を`chore/expo-dependency-maintenance`へ通常pushした。duplicate条件へ`isCrossRepository == false`だけを追加し、既存4 threadは触っていない。
+- Decision / Rationale: public Repositoryのfork PRは`isCrossRepository == true`のためduplicate対象外。同一Repository由来で、base `main`、OPEN、指定prefixのPRだけをduplicateと判定する。新しいbranch／PR、force操作、GraphQL／REST化、author／owner条件追加、current dependency修正は行っていない。
+- Validation: `pnpm run format:check`、`pnpm run lint`、`pnpm run typecheck`、`pnpm run test:contracts`（32 files／462 tests）、`pnpm run lint:markdown`、`git diff --check`、Workflow YAML parse、scope audit、forbidden-file audit、evaluation schema、Run Artifact Sanitizer Write／CheckがPASS。CIはpass／pending／skippingの状態確認のみ。
+- Remaining delta: Plan記載のmerge後maintenance Workflow実運用とCI完了確認は未実行。今回の指示では完了待ち・retry・再レビューを行わない。
+- Decision: stop_success
+- Progress: 100% (31/31)
