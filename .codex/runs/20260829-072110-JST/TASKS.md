@@ -20,11 +20,11 @@
 - [x] 9. 既存active run、SSOT Plan、対象Workflow／Contract test／package.json、既存Expo dependency alignment契約、branch／PR状態を再確認する
 - [x] 10. `expo-constants` override同期とstrict permissions契約をPlanどおり実装する
 - [x] 11. 指定Validationと追加の差分／scope確認を実行し、FAIL時は今回差分の最小修正と再検証を行う
-- [ ] 12. Run Artifactを更新し、Sanitizerと最終scopeを確認する
-- [ ] 13. branch safetyを再確認して修正をcommitする
-- [ ] 14. 通常の明示refspecで既存branchへpushする
-- [ ] 15. PR #79への反映、差分、branch、CI開始状態を確認する
-- [ ] 16. 完了REPORT／evaluationを更新する
+- [x] 12. Run Artifactを更新し、Sanitizerと最終scopeを確認する
+- [x] 13. branch safetyを再確認して修正をcommitする
+- [x] 14. 通常の明示refspecで既存branchへpushする
+- [x] 15. PR #79への反映、差分、branch、CI開始状態を確認する
+- [x] 16. 完了REPORT／evaluationを更新する
 
 ## Blocked
 

@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "Plan SSOTに従うmaintenance Workflowと専用Contract testを追加し、PR #79の指定branch上でcommit／pushなしの実装状態まで完了した。",
+      "evidence": "Plan SSOTに従うmaintenance Workflowと専用Contract testを修正し、PR #79の指定branch上でcommit／pushまで完了した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -49,7 +49,7 @@
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "manual main-ref guard、main checkout、duplicate PR guard、major.minor guard、final allowlist、GITHUB_TOKEN限定、force pushなし、既存CI dispatchなし、auto-mergeなしをWorkflowとContract testで固定した。作業中のcommit／push／mergeは実行していない。",
+      "evidence": "manual main-ref guard、main checkout、duplicate PR guard、major.minor guard、final allowlist、GITHUB_TOKEN限定、force pushなし、既存CI dispatchなし、auto-mergeなしをWorkflowとContract testで固定した。branch safety確認後に指定branchへcommit／pushし、mergeは実行していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -67,7 +67,7 @@
           "kind": "changed_file",
           "path": "tests/contracts/expo-dependency-maintenance-workflow.test.ts",
           "selector": "contracts",
-          "summary": "4つのContract testが実装され、全てPASSした。"
+          "summary": "5つのContract testが実装され、全てPASSした。"
         }
       ]
     },
@@ -85,7 +85,7 @@
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "Node.js 24／pnpm 9.10.0／既存Action pinを確認し、ローカルValidationは再現した。一方、GitHub-hostedのschedule／workflow_dispatch、branch push、PR creation、approval-required CIはcommit／push禁止のため実行していない。",
+      "evidence": "Node.js 24／pnpm 9.10.0／既存Action pinを確認し、ローカルValidationは再現した。一方、GitHub-hostedのschedule／workflow_dispatchによるmaintenance実運用、maintenance branch push／PR creation、approval-required CIはPlanのmerge後Follow-upとして実行していない。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
@@ -100,7 +100,7 @@
     {
       "category": "missing_validation",
       "severity": "low",
-      "evidence": "GitHub Actions上のmaintenance実運用は、今回のcommit／push禁止条件によりローカルでは実行していない。",
+      "evidence": "GitHub Actions上のmaintenance実運用は、Planがmerge後のFollow-upとして定義しているため今回のローカル実装作業では実行していない。",
       "evidence_refs": [
         {
           "kind": "evaluation_note",
@@ -109,7 +109,7 @@
           "summary": "merge後にmainからworkflow_dispatchを1回実行する手順がPlanにある。"
         }
       ],
-      "detail": "実装欠陥ではなく、ユーザー指定のcommit／push禁止と、Planが定めるmerge後確認の境界による未実行事項である。"
+      "detail": "実装欠陥ではなく、Planが定めるmerge後確認の境界による未実行事項である。"
     }
   ],
   "improvement_candidates": []

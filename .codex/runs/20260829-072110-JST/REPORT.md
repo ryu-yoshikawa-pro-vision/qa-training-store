@@ -107,6 +107,26 @@
 - Blocker / Remaining: 最終scope監査、Run Artifact Sanitizer、commit／push、PR #79反映確認が残る。GitHub Actionsの完了待ち・retry・追加修正は行わない。
 - Progress: 65% (11/17)
 
+## 2026-08-29 09:38 (JST)
+
+- Summary: 既存PR #79向けの修正commitを作成し、指定branchへ通常pushした。PR反映とCI開始状態を確認した。
+- Changes: `expo-constants` override同期、strict permissions Contract test、Plan追記、および既存active run更新をpushした。
+- Decision / Rationale: current branch／PR head branchの一致、PR OPEN、working tree clean、forbidden fileなしをcommit／push前に確認した。新しいbranch／PR、force push、rebase、squash、merge、dependency mismatch修正は行っていない。
+- Evidence: implementation commit `6047a716519d33f0191a6c09e815c5b6ffb94c32`、push先`chore/expo-dependency-maintenance`。PR #79 head SHAは同commitへ更新され、open PR一覧は#79の1件だけ。PR changed filesはPlan、Workflow、Contract test、active run Artifactのみ。
+- Validation: `pnpm run format:check`、`pnpm run lint`、`pnpm run typecheck`、`pnpm run test:contracts`、`pnpm run lint:markdown`、`git diff --check HEAD`、Workflow YAML parse、Sanitizer Write／CheckがPASS。Contract testは32 files／461 tests、lintは0 errors／66既存warnings。
+- Blocker / Remaining: CIは確認時点で複数jobがpending、一部がpass／skipping。完了待ち・retryは行わない。GitHub Actions maintenance実運用はPlanのmerge後Follow-upとして未実行。
+- Progress: 94% (16/17)
+
+## 2026-08-29 09:39 (JST)
+
+- Summary: 今回の修正Runを完了状態へ更新した。
+- Changes: `expo-constants` override同期とstrict permissions契約の2 findingだけを修正し、Plan／Workflow／専用Contract testとactive Run Artifactを既存PR #79のbranchへ反映した。
+- Decision / Rationale: `package.json`、`pnpm-lock.yaml`、既存CI、既存Native Contract test、アプリケーションコードは変更していない。新しいbranch／PR、force操作、merge、Plan外の改善は行っていない。
+- Evidence: implementation commit `6047a716519d33f0191a6c09e815c5b6ffb94c32`を`chore/expo-dependency-maintenance`へ通常push済み。PR #79はOPENでhead SHA一致、新規PRなし。mainとの差分／禁止ファイル監査、Sanitizer Write／Check、JSON schema確認を完了した。
+- Validation: `format:check`、`lint`、`typecheck`、`test:contracts`（32 files／461 tests）、`lint:markdown`、`git diff --check`、Workflow YAML parseがPASS。CIはpending／pass／skippingの状態確認のみで、完了待ち・retryはしていない。
+- Blocker / Remaining: 実装上の残件なし。Plan記載のmerge後maintenance Workflow実運用、Actions permission確認、必要なapproval後の既存CI実行は未確認事項として残る。
+- Progress: 100% (17/17)
+
 ## 2026-08-29 07:36 (JST)
 
 - Summary: Plan指定の実装PR Validationを完了した。

@@ -74,12 +74,18 @@
       "scripts/sanitize-codex-artifacts.ps1 -Write -Path .codex/runs/20260829-072110-JST",
       "scripts/sanitize-codex-artifacts.ps1 -Check -Path .codex/runs/20260829-072110-JST",
       "final main-diff and forbidden-file scope audit",
-      "final git status and PR #79 metadata check"
+      "final git status and PR #79 metadata check",
+      "pnpm exec prettier --check .github/workflows/expo-dependency-maintenance.yml tests/contracts/expo-dependency-maintenance-workflow.test.ts docs/plans/2026-08-29_061400_expo_dependency_maintenance.md .codex/runs/20260829-072110-JST/PLAN.md .codex/runs/20260829-072110-JST/TASKS.md",
+      "pnpm exec vitest run tests/contracts/expo-dependency-maintenance-workflow.test.ts --no-file-parallelism --maxWorkers=1",
+      "node --eval YAML parse of expo-dependency-maintenance.yml",
+      "final main-diff/untracked scope audit including active Run Artifact",
+      "git push origin HEAD:chore/expo-dependency-maintenance",
+      "gh pr checks 79 after implementation push"
     ],
     "warnings": [
       "pnpm run lintは0 errors／66 warnings（既存警告）",
       "Native Component testは既存act(...) console warningを出力したが終了コード0",
-      "GitHub Actions maintenanceの実dispatch、branch push、PR作成、approval-required CIはcommit／push禁止のため未実行",
+      "GitHub Actions maintenanceの実dispatch、maintenance branch push、maintenance PR作成、approval-required CIはPlanのmerge後Follow-upのため未実行",
       "actionlintはローカル環境に存在せず、既存yaml依存によるYAML parseで代替確認した",
       "PR #79の既存remote runはlocal未pushのea6210dでPlan本文MD032／MD047が原因のFAIL。ローカル最小修正後に再実行していない"
     ]
