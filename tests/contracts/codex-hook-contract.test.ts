@@ -710,6 +710,62 @@ function loggingConfigBlock(marker: string) {
   return config.slice(start, next < 0 ? config.length : start + marker.length + next);
 }
 
+type LoggingLauncher = "unix" | "windows";
+
+function loggingCommandFor(event: LoggingEvent, launcher: LoggingLauncher) {
+  const field = launcher === "unix" ? "command" : "command_windows";
+  const block = loggingConfigBlock(`[[hooks.${event}.hooks]]`);
+  const line = block.split(/\r?\n/).find((candidate) => candidate.startsWith(`${field} = `));
+  if (!line) {
+    throw new Error(`missing ${field} for ${event}`);
+  }
+
+  const value = line.slice(`${field} = `.length).trim();
+  if (launcher === "unix") {
+    return JSON.parse(value) as string;
+  }
+
+  if (!value.startsWith("'") || !value.endsWith("'")) {
+    throw new Error(`expected TOML literal string for ${field} ${event}`);
+  }
+  return value.slice(1, -1);
+}
+
+function runConfiguredLoggingHook(
+  event: LoggingEvent,
+  payload: string,
+  launcher: LoggingLauncher,
+  cwd: string,
+): HookResult {
+  const command = loggingCommandFor(event, launcher);
+  const result =
+    launcher === "windows"
+      ? spawnSync(
+          "powershell.exe",
+          [
+            "-NoProfile",
+            "-ExecutionPolicy",
+            "Bypass",
+            "-Command",
+            command
+              .slice("powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ".length)
+              .slice(1, -1),
+          ],
+          { cwd, encoding: "utf8", input: payload },
+        )
+      : spawnSync("sh", ["-c", command], {
+          cwd,
+          encoding: "utf8",
+          input: payload,
+        });
+
+  return {
+    status: result.status ?? -1,
+    stdout: result.stdout ?? "",
+    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
+  };
+}
+
 function makeLoggingPayload(event: LoggingEvent, sessionId: string) {
   return {
     hook_event_name: event,
@@ -735,9 +791,16 @@ describe("Codex logging Hook contract", () => {
       const block = loggingConfigBlock(`[[hooks.${event}.hooks]]`);
       expect(block).not.toContain("matcher");
       expect(block).toContain("timeout = 5");
-      expect(block).toContain("$(git rev-parse --show-toplevel)/.codex/hooks/log_event.mjs");
+      expect(block).toContain("git rev-parse --show-toplevel");
+      expect(block).toContain("log_event.mjs");
+      expect(block).toContain("command -v node");
+      expect(block).toContain("[ -f");
+      expect(block).toMatch(/\|\| (?:true|printf '\{\}')/);
       expect(block).toContain("command_windows =");
+      expect(block).toContain("Get-Command node");
+      expect(block).toContain("Test-Path -LiteralPath");
       expect(block).toContain("Join-Path (git rev-parse --show-toplevel)");
+      expect(block).toContain("exit 0");
       expect(block).toContain(`log_event.mjs) ${event}`);
     }
   });
@@ -959,6 +1022,90 @@ describe("Codex logging Hook contract", () => {
       });
     });
   });
+
+  it("records JSONL through the configured Windows launcher for every logging event", () => {
+    if (process.platform !== "win32") return;
+
+    withLoggingSession("windows-configured-launcher", (sessionId, logPath) => {
+      for (const event of loggingEvents) {
+        const result = runConfiguredLoggingHook(
+          event,
+          JSON.stringify(makeLoggingPayload(event, sessionId)),
+          "windows",
+          path.join(repoRoot, "docs"),
+        );
+
+        expect(result.status, event).toBe(0);
+        expect(result.stdout, event).toBe(loggingOutputFor(event));
+        expect(result.stderr, event).toBe("");
+      }
+
+      expect(readLoggingRecords(logPath).map((record) => record.event)).toEqual([...loggingEvents]);
+    });
+  }, 15000);
+
+  it("records JSONL through the configured Unix launcher for every logging event", () => {
+    if (process.platform === "win32") return;
+
+    withLoggingSession("unix-configured-launcher", (sessionId, logPath) => {
+      for (const event of loggingEvents) {
+        const result = runConfiguredLoggingHook(
+          event,
+          JSON.stringify(makeLoggingPayload(event, sessionId)),
+          "unix",
+          path.join(repoRoot, "docs"),
+        );
+
+        expect(result.status, event).toBe(0);
+        expect(result.stdout, event).toBe(loggingOutputFor(event));
+        expect(result.stderr, event).toBe("");
+      }
+
+      expect(readLoggingRecords(logPath).map((record) => record.event)).toEqual([...loggingEvents]);
+    });
+  });
+
+  it("does not fail normal processing when the configured launcher cannot find a logger", () => {
+    const fixture = makeGitFixture(false);
+    const launcher: LoggingLauncher = process.platform === "win32" ? "windows" : "unix";
+
+    try {
+      for (const event of loggingEvents) {
+        const sessionId = `contract-missing-logger-${event}-${process.pid}-${randomUUID()}`;
+        const result = runConfiguredLoggingHook(
+          event,
+          JSON.stringify(makeLoggingPayload(event, sessionId)),
+          launcher,
+          fixture,
+        );
+
+        expect(result.status, event).toBe(0);
+        expect(result.stdout, event).toBe(loggingOutputFor(event));
+        expect(result.stderr, event).toBe("");
+      }
+      expect(fs.existsSync(path.join(fixture, ".codex", "logs"))).toBe(false);
+    } finally {
+      removeFixture(fixture);
+    }
+  }, 15000);
+
+  it("does not fail normal processing when the repository root cannot be resolved", () => {
+    const launcher: LoggingLauncher = process.platform === "win32" ? "windows" : "unix";
+
+    for (const event of loggingEvents) {
+      const sessionId = `contract-no-root-${event}-${process.pid}-${randomUUID()}`;
+      const result = runConfiguredLoggingHook(
+        event,
+        JSON.stringify(makeLoggingPayload(event, sessionId)),
+        launcher,
+        os.tmpdir(),
+      );
+
+      expect(result.status, event).toBe(0);
+      expect(result.stdout, event).toBe(loggingOutputFor(event));
+      expect(result.stderr, event).toBe("");
+    }
+  }, 15000);
 
   it("keeps logging failure-safe when the logs path cannot be created", () => {
     const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "codex-logging-failure-"));
