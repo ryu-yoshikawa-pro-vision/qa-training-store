@@ -222,7 +222,11 @@
       "gh run view 33261555895: completed / success at exact repair HEAD; Web CI required jobs PASS",
       "gh run view 33261556037: completed / failure at exact repair HEAD; Android / iOS builds, Android Runtime / Maestro, Production Bundle Guard PASS",
       "gh run view 33261556037 --log-failed: Native Static failed only on Expo Doctor patch mismatch (expo expected ~57.0.18 found 57.0.17; expo-constants expected ~57.0.16 found 57.0.15); native-ci / verify reflected that result",
-      "gh pr edit 84 --body: PASS（日本語のCurrent state、監査件数、local validation、exact-head CI、既知Mobile failure、re-review pendingを同期）"
+      "gh pr edit 84 --body: PASS（日本語のCurrent state、監査件数、local validation、exact-head CI、既知Mobile failure、re-review pendingを同期）",
+      "git diff fa7499e5bec885ace8bdd6a89f436a7f1272d309..8bf6044b0ec22b3513df15b1ccefa94b6568b79e: Run Artifact 3 files only; no source / test / workflow changes",
+      "gh run view 33263087702: exact final Run Artifact HEAD 8bf6044b0ec22b3513df15b1ccefa94b6568b79e completed / failure; Vitest (contracts) 1 assertion failure and verify / validate propagated",
+      "gh run view 33263087702 --log-failed: codex-hook-contract.test.ts received spawnSync sh EPIPE where stderr was expected empty; previous implementation HEAD fa7499e contracts PASS",
+      "gh run view 33263087681: exact final Run Artifact HEAD completed / failure; Native Static Expo Doctor mismatch, all Android / iOS build and runtime jobs PASS"
     ],
     "warnings": [
       "初回のpnpm run format:checkはadmin-product-use-cases.tsのPrettier差分でFAILしたが、変更対象のcode/test filesだけを整形して再実行しPASSした。",
@@ -232,6 +236,7 @@
       ,"今回の追加spec-driven auditでは、既存INPUT_LIMITSの値 / keyを変更せず、関連するActive Form / Application consumerだけを接続した。"
       ,"typecheck初回のShippingAddressSnapshot import不足は今回差分の実装漏れとして修正し、再実行で全target PASSした。"
       ,"exact repair HEADのMobile App CIはNative Staticの既知Expo Doctor patch mismatchでFAILし、Android / iOS build、Android Runtime / Maestro、Production Bundle GuardはPASSした。今回のsource / test差分に起因する新規failureは確認していない。"
+      ,"final Run Artifact HEAD 8bf6044b0ec22b3513df15b1ccefa94b6568b79eのWeb contracts failureはcodex-hook-contract.test.tsのspawnSync sh EPIPE assertionであり、fa7499eからの差分はRun Artifact 3 filesのみ。今回のinput-limit source / test差分との因果関係は確認できず、test / workflow / timeout修正は行っていない。"
     ]
   },
   "safety": {

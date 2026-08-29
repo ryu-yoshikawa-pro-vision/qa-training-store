@@ -208,3 +208,13 @@
 - PR body: PR #84本文を日本語のCurrent stateへ更新し、仕様表監査件数、修正範囲、local validation、exact-head Web / Mobile CI、既知のNative Static failure、re-review / finalization pendingを記載した。PR #78、coverage-remediation、review threadは変更していない。
 - Run state: implementation / validation / push / PR本文同期までのartifact生成を完了した。`run.status=completed`、`validation.status=passed`、`primary_failure_category=null`。Mobileの既知Expo Doctor failureはmachine manifestのfailure categoryへ手書き分類していない。今回repairのunresolved source item / Stop conditionはなし。第三者re-review、finalization、mergeは未完了工程として残る。
 - Progress: 100% (20/20)
+
+## 2026-08-30 02:00 (JST)
+
+- Summary: `8bf6044b0ec22b3513df15b1ccefa94b6568b79e`（Run Artifactのみの同期commit）に対するexact-head CI結果を確認し、現在のenvironment-sensitive failureを実装差分と切り分けた。今回のinput-limit source / test変更の追加は行っていない。
+- Web CI: PR-triggered Web CI run `33263087702`は完了したが、`Vitest (contracts)`の`tests/contracts/codex-hook-contract.test.ts`で、repository root未解決時のstderr期待値に対して`spawnSync sh EPIPE`を受ける1 assertion failureが発生し、`verify` / `validate`へ伝播した。前回の実装commit `fa7499e5bec885ace8bdd6a89f436a7f1272d309`では同じcontractsがPASSしており、`fa7499e..8bf6044`の差分はRun Artifact 3 filesだけであるため、今回のProduct / Test差分との因果関係は確認できない。test code、workflow、timeoutは変更・再実行していない。
+- Mobile CI: run `33263087681`は`Native Static`のExpo Doctor patch mismatch（`expo` expected `~57.0.18` / found `57.0.17`、`expo-constants` expected `57.0.16` / found `57.0.15`）でFAILし、`native-ci / verify`へ伝播した。Android / iOS build、Android Runtime / Maestro、Production Bundle GuardはPASSであり、今回差分起因の新規failureは確認できない。
+- Local validation: 既存のlocal Required validation（`pnpm run test:contracts`を含む）は`fa7499e`実装時にPASS済みであり、今回のCI failure後に同コマンドをretryしていない。SanitizerはRun Artifact同期後に再実行する。
+- Run state: `run.status=completed`、`validation.status=passed`、`primary_failure_category=null`を維持する。これはlocal validationとartifact生成のsummaryであり、CI上のenvironment-sensitiveな観測履歴は本REPORTと`run.json.validation.warnings`へ記録する。今回repairのsource unresolved item / Stop conditionはない。第三者re-review、finalization、mergeは未完了工程である。
+- Scope: `fa7499e..8bf6044`はactive Run Artifact 3 filesのみで、Product / Test / workflow / package / configおよびPR #78 / coverage-remediationは変更していない。unexpected 0、forbidden 0。
+- Progress: 100% (20/20)

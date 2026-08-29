@@ -30,4 +30,4 @@
 
 ## Blocked
 
-- なし（required validation、manual review、scope check、Sanitizer、PR #84へのpush、exact HEADのWeb / Mobile CI確認、PR本文更新を完了。Mobile `Native Static`のExpo Doctor patch mismatchと集約verify failureは今回差分外として切り分け済み。第三者re-reviewとmergeは未完了工程として残る）。
+- なし（required validation、manual review、scope check、Sanitizer、PR #84へのpush、exact HEADのWeb / Mobile CI確認、PR本文更新を完了。Webの`Vitest (contracts)`にenvironment-sensitiveな`spawnSync sh EPIPE`の1 assertion failure、Mobile `Native Static`にExpo Doctor patch mismatchがあるが、いずれも今回のinput-limit source / test差分に起因する証拠はない。第三者re-reviewとmergeは未完了工程として残る）。
