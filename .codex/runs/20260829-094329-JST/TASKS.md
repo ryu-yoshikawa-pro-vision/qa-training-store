@@ -8,7 +8,7 @@
 - [x] 3. 実行タスクへ落とし込む
 - [x] 4. launcher修正とcontract testsを実装する
 - [x] 5. targeted test・verify・lint・TOML parse・diff確認を実行する
-- [ ] 6. self-review後にcommit・専用branch pushを行う
+- [x] 6. self-review後にcommit・専用branch pushを行う
 
 ## Discovered
 

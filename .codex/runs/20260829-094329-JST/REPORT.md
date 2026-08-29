@@ -58,6 +58,14 @@
 - Self-review: tracked source diffは .codex/config.toml と tests/contracts/codex-hook-contract.test.ts の2 filesだけであり、5つのLogging Hook launcher以外のHook、Safety PreToolUse、logger本体、run.json、既存Run、Product code、ECサイト、カリキュラムに差分がない。debug code、一時ファイル、生成物、不要な抽象化はない。
 - Decision: implementation scopeとPlanのDoDを満たしたため、専用branchへのcommit／pushへ進む。push後にRun完了checkpointを追記する。
 
+## 2026-08-29 10:55 (JST) - Run completion checkpoint
+
+- Summary: commitとpushを完了した。実装commitは 8eea298、対象branchは fix/codex-hook-worktree-resilience である。
+- Git: commit直前とpush直前にcurrent branch、status、branch -vvを確認し、origin/fix/codex-hook-worktree-resilienceへ明示refspecでforceなしpushした。remote branchは新規作成され、upstreamも設定された。
+- Final review: git diff --cached --name-statusで実装config、既存contract test、今回Run Artifact以外がstageされていないことを確認した。logger本体、Safety Hook、過去Run、run.jsonの直接編集、Product code、非対象workflowの変更はない。
+- Remaining: なし。PRは作成していない。
+- Progress: 100% (6/6)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
