@@ -127,26 +127,34 @@ export class AccountUseCases {
 
   private validateAddress(request: CreateAddressRequest): void {
     const fieldErrors: Record<string, string> = {};
+    const recipientName = request.recipientName.trim();
+    const prefecture = request.prefecture.trim();
+    const city = request.city.trim();
+    const addressLine1 = request.addressLine1.trim();
+    const addressLine2 = request.addressLine2?.trim() ?? "";
     if (
       request.label.trim().length === 0 ||
       request.label.trim().length > INPUT_LIMITS.addressLabel
     ) {
       fieldErrors.label = "validation.address.label";
     }
-    if (request.recipientName.trim().length === 0) {
+    if (recipientName.length === 0 || recipientName.length > INPUT_LIMITS.recipientName) {
       fieldErrors.recipientName = "validation.required";
     }
     if (!/^\d{7}$/.test(request.postalCode.replace(/\D/g, ""))) {
       fieldErrors.postalCode = "validation.postalCode";
     }
-    if (request.prefecture.trim().length === 0) {
+    if (prefecture.length === 0 || prefecture.length > INPUT_LIMITS.prefecture) {
       fieldErrors.prefecture = "validation.required";
     }
-    if (request.city.trim().length === 0) {
+    if (city.length === 0 || city.length > INPUT_LIMITS.city) {
       fieldErrors.city = "validation.required";
     }
-    if (request.addressLine1.trim().length === 0) {
+    if (addressLine1.length === 0 || addressLine1.length > INPUT_LIMITS.addressLine1) {
       fieldErrors.addressLine1 = "validation.required";
+    }
+    if (addressLine2.length > INPUT_LIMITS.addressLine2) {
+      fieldErrors.addressLine2 = "validation.required";
     }
     if (!/^\d{10,11}$/.test(request.phone.replace(/\D/g, ""))) {
       fieldErrors.phone = "validation.phone";

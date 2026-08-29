@@ -298,13 +298,27 @@ function AddressesContent() {
               </button>
             </div>
             <label htmlFor="prefecture">都道府県</label>
-            <input id="prefecture" required {...register("prefecture")} />
+            <input
+              id="prefecture"
+              maxLength={INPUT_LIMITS.prefecture}
+              required
+              {...register("prefecture")}
+            />
             <label htmlFor="city">市区町村</label>
-            <input id="city" required {...register("city")} />
+            <input id="city" maxLength={INPUT_LIMITS.city} required {...register("city")} />
             <label htmlFor="addressLine1">番地</label>
-            <input id="addressLine1" required {...register("addressLine1")} />
+            <input
+              id="addressLine1"
+              maxLength={INPUT_LIMITS.addressLine1}
+              required
+              {...register("addressLine1")}
+            />
             <label htmlFor="addressLine2">建物名・部屋番号（任意）</label>
-            <input id="addressLine2" {...register("addressLine2")} />
+            <input
+              id="addressLine2"
+              maxLength={INPUT_LIMITS.addressLine2}
+              {...register("addressLine2")}
+            />
             <label htmlFor="phone">電話番号</label>
             <input id="phone" inputMode="tel" required {...register("phone")} />
             <p className="field-help">配送連絡に使用します。</p>

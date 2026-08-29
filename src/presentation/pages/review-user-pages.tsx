@@ -322,6 +322,7 @@ function AdminReviewsContent() {
         <label>
           本文・商品
           <input
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => {
               setKeyword(event.target.value);
@@ -539,6 +540,7 @@ function AdminUsersContent() {
         <label>
           メール・表示名
           <input
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => {
               setKeyword(event.target.value);

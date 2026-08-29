@@ -56,8 +56,12 @@ export class AdminOperationsUseCases {
 
   async searchInventory(query: Partial<InventorySearchQuery> = {}): Promise<Page<InventoryItem>> {
     await this.requireStaff();
+    const keyword = query.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.inventory.search({
-      keyword: query.keyword?.trim() || null,
+      keyword,
       stockState: query.stockState ?? "all",
       activeState: query.activeState ?? "all",
       sort: query.sort ?? "updated_desc",
@@ -110,8 +114,12 @@ export class AdminOperationsUseCases {
 
   async searchOrders(query: Partial<OrderSearchQuery> = {}): Promise<Page<AdminOrderListItem>> {
     await this.requireStaff();
+    const keyword = query.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.orders.search({
-      keyword: query.keyword?.trim() || null,
+      keyword,
       minimumTotal: query.minimumTotal ?? null,
       maximumTotal: query.maximumTotal ?? null,
       statuses: query.statuses ?? [],
@@ -178,7 +186,12 @@ export class AdminOperationsUseCases {
     const [actor, now] = await Promise.all([this.requireStaff(), this.now()]);
     const carrierName = request.carrierName.trim();
     const trackingNumber = request.trackingNumber.trim();
-    if (carrierName.length === 0 || trackingNumber.length === 0) {
+    if (
+      carrierName.length === 0 ||
+      carrierName.length > INPUT_LIMITS.carrierName ||
+      trackingNumber.length === 0 ||
+      trackingNumber.length > INPUT_LIMITS.trackingNumber
+    ) {
       throw validationError("shipment.fields.required");
     }
     await this.dependencies.transactionRunner.run("ship-order", async ({ orders, shipments }) => {

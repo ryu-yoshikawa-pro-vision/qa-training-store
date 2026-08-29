@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocalSearchParams, usePathname, useRouter, type Href } from "expo-router";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { ProductSearchRequest, ProductSort } from "@/application/contracts";
 import { Icon } from "@/presentation/components/icon";
 import { ProductCard } from "@/presentation/components/product-card";
@@ -227,6 +228,7 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
             <input
               id="catalog-query"
               name="q"
+              maxLength={INPUT_LIMITS.searchKeyword}
               defaultValue={request.keyword ?? ""}
               placeholder="商品名、カテゴリ、ブランドで検索"
             />

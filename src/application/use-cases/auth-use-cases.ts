@@ -51,6 +51,9 @@ export class AuthUseCases {
 
   async login(request: LoginRequest): Promise<LoginResult> {
     const email = this.dependencies.emailNormalizer.normalize(request.email);
+    if (email.length > INPUT_LIMITS.email || request.password.length > INPUT_LIMITS.passwordMax) {
+      throw this.invalidCredentials();
+    }
     const user = await this.users.findByEmail(email);
     if (
       user === null ||

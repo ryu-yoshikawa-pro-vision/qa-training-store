@@ -133,6 +133,30 @@ describe("admin inventory, order, and shipment integration", () => {
     });
   });
 
+  it("enforces shipping carrier and tracking number limits", async () => {
+    const initial = await useCases.getOrder("order-paid");
+    const preparing = await useCases.startPreparation({
+      orderId: initial.orderId,
+      orderActionVersion: initial.orderActionVersion,
+    });
+    await expect(
+      useCases.ship({
+        orderId: preparing.orderId,
+        orderActionVersion: preparing.orderActionVersion,
+        carrierName: "x".repeat(INPUT_LIMITS.carrierName + 1),
+        trackingNumber: "TRACK-001",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION", messageKey: "shipment.fields.required" });
+    await expect(
+      useCases.ship({
+        orderId: preparing.orderId,
+        orderActionVersion: preparing.orderActionVersion,
+        carrierName: "テスト運輸",
+        trackingNumber: "x".repeat(INPUT_LIMITS.trackingNumber + 1),
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION", messageKey: "shipment.fields.required" });
+  });
+
   it("searches orders by customer, status, period, total, sort, and page", async () => {
     const result = await useCases.searchOrders({
       keyword: "regular@example.com",

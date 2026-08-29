@@ -10,7 +10,7 @@
 
 - ゴール:
   - Productの`productCode`とvariant `sku`のcreate / update経路が既存`normalizeCode()`を通り、正規化後の値でvalidation・unique index・persistenceへ進む。
-  - NFR-MA-012について、`INPUT_LIMITS`に既存canonical keyがあり、CurrentのFormまたはApplication validationに同義の文字数literalが残るconsumerをbounded auditし、該当consumerを既存`INPUT_LIMITS`へ接続する。
+  - NFR-MA-012について、`docs/05_ui/validation_and_messages.md`の`主な入力`を起点に、明示的な文字数上限を持つActive入力をbounded auditし、既存`INPUT_LIMITS`のcanonical keyをPresentation / FormとApplication / Use Caseの両方から参照する。
   - 変更されたobservable behaviorを既存Integration / Component Testで検証する。
 - 完了条件（DoD）:
   - FR-PR-050のtrim・NFKC・ASCII uppercase・pattern・normalized uniquenessがProduct write pathで成立する。
@@ -28,13 +28,16 @@
   - `src/application/use-cases/admin-product-use-cases.ts`はProduct code / SKUを現在trimのみで整形し、既存helperを参照していない。create、update、variant追加、variant更新が対象経路である。
   - ProductのDexie unique indexは保存値をkeyにするため、Application層でcanonical valueを作ればschema変更なしにnormalized uniquenessを成立させられる。
   - `src/application/contracts/common.ts`の`INPUT_LIMITS`は既存canonical constantであり、認証・プロフィール以外にも同義のForm / Application validation consumerが存在する。
-  - bounded auditで、Address label / recipient、Category / Brand name、Review title / body、Inventory reasonのForm `maxLength`またはApplication文字数判定が既存canonical keyと一致することを確認した。これらを今回の修正対象とし、bulk件数、formatted postal code、pagination、購入数などのliteralは対象外とする。
+  - `docs/05_ui/validation_and_messages.md`の`主な入力`には、Search Keywordを含む25件の明示的な文字数上限がある。`INPUT_LIMITS`には全25件に対応するkeyが存在し、既存consumerの一部はFormまたはApplicationの片側だけ、または未接続である。
+  - 前回bounded auditで接続済みのEmail / Password / 表示名、住所ラベル / 宛名、Category / Brand name、Review title / body、Inventory reasonは維持し、今回の仕様表監査では全Active consumerの反対側と未接続項目を再確認する。bulk件数、formatted postal code、pagination、購入数など文字数Ruleではないliteralは対象外とする。
   - 認証Formのpassword / displayName上限とAuth / Account Use Case、Profile FormのdisplayNameは前回実装で既に`INPUT_LIMITS`へ接続済みである。
-  - NFR-MA-012はEmail正規化、文字数上限、Application Errorを共有関数・共有定数・共有型から参照する契約である。Error Summary / focus / field linkの既存Component Testは今回変更しない。
+  - NFR-MA-012はEmail正規化、文字数上限、Application Errorを共有関数・共有定数・共有型から参照する契約である。Error Summary / focus / field linkの既存Component Testは維持し、今回の対象は仕様表上の文字数上限とそのconsumerに限定する。
 - Assumptions:
   - `INPUT_LIMITS`をApplication contractsからPresentationが参照する既存依存方向は許容される。新しいshared moduleやvalidation frameworkは作らない。
   - Email上限はNFR-MA-012と既存`INPUT_LIMITS.email`に直接対応するため、Registration Form / Use Caseへ接続する。Loginのpassword semanticsや無関係なFormのliteralは変更しない。
   - Empty identifierの既存Application validation semanticsを保つため、空文字は既存minimum validationへ渡し、非空値だけ`normalizeCode`で検証する。
+  - NativeのActive入力も同じ仕様表のPresentation consumerとして監査する。ただしCurrent Productに存在しないAdmin Product / Shipping等のNative入力は新設しない。
+  - 仕様表の25件は既存keyを再利用し、新しいlimit keyやvalidation frameworkを作らない。郵便番号・電話番号は形式Ruleであり、文字数上限監査の対象外として既存のformat制約を維持する。
 
 ## 3. 質問 / 曖昧性
 
@@ -45,11 +48,9 @@
 ## 4. 影響範囲
 
 - Impacted areas:
-  - Application Product write normalization
-  - Application auth / account validation
-  - Web auth / account / master / review / inventory Form schema and native input attributes
-  - Application account / master / review / inventory validation
-  - Existing Product and auth/account/master/review/inventory Integration Test、Web Component Test
+  - Application Product、Auth / Account、Checkout、Catalog、Master、Review、Operations validation
+  - Web / NativeのActive Form input attributes and immediate validation
+  - Existing Product、Account、Checkout、Catalog、Master、Review、Operations Integration Test、Web / Native Component Test
 - Files to inspect:
   - `docs/01_requirements/functional_requirements.md`
   - `docs/01_requirements/non_functional_requirements.md`
@@ -58,33 +59,47 @@
   - `src/application/use-cases/admin-product-use-cases.ts`
   - `src/application/use-cases/auth-use-cases.ts`
   - `src/application/use-cases/account-use-cases.ts`
+  - `src/application/use-cases/checkout-order-use-cases.ts`
+  - `src/application/use-cases/catalog-use-cases.ts`
+  - `src/application/use-cases/admin-master-use-cases.ts`
+  - `src/application/use-cases/review-user-use-cases.ts`
+  - `src/application/use-cases/admin-operations-use-cases.ts`
   - `src/presentation/pages/auth-pages.tsx`
   - `src/presentation/pages/profile-page.tsx`
   - `tests/integration/admin-product-use-cases.test.ts`
   - `tests/integration/auth-account.test.ts`
   - `tests/component/auth-account-pages.test.tsx`
-  - `src/application/use-cases/admin-master-use-cases.ts`
-  - `src/application/use-cases/review-user-use-cases.ts`
-  - `src/application/use-cases/admin-operations-use-cases.ts`
   - `src/presentation/pages/addresses-page.tsx`
+  - `src/presentation/pages/admin-product-pages.tsx`
   - `src/presentation/pages/admin-master-pages.tsx`
   - `src/presentation/pages/review-user-pages.tsx`
   - `src/presentation/pages/admin-operations-pages.tsx`
+  - `src/presentation/pages/catalog-list-page.tsx`
+  - `src/presentation/components/search-combobox.tsx`
+  - `src/presentation/native/native-components.tsx`
+  - `src/presentation/native/native-screens.tsx`
+  - `src/presentation/native/native-purchase-screens.tsx`
   - `tests/integration/admin-master-use-cases.test.ts`
   - `tests/integration/review-user-use-cases.test.ts`
   - `tests/integration/admin-operations-use-cases.test.ts`
+  - `tests/integration/checkout-order-use-cases.test.ts`
+  - `tests/integration/catalog-use-cases.test.ts`
   - `tests/component/admin-master-pages.test.tsx`
   - `tests/component/review-user-pages.test.tsx`
   - `tests/component/admin-operations-pages.test.tsx`
+  - `tests/component/admin-product-pages.test.tsx`
+  - `tests/component/catalog-pages.test.tsx`
+  - `tests/component/native/native-catalog-screen.test.tsx`
+  - `tests/component/native/native-purchase-screens.test.tsx`
   - `src/infrastructure/database/dexie/database.ts`
 
 ## 5. 変更方針
 
 - Change strategy:
   1. `normalizeCode`をApplication Product Use Caseへimportし、Product codeの共通正規化、create variant、update variantへ接続する。Product repository、DB schema、migrationは変更しない。
-  2. `INPUT_LIMITS`にcanonical keyが存在する同義のForm `maxLength` / Application validation literalをbounded auditし、Address、Category、Brand、Review、Inventoryの対象consumerを直接参照へ統一する。既存のerror key・message・validation timingは維持する。
+  2. `validation_and_messages.md`の`主な入力`にある明示的な文字数上限を仕様表起点で再監査し、ActiveなWeb / Native FormとApplication / Use Caseを既存`INPUT_LIMITS`へ接続する。既存のerror key・message・validation timingは維持し、未接続consumerの不足validationだけを補う。
   3. 既存Integration TestでProduct create / updateのcanonical値と、正規化後に衝突するProduct code / SKUのunique拒否を確認する。
-  4. 既存Auth / Account / Admin Master / Review / Inventory Integration TestとWeb Component TestでApplication/Formのlimit boundaryとFormのshared-backed attributesを確認する。
+  4. 既存Auth / Account / Checkout / Catalog / Admin Master / Review / Inventory Integration TestとWeb / Native Component TestでApplication/Formのlimit boundaryとFormのshared-backed attributesを確認する。
   5. 変更箇所をself-reviewし、required validation、focused Test、scope、Sanitizerを完了する。
 - 実行タスク:
   - [x] 1. 最新main、Requirement、helper / constant、write path、既存Testを再確認する。
@@ -95,6 +110,10 @@
   - [x] 6. required validationと変更Test Levelのfocused Testを実行する。
   - [x] 7. Manual review、scope check、Sanitizer Write / Checkを実施する。
   - [x] 8. Run Artifactを実績へ同期し、commit/pushなしで完了報告する。
+  - [ ] 9. 仕様表の25件をActive / Already compliant / Repair / Not Active / Not Applicableへ分類し、今回対象consumerを確定する。
+  - [ ] 10. Active Form / Use Caseの不足limitを既存`INPUT_LIMITS`へ接続し、既存Formal Testを最小更新する。
+  - [ ] 11. 修正範囲のfocused / required validation、manual audit、scope、Sanitizerを実施する。
+  - [ ] 12. Run ArtifactとPR #84本文を実績へ同期し、明示pathでcommit / pushする。
 
 ## 6. 検証方法
 
@@ -108,13 +127,13 @@
   - `pnpm run test:component`
   - `pnpm run test:contracts`
   - `pnpm run test:integration`
-  - `pnpm exec vitest run tests/integration/auth-account.test.ts tests/integration/admin-master-use-cases.test.ts tests/integration/review-user-use-cases.test.ts tests/integration/admin-operations-use-cases.test.ts tests/component/auth-account-pages.test.tsx tests/component/admin-master-pages.test.tsx tests/component/review-user-pages.test.tsx tests/component/admin-operations-pages.test.tsx --no-file-parallelism --maxWorkers=1`
+  - `pnpm exec vitest run <今回変更した既存Integration / Component suite> --no-file-parallelism --maxWorkers=1`
   - `git diff --check`
   - `scripts/sanitize-codex-artifacts.ps1 -Write` と`-Check`
 - 成功判定:
   - 上記formal commandとfocused Testがexit 0であること。未実行・FAIL・timeoutはPASS扱いにしない。
   - Product manual reviewでcreate / update / variant add / variant updateのcanonical値、normalized unique、既存empty semantics、helper重複なしを確認する。
-  - INPUT_LIMITS manual reviewでForm / Use Caseの直接参照、依存方向、対象外literal不変、error semantics不変を確認する。
+  - 仕様表25件のActive分類、Form / Use Caseの直接参照、依存方向、対象外literal不変、error semantics不変を確認する。
 
 ## 7. リスクと未解決論点
 

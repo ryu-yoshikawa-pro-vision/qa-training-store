@@ -22,6 +22,11 @@
 - [x] D5. 変更した既存Integration / Component Testでlimit boundaryとForm属性のobservable behaviorを確認する。
 - [x] D6. Plan、Run Artifact、validation実績、scope、Sanitizerをrepair結果へ同期する。
 - [x] D7. PR #84へcommit / pushし、Web CIと既知のMobile Expo Doctor failureを今回差分と切り分けて確認する。
+- [x] D8. `validation_and_messages.md`の明示的な文字数Rule 25件を仕様表起点で再監査し、Active consumerを分類する。
+- [x] D9. Address / Auth / Product / Master / Review / Inventory / Shipping / SearchのActive Form / Use Case不足を既存`INPUT_LIMITS`へ接続する。
+- [x] D10. Web / Nativeを含む既存Formal Testへ必要な境界確認を最小追加する。
+- [x] D11. Required validation、focused test、manual audit、scope、Sanitizerを今回repair内容で実行する。
+- [ ] D12. Run ArtifactとPR本文を同期し、明示pathでcommit / push後にexact HEADのCIを確認する。
 
 ## Blocked
 

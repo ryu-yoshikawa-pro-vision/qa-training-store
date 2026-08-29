@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, router, useLocalSearchParams } from "expo-router";
 import { Pressable, ScrollView, Text, View } from "react-native";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   CartDto,
   HomeCatalogDto,
@@ -202,6 +203,7 @@ export function NativeCatalogScreen({ categoryId }: { categoryId?: string }) {
           }}
           onSubmitEditing={load}
           placeholder="商品名・コードで検索"
+          maxLength={INPUT_LIMITS.searchKeyword}
           testID="native-catalog-search-input"
         />
         <NativeButton label="検索" onPress={load} testID="native-catalog-search-button" />
@@ -467,6 +469,7 @@ function NativeSearchWithInitial({ initialKeyword }: { initialKeyword: string })
           }}
           onSubmitEditing={search}
           placeholder="キーワード"
+          maxLength={INPUT_LIMITS.searchKeyword}
           testID="native-search-input"
         />
         <NativeButton label="検索" onPress={search} testID="native-search-submit" />

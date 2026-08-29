@@ -91,6 +91,14 @@ describe("auth and account pages", () => {
   it("submits Login and links fixed fixture account guidance to Guide", async () => {
     render(<LoginPage />);
     expect(screen.getByRole("heading", { name: "ログイン" })).toBeVisible();
+    expect(screen.getByLabelText("メールアドレス")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.email),
+    );
+    expect(screen.getByLabelText("パスワード")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.passwordMax),
+    );
     expect(screen.getByRole("link", { name: "学習Guide" })).toHaveAttribute("href", "/guide");
     fireEvent.change(screen.getByLabelText("メールアドレス"), {
       target: { value: "regular@example.com" },
@@ -288,6 +296,22 @@ describe("auth and account pages", () => {
     expect(screen.getByLabelText("宛名")).toHaveAttribute(
       "maxlength",
       String(INPUT_LIMITS.recipientName),
+    );
+    expect(screen.getByLabelText("都道府県")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.prefecture),
+    );
+    expect(screen.getByLabelText("市区町村")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.city),
+    );
+    expect(screen.getByLabelText("番地")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.addressLine1),
+    );
+    expect(screen.getByLabelText("建物名・部屋番号（任意）")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.addressLine2),
     );
     fireEvent.click(screen.getByRole("button", { name: "既定にする" }));
     await waitFor(() =>

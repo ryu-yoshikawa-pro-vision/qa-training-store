@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { render, screen, waitFor, within } from "@testing-library/react";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   HomeCatalogDto,
   ProductDetail,
@@ -228,6 +229,16 @@ describe("storefront catalog pages", () => {
     expect(screen.queryByRole("heading", { name: "カテゴリから探す" })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: "商品を見る" })).toHaveClass("button--primary");
     expect(screen.getByRole("link", { name: "ログインして購入" })).toHaveClass("button--secondary");
+  });
+
+  it("exposes the shared Search Keyword limit on the catalog form", async () => {
+    routerState.pathname = "/search";
+    routerState.params = { q: "マグ" };
+    render(<CatalogListPage mode="search" />);
+    expect(await screen.findByLabelText("検索語")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.searchKeyword),
+    );
   });
 
   it("shows an empty state for unfiltered products with no action", async () => {

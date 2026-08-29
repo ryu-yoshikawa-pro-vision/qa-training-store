@@ -64,8 +64,12 @@ export class AdminMasterUseCases {
     query: Partial<CategoryAdminSearchQuery> = {},
   ): Promise<Page<CategoryAdminListItem>> {
     await this.requireStaff();
+    const keyword = query.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.categories.searchForAdmin({
-      keyword: query.keyword?.trim() || null,
+      keyword,
       active: query.active ?? null,
       sort: query.sort ?? "sort_order",
       page: query.page ?? 1,
@@ -152,8 +156,12 @@ export class AdminMasterUseCases {
     query: Partial<BrandAdminSearchQuery> = {},
   ): Promise<Page<BrandAdminListItem>> {
     await this.requireStaff();
+    const keyword = query.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.brands.searchForAdmin({
-      keyword: query.keyword?.trim() || null,
+      keyword,
       active: query.active ?? null,
       sort: query.sort ?? "name_asc",
       page: query.page ?? 1,

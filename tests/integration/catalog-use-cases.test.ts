@@ -1,4 +1,5 @@
 import Dexie from "dexie";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { CurrentSessionStore } from "@/application/ports";
 import { CatalogUseCases } from "@/application/use-cases/catalog-use-cases";
 import { TestClock } from "@/infrastructure/clock/clocks";
@@ -62,5 +63,29 @@ describe("catalog application integration", () => {
       code: "PERMISSION_DENIED",
     });
     expect(await guestCatalog.getProductDetail("product-does-not-exist")).toBeNull();
+  });
+
+  it("enforces the shared Search Keyword limit for search and suggestions", async () => {
+    const catalog = await setup("default", null);
+    const request = {
+      keyword: "x".repeat(INPUT_LIMITS.searchKeyword + 1),
+      categoryIds: [],
+      brandIds: [],
+      minimumPrice: null,
+      maximumPrice: null,
+      inStockOnly: false,
+      onSaleOnly: false,
+      minimumRating: null,
+      sort: "newest" as const,
+      page: 1,
+      pageSize: 20 as const,
+    };
+    await expect(catalog.search(request)).rejects.toMatchObject({
+      code: "VALIDATION",
+      messageKey: "catalog.search.invalid",
+    });
+    await expect(
+      catalog.suggest({ keyword: "x".repeat(INPUT_LIMITS.searchKeyword + 1), limit: 8 }),
+    ).resolves.toEqual([]);
   });
 });

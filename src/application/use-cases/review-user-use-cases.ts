@@ -348,8 +348,12 @@ export class AdminReviewUseCases {
 
   async search(query: Partial<ReviewSearchQuery> = {}): Promise<Page<AdminReviewListItem>> {
     await this.requireStaff();
+    const keyword = query.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.reviews.searchForAdmin({
-      keyword: query.keyword?.trim() || null,
+      keyword,
       statuses: query.statuses ?? [],
       ratings: query.ratings ?? [],
       productId: query.productId ?? null,
@@ -515,8 +519,12 @@ export class AdminUserUseCases {
 
   async search(query: Partial<UserSearchQuery> = {}): Promise<Page<UserAdminListItem>> {
     await this.requireAdmin();
+    const keyword = query.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.users.search({
-      keyword: query.keyword?.trim() || null,
+      keyword,
       roles: query.roles ?? [],
       membershipRanks: query.membershipRanks ?? [],
       accountStatuses: query.accountStatuses ?? [],

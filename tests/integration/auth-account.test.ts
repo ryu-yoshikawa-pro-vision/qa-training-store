@@ -130,6 +130,22 @@ describe("auth and account application integration", () => {
     expect(sessionStore.value).toBeNull();
   });
 
+  it("rejects overlong login credentials at the Application boundary", async () => {
+    await expect(
+      createAuth(["unused-email-session"]).login({
+        email: `${"a".repeat(INPUT_LIMITS.email)}@example.com`,
+        password: "testpass1",
+      }),
+    ).rejects.toMatchObject({ code: "AUTHENTICATION_FAILED" });
+    await expect(
+      createAuth(["unused-password-session"]).login({
+        email: "regular@example.com",
+        password: "x".repeat(INPUT_LIMITS.passwordMax + 1),
+      }),
+    ).rejects.toMatchObject({ code: "AUTHENTICATION_FAILED" });
+    expect(sessionStore.value).toBeNull();
+  });
+
   it("merges a customer guest cart with caps and abandons only the guest cart", async () => {
     await loadSeedDataset(
       database,
@@ -363,6 +379,44 @@ describe("auth and account application integration", () => {
       code: "VALIDATION",
       fieldErrors: { label: "validation.address.label" },
     });
+  });
+
+  it("enforces shared address field limits at the Application boundary", async () => {
+    await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
+    sessionStore.value = "session-user-customer-regular";
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator(["unused-address"]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    const request = (field: string, value: string) => ({
+      label: "自宅",
+      recipientName: field === "recipientName" ? value : "一般テスト会員",
+      postalCode: "1000001",
+      prefecture: field === "prefecture" ? value : "東京都",
+      city: field === "city" ? value : "千代田区千代田",
+      addressLine1: field === "addressLine1" ? value : "1-1",
+      addressLine2: field === "addressLine2" ? value : null,
+      phone: "09000000000",
+      makeDefault: false,
+    });
+    const cases = [
+      ["recipientName", INPUT_LIMITS.recipientName],
+      ["prefecture", INPUT_LIMITS.prefecture],
+      ["city", INPUT_LIMITS.city],
+      ["addressLine1", INPUT_LIMITS.addressLine1],
+      ["addressLine2", INPUT_LIMITS.addressLine2],
+    ] as const;
+    for (const [field, limit] of cases) {
+      await expect(
+        account.createAddress(request(field, "x".repeat(limit + 1))),
+      ).rejects.toMatchObject({
+        code: "VALIDATION",
+        fieldErrors: { [field]: "validation.required" },
+      });
+    }
   });
 
   it("keeps management roles out of customer profile operations", async () => {

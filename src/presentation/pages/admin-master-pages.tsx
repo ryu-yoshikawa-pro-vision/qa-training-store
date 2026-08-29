@@ -211,6 +211,7 @@ function AdminCategoriesContent() {
           検索
           <input
             type="search"
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => {
               setKeyword(event.target.value);
@@ -491,6 +492,7 @@ function AdminBrandsContent() {
           検索
           <input
             type="search"
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
           />

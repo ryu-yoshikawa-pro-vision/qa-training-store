@@ -134,6 +134,24 @@ describe("checkout and customer order application integration", () => {
     });
   });
 
+  it("revalidates checkout address text limits at the Application boundary", async () => {
+    const cart = await database.carts
+      .where("[userId+status]")
+      .equals(["user-customer-regular", "active"])
+      .first();
+    const started = await useCases.start({ cartVersion: cart!.version });
+    await expect(
+      useCases.setAddress({
+        checkoutSessionId: started.session.id,
+        checkoutExpectedVersion: started.session.version,
+        address: { ...address, addressLine1: "x".repeat(201) },
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { addressLine1: "validation.required" },
+    });
+  });
+
   it("creates consistent snapshots and decrements stock exactly once after success", async () => {
     const checkout = await readyCheckout("TEST-SUCCESS");
     const confirmation = await useCases.getConfirmation(checkout.id);

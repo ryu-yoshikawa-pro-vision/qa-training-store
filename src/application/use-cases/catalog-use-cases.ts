@@ -9,6 +9,7 @@ import type {
   SearchSuggestion,
   SearchSuggestionRequest,
 } from "@/application/contracts";
+import { INPUT_LIMITS } from "@/application/contracts";
 import { ApplicationError, validationError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import type { CustomerCatalogGateway } from "@/application/customer-capabilities";
@@ -92,7 +93,8 @@ export class CatalogUseCases {
   }
 
   async suggest(request: SearchSuggestionRequest): Promise<SearchSuggestion[]> {
-    if (request.keyword.trim().length < 2) {
+    const keyword = request.keyword.trim();
+    if (keyword.length < 2 || keyword.length > INPUT_LIMITS.searchKeyword) {
       return [];
     }
     const [viewer, now] = await Promise.all([this.identity.getViewer(), this.now()]);
@@ -151,6 +153,7 @@ export class CatalogUseCases {
         (!Number.isInteger(request.minimumPrice) || request.minimumPrice < 0)) ||
       (request.maximumPrice !== null &&
         (!Number.isInteger(request.maximumPrice) || request.maximumPrice < 0)) ||
+      (request.keyword !== null && request.keyword.trim().length > INPUT_LIMITS.searchKeyword) ||
       (request.minimumPrice !== null &&
         request.maximumPrice !== null &&
         request.minimumPrice > request.maximumPrice)

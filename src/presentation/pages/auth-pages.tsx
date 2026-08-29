@@ -19,8 +19,16 @@ import {
 } from "@/presentation/browser/return-to.web";
 
 const loginSchema = z.object({
-  email: z.email("メールアドレスの形式で入力してください"),
-  password: z.string().min(1, "パスワードを入力してください"),
+  email: z
+    .email("メールアドレスの形式で入力してください")
+    .max(INPUT_LIMITS.email, `メールアドレスは${INPUT_LIMITS.email}文字以下で入力してください`),
+  password: z
+    .string()
+    .min(1, "パスワードを入力してください")
+    .max(
+      INPUT_LIMITS.passwordMax,
+      `パスワードは${INPUT_LIMITS.passwordMax}文字以下で入力してください`,
+    ),
 });
 
 const signupSchema = z
@@ -176,6 +184,7 @@ export function LoginPage() {
             id="email"
             type="email"
             autoComplete="username"
+            maxLength={INPUT_LIMITS.email}
             aria-invalid={errors.email !== undefined}
             {...register("email")}
           />
@@ -184,6 +193,7 @@ export function LoginPage() {
             id="password"
             type="password"
             autoComplete="current-password"
+            maxLength={INPUT_LIMITS.passwordMax}
             aria-invalid={errors.password !== undefined}
             {...register("password")}
           />

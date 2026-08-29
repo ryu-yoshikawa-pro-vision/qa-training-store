@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   AdminProductListItem,
   AdminProductSearchRequest,
@@ -80,8 +81,12 @@ export class AdminProductUseCases {
     request: Partial<AdminProductSearchRequest> = {},
   ): Promise<Page<AdminProductListItem>> {
     await this.requireStaff();
+    const keyword = request.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.query.search({
-      keyword: request.keyword?.trim() || null,
+      keyword,
       minimumPrice: request.minimumPrice ?? null,
       maximumPrice: request.maximumPrice ?? null,
       statuses: request.statuses ?? [],
@@ -107,8 +112,12 @@ export class AdminProductUseCases {
     request: Partial<ImageAssetSearchRequest> = {},
   ): Promise<Page<ImageAssetListItem>> {
     await this.requireStaff();
+    const keyword = request.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.assets.searchActive({
-      keyword: request.keyword?.trim() || null,
+      keyword,
       tags: request.tags ?? [],
       page: request.page ?? 1,
       pageSize: request.pageSize ?? 20,
@@ -300,6 +309,7 @@ export class AdminProductUseCases {
           images: aggregate.images,
         };
     const now = await this.now();
+    this.validateTextLimits(createShape);
     const assets = await this.assets.listByIds(createShape.images.map((image) => image.assetId));
     const assetMap = new Map(assets.map((asset) => [asset.assetId, asset]));
     const currentVariants = new Map(
@@ -430,6 +440,7 @@ export class AdminProductUseCases {
   }
 
   private validateMinimum(request: CreateProductRequest): void {
+    this.validateTextLimits(request);
     const product = normalizedProduct(request.product);
     if (
       product.productCode.length === 0 ||
@@ -450,6 +461,38 @@ export class AdminProductUseCases {
           !Number.isInteger(variant.purchaseLimit) ||
           variant.purchaseLimit < 1,
       )
+    ) {
+      throw validationError("products.variant.invalid");
+    }
+  }
+
+  private validateTextLimits(request: CreateProductRequest): void {
+    const product = normalizedProduct(request.product);
+    if (
+      product.productCode.length > INPUT_LIMITS.productCode ||
+      product.name.length > INPUT_LIMITS.productName ||
+      product.shortDescription.length > INPUT_LIMITS.shortDescription ||
+      product.description.length > INPUT_LIMITS.description ||
+      (product.variationName !== null && product.variationName.length > INPUT_LIMITS.variationName)
+    ) {
+      throw validationError("products.minimum.invalid");
+    }
+    if (request.images.some((image) => image.altText.trim().length > INPUT_LIMITS.imageAltText)) {
+      throw new ApplicationError({
+        code: "VALIDATION",
+        messageKey: "products.images.invalid",
+        retryable: false,
+      });
+    }
+    if (
+      request.variants.some((variant) => {
+        const sku = variant.sku.trim().length === 0 ? "" : normalizeCode(variant.sku);
+        const optionValue = variant.optionValue?.trim() || null;
+        return (
+          sku.length > INPUT_LIMITS.sku ||
+          (optionValue !== null && optionValue.length > INPUT_LIMITS.optionValue)
+        );
+      })
     ) {
       throw validationError("products.variant.invalid");
     }

@@ -146,3 +146,52 @@
 - Run state: `validation.status=passed`、`run.status=completed`、`primary_failure_category=null`。local required validationとSanitizerはPASSであり、Mobileの既知Expo Doctor failureはRunのprimary failure categoryへ手書き分類していない。PR #84のreviewは引き続き待機する。
 - Blocker / Remaining: 本repairのunresolved item / Stop conditionはなし。Mobile App CIの既知Expo Doctor mismatchと未完了build jobの結果確認、第三者review、mergeは別途残る。merge、auto-merge、PR close、branch deleteは実施していない。
 - Progress: 100% (15/15)
+
+## 2026-08-30 00:36 (JST)
+
+- Summary: PR #84の追加Finding（`NFR-MA-012`の仕様表起点監査不足）を受け、既存Plan / Runを再利用してbounded repairを開始した。PR #78、coverage-remediation、既存Product normalizationの変更は行わない。
+- Audit basis: `docs/05_ui/validation_and_messages.md` §2「主な入力」をPrimary SSOTとして、明示的な文字数上限を持つ25件を再確認した。`src/application/contracts/common.ts`の`INPUT_LIMITS`には25件すべての対応key / canonical valueが存在し、新規keyは不要と判断した。
+- Specification audit (25 rules):
+  - `Search Keyword` 100: Active / Repair required — Catalog、SearchCombobox、各Admin searchのForm / Application validationを接続。
+  - `Email` 254: Active / Repair required — LoginのForm / Application、既存SignupとNative consumerを含めて接続。
+  - `Password` 8–72: Active / Repair required — Loginの最大値をForm / Application、既存SignupとNative consumerを含めて接続。最小値は既存契約を維持。
+  - `表示名` 100: Active / Repair required — Native Profile / Signupを既存constantへ接続。Web / Applicationの既存consumerは維持。
+  - `住所ラベル` 50: Active / Repair required — Web / Native FormとAccount Applicationを接続。
+  - `宛名` 100: Active / Repair required — Web / Native Form、Account / Checkout Applicationを接続。
+  - `都道府県` 20: Active / Repair required — Web / Native Form、Account / Checkout Applicationを接続。
+  - `市区町村` 100: Active / Repair required — Web / Native Form、Account / Checkout Applicationを接続。
+  - `住所1` 200: Active / Repair required — Web / Native Form、Account / Checkout Applicationを接続。
+  - `建物名・部屋番号` 100: Active / Repair required — Web Form / Account / Checkout Applicationを接続。NativeにはCurrent入力consumerがないため新設しない。
+  - `商品名` 120: Active / Repair required — Admin Product Form / Applicationを接続。
+  - `productCode` 50: Active / Repair required — Admin Product Form / Applicationの既存normalization後値を検証。
+  - `短い説明` 200: Active / Repair required — Admin Product Form / Applicationを接続。
+  - `商品説明` 5,000: Active / Repair required — Admin Product Form / Applicationを接続。
+  - `Category名` 80: Active / Already compliant — 既存Admin Master Form / Application / boundary testが`INPUT_LIMITS.categoryName`を利用。
+  - `Brand名` 80: Active / Already compliant — 既存Admin Master Form / Application / boundary testが`INPUT_LIMITS.brandName`を利用。
+  - `SKU` 50: Active / Repair required — Admin Product Form / Applicationを接続。既存canonical normalizationを維持。
+  - `Variation軸名` 30: Active / Repair required — Admin Product Form / Applicationを接続。
+  - `Variation選択肢` 80: Active / Repair required — Admin Product Form / Applicationを接続。
+  - `商品画像 Alt Text` 120: Active / Repair required — Admin Product Form / Applicationの既存画像validationへ接続。
+  - `Reviewタイトル` 120: Active / Repair required — Web / Native Formを既存Application validationへ接続。
+  - `Review本文` 1,000: Active / Repair required — Web / Native Formを既存Application validationへ接続。
+  - `在庫調整理由` 200: Active / Already compliant — 既存Admin Operations Form / Application / boundary testが`INPUT_LIMITS.inventoryReason`を利用。
+  - `配送会社` 100: Active / Repair required — Admin shipping Form / Applicationを接続。
+  - `Tracking Number` 100: Active / Repair required — Admin shipping Form / Applicationを接続。
+- Audit counts: Rule-level Active 25、Repair required 22、Already compliant 3、Not Active 0、Not Applicable 0。郵便番号・電話番号は桁数 / format ruleであり、今回の文字数上限監査の対象外。Nativeに存在しないAddress line 2 / Admin Product等のplatform-specific consumerは新設していない。
+- Changes started: 既存`INPUT_LIMITS`を変更せず、Account / Auth / Checkout / Catalog / Admin Product / Admin Master / Review / Admin OperationsのApplication validationとWeb / Nativeの既存入力consumerへ最小接続した。Product normalization、DB、workflow、package、config、PR #78関連文書は未変更。
+- Test work: 既存Integration / Component suiteへ、Applicationのlimit+1 rejectionとForm / Nativeの`maxLength` observable assertionを追加・更新した。Test codeではconstant呼出しのstatic文字列検査を行っていない。
+- Run state: 実装・validation中。`run.status=running`、`validation.status=not_run`、`primary_failure_category=null`。Required validation、focused test、Sanitizer、scope確認、commit / push、PR本文更新は未完了。
+- Blocker / Remaining: なし。次はfocused test、Required validation、manual audit、Sanitizer、Run同期、明示path staging、commit / push、exact HEADのCI確認を実施する。
+- Progress: 65% (20/31)
+
+## 2026-08-30 00:45 (JST)
+
+- Summary: 仕様表起点のActive input repairとFormal Test補完を実施し、Required local validationを完了した。前checkpointの`65% (20/31)`は追加checkbox task数を反映していないため、現在のcheckbox集計に基づく進捗を本checkpointで訂正する。
+- Focused validation: Application 7 files / 59 tests、Web Component 6 files / 47 tests、Native Component 2 suites / 31 testsがPASSした。`pnpm run typecheck`は初回に`ShippingAddressSnapshot` import不足でFAILしたが、既存domain contractのtype importを追加後にapp / native-tests / trainingがPASSした。
+- Required validation: `pnpm run format:check` PASS、`pnpm run lint:markdown` PASS（343 files / 0 issues）、`pnpm run validate:spec` PASS（3 challenges、94/94 capture targets）、`pnpm run typecheck` PASS、`pnpm run test:unit` PASS（13 files / 66 tests）、`pnpm run test:integration` PASS（9 files / 110 tests）、`pnpm run test:component` PASS（Web 11 files / 86 tests、Native 13 suites / 64 tests）、`pnpm run test:contracts` PASS（32 files / 467 tests、今回1回のみ）、`git diff --check` PASS。
+- Manual audit: 25 explicit text-max rulesを仕様・`INPUT_LIMITS`・Active Form / Application / Formal Testの順で照合した。関連limitの同義literal残存はなく、postal / phone format、pagination、quantity、bulk等の意味が異なるliteralは変更していない。`INPUT_LIMITS`のkey / value、新しいvalidation framework、Product normalization、DB、workflow、package、config、PR #78関連ファイルは変更していない。
+- Sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-210242-JST -Write` / `-Check`を実行し、4 files scanned、residual finding 0でPASSした。
+- Scope: implementation base `dfae7113e33fb9eb3f55fbd940acb285c7f1870c`からのdeltaは既存Plan、Active consumer source、既存Integration / Component Test、active Run Artifactの許可範囲に限定され、unexpected 0、forbidden 0。PR #78、coverage-remediation、FR-PR-050 normalization、workflow、package、lockfile、DB schema / migrationは含まれない。
+- Run state: local Required validationとSanitizerが完了したため`validation.status=passed`、`primary_failure_category=null`へ同期した。artifact / PR finalizationは未完了のため`run.status=running`を維持する。
+- Blocker / Remaining: validation上のStop conditionはなし。残作業はRun最終同期、明示path staging、commit / push、push後exact HEADのWeb / Mobile CI確認、PR #84本文更新、第三者reviewである。
+- Progress: 95% (19/20)
