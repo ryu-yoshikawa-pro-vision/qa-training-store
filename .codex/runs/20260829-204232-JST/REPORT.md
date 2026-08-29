@@ -71,6 +71,30 @@
   - Parent decision: なし。
 - Progress: 100% (6/6)
 
+## 2026-08-29 21:12 (JST)
+
+- Summary:
+  - 再レビューで残った2指摘をPlanへ反映した。
+  - PR #83の検証責務とPR #82の最終解消確認責務をさらに明確化した。
+- Changes:
+  - PR #83のDoDを、main baseline上でJVM memory設定を導入してもAndroid Automation / Production-validation buildが正常に完走し、build regressionがないことの確認へ限定した。
+  - 元のOOM発生条件での `OutOfMemoryError` 解消確認をPR #82のFollow-upへ明示的に移した。
+  - contract testはjob-wideな文字列存在確認ではなく、既存`expectInOrder()`を再利用して `assembleRelease` → JVM args → architecture指定の順を固定する方針へ修正した。
+  - Run-local PLAN / TASKSも同じ境界へ更新した。
+- Decision / Rationale:
+  - #83だけでは#82のExpo dependency更新後という元failure条件を再現しないため、#83単独でOOM解消を証明したとは扱わない。
+  - 新規parser / helper / test fileは追加せず、既存contract testの仕組みだけを使う。
+- Validation:
+  - 修正対象はPlan / Run Artifactのみ。Workflow実装、dependency、Native source、iOS CIは変更していない。
+  - implementation validationは未実施。plan-only repairとして停止する。
+- Blocker / Remaining:
+  - なし。Plan reviewの指摘は解消済みで、次は同branch / PR #83で実装へ進める。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: なし。
+- Progress: 100% (7/7)
+
 ## Deletion candidates
 
 | Path | Reason | Suggested action |

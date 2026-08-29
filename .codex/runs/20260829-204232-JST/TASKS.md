@@ -11,6 +11,7 @@
 ## Discovered
 
 - [x] D1. plan review指摘を反映し、DoD / Follow-up分離、4 GiB / 1 GiBの位置づけ、完成形Gradle commandを明確化する。
+- [x] D2. 再レビュー指摘を反映し、#83のbaseline検証と#82の元OOM条件検証を分離し、contract testをGradle command内の順序契約へ具体化する。
 
 ## Blocked
 
