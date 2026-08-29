@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "CodeRabbitの4 findingをPlan SSOTに沿ってmaintenance Workflowと専用Contract testへ反映し、commit／pushまで完了した。",
+      "evidence": "CodeRabbitの4 findingとfork由来PR誤duplicate判定findingをPlan SSOTに沿ってmaintenance Workflowと専用Contract testへ反映し、Validationを継続している。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -49,7 +49,7 @@
     },
     "safety_compliance": {
       "rating": "pass",
-      "evidence": "manual main-ref guard、main checkout、duplicate PR guard（--limit 1000）、major.minor guard、final allowlist、GITHUB_TOKEN限定、force pushなし、既存CI dispatchなし、auto-mergeなしをWorkflowとContract testで固定した。branch safety確認後に指定branchへcommit／pushし、mergeは実行していない。",
+      "evidence": "manual main-ref guard、main checkout、duplicate PR guard（--limit 1000、isCrossRepository == false）、major.minor guard、final allowlist、GITHUB_TOKEN限定、force pushなし、既存CI dispatchなし、auto-mergeなしをWorkflowとContract testで固定した。branch safety確認後のcommit／pushを予定し、mergeは実行していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",

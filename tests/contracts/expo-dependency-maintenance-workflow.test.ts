@@ -66,7 +66,8 @@ describe("Expo dependency maintenance workflow contracts", () => {
     expect(duplicateCheck).toContain("--base main");
     expect(duplicateCheck).toContain("--state open");
     expect(duplicateCheck).toContain("--limit 1000");
-    expect(duplicateCheck).toContain("--json headRefName");
+    expect(duplicateCheck).toContain("--json headRefName,isCrossRepository");
+    expect(duplicateCheck).toContain(".isCrossRepository == false");
     expect(duplicateCheck).toContain("automation/expo-compatible-dependencies-");
     expect(duplicateCheck).not.toContain("--title");
 

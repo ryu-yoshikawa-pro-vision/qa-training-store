@@ -178,3 +178,25 @@
 - Remaining delta: Plan記載のmerge後maintenance Workflow実運用、Actions permission確認、CI完了確認は未実行。今回の指示では完了待ち・retry・再レビューを行わない。
 - Decision: stop_success
 - Progress: 100% (24/24)
+
+## 2026-08-29 14:23 (JST)
+
+- Summary: CodeRabbitのfork由来PR誤duplicate判定findingを確認し、Repair Loop iteration 2の修正を実装した。
+- Input finding: public Repositoryではfork PRも同じautomation branch prefixを使用できるため、`isCrossRepository`を確認しないduplicate guardがmaintenanceを誤ってskipする。
+- Repair plan: duplicate PR guardへ`isCrossRepository == false`を追加し、`--base main`／`--state open`／`--limit 1000`／branch prefixを維持する。専用Contract testとPlanも同じ条件へ更新する。GraphQL／REST化、author／owner条件などは追加しない。
+- Allowed files: `.github/workflows/expo-dependency-maintenance.yml`、`tests/contracts/expo-dependency-maintenance-workflow.test.ts`、`docs/plans/2026-08-29_061400_expo_dependency_maintenance.md`、既存active Run Artifact。
+- Changes: `gh pr list`で`headRefName,isCrossRepository`を取得し、`.isCrossRepository == false`かつautomation prefixのPRだけをduplicateと判定するContractを追加した。Planへsame repository条件とfork除外を追記した。
+- Validation: 修正後の指定Validationは未実行。
+- Remaining delta: 指定Validation、追加scope／artifact監査、commit／push、PR #79反映とCI状態確認。
+- Decision: continue
+- Progress: 81% (25/31)
+
+## 2026-08-29 14:29 (JST)
+
+- Summary: Repair Loop iteration 2の必須Validationを完了した。
+- Changes: duplicate PR guardの`--json`へ`isCrossRepository`を追加し、`.isCrossRepository == false`をbranch prefix条件と組み合わせた。既存のbase／state／limit／prefix条件は維持した。Contract testとPlanも同じ条件へ更新した。
+- Decision / Rationale: public Repositoryのfork PRがmaintenance PRとして誤認されるroot causeを、指定された`isCrossRepository`条件だけで修正した。author／bot／owner条件、API方式変更、guard再設計は追加していない。
+- Validation: `pnpm run format:check`、`pnpm run lint`、`pnpm run typecheck`、`pnpm run test:contracts`（32 files／462 tests）、`pnpm run lint:markdown`、`git diff --check`が全てPASS。lintは0 errors／66 warnings、専用Contract testは6/6 PASS。
+- Remaining delta: YAML parse、changed-file scope、forbidden-file audit、Sanitizer、evaluation schema、commit／push、PR #79反映とCI状態確認。
+- Decision: continue
+- Progress: 94% (29/31)

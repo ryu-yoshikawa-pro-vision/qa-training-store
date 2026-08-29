@@ -55,8 +55,8 @@ jobs:
               --base main \
               --state open \
               --limit 1000 \
-              --json headRefName \
-              --jq '.[] | select(.headRefName | startswith("automation/expo-compatible-dependencies-")) | .headRefName'
+              --json headRefName,isCrossRepository \
+              --jq '.[] | select(.isCrossRepository == false and (.headRefName | startswith("automation/expo-compatible-dependencies-"))) | .headRefName'
           } | head -n 1)"
           if [[ -n "$existing_branch" ]]; then
             echo "is_duplicate=true" >> "$GITHUB_OUTPUT"

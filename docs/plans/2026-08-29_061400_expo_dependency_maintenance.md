@@ -133,7 +133,7 @@ concurrency:
 automation/expo-compatible-dependencies-
 ```
 
-base `main` の OPEN PR に、head branch が上記 prefix で始まるものが存在する場合は正常終了する。
+base `main` の OPEN PR に、head branch が上記 prefix で始まり、`isCrossRepository == false`（同一Repositoryから作成されたPR）であるものが存在する場合は正常終了する。`isCrossRepository == true` の fork 由来PRは duplicate 判定対象外とする。
 
 - 重複判定に PR title は使用しない。
 - 既存 maintenance PR を自動更新、force push、close しない。
@@ -418,7 +418,7 @@ tests/contracts/expo-dependency-maintenance-workflow.test.ts
 - Expo / React Native major.minor guard
 - post-fix validation で `git diff --check HEAD` を使用する
 - changed-file allowlist が `git diff --name-only HEAD` と `git ls-files --others --exclude-standard` の両方を対象にし、許可ファイルを `package.json` / `pnpm-lock.yaml` のみに限定する
-- duplicate PR guard が base `main` + automation branch prefix で判定される
+- duplicate PR guard が base `main` + OPEN + `isCrossRepository == false` + automation branch prefix で判定され、fork 由来PRを除外する
 - automation branch が `GITHUB_RUN_ID` と `GITHUB_RUN_ATTEMPT` の両方を含む
 - `gh workflow run` を含まない
 - auto-merge command を含まない

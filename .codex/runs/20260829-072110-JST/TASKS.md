@@ -36,6 +36,16 @@
 - [x] 22. branch safetyを再確認してcommitし、通常の明示refspecでpushする
 - [x] 23. PR #79への反映と4 review threadの状態を確認し、解決操作なしで完了報告する
 
+## Review Repair (Iteration 2)
+
+- [x] 24. PR最新差分、Workflow、Contract test、Plan、active Run、public状態、duplicate guard、branch／PR状態を確認し、fork誤判定findingをmust_fixへ分類する
+- [x] 25. duplicate PR guardへ`isCrossRepository == false`を追加し、既存条件を維持する
+- [x] 26. Contract testへ`isCrossRepository`取得とfalse条件の契約を追加する
+- [x] 27. Planへsame repository条件とfork除外を追記する
+- [x] 28. 指定Validationを実行し、今回差分に起因するFAILがあれば最小修正する
+- [ ] 29. YAML parse、changed-file scope、forbidden-file audit、Sanitizer、evaluation schemaを確認し、commit／pushする
+- [ ] 30. PR #79への反映、新規PRなし、CI状態を確認して完了報告する
+
 ## Blocked
 
 - なし
