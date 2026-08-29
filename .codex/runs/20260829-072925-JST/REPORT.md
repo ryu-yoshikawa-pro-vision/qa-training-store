@@ -86,6 +86,19 @@
   - Parent decision: —
 - Progress: 100% (10/10)
 
+## 2026-08-29 21:11 JST
+
+- Summary: PR #80の最新main取り込み後repair、再検証、push、PR本文更新、3件のreview thread対応を完了した。Planの目的・DoD・Non-goal・Stop conditionは変更していない。
+- CI failure / Must Fix: 最新main `dfae7113e33fb9eb3f55fbd940acb285c7f1870c` 取り込み後のWeb CI `33249042849`では、Ubuntu runnerに`powershell.exe`がないにもかかわらずunknown RunId testがPowerShell／Bash wrapperを同一testで無条件起動し、PowerShellの`spawnSync`結果が`undefinedundefined`となった。Must Fixとして、対象testをruntime別に分離した。
+- Changes: `tests/contracts/codex-safe-run-manifest-sync.test.ts`だけをrepair sourceとして変更し、PowerShell／Bash launcherの`exit 0`可用性を各`it.skipIf(...)`の条件にした。Codex executable availabilityはunknown RunId caseのskip条件にしていない。nonzero、`Run directory not found`、Run directory未作成をruntime別に検証する。
+- Review decisions: unborn HEAD findingは、Planが指定する2 Git commandの起動失敗／nonzeroをcollector failureとする契約と矛盾し、Plan外のため採用しなかった。REPORT過去checkpointはappend-only契約に従って削除・置換・並べ替えをせず、今回の記録をこの末尾へappendした。
+- Validation: local target `1 file / 8 passed / 3 skipped`、collector contract `1 file / 8 passed`、combined `2 files / 16 passed / 3 skipped`、`pnpm run test:contracts` `33 files / 478 passed / 3 skipped`。`scripts/verify.ps1`は`PASS=3 FAIL=0 SKIP=0`、`scripts/verify`は`PASS=2 FAIL=0 SKIP=2`、Markdown lint、対象ESLint／Prettier、`bash -n scripts/codex-safe.sh`、`git diff --check`、sanitizer Write／CheckはPASSまたはresidual 0。
+- Runtime skip: ローカルVitest workerではBash unknown RunId launcher probeが5秒timeoutとなったためSKIP、Bash Codex依存caseはCodex executableなしでSKIP、collector launch failureは専用shim／fake runtime／PATH改変を追加しないPlan contractに従いSKIP。CIのWeb CI `33251491696`はsuccess、Mobile App CI `33251491851`もsuccessで、全checkはPASSまたは意図したSKIPとなった。
+- Reconfirmation: `scripts/collect-run-artifacts.py`はPlan指定のbinary／NUL／`os.fsdecode`／relative `/`／既存値保持／新規`.codex/runs/**`除外／dedupe／status非変更／Git failure fail-close／v1非migrationを維持し、unborn HEAD分岐を追加していない。`codex-safe.ps1/sh`のprecondition、sync、exit precedence、status非変更も維持した。`git diff origin/main...HEAD`で`.codex/config.toml`と`.codex/hooks/log_event.mjs`の差分はない。
+- PR / Git: repair commit `93fb0463493177dc06de8365cc5eb4c2458f62d2`を`fix/run-json-machine-managed-contract`へforceなしでpushした。PR本文の`## 実装予定`は10件すべて完了表示へ更新し、自動生成summaryは保持した。current `run.json`は直接編集していない。3件のreview threadへ根拠をreplyし、全てresolvedを確認した。
+- Final decision: merge／rebaseは実行していない。source repairと品質ゲートは完了した。PRはGitHub上`mergeable=MERGEABLE`だが、元のCodeRabbit review stateが`CHANGES_REQUESTED`のまま残っているため、レビュー承認状態の解消まではmerge-readyではなく、そこが残存blocking itemである。
+- Progress: 100% (16/16)
+
 ## 2026-08-29 20:37 JST
 
 - Summary: 最新main（`dfae7113e33fb9eb3f55fbd940acb285c7f1870c`）取り込み後のPR #80 CI failureと未解決review threadを再確認し、今回のrepair対象を確定した。
@@ -158,3 +171,12 @@
 - Skip: Bash Codex実機はWSL側で利用不能、collector child-process launch failureは専用shim／PATH改変なしに安全な再現方法がないため、PlanどおりSKIP。PowerShell Codex runtimeとwrapper preflightは実行済み。
 - Blocker / Remaining: 実装上の残課題なし。未追跡の一時`__pycache__`はDeletion candidatesへ記録済みで、ユーザー確認後の手動削除対象。
 - Progress: 100% (10/10)
+
+## 2026-08-29 21:13 JST
+
+- Summary: 最終checkpoint追補。既存の全checkpointと今回のrepair記録を保持したまま、REPORT末尾へ現在状態を記録した。
+- Current state: branch `fix/run-json-machine-managed-contract`、PR #80 head `93fb0463493177dc06de8365cc5eb4c2458f62d2`、base側の最新main `dfae7113e33fb9eb3f55fbd940acb285c7f1870c`。merge／rebase／merge実行はない。
+- Must Fix / validation: unknown RunId testをPowerShell／Bashのruntime別`it.skipIf(...)`へ分離し、local target `8 passed / 3 skipped`、combined `16 passed / 3 skipped`、full contract `478 passed / 3 skipped`。PowerShell verify `3/0/0`、Bash verify `2/0/2`、lint／format／ESLint／bash -n／diff checkはPASS。
+- Remote / scope: Web CI `33251491696`、Mobile App CI `33251491851`はsuccess。collectorのGit nonzero fail-closeとcodex-safeの既存contractを維持し、unborn HEADはPlan外かつ現行contractと矛盾するため未対応。Hook config／loggerの`origin/main...HEAD`差分はなく、current `run.json`は直接編集していない。
+- Review / PR: 3件のreview threadへ根拠reply後に全てresolved。PR本文の実装checkboxは全て完了表示、自動生成summaryは保持した。GitHub表示は`mergeable=MERGEABLE`だが、CodeRabbitのreview stateが`CHANGES_REQUESTED`のままのため、承認状態の解消まではmerge-readyではない。
+- Final decision: source repair、指定検証、sanitizer Write／Check（residual 0）、push、review整理を完了し、残るblocking itemはGitHub review stateのみ。`Progress: 100% (16/16)`
