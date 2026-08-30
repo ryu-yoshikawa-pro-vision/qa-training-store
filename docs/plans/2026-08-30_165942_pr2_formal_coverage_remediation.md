@@ -11,7 +11,8 @@
 ## Progress
 
 - [x] PR #84 merge後の `main` から独立branchを作成し、本Planを作成
-- [ ] 実装前に4 labelをCurrent `main`でread-only再監査し、予定外のcoverage gapがないことを確認
+- [ ] 実装前に4 labelをCurrent `main`でread-only再監査し、planned remediation以外のcoverage gapがないことを確認
+- [ ] `CT-DB-KEY-001 / FR-PR-041` のnormalized duplicate rejectionが不足している場合だけ既存Repository Contract testを最小拡張
 - [ ] `CT-CATEGORY-002 / FR-PR-055` が未coveredの場合だけRepository Contract testを1本追加
 - [ ] `CT-BOUNDARY-001 / FR-AR-003` が未coveredの場合だけ既存Order contract testへ最小assertionを追加
 - [ ] 4 labelのCurrent evidence / disposition / PR #78 handoff情報をRun REPORTへ確定
@@ -27,7 +28,10 @@ PR #84でProduct implementation gapは修正済みのため、本remediationのp
 本remediationの責務は次までとする。
 
 1. 4 labelをCurrent evidenceで再監査する。
-2. 既知の2 coverage gapだけを必要時に最小test差分で閉じる。
+2. Current reviewで不足が確認済み、または不足可能性が高い以下だけを、必要時に既存2 test file内の最小差分で閉じる。
+   - `FR-PR-041`: Category / Brand / Variation normalized duplicate rejection
+   - `FR-PR-055`: Category末尾追加と同一Transactionでのmax+10
+   - `FR-AR-003`: UI向けOrder DTOから内部fieldを除外
 3. PR #78へ戻せるrepresentative evidenceとhandoff情報を確定する。
 
 PR #78自身のTraceability / taxonomy / Run / PR本文の更新は本remediationのDoDへ含めず、Follow-upとして扱う。
@@ -46,16 +50,39 @@ PR #78を止めている残存Formal coverage gapだけを閉じ、lower Traceab
    - `CT-CATEGORY-002`: `FR-PR-055`
    - `CT-BOUNDARY-001`: `FR-AR-001～004` / `NFR-MA-020～023`
    - Current Requirement → implementation → existing Formal Testの順に確認する。
-   - PR #78側の現在のreference / dispositionが不足しているだけで、Current既存Formal Testの必要最小限のsuite setにより元Requirementを説明できる場合はSTOPしない。これはTraceability mapping gapとしてRun REPORTへhandoffする。
-   - 既知の `FR-PR-055` / `FR-AR-003` 以外について、Current既存Formal Testを組み合わせてもRequirement behaviorを直接・合理的に説明できない場合、またはRequirementとCurrent implementationが矛盾する場合だけ予定外gapとしてSTOPする。
+   - PR #78側のreference / dispositionが不足しているだけで、Current既存Formal Testの必要最小限のsuite setにより元Requirementを説明できる場合はSTOPしない。Traceability mapping gapとしてRun REPORTへhandoffする。
+   - `FR-PR-041` / `FR-PR-055` / `FR-AR-003` は本Planで許可したplanned remediationとして扱い、不足が確認されてもそれだけを理由にSTOPしない。
+   - 上記3 Requirement以外について、Current既存Formal Testを組み合わせてもRequirement behaviorを直接・合理的に説明できない場合、またはRequirementとCurrent implementationが矛盾する場合だけ予定外gapとしてSTOPする。
    - `stop=0`を作るためにRequirement意味を縮小しない。
 
-2. **`CT-CATEGORY-002 / FR-PR-055` が未coveredの場合だけ、Repository Contract testを1本追加する。**
+2. **`CT-DB-KEY-001 / FR-PR-041` のnormalized duplicate rejectionが不足している場合だけ、既存Repository Contract testを最小拡張する。**
+   - 対象: `tests/repository-contract/repositories.test.ts`
+   - 既存test: `enforces unique keys and persistence projection consistency`
+   - 新test file、新helper、新test titleは追加しない。
+   - Current evidenceですでに直接・合理的に説明できる部分は重複assertしない。
+   - `tests/unit/normalization-cart-catalog.test.ts` がNFKC / case / whitespace normalizationとVariation scope key projectionを直接確認しているため、そのNormalizationロジック自体は再テストしない。
+   - 既存Category unique-key assertionは維持し、Brand / Variationのnormalized duplicate rejectionだけ不足分として追加する。
+   - Brandは`DexieBrandRepository`を同じDBで直接使用し、次の2 createを行う。
+     1. `brand-normalized-1` / `Scenario Life`
+     2. `brand-normalized-2` / ` Ｓｃｅｎａｒｉｏ　Ｌｉｆｅ `
+   - 共通Command値は`actorUserId: "user-operator"` / `now: FIXED_NOW`とする。
+   - 2件目がnormalized `nameNormalized` collisionによりrejectされることだけを確認する。
+   - Variationは既存`variant` fixtureをspreadして2 recordを作り、`toVariantRecord()`経由でDBへ書く。
+     - 共通`productId`: `product-normalized-variation`
+     - 1件目: `id: "variant-normalized-1"`, `sku: "SKU-NORMALIZED-1"`, `optionValue: " Red "`
+     - 2件目: `id: "variant-normalized-2"`, `sku: "SKU-NORMALIZED-2"`, `optionValue: " ＲＥＤ "`
+     - 両方`isActive: true`
+   - `toVariantRecord()`が両optionValueを同じ`optionScopeKey`へ投影し、2件目がunique `[productId+optionScopeKey]` collisionでrejectされることだけを確認する。
+   - `optionValueNormalized`などIndex判定に不要なpropertyを新たなassertion対象にしない。
+   - raw Dexie errorの具体的message/classへ依存せず、既存styleどおり`rejects.toBeDefined()`程度に留める。
+   - 既存`projectionsAreConsistent()` assertionは変更しない。
+
+3. **`CT-CATEGORY-002 / FR-PR-055` が未coveredの場合だけ、Repository Contract testを1本追加する。**
    - 対象: `tests/repository-contract/repositories.test.ts`
    - Test title: `creates the first category at ten and serializes concurrent appends`
    - 既存の空 `ScenarioShopDatabase` fixtureと`DexieCategoryRepository`を直接使う。
-   - `CreateCategoryCommand`は既存fixtureを再利用し、各createで以下を固定する。
-     - `actorUserId: customer.id`
+   - `CreateCategoryCommand`は各createで以下を固定する。
+     - `actorUserId: "user-operator"`
      - `now: FIXED_NOW`
    - Category固有値はID・正規化後nameとも重複しない以下を使う。
      - `category-1` / `Category 1`
@@ -64,23 +91,24 @@ PR #78を止めている残存Formal coverage gapだけを閉じ、lower Traceab
    - 1件目createの返却値で`sortOrder === 10`を確認する。
    - その後2件を`Promise.all`等で並行createし、両Promiseが成功することを確認する。
    - 並行createの返却`sortOrder`は個別assertしない。DB全件を取得し、persist済み`sortOrder`をsortした結果が`[10, 20, 30]`であることだけを確認する。
-   - これによりduplicate sortOrder / lost writeを1つのpersisted-state assertionで確認する。
+   - duplicate sortOrder / lost writeはこのpersisted-state assertionでまとめて確認する。
    - `CT-CATEGORY-002`のrepresentative Formal evidenceはこの新しいexact-title 1本に集約する。既存Application testを代表evidenceへ組み合わせない。
    - Current Dexie / fake-indexeddb環境で並行createを決定的に観測できない場合は、retry / sleep / spy / source text assertion / test-only hookを追加せずSTOPする。
 
-3. **`CT-BOUNDARY-001 / FR-AR-003` が未coveredの場合だけ、既存Order contract testを最小拡張する。**
+4. **`CT-BOUNDARY-001 / FR-AR-003` が未coveredの場合だけ、既存Order contract testを最小拡張する。**
    - 対象: `tests/contracts/transactions.test.ts`
    - 既存test: `keeps order, payment, shipment, and histories consistent`
    - 既存Order / Payment / Shipment fixtureをそのまま使い、Checkout Use Case、Session、Gateway、Clock等を追加しない。
-   - 既存Orderが`paid`であるため、現在状態と矛盾せず、かつnon-null internal Actorを検証できるOrderStatusHistoryを1件だけ追加する。
+   - Current production pathの`PAYMENT_SUCCEEDED` semanticsと一致するOrderStatusHistoryを1件だけ追加する。
      - `id: "order-history-1"`
      - `orderId: order.id`
      - `fromStatus: "pending_payment"`
      - `toStatus: "paid"`
-     - `actorUserId: customer.id`
+     - `actorUserId: null`
      - `reasonCode: "PAYMENT_SUCCEEDED"`
      - `createdAt: FIXED_NOW`
    - raw fixtureにinternal fieldを記述している事実をpreconditionとし、同じpropertyの存在をraw側へ重複assertしない。
+   - `actorUserId`の値が`null`でもproperty自体はraw Historyに存在するため、public DTOに誤って`actorUserId` propertyが追加された場合はabsence assertionで検知できる。
    - public DTO側だけ、Requirementに必要な以下を明示assertする。
      - `detail.orderActionVersion === order.version`
      - `detail` rootにraw `version`がない
@@ -91,21 +119,22 @@ PR #78を止めている残存Formal coverage gapだけを閉じ、lower Traceab
    - Timelineの件数とstatus mappingをpositive assertionしてからinternal field absenceを確認し、空TimelineでもPASSするtestにしない。
    - whole-object snapshot、DTO専用fixture、新helper、別flowは追加しない。
 
-4. **`CT-DB-KEY-001`は3RequirementすべてをCurrent evidenceで説明できる。**
+5. **`CT-DB-KEY-001`は3RequirementすべてをCurrent evidenceで説明できる。**
    - `NFR-RL-011`: IndexedDB Indexへboolean/null/undefinedを直接保存せず、数値Key / non-null Scope Keyへ投影するcontract。
    - `FR-PR-041`: Category名・Brand名・Variation選択肢のTrim / Unicode NFKC / locale非依存小文字化とnormalized comparison keyによる重複判定。
    - `FR-PR-050`: productCode / SKUのTrim / Unicode NFKC / ASCII大文字化、format validation、case-insensitive uniqueness。
    - `tests/unit/normalization-cart-catalog.test.ts`をNormalizationの直接Formal evidence候補として必ず確認する。
+   - `FR-PR-041`のnormalized duplicate rejectionがCurrent Formal evidenceで不足していれば、Definition of Done 2の既存Repository Contract拡張で閉じる。
    - 1つのexisting exact-titleへ無理に押し込まず、必要なら最小suite setとしてhandoffする。
 
-5. **`CP-FORM-001`は3RequirementすべてをCurrent evidenceで説明できる。**
+6. **`CP-FORM-001`は3RequirementすべてをCurrent evidenceで説明できる。**
    - `NFR-AX-001`: FormのLabel、Error関連付け、Keyboard Focus。
    - `NFR-AX-007`: Error発生時のError Summary focusとSummary内Linkから対象fieldへの移動。
    - `NFR-MA-012`: Email正規化、文字数上限、Application Errorを共有関数・共有定数・共有型から参照するcontract。
    - `tests/unit/normalization-cart-catalog.test.ts`のEmail normalizationと、Application boundary / Error contractの既存Formal evidenceを組み合わせて確認する。
    - Accessibility evidenceだけで`NFR-MA-012`を落とさない。
 
-6. **4 labelのrepresentative evidenceとfinal dispositionをRun REPORTへ残す。**
+7. **4 labelのrepresentative evidenceとfinal dispositionをRun REPORTへ残す。**
    - 元Requirement ID。
    - Current implementation evidence。
    - representative Formal evidence。
@@ -115,21 +144,23 @@ PR #78を止めている残存Formal coverage gapだけを閉じ、lower Traceab
    - PR #78側で必要になる`suite-level` taxonomyの最小調整案。
    - 本remediationではPR #78 branch / Traceability docsを変更しない。
 
-7. **planned implementationの通常差分を2 test file以内に保つ。**
+8. **planned implementationの通常差分を2 test file以内に保つ。**
    - `tests/repository-contract/repositories.test.ts`
    - `tests/contracts/transactions.test.ts`
-   - 片方または両方がalready coveredなら、そのtest fileは変更しない。
+   - `FR-PR-041`と`FR-PR-055`は同じRepository Contract file内で閉じる。
+   - already coveredの項目はno-opとする。
    - 新Test file / helper / framework / planned Production source変更は行わない。
 
-8. **local validationはchanged suiteだけに限定する。**
-   - 実際に変更したtest fileのfocused run。
-   - Category変更時だけ`pnpm run test:repository`。
-   - Order contract変更時だけ`pnpm run test:contracts`。
+9. **local validationはchanged suiteだけに限定する。**
+   - Repository Contract fileを変更した場合だけ`pnpm run test:repository`。
+   - Order contract fileを変更した場合だけ`pnpm run test:contracts`。
+   - suite command自体がchanged fileを含むため、通常DoDとして別のfocused file runを重ねない。
+   - focused file runはsuite failure時の診断に必要な場合だけ使用し、通常の必須validationにはしない。
    - read-only evidenceとして参照したintegration / component / unit suiteを、evidence確認だけを理由にlocal再実行しない。
    - static checks / Sanitizer / scope checkは実行する。
 
-9. **test code変更がある場合だけcoverage-remediation PRを1本OPENする。**
-   - test code変更が0なら空PRを作らない。
+10. **test code変更がある場合だけcoverage-remediation PRを1本OPENする。**
+   - planned remediationがすべてalready coveredでtest code変更が0なら空PRを作らない。
    - PRを作成した場合だけexact-head required CIをfull regressionのSSOTとして確認する。
    - no-opの場合は存在しないPR CIをDoDに要求しない。
    - mergeは明示指示があるまで行わない。
@@ -141,26 +172,31 @@ PR #78を止めている残存Formal coverage gapだけを閉じ、lower Traceab
 - Implementation BaseはPR #84 merge直後の`main`、`3022a74ba7cde2d3cc81ce318c6320dbf78115c6`。
 - `FR-PR-055`は「新規Categoryは0件時`sortOrder=10`、既存時`max(sortOrder)+10`で末尾へ追加し、最大値取得と作成を同一Transactionで行うこと」。
 - `DexieCategoryRepository.createAtEnd()`は`src/infrastructure/database/dexie/basic-repositories.ts`にあり、`db.transaction("rw", db.categories, ...)`内で一覧取得→最大値算出→`categories.add()`を行う。
-- `CreateCategoryCommand`は`categoryId` / `name` / `actorUserId` / `now`を必要とする。Repository Contract testでは既存`customer.id`と`FIXED_NOW`を使えば新fixtureは不要である。
-- `tests/repository-contract/repositories.test.ts`は空の`ScenarioShopDatabase`、`customer`、`FIXED_NOW`、`DexieCategoryRepository`をすでに利用しており、FR-PR-055の最小seamである。
+- `CreateCategoryCommand`は`categoryId` / `name` / `actorUserId` / `now`を必要とする。Category作成のApplication flowはoperator/adminを要求するため、Repository Contract fixtureも`actorUserId: "user-operator"`とする。
+- `tests/repository-contract/repositories.test.ts`は空の`ScenarioShopDatabase`、`FIXED_NOW`、`DexieCategoryRepository`をすでに利用しており、FR-PR-055の最小seamである。
 - Category tableの`nameNormalized`はunique indexなので、並行create fixtureはnormalize後も異なるnameを使う。
+- `FR-PR-041`はCategory / Brand / Variation optionについて共通Normalization結果を重複判定に使うことを要求する。
+- Current schemaはCategory / Brandのnormalized keyとVariationの`[productId+optionScopeKey]`をunique indexとして持つ。
+- `tests/unit/normalization-cart-catalog.test.ts`はNFKC / case / whitespace normalizationとVariation option scope key projectionを直接確認している。
+- Current reviewではRepository ContractにCategory unique-key assertionはある一方、Brand / Variationのnormalized duplicate rejectionを直接確認するFormal evidenceは見つかっていない。実装前pre-auditで再確認し、不足が確定した場合だけ既存unique-key testへ最小assertionを足す。
+- `toVariantRecord()`は`projectOptionScopeKey()`を使って`optionScopeKey`を生成するため、Variation duplicate rejectionは新Use Caseを通さず既存mapper + Dexie unique indexのseamで確認できる。
 - `FR-AR-003`は「UI向けOrder DTOにGateway Key、Repository Version、内部Actor IDを含めないこと」。
 - `DexieOrderRepository.getDetail()`はraw Order / Payment / Shipment / OrderStatusHistoryから`OrderDetailDto`を明示的に組み立て、内部fieldを公開DTOへコピーしていない。
 - `tests/contracts/transactions.test.ts`の既存Order testはOrder=`paid`、Payment=`succeeded`、Shipment=`pending`、`customer`、`FIXED_NOW`、`DexieOrderRepository.getDetail()`をすでに持つ。
-- したがってFR-AR-003のためにCheckout/Application flowや完全なOrder lifecycle historyを追加する必要はない。`pending_payment → paid`のHistory 1件で現在状態との整合とActor非公開を同時に検証できる。
+- Current production pathの`PAYMENT_SUCCEEDED` Historyは`pending_payment → paid` / `actorUserId: null`である。FR-AR-003のためにsynthetic non-null Actorや完全なOrder lifecycle historyを作る必要はない。
 - `CT-DB-KEY-001`は `NFR-RL-011` / `FR-PR-041` / `FR-PR-050` を含む。
-- `tests/unit/normalization-cart-catalog.test.ts`にはNFKC / case / whitespace、Email、Code、Variation option scope keyの直接Formal evidenceがあるため、4-label pre-auditで必ず確認する。
-- Current PR #78では`CT-DB-KEY-001`を既存Repository Contractの単一exact-titleへ接続しているが、そのreference不足は直ちにFormal coverage gapを意味しない。Current既存suite setで元Requirementを説明できるかを再監査する。
+- Current PR #78では`CT-DB-KEY-001`を既存Repository Contractの単一exact-titleへ接続しているが、そのreference不足は直ちにFormal coverage gapを意味しない。Current既存suite setと本Planの最小remediationを合わせて元Requirementを説明できるかを再監査する。
 - `CP-FORM-001`は `NFR-AX-001` / `NFR-AX-007` / `NFR-MA-012` を含む。
-- Current PR #78では`CP-FORM-001`から`NFR-MA-012`が落ちているが、これもまずTraceability mapping gapとして扱い、Current Formal evidence自体が不足しているかを分けて判定する。
+- Current PR #78では`CP-FORM-001`から`NFR-MA-012`が落ちているが、まずTraceability mapping gapとして扱い、Current Formal evidence自体が不足しているかを分けて判定する。
 - `CT-BOUNDARY-001`は `FR-AR-001～004` / `NFR-MA-020～023` の複合labelであり、Order DTO evidence単独では全体を代表しない。
 - Current `AGENTS.md`のlocal validationは「必要に応じて一部または全部」であり、Web CIではunit / integration / repository / component / contracts等をfull regressionとして実行する。
 
 ### Assumptions
 
 - Historical gap analysisは調査の起点にのみ使い、最終判定は実装開始時点のCurrent `main`を正とする。
-- 4-label再監査はコード変更前に実施し、予定外gapが見つかった状態で既知2 gapの実装だけを先行しない。
-- PR #78の現在のmapping不備だけではSTOPしない。Current既存Formal Testの必要最小限のsuite setでRequirementを説明できない場合だけFormal coverage gapと判断する。
+- 4-label再監査はコード変更前に実施し、planned remediation以外のgapが見つかった状態で部分実装だけを先行しない。
+- PR #78の現在のmapping不備だけではSTOPしない。Current既存Formal Testの必要最小限のsuite setと本Planで許可したminimal remediationを合わせてもRequirementを説明できない場合だけFormal coverage gapとしてSTOPする。
+- `FR-PR-041`は新fileや新frameworkを作らず、既存Repository Contractのunique-key testを必要時に拡張する。
 - Category concurrency testはtransaction実装詳細をspyするtestではなく、transaction境界を外した場合のread-max raceをobservable stateで検知する最小black-box regressionとする。
 - Order DTO testではfixture自身へ記述済みのraw internal fieldを再assertせず、public DTOへの非公開だけを直接検証する。
 - read-only evidence suiteはCurrent codeを読むことでrepresentative evidenceを確定し、変更がないsuiteをlocal validation目的だけで再実行しない。
@@ -185,32 +221,37 @@ PR #78を止めている残存Formal coverage gapだけを閉じ、lower Traceab
 
 ### Pre-implementation stop gate
 
-4-label read-only再監査では、まず「PR #78のmapping不足」と「Current Formal coverage不足」を分ける。
+4-label read-only再監査では、まず「PR #78のmapping不足」「本Planで許可したplanned remediation」「それ以外のCurrent Formal coverage不足」を分ける。
 
 STOPしない:
 
 - PR #78の現在のexact-title / suite-level referenceだけでは元Requirement全体を説明できないが、Current既存Formal Testの必要最小限のsuite setなら説明できる。
-- この場合はTraceability mapping gapとしてRun REPORTへevidenceとPR #78側の修正案を記録し、既知2 gapの実装へ進む。
+- `FR-PR-041`のBrand / Variation normalized duplicate rejectionが不足しているが、既存`tests/repository-contract/repositories.test.ts`のunique-key testへの最小assertion追加だけで閉じられる。
+- `FR-PR-055`が不足しているが、planned Category Repository Contract test 1本だけで閉じられる。
+- `FR-AR-003`が不足しているが、planned Order contract test拡張だけで閉じられる。
+- 上記の場合はRun REPORTへevidence / planned remediation / PR #78側の修正案を記録し、実装へ進む。
 
 STOPする:
 
-- `CT-DB-KEY-001`の `NFR-RL-011` / `FR-PR-041` / `FR-PR-050` のいずれかを、Current既存Formal Testを組み合わせても直接・合理的に説明できない、またはimplementation gapがある。
-- `CP-FORM-001`の `NFR-AX-001` / `NFR-AX-007` / `NFR-MA-012` のいずれかを、Current既存Formal Testを組み合わせても直接・合理的に説明できない、またはimplementation gapがある。
-- `CT-CATEGORY-002`がtest追加だけでは閉じられず、Product変更が必要である。
-- `CT-BOUNDARY-001`がFR-AR-003 test追加以外にも新しいFormal coverage gapを持つ。
+- `CT-DB-KEY-001`の `NFR-RL-011` / `FR-PR-041` / `FR-PR-050` のうち、`FR-PR-041`のplanned Repository Contract拡張を含めても直接・合理的に説明できないRequirementがある、またはimplementation gapがある。
+- `CP-FORM-001`の `NFR-AX-001` / `NFR-AX-007` / `NFR-MA-012` のいずれかをCurrent既存Formal Testで直接・合理的に説明できない、またはimplementation gapがある。
+- `CT-CATEGORY-002`がplanned test追加だけでは閉じられず、Product変更が必要である。
+- `CT-BOUNDARY-001`がFR-AR-003 planned test追加以外にも新しいFormal coverage gapを持つ。
 - `stop=0`のためにRequirement意味の縮小、新ID制度、第三のTraceability SSOTが必要になる。
 
 ### Already-covered handling
 
-- Categoryだけalready covered: Category変更をno-opにする。
+- `FR-PR-041`がalready covered: unique-key testを変更しない。
+- Categoryだけalready covered: Category test追加をno-opにする。
 - FR-AR-003だけalready covered: Order contract変更をno-opにする。
-- 両方already covered: test code変更0とし、4-label handoff evidenceを確定して完了する。空PRは作らない。
+- planned remediationがすべてalready covered: test code変更0とし、4-label handoff evidenceを確定して完了する。空PRは作らない。
 - already-coveredはSTOP条件ではない。
 
 ### Implementation stop conditions
 
 コード変更開始後は以下の場合にSTOPする。
 
+- Brand / Variation normalized duplicate rejectionの確認に新helper、新test file、Production hook、DB schema変更等が必要になる。
 - Category concurrency behaviorをCurrent Dexie / fake-indexeddbで決定的に観測できず、retry / sleep / spy / hook等が必要になる。
 - FR-AR-003確認にHistory 1件と既存DTO assertionを超える新flow、新fixture設計、Production hook等が必要になる。
 - workflow / package / config / validator / DB schema / Curriculum / Trainingのplanned変更が必要になる。
@@ -231,7 +272,7 @@ STOPする:
 - 本Plan
 - 新しいimplementation Run Artifact
 
-片方または両方がalready coveredなら対応test fileは変更しない。
+`FR-PR-041` / `FR-PR-055` / `FR-AR-003`のalready-covered判定により、2 test fileの片方または両方が変更されないことを許容する。
 
 Validation failure repairが発生した場合のみ、Current `AGENTS.md` §8 / repair-loopに従う最小追加差分を許容し、その理由をRun REPORTへ記録する。
 
@@ -248,7 +289,7 @@ Validation failure repairが発生した場合のみ、Current `AGENTS.md` §8 /
 - `src/domain/services/normalization.ts`
 - `src/infrastructure/database/dexie/mappers.ts`
 - `src/infrastructure/database/dexie/database.ts`
-- Category / Brand / Variation duplicate validationを担うCurrent Use Case / Repository code
+- `src/infrastructure/database/dexie/basic-repositories.ts` — Category / Brand normalized key creation
 - Product code / SKU normalization・uniquenessを担うCurrent Use Case / Repository code
 - `tests/unit/normalization-cart-catalog.test.ts`
 - `tests/repository-contract/repositories.test.ts`
@@ -266,8 +307,9 @@ Validation failure repairが発生した場合のみ、Current `AGENTS.md` §8 /
 #### `CT-CATEGORY-002`
 
 - `src/application/contracts/administration.ts` — `CreateCategoryCommand`
+- `src/application/use-cases/admin-master-use-cases.ts` — staff actor boundary
 - `src/infrastructure/database/dexie/basic-repositories.ts` — `DexieCategoryRepository.createAtEnd()`
-- `tests/fixtures/repository.ts` — `customer` / `FIXED_NOW`
+- `tests/fixtures/repository.ts` — `FIXED_NOW`
 - `tests/repository-contract/repositories.test.ts`
 - `tests/integration/admin-master-use-cases.test.ts` — read-only。変更しない。
 
@@ -276,7 +318,7 @@ Validation failure repairが発生した場合のみ、Current `AGENTS.md` §8 /
 - `src/application/contracts/orders.ts`
 - `src/domain/contracts/entities.ts`
 - `src/infrastructure/database/dexie/order-review-repositories.ts`
-- `src/application/use-cases/checkout-order-use-cases.ts` — `getMyOrder()`の公開境界をread-only確認
+- `src/application/use-cases/checkout-order-use-cases.ts` — `getMyOrder()`と`PAYMENT_SUCCEEDED` History semanticsをread-only確認
 - `tests/contracts/architecture.test.ts`
 - `tests/contracts/transactions.test.ts`
 
@@ -287,61 +329,74 @@ Validation failure repairが発生した場合のみ、Current `AGENTS.md` §8 /
 1. **Audit first, code second**
    - 4-label全体をread-only監査してからコードを書く。
    - PR #78のmapping不足はhandoff対象であり、それだけを理由にSTOPしない。
-   - Current Formal coverage自体の予定外gapがある場合だけ、無駄な部分実装を残さずSTOPする。
+   - `FR-PR-041` / `FR-PR-055` / `FR-AR-003`はplanned remediationとして扱う。
+   - それ以外のCurrent Formal coverage gapがある場合だけ、無駄な部分実装を残さずSTOPする。
 
 2. **Coverage-only**
    - RequirementとCurrent behaviorが一致する場合だけtestを補完する。
    - Requirement矛盾はProduct gapとしてSTOPし、このPRへplanned Product fixを混ぜない。
 
-3. **Categoryは1 test / 2 essential assertionsに寄せる**
-   - Commandは`actorUserId: customer.id` / `now: FIXED_NOW`を共通で使う。
+3. **FR-PR-041は既存unique-key testの不足assertionだけ足す**
+   - Category duplicate assertionは既存のまま。
+   - Brand normalized duplicate rejectionを`DexieBrandRepository`で追加。
+   - Variation normalized duplicate rejectionを`toVariantRecord()` + existing Dexie unique indexで追加。
+   - Normalization関数そのものの重複testは追加しない。
+
+4. **Categoryは1 test / 2 essential assertionsに寄せる**
+   - Commandは`actorUserId: "user-operator"` / `now: FIXED_NOW`を共通で使う。
    - 1件目の返却`sortOrder === 10`。
    - 並行create完了後のpersisted全件`[10,20,30]`。
    - concurrent return valueの重複assertionは追加しない。
 
-4. **Order DTOは既存testへHistory 1件 + public DTO assertionsだけを追加する**
-   - `pending_payment → paid` / `PAYMENT_SUCCEEDED` / `actorUserId: customer.id`のHistory 1件だけでexisting paid OrderとTimelineを整合させる。
+5. **Order DTOは既存testへProduction-consistent History 1件 + public DTO assertionsだけを追加する**
+   - `pending_payment → paid` / `PAYMENT_SUCCEEDED` / `actorUserId: null`のHistory 1件だけを使う。
    - raw fixture existence assertionは追加しない。
    - DTO absenceとTimeline positive mappingだけを確認する。
 
-5. **4-label handoffは最小suite setを許容する**
+6. **4-label handoffは最小suite setを許容する**
    - 単一exact-titleへ無理に押し込まない。
    - Requirementごとの担当evidenceをRun REPORTに記録する。
    - Traceability mapping gapとFormal coverage gapを区別する。
    - 新Dispositionは作らない。
 
-6. **Validationはchanged scopeだけ**
-   - changed test file / changed suiteだけlocal実行する。
-   - `tests/unit/normalization-cart-catalog.test.ts`を含むread-only evidence suiteは変更がない限りlocal再実行しない。
+7. **Validationはsuite単位で1回だけ**
+   - Repository Contract fileを変更した場合だけ`pnpm run test:repository`。
+   - Order contract fileを変更した場合だけ`pnpm run test:contracts`。
+   - 通常DoDとしてfocused file runを重ねない。
+   - read-only evidence suiteは変更がない限りlocal再実行しない。
    - full regressionはPR作成時のexact-head CIへ委譲する。
 
-7. **PR #78へはhandoff情報だけ作る**
+8. **PR #78へはhandoff情報だけ作る**
    - 本remediationではPR #78を編集しない。
    - 実際のtaxonomy / Traceability更新はFollow-upとする。
 
 ### 実行タスク
 
 - [ ] 1. 実装開始時に最新`main`とCurrent repository rules（`AGENTS.md`、`PLANS.md`、Run Artifact contract、test conventions）を確認し、implementation Run Artifactを開始する。
-- [ ] 2. コード変更前に`CT-DB-KEY-001`を`NFR-RL-011` / `FR-PR-041` / `FR-PR-050`ごとにread-only再監査する。`tests/unit/normalization-cart-catalog.test.ts`を必ず含めてCurrent Formal evidenceを確認する。
+- [ ] 2. コード変更前に`CT-DB-KEY-001`を`NFR-RL-011` / `FR-PR-041` / `FR-PR-050`ごとにread-only再監査する。`tests/unit/normalization-cart-catalog.test.ts`と既存unique-key Repository Contractを必ず確認する。
 - [ ] 3. コード変更前に`CP-FORM-001`を`NFR-AX-001` / `NFR-AX-007` / `NFR-MA-012`ごとにread-only再監査する。Email normalization evidenceとして`tests/unit/normalization-cart-catalog.test.ts`を必ず確認する。
 - [ ] 4. コード変更前に`CT-CATEGORY-002 / FR-PR-055`と`CT-BOUNDARY-001 / FR-AR-001～004 / NFR-MA-020～023`をread-only再監査する。
-- [ ] 5. 4-label pre-auditでは、PR #78のmapping不足だけならhandoff対象として続行し、Current Formal coverage自体に既知2 gap以外の不足がある場合だけtest実装せずRunへ記録してSTOPする。
-- [ ] 6. `FR-PR-055`が未coveredの場合だけ、`tests/repository-contract/repositories.test.ts`へ `creates the first category at ten and serializes concurrent appends` を1本追加する。
-  - 共通Command値は`actorUserId: customer.id` / `now: FIXED_NOW`。
+- [ ] 5. 4-label pre-auditでは、PR #78のmapping不足だけならhandoff対象として続行し、`FR-PR-041` / `FR-PR-055` / `FR-AR-003`は本Planのplanned remediationで閉じられるか判定する。それ以外のCurrent Formal coverage gapがある場合だけtest実装せずRunへ記録してSTOPする。
+- [ ] 6. `FR-PR-041`のBrand / Variation normalized duplicate rejectionが不足している場合だけ、`tests/repository-contract/repositories.test.ts`の`enforces unique keys and persistence projection consistency`を最小拡張する。
+  - Brand: `Scenario Life`と` Ｓｃｅｎａｒｉｏ　Ｌｉｆｅ `を`DexieBrandRepository.create()`し、2件目reject。
+  - Brand共通値: `actorUserId: "user-operator"` / `now: FIXED_NOW`。
+  - Variation: 同一`productId: "product-normalized-variation"`、異なるid/SKU、`optionValue: " Red "`と`optionValue: " ＲＥＤ "`を`toVariantRecord()`経由でaddし、2件目reject。
+  - 既存Category unique-key / projection assertionはそのまま残す。
+- [ ] 7. `FR-PR-055`が未coveredの場合だけ、同じRepository Contract fileへ `creates the first category at ten and serializes concurrent appends` を1本追加する。
+  - 共通Command値は`actorUserId: "user-operator"` / `now: FIXED_NOW`。
   - Category固有値は`category-1/Category 1`、`category-2/Category 2`、`category-3/Category 3`。
   - 1件目の返却`sortOrder === 10`。
   - その後2件を並行createする。
   - DB全件のpersisted sortOrderが`[10,20,30]`。
   - 不安定なら複雑化せずSTOPする。
-- [ ] 7. `FR-AR-003`が未coveredの場合だけ、`tests/contracts/transactions.test.ts`の既存Order testへHistory 1件とpublic DTO assertionを追加する。
-  - `order-history-1`: pending_payment → paid / `PAYMENT_SUCCEEDED` / `actorUserId: customer.id` / `createdAt: FIXED_NOW`。
+- [ ] 8. `FR-AR-003`が未coveredの場合だけ、`tests/contracts/transactions.test.ts`の既存Order testへHistory 1件とpublic DTO assertionを追加する。
+  - `order-history-1`: pending_payment → paid / `PAYMENT_SUCCEEDED` / `actorUserId: null` / `createdAt: FIXED_NOW`。
   - Timelineは1件で`status === "paid"`。
   - `orderActionVersion === order.version`。
   - root `version`、payment `gatewayIdempotencyKey/version`、shipment `version`、timeline `actorUserId`がpublic DTOへ出ない。
   - raw fixture propertyの存在を重複assertしない。
-- [ ] 8. 4 labelのCurrent implementation evidence / representative Formal evidence / final dispositionをRun REPORTへ確定する。Traceability mapping gapとFormal coverage gapを区別する。
-- [ ] 9. 実際に変更したtest fileだけfocused実行する。
-- [ ] 10. Category変更時だけ`pnpm run test:repository`、Order変更時だけ`pnpm run test:contracts`を実行する。
+- [ ] 9. 4 labelのCurrent implementation evidence / representative Formal evidence / final dispositionをRun REPORTへ確定する。Traceability mapping gapとFormal coverage gapを区別する。
+- [ ] 10. Repository Contract fileを変更した場合だけ`pnpm run test:repository`、Order contract fileを変更した場合だけ`pnpm run test:contracts`を実行する。通常DoDとしてfocused file runを別途重ねない。
 - [ ] 11. static checks / scope check / Sanitizerを実行する。
 - [ ] 12. validation failure時は`AGENTS.md` §8 / repair-loopに従い、安全な最小repairのみ行う。
 - [ ] 13. Run Artifactへvalidation、scope、already-covered/no-op、4-label handoff情報を同期してfinalizeする。
@@ -350,23 +405,26 @@ Validation failure repairが発生した場合のみ、Current `AGENTS.md` §8 /
 
 ## 6. 検証方法
 
-### Focused validation — changed files only
-
-- Category変更時: `tests/repository-contract/repositories.test.ts`
-- Order変更時: `tests/contracts/transactions.test.ts`
-
-変更していないfileはfocused validationのためだけに再実行しない。
-
 ### Local required validation — changed scope only
 
-- Category testを変更した場合: `pnpm run test:repository`
-- Order contract testを変更した場合: `pnpm run test:contracts`
+Repository Contract fileを変更した場合:
+
+- `pnpm run test:repository`
+
+Order contract fileを変更した場合:
+
+- `pnpm run test:contracts`
+
+共通:
+
 - `pnpm run typecheck`
 - `pnpm run lint`
 - `pnpm run format:check`
 - `pnpm run lint:markdown`
 - `git diff --check`
 - Current Codex artifact Sanitizer Write / Check（residual 0）
+
+suite command自体にchanged fileが含まれるため、通常DoDとしてfocused file runを追加しない。suite failureの原因切り分けが必要な場合のみfocused runを診断用に使い、その実行理由と結果をRun REPORTへ記録する。
 
 `CT-DB-KEY-001` / `CP-FORM-001`のrepresentative evidenceがintegration / component / unit suiteに存在しても、read-only evidence確認だけを理由にそのsuiteをlocal再実行しない。`tests/unit/normalization-cart-catalog.test.ts`もread-only evidenceとして扱い、変更しない限り`test:unit`を追加しない。変更していないsuiteのfull regressionはPR作成時のexact-head CIへ委譲する。
 
@@ -382,14 +440,16 @@ coverage-remediation PRを作成した場合だけ、Current Web CIをfull regre
 - Vitest matrix: unit / integration / repository / component / contracts
 - build / required E2E等、Current branch protection / required checksに含まれるjob
 
-両gap no-opでPRを作成しない場合、exact-head PR CIは本remediationのDoDに含めない。
+planned remediationがすべてno-opでPRを作成しない場合、exact-head PR CIは本remediationのDoDに含めない。
 
 ### 成功判定
 
 - 4-label pre-auditがコード変更前に完了している。
-- PR #78のmapping不足とCurrent Formal coverage不足を区別できている。
-- 既知2 gap以外のCurrent Formal coverage gap / implementation gapが残っていない。
-- 実際に変更したtest fileのfocused testがPASSする。
+- PR #78のmapping不足、本Planで許可したplanned remediation、それ以外のCurrent Formal coverage不足を区別できている。
+- `FR-PR-041`が不足していた場合は、Brand / Variation normalized duplicate rejectionが既存Repository Contractの最小拡張でFormal evidence化されている。
+- `FR-PR-055`が不足していた場合は、Category exact-title 1本で説明できる。
+- `FR-AR-003`が不足していた場合は、Production-consistent History 1件を使ったOrder DTO boundary evidenceで説明できる。
+- planned remediation以外のCurrent Formal coverage gap / implementation gapが残っていない。
 - changed suiteのlocal testがPASSする。
 - static checks / `git diff --check` / SanitizerがPASSする。
 - PR作成時だけexact-head required CIがPASSする。
@@ -410,32 +470,36 @@ coverage-remediation PRを作成した場合だけ、Current Web CIをfull regre
 ### Risks
 
 1. **4-label監査を後回しにして不要な部分実装を残す**
-   - コード変更前に4-label pre-auditを完了し、予定外gapがあれば先にSTOPする。
+   - コード変更前に4-label pre-auditを完了し、planned remediation以外のgapがあれば先にSTOPする。
 2. **PR #78のmapping不足をFormal coverage不足と誤判定する**
    - Current既存Formal Testの必要最小限のsuite setでRequirementを説明できるならSTOPせずhandoffする。
-3. **Normalizationの既存Formal evidenceを見落とす**
-   - `tests/unit/normalization-cart-catalog.test.ts`を`CT-DB-KEY-001` / `CP-FORM-001`双方のpre-auditで必ず確認する。
-4. **Category concurrency testが環境依存になる**
+3. **FR-PR-041のnormalized duplicate rejectionをNormalization unit testだけでcoveredと誤判定する**
+   - Normalization function / projection evidenceと、Dexie unique rejection behaviorの両方を確認する。Brand / Variation rejection不足時は同じRepository Contract testを最小拡張する。
+4. **FR-PR-041対応を新Use Caseや新helperへ広げる**
+   - Brandは既存`DexieBrandRepository`、Variationは既存`toVariantRecord()` + unique indexだけを使う。
+5. **Category concurrency testが環境依存になる**
    - 既存Repository Contract fixtureで1本だけ試し、決定的でなければSTOPする。retry / sleep / spy等を入れない。
-5. **Category unique indexがsortOrder検証と無関係なfailureを起こす**
+6. **Category unique indexがsortOrder検証と無関係なfailureを起こす**
    - 3件のIDとnormalize後nameを固定で重複させない。
-6. **Category Commandの必須値を実装者判断に残す**
-   - `actorUserId: customer.id` / `now: FIXED_NOW`を固定し、新fixtureを作らない。
-7. **Category assertionを増やしすぎる**
+7. **Category actorを実際のApplication boundaryと異なる値にする**
+   - `actorUserId: "user-operator"`を固定する。
+8. **Category assertionを増やしすぎる**
    - first result=10と最終persisted `[10,20,30]`だけに留め、concurrent return値を重複assertしない。
-8. **Order DTO確認のためにHistoryを増やしすぎる**
-   - existing paid Orderと整合する`pending_payment → paid`のHistory 1件だけを追加する。
-9. **Order DTO testでfixture自身を重複assertする**
-   - raw fixtureをpreconditionとし、public DTO境界だけをassertする。
-10. **`CT-DB-KEY-001`を単一existing exact-titleへ無理に押し込む**
+9. **Order DTO用HistoryをProduction semanticsと異なるfixtureにする**
+   - `PAYMENT_SUCCEEDED`はCurrent production pathと同じ`actorUserId: null`を使う。
+10. **Order DTO testでfixture自身を重複assertする**
+    - raw fixtureをpreconditionとし、public DTO境界だけをassertする。
+11. **同じchanged testをfocused runとsuite runで二重実行する**
+    - 通常validationはsuite commandを1回だけ実行する。focused runはfailure診断時だけ。
+12. **`CT-DB-KEY-001`を単一existing exact-titleへ無理に押し込む**
     - 3Requirementを個別監査し、必要なら最小suite setでhandoffする。
-11. **`CP-FORM-001`から`NFR-MA-012`を落とす**
+13. **`CP-FORM-001`から`NFR-MA-012`を落とす**
     - 3Requirement IDを個別監査する。
-12. **read-only evidence suiteをローカルで過剰再実行する**
+14. **read-only evidence suiteをローカルで過剰再実行する**
     - local testはchanged suiteだけ。full regressionはPR作成時CIへ委譲する。
-13. **PR #78更新まで本remediationのDoDへ混ぜる**
+15. **PR #78更新まで本remediationのDoDへ混ぜる**
     - 本remediationはhandoff情報確定で完了し、PR #78編集はFollow-upへ分離する。
-14. **coverage remediationからProduct修正へscope creepする**
+16. **coverage remediationからProduct修正へscope creepする**
     - Requirement矛盾はSTOP。validation failure repairとは区別する。
 
 ### Open questions
@@ -469,20 +533,23 @@ Validation failure repairが必要になった場合のみ、Current `AGENTS.md`
 
 本remediation完了後、PR #78側で以下を行う。これは本PlanのDoD / 実行タスクには含めない。
 
-- remediation PRがmergeされた場合はPR #78 branchへ最新`main`を取り込む。両gap no-opの場合はCurrent main evidenceをそのまま使用する。
+- remediation PRがmergeされた場合はPR #78 branchへ最新`main`を取り込む。planned remediationがすべてno-opの場合はCurrent main evidenceをそのまま使用する。
 - PR #78の`suite-level`説明を、新Dispositionを増やさず「1つのtest file / suite、または複合label全体を説明するための必要最小限のsuite set」と読める最小表現へ調整する。
 - `CT-CATEGORY-002`は新Category exact-title、またはno-op時のCurrent representative evidenceへ同期する。
 - `CT-BOUNDARY-001`はArchitecture contract等が`FR-AR-001/002/004`と該当NFR群、Order contract evidenceが`FR-AR-003`を担う形で同期する。
-- `CT-DB-KEY-001` / `CP-FORM-001`はRun REPORTで確定したRequirement単位のCurrent evidenceへ同期する。
+- `CT-DB-KEY-001`はNormalization unit evidence、Repository unique-key evidence、Product code / SKU evidenceをRequirement単位で必要最小限のsuite setへ同期する。
+- `CP-FORM-001`はRun REPORTで確定したRequirement単位のCurrent evidenceへ同期する。
 - PR #78のTraceability / Run / PR本文を一度だけCurrent evidenceへ揃える。
 
 ## 10. 備考
 
 - Planの詳細さは実装時の追加判断を減らすためのものであり、実装自体を複雑化する意図はない。
-- 実コード差分の通常目標は「Category Repository Contract test 1本 + 既存Order contract testへのHistory 1件とpublic DTO boundary assertion」の2箇所だけ。
-- 4-label read-only監査で予定外gapが見つかった場合、上記実装を先行しない。
+- 実コード差分の通常上限は2 test fileのまま。
+- `tests/repository-contract/repositories.test.ts`では、必要時に既存unique-key testへFR-PR-041不足assertionを追加し、FR-PR-055不足時だけCategory concurrency testを1本追加する。
+- `tests/contracts/transactions.test.ts`では、FR-AR-003不足時だけ既存Order contract testへProduction-consistent History 1件とpublic DTO boundary assertionを追加する。
+- 4-label read-only監査でplanned remediation以外のgapが見つかった場合、上記実装を先行しない。
 - PR #78のmapping不足だけなら予定外coverage gapとは扱わず、Run REPORTへhandoffして続行する。
 - `tests/integration/admin-master-use-cases.test.ts` / `tests/integration/checkout-order-use-cases.test.ts`は変更しない。
 - 新helper / 新Test file / planned Production source変更 / framework追加は行わない。
 - Current evidenceでalready coveredなら、不要な実装を増やさないことを最優先する。
-- local validationはchanged suiteへ限定し、full regressionはPR作成時のexact-head CIへ委譲する。
+- local validationはchanged suiteを1回だけ実行し、full regressionはPR作成時のexact-head CIへ委譲する。
