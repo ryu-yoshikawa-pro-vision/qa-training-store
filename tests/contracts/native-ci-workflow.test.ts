@@ -100,6 +100,13 @@ describe("Native CI workflow contracts", () => {
       "Verify Production-validation Release APK",
       "Upload Production-validation Release APK",
     ]);
+    for (const job of [automation, production]) {
+      expectInOrder(job, [
+        "./gradlew :app:assembleRelease",
+        '-Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g"',
+        "-PreactNativeArchitectures=x86_64",
+      ]);
+    }
     expect(automation).toContain("EXPO_PUBLIC_APP_ENV: automation");
     expect(automation).toContain("EXPO_PUBLIC_BUILD_KIND: automation");
     expect(automation).toContain('EXPO_PUBLIC_TEST_MODE: "true"');
