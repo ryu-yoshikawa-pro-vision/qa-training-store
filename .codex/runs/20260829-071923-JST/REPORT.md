@@ -244,3 +244,29 @@
 - Run state: `run.json`は`status=completed`、`validation.status=passed`、`primary_failure_category=null`、`evaluation_path=null`、`evaluation_present=false`。`completed`はRun artifactと検証工程の完了を示すが、actual coverage gap 4件が残るためPR 2 DoD / completionは未達である。
 - Boundary: Test追加、Product変更、workflow変更、commit、push、PR更新、review thread操作、mergeは行っていない。Stop condition / unresolved itemはcoverage gap 4件であり、別途Formal test追加等の判断が必要である。
 - Progress: 100% (27/27)
+
+## 2026-08-30 22:34 (JST)
+
+- Summary: PR #87のmerge commit `d41634a390f9bf0a472a4363f3bddf6b1c7addf7`がCurrent HEADの祖先であること、PR #78 branch / head、対象テスト、PR #87 Run REPORT、Child Plan、Current Traceability、active Run、repository rulesを確認し、PR #78 finalization follow-upを開始した。
+- Repair-loop Iteration: 1。入力findingはPlan template、REPORT chronology、run status、WE-CORE Mapping IDの4件。CurrentでvalidなPlan template findingを`must_fix`、既にCurrentで満たす3件を`reject`（追加修正不要）として分類した。今回のallowed filesは`docs/12_quality/requirements_traceability.md`、`.codex/runs/20260828-214107-JST/PLAN.md`、active Runの`REPORT.md` / `TASKS.md` / `run.json`とする。
+- Changes: `requirements_traceability.md`へ`bounded-multi-ref`のDisposition定義を追加し、`CT-DB-KEY-001` / `CT-CATEGORY-002` / `CP-FORM-001` / `CT-BOUNDARY-001`をCurrent Formal evidenceへ再接続した。Plan-only Runは既存内容を削除・追加せず、Repository標準のGoal / Current understanding / Assumptions / Non-goals / Impacted areas / Files to inspect / Change strategy / Validation / Risks / Open questions / Follow-up sectionへ再配置した。active Run TASKSへ今回follow-upを追加した。
+- Decision / Rationale: 4 labelはRequirement IDと「主な確認」の意味を変更せず、Current sourceに実在するtest title / suiteだけを使用する。`CT-DB-KEY-001`はRepository / Normalization / Product SKU、`CP-FORM-001`はAccessibility / Email normalization / Application limits・Error / Form controls、`CT-BOUNDARY-001`はarchitecture / Build Manifest / Order DTO / Resetの担当範囲を分けた。`test_strategy.md`、Product / Application / Infrastructure / Presentation source、test code、workflow、Child Planは変更しない。
+- Validation: read-only evidence cross-check時点の下位22 labelは`exact-title 9 / suite-level 6 / bounded-multi-ref 7 / stop 0`。指定local validation、scope check、両Run directoryのSanitizer、commit / push、PR本文・thread整理、exact-head CI確認は未実施である。
+- Blocker / Remaining: なし。Current runのmanifest更新とrequired validationを実測後、PR #78をfinalization可能な状態へ進める。
+- Progress: 71% (27/38)
+
+## 2026-08-30 22:44 (JST)
+
+- Summary: PR #87 merge後のCurrent sourceを正本として4 labelの再監査、Traceability更新、Plan-only Runのtemplate finding修復、Active RunのCurrent同期を完了した。
+- Final evidence / disposition:
+  - `CT-DB-KEY-001`: `tests/repository-contract/repositories.test.ts`（Repository unique rejection / Key projection）、`tests/unit/normalization-cart-catalog.test.ts`（共通Normalization / Variation scope）、`tests/integration/admin-product-use-cases.test.ts`（productCode / SKU）を担当責務ごとに接続し、`bounded-multi-ref`とした。
+  - `CT-CATEGORY-002`: `tests/repository-contract/repositories.test.ts` — `creates the first category at ten and serializes concurrent appends`でfirst `sortOrder=10`、並行作成後のpersisted `[10, 20, 30]`、同一Repository transactionの責務を接続し、`exact-title`とした。
+  - `CP-FORM-001`: `tests/component/presentation-foundation.test.tsx`（Accessibility）、`tests/unit/normalization-cart-catalog.test.ts`（Email normalization）、`tests/integration/auth-account.test.ts`（shared limits / Application Error）、`tests/component/auth-account-pages.test.tsx`（shared INPUT_LIMITS / maxlength / over-limit）を接続し、`bounded-multi-ref`とした。
+  - `CT-BOUNDARY-001`: `tests/contracts/architecture.test.ts`（Application / Presentation / Infrastructure / Native boundary）、`tests/contracts/image-manifest.test.ts`（Build Manifest）、`tests/contracts/transactions.test.ts` — `keeps order, payment, shipment, and histories consistent`（Order DTO public boundary）、`tests/integration/seeds.test.ts`（Reset contract）を担当境界ごとに接続し、`bounded-multi-ref`とした。
+- Traceability final aggregate: 下位22 labelは`exact-title 9 / suite-level 6 / bounded-multi-ref 7 / stop 0`。元Requirement IDと「主な確認」の意味は変更せず、Currentに存在するpath / exact titleだけを使用した。新Test ID、Disposition、evidence taxonomyは追加していない。
+- REPORT chronology reconciliation: REPORTはappend-onlyのため、historical timestampとfile上の並びが完全な時系列ではない箇所がある。過去checkpointはhistorical evidenceとして保持し、今回のこの最終checkpointをCurrent authoritative stateとする。Current final stateは上記Traceability aggregate、Run `completed`、local required validation PASS、scope violation false、Sanitizer residual 0、Progress 89% (34/38)である。
+- Validation: `pnpm run format:check` PASS、`pnpm run lint:markdown` PASS（349 files / 0 issues）、`pnpm run validate:spec` PASS、`pnpm run test:contracts` PASS（33 files / 478 passed / 3 skipped / 303.26s）、`git diff --check` PASS。Current evidence title / path check、Run manifest contract check、final scope check（unexpected 0）もPASSした。
+- Sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260828-214107-JST -Write -Check`および`.codex/runs/20260829-071923-JST -Write -Check`を実行し、各4 files scanned、files changed 0、replacements 0、residual findings 0。
+- Scope: 今回のsource差分は`docs/12_quality/requirements_traceability.md`と`.codex/runs/20260828-214107-JST/PLAN.md`、active Runの`REPORT.md` / `TASKS.md` / `run.json`だけ。Product / Application / Infrastructure / Presentation source、Test code、workflow、config、validator、Curriculum、Child Planは変更していない。
+- Finalization decision: PR #78のCurrent finalizationへ進める条件はlocal側で満たした。commit / push、PR本文更新、既存review thread整理、新head exact-head CI、CI後自己レビューが残る。PR #78はmergeせず、auto-mergeも有効化しない。
+- Progress: 89% (34/38)

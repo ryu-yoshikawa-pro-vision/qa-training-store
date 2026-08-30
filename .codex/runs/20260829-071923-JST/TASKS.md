@@ -34,8 +34,20 @@
 - [x] 26. implementation deltaのscope確認とSanitizer Write / Checkを実施する。
 - [x] 27. Stop condition、PR 2 DoD、Run stateを最終判定する。
 
+- [x] 28. PR #87 merge後のCurrent main取り込みと4 labelのCurrent evidenceを再監査する。
+- [x] 29. `CT-DB-KEY-001`、`CT-CATEGORY-002`、`CP-FORM-001`、`CT-BOUNDARY-001`のTraceability stopを解消する。
+- [x] 30. `bounded-multi-ref`を含むDisposition定義をCurrent Traceabilityへ整合させる。
+- [x] 31. Plan-only RunのTemplate必須section findingをCurrent fileへ同期する。
+- [x] 32. Active RunのREPORT、TASKS、run.jsonをCurrent stateへ同期してfinalizeする。
+- [x] 33. Required local validationを指定順で実行し、結果を確定する。
+- [x] 34. final scope checkと両Run directoryのSanitizer Write / Checkを完了する。
+- [ ] 35. finalization差分を1 commitへまとめ、対象branchへpushする。
+- [ ] 36. PR #78本文と既存review threadをCurrent stateへ整理する。
+- [ ] 37. 新しいPR head SHAのexact-head GitHub Actionsを確認する。
+- [ ] 38. CI後のPR #78最終自己レビューを完了する。
+
 ## Blocked
 
-- Required validation、scope、SanitizerはPASSし、Run manifestは正式enumへ補正済み。今回のread-only再分析では`model-mismatch` 4件、`coverage-gap` 4件と判定し、Child Planへlower Traceability限定の`bounded-multi-ref`契約を追加した。coverage gap 4件は`stop`として維持し、新Test、Requirement変更、ID追加、workflow変更、既存labelの意味改変は行わない。Run artifact生成と検証工程は完了したが、actual coverage gapのためPR 2 DoD / completionは未達である。
+- なし。PR #87 merge後のCurrent evidenceで4 labelを再監査し、Traceability最終化、Run同期、local validation、scope / Sanitizer、PR整理、exact-head CI、最終自己レビューを完了する。
 
-Progress: 100% (27/27)
+Progress: 89% (34/38)
