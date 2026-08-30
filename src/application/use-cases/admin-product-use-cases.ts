@@ -188,7 +188,7 @@ export class AdminProductUseCases {
         })),
         updateVariants: request.updateVariants.map((variant) => ({
           id: variant.variantId,
-          sku: normalizeCode(variant.sku),
+          sku: normalizeProductIdentifier(variant.sku, "products.variant.invalid"),
           optionValue: variant.optionValue?.trim() || null,
           regularPrice: variant.regularPrice,
           salePrice: variant.salePrice,
@@ -486,7 +486,7 @@ export class AdminProductUseCases {
     }
     if (
       request.variants.some((variant) => {
-        const sku = variant.sku.trim().length === 0 ? "" : normalizeCode(variant.sku);
+        const sku = normalizeProductIdentifier(variant.sku, "products.variant.invalid");
         const optionValue = variant.optionValue?.trim() || null;
         return (
           sku.length > INPUT_LIMITS.sku ||
@@ -624,9 +624,21 @@ function previewPublishabilityIssues(input: {
   return issues;
 }
 
+function normalizeProductIdentifier(value: string, messageKey: string): string {
+  if (value.trim().length === 0) return "";
+  try {
+    return normalizeCode(value);
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw validationError(messageKey);
+    }
+    throw error;
+  }
+}
+
 function withoutClientKey(variant: ProductVariantCreateRequest) {
   return {
-    sku: normalizeCode(variant.sku),
+    sku: normalizeProductIdentifier(variant.sku, "products.variant.invalid"),
     optionValue: variant.optionValue?.trim() || null,
     regularPrice: variant.regularPrice,
     salePrice: variant.salePrice,
@@ -651,7 +663,7 @@ function normalizedProduct<
 >(product: T): T {
   return {
     ...product,
-    productCode: product.productCode.trim().length === 0 ? "" : normalizeCode(product.productCode),
+    productCode: normalizeProductIdentifier(product.productCode, "products.minimum.invalid"),
     name: product.name.trim(),
     shortDescription: product.shortDescription.trim(),
     description: product.description.trim(),

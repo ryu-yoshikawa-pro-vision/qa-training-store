@@ -27,6 +27,12 @@
 - [x] D10. Web / Nativeを含む既存Formal Testへ必要な境界確認を最小追加する。
 - [x] D11. Required validation、focused test、manual audit、scope、Sanitizerを今回repair内容で実行する。
 - [x] D12. Run ArtifactとPR本文を同期し、明示pathでcommit / push後にexact HEADのCIを確認する。
+- [x] D13. 再レビューFinding 1（Product identifierのraw Domain `TypeError`漏出）を全create / update / preview経路で再監査する。
+- [x] D14. 再レビューFinding 2（Search Suggestionの上限超過が`[]`で正常終了）をApplication contractと既存Testで再監査する。
+- [x] D15. Product identifierのApplication `VALIDATION`変換とSuggestionのover-limit `VALIDATION`を既存Use Caseへ最小修正し、既存message keyを再利用する。
+- [x] D16. 2つの既存Integration Testへ境界・エラー契約を追加し、focused / required validationを実行する。
+- [x] D17. Manual self-review、scope確認、Sanitizer Write / Checkを実施する。
+- [ ] D18. Run ArtifactとPR本文をCurrent結果へ同期し、明示pathでcommit / push後にexact HEADのCIを確認する。
 
 ## Blocked
 

@@ -84,8 +84,13 @@ describe("catalog application integration", () => {
       code: "VALIDATION",
       messageKey: "catalog.search.invalid",
     });
+    await expect(catalog.suggest({ keyword: "x", limit: 8 })).resolves.toEqual([]);
     await expect(
       catalog.suggest({ keyword: "x".repeat(INPUT_LIMITS.searchKeyword + 1), limit: 8 }),
-    ).resolves.toEqual([]);
+    ).rejects.toMatchObject({
+      name: "ApplicationError",
+      code: "VALIDATION",
+      messageKey: "catalog.search.invalid",
+    });
   });
 });

@@ -209,6 +209,46 @@
 - Run state: implementation / validation / push / PR本文同期までのartifact生成を完了した。`run.status=completed`、`validation.status=passed`、`primary_failure_category=null`。Mobileの既知Expo Doctor failureはmachine manifestのfailure categoryへ手書き分類していない。今回repairのunresolved source item / Stop conditionはなし。第三者re-review、finalization、mergeは未完了工程として残る。
 - Progress: 100% (20/20)
 
+## 2026-08-30 13:11 (JST)
+
+- Summary: PR #84の再レビューで確認された2件のApplication validation contract Findingについて、bounded repairを開始した。
+- Findings:
+  - Product `productCode` / SKUの不正patternでDomain `normalizeCode()`が投げるraw `TypeError`がApplication境界へ漏れる可能性がある。対象はProduct create / update、variant create / update、previewで共有される既存正規化経路。
+  - `CatalogUseCases.suggest()`のSearch Keyword上限超過が2文字未満と同じ`[]`扱いになっている。上限超過は既存`catalog.search.invalid`の`VALIDATION`へ分離する。
+- Repair scope: `src/application/use-cases/admin-product-use-cases.ts`、`src/application/use-cases/catalog-use-cases.ts`、既存Integration Test 2 files、本Plan、active Run Artifactのみ。Domain `normalizeCode()`、Search UI、PR #78、coverage-remediation、workflow / package / config、DBは変更しない。
+- Run contract: existing machine-managed `run.json`は直接編集しない。Plan / TASKS / REPORTへrepairの意味情報を追記し、validation実績は既存collector / manifest契約に従う。
+- Delegation: なし。親agentがread-only auditとrepairを実施する。
+- Decision: Findings 2件のみをmust_fixとして1 bounded iterationで修正し、同一Test / Error契約をfocusedおよびrequired validationで確認する。
+- Progress: 77% (20/26)
+
+## 2026-08-30 13:15 (JST)
+
+- Audit result: Finding 1は`admin-product-use-cases.ts`内の全`normalizeCode()`利用経路（Product codeの共通正規化、variant create、variant update、preview前処理）を確認し、Domain helperを変更せずApplication local helperへ集約できると判断した。空文字は`""`を返して既存minimum validationへ委ね、非空pattern違反だけを既存`products.minimum.invalid` / `products.variant.invalid`へ変換する。
+- Audit result: Finding 2は`docs/04_data/application_contracts.md`の`SearchProductSuggestions`が`VALIDATION`を主要Errorとすること、および既存Searchの`catalog.search.invalid`を確認した。Suggestionの2文字未満と上限超過を別分岐にした。
+- Changes: Product identifier helperを`admin-product-use-cases.ts`へ追加し、create / update / previewで利用される既存経路のraw `normalizeCode()`呼出しを置換した。`CatalogUseCases.suggest()`のover-limitは`validationError("catalog.search.invalid")`、2文字未満は`[]`とした。Domain `normalizeCode()`、Search UI、その他scopeは未変更。
+- Tests: `tests/integration/admin-product-use-cases.test.ts`へinvalid productCode / SKUの`ApplicationError(VALIDATION)`確認を追加し、`tests/integration/catalog-use-cases.test.ts`で1文字`[]`とover-limit `VALIDATION`を確認するよう修正した。指定focused commandは2 files / 15 tests PASS（45.12s、環境処理31.21s）。
+- Decision: raw `TypeError`漏出とSuggestion over-limit semanticsの2 Findingについて、実装差分とfocused evidenceが成立したためrequired validationへ進む。追加のTest / workflow / timeout変更は不要。
+- Progress: 88% (23/26)
+
+## 2026-08-30 13:31 (JST)
+
+- Validation: `pnpm run format:check`は初回に`tests/integration/catalog-use-cases.test.ts`のPrettier差分でFAILしたため、対象TestだけをPrettierで整形し再実行してPASSした。`pnpm run lint:markdown`（345 files / 0 issues）、`pnpm run validate:spec`（3 challenges、94/94 capture targets）、`pnpm run typecheck`（app / native-tests / training）、`pnpm run test:unit`（13 files / 66 tests）、`pnpm run test:integration`（9 files / 111 tests）、`pnpm run test:component`（Web 11 files / 86 tests、Native 13 suites / 64 tests）、`pnpm run test:contracts`（33 files、478 passed / 3 skipped）はPASSした。
+- Validation detail: `git diff --check`もPASSした。Native componentでは既存のReact `act(...)` console warningが出たが、13 suites / 64 testsはexit 0で完了した。`test:contracts`は今回の修正について1回だけ実行し、retryしていない。
+- Decision: Required local validationに失敗は残っていないため、Finding 1 / Finding 2の修正をscope・manual reviewへ進める。format初回FAILは修正対象Testの整形だけで解消し、source contractの失敗ではない。
+- Progress: 92% (24/26)
+
+## 2026-08-30 13:29 (JST)
+
+- Manual self-review:
+  - `src/domain/services/normalization.ts`は変更していない。Application側の`normalizeCode()`実参照はlocal `normalizeProductIdentifier()`内の1箇所だけで、Product code / variant SKUのcreate、update、preview前処理から同helperへ到達する。空値は`""`を返して既存の`products.minimum.invalid` / `products.variant.invalid` required semanticsへ委ね、非空pattern違反は`ApplicationError`の`VALIDATION`へ変換する。
+  - Product codeのnormalized persistence / uniqueness、SKUのnormalized persistence / uniqueness、Search本体のover-limit `VALIDATION`、Search UIの既存`maxLength`は変更していない。新しいError key、Domain依存、timeout変更はない。
+  - Suggestionは`keyword.length > INPUT_LIMITS.searchKeyword`を`catalog.search.invalid`へ変換し、`keyword.length < 2`だけを`[]`とする。focused / required Integration Testでobservable behaviorを確認済み。
+- Scope check: 現在のworking-tree deltaは7 files（active Run `REPORT.md` / `TASKS.md`、既存Plan、対象Use Case 2 files、対象Integration Test 2 files）。許可scope外のsource / test / docs / workflow / package / config / DB差分はなく、unexpected 0、forbidden 0。PR #78、coverage-remediation、Domain helperは未変更。
+- Sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-210242-JST -Write` / `-Check`は各PASS、4 files scanned、residual findings 0。`run.json`はmachine-managed contractに従い直接編集していない。
+- Run state: existing `run.json`のmachine-managed summaryは`status=completed`、`validation.status=passed`、`primary_failure_category=null`を維持している。今回の実行事実とrepair判断は本REPORTへ追記し、既存のvalidation historyは削除していない。
+- Decision: 2 Findingの修正、focused / required validation、manual review、scope、Sanitizerが完了したため、明示path stagingとcommit / push、push後exact-head CIおよびPR本文同期へ進む。
+- Progress: 96% (25/26)
+
 ## 2026-08-30 02:00 (JST)
 
 - Summary: `8bf6044b0ec22b3513df15b1ccefa94b6568b79e`（Run Artifactのみの同期commit）に対するexact-head CI結果を確認し、現在のenvironment-sensitive failureを実装差分と切り分けた。今回のinput-limit source / test変更の追加は行っていない。
@@ -218,3 +258,12 @@
 - Run state: `run.status=completed`、`validation.status=passed`、`primary_failure_category=null`を維持する。これはlocal validationとartifact生成のsummaryであり、CI上のenvironment-sensitiveな観測履歴は本REPORTと`run.json.validation.warnings`へ記録する。今回repairのsource unresolved item / Stop conditionはない。第三者re-review、finalization、mergeは未完了工程である。
 - Scope: `fa7499e..8bf6044`はactive Run Artifact 3 filesのみで、Product / Test / workflow / package / configおよびPR #78 / coverage-remediationは変更していない。unexpected 0、forbidden 0。
 - Progress: 100% (20/20)
+
+## 2026-08-30 13:33 (JST)
+
+- Run Artifact同期: Current repositoryのmachine-managed契約に従い、`scripts/collect-run-artifacts.ps1 -RunId 20260829-210242-JST -RefreshGitChangedFiles`を実行した。`run.json`はcollectorが生成した現在のmanifestを正本とし、手書き更新は行っていない。
+- Current manifest: `run.status=completed`、`validation.status=passed_with_warnings`、`primary_failure_category=null`。`passed_with_warnings`は過去checkpoint由来のwarningをcollectorが保持したCurrent summaryであり、今回repairのRequired local validationはすべてPASSである。過去の初回FAIL、CI上のenvironment-sensitive failure、既知のwarning履歴は削除していない。
+- Validation / scope: 今回repairのfocused Test、`pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run validate:spec`、`pnpm run typecheck`、`pnpm run test:unit`、`pnpm run test:integration`、`pnpm run test:component`、`pnpm run test:contracts`（33 files / 478 passed / 3 skipped、今回1回）、`pnpm run lint`、`git diff --check`はPASS済み。現在の変更は対象Use Case 2 files、対象Integration Test 2 files、既存Plan、active Run Artifact 3 filesのみで、unexpected 0、forbidden 0。
+- Sanitizer: collector後のactive Run ArtifactについてWrite / Checkを再実行し、4 files scanned、residual findings 0でPASSした。現時点でsource / testの追加変更、timeout変更、workflow / package / config変更、PR #78変更はない。
+- State: D13〜D17は完了、D18（Run最終同期、明示path staging、commit / push、exact-head CI、PR本文更新）のみ未完了。PR #84は`e4dd4437ae797d8ba420b8b0f9b80be8b6f900f2`のままOPENで、commit / pushはこれから実施する。
+- Progress: 96% (25/26)

@@ -94,9 +94,10 @@ export class CatalogUseCases {
 
   async suggest(request: SearchSuggestionRequest): Promise<SearchSuggestion[]> {
     const keyword = request.keyword.trim();
-    if (keyword.length < 2 || keyword.length > INPUT_LIMITS.searchKeyword) {
-      return [];
+    if (keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("catalog.search.invalid");
     }
+    if (keyword.length < 2) return [];
     const [viewer, now] = await Promise.all([this.identity.getViewer(), this.now()]);
     if (this.customerGateway !== null) {
       return this.customerGateway.suggest({ ...request, viewer, now });

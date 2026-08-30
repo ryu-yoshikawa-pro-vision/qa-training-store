@@ -162,6 +162,61 @@ describe("admin product aggregate application integration", () => {
     expect(await database.products.where("productCode").equals("P-902").count()).toBe(0);
   });
 
+  it("converts invalid product identifiers into Application validation errors", async () => {
+    await expect(
+      useCases.create({
+        ...baseCreate,
+        product: { ...baseCreate.product, productCode: "ABC.BAD" },
+      }),
+    ).rejects.toMatchObject({
+      name: "ApplicationError",
+      code: "VALIDATION",
+      messageKey: "products.minimum.invalid",
+    });
+    await expect(
+      useCases.create({
+        ...baseCreate,
+        variants: [{ ...baseCreate.variants[0]!, sku: "SKU.BAD" }],
+      }),
+    ).rejects.toMatchObject({
+      name: "ApplicationError",
+      code: "VALIDATION",
+      messageKey: "products.variant.invalid",
+    });
+
+    const created = await useCases.create({
+      ...baseCreate,
+      product: { ...baseCreate.product, productCode: "P-INVALID-UPDATE" },
+      variants: [{ ...baseCreate.variants[0]!, sku: "P-INVALID-UPDATE-ONE" }],
+    });
+    await expect(
+      useCases.update({
+        productId: created.product.id,
+        productExpectedVersion: created.product.version,
+        product: created.product,
+        createVariants: [],
+        updateVariants: created.variants.map((variant) => ({
+          variantId: variant.id,
+          sku: "SKU.BAD",
+          optionValue: variant.optionValue,
+          regularPrice: variant.regularPrice,
+          salePrice: variant.salePrice,
+          saleStartAt: variant.saleStartAt,
+          saleEndAt: variant.saleEndAt,
+          purchaseLimit: variant.purchaseLimit,
+          isActive: variant.isActive,
+          expectedVersion: variant.version,
+        })),
+        removeVariantIds: [],
+        images: [],
+      }),
+    ).rejects.toMatchObject({
+      name: "ApplicationError",
+      code: "VALIDATION",
+      messageKey: "products.variant.invalid",
+    });
+  });
+
   it("enforces the specification-backed Product text limits", async () => {
     const productCases = [
       { ...baseCreate.product, productCode: "X".repeat(51) },

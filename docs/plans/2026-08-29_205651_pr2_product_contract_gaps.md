@@ -158,3 +158,19 @@
 
 - CT-CATEGORY-002とCT-BOUNDARY-001は今回対象外であり、coverage追加を混在させない。
 - PR #78および既存coverage-remediation worktreeのdirty stateは別worktreeで保持する。
+
+## 10. Review repair（2026-08-30）
+
+- 対象Finding:
+  - Product `productCode` / SKUの`normalizeCode()`が投げるDomain `TypeError`をApplication `VALIDATION`へ変換し、既存のrequired semanticsとmessage keyを維持する。
+  - `CatalogUseCases.suggest()`のSearch Keyword上限超過を空配列ではなく`catalog.search.invalid`の`VALIDATION`として返し、2文字未満の未開始条件とは区別する。
+- 変更許可範囲:
+  - `src/application/use-cases/admin-product-use-cases.ts`
+  - `src/application/use-cases/catalog-use-cases.ts`
+  - `tests/integration/admin-product-use-cases.test.ts`
+  - `tests/integration/catalog-use-cases.test.ts`
+  - 本Planとactive Run Artifact
+- 非対象:
+  - Domain `normalizeCode()`、Product normalization方式、Search UI、PR #78、coverage-remediation、workflow、package/config、DB、他の入力制限。
+- 検証:
+  - focused Product / Catalog Integration Test、required validation、既存Sanitizer、scope checkを実行する。failure時はraw `TypeError`漏出・Suggestion境界・今回差分との因果を切り分け、timeout変更や無制限retryは行わない。
