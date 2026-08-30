@@ -83,9 +83,9 @@
     "@fontsource/noto-sans-jp": "^5.3.0",
     "@hookform/resolvers": "5.5.7",
     "dexie": "4.4.4",
-    "expo": "57.0.17",
+    "expo": "57.0.18",
     "expo-build-properties": "57.0.15",
-    "expo-constants": "57.0.15",
+    "expo-constants": "57.0.16",
     "expo-crypto": "57.0.2",
     "expo-dev-client": "57.0.16",
     "expo-linking": "57.0.8",
@@ -134,7 +134,7 @@
   },
   "pnpm": {
     "overrides": {
-      "expo-constants": "57.0.15",
+      "expo-constants": "57.0.16",
       "xcode@3.0.1>uuid": "11.1.1",
       "@eslint/eslintrc@3.3.6>js-yaml": "4.3.1",
       "@expo/xcpretty@4.4.4>js-yaml": "4.3.1",
