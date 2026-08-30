@@ -33,7 +33,7 @@
 - [x] D16. 2つの既存Integration Testへ境界・エラー契約を追加し、focused / required validationを実行する。
 - [x] D17. Manual self-review、scope確認、Sanitizer Write / Checkを実施する。
 - [x] D18. Run ArtifactとPR本文をCurrent結果へ同期し、明示pathでcommit / push後にexact HEADのCIを確認する。
-- [x] D19. 最新`main`（`78c55b25bd39c91423001a3607236a98eaf76264`）を取り込んだvalidated head `8acacf98d2a59911e5ae05d198238f8857532a70`について、Web CI run `33296559574` / Mobile App CI run `33296559648`のSUCCESS、PR `mergeable=true`、review thread 0件、最終再レビューで新規Blocking Findingなし、scopeの意味的競合なしを確認した。Runは既に`completed`であり、この記録を含むcommitをfinalization headとする。finalization-head CI / mergeabilityはGitHub PR metadataをSSOTとして扱い、CI結果だけを記録するための追加Run更新は行わない。
+- [x] D19. 最新`main`（`78c55b25bd39c91423001a3607236a98eaf76264`）を取り込んだvalidated head `8acacf98d2a59911e5ae05d198238f8857532a70`について、Web CI run `33296559574` / Mobile App CI run `33296559648`のSUCCESS、PR `mergeable=true`、review thread 0件、最終再レビューで新規Blocking Findingなし、scopeの意味的競合なしを確認した。Runは既に`completed`であり、このvalidated-head evidenceを記録した後のRun Artifact-only commitをfinalization headとする。finalization-head CI / mergeabilityはGitHub PR metadataをSSOTとして扱い、CI結果だけを記録するための追加Run更新は行わない。
 
 ## Blocked
 
