@@ -9,6 +9,8 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 > [!IMPORTANT]
 > このアプリは学習・検証用です。実際の販売、決済、配送、外部API通信は行いません。
 
+Production Web: [https://ec-test-automation-store.pages.dev/](https://ec-test-automation-store.pages.dev/)
+
 ## このアプリで学べること
 
 - PlaywrightによるStorefrontと管理画面のE2Eテスト
@@ -97,6 +99,7 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 ## Specification と Agentic QA
 
 - Normative Product Specification: [`docs/spec/README.md`](docs/spec/README.md)
+- Production Specification: [https://ec-test-automation-store.pages.dev/docs/spec/](https://ec-test-automation-store.pages.dev/docs/spec/)
 - Agentic QA実行契約: [`QA_AGENT.md`](QA_AGENT.md)
 - Agentic QA Workflow: [`docs/reference/agentic-qa-workflow.md`](docs/reference/agentic-qa-workflow.md)
 - Learner-safe Challenge: [`training/agentic-qa/`](training/agentic-qa/)
@@ -111,6 +114,7 @@ Playwrightを中心としたテスト自動化を学習・検証するための�
 ## Test Automation Curriculum / Training
 
 - Curriculum入口: [`docs/curriculum/test-automation/README.md`](docs/curriculum/test-automation/README.md)
+- Production Curriculum: [https://ec-test-automation-store.pages.dev/docs/curriculum/](https://ec-test-automation-store.pages.dev/docs/curriculum/)
 - Required Curriculum validator: `pnpm run validate:curriculum`
 - Training Web baseline: `pnpm run training:web:baseline`（`PLAYWRIGHT_BASE_URL`で専用Runtimeを指定）
 - Training Web projects: `training-chromium` / `training-mobile-chromium`
