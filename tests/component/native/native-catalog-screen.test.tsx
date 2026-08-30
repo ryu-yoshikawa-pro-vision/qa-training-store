@@ -1,4 +1,5 @@
 import { act, fireEvent, render, userEvent, waitFor } from "@testing-library/react-native";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   ProductListItem,
   ProductSearchResult,
@@ -95,6 +96,18 @@ describe("Native Catalog / Search contract surface", () => {
   beforeEach(() => {
     jest.resetAllMocks();
     mockSearchParams = {};
+  });
+
+  it("uses the shared Search Keyword limit on the Native search input", async () => {
+    const search = jest.fn().mockResolvedValue(result(1));
+    const suggest = jest.fn().mockResolvedValue([]);
+    setCatalogRuntime(search, suggest);
+
+    const screen = await render(<NativeSearchScreen />);
+
+    expect(screen.getByTestId("native-search-input").props.maxLength).toBe(
+      INPUT_LIMITS.searchKeyword,
+    );
   });
 
   it("requests deterministic viewer-aware Suggestions while typing", async () => {

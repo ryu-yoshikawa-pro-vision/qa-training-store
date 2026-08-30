@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   AdminProductListItem,
   AdminProductSearchRequest,
@@ -28,6 +29,7 @@ import type {
 import type { ApplicationTransactionRunner } from "@/application/transactions/contracts";
 import type { MembershipRank, ProductReviewSummary } from "@/domain/contracts";
 import { effectiveUnitPrice, viewerUnitPrice } from "@/domain/services/pricing";
+import { normalizeCode } from "@/domain/services/normalization";
 import type {
   AdminProductQueryRepository,
   BrandRepository,
@@ -79,8 +81,12 @@ export class AdminProductUseCases {
     request: Partial<AdminProductSearchRequest> = {},
   ): Promise<Page<AdminProductListItem>> {
     await this.requireStaff();
+    const keyword = request.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.query.search({
-      keyword: request.keyword?.trim() || null,
+      keyword,
       minimumPrice: request.minimumPrice ?? null,
       maximumPrice: request.maximumPrice ?? null,
       statuses: request.statuses ?? [],
@@ -106,8 +112,12 @@ export class AdminProductUseCases {
     request: Partial<ImageAssetSearchRequest> = {},
   ): Promise<Page<ImageAssetListItem>> {
     await this.requireStaff();
+    const keyword = request.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.assets.searchActive({
-      keyword: request.keyword?.trim() || null,
+      keyword,
       tags: request.tags ?? [],
       page: request.page ?? 1,
       pageSize: request.pageSize ?? 20,
@@ -178,7 +188,7 @@ export class AdminProductUseCases {
         })),
         updateVariants: request.updateVariants.map((variant) => ({
           id: variant.variantId,
-          sku: variant.sku.trim(),
+          sku: normalizeProductIdentifier(variant.sku, "products.variant.invalid"),
           optionValue: variant.optionValue?.trim() || null,
           regularPrice: variant.regularPrice,
           salePrice: variant.salePrice,
@@ -299,6 +309,7 @@ export class AdminProductUseCases {
           images: aggregate.images,
         };
     const now = await this.now();
+    this.validateTextLimits(createShape);
     const assets = await this.assets.listByIds(createShape.images.map((image) => image.assetId));
     const assetMap = new Map(assets.map((asset) => [asset.assetId, asset]));
     const currentVariants = new Map(
@@ -429,6 +440,7 @@ export class AdminProductUseCases {
   }
 
   private validateMinimum(request: CreateProductRequest): void {
+    this.validateTextLimits(request);
     const product = normalizedProduct(request.product);
     if (
       product.productCode.length === 0 ||
@@ -449,6 +461,38 @@ export class AdminProductUseCases {
           !Number.isInteger(variant.purchaseLimit) ||
           variant.purchaseLimit < 1,
       )
+    ) {
+      throw validationError("products.variant.invalid");
+    }
+  }
+
+  private validateTextLimits(request: CreateProductRequest): void {
+    const product = normalizedProduct(request.product);
+    if (
+      product.productCode.length > INPUT_LIMITS.productCode ||
+      product.name.length > INPUT_LIMITS.productName ||
+      product.shortDescription.length > INPUT_LIMITS.shortDescription ||
+      product.description.length > INPUT_LIMITS.description ||
+      (product.variationName !== null && product.variationName.length > INPUT_LIMITS.variationName)
+    ) {
+      throw validationError("products.minimum.invalid");
+    }
+    if (request.images.some((image) => image.altText.trim().length > INPUT_LIMITS.imageAltText)) {
+      throw new ApplicationError({
+        code: "VALIDATION",
+        messageKey: "products.images.invalid",
+        retryable: false,
+      });
+    }
+    if (
+      request.variants.some((variant) => {
+        const sku = normalizeProductIdentifier(variant.sku, "products.variant.invalid");
+        const optionValue = variant.optionValue?.trim() || null;
+        return (
+          sku.length > INPUT_LIMITS.sku ||
+          (optionValue !== null && optionValue.length > INPUT_LIMITS.optionValue)
+        );
+      })
     ) {
       throw validationError("products.variant.invalid");
     }
@@ -580,9 +624,21 @@ function previewPublishabilityIssues(input: {
   return issues;
 }
 
+function normalizeProductIdentifier(value: string, messageKey: string): string {
+  if (value.trim().length === 0) return "";
+  try {
+    return normalizeCode(value);
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw validationError(messageKey);
+    }
+    throw error;
+  }
+}
+
 function withoutClientKey(variant: ProductVariantCreateRequest) {
   return {
-    sku: variant.sku.trim(),
+    sku: normalizeProductIdentifier(variant.sku, "products.variant.invalid"),
     optionValue: variant.optionValue?.trim() || null,
     regularPrice: variant.regularPrice,
     salePrice: variant.salePrice,
@@ -607,7 +663,7 @@ function normalizedProduct<
 >(product: T): T {
   return {
     ...product,
-    productCode: product.productCode.trim(),
+    productCode: normalizeProductIdentifier(product.productCode, "products.minimum.invalid"),
     name: product.name.trim(),
     shortDescription: product.shortDescription.trim(),
     description: product.description.trim(),

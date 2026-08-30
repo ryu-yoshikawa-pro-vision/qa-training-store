@@ -1,3 +1,4 @@
+import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   AdminReviewDetailDto,
   AdminReviewListItem,
@@ -235,10 +236,10 @@ export class CustomerReviewUseCases {
     }
     const title = input.title?.trim() || null;
     const body = input.body.trim();
-    if (title !== null && title.length > 120) {
+    if (title !== null && title.length > INPUT_LIMITS.reviewTitle) {
       throw validationError("reviews.title.invalid", { title: "reviews.title.invalid" });
     }
-    if (body.length === 0 || body.length > 1000) {
+    if (body.length === 0 || body.length > INPUT_LIMITS.reviewBody) {
       throw validationError("reviews.body.invalid", { body: "reviews.body.invalid" });
     }
     return { rating: input.rating as 1 | 2 | 3 | 4 | 5, title, body };
@@ -347,8 +348,12 @@ export class AdminReviewUseCases {
 
   async search(query: Partial<ReviewSearchQuery> = {}): Promise<Page<AdminReviewListItem>> {
     await this.requireStaff();
+    const keyword = query.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.reviews.searchForAdmin({
-      keyword: query.keyword?.trim() || null,
+      keyword,
       statuses: query.statuses ?? [],
       ratings: query.ratings ?? [],
       productId: query.productId ?? null,
@@ -514,8 +519,12 @@ export class AdminUserUseCases {
 
   async search(query: Partial<UserSearchQuery> = {}): Promise<Page<UserAdminListItem>> {
     await this.requireAdmin();
+    const keyword = query.keyword?.trim() || null;
+    if (keyword !== null && keyword.length > INPUT_LIMITS.searchKeyword) {
+      throw validationError("validation.searchKeyword");
+    }
     return this.users.search({
-      keyword: query.keyword?.trim() || null,
+      keyword,
       roles: query.roles ?? [],
       membershipRanks: query.membershipRanks ?? [],
       accountStatuses: query.accountStatuses ?? [],

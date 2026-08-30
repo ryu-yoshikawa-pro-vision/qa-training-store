@@ -1,4 +1,5 @@
 import { act, fireEvent, render, waitFor } from "@testing-library/react-native";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { CheckoutConfirmationDto, OrderDetailDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import type { CheckoutSession, ShippingAddressSnapshot } from "@/domain/contracts";
@@ -10,6 +11,7 @@ import {
   NativeCheckoutConfirmScreen,
   NativeCheckoutFailedScreen,
   NativeCheckoutPaymentScreen,
+  NativeAddressesScreen,
   NativeLoginScreen,
   NativeOrderDetailScreen,
   NativeProfileScreen,
@@ -132,6 +134,34 @@ describe("Native customer purchase screens", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockUseLocalSearchParams.mockReturnValue({ orderItemId: "order-delivered-item-7" });
+  });
+
+  it("uses shared limits on Native account and address inputs", async () => {
+    runtime({ auth: { login: jest.fn() } });
+    const loginScreen = await render(<NativeLoginScreen />);
+    expect(loginScreen.getByTestId("native-login-email").props.maxLength).toBe(INPUT_LIMITS.email);
+    expect(loginScreen.getByTestId("native-login-password").props.maxLength).toBe(
+      INPUT_LIMITS.passwordMax,
+    );
+
+    runtime({ account: { listAddresses: jest.fn().mockResolvedValue([]) } });
+    const addressScreen = await render(<NativeAddressesScreen />);
+    await waitFor(() => expect(addressScreen.getByTestId("native-addresses-screen")).toBeTruthy());
+    expect(addressScreen.getByTestId("native-address-label").props.maxLength).toBe(
+      INPUT_LIMITS.addressLabel,
+    );
+    expect(addressScreen.getByTestId("native-address-recipient").props.maxLength).toBe(
+      INPUT_LIMITS.recipientName,
+    );
+    expect(addressScreen.getByTestId("native-address-prefecture").props.maxLength).toBe(
+      INPUT_LIMITS.prefecture,
+    );
+    expect(addressScreen.getByTestId("native-address-city").props.maxLength).toBe(
+      INPUT_LIMITS.city,
+    );
+    expect(addressScreen.getByTestId("native-address-line1").props.maxLength).toBe(
+      INPUT_LIMITS.addressLine1,
+    );
   });
 
   it("logs in through the Native Auth service and returns to the requested route", async () => {

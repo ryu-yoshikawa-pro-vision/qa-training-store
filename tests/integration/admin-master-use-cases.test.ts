@@ -1,4 +1,5 @@
 import Dexie from "dexie";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
 import { AdminMasterUseCases } from "@/application/use-cases/admin-master-use-cases";
 import { TestClock } from "@/infrastructure/clock/clocks";
@@ -129,6 +130,24 @@ describe("admin overview and master application integration", () => {
       expectedVersion: unused.version,
     });
     expect(deactivated.isActive).toBe(false);
+  });
+
+  it("enforces canonical Category and Brand name limits", async () => {
+    const category = await useCases.createCategory({
+      name: "C".repeat(INPUT_LIMITS.categoryName),
+    });
+    expect(category.name).toHaveLength(INPUT_LIMITS.categoryName);
+    await expect(
+      useCases.createCategory({ name: "C".repeat(INPUT_LIMITS.categoryName + 1) }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+
+    const brand = await useCases.createBrand({
+      name: "B".repeat(INPUT_LIMITS.brandName),
+    });
+    expect(brand.name).toHaveLength(INPUT_LIMITS.brandName);
+    await expect(
+      useCases.createBrand({ name: "B".repeat(INPUT_LIMITS.brandName + 1) }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
   it("keeps brands name-sorted and blocks published references", async () => {

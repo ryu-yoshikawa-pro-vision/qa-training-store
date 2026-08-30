@@ -1,4 +1,5 @@
 import Dexie from "dexie";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { CurrentSessionStore, IdGenerator } from "@/application/ports";
 import {
   AdminReviewUseCases,
@@ -119,6 +120,38 @@ describe("review and user administration integration", () => {
     expect((await database.product_review_summaries.get(chosen.productId))!.publishedCount).toBe(
       before!.publishedCount,
     );
+  });
+
+  it("enforces canonical review title and body limits", async () => {
+    database = new ScenarioShopDatabase(`review-limits-${crypto.randomUUID()}`);
+    await loadSeedDataset(
+      database,
+      createScenarioDataset("reviewable-orders"),
+      "reviewable-orders",
+    );
+    const session = await signIn(database, "user-customer-regular");
+    const useCases = new CustomerReviewUseCases(dependencies(database, session));
+    const delivered = await database.orders.where("status").equals("delivered").first();
+    const items = await database.order_items.where("orderId").equals(delivered!.id).toArray();
+    const item = items.at(-1)!;
+    expect(await database.reviews.where("orderItemId").equals(item.id).first()).toBeUndefined();
+
+    await expect(
+      useCases.create({
+        orderItemId: item.id,
+        rating: 5,
+        title: "x".repeat(INPUT_LIMITS.reviewTitle + 1),
+        body: "本文",
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
+    await expect(
+      useCases.create({
+        orderItemId: item.id,
+        rating: 5,
+        title: null,
+        body: "x".repeat(INPUT_LIMITS.reviewBody + 1),
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION" });
   });
 
   it("rejects a review for an undelivered order and a deleted review repost", async () => {
