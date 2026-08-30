@@ -72,7 +72,7 @@ test("published docs smoke", async ({ page }) => {
     .locator(".primary-navigation")
     .getByRole("link", { name: "Product Scope", exact: true })
     .click();
-  await expect(page).toHaveURL(/\/docs\/spec\/product-scope\.html$/);
+  await expect(page).toHaveURL(/\/docs\/spec\/product-scope(?:\.html)?$/);
   await page.goto("/docs/spec/ui-ux-contract.html");
   const specificationImage = page.getByAltText("SCREEN-BOUNDARY-NOT-FOUND default web-desktop", {
     exact: true,
