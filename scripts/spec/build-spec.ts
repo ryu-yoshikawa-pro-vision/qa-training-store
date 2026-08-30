@@ -8,9 +8,13 @@ import {
   isExternalLink,
   parseMarkdownFile,
   renderMarkdown,
-  type NavigationItem,
   type ParsedMarkdown,
 } from "./markdown";
+
+type SpecificationNavigationItem = {
+  label: string;
+  canonicalPath: string;
+};
 
 export const NORMATIVE_ROOT_FILES = [
   "docs/spec/product-scope.md",
@@ -79,22 +83,28 @@ function relativeOutputPath(fromOutput: string, toOutput: string): string {
   return relative === "" ? path.posix.basename(toOutput) : relative;
 }
 
-function pageHtml(parsed: ParsedMarkdown, navigation: NavigationItem[]): string {
+function pageHtml(parsed: ParsedMarkdown, navigation: SpecificationNavigationItem[]): string {
   const title = parsed.headings.find((heading) => heading.level === 1)?.text ?? parsed.relativePath;
   const label = isNormativeSpecPath(parsed.relativePath)
     ? "Normative Product Behavior"
     : "Supporting / Operational";
   const homeLink = relativeOutputPath(outputPathFor(parsed.relativePath), "index.html");
-  const navHtml = navigation
-    .map(
-      (item) =>
-        `<li><a href="${escapeHtml(resolveOutputLink(parsed.relativePath, item.target))}">${escapeHtml(item.label)}</a></li>`,
-    )
-    .join("");
+  const navigationContent = `<ul>${navigation
+    .map((item) => {
+      const href = relativeOutputPath(
+        outputPathFor(parsed.relativePath),
+        outputPathFor(item.canonicalPath),
+      );
+      const current = item.canonicalPath === parsed.relativePath ? ' aria-current="page"' : "";
+      return `<li><a href="${escapeHtml(href)}"${current}>${escapeHtml(item.label)}</a></li>`;
+    })
+    .join("")}</ul>`;
+  const homeCurrent = parsed.relativePath === "docs/spec/README.md" ? ' aria-current="page"' : "";
+  const mobileNavigation = `<details class="mobile-primary-navigation"><summary>Navigation</summary><nav aria-label="Specification navigation">${navigationContent}</nav></details>`;
   const linkTarget = (target: string): string => resolveOutputLink(parsed.relativePath, target);
   const imageTarget = (target: string): string =>
     resolveImageOutputLink(parsed.relativePath, target);
-  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} — Scenario Shop Specification</title><style>${MARKDOWN_CSS}</style></head><body><header><div class="brand"><a href="${escapeHtml(homeLink)}">Scenario Shop Specification</a><span class="label">${escapeHtml(label)}</span></div><nav aria-label="Specification navigation"><ul>${navHtml}</ul></nav></header><main><article>${renderMarkdown(parsed, linkTarget, imageTarget)}</article></main></body></html>\n`;
+  return `<!doctype html><html lang="ja"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${escapeHtml(title)} — Scenario Shop Specification</title><style>${MARKDOWN_CSS}</style></head><body><header><div class="brand"><a href="${escapeHtml(homeLink)}"${homeCurrent}>Scenario Shop Specification</a><span class="label">${escapeHtml(label)}</span></div></header><main><nav class="primary-navigation" aria-label="Specification navigation">${navigationContent}</nav>${mobileNavigation}<article>${renderMarkdown(parsed, linkTarget, imageTarget)}</article></main></body></html>\n`;
 }
 
 export type BuildSpecOptions = {
@@ -114,15 +124,16 @@ export function buildSpecSite(options: BuildSpecOptions = {}): string[] {
     const parsed = parseMarkdownFile(path.join(rootDir, relativePath), relativePath);
     parsedFiles.set(relativePath, parsed);
   }
-  const navigation = extractNavigation(
-    parsedFiles.get("docs/spec/README.md") ?? {
-      lines: [],
-      headings: [],
-      links: [],
-      relativePath: "docs/spec/README.md",
-      absolutePath: "",
-    },
-  );
+  const readme = parsedFiles.get("docs/spec/README.md");
+  const navigation: SpecificationNavigationItem[] =
+    readme === undefined
+      ? []
+      : extractNavigation(readme).map((item) => ({
+          label: item.label,
+          canonicalPath: path.posix.normalize(
+            path.posix.join(path.posix.dirname(readme.relativePath), item.target),
+          ),
+        }));
   if (navigation.length === 0)
     throw new Error("docs/spec/README.md must contain a direct-link Navigation list");
   for (const [relativePath, parsed] of parsedFiles) {
