@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { INPUT_LIMITS } from "@/application/contracts";
 
 const adminMaster = {
   getOverview: vi.fn(),
@@ -126,6 +127,14 @@ describe("admin overview and master pages", () => {
   it("creates at the end and saves a keyboard-reordered complete Category list", async () => {
     render(<AdminCategoriesPage />);
     expect(await screen.findByRole("heading", { name: "カテゴリ管理" })).toBeVisible();
+    expect(screen.getByLabelText("新しいカテゴリ名")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.categoryName),
+    );
+    expect(screen.getByRole("textbox", { name: "ファッションの名称" })).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.categoryName),
+    );
     fireEvent.click(await screen.findByRole("button", { name: "ホームを上へ" }));
     fireEvent.click(screen.getByRole("button", { name: "表示順を保存" }));
     await waitFor(() =>
@@ -145,6 +154,14 @@ describe("admin overview and master pages", () => {
     render(<AdminBrandsPage />);
     expect(await screen.findByRole("heading", { name: "ブランド管理" })).toBeVisible();
     expect(screen.getByText("ブランド一覧（名称順）")).toBeVisible();
+    expect(screen.getByLabelText("新しいブランド名")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.brandName),
+    );
+    expect(screen.getByRole("textbox", { name: "A Brandの名称" })).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.brandName),
+    );
     expect(screen.queryByRole("button", { name: /上へ|下へ|表示順/ })).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("新しいブランド名"), {
       target: { value: "B Brand" },

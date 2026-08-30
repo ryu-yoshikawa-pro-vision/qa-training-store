@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { UserAddress } from "@/domain/contracts";
 import { ApplicationError } from "@/application/errors";
 import { AccountNavigation } from "@/presentation/components/account-navigation";
@@ -230,9 +231,19 @@ function AddressesContent() {
             })}
           >
             <label htmlFor="label">ラベル</label>
-            <input id="label" maxLength={50} required {...register("label")} />
+            <input
+              id="label"
+              maxLength={INPUT_LIMITS.addressLabel}
+              required
+              {...register("label")}
+            />
             <label htmlFor="recipientName">宛名</label>
-            <input id="recipientName" maxLength={100} required {...register("recipientName")} />
+            <input
+              id="recipientName"
+              maxLength={INPUT_LIMITS.recipientName}
+              required
+              {...register("recipientName")}
+            />
             <label htmlFor="postalCode">郵便番号</label>
             <div className="inline-control">
               <input
@@ -287,13 +298,27 @@ function AddressesContent() {
               </button>
             </div>
             <label htmlFor="prefecture">都道府県</label>
-            <input id="prefecture" required {...register("prefecture")} />
+            <input
+              id="prefecture"
+              maxLength={INPUT_LIMITS.prefecture}
+              required
+              {...register("prefecture")}
+            />
             <label htmlFor="city">市区町村</label>
-            <input id="city" required {...register("city")} />
+            <input id="city" maxLength={INPUT_LIMITS.city} required {...register("city")} />
             <label htmlFor="addressLine1">番地</label>
-            <input id="addressLine1" required {...register("addressLine1")} />
+            <input
+              id="addressLine1"
+              maxLength={INPUT_LIMITS.addressLine1}
+              required
+              {...register("addressLine1")}
+            />
             <label htmlFor="addressLine2">建物名・部屋番号（任意）</label>
-            <input id="addressLine2" {...register("addressLine2")} />
+            <input
+              id="addressLine2"
+              maxLength={INPUT_LIMITS.addressLine2}
+              {...register("addressLine2")}
+            />
             <label htmlFor="phone">電話番号</label>
             <input id="phone" inputMode="tel" required {...register("phone")} />
             <p className="field-help">配送連絡に使用します。</p>

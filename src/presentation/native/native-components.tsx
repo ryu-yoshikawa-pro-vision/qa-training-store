@@ -128,16 +128,19 @@ export function NativeTextField({
   placeholder,
   onSubmitEditing,
   testID,
+  maxLength,
 }: {
   value: string;
   onChangeText: (value: string) => void;
   placeholder: string;
   onSubmitEditing?: () => void;
   testID?: string;
+  maxLength?: number;
 }) {
   return (
     <TextInput
       accessibilityLabel={placeholder}
+      maxLength={maxLength}
       onChangeText={onChangeText}
       onSubmitEditing={onSubmitEditing}
       placeholder={placeholder}

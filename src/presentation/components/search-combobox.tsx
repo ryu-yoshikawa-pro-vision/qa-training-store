@@ -19,6 +19,7 @@ import {
   type ComboBoxState,
   type Key,
 } from "react-aria-components";
+import { INPUT_LIMITS } from "@/application/contracts";
 import { Icon } from "@/presentation/components/icon";
 
 export interface SearchSuggestion {
@@ -115,6 +116,7 @@ export function SearchCombobox({
       </span>
       <Input
         className="search-combobox__input"
+        maxLength={INPUT_LIMITS.searchKeyword}
         placeholder="商品名、カテゴリ、ブランドで検索"
         onKeyDown={(event: KeyboardEvent<HTMLInputElement>) => {
           if (

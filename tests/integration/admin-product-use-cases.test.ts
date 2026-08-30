@@ -113,6 +113,152 @@ describe("admin product aggregate application integration", () => {
     });
   });
 
+  it("normalizes productCode and SKU across create/update and rejects normalized duplicates", async () => {
+    const created = await useCases.create({
+      ...baseCreate,
+      product: { ...baseCreate.product, productCode: " p-９００ " },
+      variants: [{ ...baseCreate.variants[0]!, sku: " p-９００-ｏｎｅ " }],
+    });
+    expect(created.product.productCode).toBe("P-900");
+    expect(created.variants[0]!.sku).toBe("P-900-ONE");
+
+    const updated = await useCases.update({
+      productId: created.product.id,
+      productExpectedVersion: created.product.version,
+      product: { ...created.product, productCode: " p-９０１ " },
+      createVariants: [],
+      updateVariants: created.variants.map((variant) => ({
+        variantId: variant.id,
+        sku: " p-９０１-ｏｎｅ ",
+        optionValue: variant.optionValue,
+        regularPrice: variant.regularPrice,
+        salePrice: variant.salePrice,
+        saleStartAt: variant.saleStartAt,
+        saleEndAt: variant.saleEndAt,
+        purchaseLimit: variant.purchaseLimit,
+        isActive: variant.isActive,
+        expectedVersion: variant.version,
+      })),
+      removeVariantIds: [],
+      images: [],
+    });
+    expect(updated.product.productCode).toBe("P-901");
+    expect(updated.variants[0]!.sku).toBe("P-901-ONE");
+
+    await expect(
+      useCases.create({
+        ...baseCreate,
+        product: { ...baseCreate.product, productCode: " p-０００１ " },
+        variants: [{ ...baseCreate.variants[0]!, sku: "P-900-TWO" }],
+      }),
+    ).rejects.toBeDefined();
+    await expect(
+      useCases.create({
+        ...baseCreate,
+        product: { ...baseCreate.product, productCode: "P-902" },
+        variants: [{ ...baseCreate.variants[0]!, sku: " p-０００１-０１ " }],
+      }),
+    ).rejects.toBeDefined();
+    expect(await database.products.where("productCode").equals("P-902").count()).toBe(0);
+  });
+
+  it("converts invalid product identifiers into Application validation errors", async () => {
+    await expect(
+      useCases.create({
+        ...baseCreate,
+        product: { ...baseCreate.product, productCode: "ABC.BAD" },
+      }),
+    ).rejects.toMatchObject({
+      name: "ApplicationError",
+      code: "VALIDATION",
+      messageKey: "products.minimum.invalid",
+    });
+    await expect(
+      useCases.create({
+        ...baseCreate,
+        variants: [{ ...baseCreate.variants[0]!, sku: "SKU.BAD" }],
+      }),
+    ).rejects.toMatchObject({
+      name: "ApplicationError",
+      code: "VALIDATION",
+      messageKey: "products.variant.invalid",
+    });
+
+    const created = await useCases.create({
+      ...baseCreate,
+      product: { ...baseCreate.product, productCode: "P-INVALID-UPDATE" },
+      variants: [{ ...baseCreate.variants[0]!, sku: "P-INVALID-UPDATE-ONE" }],
+    });
+    await expect(
+      useCases.update({
+        productId: created.product.id,
+        productExpectedVersion: created.product.version,
+        product: created.product,
+        createVariants: [],
+        updateVariants: created.variants.map((variant) => ({
+          variantId: variant.id,
+          sku: "SKU.BAD",
+          optionValue: variant.optionValue,
+          regularPrice: variant.regularPrice,
+          salePrice: variant.salePrice,
+          saleStartAt: variant.saleStartAt,
+          saleEndAt: variant.saleEndAt,
+          purchaseLimit: variant.purchaseLimit,
+          isActive: variant.isActive,
+          expectedVersion: variant.version,
+        })),
+        removeVariantIds: [],
+        images: [],
+      }),
+    ).rejects.toMatchObject({
+      name: "ApplicationError",
+      code: "VALIDATION",
+      messageKey: "products.variant.invalid",
+    });
+  });
+
+  it("enforces the specification-backed Product text limits", async () => {
+    const productCases = [
+      { ...baseCreate.product, productCode: "X".repeat(51) },
+      { ...baseCreate.product, name: "X".repeat(121) },
+      { ...baseCreate.product, shortDescription: "X".repeat(201) },
+      { ...baseCreate.product, description: "X".repeat(5001) },
+      { ...baseCreate.product, variationName: "X".repeat(31) },
+    ] as const;
+    for (const product of productCases) {
+      await expect(useCases.create({ ...baseCreate, product })).rejects.toMatchObject({
+        code: "VALIDATION",
+        messageKey: "products.minimum.invalid",
+      });
+    }
+    await expect(
+      useCases.create({
+        ...baseCreate,
+        variants: [{ ...baseCreate.variants[0]!, sku: "X".repeat(51) }],
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION", messageKey: "products.variant.invalid" });
+    await expect(
+      useCases.create({
+        ...baseCreate,
+        variants: [{ ...baseCreate.variants[0]!, optionValue: "X".repeat(81) }],
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION", messageKey: "products.variant.invalid" });
+    await expect(
+      useCases.create({
+        ...baseCreate,
+        images: [
+          {
+            relationshipId: null,
+            assetId: "asset-mug",
+            altText: "X".repeat(121),
+            sortOrder: 10,
+            isPrimary: true,
+          },
+        ],
+      }),
+    ).rejects.toMatchObject({ code: "VALIDATION", messageKey: "products.images.invalid" });
+  });
+
   it("rolls back the whole aggregate when a late unique-SKU write fails", async () => {
     const productCount = await database.products.count();
     const historyCount = await database.inventory_histories.count();

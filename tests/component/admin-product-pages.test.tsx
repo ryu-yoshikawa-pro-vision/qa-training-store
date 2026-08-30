@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { INPUT_LIMITS } from "@/application/contracts";
 
 const routerReplace = vi.fn();
 const routerPush = vi.fn();
@@ -207,6 +208,42 @@ describe("admin product pages", () => {
     fireEvent.click(screen.getByRole("button", { name: "下書きで保存" }));
     await waitFor(() => expect(adminProducts.create).toHaveBeenCalled());
     expect(routerReplace).toHaveBeenCalledWith("/admin/products/product-draft");
+  });
+
+  it("uses shared text limits across the Product editor inputs", async () => {
+    render(<AdminProductEditPage productId="product-draft" />);
+    expect(await screen.findByRole("heading", { name: "下書き商品" })).toBeVisible();
+    expect(screen.getByLabelText("商品コード")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.productCode),
+    );
+    expect(screen.getByLabelText("商品名")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.productName),
+    );
+    expect(screen.getByLabelText("短い説明")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.shortDescription),
+    );
+    expect(screen.getByLabelText("バリエーション名")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.variationName),
+    );
+    expect(screen.getByLabelText("説明")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.description),
+    );
+    expect(screen.getByLabelText("SKU")).toHaveAttribute("maxlength", String(INPUT_LIMITS.sku));
+    expect(screen.getByLabelText("選択肢")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.optionValue),
+    );
+    const assetCheckbox = await screen.findByLabelText("asset-mug");
+    fireEvent.click(assetCheckbox);
+    expect(screen.getByLabelText("代替テキスト")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.imageAltText),
+    );
   });
 
   it("keeps existing stock read-only and duplicates into the new-product form", async () => {

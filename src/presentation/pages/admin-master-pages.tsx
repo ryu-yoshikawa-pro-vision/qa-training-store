@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link, type Href } from "expo-router";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { BrandAdminListItem, CategoryAdminListItem } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
@@ -200,7 +201,7 @@ function AdminCategoriesContent() {
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
             required
-            maxLength={80}
+            maxLength={INPUT_LIMITS.categoryName}
           />
         </label>
         <button className="button button--primary">末尾に追加</button>
@@ -210,6 +211,7 @@ function AdminCategoriesContent() {
           検索
           <input
             type="search"
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => {
               setKeyword(event.target.value);
@@ -320,7 +322,12 @@ function CategoryTable({
       rows={items.map((item) => ({
         id: item.categoryId,
         cells: [
-          <InlineNameEditor key="name" value={item.name} onSave={(name) => onSave(item, name)} />,
+          <InlineNameEditor
+            key="name"
+            value={item.name}
+            maxLength={INPUT_LIMITS.categoryName}
+            onSave={(name) => onSave(item, name)}
+          />,
           item.sortOrder,
           item.publishedProductCount,
           <StatusBadge key="status" tone={item.isActive ? "success" : "neutral"}>
@@ -344,7 +351,15 @@ function CategoryTable({
   );
 }
 
-function InlineNameEditor({ value, onSave }: { value: string; onSave: (name: string) => void }) {
+function InlineNameEditor({
+  value,
+  maxLength,
+  onSave,
+}: {
+  value: string;
+  maxLength: number;
+  onSave: (name: string) => void;
+}) {
   const [name, setName] = useState(value);
   return (
     <div className="inline-name-editor">
@@ -352,7 +367,7 @@ function InlineNameEditor({ value, onSave }: { value: string; onSave: (name: str
         aria-label={`${value}の名称`}
         value={name}
         onChange={(event) => setName(event.target.value)}
-        maxLength={80}
+        maxLength={maxLength}
       />
       <button
         type="button"
@@ -467,7 +482,7 @@ function AdminBrandsContent() {
             value={newName}
             onChange={(event) => setNewName(event.target.value)}
             required
-            maxLength={80}
+            maxLength={INPUT_LIMITS.brandName}
           />
         </label>
         <button className="button button--primary">追加</button>
@@ -477,6 +492,7 @@ function AdminBrandsContent() {
           検索
           <input
             type="search"
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
           />
@@ -501,6 +517,7 @@ function AdminBrandsContent() {
               <InlineNameEditor
                 key="name"
                 value={item.name}
+                maxLength={INPUT_LIMITS.brandName}
                 onSave={(name) =>
                   void mutate(
                     () =>

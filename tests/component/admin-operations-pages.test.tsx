@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { INPUT_LIMITS } from "@/application/contracts";
 
 const adminOperations = {
   searchInventory: vi.fn(),
@@ -161,6 +162,10 @@ describe("admin inventory and order pages", () => {
     expect(await screen.findByText("P-0001-02")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "調整・履歴" }));
     expect(await screen.findByText("初期在庫")).toBeVisible();
+    expect(screen.getByLabelText("理由詳細")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.inventoryReason),
+    );
     fireEvent.change(screen.getByLabelText("増減数量"), { target: { value: "3" } });
     fireEvent.change(screen.getByLabelText("理由詳細"), { target: { value: "棚卸し訂正" } });
     fireEvent.click(screen.getByRole("button", { name: "バージョン 1で更新" }));
