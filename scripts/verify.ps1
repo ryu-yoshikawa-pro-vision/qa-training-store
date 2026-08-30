@@ -222,6 +222,22 @@ function Test-TemplateContract {
     if ($runArtifacts -notmatch [regex]::Escape("--max-iterations")) { throw "run-artifacts doc missing max-iterations guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("repair loop")) { throw "run-artifacts doc missing repair loop guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("collect-run-artifacts")) { throw "run-artifacts doc missing collector guidance" }
+    if ($agents -notmatch [regex]::Escape('actual `.codex/runs/<run_id>/run.json`')) { throw "AGENTS.md missing machine-managed run.json contract" }
+    if ($agents -notmatch [regex]::Escape("active Runに紐づくinteractive実行で")) { throw "AGENTS.md missing active RunId contract" }
+    if ($runArtifacts -notmatch [regex]::Escape('### Interactive `codex-safe` manifest sync')) { throw "run-artifacts doc missing interactive sync guidance" }
+    if ($runArtifacts -notmatch [regex]::Escape('process終了や `Stop` Hookだけを理由に')) { throw "run-artifacts doc missing Stop Hook boundary" }
+    $safePowerShell = Get-Content -Raw scripts/codex-safe.ps1
+    $safeBash = Get-Content -Raw scripts/codex-safe.sh
+    $collectorPython = Get-Content -Raw scripts/collect-run-artifacts.py
+    $collectorPowerShell = Get-Content -Raw scripts/collect-run-artifacts.ps1
+    if ($safePowerShell -notmatch [regex]::Escape("Run directory not found")) { throw "PowerShell codex-safe missing Run Directory precondition" }
+    if ($safePowerShell -notmatch [regex]::Escape("manifest_sync_start")) { throw "PowerShell codex-safe missing manifest sync route" }
+    if ($safePowerShell -notmatch [regex]::Escape('Join-Path $repoRoot "scripts\collect-run-artifacts.ps1"')) { throw "PowerShell codex-safe missing absolute collector route" }
+    if ($safeBash -notmatch [regex]::Escape("Run directory not found")) { throw "Bash codex-safe missing Run Directory precondition" }
+    if ($safeBash -notmatch [regex]::Escape("manifest_sync_start")) { throw "Bash codex-safe missing manifest sync route" }
+    if ($safeBash -notmatch [regex]::Escape('bash "$repo_root/scripts/collect-run-artifacts.sh"')) { throw "Bash codex-safe missing absolute collector route" }
+    if ($collectorPython -notmatch [regex]::Escape("--refresh-git-changed-files")) { throw "Python collector missing refresh option" }
+    if ($collectorPowerShell -notmatch [regex]::Escape("--refresh-git-changed-files")) { throw "PowerShell collector missing refresh pass-through" }
     if ($runArtifacts -notmatch [regex]::Escape("scripts/cleanup-runs.sh")) { throw "run-artifacts doc missing cleanup-runs.sh guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("scripts/cleanup-runs.ps1")) { throw "run-artifacts doc missing cleanup-runs.ps1 guidance" }
     if ($runArtifacts -notmatch [regex]::Escape("--confirm-delete-generated-runs")) { throw "run-artifacts doc missing cleanup confirm guidance" }

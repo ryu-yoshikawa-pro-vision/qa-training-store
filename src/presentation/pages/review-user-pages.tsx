@@ -1,5 +1,6 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "expo-router";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { AdminReviewListItem, UserAdminDto } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
@@ -201,14 +202,18 @@ function CustomerReviewContent({ orderItemId }: { orderItemId: string }) {
         </fieldset>
         <label>
           タイトル（任意）
-          <input value={title} maxLength={120} onChange={(event) => setTitle(event.target.value)} />
+          <input
+            value={title}
+            maxLength={INPUT_LIMITS.reviewTitle}
+            onChange={(event) => setTitle(event.target.value)}
+          />
         </label>
         <label>
           本文
           <textarea
             value={body}
             required
-            maxLength={1000}
+            maxLength={INPUT_LIMITS.reviewBody}
             onChange={(event) => setBody(event.target.value)}
           />
         </label>
@@ -317,6 +322,7 @@ function AdminReviewsContent() {
         <label>
           本文・商品
           <input
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => {
               setKeyword(event.target.value);
@@ -534,6 +540,7 @@ function AdminUsersContent() {
         <label>
           メール・表示名
           <input
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => {
               setKeyword(event.target.value);

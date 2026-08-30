@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from "react-native";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   CustomerOrderDetailDto,
   OrderDetailDto,
@@ -78,16 +79,19 @@ function PurchaseTextInput({
   placeholder,
   testID,
   secureTextEntry = false,
+  maxLength,
 }: {
   value: string;
   onChangeText: (value: string) => void;
   placeholder: string;
   testID: string;
   secureTextEntry?: boolean;
+  maxLength?: number;
 }) {
   return (
     <TextInput
       accessibilityLabel={placeholder}
+      maxLength={maxLength}
       onChangeText={onChangeText}
       placeholder={placeholder}
       placeholderTextColor={nativeColors.muted}
@@ -191,12 +195,14 @@ export function NativeLoginScreen() {
           value={email}
           onChangeText={setEmail}
           placeholder="メールアドレス"
+          maxLength={INPUT_LIMITS.email}
           testID="native-login-email"
         />
         <PurchaseTextInput
           value={password}
           onChangeText={setPassword}
           placeholder="パスワード"
+          maxLength={INPUT_LIMITS.passwordMax}
           testID="native-login-password"
           secureTextEntry
         />
@@ -252,12 +258,14 @@ export function NativeSignupScreen() {
           value={email}
           onChangeText={setEmail}
           placeholder="メールアドレス"
+          maxLength={INPUT_LIMITS.email}
           testID="native-signup-email"
         />
         <PurchaseTextInput
           value={password}
           onChangeText={setPassword}
           placeholder="パスワード"
+          maxLength={INPUT_LIMITS.passwordMax}
           testID="native-signup-password"
           secureTextEntry
         />
@@ -265,6 +273,7 @@ export function NativeSignupScreen() {
           value={displayName}
           onChangeText={setDisplayName}
           placeholder="表示名"
+          maxLength={INPUT_LIMITS.displayName}
           testID="native-signup-display-name"
         />
         <NativeButton
@@ -349,6 +358,7 @@ export function NativeProfileScreen() {
           value={displayName}
           onChangeText={setDisplayName}
           placeholder="表示名"
+          maxLength={INPUT_LIMITS.displayName}
           testID="native-profile-display-name"
         />
         <PurchaseTextInput
@@ -577,12 +587,14 @@ export function NativeAddressesScreen() {
           value={label}
           onChangeText={setLabel}
           placeholder="住所ラベル"
+          maxLength={INPUT_LIMITS.addressLabel}
           testID="native-address-label"
         />
         <PurchaseTextInput
           value={address.recipientName}
           onChangeText={(value) => setAddress({ ...address, recipientName: value })}
           placeholder="宛名"
+          maxLength={INPUT_LIMITS.recipientName}
           testID="native-address-recipient"
         />
         <PurchaseTextInput
@@ -595,18 +607,21 @@ export function NativeAddressesScreen() {
           value={address.prefecture}
           onChangeText={(value) => setAddress({ ...address, prefecture: value })}
           placeholder="都道府県"
+          maxLength={INPUT_LIMITS.prefecture}
           testID="native-address-prefecture"
         />
         <PurchaseTextInput
           value={address.city}
           onChangeText={(value) => setAddress({ ...address, city: value })}
           placeholder="市区町村"
+          maxLength={INPUT_LIMITS.city}
           testID="native-address-city"
         />
         <PurchaseTextInput
           value={address.addressLine1}
           onChangeText={(value) => setAddress({ ...address, addressLine1: value })}
           placeholder="番地"
+          maxLength={INPUT_LIMITS.addressLine1}
           testID="native-address-line1"
         />
         <PurchaseTextInput
@@ -786,6 +801,7 @@ export function NativeCheckoutAddressScreen() {
           value={address.recipientName}
           onChangeText={(value) => setAddress({ ...address, recipientName: value })}
           placeholder="宛名"
+          maxLength={INPUT_LIMITS.recipientName}
           testID="native-checkout-recipient"
         />
         <PurchaseTextInput
@@ -798,18 +814,21 @@ export function NativeCheckoutAddressScreen() {
           value={address.prefecture}
           onChangeText={(value) => setAddress({ ...address, prefecture: value })}
           placeholder="都道府県"
+          maxLength={INPUT_LIMITS.prefecture}
           testID="native-checkout-prefecture"
         />
         <PurchaseTextInput
           value={address.city}
           onChangeText={(value) => setAddress({ ...address, city: value })}
           placeholder="市区町村"
+          maxLength={INPUT_LIMITS.city}
           testID="native-checkout-city"
         />
         <PurchaseTextInput
           value={address.addressLine1}
           onChangeText={(value) => setAddress({ ...address, addressLine1: value })}
           placeholder="番地"
+          maxLength={INPUT_LIMITS.addressLine1}
           testID="native-checkout-line1"
         />
         <PurchaseTextInput
@@ -1403,12 +1422,14 @@ export function NativeReviewScreen() {
             value={title}
             onChangeText={setTitle}
             placeholder="タイトル（任意）"
+            maxLength={INPUT_LIMITS.reviewTitle}
             testID="native-review-title"
           />
           <PurchaseTextInput
             value={body}
             onChangeText={setBody}
             placeholder="レビュー本文"
+            maxLength={INPUT_LIMITS.reviewBody}
             testID="native-review-body"
           />
           <NativeButton

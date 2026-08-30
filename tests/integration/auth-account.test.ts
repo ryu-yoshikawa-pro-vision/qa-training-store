@@ -1,4 +1,5 @@
 import Dexie from "dexie";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { CurrentSessionStore, GuestIdentityStore, IdGenerator } from "@/application/ports";
 import { AccountUseCases } from "@/application/use-cases/account-use-cases";
 import { AuthUseCases } from "@/application/use-cases/auth-use-cases";
@@ -129,6 +130,22 @@ describe("auth and account application integration", () => {
     expect(sessionStore.value).toBeNull();
   });
 
+  it("rejects overlong login credentials at the Application boundary", async () => {
+    await expect(
+      createAuth(["unused-email-session"]).login({
+        email: `${"a".repeat(INPUT_LIMITS.email)}@example.com`,
+        password: "testpass1",
+      }),
+    ).rejects.toMatchObject({ code: "AUTHENTICATION_FAILED" });
+    await expect(
+      createAuth(["unused-password-session"]).login({
+        email: "regular@example.com",
+        password: "x".repeat(INPUT_LIMITS.passwordMax + 1),
+      }),
+    ).rejects.toMatchObject({ code: "AUTHENTICATION_FAILED" });
+    expect(sessionStore.value).toBeNull();
+  });
+
   it("merges a customer guest cart with caps and abandons only the guest cart", async () => {
     await loadSeedDataset(
       database,
@@ -231,6 +248,54 @@ describe("auth and account application integration", () => {
     expect(await database.sessions.get("new-session")).toBeUndefined();
   });
 
+  it("enforces shared input limits at Registration and Profile application boundaries", async () => {
+    const auth = createAuth(["limit-user", "limit-session", "limit-cart"]);
+    await expect(
+      auth.register({
+        email: "limits-password@example.com",
+        password: "x".repeat(INPUT_LIMITS.passwordMax + 1),
+        displayName: "有効な表示名",
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { password: "validation.password.length" },
+    });
+    await expect(
+      auth.register({
+        email: `${"a".repeat(INPUT_LIMITS.email)}@example.com`,
+        password: "secure-pass",
+        displayName: "有効な表示名",
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { email: "validation.email" },
+    });
+
+    const result = await auth.register({
+      email: "limits@example.com",
+      password: "x".repeat(INPUT_LIMITS.passwordMax),
+      displayName: "x".repeat(INPUT_LIMITS.displayName),
+    });
+    expect(result.user.displayName).toHaveLength(INPUT_LIMITS.displayName);
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator([]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    await expect(
+      account.updateProfile({
+        displayName: "x".repeat(INPUT_LIMITS.displayName + 1),
+        phone: null,
+        actionVersion: result.user.actionVersion,
+      }),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { displayName: "validation.displayName" },
+    });
+  });
+
   it("keeps exactly one default address and deterministically reassigns it", async () => {
     await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
     sessionStore.value = "session-user-customer-regular";
@@ -282,6 +347,76 @@ describe("auth and account application integration", () => {
     expect(await database.users.get(profile.id)).toMatchObject({
       updatedAt: FIXED_TIME,
     });
+  });
+
+  it("enforces the shared address label limit at the Application boundary", async () => {
+    await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
+    sessionStore.value = "session-user-customer-regular";
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator(["address-limit"]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    const request = (label: string) => ({
+      label,
+      recipientName: "一般テスト会員",
+      postalCode: "1000001",
+      prefecture: "東京都",
+      city: "千代田区千代田",
+      addressLine1: "1-1",
+      addressLine2: null,
+      phone: "09000000000",
+      makeDefault: false,
+    });
+
+    const accepted = await account.createAddress(request("x".repeat(INPUT_LIMITS.addressLabel)));
+    expect(accepted.label).toHaveLength(INPUT_LIMITS.addressLabel);
+    await expect(
+      account.createAddress(request("x".repeat(INPUT_LIMITS.addressLabel + 1))),
+    ).rejects.toMatchObject({
+      code: "VALIDATION",
+      fieldErrors: { label: "validation.address.label" },
+    });
+  });
+
+  it("enforces shared address field limits at the Application boundary", async () => {
+    await loadSeedDataset(database, createScenarioDataset("regular-member"), "regular-member");
+    sessionStore.value = "session-user-customer-regular";
+    const account = new AccountUseCases({
+      ...createDexieApplicationRepositories(database),
+      currentSessionStore: sessionStore,
+      clock: new TestClock(FIXED_TIME),
+      idGenerator: new SequenceIdGenerator(["unused-address"]),
+      addressLookup: new BundledStaticAddressLookup(),
+    });
+    const request = (field: string, value: string) => ({
+      label: "自宅",
+      recipientName: field === "recipientName" ? value : "一般テスト会員",
+      postalCode: "1000001",
+      prefecture: field === "prefecture" ? value : "東京都",
+      city: field === "city" ? value : "千代田区千代田",
+      addressLine1: field === "addressLine1" ? value : "1-1",
+      addressLine2: field === "addressLine2" ? value : null,
+      phone: "09000000000",
+      makeDefault: false,
+    });
+    const cases = [
+      ["recipientName", INPUT_LIMITS.recipientName],
+      ["prefecture", INPUT_LIMITS.prefecture],
+      ["city", INPUT_LIMITS.city],
+      ["addressLine1", INPUT_LIMITS.addressLine1],
+      ["addressLine2", INPUT_LIMITS.addressLine2],
+    ] as const;
+    for (const [field, limit] of cases) {
+      await expect(
+        account.createAddress(request(field, "x".repeat(limit + 1))),
+      ).rejects.toMatchObject({
+        code: "VALIDATION",
+        fieldErrors: { [field]: "validation.required" },
+      });
+    }
   });
 
   it("keeps management roles out of customer profile operations", async () => {

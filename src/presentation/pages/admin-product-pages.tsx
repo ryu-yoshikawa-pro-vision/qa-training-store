@@ -11,6 +11,7 @@ import type {
   ProductVariantCreateRequest,
   UpdateProductRequest,
 } from "@/application/contracts";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { MembershipRank, ProductStatus } from "@/domain/contracts";
 import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { ProductImage } from "@/presentation/components/product-image";
@@ -123,6 +124,7 @@ function AdminProductsContent() {
           検索
           <input
             type="search"
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => {
               setKeyword(event.target.value);
@@ -795,6 +797,7 @@ function ProductEditor({
             商品コード
             <input
               required
+              maxLength={INPUT_LIMITS.productCode}
               value={value.product.productCode}
               onChange={(event) => setProduct("productCode", event.target.value)}
             />
@@ -803,6 +806,7 @@ function ProductEditor({
             商品名
             <input
               required
+              maxLength={INPUT_LIMITS.productName}
               value={value.product.name}
               onChange={(event) => setProduct("name", event.target.value)}
             />
@@ -810,6 +814,7 @@ function ProductEditor({
           <label>
             短い説明
             <input
+              maxLength={INPUT_LIMITS.shortDescription}
               value={value.product.shortDescription}
               onChange={(event) => setProduct("shortDescription", event.target.value)}
             />
@@ -860,6 +865,7 @@ function ProductEditor({
           <label>
             バリエーション名
             <input
+              maxLength={INPUT_LIMITS.variationName}
               value={value.product.variationName ?? ""}
               onChange={(event) => setProduct("variationName", event.target.value || null)}
               placeholder="バリエーションなしは空欄"
@@ -868,6 +874,7 @@ function ProductEditor({
           <label className="form-grid__wide">
             説明
             <textarea
+              maxLength={INPUT_LIMITS.description}
               value={value.product.description}
               onChange={(event) => setProduct("description", event.target.value)}
             />
@@ -886,6 +893,7 @@ function ProductEditor({
                   SKU
                   <input
                     required
+                    maxLength={INPUT_LIMITS.sku}
                     value={variant.sku}
                     onChange={(event) => updateVariant(index, { sku: event.target.value })}
                   />
@@ -893,6 +901,7 @@ function ProductEditor({
                 <label>
                   選択肢
                   <input
+                    maxLength={INPUT_LIMITS.optionValue}
                     value={variant.optionValue ?? ""}
                     onChange={(event) =>
                       updateVariant(index, { optionValue: event.target.value || null })
@@ -1008,6 +1017,7 @@ function ProductEditor({
                     <label>
                       代替テキスト
                       <input
+                        maxLength={INPUT_LIMITS.imageAltText}
                         value={selected.altText}
                         onChange={(event) =>
                           setValue((current) => ({

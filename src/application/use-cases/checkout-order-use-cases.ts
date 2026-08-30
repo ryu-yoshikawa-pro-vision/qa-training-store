@@ -14,6 +14,7 @@ import type {
   SetCheckoutPaymentRequest,
   StartCheckoutRequest,
 } from "@/application/contracts";
+import { INPUT_LIMITS } from "@/application/contracts";
 import { ApplicationError, conflictError } from "@/application/errors";
 import { SessionIdentityResolver } from "@/application/identity/session-identity-resolver";
 import type { Clock, CurrentSessionStore, IdGenerator, PaymentGateway } from "@/application/ports";
@@ -27,6 +28,7 @@ import type {
   Payment,
   PaymentErrorCode,
   PaymentMethodCode,
+  ShippingAddressSnapshot,
 } from "@/domain/contracts";
 import {
   CartRepository,
@@ -160,6 +162,7 @@ export class CheckoutOrderUseCases {
   async setAddress(request: SetCheckoutAddressRequest): Promise<CheckoutSession> {
     const [user, now] = await Promise.all([this.requireCustomer(), this.now()]);
     await this.assertSessionForMutation(request.checkoutSessionId, user.id, now);
+    this.validateAddressLimits(request.address);
     return this.checkouts.setAddress({ ...request, userId: user.id, now });
   }
 
@@ -593,6 +596,33 @@ export class CheckoutOrderUseCases {
 
   private async now(): Promise<string> {
     return this.dependencies.clock.now();
+  }
+
+  private validateAddressLimits(address: ShippingAddressSnapshot): void {
+    const fieldErrors: Record<string, string> = {};
+    if (address.recipientName.trim().length > INPUT_LIMITS.recipientName) {
+      fieldErrors.recipientName = "validation.required";
+    }
+    if (address.prefecture.trim().length > INPUT_LIMITS.prefecture) {
+      fieldErrors.prefecture = "validation.required";
+    }
+    if (address.city.trim().length > INPUT_LIMITS.city) {
+      fieldErrors.city = "validation.required";
+    }
+    if (address.addressLine1.trim().length > INPUT_LIMITS.addressLine1) {
+      fieldErrors.addressLine1 = "validation.required";
+    }
+    if ((address.addressLine2?.trim().length ?? 0) > INPUT_LIMITS.addressLine2) {
+      fieldErrors.addressLine2 = "validation.required";
+    }
+    if (Object.keys(fieldErrors).length > 0) {
+      throw new ApplicationError({
+        code: "VALIDATION",
+        messageKey: "validation.form",
+        retryable: false,
+        fieldErrors,
+      });
+    }
   }
 
   private cartChanged(): ApplicationError {

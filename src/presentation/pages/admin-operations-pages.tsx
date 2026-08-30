@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { Link } from "expo-router";
+import { INPUT_LIMITS } from "@/application/contracts";
 import type { AdminOrderDetailDto, InventoryItem } from "@/application/contracts";
 import type { OrderStatus, ShipmentStatus } from "@/domain/contracts";
 import { ProductImage } from "@/presentation/components/product-image";
@@ -140,6 +141,7 @@ function AdminInventoriesContent() {
           検索
           <input
             type="search"
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
           />
@@ -245,7 +247,7 @@ function AdminInventoriesContent() {
               理由詳細
               <input
                 value={reasonText}
-                maxLength={200}
+                maxLength={INPUT_LIMITS.inventoryReason}
                 onChange={(event) => setReasonText(event.target.value)}
               />
             </label>
@@ -349,6 +351,7 @@ function AdminOrdersContent() {
           注文番号・顧客
           <input
             type="search"
+            maxLength={INPUT_LIMITS.searchKeyword}
             value={keyword}
             onChange={(event) => setKeyword(event.target.value)}
           />
@@ -582,11 +585,19 @@ function AdminOrderDetailContent({ orderId }: { orderId: string }) {
             <div className="form-stack">
               <label>
                 配送会社
-                <input value={carrier} onChange={(event) => setCarrier(event.target.value)} />
+                <input
+                  maxLength={INPUT_LIMITS.carrierName}
+                  value={carrier}
+                  onChange={(event) => setCarrier(event.target.value)}
+                />
               </label>
               <label>
                 追跡番号
-                <input value={tracking} onChange={(event) => setTracking(event.target.value)} />
+                <input
+                  maxLength={INPUT_LIMITS.trackingNumber}
+                  value={tracking}
+                  onChange={(event) => setTracking(event.target.value)}
+                />
               </label>
               <button
                 className="button button--primary"

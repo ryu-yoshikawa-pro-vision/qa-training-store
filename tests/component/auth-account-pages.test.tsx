@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { INPUT_LIMITS } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import type { UserAddress } from "@/domain/contracts";
 
@@ -90,6 +91,14 @@ describe("auth and account pages", () => {
   it("submits Login and links fixed fixture account guidance to Guide", async () => {
     render(<LoginPage />);
     expect(screen.getByRole("heading", { name: "ログイン" })).toBeVisible();
+    expect(screen.getByLabelText("メールアドレス")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.email),
+    );
+    expect(screen.getByLabelText("パスワード")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.passwordMax),
+    );
     expect(screen.getByRole("link", { name: "学習Guide" })).toHaveAttribute("href", "/guide");
     fireEvent.change(screen.getByLabelText("メールアドレス"), {
       target: { value: "regular@example.com" },
@@ -201,6 +210,46 @@ describe("auth and account pages", () => {
     expect(auth.register).not.toHaveBeenCalled();
   });
 
+  it("uses shared Signup limits for controls and rejects an over-limit display name", async () => {
+    render(<SignupPage />);
+    expect(screen.getByLabelText("メールアドレス")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.email),
+    );
+    expect(screen.getByLabelText("表示名")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.displayName),
+    );
+    expect(screen.getByLabelText("パスワード")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.passwordMax),
+    );
+    expect(screen.getByLabelText("パスワード（確認）")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.passwordMax),
+    );
+    fireEvent.change(screen.getByLabelText("メールアドレス"), {
+      target: { value: "limits@example.com" },
+    });
+    fireEvent.change(screen.getByLabelText("表示名"), {
+      target: { value: "x".repeat(INPUT_LIMITS.displayName + 1) },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード"), {
+      target: { value: "secure-pass" },
+    });
+    fireEvent.change(screen.getByLabelText("パスワード（確認）"), {
+      target: { value: "secure-pass" },
+    });
+    fireEvent.click(screen.getByLabelText("学習用環境の注意事項を確認しました"));
+    fireEvent.click(screen.getByRole("button", { name: "登録する" }));
+    expect(
+      await screen.findByRole("link", {
+        name: `表示名は${INPUT_LIMITS.displayName}文字以下で入力してください`,
+      }),
+    ).toHaveAttribute("href", "#displayName");
+    expect(auth.register).not.toHaveBeenCalled();
+  });
+
   it("updates Profile with the hidden actionVersion", async () => {
     render(<ProfilePage />);
     expect(await screen.findByDisplayValue("一般テスト会員")).toBeVisible();
@@ -240,6 +289,30 @@ describe("auth and account pages", () => {
     render(<AddressesPage />);
     expect(await screen.findByRole("heading", { name: "登録済み配送先（1/5）" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "配送先を追加" })).toBeVisible();
+    expect(screen.getByLabelText("ラベル")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.addressLabel),
+    );
+    expect(screen.getByLabelText("宛名")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.recipientName),
+    );
+    expect(screen.getByLabelText("都道府県")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.prefecture),
+    );
+    expect(screen.getByLabelText("市区町村")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.city),
+    );
+    expect(screen.getByLabelText("番地")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.addressLine1),
+    );
+    expect(screen.getByLabelText("建物名・部屋番号（任意）")).toHaveAttribute(
+      "maxlength",
+      String(INPUT_LIMITS.addressLine2),
+    );
     fireEvent.click(screen.getByRole("button", { name: "既定にする" }));
     await waitFor(() =>
       expect(account.updateAddress).toHaveBeenCalledWith(
