@@ -1,0 +1,136 @@
+{
+  "schema_version": 1,
+  "run_id": "20260828-214219-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Plan指定のSpecification／Curriculum build、link／image resolver、既存Storefront／Docs smoke、代表画像、Curriculum内部リンク、CurriculumからSpecificationへの遷移、既存SPA route、Web CI／Cloudflare Preview確認が完了した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260828-214219-JST/TASKS.md",
+          "selector": "Tasks 1-11",
+          "summary": "実装、修正、検証、最終化を含む全タスクが完了状態である。"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "gh run view 33175681857",
+          "summary": "Web CIとCloudflare Previewの最終経路がsuccessである。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "実装はPlan指定の6 source filesとRun artifactに限定され、正本Markdown／画像、Scenario Shop本体、app.config.ts、.github/workflows/ci.yml、依存関係／lockfileは変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "git diff --name-status origin/main...HEAD",
+          "summary": "禁止対象と実装scopeを最終セルフレビューした。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Docsに必要なlocal／remote Web validationはPASSした。一方、package.json変更をNative pathとして扱う既存workflowがMobile App CIを起動し、Native StaticのExpo Doctor package checkだけが既存依存version mismatchでFAILした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "gh run view 33175682191",
+          "summary": "Android／iOS build、Maestro、bundle guardはPASS、Native StaticのみFAILである。"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "gh api .../jobs/98863789199/logs",
+          "summary": "Expo Doctorがexpoとexpo-constantsのpatch version mismatchを報告した。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "対象branchとPR headを確認した明示refspecでpushし、merge／auto-merge／close、force push、履歴破壊、command-based deletion、依存更新を行っていない。Run artifactはsanitize Write／CheckをPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "git push origin HEAD:feat/web-docs-publishing",
+          "summary": "PR head branchへの明示refspec pushが成功した。"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "scripts/sanitize-codex-artifacts.ps1 -Write/-Check",
+          "summary": "Run artifactのsanitizationがresidual findings 0で完了した。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "PR #77のheadはfeat/web-docs-publishingと一致し、PRはOPEN。実装差分、Cloudflare canonical URL対応理由、validation、別系統のNative failureをRun artifactとPR branchへ記録した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260828-214219-JST/REPORT.md",
+          "selector": "final checkpoint",
+          "summary": "実装内容、validation、plan difference、remaining issueを最終checkpointへ記録した。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存Specification rendererの汎用Markdown部分だけを共有化し、Curriculumは小さなbuild／resolverで実装した。Docs専用framework／server／image pipelineや二重管理を追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/spec/markdown.ts",
+          "selector": "renderMarkdown and MARKDOWN_CSS",
+          "summary": "汎用Markdown描画とCSSだけを共通化している。"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/docs/build-docs.ts",
+          "selector": "linkTarget and imageTarget",
+          "summary": "通常hyperlinkとimage resolverの責務を分離している。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "PLAN、TASKS、REPORT、run.json、evaluation.jsonに実装判断、コマンド、artifact、remote run、PR状態を保存し、Run artifactのsanitizer checkも完了した。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260828-214219-JST/run.json",
+          "selector": "validation.commands",
+          "summary": "実行したlocal／remote validation commandを確認できる。"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "Mobile App CI run 33175682191のNative Staticで、Expo Doctorはexpo expected ~57.0.18 / found 57.0.17、expo-constants expected ~57.0.16 / found 57.0.15を報告した。origin/main...HEADのpackage差分はbuild scriptだけで、依存version差分はない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": "gh api repos/ryu-yoshikawa-pro-vision/qa-training-store/actions/jobs/98863789199/logs",
+          "summary": "Native Staticの最初の異常とExpo Doctorの出力を確認した。"
+        }
+      ],
+      "detail": "failure taxonomyに依存整合性専用カテゴリがないためflaky_or_env_issueとして記録する。Docs実装の失敗ではなく、依存更新は今回のPlan外かつ要件判断を伴うため、このPRでは変更せず別remediationへ分離した。"
+    }
+  ],
+  "improvement_candidates": []
+}

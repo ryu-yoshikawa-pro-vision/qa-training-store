@@ -65,6 +65,8 @@ const contentTypes: Record<string, string> = {
   ".css": "text/css; charset=utf-8",
   ".html": "text/html; charset=utf-8",
   ".ico": "image/x-icon",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
   ".map": "application/json; charset=utf-8",
@@ -205,6 +207,27 @@ const server = createServer((request, response) => {
           return;
         }
         sendFile(response, resolved, fileStat.size, mime);
+        return;
+      }
+
+      if (fileStat.isDirectory()) {
+        const directoryIndex = resolve(resolved, "index.html");
+        stat(directoryIndex)
+          .then((indexStat) => {
+            if (!indexStat.isFile()) throw new Error("Directory index is not a file");
+            if (method === "HEAD") {
+              sendHead(response, indexStat.size, "text/html; charset=utf-8");
+              return;
+            }
+            sendFile(response, directoryIndex, indexStat.size, "text/html; charset=utf-8");
+          })
+          .catch(() => {
+            if (isSpaRoute(pathname)) {
+              sendIndex(response, method);
+              return;
+            }
+            send404(response);
+          });
         return;
       }
 
