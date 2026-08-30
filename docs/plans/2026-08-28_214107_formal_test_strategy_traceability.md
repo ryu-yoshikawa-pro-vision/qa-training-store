@@ -25,7 +25,7 @@
 - Phase 1 Risk 16件を 1 Risk = 1 row で追跡でき、Risk → Representative Requirement / AC → applicable Technique / Perspective → Primary Test Level → Representative Formal Test / suite → CI Gate を辿れる。
 - Requirement Group から representative Current verification を辿れる。Current automation がある箇所は既存 code / suite へ接続される。
 - `WE-CORE-001`〜`WE-CORE-012`は Requirement / business-flow Mapping ID として Current E2E の `file path + exact title` へ接続される。
-- 実装開始時点の Current 下位Traceability代表label全件が `exact-title` または `suite-level` で Current code へ接続され、未判定 / `stop` が残らない。
+- 実装開始時点の Current 下位Traceability代表label全件が `exact-title`、`suite-level`、または必要最小限の `bounded-multi-ref` で Current code へ接続され、未判定 / `stop` が残らない。
 - Current Test ID / Mapping label taxonomy の説明が文書内で自己矛盾していない。
 - Formal Regression / Training / UI Review を混同していない。
 - Web / Android / iOS の Current asymmetric guarantee を正確に説明している。
@@ -74,7 +74,7 @@
 ただし実装時に次のいずれかへ該当したら停止し、child Plan を見直す。
 
 - Requirement Group のいずれかを Current verification へ合理的に接続できず、新Test / 新Gateを追加しないとTraceabilityが成立しない。
-- Current下位代表labelを Current evidence から code / suite へ接続できない。
+- Current下位代表labelを `exact-title` / `suite-level` / `bounded-multi-ref` のいずれでも Current evidence へ接続できない。
 - `CT-*` / `CP-*` 等のtaxonomyを Current evidence から説明できず、新ID制度が必要になる。
 - Riskを Representative Requirement / AC、Representative Formal Test / suite、CI Gate へ合理的に接続できない。
 - RA-G3全体として Technique / Perspective の関係を Current evidence から説明できない。
@@ -237,7 +237,8 @@ Plan作成時点では §6 の18行 + §7後ろの孤立4行 = 22行だが、こ
 
 1. `exact-title`: file path + exact test title
 2. `suite-level`: 1つのtest file / suiteが明確に代表する場合のfile reference
-3. `stop`: Current evidenceからlabelの意味または代表codeを説明できない
+3. `bounded-multi-ref`: legacy labelが複数の独立したRequirement / 確認観点を包含し、Current Formal verificationが複数suiteへ合理的に分散している場合の、1〜数個のbounded representative refs。各refの担当Requirement / 観点を明記し、Currentに存在するFormal Testだけを使う。全Test inventory化、同一観点の重複列挙、coverage gapの補完には使用しない。
+4. `stop`: `exact-title` / `suite-level` / `bounded-multi-ref` のいずれを用いても、元Requirement / 確認観点の一部についてCurrent Formal evidenceを確認できない
 
 `stop`が1行でも残る場合はPR 2 completionへ進まない。
 

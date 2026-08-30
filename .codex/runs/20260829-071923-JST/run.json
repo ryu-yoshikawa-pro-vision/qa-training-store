@@ -12,13 +12,14 @@
   "changed_files": [
     "docs/08_testing/test_strategy.md",
     "docs/12_quality/requirements_traceability.md",
+    "docs/plans/2026-08-28_214107_formal_test_strategy_traceability.md",
     ".codex/runs/20260829-071923-JST/PLAN.md",
     ".codex/runs/20260829-071923-JST/TASKS.md",
     ".codex/runs/20260829-071923-JST/REPORT.md",
     ".codex/runs/20260829-071923-JST/run.json"
   ],
   "validation": {
-    "status": "inconclusive",
+    "status": "passed",
     "commands": [
       {"command": "pnpm run format:check", "status": "passed"},
       {"command": "pnpm run lint:markdown", "status": "passed"},
@@ -33,9 +34,25 @@
       {"command": "manual cross-check / repair Finding verification", "status": "passed", "notes": "Risk 16のTechnique、下位label 22のDisposition（exact-title 11 / suite-level 11 / stop 0）、NFR SSOT、exact title、単一file参照を確認"},
       {"command": "IMPLEMENTATION_BASE_SHA scope check", "status": "passed", "notes": "full implementation deltaは許可された2文書とactive implementation Runのみ。repair working-tree deltaも同じ許可scope内"},
       {"command": "causal determination / direct dependency diff check", "status": "passed", "notes": "timeout対象と直接依存にbaseからの変更なし、docs参照なし、Assertion failureなし"},
-      {"command": "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-071923-JST -Write -Check", "status": "passed", "notes": "repair後の最終Write / Check。4 files scanned、files changed 0、replacements 0、residual findings 0"}
+      {"command": "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-071923-JST -Write -Check", "status": "passed", "notes": "repair後の最終Write / Check。4 files scanned、files changed 0、replacements 0、residual findings 0"},
+      {"command": "pnpm run test:contracts", "status": "passed", "notes": "今回の再レビューrepair後に1回実行。31 files / 456 tests、Duration 206.55s"},
+      {"command": "git diff --check", "status": "passed", "notes": "今回のrepair後に実行。exit 0（GitのCRLF/LF注意はwarningでありfailureではない）"},
+      {"command": "manual lower traceability / WE-CORE / run manifest cross-check", "status": "passed", "notes": "22 labelの元意味・Disposition、WE-CORE Mapping ID表記、正式enum、evaluationなしのprimary nullを確認"},
+      {"command": "IMPLEMENTATION_BASE_SHA scope check", "status": "passed", "notes": "今回repairのreview HEADからの差分はrequirements_traceability.mdとactive RunのREPORT/TASKS/run.jsonのみ。禁止scope 0、既存Plan Runと未追跡別Runは変更・stage対象外"},
+      {"command": "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-071923-JST -Write -Check", "status": "passed", "notes": "今回の最終Write / Check。4 files scanned、files changed 0、replacements 0、residual findings 0"},
+      {"command": "git diff --check", "status": "passed", "notes": "Sanitizer後の最終確認もexit 0（GitのCRLF/LF注意はwarningでありfailureではない）"},
+      {"command": "pnpm run format:check", "status": "passed", "notes": "今回のChild Plan replan / Traceability再Disposition後。format check完了"},
+      {"command": "pnpm run lint:markdown", "status": "passed", "notes": "今回のChild Plan replan / Traceability再Disposition後。0 issues"},
+      {"command": "pnpm run validate:spec", "status": "passed", "notes": "今回のChild Plan replan / Traceability再Disposition後。Specification and Agentic QA validation passed"},
+      {"command": "pnpm run test:contracts", "status": "passed", "notes": "今回の再分析後に1回のみ実行。31 files / 456 tests、Duration 176.99s"},
+      {"command": "manual stop classification / Child Plan replan / lower Traceability redisposition", "status": "passed", "notes": "8 stopをmodel-mismatch 4 / coverage-gap 4へ分類し、bounded-multi-ref 4 / stop 4へ再Disposition"},
+      {"command": "git diff --check", "status": "passed", "notes": "今回のreplan / Traceability再Disposition後。CRLF/LF warningのみでexit 0"},
+      {"command": "IMPLEMENTATION_BASE_SHA scope check", "status": "passed", "notes": "今回のtask deltaはChild Plan、requirements_traceability.md、active implementation Runのみ。禁止scope 0。既存Plan Runのdirty changeと別Runは除外"},
+      {"command": "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-071923-JST -Write -Check", "status": "passed", "notes": "今回のreplan後のSanitizer Write / Check。4 files scanned、files changed 0、replacements 0、residual findings 0"},
+      {"command": "scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-071923-JST -Write -Check", "status": "passed", "notes": "最終REPORT append後のSanitizer Write / Check。4 files scanned、files changed 0、replacements 0、residual findings 0"},
+      {"command": "git diff --check", "status": "passed", "notes": "最終Run Artifact同期後もexit 0（CRLF/LF warningのみ）"}
     ],
-    "warnings": ["commit前required pnpm run test:contractsはenvironment-sensitive timeoutでinconclusive。追加retry、timeout変更、test / workflow変更は行わず、現ユーザー指示に従いrepair済みHEADをPR-triggered CIへ送るためcommit / pushする。finalizationはPR CI / re-review待ち。"]
+    "warnings": ["過去の再レビューでは、元labelを単一file / suiteへ接続する制約によりstop 8件となった。今回Child Planのlower Traceability契約を最小replanし、model-mismatch 4件をbounded-multi-refへ再接続した。", "過去のlocal required pnpm run test:contractsにはenvironment-sensitive timeoutがあったが、今回の再分析後の同コマンドは31 files / 456 tests PASSだった。過去履歴はREPORTとvalidation command historyに保持している。", "今回のactual coverage gapはCT-DB-KEY-001、CT-CATEGORY-002、CP-FORM-001、CT-BOUNDARY-001の4件であり、stopとして維持している。RunのvalidationはPASSでも、stopが残るためPR 2 DoD / completionとは扱わない。"]
   },
   "safety": {
   "network": true,
@@ -46,6 +63,6 @@
     "evaluation_present": false
   },
   "evaluation_path": null,
-  "status": "blocked",
-  "primary_failure_category": "flaky_or_env_issue"
+  "status": "completed",
+  "primary_failure_category": null
 }

@@ -170,3 +170,77 @@
 - Finalization path: 現ユーザー指示により、local timeoutをPASSへ読み替えず、repair済みHEADをPR-triggered GitHub Actionsで検証可能にするためcommit / pushへ進む。`run.json`は`validation.status=inconclusive`、`status=blocked`、`primary_failure_category=flaky_or_env_issue`を維持する。ここでの`blocked`はFinding未解消ではなく、local Required validationを確定できない状態を示す。PR-triggered CI、implementation re-review、mergeability確認が完了するまでfinalization / mergeは行わない。
 - Scope / safety: 今回stageするのは2文書とactive implementation Run（`PLAN.md`、`TASKS.md`、`REPORT.md`、`run.json`）のみ。Product、Test、workflow、config、validator、Curriculum、Plan等は変更しない。Sanitizer Write / Checkと軽量最終確認後に明示pathだけをstageする。
 - Progress: 100% (14/14)
+
+## 2026-08-29 15:17 (JST)
+
+- Summary: PR #78再レビューで確認された3件のFindingに対するbounded repairを開始した。既存implementation Run `.codex/runs/20260829-071923-JST/`を再利用し、新しいRunは作成しない。
+- Input findings / Triage: 今回のmust-fixは (1) 下位Traceability labelの元意味を参照先へ合わせて狭めないこと、(2) `run.json`の正式status enumと`primary_failure_category`契約、(3) `WE-CORE-*`をMapping IDとして表記すること。新しいTest、ID、workflow、Traceability構造は追加しない。
+- Repair scope: 今回のWritable scopeは`docs/12_quality/requirements_traceability.md`とactive Runの`REPORT.md`、`TASKS.md`、`run.json`のみ。`docs/08_testing/test_strategy.md`、Product、Test、workflow、config、validator、Requirement / Acceptance Criteria、Plans、既存Plan Run、Curriculum / Trainingは変更しない。
+- Audit rule: 実装開始前のCurrent documentationに存在した22 labelのRequirement / 「主な確認」を正本として、Current test sourceとChild Planの`exact-title` / `suite-level` / `stop`定義を照合する。元の意味を1つの既存test titleまたは1つのfile / suiteで代表できない場合は意味を改変せず`stop`とする。
+- Current baseline: branchは`docs/formal-test-strategy-traceability`、review target HEADは`e87caf17f0998338d2ff1b093029c54864908b16`、`IMPLEMENTATION_BASE_SHA=fe07e6af99d60a2e5b56504a27df6feb3973ae01`。既存の無関係なPlan Run変更と未追跡Runは保護し、今回のscopeへ含めない。
+- Progress: 70% (14/20)
+
+## 2026-08-29 15:22 (JST)
+
+- Lower Traceability audit: 実装開始前Current documentationのRequirement / 「主な確認」を比較元として、22 labelを全件再監査した。元の意味を狭めず、Current evidenceを1つの既存test titleまたは1つのfile / suiteへ接続できるかでDispositionを再判定した。
+- Disposition result: `exact-title` 8件、`suite-level` 6件、`stop` 8件。`CT-DB-KEY-001`、`CT-TX-001`、`CT-CATEGORY-002`、`CT-AUTH-001`、`UT-REVIEW-SUM-001`、`CP-FORM-001`、`CT-BOUNDARY-001`、`CT-ACTION-VERSION-001`は、元の確認内容を維持すると単一の既存test title / file / suiteで全体を代表できないため`stop`とした。複数fileを`suite-level`として列挙していない。
+- Meaning preservation: Requirementと「主な確認」は元の22行へ復元・維持した。Currentに存在しないtest titleは参照せず、exact-titleはsourceのtitleと照合した。`CT-ADMIN-Q-001`、`CT-CATEGORY-001`、`CT-CART-ID-001`等は単一suite内で元の責務全体を確認できるため`suite-level`とした。
+- WE-CORE terminology: §5の表見出しを`WE-CORE Mapping ID`へ変更し、`WE-CORE-*`がexecutable test IDではなくRequirement / business-flow Mapping IDであり、Current test titleへ埋め込んでいないことを明記した。
+- Run manifest reconciliation: Repository正式契約へ合わせ、`run.status=completed`、`validation.status=failed`（直近既知のlocal required timeoutを暫定反映）、`primary_failure_category=null`（evaluation.jsonなし）へ補正した。validation command historyと過去timeoutのREPORT記録は削除していない。
+- Stop condition: `stop` 8件が残るため、PR 2 completion条件は満たさない。新Test、Requirement変更、ID追加、workflow変更、既存labelの意味改変は行わない。
+- Progress: 85% (17/20)
+
+## 2026-08-29 15:29 (JST)
+
+- Required validation: `pnpm run format:check` PASS、`pnpm run lint:markdown` PASS、`pnpm run validate:spec` PASS、今回1回のみ実行した`pnpm run test:contracts` PASS（31 files / 456 tests、Duration 206.55s）、`git diff --check` PASS。既存の過去timeout履歴は削除せず、今回のrepair後local resultはPASSとして記録した。
+- Manual validation: 下位Traceability 22件は元Requirement /「主な確認」を維持し、`exact-title` 8件、`suite-level` 6件、`stop` 8件を確認した。exact titleのsource一致は8件すべてPASS、suite-levelの参照pathは各1件で存在を確認、複数file列挙は0件、stop / undecided以外の未決定値は0件。WE-COREはMapping IDとして見出し・説明を統一し、NFR側に具体的workflow job / matrix leg / Playwright project / package commandの重複は残していない。
+- Run manifest: Repository正式契約へ合わせ、`run.status=completed`、`validation.status=passed`、`primary_failure_category=null`（`evaluation_path=null`、`evaluation_present=false`）を保持した。過去local timeoutの解釈はREPORTとobserved validation command historyへ分離して保持し、manifestへ手書きのfailure categoryは置かない。
+- Finding state: 再レビューFindingのうち、元意味保持、Run contract、WE-CORE Mapping terminologyの3件について修正を完了した。ただし`stop` 8件はCurrent evidenceの不足を正直に示すため残っており、PR 2 completionのStop conditionは解消していない。
+- Progress: 90% (18/20)
+
+## 2026-08-29 15:31 (JST)
+
+- Final repair state: 再レビューFindingに対するbounded repairの実行タスクを完了した。元Requirement /「主な確認」を狭めずに22 labelを監査し、`exact-title` 8件、`suite-level` 6件、`stop` 8件を記録した。`stop` 8件はCurrent evidenceの不足を示す正直な判定であり、PR 2 completionのStop conditionとして残る。
+- Run state: `run.json`は`run.status=completed`、`validation.status=passed`、`primary_failure_category=null`、`evaluation_path=null`、`evaluation_present=false`。`completed`はartifact生成完了、`passed`は今回のRequired validation結果を表し、`primary_failure_category`はevaluationなしのため手書き分類していない。過去local timeoutの履歴と解釈はREPORT / validation command historyに保持している。
+- Required validation: `pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run validate:spec`、今回1回のみの`pnpm run test:contracts`（31 files / 456 tests）、`git diff --check`はすべてPASS。追加のcontracts retry、test / workflow / timeout変更は行っていない。
+- Sanitizer: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260829-071923-JST -Write -Check`はPASS（4 files scanned、files changed 0、replacements 0、residual findings 0）。
+- Scope: `IMPLEMENTATION_BASE_SHA=fe07e6af99d60a2e5b56504a27df6feb3973ae01`からの既存implementation deltaは元のPR 2許可範囲（2文書とactive Run）内。今回repairのreview HEADからの差分は`docs/12_quality/requirements_traceability.md`、active Runの`REPORT.md`、`TASKS.md`、`run.json`のみで、`docs/08_testing/test_strategy.md`・Product・Test・workflow・config・validator・Requirements・Plans・Curriculumその他禁止scopeは変更していない。既存Plan Runの変更と未追跡別Runは今回repairから除外し、unexpected / forbiddenは0件。
+- Boundary: PR #78のcommit、push、本文更新、review thread操作、mergeは今回行わない。bounded repair結果は再レビュー可能だが、`stop` 8件のためPR 2 completion / finalizationとは扱わない。Stop condition / unresolved itemは`stop` 8件であり、追加実装なしには解消しない。
+- Progress: 100% (20/20)
+
+## 2026-08-29 15:56 (JST)
+
+- Replan / traceability update: Child Planのlower Traceability Dispositionだけを更新し、`bounded-multi-ref`を追加した。`requirements_traceability.md`の22 labelは`exact-title` 8件、`suite-level` 6件、`bounded-multi-ref` 4件、`stop` 4件。元のRequirementと「主な確認」は`IMPLEMENTATION_BASE_SHA`時点の22行と照合し、変更なし（meaning preservation check PASS）。
+- Required validation: `pnpm run format:check` PASS、`pnpm run lint:markdown` PASS（0 issues）、`pnpm run validate:spec` PASS、今回の`pnpm run test:contracts`は追加retryなしの1回のみでPASS（31 files / 456 tests、Duration 176.99s）。
+- Manual cross-check: exact-title 8件は参照file内のexact titleと一致し、suite-level 6件は各1 file、bounded-multi-ref 4件は2〜4個の既存Formal fileを担当観点付きで参照し、全参照pathが存在する。複数fileをsuite-levelへ列挙していない。Coverage gap 4件はstopのまま保持し、stopを消すための意味変更やTest追加は行っていない。WE-COREのMapping ID表記とNFRのvolatileなBrowser Project重複除去も維持している。
+- Scope note: 今回のreplan / repairで変更した対象はChild Plan、`requirements_traceability.md`、active implementation Runのみ。既存Plan Run `.codex/runs/20260828-214107-JST/*`のdirty changeと未追跡別Runは保護し、今回の変更へ混在させていない。`test_strategy.md`、Product、Test、workflow、config、validator、Requirements、Acceptance Criteria、Curriculum / Training、Master Planは変更していない。
+- Run state: Required validationはPASSしたが、actual coverage gapの`stop` 4件が残るため、PR 2 DoD / completionは未達。Run manifestの最終値は検証・Sanitizer完了後に`status=completed`、`validation.status=passed`、`primary_failure_category=null`へ同期する。`completed`はartifact生成完了を示し、PR 2 DoD達成とは区別する。
+- Progress: 93% (25/27)
+
+## 2026-08-29 15:50 (JST)
+
+- Read-only stop analysis: 実装変更前に、元labelのRequirement /「主な確認」、Current implementation、既存Formal test sourceを8件すべて照合した。判定は、`model-mismatch` が `CT-TX-001`、`CT-AUTH-001`、`UT-REVIEW-SUM-001`、`CT-ACTION-VERSION-001` の4件、`coverage-gap` が `CT-DB-KEY-001`、`CT-CATEGORY-002`、`CP-FORM-001`、`CT-BOUNDARY-001` の4件である。
+- `CT-DB-KEY-001`: `tests/repository-contract/repositories.test.ts` の `enforces unique keys and persistence projection consistency`、`tests/unit/normalization-cart-catalog.test.ts` の `uses the shared NFKC, case, and whitespace rules`、`tests/integration/admin-product-use-cases.test.ts` のSKU rollbackを確認した。Key投影と基本NormalizerのFormal evidenceはあるが、Category / Brand / VariationおよびproductCode / SKUの正規化後重複を一貫して検証するFormal evidenceがなく、単なるsuite分散ではないため`coverage-gap`とした。
+- `CT-TX-001`: `tests/integration/auth-account.test.ts` のGuest Cart統合・Login rollback、`tests/integration/review-user-use-cases.test.ts` のRank変更 / User Access、`tests/integration/admin-operations-use-cases.test.ts` の在庫調整・履歴Rollback、`tests/contracts/transactions.test.ts` のApplicationTransactionRunner commit / rollbackを確認した。元の4観点は複数の既存Formal suiteで確認でき、1 file制約だけが表現を妨げるため`model-mismatch`とした。
+- `CT-CATEGORY-002`: `tests/integration/admin-master-use-cases.test.ts` の `creates categories at the end and reorders every ID in steps of ten` はsortOrder結果を検証するが、最大値取得と作成の同一Transaction / atomicityを検証するFormal testは確認できなかった。`coverage-gap`として`stop`を維持する。
+- `CT-AUTH-001`: `tests/integration/auth-account.test.ts` がEmail正規化、active / suspended / withdrawn Login、保存済みPassword照合を確認し、`tests/unit/password-hasher.test.ts` の `uses the fixed algorithm, iteration, salt, and key sizes` と `verifies deterministic seed hashes and rejects malformed encodings` がPBKDF2 / Seed Hashを確認する。元の意味は全て既存Formal evidenceに接続できるが、2 suiteへ分散するため`model-mismatch`とした。
+- `UT-REVIEW-SUM-001`: `tests/unit/reviews.test.ts` が未丸め平均、表示丸め、rating distribution delta、`tests/repository-contract/storefront-catalog.test.ts` がReview平均のSort / Filter、`tests/contracts/transactions.test.ts` がReview / Summary rollbackを確認する。複数suiteへの分散のみであり`model-mismatch`とした。
+- `CP-FORM-001`: `tests/component/presentation-foundation.test.tsx` の `focuses an error summary and links each message to its field` はError Summary / field linkを確認するが、NFR-MA-012の共有入力上限・文字数制約を確認するFormal testは確認できなかった。`coverage-gap`として`stop`を維持する。
+- `CT-BOUNDARY-001`: `tests/contracts/image-manifest.test.ts` はBuild Manifest、`tests/integration/seeds.test.ts` はReset、`tests/contracts/architecture.test.ts` はApplication / Infrastructure・Native / Web・Native Test Control境界を確認する。一方、Request / Command補完、UI Order DTOの非公開フィールド、NFR-MA-020～023のFormal evidenceを1つの既存suiteまたはbounded refsで全体接続できず、`coverage-gap`とした。
+- `CT-ACTION-VERSION-001`: `tests/component/auth-account-pages.test.tsx` のProfile hidden actionVersion、`tests/integration/checkout-order-use-cases.test.ts` のCheckout / Payment retry、`tests/integration/admin-operations-use-cases.test.ts` のOrder / Shipment、`tests/integration/review-user-use-cases.test.ts` のReview expectedVersionを確認した。Profile / Checkout / Order / Reviewの全観点は既存Formal evidenceにあり、複数suite分散だけが制約なので`model-mismatch`とした。
+- Replan decision: `model-mismatch`が4件あるため、Child Plan §6のlower Traceability Dispositionだけを最小変更し、`bounded-multi-ref`を追加した。これは1〜数個のbounded representative refsに限定し、各refの担当観点を明記し、coverage gapを隠す用途と全Test inventory化を禁止する契約である。Stop条件も、3つのDispositionのいずれでも元意味の一部にFormal evidenceがない場合へ整合させた。Master Plan、既存Plan Run、Test、Product、workflow、configは変更していない。
+- Re-disposition result: `requirements_traceability.md`は`exact-title` 8件、`suite-level` 6件、`bounded-multi-ref` 4件、`stop` 4件となった。`CT-TX-001`、`CT-AUTH-001`、`UT-REVIEW-SUM-001`、`CT-ACTION-VERSION-001`をbounded multiへ変更し、`CT-DB-KEY-001`、`CT-CATEGORY-002`、`CP-FORM-001`、`CT-BOUNDARY-001`は欠落Formal coverageを理由にstopのまま保持した。意味を狭めてstopを消していない。
+- Progress: 85% (23/27)
+- Next: active Runのrun.json / validation historyを今回のreplan結果へ同期し、Required validation（`pnpm run test:contracts`は今回1回のみ）、manual cross-check、scope、Sanitizerを実施する。coverage gap 4件が残るため、Test追加なしではPR 2 completionへ進めない。
+
+## 2026-08-29 16:02 (JST)
+
+- Final analysis state: 残存8 stopをEvidenceベースで再分類し、`model-mismatch` 4件（`CT-TX-001`、`CT-AUTH-001`、`UT-REVIEW-SUM-001`、`CT-ACTION-VERSION-001`）と`coverage-gap` 4件（`CT-DB-KEY-001`、`CT-CATEGORY-002`、`CP-FORM-001`、`CT-BOUNDARY-001`）へ切り分けた。
+- Child Plan: `docs/plans/2026-08-28_214107_formal_test_strategy_traceability.md`のlower Traceability Dispositionだけを最小replanし、`bounded-multi-ref`を追加した。複数の独立観点が複数の既存Formal suiteへ分散する場合だけ、1〜数個の責務付きrefを許可し、coverage gapの補完や全Test inventory化は許可しない。Master Plan、既存Plan Run、Test、Product、workflow、configは変更していない。
+- Traceability final disposition: 22件は`exact-title` 8件、`suite-level` 6件、`bounded-multi-ref` 4件、`stop` 4件。元のRequirement /「主な確認」は`fe07e6af...`時点のCurrent documentationと照合して保持し、stopを隠すための意味変更はない。全exact titleと参照pathを確認し、suite-levelの複数file列挙は0件。
+- Coverage gaps: `CT-DB-KEY-001`は正規化後の名称・Code/SKU重複の一貫したFormal test不足、`CT-CATEGORY-002`はsortOrder作成の同一Transaction検証不足、`CP-FORM-001`は共有入力上限・文字数制約Formal test不足、`CT-BOUNDARY-001`はRequest / Command補完・UI Order DTO秘匿・NFR-MA-020～023のFormal boundary evidence不足である。いずれも今回Testを追加せず、別作業候補として残す。
+- Validation: `pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run validate:spec`、今回1回のみの`pnpm run test:contracts`（31 files / 456 tests、exit 0）、`git diff --check`はPASS。過去timeout履歴は削除せず、今回のPASSと区別して保持した。
+- Sanitizer / scope: active RunのSanitizer Write / CheckはPASS（4 files scanned、0 changes、0 replacements、residual 0）。`IMPLEMENTATION_BASE_SHA=fe07e6af99d60a2e5b56504a27df6feb3973ae01`からの許可範囲確認で、今回の変更はChild Plan、`requirements_traceability.md`、active Runのみ。禁止scopeは0件。既存Plan Runのdirty changeと未追跡別Runは保護して除外した。
+- Run state: `run.json`は`status=completed`、`validation.status=passed`、`primary_failure_category=null`、`evaluation_path=null`、`evaluation_present=false`。`completed`はRun artifactと検証工程の完了を示すが、actual coverage gap 4件が残るためPR 2 DoD / completionは未達である。
+- Boundary: Test追加、Product変更、workflow変更、commit、push、PR更新、review thread操作、mergeは行っていない。Stop condition / unresolved itemはcoverage gap 4件であり、別途Formal test追加等の判断が必要である。
+- Progress: 100% (27/27)
