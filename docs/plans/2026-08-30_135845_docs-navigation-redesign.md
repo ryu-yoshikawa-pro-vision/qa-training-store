@@ -2,358 +2,518 @@
 
 ## 0. 依頼概要
 
-- 依頼内容:
-  - Production で公開している Specification と Test Automation Curriculum の閲覧体験を再設計する。
-  - 現在の使いづらさを解消するため、Playwright Documentation のように「文書全体の移動」「本文閲覧」「ページ内移動」を同時に把握できる構成へ改善する。
-  - 対象 URL は既存どおり `/docs/spec/**` と `/docs/curriculum/**` とし、公開パスは変更しない。
-- 背景:
-  - 現在の Docs は Markdown を静的 HTML 化して公開できているが、長いページでは現在地・他ページ・ページ内見出しを把握しづらい。
-  - `scripts/spec/markdown.ts` の `renderMarkdown()` はすでに `<aside class="toc">` と `<div class="document-body">` を別要素として生成しているため、renderer の返却形式を変えずに CSS で本文と Contents を横並びにできる。
-  - Specification の文書全体 Navigation は header に横並び表示されており一覧性が低い。
-  - Curriculum は `docs/curriculum/test-automation/README.md` に学習順の正本があるが、生成ページには文書全体を移動する Navigation がない。
-- 期待成果:
-  - Desktop では、見た目として左に Primary Navigation、中央に本文、右にページ内 `Contents` を持つ3領域構成とする。
-  - Narrow / Mobile では1カラムへ落とし、Primary Navigation は native `<details>` で初期折りたたみにして本文へすぐ到達できるようにする。
-  - 既存 Markdown renderer の出力契約は変更せず、CSS と Specification / Curriculum の page shell を中心に最小変更する。
+- Production で公開している Specification と Test Automation Curriculum の閲覧体験を改善する。
+- 対象 URL は既存どおり `/docs/spec/**` と `/docs/curriculum/**` とし、公開 path は変更しない。
+- 現在の課題は、長い Docs で次を把握しづらいこと。
+  - 現在どの文書を見ているか。
+  - 他にどの文書があるか。
+  - 現在ページ内にどの見出しがあるか。
+- Playwright Documentation の外観をコピーするのではなく、次の情報設計だけを参考にする。
+  - 左: document-wide Primary Navigation。
+  - 中央: article body。
+  - 右: current page の Contents。
+- Narrow / Mobile では1カラムへ落とし、Primary Navigation は native `<details>` で初期折りたたみにする。
+- 既存 Markdown renderer の出力契約は変更せず、CSS と Specification / Curriculum の page shell を中心に最小変更する。
 
 ## 1. ゴール / 完了条件
 
-- ゴール:
-  - Specification と Curriculum の双方で、利用者が次の3点を判断しやすい Docs UI にする。
-    1. **Where am I?**: 現在閲覧している文書が分かる。
-    2. **What else exists?**: 主要な移動先と文書構造が分かる。
-    3. **What is on this page?**: 現在ページの見出し構成と目的の節への移動方法が分かる。
-  - Playwright Documentation の外観をコピーするのではなく、Navigation / Article / Contents の役割分担だけを参考にする。
-- 完了条件（DoD）:
-  - `/docs/spec/**` と `/docs/curriculum/**` の既存 URL を変更しない。
-  - Desktop では見た目として次の3領域を持つ。
-    - 左: document-wide Primary Navigation。
-    - 中央: article body。
-    - 右: current page の `Contents`。
-  - DOM 上で3要素を同一階層の sibling にすることは要件にしない。既存 `article > .toc + .document-body` をそのまま利用する。
-  - 左 Primary Navigation と右 `Contents` は sticky とし、長い本文をスクロールしても利用できる。
-  - `Contents` は既存どおり current page の H2 / H3 を使用し、H1 は重複表示しない。
-  - `Contents` 対象の H2 / H3 がないページでは article body が右側の空カラムを残さず article 全幅を使用する。
-  - Specification の Primary Navigation は `docs/spec/README.md` の `## Navigation` を正本とし、別 config を作らない。
-  - Curriculum の Primary Navigation は `docs/curriculum/test-automation/README.md` の `## 全体構成` 内の H3 group と、その直下の番号付き Markdown link を正本とする。
-  - Curriculum Navigation は現行の3 group（`共通`、`Part 1: テスト自動化の基礎と実践`、`Part 2: 開発プロセスへの組み込みと実務導入`）の見出し文字列と記載順をそのまま維持し、filesystem の alphabetical order を使用しない。
-  - Primary Navigation に掲載されていない Supporting / Optional / Legacy ページに current 用の項目を追加しない。
-  - current state は次の3状態に固定する。
-    - Specification / Curriculum root page: header home link のみに `aria-current="page"` を付け、表示中の Primary Navigation 内は0件とする。
-    - Primary Navigation 掲載 page: header home link には current を付けず、表示中の Primary Navigation 内で `aria-current="page"` を exactly 1件とする。
-    - Primary Navigation 非掲載の Supporting / Optional / Legacy page: header home linkにも Primary Navigationにも `aria-current="page"` を付けず、表示中の Primary Navigation 内は0件とする。
-  - `aria-current="page"` を current state の正本とし、同じ属性を CSS selector に利用して current link を通常 link と視覚的に区別する。`.active` 等の重複 state class は追加しない。
-  - Primary Navigation を Desktop / Mobile 用に重複生成する場合、非表示側に同じ current link が存在することは許容する。
-  - Desktop / Mobile の Primary Navigation は同時表示せず、Desktop では Mobile `<details>`、Narrow / Mobile では Desktop `<nav>` を `display:none` で非表示にする。`visibility:hidden`、opacity、画面外配置は使用しない。
-  - current 判定は生成後の href 文字列ではなく、Navigation source README 基準で解決した canonical repository path と current page の `parsed.relativePath` を比較して行う。
-  - Navigation target は Navigation source README を基準に解決し、本文 link は従来どおり current page 基準で解決する。
-  - Narrow / Mobile では1カラム化し、Primary Navigation は native `<details>` / `<summary>` で初期折りたたみとする。
-  - Mobile の Primary Navigation のために JavaScript drawer、overlay、state management を追加しない。
-  - Mobile の `Contents` は既存 TOC を本文上部へ落とすだけとし、新たな折りたたみ機能を追加しない。
-  - Narrow / Mobile で document 全体の横 overflow を発生させない。table / pre 自体の内部横 scroll は既存契約どおり許容する。
-  - 現行 CSS の `main` 最大幅 `1280px` と breakpoint `800px` は互換契約として維持しない。本文の可読幅を確保できるよう必要最小限に調整する。
-  - responsive layout は Desktop 3領域 / Narrow 1カラムの2状態だけとし、Tablet専用などの中間layoutを追加しない。
-  - Navigation / Contents に semantic markup と適切な `aria-label` を付与し、keyboard で link を利用できる。
-  - `renderMarkdown()` の返却形式、Markdown parser、heading id、本文 link / image resolver の契約を変更しない。
-  - Specification / Curriculum の画像、本文リンク、Spec ↔ Curriculum link、GitHub source link を壊さない。
-  - Specification root の本文 `## Navigation` と Curriculum root の本文 `## 全体構成` は削除・非表示化しない。Primary Navigation との一部重複は許容する。
-  - `pnpm run build:spec` の `output/spec-site`、`pnpm run build:docs` / `pnpm run build:web` の `dist/docs/**` 出力契約を維持する。
-  - Storefront / SPA route / Native build へ影響を与えない。
-  - 新しい Docs framework / Markdown parser / UI framework / runtime dependency を追加しない。
-  - 新規 contract test は追加せず、既存 published docs smoke を拡張して検証する。
-  - Docs smoke と最終 `pnpm run verify` が PASS する。
+### ゴール
+
+利用者が Specification / Curriculum の双方で次を判断しやすくする。
+
+1. **Where am I?**: 現在閲覧している文書が分かる。
+2. **What else exists?**: 主要な移動先と文書構造が分かる。
+3. **What is on this page?**: 現在ページの見出し構成と目的の節への移動方法が分かる。
+
+### 完了条件（DoD）
+
+- `/docs/spec/**` と `/docs/curriculum/**` の既存 URL を変更しない。
+- Desktop では見た目として次の3領域を持つ。
+  - 左: document-wide Primary Navigation。
+  - 中央: article body。
+  - 右: current page の Contents。
+- DOM 上で3要素を同一階層の sibling にすることは要件にしない。
+- 既存 `article > .toc + .document-body` を維持する。
+- Desktop の Primary Navigation と Contents は sticky とする。
+- Desktop の sidebar が viewport より長い場合は sidebar 内部で scroll できるようにする。
+- Narrow / Mobile の Primary Navigation / Contents は通常 document flow とし、sticky / sidebar用 `max-height` / 内部scrollを持たせない。
+- `Contents` は既存どおり current page の H2 / H3 を使用し、H1 は重複表示しない。
+- H2 / H3 がないページでは article body が空の右カラムを残さず article 全幅を使用する。
+- Specification Primary Navigation は `docs/spec/README.md` の `## Navigation` を正本とする。
+- Curriculum Primary Navigation は `docs/curriculum/test-automation/README.md` の `## 全体構成` を正本とする。
+- Curriculum は `## 全体構成` 内の H3 を group label、その直下の番号付き Markdown link を Navigation item として扱う。
+- Curriculum の現行 group 順序・表記は source README の記載順をそのまま使用する。
+- filesystem の alphabetical order から Navigation を生成しない。
+- Optional Reference / Legacy Alias 等、`## 全体構成` 外の項目は Primary Navigation に自動追加しない。
+- Primary Navigation 非掲載ページに current 用の偽 item を追加しない。
+- current state は次の3状態に固定する。
+  - Specification / Curriculum root page: header home link のみに `aria-current="page"` を付け、visible Primary Navigation 内は0件。
+  - Primary Navigation 掲載 page: header home linkには current を付けず、visible Primary Navigation 内で `aria-current="page"` を exactly 1件。
+  - Primary Navigation 非掲載 page: header home linkにも Primary Navigationにも `aria-current="page"` を付けず、visible Primary Navigation 内は0件。
+- `aria-current="page"` を semantic / visual current state の唯一の正本とする。
+- current の視覚表示は `[aria-current="page"]` を直接 CSS selector として使う。
+- `.active` 等の重複 state class は追加しない。
+- Desktop / Mobile 用に同じ Navigation content を重複 markup することは許容する。
+- Desktop / Mobile の Primary Navigation は同時表示しない。
+  - Desktop: Desktop `<nav>` を表示し、Mobile `<details>` を `display:none`。
+  - Narrow / Mobile: Desktop `<nav>` を `display:none`、Mobile `<details>` を表示。
+- 非表示側の切替に `visibility:hidden`、opacity、画面外配置、JavaScript stateを使わない。
+- current 判定は生成後の href ではなく canonical repository path と `parsed.relativePath` の比較で行う。
+- Navigation target は Navigation source README を基準に解決する。
+- Markdown本文内 link は従来どおり current page 基準で解決する。
+- Narrow / Mobile は1カラムとする。
+- Mobile Primary Navigation は native `<details>` / `<summary>` で初期closedとする。
+- JavaScript drawer、overlay、state management は追加しない。
+- Mobile Contents は既存 TOC を本文上部へ置くだけとし、新しいcollapse機能は追加しない。
+- Narrow / Mobile で document 全体の横 overflow を発生させない。
+- table / pre 自体の内部横 scroll は既存契約どおり許容する。
+- 現行 `main max-width:1280px` と breakpoint `800px` は互換契約としない。
+- 3領域で article body の可読幅を確保できるよう、main最大幅とbreakpointを必要最小限に調整する。
+- responsive state は Desktop 3領域 / Narrow 1カラムの2状態だけとする。
+- Tablet専用等の中間layoutを追加しない。
+- Navigation / Contents に semantic markup と適切な `aria-label` を持たせる。
+- keyboard focus indicator を消さない。
+- `renderMarkdown()` の返却形式を変更しない。
+- Markdown parser、heading id、本文 link / image resolver の契約を変更しない。
+- Specification / Curriculum の画像、本文 link、Spec ↔ Curriculum link、GitHub source link を壊さない。
+- Specification root の本文 `## Navigation` と Curriculum root の本文 `## 全体構成` は削除・非表示化しない。
+- Primary Navigation との一部重複は許容する。
+- `pnpm run build:spec` の `output/spec-site` と、`pnpm run build:docs` / `pnpm run build:web` の `dist/docs/**` 出力契約を維持する。
+- Storefront / SPA route / Native build へ影響を与えない。
+- 新しい Docs framework / Markdown parser / UI framework / runtime dependency を追加しない。
+- 新規 contract test / visual regression 基盤 / Playwright project を追加しない。
+- Docs smoke と最終 `pnpm run verify` が PASS する。
 
 ## 2. 現状理解と前提
 
-- Current understanding:
-  - 計画作成時点の baseline は `main` commit `78c55b25bd39c91423001a3607236a98eaf76264`。
-  - 作業ブランチは `plan/docs-navigation-redesign`。
-  - Specification と Curriculum は静的 HTML として `dist/docs/spec/**` / `dist/docs/curriculum/**` へ生成される。
-  - `renderMarkdown()` は現在、`<aside class="toc">...</aside><div class="document-body">...</div>` の順で返す。
-  - この DOM 順序は変更せず、Desktop では CSS Grid の明示配置で `.document-body` を中央、`.toc` を右へ置く。
-  - TOC / body を新 API へ分離する必要はない。
-  - `MARKDOWN_CSS` にはすでに grid、sticky TOC、mobile breakpoint の基礎があるため、既存 CSS の整理・拡張を優先する。
-  - 現在の汎用 `nav ul` は横並び指定を持つため、Primary Navigation 導入時は用途を限定した selector へ整理し、sidebar と競合させない。
-  - 現行 CSS には `[aria-current="page"]` の current 視覚スタイルがないため、今回 `aria-current` を直接 selector として current を識別できる最小スタイルを追加する。
-  - 現行 `main` の最大幅 `1280px` と breakpoint `800px` は現在の2カラム向けであり、3領域化後も固定する前提にはしない。
-  - `scripts/spec/build-spec.ts` は `docs/spec/README.md` の `## Navigation` を既存 `extractNavigation()` で読み取っている。
-  - Specification Navigation の target は README に対する相対 path なので、README を基準に canonical repository path へ一度解決する必要がある。
-  - Specification の href は current output page ごとに相対表現が変わるため、canonical path の確定と page-specific href 生成を分ける。
-  - 現在の Specification `## Navigation` は Markdown file への直接 link のみで、fragment link は含まれていないため、今回 fragment 対応を追加しない。
-  - Specification Navigation target の存在確認は既存 `validate:spec` が担っているため、builderに専用validationを重複追加しない。
-  - `scripts/docs/build-docs.ts` には既存 `resolveRepositoryPath()` と `resolveCurriculumLink()` があり、Curriculum Navigation の canonical path 解決と href 生成にそのまま再利用できる。
-  - `resolveCurriculumLink()` に Curriculum README を source として渡した Navigation href は `/docs/curriculum/**` の root-relative URLになるため、hrefはcurrent pageに依存せずNavigation metadata生成時に1回確定できる。
-  - Curriculum `README.md` の `## 全体構成` は H3 group と番号付き Markdown link で規則的に学習順を定義しているため、汎用 Markdown AST は不要。
-  - Curriculum の Primary Navigation は20件を超えるため、Mobileで常時展開すると本文への到達を阻害する。
-  - Curriculum Navigation metadata の抽出・canonical path・href確定は build ごとに1回で十分だが、既存 page 生成 loop が root README を再度 `parseMarkdownFile()` することは許容する。その回避だけを目的に cache / pre-parsed Map を追加しない。
-  - Specification root の `## Navigation` と Curriculum root の `## 全体構成` は source Markdown として残し、Primary Navigationとの重複解消を目的に本文を加工しない。
-  - `e2e/web/smoke.spec.ts` には既存 `published docs smoke` があり、今回の UI 契約はここを拡張して確認できる。
-  - `pnpm run test:smoke` は既存 script として存在し、`deployed-smoke` project は Desktop Chrome を使用する。
-  - `deployed-smoke` の既定 viewport にレイアウト要件を引きずられないよう、Desktop代表ケースは `page.setViewportSize({ width: 1440, height: 1000 })` を明示する。
-  - Mobile responsive smoke は新しい Playwright project を作らず、既存 `deployed-smoke` 上で `page.setViewportSize({ width: 390, height: 844 })` を使って確認できる。
-  - local Playwright web server は `reuseExistingServer: !process.env.CI` なので通常のローカル実行では既存serverを再利用し得る。一方 `CI` をtruthyにすると retry も `2` へ変わるため、server再利用防止のためだけに `CI` を使わない。current branchのlocal smokeでは未使用のloopback portを `PLAYWRIGHT_BASE_URL` に指定し、そのportに既存processがない状態で実行する。
-  - `pnpm run verify` は format / Markdown lint / spec validation / curriculum validation / lint / typecheck / test / `build:web` / `build:spec` を包含している。
-- Assumptions:
-  - Desktop は左 Navigation / article body / 右 Contents を同時表示できる十分な横幅を持つ環境とする。
-  - article body は読みやすい幅を維持し、wide monitor で過度に横長にしない。
-  - sidebar の厳密な幅、spacing、main 最大幅、breakpoint は既存 tone を維持しつつ、3領域で本文が狭くならない範囲へ実装時に1回だけ調整する。
-  - Specification / Curriculum の本文・用語・教材順は変更しない。
-  - Playwright Documentation は information architecture の参考に留め、CSS・branding・DOM を複製しない。
-- Non-goals:
-  - Markdown renderer の新 API 設計や返却型変更。
-  - Spec / Curriculum 共通の新しい Docs page framework / shell abstraction。
-  - Docusaurus / VitePress / MkDocs / Nextra 等の Docs framework 導入。
-  - Expo Router の `web.output` 変更。
-  - Markdown / 画像正本の移動・複製。
-  - Docs 専用 SPA / React hydration / client-side router。
-  - 検索、全文検索 index、command palette。
-  - Prev / Next navigation、breadcrumb、version switcher、theme switcher、dark mode。
-  - current section の scroll spy。
-  - content 本文の再執筆・教材順変更。
-  - Specification / Curriculum 以外の `docs/**` 公開範囲拡張。
-  - Docs 専用 CI workflow。
-  - Production domain / Cloudflare deploy architecture の変更。
-  - 新規 contract test / visual regression 基盤の追加。
-  - Navigation metadata のためだけの cache / pre-parsed Markdown Map。
-  - Specification Primary Navigation の未使用 fragment 対応。
-  - Specification builder 内のNavigation target専用validation追加。
-  - current 表示のための `.active` 等、`aria-current` と重複するstate追加。
-  - smoke検証のためだけの Playwright project / config変更。
+### Current understanding
+
+- 作業ブランチは `plan/docs-navigation-redesign`。
+- Plan作成時のbaselineは `main` commit `78c55b25bd39c91423001a3607236a98eaf76264`。
+- 2026-08-30 の最終Planレビュー時点で `main` は `3022a74ba7cde2d3cc81ce318c6320dbf78115c6` まで進んでいる。
+- branch はこの時点で `main` から1 commit behindだが、最新main更新は今回の実装対象4ファイルを変更していない。
+- 実装開始時に最新 `main` を取り込み、baselineを再確認する。
+- Specification と Curriculum は静的 HTML として `dist/docs/spec/**` / `dist/docs/curriculum/**` へ生成される。
+- `renderMarkdown()` は `<aside class="toc">...</aside><div class="document-body">...</div>` の順で返す。
+- DOM順序は変更せず、DesktopではCSS Gridの明示配置で `.document-body` を中央、`.toc` を右へ置く。
+- `MARKDOWN_CSS` には既に grid / sticky TOC / mobile breakpoint の基礎がある。
+- 現在の汎用 `nav ul` は横並び指定を持つため、Primary Navigation導入時は用途を限定したselectorへ整理する。
+- 現行CSSには `[aria-current="page"]` のcurrent視覚スタイルがない。
+- `scripts/spec/build-spec.ts` は既に `docs/spec/README.md` の `## Navigation` を `extractNavigation()` で読み取っている。
+- Specification Navigation target はREADME基準の相対pathなので、一度canonical repository pathへ解決する必要がある。
+- Specification Navigation hrefはcurrent output pageごとに相対表現が変わる。
+- 現在のSpecification `## Navigation`はMarkdown fileへの直接linkのみでfragment linkはない。
+- Specification Navigation target存在確認は既存 `validate:spec` が担当する。
+- `scripts/docs/build-docs.ts` には既存 `resolveRepositoryPath()` と `resolveCurriculumLink()` がある。
+- Curriculum Navigationのcanonical path解決 / href生成にはこの2関数を再利用する。
+- Curriculum READMEをsourceにした`resolveCurriculumLink()`の結果は `/docs/curriculum/**` のroot-relative URLになるため、hrefはpage非依存である。
+- Curriculum `README.md` の `## 全体構成` はH3 group + 番号付きMarkdown linkで規則的に構成されている。
+- Curriculum Navigationは20件を超えるため、Mobileで常時展開しない。
+- `validate:curriculum` は必須教材fileと既存Markdown link先の存在を検証するが、`## 全体構成` からNavigation metadataを抽出できたかは検証しない。
+- そのためCurriculum builderでは、`## 全体構成`が見つからない、またはNavigation itemが0件の場合だけfail-fastする。
+- group数やitem数を固定値でvalidationしない。
+- Curriculum README自体が既存page生成loopで再parseされることは許容する。
+- parse回数削減だけを目的にcache / pre-parsed Mapを追加しない。
+- `e2e/web/smoke.spec.ts` には既存published docs smokeがある。
+- `pnpm run test:smoke` は `deployed-smoke` projectを使用する。
+- Desktop代表ケースは `1440×1000` を明示する。
+- Mobile代表ケースは `390×844` を明示する。
+- local Playwright web serverは通常ローカル実行で既存serverを再利用し得る。
+- `CI`をtruthyにするとretryも2へ変わるため、server再利用防止だけのために`CI`を使用しない。
+- local smokeは未使用loopback portを`PLAYWRIGHT_BASE_URL`に指定して実行する。
+- `pnpm run verify` はformat / Markdown lint / spec validation / curriculum validation / lint / typecheck / test / `build:web` / `build:spec` を包含する。
+
+### Assumptions
+
+- Desktopは3領域を同時表示できる十分な横幅を持つ環境とする。
+- article bodyは読みやすい幅を維持する。
+- sidebar幅、border、font-size、spacing、main最大幅、breakpointは既存toneを維持しつつ実装時に1回だけ調整する。
+- currentの具体的な色・背景・font-weightは既存palette内で、通常linkとの差が視認できる最小スタイルとする。
+- `Contents` labelは既存どおり `Contents` とする。
+- Mobile Primary Navigationの`<summary>`は `Navigation` 等の簡潔な名称とする。
+- Specification / Curriculum本文・用語・教材順は変更しない。
+
+### Non-goals
+
+- Markdown rendererの新API設計 / 返却型変更。
+- Spec / Curriculum共通の新しいDocs page framework / shell abstraction。
+- Docusaurus / VitePress / MkDocs / Nextra等のDocs framework導入。
+- Expo Router `web.output`変更。
+- Markdown / 画像正本の移動・複製。
+- Docs専用SPA / React hydration / client-side router。
+- Search / 全文検索index / command palette。
+- Prev / Next navigation。
+- breadcrumb。
+- version switcher / theme switcher / dark mode。
+- current section scroll spy。
+- content本文の再執筆 / 教材順変更。
+- Specification / Curriculum以外の`docs/**`公開範囲拡張。
+- Docs専用CI workflow。
+- Production domain / Cloudflare deploy architecture変更。
+- Navigation metadata用cache / pre-parsed Markdown Map。
+- Specification Primary Navigationの未使用fragment対応。
+- Specification builder内のNavigation target専用validation。
+- `.active`等`aria-current`と重複するstate。
+- smokeのためだけのPlaywright project / config変更。
 
 ## 3. 質問 / 曖昧性
 
-- 必ず質問する不透明点:
-  - なし。今回の対象は既存静的 Docs の Primary Navigation / Contents / layout 再構成に限定する。
-- 仮定してよい細部:
-  - sidebar 幅、border、font-size、spacing、main 最大幅、breakpoint は既存 tone を維持して実装時に最小調整する。
-  - `Contents` label は既存どおり `Contents` とする。
-  - Mobile Primary Navigation の `<summary>` label は `Navigation` 等の簡潔な名称とする。
-  - current の具体的な色・背景・font-weight等は既存 palette を使い、通常linkとの差が視認できる最小スタイルにする。
-- 未回答の重要質問:
-  - なし。
+- 必ず質問する不透明点: なし。
+- 未回答の重要質問: なし。
+- 実装者が決めてよい細部はCSSの見た目に限定する。
+  - sidebar幅。
+  - border。
+  - font-size。
+  - spacing。
+  - main最大幅。
+  - breakpoint。
+  - current視覚スタイルの具体的な色・背景・font-weight。
+- 上記細部も既存toneを維持し、3領域の可読性を満たす最小調整とする。
 
 ## 4. 影響範囲
 
-- 実装コード・テストの変更対象は次の4ファイルに限定する。
-  - `scripts/spec/markdown.ts`
-    - `renderMarkdown()` は変更しない。
-    - shared CSS のみを Desktop 3領域 / Narrow 1カラムへ整理する。
-  - `scripts/spec/build-spec.ts`
-    - Specification Primary Navigation を header から左側へ移す。
-    - README 基準の canonical path 解決、page-specific href 生成、current state、Mobile Navigation markup を実装する。
-  - `scripts/docs/build-docs.ts`
-    - Curriculum `README.md` の `## 全体構成` から group / link を抽出する最小ロジックを追加する。
-    - 既存 `resolveRepositoryPath()` / `resolveCurriculumLink()` を再利用し、Navigation metadata生成時に canonical path / href を確定する。
-    - Curriculum Primary Navigation / current state / Mobile Navigation markup を実装する。
-  - `e2e/web/smoke.spec.ts`
-    - 既存 published docs smoke を拡張する。
-- 既存の `docs/plans/2026-08-30_135845_docs-navigation-redesign.md` はbranch成果物として維持する。そのため実装完了時の `main` との差分は、本Plan 1ファイル + 実装4ファイルの計5ファイルを想定する。
-- 原則変更しない:
-  - `scripts/spec/markdown.ts` の `renderMarkdown()` / parser / renderer logic。
-  - `docs/spec/README.md`。
-  - `docs/curriculum/test-automation/README.md`。
-  - `playwright.config.ts`。
-  - Markdown 本文、画像正本、教材順。
-- 新しい source file / test file / config file は追加しない。
+### 実装コード・テスト
+
+次の4ファイルだけを変更する。
+
+1. `scripts/spec/markdown.ts`
+   - `renderMarkdown()`は変更しない。
+   - shared CSSのみを整理・拡張する。
+2. `scripts/spec/build-spec.ts`
+   - Specification Primary Navigationをheaderから左側へ移す。
+   - canonical path / page-specific href / current state / Mobile markupを追加する。
+3. `scripts/docs/build-docs.ts`
+   - Curriculum `## 全体構成` の最小抽出ロジックを追加する。
+   - existing resolverを再利用する。
+   - Primary Navigation / current state / Mobile markupを追加する。
+4. `e2e/web/smoke.spec.ts`
+   - 既存published docs smokeを拡張する。
+
+### Branch上で維持するPlan
+
+- `docs/plans/2026-08-30_135845_docs-navigation-redesign.md`
+- 実装完了時の`main`との差分は、Plan 1ファイル + 実装4ファイルの計5ファイルを正常状態とする。
+
+### 原則変更しない
+
+- `scripts/spec/markdown.ts` の`renderMarkdown()` / parser / renderer logic。
+- `docs/spec/README.md`。
+- `docs/curriculum/test-automation/README.md`。
+- `playwright.config.ts`。
+- Markdown本文。
+- 画像正本。
+- 教材順。
+
+### 新規ファイル
+
+- 追加しない。
 
 ## 5. 変更方針 / 実行タスク
 
-- Change strategy:
-  - **既存 DOM を使う。** `renderMarkdown()` の `<aside class="toc"> + <div class="document-body">` を維持する。
-  - **CSS と page shell を中心に変更する。** UX 改善のために Markdown renderer の契約へ変更範囲を広げない。
-  - **Navigation source は既存 README を維持する。** 別 JSON / TS array / YAML へ項目を複製しない。
-  - **Navigation metadata と page-specific markup を分ける。** Navigation items の抽出・canonical path 確定は build ごとに1回行う。Specificationのhrefはcurrent output pageに依存するためpageごとに生成し、Curriculumのhrefはroot-relativeなのでmetadata生成時に1回確定する。
-  - **READMEのparse回数そのものは最適化対象にしない。** 既存 page 生成 loop の再parseを許容し、その回避のために cache / Map / build構造変更を追加しない。
-  - **Desktop / Mobile では同じ page-specific Navigation content を再利用する。** markupだけを出し分け、抽出・path解決・current判定を二重実装しない。
-  - **Desktop / Mobile の表示切替は CSS の `display:none` だけで行う。** runtime state や accessibility 用の追加制御を作らない。
-  - **current stateは`aria-current`だけで表現する。** currentの視覚スタイルも `[aria-current="page"]` を直接使い、`.active`等の別stateは作らない。
-  - **current 判定と href 生成を分ける。** current は canonical repository path で比較する。Specification hrefのみ current output pageに応じて生成する。
-  - **Spec / Curriculum builder を無理に共通化しない。** Navigation構造とURL契約が異なるため、それぞれ小さく実装する。
-  - **静的 HTML のまま実現する。** Mobile 折りたたみも native HTMLだけで実現する。
-  - **Root本文のNavigation重複は許容する。** 重複解消のためにMarkdown本文やrendererへ特殊処理を追加しない。
-- 実行タスク:
-  - [ ] 1. 実装開始時に最新 `main` を取り込み、本 Plan の baseline と実装対象4ファイルを再確認する。本Plan自体はbranch成果物として残す。
-  - [ ] 2. `scripts/spec/markdown.ts` の `MARKDOWN_CSS` を最小変更する。
-    - `main` は Desktop で `Primary Navigation | article` の2列とする。
-    - `article` は Desktop で2列にし、DOM 順序を変えず `.document-body` を column 1、`.toc` を column 2 に明示配置する。
-    - `.document-body` と `.toc` は必要に応じて `grid-row: 1` を共有し、画面上は `Primary Navigation | article body | Contents` の3領域とする。
-    - `.toc` が存在しない場合は `.document-body:only-child` 等の単純な CSS で article 全幅を使用し、空の右カラムを残さない。page shell 側に `hasToc` 判定や JavaScript を追加しない。
-    - `.document-body` / `article` に `min-width: 0` を設定し、table / pre で全体 layout を押し広げない。
-    - Primary Navigation / `.toc` は `align-self: start` と sticky を使い、header と重ならない offset を設定する。
-    - sidebar が viewport より長い場合は内部 scroll 可能にする。
-    - 現在の汎用 `nav ul` の横並び指定を残して override を積み重ねず、Primary Navigation 用 selector へ用途を限定して整理する。
-    - `[aria-current="page"]` を直接 selector として利用し、header home / Primary Navigation の current が通常linkと視覚的に区別できる最小スタイルを付ける。current表示用の追加classは作らない。
-    - Desktop では Desktop Primary Navigation を表示し、Mobile `<details>` を `display:none` にする。
-    - Narrow / Mobile では Desktop Primary Navigation を `display:none` にし、Mobile `<details>` を表示する。
-    - 非表示切替に `visibility:hidden`、opacity、positionによる画面外配置は使用しない。
-    - 現行 `max-width:1280px` と `800px` breakpoint は固定せず、3領域で本文の可読幅を確保できるよう main 最大幅と切替点を必要最小限に調整する。
-    - responsive layout は Desktop 3領域 / Narrow 1カラムの2状態だけにする。
-    - Narrow / Mobile は1カラムへ切り替え、`.toc` は既存の本文上部表示を維持する。
-    - `renderMarkdown()`、parser、heading、link / image resolver は変更しない。
-  - [ ] 3. Specification page shell を最小変更する。
-    - `docs/spec/README.md` の既存 `## Navigation` を build ごとに1回 `extractNavigation()` で抽出する。
-    - 各 item の target は `docs/spec/README.md` の directory を基準に `path.posix.join()` / `path.posix.normalize()` で canonical repository path へ変換し、build 全体で再利用できる Navigation metadata にする。
-    - Navigation専用の汎用resolverは作らない。
-    - 現在の `## Navigation` に fragment link は存在しないため、今回 Primary Navigation 用の fragment split / re-attach 処理は追加しない。
-    - Navigation targetの存在確認は既存 `validate:spec` に任せ、builder内へ専用 `fs.existsSync()` / validatorを追加しない。
-    - 各 page では canonical path と `parsed.relativePath` を比較して current を判定する。
-    - Primary Navigation の href は `resolveOutputLink(parsed.relativePath, item.target)` を使わない。
-    - Primary Navigation の href は `outputPathFor(canonicalPath)` で target output path を求め、`relativeOutputPath(outputPathFor(parsed.relativePath), targetOutputPath)` で current page からの相対 href を生成する。
-    - 本文 link は従来どおり `resolveOutputLink(parsed.relativePath, target)` を使用する。
-    - page-specificな current 判定・href生成・Navigation content生成は各 page で1回だけ行う。
-    - 生成済み Navigation content を Desktop `<nav>` と Mobile `<details>` 内で再利用する。
-    - Desktop では Primary Navigation を `main` 左側へ表示し、現在の header 横並び Navigation は廃止する。
-    - root pageではheader home linkだけをcurrentにし、Primary Navigation内にはcurrentを付けない。
-    - Primary Navigation掲載pageではheader home linkにcurrentを付けず、表示中Primary Navigation内の該当item 1件だけに `aria-current="page"` を付ける。
-    - Supporting page等Primary Navigation非掲載pageではheader home linkにもPrimary Navigationにもcurrentを付けず、current用の偽itemを追加しない。
-    - Desktop / Mobile の両 markup に current link が生成される場合、E2E は visible Primary Navigation を対象に確認する。
-    - root本文の `## Navigation` は削除・非表示化しない。
-  - [ ] 4. Curriculum Primary Navigation を最小実装する。
-    - build ごとに Curriculum Navigation metadata を1回生成するため、`docs/curriculum/test-automation/README.md` の `## 全体構成` を読み取り対象にする。
-    - READMEのファイルparse自体が既存 page 生成 loop で再度発生することは許容し、その回避だけを目的に cache / pre-parsed Map を追加しない。
-    - `## 全体構成` 内の H3 見出し文字列をそのまま group label として扱う。現行は `共通`、`Part 1: テスト自動化の基礎と実践`、`Part 2: 開発プロセスへの組み込みと実務導入` の3 group。
-    - 各 group 直下の番号付き Markdown link を記載順のまま Navigation item とする。
-    - 次の H2 に到達したら `## 全体構成` の抽出を終了する。
-    - Optional Reference / Legacy Alias 等、`## 全体構成` 外の項目を自動追加しない。
-    - canonical repository path は既存 `resolveRepositoryPath(rootDir, "docs/curriculum/test-automation/README.md", item.target)` を使って Navigation metadata 生成時に確定する。
-    - href も既存 `resolveCurriculumLink(rootDir, "docs/curriculum/test-automation/README.md", item.target)` を使って Navigation metadata生成時に1回確定する。各pageでhrefを再生成しない。
-    - Navigation metadata は少なくとも group / label / canonicalPath / href を保持すれば十分で、新しい汎用Navigation modelは作らない。
-    - 新しい canonical path helper / Navigation専用 URL resolver / 共通 Navigation resolver は作らない。
-    - 各 page では canonical path と `parsed.relativePath` を比較して current lesson だけを判定し、Navigation contentを生成する。
-    - broken target は既存 `resolveRepositoryPath()` / `resolveCurriculumLink()` の存在確認で build error とする。
-    - filesystem walk 順序から Navigation を生成しない。
-    - 汎用 Markdown AST や新 parser は導入しない。
-  - [ ] 5. Curriculum page shell を最小変更する。
-    - Desktop では Primary Navigation を `main` 左側へ表示する。
-    - root pageではheader home linkだけをcurrentにし、Primary Navigation内にはcurrentを付けない。
-    - Primary Navigation掲載lessonではheader home linkにcurrentを付けず、表示中Primary Navigation内の該当lesson 1件だけに `aria-current="page"` を付ける。
-    - Optional / Legacy等Primary Navigation非掲載pageではheader home linkにもPrimary Navigationにもcurrentを付けず、current用の偽itemを追加しない。
-    - Mobile では20件超の Navigation を本文前に常時展開せず、native `<details>` で初期折りたたみにする。
-    - Desktop / Mobile で同じ page-specific Navigation content を使い回し、Navigation抽出・path解決・JavaScriptを重複追加しない。
-    - Desktop / Mobile の両 markup に current link が生成される場合、E2E は visible Primary Navigation を対象に確認する。
-    - Spec ↔ Curriculum 等の既存本文 link resolver は変更しない。
-    - root本文の `## 全体構成` は削除・非表示化しない。
-  - [ ] 6. semantic / accessibility を page shell へ組み込む。
-    - document-wide Primary Navigation は `<nav>` と適切な `aria-label` を持つ。
-    - Mobile `<details>` 内にも Navigation role が分かる構造を持たせる。
-    - Desktop / Mobile の非表示側は `display:none` で accessibility tree / tab順から外す。
-    - page-local Contents は既存 `<aside class="toc" aria-label="Table of contents">` を維持する。
-    - article は `<article>` を維持する。
-    - current state はDoDで定義した3状態に従い、Primary Navigation掲載pageでのみPrimary Navigation内の `aria-current="page"` がexactly 1件になる。
-    - currentの視覚表示も同じ `aria-current="page"` を利用し、semantic stateとvisual stateを二重管理しない。
-    - keyboard focus indicator を消さない。
-  - [ ] 7. `e2e/web/smoke.spec.ts` の既存 published docs smoke を拡張する。
-    - Desktop UI を検証する代表ケースの冒頭で `page.setViewportSize({ width: 1440, height: 1000 })` を設定し、Playwright既定viewportにbreakpoint設計を引きずらせない。
-    - Desktop Specification の代表 nested page で Primary Navigation・article body・Contents が表示される。
-    - 3領域が単に存在するだけでなく、bounding box 等で `Primary Navigation < article body < Contents` の X 座標関係を1ケース確認する。
-    - TOC がない既存 page を利用できる場合は article body が不要に狭くならないことを確認する。適切な既存 page がなければ専用 fixture を追加しない。
-    - Specification nested page から Primary Navigation link が正しい URL へ遷移する。
-    - Contents link で対象 heading anchor へ遷移できる。
-    - SpecificationのPrimary Navigation掲載代表pageではvisible Primary Navigation内の `aria-current="page"` が1件であることを確認する。
-    - Root representative pageではheader home linkだけがcurrentで、visible Primary Navigation内のcurrentが0件であることを確認する。
-    - Desktop Curriculum の root / representative nested lesson で group順序、lesson link、DoDのcurrent stateを確認する。
-    - Supporting / Optional / Legacyのcurrent 0件状態は既存smoke内で自然に利用できるpageがある場合のみ確認し、そのためだけにfixtureや追加testを増やさない。
-    - Mobile viewport `390×844` では、Specification の representative nested page で Desktop Primary Navigation が非表示、Mobile `<details>` が表示され、初期closedであることだけを最小確認する。Specification側ではlink操作やoverflow確認を重複させない。
-    - Mobile UI の詳細確認は Navigation件数が多い Curriculum の representative nested lesson 1ケースで行う。
-    - Mobile専用の新しい Playwright projectは追加せず、既存 `deployed-smoke` project 上で Mobile test の冒頭に `page.setViewportSize({ width: 390, height: 844 })` を設定する。
-    - Curriculum の Mobile viewport では Desktop Primary Navigation が非表示、Primary Navigation `<details>` が表示かつ初期折りたたみで、開いて link 操作できることを確認する。
-    - Desktop代表ケースでは Mobile `<details>` が非表示であることを確認する。
-    - Curriculum の Mobile では `document.documentElement.scrollWidth <= window.innerWidth` を確認し、page 全体の横 overflow がないことを確認する。
-    - 既存の Specification 画像、Curriculum lesson 遷移、Curriculum → Spec smoke は維持する。
-  - [ ] 8. 最終 diff を確認する。
-    - 実装コード・テストの変更が上記4ファイルに収まり、Docs UX 以外へscopeが広がっていないことを確認する。
-    - 本Planは削除せずbranch成果物として維持する。
-    - `main`との差分が本Plan 1ファイル + 実装4ファイルの計5ファイルになることは正常とする。
+### Change strategy
+
+- **既存DOMを使う。**
+- **CSSとpage shellを中心に変更する。**
+- **Navigation sourceは既存READMEを維持する。**
+- **Navigation metadataとpage-specific markupを分ける。**
+- **READMEのparse回数そのものは最適化しない。**
+- **Desktop / Mobileで同じpage-specific Navigation contentを再利用する。**
+- **Desktop / Mobile表示切替はCSSの`display:none`だけで行う。**
+- **Desktopだけsticky / sidebar内部scrollを使用する。**
+- **Narrow / Mobileは通常document flowへ戻す。**
+- **current stateは`aria-current`だけで表現する。**
+- **current判定とhref生成を分ける。**
+- **Spec / Curriculum builderを無理に共通化しない。**
+- **静的HTMLのまま実現する。**
+- **Root本文のNavigation重複を許容する。**
+- **README由来のNavigation文字列は既存`escapeHtml()`でescapeする。**
+
+### Task 1. 最新mainを取り込む
+
+- 実装開始時に最新`main`を取り込む。
+- Planのbaselineと実装対象4ファイルを再確認する。
+- latest main側で今回の機能が既に実装済みなら重複実装しない。
+- Planファイルはbranch成果物として維持する。
+
+### Task 2. `scripts/spec/markdown.ts` のCSSを最小変更する
+
+- Desktopの`main`を `Primary Navigation | article` の2列にする。
+- Desktopの`article`を2列にし、DOM順序を変えず次を明示配置する。
+  - `.document-body`: column 1。
+  - `.toc`: column 2。
+- 必要に応じて`.document-body`と`.toc`を同じ`grid-row`へ置く。
+- 画面上は `Primary Navigation | article body | Contents` の3領域とする。
+- `.toc`がない場合は `.document-body:only-child` 等の単純なCSSでarticle全幅を使用する。
+- page shell側に`hasToc`判定を追加しない。
+- JavaScriptを追加しない。
+- `.document-body` / `article`へ`min-width:0`を設定する。
+- table / preでpage全体を押し広げない。
+- Desktop Primary Navigation / Contentsは`align-self:start` + stickyとする。
+- headerと重ならないoffsetを設定する。
+- Desktop sidebarがviewportより長い場合だけ内部scrollを許可する。
+- Narrow / Mobileではstickyを解除する。
+- Narrow / Mobileではsidebar用`max-height` / 内部scrollも解除し、page全体の通常scrollを使う。
+- 現行の汎用`nav ul`横並び指定へoverrideを積み重ねず、Primary Navigation用selectorへ用途を限定する。
+- `[aria-current="page"]`を直接styleし、header home / Primary Navigationのcurrentを視覚的に区別する。
+- current用追加classを作らない。
+- DesktopではDesktop Primary Navigationを表示し、Mobile `<details>`を`display:none`にする。
+- Narrow / MobileではDesktop Primary Navigationを`display:none`にし、Mobile `<details>`を表示する。
+- `visibility:hidden` / opacity / off-screen positioningは使用しない。
+- 現行`max-width:1280px` / `800px` breakpointを固定しない。
+- responsive stateはDesktop / Narrowの2状態だけにする。
+- Narrow / Mobileでは`.toc`を本文上部へ置く。
+- `renderMarkdown()` / parser / heading / link resolver / image resolverは変更しない。
+
+### Task 3. Specification page shellを最小変更する
+
+- `docs/spec/README.md`の`## Navigation`をbuildごとに1回`extractNavigation()`で抽出する。
+- 各item targetを`docs/spec/README.md`のdirectory基準で`path.posix.join()` / `path.posix.normalize()`し、canonical repository pathを確定する。
+- Navigation専用の汎用resolverは作らない。
+- fragment split / re-attach処理は追加しない。
+- Navigation target存在確認は既存`validate:spec`へ任せる。
+- builder内へNavigation target専用`fs.existsSync()` / validatorを追加しない。
+- 各pageでcanonical pathと`parsed.relativePath`を比較してcurrent判定する。
+- Primary Navigation hrefに`resolveOutputLink(parsed.relativePath, item.target)`を使わない。
+- hrefは次の順で生成する。
+  1. `outputPathFor(canonicalPath)`でtarget output pathを求める。
+  2. `relativeOutputPath(outputPathFor(parsed.relativePath), targetOutputPath)`でcurrent pageからの相対hrefを求める。
+- 本文linkは従来どおり`resolveOutputLink(parsed.relativePath, target)`を使う。
+- page-specific current判定 / href生成 / Navigation content生成は各pageで1回だけ行う。
+- Navigation item labelとhrefは既存`escapeHtml()`でescapeしてHTMLへ出力する。
+- 生成済みNavigation contentをDesktop `<nav>`とMobile `<details>`内で再利用する。
+- Desktop Primary Navigationを`main`左側へ置く。
+- 現在のheader横並びNavigationは廃止する。
+- root pageはheader home linkだけをcurrentにする。
+- Primary Navigation掲載pageは該当itemだけをcurrentにする。
+- Primary Navigation非掲載pageではcurrentを追加しない。
+- current用の偽itemを追加しない。
+- root本文の`## Navigation`を削除・非表示化しない。
+
+### Task 4. Curriculum Primary Navigationを最小実装する
+
+- `docs/curriculum/test-automation/README.md`の`## 全体構成`を読み取り、Navigation metadataをbuildごとに1回生成する。
+- README自体がpage生成loopで再parseされることは許容する。
+- cache / pre-parsed Mapを作らない。
+- `## 全体構成`に到達した後、次のH2までをNavigation sectionとする。
+- section内のH3見出し文字列をgroup labelとして扱う。
+- H3名を`共通` / `Part 1` / `Part 2`等の固定値で分岐しない。
+- source READMEのH3文字列と記載順をそのまま使用する。
+- H3はsource解析上のgroup境界としてのみ使用し、sidebar HTMLではH3要素として再生成しない。
+- sidebarのgroup labelは`<strong>`または`<span>`等の非heading要素で表現する。
+- 各group直下の番号付きMarkdown linkを記載順でNavigation itemとする。
+- 次のH2へ到達したら抽出を終了する。
+- `## 全体構成`外のOptional / Legacyを自動追加しない。
+- `## 全体構成`が見つからない場合はbuild errorにする。
+- Navigation itemが0件の場合はbuild errorにする。
+- group数やitem数を固定値でvalidationしない。
+- canonical repository pathは既存`resolveRepositoryPath(rootDir, "docs/curriculum/test-automation/README.md", item.target)`でNavigation metadata生成時に確定する。
+- hrefは既存`resolveCurriculumLink(rootDir, "docs/curriculum/test-automation/README.md", item.target)`でNavigation metadata生成時に1回確定する。
+- 各pageでhrefを再生成しない。
+- Navigation metadataは`group / label / canonicalPath / href`程度で十分とする。
+- 新しい汎用Navigation modelを作らない。
+- 新しいcanonical path helper / Navigation専用URL resolver / 共通Navigation resolverを作らない。
+- 各pageではcanonical pathと`parsed.relativePath`を比較してcurrent lessonだけを判定する。
+- group label / item label / hrefは既存`escapeHtml()`でescapeしてHTMLへ出力する。
+- broken targetは既存`resolveRepositoryPath()` / `resolveCurriculumLink()`でbuild errorにする。
+- filesystem walk順序からNavigationを生成しない。
+- 汎用Markdown AST / 新parserは導入しない。
+
+### Task 5. Curriculum page shellを最小変更する
+
+- Desktop Primary Navigationを`main`左側へ表示する。
+- root pageはheader home linkだけをcurrentにする。
+- Primary Navigation掲載lessonは該当lessonだけをcurrentにする。
+- Optional / Legacy等の非掲載pageにcurrent用の偽itemを追加しない。
+- Mobile Primary Navigationはnative`<details>`で初期closedとする。
+- Desktop / Mobileで同じpage-specific Navigation contentを使う。
+- Navigation抽出 / path解決 / JavaScriptを二重実装しない。
+- Spec ↔ Curriculum等の既存本文link resolverは変更しない。
+- root本文の`## 全体構成`を削除・非表示化しない。
+
+### Task 6. Semantic / accessibilityを維持する
+
+- document-wide Primary Navigationは`<nav>`と適切な`aria-label`を持つ。
+- Mobile `<details>`内にもNavigation roleが分かる構造を持たせる。
+- Desktop / Mobile非表示側は`display:none`でaccessibility tree / tab順から外す。
+- page-local Contentsは既存`<aside class="toc" aria-label="Table of contents">`を維持する。
+- articleは`<article>`を維持する。
+- current stateはDoDの3状態に従う。
+- visual currentも同じ`aria-current="page"`だけを使用する。
+- keyboard focus indicatorを消さない。
+- source H3をsidebar H3へ複製せず、article heading outlineへ不要なheadingを追加しない。
+
+### Task 7. `e2e/web/smoke.spec.ts`を最小拡張する
+
+#### Desktop
+
+- Desktop UI代表ケース冒頭で`page.setViewportSize({ width: 1440, height: 1000 })`を設定する。
+- Specification representative nested pageでPrimary Navigation / article body / Contentsが表示されることを確認する。
+- 3領域のX座標関係を1ケースだけ確認する。
+  - Primary Navigation < article body < Contents。
+- TOCなし既存pageを利用できる場合だけarticle bodyが不要に狭くならないことを確認する。
+- そのためだけのfixtureは追加しない。
+- Specification nested pageからPrimary Navigation linkが正しいURLへ遷移することを確認する。
+- Contents linkでheading anchorへ遷移できることを確認する。
+- Specification Primary Navigation掲載代表pageでvisible Primary Navigation内のcurrentが1件であることを確認する。
+- root representative pageでheader homeのみcurrent、visible Primary Navigation current 0件を確認する。
+- Desktop Curriculum root / representative nested lessonでgroup順序、lesson link、current stateを確認する。
+- Supporting / Optional / Legacyのcurrent 0件は既存smokeで自然に利用できるpageがある場合だけ確認する。
+- Desktop代表ケースでMobile `<details>`が非表示であることを確認する。
+
+#### Mobile
+
+- Mobile専用Playwright projectを追加しない。
+- 既存`deployed-smoke` projectで`page.setViewportSize({ width: 390, height: 844 })`を使用する。
+- Specification representative nested pageは次だけを確認する。
+  - Desktop Primary Navigationが非表示。
+  - Mobile `<details>`が表示。
+  - 初期closed。
+- Specification側でlink操作 / overflow確認を重複させない。
+- 詳細なMobile確認はCurriculum representative nested lesson 1ケースで行う。
+  - Desktop Primary Navigation非表示。
+  - Mobile `<details>`表示。
+  - 初期closed。
+  - openできる。
+  - Navigation linkを操作できる。
+  - `document.documentElement.scrollWidth <= window.innerWidth`。
+- 既存Specification画像、Curriculum lesson遷移、Curriculum → Spec smokeを維持する。
+
+### Task 8. 最終diffを確認する
+
+- 実装コード・テスト変更が4ファイルに収まっていることを確認する。
+- Docs UX以外へscopeが広がっていないことを確認する。
+- Planは削除しない。
+- `main`との差分はPlan 1 + 実装4 = 計5ファイルを正常とする。
 
 ## 6. 検証方法
 
-- 実装中:
-  - `pnpm run build:docs`
-  - local smoke は `CI` を設定せず、`DEPLOYED_BASE_URL` を設定せず、`PLAYWRIGHT_USE_PREBUILT_DIST` も未設定または `false` とする。
-  - `PLAYWRIGHT_BASE_URL` には現在使用されていない loopback port（`127.0.0.1`）を指定し、そのportに既存processが存在しないことを確認してから実行する。特定のport番号は固定せず、実行時に未使用portを選ぶ。
-  - 上記条件で `pnpm run test:smoke` を実行し、Playwrightに current branch の `build:web` とlocal static serverを起動させる。
-  - 古い Production / Preview / prebuilt `dist` / 別branchの既存serverを参照した smoke PASS を今回の実装検証として扱わない。
-  - server再利用防止だけを目的に `CI` をtruthyにしない。`CI` を設定すると `retries` も2へ変わりlocal smokeの実行条件が変化するため、今回の標準手順では使用しない。
-  - Desktop responsive smoke は `playwright.config.ts` を変更せず、既存 `deployed-smoke` project 内で `page.setViewportSize({ width: 1440, height: 1000 })` により実施する。
-  - Mobile responsive smoke も `playwright.config.ts` を変更せず、同じ既存 `deployed-smoke` project 内で `page.setViewportSize({ width: 390, height: 844 })` により実施する。
-- 最終:
-  - `pnpm run verify`
-- 成功判定:
-  - local Docs smoke と `pnpm run verify` が PASS する。
-  - Desktop 1440×1000 で Primary Navigation / article body / Contents が見た目として3領域に配置される。
-  - Desktop 3領域で article body の可読幅が確保され、現行 `1280px` / `800px` の数値維持を目的化していない。
-  - Desktop / Mobile の Primary Navigation は同時表示されず、非表示側は `display:none` で tab順から外れる。
-  - `aria-current="page"` のlinkは通常linkと視覚的に区別でき、semantic stateとvisual stateを別classで二重管理していない。
-  - `renderMarkdown()` の返却契約を変更していない。
-  - TOC がないページでは article body が右側の空領域を残さない。
-  - Spec / Curriculum の nested page から Primary Navigation が正しい URL へ遷移する。
-  - current stateがDoDの3状態に一致する。rootはheader homeのみ、Primary Navigation掲載pageはvisible Primary Navigation内 exactly 1件、Primary Navigation非掲載pageは0件とする。
-  - Root本文の `## Navigation` / `## 全体構成` が既存どおり残る。
-  - Mobile 390×844 で Specification / Curriculum の双方に Mobile Primary Navigation markup が存在し、初期折りたたみになる。
-  - Curriculum の Mobile では Navigation link 操作ができ、page 全体の横 overflow が発生しない。
-  - Markdown content、画像、内部 link、外部 link、Spec ↔ Curriculum link が既存どおり機能する。
-  - Production path / build pipeline / dependency set に変更がない。
-  - 実装コード・テストは4ファイルだけを変更し、本Planを含む `main` との差分は計5ファイルである。
+### 実装中
+
+- `pnpm run build:docs`
+- local smokeは次の条件で実行する。
+  - `CI`を設定しない。
+  - `DEPLOYED_BASE_URL`を設定しない。
+  - `PLAYWRIGHT_USE_PREBUILT_DIST`を未設定または`false`にする。
+  - `PLAYWRIGHT_BASE_URL`へ未使用の`127.0.0.1` loopback portを指定する。
+  - そのportに既存processがないことを確認する。
+- 特定port番号はPlanへ固定しない。
+- `pnpm run test:smoke`を実行し、current branchの`build:web`とlocal static serverをPlaywrightに起動させる。
+- 古いProduction / Preview / prebuilt `dist` / 別branch既存serverを見たPASSは採用しない。
+- server再利用防止のためだけに`CI`をtruthyにしない。
+- Desktop smokeは1440×1000。
+- Mobile smokeは390×844。
+
+### 最終
+
+- `pnpm run verify`
+
+### 成功判定
+
+- local Docs smokeがPASSする。
+- `pnpm run verify`がPASSする。
+- Desktop 1440×1000でPrimary Navigation / article body / Contentsが3領域に配置される。
+- article bodyの可読幅が確保される。
+- Desktop Primary Navigation / Contentsはstickyとして利用できる。
+- Narrow / Mobileは通常flowで、Primary Navigation / ContentsへDesktop用sticky / max-height / sidebar内部scrollが漏れない。
+- Desktop / Mobile Primary Navigationは同時表示されない。
+- 非表示側は`display:none`でtab順から外れる。
+- current linkは視覚的に通常linkと区別できる。
+- semantic / visual current stateを別classで二重管理していない。
+- `renderMarkdown()`契約を変更していない。
+- TOCなしpageでarticle bodyが空の右領域を残さない。
+- Spec / Curriculum nested pageからPrimary Navigationが正しいURLへ遷移する。
+- current stateがDoDの3状態に一致する。
+- Curriculum Navigation抽出が空の場合は静かに空Navigationを生成せずbuild errorになる。
+- Curriculum group labelをarticle headingとして増やしていない。
+- Root本文の`## Navigation` / `## 全体構成`が残る。
+- Mobile 390×844でSpec / Curriculum双方にMobile Primary Navigation markupが存在し、初期closedになる。
+- Curriculum MobileでNavigation link操作ができる。
+- Curriculum Mobileでpage全体の横overflowがない。
+- Markdown content、画像、内部link、外部link、Spec ↔ Curriculum linkが既存どおり機能する。
+- Production path / build pipeline / dependency setに変更がない。
+- 実装コード・テストは4ファイルだけで、本Planを含む`main`との差分は計5ファイルである。
 
 ## 7. リスク / Stop Conditions
 
-- Risks:
-  - `renderMarkdown()` の DOM 順序は `.toc` → `.document-body` なので、Grid column を明示しないと Desktop で `Contents | 本文` の順になる。DOM を並べ替えず CSS で配置する。
-  - TOC がないページで article の2列を固定すると空の右カラムが残る。`:only-child` 等の単純な CSS で本文を全幅化する。
-  - Specification Navigation の README 相対 target を current page 基準の `resolveOutputLink(parsed.relativePath, item.target)` へ直接渡すと nested page の href が壊れる。Primary Navigationでは canonical path → output path → `relativeOutputPath()` の順で生成する。
-  - current 判定を生成後の相対 href で比較すると nested page ごとに表現が変わるため、canonical repository path と `parsed.relativePath` で比較する。
-  - root / Primary Navigation掲載page / 非掲載pageのcurrent stateを区別しないと、偽のNavigation item追加や不正なheader currentにつながる。DoDの3状態をそのまま実装する。
-  - `aria-current` だけ付けて視覚スタイルを付けないと「Where am I?」を視覚的に満たせない。`[aria-current="page"]` を直接スタイルし、別state classは追加しない。
-  - Specification Navigation targetの存在確認は既存 `validate:spec` が行うため、builder側へ重複validationを追加しない。
-  - Navigation metadata の抽出・canonical path 解決を各 page ごとに繰り返すと無駄なので build ごとに1回生成する。一方、READMEのファイルparse回数自体を1回へ抑えるための cache / Map は作らない。
-  - Curriculum hrefはroot-relativeでpage非依存なのでNavigation metadata生成時に1回確定し、各pageで再生成しない。
-  - Desktop / Mobile 用 Navigation はDOM上で重複するが、CSSの `display:none` で一方だけを表示し、非表示側をtab順・accessibility treeから外す。重複排除のruntimeは追加しない。
-  - 現在の汎用 `nav ul` を残して sidebar 用 CSS を上書きすると selector が複雑化する。Primary Navigation 用 selector へ用途を限定して整理する。
-  - 現行 `main max-width:1280px` / `800px` breakpoint を固定すると3領域で本文が狭くなる可能性がある。数値互換ではなく可読性を優先して1回だけ調整する。
-  - Desktop smokeをPlaywright既定viewportへ依存させると、testに合わせてbreakpointを歪める可能性がある。Desktop代表ケースは1440×1000を明示する。
-  - responsive layout を細分化すると CSS が複雑化するため、Desktop / Narrow の2状態を超えない。
-  - sticky sidebar に高さ制御がないと、項目が viewport より長い場合に末尾へ到達できない。
-  - Mobile で20件超の Curriculum Navigation を常時展開すると本文へ到達しづらくなるため、Primary Navigation は折りたたむ。
-  - Specification / Curriculum は別builderでMobile markupを生成するため、CurriculumだけをMobile確認するとSpecification側のmarkup欠落を見逃し得る。Specificationは表示/初期closedだけを最小確認し、詳細な操作・overflow確認はCurriculumだけで行う。
-  - Root本文のNavigation重複を消そうとするとMarkdown本文・rendererへ特殊処理が増えるため、重複は許容する。
-  - 現在存在しない Specification Navigation fragment 対応を先回り実装すると不要な分岐が増えるため、今回追加しない。
-  - local smokeで既存serverを再利用すると別branchや古いdistを検証して誤PASSする可能性がある。未使用loopback portを指定してcurrent branchのserverを起動する。server再利用防止だけのために`CI`を設定してretry条件まで変えない。
-  - 実装4ファイルという制約を `main` との差分4ファイルと誤解して本Planを削除しない。本Planを含む差分5ファイルが正常状態。
-- Stop conditions:
-  - `renderMarkdown()` の返却契約を変更しないと実現できないと判断した場合は、まず CSS / page shell だけで本当に不可能か再確認し、renderer変更を安易に進めない。
-  - Curriculum `## 全体構成` の H3 group + numbered links を抽出するだけでは実現できず、汎用 Markdown parser の全面置換・大規模 AST 実装が必要になる場合は実装を止めて再設計する。
-  - READMEのparse回数を減らすためだけに cache / pre-parsed Map / builder全体の再構成が必要になる案は採用しない。
-  - Spec / Curriculum を共通 framework へ統合しないと実現できない案は採用しない。小さい重複を許容して各 builder を保つ。
-  - Playwright Documentation の外観再現のために framework / runtime dependency / client-side application 化が必要になる案は採用しない。
-  - Search、Prev / Next、breadcrumb、versioning、scroll spy 等の追加要求は本 PR へ含めない。
-  - currentの視覚表示のために`.active`等の別stateを追加しない。`aria-current`だけで十分に実現する。
-  - smoke検証のために `playwright.config.ts`、新規Playwright project、専用test fileを追加する案は採用しない。
-  - 新規 source file / contract test / visual regression基盤を必要とする案は、今回の最小実装方針から外れるため採用しない。
+### Risks
+
+- `.toc` → `.document-body` のDOM順のままGrid column指定をしないとDesktopで`Contents | 本文`になる。
+- TOCなしpageでarticle 2列を固定すると空の右カラムが残る。
+- Specification Navigation targetをcurrent page基準の`resolveOutputLink()`へ直接渡すとnested page hrefが壊れる。
+- current判定をhref文字列で行うとnested pageごとに表現が変わる。
+- root / Navigation掲載 / 非掲載のcurrent状態を区別しないと偽itemや不正currentが発生する。
+- `aria-current`だけ付け視覚styleを付けないとWhere am Iを視覚的に満たせない。
+- Specification builderでtarget validationを重複実装すると責務が増える。
+- Curriculum `## 全体構成`構造が壊れたとき空Navigationを静かに生成すると障害診断が難しい。
+- ただしgroup数 / item数まで固定するとREADMEを正本にする設計と矛盾するため、存在 + 非空だけをfail-fast条件にする。
+- Navigation metadataを各pageで再抽出すると無駄になる。
+- README parse回数削減のためにcache / Mapを作ると過剰になる。
+- Curriculum hrefをpageごとに再計算すると不要な処理が増える。
+- Desktop / Mobile markup重複をruntimeで解消しようとするとJavaScript stateが増える。
+- Desktop用sticky / max-height / overflowがMobileへ漏れると、Mobile Navigationが二重scrollになり使いづらくなる。
+- source H3をsidebarでもH3として出すとarticle heading outlineへ不要なheadingが増える。
+- README由来label / hrefをescapeせずHTML化すると生成HTMLの安全性・正確性を損なう。
+- 汎用`nav ul`へsidebar overrideを積むとselectorが複雑化する。
+- 現行1280px / 800pxを固定すると3領域でarticle bodyが狭くなる可能性がある。
+- responsive stateを増やすとCSSが複雑になる。
+- Desktop sidebarに高さ制御がないと末尾へ到達できない。
+- Mobile Curriculum Navigationを常時展開すると本文到達を阻害する。
+- CurriculumだけMobile確認すると別builderのSpecification Mobile markup欠落を見逃し得る。
+- Root本文Navigation重複を消そうとするとrenderer / Markdown特殊処理が増える。
+- 現在存在しないSpecification Navigation fragment対応を先回りすると不要分岐が増える。
+- local smokeで既存serverを再利用すると別branch / 古いdistで誤PASSする可能性がある。
+- server再利用防止だけのために`CI`を設定するとretry条件まで変わる。
+- 実装4ファイルという制約を`main`との差分4ファイルと誤解してPlanを削除しない。
+
+### Stop conditions
+
+- `renderMarkdown()`契約変更が必要に見えた場合は、CSS / page shellだけで本当に不可能か再確認する。
+- Curriculum Navigation抽出に汎用Markdown parser全面置換 / 大規模ASTが必要になる場合は実装を止めて再設計する。
+- README parse回数削減のためだけにcache / pre-parsed Map / builder全体再構成が必要になる案は採用しない。
+- Spec / Curriculumを共通frameworkへ統合しないと実現できない案は採用しない。
+- 小さい重複は許容する。
+- Playwright Documentation外観再現のためにframework / runtime dependency / client-side application化が必要になる案は採用しない。
+- Search / Prev Next / breadcrumb / versioning / scroll spyを本PRへ含めない。
+- current視覚表示のために`.active`等の別stateを追加しない。
+- smokeのために`playwright.config.ts` / 新規Playwright project / 専用test fileを追加しない。
+- 新規source file / contract test / visual regression基盤を必要とする案は採用しない。
+- Desktop / Mobile navigation状態同期のためのJavaScriptを追加しない。
+- Curriculum group名 / item数を固定値へhard-codeするvalidationを追加しない。
 
 ## 8. 成果物
 
-- 実装対象:
-  - `scripts/spec/markdown.ts` — CSS のみ。
-  - `scripts/spec/build-spec.ts`。
-  - `scripts/docs/build-docs.ts`。
-  - `e2e/web/smoke.spec.ts`。
-- Branch上で維持するPlan:
-  - `docs/plans/2026-08-30_135845_docs-navigation-redesign.md`。
-- 原則変更しない:
-  - `scripts/spec/markdown.ts` の `renderMarkdown()` / parser / renderer logic。
-  - `docs/spec/README.md`。
-  - `docs/curriculum/test-automation/README.md`。
-  - `playwright.config.ts`。
-- 新規ファイル:
-  - 追加しない。
-- 付随ドキュメント:
-  - 本 Plan 以外の設計ドキュメントは追加しない。
+### 実装対象
+
+- `scripts/spec/markdown.ts` — CSSのみ。
+- `scripts/spec/build-spec.ts`。
+- `scripts/docs/build-docs.ts`。
+- `e2e/web/smoke.spec.ts`。
+
+### Branch上で維持するPlan
+
+- `docs/plans/2026-08-30_135845_docs-navigation-redesign.md`。
+
+### 原則変更しない
+
+- `scripts/spec/markdown.ts` の`renderMarkdown()` / parser / renderer logic。
+- `docs/spec/README.md`。
+- `docs/curriculum/test-automation/README.md`。
+- `playwright.config.ts`。
+
+### 新規ファイル
+
+- 追加しない。
+
+### 付随ドキュメント
+
+- 本Plan以外の設計ドキュメントは追加しない。
 
 ## 9. 備考
 
-- 本 Plan は `plan/docs-navigation-redesign` 上で実装まで進める前提だが、この Plan 作成・レビュー段階では実装しない。
-- 優先順位は「見栄えを Playwright 風にすること」ではなく、Docs 利用時の Navigation cost を下げること。
-- 実 DOM は変更せず次を利用する。
+- 本Planは`plan/docs-navigation-redesign`上で実装まで進める前提。
+- Plan作成・レビュー段階では実装しない。
+- 優先順位はPlaywright風の見栄えではなく、Docs利用時のNavigation costを下げること。
+- 実DOMは変更せず次を利用する。
 
 ```text
 main
@@ -363,7 +523,7 @@ main
    └─ document-body          ← DOMでは後
 ```
 
-- Desktop では CSS Grid で表示位置を明示する。
+- DesktopはCSS Gridで表示位置を明示する。
 
 ```text
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -379,7 +539,7 @@ main
 └──────────────────┴────────────────────────────────┴─────────────────┘
 ```
 
-- Narrow / Mobile の見た目:
+- Narrow / Mobileは通常document flowへ戻す。
 
 ```text
 ┌─────────────────────────────┐
@@ -394,4 +554,5 @@ main
 └─────────────────────────────┘
 ```
 
-- Mobile で折りたたむのは Primary Navigation のみとし、Contents の折りたたみや client-side interaction は追加しない。
+- Mobileで折りたたむのはPrimary Navigationだけとする。
+- Contentsのcollapseやclient-side interactionは追加しない。
