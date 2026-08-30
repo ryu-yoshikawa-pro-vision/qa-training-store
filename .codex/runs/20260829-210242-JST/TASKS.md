@@ -32,7 +32,7 @@
 - [x] D15. Product identifierのApplication `VALIDATION`変換とSuggestionのover-limit `VALIDATION`を既存Use Caseへ最小修正し、既存message keyを再利用する。
 - [x] D16. 2つの既存Integration Testへ境界・エラー契約を追加し、focused / required validationを実行する。
 - [x] D17. Manual self-review、scope確認、Sanitizer Write / Checkを実施する。
-- [ ] D18. Run ArtifactとPR本文をCurrent結果へ同期し、明示pathでcommit / push後にexact HEADのCIを確認する。
+- [x] D18. Run ArtifactとPR本文をCurrent結果へ同期し、明示pathでcommit / push後にexact HEADのCIを確認する。
 
 ## Blocked
 
