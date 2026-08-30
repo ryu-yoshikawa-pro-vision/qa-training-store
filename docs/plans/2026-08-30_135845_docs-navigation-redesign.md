@@ -42,6 +42,7 @@
     - Specification / Curriculum root page: header home link のみに `aria-current="page"` を付け、表示中の Primary Navigation 内は0件とする。
     - Primary Navigation 掲載 page: header home link には current を付けず、表示中の Primary Navigation 内で `aria-current="page"` を exactly 1件とする。
     - Primary Navigation 非掲載の Supporting / Optional / Legacy page: header home linkにも Primary Navigationにも `aria-current="page"` を付けず、表示中の Primary Navigation 内は0件とする。
+  - `aria-current="page"` を current state の正本とし、同じ属性を CSS selector に利用して current link を通常 link と視覚的に区別する。`.active` 等の重複 state class は追加しない。
   - Primary Navigation を Desktop / Mobile 用に重複生成する場合、非表示側に同じ current link が存在することは許容する。
   - Desktop / Mobile の Primary Navigation は同時表示せず、Desktop では Mobile `<details>`、Narrow / Mobile では Desktop `<nav>` を `display:none` で非表示にする。`visibility:hidden`、opacity、画面外配置は使用しない。
   - current 判定は生成後の href 文字列ではなく、Navigation source README 基準で解決した canonical repository path と current page の `parsed.relativePath` を比較して行う。
@@ -53,7 +54,6 @@
   - 現行 CSS の `main` 最大幅 `1280px` と breakpoint `800px` は互換契約として維持しない。本文の可読幅を確保できるよう必要最小限に調整する。
   - responsive layout は Desktop 3領域 / Narrow 1カラムの2状態だけとし、Tablet専用などの中間layoutを追加しない。
   - Navigation / Contents に semantic markup と適切な `aria-label` を付与し、keyboard で link を利用できる。
-  - active state の正本は `aria-current="page"` とする。
   - `renderMarkdown()` の返却形式、Markdown parser、heading id、本文 link / image resolver の契約を変更しない。
   - Specification / Curriculum の画像、本文リンク、Spec ↔ Curriculum link、GitHub source link を壊さない。
   - Specification root の本文 `## Navigation` と Curriculum root の本文 `## 全体構成` は削除・非表示化しない。Primary Navigation との一部重複は許容する。
@@ -74,6 +74,7 @@
   - TOC / body を新 API へ分離する必要はない。
   - `MARKDOWN_CSS` にはすでに grid、sticky TOC、mobile breakpoint の基礎があるため、既存 CSS の整理・拡張を優先する。
   - 現在の汎用 `nav ul` は横並び指定を持つため、Primary Navigation 導入時は用途を限定した selector へ整理し、sidebar と競合させない。
+  - 現行 CSS には `[aria-current="page"]` の current 視覚スタイルがないため、今回 `aria-current` を直接 selector として current を識別できる最小スタイルを追加する。
   - 現行 `main` の最大幅 `1280px` と breakpoint `800px` は現在の2カラム向けであり、3領域化後も固定する前提にはしない。
   - `scripts/spec/build-spec.ts` は `docs/spec/README.md` の `## Navigation` を既存 `extractNavigation()` で読み取っている。
   - Specification Navigation の target は README に対する相対 path なので、README を基準に canonical repository path へ一度解決する必要がある。
@@ -81,14 +82,16 @@
   - 現在の Specification `## Navigation` は Markdown file への直接 link のみで、fragment link は含まれていないため、今回 fragment 対応を追加しない。
   - Specification Navigation target の存在確認は既存 `validate:spec` が担っているため、builderに専用validationを重複追加しない。
   - `scripts/docs/build-docs.ts` には既存 `resolveRepositoryPath()` と `resolveCurriculumLink()` があり、Curriculum Navigation の canonical path 解決と href 生成にそのまま再利用できる。
-  - `resolveCurriculumLink()` に Curriculum README を source として渡したNavigation hrefは `/docs/curriculum/**` の root-relative URLになるため、hrefはcurrent pageに依存せずNavigation metadata生成時に1回確定できる。
+  - `resolveCurriculumLink()` に Curriculum README を source として渡した Navigation href は `/docs/curriculum/**` の root-relative URLになるため、hrefはcurrent pageに依存せずNavigation metadata生成時に1回確定できる。
   - Curriculum `README.md` の `## 全体構成` は H3 group と番号付き Markdown link で規則的に学習順を定義しているため、汎用 Markdown AST は不要。
   - Curriculum の Primary Navigation は20件を超えるため、Mobileで常時展開すると本文への到達を阻害する。
   - Curriculum Navigation metadata の抽出・canonical path・href確定は build ごとに1回で十分だが、既存 page 生成 loop が root README を再度 `parseMarkdownFile()` することは許容する。その回避だけを目的に cache / pre-parsed Map を追加しない。
   - Specification root の `## Navigation` と Curriculum root の `## 全体構成` は source Markdown として残し、Primary Navigationとの重複解消を目的に本文を加工しない。
   - `e2e/web/smoke.spec.ts` には既存 `published docs smoke` があり、今回の UI 契約はここを拡張して確認できる。
   - `pnpm run test:smoke` は既存 script として存在し、`deployed-smoke` project は Desktop Chrome を使用する。
-  - Mobile responsive smoke は新しい Playwright project を作らず、既存 `deployed-smoke` 上で `page.setViewportSize()` を使って確認できる。
+  - `deployed-smoke` の既定 viewport にレイアウト要件を引きずられないよう、Desktop代表ケースは `page.setViewportSize({ width: 1440, height: 1000 })` を明示する。
+  - Mobile responsive smoke は新しい Playwright project を作らず、既存 `deployed-smoke` 上で `page.setViewportSize({ width: 390, height: 844 })` を使って確認できる。
+  - local Playwright web server は `reuseExistingServer: !process.env.CI` なので、通常のローカル実行では既存serverを再利用し得る。current branchの検証では既存server再利用を許可しない。
   - `pnpm run verify` は format / Markdown lint / spec validation / curriculum validation / lint / typecheck / test / `build:web` / `build:spec` を包含している。
 - Assumptions:
   - Desktop は左 Navigation / article body / 右 Contents を同時表示できる十分な横幅を持つ環境とする。
@@ -114,6 +117,8 @@
   - Navigation metadata のためだけの cache / pre-parsed Markdown Map。
   - Specification Primary Navigation の未使用 fragment 対応。
   - Specification builder 内のNavigation target専用validation追加。
+  - current 表示のための `.active` 等、`aria-current` と重複するstate追加。
+  - smoke検証のためだけの Playwright project / config変更。
 
 ## 3. 質問 / 曖昧性
 
@@ -123,6 +128,7 @@
   - sidebar 幅、border、font-size、spacing、main 最大幅、breakpoint は既存 tone を維持して実装時に最小調整する。
   - `Contents` label は既存どおり `Contents` とする。
   - Mobile Primary Navigation の `<summary>` label は `Navigation` 等の簡潔な名称とする。
+  - current の具体的な色・背景・font-weight等は既存 palette を使い、通常linkとの差が視認できる最小スタイルにする。
 - 未回答の重要質問:
   - なし。
 
@@ -146,6 +152,7 @@
   - `scripts/spec/markdown.ts` の `renderMarkdown()` / parser / renderer logic。
   - `docs/spec/README.md`。
   - `docs/curriculum/test-automation/README.md`。
+  - `playwright.config.ts`。
   - Markdown 本文、画像正本、教材順。
 - 新しい source file / test file / config file は追加しない。
 
@@ -159,6 +166,7 @@
   - **READMEのparse回数そのものは最適化対象にしない。** 既存 page 生成 loop の再parseを許容し、その回避のために cache / Map / build構造変更を追加しない。
   - **Desktop / Mobile では同じ page-specific Navigation content を再利用する。** markupだけを出し分け、抽出・path解決・current判定を二重実装しない。
   - **Desktop / Mobile の表示切替は CSS の `display:none` だけで行う。** runtime state や accessibility 用の追加制御を作らない。
+  - **current stateは`aria-current`だけで表現する。** currentの視覚スタイルも `[aria-current="page"]` を直接使い、`.active`等の別stateは作らない。
   - **current 判定と href 生成を分ける。** current は canonical repository path で比較する。Specification hrefのみ current output pageに応じて生成する。
   - **Spec / Curriculum builder を無理に共通化しない。** Navigation構造とURL契約が異なるため、それぞれ小さく実装する。
   - **静的 HTML のまま実現する。** Mobile 折りたたみも native HTMLだけで実現する。
@@ -174,6 +182,7 @@
     - Primary Navigation / `.toc` は `align-self: start` と sticky を使い、header と重ならない offset を設定する。
     - sidebar が viewport より長い場合は内部 scroll 可能にする。
     - 現在の汎用 `nav ul` の横並び指定を残して override を積み重ねず、Primary Navigation 用 selector へ用途を限定して整理する。
+    - `[aria-current="page"]` を直接 selector として利用し、header home / Primary Navigation の current が通常linkと視覚的に区別できる最小スタイルを付ける。current表示用の追加classは作らない。
     - Desktop では Desktop Primary Navigation を表示し、Mobile `<details>` を `display:none` にする。
     - Narrow / Mobile では Desktop Primary Navigation を `display:none` にし、Mobile `<details>` を表示する。
     - 非表示切替に `visibility:hidden`、opacity、positionによる画面外配置は使用しない。
@@ -207,7 +216,7 @@
     - 次の H2 に到達したら `## 全体構成` の抽出を終了する。
     - Optional Reference / Legacy Alias 等、`## 全体構成` 外の項目を自動追加しない。
     - canonical repository path は既存 `resolveRepositoryPath(rootDir, "docs/curriculum/test-automation/README.md", item.target)` を使って Navigation metadata 生成時に確定する。
-    - href も既存 `resolveCurriculumLink(rootDir, "docs/curriculum/test-automation/README.md", item.target)` を使ってNavigation metadata生成時に1回確定する。各pageでhrefを再生成しない。
+    - href も既存 `resolveCurriculumLink(rootDir, "docs/curriculum/test-automation/README.md", item.target)` を使って Navigation metadata生成時に1回確定する。各pageでhrefを再生成しない。
     - Navigation metadata は少なくとも group / label / canonicalPath / href を保持すれば十分で、新しい汎用Navigation modelは作らない。
     - 新しい canonical path helper / Navigation専用 URL resolver / 共通 Navigation resolver は作らない。
     - 各 page では canonical path と `parsed.relativePath` を比較して current lesson だけを判定し、Navigation contentを生成する。
@@ -231,8 +240,10 @@
     - page-local Contents は既存 `<aside class="toc" aria-label="Table of contents">` を維持する。
     - article は `<article>` を維持する。
     - current state はDoDで定義した3状態に従い、Primary Navigation掲載pageでのみPrimary Navigation内の `aria-current="page"` がexactly 1件になる。
+    - currentの視覚表示も同じ `aria-current="page"` を利用し、semantic stateとvisual stateを二重管理しない。
     - keyboard focus indicator を消さない。
   - [ ] 7. `e2e/web/smoke.spec.ts` の既存 published docs smoke を拡張する。
+    - Desktop UI を検証する代表ケースの冒頭で `page.setViewportSize({ width: 1440, height: 1000 })` を設定し、Playwright既定viewportにbreakpoint設計を引きずらせない。
     - Desktop Specification の代表 nested page で Primary Navigation・article body・Contents が表示される。
     - 3領域が単に存在するだけでなく、bounding box 等で `Primary Navigation < article body < Contents` の X 座標関係を1ケース確認する。
     - TOC がない既存 page を利用できる場合は article body が不要に狭くならないことを確認する。適切な既存 page がなければ専用 fixture を追加しない。
@@ -257,22 +268,27 @@
 
 - 実装中:
   - `pnpm run build:docs`
-  - `DEPLOYED_BASE_URL` を設定せず、`PLAYWRIGHT_USE_PREBUILT_DIST` も未設定または `false` とし、current branch から `build:web` された local `dist` を対象に `pnpm run test:smoke` を実行する。
-  - 古い Production / Preview / prebuilt `dist` を参照した smoke PASS を今回の実装検証として扱わない。
-  - Mobile responsive smoke は `playwright.config.ts` を変更せず、既存 `deployed-smoke` project 内で `page.setViewportSize()` により実施する。
+  - local smoke は `DEPLOYED_BASE_URL` を設定せず、`PLAYWRIGHT_USE_PREBUILT_DIST` も未設定または `false` とする。
+  - local smoke の標準手順では Playwright 実行時に `CI` を truthy に設定し、`reuseExistingServer=false` として既存serverを再利用させない。shell固有の書式をPlanには固定しない。
+  - `CI` をtruthyにできない実行環境では、対象 `PLAYWRIGHT_BASE_URL` / port に既存processが存在しないことを確認してから実行する。既存serverを再利用した可能性があるPASSは今回の実装検証として扱わない。
+  - 上記条件で current branch から `build:web` された local `dist` を対象に `pnpm run test:smoke` を実行する。
+  - 古い Production / Preview / prebuilt `dist` / 別branchの既存serverを参照した smoke PASS を今回の実装検証として扱わない。
+  - Desktop responsive smoke は `playwright.config.ts` を変更せず、既存 `deployed-smoke` project 内で `page.setViewportSize({ width: 1440, height: 1000 })` により実施する。
+  - Mobile responsive smoke も `playwright.config.ts` を変更せず、同じ既存 `deployed-smoke` project 内で `page.setViewportSize({ width: 390, height: 844 })` により実施する。
 - 最終:
   - `pnpm run verify`
 - 成功判定:
   - local Docs smoke と `pnpm run verify` が PASS する。
-  - Desktop で Primary Navigation / article body / Contents が見た目として3領域に配置される。
+  - Desktop 1440×1000 で Primary Navigation / article body / Contents が見た目として3領域に配置される。
   - Desktop 3領域で article body の可読幅が確保され、現行 `1280px` / `800px` の数値維持を目的化していない。
   - Desktop / Mobile の Primary Navigation は同時表示されず、非表示側は `display:none` で tab順から外れる。
+  - `aria-current="page"` のlinkは通常linkと視覚的に区別でき、semantic stateとvisual stateを別classで二重管理していない。
   - `renderMarkdown()` の返却契約を変更していない。
   - TOC がないページでは article body が右側の空領域を残さない。
   - Spec / Curriculum の nested page から Primary Navigation が正しい URL へ遷移する。
   - current stateがDoDの3状態に一致する。rootはheader homeのみ、Primary Navigation掲載pageはvisible Primary Navigation内 exactly 1件、Primary Navigation非掲載pageは0件とする。
   - Root本文の `## Navigation` / `## 全体構成` が既存どおり残る。
-  - Mobile で Primary Navigation が折りたたまれ、本文へすぐ到達できる。
+  - Mobile 390×844 で Primary Navigation が折りたたまれ、本文へすぐ到達できる。
   - Mobile で page 全体の横 overflow が発生しない。
   - Markdown content、画像、内部 link、外部 link、Spec ↔ Curriculum link が既存どおり機能する。
   - Production path / build pipeline / dependency set に変更がない。
@@ -286,17 +302,20 @@
   - Specification Navigation の README 相対 target を current page 基準の `resolveOutputLink(parsed.relativePath, item.target)` へ直接渡すと nested page の href が壊れる。Primary Navigationでは canonical path → output path → `relativeOutputPath()` の順で生成する。
   - current 判定を生成後の相対 href で比較すると nested page ごとに表現が変わるため、canonical repository path と `parsed.relativePath` で比較する。
   - root / Primary Navigation掲載page / 非掲載pageのcurrent stateを区別しないと、偽のNavigation item追加や不正なheader currentにつながる。DoDの3状態をそのまま実装する。
+  - `aria-current` だけ付けて視覚スタイルを付けないと「Where am I?」を視覚的に満たせない。`[aria-current="page"]` を直接スタイルし、別state classは追加しない。
   - Specification Navigation targetの存在確認は既存 `validate:spec` が行うため、builder側へ重複validationを追加しない。
   - Navigation metadata の抽出・canonical path 解決を各 page ごとに繰り返すと無駄なので build ごとに1回生成する。一方、READMEのファイルparse回数自体を1回へ抑えるための cache / Map は作らない。
   - Curriculum hrefはroot-relativeでpage非依存なのでNavigation metadata生成時に1回確定し、各pageで再生成しない。
   - Desktop / Mobile 用 Navigation はDOM上で重複するが、CSSの `display:none` で一方だけを表示し、非表示側をtab順・accessibility treeから外す。重複排除のruntimeは追加しない。
   - 現在の汎用 `nav ul` を残して sidebar 用 CSS を上書きすると selector が複雑化する。Primary Navigation 用 selector へ用途を限定して整理する。
   - 現行 `main max-width:1280px` / `800px` breakpoint を固定すると3領域で本文が狭くなる可能性がある。数値互換ではなく可読性を優先して1回だけ調整する。
+  - Desktop smokeをPlaywright既定viewportへ依存させると、testに合わせてbreakpointを歪める可能性がある。Desktop代表ケースは1440×1000を明示する。
   - responsive layout を細分化すると CSS が複雑化するため、Desktop / Narrow の2状態を超えない。
   - sticky sidebar に高さ制御がないと、項目が viewport より長い場合に末尾へ到達できない。
   - Mobile で20件超の Curriculum Navigation を常時展開すると本文へ到達しづらくなるため、Primary Navigation は折りたたむ。
   - Root本文のNavigation重複を消そうとするとMarkdown本文・rendererへ特殊処理が増えるため、重複は許容する。
   - 現在存在しない Specification Navigation fragment 対応を先回り実装すると不要な分岐が増えるため、今回追加しない。
+  - local smokeで既存serverを再利用すると別branchや古いdistを検証して誤PASSする可能性がある。current branch検証では既存server再利用を禁止する。
   - 実装4ファイルという制約を `main` との差分4ファイルと誤解して本Planを削除しない。本Planを含む差分5ファイルが正常状態。
 - Stop conditions:
   - `renderMarkdown()` の返却契約を変更しないと実現できないと判断した場合は、まず CSS / page shell だけで本当に不可能か再確認し、renderer変更を安易に進めない。
@@ -305,7 +324,9 @@
   - Spec / Curriculum を共通 framework へ統合しないと実現できない案は採用しない。小さい重複を許容して各 builder を保つ。
   - Playwright Documentation の外観再現のために framework / runtime dependency / client-side application 化が必要になる案は採用しない。
   - Search、Prev / Next、breadcrumb、versioning、scroll spy 等の追加要求は本 PR へ含めない。
-  - 新規 source file / contract test / visual regression基盤 / Playwright project を必要とする案は、今回の最小実装方針から外れるため採用しない。
+  - currentの視覚表示のために`.active`等の別stateを追加しない。`aria-current`だけで十分に実現する。
+  - smoke検証のために `playwright.config.ts`、新規Playwright project、専用test fileを追加する案は採用しない。
+  - 新規 source file / contract test / visual regression基盤を必要とする案は、今回の最小実装方針から外れるため採用しない。
 
 ## 8. 成果物
 
