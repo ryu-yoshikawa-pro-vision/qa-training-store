@@ -218,6 +218,15 @@ describe("application transaction contracts", () => {
       updatedAt: FIXED_NOW,
       version: 1,
     });
+    await db.order_status_histories.add({
+      id: "order-history-1",
+      orderId: order.id,
+      fromStatus: "pending_payment",
+      toStatus: "paid",
+      actorUserId: null,
+      reasonCode: "PAYMENT_SUCCEEDED",
+      createdAt: FIXED_NOW,
+    });
     const detail = await orderRepository.getDetail(order.id);
     expect(detail).toMatchObject({
       orderStatus: "paid",
@@ -226,6 +235,14 @@ describe("application transaction contracts", () => {
     });
     expect(detail?.paymentAttempts).toHaveLength(1);
     expect(detail?.items[0]?.lineTotalAmount).toBe(1500);
+    expect(detail?.timeline).toHaveLength(1);
+    expect(detail?.timeline[0]?.status).toBe("paid");
+    expect(detail?.orderActionVersion).toBe(order.version);
+    expect(detail).not.toHaveProperty("version");
+    expect(detail?.paymentAttempts[0]).not.toHaveProperty("gatewayIdempotencyKey");
+    expect(detail?.paymentAttempts[0]).not.toHaveProperty("version");
+    expect(detail?.shipment).not.toHaveProperty("version");
+    expect(detail?.timeline[0]).not.toHaveProperty("actorUserId");
   });
 
   it("rolls back review and summary together", async () => {
