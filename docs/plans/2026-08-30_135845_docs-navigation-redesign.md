@@ -91,7 +91,7 @@
   - `pnpm run test:smoke` は既存 script として存在し、`deployed-smoke` project は Desktop Chrome を使用する。
   - `deployed-smoke` の既定 viewport にレイアウト要件を引きずられないよう、Desktop代表ケースは `page.setViewportSize({ width: 1440, height: 1000 })` を明示する。
   - Mobile responsive smoke は新しい Playwright project を作らず、既存 `deployed-smoke` 上で `page.setViewportSize({ width: 390, height: 844 })` を使って確認できる。
-  - local Playwright web server は `reuseExistingServer: !process.env.CI` なので、通常のローカル実行では既存serverを再利用し得る。current branchの検証では既存server再利用を許可しない。
+  - local Playwright web server は `reuseExistingServer: !process.env.CI` なので通常のローカル実行では既存serverを再利用し得る。一方 `CI` をtruthyにすると retry も `2` へ変わるため、server再利用防止のためだけに `CI` を使わない。current branchのlocal smokeでは未使用のloopback portを `PLAYWRIGHT_BASE_URL` に指定し、そのportに既存processがない状態で実行する。
   - `pnpm run verify` は format / Markdown lint / spec validation / curriculum validation / lint / typecheck / test / `build:web` / `build:spec` を包含している。
 - Assumptions:
   - Desktop は左 Navigation / article body / 右 Contents を同時表示できる十分な横幅を持つ環境とする。
@@ -253,11 +253,12 @@
     - Root representative pageではheader home linkだけがcurrentで、visible Primary Navigation内のcurrentが0件であることを確認する。
     - Desktop Curriculum の root / representative nested lesson で group順序、lesson link、DoDのcurrent stateを確認する。
     - Supporting / Optional / Legacyのcurrent 0件状態は既存smoke内で自然に利用できるpageがある場合のみ確認し、そのためだけにfixtureや追加testを増やさない。
-    - Mobile UI確認は Navigation件数が多い Curriculum の representative nested lesson 1ケースに限定する。
+    - Mobile viewport `390×844` では、Specification の representative nested page で Desktop Primary Navigation が非表示、Mobile `<details>` が表示され、初期closedであることだけを最小確認する。Specification側ではlink操作やoverflow確認を重複させない。
+    - Mobile UI の詳細確認は Navigation件数が多い Curriculum の representative nested lesson 1ケースで行う。
     - Mobile専用の新しい Playwright projectは追加せず、既存 `deployed-smoke` project 上で Mobile test の冒頭に `page.setViewportSize({ width: 390, height: 844 })` を設定する。
-    - Mobile viewport では Desktop Primary Navigation が非表示、Primary Navigation `<details>` が表示かつ初期折りたたみで、開いて link 操作できることを確認する。
+    - Curriculum の Mobile viewport では Desktop Primary Navigation が非表示、Primary Navigation `<details>` が表示かつ初期折りたたみで、開いて link 操作できることを確認する。
     - Desktop代表ケースでは Mobile `<details>` が非表示であることを確認する。
-    - Mobile では `document.documentElement.scrollWidth <= window.innerWidth` を確認し、page 全体の横 overflow がないことを確認する。
+    - Curriculum の Mobile では `document.documentElement.scrollWidth <= window.innerWidth` を確認し、page 全体の横 overflow がないことを確認する。
     - 既存の Specification 画像、Curriculum lesson 遷移、Curriculum → Spec smoke は維持する。
   - [ ] 8. 最終 diff を確認する。
     - 実装コード・テストの変更が上記4ファイルに収まり、Docs UX 以外へscopeが広がっていないことを確認する。
@@ -268,11 +269,11 @@
 
 - 実装中:
   - `pnpm run build:docs`
-  - local smoke は `DEPLOYED_BASE_URL` を設定せず、`PLAYWRIGHT_USE_PREBUILT_DIST` も未設定または `false` とする。
-  - local smoke の標準手順では Playwright 実行時に `CI` を truthy に設定し、`reuseExistingServer=false` として既存serverを再利用させない。shell固有の書式をPlanには固定しない。
-  - `CI` をtruthyにできない実行環境では、対象 `PLAYWRIGHT_BASE_URL` / port に既存processが存在しないことを確認してから実行する。既存serverを再利用した可能性があるPASSは今回の実装検証として扱わない。
-  - 上記条件で current branch から `build:web` された local `dist` を対象に `pnpm run test:smoke` を実行する。
+  - local smoke は `CI` を設定せず、`DEPLOYED_BASE_URL` を設定せず、`PLAYWRIGHT_USE_PREBUILT_DIST` も未設定または `false` とする。
+  - `PLAYWRIGHT_BASE_URL` には現在使用されていない loopback port（`127.0.0.1`）を指定し、そのportに既存processが存在しないことを確認してから実行する。特定のport番号は固定せず、実行時に未使用portを選ぶ。
+  - 上記条件で `pnpm run test:smoke` を実行し、Playwrightに current branch の `build:web` とlocal static serverを起動させる。
   - 古い Production / Preview / prebuilt `dist` / 別branchの既存serverを参照した smoke PASS を今回の実装検証として扱わない。
+  - server再利用防止だけを目的に `CI` をtruthyにしない。`CI` を設定すると `retries` も2へ変わりlocal smokeの実行条件が変化するため、今回の標準手順では使用しない。
   - Desktop responsive smoke は `playwright.config.ts` を変更せず、既存 `deployed-smoke` project 内で `page.setViewportSize({ width: 1440, height: 1000 })` により実施する。
   - Mobile responsive smoke も `playwright.config.ts` を変更せず、同じ既存 `deployed-smoke` project 内で `page.setViewportSize({ width: 390, height: 844 })` により実施する。
 - 最終:
@@ -288,8 +289,8 @@
   - Spec / Curriculum の nested page から Primary Navigation が正しい URL へ遷移する。
   - current stateがDoDの3状態に一致する。rootはheader homeのみ、Primary Navigation掲載pageはvisible Primary Navigation内 exactly 1件、Primary Navigation非掲載pageは0件とする。
   - Root本文の `## Navigation` / `## 全体構成` が既存どおり残る。
-  - Mobile 390×844 で Primary Navigation が折りたたまれ、本文へすぐ到達できる。
-  - Mobile で page 全体の横 overflow が発生しない。
+  - Mobile 390×844 で Specification / Curriculum の双方に Mobile Primary Navigation markup が存在し、初期折りたたみになる。
+  - Curriculum の Mobile では Navigation link 操作ができ、page 全体の横 overflow が発生しない。
   - Markdown content、画像、内部 link、外部 link、Spec ↔ Curriculum link が既存どおり機能する。
   - Production path / build pipeline / dependency set に変更がない。
   - 実装コード・テストは4ファイルだけを変更し、本Planを含む `main` との差分は計5ファイルである。
@@ -313,9 +314,10 @@
   - responsive layout を細分化すると CSS が複雑化するため、Desktop / Narrow の2状態を超えない。
   - sticky sidebar に高さ制御がないと、項目が viewport より長い場合に末尾へ到達できない。
   - Mobile で20件超の Curriculum Navigation を常時展開すると本文へ到達しづらくなるため、Primary Navigation は折りたたむ。
+  - Specification / Curriculum は別builderでMobile markupを生成するため、CurriculumだけをMobile確認するとSpecification側のmarkup欠落を見逃し得る。Specificationは表示/初期closedだけを最小確認し、詳細な操作・overflow確認はCurriculumだけで行う。
   - Root本文のNavigation重複を消そうとするとMarkdown本文・rendererへ特殊処理が増えるため、重複は許容する。
   - 現在存在しない Specification Navigation fragment 対応を先回り実装すると不要な分岐が増えるため、今回追加しない。
-  - local smokeで既存serverを再利用すると別branchや古いdistを検証して誤PASSする可能性がある。current branch検証では既存server再利用を禁止する。
+  - local smokeで既存serverを再利用すると別branchや古いdistを検証して誤PASSする可能性がある。未使用loopback portを指定してcurrent branchのserverを起動する。server再利用防止だけのために`CI`を設定してretry条件まで変えない。
   - 実装4ファイルという制約を `main` との差分4ファイルと誤解して本Planを削除しない。本Planを含む差分5ファイルが正常状態。
 - Stop conditions:
   - `renderMarkdown()` の返却契約を変更しないと実現できないと判断した場合は、まず CSS / page shell だけで本当に不可能か再確認し、renderer変更を安易に進めない。
