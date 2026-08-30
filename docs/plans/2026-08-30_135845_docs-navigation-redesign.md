@@ -38,8 +38,11 @@
   - Curriculum の Primary Navigation は `docs/curriculum/test-automation/README.md` の `## 全体構成` 内の H3 group と、その直下の番号付き Markdown link を正本とする。
   - Curriculum Navigation は現行の3 group（`共通`、`Part 1: テスト自動化の基礎と実践`、`Part 2: 開発プロセスへの組み込みと実務導入`）の見出し文字列と記載順をそのまま維持し、filesystem の alphabetical order を使用しない。
   - Primary Navigation に掲載されていない Supporting / Optional / Legacy ページに current 用の項目を追加しない。
-  - Specification root / Curriculum root は header の home link に `aria-current="page"` を付けて現在地を表現する。
-  - Primary Navigation を Desktop / Mobile 用に重複生成する場合、表示中の Navigation 内では current page の `aria-current="page"` が1件になる。非表示側に同じ current link が存在することは許容する。
+  - current state は次の3状態に固定する。
+    - Specification / Curriculum root page: header home link のみに `aria-current="page"` を付け、表示中の Primary Navigation 内は0件とする。
+    - Primary Navigation 掲載 page: header home link には current を付けず、表示中の Primary Navigation 内で `aria-current="page"` を exactly 1件とする。
+    - Primary Navigation 非掲載の Supporting / Optional / Legacy page: header home linkにも Primary Navigationにも `aria-current="page"` を付けず、表示中の Primary Navigation 内は0件とする。
+  - Primary Navigation を Desktop / Mobile 用に重複生成する場合、非表示側に同じ current link が存在することは許容する。
   - Desktop / Mobile の Primary Navigation は同時表示せず、Desktop では Mobile `<details>`、Narrow / Mobile では Desktop `<nav>` を `display:none` で非表示にする。`visibility:hidden`、opacity、画面外配置は使用しない。
   - current 判定は生成後の href 文字列ではなく、Navigation source README 基準で解決した canonical repository path と current page の `parsed.relativePath` を比較して行う。
   - Navigation target は Navigation source README を基準に解決し、本文 link は従来どおり current page 基準で解決する。
@@ -76,10 +79,12 @@
   - Specification Navigation の target は README に対する相対 path なので、README を基準に canonical repository path へ一度解決する必要がある。
   - Specification の href は current output page ごとに相対表現が変わるため、canonical path の確定と page-specific href 生成を分ける。
   - 現在の Specification `## Navigation` は Markdown file への直接 link のみで、fragment link は含まれていないため、今回 fragment 対応を追加しない。
+  - Specification Navigation target の存在確認は既存 `validate:spec` が担っているため、builderに専用validationを重複追加しない。
   - `scripts/docs/build-docs.ts` には既存 `resolveRepositoryPath()` と `resolveCurriculumLink()` があり、Curriculum Navigation の canonical path 解決と href 生成にそのまま再利用できる。
+  - `resolveCurriculumLink()` に Curriculum README を source として渡したNavigation hrefは `/docs/curriculum/**` の root-relative URLになるため、hrefはcurrent pageに依存せずNavigation metadata生成時に1回確定できる。
   - Curriculum `README.md` の `## 全体構成` は H3 group と番号付き Markdown link で規則的に学習順を定義しているため、汎用 Markdown AST は不要。
   - Curriculum の Primary Navigation は20件を超えるため、Mobileで常時展開すると本文への到達を阻害する。
-  - Curriculum Navigation metadata の抽出・canonical path 確定は build ごとに1回で十分だが、既存 page 生成 loop が root README を再度 `parseMarkdownFile()` することは許容する。その回避だけを目的に cache / pre-parsed Map を追加しない。
+  - Curriculum Navigation metadata の抽出・canonical path・href確定は build ごとに1回で十分だが、既存 page 生成 loop が root README を再度 `parseMarkdownFile()` することは許容する。その回避だけを目的に cache / pre-parsed Map を追加しない。
   - Specification root の `## Navigation` と Curriculum root の `## 全体構成` は source Markdown として残し、Primary Navigationとの重複解消を目的に本文を加工しない。
   - `e2e/web/smoke.spec.ts` には既存 `published docs smoke` があり、今回の UI 契約はここを拡張して確認できる。
   - `pnpm run test:smoke` は既存 script として存在し、`deployed-smoke` project は Desktop Chrome を使用する。
@@ -108,6 +113,7 @@
   - 新規 contract test / visual regression 基盤の追加。
   - Navigation metadata のためだけの cache / pre-parsed Markdown Map。
   - Specification Primary Navigation の未使用 fragment 対応。
+  - Specification builder 内のNavigation target専用validation追加。
 
 ## 3. 質問 / 曖昧性
 
@@ -122,7 +128,7 @@
 
 ## 4. 影響範囲
 
-- 実装対象は次の4ファイルに限定する。
+- 実装コード・テストの変更対象は次の4ファイルに限定する。
   - `scripts/spec/markdown.ts`
     - `renderMarkdown()` は変更しない。
     - shared CSS のみを Desktop 3領域 / Narrow 1カラムへ整理する。
@@ -131,10 +137,11 @@
     - README 基準の canonical path 解決、page-specific href 生成、current state、Mobile Navigation markup を実装する。
   - `scripts/docs/build-docs.ts`
     - Curriculum `README.md` の `## 全体構成` から group / link を抽出する最小ロジックを追加する。
-    - 既存 `resolveRepositoryPath()` / `resolveCurriculumLink()` を再利用して current 判定と href を生成する。
+    - 既存 `resolveRepositoryPath()` / `resolveCurriculumLink()` を再利用し、Navigation metadata生成時に canonical path / href を確定する。
     - Curriculum Primary Navigation / current state / Mobile Navigation markup を実装する。
   - `e2e/web/smoke.spec.ts`
     - 既存 published docs smoke を拡張する。
+- 既存の `docs/plans/2026-08-30_135845_docs-navigation-redesign.md` はbranch成果物として維持する。そのため実装完了時の `main` との差分は、本Plan 1ファイル + 実装4ファイルの計5ファイルを想定する。
 - 原則変更しない:
   - `scripts/spec/markdown.ts` の `renderMarkdown()` / parser / renderer logic。
   - `docs/spec/README.md`。
@@ -148,16 +155,16 @@
   - **既存 DOM を使う。** `renderMarkdown()` の `<aside class="toc"> + <div class="document-body">` を維持する。
   - **CSS と page shell を中心に変更する。** UX 改善のために Markdown renderer の契約へ変更範囲を広げない。
   - **Navigation source は既存 README を維持する。** 別 JSON / TS array / YAML へ項目を複製しない。
-  - **Navigation metadata と page-specific markup を分ける。** Navigation items の抽出・canonical path 確定は build ごとに1回、current 判定・href生成・Navigation HTML生成は各 page で1回だけ行う。
+  - **Navigation metadata と page-specific markup を分ける。** Navigation items の抽出・canonical path 確定は build ごとに1回行う。Specificationのhrefはcurrent output pageに依存するためpageごとに生成し、Curriculumのhrefはroot-relativeなのでmetadata生成時に1回確定する。
   - **READMEのparse回数そのものは最適化対象にしない。** 既存 page 生成 loop の再parseを許容し、その回避のために cache / Map / build構造変更を追加しない。
   - **Desktop / Mobile では同じ page-specific Navigation content を再利用する。** markupだけを出し分け、抽出・path解決・current判定を二重実装しない。
   - **Desktop / Mobile の表示切替は CSS の `display:none` だけで行う。** runtime state や accessibility 用の追加制御を作らない。
-  - **current 判定と href 生成を分ける。** current は canonical repository path で比較し、href は current output page に応じて生成する。
+  - **current 判定と href 生成を分ける。** current は canonical repository path で比較する。Specification hrefのみ current output pageに応じて生成する。
   - **Spec / Curriculum builder を無理に共通化しない。** Navigation構造とURL契約が異なるため、それぞれ小さく実装する。
   - **静的 HTML のまま実現する。** Mobile 折りたたみも native HTMLだけで実現する。
   - **Root本文のNavigation重複は許容する。** 重複解消のためにMarkdown本文やrendererへ特殊処理を追加しない。
 - 実行タスク:
-  - [ ] 1. 実装開始時に最新 `main` を取り込み、本 Plan の baseline と対象4ファイルを再確認する。
+  - [ ] 1. 実装開始時に最新 `main` を取り込み、本 Plan の baseline と実装対象4ファイルを再確認する。本Plan自体はbranch成果物として残す。
   - [ ] 2. `scripts/spec/markdown.ts` の `MARKDOWN_CSS` を最小変更する。
     - `main` は Desktop で `Primary Navigation | article` の2列とする。
     - `article` は Desktop で2列にし、DOM 順序を変えず `.document-body` を column 1、`.toc` を column 2 に明示配置する。
@@ -179,6 +186,7 @@
     - 各 item の target は `docs/spec/README.md` の directory を基準に `path.posix.join()` / `path.posix.normalize()` で canonical repository path へ変換し、build 全体で再利用できる Navigation metadata にする。
     - Navigation専用の汎用resolverは作らない。
     - 現在の `## Navigation` に fragment link は存在しないため、今回 Primary Navigation 用の fragment split / re-attach 処理は追加しない。
+    - Navigation targetの存在確認は既存 `validate:spec` に任せ、builder内へ専用 `fs.existsSync()` / validatorを追加しない。
     - 各 page では canonical path と `parsed.relativePath` を比較して current を判定する。
     - Primary Navigation の href は `resolveOutputLink(parsed.relativePath, item.target)` を使わない。
     - Primary Navigation の href は `outputPathFor(canonicalPath)` で target output path を求め、`relativeOutputPath(outputPathFor(parsed.relativePath), targetOutputPath)` で current page からの相対 href を生成する。
@@ -186,9 +194,9 @@
     - page-specificな current 判定・href生成・Navigation content生成は各 page で1回だけ行う。
     - 生成済み Navigation content を Desktop `<nav>` と Mobile `<details>` 内で再利用する。
     - Desktop では Primary Navigation を `main` 左側へ表示し、現在の header 横並び Navigation は廃止する。
-    - Primary Navigation 内の current page に `aria-current="page"` を付ける。
-    - root page では header home link に `aria-current="page"` を付ける。
-    - Supporting page が Primary Navigation に存在しない場合は current 項目を追加しない。
+    - root pageではheader home linkだけをcurrentにし、Primary Navigation内にはcurrentを付けない。
+    - Primary Navigation掲載pageではheader home linkにcurrentを付けず、表示中Primary Navigation内の該当item 1件だけに `aria-current="page"` を付ける。
+    - Supporting page等Primary Navigation非掲載pageではheader home linkにもPrimary Navigationにもcurrentを付けず、current用の偽itemを追加しない。
     - Desktop / Mobile の両 markup に current link が生成される場合、E2E は visible Primary Navigation を対象に確認する。
     - root本文の `## Navigation` は削除・非表示化しない。
   - [ ] 4. Curriculum Primary Navigation を最小実装する。
@@ -199,17 +207,18 @@
     - 次の H2 に到達したら `## 全体構成` の抽出を終了する。
     - Optional Reference / Legacy Alias 等、`## 全体構成` 外の項目を自動追加しない。
     - canonical repository path は既存 `resolveRepositoryPath(rootDir, "docs/curriculum/test-automation/README.md", item.target)` を使って Navigation metadata 生成時に確定する。
+    - href も既存 `resolveCurriculumLink(rootDir, "docs/curriculum/test-automation/README.md", item.target)` を使ってNavigation metadata生成時に1回確定する。各pageでhrefを再生成しない。
+    - Navigation metadata は少なくとも group / label / canonicalPath / href を保持すれば十分で、新しい汎用Navigation modelは作らない。
     - 新しい canonical path helper / Navigation専用 URL resolver / 共通 Navigation resolver は作らない。
-    - 各 page では canonical path と `parsed.relativePath` を比較して current lesson を判定する。
-    - href は既存 `resolveCurriculumLink(rootDir, "docs/curriculum/test-automation/README.md", item.target)` を使って生成する。
-    - page-specificな current判定と Navigation content生成は各 page で1回だけ行う。
+    - 各 page では canonical path と `parsed.relativePath` を比較して current lesson だけを判定し、Navigation contentを生成する。
     - broken target は既存 `resolveRepositoryPath()` / `resolveCurriculumLink()` の存在確認で build error とする。
     - filesystem walk 順序から Navigation を生成しない。
     - 汎用 Markdown AST や新 parser は導入しない。
   - [ ] 5. Curriculum page shell を最小変更する。
     - Desktop では Primary Navigation を `main` 左側へ表示する。
-    - Primary Navigation 内の current lesson に `aria-current="page"` を付ける。
-    - root page では header home link に `aria-current="page"` を付ける。
+    - root pageではheader home linkだけをcurrentにし、Primary Navigation内にはcurrentを付けない。
+    - Primary Navigation掲載lessonではheader home linkにcurrentを付けず、表示中Primary Navigation内の該当lesson 1件だけに `aria-current="page"` を付ける。
+    - Optional / Legacy等Primary Navigation非掲載pageではheader home linkにもPrimary Navigationにもcurrentを付けず、current用の偽itemを追加しない。
     - Mobile では20件超の Navigation を本文前に常時展開せず、native `<details>` で初期折りたたみにする。
     - Desktop / Mobile で同じ page-specific Navigation content を使い回し、Navigation抽出・path解決・JavaScriptを重複追加しない。
     - Desktop / Mobile の両 markup に current link が生成される場合、E2E は visible Primary Navigation を対象に確認する。
@@ -221,7 +230,7 @@
     - Desktop / Mobile の非表示側は `display:none` で accessibility tree / tab順から外す。
     - page-local Contents は既存 `<aside class="toc" aria-label="Table of contents">` を維持する。
     - article は `<article>` を維持する。
-    - current state は `aria-current="page"` を正本とする。
+    - current state はDoDで定義した3状態に従い、Primary Navigation掲載pageでのみPrimary Navigation内の `aria-current="page"` がexactly 1件になる。
     - keyboard focus indicator を消さない。
   - [ ] 7. `e2e/web/smoke.spec.ts` の既存 published docs smoke を拡張する。
     - Desktop Specification の代表 nested page で Primary Navigation・article body・Contents が表示される。
@@ -229,15 +238,20 @@
     - TOC がない既存 page を利用できる場合は article body が不要に狭くならないことを確認する。適切な既存 page がなければ専用 fixture を追加しない。
     - Specification nested page から Primary Navigation link が正しい URL へ遷移する。
     - Contents link で対象 heading anchor へ遷移できる。
-    - visible Primary Navigation 内の current page に `aria-current="page"` が1件付く。
-    - Desktop Curriculum の root / representative nested lesson で group順序、lesson link、current stateを確認する。
+    - SpecificationのPrimary Navigation掲載代表pageではvisible Primary Navigation内の `aria-current="page"` が1件であることを確認する。
+    - Root representative pageではheader home linkだけがcurrentで、visible Primary Navigation内のcurrentが0件であることを確認する。
+    - Desktop Curriculum の root / representative nested lesson で group順序、lesson link、DoDのcurrent stateを確認する。
+    - Supporting / Optional / Legacyのcurrent 0件状態は既存smoke内で自然に利用できるpageがある場合のみ確認し、そのためだけにfixtureや追加testを増やさない。
     - Mobile UI確認は Navigation件数が多い Curriculum の representative nested lesson 1ケースに限定する。
     - Mobile専用の新しい Playwright projectは追加せず、既存 `deployed-smoke` project 上で Mobile test の冒頭に `page.setViewportSize({ width: 390, height: 844 })` を設定する。
     - Mobile viewport では Desktop Primary Navigation が非表示、Primary Navigation `<details>` が表示かつ初期折りたたみで、開いて link 操作できることを確認する。
     - Desktop代表ケースでは Mobile `<details>` が非表示であることを確認する。
     - Mobile では `document.documentElement.scrollWidth <= window.innerWidth` を確認し、page 全体の横 overflow がないことを確認する。
     - 既存の Specification 画像、Curriculum lesson 遷移、Curriculum → Spec smoke は維持する。
-  - [ ] 8. 最終 diff を確認し、実装対象が上記4ファイルに収まり、Docs UX 以外へ scope が広がっていないことを確認する。
+  - [ ] 8. 最終 diff を確認する。
+    - 実装コード・テストの変更が上記4ファイルに収まり、Docs UX 以外へscopeが広がっていないことを確認する。
+    - 本Planは削除せずbranch成果物として維持する。
+    - `main`との差分が本Plan 1ファイル + 実装4ファイルの計5ファイルになることは正常とする。
 
 ## 6. 検証方法
 
@@ -256,13 +270,13 @@
   - `renderMarkdown()` の返却契約を変更していない。
   - TOC がないページでは article body が右側の空領域を残さない。
   - Spec / Curriculum の nested page から Primary Navigation が正しい URL へ遷移する。
-  - current 判定は canonical repository path に基づき、表示中の Primary Navigation 内で current page が `aria-current="page"` で一意に識別できる。
-  - Specification / Curriculum root は header home link で current state を表現する。
+  - current stateがDoDの3状態に一致する。rootはheader homeのみ、Primary Navigation掲載pageはvisible Primary Navigation内 exactly 1件、Primary Navigation非掲載pageは0件とする。
   - Root本文の `## Navigation` / `## 全体構成` が既存どおり残る。
   - Mobile で Primary Navigation が折りたたまれ、本文へすぐ到達できる。
   - Mobile で page 全体の横 overflow が発生しない。
   - Markdown content、画像、内部 link、外部 link、Spec ↔ Curriculum link が既存どおり機能する。
   - Production path / build pipeline / dependency set に変更がない。
+  - 実装コード・テストは4ファイルだけを変更し、本Planを含む `main` との差分は計5ファイルである。
 
 ## 7. リスク / Stop Conditions
 
@@ -271,7 +285,10 @@
   - TOC がないページで article の2列を固定すると空の右カラムが残る。`:only-child` 等の単純な CSS で本文を全幅化する。
   - Specification Navigation の README 相対 target を current page 基準の `resolveOutputLink(parsed.relativePath, item.target)` へ直接渡すと nested page の href が壊れる。Primary Navigationでは canonical path → output path → `relativeOutputPath()` の順で生成する。
   - current 判定を生成後の相対 href で比較すると nested page ごとに表現が変わるため、canonical repository path と `parsed.relativePath` で比較する。
+  - root / Primary Navigation掲載page / 非掲載pageのcurrent stateを区別しないと、偽のNavigation item追加や不正なheader currentにつながる。DoDの3状態をそのまま実装する。
+  - Specification Navigation targetの存在確認は既存 `validate:spec` が行うため、builder側へ重複validationを追加しない。
   - Navigation metadata の抽出・canonical path 解決を各 page ごとに繰り返すと無駄なので build ごとに1回生成する。一方、READMEのファイルparse回数自体を1回へ抑えるための cache / Map は作らない。
+  - Curriculum hrefはroot-relativeでpage非依存なのでNavigation metadata生成時に1回確定し、各pageで再生成しない。
   - Desktop / Mobile 用 Navigation はDOM上で重複するが、CSSの `display:none` で一方だけを表示し、非表示側をtab順・accessibility treeから外す。重複排除のruntimeは追加しない。
   - 現在の汎用 `nav ul` を残して sidebar 用 CSS を上書きすると selector が複雑化する。Primary Navigation 用 selector へ用途を限定して整理する。
   - 現行 `main max-width:1280px` / `800px` breakpoint を固定すると3領域で本文が狭くなる可能性がある。数値互換ではなく可読性を優先して1回だけ調整する。
@@ -280,6 +297,7 @@
   - Mobile で20件超の Curriculum Navigation を常時展開すると本文へ到達しづらくなるため、Primary Navigation は折りたたむ。
   - Root本文のNavigation重複を消そうとするとMarkdown本文・rendererへ特殊処理が増えるため、重複は許容する。
   - 現在存在しない Specification Navigation fragment 対応を先回り実装すると不要な分岐が増えるため、今回追加しない。
+  - 実装4ファイルという制約を `main` との差分4ファイルと誤解して本Planを削除しない。本Planを含む差分5ファイルが正常状態。
 - Stop conditions:
   - `renderMarkdown()` の返却契約を変更しないと実現できないと判断した場合は、まず CSS / page shell だけで本当に不可能か再確認し、renderer変更を安易に進めない。
   - Curriculum `## 全体構成` の H3 group + numbered links を抽出するだけでは実現できず、汎用 Markdown parser の全面置換・大規模 AST 実装が必要になる場合は実装を止めて再設計する。
@@ -296,6 +314,8 @@
   - `scripts/spec/build-spec.ts`。
   - `scripts/docs/build-docs.ts`。
   - `e2e/web/smoke.spec.ts`。
+- Branch上で維持するPlan:
+  - `docs/plans/2026-08-30_135845_docs-navigation-redesign.md`。
 - 原則変更しない:
   - `scripts/spec/markdown.ts` の `renderMarkdown()` / parser / renderer logic。
   - `docs/spec/README.md`。
