@@ -46,10 +46,8 @@ test("published docs smoke", async ({ page }) => {
   await expect(page.locator('.primary-navigation a[aria-current="page"]')).toHaveCount(0);
   await expect(page.locator("details.mobile-primary-navigation")).toBeHidden();
 
-  await page.goto("/docs/spec/ui-ux-contract.html");
-  await expect(
-    page.getByRole("heading", { name: "UI and UX Contract", exact: true }),
-  ).toBeVisible();
+  await page.goto("/docs/spec/features/storefront.html");
+  await expect(page.getByRole("heading", { name: "Storefront", exact: true })).toBeVisible();
   await expect(page.locator(".primary-navigation")).toBeVisible();
   await expect(page.locator("article .document-body")).toBeVisible();
   await expect(page.locator("article .toc")).toBeVisible();
@@ -63,12 +61,6 @@ test("published docs smoke", async ({ page }) => {
   }
   expect(primaryNavigationBox.x).toBeLessThan(articleBodyBox.x);
   expect(articleBodyBox.x).toBeLessThan(contentsBox.x);
-  await page
-    .locator(".primary-navigation")
-    .getByRole("link", { name: "Product Scope", exact: true })
-    .click();
-  await expect(page).toHaveURL(/\/docs\/spec\/product-scope\.html$/);
-  await page.goto("/docs/spec/ui-ux-contract.html");
   const contentsLink = page.locator("article .toc a").first();
   const contentsHref = await contentsLink.getAttribute("href");
   if (contentsHref === null || !contentsHref.startsWith("#")) {
@@ -76,6 +68,12 @@ test("published docs smoke", async ({ page }) => {
   }
   await contentsLink.click();
   expect(page.url()).toContain(contentsHref);
+  await page
+    .locator(".primary-navigation")
+    .getByRole("link", { name: "Product Scope", exact: true })
+    .click();
+  await expect(page).toHaveURL(/\/docs\/spec\/product-scope\.html$/);
+  await page.goto("/docs/spec/ui-ux-contract.html");
   const specificationImage = page.getByAltText("SCREEN-BOUNDARY-NOT-FOUND default web-desktop", {
     exact: true,
   });
@@ -130,7 +128,7 @@ test("published docs smoke", async ({ page }) => {
 
 test("published specification mobile navigation smoke", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await page.goto("/docs/spec/ui-ux-contract.html");
+  await page.goto("/docs/spec/features/storefront.html");
   await expect(page.locator(".primary-navigation")).toBeHidden();
   const mobileNavigation = page.locator("details.mobile-primary-navigation");
   await expect(mobileNavigation).toBeVisible();
