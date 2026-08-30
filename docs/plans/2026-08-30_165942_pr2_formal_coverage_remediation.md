@@ -184,10 +184,10 @@ PR #78を止めている残存Formal coverage gapだけを閉じ、lower Traceab
    - read-only evidenceとして参照したintegration / component / unit suiteを、evidence確認だけを理由にlocal再実行しない。
 
 10. **test code変更がある場合だけcoverage-remediation PRを1本OPENする。**
-   - planned remediationがすべてalready coveredでtest code変更が0なら空PRを作らない。
-   - PRを作成した場合だけexact-head required CIをfull regressionのSSOTとして確認する。
-   - no-opの場合は存在しないPR CIをDoDに要求しない。
-   - mergeは明示指示があるまで行わない。
+    - planned remediationがすべてalready coveredでtest code変更が0なら空PRを作らない。
+    - PRを作成した場合だけexact-head required CIをfull regressionのSSOTとして確認する。
+    - no-opの場合は存在しないPR CIをDoDに要求しない。
+    - mergeは明示指示があるまで行わない。
 
 ## 2. 現状理解と前提
 

@@ -19,6 +19,7 @@ import {
 } from "@/infrastructure/database/dexie/mappers";
 import {
   DexieAddressRepository,
+  DexieBrandRepository,
   DexieCategoryRepository,
   DexieUserRepository,
 } from "@/infrastructure/database/dexie/basic-repositories";
@@ -43,10 +44,43 @@ describe("Dexie repository contracts", () => {
   it("enforces unique keys and persistence projection consistency", async () => {
     await db.categories.add(toCategoryRecord(category));
     await expect(
-      db.categories.add(
-        toCategoryRecord({
-          ...category,
-          id: "category-duplicate",
+      new DexieCategoryRepository(db).createAtEnd({
+        categoryId: "category-normalized-duplicate",
+        name: "  ホーム・キッチン  ",
+        actorUserId: "user-operator",
+        now: FIXED_NOW,
+      }),
+    ).rejects.toBeDefined();
+    await db.brands.add(toBrandRecord(brand));
+    await expect(
+      new DexieBrandRepository(db).create({
+        brandId: "brand-normalized-duplicate",
+        name: " Ｓｃｅｎａｒｉｏ　Ｌｉｆｅ ",
+        actorUserId: "user-operator",
+        now: FIXED_NOW,
+      }),
+    ).rejects.toBeDefined();
+    await db.product_variants.add(
+      toVariantRecord({
+        ...variant,
+        id: "variant-normalized-1",
+        productId: product.id,
+        sku: "SKU-NORMALIZED-1",
+        optionValue: " Red ",
+        optionValueNormalized: "red",
+        isActive: true,
+      }),
+    );
+    await expect(
+      db.product_variants.add(
+        toVariantRecord({
+          ...variant,
+          id: "variant-normalized-2",
+          productId: product.id,
+          sku: "SKU-NORMALIZED-2",
+          optionValue: " ＲＥＤ ",
+          optionValueNormalized: "red",
+          isActive: true,
         }),
       ),
     ).rejects.toBeDefined();
@@ -77,6 +111,35 @@ describe("Dexie repository contracts", () => {
     expect(fromCategoryRecord(await db.categories.get(category.id).then((item) => item!))).toEqual(
       category,
     );
+  });
+
+  it("creates the first category at ten and serializes concurrent appends", async () => {
+    const repository = new DexieCategoryRepository(db);
+    const first = await repository.createAtEnd({
+      categoryId: "category-1",
+      name: "Category 1",
+      actorUserId: "user-operator",
+      now: FIXED_NOW,
+    });
+    expect(first.sortOrder).toBe(10);
+    await Promise.all([
+      repository.createAtEnd({
+        categoryId: "category-2",
+        name: "Category 2",
+        actorUserId: "user-operator",
+        now: FIXED_NOW,
+      }),
+      repository.createAtEnd({
+        categoryId: "category-3",
+        name: "Category 3",
+        actorUserId: "user-operator",
+        now: FIXED_NOW,
+      }),
+    ]);
+    const persistedSortOrders = (await db.categories.toArray())
+      .map((item) => item.sortOrder)
+      .sort((left, right) => left - right);
+    expect(persistedSortOrders).toEqual([10, 20, 30]);
   });
 
   it("rejects optimistic-lock conflicts without overwriting current data", async () => {
