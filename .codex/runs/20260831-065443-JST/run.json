@@ -68,6 +68,12 @@
         "exit_code": 0,
         "status": "passed",
         "evidence": "\u672cRun\u306e\u6a19\u6e96Artifact 4 files\u3092Write / Check\u3002residual findings 0"
+      },
+      {
+        "command": "exact-head CI check c766b3d2cf818c0824eead9e21a9e5f82020d3b8",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "check runs 39/39 head_sha一致、success 31、設計上のskip 8、failure 0、pending 0。Web CI / Mobile App CI / CodeQLを含む"
       }
     ],
     "warnings": []

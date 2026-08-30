@@ -14,9 +14,9 @@
 - [x] 10. `CT-BOUNDARY-001` rowを必要最小限修正し、下位22 label集計を再計算する。
 - [x] 11. REPORT / TASKS / run.jsonをCurrent audit stateへ同期し、必要なcoverage gapを記録する。
 - [x] 12. format / markdown lint / spec validation / diff checkを実行する（full `test:contracts`初回はNative module resolutionのenvironment-sensitive timeout、focused testと1回限りの再実行はPASS）。
-- [ ] 13. final scope check、Sanitizer Write / Check、commit / pushを完了する。
-- [ ] 14. PR本文と既存review threadをCurrent audit結果へ整理する。外部full review / re-reviewは起動しない。
-- [ ] 15. 新head exact-head CI、PR state、最終自己レビューを確認しREPORTへ完了checkpointを追記する。
+- [x] 13. final scope check、Sanitizer Write / Check、commit / pushを完了する。
+- [x] 14. PR本文と既存review threadをCurrent audit結果へ整理する。外部full review / re-reviewは起動しない。
+- [x] 15. 新head exact-head CI、PR state、最終自己レビューを確認しREPORTへ完了checkpointを追記する。
 
 ## Discovered
 
@@ -26,4 +26,4 @@
 
 - なし。
 
-Progress: 80% (12/15)
+Progress: 100% (15/15)
