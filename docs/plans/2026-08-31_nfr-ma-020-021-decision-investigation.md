@@ -27,7 +27,7 @@ PR #78 の Current audit では、`CT-BOUNDARY-001` 配下の Requirement のう
 
 - `D-020`: React Hook Form + Zod
 - `D-021`: `.web.tsx` + CSS Modules
-- `D-028`: Type / Enum / Dexie Schema は Code を SSOT とし、Markdown は意味・理由を担う
+- `D-026`: Type / Enum / Dexie Schema は Code を SSOT とし、Markdown は意味・理由を担う
 
 したがって、まず既存 Decision が Current decision として有効か、後続 Decision / Plan / Architecture change で supersede されているかを Git history まで含めて確認する。
 
@@ -48,7 +48,7 @@ PR #78 の Current audit では、`CT-BOUNDARY-001` 配下の Requirement のう
 
 ### 3.2 Reference-only scope
 
-`NFR-MA-023` / `D-028` は、別の Requirement decision が必要か、それとも documentation remediation として扱えるかを判断する材料だけ確認する。
+`NFR-MA-023` / `D-026` は、別の Requirement decision が必要か、それとも documentation remediation として扱えるかを判断する材料だけ確認する。
 
 ### 3.3 Out of scope
 
@@ -206,7 +206,7 @@ Current implementation が `global.css` を使用しているという事実だ�
 
 実装は行わない。
 
-### Task 7: NFR-MA-023 / D-028 の conflict を参考確認する
+### Task 7: NFR-MA-023 / D-026 の conflict を参考確認する
 
 Current 方針が以下であることを repository evidence から確認する。
 
@@ -262,7 +262,7 @@ Styling architecture の inventory を提示する。
 
 ### G. NFR-MA-023 Documentation Conflict
 
-矛盾する Markdown、該当箇所、Current code / D-028 との関係を列挙する。
+矛盾する Markdown、該当箇所、Current code / D-026 との関係を列挙する。
 
 ### H. Unknowns
 
@@ -299,7 +299,7 @@ Owner が調査結果を確認し、以下を決定するまで remediation impl
 - [ ] Current styling inventory を作成した
 - [ ] `.module.css` / `.web.tsx` / Admin / Layout / shared UI の実態を数値化した
 - [ ] `NFR-MA-021` Literal remediation の影響を整理した
-- [ ] `NFR-MA-023` / `D-028` の documentation conflict を参考確認した
+- [ ] `NFR-MA-023` / `D-026` の documentation conflict を参考確認した
 - [ ] superseding decision の有無を明示した
 - [ ] Repository だけでは判断できない事項を `Unknown` として明示した
 - [ ] Production / Test / Requirement / Decision / Traceability を変更していない
