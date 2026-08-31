@@ -26,13 +26,14 @@
 
 ### 完了条件（DoD）
 
-- [ ] `FR-AR-001`: CheckoutのImage Manifest Path解決責務がInfrastructure RepositoryからApplicationへ移り、Presentation Requestに内部contextを要求しない。
-- [ ] `FR-AR-001`: Requestと内部Commandが実装上でも分離され、Clock / generated ID / Manifest resolved value等をApplicationが補完する。
-- [ ] `FR-AR-001`: Web / Native RepositoryがCheckout path解決のためにgenerated image manifestへ直接依存しない。
-- [ ] `FR-AR-001`: Checkout表示、Order Item Snapshot、Payment retry等の既存Product behaviorを維持する。
+- [ ] `FR-AR-001`: Presentationは `CreateOrderForPaymentRequest` だけを渡し、Application Use Caseが内部 `CreateOrderForPaymentCommand` を組み立てる。
+- [ ] `FR-AR-001`: Applicationが `now`、既存のgenerated ID、Manifest resolved value等の内部contextを補完し、Order作成処理がそのCommandを実際に消費する。
+- [ ] `FR-AR-001`: Cart / Checkoutのread DTOやRepository責務を、Formal coverageのためだけに広範囲変更しない。
+- [ ] `FR-AR-001`: Checkout表示、Order Item Snapshot、Payment retry等の既存Product behaviorとtransaction semanticsを維持する。
 - [ ] `FR-AR-002`: Build生成TypeScript ModuleがRuntime image manifestのSSOTであることをpositiveなFormal contractで固定する。
 - [ ] `FR-AR-002`: Runtime Fetch / Runtime JSON manifest禁止は既存security checkを再利用し、二重実装しない。
 - [ ] `FR-AR-004`: supported reset boundaryが1 Browser Context / 1 PageであることをPlaywright harness evidenceで固定する。
+- [ ] `FR-AR-004`: harness evidenceは既存 `test:e2e:chromium` のCI実行経路へ含め、one-shotの手動testにしない。
 - [ ] `FR-AR-004`: multi-tab atomic resetを新規実装・保証しない。
 - [ ] `NFR-MA-020`: `D-020` をsupersedeする新DecisionとRequirementを、Application / Domain validation ownership中心のCurrent contractへ更新する。
 - [ ] `NFR-MA-020`: Formal evidenceは1画面・1Auth例だけで全体を代表させず、複数の独立したmutation boundaryをbounded-multi-refで確認する。
@@ -42,10 +43,11 @@
 - [ ] `NFR-MA-021`: CSS Modules全面移行、`global.css`全面整理、Web componentの機械的`.web.tsx`化を行わない。
 - [ ] `NFR-MA-022`: Current contractで対象とするcomplex widget setを明示し、React Aria Components境界を狭いStatic Contractで固定する。
 - [ ] `NFR-MA-023`: `domain_types.md` / `application_contracts.md` 等のSSOT表現を `D-026` へ整合する。
-- [ ] `NFR-MA-023`: prose substring test、意味比較、Markdown生成等の新しいgovernance machineryを原則追加しない。
+- [ ] `NFR-MA-023`: D-026 authorityを固定する最小Formal contractを追加する。
+- [ ] `NFR-MA-023`: semantic comparison、全文prose lint、Markdown生成等の新しいgovernance machineryを追加しない。
 - [ ] Product / Test / Requirement / Decisionの変更は上記7件を閉じるために必要な範囲だけである。
 - [ ] PR #78、`docs/12_quality/requirements_traceability.md`、PR #78のRun Artifactを変更していない。
-- [ ] `pnpm run verify` と追加の必要なPlaywright / Native / exact-head CI gateがPASSしている。
+- [ ] `pnpm run verify` と必要なPlaywright / Native / exact-head CI gateがPASSしている。
 - [ ] Requirement単位のself-reviewで残gapがない。
 
 ## 2. Current understanding / Owner decision
@@ -61,14 +63,16 @@
 - `D-021` は「Shared UIはReact Native StyleSheet、Web専用Admin/Layoutは`.web.tsx`とCSS Modulesを使用する」。
 - `D-026` は「実装開始後はTypeScript型・Enum・Dexie Schemaのコードを正本とし、Markdownは意味と理由を正本とする」。
 - Current branchのDecision Logは現時点で `D-031` まで存在するが、実装開始前にlatest mainを取り込むため、新Decision IDは固定値として扱わない。
-- `FR-AR-001` のCurrent implementationではAuth / Cart等はidentity / actor / clock / generated IDを概ねApplicationで解決している一方、Checkout image pathはRepository側でgenerated manifestから解決している。
-- `CreateOrderForPaymentCommand` は `now` と `assetPathByAssetId` を持つが、Current `beginOrder()`では十分に活用されていない。
-- `CheckoutOrderUseCases.beginOrder()` は現在 `checkouts.getConfirmation()` のpath解決済みDTOを使ってOrder Item Snapshotを作成している。
-- `StaticManifestRepository` と既存 `ProductImageManifestRepository` portが存在するため、Manifest解決用の新generic Repositoryは不要である。
+- `FR-AR-001` のCurrent implementationではAuth / Cart等はidentity / actor / clock / generated IDを概ねApplicationで解決している。
+- `CreateOrderForPaymentCommand` は `now` と `assetPathByAssetId` を持つが、Current `beginOrder()`では利用されず、Requestから直接transaction処理へ進んでいる。
+- `CheckoutOrderUseCases.beginOrder()` は現在 `checkouts.getConfirmation()` が返すpath解決済みDTOを使ってOrder Item Snapshotを作成している。
+- generated manifestはCurrent `DexieCartRepository.getCartDto()` のread mappingでも使用され、Checkout confirmationはそのCart DTOを再利用している。したがってManifest path解決をRepositoryから全面撤去するとCart read pathまで巻き込む。
+- `FR-AR-001` の主gapは、Checkout read architecture全体ではなく、Requestから内部Commandへのcontext補完とCommand consumptionが実装上成立していない点である。
 - `FR-AR-002` はProduct実装自体はgenerated TypeScript manifestを使用し、既存security checkがRuntime Fetch / JSON accessを禁止している。主gapはpositive Runtime SSOT evidenceである。
 - `FR-AR-004` はProduction reset自体はCurrent contractへ概ね整合し、`e2e/web/fixtures.ts` がreset前にextra Pageをcloseしている。主gapはsupported harness boundaryのFormal evidenceである。
+- Current `test:e2e:chromium` は明示したspecだけを実行するため、新しいharness specを作るだけではCIへ自動で含まれない。
 - `NFR-MA-022` はCurrent ProductがReact Aria Componentsを利用しており、custom complex widgetは確認されていない。主gapは将来の境界違反を検出するStatic Contractである。
-- `NFR-MA-023` はCode側のSSOT実態は成立しているが、一部Markdownに型契約自体のSSOTであるように読める表現が残る。
+- `NFR-MA-023` はCode側のSSOT実態は成立しているが、一部Markdownに型契約自体のSSOTであるように読める表現が残り、PR #78ではFormal assertion不足もstop理由になっている。
 
 ### Owner decision
 
@@ -97,6 +101,7 @@
 - TypeScript type / interface / union / enum-equivalent、Dexie schema / version / table定義はCodeがSSOT。
 - Markdownは意味、責務、理由、利用上の契約説明を担う。
 - CodeとMarkdownの全文同期や意味比較をmachine化しない。
+- Formal evidenceは対象文書のauthority declarationを最小限固定するだけとし、汎用governance validatorへ拡張しない。
 
 ## 3. Non-goals / Stop conditions
 
@@ -110,8 +115,11 @@
 - `global.css`全面整理。
 - Admin route / componentの一括`.web.tsx`化。
 - 新しいUI / Form / styling framework導入。
+- FR-AR-001を理由としたCart / Checkout read DTO全面再設計。
+- FR-AR-001を理由としたgenerated manifest依存の全Repository一括撤去。
 - Image Manifest generator再設計、Runtime manifest API / JSON endpoint追加。
 - multi-tab atomic reset実装。
+- 新しいPlaywright project / workflow追加。
 - React Aria Components wrapper framework新設。
 - MarkdownとCodeの自動生成・全文意味比較・全Markdown横断のSSOT validator新設。
 - AST parser / ESLint plugin等の新しい解析基盤導入。
@@ -124,15 +132,15 @@
 - `FR-AR-001` にDB Schema変更が必要。
 - 公開Presentation Requestへ `now` / actor / asset path map等の内部context追加が必要。
 - CheckoutのUser-visible behaviorまたは公開Order DTOの意味変更が必要。
-- Manifest解決のために既存 `ProductImageManifestRepository` では不足し、複数の新generic port / repository abstractionが必要。
-- Web / Native別々のManifest解決ルールが必要。
-- `ProductImageManifestRepository` を `ApplicationTransactionRunner` callback内から呼ぶことで、Dexie transaction lifetimeへ非transactional async workを持ち込み得る。
-- DB version / checkout session / cart version等の既存transaction semanticsを崩さないとManifest移動が成立しない。
+- `CreateOrderForPaymentCommand` を実際に消費させるためにCheckout / Cartのread DTO、Repository interface、Web / Native read pathを広範囲変更する必要が出る。
+- generated manifestをRepositoryから全面撤去しないとFR-AR-001をFormal化できないと判断した場合。勝手に撤去せず停止する。
+- DB version / checkout session / cart version等の既存transaction semanticsを崩さないとCommand化が成立しない。
 - `FR-AR-004` Formal化のためにmulti-tab atomic reset自体の実装が必要。
+- `FR-AR-004` をCIへ含めるために新しいPlaywright project / workflowが必要になる。
 - `NFR-MA-020` Formal化のために全Form inventoryやRHF / Zod source countの固定が必要。
 - `NFR-MA-021` Formal化のためにCSS Modules導入または大量`.web.tsx` renameが必要。
 - `NFR-MA-022` のStatic Contractが大規模allowlistやAST parserを必要とする。
-- `NFR-MA-023` Formal化のためにprose semantic lint、Code/Markdown生成等が必要。
+- `NFR-MA-023` Formal化のために対象2文書を超えた全Markdown scan、semantic lint、Code/Markdown生成等が必要。
 - latest main取込後にRequirement / Decision / implementation seamが本Planの前提から変わっている。
 
 ## 4. 実装順序
@@ -171,38 +179,38 @@
 - `NFR-MA-021` も同じplatform boundaryへ更新する。
 - CSS Modulesや`.web.tsx`の件数を品質指標にしない。
 
-### Task 2: FR-AR-001 — Checkout Manifest Path責務をApplicationへ戻す
+### Task 2: FR-AR-001 — Request → internal Command境界をCheckoutで成立させる
 
 #### 実装原則
 
-- Presentationから受ける `CreateOrderForPaymentRequest` にはユーザー入力・画面contextだけを保持する。
-- `now`、generated ID、Manifest resolved value等はApplicationが内部Commandへ補完する。
-- 既存 `CreateOrderForPaymentCommand` と既存 `ProductImageManifestRepository` を優先して再利用する。
-- Manifest path resolutionをWeb / Dexie / Native Repositoryへ残さない。
-- Web / Nativeで同じApplication mappingを共有する。
+- Presentationから `beginOrder()` へ渡すのはCurrent `CreateOrderForPaymentRequest` のままとする。
+- `beginOrder(request)` 内でApplicationがCurrent User、Clock、generated ID等の既存内部contextを解決するCurrent責務を維持する。
+- `checkouts.getConfirmation()` から得られるCurrent path-resolved confirmation dataを利用し、Applicationが `assetPathByAssetId` を組み立てる。
+- Applicationは `CreateOrderForPaymentCommand` を明示的に構築する。
+- Commandを作るだけで終わらせず、その後のOrder作成処理が `command.checkoutSessionId`、`command.checkoutActionVersion`、`command.now`、`command.assetPathByAssetId` を実際に使用する。
+- Order Itemの `primaryImagePathSnapshot` は `command.assetPathByAssetId` から取得する。
+- generated IDsは引き続きApplicationの `IdGenerator` から生成し、Presentationへ要求しない。
 
-#### Repository / DTO boundary
+#### 変更しないread boundary
 
-- Checkout RepositoryはDB由来のconfirmation dataを返す。
-- DB由来dataには `assetId` / alt text等の永続化・参照に必要な値を含めてよいが、generated manifestから解決したruntime pathをRepository責務にしない。
-- ApplicationがManifest Repositoryの結果とraw confirmation dataを結合してpublic `CheckoutConfirmationDto` を構築する。
-- `getConfirmation()` と `beginOrder()` が別々のpath解決ロジックを持たないよう、必要ならApplication内の小さいprivate/local mapping helperを共有する。
-- 新しい汎用mapper framework / service abstractionは作らない。
+- Current `DexieCartRepository.getCartDto()` のManifest path解決は、このRequirementだけを理由に移動しない。
+- Current `CheckoutSessionRepository.getConfirmation()` のpublic DTO形状を、このRequirementだけを理由にraw DTOへ分割しない。
+- `getConfirmation()` のWeb / Native表示経路を、このRequirementだけを理由に再設計しない。
+- `ProductImageManifestRepository` をCheckout Use Caseへ新規注入することを前提にしない。
+- Cart / Checkout read architectureの全面整理は別論点とし、今回のstop解消へ混ぜない。
 
-#### beginOrder / transaction sequencing
+#### transaction semantics
 
-- cart version、checkout session/version/status、order/payment作成等の既存DB transaction semanticsを維持する。
-- Manifestはimmutable runtime dataだが、`ProductImageManifestRepository` 呼出をtransaction callback内へ安易に入れない。
-- Manifest lookupがnon-Dexie async workとなりtransaction lifetime riskを生む可能性がある場合はStop conditionとする。
-- transaction外でManifestを解決する場合も、DB snapshot / version検証と矛盾しない順序を保つ。
-- Order Itemの `primaryImagePathSnapshot` はApplicationが解決したManifest mapから作る。
-- current fallback / missing asset behaviorを維持する。
+- cart version、checkout session/version/status、order/payment作成等の既存 `create-order` transaction semanticsを維持する。
+- confirmation取得、cart version確認、inventory/product確認、order/payment writeの既存順序を、不必要にtransaction外へ移動しない。
+- Commandは既存transaction内で取得済みのconfirmation valueから構築してよい。外部async portをtransactionへ新規持ち込まない。
 
 #### Formal evidence
 
-- `CheckoutOrderUseCases` のintegration testを中心に、Presentation Requestにpath mapを渡さず、ApplicationがManifestを解決してconfirmation / order snapshotへ反映することを確認する。
-- Web / Native repositoryからgenerated manifest direct dependencyが除かれたことは必要に応じて狭いarchitecture assertionで固定する。
-- implementation detailを大量のsource-string testで固定しない。
+- `tests/integration/checkout-order-use-cases.test.ts` を中心に、Presentation Requestへ `now` / asset path map / generated IDを要求せず注文作成できることを確認する。
+- Order Item SnapshotのpathがCurrent confirmationのassetIdに対応したApplication-generated `assetPathByAssetId` 経由で保存されることを確認する。
+- Source contractが必要な場合も、`CreateOrderForPaymentCommand` がUse Case内で構築・消費されることを固定する狭いassertionに限定する。
+- Repositoryからgenerated manifest importを全面禁止するassertionは追加しない。
 
 ### Task 3: FR-AR-002 — Generated Manifest Runtime SSOTをFormal化する
 
@@ -212,19 +220,20 @@
 - 同じ禁止regex scanをVitestへ複製しない。
 - alternate runtime manifest SSOTを新設しない。
 
-### Task 4: FR-AR-004 — supported reset boundaryをFormal化する
+### Task 4: FR-AR-004 — supported reset boundaryをFormal化しCIへ組み込む
 
 - Current decision `D-014` の意味を維持する。
 - fixtureがextra Pageをcloseしてからsupported resetを行うCurrent behaviorを維持する。
 - focused Playwright harness testを1本追加する。
   1. primary Pageを保持する。
   2. extra Pageを1つ作る。
-  3. supported reset helper / fixture boundaryを実行する。
-  4. extra Pageが境界外として整理され、primary Pageでresetが成功することを確認する。
+  3. supported scenario reset boundaryを実行する。
+  4. extra Pageが境界外としてcloseされ、primary Pageでresetが成功することを確認する。
 - 「複数Tabを原子的にresetできる」ことはassertしない。
 - `D-023` の必須12 E2E mappingは変更しない。
-- 新Playwright project / config / workflowを増やさない。
-- 適切な既存suiteがない場合のみ、one-purposeの小さいharness contract specを追加する。
+- 新Playwright project / workflowは増やさない。
+- one-purposeの小さいharness contract specを追加し、`package.json` の既存 `test:e2e:chromium` にそのspecを明示追加する。
+- これによりCurrent Web CIの `required` matrixが継続的に同じharness testを実行する状態にする。
 
 ### Task 5: NFR-MA-020 — Application / Domain validation ownershipをFormal化する
 
@@ -240,8 +249,8 @@
 - 1つのAuth testだけでNFR全体をcoveredとしない。
 - 既存testを最大限再利用し、複数の独立したmutation boundaryをbounded-multi-refとして束ねる。
 - 最低でも異なる責務の境界を複数確認する。例:
-  - Auth / Account系のApplication入力validation。
-  - Profile / Address / Admin / Checkout等から、既にApplication / Domain側でinvalid inputやnormalizationを確認している独立したmutation boundaryを1つ以上。
+  - Auth / Registration / Profile / Address系のApplication入力validation。
+  - Admin Category / Brand等のApplication入力validation / normalization / business rule。
 - 既存testで十分なら新規testを増やさない。
 - 明確に不足する場合だけ、Use Caseを直接呼ぶfocused assertionを追加する。
 - 全Use Case / 全Formのinventory testを作らない。
@@ -282,7 +291,7 @@
 
 #### Current remediationで固定するwidget set
 
-少なくとも次をcustom implementation検出対象とする。
+custom implementation検出対象は今回次に限定する。
 
 - raw `<dialog>`
 - `role="dialog"`
@@ -292,36 +301,50 @@
 
 Current Requirementの「Dialog / Combobox等」を無制限に広げず、Tabs / Grid / Tree等を今回勝手に追加しない。
 
+#### Scan root
+
+- `src/presentation/**/*.{ts,tsx}`
+- `app/**/*.{ts,tsx}`
+
+から、`src/presentation/native/**`、`*.native.*`、`app/**/*.native.*` を除外したWeb presentation sourceを対象にする。
+
 #### Contract方針
 
-- Web presentation sourceを狭くscanし、上記complex widget markerを独自実装しているfileを検出する。
-- React Aria Componentsを使うCurrent implementationは許容する。
+- 上記source内でraw `<dialog>` または対象 `role=` markerを原則禁止し、custom complex widget混入を検出する。
+- RAC自身がruntimeで生成するARIA roleはnode_modules側でありsource scan対象外なので、RAC利用を理由にmarkerを許容する必要は基本的にない。
+- Current sourceに正当な例外が実在する場合だけ、exact fileの最小allowlistを使用する。
 - plain HTML `select` 等、Current contractでcomplex widgetとして扱わないものは対象外。
-- runtimeでRAC自身が出力するARIA roleをsource-level custom implementationと混同しない。
-- allowlistが必要でもCurrent既存例だけの最小限にする。
 - AST parser / ESLint plugin / wrapper frameworkを導入しない。
 
-### Task 8: NFR-MA-023 — D-026とDocumentation authorityを整合する
+### Task 8: NFR-MA-023 — D-026とDocumentation authorityを整合しFormal化する
+
+変更対象は原則次だけとする。
 
 - `docs/04_data/domain_types.md`
 - `docs/04_data/application_contracts.md`
-- その他、今回確認したD-026と直接競合する表現だけ
+- `docs/13_decisions/decision_log.md` はD-026のCurrent authority確認のみ。D-026自体の意味は変更しない。
 
-を必要最小限で修正する。
+#### Documentation wording
 
-明示する内容:
+2文書へ同じ意味の短いauthority declarationを明示する。
 
 - TypeScript type / interface / union / enum-equivalentはCodeがSSOT。
 - Dexie schema / version / table定義はCodeがSSOT。
 - Markdownは意味・責務・理由・契約説明を担う。
-- MarkdownがCode上の型定義そのものを上書きしない。
+- authorityは `D-026` に従う。
+
+文書ごとに長い説明を増やさず、既存の誤解を招くSSOT表現をこの宣言へ寄せる。
 
 #### Formal evidence
 
-- デフォルトは `D-026` + doc wording修正 + 既存Markdown/spec validationで閉じる。
-- `tests/contracts/architecture.test.ts` に「D-026という文字列がある」「特定文言がある」だけのprose substring testを追加しない。
-- 全Markdownの「正本」禁止、意味比較、semantic lintを追加しない。
-- 既存Formal evidence framework上どうしてもmachine-readable evidenceが必須で、PR #78のbounded-multi-refでも閉じられない場合だけStopして報告する。勝手にprose validatorを新設しない。
+- 既存 `tests/contracts/architecture.test.ts` または同じ `tests/contracts` 配下の最小testへ1 contractだけ追加する。
+- contractは次だけを確認する。
+  1. Decision LogにCurrent `D-026` authorityが存在する。
+  2. `domain_types.md` に上記authority declarationが存在する。
+  3. `application_contracts.md` に上記authority declarationが存在する。
+- assertion対象の文言は、2文書へ意図的に置く短いstable authority declarationだけにする。
+- 全Markdownの「正本」検索、文章意味比較、型一覧比較、Code/Markdown生成、semantic lintは追加しない。
+- 汎用validatorや新scriptは作らない。
 
 ### Task 9: Requirement単位で再監査する
 
@@ -336,7 +359,8 @@ Current Requirementの「Dialog / Combobox等」を無制限に広げず、Tabs 
 
 ### Task 10: 関連cleanupだけ行う
 
-- FR-AR-001対応で不要になったmanifest import、dead mapping、未使用helper等は同じ責務移動に直接関係するものだけ削除する。
+- FR-AR-001対応で不要になったlocal variable、dead helper、未使用import等は同じ変更に直接関係するものだけ削除する。
+- Cart / Checkout read repositoryのmanifest importは今回のCommand境界変更だけを理由に削除しない。
 - incidental refactor、命名統一、directory再編等は行わない。
 
 ## 5. Candidate files
@@ -352,17 +376,17 @@ Current Requirementの「Dialog / Combobox等」を無制限に広げず、Tabs 
 
 - `src/application/contracts/orders.ts`
 - `src/application/use-cases/checkout-order-use-cases.ts`
-- Checkout Repository / port implementations
-- `ProductImageManifestRepository` port
-- `StaticManifestRepository`
-- Web / Native composition root
-- relevant integration / contract tests
-- existing manifest/security validation
+- `tests/integration/checkout-order-use-cases.test.ts`
+- `src/infrastructure/image-assets/static-manifest-repository.ts`
+- existing manifest/security contract tests
+
+FR-AR-001では、原則としてCheckout / Cart Repository interfaceやWeb / Native composition rootを変更候補にしない。必要になった場合はStop conditionを先に評価する。
 
 ### FR-AR-004
 
 - `e2e/web/fixtures.ts`
-- focused Playwright harness contract spec
+- one-purpose Playwright harness contract spec
+- `package.json` の既存 `test:e2e:chromium` script
 
 ### NFR-MA-020 / 021 / 022 / 023
 
@@ -389,7 +413,7 @@ Current Requirementの「Dialog / Combobox等」を無制限に広げず、Tabs 
 - FR-AR-001 Checkout Application integration test
 - FR-AR-002 manifest / security relevant validation
 - NFR-MA-020 selected Application mutation boundary tests
-- NFR-MA-021 / 022 architecture contract test
+- NFR-MA-021 / 022 / 023 architecture contract test
 - FR-AR-004 focused Playwright harness test
 
 ### Full local gate
@@ -401,10 +425,13 @@ Current Requirementの「Dialog / Combobox等」を無制限に広げず、Tabs 
 
 `pnpm run verify` が既にFormat / Markdown / spec / curriculum / lint / typecheck / manifest / security / Vitest suites / Web build / spec buildを束ねているため、同じcommandをPlanへ二重列挙しない。
 
+FR-AR-004 harness specは `test:e2e:chromium` に含めるため、focused実行とfull E2Eの両方で確認される。
+
 ### PR gate
 
 - PR #88のexact head SHAを取得する。
 - exact head SHAに対するrequired CIを確認する。
+- Web CIのrequired Chromium E2EでFR-AR-004 harness specが実行されていることをlogから確認する。
 - failureを無関係扱いするのは、main由来または外部要因であることをlogで明示できる場合だけとする。
 - headが動いた場合は旧SHAの結果を流用しない。
 
@@ -416,6 +443,7 @@ Current Requirementの「Dialog / Combobox等」を無制限に広げず、Tabs 
 - [ ] PR #78を変更していない。
 - [ ] literal RHF/Zod migrationをしていない。
 - [ ] literal CSS Modules/.web migrationをしていない。
+- [ ] FR-AR-001のためにCart / Checkout read architectureを全面変更していない。
 - [ ] 無関係refactorを含まない。
 
 ### Decision / Requirement
@@ -429,18 +457,21 @@ Current Requirementの「Dialog / Combobox等」を無制限に広げず、Tabs 
 ### FR-AR-001
 
 - [ ] Presentation Requestへ内部contextを追加していない。
-- [ ] Manifest path resolutionはApplication責務になった。
-- [ ] Web / Native Repositoryにgenerated manifest direct dependencyが残っていない。
-- [ ] transaction lifetime / version semanticsを崩していない。
-- [ ] confirmationとorder snapshotでpath resolution ruleが分岐していない。
+- [ ] `CreateOrderForPaymentCommand` をApplicationが構築している。
+- [ ] Order作成処理がCommandの `now` / `assetPathByAssetId` / Request由来fieldを実際に消費している。
+- [ ] Order Item Snapshot pathはCommandのasset map経由で決定している。
+- [ ] Cart / Checkout read DTO / Repositoryを不要に分割していない。
+- [ ] transaction / version semanticsを崩していない。
 
 ### Formal evidence
 
 - [ ] NFR-MA-020をAuth 1例だけで全体coveredにしていない。
 - [ ] NFR-MA-020は複数の独立したApplication mutation boundaryをbounded-multi-refで説明できる。
 - [ ] NFR-MA-021はNative presentation全体の明示scan rootを持つ。
-- [ ] NFR-MA-022は今回固定するcomplex widget setが明示されている。
-- [ ] NFR-MA-023のためだけにbrittle prose validatorを追加していない。
+- [ ] NFR-MA-022は今回固定するWeb scan rootとcomplex widget setが明示されている。
+- [ ] NFR-MA-023はD-026 + 2文書のstable authority declarationを最小Formal contractで固定している。
+- [ ] NFR-MA-023のために汎用prose validator / semantic lintを追加していない。
+- [ ] FR-AR-004 harness testが既存 `test:e2e:chromium` に含まれている。
 - [ ] Formal gapだけを埋める箇所でProductを不要に変更していない。
 
 ### Validation
@@ -449,6 +480,7 @@ Current Requirementの「Dialog / Combobox等」を無制限に広げず、Tabs 
 - [ ] `pnpm run verify` PASS
 - [ ] focused FR-AR-004 Playwright PASS
 - [ ] `pnpm run test:e2e:chromium` PASS
+- [ ] Web CI required E2Eでharness spec実行確認
 - [ ] required Native / Mobile validation PASS
 - [ ] exact-head CI PASSまたは説明可能な外部/main由来failureのみ
 
@@ -471,7 +503,9 @@ PR #88がmergeされた後だけPR #78側で行う。
 - Current implementationに合わせるだけの無言のRequirement変更をしない。
 - Product gapはProductで直し、Formal gapだけならTest / Contractで直す。
 - `D-020` / `D-021` はhistoryとして残し、latest main時点の次の空きDecision IDで明示的にsupersedeする。
-- `NFR-MA-023`は`D-026`をCurrent authorityとして扱う。
+- FR-AR-001はRequest → internal Commandの実装gapを閉じる。Cart / Checkout read architecture全面整理へ広げない。
+- FR-AR-004のFormal evidenceは既存CI経路へ必ず載せる。
+- `NFR-MA-023`は`D-026`をCurrent authorityとして扱い、対象2文書のstable declarationだけを最小Formal contractで固定する。
 - 追加の汎用framework、migration、validatorは作らない。
 - Stop conditionに触れたら実装者判断で範囲を広げず報告する。
 - PR #78はこのPRでは触らない。
