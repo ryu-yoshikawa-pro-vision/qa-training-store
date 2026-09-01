@@ -18,6 +18,16 @@
   - Parent decision: 1 iterationのbounded repairとして進める。
 - Progress: 20% (1/5)
 
+## 2026-09-02 08:55 (JST)
+
+- Summary: commit `627c4035c29c1d538264a9fd35eff131d04d3131`のMobile exact-head CIを、失敗job限定で1回再実行したが、同じExpo Doctor failureを再現した。
+- Validation: rerun Native Static job `100070290170`はhead `627c4035c29c1d538264a9fd35eff131d04d3131`で、`pnpm run check:native-route-dependencies`を実行し`Native Route Dependency Check passed (38 native routes)`となった。その後`pnpm dlx expo-doctor@1.17.6`が`16/17 checks passed`でfailureし、`@expo/metro-runtime`（expected `~57.0.15`, found `57.0.14`）と`expo`（expected `~57.0.19`, found `57.0.18`）のpatch mismatchを報告した。
+- Failure analysis: 同一head・同一jobの初回（`100063980577`）と再実行（`100070290170`）で同じfailure。前回head `e6bf2e30...`から今回source変更への`package.json` / `pnpm-lock.yaml`差分はなく、localでも同じ`expo-doctor` mismatchを再現した。したがって今回のarchitecture contract修正を原因とするfailureではなく、既存依存の外部metadata driftと分類する。
+- Scope decision: ユーザー指定どおり依存更新、workflow変更、Product変更、追加rerunは行わない。Native dependency gate自体は両回ともPASSしており、NFR-MA-021の今回のpositive Formal evidence修正はlocal gateを含めて成立している。新しい最終artifact commit後に発生するcurrent-head workflowは、retryではなくpush後の必須確認として観測する。
+- Blocker / Remaining: exact-head Mobile workflowがExpo Doctorで失敗しているため、現時点ではPRのmergeable状態を確認できない。Run Artifactの最終結果記録、artifact commit/push、push後current-head CIとPR状態の確認が残る。今回のRemediation PlanのStop condition（Product実装との不整合）は0件だが、同一CI failureの再試行上限には到達したため、追加の手動rerunはしない。
+- Repair iteration: iteration 1 / 同一failureの2回目を確認し、failure categoryを`flaky_or_env_issue`として固定。decisionは`continue`（artifactの最終記録と必須のpush後確認のみ継続）。
+- Progress: 80% (4/5)
+
 ## 2026-09-02 08:06 (JST)
 
 - Summary: NFR-MA-021のpositive Formal contractを補強した。
@@ -38,6 +48,26 @@
 - Blocker / Remaining: なし。Run Artifactの最終更新・Sanitizer、commit/push、PR #88 exact-head CI確認が残る。
 - Repair iteration: iteration 1 / remaining deltaはlocal validation上なし。decisionは`continue`。
 - Progress: 60% (3/5)
+
+## 2026-09-02 08:26 (JST)
+
+- Summary: Run Artifactを含むcommitを作成し、PR #88へpushした。PR本文も新しいCurrent headへ同期した。
+- Changes: commit `627c4035c29c1d538264a9fd35eff131d04d3131`を`investigate/nfr-ma-020-021`へpush。PR本文のCurrent headを同SHAへ更新し、NFR-MA-021の表現をReact Native primitives / StyleSheet / shared tokens接続へ同期した。
+- Validation: push前のSanitizer Write / Check、evaluation schema、focused/full local validationはPASS。push後のPR #88 checksはWeb/Mobileを含め実行中（現時点で完了済みcheckはPASS）。
+- Scope: commit内容はRun Artifact 5 filesと`tests/contracts/architecture.test.ts`のみ。PR #78、`docs/12_quality/requirements_traceability.md`、Product / Requirement / Decision / workflowは未変更。
+- Blocker / Remaining: なし。current head `627c4035c29c1d538264a9fd35eff131d04d3131`のWeb required Chromium / Mobile Native Static完了とログ確認が残る。
+- Repair iteration: iteration 1 / local remaining deltaなし。decisionは`continue`。
+- Progress: 80% (4/5)
+
+## 2026-09-02 08:31 (JST)
+
+- Summary: commit `627c4035c29c1d538264a9fd35eff131d04d3131`のexact-head CIを確認中。Web CIのrequired Chromium jobはPASSした。Mobile App CIはNative Staticのnative dependency gate後段で別failureが発生している。
+- Validation: Web CI run `33570748143`はhead `627c4035c29c1d538264a9fd35eff131d04d3131`で進行し、`Chromium E2E (required)` job `100064195612`はPASS。Native Static job `100063980577`は`Check Native route dependencies`をPASS（38 routes）した後、`Run Expo Doctor`でfailureとなった。
+- Failure analysis: Expo Doctor failureはSDK patch mismatch（12 packages）で、local `pnpm dlx expo-doctor@1.17.6`でも`16/17 checks passed`・同じpatch mismatchを再現した。前回head `e6bf2e30...`から今回headへの`package.json` / `pnpm-lock.yaml`差分はなく、今回変更はarchitecture contractとRun Artifactのみ。したがって現時点では今回のFormal contract変更によるfailureではなく、外部package metadata / existing dependency driftの可能性が高いが、Mobile workflow完了後に再判定する。
+- Scope decision: ユーザー指定の「positive Formal contractのみ」とProduct / dependency変更禁止に従い、expo依存更新やworkflow変更は行わない。Native Staticのgate自体は実行されPASSしているため、run完了後にfailed jobの再実行可否を1回検討する。
+- Blocker / Remaining: exact-head Mobile workflowの完了、failureログ、必要ならfailed jobs-only rerun、Run Artifactの最終評価とpush後head確認が残る。
+- Repair iteration: iteration 1 / new failure categoryは`flaky_or_env_issue`候補として分析中。decisionは`continue`（同一failureの盲目的再試行はまだしていない）。
+- Progress: 80% (4/5)
 
 ## 2026-09-02 08:21 (JST)
 
