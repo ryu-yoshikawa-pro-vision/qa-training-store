@@ -29,9 +29,9 @@ function webPresentationSourceFiles(): string[] {
   });
 }
 
-function reactAriaNamedImports(sourceText: string): Set<string> {
+function namedImportsFrom(sourceText: string, moduleName: string): Set<string> {
   const imports = sourceText.matchAll(
-    /import\s*\{([^{}]*)\}\s*from\s*["']react-aria-components["']/g,
+    new RegExp(String.raw`import\s*\{([^{}]*)\}\s*from\s*["']${moduleName}["']`, "g"),
   );
   return new Set(
     Array.from(imports, (match) => match[1] ?? "")
@@ -53,7 +53,7 @@ function usesReactAriaComplexWidgets(sourceText: string): boolean {
     sourceText.matchAll(/<\s*(Dialog|ComboBox|ListBox|Menu)\b/g),
     (match) => match[1],
   ).filter((widget): widget is string => Boolean(widget));
-  const importedWidgets = reactAriaNamedImports(sourceText);
+  const importedWidgets = namedImportsFrom(sourceText, "react-aria-components");
   return usedWidgets.every((widget) => importedWidgets.has(widget));
 }
 
@@ -192,9 +192,10 @@ describe("architecture boundaries", () => {
       join(projectRoot, "src", "presentation", "native", "native-components.tsx"),
     );
 
-    expect(nativeComponents).toMatch(
-      /import\s*\{[^}]*\bStyleSheet\b[^}]*\}\s*from\s*["']react-native["']/,
-    );
+    const reactNativeImports = namedImportsFrom(nativeComponents, "react-native");
+    for (const nativePrimitive of ["StyleSheet", "View", "Text"]) {
+      expect(reactNativeImports).toContain(nativePrimitive);
+    }
     expect(nativeComponents).toContain('from "@/presentation/design/tokens";');
   });
 
