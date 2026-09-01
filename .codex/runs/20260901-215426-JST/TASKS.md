@@ -10,12 +10,13 @@
 - [x] 6. focused validationとself-reviewを実行する
 - [x] 7. `pnpm run verify`、native gate、Chromium E2E、必要なMobile validationを実行する
 - [x] 8. Run Artifactをcurrent結果へ更新しSanitizer Write / Checkを実行する
-- [ ] 9. PR #88本文をcurrent implementation / validation / exact headへ同期する
-- [ ] 10. branch safety確認、commit、push、PR #88 exact-head CIとPR #78未変更を確認する
+- [x] 9. PR #88本文をcurrent implementation / validation / exact headへ同期する
+- [x] 10. branch safety確認、commit、push、PR #88 exact-head CIとPR #78未変更を確認する
 
 ## Discovered
 
 - 作業中に発見したタスクはここへ追記する。
+- [ ] 11. exact-head CI結果と最終headをRun Artifact / PR本文へ同期し、clean状態を確認する
 
 ## Blocked
 

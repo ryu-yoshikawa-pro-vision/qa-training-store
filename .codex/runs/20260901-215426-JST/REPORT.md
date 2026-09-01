@@ -50,6 +50,16 @@
 - Blocker / Remaining: なし。commit前branch safety確認後、implementation commitを作成してpushし、PR #88のcurrent headに対するCIを確認する。
 - Progress: 80% (8/10)
 
+## 2026-09-01 23:39 (JST)
+
+- Summary: PR #88本文をCurrent implementation / Current Decision / validation / head `6ec905fd744dfca50aca015e3c3a8b5866e24f3a`へ同期した。`D-032` / `D-033`を確定Current Decisionとして記載し、Plan段階の未確定表現を除去した。
+- Validation: 同headのWeb CI run `33513152907`とMobile App CI run `33513153523`はsuccess。Web required Chromium logは`e2e/web/reset-boundary.spec.ts`を含む28 passed、Mobile Native Static logは`pnpm run check:native-route-dependencies`と38 native routes PASSを示す。初回iOS timeoutは同headのfailed jobs-only rerunで解消した。
+- Changes: source変更は`6ec905f`に含まれる2つのcontract testのみ。PR body同期とCI結果は外部状態として反映済み。Run Artifactの本checkpointとevaluationは次のartifact-only commitへまとめる。
+- Decision / Rationale: artifact-only commitはsource / dependency / workflowを変更しない。push後に新しいPR headとなるため、最終headではPR bodyのCurrent headを再同期し、既存workflowのexact-head CIを確認する。Native Staticがskipとなる場合は、既存Mobile workflowの`workflow_dispatch`を用いて同じheadのNative Staticを確認するが、新workflowは作成しない。
+- Scope: PR #78、`docs/12_quality/requirements_traceability.md`、Requirement / Decision Log、Product codeは未変更。Stop conditionは0件。
+- Remaining: Run Artifactをcommit/pushし、artifact-only push後の最終head、PR body、Web / Mobile exact-head CIを確認する。
+- Progress: 91% (10/11)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
@@ -58,3 +68,12 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-01 23:37 (JST)
+
+- Summary: implementation commit `6ec905fd744dfca50aca015e3c3a8b5866e24f3a`のexact headに対するWeb / Mobile App CIを確認し、修正対象4件のexternal validationを完了した。
+- Validation: Web CI run `33513152907`（head `6ec905fd744dfca50aca015e3c3a8b5866e24f3a`）はsuccess。required Chromium job `99873870535`のログで`e2e/web/reset-boundary.spec.ts`を含む28 testsと`28 passed`を確認した。Mobile App CI run `33513153523`（同head）は、初回iOS Production-validation timeout後にfailed jobsのみを再実行しsuccess。Native Static job `99888169204`のログで`pnpm run check:native-route-dependencies`と`Native Route Dependency Check passed (38 native routes).`を確認した。再実行後のiOS Production-validation job `99888167670`、Native CI Verify、`native-ci / verify`もsuccessである。
+- Failure analysis: 初回Mobile runのiOS Production-validationは40分timeoutでcancelされたが、後続failureは依存failureだった。直近成功run `33455877228`では同jobが約18分でsuccessし、`6ec905f`のsource diffはcontract test 2 filesとRun Artifactに限定される。再実行は21分58秒でsuccessしたため、Product/contract defectではなく一時的なCI実行時間差として分類し、同じheadのfailed jobsのみ再実行した。
+- Scope: NFR-MA-021 / NFR-MA-022のbounded contract修正、Native CI exact-count assertion削除、既存negative gate再利用以外のProduct code / Requirement / Decision / Traceability変更はない。PR #78 head `7e296b328e029de4cf7021aac31321a0a7a5c5b3`と`docs/12_quality/requirements_traceability.md`は未変更。PlanのStop conditionは0件。
+- Remaining: PR #88本文のCurrent head同期、Run Artifactの最終commit、artifact-only commit後のcurrent head CI確認が残る。artifact-only commitではsourceを変更しない。
+- Progress: 80% (8/10)
