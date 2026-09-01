@@ -29,6 +29,34 @@ function webPresentationSourceFiles(): string[] {
   });
 }
 
+function reactAriaNamedImports(sourceText: string): Set<string> {
+  const imports = sourceText.matchAll(
+    /import\s*\{([^{}]*)\}\s*from\s*["']react-aria-components["']/g,
+  );
+  return new Set(
+    Array.from(imports, (match) => match[1] ?? "")
+      .flatMap((namedImports) => namedImports.split(","))
+      .map(
+        (specifier) =>
+          specifier
+            .trim()
+            .split(/\s+as\s+/)
+            .at(-1)
+            ?.trim() ?? "",
+      )
+      .filter(Boolean),
+  );
+}
+
+function usesReactAriaComplexWidgets(sourceText: string): boolean {
+  const usedWidgets = Array.from(
+    sourceText.matchAll(/<\s*(Dialog|ComboBox|ListBox|Menu)\b/g),
+    (match) => match[1],
+  ).filter((widget): widget is string => Boolean(widget));
+  const importedWidgets = reactAriaNamedImports(sourceText);
+  return usedWidgets.every((widget) => importedWidgets.has(widget));
+}
+
 describe("architecture boundaries", () => {
   it("keeps Application independent from Infrastructure and Dexie", () => {
     const forbidden = [
@@ -150,6 +178,26 @@ describe("architecture boundaries", () => {
     expect(violations).toEqual([]);
   });
 
+  it("keeps Web-only styles at the Web composition root", () => {
+    const webRoot = source(join(projectRoot, "src", "presentation", "root-layout.web.tsx"));
+    const nativeRoot = source(join(projectRoot, "src", "presentation", "root-layout.native.tsx"));
+
+    expect(webRoot).toContain('import "@/presentation/styles/fonts.css";');
+    expect(webRoot).toContain('import "@/presentation/styles/global.css";');
+    expect(nativeRoot).not.toMatch(/^\s*import\b[^\n]*\.css["'];?\s*$/m);
+  });
+
+  it("connects shared Native presentation to React Native primitives and shared tokens", () => {
+    const nativeComponents = source(
+      join(projectRoot, "src", "presentation", "native", "native-components.tsx"),
+    );
+
+    expect(nativeComponents).toMatch(
+      /import\s*\{[^}]*\bStyleSheet\b[^}]*\}\s*from\s*["']react-native["']/,
+    );
+    expect(nativeComponents).toContain('from "@/presentation/design/tokens";');
+  });
+
   it("keeps Native Test Control production-disabled at the pure protocol boundary", () => {
     const protocol = source(
       join(projectRoot, "src", "test-controls", "native-test-control-protocol.ts"),
@@ -188,9 +236,20 @@ describe("architecture boundaries", () => {
       /<\s*(?:Dialog|ComboBox|ListBox|Menu)\b/.test(source(path)),
     );
     const nonReactAriaFiles = widgetFiles.filter(
-      (path) => !/from\s+["']react-aria-components["']/.test(source(path)),
+      (path) => !usesReactAriaComplexWidgets(source(path)),
     );
     expect(nonReactAriaFiles).toEqual([]);
+
+    expect(
+      usesReactAriaComplexWidgets(
+        'import { Dialog } from "react-aria-components";\nreturn <Dialog />;',
+      ),
+    ).toBe(true);
+    expect(
+      usesReactAriaComplexWidgets(
+        'import { Button } from "react-aria-components";\nimport { Dialog } from "./custom-dialog";\nreturn <Dialog />;',
+      ),
+    ).toBe(false);
   });
 
   it("keeps D-026 Code authority and Markdown explanation responsibilities explicit", () => {
