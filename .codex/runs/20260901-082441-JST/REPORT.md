@@ -76,3 +76,20 @@
 - Scope / Safety: `git status --short`で意図した変更（Remediation対象、current Run Artifact、新規FR-AR-004 harness）のみを確認。PR #78、`docs/12_quality/requirements_traceability.md`は差分なし。commit前に再度branchを確認してから明示対象をstageする。
 - Blocker / Remaining: なし。commit、push、push後のPR #88 exact-head CI確認が残る。
 - Progress: 90% (9/10)
+
+## 2026-09-01 09:42 (JST)
+
+- Summary: Remediation PlanのDoD / Completion Criteriaを1項目ずつ再確認し、実装・focused validation・full local gate・PR #88 exact-head CI・pushまで完了した。Stop conditionは0件。
+- Completion Criteria:
+  - `FR-AR-001`: Presentation Request維持、Application Command構築、Current user / Clock / generated IDs / manifest path map補完、Order / Payment / OrderItem / Status History / Checkout updateのCommand消費、structural Formal assertion、契約文書更新を確認。Cart / Checkout read architectureは変更していない。
+  - `FR-AR-002`: generated TypeScript manifest integrity、`StaticManifestRepository` runtime binding、既存security no-runtime-fetchのbounded 3 evidenceを確認した。
+  - `FR-AR-004`: 1 Browser Context / 1 primary Pageのfocused harnessを追加し、既存`test:e2e:chromium`へ明示接続した。multi-tab atomic reset、新project、新workflowは追加していない。
+  - `NFR-MA-020`: D-020を削除せずD-032でsupersedeし、Application / Domain validation ownershipへRequirementを更新。RHF / Zod全面migrationは行っていない。
+  - `NFR-MA-021`: D-021を削除せずD-033でsupersedeし、既存`check-native-route-dependencies`を正本として不足rootと`indexedDB` forbidden patternだけを追加。Native CI単一gateを確認した。
+  - `NFR-MA-022`: RequirementとFormal scan setをDialog / Combobox / Listbox / Menuの4種へ一致させ、Tabs / Grid / Treeは対象外のまま維持した。
+  - `NFR-MA-023`: D-026をCurrent authorityとして維持し、対象2文書のCode SSOT / Markdown説明責務だけを明示した。
+  - Scope safety: PR #78、`docs/12_quality/requirements_traceability.md`、FR-AR-003は変更していない。新しい汎用validator / AST基盤 / migration / unrelated cleanupは追加していない。
+- Validation: `pnpm run verify`、`pnpm run check:native-route-dependencies`、focused Vitest（6 files / 60 tests）、FR-AR-004 focused Playwright（1 test）、`pnpm run test:e2e:chromium`（28 tests）、`pnpm run test:e2e:mobile`（14 tests）、`pnpm run test:e2e:mobile-boundary`（4 tests）がPASS。PR #88 exact-head CI run `33453846162`も全体successで、Web required / contracts / Native Static / Android・iOS build / Android Runtime・Maestroを含む各checkがPASS。CodeQL、deploy-production、Extended E2Eのskipはworkflow条件によるもの。
+- Git: 実装commitは`8ccb406dd4a57286c62dae03c963b576856996f6`。`git push origin HEAD:investigate/nfr-ma-020-021`成功。PR #88 headは同SHA、PR #78 headは`7e296b328e029de4cf7021aac31321a0a7a5c5b3`のまま。`git status --short`空、`git diff --check` PASS。Run Artifact最終checkpoint保存のため、このRunファイルのみを後続のartifact-only commitへ記録する。
+- Blocker / Remaining: Remediation scopeの残課題なし。Owner側でのPR #88 review / merge、およびmerge後に行うPR #78 handoff（Plan Section 8）は今回の対象外。
+- Progress: 100% (10/10)
