@@ -35,7 +35,10 @@
 | D-029 | UI向けRead DTOからGateway Key、Repository Version、内部Actor IDを除外する |
 | D-030 | 新機能追加より、EC基本フローと自動テストの決定性を優先する |
 | D-031 | 会員割引はSKU単価単位で切り捨て、Payment処理日時はApplication Clockを唯一の正本とする |
+| D-032 | D-020をsupersedeし、Domain状態・永続状態・業務判断に影響するValidation / NormalizationはPresentationのValidationだけに依存せずApplicationまたはDomain boundaryで成立させる。PresentationはUX目的の補助Validationを行ってよい。Form state / Runtime Validation libraryは画面特性に応じて選択し、React Hook Form / Zodを全入力へ一律必須としない |
+| D-033 | D-021をsupersedeし、Native / Webのplatform isolationをCurrent contractとする。Native presentationはReact Native primitives / StyleSheet / shared design tokensを利用し、NativeからWeb CSS・React Aria Components・`.web` module・Web DOM / browser storage globalsへ依存しない。Web-only stylesheetはWeb composition rootから取り込み、`.web.tsx` / `.native.tsx`はplatform-specific implementationが必要な境界で使用する。CSS Modulesは一律必須としない。Formal enforcementは既存`check:native-route-dependencies`を正本とする |
 
 ## 実装補足
 
 - 商品AggregateのCreate/UpdateでもUse CaseがClockを1回だけ取得し、Aggregate内の全時刻へ同一値を伝播する。
+- D-022のCurrent enforcement対象はDialog / Combobox / Listbox / Menuとする。

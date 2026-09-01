@@ -2,6 +2,7 @@ import type {
   CheckoutConfirmationDto,
   CheckoutStartResult,
   CustomerOrderDetailDto,
+  CreateOrderForPaymentCommand,
   CreateOrderForPaymentRequest,
   MyOrderSearchQuery,
   OrderDetailDto,
@@ -208,9 +209,19 @@ export class CheckoutOrderUseCases {
         if (cart === null || cart.version !== session.cartVersion) {
           throw this.cartChanged();
         }
-        const orderId = this.dependencies.idGenerator.generate();
-        const paymentId = this.dependencies.idGenerator.generate();
-        const localDate = localDateInTokyo(now);
+        const command: CreateOrderForPaymentCommand = {
+          ...request,
+          userId: user.id,
+          orderId: this.dependencies.idGenerator.generate(),
+          paymentId: this.dependencies.idGenerator.generate(),
+          orderItemIds: confirmation.items.map(() => this.dependencies.idGenerator.generate()),
+          orderStatusHistoryId: this.dependencies.idGenerator.generate(),
+          now,
+          assetPathByAssetId: Object.fromEntries(
+            confirmation.items.map((line) => [line.image.assetId, line.image.path]),
+          ),
+        };
+        const localDate = localDateInTokyo(command.now);
         const sequence = await sequences.next("order", localDate);
         const orderNumber = `ORD-${localDate}-${String(sequence).padStart(4, "0")}`;
         const items: OrderItem[] = [];
@@ -220,8 +231,8 @@ export class CheckoutOrderUseCases {
           const product = await products.getById(variant.productId);
           if (product === null) throw this.notFound("product");
           items.push({
-            id: this.dependencies.idGenerator.generate(),
-            orderId,
+            id: command.orderItemIds[index]!,
+            orderId: command.orderId,
             lineNumber: index + 1,
             productId: product.id,
             variantId: variant.id,
@@ -237,16 +248,16 @@ export class CheckoutOrderUseCases {
             lineDiscountAmount: line.lineDiscountAmount,
             lineTotalAmount: line.lineTotalAmount,
             primaryImageAssetIdSnapshot: line.image.assetId,
-            primaryImagePathSnapshot: line.image.path,
+            primaryImagePathSnapshot: command.assetPathByAssetId[line.image.assetId]!,
             primaryImageAltTextSnapshot: line.image.altText,
-            createdAt: now,
+            createdAt: command.now,
           });
         }
         const order: Order = {
-          id: orderId,
+          id: command.orderId,
           orderNumber,
-          userId: user.id,
-          checkoutSessionId: session.id,
+          userId: command.userId,
+          checkoutSessionId: command.checkoutSessionId,
           status: "pending_payment",
           subtotalAmount: confirmation.subtotalAmount,
           discountAmount: confirmation.discountAmount,
@@ -254,44 +265,44 @@ export class CheckoutOrderUseCases {
           totalAmount: confirmation.totalAmount,
           membershipRankSnapshot: confirmation.membershipRank,
           shippingAddressSnapshot: confirmation.address,
-          createdAt: now,
-          updatedAt: now,
+          createdAt: command.now,
+          updatedAt: command.now,
           version: 1,
         };
         const payment: Payment = {
-          id: paymentId,
-          orderId,
+          id: command.paymentId,
+          orderId: command.orderId,
           attemptNumber: 1,
           methodCode: confirmation.paymentMethodCode,
           status: "processing",
           amount: order.totalAmount,
-          gatewayIdempotencyKey: `${orderId}-attempt-1`,
+          gatewayIdempotencyKey: `${command.orderId}-attempt-1`,
           errorCode: null,
-          createdAt: now,
+          createdAt: command.now,
           processedAt: null,
           version: 1,
         };
         await orders.create(order, items);
         await payments.create(payment);
         await orders.appendStatusHistory({
-          id: this.dependencies.idGenerator.generate(),
-          orderId,
+          id: command.orderStatusHistoryId,
+          orderId: command.orderId,
           fromStatus: null,
           toStatus: "pending_payment",
-          actorUserId: user.id,
+          actorUserId: command.userId,
           reasonCode: "ORDER_CREATED",
-          createdAt: now,
+          createdAt: command.now,
         });
         await checkouts.update(
           {
             ...session,
             status: "converted",
-            orderId,
-            updatedAt: now,
+            orderId: command.orderId,
+            updatedAt: command.now,
           },
-          session.version,
+          command.checkoutActionVersion,
         );
-        await carts.update({ ...cart, status: "consumed", updatedAt: now }, cart.version);
+        await carts.update({ ...cart, status: "consumed", updatedAt: command.now }, cart.version);
         return this.processingDto(order, payment);
       },
     );

@@ -50,6 +50,11 @@ export interface CreateOrderForPaymentRequest {
 }
 
 export interface CreateOrderForPaymentCommand extends CreateOrderForPaymentRequest {
+  userId: string;
+  orderId: string;
+  paymentId: string;
+  orderItemIds: string[];
+  orderStatusHistoryId: string;
   now: IsoDateTime;
   assetPathByAssetId: Record<string, string>;
 }

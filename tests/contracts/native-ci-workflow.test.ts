@@ -68,6 +68,12 @@ describe("Native CI workflow contracts", () => {
     );
   });
 
+  it("runs the single Native platform-boundary enforcement gate in Native CI", () => {
+    const nativeStatic = jobBlock(nativeWorkflow, "native-static", "android-automation-build");
+    expect(nativeStatic).toContain("run: pnpm run check:native-route-dependencies");
+    expect(nativeWorkflow.match(/pnpm run check:native-route-dependencies/g)).toHaveLength(1);
+  });
+
   it("keeps Android automation and production builds independent and self-contained", () => {
     const automation = jobBlock(
       nativeWorkflow,

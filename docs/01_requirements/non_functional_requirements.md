@@ -126,7 +126,7 @@ Benchmarkでは端末、OS、Browser、Data件数、Cold/Warm、計測範囲を�
 
 | ID | 要件 |
 |---|---|
-| NFR-MA-020 | FormはReact Hook Form、Runtime ValidationはZodを使用する |
-| NFR-MA-021 | Shared UIはReact Native StyleSheet、Web専用Admin/Layoutは`.web.tsx`とCSS Modulesを使用する |
-| NFR-MA-022 | WebのDialog/Combobox等の複雑WidgetはReact Aria Componentsへ限定する |
+| NFR-MA-020 | Domain状態・永続状態・業務判断に影響するValidation / NormalizationはPresentationのValidationだけに依存せずApplicationまたはDomain boundaryで成立させる。PresentationはUX目的の補助Validationを行ってよい。Form state / Runtime Validation libraryは画面特性に応じて選択し、React Hook Form / Zodを全入力へ一律必須としない |
+| NFR-MA-021 | Native presentationはReact Native primitives / StyleSheet / shared design tokensを利用し、NativeからWeb CSS・React Aria Components・`.web` module・Web DOM / browser storage globalsへ依存しない。Web-only stylesheetはWeb composition rootから取り込み、`.web.tsx` / `.native.tsx`はplatform-specific implementationが必要な境界で使用する。CSS Modulesは一律必須としない。Formal enforcementは既存`check:native-route-dependencies`を正本とする |
+| NFR-MA-022 | WebのDialog / Combobox / Listbox / MenuはReact Aria Componentsを使用し、独自のcomplex widget implementationを追加しない |
 | NFR-MA-023 | 実装開始後のTypeScript型・Enum・Dexie Schemaはコードを正本とし、Markdownは意味と理由を正本とする |

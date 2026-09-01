@@ -41,6 +41,7 @@ export default defineConfig({
       testMatch: [
         /phase1-required\.spec\.ts/,
         /accessibility\.spec\.ts/,
+        /reset-boundary\.spec\.ts/,
         /ui-ux-improvements\.spec\.ts/,
       ],
       use: { ...devices["Desktop Chrome"] },
