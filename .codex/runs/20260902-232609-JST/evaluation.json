@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "run_id": "20260902-232609-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "8 Requirement\u306e\u518d\u76e3\u67fb\u3001Traceability\u66f4\u65b0\u3001Lower Traceability\u518d\u96c6\u8a08\u3001\u6307\u5b9avalidation\u3001scope\u78ba\u8a8d\u3001Sanitizer\u3001commit\uff0fpush\u3001push\u5f8chead\u78ba\u8a8d\u3092\u5b8c\u4e86\u3057\u305f\u3002",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/12_quality/requirements_traceability.md",
+          "summary": "CT-BOUNDARY-001\u3092Current Formal evidence\u3078\u66f4\u65b0\u3057\u3001Lower Traceability\u3092\u518d\u96c6\u8a08\u3057\u305f\u3002"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260902-232609-JST/REPORT.md",
+          "summary": "8 Requirement\u306e\u76e3\u67fb\u3001validation\u3001scope\u3001Sanitizer\u306e\u610f\u5473\u60c5\u5831\u3092\u8a18\u9332\u3057\u305f\u3002"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "\u958b\u59cbSHA\u304b\u3089\u306e\u65b0\u898f\u5909\u66f4\u306fTraceability\u3068\u672cRun Directory\u306b\u9650\u5b9a\u3055\u308c\u3001Product\uff0fFormal Test\uff0fRequirement\uff0fDecision\uff0fworkflow\uff0fpackage/config\u306f\u5909\u66f4\u3057\u3066\u3044\u306a\u3044\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "\u958b\u59cbSHA\u304b\u3089\u306egit diff\u3001git status\u3001git diff --check\u306b\u3088\u308bscope\u78ba\u8a8d\u304cPASS\u3057\u305f\u3002"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "\u6307\u5b9afocused validation\u3001Native dependency gate\u3001Chromium E2E\u3001full verify\u518d\u5b9f\u884c\u304cPASS\u3057\u305f\u3002full verify\u306e\u521d\u56deNative timeout\u306f\u518d\u78ba\u8a8d\u3067\u518d\u73fe\u3057\u306a\u304b\u3063\u305f\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "test:contracts 33 files\uff0f485 passed\uff0f3 skipped\u3001Chromium 28 passed\u3001full verify exit code 0\u3002"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "\u6307\u5b9abranch\u3092\u7dad\u6301\u3057\u3001force push\u3001destructive operation\u3001PR\u672c\u6587\u5909\u66f4\u3001Product\uff0fTest remediation\u3092\u884c\u3063\u3066\u3044\u306a\u3044\u3002",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "\u4f5c\u696d\u7bc4\u56f2\u3068\u7981\u6b62\u64cd\u4f5c\u3092\u78ba\u8a8d\u3057\u305f\u3002"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "CT-BOUNDARY-001 row\u306f8 Requirement\u3054\u3068\u306bCurrent Formal evidence\u3078\u63a5\u7d9a\u3057\u3001taxonomy\u3068Requirement\u672c\u6587\u3092\u5909\u66f4\u3057\u3066\u3044\u306a\u3044\u3002",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/12_quality/requirements_traceability.md",
+          "summary": "Current evidence\u306e\u8cac\u52d9\u5206\u62c5\u3068Disposition\u3092\u78ba\u8a8d\u3067\u304d\u308b\u6700\u5c0f\u5dee\u5206\u3067\u3042\u308b\u3002"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "\u65e2\u5b58\u306eDisposition taxonomy\u3092\u7dad\u6301\u3057\u3001Traceability row\u3068\u96c6\u8a08\u3060\u3051\u3092Current evidence\u3078\u540c\u671f\u3057\u305f\u3002",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "\u65b0\u3057\u3044coverage\u5206\u985e\u3084Product\uff0fFormal remediation\u3092\u8ffd\u52a0\u3057\u3066\u3044\u306a\u3044\u3002"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "\u540c\u4e00Current branch\u3067focused gate\u3001full verify\u3001scope\u78ba\u8a8d\u3001Sanitizer Write\uff0fCheck\u3092\u5b9f\u884c\u3057\u3001\u7d50\u679c\u3092Run REPORT\u3078\u8a18\u9332\u3057\u305f\u3002",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "\u6307\u5b9a\u30b3\u30de\u30f3\u30c9\u306eexit code\u3068\u4e3b\u8981\u96c6\u8a08\u3092REPORT\u3067\u8ffd\u8de1\u3067\u304d\u308b\u3002"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

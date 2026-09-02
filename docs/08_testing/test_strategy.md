@@ -21,23 +21,82 @@
 
 高度な分散Payment、Refund、MigrationはPhase 1 Riskへ含めません。
 
-## 2. Test Level
+## 2. Test Level / Test Type
 
-| Level | Tool | 主責務 |
+Test Level / Test Typeは、どの層で何を検証するかを示します。Test PerspectiveとExecution / Platform / CI Gateは別軸で管理します。
+
+| Level / Type | Tool | 主責務 |
 |---|---|---|
 | Unit | Vitest | 価格、権限、閲覧条件、Facet、状態遷移 |
 | Application Integration | Vitest | Product Aggregate、Search、Cart統合、Checkout、Payment確定、Order処理、Bulk |
 | Repository Contract | Vitest | DexieのCRUD、Tx、Conflict、Sort/Page/Facet、Product Aggregate |
-| Static Asset Contract | Vitest/Node | Image Manifest、File、Hash、active/inactive Asset |
+| Static / Operational Contract | Vitest/Node | Image Manifest、File、Hash、active/inactive Asset、実行境界 |
 | Component | Testing Library | Form、Combobox、Filter、Error、Accessibility |
 | Web E2E | Playwright | 顧客・管理の主要業務FlowとPage Pattern |
-| Deployed Smoke | Playwright | Cloudflare配信確認 |
+| Native Component / Repository / Android Runtime E2E | Jest/Vitest/Maestro | Native UI、SQLite Repository、Android Runtime / Maestro |
+| Deployed / Production Smoke | Playwright | Cloudflare配信確認とProduction-validation |
 
-## 3. Unit重点
+## 3. Test Perspective
+
+Test Perspectiveは、同じTest Levelで確認するRiskの見方です。Current Risk / testで説明できるPerspectiveだけを使い、PerspectiveをTest Levelとして数えません。
+
+| Perspective | 主な適用 |
+|---|---|
+| Accessibility | axe、Keyboard、Focus、Screen Reader spot check |
+| Responsive / Mobile Web | 360px Storefront、Breakpoint、Mobile Filter |
+| Role / Ownership | Viewer、customer、operator/adminの権限と所有権 |
+| State / Lifecycle | Checkout、Payment、Order、Shipment、Review、Session状態 |
+| Boundary | 上限、0件、Page、Filter、Sort、Variation、失敗境界 |
+| Failure / Recovery | Conflict、Rollback、Payment失敗、再開、Retry |
+| Data / Persistence consistency | Snapshot、Summary、Version、IndexedDB / SQLite永続化 |
+| Security / Authorization | Password Hash、Authorization、Test API境界 |
+| UX / Visual acceptance | Storefront/Admin分離、CTA、Empty / Error、Screenshot review |
+
+## 4. Execution / Platform / CI Gate
+
+Execution / Platform / CI Gateは、どの入口・環境・workflow jobで実行し、何をRequiredとするかを示します。同時に実行されることだけを理由に、同じcoverage分類とは扱いません。
+
+| Execution / Platform | Current entrypoint / CI Gate | Coverage boundary |
+|---|---|---|
+| Web PR / main / schedule / manual | Web CI（PR、push、schedule、`workflow_dispatch`） | Webのstyle、code、Vitest、build、E2E、UI Review、SmokeをCurrent workflowで判定 |
+| `e2e-chromium` matrix | `required`=`pnpm run test:e2e:chromium`、`accessibility`=`pnpm run test:a11y`、`mobile-boundary`、`cross-role`、`training-web-baseline` | `required`を含む5 leg。`training-web-baseline`はTrainingでありFormal Regression coverageへ昇格しない |
+| UI Review | `ui-review` job / `ui-review-desktop`、`ui-review-tablet`、`ui-review-mobile`、`ui-review-small-mobile` project | ScreenshotによるUI Reviewの別責務。Formal RegressionのTest Levelやcoverage countへ合算しない |
+| Production Smoke / Preview Deployed Smoke | `production-smoke`、Preview / Production deployed smoke | Build済みartifactまたはdeployed URLの配信・代表Flow確認 |
+| non-PR Extended E2E | `extended-e2e`（non-PR） / `mobile-chromium` | PR required E2Eとは別のMobile extended coverage |
+| weekly / manual Cross-browser Smoke | `Cross Browser Smoke` workflow / `firefox-smoke`、`webkit-smoke` | weeklyまたは`workflow_dispatch`の互換性確認。PR required gateではない |
+| Native PR conditional / Native manual | `native-ci`のNative change検出または`workflow_dispatch` | Native変更時だけNative gateを要求し、Web Phase 1のPlaywright coverageへ混在させない |
+| Android Build + Runtime / Maestro | `native-ci / verify`が`android-automation-build`、`android-production-build`、`android-runtime`等を要求 | AndroidはBuild、SQLite / Contract、Emulator Runtime / MaestroをRequiredとする |
+| iOS Build-only reusable gate | `native-ios` reusable workflowの`ios-automation-build`、`ios-production-build`、`ios-verify` | iOSはAutomation / Production-validation Simulator Build-only。iOS Runtime / Maestro PASSはRequired guaranteeではない |
+| Formal / Training boundary | `playwright.config.ts`のFormal E2E / Smoke、`playwright.training.config.ts`のTraining | `ui-review-*`はUI Review、`training-web-baseline`はTrainingとして責務を分離する |
+
+### Phase 1 Risk mapping
+
+Risk mappingは既存のPhase 1重要Riskを1 Risk = 1 rowで表し、Representative Formal Test / suiteは安定した代表実行単位、CI Gateはそのsuiteに最も近いCurrent workflow job / matrix legを示します。
+
+| Risk / Risk label | Representative Requirement / AC | Representative Technique | Representative Perspective | Primary Test Level | Representative Formal Test / suite | CI Gate |
+|---|---|---|---|---|---|---|
+| Role・Ownership違反 | `FR-AU-*` / `FR-AD-*`、Acceptance §2 | Decision Table | Role / Ownership、Security / Authorization | Unit | `tests/unit/policies.test.ts` | `Vitest (unit)` |
+| Search/Filter条件と結果件数・Pageの不一致 | `FR-PR-*`、Acceptance §3 | — | Boundary | Repository Contract | `tests/repository-contract/storefront-catalog.test.ts` | `Vitest (repository)` |
+| 商品価格・Sale・会員価格・送料の誤表示 | `FR-MO-*` / `FR-CA-*`、Acceptance §4 | Boundary Value Analysis | Data / Persistence consistency | Unit | `tests/unit/pricing.test.ts` | `Vitest (unit)` |
+| 在庫の過剰販売・二重減算 | `FR-ST-*` / `FR-PY-*`、Acceptance §4 | State Transition | Failure / Recovery | Application Integration | `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
+| Cart/Checkout Version不整合 | `FR-CA-*` / `FR-CH-*`、Acceptance §5 | State Transition | State / Lifecycle | Application Integration | `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
+| Payment成功・失敗とOrder状態の不一致 | `FR-PY-*` / `FR-OR-*`、Acceptance §6 | State Transition | State / Lifecycle、Failure / Recovery | Application Integration | `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
+| Order/Shipment状態の不一致 | `FR-OR-*` / `FR-ST-*`、Acceptance §6 | State Transition | State / Lifecycle | Application Integration | `tests/integration/admin-operations-use-cases.test.ts` | `Vitest (integration)` |
+| Review Eligibility・Summary・評価分布不整合 | `FR-RV-*` / `FR-PR-017`、Acceptance §7 | State Transition | State / Lifecycle、Data / Persistence consistency | Application Integration | `tests/integration/review-user-use-cases.test.ts` | `Vitest (integration)` |
+| Product Aggregate、SKU、画像Asset関連の部分保存・誤削除 | `FR-PR-*` / `FR-AD-*`、Acceptance §3 | Decision Table | Data / Persistence consistency、Boundary | Application Integration | `tests/integration/admin-product-use-cases.test.ts` | `Vitest (integration)` |
+| Guest Cart統合・Checkout Session再開の不整合 | `FR-CA-*` / `FR-CH-*` / `FR-AU-*`、Acceptance §2・4・5 | Scenario / Use-case | State / Lifecycle、Failure / Recovery | Application Integration | `tests/integration/auth-account.test.ts` + `tests/integration/checkout-order-use-cases.test.ts` | `Vitest (integration)` |
+| Admin Bulk Action・未保存変更の誤操作 | FR-AD-*、Acceptance §8 | Decision Table | Boundary、UX / Visual acceptance | Component | `tests/component/admin-product-pages.test.tsx` | `Vitest (component)` |
+| Keyboard、Focus、Mobile Layoutによる操作不能 | `NFR-AX-*` / `NFR-CP-*`、Acceptance §10 | Not primary | Accessibility、Responsive / Mobile Web | Web E2E | `e2e/web/accessibility.spec.ts` + `e2e/web/mobile-boundary.spec.ts` | `e2e-chromium / accessibility` + `mobile-boundary` |
+| IndexedDB DataとUIの再読込不整合 | `NFR-RL-*` / `FR-TC-*`、Acceptance §3・5・9 | Not primary | State / Lifecycle、Data / Persistence consistency | Web E2E | `e2e/web/phase1-required.spec.ts` | `e2e-chromium / required` |
+| boolean/null IndexedDB Index Keyの不正利用 | NFR-RL-011 / FR-PR-041/050、Acceptance §1 | — | Data / Persistence consistency | Repository Contract | `tests/repository-contract/repositories.test.ts` | `Vitest (repository)` |
+| Password Hash/Seed認証契約の不一致 | `NFR-SC-*` / `FR-AU-*`、Acceptance §2 | Not primary | Security / Authorization | Unit | `tests/unit/password-hasher.test.ts` | `Vitest (unit)` |
+| Admin QueryのPage/Filter/Sort不一致 | FR-AD-* / NFR-MA-011、Acceptance §8 | Decision Table | Boundary | Application Integration | `tests/integration/admin-operations-use-cases.test.ts` | `Vitest (integration)` |
+
+## 5. Unit重点
 
 PriceCalculator（SKU単価ごとのfloorと明細割引合計）、Shipping Remaining、Catalog Visibility、Search Filter/Facet、Product Price Range、Variation Rule、Cart Quantity/Merge、Checkout Start/Resume、Product/Order/Payment/Review State、Admin Protection、Review Summary Delta・未丸め平均・表示丸め境界、PasswordHasher Format/Verify。
 
-## 4. Repository Contract重点
+## 6. Repository Contract重点
 
 - Unique/Index/Sort/Page/Facet
 - version Conflict
@@ -64,7 +123,7 @@ PriceCalculator（SKU単価ごとのfloorと明細割引合計）、Shipping Rem
 - Payment再開の冪等性とConflict後の最新結果返却
 - Gateway結果に時刻を含めず、Test Clockの同一時刻がPayment/Historyへ保存されること
 
-## 5. E2E Release Gate
+## 7. E2E Release Gate
 
 `e2e_design.md`のWE-CORE-001〜WE-CORE-012はPhase 1のRequirement / business-flow mappingです。Current executable required legは`pnpm run test:e2e:chromium`で、`e2e/web/phase1-required.spec.ts`と`e2e/web/ui-ux-improvements.spec.ts`を`chromium` projectで実行します。PRのWeb E2E coverage全体は`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`からなる`e2e-chromium` matrixであり、12件のmappingやrequired leg commandと同一視しません。次はE2Eへ重複展開せず、下位Testへ割り当てます。
 
@@ -78,7 +137,7 @@ PriceCalculator（SKU単価ごとのfloorと明細割引合計）、Shipping Rem
 
 Web Phase 1のE2E Release GateへNative / Maestro Flowを混在させません。Native変更時のCurrent Native contractは、AndroidがBuild + Runtime / Maestro、iOSがBuild-onlyです。iOSのSimulator Runtime / Maestro PASSは保証せず、standalone `workflow_dispatch`とNative変更時のtop-level `native-ci`からのiOS reusable workflow呼出しを区別します。Native変更時は`native-ci / verify`がiOS成功を要求します。
 
-## 6. Data方針
+## 8. Data方針
 
 - TestごとにSeed Scenarioを明示する。
 - UIで長い前提を作らない。
@@ -86,11 +145,11 @@ Web Phase 1のE2E Release GateへNative / Maestro Flowを混在させません�
 - Test APIの書込みはReset、Scenario Seed、Clock、Payment Delayだけとし、読取りはMetadataと固定Read-only Inspection DTOだけに限定する。任意DB書換えや任意Queryを提供しない。
 - UI Pattern境界に必要な12/13 Variation、0件、部分成功を専用Seedで用意する。
 
-## 7. Accessibility
+## 9. Accessibility
 
 Search Combobox、Mobile Filter、Product Gallery、Checkout、Rating、Product Form、Admin NavigationをKeyboardで確認し、重大なaxe違反をRelease前に解消します。全画面のVisual RegressionはPhase 3です。
 
-## 8. UX確認
+## 10. UX確認
 
 機械Testだけでなく、Phase 1受入時に次をScreenshotと実操作で確認します。
 
@@ -100,11 +159,11 @@ Search Combobox、Mobile Filter、Product Gallery、Checkout、Rating、Product 
 - 0件・初期Empty・Errorの次Action
 - UI文言辞書との一致
 
-## 9. 性能
+## 11. 性能
 
 many-productsを使いSearch Suggestion、Facet、一覧描画をBenchmarkしますが、Phase 1のRelease Gateに固定時間を置きません。重大な操作不能や明確な退行があれば修正します。
 
-## 10. 完了基準
+## 12. 完了基準
 
 - Unit/Application/Repository Contract成功。
 - PRのWeb CIで`e2e-chromium` matrix（`required`、`accessibility`、`mobile-boundary`、`cross-role`、`training-web-baseline`）が成功する。`required` legのcommandは`pnpm run test:e2e:chromium`。
