@@ -107,6 +107,15 @@
   - Parent decision: 安全な最小修正と独立evidenceが揃ったためGit mutationへ進む。
 - Progress: 86% (12/14)
 
+## 2026-09-03 01:28 (JST)
+
+- Summary: commit `e0699cf`を指定branchへ作成し、明示refspecでremoteへpushした。PR本文の内容と最終差分を確認し、これをRunの完了状態として固定した。
+- Changes: `fix/codex-stop-posttooluse-hook-failures`へ`fix: stabilize Codex Stop and PostToolUse hooks`をcommitし、remote branch作成を確認した。TASKSの12、13を完了とした。
+- Validation: commit前後ともcurrent branchは指定fix branch。commit統計は16 files changedで、raw `.artifacts/`とRun内raw logs / reportsはcommit対象外。PR本文は日本語のSummary / Investigation / Changes / Validation / Non-goals / Remaining risksを用意し、baseは`main`、headは指定fix branchとする。
+- Decision / Rationale: 以後はPR作成とread-only確認だけを行い、PR作成後の追加修正はしない。RunのProgressは100%とする。
+- Blocker / Remaining: PR作成と作成後のタイトル、base/head、OPEN状態、本文確認が残る。
+- Progress: 100% (14/14)
+
 ## 2026-09-03 01:29 (JST)
 
 - Summary: Run manifest collector、evaluation schema、Sanitizer Write / Checkを最終状態で再実行した。
