@@ -14,6 +14,9 @@ const EXPECTED_EVENTS = new Set([
 
 const loggerDirectory = path.dirname(fileURLToPath(import.meta.url));
 const logsDirectory = path.resolve(loggerDirectory, "..", "logs");
+const fallbackLogsDirectory = path.resolve(loggerDirectory, "..", "..", ".artifacts", "codex-hooks");
+
+const FALLBACK_LOG_PATH_ERRORS = new Set(["EACCES", "EEXIST", "ENOTDIR", "EPERM", "EROFS"]);
 
 function redactSecrets(value) {
   return value
@@ -116,10 +119,31 @@ function buildRecord(expectedEvent, payload) {
   return record;
 }
 
-function appendRecord(record) {
-  mkdirSync(logsDirectory, { recursive: true });
-  const logPath = path.join(logsDirectory, `hooks-${safeSessionId(record.session_id)}.jsonl`);
+function appendRecordToDirectory(directory, record) {
+  mkdirSync(directory, { recursive: true });
+  const logPath = path.join(directory, `hooks-${safeSessionId(record.session_id)}.jsonl`);
   appendFileSync(logPath, `${JSON.stringify(record)}\n`, { encoding: "utf8", flag: "a" });
+}
+
+function isFallbackLogPathError(error) {
+  return (
+    error &&
+    typeof error === "object" &&
+    "code" in error &&
+    FALLBACK_LOG_PATH_ERRORS.has(error.code)
+  );
+}
+
+function appendRecord(record) {
+  try {
+    appendRecordToDirectory(logsDirectory, record);
+  } catch (error) {
+    if (!isFallbackLogPathError(error)) {
+      throw error;
+    }
+
+    appendRecordToDirectory(fallbackLogsDirectory, record);
+  }
 }
 
 function readPayload() {

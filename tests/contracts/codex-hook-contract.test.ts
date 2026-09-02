@@ -608,6 +608,15 @@ function loggingPathFor(sessionId: string, root = repoRoot) {
   return path.join(root, ".codex", "logs", `hooks-${loggingSafeSessionId(sessionId)}.jsonl`);
 }
 
+function loggingFallbackPathFor(sessionId: string, root = repoRoot) {
+  return path.join(
+    root,
+    ".artifacts",
+    "codex-hooks",
+    `hooks-${loggingSafeSessionId(sessionId)}.jsonl`,
+  );
+}
+
 function withLoggingSession<T>(label: string, callback: (sessionId: string, logPath: string) => T) {
   const sessionId = `contract-${label}-${process.pid}-${randomUUID()}`;
   const logPath = loggingPathFor(sessionId);
@@ -725,10 +734,15 @@ function loggingCommandFor(event: LoggingEvent, launcher: LoggingLauncher) {
     return JSON.parse(value) as string;
   }
 
-  if (!value.startsWith("'") || !value.endsWith("'")) {
-    throw new Error(`expected TOML literal string for ${field} ${event}`);
+  if (value.startsWith("'") && value.endsWith("'")) {
+    return value.slice(1, -1);
   }
-  return value.slice(1, -1);
+
+  if (value.startsWith('"') && value.endsWith('"')) {
+    return JSON.parse(value) as string;
+  }
+
+  throw new Error(`expected TOML string for ${field} ${event}`);
 }
 
 function runConfiguredLoggingHook(
@@ -741,17 +755,9 @@ function runConfiguredLoggingHook(
   const result =
     launcher === "windows"
       ? spawnSync(
-          "powershell.exe",
-          [
-            "-NoProfile",
-            "-ExecutionPolicy",
-            "Bypass",
-            "-Command",
-            command
-              .slice("powershell.exe -NoProfile -ExecutionPolicy Bypass -Command ".length)
-              .slice(1, -1),
-          ],
-          { cwd, encoding: "utf8", input: payload },
+          process.env.ComSpec ?? "cmd.exe",
+          ["/C", `${String.fromCharCode(34)}${command}${String.fromCharCode(34)}`],
+          { cwd, encoding: "utf8", input: payload, windowsVerbatimArguments: true },
         )
       : spawnSync("sh", ["-c", command], {
           cwd,
@@ -799,13 +805,28 @@ describe("Codex logging Hook contract", () => {
       expect(block).toContain("command_windows =");
       expect(block).toContain("Get-Command node");
       expect(block).toContain("Test-Path -LiteralPath");
-      expect(block).toContain("Join-Path (git rev-parse --show-toplevel)");
       expect(block).toContain("exit 0");
+      const windowsCommand = loggingCommandFor(event, "windows");
+      expect(windowsCommand).toContain("Get-Location");
+      expect(windowsCommand).toContain("Join-Path $current.FullName");
+      expect(windowsCommand).not.toContain("git rev-parse");
       if (event === "SubagentStop" || event === "Stop") {
         expect(block).toContain("$LASTEXITCODE -ne 0");
-        expect(block).toContain('[Console]::Write("{}")');
+        expect(block).toContain("[Console]::Write('{}')");
       }
-      expect(block).toContain(`log_event.mjs) ${event}`);
+      expect(windowsCommand).toContain(`node $logger ${event}`);
+    }
+  });
+
+  it("keeps Windows logging commands free of cmd-conflicting embedded quotes", () => {
+    if (process.platform !== "win32") return;
+
+    for (const event of loggingEvents) {
+      const command = loggingCommandFor(event, "windows");
+
+      expect(command).not.toContain('"');
+      expect(command).toContain("-Command $current = ");
+      expect(command).toContain("Get-Location");
     }
   });
 
@@ -1141,11 +1162,12 @@ describe("Codex logging Hook contract", () => {
     }
   }, 15000);
 
-  it("keeps logging failure-safe when the logs path cannot be created", () => {
+  it("falls back to the ignored workspace log path when canonical logs are unavailable", () => {
     const fixture = fs.mkdtempSync(path.join(os.tmpdir(), "codex-logging-failure-"));
     const fixtureHook = path.join(fixture, ".codex", "hooks", "log_event.mjs");
     const fixtureLogs = path.join(fixture, ".codex", "logs");
     const sessionId = `contract-failure-${process.pid}-${randomUUID()}`;
+    const fallbackLogPath = loggingFallbackPathFor(sessionId, fixture);
     fs.mkdirSync(path.dirname(fixtureHook), { recursive: true });
     fs.copyFileSync(loggingHookPath, fixtureHook);
     fs.writeFileSync(fixtureLogs, "not a directory", "utf8");
@@ -1160,7 +1182,8 @@ describe("Codex logging Hook contract", () => {
 
       expect(result.status).toBe(0);
       expect(result.stdout).toBe("{}");
-      expect(result.stderr.trim()).not.toBe("");
+      expect(result.stderr).toBe("");
+      expect(readLoggingRecords(fallbackLogPath)).toHaveLength(1);
     } finally {
       fs.rmSync(fixture, { force: true, recursive: true });
     }
@@ -1203,23 +1226,18 @@ describe("Codex logging Hook contract", () => {
     expect(source).not.toContain("process.env");
   });
 
-  it("executes the configured Windows repo-root command from a nested cwd", () => {
+  it("executes the configured Windows logging command from a nested cwd", () => {
     if (process.platform !== "win32") return;
 
     withLoggingSession("windows-command", (sessionId, logPath) => {
-      const command =
-        "node (Join-Path (git rev-parse --show-toplevel) .codex\\\\hooks\\\\log_event.mjs) UserPromptSubmit";
-      const result = spawnSync(
-        "powershell.exe",
-        ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", command],
-        {
-          cwd: path.join(repoRoot, "docs"),
-          encoding: "utf8",
-          input: JSON.stringify({
-            ...makeLoggingPayload("UserPromptSubmit", sessionId),
-            prompt: "windows command",
-          }),
-        },
+      const result = runConfiguredLoggingHook(
+        "UserPromptSubmit",
+        JSON.stringify({
+          ...makeLoggingPayload("UserPromptSubmit", sessionId),
+          prompt: "windows command",
+        }),
+        "windows",
+        path.join(repoRoot, "docs"),
       );
 
       expect(result.status).toBe(0);

@@ -36,6 +36,13 @@
 - 新規Runのmanifestはschema v2で、report count、changed files、validation、network / scope、evaluationを保持する。旧Subagent／旧Hook observation専用fieldや専用Structured Artifactは新規生成せず、既存v1はlegacy field valueの保持だけを行う。
 - `.codex/logs/*.jsonl`のgeneric cleanupは維持し、旧`.codex/observations/hooks.jsonl`専用cleanupと旧observerは廃止した。Product code、ECサイト仕様、カリキュラム本体はこの整理の対象外である。
 
+## Codex Hook Windows launcher / sandbox境界（2026-09-03）
+
+- Windowsのlogging `command_windows`は、Codex runnerが`cmd.exe /C`の外側引用符で包む実行経路と衝突しないquote-free PowerShell commandとする。repository rootは`git rev-parse`に依存せず、Hookの現在cwdから親方向へ`.codex/hooks/log_event.mjs`を探索する。既存のPreToolUse policy launcherのGit root解決・security behaviorは変更しない。
+- loggerは従来どおり書込み可能な環境では`.codex/logs/hooks-<safe-session-id>.jsonl`をcanonical pathとして使う。CodexのWindows elevated sandboxが`.codex`をread-only carveoutとして渡す場合は、同じbounded／redacted recordをGit管理外の`.artifacts/codex-hooks/hooks-<safe-session-id>.jsonl`へfallbackする。sandboxのpermission、`safe.directory`、PreToolUse policyは緩和しない。
+- fallbackは`EACCES`、`EPERM`、`EROFS`、`EEXIST`、`ENOTDIR`のcanonical path failureに限定する。fallbackも失敗した場合は既存のstderr報告とStop系`{}`出力のfail-safe契約を維持する。Hook JSONLはRun manifestへ自動集約しない。
+- 現行Codex CLIの`exec`経路ではHook statusが`Completed`でもrepository Hook JSONLが保存されない場合があるため、CLI lifecycle statusとlogger file I/Oは別々のevidenceとして扱う。実launcherのstdin／stdout／stderr／exitとJSONL追記をsandbox内で確認できることを完了条件とする。
+
 ## Codex Full Access Safety Hook（2026-08-16）
 
 - Windows native Codex `0.147.0`のproject Hookは、`[features].hooks = true`、`PreToolUse` matcher `^Bash$`、`command_windows`を正本とする。deprecatedな`codex_hooks`、project-local profile、旧PowerShell／Python policy Hookには依存しない。
