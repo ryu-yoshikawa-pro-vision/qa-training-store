@@ -1,0 +1,25 @@
+# Tasks
+
+- [x] GitHub `main` latest SHA確認: `b36c4d3e0f631801a9c9e4aae38990dac9e8d436`
+- [x] `docs/decision-b-competency-assessment-contract` の事前不存在確認
+- [x] latest `main`からplanning branch作成
+- [x] Master Plan精読
+- [x] Curriculum canonical files監査
+- [x] P1-07 / P1-09 / P2-06 / P2-08 boundary監査
+- [x] validator / contract test監査
+- [x] PR 2 Formal contract監査
+- [x] Current Training evidence / command監査
+- [x] ADR番号 / conflict監査
+- [x] Finding ownership / disposition 18件整理
+- [x] C01〜C12 Minimum Evidence mapping整理
+- [x] child Plan作成・self-review
+- [x] Run Artifact作成
+- [ ] `pnpm run format:check` — environment unavailable / not run
+- [ ] `pnpm run lint:markdown` — environment unavailable / not run
+- [ ] `pnpm run validate:curriculum` — environment unavailable / not run
+- [ ] `pnpm run test:contracts` — environment unavailable / not run
+- [ ] repository local `git diff --check` — environment unavailable / not run
+- [x] child Plan commit / push: `250fbbb4bf30c931c00f49fc4aaa17749997790b`
+- [ ] Run Artifact commit / push後にGitHub compareでallowlist差分確認
+- [ ] Run Artifact push後にIssue #72更新
+- [ ] PR作成 — intentionally not performed
