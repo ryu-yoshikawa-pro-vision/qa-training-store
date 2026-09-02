@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "NFR-MA-021 positive contract修正とlocal validationは完了したが、Mobile exact-head CIは今回のsource差分にないExpo Doctorのpatch mismatchで失敗している。",
+      "evidence": "NFR-MA-021 positive contract修正とlocal validationは完了した。current headのMobile App CIは今回のsource差分にないExpo Doctorのpatch mismatchで失敗しているため、PR mergeStateはUNSTABLEである。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -28,7 +28,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "focused contract、native dependency gate、pnpm run verify、Chromium E2EはPASSした。Web exact-head CIはPASSし、Mobile Native Staticはnative gate後の既存Expo Doctor mismatchで2回失敗した。",
+      "evidence": "focused contract、native dependency gate、pnpm run verify、Chromium E2EはPASSした。Web exact-head CIはPASSし、Mobile Native Staticはnative gate後の既存Expo Doctor mismatchでcurrent headでも失敗した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
