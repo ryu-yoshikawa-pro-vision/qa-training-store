@@ -20,6 +20,6 @@
 - [ ] `pnpm run test:contracts` — environment unavailable / not run
 - [ ] repository local `git diff --check` — environment unavailable / not run
 - [x] child Plan commit / push: `250fbbb4bf30c931c00f49fc4aaa17749997790b`
-- [ ] Run Artifact commit / push後にGitHub compareでallowlist差分確認
-- [ ] Run Artifact push後にIssue #72更新
+- [x] Run Artifact commit / push: `38d3a511196f0c742fbc0bbd2e012c36262f2ac6`; GitHub compareでallowlist 6 files確認
+- [x] Issue #72を`Planning / Plan ready`へ更新
 - [ ] PR作成 — intentionally not performed

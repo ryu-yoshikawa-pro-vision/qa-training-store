@@ -93,7 +93,7 @@ Requested local baseline:
 Cause:
 - Runtime has no local `qa-training-store` clone.
 - Direct `git clone` attempt cannot resolve `github.com` in the container.
-- GitHub connector audit remains available, so planning continued without touching any local user worktree.
+- GitHub connector audit remains available, so planning continued without touching any local user worktree。
 - These results are environment-dependent / unverified, not PASS.
 - Before PR 3 implementation, local clean-tree preflight and full baseline are mandatory; dirty tree or unexplained baseline failure is a stop condition.
 
@@ -110,3 +110,17 @@ Cause:
 - Scope at this checkpoint: child Plan 1 file only. PR 3 implementation files are untouched.
 - Run Artifact: this checkpoint and machine records are committed in the follow-up Run Artifact commit. Its final remote branch HEAD is verified after the ref update and reported in the final task response.
 - PR: not created.
+
+## 2026-09-03 01:44 (JST)
+
+- Run Artifact commit / push: `docs: record PR 3 planning run` as `38d3a511196f0c742fbc0bbd2e012c36262f2ac6`.
+- Remote compare: `b36c4d3e0f631801a9c9e4aae38990dac9e8d436...38d3a511196f0c742fbc0bbd2e012c36262f2ac6` is `ahead_by=2`, `behind_by=0`; changed files are exactly 6 allowlisted planning artifacts:
+  - `docs/plans/2026-09-03_013450_pr3_decision_b_competency_assessment_contract.md`
+  - `.codex/runs/20260903-013450-JST/PLAN.md`
+  - `.codex/runs/20260903-013450-JST/TASKS.md`
+  - `.codex/runs/20260903-013450-JST/REPORT.md`
+  - `.codex/runs/20260903-013450-JST/run.json`
+  - `.codex/runs/20260903-013450-JST/evaluation.json`
+- Scope safety: Product / Curriculum body / ADR / validator / contract test / Training / workflow changes are zero.
+- Tracking Issue #72: Current=`PR 3 child Plan review`, Next=`child Plan review / approval`, Blocked=`None`; PR 3 branch / child Plan / `Planning / Plan ready` recorded.
+- Remaining: owner review only. PR 3 implementation and PR creation remain intentionally not started.

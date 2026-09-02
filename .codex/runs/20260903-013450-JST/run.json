@@ -70,7 +70,7 @@
     }
   },
   "evaluation_path": ".codex/runs/20260903-013450-JST/evaluation.json",
-  "status": "plan_committed_run_artifact_prepared",
+  "status": "plan_ready_with_environment_warning",
   "primary_failure_category": "local_repository_unavailable",
   "plan_commit_sha": "250fbbb4bf30c931c00f49fc4aaa17749997790b",
   "git": {
@@ -79,10 +79,25 @@
     "plan_commit_sha": "250fbbb4bf30c931c00f49fc4aaa17749997790b",
     "plan_push": "succeeded",
     "run_artifact_commit": "commit containing this run.json; final SHA verified after write",
-    "force_push": false
+    "force_push": false,
+    "run_artifact_commit_sha": "38d3a511196f0c742fbc0bbd2e012c36262f2ac6",
+    "run_artifact_push": "succeeded",
+    "remote_compare": {
+      "base": "b36c4d3e0f631801a9c9e4aae38990dac9e8d436",
+      "head": "38d3a511196f0c742fbc0bbd2e012c36262f2ac6",
+      "ahead_by": 2,
+      "behind_by": 0,
+      "changed_file_count": 6,
+      "allowlist_only": true
+    }
   },
   "tracking_issue": {
     "number": 72,
-    "update_status": "pending_until_run_artifact_push"
-  }
+    "update_status": "succeeded",
+    "current": "PR 3 child Plan review",
+    "next": "child Plan review / approval",
+    "blocked": "None",
+    "pr3_status": "Planning / Plan ready"
+  },
+  "finalization_note": "This run.json is finalized in a follow-up artifact-only commit; final branch HEAD is verified in the task response."
 }
