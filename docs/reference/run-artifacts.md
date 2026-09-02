@@ -215,11 +215,11 @@ evidenceのsymlink、Run Root外参照、cross-run参照は受理しません。
 
 - runner / Codex / hooks による低レベルイベントログです。
 - 集計の正本というより、追跡・デバッグ用です。
-- Logging Hookは`.codex/hooks/log_event.mjs`を通じて、session単位の`.codex/logs/hooks-<safe-session-id>.jsonl`へ1 event 1 lineでappendします。
+- Logging Hookは`.codex/hooks/log_event.mjs`を通じて、書込み可能な環境ではsession単位の`.codex/logs/hooks-<safe-session-id>.jsonl`へ1 event 1 lineでappendします。Windows elevated sandboxが`.codex`をread-onlyとして扱う場合は、同じrecordをGit管理外の`.artifacts/codex-hooks/hooks-<safe-session-id>.jsonl`へfallbackします。
 - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`のmachine factを保持します。`SubagentStop` / `Stop`から最終終了を推測しません。
 - `Stop` / `SubagentStop` Hookはsession観測用であり、run manifestの更新triggerではありません。
 - Hook JSONLは`run.json`へ新規集約せず、collectorもHook JSONLやSubagent専用JSONを再走査しません。
-- `.codex/logs/*.jsonl`はGit管理外であり、既存のgeneric cleanup対象です。
+- `.codex/logs/*.jsonl`と`.artifacts/codex-hooks/*.jsonl`はGit管理外です。前者は既存のgeneric cleanup対象、後者は`.artifacts/`のephemeral raw evidenceとして扱い、いずれもRun manifestへ自動集約しません。
 
 ### Subagentの意味情報
 
