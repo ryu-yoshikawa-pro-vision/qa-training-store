@@ -166,6 +166,39 @@ describe("checkout and customer order application integration", () => {
       checkoutActionVersion: checkout.version,
     });
     expect(processing).toMatchObject({ paymentStatus: "processing" });
+    if (!("paymentId" in processing)) throw new Error("Expected a processing result");
+    const createdOrder = await database.orders.get(processing.orderId);
+    const createdPayment = await database.payments.get(processing.paymentId);
+    const createdItems = await database.order_items
+      .where("orderId")
+      .equals(processing.orderId)
+      .toArray();
+    const createdHistories = await database.order_status_histories
+      .where("orderId")
+      .equals(processing.orderId)
+      .toArray();
+    expect(createdOrder).toMatchObject({
+      id: processing.orderId,
+      userId: "user-customer-regular",
+      checkoutSessionId: checkout.id,
+      createdAt: "2026-07-01T04:00:03.000Z",
+      updatedAt: "2026-07-01T04:00:03.000Z",
+    });
+    expect(createdPayment).toMatchObject({
+      id: processing.paymentId,
+      orderId: processing.orderId,
+      createdAt: "2026-07-01T04:00:03.000Z",
+    });
+    expect(createdItems).toHaveLength(confirmation.items.length);
+    expect(createdItems.every((item) => /^generated-\d+$/.test(item.id))).toBe(true);
+    expect(createdHistories).toEqual([
+      expect.objectContaining({
+        id: expect.stringMatching(/^generated-\d+$/),
+        orderId: processing.orderId,
+        actorUserId: "user-customer-regular",
+        createdAt: "2026-07-01T04:00:03.000Z",
+      }),
+    ]);
     expect((await database.product_variants.get(before!.id))!.stockQuantity).toBe(
       before!.stockQuantity,
     );
@@ -184,7 +217,7 @@ describe("checkout and customer order application integration", () => {
       shipment: { status: "pending" },
       paymentAttempts: [{ status: "succeeded" }],
     });
-    expect(detail.items[0]!.image.path).toMatch(/^\/images\/products\//);
+    expect(detail.items[0]!.image.path).toBe(confirmation.items[0]!.image.path);
     expect(detail.timeline.map((item) => item.status)).toEqual(["pending_payment", "paid"]);
     await useCases.resumePayment(result.orderId);
     expect((await database.product_variants.get(before!.id))!.stockQuantity).toBe(

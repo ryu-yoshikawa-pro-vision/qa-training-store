@@ -1,6 +1,11 @@
 # Application・DTO契約
 
-本書はPhase 1のTypeScript実装契約の正本です。Entityの正本は`data_model.md`と`domain_types.md`、Repositoryの責務は`repository_interfaces.md`、業務Ruleは`business_rules.md`を参照します。
+本書はPhase 1のApplication / DTO契約の意味・責務・理由・利用上の説明です。Entityの説明は`data_model.md`と`domain_types.md`、Repositoryの責務は`repository_interfaces.md`、業務Ruleは`business_rules.md`を参照します。
+
+## 正本・説明責務（D-026）
+
+- 実装開始後のTypeScript `type` / `interface` / `union` / `enum`相当とDexieのSchema / version / table定義は、実装CodeをSSOTとします。
+- 本書は型の意味・責務・理由・利用上の契約を説明するMarkdownであり、Codeと同一の型一覧を機械的に正本化しません。
 
 ## 1. 共通型
 
@@ -904,6 +909,11 @@ type CreateOrderForPaymentRequest = {
 };
 
 type CreateOrderForPaymentCommand = CreateOrderForPaymentRequest & {
+  userId: string;
+  orderId: string;
+  paymentId: string;
+  orderItemIds: string[];
+  orderStatusHistoryId: string;
   now: IsoDateTime;
   assetPathByAssetId: Record<string, string>;
 };
