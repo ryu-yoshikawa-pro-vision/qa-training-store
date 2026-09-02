@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "run_id": "20260902-080312-JST",
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "NFR-MA-021 positive contract修正とlocal validationは完了した。current headのMobile App CIは今回のsource差分にないExpo Doctorのpatch mismatchで失敗しているため、PR mergeStateはUNSTABLEである。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/architecture.test.ts",
+          "summary": "React Native named importsのStyleSheet / View / Textとshared tokensをboundedにassert"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "source変更はtests/contracts/architecture.test.tsのみ。Product code、Requirement、Decision、workflow、Traceability、PR #78は変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "allowed files内の最小差分"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "focused contract、native dependency gate、pnpm run verify、Chromium E2EはPASSした。Web exact-head CIはPASSし、Mobile Native Staticはnative gate後の既存Expo Doctor mismatchでcurrent headでも失敗した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "local focused/full validationはPASS"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "指定branchを維持し、force pushやdestructive operationを実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "scope safetyを確認"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "既存named-import extractionを小さく一般化し、Native shared presentation seamだけを直接固定した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/architecture.test.ts",
+          "summary": "import順に依存しないStyleSheet / View / Text assertion"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "AST parser、generic validator、Native scan複製、Product refactorを追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "bounded contract修正"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "focused/full local validationとnative dependency gateを同一branchで再現した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "local validation結果をREPORTへ記録"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

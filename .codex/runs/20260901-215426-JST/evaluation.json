@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "run_id": "20260901-215426-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "4件のレビュー修正、PR #88 body同期、commit/push、同一headのWeb / Mobile App CI確認まで完了した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/architecture.test.ts",
+          "summary": "NFR-MA-021 positive evidenceとNFR-MA-022 named-import contractを追加"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/native-ci-workflow.test.ts",
+          "summary": "Native Static job-local gate assertionを維持しexact-count assertionを削除"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は2つのcontract testとcurrent Run Artifactに限定され、Product code、Requirement、Decision、Traceability、PR #78は変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "allowed files外の変更を検出していない"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "focused contract、native route gate、pnpm run verify、Chromium E2E、mobile E2E、およびPR #88 exact headのWeb / Mobile App CIがPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "local validation一式はPASS"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "指定branchを維持し、PR #78およびTraceabilityを変更せず、force pushやdestructive operationを実行していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "branch safetyとscope safetyを確認"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "NFR-MA-021のpositive evidence、NFR-MA-022のRAC identifier対応、Native CIのjob-local assertionが既存source-inspection styleの小さい差分で確認できる。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/contracts/architecture.test.ts",
+          "summary": "bounded architecture contractの追加とfalse-pass回帰例"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "AST parser、generic validator、重複native scan、Product refactorを追加せず、named import抽出を小さなhelperに限定した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "Plan外のframeworkとmigrationを追加していない"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "同一branchでbaselineと修正後のfocused/full validationを実行し、Run Artifact sanitizerもPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "focused/full local validationとSanitizer Write/Checkを再現"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

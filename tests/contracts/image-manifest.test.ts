@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readFile, stat } from "node:fs/promises";
 import path from "node:path";
 import { productImageManifest } from "@/generated/product-image-manifest";
+import { StaticManifestRepository } from "@/infrastructure/image-assets/static-manifest-repository";
 import { createDefaultDataset } from "@/seeds/default-dataset";
 
 describe("generated image manifest contract", () => {
@@ -43,5 +44,27 @@ describe("generated image manifest contract", () => {
       "product-variation-12": "asset-color-pouch",
       "product-variation-13": "asset-training-wear",
     });
+  });
+
+  it("binds StaticManifestRepository to the generated TypeScript module", async () => {
+    const repositorySource = await readFile(
+      path.join(
+        process.cwd(),
+        "src",
+        "infrastructure",
+        "image-assets",
+        "static-manifest-repository.ts",
+      ),
+      "utf8",
+    );
+    expect(repositorySource).toContain(
+      'import { productImageManifest } from "@/generated/product-image-manifest";',
+    );
+    expect(repositorySource).toContain(
+      "const imageAssets: readonly ImageAsset[] = productImageManifest.assets;",
+    );
+    const repository = new StaticManifestRepository();
+    const firstAsset = productImageManifest.assets[0]!;
+    await expect(repository.getById(firstAsset.assetId)).resolves.toEqual(firstAsset);
   });
 });

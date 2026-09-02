@@ -23,6 +23,8 @@ const nativeModules = [
   path.join(root, "src/infrastructure/security/password-hasher.native.ts"),
   path.join(root, "src/infrastructure/session/native-stores.ts"),
   path.join(root, "src/test-controls/native-test-control.native.ts"),
+  path.join(root, "src/test-controls/native-contract-harness-runner.native.ts"),
+  path.join(root, "src/test-controls/native-contract-harness.native.ts"),
   path.join(root, "src/test-controls/native-test-control-protocol.ts"),
   path.join(root, "src/test-controls/native-signals.ts"),
   path.join(root, "src/seeds/scenarios.ts"),
@@ -33,7 +35,7 @@ const forbidden = [
   /from ["'][^"']*\.web(?:\.tsx?|["'])/i,
   /from ["'][^"']*\.web\.[^"']*["']/i,
   /(?:^|[^A-Za-z])(dexie|react-aria-components)(?:[^A-Za-z]|$)/i,
-  /\b(?:document|window|localStorage|sessionStorage)\b/,
+  /\b(?:document|window|indexedDB|localStorage|sessionStorage)\b/,
   /import\s+["'][^"']+\.css["']/i,
 ];
 const violations: string[] = [];
