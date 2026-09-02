@@ -125,3 +125,43 @@
   - Result: —
   - Parent decision: evaluationを未完了状態で正しく記録し、Git反映後にfinal resultへ更新する。
 - Progress: 87% (13/15)
+
+## 2026-09-03 00:08 (JST)
+
+- Summary: PR #78の既存branchへTraceability finalizationをcommit／pushし、push後のCurrent head確認まで完了した。CT-BOUNDARY-001は`stop`から`bounded-multi-ref`へ更新され、stop countは0である。
+- Changes: commit `77a37bc7720a53974d5a346450e320c463f9f1ec`に`docs/12_quality/requirements_traceability.md`と本Runの5 artifactを含めた。PR本文、Product code、Formal Test、Requirement、Decision、workflow、package/config、過去Runは変更していない。
+- Decision / Rationale: 8 RequirementすべてについてRequirement→Current authority→Product→Formal evidenceの順で全体を説明できることを確認し、`bounded-multi-ref`を採用した。Lower Traceabilityは実表から`exact-title=9`、`suite-level=6`、`bounded-multi-ref=7`、`stop=0`、合計22件となった。
+- Validation: 指定validationは全件PASS。`pnpm run verify`は初回Native timeoutを再確認後に再実行しexit code 0、`test:contracts` 33 files／485 passed／3 skipped、`test:e2e:chromium` 28 passed、Native gate 38 routes passed、Sanitizer residual findings 0、evaluation schema PASS。push後`git status`はclean、PR #78 headは同SHAでOPENを確認した。
+- Blocker / Remaining: CT-BOUNDARY-001 remediation／re-auditに残課題なし。PR #78のCurrent head CI確認と最終Owner reviewが次工程であり、今回の追加commit／PR本文編集／CI rerunは行わない。
+- Git: branch=`docs/formal-test-strategy-traceability`、commit／pushed SHA=`77a37bc7720a53974d5a346450e320c463f9f1ec`、pushは`git push origin HEAD:docs/formal-test-strategy-traceability`で成功した。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: Current evidenceでstop解消が成立し、指定scope・validation・Git safetyを満たしたためRunをcompletedとして確定する。
+- Progress: 100% (15/15)
+
+## 2026-09-03 00:19 (JST)
+
+- Summary: Run Artifactのmachine-managed writerによる最終同期を完了し、`run.json.status=completed`、`evaluation_present=true`を確認した。
+- Changes: `run.json`は直接編集せず、`codex-task` writer／collector経由で更新した。最終成功経路はProduct／Formal Testを変更しないreadonly no-opで、`git diff --check`とevaluation validationを実行した。
+- Decision / Rationale: machine summaryは過去のwrapper試行結果を削除せず保持する契約のため、`validation.status=failed`と過去の`evaluation_invalid`／preflight failure reportが残る。原因はCurrent sourceではなく、初回PowerShell wrapperのnative stdout capture、Windows PowerShell 5.1のUTF-8 BOM-less evaluation読込、Bash wrapperのWSL側Node未解決である。指定quality gateと再実行後のfull verifyはすべてPASSであり、Traceabilityのstop判定には影響しない。
+- Validation: 最終`evaluation.json`はschema／Windows PowerShell JSON parseともPASS。公式writerのsuccess reportは`codex_exit_code=0`、`verify_exit_code=0`、`status=ok`、manifestは`status=completed`。Sanitizerは一時shim／raw logを分離した後に再実行する。
+- Blocker / Remaining: Current source／Formal evidence／指定validationに未解決事項なし。作業中に生成した一時shim・raw wrapper log・ignored outputは標準Run Artifactへ含めず除去し、最終Sanitizer／scope／Git追補commit・pushのみ残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。readonly wrapper no-opはmachine writer同期のための公式経路であり、Product判断を委譲していない。
+  - Result: —
+  - Parent decision: historical harness failureを削除せず意味情報として保持し、Current quality gateのPASSと分離したうえで、標準Run Artifactをcompletedとして最終化する。
+- Progress: 100% (15/15)
+
+## 2026-09-03 00:20 (JST)
+
+- Summary: 一時shim／raw wrapper log／ignored outputを標準Run Artifactから分離し、最終Sanitizer Write／Checkを完了した。標準ArtifactはPLAN、TASKS、REPORT、evaluation、run.jsonの5 filesである。
+- Changes: Run Artifact内のrepository-local pathだけを保持し、Sanitizerの5 files scanned／0 replacements／0 residual findingsを確認した。Product／Formal Test／Requirement／Decision／workflow／package/config／PR本文／過去Runは変更していない。
+- Decision / Rationale: `run.json.status=completed`、`evaluation.json.result=pass`をCurrent Runの完了状態とする。`run.json.validation.status=failed`はmachine-managedに保持された過去wrapper failure履歴（Current quality gateではない）を表すため、削除・改変せずREPORTの意味情報と分離した。
+- Validation: `python -X utf8 scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260902-232609-JST/evaluation.json`、run／evaluation JSON parse、Sanitizer Write／Check、`git diff --check`がPASS。指定したformat／Markdown／spec／contracts／native gate／Chromium E2E／full verifyも再実行後PASS済み。
+- Blocker / Remaining: CT-BOUNDARY-001の監査・Traceability・required local validation・pushは完了し、Stop conditionなし。追補Run Artifactをcommit／明示refspec pushし、push後clean/head確認を行う。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: historical harness failureを保持したまま、実際のCurrent quality gateとRun完了状態を混同しない最終Artifactをcommitする。
+- Progress: 100% (15/15)

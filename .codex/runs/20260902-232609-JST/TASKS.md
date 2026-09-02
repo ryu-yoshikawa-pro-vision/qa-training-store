@@ -15,8 +15,8 @@
 - [x] 11. 監査結果に基づきTraceability rowを更新し、旧stop理由を除去する（coveredの場合のみ）。
 - [x] 12. Lower Traceability labelと22 rowの実数を再集計し、self-reviewする。
 - [x] 13. 指定validation、scope確認、Sanitizer Write／Checkを完了する。
-- [ ] 14. branch safetyを再確認し、commit／明示refspec push／push後確認を完了する。
-- [ ] 15. REPORTをcompletedまたはstop conditionの根拠付きで確定する。
+- [x] 14. branch safetyを再確認し、commit／明示refspec push／push後確認を完了する。
+- [x] 15. REPORTをcompletedまたはstop conditionの根拠付きで確定する。
 
 ## Discovered
 

@@ -3,18 +3,38 @@
   "run_id": "20260902-232609-JST",
   "task_type": "implementation",
   "workflow_level": "strict",
-  "preset": "safe",
+  "preset": "readonly",
   "runtime": "host",
   "repo": "qa-training-store",
-  "branch": null,
+  "branch": "docs/formal-test-strategy-traceability",
   "base_branch": null,
-  "codex_task_reports": [],
-  "changed_files": [
-    "docs/12_quality/requirements_traceability.md"
+  "codex_task_reports": [
+    ".artifacts/run-finalization-report-sh.json",
+    ".artifacts/run-finalization-report.json"
   ],
+  "changed_files": [],
   "validation": {
-    "status": "not_run",
-    "commands": [],
+    "status": "failed",
+    "commands": [
+      {
+        "command": "git diff --check",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "verify command completed successfully"
+      },
+      {
+        "command": "evaluation validation",
+        "exit_code": 1,
+        "status": "failed",
+        "evidence": "Invalid JSON in <REPO_ROOT>/.codex\\\\runs\\20260902-232609-JST\\evaluation.json: Invalid object passed in, ':' or '}' expected. (371): {\n  \"schema_version\": 1,\n  \"run_id\": \"20260902-232609-JST\",\n  \"result\": \"pass\",\n  \"primary_failure_category\": null,\n  \"failure_categories\": [],\n  \"dimensions\": {\n    \"task_completion\": {\n      \"rating\": \"pass\",\n      \"evidence\": \"8 Requirement\u7e3a\uff6e\u8700\u54b2\u5c6e\u8b5f\uff7b\u7e32\u309draceability\u8b56\uff74\u8b41\uff70\u7e32\u00b4ower Traceability\u8700\u57fc\u5bd4\u96aa\u533b\u0080\u2235\u6b20\u87b3\u561balidation\u7e32\u300acope\u9052\uff7a\u96b1\u962a\u0080\u30feanitizer\u7e32\u2026ommit\u30fb\u8853ush\u7e32\uff5dush\u8815\u656cead\u9052\uff7a\u96b1\u962a\uff52\u87b3\u5fa1\uff7a\u30fb\uff20\u7e3a\u6e98\u0080\u30fb,\n      \"evidence_refs\": [\n        {\n          \"kind\": \"changed_file\",\n          \"path\": \"docs/12_quality/requirements_traceability.md\",\n          \"summary\": \"CT-BOUNDARY-001\u7e67\u8fb0urrent Formal evidence\u7e3a\uff78\u8b56\uff74\u8b41\uff70\u7e3a\u52b1\u0080\u00b4ower Traceability\u7e67\u8c9e\u30fb\u9aee\u30fb\uff68\u533b\uff20\u7e3a\u6e98\u0080\u30fb\n        },\n        {\n          \"kind\": \"changed_file\",\n          \"path\": \".codex/runs/20260902-232609-JST/REPORT.md\",\n          \"summary\": \"8 Requirement\u7e3a\uff6e\u9036\uff63\u8b5f\uff7b\u7e32\u300dalidation\u7e32\u300acope\u7e32\u30feanitizer\u7e3a\uff6e\u8ae2\u4e1e\u8896\u8ae0\u30fb\uf8f0\uff71\u7e67\u5b9a\uff68\u502c\u9e78\u7e3a\u52b1\u25c6\u7e32\u30fb\n        }\n      ]\n    },\n    \"scope_control\": {\n      \"rating\": \"pass\",\n      \"evidence\": \"\u9ae2\u53e5\uff67\u9b3cHA\u7e3a\u4e5d\uff49\u7e3a\uff6e\u8b41\uff70\u9695\u4e1e\uff64\u753b\u5ce9\u7e3a\uff6fTraceability\u7e3a\uff68\u8b5b\uff6cRun Directory\u7e3a\uff6b\u9aef\u4ed9\uff6e\u58f9\uff06\u7e67\u5f8c\u0080\uffe3roduct\u30fb\u6d32ormal Test\u30fb\u8e74equirement\u30fb\u6101ecision\u30fb\u821corkflow\u30fb\u8853ackage/config\u7e3a\uff6f\u879f\u753b\u5ce9\u7e3a\u52b1\u203b\u7e3a\u30fb\u2191\u7e3a\u30fb\u0080\u30fb,\n      \"evidence_refs\": [\n        {\n          \"kind\": \"validation_command\",\n          \"summary\": \"\u9ae2\u53e5\uff67\u9b3cHA\u7e3a\u4e5d\uff49\u7e3a\uff6egit diff\u7e32\u201cit status\u7e32\u201cit diff --check\u7e3a\uff6b\u7e67\u533b\uff4bscope\u9052\uff7a\u96b1\u962a\u2032PASS\u7e3a\u52b1\u25c6\u7e32\u30fb\n        }\n      ]\n    },\n    \"validation_confidence\": {\n      \"rating\": \"pass\",\n      \"evidence\": \"\u8b16\u30fb\uff6e\u5583ocused validation\u7e32\u00a8ative dependency gate\u7e32\uff0chromium E2E\u7e32\u2019ull verify\u8700\u698a\uff6e\u6eaf\uff61\u5f8c\u2032PASS\u7e3a\u52b1\u25c6\u7e32\uff27ull verify\u7e3a\uff6e\u86fb\u664f\u5c53Native timeout\u7e3a\uff6f\u8700\u54b2\uff62\uff7a\u96b1\u962a\u3012\u8700\u54b2\u6a1f\u7e3a\u52b1\u2191\u7e3a\u4e5d\u25b2\u7e3a\u6e98\u0080\u30fb,\n      \"evidence_refs\": [\n        {\n          \"kind\": \"validation_command\",\n          \"summary\": \"test:contracts 33 files\u30fb\u30fb85 passed\u30fb\u30fb skipped\u7e32\uff0chromium 28 passed\u7e32\u2019ull verify exit code 0\u7e32\u30fb\n        }\n      ]\n    },\n    \"safety_compliance\": {\n      \"rating\": \"pass\",\n      \"evidence\": \"\u8b16\u30fb\uff6e\u5598ranch\u7e67\u5824\uff76\uff6d\u8b16\u221a\uff20\u7e32\u2019orce push\u7e32\u2025estructive operation\u7e32\uffe3R\u8b5b\uff6c\u8b41\u30fb\uff64\u753b\u5ce9\u7e32\uffe3roduct\u30fb\u9031est remediation\u7e67\u5b9a\uff61\u5f8c\u25b2\u7e3a\uff66\u7e3a\u30fb\u2191\u7e3a\u30fb\u0080\u30fb,\n      \"evidence_refs\": [\n        {\n          \"kind\": \"evaluation_note\",\n          \"summary\": \"\u83f4\u61c8\uff65\uff6d\u907d\u30fb\u5cc7\u7e3a\uff68\u9056\u2235\uff6d\uff62\u8b2b\u583a\uff7d\u61ca\uff52\u9052\uff7a\u96b1\u962a\uff20\u7e3a\u6e98\u0080\u30fb\n        }\n      ]\n    },\n    \"reviewability\": {\n      \"rating\": \"pass\",\n      \"evidence\": \"CT-BOUNDARY-001 row\u7e3a\uff6f8 Requirement\u7e3a\u6590\u2192\u7e3a\uff6bCurrent Formal evidence\u7e3a\uff78\u8b17\uff65\u90af\u58f9\uff20\u7e32\u300baxonomy\u7e3a\uff68Requirement\u8b5b\uff6c\u8b41\u30fb\uff52\u879f\u753b\u5ce9\u7e3a\u52b1\u203b\u7e3a\u30fb\u2191\u7e3a\u30fb\u0080\u30fb,\n      \"evidence_refs\": [\n        {\n          \"kind\": \"changed_file\",\n          \"path\": \"docs/12_quality/requirements_traceability.md\",\n          \"summary\": \"Current evidence\u7e3a\uff6e\u96cb\uff6c\u870d\u541d\u30fb\u8ae1\u30fb\u2192Disposition\u7e67\u5824\uff62\uff7a\u96b1\u962a\u3012\u7e3a\u962a\uff4b\u8b5b\u0080\u87c6\u4e1e\uff77\uff6e\u86fb\u30fb\u3012\u7e3a\u3085\uff4b\u7e32\u30fb\n        }\n      ]\n    },\n    \"maintainability\": {\n      \"rating\": \"pass\",\n      \"evidence\": \"\u8b4c\uff62\u87c4\u5025\u30fbDisposition taxonomy\u7e67\u5824\uff76\uff6d\u8b16\u221a\uff20\u7e32\u309draceability row\u7e3a\uff68\u9aee\u30fb\uff68\u533b\u25a1\u7e3a\u4ee3\uff52Current evidence\u7e3a\uff78\u8737\u68a7\u6084\u7e3a\u52b1\u25c6\u7e32\u30fb,\n      \"evidence_refs\": [\n        {\n          \"kind\": \"evaluation_note\",\n          \"summary\": \"\u8b41\uff70\u7e3a\u52b1\uff1ecoverage\u86fb\u30fb\uff61\u69ed\uff44Product\u30fb\u6d32ormal remediation\u7e67\u5b9a\uff7f\uff7d\u8709\uf8f0\u7e3a\u52b1\u203b\u7e3a\u30fb\u2191\u7e3a\u30fb\u0080\u30fb\n        }\n      ]\n    },\n    \"reproducibility\": {\n      \"rating\": \"pass\",\n      \"evidence\": \"\u8737\u5fa1\uff78\u0080Current branch\u7e3a\uff67focused gate\u7e32\u2019ull verify\u7e32\u300acope\u9052\uff7a\u96b1\u962a\u0080\u30feanitizer Write\u30fb\u4feeheck\u7e67\u8c9e\uff6e\u6eaf\uff61\u5f8c\uff20\u7e32\u222b\uff75\u5148\u68e1\u7e67\u5766un REPORT\u7e3a\uff78\u96aa\u502c\u9e78\u7e3a\u52b1\u25c6\u7e32\u30fb,\n      \"evidence_refs\": [\n        {\n          \"kind\": \"validation_command\",\n          \"summary\": \"\u8b16\u30fb\uff6e\u58f9\u3055\u7e5d\u69ed\u03a6\u7e5d\u5ce8\u30fbexit code\u7e3a\uff68\u8373\uff7b\u9695\u30fb\u5bd4\u96aa\u533b\uff52REPORT\u7e3a\uff67\u9711\uff7d\u970d\uff61\u7e3a\uff67\u7e3a\u962a\uff4b\u7e32\u30fb\n        }\n      ]\n    }\n  },\n  \"findings\": [],\n  \"improvement_candidates\": []\n}\n"
+      },
+      {
+        "command": "evaluation validation",
+        "exit_code": 0,
+        "status": "passed",
+        "evidence": "evaluation.json passed schema validation"
+      }
+    ],
     "warnings": []
   },
   "safety": {
@@ -22,10 +42,10 @@
     "scope_violation": false
   },
   "artifact_summary": {
-    "codex_task_report_count": 0,
+    "codex_task_report_count": 2,
     "evaluation_present": true
   },
   "evaluation_path": ".codex/runs/20260902-232609-JST/evaluation.json",
-  "status": "pending",
+  "status": "completed",
   "primary_failure_category": null
 }
