@@ -165,3 +165,16 @@
   - Result: —
   - Parent decision: 1回目のrepair iterationは`stop_success`。残りはGit mutationと既存PRの最終状態確認だけとする。
 - Progress: 94% (17/18)
+
+## 2026-09-03 17:42 (JST)
+
+- Summary: 追加修正のcommit／pushと、既存PR #105の更新・最終状態確認まで完了した。新しいPRは作成していない。
+- Changes: 追加修正commitは`d410400ba66a4b836d4b9607b4de647a4ee3cbd7`。指定branch `fix/issue-91-long-text-layout`へ明示refspecでpushし、PR #105のheadが同SHAへ更新されたことを確認した。
+- Decision / Rationale: PR #105はbase=`main`、head=`fix/issue-91-long-text-layout`、state=`OPEN`、isDraft=`false`のまま。PR本文は日本語で、Finding AのScenario系CSS整理とFinding BのDialog人工DOM注入削除を反映している。merge／auto-merge／外部full reviewは行っていない。
+- Validation: push後の`git status --short`はclean。`gh pr view 105`と`gh pr list --head fix/issue-91-long-text-layout --state all`でPR #105のみを確認した。最終Run Artifactは本checkpointを含めてSanitizer後の状態で保存する。
+- Blocker / Remaining: なし。レビュー待ちで停止する。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: Runを`stop_success`として完了扱いにし、PR #105のレビュー待ちで引き渡す。
+- Progress: 100% (18/18)

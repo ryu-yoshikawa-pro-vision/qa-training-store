@@ -24,7 +24,7 @@
 - [x] D4. Guideの不要なScenario系CSSと関連assertionを削り、Finding BのDialog DOM注入を削除する
 - [x] D5. PR本文のCurrent Product不一致な表現を最小修正する
 - [x] D6. focused／formal validation、最終diff review、Run Artifact Sanitizerを完了する
-- [ ] D7. 指定branchへcommit／pushし、既存PR #105のheadと本文を確認する
+- [x] D7. 指定branchへcommit／pushし、既存PR #105のheadと本文を確認する
 
 ## Blocked
 
