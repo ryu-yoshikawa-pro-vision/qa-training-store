@@ -196,6 +196,19 @@
   - Parent decision: findingなし。今回の追補はtestと説明の整理に限定し、既存のsubmitCount-based production設計を維持する。
 - Progress: 94% (15/16)
 
+## 2026-09-03 13:39 (JST)
+
+- Summary: PR #104再レビュー対応の実装、test整理、最終検証、PR本文更新、commit、pushを完了し、Run completion checkpointを確定した。
+- Changes: `e77ec68`（test整理・実Login re-validation test）と`896f98e`（Run Artifact更新前段）を`fix/89-form-error-summary-focus`へpushした。production source、dependency、PROJECT_CONTEXT、history、planは今回の追補で変更していない。PR #104は既存のまま、base `main`、head `fix/89-form-error-summary-focus`、`Closes #89`を維持している。
+- Decision / Rationale: 削除したcomponent testはerror内容変更専用と複数error専用の2件であり、残したcomponent契約とLogin実フォームの2件→1件re-validation testでIssue #89のfocus behaviorを十分に保証できる。入力値消失は未再現のため独立修正を追加していない。
+- Validation: 最終focused test 2 files / 27 tests、web component 11 files / 92 tests、format、lint（0 errors / 65 warnings）、typecheck、`pnpm run verify`（unit 66、integration 111、repository 38、native component 64、contracts 486 passed / 3 skipped、全build）、`git diff --check`、evaluation schema、sanitizer Write／Check（residual findings 0）がすべてPASSした。
+- Blocker / Remaining: なし。Run completion記録のcommit／push後にworking tree、PR #104の最終head／本文／state、remote check状態を確認して引き渡す。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: Runを完了扱いとし、Issue #89の対応を`Closes #89`として引き渡す。
+- Progress: 100% (16/16)
+
 ## 2026-09-03 13:36 (JST)
 
 - Summary: 追加test整理commitを作成し、対象branchへpushした。
