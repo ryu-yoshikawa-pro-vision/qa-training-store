@@ -48,6 +48,7 @@ export function SearchCombobox({
   const [loading, setLoading] = useState(false);
   const [shouldOpenSuggestions, setShouldOpenSuggestions] = useState(false);
   const sequence = useRef(0);
+  const dismissedRequest = useRef<number | null>(null);
 
   useEffect(() => {
     setItems(suggestions);
@@ -72,7 +73,9 @@ export function SearchCombobox({
         .then((result) => {
           if (sequence.current === requestId) {
             setItems(result);
-            setShouldOpenSuggestions(true);
+            if (dismissedRequest.current !== requestId) {
+              setShouldOpenSuggestions(true);
+            }
           }
         })
         .finally(() => {
@@ -92,11 +95,11 @@ export function SearchCombobox({
       inputValue={inputValue}
       onInputChange={(value: string) => {
         setInputValue(value);
-        if (loadSuggestions !== undefined && shouldOpenSuggestions) {
-          setShouldOpenSuggestions(false);
-        }
       }}
-      onOpenChange={setShouldOpenSuggestions}
+      onOpenChange={(open) => {
+        setShouldOpenSuggestions(open);
+        dismissedRequest.current = open ? null : sequence.current;
+      }}
       onSelectionChange={(key: Key | null) => {
         if (key !== null) {
           const selected = indexed.get(String(key));
@@ -122,7 +125,7 @@ export function SearchCombobox({
           if (
             event.key === "Enter" &&
             event.currentTarget.value.trim().length > 0 &&
-            event.currentTarget.getAttribute("aria-expanded") !== "true"
+            event.currentTarget.getAttribute("aria-activedescendant") === null
           ) {
             event.preventDefault();
             router.push(`/search?q=${encodeURIComponent(event.currentTarget.value.trim())}`);
