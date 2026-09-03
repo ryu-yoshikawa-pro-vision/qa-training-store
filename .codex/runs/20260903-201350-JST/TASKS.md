@@ -22,7 +22,7 @@
 - [x] 15. PostToolUse／Stopを含むlogging launcherをroot／nested cwdで複数回計測し、exit／stdio／JSONL／durationを記録する
 - [x] 16. ADR／調査report／PROJECT_CONTEXTとPR #106本文へbounded adjustment、async非採用、残存リスクを追記する
 - [x] 17. focused validation、script syntax、diff check、可能なfull verifyを実行し、変更後Run ArtifactをSanitizeする
-- [ ] 18. diff review後に指定branchへcommit／pushし、既存PR #106の本文とheadを確認する
+- [x] 18. diff review後に指定branchへcommit／pushし、既存PR #106の本文とheadを確認する
 
 ## Blocked
 

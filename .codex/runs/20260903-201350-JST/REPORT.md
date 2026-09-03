@@ -215,3 +215,12 @@
 - Decision / Rationale: 10秒へ継続的に近づく傾向はなく、15秒／30秒への追加延長やasync化は行わない。Product codeの既存type errorは今回の変更対象外として停止条件に記録した。
 - Blocker / Remaining: 指定branchの最終diff review、commit／push、PR #106 head確認が残る。
 - Progress: 94% (17/18)
+
+## 2026-09-03 23:51 (JST)
+
+- Summary: timeout follow-upの実装・検証・Git/PR反映を完了した。
+- Changes: commit `115ea8a94ea3bc51b71563d2fdfefd2a7a0174ca`（`fix: Codex logging Hookのtimeout headroomを拡大`）を作成し、指定branch `fix/codex-hooks-update-regression`へ明示refspecでpushした。
+- Validation: `gh pr view 106`でPR #106がOPEN、base `main`、head指定branch、head `115ea8a94ea3bc51b71563d2fdfefd2a7a0174ca`であることを確認した。`git ls-remote`も同一headを返し、working treeはclean。
+- Decision / Rationale: 新しいbranch／PRは作成していない。PR本文は日本語で更新済みで、10秒のbounded rationale、duration Evidence、full verifyの差分外TS7006、remaining risksを含む。
+- Blocker / Remaining: なし。既存Product typecheck failure、Desktop／IDE未検証、config変更後のtrust再review可能性はPRのRemaining risksとして残す。
+- Progress: 100% (18/18)
