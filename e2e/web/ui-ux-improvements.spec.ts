@@ -1,7 +1,82 @@
 import { addDefaultAddress, expect, login, test } from "./fixtures";
 
+type Page = import("@playwright/test").Page;
+
 async function expectHeadingFocused(page: import("@playwright/test").Page) {
   await expect(page.locator("h1").first()).toBeFocused();
+}
+
+async function expectNoHorizontalOverflow(page: Page) {
+  const overflow = await page.evaluate(() => ({
+    document: document.documentElement.scrollWidth,
+    body: document.body.scrollWidth,
+    viewport: window.innerWidth,
+  }));
+  expect(overflow.document).toBeLessThanOrEqual(overflow.viewport);
+  expect(overflow.body).toBeLessThanOrEqual(overflow.viewport);
+}
+
+async function expectLayoutWithinViewport(page: Page, selectors: string[]) {
+  const violations = await page.evaluate((targetSelectors) => {
+    const viewportRight = window.innerWidth;
+    return targetSelectors.flatMap((selector) =>
+      [...document.querySelectorAll<HTMLElement>(selector)].flatMap((element) => {
+        const rect = element.getBoundingClientRect();
+        return element.scrollWidth > element.clientWidth + 1 ||
+          rect.left < -1 ||
+          rect.right > viewportRight + 1
+          ? [
+              {
+                selector,
+                left: rect.left,
+                right: rect.right,
+                scrollWidth: element.scrollWidth,
+                clientWidth: element.clientWidth,
+              },
+            ]
+          : [];
+      }),
+    );
+  }, selectors);
+  expect(violations).toEqual([]);
+}
+
+async function expectNoOverlappingRects(page: Page, selectors: string[]) {
+  const overlaps = await page.evaluate((targetSelectors) => {
+    const rects = targetSelectors.flatMap((selector) =>
+      [...document.querySelectorAll<HTMLElement>(selector)].map((element) => {
+        const rect = element.getBoundingClientRect();
+        return { selector, left: rect.left, right: rect.right, top: rect.top, bottom: rect.bottom };
+      }),
+    );
+    const result: { first: string; second: string }[] = [];
+    for (let firstIndex = 0; firstIndex < rects.length; firstIndex += 1) {
+      for (let secondIndex = firstIndex + 1; secondIndex < rects.length; secondIndex += 1) {
+        const first = rects[firstIndex];
+        const second = rects[secondIndex];
+        if (first === undefined || second === undefined) continue;
+        if (
+          first.left < second.right &&
+          first.right > second.left &&
+          first.top < second.bottom &&
+          first.bottom > second.top
+        ) {
+          result.push({ first: first.selector, second: second.selector });
+        }
+      }
+    }
+    return result;
+  }, selectors);
+  expect(overlaps).toEqual([]);
+}
+
+async function fillInputToLimit(page: Page, label: string, character: string) {
+  const input = page.getByLabel(label);
+  const maxLength = Number(await input.getAttribute("maxlength"));
+  expect(maxLength).toBeGreaterThan(0);
+  const value = character.repeat(maxLength);
+  await input.fill(value);
+  return value;
 }
 
 test.describe("UI/UX improvement flows A-J", () => {
@@ -353,5 +428,136 @@ test.describe("UI/UX improvement flows A-J", () => {
     await expect(page.getByRole("heading", { name: "ORD-20260701-0002" })).toBeVisible();
     const shipment = page.getByRole("heading", { name: "配送状況" }).locator("..");
     await expect(shipment.getByText("発送準備中", { exact: true })).toBeVisible();
+  });
+
+  test("Issue #91: 長いGuide／Search表示がViewport内で折り返される", async ({ page, scenario }) => {
+    await scenario("default");
+    const viewports = [
+      { width: 360, height: 844 },
+      { width: 1440, height: 1000 },
+    ];
+    const longKeyword = "x".repeat(100);
+
+    for (const viewport of viewports) {
+      await page.setViewportSize(viewport);
+      await page.goto("/guide");
+      const guide = page.locator(".home-page--guide");
+      const guideAccountPanel = guide.locator(".membership-panel--guide-accounts");
+      await expect(guideAccountPanel).toBeVisible();
+      await expect(guideAccountPanel).toContainText("regular@example.com");
+      await expect(guide.getByText("共通パスワードは testpass1")).toBeVisible();
+      const guideExplanation = guide.locator(".home-learning-panel").first();
+      await expect(guideExplanation).toContainText("学習環境としての注意");
+      await guideAccountPanel
+        .locator(".membership-panel__value")
+        .first()
+        .evaluate((element) => {
+          element.textContent = `${element.textContent ?? ""}${"x".repeat(100)}`;
+        });
+      await guideExplanation
+        .locator("p")
+        .first()
+        .evaluate((element) => {
+          element.textContent = `${element.textContent ?? ""}${"y".repeat(200)}`;
+        });
+      await expectNoHorizontalOverflow(page);
+      await expectLayoutWithinViewport(page, [
+        ".home-page--guide .membership-panel--guide-accounts",
+        ".home-page--guide .membership-panel--guide-accounts .membership-panel__value",
+        ".home-page--guide .home-learning-panel",
+        ".home-page--guide .home-learning-panel p",
+        ".home-page--guide .admin-detail-card",
+      ]);
+
+      await page.goto(`/search?q=${longKeyword}`);
+      const search = page.locator(".catalog-page--search");
+      await expect(search.locator(".catalog-page__header h1")).toContainText(longKeyword);
+      await expect(search.locator(".catalog-page__header > p")).toBeVisible();
+      await expect(search.locator(".catalog-toolbar > label")).toContainText("並び順");
+      await expect(search.locator(".catalog-toolbar select")).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await expectLayoutWithinViewport(page, [
+        ".catalog-page--search .breadcrumbs li:last-child",
+        ".catalog-page--search .catalog-page__header h1",
+        ".catalog-page--search .catalog-page__header > p",
+        ".catalog-page--search .catalog-toolbar > label",
+      ]);
+      await expectNoOverlappingRects(page, [
+        ".catalog-page--search .catalog-page__header h1",
+        ".catalog-page--search .catalog-page__header > p",
+      ]);
+    }
+  });
+
+  test("Issue #91: 最大長付近の住所Cardと削除Dialogが操作可能", async ({ page, scenario }) => {
+    await scenario("default");
+    await login(page, "regular@example.com");
+    await page.setViewportSize({ width: 360, height: 844 });
+    await page.goto("/account/addresses");
+
+    const label = await fillInputToLimit(page, "ラベル", "L");
+    const recipient = await fillInputToLimit(page, "宛名", "R");
+    await page.getByLabel("郵便番号").fill("1000001");
+    const prefecture = await fillInputToLimit(page, "都道府県", "P");
+    const city = await fillInputToLimit(page, "市区町村", "C");
+    const addressLine1 = await fillInputToLimit(page, "番地", "A");
+    const addressLine2 = await fillInputToLimit(page, "建物名・部屋番号（任意）", "B");
+    await page.getByLabel("電話番号").fill("09000000000");
+    await page.getByRole("button", { name: "登録する", exact: true }).click();
+    await expect(page.getByRole("status")).toContainText("配送先を登録しました");
+
+    const card = page.locator(".address-card").first();
+    await expect(card).toContainText(label);
+    await expect(card).toContainText(recipient);
+    await expect(card).toContainText(prefecture);
+    await expect(card).toContainText(city);
+    await expect(card).toContainText(addressLine1);
+    await expect(card).toContainText(addressLine2);
+
+    for (const viewport of [
+      { width: 360, height: 844 },
+      { width: 1440, height: 1000 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await expect(card).toBeVisible();
+      await expectNoHorizontalOverflow(page);
+      await expectLayoutWithinViewport(page, [
+        ".address-card",
+        ".address-card h3",
+        ".address-card p",
+        ".address-card__actions",
+      ]);
+      await expectNoOverlappingRects(page, [
+        ".address-card h3",
+        ".address-card p",
+        ".address-card__actions",
+      ]);
+
+      await card.getByRole("button", { name: "削除", exact: true }).click();
+      const dialog = page.getByRole("alertdialog");
+      await expect(dialog).toBeVisible();
+      await expect(dialog).toContainText(label);
+      await expect(dialog).toContainText("既定の配送先を削除した場合は");
+      await dialog.locator(".dialog__body").evaluate((element, address) => {
+        element.textContent = `${element.textContent ?? ""} 住所確認: ${address}`;
+      }, `${addressLine1}${addressLine2}`);
+      await expect(dialog.locator(".dialog__body")).toContainText(addressLine1);
+      await expect(dialog.getByRole("button", { name: "削除する", exact: true })).toBeVisible();
+      await expect(dialog.getByRole("button", { name: "閉じる", exact: true })).toBeVisible();
+      await expectLayoutWithinViewport(page, [
+        ".confirm-dialog-modal",
+        ".confirm-dialog h2",
+        ".confirm-dialog .dialog__body",
+        ".confirm-dialog .dialog__actions",
+        ".confirm-dialog .dialog__actions .button",
+      ]);
+      await expectNoOverlappingRects(page, [
+        ".confirm-dialog h2",
+        ".confirm-dialog .dialog__body",
+        ".confirm-dialog .dialog__actions .button",
+      ]);
+      await expectNoHorizontalOverflow(page);
+      await dialog.getByRole("button", { name: "閉じる", exact: true }).click();
+    }
   });
 });

@@ -196,7 +196,7 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
     request.minimumPrice === null &&
     request.maximumPrice === null;
   return (
-    <div className="catalog-page">
+    <div className={mode === "search" ? "catalog-page catalog-page--search" : "catalog-page"}>
       <nav className="breadcrumbs" aria-label="パンくず">
         <ol>
           <li>

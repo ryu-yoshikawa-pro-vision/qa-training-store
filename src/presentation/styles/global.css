@@ -5158,3 +5158,123 @@ progress {
     padding: 20px;
   }
 }
+
+/* Issue #91: keep the four long-content presentation areas within their layout. */
+
+.home-page--guide {
+  overflow-wrap: anywhere;
+}
+
+.home-page--guide .home-hero {
+  overflow: visible;
+}
+
+.home-page--guide .home-hero,
+.home-page--guide .home-hero > *,
+.home-page--guide .home-hero__visual,
+.home-page--guide .home-learning-panel,
+.home-page--guide .home-learning-panel > *,
+.home-page--guide .membership-panel,
+.home-page--guide .membership-panel > *,
+.home-page--guide .form-stack,
+.home-page--guide .form-stack > *,
+.home-page--guide .split-heading > *,
+.home-page--guide .admin-detail-card,
+.home-page--guide .definition-grid > *,
+.home-page--guide .definition-grid dd > * {
+  min-width: 0;
+}
+
+.home-page--guide .membership-panel--guide-accounts {
+  grid-template-columns: minmax(0, 0.7fr) minmax(0, 1.3fr);
+}
+
+.home-page--guide .membership-panel__value {
+  min-width: 0;
+}
+
+.home-page--guide .definition-grid {
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+}
+
+.catalog-page--search .breadcrumbs li:last-child,
+.catalog-page--search .catalog-page__header,
+.catalog-page--search .catalog-page__header > div,
+.catalog-page--search .catalog-page__header > p,
+.catalog-page--search .catalog-page__header h1,
+.catalog-page--search .catalog-search > div,
+.catalog-page--search .catalog-search > div > *,
+.catalog-page--search .catalog-toolbar,
+.catalog-page--search .catalog-toolbar > * {
+  min-width: 0;
+}
+
+.catalog-page--search .breadcrumbs li:last-child,
+.catalog-page--search .catalog-page__header h1 {
+  overflow-wrap: anywhere;
+}
+
+.catalog-page--search .catalog-search > div,
+.catalog-page--search .catalog-toolbar {
+  flex-wrap: wrap;
+}
+
+.catalog-page--search .catalog-toolbar > label {
+  white-space: normal;
+}
+
+.catalog-page--search .catalog-toolbar select {
+  min-width: 0;
+}
+
+.address-layout > *,
+.address-list,
+.address-card,
+.address-card > *,
+.address-card header,
+.address-card h3,
+.address-card__actions {
+  min-width: 0;
+}
+
+.address-card h3,
+.address-card p {
+  overflow-wrap: anywhere;
+}
+
+.confirm-dialog-modal {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.confirm-dialog {
+  min-width: 0;
+}
+
+.confirm-dialog h2,
+.confirm-dialog .dialog__body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.confirm-dialog .dialog__body > * {
+  min-width: 0;
+}
+
+.confirm-dialog .dialog__actions {
+  min-width: 0;
+  flex-wrap: wrap;
+}
+
+.confirm-dialog .dialog__actions .button {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+@media (max-width: 767px) {
+  .home-page--guide .membership-panel--guide-accounts {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
