@@ -41,12 +41,12 @@ export function ConfirmDialog({
         {triggerLabel}
       </AriaButton>
       <ModalOverlay className="dialog-overlay" isDismissable>
-        <Modal className="dialog-modal">
-          <Dialog className="dialog" role="alertdialog">
+        <Modal className="dialog-modal confirm-dialog-modal">
+          <Dialog className="dialog confirm-dialog" role="alertdialog">
             {({ close }: DialogRenderProps) => (
               <>
                 <Heading slot="title">{title}</Heading>
-                <div>{children}</div>
+                <div className="dialog__body">{children}</div>
                 <div className="dialog__actions">
                   <AriaButton
                     className={`button button--${danger ? "danger" : "primary"}`}
