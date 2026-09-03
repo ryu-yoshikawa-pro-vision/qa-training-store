@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "charter_id": "CHARTER-001",
+  "spec_refs": [
+    "docs/spec/README.md"
+  ],
+  "mission": "Codex CLIのproject HookをWindows hostでscript、configured launcher、実runtimeの3境界から検証し、発火・失敗・副作用の最初の異常を特定する",
+  "risk": "Hookの未発火やsilent failureがPreToolUseの安全制御、logging、Stop系の継続判断を誤らせるリスク",
+  "role": "operator",
+  "seed": "codex-hook-regression-20260903",
+  "platform": "web",
+  "viewport_or_device": "Windows CLI host (Codex CLI 0.153.0)",
+  "required_coverage": [
+    {
+      "coverage_id": "COV-001",
+      "mission": "対象5 logging eventとPreToolUse policyを公式相当stdin payloadでscript単体実行し、契約とside effectを記録する",
+      "role": "operator",
+      "seed": "codex-hook-regression-20260903",
+      "platform": "web",
+      "viewport_or_device": "Windows CLI host",
+      "required_evidence_types": ["console", "narrow_log"]
+    },
+    {
+      "coverage_id": "COV-002",
+      "mission": "現行configのcommandとcommand_windowsをroot・nested cwd・cmd.exe /C相当で実行し、transport境界を記録する",
+      "role": "operator",
+      "seed": "codex-hook-regression-20260903",
+      "platform": "web",
+      "viewport_or_device": "Windows CLI host",
+      "required_evidence_types": ["console", "narrow_log"]
+    },
+    {
+      "coverage_id": "COV-003",
+      "mission": "実Codex CLIから最小prompt・tool・Stopを発火し、Hook status、tool result、spawn可視性、JSONL side effectを照合する",
+      "role": "operator",
+      "seed": "codex-hook-regression-20260903",
+      "platform": "web",
+      "viewport_or_device": "Windows CLI host",
+      "required_evidence_types": ["console", "narrow_log"]
+    }
+  ],
+  "allowed_runtime_controls": [],
+  "exploration_budget": {
+    "max_duration_seconds": 1800,
+    "max_tool_actions": 40
+  },
+  "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
+}

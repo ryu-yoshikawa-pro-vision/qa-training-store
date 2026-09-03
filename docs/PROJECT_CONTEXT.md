@@ -43,6 +43,13 @@
 - fallbackは`EACCES`、`EPERM`、`EROFS`、`EEXIST`、`ENOTDIR`のcanonical path failureに限定する。fallbackも失敗した場合は既存のstderr報告とStop系`{}`出力のfail-safe契約を維持する。Hook JSONLはRun manifestへ自動集約しない。
 - 現行Codex CLIの`exec`経路ではHook statusが`Completed`でもrepository Hook JSONLが保存されない場合があるため、CLI lifecycle statusとlogger file I/Oは別々のevidenceとして扱う。実launcherのstdin／stdout／stderr／exitとJSONL追記をsandbox内で確認できることを完了条件とする。
 
+## Codex current shell Hook launcher互換性（2026-09-03）
+
+- Installed Codex CLI `0.153.0`のこのWindows環境では、実Codex CLIのshellはPowerShell 7 (`pwsh.exe`)である。ADR-0020のquote-free PowerShell logging commandは、外側PowerShellの`-Command`解釈で内側`$current`を失い、loggerがexit 0のままJSONLを作らない境界があった。PR #100のcmd／sandbox修正とは別の問題である。
+- Windowsの6つの`command_windows`は、`cmd.exe /D /Q /S /C`内でGit rootを解決し、logger／既存PreToolUse PowerShell transportへ渡す。root／`docs`、cmd外側／current pwsh外側をconfigured launcher contractで検証する。`^Bash$` matcher、Node policy、deny／fail-close、sandbox境界、Unix launcherは維持する。
+- 実CodexのCompleted status、tool成功、logger JSONLは別のevidenceである。変更後の実CLIではUserPromptSubmit／PreToolUse／PostToolUse／StopをCompleted、tool result、`.codex/logs` JSONLとして確認した。Subagent eventはsubagentを生成するpromptで別途発火させない限り確認対象外とする。
+- project trustはtrustedでもper-hook trusted stateはconfig commandの変更後に再reviewを要求する場合がある。`--dangerously-bypass-hook-trust`は診断に限り、通常運用のtrust／approvalをrepositoryから迂回しない。
+
 ## Codex Full Access Safety Hook（2026-08-16）
 
 - Windows native Codex `0.147.0`のproject Hookは、`[features].hooks = true`、`PreToolUse` matcher `^Bash$`、`command_windows`を正本とする。deprecatedな`codex_hooks`、project-local profile、旧PowerShell／Python policy Hookには依存しない。

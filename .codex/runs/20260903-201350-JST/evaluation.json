@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "run_id": "20260903-201350-JST",
+  "result": "partial",
+  "primary_failure_category": "missing_validation",
+  "failure_categories": [
+    "missing_validation"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "warn",
+      "evidence": "A/B/CのHook原因特定、最小修正、回帰test、focused validation、runtime再確認、durable reportは完了した。repository全体verifyは差分外の既存Product type errorで後続工程へ進めなかった。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/codex-hooks/c-20260903-2240-plain/result.json",
+          "selector": null,
+          "event_id": null,
+          "summary": "実Codex after-fix probeの成功結果"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "focused contract testは129 tests PASS"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はWindows launcher、対応するcontract test／verify、Hook互換性のADR／docs、標準Run Artifactに限定し、Product code、policy、matcher、sandboxを変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/config.toml",
+          "selector": null,
+          "event_id": null,
+          "summary": "Windows command_windowsのみを更新"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Hook固有のscript／launcher／runtime検証とfocused testは成功した。一方、pnpm run verifyは差分外のsrc/presentation/components/search-combobox.tsx:99のTS7006で停止したため、test／build後半は未実行である。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "pnpm run verifyの最初の未解消エラーは既存TS7006"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "scripts/verify.ps1、bash scripts/verify、node --check、git diff --checkはPASS"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "PreToolUseのmatcher／deny semantics、sandbox、trust設定を弱めず、force push、reset、cleanup、依存変更を行っていない。Run Artifact Sanitizer Write／Checkはresidual findings 0だった。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/codex-hooks/c-20260903-2240-plain/stderr.log",
+          "selector": null,
+          "event_id": null,
+          "summary": "PreToolUse denyがCodex routerでblockされた実行結果"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "Sanitizer Checkはresidual findings 0"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "A/B/C境界のredacted結果、変更前後のlauncher差、公式docs／source／upstream issueとの突合、root causeと残存リスクをdurable reportとADRへ記録した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/reports/2026-09-03_220500_codex-hooks-update-regression.md",
+          "selector": null,
+          "event_id": null,
+          "summary": "調査結果とEvidenceのdurable report"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存launcher／Hook infrastructureを維持し、現行shell境界だけをcmd root resolverへ置換した。PreToolUse policy本体とUnix launcherは再利用した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/adr/0021-codex-current-shell-hook-launcher-compatibility.md",
+          "selector": null,
+          "event_id": null,
+          "summary": "変更の設計判断と影響を記録"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "root／nested cwd、cmd／current pwsh、6 event、stdin／stdout／stderr／exit／JSONL side effect、実Codex statusとPreToolUse denyをprobeとcontract testで再現可能にした。",
+      "evidence_refs": [
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/codex-hooks/b-20260903-2030/result-pwsh-final.json",
+          "selector": null,
+          "event_id": null,
+          "summary": "current pwshで12 configured launcher casesが成功"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "missing_validation",
+      "severity": "medium",
+      "evidence": "pnpm run verifyがsrc/presentation/components/search-combobox.tsx:99のTS7006で停止した。該当ファイルは今回の差分に含まれず、初期working tree cleanから変更されていない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "フルverifyの最初の失敗を記録"
+        }
+      ],
+      "detail": "Product code変更禁止のため修正せず、full verifyの後続test／buildは上流typecheck失敗として実行しなかった。"
+    }
+  ],
+  "improvement_candidates": []
+}
