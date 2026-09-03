@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { INPUT_LIMITS } from "@/application/contracts";
 import { ApplicationError } from "@/application/errors";
 import type { UserAddress } from "@/domain/contracts";
@@ -117,6 +117,28 @@ describe("auth and account pages", () => {
     expect(routerReplace).toHaveBeenCalledWith("/");
   });
 
+  it("focuses Login errors again on the same single-error invalid submit", async () => {
+    render(<LoginPage />);
+    const email = screen.getByLabelText("メールアドレス");
+    const password = screen.getByLabelText("パスワード");
+    fireEvent.change(email, { target: { value: "invalid-email" } });
+    fireEvent.change(password, { target: { value: "testpass1" } });
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+
+    const summary = await screen.findByRole("alert");
+    await waitFor(() => expect(summary).toHaveFocus());
+    expect(within(summary).getAllByRole("link")).toHaveLength(1);
+    expect(email).toHaveValue("invalid-email");
+
+    email.focus();
+    expect(email).toHaveFocus();
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+
+    await waitFor(() => expect(summary).toHaveFocus());
+    expect(email).toHaveValue("invalid-email");
+    expect(auth.login).not.toHaveBeenCalled();
+  });
+
   it("does not hide a checkout storage error as an address fallback", async () => {
     window.history.replaceState({}, "", "/login?returnTo=%2Fcheckout%2Fpayment");
     auth.login.mockResolvedValueOnce({
@@ -207,6 +229,10 @@ describe("auth and account pages", () => {
       "aria-invalid",
       "true",
     );
+    expect(screen.getByLabelText("メールアドレス")).toHaveValue("new@example.com");
+    expect(screen.getByLabelText("表示名")).toHaveValue("新規会員");
+    expect(screen.getByLabelText("パスワード")).toHaveValue("testpass1");
+    expect(screen.getByLabelText("パスワード（確認）")).toHaveValue("testpass1");
     expect(auth.register).not.toHaveBeenCalled();
   });
 

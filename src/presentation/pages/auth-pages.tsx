@@ -106,7 +106,7 @@ export function LoginPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, submitCount },
   } = useForm<LoginForm>({
     resolver: zodResolver(loginSchema),
     defaultValues: { email: "", password: "" },
@@ -129,7 +129,7 @@ export function LoginPage() {
             {authError.operationError}
           </div>
         )}
-        <FormErrorSummary errors={fieldErrors} />
+        <FormErrorSummary errors={fieldErrors} focusTrigger={submitCount} />
         <form
           onSubmit={handleSubmit(async (value) => {
             authError.clear();
@@ -225,7 +225,7 @@ export function SignupPage() {
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors, isSubmitting, submitCount },
   } = useForm<SignupForm>({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -253,7 +253,7 @@ export function SignupPage() {
             {authError.operationError}
           </div>
         )}
-        <FormErrorSummary errors={fieldErrors} />
+        <FormErrorSummary errors={fieldErrors} focusTrigger={submitCount} />
         <form
           onSubmit={handleSubmit(async (value) => {
             authError.clear();

@@ -518,3 +518,9 @@
 - Native Catalogは`SessionIdentityResolver`で現在Sessionから`ProductViewer`を解決し、`CatalogUseCases` → `CustomerCatalogGateway` → `NativeCustomerCatalogRepository` → `NativeCustomerSQLiteRepository`までviewerを保持する。Native SQLiteのvisibility、membership pricing、active sale、検索、facet、pagination、stable sort、Suggestionは既存Domain／Web Storefront semanticsを基準にする。
 - Native Catalog/Search画面は既存のProductSearchRequest／ProductSearchResultを使い、Keyword、Category、Brand、Price、Inventory、Sale、Minimum rating、facet counts、total/page、paginationを送受信する。Search SuggestionはNative service surfaceからUseCase／Gateway／Repositoryへ接続し、2文字以上・最大8件・viewer-aware・deterministicとする。
 - Native ShellはCustomer-only routeのGuest direct navigationを既存Login boundaryへ送り、management roleは既存unsupported boundaryでCustomer画面をmountしない。Guest storefront／cartは引き続き利用可能なrouteとして扱う。
+
+## Issue #89 FormErrorSummary focus（2026-09-03）
+
+- WebのLogin／SignupはReact Hook Formの`formState.submitCount`を`FormErrorSummary`の`focusTrigger`として渡す。Summaryはエラーが存在する場合だけ、初回または新しいsubmit triggerで自身へprogrammatic focusする。`errors`配列の参照変化やerror countだけのrerenderではfocusしない。
+- `FormErrorSummary`の既存`role="alert"`、`tabIndex={-1}`、エラーメッセージ／field linkの表示は維持する。submitCountはvalid submitでも増えるが、error存在をguardするためvalid submitでsummaryへfocusしない。
+- Validation failure時のAuth formは`defaultValues`を持つReact Hook Formの登録フィールドを使用し、submit handlerで`reset()`を呼ばず、formの`key`変更・conditional remount・navigationも行わない。Login／Signupのcomponent testで、invalid submit後も入力値が保持されることを確認した。Issue #89の入力値消失は現行フローでは再現せず、別原因の修正は追加していない。
