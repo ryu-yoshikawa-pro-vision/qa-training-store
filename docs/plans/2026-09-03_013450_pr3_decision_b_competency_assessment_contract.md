@@ -375,7 +375,14 @@ PR 3でC01〜C12のclassificationは次の2種類だけ使う。
 
 #### Contract responsibility
 
-Native branch / skip / rejoinの自動assert元はREADMEのstable navigation sectionだけにする。
+Native branch / skip / rejoinの自動assert元はREADMEのstable navigation sectionだけにする。contract testが`toContain`できるstable canonical bulletを、少なくとも次の表記で置く。
+
+- `Part 1 Common: P1-6 → P1-8 → P1-9`
+- `Part 1 Native: P1-6 → P1-7 → P1-8 → P1-9`
+- `Part 2 Common: P2-5 → P2-7 → P2-8`
+- `Part 2 Native: P2-5 → P2-6 → P2-7 → P2-8`
+
+これらはmachine-readable schemaではなくlearner-facingな短いnavigation bulletとし、parser / helperを追加しない。
 
 ### 3. `docs/curriculum/test-automation/00_learning_design.md`
 
@@ -437,14 +444,20 @@ PR 3の中心SSOT。ただしRubric全体を再構成しない。変更は次の
    - Level 1: 例・ヒント・詳細手順を使って実施できる。
    - Level 2: 自力で実施し、判断理由とEvidenceを説明できる。
    - Instructor支援の有無を能力レベル定義へ埋め込まない。
-3. **`Part 1修了基準`を局所修正する**
-   - exact Common setへ同期し、C08 / Physical Android / Native evidenceをCommon completionから外す。
-4. **`Part 2修了基準`を局所修正する**
-   - exact Common setへ同期し、C08をCommon completionから外す。
-   - C12 Commonをbounded Web CIへ限定し、Native / full deliveryをCommon completionから外す。
-   - Common completionはbounded Level 2とし、既存のLevel 3相当の比較・提案はCommon Requiredから外してbounded L2外のchallenge / Advanced scopeとして扱う。新しいclassificationは追加しない。
-5. **`採点表`は原則維持する**
-   - Fixed Decisionと直接矛盾するセルがある場合だけ局所修正する。
+3. **`Part 1修了基準`は詳細Evidence一覧を修繕せず、集合と境界だけへ短縮する**
+   - `Part 1 Common: C01〜C07 + C09〜C10` bounded Level 2 と明示する。
+   - 各Competencyの評価詳細 / Minimum Evidenceは上記`Competency一覧`を参照させ、修了基準側へ再列挙しない。
+   - C08 / Physical Android / Native evidenceはCommon completionに要求しない。
+   - Baseline / stock PASSだけではlearner-authored competency evidenceの代替にならないことだけ境界として残す。
+4. **`Part 2修了基準`も詳細Evidence一覧を修繕せず、集合と境界だけへ短縮する**
+   - `Part 2 / Final Common: C01〜C07 + C09〜C12` bounded Level 2 と明示する。
+   - 各Competencyの評価詳細 / Minimum Evidenceは上記`Competency一覧`を参照させ、Training Copy / Android baseline / API version / Delivery SHA等をCommon修了基準として再列挙しない。
+   - C08はCommon completionに要求しない。
+   - C12 Commonはbounded Web CIに限定し、Native / multi-platform / deliveryはCommon completionから外す。
+   - 既存のLevel 3相当の比較・提案はCommon Requiredから外し、bounded Level 2外のchallenge / Advanced scopeとして扱う。新しいclassificationは追加しない。
+5. **`採点表`は原則維持し、`Delivery / Level 2`セルだけC12へ同期する**
+   - `Delivery / Level 2`はRepository固有のAllowlist中心表現から、bounded Web CIの`Trigger / Gate / Artifact / Failure Evidence`を説明・確認できる内容へ局所修正する。
+   - それ以外はFixed Decisionと直接矛盾するセルがある場合だけ局所修正する。
    - 表の削除・全面再設計・新しい採点体系の導入はしない。
 
 #### Path classification
@@ -487,12 +500,14 @@ PR 3の中心SSOT。ただしRubric全体を再構成しない。変更は次の
 
 #### Contract responsibility
 
-Rubricを次の自動assert元とする。
+Rubricを次の自動assert元とする。contract testが`toContain`できるstable canonical bulletを、少なくとも次の表記で置く。
 
-- exact Common sets
-- C08 specialization / Common non-required
-- C08 learner-authored evidence / baseline separation
-- C12 Common=`bounded Web CI`
+- `Part 1 Common: C01〜C07 + C09〜C10`
+- `Part 2 / Final Common: C01〜C07 + C09〜C12`
+- `C08: Native specialization / Common non-required`
+- `C12 Common Level 2: bounded Web CI`
+
+C08 learner-authored evidence / baseline separationも同じRubric内に短いstable wordingで明示し、Test 1から直接assertする。自然文の言い換え候補を実装時に再設計しない。
 
 ### 5. `docs/curriculum/test-automation/03_instructor-reference.md`
 
@@ -576,25 +591,25 @@ Product release workflow / Native CI implementationは変更しない。exact se
 
 例: `keeps the Common competency and Native specialization contract`
 
-Rubricを1回だけ読み、同じblock内で次をassertする。
+Rubricを1回だけ読み、同じblock内でPlan固定のstable canonical bullet / wordingを`toContain`する。
 
-- Part 1 Common=`C01〜C07+C09〜C10`
-- Part 2/final Common=`C01〜C07+C09〜C12`
-- C08=`Native specialization` / Common non-required
-- C08はlearner-authored change + successful Maestro artifactを要求
-- baseline / stock PASSだけではC08 completionにならない
-- C12 Common=`bounded Web CI`
+- `Part 1 Common: C01〜C07 + C09〜C10`
+- `Part 2 / Final Common: C01〜C07 + C09〜C12`
+- `C08: Native specialization / Common non-required`
+- C08 learner-authored change + successful Maestro artifactのstable wording
+- baseline / stock PASSだけではC08 completionにならないstable wording
+- `C12 Common Level 2: bounded Web CI`
 
 #### Test 2: Native branch / rejoin route
 
 例: `keeps the Native specialization branch and rejoin routes`
 
-READMEを1回だけ読み、同じblock内で次をassertする。
+READMEを1回だけ読み、同じblock内でPlan固定のstable canonical navigation bulletを`toContain`する。
 
-- P1 Common route
-- P1 Native route / skip / rejoin
-- P2 Common route
-- P2 Native route / skip / rejoin
+- `Part 1 Common: P1-6 → P1-8 → P1-9`
+- `Part 1 Native: P1-6 → P1-7 → P1-8 → P1-9`
+- `Part 2 Common: P2-5 → P2-7 → P2-8`
+- `Part 2 Native: P2-5 → P2-6 → P2-7 → P2-8`
 
 #### Do not add
 
@@ -686,7 +701,7 @@ pnpm run validate:curriculum
 pnpm run test:contracts
 ```
 
-Planning runでは未実行。失敗時はCurrent main failure / environment-dependentを切り分け、PR 3実装由来として扱わない。
+Planning runでは未実行。失敗時はPR 3実装前から存在するbaseline failure / environment-dependent failureとして切り分け、必要な場合だけlatest mainとの差を確認する。実装前failureをPR 3実装由来として扱わない。
 
 ### PR 3 implementation validation
 
@@ -776,7 +791,6 @@ git ls-files --others --exclude-standard
 10. 既存Competency一覧テーブルの拡張ではtraceを表現できず、新しいschema / trace file / 管理レイヤーが必要に見える。
 11. validatorを変更しないとcontractを表現できない。
 12. implementation開始時のlocal working treeに未commit user変更がある。
-13. planning branchが別用途 / unexpected HEADへ変更されている。
 
 次はStop conditionではない。
 
@@ -788,7 +802,7 @@ git ls-files --others --exclude-standard
 
 Blocking open questionはなし。
 
-Contract testのassertion文字列はRubric / READMEのstable canonical wordingを実装してから合わせる。ただしassert対象とtest block構成は本Planで固定済みであり、実装者がtest scopeを再設計しない。
+Contract testのassertion文字列は本Planで固定したRubric / READMEのstable canonical bullet / wordingを使用する。実装者はassert対象・表記・test block構成を再設計しない。
 
 ## Follow-up
 
@@ -798,7 +812,7 @@ Contract testのassertion文字列はRubric / READMEのstable canonical wording�
 4. targeted delta audit後、next unused ADR番号を確定する。
 5. Must change filesだけ実装し、validator / Product / Formal / Training / workflowは変更しない。
 6. PR 3完了後、Lesson全文 / Instructor Reference移行はPR 4A、Training runner / command / workflow / ArtifactはPR 5で対応する。
-7. PR作成は本Plan承認後の別工程とする。
+7. 本Plan承認後、PR 3を実装する前提のOPEN PRを先に作成し、そのPR上で実装・検証を進める。PR本文ではplanning-onlyの現状と未実装であることを明示する。
 
 ## Definition of Done
 
@@ -812,14 +826,16 @@ Contract testのassertion文字列はRubric / READMEのstable canonical wording�
 - README / Learning Designの両方にexact Common setsとRepository-required / Learner Required境界が実装対象として明示されている。
 - Rubric classificationは`Common` / `Native specialization`だけで、Master Plan上のAdvancedはbounded L2外scope表現として扱う。
 - Rubricは既存Competency一覧テーブルの`Competency`名を保持した列拡張 + 既存section局所修正で実装することが固定されている。
-- Part 2 Common completionはbounded Level 2で、Level 3相当はCommon Requiredではないことが固定されている。
+- Part 1 / Part 2修了基準は集合・境界だけへ短縮し、評価詳細 / Minimum EvidenceをCompetency一覧へ一元化することが固定されている。
+- `Delivery / Level 2`セルはC12 bounded Web CIへ局所同期し、Part 2 Common completionはbounded Level 2、Level 3相当はCommon Requiredではないことが固定されている。
 - Primary source(s)は最大2つ。
 - C11はCurrent learner-facing materialだけで成立する。
-- contract testはRubric用1 block + README用1 blockの計2つ。
+- contract testはRubric用1 block + README用1 blockの計2つで、assert対象のstable canonical bullet / wordingもPlan上で固定されている。
 - P1-7 existing contractを壊さない境界が明示されている。
 - validatorはread-only。
 - PR 4A / PR 5 scopeを前倒ししていない。
 - local validation未実行をpass扱いしていない。
+- 実装前提のOPEN PRをplanning-only状態で作成してよく、PR本文で未実装・実装予定scope・validation予定を明示する。
 
 ### Future PR 3 implementation
 
@@ -835,14 +851,15 @@ Contract testのassertion文字列はRubric / READMEのstable canonical wording�
 - `提出`が外部提出Requiredになっていない。
 - C11がself-review / 教材用Diff reviewで成立し、第三者Review Requiredではない。
 - Rubricの既存Competency一覧テーブルが既存`Competency`名を保持し、`Common` / `Native specialization`だけを使い、C01〜C12のPrimary source(s) / bounded L2 / Minimum Evidenceを示す。Rubric全体は再構成していない。
-- Part 2 Common completionはbounded Level 2で、Level 3相当の比較・提案をCommon Requiredにしていない。
+- Part 1 / Part 2修了基準はexact Common set + boundary + Competency一覧参照だけに短縮され、Evidence詳細を重複管理していない。
+- `Delivery / Level 2`はC12 bounded Web CIへ同期し、Part 2 Common completionはbounded Level 2で、Level 3相当の比較・提案をCommon Requiredにしていない。
 - Primary source(s)は最大2つ。
 - C04 / C05 / C08 / C09 / C10 / C11 / C12がFixed Decision通り。
 - Baseline PASS / stock PASSとlearner-authored evidenceが分離。
 - Instructor Referenceはtransition noticeのみ。
 - 4 Lesson / Capstoneはboundary wordingの最小変更だけ。
 - P1-7 existing physical-device / baseline / serial / artifact contractを維持。
-- `training-curriculum.test.ts` の新規`it`は2つだけで、Rubric / READMEのstable invariantのみguard。
+- `training-curriculum.test.ts` の新規`it`は2つだけで、本Plan固定のRubric / README canonical bullet / wordingのみguard。
 - `validate-curriculum.ts`無変更。
 - Product / Formal / Training / workflow / runtime behavior無変更。
 - historical Run Artifact無変更。
