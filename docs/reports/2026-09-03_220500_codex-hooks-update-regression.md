@@ -110,3 +110,19 @@ Payload schema、event名、`matcher = "^Bash$"`、PreToolUse policy本体、san
 ## Git / PR
 
 validation後に指定branchで今回の変更だけをcommitし、`origin HEAD:fix/codex-hooks-update-regression`へpushしてmain向けOPEN PRを作成する。
+
+## Follow-up: logging Hook timeout headroom
+
+### 背景と判断
+
+前回のWindows configured launcher probeで、`Stop`の実行時間が`5395ms`に到達した。Hook本体の正常処理が5秒を要したのではなく、current shell、`cmd.exe`、`git rev-parse`、Node起動、filesystem appendなどの起動・スケジューリング遅延を含む測定値であり、5秒timeoutでは高負荷時の揺らぎを吸収できない。
+
+この実測に対するbounded adjustmentとして、logging 5 Hook（`UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`）のtimeoutだけを`5`から`10`へ変更した。10秒は5秒の2倍のheadroomで、無制限または30秒級の待機を導入せず、異常Hookの検知遅延を限定する。`PreToolUse`のtimeout `30`は変更していない。
+
+`async = true`は採用していない。今回の直接原因はtimeout閾値であり、async化はStop／SubagentStopのlifecycle終了raceやsession shutdown時のlogging欠損という別のexecution semanticsを持ち込むためである。
+
+### 変更と検証方針
+
+- `.codex/config.toml`、既存contract test、`scripts/verify.ps1`だけでtimeout契約を`10`へ同期する。
+- Windows launcher command、root resolver、`.codex/logs`／`.artifacts/codex-hooks` fallback、payload／redaction、Stop系`{}` contract、Unix command、Hook script、matcher、security policy、sandboxは変更しない。
+- PostToolUse／Stopを含むconfigured launcherをroot／nested cwdで複数回測定し、exit 0、stderr空、stdout契約、JSONL side effect、durationを記録する。10秒付近へ継続的に到達する場合はtimeoutを追加延長せず、process startup、shell／Git root resolution、Node startup、filesystem I/Oを追加調査する。

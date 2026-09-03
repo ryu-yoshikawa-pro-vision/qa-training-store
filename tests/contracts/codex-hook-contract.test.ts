@@ -829,7 +829,7 @@ describe("Codex logging Hook contract", () => {
     for (const event of loggingEvents) {
       const block = loggingConfigBlock(`[[hooks.${event}.hooks]]`);
       expect(block).not.toContain("matcher");
-      expect(block).toContain("timeout = 5");
+      expect(block).toContain("timeout = 10");
       expect(block).toContain("git rev-parse --show-toplevel");
       expect(block).toContain("log_event.mjs");
       expect(block).toContain("command -v node");

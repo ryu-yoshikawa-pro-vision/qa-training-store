@@ -17,7 +17,12 @@
 
 ## Discovered
 
-- 作業中に発見したタスクはここに追記する（セッション内で増える前提）
+- [x] 13. logging 5 Hookのtimeoutだけを5秒から10秒へ変更し、PreToolUse 30秒と全launcher／security semanticsを維持する
+- [x] 14. timeout値のcontract testとPowerShell verifyを10秒仕様へ同期する
+- [x] 15. PostToolUse／Stopを含むlogging launcherをroot／nested cwdで複数回計測し、exit／stdio／JSONL／durationを記録する
+- [x] 16. ADR／調査report／PROJECT_CONTEXTとPR #106本文へbounded adjustment、async非採用、残存リスクを追記する
+- [x] 17. focused validation、script syntax、diff check、可能なfull verifyを実行し、変更後Run ArtifactをSanitizeする
+- [ ] 18. diff review後に指定branchへcommit／pushし、既存PR #106の本文とheadを確認する
 
 ## Blocked
 

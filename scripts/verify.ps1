@@ -273,7 +273,7 @@ function Test-TemplateContract {
         if (-not $loggingMatch.Success) { throw "missing logging Hook config: $event" }
         $loggingBlock = $loggingMatch.Value
         if ($loggingBlock -match '(?m)^\s*matcher\s*=') { throw "logging Hook must not define matcher: $event" }
-        if ($loggingBlock -notmatch '(?m)^\s*timeout\s*=\s*5\s*$') { throw "logging Hook timeout mismatch: $event" }
+        if ($loggingBlock -notmatch '(?m)^\s*timeout\s*=\s*10\s*$') { throw "logging Hook timeout mismatch: $event" }
         if ($loggingBlock -notmatch [regex]::Escape("log_event.mjs")) { throw "logging Hook logger missing: $event" }
         if ($loggingBlock -notmatch [regex]::Escape("git rev-parse --show-toplevel")) { throw "logging Hook repo-root resolution missing: $event" }
         if ($loggingBlock -notmatch [regex]::Escape("cmd.exe /D /Q /S /C")) { throw "logging Hook Windows shell wrapper missing: $event" }

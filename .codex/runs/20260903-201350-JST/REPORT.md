@@ -126,6 +126,22 @@
   - Parent decision: Hook固有の修正と検証は完了。既存Product codeは変更しない。
 - Progress: 83% (10/12)
 
+## 2026-09-03 23:31 (JST)
+
+- Summary: PR #106のfollow-upとして、Windows高負荷時にlogging Hookが5秒timeoutへ到達した既存probe（`Stop` 5395ms）を根拠に、logging 5 Hookだけを10秒へbounded adjustmentする作業を開始した。
+- Decision / Rationale: `PreToolUse`の30秒、Windows／Unix launcher、Hook script、matcher、security／lifecycle semantics、sandboxは変更対象外とする。`async = true`はexecution semanticsとStop系raceを変えるため採用しない。
+- Validation plan: 設定値contract、configured launcherのroot／nested cwd反復計測、既存focused validation、可能なfull verifyを順に確認する。10秒付近へ継続的に達する場合はtimeoutを追加延長せずlauncher性能を調査する。
+- Blocker / Remaining: なし。Follow-up tasks 13–18を実行する。
+- Progress: 67% (12/18)
+
+## 2026-09-03 23:36 (JST)
+
+- Summary: `.codex/config.toml`のlogging 5 Hookを`timeout = 10`へ変更し、`PreToolUse`は`timeout = 30`のまま維持した。
+- Changes: 変更は設定値5箇所、既存contract testの期待値、`scripts/verify.ps1`の静的契約同期、既存ADR／調査report／PROJECT_CONTEXTの追記に限定した。launcher command、Hook script、matcher、security policy、sandbox、async設定は変更していない。
+- Validation: timeout値と差分範囲をread-only確認済み。次にWindows configured launcherの反復duration probeを実行する。
+- Blocker / Remaining: なし。
+- Progress: 78% (14/18)
+
 ## 2026-09-03 22:18 (JST)
 
 - Summary:
@@ -168,5 +184,34 @@
 - Subagents:
   - Delegation: なし（リポジトリ規約によりchild delegationなし）。
   - Result: なし。
-  - Parent decision: machine-managed manifestの更新はcollector経由、generic evaluationはschema validation済みとして扱う。
+- Parent decision: machine-managed manifestの更新はcollector経由、generic evaluationはschema validation済みとして扱う。
 - Progress: 83% (10/12)
+
+## 2026-09-03 23:43 (JST)
+
+- Summary: timeout変更後のconfigured Windows launcherを、現行Codex外側shell相当の`pwsh.exe -NoProfile -Command`から実行した。
+- Evidence: logging 5 Hook × root／`docs` × 5回（計50サンプル）。全件exit 0、stderr空、各logging eventのJSONL side effectあり、`SubagentStop`／`Stop` stdoutは`{}`、その他は空。event別の範囲は`UserPromptSubmit 1198–2749ms`、`PostToolUse 1211–2707ms`、`SubagentStart 1211–2903ms`、`SubagentStop 2997–4569ms`、`Stop 3212–5522ms`。10秒以上は0件、契約不一致／side effect欠落も0件。
+- Raw Evidence: `.artifacts/codex-hooks/d-20260903-2345/result.json`（prompt本文・credential・tokenなし）。
+- Decision / Rationale: 新しい測定の最大でも`5522ms`で10秒まで約4.5秒の余裕があり、10秒付近への継続到達は見られなかった。timeoutを15秒／30秒へ追加延長せず、async化もしない。
+- Progress: 83% (15/18)
+
+## 2026-09-03 23:51 (JST)
+
+- Summary: 既存ADR、調査report、`docs/PROJECT_CONTEXT.md`、`docs/reference/codex-implementation-harness.md`、PR #106本文へtimeout判断とduration Evidenceを反映した。
+- Changes: 10秒を5秒の2倍のbounded headroomとして記録し、PreToolUse 30秒維持、launcher／script／security／sandbox不変、`async = true`非採用、10秒付近へ継続到達時は性能調査へ戻る方針を明記した。
+- Validation: PR #106は日本語本文で更新済み。本文へ`PostToolUse 1211–2707ms`、`Stop 3212–5522ms`、全50件成功、10秒以上0件を記載した。
+- Blocker / Remaining: Run Artifactのafter snapshot／evaluation／Sanitizerとdiff review、commit／push／PR head確認が残る。
+- Progress: 89% (16/18)
+
+## 2026-09-03 23:59 (JST)
+
+- Summary: focused／launcher／full validationとRun Artifact最終化を完了した。
+- Validation:
+  - `pnpm exec vitest run tests/contracts/codex-hook-contract.test.ts --no-file-parallelism --maxWorkers=1`: `129/129 PASS`。
+  - `node --check`（`log_event.mjs`、`pre_tool_use_policy.mjs`）、`scripts/verify.ps1`（PASS 3／FAIL 0／SKIP 0）、`bash scripts/verify`（PASS 2／FAIL 0／SKIP 2）、`git diff --check`: PASS。
+  - `pnpm run verify`: format／Markdown／spec／curriculum／ESLint（0 errors／65 warnings）通過後、今回差分外でmainにも存在する`src/presentation/components/search-combobox.tsx:99`のTS7006で`typecheck:app`停止。Product codeは変更せず、後続test／buildは未実行。
+  - timeout変更後duration probeはlogging 5 event × root／nested × 5回、全50件成功、最大`Stop=5522ms`、10秒以上0件。
+  - after snapshot、evaluation schema、Sanitizer Write／Checkを実行し、Sanitizer residual findingsは0。
+- Decision / Rationale: 10秒へ継続的に近づく傾向はなく、15秒／30秒への追加延長やasync化は行わない。Product codeの既存type errorは今回の変更対象外として停止条件に記録した。
+- Blocker / Remaining: 指定branchの最終diff review、commit／push、PR #106 head確認が残る。
+- Progress: 94% (17/18)

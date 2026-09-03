@@ -38,7 +38,7 @@ statusMessage = "Checking Bash command safety policy"
 type = "command"
 command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && command -v node >/dev/null 2>&1 && logger=\"$repo_root/.codex/hooks/log_event.mjs\" && [ -f \"$logger\" ] && node \"$logger\" UserPromptSubmit || true"
 command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\log_event.mjs\" node \"%i\\.codex\\hooks\\log_event.mjs\" UserPromptSubmit\" || cmd.exe /D /Q /S /C exit 0"
-timeout = 5
+timeout = 10
 
 [[hooks.PostToolUse]]
 
@@ -46,7 +46,7 @@ timeout = 5
 type = "command"
 command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && command -v node >/dev/null 2>&1 && logger=\"$repo_root/.codex/hooks/log_event.mjs\" && [ -f \"$logger\" ] && node \"$logger\" PostToolUse || true"
 command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\log_event.mjs\" node \"%i\\.codex\\hooks\\log_event.mjs\" PostToolUse\" || cmd.exe /D /Q /S /C exit 0"
-timeout = 5
+timeout = 10
 
 [[hooks.SubagentStart]]
 
@@ -54,7 +54,7 @@ timeout = 5
 type = "command"
 command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && command -v node >/dev/null 2>&1 && logger=\"$repo_root/.codex/hooks/log_event.mjs\" && [ -f \"$logger\" ] && node \"$logger\" SubagentStart || true"
 command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\log_event.mjs\" node \"%i\\.codex\\hooks\\log_event.mjs\" SubagentStart\" || cmd.exe /D /Q /S /C exit 0"
-timeout = 5
+timeout = 10
 
 [[hooks.SubagentStop]]
 
@@ -62,7 +62,7 @@ timeout = 5
 type = "command"
 command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && command -v node >/dev/null 2>&1 && logger=\"$repo_root/.codex/hooks/log_event.mjs\" && [ -f \"$logger\" ] && node \"$logger\" SubagentStop || printf '{}'"
 command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\log_event.mjs\" (node \"%i\\.codex\\hooks\\log_event.mjs\" SubagentStop) else (powershell.exe -NoProfile -EncodedCommand WwBDAG8AbgBzAG8AbABlAF0AOgA6AFcAcgBpAHQAZQAoACcAewB9ACcAKQA=)\" || powershell.exe -NoProfile -EncodedCommand WwBDAG8AbgBzAG8AbABlAF0AOgA6AFcAcgBpAHQAZQAoACcAewB9ACcAKQA="
-timeout = 5
+timeout = 10
 
 [[hooks.Stop]]
 
@@ -70,4 +70,4 @@ timeout = 5
 type = "command"
 command = "repo_root=\"$(git rev-parse --show-toplevel 2>/dev/null)\" && command -v node >/dev/null 2>&1 && logger=\"$repo_root/.codex/hooks/log_event.mjs\" && [ -f \"$logger\" ] && node \"$logger\" Stop || printf '{}'"
 command_windows = "cmd.exe /D /Q /S /C \"for /f \"delims=\" %i in ('git rev-parse --show-toplevel 2^>NUL') do if exist \"%i\\.codex\\hooks\\log_event.mjs\" (node \"%i\\.codex\\hooks\\log_event.mjs\" Stop) else (powershell.exe -NoProfile -EncodedCommand WwBDAG8AbgBzAG8AbABlAF0AOgA6AFcAcgBpAHQAZQAoACcAewB9ACcAKQA=)\" || powershell.exe -NoProfile -EncodedCommand WwBDAG8AbgBzAG8AbABlAF0AOgA6AFcAcgBpAHQAZQAoACcAewB9ACcAKQA="
-timeout = 5
+timeout = 10

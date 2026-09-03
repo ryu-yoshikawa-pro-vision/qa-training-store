@@ -19,7 +19,7 @@
   - `--no-log`／`-NoLog` はloggingだけを無効にし、manifest syncは無効にしない。Codex終了や `Stop` Hookだけで `status=completed` へ変更しない。
 - `.codex/config.toml` / `.codex/hooks/log_event.mjs`
   - `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`を同じNode loggerへ接続する。
-  - Logging Hookはmatcherなし、timeout 5秒、repository root基準で起動し、session単位の`.codex/logs/hooks-<safe-session-id>.jsonl`へ保存する。
+  - Logging Hookはmatcherなし、timeout 10秒、repository root基準で起動し、session単位の`.codex/logs/hooks-<safe-session-id>.jsonl`へ保存する。10秒は5秒の2倍のbounded headroomであり、無制限timeoutではない。
   - 既存のSafety `PreToolUse` / Bash matcherは独立したblocking経路として維持する。
 - `scripts/codex-task.ps1|sh`
   - 非対話 `codex exec` 用 wrapper。

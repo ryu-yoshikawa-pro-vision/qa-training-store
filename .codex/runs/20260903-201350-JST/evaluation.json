@@ -9,7 +9,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "A/B/CのHook原因特定、最小修正、回帰test、focused validation、runtime再確認、durable report、指定branchへのcommit／push、main向けOPEN PR作成・確認が完了した。repository全体verifyは差分外の既存Product type errorで後続工程へ進めなかった。",
+      "evidence": "A/B/CのHook原因特定、logging timeoutのbounded adjustment、回帰test、focused validation、configured launcherの50サンプルduration再確認、runtime再確認、durable report、指定branchへのcommit／push、main向けOPEN PR作成・確認が完了した。repository全体verifyは差分外の既存Product type errorで後続工程へ進めなかった。",
       "evidence_refs": [
         {
           "kind": "hook_observation",
@@ -36,7 +36,7 @@
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "変更はWindows launcher、対応するcontract test／verify、Hook互換性のADR／docs、標準Run Artifactに限定し、Product code、policy、matcher、sandboxを変更していない。",
+      "evidence": "変更はlogging 5 Hookのtimeout値、対応するcontract test／verify、Hook互換性のADR／docs、標準Run Artifactに限定し、launcher、Hook script、Product code、policy、matcher、sandboxを変更していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -49,7 +49,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Hook固有のscript／launcher／runtime検証とfocused testは成功した。一方、pnpm run verifyは差分外のsrc/presentation/components/search-combobox.tsx:99のTS7006で停止したため、test／build後半は未実行である。",
+      "evidence": "Hook固有のscript／launcher／runtime検証とfocused testは成功し、timeout変更後のconfigured launcher 50サンプルも全件成功した。一方、pnpm run verifyは差分外のsrc/presentation/components/search-combobox.tsx:99のTS7006で停止したため、test／build後半は未実行である。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -64,6 +64,13 @@
           "selector": null,
           "event_id": null,
           "summary": "scripts/verify.ps1、bash scripts/verify、node --check、git diff --checkはPASS"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/codex-hooks/d-20260903-2345/result.json",
+          "selector": "summary",
+          "event_id": null,
+          "summary": "logging 5 event × root／nested × 5回、全50件成功、最大Stop 5522ms、10秒以上0件"
         }
       ]
     },
@@ -115,7 +122,7 @@
     },
     "reproducibility": {
       "rating": "pass",
-      "evidence": "root／nested cwd、cmd／current pwsh、6 event、stdin／stdout／stderr／exit／JSONL side effect、実Codex statusとPreToolUse denyをprobeとcontract testで再現可能にした。",
+      "evidence": "root／nested cwd、cmd／current pwsh、6 event、stdin／stdout／stderr／exit／JSONL side effect、timeout 10秒契約、実Codex statusとPreToolUse denyをprobeとcontract testで再現可能にした。",
       "evidence_refs": [
         {
           "kind": "hook_observation",
@@ -123,6 +130,13 @@
           "selector": null,
           "event_id": null,
           "summary": "current pwshで12 configured launcher casesが成功"
+        },
+        {
+          "kind": "hook_observation",
+          "path": ".artifacts/codex-hooks/d-20260903-2345/result.json",
+          "selector": "summary",
+          "event_id": null,
+          "summary": "timeout変更後の反復duration測定"
         }
       ]
     }

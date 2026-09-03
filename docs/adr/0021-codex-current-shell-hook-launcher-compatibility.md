@@ -22,3 +22,10 @@ script単体は成功しており、現行Codex sourceのWindows command selecti
 - PR #100のsandbox fallbackとStop contractは維持し、今回の修正はrunner shell boundaryだけを対象にする。
 - `.codex/config.toml`を変更するとCodexのpersisted per-hook trust stateと一致しなくなるため、通常trust実行では再review／再承認されるまでHookがadmitされない場合がある。診断でtrust bypassを使用しても、repositoryの運用設定へは反映しない。
 - 現行CLIの実runtimeでCompleted、tool result、logger JSONLを分離して確認する。CLI statusだけをside effect成功の根拠にしない。
+
+## Follow-up: logging Hook timeout headroom（2026-09-03）
+
+- Windows configured launcherの既存probeで、通常処理が重くないlogging Hookでも`Stop`が5395msに到達し、5秒timeoutの閾値を超える実測が得られた。process startup、shell／Git起動、Node起動、filesystem I/O、scheduler／Defender遅延を含む実環境では、5秒は余裕が小さい。
+- `UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`のtimeoutを5秒から10秒へ変更する。10秒は5秒の2倍のbounded headroomであり、正常処理を無制限に待たせず、30秒以上へ機械的に延長する根拠もない。
+- `PreToolUse`のtimeout 30秒、`^Bash$` matcher、deny／fail-close security semantics、全launcher、Hook script、sandbox、Stop／SubagentStopのstdout `{}` contractは変更しない。`async = true`も採用しない。lifecycle終了とのraceやsession shutdown時のlogging欠損を避けるためである。
+- 10秒付近へ継続的に到達する場合はtimeoutをさらに延長せず、process startup、shell／`git rev-parse`、Node startup、filesystem I/Oの律速箇所を調査する。
