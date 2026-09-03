@@ -117,3 +117,55 @@
   - Result: —
   - Parent decision: findingなしとしてGit mutation前のRun Artifact確定へ進む。
 - Progress: 64% (9/14)
+
+## 2026-09-03 10:18 (JST)
+
+- Summary: Run Artifactの再sanitization、最終差分／branch safety確認、指定commitを完了した。
+- Changes: 必要な12ファイルだけをstageし、`fix: focus form error summary on invalid submit`でcommitした。commit hashは`22e46ea`である。
+- Decision / Rationale: current branchが`fix/89-form-error-summary-focus`であること、remote同名PRが未作成であること、cached diffにerrorがないことを確認してからcommitした。Run Artifactは正式成果物として同じcommitへ含めた。
+- Validation: `scripts/sanitize-codex-artifacts.ps1`のWrite／Checkはfiles_scanned 5、residual_findings 0。`git diff --cached --check`はPASS。commitは12 files changed、749 insertions、9 deletionsで完了した。
+- Blocker / Remaining: なし。push、PR作成・確認、最終evaluation／Run Artifact更新と最終commitが残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: 指定commitを採用し、同じbranchをoriginへpushする。
+- Progress: 79% (11/14)
+
+## 2026-09-03 10:20 (JST)
+
+- Summary: commit `22e46ea`を指定branchへpushし、origin trackingを設定した。
+- Changes: `git push -u origin HEAD`で`origin/fix/89-form-error-summary-focus`を新規作成した。
+- Decision / Rationale: push直前にcurrent branch、status、branch -vvを確認し、指定branch以外へのpushやforce pushは行っていない。
+- Validation: pushはexit 0。remoteからPR作成URLが提示され、default branchの既存Dependabot vulnerability notice（1 high / 2 moderate）が表示されたが、Issue #89の変更とは無関係である。
+- Blocker / Remaining: なし。PR作成・内容確認、最終evaluation／Run Artifact更新、最終commit／pushが残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: push成功を採用し、base `main`のPR作成へ進む。
+- Progress: 86% (12/14)
+
+## 2026-09-03 10:21 (JST)
+
+- Summary: PR #104をbase `main`、head `fix/89-form-error-summary-focus`で作成し、GitHub上のtitle／body／state／refを確認した。
+- Changes: PR titleは`fix: focus FormErrorSummary on each invalid submit`、bodyはSummary、Root cause、Changes、Verification、Input value reset investigation、Issueを含み、Issue欄は`Closes #89`とした。
+- Decision / Rationale: focus問題は実装・回帰test・全quality gateで解消し、入力値消失は現行flowで再現せず独立修正も不要と判断したため、Issueを解決扱いとして`Closes #89`を採用した。未再現の独立問題を理由にIssueを未解決扱いへ戻さない。
+- Validation: `gh pr create --repo ryu-yoshikawa-pro-vision/qa-training-store --base main --head fix/89-form-error-summary-focus ...` はexit 0でPR URL `https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/104`を返した。`gh pr view 104 --json number,title,body,state,isDraft,baseRefName,headRefName,headRefOid,url`でstate OPEN、isDraft false、base／head一致、本文内容を確認した。
+- Blocker / Remaining: なし。final evaluation、Run Artifact更新・再sanitize、記録commit／push、最終status確認が残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: PR #104を採用し、Run完了記録を確定する。
+- Progress: 92% (13/14)
+
+## 2026-09-03 10:23 (JST)
+
+- Summary: Issue #89対応の実装、回帰test、品質検証、commit、push、PR作成・確認、Run Artifact最終化を完了した。
+- Changes: `FormErrorSummary`のinvalid submit focus修正、Login／Signupの`submitCount`配線、focus／accessibility／入力値保持test、PROJECT_CONTEXT／history／plan／strict Run Artifactを保存した。PR #104はOPENでbase `main`、head `fix/89-form-error-summary-focus`である。
+- Decision / Rationale: `errors.length`依存だけでは同数errorの再submitを検知できないため、既存の`submitCount`をexplicit triggerに採用した。入力値消失は現行flowで再現せず、reset／remount／key／navigationの独立修正は追加していない。focus問題を解決し、Issue本文の入力値条件は未再現であるため`Closes #89`とした。
+- Validation: 最終`pnpm run verify`はexit 0（全quality gate／build、contracts 486 passed / 3 skipped）。最終focused component / authは28 tests PASS、web componentは93 tests PASS、lintは0 errors / 65 warnings、typecheck／formatはPASS。evaluation schema、sanitizer Write／Check（residual findings 0）、PR ref／body確認もPASSした。
+- Blocker / Remaining: なし。ユーザー向け最終報告のみ残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: Runをcompleteとして引き渡す。
+- Progress: 100% (14/14)

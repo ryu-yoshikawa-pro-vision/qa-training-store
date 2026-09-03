@@ -10,11 +10,11 @@
 - [x] 6. Signup / Login の validation 後入力値保持を component test で確認し、再現可否と原因を確定する。
 - [x] 7. focused test、web component test、format、lint、typecheck、verify、diff check を実行する。
 - [x] 8. 実装後に self-review（diff triage / deep review）を行い、必要なら bounded repair と関連 gate 再実行をする。
-- [ ] 9. Run Artifact を sanitize し、最終差分と branch safety を確認する。
-- [ ] 10. 指定 commit message で必要なファイルだけ commit する。
-- [ ] 11. `fix/89-form-error-summary-focus` を origin へ push する。
-- [ ] 12. base `main` の日本語 PR を `gh pr create` で作成し、title / base / head / body / state を確認する。
-- [ ] 13. REPORT を完了 checkpoint として追記し、最終状態をユーザーへ報告する。
+- [x] 9. Run Artifact を sanitize し、最終差分と branch safety を確認する。
+- [x] 10. 指定 commit message で必要なファイルだけ commit する。
+- [x] 11. `fix/89-form-error-summary-focus` を origin へ push する。
+- [x] 12. base `main` の日本語 PR を `gh pr create` で作成し、title / base / head / body / state を確認する。
+- [x] 13. REPORT を完了 checkpoint として追記し、最終状態をユーザーへ報告する。
 
 ## Discovered
 
