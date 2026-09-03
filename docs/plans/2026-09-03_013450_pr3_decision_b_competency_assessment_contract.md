@@ -44,7 +44,7 @@ Curriculum本文の全面改善、Product behavior、Product Native CI Gate、Tr
 
 ただし、`docs/adr/0020-codex-windows-logging-hook-launcher.md` が追加済みのため、再レビュー時点のnext ADR candidateは`0021`である。
 
-このmain driftだけを理由に全Repositoryを再Auditしない。実装開始時にlatest mainへ同期し、planning audit baselineからlatest mainまでのうちPR 3対象ファイル / normative sourceへ影響する差分だけdelta auditする。
+このmain driftだけを理由に全Repositoryを再Auditしない。実装開始前にownerがlatest mainへ同期し、implementation agentはplanning audit baselineからlatest mainまでのchanged fileをread-only確認して、PR 3対象ファイル / normative sourceへ影響する差分だけdelta auditする。
 
 ### Planning Run Artifactの位置づけ
 
@@ -97,8 +97,10 @@ Top-level Lesson番号・配置は変更しない。learner-facing routeは次�
   - specialization内部の前提: P1-7自身に必要なNative実行環境
   - Common Core rejoin: P1-8
 - Part 2 Common: `P2-5 → P2-7 → P2-8`
-- Part 2 Native specialization: Common prerequisiteを満たした後 `P2-6 → P2-7 → P2-8`
+- Part 2 Native specialization: `P2-5 → P2-6 → P2-7 → P2-8`
+  - specialization開始前Common prerequisite: P2-5まで
   - P2-6のNative内部prerequisite: P1 Native specializationで得るMaestro実行能力
+  - P1 Native specialization未修了でP2 Nativeを選ぶ場合は、そのNative内部prerequisiteを先に満たしてからP2-6へ進む
   - Common Core rejoin: P2-7
 - P2-8のfull Native / multi-platform deliveryはCommon Level 2ではない。Common C12はbounded Web CIに限定する。
 
@@ -163,10 +165,10 @@ Rubricは一つの表で次を確認できる形にする。
 
 PR 3でC01〜C12のclassificationは次の2種類だけ使う。
 
-- `Common`: C01〜C07、C09〜C12
+- `Common`: C01〜C07、C09〜C12。Master Plan上のLearner Required Commonを意味する。
 - `Native specialization`: C08
 
-`Advanced`、`Optional`、`Extension`等を新しいCompetency classificationとして増やさない。C12のfull multi-platform / delivery等は、Common L2の対象外であることをMinimum Evidence / boundary wordingで示すだけにする。別行・別competency・別schemaを作らない。
+`Advanced`、`Optional`、`Extension`等を新しいCompetency classificationとして増やさない。Master Plan上の`Advanced`は、C01〜C12の新しいpath値ではなくbounded Level 2を超えるscopeを示す境界表現として扱う。C12のfull multi-platform / delivery等はCommon L2の対象外であることをMinimum Evidence / boundary wordingで示すだけにし、別行・別competency・別schemaを作らない。
 
 #### Primary learner-facing source(s)は必要最小数
 
@@ -196,7 +198,7 @@ PR 3でC01〜C12のclassificationは次の2種類だけ使う。
 | --- | --- | --- |
 | next ADR（再レビュー時点candidate `0021`） | Decision B、理由、変更禁止境界 | Lesson / Evidence詳細の複製 |
 | Curriculum `README.md` | course entry、Common / specialization / support分類、learner navigation、Common sets | Minimum Evidence詳細、specialization内部手順 |
-| `00_learning-design.md` | entry / graduation profile、既習知識ルール、self-study / Instructor境界、instructional rule | 各Lessonの具体手順 |
+| `00_learning_design.md` | entry / graduation profile、既習知識ルール、self-study / Instructor境界、instructional rule | 各Lessonの具体手順 |
 | `02_competency-rubric.md` | Competency、Common / Native specialization、Primary source(s)、bounded L2、Minimum Evidence | Navigation全文、新classification体系、Training runner実装 |
 | P1-7 / P2-6 | specializationの具体的開始条件、skip / rejoin、Rubric参照 | Common全体の定義 |
 | P1-9 / P2-8 | Common completionとspecialization / Common外scopeの局所分離 | 全Rubricの再掲 |
@@ -256,7 +258,7 @@ PR 3でC01〜C12のclassificationは次の2種類だけ使う。
 | --- | --- |
 | `docs/adr/<next-unused>-test-automation-curriculum-native-specialization.md` | Decision B、Common / Native completion、navigation、evidence境界をADR化する |
 | `docs/curriculum/test-automation/README.md` | graduation / entry、Required / specialization / support asset、Common能力集合、learner navigationのCanonical入口を整合する |
-| `docs/curriculum/test-automation/00_learning-design.md` | graduation / entry、Common prior-knowledge、self-study / Instructor boundaryを正本化する |
+| `docs/curriculum/test-automation/00_learning_design.md` | graduation / entry、Common prior-knowledge、self-study / Instructor boundaryを正本化する |
 | `docs/curriculum/test-automation/02_competency-rubric.md` | C01〜C12 bounded Level 2 / Primary source(s) / Minimum Evidence / Common・Native specialization分類を正本化する |
 | `docs/curriculum/test-automation/03_instructor-reference.md` | 冒頭のtransition noticeだけ追加する |
 | `docs/curriculum/test-automation/part1/07_maestro-native-automation.md` | Part 1 Native specialization / prerequisite / rejoin境界へ最小同期する |
@@ -295,21 +297,22 @@ PR 3でC01〜C12のclassificationは次の2種類だけ使う。
 
 ## Change strategy
 
-1. **Implementation前にlatest mainへmergeする**
-   - clean working treeを確認する。
-   - `git fetch origin`後、`git merge origin/main`で取り込む。
-   - **rebase / force-pushはしない。** planning commit SHAとhistorical evidenceを保持する。
+1. **Owner preconditionでlatest mainへ同期する**
+   - implementation agentを開始する前に、owner側でplanning branchへlatest `origin/main`を取り込み、clean working treeにしておく。
+   - planning historyを保持するためrebase / force-pushは行わない。
+   - implementation agent自身はmerge / rebase / commit / push等のGit変更操作を担当しない。branchがlatest mainを含んでいなければstopしてownerへ戻す。
 2. **targeted delta audit**
-   - planning baselineからlatest mainまでのPR 3対象 / normative sourceだけ確認する。
+   - まずplanning baselineからlatest mainまでのchanged file名だけ確認する。
+   - その中にPR 3対象 / normative source / validator / Training evidence sourceがある場合だけ中身を確認する。
    - 非関連変更だけなら全面再Auditしない。
 3. **ADR番号を実装時に確定する**
    - 再レビュー時点のcandidateは`0021`。
-   - latest main同期後にnext unusedを採用する。
+   - owner同期済みlatest mainを基準にnext unusedを採用する。
    - 番号だけの競合ではstopしない。
 4. **ADRでDecision Bを固定する**
-5. **READMEをsurgical editする**
-6. **Learning Designをsurgical editする**
-7. **Rubric一表を評価 / trace SSOTへする**
+5. **READMEを対象section限定でsurgical editする**
+6. **Learning Designを対象section限定でsurgical editする**
+7. **Rubricは既存Competency一覧テーブル拡張 + 必要sectionの局所修正だけ行う**
 8. **Instructor Referenceへtransition noticeだけ追加する**
 9. **4 Lesson / Capstoneはboundary wordingだけ直す**
 10. **existing contract testへ新規`it`を2つだけ追加する**
@@ -333,9 +336,9 @@ PR 3でC01〜C12のclassificationは次の2種類だけ使う。
 
 ### 2. `docs/curriculum/test-automation/README.md`
 
-新しいsectionを足すだけではなく、既存のCommon / Native混同箇所を**以下だけ**surgical editする。それ以外のREADME本文を整理・リライトしない。
+新しいsectionを足すだけではなく、既存のCommon / Native混同箇所を**以下の対象section内で**surgical editする。対象section内またはその契約を直接説明する近接文にFixed Decisionとの明確な矛盾があれば、その矛盾文だけ同時に修正してよい。関連するeditorial cleanupや全文監査へは広げない。
 
-#### Must edit
+#### Edit scope
 
 1. **目的 / Part 1**
    - Maestro Nativeを全員必須のCommon目標として読める表現を外す。
@@ -348,12 +351,17 @@ PR 3でC01〜C12のclassificationは次の2種類だけ使う。
    - Common route / Native route / skip / rejoinを一箇所のstable navigation sectionで示す。
 4. **教材分類**
    - Learner Required Common / Native specialization / Instructor・operation supportを分ける。
-   - `03_instructor-reference.md`をLearner Requiredから外しsupport assetとする。
+   - Repository-required assetとLearner Required pathは別概念であることを明示する。
+   - `03_instructor-reference.md`をRepository-required support assetとして残しつつLearner Requiredから外す。
 5. **学習成果物**
    - Maestro Flow / Native artifactをCommon必須成果物として読める一覧から分離する。
 6. **entry / graduation**
    - fixed entry profileと`entry-levelの汎用 Test Automation Engineer`を短く示す。
-7. **self-study boundary**
+7. **Common completion contract**
+   - Part 1 Common=`C01〜C07+C09〜C10` bounded Level 2。
+   - Part 2/final Common=`C01〜C07+C09〜C12` bounded Level 2。
+   - C08=`Native specialization` / Common non-required。
+8. **self-study boundary**
    - Instructor / 運営は受講内容外支援、学習・self-check・completion・evaluationはlearner-facing SSOTと短く案内する。
 
 #### Do not edit
@@ -363,16 +371,17 @@ PR 3でC01〜C12のclassificationは次の2種類だけ使う。
 - 用語統一
 - Lesson本文に相当する説明追加
 - Minimum Evidence詳細
+- 対象section外の無関係なeditorial cleanup
 
 #### Contract responsibility
 
 Native branch / skip / rejoinの自動assert元はREADMEのstable navigation sectionだけにする。
 
-### 3. `docs/curriculum/test-automation/00_learning-design.md`
+### 3. `docs/curriculum/test-automation/00_learning_design.md`
 
-既存のCommon / Native直列前提を解消するため、**以下だけ**surgical editする。それ以外のLearning Design本文を全面整理しない。
+既存のCommon / Native直列前提を解消するため、**以下の対象section内で**surgical editする。対象section内またはその契約を直接説明する近接文にFixed Decisionとの明確な矛盾があれば、その矛盾文だけ同時に修正してよい。対象外の全文整理・editorial cleanupには広げない。
 
-#### Must edit
+#### Edit scope
 
 1. **対象者**
    - fixed entry profileへ整合する。
@@ -382,13 +391,21 @@ Native branch / skip / rejoinの自動assert元はREADMEのstable navigation sec
    - Physical Android / Maestro GateをPart 1 Common completion prerequisiteとして読ませない。
 3. **Part 2の前提**
    - Common prerequisiteとNative specialization内部prerequisiteを分ける。
+   - P2 NativeのCommon prerequisite=P2-5まで、Native内部prerequisite=P1 Native specialization由来のMaestro実行能力とする。
 4. **学習順序 Part 1**
    - Maestroを直列Common stepからbranchへ変更し、P1-8へrejoinする形を示す。
 5. **学習順序 Part 2**
    - Native CIを直列Common stepからbranchへ変更し、P2-7へrejoinする形を示す。
 6. **entry / graduation / Common prior knowledge**
    - fixed entry / graduation profileとhidden prerequisite禁止を明示する。
-7. **self-study / Instructor boundary**
+7. **Common completion contract**
+   - Part 1 Common=`C01〜C07+C09〜C10` bounded Level 2。
+   - Part 2/final Common=`C01〜C07+C09〜C12` bounded Level 2。
+   - C08=`Native specialization` / Common non-required。
+8. **Repository-required vs Learner Required**
+   - repositoryに存在すべきassetとLearner Required material / completion requirementを分離する。
+   - `03_instructor-reference.md`はRepository-required support assetだがLearner Required pathではない。
+9. **self-study / Instructor boundary**
    - learner-facing materialと環境支援の責務を明示する。
 
 #### Do not edit
@@ -397,6 +414,7 @@ Native branch / skip / rejoinの自動assert元はREADMEのstable navigation sec
 - 用語表全体
 - Training Copy / workflowの実装契約
 - Native環境手順の詳細
+- 対象section外の無関係なeditorial cleanup
 
 #### Contract test
 
@@ -404,21 +422,28 @@ README / Rubricと同じ内容を重複assertしない。整合はmanual cross-c
 
 ### 4. `docs/curriculum/test-automation/02_competency-rubric.md`
 
-PR 3の中心SSOT。新しい管理構造は作らず、既存Rubricを一表へ整理する。
+PR 3の中心SSOT。ただしRubric全体を再構成しない。変更は次の既存sectionへ限定する。
 
-#### Level definition
-
-- Level 1: 例・ヒント・詳細手順を使って実施できる
-- Level 2: 自力で実施し、判断理由とEvidenceを説明できる
-- Instructor支援の有無を能力レベル定義へ埋め込まない。
-
-#### Table columns
-
-- Competency ID
-- path classification
-- bounded Level 2
-- Primary learner-facing source(s)
-- Minimum Evidence
+1. **`Competency一覧`テーブルを拡張する**
+   - 既存C01〜C12の行を維持し、次を一表で確認できる列構成へする。
+     - Competency ID
+     - path classification
+     - bounded Level 2
+     - Primary learner-facing source(s)
+     - Minimum Evidence
+   - 別のRubric schema / machine-readable tableを追加しない。
+2. **`Level定義`のLevel 1 / Level 2だけ必要最小限修正する**
+   - Level 1: 例・ヒント・詳細手順を使って実施できる。
+   - Level 2: 自力で実施し、判断理由とEvidenceを説明できる。
+   - Instructor支援の有無を能力レベル定義へ埋め込まない。
+3. **`Part 1修了基準`を局所修正する**
+   - exact Common setへ同期し、C08 / Physical Android / Native evidenceをCommon completionから外す。
+4. **`Part 2修了基準`を局所修正する**
+   - exact Common setへ同期し、C08をCommon completionから外す。
+   - C12 Commonをbounded Web CIへ限定し、Native / full deliveryをCommon completionから外す。
+5. **`採点表`は原則維持する**
+   - Fixed Decisionと直接矛盾するセルがある場合だけ局所修正する。
+   - 表の削除・全面再設計・新しい採点体系の導入はしない。
 
 #### Path classification
 
@@ -426,7 +451,7 @@ PR 3の中心SSOT。新しい管理構造は作らず、既存Rubricを一表へ
 - C08: `Native specialization`
 - C09〜C12: `Common`
 
-これ以外のclassificationを追加しない。
+`Common`はMaster Plan上のLearner Required Commonを意味する。`Advanced`はbounded Level 2外scopeを説明する語としてのみ使用し、C01〜C12の新しいclassificationにはしない。これ以外のclassificationを追加しない。
 
 #### Primary source(s)
 
@@ -521,8 +546,9 @@ Practice / Recovery rewriteはしない。exact setはRubricでのみ自動asser
 ### 8. `part2/06_native-ci-maestro.md`
 
 - Native specialization label
-- specialization開始前Common prerequisiteを明示
-- P1 Native specialization由来のMaestro能力をNative内部prerequisiteとして明示
+- specialization開始前Common prerequisite=`P2-5`までと明示
+- P1 Native specialization由来のMaestro実行能力をNative内部prerequisiteとして明示
+- P1 Native specialization未修了でP2 Nativeを選ぶ場合は、そのNative内部prerequisiteを先に満たす必要があることを明示
 - Common非選択時skip=P2-7
 - 完了後rejoin=P2-7
 
@@ -591,32 +617,38 @@ Docs wording変更だけでvalidator変更が必要に見えた場合は、valid
 
 ### Implementation開始前 preflight
 
-#### Step 1: local state
+#### Owner precondition: latest main sync
+
+implementation agent開始前にowner側で次を完了しておく。
+
+- planning branchへlatest `origin/main`をmerge済み
+- rebase / force-pushは行わずplanning historyを保持
+- working treeはclean
+
+implementation agentはmerge / rebase / commit / push等のGit変更操作を行わない。
+
+#### Step 1: implementation agentのread-only state check
 
 ```bash
 git status
 git branch --show-current
-git fetch origin
+git log -1 --oneline origin/main
+git merge-base --is-ancestor origin/main HEAD
 ```
 
 - working treeがdirtyならstopする。
 - branchが`docs/decision-b-competency-assessment-contract`であることを確認する。
+- `origin/main`がHEADのancestorでなければlatest main未同期としてstopし、ownerへ同期を依頼する。
 
-#### Step 2: latest main sync
+#### Step 2: targeted delta audit
+
+まずchanged file名だけ確認する。
 
 ```bash
-git rev-parse origin/main
-git log -1 --oneline origin/main
-git merge origin/main
+git diff --name-only b36c4d3e0f631801a9c9e4aae38990dac9e8d436..origin/main
 ```
 
-- **mergeで固定する。rebaseしない。force-pushしない。**
-- merge conflictがPR 3対象 / normative sourceで発生した場合は解消前にdelta auditする。
-- 非関連ファイルだけの単純mergeは継続してよい。
-
-#### Step 3: targeted delta audit
-
-Planning baseline `b36c4d3e0f631801a9c9e4aae38990dac9e8d436` からlatest mainまでの差分について、最低限次だけ確認する。
+出力の中に次がある場合だけ内容を確認する。
 
 - PR 3 Must change files
 - `scripts/validate-curriculum.ts`
@@ -627,22 +659,22 @@ Planning baseline `b36c4d3e0f631801a9c9e4aae38990dac9e8d436` からlatest main�
 
 判断:
 
-- PR 3対象 / normative sourceに差分なし → existing auditを利用。全面再Auditしない。
-- 差分あり → 変更箇所だけ再Auditする。
+- 該当差分なし → existing auditを利用してdelta audit終了。全面再Auditしない。
+- 該当差分あり → その変更箇所だけ再Auditする。
 - Decision Bと競合 → stop。
 
-#### Step 4: ADR allocation
+#### Step 3: ADR allocation
 
 ```bash
 ls docs/adr
 ```
 
 - 再レビュー時点candidate=`0021`。
-- latest main上のnext unusedを採用する。
+- owner同期済みlatest main上のnext unusedを採用する。
 - 番号だけが消費済みなら次番号で継続する。
 - 内容競合だけstopする。
 
-#### Step 5: baseline validation
+#### Step 4: baseline validation
 
 ```bash
 pnpm run format:check
@@ -669,14 +701,16 @@ git diff --check
 - `git diff --name-only origin/main...HEAD` がplanned filesだけ
 - `scripts/validate-curriculum.ts`、Product / Training / workflow / Formal docsに差分なし
 - next ADR番号がlatest main上で未使用
-- READMEのsurgical edit checklist 7項目だけでCommon / Native矛盾が解消されている
-- Learning Designのsurgical edit checklist 7項目だけでCommon / Native直列前提が解消されている
+- READMEの指定edit scope内と、その契約を直接説明する近接文だけでCommon / Native矛盾が解消されている
+- Learning Designの指定edit scope内と、その契約を直接説明する近接文だけでCommon / Native直列前提が解消されている
 - common graduation profileがREADME / Learning Designで一致
 - entry profile / Common prior-knowledge ruleがREADME / Learning Designで一致
 - exact Common setsがREADME / Learning Design / Rubric / Capstone間で一致
+- P2 NativeのCommon prerequisite=P2-5まで、Native内部prerequisite=P1 Native specialization由来のMaestro実行能力で一致
 - C08がCommon completionへ再流入していない
 - Repository-required / Learner Requiredが混同されていない
-- Rubric classificationが`Common` / `Native specialization`の2種類だけ
+- Rubric classificationが`Common` / `Native specialization`の2種類だけで、`Common`がLearner Required Commonを意味し、`Advanced`はbounded L2外scope表現に留まる
+- Rubricは既存Competency一覧テーブル拡張 + Level 1/2・Part 1/2修了基準の局所修正に留まり、Rubric全体を再構成していない
 - Primary source(s)が1〜2個で、3つ以上の関連文書一覧になっていない
 - C11がCurrent learner-facing materialだけで成立し、第三者Review / 将来Review checklistを必須にしていない
 - Baseline PASSがcompetency completionへ昇格していない
@@ -690,11 +724,13 @@ git diff --check
 ## Risks
 
 - README / Learning Designの新sectionだけ追加して既存のNative必須表現が残る。
-  - Mitigation: surgical edit checklistを固定し、その箇所だけ既存文言も修正する。
+  - Mitigation: edit scope内と、その契約を直接説明する近接文の明確な矛盾だけ同時修正する。
 - README / Learning Designを全面整理し始める。
-  - Mitigation: Do not editを明示し、7項目以外のeditorial cleanupをPR 4Aへ残す。
+  - Mitigation: edit scope外の無関係なeditorial cleanupをPR 4Aへ残す。行数ではなく対象section / contractで境界を切る。
+- Rubric全体を一つの巨大表へ再構成する。
+  - Mitigation: 既存Competency一覧テーブル拡張 + Level 1/2・Part 1/2修了基準の局所修正だけ。採点表は直接矛盾時のみ局所修正。
 - RubricにAdvanced / Optional等の新classification体系を作る。
-  - Mitigation: C01〜C12は`Common` / `Native specialization`の2種類だけ。
+  - Mitigation: C01〜C12は`Common` / `Native specialization`の2種類だけ。Advancedはbounded L2外scope表現のみ。
 - Primary source(s)が巨大なtrace一覧になる。
   - Mitigation: 1 sourceを原則、必要時のみ2 source、3以上禁止。
 - contract testを4〜6個の`it`へ細分化する。
@@ -703,8 +739,8 @@ git diff --check
   - Mitigation: Rubric / READMEだけassert。cross-documentはmanual review。
 - P1-7の文章整理で既存contract tokenを壊す。
   - Mitigation: existing token / semanticsを明示して変更禁止。必要ならstop。
-- latest main追従でrebase / force-pushしplanning historyを書き換える。
-  - Mitigation: `git merge origin/main`で固定。
+- implementation agentがlatest main同期やGit履歴操作まで担当する。
+  - Mitigation: latest main同期はowner precondition。agentはread-only state checkだけ行い、merge / rebase / commit / pushをしない。
 - Current Trainingに未実装のrunner / Artifactを前倒しする。
   - Mitigation: PR 3はEvidence contractのみ。runner / workflowはPR 5。
 - self-study contractを理由にLesson Recovery / self-checkまで直す。
@@ -718,14 +754,14 @@ git diff --check
 
 1. latest mainのdelta auditでDecision Bと矛盾するCurrent ADR / normative requirementが見つかる。
 2. fixed Part 1 / Part 2 / C08 contractではCurrent repositoryを整合できない。
-3. README / Learning Designの矛盾解消にsurgical edit checklistを超える構造変更が必要になる。
+3. README / Learning Designの指定edit scope + 直接関係する近接矛盾文の局所修正を超え、別sectionの構造変更・広範囲rewriteが必要になる。
 4. 4 Lesson / Capstoneのboundary修正が局所wording変更を超え、Curriculum構造変更を必要とする。
 5. P1-7のspecialization境界修正にexisting physical-device / baseline / serial / artifact contract変更が必要になる。
 6. Instructor Referenceから情報を移動・削除しないとPR 3 contractを成立させられない。
 7. Training implementation変更を入れないとMinimum Evidenceを定義できない。
 8. Product behavior / Product CI Gate変更が必要になる。
 9. 新しい仕様判断が必要でMaster Planから一意に決められない。
-10. Rubric一表でtraceを表現できず、新しいschema / trace file /管理レイヤーが必要に見える。
+10. 既存Competency一覧テーブルの拡張ではtraceを表現できず、新しいschema / trace file / 管理レイヤーが必要に見える。
 11. validatorを変更しないとcontractを表現できない。
 12. implementation開始時のlocal working treeに未commit user変更がある。
 13. planning branchが別用途 / unexpected HEADへ変更されている。
@@ -733,7 +769,7 @@ git diff --check
 次はStop conditionではない。
 
 - ADR candidate番号が別PRで消費された → next unusedを使う。
-- latest mainにPR 3非関連変更だけが入った → merge + targeted delta確認で継続する。
+- latest mainにPR 3非関連変更だけが入った → owner同期済みbranchでtargeted delta確認して継続する。
 - planning Run Artifactにold baseline / old ADR candidateが残る → historical evidenceとして保持する。
 
 ## Open questions
@@ -745,9 +781,9 @@ Contract testのassertion文字列はRubric / READMEのstable canonical wording�
 ## Follow-up
 
 1. Ownerが本child Planをreview / approveする。
-2. approval後にのみPR 3本体を実装する。
-3. implementation開始前に`git merge origin/main`でlatest mainへ同期し、targeted delta auditする。
-4. next unused ADR番号を確定する。
+2. approval後、ownerがplanning branchへlatest `origin/main`をmergeし、clean working treeにする。
+3. implementation agentはGit変更操作をせず、latest main包含 / clean stateをread-only確認する。未同期ならstopする。
+4. targeted delta audit後、next unused ADR番号を確定する。
 5. Must change filesだけ実装し、validator / Product / Formal / Training / workflowは変更しない。
 6. PR 3完了後、Lesson全文 / Instructor Reference移行はPR 4A、Training runner / command / workflow / ArtifactはPR 5で対応する。
 7. PR作成は本Plan承認後の別工程とする。
@@ -757,11 +793,13 @@ Contract testのassertion文字列はRubric / READMEのstable canonical wording�
 ### This planning phase
 
 - planning baselineとlatest main driftが区別されている。
-- implementation時のmain追従はmerge固定、rebase / force-push禁止と明確。
+- latest main同期はowner preconditionであり、implementation agentはGit変更操作を行わないことが明確。
 - ADR番号はimplementation時のnext unusedで決める。
 - Run Artifactはhistorical evidenceでimplementation SSOTではない。
-- README / Learning Designのsurgical edit箇所が固定されている。
-- Rubric classificationは`Common` / `Native specialization`だけ。
+- README / Learning Designのedit scopeがsection / contract単位で固定され、直接関係する近接矛盾文だけ局所修正できる。
+- README / Learning Designの両方にexact Common setsとRepository-required / Learner Required境界が実装対象として明示されている。
+- Rubric classificationは`Common` / `Native specialization`だけで、Master Plan上のAdvancedはbounded L2外scope表現として扱う。
+- Rubricは既存Competency一覧テーブル拡張 + 既存section局所修正で実装することが固定されている。
 - Primary source(s)は最大2つ。
 - C11はCurrent learner-facing materialだけで成立する。
 - contract testはRubric用1 block + README用1 blockの計2つ。
@@ -772,18 +810,18 @@ Contract testのassertion文字列はRubric / READMEのstable canonical wording�
 
 ### Future PR 3 implementation
 
-- latest mainをmergeし、targeted delta audit済み。
+- ownerがlatest mainをmerge済みで、implementation agentがread-only state checkとtargeted delta auditを完了している。
 - next unused ADRを使用。
 - Common graduation profile=`entry-levelの汎用 Test Automation Engineer`。
 - Part 1 Common=`C01〜C07+C09〜C10` bounded Level 2。
 - Part 2/final Common=`C01〜C07+C09〜C12` bounded Level 2。
 - C08=`Native specialization`、Common non-required。
-- README / Learning Designの既存Native必須表現がsurgical edit checklist範囲で解消されている。
+- README / Learning Designの既存Native必須表現が指定edit scope + 直接関係する近接矛盾文の局所修正で解消されている。
 - entry / prior knowledge / branch-skip-rejoin / Repository-required vs Learner Requiredが一意。
 - self-study / Instructor boundaryが一意。
 - `提出`が外部提出Requiredになっていない。
 - C11がself-review / 教材用Diff reviewで成立し、第三者Review Requiredではない。
-- Rubricが`Common` / `Native specialization`だけを使い、C01〜C12のPrimary source(s) / bounded L2 / Minimum Evidenceを一表で示す。
+- Rubricの既存Competency一覧テーブルが`Common` / `Native specialization`だけを使い、C01〜C12のPrimary source(s) / bounded L2 / Minimum Evidenceを示す。Rubric全体は再構成していない。
 - Primary source(s)は最大2つ。
 - C04 / C05 / C08 / C09 / C10 / C11 / C12がFixed Decision通り。
 - Baseline PASS / stock PASSとlearner-authored evidenceが分離。
