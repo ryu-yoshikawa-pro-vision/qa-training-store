@@ -16,7 +16,7 @@
 - [x] 12. ArrowUp検証を既存Keyboardテストへ統合し、独立テストを削除する
 - [x] 13. focused testと必須validationを実行し、失敗時はboundedに修正する
 - [x] 14. 最終diffとRun Artifactを自己レビューし、sanitizeする
-- [ ] 15. 指定commitを作成し、branchへpushしてPR #102を更新する
+- [x] 15. 指定commitを作成し、branchへpushしてPR #102を更新する
 
 ## Discovered
 
