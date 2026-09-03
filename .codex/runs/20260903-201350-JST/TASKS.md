@@ -12,8 +12,8 @@
 - [x] 8. 修正が必要な場合だけ、最小実装とbehavior回帰testを追加する
 - [x] 9. focused validation、必要なfull gate、sanitizer、runtime再確認を実行する
 - [x] 10. AFTER snapshot、durable report、Run REPORT／evaluationを確定する
-- [ ] 11. repository修正時のみbranch safety check、commit、push、OPEN PR作成と確認を行う
-- [ ] 12. ユーザー向け最終報告（指定section、Progress、Evidence、Remaining risks）を完了する
+- [x] 11. repository修正時のみbranch safety check、commit、push、OPEN PR作成と確認を行う
+- [x] 12. ユーザー向け最終報告（指定section、Progress、Evidence、Remaining risks）を完了する
 
 ## Discovered
 

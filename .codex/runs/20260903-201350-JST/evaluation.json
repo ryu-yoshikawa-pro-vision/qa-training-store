@@ -8,8 +8,8 @@
   ],
   "dimensions": {
     "task_completion": {
-      "rating": "warn",
-      "evidence": "A/B/CのHook原因特定、最小修正、回帰test、focused validation、runtime再確認、durable reportは完了した。repository全体verifyは差分外の既存Product type errorで後続工程へ進めなかった。",
+      "rating": "pass",
+      "evidence": "A/B/CのHook原因特定、最小修正、回帰test、focused validation、runtime再確認、durable report、指定branchへのcommit／push、main向けOPEN PR作成・確認が完了した。repository全体verifyは差分外の既存Product type errorで後続工程へ進めなかった。",
       "evidence_refs": [
         {
           "kind": "hook_observation",
@@ -24,6 +24,13 @@
           "selector": null,
           "event_id": null,
           "summary": "focused contract testは129 tests PASS"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/reports/2026-09-03_220500_codex-hooks-update-regression.md",
+          "selector": "Git / PR",
+          "event_id": null,
+          "summary": "commit、push、PR #106の完了を記録"
         }
       ]
     },

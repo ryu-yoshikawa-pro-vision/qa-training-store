@@ -126,6 +126,22 @@
   - Parent decision: Hook固有の修正と検証は完了。既存Product codeは変更しない。
 - Progress: 83% (10/12)
 
+## 2026-09-03 22:18 (JST)
+
+- Summary:
+  - 指定branch `fix/codex-hooks-update-regression`でbranch safetyを再確認し、今回のHook config／test／docs／Run Artifactだけをcommitした。
+  - commit `8dd8c09f42bdd0f8657361b09a4076ce903c90be`を`origin/fix/codex-hooks-update-regression`へ明示refspecでpushした。
+  - main向けOPEN PR #106を日本語タイトル／本文で作成し、head／base／stateを確認した。
+- Changes: TASKSを12/12へ更新し、evaluationのtask_completionをpassへ更新した。全repository verifyが差分外TS7006でpartialである点は維持した。
+- Decision / Rationale: commit前後ともcurrent branchは指定branchで、mainへ直接mutationしていない。PR本文にはaffected `0.153.0`、last known good／PR #100との関係、A/B/C Evidence、最小変更、validation、残存リスク、upstream issue関係を記載した。
+- Validation: `git status --short`はcommit直後clean。`git branch --show-current`は`fix/codex-hooks-update-regression`。`git branch -vv`でHEADは`8dd8c09`。`gh pr view 106 --json number,state,isDraft,headRefName,baseRefName,title,body,url`はPR #106、OPEN、非Draft、head指定branch、base `main`を返した。
+- Blocker / Remaining: repository全体`pnpm run verify`の既存Product type error、Desktop／IDE実runtime未検証、config変更後の通常trust再review待ちは残存リスクとして報告する。これは今回のHook修正を阻害する再現failureではない。
+- Subagents:
+  - Delegation: なし（リポジトリ規約によりchild delegationなし）。
+  - Result: なし。
+  - Parent decision: task 11／12を完了し、最終Sanitizer Check後に報告する。
+- Progress: 100% (12/12)
+
 ## 2026-09-03 22:20 (JST)
 
 - Summary: commit前の最終normal AFTER snapshotを再取得し、Run ArtifactのSanitizer Write／Checkを再実行した。全standard artifactにresidual findingはない。
