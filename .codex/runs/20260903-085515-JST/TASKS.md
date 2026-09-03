@@ -19,6 +19,8 @@
 ## Discovered
 
 - [x] 1. 変更対象外のHook contract testで発生したtimeoutを、baseline／環境依存／今回のdiffの観点で切り分け、正式quality gateの最終結果を確定する。
+- [x] 2. PR再レビュー指示に沿って重複component testを整理し、Login実フォームのre-validation時focus保持testを追加する。
+- [ ] 3. 最終test結果に合わせてPR #104本文とRun Artifactを更新し、追加差分をcommit／pushする。
 
 ## Blocked
 

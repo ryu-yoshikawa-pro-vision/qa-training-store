@@ -169,3 +169,42 @@
   - Result: —
   - Parent decision: Runをcompleteとして引き渡す。
 - Progress: 100% (14/14)
+
+## 2026-09-03 13:20 (JST)
+
+- Summary: PR #104の再レビュー指示に合わせ、重複component testを2件削除し、Login + React Hook Formの実フォームでerror 2件から1件へre-validationした際に編集中fieldのfocusが維持されるtestを1件追加した。
+- Changes: `tests/component/presentation-foundation.test.tsx`から新trigger時のerror内容変更testと複数error専用testを削除した。`tests/component/auth-account-pages.test.tsx`には、invalid submit後にemailをvalid値へ修正し、summaryのlinkが2件から1件になってもemail focusが維持されるtestを追加した。production source、PROJECT_CONTEXT、history、planは変更していない。
+- Decision / Rationale: component層では初回accessibility、同一1件の再submit、error stateだけの変更でfocusを奪わない契約、focus disabled、trigger／error別render順序を残し、error内容変更／複数errorの新trigger専用testは削除した。実Login flowで2件→1件の状態変化とfield focusを直接検証することで、Issue #89のfocus stealingを高い価値のtestとして保証する。
+- Validation: `pnpm exec vitest run tests/component/presentation-foundation.test.tsx tests/component/auth-account-pages.test.tsx` は2 files / 27 tests PASS。`pnpm run test:component:web` は11 files / 92 tests PASS。`pnpm run format:check`、`pnpm run lint`（0 errors / 65 warnings）、`pnpm run typecheck` はPASS。`pnpm run verify` はexit 0で全quality gate、全test、web／docs／spec buildが成功し、contractsは486 passed / 3 skippedだった。追加test前のformat checkは追加assertionの整形だけでFAILしたが、最小整形後にPASSした。
+- Blocker / Remaining: なし。最終PR本文更新、Run Artifactの評価／sanitization、commit、push、PR確認が残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: production設計は維持し、test cleanupと実フォーム回帰testの追加のみ採用する。
+- Progress: 88% (14/16)
+
+## 2026-09-03 13:34 (JST)
+
+- Summary: 最終差分のself-reviewと再検証を完了し、PR #104本文を最終test構成へ更新した。
+- Changes: production sourceは変更せず、component testの重複2件削除とLogin実フォームtest 1件追加だけを採用した。PR本文のRoot causeをfocus stealingと同一error件数再submitの並列説明へ修正し、Changes / Verificationも最終状態へ合わせた。
+- Decision / Rationale: 実Login + React Hook Form経路でinvalid submit後のsummary focus、error link 2件→1件、email値のvalid化、email focus維持を確認できたため、Issue #89の主要なfocus契約を直接保証できると判断した。input value resetは引き続き未再現で、production workaroundは追加しない。
+- Validation: 最終focused testは2 files / 27 tests PASS、web componentは11 files / 92 tests PASS。`pnpm run format:check` PASS、`pnpm run lint` exit 0（0 errors / 65 warnings）、`pnpm run typecheck` exit 0、`pnpm run verify` exit 0。verifyではunit 66、integration 111、repository 38、native component 64、contracts 486 passed / 3 skipped、web／docs／spec buildも成功した。`git diff --check` PASS。Run Artifactのschema検証とsanitizer Write／Checkも残存finding 0でPASSした。
+- Blocker / Remaining: なし。追加差分のcommit、対象branchへのpush、PR #104のhead最終確認、Run完了checkpointのcommitが残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: findingなし。今回の追補はtestと説明の整理に限定し、既存のsubmitCount-based production設計を維持する。
+- Progress: 94% (15/16)
+
+## 2026-09-03 13:36 (JST)
+
+- Summary: 追加test整理commitを作成し、対象branchへpushした。
+- Changes: `e77ec68`（`test: align form error focus coverage with issue 89`）に、component testの重複2件削除とLogin実フォームre-validation focus保持test 1件を含めた。PR #104の本文は既にこの最終構成へ更新済みである。
+- Decision / Rationale: push直前にcurrent branchとPR #104のheadRefNameを確認し、`fix/89-form-error-summary-focus`への明示refspec pushだけを実行した。force pushや別PR作成は行っていない。
+- Validation: pushはexit 0で、remote branchは`d505213`から`e77ec68`へ更新された。remoteからdefault branchの既存vulnerability notice（1 high / 2 moderate）が表示されたが、今回のtest差分とは無関係である。
+- Blocker / Remaining: なし。Run Artifactの完了checkpointをcommit／pushし、PR #104の最終headとworking treeを確認する。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: test変更のpush成功を採用し、Run Artifactの最終commitへ進む。
+- Progress: 94% (15/16)

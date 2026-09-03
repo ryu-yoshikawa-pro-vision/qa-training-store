@@ -92,7 +92,7 @@
     },
     "reproducibility": {
       "rating": "pass",
-      "evidence": "同一errorの再submit、同数内容変更、複数error、focus disabled、unrelated rerender、validation後の入力値保持をcomponent testで再現可能な形にした。",
+      "evidence": "同一errorの再submit、Login実フォームでのerror 2件から1件へのre-validation中のfocus保持、focus disabled、unrelated rerender、validation後の入力値保持をcomponent testで再現可能な形にした。",
       "evidence_refs": [
         {
           "kind": "changed_file",
