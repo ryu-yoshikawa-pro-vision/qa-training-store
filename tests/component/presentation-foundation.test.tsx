@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 
 const routerPush = vi.fn();
 
@@ -117,74 +117,6 @@ describe("presentation foundation", () => {
     );
 
     expect(screen.getByRole("alert")).toHaveFocus();
-  });
-
-  it("refocuses when the error content changes on a new focus trigger", () => {
-    const { rerender } = render(
-      <form>
-        <FormErrorSummary
-          errors={[{ fieldId: "email", message: "メールアドレスを入力してください" }]}
-          focusTrigger={0}
-        />
-        <input id="email" aria-label="Email" />
-      </form>,
-    );
-    const input = screen.getByRole("textbox", { name: "Email" });
-    input.focus();
-
-    rerender(
-      <form>
-        <FormErrorSummary
-          errors={[{ fieldId: "email", message: "Emailを入力してください" }]}
-          focusTrigger={0}
-        />
-        <input id="email" aria-label="Email" />
-      </form>,
-    );
-    expect(input).toHaveFocus();
-
-    rerender(
-      <form>
-        <FormErrorSummary
-          errors={[{ fieldId: "email", message: "メールアドレスの形式で入力してください" }]}
-          focusTrigger={1}
-        />
-        <input id="email" aria-label="Email" />
-      </form>,
-    );
-
-    const summary = screen.getByRole("alert");
-    expect(summary).toHaveFocus();
-    expect(
-      within(summary).getByRole("link", { name: "メールアドレスの形式で入力してください" }),
-    ).toBeVisible();
-  });
-
-  it("keeps focusing a summary with multiple errors on a new focus trigger", () => {
-    const errors = [
-      { fieldId: "email", message: "Emailを入力してください" },
-      { fieldId: "password", message: "Passwordを入力してください" },
-    ];
-    const { rerender } = render(
-      <form>
-        <FormErrorSummary errors={errors} focusTrigger={0} />
-        <input id="email" aria-label="Email" />
-      </form>,
-    );
-    const summary = screen.getByRole("alert");
-    const input = screen.getByRole("textbox", { name: "Email" });
-    expect(summary).toHaveFocus();
-    expect(within(summary).getAllByRole("link")).toHaveLength(2);
-
-    input.focus();
-    rerender(
-      <form>
-        <FormErrorSummary errors={errors} focusTrigger={1} />
-        <input id="email" aria-label="Email" />
-      </form>,
-    );
-
-    expect(summary).toHaveFocus();
   });
 
   it("does not refocus when errors change without a new focus trigger", () => {

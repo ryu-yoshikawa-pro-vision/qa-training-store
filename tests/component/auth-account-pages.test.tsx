@@ -139,6 +139,28 @@ describe("auth and account pages", () => {
     expect(auth.login).not.toHaveBeenCalled();
   });
 
+  it("keeps the edited Login field focused when revalidation removes one error", async () => {
+    render(<LoginPage />);
+    const email = screen.getByLabelText("メールアドレス");
+    fireEvent.change(email, { target: { value: "invalid-email" } });
+    fireEvent.click(screen.getByRole("button", { name: "ログイン" }));
+
+    const summary = await screen.findByRole("alert");
+    await waitFor(() => expect(summary).toHaveFocus());
+    expect(within(summary).getAllByRole("link")).toHaveLength(2);
+
+    email.focus();
+    expect(email).toHaveFocus();
+    fireEvent.change(email, { target: { value: "valid@example.com" } });
+
+    await waitFor(() => expect(within(summary).getAllByRole("link")).toHaveLength(1));
+    expect(
+      within(summary).getByRole("link", { name: "パスワードを入力してください" }),
+    ).toHaveAttribute("href", "#password");
+    expect(email).toHaveValue("valid@example.com");
+    expect(email).toHaveFocus();
+  });
+
   it("does not hide a checkout storage error as an address fallback", async () => {
     window.history.replaceState({}, "", "/login?returnTo=%2Fcheckout%2Fpayment");
     auth.login.mockResolvedValueOnce({
