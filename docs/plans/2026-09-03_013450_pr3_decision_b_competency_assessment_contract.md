@@ -192,13 +192,13 @@ PR 3でC01〜C12のclassificationは次の2種類だけ使う。
 
 ## Canonical responsibility split
 
-同じ契約を複数文書へ全文複製しない。
+同じ契約を複数文書へ全文複製しない。README / Learning Designへ同期するCommon sets等は値だけを最小記載し、評価詳細・Minimum EvidenceはRubricを正本とする。
 
 | Source | Canonical responsibility | Avoid |
 | --- | --- | --- |
 | next ADR（再レビュー時点candidate `0021`） | Decision B、理由、変更禁止境界 | Lesson / Evidence詳細の複製 |
 | Curriculum `README.md` | course entry、Common / specialization / support分類、learner navigation、Common sets | Minimum Evidence詳細、specialization内部手順 |
-| `00_learning_design.md` | entry / graduation profile、既習知識ルール、self-study / Instructor境界、instructional rule | 各Lessonの具体手順 |
+| `00_learning_design.md` | entry / graduation profile、Common sets、既習知識ルール、Repository-required vs Learner Required、self-study / Instructor境界、instructional rule | Minimum Evidence詳細、各Lessonの具体手順 |
 | `02_competency-rubric.md` | Competency、Common / Native specialization、Primary source(s)、bounded L2、Minimum Evidence | Navigation全文、新classification体系、Training runner実装 |
 | P1-7 / P2-6 | specializationの具体的開始条件、skip / rejoin、Rubric参照 | Common全体の定義 |
 | P1-9 / P2-8 | Common completionとspecialization / Common外scopeの局所分離 | 全Rubricの再掲 |
@@ -298,7 +298,7 @@ PR 3でC01〜C12のclassificationは次の2種類だけ使う。
 ## Change strategy
 
 1. **Owner preconditionでlatest mainへ同期する**
-   - implementation agentを開始する前に、owner側でplanning branchへlatest `origin/main`を取り込み、clean working treeにしておく。
+   - implementation agentを開始する前に、owner側で`git fetch origin`を実行してremote-tracking refを更新し、その後planning branchへlatest `origin/main`を取り込み、clean working treeにしておく。
    - planning historyを保持するためrebase / force-pushは行わない。
    - implementation agent自身はmerge / rebase / commit / push等のGit変更操作を担当しない。branchがlatest mainを含んでいなければstopしてownerへ戻す。
 2. **targeted delta audit**
@@ -425,8 +425,9 @@ README / Rubricと同じ内容を重複assertしない。整合はmanual cross-c
 PR 3の中心SSOT。ただしRubric全体を再構成しない。変更は次の既存sectionへ限定する。
 
 1. **`Competency一覧`テーブルを拡張する**
-   - 既存C01〜C12の行を維持し、次を一表で確認できる列構成へする。
+   - 既存C01〜C12の行と既存`Competency`名を維持し、次を一表で確認できる列構成へする。
      - Competency ID
+     - Competency
      - path classification
      - bounded Level 2
      - Primary learner-facing source(s)
@@ -441,6 +442,7 @@ PR 3の中心SSOT。ただしRubric全体を再構成しない。変更は次の
 4. **`Part 2修了基準`を局所修正する**
    - exact Common setへ同期し、C08をCommon completionから外す。
    - C12 Commonをbounded Web CIへ限定し、Native / full deliveryをCommon completionから外す。
+   - Common completionはbounded Level 2とし、既存のLevel 3相当の比較・提案はCommon Requiredから外してbounded L2外のchallenge / Advanced scopeとして扱う。新しいclassificationは追加しない。
 5. **`採点表`は原則維持する**
    - Fixed Decisionと直接矛盾するセルがある場合だけ局所修正する。
    - 表の削除・全面再設計・新しい採点体系の導入はしない。
@@ -621,6 +623,7 @@ Docs wording変更だけでvalidator変更が必要に見えた場合は、valid
 
 implementation agent開始前にowner側で次を完了しておく。
 
+- `git fetch origin`でremote-tracking refを更新済み
 - planning branchへlatest `origin/main`をmerge済み
 - rebase / force-pushは行わずplanning historyを保持
 - working treeはclean
@@ -698,7 +701,15 @@ git diff --check
 
 ### Manual cross-check
 
-- `git diff --name-only origin/main...HEAD` がplanned filesだけ
+実装差分はcommit済み`HEAD`ではなくworking tree / untracked fileを基準に確認する。
+
+```bash
+git status --short
+git diff --name-only
+git ls-files --others --exclude-standard
+```
+
+- `git status --short`、`git diff --name-only`、`git ls-files --others --exclude-standard`でtracked / untrackedの実装差分を確認し、planned filesだけである
 - `scripts/validate-curriculum.ts`、Product / Training / workflow / Formal docsに差分なし
 - next ADR番号がlatest main上で未使用
 - READMEの指定edit scope内と、その契約を直接説明する近接文だけでCommon / Native矛盾が解消されている
@@ -710,7 +721,8 @@ git diff --check
 - C08がCommon completionへ再流入していない
 - Repository-required / Learner Requiredが混同されていない
 - Rubric classificationが`Common` / `Native specialization`の2種類だけで、`Common`がLearner Required Commonを意味し、`Advanced`はbounded L2外scope表現に留まる
-- Rubricは既存Competency一覧テーブル拡張 + Level 1/2・Part 1/2修了基準の局所修正に留まり、Rubric全体を再構成していない
+- Rubricは既存Competency一覧テーブルの`Competency`名を保持した列拡張 + Level 1/2・Part 1/2修了基準の局所修正に留まり、Rubric全体を再構成していない
+- Part 2 Common completionにLevel 3相当の比較・提案をRequiredとして残していない
 - Primary source(s)が1〜2個で、3つ以上の関連文書一覧になっていない
 - C11がCurrent learner-facing materialだけで成立し、第三者Review / 将来Review checklistを必須にしていない
 - Baseline PASSがcompetency completionへ昇格していない
@@ -728,7 +740,7 @@ git diff --check
 - README / Learning Designを全面整理し始める。
   - Mitigation: edit scope外の無関係なeditorial cleanupをPR 4Aへ残す。行数ではなく対象section / contractで境界を切る。
 - Rubric全体を一つの巨大表へ再構成する。
-  - Mitigation: 既存Competency一覧テーブル拡張 + Level 1/2・Part 1/2修了基準の局所修正だけ。採点表は直接矛盾時のみ局所修正。
+  - Mitigation: 既存Competency一覧テーブルの`Competency`名を保持した列拡張 + Level 1/2・Part 1/2修了基準の局所修正だけ。採点表は直接矛盾時のみ局所修正。
 - RubricにAdvanced / Optional等の新classification体系を作る。
   - Mitigation: C01〜C12は`Common` / `Native specialization`の2種類だけ。Advancedはbounded L2外scope表現のみ。
 - Primary source(s)が巨大なtrace一覧になる。
@@ -793,13 +805,14 @@ Contract testのassertion文字列はRubric / READMEのstable canonical wording�
 ### This planning phase
 
 - planning baselineとlatest main driftが区別されている。
-- latest main同期はowner preconditionであり、implementation agentはGit変更操作を行わないことが明確。
+- latest main同期はowner preconditionであり、ownerが先に`git fetch origin`でremote-tracking refを更新し、implementation agentはGit変更操作を行わないことが明確。
 - ADR番号はimplementation時のnext unusedで決める。
 - Run Artifactはhistorical evidenceでimplementation SSOTではない。
 - README / Learning Designのedit scopeがsection / contract単位で固定され、直接関係する近接矛盾文だけ局所修正できる。
 - README / Learning Designの両方にexact Common setsとRepository-required / Learner Required境界が実装対象として明示されている。
 - Rubric classificationは`Common` / `Native specialization`だけで、Master Plan上のAdvancedはbounded L2外scope表現として扱う。
-- Rubricは既存Competency一覧テーブル拡張 + 既存section局所修正で実装することが固定されている。
+- Rubricは既存Competency一覧テーブルの`Competency`名を保持した列拡張 + 既存section局所修正で実装することが固定されている。
+- Part 2 Common completionはbounded Level 2で、Level 3相当はCommon Requiredではないことが固定されている。
 - Primary source(s)は最大2つ。
 - C11はCurrent learner-facing materialだけで成立する。
 - contract testはRubric用1 block + README用1 blockの計2つ。
@@ -810,7 +823,7 @@ Contract testのassertion文字列はRubric / READMEのstable canonical wording�
 
 ### Future PR 3 implementation
 
-- ownerがlatest mainをmerge済みで、implementation agentがread-only state checkとtargeted delta auditを完了している。
+- ownerが`git fetch origin`後にlatest mainをmerge済みで、implementation agentがread-only state checkとtargeted delta auditを完了している。
 - next unused ADRを使用。
 - Common graduation profile=`entry-levelの汎用 Test Automation Engineer`。
 - Part 1 Common=`C01〜C07+C09〜C10` bounded Level 2。
@@ -821,7 +834,8 @@ Contract testのassertion文字列はRubric / READMEのstable canonical wording�
 - self-study / Instructor boundaryが一意。
 - `提出`が外部提出Requiredになっていない。
 - C11がself-review / 教材用Diff reviewで成立し、第三者Review Requiredではない。
-- Rubricの既存Competency一覧テーブルが`Common` / `Native specialization`だけを使い、C01〜C12のPrimary source(s) / bounded L2 / Minimum Evidenceを示す。Rubric全体は再構成していない。
+- Rubricの既存Competency一覧テーブルが既存`Competency`名を保持し、`Common` / `Native specialization`だけを使い、C01〜C12のPrimary source(s) / bounded L2 / Minimum Evidenceを示す。Rubric全体は再構成していない。
+- Part 2 Common completionはbounded Level 2で、Level 3相当の比較・提案をCommon Requiredにしていない。
 - Primary source(s)は最大2つ。
 - C04 / C05 / C08 / C09 / C10 / C11 / C12がFixed Decision通り。
 - Baseline PASS / stock PASSとlearner-authored evidenceが分離。
@@ -832,4 +846,4 @@ Contract testのassertion文字列はRubric / READMEのstable canonical wording�
 - `validate-curriculum.ts`無変更。
 - Product / Formal / Training / workflow / runtime behavior無変更。
 - historical Run Artifact無変更。
-- validation成功、allowlist外diffなし。
+- validation成功。`git status --short`、`git diff --name-only`、`git ls-files --others --exclude-standard`でtracked / untrackedを含むallowlist外diffがない。
