@@ -119,3 +119,34 @@
 
 - Issue #91のScope外である全画面long-text audit、Breadcrumb等の別Issue、Validation上限変更、デザイン刷新、無関係なSpacing整理は実施しない。
 - 現時点で分割が必要な独立Issueは発見していない。4箇所は局所的なPresentation修正と共有ConfirmDialogの直接修正で対応可能と判断する。
+
+## 10. PR #105追加レビュー対応（2026-09-03）
+
+### 目的
+
+- PR #105のFinding A／Bだけを再確認し、Issue #91のScopeを広げる不要なGuide用CSSと、Current Productに存在しない状態を作るConfirm Dialog E2Eだけを削る。
+
+### repair対象と許可ファイル
+
+- `must_fix`: Confirm Dialog E2EのDOM直接注入を削除し、実際の最大長`address.label`だけで検証する。
+- `should_fix`: GuideのScenario一覧向け`min-width`指定と、それに結び付いたScenario要素のassertionを実測結果に合わせて最小化する。
+- 許可ファイル: `src/presentation/styles/global.css`、`e2e/web/ui-ux-improvements.spec.ts`、既存Runの`TASKS.md`／`REPORT.md`、既存PR本文。
+- 対象外: Search、Address Card、ConfirmDialog Production code、入力上限、既存helperの再設計、外部full review。
+
+### Finding Aの判断基準
+
+- 360pxで固定アカウントとGuide説明へ既存テスト相当の長文を加え、Scenario系selectorを一時無効化して比較する。
+- Scenario系selectorを全て外した際のPage横幅増加がScenarioの`definition-grid`由来であることを確認する。
+- Page horizontal overflowを防ぐGuide専用`definition-grid`列制約だけを残せる場合は、それ以外のScenario向け`min-width`指定を削除する。Scenario向けselector assertionも対象外として削除する。
+
+### Finding Bの判断基準
+
+- 削除Dialogは登録した最大長付近の実`label`とProductが実際に描画する説明だけをassertする。
+- `addressLine1`／`addressLine2`をDialog bodyへ`textContent`で注入する処理は残さない。既存のviewport、overflow、overlap、button操作assertionは維持する。
+
+### 追加Validation
+
+- `pnpm exec playwright test e2e/web/ui-ux-improvements.spec.ts --project=chromium --grep "Issue #91"`
+- `pnpm exec vitest run tests/component/catalog-pages.test.tsx tests/component/auth-account-pages.test.tsx --exclude tests/component/native`
+- `pnpm run format:check`、`pnpm run lint`、`pnpm run typecheck`、`git diff --check`、`pnpm run verify`
+- 最終diff、Run Artifact Sanitizer、PR #105の既存head／本文／OPEN状態を確認する。

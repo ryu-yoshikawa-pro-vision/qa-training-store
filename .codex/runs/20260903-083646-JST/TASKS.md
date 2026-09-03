@@ -19,6 +19,12 @@
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
 - D1. （必要になったら追記）
+- [x] D2. PR #105のFinding A／Bをtriageし、repairの許可ファイルと判定基準を確定する
+- [x] D3. Finding Aを360px実ブラウザで現状／Scenario系CSS除外の両方から実測し、残すCSSを決定する
+- [x] D4. Guideの不要なScenario系CSSと関連assertionを削り、Finding BのDialog DOM注入を削除する
+- [x] D5. PR本文のCurrent Product不一致な表現を最小修正する
+- [x] D6. focused／formal validation、最終diff review、Run Artifact Sanitizerを完了する
+- [ ] D7. 指定branchへcommit／pushし、既存PR #105のheadと本文を確認する
 
 ## Blocked
 

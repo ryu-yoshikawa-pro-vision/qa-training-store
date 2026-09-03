@@ -100,3 +100,68 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-03 17:20 (JST)
+
+- Summary: PR #105の追加レビュー対応を開始し、Finding A／Bをrepair対象として整理した。既存Run `20260903-083646-JST`と既存Planを継続利用する。
+- Changes: まだProduct code／test／PR本文の変更はない。追加レビュー用のPlan追記とTASKS追加だけを行った。
+- Decision / Rationale: Finding Aは`should_fix`として、Scenario系selectorを全て削るのではなく、実測でPage横幅を支えるGuide専用`definition-grid`列制約だけを残せるか確認する。Finding Bは`must_fix`として、Current Productが描画しない住所全文のDialog body直接注入を削除し、実際の最大長`address.label`と説明を検証する。許可ファイルは`global.css`、Issue #91 E2E、既存Run、PR本文に限定する。
+- Validation: 開始時にbranchは`fix/issue-91-long-text-layout`、PR #105は`OPEN`／Draftではなく、作業ツリーはclean、Current headは`0babfdb712f119b8939fa36d834d8ef9241f1b5e`であることを確認した。`npx`は利用可能。現状Guideの360px実測では対象長文後もDocument 345px、Scenario系CSS全無効化ではDocument 451pxとなり、Scenario `definition-grid`が幅を押し広げることを確認した。単独selector除外ではDocument 345pxを維持したため、組合せを追加比較する。
+- Blocker / Remaining: Finding Aの最小CSS決定、Finding B修正、focused／formal validation、最終diff／Sanitizer、commit／push、既存PR更新が残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: 1回目のrepair iterationとして実測を続け、不要なScenario系selectorだけを削る。
+- Progress: 67% (12/18)
+
+## 2026-09-03 17:22 (JST)
+
+- Summary: Finding Aの360px実測を完了し、Scenario系CSSのうち残すべき範囲を最小化した。Finding BはCurrent Productの`address.label`だけをDialog titleへ渡す経路を確認した。
+- Changes: Current PR headでは固定アカウント／Guide説明へ長文を加えてもDocument／bodyは345pxだった。Scenario系の`min-width`指定とGuide専用`definition-grid`列指定を全て一時無効化すると、Document／bodyは451px、`admin-detail-card`の最大rightは451px、`definition-grid`の最大rightは434pxとなった。個別のScenario `min-width`指定を無効化してもDocumentは345pxを維持し、`definition-grid`列指定だけを有効にした状態（他のScenario `min-width`指定を無効化）でもDocument／bodyは345pxだった。
+- Decision / Rationale: `form-stack`、`form-stack > *`、`split-heading > *`、`admin-detail-card`、`definition-grid > *`、`definition-grid dd > *`のGuide専用`min-width: 0`は、今回のPage横幅条件を保つためには不要と判断して削除する。Guide専用`definition-grid`の`minmax(0, 9rem) minmax(0, 1fr)`だけは、実際のScenario route／定義内容が360px幅で親を451pxへ押し広げるため残す。Scenarioカード自体のlayoutを回帰対象にするassertionは削除し、Issue #91対象の固定アカウント／説明のassertionは維持する。
+- Validation: Scenario系CSS全無効化時も固定アカウントPanelはleft38／right307、長文値はleft63／right282、説明Panelはleft16／right329で、対象長文の表示範囲は変わらなかった。残す`definition-grid`列指定のみの状態では同じ対象幅とDocument 345pxを確認した。
+- Blocker / Remaining: CSS／E2Eの最小修正、PR本文更新、focused／formal validation、最終diff／Sanitizer、commit／push、既存PR更新が残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: Finding Aは`definition-grid`列制約だけを残す局所修正、Finding BはE2Eの人工DOM注入削除として1回目のrepairを実施する。
+- Progress: 74% (14/19)
+
+## 2026-09-03 17:43 (JST)
+
+- Summary: 1回目のrepair実装を完了した。GuideのScenario向け過剰な`min-width`指定と関連assertion、Confirm Dialogの人工住所注入を削除した。
+- Changes: `global.css`ではGuide専用の`form-stack`、`split-heading`、`admin-detail-card`、`definition-grid`子要素向け`min-width: 0`を削除し、Page横幅を支える`definition-grid`列指定とIssue対象のGuide／Account指定は維持した。`ui-ux-improvements.spec.ts`ではScenario Card assertionとDialog bodyへの`textContent`注入／注入値assertionを削除した。
+- Decision / Rationale: 実際のProduct Dialogに表示される長文は登録時の最大長`label`がtitleへ入る値であり、説明文は固定Product文言であるため、その2つを検証対象とした。住所全文をDOMへ追加するテスト状態はCurrent Product behaviorではないため採用しない。
+- Validation: `pnpm run build:web`はPASS。修正後のIssue #91 focused E2Eは2件PASS（360x844／1440x1000を含む）。
+- Blocker / Remaining: 関連component test、static validation、`pnpm run verify`、最終diff／Sanitizer、PR本文更新、commit／push、既存PR確認が残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: 変更範囲を許可ファイル内に維持し、2回目のvalidationへ進む。
+- Progress: 82% (15/18)
+
+## 2026-09-03 17:38 (JST)
+
+- Summary: 追加修正後のfocused／関連／formal validationを完了した。直前checkpointのProgress表記に分母・割合の記録ミスがあったため、正しい進捗をここで補足する。
+- Changes: 修正差分は`global.css`のGuide Scenario向け6 selector削除、`ui-ux-improvements.spec.ts`のScenario Card assertionとConfirm Dialog住所全文注入削除、既存Plan／TASKS／REPORTの追記である。
+- Decision / Rationale: Finding AはGuide専用`definition-grid`列制約だけを残す。Finding Bは実際の`label`と固定説明文の検証に限定する。Search／Address Card／ConfirmDialog Production code、input limit、既存helperは変更しない。
+- Validation: 関連component testは2 files／20 tests PASS。`format:check`、`lint`（0 errors、既存warning 65）、`typecheck`、`git diff --check` PASS。最終`pnpm run verify`はPASSし、contract 33 files／486 passed／3 skipped、security static check、web／spec buildまで完了した。focused E2Eは2件PASSし、360x844／1440x1000のGuide／Search／Address Card／Confirm Dialogを検証した。
+- Blocker / Remaining: PR本文更新、Sanitizer、最終TASK更新、commit／push、PR #105のhead／本文／OPEN確認が残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: 追加repairのvalidationは成功。ProgressはD2／D3／D4完了後の15/18（83%）として扱う。
+- Progress: 83% (15/18)
+
+## 2026-09-03 17:39 (JST)
+
+- Summary: 追加repairのvalidation、最終diff review、Run Artifact Sanitizer、PR本文更新を完了した。Finding A／Bに関する残差はない。
+- Changes: 追加差分は`src/presentation/styles/global.css`のScenario向け6 selector削除、`e2e/web/ui-ux-improvements.spec.ts`のScenario Card assertionとConfirm Dialog住所全文DOM注入削除、既存Plan／TASKS／REPORT追記である。PR #105本文はCurrent Productに合わせて最大長付近の配送先`label`表現へ更新した。
+- Decision / Rationale: 最終diff reviewはP0／P1／P2／P3のfindingなし。Search、Address Card、ConfirmDialog Production code、入力上限、既存helper、新utility、`overflow:hidden`／ellipsis／固定heightの追加はなく、追加修正はFinding A／Bに限定されている。Guide専用`definition-grid`列制約は360pxの実測でDocument 345pxを維持し、無効化時の451px overflowを防ぐため残した。
+- Validation: focused E2E 2 passed、関連component 20 passed、`format:check`／`lint`（0 errors、既存warning 65）／`typecheck`／`git diff --check` PASS。`pnpm run verify` PASS（contract 33 files、486 passed、3 skipped、security／web build／spec build成功）。Sanitizer Write／Checkは4 files、0 replacements、0 residual findings。PR本文は日本語で更新した。
+- Blocker / Remaining: 指定branchでの最終commit、明示refspec push、PR #105の最新head／OPEN状態確認が残る。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: 1回目のrepair iterationは`stop_success`。残りはGit mutationと既存PRの最終状態確認だけとする。
+- Progress: 94% (17/18)

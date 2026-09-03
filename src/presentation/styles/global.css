@@ -5175,13 +5175,7 @@ progress {
 .home-page--guide .home-learning-panel,
 .home-page--guide .home-learning-panel > *,
 .home-page--guide .membership-panel,
-.home-page--guide .membership-panel > *,
-.home-page--guide .form-stack,
-.home-page--guide .form-stack > *,
-.home-page--guide .split-heading > *,
-.home-page--guide .admin-detail-card,
-.home-page--guide .definition-grid > *,
-.home-page--guide .definition-grid dd > * {
+.home-page--guide .membership-panel > * {
   min-width: 0;
 }
 

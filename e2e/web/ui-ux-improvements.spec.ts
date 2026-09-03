@@ -466,7 +466,6 @@ test.describe("UI/UX improvement flows A-J", () => {
         ".home-page--guide .membership-panel--guide-accounts .membership-panel__value",
         ".home-page--guide .home-learning-panel",
         ".home-page--guide .home-learning-panel p",
-        ".home-page--guide .admin-detail-card",
       ]);
 
       await page.goto(`/search?q=${longKeyword}`);
@@ -538,10 +537,6 @@ test.describe("UI/UX improvement flows A-J", () => {
       await expect(dialog).toBeVisible();
       await expect(dialog).toContainText(label);
       await expect(dialog).toContainText("既定の配送先を削除した場合は");
-      await dialog.locator(".dialog__body").evaluate((element, address) => {
-        element.textContent = `${element.textContent ?? ""} 住所確認: ${address}`;
-      }, `${addressLine1}${addressLine2}`);
-      await expect(dialog.locator(".dialog__body")).toContainText(addressLine1);
       await expect(dialog.getByRole("button", { name: "削除する", exact: true })).toBeVisible();
       await expect(dialog.getByRole("button", { name: "閉じる", exact: true })).toBeVisible();
       await expectLayoutWithinViewport(page, [
