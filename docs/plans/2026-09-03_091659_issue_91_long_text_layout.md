@@ -80,7 +80,7 @@
   - [x] 3. Guide／Search／Address／Confirm Dialogの最小Presentation修正を実装する。
   - [x] 4. Issue #91の長文Layout E2E回帰テストを追加する。
   - [x] 5. Focused test、正式Validation、Viewport確認を実行し、失敗があれば原因を切り分けて安全な最小修正を行う。
-  - [ ] 6. 最終diffをReviewし、Run Artifactを更新・Sanitizeしてcommit、push、OPEN PR作成まで行う。
+  - [x] 6. 最終diffをReviewし、Run Artifactを更新・Sanitizeしてcommit、push、OPEN PR作成まで行う。
 
 ## 6. 検証方法
 

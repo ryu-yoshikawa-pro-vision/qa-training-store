@@ -11,9 +11,9 @@
 - [x] 7. `format:check`、`lint`、`typecheck`、関連test、`git diff --check`、`verify`を実行する
 - [x] 8. `code-review`手順で最終diffをself-reviewし、Scopeと入力上限不変更を確認する
 - [x] 9. Run ArtifactをSanitizer Write／Checkし、REPORT／TASKS／evaluationを確定する
-- [ ] 10. 指定ブランチを再確認してcommitする
-- [ ] 11. 指定ブランチへ明示refspecでpushし、remote headを確認する
-- [ ] 12. Base=`main`／Head=`fix/issue-91-long-text-layout`のOPEN PRを日本語本文で作成・確認する
+- [x] 10. 指定ブランチを再確認してcommitする
+- [x] 11. 指定ブランチへ明示refspecでpushし、remote headを確認する
+- [x] 12. Base=`main`／Head=`fix/issue-91-long-text-layout`のOPEN PRを日本語本文で作成・確認する
 
 ## Discovered
 

@@ -79,6 +79,19 @@
   - Parent decision: Git branch safety確認後、commit／push／PR作成へ進む。
 - Progress: 75% (9/12)
 
+## 2026-09-03 10:54 (JST)
+
+- Summary: Issue #91の実装、回帰テスト、正式Validation、最終diff review、Sanitizer、commit、push、OPEN PR作成・確認まで完了した。
+- Changes: 実装commit `77cfbdc53e7826641265ed991a2ac5274e8a55ae`へ、Guide／Search／Address Card／ConfirmDialogの局所Presentation修正、Issue #91 E2E、Plan、Run Artifactを含めた。
+- Decision / Rationale: PRはmergeせず、指定されたbase `main`／head `fix/issue-91-long-text-layout`で作成した。ConfirmDialogの長文対応は専用Classへ限定し、管理画面の同名dialogへ不要な影響を広げていない。Standard workflowのため`evaluation.json`は作成していない。
+- Validation: `pnpm run verify`最終PASS、focused E2E 2件PASS、関連component test 20件PASS、format／lint（0 errors、既存warning 65件）／typecheck／diff check PASS。Sanitizer最終Checkはresidual findings 0。PR #105のstate OPEN、isDraft false、base／head／head SHA、本文の`Closes #91`を確認した。
+- Blocker / Remaining: なし。PR #105はレビュー待ちであり、merge／auto-merge／レビュー指摘への自動対応は行わない。
+- Subagents:
+  - Delegation: なし（repository markerはNo child subagent delegation）。
+  - Result: —
+  - Parent decision: Runを完了扱いとして引き渡す。
+- Progress: 100% (12/12)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
