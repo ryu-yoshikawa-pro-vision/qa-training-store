@@ -54,7 +54,7 @@ Credential Redactionや汎用的な機密情報マスキングは、この例外
 
 ## Relationship to Hook logs and REPORT checkpoints
 
-- `.codex/logs/hooks-<safe-session-id>.jsonl` はHookが取得したmachine factを確認するevidenceに使う。
+- `.codex/logs/hooks-<safe-session-id>.jsonl`（Windows sandboxのread-only境界では`.artifacts/codex-hooks/hooks-<safe-session-id>.jsonl`）はHookが取得したmachine factを確認するevidenceに使う。
 - Subagentの意味情報は、TASK完了またはRun完了のREPORT checkpointに`Delegation`、`Result`、`Parent decision`だけを記録する。
 - Hook JSONLとREPORTはevidenceであり、最終判断のsource of truthは`evaluation.json`である。
 

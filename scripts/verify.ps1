@@ -276,7 +276,8 @@ function Test-TemplateContract {
         if ($loggingBlock -notmatch '(?m)^\s*timeout\s*=\s*5\s*$') { throw "logging Hook timeout mismatch: $event" }
         if ($loggingBlock -notmatch [regex]::Escape("log_event.mjs")) { throw "logging Hook logger missing: $event" }
         if ($loggingBlock -notmatch [regex]::Escape("git rev-parse --show-toplevel")) { throw "logging Hook repo-root resolution missing: $event" }
-        if ($loggingBlock -notmatch [regex]::Escape("Join-Path (git rev-parse --show-toplevel)")) { throw "logging Hook Windows repo-root resolution missing: $event" }
+        if ($loggingBlock -notmatch [regex]::Escape("Get-Location")) { throw "logging Hook Windows cwd resolution missing: $event" }
+        if ($loggingBlock -notmatch [regex]::Escape('Join-Path $current.FullName')) { throw "logging Hook Windows logger path resolution missing: $event" }
         if ($loggingBlock -notmatch [regex]::Escape("$event")) { throw "logging Hook expected event missing: $event" }
     }
 

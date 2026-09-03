@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "run_id": "20260903-085515-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Issue #89の実装、回帰テスト、ローカル品質ゲート、commit、push、PR作成・確認が完了した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "src/presentation/components/form-error-summary.tsx",
+          "selector": null,
+          "event_id": null,
+          "summary": "FormErrorSummaryのinvalid submit focus trigger実装"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "pnpm run verify はexit 0"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はFormErrorSummary、Login / SignupのsubmitCount配線、関連component test、必須Run／living documentationに限定し、依存更新や無関係なproduct refactorを行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/component/presentation-foundation.test.tsx",
+          "selector": null,
+          "event_id": null,
+          "summary": "focus挙動とaccessibilityの回帰テスト"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "focused component test、web component test、format、lint、typecheck、full verify、diff checkを実行し、すべて成功した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "pnpm run verifyで全quality gateとbuildが成功"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "指定branchを維持し、force push、reset、cleanup、依存追加を行っていない。Run Artifactの最終更新後にsanitizer Write／Checkを実行し、残存finding 0を確認した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "git branch --show-currentで対象branchを確認"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "実装後にdiff、caller、focus条件、accessibility、入力値保持をself-reviewし、追加findingなしと判断した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260903-085515-JST/REPORT.md",
+          "selector": "2026-09-03 10:15 (JST)",
+          "event_id": null,
+          "summary": "最終self-reviewの判断と根拠"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "既存React Hook FormのsubmitCountをsignalとして再利用し、errors配列参照やtimestamp等の重複triggerを導入していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "src/presentation/pages/auth-pages.tsx",
+          "selector": null,
+          "event_id": null,
+          "summary": "Login / SignupからsubmitCountを配線"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "同一errorの再submit、Login実フォームでのerror 2件から1件へのre-validation中のfocus保持、focus disabled、unrelated rerender、validation後の入力値保持をcomponent testで再現可能な形にした。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "tests/component/auth-account-pages.test.tsx",
+          "selector": null,
+          "event_id": null,
+          "summary": "実際のLogin / Signup flowのfocusと入力値保持テスト"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

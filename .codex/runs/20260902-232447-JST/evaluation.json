@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "run_id": "20260902-232447-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": ["flaky_or_env_issue"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "Windows command parsingのPrimary Causeとsandbox file I/OのSecondary Causeを特定し、loggingを維持した最小修正と回帰保護を実装した。実Codex CLIのHook statusは全対象イベントでCompletedとなり、configured launcherのPostToolUse / StopはJSONL追記とstdout契約を満たした。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/config.toml",
+          "summary": "Windows logging launcherをquote-free commandへ更新"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/log_event.mjs",
+          "summary": "canonical path優先・限定fallbackのloggingを実装"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更はHook launcher、logger、contract test、validator、必要な設計・調査・Run Artifactに限定し、PreToolUse security policy、Unix command、product code、permission設定を変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "差分レビューで禁止されたHook無効化・security policy緩和・force operationは確認されなかった"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "対象contract suiteは127/127 PASS。Node syntax、ESLint、Prettier、Markdown lint、bash / PowerShell verify、git diff check、および実sandbox launcherのPostToolUse / Stop検証もPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "summary": "contract、syntax、lint、format、repository validatorを実行"
+        },
+        {
+          "kind": "validation_command",
+          "summary": "実Codex statusとconfigured launcherのstdin/stdout/stderr/exit/JSONLを確認"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "sandbox writable rootの追加、safe.directory変更、PreToolUse policy緩和、stderrの無条件破棄、force push、reset、他branch書換えを行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/adr/0020-codex-windows-logging-hook-launcher.md",
+          "summary": "permission境界を弱めない設計判断を記録"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Root Cause、Secondary Cause、変更境界、fallback条件、検証制約をdurable reportとADRに分離して記録し、回帰テストは現行Codex runner相当のcmd.exe /C経路を直接検証する。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "docs/reports/2026-09-03_010138_codex_hook_failure_investigation.md",
+          "summary": "調査・根拠・修正・残存リスクを整理"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "canonical .codex/logsを維持し、fallbackを既知のfilesystem path errorに限定した。record schema、redaction、Stop {}契約、security hookの既存挙動を再利用している。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/hooks/log_event.mjs",
+          "summary": "bounded fallback実装"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "warn",
+      "evidence": "direct logger、cmd.exe /C launcher、sandbox launcher、実Codex CLI statusは再現可能な形で確認した。一方、現行codex exec経路ではHook statusとrepository JSONL永続化を同一sessionで観測できず、対話TUIもMCP / model待機でfull lifecycleに到達しなかった。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "summary": "CLI実行経路の観測制約をremaining riskとして扱う"
+        }
+      ]
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "codex execのHook statusはCompletedでもrepository Hook JSONLを保存しない実行経路差があり、対話TUIは外部MCP / model待機でfull lifecycle観測に到達しなかった。",
+      "detail": "repo側のHook修正対象とは分離し、PRのRemaining risksへ記録する。現行sandboxでの実launcher I/Oとcontract suiteは別経路で検証済みである。"
+    }
+  ],
+  "improvement_candidates": []
+}

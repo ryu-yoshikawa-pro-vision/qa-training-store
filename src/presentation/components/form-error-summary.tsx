@@ -8,20 +8,29 @@ export interface FieldErrorItem {
 interface FormErrorSummaryProps {
   title?: string;
   errors: FieldErrorItem[];
+  focusTrigger: number;
   focusOnMount?: boolean;
 }
 
 export function FormErrorSummary({
   title = "入力内容を確認してください",
   errors,
+  focusTrigger,
   focusOnMount = true,
 }: FormErrorSummaryProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const lastFocusedTrigger = useRef<number | null>(null);
   useEffect(() => {
-    if (focusOnMount && errors.length > 0) {
+    if (errors.length === 0) {
+      return;
+    }
+    const isNewFocusTrigger =
+      lastFocusedTrigger.current === null || lastFocusedTrigger.current !== focusTrigger;
+    if (focusOnMount && isNewFocusTrigger) {
       ref.current?.focus();
     }
-  }, [errors.length, focusOnMount]);
+    lastFocusedTrigger.current = focusTrigger;
+  }, [errors.length, focusOnMount, focusTrigger]);
   if (errors.length === 0) {
     return null;
   }

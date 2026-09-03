@@ -107,7 +107,7 @@ function GuideContent() {
   const showTestControl = isTestApiBuild() && currentUser?.role === "admin";
 
   return (
-    <div className="home-page">
+    <div className="home-page home-page--guide">
       <section className="home-hero">
         <div>
           <p className="eyebrow">学習Guide</p>
@@ -132,7 +132,7 @@ function GuideContent() {
           </div>
         </div>
         <div className="home-hero__visual">
-          <section className="membership-panel">
+          <section className="membership-panel membership-panel--guide-accounts">
             <div>
               <p className="eyebrow">固定テストアカウント</p>
               <h2>共通パスワードは {content.guide.fixedPassword}</h2>
@@ -140,7 +140,8 @@ function GuideContent() {
             <ul>
               {content.guide.accounts.map((account) => (
                 <li key={account.email}>
-                  <strong>{account.label}</strong> {account.email}
+                  <strong>{account.label}</strong>
+                  <span className="membership-panel__value">{account.email}</span>
                 </li>
               ))}
             </ul>
