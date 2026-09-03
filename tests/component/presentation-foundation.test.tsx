@@ -61,7 +61,8 @@ describe("presentation foundation", () => {
   });
 
   it("opens async suggestions after normal typing and keeps keyboard selection", async () => {
-    const loadSuggestions = vi.fn(async () => [
+    let resolveSuggestions: ((value: SearchSuggestion[]) => void) | undefined;
+    const suggestions: SearchSuggestion[] = [
       {
         id: "product:shirt",
         label: "ベーシックTシャツ",
@@ -74,39 +75,28 @@ describe("presentation foundation", () => {
         description: "カテゴリ",
         href: "/categories/category-apparel" as const,
       },
-    ]);
+    ];
+    const loadSuggestions = vi.fn(
+      () =>
+        new Promise<SearchSuggestion[]>((resolve) => {
+          resolveSuggestions = resolve;
+        }),
+    );
     render(<SearchCombobox loadSuggestions={loadSuggestions} />);
     const input = screen.getByRole("combobox", { name: "商品を検索" });
     act(() => input.focus());
     fireEvent.change(input, { target: { value: "ベー" } });
-    expect(await screen.findByRole("option", { name: /ベーシックTシャツ/ })).toBeVisible();
-    expect(input).toHaveAttribute("aria-expanded", "true");
-    expect(loadSuggestions).toHaveBeenCalledWith("ベー");
-    fireEvent.keyDown(input, { key: "ArrowDown" });
-    fireEvent.keyDown(input, { key: "Enter" });
-    await waitFor(() => expect(routerPush).toHaveBeenCalledWith("/products/product-basic-shirt"));
-  });
 
-  it("supports moving the active suggestion with ArrowUp", async () => {
-    const loadSuggestions = vi.fn(async () => [
-      {
-        id: "product:shirt",
-        label: "ベーシックTシャツ",
-        description: "商品",
-        href: "/products/product-basic-shirt" as const,
-      },
-      {
-        id: "category:apparel",
-        label: "ファッション",
-        description: "カテゴリ",
-        href: "/categories/category-apparel" as const,
-      },
-    ]);
-    render(<SearchCombobox loadSuggestions={loadSuggestions} />);
-    const input = screen.getByRole("combobox", { name: "商品を検索" });
-    act(() => input.focus());
-    fireEvent.change(input, { target: { value: "ベー" } });
-    await screen.findByRole("option", { name: /ベーシックTシャツ/ });
+    await waitFor(() => expect(loadSuggestions).toHaveBeenCalledWith("ベー"));
+    await waitFor(() => expect(input).toHaveAttribute("aria-expanded", "true"));
+    const loading = await screen.findByText("候補を検索しています");
+    expect(loading).toBeVisible();
+    expect(loading.closest(".search-combobox__popover")).not.toBeNull();
+
+    await act(async () => resolveSuggestions?.(suggestions));
+    expect(await screen.findByRole("option", { name: /ベーシックTシャツ/ })).toBeVisible();
+    expect(screen.queryByText("候補を検索しています")).not.toBeInTheDocument();
+    expect(input).toHaveAttribute("aria-expanded", "true");
 
     fireEvent.keyDown(input, { key: "ArrowDown" });
     await waitFor(() =>

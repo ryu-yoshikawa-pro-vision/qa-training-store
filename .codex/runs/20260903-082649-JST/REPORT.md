@@ -71,3 +71,34 @@
 - Validation: staged diffの`git diff --cached --check`はPASS。
 - Blocker / Remaining: push、main向け非Draft OPEN PRの作成、Run完了報告が残っている。
 - Progress: 78% (7/9)
+
+## 2026-09-03 13:03 (JST)
+
+- Summary: PR #102のレビュー対応を開始し、既存Runを継続して修正範囲を確定した。
+- Changes: 前回Runで実施済みだったpushとPR作成をTASKSへ反映し、レビュー指摘2件を`must_fix`としてrepair対象に分類した。許可する製品ソース変更はなく、`tests/component/presentation-foundation.test.tsx`と標準Run Artifactだけを対象とする。
+- Decision / Rationale: 初回2文字入力のRequest pending状態は既存のAsync Keyboardテストへ追加し、ArrowUpは同じ候補準備処理を再利用してArrowDown 2回・ArrowUp・Enterを一続きで検証する。新規helper、Production変更、別の設計文書は追加しない。
+- Validation: 修正前の確認のみ。focused test以降は未実行。
+- Blocker / Remaining: 初回Loading assertionの追加、ArrowUpテスト統合、validation、diff review、sanitize、commit、push、PR本文の更新が残っている。
+- Progress: 60% (10/15)
+
+## 2026-09-03 13:18 (JST)
+
+- Summary: PR #102の2件のレビュー指摘を、既存Component Testへの最小差分として修正し、必須validationを完了した。
+- Changes: `opens async suggestions after normal typing and keeps keyboard selection`をdeferred Promiseへ変更し、初回2文字入力のRequest pending中に`aria-expanded="true"`、Loading、Popover内表示をresolve前に確認した。resolve後のLoading消失、result表示、Open維持も確認した。ArrowUp検証は同じテストへ統合し、独立テスト`supports moving the active suggestion with ArrowUp`を削除した。Productionコードは変更していない。
+- Decision / Rationale: ArrowDown 2回・ArrowUp・Enterを同じ2件のfixtureで連続検証することで、レビュー指摘の証明力を維持しつつ準備処理の重複を削減した。新規helper、framework、Production変更は不要だった。
+- Validation: `pnpm exec vitest run tests/component/presentation-foundation.test.tsx`は15/15 PASS、`pnpm run test:component:web`は11 files・89 tests PASS、`pnpm run typecheck` PASS、`pnpm run lint` PASS（0 errors・既存warning 65件）、`pnpm run format:check` PASS、`git diff --check` PASS。`pnpm run verify`はContractsのscope外failure 2件（`serve-web-dist.test.ts`のWindows Temp cleanup `EPERM`、`codex-hook-contract.test.ts`のHook matrix timeout）でFAILした。Unit 66、Integration 111、Repository 38、Web Component 89、Native Component 64まではPASSしている。前回Runでは同じ全体verifyがPASSしており、今回の差分に該当実装変更はないため再試行しない。
+- Blocker / Remaining: 必須validationは完了。最終diff review、Run Artifact sanitize、commit、branch push、PR #102本文更新が残っている。verifyのscope外failureはPR本文へ正確に記載する。
+- Progress: 87% (13/15)
+
+## 2026-09-03 13:20 (JST)
+
+- Summary: repair iteration 1のテスト変更、必須validation、最終diff review、Artifact sanitizeを完了した。
+- Input findings: 初回2文字入力のpending Loading検証不足、ArrowUp専用テストの重複。
+- Repair plan: `tests/component/presentation-foundation.test.tsx`だけを修正し、初回LoadingとLoadingからresultへの遷移を既存Keyboardテストへ追加する。ArrowDown/ArrowUp/Enterの検証を同一テストへ統合する。
+- Allowed files: `tests/component/presentation-foundation.test.tsx`、`.codex/runs/20260903-082649-JST/`の標準Run Artifact。
+- Changed files: `tests/component/presentation-foundation.test.tsx`、`.codex/runs/20260903-082649-JST/PLAN.md`、`TASKS.md`、`REPORT.md`。`src/presentation/components/search-combobox.tsx`の変更はない。
+- Validation commands: focused Component Test 15/15 PASS、Web Component 11 files・89 tests PASS、typecheck PASS、lint PASS（0 errors・既存warning 65件）、format:check PASS、`git diff --check` PASS。全体`verify`はscope外のContracts 2件でFAIL（前checkpoint記載の`EPERM`とtimeout）。
+- Remaining delta: verifyの2件は今回のテスト差分と無関係で、前回Runの全体verify PASSとも整合する。Production差分、新規helper、scope超過はない。
+- Decision: continue（指定commit、push、PR #102本文更新が残っている）。
+- Artifact: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260903-082649-JST -Write -Check`は`files_scanned: 4`、`files_changed: 0`、`residual_findings: 0`。
+- Progress: 93% (14/15)

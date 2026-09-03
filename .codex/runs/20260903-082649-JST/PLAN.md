@@ -69,3 +69,19 @@
 - 2026-09-03: Issue本文は検索ロジック変更ではなく、Open/Close境界と表示状態の分離を要求しているため、既存effectのsequence/debounceは維持する。
 - 2026-09-03: `onInputChange`でのcloseを除去し、`setItems([])`と`setLoading(true)`を維持する。React Ariaの`allowsEmptyCollection`が同一Popoverを保持する前提をテストで確認する。
 - 2026-09-03: 完了時の再Openは`onOpenChange(false)`が受けた現在Request IDを抑止値として使う。新しい入力ではSequenceが進むため、明示close後の別Requestは通常どおり開ける。
+
+## Review Repair Plan (PR #102)
+
+- Input findings:
+  - `must_fix`: 初回2文字入力のRequest pending中に、Popover内Loadingが表示されることをComponent Testで直接検証する。
+  - `must_fix`: ArrowUp専用テストを既存Keyboardテストへ統合し、重複する準備処理を削減する。
+- Allowed files:
+  - `tests/component/presentation-foundation.test.tsx`
+  - `.codex/runs/20260903-082649-JST/`の標準Run Artifact
+- Expected source files:
+  - `tests/component/presentation-foundation.test.tsx`
+- Explicitly unchanged:
+  - `src/presentation/components/search-combobox.tsx`
+  - debounce、Sequence制御、検索ロジック、依存関係、CSS、ADR、共通helper
+- Repair bound:
+  - 1 iterationでテストを修正し、focused testと必須validationを実行する。
