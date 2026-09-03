@@ -8,7 +8,7 @@
 - [x] 4. SearchComboboxのOpen/Loading/result/empty/close遷移を最小差分で修正する
 - [x] 5. focused testと必須validationを実行し、失敗があれば修正・再検証する
 - [x] 6. diff、scope、Run Artifactを自己レビューし、sanitizeする
-- [ ] 7. 指定commitを作成する
+- [x] 7. 指定commitを作成する
 - [ ] 8. 指定branchをpushし、main向け非Draft OPEN PRを作成する
 - [ ] 9. REPORTへRun完了を記録し、ユーザーへ最終報告して停止する
 
