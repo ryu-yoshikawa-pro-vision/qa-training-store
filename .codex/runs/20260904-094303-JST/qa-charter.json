@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "charter_id": "CHARTER-092",
+  "spec_refs": [
+    "BR-STOREFRONT-002",
+    "AC-STOREFRONT-002",
+    "docs/spec/features/storefront.md#screen-storefront-product-list-product-list",
+    "docs/spec/features/storefront.md#screen-storefront-search-search",
+    "docs/spec/ui-ux-contract.md#responsive-behavior",
+    "docs/spec/ui-ux-contract.md#accessibility",
+    "docs/spec/state-and-scenarios.md#error-and-boundary-states"
+  ],
+  "mission": "Issue #92のCatalog Loading Stateについて、既存Test Controlで再現可能な検索条件変更を使い、Desktopとcompact Web RuntimeのResults Grid、Footer位置、Loading accessibility、previousResult遷移を実ブラウザで観察する。",
+  "risk": "Loading中にResults領域が縮退してFooterが大きく移動すること、また前回Result保持がFacet操作・Empty・連続Requestの表示を誤らせることが、商品探索とResponsive操作性を損なうリスクを確認する。",
+  "role": "guest",
+  "seed": "default",
+  "platform": "web",
+  "viewport_or_device": "desktop-1440x1000-and-compact-390x844",
+  "required_coverage": [
+    {
+      "coverage_id": "COV-001",
+      "mission": "default seedのDesktop 1440x1000で商品一覧初回LoadingからLoadedまで、Grid、Skeleton、Footer位置、overflowを観察する。",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "desktop-1440x1000",
+      "required_evidence_types": ["screenshot", "dom", "url"]
+    },
+    {
+      "coverage_id": "COV-002",
+      "mission": "default seedのDesktopでFilter変更中にGrid内Skeleton、Footer、Empty非表示、Filter操作性を観察する。",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "desktop-1440x1000",
+      "required_evidence_types": ["screenshot", "dom", "url"]
+    },
+    {
+      "coverage_id": "COV-003",
+      "mission": "default seedのDesktopでSearch結果を変更し、Loading中のGrid維持とLoaded後の新結果または0件Emptyへの遷移を観察する。",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "desktop-1440x1000",
+      "required_evidence_types": ["screenshot", "dom", "url"]
+    },
+    {
+      "coverage_id": "COV-004",
+      "mission": "default seedのDesktopでSortを変更し、Loading中のSkeleton、選択値、Loaded後の結果とFooter位置を観察する。",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "desktop-1440x1000",
+      "required_evidence_types": ["screenshot", "dom", "url"]
+    },
+    {
+      "coverage_id": "COV-005",
+      "mission": "many-products seedのDesktopでPaginationを変更し、Loading中もGridが維持され、指定pageとURLでLoadedすることを観察する。",
+      "role": "guest",
+      "seed": "many-products",
+      "platform": "web",
+      "viewport_or_device": "desktop-1440x1000",
+      "required_evidence_types": ["screenshot", "dom", "url"]
+    },
+    {
+      "coverage_id": "COV-006",
+      "mission": "default seedのcompact 390x844で商品一覧初回LoadingのGrid列、Skeleton高さ、Footer、overflowを観察する。",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "compact-390x844",
+      "required_evidence_types": ["screenshot", "dom", "url"]
+    },
+    {
+      "coverage_id": "COV-007",
+      "mission": "default seedのcompact 390x844でFilter変更中のSkeleton、操作性、Footer、overflowを観察する。",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "compact-390x844",
+      "required_evidence_types": ["screenshot", "dom", "url"]
+    },
+    {
+      "coverage_id": "COV-008",
+      "mission": "default seedのcompact 390x844でSearch結果変更中のSkeleton、Loaded／Empty遷移、Footer、overflowを観察する。",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "compact-390x844",
+      "required_evidence_types": ["screenshot", "dom", "url"]
+    },
+    {
+      "coverage_id": "COV-009",
+      "mission": "default seedのDesktopでLoading中にFilterを連続変更し、最終URLと結果が最後のRequestに一致し、古いProductCardが復帰しないことを観察する。",
+      "role": "guest",
+      "seed": "default",
+      "platform": "web",
+      "viewport_or_device": "desktop-1440x1000",
+      "required_evidence_types": ["screenshot", "dom", "url"]
+    }
+  ],
+  "allowed_runtime_controls": ["seed_reset", "app_restart"],
+  "exploration_budget": {
+    "max_duration_seconds": 1200,
+    "max_tool_actions": 220
+  },
+  "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
+}

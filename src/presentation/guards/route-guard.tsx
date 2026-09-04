@@ -13,11 +13,19 @@ export type RouteAccess =
   | "admin"
   | "automation-admin";
 
-export function RouteGuard({ access, children }: { access: RouteAccess; children: ReactNode }) {
+export function RouteGuard({
+  access,
+  children,
+  loadingFallback,
+}: {
+  access: RouteAccess;
+  children: ReactNode;
+  loadingFallback?: ReactNode;
+}) {
   const { ready, error, currentUser } = useAppRuntime();
   const pathname = usePathname();
   if (!ready) {
-    return <StatePanel kind="loading" />;
+    return loadingFallback ?? <StatePanel kind="loading" />;
   }
   if (error !== null) {
     return <StatePanel kind="error" body={error.message} />;
