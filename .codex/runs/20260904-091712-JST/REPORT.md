@@ -139,3 +139,26 @@
 - Repair loop: iteration_number=1; input_findings=前回レビューの3点; repair_plan=Learning DesignのP2 prerequisite文を局所修正し、Run Artifactへ事実をappendし、PR本文を現状へ更新する; allowed_files=`docs/curriculum/test-automation/00_learning-design.md`, `.codex/runs/20260904-091712-JST/REPORT.md`, `.codex/runs/20260904-091712-JST/TASKS.md`; changed_files=`docs/curriculum/test-automation/00_learning-design.md`, `.codex/runs/20260904-091712-JST/REPORT.md`, `.codex/runs/20260904-091712-JST/TASKS.md`; validation_result=pending; remaining_delta=PR本文と最終validation; decision=continue。
 - Subagents: Delegationなし。Resultなし。Parent decision: path不一致以外の要件は明確なため、Repository canonical fileで最小修正を継続する。
 - Progress: 91% (10/11)
+
+## 2026-09-04 18:22 (JST)
+
+- Summary: 依頼されたRun ArtifactのLearning Design filename訂正について、変更前のread-only確認で依頼内容とRepository / PRの実状態が一致しないことを確認した。
+- Verification: `git ls-files docs/curriculum/test-automation | Select-String '00_learning'` と `gh pr diff 103 --name-only` は `docs/curriculum/test-automation/00_learning-design.md` を返し、`docs/curriculum/test-automation/00_learning_design.md` は存在しない。指定されたlatest main `9de2b837d3bbfafe9c830064feda57995239d120`はHEADのancestorである。なお、local `origin/main`は後続commit `a9fcb63`を指すため、`git merge-base --is-ancestor origin/main HEAD`はFAILとなった。
+- Decision / Rationale: 前回checkpointのハイフン版を誤りとし、存在しないunderscore版を「正しい実ファイル」「PR #103変更対象」「実装済み」と記録することは、確認済みGit treeとPR changed filesに反する。実装ファイル、TASKS、PR本文は変更せず、事実と異なる訂正checkpointを作成しない。
+- Validation: `git status`はclean、branchは`docs/decision-b-competency-assessment-contract`、HEADは`2c69b1193da68a642c1d764aa6a6624f62e8e0a3`。今回のfilename訂正を適用していないため、`git diff --check`以外のvalidationは未実行。
+- Blocker / Remaining: ユーザーまたはRepository側のcanonical filenameに関する確認が必要。確認完了までcommit / pushは行わない。PR #103本文は変更していない。
+- Repair loop: iteration_number=1; input_findings=Run Artifact filename訂正; repair_plan=read-onlyで実ファイル・PR changed files・ancestryを確認; allowed_files=`.codex/runs/20260904-091712-JST/REPORT.md`; changed_files=`.codex/runs/20260904-091712-JST/REPORT.md`; validation_result=要求内容とGit / PR事実の不一致; remaining_delta=canonical filenameの確認; decision=stop_needs_human。
+- Subagents: Delegationなし。Resultなし。Parent decision: 事実と異なるRun Artifactをcommit / pushせず、ユーザー確認へ戻す。
+- Progress: 0% (0/1)
+
+## 2026-09-04 19:35 (JST)
+
+- Summary: 前回停止後にGit tree、PR changed files、Repository canonical pathを再確認し、Learning Designの正しいfilenameを確定した。
+- Resolution: 正しいcanonical fileは`docs/curriculum/test-automation/00_learning-design.md`であり、underscore版`docs/curriculum/test-automation/00_learning_design.md`は存在しない。
+- Decision / Rationale: 前回の停止判断は、Repositoryの実態と矛盾するfilename訂正をcommitしないため妥当だった。hyphen版を維持し、rename、duplicate file作成、validator変更は行わない。
+- Impact: PR #103のCurriculum実装は既に正しいhyphen版へ反映済みであり、Curriculum実装本体への追加修正は不要。historical checkpointはappend-only方針に従い変更していない。
+- Main sync: `git fetch origin`後の`SYNC_MAIN_SHA=6605200b2f0de8787cc527e64c5426c89ae569ff`（`fix: 配送先削除時の確認文言を明確化 (#110)`）を同期対象として固定した。merge-baseは`9de2b837d3bbfafe9c830064feda57995239d120`で、main側deltaにPR3関連pathの変更はない。
+- Remaining: 解決checkpointのcommit、`origin/main`のmerge、6 validation再実行、PR本文のpath誤記訂正、最終commit / pushが残る。
+- Repair loop: iteration_number=1; input_findings=Run Artifact filename訂正; repair_plan=canonical filenameを確定し、解決記録をappendしてからlatest mainをmergeし、validationとPR metadataを更新する; allowed_files=`.codex/runs/20260904-091712-JST/REPORT.md`; changed_files=`.codex/runs/20260904-091712-JST/REPORT.md`; validation_result=canonical path / PR changed files確認済み、main PR3関連deltaなし; remaining_delta=merge、validation、PR本文、commit / push; decision=continue。
+- Subagents: Delegationなし。Resultなし。Parent decision: Repositoryの事実を優先し、PR3実装本体・validator・README等へ変更を広げない。
+- Progress: 50% (0/1)
