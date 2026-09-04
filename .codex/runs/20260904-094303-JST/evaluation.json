@@ -21,7 +21,7 @@
           "path": null,
           "selector": null,
           "event_id": null,
-          "summary": "指定commit 999d26f、push、PR #107 OPENを確認"
+          "summary": "修正commit 5ff7a6d、push、PR #107 OPENを確認"
         }
       ]
     },
@@ -47,7 +47,7 @@
           "path": null,
           "selector": null,
           "event_id": null,
-          "summary": "pnpm run verifyはexit 0、Chromium E2Eは30 tests passed"
+          "summary": "pnpm run verifyはHook contract代表ケースtimeoutで完遂せず、対象Hook file単独は127/127、Chromium E2Eは30 tests passed"
         }
       ]
     },
@@ -113,7 +113,7 @@
           "path": null,
           "selector": null,
           "event_id": null,
-          "summary": "pnpm run verifyとtest:e2e:chromiumの最終実行"
+          "summary": "pnpm run verifyは同一Hook contract timeoutで完遂せず、test:e2e:chromiumは30/30 PASS"
         }
       ]
     }

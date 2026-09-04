@@ -16,12 +16,12 @@
 - [x] 9. Desktopの初回Loading、Filter、Search、Sort、PaginationとFooter位置を実ブラウザで確認する
 - [x] 10. Compact（390x844）の初回Loading、Filter、SearchとResponsive／overflowを実ブラウザで確認する
 - [x] 11. `previousResult` のFacet表示、連続Filter変更、Loaded／Empty／Error遷移を確認する
-- [ ] 12. QA Findings、AFTER Snapshot、Comparison、Sanitizerを確定する
-- [ ] 13. PR #107へ実際のBrowser Verification結果を反映する（production code変更が必要な場合のみ修正する）
-- [ ] 14. PR #107最新HEADのWeb CI／Mobile App CI状態を確認する
+- [x] 12. QA Findings、AFTER Snapshot、Comparison、Sanitizerを確定する
+- [x] 13. PR #107へ実際のBrowser Verification結果を反映する（production code変更が必要な場合のみ修正する）
+- [x] 14. PR #107最新HEADのWeb CI／Mobile App CI状態を確認する
 
 ## Blocked
 
 - なし
 
-- Progress: 79% (11/14)
+- Progress: 100% (14/14)

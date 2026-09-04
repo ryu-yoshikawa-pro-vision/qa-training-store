@@ -239,3 +239,27 @@
 - Decision:
   - FIND-001／FIND-002は実害としてconfirmedし、Catalog page／RouteGuard fallbackの最小修正で解消。`useAsyncValue`、API、Repository、Filter／Sort／Pagination architectureは変更しない。
 - Progress: 79% (11/14)
+
+## 2026-09-04 18:01 (JST)
+
+- Summary:
+  - PR #107のBrowser Verification結果を本文へ反映し、PRはOPEN／非Draftのまま、merge／auto-merge／Issueの手動closeは行っていない。
+  - push後の最新HEAD `5ff7a6d4ec4aac2a44e5b34f0ac9976686699da2`について、Web CIとMobile App CIの状態を確認した。
+- CI:
+  - Web CI run `33855690244`: completed／success。Code Quality、Vitest各種、build、Chromium E2E、UI Review、production-smoke、deploy-previewを含む実行済みjobはsuccess（Extended E2E mobile-chromiumはworkflow設定によりskipped）。
+  - Mobile App CI run `33855690416`: completed／success。変更検知によりAndroid／iOSの一部jobはskipped、`native-ci / verify`はsuccess。
+- PR:
+  - `gh pr view 107`: state=`OPEN`、isDraft=`false`、base=`main`、head branchは指定どおり、`mergeStateStatus=CLEAN`、`autoMergeRequest=null`。
+  - PR本文へDesktop／compactの初回Loading、Filter、Search、Sort、Pagination、rapid FilterとFooter観測値を追記済み。`Closes #92`は維持した。
+- Completion:
+  - TASKS 12／13／14を完了に更新し、RunのProgressを`100% (14/14)`とした。
+  - ローカル`pnpm run verify`はHook contract代表ケースの共有環境timeoutで完遂しなかったが、該当file単独は127/127 PASS、GitHub ActionsのWeb CI verify jobはsuccessだった。この差分を成功扱いにせず記録した。
+- Evidence:
+  - `.artifacts/issue-92-pr107/desktop-initial-post-fix.json`
+  - `.artifacts/issue-92-pr107/desktop-reloads-post-fix.json`
+  - `.artifacts/issue-92-pr107/desktop-sort-pagination-post-fix.json`
+  - `.artifacts/issue-92-pr107/compact-post-fix.json`
+  - `.artifacts/issue-92-pr107/rapid-filter-post-fix.json`
+  - `gh run view 33855690244 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,headSha`
+  - `gh run view 33855690416 --repo ryu-yoshikawa-pro-vision/qa-training-store --json status,conclusion,headSha`
+- Progress: 100% (14/14)
