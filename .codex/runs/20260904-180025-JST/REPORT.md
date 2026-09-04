@@ -92,6 +92,19 @@
   - Parent decision: ローカルのDoDは完了、外部CIはpendingとして引き渡し、mergeは行わない。
 - Progress: 100% (10/10)
 
+## 2026-09-04 19:11 (JST)
+
+- Summary: 最終push後のPR状態を再確認した。PR #112はOPEN・非Draft・base=`main`・head=`fix/issue-93-rating-review-anchor`、本文に`Closes #93`があり、GitHub上のmergeable判定は`MERGEABLE`だった。
+- Changes: Product source／testの追加変更はない。最終Run ArtifactのCI状態記録だけを追記する。
+- Decision / Rationale: `mergeStateStatus=BLOCKED`は必須CI待ちによるもので、競合を意味しない。現時点の`gh pr checks 112`では`CodeRabbit`がpass（OSS repositoryのmanual review requiredでreview skipped）、`Detect Native Changes`とCodeQL 3件がpendingであるため、CI全体を成功とは判定しない。
+- Validation: `gh pr view 112 --json body,mergeable,mergeStateStatus` — `Closes #93=true`、`mergeable=MERGEABLE`、`mergeStateStatus=BLOCKED`。`scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260904-180025-JST -Check` — residual findings 0。`git status --short` — clean。
+- Blocker / Remaining: 外部CIの完了とmaintainer reviewのみ残る。mergeは実行していない。本RunのローカルDoDとPR handoffは完了している。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: CI pendingを正確に引き渡し、これ以上の自動修正・merge・再レビュー起動は行わない。
+- Progress: 100% (10/10)
+
 ## 2026-09-04 19:06 (JST)
 
 - Summary: 作業中に`origin/main`が#110／#107を含む4コミット先行へ更新されたため、read-onlyで再確認した。Product Detail source、Storefront Header、Router関連の差分はなく、Issue #93のBaseline判定と修正差分への影響はない。
