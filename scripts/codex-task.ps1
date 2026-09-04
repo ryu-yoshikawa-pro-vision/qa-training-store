@@ -1741,7 +1741,7 @@ function Invoke-NativeCommand {
     }
 
     try {
-        & $Command @CommandArgs
+        & $Command @CommandArgs | Out-Host
         return $LASTEXITCODE
     }
     finally {
