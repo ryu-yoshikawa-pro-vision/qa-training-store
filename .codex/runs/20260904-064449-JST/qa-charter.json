@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "charter_id": "CHARTER-002",
+  "spec_refs": [
+    "docs/spec/README.md"
+  ],
+  "mission": "直前Codex sessionのhook exited with code 1を、event・handler・source layer・launcher境界・実runtimeのEvidenceで特定し、timeoutやPreToolUse denyと分離する",
+  "risk": "Hook failureの発生元を誤認して安全policyを弱めたり、logging／lifecycle failureをtimeoutとして不要に隠すリスク",
+  "role": "operator",
+  "seed": "codex-hook-exit1-20260904",
+  "platform": "web",
+  "viewport_or_device": "Windows CLI host (installed Codex CLI 0.153.0)",
+  "required_coverage": [
+    {
+      "coverage_id": "COV-004",
+      "mission": "全6 configured eventと候補sourceを列挙し、直前sessionのHook identity・config layer・UI statusをredactedに相関する",
+      "role": "operator",
+      "seed": "codex-hook-exit1-20260904",
+      "platform": "web",
+      "viewport_or_device": "Windows CLI host",
+      "required_evidence_types": ["console", "narrow_log"]
+    },
+    {
+      "coverage_id": "COV-005",
+      "mission": "候補handlerをscript単体とconfigured Windows launcherで正常・logger missing・Node nonzero・Git root失敗に分け、exit／stdout／stderr／durationを確認する",
+      "role": "operator",
+      "seed": "codex-hook-exit1-20260904",
+      "platform": "web",
+      "viewport_or_device": "Windows CLI host",
+      "required_evidence_types": ["console", "narrow_log"]
+    },
+    {
+      "coverage_id": "COV-006",
+      "mission": "可能な範囲で実Codex runtimeの最小発火を行い、Hook status・spawn・process exit・side effectをA/B結果と照合する",
+      "role": "operator",
+      "seed": "codex-hook-exit1-20260904",
+      "platform": "web",
+      "viewport_or_device": "Windows CLI host",
+      "required_evidence_types": ["console", "narrow_log"]
+    }
+  ],
+  "allowed_runtime_controls": [],
+  "exploration_budget": {
+    "max_duration_seconds": 1800,
+    "max_tool_actions": 40
+  },
+  "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
+}
