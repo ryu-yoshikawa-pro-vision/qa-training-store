@@ -10,8 +10,8 @@
 - [x] 5. 必要最小限のComponent/UI回帰テストを追加または更新する。
 - [x] 6. targeted test、静的検証、Build、Browser確認を実行する。
 - [x] 7. Issue再読・self-review・diff確認を行う。
-- [ ] 8. commit、push、OPEN PR作成・URL確認を行う。
-- [ ] 9. REPORTへRun完了checkpointを追記し、Artifactをsanitize/checkする。
+- [x] 8. commit、push、OPEN PR作成・URL確認を行う。
+- [x] 9. REPORTへRun完了checkpointを追記し、Artifactをsanitize/checkする。
 
 ## Discovered
 

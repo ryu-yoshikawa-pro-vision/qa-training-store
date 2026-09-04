@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "Issue #94の原因調査、Label側の最小修正、回帰test、検証、self-reviewまで完了し、正式名称と既存レイアウトを維持した。",
+      "evidence": "Issue #94の原因調査、Label側の最小修正、回帰test、検証、self-review、commit、push、OPEN PR作成まで完了し、正式名称と既存レイアウトを維持した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
