@@ -162,3 +162,26 @@
 - Repair loop: iteration_number=1; input_findings=Run Artifact filename訂正; repair_plan=canonical filenameを確定し、解決記録をappendしてからlatest mainをmergeし、validationとPR metadataを更新する; allowed_files=`.codex/runs/20260904-091712-JST/REPORT.md`; changed_files=`.codex/runs/20260904-091712-JST/REPORT.md`; validation_result=canonical path / PR changed files確認済み、main PR3関連deltaなし; remaining_delta=merge、validation、PR本文、commit / push; decision=continue。
 - Subagents: Delegationなし。Resultなし。Parent decision: Repositoryの事実を優先し、PR3実装本体・validator・README等へ変更を広げない。
 - Progress: 50% (0/1)
+
+## 2026-09-04 19:37 (JST)
+
+- Summary: fetch後に固定したlatest mainのmergeを試みたが、Git mutationが実行前に環境ポリシーで拒否されたため、作業を停止した。
+- Main sync: `SYNC_MAIN_SHA=6605200b2f0de8787cc527e64c5426c89ae569ff`。`git fetch origin`は成功し、`git merge origin/main`は`Rejected("approval required by policy, but AskForApproval is set to Never")`で拒否された。mergeは開始されておらず、conflictは発生していない。
+- Validation: merge後の6 validation、manual cross-check、PR本文path訂正、最終commit / pushは未実行。merge前の解決checkpoint commit `efa406eae0d3fc37e78ef85d32458dbb6090c575`は作成済み。HEADは`efa406eae0d3fc37e78ef85d32458dbb6090c575`、`origin/main`は`6605200b2f0de8787cc527e64c5426c89ae569ff`。
+- Blocker / Remaining: 実行ポリシーによるmerge拒否が解消されるまで継続不可。PR #103本文は未変更、PR branchへの追加pushは行っていない。ユーザーまたは実行環境側でmerge mutationを実行可能にした後、merge・6 validation・PR本文訂正・pushを再開する。
+- Repair loop: iteration_number=2; input_findings=latest main merge mutationの実行ポリシー拒否; repair_plan=mergeを迂回せず停止し、拒否事実と未実行工程を記録する; allowed_files=`.codex/runs/20260904-091712-JST/REPORT.md`; changed_files=`.codex/runs/20260904-091712-JST/REPORT.md`; validation_result=merge前停止; remaining_delta=merge、6 validation、PR本文、最終commit / push; decision=stop_needs_human。
+- Subagents: Delegationなし。Resultなし。Parent decision: permission / sandbox policyを迂回せず、rebase・force push・reset・推測解決を行わない。
+- Progress: 0% (0/1)
+
+## 2026-09-04 19:50 (JST)
+
+- Summary: ユーザーによるlatest main取り込み後の状態を確認し、同期済みbranchで6 validationとPR3 invariantのmanual cross-checkを完了した。
+- Main sync: `SYNC_MAIN_SHA=6605200b2f0de8787cc527e64c5426c89ae569ff`を`origin/main`として固定した。ユーザーが`1348b4c20d089d27a446520ca9d948be3b2cb892`でmainをmerge済みで、現在HEAD `ad6b4cc1a93bf3ae3cdbadf73412fd5e9ca94fba`は`origin/main`のancestor関係を満たす。conflictはない。
+- Validation: `pnpm run format:check` PASS、`pnpm run lint:markdown` PASS（0 issues / 367 files）、`pnpm run validate:curriculum` PASS（22 required documents / 4 workbook files / 2 training projects）、`pnpm run test:contracts` PASS（33 files、490 passed / 3 skipped / 493 tests）、`pnpm run typecheck` PASS（app / native-tests / training）、`git diff --check` PASS。
+- Manual cross-check: Part 1 Common=`C01〜C07 + C09〜C10`、Part 2 / Final Common=`C01〜C07 + C09〜C12`、C08 Native specialization / Common non-required、C08 evidence、C11 third-party non-required、C12 bounded Web CI、4 route、P2 Native prerequisite、hyphen canonical filenameを確認した。`training-curriculum.test.ts`は13 `it`で、新規2件の状態を維持している。
+- PR metadata: PR #103は`OPEN` / `MERGEABLE`、base=`main`、head branch一致。PR本文は既にhyphen版`docs/curriculum/test-automation/00_learning-design.md`で、underscore版は残っていないため変更していない。
+- Scope: current uncommitted diffは前回停止記録を含む`.codex/runs/20260904-091712-JST/REPORT.md`のみ。PR3実装本体、validator、Product、Training、workflow、Formal docsへの今回追加差分はない。
+- Remaining: 最終REPORT checkpoint、Sanitizer、commit / push、push後のPRとworking tree確認が残る。validation blockerはない。
+- Repair loop: iteration_number=3; input_findings=latest main取り込み後の最終化; repair_plan=同期後validationとmanual cross-checkを完了し、PR metadataとRun Artifactを最終確認してからcommit / pushする; allowed_files=`.codex/runs/20260904-091712-JST/REPORT.md`; changed_files=`.codex/runs/20260904-091712-JST/REPORT.md`; validation_result=6項目およびmanual cross-check PASS; remaining_delta=final record、commit / push、post-push verification; decision=continue。
+- Subagents: Delegationなし。Resultなし。Parent decision: PR本文が既に正しいため外部metadataを変更せず、Run Artifactのみを最小更新する。
+- Progress: 80% (4/5)
