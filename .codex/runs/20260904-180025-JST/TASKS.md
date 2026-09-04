@@ -10,7 +10,7 @@
 - [x] 6. 再現結果からRoot Causeと実装要否を判定する
 - [x] 7. 再現時だけ最小修正とRegression Testを実装する
 - [x] 8. targeted／指定／統合Validationを実行する
-- [ ] 9. 最終diff review、sanitizer、commit／push／PR確認を行う
+- [x] 9. 最終diff review、sanitizer、commit／push／PR確認を行う
 - [ ] 10. Run Artifactと最終報告を確定する
 
 ## Discovered
