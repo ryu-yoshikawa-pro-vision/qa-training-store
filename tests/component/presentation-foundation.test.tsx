@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 
 const routerPush = vi.fn();
 
@@ -16,7 +16,7 @@ import { ConfirmDialog } from "@/presentation/components/confirm-dialog";
 import { FormErrorSummary } from "@/presentation/components/form-error-summary";
 import { SearchCombobox, type SearchSuggestion } from "@/presentation/components/search-combobox";
 import { StatePanel } from "@/presentation/components/states";
-import { Pagination, ResourceTable } from "@/presentation/patterns/admin-patterns";
+import { Breadcrumbs, Pagination, ResourceTable } from "@/presentation/patterns/admin-patterns";
 
 describe("presentation foundation", () => {
   beforeEach(() => {
@@ -508,6 +508,31 @@ describe("presentation foundation", () => {
     expect(await screen.findByRole("alertdialog", { name: "本当にResetしますか" })).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "閉じる" }));
     await waitFor(() => expect(trigger).toHaveFocus());
+  });
+
+  it("renders the shared breadcrumb semantics for links and the current page", () => {
+    render(
+      <Breadcrumbs
+        items={[
+          { label: "ホーム", href: "/" },
+          { label: "商品", href: "/products" },
+          { label: "ベーシックTシャツ" },
+        ]}
+      />,
+    );
+
+    const navigation = screen.getByRole("navigation", { name: "パンくず" });
+    expect(navigation).toBeVisible();
+    expect(within(navigation).getAllByRole("link")).toHaveLength(2);
+    expect(within(navigation).getByRole("link", { name: "ホーム" })).toHaveAttribute("href", "/");
+    expect(within(navigation).getByRole("link", { name: "商品" })).toHaveAttribute(
+      "href",
+      "/products",
+    );
+    expect(within(navigation).getByText("ベーシックTシャツ")).toHaveAttribute(
+      "aria-current",
+      "page",
+    );
   });
 
   it("renders an admin resource table with semantic headers and caption", () => {

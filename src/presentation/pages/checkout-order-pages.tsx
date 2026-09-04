@@ -21,6 +21,7 @@ import { useAsyncValue } from "@/presentation/hooks/use-async-value";
 import { content, labels, shipmentDisplayLabel } from "@/presentation/content/dictionary";
 import { claimCheckoutNotice } from "@/presentation/browser/one-time-notice.web";
 import { useRouteHeadingFocus } from "@/presentation/hooks/use-route-heading-focus";
+import { Breadcrumbs } from "@/presentation/patterns/admin-patterns";
 
 const paymentLabels: Record<PaymentMethodCode, string> = {
   "TEST-SUCCESS": "テスト決済（成功）",
@@ -672,14 +673,7 @@ function OrderDetailContent({ orderId }: { orderId: string }) {
   return (
     <div className="order-detail-page">
       <AccountNavigation current="orders" />
-      <nav className="breadcrumbs" aria-label="パンくず">
-        <ol>
-          <li>
-            <Link href="/orders">注文履歴</Link>
-          </li>
-          <li aria-current="page">{order.orderNumber}</li>
-        </ol>
-      </nav>
+      <Breadcrumbs items={[{ label: "注文履歴", href: "/orders" }, { label: order.orderNumber }]} />
       <header>
         <p className="eyebrow">注文詳細</p>
         <h1>{order.orderNumber}</h1>
