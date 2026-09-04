@@ -106,3 +106,25 @@
 - Blocker / Remaining: blockerなし。次に`test:contracts`、`typecheck`、残りのdiff / scope / sanitizer確認を行う。
 - Subagents: Delegationなし。Resultなし。Parent decision: failureは今回diff由来のfilename typoとして最小修正し、関連gateを再実行する。
 - Progress: 70% (7/10)
+
+## 2026-09-04 17:51 (JST)
+
+- Summary: 前回レビューの最終修正として、P2 Native specialization開始前のCommon prerequisite表現を一意化し、指定された6項目のvalidationを再実行した。
+- Changes: `docs/curriculum/test-automation/00_learning-design.md`のPart 2前提を「P2 Native specializationを開始する前のCommon prerequisiteはP2-5まで」と明示する文へ最小修正した。Run Artifactのファイル名については、ユーザー要求に示された`docs/curriculum/test-automation/00_learning_design.md`がRepository上に存在しないため、実在canonicalの`docs/curriculum/test-automation/00_learning-design.md`を正しい対象として記録する。
+- Decision / Rationale: README、`scripts/validate-curriculum.ts`、Master Plan、Git treeがいずれも`00_learning-design.md`を参照している。rename・重複ファイル作成・validator変更は今回のscopeとvalidation契約に反するため行わない。historical checkpointは書き換えていない。
+- Validation: `pnpm run format:check` PASS、`pnpm run lint:markdown` PASS（0 issues / 364 files）、`pnpm run validate:curriculum` PASS（22 required documents / 4 workbook files / 2 training projects）、`pnpm run test:contracts` PASS（33 files、490 passed / 3 skipped / 493 tests）、`pnpm run typecheck` PASS（app / native-tests / training）、`git diff --check` PASS。TS7006の再発なし。
+- Blocker / Remaining: validation blockerなし。最終diff確認、Run Artifact sanitizer、commit / push、PR #103本文更新が残る。
+- Repair loop: iteration_number=1; input_findings=前回レビューの3点; repair_plan=Learning DesignのP2 prerequisite文とRun Artifactの実在filename表記を整合させ、PR本文を実装済み状態へ更新する; allowed_files=`docs/curriculum/test-automation/00_learning-design.md`, `.codex/runs/20260904-091712-JST/REPORT.md`, `.codex/runs/20260904-091712-JST/TASKS.md`; changed_files=`docs/curriculum/test-automation/00_learning-design.md`, `.codex/runs/20260904-091712-JST/REPORT.md`, `.codex/runs/20260904-091712-JST/TASKS.md`; validation_result=6項目PASS; remaining_delta=最終確認とGit / PR更新; decision=continue。
+- Subagents: Delegationなし。Resultなし。Parent decision: path表記の要求とRepository canonicalの不一致は事実を優先し、PR3実装本体とvalidatorへ変更を広げない。
+- Progress: 91% (10/11)
+
+## 2026-09-04 17:40 (JST)
+
+- Summary: 前回レビューの最終修正を開始し、P2 Native specialization開始前のCommon prerequisite表現を一意化する対象と、Run Artifactのファイル名表記を確認した。
+- Changes: `docs/curriculum/test-automation/00_learning-design.md`のPart 2前提を「P2 Native specializationを開始する前のCommon prerequisiteはP2-5まで」と読める表現へ最小修正した。Run Artifactの訂正対象はこの後の最終checkpointで追記する。
+- Decision / Rationale: ユーザー指定の`docs/curriculum/test-automation/00_learning_design.md`はRepository上に存在せず、trackedな実在canonical fileは`docs/curriculum/test-automation/00_learning-design.md`だった。README、`scripts/validate-curriculum.ts`、Master Planも後者を参照しているため、rename・重複ファイル作成・validator変更は行わない。
+- Validation: 修正後validationは未実行。latest main `9de2b837d3bbfafe9c830064feda57995239d120`が現在HEADのancestorであること、branch / PR #103 / clean working treeを確認済み。
+- Blocker / Remaining: PR #103本文更新、Run Artifactの訂正checkpoint、6項目validation、差分確認、commit / pushが残る。指定パスとRepository canonical pathの不一致は、実在canonical pathを採用する判断で解消した。
+- Repair loop: iteration_number=1; input_findings=前回レビューの3点; repair_plan=Learning DesignのP2 prerequisite文を局所修正し、Run Artifactへ事実をappendし、PR本文を現状へ更新する; allowed_files=`docs/curriculum/test-automation/00_learning-design.md`, `.codex/runs/20260904-091712-JST/REPORT.md`, `.codex/runs/20260904-091712-JST/TASKS.md`; changed_files=`docs/curriculum/test-automation/00_learning-design.md`, `.codex/runs/20260904-091712-JST/REPORT.md`, `.codex/runs/20260904-091712-JST/TASKS.md`; validation_result=pending; remaining_delta=PR本文と最終validation; decision=continue。
+- Subagents: Delegationなし。Resultなし。Parent decision: path不一致以外の要件は明確なため、Repository canonical fileで最小修正を継続する。
+- Progress: 91% (10/11)

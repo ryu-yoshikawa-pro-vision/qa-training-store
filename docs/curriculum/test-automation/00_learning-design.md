@@ -124,7 +124,7 @@ Git、GitHub、Pull Request、GitHub ActionsはPart 2で扱います。
 
 Part 2ではGitHubを扱うため、GitHubアカウントを利用できることを前提とします。
 
-Part 2 CommonはP2-5までを前提とし、P2-6 Native CIとMaestroは選択式のNative specializationです。P2-6を選択しない受講者はP2-6をskipしてP2-7へ進み、完了した受講者はP2-7へrejoinします。P2-6を選択する場合は、P1 Native specializationで得るMaestro実行能力をNative内部prerequisiteとして先に満たします。P1 Native specialization未修了でP2 Nativeを選ぶ場合も、同じNative内部prerequisiteを先に満たします。
+P2 Native specializationを開始する前のCommon prerequisiteはP2-5までであり、P2-6 Native CIとMaestroは選択式のNative specializationです。P2-6を選択しない受講者はP2-6をskipしてP2-7へ進み、完了した受講者はP2-7へrejoinします。P2-6を選択する場合は、P1 Native specializationで得るMaestro実行能力をNative内部prerequisiteとして先に満たします。P1 Native specialization未修了でP2 Nativeを選ぶ場合も、同じNative内部prerequisiteを先に満たします。
 
 ただし、受講者がこのRepository本体へのPush権限を持つことは前提にしません。
 
