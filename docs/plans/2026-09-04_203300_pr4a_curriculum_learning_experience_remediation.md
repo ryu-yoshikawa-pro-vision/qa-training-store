@@ -731,7 +731,6 @@ Candidate examples:
 
 - Common routeからP1-7 / P2-6をRequiredへ戻すregressionの防止
 - Instructor ReferenceをLearner Required pathと誤認させるmachine contractの防止
-- canonical Test Case ID grammar等、既存contractと教材文言の再不整合防止
 
 次はcontract testへ追加しない。
 
@@ -758,7 +757,14 @@ git diff --check
 
 `pnpm typecheck` は `scripts/validate-curriculum.ts`、`tests/contracts/training-curriculum.test.ts`、その他TypeScript contractを変更した場合だけ実行する。
 
-Manual validationは、Task 5で作成した `docs/reference/curriculum-self-study-review.md` を観点として使い、以下の4つの **full learner route** を実際に順番にwalkthroughする。Common prefixを各routeで機械的に二重レビューする必要はなく、共通Lessonは一度確認し、分岐差分だけ追加確認してよい。
+Manual validationは、Task 5で作成した `docs/reference/curriculum-self-study-review.md` を観点として使い、learner-facing pathを **shared entry → Part 1 branch → Part 1→Part 2 bridge → Part 2 branch** の順にwalkthroughする。共通区間を各routeで機械的に二重レビューせず、共通教材は一度確認し、branch差分だけ追加確認する。
+
+Shared entry / bridge:
+
+1. Shared entry: `README.md → 00_learning-design.md → 01_spreadsheet-test-design.md → P1-1`
+2. Part 1 → Part 2 bridge: `P1 completion → 00_learning-design.md の「Part 1からPart 2への移行」→ P2-1`
+
+Branch routes:
 
 1. P1 Common: `P1-1 → P1-2 → P1-3 → P1-4 → P1-5 → P1-6 → [P1-7 skip] → P1-8 → P1-9`
 2. P1 Native: `P1-1 → P1-2 → P1-3 → P1-4 → P1-5 → P1-6 → P1-7 → P1-8 → P1-9`
@@ -769,6 +775,7 @@ Walkthrough中、各 Learner Required Lesson / Exercise と selected specializat
 
 Assertions:
 
+- Shared entryから `01_spreadsheet-test-design.md` を経てP1-1へ一意に進め、Part 1 completion後にLearning DesignのbridgeからP2-1へ再開できる
 - Common learnerがNative specialization未受講でP1 / P2 Common completionへ到達できる
 - Native specialization learnerがbranch / prerequisite / rejoinを一意に辿れる
 - Common lessonが後続のspecialization / Extension / Referenceをhidden prerequisiteにしていない
@@ -780,6 +787,7 @@ Assertions:
 - command / artifact self-checkで学習FailureとEnvironment blockを区別できる
 - Instructor Referenceが受講内容外supportだけになっている
 - Core / Extension / Reference / specialization境界がLesson本文・演習・completion・evaluationで一致する
+- Part 1 Common=`C01〜C07 + C09〜C10` bounded Level 2、Part 2 / Final Common=`C01〜C07 + C09〜C12` bounded Level 2、`C08`=Native specialization が README / Learning Design / Rubric / Lesson completion で一致し、PR3 contractがregressionしていない
 - P1-4の説明深度がentry profileと矛盾しない
 - P1-5がCart / reset / representative Boundary / representative MobileをCoreとし、Payment / Cross-role / Internal Inspection / Accessibility executionをExtensionとして扱う
 - P1-6のcompletionがmeaningful failure diagnosisへ接続する
@@ -944,7 +952,7 @@ PR 4Aは次をすべて満たしたときのみ完了とする。
 
 - `docs/reference/curriculum-self-study-review.md` が追加されている
 - reusable checklistのみを保持し、個別review result/historyを持たない
-- Task 7のfull-route walkthrough内で、各Learner Required Lesson / Exerciseとselected specialization learner-facing Lesson / Exerciseへ必要なchecklist観点を適用済み
+- Task 7のshared entry / Part 1→Part 2 bridge / branch walkthrough内で、各Learner Required Lesson / Exerciseとselected specialization learner-facing Lesson / Exerciseへ必要なchecklist観点を適用済み
 
 ### Validation
 
@@ -954,7 +962,8 @@ PR 4Aは次をすべて満たしたときのみ完了とする。
 - `pnpm test:contracts` PASS
 - `git diff --check` PASS
 - TypeScript contract変更時のみ `pnpm typecheck` PASS
-- §13 Task 7の4 full learner route walkthrough + checklist assertions PASS
+- §13 Task 7のshared entry / Part 1→Part 2 bridge + 4 branch route walkthrough + checklist assertions PASS
+- PR3 competency contract（Part 1 Common=`C01〜C07 + C09〜C10`, Part 2 / Final Common=`C01〜C07 + C09〜C12`, `C08`=Native specialization）がREADME / Learning Design / Rubric / Lesson completionで一致
 
 ### Scope
 
@@ -992,13 +1001,14 @@ Plan reviewでは、実装の細部より先に次を反証する。
 16. PR5のTraining implementationを前倒ししていないか。
 17. stop conditionがblocker依存範囲だけを止め、無関係なPR 4A remediationまで不必要に停止しないか。
 18. 未解決P0 / P1を記録しただけでDoD達成にしていないか。
-19. DoDが自動Validationだけでなく4 full learner routeのmanual contradiction checkを含むか。
-20. Task 5のself-study checklistがTask 7のfull-route walkthroughへ統合され、別の重複レビュー工程を作っていないか。
-21. PR 4A完了後にPR 4B要否を一意に判断できるか。
-22. 実装が原則1file 1 remediation passになり、Task 2 / Task 3でLessonを二重編集しないか。
-23. Task 2がconfirmed root Finding / migration / durable terminology ruleだけを変更し、PR3 contractの再整理になっていないか。
-24. `01_spreadsheet-test-design.md` を含むPrimary change surfaceすべてに一意なownerがあるか。
-25. Optional / Legacyが存在しない場合に不要な成果物やFindingを作らない設計か。
+19. DoDが自動Validationだけでなくshared entry / Part 1→Part 2 bridge + 4 branch routeのmanual contradiction checkを含むか。
+20. Task 5のself-study checklistがTask 7のwalkthroughへ統合され、別の重複レビュー工程を作っていないか。
+21. PR3 competency contractがREADME / Learning Design / Rubric / Lesson completionでregressionしていないか。
+22. PR 4A完了後にPR 4B要否を一意に判断できるか。
+23. 実装が原則1file 1 remediation passになり、Task 2 / Task 3でLessonを二重編集しないか。
+24. Task 2がconfirmed root Finding / migration / durable terminology ruleだけを変更し、PR3 contractの再整理になっていないか。
+25. `01_spreadsheet-test-design.md` を含むPrimary change surfaceすべてに一意なownerがあるか。
+26. Optional / Legacyが存在しない場合に不要な成果物やFindingを作らない設計か。
 
 ---
 
@@ -1035,8 +1045,10 @@ Task 6  Minimal validator / contract protection
         └ Condition A / Bを満たさなければN/A
   ↓
 Task 7  Automated validation
-        + 4 full learner route walkthrough
+        + shared entry / Part 1→Part 2 bridge
+        + 4 branch route walkthrough
         + checklist reviewを同じwalkthroughへ統合
+        + PR3 competency contract regression check
   ↓
 Task 8  Freshness check + final review + PR / Issue #72 update
 ```
@@ -1062,7 +1074,8 @@ Pre-change audit完了時点で、最低限以下が揃っていなければimpl
 - scope / non-goal / PR 4B split / stop conditionsが明示されている
 - 未解決P0 / P1 blockerがある場合、依存するFinding / file / Taskだけを停止し、dependency boundaryが記録されている
 - 未解決P0 / P1 blockerが残る限りPR 4A completion / merge-readyにはしない
-- Task 7で4 full learner routeとself-study checklist reviewを一つのmanual validationとして実施できる
+- Task 7でshared entry / Part 1→Part 2 bridge / 4 branch routeとself-study checklist reviewを一つのmanual validationとして実施できる
+- Task 7でPR3 competency contractのregressionを明示的に確認できる
 - **Task 1の全文監査が完了するまでは implementation-ready と判定しない**
 
 この状態でのみCurriculum remediation implementationへ進む。
