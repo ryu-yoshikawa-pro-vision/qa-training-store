@@ -157,6 +157,25 @@
   - Run Artifactのdocs-only変更をcommit／pushして作業ツリーを最終cleanにする。
 - Progress: 100% (7/7)
 
+## 2026-09-04 10:48 (JST)
+
+- Summary:
+  - Issue #92の実装からPR作成、Run Artifactのevaluation／Sanitizer、docs-only更新のpushまで完了した。
+  - 現在の作業ツリーはcleanで、実装commitとRun Artifact commitは指定branchへpush済みである。
+- Changes:
+  - Product変更は一次commit `999d26fbba78e60a054dab5ba693d645bc359d4e`、Run Artifact最終化はcommit `44f973b433db2367d5b8c6aee5a165307295f825`に分離して保存した。
+- Decision / Rationale:
+  - PR #107はOPEN／非Draftのまま維持し、merge、auto-merge、Issueの手動closeは行わない。`Closes #92`による将来のmerge時closeを採用した。
+- Validation:
+  - `git status --short`: outputなし（clean）。
+  - `git branch --show-current`: `fix/92-product-list-loading-state`。
+  - `git ls-remote --heads origin fix/92-product-list-loading-state`: remote headを最終commitと一致確認。
+  - `gh pr list --repo ryu-yoshikawa-pro-vision/qa-training-store --head fix/92-product-list-loading-state`: PR #107 OPEN。
+  - `gh pr view 107 ...`: title、base=`main`、head branch、head SHA、body、isDraft=`false`を確認。
+- Blocker / Remaining:
+  - None。PR mergeはユーザー指定どおり実施していない。
+- Progress: 100% (7/7)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
