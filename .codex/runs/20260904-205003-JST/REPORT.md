@@ -62,3 +62,12 @@
 - Validation: 最終文言修正後に`pnpm run format:check`、`pnpm run lint:markdown`（0 issues / 373 files）、`pnpm run validate:spec`、`pnpm run validate:curriculum`、`git diff --check`をPASSした。manual cross-checkはRequired module 18件のself-check、Common / Native route、skip / rejoin、#98 handoff列、checklist shape、canonical Risk ID、固定clock非複製、Security境界、Instructor support境界、`docs/spec/**`未変更、PR 4B記録をPASSした。`pnpm run test:contracts`は文言修正前の最終完全実行でPASS、`pnpm run typecheck`も同じdocs-only差分に対してPASS済みであり、今回の修正はTypeScript / contract経路に触れていない。
 - Blocker / Remaining: blockerなし。Run Artifact Sanitizer、今回の変更だけのcommit、push、remote diff確認、Open PR作成、Tracking Issueのhandoff更新が残る。
 - Progress: 75% (9/12)
+
+## 2026-09-04 22:24 (JST)
+
+- Summary: Run ArtifactのSanitizer Write / Checkを完了し、self-review済みのPR 4A変更を指定branchへcommitした。
+- Changes: `.codex/runs/20260904-205003-JST/`、child Plan、Project Context / history、Curriculum、Instructor Reference、self-study checklistの計29ファイルを、今回の目的に限定してcommitした。
+- Decision / Rationale: commit直前にcurrent branchが`docs/pr4a-curriculum-self-study-remediation`であること、`git diff --cached --check`がPASSであること、staged pathにProduct、`docs/spec/**`、Training runner / workflow、validator / contract test、無関係な変更がないことを再確認した。PR #103の固定契約とIssue #98のhandoffを維持している。
+- Validation: Sanitizerは`files_scanned: 4`、`files_changed: 0`、`residual_findings: 0`。commitは指定の日本語messageで作成済みで、最終SHAはGit確認結果を正本とする。
+- Blocker / Remaining: blockerなし。commit後のRun Artifact更新を含む最終remote確認、push、Open PR作成、Tracking Issue更新が残る。
+- Progress: 83% (10/12)
