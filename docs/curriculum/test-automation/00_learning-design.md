@@ -216,7 +216,7 @@ POM、Fixture、Automation Flowなどの保守設計は後半に置きます。�
 11. Helper / POM / Fixture / Automation Flow / Seed Scenarioなどを使って改善する。
 12. 総合演習を行う。
 
-Part 1前半では、Seed Scenario ResetやEvidence収集の仕組みは教材側が提供するTest Harnessとして利用し、Fixture内部の責務分解や共通化設計はまだ学びません。既存 `e2e/web/fixtures.ts` の内部設計を教材として読むのは、Maestroまで一巡した後のテスト管理・保守性改善モジュールからとします。
+Part 1前半では、Seed Scenario ResetやEvidence収集の仕組みは教材側が提供するTest Harnessとして利用し、Fixture内部の責務分解や共通化設計はまだ学びません。既存 `e2e/web/fixtures.ts` の内部設計を教材として読むのは、CommonではP1-6を終えた後、Native specializationを選んだ場合はP1-7を終えた後のテスト管理・保守性改善モジュールからとします。
 
 ### Part 2
 
@@ -245,6 +245,22 @@ Part 2では、Part 1で作成したテストを一般的な開発プロセス�
 7. 完了条件
 
 受講者には「手順どおり操作したら終わり」ではなく、自分の判断理由を残すことを求めます。
+
+## 自己学習の完了ループ
+
+各Lessonは、次のループを受講者だけで回せることを目指します。
+
+1. **目標**: 今回説明または作成する対象を、自分の言葉で1文にする。
+2. **説明**: 期待結果の根拠をNormative Specification、既存SSOT、またはこのLessonの本文で確認する。
+3. **Practice / Exercise**: 指定された作成物または実行を行い、何を変えたかを記録する。
+4. **Evidence**: 出力、差分、Screenshot、Trace、Workbookの該当行など、完了条件に必要な根拠を選ぶ。
+5. **Self-check**: 完了条件とRubricのMinimum Evidenceへ照合し、「何が満たされ、何が未達か」を答える。参照リンクを開いただけでは完了にしない。
+6. **Recovery**: 学習内容の未達なら該当Lessonの説明・Exerciseへ戻る。Environment / Toolchainの失敗なら既存のStart GateまたはInstructor supportへ分けて進む。
+7. **Completion / Next action**: 未達を残したまま進まず、完了後に次のLesson、Common routeのrejoin、または選択specializationを決める。
+
+Role、State、Seed、Resetは複数Lessonで再利用します。最初に意味を定義する箇所を**Canonical Definition**、後続で仕様へ適用する箇所を**Application Practice**として読み分け、意図的なSpiral learningを重複した新概念と誤解しないでください。
+
+Test Clock、Seed Data、学習用住所、Test Controlの具体値を覚える必要はありません。必要な時点で、[Curriculum READMEのSSOT到達表](./README.md#自己学習の進め方と既存ssotへの到達)からCurrent sourceへ戻ります。
 
 ## 完成済み実装を先に見せすぎない
 

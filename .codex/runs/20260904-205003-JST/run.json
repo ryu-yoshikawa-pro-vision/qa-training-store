@@ -1,0 +1,55 @@
+{
+  "schema_version": 2,
+  "run_id": "20260904-205003-JST",
+  "task_type": "implementation",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    "docs/PROJECT_CONTEXT.md",
+    "docs/curriculum/test-automation/00_learning-design.md",
+    "docs/curriculum/test-automation/01_spreadsheet-test-design.md",
+    "docs/curriculum/test-automation/03_instructor-reference.md",
+    "docs/curriculum/test-automation/README.md",
+    "docs/curriculum/test-automation/part1/01_test-automation-foundations.md",
+    "docs/curriculum/test-automation/part1/02_scenario-shop-analysis.md",
+    "docs/curriculum/test-automation/part1/03_test-design-and-automation-selection.md",
+    "docs/curriculum/test-automation/part1/04_playwright-foundations.md",
+    "docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md",
+    "docs/curriculum/test-automation/part1/06_execution-and-failure-analysis.md",
+    "docs/curriculum/test-automation/part1/07_maestro-native-automation.md",
+    "docs/curriculum/test-automation/part1/08_test-management-and-maintainability.md",
+    "docs/curriculum/test-automation/part1/09_part1-capstone.md",
+    "docs/curriculum/test-automation/part2/01_software-development-process.md",
+    "docs/curriculum/test-automation/part2/02_git-version-control.md",
+    "docs/curriculum/test-automation/part2/03_github-pull-request-review.md",
+    "docs/curriculum/test-automation/part2/04_ci-github-actions.md",
+    "docs/curriculum/test-automation/part2/05_playwright-ci.md",
+    "docs/curriculum/test-automation/part2/06_native-ci-maestro.md",
+    "docs/curriculum/test-automation/part2/07_ci-cd-quality-gates.md",
+    "docs/curriculum/test-automation/part2/08_integration-design-capstone.md",
+    "docs/history/2026-09-04_215434_pr4a-curriculum-self-study-remediation.md",
+    "docs/plans/2026-09-04_205003_pr4a_curriculum_self_study_remediation.md",
+    "docs/reference/curriculum-self-study-review.md"
+  ],
+  "validation": {
+    "status": "not_run",
+    "commands": [],
+    "warnings": []
+  },
+  "safety": {
+    "network": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "evaluation_present": false
+  },
+  "evaluation_path": null,
+  "status": "pending",
+  "primary_failure_category": null
+}

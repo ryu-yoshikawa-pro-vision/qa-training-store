@@ -70,11 +70,13 @@ Training Copyの準備は `pnpm run training:copy:prepare -- --source-sha <40桁
 - 既存Repositoryの完成済みRegressionへTraining Codeを混在させていない。
 - `.git`や未指定の教材元FileをPart 1 Folderから上書きしていない。
 - `git diff`で引継ぎ差分を説明できる。
-- Training CopyのSource SHA、active Workflow allowlist、Formal Workflowとの分離を説明できる。
+- （Reference）Training CopyのSource SHA、active Workflow allowlist、Formal Workflowとの分離を説明できる。
 
 Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状態を標準経路にはしません。
 
 このモジュールではまずLocal Gitを学びます。GitHub上のFork、Remote、Push、Pull Requestは次のPart 2-3で扱います。
+
+> **Reference boundary:** Source SHA、`training:copy:prepare`、active Workflow allowlist、既存Fileのcopy手順は、このRepositoryの安全なTraining Copyを理解するためのReferenceです。Common Coreで必須なのは、作業Branchを分け、Diffを読み、意図した変更だけを意味のあるCommitへまとめる判断です。特定のCopy運用を暗記してcompletionとしません。
 
 ## Lesson 1: Gitとは
 
@@ -269,9 +271,15 @@ commit
 8. Part 1のFolderへ単純に `git init` するだけでは教材元のHistoryを学べないのはなぜか。
 9. Part 1 Folderを丸ごとGit管理済みCopyへ上書きしてはいけないのはなぜか。
 
+## 自己確認とRecovery
+
+1件の変更について、作業Branch、Working Tree、Staging、Commitの差分を示し、「なぜこの変更単位にしたか」を説明します。Part 1成果物の移行を行う場合は、`.git`や未指定Fileを上書きしない境界も確認します。Source SHAやallowlistのCurrent値は必要な場合だけReferenceへ戻ります。
+
+Git状態が説明できない場合は、`git status` → `git diff` → `git diff --staged`の順に戻り、意図しないFileをStageから外します。移行方法の環境差はInstructor supportへ相談できますが、Branch / Diff / Commitの判断を置き換えません。次はPart 2-3でRemote、Pull Request、Reviewへ進みます。
+
 ## 完了条件
 
-- Part 1成果物をGit管理された `qa-training-store` へ安全に引き継いでいる。
+- Part 1成果物をGit管理された `qa-training-store` の作業Branchへ安全に引き継ぐ方法と、上書きを避ける理由を説明できる。
 - 教材元のGit Historyと自分の変更を区別できる。
 - Part 1成果物をコピーする前に作業Branchを作成している。
 - `.git`、既存Regression、未指定の教材元Fileを上書きしていない。

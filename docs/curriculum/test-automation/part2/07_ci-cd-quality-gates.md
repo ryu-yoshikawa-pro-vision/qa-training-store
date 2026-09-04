@@ -25,6 +25,10 @@
 - `training/github-actions/`
 - Cloudflare Pages Preview / Production経路
 
+### Core / Extension / Reference boundary
+
+Common Coreでは、Trigger、bounded WebのRequired Gate、Build / Test Artifact、Failure Evidence、fail-closedの判断を扱います。Preview / Production / Deploy後SmokeのCurrent経路や、Android / iOSのNative Gate差はExtension / Referenceとして比較します。これらの詳細をCommon completionの必須条件へしません。
+
 ## Lesson 1: Quality Gate
 
 Quality Gateは、次の工程へ進むために満たすべき条件です。
@@ -86,6 +90,8 @@ Quality Gateは厳しさだけでなく信頼性が重要です。
 案件によって最適配置は異なります。
 
 ## Lesson 4: CIとCD
+
+> **Extension / Reference:** Preview、Production、Deploy後Smokeの具体的なHosting経路は、bounded Web Gateの考え方を学んだ後に読むCurrent Repositoryの比較材料です。
 
 CIは変更統合時のBuild / Testなどの自動検証を中心に扱います。
 
@@ -272,11 +278,24 @@ Scenario Shopの現在のWeb CI/CDを図示します。
 5. Job並列化が必ず高速化につながるわけではない理由は何か。
 6. Workflow Contract Testにはどんな価値があるか。
 
+### Native specialization / Advanced extension
+
+Native specializationを選択した場合は、Android Build + Runtime E2EとiOS Build-onlyのQuality Gate差をP2-6のcompletionと照合します。Common routeではこのPlatform差を完了条件にしません。
+
+## 自己確認とRecovery
+
+Common routeでは、P2-5のTraining Playwright CIからbounded WebのTrigger、Gate、Artifact、Failure調査経路を1つの図にし、上流Failureがあったときにfail-closedになる条件を説明します。Preview / ProductionやNativeの実装詳細を追加しなくても、P2-7の完了を判断できることを確認します。
+
+判断がCurrent Workflowの細部に依存した場合は、CoreのRisk・Required条件・Evidenceへ戻ります。Nativeを選択する場合はP2-6へbranchし、完了後P2-7へrejoinします。次はP2-8で、Commonのbounded Web CI設計を一つの導入設計へ接続します。
+
 ## 完了条件
 
 - PR / main / Nightly / ManualのTest配置案を作成している。
 - Required Quality Gateを理由付きで設計できる。
-- Scenario ShopのWeb CI/CD経路を図示・説明できる。
-- Build Artifact、Preview、Production、Smokeの関係を説明できる。
+- Scenario Shopのbounded Web CI、Required Gate、Failure調査経路を図示・説明できる。
+- Test対象とBuild Artifactの一貫性、fail-closedが必要な理由を説明できる。
 - 品質Gateを弱めないCI改善案を1件以上説明できる。
-- Android Build + Runtime E2EとiOS Build-onlyのQuality Gate差を説明できる。
+
+### Extension / Reference practice（任意）
+
+Preview、Production、Deploy後Smokeの関係やCurrent Web CI/CD経路は、bounded Web Coreを完了した後に読む比較材料です。Native specializationを選択した場合のAndroid Build + RuntimeとiOS Build-onlyの差は、P2-6と照合します。いずれもCommon completionの前提にはしません。

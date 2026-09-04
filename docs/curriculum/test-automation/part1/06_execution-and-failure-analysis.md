@@ -69,6 +69,33 @@ Part 1で受講者自身が作成したTraining用specは、`PLAYWRIGHT_BASE_URL
 
 Failure分類ができると、修正すべき対象を誤りにくくなります。
 
+### 探索で観測した事象のDisposition
+
+技術的なFailure分類とは別に、探索で見つけた事象の結論を次の4つから選びます。これは新しいFinding DBや管理taxonomyではなく、断定前の学習上の整理です。
+
+| 分類 | 判断の根拠 |
+| --- | --- |
+| 仕様・Expected Behavior違反 | BR / ACなどの明確な契約、再現条件、Actual Deviation、Evidenceが同じ事象を示す |
+| 仕様違反とは確定しないUX上の懸念 | 利用しにくさや分かりにくさはあるが、現行のnormative contract違反までは確認できない |
+| 改善提案 | 新しい挙動や能力を望む提案で、現行仕様の違反とは別に扱う |
+| 未確定（Evidence / 再現条件不足） | 再現できない、対象・操作・事象をEvidenceで結び付けられない、または仕様根拠が不足している |
+
+### Securityに関する最小限の成立条件
+
+`<script>`の文字列を入力できたことだけでは、Security FindingやJavaScript実行のEvidenceにはなりません。次を順に分けて確認します。
+
+1. 入力できる。
+2. その値が保存される。
+3. escapeされた文字列として表示される。
+4. HTMLとして解釈される。
+5. JavaScriptが実行される、またはexecutable sinkへ到達する。
+
+表示された文字列がescape済みなら、HTML解釈・実行を確認したことにはなりません。実行またはsink到達のEvidenceがない場合は、仕様違反やSecurity成立を断定せず、上の「未確定」または観測事実として記録します。ここではSecurity専門の調査手順や新しいLessonを作りません。
+
+### Evidenceと報告内容の一致
+
+Failureメモや報告を書くときは、本文の対象画面・操作・事象がScreenshot、Video、Trace、ConsoleなどのEvidenceと一致していることを確認します。Evidenceだけを見ても「何が起きたか」が分からない場合、再現不足として断定を避け、対象・操作・期待結果・Actualを再収集します。
+
 ## Lesson 3: Trace
 
 Playwright Traceでは、Failure前後の操作やDOM状態などを確認できます。
@@ -203,6 +230,12 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 5. Console ErrorをE2EのFailure分析情報として扱う価値は何か。
 6. 既存Regression ScriptとTraining用Testの実行入口を分ける理由は何か。
 7. Failure分析の段階でFixture内部設計まで先に学ばない理由は何か。
+
+## 自己確認とRecovery
+
+1件のFailureまたは探索観測について、技術的Failure分類と、上の4つのDispositionを別々に書けることを確認します。さらに、報告本文の対象画面・操作・事象をEvidenceだけで追えるかを確認します。`<script>`を表示できたことだけで実行と結論付けていないことも確認します。
+
+不一致があれば、まず実行の最初の異常と派生エラーを分け、次にBR / AC、Reset条件、Trace / Screenshot / Videoへ戻ります。再現またはEvidenceが不足する場合は「未確定」のままにし、Product Codeや仕様を推測して変更しません。次はPart 1-7を選ぶかskipし、Common routeではP1-8へ進みます。
 
 ## 完了条件
 

@@ -149,6 +149,28 @@ Nativeを選択しない場合はP1-7 / P2-6をskipしてCommon routeを進み�
 - `03_instructor-reference.md`はRepository-requiredなsupport assetであり、Learner Required pathやCommon / specialization completionの正本ではありません。
 - Instructor / 運営は環境、アカウント・権限、端末、演習Repository / Training Copy、Infrastructure / Toolchainの準備・障害対応を支援できます。学習内容、自己確認、完了条件、評価観点はlearner-facing materialを正本とします。
 
+## 自己学習の進め方と既存SSOTへの到達
+
+各Lessonでは、次の順序で自分の判断を確認します。リンク先を読むだけではself-checkの完了になりません。
+
+1. 学習目標から、今回説明・作成する対象を1つ選ぶ。
+2. Normative SpecificationまたはLesson本文で、期待する状態と判断理由を確認する。
+3. ハンズオン / exerciseを実施し、作成物・実行結果・差分など、今回の学習で必要なEvidenceを残す。
+4. 完了条件を満たすか、Rubricの該当Minimum Evidenceと照合する。
+5. 未達なら、失敗を「学習内容の不足」と「Environment / Toolchainの障害」に分け、該当LessonまたはInstructor supportへ戻る。
+6. 完了後、次に進むLessonまたは選択するspecializationを1つ決める。
+
+Test Clock、Seed Data、学習用住所、Test Controlの値は教材へ転記しません。必要な時点で次の既存SSOTへ到達し、Current値とprotocolを確認します。
+
+| 確認対象 | まず到達する既存SSOT | 教材での扱い |
+| --- | --- | --- |
+| Test Clock / Test Control | `/guide`の入口、`src/test-controls/native-test-control-protocol.ts`、`src/seeds/metadata.ts` | 実行時の値を確認し、固定値をLessonへ複製しない |
+| Seed Scenario / 初期状態 | `/guide`、`src/seeds/metadata.ts`、`src/seeds/scenarios.ts`、`docs/spec/state-and-scenarios.md` | Scenario IDと初期状態の意味を照合する |
+| 学習用住所候補 | `src/infrastructure/address-lookup/static-address-lookup.ts` | 固定辞書を使用する契約を確認し、実在住所APIを前提にしない |
+| Training実行入口 | `training/`、`package.json`、各Lessonの開始Gate | baselineとlearner exerciseを混同しない |
+
+RepositoryのファイルやValidatorが存在することは、Learner Requiredの成果物やCommon completionのEvidenceそのものではありません。
+
 ## Part 1とPart 2を分ける理由
 
 Part 1はGitHubアカウントやCI環境がなくても進められるようにします。Autify、MagicPodなどのノーコード・ローコード自動化経験者も、テスト対象分析、テスト設計、Test Scenario / User Journey、Action、Assertion、Test Dataといった共通概念からコードベースの自動化へ移行できます。

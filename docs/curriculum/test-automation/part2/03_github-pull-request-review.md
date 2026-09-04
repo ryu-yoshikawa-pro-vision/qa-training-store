@@ -86,6 +86,8 @@ PRで最低限伝える内容:
 
 演習では自分のForkまたは演習用Copy内でPRを作成できます。本体RepositoryへのPR作成は必須にしません。
 
+Common completionでは第三者によるReviewや本体Repositoryへの書き込み権限を必須にしません。受講者自身が公開されたReview観点でDiff、Test Design、Validation、Remaining Riskを確認し、必要ならInstructorへ環境上の支援を求めます。
+
 ## Lesson 4: Diff Review
 
 Reviewでは「コードが動くか」だけを見ません。
@@ -182,6 +184,12 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 4. Test CodeのReviewが必要な理由は何か。
 5. CIが成功していてもMergeを止める判断があり得るのはなぜか。
 6. Assertionを弱くする変更はなぜ危険か。
+
+## 自己確認とRecovery
+
+自分のPRまたは演習用Diffについて、変更目的、Test Designとの対応、Validation、Remaining Riskを説明します。Review観点を5つ挙げることと、第三者から承認を得ることを混同しません。
+
+Diffの対象やValidationが説明できない場合は、Part 2-2のBranch / Diff / Commitへ戻ります。Checksの失敗は、意図したTraining Workflowか、Test / Environmentのどの工程かを切り分け、Review結果を隠すために変更を弱めません。次はPart 2-4でTriggerとJobへ進みます。
 
 ## 完了条件
 

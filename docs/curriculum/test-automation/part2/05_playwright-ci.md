@@ -240,6 +240,12 @@ Part 1で作成したTestを次へ仮分類します。
 5. Automation BuildとProduction Buildを分ける価値は何か。
 6. Training Playwright CIを本体のDeploy Workflowから分ける理由は何か。
 
+## 自己確認とRecovery
+
+自分のTraining Workflowについて、Buildした対象、Browser、Base URL、Playwright Test、Failure Artifactの関係を図示します。baselineの正常性とlearner-authored exerciseの結果を分け、Failure時にTrace、Screenshot、Video、HTML Reportなどから必要なEvidenceを選べることを確認します。
+
+Build、Browser、Application、Testのどこで止まったか分からない場合は、Lesson 1〜6へ戻り、上流工程から順に確認します。Training specをFormal SuiteやDeploy Workflowへ混ぜず、次はPart 2-6を選ぶかskipしてPart 2-7へ進みます。
+
 ## 完了条件
 
 - Training Workflow上でScenario ShopのPlaywright Testを実行できる。

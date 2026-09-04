@@ -197,12 +197,16 @@ Deep Linkにより、長い前段操作を毎回通らず、意図した状態�
 例:
 
 ```text
-scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0
+scenario-shop://test-control/reset?version=<protocol-version>&scenario=<scenario-id>&clock=<ISO-8601-UTC>&paymentDelayMs=<milliseconds>
 ```
+
+この例はprotocolの形だけを示します。実行時のversion、scenario、clock、delay値は、`/guide`、`src/seeds/metadata.ts`、`src/test-controls/native-test-control-protocol.ts`でCurrentの定義と制約を確認してから設定します。教材やbaselineからvolatileな値を手入力で複製しません。
 
 その後、Ready Signalを待ってから操作します。
 
 Native Testでも、前回実行の状態へ依存しないことが重要です。
+
+Test Controlの初期状態と学習用住所候補を確認するときも、値をLessonへ転記せず、`src/seeds/scenarios.ts`と`src/infrastructure/address-lookup/static-address-lookup.ts`へ戻ります。既存のTraining baselineはRepository-required assetとして実行の正常性を確認するために使い、受講者自身のexerciseの代わりにはしません。
 
 ## Lesson 6: 最初のMaestro Flow
 
@@ -296,6 +300,12 @@ Cartへ商品を追加した後にAppを再起動し、状態復元を確認し�
 5. Android / iOSでFlowを機械的に複製しない理由は何か。
 6. PlaywrightとMaestroの共通概念を3つ挙げる。
 7. Windows LocalのCanonicalをPhysical Android device、GitHub Native CIのCanonicalをAPI 34 Emulatorに分ける理由は何か。
+
+## 自己確認とRecovery
+
+Native specializationを選択した場合だけ、P1-6完了、Physical Android deviceのStart Gate、Test Control Reset、learner-authored Maestro Flow、successful execution artifactの順に確認します。`-RequirePhysicalDevice`、`-DeviceSerial`、`$runId`、`TRAINING_MAESTRO_OUTPUT_DIR`、`.artifacts/native-local`などの実行契約は既存runbookに従い、baselineの成功を自分のFlowのEvidenceと混同しません。
+
+実行できない場合は、まずJDK / SDK / ADB / Maestro / deviceのEnvironment問題か、Flow / Assertionの学習問題かを切り分けます。前者は既存runbookまたはInstructor supportへ戻り、後者は該当Lessonへ戻ります。Common routeを選ぶ場合は、このLessonをskipしてP1-8へ進みます。
 
 ## 完了条件
 

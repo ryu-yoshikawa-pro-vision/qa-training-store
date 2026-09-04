@@ -43,6 +43,10 @@ Training環境には最低限、次が必要です。
 
 `playwright.training.config.ts`、`package.json`のTraining Script、Training CI templateがこの契約を提供します。
 
+### Core / Extension boundary
+
+Part 1 CommonのCoreは、Cart、Seed Scenario / Reset、代表的な異常・境界条件、Mobile Webの最小確認です。PaymentやCross-roleは必要な状態遷移を学ぶExtension、内部状態InspectionとAccessibilityは追加の品質観点として扱います。Extensionを実施しないことはCommon routeの未達を意味しません。
+
 ## Lesson 1: テスト設計からコードへ落とす
 
 スプレッドシートのTest Caseを、次の順序でコードへ変換します。
@@ -94,7 +98,7 @@ Training Testでは、教材側が提供するTest Harnessを使って必要なS
 - Reset後の状態が期待したSeed Scenarioであることを確認できる。
 - 状態準備のために長いUI操作を毎回繰り返さなくてよい。
 
-既存Repositoryがこの仕組みをどのようにFixtureへ実装しているかは、Maestroまで一巡した後のPart 1-8で確認します。
+既存Repositoryがこの仕組みをどのようにFixtureへ実装しているかは、CommonではP1-6を終えた後、Native specializationを選んだ場合はP1-7を終えた後のPart 1-8で確認します。
 
 ## Lesson 3: 異常系と境界値
 
@@ -235,12 +239,21 @@ Payment拒否からRetry成功までを実装します。
 6. Training用E2Eを正式Regressionから分離する理由は何か。
 7. Part 1前半でFixture内部を先に学ばない理由は何か。
 
+## 自己確認とRecovery
+
+CoreからCartの1件を選び、Seed / Reset、操作、期待結果、Assertion、Evidenceが同じRiskを指しているかを確認します。MobileはDesktopの全複製ではなく、Responsive Riskを1件選べばよく、Payment / Cross-role / Inspection / AccessibilityはExtensionとして必要性を説明します。
+
+失敗した場合は、まずTest Data / Reset、次にLocator / Assertion、最後にEnvironmentを切り分けます。既存Formal Testをコピーして完了扱いにせず、learner-authored exerciseの差分と実行結果を確認してから、Part 1-6のFailure Analysisへ進みます。
+
 ## 完了条件
 
 - Playwright E2Eを5件以上実装している（本数はPractice Volumeであり、Rubric単独の合否条件ではない）。
 - Seed Scenario / Resetを利用したテストを含む。
-- 正常、異常または境界の両方を含む。
-- PaymentまたはRole横断の状態遷移を1件以上扱っている。
+- 正常系と、異常または代表的な境界条件の両方を含む。
 - Desktop実行に加えて、Mobile baselineを確認し、作成したExerciseをMobileで1件以上実行している。Accessibilityは追加観点として実行・記録できるが、Mobileの代替にはしない。
 - Training用E2Eと既存Regressionを混同せず、両者の役割を説明できる。
 - Seed Scenario Resetを利用できる一方、Fixture内部設計はPart 1-8で学ぶ内容だと区別できる。
+
+### Extension practice（任意）
+
+Payment、Role横断、内部状態Inspection、Accessibilityは、必要なRiskを選んで行うExtensionです。実施する場合は、Coreと同じTraceabilityとEvidenceで理由を説明します。

@@ -339,6 +339,12 @@ AndroidとiOSを同じ頻度にする必要があるかも含め、Runner Cost�
 6. iOS CIが現在 `workflow_dispatch` であることと、PR Required Gateであることはどう違うか。
 7. iOS CIでmacOS Runnerが必要なことはCI設計へどんな影響を与えるか。
 
+## 自己確認とRecovery
+
+Native specializationを選択した場合だけ、P2-5完了、P1 Native能力または同等のMaestro内部prerequisite、Training Native Workflow、Android Build / Emulator / Install / Maestro、Native Failure Evidenceの順に確認します。Training baselineやAPKの存在だけでC08を完了したことにはせず、learner-authored Flowの実行結果を分けます。
+
+失敗時はGradle Build、Emulator Boot、APK Install、App Launch、Maestro Assertionの最初の異常を特定し、工程に応じたLog / Artifactへ戻ります。iOSはBuild-onlyの保証であり、Simulator Runtime / Maestro PASSを推測しません。Common routeではP2-6をskipしてP2-7へ進みます。
+
 ## 完了条件
 
 この完了条件はNative specializationを選択した受講者に適用します。Part 2 CommonではP2-6を要求せず、P2-5からP2-7へ進みます。

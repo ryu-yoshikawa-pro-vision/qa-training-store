@@ -143,7 +143,7 @@ Test Case IDの形式は[Training Workbook README](../../../training/workbook/RE
 | --- | --- |
 | Test Case ID | `TC-CART-001` |
 | 対象機能 | Cart追加 |
-| Risk ID | `RISK-CART-01` |
+| Risk ID | `RISK-CART-001` |
 | テスト条件 | 在庫あり商品をGuestが追加する |
 | 初期状態 | `default` |
 | 主操作 | 商品詳細からCart追加 |
@@ -390,6 +390,16 @@ Test Case IDをコードへ埋め込む方式、Test titleへ含める方式、A
 6. 重要なテストでも自動化しない判断があり得るのはなぜか。
 7. UI E2EではなくUnit / Integration Testへ寄せるべき条件は何か。
 8. Test Case IDとコードを紐付けるメリットは何か。
+
+## 自己確認とRecovery
+
+完了前に、次の1件を自分で追跡します。
+
+- Normative SpecificationのBR / AC → Risk ID → Test Case ID → Test Layer / Tool → Evidenceが同じ条件を指している。
+- Risk IDは`RISK-<DOMAIN>-NNN`、Test Case IDは`TC-<DOMAIN>-NNN`の形式で、例の`RISK-CART-001`のように3桁連番になっている。
+- 自動化する理由と、自動化しない / Laterにする理由を、Test本数ではなくRiskと確認範囲で説明できる。
+
+追跡が切れたら、まずBR / ACへ戻り、次にWorkbookの該当CSVと設計技法へ戻ります。ValidatorのPASSだけで設計判断が完了したとは扱いません。
 
 ## 完了条件
 

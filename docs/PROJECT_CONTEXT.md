@@ -540,3 +540,12 @@
 - Expo Router webのhash-only client navigationは、pathが既存navigation stateと一致するとroute stateをresetするため、初回操作時にProduct Detailと`#reviews` targetが一度unmountされ、browserのfragment解決時にtargetが存在しない場合がある。Product Detailのdirect hashは`useAsyncValue`による非同期render後にtargetが生成されるため、mount後のhash-gated focusでbrowserのtarget到達を復元する。
 - Storefront Headerのレスポンシブ定義は複数箇所にあるため、Issue #93ではHeader本体を変更せず、Review Sectionの`scroll-margin-top: 112px`をDesktop（900px以上）のみに適用する。900px未満にはReview Anchor用の追加offsetを適用しない。共通scroll frameworkやRating専用click handlerは追加しない。
 - Issue #93のRegression入口は`e2e/web/phase1-required.spec.ts`の初回Mouse、初回Keyboard、direct `#reviews`テストであり、URL fragment、target viewport、DesktopでのheadingとHeaderの境界を観測する。focus stateや`tabIndex`の数値はE2Eの実装依存契約として固定しない。
+
+## PR 4A Curriculum self-study remediation（2026-09-04）
+
+- Current `main`はPR #103のDecision B / Competency / Assessment Contractを含む`010dfc8d`へ同期済み。Commonはentry-levelの汎用Test Automation Engineer向けWeb中心のbounded Level 2、`C08` / Physical Android / Native CIは選択式Native specializationである。
+- `docs/plans/2026-09-04_205003_pr4a_curriculum_self_study_remediation.md`をPR 4Aのchild Planとして保存した。Common route、Nativeのskip / branch / rejoin、Learner Required / Repository-required、Instructor supportの境界を同Planで管理する。
+- Learner-facing Curriculumには、目標・説明・Practice / Exercise・Evidence・self-check・Recovery・completion・next actionを接続する案内を追加した。P1-5のCore / Extension、P1-8のPlaywright-only Common、Part 2のbounded Web Core / Reference境界を明示した。
+- Issue #98のH98-1は既存のSeed / Test Control / address SSOTへの到達観点、H98-2〜H98-4はP1-6の観測分類・Security成立条件・Evidence整合へ統合した。Issue専用SSOT、Evidence台帳、Security専門Lessonは追加していない。
+- `docs/curriculum/test-automation/03_instructor-reference.md`は環境・権限・端末・Training Copy・Toolchainを支援するsupport-only assetへ整理し、`docs/reference/curriculum-self-study-review.md`は個別結果を持たない再利用観点だけのchecklistとして追加した。
+- `docs/spec/**`、Product、Seed / Test Clock / Test Control、Training runner / workflow / Artifact contract、validator / contract testはPR 4Aで変更しない。Specification Findingは実Findingなしで、PR 4Bは不要と判定した。

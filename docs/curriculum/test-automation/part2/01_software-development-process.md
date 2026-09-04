@@ -169,6 +169,12 @@ Part 1で作成したTestを一覧化し、「開発プロセスのどこで実�
 
 この時点では正解を決めず、理由だけ記録します。
 
+## 自己確認とRecovery
+
+「Cart画面のUI変更」を、要求・設計・実装・Review・Test・Build・Deploy・Smokeのどこへ接続したかを図と1文の理由で説明します。Local Testの成功、Buildの成功、Deploy後Smokeの成功を同じEvidenceとして扱わないことを確認します。
+
+工程のつながりを説明できない場合は、Lesson 1〜7の該当工程へ戻り、変更が何を壊し得るかと、どのTest / Artifactが確認するかを書き直します。次はPart 2-2で、変更をBranch、Diff、Commitの単位へ分けます。
+
 ## 確認問題
 
 1. Regression Testが変更管理と関係するのはなぜか。

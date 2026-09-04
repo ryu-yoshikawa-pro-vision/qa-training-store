@@ -4,7 +4,7 @@ Part 2 / Final Commonのcompletionはbounded Web CIを中心とするCommon rout
 
 ## 学習目標
 
-Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Maestro、Quality Gate、CI/CDを使い、Scenario Shopへテスト自動化を導入する設計を自分で作成します。
+Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Quality Gate、CI/CDを使い、Scenario Shopへテスト自動化を導入する設計を自分で作成します。MaestroはNative specializationを選択した場合の追加経路として扱います。
 
 この演習では提案資料の作成を目的にしません。
 
@@ -351,6 +351,12 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 
 - 「現在のRepositoryがそうなっているから」ではなく、理由を説明できるか。
 - 現在のWorkflow Triggerと、自分が設計した理想状態を区別できるか。
+
+## 自己確認とRecovery
+
+Common routeでは、要求・Risk・Test・Trigger・bounded Web Gate・Artifact・Failure調査を1つの設計として示します。Native CI、multi-platform、Preview / Production / full deliveryを選ばなくても、Part 2 / Final Commonのbounded Level 2を自己確認できます。
+
+設計がCurrent Workflowの写しになった場合は、まず自分のRiskとRequired条件へ戻り、次にCurrent implementationを比較材料として読みます。Nativeを選択した場合だけP2-6のEvidenceを追加し、P2-7へrejoinします。次の行動は、選んだGateとEvidenceをPR本文または演習用記録へまとめることです。
 
 ## Part 2完了条件
 

@@ -165,6 +165,19 @@ Scenario ShopではUI操作によって内部状態が変化します。
 
 ここで「Seed Scenarioは便利なテストデータ」だけではなく、「テスト状態を再現可能にする自動化設計の一部」であることを理解します。
 
+値を教材へ写すのではなく、必要な時点で次の順序で既存SSOTへ到達します。
+
+1. `/guide`でRole、Scenario、利用できる確認入口を確認する。
+2. `src/seeds/metadata.ts`と`src/seeds/scenarios.ts`でScenarioの意味と初期状態を照合する。
+3. Test Controlや固定時刻が必要な場合は、`src/test-controls/native-test-control-protocol.ts`のprotocolと、該当する実行入口を確認する。
+4. 学習用住所候補が必要な場合は、`src/infrastructure/address-lookup/static-address-lookup.ts`の固定辞書へ戻る。実在住所APIを探さない。
+
+## 自己確認とRecovery
+
+自分のJourney図から1つを選び、Role、Scenario、初期状態、期待する状態変化、参照したSSOTを指し示します。値だけを転記している場合は、上の到達順序へ戻り、値ではなく「どこで定義されているか」を記録し直します。
+
+次はPart 1-3で、分析した条件をRiskとTest Caseへ変換します。
+
 ## ハンズオン1: Cart分析
 
 Cartについて次を洗い出します。

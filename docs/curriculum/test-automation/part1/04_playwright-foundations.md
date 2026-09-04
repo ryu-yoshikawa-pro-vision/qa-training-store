@@ -327,6 +327,12 @@ Test Case ID `TC-CART-001` を想定し、Variation選択からCart追加まで�
 7. Playwright Configの`retries`を増やせばFlaky問題は解決するか。
 8. Training用specと正式Regressionを分離する理由は何か。
 
+## 自己確認とRecovery
+
+最小Testを1本選び、`import`、`test`、`async`、`await`、`page`、Locator、Assertionの役割をコード上で指し示します。実行できたかだけでなく、どの状態をAssertionで確認したかを説明できることを確認します。
+
+TypeScriptの構文で止まったら、Error Messageの該当行とLesson 0の変数・関数・`async` / `await`へ戻ります。Trainingの保存先や実行Projectで止まったら、冒頭のTraining境界へ戻り、Formal Regressionへ変更を混ぜません。次はPart 1-5で、設計した条件をWeb E2Eへ接続します。
+
 ## 完了条件
 
 - Playwright Test内の `import`、`async`、`await`、`page`、Locator、Assertionの役割を説明できる。

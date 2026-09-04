@@ -293,10 +293,16 @@ Payment成功・拒否・再試行を含む状態遷移図を作成します。
 8. 自動化可能でも自動化しない判断があるのはなぜか。
 9. Web / Android / iOSへ同じケースをすべて複製しない方がよい理由は何か。
 
+## 自己確認とRecovery
+
+次の1件について、BR / AC、Risk、条件分離、Test Layer / Tool、自動化判断、理由がつながっていることを確認します。10件以上のTest Caseと3技法以上の適用はPractice Volumeとして役立ちますが、単独のquotaを満たすことだけで設計の完了とはしません。
+
+条件を分けた理由を説明できない場合は、Lesson 2〜6へ戻り、異なるExpected Behaviorを生む条件を分離します。Layerの選定で迷う場合は、Lesson 7〜10へ戻り、Risk、確認範囲、実行Costを比較します。次はPart 1-4で、選んだWeb automation caseを最小コードへ落とします。
+
 ## 完了条件
 
-- 10件以上のテストケースをスプレッドシートへ設計している。
-- 同値分割、境界値、デシジョンテーブル、状態遷移のうち3技法以上を適用している。
+- 10件以上のテストケースをスプレッドシートへ設計している（Practice Volume）。
+- 同値分割、境界値、デシジョンテーブル、状態遷移のうち3技法以上を適用し、各ケースのRisk / Specification fitと理由を説明できる。
 - 正常、異常、Role、User Journeyの観点が含まれている。
 - Unit、Integration、Repository Contract、Component、Web E2E、Native E2Eの主な違いを説明できる。
 - デシジョンテーブルで複数条件を適切に分離し、異なる拒否理由を説明できる。

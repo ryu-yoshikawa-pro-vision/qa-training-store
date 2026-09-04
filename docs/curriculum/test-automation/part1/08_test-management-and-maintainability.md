@@ -12,7 +12,7 @@
 
 ## 教材
 
-**このモジュールでは、このリポジトリの既存Playwright / Maestroテストを使用します。**
+**このモジュールでは、このリポジトリの既存Playwright TestをCommonの比較教材として使用します。MaestroはNative specializationを選択した場合の追加Referenceです。**
 
 仕様変更の起点は [`docs/spec/README.md`](../../../spec/README.md) と対象FeatureのBR / ACです。Formal TestとTraining Testの責務を分けたうえで、Risk、Workbook、実装、Regression分類を同期します。
 
@@ -26,9 +26,16 @@
 - `src/seeds/metadata.ts`
 - `playwright.config.ts`
 
-このモジュールへ進む時点で、受講者自身も複数のPlaywright TestとMaestro Flowを作成済みであることを前提とします。
+このモジュールへ進む時点で、受講者はP1-6までのCommonを完了し、少なくとも1件のlearner-authored Playwright exerciseを比較材料にできます。Maestro Flowを作成済みであることはCommonの前提にしません。
 
 Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetやEvidence収集について、このモジュールから初めて `e2e/web/fixtures.ts` の内部を読み、Fixtureとしてどの責務を持たせているかを分析します。
+
+### Core / Extension / Reference boundary
+
+- **Common Core**: 実在するPlaywright Testのmaintainability issueを1件選び、Riskと影響を説明し、最小の構造改善案を選ぶ。POM、Helper、Fixture、Automation Flowは必要性を比較して使い分ける。
+- **Part 2 bridge**: Test Case、Seed、Regression分類、仕様変更時のlifecycleを棚卸しし、後続のGit / CIで扱う変更単位を準備する。
+- **Native Extension / Reference**: MaestroのFlowやNative資産との比較は選択課題。Common completionの必須Evidenceへ昇格させない。
+- **Reference**: Pattern catalogやRepositoryの大規模構造は、必要な箇所だけを読む比較材料とし、用語を知っていることや本数を増やすことを完了条件にしない。
 
 ## Lesson 1: 運用フェーズで当たる壁
 
@@ -371,6 +378,12 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 7. 仕様変更時にTest Codeだけを修正すると何がずれる可能性があるか。
 8. Product仕様がまだ変わっていない段階で、将来仕様向けTestを無理にPassさせるべきでないのはなぜか。
 9. テストを削除する判断が必要になるのはなぜか。
+
+## 自己確認とRecovery
+
+自分のPlaywright Testから1件を選び、問題の影響、最小改善、改善後に守るRisk、次に確認するRegressionを説明します。POM / Helper / Fixture / Automation Flowの名称を使うだけでなく、なぜその責務へ置くかを説明できることを確認します。
+
+Fixture内部やNative比較で止まった場合は、まずCommon Coreの問題へ戻り、必要な差分だけを読む範囲へ絞ります。仕様変更の影響が追えない場合はBR / AC、Workbook、Test Case IDへ戻り、次はPart 1-9のCommon capstoneまたはPart 2-1へ進みます。
 
 ## 完了条件
 

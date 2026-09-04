@@ -19,7 +19,7 @@
 
 ## Native specialization（選択時）
 
-P1-7を選択した受講者は、P1-6までのCommon prerequisiteを満たした後、P1-7のNative開始条件とC08 Minimum Evidenceを確認します。Physical Android、Native artifact、Maestro実行EvidenceはNative specializationの範囲であり、Part 1 Common completionには要求しません。詳細はP1-7と [Competency Rubric](../02_competency-rubric.md) を参照します。
+P1-7を選択した受講者は、P1-6までのCommon prerequisiteを満たした後、P1-7のNative開始条件とC08 Minimum Evidenceを確認します。Physical Android、Native artifact、Maestro実行Evidence、Android Build / RuntimeとiOS Build-onlyの保証差はNative specializationの範囲であり、Part 1 Common completionには要求しません。詳細はP1-7と [Competency Rubric](../02_competency-rubric.md) を参照します。
 
 Native specializationを選択しない受講者やNative環境を利用できない受講者を、Common routeのblocked / not_completedとは扱いません。
 
@@ -33,10 +33,15 @@ Coreの代わりにはならない追加課題です。
 
 Advancedは仕様のBR / AC、Scenario Reset、Layer選択、EvidenceをCoreと同じ形式でRepository内へ保存・記録します。外部提出は必須ではありません。
 
+## 自己確認とRecovery
+
+Common completionの自己確認では、Spec、Risk、Test Case、Layer、Tool、Evidenceを1件のTraceabilityとして示し、C01〜C07 + C09〜C10のMinimum EvidenceをRubricと照合します。baselineのPASS、既存Formal Test、Native artifactの存在だけを自分の成果物として数えません。
+
+Traceabilityが切れた場合は、BR / AC → Workbook → learner-authored exercise → Evidenceの順に戻ります。Nativeを選択しない場合やPhysical Androidを使えない場合は、Common routeの完了判定を変えず、P1-7をskipして次のCommon actionへ進みます。
+
 ## 完了条件
 
 - Part 1 Common: C01〜C07 + C09〜C10 bounded Level 2。各CompetencyのMinimum Evidenceは [Competency Rubric](../02_competency-rubric.md) を参照し、C08 / Physical Android / Native artifactをCommon completionに要求しない。
 - Spec、Risk、Test Case、Layer、Tool、EvidenceのTraceabilityを説明できる。
 - 自動化しない条件またはLater条件を1つ説明できる。
 - baselineとFailure Exerciseを混ぜていない。
-- Android Build / RuntimeとiOS Build-onlyの保証差を誤記しない。

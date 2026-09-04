@@ -113,6 +113,8 @@ jobs:
 
 このRepositoryでは、remote Actionをmutableなtagではなくofficial sourceで確認したfull commit SHAへpinします。元となるmajor／releaseを更新するときは、official sourceとSecurity Advisoryを確認してからSHAを更新します。
 
+> **Reference boundary:** 上記のActionのfull SHA、active allowlist、現在のWorkflow filenameは、このRepositoryの実装を読むためのReferenceです。Common Coreで自己確認する中心は、Trigger、Job、least privilege、Failureの工程分離と、Training WorkflowがProduction / Deploy経路へ影響しない理由です。
+
 ここから次を読み分けます。
 
 - Workflow
@@ -277,6 +279,12 @@ PRのChecksでは、意図したTraining Workflowだけが学習対象として�
 6. `workflow_dispatch`はどんな用途に向くか。
 7. Training CIで本番Secretを必要としない構成にする理由は何か。
 8. Forkで既存Production Workflowを演習中に分離する必要があるのはなぜか。
+
+## 自己確認とRecovery
+
+1つのTraining Workflowについて、Trigger、Job、Runner、Permission、Failure時に最初に見るArtifactを説明します。currentのSHAやallowlistを列挙するだけでなく、なぜleast privilegeとProduction / Deploy分離が必要かを説明できることを確認します。
+
+Localでは成功してCIで止まった場合は、まず意図したWorkflow / Triggerか、次にDependency・Environment・Testのどの工程かを確認します。ActionのCurrent値が不明な場合はReferenceのsourceへ戻り、Production SecretやDeployを追加して解決しません。次はPart 2-5でbounded WebのPlaywright CIへ進みます。
 
 ## 完了条件
 
