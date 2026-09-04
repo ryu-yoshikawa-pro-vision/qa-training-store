@@ -67,3 +67,12 @@
 - Validation: `git diff --check` PASS。Product code の tracked diff は 1 file／1 insertion／1 deletion。`scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260904-170823-JST -Write -Check` は files_scanned 4、residual_findings 0。対象箇所に `console.log`／`console.debug`／`debugger` はない。
 - Blocker / Remaining: commit 前の branch／staged diff 確認、commit、push、PR 作成が未完了。
 - Progress: 67% (6/9)
+
+## 2026-09-04 17:17 (JST)
+
+- Summary: 最終確認済みの差分を指定コミットメッセージで commit した。
+- Changes: Product code の最小修正と Standard Run Artifact を commit した。Product code は `src/presentation/components/search-combobox.tsx` の `open: boolean` 1 行のみ。
+- Decision / Rationale: commit 前に指定 branch、staged diff、`git diff --cached --check` を確認し、依存／lockfileや無関係なソース変更がない状態で確定した。
+- Validation: commit `a977199`（`fix: SearchComboboxのonOpenChangeにboolean型を指定`）を作成した。
+- Blocker / Remaining: 指定 branch の push、main 向け OPEN・非 Draft PR の作成、最終 REPORT／TASKS 更新が未完了。
+- Progress: 78% (7/9)
