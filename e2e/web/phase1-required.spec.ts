@@ -164,17 +164,6 @@ test.describe("Phase 1 required E2E", () => {
     const label = wordmark.locator(":scope > span:last-child");
     const main = page.locator(".admin-main");
     const navigation = page.getByRole("navigation", { name: "管理ナビゲーション" });
-    const expectedNavigationLabels = [
-      "概要",
-      "商品",
-      "カテゴリ",
-      "ブランド",
-      "在庫",
-      "注文",
-      "レビュー",
-      "ユーザー",
-      "テスト制御",
-    ];
 
     for (const width of [1024, 1280]) {
       await page.setViewportSize({ width, height: 900 });
@@ -205,6 +194,7 @@ test.describe("Phase 1 required E2E", () => {
 
         return {
           labelText: textNode.textContent?.trim() ?? "",
+          labelLeft: labelRect.left,
           labelRight: labelRect.right,
           labelClientWidth: element.clientWidth,
           labelScrollWidth: element.scrollWidth,
@@ -219,33 +209,27 @@ test.describe("Phase 1 required E2E", () => {
       expect(metrics.labelText).toBe("Scenario Shop Admin");
       expect(metrics.overflow).toBe("visible");
       expect(metrics.labelScrollWidth).toBeLessThanOrEqual(metrics.labelClientWidth + 1);
+      expect(metrics.labelLeft).toBeGreaterThanOrEqual(metrics.sidebarLeft - 1);
       expect(metrics.labelRight).toBeLessThanOrEqual(metrics.wordmarkRight + 1);
       expect(metrics.labelRight).toBeLessThanOrEqual(metrics.sidebarRight + 1);
       expect(metrics.textRect.left).toBeGreaterThanOrEqual(metrics.sidebarLeft - 1);
       expect(metrics.textRect.right).toBeLessThanOrEqual(metrics.labelRight + 1);
       expect(metrics.textRect.right).toBeLessThanOrEqual(metrics.sidebarRight + 1);
 
-      const [sidebarBox, mainBox] = await Promise.all([sidebar.boundingBox(), main.boundingBox()]);
+      const [wordmarkBox, navigationBox, sidebarBox, mainBox] = await Promise.all([
+        wordmark.boundingBox(),
+        navigation.boundingBox(),
+        sidebar.boundingBox(),
+        main.boundingBox(),
+      ]);
+      expect(wordmarkBox).not.toBeNull();
+      expect(navigationBox).not.toBeNull();
       expect(sidebarBox).not.toBeNull();
       expect(mainBox).not.toBeNull();
-      expect(mainBox?.x ?? 0).toBeCloseTo((sidebarBox?.x ?? 0) + (sidebarBox?.width ?? 0), 0);
-
-      const links = navigation.getByRole("link");
-      await expect(links).toHaveCount(expectedNavigationLabels.length);
-      await expect(links).toHaveText(expectedNavigationLabels);
-      const linkBoxes = await links.evaluateAll((elements) =>
-        elements.map((element) => {
-          const rect = element.getBoundingClientRect();
-          return { left: rect.left, right: rect.right, height: rect.height };
-        }),
+      expect((wordmarkBox?.y ?? 0) + (wordmarkBox?.height ?? 0)).toBeLessThanOrEqual(
+        (navigationBox?.y ?? 0) + 1,
       );
-      for (let index = 0; index < expectedNavigationLabels.length; index += 1) {
-        const linkBox = linkBoxes[index];
-        expect(linkBox).toBeDefined();
-        expect(linkBox?.left ?? 0).toBeGreaterThanOrEqual(metrics.sidebarLeft - 1);
-        expect(linkBox?.right ?? 0).toBeLessThanOrEqual(metrics.sidebarRight + 1);
-        expect(linkBox?.height ?? 0).toBeGreaterThanOrEqual(44);
-      }
+      expect(mainBox?.x ?? 0).toBeCloseTo((sidebarBox?.x ?? 0) + (sidebarBox?.width ?? 0), 0);
 
       const documentWidth = await page.evaluate(() => ({
         clientWidth: document.documentElement.clientWidth,

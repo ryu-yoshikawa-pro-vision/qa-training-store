@@ -169,3 +169,43 @@
   - Result: -
   - Parent decision: 最小修正後に標準verifyを再実行する。
 - Progress: 50% (5/10)
+
+## 2026-09-04 16:33 (JST)
+
+- Summary:
+  - PR #108修正指示を受け、指定branch、cleanな作業ツリー、Issue #94、PR #108のOPEN状態、PR headと現在HEADの一致を再確認した。
+  - 現状差分を確認し、`overflow-wrap: anywhere`の削除とE2E責務の縮小を今回の修正範囲として確定した。
+- Changes:
+  - `.admin-wordmark > span:last-child`から`overflow-wrap: anywhere`を削除した。
+  - `e2e/web/phase1-required.spec.ts`からNavigation項目数・名称一覧、全リンクの境界、44px高さ固定のassertionを削除した。
+  - Label左・右境界、正式名称全文、WordmarkとNavigationの上下非重複、Sidebar/Main境界、document水平overflowを直接確認する構成へ整理した。
+- Decision / Rationale:
+  - `min-width: 0`と`white-space: normal`だけで、1024px/1280pxとも正式名称はスペース位置で`Scenario Shop `と`Admin`の2行に自然に折り返された。
+  - `overflow-wrap: anywhere`なしのcomputed styleは`white-space: normal`、`min-width: 0px`、`overflow: visible`。文字途中の改行はなく、追加指定は不要と判断した。
+- Validation:
+  - `pnpm run build:web`: PASS。
+  - 実ブラウザ計測（1024px）: Label `left=66/right=212`、Sidebar `right=232`、Wordmark `bottom=82.375`、Navigation `top=150.375`、text lineは`Scenario Shop ` / `Admin`、document `clientWidth=1009/scrollWidth=1009`。
+  - 実ブラウザ計測（1280px）: Label `left=70/right=232`、Sidebar `right=256`、Wordmark `bottom=92`、Navigation `top=160`、text lineは`Scenario Shop ` / `Admin`、document `clientWidth=1265/scrollWidth=1265`。
+  - `pnpm exec playwright test e2e/web/phase1-required.spec.ts --project=chromium -g "Admin Side Navigationの正式名称が対応幅に収まる"`: PASS（1/1）。
+- Blocker / Remaining:
+  - なし。verify、関連E2E、a11y、最終review、PR更新、commit/push、Artifact処理が残っている。
+- Progress: 82% (14/17)
+
+## 2026-09-04 16:49 (JST)
+
+- Summary:
+  - 標準verify、既存Chromium/mobile E2E、a11y、Admin desktop/tablet UI Reviewを、`overflow-wrap: anywhere`削除後の状態で再実行した。
+  - 最終差分をレビューし、Issue #94のscope外である幅定義、Admin Shell構造、Navigation名称・件数、関連ファイルに変更がないことを確認した。
+- Validation:
+  - `pnpm run verify`: PASS（lint 0 errors / 65 warnings、unit 66、integration 111、repository 38、component web 95、component native 64、Contract 486 passed / 3 skipped、build:web、build:specを含む）。
+  - `pnpm run test:e2e:chromium`: PASS（31/31）。
+  - `pnpm run test:e2e:mobile`: PASS（15/15）。
+  - `pnpm run test:a11y`: PASS（4/4）。
+  - `UI_REVIEW_STAGE=issue-94-20260904-pr108-final UI_REVIEW_ROUTES=admin PLAYWRIGHT_USE_PREBUILT_DIST=true pnpm exec playwright test e2e/web/ui-review.spec.ts --project=ui-review-desktop --project=ui-review-tablet`: PASS（2/2）。画像を目視確認した。
+  - `git diff --check`: PASS。
+- Decision / Rationale:
+  - 現差分は対象CSSの2宣言維持、E2EのIssue直結assertionへの整理、Run Artifactの記録だけである。
+  - `Scenario Shop Admin`、`248px`/`256px`/`232px`の既存幅定義、Admin Shellのlayout宣言は変更していない。
+- Blocker / Remaining:
+  - なし。PR本文更新、修正commit、push、Artifact最終処理が残っている。
+- Progress: 88% (15/17)

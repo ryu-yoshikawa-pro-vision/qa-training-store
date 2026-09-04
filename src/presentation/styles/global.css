@@ -3923,7 +3923,6 @@ progress {
   min-width: 0;
   display: grid;
   line-height: 1.2;
-  overflow-wrap: anywhere;
   white-space: normal;
 }
 
