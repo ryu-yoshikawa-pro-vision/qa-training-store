@@ -1,0 +1,220 @@
+{
+  "schema_version": 1,
+  "run_id": "20260904-094303-JST",
+  "source_head_sha": "eb955f1479f62bc7f99998c21cd2d3a0c81fdecd",
+  "mode": "gray-box",
+  "working_tree_snapshot": {
+    "before": ".codex/runs/20260904-094303-JST/working-tree-snapshot-gray-box-before.json",
+    "after": ".codex/runs/20260904-094303-JST/working-tree-snapshot-gray-box-after.json",
+    "comparison": ".codex/runs/20260904-094303-JST/working-tree-comparison-gray-box.json"
+  },
+  "charter_id": "CHARTER-092",
+  "challenge_id": null,
+  "benchmark_revision": null,
+  "runtime_variant_id": null,
+  "runner_profile": null,
+  "coverage": {
+    "required_ids": ["COV-001", "COV-002", "COV-003", "COV-004", "COV-005", "COV-006", "COV-007", "COV-008", "COV-009"],
+    "items": [
+      {
+        "coverage_id": "COV-001",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-92-pr107/desktop-initial-pre-fix-route-loading.png",
+          ".artifacts/issue-92-pr107/desktop-observations-pre-fix.json",
+          "http://127.0.0.1:8082/products"
+        ],
+        "evidence_types": ["screenshot", "dom", "url"],
+        "blocker_reason": null,
+        "notes": "Fresh direct accessを1440x1000で観察。アプリ準備中にCatalog Gridが存在しない状態とLoaded後のGrid／Footerを記録した。"
+      },
+      {
+        "coverage_id": "COV-002",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-92-pr107/desktop-filter-pre-fix-loaded.png",
+          ".artifacts/issue-92-pr107/desktop-observations-pre-fix.json",
+          "http://127.0.0.1:8082/products?brand=brand-scenario-active"
+        ],
+        "evidence_types": ["screenshot", "dom", "url"],
+        "blocker_reason": null,
+        "notes": "Brand変更時のLoading／Loaded遷移とFooter document Yを観察。Loading中にFilter UIが消え、Skeleton 20件へ遷移する実害を確認した。"
+      },
+      {
+        "coverage_id": "COV-003",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-92-pr107/desktop-search-pre-fix-loaded.png",
+          ".artifacts/issue-92-pr107/desktop-observations-pre-fix.json",
+          "http://127.0.0.1:8082/search?q=%E3%82%B7%E3%83%A3%E3%83%84"
+        ],
+        "evidence_types": ["screenshot", "dom", "url"],
+        "blocker_reason": null,
+        "notes": "Searchの1件結果と0件Emptyへの遷移を確認。Loading中はEmptyを表示しないが、前回Result保持がroute remountで失われることを記録した。"
+      },
+      {
+        "coverage_id": "COV-004",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-92-pr107/desktop-sort-pre-fix-loaded.png",
+          ".artifacts/issue-92-pr107/desktop-observations-pre-fix.json",
+          "http://127.0.0.1:8082/products?sort=price_asc"
+        ],
+        "evidence_types": ["screenshot", "dom", "url"],
+        "blocker_reason": null,
+        "notes": "many-products seedでSort選択値、Loading Skeleton、Loaded後先頭商品、Footer document Yを確認した。"
+      },
+      {
+        "coverage_id": "COV-005",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-92-pr107/desktop-pagination-pre-fix-loaded.png",
+          ".artifacts/issue-92-pr107/desktop-observations-pre-fix.json",
+          "http://127.0.0.1:8082/products?page=2"
+        ],
+        "evidence_types": ["screenshot", "dom", "url"],
+        "blocker_reason": null,
+        "notes": "many-products seedでpage=2のURL、20件表示、Paginationラベル、Loading中のGrid維持を確認した。"
+      },
+      {
+        "coverage_id": "COV-006",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-92-pr107/compact-initial-pre-fix-route-loading.png",
+          ".artifacts/issue-92-pr107/compact-observations-pre-fix.json",
+          "http://127.0.0.1:8082/products"
+        ],
+        "evidence_types": ["screenshot", "dom", "url"],
+        "blocker_reason": null,
+        "notes": "390x844で初回Loading、2列Grid、Loaded後のFooterとhorizontal overflowを確認した。"
+      },
+      {
+        "coverage_id": "COV-007",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-92-pr107/compact-filter-pre-fix-loaded.png",
+          ".artifacts/issue-92-pr107/compact-observations-pre-fix.json",
+          "http://127.0.0.1:8082/products?brand=brand-scenario-active"
+        ],
+        "evidence_types": ["screenshot", "dom", "url"],
+        "blocker_reason": null,
+        "notes": "390x844でBrand変更時の2列Skeleton、action非表示相当のResponsive CSS、Footer、overflowを確認した。"
+      },
+      {
+        "coverage_id": "COV-008",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-92-pr107/compact-search-pre-fix-loaded.png",
+          ".artifacts/issue-92-pr107/compact-observations-pre-fix.json",
+          "http://127.0.0.1:8082/search?q=%E3%82%B7%E3%83%A3%E3%83%84"
+        ],
+        "evidence_types": ["screenshot", "dom", "url"],
+        "blocker_reason": null,
+        "notes": "390x844でSearch Loading、2列Skeleton、Empty非表示、Loaded後の1件結果、Footer、overflowを確認した。"
+      },
+      {
+        "coverage_id": "COV-009",
+        "status": "not_completed",
+        "mission_completed": false,
+        "evidence_refs": [
+          ".artifacts/issue-92-pr107/previous-result-pre-fix.json",
+          ".artifacts/issue-92-pr107/desktop-filter-pre-fix-loaded.png",
+          "http://127.0.0.1:8082/products"
+        ],
+        "evidence_types": ["dom", "screenshot", "url"],
+        "blocker_reason": null,
+        "notes": "修正前はLoading中にFilter UIが消え、2つ目のCheckboxを操作できなかったため、連続Filter変更のmissionを完了できなかった。修正後に再確認する。"
+      }
+    ]
+  },
+  "findings": [
+    {
+      "finding_id": "FIND-001",
+      "title": "クエリ変更時にCatalogの前回ResultとFilter UIが失われる",
+      "severity": "high",
+      "confidence": "high",
+      "oracle_refs": ["BR-STOREFRONT-002", "AC-STOREFRONT-002", "docs/spec/state-and-scenarios.md#error-and-boundary-states"],
+      "platform": "web",
+      "role": "guest",
+      "seed_scenario": "default",
+      "steps": [
+        "1440x1000の/productsへ直接アクセスし、6件のLoaded状態を確認する。",
+        "Brand AのCheckboxを選択してqueryを変更する。",
+        "aria-busy=trueのLoading中にDOM、Footer document Y、Filter UIを観察する。"
+      ],
+      "reproduction_condition": "Expo Routerのquery変更でCatalog pageが再マウントされる検索／Filter reload時。",
+      "expected": "Loading中も前回のResultに対応する自然なResults GridとFilter操作の文脈を維持し、完了後に新しいqueryのResultへ置き換える。",
+      "actual": "page-localなpreviousResultが再マウントで失われ、Loading中はFilter UIがなく、20件Skeletonへ切り替わった。Brand FilterのFooter document Yは1540.86から3079.25へ移動し、Loaded後1118.92へ戻った。",
+      "evidence": [
+        {
+          "type": "dom",
+          "ref": ".artifacts/issue-92-pr107/desktop-observations-pre-fix.json",
+          "description": "Desktop Filter／Search LoadingのSkeleton件数、Filter UI、Footer document Y、Empty Stateを記録した。"
+        },
+        {
+          "type": "dom",
+          "ref": ".artifacts/issue-92-pr107/previous-result-pre-fix.json",
+          "description": "Loading中に2つ目のBrand Checkboxを取得できなかった事実とuseAsyncValueのcode review結果を記録した。"
+        },
+        {
+          "type": "screenshot",
+          "ref": ".artifacts/issue-92-pr107/desktop-filter-pre-fix-loaded.png",
+          "description": "Filter query適用後の実ブラウザ表示。"
+        }
+      ],
+      "reproduction_count": 3,
+      "known_deviation_ref": null,
+      "duplicate_of": null,
+      "suggested_regression_layer": "component testでroute remount後のpreviousResult引き継ぎ、BrowserでFilter／Search Loading中のGridとFooter document Yを確認する。",
+      "status": "confirmed"
+    },
+    {
+      "finding_id": "FIND-002",
+      "title": "Catalog初回Loadingが汎用StatePanelでGridを持たない",
+      "severity": "medium",
+      "confidence": "high",
+      "oracle_refs": ["BR-STOREFRONT-002", "AC-STOREFRONT-002", "docs/spec/ui-ux-contract.md#accessibility"],
+      "platform": "web",
+      "role": "guest",
+      "seed_scenario": "default",
+      "steps": [
+        "新しいBrowser pageをDesktop 1440x1000またはcompact 390x844で開く。",
+        "商品一覧URLへ直接アクセスし、アプリ準備中のrole=statusを観察する。",
+        "Catalog Results、product-grid、Header、Footerの存在をLoadedまで比較する。"
+      ],
+      "reproduction_condition": "アプリRuntime初期化前に/productsへ直接アクセスしたとき。",
+      "expected": "初回LoadingでもHeader／Footerを含むCatalogのResults領域とproduct-grid内Skeletonを表示し、Loaded後に商品へ遷移する。",
+      "actual": "RouteGuardがCatalog pageをmountせず汎用StatePanelだけを返すため、Headerが表示されたアプリLoading中もcatalog-resultsとproduct-gridが存在しなかった。Desktop Footer document Yは853.58からLoaded後1540.86へ移動した。",
+      "evidence": [
+        {
+          "type": "dom",
+          "ref": ".artifacts/issue-92-pr107/desktop-observations-pre-fix.json",
+          "description": "Fresh direct accessのapp-loadingとLoaded後のCatalog／Footer geometryを記録した。"
+        },
+        {
+          "type": "screenshot",
+          "ref": ".artifacts/issue-92-pr107/desktop-initial-pre-fix-route-loading.png",
+          "description": "Header、汎用Loading status、Footerが表示されたCatalog未mount状態。"
+        },
+        {
+          "type": "screenshot",
+          "ref": ".artifacts/issue-92-pr107/compact-initial-pre-fix-route-loading.png",
+          "description": "compact幅で同じ初回Loading状態を確認した。"
+        }
+      ],
+      "reproduction_count": 4,
+      "known_deviation_ref": null,
+      "duplicate_of": null,
+      "suggested_regression_layer": "Catalog専用RouteGuard loading fallbackのBrowser／component検証で初回Loading中のcatalog-resultsとproduct-gridを確認する。",
+      "status": "confirmed"
+    }
+  ]
+}
