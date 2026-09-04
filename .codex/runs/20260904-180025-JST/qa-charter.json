@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "charter_id": "CHARTER-003",
+  "spec_refs": [
+    "BR-STOREFRONT-003",
+    "AC-STOREFRONT-003",
+    "docs/spec/features/storefront.md#screen-storefront-product-detail-product-detail",
+    "docs/spec/ui-ux-contract.md#accessibility"
+  ],
+  "mission": "商品詳細のRating Anchorが初回Mouse／Keyboard操作とdirect #reviewsでReview Sectionへ到達するかを、URL fragment・DOM・Viewport・Sticky Header・Focus・ConsoleのEvidenceで確認し、Issue #93の再現可否とRoot Causeを確定する",
+  "risk": "初回Anchor navigationの失敗をscroll不足と誤認してBrowser native semanticsを壊す、またはlayout shift・sticky header・hydration・event処理の影響を切り分けず推測修正するリスク",
+  "role": "guest",
+  "seed": "issue-93-default-baseline",
+  "platform": "web",
+  "viewport_or_device": "Chromium Desktop 1440x1000（補助: Chromium Mobile 390x844）",
+  "required_coverage": [
+    {
+      "coverage_id": "COV-007",
+      "mission": "default Scenarioの商品詳細でRating Linkのhrefと#reviews targetを確認し、fresh pageのMouse click 1回後にURL fragment・Review Section位置・Sticky Header境界・Consoleを記録する",
+      "role": "guest",
+      "seed": "issue-93-default-baseline",
+      "platform": "web",
+      "viewport_or_device": "Chromium Desktop 1440x1000",
+      "required_evidence_types": ["dom", "url", "screenshot", "console"]
+    },
+    {
+      "coverage_id": "COV-008",
+      "mission": "fresh pageでRating LinkへKeyboard focusを置きEnterを1回だけ押し、URL fragment・Review Section位置・Focus・ConsoleをMouse結果と独立に記録する",
+      "role": "guest",
+      "seed": "issue-93-default-baseline",
+      "platform": "web",
+      "viewport_or_device": "Chromium Desktop 1440x1000",
+      "required_evidence_types": ["dom", "url", "screenshot", "console"]
+    },
+    {
+      "coverage_id": "COV-009",
+      "mission": "代表的な商品詳細へ/products/product-basic-shirt#reviewsでfresh navigateし、初期render／hydration後のtarget位置、Headerとの関係、URL fragment、Consoleを確認する",
+      "role": "guest",
+      "seed": "issue-93-default-baseline",
+      "platform": "web",
+      "viewport_or_device": "Chromium Desktop 1440x1000",
+      "required_evidence_types": ["dom", "url", "screenshot", "console"]
+    },
+    {
+      "coverage_id": "COV-010",
+      "mission": "default Scenarioの商品詳細でGallery表示、Variation選択、Cart追加、Rating表示、Review表示がAnchor調査前後の既存機能として成立するかを確認する",
+      "role": "guest",
+      "seed": "issue-93-default-baseline",
+      "platform": "web",
+      "viewport_or_device": "Chromium Desktop 1440x1000",
+      "required_evidence_types": ["dom", "url", "screenshot", "console"]
+    }
+  ],
+  "allowed_runtime_controls": ["seed_reset", "deep_link", "app_restart"],
+  "exploration_budget": {
+    "max_duration_seconds": 1800,
+    "max_tool_actions": 60
+  },
+  "stop_condition": "required_coverage_and_candidates_resolved_or_budget_exhausted"
+}

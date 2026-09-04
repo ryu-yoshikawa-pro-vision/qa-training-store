@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "run_id": "20260904-180025-JST",
+  "mode": "gray-box",
+  "source_head_sha": "cf5b7b07bbfebb93ed3bf82539fa2eed331c51c6",
+  "working_tree_snapshot": {
+    "before": ".codex/runs/20260904-180025-JST/working-tree-snapshot-gray-box-before.json",
+    "after": ".codex/runs/20260904-180025-JST/working-tree-snapshot-gray-box-after.json",
+    "comparison": ".codex/runs/20260904-180025-JST/working-tree-snapshot-gray-box-comparison.json"
+  },
+  "charter_id": "CHARTER-003",
+  "challenge_id": null,
+  "benchmark_revision": null,
+  "runtime_variant_id": null,
+  "runner_profile": null,
+  "coverage": {
+    "required_ids": ["COV-007", "COV-008", "COV-009", "COV-010"],
+    "items": [
+      {
+        "coverage_id": "COV-007",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-93-baseline/client-navigation-first-rating.txt",
+          "http://127.0.0.1:8081/products/product-basic-shirt#reviews",
+          ".artifacts/issue-93-baseline/client-navigation-first-rating.png",
+          ".artifacts/issue-93-baseline/mouse-console.txt"
+        ],
+        "evidence_types": ["dom", "url", "screenshot", "console"],
+        "blocker_reason": null,
+        "notes": "商品一覧から商品詳細へ遷移したfresh Chromium DesktopでRating LinkをMouseで1回操作した。URLは#reviewsになったがscrollYは0、targetはviewport外で、2回目にtargetへ移動した。"
+      },
+      {
+        "coverage_id": "COV-008",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-93-baseline/client-navigation-keyboard-first-enter.txt",
+          "http://127.0.0.1:8081/products/product-basic-shirt#reviews",
+          ".artifacts/issue-93-baseline/client-navigation-keyboard-first-enter.png",
+          ".artifacts/issue-93-baseline/client-navigation-keyboard-console.txt"
+        ],
+        "evidence_types": ["dom", "url", "screenshot", "console"],
+        "blocker_reason": null,
+        "notes": "Mouseとは独立したfresh Chromium DesktopでRating LinkへfocusしEnterを1回だけ押した。URLは#reviewsになったがscrollYは0、targetはviewport外だった。"
+      },
+      {
+        "coverage_id": "COV-009",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-93-baseline/direct-hash-geometry.txt",
+          "http://127.0.0.1:8081/products/product-basic-shirt#reviews",
+          ".artifacts/issue-93-baseline/direct-hash.png",
+          ".artifacts/issue-93-baseline/direct-console.txt"
+        ],
+        "evidence_types": ["dom", "url", "screenshot", "console"],
+        "blocker_reason": null,
+        "notes": "direct #reviewsではURL fragmentは保持されたが、非同期render後のtargetはviewport外に残り、browserの初期fragment navigationが再適用されなかった。"
+      },
+      {
+        "coverage_id": "COV-010",
+        "status": "completed",
+        "mission_completed": true,
+        "evidence_refs": [
+          ".artifacts/issue-93-baseline/existing-product-functions-eval.txt",
+          "http://127.0.0.1:8081/products/product-basic-shirt",
+          ".artifacts/issue-93-baseline/existing-product-functions.png",
+          ".artifacts/issue-93-baseline/existing-product-functions-console.txt"
+        ],
+        "evidence_types": ["dom", "url", "screenshot", "console"],
+        "blocker_reason": null,
+        "notes": "Gallery画像切替、Variation選択、Cart追加、Rating href、Review id／headingを確認した。対象機能は成立し、consoleはfavicon 404以外のアプリケーションエラーなし。"
+      }
+    ]
+  },
+  "findings": [
+    {
+      "finding_id": "FIND-001",
+      "title": "商品一覧から商品詳細へ遷移した直後の初回Rating Anchorがhashだけ更新して移動しない",
+      "severity": "high",
+      "confidence": "high",
+      "oracle_refs": ["BR-STOREFRONT-003", "AC-STOREFRONT-003"],
+      "platform": "web",
+      "role": "guest",
+      "seed_scenario": "issue-93-default-baseline",
+      "steps": [
+        "fresh Chromiumで/productsを開く",
+        "ベーシックTシャツの商品リンクから商品詳細へclient navigationする",
+        "Rating LinkをMouseで1回だけclickする、またはRating LinkへfocusしてEnterを1回だけ押す"
+      ],
+      "reproduction_condition": "商品一覧からExpo Routerのclient navigationで商品詳細へ入った直後に初回のhash-only Anchor操作を行う",
+      "expected": "初回操作でURLを/products/product-basic-shirt#reviewsへ更新し、Review Sectionをviewport内へ表示する",
+      "actual": "URLは#reviewsへ更新されるがscrollYは0のままtargetはviewport外に残る。2回目の同じ操作ではReview Sectionへ移動する。イベントtraceではhash navigation時にtargetがunmountされ、browser fragment解決時にtargetが存在しないことを確認した",
+      "evidence": [
+        {
+          "type": "dom",
+          "ref": ".artifacts/issue-93-baseline/client-navigation-first-rating.txt",
+          "description": "Mouse初回操作後のURL、scrollY、target／heading／sticky header geometry"
+        },
+        {
+          "type": "trace",
+          "ref": ".artifacts/issue-93-baseline/client-navigation-trace-first-rating.txt",
+          "description": "初回hash navigation時にtargetが一度消えるpopstate／scroll／hashchange trace"
+        },
+        {
+          "type": "dom",
+          "ref": ".artifacts/issue-93-baseline/client-navigation-keyboard-first-enter.txt",
+          "description": "Keyboard Enter初回操作後の同一症状"
+        },
+        {
+          "type": "console",
+          "ref": ".artifacts/issue-93-baseline/client-navigation-keyboard-console.txt",
+          "description": "Keyboard経路のconsole記録"
+        }
+      ],
+      "reproduction_count": 2,
+      "known_deviation_ref": null,
+      "duplicate_of": null,
+      "suggested_regression_layer": "Playwright Chromium E2E",
+      "status": "confirmed"
+    },
+    {
+      "finding_id": "FIND-002",
+      "title": "非同期Product Detailのdirect #reviews navigationがrender後に復元されない",
+      "severity": "medium",
+      "confidence": "high",
+      "oracle_refs": ["BR-STOREFRONT-003", "AC-STOREFRONT-003"],
+      "platform": "web",
+      "role": "guest",
+      "seed_scenario": "issue-93-default-baseline",
+      "steps": [
+        "fresh Chromiumで/products/product-basic-shirt#reviewsへ直接navigateする",
+        "Product Detailの非同期render完了まで待つ",
+        "Review SectionのDOMとviewport位置を確認する"
+      ],
+      "reproduction_condition": "#reviews targetがProduct Detailの非同期render後に初めてDOMへ追加されるdirect deep link",
+      "expected": "初期render／hydration後もReview Sectionがviewport内に表示され、sticky headerの下に隠れない",
+      "actual": "URL fragmentは保持されるが、render後のtargetはviewport外に残り、activeElementはBODYだった",
+      "evidence": [
+        {
+          "type": "dom",
+          "ref": ".artifacts/issue-93-baseline/direct-hash-geometry.txt",
+          "description": "direct #reviews後のtarget存在、scrollY、viewport、header geometry"
+        },
+        {
+          "type": "screenshot",
+          "ref": ".artifacts/issue-93-baseline/direct-hash.png",
+          "description": "direct #reviews後に商品詳細上部が表示された画面"
+        },
+        {
+          "type": "console",
+          "ref": ".artifacts/issue-93-baseline/direct-console.txt",
+          "description": "direct hash navigationのconsole記録"
+        }
+      ],
+      "reproduction_count": 2,
+      "known_deviation_ref": null,
+      "duplicate_of": null,
+      "suggested_regression_layer": "Playwright Chromium E2E",
+      "status": "confirmed"
+    },
+    {
+      "finding_id": "FIND-003",
+      "title": "Sticky Header下のReview headingがnative Anchorの整列位置で隠れる",
+      "severity": "medium",
+      "confidence": "high",
+      "oracle_refs": ["BR-STOREFRONT-003", "docs/spec/ui-ux-contract.md#accessibility"],
+      "platform": "web",
+      "role": "guest",
+      "seed_scenario": "issue-93-default-baseline",
+      "steps": [
+        "fresh Chromiumで商品詳細を開く",
+        "Rating LinkをMouseで1回clickする",
+        "Review headingとsticky headerのviewport上の位置を確認する"
+      ],
+      "reproduction_condition": "native fragment navigationが#reviews targetの先頭をviewport上端へ整列し、desktop／mobile headerがstickyまたはrelative layoutを占有する",
+      "expected": "Review headingがviewport内かつsticky headerの下に表示される",
+      "actual": "targetはviewport内に入るが、desktopではheading top 59px／header bottom約110px、mobileではheading top約59px／header bottom約165pxとなりheadingがheader下に隠れる",
+      "evidence": [
+        {
+          "type": "dom",
+          "ref": ".artifacts/issue-93-baseline/mouse-first-click-geometry.txt",
+          "description": "desktop初回native anchor後のheading／header geometry"
+        },
+        {
+          "type": "dom",
+          "ref": ".artifacts/issue-93-baseline/mobile-mouse-first-click-geometry.txt",
+          "description": "mobile初回native anchor後のheading／header geometry"
+        },
+        {
+          "type": "screenshot",
+          "ref": ".artifacts/issue-93-baseline/mouse-first-click.png",
+          "description": "Review contentは表示されるがheadingがsticky headerの背後にある画面"
+        }
+      ],
+      "reproduction_count": 2,
+      "known_deviation_ref": null,
+      "duplicate_of": null,
+      "suggested_regression_layer": "Playwright Chromium E2E",
+      "status": "confirmed"
+    }
+  ]
+}
