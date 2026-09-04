@@ -1735,8 +1735,10 @@ a[href] {
   padding-top: 32px;
 }
 
-.reviews-section {
-  scroll-margin-top: 112px;
+@media (min-width: 900px) {
+  .reviews-section {
+    scroll-margin-top: 112px;
+  }
 }
 
 .product-description {
@@ -2007,10 +2009,6 @@ a[href] {
 @media (max-width: 899px) {
   .storefront-header {
     position: relative;
-  }
-
-  .reviews-section {
-    scroll-margin-top: 176px;
   }
 
   .storefront-header__inner {

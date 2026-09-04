@@ -21,7 +21,7 @@
 - Current understanding:
   - `ProductDetailView`はRatingをネイティブ`<a href="#reviews">`で描画し、同じComponent内の`<section id="reviews" tabIndex={-1}>`をtargetにしている。
   - Productデータ取得とReview一覧取得は非同期で、Product Detailがloadedになった後にRatingとtargetが同時に描画される。
-  - Web Storefront Headerはdesktop／mobileとも現在のCSSではsticky（古いmedia定義を後段のCSSが上書き）で、Review target向けの`scroll-margin-top`は見当たらない。
+  - Web Storefront Headerのレスポンシブ定義は複数箇所にあるため、今回のレビュー対応ではHeader本体を変更せず、Review target向けの`scroll-margin-top`をDesktop（900px以上）のみに適用する。
   - 現在の作業HEAD `cf5b7b0`は`origin/main`よりIssue #108／#111の2コミット後方だが、差分はAdmin overflow、SearchCombobox、Run／Plan文書であり、Product Detail／Header／関連E2Eの実装は変わっていない。これをRuntimeで確認する。
   - Issue #93はOPEN、追加コメントはない。
 - Assumptions:
@@ -81,7 +81,7 @@
 
 - Validation plan:
   - Runtime: Playwright Chromium 1.62.0、Desktop 1440×1000、Mobile 390×844（必要時）、devまたは既存E2E相当の起動方法を記録する。
-  - User-visible: Rating href、初回Mouse click、fresh pageでの初回Keyboard Enter、direct `#reviews`、URL fragment、Review target bounding boxとviewport／header境界、target focusability、console error。
+  - User-visible: Rating href、初回Mouse click、fresh pageでの初回Keyboard Enter、direct `#reviews`、URL fragment、Review target bounding boxとviewport／Desktop header境界、console error。Review Sectionのfocusabilityは既存markupを維持し、E2Eではfocus stateや`tabIndex`数値を固定しない。
   - Code／test: 変更時は最寄りのComponent／E2Eを先に実行し、`pnpm run format:check`、`pnpm run lint`、`pnpm run typecheck`、`pnpm run test:component:web`、`pnpm run test:e2e:chromium`、`pnpm run test:a11y`、`git diff --check`、`pnpm run verify`を実行する。
   - QA artifact: `qa-charter.json`、BEFORE／AFTER Snapshot、candidate／final `qa-findings.json`、`.artifacts/`のraw screenshot／DOM／consoleをcurrent Runへ保存し、契約validatorとsanitizerで確認する。
 - 成功判定:

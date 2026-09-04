@@ -538,5 +538,5 @@
 
 - Product DetailのRatingは引き続きplain HTMLの`<a href="#reviews">`、Review Sectionは`id="reviews"`と`tabIndex={-1}`を持つ。AnchorのURL fragment、Keyboard操作、deep link契約は変更しない。
 - Expo Router webのhash-only client navigationは、pathが既存navigation stateと一致するとroute stateをresetするため、初回操作時にProduct Detailと`#reviews` targetが一度unmountされ、browserのfragment解決時にtargetが存在しない場合がある。Product Detailのdirect hashは`useAsyncValue`による非同期render後にtargetが生成されるため、mount後のhash-gated focusでbrowserのtarget到達を復元する。
-- Storefront Headerの高さはviewportにより異なるため、Review Sectionにはdesktop `scroll-margin-top: 112px`、mobile `scroll-margin-top: 176px`を設定する。共通scroll frameworkやRating専用click handlerは追加しない。
-- Issue #93のRegression入口は`e2e/web/phase1-required.spec.ts`の初回Mouse、初回Keyboard、direct `#reviews`テストであり、URL fragment、target viewport、headingとHeaderの境界、target focusabilityを観測する。
+- Storefront Headerのレスポンシブ定義は複数箇所にあるため、Issue #93ではHeader本体を変更せず、Review Sectionの`scroll-margin-top: 112px`をDesktop（900px以上）のみに適用する。900px未満にはReview Anchor用の追加offsetを適用しない。共通scroll frameworkやRating専用click handlerは追加しない。
+- Issue #93のRegression入口は`e2e/web/phase1-required.spec.ts`の初回Mouse、初回Keyboard、direct `#reviews`テストであり、URL fragment、target viewport、DesktopでのheadingとHeaderの境界を観測する。focus stateや`tabIndex`の数値はE2Eの実装依存契約として固定しない。

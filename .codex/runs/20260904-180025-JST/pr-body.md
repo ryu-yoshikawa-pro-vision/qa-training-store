@@ -23,7 +23,7 @@ Direct deep linkでも、browserの初期fragment処理より後に非同期targ
 ## 対応内容
 
 - Product Detail mount後、現在のURLが`#reviews`の場合だけ既存`#reviews` targetへfocusし、target生成後のbrowser標準の到達を復元
-- Review Sectionにdesktop `scroll-margin-top: 112px`、mobile `scroll-margin-top: 176px`を追加し、Sticky Headerとの重なりを解消
+- DesktopのReview SectionにSticky Headerとの重なりを避ける`scroll-margin-top: 112px`を設定。MobileではHeaderがstickyではないため追加offsetは設定しない
 - Ratingのplain `<a href="#reviews">`、`id="reviews"`、`tabIndex={-1}`、URL fragment、Keyboard semanticsは維持
 - `scrollIntoView()`、Rating専用click handler、`preventDefault()`、timeout、hash書換え、retry、polling、dependency変更は追加していません
 
@@ -35,7 +35,7 @@ Direct deep linkでも、browserの初期fragment処理より後に非同期targ
 - 同じfresh条件で初回Keyboard EnterでReviewへ移動すること
 - `/products/product-basic-shirt#reviews`のdirect navigationでReviewが初期表示されること
 
-各テストでURL fragment、target viewport、Review headingとHeader境界、targetの`tabIndex`、target focusを確認します。修正前は3件ともtarget viewport判定で失敗し、修正後は3件とも成功しました。
+各テストでURL fragmentとtarget viewportを確認し、DesktopではReview headingがSticky Headerに隠れないことも確認します。修正前は3件ともtarget viewport判定で失敗し、修正後は3件とも成功しました。
 
 ## Validation
 

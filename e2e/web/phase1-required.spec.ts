@@ -9,6 +9,8 @@ import {
 } from "./fixtures";
 
 async function expectReviewAnchorPosition(page: import("@playwright/test").Page) {
+  await expect(page.locator("#reviews")).toBeAttached();
+  await expect(page.locator("#reviews h2")).toBeVisible();
   const geometry = await page.evaluate(() => {
     const target = document.getElementById("reviews");
     const heading = target?.querySelector("h2");
@@ -22,8 +24,6 @@ async function expectReviewAnchorPosition(page: import("@playwright/test").Page)
       targetVisible: targetRect.top < window.innerHeight && targetRect.bottom > 0,
       headingVisibleBelowHeader:
         headingRect.top >= headerRect.bottom - 1 && headingRect.top < window.innerHeight,
-      targetTabIndex: target.tabIndex,
-      activeId: document.activeElement?.id ?? "",
     };
   });
 
@@ -31,8 +31,6 @@ async function expectReviewAnchorPosition(page: import("@playwright/test").Page)
   if (geometry === null) return;
   expect(geometry.targetVisible).toBe(true);
   expect(geometry.headingVisibleBelowHeader).toBe(true);
-  expect(geometry.targetTabIndex).toBe(-1);
-  expect(geometry.activeId).toBe("reviews");
 }
 
 test.describe("Phase 1 required E2E", () => {
