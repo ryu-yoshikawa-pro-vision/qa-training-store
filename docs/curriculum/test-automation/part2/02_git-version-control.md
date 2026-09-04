@@ -17,11 +17,9 @@
 
 Forkや演習用Copyを利用する場合も、中身は同じ `qa-training-store` を基にします。
 
-## Part 1からの作業環境移行
+## Part 1からの作業環境移行（Instructor support / Reference）
 
-Part 1ではGitHubアカウントを必須にしていないため、配布ZIPなどGit Historyを持たないFolderで学習している場合があります。
-
-その場合、Part 2では最初に**Git Historyを持つ `qa-training-store` の演習用Copyへ移行**します。
+Part 1ではGitHubアカウントを必須にしていないため、配布ZIPなどGit Historyを持たないFolderで学習している場合があります。その場合、Part 2開始前にGit Historyを持つ `qa-training-store` の演習用Copyを用意します。**演習Repository / Training Copyのprovisioningやcopy mechanicsそのものはCommon completionではなく、Instructor / 運営が支援できる環境準備です。**
 
 標準的な流れ:
 
@@ -60,19 +58,14 @@ git switch -c training/git-basics
 
 Training Copyの準備は `pnpm run training:copy:prepare -- --source-sha <40桁SHA> --target <disposable-folder>` で行います。Source SHAを省略した曖昧なBranch先頭や、別Worktreeの未確認変更を教材正本へしません。準備後は `pnpm run training:copy:validate -- --root <disposable-folder>` でactive Workflow allowlistとSHA一致を検証します。
 
-受講者は移行後に次を確認します。
+受講者は準備済みの演習環境を受け取った後、Common Coreへ進む前に次だけを確認できれば十分です。
 
 - `git status` が実行できる。
-- `git log` で教材元のHistoryを確認できる。
 - `main` Branchが存在する。
-- Part 2用の作業Branch上にいる。
-- Part 1で自分が作成したTraining Testや成果物だけが引き継がれている。
-- 既存Repositoryの完成済みRegressionへTraining Codeを混在させていない。
-- `.git`や未指定の教材元FileをPart 1 Folderから上書きしていない。
-- `git diff`で引継ぎ差分を説明できる。
-- （Reference）Training CopyのSource SHA、active Workflow allowlist、Formal Workflowとの分離を説明できる。
+- Part 2用の作業Branch上にいる、または自分で作成できる。
+- 自分の変更を`git diff`で確認できる。
 
-Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状態を標準経路にはしません。
+Source SHA、active Workflow allowlist、Formal Workflowとの分離、copy手順の詳細はReferenceです。Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状態を標準経路にはしません。
 
 このモジュールではまずLocal Gitを学びます。GitHub上のFork、Remote、Push、Pull Requestは次のPart 2-3で扱います。
 
@@ -279,12 +272,9 @@ Git状態が説明できない場合は、`git status` → `git diff` → `git d
 
 ## 完了条件
 
-- Part 1成果物をGit管理された `qa-training-store` の作業Branchへ安全に引き継ぐ方法と、上書きを避ける理由を説明できる。
-- 教材元のGit Historyと自分の変更を区別できる。
-- Part 1成果物をコピーする前に作業Branchを作成している。
-- `.git`、既存Regression、未指定の教材元Fileを上書きしていない。
-- `main` へ直接演習Commitを作らず、作業Branchで変更を管理できる。
-- 変更内容を`git diff`で確認できる。
-- 意図したFileだけをStageできる。
-- Staged Diffを確認してから意味のあるCommit MessageでCommitできる。
+- Working Tree、Staging、Commitの違いを自分の変更で説明できる。
+- `main`へ直接演習Commitを作らず、作業Branchで変更を管理できる。
+- 変更内容を`git diff`で確認し、意図したFileだけをStageできる。
+- Staged Diffを確認してから、意味のある変更単位としてCommitできる。
 - `main`との差分と、自分のCommitが持つ変更内容を説明できる。
+- Training CopyのSource SHA、allowlist、copy mechanicsを暗記・実施しなくてもCommon completionが成立する。
