@@ -79,6 +79,19 @@
   - Parent decision: PRは作成するがmergeせず、CI状態は保留として正確に報告する。
 - Progress: 90% (9/10)
 
+## 2026-09-04 19:10 (JST)
+
+- Summary: Run Artifactの最終checkpointとSanitizer確認を完了し、Issue #93の実装・検証・commit・push・PR作成を完了扱いとする。Product sourceの作業treeはcleanである。
+- Changes: PR #112へcommit `558b2aa`（Run記録の最終追記とPR本文保存）をpushした。最終Runの`TASKS.md`は10/10完了とした。
+- Decision / Rationale: PRはOPEN・非Draft・base=`main`・head=`fix/issue-93-rating-review-anchor`であり、mergeは行わない。外部CIの未完了はRepository／PR状態として残し、ローカルvalidationのPASSとは分離して報告する。
+- Validation: `gh pr checks 112 --repo ryu-yoshikawa-pro-vision/qa-training-store`時点で`Detect Native Changes`と`CodeRabbit`はpass、`native-ci / verify`とCodeQL 3件はpending、その他Native build／runtime系はskipping。`git show --stat --oneline HEAD` — 最終記録commitを確認。`git status --short` — clean。Sanitizer Write／Check — residual findings 0。
+- Blocker / Remaining: CIの外部実行とmaintainer reviewは未完了。これは本Runで追加修正を行う blocker ではなく、PR上の継続確認事項である。CI成功を先取りして報告しない。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: ローカルのDoDは完了、外部CIはpendingとして引き渡し、mergeは行わない。
+- Progress: 100% (10/10)
+
 ## 2026-09-04 19:06 (JST)
 
 - Summary: 作業中に`origin/main`が#110／#107を含む4コミット先行へ更新されたため、read-onlyで再確認した。Product Detail source、Storefront Header、Router関連の差分はなく、Issue #93のBaseline判定と修正差分への影響はない。
