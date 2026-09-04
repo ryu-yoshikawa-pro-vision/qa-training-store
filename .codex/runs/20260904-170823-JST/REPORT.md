@@ -76,3 +76,21 @@
 - Validation: commit `a977199`（`fix: SearchComboboxのonOpenChangeにboolean型を指定`）を作成した。
 - Blocker / Remaining: 指定 branch の push、main 向け OPEN・非 Draft PR の作成、最終 REPORT／TASKS 更新が未完了。
 - Progress: 78% (7/9)
+
+## 2026-09-04 17:21 (JST)
+
+- Summary: 指定 branch を remote へ push し、Issue #109 対応の Pull Request #111 を作成・確認した。
+- Changes: `fix/issue-109-search-combobox-onopenchange-ts7006` を `origin` へ明示 refspec で push した。PR タイトルは `fix: SearchComboboxのonOpenChange TS7006を解消する`、base は `main`、状態は OPEN、Draft ではない。
+- Decision / Rationale: PR 本文へ実際の検証結果を反映し、`Closes #109` と最小修正のスコープを記載した。PR #103 の Curriculum／Competency／Assessment Contract 変更は含めていない。
+- Validation: `gh pr view 111 --repo ryu-yoshikawa-pro-vision/qa-training-store --json number,title,state,isDraft,baseRefName,headRefName,headRefOid,url,body` で PR #111 の title／state／base／head／body を確認した。PR URL: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/111
+- Blocker / Remaining: Run 完了前の最終 sanitizer／check と working tree／remote head の確認が残っている。
+- Progress: 89% (8/9)
+
+## 2026-09-04 17:22 (JST)
+
+- Summary: Issue #109 の実装・検証・差分確認・commit・push・PR 作成を完了し、Run の完了判定を記録した。
+- Changes: 製品変更は `src/presentation/components/search-combobox.tsx` の `onOpenChange` 引数への `boolean` 型注釈 1 箇所のみ。標準 Run Artifact は `.codex/runs/20260904-170823-JST/` に保存した。
+- Decision / Rationale: `boolean` 明示で TS7006 が解消し、関連挙動を変更する追加修正は不要だった。既存 lint warning 65 件は error ではなく、今回の変更と無関係なため修正していない。
+- Validation: `pnpm run typecheck` PASS、`pnpm exec vitest run tests/component/presentation-foundation.test.tsx` PASS（19/19）、`pnpm run lint` PASS（0 errors／65 warnings）、`pnpm run format:check` PASS。PR #111 は OPEN／非 Draft／base `main` を確認済み。
+- Blocker / Remaining: なし。CI の remote checks は本タスクのローカル完了条件には含めていない。
+- Progress: 100% (9/9)

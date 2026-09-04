@@ -9,8 +9,8 @@
 - [x] 5. `pnpm run lint` と `pnpm run format:check` を実行し、必要な静的検証結果を記録する。
 - [x] 6. 全差分、dependency／lockfile、PR #103 混入、デバッグコード、一時ファイルを確認し、Run Artifact を sanitize／check する。
 - [x] 7. 検証済み差分を指定メッセージで commit する。
-- [ ] 8. 指定 branch を明示 refspec で push し、main 向け OPEN・非 Draft PR を作成して内容を確認する。
-- [ ] 9. REPORT に最終結果を追記し、Run を完了する。
+- [x] 8. 指定 branch を明示 refspec で push し、main 向け OPEN・非 Draft PR を作成して内容を確認する。
+- [x] 9. REPORT に最終結果を追記し、Run を完了する。
 
 ## Discovered
 
