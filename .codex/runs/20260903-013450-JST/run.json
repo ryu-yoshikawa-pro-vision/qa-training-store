@@ -1,0 +1,103 @@
+{
+  "schema_version": 1,
+  "run_id": "20260903-013450-JST",
+  "task_type": "planning",
+  "workflow_level": "standard",
+  "preset": "planning-write",
+  "runtime": "github-connector",
+  "agents_used": [],
+  "repo": "qa-training-store",
+  "repository_full_name": "ryu-yoshikawa-pro-vision/qa-training-store",
+  "branch": "docs/decision-b-competency-assessment-contract",
+  "base_branch": "main",
+  "base_sha": "b36c4d3e0f631801a9c9e4aae38990dac9e8d436",
+  "child_plan_path": "docs/plans/2026-09-03_013450_pr3_decision_b_competency_assessment_contract.md",
+  "codex_task_reports": [],
+  "changed_files": [
+    "docs/plans/2026-09-03_013450_pr3_decision_b_competency_assessment_contract.md",
+    ".codex/runs/20260903-013450-JST/PLAN.md",
+    ".codex/runs/20260903-013450-JST/TASKS.md",
+    ".codex/runs/20260903-013450-JST/REPORT.md",
+    ".codex/runs/20260903-013450-JST/run.json",
+    ".codex/runs/20260903-013450-JST/evaluation.json"
+  ],
+  "validation": {
+    "status": "not_run_environment",
+    "commands": [
+      "pnpm run format:check",
+      "pnpm run lint:markdown",
+      "pnpm run validate:curriculum",
+      "pnpm run test:contracts",
+      "git diff --check"
+    ],
+    "warnings": [
+      "No local repository clone was available in the runtime.",
+      "Direct git clone could not resolve github.com; requested repository commands were not executed and are not PASS.",
+      "Local working-tree dirty status is unverified; implementation preflight must stop if dirty."
+    ]
+  },
+  "scope": {
+    "decision_b_conflict": false,
+    "next_adr": "0020",
+    "validator_change_planned": false,
+    "contract_test_change_planned": true,
+    "pr_created": false,
+    "implementation_started": false
+  },
+  "safety": {
+    "network": true,
+    "delete_attempt_blocked": false,
+    "git_mutation_attempt_blocked": false,
+    "scope_violation": false,
+    "force_push": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "hook_event_count": 0,
+    "blocking_event_count": 0,
+    "observation_error_count": 0,
+    "subagent_run_count": 0,
+    "evaluation_present": true
+  },
+  "subagents": {
+    "records": [],
+    "summary": {
+      "total": 0,
+      "read_only": 0,
+      "writable": 0,
+      "scope_violations": 0,
+      "used_in_final_plan": 0
+    }
+  },
+  "evaluation_path": ".codex/runs/20260903-013450-JST/evaluation.json",
+  "status": "plan_ready_with_environment_warning",
+  "primary_failure_category": "local_repository_unavailable",
+  "plan_commit_sha": "250fbbb4bf30c931c00f49fc4aaa17749997790b",
+  "git": {
+    "baseline_main_sha": "b36c4d3e0f631801a9c9e4aae38990dac9e8d436",
+    "branch": "docs/decision-b-competency-assessment-contract",
+    "plan_commit_sha": "250fbbb4bf30c931c00f49fc4aaa17749997790b",
+    "plan_push": "succeeded",
+    "run_artifact_commit": "commit containing this run.json; final SHA verified after write",
+    "force_push": false,
+    "run_artifact_commit_sha": "38d3a511196f0c742fbc0bbd2e012c36262f2ac6",
+    "run_artifact_push": "succeeded",
+    "remote_compare": {
+      "base": "b36c4d3e0f631801a9c9e4aae38990dac9e8d436",
+      "head": "38d3a511196f0c742fbc0bbd2e012c36262f2ac6",
+      "ahead_by": 2,
+      "behind_by": 0,
+      "changed_file_count": 6,
+      "allowlist_only": true
+    }
+  },
+  "tracking_issue": {
+    "number": 72,
+    "update_status": "succeeded",
+    "current": "PR 3 child Plan review",
+    "next": "child Plan review / approval",
+    "blocked": "None",
+    "pr3_status": "Planning / Plan ready"
+  },
+  "finalization_note": "This run.json is finalized in a follow-up artifact-only commit; final branch HEAD is verified in the task response."
+}

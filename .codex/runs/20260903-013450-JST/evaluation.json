@@ -1,0 +1,47 @@
+{
+  "schema_version": 1,
+  "run_id": "20260903-013450-JST",
+  "result": "plan_ready_with_environment_warning",
+  "purpose": {
+    "pr3_scope_only": true,
+    "curriculum_rewrite_avoided": true,
+    "training_implementation_avoided": true
+  },
+  "decision_consistency": {
+    "part1_common": "C01-C07+C09-C10 bounded Level 2",
+    "part2_final_common": "C01-C07+C09-C12 bounded Level 2",
+    "c08": "Native Automation specialization; not Common completion",
+    "consistent": true
+  },
+  "scope_separation": {
+    "pr4a_work_deferred": true,
+    "pr5_work_deferred": true,
+    "instructor_reference_migration_deferred": true,
+    "top_level_renumber_move": false,
+    "new_framework": false
+  },
+  "evidence": {
+    "c01_c12_grounded_in_current_sources": true,
+    "baseline_vs_learner_authored_separated": true,
+    "repository_required_vs_learner_required_separated": true,
+    "native_branch_skip_rejoin_defined": true
+  },
+  "current_audit": {
+    "decision_b_conflict": false,
+    "next_adr": "0020",
+    "validator_change_needed": false,
+    "contract_test_change_needed": true,
+    "boundary_files_requiring_minimal_sync": [
+      "docs/curriculum/test-automation/part1/07_maestro-native-automation.md",
+      "docs/curriculum/test-automation/part1/09_part1-capstone.md",
+      "docs/curriculum/test-automation/part2/06_native-ci-maestro.md",
+      "docs/curriculum/test-automation/part2/08_integration-design-capstone.md"
+    ]
+  },
+  "warnings": [
+    "Local git status / branch / fetch / pnpm baseline and repository-local git diff --check could not be executed because the runtime has no clone and cannot DNS-resolve github.com for direct clone.",
+    "Do not treat local validation as PASS; rerun before PR 3 implementation."
+  ],
+  "next_action": "Owner reviews child Plan. Do not implement PR 3 or create a PR before approval.",
+  "plan_commit_sha": "250fbbb4bf30c931c00f49fc4aaa17749997790b"
+}
