@@ -54,24 +54,6 @@
   - Parent decision: なし。
 - Progress: 75% (6/8)
 
-## 2026-09-04 22:14 (JST)
-
-- Summary: 最終scope self-reviewとRun Artifact同期前の確認を完了した。
-- Review: `git branch --show-current`は`fix/breadcrumb-presentation`。変更・未追跡pathは期待した12件（source／test 7件、plan 1件、Run Artifact 4件）のみ。production／domain／application／infrastructure／routingの差分pathは0件。手書き`className="breadcrumbs"`宣言は0件で、shared componentの1宣言だけが残る。Breadcrumbのitem順、label、href、current page、表示画面、Route生成は変更していない。
-- Validation: `git diff --check` PASS。`sanitize-codex-artifacts.ps1 -Write`／`-Check`は各PASS（4 files、0 replacements、residual 0）。公式`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`を実行し、machine-managed `run.json`へ変更pathを同期した。
-- Decision / Rationale: 共通Presentationの利用と必要なCSS／semantic assertionだけを変更対象として採用し、unrelated style cleanup、Navigation／Route設計変更、Breadcrumb新設は行わない。
-- Blocker / Remaining: なし。commit、push、OPEN/non-Draft PR作成後確認が残る。
-- Progress: 88% (7/8)
-
-## 2026-09-04 22:11 (JST)
-
-- Summary: 最終実装状態でfocused validation、標準quality gate、統合verifyを完了した。
-- Validation: `pnpm run format:check` PASS。`pnpm run lint` PASS（0 errors／65 warnings）。`pnpm run typecheck` PASS（app／native-tests／training）。`pnpm run test:component:web` PASS（11 files／96 tests）。`git diff --check` PASS。fresh server／distを使った`pnpm run test:a11y` PASS（5 tests）。`pnpm run test:e2e:chromium` PASS（30 tests、desktop／compact responsive flowを含む）。最終`pnpm run verify` PASS（unit 66、integration 111、repository 38、Web component 96、Native component 64、contracts 488 passed／3 skipped、build:web／build:spec成功）。
-- Failure classification: 初回a11yのline-height不一致は既存8081 server／旧dist再利用による実行環境差であり、fresh 8082 serverで再検証して解消した。最終verifyに今回差分由来のfailureはない。lint warningsとNative testのact warningは既存warningである。
-- Decision / Rationale: Task 7を完了とする。BreadcrumbのPresentation変更後にNavigation／Route契約を壊す異常は検出されなかった。
-- Blocker / Remaining: なし。self-review、Run Artifact sanitizer、commit／push、OPEN/non-Draft PR作成後確認が残る。
-- Progress: 88% (7/8)
-
 ## 2026-09-04 22:48 (JST)
 
 - Summary: 標準quality gateを最終実装状態で実行し、全てPASSした。
@@ -118,5 +100,33 @@
 - Subagents:
   - Delegation: なし。
   - Result: なし。
-  - Parent decision: stale runtimeを原因とする追加調査を優先し、実装差分を無目的に変えない。
+- Parent decision: stale runtimeを原因とする追加調査を優先し、実装差分を無目的に変えない。
 - Progress: 75% (6/8)
+
+## 2026-09-04 22:11 (JST)
+
+- Summary: 最終実装状態でfocused validation、標準quality gate、統合verifyを完了した。
+- Validation: `pnpm run format:check` PASS。`pnpm run lint` PASS（0 errors／65 warnings）。`pnpm run typecheck` PASS（app／native-tests／training）。`pnpm run test:component:web` PASS（11 files／96 tests）。`git diff --check` PASS。fresh server／distを使った`pnpm run test:a11y` PASS（5 tests）。`pnpm run test:e2e:chromium` PASS（30 tests、desktop／compact responsive flowを含む）。最終`pnpm run verify` PASS（unit 66、integration 111、repository 38、Web component 96、Native component 64、contracts 488 passed／3 skipped、build:web／build:spec成功）。
+- Failure classification: 初回a11yのline-height不一致は既存8081 server／旧dist再利用による実行環境差であり、fresh 8082 serverで再検証して解消した。最終verifyに今回差分由来のfailureはない。lint warningsとNative testのact warningは既存warningである。
+- Decision / Rationale: Task 7を完了とする。BreadcrumbのPresentation変更後にNavigation／Route契約を壊す異常は検出されなかった。
+- Blocker / Remaining: なし。self-review、Run Artifact sanitizer、commit／push、OPEN/non-Draft PR作成後確認が残る。
+- Progress: 88% (7/8)
+
+## 2026-09-04 22:14 (JST)
+
+- Summary: 最終scope self-reviewとRun Artifact同期前の確認を完了した。
+- Review: `git branch --show-current`は`fix/breadcrumb-presentation`。変更・未追跡pathは期待した12件（source／test 7件、plan 1件、Run Artifact 4件）のみ。production／domain／application／infrastructure／routingの差分pathは0件。手書き`className="breadcrumbs"`宣言は0件で、shared componentの1宣言だけが残る。Breadcrumbのitem順、label、href、current page、表示画面、Route生成は変更していない。
+- Validation: `git diff --check` PASS。`sanitize-codex-artifacts.ps1 -Write`／`-Check`は各PASS（4 files、0 replacements、residual 0）。公式`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`を実行し、machine-managed `run.json`へ変更pathを同期した。
+- Decision / Rationale: 共通Presentationの利用と必要なCSS／semantic assertionだけを変更対象として採用し、unrelated style cleanup、Navigation／Route設計変更、Breadcrumb新設は行わない。
+- Blocker / Remaining: なし。commit、push、OPEN/non-Draft PR作成後確認が残る。
+- Progress: 88% (7/8)
+
+## 2026-09-04 22:16 (JST)
+
+- Summary: Issue #96の実装、最終検証、scope review、commit、push、Pull Request作成後の確認を完了した。
+- Git: `fix/breadcrumb-presentation`上で実装commit `92dfd91db8c5c1c167179636039dac3a822faec4`（`fix: unify breadcrumb presentation`）を作成し、`origin/fix/breadcrumb-presentation`へpushした。branch切り替え、force push、mergeは行っていない。
+- Pull Request: `gh pr create`でPR #114（https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/114）を作成した。`gh pr view 114`でstate=`OPEN`、isDraft=`false`、base=`main`、head=`fix/breadcrumb-presentation`、本文の`Closes #96`を確認した。PR diffは期待した12 pathのみ。
+- Scope review: Breadcrumbの既存4画面をshared `Breadcrumbs`へ置換し、既存consumer群を含む共通CSSへPresentationを集約した。item数／順序／表示内容／link href／current page／表示有無、Route情報・生成ロジック、Category階層、Header／Footerは変更していない。
+- Artifact: Run Artifactのsanitizer Write／CheckはPASS（4 files、0 replacements、残存0）。`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`を公式経路として実行した。Run Artifactは削除せず保存する。
+- Remaining: なし。PRはOPENのままで、mergeはユーザー判断に委ねる。
+- Progress: 100% (8/8)

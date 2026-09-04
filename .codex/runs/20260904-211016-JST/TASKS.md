@@ -9,7 +9,7 @@
 - [x] 5. Breadcrumb共通CSSを整理し、Typography／spacing／link／current／separatorを一元化する。
 - [x] 6. shared componentのsemantic testと必要なa11y／responsive assertionを追加・更新する。
 - [x] 7. focused validation、標準quality gate、統合 `verify` を実行し、失敗を分類・修正する。
-- [ ] 8. self-review、artifact sanitize、commit、push、OPEN/non-Draft PR作成後確認を完了する。
+- [x] 8. self-review、artifact sanitize、commit、push、OPEN/non-Draft PR作成後確認を完了する。
 
 ## Discovered
 
