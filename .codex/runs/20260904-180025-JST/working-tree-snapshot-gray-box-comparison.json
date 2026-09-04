@@ -1,0 +1,13 @@
+{
+  "schema_version": 1,
+  "run_id": "20260904-180025-JST",
+  "mode": "gray-box",
+  "before_snapshot": ".codex/runs/20260904-180025-JST/working-tree-snapshot-gray-box-before.json",
+  "after_snapshot": ".codex/runs/20260904-180025-JST/working-tree-snapshot-gray-box-after.json",
+  "before_source_head_sha": "cf5b7b07bbfebb93ed3bf82539fa2eed331c51c6",
+  "after_source_head_sha": "cf5b7b07bbfebb93ed3bf82539fa2eed331c51c6",
+  "source_head_changed": false,
+  "source_diff": [],
+  "additional_source_diff_count": 0,
+  "passed": true
+}

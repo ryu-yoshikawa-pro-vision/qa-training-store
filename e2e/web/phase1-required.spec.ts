@@ -8,6 +8,31 @@ import {
   test,
 } from "./fixtures";
 
+async function expectReviewAnchorPosition(page: import("@playwright/test").Page) {
+  await expect(page.locator("#reviews")).toBeAttached();
+  await expect(page.locator("#reviews h2")).toBeVisible();
+  const geometry = await page.evaluate(() => {
+    const target = document.getElementById("reviews");
+    const heading = target?.querySelector("h2");
+    const header = document.querySelector(".storefront-header");
+    if (!target || !heading || !header) return null;
+
+    const targetRect = target.getBoundingClientRect();
+    const headingRect = heading.getBoundingClientRect();
+    const headerRect = header.getBoundingClientRect();
+    return {
+      targetVisible: targetRect.top < window.innerHeight && targetRect.bottom > 0,
+      headingVisibleBelowHeader:
+        headingRect.top >= headerRect.bottom - 1 && headingRect.top < window.innerHeight,
+    };
+  });
+
+  expect(geometry).not.toBeNull();
+  if (geometry === null) return;
+  expect(geometry.targetVisible).toBe(true);
+  expect(geometry.headingVisibleBelowHeader).toBe(true);
+}
+
 test.describe("Phase 1 required E2E", () => {
   test("01 Guestの商品検索・Filter・商品詳細・Cart追加", async ({ page, scenario }) => {
     await scenario("default");
@@ -47,6 +72,51 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByRole("button", { name: "M" }).click();
     await page.getByRole("button", { name: "カートに追加" }).click();
     await expect(page.getByRole("status")).toContainText("カートへ追加しました");
+  });
+
+  test("商品詳細のRating Anchorは初回Mouse操作でReviewへ移動する", async ({ page, scenario }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await scenario("default");
+    await page.goto("/products");
+    await page.getByRole("link", { name: "ベーシックTシャツ", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "ベーシックTシャツ" })).toBeVisible();
+
+    const ratingLink = page.locator('a[href="#reviews"]');
+    await expect(ratingLink).toHaveAttribute("href", "#reviews");
+    await ratingLink.click();
+
+    await expect(page).toHaveURL(/\/products\/product-basic-shirt#reviews$/);
+    await expect(page.locator("#reviews")).toHaveAttribute("id", "reviews");
+    await expectReviewAnchorPosition(page);
+  });
+
+  test("商品詳細のRating Anchorは初回Keyboard操作でReviewへ移動する", async ({
+    page,
+    scenario,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await scenario("default");
+    await page.goto("/products");
+    await page.getByRole("link", { name: "ベーシックTシャツ", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "ベーシックTシャツ" })).toBeVisible();
+
+    const ratingLink = page.locator('a[href="#reviews"]');
+    await expect(ratingLink).toBeVisible();
+    await ratingLink.focus();
+    await expect(ratingLink).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    await expect(page).toHaveURL(/\/products\/product-basic-shirt#reviews$/);
+    await expectReviewAnchorPosition(page);
+  });
+
+  test("商品詳細のReview Anchorは直接#reviewsでも初期表示される", async ({ page, scenario }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await scenario("default");
+    await page.goto("/products/product-basic-shirt#reviews");
+    await expect(page.getByRole("heading", { name: "ベーシックTシャツ" })).toBeVisible();
+    await expect(page).toHaveURL(/\/products\/product-basic-shirt#reviews$/);
+    await expectReviewAnchorPosition(page);
   });
 
   test("02 Guest Cartの数量変更・削除・上限拒否", async ({ page, scenario }) => {

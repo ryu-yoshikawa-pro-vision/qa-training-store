@@ -86,6 +86,10 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
       active = false;
     };
   }, [catalog, product.productId, reviewSort]);
+  useEffect(() => {
+    if (typeof window === "undefined" || window.location.hash !== "#reviews") return;
+    document.getElementById("reviews")?.focus();
+  }, []);
   const selectedImage =
     product.images.find((image) => image.assetId === selectedImageId) ?? product.images[0];
   const selectedVariant =
