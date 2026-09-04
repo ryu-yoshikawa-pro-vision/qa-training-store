@@ -721,7 +721,19 @@ function loggingConfigBlock(marker: string) {
 
 type LoggingLauncher = "unix" | "windows";
 
-function loggingCommandFor(event: LoggingEvent, launcher: LoggingLauncher) {
+function parseTomlString(value: string, field: string, event: string) {
+  if (value.startsWith("'") && value.endsWith("'")) {
+    return value.slice(1, -1);
+  }
+
+  if (value.startsWith('"') && value.endsWith('"')) {
+    return JSON.parse(value) as string;
+  }
+
+  throw new Error(`expected TOML string for ${field} ${event}`);
+}
+
+function hookCommandFor(event: "PreToolUse" | LoggingEvent, launcher: LoggingLauncher) {
   const field = launcher === "unix" ? "command" : "command_windows";
   const block = loggingConfigBlock(`[[hooks.${event}.hooks]]`);
   const line = block.split(/\r?\n/).find((candidate) => candidate.startsWith(`${field} = `));
@@ -734,15 +746,39 @@ function loggingCommandFor(event: LoggingEvent, launcher: LoggingLauncher) {
     return JSON.parse(value) as string;
   }
 
-  if (value.startsWith("'") && value.endsWith("'")) {
-    return value.slice(1, -1);
-  }
+  return parseTomlString(value, field, event);
+}
 
-  if (value.startsWith('"') && value.endsWith('"')) {
-    return JSON.parse(value) as string;
-  }
+function loggingCommandFor(event: LoggingEvent, launcher: LoggingLauncher) {
+  return hookCommandFor(event, launcher);
+}
 
-  throw new Error(`expected TOML string for ${field} ${event}`);
+type WindowsShell = "cmd" | "pwsh";
+
+function runConfiguredWindowsCommand(
+  command: string,
+  payload: string,
+  cwd: string,
+  shell: WindowsShell = "cmd",
+): HookResult {
+  const result =
+    shell === "cmd"
+      ? spawnSync(
+          process.env.ComSpec ?? "cmd.exe",
+          ["/C", `${String.fromCharCode(34)}${command}${String.fromCharCode(34)}`],
+          { cwd, encoding: "utf8", input: payload, windowsVerbatimArguments: true },
+        )
+      : spawnSync("pwsh.exe", ["-NoProfile", "-Command", command], {
+          cwd,
+          encoding: "utf8",
+          input: payload,
+        });
+
+  return {
+    status: result.status ?? -1,
+    stdout: result.stdout ?? "",
+    stderr: `${result.stderr ?? ""}${result.error ? `\n${result.error.message}` : ""}`,
+  };
 }
 
 function runConfiguredLoggingHook(
@@ -752,18 +788,15 @@ function runConfiguredLoggingHook(
   cwd: string,
 ): HookResult {
   const command = loggingCommandFor(event, launcher);
-  const result =
-    launcher === "windows"
-      ? spawnSync(
-          process.env.ComSpec ?? "cmd.exe",
-          ["/C", `${String.fromCharCode(34)}${command}${String.fromCharCode(34)}`],
-          { cwd, encoding: "utf8", input: payload, windowsVerbatimArguments: true },
-        )
-      : spawnSync("sh", ["-c", command], {
-          cwd,
-          encoding: "utf8",
-          input: payload,
-        });
+  if (launcher === "windows") {
+    return runConfiguredWindowsCommand(command, payload, cwd);
+  }
+
+  const result = spawnSync("sh", ["-c", command], {
+    cwd,
+    encoding: "utf8",
+    input: payload,
+  });
 
   return {
     status: result.status ?? -1,
@@ -796,37 +829,39 @@ describe("Codex logging Hook contract", () => {
     for (const event of loggingEvents) {
       const block = loggingConfigBlock(`[[hooks.${event}.hooks]]`);
       expect(block).not.toContain("matcher");
-      expect(block).toContain("timeout = 5");
+      expect(block).toContain("timeout = 10");
       expect(block).toContain("git rev-parse --show-toplevel");
       expect(block).toContain("log_event.mjs");
       expect(block).toContain("command -v node");
       expect(block).toContain("[ -f");
       expect(block).toMatch(/\|\| (?:true|printf '\{\}')/);
       expect(block).toContain("command_windows =");
-      expect(block).toContain("Get-Command node");
-      expect(block).toContain("Test-Path -LiteralPath");
-      expect(block).toContain("exit 0");
+      expect(block).toContain("cmd.exe /D /Q /S /C");
+      expect(block).toContain("for /f");
+      expect(block).toContain("2^>NUL");
       const windowsCommand = loggingCommandFor(event, "windows");
-      expect(windowsCommand).toContain("Get-Location");
-      expect(windowsCommand).toContain("Join-Path $current.FullName");
-      expect(windowsCommand).not.toContain("git rev-parse");
+      expect(windowsCommand).toContain("cmd.exe /D /Q /S /C");
+      expect(windowsCommand).toContain("for /f");
+      expect(windowsCommand).toContain("git rev-parse --show-toplevel 2^>NUL");
       if (event === "SubagentStop" || event === "Stop") {
-        expect(block).toContain("$LASTEXITCODE -ne 0");
-        expect(block).toContain("[Console]::Write('{}')");
+        expect(windowsCommand).toContain("-EncodedCommand");
+      } else {
+        expect(windowsCommand).toContain("exit 0");
       }
-      expect(windowsCommand).toContain(`node $logger ${event}`);
+      expect(windowsCommand).toContain(`log_event.mjs\" ${event}`);
     }
   });
 
-  it("keeps Windows logging commands free of cmd-conflicting embedded quotes", () => {
+  it("uses a shell-neutral Windows root resolver for logging commands", () => {
     if (process.platform !== "win32") return;
 
     for (const event of loggingEvents) {
       const command = loggingCommandFor(event, "windows");
 
-      expect(command).not.toContain('"');
-      expect(command).toContain("-Command $current = ");
-      expect(command).toContain("Get-Location");
+      expect(command).toContain("cmd.exe /D /Q /S /C");
+      expect(command).toContain("for /f");
+      expect(command).toContain("2^>NUL");
+      expect(command).not.toContain("$(git rev-parse");
     }
   });
 
@@ -1068,6 +1103,27 @@ describe("Codex logging Hook contract", () => {
       expect(readLoggingRecords(logPath).map((record) => record.event)).toEqual([...loggingEvents]);
     });
   }, 15000);
+
+  it("records JSONL through the configured Windows launcher under the current PowerShell shell", () => {
+    if (process.platform !== "win32") return;
+
+    withLoggingSession("windows-pwsh-configured-launcher", (sessionId, logPath) => {
+      for (const event of loggingEvents) {
+        const result = runConfiguredWindowsCommand(
+          loggingCommandFor(event, "windows"),
+          JSON.stringify(makeLoggingPayload(event, sessionId)),
+          path.join(repoRoot, "docs"),
+          "pwsh",
+        );
+
+        expect(result.status, event).toBe(0);
+        expect(result.stdout, event).toBe(loggingOutputFor(event));
+        expect(result.stderr, event).toBe("");
+      }
+
+      expect(readLoggingRecords(logPath).map((record) => record.event)).toEqual([...loggingEvents]);
+    });
+  }, 30000);
 
   it("falls back to {} when the configured Windows logger exits nonzero", () => {
     if (process.platform !== "win32") return;
@@ -2591,6 +2647,40 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       },
     });
   });
+
+  it("preserves PreToolUse policy through the configured Windows launcher and both shell wrappers", () => {
+    if (process.platform !== "win32") return;
+
+    const command = hookCommandFor("PreToolUse", "windows");
+    expect(command).toContain("cmd.exe /D /Q /S /C");
+    expect(command).toContain("pre_tool_use_policy_windows.ps1");
+    expect(command).toContain("git rev-parse --show-toplevel");
+
+    for (const shell of ["cmd", "pwsh"] as const) {
+      for (const cwd of [repoRoot, path.join(repoRoot, "docs")]) {
+        const safe = runConfiguredWindowsCommand(command, safePayload, cwd, shell);
+        expect(safe).toEqual({ status: 0, stdout: "", stderr: "" });
+
+        const deny = runConfiguredWindowsCommand(
+          command,
+          JSON.stringify({
+            tool_name: "Bash",
+            tool_input: { command: "rm -f sentinel.txt" },
+          }),
+          cwd,
+          shell,
+        );
+        expect(deny.status, `${shell}:${cwd}`).toBe(0);
+        expect(deny.stderr, `${shell}:${cwd}`).toBe("");
+        expect(JSON.parse(deny.stdout)).toMatchObject({
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            permissionDecision: "deny",
+          },
+        });
+      }
+    }
+  }, 30000);
 
   it("keeps quote, backslash, LF, and CRLF stdin semantics through the launcher", () => {
     if (process.platform !== "win32") return;

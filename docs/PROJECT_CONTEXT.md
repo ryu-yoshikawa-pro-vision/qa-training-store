@@ -30,7 +30,7 @@
 
 ## Codex Hook / Run記録整理（2026-08-28）
 
-- Logging Hookのcanonical loggerは`.codex/hooks/log_event.mjs`であり、`UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`を同じNode実装へ接続する。Logging Hookはmatcherなし・timeout 5秒、既存Safety `PreToolUse`はBash matcherとblocking behaviorを維持する。
+- Logging Hookのcanonical loggerは`.codex/hooks/log_event.mjs`であり、`UserPromptSubmit`、`PostToolUse`、`SubagentStart`、`SubagentStop`、`Stop`を同じNode実装へ接続する。Logging Hookはmatcherなし・timeout 10秒（当初5秒、2026-09-03にbounded adjustment）、既存Safety `PreToolUse`はBash matcherとblocking behaviorを維持する。
 - Hook JSONLはlogger自身の配置位置から解決した`.codex/logs/hooks-<safe-session-id>.jsonl`へ保存し、Git管理しない。Hook JSONLはRunへ自動集約せず、`CODEX_RUN_ID`やactive-run registryによるcorrelationを追加しない。
 - REPORTはTASK完了、blocker、重要判断、計画変更、Run完了のcheckpointだけを追記し、AIが残す意味情報を記録する。Subagent利用時はDelegation / Result / Parent decisionだけをcheckpointへ残し、machine factはHook JSONLへ委ねる。
 - 新規Runのmanifestはschema v2で、report count、changed files、validation、network / scope、evaluationを保持する。旧Subagent／旧Hook observation専用fieldや専用Structured Artifactは新規生成せず、既存v1はlegacy field valueの保持だけを行う。
@@ -42,6 +42,15 @@
 - loggerは従来どおり書込み可能な環境では`.codex/logs/hooks-<safe-session-id>.jsonl`をcanonical pathとして使う。CodexのWindows elevated sandboxが`.codex`をread-only carveoutとして渡す場合は、同じbounded／redacted recordをGit管理外の`.artifacts/codex-hooks/hooks-<safe-session-id>.jsonl`へfallbackする。sandboxのpermission、`safe.directory`、PreToolUse policyは緩和しない。
 - fallbackは`EACCES`、`EPERM`、`EROFS`、`EEXIST`、`ENOTDIR`のcanonical path failureに限定する。fallbackも失敗した場合は既存のstderr報告とStop系`{}`出力のfail-safe契約を維持する。Hook JSONLはRun manifestへ自動集約しない。
 - 現行Codex CLIの`exec`経路ではHook statusが`Completed`でもrepository Hook JSONLが保存されない場合があるため、CLI lifecycle statusとlogger file I/Oは別々のevidenceとして扱う。実launcherのstdin／stdout／stderr／exitとJSONL追記をsandbox内で確認できることを完了条件とする。
+
+## Codex current shell Hook launcher互換性（2026-09-03）
+
+- Installed Codex CLI `0.153.0`のこのWindows環境では、実Codex CLIのshellはPowerShell 7 (`pwsh.exe`)である。ADR-0020のquote-free PowerShell logging commandは、外側PowerShellの`-Command`解釈で内側`$current`を失い、loggerがexit 0のままJSONLを作らない境界があった。PR #100のcmd／sandbox修正とは別の問題である。
+- Windowsの6つの`command_windows`は、`cmd.exe /D /Q /S /C`内でGit rootを解決し、logger／既存PreToolUse PowerShell transportへ渡す。root／`docs`、cmd外側／current pwsh外側をconfigured launcher contractで検証する。`^Bash$` matcher、Node policy、deny／fail-close、sandbox境界、Unix launcherは維持する。
+- 実CodexのCompleted status、tool成功、logger JSONLは別のevidenceである。変更後の実CLIではUserPromptSubmit／PreToolUse／PostToolUse／StopをCompleted、tool result、`.codex/logs` JSONLとして確認した。Subagent eventはsubagentを生成するpromptで別途発火させない限り確認対象外とする。
+- project trustはtrustedでもper-hook trusted stateはconfig commandの変更後に再reviewを要求する場合がある。`--dangerously-bypass-hook-trust`は診断に限り、通常運用のtrust／approvalをrepositoryから迂回しない。
+- Windows高負荷時のconfigured launcher probeでlogging `Stop`が`5395ms`に到達したため、`UserPromptSubmit`／`PostToolUse`／`SubagentStart`／`SubagentStop`／`Stop`のtimeoutを5秒から10秒へbounded adjustmentした。`PreToolUse`の30秒とlauncher／script／payload／security／sandbox semanticsは変更していない。
+- `async = true`は今回採用しない。10秒付近へ継続的に到達する場合はtimeout延長ではなく、process startup、shell／`git rev-parse`、Node startup、filesystem I/Oの性能を調査する。
 
 ## Codex Full Access Safety Hook（2026-08-16）
 

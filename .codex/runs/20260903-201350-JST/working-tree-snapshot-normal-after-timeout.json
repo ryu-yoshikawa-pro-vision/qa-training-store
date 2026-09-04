@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "run_id": "20260903-201350-JST",
+  "mode": "normal",
+  "phase": "after",
+  "captured_at": "2026-09-03T14:47:35.454Z",
+  "source_head_sha": "e79ef44833ed5375f8180c7300a91f0813f2a08f",
+  "working_tree_entries": [
+    {
+      "status": "M",
+      "path": ".codex/config.toml",
+      "sha256": "a734191321b0fd8ed96f89396ea781a5d757600f49b4a618ca87cd7567ece131"
+    },
+    {
+      "status": "M",
+      "path": "docs/PROJECT_CONTEXT.md",
+      "sha256": "5716a1b31af3af1309d66ce43ea274ec3b69e32ebf8f4207af077501dcbc0352"
+    },
+    {
+      "status": "M",
+      "path": "docs/adr/0021-codex-current-shell-hook-launcher-compatibility.md",
+      "sha256": "7fb59d244e4063899cd2279b314129652eb4539dfbb7b6c588aa45d311df1f98"
+    },
+    {
+      "status": "M",
+      "path": "docs/reference/codex-implementation-harness.md",
+      "sha256": "0923c4b0260896e4b4fb2ca7bd37af95b8927ab02df759aff049430dce8637d3"
+    },
+    {
+      "status": "M",
+      "path": "docs/reports/2026-09-03_220500_codex-hooks-update-regression.md",
+      "sha256": "9de81995170a42e4785f851368d8340792556e382d91784746df5a1bbd32c9cc"
+    },
+    {
+      "status": "M",
+      "path": "scripts/verify.ps1",
+      "sha256": "a4a81e65104ef22b8952b979461b5217b8648994378e17f3c9623c275e5e4b3c"
+    },
+    {
+      "status": "M",
+      "path": "tests/contracts/codex-hook-contract.test.ts",
+      "sha256": "0418d48902b4791efaff84213513fc9d0af06dc6f8d87ee459e25e7df9680b3c"
+    }
+  ]
+}
