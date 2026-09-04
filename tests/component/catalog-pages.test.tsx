@@ -279,17 +279,19 @@ describe("storefront catalog pages", () => {
           }),
       );
 
-    const { container, rerender } = render(<CatalogListPage mode="products" />);
+    const firstRender = render(<CatalogListPage mode="products" />);
     expect(await screen.findByRole("link", { name: "initial-product" })).toBeVisible();
 
+    firstRender.unmount();
     routerState.params = { brand: "brand-refresh" };
-    rerender(<CatalogListPage mode="products" />);
+    const { container } = render(<CatalogListPage mode="products" />);
 
     const loadingStatus = await screen.findByRole("status");
     expect(loadingStatus).toBeVisible();
     expect(loadingStatus).toHaveTextContent("商品一覧を読み込んでいます。");
     expect(container.querySelector(".catalog-results")).toHaveAttribute("aria-busy", "true");
     expect(container.querySelectorAll(".product-card--skeleton")).toHaveLength(1);
+    expect(container.querySelector(".catalog-filters")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "initial-product" })).not.toBeInTheDocument();
     expect(screen.queryByText("条件に一致するデータがありません")).not.toBeInTheDocument();
 

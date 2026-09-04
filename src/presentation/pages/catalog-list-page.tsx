@@ -20,7 +20,14 @@ interface CatalogListPageProps {
 }
 
 const CATALOG_FILTER_DESKTOP_QUERY = "(min-width: 900px)";
+const CATALOG_PAGE_SIZE = 20;
 const SORTS: readonly ProductSort[] = ["newest", "price_asc", "price_desc", "rating_desc"];
+
+// Expo Router remounts this page for query changes; keep only the latest successful result per view to bridge that remount.
+const previousCatalogResults = new Map<
+  string,
+  { requestKey: string; result: ProductSearchResult }
+>();
 
 function catalogPageClass(mode: CatalogListPageProps["mode"]) {
   return mode === "search" ? "catalog-page catalog-page--search" : "catalog-page";
@@ -103,7 +110,10 @@ function numberOrNull(value: string | string[] | undefined): number | null {
 
 export function CatalogListPage({ mode, categoryId }: CatalogListPageProps) {
   return (
-    <RouteGuard access="public">
+    <RouteGuard
+      access="public"
+      loadingFallback={<CatalogLoadingState mode={mode} count={CATALOG_PAGE_SIZE} />}
+    >
       <CatalogListContent mode={mode} {...(categoryId === undefined ? {} : { categoryId })} />
     </RouteGuard>
   );
@@ -142,7 +152,7 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
           ? (requestedSort as ProductSort)
           : "newest",
       page: Number.isInteger(requestedPage) && requestedPage >= 1 ? requestedPage : 1,
-      pageSize: 20,
+      pageSize: CATALOG_PAGE_SIZE,
     };
   }, [categoryId, mode, params]);
   const requestKey = JSON.stringify(request);
@@ -150,12 +160,17 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
     () => catalog.search(request),
     [catalog, requestKey],
   );
-  const [previousResult, setPreviousResult] = useState<ProductSearchResult | null>(null);
+  const resultCacheKey = `${mode}:${categoryId ?? ""}`;
+  const [previousResult, setPreviousResult] = useState<ProductSearchResult | null>(() => {
+    const cached = previousCatalogResults.get(resultCacheKey);
+    return cached !== undefined && cached.requestKey !== requestKey ? cached.result : null;
+  });
   useEffect(() => {
     if (value !== null) {
+      previousCatalogResults.set(resultCacheKey, { requestKey, result: value });
       setPreviousResult(value);
     }
-  }, [value]);
+  }, [requestKey, resultCacheKey, value]);
   const categoryName = useAsyncValue(
     () =>
       categoryId === undefined

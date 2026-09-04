@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "run_id": "20260904-094303-JST",
-  "result": "pass",
-  "primary_failure_category": null,
-  "failure_categories": [],
+  "result": "partial",
+  "primary_failure_category": "flaky_or_env_issue",
+  "failure_categories": ["flaky_or_env_issue"],
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "Issue #92のLoadingレイアウト修正、回帰test、品質Validation、commit、push、OPEN PR作成・確認まで完了した。",
+      "evidence": "Issue #92の実ブラウザ追加検証で確認した再マウント問題をCatalog page内の最小修正で解消し、回帰test、品質Validation、commit、push、OPEN PR更新まで完了した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -39,8 +39,8 @@
       ]
     },
     "validation_confidence": {
-      "rating": "pass",
-      "evidence": "Focused component test、lint、typecheck、build、full verify、Chromium E2E、diff checkを最終状態で実行し、すべて成功した。",
+      "rating": "warn",
+      "evidence": "Focused component test、lint、typecheck、build、Chromium E2E、diff checkは成功した。full verifyはHook contract代表ケースが共有workspace負荷下で15秒timeoutとなったが、対象file単独は127/127 PASSした。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -98,8 +98,8 @@
       ]
     },
     "reproducibility": {
-      "rating": "pass",
-      "evidence": "Promiseを遅延させた初回／再Loadingのcomponent testと、package.json定義のfull verify／Chromium E2Eにより、Loading、Loaded、Empty、Errorと既存catalog導線を再確認できる。",
+      "rating": "warn",
+      "evidence": "Promiseを遅延させた初回／再Loadingのcomponent test、実ブラウザのDesktop／compact観察、Chromium E2EによりLoading、Loaded、Empty、Error優先分岐と既存catalog導線を再確認できる。full verify全体は共有workspaceのHook contract timeoutで完遂していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -118,6 +118,22 @@
       ]
     }
   },
-  "findings": [],
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "medium",
+      "evidence": "pnpm run verifyを2回実行した際、tests/contracts/codex-hook-contract.test.tsの同一代表ケースが15秒timeout。対象file単独は127/127 PASSし、別workspaceでも同じcontract suiteが同時実行されていた。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "selector": null,
+          "event_id": null,
+          "summary": "full verify timeoutと対象Hook file単独127/127 PASSをREPORTへ記録"
+        }
+      ],
+      "detail": "Catalog変更との因果関係は確認できず、無関係なcontract testのtimeout設定や実行方式は今回のPRへ変更しない。共有環境が空いた状態でCIまたは別実行環境の結果を確認する。"
+    }
+  ],
   "improvement_candidates": []
 }

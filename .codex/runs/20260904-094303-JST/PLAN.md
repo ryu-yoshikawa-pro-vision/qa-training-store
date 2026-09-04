@@ -61,3 +61,8 @@
 
 - 2026-09-04 09:51 JST: `CatalogListContent`の`value === null`分岐でCatalog画面全体が消えることを確認。共通Hook変更は他画面への影響が広いため避け、Catalog page内で直近Resultを保持する方針を採用した。
 - 2026-09-04 09:51 JST: Product専用Skeletonは存在しないため、ProductCard相当のPlaceholderを同じ`.product-grid`へ描画する。Skeleton件数は初回`pageSize`、再Loadingは直近Item数とし、CSS固定heightは追加しない。
+- 2026-09-04 16:51 JST: 実ブラウザで、クエリ変更時にExpo RouterがCatalog pageを再マウントするため、`useAsyncValue`がクリアした値をpage-localな`previousResult`が引き継げず、20件SkeletonとFilter UI消失が発生することを確認した。Desktop FilterではFooter document Yが`1540.86 → 3079.25 → 1118.92`、Searchでも`1679.23 → 3079.25 → 1230.11`となり、Issue #92の実害と判断した。
+- 2026-09-04 16:51 JST: fresh direct accessのアプリ準備中は`RouteGuard`の汎用`StatePanel`だけが描画され、Headerは出現しても`.catalog-results`／`.product-grid`が存在しないことを確認した。初回LoadingでもCatalogの結果構造を表示するため、Catalog専用のloading fallbackを渡す最小修正を検討する。
+- 2026-09-04 16:51 JST: 修正案は`useAsyncValue`、Repository、API、Filter／Sort／Pagination stateを変更せず、Catalog page内でmode／categoryとrequest keyに紐づく直近Resultをpage remount間で一度だけ引き継ぎ、`RouteGuard`には既定挙動を保つ任意のloading fallbackを追加する。既存の`.product-grid`とSkeletonを再利用し、route-remount回帰testを追加する。
+- 2026-09-04 17:35 JST: 修正後の実ブラウザで、Desktop／compactの初回LoadingにGrid／Skeleton／`aria-busy`／statusが存在し、Filter／SearchのLoadingでは前回件数のSkeletonとFacet／Filter UIが残ることを確認した。Searchの0件はLoading後のみ既存Filter Emptyへ遷移し、many-productsのSort／PaginationもURLと結果を維持した。
+- 2026-09-04 17:35 JST: default seedでBrand A→Loading中にBrand Bを追加する操作を実行し、最終URLが両ブランドを含み、結果4件・checked 2件へ収束した。古いrequestの後出し表示は観測されず、Errorは既存コードの`error`先行分岐によりpreviousResultより優先されるためfault injectionは行わなかった。
