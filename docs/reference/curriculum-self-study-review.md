@@ -24,7 +24,7 @@
 | 次の行動 | 次に読むLesson、skip、branch、rejoin、または追加exerciseが分かるか |
 | 環境値への到達 | Test Clock、Seed Data、学習用住所、Test Controlなどを重複コピーせず、既存SSOTへ到達できるか |
 | 観測の分類 | 仕様・Expected Behavior違反、仕様違反とは確定しないUX上の懸念、改善提案、未確定（Evidence / 再現条件不足）を混同しないか |
-| Security成立条件 | 入力、保存、escape表示、HTML解釈、JavaScript実行 / executable sink到達を区別できるか |
+| 専門的なFindingの成立条件 | 専門的な結論を断定する前に、その結論に必要な成立条件とEvidenceを段階で区別できるか。Securityの例では入力、保存、escape表示、HTML解釈、JavaScript実行 / executable sink到達を混同しないか |
 | Evidenceと報告 | 報告本文の対象画面・操作・事象がScreenshot / Video / Trace等と一致し、Evidence不足時に断定しないか |
 | 用語と識別子 | 一般説明は日本語中心で、Tool / API / path / command / ID grammarを壊さず、表記が一貫しているか |
 | Instructor support境界 | Instructor Referenceが環境・権限・端末・Training Copy・Toolchain支援に限定され、学習判断を代行していないか |
