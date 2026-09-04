@@ -161,3 +161,35 @@
   - decision: continue
 - Blocker / Remaining: 今回の変更に関係する検証は完了。全体`pnpm run verify`のcontracts timeoutは無関係な既存／環境負荷問題として修正対象外にし、PR本文へ実結果を明記する。
 - Progress: 80% (8/10)
+
+## 2026-09-04 18:06 (JST)
+
+- Summary: PR #110のCI failure repairを完了した。Required Chromium E2Eを含むpush後のGitHub Actions runが成功し、PR本文も実際の検証結果へ更新した。
+- Root Cause: 旧E2Eは、CIのfreshなdefault seedで新規登録後に配送先が1件だけとなるCケースに対し、Bケースの既定再割り当て文言を固定期待していた。先行focused実行のBケースは、CIと同一ではないlocalの再利用server／storage状態との差であり、fixture／scenario／CI設定の確認からtest order・parallel依存は認められなかった。
+- Changes: `e2e/web/ui-ux-improvements.spec.ts` の旧B文言assertionを `.dialog__body` visible assertionへ最小置換した。ProductのA／B／C分岐、Issue #95 component test、削除／既定再設定ロジック、Issue #109／SearchCombobox関連は変更していない。
+- Decision / Rationale: Issue #91 E2Eの責務はDialogの表示、対象label、操作ボタン、layout／overflow／overlapである。Issue #95のA／B／C文言はcomponent testで直接保証されるため、Issue #91 E2Eから状態依存の業務文言固定を外す方針を採用した。
+- Validation: focused E2E 1 passed、required Chromium E2E full suite 30 passed、component 14 passed、lint PASS（0 errors／既存warning 65件）、typecheck PASS、build:web PASS、git diff --check PASS。ローカル`pnpm run verify`はcontracts timeoutで2回FAILしたが、該当test単独はPASSし、今回の差分と無関係な全体負荷問題と切り分けた。push後CI run `33856115176` は `Chromium E2E (required)`、`verify`、`validate`、各Vitest、build、UI Reviewを含めPASS（skip対象を除く）した。
+- Git / PR: source repair commit `ce21505c7cfe3ac6714ac0539e842a232b79d9d3` を `fix/95-address-delete-confirmation` へpushした。PR #110本文を更新し、state OPEN、draft false、base `main`、head `fix/95-address-delete-confirmation` を確認した。PR URL: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/110
+- Scope Review: `git diff`のコード差分はE2E 1ファイル1行のみ。Issue #109変更、SearchCombobox変更、Domain／Application／Repository変更、skip／timeout／retry増加、test data／scenario framework変更はない。Run Artifact sanitizerはWrite／Checkとも4 files scanned、変更0、残存検出0。
+- Repair iteration:
+  - iteration_number: 1
+  - input_findings: PR #110 required Chromium E2Eの旧B文言固定期待。
+  - repair_plan: Issue #91のUI責務に合わせ、状態非依存のDialog body存在assertionへ置換。
+  - allowed_files: `e2e/web/ui-ux-improvements.spec.ts`。Run Artifactは記録更新のみ。
+  - changed_files: `e2e/web/ui-ux-improvements.spec.ts`、Run Artifact 4ファイル。
+  - validation_commands: focused E2E、`pnpm run test:e2e:chromium`、component、lint、typecheck、build:web、verify、contract単独test、`git diff --check`、artifact sanitizer、PR／CI確認。
+  - validation_result: 直接関連するローカル／CI検証はPASS。ローカルfull verifyのみcontracts timeout（CI `verify`はPASS）。
+  - remaining_delta: Run Artifact完了記録のcommit／push後にworking treeを最終確認する。
+  - decision: continue
+- Blocker / Remaining: なし。ローカルfull verifyのcontracts timeoutは単独PASSおよびpush後CI PASSで今回の変更と無関係と確認済み。
+- Progress: 90% (9/10)
+
+## 2026-09-04 18:07 (JST)
+
+- Summary: Run完了条件を満たした。PR #110の修正commit、push、PR本文更新、push後のRequired Chromium E2Eを含むCI確認、Run Artifactのsanitizer確認まで完了した。
+- Completion Evidence: source修正commit `ce21505c7cfe3ac6714ac0539e842a232b79d9d3` をpush済み。CI run `33856115176` は全体successで、`Chromium E2E (required)`、`verify`、`validate`を含む対象jobがPASS。PR #110はOPEN／non-draft、base `main`、head `fix/95-address-delete-confirmation`。
+- Final Scope: コード差分は `e2e/web/ui-ux-improvements.spec.ts` 1ファイル1行のみ。Issue #109、SearchCombobox、Productの3状態分岐、Domain／Application／Repository、削除／既定再設定ロジック、skip／retry／timeout設定には変更なし。
+- Final Validation: focused E2E 1 passed、required Chromium E2E 30 passed、component 14 passed、lint／typecheck／build:web／git diff --check PASS。ローカルfull `pnpm run verify`はcontracts timeoutでFAILしたが、失敗test単独PASS、push後CI `verify` PASSであり、今回の変更に関係する未解決事項ではない。Run Artifact sanitizer Write／Checkは4 files scanned、変更0、残存検出0。
+- Finalization: このRun Artifactの完了記録を次の記録commitへ反映する。PR本文にはローカルverifyのFAILとCIでのPASSを区別して記載済み。
+- Blocker / Remaining: なし。
+- Progress: 100% (10/10)

@@ -10,8 +10,8 @@
 - [x] 6. required Chromium E2E full suiteを実行する
 - [x] 7. component、lint、typecheck、build、verify、diff checkを実行する
 - [x] 8. 差分scope、Run Artifact sanitizer、Issue #109混入なしを確認する
-- [ ] 9. PR #110本文を更新し、commit／push後のPR状態とCIを確認する
-- [ ] 10. REPORTを完了記録へ更新し最終結果を報告する
+- [x] 9. PR #110本文を更新し、commit／push後のPR状態とCIを確認する
+- [x] 10. REPORTを完了記録へ更新し最終結果を報告する
 
 ## Discovered
 
