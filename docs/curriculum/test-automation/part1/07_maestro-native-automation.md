@@ -1,12 +1,14 @@
 # Part 1-7: MaestroによるNative UI自動化
 
+> **Native specialization:** このLessonはPart 1 Commonの必須Lessonではありません。Common prerequisiteはP1-6までです。選択した受講者はP1-7から開始し、完了後にP1-8へrejoinします。選択しない受講者はP1-7をskipしてP1-8へ進みます。
+
 ## 学習目標
 
 - Web UI自動化とNative UI自動化の違いを説明できる。
 - MaestroのFlow、Action、Assertionの基本を理解できる。
 - Scenario Shop Nativeアプリを対象に最小のMaestro Flowを作成できる。
 - Stable UI Test ID、Deep Link、Test Controlを利用して再現可能なNative Testを作れる。
-- AndroidでRequired Flowを実装し、iOSはBuild-only保証とPlatform差分を説明できる。
+- Native specializationとしてAndroidでRequired Flowを実装し、iOSはBuild-only保証とPlatform差分を説明できる。
 - PlaywrightとMaestroを「どちらが優れているか」ではなく、対象Platformと目的から使い分けられる。
 
 ## 教材
@@ -25,6 +27,8 @@
 - `scenario-shop://` Deep Link
 
 ## Part 1での標準実行環境
+
+P1-6までのCommon学習を終え、Native specializationを選択した受講者を対象にします。ここで必要なNative環境条件は、Common completionの前提ではなく、このspecializationの具体的な開始条件です。
 
 Windows LocalのPart 1 MaestroハンズオンにおけるCanonical経路は、USB接続された**Android physical device**です。Android Emulator / AVDは任意の補助経路であり、Fresh LearnerやPart 1の完了条件ではありません。
 
@@ -295,6 +299,8 @@ Cartへ商品を追加した後にAppを再起動し、状態復元を確認し�
 
 ## 完了条件
 
+- C08 Minimum Evidenceは、learner-authored Native exercise diff + successful Maestro execution artifactです。詳細は [Competency Rubric](../02_competency-rubric.md) を参照します。
+- Baseline / stock PASSだけではC08 completionになりません。
 - Physical Android device上で意味のあるMaestro Flow Evidenceを最低1本作成している。2本以上はPractice Volumeとして推奨する。
 - UI Test IDを利用した操作を含む。
 - Test ControlまたはDeep Linkを利用している。

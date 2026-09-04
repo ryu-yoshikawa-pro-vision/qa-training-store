@@ -43,20 +43,28 @@ Playwright、Maestro、GitHub Actionsはこの循環を実現するための手�
 
 既存の `e2e/web/`、`maestro/`、Formal CIは比較教材・正式Regressionであり、Learner Testの保存先ではありません。本番Secret、OIDC、Deploy権限はTrainingへ持ち込みません。
 
+Repositoryに存在することを検証するassetと、受講者がLearner Required pathで学ぶ内容・演習・自己確認・完了条件・評価Evidenceは別の契約です。`03_instructor-reference.md`はRepository-requiredなsupport assetですが、Learner Required pathやCommon completionの正本ではありません。
+
 ## 対象者
+
+コース開始時のentry profileは、テスト自動化の目的・基本概念を理解しており、ノーコード / ローコード経験または概要理解があってもよい一方、Playwright等のコードベース自動化は未経験で、プログラミング経験を必須としない受講者です。
 
 主な対象は次の受講者です。
 
 - 手動テストを経験しており、自動化へ進みたい人
 - Autify、MagicPodなどのノーコード・ローコード自動化経験者
-- Playwrightを触ったことはあるが、テスト設計や運用に自信がない人
-- Web自動化からNative自動化へ広げたい人
-- CIで自動テストを回せるようになりたい人
-- 実案件で自動化基盤を設計できるようになりたい人
+- コードベースのPlaywright等は未経験だが、テスト設計や運用を学びたい人
+- Native specializationを選択してWeb自動化からNative自動化へ広げたい人
+- Part 2でCI上の自動テスト実行を学びたい人
+- 修了後に実案件で自動化基盤を設計したい人
 
 プログラミング経験は必須前提にしません。Playwrightへ進む前に、テストコードを読み書きするために必要なJavaScript / TypeScriptの最小知識をPart 1で扱います。
 
 フルの言語学習を目的にはせず、Scenario Shopの自動テストを書くために必要な範囲へ絞ります。
+
+### Common prior-knowledge rule
+
+Common Coreが前提にできる既習知識は、上記entry profileと、その時点より前にLearner Required pathで明示的に学んだCommon Core内容だけです。Native specialization、Extension、Reference、教材外のPlaywright / TypeScript / Git / CI実務経験を隠れた前提にしません。
 
 ## 用語の使い分け
 
@@ -95,7 +103,9 @@ Maestroへ進む時点ではNative実行環境が追加で必要です。開始�
 - `pnpm run training:web:baseline` が `training-chromium` で成功する。
 - `pnpm run training:web:mobile` が `training-mobile-chromium` で成功する。
 
-### Native / Maestro開始Gate
+### Native specialization / Maestro開始Gate
+
+Native / MaestroはPart 1 Commonの必須前提ではありません。P1-6までをCommon prerequisiteとし、Native specializationを選択した受講者だけが次のNative開始Gateを満たします。選択しない受講者はP1-7をskipしてP1-8へ進みます。P1-7を完了した受講者はP1-8へrejoinします。
 
 Windows Localの標準ハンズオンは、USB接続されたPhysical Android Deviceを基準とします。Android Emulator / AVDは任意の補助経路であり、Part 1完了条件ではありません。
 
@@ -114,6 +124,8 @@ Git、GitHub、Pull Request、GitHub ActionsはPart 2で扱います。
 
 Part 2ではGitHubを扱うため、GitHubアカウントを利用できることを前提とします。
 
+Part 2 CommonはP2-5までを前提とし、P2-6 Native CIとMaestroは選択式のNative specializationです。P2-6を選択しない受講者はP2-6をskipしてP2-7へ進み、完了した受講者はP2-7へrejoinします。P2-6を選択する場合は、P1 Native specializationで得るMaestro実行能力をNative内部prerequisiteとして先に満たします。P1 Native specialization未修了でP2 Nativeを選ぶ場合も、同じNative内部prerequisiteを先に満たします。
+
 ただし、受講者がこのRepository本体へのPush権限を持つことは前提にしません。
 
 Git / GitHubの基本演習では、次の標準経路を利用できます。
@@ -126,6 +138,20 @@ Git / GitHubの基本演習では、次の標準経路を利用できます。
 **CIハンズオンでは、Production Workflowとの競合を避けるため、演習用Copyを標準経路とします。** Forkを使用してCIを学ぶ場合は、GitHub Actionsを利用可能にしたうえで、教材元から継承したProduction / Deploy Workflowが演習PRで同時起動しないように設定し、Training Workflowだけを意図どおり実行できることを開始Gateとします。
 
 本番Secretを受講者へ配布し、既存Production Workflowを無理に成功させる方法は採用しません。
+
+## Common completion contract
+
+Commonの卒業像は **entry-levelの汎用 Test Automation Engineer** です。評価詳細とMinimum Evidenceは [Competency Rubric](./02_competency-rubric.md) を正本とし、Common修了にNative環境の実行結果を要求しません。
+
+- Part 1 Common: `C01〜C07 + C09〜C10` bounded Level 2
+- Part 2 / Final Common: `C01〜C07 + C09〜C12` bounded Level 2
+- `C08`はNative specializationであり、Common completionには要求しません。
+
+成果物やEvidenceはRepository内へ保存・記録すれば成立し、外部提出をCommon completionの必須条件にしません。
+
+### Self-study / Instructor support boundary
+
+学習内容、演習で判断すること、自己確認、学習上のRecovery、完了条件、評価観点はlearner-facing materialを正本とします。Instructor / 運営は環境準備、アカウント・権限、端末、演習Repository / Training Copy、Infrastructure / Toolchainの準備・障害対応を支援できますが、非公開情報や個別判断をRequired completionの前提にしません。
 
 ### Part 1からPart 2への移行
 
@@ -184,8 +210,8 @@ POM、Fixture、Automation Flowなどの保守設計は後半に置きます。�
 5. Playwrightで必要なJavaScript / TypeScriptの最小知識を学ぶ。
 6. Playwrightで実装する。
 7. 実行結果を分析する。
-8. MaestroでNative自動化を行う。
-9. Web / Nativeの自動テストが増えた状態を体験する。
+8. Native specializationを選択した場合は、P1-7でMaestroによるNative自動化を行う。
+9. P1-7をskipまたは完了した後、P1-8へrejoinし、Web / Nativeの自動テストが増えた状態を体験する。
 10. テスト管理と保守上の問題を洗い出す。
 11. Helper / POM / Fixture / Automation Flow / Seed Scenarioなどを使って改善する。
 12. 総合演習を行う。
@@ -202,8 +228,8 @@ Part 2では、Part 1で作成したテストを一般的な開発プロセス�
 4. CIの必要性を理解する。
 5. GitHub Actionsでテストを実行する。
 6. Playwright ReportやArtifactを管理する。
-7. Android Build + Runtime E2Eと、iOS Build-onlyの保証境界を学ぶ。
-8. Quality Gate、Build、Deploy、Smokeを設計する。
+7. Native specializationを選択した場合は、P2-6でAndroid Build + Runtime E2Eと、iOS Build-onlyの保証境界を学ぶ。
+8. Common routeではP2-6をskipし、P2-7でQuality Gate、Build、Deploy、Smokeを設計する。
 9. Scenario Shopを題材に導入設計演習を行う。
 
 ## 教材の進め方

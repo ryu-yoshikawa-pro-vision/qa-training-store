@@ -20,6 +20,34 @@ describe("Training curriculum contracts", () => {
     expect(summary.trainingProjects).toEqual(["training-chromium", "training-mobile-chromium"]);
   });
 
+  it("keeps the Common competency and Native specialization contract", () => {
+    const rubric = readFileSync(
+      resolve(process.cwd(), "docs/curriculum/test-automation/02_competency-rubric.md"),
+      "utf8",
+    );
+
+    expect(rubric).toContain("Part 1 Common: C01〜C07 + C09〜C10");
+    expect(rubric).toContain("Part 2 / Final Common: C01〜C07 + C09〜C12");
+    expect(rubric).toContain("C08: Native specialization / Common non-required");
+    expect(rubric).toContain(
+      "C08 Minimum Evidence: learner-authored Native exercise diff + successful Maestro execution artifact",
+    );
+    expect(rubric).toContain("Baseline / stock PASSだけではC08 completionにならない");
+    expect(rubric).toContain("C12 Common Level 2: bounded Web CI");
+  });
+
+  it("keeps the Native specialization branch and rejoin routes", () => {
+    const readme = readFileSync(
+      resolve(process.cwd(), "docs/curriculum/test-automation/README.md"),
+      "utf8",
+    );
+
+    expect(readme).toContain("Part 1 Common: P1-6 → P1-8 → P1-9");
+    expect(readme).toContain("Part 1 Native: P1-6 → P1-7 → P1-8 → P1-9");
+    expect(readme).toContain("Part 2 Common: P2-5 → P2-7 → P2-8");
+    expect(readme).toContain("Part 2 Native: P2-5 → P2-6 → P2-7 → P2-8");
+  });
+
   it("keeps Training and Formal test roots separate", () => {
     const trainingConfig = readFileSync(
       resolve(process.cwd(), "playwright.training.config.ts"),

@@ -1,5 +1,7 @@
 # Part 2-8: 導入設計演習
 
+Part 2 / Final Commonのcompletionはbounded Web CIを中心とするCommon routeで成立します。Native CI、multi-platform、preview-prod deliveryは選択したNative specializationまたはCommon Level 2外の発展scopeとして扱います。
+
 ## 学習目標
 
 Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Maestro、Quality Gate、CI/CDを使い、Scenario Shopへテスト自動化を導入する設計を自分で作成します。
@@ -138,7 +140,7 @@ Merge前の短時間Feedbackとして必要なもの。
 - Automation BuildとProduction Buildを分けるか。
 - E2E Jobで毎回Buildするか、Artifactを再利用するか。
 
-## Phase 5: Native CIを設計する
+## Phase 5: Native specializationのCIを設計する（選択時）
 
 AndroidとiOSについて、現在のRepository Triggerを正解としてコピーせず、ゼロから次を決めます。
 
@@ -209,7 +211,7 @@ Mergeを止めるRequired条件を定義します。
 
 Nativeについては「両PlatformをRequiredにすれば品質が高い」と短絡せず、Risk、実行時間、Runner Cost、Flakiness、代替Coverageから判断します。
 
-## Phase 8: CI/CDを設計する
+## Phase 8: CI/CDを設計する（Common Level 2外の発展を含む）
 
 Webについて、Build後のDelivery / Deployまで設計します。
 
@@ -300,7 +302,9 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 - 別案件なら不要になり得る構成
 - 今後改善できる点
 
-## 提出物
+## 記録する成果物
+
+次の成果物はRepository内へ保存・記録します。外部提出をCommon completionの必須条件にしません。
 
 - Current State一覧
 - Risk整理
@@ -350,22 +354,22 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 
 ## Part 2完了条件
 
-受講者が次を自力で設計・説明できればPart 2完了とします。
+Part 2 / Final Common: C01〜C07 + C09〜C12 bounded Level 2。各CompetencyのMinimum Evidenceは [Competency Rubric](../02_competency-rubric.md) を参照します。C12 Commonはbounded Web CIのTrigger / Gate / Artifact / Failure Evidenceに限定します。
+
+受講者がCommon routeで次を自力で設計・説明できればPart 2完了とします。
 
 - 一般的な開発プロセスとテストの関係
 - Git / GitHubによる変更管理
 - Pull RequestとReview
 - CI Trigger
 - Playwright CI
-- Maestro Native CI
 - Test Suiteの実行タイミング
 - Required Quality Gate
 - Failure Evidence
 - Build Artifact
-- Preview / Production
-- Deploy後Smoke
-- Android / iOSの異なる実行戦略
-- Scenario Shopへ適したCI/CD全体構成
+- bounded Web CIのGate、Artifact、Failure調査経路
+
+Native CI / Maestro、Android / iOSの異なる実行戦略、multi-platform、Preview / Production / Deploy後Smokeを含むfull deliveryは、Native specializationまたはCommon Level 2外の発展scopeです。これらをCommon completionのRequired条件にしません。
 
 最終到達点は、GitHub ActionsのYAMLを暗記することではありません。
 
