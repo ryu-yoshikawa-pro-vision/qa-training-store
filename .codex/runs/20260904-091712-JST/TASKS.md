@@ -17,7 +17,7 @@
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
 - D1. `git fetch origin` / `git merge origin/main`は実行環境の承認ポリシーで拒否されたため、ancestor確認結果をRunへ記録する。
-- [ ] 11. 前回レビューの最終修正（Learning Design、Run Artifact、PR #103本文）を反映し、全validationとpush結果を確認する
+- [x] 11. 前回レビューの最終修正（Learning Design、Run Artifact、PR #103本文）を反映し、全validationとpush結果を確認する
 
 ## Blocked
 
