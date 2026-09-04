@@ -143,3 +143,17 @@
   - Result: なし。
   - Parent decision: repair decision=`continue`。同一failureの盲目的再実行はせず、根拠のある最小test修正後に再検証する。
 - Progress: 50% (5/10)
+
+## 2026-09-04 21:33 (JST)
+
+- Summary: Issue #101の変更をcommit／pushし、main向けのOPEN・非Draft PR #113を作成して最終確認を完了した。
+- Changes: commit `2733694ae49675b5e033b5a6a73bd04e14886117`を指定branchへ作成し、`origin/fix/codex-task-native-command-output-exit-code`へ明示refspecでpushした。PR本文は日本語で、Root Cause、Validation、Non-goals、`Closes #101`を含む。
+- Decision / Rationale: PRのbaseは`main`、headは`fix/codex-task-native-command-output-exit-code`、状態はOPEN、Draftではないことを確認した。Issue #101のscope内に未完了事項はない。`pnpm run verify`の既存Hook contract timeoutは独立failureとして明記し、Hook側へ変更を広げていない。
+- Validation: `gh pr view 113 --repo ryu-yoshikawa-pro-vision/qa-training-store --json number,title,state,isDraft,baseRefName,headRefName,url,headRefOid,body`でPR属性と必須本文要素を確認した。`scripts/collect-run-artifacts.ps1`はexit 0、Sanitizer Write／Checkは4 files／0 residualでPASSだった。
+- Git / PR: branch=`fix/codex-task-native-command-output-exit-code`、PR #113、https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/pull/113。
+- Blocker / Remaining: Issue #101の範囲ではなし。`pnpm run verify`では既存Hook timeoutによりbuild工程未実行のため、repository verify全体をPASSとは扱わない。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: task 9／10を完了し、Runを完了する。
+- Progress: 100% (11/11)

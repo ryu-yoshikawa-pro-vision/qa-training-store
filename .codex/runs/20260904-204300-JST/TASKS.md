@@ -10,8 +10,8 @@
 - [x] 6. focused regression testとPowerShell wrapper validationを実行する。
 - [x] 7. contract suite、可能なrepository verify、`git diff --check`を実行し、失敗時は原因調査とbounded repairを行う。
 - [x] 8. diff／scope／non-goalをself-reviewし、Run Artifactのsanitizer Write／Checkを完了する。
-- [ ] 9. branch safetyを再確認してcommitし、指定branchへ明示refspecでpushする。
-- [ ] 10. main向けOPEN・非Draft PRを日本語で作成し、base/head/本文/Issue紐付けと最終状態を確認してREPORTを完了する。
+- [x] 9. branch safetyを再確認してcommitし、指定branchへ明示refspecでpushする。
+- [x] 10. main向けOPEN・非Draft PRを日本語で作成し、base/head/本文/Issue紐付けと最終状態を確認してREPORTを完了する。
 
 ## Discovered
 
