@@ -301,11 +301,11 @@ Part 2でこれらをPR / main / Nightlyへ配置します。
 
 ## ハンズオン1: 重複を探す
 
-自分が作成したPlaywright Testから、重複しているLogin、商品操作、Cart操作などを洗い出します。
+自分が作成したPlaywright Testから、保守上の問題を1件選びます。重複、責務混在、Locator変更影響、Test Data Setupなど、実際に困る理由を説明できるものを対象にします。
 
 ## ハンズオン2: 解決方法を選ぶ
 
-各重複について次のどれを使うか判断します。
+選んだ問題について、次のどれを使うか判断します。
 
 - そのまま残す
 - Helper
@@ -314,13 +314,17 @@ Part 2でこれらをPR / main / Nightlyへ配置します。
 - Fixture
 - Automation Flow
 
-必ず選択理由を書きます。
+選択理由を書き、問題より大きい抽象化を持ち込まないことを確認します。
 
-## ハンズオン3: リファクタリング
+## ハンズオン3: 最小のリファクタリング
 
-最低1つのPage Objectまたは同等の共通化を実装します。
+選んだ問題を解消する最小の共通化・構造改善を1件実装します。
 
-ただし、POMを使うこと自体を完了条件にはしません。Helperの方が適切と判断した場合、その理由を説明できれば構いません。
+POMを使うこと自体を完了条件にはしません。Helperや局所修正の方が小さく適切なら、その理由を説明できれば構いません。
+
+### Part 2 bridge / Reference practice（任意）
+
+以下のハンズオン4〜6は、Part 2へ進むための影響分析やRegression管理の比較材料です。Common completionの必須Evidenceにはしません。
 
 ## ハンズオン4: Seed Scenario整理
 
@@ -381,16 +385,13 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 
 ## 自己確認とRecovery
 
-自分のPlaywright Testから1件を選び、問題の影響、最小改善、改善後に守るRisk、次に確認するRegressionを説明します。POM / Helper / Fixture / Automation Flowの名称を使うだけでなく、なぜその責務へ置くかを説明できることを確認します。
+自分のPlaywright Testから1件を選び、問題の影響、最小改善、改善後に守るRiskを説明します。POM / Helper / Fixture / Automation Flowの名称を使うだけでなく、なぜその責務へ置くかを説明できることを確認します。
 
-Fixture内部やNative比較で止まった場合は、まずCommon Coreの問題へ戻り、必要な差分だけを読む範囲へ絞ります。仕様変更の影響が追えない場合はBR / AC、Workbook、Test Case IDへ戻り、次はPart 1-9のCommon capstoneまたはPart 2-1へ進みます。
+Fixture内部やNative比較で止まった場合は、まずCommon Coreの問題へ戻り、必要な差分だけを読む範囲へ絞ります。Lifecycle / Regression棚卸しはPart 2 bridge / Referenceであり、Common completionを止めません。次はPart 1-9のCommon capstoneまたはPart 2-1へ進みます。
 
 ## 完了条件
 
-- 自分のテスト資産の保守上の問題を3件以上洗い出している。
-- 各問題について解決方法を選び、理由を説明している。
-- 少なくとも1件の共通化・構造改善を実装している。
-- Test Case IDと自動化実装の対応を更新している。
-- 仮想仕様変更についてRisk、Test Case、自動化実装、Regression分類の影響を追跡し、変更計画を作成している。
-- 仮想仕様変更ではProduct未変更のまま将来仕様向けTestをPassさせることを完了条件にしていない。
-- Flaky、重複、不要テスト、実行時間の観点でRegression資産を棚卸ししている。
+- learner-authored Playwright Testの実在する保守問題を1件特定し、その影響と守るべきRiskを説明できる。
+- 問題に対して必要最小限の改善方法を選び、その理由を説明できる。
+- 最小の共通化・構造改善を1件実装し、元の期待結果・Assertion・Evidenceを弱めていないことを確認できる。
+- Maestro / Native比較、Pattern catalog、仮想仕様変更、Regression棚卸しを実施しなくてもCommon completionが成立する。
