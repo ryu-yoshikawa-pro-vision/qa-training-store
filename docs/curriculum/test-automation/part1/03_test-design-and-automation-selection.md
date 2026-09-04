@@ -234,19 +234,11 @@ Part 1後半ではPlaywrightとMaestroを使いますが、この段階では次
 
 ## ハンズオン1: Cartのテスト条件を体系的に導出する
 
-スプレッドシートへ最低10件作成します。
+Practice Volumeの目安として10件程度のTest Caseを設計します。ただし、件数自体を完了条件にはしません。
 
-必須:
+Risk / Specificationに応じて、同値分割、境界値、状態差分、Role差分、User Journeyから必要な観点・techniqueを選びます。すべてのtechniqueを使うこと自体は目的にしません。
 
-- 同値分割を1つ以上
-- 境界値を1つ以上
-- 状態差分を1つ以上
-- Role差分を1つ以上
-- User Journeyを1つ以上
-
-最低限、正常追加、削除、在庫切れ、低在庫または購入上限、Guest Cart統合を含めます。
-
-各Caseには、Test Case IDだけでなく「どのRisk / 設計技法から導出したか」を記録します。
+最低限、代表的な正常・異常または境界、Roleまたは状態差分、User Journeyを含め、各CaseにTest Case IDだけでなく「どのRisk / 設計techniqueから導出したか」を記録します。
 
 ## ハンズオン2: Checkout / Paymentの状態遷移
 
@@ -295,16 +287,15 @@ Payment成功・拒否・再試行を含む状態遷移図を作成します。
 
 ## 自己確認とRecovery
 
-次の1件について、BR / AC、Risk、条件分離、Test Layer / Tool、自動化判断、理由がつながっていることを確認します。10件以上のTest Caseと3技法以上の適用はPractice Volumeとして役立ちますが、単独のquotaを満たすことだけで設計の完了とはしません。
+代表的な1件について、BR / AC、Risk、条件分離、Test Layer / Tool、自動化判断、理由がつながっていることを確認します。複数Case・複数techniqueを使うことはPractice Volumeとして役立ちますが、数を満たすこと自体を設計の完了条件にはしません。
 
 条件を分けた理由を説明できない場合は、Lesson 2〜6へ戻り、異なるExpected Behaviorを生む条件を分離します。Layerの選定で迷う場合は、Lesson 7〜10へ戻り、Risk、確認範囲、実行Costを比較します。次はPart 1-4で、選んだWeb automation caseを最小コードへ落とします。
 
 ## 完了条件
 
-- 10件以上のテストケースをスプレッドシートへ設計している（Practice Volume）。
-- 同値分割、境界値、デシジョンテーブル、状態遷移のうち3技法以上を適用し、各ケースのRisk / Specification fitと理由を説明できる。
-- 正常、異常、Role、User Journeyの観点が含まれている。
+- 代表的なTest Caseについて、BR / AC、Risk、選択した設計technique、期待結果のつながりを説明できる。
+- 使用した設計techniqueをRisk / Specificationに応じて選んだ理由を説明でき、使わなかったtechniqueを件数合わせのために追加していない。
+- 正常系に加え、異常または境界、Roleまたは状態差分、User Journeyの代表的なRiskをTest Caseへ落とし込める。
 - Unit、Integration、Repository Contract、Component、Web E2E、Native E2Eの主な違いを説明できる。
-- デシジョンテーブルで複数条件を適切に分離し、異なる拒否理由を説明できる。
 - 各ケースのRisk / 設計根拠、自動化判断、理由を記録している。
 - 少なくとも1件についてUI E2Eではなく別テスト層を選び、その層で何を保証するか説明できる。
