@@ -3920,8 +3920,11 @@ progress {
 }
 
 .admin-wordmark > span:last-child {
+  min-width: 0;
   display: grid;
   line-height: 1.2;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .admin-wordmark small {
