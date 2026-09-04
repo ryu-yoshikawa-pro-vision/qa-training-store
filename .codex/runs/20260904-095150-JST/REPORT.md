@@ -209,3 +209,31 @@
 - Blocker / Remaining:
   - なし。PR本文更新、修正commit、push、Artifact最終処理が残っている。
 - Progress: 88% (15/17)
+
+## 2026-09-04 16:51 (JST)
+
+- Summary:
+  - 既存PR #108の本文を、実装事実に合わせて日本語で更新した。
+  - 「248pxを維持」ではなく、既存のSide Navigation幅定義とAdmin Shell Main layoutを変更していないことを明記した。
+- Validation:
+  - `gh pr edit 108 --repo ryu-yoshikawa-pro-vision/qa-training-store --title "fix: Scenario Shop Adminの表示overflowを解消する" --body ...`: PASS。
+  - `gh pr view 108 --repo ryu-yoshikawa-pro-vision/qa-training-store --json number,title,state,baseRefName,headRefName,headRefOid,url,body`: PASS。PR #108はOPEN、base=`main`、head=`fix/issue-94-admin-sidebar-label-overflow`、head=`85d9d3aa79458cb645afa562e15fb1699875710c`、`Closes #94`を確認した。
+- Blocker / Remaining:
+  - なし。Run Artifactのcollector、sanitize/check、記録commitのpushが残っている。
+- Progress: 94% (16/17)
+
+## 2026-09-04 16:52 (JST)
+
+- Summary:
+  - PR #108修正のコードcommit、push、既存PR本文更新、検証、Run Artifactの評価更新を完了した。
+  - Run Artifactのcollectorとsanitize/checkを再実行し、未サニタイズのローカル絶対Pathがないことを確認した。
+- Changes:
+  - 修正commitは`85d9d3aa79458cb645afa562e15fb1699875710c`、push先は指定された`fix/issue-94-admin-sidebar-label-overflow`。
+  - PR #108はOPENのまま、本文に`Scenario Shop Admin`全文、既存幅定義不変更、Issue直結E2E、実測結果を反映した。
+- Validation:
+  - `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260904-095150-JST/evaluation.json`: PASS。
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260904-095150-JST -RefreshGitChangedFiles`: PASS。
+  - `powershell.exe -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260904-095150-JST -Write -Check`: PASS（5 files、0 replacements、0 residual findings）。
+- Blocker / Remaining:
+  - なし。記録commitの作成・pushとPR最新headの最終確認を残している。
+- Progress: 100% (17/17)

@@ -7,14 +7,14 @@
   "dimensions": {
     "task_completion": {
       "rating": "pass",
-      "evidence": "Issue #94の原因調査、Label側の最小修正、回帰test、検証、self-review、commit、push、OPEN PR作成まで完了し、正式名称と既存レイアウトを維持した。",
+      "evidence": "Issue #94の原因調査、Label側の最小修正、回帰test、検証、self-review、追加commit、push、既存PR更新まで完了し、正式名称と既存レイアウトを維持した。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "src/presentation/styles/global.css",
           "selector": ".admin-wordmark > span:last-child",
           "event_id": null,
-          "summary": "Admin Label wrapperへ折り返しとflex縮小のCSSを追加"
+          "summary": "Admin Label wrapperへflex縮小と通常折り返しのCSS 2宣言を適用"
         },
         {
           "kind": "validation_command",
@@ -27,14 +27,14 @@
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "Product変更は対象Label CSS 3宣言と既存Phase 1 UI test 1件に限定し、Side Navigation幅、Admin Shell構造、表示文字列、依存関係を変更していない。",
+      "evidence": "Product変更は対象Label CSS 2宣言と既存Phase 1 UI test 1件に限定し、Side Navigation幅、Admin Shell構造、表示文字列、依存関係を変更していない。",
       "evidence_refs": [
         {
           "kind": "changed_file",
           "path": "e2e/web/phase1-required.spec.ts",
           "selector": "Admin Side Navigationの正式名称が対応幅に収まる",
           "event_id": null,
-          "summary": "1024px/1280pxのLabel・Nav・Main境界と水平overflowを検証"
+          "summary": "1024px/1280pxのLabel境界、Wordmark/Nav非重複、Main境界、水平overflowを検証"
         }
       ]
     },
@@ -52,9 +52,9 @@
         {
           "kind": "evaluation_note",
           "path": ".codex/runs/20260904-095150-JST/REPORT.md",
-          "selector": "2026-09-04 11:04 (JST)",
+          "selector": "2026-09-04 16:49 (JST)",
           "event_id": null,
-          "summary": "Browser geometry、E2E、UI Review、repair-loopの検証記録"
+          "summary": "verify、既存E2E、a11y、UI Review、最終diffレビューの検証記録"
         }
       ]
     },
@@ -106,7 +106,7 @@
           "path": "e2e/web/phase1-required.spec.ts",
           "selector": "Admin Side Navigationの正式名称が対応幅に収まる",
           "event_id": null,
-          "summary": "対応幅ごとのDOM geometryとNav操作領域の回帰検証"
+          "summary": "対応幅ごとのDOM geometryとWordmark/Nav非重複の回帰検証"
         }
       ]
     }

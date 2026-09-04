@@ -17,8 +17,8 @@
 - [x] F3. `overflow-wrap: anywhere`を外した状態で1024px/1280pxの実ブラウザ計測を行い、成立可否を判定する。
 - [x] F4. Issue #94直結のassertionだけにE2Eを整理し、対象testを実行する。
 - [x] F5. verify、関連E2E、a11y、必要なUI確認、最終diffレビューを完了する。
-- [ ] F6. PR本文を実装事実へ更新し、既存PRのOPEN状態と最新headを確認する。
-- [ ] F7. 修正commitを作成してpushし、Run Artifactをsanitize/checkして完了報告する。
+- [x] F6. PR本文を実装事実へ更新し、既存PRのOPEN状態と最新headを確認する。
+- [x] F7. 修正commitを作成してpushし、Run Artifactをsanitize/checkして完了報告する。
 
 ## Discovered
 
