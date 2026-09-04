@@ -536,7 +536,7 @@ test.describe("UI/UX improvement flows A-J", () => {
       const dialog = page.getByRole("alertdialog");
       await expect(dialog).toBeVisible();
       await expect(dialog).toContainText(label);
-      await expect(dialog).toContainText("既定の配送先を削除した場合は");
+      await expect(dialog.locator(".dialog__body")).toBeVisible();
       await expect(dialog.getByRole("button", { name: "削除する", exact: true })).toBeVisible();
       await expect(dialog.getByRole("button", { name: "閉じる", exact: true })).toBeVisible();
       await expectLayoutWithinViewport(page, [

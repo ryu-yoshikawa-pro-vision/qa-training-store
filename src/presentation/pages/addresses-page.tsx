@@ -63,6 +63,7 @@ function AddressesContent() {
   if (addresses === null) {
     return <StatePanel kind="loading" />;
   }
+  const hasRemainingAddresses = addresses.length > 1;
   const selectForEdit = (address: UserAddress) => {
     setEditing(address);
     reset({
@@ -182,7 +183,11 @@ function AddressesContent() {
                         }
                       }}
                     >
-                      既定の配送先を削除した場合は、残っている最も古い配送先が新しい既定になります。
+                      {address.isDefault
+                        ? hasRemainingAddresses
+                          ? "既定の配送先を削除した場合は、残っている最も古い配送先が新しい既定になります。"
+                          : "最後の配送先を削除します。削除後は配送先が登録されていない状態になります。"
+                        : "この配送先を削除します。"}
                     </ConfirmDialog>
                   </div>
                 </article>

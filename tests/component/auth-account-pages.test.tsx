@@ -55,6 +55,24 @@ const account = {
   })),
 };
 
+const makeAddress = (overrides: Partial<UserAddress> = {}): UserAddress => ({
+  id: "address-home",
+  userId: "user",
+  label: "自宅",
+  recipientName: "一般テスト会員",
+  postalCode: "1000001",
+  prefecture: "東京都",
+  city: "千代田区千代田",
+  addressLine1: "1-1",
+  addressLine2: null,
+  phone: "09000000000",
+  isDefault: true,
+  createdAt: "2026-07-01T03:00:00.000Z",
+  updatedAt: "2026-07-01T03:00:00.000Z",
+  version: 1,
+  ...overrides,
+});
+
 vi.mock("expo-router", () => ({
   Link: ({ href, children, ...props }: { href: string; children: ReactNode }) => (
     <a href={href} {...props}>
@@ -372,5 +390,66 @@ describe("auth and account pages", () => {
       ),
     );
     expect(await screen.findByRole("status")).toHaveTextContent("既定の配送先を変更しました。");
+  });
+
+  it.each([
+    {
+      name: "uses the normal deletion message for a non-default address",
+      addresses: [
+        makeAddress(),
+        makeAddress({
+          id: "address-work",
+          label: "勤務先",
+          isDefault: false,
+          createdAt: "2026-07-02T03:00:00.000Z",
+          updatedAt: "2026-07-02T03:00:00.000Z",
+        }),
+      ],
+      targetLabel: "勤務先",
+      expected: "この配送先を削除します。",
+      unexpected: "既定の配送先を削除した場合は",
+    },
+    {
+      name: "explains the default reassignment when another address remains",
+      addresses: [
+        makeAddress({
+          createdAt: "2026-07-02T03:00:00.000Z",
+          updatedAt: "2026-07-02T03:00:00.000Z",
+        }),
+        makeAddress({
+          id: "address-old",
+          label: "以前の住所",
+          isDefault: false,
+          createdAt: "2026-07-01T03:00:00.000Z",
+          updatedAt: "2026-07-01T03:00:00.000Z",
+        }),
+      ],
+      targetLabel: "自宅",
+      expected: "既定の配送先を削除した場合は、残っている最も古い配送先が新しい既定になります。",
+      unexpected: "最後の配送先を削除します。",
+    },
+    {
+      name: "describes an empty address list when deleting the last default address",
+      addresses: [makeAddress()],
+      targetLabel: "自宅",
+      expected: "最後の配送先を削除します。削除後は配送先が登録されていない状態になります。",
+      unexpected: "既定の配送先を削除した場合は",
+    },
+  ])("$name", async ({ addresses, targetLabel, expected, unexpected }) => {
+    account.listAddresses.mockResolvedValue(addresses);
+    render(<AddressesPage />);
+    await screen.findByRole("heading", {
+      name: `登録済み配送先（${addresses.length}/5）`,
+    });
+
+    const card = screen.getByRole("heading", { name: targetLabel }).closest("article");
+    if (card === null) throw new Error(`住所カードが見つかりません: ${targetLabel}`);
+    fireEvent.click(within(card).getByRole("button", { name: "削除" }));
+
+    const dialog = await screen.findByRole("alertdialog", {
+      name: `${targetLabel}を削除しますか`,
+    });
+    expect(dialog).toHaveTextContent(expected);
+    expect(dialog).not.toHaveTextContent(unexpected);
   });
 });
