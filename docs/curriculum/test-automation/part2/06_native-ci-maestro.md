@@ -6,12 +6,11 @@
 
 - MaestroをCIで実行するために必要なNative実行環境を説明できる。
 - Androidの最小Training WorkflowでBuild、Emulator、Install、Maestro実行までを体験できる。
-- Android BuildとAndroid Emulator実行を分ける理由を理解できる。
-- APK ArtifactをBuild JobからRuntime Jobへ受け渡す構成を説明できる。
-- iOSのBuild-only CIで、Build-time metadata／Production guard／Artifactを検証する流れを理解できる。
-- Native変更がない場合に高コストJobをSkipする設計を理解できる。
-- JUnit、Screenshot、logcat、Simulator診断などNative Failure Evidenceを扱える。
-- Web CIとNative CIで異なるCost・Flakiness・実行時間を考慮できる。
+- BuildとRuntimeを分ける理由を理解できる。
+- Build ArtifactをRuntimeへ受け渡す構成の目的を説明できる。
+- Native Failureを工程別に切り分け、適切なEvidenceを確認できる。
+- Native CIの実行頻度をRisk、Cost、Feedback速度から考えられる。
+- Current RepositoryのAndroid / iOS Workflow詳細を、必須暗記ではなく比較用Referenceとして読める。
 
 ## 教材
 
@@ -29,7 +28,13 @@
 - `package.json`
 - Native Test Control / Contract Harness
 
-## 現在のRepositoryにおけるAndroid / iOS CIの位置づけ
+### Core / Reference boundary
+
+- **Native specialization Core**: learner-authored Maestro Flowを安全なTraining CIで実行し、Build / Runtime / Testの工程、Failure Evidence、Artifact、実行Costを説明できること。
+- **Reference**: API LevelやJob名、Current Android Job topology、Native変更判定、Action / metadata / guard、Current iOS Workflowの具体的なTrigger構造など、Repository固有の実装詳細。
+- **Comparison practice**: Android / iOSの保証差やCurrent Workflowは、Core概念を理解した後に読む比較材料であり、特定の構成暗記をspecialization completionにしない。
+
+## 現在のRepositoryにおけるAndroid / iOS CIの位置づけ（Reference）
 
 2026年8月時点のRepositoryでは、AndroidとiOSで実行Triggerが異なります。
 
@@ -45,7 +50,7 @@ Native変更判定、Static Check、Production Bundle Guard、Android Build、An
 
 standalone実行では、iOS Automation / Productionのunsigned Release `iphonesimulator` BuildとArtifactを確認する**手動実行のBuild-only baseline**です。Native変更時はtop-level `native-ci`のPR連動経路でiOS Buildが実行され、`native-ci / verify`がiOS成功をRequiredとします。Simulator Install／Launch／Maestroは現行正式Gateの保証対象外です。
 
-このCurrent boundaryを前提に、後続演習では「iOSをPR / main / Nightly / Manualのどこへ配置するか」をRiskとCostから考えます。
+このCurrent boundaryを、後続の設計判断で比較材料として使います。CurrentのJob名やTrigger構成そのものをcompletion条件にはしません。
 
 ## Training Native Workflowの前提
 
@@ -57,7 +62,7 @@ standalone実行では、iOS Automation / Productionのunsigned Release `iphones
 - Build / Emulator / Install / Maestro / Evidenceの関係を確認できる。
 - 現在の高度なFormal Native CIは、最小構成を動かした後に比較する。
 
-Training Native Workflowは `permissions: contents: read`、Secret / OIDC / Environment / Deployなしで、GitHub-hosted Ubuntu runner上のBuild → API 34 Emulator → Install → Maestro → Evidenceを構成します。ここでのEmulatorはGitHub Native CIのCanonicalであり、Windows Local Fresh LearnerのCanonical Physical Device経路とは別責務です。Formal Native CIのRequired Gateを置き換えず、Training baselineは既存Formal Android Runtimeからも再利用できます。
+Training Native Workflowは `permissions: contents: read`、Secret / OIDC / Environment / Deployなしで、GitHub-hosted Ubuntu runner上のBuild → Android Emulator → Install → Maestro → Evidenceを構成します。具体的なAPI LevelやABIはCurrent Training assetを参照し、completion条件として暗記しません。ここでのEmulatorはGitHub Native CIの実行環境であり、Windows Local Fresh LearnerのCanonical Physical Device経路とは別責務です。Formal Native CIのRequired Gateを置き換えず、Training baselineは既存Formal Android Runtimeからも再利用できます。
 
 ## Lesson 1: Native CIがWeb CIより重い理由
 
@@ -140,6 +145,8 @@ APK Artifact
 Android Runtime / Maestro
 ```
 
+このCurrent構成は、BuildとRuntimeを分ける設計判断の比較材料として読みます。
+
 ## Lesson 4: APK Artifact
 
 Build Jobで生成したAPKをGitHub Actions Artifactへ保存し、Runtime JobでDownloadします。
@@ -155,12 +162,11 @@ Build Jobで生成したAPKをGitHub Actions Artifactへ保存し、Runtime Job�
 
 ## Lesson 5: CI Emulator
 
-GitHub Native Android Runtime Jobでは、APKをInstallするためにAPI 34 / `google_apis` / `x86_64` Emulatorを起動します。Windows LocalではこのLessonのEmulatorを起動せず、Part 1のPhysical Device runbookを使用します。
+GitHub Native Android Runtime Jobでは、APKをInstallするためにEmulatorを起動します。CurrentのAPI Level / image / ABIはRepository assetを参照します。Windows LocalではこのLessonのEmulatorを起動せず、Part 1のPhysical Device runbookを使用します。
 
 確認観点:
 
-- API Level
-- Architecture
+- API Level / image / ABIがTraining contractと一致する。
 - Boot完了
 - adb接続
 - APK Install
@@ -199,7 +205,7 @@ Native Failure時には次も有効です。
 
 Failureの工程によって必要なEvidenceが異なります。
 
-## Lesson 9: Native変更判定
+## Lesson 9: Native変更判定（Reference）
 
 Nativeと無関係な文書変更でも、毎回Android Build + Emulatorを実行するとCostが大きくなります。
 
@@ -207,9 +213,9 @@ Scenario Shopでは変更Pathを判定し、Native変更がない場合は高コ
 
 ただし変更判定が狭すぎると、本来Nativeへ影響する変更を見逃します。
 
-最適化とFail-safeのBalanceを考えます。
+Currentのallowlist / parser / path detailはRepository固有Referenceです。Coreでは「高コストGateのTrigger範囲を狭めるときはfalse negativeを避ける」という設計判断を理解します。
 
-## Lesson 10: iOS Build-only CI
+## Lesson 10: iOS Build-only CI（Reference）
 
 `native-ios-ci.yml` を読み、次の流れを確認します。
 
@@ -233,7 +239,7 @@ Build-time metadata / Production guard
 
 iOSではmacOS Runnerが必要で、AndroidとはCost特性が異なります。
 
-standaloneでは `workflow_dispatch` の手動Build baselineであり、Native変更時はtop-level `native-ci`から呼び出されるRequired Build-only経路です。「Build Artifactが生成・検証される」ことと「Simulator Runtime / Maestroが動く」ことを区別します。
+standaloneでは `workflow_dispatch` の手動Build baselineであり、Native変更時はtop-level `native-ci`から呼び出されるRequired Build-only経路です。「Build Artifactが生成・検証される」ことと「Simulator Runtime / Maestroが動く」ことを区別します。Current Triggerやguard構成の暗記はcompletion条件にしません。
 
 ## Lesson 11: Android / iOSを独立して考える
 
@@ -245,23 +251,21 @@ Scenario ShopのPhase 2方針では、Android / iOSを独立実行し、進め�
 
 ## ハンズオン1: Android MaestroをTraining CIで実行する
 
-`training-native-ci.yml`を読み、Android用の最小Native JobでPart 1のMaestro Flowを1本実行します。Training baselineの通常入口は `pnpm run training:native:baseline` です。
+`training-native-ci.yml`を読み、Android用の最小Native JobでPart 1のlearner-authored Maestro Flowを1本実行します。Training baselineの通常入口は `pnpm run training:native:baseline` です。
 
-最低限次の工程を含めます。
+最低限次の工程を確認します。
 
 1. Repository Checkout
-2. Node / Java / Android SDK準備
-3. Dependency Install
-4. Scenario Shop Android Build
-5. Android Emulator起動
-6. APK Install
-7. App Launch
-8. Maestro Flow実行
-9. JUnitまたはScreenshotをArtifactとして保存
+2. Dependency / SDK準備
+3. Scenario Shop Android Build
+4. Android Emulator起動
+5. APK Install / App Launch
+6. learner-authored Maestro Flow実行
+7. JUnitまたはScreenshotなどのEvidence保存
 
 目的は現在の `native-ci.yml` を完全再現することではありません。
 
-**Localで動いていたMaestro Flowを、GitHub ActionsのRunner上でも自動実行できる**ところまでを体験します。
+**Localで動いていたlearner-authored Maestro Flowを、安全なTraining CI上でも自動実行でき、結果をEvidenceで確認できる**ところまでを体験します。
 
 ## ハンズオン2: Native Failureを1件分析する
 
@@ -277,11 +281,25 @@ Training Native Workflowで、意図的または実際のFailureを1件確認し
 
 Failure箇所に応じて、最初に見るLog / Artifactを記録します。
 
-## ハンズオン3: 現在のAndroid Native CI構成を図にする
+## ハンズオン3: Build / Runtime分離を設計する
 
-Training Workflowを動かした後に、現在のAndroid Native CIをJob依存関係として図示します。
+Training Workflowの実行結果をもとに、次を考えます。
 
-最低限次を含めます。
+- Buildに時間がかかる場合、Runtime Failure時に何を再利用できるか。
+- APKをArtifact化する価値があるか。
+- Jobを分けることで増えるCostは何か。
+
+実際に高度な分割Workflowへ作り直すことは必須にしません。設計判断を説明できることを重視します。
+
+### Current Repository comparison（Reference / 任意）
+
+以下はCore完了後の比較材料です。特定のJob名・API Level・Trigger・guardを暗記することはcompletionに含めません。
+
+## ハンズオン4: 現在のAndroid Native CI構成を図にする
+
+現在のAndroid Native CIをJob依存関係として図示し、自分の最小Training Workflowと比較します。
+
+比較例:
 
 - Detect
 - Native Static
@@ -291,32 +309,11 @@ Training Workflowを動かした後に、現在のAndroid Native CIをJob依存�
 - Android Runtime / Maestro
 - Verify
 
-自分の1Job構成と比較し、なぜ現在のRepositoryでは責務を分けているか説明します。
-
-## ハンズオン4: Build / Runtime分離を設計する
-
-Training Workflowの実行結果をもとに、次を考えます。
-
-- Buildに何分かかったか。
-- Maestroだけ再実行したい場合に何を再利用できるか。
-- APKをArtifact化する価値があるか。
-- Jobを分けることで増えるCostは何か。
-
-実際に高度な分割Workflowへ作り直すことは必須にしません。設計判断を説明できることを重視します。
-
 ## ハンズオン5: iOS構成比較
 
 現在の `native-ios-ci.yml` を読み、AndroidとiOSで共通する工程と異なる工程を表へ整理します。
 
-さらに、現在iOSにstandaloneのManual入口があり、Native変更時にはRequired Build-only経路へ含まれることを踏まえ、次から自分ならどこへ配置するか選びます。
-
-- PR Required
-- PR Optional
-- main
-- Nightly
-- Manual
-
-macOS Runner Cost、Feedback速度、対象Riskを理由として記録します。
+CurrentのTriggerやBuild-only保証を比較し、どこまでをRuntime guaranteeとして扱えるかを区別します。
 
 ## ハンズオン6: Native実行頻度を考える
 
@@ -327,32 +324,31 @@ Part 1で作ったMaestro Flowについて、次の候補から実行タイミ�
 - Nightly
 - Manual
 
-AndroidとiOSを同じ頻度にする必要があるかも含め、Runner Costと重要度を理由として記録します。
+Runner Cost、Feedback速度、対象Riskを理由として記録します。Android / iOSを同じ頻度にする必要があるかも検討できますが、Currentの配置をそのまま正解として写しません。
 
 ## 確認問題
 
 1. 最初のTraining Native CIを1Jobで動かす価値は何か。
-2. Android BuildとRuntimeを分けるメリットは何か。
+2. BuildとRuntimeを分けるメリットは何か。
 3. FlowごとにEmulator Jobを分けすぎない方がよい理由は何か。
 4. Native変更判定を最適化しすぎるRiskは何か。
 5. Maestro FailureとEmulator Failureをどう区別するか。
-6. iOS CIが現在 `workflow_dispatch` であることと、PR Required Gateであることはどう違うか。
-7. iOS CIでmacOS Runnerが必要なことはCI設計へどんな影響を与えるか。
+6. Build-onlyとRuntime guaranteeを区別する理由は何か。
+7. Native CIの実行頻度をCostとRiskから決める必要があるのはなぜか。
 
 ## 自己確認とRecovery
 
-Native specializationを選択した場合だけ、P2-5完了、P1 Native能力または同等のMaestro内部prerequisite、Training Native Workflow、Android Build / Emulator / Install / Maestro、Native Failure Evidenceの順に確認します。Training baselineやAPKの存在だけでC08を完了したことにはせず、learner-authored Flowの実行結果を分けます。
+Native specializationを選択した場合だけ、P2-5完了、P1 Native能力または同等のMaestro内部prerequisite、Training Native Workflow、Build / Emulator / Install / Maestro、Native Failure Evidenceの順に確認します。Training baselineやAPKの存在だけでC08を完了したことにはせず、learner-authored Flowの実行結果を分けます。
 
-失敗時はGradle Build、Emulator Boot、APK Install、App Launch、Maestro Assertionの最初の異常を特定し、工程に応じたLog / Artifactへ戻ります。iOSはBuild-onlyの保証であり、Simulator Runtime / Maestro PASSを推測しません。Common routeではP2-6をskipしてP2-7へ進みます。
+失敗時はGradle Build、Emulator Boot、APK Install、App Launch、Maestro Assertionの最初の異常を特定し、工程に応じたLog / Artifactへ戻ります。CurrentのAPI Level、Job名、Trigger、iOS guard構成が分からなくても、必要ならReferenceへ戻ればよく、それ自体をcompletion条件にはしません。Common routeではP2-6をskipしてP2-7へ進みます。
 
 ## 完了条件
 
 この完了条件はNative specializationを選択した受講者に適用します。Part 2 CommonではP2-6を要求せず、P2-5からP2-7へ進みます。
 
-- GitHub-hosted Android Training WorkflowでScenario ShopをBuildし、API 34 Emulator上でMaestro Flowを1本以上実行している。
-- Native Failureを工程別に分類し、Evidenceを1件以上確認している。
-- 現在のAndroid Native CIのJob構成を説明できる。
-- Build Artifact再利用の目的を説明できる。
-- iOS CIのBuild → metadata / guard → Artifactの流れを説明できる。
-- 現在のiOS CIがstandaloneでは手動Build-only入口であり、Native変更時にはRequired Build-only経路になることを説明できる。
-- Android / iOSの実行頻度案をCostとRiskから説明できる。
+- learner-authored Maestro Flowを安全なTraining Native CIで実行し、successful execution artifactまたは同等のEvidenceを確認できる。
+- Native FailureをBuild / Emulator / Install / App Launch / Maestroなどの工程へ切り分け、最初に確認すべきEvidenceを説明できる。
+- BuildとRuntimeを分ける目的と、Artifact再利用のTrade-offを説明できる。
+- Build-only guaranteeとRuntime guaranteeを区別し、未実行のRuntimeをPASSへ昇格させない。
+- Native CIの実行タイミングをRisk、Cost、Feedback速度から理由付きで説明できる。
+- Current RepositoryのJob名、API Level、Trigger、metadata / guardなどの詳細を暗記しなくてもspecialization completionが成立する。
