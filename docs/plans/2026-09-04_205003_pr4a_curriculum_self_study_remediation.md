@@ -79,6 +79,7 @@ ValidatorのLearner Required 22文書を全文、内部Lesson / exercise / confi
 ### Supporting contract coverage
 
 - `docs/spec/**`の全Markdown / text contractを読み、normative / supporting / executable sourceの境界、BR / AC / ID、state / UI / screen / known issue / unresolved contractの用語と内部整合を確認した
+- Spec auditの母集団は、audit baselineで `git ls-files docs/spec` から得られるGit-tracked file集合のうちMarkdown / text contractに該当する全件とした。画像・binaryは母集団外とし、問題のないfileごとの`no_change` Findingは作らない
 - `scripts/validate-curriculum.ts`、`tests/contracts/training-curriculum.test.ts`、`training/workbook/README.md`、Workbook CSV 4件を確認した。`RISK-<DOMAIN>-NNN`、`TC-<DOMAIN>-NNN`のgrammarとrequired-file contractは維持する
 - `training/playwright/**`、`training/maestro/**`、`training/github-actions/**`、Native baseline、`src/seeds/metadata.ts`、`src/seeds/scenarios.ts`、`src/test-controls/native-test-control-protocol.ts`、`src/infrastructure/address-lookup/static-address-lookup.ts`、`src/presentation/pages/guide-page.tsx`を確認した
 - PR #103のADR / child Plan、Current ADR、Master Plan §5.8〜§5.10 / §16を照合した
@@ -112,6 +113,17 @@ ValidatorのLearner Required 22文書を全文、内部Lesson / exercise / confi
 | `CUR-4A-015` | PR #103で固定したRubric、validator、contract test、Native baseline、Product / spec contractはCurrentと一致する | P0/P1 | PR #103 Decision B / C08 / C12 contract | `no_change` | `02_competency-rubric.md`、validator、contract test、Training asset | PR 4Aで再設計しない。差分が発生した場合はstop conditionとして扱う |
 
 `CUR-4A-001`は全Required moduleを機械的に同文へ書き換える意図ではない。各fileの既存Lesson / exercise / completionへ、そのmoduleで実際に必要なself-check・Recovery・next actionだけを局所追加する。
+
+### Post-implementation review correction
+
+2026-09-05の反証レビューで、本文のCore / Reference境界を修正済みでも旧Required completionが残る箇所を確認した。新しいscopeは追加せず、既存Finding / Master Plan責務の実装漏れとして次を最小修正する。
+
+- P1-3: `10件 / 3技法`等のPractice VolumeをRequired completionから外し、Risk / Specificationに対するtechnique選択理由を正本にする
+- P1-8: Common completionを「実在するPlaywright保守問題1件の診断 + 最小改善1件」へ閉じ、Lifecycle / Regression inventory等はPart 2 bridge / Referenceへ残す
+- P2-2: Training Copy provisioning / exact SHA / allowlist / copy mechanicsをInstructor support / Referenceへ下げ、Branch / Diff / CommitだけをCommon completionにする
+- P2-3: Review件数quotaや将来Operational validationをCommon completionから外し、material diffのself-review / PR説明へ閉じる
+- P2-6: Native specializationのRequired completionをlearner-authored Native CI実行、工程別Failure Evidence、Artifact / Cost判断へ閉じ、Current Job topology / API Level / Trigger / guard等はReferenceへ下げる
+- self-study checklist: Issue #98固有のSecurity例はP1-6へ保持しつつ、継続checklistでは「専門的なFindingの成立条件とEvidenceを段階で区別する」一般観点へ昇華する
 
 ## Issue #98 handoff Disposition
 
@@ -158,30 +170,30 @@ Issue #98の4観点に、今回の実装で分離した恒久SSOTはない。4�
 
 - `part1/01_test-automation-foundations.md`: entry learnerが自分の説明と演習成果物を確認し、つまずきを該当Lessonへ戻すself-checkを追加する
 - `part1/02_scenario-shop-analysis.md`: `/guide`、Seed metadata、Scenario、Test Control、address dictionaryへの到達経路を追加し、固定値を複製しない。self-checkを追加する
-- `part1/03_test-design-and-automation-selection.md`: 10件 / 3技法を単独のquotaにせず、Risk / Spec fitと理由をcompletionへ接続する。self-checkを追加する
+- `part1/03_test-design-and-automation-selection.md`: Practice Volumeの件数 / 技法数をRequired completionにせず、Risk / Specification fitに対するtechnique選択と理由をcompletionへ接続する
 - `part1/04_playwright-foundations.md`: JavaScript / TypeScript未経験を暗黙前提にせず、最小コードの期待確認・Error recovery・次のP1-5を追加する
 - `part1/05_playwright-e2e-practice.md`: Core（Cart / Reset / Boundary / Mobile）とExtension（Payment / Cross-role / Inspection / Accessibility）を分け、exercise self-checkを追加する
 - `part1/06_execution-and-failure-analysis.md`: H98-2〜H98-4を既存Failure Analysisへ統合し、security成立条件、Evidence整合、Recoveryを追加する
 - `part1/07_maestro-native-automation.md`: 固定clock値をparameter exampleへ置換し、既存SSOTへの到達経路、Native start gate、artifactとexerciseのself-check / recoveryを追加する。Physical Androidとrequired tokenは維持する
-- `part1/08_test-management-and-maintainability.md`: hidden Maestro prerequisiteを除去し、Playwright-only Common、Native optional、Reference detail、Part 2 bridge、self-checkを明示する
+- `part1/08_test-management-and-maintainability.md`: hidden Maestro prerequisiteを除去し、Common completionを実在するPlaywright保守問題1件の診断 + 最小改善1件に閉じる。Native比較 / Pattern詳細はReference、Lifecycle / Regression inventoryはPart 2 bridgeへ置く
 - `part1/09_part1-capstone.md`: Common / Native boundaryを維持し、completion evidenceの自己確認とRecovery / next actionを具体化する
 - `part1/09_specification-agentic-qa.md`、`part1/10_part1-capstone.md`: current Optional / Legacy labelsを根拠に変更しない
 
 ### Part 2
 
 - `part2/01_software-development-process.md`: Process diagramのexercise、Evidence、self-check、次のGit lessonを接続する
-- `part2/02_git-version-control.md`: Branch / Diff / CommitをCore、exact SHA / copy mechanicsをReferenceとして明示し、safe migrationのself-checkを追加する
-- `part2/03_github-pull-request-review.md`: Fork / Copy provisioningをsupport/referenceへ置き、third-party ReviewをCommon completionの隠れた前提にしない。self-checkを追加する
+- `part2/02_git-version-control.md`: Branch / Diff / CommitをCommon completionとし、Training Copy provisioning / exact SHA / allowlist / copy mechanicsはInstructor support / Referenceへ置く
+- `part2/03_github-pull-request-review.md`: Fork / Remote / Push / PRとmaterial diffのself-reviewをCommonとし、第三者Review・件数quota・将来Operational validationをCommon completionへ入れない
 - `part2/04_ci-github-actions.md`: Trigger / Job / least privilege / Failure diagnosisをCore、current SHA / allowlist / pin detailをReferenceとして明示し、self-checkを追加する
 - `part2/05_playwright-ci.md`: bounded Web CIのBuild / Browser / Artifact / Failure Evidenceをself-checkへ接続する
-- `part2/06_native-ci-maestro.md`: Native specializationのstart gate、Native-only completion、CI Artifact / Failure Evidence、Recoveryを追加する。Commonへ昇格させない
+- `part2/06_native-ci-maestro.md`: Native specializationのRequired completionをlearner-authored Native CI実行、工程別Failure Evidence、Artifact / Cost判断へ閉じ、Current Job topology / API Level / Trigger / metadata / guard等はReferenceへ置く
 - `part2/07_ci-cd-quality-gates.md`: Common Coreをbounded Web Gate / Artifact / fail-closedへ限定し、Preview / Production / Native detailをExtension / Referenceへ整理する
 - `part2/08_integration-design-capstone.md`: Common pathのcompletionを明示し、Native / full deliveryをoptional / outside bounded Commonとしたままself-checkを追加する
 
 ### Reference and review asset
 
 - `03_instructor-reference.md`: validatorが要求するheadingはsupport意味で維持し、学習内容・評価判断・Answer KeyをInstructor-only側へ残さない。環境 / 権限 / Training Copy / Toolchain troubleshootingだけに整理する
-- `docs/reference/curriculum-self-study-review.md`: 受講者視点で継続利用する観点のみ追加し、個別結果を保存する欄は作らない
+- `docs/reference/curriculum-self-study-review.md`: 受講者視点で継続利用する観点のみ追加し、個別結果を保存する欄は作らない。Issue固有のSecurity例を恒久的な専門Gateにせず、専門的なFindingの成立条件 / Evidenceを段階で確認する一般観点として再利用する
 
 ## Validation
 
@@ -203,6 +215,7 @@ git diff --check
 - Common routeをspecialization未受講で完了できること、P1-7 / P2-6のskip / branch / rejoin
 - Instructor Referenceがlearner-facing learning SSOTになっていないこと、および環境支援責務を保持していること
 - self-checkだけで成果物の充足と未達時の次の行動を判断できること
+- P1-3 / P1-8 / P2-2 / P2-3 / P2-6のcompletionがPractice Volume、Repository固有運用、Current CI topologyを再びRequiredへ持ち込んでいないこと
 - canonical Test Case / Risk ID grammar、Curriculum / Workbook / validator contract
 - H98-1〜H98-4のDispositionと実変更の対応
 - `docs/spec/**`に差分がないこと、PR 4B対象がないこと、PR 5 / Product変更がないこと
@@ -227,6 +240,7 @@ Stop conditionに該当した場合は、未解決Finding、根拠、未実行va
 - `fix_now`のP0/P1とDoDに必要なbounded P2/P3が実装され、`defer` / `no_change`はCurrent evidenceとboundaryが明示されている
 - Common / Native / Extension / Reference / Legacy、Learner Required / Repository-required、Instructor supportの境界がPR #103契約どおりである
 - Learner Required pathと選択Native specializationでlearning flow、self-check、Recovery、completion、next actionが確認できる
+- Practice Volume、Repository固有のprovisioning / copy mechanics、Current CI topologyを「役立つReference」からRequired completionへ逆流させていない
 - Issue #98専用の恒久SSOT、Evidence台帳、Security lesson、第三SSOTが存在しない
 - `docs/spec/**`にPR 4A差分がなく、PR 4B要否が確定している
 - 必須validationとmanual cross-checkが実際の結果に基づきPASSまたは具体的停止理由として記録されている
