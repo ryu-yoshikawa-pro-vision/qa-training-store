@@ -8,9 +8,9 @@
 - [x] 4. 3ケースのcomponent testを追加し、既存E2Eの状態に合わせた期待値を確認する
 - [x] 5. 関連テスト、lint、typecheck、build、`git diff --check`を実行する
 - [x] 6. 差分のスコープとRun Artifactのサニタイズを確認する
-- [ ] 7. 指定ブランチで必要ファイルをコミットする
-- [ ] 8. 指定ブランチをpushし、main向けOPEN PRを作成する
-- [ ] 9. REPORTを完了記録へ更新し、最終結果を報告する
+- [x] 7. 指定ブランチで必要ファイルをコミットする
+- [x] 8. 指定ブランチをpushし、main向けOPEN PRを作成する
+- [x] 9. REPORTを完了記録へ更新し、最終結果を報告する
 
 ## Discovered
 

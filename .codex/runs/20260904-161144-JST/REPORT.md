@@ -62,3 +62,12 @@
 - Validation: `git diff --check` は終了コード0。`powershell -NoProfile -ExecutionPolicy Bypass -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260904-161144-JST -Write` は files_scanned 4、files_changed 0、residual_findings 0。続く `-Check` も residual_findings 0でPASS。
 - Blocker / Remaining: なし。必要ファイルのstage、commit、push、OPEN PR作成、完了記録が残っている。
 - Progress: 67% (6/9)
+
+## 2026-09-04 16:43 (JST)
+
+- Summary: Issue #95の実装、検証、commit、push、OPEN PR作成まで完了した。
+- Changes: `src/presentation/pages/addresses-page.tsx` と `tests/component/auth-account-pages.test.tsx`、計画書、Run Artifactをcommitした。UIは削除対象の既定状態と残存配送先の有無だけを条件にし、削除・既定再設定の既存処理は変更していない。
+- Decision / Rationale: Issue指定のB文言は維持し、Aは通常削除、Cは最後の配送先で削除後0件になることを説明する文言とした。既存E2Eは実状態がBケースだったため、E2Eファイルは変更せずcomponent testでA/B/Cを直接保証した。
+- Validation: commit `379c5b4729a00941c5b285944bd7c91e6da87e3f` を `fix/95-address-delete-confirmation` へpush済み。`gh pr view 110 --repo ryu-yoshikawa-pro-vision/qa-training-store --json number,state,isDraft,baseRefName,headRefName,headRefOid,title,url,body` で PR #110、`OPEN`、`isDraft=false`、base `main`、head `fix/95-address-delete-confirmation`、head SHA一致、日本語タイトル・本文・`Closes #95` を確認した。
+- Blocker / Remaining: なし。Run完了記録のcommitとそのpush後、最終statusを確認する。
+- Progress: 100% (9/9)
