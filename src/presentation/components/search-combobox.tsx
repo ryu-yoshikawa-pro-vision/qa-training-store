@@ -96,7 +96,7 @@ export function SearchCombobox({
       onInputChange={(value: string) => {
         setInputValue(value);
       }}
-      onOpenChange={(open) => {
+      onOpenChange={(open: boolean) => {
         setShouldOpenSuggestions(open);
         dismissedRequest.current = open ? null : sequence.current;
       }}

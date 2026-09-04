@@ -8,6 +8,31 @@ import {
   test,
 } from "./fixtures";
 
+async function expectReviewAnchorPosition(page: import("@playwright/test").Page) {
+  await expect(page.locator("#reviews")).toBeAttached();
+  await expect(page.locator("#reviews h2")).toBeVisible();
+  const geometry = await page.evaluate(() => {
+    const target = document.getElementById("reviews");
+    const heading = target?.querySelector("h2");
+    const header = document.querySelector(".storefront-header");
+    if (!target || !heading || !header) return null;
+
+    const targetRect = target.getBoundingClientRect();
+    const headingRect = heading.getBoundingClientRect();
+    const headerRect = header.getBoundingClientRect();
+    return {
+      targetVisible: targetRect.top < window.innerHeight && targetRect.bottom > 0,
+      headingVisibleBelowHeader:
+        headingRect.top >= headerRect.bottom - 1 && headingRect.top < window.innerHeight,
+    };
+  });
+
+  expect(geometry).not.toBeNull();
+  if (geometry === null) return;
+  expect(geometry.targetVisible).toBe(true);
+  expect(geometry.headingVisibleBelowHeader).toBe(true);
+}
+
 test.describe("Phase 1 required E2E", () => {
   test("01 Guestの商品検索・Filter・商品詳細・Cart追加", async ({ page, scenario }) => {
     await scenario("default");
@@ -47,6 +72,51 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByRole("button", { name: "M" }).click();
     await page.getByRole("button", { name: "カートに追加" }).click();
     await expect(page.getByRole("status")).toContainText("カートへ追加しました");
+  });
+
+  test("商品詳細のRating Anchorは初回Mouse操作でReviewへ移動する", async ({ page, scenario }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await scenario("default");
+    await page.goto("/products");
+    await page.getByRole("link", { name: "ベーシックTシャツ", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "ベーシックTシャツ" })).toBeVisible();
+
+    const ratingLink = page.locator('a[href="#reviews"]');
+    await expect(ratingLink).toHaveAttribute("href", "#reviews");
+    await ratingLink.click();
+
+    await expect(page).toHaveURL(/\/products\/product-basic-shirt#reviews$/);
+    await expect(page.locator("#reviews")).toHaveAttribute("id", "reviews");
+    await expectReviewAnchorPosition(page);
+  });
+
+  test("商品詳細のRating Anchorは初回Keyboard操作でReviewへ移動する", async ({
+    page,
+    scenario,
+  }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await scenario("default");
+    await page.goto("/products");
+    await page.getByRole("link", { name: "ベーシックTシャツ", exact: true }).click();
+    await expect(page.getByRole("heading", { name: "ベーシックTシャツ" })).toBeVisible();
+
+    const ratingLink = page.locator('a[href="#reviews"]');
+    await expect(ratingLink).toBeVisible();
+    await ratingLink.focus();
+    await expect(ratingLink).toBeFocused();
+    await page.keyboard.press("Enter");
+
+    await expect(page).toHaveURL(/\/products\/product-basic-shirt#reviews$/);
+    await expectReviewAnchorPosition(page);
+  });
+
+  test("商品詳細のReview Anchorは直接#reviewsでも初期表示される", async ({ page, scenario }) => {
+    await page.setViewportSize({ width: 1440, height: 1000 });
+    await scenario("default");
+    await page.goto("/products/product-basic-shirt#reviews");
+    await expect(page.getByRole("heading", { name: "ベーシックTシャツ" })).toBeVisible();
+    await expect(page).toHaveURL(/\/products\/product-basic-shirt#reviews$/);
+    await expectReviewAnchorPosition(page);
   });
 
   test("02 Guest Cartの数量変更・削除・上限拒否", async ({ page, scenario }) => {
@@ -152,6 +222,91 @@ test.describe("Phase 1 required E2E", () => {
     await page.getByLabel("本文").fill("レビュー本文を編集しました。");
     await page.getByRole("button", { name: "更新する" }).click();
     await expect(page.getByRole("status")).toContainText("更新しました");
+  });
+
+  test("Admin Side Navigationの正式名称が対応幅に収まる", async ({ page, scenario }, testInfo) => {
+    await scenario("default");
+    await login(page, "admin@example.com", "/admin");
+    if (await expectAdminMobileBoundary(page, testInfo)) return;
+
+    const sidebar = page.locator(".admin-sidebar");
+    const wordmark = page.locator(".admin-wordmark");
+    const label = wordmark.locator(":scope > span:last-child");
+    const main = page.locator(".admin-main");
+    const navigation = page.getByRole("navigation", { name: "管理ナビゲーション" });
+
+    for (const width of [1024, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.clientWidth))
+        .toBe(width);
+      await expect(wordmark).toBeVisible();
+
+      const metrics = await label.evaluate((element) => {
+        const wordmarkElement = element.parentElement;
+        const sidebarElement = element.closest(".admin-sidebar");
+        if (
+          !(element instanceof HTMLElement) ||
+          !(wordmarkElement instanceof HTMLElement) ||
+          !(sidebarElement instanceof HTMLElement)
+        ) {
+          throw new Error("Admin wordmark layout elements were not found");
+        }
+        const textNode = element.firstChild;
+        if (textNode?.nodeType !== Node.TEXT_NODE) {
+          throw new Error("Admin wordmark label text was not found");
+        }
+        const textRange = document.createRange();
+        textRange.selectNodeContents(textNode);
+        const sidebarRect = sidebarElement.getBoundingClientRect();
+        const wordmarkRect = wordmarkElement.getBoundingClientRect();
+        const labelRect = element.getBoundingClientRect();
+
+        return {
+          labelText: textNode.textContent?.trim() ?? "",
+          labelLeft: labelRect.left,
+          labelRight: labelRect.right,
+          labelClientWidth: element.clientWidth,
+          labelScrollWidth: element.scrollWidth,
+          wordmarkRight: wordmarkRect.right,
+          sidebarRight: sidebarRect.right,
+          sidebarLeft: sidebarRect.left,
+          textRect: textRange.getBoundingClientRect(),
+          overflow: getComputedStyle(element).overflow,
+        };
+      });
+
+      expect(metrics.labelText).toBe("Scenario Shop Admin");
+      expect(metrics.overflow).toBe("visible");
+      expect(metrics.labelScrollWidth).toBeLessThanOrEqual(metrics.labelClientWidth + 1);
+      expect(metrics.labelLeft).toBeGreaterThanOrEqual(metrics.sidebarLeft - 1);
+      expect(metrics.labelRight).toBeLessThanOrEqual(metrics.wordmarkRight + 1);
+      expect(metrics.labelRight).toBeLessThanOrEqual(metrics.sidebarRight + 1);
+      expect(metrics.textRect.left).toBeGreaterThanOrEqual(metrics.sidebarLeft - 1);
+      expect(metrics.textRect.right).toBeLessThanOrEqual(metrics.labelRight + 1);
+      expect(metrics.textRect.right).toBeLessThanOrEqual(metrics.sidebarRight + 1);
+
+      const [wordmarkBox, navigationBox, sidebarBox, mainBox] = await Promise.all([
+        wordmark.boundingBox(),
+        navigation.boundingBox(),
+        sidebar.boundingBox(),
+        main.boundingBox(),
+      ]);
+      expect(wordmarkBox).not.toBeNull();
+      expect(navigationBox).not.toBeNull();
+      expect(sidebarBox).not.toBeNull();
+      expect(mainBox).not.toBeNull();
+      expect((wordmarkBox?.y ?? 0) + (wordmarkBox?.height ?? 0)).toBeLessThanOrEqual(
+        (navigationBox?.y ?? 0) + 1,
+      );
+      expect(mainBox?.x ?? 0).toBeCloseTo((sidebarBox?.x ?? 0) + (sidebarBox?.width ?? 0), 0);
+
+      const documentWidth = await page.evaluate(() => ({
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      }));
+      expect(documentWidth.scrollWidth).toBeLessThanOrEqual(documentWidth.clientWidth + 1);
+    }
   });
 
   test("09 管理者の商品Aggregate登録・Preview・公開", async ({ page, scenario }, testInfo) => {

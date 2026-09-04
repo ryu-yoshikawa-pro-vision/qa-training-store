@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { useLocalSearchParams, usePathname, useRouter, type Href } from "expo-router";
 import { INPUT_LIMITS } from "@/application/contracts";
-import type { ProductSearchRequest, ProductSort } from "@/application/contracts";
+import type {
+  ProductSearchRequest,
+  ProductSearchResult,
+  ProductSort,
+} from "@/application/contracts";
 import { Icon } from "@/presentation/components/icon";
 import { ProductCard } from "@/presentation/components/product-card";
 import { StatePanel } from "@/presentation/components/states";
@@ -16,7 +20,77 @@ interface CatalogListPageProps {
 }
 
 const CATALOG_FILTER_DESKTOP_QUERY = "(min-width: 900px)";
+const CATALOG_PAGE_SIZE = 20;
 const SORTS: readonly ProductSort[] = ["newest", "price_asc", "price_desc", "rating_desc"];
+
+// Expo Router remounts this page for query changes; keep only the latest successful result per view to bridge that remount.
+const previousCatalogResults = new Map<
+  string,
+  { requestKey: string; result: ProductSearchResult }
+>();
+
+function catalogPageClass(mode: CatalogListPageProps["mode"]) {
+  return mode === "search" ? "catalog-page catalog-page--search" : "catalog-page";
+}
+
+function catalogLoadingTitle(mode: CatalogListPageProps["mode"]) {
+  return mode === "search" ? "商品検索" : mode === "category" ? "商品一覧" : "すべての商品";
+}
+
+function ProductGridSkeleton({ count }: { count: number }) {
+  const skeletonCount = Math.max(count, 1);
+  return (
+    <div className="product-grid product-grid--loading">
+      <p className="sr-only" role="status">
+        商品一覧を読み込んでいます。
+      </p>
+      {Array.from({ length: skeletonCount }, (_, index) => (
+        <article className="product-card product-card--skeleton" aria-hidden="true" key={index}>
+          <div className="product-card__image-link">
+            <span className="product-skeleton__block product-skeleton__image" />
+          </div>
+          <span className="product-skeleton__block product-skeleton__brand" />
+          <span className="product-skeleton__title">
+            <span className="product-skeleton__block product-skeleton__title-line" />
+            <span className="product-skeleton__block product-skeleton__title-line product-skeleton__title-line--short" />
+          </span>
+          <span className="product-skeleton__block product-skeleton__price" />
+          <span className="product-skeleton__meta">
+            <span className="product-skeleton__block product-skeleton__meta-line" />
+          </span>
+          <span className="product-skeleton__block product-skeleton__rating" />
+          <span className="product-skeleton__block product-skeleton__action" />
+        </article>
+      ))}
+    </div>
+  );
+}
+
+function CatalogLoadingState({
+  mode,
+  count,
+}: {
+  mode: CatalogListPageProps["mode"];
+  count: number;
+}) {
+  return (
+    <div className={catalogPageClass(mode)}>
+      <header className="catalog-page__header">
+        <div>
+          <p className="eyebrow">Catalog</p>
+          <h1>{catalogLoadingTitle(mode)}</h1>
+        </div>
+      </header>
+      <div className="catalog-layout catalog-layout--loading">
+        <div aria-hidden="true" />
+        <section className="catalog-results" aria-label="商品検索結果" aria-busy="true">
+          <div className="catalog-toolbar catalog-toolbar--loading" aria-hidden="true" />
+          <ProductGridSkeleton count={count} />
+        </section>
+      </div>
+    </div>
+  );
+}
 
 function first(value: string | string[] | undefined): string | undefined {
   return Array.isArray(value) ? value[0] : value;
@@ -36,7 +110,10 @@ function numberOrNull(value: string | string[] | undefined): number | null {
 
 export function CatalogListPage({ mode, categoryId }: CatalogListPageProps) {
   return (
-    <RouteGuard access="public">
+    <RouteGuard
+      access="public"
+      loadingFallback={<CatalogLoadingState mode={mode} count={CATALOG_PAGE_SIZE} />}
+    >
       <CatalogListContent mode={mode} {...(categoryId === undefined ? {} : { categoryId })} />
     </RouteGuard>
   );
@@ -75,14 +152,25 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
           ? (requestedSort as ProductSort)
           : "newest",
       page: Number.isInteger(requestedPage) && requestedPage >= 1 ? requestedPage : 1,
-      pageSize: 20,
+      pageSize: CATALOG_PAGE_SIZE,
     };
   }, [categoryId, mode, params]);
   const requestKey = JSON.stringify(request);
-  const { value, error, retry } = useAsyncValue(
+  const { value, error, loaded, retry } = useAsyncValue(
     () => catalog.search(request),
     [catalog, requestKey],
   );
+  const resultCacheKey = `${mode}:${categoryId ?? ""}`;
+  const [previousResult, setPreviousResult] = useState<ProductSearchResult | null>(() => {
+    const cached = previousCatalogResults.get(resultCacheKey);
+    return cached !== undefined && cached.requestKey !== requestKey ? cached.result : null;
+  });
+  useEffect(() => {
+    if (value !== null) {
+      previousCatalogResults.set(resultCacheKey, { requestKey, result: value });
+      setPreviousResult(value);
+    }
+  }, [requestKey, resultCacheKey, value]);
   const categoryName = useAsyncValue(
     () =>
       categoryId === undefined
@@ -148,13 +236,16 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
       />
     );
   }
-  if (value === null) {
-    return <StatePanel kind="loading" />;
+  const displayValue = value ?? previousResult;
+  if (displayValue === null) {
+    return <CatalogLoadingState mode={mode} count={request.pageSize} />;
   }
-  if (mode === "category" && !categoryName.loaded) {
-    return <StatePanel kind="loading" />;
-  }
-  if (mode === "category" && (categoryName.error !== null || categoryName.value === null)) {
+  const isLoading = !loaded || value === null || (mode === "category" && !categoryName.loaded);
+  if (
+    mode === "category" &&
+    !isLoading &&
+    (categoryName.error !== null || categoryName.value === null)
+  ) {
     return <StatePanel kind="not-found" />;
   }
   const title =
@@ -163,18 +254,18 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
         ? "商品検索"
         : `「${request.keyword}」の検索結果`
       : mode === "category"
-        ? categoryName.value!
+        ? (categoryName.value ?? "商品一覧")
         : "すべての商品";
   const activeFilters = [
     ...request.categoryIds.map((id) => ({
       key: "category",
       value: id,
-      label: value.facets.categories.find((facet) => facet.id === id)?.name ?? id,
+      label: displayValue.facets.categories.find((facet) => facet.id === id)?.name ?? id,
     })),
     ...request.brandIds.map((id) => ({
       key: "brand",
       value: id,
-      label: value.facets.brands.find((facet) => facet.id === id)?.name ?? id,
+      label: displayValue.facets.brands.find((facet) => facet.id === id)?.name ?? id,
     })),
     ...(request.inStockOnly ? [{ key: "inStock", value: "true", label: "在庫あり" }] : []),
     ...(request.onSaleOnly ? [{ key: "onSale", value: "true", label: "Sale中" }] : []),
@@ -196,14 +287,14 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
     request.minimumPrice === null &&
     request.maximumPrice === null;
   return (
-    <div className={mode === "search" ? "catalog-page catalog-page--search" : "catalog-page"}>
+    <div className={catalogPageClass(mode)}>
       <Breadcrumbs items={[{ label: "ホーム", href: "/" }, { label: title }]} />
       <header className="catalog-page__header">
         <div>
           <p className="eyebrow">Catalog</p>
           <h1>{title}</h1>
         </div>
-        <p>{value.total}件の商品</p>
+        <p>{isLoading ? "読み込み中" : `${displayValue.total}件の商品`}</p>
       </header>
       {mode === "search" && (
         <form
@@ -249,7 +340,7 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
             {categoryId === undefined && (
               <fieldset>
                 <legend>カテゴリ</legend>
-                {value.facets.categories.map((facet) => (
+                {displayValue.facets.categories.map((facet) => (
                   <label key={facet.id}>
                     <input
                       type="checkbox"
@@ -272,7 +363,7 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
             )}
             <fieldset>
               <legend>ブランド</legend>
-              {value.facets.brands.map((facet) => (
+              {displayValue.facets.brands.map((facet) => (
                 <label key={facet.id}>
                   <input
                     type="checkbox"
@@ -302,7 +393,7 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
                     })
                   }
                 />
-                在庫あり（{value.facets.inStockCount}）
+                在庫あり（{displayValue.facets.inStockCount}）
               </label>
               <label>
                 <input
@@ -315,7 +406,7 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
                     })
                   }
                 />
-                Sale中（{value.facets.onSaleCount}）
+                Sale中（{displayValue.facets.onSaleCount}）
               </label>
             </fieldset>
             <label htmlFor="rating-filter">最低評価</label>
@@ -330,7 +421,7 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
               }
             >
               <option value="">指定なし</option>
-              {value.facets.ratings.map((facet) => (
+              {displayValue.facets.ratings.map((facet) => (
                 <option value={facet.minimumRating} key={facet.minimumRating}>
                   ★{facet.minimumRating}以上（{facet.count}）
                 </option>
@@ -338,7 +429,11 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
             </select>
           </div>
         </details>
-        <section className="catalog-results" aria-label="商品検索結果">
+        <section
+          className="catalog-results"
+          aria-label="商品検索結果"
+          aria-busy={isLoading || undefined}
+        >
           <div className="catalog-toolbar">
             <div className="applied-filters">
               {activeFilters.map((filter) => (
@@ -404,7 +499,9 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
               </select>
             </label>
           </div>
-          {value.items.length === 0 ? (
+          {isLoading ? (
+            <ProductGridSkeleton count={previousResult?.items.length ?? request.pageSize} />
+          ) : displayValue.items.length === 0 ? (
             showUnfilteredEmptyState ? (
               <StatePanel
                 kind="empty"
@@ -429,16 +526,18 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
             )
           ) : (
             <div className="product-grid">
-              {value.items.map((product) => (
+              {displayValue.items.map((product) => (
                 <ProductCard product={product} key={product.productId} />
               ))}
             </div>
           )}
-          <Pagination
-            page={value.page}
-            totalPages={Math.ceil(value.total / value.pageSize)}
-            onChange={(page) => replaceQuery({ page: page === 1 ? null : String(page) })}
-          />
+          {!isLoading && (
+            <Pagination
+              page={displayValue.page}
+              totalPages={Math.ceil(displayValue.total / displayValue.pageSize)}
+              onChange={(page) => replaceQuery({ page: page === 1 ? null : String(page) })}
+            />
+          )}
         </section>
       </div>
     </div>

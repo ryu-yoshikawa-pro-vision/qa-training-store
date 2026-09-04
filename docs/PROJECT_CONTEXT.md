@@ -533,3 +533,10 @@
 - WebのLogin／SignupはReact Hook Formの`formState.submitCount`を`FormErrorSummary`の`focusTrigger`として渡す。Summaryはエラーが存在する場合だけ、初回または新しいsubmit triggerで自身へprogrammatic focusする。`errors`配列の参照変化やerror countだけのrerenderではfocusしない。
 - `FormErrorSummary`の既存`role="alert"`、`tabIndex={-1}`、エラーメッセージ／field linkの表示は維持する。submitCountはvalid submitでも増えるが、error存在をguardするためvalid submitでsummaryへfocusしない。
 - Validation failure時のAuth formは`defaultValues`を持つReact Hook Formの登録フィールドを使用し、submit handlerで`reset()`を呼ばず、formの`key`変更・conditional remount・navigationも行わない。Login／Signupのcomponent testで、invalid submit後も入力値が保持されることを確認した。Issue #89の入力値消失は現行フローでは再現せず、別原因の修正は追加していない。
+
+## Issue #93 Product Detail Rating Anchor（2026-09-04）
+
+- Product DetailのRatingは引き続きplain HTMLの`<a href="#reviews">`、Review Sectionは`id="reviews"`と`tabIndex={-1}`を持つ。AnchorのURL fragment、Keyboard操作、deep link契約は変更しない。
+- Expo Router webのhash-only client navigationは、pathが既存navigation stateと一致するとroute stateをresetするため、初回操作時にProduct Detailと`#reviews` targetが一度unmountされ、browserのfragment解決時にtargetが存在しない場合がある。Product Detailのdirect hashは`useAsyncValue`による非同期render後にtargetが生成されるため、mount後のhash-gated focusでbrowserのtarget到達を復元する。
+- Storefront Headerのレスポンシブ定義は複数箇所にあるため、Issue #93ではHeader本体を変更せず、Review Sectionの`scroll-margin-top: 112px`をDesktop（900px以上）のみに適用する。900px未満にはReview Anchor用の追加offsetを適用しない。共通scroll frameworkやRating専用click handlerは追加しない。
+- Issue #93のRegression入口は`e2e/web/phase1-required.spec.ts`の初回Mouse、初回Keyboard、direct `#reviews`テストであり、URL fragment、target viewport、DesktopでのheadingとHeaderの境界を観測する。focus stateや`tabIndex`の数値はE2Eの実装依存契約として固定しない。

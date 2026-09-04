@@ -1,5 +1,7 @@
 # Instructor Reference
 
+> **Transition notice (PR 3):** この文書はlearner-facing learning SSOTではなく、Common / Native specialization completionの正本でもありません。現在のFacilitation、判断、Recovery、評価情報はtransitional contentとして残しており、PR 4Aで必要情報をlearner-facing materialへ仕分け・移行します。移行前に既存本文を削除しません。
+
 この文書はPublic Repository内のInstructor Referenceです。秘密情報、Answer Key、Production Secret、隠しテストは置きません。受講者の標準Navigationからは外し、演習前に先読みさせない運用にします。
 
 ## Public Reference

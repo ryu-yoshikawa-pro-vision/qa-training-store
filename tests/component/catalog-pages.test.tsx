@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   HomeCatalogDto,
@@ -239,6 +239,67 @@ describe("storefront catalog pages", () => {
       "maxlength",
       String(INPUT_LIMITS.searchKeyword),
     );
+  });
+
+  it("keeps the product grid visible with a loading skeleton on the first request", async () => {
+    let resolveSearch: ((result: ProductSearchResult) => void) | undefined;
+    catalog.search.mockImplementation(
+      () =>
+        new Promise<ProductSearchResult>((resolve) => {
+          resolveSearch = resolve;
+        }),
+    );
+
+    const { container } = render(<CatalogListPage mode="products" />);
+
+    const loadingStatus = await screen.findByRole("status");
+    expect(loadingStatus).toBeVisible();
+    expect(loadingStatus).toHaveTextContent("商品一覧を読み込んでいます。");
+    expect(container.querySelector(".catalog-results")).toHaveAttribute("aria-busy", "true");
+    expect(container.querySelector(".product-grid--loading")).toBeInTheDocument();
+    expect(container.querySelectorAll(".product-card--skeleton")).toHaveLength(20);
+    expect(screen.queryByText("現在、表示できる商品はありません")).not.toBeInTheDocument();
+
+    expect(resolveSearch).toBeDefined();
+    await act(async () => {
+      resolveSearch!(searchResult([product("loaded-product")]));
+    });
+    expect(await screen.findByRole("link", { name: "loaded-product" })).toBeVisible();
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("keeps the previous result footprint while a new catalog request is loading", async () => {
+    let resolveNextSearch: ((result: ProductSearchResult) => void) | undefined;
+    catalog.search
+      .mockResolvedValueOnce(searchResult([product("initial-product")]))
+      .mockImplementationOnce(
+        () =>
+          new Promise<ProductSearchResult>((resolve) => {
+            resolveNextSearch = resolve;
+          }),
+      );
+
+    const firstRender = render(<CatalogListPage mode="products" />);
+    expect(await screen.findByRole("link", { name: "initial-product" })).toBeVisible();
+
+    firstRender.unmount();
+    routerState.params = { brand: "brand-refresh" };
+    const { container } = render(<CatalogListPage mode="products" />);
+
+    const loadingStatus = await screen.findByRole("status");
+    expect(loadingStatus).toBeVisible();
+    expect(loadingStatus).toHaveTextContent("商品一覧を読み込んでいます。");
+    expect(container.querySelector(".catalog-results")).toHaveAttribute("aria-busy", "true");
+    expect(container.querySelectorAll(".product-card--skeleton")).toHaveLength(1);
+    expect(container.querySelector(".catalog-filters")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "initial-product" })).not.toBeInTheDocument();
+    expect(screen.queryByText("条件に一致するデータがありません")).not.toBeInTheDocument();
+
+    expect(resolveNextSearch).toBeDefined();
+    await act(async () => {
+      resolveNextSearch!(searchResult([product("refreshed-product")]));
+    });
+    expect(await screen.findByRole("link", { name: "refreshed-product" })).toBeVisible();
   });
 
   it("shows an empty state for unfiltered products with no action", async () => {

@@ -4,6 +4,8 @@
 
 このカリキュラムは、単にPlaywrightやMaestroの操作方法を覚えるのではなく、テスト対象の理解からテスト分析・設計、自動化対象の選定、実装、実行、結果分析、保守、CI/CDへの組み込みまでを一連の流れとして学ぶことを目的とします。
 
+Commonの卒業像は **entry-levelの汎用 Test Automation Engineer** です。Commonの能力集合とbounded Level 2の評価詳細は [Competency Rubric](./02_competency-rubric.md) を正本とします。
+
 最終的には、受講者が次の2段階へ到達することを目指します。
 
 ### Part 1: テスト自動化の基礎と実践
@@ -12,7 +14,7 @@
 - テスト対象を調査し、Google Sheetsなどのスプレッドシートでテスト分析・設計を行える。
 - 自動化に向くテストと向かないテストを判断できる。
 - PlaywrightでWeb UIテストを設計・実装・実行できる。
-- MaestroでNative UIテストを設計・実装・実行できる。
+- 選択したNative specializationで、MaestroによるNative UIテストを設計・実装・実行できる。
 - Trace、Screenshot、Video、JUnitなどの実行結果から失敗原因を分析できる。
 - テストが増えた運用フェーズで、Helper、Page Object Model、Fixture、Automation Flow、Seed Scenarioなどを選択肢として使い分けられる。
 - テスト資産を整理し、Flaky Test、重複、実行時間、保守性を改善できる。
@@ -23,9 +25,9 @@
 - Gitによるバージョン管理の基本を理解できる。
 - GitHub上でBranch、Commit、Pull Request、Reviewを扱える。
 - CIの目的を説明し、GitHub Actions上で自動テストを実行できる。
-- PlaywrightとMaestroをCIへ組み込み、ReportやArtifactを残せる。
+- bounded Web CIへPlaywrightを組み込み、Trigger、Gate、Artifact、Failure Evidenceを説明できる。
 - PR、main、Nightly、Manualなどの実行タイミングを目的に応じて設計できる。
-- Quality Gate、Build、Preview、Production、Deploy後Smokeまで含めたCI/CDの構成を理解できる。
+- Quality Gate、Build、Preview、Production、Deploy後Smokeまで含むCI/CDの構成を比較教材として理解できる。
 - Scenario Shopを題材に、案件へテスト自動化を導入するための実行基盤を設計できる。
 
 ## この文書群のスコープ
@@ -41,6 +43,8 @@ Current保証は次のとおりです。
 | Web | Formal RegressionとTraining baselineを分離して実行 | `training-chromium` / `training-mobile-chromium` |
 | Android | Build + Runtime E2E | Training Maestroは既存Formal Native Runtimeを再利用 |
 | iOS | Build-only | Runtime / Simulator / Maestro PASSとして記録しない |
+
+この表はRepository-requiredな実行保証を示すものであり、Learner RequiredのCommon修了条件を意味しません。Native環境やNative CIを選択しない受講者も、Common routeで学習を完了できます。
 
 Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` に分離します。`failure-exercises/` は明示実行時だけ使い、通常のRequired baselineへ混在させません。
 
@@ -71,7 +75,7 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 2. GitHubアカウントをPart 1の前提条件にしません。
 3. テスト分析・設計はスプレッドシートを基本教材とします。
 4. PlaywrightのSyntax暗記ではなく、テスト条件からコードへ落とす流れを重視します。
-5. MaestroはPlaywrightの後に学び、WebとNativeの共通点・相違点を理解します。
+5. Native specializationを選択した場合は、Playwrightの後にMaestroを学び、WebとNativeの共通点・相違点を理解します。
 6. Helper、POM、Fixture、Automation Flow、Seed Scenarioは最初から正解として教えません。
 7. まず自動テストを複数実装し、運用上の問題を体験した後に保守・管理手法として学びます。
 8. POMは必須パターンではなく、保守上の問題を解決する選択肢の一つとして扱います。
@@ -114,6 +118,37 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 7. [Quality GateとCI/CD](./part2/07_ci-cd-quality-gates.md)
 8. [Part 2 導入設計演習](./part2/08_integration-design-capstone.md)
 
+## 学習経路と修了契約
+
+### Entry / graduation
+
+コース開始時の対象者は、テスト自動化の目的・基本概念を理解し、ノーコード / ローコード経験または概要理解があってもよい一方、Playwrightなどのコードベース自動化は未経験で、プログラミング経験を必須としない受講者です。Common Coreは、このentry profileと、それ以前にLearner Required pathで明示的に学んだCommon内容だけを前提にします。
+
+Commonの卒業像は **entry-levelの汎用 Test Automation Engineer** です。修了集合は次のとおりです。
+
+- Part 1 Common completion: `C01〜C07 + C09〜C10` bounded Level 2
+- Part 2 / Final Common completion: `C01〜C07 + C09〜C12` bounded Level 2
+- `C08`、Physical Android、Native CIはNative specializationであり、Common completionには要求しません。
+
+### Common / Native navigation
+
+Native specializationは選択式のbranchであり、Top-level Lesson番号・配置は変更しません。次のrouteを使います。
+
+- Part 1 Common: P1-6 → P1-8 → P1-9
+- Part 1 Native: P1-6 → P1-7 → P1-8 → P1-9
+- Part 2 Common: P2-5 → P2-7 → P2-8
+- Part 2 Native: P2-5 → P2-6 → P2-7 → P2-8
+
+Nativeを選択しない場合はP1-7 / P2-6をskipしてCommon routeを進みます。P1-7の完了後はP1-8、P2-6の完了後はP2-7へrejoinします。P2-6を選択する場合、P1 Native specialization由来のMaestro実行能力をNative内部prerequisiteとして先に満たします。
+
+### 教材分類と支援境界
+
+- **Learner Required Common**: Common routeの学習内容、演習、自己確認、completion、evaluationに必要なlearner-facing materialです。
+- **Native specialization**: P1-7 / P2-6と、選択した場合に必要なNative環境・Runtime Evidenceです。Common completionへ昇格しません。
+- **Repository-required asset**: validatorが存在を確認するCurriculum、Workbook、Training入口、Workflow TemplateなどのRepository assetです。存在することだけでLearner RequiredやCommon completionにはなりません。
+- `03_instructor-reference.md`はRepository-requiredなsupport assetであり、Learner Required pathやCommon / specialization completionの正本ではありません。
+- Instructor / 運営は環境、アカウント・権限、端末、演習Repository / Training Copy、Infrastructure / Toolchainの準備・障害対応を支援できます。学習内容、自己確認、完了条件、評価観点はlearner-facing materialを正本とします。
+
 ## Part 1とPart 2を分ける理由
 
 Part 1はGitHubアカウントやCI環境がなくても進められるようにします。Autify、MagicPodなどのノーコード・ローコード自動化経験者も、テスト対象分析、テスト設計、Test Scenario / User Journey、Action、Assertion、Test Dataといった共通概念からコードベースの自動化へ移行できます。
@@ -128,14 +163,13 @@ Git / GitHubの基本操作ではForkも利用できますが、CIハンズオ�
 
 ## 学習成果物
 
-カリキュラムを通して、受講者は最低限次の成果物を作成します。
+Common routeで、受講者は最低限次の成果物を作成・記録します。
 
 - Scenario Shopのテスト対象分析表
 - リスク・テスト観点整理
 - テストケース一覧
 - 自動化対象選定表
 - Playwright E2E
-- Maestro Flow
 - Failure分析メモ
 - テスト管理・リファクタリング結果
 - Part 1総合演習成果物
@@ -143,6 +177,8 @@ Git / GitHubの基本操作ではForkも利用できますが、CIハンズオ�
 - GitHub Actions Workflow演習
 - CI実行結果とArtifact分析
 - Scenario ShopへのCI導入設計
+
+Native specializationを選択した受講者は、P1-7 / P2-6のlearner-authored exerciseとNative実行Evidenceを追加で作成します。Nativeのbaseline / stock flowやRepository-required assetの存在だけでは、CommonまたはNative specializationのcompetency completionへ自動昇格しません。
 
 ## 提供済みのTraining入口
 

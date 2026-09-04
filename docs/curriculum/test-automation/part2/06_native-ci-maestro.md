@@ -1,5 +1,7 @@
 # Part 2-6: Native CIとMaestro
 
+> **Native specialization:** このLessonはPart 2 Commonの必須Lessonではありません。開始前のCommon prerequisiteはP2-5までです。P1 Native specializationで得るMaestro実行能力をNative内部prerequisiteとし、P1 Native specialization未修了でP2 Nativeを選択する場合は先にその能力を満たします。選択しない受講者はP2-6をskipしてP2-7へ進み、完了後はP2-7へrejoinします。
+
 ## 学習目標
 
 - MaestroをCIで実行するために必要なNative実行環境を説明できる。
@@ -338,6 +340,8 @@ AndroidとiOSを同じ頻度にする必要があるかも含め、Runner Cost�
 7. iOS CIでmacOS Runnerが必要なことはCI設計へどんな影響を与えるか。
 
 ## 完了条件
+
+この完了条件はNative specializationを選択した受講者に適用します。Part 2 CommonではP2-6を要求せず、P2-5からP2-7へ進みます。
 
 - GitHub-hosted Android Training WorkflowでScenario ShopをBuildし、API 34 Emulator上でMaestro Flowを1本以上実行している。
 - Native Failureを工程別に分類し、Evidenceを1件以上確認している。

@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "run_id": "20260904-094303-JST",
+  "mode": "gray-box",
+  "phase": "after",
+  "captured_at": "2026-09-04T07:51:43.103Z",
+  "source_head_sha": "eb955f1479f62bc7f99998c21cd2d3a0c81fdecd",
+  "working_tree_entries": []
+}
