@@ -57,6 +57,16 @@
 - Subagents: Delegationなし。Resultなし。Parent decision: child Planの最小scopeを維持し、PR 4A / PR 5を前倒ししない。
 - Progress: 70% (7/10)
 
+## 2026-09-04 10:08 (JST)
+
+- Summary: Decision B / Competency / Assessment Contractの実装差分をcommit・pushし、既存PR #103の更新を確認した。
+- Changes: commit `f123c0770f3bddb4b889c2714fb4949e4b1df41a`（`docs: implement Decision B competency assessment contract`）を対象branchへ作成した。実装対象外ファイル、historical Run Artifact、Plan外のcleanupは変更していない。
+- Decision / Rationale: branch safety確認後、`git push origin HEAD:docs/decision-b-competency-assessment-contract`を実行した。PR #103はOPENのまま、base `main`、head branch一致、head OIDはcommit SHA一致である。`git fetch origin` / `git merge origin/main`は承認ポリシーで拒否されたが、実装前後のancestor確認では`origin/main`を現在HEADが含んでいた。
+- Validation: baseline 4件はすべてPASS。実装後は`format:check`、`lint:markdown`、`validate:curriculum`、`test:contracts`（33 files、490 passed / 3 skipped / 493 tests）、`git diff --check`、差分allowlist、manual cross-check、Sanitizer Write / CheckがPASS。`typecheck`だけは今回未変更の`src/presentation/components/search-combobox.tsx:99`にある既存のTS7006でFAILし、後続のnative-tests / training typecheckは上流app failureにより未実行。
+- Blocker / Remaining: child PlanのStop condition該当なし。既存Product typecheck failureはPR3のscope外のため修正していない。push成功によりPR #103を更新済み。
+- Subagents: Delegationなし。Resultなし。Parent decision: Plan外のProduct修正やtypecheck failureの隠蔽を行わず、既存failureとして引き継ぐ。
+- Progress: 100% (10/10)
+
 ## 2026-09-04 10:01 (JST)
 
 - Summary: 今回RunのRun ArtifactをSanitizerでWrite / Checkし、残留する未サニタイズ絶対パスがないことを確認した。

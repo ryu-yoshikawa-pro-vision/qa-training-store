@@ -11,7 +11,7 @@
 - [x] 7. contract testへRubric 1件・README 1件の新規`it`を追加する
 - [x] 8. 実装後validation、差分allowlist、child Plan DoDのmanual cross-checkを完了する
 - [x] 9. Run ArtifactをsanitizerでWrite / Checkし、final statusを確認する
-- [ ] 10. 対象branchへ実装差分をcommit・pushし、既存PR #103の更新を確認する
+- [x] 10. 対象branchへ実装差分をcommit・pushし、既存PR #103の更新を確認する
 
 ## Discovered
 
@@ -20,4 +20,4 @@
 
 ## Blocked
 
-- B1. （ブロック時のみ記載）
+- なし。child PlanのStop condition該当なし。
