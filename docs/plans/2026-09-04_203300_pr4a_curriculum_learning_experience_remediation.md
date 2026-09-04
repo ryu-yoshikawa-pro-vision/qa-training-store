@@ -37,7 +37,7 @@ PR 4A では、次を同一の bounded change として扱う。
 5. 実際に判断対象となった Specification Finding を §10 に追加し、`no_change` / `PR 4B` / `Specification clarification` / `Product implementation deviation` のいずれかへ分類している。
 6. `03_instructor-reference.md` の learner-facing 情報について、削除前に移行先を決めた migration map が確定している。
 7. §11 Terminology Decision Table を監査結果に合わせて確定している。
-8. P0 / P1 に未解決の `Specification clarification` または learner completion を阻害する `Product implementation deviation` が紐づく場合、実装を停止し、解消に必要な follow-up を明示している。
+8. P0 / P1 に未解決の `Specification clarification` または learner completion を阻害する `Product implementation deviation` が紐づく場合、依存する Finding / file / Task だけを停止し、解消に必要な follow-up と dependency boundary を明示している。依存しない PR 4A remediation は継続してよいが、未解決 P0 / P1 が残る限り PR 4A 全体を completion / merge-ready にしない。
 9. 必要なP2が bounded change に収まらない場合、規模だけを理由に `defer` せず scope review を実施している。
 10. §13 の Task ownership で各変更対象の primary owner が一意になっている。
 
@@ -131,7 +131,7 @@ Contract / validator 変更は §13 Task 6 の条件を満たす場合だけ行�
 
 ### 5.3 Audit-only surface
 
-- `docs/spec/**` の Git tracked file から抽出した Markdown / text contract 全件
+- `docs/spec/**` の Git tracked files から抽出した Markdown / text contract 全件
 
 PR 4A では Audit-only surface のファイルを編集しない。
 
@@ -224,24 +224,24 @@ Plan作成時点で Current branch を確認し、少なくとも次を確認済
 - P1-2: Scenario Shop Analysis — Role / State / User Journey / Seed / Reset の分析責務
 - P1-3: Test Design and Automation Selection — technique quotaではなくSpec / Risk起点の選択になっているか
 - P1-4: Playwright Foundations — JavaScript / TypeScript minimum bridge、Locator / Action / Assertion 初出説明
-- P1-5: Playwright E2E Practice — Cart Core と Payment / Role 等 Extension の境界
+- P1-5: Playwright E2E Practice — Core=`Cart / explicit reset / representative Boundary / representative Mobile`、Extension=`Payment / Cross-role / Internal Inspection / Accessibility execution` の境界と completion 整合
 - P1-6: Execution and Failure Analysis — meaningful failure diagnosis と Completion Evidence
-- P1-7: Maestro Native Automation — Native specialization開始条件 / evidence / rejoin
-- P1-8: Test Management and Maintainability — CommonにNative hidden prerequisiteがないか
-- P1-9: Part 1 Capstone — Web Common Capstone と Native evidence の分離
+- P1-7: Maestro Native Automation — Native specialization開始条件 / evidence / Physical Android canonical path / rejoin
+- P1-8: Test Management and Maintainability — Playwright-only Common、Native追加例、POM / Helper / Fixture / Flow Reference、Lifecycle / Regression inventory の Part 2 bridge
+- P1-9: Part 1 Capstone — 簡潔な Web Common Capstone、Native specialization evidence、Baseline / learner-authored flow の分離
 
 ### 8.3 Part 2 Learner Required / specialization
 
 全 `part2/*.md` を全文監査する。最低限次を確認する。
 
 - P2-1: Software Development Process — 一般開発プロセスとrepository-specific operationの境界
-- P2-2: Git Version Control — VCS semantics / diff safety と Training Copy mechanics の境界
-- P2-3: GitHub Pull Request Review — 第三者ReviewをRequired completionにしていないか
-- P2-4: CI / GitHub Actions — CI概念とrepository-specific detailの境界
-- P2-5: Playwright CI — bounded Web CI Common completionとの整合
-- P2-6: Native CI / Maestro — Native specializationとrepository-specific Reference境界
+- P2-2: Git Version Control — Branch / Diff / Commit Core と Training Copy exact SHA / copy mechanics Reference の境界
+- P2-3: GitHub Pull Request Review — Fork / Remote / Push / PR が Learner Required として成立し、repository provisioningや第三者ReviewをRequired completionにしていないか。material diff / self-review / public review criteriaでC11を自己確認できるか
+- P2-4: CI / GitHub Actions — Trigger / Job / Failure / least privilege Core と allowlist / parser / pin detail Reference の境界
+- P2-5: Playwright CI — bounded Web CI / Artifact / failure evidence Common completionとの整合
+- P2-6: Native CI / Maestro — Native specializationとrepository-specific Reference境界、skip / rejoin
 - P2-7: CI/CD Quality Gates — Gate / Artifact / fail-closed Core と vendor / production detail の境界
-- P2-8: Integration Design Capstone — bounded Web CI Common Capstone と Native / full delivery Advanced の境界
+- P2-8: Integration Design Capstone — Web CI / Gate / Artifact / Failure reasoning の bounded Common Capstone と Native / iOS / full delivery Advanced の境界
 
 ### 8.4 Repository-required support asset boundary
 
@@ -255,7 +255,7 @@ Plan作成時点で Current branch を確認し、少なくとも次を確認済
 
 ### 8.5 Specification text contract inventory
 
-`docs/spec/**` は「目視で見つけたファイル」ではなく、Current branch の Git tracked files を母集団にする。
+`docs/spec/**` は「目視で見つけたファイル」ではなく、Current branch の Git tracked files から Markdown / text contract を抽出し、その集合を audit inventory とする。
 
 Inventory作成時は次を基準にする。
 
@@ -263,12 +263,11 @@ Inventory作成時は次を基準にする。
 git ls-files docs/spec
 ```
 
-1. 出力されたtracked filesを母集団とする。
-2. Markdown / text contractを audit対象とする。
-3. image / binary / generated visual asset 等、text contractでないものは `N/A` として分類する。
-4. 別のpermanent audit report / ledgerは作らない。
-5. §8上で対象件数と `audited` / `N/A` 件数を記録し、合計がinventory件数と一致することをaudit完了条件とする。
-6. 問題がない各fileをSpecification Findingの `no_change` として水増ししない。
+1. 出力されたtracked filesから Markdown / text contractだけを audit inventoryへ含める。
+2. image / binary / generated visual asset 等、text contractでないものは audit inventory 自体へ含めず、N/A計数もしない。
+3. 別のpermanent audit report / ledgerは作らない。
+4. §8上で text-contract inventory 件数と `audited` 件数を記録し、一致することをaudit完了条件とする。
+5. 問題がない各fileをSpecification Findingの `no_change` として水増ししない。
 
 Audit focus は次に限定する。
 
@@ -293,7 +292,7 @@ Task 1完了時にこのsectionへ最低限次を追記する。
 - Part 1: `audited X / N`
 - Part 2: `audited X / N`
 - Instructor Reference sections: `classified X / N`
-- Spec tracked inventory: `audited X + N/A Y = total Z`
+- Spec text-contract inventory: `audited X / total X`
 - Optional / Legacy: `audited` または `N/A`
 - Open P0 / P1 blocker count
 
@@ -326,7 +325,7 @@ Task 1完了時にこのsectionへ最低限次を追記する。
 - `P2`: 用語、重複、発見性、説明深度、self-study品質、保守性へ影響する
 - `P3`: 軽微な表記・文章cleanup
 
-`P0` / `P1` はPR 4A blocker。`P2` はMaster Plan Goalへ直接必要かつboundedなものだけ `fix_now`。`P3` は変更箇所周辺だけ局所修正する。
+`P0` / `P1` はPR 4A completion blocker。ただし blocker が依存しない Finding / file / Task の実装まで無条件に止める意味ではない。依存範囲だけを停止し、他の bounded remediation は継続してよい。`P2` はMaster Plan Goalへ直接必要かつboundedなものだけ `fix_now`。`P3` は変更箇所周辺だけ局所修正する。
 
 必要なP2がboundedでない場合、サイズだけを理由に`defer`してDoDを弱めない。scope / splitを再レビューする。
 
@@ -342,19 +341,19 @@ Pre-change auditでCurrent Stateを再確認し、Targetを最終確定する。
 - Current state / problem: 「複数の Playwright Test と Maestro Flow を作成済み」を前提にし、P1-7をskipするCommon learnerへNative経験を要求する。
 - Impact: Common routeが単独完結しない。
 - Minimum bounded fix: Playwright maintainabilityをCommon prerequisiteだけで成立させ、Native例はspecialization / Extensionとして明示する。
-- Validation: P1 Common route walkthroughでP1-7未受講のままP1-8へ進める。
+- Validation: P1 Common full-route walkthroughでP1-7未受講のままP1-8へ進める。
 - State: `confirmed`
 
 #### CUR-4A-002 — P1-5 Core / Extension completion境界
 
 - Severity: `P1`
 - Decision: `fix_now`
-- Target: `part1/05_playwright-e2e-practice.md` のlearning goal / exercise / completion / evidenceのうちPayment / Role関連箇所
-- Current state / problem: Cart normal / boundary Coreに対して、Payment / Role等のExtension範囲がRequired completionと混ざって読める。
-- Impact: Common completionがMaster Planのbounded scopeを超える。
-- Minimum bounded fix: Cart normal / boundaryをCommon Core completionへ残し、Payment / Role / status / refund / async variantsはExtensionとして分離する。
-- Validation: P1 Common learnerがExtensionなしでP1-5を完了できる。
-- State: `confirmed`
+- Target: `part1/05_playwright-e2e-practice.md` の learning goal、Seed Scenario / Reset、境界値、Payment、Cross-role、Internal Inspection、Mobile Web、Accessibility、exercise / completion / evidence 関連section。Task 1で実際に修正が必要な heading だけへ有限化する。
+- Current state / problem: Current lessonは複数品質観点を同列に提示しており、Common Core と Extension のRequired completion境界が曖昧に読める箇所がある。
+- Impact: Common completionがMaster Planのbounded scopeを超える、またはCoreであるrepresentative Mobile / explicit resetがExtension扱いされる可能性がある。
+- Minimum bounded fix: Coreを `Cart / explicit reset / representative Boundary / representative Mobile` に固定し、`Payment / Cross-role / Internal Inspection / Accessibility execution` はExtensionとして分離する。既存内容を不要に削除せず、学習目標・演習・完了条件のRequired境界を一致させる。
+- Validation: P1 Common learnerがCoreだけでP1-5を完了でき、representative Mobile / resetを含み、Extension実行を要求されない。
+- State: `confirmed`, exact target headings pending Task 1 finalization
 
 #### CUR-4A-003 — Instructor Reference transitional learner content
 
@@ -374,7 +373,7 @@ Pre-change auditでCurrent Stateを再確認し、Targetを最終確定する。
 - Target: `part2/02_git-version-control.md` のTraining Copy SHA / copy mechanics / repository-specific operation箇所
 - Current state / problem: Master PlanがReferenceとするrepository固有mechanicsがCommon learner pathへ強く含まれる。
 - Impact: 一般VCS能力と演習repository運用が混ざり、Common scopeが過重になる。
-- Minimum bounded fix: VCS semantics / diff safetyをCoreに残し、Training Copy固有mechanicsをReferenceとして明示する。
+- Minimum bounded fix: Branch / Diff / Commit とVCS semanticsをCoreに残し、Training Copy exact SHA / copy mechanicsをReferenceとして明示する。
 - Validation: P2 Commonの学習目標・演習・完了判定がrepository-specific mechanicsを必須能力として扱わない。
 - State: `confirmed`
 
@@ -386,7 +385,7 @@ Pre-change auditでCurrent Stateを再確認し、Targetを最終確定する。
 - Current state / problem: Common completionをbounded Web CIと明示しながら、Maestro / Android / iOS / full deliveryをRequiredに読める記述が混在する。
 - Impact: Common CapstoneがNative / Advancedをhidden requirement化する。
 - Minimum bounded fix: Web CI Trigger / Gate / Artifact / Failure EvidenceをCommon completionへ固定し、Native / full deliveryをspecialization / Advancedへ分離する。
-- Validation: P2 Common route walkthroughがNativeなしで完了する。
+- Validation: P2 Common full-route walkthroughがNativeなしで完了する。
 - State: `confirmed`
 
 #### CUR-4A-006 — learner-facing一般英語headingの混在
@@ -411,7 +410,7 @@ Pre-change auditでCurrent Stateを再確認し、Targetを最終確定する。
 - Impact: Instructorなしの自己学習完結性を下げる。
 - Minimum bounded fix: 問題種別に応じ、回答例 / minimum checkpoints / 判断観点 / reference location / failure-recoveryのいずれか必要最小限を補う。
 - Validation: Target sectionごとにlearnerがInstructor private answerなしで次行動を判断できる。
-- State: `candidate pending full audit expansion/finalization`
+- State: `candidate` — initial target observed; confirmation / finite target finalization pending Task 1
 
 ### 9.4 Carry-forward candidate handling
 
@@ -526,6 +525,8 @@ Self-checkは問題種別に応じて次を使い分ける。
 
 全Lessonへ一律にanswer key / Recovery sectionを追加しない。`講師に確認する`、`レビューしてもらう`、`答え合わせしてもらう`ことをRequired completionにしない。
 
+Environment / account / permission / device / repository / Training Copy / toolchain の準備を Instructor / 運営が支援してよい。ただし支援を受けた後、learner-facing material から再開地点・必要な確認・次行動を判断できることを維持する。
+
 ### 12.4 Instructor Reference migration rule
 
 Pre-change audit中に `03_instructor-reference.md` をsection単位で分類し、実装前に migration map を確定する。
@@ -552,7 +553,7 @@ Migration destinationのprimary ownerは§13に従う。Task 4は移行先本文
 
 | Task | Primary owned files | Purpose |
 | --- | --- | --- |
-| Task 2 | `README.md`, `00_learning-design.md`, 必要時のみ `02_competency-rubric.md` | canonical route / classification / durable learner contract |
+| Task 2 | `README.md`, `00_learning-design.md`, 必要時のみ `02_competency-rubric.md` | confirmed root Finding / migration / durable terminology ruleだけを反映 |
 | Task 3 | `01_spreadsheet-test-design.md`, `part1/**`, `part2/**` | learner-facing curriculum remediationをfileごとに一括実施 |
 | Task 4 | `03_instructor-reference.md` | migration完了後のsupport-only finalization |
 | Task 5 | `docs/reference/curriculum-self-study-review.md` | reusable checklist追加 |
@@ -598,9 +599,9 @@ Task 2はLesson fileを直接修正しない。Lesson-level navigation / prerequ
 
 #### Specification audit
 
-- §8.5の方法でGit tracked inventoryを確定する。
+- §8.5の方法でGit tracked Markdown / text-contract inventoryを確定する。
 - bounded text-contract観点だけを全件確認する。
-- `audited + N/A = inventory total` を§8.6に記録する。
+- `audited = inventory total` を§8.6に記録する。
 
 #### Plan finalization
 
@@ -610,11 +611,11 @@ Task 2はLesson fileを直接修正しない。Lesson-level navigation / prerequ
 - §10 actual Specification Findingを記録
 - Instructor migration mapを確定
 - §11 terminology tableを確定
-- blocker有無を明記
+- blocker有無とdependency boundaryを明記
 
 **Stop**: Task 1完了前にTask 2以降へ進まない。
 
-### Task 2 — Stabilize root canonical learner contract
+### Task 2 — Apply confirmed root-level findings / migrations
 
 Primary targets:
 
@@ -622,14 +623,19 @@ Primary targets:
 - `00_learning-design.md`
 - 必要な場合のみ `02_competency-rubric.md`
 
+Task 2は PR3 の root canonical contract を再設計・再整理するためのTaskではない。Task 1で以下のいずれかが確定した場合だけ該当fileを修正する。
+
+1. そのroot fileをTargetとする `confirmed` / `fix_now` Findingがある。
+2. Instructor migration mapでそのroot fileがdestinationになっている。
+3. Master Planが要求する将来も安定する最小のlanguage / terminology ruleを既存Learning Design / README責務へ残す必要がある。
+
 Actions:
 
-1. Common / Native specialization / Extension / Referenceのlearner-facing定義を一意にする。
-2. P1 / P2 canonical route / skip / branch / rejoin contractを固定する。
-3. Common prerequisiteにspecialization / Extension / Referenceを要求しないことを明示する。
-4. Optional / Legacy / Instructor ReferenceがLearner Requiredと誤認されるroot navigationだけ最小修正する。
-5. §11のうち将来も安定する最小ルールだけ既存Learning Design / README責務へ反映する。
-6. Rubric変更はCurrent public evaluation / Minimum Evidenceとの矛盾を解消する場合だけ行う。
+- confirmed Finding / migration entry のMinimum bounded fixだけ反映する。
+- Common / Native specialization / Extension / Reference、route / skip / branch / rejoin、prior-knowledge contractはPR3決定を維持し、矛盾が監査で確認された場合だけ最小修正する。
+- Optional / Legacy / Instructor Referenceのroot navigationは誤認Findingがある場合だけ修正する。
+- `02_competency-rubric.md` は confirmed Finding または migration map のdestinationになった場合だけ変更し、PR3で確定したcompetency / Minimum Evidence contract自体は変更しない。
+- root-level Finding / migrationがなく、stable terminology ruleも既に満たされているfileは変更しない。
 
 **Do not**: `part1/**` / `part2/**` のLesson introやnavigationをTask 2で先回りして修正しない。
 
@@ -660,22 +666,22 @@ Primary targets:
 - **P1-2 — Scenario Shop Analysis**: Role / State / User Journey / Seed / Resetを使ったテスト対象分析。canonical definitionとapplication practiceの不要な重複を整理する。
 - **P1-3 — Test Design and Automation Selection**: 技法数quotaではなく、Spec / Riskに対して適切なtechniqueを選び理由を説明できることを中心にする。
 - **P1-4 — Playwright Foundations**: JavaScript / TypeScript minimum bridge、Playwright concept、Locator / Action / Assertion。コードベース自動化未経験者がP1-5へ進める深度にする。
-- **P1-5 — Playwright E2E Practice**: Cart normal / boundaryをCore。Payment / status / refund / async / Role variantsはExtension。
-- **P1-6 — Execution and Failure Analysis**: 実行、Evidence、meaningful failure diagnosisをCommon Coreとして成立させる。
-- **P1-7 — Maestro Native Automation**: Native specialization。one Maestro flowをlearner-facing materialだけで開始・実行・確認できるようにする。
-- **P1-8 — Test Management and Maintainability**: Playwright maintainabilityをCommon。Native maintainabilityはspecialization / Extension。P1-7未受講を許容する。
-- **P1-9 — Part 1 Capstone**: cross-cutting improvementをCommon。Native evidence / broader regressionはspecialization / Advancedへ分離する。
+- **P1-5 — Playwright E2E Practice**: Core=`Cart / explicit reset / representative Boundary / representative Mobile`。Extension=`Payment / Cross-role / Internal Inspection / Accessibility execution`。学習目標・演習・completionをこの境界へ揃える。
+- **P1-6 — Execution and Failure Analysis**: 実行、Evidence、meaningful failure diagnosisをCommon Coreとして成立させ、meaningful diagnosisをCompletion Evidenceへ接続する。
+- **P1-7 — Maestro Native Automation**: Native specialization。必要なCommon prerequisite、depth / navigation / Practice、Physical Android canonical path、specialization completion / evidence、P1-8へのrejoinをlearner-facingに一意化する。
+- **P1-8 — Test Management and Maintainability**: Commonは実在するPlaywright保守問題の診断 + 最小改善1件をPlaywright-onlyで成立させる。Native / Maestro比較はspecialization選択者向け追加例、POM / Helper / Fixture / FlowはReference、Lifecycle / Regression inventoryはPart 2 bridgeへ寄せる。
+- **P1-9 — Part 1 Capstone**: Web Common Capstoneを簡潔に成立させ、Native specialization evidenceをCommon completionから分離し、Baseline receiptとlearner-authored flow / evidenceを混同しない。P1-8のmaintainability責務を新たに持ち込まない。
 
 #### Part 2 responsibility map
 
 - **P2-1 — Software Development Process**: software development / change flow conceptsをCore。repo-specific operationはReference。
-- **P2-2 — Git Version Control**: VCS semantics / diff safetyをCore。Training Copy exact SHA / copy mechanicsはReference。
-- **P2-3 — GitHub Pull Request Review**: GitHub / PR / Reviewの理解をCommon。第三者ReviewをRequired completionにしない。
-- **P2-4 — CI / GitHub Actions**: Node/runtime/package / CI基礎をCommon。repository-specific script detailはReference。
+- **P2-2 — Git Version Control**: Branch / Diff / Commit とVCS semantics / diff safetyをCore。Training Copy exact SHA / copy mechanicsはReference。
+- **P2-3 — GitHub Pull Request Review**: Fork / Remote / Push / PRをCommonとして学ぶ。Learnerは提供済み演習Repositoryまたは自分のForkを使い、書き込み可能RemoteへのPushとPR作成を学ぶ。Repository / Training Copy provisioning自体はInstructor / 運営が担当してよく、Learner自身のprovisioningや第三者ReviewをRequired completionにしない。C11はmaterial diff / self-review / learner-facing public review criteriaで自己確認できるようにする。
+- **P2-4 — CI / GitHub Actions**: Trigger / Job / Failure / least privilegeをCore。allowlist / parser / Action pin等のrepository-specific detailはReference。
 - **P2-5 — Playwright CI**: Web CI Trigger / Artifact / failure evidenceをCommon。
-- **P2-6 — Native CI / Maestro**: Native specialization。Common completionのhidden prerequisiteにしない。
+- **P2-6 — Native CI / Maestro**: Native specialization。repository-specific detailはReferenceへ寄せ、必要なCommon prerequisite / specialization内前提 / completion / skip / rejoinを明示し、Common completionのhidden prerequisiteにしない。
 - **P2-7 — CI/CD Quality Gates**: Gate / Artifact / fail-closedをCore。vendor / production deployment detailはAdvanced / Reference。
-- **P2-8 — Integration Design Capstone**: bounded Web CIをCommon Capstone。Native / iOS / full CDはspecialization / Advanced。
+- **P2-8 — Integration Design Capstone**: Web CI / Gate / Artifact / Failure reasoningをbounded Common Capstoneとする。Native / iOS / full CDはspecialization / Advanced。
 
 ### Task 4 — Finalize Instructor Reference
 
@@ -752,12 +758,14 @@ git diff --check
 
 `pnpm typecheck` は `scripts/validate-curriculum.ts`、`tests/contracts/training-curriculum.test.ts`、その他TypeScript contractを変更した場合だけ実行する。
 
-Manual validationは、箇条書きを個別に20回確認するのではなく、まず以下の4 canonical routeを実際に順番にwalkthroughし、その中で各assertionを確認する。
+Manual validationは、Task 5で作成した `docs/reference/curriculum-self-study-review.md` を観点として使い、以下の4つの **full learner route** を実際に順番にwalkthroughする。Common prefixを各routeで機械的に二重レビューする必要はなく、共通Lessonは一度確認し、分岐差分だけ追加確認してよい。
 
-1. P1 Common: `P1-6 → P1-8 → P1-9`
-2. P1 Native: `P1-6 → P1-7 → P1-8 → P1-9`
-3. P2 Common: `P2-5 → P2-7 → P2-8`
-4. P2 Native: `P2-5 → P2-6 → P2-7 → P2-8`
+1. P1 Common: `P1-1 → P1-2 → P1-3 → P1-4 → P1-5 → P1-6 → [P1-7 skip] → P1-8 → P1-9`
+2. P1 Native: `P1-1 → P1-2 → P1-3 → P1-4 → P1-5 → P1-6 → P1-7 → P1-8 → P1-9`
+3. P2 Common: `P2-1 → P2-2 → P2-3 → P2-4 → P2-5 → [P2-6 skip] → P2-7 → P2-8`
+4. P2 Native: `P2-1 → P2-2 → P2-3 → P2-4 → P2-5 → P2-6 → P2-7 → P2-8`
+
+Walkthrough中、各 Learner Required Lesson / Exercise と selected specialization の learner-facing Lesson / Exercise について、必要な checklist 観点を確認する。Checklistを別の独立レビュー工程として重複実施しない。
 
 Assertions:
 
@@ -765,6 +773,7 @@ Assertions:
 - Native specialization learnerがbranch / prerequisite / rejoinを一意に辿れる
 - Common lessonが後続のspecialization / Extension / Referenceをhidden prerequisiteにしていない
 - learner-facing materialだけで演習判断・自己確認・Recovery・完了判定ができる
+- Instructor / 運営の環境支援後、learner-facing materialから再開地点・確認・次行動を判断できる
 - 知識確認問題には回答例 / 理由またはminimum checkpointsがある
 - Trade-off問題は一意解を強制せず、必要観点と判断理由条件を持つ
 - Specification参照self-checkはBR / AC / sectionを特定できる
@@ -772,8 +781,11 @@ Assertions:
 - Instructor Referenceが受講内容外supportだけになっている
 - Core / Extension / Reference / specialization境界がLesson本文・演習・completion・evaluationで一致する
 - P1-4の説明深度がentry profileと矛盾しない
+- P1-5がCart / reset / representative Boundary / representative MobileをCoreとし、Payment / Cross-role / Internal Inspection / Accessibility executionをExtensionとして扱う
 - P1-6のcompletionがmeaningful failure diagnosisへ接続する
-- P2-3が第三者ReviewをRequired completionにしていない
+- P1-9がWeb Common Capstoneとして成立し、Native evidence / Baseline / learner-authored evidenceを混同しない
+- P2-3でFork / Remote / Push / PRを学べ、provisioning / third-party ReviewをRequired completionにせずC11を自己確認できる
+- P2-4がTrigger / Job / Failure / least privilegeをCoreとし、repository-specific allowlist / parser / pin detailをReferenceとして扱う
 - Part 2 Common Capstoneがbounded Web CIで成立する
 - Optional / Legacy / Instructor ReferenceがLearner Requiredと誤認されない
 - `docs/spec/**` にPR 4A差分がない
@@ -799,7 +811,7 @@ Assertions:
 
 ## 14. Stop conditions / escalation rules
 
-次に該当したら、その場でExpected Behaviorを推測して進めない。
+次に該当したら、その場でExpected Behaviorを推測して進めない。停止範囲は原則として該当Findingとその依存先だけに限定し、独立したPR 4A remediationを不必要に止めない。ただしroot canonical contract自体が未決で広範囲に影響する場合は、その契約へ依存するTask全体を停止する。
 
 ### S1 — Specification clarification blocks Curriculum P0 / P1
 
@@ -811,7 +823,9 @@ Action:
 - 関連Curriculum Findingと相互参照
 - 該当P0/P1をopen blockerのまま維持
 - 別Issue / Planで仕様判断を求める
-- **該当blockerが解消するまでPR 4Aをcompletion / merge-readyにしない**
+- 該当Findingと依存するfile / Taskだけimplementationを停止する
+- 依存しないPR 4A remediationは継続してよい
+- **該当blockerが解消するまでPR 4A全体をcompletion / merge-readyにしない**
 
 ### S2 — Product implementation deviation blocks learner completion
 
@@ -823,7 +837,9 @@ Action:
 - SpecificationをObserved Behaviorへ合わせて変更しない
 - Product修正follow-upを作る
 - blockerならCurriculum P0/P1をopenのままにする
-- **Product側でblockerが解消するまでPR 4Aをcompletion / merge-readyにしない**
+- 該当Findingと依存するfile / Taskだけimplementationを停止する
+- 依存しないPR 4A remediationは継続してよい
+- **Product側でblockerが解消するまでPR 4A全体をcompletion / merge-readyにしない**
 
 ### S3 — Required P2 is not bounded
 
@@ -891,7 +907,7 @@ PR 4Aは次をすべて満たしたときのみ完了とする。
 ### Audit
 
 - §8全対象を `audited` / `N/A` で確認済み
-- `docs/spec/**` はGit tracked inventoryに対して `audited + N/A = total` が成立
+- `docs/spec/**` はGit tracked Markdown / text-contract inventoryに対して `audited = total` が成立
 - Curriculum Finding registerがCurrent Stateに基づき確定
 - 各 `fix_now` Curriculum Findingにfinite Target、Minimum bounded fix、validationがある
 - 実際のSpecification Findingが必要なものだけ記録されている
@@ -903,6 +919,7 @@ PR 4Aは次をすべて満たしたときのみ完了とする。
 - **未解決P0 / P1 blockerが0件である**
 - P0 / P1を正しく`blocked`として記録しただけではDoD達成としない
 - Specification clarification / Product implementation deviationに依存するP0 / P1は、その上流blocker解消後にのみ`resolved`とできる
+- blocker発生時に依存しないremediationを継続してもよいが、未解決blockerを残したままPR 4Aをcompletion / merge-readyにしない
 - 必要なbounded P2が解消済み
 
 ### Curriculum
@@ -927,6 +944,7 @@ PR 4Aは次をすべて満たしたときのみ完了とする。
 
 - `docs/reference/curriculum-self-study-review.md` が追加されている
 - reusable checklistのみを保持し、個別review result/historyを持たない
+- Task 7のfull-route walkthrough内で、各Learner Required Lesson / Exerciseとselected specialization learner-facing Lesson / Exerciseへ必要なchecklist観点を適用済み
 
 ### Validation
 
@@ -936,7 +954,7 @@ PR 4Aは次をすべて満たしたときのみ完了とする。
 - `pnpm test:contracts` PASS
 - `git diff --check` PASS
 - TypeScript contract変更時のみ `pnpm typecheck` PASS
-- §13 Task 7の4 canonical route walkthrough + assertions PASS
+- §13 Task 7の4 full learner route walkthrough + checklist assertions PASS
 
 ### Scope
 
@@ -947,6 +965,7 @@ PR 4Aは次をすべて満たしたときのみ完了とする。
 - Findingのない箇所を均一化目的だけで大量編集していない
 - file rename / directory migrationを安易に実施していない
 - 同じfileを複数Taskで機械的に再編集していない
+- Task 2でPR3のroot contractをFindingなしに再整理していない
 - Contract / validator変更はTask 6 Condition A / Bのいずれかを満たす場合だけ
 
 ---
@@ -958,25 +977,28 @@ Plan reviewでは、実装の細部より先に次を反証する。
 1. Master Plan §16のPrimary ownerを漏らしていないか。
 2. PR3で確定したCommon / Native contractを再設計していないか。
 3. §7 / §13 Task 3のP1 / P2番号とCurrent file責務が一致しているか。
-4. 全文監査と全件修正を混同していないか。
-5. P2 / P3を無制限にscopeへ取り込む余地がないか。
-6. `fix_now` Findingがfinite Targetへ閉じているか。
-7. PR 4BとPR 4Aの変更面が混ざっていないか。
-8. Specification conformance auditへscope creepしていないか。
-9. Spec audit inventoryがGit tracked filesから決定的に作られているか。
-10. Instructor Referenceから情報を削除するだけになっていないか。migration mapが先にあるか。
-11. self-study改善が「説明文を増やす」「全Lessonに定型headingを足す」だけになっていないか。
-12. Common learnerにNative / Training Copy / production deployment等のhidden prerequisiteを残していないか。
-13. terminology統一でmachine contract / code / UI copyを壊す余地がないか。
-14. validator / contract testをTask 6 Condition A / B以外で増やしていないか。
-15. PR5のTraining implementationを前倒ししていないか。
-16. stop conditionが実際に実装停止へ使える具体性を持つか。
-17. 未解決P0 / P1を記録しただけでDoD達成にしていないか。
-18. DoDが自動Validationだけでなく4 canonical routeのmanual contradiction checkを含むか。
-19. PR 4A完了後にPR 4B要否を一意に判断できるか。
-20. 実装が原則1file 1 remediation passになり、Task 2 / Task 3でLessonを二重編集しないか。
-21. `01_spreadsheet-test-design.md` を含むPrimary change surfaceすべてに一意なownerがあるか。
-22. Optional / Legacyが存在しない場合に不要な成果物やFindingを作らない設計か。
+4. P1-5 / P1-9 / P2-3 / P2-4のCore / Extension / Reference責務がMaster Planと一致しているか。
+5. 全文監査と全件修正を混同していないか。
+6. P2 / P3を無制限にscopeへ取り込む余地がないか。
+7. `fix_now` Findingがfinite Targetへ閉じているか。
+8. PR 4BとPR 4Aの変更面が混ざっていないか。
+9. Specification conformance auditへscope creepしていないか。
+10. Spec audit inventoryがGit tracked Markdown / text contractから決定的に作られているか。
+11. Instructor Referenceから情報を削除するだけになっていないか。migration mapが先にあるか。
+12. self-study改善が「説明文を増やす」「全Lessonに定型headingを足す」だけになっていないか。
+13. Common learnerにNative / Training Copy / production deployment等のhidden prerequisiteを残していないか。
+14. terminology統一でmachine contract / code / UI copyを壊す余地がないか。
+15. validator / contract testをTask 6 Condition A / B以外で増やしていないか。
+16. PR5のTraining implementationを前倒ししていないか。
+17. stop conditionがblocker依存範囲だけを止め、無関係なPR 4A remediationまで不必要に停止しないか。
+18. 未解決P0 / P1を記録しただけでDoD達成にしていないか。
+19. DoDが自動Validationだけでなく4 full learner routeのmanual contradiction checkを含むか。
+20. Task 5のself-study checklistがTask 7のfull-route walkthroughへ統合され、別の重複レビュー工程を作っていないか。
+21. PR 4A完了後にPR 4B要否を一意に判断できるか。
+22. 実装が原則1file 1 remediation passになり、Task 2 / Task 3でLessonを二重編集しないか。
+23. Task 2がconfirmed root Finding / migration / durable terminology ruleだけを変更し、PR3 contractの再整理になっていないか。
+24. `01_spreadsheet-test-design.md` を含むPrimary change surfaceすべてに一意なownerがあるか。
+25. Optional / Legacyが存在しない場合に不要な成果物やFindingを作らない設計か。
 
 ---
 
@@ -986,15 +1008,17 @@ Plan reviewでは、実装の細部より先に次を反証する。
 Task 0  Baseline / freshness baseline
   ↓
 Task 1  Full Pre-change audit
-        + Git tracked spec inventory
+        + Git tracked spec text-contract inventory
         + Finding finalization / finite targets
         + Instructor migration map
         + Terminology finalization
+        + blocker dependency boundary
   ↓
 [Implementation gate]
   ↓
-Task 2  Root canonical learner contract
-        README / Learning Design / optional Rubric only
+Task 2  Confirmed root Finding / migration only
+        README / Learning Design / optional Rubric
+        └ PR3 contractをFindingなしに再整理しない
   ↓
 Task 3  Learner-facing curriculum remediation
         spreadsheet design + Part 1 + Part 2
@@ -1011,7 +1035,8 @@ Task 6  Minimal validator / contract protection
         └ Condition A / Bを満たさなければN/A
   ↓
 Task 7  Automated validation
-        + 4 canonical route walkthrough
+        + 4 full learner route walkthrough
+        + checklist reviewを同じwalkthroughへ統合
   ↓
 Task 8  Freshness check + final review + PR / Issue #72 update
 ```
@@ -1026,15 +1051,18 @@ Pre-change audit完了時点で、最低限以下が揃っていなければimpl
 
 - branch / baseが正しい
 - §8 audit inventory / countが閉じている
-- P1 / P2 Lesson responsibility mappingがCurrent Repositoryと一致している
+- P1 / P2 Lesson responsibility mappingとCore / Extension / Reference境界がMaster Planと一致している
 - 全 `fix_now` Findingがfinite `path + heading / section` Targetを持つ
 - Instructor Reference migration mapが具体destinationまで確定している
 - Terminology Decision Tableが確定している
 - Task ownershipが一意で、Lesson fileをTask 2 / Task 3で二重編集しない
+- Task 2はconfirmed root Finding / migration / durable terminology ruleだけを対象にし、PR3 contractを不要に再編集しない
 - `01_spreadsheet-test-design.md` のownerがTask 3として明示されている
 - validator / contract変更要否がCondition A / Bで判断できる
 - scope / non-goal / PR 4B split / stop conditionsが明示されている
-- 未解決P0 / P1 blockerがある場合はimplementation / completionを停止する判断が記録されている
+- 未解決P0 / P1 blockerがある場合、依存するFinding / file / Taskだけを停止し、dependency boundaryが記録されている
+- 未解決P0 / P1 blockerが残る限りPR 4A completion / merge-readyにはしない
+- Task 7で4 full learner routeとself-study checklist reviewを一つのmanual validationとして実施できる
 - **Task 1の全文監査が完了するまでは implementation-ready と判定しない**
 
 この状態でのみCurriculum remediation implementationへ進む。
