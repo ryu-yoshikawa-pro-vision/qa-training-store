@@ -12,8 +12,8 @@
 - [x] 8. validation結果を解釈し、必要な最小修正と再検証を完了する
 - [x] 9. diff全体をself-reviewし、child Plan・実diff・PR3契約の一致を確認する
 - [x] 10. Run artifactをsanitiseし、指定branchへ今回の変更だけをcommitする
-- [ ] 11. branchをpushし、remote diffを確認してmain向けOpen PRを作成する
-- [ ] 12. Issue #72 / #98のhandoff状態と最終報告を実状態に合わせて更新する
+- [x] 11. branchをpushし、remote diffを確認してmain向けOpen PRを作成する
+- [x] 12. Issue #72 / #98のhandoff状態と最終報告を実状態に合わせて更新する
 
 ## Discovered
 

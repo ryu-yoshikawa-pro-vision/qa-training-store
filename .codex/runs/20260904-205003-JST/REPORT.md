@@ -71,3 +71,12 @@
 - Validation: Sanitizerは`files_scanned: 4`、`files_changed: 0`、`residual_findings: 0`。commitは指定の日本語messageで作成済みで、最終SHAはGit確認結果を正本とする。
 - Blocker / Remaining: blockerなし。commit後のRun Artifact更新を含む最終remote確認、push、Open PR作成、Tracking Issue更新が残る。
 - Progress: 83% (10/12)
+
+## 2026-09-04 22:27 (JST)
+
+- Summary: 指定branchをremoteへpushし、`main`向けの通常Open PR #115を作成した。Tracking Issue #72をPR 4A review状態へ更新し、Issue #98のhandoffをPR本文へ反映した。
+- Changes: PR #115のtitle / bodyは日本語で作成し、Pre-change audit、Specification disposition、H98-1〜H98-4、実装範囲、Non-goals、Validation、Follow-up、Referencesを実際の結果に合わせて記録した。
+- Decision / Rationale: PRのbaseは`main`、headは`docs/pr4a-curriculum-self-study-remediation`、stateはOpen、DraftではないことをGitHub APIで確認した。PRはmergeしていない。Issue #72は`Current: PR 4A implementation complete / review PR #115 open`へ更新した。Issue #98はPRの`Closes #98`でmerge時に閉じるhandoffとし、merge前に手動closeしていない。
+- Validation: remote branch refは最終push SHAと一致し、`git diff --check origin/main...HEAD`とremote diff確認はPASS。commitは実装 `30e5871` とRun Artifact最終化 `ce3ffc0` の2件で、どちらも今回のPR 4A作業に限定される。
+- Blocker / Remaining: blockerなし。PR #115のreview・mergeはユーザー / repository maintainerの後続作業であり、Codexはmergeしない。
+- Progress: 100% (12/12)
