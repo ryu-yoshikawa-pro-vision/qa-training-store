@@ -154,6 +154,91 @@ test.describe("Phase 1 required E2E", () => {
     await expect(page.getByRole("status")).toContainText("更新しました");
   });
 
+  test("Admin Side Navigationの正式名称が対応幅に収まる", async ({ page, scenario }, testInfo) => {
+    await scenario("default");
+    await login(page, "admin@example.com", "/admin");
+    if (await expectAdminMobileBoundary(page, testInfo)) return;
+
+    const sidebar = page.locator(".admin-sidebar");
+    const wordmark = page.locator(".admin-wordmark");
+    const label = wordmark.locator(":scope > span:last-child");
+    const main = page.locator(".admin-main");
+    const navigation = page.getByRole("navigation", { name: "管理ナビゲーション" });
+
+    for (const width of [1024, 1280]) {
+      await page.setViewportSize({ width, height: 900 });
+      await expect
+        .poll(() => page.evaluate(() => document.documentElement.clientWidth))
+        .toBe(width);
+      await expect(wordmark).toBeVisible();
+
+      const metrics = await label.evaluate((element) => {
+        const wordmarkElement = element.parentElement;
+        const sidebarElement = element.closest(".admin-sidebar");
+        if (
+          !(element instanceof HTMLElement) ||
+          !(wordmarkElement instanceof HTMLElement) ||
+          !(sidebarElement instanceof HTMLElement)
+        ) {
+          throw new Error("Admin wordmark layout elements were not found");
+        }
+        const textNode = element.firstChild;
+        if (textNode?.nodeType !== Node.TEXT_NODE) {
+          throw new Error("Admin wordmark label text was not found");
+        }
+        const textRange = document.createRange();
+        textRange.selectNodeContents(textNode);
+        const sidebarRect = sidebarElement.getBoundingClientRect();
+        const wordmarkRect = wordmarkElement.getBoundingClientRect();
+        const labelRect = element.getBoundingClientRect();
+
+        return {
+          labelText: textNode.textContent?.trim() ?? "",
+          labelLeft: labelRect.left,
+          labelRight: labelRect.right,
+          labelClientWidth: element.clientWidth,
+          labelScrollWidth: element.scrollWidth,
+          wordmarkRight: wordmarkRect.right,
+          sidebarRight: sidebarRect.right,
+          sidebarLeft: sidebarRect.left,
+          textRect: textRange.getBoundingClientRect(),
+          overflow: getComputedStyle(element).overflow,
+        };
+      });
+
+      expect(metrics.labelText).toBe("Scenario Shop Admin");
+      expect(metrics.overflow).toBe("visible");
+      expect(metrics.labelScrollWidth).toBeLessThanOrEqual(metrics.labelClientWidth + 1);
+      expect(metrics.labelLeft).toBeGreaterThanOrEqual(metrics.sidebarLeft - 1);
+      expect(metrics.labelRight).toBeLessThanOrEqual(metrics.wordmarkRight + 1);
+      expect(metrics.labelRight).toBeLessThanOrEqual(metrics.sidebarRight + 1);
+      expect(metrics.textRect.left).toBeGreaterThanOrEqual(metrics.sidebarLeft - 1);
+      expect(metrics.textRect.right).toBeLessThanOrEqual(metrics.labelRight + 1);
+      expect(metrics.textRect.right).toBeLessThanOrEqual(metrics.sidebarRight + 1);
+
+      const [wordmarkBox, navigationBox, sidebarBox, mainBox] = await Promise.all([
+        wordmark.boundingBox(),
+        navigation.boundingBox(),
+        sidebar.boundingBox(),
+        main.boundingBox(),
+      ]);
+      expect(wordmarkBox).not.toBeNull();
+      expect(navigationBox).not.toBeNull();
+      expect(sidebarBox).not.toBeNull();
+      expect(mainBox).not.toBeNull();
+      expect((wordmarkBox?.y ?? 0) + (wordmarkBox?.height ?? 0)).toBeLessThanOrEqual(
+        (navigationBox?.y ?? 0) + 1,
+      );
+      expect(mainBox?.x ?? 0).toBeCloseTo((sidebarBox?.x ?? 0) + (sidebarBox?.width ?? 0), 0);
+
+      const documentWidth = await page.evaluate(() => ({
+        clientWidth: document.documentElement.clientWidth,
+        scrollWidth: document.documentElement.scrollWidth,
+      }));
+      expect(documentWidth.scrollWidth).toBeLessThanOrEqual(documentWidth.clientWidth + 1);
+    }
+  });
+
   test("09 管理者の商品Aggregate登録・Preview・公開", async ({ page, scenario }, testInfo) => {
     await scenario("default");
     await login(page, "admin@example.com", "/admin");

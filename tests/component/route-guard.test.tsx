@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import type { CurrentUserDto } from "@/application/contracts";
 
 let currentUser: CurrentUserDto | null;
+let runtimeReady = true;
 
 vi.mock("expo-router", () => ({
   Redirect: ({ href }: { href: string }) => <p>redirect:{href}</p>,
@@ -11,7 +12,7 @@ vi.mock("expo-router", () => ({
 
 vi.mock("@/presentation/providers/app-runtime-provider", () => ({
   useAppRuntime: () => ({
-    ready: true,
+    ready: runtimeReady,
     error: null,
     currentUser,
   }),
@@ -37,6 +38,19 @@ function TestControlRoute({ children }: { children: ReactNode }) {
 describe("RouteGuard build boundaries", () => {
   beforeEach(() => {
     currentUser = admin;
+    runtimeReady = true;
+  });
+
+  it("renders a route-specific loading fallback while runtime is preparing", () => {
+    runtimeReady = false;
+    render(
+      <RouteGuard access="public" loadingFallback={<p>Catalog skeleton</p>}>
+        <p>保護された本文</p>
+      </RouteGuard>,
+    );
+
+    expect(screen.getByText("Catalog skeleton")).toBeVisible();
+    expect(screen.queryByText("保護された本文")).not.toBeInTheDocument();
   });
 
   it("rejects the Test Control route in production", () => {
