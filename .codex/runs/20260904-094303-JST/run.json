@@ -26,9 +26,9 @@
   },
   "artifact_summary": {
     "codex_task_report_count": 0,
-    "evaluation_present": false
+    "evaluation_present": true
   },
-  "evaluation_path": null,
+  "evaluation_path": ".codex/runs/20260904-094303-JST/evaluation.json",
   "status": "pending",
   "primary_failure_category": null
 }

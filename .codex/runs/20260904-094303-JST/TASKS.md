@@ -7,8 +7,8 @@
 - [x] 3. Catalog pageへ直近結果保持、初回／再LoadingのProduct Grid Skeleton、Loading accessibilityを実装する
 - [x] 4. Skeleton CSSとCatalog component regression testを追加する
 - [x] 5. Focused test、lint、typecheck、build、E2E、必要な品質ゲートを実行する
-- [ ] 6. 最終diffを確認し、Run ArtifactをSanitizeして指定commitを作成する
-- [ ] 7. 指定branchをpushし、既存PRを確認したうえでOPEN PRを作成・確認する
+- [x] 6. 最終diffを確認し、Run ArtifactをSanitizeして指定commitを作成する
+- [x] 7. 指定branchをpushし、既存PRを確認したうえでOPEN PRを作成・確認する
 
 ## Discovered
 

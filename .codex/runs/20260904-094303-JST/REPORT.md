@@ -121,6 +121,42 @@
   - Run ArtifactのSanitizerとevaluation、指定commit、push、OPEN PR作成・確認が未完了。
 - Progress: 71% (5/7)
 
+## 2026-09-04 10:43 (JST)
+
+- Summary:
+  - 実装、検証、self-review、指定commit、push、PR作成・確認まで完了した。
+  - PR #107はOPEN／非Draftで、base=`main`、head=`fix/92-product-list-loading-state`、head SHA=`999d26fbba78e60a054dab5ba693d645bc359d4e`を確認した。
+- Changes:
+  - Strict Run Artifactの`evaluation.json`をschema準拠で追加し、公式collectorで`evaluation_path`と変更ファイル一覧を同期した。
+  - `TASKS.md`の7タスクを完了に更新した。
+- Decision / Rationale:
+  - Loading中のResults Grid維持を、既存Grid／ProductCard寸法に沿ったSkeletonと直近Result保持で実現した。データ取得、URL、Filter、Sort、Paginationの再設計は行っていない。
+  - PR本文には実際に成功した検証コマンドだけを記載し、Issueは`Closes #92`による将来のmerge時closeに委ねた。
+- Validation:
+  - `python -X utf8 scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260904-094303-JST/evaluation.json`: exit 0。
+  - `Get-Content run.json/evaluation.json | ConvertFrom-Json`: JSON parse PASS。
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\\collect-run-artifacts.ps1 -RunId 20260904-094303-JST -RefreshGitChangedFiles -Strict`: exit 0、`evaluation_present=true`。
+  - `git push -u origin fix/92-product-list-loading-state`: exit 0。remote branch headをprimary commitと一致確認。
+  - `gh pr view 107 --repo ryu-yoshikawa-pro-vision/qa-training-store --json ...`: state `OPEN`、isDraft `false`、title／base／head／head SHA／bodyを確認。
+- Blocker / Remaining:
+  - 実装上の未完了事項はない。最終Run Artifact Sanitizerの再確認と、Run Artifact変更のdocs-only commit／pushが残る。
+- Progress: 100% (7/7)
+
+## 2026-09-04 10:44 (JST)
+
+- Summary:
+  - 最終Run Artifact（PLAN／TASKS／REPORT／run.json／evaluation.json）のSanitizer確認を完了した。
+- Changes:
+  - ローカル絶対Pathの置換は発生せず、標準Artifactの内容は維持された。
+- Decision / Rationale:
+  - evaluationは`result=pass`、failure categoryなし、findingsなしとして確定した。native componentの既存warningは品質ゲート成功を妨げない既存環境warningとして扱った。
+- Validation:
+  - `pwsh -NoProfile -ExecutionPolicy Bypass -File scripts\\sanitize-codex-artifacts.ps1 -Path .codex\\runs\\20260904-094303-JST -Write`: exit 0、5 files／0 replacements／0 residual findings。
+  - 同コマンド`-Check`: exit 0、5 files／0 residual findings。
+- Blocker / Remaining:
+  - Run Artifactのdocs-only変更をcommit／pushして作業ツリーを最終cleanにする。
+- Progress: 100% (7/7)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
