@@ -68,3 +68,4 @@
 - 2026-09-04 JST: user configにはproject Hookとは別に`notify`があり、現行CLI sourceでは`AfterAgent`の`legacy_notify`としてpayloadをargv末尾へ渡す。実helperは通常payloadではexit `0`だが、約39,970 bytesのargvでWindows `ENAMETOOLONG`（DB記録では`os error 206`）を再現した。これは有力な別経路だが、literal `hook exited with code 1`との同一性は証明しない。
 - 2026-09-04 JST: 直前TUIの保存rollout／thread historyにはHook item、event、handler id、stdout、stderr、exit codeが残っていない。一方、対応する`codex.exe`は20:02–20:05 JSTに起動し、PR #106のconfig変更は22:16以降だった。stale config／trust snapshotは追加候補として、再起動後の新規sessionで比較する。
 - 2026-09-04 JST: 現時点でrepository source／config／security policy／PR本文は変更しない。UIの`code 1`をStopまたはlegacy notifyと断定せず、次の実sessionでidentity evidenceを採取する。
+- 2026-09-04 08:57 JST: 現行project HookのA／B／Cではexit `1`を再現せず、fresh Codex runtimeと再起動後TUIも正常だった。stale process／config・trust stateは最有力仮説だが確定Root Causeではない。保存証跡不足によりhistorical event identityはretrospectively unrecoverableなKnown Limitationとし、現存Evidenceで可能な調査を完了した。追加repository変更は不要で、PR #106をblockする問題ではない。

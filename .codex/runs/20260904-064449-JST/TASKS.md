@@ -7,7 +7,7 @@
 - [x] 3. 全6 eventのA（script単体）と正常／異常入力のexit semanticsを確認する。
 - [x] 4. failed候補のB（configured command）を同一PowerShell／cmd／root・nested cwdで再現し、最初のexit 1 boundaryを特定する。
 - [x] 5. 可能な範囲でC（実Codex runtime）を最小probeし、Hook status／spawn／stdout／stderr／exit／side effectを相関する。
-- [ ] 6. Primary／Secondary CauseとPR #106との因果関係を確定し、修正要否を判断する（原因確定前は変更しない）。
+- [x] 6. 現存EvidenceでPrimary／Secondary CauseとPR #106との因果関係を評価し、歴史的event identityはKnown Limitationとして分類して修正要否を判断する。
 - [x] 7. repository原因の場合のみ回帰test・最小修正・関連validation・runtime再確認を行い、外部原因なら変更なしを検証する。
 - [x] 8. Run Artifactをsanitizer／after snapshot／contractで確定し、PR #106の状態とworking treeを最終報告する。
 

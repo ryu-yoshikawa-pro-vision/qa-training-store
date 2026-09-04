@@ -89,3 +89,11 @@
 - Validation: `.codex/logs/hooks-01a066f2-...jsonl`の再起動後レコードをevent／時刻／redacted fieldだけで確認した。旧PID群は残存しているが、現在の対話の新PIDとは分離して記録した。
 - Blocker / Remaining: この応答の終了時に発火する`Stop`の結果を次回session evidenceで確認する必要がある。過去の`code 1`をStop、project logging、user `legacy_notify`のいずれかへ推測で割り当てず、PR #106の完了扱いは保留する。
 - Progress: 62% (5/8)
+
+## 2026-09-04 08:57 (JST)
+
+- Summary: 今回の`hook exited with code 1`調査を、現存Evidenceで可能な範囲まで完了した。現在のproject-scoped Hookではexit `1`を再現せず、fresh Codex runtimeとCodex再起動後のTUIも正常動作している。
+- Root Cause / Limitation: stale Codex process／project config・trust stateは再起動後に正常化した状況と時刻関係から最有力仮説だが、確定Root Causeとは扱わない。保存された過去UI／session証跡にevent、handler、command、stdout、stderr、exitの対応がないため、historical event identityは証拠不足によりretrospectively unrecoverableである。
+- Decision: 上記identity未確定は未完了タスクではなくKnown Limitationとしてcloseする。追加repository変更、Hook config／script／test／security policy／sandbox／user configの変更は不要であり、PR #106をblockする問題ではない。今回の5→10秒timeout変更との因果関係も確認されていない。
+- Reproduction / Validation: 現行project HookのA／B／C、configured launcher異常fixture、fresh runtime、再起動後TUIでexit `1`は再現しなかった。再発時のみ、発生時刻、session ID、`/hooks`表示、diagnosticsを保存してevent／handler identityを再調査する。
+- Progress: 100% (8/8) — event identityを確定したためではなく、現存Evidenceで可能な調査を完了し、残りをKnown Limitationとして分類したため完了とする。
