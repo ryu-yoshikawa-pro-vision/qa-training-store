@@ -172,9 +172,9 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 
 ## ハンズオン3: Test PRをReviewする
 
-既存または演習用Diffを使い、最低3件のReview観点を記録します。
+既存または演習用Diffを使い、公開されたReview観点から今回の変更に関係するものを選び、materialな指摘または確認結果を記録します。
 
-単なる好みではなく、テストの正確性・安定性・保守性に影響するものを優先します。
+単なる好みや件数合わせではなく、テストの正確性・安定性・保守性に影響するものを優先します。
 
 ## 確認問題
 
@@ -187,7 +187,7 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 
 ## 自己確認とRecovery
 
-自分のPRまたは演習用Diffについて、変更目的、Test Designとの対応、Validation、Remaining Riskを説明します。Review観点を5つ挙げることと、第三者から承認を得ることを混同しません。
+自分のPRまたは演習用Diffについて、変更目的、Test Designとの対応、Validation、Remaining Riskを説明し、公開されたReview観点を使ってself-reviewできることを確認します。第三者から承認を得ることはCommon completionに含めません。
 
 Diffの対象やValidationが説明できない場合は、Part 2-2のBranch / Diff / Commitへ戻ります。Checksの失敗は、意図したTraining Workflowか、Test / Environmentのどの工程かを切り分け、Review結果を隠すために変更を弱めません。次はPart 2-4でTriggerとJobへ進みます。
 
@@ -196,6 +196,6 @@ Diffの対象やValidationが説明できない場合は、Part 2-2のBranch / D
 - Forkまたは演習用Copyと本体Repositoryの役割を説明できる。
 - 自分が書き込めるRemoteへLocal BranchをPushできる。
 - Pull Requestの役割を説明できる。
-- Test変更をReviewする観点を5つ以上挙げられる。
-- PR本文へTest Designとの対応とValidationを記録できる。
-- 将来の任意Operational validationとしてDelivery Readinessを扱う場合、Web / Android baselineのPASSとexpected-failureの実際のFAILを別の結論として扱える。
+- 公開されたReview観点を使い、自分または教材用のmaterial diffをself-reviewできる。
+- PR本文へTest Designとの対応、Validation、Remaining Riskを記録できる。
+- 第三者Reviewや本体Repositoryへの書き込み権限なしでCommon completionが成立する。
