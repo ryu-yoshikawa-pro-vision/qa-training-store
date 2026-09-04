@@ -152,7 +152,7 @@ Fixtureはテスト実行環境や前提状態を提供するために使えま�
 - Metadata確認
 - Console Error収集
 
-Part 1前半で利用していた「Seed ScenarioをResetできる」「Console ErrorをEvidenceとして扱える」というTest Harnessの裏側が、どのような責務としてFixtureへ実装されているかを確認します。
+Part 1-5 / Part 1-6で利用していた「Seed ScenarioをResetできる」「Console ErrorをEvidenceとして扱える」というTest Harnessの裏側が、どのような責務としてFixtureへ実装されているかを確認します。
 
 Fixtureへ何でも入れると、Testから前提処理が見えなくなるRiskがあります。
 
