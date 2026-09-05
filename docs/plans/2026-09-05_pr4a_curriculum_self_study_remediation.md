@@ -2,7 +2,7 @@
 
 ## Status
 
-- 状態: **Implementation complete / Final validation and delivery pending**
+- 状態: **Final validation and delivery complete**
 - 実装開始: **2026-09-05 15:00 JST**
 - base: `main` at `f8b50b7678b6fe669bd0c98286d9b9d91176f521`
 - 作業branch: `docs/pr4a-curriculum-self-study-remediation-clean`

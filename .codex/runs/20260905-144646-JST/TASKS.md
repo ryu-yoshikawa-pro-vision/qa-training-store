@@ -14,8 +14,8 @@
 - [x] 10. Task 7: Plan指定のautomated validationをcurrent headで実行し、failureは上流原因を分類してbounded repairする。
 - [x] 11. Manual learner-route walkthrough、final freshness / diff / scope / self-review、Plan DoD各項目の判定を完了する。
 - [x] 12. PR #115をread-onlyで一度だけcross-checkし、#116のFinding / Disposition漏れがないことを確認する。
-- [ ] 13. PR #116本文と必要なtracking Issueをcurrent stateへ同期し、OPEN・未mergeを確認する。
-- [ ] 14. Run Artifact collector / Sanitizer Write・Check、REPORT追記、Run完了判定を行う。
+- [x] 13. PR #116本文と必要なtracking Issueをcurrent stateへ同期し、OPEN・未mergeを確認する。
+- [x] 14. Run Artifact collector / Sanitizer Write・Check、REPORT追記、Run完了判定を行う。
 
 ## Discovered
 

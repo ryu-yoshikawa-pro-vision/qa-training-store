@@ -79,6 +79,19 @@
   - Parent decision: E2E契約を弱めず、原因fileの最小修正を実施してrepair loopを継続する。
 - Progress: 86% (12/14)
 
+## 2026-09-05 16:50 (JST)
+
+- Summary: 修正後head `08aef28`のGitHub Web CIを確認し、Curriculum由来のE2E failureは解消したが、UI Reviewの外部artifact取得timeoutによりrequired aggregatorがFAILした。
+- Changes: `UI Review (ui-review-desktop)` job `101272238087`の最初の異常は、`actions/download-artifact`で`web-dist-automation`を取得する際の`ETIMEDOUT`だった。desktop UI ReviewのFAILを入力として`verify` job `101272633353`が`UI_REVIEW_RESULT: failure`でFAILし、さらに`validate` job `101272648122`が`VERIFY_RESULT: failure`でFAILした。`production-smoke`、Chromium E2E、他UI Review、Vitest、build、security系はPASSした。
+- Decision / Rationale: source assertionやProduct behaviorのfailureではなく、同一run内のartifactサービス通信timeoutと、明示的にその結果を集約する後続jobの派生FAILに分類した。repository sourceの追加変更は行わず、同じerrorの連続2回目にはまだ到達していないため、`--failed`限定の再実行でartifact取得が回復するという仮説を検証する。
+- Validation: `gh pr checks 116 --json name,state,bucket,link` — `production-smoke` SUCCESS、Chromium required / training baseline / accessibility / cross-role / mobile-boundary SUCCESS、UI Review desktop FAILURE、`verify` / `validate` FAILURE。失敗job logはread-only取得し、raw logはRun Artifactへ保存していない。
+- Blocker / Remaining: P0/P1 blockerではないが、GitHub required aggregatorが未PASSのためDoDのremote validationは未完了。`gh run rerun 33953354146 --failed`を実行し、再実行結果を確認する。PR #116はOPEN・未mergeのまま保持する。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: verify / validateをsource failureと誤認せず、外部timeoutを仮説としたfailed jobs限定の一回目の再実行へ進む。
+- Progress: 86% (12/14)
+
 ## 2026-09-05 16:42 (JST)
 
 - Summary: GitHub `production-smoke` failureに対するrepair loop iteration 2を完了した。
@@ -143,5 +156,52 @@
 - Subagents:
   - Delegation: なし。
   - Result: なし。
-  - Parent decision: P2-4の2リンクだけをrepairし、後続のrequired validationへ進む。
+- Parent decision: P2-4の2リンクだけをrepairし、後続のrequired validationへ進む。
 - Progress: 64% (9/14)
+
+## 2026-09-05 16:58 (JST)
+
+- Summary: 修正後head `08aef28`のGitHub validationを完了し、PR #116のrequired checksが全件成功した。
+- Changes: `production-smoke`を含むWeb CIのrequired E2E / UI Review / build / Vitest / security checksはPASSした。先行runで発生したdesktop UI Reviewのartifact取得`ETIMEDOUT`は、source変更なしのfailed-jobs限定再実行で解消し、再実行のdesktop UI Review、`verify`、`deploy-preview`、`validate`もPASSした。Mobile App CIはsuccess、Native系の非該当jobは計画どおりSKIPPEDだった。
+- Decision / Rationale: timeoutをrepository defectやProduct behavior変更の根拠とせず、外部artifact serviceの一時障害として扱った。同じerrorの連続2回目には到達せず、再実行後に新しいfailureがないため、追加retryやworkflow変更は行わない。
+- Validation: `gh run view 33953354146 --json status,conclusion,headSha` — `success` / `08aef28ea56c6b1aa0a09ab9e38e9504e66db783`。`gh pr checks 116 --json name,state,bucket,link` — 32 `pass`、8 `skipping`、`fail` / `pending` なし。PR #116は`OPEN`、`mergedAt: null`、`mergeStateStatus: CLEAN`、base `main`、head branch / SHAは指定値と一致する。
+- Blocker / Remaining: P0/P1 blocker、Specification Finding、unresolved remote validation failureなし。PR #116本文とIssue #72のcurrent SHA / validation状態を同期済み。Run Artifact final Sanitizer / collector確認が残る。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: remote required validationを`stop_success`とし、Plan statusを最終完了へ更新してDoD判定を記録する。
+- Progress: 86% (12/14)
+
+## Final self-review / Definition of Done
+
+- Task 0 / Task 1 / Hard Gate: satisfied。Task 0 freshness、全required Curriculum / selected Native / Reference監査、`docs/spec` coverage、Hard Gate PASSをRunへ記録済み。
+- final Curriculum FindingのSeverity / Disposition / Primary owner / exact target / minimum fix / validation: satisfied。CUR-4A-001〜021全件が`fix_now` / `resolved`でPlanにfinite化されている。
+- unresolved P0/P1 blocker = 0: satisfied。外部artifact timeoutは再実行で解消し、仕様・Product・権限のblockerはない。
+- bounded P2の解消: satisfied。CUR-4A-001〜003をsupport asset / terminology / learner self-studyのbounded outcomeで解消した。
+- `docs/spec/**` text audit `audited X / total X`: satisfied。`audited 22 / total 22`、実変更なし。
+- CommonがNative / Extension / Referenceなしで成立: satisfied。P1-7 / P2-6 skipとrejoinを含むCommon routeをwalkthrough済み。
+- selected Native specializationが開始・実行・自己確認・復帰可能: satisfied。P1-7のFlow diff / Physical Android artifact、P2-6のlearner-authored CI diff / failure / artifact境界を明示した。
+- Practice Volume / Repository provisioning / copy mechanics / Current CI topologyがRequired completionへ逆流しない: satisfied。support-only / Reference / practice guidanceへ分離した。
+- 確認問題のSelf-study最低判定基準: satisfied。各対象LessonにSelf-check、最低回答要素、Recoveryを追加した。
+- Instructor Referenceがsupport-only: satisfied。学習目標・Self-check・Completion・Answer Keyを持たず、運営支援情報へ限定した。
+- stable language / terminology rule: satisfied。Learning Designへ最小追加し、official literalと既存契約語を区別した。
+- reviewer checklist: satisfied。criteria-only checklistを追加し、Task 7 walkthroughで使用した。
+- `docs/spec/**`にPR 4A実変更なし: satisfied。protected path diffは空。
+- Required automated validation: satisfied。local Required 5件PASS、conditional 2件N/A、GitHub Web CI / Mobile App CIはcurrent implementation headで成功した。
+- unrelated cleanup / refactor / rename / directory migrationなし: satisfied。delete / renameなし、Product / runner / workflow / validator / contract source変更なし。
+- prose freezeのための不要なvalidator / contract testなし: satisfied。既存validator / contractは変更していない。
+- Curriculum / Reference実変更がconfirmed `fix_now`のbounded outcomeに限定: satisfied。Plan、Run、history、checklistを含む必要process artifact以外のunrelated差分はない。
+- PR本文がcurrent Finding / audit coverage / current head / Validation / blockerと一致: satisfied。PR #116本文を`08aef28`、remote PASS、OPEN・未mergeへ同期した。
+- Open PRのままreview可能、mergeなし: satisfied。PR #116はOPEN、`mergedAt: null`、mergeは実行していない。
+
+## 2026-09-05 16:58 (JST) — Run完了判定
+
+- Summary: PlanのDefinition of Done全項目を`satisfied`と判定し、conditional validationのみ`not applicable`とした。`blocked`はない。
+- Changes: Plan status、TASKSの13 / 14、PR #116 / Issue #72のcurrent state同期対象を更新した。
+- Validation: GitHub required checks、local validation、manual walkthrough、PR #115のread-only cross-check、final self-reviewを完了した。Sanitizer / collectorの最終確認後にrun artifactを保存する。
+- Blocker / Remaining: final Sanitizer / collector confirmationのみ。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: 全required taskを完了としてRunをcloseする。
+- Progress: 100% (14/14)
