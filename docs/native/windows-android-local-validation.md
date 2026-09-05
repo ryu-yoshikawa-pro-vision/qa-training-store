@@ -197,8 +197,14 @@ $common = @(
 )
 
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Doctor @common
+
+# 初回、または Native Project の再生成が必要な場合だけ実行する。
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Prepare @common
+
+# 現在利用可能な Release APK がない場合、または現在の変更を含まない場合だけ実行する。
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Build -Architecture Auto @common
+
+# current Release APKを再利用できる場合は、上記Prepare / Buildを省略してAPK inspectionへ進む。
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Install @common
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Smoke @common
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Test `
@@ -260,6 +266,8 @@ Retry、failure classification、evidence、stop、completionのgeneric decision
 
 ### 5.2 依存関係・Prebuild
 
+初回、または Native Project の再生成が必要な場合だけ `Prepare` を実行する。既に有効な準備済みProjectを再利用できる場合は、この段階を省略する。
+
 ```powershell
 pnpm run native:android:prepare
 ```
@@ -290,7 +298,7 @@ Get-PSDrive -Name C | Select-Object Name, Used, Free
 
 ### 5.3 Release APK Build
 
-実機を接続した状態で実行する。
+現在利用可能なRelease APKがない場合、または現在の変更を含んでいない場合に、実機を接続した状態で実行する。有効なcurrent Release APKを再利用できる場合はBuildを省略し、APK inspectionへ進む。
 
 ```powershell
 pnpm run native:android:build:local
@@ -536,9 +544,8 @@ GenericなRetry、Failure、Evidence、Stop、Completion判断は package-local 
 ## 9. 完了条件
 
 - Doctor PASS
-- Prepare PASS
-- Release APK Build PASS
-- APK Bundle／ABI 検査 PASS
+- Prepare PASS（初回または再生成が必要な場合）
+- current Release APK の確立・APK Bundle／ABI 検査 PASS
 - 実機 Install PASS
 - 起動安定性 PASS
 - `native-test-control.yaml` PASS

@@ -24,13 +24,27 @@
 
 ## Entry conditions
 
-Start a repair loop only when at least one of the following is true:
+Start a repair loop only when both an actionable repair signal and an explicit bounded scope are present.
+
+### A. Actionable repair signal
+
+At least one of the following must be true:
 
 - there is an actionable review finding;
 - there is a validation failure;
 - the evaluation result is `partial` or `fail`;
-- an evaluation finding is actionable; or
-- the scope is clear and an allowed file set can be declared.
+- an evaluation finding is actionable.
+
+### B. Explicit bounded scope
+
+All of the following must be true:
+
+- the requirement is sufficiently clear;
+- the scope is clear;
+- `allowed_files` can be declared;
+- there is no unsafe, destructive, permission, credential, or policy ambiguity.
+
+Scope clarity or an allowed file set by itself is not a repair trigger.
 
 Do not start when the requirement or scope is unclear, an unsafe or destructive action is needed, a credential or permission decision is required, the user requested review-only output, or the root cause is environmental with no repair required.
 
@@ -76,9 +90,11 @@ needs_human
 - `should_fix`: maintainability, clarity, or test confidence.
 - `defer`: outside the current scope and suitable for later work.
 - `reject`: false positive, already addressed, or unsupported by evidence.
-- `needs_human`: requirement, destructive-change, permission, or policy judgment.
+- `needs_human`: requirement judgment, destructive-change judgment, permission judgment, credential judgment, policy-boundary judgment, or a user/reviewer decision.
 
 Prioritize `must_fix`. Handle `should_fix` only when it does not block the required repair. Record the reason for every `defer`, `reject`, or `needs_human` classification.
+
+When a finding is classified as `needs_human`, set `decision = stop_needs_human` immediately. `needs_human` is an escalation condition, not a loop continuation condition. Until the human decision is returned, do not continue repair, expand scope, perform an unsafe or destructive operation, or guess a policy judgment.
 
 ## Repair planning and scope
 

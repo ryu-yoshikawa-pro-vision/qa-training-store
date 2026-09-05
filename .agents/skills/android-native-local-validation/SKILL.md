@@ -18,11 +18,13 @@ Use this Skill for Windows + PowerShell validation of a local Release APK on a p
 ## Execution outline
 
 1. Read the package workflow and Repository input mapping.
-2. Run the Repository-provided Doctor/preflight before Build, Install, Test, or Maestro.
-3. Execute the Repository-provided Prepare, Build, Install, Smoke, single Flow, and later Suites only when the preceding gate passes.
-4. Use a unique attempt identity, preserve raw evidence in the Repository artifact location, and record a repo-relative summary in the active Run.
-5. Classify the first failure, apply only an in-scope minimal repair when authorized, and revalidate the same unit before later stages.
-6. Report each stage separately and complete only when all required gates and evidence are satisfied.
+2. Run the Repository-provided Doctor/preflight before Prepare, a new Build, Install, Test, or Maestro.
+3. Execute Prepare only on the first setup or when Native Project regeneration is required; otherwise reuse the valid prepared state.
+4. Establish a current Release APK by reusing a valid APK that represents the current changes, or by running Build when no current APK exists or the current changes are not represented.
+5. Inspect the APK, then execute Install, Smoke, the single Flow, and later Suites only when the preceding gate passes.
+6. Use a unique attempt identity, preserve raw evidence in the Repository artifact location, and record a repo-relative summary in the active Run.
+7. Classify the first failure, apply only an in-scope minimal repair when authorized, and revalidate the same unit before later stages.
+8. Report each stage separately and complete only when the current Release APK is established and all required gates and evidence are satisfied; executing Build on every run is not itself a completion condition.
 
 ## Guardrails
 

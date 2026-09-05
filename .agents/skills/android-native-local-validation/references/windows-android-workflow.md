@@ -6,19 +6,32 @@ This workflow covers local Release APK validation on a Windows host, using Power
 
 ## Preflight and stage gates
 
-Before a new Build, Install, Test, or Maestro execution:
+Before Prepare, a new Build, Install, Test, or Maestro execution:
 
 1. Read the latest Run report, relevant prior attempt evidence, current diff/status, shell and version conditions, and the previous success or failure condition.
 2. Run Doctor and confirm the fixed toolchain contract, Android SDK, ADB device state, host/device capacity, APK identity, and CI/local differences.
 3. Record the observation, cause hypotheses, strongest hypothesis, evidence, condition to change, success condition, and next information before a retry.
-4. Do not start Build or a downstream stage when preflight is incomplete, an upstream stage failed, or the required APK or device state is unavailable.
+4. Do not start Prepare, Build, or a downstream stage when preflight is incomplete, an upstream stage failed, or the required device state is unavailable.
+
+## Conditional preparation and APK establishment
+
+Prepare is required only for the first setup or when Native Project regeneration is required. A valid prepared project may be reused when neither condition applies.
+
+After preflight, establish a current Release APK:
+
+- Reuse the current valid Release APK when it is available, passes the Repository identity and inspection checks, and represents the current changes.
+- Run Release Build only when no current valid APK exists or the current changes are not represented by the available APK.
+
+The gate is the establishment and verification of a current Release APK, not the unconditional execution of Prepare or Build.
 
 The normal gate order is:
 
 ```text
 Doctor / preflight
-→ Prepare
-→ Release Build
+→ Prepare if required
+→ establish a current Release APK
+  ├─ reuse current valid APK when appropriate
+  └─ Release Build when no current APK exists or current changes are not represented
 → APK inspection
 → Install
 → Smoke
@@ -68,7 +81,7 @@ When a Product or Flow repair is explicitly authorized, apply the smallest in-sc
 
 ## Completion
 
-Native validation is complete only when every Repository-required gate passes: toolchain/preflight, preparation, Release APK Build and inspection, physical-device Install and startup, the control Flow, required Runtime and Boundary Suites, and evidence persistence. Build success alone is not Native validation completion.
+Native validation is complete only when every Repository-required gate passes: toolchain/preflight, preparation when required, establishment and inspection of a current Release APK, physical-device Install and startup, the control Flow, required Runtime and Boundary Suites, and evidence persistence. Running Prepare or Build on every attempt is not required, and Build success alone is not Native validation completion.
 
 Never report an unexecuted or blocked stage as PASS. If a required physical device or capability is unavailable, record a blocked or not-executed result with evidence and stop according to the Repository contract.
 

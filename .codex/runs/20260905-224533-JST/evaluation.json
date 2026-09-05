@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "run_id": "20260905-224533-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "PR #123のレビュー指摘6件を、正本PlanのPR1 scope内で修正した。Plan lint、Validator image handling、repair-loop、Gray-box、Android conditional semanticsを最終treeへ反映し、最終pnpm run verifyもPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "run_artifact",
+          "path": ".codex/runs/20260905-224533-JST/REPORT.md",
+          "selector": "2026-09-05 23:21",
+          "summary": "最終verifyと6件のsemantic self-reviewを記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は指定されたPlan、Validator/test、3 Skill package、QA_AGENT.md、Android runbook、Run Artifactに限定され、PR2以降、product code、dependency、Native helper、.codex/agents/**は含まれない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260905-224533-JST/REPORT.md",
+          "selector": "Final scope",
+          "summary": "forbidden path 0件、frontmatter 6/6一致、変更範囲を記録している。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "targeted validationと最終pnpm run verifyを最終contentに対して実行し、format、Markdown、Skill Validator、typecheck、全test、contracts、buildをPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260905-224533-JST/REPORT.md",
+          "selector": "2026-09-05 22:59",
+          "summary": "targeted validationの結果を記録している。"
+        },
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260905-224533-JST/REPORT.md",
+          "selector": "2026-09-05 23:21",
+          "summary": "最終pnpm run verifyの全gate結果を記録している。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "対象PR branchを維持し、scopeを事前宣言した。force操作、branch切替、destructive cleanup、禁止path変更、Subagent delegationは行っていない。",
+      "evidence_refs": [
+        {
+          "kind": "run_artifact",
+          "path": ".codex/runs/20260905-224533-JST/PLAN.md",
+          "selector": "Allowed files / expected scope",
+          "summary": "allowed filesとout of scopeを事前固定している。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "各findingのroot cause、changed files、semantic restoration、validation、remaining deltaをREPORTへcheckpointとして記録し、最終diffとscopeを確認できる。",
+      "evidence_refs": [
+        {
+          "kind": "run_artifact",
+          "path": ".codex/runs/20260905-224533-JST/REPORT.md",
+          "selector": "Finding / root cause",
+          "summary": "レビュー指摘ごとの修正根拠を記録している。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Validatorは既存処理を再利用し、文書修正はpackage/rootの責務分離とsemantic preservationに必要な最小差分に留めた。新しいparser、framework、runtime、configurationは追加していない。",
+      "evidence_refs": []
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Run Artifact、targeted command、最終verify、diff check、frontmatter比較、sanitizationを同一Runへ記録し、後続のcommit/push/CI確認へ接続できる。",
+      "evidence_refs": [
+        {
+          "kind": "run_artifact",
+          "path": ".codex/runs/20260905-224533-JST/REPORT.md",
+          "selector": "2026-09-05 23:21",
+          "summary": "最終検証と残作業を記録している。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

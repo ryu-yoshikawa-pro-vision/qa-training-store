@@ -9,10 +9,16 @@ Do not modify Product Code during QA. If a product change is required, finalize 
 ## Mode selection
 
 - **Normal** is the default for ordinary QA requests. Use a current Charter as the Coverage source and explore the Runtime against the Normative Specification.
-- **Gray-box** adds only approved controls such as seed reset, test control, clock or payment delay, deep link, restart, narrow console or log, DOM, or accessibility support. Keep the existing Gray-box boundary.
+- **Gray-box** preserves the Normal read-only boundary and adds only explicitly authorized supporting controls such as seed reset, test control, clock or payment delay, deep link, application restart, narrow console or log, DOM inspection, or accessibility inspection.
 - **Black-box Scored** is selected only when unknown defect-finding ability is explicitly being evaluated. Its isolation and trusted-capability requirements are defined in [scored mode](scored-mode.md); it is not an automatic fallback for ordinary QA.
 
 Choose the mode before Runtime interaction. If the requested mode cannot satisfy its boundary, stop or record the run as blocked according to the applicable contract.
+
+## Gray-box boundary
+
+Gray-box keeps the Normal readonly boundary. The Coding Agent may observe and control the Runtime only through capabilities that the current Charter and Repository contract explicitly allow, including the listed seed/reset, test, clock, payment-delay, deep-link, restart, narrow console/log, DOM, or accessibility support.
+
+Gray-box must not use Product Source, Test Source, a defect patch, an answer key, or instructor-only ground truth to construct the oracle. Expected behavior still comes from the Normative Specification. Repository-supported Gray-box capabilities may be used as supporting controls, unlike Black-box Scored's source-free isolation, but they do not authorize access to those forbidden sources or replace the Specification as the oracle.
 
 ## Charter, Coverage, Budget, and Stop
 

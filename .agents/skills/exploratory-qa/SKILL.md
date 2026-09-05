@@ -28,7 +28,7 @@ The Coding Agent executes the QA workflow with runtime capabilities supplied by 
 ## Execution outline
 
 1. Read the portable workflow and the Repository QA input mapping before interacting with the Runtime.
-2. Select Normal, Gray-box, or explicitly requested Black-box Scored mode before exploration.
+2. Select Normal, Gray-box, or explicitly requested Black-box Scored mode before exploration, then apply the package-local boundary for the selected mode.
 3. Confirm the Charter or scored coverage, risk priorities, bounded Budget, and Stop Condition.
 4. Explore the Runtime against the Normative Specification, collecting semantic Evidence and atomic Findings.
 5. Finalize only after the required coverage, snapshots or isolation evidence, source-diff condition, and Repository output contract are satisfied.

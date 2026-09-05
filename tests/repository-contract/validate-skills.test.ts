@@ -43,6 +43,7 @@ function createFixture(
     }
     writeFileSync(join(directory, "references", "workflow.md"), "# Workflow\n", "utf8");
     writeFileSync(join(directory, "references", "data.json"), "{}\n", "utf8");
+    writeFileSync(join(directory, "references", "image.png"), "fixture image\n", "utf8");
   }
   return root;
 }
@@ -132,7 +133,7 @@ describe("Skill package validator", () => {
     expect(() => validateSkills(escapeWithSuffixRoot)).toThrow("escapes the Skill package");
   });
 
-  it("ignores external, anchor-only, reference-style, and image syntax", () => {
+  it("validates relative image syntax and ignores external, anchor-only, and reference-style syntax", () => {
     const root = createFixture([
       {
         directory: "alpha",
@@ -140,12 +141,32 @@ describe("Skill package validator", () => {
           "[External](https://example.com/missing.md)",
           "[Anchor](#section)",
           "[Reference][workflow]",
-          "![Image](references/missing.png)",
+          "![Image](references/image.png)",
+          "![Fragment](references/image.png#section)",
+          "![Query](references/image.png?raw=1)",
           "[Workflow](references/workflow.md)",
         ].join(" "),
       },
     ]);
 
-    expect(() => validateSkills(root)).not.toThrow();
+    expect(validateSkills(root)).toMatchObject({ skillCount: 1, linkCount: 5 });
+  });
+
+  it("fails missing and package-escaping image targets", () => {
+    const missingRoot = createFixture([
+      {
+        directory: "alpha",
+        body: "![Image](references/missing.png)\n",
+      },
+    ]);
+    expect(() => validateSkills(missingRoot)).toThrow("target is missing");
+
+    const escapeRoot = createFixture([
+      {
+        directory: "alpha",
+        body: "![Outside](../../outside.png)\n",
+      },
+    ]);
+    expect(() => validateSkills(escapeRoot)).toThrow("escapes the Skill package");
   });
 });

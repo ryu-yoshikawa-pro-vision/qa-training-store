@@ -1619,23 +1619,23 @@ product E2E / native runtime smoke をPR1の新規必須gateへ追加しない�
 9. harness Candidate の field / target field meaningか？
    - package-local。具体target path catalog / path・Repository layer由来のstrictness mappingは `docs/reference/harness-improvement-loop.md` に残す。
 10. Role / Tool / sandbox / write permission / Parent delegationか？
-   - Subagent責務。Skillへ移さず `.codex/agents/**` もPR1では変更しない。
+    - Subagent責務。Skillへ移さず `.codex/agents/**` もPR1では変更しない。
 11. Subagentが生成した result / observation / record / run evidenceか？
-   - workflowが必要なら logical external input / evidenceとして参照してよい。Subagent contractとは区別する。
+    - workflowが必要なら logical external input / evidenceとして参照してよい。Subagent contractとは区別する。
 12. canonical移設後の旧root/reference pathか？
-   - unique Repository contractがあれば通常文書として残す。unique contractがなく旧path必須のconfirmed consumerがあればthin pointer。どちらもなければ削除する。`docs/reference/harness-improvement-loop.md` はunique contractにより通常文書維持が確定。
+    - unique Repository contractがあれば通常文書として残す。unique contractがなく旧path必須のconfirmed consumerがあればthin pointer。どちらもなければ削除する。`docs/reference/harness-improvement-loop.md` はunique contractにより通常文書維持が確定。
 13. package内からpackage外fileへ直接link/image参照したくなったか？
-   - 行わず logical external inputへ変換する。
+    - 行わず logical external inputへ変換する。
 14. relative link / image targetにfragment / queryがあるか？
-   - file部分は通常のlocal dependencyとしてexistence / package boundaryを検証し、anchor / query自体は検証しない。
+    - file部分は通常のlocal dependencyとしてexistence / package boundaryを検証し、anchor / query自体は検証しない。
 15. image syntaxを特別扱いしてvalidator対象外にしたくなったか？
-   - しない。通常linkと同じrelative target処理へ通し、画像内容・renderingは検証しない。
+    - しない。通常linkと同じrelative target処理へ通し、画像内容・renderingは検証しない。
 16. Validatorでcode fence / inline codeを特別扱いしたくなったか？
-   - しない。source中のinline Markdown link / image syntaxを単純抽出し、検査させたくない架空例はinline syntaxで書かない。
+    - しない。source中のinline Markdown link / image syntaxを単純抽出し、検査させたくない架空例はinline syntaxで書かない。
 17. Android runbookの具体command / step-by-step exampleか？
-   - Repository-side runbookへ残してよい。generic decision ruleだけpackage canonicalにする。
+    - Repository-side runbookへ残してよい。generic decision ruleだけpackage canonicalにする。
 18. 分類するとsemantic behaviorが変わるか？
-   - 作業を止めて判断を分離する。
+    - 作業を止めて判断を分離する。
 
 ### 実装を広げないための最終ルール
 

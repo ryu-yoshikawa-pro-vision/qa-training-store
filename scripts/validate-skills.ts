@@ -130,10 +130,6 @@ function validateLinks(
   let linkCount = 0;
 
   for (const match of source.matchAll(inlineLinkPattern)) {
-    if (match[1] === "!") {
-      continue;
-    }
-
     const rawTarget = match[3];
     if (rawTarget === undefined) {
       continue;
