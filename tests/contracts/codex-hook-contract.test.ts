@@ -323,7 +323,7 @@ describe("Codex PreToolUse/Bash Node Hook contract", () => {
         );
       }
     }
-  }, 30000);
+  }, 15000);
 
   it.each([
     { command: "git checkout -bfeature", expected: "allow" },
@@ -2009,7 +2009,7 @@ describe("Codex PreToolUse/Bash remaining contract", () => {
       removeFixture(featureRepo);
       removeFixture(mainRepo);
     }
-  }, 15000);
+  });
 
   it("protects local branch destinations in fetch, update-ref, and worktree", () => {
     const context = {
