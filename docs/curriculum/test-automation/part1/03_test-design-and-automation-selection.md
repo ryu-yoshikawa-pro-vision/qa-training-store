@@ -234,9 +234,9 @@ Part 1後半ではPlaywrightとMaestroを使いますが、この段階では次
 
 ## ハンズオン1: Cartのテスト条件を体系的に導出する
 
-スプレッドシートへ最低10件作成します。
+練習量の目安として、スプレッドシートへ10件程度のCaseを作成してもよいですが、件数はcompletionの単独条件ではありません。
 
-必須:
+作成したCaseには、次の観点を必要な範囲で含めます。
 
 - 同値分割を1つ以上
 - 境界値を1つ以上
@@ -293,12 +293,33 @@ Payment成功・拒否・再試行を含む状態遷移図を作成します。
 8. 自動化可能でも自動化しない判断があるのはなぜか。
 9. Web / Android / iOSへ同じケースをすべて複製しない方がよい理由は何か。
 
+## 自己確認
+
+### 回答の最低判定基準
+
+- 同値分割と境界値を、代表値と境界付近の違いで説明している。
+- デシジョンテーブルが複数条件でExpectedが変わるときに有効であり、独立した条件を潰さない理由を説明している。
+- Login / Role / Account状態を分ける理由と、異なる拒否理由を別Caseにする理由を示している。
+- Unit / Component / Web E2E / Native E2Eなどの説明で、対象Layer、追加で得られるEvidence、CostまたはFailure要因を区別している。
+- 正常系だけでなく、異常・境界・Role・Journeyのうち対象Riskに必要な観点を選び、選ばない観点にも理由がある。
+- 自動化判断に、Risk、Spec / BR / AC、再現性、Layer / Tool、Costのうち必要な根拠が記録されている。
+- Web / Android / iOSを機械的に複製せず、共有条件とPlatform固有Riskを分離している。
+
+### Recovery
+
+技法の名前や件数だけで判断していた場合は、[Part 1-2](./02_scenario-shop-analysis.md)のRole / State / Seed整理へ戻り、1つのRiskを代表条件へ分解します。Layer / Toolを選べない場合は「そのLayerで何を保証し、UI E2Eで何を追加確認するか」を1行ずつ書き、実行環境の失敗はEnvironment blockとして学習判断と分けます。
+
 ## 完了条件
 
-- 10件以上のテストケースをスプレッドシートへ設計している。
-- 同値分割、境界値、デシジョンテーブル、状態遷移のうち3技法以上を適用している。
 - 正常、異常、Role、User Journeyの観点が含まれている。
+- 選択したテスト設計技法を対象Risk / BR / ACへ適用し、選択理由を説明できる。
 - Unit、Integration、Repository Contract、Component、Web E2E、Native E2Eの主な違いを説明できる。
 - デシジョンテーブルで複数条件を適切に分離し、異なる拒否理由を説明できる。
 - 各ケースのRisk / 設計根拠、自動化判断、理由を記録している。
 - 少なくとも1件についてUI E2Eではなく別テスト層を選び、その層で何を保証するか説明できる。
+
+練習量の目安として10件程度・複数技法を扱ってもよいが、件数や技法数だけではcompletionとしません。
+
+## 次の行動
+
+[Part 1-4: Playwright基礎](./04_playwright-foundations.md)へ進み、選定したWeb CaseをTraining用Playwright Testへ落とします。

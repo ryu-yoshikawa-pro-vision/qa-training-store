@@ -148,9 +148,27 @@ Scenario Shopで次を手動実行します。
 4. Exploratory Testを完全にE2Eへ置き換えるべきでない理由は何か。
 5. Autify / MagicPodとPlaywrightに共通する概念を3つ挙げる。
 
+## 自己確認
+
+### 回答の最低判定基準
+
+- 自動化の回答に、反復・再現性・Feedback / Evidenceの価値と、人間の判断が残る境界を含めている。
+- 100%自動化の問題として、実装・保守Cost、判定できない観点、False Confidenceのいずれかを具体化している。
+- Cartを自動化候補とする理由に、明確なExpected、再現可能な前提、Regression価値を含めている。
+- Exploratory Testについて、未知のRiskを人間が柔軟に探索する役割と自動Testの補完関係を説明している。
+- 共通概念として、前提条件 / Scenario、Action、Assertion、Resultのうち3つ以上を挙げている。
+
+### Recovery
+
+回答の理由を説明できない場合はLesson 1〜6へ戻り、同じCart確認について「何を自動化し、何を人間に残すか」を1行ずつ書き直します。実行環境はこのLessonのcompletion条件ではないため、アプリを起動できない場合も学習上の判断を先に記録できます。
+
 ## 完了条件
 
 - テスト自動化の目的と限界を自分の言葉で説明できる。
 - Scenario Shopから自動化候補を3件以上挙げ、その理由を説明できる。
 - 自動化しない候補も1件以上挙げ、その理由を説明できる。
 - テスト自動化プロセスを説明できる。
+
+## 次の行動
+
+[Part 1-2: Scenario Shopの探索とテスト対象分析](./02_scenario-shop-analysis.md)へ進み、候補をRole / State / User Journeyへ具体化します。

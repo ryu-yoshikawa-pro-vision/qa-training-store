@@ -18,43 +18,17 @@
 
 受講者が最初からこれを直接編集・複製して実行することは前提にしません。
 
-## 演習Workflowの境界
+## Common Required
 
-Git / GitHubの基本演習ではForkも利用できますが、**GitHub ActionsのCIハンズオンでは、Production Workflowとの競合を避けるため、講師または組織が用意した演習用Copyを標準経路**とします。
+Common completionでは、Training環境のTrigger、Job / Step、Failure工程、least privilege（必要最小限のPermission）を説明できることを求めます。TrainingとProduction / Deployの責務を分け、失敗や想定外SkipをSuccessとして扱わない理由も説明します。
 
-演習用Copyは、教材元のScenario Shopと同じコードベースを使用しながら、CI演習開始時に次の条件を満たすものとします。
+## 演習Workflowの境界（Support / Reference）
 
-- Training用Workflowを実行できる。
-- 教材元から継承したProduction / Deploy Workflowが同時起動しない。
-- 本番向けCloudflare Deployを実行しない。
-- `CLOUDFLARE_API_TOKEN` など本番Secretを要求しない。
-- Curriculum validator、Automation Web build、Training Playwright baselineをRepository-owned commandで実行する。
-- Androidは別のGitHub-hosted Training Native WorkflowでAPI 34 / `google_apis` / `x86_64` Emulator → Build / Install → Maestro baselineを実行する。これはWindows Local Fresh LearnerのCanonical Physical Device経路とは分離したCI保証である。
-- 本体RepositoryのRequired CheckやProduction Workflowへ影響しない。
+Git / GitHubの基本演習ではForkも利用できますが、CIハンズオンはProduction Workflowと分離された、講師または組織が用意した準備済みTraining環境で行います。
 
-### Forkを使ってCI演習する場合
+演習開始時に、意図したTraining Workflowだけが動き、本番SecretやDeployを要求せず、本体RepositoryのRequired Checkへ影響しないことを確認します。確認できない場合はCIの学習を始めず、[Instructor Reference](../03_instructor-reference.md)のsupport手順へ戻ります。
 
-個人Forkを利用する構成も可能ですが、Training Workflowを追加するだけでは安全な演習境界になりません。
-
-教材元には `pull_request` で起動する既存Workflowが含まれており、Cloudflare Previewなど本番向けSecretを必要とする経路もあります。そのため、ForkでActionsを利用する場合は、`training:copy:prepare`後の開始Gateで少なくとも次を確認します。
-
-```text
-Fork作成
-↓
-ForkでGitHub Actionsを利用可能にする
-↓
-教材元から継承したProduction / Deploy Workflowを演習中は無効化する
-↓
-Training Workflowだけが意図したTriggerで起動することを確認する
-↓
-Training CI演習開始
-```
-
-ここでいう「無効化」は、`training:copy:prepare`が既存Workflowをarchiveへ移し、active allowlistを2件へ再構成することを指します。受講者へ本番Secretを配布して既存Workflowを無理に成功させる方法は採用しません。
-
-演習用CopyでもForkでも、**PRを作成したときにTraining Workflow以外の本番向けWorkflowが意図せず起動しないこと**を開始Gateとします。
-
-Training Workflow templateは `training/github-actions/training-ci.yml` と `training-native-ci.yml` に固定しています。Training Copyへ配置するactive Workflowはこの2件だけで、`permissions: contents: read`、Secret不要、Deployなし、GitHub-hosted runnerを守ります。
+Training Copyの準備、active Workflow allowlist、Action pin、Current topology、Native実行環境などのRepository固有詳細はこの文書へ複製せず、Instructor support / Referenceで確認します。受講者はこれらの値の暗記やprovisioningをCommon completionの条件にしません。
 
 現在の `ci.yml` は、最小構成を理解した後に「実案件ではどこまで発展するか」を読む比較教材とします。
 
@@ -82,36 +56,9 @@ Result
 
 ## Lesson 2: GitHub Actionsの構造
 
-Training用の最小例として `training/github-actions/training-ci.yml` を読みます。
+Training用の最小例は [`training-ci.yml`](../../../../training/github-actions/training-ci.yml) と [`training-native-ci.yml`](../../../../training/github-actions/training-native-ci.yml) をReferenceとして読みます。Actionのfull commit SHA、exact allowlist、現在のWorkflow topologyはCurrent assetとInstructor supportで確認し、日本語の暗記やRepository provisioningをcompletionの条件にはしません。
 
-```yaml
-name: Training CI
-
-on:
-  pull_request:
-
-permissions:
-  contents: read
-
-jobs:
-  test:
-    runs-on: ubuntu-24.04
-    steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          persist-credentials: false
-      - uses: pnpm/action-setup@b906affcce14559ad1aafd4ab0e942779e9f58b1
-        with:
-          version: 9.10.0
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
-        with:
-          node-version: 24
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - run: pnpm run test:unit
-```
-
-このRepositoryでは、remote Actionをmutableなtagではなくofficial sourceで確認したfull commit SHAへpinします。元となるmajor／releaseを更新するときは、official sourceとSecurity Advisoryを確認してからSHAを更新します。
+概念としては、Event → least-privilege Permission → Job / Runner → Dependency Setup → Test Command → Artifact / Resultの関係を読み分けます。remote ActionのpinやVersionを更新する場合は、official sourceとSecurity Advisoryを確認します。
 
 ここから次を読み分けます。
 
@@ -278,11 +225,28 @@ PRのChecksでは、意図したTraining Workflowだけが学習対象として�
 7. Training CIで本番Secretを必要としない構成にする理由は何か。
 8. Forkで既存Production Workflowを演習中に分離する必要があるのはなぜか。
 
+## 自己確認
+
+次をWorkflowまたはFailure Logを指しながら確認できれば、このLessonのCoreを自己判定できます。
+
+- Trigger、Job、Step、Runnerの関係を説明できる。
+- TrainingとProduction / Deployの境界、`permissions: contents: read`などleast privilegeの意味を説明できる。
+- FailureがSetup、Build、Test、Environment / Secret、Permissionのどの工程かをLogから切り分けられる。
+- 失敗または想定外Skipを最終GateでSuccessにしない理由を説明できる。
+- Action pin、allowlist、現在のWorkflow topologyはRepository固有のSupport / Referenceであり、Core概念と区別できる。
+
+### Recovery
+
+Workflowが動かない場合は、最初に起動WorkflowとEvent、次にRunner / Dependency Setup、Build、Test、Artifact、Permissionの順でFailure Pointを確認します。本番SecretやDeployが必要になった場合はTrainingへ追加せず、演習境界のEnvironment / provisioning blockとしてInstructor supportへ戻ります。
+
 ## 完了条件
 
-- GitHub Actionsの基本構造を説明できる。
-- Training CI開始前に、既存Production / Deploy Workflowが同時起動しない演習境界を確認している。
-- 演習用Copy、または安全に設定されたForkでScenario ShopのUnit TestまたはQuality CheckをCI実行できる。
+- GitHub Actionsの基本構造、Trigger、Job、Failure工程、least privilegeを説明できる。
+- 準備済みのTraining環境でScenario ShopのUnit TestまたはQuality CheckをCI実行できる。
 - PR / Push / Manual / Scheduleの違いを説明できる。
 - CI Failure時に、意図したWorkflowかどうかを含めて発生工程をLogから特定できる。
 - Training Workflowと本体の実運用Workflowを分ける理由を説明できる。
+
+## 次の行動
+
+CoreのCI構造とFailure切り分けをWeb Testの実行へ接続するため、[P2-5: PlaywrightをCIで実行する](05_playwright-ci.md)へ進みます。Action pinやTraining Copyの詳細確認は必要な場合だけReferenceとして行います。

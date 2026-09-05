@@ -38,39 +38,13 @@ Git管理されたqa-training-store
 └ 以降のGit演習
 ```
 
-### 移行時の安全な手順
+### 移行時の安全な手順（Instructor support / Reference）
 
-Training Copyでは、次の順序で移行します。
+Training Copyの準備と引継ぎはInstructor support / Referenceです。受講者のCommon completionは、準備済みのGit管理Copy上でBranch、Diff、Staging、Commitを扱うことに置き、Source SHA、allowlist、copy mechanicsの準備を自力で行うことは要求しません。
 
-1. Git Historyを持つ `qa-training-store` の演習用Copyを取得する。
-   - 教材の配布方法が`git clone`の場合は、教材で指定されたRepositoryをcloneする。
-   - Remote / Forkの概念自体はPart 2-3で学ぶため、ここでは「教材元のHistoryを持つ作業Copyを取得する」ことを目的とする。
-2. `main` とRepository Historyを確認し、移行前のWorking TreeがCleanであることを確認する。
-3. Part 1成果物をコピーする**前に**、`main`を基準にPart 2用の作業Branchを作成する。
-4. Part 1から、教材で引継ぎ対象として指定された**受講者自身のTraining Test、Maestro Flow、分析・設計結果などの学習成果物だけ**をコピーする。
-5. `.git`、教材元の既存Regression、未指定のApplication Code、Config、Workflow、Package / LockfileなどをFolder単位で上書きしない。
-6. 同名Fileがすでに存在する場合は、そのまま上書きせずDiffを確認し、教材の指示に従って必要な変更だけを手動で統合する。
-7. `git status`、`git diff --stat`、必要に応じて`git diff`で、引き継いだ変更範囲が意図どおりであることを確認する。
+具体的な準備・検証、引継ぎ対象のallowlist、既存Workflowとの分離は [Instructor Reference](../03_instructor-reference.md) のsupport手順を使用します。受講者は、準備済みCopy上で自分のPart 1成果物とGit上の既存資産をDiffから区別し、必要な変更だけを作業Branchへ扱います。
 
-例えば作業Branchは次のように作成できます。
-
-```bash
-git switch -c training/git-basics
-```
-
-Training Copyの準備は `pnpm run training:copy:prepare -- --source-sha <40桁SHA> --target <disposable-folder>` で行います。Source SHAを省略した曖昧なBranch先頭や、別Worktreeの未確認変更を教材正本へしません。準備後は `pnpm run training:copy:validate -- --root <disposable-folder>` でactive Workflow allowlistとSHA一致を検証します。
-
-受講者は移行後に次を確認します。
-
-- `git status` が実行できる。
-- `git log` で教材元のHistoryを確認できる。
-- `main` Branchが存在する。
-- Part 2用の作業Branch上にいる。
-- Part 1で自分が作成したTraining Testや成果物だけが引き継がれている。
-- 既存Repositoryの完成済みRegressionへTraining Codeを混在させていない。
-- `.git`や未指定の教材元FileをPart 1 Folderから上書きしていない。
-- `git diff`で引継ぎ差分を説明できる。
-- Training CopyのSource SHA、active Workflow allowlist、Formal Workflowとの分離を説明できる。
+作業Branchの作成、`git status`、`git diff`、`git diff --staged`などのLocal Git操作は、このモジュールのCommon学習対象として扱います。Copy準備の失敗や成果物不足は、Gitの理解不足ではなくEnvironment / provisioning blockとしてSupportへ戻します。
 
 Part 1のZIP Folderで単純に `git init` し、教材元のHistoryがない状態を標準経路にはしません。
 
@@ -269,14 +243,31 @@ commit
 8. Part 1のFolderへ単純に `git init` するだけでは教材元のHistoryを学べないのはなぜか。
 9. Part 1 Folderを丸ごとGit管理済みCopyへ上書きしてはいけないのはなぜか。
 
+## 自己確認
+
+次を自分のBranchとDiffを指しながら確認できれば、Common completionの判断材料になります。
+
+- Working Tree、Staging、Commitの差を説明できる。
+- Part 1成果物、教材元のHistory、自分の変更をDiffで区別できる。
+- 最初の演習変更・Commitを`main`へ作らず、先に作業Branchを選んだ理由を説明できる。
+- 意図したFileだけをStageし、Staged Diffと意味のあるCommit Messageを確認できる。
+- Training CopyのSource SHA / allowlist / copy mechanicsはSupport / Referenceであり、準備済みCopyを使うCommon completionの隠れた前提ではないと説明できる。
+
+### Recovery
+
+BranchやDiffが分からない場合は、作業を止め、`git status` → `git branch --show-current` → `git diff` → `git diff --staged`の順に状態を確認します。準備済みCopyやPart 1成果物が手元にない場合はEnvironment / provisioning blockとしてInstructor supportへ戻り、Gitの理解不足と決めつけません。
+
 ## 完了条件
 
-- Part 1成果物をGit管理された `qa-training-store` へ安全に引き継いでいる。
+- 準備済みのGit管理された `qa-training-store` Copy上で、Part 1成果物と自分の変更を区別できる。
 - 教材元のGit Historyと自分の変更を区別できる。
-- Part 1成果物をコピーする前に作業Branchを作成している。
-- `.git`、既存Regression、未指定の教材元Fileを上書きしていない。
+- Part 1成果物を扱う前に作業Branchを作成し、`.git`や既存Regressionを無差別に上書きしない境界を説明できる。
 - `main` へ直接演習Commitを作らず、作業Branchで変更を管理できる。
 - 変更内容を`git diff`で確認できる。
 - 意図したFileだけをStageできる。
 - Staged Diffを確認してから意味のあるCommit MessageでCommitできる。
 - `main`との差分と、自分のCommitが持つ変更内容を説明できる。
+
+## 次の行動
+
+Branch・Diff・Commitの変更単位をGitHub上の共有へ接続するため、[P2-3: GitHub・Pull Request・Review](03_github-pull-request-review.md)へ進みます。

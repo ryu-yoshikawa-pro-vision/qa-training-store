@@ -131,7 +131,7 @@ Scenario Shop本体では、現在のCIで次のような検証があります�
 
 ここでは詳細Workflowをまだ作り込まず、PRと自動検証結果が紐付く仕組みを理解します。
 
-重要なのは、本体RepositoryのChecksをそのまま演習環境へ複製することではありません。`training:copy:prepare`へ完全なSource SHAを渡し、active Workflowを `training-ci.yml` / `training-native-ci.yml`の2件へ限定したうえで、SecretsやDeployに依存しないTraining CIをReviewします。
+重要なのは、本体RepositoryのChecksをそのまま演習環境へ複製することではありません。Training Copy、active Workflow、SecretsやDeployの分離は [Instructor Reference](../03_instructor-reference.md) のsupport範囲です。Common completionでは、準備済みの演習環境でPRとTest変更をReviewします。
 
 ## Lesson 7: Merge判断
 
@@ -170,7 +170,7 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 
 ## ハンズオン3: Test PRをReviewする
 
-既存または演習用Diffを使い、最低3件のReview観点を記録します。
+既存または演習用Diffを使い、Testの正確性・安定性・保守性に影響するmaterialなReview観点を選び、理由と確認結果を記録します。固定件数を満たすことではなく、変更のRiskを自分で説明できることを重視します。
 
 単なる好みではなく、テストの正確性・安定性・保守性に影響するものを優先します。
 
@@ -183,11 +183,29 @@ Part 1で作ったPlaywright Test追加を題材に、PR本文を作成します
 5. CIが成功していてもMergeを止める判断があり得るのはなぜか。
 6. Assertionを弱くする変更はなぜ危険か。
 
+## 自己確認
+
+次を自分のPR説明またはReviewメモで確認できれば、このLessonの判断を自己判定できます。
+
+- Fork / Remote / Push / Pull Requestの役割と、自分が書き込める場所を説明できる。
+- PR本文へ変更内容、理由、Test Designとの対応、Validation、Remaining Riskを記録できる。
+- material diffについて、Test目的、Assertion、Locator、Data依存、Regression重複、Product条件の観点から必要な確認を選べる。
+- Review観点を好みではなく、正確性・安定性・保守性への影響として説明できる。
+- Training Copyのprovisioningや第三者ReviewはCommon completionの前提ではなく、件数quotaなしで自分のself-reviewを完了できる。
+
+### Recovery
+
+PushやPRを作成できない場合は、まずLocal Branch、Remote URL、権限、Base Branchを確認し、Environment / account blockとして切り分けます。Reviewの判断が曖昧な場合は、変更の目的、期待するAssertion、失敗時のEvidence、既存Regressionとの重複へ戻り、materialな観点を1つずつ記録します。
+
 ## 完了条件
 
 - Forkまたは演習用Copyと本体Repositoryの役割を説明できる。
 - 自分が書き込めるRemoteへLocal BranchをPushできる。
 - Pull Requestの役割を説明できる。
-- Test変更をReviewする観点を5つ以上挙げられる。
+- Test変更のmaterialなReview観点を、変更のRiskと理由付きで選べる。固定件数や第三者Reviewをcompletionの条件にしない。
 - PR本文へTest Designとの対応とValidationを記録できる。
 - 将来の任意Operational validationとしてDelivery Readinessを扱う場合、Web / Android baselineのPASSとexpected-failureの実際のFAILを別の結論として扱える。
+
+## 次の行動
+
+PRとself-reviewをCIの実行契約へ接続するため、[P2-4: CIとGitHub Actions](04_ci-github-actions.md)へ進みます。

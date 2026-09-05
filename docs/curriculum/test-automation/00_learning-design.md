@@ -87,6 +87,15 @@ Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../
 
 特に、**Test Case IDとUI Test ID、Seed ScenarioとUser Journey、Maestro FlowとAutomation Flowは同じものではありません。**
 
+### 安定表記ルール
+
+- 一般のlearner-facing説明は日本語中心で記述する。
+- Tool、Product、API、command、path、identifierは公式のliteralを維持する。
+- `Locator`、`Fixture`などの公式用語は、必要な場合だけ初出で日本語の意味を添える。
+- `Common Core`、`Native specialization`、`Extension`、`Reference`はclassification tokenとして維持し、本文で責務を説明する。
+- `BR`、`AC`、ID grammar、machine-consumed headingはcanonical literalを変更しない。
+- Product上の判断に必要なUI copyは、表示されるliteralをそのまま扱う。
+
 ## Part 1の前提
 
 Part 1ではGitHubアカウントを必須にしません。
@@ -175,7 +184,7 @@ GitHub Remote / Fork / Pull Requestへ進む
 
 ここで別の教材アプリへ切り替えるわけではありません。**コードベースとテスト対象は同じScenario Shopのまま、変更管理できる作業環境へ移行します。**
 
-Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。`training:copy:prepare`へ完全なSource SHAを渡し、Git Historyを持つdisposable Training CopyへPart 1成果物を安全に引き継ぎます。
+Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。Git Historyを持つdisposable Training CopyへPart 1成果物を安全に引き継ぎます。Source SHA、allowlist、copy mechanicsの準備・検証は[Instructor Reference](./03_instructor-reference.md)のsupport手順を使用し、Learner Requiredの隠れた前提にはしません。
 
 ## ノーコード・ローコード経験との接続
 
@@ -211,12 +220,12 @@ POM、Fixture、Automation Flowなどの保守設計は後半に置きます。�
 6. Playwrightで実装する。
 7. 実行結果を分析する。
 8. Native specializationを選択した場合は、P1-7でMaestroによるNative自動化を行う。
-9. P1-7をskipまたは完了した後、P1-8へrejoinし、Web / Nativeの自動テストが増えた状態を体験する。
+9. Common learnerはP1-6完了後にP1-7をskipしてP1-8へ進み、Native specializationを選択したlearnerはP1-7完了後に同じP1-8へrejoinする。P1-8ではCommonとしてPlaywright Testの保守課題を扱い、Native選択時だけNative成果物が追加される。
 10. テスト管理と保守上の問題を洗い出す。
 11. Helper / POM / Fixture / Automation Flow / Seed Scenarioなどを使って改善する。
 12. 総合演習を行う。
 
-Part 1前半では、Seed Scenario ResetやEvidence収集の仕組みは教材側が提供するTest Harnessとして利用し、Fixture内部の責務分解や共通化設計はまだ学びません。既存 `e2e/web/fixtures.ts` の内部設計を教材として読むのは、Maestroまで一巡した後のテスト管理・保守性改善モジュールからとします。
+Part 1前半では、Seed Scenario ResetやEvidence収集の仕組みは教材側が提供するTest Harnessとして利用し、Fixture内部の責務分解や共通化設計はまだ学びません。既存 `e2e/web/fixtures.ts` の内部設計を教材として読むのは、P1-6までのCommon学習を完了し、P1-7をskipまたは完了してP1-8へ到達した後です。
 
 ### Part 2
 
@@ -229,7 +238,7 @@ Part 2では、Part 1で作成したテストを一般的な開発プロセス�
 5. GitHub Actionsでテストを実行する。
 6. Playwright ReportやArtifactを管理する。
 7. Native specializationを選択した場合は、P2-6でAndroid Build + Runtime E2Eと、iOS Build-onlyの保証境界を学ぶ。
-8. Common routeではP2-6をskipし、P2-7でQuality Gate、Build、Deploy、Smokeを設計する。
+8. Common routeではP2-6をskipし、P2-7でWeb Quality Gate、Build / Test Artifact、Failure Evidence、fail-closed条件を設計する。Deploy / Smoke等はAdvanced / Referenceとして比較する。
 9. Scenario Shopを題材に導入設計演習を行う。
 
 ## 教材の進め方

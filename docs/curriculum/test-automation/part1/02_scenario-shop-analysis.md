@@ -165,6 +165,17 @@ Scenario ShopではUI操作によって内部状態が変化します。
 
 ここで「Seed Scenarioは便利なテストデータ」だけではなく、「テスト状態を再現可能にする自動化設計の一部」であることを理解します。
 
+### 既存SSOTへ戻る経路
+
+値をこの教材へ転記せず、判断が必要になったら次の順に参照します。
+
+1. State、Scenario、Clock、Reset、Test Controlの意味: [`docs/spec/state-and-scenarios.md`](../../../spec/state-and-scenarios.md)
+2. Scenario ID、初期状態、固定Clockの定義: [`src/seeds/metadata.ts`](../../../../src/seeds/metadata.ts)
+3. 郵便番号からの住所候補の扱い: [`docs/05_ui/ui_specifications.md`](../../../05_ui/ui_specifications.md) と [`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md)
+4. 実際の画面・安全な入口: Scenario Shopの`/guide`とTest Control
+
+教材本文の一覧やサンプル値とSSOTが異なる場合は、SSOTの値を採用し、差異をProduct仕様の変更として扱いません。
+
 ## ハンズオン1: Cart分析
 
 Cartについて次を洗い出します。
@@ -205,9 +216,27 @@ Guestから購入完了までを図にします。
 4. Payment成功だけを確認しても十分でない理由は何か。
 5. UI操作後の内部状態を考える必要があるのはなぜか。
 
+## 自己確認
+
+### 回答の最低判定基準
+
+- 画面一覧だけではRole、State、Data、状態遷移、連携Riskを落とすことを説明している。
+- RoleとStateを別の軸で整理し、同じURLでもExpectedが変わる例を1つ示している。
+- `out-of-stock` を決定的な初期状態へ戻すSeed Scenarioとして説明し、Test Dataを手作業で作り続ける問題と結び付けている。
+- Payment成功以外に拒否・processing・Retryまたは在庫 / Cart Versionの状態を挙げ、Journey上の影響を説明している。
+- UI操作後に確認する内部状態を1つ挙げ、`docs/spec`のBR / ACまたはState / Scenarioへ参照を戻している。
+
+### Recovery
+
+Role / State / Seedのどれかを説明できない場合は、Lesson 2〜6を再読し、CartまたはCheckoutの1条件を「Role → 初期State → Action → Expected → 変化する内部State」で書き直します。固定値が見つからない場合は上記SSOTへ戻り、参照先が起動できない・権限がない場合だけEnvironment blockとして分けて記録します。
+
 ## 完了条件
 
 - Scenario Shopの主要Roleを説明できる。
 - 1つ以上のUser Journeyを図示できる。
 - CartまたはCheckoutについて正常・異常・境界条件を整理できる。
 - Seed Scenarioがテスト自動化へ必要な理由を説明できる。
+
+## 次の行動
+
+[Part 1-3: テスト設計と自動化対象選定](./03_test-design-and-automation-selection.md)へ進み、整理したRiskからTest Caseと適切なTest Layerを選びます。

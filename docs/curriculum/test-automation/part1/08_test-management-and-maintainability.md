@@ -26,7 +26,7 @@
 - `src/seeds/metadata.ts`
 - `playwright.config.ts`
 
-このモジュールへ進む時点で、受講者自身も複数のPlaywright TestとMaestro Flowを作成済みであることを前提とします。
+Common routeでは、受講者自身が複数のPlaywright Testを作成済みであることを前提とします。Maestro Flowの作成経験はNative specializationを選択する場合の前提であり、Playwright-onlyのCommon completionには要求しません。
 
 Part 1-5 / Part 1-6ではTest Harnessとして利用していたResetやEvidence収集について、このモジュールから初めて `e2e/web/fixtures.ts` の内部を読み、Fixtureとしてどの責務を持たせているかを分析します。
 
@@ -277,7 +277,7 @@ Flakyを「たまに落ちるからRetryでよい」と扱いません。
 
 Flakyが継続する場合は、Regression Gateへ残すRiskも判断します。
 
-## Lesson 14: 実行時間とTest Suite
+## Lesson 14: 実行時間とTest Suite（Extension / Reference comparison）
 
 テストが増えると実行時間が伸びます。
 
@@ -288,9 +288,9 @@ Flakyが継続する場合は、Regression Gateへ残すRiskも判断します�
 - Extended Regression
 - Accessibility
 - Mobile
-- Native
+- Native（Native specialization / Extension）
 
-Part 2でこれらをPR / main / Nightlyへ配置します。
+これらをPR / main / Nightlyへ配置する設計はPart 2のReference comparisonです。このLessonのCommon completionにNative実行やCI設定を要求しません。
 
 ## ハンズオン1: 重複を探す
 
@@ -348,9 +348,9 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 
 専用の仕様変更済み演習Branchが教材として用意された場合のみ、発展として実際のProduct / Test変更と再実行まで行います。
 
-## ハンズオン6: Regression棚卸し
+## ハンズオン6: Regression棚卸し（Practice Volume / 任意）
 
-スプレッドシートの `06_自動化対応表` と `08_改善管理` を更新します。
+追加演習として、スプレッドシートの `06_自動化対応表` と `08_改善管理` を更新します。
 
 最低限次を分類します。
 
@@ -372,12 +372,28 @@ Product実装は現在の購入上限5のままとし、変更後仕様向けの
 8. Product仕様がまだ変わっていない段階で、将来仕様向けTestを無理にPassさせるべきでないのはなぜか。
 9. テストを削除する判断が必要になるのはなぜか。
 
+## 自己確認
+
+次を自分の変更Diff、Test Case、または短い説明で確認できれば、このモジュールの判断を説明できます。
+
+- 実在するPlaywright保守問題を1件、重複・Flaky・責務混在・実行時間などの観察事実から説明できる。
+- その問題に対してHelper、POM、Component Object、Fixture、Automation Flow、現状維持のいずれを選び、選択理由と副作用を説明できる。
+- 最小改善のDiffがTest Caseの目的、Locator / Assertion、Test Data依存、既存Regressionとの関係を壊していないことを確認できる。
+- 仮想仕様変更では、Productを変更せず、Risk → Test Case → 自動化対象 → Regression分類の影響計画だけを作成している。
+- Native / Maestro / CIの比較はExtensionまたはReferenceであり、Playwright-onlyのCommon completionに混ぜていない。
+
+### Recovery
+
+保守問題の原因が分からない場合は、まず対象Testの目的、Failureの再現条件、Test Data / Seed、Locator / Assertion、既存Regressionとの重複を1つずつ確認します。実行環境が原因ならEnvironment blockとして記録し、設計上の未理解なら問題の最小再現とTest Caseへ戻ります。仮想仕様変更で迷った場合は、ProductやTest Codeを変更せず、現行Specを基準に影響先と未実装境界を整理します。
+
 ## 完了条件
 
-- 自分のテスト資産の保守上の問題を3件以上洗い出している。
+- 実在するPlaywright保守問題を1件以上診断し、原因・影響を説明したうえで、最小の改善を1件実装している。追加の棚卸しはPractice Volumeとして推奨するが、件数だけではcompletionとしない。
 - 各問題について解決方法を選び、理由を説明している。
-- 少なくとも1件の共通化・構造改善を実装している。
 - Test Case IDと自動化実装の対応を更新している。
 - 仮想仕様変更についてRisk、Test Case、自動化実装、Regression分類の影響を追跡し、変更計画を作成している。
 - 仮想仕様変更ではProduct未変更のまま将来仕様向けTestをPassさせることを完了条件にしていない。
-- Flaky、重複、不要テスト、実行時間の観点でRegression資産を棚卸ししている。
+
+## 次の行動
+
+Part 1 Commonを続ける場合は [P1-9: 総合演習](09_part1-capstone.md) へ進みます。Native / CIの追加比較は必要な受講者だけがExtension / Referenceとして行い、Common routeの完了やP1-9への移行を止めません。

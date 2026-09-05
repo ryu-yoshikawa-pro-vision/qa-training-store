@@ -93,7 +93,10 @@ Training Testは `training/`、Formal Regressionは `e2e/web/` と `maestro/` �
 1. [学習方針と進め方](./00_learning-design.md)
 2. [スプレッドシートによるテスト分析・設計](./01_spreadsheet-test-design.md)
 3. [Competency Rubric（評価正本）](./02_competency-rubric.md)
-4. [Instructor Reference（講師向け）](./03_instructor-reference.md)
+
+#### Repository-required support asset
+
+- [Instructor Reference（運営支援）](./03_instructor-reference.md) — Learner Required pathやcompletionの正本ではありません。
 
 ### Part 1: テスト自動化の基礎と実践
 
