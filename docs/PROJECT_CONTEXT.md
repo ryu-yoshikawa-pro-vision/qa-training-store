@@ -7,7 +7,7 @@
 ## 運用の要点
 
 - `AGENTS.md` の読込順と run 運用を必ず守る。
-- 計画依頼では `docs/plans/TEMPLATE.md` をベースに計画書を作る。
+- 計画依頼では package-local [`feature-plan template`](../.agents/skills/feature-plan/assets/plan-template.md) をベースに計画書を作り、Repositoryの保存契約に従って `docs/plans/` へ保存する。
 - `docs/reports/` は durable な調査・監査・検証結果だけに使う。review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録では作らない。
 - run の進捗と実行ログは `.codex/runs/<run_id>/REPORT.md` と `.codex/runs/<run_id>/logs/` に残す。
 - プロジェクト配下の読み書きは通常承認なしでよいが、shell / PowerShell / git command によるファイル削除は禁止する。意図した差分としての `apply_patch` は許可する。

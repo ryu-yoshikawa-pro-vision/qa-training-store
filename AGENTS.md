@@ -14,13 +14,14 @@ Codex は、このリポジトリで作業を始める前にこの文書へ従�
 
 ## 0.1 モード別の入口ファイル
 
-- 複雑なタスク、明示的な計画依頼、Plan Mode のときは `PLANS.md` を読み、`.agents/skills/feature-plan/SKILL.md` を使う。Plan では planning に集中し、実装やレビューを混ぜない。
-- レビュー依頼または `/review` のときは `CODE_REVIEW.md` を読み、`.agents/skills/code-review/SKILL.md` を使う。Review では findings を返し、実装や設計相談へ逸れない。
+- 複雑なタスク、明示的な計画依頼、Plan Mode のときは [`feature-plan Skill`](.agents/skills/feature-plan/SKILL.md) を使う。Repository plan storage、filename、active Run lifecycleは [`PLANS.md`](PLANS.md) からlogical external inputとしてmappingし、Planではplanningに集中する。
+- レビュー依頼または `/review` のときは [`code-review Skill`](.agents/skills/code-review/SKILL.md) を使う。Repository coding policy と review persistence policy は [`CODE_REVIEW.md`](CODE_REVIEW.md) からlogical external inputとしてmappingし、Reviewではfindingsを返す。
 - CodeRabbit など外部レビューサービスの full review / 再レビューは、明示的な実行指示または承認を得た場合に限り起動する。レビュー完了後は結果を報告して停止し、指摘の修正・thread操作・再レビューをユーザーの判断なしに続けない。既存のreview結果・thread状態の参照はこの確認とは別に行ってよい。
-- review findings や validation failure の修正では `docs/reference/repair-loop.md` を読み、`.agents/skills/repair-loop/SKILL.md` を使う。Repair loop は bounded workflow であり、無制限再試行ではない。
-- 実行結果や評価結果から harness 自体の改善候補を作るときは `docs/reference/harness-improvement-loop.md` を読み、`.agents/skills/harness-improvement/SKILL.md` を使う。実装修正と harness improvement は分離する。
-- 探索的QA、仕様ベースQA、Agentic QA、実Runtimeを操作してProduct Behaviorを確認する依頼では、`QA_AGENT.md` と `.agents/skills/exploratory-qa/SKILL.md` を使用する。Exploratory QA SkillがQA実行のPrimary Entry Pointである。
+- review findings や validation failure の修正では [`repair-loop Skill`](.agents/skills/repair-loop/SKILL.md) を使う。Repository-side artifact、scope、evaluation、failure taxonomy、run/sanitization integrationは [`docs/reference/repair-loop.md`](docs/reference/repair-loop.md) からlogical external inputとしてmappingする。Repair loop は bounded workflow であり、無制限再試行ではない。
+- 実行結果や評価結果から harness 自体の改善候補を作るときは [`harness-improvement Skill`](.agents/skills/harness-improvement/SKILL.md) を使う。Repository target catalog、path-based strictness mapping、artifact/evaluation integrationは [`docs/reference/harness-improvement-loop.md`](docs/reference/harness-improvement-loop.md) からlogical external inputとしてmappingし、実装修正とharness improvementは分離する。
+- 探索的QA、仕様ベースQA、Agentic QA、実Runtimeを操作してProduct Behaviorを確認する依頼では [`exploratory-qa Skill`](.agents/skills/exploratory-qa/SKILL.md) を使う。Scenario Shop固有のexecution ownership、Machine Contract、artifact/schema、Harness integrationは [`QA_AGENT.md`](QA_AGENT.md) と [`docs/reference/agentic-qa-workflow.md`](docs/reference/agentic-qa-workflow.md) からlogical external inputとしてmappingする。
 - `scripts/agentic-qa/**` はCoding Agentを起動・制御するものではなく、Deterministic Preparation / Validation / Isolation Verification / Evaluationの補助として使用する。QA探索中はProduct Codeを修正しない。修正依頼へ進む場合はQA Findingを確定した後、Repair Workflowへ明示的に切り替える。
+- Windows AndroidのTooling、Release APK、physical device、Maestro、Native failureを確認する依頼では [`android-native-local-validation Skill`](.agents/skills/android-native-local-validation/SKILL.md) を使う。Repositoryの具体的command、version、path、setup、troubleshootingは [`docs/native/windows-android-local-validation.md`](docs/native/windows-android-local-validation.md) と [`docs/native/windows-android-troubleshooting.md`](docs/native/windows-android-troubleshooting.md) からlogical external inputとしてmappingする。
 - チャットで合意した計画を実装に移す前に、`docs/plans/` 配下へ保存する。
 
 ## 1. Run 初期化
