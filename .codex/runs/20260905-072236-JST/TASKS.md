@@ -13,9 +13,9 @@
 - [x] 9. `pnpm run verify`を再実行する。
 - [x] 10. verifyのFAILを調査し、conflict resolution由来／main由来／環境由来を分類する。
 - [x] 10.1. 既存契約テストのWindows実行タイムアウトを最小修正し、focused testとverifyを再実行する。
-- [ ] 11. validation後の最終差分とstatusを確認し、merge commitを作成する。
-- [ ] 12. merge commitをpushする。
-- [ ] 13. PR #114のmergeabilityと本文を確認する。
+- [x] 11. validation後の最終差分とstatusを確認し、merge commitを作成する。
+- [x] 12. merge commitをpushする。
+- [x] 13. PR #114のmergeabilityと本文を確認する。
 
 ## Discovered
 

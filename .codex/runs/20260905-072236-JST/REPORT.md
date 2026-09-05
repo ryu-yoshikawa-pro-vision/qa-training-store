@@ -150,3 +150,12 @@
 - Remaining: merge commit、push、PR #114のmergeability再確認と本文更新が残る。PR mergeは行わない。
 - Decision: `continue`
 - Progress: 79% (11/14)
+
+## 2026-09-05 09:00 (JST)
+
+- Summary: merge commit作成、push、PR #114本文更新、mergeability確認まで完了した。
+- Git: merge commitは`7b967c38b41dfa6a7d323defb96f1b3c28e97cf0`（`merge: sync main into breadcrumb presentation fix`）。`git push origin HEAD:fix/breadcrumb-presentation`はforceなしで成功した。
+- Pull Request: #114はOPEN／non-Draft、base `main`、head `fix/breadcrumb-presentation`／`7b967c3...`。本文は最新validation値へ更新し、`Closes #96`を確認した。GitHubの`mergeable`は`MERGEABLE`、`mergeStateStatus`は`BLOCKED`（保護された必須チェック待ち）だった。PR自体のmerge操作は行っていない。
+- Scope: Breadcrumb hierarchy／表示有無／href／label／current／Route生成とmain側の機能変更を維持した。差分レビュー、validation、Run Artifact sanitizationは完了し、worktreeはclean。
+- Decision: `stop_success`
+- Progress: 100% (14/14)
