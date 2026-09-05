@@ -8,8 +8,8 @@
 - [x] 4. 差分scope、manual criteria、指定local validationをcurrent working treeで確認する
 - [x] 5. Run ArtifactをSanitizeし、commit前branch safetyを確認してcommit / pushする
 - [x] 6. 新HEADのGitHub checks、PR state、manual checkを確認する
-- [ ] 7. PR #116本文とIssue #72をcurrent SHAへ必要最小限同期する
-- [ ] 8. final scope、未解決blocker、Run完了をREPORTへ記録する
+- [x] 7. PR #116本文とIssue #72をcurrent SHAへ必要最小限同期する
+- [x] 8. final scope、未解決blocker、Run完了をREPORTへ記録する
 
 ## Discovered
 
