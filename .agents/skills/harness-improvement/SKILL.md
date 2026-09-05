@@ -3,10 +3,33 @@ name: harness-improvement
 description: Use when converting run results, evaluation findings, repair-loop outcomes, or repeated failures into harness improvement candidates.
 ---
 
-1. `AGENTS.md`、`docs/reference/harness-improvement-loop.md`、`docs/reference/evaluation.md`、`docs/reference/failure-taxonomy.md` を読む。
-2. `references/improvement-workflow.md` を読み、candidate作成基準と禁止事項を確認する。
-3. `evaluation.json`、run manifest、validation results、hook observations、subagent-run records、review comments を evidence として集める。
-4. improvement candidate を `target`、`failure_category`、`evidence`、`expected_impact`、`risk`、`recommended_change`、`strictness` つきで作る。
-5. 通常実装の修正と harness improvement を混ぜない。
-6. safety layer / hooks / execpolicy / codex-safe / codex-task / spec を変更する提案は strict workflow 扱いにする。
-7. candidate は自動適用せず、reviewable plan / docs / issue / follow-up PR として扱う。
+# Harness Improvement Skill
+
+## Purpose and boundary
+
+Use this Skill to turn evidence from runs, evaluations, repair loops, reviews, or repeated failures into reviewable harness-improvement candidates. A candidate is a proposal, not an automatic change, and must remain separate from unrelated product implementation.
+
+## Inputs
+
+- Evaluation results, run manifests, validation results, hook observations, Subagent records, review comments, and repeated failures.
+- The package-local [improvement workflow](references/improvement-workflow.md), which defines the candidate model, evidence, classification, and review boundary.
+- Repository-supplied target catalog, strictness mapping, failure taxonomy, and artifact/evaluation contract.
+
+## Execution outline
+
+1. Collect concrete evidence and identify the failure or recurrence it supports.
+2. Create a candidate with `target`, `failure_category`, `evidence`, `expected_impact`, `risk`, `recommended_change`, and `strictness`.
+3. Keep product implementation fixes and harness improvement proposals separate.
+4. Use the Repository target catalog and strictness mapping for concrete paths and Repository-layer applicability.
+5. Mark the candidate as reviewable and do not auto-apply it.
+
+## Candidate and output boundary
+
+The candidate model and the meaning of the `target` field are defined by the package-local workflow. Repository paths, path-based strictness, taxonomy categories, and artifact locations are supplied by the Repository mapping. Output includes the candidate summary, evidence, impact, risk, recommendation, strictness, owner decision, and follow-up scope.
+
+## Guardrails
+
+- Reject evidence-free proposals and do not invent failure categories.
+- Keep `normal`, `strict`, and `blocked` decisions explicit.
+- Treat safety, runner, schema, policy, destructive, credential, permission, and bypass implications according to the supplied Repository mapping.
+- Do not auto-apply candidates or bundle them into unrelated implementation work.

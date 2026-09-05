@@ -1,97 +1,57 @@
-# Harness Improvement Loop
+# Harness Improvement Repository Reference
 
 ## Purpose
 
-Harness improvement candidates are proposals, not automatic changes.
-run 結果、評価結果、repair loop outcome を、再発防止のための reviewable candidate に変換する reference である。
+This document supplies Scenario Shop's concrete target catalog, strictness mapping, artifact locations, and shared evaluation contracts to the portable `harness-improvement` Skill. Candidate fields, target meaning, evidence requirements, and review semantics are canonical in the package-local workflow.
 
-## Inputs
+## Repository inputs
 
-- `evaluation.json`
-- run manifest
-- validation results
-- Hook JSONL logs
-- REPORT checkpoints
-- review comments
-- repeated failure across runs
+- Evaluation artifact and finding schema from the Repository evaluation contract.
+- Failure categories from `spec/failure-taxonomy.json`.
+- Run manifest and Run `REPORT.md` checkpoints.
+- Hook JSONL logs under `.codex/logs/` or the applicable `.artifacts/codex-hooks/` location.
+- Subagent records and review comments supplied by the active workflow.
 
-## Candidate model
+## Harness target catalog
 
-candidate は次の field を持つ。
+Use these concrete Repository targets when filling the candidate `target` field:
 
-```text
-candidate_id
-target
-failure_category
-source_runs
-evidence
-expected_impact
-risk
-recommended_change
-strictness
-status
-owner_decision
-```
+- Instruction layer: `AGENTS.md`, `PLANS.md`, `CODE_REVIEW.md`, and `.agents/skills/`.
+- Safety layer: `.codex/rules/` and `.codex/hooks/`.
+- Execution layer: `scripts/codex-safe.*` and `scripts/codex-task.*`.
+- Contract layer: `spec/`, `docs/reference/`, and `examples/`.
+- Other: a Repository target that does not fit the listed layers, with its path recorded explicitly.
 
-## Evidence requirements
+Do not create a new catalog schema, registry, or JSON configuration for this mapping.
 
-Each improvement candidate must include concrete evidence.
-At least one of:
+## Strictness mapping
 
-- `evaluation.findings[]`
-- `improvement_candidates[]`
-- `run.json.validation.commands`
-- `.codex/logs/hooks-<safe-session-id>.jsonl`
-- REPORT checkpoint
-- review comment
-- repeated failure across runs
+- `normal`: documentation, examples, or non-safety Skill behavior.
+- `strict`: changes to the safety layer, runner, schema, rules, hooks, `codex-safe`, `codex-task`, or `spec/` contracts.
+- `blocked`: destructive operation, credential handling, external permission, or policy bypass.
 
-## Prioritization
+Safety-layer changes require strict workflow review. A `blocked` candidate is not applied in the current task without explicit permission and a separate scope.
 
-- repeated failure を伴うものを優先する。
-- safety / contract / reviewability の改善を wording-only より優先する。
-- `strict` と `blocked` は risk と owner decision を先に明示する。
+## Evidence integration
 
-## Strict workflow triggers
-
-- safety layer、hooks、execpolicy、`codex-safe.*`、`codex-task.*`、`spec/` の変更提案
-- destructive operation、credential、external permission、policy bypass を要する提案
-
-Safety-layer changes require strict workflow review.
-この workflow は failure taxonomy と evidence を使って candidate を分類する。
-
-## Separation from implementation work
-
-Implementation fixes and harness improvements must be separated unless the user explicitly scopes both.
-Harness improvement must not be bundled into unrelated product implementation work.
-If a task fixes product code and also discovers a harness issue, record the harness issue as a candidate and handle it in a separate follow-up.
-
-## Relationship to evaluation.json
-
-- `evaluation.json` は candidate の primary evidence source である。
-- `failure_category` は `spec/failure-taxonomy.json` の category を使う。
-- candidate は `evaluation.json` の finding をそのまま実装修正へ変換するのではなく、改善 target と strictness を付けて follow-up 化する。
+- Evidence may come from `evaluation.json` findings or improvement candidates, run-manifest validation commands, Hook JSONL, a Run checkpoint, a review comment, or repeated failure across runs.
+- `failure_category` uses the categories in `spec/failure-taxonomy.json`; no new category is added by candidate creation.
+- Hook JSONL records machine facts such as blocked actions or validation behavior.
+- Run `REPORT.md` records agent meaning such as Delegation, Result, and Parent decision.
 
 ## Relationship to repair loop
 
-- repair loop の停止理由や repeated failure は harness improvement candidate の入力になる。
-- loop で解決できない structural issue は `strict` か `blocked` の候補として分離する。
-- Nativeの同一工程反復、preflight不足、attempt別ログ上書き、上流失敗後の後続実行は、実行結果を隠すのではなく、反復Failureの具体的なevidenceとしてcandidate化する。runner／safety／schemaを変更する候補は`strict`として自動適用せず、今回のproduct／文書修正から分離する。
+- Repair-loop stop reasons and repeated failures can become harness-improvement evidence.
+- Structural issues that cannot be resolved by the current repair loop are separated as `strict` or `blocked` follow-up candidates.
+- Native repeated stages, missing preflight, overwritten attempt logs, and running downstream stages after an upstream failure remain evidence for a candidate; they do not authorize an automatic runner, safety, or schema change.
 
-## Relationship to Hook logs and REPORT checkpoints
+## Separation and approval
 
-- Hook JSONLはblocked actionやvalidation behaviorなど、Hookが取得したmachine factのevidenceとして使う。
-- REPORT checkpointはDelegation / Result / Parent decisionなど、agentが残す意味情報のevidenceとして使う。
-
-## Review and approval
-
-- candidate は `proposed` から始め、owner decision を経て follow-up scope を決める。
-- auto-apply しない。
-- rejected / deferred も evidence と理由を残す。
+Implementation fixes and harness improvements remain separate unless the user explicitly scopes both. Candidates start as `proposed`, require owner review, and are never auto-applied. Rejected and deferred candidates retain their evidence and decision reason.
 
 ## Non-goals
 
-- 自動適用
-- safety layer 変更の即時実装
-- product implementation との混在
-- failure category の自動推論や新規 taxonomy 追加
+- Automatic application.
+- Immediate safety-layer changes.
+- Product implementation mixed into a harness proposal.
+- Failure-category inference or new taxonomy creation.

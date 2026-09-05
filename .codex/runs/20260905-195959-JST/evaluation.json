@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "run_id": "20260905-195959-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "正本Planの6 Skill migration、最小Validator、root input mapping、CI接続、semantic preservation確認、最終verifyまで完了した。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260905-195959-JST/REPORT.md",
+          "selector": "最終verify PASS",
+          "summary": "正本PlanのDoDと最終Validation結果を記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は6 Skill package、Repository root/reference、Validator/test/CI、必要なliving documentationとRun Artifactに限定し、product code、adapter framework、PR2以降の評価機能、.codex/agents/**を変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260905-195959-JST/REPORT.md",
+          "selector": "Scope / Semantic preservation",
+          "summary": "除外対象とpackage境界の確認結果を記録している。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "最終pnpm run verifyが全stageを完走し、format、Markdown、Skill Validator、spec、lint、typecheck、test、contract、web build、docs/spec buildが成功した。Native初回timeoutは差分独立の既知時間依存として診断後、最終verifyでPASSした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260905-195959-JST/REPORT.md",
+          "selector": "2026-09-05 21:18",
+          "summary": "最終verifyの各stageとNative timing diagnosisを記録している。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "指定branchを維持し、git add、commit、push、reset、clean、branch切替を行わず、.codex/agents/**も無変更のままRun Artifactを正規経路で更新した。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260905-195959-JST/REPORT.md",
+          "selector": "Scope / Semantic preservation",
+          "summary": "Git mutationなしと対象外境界を記録している。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Plan順のPhase checkpoint、repair iteration、failure classification、semantic self-review、sanitization結果をRun Artifactから追跡できる。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260905-195959-JST/run.json",
+          "summary": "Run manifestと評価artifactの関連を保持する。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260905-195959-JST/REPORT.md",
+          "selector": "Repair iteration 1 record",
+          "summary": "既存契約を守るためのbounded repair記録を保持する。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "package-local workflowをcanonicalとし、Repository固有のpath、schema、command、policyはroot inputへ分離した。ValidatorはPlan指定の最小責務に留め、新しいframeworkやruntime resolverを追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/validate-skills.ts",
+          "summary": "Skill package integrityの最小Validatorを実装した。"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "package単体のValidator、targeted contract test、root verification、CI contract、最終pnpm run verifyを再現可能な既存commandで実測し、Run Artifactをsanitization Write / Check済みにした。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260905-195959-JST/REPORT.md",
+          "selector": "2026-09-05 21:18",
+          "summary": "再現可能なValidationとsanitization結果を記録している。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

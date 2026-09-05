@@ -1,131 +1,49 @@
-# Repair Loop
+# Repair Loop Repository Reference
 
 ## Purpose
 
-Repair loop is a bounded workflow, not an instruction to keep trying indefinitely.
-Review -> Repair -> Validate の反復を、停止条件と証跡つきで扱うための reference である。
+This document defines the Scenario Shop Repository-side contracts that are supplied to the portable `repair-loop` Skill. The package-local Skill and workflow define the generic bounded loop, finding triage, iteration record, validation, and stop semantics.
 
-## Relationship to code-review skill
+## Repository inputs
 
-- `code-review` skill は findings を作る。
-- `repair-loop` skill は findings を triage し、bounded な修正・検証・停止判断へ接続する。
-- review-only task では repair loop を始めない。
-- CodeRabbit など外部レビューサービスの full review / 再レビューは、明示的な実行指示または承認を得た場合のみ起動する。レビュー完了後は結果を報告してrepair loopを停止し、指摘の修正・thread操作・再レビューはユーザーの判断を受けるまで実行しない。既存レビュー結果・thread状態の参照はread-only確認として継続できる。
+- Repository coding and review policy from `CODE_REVIEW.md`.
+- Scope policy from `docs/reference/change-scope-policy.md`.
+- Evaluation artifact and finding schema from the Repository evaluation contract.
+- Failure categories from `spec/failure-taxonomy.json`.
+- Run manifest, run report, hook-observation, and Subagent record locations from the active Run contract.
+- Sanitization command and check contract from `scripts/sanitize-codex-artifacts.ps1`.
 
-## 品質ゲートの範囲外エラー
+`AGENTS.md` maps these Repository inputs to the package. The package must not assume these paths, schemas, or commands when used in another Repository.
 
-- 品質ゲートの失敗が現在の依頼やPRの直接差分に含まれていない場合でも、`defer`へ直ちに分類しない。
-- Baseline、変更差分、共有依存、CI／テスト契約、実行環境を確認し、今回の変更が失敗へ影響している可能性を調査する。
-- 現在の変更が原因である、または現在の変更を正しく検証するために不可欠なものは`must_fix`または`should_fix`として本Repair Loopで対応する。型エラー、回帰テスト、契約、文書の修正も含む。
-- 現在の差分と因果関係がなく、独立して修正可能なものは、安全な最小修正であることだけを理由に現在のPRへ追加せず、`defer`として別PRまたはユーザー承認後の対応へ記録する。
-- 真に無関係、環境依存、unsafe、または要件判断が必要な場合だけ`defer`／`needs_human`へ進める。根拠、因果関係の評価、未実行検証、次アクションを`REPORT.md`と`evaluation.json`へ記録する。「既存」「範囲外」「安全に直せる」というラベル単独では現在のPRへ追加・保留の理由にしない。
+## Shared quality-gate policy
 
-## Relationship to evaluation.json
+A quality-gate failure is investigated against the baseline, current diff, shared dependency, test or CI contract, and execution environment before it is deferred. A safe, minimal repair that is required by the current change or by its verification is handled in the current loop. An unrelated, unsafe, destructive, environment-only, or requirement-dependent issue is recorded for later handling with its causal assessment, unexecuted checks, and next action.
 
-- `evaluation.json` は loop 前後の評価と残差の正本である。
-- `evaluation.result = partial | fail` は repair loop の入口候補になる。
-- loop の停止理由と残差は `evaluation.json` に接続できる形で残す。
+## Evaluation and failure taxonomy integration
 
-## Relationship to failure taxonomy
+- The Repository evaluation artifact is the source of truth for loop outcome, findings, residuals, and improvement candidates.
+- The Repository failure taxonomy is the source of truth for `failure_category`; Native execution labels are auxiliary evidence and must be mapped rather than added as new evaluation categories.
+- `partial` or `fail` results remain visible when the loop stops without satisfying its completion condition.
 
-- failure category は `spec/failure-taxonomy.json` に揃える。
-- repeated failure は evidence であり、blind retry の理由ではない。
-- 同じ category の反復は `repair_loop_stalled` を検討する。
-- Nativeの実行履歴で使う環境分類（`ENVIRONMENT_FAILURE`、`DEPENDENCY_FAILURE`、`CONFIGURATION_FAILURE`、`SOURCE_FAILURE`、`BUILD_CACHE_FAILURE`、`DEVICE_FAILURE`、`TEST_FAILURE`、`TRANSIENT_FAILURE`、`UNKNOWN`）は、実行事実を読みやすくする補助分類である。evaluationへ渡すfindingの`failure_category`は引き続き`spec/failure-taxonomy.json`の分類へ写像する。
+## Scope and artifact integration
 
-## Relationship to run artifacts
+- `allowed_files` and `expected_changed_files` are checked against the Repository change-scope policy.
+- Run reports preserve checkpoint meaning under their append-only contract.
+- Hook JSONL, run manifests, evaluation files, and Subagent records are evidence sources; the evaluation artifact and recorded decision remain the final judgment.
+- Repository artifact sanitization is a completion gate. Unsanitized local absolute paths prevent Run completion.
 
-- `REPORT.md` に iteration ごとの判断を残す。
-- `run.json` や report JSON がある場合は validation command と changed files の事実を参照する。
-- `--max-iterations` は repair-loop bound を文書化する reserved option であり、runner auto-loop ではない。
-- 作業完了前に `scripts/sanitize-codex-artifacts.ps1` の Write と Check を実行し、未サニタイズのローカル絶対パスが残るRunは完了扱いにしない。
+### REPORT.md append-only contract
 
-### REPORT.mdのAppend-only契約と安全性修正
+`REPORT.md`のAppend-only契約は、checkpointの意味を削除、並べ替え、意味変更せずに保持することを指します。既存記録のローカル絶対Pathを既定Tokenへ置換する安全性例外は、記録の意味を変えない場合に限ります。
 
-`REPORT.md`のAppend-only契約は、行動記録、判断、検証結果を
-削除、並べ替え、意味変更しないことを指す。
+## Subagent evidence boundary
 
-既存記録に含まれるローカル絶対Pathを`<REPO_ROOT>`、`<USER_HOME>`等の
-既定Tokenへ、記録の意味を変えずに置換する場合のみ、Append-only契約の
-安全性例外として許可する。
+Existing Subagent-generated records and observations may be consumed as evidence for scope compliance and parent decisions. This Repository reference does not define or duplicate Subagent roles, tools, permissions, sandbox settings, or delegation rules.
 
-Credential Redactionや汎用的な機密情報マスキングは、この例外に含めない。
-それらが必要になった場合は、別途契約・実装・テスト・承認を行う。
+## External review policy
 
-## Relationship to Hook logs and REPORT checkpoints
+External full review or re-review is started only after explicit user instruction or approval. After the result is reported, repair, thread operations, and another review require the user's decision.
 
-- `.codex/logs/hooks-<safe-session-id>.jsonl`（Windows sandboxのread-only境界では`.artifacts/codex-hooks/hooks-<safe-session-id>.jsonl`）はHookが取得したmachine factを確認するevidenceに使う。
-- Subagentの意味情報は、TASK完了またはRun完了のREPORT checkpointに`Delegation`、`Result`、`Parent decision`だけを記録する。
-- Hook JSONLとREPORTはevidenceであり、最終判断のsource of truthは`evaluation.json`である。
+## Durable reporting
 
-## Max iteration policy
-
-- `--max-iterations` が設定されている場合、agent はその上限で必ず止まる。
-- `codex-task` does not automatically re-run Codex.
-- max iteration 到達は `stop_max_iterations` として記録する。
-- stop condition を満たしたら loop を継続しない。
-
-## Stop conditions
-
-- max iteration に達した
-- 同じ failure category が2回以上繰り返された
-- 同じ工程で3回以上失敗した、または異なる対応後も最初のエラーが変わらない
-- 新しいログ、環境情報、仮説が増えないまま同一条件を再実行しようとしている
-- `allowed_files` を超えた
-- unsafe / destructive action が必要
-- validation が環境依存で再現不能
-- root cause が不明のまま修正を重ねている
-- 修正で新しい failure が増えた
-- requirement ambiguity が発生した
-
-Repeated failure is evidence, not a reason to continue blindly.
-
-## Scope control
-
-- repair 前に `allowed_files` と expected scope を宣言する。
-- `docs/reference/change-scope-policy.md` を基準に changed files を確認する。
-- scope violation が出たら loop を継続しない。
-
-## Unsafe action policy
-
-Unsafe or scope-violating repairs stop the loop.
-Unsafe or scope-violating findings must not be repaired by pushing through the loop.
-
-## Required iteration record
-
-- `iteration_number`
-- `input_findings`
-- `repair_plan`
-- `allowed_files`
-- `changed_files`
-- `validation_commands`
-- `validation_result`
-- `remaining_delta`
-- `decision`
-
-`decision` values:
-
-```text
-continue
-stop_success
-stop_no_progress
-stop_scope_violation
-stop_unsafe
-stop_max_iterations
-stop_needs_human
-```
-
-## Example workflow
-
-1. review finding または `evaluation.result = partial` を確認する。
-2. findings を `must_fix` / `should_fix` / `defer` / `reject` / `needs_human` に分ける。
-3. `allowed_files` を確定し、1 iteration 分の repair plan を作る。
-4. 修正後に validation を実行し、remaining delta と decision を記録する。
-5. success、no progress、scope violation、unsafe、max iteration のいずれかで止める。
-
-## Non-goals
-
-- 無制限 self-healing
-- runner-level automatic repair loop
-- safety layer を押し切る例外運用
-- repair summary の `run.json` 自動統合
+Run progress belongs in the active Run report. A durable report file is created only when the user or completion criteria explicitly require a later audit reference. Review-only and light confirmation do not by themselves create a durable report.
