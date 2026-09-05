@@ -65,6 +65,7 @@
 
 - 専門的な指摘は、対象File、heading / section、観察した問題と影響、最小修正、Disposition、resolvedを確認するValidationが一意に特定できる。
 - 指摘のSeverityや優先度は、対象となる契約、学習経路、ユーザーへの影響と対応付けられている。
+- Outcome classification: 観測した事象をBug / UX / Suggestion / 未確定へ区別する。BugはCurrent Normative SpecificationのBR / ACに反することを再現条件とEvidenceで確認できる場合、仕様違反と断定できない利用上の懸念はUX、現行仕様違反ではなく新しい挙動・能力を求めるものはSuggestion、再現条件・仕様根拠・Evidenceが不足する場合は未確定として扱う。
 - resolvedの根拠は、該当LessonのSelf-check、Completion、Navigation、Spec参照、または実行Artifactなど、対象に適したEvidenceで確認できる。
 - 過去のCandidate、別PR、Baselineの状態だけでCurrent Repositoryの指摘を確定していない。
 - 追加のFinding DB、Evidence台帳、Scoring system、個別結果の保存欄を作らず、既存のRun Artifactまたは対象文書の責務を使う。
