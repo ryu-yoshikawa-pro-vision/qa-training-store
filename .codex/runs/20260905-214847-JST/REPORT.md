@@ -64,3 +64,20 @@
 - Commit contents: 46 files、6 Skill package/root responsibility、Validator/test/CI、実装完了Run、反映Runを含む。正本Plan自身はcommit差分に含まれていない。
 - Decision / Rationale: task 5を完了。push直前にremote、branch、PR状態、worktreeを再確認し、明示refspecでnon-force pushする。
 - Progress: 56% (5/9)
+
+## 2026-09-05 22:06 (JST)
+
+- Summary: 明示refspecによるnon-force pushとPR #123の同期を完了した。
+- Push: `git push origin HEAD:refactor/117-pr1-skill-package-portability` が成功し、remote headは`a641dc56830a28cda8463e01869188960d4a07cb`へ更新された。
+- PR verification: PR #123はOPEN、baseは`main`、head branchは対象branch、changed filesは47。6 Skill package、`scripts/validate-skills.ts`、Validator testを含み、PlanだけのPRではないことを確認した。
+- PR body: staleな「実装前のPlanのみコミット済みです」を削除し、実装概要、正本Plan、Scope boundaries、Validator scope、Validation、`pnpm run verify` PASS、Definition of Doneを日本語で更新した。PR titleもRepository規約に合わせて日本語化した。
+- Decision / Rationale: task 6〜8を完了。残りはRun Artifactの最終sanitization、完了checkpoint、必要なRun記録commitのpushのみ。
+- Progress: 89% (8/9)
+
+## 2026-09-05 22:07 (JST)
+
+- Summary: Run Artifactの最終処理を完了した。
+- Evidence: `scripts/sanitize-codex-artifacts.ps1` Write / Checkは10 files scanned、0 changed、0 residual。今回Runのevaluationは`result: pass`で、collector `-Strict`も成功した。
+- Completion: TASKS 9/9を完了し、PR1実装の追加変更なし、scope逸脱なし、frontmatter freeze維持、Git mutationは対象branchへのcommitとnon-force pushだけであることを記録した。
+- Decision: 次の通常commitでこの完了checkpointを保存し、対象branchへ明示refspecでpushした後、remote headとPR状態を最終再取得して`stop_success`とする。
+- Progress: 100% (9/9)
