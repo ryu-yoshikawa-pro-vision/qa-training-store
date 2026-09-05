@@ -80,6 +80,19 @@
   - Parent decision: push結果を確認済みとして、最終process checkpointをcommitしてから新head検証へ進む。
 - Progress: 63% (5/8)
 
+## 2026-09-05 19:26 (JST) — Final validation / GitHub CI checkpoint
+
+- Summary: implementation head `5a5b7eae7d3e872b85c636702afcc4dd7353c566`でlocal validation、manual check、GitHub CIを完了した。
+- Changes: sourceは`12c8fedc939cbaea1445ffec44aa75173d36ae90`以降変更なし。`5a5b7ea`はRun Artifactの検証状態だけを記録したprocess-only commit。
+- Decision / Rationale: source差分を再設計・再監査せず、H98-2の1 criteria補完を維持する。P1-6との用語整合、criteria-only境界、不要な記録欄なしを最終headで確認した。
+- Validation: 最終headで`pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run validate:curriculum`、`git diff --check`、`pnpm run test:contracts`をPASS。contractは34 files / 493 passed / 3 skipped。`validate:spec` / `typecheck`は変更条件によりN/A。Manual criteria 6/6 PASS。GitHub Web CI run `33959948076`、Mobile App CI run `33959948199`はcurrent headでsuccess、`gh pr checks 116`はpass=32 / skipping=8、fail / pendingなし。
+- Blocker / Remaining: validation blockerなし。current final process headへのPR #116本文 / Issue #72 SHA同期が残る。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: GitHub CIを`5a5b7ea`でPASSとして確定し、Run Artifactの最終process checkpointを保存してからremote metadataを同期する。
+- Progress: 75% (6/8)
+
 ## 2026-09-05 19:08 (JST) — Artifact safety checkpoint
 
 - Summary: Run ArtifactのSanitizer Write / Checkを完了した。

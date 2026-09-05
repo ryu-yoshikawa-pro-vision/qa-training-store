@@ -7,7 +7,7 @@
 - [x] 3. checklistへOutcome classification criteriaを1項目だけ追加する
 - [x] 4. 差分scope、manual criteria、指定local validationをcurrent working treeで確認する
 - [x] 5. Run ArtifactをSanitizeし、commit前branch safetyを確認してcommit / pushする
-- [ ] 6. 新HEADのGitHub checks、PR state、manual checkを確認する
+- [x] 6. 新HEADのGitHub checks、PR state、manual checkを確認する
 - [ ] 7. PR #116本文とIssue #72をcurrent SHAへ必要最小限同期する
 - [ ] 8. final scope、未解決blocker、Run完了をREPORTへ記録する
 
