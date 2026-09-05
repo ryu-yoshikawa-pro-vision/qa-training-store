@@ -58,7 +58,9 @@ PR1完了時点では次を満たす。
 - [ ] Repository 固有 policy / Product Contract / command / path は logical external input として root 側から対応づけられている。
 - [ ] `AGENTS.md` が repository-level task -> Skill routing / Repository Input mapping の SSOT である。
 - [ ] `QA_AGENT.md` / `CODE_REVIEW.md` / `PLANS.md` には task -> Skill の適用条件・Entry Point・routing hierarchy を残さず、Repository 固有 contract / policy / lifecycle / concrete mapping だけを残す。
+- [ ] `QA_AGENT.md` に Repository 固有の execution ownership / Harness integration mapping として Skill が言及されることは許容するが、task -> Skill 選択の正本にはしない。
 - [ ] `QA_AGENT.md` / `CODE_REVIEW.md` / `PLANS.md` が portable Skill workflow の二重正本になっていない。
+- [ ] `code-review` の通常成果物は findings であり、durable review report の要否は明示要求または Repository review persistence policy で決まり、具体保存先を Skill packageへ埋め込んでいない。
 - [ ] `docs/reference/repair-loop.md` / `docs/reference/harness-improvement-loop.md` / `docs/reference/agentic-qa-workflow.md` 等を残す場合、package と同じ Skill 固有 workflow を二重保持していない。
 - [ ] `docs/native/windows-android-local-validation.md` 等を残す場合、人間が実行する Repository runbook としての具体 command / version / setup / troubleshooting を維持しつつ、generic retry / stop / failure decision の正本にはなっていない。
 - [ ] `feature-plan` の汎用 Plan Output Template は package-local asset が canonical である。
@@ -66,6 +68,8 @@ PR1完了時点では次を満たす。
 - [ ] `exploratory-qa` の Charter / Required Coverage / Budget / Stop / Evidence / Finding / finalization の portable semantic contract が package-local `workflow.md` だけで理解できる。
 - [ ] Repository-side QA Machine Contract に残るのは concrete schema / field name / schema version / artifact path / validator command / scoring implementation 等の Repository 固有機械契約であり、portable semantic contract の正本ではない。
 - [ ] 既存のOutput記述を確認し、コピー・展開して使う静的 skeleton だけを必要に応じて `assets/` へ移し、fieldの意味・必須条件・制約だけの記述から新Templateを発明していない。
+- [ ] Skill と Subagent の責務を混同せず、Role / Tool / sandbox / write permission / Parent delegation 等の Subagent contract を Skill packageへ移していない。
+- [ ] `.codex/agents/**` は原則 PR1 の変更対象外である。
 - [ ] package structure / frontmatter / identity / local file link integrity を確認する最小 validator がある。
 - [ ] Skill package 内の machine-checked local file link が package 外へ escape した場合、validator が FAIL する。
 - [ ] Skill directory 名と frontmatter `name` が一致しない場合、validator が FAIL する。
@@ -197,10 +201,13 @@ Repository-side `QA_AGENT.md` / `docs/reference/agentic-qa-workflow.md` / `scrip
 - concrete validator / preparation / evaluation command
 - Repository-specific scoring implementation / metric connection
 - Scenario Shop 固有の preparation harness integration
+- Primary QA Executor / Supporting Harness / Harness responsibility 等の Repository-specific execution ownership / integration mapping
 
 つまり、別RepositoryへSkill packageだけ移しても「Charter / Coverage / Budget / Evidence / Findingとは何か」は理解できる状態にする。一方、具体的なJSON schemaやRepository artifact pathまでpackageへ複製しない。
 
 Mode selection / Normal-Gray-box exploration workflow / Scored isolation decision は Repository-side document の正本に残さない。
+
+`QA_AGENT.md` から削除するのは task -> Skill selection / Entry Point と portable workflow の二重定義であり、Repository-specific execution ownership / Harness integration mapping まで削除しない。
 
 ### `android-native-local-validation`
 
@@ -248,12 +255,14 @@ PR1で macOS / Homebrew / Emulator対応へ一般化しない。
 - Skill選択・切替のhierarchy
 - `AGENTS.md` と同じ task -> Skill routing
 
+一方、Skillへの言及自体を root文書から禁止しない。Repository固有の execution ownership / Harness integration / concrete input mapping を説明するために Skill を参照することは許容する。禁止するのは task -> Skill selection の二重正本である。
+
 root文書に残してよいのは、その文書固有の Repository contract / policy / lifecycle / concrete mapping である。
 
 PR1後の代表的な Repository-side責務:
 
-- `QA_AGENT.md`: Scenario Shop 固有 Machine Contract / concrete artifact schema / Repository script mapping / scoring implementation
-- `CODE_REVIEW.md`: Repository 固有 Coding Standards / 外部レビュー起動承認 / report file policy
+- `QA_AGENT.md`: Scenario Shop 固有 Machine Contract / concrete artifact schema / Repository script mapping / scoring implementation / execution ownership / Harness integration mapping
+- `CODE_REVIEW.md`: Repository 固有 Coding Standards / 外部レビュー起動承認 / report persistence policy
 - `PLANS.md`: Repository 固有 plan lifecycle / 保存 path / filename / active run connection
 
 Root / repository reference に残さない Skill 固有責務:
@@ -264,6 +273,52 @@ Root / repository reference に残さない Skill 固有責務:
 - repair-loop 固有 stop / iteration workflow
 - harness-improvement 固有 Candidate workflow
 - Android local validation の generic retry / stop / failure decision semantics
+
+### `code-review` の Output と persistence 境界
+
+現行 `code-review` は review-only の通常成果物が findings であるという Skill semantics と、`docs/reports/` / run-local `REPORT.md` 等の Repository persistence policy を同時に持っている。
+
+PR1では次へ分離する。
+
+Package側の正本:
+
+- reviewの通常成果物は findings
+- findingsがない場合も no-findings / residual risk / unvalidated area を明示する
+- durable review report は常時必須ではなく、明示要求または Repository policyで必要な場合だけ生成する
+
+Repository側の正本:
+
+- durable report を必要とする Repository 条件
+- concrete report destination
+- run-local `REPORT.md` との関係
+- report file naming / storage / retention policy
+
+`code-review` packageは logical external input として `repository review persistence policy` を要求してよいが、`docs/reports/` や `.codex/runs/<run_id>/REPORT.md` の固定pathを core workflow の正本として持たない。`AGENTS.md` はこの logical input を現Repositoryの `CODE_REVIEW.md` 等へmappingする。
+
+### Skill / Subagent の責務境界
+
+Issue #117 の整理では Skill と Subagent を混同しない。
+
+Skillが持つもの:
+
+- 何をするか
+- いつ使うか
+- Inputs / Outputs
+- Workflow
+- 判断 / stop / escalation
+
+Subagent (`.codex/agents/**`) が持つもの:
+
+- 実行Role
+- Tool権限
+- sandbox / write permission
+- Parentから委譲された範囲
+- Role固有の禁止事項
+- 子Subagent起動可否等の実行権限制約
+
+PR1で `.codex/agents/**` を整理対象へ広げない。Skill packageを自己完結させるために Subagent の Role / Tool / sandbox / write permission / Parent delegation contract を Skill packageへ複製・移設しない。
+
+既存文書の移設中に Subagent責務とSkill責務の混在を発見した場合も、Subagent側を再設計せず、Skillへ取り込まないことだけを確認する。Subagent contract自体の改善は別Issueとする。
 
 ### Existing quality gate
 
@@ -286,6 +341,8 @@ Skill単位 migration ごとに full `verify` を回さない。
 - Repository側の具体 path / command mapping は既存 Markdown entrypoint で表現すれば十分である。
 - package 構造は全 Skill を同一形状へ揃えない。
 - validator は新規 dependency を追加せず、既存 TypeScript / `tsx` / `yaml` stack で小さく実装する。
+- Repository-specific execution ownership / Harness integration mapping は task -> Skill routing とは別責務として root文書に残してよい。
+- `.codex/agents/**` の既存 Subagent contract は PR1では変更しない。
 
 ### Adapter の定義
 
@@ -338,6 +395,8 @@ Issue #117 の `assets/` 整理は、形式的にTemplateファイルを増や�
 - 全Skillに形式だけの `assets/` / `scripts/` / `evals/` を作ること
 - PR1で既存に存在しない Output Template を発明すること
 - 変更しない文書sectionまで網羅的にmigration matrixへ転記すること
+- `.codex/agents/**` の Subagent contract変更・再設計
+- Skillの自己完結化を理由に Role / Tool / sandbox / write permission / Parent delegationをSkillへ移すこと
 
 ---
 
@@ -358,6 +417,8 @@ Issue #117 の `assets/` 整理は、形式的にTemplateファイルを増や�
 - `docs/plans/TEMPLATE.md` を pointer 化すると既知 consumer が壊れ、単純な compatibility 維持ができない。
 - `docs/reference/agentic-qa-workflow.md` / native runbook の内容に、packageへ移すと Repository 固有 contract を失う境界不明点がある。
 - Charter / Evidence / Finding の portable semantic contract と concrete QA Machine Contract の分類によって既存QA behaviorが変わる。
+- review persistence semantics と Repository-specific report policy を分離すると既存 review behavior が変わる。
+- Skill / Subagent の分類で既存のRole / Tool / permission behaviorを変更する必要が生じる。
 
 ### 仮定してよい細部
 
@@ -379,6 +440,9 @@ Issue #117 の `assets/` 整理は、形式的にTemplateファイルを増や�
 - copyable skeleton が存在しないSkillに、新しいTemplate assetを発明しないこと
 - validator test を `pnpm run verify` から到達しない独立経路に置かないこと
 - `PLANS.md` / `CODE_REVIEW.md` / `QA_AGENT.md` に task -> Skill routing を残すこと
+- Repository-specific execution ownership / Harness integration mappingをroutingと誤認して削除すること
+- code-review packageへ concrete report path / Run Artifact path を固定値として残すこと
+- `.codex/agents/**` をPR1の変更対象へ広げること
 
 ---
 
@@ -418,6 +482,12 @@ Issue #117 の `assets/` 整理は、形式的にTemplateファイルを増や�
 - `scripts/agentic-qa/**`
 
 上記 scripts は基本的に確認対象であり、Portabilityだけを理由に移動・複製・再実装しない。
+
+### Explicitly out of change scope
+
+- `.codex/agents/**`
+
+Subagent contractは参照して責務境界を確認してよいが、PR1では原則変更しない。
 
 ### Validation / CI
 
@@ -459,6 +529,7 @@ AGENTS.md
 Skill側は次のような logical external input を要求してよい。
 
 - repository coding policy
+- repository review persistence policy
 - product normative specification
 - QA machine contract
 - runtime command / capability
@@ -597,9 +668,28 @@ PR1では既存意味の移設だけを行い、新しいTemplate designをし�
 - Repository 固有 policy
 - lifecycle / storage contract
 - concrete machine schema / script mapping
-- external review approval 等、当該root文書固有のルール
+- execution ownership / Harness integration mapping
+- external review approval / report persistence 等、当該root文書固有のルール
+
+Skillへの言及自体は削除条件ではない。Repository固有責務を説明するための参照は残してよい。
 
 Root文書を短くすること自体は目的ではない。routing重複とportable workflow重複をなくすことが目的である。
+
+#### 11. Skill と Subagent を分離する
+
+Skill packageへ移してよいのは、Skill固有の workflow / judgment / stop / output meaning である。
+
+次は Subagent (`.codex/agents/**`) の責務であり、Skill packageへ移さない。
+
+- Role
+- Tool permission
+- sandbox mode
+- write permission
+- Parent delegation
+- Role固有禁止事項
+- 子Subagent起動可否等の実行権限制約
+
+`.codex/agents/**` は原則変更しない。Portabilityを理由にSubagent contractをSkill packageへ複製しない。
 
 ### Skill別 migration 方針
 
@@ -617,12 +707,15 @@ AGENTS.md
 方針:
 
 1. generic review workflow / findings contract / review ordering は `review-workflow.md` を canonical にする。
-2. `CODE_REVIEW.md` の Repository固有 Coding Standards / external review approval / report policy は残す。
-3. `CODE_REVIEW.md` の `適用条件` / `Entry Point` / `使い方` 等、task -> code-review Skill routing を担う記述は削除する。
-4. `SKILL.md` は logical external input として repository coding policy を要求できるが、`CODE_REVIEW.md` 固定pathを必須読込しない。
-5. 現行 `Required review format` 等を Template分類ルールで確認する。field / order / meaning の契約だけなら `review-workflow.md` に残し、既存にcopyable static skeletonがある場合だけ `assets/` へ移す。
-6. field一覧から新しいReview Templateを発明しない。明確な既存skeletonがなければ新規assetは追加しない。
-7. code-review migration内で `CODE_REVIEW.md` の重複削除と `AGENTS.md` mapping更新まで完了する。
+2. reviewの通常成果物は findings とし、durable reportは明示要求または Repository review persistence policy で必要な場合だけ生成するというportable semanticsを packageへ残す。
+3. `CODE_REVIEW.md` の Repository固有 Coding Standards / external review approval / report persistence policy は残す。
+4. concrete report destination / run-local `REPORT.md` relationship / naming・storage policyはRepository-sideに残し、packageへ固定pathとして持ち込まない。
+5. `CODE_REVIEW.md` の `適用条件` / `Entry Point` / `使い方` 等、task -> code-review Skill routing を担う記述は削除する。
+6. `SKILL.md` は logical external input として repository coding policy / repository review persistence policy を要求できるが、`CODE_REVIEW.md` 固定pathを必須読込しない。
+7. `AGENTS.md` で repository coding policy / repository review persistence policy の現Repository mappingを明示する。
+8. 現行 `Required review format` 等を Template分類ルールで確認する。field / order / meaning の契約だけなら `review-workflow.md` に残し、既存にcopyable static skeletonがある場合だけ `assets/` へ移す。
+9. field一覧から新しいReview Templateを発明しない。明確な既存skeletonがなければ新規assetは追加しない。
+10. code-review migration内で `CODE_REVIEW.md` の重複削除と `AGENTS.md` mapping更新まで完了する。
 
 #### `feature-plan`
 
@@ -690,13 +783,14 @@ PR1後:
 3. `scored-mode.md` に Black-box Scored selection / isolation / Fresh Session / trusted capability / forbidden boundary / blocker / stopを移す。
 4. Mode selection / Mode boundaryを `QA_AGENT.md` / `docs/reference/agentic-qa-workflow.md` の独立正本として残さない。
 5. `QA_AGENT.md` / Repository-side docsには concrete JSON field name / Zod schema / schema version / artifact path / validator commands / scoring implementation等を残す。
-6. `QA_AGENT.md` から task -> exploratory-qa Skill の適用条件 / Entry Point / routing を削除する。QA固有 Machine Contract は維持する。
-7. `docs/reference/agentic-qa-workflow.md` は必要なら Scenario Shop integration guide として残してよいが、portable Charter / Evidence / Finding semanticsを二重定義しない。
-8. `scripts/agentic-qa/**` を移動・複製・再実装しない。
-9. Product Specification / concrete QA Machine Contract / runtime capability / artifact storage 等は logical external input として扱う。
-10. Charter / Finding等の既存出力記述をTemplate分類ルールで確認し、copyable skeletonが実在しない限り新しいassetを作らない。
-11. referenceは `workflow.md` / `scored-mode.md` の2つより細分化しない。
-12. exploratory-qa migration内で `QA_AGENT.md` / `docs/reference/agentic-qa-workflow.md` / `AGENTS.md` まで整理する。
+6. `QA_AGENT.md` から task -> exploratory-qa Skill の適用条件 / Entry Point / routing を削除する。
+7. `QA_AGENT.md` の Primary QA Executor / Supporting Harness / Harness responsibility 等の execution ownership / integration mapping は Repository-specific contract として維持してよい。
+8. `docs/reference/agentic-qa-workflow.md` は必要なら Scenario Shop integration guide として残してよいが、portable Charter / Evidence / Finding semanticsを二重定義しない。
+9. `scripts/agentic-qa/**` を移動・複製・再実装しない。
+10. Product Specification / concrete QA Machine Contract / runtime capability / artifact storage 等は logical external input として扱う。
+11. Charter / Finding等の既存出力記述をTemplate分類ルールで確認し、copyable skeletonが実在しない限り新しいassetを作らない。
+12. referenceは `workflow.md` / `scored-mode.md` の2つより細分化しない。
+13. exploratory-qa migration内で `QA_AGENT.md` / `docs/reference/agentic-qa-workflow.md` / `AGENTS.md` まで整理する。
 
 #### `android-native-local-validation`
 
@@ -812,11 +906,14 @@ validator testは `tests/repository-contract/` 配下へ追加し、既存 `pnpm
 - package内に埋め込まれ、今回分離が必要な Repository-specific binding
 - asset化判断が必要な既存Output記述
 - semantic preservation確認が必要な変更対象の MUST / MUST NOT / stop / output / evidence 等
+- review persistence semanticsとconcrete storage policyが混在する変更対象
+- Skill / Subagent責務が混在し、Skillへ取り込まない判断が必要な変更対象
 
 記録しないもの:
 
 - 今回変更しない Repository 固有 policy section
 - 今回変更しない coding standard / concrete command / environment value
+- 変更しない `.codex/agents/**` の内容
 - 「関連している」という理由だけの全section一覧
 - 変更不要と明らかな文書内容の転記
 
@@ -827,6 +924,9 @@ validator testは `tests/repository-contract/` 配下へ追加し、既存 `pnpm
 - [ ] 変更対象について `package-local canonical` / `logical external input` / `Repository-side shared contract` / `Repository-specific mapping or concrete value` に分類する。
 - [ ] asset化判断が必要な既存Output記述だけ、`copyable static skeleton` / `Output Contract` / `単なるfield一覧` に分類する。
 - [ ] semantic invariant は、今回移設・削除・責務変更する箇所に関係するものだけ記録する。
+- [ ] code-reviewの review output semantics と concrete report persistence policy を分離する。
+- [ ] root routing と Repository-specific execution ownership / integration mapping を区別する。
+- [ ] Skill / Subagent責務が混在する記述を見つけた場合、Role / Tool / permission contractをSkillへ移さないことを確認する。
 - [ ] 変更対象の旧正本 -> 新正本を決める。
 
 Migration matrixだけのために新しい `docs/**` を作らない。Implementation時の active `.codex/runs/<run_id>/PLAN.md` / `TASKS.md` 内 working checklist で管理する。
@@ -859,11 +959,13 @@ validator code / validator test を変更していない限り、Skillごとに 
 #### 2.1 `code-review`
 
 - [ ] package workflowを整理する。
+- [ ] reviewの通常成果物=findings、durable reportは明示要求またはRepository policy時のみ、というportable semanticsをpackageへ残す。
 - [ ] `CODE_REVIEW.md` から generic workflow重複を除く。
+- [ ] `CODE_REVIEW.md` の concrete report destination / run-local `REPORT.md` relation / persistence policyをRepository-side責務として維持する。
 - [ ] `CODE_REVIEW.md` の task -> Skill 適用条件 / Entry Point / 使い方を除き、Repository-specific policyだけ残す。
-- [ ] Repository coding policy を external input として `AGENTS.md` でmappingする。
+- [ ] Repository coding policy / Repository review persistence policy を external input として `AGENTS.md` でmappingする。
 - [ ] `Required review format` 等をTemplate分類ルールで確認し、copyable skeletonがなければassetを増やさない。
-- [ ] package外必須linkを残さない。
+- [ ] package外必須link / concrete report pathを残さない。
 - [ ] `validate:skills` / Markdown lint / semantic invariant確認を行う。
 
 #### 2.2 `feature-plan`
@@ -904,6 +1006,7 @@ validator code / validator test を変更していない限り、Skillごとに 
 - [ ] concrete JSON schema / field name / schema version / artifact path / validator / scoringはRepository-side Machine Contractへ残す。
 - [ ] `QA_AGENT.md` から portable QA workflow / semantic contract重複を除く。
 - [ ] `QA_AGENT.md` の task -> exploratory-qa Skill 適用条件 / Entry Point / routingを除く。
+- [ ] `QA_AGENT.md` の Primary QA Executor / Supporting Harness / Harness responsibility 等、Repository-specific execution ownership / integration mappingは維持する。
 - [ ] `docs/reference/agentic-qa-workflow.md` から portable Mode / exploration / semantic contract重複を除く。
 - [ ] Scenario Shop-specific Machine Contract / schema / scripts / scoring mappingは Repository-sideに残す。
 - [ ] Charter / Finding等のOutput記述をTemplate分類ルールで確認し、copyable skeletonがなければassetを増やさない。
@@ -935,6 +1038,8 @@ validator code / validator test を変更していない限り、Skillごとに 
 - [ ] Repository-specific contract / concrete commandをpackageへ複製していない。
 - [ ] copyable skeletonがないのに形式だけのassetを追加していない。
 - [ ] root文書に当該Skillの task -> Skill routingが残っていない。
+- [ ] Repository-specific execution ownership / integration mappingをroutingと誤認して不要削除していない。
+- [ ] Role / Tool / sandbox / write permission / Parent delegation 等のSubagent contractをSkillへ移していない。
 - [ ] `AGENTS.md` の当該Skill mappingが更新されている。
 - [ ] `name` / `description` がbaselineと一致する。
 - [ ] semantic invariantに意図しない変更がない。
@@ -945,6 +1050,9 @@ Skill単位migration後、Repository全体の整合だけ確認する。
 
 - [ ] `AGENTS.md` の6 Skill routingが一意である。
 - [ ] `PLANS.md` / `CODE_REVIEW.md` / `QA_AGENT.md` に task -> Skill routing / Entry Point / 適用条件が残っていない。
+- [ ] `QA_AGENT.md` の Repository-specific execution ownership / Harness integration mappingは必要な範囲で維持されている。
+- [ ] `CODE_REVIEW.md` の Repository review persistence policyは維持され、code-review packageにconcrete report pathが残っていない。
+- [ ] `.codex/agents/**` を変更していない。
 - [ ] machine-checkが必要なSkill entrypoint / compatibility pointerが inline relative Markdown link になっている。
 - [ ] `AGENTS.md` にdetailed workflowが流入していない。
 - [ ] root -> Skill -> root の detailed canonical cycleがない。
@@ -961,7 +1069,7 @@ Skill単位migration後、Repository全体の整合だけ確認する。
 - [ ] CIで既存 lint / test / buildを二重実行していないことを確認する。
 - [ ] full `pnpm run verify` を最終総合gateとして1回実行する。
 - [ ] `verify` 失敗時だけ必要な個別commandを再実行して原因を切り分ける。
-- [ ] changed-files reviewで PR2以降 / product変更 / dependency変更が混ざっていないことを確認する。
+- [ ] changed-files reviewで PR2以降 / product変更 / dependency変更 / `.codex/agents/**` 変更が混ざっていないことを確認する。
 
 ---
 
@@ -1012,10 +1120,16 @@ validator code / validator testを変更していない限り、Skillごとに `
 - package内 machine-checked local file linkが同一Skill directory内へ解決される。
 - root -> Skill -> root detailed source-of-truth cycleがない。
 
+`code-review` は追加で確認する。
+
+- packageだけで通常成果物=findings、durable reportが条件付きであることを理解できる。
+- concrete report path / run-local pathはRepository review persistence policyにのみ残っている。
+
 `exploratory-qa` は追加で確認する。
 
 - packageだけで Charter / Required Coverage / Budget / Stop / Evidence / Finding / finalization の意味が理解できる。
 - concrete schema / JSON field naming / artifact path / validator commandをpackageへ二重実装していない。
+- Repository-specific execution ownership / Harness integration mappingを必要以上に削除していない。
 
 ### Semantic preservation checks
 
@@ -1034,8 +1148,8 @@ Phase 0で記録した**変更対象だけ**をbefore / after比較する。
 重点確認:
 
 - `feature-plan`: ambiguity handling / plan-save-before-implementation / Template項目
-- `code-review`: finding output meaning / required formatの意味
-- `exploratory-qa`: Normal / Gray-box / Black-box Scored selection / boundary / Charter / Evidence / Finding semantics
+- `code-review`: finding output meaning / required format / durable report condition / persistence境界
+- `exploratory-qa`: Normal / Gray-box / Black-box Scored selection / boundary / Charter / Evidence / Finding semantics / execution ownership境界
 - `repair-loop`: bounded iteration / repeated failure / unsafe / scope stop
 - `harness-improvement`: Candidate model / auto-apply禁止 / strictness / evidence / review
 - `android-native-local-validation`: Windows / PowerShell / physical Android / retry / stop / Git禁止条件
@@ -1046,13 +1160,16 @@ Phase 0で記録した**変更対象だけ**をbefore / after比較する。
 
 - `AGENTS.md` 以外に競合する task -> Skill routing hierarchyがない。
 - `PLANS.md` / `CODE_REVIEW.md` / `QA_AGENT.md` に task -> Skill 適用条件 / Entry Point / 「使い方」形式のroutingが残っていない。
-- `QA_AGENT.md` は Scenario Shop specific concrete machine contractを保持するが Mode workflow / Charter・Evidence・Finding portable semantic contractの正本ではない。
+- Skillへの言及そのものを機械的に削除していない。Repository-specific execution ownership / integration mappingは残してよい。
+- `QA_AGENT.md` は Scenario Shop specific concrete machine contract / execution ownership / Harness integration mappingを保持するが Mode workflow / Charter・Evidence・Finding portable semantic contractの正本ではない。
 - `docs/reference/agentic-qa-workflow.md` は Scenario Shop integrationを保持してよいが generic exploratory workflow / portable semantic contractの正本ではない。
-- `CODE_REVIEW.md` は Repository-specific review policyを保持する。
+- `CODE_REVIEW.md` は Repository-specific review policy / report persistence policyを保持する。
 - `PLANS.md` は Repository-specific lifecycle / storage contractを保持するが ambiguity handlingの正本ではない。
 - `docs/plans/TEMPLATE.md` を残す場合はTemplate本文の二重正本ではない。
 - `docs/reference/repair-loop.md` / `harness-improvement-loop.md` は packageと同じSkill workflowを二重保持しない。
 - Native runbookは具体的な人間向け実行手順を保持しつつ、generic retry / stop / failure decisionの正本ではない。
+- `.codex/agents/**` は変更されていない。
+- Skill packageにSubagentのRole / Tool / sandbox / write permission / Parent delegation contractが流入していない。
 
 ### Template classification checks
 
@@ -1086,14 +1203,19 @@ product E2E / native runtime smoke をPR1の新規必須gateへ追加しない�
 - detailed source-of-truth cycleなし
 - `AGENTS.md` 以外に task -> Skill routing の正本なし
 - `PLANS.md` / `CODE_REVIEW.md` / `QA_AGENT.md` はRepository固有責務だけを保持
+- Repository-specific execution ownership / integration mappingは必要な範囲でroot側に維持
+- `code-review` packageは通常成果物 / durable report条件を理解でき、concrete persistence pathを持たない
+- `CODE_REVIEW.md` はRepository review persistence policyを保持
 - `feature-plan` Templateはpackage-local canonical
 - planning ambiguity handlingはpackage-local canonical
 - `exploratory-qa` Mode selection / boundary / Charter・Coverage・Budget・Evidence・Finding semantic contractはpackage-local canonical
-- Repository-side QA Machine Contractは concrete schema / path / command / scoringに限定され、portable semantic contractの二重正本ではない
+- Repository-side QA Machine Contractは concrete schema / path / command / scoring / execution ownership / Harness integrationに限定され、portable semantic contractの二重正本ではない
 - copyable skeletonが存在しないSkillに形式だけのTemplate assetを追加していない
 - `docs/reference/agentic-qa-workflow.md` はportable QA workflowの二重正本ではない
 - Android runbookの具体的な実行性を維持しつつ、packageとgeneric decision ruleが二重正本になっていない
 - AndroidはWindows contractのまま
+- `.codex/agents/**` に変更なし
+- Skill packageにSubagent contractの複製なし
 - `name` / `description`はbaseline維持
 - description portability / optimizationは意図的にPR3へ残る
 - PR1外変更なし
@@ -1126,79 +1248,97 @@ product E2E / native runtime smoke をPR1の新規必須gateへ追加しない�
 
 **Mitigation:** root文書からtask -> Skill選択だけを明示的に削除し、Repository固有policy / lifecycle / concrete contractは維持する。
 
-### 5. Reverse root dependency
+### 5. Execution ownership over-pruning
+
+**Risk:** routing削除を「Skillへの言及をrootから全部消す」と誤解し、`QA_AGENT.md` の Primary QA Executor / Supporting Harness / Harness responsibility 等のRepository-specific integration contractまで削除する。
+
+**Mitigation:** task -> Skill selectionだけを`AGENTS.md`へ集約し、execution ownership / Harness integration mappingはRepository-specific contractとしてrootに残してよいと明示する。
+
+### 6. Review persistence boundary remains repository-bound
+
+**Risk:** `code-review` の通常Output semanticsと、`docs/reports/` / run-local `REPORT.md` 等のconcrete persistence policyを一緒にpackageへ残し、Portabilityを損なう。
+
+**Mitigation:** packageは findings / durable report conditionだけを持ち、concrete destination / naming / retentionは `repository review persistence policy` としてroot側へ残す。
+
+### 7. Skill / Subagent responsibility creep
+
+**Risk:** 「Skillを自己完結させる」を理由に `.codex/agents/**` の Role / Tool / sandbox / write permission / Parent delegation contractまでSkillへ複製する、またはSubagent設定をPR1で再設計する。
+
+**Mitigation:** SkillとSubagentの責務境界を明示し、`.codex/agents/**` は原則変更対象外とする。混在を発見してもSkillへ取り込まず、Subagent改善は別Issueへ送る。
+
+### 8. Reverse root dependency
 
 **Risk:** root重複を削ってもSkillからroot固定path必須読込が残る。
 
 **Mitigation:** logical external input化し、package内 machine-checked linkのpackage boundaryをvalidatorで強制する。
 
-### 6. Hidden Repository binding
+### 9. Hidden Repository binding
 
 **Risk:** Markdown link以外の prose / command / artifact pathにRepository-specific bindingが残る。
 
 **Mitigation:** Phase 0で今回分離が必要なpackage内部bindingだけinventoryする。これ専用の新lintは作らない。
 
-### 7. Root document over-pruning
+### 10. Root document over-pruning
 
 **Risk:** routing削除・重複削除のついでにRepository固有contractまでpackageへ移してしまう。
 
 **Mitigation:** packageへ移すのは別Repositoryでも必要なSkill判断・output meaning。具体path / product contract / machine schema / command / environment valueはRepository-sideに残す。
 
-### 8. Android runbook over-pruning
+### 11. Android runbook over-pruning
 
 **Risk:** 二重正本除去を理由に、既存runbookの具体的な実行順・command・troubleshootingまで削り、人間向け運用性を落とす。
 
 **Mitigation:** packageへ移すのは generic retry / stop / failure / completion decision。runbookの具体 command sequence / step-by-step exampleは維持してよい。
 
-### 9. `agentic-qa-workflow.md` が二重正本として残る
+### 12. `agentic-qa-workflow.md` が二重正本として残る
 
 **Risk:** `exploratory-qa` referencesを新設しても既存referenceにMode / exploration / Charter・Evidence・Finding semantic contractが残る。
 
 **Mitigation:** exploratory-qa migrationの同一単位で `QA_AGENT.md` と `docs/reference/agentic-qa-workflow.md` を整理する。
 
-### 10. Exploratory QA becomes non-portable by exporting semantics with schema
+### 13. Exploratory QA becomes non-portable by exporting semantics with schema
 
 **Risk:** concrete schemaをRepository-sideへ残す際、Charter / Evidence / Findingの意味契約まで一緒に外へ追い出し、Skill package単体では成果物の意味が分からなくなる。
 
 **Mitigation:** portable semantic contractは `workflow.md`、concrete schema / field name / path / validator / scoringはRepository-sideと明示的に分離する。
 
-### 11. Template proliferation
+### 14. Template proliferation
 
 **Risk:** Issue本文の「Templateをassetsへ」を機械的に解釈し、field一覧しかないSkillにも新しいTemplateを作る。
 
 **Mitigation:** copyable static skeletonだけasset化する。Output Contractやfield一覧からTemplateを発明しない。
 
-### 12. Validator over-engineering
+### 15. Validator over-engineering
 
 **Risk:** generic Markdown checker / AST framework / routing parser / Git diff parser / Repository docs checkerへ膨張する。
 
 **Mitigation:** Skill package + `AGENTS.md` + 実在compatibility pointerだけを対象にし、frontmatter identity + inline relative file existence + package escape checkに限定する。
 
-### 13. Validator test over-execution
+### 16. Validator test over-execution
 
 **Risk:** 文書migrationのたびに `test:repository` を再実行し、実装変更のないvalidator testへ不要な実行コストを掛ける。
 
 **Mitigation:** `test:repository` はvalidator実装直後に実行し、その後はvalidator code/testを変更した場合だけ再実行する。最終的には `verify` で再度通る。
 
-### 14. Validator tests bypass the final gate
+### 17. Validator tests bypass the final gate
 
 **Risk:** validator専用test commandを作って手動実行だけにし、`pnpm run verify`ではvalidator自身の回帰を検知できない。
 
 **Mitigation:** testを `tests/repository-contract/` に置き、既存 `test:repository` -> `test` -> `verify` の経路を使う。
 
-### 15. Routing baseline contamination
+### 18. Routing baseline contamination
 
 **Risk:** PR1でdescriptionを改善してPR2 baselineを壊す。
 
 **Mitigation:** `name` / `description` freeze。workflow portabilityとmetadata portabilityを明確に分ける。
 
-### 16. Template two sources of truth
+### 19. Template two sources of truth
 
 **Risk:** package assetと`docs/plans/TEMPLATE.md`に同じ本文を残す。
 
 **Mitigation:** package asset canonical。rootは削除可能なら削除、必要ならpointerだけ。
 
-### 17. Adapter abstraction creep
+### 20. Adapter abstraction creep
 
 **Risk:** logical external inputを口実に新しいschema / resolver / injection mechanismを作る。
 
@@ -1234,6 +1374,8 @@ product E2E / native runtime smoke をPR1の新規必須gateへ追加しない�
 
 すべてを変更することが目的ではない。責務重複がないfileは不要に触らない。
 
+`.codex/agents/**` は変更ファイル候補に含めない。
+
 ### 付随ドキュメント
 
 - migration matrix専用の新規durable documentは作らない。
@@ -1245,16 +1387,17 @@ product E2E / native runtime smoke をPR1の新規必須gateへ追加しない�
 1. current repository factを再確認する。
 2. active run内に、**変更対象だけ**の baseline / migration matrix / hidden Repository binding / Template classification inventory を作る。
 3. minimal validatorと `tests/repository-contract/` のvalidator testを完成させ、`test:repository` / `validate:skills` を実行する。
-4. `code-review` を package + root routing/workflow cleanup + AGENTS + validationまで完了する。
+4. `code-review` を package + output/persistence責務分離 + root routing/workflow cleanup + AGENTS + validationまで完了する。
 5. `feature-plan` を同様に完了する。
 6. `repair-loop` を同様に完了する。
 7. `harness-improvement` を同様に完了する。
-8. `exploratory-qa` を portable semantic contract / `QA_AGENT.md` routing・workflow cleanup / `agentic-qa-workflow.md` cleanup込みで完了する。
+8. `exploratory-qa` を portable semantic contract / `QA_AGENT.md` routing・workflow cleanup + execution ownership維持 / `agentic-qa-workflow.md` cleanup込みで完了する。
 9. Androidを native docs責務分離込みで完了する。ただし人間向けrunbookの具体手順は維持する。
-10. global routing / Skill package / compatibility-pointer link整合を確認する。
-11. validatorを `package.json` / CIへ接続し、testは既存 `test:repository` 経路を維持する。
-12. full `pnpm run verify`を最終総合gateとして1回実行する。
-13. changed-files / dependency direction / semantic preservation / Template classificationを最終レビューする。
+10. Skill / Subagent責務が混在していないことを確認し、`.codex/agents/**` が未変更であることを確認する。
+11. global routing / Skill package / compatibility-pointer link整合を確認する。
+12. validatorを `package.json` / CIへ接続し、testは既存 `test:repository` 経路を維持する。
+13. full `pnpm run verify`を最終総合gateとして1回実行する。
+14. changed-files / dependency direction / semantic preservation / Template classification / Skill-Subagent boundaryを最終レビューする。
 
 ### 配置判断ルール
 
@@ -1272,11 +1415,17 @@ product E2E / native runtime smoke をPR1の新規必須gateへ追加しない�
    - package `references/`。Templateを新発明しない。
 6. task -> Skill routingか？
    - `AGENTS.md`。`PLANS.md` / `CODE_REVIEW.md` / `QA_AGENT.md` に重複させない。
-7. package内からpackage外fileへ直接linkしたくなったか？
+7. Repository-specific execution ownership / Harness integration mappingか？
+   - root Repository contractへ残してよい。task -> Skill routingとは区別する。
+8. reviewの通常Output / durable report要否の意味か？
+   - package-local。concrete destination / Run Artifact path / naming / retentionは Repository review persistence policy。
+9. Role / Tool / sandbox / write permission / Parent delegationか？
+   - Subagent責務。Skillへ移さず `.codex/agents/**` もPR1では変更しない。
+10. package内からpackage外fileへ直接linkしたくなったか？
    - 行わず logical external inputへ変換する。
-8. Android runbookの具体command / step-by-step exampleか？
+11. Android runbookの具体command / step-by-step exampleか？
    - Repository-side runbookへ残してよい。generic decision ruleだけpackage canonicalにする。
-9. 分類するとsemantic behaviorが変わるか？
+12. 分類するとsemantic behaviorが変わるか？
    - 作業を止めて判断を分離する。
 
 ### 実装を広げないための最終ルール
@@ -1295,6 +1444,8 @@ product E2E / native runtime smoke をPR1の新規必須gateへ追加しない�
 - Repository policy / native runbook全体をSkill validatorで検査できる
 - field一覧から新しいTemplateを設計できる
 - 変更しない文書sectionまでmigration matrixへ整理できる
+- Skillを自己完結させるためにSubagent権限もSkillへ移した方が綺麗に見える
+- `.codex/agents/**` をこの機会に整理できる
 
 これらは Issue #117 の後続PRまたは別Issueへ送る。
 
