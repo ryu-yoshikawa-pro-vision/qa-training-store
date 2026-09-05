@@ -2,15 +2,31 @@
 
 ## Status
 
-- 状態: **Plan reviewed / Ready for Pre-change audit**
-- 実装開始: **No**
-- Pre-change audit: **未完了。Task 1のHard Gateを満たすまでCurriculum実装へ進まない**
+- 状態: **PR #115 review / bounded correction pending**
+- Pre-change audit: **既存実装前に実施済み。全面再監査は行わず、既存Evidenceを本Planへ正規化して不足だけ補う**
+- 実装: **既存branch / PR #115に初回実装あり。Task 0〜7を最初から再実行しない**
+- 現在の作業: **既存実装を本Planの確定契約へ照合し、残存不整合だけをboundedに修正する**
 - 作業branch: `docs/pr4a-curriculum-self-study-remediation`
+- PR: #115
 - 本PlanはPR 4Aの実装判断SSOTとし、別の監査台帳・Glossary・Finding DBは作成しない
+
+### Current-phase rule
+
+このbranchには既にCurriculum実装、Instructor Reference整理、review checklist追加、Validation履歴が存在する。Planの時系列を修正するためだけに既存実装をrevertしたり、Pre-change audit / 実装を全面的にやり直したりしない。
+
+今後は次だけを行う。
+
+1. 既存audit / implementation evidenceを本Planへ正規化する。
+2. 確定Findingと現行PR差分を照合する。
+3. 残存する契約不整合だけをbounded correctionする。
+4. relevantな`main`更新または不足Evidenceがある範囲だけ再確認する。
+5. 全Taskを再実行したという形式的な履歴を作らない。
 
 ## Goal
 
-Issue #98を単独の教材・報告・チェックリストへ複製せず、Master PlanのPR 4Aへ引き渡す。PR #103で固定されたDecision B / Competency / Assessment Contractを維持したまま、Learner Required pathとlearner-facing Native specializationの自己学習品質をboundedに改善する。
+Master Plan §16のPR 4A remediationを完了し、PR #103で固定されたDecision B / Competency / Assessment Contractを維持したまま、Learner Required pathとlearner-facing Native specializationの自己学習品質をboundedに改善する。
+
+Issue #98 H98-1〜H98-4は**完了済みの監査入力**として扱う。Issue #98専用の教材・報告・チェックリスト・SSOTは作らず、必要な観点だけを既存Curriculum Finding / self-study checklistへ統合する。
 
 成果物は次を満たす。
 
@@ -46,7 +62,7 @@ Issue #98を単独の教材・報告・チェックリストへ複製せず、Ma
 
 ### Protected surfaces / no-change invariants
 
-以下はTask 1で実不整合を確認しない限りPR 4Aで再設計しない。
+以下は実不整合を確認しない限りPR 4Aで再設計しない。
 
 - `02_competency-rubric.md`のPR #103 competency / Minimum Evidence contract
 - `scripts/validate-curriculum.ts`の既存required-file contract
@@ -66,10 +82,11 @@ Issue #98を単独の教材・報告・チェックリストへ複製せず、Ma
 - 確認問題をLearner自身で自己採点できる最低チェックポイント
 - Instructor Reference内のlearner-facing情報の仕分け・移行
 - `/guide`、Seed metadata、Test Control protocol、static address dictionary、Workbook / validator等の既存SSOTへの到達案内
-- Issue #98 H98-1〜H98-4のboundedなCurriculum取り込み
+- Issue #98 H98-1〜H98-4から採用済みのboundedなCurriculum観点
 - `docs/reference/curriculum-self-study-review.md`の再利用可能checklist
 - `docs/spec/**`のGit-tracked Markdown / text contractに対するterminology / wording / internal consistency / semantic safety audit。PR 4Aでは実変更しない
 - 監査結果から得られた将来も安定する最小のlanguage / terminology ruleを既存READMEまたは`00_learning-design.md`へ反映する
+- PR #115 reviewで見つかった、上記契約に直接関係する残存不整合のbounded correction
 
 ### Out of scope
 
@@ -81,13 +98,14 @@ Issue #98を単独の教材・報告・チェックリストへ複製せず、Ma
 - Curriculum全面rewrite、P2/P3の無制限cleanup
 - 新LMS、DB、Scoring基盤、Finding DB、監査台帳、第三SSOT、新Glossary
 - ラベル改善で足りる場合のrename / directory migration
+- Plan時系列を整えるためだけの既存実装revert / 再実装
 
 ## Simplicity principles
 
 実装量を増やさないため、次を固定する。
 
-1. **1 file ≒ 1 remediation pass** とし、同じfileをnavigation / terminology / self-study等で何度も編集しない。
-2. Root文書はconfirmed Finding、Instructor migration、またはstable terminology ruleがある場合だけ変更する。PR #103契約を「念のため」書き直さない。
+1. **1 file ≒ 1 remediation pass** を基本とし、review correctionでも同一fileの目的外cleanupを増やさない。
+2. Root文書はconfirmed Finding、Instructor migration、stable terminology rule、またはreviewで確認した契約不整合がある場合だけ変更する。PR #103契約を「念のため」書き直さない。
 3. 既存Lesson構造が成立している場合、統一テンプレートへ強制しない。
 4. 見出しを残すためだけの説明追加、文章量を増やすだけの変更は禁止する。
 5. Practice Volumeの件数・technique数は練習量の目安として残してよいが、Rubricが要求しない限り単独のRequired completion条件にしない。
@@ -96,24 +114,27 @@ Issue #98を単独の教材・報告・チェックリストへ複製せず、Ma
 8. prose品質をvalidator / contract testでfreezeしない。
 9. file rename / directory migrationより、classification label / navigation修正を優先する。
 10. Product / Spec / Training基盤を教材都合で変更しない。
+11. 既に満たしているFindingを再実装しない。review correctionは残存差分だけに限定する。
 
-## Task 0 — Baseline / freshness check
+## Historical Task 0 — Baseline / freshness check
 
-実装前にCurrent `main`とbranchの関係をread-onlyで確認する。
+Task 0は既存実装前に実施済みとして扱い、全面再実行しない。
 
-- Current `main` SHAを本Planへ記録する。
-- PR #103 fixed contractがCurrent `main`で維持されていることを確認する。
-- Current `main`がaudit準備後に進んでいる場合、Curriculum / Spec / validator / contract / Training入口に関係する差分だけ再確認する。
+Current reviewでは次だけを再確認する。
+
+- Current `main` SHAとPR #115 base / headの関係。
+- PR #103 fixed contractがCurrent `main`で維持されていること。
+- Current `main`が既存audit後に進んでいる場合、Curriculum / Spec / validator / contract / Training入口に関係する差分だけ。
 - 無関係なmain更新だけを理由にfull auditをやり直さない。
 - 実装対象外の差分をPR 4Aへ取り込まない。
 
-## Task 1 — Pre-change audit（実装禁止）
+## Historical Task 1 — Pre-change audit / evidence normalization
 
-Task 1が完了するまでCurriculum / Referenceの実装変更を行わない。
+Pre-change audit自体は既存実装前に行われ、PR #115でも完了結果が記録されている。ここでは**再監査ではなくEvidence normalization**を行う。
 
 ### 1. Curriculum audit inventory
 
-`validate:curriculum`が要求する**22件のrepository curriculum documents**を母集団として確認し、次へ分類する。
+`validate:curriculum`が要求するrepository curriculum documentsを母集団として確認した既存auditを正規化し、次の分類を維持する。
 
 - Learner Required Common
 - learner-facing Native specialization
@@ -121,34 +142,26 @@ Task 1が完了するまでCurriculum / Referenceの実装変更を行わない�
 
 `03_instructor-reference.md`をLearner Requiredとして扱わない。
 
-加えてOptional Agentic QA / Legacy Capstoneは、Required navigationへ誤認されないかだけ確認する。
-
-Learner Required path、selected specialization、Instructor Referenceは全文を確認する。各fileでは必要に応じて次を見る。
-
-- start condition / prerequisite
-- goal / explanation depth
-- Exercise / Practice
-- confirmation question / Self-check
-- Recovery
-- Completion
-- Next action
-- Common / specialization / Extension / Reference boundary
-- terminology
-- internal link / command / path / identifier
+Optional Agentic QA / Legacy Capstoneは、Required navigationへ誤認されないかだけを対象とする。
 
 ### 2. Specification audit inventory
 
-- `git ls-files docs/spec`からGit-tracked fileを取得する。
-- そのうちMarkdown / text contractだけをaudit母集団にする。
-- image / binary / generated visual assetは母集団外とし、N/A件数へ含めない。
-- Task 1完了時に本Planへ `audited X / total X` を記録する。
-- 既存のcanonical indexへ対応付けられる場合は、そのindexをcoverageの根拠として利用する。
-- 問題がないfileごとの`no_change` Findingを作らない。
-- 全Product behaviorのCurrent implementation conformance auditへ広げない。
+既存auditは`git ls-files docs/spec`からGit-tracked Markdown / text contractを母集団とし、image / binary / generated visual assetを母集団外として実施済みとして扱う。
 
-### 3. Finding finalization
+merge-ready判定前に、既存audit evidenceから次だけを本Planへ正規化する。
 
-Curriculum Findingは実装前に次を満たす粒度へ確定する。
+- audit baseline
+- text contractの `audited X / total X`
+- 実際に発生したSpecification Finding数
+- Specification Findingがある場合のDisposition
+
+既存Evidenceで件数を確定できない場合だけ、inventoryの数え直しを行う。全Spec本文を最初から再監査しない。
+
+問題がないfileごとの`no_change` Findingを作らない。全Product behaviorのCurrent implementation conformance auditへ広げない。
+
+### 3. Finding normalization
+
+Curriculum Findingは、実装済み / review correction対象を問わず、必要なものについて次を一意に確認できるようにする。
 
 - ID
 - exact `path`
@@ -161,13 +174,13 @@ Curriculum Findingは実装前に次を満たす粒度へ確定する。
 - minimum fix
 - related contract
 - validation
-- state
+- state (`resolved` / `review_followup` / `defer` / `blocked`)
 
-`fix_now`は必ず有限の`path + heading / section`へ落とす。実装者が再分析しないと変更箇所を決められないFindingはHard Gate未達とする。
+既に解消済みのFindingを再実装しない。`review_followup`だけをcurrent correction対象にする。
 
 ### 4. Instructor migration map
 
-`03_instructor-reference.md`の全sectionを次へ分類する。
+既存実装で行った`03_instructor-reference.md`の仕分け結果を、必要な範囲で次の分類へ対応付ける。
 
 - learner-facing learning content → 対象Lesson / Learning Design / README
 - learner-facing Self-check / Recovery → 対象Lesson
@@ -175,13 +188,11 @@ Curriculum Findingは実装前に次を満たす粒度へ確定する。
 - environment / account / permission / device support → Instructor Referenceに残してよい
 - Repository / Training Copy / Infrastructure / Toolchain support → Instructor Referenceまたは既存public runbook
 
-Learner-facing contentは移動先へ反映してからInstructor Reference側を削除 / 参照化する。恒久的な重複を残さない。
+Learner-facing正本を削除したままsupport側だけ残す状態を認めない。既に正しく移行済みなら再編集しない。
 
 ### 5. Terminology Decision Table
 
-Task 1で実際に判断が必要な語だけを記録する。新Glossaryは作らない。
-
-最低限の安定ルール:
+既存audit / implementationで実際に使った安定ルールだけを正規化する。新Glossaryは作らない。
 
 | Category | Rule |
 | --- | --- |
@@ -192,44 +203,48 @@ Task 1で実際に判断が必要な語だけを記録する。新Glossaryは作
 | BR / AC / ID grammar / machine-consumed heading | canonical literalを維持 |
 | UI copy | Product上のliteralが判断に必要な場合はそのまま使用 |
 
-監査後、将来も安定する最小ルールだけを既存READMEまたは`00_learning-design.md`へ反映する。
+将来も安定する最小ルールだけを既存READMEまたは`00_learning-design.md`へ残し、今回だけの語一覧を恒久SSOTへ複製しない。
 
-## Preliminary audit candidates
+## Confirmed audit / review findings
 
-以下はPlanレビュー時点でCurrent教材から確認した**候補**であり、Task 1でCurrent `main`へ再照合し、exact heading / severity / minimum fix / validationを確定する。新しいscopeを作るためではなく、監査漏れを防ぐ入力として扱う。
+以下はCurrent教材・既存PR実装・PR reviewで確認したPR 4AのFindingである。**候補ではなく、current PRを照合するためのreview oracle**として扱う。
 
-| ID | Candidate target | Problem | Intended minimum fix |
+| ID | Target / contract | Required outcome | Current state |
 | --- | --- | --- | --- |
-| `CUR-4A-001` | Learner Required / selected specializationの`確認問題`、Self-check、Recovery、Completion | 回答・成果物をLearner自身で判定できない箇所がある | 知識問題は回答に最低限含む要素、Trade-off問題は最低考慮事項と許容理由をLesson単位で示す。長いAnswer Keyは作らない |
-| `CUR-4A-002` | `part1/08_test-management-and-maintainability.md` | CommonがMaestro / Native資産を暗黙前提にする可能性 | Commonをlearner-authored Playwrightの実在保守問題1件 + 最小改善1件へ閉じる |
-| `CUR-4A-003` | `part1/05_playwright-e2e-practice.md` | Core / Extension境界が曖昧 | Core=`Cart / explicit reset / representative Boundary / representative Mobile`、Extension=`Payment / Cross-role / Internal Inspection / Accessibility execution` |
-| `CUR-4A-004` | `01_spreadsheet-test-design.md > 完了条件`、`P1-3 > ハンズオン / 完了条件`、`P1-4 > 完了条件`、`P1-5 > 完了条件` | Test本数 / technique数がPractice VolumeなのにRequired completionとして残る箇所がある | 件数は練習目安へ下げ、Risk / Spec fit、learner-authored evidence、代表的なRisk coverageでCompletionを判定する |
-| `CUR-4A-005` | `part1/02_scenario-shop-analysis.md`、`part2/01_software-development-process.md`のExercise / 確認問題 / Self-check / Next action順序 | Self-check / Next actionがExerciseや確認問題より前に置かれる箇所がある | 実際の順序異常だけを `explanation → exercise → confirmation/checkpoints → self-check/recovery → completion → next action` へ並べ直す。全fileへテンプレート強制しない |
-| `CUR-4A-006` | `part1/06_execution-and-failure-analysis.md` | Bug / UX / Suggestion / 未確定、Security成立条件、Evidence整合が自己学習上不足 | 既存Failure分類を置換せずboundedな補足を追加。Security専門Lessonへ拡張しない |
-| `CUR-4A-007` | `part1/07_maestro-native-automation.md` | volatileなTest Control値の複製、P1 Native completionへのCurrent platform guarantee混入の可能性 | 値は既存SSOTへ誘導。P1 Native RequiredはPhysical Androidでのlearner-authored Maestro / stable ID / Test Control / Evidenceへ閉じ、Current iOS / Workflow比較はReferenceまたはP2-6へ寄せる |
-| `CUR-4A-008` | `part2/02_git-version-control.md` | Training Copy exact SHA / allowlist / copy mechanicsがCommonへ混入 | Branch / Diff / CommitをCore、provisioning / copy mechanicsをInstructor support / Reference |
-| `CUR-4A-009` | `part2/03_github-pull-request-review.md` | 第三者Review、件数quota、environment provisioningがCompletionへ混入する可能性 | Fork / Remote / Push / PR + material diff self-reviewをCommonとし、第三者Reviewとlearner provisioningを必須にしない |
-| `CUR-4A-010` | `part2/04_ci-github-actions.md` | allowlist / parser / Action pin等のRepository固有詳細がCoreと同じ深さ | Trigger / Job / Failure / least privilegeをCore、repo detailをReference |
-| `CUR-4A-011` | `part2/05_playwright-ci.md` | Test配置やCurrent Repository CI設計がP2-5 Completionへ混入 | CommonをTraining Web CI / Artifact / Failure stage・Evidenceへ閉じ、Test配置はP2-7、Current CI構成はReference |
-| `CUR-4A-012` | `part2/06_native-ci-maestro.md` | Current Job topology / API Level / Trigger / guard等がspecialization completionへ混入 | learner-authored Native CI実行、工程別Failure、Artifact、Cost判断をRequiredにし、repo detailをReference |
-| `CUR-4A-013` | `part2/07_ci-cd-quality-gates.md` | Preview / Production / Native detailとLevel 3相当の改善提案がCommon completionへ混入 | Common=`Gate / Artifact / fail-closed`。改善提案、vendor / production detail、Native比較はAdvanced / Reference |
-| `CUR-4A-014` | `part2/08_integration-design-capstone.md > 記録する成果物 / Completion` | final Commonはbounded WebなのにAndroid / iOS / full delivery成果物が無条件列挙される | 成果物をCommon Required / Native specialization / Advanced-Referenceへ分類し、CommonをWeb CI / Gate / Artifact / Failure reasoningへ閉じる |
-| `CUR-4A-015` | `01_spreadsheet-test-design.md`のRisk ID例 | `RISK-<DOMAIN>-NNN` contractと不一致の例がある | `RISK-CART-001`へ局所修正。validator / Workbook contractは変更しない |
-| `CUR-4A-016` | `03_instructor-reference.md` | learner-facing learning / evaluation / Recoveryがsupport assetへ残る可能性 | migration mapに従い、support-onlyへ整理。learner-facing正本を先に確保する |
-| `CUR-4A-017` | `docs/reference/curriculum-self-study-review.md` | 継続的な受講者視点checklistが未整備 | reviewer / maintainer向け観点だけ追加。個別review result / PASS history / Evidence台帳は持たせない |
+| `CUR-4A-001` | Learner Required / selected specializationの`確認問題`、Self-check、Recovery、Completion | 知識問題は最低回答要素、Trade-off問題は最低考慮事項と許容理由をLesson単位で示す。long-form Answer Keyは作らない | `review_followup` — self-check追加済み範囲を再利用し、未充足Lessonだけ補正 |
+| `CUR-4A-002` | `part1/08_test-management-and-maintainability.md` | Commonをlearner-authored Playwrightの実在保守問題1件 + 最小改善1件へ閉じる | `resolved` — 再実装しない |
+| `CUR-4A-003` | `part1/05_playwright-e2e-practice.md` | Core=`Cart / explicit reset / representative Boundary / representative Mobile`、Extension=`Payment / Cross-role / Internal Inspection / Accessibility execution` | `resolved`。ただしCompletionの件数quotaは`CUR-4A-004`で別確認 |
+| `CUR-4A-004` | `01_spreadsheet-test-design.md`、P1-3、P1-4、P1-5のPractice Volume / Completion | Test本数 / technique数は練習目安。単独のRequired completion条件にしない | `review_followup` — P1-3は解消済み。残存箇所だけ補正 |
+| `CUR-4A-005` | P1-2 / P2-1のExercise / 確認問題 / Self-check / Next action順序 | 実際の順序異常だけを `explanation → exercise → confirmation/checkpoints → self-check/recovery → completion → next action` へ直す | `review_followup` — 全fileテンプレート化は禁止 |
+| `CUR-4A-006` | P1-6 Failure Analysis / H98-2〜H98-4 | 既存Failure分類を置換せず、Bug / UX / Suggestion / 未確定、Security成立条件、Evidence整合をboundedに補足 | `resolved`。Security専門Curriculumへ拡張しない |
+| `CUR-4A-007` | P1-7 Native specialization | volatile値はSSOTへ誘導。P1 Native RequiredはPhysical Androidのlearner-authored Maestro / stable ID / Test Control / Evidenceへ閉じる | `review_followup` — Current platform / Workflow比較がRequiredへ残っていないかだけ補正 |
+| `CUR-4A-008` | P2-2 Git Core | Branch / Diff / CommitをCore、Training Copy provisioning / exact SHA / allowlist / copy mechanicsをInstructor support / Reference | `resolved` — 再実装しない |
+| `CUR-4A-009` | P2-3 PR / review | Fork / Remote / Push / PR + material diff self-reviewをCommon。第三者Review / learner provisioning / 件数quotaはRequiredにしない | `resolved` — 再実装しない |
+| `CUR-4A-010` | P2-4 CI basics | Trigger / Job / Failure / least privilegeをCore、allowlist / parser / Action pin等repo detailをReference | `resolved`またはno-op。reviewでRequired逆流が見つかった場合だけ補正 |
+| `CUR-4A-011` | P2-5 Playwright CI | CommonをTraining Web CI / Artifact / Failure stage・Evidenceへ閉じ、配置設計はP2-7、Current CI topologyはReference | `review_followup` — Completionだけを最小補正 |
+| `CUR-4A-012` | P2-6 Native CI specialization | learner-authored Native CI実行、工程別Failure、Artifact、Cost判断をRequiredにし、repo detailをReference | `resolved` — 再実装しない |
+| `CUR-4A-013` | P2-7 Quality Gates | Common=`Gate / Artifact / fail-closed`。Level 3相当の改善提案、vendor / production detail、Native比較はAdvanced / Reference | `review_followup` — Completionだけを最小補正 |
+| `CUR-4A-014` | P2-8 Capstone成果物 / Completion | Common Required / Native specialization / Advanced-Referenceへ成果物を分類し、CommonをWeb CI / Gate / Artifact / Failure reasoningへ閉じる | `review_followup` — 無条件成果物列挙だけを整理 |
+| `CUR-4A-015` | `01_spreadsheet-test-design.md`のRisk ID例 | `RISK-<DOMAIN>-NNN`へ局所整合。validator / Workbook contractは変更しない | `resolved`または既存契約確認済み。再設計しない |
+| `CUR-4A-016` | `03_instructor-reference.md` | migration mapに従いsupport-onlyへ整理し、learner-facing正本を先に確保する | `resolved` — reviewで移行漏れがあれば元Finding ownerへ戻す |
+| `CUR-4A-017` | `docs/reference/curriculum-self-study-review.md` | reviewer / maintainer向け観点だけを持ち、個別review result / PASS history / Evidence台帳を持たせない | `resolved` — 新しいreview管理機能を追加しない |
 
-### Issue #98 handoff candidates
+### Issue #98 handoff — completed input
 
-| Input | PR 4A owner | Boundary |
+Issue #98はhandoff完了・Close済みであり、current progress trackerとして使用しない。
+
+| Input | PR 4A owner | Boundary / disposition |
 | --- | --- | --- |
-| H98-1 Test Clock / Seed / address / Test Control | `00_learning-design.md`、P1-2、P1-7、review checklist | 値を複製せず既存SSOTへ到達させる。Product / Seed / protocol変更なし |
-| H98-2 Bug / UX / Suggestion / 未確定 | P1-6、review checklist | 新Finding DB / taxonomyを作らず、断定前のlearner-facing判断として統合 |
-| H98-3 Security成立条件 | P1-6 | 入力→保存→escape表示→HTML解釈→実行 / sink到達の差を最小説明。Security Curriculumへ拡張しない |
-| H98-4 Evidenceと報告内容の一致 | P1-6、Self-check、review checklist | 専用Evidence台帳を作らず、対象・操作・事象・Evidenceの一致と断定回避を扱う |
+| H98-1 Test Clock / Seed / address / Test Control | `00_learning-design.md`、P1-2、P1-7、review checklist | 既存Findingへ統合済み。値を複製せず既存SSOTへ到達させる |
+| H98-2 Bug / UX / Suggestion / 未確定 | P1-6、review checklist | 既存Findingへ統合済み。新Finding DB / taxonomyを作らない |
+| H98-3 Security成立条件 | P1-6 | bounded Findingとして統合済み。入力→保存→escape表示→HTML解釈→実行 / sink到達の差だけ扱う |
+| H98-4 Evidenceと報告内容の一致 | P1-6、Self-check、review checklist | 既存Findingへ統合済み。専用Evidence台帳を作らない |
 
 ## Specification Finding disposition
 
-Specification Findingは実際に判断対象が見つかった場合だけ作成する。
+既存Pre-change auditでは、PR #115の記録上、`docs/spec/**`に実変更を要するSpecification Findingは確認されておらず、PR 4Bは不要とされている。
+
+merge-ready判定前に、本Planへaudit coverage (`audited X / total X`) とFinding数を既存Evidenceから正規化する。新しい判断対象が見つかった場合だけ次を使う。
 
 - `Specification clarification`: Normative Specification自体が曖昧・不足・複数解釈可能、またはProduct Decisionが必要。
 - `Product implementation deviation`: 必要な範囲の照合でNormative Specificationは明確だがCurrent implementationが異なる。Specを実装へ合わせない。
@@ -238,42 +253,42 @@ Specification Findingは実際に判断対象が見つかった場合だけ作�
 
 Specification FindingにはCurriculum用のP0〜P3 severityを付けない。
 
-## Hard Gate — Task 2以降へ進む条件
+## Current review gate — merge-readyへ進む条件
 
-次をすべて満たすまで実装を開始しない。
+Task 0〜7を再実行する代わりに、次を満たす。
 
-1. Task 0 baseline / freshness確認済み。
-2. Learner Required Common、selected specialization、Instructor Referenceのaudit scopeを全文確認済み。
-3. `docs/spec/**` text contractが `audited X / total X` でcoverage確認済み。
-4. 全Curriculum FindingがP0〜P3 + `fix_now` / `defer`へ分類済み。
-5. 全`fix_now`がexact path + heading / section + minimum fix + validationまで有限化済み。
-6. 実際に発生した全Specification FindingへDispositionがある。
-7. Instructor migration mapが確定済み。
-8. Terminology Decision Tableが確定済み。
-9. unresolved blockerと、それに依存するFinding / file / Taskの境界が明示済み。
-10. 必要なP2がboundedに実装できない場合、単にsizeを理由にdeferせずscopeを再検討済み。
+1. Current `main` / PR #115 base / headのfreshness確認済み。
+2. 既存Pre-change auditの母集団と結果が本Planへ正規化されている。
+3. `docs/spec/**` text contractの `audited X / total X` とSpecification Finding数が確認済み。
+4. Curriculum Findingが`resolved` / `review_followup` / `defer` / `blocked`へ整理されている。
+5. `review_followup`がfinite path / heading / minimum fix / validationへ限定されている。
+6. Instructor migrationとstable terminologyの既存実装が正本を重複させていない。
+7. unresolved P0/P1 blocker = 0。
+8. 必要なP2がboundedに解消されている。
+9. current PR diffにProduct / `docs/spec/**` / PR 5 / Formal Test Strategyのscope leakがない。
+10. Validationとlearner-route walkthroughがcurrent correction後headで成立している。
 
-P0/P1が未解決のSpecification clarificationまたはcompletion-blocking Product implementation deviationへ依存する場合、**依存するFinding / file / Taskだけを停止**する。独立したPR 4A remediationは継続してよい。ただし関連P0/P1が残る限り、PR 4A全体をcompletion / merge-readyにしない。
+P0/P1が未解決のSpecification clarificationまたはcompletion-blocking Product implementation deviationへ依存する場合、**依存するFinding / file / Taskだけを停止**する。独立したreview correctionは継続してよい。ただし関連P0/P1が残る限り、PR 4A全体をmerge-readyにしない。
 
-## Task 2 — Root-level confirmed findings / migrations only
+## Task 2 — Root-level implementation contract / review oracle
 
-対象候補:
+対象:
 
 - `README.md`
 - `00_learning-design.md`
 - 必要な場合のみ`02_competency-rubric.md`
 
-次のいずれかがある場合だけ変更する。
+既存実装を維持し、次のいずれかがある場合だけ追加修正する。
 
-1. confirmed `fix_now` Findingがroot fileをtargetにする。
-2. Instructor migration mapの移動先である。
-3. Master Planで必要なstable language / terminology ruleを既存責務へ保存する必要がある。
+1. unresolved `review_followup`がroot fileをtargetにする。
+2. Instructor migrationの移行漏れが確認された。
+3. stable language / terminology ruleの保存先が不足している。
 
-PR #103のCommon / Native / route / prior-knowledge / competency contractを一般的に書き直さない。Lesson fileはTask 2で編集しない。
+PR #103のCommon / Native / route / prior-knowledge / competency contractを一般的に書き直さない。Lesson fileの修正は各Finding ownerへ戻す。
 
-## Task 3 — Learner-facing curriculum remediation
+## Task 3 — Learner-facing curriculum implementation contract / review oracle
 
-各fileを原則1回のpassで処理し、classification / learning flow / Self-check / terminologyを同時に閉じる。
+既存実装を再作成せず、以下の契約との差分だけを修正する。
 
 ### Entry / shared material
 
@@ -281,7 +296,7 @@ PR #103のCommon / Native / route / prior-knowledge / competency contractを一�
   - Risk → Test Case → Layer / Tool → Evidenceのtraceabilityを維持する。
   - `RISK-<DOMAIN>-NNN` / `TC-<DOMAIN>-NNN`のcanonical grammarへ局所整合する。
   - Test件数 / technique数をPractice Volumeとして扱い、単独のRequired completion条件から外す。
-  - 確認問題へ最低Self-checkポイントを追加する。
+  - 確認問題へ最低Self-checkポイントを持たせる。
 
 ### Part 1
 
@@ -328,9 +343,9 @@ Learner Required / selected specializationでは、必要な箇所だけ次を�
 
 全fileへ同じheadingセットを強制しない。既存構造で成立している場合は必要な不足だけ補う。
 
-## Task 4 — Instructor Reference finalization
+## Task 4 — Instructor Reference implementation contract / review oracle
 
-Task 2 / Task 3のlearner-facing移動先を先に完成させてから`03_instructor-reference.md`をsupport-onlyへ整理する。
+既存`03_instructor-reference.md`のsupport-only整理を維持し、移行漏れだけを修正する。
 
 残してよい責務:
 
@@ -347,13 +362,11 @@ Task 2 / Task 3のlearner-facing移動先を先に完成させてから`03_instr
 - learner evaluationの独自基準
 - learner-facing learning / Self-check / Recoveryの重複正本
 
-Task 4で移動先Lessonを再編集しない。移行漏れを見つけた場合は元のFinding ownerへ戻す。
+移行漏れを見つけた場合は、Instructor Reference内へ説明を足すのではなく元のFinding ownerへ戻す。
 
-## Task 5 — Continuous learner review checklist
+## Task 5 — Continuous learner review checklist implementation contract
 
-`docs/reference/curriculum-self-study-review.md`を追加する。
-
-対象はreviewer / maintainer向けの再利用観点だけとする。
+既存`docs/reference/curriculum-self-study-review.md`を維持し、個別review resultを管理する仕組みへ拡張しない。
 
 最低限確認する:
 
@@ -389,7 +402,11 @@ B. PR 4Aで解消するstableなP0/P1 regressionを、自然言語表現をfreez
 - Instructor Referenceのexact prose test
 - 「念のため」のvalidator refactor
 
-## Task 7 — Validation / learner-route walkthrough
+既存PRでvalidator / contract差分がないなら、review correctionを理由に新規追加しない。
+
+## Task 7 — Current-head validation / learner-route walkthrough
+
+全面実装後の検証を再現するのではなく、**current correction後head**で必要なValidationを行う。
 
 ### Automated
 
@@ -405,6 +422,8 @@ Conditional:
 
 - `pnpm run validate:spec`: spec / spec contractを実際に変更した場合のみ。PR 4Aでは原則不要。
 - `pnpm run typecheck`: TypeScript validator / contractを実際に変更した場合のみ。
+
+既存CIでより広いcheckを実施済みでも、その事実だけでPlanのRequired validationを恒久的に増やさない。
 
 ### Manual walkthrough
 
@@ -464,14 +483,14 @@ Part 2 Native:
 - PR 4A bounded scopeを超え、PR 5 / Security Curriculum / Product改修へ広がる。
 - `docs/spec/**`の実変更が必要。
 
-停止単位は原則として**blockerへ依存するFinding / file / Task**とする。独立したremediationは継続してよい。Root canonical ambiguityが広範囲へ影響する場合だけ依存範囲全体を停止する。
+停止単位は原則として**blockerへ依存するFinding / file / Task**とする。独立したreview correctionは継続してよい。Root canonical ambiguityが広範囲へ影響する場合だけ依存範囲全体を停止する。
 
-未解決P0/P1 blockerが1件でも残る場合、PR 4Aをcompletion / merge-ready扱いにしない。
+未解決P0/P1 blockerが1件でも残る場合、PR 4Aをmerge-ready扱いにしない。
 
 ## Definition of Done
 
-- Task 0 / Task 1とHard Gateが完了している。
-- Curriculum Findingがfinite path / heading / minimum fix / validationを持つ。
+- 既存Pre-change audit / implementation evidenceが本Planのcurrent stateと矛盾しない。
+- Curriculum Findingがfinite path / heading / minimum fix / validationとcurrent stateを持つ。
 - unresolved P0/P1 blocker = 0。
 - DoDに必要なbounded P2が解消されている。
 - `docs/spec/**` text auditが`audited X / total X`でcoverage確認されている。
@@ -481,25 +500,25 @@ Part 2 Native:
 - 確認問題がSelf-study可能な最低判定基準を持つ。
 - Instructor Referenceがsupport-onlyで、learner-facing情報の移行漏れがない。
 - stable language / terminology ruleが既存READMEまたはLearning Designへ最小反映されている。
-- reviewer checklistが追加され、Task 7 route walkthrough内で使用されている。
+- reviewer checklistがTask 7 route walkthrough内で使用可能である。
 - `docs/spec/**`にPR 4A実変更がない。
-- automated validationがPASSしている。
+- current correction後headでRequired automated validationがPASSしている。
 - unrelated cleanup / refactor / rename / directory migrationがない。
 - proseをfreezeする不要なvalidator / contract testを追加していない。
-- self-review後、base `main`向けOpen PRを作成する。mergeは行わない。
+- PR #115のdiffが本Planの`resolved` + `review_followup`のbounded outcomeに限定されている。
+- self-review後、PR #115をmerge-readyと判断できる。merge自体はユーザー承認まで行わない。
 
-## Execution order
+## Current execution order
 
-1. Task 0 — baseline / freshness
-2. Task 1 — full Pre-change audit、Spec text inventory、finite Findings、Instructor migration、Terminology、blocker dependency boundary
-3. **Hard Gate**
-4. Task 2 — confirmed root Finding / migration / stable terminology only
-5. Task 3 — learner-facing filesを1 file ≒ 1 passでremediation
-6. Task 4 — Instructor Reference support-only finalization
-7. Task 5 — reusable self-study review checklist
-8. Task 6 — conditional validator / contract（通常N/A）
-9. Task 7 — automated validation + shared entry / bridge + four route walkthroughs
-10. Final freshness / scope review → PR作成 → Tracking Issue更新
+1. Current `main` / PR #115 base / headのfreshnessを確認する。
+2. 既存Pre-change audit evidenceを本Planへ正規化する。**全面再監査はしない**。
+3. `Confirmed audit / review findings`をcurrent PR差分へ照合する。
+4. `review_followup`だけをfiniteなbounded correctionとして修正する。
+5. `resolved` Findingを再実装しない。
+6. Instructor Reference / checklist / root文書は残存不整合がある場合だけ触る。
+7. current correction後headでRequired automated validationを実行する。
+8. shared entry / bridge + Common / Native route walkthroughを1回行う。
+9. Final freshness / scope review → PR #115 merge-ready判定 → Tracking Issue更新。
 
 ## Follow-up boundary
 
