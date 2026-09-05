@@ -66,6 +66,32 @@
   - Parent decision: Task 5のcriteria-only checklistを追加し、Task 6はvalidator / contract変更不要としてN/Aにする。
 - Progress: 64% (9/14)
 
+## 2026-09-05 16:34 (JST)
+
+- Summary: push後のGitHub `production-smoke` failureを原因特定し、bounded repairを開始した。
+- Changes: `Web CI` job `101269942186` の最初の異常は、公開Curriculum READMEの`### Repository-required support asset`が公開サイトのトップレベルnavigation groupとして抽出され、既存の3 group契約に対して4 groupを生成したことだった。`public storefront smoke`と他のpublished docs smokeはPASSしており、既存のE2E契約やProduct behaviorは変更しない。
+- Decision / Rationale: PlanのCUR-4A-001で要求したRepository-required support assetの分離を維持しつつ、Curriculum navigation parserが`###`だけをgroupとして扱う既存契約に合わせ、対象READMEの見出しを`####`へ下げた。修正対象はREADMEの1行だけに限定し、support linkは記事内に残す。
+- Validation: GitHub `production-smoke`のpublished curriculum navigation assertionは、期待値3 groupに対し`共通`、`Repository-required support asset`、Part 1、Part 2の4 groupを受け取ってFAIL（run `33952517163`）。修正後のcurrent working treeに対するRequired validationと再pushが未完了。
+- Blocker / Remaining: P0/P1 blockerではない。README修正後にPlan指定のRequired validation、commit / explicit push、PR #116のremote checks再確認、本文とIssueのcurrent SHA同期、Sanitizer / Run完了処理を行う。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: E2E契約を弱めず、原因fileの最小修正を実施してrepair loopを継続する。
+- Progress: 86% (12/14)
+
+## 2026-09-05 16:42 (JST)
+
+- Summary: GitHub `production-smoke` failureに対するrepair loop iteration 2を完了した。
+- Changes: `docs/curriculum/test-automation/README.md`のsupport asset表示を`####`へ変更し、既存のCurriculum navigation parserが抽出するトップレベルgroupから除外した。support link自体は記事本文に残した。
+- Decision / Rationale: CUR-4A-001の「Common listから分離したsupport asset」契約と、既存E2Eの3 navigation group契約を同時に維持する最小差分とした。E2E、validator、Product behavior、docs/specは変更していない。
+- Validation: `pnpm run format:check` — PASS。`pnpm run lint:markdown` — PASS（374 files / 0 issues）。`pnpm run validate:curriculum` — PASS（22 required documents、4 workbook files、training-chromium / training-mobile-chromium）。`pnpm run test:contracts` — PASS（34 files、493 passed、3 skipped / 496、316.16s）。`git diff --check` — PASS。追加確認の`pnpm run build:docs` — PASS（22 specification pages、24 curriculum pages）。生成されたCurriculum indexはトップレベルgroup 3件、support asset linkは本文に保持された。
+- Blocker / Remaining: iteration 2のlocal validationはPASS。commit / explicit push、GitHub checksの再確認、PR #116本文とIssue #72のcurrent SHA同期、Sanitizer / Run完了処理が残る。
+- Subagents:
+  - Delegation: なし。
+  - Result: なし。
+  - Parent decision: repair loop iteration 2を`stop_success`とし、branch safety確認後に修正をcommitして再pushする。
+- Progress: 86% (12/14)
+
 ## 2026-09-05 16:04 (JST)
 
 - Summary: Task 7のRequired automated validationをcurrent stateで完了した。
