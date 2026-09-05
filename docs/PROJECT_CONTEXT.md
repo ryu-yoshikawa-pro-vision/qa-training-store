@@ -540,3 +540,11 @@
 - Expo Router webのhash-only client navigationは、pathが既存navigation stateと一致するとroute stateをresetするため、初回操作時にProduct Detailと`#reviews` targetが一度unmountされ、browserのfragment解決時にtargetが存在しない場合がある。Product Detailのdirect hashは`useAsyncValue`による非同期render後にtargetが生成されるため、mount後のhash-gated focusでbrowserのtarget到達を復元する。
 - Storefront Headerのレスポンシブ定義は複数箇所にあるため、Issue #93ではHeader本体を変更せず、Review Sectionの`scroll-margin-top: 112px`をDesktop（900px以上）のみに適用する。900px未満にはReview Anchor用の追加offsetを適用しない。共通scroll frameworkやRating専用click handlerは追加しない。
 - Issue #93のRegression入口は`e2e/web/phase1-required.spec.ts`の初回Mouse、初回Keyboard、direct `#reviews`テストであり、URL fragment、target viewport、DesktopでのheadingとHeaderの境界を観測する。focus stateや`tabIndex`の数値はE2Eの実装依存契約として固定しない。
+
+## PR #116 Curriculum Self-study Remediation（2026-09-05）
+
+- PR #116では、PR #103で固定されたCompetency / Assessment Contractを維持し、Common routeをWeb中心のbounded completionとして扱う。P1-5、P1-8、P1-9、P2-5、P2-7、P2-8ではNative、Extension、Preview / Production、Advanced / ReferenceをCommon Requiredの暗黙前提にしない。
+- Learner-facing Curriculumには、確認問題の最低回答要素、Self-check、学習上の未理解とEnvironment blockを分けるRecovery、Completion後のNext actionを必要なLessonへ追加した。Practice Volumeの件数・Technique数、Baseline / stock PASSは単独のcompletion条件にしない。
+- `03_instructor-reference.md`はenvironment、account / permission、device、Training Copy、Infrastructure / Toolchainのsupport-only assetとし、学習内容・評価・Answer Key・個別判定の正本にしない。再利用可能なcriteria-only review checklistは`docs/reference/curriculum-self-study-review.md`に置く。
+- Native specializationのCommon外Evidenceはlearner-authored Native exercise / CI Diff、対応するExecution / Failure / Artifact / Cost判断へ分離する。AndroidはBuild + Runtime、iOSはBuild-onlyというCurrent保証を維持し、値・Protocol・Workflow topologyは既存SSOT / Referenceへ戻す。
+- `docs/spec/**`、Product behavior、Formal Test Strategy、Training runner / workflow / Artifact contract、PR #115は変更対象外である。

@@ -2,8 +2,8 @@
 
 ## Status
 
-- 状態: **Plan finalized / Ready for Pre-change audit**
-- 実装開始: **No**
+- 状態: **Implementation complete / Final validation and delivery pending**
+- 実装開始: **2026-09-05 15:00 JST**
 - base: `main` at `f8b50b7678b6fe669bd0c98286d9b9d91176f521`
 - 作業branch: `docs/pr4a-curriculum-self-study-remediation-clean`
 - 本PlanはPR 4Aの実装判断SSOTとする。
@@ -229,6 +229,92 @@ Learner-facing正本を先に確保してからInstructor Reference側を削除 
 | Risk ID example | canonical `RISK-<DOMAIN>-NNN`と教材例の整合 |
 | Instructor Reference | learner learning / assessment / Recoveryをsupport-only assetへ残さない |
 | reviewer checklist | 個別review result / PASS history / Evidence ledgerを持たない再利用可能criteriaだけを追加 |
+
+## Task 1 audit result / final Curriculum Findings
+
+### Audit coverage
+
+- `validate:curriculum`のrequired file listは22件。Learner Required Common 19件、learner-facing Native specialization 2件（P1-7 / P2-6）、Repository-required support asset 1件（03 Instructor Reference）として全文確認した。
+- Optional `part1/09_specification-agentic-qa.md` とLegacy Alias `part1/10_part1-capstone.md`も確認した。Required Navigation、Rubric、Validatorがcanonical `part1/09_part1-capstone.md`だけを参照する状態に問題はない。
+- `docs/spec`のGit-tracked Markdown / textは `audited 22 / total 22`。画像・binary・generated visual assetは母集団外とした。Curriculumから参照するBR / AC、State / Scenario、Executable Canonical Sourceの到達先を確認した。
+- PR #103のDecision B / Competency / Assessment Contract、Current `main`、本PlanのScopeに照合し、Current Product Behavior、PR 5、Security Curriculum、Training runner / workflow / Artifact contractの変更Findingは確定していない。
+- P1-4のJS / TypeScript bridge、Playwrightの`test` / `page` / Locator / Action / Assertionの説明はentry learner向けに十分であり、bridge内容そのものの追加Findingは作成しない。
+
+### Final Finding list
+
+| ID | Severity | Disposition | Primary owner | Exact target | Current state / problem / impact | Minimum fix | Related contract | Validation | State |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CUR-4A-001 | P2 | fix_now | Task 2 / `README.md` | `## 全体構成` / `### 共通` | Instructor ReferenceがCommon navigationの4番目にあり、support assetがLearner Required pathと誤認され得る。 | Common listから外し、support assetとして別見出しで1回だけ案内する。 | PR #103のLearner Required / support asset境界 | Common routeに03が必須として現れず、support linkだけが残ることをmanual確認する。 | resolved |
+| CUR-4A-002 | P2 | fix_now | Task 2 / `00_learning-design.md` | `## 用語の使い分け` | 用語表はあるが、日本語中心・literal維持・classification token維持の安定ルールが単独で明示されていない。 | 同じ節の末尾へPlanの最小language ruleを追加し、新Glossaryは作らない。 | Plan §5 Terminology Decision Table | 追加ルールと既存用語表が矛盾せず、literalが保持されることを確認する。 | resolved |
+| CUR-4A-003 | P1 | fix_now | Task 3 / `01_spreadsheet-test-design.md` | `## 設計ビュー` / `### \`04_テストケース\``、`## 完了条件` | 例の`RISK-CART-01`がcanonical `RISK-<DOMAIN>-NNN`と不整合で、ID traceabilityを誤って学ぶ可能性がある。完了条件の件数も判断品質と混在している。 | Risk例を`RISK-CART-001`へ局所修正し、件数をPractice Volumeの目安へ移し、Spec → Risk → Case → Layer / Tool → Evidenceの品質判定とself-checkを追加する。 | Training Workbook ID grammar、Master Plan §5.8 / §5.9 | `training/workbook`とのID整合、traceability、self-check / Recoveryを確認する。 | resolved |
+| CUR-4A-004 | P1 | fix_now | Task 3 / P1-1 `01_test-automation-foundations.md` | `## 確認問題`、`## 完了条件` | 知識問題に短い回答要素・理由がなく、Environment blockと学習上の未理解から復帰する手順もない。 | 問題ごとの最低回答要素、学習上のRecovery、完了後のP1-2へのNext actionを追加する。候補件数は理由付き判断のEvidenceとして扱う。 | Master Plan §5.9、Common prior-knowledge rule | Instructorの非公開知識なしに回答を自己判定し、P1-2へ進めることをmanual確認する。 | resolved |
+| CUR-4A-005 | P1 | fix_now | Task 3 / P1-2 `02_scenario-shop-analysis.md` | `## Lesson 6: \`/guide\` とScenario Metadata`、`## 確認問題`、`## 完了条件` | Role / State / Journeyは説明されるが、Test Clock、Seed / Reset、address lookup、Test Controlの既存SSOTへ戻る導線と、回答後のRecoveryが有限でない。 | 値を複製せず、`docs/spec/state-and-scenarios.md`、`src/seeds/metadata.ts`、既存UI / seed SSOTへの参照経路を追加し、問題の最低回答要素・Recovery・P1-3へのNext actionを追加する。 | H98-1、PR #103のSpec / Learner evidence境界 | 参照先が存在し、値の第三SSOTを作らず、Scenario / Reset / dependencyを自己確認できることを確認する。 | resolved |
+| CUR-4A-006 | P1 | fix_now | Task 3 / P1-3 `03_test-design-and-automation-selection.md` | `## ハンズオン1`、`## 確認問題`、`## 完了条件` | `10件以上`と`3技法以上`がRequired completionとして残り、Risk / Spec適合・選択理由より数を優先し得る。 | 10件・3技法をPractice Volumeの目安へ移し、選択した技法がRisk / BR / ACへ適合し、Layer / Tool /理由を説明できることをCore completionへする。最低回答要素とRecoveryを追加する。 | Master Plan §5.8、PR #103 C06 | 件数を満たさなくても品質条件で自己判定でき、NativeをCommonの暗黙前提にしないことを確認する。 | resolved |
+| CUR-4A-007 | P1 | fix_now | Task 3 / P1-4 `04_playwright-foundations.md` | `## 確認問題`、`## 完了条件` | JS / TypeScript bridgeはあるが、`2本以上`がcompletionに見え、回答要素・Syntax / Runtime / Assertion failureからのRecoveryが明示されていない。 | 2本はPractice Volumeの目安へ移し、learner-authored exercise・semantic Locator・状態AssertionをCore evidenceとする。問題の最低回答要素、エラー種別別Recovery、P1-5へのNext actionを追加する。 | Master Plan §5.9、PR #103 C07 | 1件の意味あるTraining exerciseでCore判定でき、Formal Suiteへ混入しないことを確認する。 | resolved |
+| CUR-4A-008 | P1 | fix_now | Task 3 / P1-5 `05_playwright-e2e-practice.md` | `## Lesson 4`〜`## Lesson 8`、`## ハンズオン1`〜`## 完了条件` | Payment、Cross-role、Internal Inspection、AccessibilityがCoreと同列で、PaymentまたはRole横断がcompletionに入り、Common learnerがExtensionを必須と誤認し得る。 | CoreをCart / explicit reset / representative Boundary / representative Mobileに限定し、Payment / Cross-role / Internal Inspection / Accessibility executionをExtensionと明示する。3 / 5件はPractice Volumeの目安へ移し、self-check / Recovery / P1-6へのNext actionを追加する。 | Master Plan §16、PR #103 C07 / C09、Common boundary | Common routeがCoreだけで成立し、Extensionを選択しなくてもcompletionできることをmanual確認する。 | resolved |
+| CUR-4A-009 | P1 | fix_now | Task 3 / P1-6 `06_execution-and-failure-analysis.md` | `## Lesson 2: Failureを分類する`、`## ハンズオン4: Failure分析メモ`、`## 確認問題`、`## 完了条件` | technical failure分類はあるが、Bug / UX / Suggestion / 未確定、Security成立条件、対象・操作・事象・Evidenceの整合が判断基準へ接続されていない。意図的Failureだけでmeaningful diagnosisを満たしたと誤認し得る。 | 既存technical分類を残したままOutcome分類、入力→保存→escape表示→HTML解釈→実行 / executable sinkの最小境界、Evidence不足時の断定回避を追加し、原因仮説・Evidence整合・最小修正・再実行をcompletionへ接続する。 | H98-2〜H98-4、Master Plan §5.9 | Training Failure / Evidenceを使い、分類と断定範囲を自己判定できることを確認する。Security専門LessonやProduct変更を追加しない。 | resolved |
+| CUR-4A-010 | P1 | fix_now | Task 3 / P1-7 `07_maestro-native-automation.md` | `## Lesson 6: 最初のMaestro Flow`、`## ハンズオン1`〜`## 完了条件` | specializationの入口とC08条件はあるが、learner-authored diffの対象、self-check / Recovery、Environment blockとlearning blockの分離が不足する。iOS / Current platform比較もcompletionへ混ざりやすい。 | Physical Androidで自分のFlow差分を作り、Stable UI Test ID / Test Control / Evidenceを確認する有限手順を追加する。Baseline / stockを代替にせず、iOS / volatile値はReference / SSOTへ分離し、問題の判定基準・Recovery・P1-8へのNext actionを追加する。重複する比較文1行は同じpassで除く。 | PR #103 C08、ADR-0022、H98-1 | `training/maestro/exercises/`のlearner-authored diffとAndroid execution artifact、skip / rejoin、iOS Build-only境界をmanual確認する。 | resolved |
+| CUR-4A-011 | P1 | fix_now | Task 3 / P1-8 `08_test-management-and-maintainability.md` | `## ハンズオン1`〜`## 完了条件` | Common completionが保守問題3件以上と読め、Native / Maestro / CIの比較がPlaywright-only Commonの境界を曖昧にする。self-check / Recoveryもない。 | Commonを実在Playwright保守問題1件の診断 + 最小改善1件へする。Native / CIはExtension / Referenceへ明示し、POMを必須化しない。問題の最低回答要素、仮想仕様変更の未実装境界、P1-9へのNext actionを追加する。 | Master Plan §16、PR #103 C10 | Playwrightだけでcompletionでき、変更前Impact Analysisと最小改善のEvidenceを説明できることを確認する。 | resolved |
+| CUR-4A-012 | P1 | fix_now | Task 3 / P1-9 `09_part1-capstone.md` | `## Core: Cart Journey`、`## Native specialization（選択時）`、`## 完了条件` | Common capstoneの完了条件にAndroid Build / RuntimeとiOS Build-onlyの保証差が入り、Native specializationのEvidenceとbaseline / Core Evidenceの境界が十分に分離されていない。 | Commonはconcise Web Cart Journey / Traceability / Failure reasoningへ限定し、Native Evidenceとbaselineを選択時の別判定へ置く。Core self-check、Recovery、Part 2移行へのNext actionを追加する。 | Master Plan §16、PR #103 C01〜C10、ADR-0022 | Nativeを選択しなくてもPart 1 Commonが成立し、Native選択時だけC08 Evidenceを自己判定できることをmanual確認する。 | resolved |
+| CUR-4A-013 | P1 | fix_now | Task 3 / P2-1 `01_software-development-process.md` | `## 確認問題`、`## 完了条件` | 開発 / 変更フローの説明はあるが、回答の最低要素、Build / Test / Deployの区別からのRecovery、P2-2へのNext actionがない。 | 5問の最低回答要素、最初に戻る確認箇所、Environment blockと理解不足の区別、P2-2へのNext actionを追加する。 | Master Plan §5.9、PR #103 C09 | 変更からReleaseまでの図と判断理由を自己確認できることをmanual確認する。 | resolved |
+| CUR-4A-014 | P1 | fix_now | Task 3 / P2-2 `02_git-version-control.md` | `## Part 1からの作業環境移行`、`### 移行時の安全な手順`、`## 完了条件` | Branch / Diff / CommitのCoreに対し、Training Copyのexact SHA / allowlist / copy mechanicsがLearner Required completionへ入り、provisioningを自力で用意することが隠れ前提になっている。 | Branch / Diff / Staging / CommitをCoreへ整理し、Training Copy exact SHA / allowlist / mechanicsはInstructor Reference / supportへ移す。必要なPart 1成果物の安全な引継ぎ意図は残し、回答要素・Recovery・P2-3へのNext actionを追加する。 | Master Plan §16、ADR-0014、PR #103 support asset境界 | Common completionがprepared Copyを利用してBranch / Diff / Commitを自己判定でき、Copy運用の詳細がRequiredでないことを確認する。 | resolved |
+| CUR-4A-015 | P1 | fix_now | Task 3 / P2-3 `03_github-pull-request-review.md` | `## Lesson 6: PRとChecks`、`## ハンズオン3: Test PRをReviewする`、`## 完了条件` | Training Copy provisioningの詳細と第三者Review・最低3件がCommon completionへ混ざり、受講者が自分でmaterial diffをreviewできることより運用条件を優先し得る。 | Fork / Remote / Push / PRとmaterial diffのself-reviewをCommonへ残し、第三者Review・provisioning・件数quotaをRequiredから外す。Support参照を追加し、回答要素・Recovery・P2-4へのNext actionを追加する。 | Master Plan §16、PR #103 C11 | self-reviewだけでcompletionでき、PR説明へ変更・理由・Validation・Riskを記録できることをmanual確認する。 | resolved |
+| CUR-4A-016 | P1 | fix_now | Task 3 / P2-4 `04_ci-github-actions.md` | `## 演習Workflowの境界`、`## Lesson 2: GitHub Actionsの構造`、`## 完了条件` | Trigger / Job / Failure / least privilegeのCoreに、allowlist / parser / Action pin / current workflow topologyのRepository detailとprovisioningが混在している。 | Core説明を抽象契約へ整理し、exact allowlist / parser / Action pin / Copy preparationはInstructor Referenceへ参照化する。Failure工程、Secret / permission境界のself-check・Recovery・P2-5へのNext actionを追加する。 | Master Plan §16、ADR-0014、PR #103 C12 | Core completionがrepo detail暗記なしで成立し、Training / Production境界とFailure工程を説明できることをmanual確認する。 | resolved |
+| CUR-4A-017 | P1 | fix_now | Task 3 / P2-5 `05_playwright-ci.md` | `## Lesson 7: Smoke / Regression`、`## Lesson 10: Production Artifact Smoke`、`## ハンズオン3`、`## 完了条件` | Training Web CI / Artifact / Failure Evidenceに加え、Current CI topology、Production Smoke、PR / main / Nightly配置がCommon completionへ入り、P2-7やReferenceとの責務が重なる。 | Training WebのBuild / Browser / Artifact / Failure stageをCommonへ限定し、配置設計はP2-7、Current topology / Production Artifact SmokeはReference / Advancedへ移す。回答要素・Failure Recovery・P2-7へのNext actionを追加する。 | Master Plan §16、PR #103 C12、ADR-0014 | CommonがTraining Web CIとFailure Evidenceだけで成立し、Production / current topologyがRequiredでないことをmanual確認する。 | resolved |
+| CUR-4A-018 | P1 | fix_now | Task 3 / P2-6 `06_native-ci-maestro.md` | `## 現在のRepositoryにおけるAndroid / iOS CIの位置づけ`、`## ハンズオン1`〜`## 完了条件` | Native specializationなのにCurrent formal job topologyの説明とbaseline実行が中心で、learner-authored Native CI / Failure / Artifact / Cost判断がMinimum Evidenceとして明示されない。 | selected specializationのLearner Requiredを、自分のbounded Training Native CI変更 + Android工程別Failure / Artifact + Cost判断へする。Current topology / iOS detailはReference / comparisonへ分け、self-check・Recoveryを追加する。 | Master Plan §16、PR #103 C08 / C12、ADR-0022 | P2-6をskip可能なCommon routeを維持し、選択時だけlearner-authored Native CI evidenceを自己判定できることをmanual確認する。 | resolved |
+| CUR-4A-019 | P1 | fix_now | Task 3 / P2-7 `07_ci-cd-quality-gates.md` | `## Lesson 4: CIとCD`〜`## Lesson 12`、`## 完了条件` | Common completionがPreview / Production / Deploy後Smoke、Android / iOS差、CI/CD改善まで要求し、bounded Web CIのGate / Artifact / fail-closedを超えている。 | Common completionをGate / Artifact / fail-closedへ限定し、Preview / Production / vendor / Native / Level 3改善はAdvanced / Referenceへ明示する。回答要素・Gate failure Recovery・P2-8へのNext actionを追加する。 | Master Plan §16、PR #103 C12、ADR-0014 / 0022 | Common routeがWeb bounded Gate / Artifact / fail-closedで成立し、Native / deliveryを必須としないことをmanual確認する。 | resolved |
+| CUR-4A-020 | P1 | fix_now | Task 3 / P2-8 `08_integration-design-capstone.md` | `## Phase 5`、`## Phase 8`、`## 記録する成果物`、`## Part 2完了条件` | Optional Native / full deliveryは本文で説明されるが、記録成果物と評価観点にCommon / specialization / Advanced-Referenceの分類が一貫していない。Common self-studyの判定入口もない。 | Common RequiredをWeb CI / Gate / Artifact / Failure reasoningへ明示し、Native specializationとAdvanced-Reference成果物を別区分へする。phaseごとのself-check、Recovery、DoD判定を追加する。 | Master Plan §16、PR #103 C12、ADR-0022 | Common設計だけでcompletionでき、Native / preview-prod deliveryを選択しない場合のskip / rejoinをmanual確認する。 | resolved |
+| CUR-4A-021 | P1 | fix_now | Task 4 / `03_instructor-reference.md` | `## Public Reference`、`## Expected Contract`、`## Alternative Design`、`## Anti-pattern`、`## Facilitation`、`## Troubleshooting prompts`、`## Fresh Learner observation` | Learner learning、evaluation、Recovery、Current topologyがsupport asset内に重複し、Instructor Referenceがcompletion / judgmentの別SSOTになっている。 | learner-facing learning / self-check / completion / evaluationを各Lesson・Rubricへ移したうえで、Referenceをenvironment / account / permission / device / Training Copy / Repository provisioning / Infrastructure / Toolchain support-onlyへ整理する。既存validatorが要求する見出し語はsupport意味で保持する。 | Plan §4、PR #103 support boundary、ADR-0014 | Referenceにlearner answer / completion判定が残らず、support-only導線と既存asset contractが確認できることをmanual確認する。 | resolved |
+
+All final findings are finite. There is no `find remaining` instruction. `CUR-4A-004`〜`CUR-4A-020`のself-study criteriaは、各対象文書の既存Question / Exercise / Completionに合わせた最小追記であり、全Lessonを同一templateへ書き換える指示ではない。
+
+### Issue #98 handoff disposition
+
+- H98-1（Test Clock / Seed / address / Test Control）はCUR-4A-005およびCUR-4A-010へ統合する。値は複製せず、既存SSOTへの到達経路だけを追加する。
+- H98-2（Bug / UX / Suggestion / 未確定）はCUR-4A-009とTask 5 checklistへ統合する。
+- H98-3（Security成立条件）はCUR-4A-009へ最小説明として統合する。Security専門教育、追加Finding DB、Product変更は行わない。
+- H98-4（Evidenceと報告内容の整合）はCUR-4A-009、CUR-4A-012、Task 5 checklistへ統合する。専用Evidence台帳は作らない。
+
+### Specification Finding disposition
+
+`docs/spec` text contractについてSpecification Findingはなし。したがってSpecification clarification、Product implementation deviation、PR 4Bへのhandoffは発生していない。22件すべてで、Curriculum側から参照するNormative / Supporting / Executable Canonical Sourceの責務と、CurrentのBR / AC / State / Scenario / Native boundaryに判断を要する不整合は確認されなかった。
+
+### Instructor migration map
+
+| Current `03_instructor-reference.md` section | Disposition / destination |
+| --- | --- |
+| `Public Reference` / Expected Contractのlearner contract | Learner-facing route、`00_learning-design.md`、各対象Lesson、Rubricへ移す。Referenceには正本へのlinkとsupport boundaryだけを残す。 |
+| `Alternative Design`のRisk / Layer / POM / Mobile / iOS判断 | P1-3、P1-5、P1-8、P2-7、P2-8のlearner-facing Core / Extension / Advanced-Referenceへ移す。Reference側はprovisioning / environment alternativeだけを残す。 |
+| `Anti-pattern`の学習判断 | P1-1、P1-5、P1-6、P2-2〜P2-8のself-check / checklistへ移す。Reference側はSecret、Production Workflow、Formal asset混入など運用上の禁止だけを残す。 |
+| `Facilitation` | 学習順序、Exercise、self-check、Recovery、Completionは各Learner Required文書へ移す。Instructor側は環境準備・支援時の境界だけを残す。 |
+| `Troubleshooting prompts` | Environment / account / permission / device / Training Copy / Infrastructure / Toolchainのsupport playbookとして残す。学習内容の回答や評価基準は残さない。 |
+| `Fresh Learner observation` | 受講者の回答を補う手順ではなく、Environment blockと教材不足を切り分ける運用支援メモへ縮約する。 |
+
+### Confirmed terminology decision table
+
+| Category | Confirmed rule |
+| --- | --- |
+| 一般learner-facing説明 | 日本語中心 |
+| Tool / Product / API / command / path / identifier | 公式literalを維持 |
+| Locator / Fixture等の公式用語 | 必要に応じて初出で日本語説明 |
+| Common Core / Native specialization / Extension / Reference | classification tokenを維持し意味を説明 |
+| BR / AC / ID grammar / machine-consumed heading | canonical literalを維持 |
+| UI copy | Product上のliteralが判断に必要な場合はそのまま使用 |
+
+### Hard Gate result
+
+1. Task 0 baseline / freshness: satisfied。
+2. Learner Required Common、selected specialization、Instructor Reference全文確認: satisfied。
+3. `docs/spec` text contract coverage `audited 22 / total 22`: satisfied。
+4. Curriculum Findingのfinal形式確定: satisfied。全21件にSeverity / Disposition / Primary owner / exact target / minimum fix / related contract / validation / Stateがある。
+5. 全`fix_now`の実装入力がfinite: satisfied。
+6. Specification FindingのDisposition: satisfied。該当なしを確認済み。
+7. Instructor migration map: satisfied。
+8. Terminology Decision Table: satisfied。
+9. unresolved blockerと依存境界: satisfied。P0/P1 blockerはなく、CUR-4A-021完了後にTask 5へ進む。PR 5 / Security / Product / Spec clarificationはscope外。
+10. bounded P2の再検討: satisfied。CUR-4A-001〜003をfix_nowとし、sizeだけを理由にdeferしていない。
+
+Hard Gate: **PASS**。Task 2以降の実装へ進める。
 
 ### Issue #98 handoff candidates
 

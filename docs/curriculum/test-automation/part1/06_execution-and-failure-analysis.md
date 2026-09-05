@@ -69,6 +69,17 @@ Part 1で受講者自身が作成したTraining用specは、`PLAYWRIGHT_BASE_URL
 
 Failure分類ができると、修正すべき対象を誤りにくくなります。
 
+Failureの**発生源**と、報告上の**Outcome**は別に記録します。Outcomeは次のいずれかです。
+
+- **Bug**: Current Normative SpecificationのBR / ACに反することを、再現条件とEvidenceで確認できた。
+- **UX**: 仕様違反とは断定できないが、利用者が迷う・誤操作しやすい観測上の問題がある。
+- **Suggestion**: 現行仕様を満たしているが、新しい仕様や改善として提案する。
+- **未確定**: 再現条件、観測、またはEvidenceが不足し、上の分類を断定できない。
+
+### Security成立条件の最小確認
+
+`<script>`のような文字列を入力・保存・表示できることだけでは、Security Bugとは断定しません。少なくとも、**入力 → 保存 → escapeされた表示か → HTMLとして解釈されたか → JavaScriptが実行されたか、または実行可能なsinkへ到達したか**を分けて記録します。ここでは誤分類を防ぐ最小確認だけを扱い、Security専門のLessonやProduct変更は行いません。
+
 ## Lesson 3: Trace
 
 Playwright Traceでは、Failure前後の操作やDOM状態などを確認できます。
@@ -189,7 +200,9 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 | Test Case ID | 対象ケース |
 | Failure | 発生内容 |
 | 分類 | Product / Test / Env / Flakyなど |
+| Outcome | Bug / UX / Suggestion / 未確定 |
 | Evidence | Trace / Screenshotなど |
+| 整合 | 対象・操作・観測事象がEvidenceと一致しているか |
 | 原因 | 調査結果 |
 | 修正 | 実施内容 |
 | 再発防止 | 必要なら記載 |
@@ -204,11 +217,32 @@ Training用Testで不安定なLocatorを作り、よりsemanticなLocatorへ改�
 6. 既存Regression ScriptとTraining用Testの実行入口を分ける理由は何か。
 7. Failure分析の段階でFixture内部設計まで先に学ばない理由は何か。
 
+## 自己確認
+
+### 回答の最低判定基準
+
+- Product / Test / Test Data / Locator / Timing / Environment / External / Flakyの発生源を区別し、発生源だけでProduct Bugと断定していない。
+- Trace、Screenshot、Video、Console Errorを、何を観測できるEvidenceかで使い分けている。
+- Retry / Timeoutを増やす前に、再現、同期、状態依存、Environmentを確認する理由を説明している。
+- OutcomeをBug / UX / Suggestion / 未確定へ分け、BugにはBR / ACと再現条件、未確定には不足Evidenceを示している。
+- Securityの回答で入力・保存・escape表示・HTML解釈・実行 / executable sinkを別段階として扱っている。
+- Failure報告の対象・操作・事象がScreenshot / TraceなどのEvidenceと一致し、不足時に断定を避けている。
+- 最小修正後の再実行結果を記録し、意図的Failureの練習と実際のmeaningful diagnosisを区別している。
+
+### Recovery
+
+分類が揺れる場合はLesson 2〜8を使い、最初の異常と派生エラーを分けて1件の分析表を書き直します。Commandが起動しない、Browser / Base URLがない、Artifactが生成されない場合はEnvironment blockとして記録し、実行できた後もExpected / Actual / Evidenceを説明できない場合だけ学習上のRecoveryとして再分析します。
+
 ## 完了条件
 
-- 意図的なFailureを1件以上作り、Evidenceから原因を特定している。
-- Failure分類を記録している。
+- 意図的または実際のFailureを1件分析し、Evidenceから発生源と原因仮説を分けて記録している。
+- Bug / UX / Suggestion / 未確定のOutcomeを、BR / AC・観測・Evidenceの有無に応じて分類している。
+- 報告の対象・操作・事象がEvidenceと一致し、Evidence不足時は未確定としている。
 - 固定待機または不安定Locatorを1件以上改善している。
 - RetryとTimeoutの利用判断を説明できる。
 - Training用Testと既存正式Suiteの実行目的を区別できる。
 - Failure Evidenceを利用できることと、その収集実装をFixtureで設計することを別の学習段階として区別できる。
+
+## 次の行動
+
+Native specializationを選択する場合は[Part 1-7: MaestroによるNative UI自動化](./07_maestro-native-automation.md)へ、Common routeの場合は[Part 1-8: テスト管理と保守性改善](./08_test-management-and-maintainability.md)へ進みます。

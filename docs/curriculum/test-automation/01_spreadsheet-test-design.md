@@ -143,7 +143,7 @@ Test Case IDの形式は[Training Workbook README](../../../training/workbook/RE
 | --- | --- |
 | Test Case ID | `TC-CART-001` |
 | 対象機能 | Cart追加 |
-| Risk ID | `RISK-CART-01` |
+| Risk ID | `RISK-CART-001` |
 | テスト条件 | 在庫あり商品をGuestが追加する |
 | 初期状態 | `default` |
 | 主操作 | 商品詳細からCart追加 |
@@ -391,12 +391,34 @@ Test Case IDをコードへ埋め込む方式、Test titleへ含める方式、A
 7. UI E2EではなくUnit / Integration Testへ寄せるべき条件は何か。
 8. Test Case IDとコードを紐付けるメリットは何か。
 
+## 自己確認
+
+### 回答の最低判定基準
+
+各回答に、次の要素を含めます。
+
+- 手順を増やすことのRisk、同値分割と境界値の違い、デシジョンテーブルの有効条件を、具体的なCartまたはCheckout条件と結び付けている。
+- Login / Role / Account状態を分離する理由と、異なる拒否理由を別Caseにする理由を説明している。
+- `out-of-stock` が初期状態を再現するSeed Scenarioであること、UI E2Eへ置かない判断にLayer / Cost / 再現性の理由があることを説明している。
+- Test Case ID、Risk、BR / AC、Layer / Tool、実装Path、Evidenceの対応を1行追跡できる。
+
+### Recovery
+
+- 回答の「なぜ」が不足する場合は、対象FeatureのBR / ACと[State and Scenarios](../../spec/state-and-scenarios.md)へ戻り、1つのCaseをRisk → 条件 → Expected → Layer / Toolの順に書き直す。
+- CSVの列やIDが分からない場合は、[Training Workbook README](../../../training/workbook/README.md)とcanonical CSVのHeaderを確認する。CSVが開けないことは学習上のFailではなくEnvironment blockとして分けて記録する。
+
 ## 完了条件
 
 - Scenario Shopの1機能以上についてテスト対象分析を作成している。
 - リスクとテスト観点を整理している。
-- 同値分割、境界値、デシジョンテーブル、状態遷移のうち3技法以上をScenario Shopへ適用している。
-- 5件以上のテストケースを作成している。
+- 選択したテスト設計技法をScenario ShopのRisk / BR / ACへ適用し、技法を選んだ理由を説明できる。
+- Test Case ID、Risk、Spec参照、条件、期待結果、Layer / Tool、EvidenceのTraceabilityを説明できる。
 - 複数条件のRuleをデシジョンテーブルで分離して説明できる。
 - 各ケースについて自動化可否と理由を書いている。
 - 少なくとも1件についてPlaywrightまたはMaestroへ落とす前提を説明できる。
+
+練習量の目安として5件以上のTest Case、複数のテスト設計技法を作成・適用してもよいが、件数や技法数だけではcompletionとしません。
+
+## 次の行動
+
+[Part 1-2: Scenario Shopの探索とテスト対象分析](./part1/02_scenario-shop-analysis.md)へ進み、設計したCaseのRole / State / Seedを実際の対象へ対応付けます。

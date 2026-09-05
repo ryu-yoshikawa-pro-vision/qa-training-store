@@ -87,6 +87,15 @@ Test Case IDの形式とWorkbookの列契約は、[Training Workbook README](../
 
 特に、**Test Case IDとUI Test ID、Seed ScenarioとUser Journey、Maestro FlowとAutomation Flowは同じものではありません。**
 
+### 安定表記ルール
+
+- 一般のlearner-facing説明は日本語中心で記述する。
+- Tool、Product、API、command、path、identifierは公式のliteralを維持する。
+- `Locator`、`Fixture`などの公式用語は、必要な場合だけ初出で日本語の意味を添える。
+- `Common Core`、`Native specialization`、`Extension`、`Reference`はclassification tokenとして維持し、本文で責務を説明する。
+- `BR`、`AC`、ID grammar、machine-consumed headingはcanonical literalを変更しない。
+- Product上の判断に必要なUI copyは、表示されるliteralをそのまま扱う。
+
 ## Part 1の前提
 
 Part 1ではGitHubアカウントを必須にしません。
@@ -175,7 +184,7 @@ GitHub Remote / Fork / Pull Requestへ進む
 
 ここで別の教材アプリへ切り替えるわけではありません。**コードベースとテスト対象は同じScenario Shopのまま、変更管理できる作業環境へ移行します。**
 
-Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。`training:copy:prepare`へ完全なSource SHAを渡し、Git Historyを持つdisposable Training CopyへPart 1成果物を安全に引き継ぎます。
+Part 1の作業Folderへ単純に `git init` して教材元のHistoryを失った状態を標準経路にはしません。Git Historyを持つdisposable Training CopyへPart 1成果物を安全に引き継ぎます。Source SHA、allowlist、copy mechanicsの準備・検証は[Instructor Reference](./03_instructor-reference.md)のsupport手順を使用し、Learner Requiredの隠れた前提にはしません。
 
 ## ノーコード・ローコード経験との接続
 

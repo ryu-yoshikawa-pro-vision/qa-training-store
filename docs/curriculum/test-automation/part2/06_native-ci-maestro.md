@@ -29,7 +29,7 @@
 - `package.json`
 - Native Test Control / Contract Harness
 
-## 現在のRepositoryにおけるAndroid / iOS CIの位置づけ
+## 現在のRepositoryにおけるAndroid / iOS CIの位置づけ（Reference / Current topology）
 
 2026年8月時点のRepositoryでは、AndroidとiOSで実行Triggerが異なります。
 
@@ -58,6 +58,8 @@ standalone実行では、iOS Automation / Productionのunsigned Release `iphones
 - 現在の高度なFormal Native CIは、最小構成を動かした後に比較する。
 
 Training Native Workflowは `permissions: contents: read`、Secret / OIDC / Environment / Deployなしで、GitHub-hosted Ubuntu runner上のBuild → API 34 Emulator → Install → Maestro → Evidenceを構成します。ここでのEmulatorはGitHub Native CIのCanonicalであり、Windows Local Fresh LearnerのCanonical Physical Device経路とは別責務です。Formal Native CIのRequired Gateを置き換えず、Training baselineは既存Formal Android Runtimeからも再利用できます。
+
+Training baselineは、環境と実行経路を確認するための開始点です。P2-6 Native specializationのcompletionには、baselineの再実行ではなく、受講者が作成したboundedなTraining Native CI変更、その実行結果、Failure / Artifact / Costの判断を使います。
 
 ## Lesson 1: Native CIがWeb CIより重い理由
 
@@ -339,14 +341,30 @@ AndroidとiOSを同じ頻度にする必要があるかも含め、Runner Cost�
 6. iOS CIが現在 `workflow_dispatch` であることと、PR Required Gateであることはどう違うか。
 7. iOS CIでmacOS Runnerが必要なことはCI設計へどんな影響を与えるか。
 
+## 自己確認
+
+次を自分のTraining Native CIのDiff、Run、またはArtifactを指しながら確認できれば、Native specializationの判断を自己判定できます。
+
+- baselineと自分が作成したboundedなNative CI変更を区別できる。
+- AndroidのBuild、Emulator Boot、APK Install、App Launch、Maestro AssertionのFailure stageと最初に見るEvidenceを対応付けられる。
+- APK Artifactを再利用する価値と、FlowごとにJobを分けすぎない理由をCostとActionabilityから説明できる。
+- Native変更判定をskipする場合のRiskと、Fail-safeな再確認方法を説明できる。
+- iOSのBuild-time metadata / guard / Artifactと、Simulator Runtime / Maestro非保証を区別できる。Current topologyの詳細はReference comparisonとして扱う。
+
+### Recovery
+
+Native CIが失敗した場合は、Workflow起動、SDK / Dependency Setup、Gradle Build、Emulator Boot、APK Install、App Launch、Maestro Assertionの順に確認し、該当Artifactを残します。RunnerやSDK、端末相当の問題はEnvironment blockとして分離し、CI設計の未理解と決めつけません。baselineしかない場合は、boundedな自分の変更Diffへ戻り、再実行だけでcompletionとしないことを確認します。
+
 ## 完了条件
 
 この完了条件はNative specializationを選択した受講者に適用します。Part 2 CommonではP2-6を要求せず、P2-5からP2-7へ進みます。
 
-- GitHub-hosted Android Training WorkflowでScenario ShopをBuildし、API 34 Emulator上でMaestro Flowを1本以上実行している。
-- Native Failureを工程別に分類し、Evidenceを1件以上確認している。
-- 現在のAndroid Native CIのJob構成を説明できる。
-- Build Artifact再利用の目的を説明できる。
-- iOS CIのBuild → metadata / guard → Artifactの流れを説明できる。
-- 現在のiOS CIがstandaloneでは手動Build-only入口であり、Native変更時にはRequired Build-only経路になることを説明できる。
-- Android / iOSの実行頻度案をCostとRiskから説明できる。
+- boundedなTraining Native CI変更を自分で作成し、変更Diffと実行結果を対応付けている。
+- 変更後のGitHub-hosted Android Training WorkflowでScenario ShopをBuildし、API 34 Emulator上でMaestro Flowを実行している。
+- Native Failureを工程別に分類し、Failure stageに対応するEvidenceを確認している。
+- Build Artifact再利用とNative実行頻度の判断を、Cost、Risk、再実行範囲の理由付きで説明できる。
+- iOS CIのBuild-only境界はReference comparisonとして扱い、Native RuntimeやBaselineをcompletionの代替にしていない。
+
+## 次の行動
+
+Native specializationを続ける場合は、P2-7のCommon Quality Gateへ戻り、Native成果物を選択課題として接続します。P2-6を選択しない場合は、そのまま [P2-7: Quality GateとCI/CD](07_ci-cd-quality-gates.md)へ進みます。

@@ -197,12 +197,14 @@ Deep Linkにより、長い前段操作を毎回通らず、意図した状態�
 例:
 
 ```text
-scenario-shop://test-control/reset?version=1&scenario=default&clock=2026-07-01T03%3A00%3A00.000Z&paymentDelayMs=0
+scenario-shop://test-control/reset?version=<protocol-version>&scenario=<seed-scenario>&clock=<fixed-clock>&paymentDelayMs=<delay>
 ```
 
 その後、Ready Signalを待ってから操作します。
 
 Native Testでも、前回実行の状態へ依存しないことが重要です。
+
+CurrentのProtocol Version、利用可能なScenario、固定Clock、遅延値は教材へコピーせず、[`state-and-scenarios.md`](../../../spec/state-and-scenarios.md)、[`metadata.ts`](../../../../src/seeds/metadata.ts)、および `/guide` のTest Controlを参照します。このLessonでは、ProtocolやProduct Behavior自体の変更は行いません。
 
 ## Lesson 6: 最初のMaestro Flow
 
@@ -219,6 +221,16 @@ Canonical physical Android device上で次を実装します。
 最初は既存 `native-storefront.yaml` をコピーせず、自分で最小Flowを作ります。
 
 完成後に既存Flowと比較します。
+
+### Native specializationのEvidence
+
+Native specializationのcompletionは、Baseline / stock PASSの再実行だけでは満たしません。次を自分の成果物として揃えます。
+
+1. `training/maestro/exercises/` にあるlearner-authored FlowのDiff
+2. Stable UI Test IDとTest ControlまたはDeep Linkを使ったBusiness Conditionの記録
+3. Physical Android deviceで成功した実行Artifact
+
+Physical Android deviceで実行できない場合は、Environment blockとして端末、接続、権限、Ready Signalの状態を記録します。Baselineを実行できたことをNative completionの代替にはしません。
 
 ## Lesson 7: ScrollとNative UI
 
@@ -279,7 +291,7 @@ WebとNativeで、共通するテスト条件と異なる操作を記録しま�
 
 Cartへ商品を追加した後にAppを再起動し、状態復元を確認します。
 
-## 発展リファレンス: iOS Build-only
+## 発展リファレンス: iOS Build-only（Reference）
 
 `native-ios-ci.yml`を読み、Runtimeを実行したと誤認せず、Build-only Evidenceとして次を記録します。
 
@@ -297,6 +309,21 @@ Cartへ商品を追加した後にAppを再起動し、状態復元を確認し�
 6. PlaywrightとMaestroの共通概念を3つ挙げる。
 7. Windows LocalのCanonicalをPhysical Android device、GitHub Native CIのCanonicalをAPI 34 Emulatorに分ける理由は何か。
 
+## 自己確認
+
+次を自分の言葉または自分のEvidenceで確認できれば、このLessonの判断を説明できます。
+
+- PlaywrightのLocatorとMaestroのNative UI操作の違いを説明できる。
+- UI Test IDとTest Case IDを区別し、Stable UI Test IDを使う理由と乱用Riskを説明できる。
+- Deep Link / Test Controlを初期化の補助に使い、検証対象のJourneyを飛ばしていないことを説明できる。
+- 自分のFlow Diff、UI Test ID、Test ControlまたはDeep Link、Business Condition、実行Artifactを対応付けられる。
+- Physical Android deviceのRuntimeとGitHub Emulatorの実行条件、iOS Build-onlyの保証範囲を混同していない。
+- 2本以上のFlow作成はPractice Volumeであり、Baseline / stock PASSをC08 Evidenceと扱っていない。
+
+### Recovery
+
+Flowを実行できない場合は、まず `Toolchain Doctor` または `-Action Doctor`、`adb devices -l`、端末の`USB debugging`、`RequirePhysicalDevice`、`-DeviceSerial`、端末が`unlocked`か、Ready Signal、Build / Install状態を順に確認します。環境状態を直しても解決しない場合は、失敗した条件、期待した条件、取得できたEvidenceを記録し、Flowの設計判断へ戻ります。
+
 ## 完了条件
 
 - C08 Minimum Evidenceは、learner-authored Native exercise diff + successful Maestro execution artifactです。詳細は [Competency Rubric](../02_competency-rubric.md) を参照します。
@@ -307,4 +334,8 @@ Cartへ商品を追加した後にAppを再起動し、状態復元を確認し�
 - PlaywrightとMaestroで同じBusiness Flowを1件以上比較している。
 - Native固有のテスト観点を1件以上説明できる。
 - Test Case IDとUI Test IDを区別できる。
-- Android RuntimeとiOS Build-onlyの保証差を、Current ADR / Workflowに沿って説明できる。
+- Android RuntimeとiOS Build-onlyの保証差を、Current ADR / Workflowに沿ったReference比較として誤記なく扱える。iOS RuntimeをCommon RequiredやC08 Evidenceの代替にはしない。
+
+## 次の行動
+
+Common routeを進む場合は [P1-8: Test Management and Maintainability](08_test-management-and-maintainability.md) へ進みます。Native specializationを続ける場合も、CommonのP1-8を完了してから、Native成果物の整理とPart 2の選択課題へ進みます。

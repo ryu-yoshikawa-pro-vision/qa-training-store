@@ -327,11 +327,32 @@ Test Case ID `TC-CART-001` を想定し、Variation選択からCart追加まで�
 7. Playwright Configの`retries`を増やせばFlaky問題は解決するか。
 8. Training用specと正式Regressionを分離する理由は何か。
 
+## 自己確認
+
+### 回答の最低判定基準
+
+- `async` / `await`をBrowser操作の完了待ち、`{ page }`をTestが受け取るBrowser Pageとして説明している。
+- ActionとAssertionを「操作」と「何が正しければPassか」に分け、`toBeVisible`が対象の可視性だけを保証することを説明している。
+- Locatorの選択理由にRole / Label / UI Test IDの意味と、CSS構造依存の保守Riskを含めている。
+- `waitForTimeout`ではなく意味のある状態を待つ理由を説明し、固定待機を使わない1例を書ける。
+- `retries`が根本原因の修正ではないこと、Syntax / Type、Runtime、AssertionのFailureを区別している。
+- Training specとFormal Regressionを分離する理由として、実行範囲と既存Suiteの品質境界を説明している。
+
+### Recovery
+
+構文が読めない場合は該当するLesson 0の小節へ戻り、`import` → `test` → `page` → Locator → Assertionの役割を指差し確認します。Testが起動しない場合はSyntax / Type Error、実行中の失敗はRuntime、期待不一致はAssertionとしてエラー全文を分類し、Browser / Base URLの問題はEnvironment blockへ分けます。
+
 ## 完了条件
 
 - Playwright Test内の `import`、`async`、`await`、`page`、Locator、Assertionの役割を説明できる。
-- Scenario Shopを対象にPlaywright Testを2本以上書いている。
+- Scenario Shopを対象に、意味のあるlearner-authored Playwright TestをTraining境界へ書いている。
 - Role / Labelを使ったLocatorを利用している。
 - 固定待機に頼らずAssertionで状態を待てる。
 - Training用実行境界と既存Regressionの役割を説明できる。
 - 自分のコードと既存E2Eの違いを3点以上説明できる。
+
+練習量の目安として2本以上のTestを書いてもよいが、本数だけではcompletionとしません。
+
+## 次の行動
+
+[Part 1-5: Playwright E2E実践](./05_playwright-e2e-practice.md)へ進み、設計したCart CaseをReset可能なTraining E2Eへ接続します。

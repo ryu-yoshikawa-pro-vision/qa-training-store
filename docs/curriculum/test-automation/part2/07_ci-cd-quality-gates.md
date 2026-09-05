@@ -25,6 +25,10 @@
 - `training/github-actions/`
 - Cloudflare Pages Preview / Production経路
 
+## Common Required boundary
+
+Common routeでは、bounded Web CIについて、Mergeを止めるQuality Gate、確認対象のBuild / Test Artifact、失敗または想定外SkipをSuccessにしないfail-closedの判断を行います。Preview / Production delivery、Native CI、vendor固有の運用、Level 3の改善設計はAdvanced / ReferenceまたはNative specializationです。
+
 ## Lesson 1: Quality Gate
 
 Quality Gateは、次の工程へ進むために満たすべき条件です。
@@ -85,7 +89,7 @@ Quality Gateは厳しさだけでなく信頼性が重要です。
 
 案件によって最適配置は異なります。
 
-## Lesson 4: CIとCD
+## Lesson 4: CIとCD（Advanced / Reference）
 
 CIは変更統合時のBuild / Testなどの自動検証を中心に扱います。
 
@@ -109,7 +113,7 @@ mainではProduction Deploy
 Production Smoke
 ```
 
-## Lesson 5: Preview Environment
+## Lesson 5: Preview Environment（Advanced / Reference）
 
 Pull RequestごとのPreviewは、Merge前に実際のDeploy環境で確認できる利点があります。
 
@@ -125,7 +129,7 @@ Scenario ShopではCloudflare PreviewをRequired経路へ組み込んでいま�
 
 なぜLocal BuildのTestだけではなくPreview Smokeも実行するか考えます。
 
-## Lesson 6: Deploy後Smoke
+## Lesson 6: Deploy後Smoke（Advanced / Reference）
 
 Deploy Commandが成功しても、公開URLが正常に動作する保証にはなりません。
 
@@ -133,7 +137,7 @@ Deploy後Smokeでは最低限のCritical状態を確認します。
 
 SmokeへRegression全件を入れるのではなく、公開成功を素早く判断するTestを選びます。
 
-## Lesson 7: Artifactの一貫性
+## Lesson 7: Artifactの一貫性（Common Required: Web Artifact）
 
 「TestしたArtifact」と「DeployしたArtifact」が違うと、Test結果の意味が弱くなります。
 
@@ -153,9 +157,9 @@ Scenario Shopの`verify` / `validate`ではJob Resultを明示的に確認しま
 
 「Workflowが最後まで走った」ことと「必要条件がすべて成功した」ことを区別します。
 
-Curriculum側でも `validate:curriculum`、Training Web baseline、Training Maestro baselineをRequired経路へ接続します。Intentional FailureはManual / Instructor向けの実際のFAILを確認するためのもので、通常のRequired PASSへ混在させません。
+Curriculum側でも `validate:curriculum` とTraining Web baselineをCommonの確認対象へ接続します。Training Maestro baselineはNative specialization / Supportの確認対象であり、Common Requiredへ逆流させません。Intentional FailureはManual / Instructor向けの実際のFAILを確認するためのもので、通常のRequired PASSへ混在させません。
 
-## Lesson 9: 並列化
+## Lesson 9: 並列化（Extension / Reference）
 
 独立した処理は並列化するとWall-clockを短縮できます。
 
@@ -175,7 +179,7 @@ Curriculum側でも `validate:curriculum`、Training Web baseline、Training Mae
 
 Job数を増やすこと自体を最適化と呼びません。
 
-## Lesson 10: Failure時の再実行Cost
+## Lesson 10: Failure時の再実行Cost（Extension / Reference）
 
 大きな1Jobにすべて詰めると、後半だけ失敗しても最初から再実行する場合があります。
 
@@ -195,7 +199,7 @@ CIを速くするために次を安易に行いません。
 
 最適化は「必要な保証を維持したまま」行います。
 
-## Lesson 12: Workflow自体をTestする
+## Lesson 12: Workflow自体をTestする（Advanced / Reference）
 
 Scenario ShopにはCI WorkflowのContract Testがあります。
 
@@ -272,11 +276,26 @@ Scenario Shopの現在のWeb CI/CDを図示します。
 5. Job並列化が必ず高速化につながるわけではない理由は何か。
 6. Workflow Contract Testにはどんな価値があるか。
 
+## 自己確認
+
+次を自分のbounded Web CI設計、Gate条件、Artifact、Failure記録で確認できれば、Common completionを自己判定できます。
+
+- どのWeb Build / TestをRequired Gateへ置くかをRisk、信頼性、Feedback速度、Cost、Actionabilityの理由付きで選べる。
+- TestしたArtifactと後続で確認するArtifactを対応付け、Failure時に確認するArtifactを説明できる。
+- 上流JobのFailureまたは想定外Skipを最終GateがSuccessにしない条件を説明できる。
+- `continue-on-error`、Required解除、Assertion弱体化でGateを通しやすくする設計を採用していない。
+- Preview / Production、Native、vendor detail、Level 3改善はAdvanced / Referenceまたはspecializationとして分類し、Common Requiredへ混ぜていない。
+
+### Recovery
+
+Gate設計が曖昧な場合は、まず「止めるFailure」「残すArtifact」「失敗時の確認先」の3点へ戻します。CIが動かない場合はWorkflow、Job、Artifact、Environmentを切り分け、想定外Skipなら条件とJob Resultを確認します。Preview / ProductionやNativeの詳細へ進みすぎた場合は、bounded Web Gateへ戻ってCommonの最小条件を確定します。
+
 ## 完了条件
 
-- PR / main / Nightly / ManualのTest配置案を作成している。
-- Required Quality Gateを理由付きで設計できる。
-- Scenario ShopのWeb CI/CD経路を図示・説明できる。
-- Build Artifact、Preview、Production、Smokeの関係を説明できる。
-- 品質Gateを弱めないCI改善案を1件以上説明できる。
-- Android Build + Runtime E2EとiOS Build-onlyのQuality Gate差を説明できる。
+- bounded Web CIについて、Required Quality Gate、Build / Test Artifact、Failure Evidence、fail-closed条件を理由付きで設計できる。
+- Test配置やQuality Gateの判断をRisk、Feedback速度、Cost、Flakiness、Actionabilityで説明できる。
+- Preview / Production、Native、vendor固有の詳細、Level 3改善はCommon completionのRequired条件にしていない。
+
+## 次の行動
+
+bounded Web CIの設計を最終Integration設計へ接続するため、[P2-8: 導入設計演習](08_integration-design-capstone.md)へ進みます。Preview / Production deliveryやNative差分は必要な場合だけAdvanced / Referenceとして比較します。

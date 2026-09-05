@@ -31,6 +31,8 @@ Part 1で作成したTraining用Playwright Testは `playwright.training.config.t
 
 現在の `.github/workflows/ci.yml` は、自分の最小Playwright CIを動かした後に比較教材として読みます。
 
+CurrentのWorkflow topology、PR / main / Nightlyの配置、Production Artifact SmokeはReference / Advanced comparisonです。P2-5 Common completionは準備済みTraining WorkflowのWeb Build、Playwright実行、Failure Artifactで成立します。
+
 ## Lesson 1: CIでPlaywrightを動かすために必要なもの
 
 Playwright TestだけをRunnerへ置いても実行できません。
@@ -137,7 +139,7 @@ Scenario ShopではFailure時のPlaywright出力をUploadしています。
 
 Artifactは「多ければ多いほどよい」ではなく、原因分析に必要なものを残します。
 
-## Lesson 7: Smoke / Regression
+## Lesson 7: Smoke / Regression（Reference: suite placement）
 
 全部のPlaywright Testを同じ頻度で実行する必要はありません。
 
@@ -155,7 +157,7 @@ Artifactは「多ければ多いほどよい」ではなく、原因分析に必
 - WebKit
 - Extended Mobile
 
-Scenario Shopの現在のWorkflowでPRと非PRの差を確認します。
+Scenario Shopの現在のWorkflowでPRと非PRの差を確認します。Test Suiteの配置設計はP2-7で扱うため、このLessonではReference comparisonとして確認します。
 
 ## Lesson 8: Browser Strategy
 
@@ -183,7 +185,7 @@ Scenario ShopではDesktop、Tablet、Mobile、Small MobileのScreenshotをCI Ar
 
 Visual確認をFunctional E2Eへ無理に混ぜない設計を理解します。
 
-## Lesson 10: Production Artifact Smoke
+## Lesson 10: Production Artifact Smoke（Advanced / Reference）
 
 Automation BuildとProduction Buildは同じとは限りません。
 
@@ -240,10 +242,28 @@ Part 1で作成したTestを次へ仮分類します。
 5. Automation BuildとProduction Buildを分ける価値は何か。
 6. Training Playwright CIを本体のDeploy Workflowから分ける理由は何か。
 
+## 自己確認
+
+次をTraining Workflowの実行結果またはArtifactを指しながら確認できれば、P2-5 Commonの判断を自己判定できます。
+
+- Browser Install、Application Build / Serve、Base URL、Playwright Testの関係を説明できる。
+- BuildしたArtifactを再利用する理由と、Failure工程に応じて必要なTrace / Screenshot / Reportを選べる。
+- Training Web CIとProduction Deploy / Smokeの責務を分け、Production SecretをTrainingへ持ち込まない理由を説明できる。
+- Expected Failureを通常のbaseline PASSへ混ぜず、Failure Evidenceから原因の範囲を説明できる。
+- PR / main / Nightlyの配置やCurrent CI topologyはP2-7またはReference comparisonであり、P2-5 Common completionの隠れた前提ではない。
+
+### Recovery
+
+CIで失敗した場合は、Browser / Dependency Setup、Application Build / Serve、Base URL、Playwright Assertion、Artifact Uploadの順にFailure stageを確認します。Artifactが残らない場合はまずWorkflow設定とEnvironment blockを切り分け、Testの理解不足と決めつけません。Production環境やSecretが必要になった場合はTraining Workflowへ追加せず、Reference / Instructor supportへ戻ります。
+
 ## 完了条件
 
 - Training Workflow上でScenario ShopのPlaywright Testを実行できる。
 - Failure時にEvidence Artifactを取得できる。
-- PR / main / NightlyのTest配置案を作成している。
-- Training CIと実運用CIの責務差を説明できる。
-- 現在のScenario Shop Playwright CI構成の主要な設計理由を説明できる。
+- Build / Browser / Serve / Base URLとPlaywright Testの関係を説明できる。
+- Training CIと実運用CIの責務差を説明でき、Production SecretやDeployへ依存しない境界を守れる。
+- Failure stageとEvidence Artifactの対応を1件説明できる。
+
+## 次の行動
+
+Training Web CIの実行結果をQuality Gate、Artifact、Fail-closedの設計へ接続するため、[P2-7: Quality GateとCI/CD](07_ci-cd-quality-gates.md)へ進みます。
