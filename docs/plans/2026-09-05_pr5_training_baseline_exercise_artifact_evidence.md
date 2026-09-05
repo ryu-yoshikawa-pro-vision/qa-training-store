@@ -72,7 +72,7 @@ PR 5ではbranch / skip / rejoinを変更しない。
 
 Artifactの**存在**とsuccessful executionは同義ではない。
 
-Native Training workflowはFailure diagnosisのためArtifact uploadを`if: always()`で維持する。したがってfailure runでもArtifactは生成され得る。
+Native Training workflowはFailure diagnosisのためArtifact collection / uploadを`if: always()`で維持する。したがってfailure runでもArtifactは生成され得る。
 
 C08でsuccessful Maestro execution artifactとして扱える最低条件は次とする。
 
@@ -83,12 +83,17 @@ C08でsuccessful Maestro execution artifactとして扱える最低条件は次�
 
 **GitHub Training Native CI**
 
-- `Run Training Maestro exercise` stepを含むNative Training workflow runがsuccessである。
-- 同じworkflow runのArtifact内に`maestro/exercise/training-native-exercise.xml`が含まれる。
+- `training:native:exercise`を実行するstepが実行され、successで終了する。
+- 同じworkflow runのuploaded Artifact内に`maestro/exercise/training-native-exercise.xml`が含まれる。
+
+Native Training workflow **全体**のconclusionをC08 successful evidenceの追加必須条件にはしない。exercise成功後のdiagnostic collectionやemulator cleanup等の後処理failureへC08 Completionを不要に結合しないためである。
+
+baseline stepはexercise stepより前に通常のfail-fast順序で実行されるため、exercise stepが実行されsuccessしている場合、同一Runのstandalone baseline stepは通過済みである。
 
 次はFailure diagnosis Evidenceであり、C08 successful execution evidenceの代替にしない。
 
-- workflow / exercise stepがfailureのRun Artifact
+- exercise stepがfailureのRun Artifact
+- exercise JUnitを欠くArtifact
 - `if: always()`で保存されたlogcat / emulator log / partial Maestro output
 - baselineだけ成功したArtifact
 - stock exerciseの成功Artifact
@@ -147,7 +152,7 @@ Instructor / 運営はEnvironment、Account、Permission、Device、Training Cop
 | Native Training workflow | `pull_request`全体 + `workflow_dispatch`、baselineだけ実行、job表示名もbaseline-only | `fix_now`: Native specialization pathsだけで起動し、起動時はbaseline→exerciseを常に実行。job表示名もgeneric化 |
 | Native workflow mode | 現在なし | **追加しない** |
 | Training README | Native templateをbaseline-onlyと説明 | baseline→exerciseへ同期し、template / active workflowの役割を明記 |
-| P2-6 learner artifact | learner-authored Training Native CI変更をcompletionへ含める | C08正本へ合わせ、learner-authored exercise diff + successful CI run artifact + CI設計判断へ同期 |
+| P2-6 learner artifact | learner-authored Training Native CI変更をcompletionへ含める | C08正本へ合わせ、learner-authored exercise diff + successful CI exercise Artifact + CI設計判断へ同期 |
 | Native failure exercise | READMEのみ | RA-G5 `defer` |
 
 ### Contract / Training Copy
@@ -194,7 +199,8 @@ Instructor / 運営はEnvironment、Account、Permission、Device、Training Cop
 - Native baseline / exerciseの別JUnit / output namespace
 - Current Native learner exercise YAMLの**無変更再利用**
 - P1-7 local Physical Androidでbaseline後にexerciseを同一serial / runIdで実行するexact learner-facing手順
-- 1 runId = 1 baseline→exercise→Evidence attemptというretry / Evidence対応契約
+- `1 runId = 1 baseline→exercise→Evidence attempt`というEvidence対応契約
+- retryで新attemptへ入る場合の**new attempt = new runId**契約
 - successful execution evidenceとfailure diagnostic Artifactの区別
 - Web expected-failure workflowを既存checked commandへ接続
 - workflow command allowlistをleast-privilege化
@@ -202,9 +208,10 @@ Instructor / 運営はEnvironment、Account、Permission、Device、Training Cop
 - Native workflow起動時のbaseline→exercise連続実行
 - Native workflowのbaseline-only job表示名をgeneric化
 - Training workflow READMEをcurrent execution / template roleへ同期
-- P2-6の旧learner-authored workflow前提を有限headingで同期
+- P2-6の旧learner-authored workflow前提を有限heading / paragraphで同期
 - validator / workflow contract / existing contract testの最小同期
 - Native shared runnerへ移る既存cleanup / invocation assertionの参照先移管
+- new command / Artifactの事実が変わるlearner-facing箇所だけのbounded同期
 
 ### Out of scope
 
@@ -216,7 +223,6 @@ Instructor / 運営はEnvironment、Account、Permission、Device、Training Cop
 - Current `training/maestro/exercises/native-training-exercise.yaml`の内容変更
 - exercise固有Screenshot追加
 - exercise内`runFlow`を消すためのsetup Flow再分割 / conditional skip / runner mode
-- Failure時Artifact uploadを停止すること
 - Product behavior / Seed / Test Control / Normative Specification変更
 - Product Formal Regression / Product Required Gate変更
 - Competency集合、C07 / C08 Minimum Evidence、Common / Native routeの再設計
@@ -232,25 +238,25 @@ Instructor / 運営はEnvironment、Account、Permission、Device、Training Cop
 
 1. Web desktop exerciseはpackage scriptから既存`playwright.training.config.ts` / `training-chromium`へ直接接続する。新Web runnerを作らない。
 2. `training:web:mobile:exercise`は変更しない。Desktop / Mobileを1commandへ統合しない。
-3. Web Training workflowには`exercise` modeを追加しない。
+3. Web Training workflowには`exercise` modeを追加しない。C07 Minimum Evidenceはcanonical direct commandのsuccessful execution evidenceで成立し、CI executionは必須契約ではない。
 4. Web expected-failure workflowはmode数 / Artifact名を増やさず、既存modeのcommandだけchecked entryへ置換する。raw package scriptは残してよいがworkflow allowlistからremoveする。
 5. Native Training workflowにはmodeを追加しない。specialization opt-inは`pull_request.paths`で実現する。
-6. Native workflowが起動したら常に`training:native:baseline`→`training:native:exercise`の順に実行する。manual dispatchも同じ経路を使う。
-7. Current learner exercise YAMLの`runFlow: ../baseline/native-training-baseline.yaml`は維持し、YAML自体を変更しない。CIではstandalone baselineの後にexercise内でもbaseline Flowがsetupとして再実行されることを意図的に許容する。
+6. Native workflowが起動したら常に`training:native:baseline`→`training:native:exercise`の順に実行する。manual dispatchも同じ単純な経路を使う。
+7. Current learner exercise YAMLの`runFlow: ../baseline/native-training-baseline.yaml`は維持し、**YAML自体を変更しない**。CIではstandalone baselineの後にexercise内でもbaseline Flowがsetupとして再実行されるが、baseline Evidenceの独立性と`training:native:exercise`単独実行性を両立するため意図的に許容する。
 8. baseline / exercise Evidenceの識別はJUnit filenameとoutput directoryで行う。Screenshot名の追加taxonomyは作らない。
-9. Failure diagnosis用Artifactは`if: always()`で残す。successful execution判定はRun / step statusとexercise JUnitの組合せで行い、新しいgraderを作らない。
-10. `training:native:baseline`のdirect execution default output `output/training/maestro`は変更しない。
-11. Native CIで同一Run内のEvidenceが衝突しないよう、Workflowから`TRAINING_MAESTRO_OUTPUT_DIR`をbaseline / exercise別に与える。
-12. Nativeのserial resolutionとMaestro invocationは既存helperを再利用する。
-13. baseline / exerciseのentrypointは別fileに残す。ただしADB cleanup、output準備、process起動、exit handling等の重複実行処理はTraining Native専用の1 helper関数へまとめる。
-14. shared helperは2 entrypointの重複除去だけを目的とし、mode parser、plugin、generic framework、抽象classを作らない。
-15. `maestro-runner.ts`はflow path / JUnit file name / default output directoryだけを設定として受ける。
-16. `maestro-runner.ts`は実行失敗をthrowし、各entrypointがtop-levelでcatchして`process.exitCode = 1`を設定する。
-17. validator / contract testは実装責務の移動に追従する。test都合で共通cleanupをthin baseline entryへ残さない。
-18. Contract testはstable behaviorだけを固定し、step name、job display name、log wording、Curriculum prose、Artifact表示名をfreezeしない。
-19. Native exercise YAMLがPR5で無変更であることはimplementation diff reviewで確認する。`no screenshot`や全文一致をRepository永久machine contractにしない。
-20. P2-6ではlearnerにTraining workflow YAMLの変更をRequired化しない。
-21. P2-6 Completionの文章自体を新しいmachine contractとして固定しない。
+9. `training:native:baseline`のdirect execution default output `output/training/maestro`は変更しない。
+10. Native CIで同一Run内のEvidenceが衝突しないよう、Workflowから`TRAINING_MAESTRO_OUTPUT_DIR`をbaseline / exercise別に与える。
+11. Nativeのserial resolutionとMaestro invocationは既存helperを再利用する。
+12. baseline / exerciseのentrypointは別fileに残す。ただしADB cleanup、output準備、process起動等の重複実行処理はTraining Native専用の1 helper関数へまとめる。
+13. shared helperは2 entrypointの重複除去だけを目的とし、mode parser、plugin、generic framework、抽象classを作らない。
+14. `maestro-runner.ts`はflow path / JUnit file name / default output directoryだけを設定として受ける。log labelやmode名など表示目的の設定値を増やさない。
+15. `maestro-runner.ts`は実行失敗をthrowし、`run-maestro-baseline.ts` / `run-maestro-exercise.ts`の各entrypointがtop-levelでcatchして`process.exitCode = 1`を設定する。error ownershipをrunnerとentrypointで二重化しない。
+16. validator / contract testは実装責務の移動に追従する。共通cleanup / invocation semanticsをthin baseline entryへ残すための逆向き実装はしない。
+17. Contract testはstable behaviorだけを固定し、step name、log wording、Curriculum prose、Artifact表示名をfreezeしない。
+18. P2-6ではlearnerにTraining workflow YAMLの変更をRequired化しない。learner-authored Native exercise diff、successful CI Artifact、Trigger / Failure stage / Artifact / Cost判断を学習Evidenceとする。
+19. P2-6 Completionの文章自体を新しいmachine contractとして固定しない。Rubric C08の正本machine contractとmanual learner validationを使う。
+20. Native CIのC08 successful evidenceはexercise step success + same-run exercise JUnit Artifactで判別し、workflow全体conclusionを追加条件にしない。
+21. Local retryで新しいattemptを開始する場合は必ず新しい`runId`を使う。同じ`runId`へ別attemptのJUnit / Evidenceを上書き・混在させない。
 
 ## Implementation tasks
 
@@ -261,19 +267,26 @@ Instructor / 運営はEnvironment、Account、Permission、Device、Training Cop
 - `package.json`
 - `scripts/validate-curriculum.ts`
 - `docs/curriculum/test-automation/part1/04_playwright-foundations.md`
-- `docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md`（必要なcommand位置だけ）
+- `docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md`
 - `docs/curriculum/test-automation/part1/06_execution-and-failure-analysis.md`
-- `docs/curriculum/test-automation/part1/09_part1-capstone.md`（Current記述にraw invocationが残る場合だけ）
+- `docs/curriculum/test-automation/part1/09_part1-capstone.md`
 
-**Change**
+上記4教材はCurrentを再照合した結果、すべてWeb desktop exercise canonical commandとの同期が必要と判断済みである。「必要なら」判断を実装者へ残さない。
 
-`package.json`へ次の意味を持つcommandを追加する。
+**Package command — exact**
+
+`package.json`へ次を追加する。
+
+```json
+"training:web:exercise": "playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-chromium"
+```
+
+意味:
 
 ```text
-training:web:exercise
-  target  = training/playwright/exercises
-  config  = playwright.training.config.ts
-  project = training-chromium
+target  = training/playwright/exercises
+config  = playwright.training.config.ts
+project = training-chromium
 ```
 
 制約:
@@ -282,12 +295,35 @@ training:web:exercise
 - `playwright.training.config.ts`を変更しない。
 - `e2e/web/**`を含めない。
 - new Web runnerを作らない。
+- Web Training workflowへexercise modeを追加しない。
 
-`validate-curriculum.ts`ではcommandの存在だけでなく、target / config / projectのexact contractを検証する。
+`validate-curriculum.ts`ではcommandの存在だけでなく、上記exact scriptを検証する。
 
-Learner-facing materialではraw Playwright invocationを組み立てさせず、desktop exerciseのcanonical next actionを`pnpm run training:web:exercise`へ統一する。
+**Learner-facing sync — exact intent**
 
-stock starter PASSはstarter execution evidenceに過ぎず、C07にはlearner-authored diff + successful execution evidenceが必要であることを維持する。
+P1-4:
+
+- learner-authored desktop exerciseのcanonical commandを`pnpm run training:web:exercise`と明示する。
+- baseline / mobile baselineとの役割を混同しない。
+
+P1-5:
+
+- desktop learner exerciseは`training:web:exercise`、mobile learner exerciseは既存`training:web:mobile:exercise`という対応を明示する。
+- Mobile commandの既存責務は変更しない。
+
+P1-6:
+
+- 「対象specをTraining Configでraw実行する」というlearner-facing余地をcanonical commandへ置換する。
+- Failure分析で自分のTraining Testだけを再実行する場合の標準入口を`training:web:exercise`へ揃える。
+
+P1-9:
+
+- `training-chromium`というproject名だけで実行を表現せず、baseline後のlearner exercise実行を`pnpm run training:web:exercise`として一意にする。
+- Common completion契約は変更しない。
+
+上記4教材以外へWeb command同期を広げない。Current factsに新しい直接不整合を実装中に発見した場合だけStop conditionとして再評価する。
+
+stock starter PASSはstarter execution evidenceに過ぎず、C07にはlearner-authored diff + successful execution evidenceが必要であることを既存評価契約のまま維持する。
 
 **Validation**
 
@@ -296,6 +332,7 @@ stock starter PASSはstarter execution evidenceに過ぎず、C07にはlearner-a
 - `pnpm run training:web:mobile:exercise`
 - `pnpm run validate:curriculum`
 - `pnpm run test:contracts`
+- P1-4 / P1-5 / P1-6 / P1-9のcanonical commandが一致
 
 ### Task 2 — Native learner exercise direct entry with bounded shared runner
 
@@ -435,7 +472,7 @@ pnpm run training:native:exercise
   -RunId $runId
 ```
 
-**Attempt / retry contract — fixed**
+#### Attempt / retry contract — fixed
 
 `1 runId = 1 baseline → exercise → Evidence attempt`とする。
 
@@ -443,12 +480,16 @@ pnpm run training:native:exercise
 - 1 attempt内では`$runId`を変更しない。
 - device discoveryをexercise前にやり直さない。
 - baseline outputとexercise outputだけを別directoryにする。
-- exercise失敗後に、**新しいrunIdのexerciseだけを実行して古いbaselineと組み合わせない**。
-- retryで新しい`$runId`を採番する場合は、少なくとも`baseline → exercise → Evidence`をその新しい`$runId`で揃える。
-- Doctor / Prepare / Build / Install / Smoke / Test Controlまで再実行する必要があるかは、最初の失敗stageと既存Recoveryに従う。Evidence対応関係を守るために不要な上流処理まで固定再実行しない。
+- exercise failureでそのattemptはfailureとして扱う。
+- **retryとして新しいattemptを開始する場合は必ず新しい`$runId`を採番する。既存`$runId`を再利用しない。**
+- 新しいattemptでは、少なくとも`baseline → exercise → Evidence`をその新しい`$runId`で揃える。
+- 新しいrunIdのexerciseだけを実行して、旧attemptのbaseline / Evidenceと組み合わせない。
+- Doctor / Prepare / Build / Install / Smoke / Test Controlまで再実行する必要があるかは、最初の失敗stageと既存Recoveryに従う。Evidence対応関係を守るためだけに不要な上流処理まで再実行しない。
 - Environment block解消後も、learnerは同じexerciseへrejoinする。
 
-**Local successful exercise evidence**
+Current `android-local.ps1`は`RunId`を`.artifacts/native-local/<runId>`のArtifact rootとして使うため、新attemptごとにnew runIdとする方が古いEvidence混在を避ける最小契約である。
+
+#### Local successful exercise evidence
 
 C08のsuccessful executionとして扱うには、同じattemptで次を両方満たす。
 
@@ -457,7 +498,7 @@ C08のsuccessful executionとして扱うには、同じattemptで次を両方�
 
 JUnitが存在してもcommandがfailureならsuccessful evidenceとしない。command successでもJUnitがない場合はEvidence欠落としてcompletionに使わない。
 
-**C08 contract**
+#### C08 contract
 
 - baseline PASS ≠ C08 completion
 - stock exercise PASS ≠ C08 completion
@@ -475,6 +516,7 @@ JUnitが存在してもcommandがfailureならsuccessful evidenceとしない。
 - exercise command単独でbaseline Flow setupから実行できる
 - Current exercise YAMLにPR5由来の差分がないことをimplementation diffで確認
 - P1-7 runbookが1 runId内でbaseline → exercise → Evidenceの順に一意である
+- retryのnew attemptがnew runIdを使用し、旧attemptとEvidenceを混在させない
 
 ### Task 3A — Web expected-failure workflow alignment only
 
@@ -520,6 +562,15 @@ ADD:
 
 `training:web:exercise`はWeb Training workflowで使わないためworkflow allowlistへ追加しない。
 
+**Reason**
+
+expected failureを「Workflowが赤いから意図どおり」と人間判断させず、既存checked runnerのfail-close contractを使う。
+
+- intended failureが発生した
+- required Evidenceが生成された
+- unexpected PASSならfailure
+- Evidence欠落ならfailure
+
 **Validation**
 
 - checked commandがapprovedされている
@@ -564,7 +615,7 @@ pull_request:
 - Product Formal workflow
 - repository-owned template pathそのものをactive Training CopyのPR filterへ追加すること
 
-`package.json`を含めない理由: Web / Common側script変更だけでNative Emulatorを起動しないため。package command自体はstatic validatorで確認する。
+`package.json`を含めない理由: Web / Common側script変更だけでNative Emulatorを起動しないため。Native exercise package command自体はstatic validatorでexactに確認する。
 
 #### Execution contract — fixed
 
@@ -621,16 +672,19 @@ job / step表示名自体はmachine contractでfreezeしない。目的はGitHub
 
 C08でsuccessful Training Native CI Artifactとして扱う最低条件は次とする。
 
-1. Native Training workflow runがsuccessである。
-2. `training:native:exercise` stepが実行されてsuccessである。
-3. 同一Runのuploaded Artifact内に`maestro/exercise/training-native-exercise.xml`が存在する。
+1. `training:native:exercise` stepが実行されてsuccessである。
+2. 同一Runのuploaded Artifact内に`maestro/exercise/training-native-exercise.xml`が存在する。
+
+**Workflow run全体がsuccessであることを追加条件にしない。** exercise成功後のdiagnostic collection / artifact post-processing / emulator cleanup等の後処理failureへC08 Completionを結合しない。
+
+exercise stepへ到達している場合、通常のfail-fast実行順によりstandalone baseline stepは通過済みであるため、別のbaseline-success判定ロジックを追加しない。
 
 次はdiagnostic artifactとして残すがC08 successful evidenceにしない。
 
 - baseline failure後のArtifact
 - exercise failure後のArtifact
-- emulator / SDK / install failure後のArtifact
 - exercise JUnitを欠くArtifact
+- emulator / SDK / install failure後のArtifact
 
 Artifact collection / uploadの`if: always()`は維持する。
 
@@ -655,20 +709,29 @@ READMEを別のTraining architecture documentへ拡張しない。
 - manual dispatch: baseline→exerciseを実行
 - baseline failure: exerciseへ進まない
 - baseline success + exercise failure: failure Artifactを残すがCompletionには使わない
+- exercise success + valid exercise JUnit Artifact: C08 successful execution evidenceとして利用可能
+- exercise後のcleanup等がfailureでも、exercise success + valid Artifact自体を無効化する追加ルールは作らない
 - Product `.github/workflows/native-ci.yml`は変更しない
 
 ### Task 4 — Learner-facing command / Artifact alignment
 
-**Expected change candidates only**
+#### Required Web learner-facing sync
+
+次の4ファイルはCurrent確認済みのため**Required**とする。
 
 - `docs/curriculum/test-automation/part1/04_playwright-foundations.md`
-- `docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md`（必要なcommand位置だけ）
+- `docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md`
 - `docs/curriculum/test-automation/part1/06_execution-and-failure-analysis.md`
+- `docs/curriculum/test-automation/part1/09_part1-capstone.md`
+
+Task 1のexact intentだけを反映し、教材全面rewriteはしない。
+
+#### Required Native learner-facing sync
+
 - `docs/curriculum/test-automation/part1/07_maestro-native-automation.md`
-- `docs/curriculum/test-automation/part1/09_part1-capstone.md`（Current記述に不一致がある場合だけ）
 - `docs/curriculum/test-automation/part2/06_native-ci-maestro.md`
 
-**No planned change unless Current facts unexpectedly diverge**
+#### No planned change unless Current facts unexpectedly diverge
 
 - `docs/curriculum/test-automation/README.md`
 - `docs/curriculum/test-automation/00_learning-design.md`
@@ -685,12 +748,13 @@ P2-5は既にlearner-facing expected-failure commandとして`training:web:check
 - Web expected failure: checked contract PASSとunexpected failureを区別できる。
 - Native P1-7: specialization gate → same serial / same runId → baseline → exercise → Evidenceを一意に辿れる。
 - Native P1-7: `1 runId = 1 attempt`とretry時のbaseline / exercise / Evidence対応を誤解しない。
+- Native P1-7: retryとして新attemptを開始する場合はnew runIdを使い、旧attemptを上書きしない。
 - Native learnerがsuccessful Artifactとfailure diagnostic Artifactを区別できる。
 - Common routeではNative commandを要求しない。
 
-#### P2-6 bounded rewrite — exact headings
+#### P2-6 bounded rewrite — exact locations
 
-P2-6は全面rewriteしない。旧「learnerがTraining Native workflowを変更してCompletionする」前提が残る次のheading / paragraphだけを同期する。
+P2-6は全面rewriteしない。旧「learnerがTraining Native workflowを変更してCompletionする」前提が残る次の8箇所だけを同期する。
 
 1. `## 教材` の主な参照先
    - `scripts/training/run-maestro-exercise.ts`を追加する。
@@ -710,16 +774,20 @@ P2-6は全面rewriteしない。旧「learnerがTraining Native workflowを変�
    - prepared Training Native workflowをNative specialization changeまたはmanual dispatchで実行し、baseline→exerciseとArtifactを確認する演習へ変更する。
    - workflow YAML編集をRequired actionにしない。
 
-5. `## 自己確認`
+5. `## ハンズオン3: 現在のAndroid Native CI構成を図にする` 内の比較文
+   - `自分の1Job構成`という旧learner-authored workflow前提を削除する。
+   - `prepared Training Native Workflowの1Job構成`または同義の表現へ置換し、現在のFormal Native CIとの比較目的だけを残す。
+
+6. `## 自己確認`
    - 「自分が作成したboundedなNative CI変更」を要求しない。
    - exercise diff、successful CI Artifact、Trigger / Failure stage / Artifact / Cost判断へ置換する。
 
-6. `### Recovery`
+7. `### Recovery`
    - baselineしかない場合にworkflow diffへ戻る記述を削除する。
    - failure stageを切り分け、Environment block解消後は同じlearner exerciseへrejoinする。
    - failure Artifactはdiagnosis用でsuccessful Completion evidenceではないことを明記する。
 
-7. `## 完了条件`
+8. `## 完了条件`
    - bounded Training Native CI変更作成をRequiredから削除する。
    - learner-authored Native exercise diff + successful Training Native CI ArtifactをRequiredにする。
    - Trigger / Failure / Artifact / Costの設計判断を残す。
@@ -740,7 +808,7 @@ P2-6 Completion wordingはCurriculum proseとしてmanual cross-checkする。�
 
 追加 / 更新するstable contract:
 
-- `training:web:exercise` exact target / config / project
+- `training:web:exercise` exact = `playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-chromium`
 - `training:native:exercise` exact = `tsx scripts/training/run-maestro-exercise.ts`
 - existing `training:web:mobile:exercise` exact contract維持
 
@@ -793,7 +861,7 @@ run-maestro-exercise.ts
 
 Machine contractとして最低限次を検証する。
 
-1. desktop exercise command exact target / project
+1. desktop exercise command exact target / config / project
 2. Native exercise package command exact entry
 3. `maestro-runner.ts`がcurrent cleanup semanticsを保持
 4. cleanup ordering（force-stop → pm clear → process exit wait）
@@ -816,12 +884,16 @@ Machine contractにしないもの:
 - job / step display nameのliteral
 - README prose全文
 - P2-6 Completion prose全文
+- P2-6 heading単位の全文一致
 - `native-training-exercise.yaml`がPR5以前と全文一致すること
 - exercise YAMLにScreenshotが存在しないこと
 - Artifact表示名
+- Workflow全体conclusionをC08 successful evidenceとして固定すること
 - log wording
 
 `native-training-exercise.yaml`のPR5無変更はimplementation diff reviewで確認する。
+
+successful CI exercise evidenceはruntime / learner-facing contractとして`exercise step success + same-run exercise JUnit Artifact`を使い、これを自動graderへ発展させない。
 
 ## RA-G5 disposition
 
@@ -867,7 +939,8 @@ Native deviceを必要としないTypeScript / static contractはRequired。
 - `training/maestro/exercises/native-training-exercise.yaml`にPR5由来の変更がない。
 - Product Formal workflowsに変更がない。
 - Web exercise CI mode / Native mode / new generic frameworkがない。
-- P2-6変更が上記7 heading / paragraph中心のbounded syncであり、教材全面rewriteになっていない。
+- Web教材変更がP1-4 / P1-5 / P1-6 / P1-9のcanonical command同期に限定されている。
+- P2-6変更が上記8箇所中心のbounded syncであり、教材全面rewriteになっていない。
 
 ### C. CI / workflow static validation
 
@@ -878,6 +951,7 @@ Native deviceを必要としないTypeScript / static contractはRequired。
 - Native workflowがbaseline→exerciseの順に実行
 - baseline / exercise output directoryを分離
 - exercise内baseline setupをskipする追加mode / flag / conditionalがない
+- Artifact collection / uploadはFailure時も残る
 - Training Copy prepare / validate PASS
 - workflow safety boundary PASS
 - Product Formal workflowにTraining learner exerciseを追加していない
@@ -899,7 +973,8 @@ Physical AndroidまたはGitHub-hosted Emulatorが利用可能な場合だけ実
 7. exercise exit `0` + exercise JUnit存在をsuccessful local executionとして確認。
 8. learner-authored diffがsuccessful exercise Evidenceとは別に存在することを確認。
 9. exercise後にexisting Evidence Actionを同じserial / runIdで実行。
-10. retryする場合は`1 runId = 1 baseline → exercise → Evidence attempt`を維持。
+10. retryする場合はnew attempt = new runIdとし、そのnew runIdでbaseline→exercise→Evidenceを揃える。
+11. 旧attemptのrunIdを再利用せず、Evidenceを上書き・混在させない。
 
 Local direct baselineのdefault outputが従来`output/training/maestro`のままであることも確認する。
 
@@ -910,8 +985,9 @@ Local direct baselineのdefault outputが従来`output/training/maestro`のま�
 - workflow起動時にstandalone baseline→exerciseが実行される。
 - exercise内baseline Flow setupの再実行を許容し、skip最適化がない。
 - `output/training/maestro/baseline`と`.../exercise`をArtifact内で区別できる。
-- successful runではexercise JUnitがArtifactに存在する。
+- successful exercise stepのsame-run Artifactにexercise JUnitが存在する。
 - exercise failure runでもdiagnostic Artifactが保存されるが、successful Completion evidenceとして扱わない。
+- exercise success後のcleanup / diagnostic後処理failureが発生した場合でも、exercise step success + valid exercise JUnit ArtifactというC08 Evidence条件自体を追加ロジックで無効化しない。
 
 ### Environment block
 
@@ -946,9 +1022,10 @@ Native runtimeが利用できない場合はsource defectと断定しない。�
 - expected failureはchecked contract PASSとunexpected failureを区別できる。
 - stock starter / baseline PASSだけではC07 / C08 Completionにならない。
 - P1-7で`1 runId = 1 attempt`のbaseline→exercise→Evidenceを教材だけで実行できる。
-- retry時に別runIdのbaseline / exerciseを混在させない。
+- retry時のnew attemptがnew runIdであり、別runIdのbaseline / exercise / Evidenceを混在させない。
 - Native exercise内のbaseline Flow再実行がsetup目的であり、standalone baseline Evidenceとは別責務だと理解できる。
 - successful exercise Artifactとfailure diagnostic Artifactを区別できる。
+- CIではexercise step success + same-run exercise JUnit Artifactがsuccessful execution evidenceであり、workflow全体conclusionへ不要に依存しないことを説明できる。
 - Environment failure時の切り分けとrejoin先が分かる。
 - Common learnerへPhysical Android / Native runtimeを要求していない。
 - Native learnerが`training:native:exercise`を実行し、successful artifactとGit / PR diffを組み合わせてC08 Evidenceを説明できる。
@@ -979,41 +1056,45 @@ Native runtimeが利用できない場合はsource defectと断定しない。�
 PR 5は次がすべて満たされた時点で有限に完了する。
 
 1. `training:web:baseline`と`training:web:exercise`が別commandである。
-2. `training:web:exercise`が`training/playwright/exercises` + `training-chromium`だけを実行する。
+2. `training:web:exercise`がexactに`training/playwright/exercises` + `playwright.training.config.ts` + `training-chromium`へ接続されている。
 3. `training:web:mobile:exercise`の既存責務を維持する。
-4. Web expected-failure workflowが`training:web:check-expected-failure`を使用し、unexpected PASS / missing Evidenceをfail-closeする。
-5. workflow allowlistからraw `training:web:expected-failure`をremoveし、checked commandだけをWorkflow用に許可している。
-6. Web Training workflowへlearner exercise modeを追加していない。
-7. `training:native:exercise`がexactに`tsx scripts/training/run-maestro-exercise.ts`へ接続されている。
-8. `training:native:baseline`と`training:native:exercise`が別commandである。
-9. Native baseline direct commandの既存default output `output/training/maestro`を維持する。
-10. Native baseline / exerciseの重複execution logicをbounded `maestro-runner.ts`へ共通化し、2つのexplicit thin entrypointを維持する。
-11. `maestro-runner.ts`のconfig surfaceがflow path / JUnit file / default output directoryだけである。
-12. runnerがfailureをthrowし、各entrypointがtop-levelでcatchして`process.exitCode = 1`を設定する。
-13. validator / contract testの共通cleanup / invocation assertionが`maestro-runner.ts`へ移管されている。
-14. Native baseline / exerciseがJUnit / Workflow output namespaceで識別できる。
-15. Current Native exercise YAMLはPR5で変更せず、baseline `runFlow` setupと単独実行性を維持する。
-16. Native CIでstandalone baseline後にexercise内baseline setupが再実行されることを意図的に許容し、重複回避用mode / flag / conditionalを追加していない。
-17. P1-7 local pathが`1 runId = 1 baseline → exercise → Evidence attempt`で一意であり、retry時に別attemptのEvidenceを混在させない。
-18. Local successful exercise Evidenceが`exercise command exit 0 + same-attempt exercise JUnit存在`で判別できる。
-19. Native Training CI successful exercise Evidenceが`successful exercise execution + same-run exercise JUnit Artifact`で判別できる。
-20. Failure時Artifact uploadを維持し、diagnostic Artifactをsuccessful Completion evidenceと混同しない。
-21. C08 completionがlearner-authored Native diff + successful exercise Artifactの両方を要求し、baseline / stock PASSだけで成立しない。
-22. Native Training workflowはexact `pull_request.paths`によるspecialization opt-inである。
-23. Native Training workflowにmode input / mode conditionalがなく、起動時は常にbaseline→exerciseを実行する。
-24. Native workflowのjob表示がbaseline-onlyの誤解を生まないgeneric表記へ更新されている。
-25. `training/github-actions/README.md`がbaseline→exercise、template / active workflow、Native opt-inをCurrentとして説明する。
-26. Common-only PRへNative runtimeを無条件要求しない。
-27. P2-6の指定7箇所からlearner-authored workflow YAML変更のRequired要件が除去され、exercise diff + successful CI Artifact + Trigger / Failure / Artifact / Cost判断へ揃っている。
-28. P2-6 prose全文を新しいmachine contractとしてfreezeしていない。
-29. Product Formal Web / Native workflowへlearner exerciseを追加していない。
-30. validator / workflow contract / existing contract testがnew stable code / workflow contractを機械検証する。
-31. `native-training-exercise.yaml`無変更はimplementation diff reviewで確認し、negative permanent testを追加していない。
-32. Learner-facing command / Artifact参照が実装事実と一致し、PR 4A self-study contractと矛盾しない。
-33. RA-G5を`defer`し、Native failure harnessを追加していない。
-34. scoring engine、learner DB、AI grader、generic Training frameworkを追加していない。
-35. Required local/static validationがPASSする。
-36. Native runtime未実施の場合はEnvironment blockとして明示し、source PASSとruntime unknownを混同しない。
+4. P1-4 / P1-5 / P1-6 / P1-9が`training:web:exercise`をdesktop learner exerciseのcanonical commandとして一貫して案内する。
+5. Web expected-failure workflowが`training:web:check-expected-failure`を使用し、unexpected PASS / missing Evidenceをfail-closeする。
+6. workflow allowlistからraw `training:web:expected-failure`をremoveし、checked commandだけをWorkflow用に許可している。
+7. Web Training workflowへlearner exercise modeを追加していない。
+8. `training:native:exercise`がexactに`tsx scripts/training/run-maestro-exercise.ts`へ接続されている。
+9. `training:native:baseline`と`training:native:exercise`が別commandである。
+10. Native baseline direct commandの既存default output `output/training/maestro`を維持する。
+11. Native baseline / exerciseの重複execution logicをbounded `maestro-runner.ts`へ共通化し、2つのexplicit thin entrypointを維持する。
+12. `maestro-runner.ts`のconfig surfaceがflow path / JUnit file / default output directoryだけである。
+13. runnerがfailureをthrowし、各entrypointがtop-levelでcatchして`process.exitCode = 1`を設定する。
+14. validator / contract testの共通cleanup / invocation assertionが`maestro-runner.ts`へ移管されている。
+15. Native baseline / exerciseがJUnit / Workflow output namespaceで識別できる。
+16. Current Native exercise YAMLはPR5で変更せず、baseline `runFlow` setupと単独実行性を維持する。
+17. Native CIでstandalone baseline後にexercise内baseline setupが再実行されることを意図的に許容し、重複回避用mode / flag / conditionalを追加していない。
+18. P1-7 local pathが`1 runId = 1 baseline → exercise → Evidence attempt`で一意である。
+19. retryとして新attemptを開始する場合はnew runIdを使い、旧attemptのEvidenceを上書き・混在させない。
+20. Local successful exercise Evidenceが`exercise command exit 0 + same-attempt exercise JUnit存在`で判別できる。
+21. Native Training CI successful exercise Evidenceが`exercise step success + same-run exercise JUnit Artifact`で判別できる。
+22. Native Training CI successful evidenceへWorkflow全体conclusionを追加必須条件としていない。
+23. Failure時Artifact uploadを維持し、diagnostic Artifactをsuccessful Completion evidenceと混同しない。
+24. C08 completionがlearner-authored Native diff + successful exercise Artifactの両方を要求し、baseline / stock PASSだけで成立しない。
+25. Native Training workflowはexact `pull_request.paths`によるspecialization opt-inである。
+26. Native Training workflowにmode input / mode conditionalがなく、起動時は常にbaseline→exerciseを実行する。
+27. Native workflowのjob表示がbaseline-onlyの誤解を生まないgeneric表記へ更新されている。
+28. `training/github-actions/README.md`がbaseline→exercise、template / active workflow、Native opt-inをCurrentとして説明する。
+29. Common-only PRへNative runtimeを無条件要求しない。
+30. P2-6の指定8箇所からlearner-authored workflow YAML変更のRequired要件が除去され、exercise diff + successful CI Artifact + Trigger / Failure / Artifact / Cost判断へ揃っている。
+31. P2-6のハンズオン3が`自分の1Job構成`という旧workflow-edit前提を残していない。
+32. P2-6 prose全文を新しいmachine contractとしてfreezeしていない。
+33. Product Formal Web / Native workflowへlearner exerciseを追加していない。
+34. validator / workflow contract / existing contract testがnew stable code / workflow contractを機械検証する。
+35. `native-training-exercise.yaml`無変更はimplementation diff reviewで確認し、negative permanent testを追加していない。
+36. Learner-facing command / Artifact参照が実装事実と一致し、PR 4A self-study contractと矛盾しない。
+37. RA-G5を`defer`し、Native failure harnessを追加していない。
+38. scoring engine、learner DB、AI grader、generic Training frameworkを追加していない。
+39. Required local/static validationがPASSする。
+40. Native runtime未実施の場合はEnvironment blockとして明示し、source PASSとruntime unknownを混同しない。
 
 ## Expected implementation file set
 
@@ -1032,18 +1113,18 @@ PR 5は次がすべて満たされた時点で有限に完了する。
 
 - `training/github-actions/training-ci.yml`
 - `training/github-actions/training-native-ci.yml`
-- `training/github-actions/README.md`（required bounded sync）
+- `training/github-actions/README.md`
 - `scripts/training/workflow-contract.ts`
 - `scripts/validate-curriculum.ts`
 - `tests/contracts/training-curriculum.test.ts`
 
-### Bounded learner-facing synchronization
+### Bounded learner-facing synchronization — required
 
 - `docs/curriculum/test-automation/part1/04_playwright-foundations.md`
-- `docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md`（必要な場合のみ）
+- `docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md`
 - `docs/curriculum/test-automation/part1/06_execution-and-failure-analysis.md`
 - `docs/curriculum/test-automation/part1/07_maestro-native-automation.md`
-- `docs/curriculum/test-automation/part1/09_part1-capstone.md`（必要な場合のみ）
+- `docs/curriculum/test-automation/part1/09_part1-capstone.md`
 - `docs/curriculum/test-automation/part2/06_native-ci-maestro.md`
 
 現時点では変更予定に含めない。
@@ -1053,6 +1134,7 @@ PR 5は次がすべて満たされた時点で有限に完了する。
 - `docs/curriculum/test-automation/00_learning-design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - `docs/curriculum/test-automation/part2/05_playwright-ci.md`
+- `docs/curriculum/test-automation/part2/08_integration-design-capstone.md`
 - `docs/reference/curriculum-self-study-review.md`
 - Product Formal workflows
 
@@ -1080,21 +1162,27 @@ PR 5後も次は別活動とする。
 
 ### Simplicity decisions retained
 
-1. Web exerciseはdirect package commandのみ。Web CI exercise modeなし。
-2. Native workflow modeなし。paths opt-in + baseline→exercise一本道。
-3. Native Artifact名taxonomyなし。directory / JUnitで識別。
+1. Web workflow exercise modeを作らない。
+2. Native workflow modeを作らない。
+3. mode付きArtifact名を作らない。
 4. Native baseline direct default outputを変更しない。
-5. Native common orchestrationだけを1 bounded runnerへ抽出。
-6. Current Native exercise YAMLを変更しない。
-7. Native exercise内baseline再実行は単独実行性のため意図的に許容。
-8. exercise固有Screenshotを追加しない。
-9. raw Web expected-failureをworkflow allowlistからremove。
-10. P2-6 learner-authored workflow YAML変更をCompletionから削除。
-11. P2-6 proseをmachine freezeしない。
-12. successful / failure Artifactを既存status + JUnitで区別し、graderを作らない。
-13. retryは`1 runId = 1 attempt`とし、別attempt Evidenceの混在を防ぐ。
-14. Native job表示名とREADMEだけを実態へ同期し、新しいWorkflow taxonomyを作らない。
-15. Native exercise YAML無変更はPR diffで確認し、永久negative testを作らない。
+5. Native helperは2 entrypointの重複execution logicだけを1 bounded runnerへまとめる。
+6. Native `pull_request.paths`をexactに固定する。
+7. P2-5を変更しない。
+8. Contract assertionはstable behaviorだけへ限定する。
+9. P2-6からlearner-authored workflow YAML変更のRequired要件を外す。
+10. Native exercise内baseline再実行を意図的な重複として維持し、skip flag / setup再分割を作らない。
+11. P1-7 local runbookをsame serial / same runId / baseline→exercise→Evidenceで固定する。
+12. shared runner configをflow / JUnit / default outputの3値へ限定する。
+13. Native exercise YAMLを変更しない。
+14. `training:native:exercise`をexact package contract化する。
+15. Native cleanup assertionの参照先をshared runnerへ移管する。
+16. Workflow allowlistを実行実態へ縮小する。
+17. P2-6 proseのliteral machine contractを追加しない。
+18. successful CI evidenceからWorkflow全体successという余分な条件を削除し、exercise step success + exercise JUnit Artifactへ限定する。
+19. Web教材の変更対象をP1-4 / P1-5 / P1-6 / P1-9へ確定し、実装者へ不要な候補判断を残さない。
+20. P2-6の旧workflow-edit前提を8箇所へ有限化し、ハンズオン3の`自分の1Job構成`も同期対象に含める。
+21. retryはnew attempt = new runIdとしてEvidence provenanceを単純化する。
 
 ### Over-engineering guard
 
@@ -1110,38 +1198,46 @@ PR 5後も次は別活動とする。
 - generic Training CLI
 - runner class hierarchy
 - plugin system
-- test都合でthin baseline entryへcleanup implementationを残すこと
-- success判定用grader / learner-state persistence
-- Failure時Artifact upload停止
+- validator/testを通すためだけにthin baseline entryへcleanup implementationを残すこと
+- learner-state / scoring persistence
 - Native failure fixture without new evidence
 - learner-authored workflow YAML変更をP2-6 completionへ再導入すること
 - P2-6 Completion prose全文のliteral machine assertion
-- Native exercise YAML無変更を全文snapshot / no-Screenshot permanent contractにすること
+- Workflow全体conclusionをC08 successful evidenceへ再追加すること
+- retry attempt管理用の新DB / manifest / state machine
 
 ### Implementation readiness
 
-実装者に残す判断は既存styleに合わせる局所判断だけとする。
+実装者に残す判断は、通常のコードstyleや既存記述に合わせる局所判断だけとする。
 
-Planで固定済み:
+次はPlanで固定済み。
 
-- Web exercise command target / config / project
-- Web expected-failure canonical command / allowlist disposition
+- Web exercise exact package command
+- Web learner-facing変更対象4ファイル
+- Web workflowで追加しないもの
+- expected-failure workflow canonical command
+- raw / checked expected-failureのworkflow allowlist disposition
 - Native exercise exact package command
-- Native shared runner責務 / config / error ownership
-- validator / contract test assertion移管先
-- baseline / exercise flow / JUnit / default output
+- Native shared runnerの責務範囲 / config surface / error ownership
+- validator / contract testのshared runnerへのassertion移管先
+- baseline default output維持
+- exercise flow / JUnit / default output
 - Native exercise YAML無変更
-- intentional nested baseline setup
-- P1-7 attempt / retry contract
-- successful vs diagnostic Artifact boundary
-- Native workflow exact PR paths / execution sequence / output directories
-- generic job labelへの変更方針
-- README required bounded sync
-- P2-6 exact rewrite headings
-- P2-6 prose manual validation boundary
+- exercise YAML内baseline setup維持と意図的なCI再実行
+- P1-7 same serial / same runId local sequence
+- new attempt = new runId retry契約
+- Local successful evidence条件
+- Native workflow exact PR paths
+- Native workflow execution sequence
+- Native CI successful evidence = exercise step success + same-run exercise JUnit Artifact
+- Workflow全体conclusionをsuccessful evidenceへ要求しないこと
+- P2-6 learner artifact / completion boundary
+- P2-6 bounded sync 8箇所
+- Source template / Training Copy active workflowの役割
+- validator / contract testの固定対象
 - RA-G5 defer
 
-Self-review結論: **PR 5 Objectiveに必要な実装だけへ収束している。Evidence判定、retry、教材同期の曖昧さを解消した一方、新しいruntime abstractionやgraderは追加していない。これ以上実装構造を削るとshared Native orchestrationの重複またはlearner-facing ambiguityが戻るため、本Planを実装開始可能な最終境界とする。本branchでは実装しない。**
+Self-review結論: **PR 5 Objectiveを満たすための実装面積は十分に縮小されている。これ以上runner / workflow / Evidence構造を削ると、重複実装またはlearner-facing ambiguityを増やす。Current learner YAMLを無変更で再利用し、Web direct command、Native thin entries + bounded runner、Native opt-in workflow、既存Artifactを使う構成が最小である。実装開始可能だが、本branchでは実装しない。**
 
 ## Unresolved blockers / unknowns
 
@@ -1152,6 +1248,6 @@ conditional unknownは次だけ。
 1. GitHub-hosted Android runner / KVM / quotaが実Run時に利用可能か。利用不可ならEnvironment blockでありsource defectではない。
 2. Local Physical Androidが実装者環境で利用可能か。利用不可でもCommon completion / source static validationをblockしない。
 
-Native `pull_request.paths`、P1-7 attempt / retry、successful Artifact boundary、P2-6 rewrite範囲、Native shared runnerのvalidator/test移管先、workflow allowlist dispositionは本Planで固定したため、実装時の未決事項として残さない。
+Native `pull_request.paths`、P1-7 local sequence、retry runId contract、successful Artifact判定、P2-6 learner artifact boundary、Native shared runnerのvalidator/test移管先、workflow allowlist dispositionは本Planで固定したため、実装時の未決事項として残さない。
 
 Product / Spec / PR 3 / PR 4A contract矛盾を新たに発見した場合だけStop conditionに従う。
