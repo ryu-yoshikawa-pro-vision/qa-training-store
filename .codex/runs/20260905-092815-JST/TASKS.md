@@ -9,7 +9,7 @@
 - [x] 5. Breadcrumb focused validationを実行する。
 - [x] 6. contracts／verifyを実行し、timeout再発時は変更せず分類する。
 - [ ] 7. Run Artifactを更新し、commit・pushする。
-- [ ] 8. PR #114の本文、状態、mergeability、timeout差分を確認する。
+- [x] 8. PR #114の本文、状態、mergeability、timeout差分を確認する。
 
 ## Discovered
 

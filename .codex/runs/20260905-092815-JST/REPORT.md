@@ -67,3 +67,16 @@
   - Result: なし
   - Parent decision: 失敗は環境／baselineとして記録し、今回のproduct／Hook codeは変更しない
 - Progress: 75% (6/8)
+
+## 2026-09-05 10:12 (JST)
+
+- Summary: cleanup commitを作成してpushし、PR #114の本文と差分を更新・確認した。
+- Git: `4965ad8ad58e39ee110342517f1a360171e00903`（`test: remove unrelated timeout changes from breadcrumb fix`）を`fix/breadcrumb-presentation`へcommitし、`git push origin HEAD:fix/breadcrumb-presentation`が成功した。force pushは使用していない。
+- Pull Request: #114はOPEN／non-Draft、base=`main`、head=`fix/breadcrumb-presentation`、head SHA=`4965ad8...`、`mergeable=MERGEABLE`、`mergeStateStatus=BLOCKED`。本文はtimeout変更を実装内容として記載しない最終内容へ更新し、`Closes #96`を維持した。
+- Scope verification: `gh pr diff --name-only`で`tests/contracts/codex-hook-contract.test.ts`がPR差分から消え、Breadcrumb consumer 4画面、共通CSS、component／accessibility E2E、既存Run Artifactだけが残っていることを確認した。PRはmergeしていない。
+- Blocker / Remaining: このRun Artifactの最終状態をcommit・pushする。
+- Subagents:
+  - Delegation: なし
+  - Result: なし
+  - Parent decision: PR本文のtimeout記載はvalidation上必要な失敗説明に限定し、実装変更としては記載しない
+- Progress: 88% (7/8)
