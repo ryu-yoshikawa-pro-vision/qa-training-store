@@ -220,12 +220,12 @@ POM、Fixture、Automation Flowなどの保守設計は後半に置きます。�
 6. Playwrightで実装する。
 7. 実行結果を分析する。
 8. Native specializationを選択した場合は、P1-7でMaestroによるNative自動化を行う。
-9. P1-7をskipまたは完了した後、P1-8へrejoinし、Web / Nativeの自動テストが増えた状態を体験する。
+9. Common learnerはP1-6完了後にP1-7をskipしてP1-8へ進み、Native specializationを選択したlearnerはP1-7完了後に同じP1-8へrejoinする。P1-8ではCommonとしてPlaywright Testの保守課題を扱い、Native選択時だけNative成果物が追加される。
 10. テスト管理と保守上の問題を洗い出す。
 11. Helper / POM / Fixture / Automation Flow / Seed Scenarioなどを使って改善する。
 12. 総合演習を行う。
 
-Part 1前半では、Seed Scenario ResetやEvidence収集の仕組みは教材側が提供するTest Harnessとして利用し、Fixture内部の責務分解や共通化設計はまだ学びません。既存 `e2e/web/fixtures.ts` の内部設計を教材として読むのは、Maestroまで一巡した後のテスト管理・保守性改善モジュールからとします。
+Part 1前半では、Seed Scenario ResetやEvidence収集の仕組みは教材側が提供するTest Harnessとして利用し、Fixture内部の責務分解や共通化設計はまだ学びません。既存 `e2e/web/fixtures.ts` の内部設計を教材として読むのは、P1-6までのCommon学習を完了し、P1-7をskipまたは完了してP1-8へ到達した後です。
 
 ### Part 2
 
@@ -238,7 +238,7 @@ Part 2では、Part 1で作成したテストを一般的な開発プロセス�
 5. GitHub Actionsでテストを実行する。
 6. Playwright ReportやArtifactを管理する。
 7. Native specializationを選択した場合は、P2-6でAndroid Build + Runtime E2Eと、iOS Build-onlyの保証境界を学ぶ。
-8. Common routeではP2-6をskipし、P2-7でQuality Gate、Build、Deploy、Smokeを設計する。
+8. Common routeではP2-6をskipし、P2-7でWeb Quality Gate、Build / Test Artifact、Failure Evidence、fail-closed条件を設計する。Deploy / Smoke等はAdvanced / Referenceとして比較する。
 9. Scenario Shopを題材に導入設計演習を行う。
 
 ## 教材の進め方

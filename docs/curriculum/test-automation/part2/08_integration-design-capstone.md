@@ -316,14 +316,17 @@ AndroidとiOSを同じ枝へ置く必要はありません。実行タイミン�
 
 ### Common Required
 
-- Current State一覧
-- Risk整理
-- PR / main / Nightly / Manual Test配置表
-- Web CI設計
-- Web Failure Evidence設計
+- Current State / Risk整理（Web CIの設計判断に必要な範囲）
+- bounded Web CI設計
 - Web Quality Gate定義
-- bounded Web CI/CD Diagram
+- Artifact / Failure Evidence設計
+- fail-closedを含むFailure reasoning
+- 必要最小限のbounded Web CI Diagram
 - 最終設計判断と理由
+
+### Practice / Reference
+
+- PR / main / Nightly / Manual Test配置表
 
 ### Native specialization（選択時）
 

@@ -205,3 +205,17 @@
   - Result: なし。
   - Parent decision: 全required taskを完了としてRunをcloseする。
 - Progress: 100% (14/14)
+
+## 2026-09-05 18:10 (JST) — Implementation review correction / Repair loop iteration 1
+
+- iteration_number: 1
+- Input findings: `CUR-4A-011`、`CUR-4A-019`、`CUR-4A-020`、Learning Design上のCommon route整合に残っていたcompletion boundaryの不整合。新規Findingではない。
+- Repair plan: P1 CommonをP1-7 skip / Native rejoinで成立させ、P2-7 CommonをWeb Gate / Build・Test Artifact / Failure Evidence / fail-closedへ限定し、P1-8 completionとP2-8 Common Required成果物を既存Planのbounded contractへ合わせる。
+- Allowed files: `docs/curriculum/test-automation/00_learning-design.md`（Repositoryのcanonical path。指定されたunderscore名のfileは存在せず、README / Planもhyphen名を参照）、`docs/curriculum/test-automation/part1/08_test-management-and-maintainability.md`、`docs/curriculum/test-automation/part2/08_integration-design-capstone.md`。Run REPORTはiteration記録のためのprocess artifactとして許可。
+- Changed files: 上記3 Curriculum fileと本REPORTのみ。新規file、rename、migrationなし。
+- Triage: 4観点を`must_fix`として処理。Pre-change audit、CUR-4A-001〜021の再監査、Plan再設計、Common / Native構造変更は行わない。
+- Validation commands: `pnpm run format:check`、`pnpm run lint:markdown`、`pnpm run validate:curriculum`、`pnpm run test:contracts`、`git diff --check`。
+- Validation result: 全件PASS。Markdown lintは374 files / 0 issues、Curriculumは22 required documents / 4 workbook files、contractは34 files / 493 passed / 3 skipped。
+- Remaining delta: commit / push、push後のcurrent head validation・GitHub checks・4 route manual review、PR #116本文とIssue #72のcurrent SHA同期。
+- Decision: `stop_success`（local repair validation完了）。
+- Progress: 100% (14/14)
