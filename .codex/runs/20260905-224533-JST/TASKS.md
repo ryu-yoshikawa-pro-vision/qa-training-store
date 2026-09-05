@@ -13,8 +13,8 @@
 - [x] 8. 指定targeted validationを実行し、失敗時はrepair-loopのbounded iterationで原因修正する
 - [x] 9. 最終`pnpm run verify`、scope、semantic preservation、frontmatter、diffを確認する
 - [x] 10. REPORT / evaluation.json / machine-managed run.jsonを更新し、sanitization Write / Checkを実施する
-- [ ] 11. commit前branch safetyとstaged scopeを確認し、commitする
-- [ ] 12. non-force push、PR head、GitHub Actionsを確認し、Runを完了する
+- [x] 11. commit前branch safetyとstaged scopeを確認し、commitする
+- [x] 12. non-force push、PR head、GitHub Actionsを確認し、Runを完了する
 
 ## Discovered
 

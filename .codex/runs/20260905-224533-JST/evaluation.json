@@ -31,7 +31,7 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "targeted validationと最終pnpm run verifyを最終contentに対して実行し、format、Markdown、Skill Validator、typecheck、全test、contracts、buildをPASSした。",
+      "evidence": "targeted validationと最終pnpm run verifyを最終contentに対して実行し、format、Markdown、Skill Validator、typecheck、全test、contracts、buildをPASSした。push後ActionsでもStyle Quality、validate、verify、repository / contracts、Android / iOS build、Runtime、Native VerifyをPASSした。Native StaticのExpo依存patch mismatchは旧HEADにも存在するbaseline failureとして分類し、依存変更は行っていない。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -83,8 +83,8 @@
         {
           "kind": "run_artifact",
           "path": ".codex/runs/20260905-224533-JST/REPORT.md",
-          "selector": "2026-09-05 23:21",
-          "summary": "最終検証と残作業を記録している。"
+          "selector": "2026-09-05 23:57",
+          "summary": "最終検証、push後ActionsのPASS一覧、Native Static baseline failure分類を記録している。"
         }
       ]
     }

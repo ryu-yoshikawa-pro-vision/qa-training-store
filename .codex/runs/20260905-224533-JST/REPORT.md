@@ -124,3 +124,16 @@
 - Remaining delta: commit前の明示stage、最終staged diff確認、commit、push、PR headとGitHub Actions確認が残っている。
 - Decision: `continue`。次にbranch safetyとstaged scopeを再確認してcommitする。
 - Progress: 83% (10/12)
+
+## 2026-09-05 23:57 (JST)
+
+- Summary: 最終commit、通常push、PR #123のhead確認、GitHub Actions確認を完了した。
+- Commit / push: `4b4e7534f50022133019d875058115732a539826`（`fix: address PR 123 skill packaging review findings`）を対象branchへcommitし、`git push origin HEAD:refactor/117-pr1-skill-package-portability`をforceなしで実行した。PR #123のheadは同SHAへ更新された。
+- Review findings: Markdown CI failure、Validator image handling、repair-loop `needs_human` immediate escalation、repair-loop entry condition、exploratory-qa Gray-box portability、Android conditional Prepare/Buildの6件を修正済みと確認した。各findingのfinding、root cause、changed files、semantic behavior restored、validationは前checkpointへ記録済みである。
+- GitHub Actions: Web CIの`Style Quality`、`validate`、`verify`、repository / contracts Vitest、全Chromium E2E、UI Review、artifact sanitization、CodeQL、build、production-smokeはPASSした。Mobile App CIのAndroid Automation / Production-validation Build、Android Runtime / Maestro、iOS Automation / Production-validation Build、iOS Native CI Verify、Production Bundle GuardもPASSした。
+- GitHub Actions failure classification: `Native Static`の`Run Expo Doctor`が「Expo SDKが要求する依存patch mismatch、3 packages out of date」でFAILし、依存する`native-ci / verify`もFAILした。旧HEAD `9c8ffc33ede900c1e52ee45a7dcbf3ff45012cde`の同jobでも同一内容を確認した。レビュー修正commit間でdependency versionおよびlockfile差分はなく、今回差分起因ではないbaseline failureとして分類した。依存変更、CI緩和、skipは行っていない。
+- Scope confirmation: `.codex/agents/**`、`scripts/agentic-qa/**`、Native helper、product code、dependency versions、lockfile、PR2以降の内容は変更していない。frontmatter `name` / `description`は6 Skillすべてbaselineと一致し、`git diff --check`はPASSした。
+- Run Artifact: `evaluation.json`は`result: pass`、collector Strict、sanitization Write / Checkはresidual 0を確認済み。今回のActions結果とbaseline failure分類をこのcheckpointへ追記した。
+- Remaining delta: 実装・検証・Run Artifact・sanitization・commit・push・Actions確認の必須作業は完了した。Actionsには上記baseline failureのみ残る。
+- Decision: `complete`。scope外修正を追加せず、Runを完了する。
+- Progress: 100% (12/12)
