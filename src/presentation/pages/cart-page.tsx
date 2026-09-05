@@ -8,6 +8,7 @@ import { StatePanel } from "@/presentation/components/states";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { content } from "@/presentation/content/dictionary";
+import { Breadcrumbs } from "@/presentation/patterns/admin-patterns";
 
 const issueLabels: Record<CartLineIssueCode, string> = {
   UNPUBLISHED: "商品が非公開になりました。カートから削除してください。",
@@ -95,16 +96,7 @@ function CartContent() {
   const nonPriceBlockingIssues = cart.blockingIssues.filter((issue) => issue !== "PRICE_CHANGED");
   return (
     <div className="cart-page">
-      <nav className="breadcrumbs" aria-label="パンくず">
-        <ol>
-          <li>
-            <Link href="/">ホーム</Link>
-          </li>
-          <li>
-            <span aria-current="page">カート</span>
-          </li>
-        </ol>
-      </nav>
+      <Breadcrumbs items={[{ label: "ホーム", href: "/" }, { label: "カート" }]} />
       <header className="cart-page__header">
         <div>
           <p className="eyebrow">Shopping cart</p>

@@ -193,6 +193,40 @@ test.describe("Accessibility smoke", () => {
     }
   });
 
+  test("Breadcrumbのlabel・link・current・focus表示をdesktopとcompactで維持する", async ({
+    page,
+    scenario,
+  }) => {
+    await scenario("default");
+
+    for (const viewport of [
+      { width: 1440, height: 1000 },
+      { width: 390, height: 844 },
+    ]) {
+      await page.setViewportSize(viewport);
+      await page.goto("/products", { waitUntil: "domcontentloaded" });
+
+      const navigation = page.getByRole("navigation", { name: "パンくず" });
+      await expect(navigation).toBeVisible();
+      const homeLink = navigation.getByRole("link", { name: "ホーム" });
+      await expect(homeLink).toHaveAttribute("href", "/");
+      await expect(navigation.getByText("すべての商品", { exact: true })).toHaveAttribute(
+        "aria-current",
+        "page",
+      );
+      await expect(navigation.locator("ol")).toHaveCSS("font-size", "14px");
+      await expect(navigation.locator("ol")).toHaveCSS("font-weight", "400");
+      await expect(navigation.locator("ol")).toHaveCSS("line-height", "22px");
+      await expect(navigation.locator("ol")).toHaveCSS("gap", "8px");
+
+      await homeLink.focus();
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Shift+Tab");
+      await expect(homeLink).toBeFocused();
+      await expect(homeLink).toHaveCSS("outline-style", "solid");
+    }
+  });
+
   test("Keyboardで本文へ移動し、Dialogを閉じるとFocusが戻る", async ({ page, scenario }) => {
     await scenario("default");
     await page.goto("/", { waitUntil: "domcontentloaded" });

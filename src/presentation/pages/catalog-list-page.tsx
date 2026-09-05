@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useLocalSearchParams, usePathname, useRouter, type Href } from "expo-router";
+import { useLocalSearchParams, usePathname, useRouter, type Href } from "expo-router";
 import { INPUT_LIMITS } from "@/application/contracts";
 import type {
   ProductSearchRequest,
@@ -9,7 +9,7 @@ import type {
 import { Icon } from "@/presentation/components/icon";
 import { ProductCard } from "@/presentation/components/product-card";
 import { StatePanel } from "@/presentation/components/states";
-import { Pagination } from "@/presentation/patterns/admin-patterns";
+import { Breadcrumbs, Pagination } from "@/presentation/patterns/admin-patterns";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
@@ -288,16 +288,7 @@ function CatalogListContent({ mode, categoryId }: CatalogListPageProps) {
     request.maximumPrice === null;
   return (
     <div className={catalogPageClass(mode)}>
-      <nav className="breadcrumbs" aria-label="パンくず">
-        <ol>
-          <li>
-            <Link href="/">ホーム</Link>
-          </li>
-          <li>
-            <span aria-current="page">{title}</span>
-          </li>
-        </ol>
-      </nav>
+      <Breadcrumbs items={[{ label: "ホーム", href: "/" }, { label: title }]} />
       <header className="catalog-page__header">
         <div>
           <p className="eyebrow">Catalog</p>

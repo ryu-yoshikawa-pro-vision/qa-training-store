@@ -18,6 +18,7 @@ import { StatePanel } from "@/presentation/components/states";
 import { RouteGuard } from "@/presentation/guards/route-guard";
 import { useApplicationServices } from "@/presentation/hooks/use-application-services";
 import { useAsyncValue } from "@/presentation/hooks/use-async-value";
+import { Breadcrumbs } from "@/presentation/patterns/admin-patterns";
 
 export function ProductDetailPage({ productId }: { productId: string }) {
   return (
@@ -109,19 +110,13 @@ export function ProductDetailView({ product }: { product: ProductDetail }) {
   ];
   return (
     <div className="product-detail-page">
-      <nav className="breadcrumbs" aria-label="パンくず">
-        <ol>
-          <li>
-            <Link href="/">ホーム</Link>
-          </li>
-          <li>
-            <Link href="/products">商品</Link>
-          </li>
-          <li>
-            <span aria-current="page">{product.name}</span>
-          </li>
-        </ol>
-      </nav>
+      <Breadcrumbs
+        items={[
+          { label: "ホーム", href: "/" },
+          { label: "商品", href: "/products" },
+          { label: product.name },
+        ]}
+      />
       <div className="product-detail-hero">
         <section className="product-gallery" aria-label="商品画像">
           {selectedImage !== undefined && (

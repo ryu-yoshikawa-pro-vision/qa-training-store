@@ -811,18 +811,24 @@ a[href] {
 .breadcrumbs ol {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
-  margin: 0 0 16px;
+  gap: var(--space-2);
+  margin: 0 0 var(--space-2);
   padding: 0;
-  color: #475569;
+  color: var(--color-muted);
   font-size: 14px;
+  font-weight: 400;
+  line-height: 22px;
   list-style: none;
 }
 
 .breadcrumbs li:not(:last-child)::after {
   content: "/";
-  margin-left: 8px;
+  margin-left: var(--space-2);
   color: #94a3b8;
+}
+
+.breadcrumbs a {
+  color: var(--color-muted);
 }
 
 .page-header {
@@ -4140,14 +4146,6 @@ progress {
   line-height: 1.7;
 }
 
-.breadcrumbs ol {
-  margin-bottom: -8px;
-}
-
-.breadcrumbs a {
-  color: #475569;
-}
-
 .admin-metrics {
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 20px;
@@ -5103,10 +5101,6 @@ progress {
   font-weight: 700;
   text-decoration: underline;
   text-underline-offset: 3px;
-}
-
-.breadcrumbs ol {
-  margin-bottom: 8px;
 }
 
 /* Goal UI review: resilient admin editors and scrollable tables -------------- */

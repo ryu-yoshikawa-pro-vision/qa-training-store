@@ -1,0 +1,63 @@
+{
+  "schema_version": 2,
+  "run_id": "20260905-072236-JST",
+  "task_type": "implementation",
+  "workflow_level": "standard",
+  "preset": "safe",
+  "runtime": "host",
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    "docs/PROJECT_CONTEXT.md",
+    "docs/adr/0022-test-automation-curriculum-native-specialization.md",
+    "docs/curriculum/test-automation/00_learning-design.md",
+    "docs/curriculum/test-automation/02_competency-rubric.md",
+    "docs/curriculum/test-automation/03_instructor-reference.md",
+    "docs/curriculum/test-automation/README.md",
+    "docs/curriculum/test-automation/part1/07_maestro-native-automation.md",
+    "docs/curriculum/test-automation/part1/09_part1-capstone.md",
+    "docs/curriculum/test-automation/part2/06_native-ci-maestro.md",
+    "docs/curriculum/test-automation/part2/08_integration-design-capstone.md",
+    "docs/history/2026-09-04_190058_issue-93-rating-anchor.md",
+    "docs/history/2026-09-04_194200_issue-93-review-repair.md",
+    "docs/plans/2026-09-03_013450_pr3_decision_b_competency_assessment_contract.md",
+    "docs/plans/2026-09-04_095128_issue_92_product_list_loading_state.md",
+    "docs/plans/2026-09-04_095514_issue_94_admin_sidebar_label_overflow.md",
+    "docs/plans/2026-09-04_161605_address-delete-confirmation.md",
+    "docs/plans/2026-09-04_180025_issue-93-rating-review-anchor.md",
+    "docs/plans/2026-09-04_204926_codex-task-native-command-output-exit-code.md",
+    "e2e/web/phase1-required.spec.ts",
+    "e2e/web/ui-ux-improvements.spec.ts",
+    "scripts/codex-task.ps1",
+    "src/presentation/components/search-combobox.tsx",
+    "src/presentation/guards/route-guard.tsx",
+    "src/presentation/pages/addresses-page.tsx",
+    "src/presentation/pages/catalog-list-page.tsx",
+    "src/presentation/pages/product-detail-page.tsx",
+    "src/presentation/styles/global.css",
+    "tests/component/auth-account-pages.test.tsx",
+    "tests/component/catalog-pages.test.tsx",
+    "tests/component/route-guard.test.tsx",
+    "tests/contracts/codex-task-native-command.test.ts",
+    "tests/contracts/training-curriculum.test.ts",
+    "tests/contracts/codex-hook-contract.test.ts"
+  ],
+  "validation": {
+    "status": "not_run",
+    "commands": [],
+    "warnings": []
+  },
+  "safety": {
+    "network": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "evaluation_present": false
+  },
+  "evaluation_path": null,
+  "status": "pending",
+  "primary_failure_category": null
+}
