@@ -2,53 +2,68 @@
 
 ## 0. 依頼概要
 
-- 依頼内容: Issue #117 の PR1 として、6つの Agent Skill を自己完結性・Portabilityの高い package へ整理し、Repository root の Agent 文書との責務重複を解消する。
-- 背景: 現在は Skill 固有 workflow の一部が `SKILL.md`、root Agent 文書、`docs/reference/` に分散し、いくつかの Skill は Repository 固定 path の文書を workflow の必須読込先としている。Issue #117 全体では将来的に Trigger Eval / Output Eval / Workflow E2E Eval まで進めるが、PR1ではその前提となる package 構造・依存方向・routing・最低限の構造検証だけを整える。
-- 期待成果: 既存 Skill の意味を変えず、Skill 固有 workflow は package 単体から理解できる。Repository 固有 policy / adapter / command / Product Contract は package の外部 Input として root 側から渡し、Skill package 自身は root 固定 path を workflow の正本として要求しない。参照切れと最低限の package 構造は deterministic validator で検出できる。
+- 依頼内容: Issue #117 の PR1 として、6つの Agent Skill を自己完結性・Portability の高い package へ整理し、Repository root の Agent 文書・reference との責務重複を解消する。
+- 背景: 現在は Skill 固有 workflow の一部が `SKILL.md`、root Agent 文書、`docs/reference/`、Native runbook 等に分散し、いくつかの Skill は Repository 固定 path の文書を workflow の必須読込先としている。
+- PR1 の役割: Issue #117 全体で将来的に Trigger Eval / description optimization / Output Eval / Workflow E2E Eval まで進める前に、Skill package の構造・依存方向・routing・最低限の機械検証を整える。
+- 期待成果: 既存 Skill の意味を変えず、Skill 固有 workflow は package 単体から理解できる。Repository 固有 policy / Product Contract / command / path は external input として root 側から対応づけ、Skill package 自身は root 固定 path を workflow の正本として要求しない。
 
 ## 1. ゴール / 完了条件
 
 ### ゴール
 
-Issue #117 の PR1 として、以下の 6 Skill を、**既存の実行意味論を維持したまま portable な package へ整理する**。
+Issue #117 の PR1 として、以下の6 Skillを、**既存の実行意味論を維持したまま portable な package へ整理する**。
 
-- `.agents/skills/exploratory-qa`
-- `.agents/skills/code-review`
-- `.agents/skills/feature-plan`
-- `.agents/skills/repair-loop`
-- `.agents/skills/harness-improvement`
 - `.agents/skills/android-native-local-validation`
+- `.agents/skills/code-review`
+- `.agents/skills/exploratory-qa`
+- `.agents/skills/feature-plan`
+- `.agents/skills/harness-improvement`
+- `.agents/skills/repair-loop`
 
-完了時には、各 `SKILL.md` が主に次へ集中していること。
+PR1で完成させる Portability は、**workflow / package content / package内部依存構造の Portability** とする。
+
+frontmatter `description` には現状 `in this repository` や `Scenario Shop` 等の Repository 固有 wording が含まれる Skill があるが、PR2 Trigger Eval baseline を汚さないため PR1 では変更しない。frontmatter description の Portability / routing optimization は PR3 で扱う。
+
+つまり、PR1完了時点で次を満たす。
+
+- package 内だけで Skill 固有 workflow / decision / stop / output contract を理解できる。
+- package 内から Repository root 固定 path を core workflow の正本として要求しない。
+- Repository 固有の具体値は logical external input として分離されている。
+- frontmatter `name` / `description` は baseline 保護のため意図的に現状維持されている。
+
+### `SKILL.md` の完成形
+
+各 `SKILL.md` は主に以下へ集中する。
 
 - Purpose / When to use
-- Do not use / Boundary（必要な Skill のみ）
+- Do not use / Boundary（必要な場合）
 - Inputs
 - Outputs
-- Required / Conditional package-local reference の選択条件
+- Required / Conditional package-local reference / asset の選択条件
+- Execution outline
 - 最上位 guardrail / stop boundary
 
-詳細 workflow、長い checklist、command sequence、詳細 stop condition、Output meaning contract は、必要な場合だけ package-local `references/` へ移す。
+詳細 workflow、長い checklist、command sequence、詳細 stop condition、Output meaning contract は必要な場合だけ package-local `references/` へ置く。
 
-再利用する静的 Output Template が既に存在し、その Template 自体が Skill 固有である場合は package-local `assets/` を正本にする。PR1で存在しない Template を新たに発明したり、全 Skill に形式的な `assets/` を作ったりしない。
-
-Repository root 側では `AGENTS.md` を **task -> Skill routing と Repository Input mapping の Single Source of Truth** とする。`QA_AGENT.md`、`CODE_REVIEW.md`、`PLANS.md` 等にある Repository 固有 policy / adapter / lifecycle は必要な範囲で残すが、portable Skill workflow は重複定義しない。
+再利用する静的 Output Template が既に存在し、その Template 自体が Skill 固有である場合だけ package-local `assets/` を正本にする。PR1で新しい Template を発明したり、全 Skill に形式的な `assets/` / `scripts/` / `evals/` を作ったりしない。
 
 ### 完了条件（DoD）
 
 - [ ] 6 Skill の Skill 固有 workflow を package 内だけで理解できる。
-- [ ] 各 `SKILL.md` から実行に必要な package-local reference / asset を一意に選べる。
-- [ ] Portable Skill workflow が `AGENTS.md` / `QA_AGENT.md` / `CODE_REVIEW.md` / `PLANS.md` 等の Repository 固定 path を必須正本として要求しない。
-- [ ] Repository 固有 policy / Product Contract / command / path は、root routing / adapter 側から Skill の external input として対応づけられている。
-- [ ] `AGENTS.md` が repository-level routing / input mapping の SSOT であり、他 root 文書が競合する routing hierarchy を持たない。
-- [ ] `QA_AGENT.md` / `CODE_REVIEW.md` / `PLANS.md` から Skill 固有 workflow の重複だけが除かれ、Repository 固有 contract / policy / adapter / lifecycle は必要な範囲で残っている。
-- [ ] `repair-loop`、`harness-improvement` など package 外にも正本候補が存在する Skill は、Skill 固有部分と Repository 固有・共有部分の正本位置が一意になっている。
-- [ ] `feature-plan` の汎用 Plan Output Template は package-local asset が canonical であり、Repository 側に同一本文の二重正本を残していない。
-- [ ] `exploratory-qa` の Mode 選択・Mode 境界は package-local workflow にあり、Scenario Shop 固有 Machine Contract / artifact schema / script mapping は Repository adapter 側に残っている。
-- [ ] 対象 Skill package と明示した routing / compatibility 文書の local Markdown link に dangling target がない。
-- [ ] package structure / local-link integrity を確認する最小 validator がある。
+- [ ] 各 `SKILL.md` から必要な package-local reference / asset を追加判断なしで選べる。
+- [ ] package 内 Markdown の local file link は、原則として同一 Skill package 内へ解決される。
+- [ ] Portable Skill workflow が `AGENTS.md` / `QA_AGENT.md` / `CODE_REVIEW.md` / `PLANS.md` / `docs/reference/**` / `docs/native/**` 等の Repository 固定 path を必須正本として要求しない。
+- [ ] Repository 固有 policy / Product Contract / command / path は logical external input として root 側から対応づけられている。
+- [ ] `AGENTS.md` が repository-level task -> Skill routing / Repository Input mapping の SSOT である。
+- [ ] `QA_AGENT.md` / `CODE_REVIEW.md` / `PLANS.md` には Repository 固有 contract / policy / lifecycle だけが残り、portable Skill workflow の二重正本になっていない。
+- [ ] `docs/reference/repair-loop.md` / `docs/reference/harness-improvement-loop.md` / `docs/reference/agentic-qa-workflow.md` 等を残す場合、package と同じ Skill 固有 workflow を二重保持していない。
+- [ ] `docs/native/windows-android-local-validation.md` 等を残す場合、portable workflow の正本ではなく Repository 固有具体値 / command / setup の正本として責務が明確である。
+- [ ] `feature-plan` の汎用 Plan Output Template は package-local asset が canonical である。
+- [ ] `exploratory-qa` の Mode selection / Mode boundary は package-local workflow が canonical である。
+- [ ] package structure / frontmatter / local file link integrity を確認する最小 validator がある。
+- [ ] Skill package 内の local file link が package 外へ escape した場合、validator が FAIL する。
 - [ ] validator が local quality gate と既存 CI quality job から実行される。
-- [ ] 6 Skill の frontmatter `name` / `description` を PR1 では原則変更していない。
+- [ ] 6 Skill の frontmatter `name` / `description` が PR1 baseline と一致する。
 - [ ] MUST / MUST NOT / stop condition / required output / evidence requirement / approval boundary に意図しない semantic change がない。
 - [ ] PR2 以降の Trigger Eval / description optimization / Output Eval / Workflow E2E Eval を実装していない。
 
@@ -58,20 +73,25 @@ Repository root 側では `AGENTS.md` を **task -> Skill routing と Repository
 
 #### Issue #117 PR1 の責務
 
-Issue #117 は最終的に以下まで扱う master issue だが、PR1 の主眼は package 構造整理である。
+PR1 は **move / deduplication / responsibility separation / package integrity validation** が中心である。
+
+PR1で行う。
 
 - Skill 自己完結化
 - `SKILL.md` 薄型化
 - `references/` / `assets/` / `scripts/` の責務整理
+- Repository 固定 path 依存の external input 化
 - routing / dependency direction 整理
-- root Agent 文書の重複解消
-- package structure / link validation
+- root Agent 文書 / repository reference の重複解消
+- package structure / local file link validation
 
-PR1 は **move / deduplication / responsibility separation** が中心であり、Skill workflow の意味改善は行わない。
+PR1で行わない。
 
-#### 現在の各 Skill package
+- Skill workflow の意味改善
+- routing wording の最適化
+- Trigger / Output / Semantic / Workflow Eval の追加
 
-現時点で確認できている構成は以下。
+#### 現在の Skill package
 
 ```text
 .agents/skills/code-review/
@@ -97,7 +117,7 @@ PR1 は **move / deduplication / responsibility separation** が中心であり�
 └── SKILL.md
 ```
 
-重要な Repository 側 reference / entrypoint は少なくとも以下。
+重要な Repository 側 entrypoint / reference は少なくとも以下。
 
 - `AGENTS.md`
 - `QA_AGENT.md`
@@ -112,43 +132,50 @@ PR1 は **move / deduplication / responsibility separation** が中心であり�
 - `docs/native/README.md`
 - `docs/native/windows-android-local-validation.md`
 - `docs/native/windows-android-troubleshooting.md`
+- `scripts/native/windows/android-local.ps1`
+- `scripts/agentic-qa/**`
 
-#### `feature-plan`
+### `feature-plan`
 
 `docs/plans/TEMPLATE.md` は保存 path や Scenario Shop 固有値を埋め込んだ adapter ではなく、Goal / Current understanding / Assumptions / Non-goals / Change strategy / Validation plan / Risks / Open questions 等からなる汎用 Plan Output Template である。
 
-このため PR1 では Template 本文を package-local `assets/plan-template.md` へ移し、Skill 固有静的成果物の正本とする。`docs/plans/TEMPLATE.md` を既存 entrypoint として残す必要がある場合は canonical asset への薄い compatibility pointer とし、同一 Template 本文を二重保持しない。
+したがって PR1 では Template 本文を package-local `assets/plan-template.md` へ移し、Skill 固有静的成果物の正本とする。
 
-一方、次は Repository 固有 adapter として root 側へ残す。
+Repository 側に残すのは次。
 
 - Plan 保存先 `docs/plans/`
 - filename convention
 - active run / plan lifecycle
 - Repository 固有の保存・履歴契約
 
-Planning の mandatory question / blocking question / assumptions allowed 等の ambiguity handling は汎用 planning decision であり、Repository adapter ではないため package-local `planning-workflow.md` を正本にする。
+Planning の mandatory question / blocking question / assumptions allowed 等の ambiguity handling は汎用 planning decision なので package-local `planning-workflow.md` を正本にする。
 
-#### `harness-improvement`
+### `harness-improvement`
 
 現行 package-local reference は `references/improvement-workflow.md`。
 
-現行 `SKILL.md` は package 外の以下も参照する。
+現行 `SKILL.md` は package 外の `docs/reference/harness-improvement-loop.md` / `evaluation.md` / `failure-taxonomy.md` 等も参照する。
 
-- `docs/reference/harness-improvement-loop.md`
-- `docs/reference/evaluation.md`
-- `docs/reference/failure-taxonomy.md`
+PR1では存在する文書を「欠落」と誤認して新規 policy を作らない。
 
-PR1では「存在しない reference の復元」を行わない。package-local `improvement-workflow.md` と repository-side reference 群の責務重複を整理し、Candidate model / strictness / evidence / review behavior 等の Skill 固有 workflow は package-local を正本にする。
+- Candidate model
+- classification
+- strictness
+- evidence requirement
+- implementationとの分離
+- review requirement
 
-`evaluation.md` / `failure-taxonomy.md` が複数 workflow から使う共有 contract なら Repository-side shared input として残す。
+等の Skill 固有 workflow は package-local reference を正本にする。
 
-#### `exploratory-qa`
+`evaluation.md` / `failure-taxonomy.md` が複数 workflow 共通 contract なら Repository-side shared input として残す。
+
+### `exploratory-qa`
 
 現行 package は `SKILL.md` 1ファイルだけで、Normal / Gray-box / Black-box Scored の選択・実行境界、exploration workflow、evidence / finding、finalization 等を抱えている。
 
-現在 package-local `references/` / `assets/` は存在しない。
+さらに `QA_AGENT.md` と `docs/reference/agentic-qa-workflow.md` にも Mode selection、bootstrap、runtime exploration、evidence / findings、Scored boundary 等の Skill 固有 workflow が重複している。
 
-PR1では次の2 referenceを新設する方針で固定する。
+PR1後は次へ固定する。
 
 ```text
 .agents/skills/exploratory-qa/
@@ -158,22 +185,25 @@ PR1では次の2 referenceを新設する方針で固定する。
     └── scored-mode.md
 ```
 
-- `workflow.md`: Normal / Gray-box の共通 workflow、bounded execution、evidence / finding の高レベル契約、finalization / stop conditions
-- `scored-mode.md`: Black-box Scored の選択条件、isolation / trusted capability / Fresh Session / forbidden boundary / stop conditions
+- `workflow.md`: Normal / Gray-box の共通 workflow、bounded execution、risk / exploration、evidence / finding の高レベル契約、finalization / stop conditions
+- `scored-mode.md`: Black-box Scored の selection、isolation、Fresh Session、trusted capability、forbidden boundary、stop conditions
 
-これ以上の reference / asset は、既存意味を移すために不可欠であることが確認できない限り増やさない。
+`QA_AGENT.md` / `docs/reference/agentic-qa-workflow.md` に残すのは Scenario Shop 固有 integration / machine contract だけとする。
 
-`QA_AGENT.md` に残すのは Scenario Shop 固有 contract であり、Mode 選択ロジックそのものではない。例:
+例:
 
 - Normative BR / AC の Repository mapping
-- `qa-charter.json` / challenge / finding の Repository-specific schema関係
+- `qa-charter.json` / challenge / finding の Repository-specific schema 関係
 - artifact identity / benchmark identity
-- Repository scripts の具体的 mapping
+- `scripts/agentic-qa/**` の具体的 mapping
 - Repository-specific scoring implementation / metric connection
+- Scenario Shop 固有の artifact path / preparation harness integration
 
-#### `android-native-local-validation`
+Mode selection / Normal-Gray-box exploration workflow / Scored isolation decision は Repository-side document の正本に残さない。
 
-現行 Skill は **Windows + PowerShell + physical Android** を対象としている。
+### `android-native-local-validation`
+
+現行 Skill は **Windows + PowerShell + physical Android** を対象とする。
 
 主要実行入口は Repository 側の以下。
 
@@ -181,57 +211,86 @@ PR1では次の2 referenceを新設する方針で固定する。
 scripts/native/windows/android-local.ps1
 ```
 
-現行の環境・実行前提は主に次。
+`docs/native/windows-android-local-validation.md` は単なる具体 command 一覧ではなく、toolchain、setup、preflight、実行順、failure対応まで含むため、そのまま残すと package-local workflow と二重正本になる。
 
-- Windows
-- PowerShell
-- Node / pnpm
-- Java 17
-- Android SDK / ADB
-- physical Android device
-- Maestro
+PR1では責務を次へ分ける。
 
-PR1で macOS / Homebrew 対応へ一般化しない。OS / command behavior の変更は Non-goal とする。
+Package側:
 
-Portable Skill側は「host repositoryから supplied される Windows Android local validation command / native setup references」を external input として扱う。`scripts/native/windows/android-local.ps1` 等の具体 path の mapping は Repository側 routing / adapter に置き、Skill workflowの正本をその固定pathへ依存させない。
+- validation の工程順
+- 各工程の entry / exit condition
+- preflight の意味
+- retry / no-progress / stop condition
+- failure classification の意味
+- evidence / cleanup の要求
+- physical device 前提
+- unsafe / blocked 判断
 
-#### Root 文書の責務
+Repository-side native docs / command側:
 
-`QA_AGENT.md`、`CODE_REVIEW.md`、`PLANS.md` は単なる routing duplicate ではなく Repository 固有情報も持つ。ただし、現在重複している汎用 Skill workflow は package側へ寄せる。
+- Node / pnpm / Java / SDK / Maestro の具体 version
+- `C:\Android\Sdk` / `C:\q` 等の Repository / environment 固有 path
+- Android package ID / deep link scheme
+- 具体的 `pnpm` / PowerShell invocation
+- Scenario Shop 固有 setup / troubleshooting
+- `scripts/native/windows/android-local.ps1` の具体 action / option
 
-PR1後に root 側へ残す責務の例:
+PR1で macOS / Homebrew 対応へ一般化しない。
 
-- `QA_AGENT.md`: Scenario Shop 固有 Agentic QA Machine Contract / artifact / Repository script mapping / scoring implementation
+### Root 文書の責務
+
+`QA_AGENT.md`、`CODE_REVIEW.md`、`PLANS.md` は単なる routing duplicate ではないため、短文化自体を目的にしない。
+
+PR1後の代表的な Repository-side責務:
+
+- `QA_AGENT.md`: Scenario Shop 固有 Machine Contract / artifact schema / Repository script mapping / scoring implementation
 - `CODE_REVIEW.md`: Repository 固有 Coding Standards / 外部レビュー起動承認 / report file policy
 - `PLANS.md`: Repository 固有 plan lifecycle / 保存 path / filename / active run connection
 
-次は root 側へ残さない。
+Root / repository reference に残さない Skill 固有責務:
 
 - 汎用 review workflow / findings contract
 - 汎用 planning ambiguity handling
-- 汎用 QA Mode selection / Mode boundary
+- 汎用 QA Mode selection / exploration workflow / Scored isolation decision
 - repair-loop 固有 stop / iteration workflow
 - harness-improvement 固有 Candidate workflow
+- Android local validation の汎用工程判断 / stop / retry semantics
 
-#### Existing quality gate
+### Existing quality gate
 
-`package.json` の `verify` は現在、format / Markdown lint / spec validation / curriculum validation / lint / typecheck / image validation / security / test / Web build / spec build まで含む重い総合 gate である。
+`pnpm run verify` は format / Markdown lint / spec validation / curriculum validation / lint / typecheck / image validation / security / test / build 等を含む重い総合 gate である。
 
-PR1 の Skill 単位 migration ごとに full `pnpm run verify` を回す必要はない。targeted validator と Markdown lint を中心に進め、full `verify` は最終検証で実施する。
+Skill単位 migration ごとに full `verify` を回さない。targeted validator / validator test / Markdown lintを中心にし、full `verify` は最終段階で実施する。
 
 ### Assumptions
 
-- Issue #117 の PR1 は 6 Skill 全件を対象とする。
-- `name` / `description` の routing 性能改善は PR3 の責務であり、PR1では原則 freeze する。
-- Repository 固有 input / policy を package 外に残すこと自体は Portability 違反ではない。Skill 側で外部 Input の種類が明示され、Repository 固定 path の正本を必須にしなければよい。
-- Repository側の具体 path / command mapping は `AGENTS.md` 等の routing / adapter が担当する。
-- package 構造は全 Skill を同一ディレクトリ形状へ揃えることを目的にしない。必要な `references/` / `assets/` / `scripts/` だけを作る。
-- 既存の汎用静的 Template は Skill package の `assets/` へ移してよいが、PR1で新しい Template を考案しない。
-- validator は新規 dependency を追加せず、既存 TypeScript / `tsx` / `yaml` stack で小さく実装できる。
+- Issue #117 PR1 は6 Skill全件を対象とする。
+- `name` / `description` の routing 性能改善は PR3 の責務であり、PR1では freeze する。
+- Repository 固有 input / policy を package 外に残すこと自体は Portability 違反ではない。
+- Package内で必要なのは external input の**意味的な名前と必要条件**であり、その Repository 固有 path を packageへ埋め込む必要はない。
+- Repository側の具体 path / command mapping は既存 Markdown entrypoint で表現すれば十分である。
+- package 構造は全 Skill を同一形状へ揃えない。
+- validator は新規 dependency を追加せず、既存 TypeScript / `tsx` / `yaml` stack で小さく実装する。
+
+### Adapter の定義
+
+このPlanでいう `Repository adapter` / `input mapping` は、**既存または整理後の Repository Markdown 上で「この Skill input はこの Repository の文書 / command / contract」と対応づけること**を意味する。
+
+PR1で以下を新設しない。
+
+- `adapter.yaml`
+- `skill-inputs.json`
+- input resolver
+- runtime injection mechanism
+- adapter schema
+- adapter interface / framework
+- 独自 Agent Runtime
+
+Portabilityのために新しい実行機構を作らない。
 
 ### Non-goals
 
-- Issue #117 PR2 以降の変更
+- Issue #117 PR2以降
 - Trigger Eval baseline
 - `description` optimization
 - Deterministic Output Eval
@@ -239,74 +298,71 @@ PR1 の Skill 単位 migration ごとに full `pnpm run verify` を回す必要�
 - Workflow E2E Eval
 - QA / code review / planning / repair / harness policy の意味改善
 - `exploratory-qa` の対象選定・evidence semantics・Scored Mode の再設計
-- Android の対象 OS / device policy / command behavior 変更
-- macOS / Homebrew 対応の追加
+- Android の対象 OS / device policy / command behavior変更
+- macOS / Homebrew対応
 - `scripts/native/windows/android-local.ps1` の置換・再実装
-- 新しい PowerShell wrapper の追加
-- 新しい agent framework / runner / workflow engine
+- 新しい PowerShell wrapper
+- 新しい Agent framework / runner / workflow engine / adapter framework
 - Repository 全 Markdown を対象にした汎用 link checker
-- CI job の再設計・統廃合
-- dependency 更新
-- product code / Web / Native UI / Typesense / search / release smoke の変更
-- Skill 品質を行数だけで判定する lint
-- 全 Skill に `assets/` / `scripts/` / `evals/` directory を形式だけで作ること
+- CI jobの再設計・統廃合
+- dependency更新
+- product code / Web / Native UI / Typesense / search / release smoke変更
+- Skill品質を行数で判定するlint
+- 全Skillに形式だけの `assets/` / `scripts/` / `evals/` を作ること
 - PR1で新規 Output Template を発明すること
 
 ## 3. 質問 / 曖昧性
 
-### 必ず質問する不透明点
+### 実装開始を止める未決定事項
 
-実装開始を止める未決定事項は現時点ではない。
+現時点ではなし。
 
-ただし、移設中に以下が発生した場合は勝手に意味を決めず停止する。
+ただし実装中に以下が発生した場合は勝手に意味を決めず停止する。
 
 - 旧文書同士で MUST / MUST NOT / stop condition が矛盾している。
-- どちらを canonical にするかで実行 behavior が変わる。
-- Repository 固有 policy か portable Skill workflow か判断できず、配置によって利用可能範囲が変わる。
-- root 固定 path への必須依存を外すために既存 workflow の意味変更が必要になる。
-- `description` を変えないと package 化できないように見える。
-- Android の既存 Windows contract を変更しないと整理できないように見える。
-- `docs/plans/TEMPLATE.md` と package asset のどちらかを削除すると既知の consumer が壊れ、単純な compatibility pointer では維持できない。
+- どちらを canonical にするかで runtime behavior が変わる。
+- Repository 固有 policy か portable Skill workflow かを分類すると behavior が変わる。
+- root 固定 path 依存を除くために既存 workflow の意味変更が必要になる。
+- `description` を変えないと package 化できない。
+- Android の既存 Windows contract を変更しないと整理できない。
+- `docs/plans/TEMPLATE.md` を pointer 化すると既知 consumer が壊れ、単純な compatibility 維持ができない。
+- `docs/reference/agentic-qa-workflow.md` / native runbook の内容に、packageへ移すと Repository 固有 contract を失う境界不明点がある。
 
 ### 仮定してよい細部
 
-- validator の実装ファイル名
-- validator test の配置
-- root compatibility pointer の具体文言
-- package-local Markdown link の表記揺れを統一する軽微な formatting
+- validator script / test の具体ファイル名
+- compatibility pointer の具体文言
+- Markdown link 表記の軽微な formatting
+- root docs の見出し順の整理
 
-次は仮定対象にしない。
+### 仮定してはいけない事項
 
-- `feature-plan` Template の正本位置: package-local asset を canonical とする。
-- `exploratory-qa` reference数: `workflow.md` / `scored-mode.md` の2つに固定する。
-- planning ambiguity handling の正本: package-local `planning-workflow.md` とする。
-- Portable Skillからroot固定pathへ必須依存させないこと。
-
-### 未回答の重要質問
-
-なし。
+- `feature-plan` Template の正本位置: package-local asset
+- `exploratory-qa` reference数: `workflow.md` / `scored-mode.md` の2つ
+- planning ambiguity handling の正本: package-local `planning-workflow.md`
+- portable Skill から root 固定 path を必須正本にしないこと
+- package 内 local file link を package 外へ escape させないこと
+- `name` / `description` を PR1で変更しないこと
 
 ## 4. 影響範囲
 
-### Impacted areas
+### Skill packages
 
-#### Skill packages
-
-- `.agents/skills/exploratory-qa/**`
-- `.agents/skills/code-review/**`
-- `.agents/skills/feature-plan/**`
-- `.agents/skills/repair-loop/**`
-- `.agents/skills/harness-improvement/**`
 - `.agents/skills/android-native-local-validation/**`
+- `.agents/skills/code-review/**`
+- `.agents/skills/exploratory-qa/**`
+- `.agents/skills/feature-plan/**`
+- `.agents/skills/harness-improvement/**`
+- `.agents/skills/repair-loop/**`
 
-#### Root routing / repository adapters
+### Root routing / Repository adapters
 
 - `AGENTS.md`
 - `QA_AGENT.md`
 - `CODE_REVIEW.md`
 - `PLANS.md`
 
-#### Existing repository references / compatibility entrypoints
+### Existing repository references / compatibility entrypoints
 
 - `docs/plans/TEMPLATE.md`
 - `docs/reference/repair-loop.md`
@@ -318,18 +374,23 @@ PR1 の Skill 単位 migration ごとに full `pnpm run verify` を回す必要�
 - `docs/native/windows-android-local-validation.md`
 - `docs/native/windows-android-troubleshooting.md`
 
-上記は必ずしも全て変更するわけではない。Skill 固有 detail の正本位置確認、Repository Input mapping、compatibility維持に使用する。
+### Repository commands / harness mapping
 
-#### Validation / CI
+- `scripts/native/windows/android-local.ps1`
+- `scripts/agentic-qa/**`
+
+上記 scripts は基本的に確認対象であり、Portabilityだけを理由に移動・複製・再実装しない。
+
+### Validation / CI
 
 - `package.json`
-- Skill validator の repository-local script
+- Skill validator script
 - validator test
 - `.github/workflows/ci.yml`
 
 ### Files to inspect
 
-実装時は最低限、以下を current branch 上で再確認する。
+実装開始時に current branch で最低限再確認する。
 
 - Issue #117 body
 - `AGENTS.md`
@@ -338,8 +399,10 @@ PR1 の Skill 単位 migration ごとに full `pnpm run verify` を回す必要�
 - `PLANS.md`
 - `docs/plans/TEMPLATE.md`
 - 6 Skill の `SKILL.md`
-- 既存 package-local references
+- package-local references
 - 上記 Repository-side references
+- `scripts/native/windows/android-local.ps1`
+- `scripts/agentic-qa/**` の入口 / contract
 - `package.json`
 - `.github/workflows/ci.yml`
 - 既存 script / test naming convention
@@ -349,8 +412,6 @@ PR1 の Skill 単位 migration ごとに full `pnpm run verify` を回す必要�
 ### 設計原則
 
 #### 1. Dependency direction を一方向にする
-
-Portable workflowの依存方向は次を基本とする。
 
 ```text
 Repository routing / adapter
@@ -365,129 +426,151 @@ Skill package
   └─ package-local assets / scripts（必要な場合のみ）
 ```
 
-禁止する正本構造:
+禁止する detailed source-of-truth cycle:
 
 ```text
-AGENTS.md -> SKILL.md -> CODE_REVIEW.md / PLANS.md / QA_AGENT.md -> SKILL reference
+AGENTS.md
+  -> SKILL.md
+  -> CODE_REVIEW.md / PLANS.md / QA_AGENT.md / docs/reference/**
+  -> package-local reference
 ```
 
-つまり、Portable Skill の core workflow は package-local だけで理解可能にする。
-
-Repository固有の情報が必要な場合、Skill側は logical external input として要求する。例:
+Skill側は次のような logical external input を要求してよい。
 
 - repository coding policy
 - product normative specification
 - QA machine contract
 - runtime command / capability
 - plan storage convention
+- shared evaluation / taxonomy contract
 
-具体的な Repository path や command は root routing / adapter がその input へ mapping する。
+具体 path / command は Repository-side mapping が担当する。
 
-Package-local `SKILL.md` から root固定pathを「この文書を読まないと Skill workflow が成立しない」という形で必須参照させない。
+#### 2. Package-local link boundary を明確にする
 
-#### 2. Portability は「Repository依存ゼロ」ではない
+`.agents/skills/<skill>/**` 内で Markdown syntax により記述する local file link は、原則として resolve 後も同じ `.agents/skills/<skill>/` 配下でなければならない。
 
-Skill package 内へ持つのは **Skill 固有 workflow / decision / stop / output contract / reusable static template**。
+PASS例:
 
-Repository 側に残してよいもの:
+```md
+- [Workflow](references/workflow.md)
+- [Plan Template](assets/plan-template.md)
+- [Validator](scripts/validate-output.ts)
+```
 
-- Product Specification
-- Repository-specific command
-- Scenario Shop 固有 Machine Contract
-- Coding Standards
-- Plan 保存 path / filename convention
-- Runtime / build / native utility
-- shared artifact / safety policy
+FAIL例:
 
-同じ Repository 固有 rule を Portability のためだけに Skill package へ複製しない。
+```md
+- [Repository Policy](../../../CODE_REVIEW.md)
+- [Repository QA Contract](../../../QA_AGENT.md)
+```
 
-#### 3. `SKILL.md` を薄くするが、短文化を目的にしない
+Repository固有情報は package外linkではなく logical external input として表現する。
 
-`SKILL.md` は、追加判断なしで以下が分かればよい。
+例外を新設しない。package外ファイルを core workflow の一部として直接リンクしなければならないことが判明した場合は、Portability境界を再検討するため停止する。
 
-- いつ使うか
-- いつ使わないか
-- 必要 inputs
+#### 3. Package内の埋め込みRepository bindingも inventoryする
+
+確認対象は Markdown link だけではない。
+
+package内に次が埋め込まれていないか Phase 0 で確認する。
+
+- `AGENTS.md` / `PLANS.md` / `QA_AGENT.md` 等の固定 path
+- `docs/**` / `.codex/**` / `scripts/**` の Repository 固有 path
+- Repository 固有 artifact directory
+- Repository 固有 command
+- Scenario Shop 固有 package / route / identifier
+- Repository 固有 enum / output destination
+
+これらをすべて機械lintする新ツールは作らない。migration matrix で分類し、Skill workflowに本質的なら logical external input 化し、Repository-specificなら root側へ残す。
+
+#### 4. `SKILL.md` は薄くするが短文化を目的にしない
+
+追加判断なしで以下が分かればよい。
+
+- trigger / exclusion
+- required inputs
 - expected outputs
-- どの package-local reference / asset を読むか
-- 主要 guardrail / stop boundary
+- package-local reading order
+- top-level guardrail / stop boundary
 
-詳細を移す必要がない小さい Skill は、無理に新規 reference を増やさない。
+小さいSkillは無理にreferenceを増やさない。
 
-#### 4. Directory を揃えることを目的にしない
-
-基本形は以下だが、必要なものだけ作る。
+#### 5. Directory shape を揃えない
 
 ```text
 .agents/skills/<skill>/
 ├── SKILL.md
-├── references/   # detailed workflow / policy / output contract が必要な場合のみ
-├── assets/       # reusable static template / static artifact が既に必要な場合のみ
-└── scripts/      # Skill 専用 deterministic processing が本当に必要な場合のみ
+├── references/   # 必要時のみ
+├── assets/       # 既存 reusable static asset がある場合のみ
+└── scripts/      # Skill専用 deterministic processing が本当に必要な場合のみ
 ```
 
-責務:
+- `references/`: workflow / rules / stop / output meaning
+- `assets/`: static reusable template / artifact
+- `scripts/`: Skill-specific deterministic processing
 
-- `references/`: workflow、rules、stop conditions、output meaning contract
-- `assets/`: reusable static template / static artifact
-- `scripts/`: Skill 固有 deterministic processing
+shared utility を Portability のためだけに複製しない。
 
-既存 shared utility を Portability だけを理由に Skill へ複製しない。
+#### 6. PR1では frontmatter routing behaviorを変えない
 
-#### 5. PR1では frontmatter routing behavior を変えない
-
-6 Skill の frontmatterについて、以下を原則 freeze する。
+6 Skill の以下を freeze する。
 
 ```yaml
 name:
 description:
 ```
 
-format修正等が必要でも、routing semantics を変える wording optimization は PR3 へ送る。
+`description`に Repository固有 wording が残っても、PR2 baseline / PR3 optimization のため意図的に維持する。
 
-#### 6. `AGENTS.md` は routing / input mapping に集中する
+#### 7. `AGENTS.md` は routing / input mapping に集中する
 
-`AGENTS.md` に置くのは主に以下。
+置くもの:
 
 - task type
-- Skill name / package-local entrypointへの link
+- Skill name / entrypoint link
 - high-level selection / exclusion
-- Repository固有 input / policy / command の mapping
+- Repository固有 input / policy / command mapping
 
-package layout の詳細仕様や Skill workflow を `AGENTS.md` に新たに集約しない。
+置かないもの:
 
-Skill entrypointは可能な限り通常の Markdown link で記載し、validatorが特別な routing parserなしで target existence を検証できるようにする。
+- Skill detailed workflow
+- package layout specification
+- long checklist
+- Skill stop condition詳細
 
-#### 7. Root文書は「短く」ではなく「重複をなくす」
+Skill entrypoint は通常 Markdown link へ寄せる。
 
-`QA_AGENT.md` / `CODE_REVIEW.md` / `PLANS.md` は、Skill 固有 workflow を重複定義しない。
+#### 8. Root文書は短くするのではなく重複をなくす
 
-一方で Repository 固有 contract / policy / adapter / lifecycle は必要なら残す。
+Repository固有 contract / policy / lifecycle は残す。
 
-### Skillごとの migration 方針
+portable Skill workflow は package-local canonical にする。
+
+### Skill別 migration 方針
 
 #### `code-review`
 
-現状:
+対象:
 
 ```text
-SKILL.md
-references/review-workflow.md
+.agents/skills/code-review/SKILL.md
+.agents/skills/code-review/references/review-workflow.md
 CODE_REVIEW.md
+AGENTS.md
 ```
 
 方針:
 
-1. `SKILL.md`、`references/review-workflow.md`、`CODE_REVIEW.md` の重複を inventory する。
-2. 汎用 code-review workflow / findings contract / review ordering は package-local `review-workflow.md` を canonical にする。
-3. `CODE_REVIEW.md` の Repository 固有 coding standards、外部レビュー起動承認、report generation policy 等は残す。
-4. `SKILL.md` は trigger / logical external inputs / outputs / primary guardrail / package-local reading order を中心にする。
-5. `SKILL.md` から `CODE_REVIEW.md` を必須 workflow reference として読ませない。Repositoryでは `AGENTS.md` / adapter側が repository coding policy として対応づける。
-6. 新規 reference / asset / script は、既存 `review-workflow.md` で不足が明確でない限り作らない。
+1. generic review workflow / findings contract / review ordering は `review-workflow.md` を canonical にする。
+2. `CODE_REVIEW.md` の Repository固有 Coding Standards / external review approval / report policy は残す。
+3. `SKILL.md` は logical external input として repository coding policy を要求できるが、`CODE_REVIEW.md` 固定pathを必須読込しない。
+4. packageに新規 reference / asset / script を追加しない。
+5. code-review migration内で `CODE_REVIEW.md` の重複削除と `AGENTS.md` mapping更新まで完了する。
 
 #### `feature-plan`
 
-PR1後の基本構造:
+PR1後:
 
 ```text
 .agents/skills/feature-plan/
@@ -500,58 +583,59 @@ PR1後の基本構造:
 
 方針:
 
-1. 汎用 planning workflow は package-local `planning-workflow.md` を canonical にする。
-2. mandatory-question / blocking question / assumptions allowed / ambiguity handling は planning Skill の判断ロジックとして `planning-workflow.md` へ集約する。
-3. 現行 `docs/plans/TEMPLATE.md` の汎用 Template 本文を `assets/plan-template.md` へ移し、package-local asset を canonical にする。
-4. `docs/plans/TEMPLATE.md` を残す場合は canonical assetへの薄い compatibility pointer とし、Template本文を二重保持しない。
-5. `PLANS.md` に残すのは Repository 固有 plan lifecycle、保存 path / filename convention、active runとの関係等に限定する。
-6. `SKILL.md` は trigger / inputs / outputs / package-local reading order / **plan-save-before-implementation boundary** を中心にする。
-7. Repositoryでは plan保存先等を external input として `AGENTS.md` / `PLANS.md` から mapping する。Portable Skill自体は `docs/plans/` 固定pathを workflow 正本にしない。
-8. PR1で新しいTemplate項目を追加・改善しない。既存Templateの意味をそのまま移す。
+1. generic planning workflow / ambiguity handling は `planning-workflow.md` を canonical にする。
+2. `docs/plans/TEMPLATE.md` の既存本文を `assets/plan-template.md` へ意味変更なしで移す。
+3. `docs/plans/TEMPLATE.md` を残す必要がある場合は package asset への compatibility pointer とし、本文を二重保持しない。
+4. `PLANS.md` には Repository固有 plan lifecycle / save path / filename / active run contractだけ残す。
+5. `SKILL.md` は **plan-save-before-implementation boundary** を維持する。
+6. package自体は `docs/plans/` 固定pathを workflow正本にしない。
+7. feature-plan migration内で `PLANS.md` / `docs/plans/TEMPLATE.md` / `AGENTS.md` まで整理する。
 
 #### `repair-loop`
 
-現状:
+対象:
 
 ```text
-SKILL.md
-references/repair-workflow.md
+.agents/skills/repair-loop/SKILL.md
+.agents/skills/repair-loop/references/repair-workflow.md
 docs/reference/repair-loop.md
+AGENTS.md
 ```
 
 方針:
 
-1. package-local `repair-workflow.md` と `docs/reference/repair-loop.md` の重複を比較する。
-2. bounded loop、failure triage、iteration contract、repeated failure、max iteration、stop conditions、scope / unsafe action 等の **repair-loop固有 detail** は package-local reference へ集約する。
-3. 他 workflow も参照する Repository-wide policy（例: shared change-scope / artifact policy）がある場合だけ Repository-side shared input として残す。
-4. 同じ詳細手順を package と root の二重正本にしない。
-5. `SKILL.md` は Repository-side `docs/reference/repair-loop.md` を必須正本として要求せず、必要な shared policyは logical external input として扱う。
-6. 新しい repair runner / automatic loop / script は追加しない。
+1. bounded loop / finding triage / iteration contract / repeated failure / max iteration / stop / unsafe / scope 等の repair-loop固有 detail は package-local referenceへ集約する。
+2. `docs/reference/repair-loop.md` に残すのは複数workflowで共有する Repository-side artifact / scope / evaluation integration 等だけとする。
+3. 同じ detailed procedure を二重保持しない。
+4. package側は Repository-specific `evaluation.json` path / report path / sanitizer command 等を固定pathとして workflow正本にせず、必要なら logical external input とする。
+5. 新しい repair runner / automatic loop / script を追加しない。
+6. repair-loop migration内で repository reference / `AGENTS.md` mappingまで整理する。
 
 #### `harness-improvement`
 
-現状:
+対象:
 
 ```text
-SKILL.md
-references/improvement-workflow.md
+.agents/skills/harness-improvement/SKILL.md
+.agents/skills/harness-improvement/references/improvement-workflow.md
 docs/reference/harness-improvement-loop.md
 docs/reference/evaluation.md
 docs/reference/failure-taxonomy.md
+AGENTS.md
 ```
 
 方針:
 
-1. `references/improvement-workflow.md` と `docs/reference/harness-improvement-loop.md` の重複を比較する。
-2. Candidate model、classification、strictness、evidence requirement、separation from implementation、review requirement 等の **Skill固有 workflow** は package-local reference を canonical にする。
-3. `evaluation.md` / `failure-taxonomy.md` が複数 workflow 共通 contract なら Repository-side shared input として残す。
-4. `SKILL.md` では shared evaluation / taxonomy contract を logical external input として要求し、特定Repository pathを core workflowの正本にしない。
-5. 実在する reference を「欠落している」と仮定して新規 policy を作らない。
-6. `SKILL.md` は trigger / inputs / outputs / read order / auto-apply禁止等の最上位 boundary を残す。
+1. Candidate model / classification / strictness / evidence / separation / review requirement は package-local reference を canonical にする。
+2. `evaluation.md` / `failure-taxonomy.md` が shared contractなら Repository-side inputとして残す。
+3. `improvement-workflow.md` 内に埋め込まれた `.codex/**` / root docs / scripts 等のRepository-specific target値を inventory し、Skill workflow本体と分離する。
+4. `SKILL.md` から repository-side docs を core workflow正本として必須読込しない。
+5. 新規 policy / script / schema を追加しない。
+6. harness-improvement migration内で repository reference / `AGENTS.md` mappingまで整理する。
 
 #### `exploratory-qa`
 
-PR1後の構造を次で固定する。
+PR1後:
 
 ```text
 .agents/skills/exploratory-qa/
@@ -561,20 +645,29 @@ PR1後の構造を次で固定する。
     └── scored-mode.md
 ```
 
+対象Repository文書:
+
+```text
+QA_AGENT.md
+docs/reference/agentic-qa-workflow.md
+AGENTS.md
+```
+
 方針:
 
-1. 現行 `SKILL.md` の内容を Portable Skill workflow と Scenario Shop 固有 contract に分類する。
-2. `workflow.md` に Normal / Gray-box の共通 exploration workflow、bounded execution、high-level evidence / finding contract、finalization / stop conditions を移す。
-3. `scored-mode.md` に Black-box Scored の selection / isolation / Fresh Session / trusted capability / forbidden boundary / stop conditions を移す。
-4. Mode選択・Mode境界は Skill workflow なので `QA_AGENT.md` の正本に残さない。
-5. `QA_AGENT.md` に残すのは Scenario Shop 固有 Machine Contract、artifact schema / identity、Repository-specific script mapping、benchmark / scoring connection 等とする。
-6. Product Normative Specification / QA Machine Contract / runtime capability は logical external input としてSkill側に明示し、`QA_AGENT.md` 等の固定pathを portable workflow の必須正本にしない。
-7. `scripts/agentic-qa/**` を Skill packageへコピーしない。
-8. 2 referenceより細分化しない。新しいassetも作らない。
+1. `workflow.md` に Normal / Gray-box 共通workflow、risk analysis、bounded exploration、evidence / finding high-level contract、finalization / stop を移す。
+2. `scored-mode.md` に Black-box Scored selection / isolation / Fresh Session / trusted capability / forbidden boundary / stop を移す。
+3. Mode selection / Mode boundary を `QA_AGENT.md` / `docs/reference/agentic-qa-workflow.md` の独立正本として残さない。
+4. `docs/reference/agentic-qa-workflow.md` は必要なら Scenario Shop integration guide として残してよいが、portable exploration workflow を二重定義しない。
+5. `QA_AGENT.md` に Scenario Shop固有 Machine Contract / schema / artifact identity / script mapping / scoring implementationを残す。
+6. `scripts/agentic-qa/**` を移動・複製・再実装しない。
+7. Product Specification / QA Machine Contract / runtime capability / artifact storage 等は logical external input として扱う。
+8. referenceは2つより細分化しない。新しいassetを作らない。
+9. exploratory-qa migration内で `QA_AGENT.md` / `docs/reference/agentic-qa-workflow.md` / `AGENTS.md` まで整理する。
 
 #### `android-native-local-validation`
 
-PR1後の基本構造:
+PR1後:
 
 ```text
 .agents/skills/android-native-local-validation/
@@ -583,116 +676,139 @@ PR1後の基本構造:
     └── windows-android-workflow.md
 ```
 
+対象Repository文書 / command:
+
+```text
+docs/native/windows-android-local-validation.md
+docs/native/windows-android-troubleshooting.md
+docs/native/README.md
+scripts/native/windows/android-local.ps1
+AGENTS.md
+```
+
 方針:
 
-1. 現行 Windows contract を維持する。
-2. 長い command / preflight / retry / failure classification / cleanup 手順を package-local `windows-android-workflow.md` へ移す。
-3. `SKILL.md` には用途、Windows + physical Android applicability、logical external inputs、主要 stop boundary、package-local reference reading order を残す。
-4. host repository が提供する Android local validation command / native setup / troubleshooting reference を external input として扱う。
-5. 現Repositoryでは `AGENTS.md` / repository adapter が external input を `scripts/native/windows/android-local.ps1` / `docs/native/**` へ mapping する。
-6. 実処理の正本 `scripts/native/windows/android-local.ps1` は Skill内に複製しない。
-7. `docs/native/**` の Repository固有 setup / troubleshooting detail を丸ごと packageへコピーしない。Portable workflowに必要な判断・stop意味だけpackage側へ置く。
-8. macOS / Homebrew 対応、新PowerShell wrapper、新validatorは追加しない。
+1. Windows + PowerShell + physical Android contract を維持する。
+2. package reference に工程順 / entry-exit condition / preflight意味 / retry / stop / failure classification / evidence / cleanup semantics を置く。
+3. native docs には具体 version / path / package ID / command / Scenario Shop-specific setup・troubleshooting を残す。
+4. native docs に packageと同じ generic判断フローを二重保持しない。
+5. `android-local.ps1` は Repository-specific command input の正本として維持し、packageへ複製しない。
+6. package側は `scripts/native/windows/android-local.ps1` 等の固定pathを core workflow の必須linkとして持たない。
+7. macOS / Homebrew / Emulator対応、新wrapper、新validatorを追加しない。
+8. android migration内で native docs / `AGENTS.md` mappingまで整理する。
 
 ### Validator 方針
 
 #### 目的
 
-PR1で必要なのは「Skill package と明示した local file link が壊れていないこと」の機械検証であり、汎用 Markdown parser / semantic linter / routing parser ではない。
+PR1で必要なのは、Skill package と明示 local file link が壊れておらず、package内部参照が package外へ逃げていないことの機械検証である。
+
+汎用 Markdown checker / semantic linter / routing parser は作らない。
 
 #### 最小責務
 
-validator は次だけを検証する。
+validatorは次だけを行う。
 
-1. `.agents/skills/*/` directory に `SKILL.md` が存在する。
+1. `.agents/skills/*/` に `SKILL.md` が存在する。
 2. `SKILL.md` frontmatter が parse できる。
 3. `name` / `description` が存在し空でない。
 4. Skill `name` が重複しない。
-5. validator対象 Markdown 内の通常 local Markdown file link の target が存在する。
+5. validator対象Markdown内の通常 Markdown syntax の local file link target が存在する。
+6. Skill package内の local file link は resolve後も同一 Skill directory配下である。
 
-`AGENTS.md` の canonical Skill routeも通常Markdown linkで書くため、**routing専用 parser / routing専用 path rule は作らない**。
+ここでいう **local file link** は Markdown syntax で記述された Repository内 file target を意味し、target拡張子は問わない。
 
-#### Link validation の対象
+対象例:
 
-最低限、次を固定対象にする。
+- `.md`
+- `.json`
+- `.yaml`
+- `.ts`
+- `.sh`
+- `.ps1`
+- その他Repository内file
+
+#### Link validation対象
+
+最低限:
 
 - `.agents/skills/**/*.md`
 - `AGENTS.md`
-- `QA_AGENT.md`
-- `CODE_REVIEW.md`
-- `PLANS.md`
-- `docs/plans/TEMPLATE.md`
-- `docs/reference/repair-loop.md`（残す場合）
-- `docs/reference/harness-improvement-loop.md`（残す場合）
+- 今回実際に変更した root / compatibility Markdown
 
-存在しない optional compatibility file はskipできる構成にし、対象一覧のためだけに空fileを作らない。
+実装を単純に保つため、Repository全Markdownを対象にしない。
 
-対象は通常Markdown linkの **local file target existence** のみ。
+root / compatibility Markdown については local file target existence のみを見る。package escape rule は `.agents/skills/<skill>/**` にだけ適用する。
 
-対象外:
+#### 対象外
 
 - external URL
 - anchor-only link
-- prose / backtick 内のpath
-- code sample
+- prose / backtick 内の path
+- code sample内の path
 - Markdown文章品質
 - semantic equivalence
 - Trigger accuracy
 - Output quality
 - Repository全Markdown
 
-#### Path解析を単純化する
+#### Markdown linkへ寄せる対象
 
-機械検証したい local reference / Skill route / compatibility pointer は通常の Markdown link として記載する。
-
-例:
+機械検証したいものだけ通常Markdown linkへする。
 
 ```md
 - [Workflow](references/workflow.md)
-- [Code Review Skill](.agents/skills/code-review/SKILL.md)
+- [Plan Template](assets/plan-template.md)
 ```
 
-説明文中の backtick path を独自 parser で推測解析しない。
+Repository external input は package外linkへせず、Inputs の意味契約として記述する。
 
 #### 実装規模
 
-- 新規 dependency を追加しない。
-- 既存 `tsx` / TypeScript / `yaml` を使用する。
-- validator は小さい repository-local script 1本を基本とする。
-- helper abstraction は複数箇所で実際に必要になるまで作らない。
-- Markdown AST parser等の新規仕組みを導入せず、対象syntaxに必要な最小実装にする。
+- 新規dependencyなし。
+- 既存 TypeScript / `tsx` / `yaml` を使用する。
+- repository-local script 1本を基本とする。
+- helper abstractionは複数箇所で必要になるまで作らない。
+- Markdown AST frameworkを新規導入しない。
+- routing専用parserを作らない。
 
-#### Validator test
+#### Validator tests
 
-最低限、以下を固定する。
+最低限:
 
-- valid package / local links -> PASS
+- valid package / internal links -> PASS
 - missing `SKILL.md` -> FAIL
-- invalid / missing required frontmatter -> FAIL
+- invalid / missing frontmatter -> FAIL
 - duplicate Skill name -> FAIL
-- broken local Markdown file link -> FAIL
-- external URL / anchor-only / backtick path が対象外であることを必要最小限確認
+- missing local file target -> FAIL
+- package内linkが package外へ escape -> FAIL
+- external URL / anchor-only / backtick path が対象外であることを最小確認
 
-`broken canonical routing Skill path` 専用testは作らない。通常local Markdown link failureで同じロジックを使う。
+`broken routing path` 専用ロジックは作らない。`AGENTS.md` routeを通常Markdown linkにし、同じ local link existence logic を使う。
 
-### Quality gate 方針
+### Quality gate
 
-- `package.json` に dedicated script を追加する。例: `pnpm run validate:skills`
-- local aggregate `pnpm run verify` から到達可能にする。
+- `package.json` に `validate:skills` 相当の dedicated script を追加する。
+- `pnpm run verify` から到達可能にする。
 - `.github/workflows/ci.yml` の既存 quality job に dedicated validator step を追加する。
-- CIで `pnpm run verify` 全体を追加実行して既存 test / lint / build を二重実行しない。
-- Skill migration 中は targeted validator test / `validate:skills` / Markdown lint を中心にする。
-- full `pnpm run verify` は最終検証で実施する。
+- CIでfull `verify`を別途追加して既存lint/test/buildを二重実行しない。
+- migration中は targeted validator / validator test / Markdown lint中心。
+- full `pnpm run verify` は最終段階で1回実施する。
 
-### 実行タスク
+## 6. 実行タスク
 
-#### Phase 0 — Baseline migration matrix / dependency mapping
+### Phase 0 — Baseline migration matrix / dependency inventory
 
-- [ ] 6 Skillについて、`SKILL.md` / package-local reference / root reference / Repository-specific input を一覧化する。
-- [ ] root文書との重複を section 単位で記録する。
-- [ ] Portable Skillからroot固定pathへの必須依存を一覧化する。
-- [ ] 各依存を `package-local canonical` / `logical external input` / `Repository adapter mapping` のどれにするか決める。
-- [ ] 各 Skill で守る semantic invariant を簡潔に記録する。
+- [ ] 6 Skill の current `name` / `description` をbaselineとして記録する。
+- [ ] `SKILL.md` / package references / root docs / repository references の重複を section単位で一覧化する。
+- [ ] packageからroot固定pathへの必須依存を一覧化する。
+- [ ] package内に埋め込まれた Repository-specific path / command / artifact destination / identifier を一覧化する。
+- [ ] 各項目を次へ分類する。
+  - package-local canonical
+  - logical external input
+  - Repository-side shared contract
+  - Repository-specific mapping / concrete value
+- [ ] 各Skillのsemantic invariantを記録する。
   - MUST / MUST NOT
   - trigger / exclusion
   - required inputs
@@ -700,120 +816,157 @@ validator は次だけを検証する。
   - evidence requirement
   - approval boundary
   - stop condition
-- [ ] 旧正本 -> 新正本の移設先を migration matrix として決める。
-- [ ] `name` / `description` の baseline を記録し、PR1で変更しないことを確認する。
+- [ ] 旧正本 -> 新正本の移設先を migration matrix で決める。
 
-Migration matrix / working checklist のためだけに新しい durable `docs/**` fileを作らない。Implementation時の active `.codex/runs/<run_id>/PLAN.md` / `TASKS.md` 内のworking checklistとして管理する。
+Migration matrixだけのために新しい `docs/**` を作らない。Implementation時の active `.codex/runs/<run_id>/PLAN.md` / `TASKS.md` 内 working checklist で管理する。
 
-#### Phase 1 — Validator skeleton
+### Phase 1 — Minimal validator
 
-- [ ] 既存 script / test convention に合わせて validator の場所を決める。
-- [ ] package discovery / frontmatter / duplicate name の最小 skeletonを実装する。
-- [ ] 対応する最小 failure cases の test を追加する。
-- [ ] routing専用 parser / 汎用Markdown checkerを作らない。
+- [ ] 既存 script / test conventionに合わせて validator配置を決める。
+- [ ] package discovery / `SKILL.md` existence / frontmatter / duplicate name を実装する。
+- [ ] normal Markdown local file target existence を実装する。
+- [ ] package内 local link の same-skill-directory boundary を実装する。
+- [ ] 最小 failure cases の test を追加する。
+- [ ] routing parser / adapter schema / generic Markdown checkerへ拡張しない。
 
-この時点で Markdown link validation を完成させる必要はない。Skill移設でlink表記を通常Markdown linkへ揃えた後、同じscriptへ小さく追加する。
+### Phase 2 — Skill-by-Skill migration
 
-#### Phase 2 — Small Skill migrations
+**1 Skillごとに package移設 -> 対応root/reference cleanup -> `AGENTS.md` mapping -> targeted validation -> semantic確認まで完了してから次Skillへ進む。**
 
-以下の順に、1 Skill ずつ「移設 -> targeted validation -> semantic確認」を完了する。
+root cleanupを最後にまとめない。これにより migration途中で old/new detailed workflow の二重正本を長時間残さない。
 
-1. [ ] `code-review`
-2. [ ] `feature-plan`
-   - [ ] `assets/plan-template.md` をcanonical Templateとして作る。
-   - [ ] `docs/plans/TEMPLATE.md` のTemplate本文を二重保持しない。
-   - [ ] ambiguity handlingを`planning-workflow.md`へ集約する。
-3. [ ] `repair-loop`
-4. [ ] `harness-improvement`
+#### 2.1 `code-review`
 
-各 Skill 完了条件:
+- [ ] package workflowを整理する。
+- [ ] `CODE_REVIEW.md` から generic workflow重複を除く。
+- [ ] Repository coding policy を external input として `AGENTS.md` でmappingする。
+- [ ] package外必須linkを残さない。
+- [ ] targeted validator / Markdown lint / semantic invariant確認を行う。
 
-- [ ] `SKILL.md` から必要 package-local reference / asset を迷わず選べる。
-- [ ] Skill固有詳細workflowは package-local canonical reference にある。
-- [ ] root固定pathを portable workflow の必須正本として要求していない。
-- [ ] Repository固有policyを誤って packageへ複製していない。
-- [ ] old / new に同じ detailed procedure / Template の二重正本が残っていない。
-- [ ] `name` / `description` が baseline と一致する。
+#### 2.2 `feature-plan`
 
-#### Phase 3 — Large Skill migrations
+- [ ] `planning-workflow.md` を generic workflow / ambiguity handling の canonical にする。
+- [ ] `assets/plan-template.md` を作り、既存Template本文を意味変更なく移す。
+- [ ] `docs/plans/TEMPLATE.md` の二重本文を除去する。
+- [ ] `PLANS.md` を Repository lifecycle / storage contractへ限定する。
+- [ ] `AGENTS.md` で plan storage convention をmappingする。
+- [ ] plan-save-before-implementation boundaryを保持する。
+- [ ] targeted validator / Markdown lint / semantic invariant確認を行う。
 
-5. [ ] `exploratory-qa`
-   - [ ] `references/workflow.md` を作る。
-   - [ ] `references/scored-mode.md` を作る。
-   - [ ] Mode選択 / Mode境界をpackage-localへ移す。
-   - [ ] Scenario Shop固有 Machine Contract / script mappingは `QA_AGENT.md` 等へ残す。
-   - [ ] existing agentic-qa scriptsを複製しない。
-   - [ ] 追加reference / assetを増やさない。
+#### 2.3 `repair-loop`
 
-6. [ ] `android-native-local-validation`
-   - [ ] Windows前提を保持する。
-   - [ ] procedural detailを1つの `windows-android-workflow.md` へ移す。
-   - [ ] existing PowerShell entrypoint / native docsはRepository input mappingとして利用する。
-   - [ ] Skill workflowからroot固定path必須依存を外す。
-   - [ ] macOS対応やwrapper新設をしない。
+- [ ] repair-loop固有 workflowを package-localへ集約する。
+- [ ] `docs/reference/repair-loop.md` の重複を除く。
+- [ ] shared artifact / evaluation / scope contractだけ Repository-side input として残す。
+- [ ] `AGENTS.md` mappingを整理する。
+- [ ] targeted validator / Markdown lint / semantic invariant確認を行う。
 
-#### Phase 4 — Root routing / adapter cleanup and link normalization
+#### 2.4 `harness-improvement`
 
-- [ ] `AGENTS.md` の task -> Skill routing / Repository Input mapping を canonical にする。
-- [ ] Skill entrypointを通常Markdown linkへ揃える。
-- [ ] `AGENTS.md` に Skill workflow や package構造の詳細仕様を増やさない。
-- [ ] `QA_AGENT.md` からportable QA workflow / Mode選択の重複を除去し、Scenario Shop固有contract / script mappingを残す。
-- [ ] `CODE_REVIEW.md` からportable review workflowの重複を除去し、Repository固有review policyを残す。
-- [ ] `PLANS.md` からportable planning workflow / ambiguity handlingの重複を除去し、Repository固有plan lifecycle / storage contractを残す。
-- [ ] `docs/plans/TEMPLATE.md` を残す場合、canonical package assetへのcompatibility pointerにする。
-- [ ] `docs/reference/repair-loop.md` / `harness-improvement-loop.md` を残す場合、packageと同じSkill固有workflowを二重保持しない。
-- [ ] root -> Skill -> root の循環した「詳細正本」構造がないことを確認する。
+- [ ] Skill固有 Candidate / strictness / evidence workflowを package-local canonicalにする。
+- [ ] `docs/reference/harness-improvement-loop.md` の重複を除く。
+- [ ] shared evaluation / taxonomyだけ Repository-side inputとして残す。
+- [ ] package内Repository-specific bindingをinventory結果に従って分離する。
+- [ ] `AGENTS.md` mappingを整理する。
+- [ ] targeted validator / Markdown lint / semantic invariant確認を行う。
 
-#### Phase 5 — Complete local-link validation and gate integration
+#### 2.5 `exploratory-qa`
 
-- [ ] validatorへ対象Markdownの通常local file link validationを追加する。
-- [ ] broken local link testを追加する。
+- [ ] `references/workflow.md` を作る。
+- [ ] `references/scored-mode.md` を作る。
+- [ ] Mode selection / boundaryをpackage-local canonicalにする。
+- [ ] `QA_AGENT.md` から portable QA workflow重複を除く。
+- [ ] `docs/reference/agentic-qa-workflow.md` から portable Mode / exploration workflow重複を除く。
+- [ ] Scenario Shop-specific Machine Contract / schema / scripts / scoring mappingは Repository-sideに残す。
+- [ ] `scripts/agentic-qa/**` を変更・複製しない。
+- [ ] `AGENTS.md` input mappingを整理する。
+- [ ] targeted validator / Markdown lint / semantic invariant確認を行う。
+
+#### 2.6 `android-native-local-validation`
+
+- [ ] `references/windows-android-workflow.md` を作る。
+- [ ] generic工程 / retry / stop / failure / evidence semanticsをpackage-local canonicalにする。
+- [ ] `docs/native/windows-android-local-validation.md` のgeneric workflow重複を除き、concrete version / path / command / Scenario Shop setupへ責務を絞る。
+- [ ] `docs/native/windows-android-troubleshooting.md` も同じ責務境界で確認する。
+- [ ] `scripts/native/windows/android-local.ps1` を Repository-specific command inputとして維持する。
+- [ ] `AGENTS.md` input mappingを整理する。
+- [ ] Windows + PowerShell + physical Android contractが変わっていないことを確認する。
+- [ ] targeted validator / Markdown lint / semantic invariant確認を行う。
+
+### 各Skillの完了条件
+
+各Skillを次へ進める前に全部満たす。
+
+- [ ] package内からSkill固有workflowを理解できる。
+- [ ] package-local reference / asset選択が一意である。
+- [ ] package内local linkがpackage外へescapeしていない。
+- [ ] package内に不必要なRepository固定path bindingが残っていない。
+- [ ] 対応root/referenceに同じdetailed workflowの二重正本が残っていない。
+- [ ] Repository-specific contract / concrete commandをpackageへ複製していない。
+- [ ] `AGENTS.md` の当該Skill mappingが更新されている。
+- [ ] `name` / `description` がbaselineと一致する。
+- [ ] semantic invariantに意図しない変更がない。
+
+### Phase 3 — Global routing / link normalization
+
+Skill単位migration後、Repository全体の整合だけ確認する。
+
+- [ ] `AGENTS.md` の6 Skill routingが一意である。
+- [ ] 各Skill entrypointが通常Markdown linkで解決できる。
+- [ ] `AGENTS.md` にdetailed workflowが流入していない。
+- [ ] root -> Skill -> root の detailed canonical cycleがない。
+- [ ] compatibility pointerのlocal linkが解決できる。
+- [ ] changed root docsのlocal linkをvalidator対象に含める。
+- [ ] package boundary validationが6 SkillすべてPASSする。
+
+### Phase 4 — Gate integration / final verification
+
 - [ ] `package.json` に dedicated Skill validation script を追加する。
-- [ ] `pnpm run verify` から Skill validation が到達可能になるようにする。
-- [ ] `.github/workflows/ci.yml` の既存 quality job に dedicated validator step を追加する。
-- [ ] CIで既存 test / lint / buildを二重実行していないことを確認する。
-- [ ] full repository quality gate を最終的に1回実行する。
-- [ ] changed-files reviewで PR2 以降やproduct変更が混ざっていないことを確認する。
+- [ ] `pnpm run verify` から Skill validatorが到達可能になるようにする。
+- [ ] `.github/workflows/ci.yml` の既存 quality job に dedicated validator stepを追加する。
+- [ ] CIで既存 lint / test / buildを二重実行していないことを確認する。
+- [ ] final targeted validator testを実行する。
+- [ ] Markdown lintを実行する。
+- [ ] full `pnpm run verify` を最終段階で実行する。
+- [ ] changed-files reviewで PR2以降 / product変更 / dependency変更が混ざっていないことを確認する。
 
-## 6. 検証方法
+## 7. 検証方法
 
-### Validation plan
+### Targeted checks
 
-#### Skill migration中の targeted checks
-
-Skill移設中は、実装済み範囲に応じて次を使う。
+migration中:
 
 ```bash
 pnpm run validate:skills
 pnpm run lint:markdown
 ```
 
-validator skeleton段階では frontmatter / package validationだけでもよい。local-link validationを追加した後は同じ `validate:skills` で確認する。
+validator testは既存test conventionに合わせた最小commandで実行する。
 
-#### Validator tests
+### Validator tests
 
-少なくとも以下を検証する。
-
-- valid package / local links -> PASS
+- valid package / internal link -> PASS
 - missing `SKILL.md` -> FAIL
 - invalid / missing frontmatter -> FAIL
 - duplicate `name` -> FAIL
-- missing local Markdown file target -> FAIL
-- external URL / anchor-only / backtick path は local-link existence check の対象外
+- missing local file target -> FAIL
+- package内linkのpackage外escape -> FAIL
+- external URL / anchor-only / backtick pathはlocal file existence対象外
 
-#### Static dependency-direction checks
+### Dependency-direction checks
 
-6 Skillそれぞれで次を確認する。
+6 Skillすべてで確認する。
 
 - package単体で Skill workflow / decision / stop / output contract を理解できる。
-- `SKILL.md` / package-local referenceが `AGENTS.md` / `QA_AGENT.md` / `CODE_REVIEW.md` / `PLANS.md` 等を core workflow正本として必須読込していない。
-- Repository固有policy / contract / commandが必要な場合は logical external input として表現されている。
-- `AGENTS.md` / repository adapter側に、その external input の現在Repositoryでの具体 mapping がある。
-- root -> Skill -> root detailed canonical cycle がない。
+- package内からroot固定pathをcore workflow正本として必須読込していない。
+- external inputが意味的な名前で明示されている。
+- `AGENTS.md` / Repository docsに現在Repositoryでの具体mappingがある。
+- package内local file linkが同一Skill directory内へ解決される。
+- root -> Skill -> root detailed source-of-truth cycleがない。
 
-#### Static semantic checks
+### Semantic preservation checks
 
-6 Skillそれぞれについて migration matrix を使い、以下の意味が before / after で一致することを確認する。
+migration matrixを使いbefore / afterを比較する。
 
 - trigger / exclusion
 - MUST / MUST NOT
@@ -823,26 +976,26 @@ validator skeleton段階では frontmatter / package validationだけでもよ�
 - approval boundary
 - stop conditions
 
-特に以下を重点確認する。
+重点確認:
 
 - `feature-plan`: ambiguity handling / plan-save-before-implementation / Template項目
-- `exploratory-qa`: Normal / Gray-box / Black-box Scored の選択・境界
-- `repair-loop`: bounded iteration / repeated failure / unsafe stop
-- `harness-improvement`: auto-apply禁止 / strictness / evidence
-- `android-native-local-validation`: Windows / physical Android / retry停止条件 / Git禁止条件
+- `exploratory-qa`: Normal / Gray-box / Black-box Scored selection / boundary
+- `repair-loop`: bounded iteration / repeated failure / unsafe / scope stop
+- `harness-improvement`: auto-apply禁止 / strictness / evidence / review
+- `android-native-local-validation`: Windows / PowerShell / physical Android / retry / stop / Git禁止条件
 
-#### Root responsibility checks
+### Root responsibility checks
 
-- `AGENTS.md` 以外に競合する task -> Skill routing table がない。
-- `QA_AGENT.md` に Scenario Shop固有contract / script mappingが残っているが、portable Mode workflowの正本にはなっていない。
-- `CODE_REVIEW.md` に Repository固有review policyが残っている。
-- `PLANS.md` に Repository固有plan lifecycle / storage contractが残っているが、ambiguity handlingの正本にはなっていない。
-- `docs/plans/TEMPLATE.md` を残す場合、Template本文の二重正本ではない。
-- Skill固有 detailed workflow が root と package の両方に二重正本として残っていない。
+- `AGENTS.md` 以外に競合する task -> Skill routing hierarchyがない。
+- `QA_AGENT.md` は Scenario Shop specific contractを保持するが Mode workflowの正本ではない。
+- `docs/reference/agentic-qa-workflow.md` は Scenario Shop integrationを保持してよいが generic exploratory workflowの正本ではない。
+- `CODE_REVIEW.md` は Repository-specific review policyを保持する。
+- `PLANS.md` は Repository-specific lifecycle / storage contractを保持するが ambiguity handlingの正本ではない。
+- `docs/plans/TEMPLATE.md` を残す場合はTemplate本文の二重正本ではない。
+- `docs/reference/repair-loop.md` / `harness-improvement-loop.md` は packageと同じSkill workflowを二重保持しない。
+- Native docsは concrete environment / command / project setupを保持するが generic Android validation workflowを二重保持しない。
 
-#### Final repository gates
-
-最終段階で既存の総合 gate を実行する。
+### Final repository gates
 
 ```bash
 pnpm run validate:skills
@@ -850,101 +1003,106 @@ pnpm run lint:markdown
 pnpm run verify
 ```
 
-`verify` に `validate:skills` が含まれるため、最終的には `verify` が総合判定になる。上2つは失敗切り分けと dedicated gate 確認のため個別実行してよい。
+`verify` に `validate:skills` が含まれるため、最終総合判定は `verify`。個別実行は失敗切り分けのために行う。
 
-このPRはdocs / tooling中心なので、product E2E や native runtime smoke を新規必須gateとして追加しない。
+product E2E / native runtime smoke をPR1の新規必須gateへ追加しない。
 
 ### 成功判定
 
-- dedicated Skill validatorがPASSする。
-- validator testがPASSする。
-- Markdown lintがPASSする。
-- `pnpm run verify` がPASSする。
-- 6 Skillのsemantic invariantに意図しない差分がない。
-- `name` / `description` にrouting semantic changeがない。
-- package単体でportable workflowが理解できる。
-- Repository固有入力がroot側から一方向にmappingされ、詳細正本の循環依存がない。
-- `feature-plan` Templateがpackage-local canonical assetである。
-- planning ambiguity handlingがpackage-local canonical workflowにある。
-- `exploratory-qa` のMode選択 / 境界がpackage-localである。
-- AndroidがWindows contractのままである。
-- PR1外の変更がない。
+- dedicated Skill validator PASS
+- validator tests PASS
+- Markdown lint PASS
+- `pnpm run verify` PASS
+- 6 Skill semantic invariantに意図しない差分なし
+- package内部workflow / dependency structureがportable
+- package内local linksにpackage escapeなし
+- Repository-specific inputsはrootから一方向mapping
+- detailed source-of-truth cycleなし
+- `feature-plan` Templateはpackage-local canonical
+- planning ambiguity handlingはpackage-local canonical
+- `exploratory-qa` Mode selection / boundaryはpackage-local canonical
+- `docs/reference/agentic-qa-workflow.md` はportable QA workflowの二重正本ではない
+- Android native docsとpackageの責務が分離されている
+- AndroidはWindows contractのまま
+- `name` / `description`はbaseline維持
+- description portability / optimizationは意図的にPR3へ残る
+- PR1外変更なし
 
-## 7. リスクと未解決論点
+## 8. リスクと対策
 
-### Risks
+### 1. Semantic drift during relocation
 
-#### 1. Semantic drift during relocation
+**Risk:** 短文化の過程で stop / MUST / evidence requirement を落とす。
 
-**Risk:** `SKILL.md` を短くする過程で、stop conditionやMUST条件を詳細扱いして消す。
+**Mitigation:** migration matrixでbefore / afterを確認し、短文化ではなく正本移設として扱う。
 
-**Mitigation:** 短文化ではなく正本移設として扱い、migration matrixでbefore / afterを確認する。
+### 2. Skill migrationとroot cleanupを分離しすぎる
 
-#### 2. Portability is weakened by reverse root dependency
+**Risk:** packageを移した後もrootに旧workflowが残り、実装途中で二重正本になる。
 
-**Risk:** root文書の重複を削っても、portable Skill側がroot固定pathを必須正本として読み続け、package単体ではworkflowを理解できない。
+**Mitigation:** 1 Skillごとに package -> root/reference cleanup -> AGENTS mapping -> validationまで閉じてから次Skillへ進む。
 
-**Mitigation:** dependency directionを `Repository adapter -> logical external input -> Skill package` に固定し、Skill packageからroot詳細正本への逆依存を除去する。
+### 3. Reverse root dependency
 
-#### 3. Root document over-pruning
+**Risk:** root重複を削ってもSkillからroot固定path必須読込が残る。
 
-**Risk:** `QA_AGENT.md` / `CODE_REVIEW.md` / `PLANS.md` を単なるcompatibility pointerまで削り、Repository固有contractを失う。
+**Mitigation:** logical external input化し、package内local linkのpackage boundaryをvalidatorで強制する。
 
-**Mitigation:** 削除対象をportable Skill workflowの重複だけに限定する。
+### 4. Hidden Repository binding
 
-#### 4. Over-packaging
+**Risk:** Markdown link以外の prose / command / artifact pathにRepository-specific bindingが残る。
 
-**Risk:** Portabilityを理由に全Skillへ`assets/` / `scripts/` / 多数のreferencesを作り、ファイル数と保守コストだけ増える。
+**Mitigation:** Phase 0でpackage内部bindingをinventoryする。これ専用の新lintは作らない。
 
-**Mitigation:** 既存Skill固有workflow / Templateの移設に必要なものだけ作る。`feature-plan` asset、`exploratory-qa` 2 references、Android 1 reference以外は既存構造を基本にする。
+### 5. Root document over-pruning
 
-#### 5. Validator over-engineering
+**Risk:** Repository固有contractまでpackageへ移してしまう。
 
-**Risk:** prose path、code sample、全Markdown、routing syntaxを解析する汎用checkerへ膨張する。
+**Mitigation:** packageへ移すのは別Repositoryでも必要なSkill判断。具体path / product contract / command / environment valueはRepository-sideに残す。
 
-**Mitigation:** package structure + frontmatter + duplicate name + 通常local Markdown file linkだけに責務を限定する。routingも通常Markdown linkで同じロジックを使う。
+### 6. `agentic-qa-workflow.md` が二重正本として残る
 
-#### 6. Routing baseline contamination
+**Risk:** `exploratory-qa` referencesを新設しても既存referenceにMode / exploration workflowが残る。
 
-**Risk:** PR1で`description`を改善し、PR2 baseline / PR3 optimizationの比較条件を壊す。
+**Mitigation:** exploratory-qa migrationの同一単位で `QA_AGENT.md` と `docs/reference/agentic-qa-workflow.md` を整理する。
 
-**Mitigation:** `name` / `description`をfreezeし、意味変更はPR3へ送る。
+### 7. Android runbookが二重正本として残る
 
-#### 7. Template becomes two sources of truth
+**Risk:** package referenceとnative runbookの双方に工程 / retry / stop判断が残る。
 
-**Risk:** `assets/plan-template.md` を追加しても `docs/plans/TEMPLATE.md` に同じ本文を残し、将来driftする。
+**Mitigation:** package=generic workflow semantics、native docs=concrete versions / paths / commands / Scenario Shop setupへ責務分離する。
 
-**Mitigation:** package assetをcanonicalにし、root側は削除可能なら削除、残すならcompatibility pointerに限定する。
+### 8. Over-packaging
 
-#### 8. QA mode ownership remains split
+**Risk:** 全Skillへ多数のreferences/assets/scriptsを追加する。
 
-**Risk:** packageへMode referenceを作った後も `QA_AGENT.md` がMode選択・boundaryを独立定義し、二重正本になる。
+**Mitigation:** 新規package要素は原則 `feature-plan` asset、`exploratory-qa` 2 references、Android 1 referenceだけ。その他は既存構造を優先する。
 
-**Mitigation:** Mode workflowはpackage-local、Scenario Shop specific Machine Contract / schema / script mappingはRepository-sideという境界で整理する。
+### 9. Validator over-engineering
 
-#### 9. Android semantic change
+**Risk:** generic Markdown checker / AST framework / routing parser / adapter frameworkへ膨張する。
 
-**Risk:** Portability対応のついでにmacOS対応や新wrapperを追加し、Windows-only contractを変える。
+**Mitigation:** package structure + frontmatter + duplicate name + local file existence + package escape checkだけに限定する。
 
-**Mitigation:** Windows + PowerShell + physical Androidを明示的にfreezeし、既存Repository commandをexternal input mappingとして再利用する。
+### 10. Routing baseline contamination
 
-#### 10. Duplicate sources of truth
+**Risk:** PR1でdescriptionを改善してPR2 baselineを壊す。
 
-**Risk:** root文書とpackage reference双方に詳細workflowが残る。
+**Mitigation:** `name` / `description` freeze。workflow portabilityとmetadata portabilityを明確に分ける。
 
-**Mitigation:** migration後に旧詳細sectionを削除またはRepository固有adapter / shared policyへ縮小し、重複検索する。
+### 11. Template two sources of truth
 
-#### 11. Broken links after moves
+**Risk:** package assetと`docs/plans/TEMPLATE.md`に同じ本文を残す。
 
-**Risk:** package-local reference、root->Skill link、compatibility pointerが壊れる。
+**Mitigation:** package asset canonical。rootは削除可能なら削除、必要ならpointerだけ。
 
-**Mitigation:** normal Markdown linkへ寄せ、同じdedicated validatorロジックで対象範囲を検証する。
+### 12. Adapter abstraction creep
 
-### Open questions
+**Risk:** logical external inputを口実に新しいschema / resolver / injection mechanismを作る。
 
-なし。Repository fact の確認で semantic decision が必要になった場合だけ実装を停止する。
+**Mitigation:** adapterはMarkdown上のmappingに限定することを明記し、新実行機構をNon-goalにする。
 
-## 8. 成果物
+## 9. 成果物 / 実装時判断ルール
 
 ### 変更ファイル候補
 
@@ -953,50 +1111,74 @@ pnpm run verify
 - `CODE_REVIEW.md`
 - `PLANS.md`
 - 6 Skill の `SKILL.md`
-- 既存 package-local `references/*.md`
+- 既存 package-local references
 - `.agents/skills/feature-plan/assets/plan-template.md`
 - `.agents/skills/exploratory-qa/references/workflow.md`
 - `.agents/skills/exploratory-qa/references/scored-mode.md`
 - `.agents/skills/android-native-local-validation/references/windows-android-workflow.md`
 - `docs/plans/TEMPLATE.md`（compatibility維持が必要な場合）
-- `docs/reference/repair-loop.md`（共有policy / compatibilityが残る場合）
-- `docs/reference/harness-improvement-loop.md`（共有policy / compatibilityが残る場合）
-- Skill validator script
-- validator test
+- `docs/reference/repair-loop.md`（shared contract / compatibilityが残る場合）
+- `docs/reference/harness-improvement-loop.md`（shared contract / compatibilityが残る場合）
+- `docs/reference/agentic-qa-workflow.md`
+- `docs/native/windows-android-local-validation.md`
+- `docs/native/windows-android-troubleshooting.md`（責務重複がある場合）
+- Skill validator script / test
 - `package.json`
 - `.github/workflows/ci.yml`
 
-すべてが必須変更ではない。責務重複がない文書は不要に変更しない。
+すべてを変更することが目的ではない。責務重複がないfileは不要に触らない。
 
 ### 付随ドキュメント
 
-- Phase 0 migration matrix用の新規durable documentは作らない。
+- migration matrix専用の新規durable documentは作らない。
 - このPlan以外の新規reportは原則不要。
-- README / curriculum / product spec は今回の構造整理の理解に本当に必要な場合だけ更新する。
+- README / curriculum / product specは本変更の理解に不可欠な場合だけ更新する。
 
-## 9. Rollout / 実装時の判断ルール
+### 実装順
 
-1. current repository factを再確認し、active run内にmigration matrix / dependency mappingを作る。
-2. `name` / `description` baselineをfreezeする。
-3. validator skeletonとしてpackage / frontmatter / duplicate name validationだけ作る。
-4. 小さい4 Skillを1つずつ整理する。`feature-plan`ではTemplate asset化とambiguity handling移管を同時に完了する。
-5. `exploratory-qa` を `workflow.md` / `scored-mode.md` の2 referenceへ分割する。
-6. AndroidをWindows contractのまま1 referenceへ分割する。
-7. root文書からportable Skill workflow重複を除去し、Repository input mappingを一方向に整理する。
-8. Skill route / package reference / compatibility pointerを通常Markdown linkへ揃える。
-9. validatorへlocal Markdown file link validationを追加する。
-10. validatorをlocal gate / CIへ接続する。
-11. targeted checks後、full `pnpm run verify`を最終段階で実行する。
-12. changed-files / dependency-direction / semantic-preservation reviewを行う。
+1. current repository factを再確認する。
+2. baseline / migration matrix / hidden Repository binding inventoryをactive run内に作る。
+3. minimal validatorを完成させる。
+4. `code-review` を package + root cleanup + AGENTS + validationまで完了する。
+5. `feature-plan` を同様に完了する。
+6. `repair-loop` を同様に完了する。
+7. `harness-improvement` を同様に完了する。
+8. `exploratory-qa` を `QA_AGENT.md` / `agentic-qa-workflow.md` cleanup込みで完了する。
+9. Androidを native docs責務分離込みで完了する。
+10. global routing / compatibility link整合を確認する。
+11. validatorを `package.json` / CIへ接続する。
+12. targeted checks後にfull `pnpm run verify`を実行する。
+13. changed-files / dependency direction / semantic preservationを最終レビューする。
 
-実装中に「もっと一般化できる」「policyを改善できる」「別OSにも対応できる」「evalも一緒に作れる」と気づいても、PR1には入れない。Issue #117 の後続PRまたは別Issueへ送る。
+### 配置判断ルール
 
-実装中にroot側とpackage側のどちらへ置くか迷った場合は、次の順で判断する。
+迷った場合は次の順で判断する。
 
-1. 別RepositoryへSkill packageだけ移しても必要な実行判断か？ -> package-local。
-2. このRepository固有のpath / Product Contract / command / policyか？ -> Repository-side external input / adapter。
-3. 複数Skillが共有するRepository-wide safety / artifact / taxonomy contractか？ -> Repository-side shared input。
-4. 再利用静的Output Templateそのものか？ -> Skill固有ならpackage `assets/`。
-5. 判断するとsemantic behaviorが変わるか？ -> 作業を止めて別判断へ送る。
+1. 別RepositoryへSkill packageだけ移しても必要な実行判断か？
+   - Yes -> package-local。
+2. このRepository固有のpath / Product Contract / command / environment valueか？
+   - Yes -> Repository-side external input / mapping。
+3. 複数Skillが共有するRepository-wide safety / artifact / taxonomy contractか？
+   - Yes -> Repository-side shared input。
+4. 再利用静的Output Templateそのものか？
+   - Skill固有なら package `assets/`。
+5. package内からpackage外fileへ直接linkしたくなったか？
+   - 原則行わず logical external inputへ変換する。
+6. 分類するとsemantic behaviorが変わるか？
+   - 作業を止めて判断を分離する。
+
+### 実装を広げないための最終ルール
+
+実装中に次へ気づいてもPR1へ入れない。
+
+- もっと汎用化できる
+- policyを改善できる
+- descriptionを良くできる
+- 別OSにも対応できる
+- Evalも追加できる
+- adapter schemaを作ると綺麗になる
+- runtime resolverを作ると自動化できる
+
+これらは Issue #117 の後続PRまたは別Issueへ送る。
 
 Rollbackはdocs / tooling構造変更としてPR単位でrevert可能とする。package移設途中の不完全な状態をmainへ入れない。
