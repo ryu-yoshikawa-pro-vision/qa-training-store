@@ -43,6 +43,8 @@ Training環境には最低限、次が必要です。
 
 `playwright.training.config.ts`、`package.json`のTraining Script、Training CI templateがこの契約を提供します。
 
+Desktop learner exerciseのcanonical commandは `pnpm run training:web:exercise`、Mobile learner exerciseは既存の `pnpm run training:web:mobile:exercise`です。
+
 ## Lesson 1: テスト設計からコードへ落とす
 
 スプレッドシートのTest Caseを、次の順序でコードへ変換します。
@@ -181,6 +183,8 @@ Playwright Projectを切り替え、Mobile Viewportでも主要Flowを確認し�
 - Small viewportでPage Endへ到達できるか
 
 DesktopでPassすることとMobileで使えることは同じではありません。
+
+Training baselineのDesktop確認とは別に、受講者が作成したExerciseは `pnpm run training:web:exercise` で `training-chromium`へ実行します。
 
 Training baselineのMobile確認は `pnpm run training:web:mobile` で実行します。
 Baseline確認とは別に、受講者が作成したExerciseをMobile Projectで実行する場合は、

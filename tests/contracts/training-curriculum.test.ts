@@ -73,7 +73,9 @@ describe("Training curriculum contracts", () => {
     expect(trainingWorkflow).toContain("PLAYWRIGHT_BASE_URL: http://127.0.0.1:8082");
     expect(trainingWorkflow).toContain('PLAYWRIGHT_USE_PREBUILT_DIST: "true"');
     expect(trainingWorkflow).toContain("pnpm run training:web:baseline");
-    expect(trainingWorkflow).toContain("pnpm run training:web:expected-failure");
+    expect(trainingWorkflow).toContain("pnpm run training:web:check-expected-failure");
+    expect(trainingWorkflow).not.toContain("pnpm run training:web:expected-failure");
+    expect(trainingWorkflow).not.toContain("pnpm run training:web:exercise");
     expect(trainingWorkflow).not.toContain("e2e/web/");
     expect(phaseOneWorkflow).toContain(
       "PLAYWRIGHT_BASE_URL: ${{ matrix.name == 'training-web-baseline' && 'http://127.0.0.1:8082'",
@@ -316,7 +318,7 @@ jobs:
 
   it("keeps Training Native startup deterministic without clearState race", () => {
     const root = process.cwd();
-    const runner = readFileSync(resolve(root, "scripts/training/run-maestro-baseline.ts"), "utf8");
+    const runner = readFileSync(resolve(root, "scripts/training/maestro-runner.ts"), "utf8");
     const baseline = readFileSync(
       resolve(root, "training/maestro/baseline/native-training-baseline.yaml"),
       "utf8",
@@ -342,14 +344,20 @@ jobs:
       expect(runner).toContain(token);
     }
     const cleanupStart = runner.indexOf("async function cleanupAndroidApplication");
-    const cleanupEnd = runner.indexOf("\n}\n\nasync function run", cleanupStart);
+    const cleanupEnd = runner.indexOf("\n}\n\nexport async function runMaestro", cleanupStart);
     const cleanup = runner.slice(cleanupStart, cleanupEnd);
-    expect(cleanup.indexOf('["shell", "pm", "clear", PACKAGE_ID]')).toBeGreaterThan(
-      cleanup.indexOf('["shell", "am", "force-stop", PACKAGE_ID]'),
+    const forceStopCommand = 'runAdb(serial, ["shell", "am", "force-stop", PACKAGE_ID])';
+    const firstForceStop = cleanup.indexOf(forceStopCommand);
+    const clearCommand = cleanup.indexOf('["shell", "pm", "clear", PACKAGE_ID]');
+    const clearSuccess = cleanup.indexOf(
+      "clearResult.status !== 0 || !/Success/i.test(clearOutput)",
     );
-    expect(cleanup.indexOf("await waitForProcessExit(serial)")).toBeGreaterThan(
-      cleanup.indexOf('["shell", "pm", "clear", PACKAGE_ID]'),
-    );
+    const secondForceStop = cleanup.indexOf(forceStopCommand, firstForceStop + 1);
+    expect(cleanup.indexOf("assertDeviceReady(serial)")).toBeLessThan(firstForceStop);
+    expect(clearCommand).toBeGreaterThan(firstForceStop);
+    expect(clearSuccess).toBeGreaterThan(clearCommand);
+    expect(secondForceStop).toBeGreaterThan(clearSuccess);
+    expect(cleanup.indexOf("await waitForProcessExit(serial)")).toBeGreaterThan(secondForceStop);
     expect(runner.indexOf("await cleanupAndroidApplication(targetSerial)")).toBeLessThan(
       runner.indexOf("const invocation = buildMaestroInvocation"),
     );
@@ -362,6 +370,64 @@ jobs:
     expect(trainingStep).toContain("android-maestro-run.sh");
     expect(trainingStep).not.toContain("maestro test");
     expect(standaloneWorkflow).toContain("pnpm run training:native:baseline");
+  });
+
+  it("keeps the Native Training workflow opt-in and separates baseline from exercise evidence", () => {
+    const workflow = readFileSync(
+      resolve(process.cwd(), "training/github-actions/training-native-ci.yml"),
+      "utf8",
+    );
+    const pullRequestBlock = workflow.match(
+      /  pull_request:\r?\n([\s\S]*?)  workflow_dispatch:/,
+    )?.[1];
+    expect(pullRequestBlock).toBe(
+      [
+        "    paths:",
+        '      - "training/maestro/**"',
+        '      - "scripts/training/run-maestro-baseline.ts"',
+        '      - "scripts/training/run-maestro-exercise.ts"',
+        '      - "scripts/training/maestro-runner.ts"',
+        '      - "scripts/training/maestro-invocation.ts"',
+        '      - "scripts/training/serial-resolution.ts"',
+        '      - ".github/workflows/training-native-ci.yml"',
+        "",
+      ].join("\n"),
+    );
+    expect(workflow).toContain("name: Training Android Maestro\n");
+    expect(workflow).not.toContain("Training Android Maestro baseline");
+    expect(workflow).not.toContain("inputs:");
+    expect(workflow).not.toContain("inputs.");
+    expect(workflow).not.toContain('"package.json"');
+    expect(workflow).not.toContain('"docs/**"');
+
+    const baselineStep = workflow.indexOf("run: pnpm run training:native:baseline");
+    const exerciseStep = workflow.indexOf("run: pnpm run training:native:exercise");
+    expect(baselineStep).toBeGreaterThan(-1);
+    expect(exerciseStep).toBeGreaterThan(baselineStep);
+    expect(workflow).toContain("TRAINING_MAESTRO_OUTPUT_DIR: output/training/maestro/baseline");
+    expect(workflow).toContain("TRAINING_MAESTRO_OUTPUT_DIR: output/training/maestro/exercise");
+    expect(workflow).toContain("if: always()");
+    expect(workflow).toContain('cp -R output/training/maestro "$evidence/maestro"');
+  });
+
+  it("keeps the Native exercise entry on the canonical execution graph", () => {
+    const root = process.cwd();
+    const exercise = readFileSync(
+      resolve(root, "training/maestro/exercises/native-training-exercise.yaml"),
+      "utf8",
+    );
+    const nativeLesson = readFileSync(
+      resolve(root, "docs/curriculum/test-automation/part1/07_maestro-native-automation.md"),
+      "utf8",
+    );
+
+    expect(exercise).toContain("- runFlow: ../baseline/native-training-baseline.yaml");
+    expect(nativeLesson).toContain(
+      "Native learner exerciseのcanonical entryは `training/maestro/exercises/native-training-exercise.yaml`",
+    );
+    expect(nativeLesson).toContain("unreferenced sibling YAML");
+    expect(nativeLesson).toContain("1 runId = 1 baseline → exercise → Evidence attempt");
+    expect(nativeLesson).toContain("training-native-exercise.xml");
   });
 
   it("archives every source workflow before installing the Training workflows", () => {
