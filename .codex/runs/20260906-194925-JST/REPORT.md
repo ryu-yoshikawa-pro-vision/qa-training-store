@@ -91,3 +91,13 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-06 22:15 (JST)
+
+- Repair-loop iteration: 1（bounded repair）
+- Input findings / Classification: 正本PlanのMD038（line 371 / 1034）、MD010（line 390）、line 550のtrailing tab、ならびにCode Quality Typecheckのstrict型エラー（`validate-plan-output.ts` line 15 / 17 / 21 / 22 / 30）を`must_fix`と分類した。verify初回の既存`codex-safe-run-manifest-sync` 1件FAILは今回変更外で、単独再実行PASSおよび`origin/main...HEAD`差分不在により一過性の環境要因として扱った。
+- Allowed files / Scope: 正本Plan、`.agents/skills/feature-plan/scripts/validate-plan-output.ts`、必要なRun Artifact、PR #126本文だけを許可範囲とした。Product Code、依存関係、workflow、`.codex/agents/**`、N/A Skillは変更しない。
+- Changes: graderのregex capture groupへundefined guard / empty fallbackだけを追加した。Planは`##` + spaceの表記、tab例の`<TAB>`表記、line 550のtrailing tab除去だけを行い、仕様・DoD・実装方針は変更していない。
+- Validation: `pnpm run typecheck` PASS、targeted test PASS（1 file / 8 tests）、`pnpm run verify` 2回目PASS（35 files / 503 tests passed / 3 skipped、build:web / build:spec含む）。`git diff --check`（working tree）とPlan単体markdownlintもPASS。残りはsanitizer、commit後`git diff --check main...HEAD`、PR本文更新、push。
+- Decision: repair-loopはiteration 1でsuccess条件へ到達したため追加の実装修正を行わず、Git / PR反映と最終証跡へ進む。
+- Progress: 77% (10/13)

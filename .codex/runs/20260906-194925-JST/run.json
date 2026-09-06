@@ -11,7 +11,8 @@
   "codex_task_reports": [],
   "changed_files": [
     ".agents/skills/feature-plan/scripts/validate-plan-output.ts",
-    "tests/contracts/skill-output-eval.test.ts"
+    "tests/contracts/skill-output-eval.test.ts",
+    "docs/plans/2026-09-06_125426_issue-117-pr4-deterministic-output-eval.md"
   ],
   "validation": {
     "status": "not_run",

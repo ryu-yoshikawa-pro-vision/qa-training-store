@@ -368,7 +368,7 @@ canonical sourceは既存:
 required H2候補は、fence外で次を満たす行とする。
 
 1. 行頭0〜3個のspaceを許容する。
-2. leading spaceを除いた後、`## ` で始まる。
+2. leading spaceを除いた後、`##` + space で始まる。
 3. heading textはcanonical template由来の文字列と完全一致で扱う。
 4. 比較時はtrailing space / tabだけを無視してよい。
 5. leading tab、4個以上のleading spaceはH2候補にしない。
@@ -387,7 +387,7 @@ canonical template自体もOutput側も同じ抽出規則を使う。
 
 ```text
     ## 6. 検証方法
-	## 6. 検証方法
+<TAB>## 6. 検証方法
 ### 6. 検証方法
 ```
 
@@ -547,7 +547,7 @@ missingHeadings = []
 例えばcanonical先頭H2が `## 0. 依頼概要` なら、Output側だけ次にする。
 
 ```text
-   ## 0. 依頼概要	
+   ## 0. 依頼概要<TAB>
 ```
 
 対象heading文字列自体はcanonical templateから取得し、test用required H2一覧を別hard-codeしない。
@@ -1031,7 +1031,7 @@ shared test fixture/helper files
 
 - required H2 presenceだけを見る。
 - LF / CRLFだけをline splitで吸収する。
-- H2は0〜3 leading spaces + `## ` の最小認識に留める。
+- H2は0〜3 leading spaces + `##` + space の最小認識に留める。
 - line-by-line fence stateだけを持つ。
 - opener / closer仕様はSection 5の最小境界に固定する。
 - AST / dependency / CommonMark完全互換へ広げない。

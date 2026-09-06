@@ -12,6 +12,7 @@ function parseFenceMarker(line: string): FenceMarker | null {
   if (match === null) return null;
 
   const markerSequence = match[1];
+  if (markerSequence === undefined) return null;
   const marker = markerSequence[0];
   if (marker !== "`" && marker !== "~") return null;
   if (![...markerSequence].every((character) => character === marker)) return null;
@@ -19,7 +20,7 @@ function parseFenceMarker(line: string): FenceMarker | null {
   return {
     marker,
     length: markerSequence.length,
-    suffix: match[2],
+    suffix: match[2] ?? "",
   };
 }
 
@@ -27,7 +28,7 @@ function normalizeH2(line: string): string | null {
   const match = /^ {0,3}(## )(.*)$/.exec(line);
   if (match === null) return null;
 
-  const headingText = match[2].replace(/[ \t]+$/, "");
+  const headingText = (match[2] ?? "").replace(/[ \t]+$/, "");
   return `## ${headingText}`;
 }
 

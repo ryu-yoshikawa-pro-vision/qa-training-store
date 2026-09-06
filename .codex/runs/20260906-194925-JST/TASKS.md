@@ -17,6 +17,9 @@
 ## Discovered
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
+- [x] D1. Code Quality Typecheckのstrict型エラーを再現し、grader内だけを最小修正する
+- [x] D2. 正本PlanのMD038 / MD010 / line 550 trailing tabを意味変更なしで修正する
+- [ ] D3. PR #126本文を実装済み状態へ更新し、remote headを確認する
 
 ## Blocked
 
