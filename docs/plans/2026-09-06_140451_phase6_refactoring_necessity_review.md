@@ -108,11 +108,14 @@ candidateの意味と初期EvidenceはRepository Audit §4.1〜§4.16を正本�
 各candidateの探索は原則次の順序に限定する。
 
 1. candidate current path / current area
-2. Audit baseline以降のtargeted path history
-3. current direct consumer / import / composition root
-4. protecting test / workflow
-5. path historyから直接特定できたrelevant PR / Issue
-6. 上記だけでは判断材料が不足するときだけrelevant Run Artifact
+2. Audit baseline以降のcandidate path lineage（split / merge / rename / responsibility変化）
+3. Repository inception〜Currentのcandidate-targeted path historyからrecent churn / defect / repair Evidenceを確認する
+4. current direct consumer / import / composition root
+5. protecting test / workflow
+6. path historyから直接特定できたrelevant PR / Issue
+7. 上記だけでは判断材料が不足するときだけrelevant Run Artifact
+
+Historyはcandidate path / areaへ限定し、Repository全体の全commitを分析しない。Audit baseline以降のhistoryはCurrent stateとの差分把握に使い、Audit以前を含むtargeted historyはMaster Planが求めるrecent churn / defect / repair Evidenceを補うために使う。
 
 この範囲で該当defect / repair / failure Evidenceが見つからない場合は、`確認した範囲では該当Evidenceなし`と記録して終了する。
 
@@ -199,6 +202,7 @@ Evidence Cardはcandidateごとの調査項目を揃えるための作業形式�
 - working noteが必要ならactive Run内で扱う。
 - durableな結論は最終reportの各§4.x sectionへ直接集約する。
 - candidate別Run、candidate別Evidence file、別台帳は作らない。
+- Evidence Cardとdurable reportのcandidate詳細で別々のEvidence schemaを持たず、Task 10で同じ項目をそのまま使用する。
 
 ### 4.8 Run lifecycleは`AGENTS.md`を正本とする
 
@@ -259,7 +263,14 @@ Task 2〜5は§4.6のとおりcandidate単位で連続実行する。
 
 ### Task 3 — Pass 1: targeted history確認
 
-各candidateでAudit baseline以降のtargeted historyを確認する。
+各candidateでhistoryを2用途に分けて確認する。
+
+1. **Current state差分確認**
+   - Audit baseline以降のcandidate path lineageを確認する。
+   - split / merge / rename / responsibility変化をCurrent pathへ対応付ける。
+2. **churn / defect / repair Evidence確認**
+   - Repository inception〜Currentのcandidate-targeted path historyを確認する。
+   - recentなmaterial change / repair / revert / repeated fixを抽出する。
 
 確認するのは次だけ。
 
@@ -270,7 +281,7 @@ Task 2〜5は§4.6のとおりcandidate単位で連続実行する。
 - historyから直接辿れるrelevant PR / Issue
 - candidate起因と確認できるCI / runtime failure有無
 
-単純commit countはrisk scoreにしない。
+全Repositoryのcommit timelineや全file historyは作らない。単純commit countはrisk scoreにしない。
 
 feature growth、defect repair、operational repair、mechanical changeを区別する。
 
@@ -292,19 +303,19 @@ actual blast radiusを説明できれば終了する。完全call graphは作ら
 
 ### Task 5 — Pass 1終了時の状態判定
 
-Pass 1終了時は、各candidateを次のどちらかにする。
+最初に、Master Planの4分類を判断するためのminimum Evidenceが十分かだけを確認する。
 
 ```text
-A. Master Planの4分類のいずれかを、十分なEvidenceとrationaleで確定できる
-   → final classificationを記録し、Pass 2へ進まない
+A. Evidenceが十分
+   → 下のclassification順序でfinal classificationを記録し、Pass 2へ進まない
 
-B. classificationまたはrationaleを十分なEvidenceで確定できない
+B. classificationまたはrationaleに必要なEvidenceが不足
    → deep-dive-needed とし、Pass 2へ進む
 ```
 
 この時点でEvidence不足を理由に直ちに`needs_more_evidence`へ確定しない。boundedな追加確認で解消可能かをTask 6で一度だけ確認する。
 
-Pass 1でclassificationできるcandidateは、次の判断順序を使用する。
+Evidenceが十分なcandidateは、Task 7と同じ考え方で次の順序を使用する。
 
 ```text
 1. Currentな具体的risk / costがあり、
@@ -315,22 +326,16 @@ Pass 1でclassificationできるcandidateは、次の判断順序を使用する
    関連変更と同時に直す方が合理的か？
    Yes → refactor_when_touched
 
-3. Current構造を維持する積極的な合理性があり、
-   十分なEvidenceに基づきRefactor benefitが
-   abstraction / migration / coordination costを明確に上回らないか？
-   Yes → keep_as_is
-
-4. 上記を十分なEvidenceで確定できない
-   → deep-dive-needed
+3. それ以外
+   → keep_as_is
 ```
-
-単に「Refactor benefitをまだ説明できない」だけでは`keep_as_is`にしない。その理由がEvidence不足なら`deep-dive-needed`へ進む。
 
 補足:
 
 - 過去defect / repeated repairは強いEvidenceだが`refactor_now`の必須条件ではない。
 - 「大きい」「複雑」「きれいになる」は`refactor_now`の理由にならない。
-- `keep_as_is`は単に「問題なし」ではなく、cohesion / transaction / platform / abstraction cost等の維持理由を記載する。
+- `keep_as_is`では、なぜ`refactor_now` / `refactor_when_touched`に該当しないかをEvidenceに基づき1行以上記載する。
+- Evidence不足を`keep_as_is`の理由にしない。判断材料不足なら`deep-dive-needed`へ進む。
 - `refactor_when_touched`は具体的な再評価triggerを記載する。
 
 ### Task 6 — Pass 2: `deep-dive-needed`だけtargeted deep dive
@@ -434,17 +439,25 @@ Matrixはindexとして使い、Evidence詳細を重複させない。
 
 #### Candidate詳細sectionの役割
 
-各§4.x詳細sectionには次を記載する。
+Evidence Cardと別のEvidence schemaを作らない。各§4.x詳細sectionではTask 2のEvidence Card項目をそのまま使用し、最終判断項目だけ追加する。
 
 ```text
-Current boundary
-Churn / repair / failure summary
-Protection
-Primary evidence references
+Candidate
+Current path(s)
+Current responsibility
+Current public / composition surface
+Current consumers / dependencies
+Protecting tests / workflows
+Transaction / state / platform boundary
+Audit baselineからのmaterial change
+Recent churn / repair / failure summary
+Evidence references
 Classification
 Why now / why not now
 Follow-up trigger or missing evidence
 ```
+
+Pass 1用の`Pass 1 status`はworking stateなのでdurable reportへ残さなくてよい。
 
 raw log dumpは貼らない。
 
@@ -452,7 +465,7 @@ raw log dumpは貼らない。
 
 ### Task 11 — Pre-PR freshness check: diff-first
 
-PR作成直前に、investigation baseline `main` SHAとlatest `main` SHAを比較する。
+PR作成直前に、まず`git fetch origin main`でlatest `origin/main`を取得し、latest `main` SHAを確定する。その後、investigation baseline `main` SHAとlatest `main` SHAを比較する。
 
 1. changed filenames / diffを確認する。
 2. candidate自身またはPass 1 / Pass 2で確認済みのconsumer / test / workflowへ接触していない場合はfreshness確認終了。
@@ -532,21 +545,22 @@ Task 11〜12完了後、Phase 6のdecision-only成果物をGitHubへ提出する
 
 Run lifecycleは§4.8と`AGENTS.md`に従い、会話セッションが変わった場合に既存Runを無条件で再利用しない。
 
-1. latest `main`との差分をdiff-firstで再確認する。
-2. relevant path変更なし → latest `main` SHAをreportへ記録する。
-3. relevant path変更あり / non-material → 内容確認結果とlatest `main` SHAをreportへ記録しclassification維持する。
-4. relevant path変更あり / Repository material change → latest `main`を通常mergeで取り込み、影響candidateだけ再評価する。
-5. reportを必要最小限更新し、Task 12のcommit前Required validationを再実行する。
-6. 必要なcommitを行い、commit後はTask 13の`git diff --check origin/main...HEAD`とPR差分確認を再実行してからnon-force pushする。
-7. **この時点の最新PR head SHAを確定する。**
-8. 最新head SHAで実際に起動したapplicable repository checks / workflowsを確認し、required指定の有無にかかわらず、Phase 6 PRにrelevantなfailureを残したままmergeしない。古いheadのCI結果を代用しない。
-9. unresolved review threadまたは新しいreview findingが残っていないことを確認する。
-10. PRがmergeable / merge-readyであることを確認する。
-11. Repositoryのmerge設定を再確認する。Planning時点と同じくsquash mergeのみ有効ならsquash mergeを使用する。merge commit / rebase mergeを使用するためにRepository設定を変更しない。
-12. CI failure、新しいreview finding、merge conflict、validation failureがある場合はmergeせず、必要最小限のbounded repairを行った後、最新headでTask 12 / Task 13 / 本Taskの必要箇所をやり直す。
-13. すべて満たした場合だけ、ユーザーの明示承認範囲内で**squash merge**する。
-14. merge後、Issue #72のCurrent status / Phase 6欄を実際のmerge結果へ同期し、Master Plan §21およびIssue #72自身の完了条件を最終確認する。
-15. Master Plan / Issue #72の完了条件をすべて満たす場合はIssue #72をCloseする。未達条件がある場合はIssue #72をOpenのまま維持し、重複説明を避けて不足条件と正本への参照だけを記録する。
+1. `git fetch origin main`でlatest `origin/main`を取得し、latest `main` SHAを確定する。
+2. latest `main`との差分をdiff-firstで再確認する。
+3. relevant path変更なし → latest `main` SHAをreportへ記録する。
+4. relevant path変更あり / non-material → 内容確認結果とlatest `main` SHAをreportへ記録しclassification維持する。
+5. relevant path変更あり / Repository material change → latest `main`を通常mergeで取り込み、影響candidateだけ再評価する。
+6. reportを必要最小限更新し、Task 12のcommit前Required validationを再実行する。
+7. 必要なcommitを行い、commit後はTask 13の`git diff --check origin/main...HEAD`とPR差分確認を再実行してからnon-force pushする。
+8. **この時点の最新PR head SHAを確定する。**
+9. 最新head SHAで実際に起動したapplicable repository checks / workflowsを確認し、required指定の有無にかかわらず、Phase 6 PRにrelevantなfailureを残したままmergeしない。古いheadのCI結果を代用しない。
+10. unresolved review threadまたは新しいreview findingが残っていないことを確認する。
+11. PRがmergeable / merge-readyであることを確認する。
+12. Repositoryのmerge設定を再確認する。Planning時点と同じくsquash mergeのみ有効ならsquash mergeを使用する。merge commit / rebase mergeを使用するためにRepository設定を変更しない。
+13. CI failure、新しいreview finding、merge conflict、validation failureがある場合はmergeせず、必要最小限のbounded repairを行った後、最新headでTask 12 / Task 13 / 本Taskの必要箇所をやり直す。
+14. すべて満たした場合だけ、ユーザーの明示承認範囲内で**squash merge**する。
+15. merge後、Issue #72のCurrent status / Phase 6欄を実際のmerge結果へ同期し、Master Plan §21およびIssue #72自身の完了条件を最終確認する。
+16. Master Plan / Issue #72の完了条件をすべて満たす場合はIssue #72をCloseする。未達条件がある場合はIssue #72をOpenのまま維持し、重複説明を避けて不足条件と正本への参照だけを記録する。
 
 `refactor_now`が存在しても、それはPhase 6 merge後の別Plan / 別PRへ送るfollow-upであり、それだけを理由にIssue #72をOpen維持しない。Issue #72のClose可否はMaster Plan / Issue #72のcompletion条件で決める。
 
@@ -591,7 +605,7 @@ Task 2〜5をcandidate単位の1ループで完了し、同じcandidateを工程
 
 ### Evidence artifact proliferation
 
-Evidence Cardは別file / candidate別Runにせず、active Runのworking noteと1 durable reportへ集約する。
+Evidence Cardは別file / candidate別Runにせず、active Runのworking noteと1 durable reportへ集約する。Evidence Cardとreport candidate詳細で別schemaを持たない。
 
 ### Run lifecycle drift
 
@@ -601,9 +615,9 @@ Phase 6全体で同じRunを無条件に使い続けず、同一会話での再�
 
 Pass 1でEvidence不足でも直ちに`needs_more_evidence`へ確定しない。`deep-dive-needed`としてboundedなPass 2を一度だけ実施する。
 
-### Weak `keep_as_is`
+### Unnecessary Pass 2
 
-単にRefactor benefitを説明できないだけで`keep_as_is`にしない。十分なEvidenceに基づき、維持理由があるか、Refactor benefitがabstraction / migration / coordination costを明確に上回らないことを確認する。Evidence不足ならPass 2へ送る。
+Pass 1では最初にEvidence充足だけを判定し、Evidenceが十分ならTask 7と同じclassificationロジックで確定する。`keep_as_is`の積極的理由を追加収集するためだけにPass 2へ送らない。
 
 ### Defect-history bias
 
