@@ -7,9 +7,7 @@
 - 実装ブランチ: `refactor/117-pr2-trigger-eval-baseline`
 - 目的: PR3 で Skill `description` を変更する前に、現状の Skill routing を再測定・比較できる baseline として固定する。
 
-PR2 は routing を改善する PR ではない。
-
-baseline で failure が見つかっても、PR2 内では以下を変更しない。
+PR2 は routing を改善する PR ではない。baseline で failure が見つかっても、PR2 内では以下を変更しない。
 
 ```text
 .agents/skills/*/SKILL.md の description
@@ -33,6 +31,8 @@ generic sanitizer / snapshot builder
 temporary Git tree rewrite framework
 checkout / clone lifecycle manager
 container / VM / custom permission framework
+workspace reset framework
+caseごとのclone manager
 ```
 
 ---
@@ -75,16 +75,20 @@ repair-loop
 - [ ] routing observation と task completion を分離する。
 - [ ] timeout / abnormal process termination / terminal event欠落では、途中Skill readがあっても最終Skill集合を確定しない。
 - [ ] case outcome を `pass` / `false_negative` / `sibling_misroute` / `unexpected_trigger` / `unobservable` に分類できる。
+- [ ] observable caseでは `observed_skills` を最終Skill集合として `string[]` で保存する。
+- [ ] observableなSkill read 0件は `observed_skills: []` とする。
+- [ ] `outcome = unobservable` では `observed_skills: null` とし、空集合と区別する。
 - [ ] `unobservable` では machine-readable な `unobservable_reason` を1つ保存し、複数異常時のpriorityを固定する。
 - [ ] scoring は observed Skill の集合で判定し、read順序を使わない。
 - [ ] live runner は `train` / `validation` / `all` を選択できる。
 - [ ] PR2 canonical baseline は `all` で1回取得する。
+- [ ] canonical `all` baselineでは4 boundaryの両sideすべてについて最低1件はrouting observableである。
+- [ ] `train` / `validation` 単独runはdiagnostic用途とし、少なくとも1件routing observableならrun-level successとする。
 - [ ] baseline と後続 `all` run を case ID 単位に比較できる。
 - [ ] observation loss / recovery を routing failure の改善・悪化と混同しない。
 - [ ] `evaluator_git_sha` でrunner / dataset revisionを特定できる。
 - [ ] `routing_source_git_sha` で実際にrouting対象とした `AGENTS.md` / Skill revisionを特定できる。
 - [ ] 一部caseの routing failure / observation failure は runner 自体の failure にしない。
-- [ ] selected caseが全件 `unobservable` のrunは成功扱いにしない。
 - [ ] comparison時のCodex version差を条件差として明示できる。
 - [ ] Evaluator logicの意味変更があるcomparisonを description-only improvement と誤認しない。
 - [ ] live eval は `pnpm run verify` の hard gate にしない。
@@ -294,7 +298,7 @@ Targetがdirtyなら理由を推測せずexit 1とする。
 
 ### 3.4 answer-key isolationの保証範囲
 
-PR2が保証するのは、**canonical Routing TargetのRepository/Git contextへEvaluator answer keyを意図的に持ち込まないこと**である。
+PR2が保証するのは、canonical Routing TargetのRepository/Git contextへEvaluator answer keyを意図的に持ち込まないことである。
 
 保証対象:
 
@@ -352,7 +356,7 @@ ignored file
 → Git source dirty判定には含めない
 ```
 
-ここで `.codex/runs/**` を除外するのは「過去Runを編集してよい」という意味ではない。過去Runの保護・active Run lifecycleは既存Repository policyの責務とし、Trigger Eval runnerへ重複実装しない。
+`.codex/runs/**` を除外するのは「過去Runを編集してよい」という意味ではない。過去Runの保護・active Run lifecycleは既存Repository policyの責務とし、Trigger Eval runnerへ重複実装しない。
 
 特に以下に未commit差分があればbaselineを開始しない。
 
@@ -365,7 +369,7 @@ AGENTS.md
 .agents/skills/*/SKILL.md
 .codex/config.toml
 .codex/hooks/**
-その他 source / config / test
+その他 tracked/untracked source
 ```
 
 ### 3.6 Dataset fingerprint
@@ -424,7 +428,7 @@ package.json に記載されている package name だけを確認して答え�
 
 - 当該runのhook evidenceを一意に取得できる。
 - canonical Skill readが0件。
-- `turn.completed` まで到達し、空集合をrouting observationとして確定できる。
+- `turn.completed` まで到達し、`observed_skills = []` をrouting observationとして確定できる。
 
 ### 4.4 Hook log correlation
 
@@ -583,7 +587,28 @@ PR2 initial dataset は exactly 24 cases で作る。
 
 ただしqueryは別の自然なシナリオとし、単純paraphraseにしない。
 
-### 5.7 Query authoring rule
+### 5.7 Canonical observable boundary-side set
+
+canonical `--split all` baselineが最低限観測できなければならない8 sideは以下。
+
+```text
+exploratory-qa-vs-android-native-local-validation / exploratory-qa
+exploratory-qa-vs-android-native-local-validation / android-native-local-validation
+code-review-vs-repair-loop / code-review
+code-review-vs-repair-loop / repair-loop
+repair-loop-vs-harness-improvement / repair-loop
+repair-loop-vs-harness-improvement / harness-improvement
+feature-plan-vs-direct-implementation / feature-plan
+feature-plan-vs-direct-implementation / null
+```
+
+判定単位は `(boundary, expected_skill)` とする。
+
+同じsideについてtrain/validationの両方がobservableであることまでは要求しない。canonical `all` で、そのsideに属するcaseのうち最低1件がobservableならよい。
+
+割合閾値は導入しない。
+
+### 5.8 Query authoring rule
 
 禁止:
 
@@ -592,7 +617,7 @@ PR2 initial dataset は exactly 24 cases で作る。
 - expected labelを示唆する文言。
 - multi-Skillが正当に必要な複合依頼。
 
-### 5.8 Manual dataset review contract
+### 5.9 Manual dataset review contract
 
 semantic correctnessはLLM validatorを作らず、人間/実装者レビューで確認する。
 
@@ -606,7 +631,7 @@ semantic correctnessはLLM validatorを作らず、人間/実装者レビュー�
 
 この5条件をbaseline実行前のdataset review checklistとする。
 
-### 5.9 Duplicate normalization
+### 5.10 Duplicate normalization
 
 重複検知専用:
 
@@ -654,9 +679,10 @@ routing observation確定ルールを以下で固定する。
 ```text
 Skill readあり
 → その最終observed_skills集合でscore
+→ observed_skills = string[]
 
 Skill readなし
-→ observed_skills = ∅ としてscore
+→ observed_skills = [] としてscore
 ```
 
 #### B. `turn.failed` をterminal eventとして確認できた
@@ -664,9 +690,11 @@ Skill readなし
 ```text
 Skill readあり
 → そのobserved_skills集合でscore
+→ observed_skills = string[]
 
 Skill readなし
 → unobservable + lifecycle_failure
+→ observed_skills = null
 ```
 
 `turn.failed` はturnがterminalになったことを示すため、read-only sandbox等でtask completionに失敗しても、そこまでに観測したSkill readはrouting evidenceとして利用する。
@@ -676,6 +704,7 @@ Skill readなし
 ```text
 Skill readの有無にかかわらず
 → unobservable
+→ observed_skills = null
 ```
 
 理由:
@@ -683,6 +712,8 @@ Skill readの有無にかかわらず
 - sessionが途中で打ち切られている可能性がある。
 - その後追加Skillを読む可能性を排除できない。
 - set-based scoringで不完全な集合をfinal resultとして扱わない。
+
+途中まで観測したSkill readを `observed_skills` に残さない。必要な診断情報はraw hook evidenceまたはRun Artifactへ残す。
 
 ### 7.2 Outcome
 
@@ -694,18 +725,39 @@ unexpected_trigger
 unobservable
 ```
 
-### 7.3 Set-based scoring
-
-routing observationが確定した後にのみ以下を適用する。
+### 7.3 `observed_skills` invariant
 
 ```text
-expected = null, observed = ∅
+outcome != unobservable
+→ observed_skills は string[]
+→ Skill read 0件を確定した場合は []
+
+outcome = unobservable
+→ observed_skills = null
+```
+
+`[]` と `null` を混同しない。
+
+```text
+[]
+= 最終的にcanonical Skill readが0件だったことを確定できた
+
+null
+= 最終Skill集合を確定できなかった
+```
+
+### 7.4 Set-based scoring
+
+routing observationが確定した observable caseにのみ以下を適用する。
+
+```text
+expected = null, observed = []
 → pass
 
-expected = null, observed ≠ ∅
+expected = null, observed != []
 → unexpected_trigger
 
-expected != null, observed = ∅
+expected != null, observed = []
 → false_negative
 
 expected != null, expected ∉ observed
@@ -714,13 +766,15 @@ expected != null, expected ∉ observed
 expected != null, expected ∈ observed, extra Skillあり
 → unexpected_trigger
 
-expected != null, observed = {expected}
+expected != null, observed = [expected] のみ
 → pass
 ```
 
 read順序はscoringに使わない。
 
-### 7.4 `unobservable_reason`
+`observed_skills = null` のcaseへscoring ruleを適用しない。
+
+### 7.5 `unobservable_reason`
 
 `outcome = unobservable` のときだけ以下のenumを保存する。
 
@@ -775,9 +829,7 @@ priorityはerror taxonomyを複雑化するためのstate machineではなく、
 
 自由文error dumpはbaseline JSONへ保存しない。
 
-詳細は一時logまたはRun Artifactに必要な要約だけ残す。
-
-### 7.5 Host JSONL lifecycleとchild process lifecycleを分ける
+### 7.6 Host JSONL lifecycleとchild process lifecycleを分ける
 
 stdout JSONLから最低限以下をparseする。
 
@@ -825,6 +877,7 @@ scripts/evals/skill-trigger-evals.ts
 - normalization / fingerprint
 - routing observation resultからのscoring
 - summary aggregation
+- canonical boundary-side observability判定
 - baseline comparison
 
 plain function / plain objectで実装する。
@@ -851,13 +904,14 @@ scripts/evals/run-skill-trigger-evals.ts
 - Target alternates確認
 - `codex --version` 取得
 - `codex exec` spawn / stdin
-- child process timeout / exit監視
+- timeout
 - stdout JSONL lifecycle parse
+- child process lifecycle取得
 - hook snapshot / append delta
 - actual Skill read extraction
 - routing observability確定
-- `unobservable_reason` priority適用
 - pure scorer呼び出し
+- run-level observability条件判定
 - serialization / output write
 
 HostAdapter/provider interfaceは作らない。
@@ -878,7 +932,7 @@ pure logicを中心に検証する。
 
 side-effect runnerのために大きなmock frameworkを作らない。
 
-small helperとして切り出せるpreflight / observability判定だけを必要範囲でtestする。
+small helperとして切り出せるpreflight / observability / run-level success判定だけを必要範囲でtestする。
 
 ### 8.4 Dependency
 
@@ -961,6 +1015,7 @@ checkout / clone create/remove
 sanitizer profile
 routing source override
 run-id
+observable percentage threshold
 ```
 
 `routing_source_git_sha` は `--target-root` のHEADから導出するため、別CLI optionを追加しない。
@@ -998,7 +1053,13 @@ queryはEvaluator root datasetから読み、stdinへUTF-8でそのまま渡す�
 CASE_TIMEOUT_MS = 120000
 ```
 
-timeoutしたcaseは、途中Skill readの有無にかかわらず `unobservable + timeout`。
+timeoutしたcaseは、途中Skill readの有無にかかわらず以下とする。
+
+```text
+outcome = unobservable
+observed_skills = null
+unobservable_reason = timeout
+```
 
 retryはしない。
 
@@ -1026,7 +1087,52 @@ modelは確実に観測できない場合 `unreported`。
 
 ### 11.1 JSON
 
-`split = all` のinitial PR2 baseline例:
+observable case例:
+
+```json
+{
+  "id": "code-review-train-001",
+  "owner_skill": "code-review",
+  "split": "train",
+  "boundary": "code-review-vs-repair-loop",
+  "expected_skill": "code-review",
+  "observed_skills": ["code-review"],
+  "outcome": "pass",
+  "unobservable_reason": null
+}
+```
+
+observable empty-set case例:
+
+```json
+{
+  "id": "feature-plan-train-002",
+  "owner_skill": "feature-plan",
+  "split": "train",
+  "boundary": "feature-plan-vs-direct-implementation",
+  "expected_skill": null,
+  "observed_skills": [],
+  "outcome": "pass",
+  "unobservable_reason": null
+}
+```
+
+unobservable case例:
+
+```json
+{
+  "id": "feature-plan-validation-002",
+  "owner_skill": "feature-plan",
+  "split": "validation",
+  "boundary": "feature-plan-vs-direct-implementation",
+  "expected_skill": null,
+  "observed_skills": null,
+  "outcome": "unobservable",
+  "unobservable_reason": "timeout"
+}
+```
+
+`split = all` のtop-level例:
 
 ```json
 {
@@ -1040,18 +1146,7 @@ modelは確実に観測できない場合 `unreported`。
     "executed_at": "...",
     "split": "all"
   },
-  "cases": [
-    {
-      "id": "code-review-train-001",
-      "owner_skill": "code-review",
-      "split": "train",
-      "boundary": "code-review-vs-repair-loop",
-      "expected_skill": "code-review",
-      "observed_skills": ["code-review"],
-      "outcome": "pass",
-      "unobservable_reason": null
-    }
-  ],
+  "cases": [],
   "summary": {
     "total": 24,
     "by_outcome": {},
@@ -1111,7 +1206,8 @@ routing_source_git_sha
 ### 11.4 Serialization
 
 - cases: case ID辞書順。
-- observed_skills: Skill名辞書順。
+- observable caseのobserved_skills: Skill名辞書順。
+- unobservable caseのobserved_skills: `null`。
 - summary keys: 実装内で1つの固定順序へ統一。
 
 ### 11.5 Dataset fingerprint
@@ -1132,6 +1228,7 @@ parsed YAMLの再serializationは使わない。
 - absolute Target path。
 - raw query本文。
 - raw hook JSONL全体。
+- unobservable caseのpartial Skill set。
 
 ---
 
@@ -1175,7 +1272,7 @@ Codex versionが異なる場合もcase comparisonは実行するが、descriptio
 
 comparisonのcase transitionは、dataset fingerprint / case ID setが一致すれば機械的には算出してよい。
 
-ただし、以下の意味変更がbaseline後に入った場合は、そのcomparisonを **description-only improvement** と解釈しない。
+ただし、以下の意味変更がbaseline後に入った場合は、そのcomparisonを description-only improvement と解釈しない。
 
 ```text
 Skill read extraction semantics
@@ -1183,6 +1280,8 @@ routing observability判定
 scoring rules
 outcome classification
 comparison transition rules
+observed_skills nullability contract
+canonical run-level observability contract
 ```
 
 この場合:
@@ -1256,14 +1355,7 @@ ranking / weighted score / severity scoreは作らない。
       "recovered_observable": 0,
       "unchanged_unobservable": 0
     },
-    "cases": [
-      {
-        "id": "code-review-train-001",
-        "baseline_outcome": "pass",
-        "current_outcome": "pass",
-        "status": "unchanged_pass"
-      }
-    ]
+    "cases": []
   }
 }
 ```
@@ -1272,24 +1364,68 @@ comparison casesもcase ID辞書順。
 
 ---
 
-## 13. Exit code contract
+## 13. Run-level success / Exit code contract
 
-### 13.1 exit 0
+### 13.1 observableの定義
 
-以下を満たす場合はrunner execution成功。
+run-level判定では以下をobservable caseとする。
 
+```text
+outcome ∈ {
+  pass,
+  false_negative,
+  sibling_misroute,
+  unexpected_trigger
+}
+```
+
+`outcome = unobservable` はobservable数・boundary-side coverageへ含めない。
+
+### 13.2 `--split train|validation`
+
+診断実行では以下を満たせばrun-level success。
+
+```text
+selected casesを最後まで処理
+output保存成功
+少なくとも1件observable
+```
+
+一部caseのrouting failure / unobservableはexit 0を妨げない。
+
+### 13.3 canonical `--split all`
+
+PR2 canonical baselineでは、単に1件observableでは不十分とする。
+
+以下の8 `(boundary, expected_skill)` sideについて、それぞれ最低1件observable caseが必要。
+
+```text
+exploratory-qa-vs-android-native-local-validation / exploratory-qa
+exploratory-qa-vs-android-native-local-validation / android-native-local-validation
+code-review-vs-repair-loop / code-review
+code-review-vs-repair-loop / repair-loop
+repair-loop-vs-harness-improvement / repair-loop
+repair-loop-vs-harness-improvement / harness-improvement
+feature-plan-vs-direct-implementation / feature-plan
+feature-plan-vs-direct-implementation / null
+```
+
+この条件はrouting qualityのpass率を要求するものではない。
+
+例えばあるsideのobservable caseが `false_negative` でも、そのsideのroutingを観測できたためrun-level observability coverageとしては成立する。
+
+要求するのは「各boundary sideを最低1件は測定できたこと」であり、割合・score thresholdではない。
+
+### 13.4 exit 0
+
+- CLI / dataset / preflight contractに違反がない。
 - selected casesを最後まで処理した。
 - output保存に成功した。
-- 少なくとも1件はrouting observable。
+- split-specific run-level observability条件を満たした。
 
-以下はexit 0を妨げない。
+routing failure自体はexit 0を妨げない。
 
-- routing failureあり。
-- 一部caseが`unobservable`。
-
-routing qualityは評価データでありCLI failureではない。
-
-### 13.2 exit 1
+### 13.5 exit 1
 
 - dataset validation failure。
 - unsupported option combination。
@@ -1309,11 +1445,10 @@ routing qualityは評価データでありCLI failureではない。
 - Codex executable自体を起動不能。
 - output write failure。
 - comparison input contract failure。
-- selected caseが全件 `unobservable`。
+- `train|validation`でselected caseが全件 `unobservable`。
+- canonical `all`で8 boundary sideのうち1つでもobservable caseが0件。
 
-全件unobservableの場合も、可能ならcase result / summaryをoutputへ書いてからexit 1とする。
-
-一部caseのtimeout / process / lifecycle / hook failureは`unobservable`として保存し、全件でない限りrun-level exit 1へ直結させない。
+run-level observability条件を満たさない場合も、可能なら全case result / summaryをoutputへ書いてからexit 1とする。
 
 ---
 
@@ -1359,25 +1494,37 @@ Dataset:
 
 Scoring / observability:
 
-- Skill readあり + `turn.completed` → final Skill集合でscore。
-- Skill read 0 + `turn.completed` → empty setとしてscore。
+- Skill readあり + `turn.completed` → final Skill集合でscore、`observed_skills`は配列。
+- Skill read 0 + `turn.completed` → `observed_skills = []`としてscore。
 - Skill readあり + `turn.failed` → observed Skill集合でscore。
-- Skill read 0 + `turn.failed` → unobservable + lifecycle_failure。
-- Skill readあり + timeout → unobservable + timeout。
-- Skill read 0 + timeout → unobservable + timeout。
-- Skill readあり + abnormal process termination / terminal eventなし → unobservable。
-- hook correlation failure → unobservable + hook_correlation。
-- hook parse failure → unobservable + hook_parse。
+- Skill read 0 + `turn.failed` → `unobservable + lifecycle_failure + observed_skills = null`。
+- Skill readあり + timeout → `unobservable + timeout + observed_skills = null`。
+- Skill read 0 + timeout → `unobservable + timeout + observed_skills = null`。
+- Skill readあり + abnormal process termination / terminal eventなし → unobservable / null。
+- hook correlation failure → unobservable / null。
+- hook parse failure → unobservable / null。
+- `outcome = unobservable` で `observed_skills` 配列を許可しない。
+- observable outcomeで `observed_skills = null` を許可しない。
 - 複数異常では `timeout > process_failure > lifecycle_failure > hook_correlation > hook_parse > skill_read_observation` のpriorityを適用。
 - trusted terminal eventあり + process non-zeroだけではprocess_failureへ上書きしない。
-- null + empty → pass。
-- null + observed → unexpected_trigger。
+- null expected + empty observed → pass。
+- null expected + observed → unexpected_trigger。
 - expected + empty → false_negative。
 - expected absent → sibling_misroute。
 - expected + extra → unexpected_trigger。
 - expected only → pass。
 - observed order不変性。
 - summary.totalはselected case数から算出。
+
+Run-level success:
+
+- trainで1件以上observable → success条件成立。
+- validationで1件以上observable → success条件成立。
+- train/validation全件unobservable → failure。
+- allで8 boundary sideすべてに最低1 observable → success条件成立。
+- allで7 side observable / 1 side全件unobservable → failure。
+- allで各sideのobservable outcomeがrouting failureでも、観測できていればcoverage成立。
+- arbitrary percentage thresholdを使わない。
 
 Comparison:
 
@@ -1400,7 +1547,6 @@ Runner helper:
 - `evaluator_git_sha` はEvaluator HEADから取得。
 - `.codex/runs/**` だけのEvaluator差分はsource consistency failureにしない。
 - `.codex/runs/**` 外のEvaluator source差分はFAIL。
-- selected cases全件unobservableならrun-level failure判定。
 
 ### 14.3 CI
 
@@ -1416,31 +1562,32 @@ live Codex evalはCI gateにしない。
 2. behindならincoming diffを確認し、必要に応じlatest mainをbranchへ取り込む。
 3. current 6 Skill descriptionsを記録し、PR2中の変更禁止を確認する。
 4. Evaluator rootでimplementation Runを開始する。
-5. remote repositoryからanswer keyのない独立current-main cloneを用意しObservation Probeを実施する。
+5. answer keyのない独立current-main remote cloneでObservation Probeを実施する。
 6. probe不成立なら独自classifier/parserを作らずblockerとして停止する。
 7. 4 boundaryをcurrent routing SSOTと照合する。
 8. initial 24 cases / 12 YAMLを作成する。
 9. 全24caseをmanual dataset reviewする。
 10. pure logic / runner / tests / package scriptsを実装する。
 11. deterministic validation / repository validationを通す。
-12. runner / dataset / tests / package scriptsをsource implementation commitとしてcommitする。Run Artifactはこのsource commitへ含めない。
+12. runner / dataset / tests / package scriptsをsource implementation commitとしてcommitする。active Run Artifactは含めない。
 13. Evaluator HEADを `evaluator_git_sha` として確定する。
 14. canonical baseline直前にremote latest `main` を再取得する。
 15. latest mainのrouting/observation関連diffを確認する。
 16. routing/observation関連変更があれば、baselineを止めてexpected/probe/runner前提を再確認する。
 17. baseline対象として確定したlatest main SHAを `routing_source_git_sha` とする。
-18. remote repository URLからlatest mainの独立cloneをRouting Targetとして用意し、`routing_source_git_sha`へdetached checkoutする。
+18. GitHub remoteからlatest mainの独立cloneをRouting Targetとして用意し、`routing_source_git_sha`へdetached checkoutする。
 19. Target clean / 6 Skills存在 / Trigger Eval dataset不存在 / Git common-dir非共有 / alternatesなしをpreflightする。
 20. Evaluator rootに `.codex/runs/**` 以外のsource差分がないことを確認する。
 21. canonical `--split all` baselineを1回実行する。
 22. baseline JSONをEvaluator rootのRun Directoryへ保存する。
-23. selected 24 casesが全件unobservableでないことを確認する。
-24. routing failureを見てもdescription / routing contractを変更しない。
-25. Target cloneをcleanupする。
-26. Run-level `evaluation.json` / `REPORT.md` からbaseline artifactを参照する。
-27. Run Artifact sanitizationを行う。
-28. final diffでscope逸脱がないことを確認する。
-29. baseline / standard Run Artifactを後続commitで保存する。
+23. 8 boundary sideすべてに最低1件observable caseがあることを確認する。
+24. unobservable caseの `observed_skills` がすべてnullであることを確認する。
+25. routing failureを見てもdescription / routing contractを変更しない。
+26. Target cloneをcleanupする。
+27. Run-level `evaluation.json` / `REPORT.md` からbaseline artifactを参照する。
+28. Run Artifact sanitizationを行う。
+29. final diffでscope逸脱がないことを確認する。
+30. baseline / standard Run Artifactを後続commitで保存する。
 
 baseline artifact自身を `evaluator_git_sha` のcommitへ自己参照させない。
 
@@ -1458,8 +1605,6 @@ pnpm run eval:skills:trigger:validate
 
 baseline直前のlatest main SHAを確定する。
 
-remote GitHub repository URLからcloneする。
-
 ```bash
 git clone --no-tags --single-branch --branch main <REMOTE_REPOSITORY_URL> <target-root>
 git -C <target-root> checkout --detach <routing_source_git_sha>
@@ -1467,17 +1612,9 @@ git -C <target-root> checkout --detach <routing_source_git_sha>
 
 Targetには何も削除・追加しない。
 
-以下を使用しない。
+Evaluator repositoryから `git worktree add` してはいけない。
 
-```text
-local filesystem path
-file:// URL
---local
---shared
---reference
---reference-if-able
-git worktree add
-```
+Evaluator filesystem path / `file://` / `--local` / `--shared` / `--reference*` を使わない。
 
 ### Baseline
 
@@ -1538,25 +1675,25 @@ Canonical baselineで確認:
 - initial 24 cases全件処理。
 - 1 case = 1 ephemeral process。
 - 6 Skill同時条件。
-- Routing Targetはremote repositoryから作成したclean latest-main独立clone。
+- Routing Targetはclean latest-main independent remote clone。
 - Routing TargetにTrigger Eval dataset / PR2 evaluator artifactがない。
 - Evaluator / TargetでGit common-dirを共有していない。
-- Target alternatesが存在しない、または空。
+- Target alternatesなし。
 - prompt metadata leakageなし。
 - `evaluator_git_sha` がEvaluator HEADと一致。
 - `routing_source_git_sha` がTarget HEADと一致。
 - dataset fingerprintはEvaluator root dataset由来。
-- Evaluator source consistency判定で`.codex/runs/**`を除外し、それ以外のsource差分がない。
 - `codex_version`が`codex --version`由来。
 - `turn.completed`でfinal Skill setを正しく確定している。
 - `turn.failed` + Skill readありではrouting結果を保持する。
 - timeout / terminal event欠落では途中Skill readがあってもunobservableにしている。
-- `unobservable_reason` priorityが固定契約どおり。
-- JSONL lifecycleとchild process lifecycleを混同していない。
+- observable empty setは `observed_skills = []`。
+- unobservableは必ず `observed_skills = null`。
 - queryはresultへ複製しない。
-- observed Skill sort安定。
+- observable observed Skill sort安定。
+- `unobservable_reason`整合。
 - summary.totalがselected case数と一致。
-- 全件unobservableではない。
+- 8 boundary sideすべてに最低1 observable caseがある。
 
 Comparison self-smoke:
 
@@ -1604,8 +1741,8 @@ runner内のcheckout / clone lifecycle manager
 generic evaluator sanitizer framework
 temporary Git tree rewrite / snapshot framework
 container / VM / custom permission framework
-object provenance scanner / Git pack analyzer
-active Run auto-discovery
+workspace reset framework
+case-per-clone framework
 ```
 
 ---
@@ -1656,15 +1793,14 @@ PR2成功:
 - repository validation PASS。
 - positive / negative observation control成立。
 - initial 24 casesのmanual dataset review完了。
-- remote repositoryから用意したanswer keyを含まないclean independent Routing Targetでcanonical baseline取得成功。
+- answer keyを含まないclean independent remote Routing Targetでcanonical baseline取得成功。
 - Evaluator / Routing TargetがGit common-dirを共有していない。
-- Target alternatesが存在しない、または空。
+- Target alternatesなし。
 - `evaluator_git_sha` / `routing_source_git_sha` で評価条件を特定できる。
-- Evaluator source consistency判定にactive Run探索を追加していない。
 - task failureとrouting failureを混同していない。
 - timeout等の未完了sessionから不完全なSkill集合を確定していない。
-- `unobservable_reason`のpriorityが一意。
-- selected casesが全件unobservableではない。
+- observable empty setとunobservableを `[]` / `null` で区別できる。
+- canonical `all`で4 boundaryの両side、計8 sideすべてを最低1件はobservableとして測定できている。
 - machine-readable result / comparison contractが成立。
 - `unobservable`原因をrouting failureと混同しない。
 - Codex version差をcomparison条件差として表現できる。
@@ -1677,6 +1813,7 @@ PR2 blocker:
 
 - Host Skill selectionを信頼できる形で観測できない。
 - answer keyのないindependent Routing Targetでobservation proxyを成立させられない。
+- canonical `all`で8 boundary sideのいずれかを1件もobservableにできない。
 
 blocker時は評価方式を捏造せず停止し、Run Artifactへ理由を記録する。
 
@@ -1686,17 +1823,20 @@ blocker時は評価方式を捏造せず停止し、Run Artifactへ理由を記�
 
 - PR2の価値はscoreの高さではなく、description変更前のroutingを同じdataset / runner contractで再測定できることにある。
 - initial 24 casesは統計benchmarkではなく回帰baseline。
+- canonical run-level条件はpass率ではなく「4 boundaryの両sideを最低1件ずつ観測できたか」を確認する。
+- arbitrary percentage thresholdは導入しない。
 - `validation` はoperational validation splitであり、blind / secret holdoutではない。
 - PR2ではEvaluator revisionとRouting revisionを分離する。
 - PR2 routing subjectはbaseline直前のlatest mainであり、Evaluator branchではない。
-- Routing Targetはremote repositoryから作成し、Evaluator repositoryのlocal/shared object storeを再利用しない。
+- Routing TargetはEvaluator repositoryとGit common-dirを共有しないremote independent cloneとする。
 - answer-key isolationはRepository/Git contextの汚染防止であり、OS-level security sandboxではない。
-- `.codex/runs/**` はEvaluator source consistency判定から除外し、active Run discoveryをTrigger Eval runnerへ重複実装しない。
+- `observed_skills = []` は「Skill read 0件を確定」、`observed_skills = null` は「最終集合を確定不能」を意味する。
+- unobservable caseのpartial Skill readはresultへ保存せず、必要なら診断evidenceで扱う。
 - `evals/` はこのRepository独自のSkill評価拡張。
 - pure logic + side-effect runnerの2file分離はframework化ではなく最小のtestability分離。
 - read-only sandboxはcase間のRepository mutationを防ぐため維持する。ただし`turn.failed`後もSkill readを観測済みならrouting evidenceとして扱う。
 - timeout / abnormal termination / terminal event欠落では途中Skill readがあってもfinal routing setを確定しない。
-- `unobservable_reason`は固定priorityで1件へ決定し、failure state machineを作らない。
+- feature-planのdirect-implementation negativeがread-onlyによりunobservableになる可能性は、canonical 8-side observability条件で実測判定する。起きる前からworkspace-write/reset frameworkは導入しない。
 - PR3のanswer-key-free Target作成問題をPR2で一般化しない。
 - Evaluator semanticsを変更したcomparisonはdescription-only improvementと断定しない。
 - ここから新しい評価frameworkを足さない。追加要求が出た場合はPR2へ抱え込まずscopeを再確認する。
