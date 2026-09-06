@@ -73,8 +73,10 @@ repair-loop
 - [ ] Hostへ渡すのはdatasetのraw `query`本文だけであり、expected label / owner / split / boundary / case IDをpromptに混ぜない。
 - [ ] PR2 canonical runではRouting Targetのworking tree / Git refs / Git object databaseにPR2 Trigger Eval answer keyを持ち込まない。
 - [ ] Routing TargetとEvaluatorは同じGit common-dirを共有しない。
+- [ ] Evaluator rootとRouting Target rootはrealpath上で相互に包含しない。
 - [ ] Routing Targetはshared-object cloneではなく、remote repositoryから用意したindependent cloneを使用する。
 - [ ] Observation Probeからcanonical baselineまで同じRouting Target cloneを再利用する。
+- [ ] Observation Probe / live eval中は同じRouting Targetを他のCodex sessionから使用しない。
 - [ ] Routing TargetはObservation Probe前にcurrent Codexの通常のuser-consented project trust / hook trust手順を完了している。
 - [ ] trust設定はrunnerが作成・変更しない。
 - [ ] current Codex Hostが実際に使用したSkillをHost-native evidenceから観測する。
@@ -82,27 +84,31 @@ repair-loop
 - [ ] Observation Probeはrunner実装前のmanual technical checkとして行い、Probe専用のcommitted scriptは追加しない。
 - [ ] routing observationとtask completionを分離する。
 - [ ] timeout / abnormal process termination / terminal event欠落では、途中Skill readがあっても最終Skill集合を確定しない。
+- [ ] hook correlation / parse / selectorの成立を確認する前に「Skill read 0件」を確定しない。
+- [ ] `unobservable_reason`はordered decision pipeline 1本で決定し、独立したpriority state machineを作らない。
 - [ ] case outcomeを `pass` / `false_negative` / `sibling_misroute` / `unexpected_trigger` / `unobservable` に分類できる。
 - [ ] `sibling_misroute` は、そのcaseのnear-miss boundaryでexpected Skillと対向するcanonical Skillだけを単独で観測した場合に限定する。
 - [ ] expected以外のnon-sibling Skill、複数Skill、expected + extra Skillは `unexpected_trigger` とする。
 - [ ] observable caseでは `observed_skills` を最終Skill集合として `string[]` で保存する。
 - [ ] observableなSkill read 0件は `observed_skills: []` とする。
 - [ ] `outcome = unobservable` では `observed_skills: null` とし、空集合と区別する。
-- [ ] `unobservable`ではmachine-readableな `unobservable_reason` を1つ保存し、複数異常時のpriorityを固定する。
 - [ ] scoringはobserved Skillの集合で判定し、read順序を使わない。
 - [ ] live runnerは `train` / `validation` / `all` を選択できる。
-- [ ] PR2 canonical baselineは `all` で1回取得する。
+- [ ] PR2 canonical baselineは、有効な `all` runを1回だけ採用する。
+- [ ] case単位retry、routing結果改善目的の再実行、unobservableだけの引き直しを行わない。
+- [ ] Evaluator / environment defectでrun全体を無効化した場合だけ、修正・commit・Probe / validation後に新しい `all` runを最初から実行できる。
 - [ ] canonical `all` baselineでは4 boundaryの両side、計8 sideすべてについて最低1件はrouting observableである。
 - [ ] `train` / `validation`単独runはdiagnostic用途とし、少なくとも1件routing observableならrun-level successとする。
 - [ ] baselineと後続 `all` runをcase ID単位に比較できる。
 - [ ] comparison JSONのschema / case status fieldを固定し、後続PRが推測せず利用できる。
+- [ ] `--compare`なしのrunでは `comparison` fieldを出力しない。
 - [ ] observation loss / recoveryをrouting failureの改善・悪化と混同しない。
 - [ ] `evaluator_git_sha` でrunner / dataset revisionを特定できる。
 - [ ] `routing_source_git_sha` で実際にrouting対象とした `AGENTS.md` / Skill revisionを特定できる。
 - [ ] comparison時のCodex version差を条件差として明示できる。
 - [ ] Evaluator logicの意味変更があるcomparisonをdescription-only improvementと誤認しない。
 - [ ] live evalは `pnpm run verify` のhard gateにしない。
-- [ ] deterministic dataset validationとpure scoring / comparison testのみCI gateにする。
+- [ ] deterministic dataset validationとscoring / comparison testのみCI gateにする。
 - [ ] 6 Skillの `description` を変更していない。
 - [ ] `AGENTS.md` のrouting意味契約を変更していない。
 - [ ] Product code / Product test / training contentを変更していない。
@@ -194,6 +200,7 @@ Routing Target root
 - PR2 Plan / PR2 Run Artifact / baseline resultを持たない
 - Evaluator repositoryのGit refs / common-dirを共有しない
 - Evaluator repository由来のshared object databaseを使用しない
+- Evaluator rootの内側にも外側の親にも置かない
 - HEAD = routing_source_git_sha（baseline直前に確定）
 ```
 
@@ -218,6 +225,8 @@ file:// URLからのclone
 --reference
 --reference-if-able
 Evaluator repositoryからの git worktree add
+Evaluator root配下へのTarget clone
+Target root配下へのEvaluator配置
 ```
 
 runnerにはclone作成・checkout管理・cleanup・trust変更を実装しない。
@@ -249,21 +258,46 @@ git -C <target-root> checkout --detach <routing_source_git_sha>
 
 TargetにTrigger Eval datasetやEvaluator artifactをcopyしない。
 
+Observation Probe / live eval中は、このTargetを評価専用として扱い、別Codex process/sessionを同じTargetへ接続しない。
+
 ### 3.5 Routing Target preflight
 
 live run開始前にrunnerは以下を確認する。
 
 ```text
 Target rootが存在する
-Evaluator rootと別path
+Evaluator rootとTarget rootのrealpathが異なる
+Target root realpathがEvaluator root realpathの子孫ではない
+Evaluator root realpathがTarget root realpathの子孫ではない
 Git working tree / checkoutである
-6 canonical SkillをTarget rootから発見できる
+6 canonical Skillの既知SKILL.md pathがすべて通常fileとして存在しread可能
 .agents/skills/*/evals/trigger/** がTarget rootに存在しない
 routing_source_git_sha = Target HEAD
 EvaluatorとTargetのGit common-dir real pathが異なる
 Targetの .git/objects/info/alternates が存在しない、または空である
 Git status上、tracked / staged / non-ignored untracked changeがない
 ```
+
+6 Skill preflightで確認するのは、以下のknown pathのfilesystem presence / readabilityだけとする。
+
+```text
+.agents/skills/android-native-local-validation/SKILL.md
+.agents/skills/code-review/SKILL.md
+.agents/skills/exploratory-qa/SKILL.md
+.agents/skills/feature-plan/SKILL.md
+.agents/skills/harness-improvement/SKILL.md
+.agents/skills/repair-loop/SKILL.md
+```
+
+preflightでは以下を実装しない。
+
+```text
+SKILL frontmatterの再validation
+Host discovery emulator
+Codex routing/discoveryのRepository独自再実装
+```
+
+Skill package自体のdeterministic validationは既存 `validate:skills` / repository validationに委ね、Hostが実際にselect/readするかはTrigger Evalで測る。
 
 Target clean判定は特別なhook-log allowlistを実装せず、概念上以下が空であることを確認する。
 
@@ -275,6 +309,8 @@ normal hook log (`.codex/logs/*.jsonl`) は `.codex/logs/.gitignore` でignore�
 
 Git common-dirは `git rev-parse --git-common-dir` の結果を各root基準で解決し、realpath比較する。
 
+path containment判定も文字列prefix比較ではなく、realpath化したdirectory境界で判定する。
+
 ### 3.6 answer-key isolationの保証範囲
 
 保証対象:
@@ -284,6 +320,7 @@ Routing Target working tree
 Routing Target Git refs
 canonical remote clone手順で取得するGit object database
 Host prompt
+Evaluator / Target間のdirectory containmentなし
 ```
 
 保証しないもの:
@@ -333,6 +370,8 @@ session correlation utility
 
 実装者はTarget rootを `-C` に指定して `codex exec` を直接実行し、hook JSONLを直接確認する。Probeで確認したactual tool/input shapeと判断根拠はimplementation Run Artifactへ記録し、そのshapeだけを後続runnerのSkill read selectorへ実装する。
 
+Probe実行中は同じRouting Targetを他のCodex session / processから使用しない。
+
 ### 4.2 Positive control
 
 ```text
@@ -354,6 +393,7 @@ package.json に記載されている package name だけを確認して答え�
 合格条件:
 
 - hook evidenceを一意に取得できる。
+- hook correlation / parse / selectorが正常に成立する。
 - canonical Skill readが0件。
 - `turn.completed`まで到達し、`observed_skills = []`を確定できる。
 
@@ -558,33 +598,71 @@ NFKC → trim → whitespace collapse → lowercase。重複検知専用で、Ho
 
 ## 7. Routing observation / Scoring
 
-### 7.1 lifecycleによるrouting set確定
+### 7.1 `trusted terminal` の定義
 
-#### `turn.completed`
+`trusted terminal` は、current Codex stdout JSONLで当該caseについて `turn.completed` または `turn.failed` のどちらか一方を終端eventとして信頼できる状態を指す。
 
-```text
-Skill readあり → final observed_skillsでscore
-Skill readなし → observed_skills = [] でscore
-```
-
-#### `turn.failed`
+以下はtrusted terminalとして扱わない。
 
 ```text
-Skill readあり → observed Skill集合でscore
-Skill readなし → unobservable + lifecycle_failure + observed_skills = null
+turn.completed / turn.failed がどちらもない
+terminal eventが競合・重複しfinal stateを一意に決められない
+top-level errorしかない
 ```
 
-#### timeout / abnormal termination / terminal欠落 / top-level errorのみ
+### 7.2 routing observationのordered decision pipeline
+
+各caseは以下の順序だけで判定する。独立した `unobservable_reason` priority listや別state machineを作らない。
 
 ```text
-Skill read有無にかかわらず
-→ unobservable
-→ observed_skills = null
+1. process timeoutか
+   YES → outcome = unobservable
+         observed_skills = null
+         unobservable_reason = timeout
+
+2. spawn failure / signal、またはtrusted terminalなし + non-zero exitか
+   YES → outcome = unobservable
+         observed_skills = null
+         unobservable_reason = process_failure
+
+3. trusted terminalが成立しないか
+   YES → outcome = unobservable
+         observed_skills = null
+         unobservable_reason = lifecycle_failure
+
+4. hook correlationが成功したか
+   NO  → outcome = unobservable
+         observed_skills = null
+         unobservable_reason = hook_correlation
+
+5. append deltaをJSONとしてparseできたか
+   NO  → outcome = unobservable
+         observed_skills = null
+         unobservable_reason = hook_parse
+
+6. Probeで確認したselectorでcanonical Skill actual readを信頼判定できるか
+   NO  → outcome = unobservable
+         observed_skills = null
+         unobservable_reason = skill_read_observation
+
+7. terminal = turn.failed かつ observed_skills = [] か
+   YES → outcome = unobservable
+         observed_skills = null
+         unobservable_reason = lifecycle_failure
+
+8. otherwise
+   → final observed_skills を確定してSet-based scoringへ渡す
 ```
 
-途中Skill readをfinal resultとして保存しない。
+重要:
 
-### 7.2 `observed_skills` invariant
+- hook correlation / parse / selectorが成立する前に `observed_skills = []` を確定しない。
+- trusted `turn.completed` / `turn.failed` がある単なるnon-zero exitは `process_failure` に上書きしない。
+- timeout / process failure / lifecycle failureでは途中Skill readが見えていてもfinal resultへ残さない。
+- `turn.failed` + Skill readありはstep 8へ進み、観測済みSkill集合をrouting evidenceとしてscoreする。
+- `turn.completed` + Skill read 0件はstep 8へ進み、`observed_skills = []`としてscoreする。
+
+### 7.3 `observed_skills` invariant
 
 ```text
 observable outcome → string[]
@@ -592,9 +670,11 @@ observable 0 Skill → []
 unobservable → null
 ```
 
-### 7.3 Set-based scoring
+`[]` はhook observation全体が成立した上でcanonical Skill read 0件を確定した場合だけに使用する。
 
-observable caseにのみ適用する。
+### 7.4 Set-based scoring
+
+ordered decision pipelineのstep 8へ到達したobservable caseだけに適用する。
 
 ```text
 expected = null, observed = []
@@ -631,7 +711,9 @@ feature-plan expected時にfeature-plan以外のcanonical Skillが発火
 
 `sibling_misroute`は「near-miss boundaryの対向Skillだけへきれいに誤routingした」場合だけを表す。
 
-### 7.4 `unobservable_reason`
+### 7.5 `unobservable_reason`
+
+保存可能な値は以下だけ。
 
 ```text
 timeout
@@ -642,48 +724,9 @@ hook_parse
 skill_read_observation
 ```
 
-複数異常時priority:
+どのreasonを採用するかは7.2のordered decision pipelineだけで決める。
 
-```text
-1 timeout
-2 process_failure
-3 lifecycle_failure
-4 hook_correlation
-5 hook_parse
-6 skill_read_observation
-```
-
-判定treeを以下で固定する。
-
-```text
-process timeout
-→ timeout
-
-spawn failure / signal / trusted terminalなし + non-zero exit
-→ process_failure
-
-turn.failed + Skill read 0件
-→ lifecycle_failure
-
-trusted terminalなしでprocessは通常終了
-または top-level errorだけでturn.completed / turn.failedなし
-→ lifecycle_failure
-
-hook file 0件 / 複数 / size縮小 / non-append
-→ hook_correlation
-
-append deltaをJSONとしてparse不能
-→ hook_parse
-
-hookはparse可能だがProbeで確認したselectorではactual canonical Skill readを信頼判定不能
-→ skill_read_observation
-```
-
-trusted `turn.completed` / `turn.failed`が存在する単なるnon-zero exitは `process_failure` に上書きしない。
-
-priorityは上記条件が複数成立した場合に1 reasonへ決定するためだけに使い、別state machineを作らない。
-
-### 7.5 Host JSONL / child process
+### 7.6 Host JSONL / child process
 
 stdout JSONL:
 
@@ -743,7 +786,8 @@ scripts/evals/run-skill-trigger-evals.ts
 - CLI
 - Evaluator / Target preflight
 - SHA取得
-- common-dir / alternates確認
+- realpath containment / common-dir / alternates確認
+- canonical SKILL.md existence / readability確認
 - `codex --version`
 - `codex exec`
 - timeout / process lifecycle
@@ -830,6 +874,7 @@ codex exec --json --ephemeral --sandbox read-only -C <target-root> -
 - expected metadataをpromptへ追加しない。
 - network overrideなし。
 - case間でTargetを変更しない。
+- live eval中は同じTargetを他Codex process/sessionと共有しない。
 - timeoutは120000ms。
 - `codex --version`はlive run開始時に1回。失敗ならrun開始せずexit 1。
 - modelを確実に観測できなければ `unreported`。
@@ -871,6 +916,8 @@ unobservable例:
 ```
 
 ### 11.2 Top-level result
+
+`--compare`なしの通常runでは `comparison` fieldを出力しない。
 
 ```json
 {
@@ -928,7 +975,9 @@ model provenance
 
 ### 12.2 Comparison JSON contract
 
-current runのtop-level `provenance` / `cases` / `summary` は通常どおり保存し、比較情報を追加の `comparison` objectとして保存する。
+`--compare`ありの場合だけ、current runのtop-level `provenance` / `cases` / `summary` に追加の `comparison` objectを保存する。
+
+`--compare`なしの場合は `comparison: null` や空objectを出さず、field自体をomitする。
 
 最小schemaを以下で固定する。
 
@@ -1048,14 +1097,50 @@ selected cases完走 + output保存 + 1件以上observableでsuccess。
 
 8 `(boundary, expected_skill)` sideすべてに最低1 observable caseが必要。routing outcomeがfailureでもobservableならcoverage成立。
 
-### 13.3 exit 1
+### 13.3 canonical runの「1回」契約
+
+PR2で採用するcanonical baselineは、**有効なcanonical `all` run 1回**とする。
+
+禁止:
+
+```text
+case単位retry
+routing failureを良く見せるための再実行
+unobservable caseだけの引き直し
+同じEvaluator/environment条件で複数all runを実行して都合の良い結果だけ採用
+```
+
+ただし、実行後に以下のような明確なEvaluator / environment defectが判明した場合は、そのrun全体をcanonical baselineとして無効化できる。
+
+```text
+Skill read selector実装バグ
+hook parser / correlation実装バグ
+routing observation判定実装バグ
+Target preparation / trust / hook environmentの明確な不備
+```
+
+無効化した場合:
+
+1. 無効化理由をimplementation Run Artifactへ記録する。
+2. evaluator defectなら修正してsource implementationをcommitする。
+3. 新しい `evaluator_git_sha` を確定する。
+4. environment defectならTarget/trust/hook状態を正常化する。
+5. Observation Probe / deterministic validationを再確認する。
+6. canonical `all`を最初から1回実行する。
+
+無効化したrunを有効baselineと比較・採用しない。
+
+runnerへretry / rerun managerは実装しない。これはcanonical実行手順の運用契約である。
+
+### 13.4 exit 1
 
 ```text
 dataset / CLI / preflight failure
 TargetとEvaluatorが同一root/common-dir
+Evaluator / Targetのrealpathが相互containment
 Target dirty（tracked / staged / non-ignored untracked）
 TargetにTrigger Eval datasetあり
-Targetに6 Skill不足
+Targetで6 canonical SKILL.md pathの存在/readability不足
 Target alternates非空
 Evaluatorに .codex/runs/** 外のsource差分
 outputがTarget配下
@@ -1108,24 +1193,24 @@ required side欠落
 25件以上でもcontract validならPASS
 ```
 
-Scoring / observability:
+Observation pipeline / scoring:
 
 ```text
-turn.completed + Skill → score
-turn.completed + 0 Skill → []でscore
-turn.failed + Skill → score
-turn.failed + 0 Skill → unobservable/lifecycle_failure/null
 timeout → unobservable/timeout/null
-spawn failure / signal / no-terminal non-zero → process_failure
-normal exit + no trusted terminal → lifecycle_failure
-top-level error only + no trusted terminal → lifecycle_failure
+spawn failure / signal / no-terminal non-zero → process_failure/null
+trusted terminalなし → lifecycle_failure/null
 hook correlation failure → hook_correlation/null
 hook parse failure → hook_parse/null
 selector unreliable → skill_read_observation/null
+turn.failed + hook observation正常 + Skill 0 → lifecycle_failure/null
+turn.failed + hook observation正常 + Skillあり → score
+turn.completed + hook observation正常 + Skill 0 → []でscore
+turn.completed + hook observation正常 + Skillあり → score
+hook correlation failure時にSkill 0扱いしない
+hook parse failure時にSkill 0扱いしない
+trusted terminal + non-zeroだけではprocess_failureにしない
 unobservableでarray禁止
 observableでnull禁止
-reason priority
-trusted terminal + non-zeroだけではprocess_failureにしない
 
 expected null + [] → pass
 expected null + any Skill → unexpected_trigger
@@ -1160,19 +1245,27 @@ case ID mismatch
 Codex version match / mismatch
 comparison JSON counts
 comparison.cases stable sort
+--compareなしではcomparison field omit
 ```
 
 Runner helper:
 
 ```text
 Target dirty / dataset present / common-dir shared / alternates non-empty
+Evaluator root == Target root → FAIL
+Target is descendant of Evaluator → FAIL
+Evaluator is descendant of Target → FAIL
+separate sibling/outside realpaths → containment理由ではFAILしない
+6 known SKILL.md存在/readability不足 → FAIL
+6 known SKILL.mdが揃う → frontmatter/Host discovery模倣なしでpreflight継続
 Target clean statusは通常のGit status判定だけ
 routing_source_git_sha = Target HEAD
 evaluator_git_sha = Evaluator HEAD
 Evaluator source consistency
 ```
 
-trust stateのunit test/mock frameworkは作らない。
+canonical rerun運用のためのretry manager unit testは作らない。
+trust stateのunit test/mock frameworkも作らない。
 
 ### 14.3 CI
 
@@ -1186,36 +1279,38 @@ trust stateのunit test/mock frameworkは作らない。
 2. incoming diff確認・必要ならmain取り込み。
 3. current descriptionsを記録しPR2変更禁止を確認。
 4. implementation Run開始。
-5. remoteからindependent current-main Targetを1回clone。
+5. remoteからindependent current-main TargetをEvaluatorと相互containmentしないpathへ1回clone。
 6. 通常手順でproject trust / hook trust。
-7. runner実装前にmanual Observation Probeを実施。
-8. Probeでは `codex exec` を直接実行し、normal/fallback hook JSONLを直接確認する。
-9. Probeで確認したactual tool/input shapeをRun Artifactへ記録する。
-10. Probe失敗時はtrust/config/hooksを先に切り分ける。
-11. trust成立後もProbe不成立ならblocker。
-12. 4 boundaryをrouting SSOTと照合。
-13. 24 cases / 12 YAML作成。
-14. 全case manual review。
-15. deterministic eval logic / runner / tests / package実装。
-16. deterministic/repository validation。
-17. source implementation commit。active Run Artifactは含めない。
-18. `evaluator_git_sha`確定。
-19. baseline直前にlatest main再取得。
-20. routing/observation差分確認。
-21. 同じTargetをfetchし `routing_source_git_sha` へdetached checkout。
-22. relevant changeならtrust確認 / manual Probe再実行 / evaluator再validate。
-23. Target preflight。
-24. Evaluator source clean確認。
-25. canonical `all`を1回実行。
-26. baseline JSON保存。
-27. 8 side observability確認。
-28. unobservableの`observed_skills = null`確認。
-29. routing failureを見てもdescription変更しない。
-30. evaluation/reportからbaseline参照。
-31. Run Artifact sanitization。
-32. final scope diff。
-33. baseline / standard Run Artifactを後続commit。
-34. Target cleanup。
+7. Targetを評価専用とし、他Codex sessionから使用しない。
+8. runner実装前にmanual Observation Probeを実施。
+9. Probeでは `codex exec` を直接実行し、normal/fallback hook JSONLを直接確認する。
+10. Probeで確認したactual tool/input shapeをRun Artifactへ記録する。
+11. Probe失敗時はtrust/config/hooksを先に切り分ける。
+12. trust成立後もProbe不成立ならblocker。
+13. 4 boundaryをrouting SSOTと照合。
+14. 24 cases / 12 YAML作成。
+15. 全case manual review。
+16. deterministic eval logic / runner / tests / package実装。
+17. deterministic/repository validation。
+18. source implementation commit。active Run Artifactは含めない。
+19. `evaluator_git_sha`確定。
+20. baseline直前にlatest main再取得。
+21. routing/observation差分確認。
+22. 同じTargetをfetchし `routing_source_git_sha` へdetached checkout。
+23. relevant changeならtrust確認 / manual Probe再実行 / evaluator再validate。
+24. Target preflight。
+25. Evaluator source clean確認。
+26. canonical `all`を最初から最後まで1回実行。
+27. baseline JSON保存。
+28. 8 side observability確認。
+29. unobservableの`observed_skills = null`確認。
+30. routing failureを見てもdescription変更・case retry・引き直しをしない。
+31. Evaluator/environment defectが判明した場合のみ、当該run全体を無効化し13.3の手順で新しいcanonical runを行う。
+32. 有効なcanonical baselineをevaluation/reportから参照。
+33. Run Artifact sanitization。
+34. final scope diff。
+35. baseline / standard Run Artifactを後続commit。
+36. Target cleanup。
 
 baseline artifact自身を`evaluator_git_sha` commitへ自己参照させない。
 
@@ -1235,10 +1330,14 @@ Target preparation:
 git clone --no-tags --single-branch --branch main <REMOTE_REPOSITORY_URL> <target-root>
 ```
 
+`<target-root>`はEvaluator rootの内部にも、その親にも置かない。
+
 Manual Observation Probe:
 
 ```text
 current Codexの通常手順でTargetをtrust
+↓
+Targetを他Codex sessionから使用しない状態にする
 ↓
 codex exec --json --ephemeral --sandbox read-only -C <target-root> -
 ↓
@@ -1293,18 +1392,24 @@ Canonical baselineで最低限確認:
 - 1 case = 1 fresh process。
 - 6 Skill同時条件。
 - answer-key-free independent Target。
+- Evaluator / Target realpathの相互containmentなし。
+- Targetは他Codex sessionと共有していない。
+- 6 known canonical `SKILL.md` が存在/readableで、preflightがHost discoveryを再実装していない。
 - normal Git statusでTarget clean。
 - common-dir非共有 / alternatesなし。
 - prompt metadata leakageなし。
 - evaluator/routing SHA一致確認。
 - fingerprint provenance。
-- lifecycle / unobservable_reason decision tree。
+- ordered observation pipeline。
+- hook failureをSkill read 0件と誤認しない。
 - `[]` / `null` invariant。
 - clean sibling-onlyだけが `sibling_misroute`。
 - non-sibling / multiple triggerは `unexpected_trigger`。
+- `--compare`なしbaseline JSONにcomparison fieldなし。
 - comparison JSON contract。
 - stable sort。
 - 8 boundary side observable。
+- 有効なcanonical allを1回だけ採用し、routing結果改善目的のretryをしていない。
 
 ---
 
@@ -1339,6 +1444,8 @@ container / VM / custom permission framework
 workspace reset / case-per-clone
 project trust / hook trust manager
 Probe専用committed script / Probe framework
+Host discovery emulator / frontmatter validatorの重複実装
+canonical rerun manager
 ```
 
 ---
@@ -1368,11 +1475,14 @@ Run Artifact:
 - manual Probe成立。
 - 24 cases manual review完了。
 - answer-key-free Targetでcanonical baseline取得。
+- Evaluator / Target path containmentなし。
 - 8 sideすべてobservable。
+- hook observationが成立する前にSkill read 0件を確定していない。
 - `sibling_misroute`と`unexpected_trigger`をnear-miss boundaryに沿って正しく区別できる。
-- `unobservable_reason`が決定treeどおり一意に分類できる。
+- `unobservable_reason`がordered decision pipelineどおり一意に分類できる。
 - evaluator/routing provenanceを特定可能。
 - comparison JSON / transition contract成立。
+- 有効なcanonical baselineは1 runだけで、結果改善目的のretryなし。
 - description tuning 0件。
 - custom Runtime / classifier / judge / trust automation 0件。
 
@@ -1395,11 +1505,18 @@ blocker時は評価方式を捏造せず停止し、Run Artifactへ理由を記�
 - `sibling_misroute`はnear-miss boundaryの対向Skillだけへの単独誤routingを意味する。
 - non-sibling / multi-triggerを`sibling_misroute`へ丸めない。
 - answer-key isolationはRepository/Git contextの汚染防止でありsecurity sandboxではない。
+- Evaluator / TargetはGitだけでなくdirectory realpathでも相互containmentさせない。
 - project/hook trustはenvironment prerequisiteでrunner責務ではない。
 - Observation Probeはrunner実装前のmanual technical checkであり、Probe frameworkを作らない。
-- `observed_skills = []` は0 Skill確定、`null`は最終集合確定不能。
+- Probe / live eval中は評価用Targetを他Codex sessionと共有しない。
+- `observed_skills = []` はhook observation成立後の0 Skill確定、`null`は最終集合確定不能。
+- `unobservable_reason`はpriority tableではなくordered decision pipelineだけで決める。
 - `skill-trigger-evals.ts`はdeterministic eval logic + minimal dataset readsに留め、pure性のためだけにfileを増やさない。
+- 6 Skill preflightはknown `SKILL.md`存在/readabilityだけに留め、Host discoveryを模倣しない。
 - Target clean判定は通常のGit statusへ寄せ、hook-log専用allowlistを作らない。
+- canonical baselineは有効run 1回だけを採用し、defectで無効化したrunだけ全体再実行を許す。
+- runnerへretry / rerun managerを追加しない。
+- `--compare`なしではcomparison fieldをomitする。
 - read-only sandbox、no retry、sequentialを維持する。
 - PR3のTarget作成問題をPR2で一般化しない。
 - Evaluator semantics変更時のcomparisonをdescription-only effectと断定しない。
