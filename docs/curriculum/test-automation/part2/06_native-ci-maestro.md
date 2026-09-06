@@ -23,6 +23,7 @@
 - `training/maestro/`
 - `training/github-actions/training-native-ci.yml`
 - `scripts/training/run-maestro-baseline.ts`
+- `scripts/training/run-maestro-exercise.ts`
 - `.github/workflows/native-ci.yml`
 - `.github/workflows/native-ios-ci.yml`
 - `scripts/native/windows/android-local.ps1`
@@ -49,7 +50,7 @@ standalone実行では、iOS Automation / Productionのunsigned Release `iphones
 
 ## Training Native Workflowの前提
 
-受講者が最初から現在の `native-ci.yml` を複製することは前提にしません。最小Training Workflow templateは実装済みです。
+受講者が最初から現在の `native-ci.yml` を複製することは前提にしません。Source Repositoryの `training/github-actions/*.yml` はrepository-owned template / Reference、Training Copyの `.github/workflows/*.yml` は実行するactive workflowです。Native specializationの開始時点では、active workflowは準備済みです。
 
 - Production Deployや本番Secretへ依存しない。
 - Androidを標準実行Platformとする。
@@ -57,9 +58,9 @@ standalone実行では、iOS Automation / Productionのunsigned Release `iphones
 - Build / Emulator / Install / Maestro / Evidenceの関係を確認できる。
 - 現在の高度なFormal Native CIは、最小構成を動かした後に比較する。
 
-Training Native Workflowは `permissions: contents: read`、Secret / OIDC / Environment / Deployなしで、GitHub-hosted Ubuntu runner上のBuild → API 34 Emulator → Install → Maestro → Evidenceを構成します。ここでのEmulatorはGitHub Native CIのCanonicalであり、Windows Local Fresh LearnerのCanonical Physical Device経路とは別責務です。Formal Native CIのRequired Gateを置き換えず、Training baselineは既存Formal Android Runtimeからも再利用できます。
+Training Native Workflowは `permissions: contents: read`、Secret / OIDC / Environment / Deployなしで、対象path変更またはmanual dispatch時にGitHub-hosted Ubuntu runner上のBuild → API 34 Emulator → Install → `training:native:baseline` → `training:native:exercise` → Evidenceを実行します。baselineとexerciseのJUnit / Artifactを分け、Failure時に保存されるdiagnostic Artifactとは区別します。ここでのEmulatorはGitHub Native CIのCanonicalであり、Windows Local Fresh LearnerのCanonical Physical Device経路とは別責務です。Formal Native CIのRequired Gateを置き換えず、Common-only変更ではこのTraining Native Workflowを起動しません。
 
-Training baselineは、環境と実行経路を確認するための開始点です。P2-6 Native specializationのcompletionには、baselineの再実行ではなく、受講者が作成したboundedなTraining Native CI変更、その実行結果、Failure / Artifact / Costの判断を使います。
+Training baselineは、環境と実行経路を確認するための開始点です。P2-6 Native specializationのcompletionには、baselineの再実行ではなく、learner-authored Native exercise diff、Training Native CIで取得したsuccessful Maestro exercise Artifact、Trigger / Failure stage / Artifact / CostのCI設計判断を使います。Failure時のArtifactはdiagnosis用であり、exercise stepのfailureやexercise JUnitを欠くArtifactだけではsuccessful execution evidenceになりません。
 
 ## Lesson 1: Native CIがWeb CIより重い理由
 
@@ -247,7 +248,7 @@ Scenario ShopのPhase 2方針では、Android / iOSを独立実行し、進め�
 
 ## ハンズオン1: Android MaestroをTraining CIで実行する
 
-`training-native-ci.yml`を読み、Android用の最小Native JobでPart 1のMaestro Flowを1本実行します。Training baselineの通常入口は `pnpm run training:native:baseline` です。
+準備済みのTraining Copy active workflowを、Native specialization関連pathの変更またはmanual dispatchで実行します。Workflow YAMLを自分で作成・変更することはRequiredにしません。起動時は `pnpm run training:native:baseline` の後に `pnpm run training:native:exercise` を実行します。
 
 最低限次の工程を含めます。
 
@@ -293,7 +294,7 @@ Training Workflowを動かした後に、現在のAndroid Native CIをJob依存�
 - Android Runtime / Maestro
 - Verify
 
-自分の1Job構成と比較し、なぜ現在のRepositoryでは責務を分けているか説明します。
+prepared Training Native Workflowの1Job構成と比較し、なぜ現在のRepositoryでは責務を分けているか説明します。
 
 ## ハンズオン4: Build / Runtime分離を設計する
 
@@ -343,9 +344,10 @@ AndroidとiOSを同じ頻度にする必要があるかも含め、Runner Cost�
 
 ## 自己確認
 
-次を自分のTraining Native CIのDiff、Run、またはArtifactを指しながら確認できれば、Native specializationの判断を自己判定できます。
+次をlearner-authored exercise Diff、Training Native CIのRun、またはArtifactを指しながら確認できれば、Native specializationの判断を自己判定できます。
 
-- baselineと自分が作成したboundedなNative CI変更を区別できる。
+- baselineと自分が作成したNative exercise diffを区別し、`training:native:exercise` step successと同じRunのexercise JUnit Artifactを確認できる。
+- Native specialization関連pathのTrigger、Failure stage、Artifact、Costの判断を説明できる。Common-only変更ではNative Training Workflowが起動しないことも確認できる。
 - AndroidのBuild、Emulator Boot、APK Install、App Launch、Maestro AssertionのFailure stageと最初に見るEvidenceを対応付けられる。
 - APK Artifactを再利用する価値と、FlowごとにJobを分けすぎない理由をCostとActionabilityから説明できる。
 - Native変更判定をskipする場合のRiskと、Fail-safeな再確認方法を説明できる。
@@ -353,16 +355,16 @@ AndroidとiOSを同じ頻度にする必要があるかも含め、Runner Cost�
 
 ### Recovery
 
-Native CIが失敗した場合は、Workflow起動、SDK / Dependency Setup、Gradle Build、Emulator Boot、APK Install、App Launch、Maestro Assertionの順に確認し、該当Artifactを残します。RunnerやSDK、端末相当の問題はEnvironment blockとして分離し、CI設計の未理解と決めつけません。baselineしかない場合は、boundedな自分の変更Diffへ戻り、再実行だけでcompletionとしないことを確認します。
+Native CIが失敗した場合は、Workflow起動、SDK / Dependency Setup、Gradle Build、Emulator Boot、APK Install、App Launch、Maestro Assertionの順に確認し、該当Artifactを残します。RunnerやSDK、端末相当の問題はEnvironment blockとして分離し、CI設計の未理解と決めつけません。baselineしかない場合、exercise stepが失敗した場合、またはexercise JUnitを欠く場合はdiagnosis用Artifactとして扱い、completionのsuccessful exercise evidenceとはしません。Workflow YAMLのDiffをCompletionへ戻すのではなく、exercise DiffとTrigger / Failure stage / Artifact / Cost判断を確認します。
 
 ## 完了条件
 
 この完了条件はNative specializationを選択した受講者に適用します。Part 2 CommonではP2-6を要求せず、P2-5からP2-7へ進みます。
 
-- boundedなTraining Native CI変更を自分で作成し、変更Diffと実行結果を対応付けている。
-- 変更後のGitHub-hosted Android Training WorkflowでScenario ShopをBuildし、API 34 Emulator上でMaestro Flowを実行している。
+- learner-authored Native exercise diffと、Training Native CIで取得したsuccessful Maestro exercise Artifactを対応付けている。
+- prepared Training Native WorkflowをNative specialization関連pathの変更またはmanual dispatchで実行し、API 34 Emulator上のbaseline → exerciseとArtifact分離を確認している。
 - Native Failureを工程別に分類し、Failure stageに対応するEvidenceを確認している。
-- Build Artifact再利用とNative実行頻度の判断を、Cost、Risk、再実行範囲の理由付きで説明できる。
+- Trigger、Failure stage、Artifact、CostのCI設計判断を、Cost、Risk、再実行範囲の理由付きで説明できる。Training workflow YAMLの編集自体はRequiredにしない。
 - iOS CIのBuild-only境界はReference comparisonとして扱い、Native RuntimeやBaselineをcompletionの代替にしていない。
 
 ## 次の行動

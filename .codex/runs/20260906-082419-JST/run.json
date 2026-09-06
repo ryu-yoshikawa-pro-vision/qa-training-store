@@ -1,0 +1,47 @@
+{
+  "schema_version": 2,
+  "run_id": "20260906-082419-JST",
+  "task_type": "implementation",
+  "workflow_level": "strict",
+  "preset": "safe",
+  "runtime": "host",
+  "repo": "qa-training-store",
+  "branch": null,
+  "base_branch": null,
+  "codex_task_reports": [],
+  "changed_files": [
+    "docs/curriculum/test-automation/part1/04_playwright-foundations.md",
+    "docs/curriculum/test-automation/part1/05_playwright-e2e-practice.md",
+    "docs/curriculum/test-automation/part1/06_execution-and-failure-analysis.md",
+    "docs/curriculum/test-automation/part1/07_maestro-native-automation.md",
+    "docs/curriculum/test-automation/part1/09_part1-capstone.md",
+    "docs/curriculum/test-automation/part2/06_native-ci-maestro.md",
+    "docs/plans/2026-09-05_pr5_training_baseline_exercise_artifact_evidence.md",
+    "package.json",
+    "scripts/training/run-maestro-baseline.ts",
+    "scripts/training/workflow-contract.ts",
+    "scripts/validate-curriculum.ts",
+    "tests/contracts/training-curriculum.test.ts",
+    "training/github-actions/README.md",
+    "training/github-actions/training-ci.yml",
+    "training/github-actions/training-native-ci.yml",
+    "scripts/training/maestro-runner.ts",
+    "scripts/training/run-maestro-exercise.ts"
+  ],
+  "validation": {
+    "status": "not_run",
+    "commands": [],
+    "warnings": []
+  },
+  "safety": {
+    "network": false,
+    "scope_violation": false
+  },
+  "artifact_summary": {
+    "codex_task_report_count": 0,
+    "evaluation_present": true
+  },
+  "evaluation_path": ".codex/runs/20260906-082419-JST/evaluation.json",
+  "status": "pending",
+  "primary_failure_category": null
+}

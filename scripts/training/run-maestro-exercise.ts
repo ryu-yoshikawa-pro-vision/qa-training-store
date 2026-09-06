@@ -2,9 +2,9 @@ import { runMaestro } from "./maestro-runner";
 
 async function main(): Promise<void> {
   await runMaestro({
-    flowPath: "training/maestro/baseline/native-training-baseline.yaml",
-    junitFileName: "training-native-baseline.xml",
-    defaultOutputDirectory: "output/training/maestro",
+    flowPath: "training/maestro/exercises/native-training-exercise.yaml",
+    junitFileName: "training-native-exercise.xml",
+    defaultOutputDirectory: "output/training/maestro/exercise",
   });
 }
 

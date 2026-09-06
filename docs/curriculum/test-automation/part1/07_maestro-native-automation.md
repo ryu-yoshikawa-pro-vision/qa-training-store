@@ -22,6 +22,8 @@
 - `maestro/native-search.yaml`
 - `maestro/native-test-control.yaml`
 - `maestro/native-restart-persistence.yaml`
+- `training/maestro/exercises/native-training-exercise.yaml`
+- `scripts/training/run-maestro-exercise.ts`
 - `src/presentation/native/`
 - Native Stable UI Test ID
 - `scenario-shop://` Deep Link
@@ -112,6 +114,9 @@ $env:ANDROID_SERIAL = $serial
 $env:TRAINING_MAESTRO_OUTPUT_DIR = Join-Path (Get-Location) ".artifacts\native-local\$runId\maestro\training-baseline"
 pnpm run training:native:baseline
 
+$env:TRAINING_MAESTRO_OUTPUT_DIR = Join-Path (Get-Location) ".artifacts\native-local\$runId\maestro\training-exercise"
+pnpm run training:native:exercise
+
 & .\scripts\native\windows\android-local.ps1 `
   -Action Evidence `
   -DeviceSerial $serial `
@@ -119,7 +124,17 @@ pnpm run training:native:baseline
   -RunId $runId
 ```
 
-Native helperの全ActionとTraining Maestro baselineは、同じ`$runId`と`$serial`を使用します。Training MaestroのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-baseline/`へ保存し、Native helperのEvidenceと同じRunへ紐付けます。
+Native helperの全Action、Training Maestro baseline、exerciseは、同じ`$runId`と`$serial`を使用します。BaselineのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-baseline/`、exerciseのJUnit / debug outputは`.artifacts/native-local/$runId/maestro/training-exercise/`へ保存し、Native helperのEvidenceと同じRunへ紐付けます。
+
+### Native learner exerciseのcanonical entry
+
+Native learner exerciseのcanonical entryは `training/maestro/exercises/native-training-exercise.yaml` です。`pnpm run training:native:exercise`はこのentryを実行します。PR5ではCurrent YAMLのScreenshot action、baseline `runFlow`、starter assertionを変更しません。
+
+Training CopyでC08用の成果物を作るときは、canonical entry自体を直接extendするか、learner-authored subflowを追加してcanonical entryから`runFlow`等で到達させます。`training:native:exercise`から到達しないunreferenced sibling YAMLを追加しただけでは、C08 successful execution evidenceにはしません。
+
+この1回の実行は `1 runId = 1 baseline → exercise → Evidence attempt` として扱います。baseline、exercise、Evidenceでは同じ`$serial`と`$runId`を使い、exercise前にdevice discoveryをやり直しません。retryで新しいattemptを始める場合は、新しい`$runId`を採番してbaseline → exercise → Evidenceを揃えます。
+
+Localでsuccessful exercise evidenceと判定するには、同じattemptで `pnpm run training:native:exercise` がexit code `0`で終了し、`.artifacts/native-local/$runId/maestro/training-exercise/training-native-exercise.xml`が存在することを確認します。Failure時に残るpartial outputやdiagnostic Artifactの存在だけではcompletionのEvidenceにしません。
 
 `-RequirePhysicalDevice`はserial、ADB status、Emulator property、Android API、ABI、package service、awake、unlockedを有限チェックし、Emulatorやlocked deviceをfail-closeします。失敗時は「端末を起動し、画面ロックを解除してから再実行してください」と表示し、認証情報へアクセスしません。
 
@@ -226,9 +241,9 @@ Canonical physical Android device上で次を実装します。
 
 Native specializationのcompletionは、Baseline / stock PASSの再実行だけでは満たしません。次を自分の成果物として揃えます。
 
-1. `training/maestro/exercises/` にあるlearner-authored FlowのDiff
+1. canonical `training/maestro/exercises/native-training-exercise.yaml`を直接extendするか、そこからreachableなlearner-authored subflowを追加したDiff
 2. Stable UI Test IDとTest ControlまたはDeep Linkを使ったBusiness Conditionの記録
-3. Physical Android deviceで成功した実行Artifact
+3. 同じattemptの`training:native:exercise` exit code `0`と`training-native-exercise.xml`を含むPhysical Android deviceの実行Artifact
 
 Physical Android deviceで実行できない場合は、Environment blockとして端末、接続、権限、Ready Signalの状態を記録します。Baselineを実行できたことをNative completionの代替にはしません。
 
@@ -317,6 +332,9 @@ Cartへ商品を追加した後にAppを再起動し、状態復元を確認し�
 - UI Test IDとTest Case IDを区別し、Stable UI Test IDを使う理由と乱用Riskを説明できる。
 - Deep Link / Test Controlを初期化の補助に使い、検証対象のJourneyを飛ばしていないことを説明できる。
 - 自分のFlow Diff、UI Test ID、Test ControlまたはDeep Link、Business Condition、実行Artifactを対応付けられる。
+- canonical `native-training-exercise.yaml`を直接extendするか、そこからreachableなsubflowを作り、unreferenced sibling YAMLだけではC08 Evidenceにならないと説明できる。
+- same serial / same runIdのbaseline → exercise → Evidenceを実行し、retryではnew attempt = new runIdにできる。
+- successful exercise Artifactとfailure diagnostic Artifactを区別し、exit code `0`と同じattemptのexercise JUnitを確認できる。
 - Physical Android deviceのRuntimeとGitHub Emulatorの実行条件、iOS Build-onlyの保証範囲を混同していない。
 - 2本以上のFlow作成はPractice Volumeであり、Baseline / stock PASSをC08 Evidenceと扱っていない。
 

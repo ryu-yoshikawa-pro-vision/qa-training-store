@@ -2,6 +2,14 @@ name: Scenario Shop Training Android
 
 on:
   pull_request:
+    paths:
+      - "training/maestro/**"
+      - "scripts/training/run-maestro-baseline.ts"
+      - "scripts/training/run-maestro-exercise.ts"
+      - "scripts/training/maestro-runner.ts"
+      - "scripts/training/maestro-invocation.ts"
+      - "scripts/training/serial-resolution.ts"
+      - ".github/workflows/training-native-ci.yml"
   workflow_dispatch:
 
 permissions:
@@ -23,7 +31,7 @@ env:
 
 jobs:
   training-android:
-    name: Training Android Maestro baseline
+    name: Training Android Maestro
     runs-on: ubuntu-24.04
     timeout-minutes: 50
     steps:
@@ -137,7 +145,14 @@ jobs:
           echo "$maestro_root/maestro/bin" >> "$GITHUB_PATH"
       - name: Run Training Maestro baseline
         shell: bash
+        env:
+          TRAINING_MAESTRO_OUTPUT_DIR: output/training/maestro/baseline
         run: pnpm run training:native:baseline
+      - name: Run Training Maestro exercise
+        shell: bash
+        env:
+          TRAINING_MAESTRO_OUTPUT_DIR: output/training/maestro/exercise
+        run: pnpm run training:native:exercise
       - name: Collect Android Training evidence
         if: always()
         shell: bash

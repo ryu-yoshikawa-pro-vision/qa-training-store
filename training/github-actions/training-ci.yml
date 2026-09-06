@@ -56,7 +56,7 @@ jobs:
         run: pnpm run training:web:baseline
       - name: Run Training Web expected-failure exercise
         if: github.event_name == 'workflow_dispatch' && inputs.mode == 'expected-failure'
-        run: pnpm run training:web:expected-failure
+        run: pnpm run training:web:check-expected-failure
       - name: Upload Training Web evidence
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

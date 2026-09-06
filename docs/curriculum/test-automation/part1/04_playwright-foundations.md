@@ -26,6 +26,8 @@ Formal `playwright.config.ts` と `e2e/web/phase1-required.spec.ts` は、演習
 
 ## 演習コードの扱い
 
+Desktop learner exerciseのcanonical commandは `pnpm run training:web:exercise` です。
+
 このカリキュラムでは、受講者が最初から既存 `phase1-required.spec.ts` や他の正式Regressionへ追記することを前提にしません。
 
 受講者用Playwright Testは、実装済みのTraining境界へ保存・実行します。具体的なPath、Project、ScriptはCurrent Repositoryで固定されています。

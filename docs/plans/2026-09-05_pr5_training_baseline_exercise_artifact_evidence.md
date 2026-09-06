@@ -76,12 +76,12 @@ Native Training workflowはFailure diagnosisのためArtifact collection / uploa
 
 C08でsuccessful Maestro execution artifactとして扱える最低条件は次とする。
 
-**Local Physical Android**
+#### Local Physical Android
 
 - `pnpm run training:native:exercise`がexit code `0`で終了する。
 - 同じattemptのexercise output directoryに`training-native-exercise.xml`が存在する。
 
-**GitHub Training Native CI**
+#### GitHub Training Native CI
 
 - `training:native:exercise`を実行するstepが実行され、successで終了する。
 - 同じworkflow runのuploaded Artifact内に`maestro/exercise/training-native-exercise.xml`が含まれる。
@@ -275,7 +275,7 @@ Instructor / 運営はEnvironment、Account、Permission、Device、Training Cop
 
 ### Task 1 — Web desktop learner exercise direct entry
 
-**Exact targets**
+#### Exact targets
 
 - `package.json`
 - `scripts/validate-curriculum.ts`
@@ -284,7 +284,7 @@ Instructor / 運営はEnvironment、Account、Permission、Device、Training Cop
 - `docs/curriculum/test-automation/part1/06_execution-and-failure-analysis.md`
 - `docs/curriculum/test-automation/part1/09_part1-capstone.md`
 
-**Package command — exact**
+#### Package command — exact
 
 ```json
 "training:web:exercise": "playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-chromium"
@@ -308,7 +308,7 @@ project = training-chromium
 
 `validate-curriculum.ts`ではcommandの存在だけでなく上記exact scriptを検証する。このpackage mappingはvalidatorをSSOTとし、contract testへ同じliteralを追加しない。
 
-**Learner-facing sync — required**
+#### Learner-facing sync — required
 
 P1-4:
 
@@ -330,7 +330,7 @@ P1-9:
 
 ### Task 2 — Native learner exercise direct entry with bounded shared runner
 
-**Exact targets**
+#### Exact targets
 
 - `package.json`
 - `scripts/training/run-maestro-baseline.ts`
@@ -338,13 +338,13 @@ P1-9:
 - new `scripts/training/run-maestro-exercise.ts`
 - `docs/curriculum/test-automation/part1/07_maestro-native-automation.md`
 
-**Explicit no-change asset**
+#### Explicit no-change asset
 
 - `training/maestro/exercises/native-training-exercise.yaml`
 
 PR5実装ではCurrent YAMLをcanonical starter / entryとしてそのまま使う。Screenshot action、既存`runFlow`、starter assertionを変更しない。
 
-**Package command — exact**
+#### Package command — exact
 
 ```json
 "training:native:exercise": "tsx scripts/training/run-maestro-exercise.ts"
@@ -352,7 +352,7 @@ PR5実装ではCurrent YAMLをcanonical starter / entryとしてそのまま使�
 
 別alias、mode引数、generic Native CLIは作らない。
 
-**Architecture — fixed**
+#### Architecture — fixed
 
 ```text
 serial-resolution.ts         existing / unchanged unless required
@@ -506,7 +506,7 @@ C08 completionはさらにlearner-authored reachable diffを必要とする。
 
 ### Task 3A — Web expected-failure workflow alignment only
 
-**Exact targets**
+#### Exact targets
 
 - `training/github-actions/training-ci.yml`
 - `scripts/training/workflow-contract.ts`
@@ -531,7 +531,7 @@ workflow_dispatch expected-failure
 - PR default baselineを変更しない。
 - raw package scriptは内部/直接調査用として残す。
 
-**Workflow allowlist — exact replacement**
+#### Workflow allowlist — exact replacement
 
 ```text
 REMOVE:
@@ -546,7 +546,7 @@ ADD:
 
 ### Task 3B — Native Training workflow specialization opt-in without modes
 
-**Exact targets**
+#### Exact targets
 
 - `training/github-actions/training-native-ci.yml`
 - `training/github-actions/README.md`
@@ -686,7 +686,7 @@ P2-6は全面rewriteしない。次の8箇所だけを同期する。
 
 ### Task 5 — Contract / validator synchronization
 
-**Exact targets**
+#### Exact targets
 
 - `scripts/validate-curriculum.ts`
 - `scripts/training/workflow-contract.ts`
@@ -829,7 +829,7 @@ git diff --check
 
 Physical AndroidまたはGitHub-hosted Emulatorが利用可能な場合だけ実施する。
 
-**Local Physical Android**
+#### Local Physical Android
 
 1. existing Doctor / Prepare / Build / Install / Smoke / Test Controlを実施。
 2. explicit serialをTraining serial envへ揃える。
@@ -842,7 +842,7 @@ Physical AndroidまたはGitHub-hosted Emulatorが利用可能な場合だけ実
 9. Evidence Actionをsame serial / runIdで実行。
 10. retryはnew attempt = new runIdでbaseline→exercise→Evidenceを揃える。
 
-**GitHub Training Native CI**
+#### GitHub Training Native CI
 
 - Native specialization path changeでworkflowが起動。
 - Common-only path changeでは起動しない。
