@@ -145,12 +145,18 @@ check_template_contract() {
   [[ -f scripts/init-project.ps1 ]] || return 1
   [[ -f scripts/init-project.sh ]] || return 1
   [[ -f scripts/validate-output-schema.py ]] || return 1
+  [[ -f scripts/validate-skills.ts ]] || return 1
   [[ -f .agents/skills/feature-plan/references/planning-workflow.md ]] || return 1
+  [[ -f .agents/skills/feature-plan/assets/plan-template.md ]] || return 1
   [[ -f .agents/skills/code-review/references/review-workflow.md ]] || return 1
   [[ -f .agents/skills/repair-loop/SKILL.md ]] || return 1
   [[ -f .agents/skills/repair-loop/references/repair-workflow.md ]] || return 1
   [[ -f .agents/skills/harness-improvement/SKILL.md ]] || return 1
   [[ -f .agents/skills/harness-improvement/references/improvement-workflow.md ]] || return 1
+  [[ -f .agents/skills/exploratory-qa/references/workflow.md ]] || return 1
+  [[ -f .agents/skills/exploratory-qa/references/scored-mode.md ]] || return 1
+  [[ -f .agents/skills/android-native-local-validation/references/windows-android-workflow.md ]] || return 1
+  [[ -f tests/repository-contract/validate-skills.test.ts ]] || return 1
   [[ -f docs/reference/codex-safety-harness.md ]] || return 1
   [[ -f docs/reference/codex-implementation-harness.md ]] || return 1
   [[ -f docs/reference/run-artifacts.md ]] || return 1
@@ -194,26 +200,13 @@ check_template_contract() {
   contains "test_investigator" AGENTS.md || return 1
   contains "Codex native delegation" AGENTS.md || return 1
   contains "No child subagent delegation" AGENTS.md || return 1
-  contains ".agents/skills/feature-plan/SKILL.md" PLANS.md || return 1
-  contains ".agents/skills/feature-plan/references/planning-workflow.md" PLANS.md || return 1
-  contains "docs/plans/TEMPLATE.md" PLANS.md || return 1
-  contains "Current understanding" PLANS.md || return 1
-  contains "Non-goals" PLANS.md || return 1
-  contains "Validation plan" PLANS.md || return 1
-  contains "Open questions" PLANS.md || return 1
-  contains "Ambiguity handling" PLANS.md || return 1
-  contains "mandatory-question" PLANS.md || return 1
-  contains "Blocking questions" PLANS.md || return 1
-  contains "Assumptions allowed" PLANS.md || return 1
-  contains "Follow-up notes" PLANS.md || return 1
+  contains ".agents/skills/feature-plan/assets/plan-template.md" PLANS.md || return 1
+  contains "docs/plans/" PLANS.md || return 1
+  contains "active Run" PLANS.md || return 1
+  contains "retention" PLANS.md || return 1
   contains ".agents/skills/code-review/SKILL.md" CODE_REVIEW.md || return 1
-  contains ".agents/skills/code-review/references/review-workflow.md" CODE_REVIEW.md || return 1
-  contains "findings-first" CODE_REVIEW.md || return 1
-  contains "Why it matters" CODE_REVIEW.md || return 1
-  contains "Suggested fix" CODE_REVIEW.md || return 1
-  contains "Verdict" CODE_REVIEW.md || return 1
-  contains "confidence" CODE_REVIEW.md || return 1
-  contains "review-only" CODE_REVIEW.md || return 1
+  contains "Repository Coding Standards" CODE_REVIEW.md || return 1
+  contains "Review persistence policy" CODE_REVIEW.md || return 1
   contains "repo mapping" .agents/skills/feature-plan/references/planning-workflow.md || return 1
   contains "Do not use" .agents/skills/feature-plan/references/planning-workflow.md || return 1
   contains "Main flow" .agents/skills/feature-plan/references/planning-workflow.md || return 1
@@ -231,36 +224,28 @@ check_template_contract() {
   contains "Open questions" .agents/skills/code-review/references/review-workflow.md || return 1
   contains "Failure modes" .agents/skills/code-review/references/review-workflow.md || return 1
   contains "Report file generation policy" .agents/skills/code-review/references/review-workflow.md || return 1
-  contains "使う場面" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "When to use" .agents/skills/repair-loop/references/repair-workflow.md || return 1
   contains "Do not use" .agents/skills/repair-loop/references/repair-workflow.md || return 1
   contains "Inputs" .agents/skills/repair-loop/references/repair-workflow.md || return 1
   contains "Entry conditions" .agents/skills/repair-loop/references/repair-workflow.md || return 1
   contains "Iteration model" .agents/skills/repair-loop/references/repair-workflow.md || return 1
   contains "Finding triage" .agents/skills/repair-loop/references/repair-workflow.md || return 1
-  contains "Repair planning" .agents/skills/repair-loop/references/repair-workflow.md || return 1
-  contains "Scope control" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Repair planning and scope" .agents/skills/repair-loop/references/repair-workflow.md || return 1
   contains "Validation per iteration" .agents/skills/repair-loop/references/repair-workflow.md || return 1
   contains "Stop conditions" .agents/skills/repair-loop/references/repair-workflow.md || return 1
-  contains "Escalation to human decision" .agents/skills/repair-loop/references/repair-workflow.md || return 1
-  contains "Evaluation connection" .agents/skills/repair-loop/references/repair-workflow.md || return 1
-  contains "Failure taxonomy connection" .agents/skills/repair-loop/references/repair-workflow.md || return 1
-  contains "Observation / subagent evidence" .agents/skills/repair-loop/references/repair-workflow.md || return 1
-  contains "Report file generation policy" .agents/skills/repair-loop/references/repair-workflow.md || return 1
-  contains "Failure modes" .agents/skills/repair-loop/references/repair-workflow.md || return 1
-  contains "使う場面" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Evaluation and failure taxonomy" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "Evidence and report" .agents/skills/repair-loop/references/repair-workflow.md || return 1
+  contains "When to use" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "Do not use" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "Inputs" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "Candidate model" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "Evidence requirements" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
-  contains "Target areas" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
-  contains "Classification" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
-  contains "Prioritization" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
-  contains "Safety strictness" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
-  contains "Separation from implementation work" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "### target" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "### strictness" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Classification and prioritization" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Safety and separation" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "Output format" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
-  contains "Review requirements" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
-  contains "Examples" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
-  contains "Failure modes" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
+  contains "Non-goals" .agents/skills/harness-improvement/references/improvement-workflow.md || return 1
   contains "sandbox_mode = \"workspace-write\"" .codex/config.toml || return 1
   if grep -Eq '^[[:space:]]*approval_policy[[:space:]]*=' .codex/config.toml; then return 1; fi
   contains "web_search = \"cached\"" .codex/config.toml || return 1
@@ -416,22 +401,18 @@ check_template_contract() {
   contains "stop_hook_active" .codex/hooks/log_event.mjs || return 1
   contains "evidence_refs" docs/reference/evaluation.md || return 1
   contains "evidence_refs" .codex/templates/EVALUATION.md || return 1
-  contains "Review -> Repair -> Validate" docs/reference/repair-loop.md || return 1
-  contains "max iteration" docs/reference/repair-loop.md || return 1
-  contains "stop condition" docs/reference/repair-loop.md || return 1
+  contains "Repository-side contracts" docs/reference/repair-loop.md || return 1
   contains "allowed_files" docs/reference/repair-loop.md || return 1
   contains "unsafe" docs/reference/repair-loop.md || return 1
-  contains "scope violation" docs/reference/repair-loop.md || return 1
-  contains "evaluation.json" docs/reference/repair-loop.md || return 1
+  contains "scripts/sanitize-codex-artifacts.ps1" docs/reference/repair-loop.md || return 1
+  contains "REPORT.md" docs/reference/repair-loop.md || return 1
   contains "failure taxonomy" docs/reference/repair-loop.md || return 1
-  contains "harness improvement" docs/reference/harness-improvement-loop.md || return 1
-  contains "improvement candidate" docs/reference/harness-improvement-loop.md || return 1
-  contains "expected_impact" docs/reference/harness-improvement-loop.md || return 1
+  contains "target catalog" docs/reference/harness-improvement-loop.md || return 1
+  contains "Strictness mapping" docs/reference/harness-improvement-loop.md || return 1
   contains "strictness" docs/reference/harness-improvement-loop.md || return 1
   contains "safety layer" docs/reference/harness-improvement-loop.md || return 1
-  contains "separate follow-up" docs/reference/harness-improvement-loop.md || return 1
-  contains "evaluation.json" docs/reference/harness-improvement-loop.md || return 1
-  contains "failure taxonomy" docs/reference/harness-improvement-loop.md || return 1
+  contains "Evaluation artifact" docs/reference/harness-improvement-loop.md || return 1
+  contains "follow-up candidates" docs/reference/harness-improvement-loop.md || return 1
 }
 
 check_strict_harness_contract() {

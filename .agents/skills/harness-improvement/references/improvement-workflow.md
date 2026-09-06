@@ -1,30 +1,28 @@
 # Harness Improvement Workflow
 
-## 使う場面
+## When to use
 
-- run 結果や `evaluation.json` からハーネス改善候補を作るとき
-- repair loop の反復失敗を、次回の workflow 改善へ変換したいとき
-- review comment や repeated failure を安全に follow-up 化したいとき
+- Convert run results or evaluation findings into a harness-improvement candidate.
+- Convert a repair-loop repeated failure into a follow-up improvement.
+- Convert a review comment or recurring failure into a safe, reviewable proposal.
 
 ## Do not use
 
-- product implementation の修正そのものを進めるとき
-- root cause が単発 bug で、harness 側の改善候補がないとき
-- evidence なしで思いつきの改善提案を列挙したいとき
+- The task is to fix product implementation itself.
+- A one-off bug has no harness-level prevention candidate.
+- There is no evidence for the proposed improvement.
 
 ## Inputs
 
-- `evaluation.json`
-- run manifest
-- validation results
-- hook observations
-- subagent-run records
-- review comments
-- repeated failure across runs
+- Evaluation results and findings.
+- Run manifests and validation results.
+- Hook observations and Subagent records.
+- Review comments and repeated failures across runs.
+- Repository-supplied target catalog, strictness mapping, failure taxonomy, and artifact contract.
 
 ## Candidate model
 
-candidate は次の field を持つ。
+A candidate has these fields:
 
 ```text
 candidate_id
@@ -42,20 +40,7 @@ owner_decision
 
 ### target
 
-```text
-AGENTS.md
-PLANS.md
-CODE_REVIEW.md
-.agents/skills/
-.codex/rules/
-.codex/hooks/
-scripts/codex-safe.*
-scripts/codex-task.*
-spec/
-docs/reference/
-examples/
-other
-```
+`target` identifies the harness component or layer that should be improved. Use the concrete Repository target catalog for the actual path or layer; do not invent a new catalog or registry in the Skill.
 
 ### strictness
 
@@ -65,9 +50,11 @@ strict
 blocked
 ```
 
-- `normal`: docs / examples / non-safety skill improvement
-- `strict`: safety layer、runner、schema、rules、hooks、codex-safe、codex-task に関わる
-- `blocked`: destructive operation、credential、external permission、policy bypass が必要
+- `normal`: documentation, examples, or non-safety behavior.
+- `strict`: a change that requires review of safety, execution, schema, policy, or contract behavior.
+- `blocked`: destructive operation, credential handling, external permission, or policy bypass would be needed.
+
+The Repository mapping decides which concrete target paths or layers receive each classification.
 
 ### status
 
@@ -90,74 +77,39 @@ needs_more_evidence
 
 ## Evidence requirements
 
-Each improvement candidate must include concrete evidence.
-At least one of:
+Each candidate must include concrete evidence. At least one of the following is required:
 
-- `evaluation.findings[]`
-- `improvement_candidates[]`
-- `run.json.validation.commands`
-- hook-observation JSONL
-- `subagent-run.json`
-- review comment
-- repeated failure across runs
+- an evaluation finding;
+- an existing improvement candidate;
+- a validation command recorded by the active Run;
+- a hook observation;
+- a Subagent record;
+- a review comment; or
+- a repeated failure across runs.
 
-根拠なし candidate は禁止する。
+Evidence-free candidates are prohibited.
 
-## Target areas
+## Classification and prioritization
 
-- instruction layer: `AGENTS.md`、`PLANS.md`、`CODE_REVIEW.md`、`.agents/skills/`
-- safety layer: `.codex/rules/`、`.codex/hooks/`、`scripts/codex-safe.*`
-- execution layer: `scripts/codex-task.*`
-- contract layer: `spec/`、`docs/reference/`、`examples/`
+- Use the supplied Repository failure taxonomy and do not add categories.
+- Separate failure type, improvement target, and strictness.
+- Prioritize correctness, safety, contract ambiguity, and repeated failure.
+- Explain review cost and risk for `strict` and `blocked` candidates.
 
-## Classification
+## Safety and separation
 
-- `failure_category` は `spec/failure-taxonomy.json` の category を参照する。
-- 今回は failure category を追加しない。
-- candidate は failure の種類、改善 target、strictness を分けて記録する。
-
-## Prioritization
-
-- correctness、safety、contract ambiguity の再発を防ぐものを優先する。
-- repeated failure を伴うものは単発候補より優先する。
-- `strict` と `blocked` は impact だけでなく review cost と risk を明示する。
-
-## Safety strictness
-
-- safety layer、hooks、execpolicy、`codex-safe.*`、`codex-task.*`、`spec/` 変更案は strict workflow review を必要とする。
-- `blocked` candidate は現行 task 内で扱わず、明示的な許可と別スコープへ送る。
-
-## Separation from implementation work
-
-Harness improvement must not be bundled into unrelated product implementation work.
-If a task fixes product code and also discovers a harness issue, record the harness issue as a candidate and handle it in a separate follow-up.
+- A `strict` candidate requires the Repository strict workflow review.
+- A `blocked` candidate is not handled in the current task without explicit permission and a separate scope.
+- Implementation fixes and harness improvements remain separate unless the user explicitly scopes both.
+- A candidate is never auto-applied; send it to a plan, document, issue, or follow-up change for review.
 
 ## Output format
 
-- candidate summary
-- evidence
-- expected impact
-- risk
-- recommended change
-- strictness
-- owner decision
-- follow-up scope
+Include candidate summary, evidence, expected impact, risk, recommended change, strictness, owner decision, and follow-up scope. Rejected and deferred candidates retain their evidence and reason.
 
-## Review requirements
+## Non-goals
 
-- candidate は proposal としてレビュー可能な形にする。
-- auto-apply せず、plan / docs / issue / follow-up PR に落とす。
-- `strict` と `blocked` はなぜ通常実装と分離したかを説明する。
-
-## Examples
-
-- docs / examples の wording 改善は `normal`
-- validator / schema / runner contract 改善は `strict`
-- policy bypass や destructive action を伴う提案は `blocked`
-
-## Failure modes
-
-- evidence なしで candidate を増やす
-- product fix と harness improvement を同じ PR で混ぜる
-- `strict` を `normal` として扱い review cost を隠す
-- blocked candidate を「今だけ必要」として押し通す
+- Automatic application.
+- Immediate safety-layer changes.
+- Product implementation mixed into a harness proposal.
+- Failure-category inference or new taxonomy creation.

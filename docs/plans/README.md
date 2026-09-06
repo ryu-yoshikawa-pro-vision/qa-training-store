@@ -12,7 +12,7 @@
 
 ## Recommended Workflow
 
-1. Copy `docs/plans/TEMPLATE.md` to a new plan file.
+1. Copy [`feature-plan template`](../../.agents/skills/feature-plan/assets/plan-template.md) to a new plan file.
 2. Fill all required sections for objective, scope, tasks, milestones, risks, and validation.
 3. Keep the plan updated as execution progresses.
 

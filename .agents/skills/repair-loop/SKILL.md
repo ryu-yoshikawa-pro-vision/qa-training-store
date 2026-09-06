@@ -3,12 +3,43 @@ name: repair-loop
 description: Use when applying review findings, fixing validation failures, or running a bounded Review -> Repair -> Validate loop.
 ---
 
-1. `AGENTS.md`、`CODE_REVIEW.md`、`docs/reference/repair-loop.md` を読む。
-2. `references/repair-workflow.md` を読み、入口条件、iteration記録、停止条件を確認する。
-3. review findings / evaluation.json / validation failure / scope report を入力として整理する。
-4. repair対象を `must_fix` / `should_fix` / `defer` / `reject` に分類する。
-5. `--allowed-files` / `--expected-changed-files` / change-scope policy に合わせて修正範囲を確定する。
-6. 各iterationで、変更内容、validation結果、残差、次アクションを記録する。
-7. 同じ failure が繰り返される、scope violation が出る、unsafe action が必要になる、または max iteration に達した場合は停止して人間判断へ戻す。
-8. repair結果は `evaluation.json` / failure taxonomy / REPORT.md に接続できる形でまとめる。
-9. 作業完了前に `scripts/sanitize-codex-artifacts.ps1` の Write と Check を実行し、未サニタイズのローカル絶対パスを残さない。
+# Repair Loop Skill
+
+## Purpose and boundary
+
+Use this Skill to triage actionable review findings or validation failures and run a bounded Review -> Repair -> Validate loop. It is not an instruction to keep retrying indefinitely, and it does not authorize unsafe, destructive, or scope-violating action. A `needs_human` finding is an immediate escalation and stop condition, not a reason to continue the loop.
+
+## Inputs
+
+- Review findings, evaluation results, validation failures, scope reports, and observation evidence.
+- The package-local [repair workflow](references/repair-workflow.md), which defines triage, iteration, validation, and stop semantics.
+- Repository-supplied inputs for artifact persistence, evaluation integration, failure taxonomy, scope policy, and sanitization.
+- Subagent-generated records and observations when they are available as evidence; this Skill does not import a Subagent role, tool, permission, sandbox, or delegation contract.
+
+## Execution outline
+
+1. Read the Repository mapping and the package-local repair workflow.
+2. Confirm that both an actionable repair signal and an explicit bounded allowed scope exist; scope clarity alone does not start the loop.
+3. Classify findings as `must_fix`, `should_fix`, `defer`, `reject`, or `needs_human`.
+4. Define one bounded iteration with its allowed files, repair plan, and minimum validation.
+5. Apply the repair, record the changed files and validation result, and compare the remaining delta.
+6. Stop on success or any defined stop condition; do not start an automatic runner-level loop.
+7. Connect the result to the Repository-supplied evaluation and run-artifact contract.
+
+## Outputs
+
+- Per-iteration input findings, repair plan, allowed scope, changed files, validation, remaining delta, and decision.
+- A final stop reason and follow-up state that can be represented by the supplied evaluation and report artifacts.
+
+## Immediate human escalation
+
+Classify a finding as `needs_human` when it requires requirement judgment, destructive-change judgment, permission judgment, credential judgment, policy-boundary judgment, or a user/reviewer decision. Set `decision = stop_needs_human` as soon as such a finding is detected.
+
+After `needs_human` is detected, stop the loop and wait for the human decision. Do not continue repair, expand the scope, perform an unsafe or destructive operation, or fill a policy judgment by assumption.
+
+## Guardrails
+
+- Preserve bounded iteration, repeated-failure, unsafe-action, scope, and human-escalation semantics from the package-local workflow.
+- Keep Repository paths, artifact locations, taxonomy files, and sanitization commands in the Repository mapping.
+- Do not change Subagent contracts or remove existing use of Subagent-generated evidence.
+- Do not begin an external full review or re-review without explicit user instruction or approval.

@@ -100,8 +100,16 @@ function Test-TemplateContract {
         "scripts/init-project.ps1",
         "scripts/init-project.sh",
         "scripts/validate-output-schema.py",
+        "scripts/validate-skills.ts",
         ".agents/skills/feature-plan/references/planning-workflow.md",
+        ".agents/skills/feature-plan/assets/plan-template.md",
         ".agents/skills/code-review/references/review-workflow.md",
+        ".agents/skills/repair-loop/references/repair-workflow.md",
+        ".agents/skills/harness-improvement/references/improvement-workflow.md",
+        ".agents/skills/exploratory-qa/references/workflow.md",
+        ".agents/skills/exploratory-qa/references/scored-mode.md",
+        ".agents/skills/android-native-local-validation/references/windows-android-workflow.md",
+        "tests/repository-contract/validate-skills.test.ts",
         "docs/reference/codex-safety-harness.md",
         "docs/reference/codex-implementation-harness.md",
         "docs/guides/consumer-update.md"
@@ -153,26 +161,13 @@ function Test-TemplateContract {
     if ($worker -notmatch [regex]::Escape('sandbox_mode = "workspace-write"')) { throw "implementation_worker sandbox mismatch" }
     if ($worker -notmatch [regex]::Escape("small, scoped code changes")) { throw "implementation_worker bounded plan missing" }
     if ($worker -notmatch [regex]::Escape("Git mutation")) { throw "implementation_worker Git mutation boundary missing" }
-    if ($plans -notmatch [regex]::Escape(".agents/skills/feature-plan/SKILL.md")) { throw "PLANS.md missing feature-plan skill reference" }
-    if ($plans -notmatch [regex]::Escape(".agents/skills/feature-plan/references/planning-workflow.md")) { throw "PLANS.md missing planning reference" }
-    if ($plans -notmatch [regex]::Escape("docs/plans/TEMPLATE.md")) { throw "PLANS.md missing plan template reference" }
-    if ($plans -notmatch [regex]::Escape("Current understanding")) { throw "PLANS.md missing Current understanding heading" }
-    if ($plans -notmatch [regex]::Escape("Non-goals")) { throw "PLANS.md missing Non-goals heading" }
-    if ($plans -notmatch [regex]::Escape("Validation plan")) { throw "PLANS.md missing Validation plan heading" }
-    if ($plans -notmatch [regex]::Escape("Open questions")) { throw "PLANS.md missing Open questions heading" }
-    if ($plans -notmatch [regex]::Escape("Ambiguity handling")) { throw "PLANS.md missing ambiguity handling guidance" }
-    if ($plans -notmatch [regex]::Escape("mandatory-question")) { throw "PLANS.md missing mandatory question guidance" }
-    if ($plans -notmatch [regex]::Escape("Blocking questions")) { throw "PLANS.md missing Blocking questions guidance" }
-    if ($plans -notmatch [regex]::Escape("Assumptions allowed")) { throw "PLANS.md missing Assumptions allowed guidance" }
-    if ($plans -notmatch [regex]::Escape("Follow-up notes")) { throw "PLANS.md missing Follow-up notes guidance" }
+    if ($plans -notmatch [regex]::Escape(".agents/skills/feature-plan/assets/plan-template.md")) { throw "PLANS.md missing package template reference" }
+    if ($plans -notmatch [regex]::Escape("docs/plans/")) { throw "PLANS.md missing plan storage reference" }
+    if ($plans -notmatch [regex]::Escape("active Run")) { throw "PLANS.md missing active Run lifecycle" }
+    if ($plans -notmatch [regex]::Escape("retention")) { throw "PLANS.md missing plan retention contract" }
     if ($review -notmatch [regex]::Escape(".agents/skills/code-review/SKILL.md")) { throw "CODE_REVIEW.md missing code-review skill reference" }
-    if ($review -notmatch [regex]::Escape(".agents/skills/code-review/references/review-workflow.md")) { throw "CODE_REVIEW.md missing review reference" }
-    if ($review -notmatch [regex]::Escape("findings-first")) { throw "CODE_REVIEW.md missing findings-first guidance" }
-    if ($review -notmatch [regex]::Escape("Why it matters")) { throw "CODE_REVIEW.md missing Why it matters field" }
-    if ($review -notmatch [regex]::Escape("Suggested fix")) { throw "CODE_REVIEW.md missing Suggested fix field" }
-    if ($review -notmatch [regex]::Escape("Verdict")) { throw "CODE_REVIEW.md missing Verdict field" }
-    if ($review -notmatch [regex]::Escape("confidence")) { throw "CODE_REVIEW.md missing confidence field" }
-    if ($review -notmatch [regex]::Escape("review-only")) { throw "CODE_REVIEW.md missing report suppression policy" }
+    if ($review -notmatch [regex]::Escape("Repository Coding Standards")) { throw "CODE_REVIEW.md missing Repository coding policy" }
+    if ($review -notmatch [regex]::Escape("Review persistence policy")) { throw "CODE_REVIEW.md missing review persistence policy" }
     $planningRef = Get-Content -Raw .agents/skills/feature-plan/references/planning-workflow.md
     $reviewRef = Get-Content -Raw .agents/skills/code-review/references/review-workflow.md
     if ($planningRef -notmatch [regex]::Escape("repo mapping")) { throw "planning workflow missing repo mapping phase" }

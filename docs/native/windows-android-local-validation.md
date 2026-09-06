@@ -197,8 +197,14 @@ $common = @(
 )
 
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Doctor @common
+
+# 初回、または Native Project の再生成が必要な場合だけ実行する。
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Prepare @common
+
+# 現在利用可能な Release APK がない場合、または現在の変更を含まない場合だけ実行する。
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Build -Architecture Auto @common
+
+# current Release APKを再利用できる場合は、上記Prepare / Buildを省略してAPK inspectionへ進む。
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Install @common
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Smoke @common
 powershell -NoProfile -ExecutionPolicy Bypass -File $helper -Action Test `
@@ -254,47 +260,13 @@ Pop-Location
 
 preflightで未確認・不一致・上流失敗があれば、Buildや後続Flowを開始しない。APKが生成・存在確認されていない状態でInstallやMaestroへ進まない。
 
-#### 再実行の仮説
+#### 再実行・失敗・停止の共通契約
 
-同一条件の再実行は、再現性確認、追加ログ取得、仮説検証、外部障害からの回復確認のいずれかを目的として、実行前に次の形式で記録する。一回の検証で変更する条件は原則一つに限定する。
-
-```markdown
-## 次の実行仮説
-
-### 観測事実
--
-
-### 原因仮説
-1.
-2.
-
-### 最有力仮説
--
-
-### 根拠
--
-
-### 今回変更する条件
--
-
-### 成功条件
--
-
-### 失敗した場合に次に確認する情報
--
-```
-
-Cache削除、Gradle Daemon停止、`pnpm install`、`gradlew clean`、Timeout／Retry増加だけを根拠なく繰り返さない。完全ログは`.artifacts/native-local/<attempt-id>/`へ保存し、生ログを`.codex/runs/**`へ貼り付けない。`attempt-id`は実行ごとに一意にし、同じRunIdで失敗ログを上書きしない。
-
-#### 失敗の分類と停止
-
-失敗時は画面の最終行だけで判断せず、最初の異常を特定し、後続の`BUILD FAILED`、APK不存在、Install失敗、Maestro起動失敗を派生エラーとして分離する。次のユーザー分類を実行履歴へ付ける。
-
-`ENVIRONMENT_FAILURE`（Java／SDK／PATH／容量／Shell）、`DEPENDENCY_FAILURE`（pnpm／Gradle／Expo／Maestro解決）、`CONFIGURATION_FAILURE`（appId／Profile／Workflow／wrapper）、`SOURCE_FAILURE`（TypeScript／Nativeコード）、`BUILD_CACHE_FAILURE`（古い生成物／Cache／Autolinking参照）、`DEVICE_FAILURE`（ADB／実機／IME／Install／端末容量）、`TEST_FAILURE`（起動後のAssertion／Flow）、`TRANSIENT_FAILURE`（外部障害を証拠で確認できた場合のみ）、`UNKNOWN`（証拠不足）。
-
-同一エラーが2回連続、異なる対応後も最初のエラー不変、同じ工程で3回失敗、Cache処置後も変化なし、新しいログなし、環境未把握、APKなしの後続実行、説明可能な仮説なしのいずれかなら、再実行を止めて事実・仮説・不足情報・次の最小切り分け・変更変数・成功条件を更新する。上流工程が失敗した場合は後続工程を実行しない。
+Retry、failure classification、evidence、stop、completionのgeneric decision ruleは package-local [`windows-android-workflow.md`](../../.agents/skills/android-native-local-validation/references/windows-android-workflow.md) を正本とする。以下の節はこのRepository固有のtoolchain、path、command、device、Flow、artifact mappingだけを定義する。
 
 ### 5.2 依存関係・Prebuild
+
+初回、または Native Project の再生成が必要な場合だけ `Prepare` を実行する。既に有効な準備済みProjectを再利用できる場合は、この段階を省略する。
 
 ```powershell
 pnpm run native:android:prepare
@@ -326,7 +298,7 @@ Get-PSDrive -Name C | Select-Object Name, Used, Free
 
 ### 5.3 Release APK Build
 
-実機を接続した状態で実行する。
+現在利用可能なRelease APKがない場合、または現在の変更を含んでいない場合に、実機を接続した状態で実行する。有効なcurrent Release APKを再利用できる場合はBuildを省略し、APK inspectionへ進む。
 
 ```powershell
 pnpm run native:android:build:local
@@ -563,34 +535,17 @@ output/mobile-native/native-storefront-cart-added.png
 
 `.artifacts/native-local/<timestamp>/` は Maestro／ADB／Gradle のログ、JUnit、Hierarchy、APK 情報など、実行ごとの機械証跡に限定する。`output/mobile-native/` は共有・確認用、`.artifacts/` は実行証跡として使い分ける。`output/` は既に Git 管理外なので、個別の ignore 追加や `.gitkeep` は不要である。
 
-## 8. AI エージェントの停止条件
+## 8. AI エージェント実行判断の参照
 
-AI エージェントは次に従う。
+GenericなRetry、Failure、Evidence、Stop、Completion判断は package-local [`windows-android-workflow.md`](../../.agents/skills/android-native-local-validation/references/windows-android-workflow.md) に従う。このRunbookは、Gate 1〜4、検索入力専用Flow、5 Flow＋5 Flowの具体的な実行順、Windows toolchain、physical device、artifact pathをRepository固有の入力として定義する。
 
-- 最初に `Doctor`
-- Build 済み APK が現在の変更を含む場合、不要な Build を繰り返さない
-- Maestro は単体 Flow から開始する
-- 最初の失敗で停止し、証跡を読む
-- Screenshot と Hierarchy を比較する
-- Timeout 延長、Assertion 削除、Flow Skip、CI Allow failure だけで成功扱いにしない
-- App 修正後は同じ Flow を再実行する
-- Buildが容量不足で失敗した場合は、空き容量を確保してから同じBuildを1回だけ再実行する。容量不足のまま無制限に再試行しない
-- 新しいBuild／Install／Test／Maestroの前に、直近Run、失敗ログ、変更差分、成功条件を確認し、attempt-idと目的を記録する
-- 同一条件の再実行は、再現性確認、追加ログ取得、仮説検証、外部障害からの回復確認のいずれかに限定する
-- 失敗時は最初のエラー、派生エラー、分類、変更条件、成功条件を記録し、上流失敗後の後続工程を実行しない
-- 同一エラー2回連続、同じ工程3回失敗、ログに新情報がない場合は停止して調査へ戻る
-- 生ログは`.artifacts/native-local/<attempt-id>/`へ保存し、同じRunIdのログを上書きしない
-- 単体成功後だけ 5 Flow＋5 Flow を実行する
-- 検索入力の確認はGate 2.5の専用Flowとして、主要Suiteとは別のIME条件で実行する
-- 未実行を PASS と書かない
-- Git 操作はユーザーの明示依頼がない限り行わない
+`All` はGate 1で停止し、Gate 1成功後だけRuntimeSuite、BoundarySuite、必要なPurchase／Review Flowへ進む。未実行をPASSとせず、Git操作はユーザーの明示依頼なしに行わない。
 
 ## 9. 完了条件
 
 - Doctor PASS
-- Prepare PASS
-- Release APK Build PASS
-- APK Bundle／ABI 検査 PASS
+- Prepare PASS（初回または再生成が必要な場合）
+- current Release APK の確立・APK Bundle／ABI 検査 PASS
 - 実機 Install PASS
 - 起動安定性 PASS
 - `native-test-control.yaml` PASS

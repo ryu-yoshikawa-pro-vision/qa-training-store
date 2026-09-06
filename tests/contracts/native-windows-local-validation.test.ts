@@ -27,7 +27,9 @@ describe("Windows Android local validation contract", () => {
   it("keeps the runbook, script, and agent skill aligned", () => {
     const runbook = read("docs/native/windows-android-local-validation.md");
     const script = read("scripts/native/windows/android-local.ps1");
-    const skill = read(".agents/skills/android-native-local-validation/SKILL.md");
+    const workflow = read(
+      ".agents/skills/android-native-local-validation/references/windows-android-workflow.md",
+    );
 
     for (const action of [
       "Doctor",
@@ -47,7 +49,7 @@ describe("Windows Android local validation contract", () => {
     expect(script).toContain("GetFileNameWithoutExtension($Flow)");
     expect(runbook).toContain("'maestro/native-restart-persistence.yaml'");
     expect(runbook).toContain("単体 Flow が失敗した場合、他の Flow を実行しない");
-    expect(skill).toMatch(/単体\s*Flow\s*が\s*失敗したら\s*後続\s*Suite\s*を\s*実行せず/);
+    expect(workflow).toContain("A later gate runs only after its upstream gate passes");
     expect(script).toContain('"--virtual-store-dir", $virtualStorePath');
   });
 

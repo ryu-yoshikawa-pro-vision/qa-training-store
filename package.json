@@ -10,6 +10,7 @@
     "format": "prettier --write . --ignore-path .prettierignore",
     "format:check": "prettier --check . --ignore-path .prettierignore",
     "lint:markdown": "markdownlint-cli2",
+    "validate:skills": "tsx scripts/validate-skills.ts",
     "lint": "eslint .",
     "typecheck:app": "tsc --noEmit --project tsconfig.json",
     "typecheck:native-tests": "tsc --noEmit --project tsconfig.native-tests.json",
@@ -75,7 +76,7 @@
     "native:android:test:boundary": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action BoundarySuite",
     "native:android:evidence": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action Evidence",
     "native:android:all": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/native/windows/android-local.ps1 -Action All",
-    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run validate:curriculum && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
+    "verify": "pnpm run format:check && pnpm run lint:markdown && pnpm run validate:skills && pnpm run validate:spec && pnpm run validate:spec-visuals:final && pnpm run validate:curriculum && pnpm run lint && pnpm run typecheck && pnpm run validate:image-manifest && pnpm run security:check && pnpm run test && pnpm run build:web && pnpm run build:spec"
   },
   "dependencies": {
     "@expo/metro-runtime": "57.0.15",

@@ -304,24 +304,23 @@ describe("Specification and Agentic QA contracts", () => {
   });
 
   it("keeps the Skill-first Normal bootstrap and snapshot order explicit", () => {
-    const skill = fs.readFileSync(
-      path.join(rootDir, ".agents/skills/exploratory-qa/SKILL.md"),
+    const workflow = fs.readFileSync(
+      path.join(rootDir, ".agents/skills/exploratory-qa/references/workflow.md"),
       "utf8",
     );
-    expect(skill).toMatch(/Normal.*default/);
-    expect(skill).toContain("If the current run already has `qa-charter.json`");
-    expect(skill).toContain("If it does not exist, the Coding Agent creates it");
-    expect(skill).toContain("Validate the new Charter deterministically");
+    expect(workflow).toMatch(/Normal\*\* is the default/);
+    expect(workflow).toContain("Create or revalidate it for the current work");
+    expect(workflow).toContain("A fixed Runtime limit must be recorded as measured");
     const orderedMarkers = [
-      "### Step 4 — BEFORE Working Tree Snapshot",
-      "### Step 5 — Runtime exploration",
-      "qa-findings candidate",
+      "## Normal and Gray-box bootstrap",
+      "## Runtime exploration",
+      "candidate Findings",
       "additional Source diff = 0",
     ];
     let previousIndex = -1;
     for (const marker of orderedMarkers) {
-      const index = skill.indexOf(marker);
-      expect(index, `missing Skill contract marker: ${marker}`).toBeGreaterThan(previousIndex);
+      const index = workflow.indexOf(marker);
+      expect(index, `missing workflow contract marker: ${marker}`).toBeGreaterThan(previousIndex);
       previousIndex = index;
     }
   });

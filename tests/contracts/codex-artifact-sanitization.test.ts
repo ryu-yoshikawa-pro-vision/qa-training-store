@@ -196,7 +196,8 @@ describe("Codex Run Artifact path sanitization contract", () => {
     const repairSkill = read(".agents/skills/repair-loop/SKILL.md");
     expect(agents).toContain("scripts/sanitize-codex-artifacts.ps1のWriteとCheck");
     expect(repairReference).toContain("scripts/sanitize-codex-artifacts.ps1");
-    expect(repairSkill).toContain("scripts/sanitize-codex-artifacts.ps1");
+    expect(repairSkill).toContain("sanitization");
+    expect(repairSkill).not.toContain("scripts/sanitize-codex-artifacts.ps1");
     expect(agents).toContain("`REPORT.md`のAppend-only契約");
     expect(repairReference).toContain("`REPORT.md`のAppend-only契約");
   });

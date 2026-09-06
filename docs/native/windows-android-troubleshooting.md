@@ -1,6 +1,6 @@
 # Windows Android トラブルシューティング
 
-症状を確認し、直接原因にだけ対応する。警告の一括解消や無関係な Version 更新は行わない。
+症状を確認し、直接原因にだけ対応する。genericなRetry、Failure、Evidence、Stop、Completion判断は package-local [`windows-android-workflow.md`](../../.agents/skills/android-native-local-validation/references/windows-android-workflow.md) を正本とする。警告の一括解消や無関係な Version 更新は行わない。
 
 ## 一覧
 
