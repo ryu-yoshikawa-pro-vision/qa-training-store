@@ -56,6 +56,7 @@ PR4で重要なのは「6 Skillすべてに新しい grader を作ること」�
 - [ ] 評価対象 Skill ごとに valid / invalid input を使った deterministic contract test がある。fixture は論理的な test input を意味し、専用 fixture file は必須としない。
 - [ ] `feature-plan` で required heading omission を検出できる。
 - [ ] `feature-plan` で fenced code block 内にしかない required heading を存在扱いしない。
+- [ ] `feature-plan` のfence opener / closerは先頭0〜3個のspaceを許容し、その内側のrequired headingを存在扱いしない。
 - [ ] `feature-plan` の canonical template から required H2 を1件も抽出できない場合、Outputをvacuous PASSさせず validator configuration error として停止する。
 - [ ] `feature-plan` grader は machine-readable な structured result を返す。
 - [ ] `exploratory-qa` で required field omission を `qaFindingsSchema.safeParse` が拒否し、Zod issues を machine-readable failure information として利用できる。
@@ -488,9 +489,10 @@ false-pass防止のため、fenced code block内のheadingは実sectionとして
 
 実装はline-by-lineの小さいstate machineに留める。
 
-- fence openerは3文字以上の連続 backtick (`) または tilde (~) とする。
+- fence openerは先頭0〜3個のspaceを許容し、その後に3文字以上の連続 backtick (`) または tilde (~) が続く場合だけ認識する。
 - fence中はheadingを収集しない。
-- openerと同じ文字で、opener以上の長さを持つclosing fenceでfence状態を閉じる。
+- closing fenceも先頭0〜3個のspaceを許容し、openerと同じ文字で、opener以上の長さを持つ場合にfence状態を閉じる。
+- 4個以上のspaceでindentされた行をfenced code blockとして解釈するための追加ロジックは作らない。
 - nested fenceや完全なCommonMark互換を目指さない。
 - Output headingはfence外のlevel-2 ATX headingだけを対象にし、alias / fuzzy normalizationを行わない。
 - full Markdown AST parserは導入しない。
@@ -538,8 +540,9 @@ Invalid input 1 — required omission:
 Invalid input 2 — fenced-heading false-pass:
 
 - canonical templateからrequired headingを1つ通常位置から除去する。
-- 同じheadingをfenced code block内へだけ追加する。
+- 同じheadingを先頭0〜3個のspaceを持つfenced code block内へだけ追加する。
 - graderがそのheadingを存在扱いせず `valid: false` を返すことを確認する。
+- この1ケースで通常fenceとindent許容境界をまとめて確認し、indent専用fixtureを追加しない。
 
 Configuration guard:
 
@@ -703,7 +706,7 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 - N/A理由が空でない。
 - `feature-plan` canonical templateがvalid inputとしてPASSする。
 - `feature-plan` required top-level heading omissionを検出する。
-- `feature-plan` fenced code block内headingだけではrequired heading存在扱いにならない。
+- `feature-plan` 先頭0〜3個のspaceを持つfenced code block内headingだけではrequired heading存在扱いにならない。
 - `feature-plan` canonical templateからrequired H2を0件しか取得できない場合にvacuous PASSせずthrowする。
 - `feature-plan` required heading listをvalidator内部へhard-codeしていない。
 - `feature-plan` `validatePlanOutput(templateMarkdown, outputMarkdown)` がfilesystem I/Oなしのstructured resultを返す。
@@ -746,6 +749,7 @@ new evals/output fixture file diff = 0
 - Issue #117 PR4の6 Skill coverageを1対1で説明できる。
 - 新規graderは `feature-plan` の `scripts/validate-plan-output.ts` だけ。
 - `feature-plan` はcanonical template由来H2を正本とし、empty required setによるfalse-passを防止している。
+- `feature-plan` のfence handlingは先頭0〜3個のspaceを許容する最小境界だけを扱い、完全Markdown parserへ拡張していない。
 - `exploratory-qa` は実Skill Outputに限定して `qaFindingsSchema.safeParse` / `assertCoverageIntegrity` を直接再利用する。
 - 評価対象2 Skillそれぞれにmachine-readableな評価経路がある。
 - existing Machine Contract duplicationがない。
@@ -787,8 +791,8 @@ new evals/output fixture file diff = 0
 対策:
 
 - line-by-lineのfence state + level-2 heading extractionだけにする。
-- 3文字以上のbacktick / tilde fenceだけ扱う。
-- nested Markdown完全互換、AST、generic parser、new dependencyへ広げない。
+- 先頭0〜3個のspace + 3文字以上のbacktick / tilde fenceだけ扱う。
+- 4個以上のindent、nested Markdown完全互換、AST、generic parser、new dependencyへ広げない。
 
 ### Risk 5: Existing Agentic QA Machine Contractを二重実装する
 
@@ -858,15 +862,17 @@ new evals/output fixture file diff = 0
    - はい -> `validatePlanOutput(templateMarkdown, outputMarkdown)` のpure functionへ戻す。
 7. **required heading抽出が0件でもPASSできる実装になっていないか。**
    - はい -> configuration errorで停止する。
-8. **duplicate / order / body / semantic completenessまで検証しようとしていないか。**
+8. **fence parserを完全Markdown parserへ広げようとしていないか。**
+   - はい -> 先頭0〜3個のspace + backtick / tilde fenceという今回必要な最小境界へ戻す。
+9. **duplicate / order / body / semantic completenessまで検証しようとしていないか。**
    - はい -> scopeをrequired heading existenceへ戻す。
-9. **Agentic QA Machine Contract全体を再テストしようとしていないか。**
+10. **Agentic QA Machine Contract全体を再テストしようとしていないか。**
    - はい -> `qaFindingsSchema.safeParse` / `assertCoverageIntegrity` へ戻す。
-10. **machine-readable化だけのためにthrowing validator wrapperを作ろうとしていないか。**
+11. **machine-readable化だけのためにthrowing validator wrapperを作ろうとしていないか。**
     - はい -> Zod `safeParse` をmachine-readable経路にし、throwing validatorはそのまま使う。
-11. **static fixture file / common result normalizer / CLI / runtime registryが必要になっていないか。**
+12. **static fixture file / common result normalizer / CLI / runtime registryが必要になっていないか。**
     - PR4では原則作らない。contract testで完結させる。
-12. **N/Aを減らすこと自体が目的になっていないか。**
+13. **N/Aを減らすこと自体が目的になっていないか。**
     - はい -> N/Aを維持する。
 
 ---
@@ -894,7 +900,7 @@ tests/contracts/skill-output-eval.test.ts
   - `validatePlanOutput(templateMarkdown, outputMarkdown)` のpure function。
   - canonical template由来required H2抽出。
   - required H2が0件の場合のconfiguration guard。
-  - Outputのfence-aware H2抽出。
+  - Outputのfence-aware H2抽出（先頭0〜3個のspaceを許容）。
   - missing required headingのstructured result。
 - `skill-output-eval.test.ts`:
   - 6 Skill固定classification table。
