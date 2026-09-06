@@ -3,11 +3,11 @@
 ## 0. 依頼概要
 
 - 依頼内容: Issue #117 の PR4 として、6つの Agent Skill の Output のうち、機械的・決定論的に判定可能な品質を評価する仕組みを実装するための Plan を作成する。
-- 背景: PR1 で6 Skillの portable package 化と責務分離が完了したため、その構造を前提に Output Contract の deterministic な部分を evaluator / grader / fixture で検証可能にする。
-- PR4 の役割: PR5 Semantic Output Eval の前段として、required field、allowed value、ID / reference integrity、status / stop consistency、artifact integrity など、人間や LLM Judge を使わずに判定可能な領域を固定する。
+- 背景: PR1 で6 Skillの portable package 化と責務分離が完了したため、その構造を前提に、既存 Output Contract のうち deterministic に評価可能な範囲を棚卸しし、評価可能な部分だけを grader / existing-contract adapter / fixture で検証可能にする。
+- PR4 の役割: PR5 Semantic Output Eval の前段として、required section / field、allowed value、ID / reference integrity、status / stop consistency、artifact integrity など、人間や LLM Judge を使わずに判定できる領域を固定する。
 - Base: `main` の PR1 merge commit `1f680e1bd91bbf6aa9cfb4d4bc7c5816f659605c`。
-- 期待成果: 6 Skillすべてについて deterministic evaluation の適用範囲を明示し、評価可能な Skill には false-pass を防ぐ grader と valid / invalid fixture を用意し、結果を machine-readable に取得できる。
-- この Plan 作成時点では実装しない。今回の branch にはこの正本 Plan だけを保存し、grader、fixture、script、CI、Skill 本文は変更しない。
+- 期待成果: 6 Skillすべてについて deterministic evaluation の適用可否と根拠を明示し、**stable な入力表現が既に存在する評価可能な Skill にだけ** grader / adapter と valid / invalid fixture を用意し、結果を machine-readable に取得できるようにする。
+- この Plan 作成・修正時点では実装しない。この branch では正本 Plan のみを更新し、grader、fixture、script、CI、Skill 本文は変更しない。
 
 ---
 
@@ -15,43 +15,49 @@
 
 ### ゴール
 
-既存の Skill Output Contract を変更するのではなく、現在すでに存在する deterministic な property / relation / invariant を機械評価できるようにする。
+既存の Skill Output Contract を evaluator の都合で変更せず、現在すでに存在する deterministic な property / relation / invariant のうち、**既存の stable serialization / artifact / template / Machine Contract を入力として安全に評価できるものだけ**を機械評価する。
 
-特に次を守る。
+PR4で重要なのは「6 Skillすべてに grader を作ること」ではない。
+
+重要なのは次の3点である。
+
+1. 6 Skillすべてについて機械評価可能範囲を棚卸しする。
+2. stable な入力表現が既にあるものだけを grader / adapter 化する。
+3. 意味上の Output Contract はあるが stable な serialization がないものは、grader のために新しい出力形式を発明せず N/A とする。
+
+### 必須原則
 
 - Output 全文の exact match を採用しない。
-- LLM Judge を使用しない。
-- evaluator の都合で新しい Production Output schema を発明しない。
+- LLM Judge、Embedding、Semantic similarity を使用しない。
+- evaluator の都合で新しい Production Output schema / Markdown format / label convention を発明しない。
+- 「意味上 field が定義されている」ことと「機械 parse 可能な serialization が定義されている」ことを区別する。
 - 既存 Machine Contract がある領域は複製せず再利用する。
 - 6 Skillを一律に同じ schema へ押し込まない。
-- 巨大な共通 Rule Engine、独自 DSL、Plugin Framework を作らない。
+- 巨大な共通 Rule Engine、独自 DSL、Plugin Framework、汎用 Markdown parser framework を作らない。
 - deterministic に評価できない Skill / invariant は無理に実装せず N/A 理由を残す。
+- Phase 0 が完了するまで、各 Skill の grader 実装を確定事項として扱わない。
 
 ### 完了条件（DoD）
 
-- [ ] 6 Skillすべてについて deterministic evaluation 対象を棚卸しし、`grader` / `existing-contract adapter` / `N/A` のいずれかを明示する。
-- [ ] grader を持つ Skill では、評価根拠となる canonical Output Contract / Template / Machine Contract が特定されている。
+- [ ] 6 Skillすべてについて deterministic evaluation 対象を棚卸しし、`existing-contract adapter` / `minimal grader` / `N/A` のいずれかを明示する。
+- [ ] 各分類について、canonical source と input representation が明示されている。
+- [ ] `minimal grader` は stable canonical serialization / template が既に存在する場合にのみ採用している。
+- [ ] `existing-contract adapter` は既存 schema / validator / artifact contract を再利用し、rule を二重実装していない。
+- [ ] `N/A` は「未実装」ではなく、stable serialization 不在などの理由を明示した PR4 の境界判断として固定されている。
 - [ ] expected data は自然言語全文ではなく property / relation / invariant として表現されている。
 - [ ] Output 全文 exact match を使っていない。
 - [ ] LLM Judge、Embedding、Semantic similarity を使っていない。
-- [ ] 共通化は evaluator の実行結果形式と最小 runner に限定し、Skill 固有 rule を巨大な共通 Rule Engine へ移していない。
 - [ ] evaluator のためだけに Skill の Production Output format を変更していない。
 - [ ] evaluator のためだけに新しい Repository-wide taxonomy / registry / workflow engine を作っていない。
-- [ ] `feature-plan` の required plan structure を機械評価できる。
-- [ ] `code-review` の finding required fields と no-findings 時の必須情報を機械評価できる。
-- [ ] `repair-loop` の iteration fields、allowed values、stop / scope relation を機械評価できる。
-- [ ] `harness-improvement` の candidate fields、allowed values、evidence requirement を機械評価できる。
-- [ ] `exploratory-qa` は既存 `scripts/agentic-qa/**` の Machine Contract を再利用し、schema / ID / reference / status consistency 等を二重実装していない。
-- [ ] `android-native-local-validation` は既存の stable machine-readable result contract が確認できた場合だけ adapter を実装し、確認できない場合は N/A 理由を明示する。
-- [ ] 評価対象 Skill ごとに valid fixture がある。
-- [ ] 評価対象 Skill ごとに required omission を検出する invalid fixture がある。
-- [ ] 評価対象 Skill ごとに relation / allowed value / reference 等の false-pass を防ぐ invalid fixture が少なくとも1件ある。
+- [ ] 評価対象 Skill ごとに少なくとも1件の valid fixture がある。
+- [ ] 評価対象 Skill ごとに、実装した deterministic invariant を壊す代表的 invalid fixture がある。
+- [ ] required omission を deterministic に判定できる grader では omission を検出できる。
 - [ ] unknown reference を authoritative catalog / schema で判定できる領域では検出できる。
-- [ ] fixture test は単に `fail` したことだけでなく、期待する check ID / error reason を確認する。
-- [ ] evaluator は machine-readable JSON result を出力できる。
-- [ ] deterministic evaluation failure 時は CLI が non-zero exit になる。
-- [ ] N/A の Skill は grader を偽造せず、理由が test または inventory で固定されている。
-- [ ] dedicated test が既存の Repository quality path から到達可能である。
+- [ ] false-pass が起きやすい parser 境界が実際に存在する場合だけ near-valid regression fixture を追加する。
+- [ ] evaluator / validator の結果を machine-readable JSON として取得できる。
+- [ ] deterministic evaluation failure 時は CLI または canonical validation entry point が non-zero exit を返す。
+- [ ] 既存 Machine Contract の error 情報を不要に別の独自 check-id taxonomy へ再マッピングしていない。
+- [ ] dedicated validation が既存 Repository quality path から到達可能である。
 - [ ] 最終 `pnpm run verify` で PR4 の deterministic evaluation contract が検証される。
 - [ ] Skill frontmatter `description` の最適化を行っていない。
 - [ ] Trigger Eval、Semantic Output Eval、Workflow E2E Eval を前倒ししていない。
@@ -76,173 +82,136 @@ PR1 は merge 済みで、現在の `main` では以下の6 Skillが package-loc
 
 Issue #117 の依存関係上、PR4 は PR1 を前提とするが、PR2 Trigger Eval / PR3 description optimization の完了を待つ必要はない。
 
-PR4 は Output の意味品質全般を判定する PR ではない。例えば correctness、relevance、coverage、risk-awareness 等の semantic judgment は PR5 の責務であり、本PRへ持ち込まない。
+PR4 は Output の意味品質全般を判定する PR ではない。correctness、relevance、coverage、risk-awareness、evidence の妥当性、提案の有用性などの semantic judgment は PR5 の責務であり、本PRへ持ち込まない。
+
+### 最重要の設計判断
+
+PR4では、次の2つを混同しない。
+
+```text
+A. Semantic Output Contract
+   例: code-review は Severity / Evidence / Location を含むべき
+
+B. Stable Serialization Contract
+   例: JSON schema、固定 Markdown template、canonical artifact schema
+```
+
+Aだけが存在してBが存在しない場合、PR4で自由文 parser を作ると、grader が事実上新しい Output format を定義することになる。
+
+したがって、**Aだけでは grader 実装の根拠にしない**。
 
 ### Skill別の初期棚卸し
 
-| Skill | 現在確認できる deterministic 候補 | 初期方針 |
-| --- | --- | --- |
-| `feature-plan` | canonical Template の required section、planning workflow の主要 output area | package-local text grader |
-| `code-review` | finding required fields、no-findings 時の residual risk / unvalidated area | package-local text grader |
-| `repair-loop` | iteration fields、decision / triage enum、`needs_human` と stop decision、scope relation | package-local structured-text grader |
-| `harness-improvement` | candidate fields、strictness / status / owner_decision enum、evidence requirement | package-local grader + Repository adapter |
-| `exploratory-qa` | 既存 Zod schema、ID、reference、coverage、evidence、status relation、artifact contract | existing Machine Contract adapter |
-| `android-native-local-validation` | stage order、failure classification、blocked / unexecuted を PASS にしない契約 | existing result contract の有無を Phase 0 で確認。なければ N/A |
+以下は実装確定ではなく、Phase 0 で確認する初期仮説である。
+
+| Skill | deterministic 候補 | stable input の初期見立て | Phase 0 後の候補 |
+| --- | --- | --- | --- |
+| `feature-plan` | canonical section、必須領域 | package-local template が存在 | `minimal grader` の可能性が高い |
+| `code-review` | finding required fields、no-findings residual risk | 意味契約はあるが serialization は未確認 | stable serialization がなければ `N/A` |
+| `repair-loop` | iteration fields、decision / triage relation、scope relation | 意味契約はあるが structured artifact の有無を要確認 | artifact があれば adapter / grader、なければ `N/A` |
+| `harness-improvement` | candidate fields、enum、evidence、target / taxonomy relation | candidate serialization の有無を要確認 | stable serialization があれば grader、なければ `N/A` |
+| `exploratory-qa` | schema、ID、reference、coverage、evidence、status relation | 既存 `scripts/agentic-qa/**` Machine Contract あり | `existing-contract adapter` |
+| `android-native-local-validation` | stage order、failure classification、completion consistency | stable machine-readable result の有無を要確認 | result contract があれば adapter、なければ `N/A` |
 
 ### `feature-plan`
 
-Canonical source は少なくとも次の2つ。
+Canonical source は少なくとも次の3つ。
 
+- `.agents/skills/feature-plan/SKILL.md`
 - `.agents/skills/feature-plan/assets/plan-template.md`
 - `.agents/skills/feature-plan/references/planning-workflow.md`
 
-Template には `依頼概要`、`ゴール / 完了条件`、`現状理解と前提`、`質問 / 曖昧性`、`影響範囲`、`変更方針`、`検証方法`、`リスクと未解決論点`、`成果物`、`備考` がある。
+`SKILL.md` は package-local template を reusable output skeleton として使用し、Repository plan artifact として保存する契約を持つ。
 
-grader は見出し・必須領域の存在と空欄を判定する。本文の wording、文章量、表現順序を Golden text と比較しない。
+そのため、Phase 0 で template の heading が canonical contract として現在も使われていることを確認できれば、保存済み Markdown Plan を対象にした最小 grader は妥当である。
+
+この grader は「似た意味の見出し」を推測しない。canonical template で必須と確認できた heading と non-empty body のみを評価する。
 
 ### `code-review`
 
-Canonical source は `.agents/skills/code-review/references/review-workflow.md`。
+Canonical semantic source は次。
 
-Finding の required fields は次のとおり。
+- `.agents/skills/code-review/SKILL.md`
+- `.agents/skills/code-review/references/review-workflow.md`
 
-```text
-Severity
-Title
-Location
-Why it matters
-Evidence
-Suggested fix
-Open questions
-Verdict
-confidence
-```
+Finding には Severity、Title、Location、Why it matters、Evidence、Suggested fix 等の意味上の required fields がある。
 
-No-findings review では residual risk と unvalidated areas を残す契約がある。
+ただし、これらが JSON field、固定 Markdown label、固定 heading などとして serialized される stable contract が存在するかは別問題である。
 
-PR4では、canonical contract に明示されていない severity の具体 enum 等を evaluator 側で勝手に追加しない。
+Phase 0 で stable serialization を確認できない場合、PR4では text parser を作らず N/A とする。
+
+No-findings の判定も同様で、`no findings` を自由文から正規表現で推測するような実装は行わない。
 
 ### `repair-loop`
 
-Canonical source は `.agents/skills/repair-loop/references/repair-workflow.md`。
+Canonical semantic source は次。
 
-Iteration required fields:
+- `.agents/skills/repair-loop/SKILL.md`
+- `.agents/skills/repair-loop/references/repair-workflow.md`
+- Repository mapping / evaluation artifact contract
 
-```text
-iteration_number
-input_findings
-repair_plan
-allowed_files
-changed_files
-validation_commands
-validation_result
-remaining_delta
-decision
-```
+Iterationには `iteration_number`、`allowed_files`、`changed_files`、`validation_result`、`decision` 等があり、`needs_human -> stop_needs_human` のような deterministic relation も存在する。
 
-Allowed decision:
+ただし、これらを機械 parse できる stable structured artifact がすでに存在するかを Phase 0 で確認する。
 
-```text
-continue
-stop_success
-stop_no_progress
-stop_scope_violation
-stop_unsafe
-stop_max_iterations
-stop_needs_human
-```
-
-Allowed triage classification:
-
-```text
-must_fix
-should_fix
-defer
-reject
-needs_human
-```
-
-明示されている relation も deterministic に評価する。
-
-- `needs_human` がある場合は `decision = stop_needs_human`。
-- scope violation がある場合は loop を継続せず stop する。
-- changed files が明示的 `allowed_files` 外へ出た状態を success と扱わない。
+存在しない場合、Markdown / text の表現をPR4側で新規固定せず N/A とする。
 
 ### `harness-improvement`
 
-Canonical Skill source は `.agents/skills/harness-improvement/references/improvement-workflow.md`。
+Canonical semantic source は次。
 
-Candidate fields:
+- `.agents/skills/harness-improvement/SKILL.md`
+- `.agents/skills/harness-improvement/references/improvement-workflow.md`
+- `docs/reference/harness-improvement-loop.md`
 
-```text
-candidate_id
-target
-failure_category
-source_runs
-evidence
-expected_impact
-risk
-recommended_change
-strictness
-status
-owner_decision
-```
+Candidate modelには `target`、`failure_category`、`evidence`、`expected_impact`、`risk`、`recommended_change`、`strictness` 等が定義されている。
 
-Allowed values:
+ただし candidate の stable machine-readable serialization が存在するかは Phase 0 で確認する。
 
-```text
-strictness: normal | strict | blocked
-status: proposed | accepted | rejected | deferred | implemented
-owner_decision: not_reviewed | approved | rejected | needs_more_evidence
-```
-
-Evidence は必須。
-
-Repository-specific target catalog / strictness mapping は `docs/reference/harness-improvement-loop.md` が current mapping を持つ。ただし、この文書が参照する failure taxonomy の具体 source は Plan 作成時の調査では canonical file を解決できていない。PR4実装ではここを推測で補完せず、Phase 0 で current source を確定する。
+また Repository reference が参照する failure taxonomy の concrete source は Plan 作成時点で current tree から解決できていないため、taxonomy membership check は authority を確認できた場合だけ実装する。
 
 ### `exploratory-qa`
 
-Canonical portable source は次の2つ。
+Canonical portable source:
 
 - `.agents/skills/exploratory-qa/references/workflow.md`
 - `.agents/skills/exploratory-qa/references/scored-mode.md`
 
-Repository-side Machine Contract は既存 `scripts/agentic-qa/**` に存在する。
+Repository-side Machine Contract:
 
-特に `scripts/agentic-qa/contracts.ts` にはすでに Zod schema と relation validation があり、例として次を扱っている。
+- `scripts/agentic-qa/**`
+- 特に `scripts/agentic-qa/contracts.ts`
 
-- schema version
-- `run_id` format
-- coverage ID / challenge ID format
-- spec reference format
-- required coverage ID uniqueness
-- evidence ref syntax
-- coverage status と `mission_completed` の consistency
-- allowed evidence type
-- tool / isolation contract
+既存 Zod schema / relation validation がすでに ID format、uniqueness、reference syntax、allowed value、status relation 等を扱っている。
 
-PR4ではこれらの schema を Skill 側へコピーしない。Existing contract を呼び出して、validation result を PR4 の共通 result format へ変換する adapter に留める。
+PR4では regex / enum / relation をコピーしない。
+
+また、既存 validator が返す `path` / validation issue / message 等で machine-readable に扱える場合、全ruleを独自 stable `check_id` へ再マッピングしない。Adapter は既存 error surface を可能な限りそのまま利用する。
 
 ### `android-native-local-validation`
 
-Canonical portable source は `.agents/skills/android-native-local-validation/references/windows-android-workflow.md`。
+Canonical portable source:
 
-Workflow上は deterministic な rule が存在する。
+- `.agents/skills/android-native-local-validation/references/windows-android-workflow.md`
+
+Workflow上は deterministic な停止・完了規則が存在する。
 
 - upstream gate failure 後に downstream stage を PASS としない。
 - blocked / not executed stage を PASS と報告しない。
-- failure classification は明示された allowed set を使う。
+- failure classification は allowed set を使う。
 - required gate 全体が成立して初めて completion とする。
 
-一方、Skill自身にはこれらを表す stable machine-readable Output schema が明示されていない。既存 Native helper / Run Artifact に authoritative な result schema があるかを Phase 0 で確認し、存在しなければ「grader のために Output schema を新設する」のではなく N/A とする。
+一方、Skill自身に stable machine-readable Output schema があるかは未確認である。
+
+既存 Native helper / Run Artifact に authoritative な result contract がある場合だけ adapter を実装し、なければ N/A とする。
 
 ### Assumptions
 
-- 既存 Production Output format は grader を作りやすくする目的では変更しない。
 - 新規 dependency は不要で、既存 TypeScript / Node.js / Zod / Vitest で実装できる想定とする。
-- 共通 machine-readable result は **evaluator の出力**であり、各 Skill の Production Output Contract ではない。
-- Text系 Skill の grader は UTF-8 Markdown / text を input とし、既存の section / field marker を最小限 parse する。
-- Repository Machine Contractを利用する Skillでは、adapter は既存 schema / validator を import または既存公開関数経由で呼び出し、同じ rule を再実装しない。
+- 共通 machine-readable result は evaluator の内部 / CLI 出力であり、各 Skill の Production Output Contract ではない。
+- 共通 result shape は consumer が必要とする最小限に留め、長期互換性要件がない限り過剰な versioning を追加しない。
+- Text grader を実装する場合も、canonical template / stable marker を直接確認し、alias辞書・類義語判定・意味推測はしない。
+- Existing Machine Contract を利用する Skill では、adapter は既存 public validator / schema を呼び出し、同じ rule を再実装しない。
 
 ### Non-goals
 
@@ -255,69 +224,96 @@ Workflow上は deterministic な rule が存在する。
 - 自動 repair / retry。
 - Golden Output全文一致。
 - 全Skillを同じ Output schema に移行すること。
-- generic Markdown AST framework の導入。
+- grader のための新しい Markdown Output convention の策定。
+- alias / 類義語対応を含む汎用 Markdown parser。
 - generic rule DSL / plugin system の導入。
 - Product Code / Product behavior の変更。
 - `.codex/agents/**` の変更。
+- `spec/failure-taxonomy.json` 不在問題のついで修正。
 
 ---
 
 ## 3. 質問 / 曖昧性
 
-### 必ず実装前に解消する不透明点
+### 実装前に必ず解消する technical unknown
 
-#### A. Harness failure taxonomy の current authority
+Phase 0 で以下を確認する。ユーザー判断ではなく Repository investigation で解消する。
 
-`docs/reference/harness-improvement-loop.md` が参照する failure taxonomy の concrete source を current repository から確定する。
+#### A. Text系 Skill の stable serialization
 
-- current canonical file / module が存在する場合はその source を再利用する。
-- path rename / migration 済みなら current source に追従する。
-- authoritative source が存在しない場合、PR4だけのために taxonomy を新設しない。
-- source を解決できない場合、その check は N/A / blocked として理由を固定し、candidate field / allowed values / evidence 等の確実に判定できる領域だけを grader 対象にする。
+対象:
 
-#### B. Native validation result contract
+- `feature-plan`
+- `code-review`
+- `repair-loop`
+- `harness-improvement`
+
+確認内容:
+
+1. Outputが保存される canonical artifact はあるか。
+2. その artifact の serialization は schema / template /固定 field marker として既に契約化されているか。
+3. 現行テストやvalidatorがその形式を既に前提としているか。
+4. evaluator を作るために新しい label / heading / JSON shape を導入する必要がないか。
+
+判定:
+
+- stable serialization あり -> `minimal grader` または `existing-contract adapter`
+- semantic contract のみ -> `N/A`
+
+#### B. Harness failure taxonomy の current authority
+
+`docs/reference/harness-improvement-loop.md` や evaluation reference が参照する failure taxonomy の current authoritative source を確定する。
+
+- current canonical file / module が存在する場合は再利用する。
+- rename / migration 済みなら current source に追従する。
+- authoritative source が存在しない場合、PR4だけのために taxonomy を新設・hard-code しない。
+- taxonomy authority が解決できない場合、membership check のみ N/A とし、他の確実な deterministic check は継続可能。
+
+#### C. Native validation result contract
 
 Native helper / Run Artifact / existing contract test を確認し、stage result / classification / completion を表す stable machine-readable contract がすでに存在するかを確定する。
 
-- 存在する場合は adapter で再利用する。
-- 存在しない場合は PR4 では N/A とする。
-- evaluator のためだけの新しい Native execution result schema は作らない。
+- 存在する場合 -> adapter
+- 存在しない場合 -> N/A
+- evaluator のためだけの新しい Native result schema は作らない。
 
-### 仮定してよい細部
+#### D. `exploratory-qa` の再利用 entry point
 
-- evaluator の共通 JSON field 名は、既存 Repository convention と衝突しない範囲で局所的に決めてよい。
-- test fixture の具体文言は canonical contract の意味を変えず、minimum valid / invalid case として作成してよい。
-- dedicated script 名は既存 script naming convention に合わせる。
+既存 `scripts/agentic-qa/**` のうち、PR4から呼ぶ最小 public validation entry point を確定する。
 
-### 未回答のユーザー質問
-
-なし。Issue #117 に PR4 の目的・境界・完了条件が明示されているため、Plan作成時点でユーザー判断が必要な blocker はない。
+- schema / regex / enum / relation をコピーしない。
+- 既存 validation issue を独自 taxonomy に変換しない。
+- 必要なら最小 export の追加を検討するが、adapter専用の大規模 abstraction は作らない。
 
 ---
 
 ## 4. 影響範囲
 
-### Impacted areas
+### 実装時の候補
 
-実装時の主な変更候補は以下。
+Phase 0 で実装対象が確定した後にのみ追加する。
 
 ```text
-.agents/skills/<skill>/evals/output/**
-.agents/skills/<skill>/scripts/**          # Skill固有graderが必要な場合のみ
-scripts/skill-output-eval/**               # 最小runner / adapter / result型
- tests/contracts/skill-output-eval.test.ts
+.agents/skills/<skill>/evals/output/**      # package-local fixture / grader が本当に必要なSkillのみ
+.agents/skills/<skill>/scripts/**           # package-local deterministic helper が必要な場合のみ
+scripts/skill-output-eval/**                # 複数Skillで本当に共有が必要な最小runner / result helperのみ
+tests/contracts/skill-output-eval.test.ts
 package.json
 ```
 
-`evals/output/` は形式だけのために6 Skillすべてへ作らない。N/A Skillには空 Directory を作らず、Repository-level inventory で理由を固定する構成を優先する。
+N/A Skill に空 `evals/` directory、fake grader、placeholder parser を作らない。
 
 ### Existing sources to inspect and preferably keep read-only
 
 ```text
+.agents/skills/feature-plan/SKILL.md
 .agents/skills/feature-plan/assets/plan-template.md
 .agents/skills/feature-plan/references/planning-workflow.md
+.agents/skills/code-review/SKILL.md
 .agents/skills/code-review/references/review-workflow.md
+.agents/skills/repair-loop/SKILL.md
 .agents/skills/repair-loop/references/repair-workflow.md
+.agents/skills/harness-improvement/SKILL.md
 .agents/skills/harness-improvement/references/improvement-workflow.md
 .agents/skills/exploratory-qa/references/workflow.md
 .agents/skills/exploratory-qa/references/scored-mode.md
@@ -326,7 +322,9 @@ scripts/agentic-qa/contracts.ts
 scripts/agentic-qa/coverage.ts
 scripts/agentic-qa/evaluate.ts
 scripts/agentic-qa/canonical-artifact-manifest.ts
+docs/reference/evaluation.md
 docs/reference/harness-improvement-loop.md
+docs/reference/repair-loop.md
 scripts/native/windows/**
 tests/contracts/spec-agentic-qa.test.ts
 tests/contracts/official-black-box-contracts.test.ts
@@ -344,212 +342,196 @@ tests/contracts/native-windows-local-validation.test.ts
 - PR6 Workflow E2E Eval。
 - `.codex/agents/**`。
 - dependency / lockfile。既存 dependency で実現できる限り変更しない。
+- failure taxonomy の新設・移動・修復。
 
 ---
 
 ## 5. 変更方針
 
-### Phase 0: Output Contract inventory と authority freeze
+### Phase 0: 6 Skill inventory と実装Scope決定Gate
 
-実装前に6 Skillを同じ手順で棚卸しする。
+このPhaseを、単なる調査ではなく **PR4 implementation scope を確定する Gate** とする。
 
-各 deterministic check について、最低限次を記録する。
+各 Skill / deterministic candidate について最低限次を確認する。
 
 ```text
 skill
-check_id
 canonical_source
 input_representation
+stable_serialization: yes | no
 invariant
-valid_case
-invalid_case
+implementation_mode: existing-contract adapter | minimal grader | N/A
+n/a_reason                  # N/A時のみ
 semantic_excluded
-implementation_mode: grader | adapter | N/A
 ```
 
-この Phase で先に N/A 判定を許可する。grader を書いた後で正当化するのではなく、canonical machine contract が存在するかを先に確認する。
+重要:
 
-特に次を確定する。
+- grader の実装詳細を先に決めない。
+- `stable_serialization = no` なら原則 N/A。
+- 「field名が文書に書いてある」だけでは `stable_serialization = yes` にしない。
+- parserを作れば評価できる、という理由で grader 対象にしない。
 
-1. `harness-improvement` の failure taxonomy current authority。
-2. `android-native-local-validation` の stable machine-readable execution result の有無。
-3. `exploratory-qa` で再利用すべき既存 public schema / validator function。
-4. Text系 Skillで、現在の heading / field marker が canonical contract として十分安定している範囲。
+Phase 0 の終了時に、6 Skillを次の3分類へ確定する。
 
-### Phase 1: 最小の evaluator result contract
+#### A. `existing-contract adapter`
 
-Repository-level runner は Skill 固有 rule を持たず、grader / adapter の結果を同じ machine-readable shape で返すことだけを担当する。
+既存 machine-readable schema / validator / artifact contract がある。
 
-候補形:
+実装方針:
 
-```json
-{
-  "schema_version": 1,
-  "skill": "repair-loop",
-  "status": "pass",
-  "checks": [
-    {
-      "check_id": "repair-loop.decision.allowed-value",
-      "passed": true,
-      "message": "decision is allowed"
-    }
-  ]
-}
+- 既存 validation entry point を呼ぶ。
+- validation issue を薄く machine-readable output へ渡す。
+- ruleをコピーしない。
+
+#### B. `minimal grader`
+
+既存 stable template / serialization があるが専用validatorがない。
+
+実装方針:
+
+- canonical formだけを見る。
+- heading / field alias を増やさない。
+- semantic判断をしない。
+- required presence / non-empty / allowed value / deterministic relation のみに限定する。
+
+#### C. `N/A`
+
+semantic contract はあるが stable serialization がない、または authority が解決できない。
+
+実装方針:
+
+- graderを作らない。
+- N/A reasonを1つの実装 inventory / test registry で固定する。
+- empty directoryやfake fixtureを作らない。
+
+### Phase 1: 実装inventoryを単一SSOTにする
+
+Markdown inventory、runtime registry、N/A registry を別々に作らない。
+
+実装が必要な場合、1つの小さな定義を SSOT として使う。
+
+概念例:
+
+```ts
+const outputEvaluations = {
+  "feature-plan": {
+    mode: "grader",
+  },
+  "code-review": {
+    mode: "not-applicable",
+    reason: "no stable serialized output contract",
+  },
+  "exploratory-qa": {
+    mode: "adapter",
+  },
+} as const;
 ```
 
-必要最低限の契約は以下。
+これは概念例であり、同じshapeをそのまま実装する義務はない。
 
-- `schema_version` は evaluator result schema の version。
-- `skill` は対象 Skill 名。
-- `status` は少なくとも `pass` / `fail`。
-- `checks[]` は stable `check_id`、boolean result、diagnostic message を持つ。
-- fail check が1件でもあれば overall `fail`。
-- CLI は `pass` で exit 0、`fail` で non-zero。
-- N/A Skill は false PASS を返さず、inventory 上で N/A reason を持つ。
+目的は次の二重管理を避けること。
 
-共通 runner は6 Skillを explicit registry / map で接続する程度に留め、dynamic plugin discovery や generic rule language を作らない。
+- inventory JSON
+- runtime registry
+- N/A Markdown
+- test-only registry
 
-### Phase 2: Skill別 grader / adapter
+6 Skill coverage はこの単一SSOTを contract test で確認する。
 
-#### 2-A. `feature-plan`
+### Phase 2: 評価対象 Skill だけを実装
 
-Text / Markdown grader を実装する。
+Phase 0 で A/B に分類された Skill だけを実装する。
 
-最低限確認する invariant:
+以下は現時点の候補であり、Phase 0 の結果を上書きしない。
 
-- canonical Plan section が存在する。
-- `Goal` / 完了条件が空でない。
-- `Current understanding` と `Assumptions` を区別する領域がある。
-- `Non-goals` が存在する。
-- `Impacted areas` / `Files to inspect` 相当の変更範囲がある。
-- `Change strategy` が存在する。
-- `Validation plan` が存在する。
-- `Risks` / `Open questions` が存在する。
-- 成果物が明示されている。
+#### 2-A. `feature-plan` — `minimal grader` 候補
 
-判定しないもの:
+Phase 0 で package-local template が stable canonical serialization と確認できた場合のみ実装する。
 
-- Plan が技術的に正しいか。
-- risk の重要度が妥当か。
-- strategy が最適か。
-- wording / paragraph count / exact sentence。
+評価するもの:
 
-Invalid fixture 例:
+- canonical required heading の存在。
+- required section の本文が whitespace-only でないこと。
 
-- Validation section omission。
-- Non-goals omission。
-- Goal heading はあるが本文が空。
-- Required section 名に似た自由文があるだけで canonical section がない false-pass case。
+評価しないもの:
 
-#### 2-B. `code-review`
+- 類義語 heading。
+- heading順序。ただし既存contractが明示的に順序を要求している場合を除く。
+- Plan の技術的正しさ。
+- risk の重要度。
+- strategy の妥当性。
+- wording / paragraph count。
 
-Finding-oriented text grader を実装する。
+禁止:
 
-Finding が1件以上ある場合、各 finding で次の field を要求する。
+- `Goal | ゴール | 目的` のような alias辞書。
+- fuzzy match。
+- semantic heading classification。
+
+Fixture:
+
+- minimum valid。
+- required heading omission。
+- heading はあるが required body が空。
+- parser false-pass が実際に起きる場合のみ near-valid regression。
+
+#### 2-B. `code-review` — Phase 0 判定
+
+stable serialized review artifact / field marker が確認できた場合のみ minimal grader を検討する。
+
+確認できない場合:
 
 ```text
-Severity
-Title
-Location
-Why it matters
-Evidence
-Suggested fix
-Open questions
-Verdict
-confidence
+N/A: finding の semantic field contract は存在するが、
+現在の Skill Output に stable machine-readable / canonical text serialization がない。
+PR4で parser 用 format を導入すると Production Output Contract を事実上変更するため、
+このPRでは deterministic grader を作らない。
 ```
 
-No-findings case では、Finding field を無理に要求せず、contract に従い次を確認する。
+特に以下は禁止する。
 
-- residual risk が記載されている。
-- unvalidated area が記載されている。
+- `no findings` を自然言語 regex で推測する。
+- `Severity:` 等のlabelをgrader側で新規必須化する。
+- severity enumを新設する。
 
-Invalid fixture 例:
+#### 2-C. `repair-loop` — Phase 0 判定
 
-- Finding から `Evidence` が欠落。
-- `Location` が欠落。
-- no-findings と主張するが residual risk / unvalidated area がない。
+stable structured iteration artifact が確認できた場合、既存 representation 上で次の deterministic relation を評価候補とする。
 
-Severity の意味妥当性や Finding の correctness は PR5 領域なので判定しない。
+- decision allowed value。
+- triage classification allowed value。
+- `needs_human -> stop_needs_human`。
+- `changed_files ⊆ allowed_files`。
+- scope violation と success / continue の不整合。
+- required validation result omission。
 
-#### 2-C. `repair-loop`
+stable representation が確認できない場合は N/A。
 
-Iteration record grader を実装する。
+禁止:
 
-Required fields:
+- 自由文から file list を独自parseすること。
+- grader都合で iteration JSON schemaを新設すること。
 
-```text
-iteration_number
-input_findings
-repair_plan
-allowed_files
-changed_files
-validation_commands
-validation_result
-remaining_delta
-decision
-```
+#### 2-D. `harness-improvement` — Phase 0 判定
 
-Deterministic relation:
-
-- `decision` は canonical allowed set に含まれる。
-- triage classification は canonical allowed set に含まれる。
-- `needs_human` が存在すれば `decision = stop_needs_human`。
-- scope violation が成立している record を `continue` / `stop_success` にしない。
-- `allowed_files` と `changed_files` が明示 list として parse 可能な場合、out-of-scope file を検出する。
-- validation を実行したと主張する iteration で `validation_result` を欠落させない。
-
-Invalid fixture 例:
-
-- unknown decision。
-- `needs_human` + `continue`。
-- `changed_files` が `allowed_files` 外なのに `stop_success`。
-- `validation_result` omission。
-
-#### 2-D. `harness-improvement`
-
-Candidate grader を実装する。
-
-Required fields:
-
-```text
-candidate_id
-target
-failure_category
-source_runs
-evidence
-expected_impact
-risk
-recommended_change
-strictness
-status
-owner_decision
-```
-
-Deterministic checks:
+stable candidate serialization が確認できた場合、以下を deterministic 評価候補とする。
 
 - required field omission。
-- `strictness` allowed value。
-- `status` allowed value。
-- `owner_decision` allowed value。
-- `evidence` が空でない。
-- current authoritative target catalog に照合可能な場合は unknown target を検出する。
-- current authoritative failure taxonomy が解決できた場合だけ `failure_category` を照合する。
+- `strictness` / `status` / `owner_decision` allowed value。
+- evidence non-empty。
+- authoritative catalog が存在する場合のみ unknown target。
+- authoritative taxonomy が解決できた場合のみ failure category membership。
 
-Failure taxonomy source が解決できない場合、その check を grader 内で hard-code しない。field presence の評価は継続し、taxonomy membership check は明示 N/A とする。
+stable candidate serialization がなければ N/A。
 
-Invalid fixture 例:
+taxonomy source が解決できない場合、taxonomy membership check のみ N/A とし、新しい taxonomy を hard-code しない。
 
-- evidence omission。
-- invalid `strictness`。
-- invalid `status` / `owner_decision`。
-- authoritative catalog がある場合の unknown target。
+#### 2-E. `exploratory-qa` — `existing-contract adapter`
 
-#### 2-E. `exploratory-qa`
+新しい schema grader を作らず、既存 `scripts/agentic-qa/**` Machine Contract を再利用する。
 
-新しい schema grader を作らず、既存 `scripts/agentic-qa/**` Machine Contract への adapter を実装する。
-
-再利用対象例:
+再利用候補:
 
 - Zod schema parse。
 - coverage ID / challenge ID format。
@@ -558,93 +540,123 @@ Invalid fixture 例:
 - status / `mission_completed` consistency。
 - artifact / reference relation。
 
-Adapter は既存 validation failure を stable `check_id` と evaluator result へ変換する。既存 schema と同じ regex / enum / relation をコピーしない。
+Adapterは薄くする。
 
-Fixture は既存 fixture を再利用できる場合は再利用する。PR4専用 fixture が必要な場合も、既存 contract を通す入力だけを追加する。
+- 既存 validator の input を受け取る。
+- 既存 validation result / issue を machine-readable に返す。
+- 必要ならSkill名とoverall statusを付加する。
+- regex / enum / relationを再記述しない。
+- 全ruleを独自 `check_id` taxonomy へ変換しない。
 
-Invalid case 例:
+既存 issue が `path` / `code` / `message` を持つなら、それをテストの接続点として利用できるかを優先検討する。
 
-- duplicate coverage ID。
-- `completed` なのに `mission_completed = false`。
-- malformed evidence ref。
-- schema 上 required entity omission。
-- authoritative reference relation failure。
+Fixtureは既存fixtureを再利用できる場合は再利用する。
 
-#### 2-F. `android-native-local-validation`
+#### 2-F. `android-native-local-validation` — Phase 0 判定
 
-Phase 0 で existing machine-readable result contract を探す。
+existing machine-readable result contract がある場合だけ adapter を実装する。
 
-存在する場合だけ adapter を実装し、少なくとも次の existing invariant を current contract に合わせて検証する。
+候補 invariant:
 
 - stage status / order consistency。
 - failure classification allowed value。
 - blocked / not-executed stage を PASS と扱わない。
-- required upstream failure 後の downstream success claim を許可しない。
+- upstream failure 後の downstream success claim を許可しない。
 - completion claim と required gate result の consistency。
 
-stable contract が存在しない場合:
+stable contract がない場合:
 
 ```text
 N/A: portable workflowにはdeterministicな停止・完了規則があるが、
 現在のProduction Outputを表すstable machine-readable serializationがない。
-PR4のgrader都合で新しいOutput schemaを導入するとSkillのOutput Contract変更になるため、
+PR4のgrader都合で新しいOutput schemaを導入するとOutput Contract変更になるため、
 このPRでは評価対象外とする。
 ```
 
-この N/A は未実装扱いではなく、PR4 の境界判断として contract test / inventory で固定する。
+### Phase 3: 最小の machine-readable result
 
-### Phase 3: Fixture と false-pass regression test
+PR4独自の長期保存artifact contractを必要以上に作らない。
 
-各実装 grader / adapter に次を用意する。
+必要最低限の例:
 
-- minimum valid fixture。
+```json
+{
+  "skill": "feature-plan",
+  "status": "fail",
+  "issues": [
+    {
+      "check": "required-section",
+      "path": "## 6. 検証方法",
+      "message": "required section is missing"
+    }
+  ]
+}
+```
+
+原則:
+
+- `skill`。
+- `status`: `pass` / `fail`。
+- `issues`。
+- failure があれば non-zero exit。
+- 既存 Machine Contract の issue shape が使える場合はその情報を保持する。
+- `schema_version` は、実際に永続保存・複数consumer・backward compatibility が必要と確認できた場合だけ追加する。
+- stable global `check_id` taxonomy は作らない。Skill固有 grader で必要な最小識別子だけ使用する。
+
+### Phase 4: Fixture / contract test
+
+各評価対象 Skill に次を用意する。
+
+必須:
+
+- 1 valid fixture。
+- 実装した主要 invariant を壊す代表 invalid fixture。
+
+必要な場合のみ:
+
 - required omission fixture。
-- relation / allowed value / reference failure fixture。
+- unknown reference fixture。
 - near-valid false-pass regression fixture。
 
-Testでは overall fail だけでなく、期待する check ID を確認する。
+「全Skillに同じ種類・同じ件数のfixtureを作る」ことを目的にしない。
 
-例:
+テストは overall fail だけでなく、既存 validation issue または grader の最小識別子を使って意図した failure であることを確認する。
 
-```text
-repair-loop.required.validation-result
-repair-loop.decision.allowed-value
-repair-loop.scope.changed-files-contained
-```
+### Phase 5: Canonical validation path を1つにする
 
-check ID は test と machine-readable result の安定した接続点とし、人間向け diagnostic message の全文一致には依存しない。
+同じ fixture suite を `test:contracts` と dedicated command の両方で重複全実行しない。
 
-### Phase 4: Repository command と quality path 接続
+実装時に、次のどちらかを canonical path として選ぶ。
 
-Dedicated command を追加する。
-
-候補:
+#### Option A: contract test が canonical
 
 ```text
-pnpm run validate:skill-output-evals
+fixture -> grader / adapter -> Vitest contract test -> test:contracts -> verify
 ```
 
-責務:
+CLI は単一inputを評価する薄い entry point に留める。
 
-- 指定 fixture / input を grader へ渡す。
-- machine-readable JSON を stdout または明示 output へ出す。
-- deterministic failure を non-zero exit へ反映する。
+#### Option B: dedicated validator が canonical
 
-CI workflow を直接増やす前に、既存 `pnpm run test:contracts` / `pnpm run verify` の到達性を利用する。
+```text
+fixture -> dedicated validator -> exit / JSON
+                         ↑
+              contract test は runner / serialization のsmoke
+```
 
-優先順位:
+選定基準:
 
-1. `tests/contracts/skill-output-eval.test.ts` を既存 `test:contracts` に含める。
-2. `verify` が `test:contracts` を通じて必ず fixture contract test を実行することを確認する。
-3. dedicated validation command 自体の contract test / smoke を追加する。
-4. 現行 Web CI が `verify` または該当 contract test を実行しているなら workflow YAML は変更しない。
-5. CIから到達しないことが確認された場合だけ、既存 quality job へ最小接続する。
+- 既存 Repository convention に自然に乗る方。
+- fixture suite の二重実行を避けられる方。
+- `pnpm run verify` から確実に到達できる方。
 
-PR4専用の新 workflow や matrix は作らない。
+新しい GitHub Actions workflow / matrix は作らない。
 
-### Phase 5: Scope / semantic freeze の最終確認
+現行 quality gate から到達しないことが確認された場合だけ、既存jobへ最小接続する。
 
-実装完了時に次を diff で確認する。
+### Phase 6: Scope / semantic freeze
+
+実装完了時に diff で次を確認する。
 
 - 6 Skill frontmatter `description` に変更がない。
 - Trigger Eval dataset / description optimization を追加していない。
@@ -652,34 +664,48 @@ PR4専用の新 workflow や matrix は作らない。
 - Workflow E2E runner を追加していない。
 - Product Codeを変更していない。
 - `.codex/agents/**` を変更していない。
-- existing `scripts/agentic-qa/**` schema を不要に複製・改変していない。
+- existing Machine Contract schema を不要に複製・改変していない。
 - dependency / lockfile を不要に変更していない。
+- failure taxonomy をPR4都合で新設・修復していない。
+- N/A Skillのためのempty package / fake graderを作っていない。
 
 ---
 
 ## 6. 検証方法
 
+### Phase 0 inventory validation
+
+- 6 Skill がすべて inventory SSOT に1回ずつ現れる。
+- 各Skillに `adapter / grader / N/A` が必ず定義される。
+- N/Aには非空reasonがある。
+- grader / adapterには canonical source と stable input representation がある。
+
 ### Targeted validation
 
-実装後はまず dedicated contract test を実行する。
+最終的な実装構成に応じ、canonical path を1つ選ぶ。
+
+候補:
 
 ```bash
 pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-parallelism --maxWorkers=1
 ```
 
+または既存 naming convention に沿った dedicated validator command。
+
 確認内容:
 
-- 全 grader / adapter の valid fixture が PASS。
-- required omission fixture が期待 check ID で FAIL。
-- relation / enum / reference fixture が期待 check ID で FAIL。
-- N/A Skill の理由が inventory と一致。
-- JSON result が parse 可能。
-- fail input で CLI exit code が non-zero。
+- valid fixture が PASS。
+- invalid fixture が意図した invariant で FAIL。
+- N/A Skill の reason が inventory で固定されている。
+- existing Machine Contract adapter が既存 rule を再利用している。
+- machine-readable result が parse 可能。
+- failure input で canonical CLI / validator が non-zero。
 
 ### Repository integration validation
 
+必要なコマンドだけを最終実装に合わせて実行する。
+
 ```bash
-pnpm run validate:skill-output-evals
 pnpm run validate:skills
 pnpm run test:contracts
 pnpm run typecheck
@@ -689,127 +715,185 @@ pnpm run verify
 git diff --check
 ```
 
-### Scope validation
+専用 `validate:skill-output-evals` script を追加した場合のみ、それも実行する。
 
-実装差分について最低限次を確認する。
+### Scope validation
 
 - Skill `description` diff = 0。
 - `.codex/agents/**` diff = 0。
 - Product source diff = 0。
 - Trigger / Semantic / E2E Eval implementation diff = 0。
-- dependency / lockfile diff = 0 を期待値とする。変更が必要になった場合は実装を止め、既存 dependency で代替できない根拠を再確認する。
+- dependency / lockfile diff = 0 を期待値とする。
+- taxonomy source の新設・修復 diff = 0。
 
 ### 成功判定
 
-- Issue #117 PR4 の6 Skill coverage inventory と実装状態が1対1で説明できる。
-- grader が invalid fixture を意図した check で確実に落とす。
+- 6 Skillすべてについて「なぜ評価する / しない」が説明できる。
+- grader実装数が多いことを成功条件にしていない。
+- stable serializationのないSkillへ自由文parserを導入していない。
+- 実装した grader / adapter が invalid fixture を確実に落とす。
 - existing Machine Contract の duplication がない。
-- machine-readable JSON と exit status の両方で自動判定できる。
+- machine-readable result と exit status で自動判定できる。
 - `pnpm run verify` が PASS する。
 
 ---
 
 ## 7. リスクと未解決論点
 
-### Risk 1: Free-form text parser の過剰制約
+### Risk 1: Semantic contract と serialization contract の混同
 
-Text Skill は自由文 Output を持つため、grader が Markdown wording や見出し順を過剰に固定すると正しい Output を false-negative にする。
+field名がworkflow文書に存在するだけで text parser を作ると、grader が暗黙の Output format を新設してしまう。
 
 対策:
 
-- canonical contract が明示する section / field marker のみを評価する。
-- sentence / paragraph / wording exact match をしない。
-- semantic quality は PR5 へ残す。
+- Phase 0で stable serialization を独立項目として確認する。
+- stable serialization がなければ N/A。
 
-### Risk 2: False-pass を避けようとして semantic judge 化する
+### Risk 2: Free-form text parser の過剰制約
 
-「Evidenceが妥当か」「Riskが十分か」まで判定し始めると deterministic scope を超える。
+特に code-review / repair-loop / harness-improvement で自然言語labelをparseし始めると、正しい自由文Outputを false-negative にする。
+
+対策:
+
+- canonical template / schema がない限り parser を作らない。
+- alias辞書、fuzzy match、semantic heading detection は実装しない。
+
+### Risk 3: False-pass防止を理由に semantic judge 化する
+
+Evidenceが妥当か、Riskが十分か、Findingが正しいかまで判定すると deterministic scope を超える。
 
 対策:
 
 - existence、allowed value、format、uniqueness、reference relation、state consistency に限定する。
-- content quality は存在確認と最低限の non-empty check までにする。
 
-### Risk 3: Existing Machine Contract の二重実装
+### Risk 4: Existing Machine Contract の二重実装
 
-特に `exploratory-qa` は既存 schema が大きく、PR4用に部分コピーすると将来 drift する。
-
-対策:
-
-- adapter only を原則とする。
-- regex / enum / relation を PR4側へ再記述しない。
-- existing contract の public surface が不足する場合は、最小 export / helper 化が本当に必要かを先に検証する。
-
-### Risk 4: Harness taxonomy authority の不整合
-
-Repository reference が示す failure taxonomy の concrete source が current tree と一致しない可能性がある。
+`exploratory-qa` の既存 schema / relationをPR4側でコピーすると drift する。
 
 対策:
 
-- Phase 0 で authority を先に解決する。
-- 解決できない場合は taxonomy membership check を N/A にする。
-- PR4を理由に新 taxonomy を発明しない。
+- adapter only。
+- 既存 validation issue を優先利用する。
+- 独自 check-id mapping を必要以上に作らない。
 
-### Risk 5: Native Output schema を evaluator のために新設してしまう
+### Risk 5: Inventory / registry の二重管理
 
-Workflow rule は deterministic でも、Output serialization が stable contract でなければ grader の入力を定義できない。
-
-対策:
-
-- existing machine artifact がある場合だけ adapter を作る。
-- なければ明示 N/A とする。
-- Native machine result contract の新設が必要なら別 change として扱う。
-
-### Risk 6: CI / command の重複
-
-Dedicated command を追加した結果、同じ fixture suite を複数jobで重複実行すると保守コストが増える。
+N/A list、runtime registry、test registryを別々に作ると同期コストが生まれる。
 
 対策:
 
-- existing `test:contracts` / `verify` の到達性を優先利用する。
-- workflow YAML を変更するのは existing gate から到達しない場合だけにする。
+- 6 Skill coverage を1つの実装SSOTへ集約する。
+
+### Risk 6: Harness taxonomy authority の不整合
+
+Repository referenceが `spec/failure-taxonomy.json` を参照している一方、current treeでauthorityが解決できない可能性がある。
+
+対策:
+
+- Phase 0で確認。
+- 解決できない場合はtaxonomy membership checkだけN/A。
+- PR4でtaxonomyを作り直さない。
+
+### Risk 7: Native Output schema を evaluator のために新設してしまう
+
+Workflow ruleはdeterministicでもOutput serializationがstableでなければ安全にgraderへ入力できない。
+
+対策:
+
+- existing artifact contract がある場合だけ adapter。
+- なければ N/A。
+
+### Risk 8: Fixture / validation の重複
+
+同じfixture suiteをdedicated commandとVitestの両方でフル実行すると保守コストとCI時間だけが増える。
+
+対策:
+
+- canonical validation path を1つ決める。
+- もう一方は必要なsmokeだけにする。
 
 ### Open questions
 
+- `code-review` に stable serialized review output が存在するか。
+- `repair-loop` に stable structured iteration artifact が存在するか。
+- `harness-improvement` に stable candidate serialization が存在するか。
 - `harness-improvement` の current failure taxonomy authority はどこか。
 - Native helperに stable machine-readable execution result contract が存在するか。
-- `exploratory-qa` の既存 validation function のうち、PR4 adapter から直接再利用すべき public entry point はどれか。
+- `exploratory-qa` の既存 validation function のうち、PR4 adapter から直接利用すべき最小 public entry point はどれか。
 
-これらは implementation前の Repository investigation で解消可能な technical unknown であり、現時点でユーザー判断を要求するものではない。
+これらは implementation前の Repository investigation で解消する technical unknown であり、現時点でユーザー判断を要求する blocker ではない。
 
 ---
 
 ## 8. 成果物
 
-### 今回の Plan-only branch で作成するもの
+### 今回の Plan-only branch で作成・更新するもの
 
 ```text
 docs/plans/2026-09-06_125426_issue-117-pr4-deterministic-output-eval.md
 ```
 
-これ以外は今回作成しない。
+これ以外は今回変更しない。
 
 ### 後続実装で想定する成果物
 
-最終 path は Phase 0 の authority inventory 後に existing structure と整合させるが、責務としては次を想定する。
+Phase 0 の結果に応じて必要なものだけ作る。
 
-- 6 Skill deterministic coverage inventory。
-- 評価対象 Skill の package-local output eval fixture / grader。
-- existing Machine Contract adapter。
-- 最小 Repository-level evaluator runner / result type。
+必須:
+
+- 6 Skill deterministic coverage inventory の単一SSOT。
+- 評価対象 Skill の最小 grader / existing-contract adapter。
+- 評価対象 Skill の valid / invalid fixture。
 - machine-readable evaluation result。
-- valid / invalid fixture contract test。
-- dedicated package command。
-- 必要な場合だけ既存 quality gate への最小接続。
+- quality path から到達する contract test / validation。
 
-N/A Skill に空 `evals/` Directory や fake grader は作らない。
+条件付き:
+
+- package-local `evals/output/**`。
+- package-local helper script。
+- Repository-level runner。
+- dedicated package command。
+- 既存 quality job への最小接続。
+
+作らないもの:
+
+- N/A Skill の空 `evals/` Directory。
+- fake grader。
+- 新しい共通 Rule Engine。
+- generic parser framework。
+- grader用Production Output schema。
 
 ---
 
-## 9. 備考
+## 9. 実装時の判断ルール
+
+実装者が迷った場合は、以下の順で判断する。
+
+1. **既存の machine-readable contract があるか。**
+   - ある -> adapter を優先。
+2. **machine-readable contract はないが、canonical template / stable serialization があるか。**
+   - ある -> 最小 grader を検討。
+3. **semantic contract しかないか。**
+   - はい -> N/A。
+4. **評価するために新しいOutput formatを決める必要があるか。**
+   - はい -> 実装しない。
+5. **既存validatorを呼べば済むruleを再実装しようとしていないか。**
+   - はい -> adapterへ戻す。
+6. **alias、fuzzy match、DSL、plugin discovery、汎用parserが必要になっていないか。**
+   - はい -> scopeを縮小する。
+7. **同じfixtureを複数経路でフル実行していないか。**
+   - はい -> canonical validation pathを1つに寄せる。
+8. **N/Aを減らすこと自体が目的になっていないか。**
+   - はい -> Issue #117 の「評価可能なSkillにgrader、N/A理由を明示」を優先する。
+
+---
+
+## 10. 備考
 
 - Refs: Issue #117。
 - 前提PR: PR #123（PR1: Skill package構造整理・Portability対応、merge済み）。
 - PR4 は PR2 / PR3 の完了を待たず、PR1 merge後の `main` から独立して実装できる。
 - PR5 Semantic Output Eval は PR4 で deterministic / semantic 境界を明確にした後に進める。
+- 本Planでは「grader数」より「既存contractを壊さず、false-passを防ぎつつ、評価可能範囲だけを実装すること」を優先する。
+- stable serialization がない Skill を N/A にすることは不足ではなく、PR4 の責務を守るための意図的な境界判断である。
 - この Plan commit では実装を行わない。grader、fixture、script、package command、CI、Skill contract の変更は後続実装で行う。
