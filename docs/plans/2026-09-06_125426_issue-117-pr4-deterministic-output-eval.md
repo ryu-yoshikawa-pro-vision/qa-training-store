@@ -426,7 +426,7 @@ stable representationがなければN/A。
 stable candidate serializationが確認できた場合だけ次を評価候補とする。
 
 - required field omission。
--既存contractで明示されたallowed values。
+- 既存contractで明示されたallowed values。
 - evidence non-empty。
 - authoritative target catalogが解決できる場合のunknown target。
 - authoritative failure taxonomyが解決できる場合のunknown category。
