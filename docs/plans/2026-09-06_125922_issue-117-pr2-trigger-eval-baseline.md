@@ -36,6 +36,7 @@ caseごとのclone manager
 project trust manager
 hook trust manager
 trust state parser / editor
+session correlation framework
 ```
 
 ---
@@ -78,6 +79,7 @@ repair-loop
 - [ ] trust設定はrunnerが作成・変更しない。
 - [ ] current Codex Hostが実際に使用したSkillをHost-native evidenceから観測する。
 - [ ] positive / negative observation controlでSkill readをtrigger proxyとして利用できることを実測確認する。
+- [ ] Observation Probeはrunner実装前のmanual technical checkとして行い、Probe専用のcommitted scriptは追加しない。
 - [ ] routing observationとtask completionを分離する。
 - [ ] timeout / abnormal process termination / terminal event欠落では、途中Skill readがあっても最終Skill集合を確定しない。
 - [ ] case outcomeを `pass` / `false_negative` / `sibling_misroute` / `unexpected_trigger` / `unobservable` に分類できる。
@@ -93,6 +95,7 @@ repair-loop
 - [ ] canonical `all` baselineでは4 boundaryの両side、計8 sideすべてについて最低1件はrouting observableである。
 - [ ] `train` / `validation`単独runはdiagnostic用途とし、少なくとも1件routing observableならrun-level successとする。
 - [ ] baselineと後続 `all` runをcase ID単位に比較できる。
+- [ ] comparison JSONのschema / case status fieldを固定し、後続PRが推測せず利用できる。
 - [ ] observation loss / recoveryをrouting failureの改善・悪化と混同しない。
 - [ ] `evaluator_git_sha` でrunner / dataset revisionを特定できる。
 - [ ] `routing_source_git_sha` で実際にrouting対象とした `AGENTS.md` / Skill revisionを特定できる。
@@ -254,18 +257,23 @@ live run開始前にrunnerは以下を確認する。
 Target rootが存在する
 Evaluator rootと別path
 Git working tree / checkoutである
-tracked working-tree diffなし
-staged diffなし
 6 canonical SkillをTarget rootから発見できる
 .agents/skills/*/evals/trigger/** がTarget rootに存在しない
 routing_source_git_sha = Target HEAD
 EvaluatorとTargetのGit common-dir real pathが異なる
 Targetの .git/objects/info/alternates が存在しない、または空である
+Git status上、tracked / staged / non-ignored untracked changeがない
 ```
 
-Git common-dirは `git rev-parse --git-common-dir` の結果を各root基準で解決し、realpath比較する。
+Target clean判定は特別なhook-log allowlistを実装せず、概念上以下が空であることを確認する。
 
-untracked/ignored hook logはlive run中に生成されるため許可する。
+```bash
+git -C <target-root> status --porcelain --untracked-files=all
+```
+
+normal hook log (`.codex/logs/*.jsonl`) は `.codex/logs/.gitignore` でignore済み、fallback log (`.artifacts/**`) もRepository rootでignore済みなので、通常のGit clean判定だけで十分とする。
+
+Git common-dirは `git rev-parse --git-common-dir` の結果を各root基準で解決し、realpath比較する。
 
 ### 3.6 answer-key isolationの保証範囲
 
@@ -308,9 +316,22 @@ PR2 merge後はmain自体にTrigger Eval datasetが入るため、PR3のanswer-k
 
 ## 4. Observation Probe
 
-### 4.1 Trigger proxy
+### 4.1 位置づけ
 
-canonical `SKILL.md` のactual read/openをSkill triggerのobservation proxyとする。
+Observation Probeは**runner実装前のmanual technical check**とする。
+
+目的は、current Codex Hostで「canonical `SKILL.md` のactual read/open」をSkill triggerのobservation proxyとして安定利用できるか確認すること。
+
+Probeのためだけに以下を追加しない。
+
+```text
+committed probe script
+Probe専用CLI option
+Probe専用runner
+session correlation utility
+```
+
+実装者はTarget rootを `-C` に指定して `codex exec` を直接実行し、hook JSONLを直接確認する。Probeで確認したactual tool/input shapeと判断根拠はimplementation Run Artifactへ記録し、そのshapeだけを後続runnerのSkill read selectorへ実装する。
 
 ### 4.2 Positive control
 
@@ -336,9 +357,16 @@ package.json に記載されている package name だけを確認して答え�
 - canonical Skill readが0件。
 - `turn.completed`まで到達し、`observed_skills = []`を確定できる。
 
-### 4.4 Hook correlation
+### 4.4 Hook log path / correlation
 
-各caseでnormal/fallback両方の `hooks-*.jsonl` を、実行前にpath + byte size snapshotする。
+確認対象は以下2箇所。
+
+```text
+<target-root>/.codex/logs/hooks-*.jsonl
+<target-root>/.artifacts/codex-hooks/hooks-*.jsonl
+```
+
+各caseで両directoryを実行前にpath + byte size snapshotする。
 
 1 case = 1 Codex process、sequentialで実行し、after snapshotとの差から新規/増加fileを抽出する。
 
@@ -379,9 +407,30 @@ cases:
     boundary: code-review-vs-repair-loop
 ```
 
-case fieldは `id` / `query` / `expected_skill` / `boundary` だけ。owner / split / polarityはpathとexpectedから導出する。
+case fieldは `id` / `query` / `expected_skill` / `boundary` だけ。
 
-### 5.2 Case ID
+### 5.2 owner / split / polarity derivation
+
+以下を固定する。
+
+```text
+owner_skill
+= dataset fileを所有する .agents/skills/<skill>/ のSkill名
+
+split
+= train.yaml      → train
+= validation.yaml → validation
+
+polarity
+= expected_skill === owner_skill → positive
+= otherwise                       → negative
+```
+
+`otherwise`には「別canonical Skill」と `null` の両方を含む。
+
+したがってpolarityをYAML fieldとして保存しない。
+
+### 5.3 Case ID
 
 ```text
 <owner-skill>-<split>-NNN
@@ -389,7 +438,7 @@ case fieldは `id` / `query` / `expected_skill` / `boundary` だけ。owner / sp
 
 IDはglobal unique。owner/split prefixはfile pathと一致。後続追加で既存IDを詰め直さない。
 
-### 5.3 Boundary enum
+### 5.4 Boundary enum
 
 ```text
 exploratory-qa-vs-android-native-local-validation
@@ -398,33 +447,39 @@ repair-loop-vs-harness-improvement
 feature-plan-vs-direct-implementation
 ```
 
-### 5.4 Boundary integrity / sibling mapping
+### 5.5 Boundary integrity / sibling mapping
 
 ```text
 exploratory-qa-vs-android-native-local-validation
 participants = { exploratory-qa, android-native-local-validation }
+owner_skill / expected_skill はparticipants内
+expected_skillはnull不可
 sibling(exploratory-qa) = android-native-local-validation
 sibling(android-native-local-validation) = exploratory-qa
 
 code-review-vs-repair-loop
 participants = { code-review, repair-loop }
+owner_skill / expected_skill はparticipants内
+expected_skillはnull不可
 sibling(code-review) = repair-loop
 sibling(repair-loop) = code-review
 
 repair-loop-vs-harness-improvement
 participants = { repair-loop, harness-improvement }
+owner_skill / expected_skill はparticipants内
+expected_skillはnull不可
 sibling(repair-loop) = harness-improvement
 sibling(harness-improvement) = repair-loop
 
 feature-plan-vs-direct-implementation
-owner = feature-plan
-expected ∈ { feature-plan, null }
+owner_skill = feature-plan
+expected_skill ∈ { feature-plan, null }
 canonical Skillとしてのsiblingは定義しない
 ```
 
 `sibling_misroute`判定にはこの固定mappingだけを使う。generic graph / routing classifierは作らない。
 
-### 5.5 Initial 24-case matrix
+### 5.6 Initial 24-case matrix
 
 初期値は6 Skill × 2 split × 2 owner case = 24 cases。ただしvalidatorの永久的な `count == 24` invariantにはしない。
 
@@ -447,7 +502,7 @@ canonical Skillとしてのsiblingは定義しない
 
 train / validationは自然な別シナリオとし、単純paraphraseにしない。
 
-### 5.6 Canonical observable boundary-side set
+### 5.7 Canonical observable boundary-side set
 
 canonical `all`では以下8 sideすべてに最低1 observable caseが必要。
 
@@ -464,7 +519,7 @@ feature-plan-vs-direct-implementation / null
 
 train/validation双方でobservableまでは要求しない。割合閾値は導入しない。
 
-### 5.7 Query authoring / manual review
+### 5.8 Query authoring / manual review
 
 禁止:
 
@@ -483,7 +538,7 @@ expected label leakage
 4. label leakageなし。
 5. train / validationが単純paraphraseではない。
 
-### 5.8 Duplicate normalization
+### 5.9 Duplicate normalization
 
 NFKC → trim → whitespace collapse → lowercase。重複検知専用で、Hostにはraw queryを渡す。
 
@@ -571,7 +626,7 @@ expected以外のnon-sibling Skillのみ
 sibling + 別Skill
 expected + extra Skill
 複数のwrong Skill
-feature-plan expected時に任意のcanonical Skillが発火
+feature-plan expected時にfeature-plan以外のcanonical Skillが発火
 ```
 
 `sibling_misroute`は「near-miss boundaryの対向Skillだけへきれいに誤routingした」場合だけを表す。
@@ -598,7 +653,35 @@ skill_read_observation
 6 skill_read_observation
 ```
 
-trusted `turn.completed` / `turn.failed`がある単なるnon-zero exitをprocess_failureへ上書きしない。
+判定treeを以下で固定する。
+
+```text
+process timeout
+→ timeout
+
+spawn failure / signal / trusted terminalなし + non-zero exit
+→ process_failure
+
+turn.failed + Skill read 0件
+→ lifecycle_failure
+
+trusted terminalなしでprocessは通常終了
+または top-level errorだけでturn.completed / turn.failedなし
+→ lifecycle_failure
+
+hook file 0件 / 複数 / size縮小 / non-append
+→ hook_correlation
+
+append deltaをJSONとしてparse不能
+→ hook_parse
+
+hookはparse可能だがProbeで確認したselectorではactual canonical Skill readを信頼判定不能
+→ skill_read_observation
+```
+
+trusted `turn.completed` / `turn.failed`が存在する単なるnon-zero exitは `process_failure` に上書きしない。
+
+priorityは上記条件が複数成立した場合に1 reasonへ決定するためだけに使い、別state machineを作らない。
 
 ### 7.5 Host JSONL / child process
 
@@ -626,7 +709,7 @@ response proseはrouting scoringに使わない。
 
 ## 8. 実装構造
 
-### 8.1 Pure logic
+### 8.1 Deterministic eval logic
 
 ```text
 scripts/evals/skill-trigger-evals.ts
@@ -635,7 +718,8 @@ scripts/evals/skill-trigger-evals.ts
 責務:
 
 - constants / types
-- dataset discovery / YAML parse / validation
+- minimal dataset filesystem discovery / YAML read
+- schema / invariant validation
 - owner / split / polarity derivation
 - boundary integrity / sibling mapping
 - normalization / fingerprint
@@ -644,7 +728,9 @@ scripts/evals/skill-trigger-evals.ts
 - run-level observability判定
 - comparison
 
-plain function / plain object。class hierarchyなし。外部process起動なし。
+filesystem readを含むため厳密な意味でのpure moduleとは呼ばない。とはいえHost / child process / hook / Git操作は持たせない。
+
+plain function / plain objectで実装し、dataset loader / scorer / comparisonを別fileへ分割しない。
 
 ### 8.2 Side-effect runner
 
@@ -665,7 +751,7 @@ scripts/evals/run-skill-trigger-evals.ts
 - hook snapshot / delta
 - actual Skill read extraction
 - routing observability確定
-- pure scorer呼び出し
+- deterministic scorer呼び出し
 - output serialization
 
 HostAdapter/provider interfaceは作らない。Target clone/trust/cleanupもrunnerへ入れない。
@@ -676,7 +762,7 @@ HostAdapter/provider interfaceは作らない。Target clone/trust/cleanupもrun
 tests/repository-contract/skill-trigger-evals.test.ts
 ```
 
-Host Runtimeを起動せず、pure logic + small helperだけをtestする。
+Host Runtimeを起動せず、deterministic logic + small helperだけをtestする。
 
 ### 8.4 Dependency
 
@@ -752,7 +838,9 @@ codex exec --json --ephemeral --sandbox read-only -C <target-root> -
 
 ## 11. Result contract
 
-case:
+### 11.1 Case result
+
+observable例:
 
 ```json
 {
@@ -767,17 +855,22 @@ case:
 }
 ```
 
-unobservable:
+unobservable例:
 
 ```json
 {
+  "id": "feature-plan-validation-002",
+  "owner_skill": "feature-plan",
+  "split": "validation",
+  "boundary": "feature-plan-vs-direct-implementation",
+  "expected_skill": null,
   "observed_skills": null,
   "outcome": "unobservable",
   "unobservable_reason": "timeout"
 }
 ```
 
-top level:
+### 11.2 Top-level result
 
 ```json
 {
@@ -812,6 +905,8 @@ top level:
 
 ## 12. Comparison
 
+### 12.1 Preconditions
+
 `--compare`は`all`のみ。
 
 hard error:
@@ -831,16 +926,56 @@ Codex version
 model provenance
 ```
 
-保存:
+### 12.2 Comparison JSON contract
 
-```text
-baseline_evaluator_git_sha
-baseline_routing_source_git_sha
-baseline_codex_version
-codex_version_match
+current runのtop-level `provenance` / `cases` / `summary` は通常どおり保存し、比較情報を追加の `comparison` objectとして保存する。
+
+最小schemaを以下で固定する。
+
+```json
+{
+  "comparison": {
+    "baseline_evaluator_git_sha": "...",
+    "baseline_routing_source_git_sha": "...",
+    "baseline_codex_version": "...",
+    "codex_version_match": true,
+    "counts": {
+      "unchanged_pass": 0,
+      "fixed": 0,
+      "regressed": 0,
+      "unchanged_failure": 0,
+      "newly_unobservable": 0,
+      "recovered_observable": 0,
+      "unchanged_unobservable": 0
+    },
+    "cases": [
+      {
+        "id": "code-review-train-001",
+        "status": "fixed",
+        "baseline_outcome": "false_negative",
+        "current_outcome": "pass"
+      }
+    ]
+  }
+}
 ```
 
-status:
+`comparison.cases` はcase ID辞書順とする。
+
+comparison caseへ以下は重複保存しない。
+
+```text
+query
+expected_skill
+observed_skills
+owner_skill
+boundary
+split
+```
+
+それらはcurrent result / baseline result側のcaseを正本とする。
+
+### 12.3 Status
 
 ```text
 unchanged_pass
@@ -852,9 +987,43 @@ recovered_observable
 unchanged_unobservable
 ```
 
+transition:
+
+```text
+pass → pass                         = unchanged_pass
+observable failure → pass           = fixed
+pass → observable failure           = regressed
+observable failure → failure        = unchanged_failure
+observable → unobservable           = newly_unobservable
+unobservable → observable           = recovered_observable
+unobservable → unobservable         = unchanged_unobservable
+```
+
+observable failureは以下。
+
+```text
+false_negative
+sibling_misroute
+unexpected_trigger
+```
+
 failure category間の変化は `unchanged_failure`。weighted score / rankingは作らない。
 
-Evaluator semanticsが変わった場合、comparisonはdiagnosticとして実行できるがdescription-only improvementとは解釈しない。対象はSkill read extraction、observability、scoring、outcome classification、comparison transition、`observed_skills` contract、run-level observability contract。
+`recovered_observable`はrouting改善を意味しない。
+
+### 12.4 Evaluator semantics差
+
+Evaluator semanticsが変わった場合、comparisonはdiagnosticとして実行できるがdescription-only improvementとは解釈しない。対象は以下。
+
+```text
+Skill read extraction
+observability判定
+scoring
+outcome classification
+comparison transition
+observed_skills contract
+run-level observability contract
+```
 
 追加のevaluator version/hash frameworkは作らず、`evaluator_git_sha` + Git diffで追跡する。
 
@@ -871,20 +1040,20 @@ sibling_misroute
 unexpected_trigger
 ```
 
-### train / validation
+### 13.1 train / validation
 
 selected cases完走 + output保存 + 1件以上observableでsuccess。
 
-### canonical all
+### 13.2 canonical all
 
 8 `(boundary, expected_skill)` sideすべてに最低1 observable caseが必要。routing outcomeがfailureでもobservableならcoverage成立。
 
-exit 1:
+### 13.3 exit 1
 
 ```text
 dataset / CLI / preflight failure
 TargetとEvaluatorが同一root/common-dir
-Target dirty/staged
+Target dirty（tracked / staged / non-ignored untracked）
 TargetにTrigger Eval datasetあり
 Targetに6 Skill不足
 Target alternates非空
@@ -899,7 +1068,7 @@ train|validation全件unobservable
 allの8 sideいずれかが全件unobservable
 ```
 
-可能ならresultを書いてからexit 1する。
+run-level observability条件を満たさない場合も、可能ならresultを書いてからexit 1する。
 
 ---
 
@@ -910,6 +1079,7 @@ allの8 sideいずれかが全件unobservable
 - 6 Skill / 12 files。
 - YAML / schema_version / exact fields。
 - ID unique / owner split整合。
+- owner / split / polarity derivationが定義どおり。
 - query non-empty。
 - expected canonical/null。
 - 4 boundary。
@@ -933,6 +1103,7 @@ ID duplicate / owner split mismatch
 normalized duplicate
 unknown expected/boundary
 boundary participant mismatch
+positive/negative derivation
 required side欠落
 25件以上でもcontract validならPASS
 ```
@@ -945,8 +1116,12 @@ turn.completed + 0 Skill → []でscore
 turn.failed + Skill → score
 turn.failed + 0 Skill → unobservable/lifecycle_failure/null
 timeout → unobservable/timeout/null
-abnormal no terminal → unobservable/null
-hook correlation / parse failure → unobservable/null
+spawn failure / signal / no-terminal non-zero → process_failure
+normal exit + no trusted terminal → lifecycle_failure
+top-level error only + no trusted terminal → lifecycle_failure
+hook correlation failure → hook_correlation/null
+hook parse failure → hook_parse/null
+selector unreliable → skill_read_observation/null
 unobservableでarray禁止
 observableでnull禁止
 reason priority
@@ -960,7 +1135,9 @@ expected Skill + [boundary sibling]のみ → sibling_misroute
 expected Skill + [non-sibling]のみ → unexpected_trigger
 expected Skill + [sibling, extra] → unexpected_trigger
 expected Skill + [expected, extra] → unexpected_trigger
-feature-plan expected + any canonical Skill → unexpected_trigger
+feature-plan expected + [feature-plan] → pass
+feature-plan expected + [feature-plan以外のcanonical Skill] → unexpected_trigger
+feature-plan expected + [feature-plan, extra] → unexpected_trigger
 observed order invariance
 ```
 
@@ -974,9 +1151,28 @@ all 7 sides only → failure
 routing failureでもobservableならside coverage成立
 ```
 
-Comparisonは7 transition、fingerprint/ID mismatch、Codex version match/mismatchをtestする。
+Comparison:
 
-Runner helperはTarget dirty/dataset/common-dir/alternates、SHA取得、Evaluator source consistencyをtestする。trust stateのunit test/mock frameworkは作らない。
+```text
+7 transition全部
+fingerprint mismatch
+case ID mismatch
+Codex version match / mismatch
+comparison JSON counts
+comparison.cases stable sort
+```
+
+Runner helper:
+
+```text
+Target dirty / dataset present / common-dir shared / alternates non-empty
+Target clean statusは通常のGit status判定だけ
+routing_source_git_sha = Target HEAD
+evaluator_git_sha = Evaluator HEAD
+Evaluator source consistency
+```
+
+trust stateのunit test/mock frameworkは作らない。
 
 ### 14.3 CI
 
@@ -992,38 +1188,42 @@ Runner helperはTarget dirty/dataset/common-dir/alternates、SHA取得、Evaluat
 4. implementation Run開始。
 5. remoteからindependent current-main Targetを1回clone。
 6. 通常手順でproject trust / hook trust。
-7. Observation Probe。
-8. Probe失敗時はtrust/config/hooksを先に切り分け。
-9. trust成立後もProbe不成立ならblocker。
-10. 4 boundaryをrouting SSOTと照合。
-11. 24 cases / 12 YAML作成。
-12. 全case manual review。
-13. pure logic / runner / tests / package実装。
-14. deterministic/repository validation。
-15. source implementation commit。active Run Artifactは含めない。
-16. `evaluator_git_sha`確定。
-17. baseline直前にlatest main再取得。
-18. routing/observation差分確認。
-19. 同じTargetをfetchし `routing_source_git_sha` へdetached checkout。
-20. relevant changeならtrust確認 / Probe再実行 / evaluator再validate。
-21. Target preflight。
-22. Evaluator source clean確認。
-23. canonical `all`を1回実行。
-24. baseline JSON保存。
-25. 8 side observability確認。
-26. unobservableの`observed_skills = null`確認。
-27. routing failureを見てもdescription変更しない。
-28. evaluation/reportからbaseline参照。
-29. Run Artifact sanitization。
-30. final scope diff。
-31. baseline / standard Run Artifactを後続commit。
-32. Target cleanup。
+7. runner実装前にmanual Observation Probeを実施。
+8. Probeでは `codex exec` を直接実行し、normal/fallback hook JSONLを直接確認する。
+9. Probeで確認したactual tool/input shapeをRun Artifactへ記録する。
+10. Probe失敗時はtrust/config/hooksを先に切り分ける。
+11. trust成立後もProbe不成立ならblocker。
+12. 4 boundaryをrouting SSOTと照合。
+13. 24 cases / 12 YAML作成。
+14. 全case manual review。
+15. deterministic eval logic / runner / tests / package実装。
+16. deterministic/repository validation。
+17. source implementation commit。active Run Artifactは含めない。
+18. `evaluator_git_sha`確定。
+19. baseline直前にlatest main再取得。
+20. routing/observation差分確認。
+21. 同じTargetをfetchし `routing_source_git_sha` へdetached checkout。
+22. relevant changeならtrust確認 / manual Probe再実行 / evaluator再validate。
+23. Target preflight。
+24. Evaluator source clean確認。
+25. canonical `all`を1回実行。
+26. baseline JSON保存。
+27. 8 side observability確認。
+28. unobservableの`observed_skills = null`確認。
+29. routing failureを見てもdescription変更しない。
+30. evaluation/reportからbaseline参照。
+31. Run Artifact sanitization。
+32. final scope diff。
+33. baseline / standard Run Artifactを後続commit。
+34. Target cleanup。
 
 baseline artifact自身を`evaluator_git_sha` commitへ自己参照させない。
 
 ---
 
 ## 16. Canonical commands
+
+Validate:
 
 ```bash
 pnpm run eval:skills:trigger:validate
@@ -1033,6 +1233,21 @@ Target preparation:
 
 ```bash
 git clone --no-tags --single-branch --branch main <REMOTE_REPOSITORY_URL> <target-root>
+```
+
+Manual Observation Probe:
+
+```text
+current Codexの通常手順でTargetをtrust
+↓
+codex exec --json --ephemeral --sandbox read-only -C <target-root> -
+↓
+positive / negative controlを個別実行
+↓
+<target-root>/.codex/logs/hooks-*.jsonl
+または
+<target-root>/.artifacts/codex-hooks/hooks-*.jsonl
+を直接確認
 ```
 
 baseline直前:
@@ -1078,14 +1293,16 @@ Canonical baselineで最低限確認:
 - 1 case = 1 fresh process。
 - 6 Skill同時条件。
 - answer-key-free independent Target。
+- normal Git statusでTarget clean。
 - common-dir非共有 / alternatesなし。
 - prompt metadata leakageなし。
 - evaluator/routing SHA一致確認。
 - fingerprint provenance。
-- lifecycle rules。
+- lifecycle / unobservable_reason decision tree。
 - `[]` / `null` invariant。
 - clean sibling-onlyだけが `sibling_misroute`。
 - non-sibling / multiple triggerは `unexpected_trigger`。
+- comparison JSON contract。
 - stable sort。
 - 8 boundary side observable。
 
@@ -1121,6 +1338,7 @@ generic sanitizer / snapshot framework
 container / VM / custom permission framework
 workspace reset / case-per-clone
 project trust / hook trust manager
+Probe専用committed script / Probe framework
 ```
 
 ---
@@ -1147,13 +1365,14 @@ Run Artifact:
 成功条件:
 
 - deterministic / repository validation PASS。
-- Probe成立。
+- manual Probe成立。
 - 24 cases manual review完了。
 - answer-key-free Targetでcanonical baseline取得。
 - 8 sideすべてobservable。
 - `sibling_misroute`と`unexpected_trigger`をnear-miss boundaryに沿って正しく区別できる。
+- `unobservable_reason`が決定treeどおり一意に分類できる。
 - evaluator/routing provenanceを特定可能。
-- comparison contract成立。
+- comparison JSON / transition contract成立。
 - description tuning 0件。
 - custom Runtime / classifier / judge / trust automation 0件。
 
@@ -1172,12 +1391,15 @@ blocker時は評価方式を捏造せず停止し、Run Artifactへ理由を記�
 - PR2の価値はscoreの高さではなく、description変更前のrouting baselineを再測定できることにある。
 - 24 casesは統計benchmarkではなく回帰baseline。
 - `validation`はoperational validation split。
+- polarityは `expected_skill === owner_skill` のみpositive、それ以外はnegative。
 - `sibling_misroute`はnear-miss boundaryの対向Skillだけへの単独誤routingを意味する。
 - non-sibling / multi-triggerを`sibling_misroute`へ丸めない。
 - answer-key isolationはRepository/Git contextの汚染防止でありsecurity sandboxではない。
 - project/hook trustはenvironment prerequisiteでrunner責務ではない。
+- Observation Probeはrunner実装前のmanual technical checkであり、Probe frameworkを作らない。
 - `observed_skills = []` は0 Skill確定、`null`は最終集合確定不能。
-- pure logic + side-effect runnerの2file分離は最小のtestability分離。
+- `skill-trigger-evals.ts`はdeterministic eval logic + minimal dataset readsに留め、pure性のためだけにfileを増やさない。
+- Target clean判定は通常のGit statusへ寄せ、hook-log専用allowlistを作らない。
 - read-only sandbox、no retry、sequentialを維持する。
 - PR3のTarget作成問題をPR2で一般化しない。
 - Evaluator semantics変更時のcomparisonをdescription-only effectと断定しない。
