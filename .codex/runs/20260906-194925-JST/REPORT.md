@@ -101,3 +101,12 @@
 - Validation: `pnpm run typecheck` PASS、targeted test PASS（1 file / 8 tests）、`pnpm run verify` 2回目PASS（35 files / 503 tests passed / 3 skipped、build:web / build:spec含む）。`git diff --check`（working tree）とPlan単体markdownlintもPASS。残りはsanitizer、commit後`git diff --check main...HEAD`、PR本文更新、push。
 - Decision: repair-loopはiteration 1でsuccess条件へ到達したため追加の実装修正を行わず、Git / PR反映と最終証跡へ進む。
 - Progress: 77% (10/13)
+
+## 2026-09-06 22:20 (JST)
+
+- Summary: PR #126の残対応を完了した。正本Planの指定lint / whitespace問題とCode Quality Typecheck failureを最小範囲で修正し、実装済み状態へPR本文を更新した。
+- Changes: `0be3944`（`fix: complete PR4 validation gates`）を作成し、graderのstrict型修正、正本PlanのMD038 / MD010 / line 550 trailing tab修正、Run Artifact更新をcommitした。Planの意味・仕様・DoD・分類・実装方針は変更していない。
+- Validation: targeted test PASS（1 file / 8 tests）、`pnpm run typecheck` PASS、`pnpm run verify` PASS（35 files / 503 tests passed / 3 skipped、build:web / build:spec含む）、commit後`git diff --check main...HEAD` PASS、sanitizer Write / Check PASS（`residual_findings: 0`）。初回verifyの既存契約テスト一過性FAILは単独再実行でPASSし、最終gateはPASSした。
+- Git / PR: `git push origin HEAD:test/117-pr4-deterministic-output-eval`は成功した。PR #126はopen、headは`0be3944`、本文は実装・検証済み状態へ更新済みで、mergeは行っていない。
+- Scope: 変更はgrader、正本Plan、Run Artifactに限定した。Product Code、dependency / lockfile、workflow、`.codex/agents/**`、N/A Skill graderの変更はない。direct Contract driftはない。
+- Progress: 100% (13/13)
