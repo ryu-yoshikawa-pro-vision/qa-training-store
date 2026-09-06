@@ -7,9 +7,34 @@
 - 実装ブランチ: `refactor/117-pr2-trigger-eval-baseline`
 - 目的: PR3 で Skill `description` を変更する前に、現状の Skill routing を再測定・比較できる baseline として固定する。
 
-PR2 は routing を改善する PR ではない。baseline で failure が見つかっても、PR2 内では Skill `description` や routing contract を変更しない。
+PR2 は routing を改善する PR ではない。
 
-実装は最小に保つ。Repository 独自 Agent Runtime、routing engine、keyword/regex classifier、LLM judge、汎用 Host abstraction、general shell parser、retry framework、parallel runner、統計評価基盤は作らない。
+baseline で failure が見つかっても、PR2 内では以下を変更しない。
+
+```text
+.agents/skills/*/SKILL.md の description
+AGENTS.md の routing 意味契約
+Product behavior
+```
+
+実装は最小に保つ。
+
+以下は作らない。
+
+```text
+Repository 独自 Agent Runtime
+routing engine
+keyword / regex classifier
+LLM judge
+general Host abstraction
+general shell parser
+retry framework
+parallel runner
+statistical evaluation framework
+generic sanitizer / snapshot builder
+temporary Git tree rewrite framework
+checkout / clone lifecycle manager
+```
 
 ---
 
@@ -19,7 +44,7 @@ PR2 は routing を改善する PR ではない。baseline で failure が見つ
 
 6 Skill すべてについて positive / negative の Trigger Eval query を train / validation に分離し、6 Skill が同時に利用可能な現行 Codex Host 上で routing を評価する。
 
-評価結果は machine-readable に保存し、後続 run で case ID 単位に比較できるようにする。
+評価結果を machine-readable に保存し、後続 run と case ID 単位で比較できるようにする。
 
 ### 1.2 対象 Skill
 
@@ -42,8 +67,9 @@ repair-loop
 - [ ] normalized duplicate query がない。
 - [ ] Issue #117 指定の4 near-miss boundaryを train / validation 双方で両側からカバーする。
 - [ ] canonical eval は6 Skill同時条件で実行する。
-- [ ] Host へ渡すのは dataset の自然な `query` 本文だけであり、expected label / owner / split / boundary / case ID を prompt に混ぜない。
-- [ ] Host working tree に Trigger Eval dataset / PR2 Plan / PR2 Run Artifact / baseline result を置かない。
+- [ ] Host へ渡すのは dataset の raw `query` 本文だけであり、expected label / owner / split / boundary / case ID を prompt に混ぜない。
+- [ ] Routing Target の working tree / Git refs / Git object database から PR2 Trigger Eval answer keyへ到達できない構成にする。
+- [ ] Routing Target と Evaluator は同じ Git common-dir を共有しない。
 - [ ] current Codex Host が実際に使用した Skill を Host-native evidence から観測する。
 - [ ] positive / negative observation control で Skill read を trigger proxy として利用できることを実測確認する。
 - [ ] routing observation と task completion を分離する。
@@ -54,14 +80,15 @@ repair-loop
 - [ ] live runner は `train` / `validation` / `all` を選択できる。
 - [ ] PR2 canonical baseline は `all` で1回取得する。
 - [ ] baseline と後続 `all` run を case ID 単位に比較できる。
-- [ ] observation loss/recovery を routing failure の改善・悪化と混同しない。
-- [ ] `evaluator_git_sha` でrunner/dataset revisionを特定できる。
+- [ ] observation loss / recovery を routing failure の改善・悪化と混同しない。
+- [ ] `evaluator_git_sha` でrunner / dataset revisionを特定できる。
 - [ ] `routing_source_git_sha` で実際にrouting対象とした `AGENTS.md` / Skill revisionを特定できる。
 - [ ] 一部caseの routing failure / observation failure は runner 自体の failure にしない。
 - [ ] selected caseが全件 `unobservable` のrunは成功扱いにしない。
 - [ ] comparison時のCodex version差を条件差として明示できる。
+- [ ] Evaluator logicの意味変更があるcomparisonを description-only improvement と誤認しない。
 - [ ] live eval は `pnpm run verify` の hard gate にしない。
-- [ ] deterministic dataset validation と pure scoring/comparison test のみ CI gate にする。
+- [ ] deterministic dataset validation と pure scoring / comparison test のみ CI gate にする。
 - [ ] 6 Skill の `description` を変更していない。
 - [ ] `AGENTS.md` の routing 意味契約を変更していない。
 - [ ] Product code / Product test / training content を変更していない。
@@ -70,15 +97,15 @@ repair-loop
 
 ---
 
-## 2. 実装開始前の前提確認
+## 2. 実装開始前 / baseline直前の前提確認
 
-### 2.1 Latest `main` を基準にする
+### 2.1 実装開始時に latest `main` を確認する
 
-PR2 baseline は「description変更前の current routing」を測るため、実装開始時に latest `main` との差分を必ず確認する。
+PR2 baseline は「description変更前の current routing」を測るため、実装開始時に latest `main` との差分を確認する。
 
 branch が `main` に behind している場合は incoming diff を確認する。
 
-特に以下への変更を確認する。
+特に以下を見る。
 
 ```text
 AGENTS.md
@@ -99,14 +126,15 @@ behind > 0 かつ routing / observation 契約へ影響なし
 → latest main を branch へ取り込んで継続
 
 behind > 0 かつ routing / observation 契約へ影響あり
-→ latest main を branch へ取り込み、この Plan の前提 / expected routing / observation方法を再確認してから継続
+→ latest main を branch へ取り込む
+→ expected routing / observation前提を再確認してから継続
 ```
 
-merge / rebase の方法そのものは PR2 の評価設計ではないため固定しない。
+merge / rebase の方法自体はPR2の評価設計ではないため固定しない。
 
-### 2.2 Baseline直前にも latest `main` を再確認する
+### 2.2 canonical baseline直前にも latest `main` を再確認する
 
-実装開始後に `main` が進む可能性があるため、canonical baseline直前に remote latest `main` を再取得する。
+実装中に `main` が進む可能性があるため、canonical baseline直前にremote latest `main`を再取得する。
 
 確認対象:
 
@@ -122,14 +150,16 @@ Skill discovery / routing / observation に関わる共通 infrastructure
 
 ```text
 latest main が実装開始時から不変
-→ そのSHAを routing_source_git_sha としてbaselineへ進む
+→ そのSHAを routing_source_git_sha とする
 
 latest main が進んだがrouting/observation無関係
-→ 新しいlatest main SHAを routing_source_git_sha としてbaselineへ進む
+→ 新しいlatest main SHAを routing_source_git_sha とする
 
 latest main がrouting/observationへ影響する変更を含む
-→ baselineを開始せず、expected routing / probe / runner前提を再確認する
-→ 必要な修正をEvaluator branchへ反映して再validateし、新しい evaluator_git_sha を確定してからbaselineへ進む
+→ baselineを開始しない
+→ expected routing / probe / runner前提を再確認する
+→ 必要ならEvaluator branchへ最小修正を反映する
+→ 再validate後に新しい evaluator_git_sha を確定する
 ```
 
 PR2 canonical baseline の routing subject は、baseline直前に確定した latest `main` とする。
@@ -156,7 +186,7 @@ Hook loggerをTrigger Eval専用に改造しない。
 
 ### 3.1 2つのrevisionを分離する
 
-PR2ではEvaluatorとrouting subjectを同じcommitにしない。
+PR2ではEvaluatorとrouting subjectを別revisionとして扱う。
 
 ```text
 Evaluator root
@@ -168,11 +198,12 @@ Evaluator root
 - HEAD = evaluator_git_sha
 
 Routing Target root
-- baseline直前に確定した latest main の clean checkout
+- baseline直前に確定した latest main の独立clone
 - Codex の -C に渡す
 - current AGENTS.md / 6 Skills / Repository sourceを持つ
 - PR2 Trigger Eval datasetを持たない
 - PR2 Plan / PR2 Run Artifact / baseline resultを持たない
+- Evaluator repositoryのGit refs / object databaseを共有しない
 - HEAD = routing_source_git_sha
 ```
 
@@ -183,25 +214,35 @@ dataset / expected label = Evaluator root
 Host working directory   = Routing Target root
 ```
 
-この分離により、answer keyを削除・sanitizationする特殊なworking treeを作らずに済む。
+### 3.2 PR2 Routing Targetは独立cloneで作る
 
-### 3.2 PR2 Routing Targetの作成
+`git worktree` は使わない。
 
-PR2 baselineでは `routing_source_git_sha` 自体がTrigger Eval追加前のlatest mainなので、通常のclean detached worktreeだけでよい。
+linked worktreeはEvaluator repositoryとGit common-dir / refs / object databaseを共有し、working treeにdatasetがなくてもEvaluator branchのanswer keyへGit経由で到達できるためである。
+
+PR2 baselineでは、baseline直前のlatest mainから独立cloneを用意する。
+
+例:
 
 ```bash
-git worktree add --detach <target-root> <routing_source_git_sha>
+git clone --no-tags --single-branch --branch main <repository-url> <target-root>
+git -C <target-root> checkout --detach <routing_source_git_sha>
 ```
 
-Target内のfileを削除・書換えしない。
+clone後、Target内のfileを削除・書換えしない。
 
-以下は実装しない。
+runner自身には以下を実装しない。
 
-- Targetからdatasetを削除する処理。
-- Targetの削除diffを許可する特殊preflight。
-- generic sanitizer。
-- temporary Git tree rewriting。
-- runnerによるworktree lifecycle管理。
+```text
+clone作成
+checkout管理
+cleanup
+generic sanitizer
+temporary Git tree rewrite
+snapshot builder
+```
+
+Target preparationは実行手順でありrunner機能ではない。
 
 ### 3.3 Routing Target preflight
 
@@ -216,15 +257,60 @@ staged diffなし
 6 canonical SkillをTarget rootから発見できる
 .agents/skills/*/evals/trigger/** がTarget rootに存在しない
 routing_source_git_sha = Target HEAD
+EvaluatorとTargetのGit common-dir real pathが異なる
 ```
+
+Git common-dir比較は、概念上以下で取得したpathをrealpath化して比較する。
+
+```bash
+git -C <root> rev-parse --git-common-dir
+```
+
+相対pathが返る場合は各root基準で解決してから比較する。
+
+同じGit common-dirなら、linked worktreeまたは同一repository内の別working treeとみなしexit 1とする。
 
 untracked/ignored hook logはlive run中に生成されるため許可する。
 
 Targetがdirtyなら理由を推測せずexit 1とする。
 
-### 3.4 Evaluator root consistency
+### 3.4 answer-key isolationの保証範囲
 
-Evaluator側はrunner/datasetを含むsource implementation commitを先に確定する。
+PR2が保証するのは、**Routing TargetのRepository/Git contextからEvaluator answer keyを除外すること**である。
+
+保証対象:
+
+```text
+Routing Target working tree
+Routing Target Git refs
+Routing Target Git object database
+Host prompt
+```
+
+PR2で保証しないもの:
+
+```text
+OS全体でのfilesystem confidentiality
+別process / 別userによる強制隔離
+container / VM sandbox境界
+adversarial Hostに対するsecurity boundary
+```
+
+したがって、PR2のanswer-key isolationのためだけに以下を追加しない。
+
+```text
+container
+別OS user
+custom sandbox runtime
+permission-profile framework
+VM
+```
+
+目的はTrigger Eval contaminationを通常のRepository contextから排除することであり、security sandboxを構築することではない。
+
+### 3.5 Evaluator root consistency
+
+Evaluator側はrunner / datasetを含むsource implementation commitを先に確定する。
 
 ```text
 Evaluator HEAD = evaluator_git_sha
@@ -254,13 +340,15 @@ AGENTS.md
 
 未commit source差分がある場合はbaselineを開始せず、commitまたはrestoreして `evaluator_git_sha` を確定する。
 
-### 3.5 Dataset fingerprint
+ignored hook log等はsource dirty判定へ含めない。
+
+### 3.6 Dataset fingerprint
 
 `dataset_sha256` はEvaluator rootの12 dataset filesから計算する。
 
 Target rootにはTrigger Eval datasetを置かないため、Targetからfingerprintを計算しない。
 
-### 3.6 後続PRへの境界
+### 3.7 後続PRへの境界
 
 PR2 runner contractとして、live Host TargetにはTrigger Eval answer keyが存在してはいけないことだけを固定する。
 
@@ -278,7 +366,7 @@ PR2は「canonical `SKILL.md` の actual read/open」を Skill trigger の obser
 
 このproxyが current Codex で成立することを、scored dataset実装前に2件のunscored technical controlで確認する。
 
-probeはanswer keyのないclean routing Targetで行う。
+probeもanswer keyのない独立Routing Targetで行う。
 
 ### 4.2 Positive control
 
@@ -325,10 +413,10 @@ ThreadId / SessionId変換は実装しない。
 
 手順:
 
-1. 実行前に path + byte size をsnapshot。
-2. Codex processを1件だけ実行。
-3. 実行後snapshot。
-4. 新規またはsize増加fileを抽出。
+1. 実行前に path + byte size をsnapshotする。
+2. Codex processを1件だけ実行する。
+3. 実行後snapshotする。
+4. 新規またはsize増加fileを抽出する。
 5. exactly 1 fileならそのappend deltaだけ読む。
 6. 0 / 複数 / size縮小 / non-append change は `unobservable`。
 
@@ -340,10 +428,12 @@ probeで観測した current Codex の具体的な tool/input shapeだけを扱�
 
 禁止:
 
-- arbitrary shell language parser。
-- loose regexでpath文字列だけをread扱い。
-- query内容からexpected Skillを逆算するclassifier。
-- LLM judge。
+```text
+arbitrary shell language parser
+loose regexでpath文字列だけをread扱い
+query内容からexpected Skillを逆算するclassifier
+LLM judge
+```
 
 actual readを安定判定するためにgeneral shell parserが必要になる場合はPR2 blockerとする。
 
@@ -455,7 +545,7 @@ PR2 initial dataset は exactly 24 cases で作る。
 | `android-native-local-validation` | 001 | `android-native-local-validation` | `exploratory-qa-vs-android-native-local-validation` | Native local validation |
 | `android-native-local-validation` | 002 | `exploratory-qa` | `exploratory-qa-vs-android-native-local-validation` | Androidを含むがProduct behavior探索が主目的 |
 | `code-review` | 001 | `code-review` | `code-review-vs-repair-loop` | review-only |
-| `code-review` | 002 | `repair-loop` | `code-review-vs-repair-loop` | 確定済みfinding/validation failureの修正 |
+| `code-review` | 002 | `repair-loop` | `code-review-vs-repair-loop` | 確定済みfinding / validation failureの修正 |
 | `repair-loop` | 001 | `repair-loop` | `repair-loop-vs-harness-improvement` | 現在のcode/test failureのbounded repair |
 | `repair-loop` | 002 | `harness-improvement` | `repair-loop-vs-harness-improvement` | run/eval結果からharness改善候補を作る |
 | `harness-improvement` | 001 | `harness-improvement` | `repair-loop-vs-harness-improvement` | harness改善候補作成 |
@@ -463,7 +553,9 @@ PR2 initial dataset は exactly 24 cases で作る。
 | `feature-plan` | 001 | `feature-plan` | `feature-plan-vs-direct-implementation` | 計画だけを求める |
 | `feature-plan` | 002 | `null` | `feature-plan-vs-direct-implementation` | plan artifact不要の明確な単純実装 |
 
-この12配置をtrain / validationの双方で作る。ただしqueryは別の自然なシナリオとし、単純paraphraseにしない。
+この12配置をtrain / validationの双方で作る。
+
+ただしqueryは別の自然なシナリオとし、単純paraphraseにしない。
 
 ### 5.7 Query authoring rule
 
@@ -481,7 +573,7 @@ semantic correctnessはLLM validatorを作らず、人間/実装者レビュー�
 全caseについて以下を確認する。
 
 1. single-intentである。
-2. routing Targetの `AGENTS.md` / `SKILL.md` から `expected_skill` を説明できる。
+2. Routing Targetの `AGENTS.md` / `SKILL.md` から `expected_skill` を説明できる。
 3. boundaryの両側のうち、なぜexpected側なのか説明できる。
 4. Skill名 / expected labelがqueryに露出していない。
 5. train / validationが単純paraphraseではない。
@@ -503,7 +595,9 @@ Hostにはraw queryをそのまま渡す。
 
 ## 6. Train / validationの位置づけ
 
-`validation` は秘密のblind holdoutではない。YAMLはRepositoryにcommitされるため、人間やAgentから読める。
+`validation` は秘密のblind holdoutではない。
+
+YAMLはRepositoryにcommitされるため、人間やAgentから読める。
 
 PR2で保証するのは以下だけ。
 
@@ -638,7 +732,9 @@ hookは読めるがactual Skill read selectorを信頼できない
 → skill_read_observation
 ```
 
-自由文error dumpはbaseline JSONへ保存しない。詳細は一時logまたはRun Artifactに必要な要約だけ残す。
+自由文error dumpはbaseline JSONへ保存しない。
+
+詳細は一時logまたはRun Artifactに必要な要約だけ残す。
 
 ### 7.5 JSONL lifecycle
 
@@ -680,7 +776,9 @@ scripts/evals/skill-trigger-evals.ts
 - summary aggregation
 - baseline comparison
 
-plain function / plain objectで実装する。class hierarchyは作らない。
+plain function / plain objectで実装する。
+
+class hierarchyは作らない。
 
 外部processを起動しない。
 
@@ -698,6 +796,7 @@ scripts/evals/run-skill-trigger-evals.ts
 - Evaluator / Routing Target preflight
 - Evaluator root dataset load
 - `evaluator_git_sha` / `routing_source_git_sha` 取得
+- Evaluator / Target Git common-dir非共有確認
 - `codex --version` 取得
 - `codex exec` spawn / stdin
 - timeout
@@ -710,7 +809,7 @@ scripts/evals/run-skill-trigger-evals.ts
 
 HostAdapter/provider interfaceは作らない。
 
-Target checkoutの作成・削除はrunnerへ入れない。
+Target cloneの作成・削除はrunnerへ入れない。
 
 ### 8.3 Deterministic test
 
@@ -720,9 +819,13 @@ Target checkoutの作成・削除はrunnerへ入れない。
 tests/repository-contract/skill-trigger-evals.test.ts
 ```
 
-Host Runtimeは起動しない。pure logicを中心に検証する。
+Host Runtimeは起動しない。
 
-side-effect runnerのために大きなmock frameworkを作らない。small helperとして切り出せるpreflight / observability判定だけを必要範囲でtestする。
+pure logicを中心に検証する。
+
+side-effect runnerのために大きなmock frameworkを作らない。
+
+small helperとして切り出せるpreflight / observability判定だけを必要範囲でtestする。
 
 ### 8.4 Dependency
 
@@ -768,6 +871,7 @@ side-effect runnerのために大きなmock frameworkを作らない。small hel
 - dataset sourceには使用しない。
 - Evaluator rootと別path。
 - clean Git checkout。
+- EvaluatorとGit common-dirを共有しない。
 - `.agents/skills/*/evals/trigger/**` が存在してはいけない。
 - `routing_source_git_sha` はTarget HEADから取得する。
 
@@ -797,7 +901,7 @@ retry count
 repeat count
 model sweep
 statistical sampling
-checkout/worktree create/remove
+checkout / clone create/remove
 sanitizer profile
 routing source override
 ```
@@ -851,7 +955,9 @@ codex --version
 
 trimしたstdout文字列を `provenance.codex_version` に保存する。
 
-取得不能ならlive run全体を開始せずexit 1とする。versionを推測しない。
+取得不能ならlive run全体を開始せずexit 1とする。
+
+versionを推測しない。
 
 modelは確実に観測できない場合 `unreported`。
 
@@ -897,7 +1003,9 @@ modelは確実に観測できない場合 `unreported`。
 }
 ```
 
-`query`はresultへ複製しない。queryのSSOTはdataset YAML。
+`query`はresultへ複製しない。
+
+queryのSSOTはdataset YAML。
 
 ### 11.2 Provenanceの意味
 
@@ -1004,7 +1112,31 @@ Codex versionが異なる場合もcase comparisonは実行するが、descriptio
 
 `REPORT.md` にもversion / routing source等の条件差を要約する。
 
-### 12.3 Status
+### 12.3 Evaluator logic変更時の解釈
+
+comparisonのcase transitionは、dataset fingerprint / case ID setが一致すれば機械的には算出してよい。
+
+ただし、以下の意味変更がbaseline後に入った場合は、そのcomparisonを **description-only improvement** と解釈しない。
+
+```text
+Skill read extraction semantics
+routing observability判定
+scoring rules
+outcome classification
+comparison transition rules
+```
+
+この場合:
+
+1. comparison自体はdiagnostic/referenceとして保存してよい。
+2. `REPORT.md` にEvaluator logic差があることを明記する。
+3. 必要であれば新Evaluator contractでbaselineを取り直す。
+
+PR2では、Evaluator semantic compatibilityを自動判定するための追加hash / versioning frameworkを作らない。
+
+`evaluator_git_sha` とGit diffで追跡できれば十分とする。
+
+### 12.4 Status
 
 observable failure:
 
@@ -1039,13 +1171,15 @@ unobservable → unobservable
 = unchanged_unobservable
 ```
 
-`recovered_observable` はrouting改善を意味しない。current outcomeも併記する。
+`recovered_observable` はrouting改善を意味しない。
+
+current outcomeも併記する。
 
 failure categoryが別failure categoryへ変化しても `unchanged_failure`。
 
 ranking / weighted score / severity scoreは作らない。
 
-### 12.4 Comparison output
+### 12.5 Comparison output
 
 ```json
 {
@@ -1106,6 +1240,7 @@ routing qualityは評価データでありCLI failureではない。
 - Target tracked/staged dirty。
 - Target rootにTrigger Eval datasetが存在する。
 - Target rootで6 canonical Skillをdiscoverできない。
+- Evaluator / Targetが同じGit common-dirを共有する。
 - Evaluator rootにcurrent Run Directory以外のsource差分がある。
 - outputがTarget root配下。
 - `--compare` と `train|validation`併用。
@@ -1117,7 +1252,7 @@ routing qualityは評価データでありCLI failureではない。
 
 全件unobservableの場合も、可能ならcase result / summaryをoutputへ書いてからexit 1とする。
 
-一部caseのtimeout/process/lifecycle/hook failureは`unobservable`として保存し、全件でない限りrun-level exit 1へ直結させない。
+一部caseのtimeout / process / lifecycle / hook failureは`unobservable`として保存し、全件でない限りrun-level exit 1へ直結させない。
 
 ---
 
@@ -1193,6 +1328,8 @@ Runner helper:
 
 - Target dirtyならpreflight FAIL。
 - TargetにTrigger Eval datasetが存在すればpreflight FAIL。
+- Evaluator / TargetのGit common-dirが同一ならpreflight FAIL。
+- Git common-dirが別ならその理由だけでFAILしない。
 - `routing_source_git_sha` はTarget HEADから取得。
 - `evaluator_git_sha` はEvaluator HEADから取得。
 - selected cases全件unobservableならrun-level failure判定。
@@ -1211,7 +1348,7 @@ live Codex evalはCI gateにしない。
 2. behindならincoming diffを確認し、必要に応じlatest mainをbranchへ取り込む。
 3. current 6 Skill descriptionsを記録し、PR2中の変更禁止を確認する。
 4. Evaluator rootでimplementation Runを開始する。
-5. answer keyのないclean current-main TargetでObservation Probeを実施する。
+5. answer keyのない独立current-main cloneでObservation Probeを実施する。
 6. probe不成立なら独自classifier/parserを作らずblockerとして停止する。
 7. 4 boundaryをcurrent routing SSOTと照合する。
 8. initial 24 cases / 12 YAMLを作成する。
@@ -1224,14 +1361,14 @@ live Codex evalはCI gateにしない。
 15. latest mainのrouting/observation関連diffを確認する。
 16. routing/observation関連変更があれば、baselineを止めてexpected/probe/runner前提を再確認する。
 17. baseline対象として確定したlatest main SHAを `routing_source_git_sha` とする。
-18. `routing_source_git_sha` からclean detached Target rootを作る。
-19. Target clean / 6 Skills存在 / Trigger Eval dataset不存在をpreflightする。
+18. latest mainの独立cloneをRouting Targetとして用意し、`routing_source_git_sha`へdetached checkoutする。
+19. Target clean / 6 Skills存在 / Trigger Eval dataset不存在 / Git common-dir非共有をpreflightする。
 20. Evaluator rootにcurrent Run Directory以外のsource差分がないことを確認する。
 21. canonical `--split all` baselineを1回実行する。
 22. baseline JSONをEvaluator rootのRun Directoryへ保存する。
 23. selected 24 casesが全件unobservableでないことを確認する。
 24. routing failureを見てもdescription / routing contractを変更しない。
-25. Target rootをcleanupする。
+25. Target cloneをcleanupする。
 26. Run-level `evaluation.json` / `REPORT.md` からbaseline artifactを参照する。
 27. Run Artifact sanitizationを行う。
 28. final diffでscope逸脱がないことを確認する。
@@ -1254,10 +1391,13 @@ pnpm run eval:skills:trigger:validate
 baseline直前のlatest main SHAを確定する。
 
 ```bash
-git worktree add --detach <target-root> <routing_source_git_sha>
+git clone --no-tags --single-branch --branch main <repository-url> <target-root>
+git -C <target-root> checkout --detach <routing_source_git_sha>
 ```
 
 Targetには何も削除・追加しない。
+
+Evaluator repositoryから `git worktree add` してはいけない。
 
 ### Baseline
 
@@ -1318,8 +1458,9 @@ Canonical baselineで確認:
 - initial 24 cases全件処理。
 - 1 case = 1 ephemeral process。
 - 6 Skill同時条件。
-- Routing Targetはclean latest-main checkout。
+- Routing Targetはclean latest-main独立clone。
 - Routing TargetにTrigger Eval dataset / PR2 evaluator artifactがない。
+- Evaluator / TargetでGit common-dirを共有していない。
 - prompt metadata leakageなし。
 - `evaluator_git_sha` がEvaluator HEADと一致。
 - `routing_source_git_sha` がTarget HEADと一致。
@@ -1343,6 +1484,8 @@ unobservable → unchanged_unobservable
 ```
 
 Codex version mismatch fixtureでもcomparisonを実行し、`codex_version_match = false`になることを確認する。
+
+Evaluator logicを意味変更したfixture/説明では、comparisonをdescription-only improvementとして扱わない運用契約を確認する。
 
 ---
 
@@ -1374,9 +1517,10 @@ query classifier / LLM judge
 general Host adapter
 general shell parser
 retry / parallel / statistical framework
-runner内のcheckout/worktree lifecycle manager
+runner内のcheckout / clone lifecycle manager
 generic evaluator sanitizer framework
 temporary Git tree rewrite / snapshot framework
+container / VM / custom permission framework
 ```
 
 ---
@@ -1413,7 +1557,7 @@ Run Artifact:
 
 raw hook JSONLは一時evidenceでありcommitしない。
 
-Routing Target rootも一時実行環境でありcommitしない。
+Routing Target cloneも一時実行環境でありcommitしない。
 
 ---
 
@@ -1425,24 +1569,26 @@ PR2成功:
 - baseline直前のlatest mainをrouting subjectとして確定済み。
 - deterministic validation PASS。
 - repository validation PASS。
-- positive/negative observation control成立。
+- positive / negative observation control成立。
 - initial 24 casesのmanual dataset review完了。
-- answer keyを含まないclean Routing Targetでcanonical baseline取得成功。
-- `evaluator_git_sha` / `routing_source_git_sha` で評価条件を再現可能に特定できる。
+- answer keyを含まないclean independent Routing Targetでcanonical baseline取得成功。
+- Evaluator / Routing TargetがGit common-dirを共有していない。
+- `evaluator_git_sha` / `routing_source_git_sha` で評価条件を特定できる。
 - task failureとrouting failureを混同していない。
 - timeout等の未完了sessionから不完全なSkill集合を確定していない。
 - selected casesが全件unobservableではない。
-- machine-readable result/comparison contractが成立。
+- machine-readable result / comparison contractが成立。
 - `unobservable`原因をrouting failureと混同しない。
 - Codex version差をcomparison条件差として表現できる。
+- Evaluator logic差をdescription-only improvementと誤認しない。
 - routing failureが残っていても記録できている。
 - description tuning 0件。
-- 独自Runtime/classifier/judge 0件。
+- 独自Runtime / classifier / judge 0件。
 
 PR2 blocker:
 
 - Host Skill selectionを信頼できる形で観測できない。
-- answer keyのないclean Routing Targetでobservation proxyを成立させられない。
+- answer keyのないindependent Routing Targetでobservation proxyを成立させられない。
 
 blocker時は評価方式を捏造せず停止し、Run Artifactへ理由を記録する。
 
@@ -1450,14 +1596,17 @@ blocker時は評価方式を捏造せず停止し、Run Artifactへ理由を記�
 
 ## 21. 備考
 
-- PR2の価値はscoreの高さではなく、description変更前のroutingを同じdataset/runner contractで再測定できることにある。
+- PR2の価値はscoreの高さではなく、description変更前のroutingを同じdataset / runner contractで再測定できることにある。
 - initial 24 casesは統計benchmarkではなく回帰baseline。
-- `validation` はoperational validation splitであり、blind/secret holdoutではない。
-- PR2ではEvaluator revisionとRouting revisionを分離することで、answer key削除用の特殊sanitizationを不要にする。
+- `validation` はoperational validation splitであり、blind / secret holdoutではない。
+- PR2ではEvaluator revisionとRouting revisionを分離する。
 - PR2 routing subjectはbaseline直前のlatest mainであり、Evaluator branchではない。
+- Routing TargetはEvaluator repositoryとGit common-dirを共有しない独立cloneとする。
+- answer-key isolationはRepository/Git contextの汚染防止であり、OS-level security sandboxではない。
 - `evals/` はこのRepository独自のSkill評価拡張。
 - pure logic + side-effect runnerの2file分離はframework化ではなく最小のtestability分離。
 - read-only sandboxはcase間のRepository mutationを防ぐため維持する。ただし`turn.failed`後もSkill readを観測済みならrouting evidenceとして扱う。
 - timeout / abnormal termination / terminal event欠落では途中Skill readがあってもfinal routing setを確定しない。
 - PR3のanswer-key-free Target作成問題をPR2で一般化しない。
+- Evaluator semanticsを変更したcomparisonはdescription-only improvementと断定しない。
 - ここから新しい評価frameworkを足さない。追加要求が出た場合はPR2へ抱え込まずscopeを再確認する。
