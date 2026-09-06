@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "run_id": "20260906-191724-JST",
+  "result": "blocked",
+  "primary_failure_category": "environment_observability",
+  "failure_categories": ["environment_observability"],
+  "dimensions": {
+    "task_completion": {
+      "rating": "blocked",
+      "evidence": "実装、dataset、deterministic validation、repository validation、Observation Probe、canonical all実行まで完了したが、8 boundary-sideのobservable coverageを満たすvalid baselineを取得できなかった。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-06 21:09", "summary": "canonical all 24件がtimeoutでunobservableとなり、baselineを採用しない根拠を記録した。"}
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "6 Skill description、AGENTS.md routing意味契約、Product code、Product test、training contentを変更していない。PR2外のoutput eval、semantic judge、multi-Skill E2E、独自runtimeを追加していない。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "Scope check", "summary": "最終scope確認で対象外変更がないことを記録する。"}
+      ]
+    },
+    "validation_confidence": {
+      "rating": "blocked",
+      "evidence": "eval dataset validate、repository test、Skill validation、full verifyはPASSしたが、canonical baseline validityはHost execution timeoutにより未達である。",
+      "evidence_refs": [
+        {"kind": "validation_command", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-06 21:20", "summary": "最終validationとcanonical observabilityの差分を記録する。"}
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "指定branch上でのみ作業し、force push、main直接mutation、trust偽装、case retry、result捏造、Product remediationを行っていない。",
+      "evidence_refs": [
+        {"kind": "evaluation_note", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "Blocker", "summary": "Plan禁止事項を守った。"}
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "Plan、TASKS、REPORT、Probe evidence、invalid canonical result、evaluationを同一Run Directoryで追跡できる。",
+      "evidence_refs": [
+        {"kind": "run_manifest", "path": ".codex/runs/20260906-191724-JST/run.json", "summary": "Run manifestとartifactを同一Runへ紐づける。"}
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "deterministic moduleとside-effect runnerをPlan指定の2ファイルへ限定し、既存Node/TypeScript/tsx/yaml/Vitestを再利用した。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": "scripts/evals/skill-trigger-evals.ts", "summary": "dataset/scoring/comparisonの決定論的処理を保持する。"},
+        {"kind": "changed_file", "path": "scripts/evals/run-skill-trigger-evals.ts", "summary": "CLI/Host/Hook/Target preflightを保持する。"}
+      ]
+    },
+    "reproducibility": {
+      "rating": "blocked",
+      "evidence": "dataset fingerprint、Evaluator SHA、Routing source SHA、Codex versionをresultへ保存できたが、canonical allの8 side observable条件を満たさないためvalid baselineとして再利用できない。",
+      "evidence_refs": [
+        {"kind": "changed_file", "path": ".codex/runs/20260906-191724-JST/trigger-eval-baseline.json", "summary": "invalid canonical resultのprovenanceと24件のtimeoutを保存する。"}
+      ]
+    }
+  },
+  "findings": [
+    {"severity": "blocker", "summary": "Host execution latencyがPlanの120秒case timeoutを超え、全24件がunobservableとなった。"}
+  ],
+  "improvement_candidates": []
+}
