@@ -292,3 +292,14 @@
 - Blocker / Remaining: PR本文の実施済み状態への更新と、最終headを反映したRun manifestのcollector確認が残る。PR mergeは行わない。
 - Subagents: Delegationなし。Resultなし。Parent decision: remote / PR確認結果をRun Artifactへ追記し、追補commit後に最終headを再確認する。
 - Progress: 100% (22/22)
+
+## 2026-09-06 20:01 (JST)
+
+- Summary: Strict Runの必須`evaluation.json`を作成し、schema validation、Run manifest collector、sanitizationを完了した。PR本文を実施済み状態へ更新し、最終headを再確認した。
+- Changes: `.codex/runs/20260906-190753-JST/evaluation.json`を追加し、collector経由で`run.json`へ`evaluation_path`と`evaluation_present`を反映した。評価結果は`pass`、failure categoryとfindingsはなく、7 dimensionsをPASSとした。
+- Decision / Rationale: Strict workflow levelのevaluation artifact要件を満たすため、評価成果物をRun Directoryへ保存した。evaluation schema validationはPASSし、今回のclassification・decision-only scope・validation・PR状態を相互参照可能な相対pathで記録した。
+- Evidence: `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260906-190753-JST/evaluation.json` PASS。sanitization Write / Checkは5 files scanned、files_changed 0、residual_findings 0。`pnpm run format:check`、`pnpm run lint:markdown`、`git diff --check HEAD`、`git diff --check origin/main...HEAD`はPASS。
+- Validation: commit `b2171f17d3dd41d08daacf727b0feb63cbc37004`を作成し、指定branchへnon-force pushした。remote ref、PR #128のOPEN状態、head SHA、changed files 7件、PR本文の最終head記載を確認した。
+- Blocker / Remaining: なし。PR merge、auto-merge、Issue #72 closeは実施しない。
+- Subagents: Delegationなし。Resultなし。Parent decision: Strict evaluation artifactを追加し、Run完了状態を再確認した。
+- Progress: 100% (22/22)
