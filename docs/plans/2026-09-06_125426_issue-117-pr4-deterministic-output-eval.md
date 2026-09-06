@@ -371,11 +371,11 @@ fence openerとして認識する条件:
 
 例:
 
-```text
+````text
 ```text
 ~~~json
    ```ts
-```
+````
 
 上記はすべてopenerとして認識する。
 
@@ -484,19 +484,19 @@ backtick / tildeの双方をparameterized testで確認する。
 
 例:
 
-```text
+````text
    ```text
 ## 6. 検証方法
    ```
-```
+````
 
 および
 
-```text
+````text
 ~~~text
 ## 6. 検証方法
 ~~~
-```
+````
 
 期待:
 
