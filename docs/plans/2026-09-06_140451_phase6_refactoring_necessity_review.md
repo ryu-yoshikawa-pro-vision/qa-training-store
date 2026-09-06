@@ -14,9 +14,9 @@
 
 Phase 6のcandidate inventory、Evidence criteria、classification、completion、global stop condition、output scopeのnormative contractはMaster Plan §19〜§21を正本とする。このPlanではそれらを再定義しない。記載が競合した場合はMaster Planを優先する。
 
-Phase 6は**decision-only**である。`refactor_now`と判定した候補が存在しても、このPhase 6 branch / PRではProduct、Harness、Workflow、Test sourceのRefactorを実装しない。実装はPhase 6 merge後に別Plan / 別PRへ切り出す。
+Phase 6は**decision-only**である。`refactor_now`と判定したcandidateが存在しても、このPhase 6 branch / PRではProduct、Harness、Workflow、Test sourceのRefactorを実装しない。実装はPhase 6 merge後に別Plan / 別PRへ切り出す。
 
-## 1. ゴール / 完了条件
+## 1. ゴール / 実行完了条件
 
 ### ゴール
 
@@ -26,7 +26,7 @@ Repository Audit §4.1〜§4.16の16 candidateをCurrent RepositoryのEvidence�
 
 調査自体を大規模化しない。全16件へminimum Evidence passを行い、Pass 1時点で最終classificationを確定できないcandidateだけ追加調査する。
 
-### このExecution Planの完了条件
+### このExecution Planの実行完了条件
 
 Phase 6実施者が追加の設計判断なしで、次を順番に実行できること。
 
@@ -37,8 +37,9 @@ Phase 6実施者が追加の設計判断なしで、次を順番に実行でき�
 5. durable reportを作成する。
 6. PR作成前にdiff-first freshness checkを行う。
 7. decision-only scopeと必要なMarkdown validationを確認する。
-8. Plan / report / Run Artifactをcommit・pushし、decision-only PRをOPENで作成して停止する。
-9. ユーザーの明示承認後だけmerge finalizationへ進む。
+8. Plan / report / Run Artifactをcommitし、最終PR差分を検証した後にnon-force pushする。
+9. decision-only PRをOPENで作成して停止する。
+10. ユーザーの明示承認後だけmerge finalizationへ進む。
 
 Phase 6そのもののDoDはMaster Plan §19 / §21を正本とする。
 
@@ -52,6 +53,7 @@ Phase 6そのもののDoDはMaster Plan §19 / §21を正本とする。
 - Phase 6の最終decisionはlatest `main`相当のbranch状態で行う。
 - Master Planで定義済みの4 classificationのみを使用する。
 - Outputは`docs/reports/{yyyy-mm-dd}_{HHMMSS}_refactoring_necessity_review.md`とする。
+- Repository設定はPlanning時点でsquash mergeのみ有効で、merge commit / rebase mergeは無効である。Phase 6 PRをmergeする場合もRepository設定を変更せずsquash mergeを使用する。
 
 ### Assumptions
 
@@ -74,6 +76,7 @@ Phase 6そのもののDoDはMaster Plan §19 / §21を正本とする。
 - Issue #72をEvidenceの第三SSOTにする。
 - Phase 6中に新規runtime failure / production incidentを能動監視する仕組みを追加する。
 - candidateごとのEvidence file、candidateごとのRun、別のRefactoring台帳を追加する。
+- Repository設定を変更して別のmerge方式を有効化する。
 
 ## 3. Candidate inventory
 
@@ -193,10 +196,19 @@ Task 2〜5は全candidateを工程別に4周しない。
 
 Evidence Cardはcandidateごとの調査項目を揃えるための作業形式であり、`evidence/4.1.md`のようなcandidate別fileを追加しない。
 
-- Phase 6全体で1つのactive Runを使用する。
-- working noteが必要ならそのRun内で扱う。
+- working noteが必要ならactive Run内で扱う。
 - durableな結論は最終reportの各§4.x sectionへ直接集約する。
 - candidate別Run、candidate別Evidence file、別台帳は作らない。
+
+### 4.8 Run lifecycleは`AGENTS.md`を正本とする
+
+「candidateごとにRunを分けない」ことだけをPhase 6固有ルールとして固定し、Runの生成・再利用・引継ぎは`AGENTS.md`に従う。
+
+- 同一会話セッションでPhase 6を継続する場合は、同じactive Runを再利用する。
+- PR作成後に停止し、同じ会話セッションでmerge finalizationを続ける場合も同じactive Runを再利用する。
+- PR作成後に別会話セッションでmerge finalizationを行う場合は、既存Runを明示的に引き継ぐか、`AGENTS.md`の規則に従って新しいRunを作成する。
+- 16 candidateごとにRunを作ることはしない。
+- actual `run.json`の生成・更新、Run Artifactの保存・sanitizationも`AGENTS.md`の正規経路に従う。
 
 ## 5. 実行タスク
 
@@ -304,8 +316,8 @@ Pass 1でclassificationできるcandidateは、次の判断順序を使用する
    Yes → refactor_when_touched
 
 3. Current構造を維持する積極的な合理性があり、
-   十分なEvidenceに基づきRefactor benefitより
-   abstraction / migration / coordination costが大きいか、または同等以下か？
+   十分なEvidenceに基づきRefactor benefitが
+   abstraction / migration / coordination costを明確に上回らないか？
    Yes → keep_as_is
 
 4. 上記を十分なEvidenceで確定できない
@@ -452,7 +464,7 @@ PR作成直前に、investigation baseline `main` SHAとlatest `main` SHAを比�
 
 review中に新しいdefect / repair / runtime failure Evidenceが明示的に判明している場合だけ、そのcandidateへ反映する。freshness check自体で新規障害を探索しない。
 
-### Task 12 — Decision-only scope / validation確認
+### Task 12 — Decision-only scope / commit前validation確認
 
 PR差分に次が含まれていないことを確認する。
 
@@ -463,15 +475,15 @@ PR差分に次が含まれていないことを確認する。
 - Specification semantic change
 - Curriculum semantic change
 
-Required validation:
+commit前Required validation:
 
 ```bash
 pnpm run format:check
 pnpm run lint:markdown
-git diff --check origin/main...HEAD
+git diff --check
 ```
 
-commit前にもworking tree差分へ`git diff --check`を実行してよい。最終的なPR差分確認は`origin/main...HEAD`相当で行う。
+`git diff --check`はworking tree / indexに存在する未commitの最終Plan / report / Run Artifactを対象にし、commit前のwhitespace errorを検出するため必須とする。
 
 Repository標準Run Artifactを作成した場合は、Repository標準のsanitization / collector contractに従う。
 
@@ -492,17 +504,25 @@ Dependency運用:
 
 Phase 6はdecision-only document changeなので、これらはreportの正しさを直接証明しない。
 
-### Task 13 — Commit / push / decision-only PR作成
+### Task 13 — Commit / PR差分validation / push / decision-only PR作成
 
 Task 11〜12完了後、Phase 6のdecision-only成果物をGitHubへ提出する。
 
 1. Plan、durable report、Repository標準Run Artifactだけが意図した差分であることを最終確認する。
 2. 必要なRun Artifact sanitizationを完了する。
 3. 意図した差分をcommitする。
-4. current branch `docs/phase6-refactoring-necessity-review`へnon-force pushする。
-5. base `main`、head `docs/phase6-refactoring-necessity-review`でdecision-only PRをOPENで作成する。
-6. PR本文に最低限、調査baseline、16/16 classification完了、classification summary、RA-C1 / RA-Q1、`refactor_now` follow-up有無、validation、decision-only scopeを記載する。
-7. PR作成後はユーザーへ結果を報告して停止する。
+4. **commit後、push前に**次を実行し、最終PR差分を検証する。
+
+   ```bash
+   git diff --check origin/main...HEAD
+   ```
+
+5. `origin/main...HEAD`の差分にPlan / report / Repository標準Run Artifact以外の意図しない変更がないことを確認する。
+6. `git diff --check origin/main...HEAD`がFAILした場合はpushせず、必要最小限修正 → validation → commitをやり直す。
+7. current branch `docs/phase6-refactoring-necessity-review`へnon-force pushする。
+8. base `main`、head `docs/phase6-refactoring-necessity-review`でdecision-only PRをOPENで作成する。
+9. PR本文に最低限、調査baseline、16/16 classification完了、classification summary、RA-C1 / RA-Q1、`refactor_now` follow-up有無、validation、decision-only scopeを記載する。
+10. PR作成後はユーザーへ結果を報告して停止する。
 
 このTaskではPRをmergeしない。
 
@@ -510,20 +530,23 @@ Task 11〜12完了後、Phase 6のdecision-only成果物をGitHubへ提出する
 
 ユーザーからPhase 6 PRのmergeを明示承認された場合だけ実行する。
 
+Run lifecycleは§4.8と`AGENTS.md`に従い、会話セッションが変わった場合に既存Runを無条件で再利用しない。
+
 1. latest `main`との差分をdiff-firstで再確認する。
 2. relevant path変更なし → latest `main` SHAをreportへ記録する。
 3. relevant path変更あり / non-material → 内容確認結果とlatest `main` SHAをreportへ記録しclassification維持する。
 4. relevant path変更あり / Repository material change → latest `main`を通常mergeで取り込み、影響candidateだけ再評価する。
-5. reportを必要最小限更新し、Task 12のRequired validationを再実行する。
-6. 必要なcommit / non-force pushを行う。
+5. reportを必要最小限更新し、Task 12のcommit前Required validationを再実行する。
+6. 必要なcommitを行い、commit後はTask 13の`git diff --check origin/main...HEAD`とPR差分確認を再実行してからnon-force pushする。
 7. **この時点の最新PR head SHAを確定する。**
 8. 最新head SHAに対するrequired GitHub checks / workflowsが完了し、PASSしていることを確認する。古いheadのCI結果を代用しない。
 9. unresolved review threadまたは新しいreview findingが残っていないことを確認する。
 10. PRがmergeable / merge-readyであることを確認する。
-11. CI failure、新しいreview finding、merge conflictがある場合はmergeせず、必要最小限のbounded repairを行った後、最新headでTask 12および本Taskの確認をやり直す。
-12. すべて満たした場合だけ、ユーザーの明示承認範囲内でmergeする。
+11. Repositoryのmerge設定を再確認する。Planning時点と同じくsquash mergeのみ有効ならsquash mergeを使用する。merge commit / rebase mergeを使用するためにRepository設定を変更しない。
+12. CI failure、新しいreview finding、merge conflict、validation failureがある場合はmergeせず、必要最小限のbounded repairを行った後、最新headでTask 12 / Task 13 / 本Taskの必要箇所をやり直す。
+13. すべて満たした場合だけ、ユーザーの明示承認範囲内で**squash merge**する。
 
-CI結果を記録するためだけにRun Artifactを再更新・再commitしない。finalizationでsource / report修正が発生した場合だけ通常のRun更新ルールに従う。
+CI結果を記録するためだけにRun Artifactを再更新・再commitしない。finalizationでreport等のRepository成果物修正が発生した場合だけ、適用されるRun lifecycleに従って記録する。
 
 全16件の全面再Auditは行わない。
 
@@ -564,7 +587,11 @@ Task 2〜5をcandidate単位の1ループで完了し、同じcandidateを工程
 
 ### Evidence artifact proliferation
 
-Evidence Cardは別file / 別Runにせず、1 Runのworking noteと1 durable reportへ集約する。
+Evidence Cardは別file / candidate別Runにせず、active Runのworking noteと1 durable reportへ集約する。
+
+### Run lifecycle drift
+
+Phase 6全体で同じRunを無条件に使い続けず、同一会話での再利用・別会話での引継ぎ / 新規Run判断は`AGENTS.md`に従う。
 
 ### Premature `needs_more_evidence`
 
@@ -572,7 +599,7 @@ Pass 1でEvidence不足でも直ちに`needs_more_evidence`へ確定しない。
 
 ### Weak `keep_as_is`
 
-単にRefactor benefitを説明できないだけで`keep_as_is`にしない。十分なEvidenceによる維持理由またはcost比較が必要で、Evidence不足ならPass 2へ送る。
+単にRefactor benefitを説明できないだけで`keep_as_is`にしない。十分なEvidenceに基づき、維持理由があるか、Refactor benefitがabstraction / migration / coordination costを明確に上回らないことを確認する。Evidence不足ならPass 2へ送る。
 
 ### Defect-history bias
 
@@ -590,9 +617,17 @@ Native / Web、Dexie / SQLite、Formal / Training等のintentional boundaryをDR
 
 diff-first freshness checkでRepository上のrelevant changeだけを再評価する。新規runtime failure等は明示的に判明した場合だけ反映し、能動監視しない。
 
+### Validation timing gap
+
+未commit差分はTask 12の`git diff --check`、commit済みPR差分はTask 13の`git diff --check origin/main...HEAD`で分けて検証し、どちらか一方だけで代用しない。
+
 ### Stale CI / review state
 
 merge前は最新PR head SHAのchecks / review状態を確認し、古いheadのPASSや解消済み前提を流用しない。
+
+### Unsupported merge method
+
+Repository設定を変更せず、Phase 6 PRは有効なsquash mergeを使用する。merge commit / rebase mergeを試行しない。
 
 ### Git history rewrite
 
@@ -607,7 +642,7 @@ latest `main`同期やfinalizationでrebase / force pushを使わない。通常
 ### Phase 6実施時
 
 - `docs/reports/{yyyy-mm-dd}_{HHMMSS}_refactoring_necessity_review.md`
-- Repository標準Run Artifact（Phase 6全体で1 active Run）
+- Repository標準Run Artifact（Run lifecycleは`AGENTS.md`準拠）
 - Phase 6 decision-only PR
 
 ### 変更しないもの
