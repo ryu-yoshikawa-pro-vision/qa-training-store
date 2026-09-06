@@ -2,12 +2,11 @@
 
 ## 0. 依頼概要
 
-- 依頼内容: Issue #117 の PR4 として、6つの Agent Skill の Output のうち、機械的・決定論的に判定可能な品質を評価する仕組みを実装するための Plan を作成する。
-- 背景: PR1 で6 Skillの portable package 化と責務分離が完了したため、その構造を前提に、既存 Output Contract のうち deterministic に評価可能な範囲を棚卸しし、評価可能な部分だけを既存 validator の直接再利用または最小 grader で検証可能にする。
-- PR4 の役割: PR5 Semantic Output Eval の前段として、required section / field、allowed value、ID / reference integrity、status / stop consistency、artifact integrity など、人間や LLM Judge を使わずに判定できる領域を固定する。
-- Base: `main` の PR1 merge commit `1f680e1bd91bbf6aa9cfb4d4bc7c5816f659605c`。
-- 期待成果: 6 Skillすべてについて deterministic evaluation の適用可否と根拠を明示し、**現在の Repository Contract で安全に評価できる Skill だけ**既存 validator の直接再利用または最小 grader で valid / invalid input を検証する。
-- この Plan 作成・修正時点では実装しない。この branch では正本 Plan のみを更新し、grader、test、fixture、script、CI、Skill 本文は変更しない。
+- 対象: Issue #117 の PR4「Deterministic Output Eval」。
+- 目的: 6つの Agent Skill の Output について、人間判断や LLM Judge を使わず、**既存 Contract 上で安全に機械判定できる品質だけ**を deterministic に検証できるようにする。
+- 前提: PR1（Skill package 構造整理・Portability対応）は merge 済み。
+- この branch ではこの Plan を正本として後続実装する。
+- Plan 修正時点では実装しない。grader、test、fixture、CI、Skill本文、Product Codeは変更しない。
 
 ---
 
@@ -15,306 +14,226 @@
 
 ### ゴール
 
-既存の Skill Output Contract を evaluator の都合で変更せず、現在すでに存在する deterministic な property / relation / invariant のうち、**既存の stable serialization / canonical template / Machine Contract を入力として安全に評価できるものだけ**を機械評価する。
+既存 Skill Output Contract を evaluator の都合で変更せず、既に存在する stable serialization / canonical template / Machine Contract だけを利用して deterministic Output Eval を実装する。
 
-PR4で重要なのは「6 Skillすべてに新しい grader を作ること」ではない。
+PR4で重要なのは、6 Skillすべてへ grader を作ることではない。
 
 重要なのは次の3点である。
 
-1. 6 Skillすべてについて機械評価可能範囲を明示する。
-2. 既存 validator / schema があるものは新しい adapter 層を挟まず contract test から直接再利用する。
-3. stable な入力表現がないものは、grader のために新しい出力形式を発明せず N/A とする。
+1. 6 Skillすべてについて deterministic evaluation の適用可否と理由を明示する。
+2. 既存 validator / schema があるものは直接再利用する。
+3. stable serialization がないものは、grader のために新しいOutput形式を発明せず N/A とする。
+
+### 6 Skillの固定分類
+
+| Skill | PR4分類 | 実装方針 |
+| --- | --- | --- |
+| `feature-plan` | `minimal grader` | canonical plan template の required H2 presenceだけを検証 |
+| `code-review` | `N/A` | stable serialized Output Contractがないためgraderを作らない |
+| `repair-loop` | `N/A` | iteration semanticsはあるがimplemented Output schemaがないためgraderを作らない |
+| `harness-improvement` | `N/A` | candidate semanticsはあるがstable serialized artifact / validatorがないためgraderを作らない |
+| `exploratory-qa` | `existing-validator reuse` | `qaFindingsSchema` / `assertCoverageIntegrity` を直接再利用 |
+| `android-native-local-validation` | `N/A` | execution gatesはあるがSkill Output全体のstable result schemaがないためgraderを作らない |
+
+この分類はPlan時点で確定する。
+
+実装時にN/Aを減らすためのRepository-wide archaeologyは行わない。
 
 ### 必須原則
 
-- Output 全文の exact match を採用しない。
-- LLM Judge、Embedding、Semantic similarity を使用しない。
-- evaluator の都合で新しい Production Output schema / Markdown format / label convention を発明しない。
-- 「意味上 field が定義されている」ことと「機械 parse 可能な serialization が定義されている」ことを区別する。
-- 既存 Machine Contract がある領域は複製せず、既存 export / validator / schema を直接再利用する。
-- 既存 validator を直接 import / call できる場合、PR4専用 adapter を作らない。
-- 6 Skillを一律に同じ result schema へ押し込まない。
-- 巨大な共通 Rule Engine、独自 DSL、Plugin Framework、汎用 Markdown parser framework を作らない。
-- deterministic に評価できない Skill / invariant は無理に実装せず N/A 理由を残す。
-- N/A を減らすこと自体を目的にしない。
-- PR4ではCLI、runtime registry、PR4専用 package script、GitHub Actions workflowを追加しない。
-- static fixture file を作ること自体を目的にしない。既存 canonical artifact や test 内の最小 input 生成で十分なら新規 fixture file を作らない。
+- Output全文のexact matchを使わない。
+- LLM Judge、Embedding、Semantic similarityを使わない。
+- evaluator都合の新しいProduction Output schema / Markdown label / serializationを作らない。
+- semantic requirementとmachine-parseable serializationを混同しない。
+- 既存Machine Contractのschema / enum / regex / relationをコピーしない。
+- 既存validatorを直接呼べる場合はadapterを作らない。
+- 6 Skill共通result schemaを作らない。
+- common Rule Engine、DSL、Plugin Framework、runtime registryを作らない。
+- generic Markdown parserを作らない。
+- static fixture fileは必要な場合だけとし、本PRでは原則作らない。
+- PR4専用CLI、package script、GitHub Actions workflowを作らない。
+- Trigger Eval、description optimization、Semantic Eval、Workflow E2Eを前倒ししない。
 
-### 完了条件（DoD）
+### Definition of Done
 
-- [ ] 6 Skillすべてについて `existing-validator reuse` / `minimal grader` / `N/A` の分類と理由が明示されている。
-- [ ] `feature-plan` は `minimal grader` とし、package-local canonical template から required top-level heading を導出して検証する。
-- [ ] `exploratory-qa` は `existing-validator reuse` とし、実 Skill Output である Findings / Coverage 周辺の既存 schema / validator を直接再利用する。
-- [ ] `code-review`、`repair-loop`、`harness-improvement`、`android-native-local-validation` は current Repository Contract 上 stable machine-readable Output serialization がないため N/A とする。
-- [ ] `existing-validator reuse` は既存 schema / validator / artifact contract の rule を二重実装していない。
-- [ ] `minimal grader` は evaluator 都合の新しい Output format を定義していない。
-- [ ] expected data は自然言語全文ではなく property / relation / invariant を表している。
-- [ ] Output 全文 exact match を使っていない。
-- [ ] LLM Judge、Embedding、Semantic similarity を使っていない。
-- [ ] evaluator のためだけに Skill の Production Output format を変更していない。
-- [ ] evaluator のためだけに新しい Repository-wide taxonomy / workflow engine / plugin mechanism を作っていない。
-- [ ] 評価対象 Skill ごとに valid / invalid input を使った deterministic contract test がある。fixture は論理的な test input を意味し、専用 fixture file は必須としない。
-- [ ] `feature-plan` で required heading omission を検出できる。
-- [ ] `feature-plan` で fenced code block 内にしかない required heading を存在扱いしない。
-- [ ] `feature-plan` のfence opener / closerは先頭0〜3個のspaceを許容し、その内側のrequired headingを存在扱いしない。
-- [ ] `feature-plan` の canonical template から required H2 を1件も抽出できない場合、Outputをvacuous PASSさせず validator configuration error として停止する。
-- [ ] `feature-plan` grader は machine-readable な structured result を返す。
-- [ ] `exploratory-qa` で required field omission を `qaFindingsSchema.safeParse` が拒否し、Zod issues を machine-readable failure information として利用できる。
-- [ ] `exploratory-qa` で Coverage SSOT と一致しない coverage reference / coverage set を既存 `assertCoverageIntegrity` で検出できる。
-- [ ] `assertCoverageIntegrity` は既存の throwing relation validator のまま直接再利用し、machine-readable result への正規化だけを目的とした wrapper を作らない。
-- [ ] 評価対象 Skill には少なくとも1つ machine-readable な評価経路がある。すべての既存 validator を同じ result shape へ変換することは要求しない。
-- [ ] contract test は invalid input が意図した理由で拒否されることを確認し、期待どおり拒否できた場合は test 自体は PASS する。
-- [ ] existing validator の error 情報を不要に独自 check-id taxonomy へ再マッピングしていない。
-- [ ] `tests/contracts/skill-output-eval.test.ts` が `pnpm run test:contracts` から実行され、`pnpm run verify` の既存 `test` 経路から到達する。
-- [ ] PR4専用 CLI / adapter / common result normalizer / runtime registry / package script / GitHub Actions workflow / matrix を追加していない。
-- [ ] Skill frontmatter `description` の最適化を行っていない。
-- [ ] Trigger Eval、Semantic Output Eval、Workflow E2E Eval を前倒ししていない。
-- [ ] Product Code、Product Runtime behavior、`.codex/agents/**` を変更していない。
+- [ ] 6 Skillすべてが上記固定分類で1回ずつ記録されている。
+- [ ] N/A 4 Skillは理由が空でない。
+- [ ] 新規graderは `feature-plan` の1つだけである。
+- [ ] `exploratory-qa` は既存Machine Contractを直接再利用する。
+- [ ] `feature-plan` でrequired H2 omissionを検出できる。
+- [ ] fenced code block内だけにあるrequired H2を存在扱いしない。
+- [ ] backtick / tilde fenceの双方を扱う。
+- [ ] fence openerは0〜3 space + 3文字以上の同一marker + optional info stringを扱う。
+- [ ] fence closerは0〜3 space + openerと同じmarker + opener以上の長さ + trailing space/tabのみを扱う。
+- [ ] canonical templateからrequired H2を0件しか取得できない場合はvacuous PASSせずconfiguration errorで停止する。
+- [ ] `feature-plan` graderはmachine-readable structured resultを返す。
+- [ ] `exploratory-qa` valid Normal-mode Findings inputが `qaFindingsSchema.safeParse` を通る。
+- [ ] `run_id` omissionを `qaFindingsSchema.safeParse` が拒否し、Zod issue pathで確認できる。
+- [ ] Coverage SSOTとOutput Coverageの不一致を `assertCoverageIntegrity` が拒否する。
+- [ ] `assertCoverageIntegrity` をmachine-readable化するだけのwrapperを作っていない。
+- [ ] Finding ID uniqueness / `duplicate_of` target existence等、既存Machine Contractにないruleを新設していない。
+- [ ] new static `evals/output/**` fixtureを作っていない。
+- [ ] `package.json` / workflow / dependency / lockfileを変更していない。
+- [ ] Product Code / Product Runtime / `.codex/agents/**` を変更していない。
+- [ ] targeted test、`pnpm run verify`、`git diff --check` が通る。
 
 ---
 
 ## 2. 現状理解と前提
 
-### Current understanding
-
-PR1 は merge 済みで、現在の `main` では以下の6 Skillが package-local workflow / reference を持つ。
-
-```text
-.agents/skills/android-native-local-validation/
-.agents/skills/code-review/
-.agents/skills/exploratory-qa/
-.agents/skills/feature-plan/
-.agents/skills/harness-improvement/
-.agents/skills/repair-loop/
-```
-
-Issue #117 の依存関係上、PR4 は PR1 を前提とするが、PR2 Trigger Eval / PR3 description optimization の完了を待つ必要はない。
-
-PR4 は Output の意味品質全般を判定する PR ではない。correctness、relevance、coverage、risk-awareness、evidence の意味的妥当性、提案の有用性などの semantic judgment は PR5 の責務であり、本PRへ持ち込まない。
-
-### 最重要の設計判断
-
-PR4では、次の2つを混同しない。
-
-```text
-A. Semantic Output Contract
-   例: code-review は Severity / Evidence / Location を含むべき
-
-B. Stable Serialization Contract
-   例: JSON schema、固定 Markdown template、canonical artifact schema
-```
-
-Aだけが存在してBが存在しない場合、PR4で自由文 parser を作ると、grader が事実上新しい Output format を定義することになる。
-
-したがって、**Aだけでは grader 実装の根拠にしない**。
-
-### 6 Skillの分類をPlan時点で確定する
-
-現時点の Repository Contract を確認した結果、PR4の分類は次で固定する。
-
-| Skill | PR4分類 | 根拠 | 実装方針 |
-| --- | --- | --- | --- |
-| `feature-plan` | `minimal grader` | package-local `assets/plan-template.md` が reusable output skeleton として明示されている | canonical template の level-2 heading 存在だけを検証 |
-| `code-review` | `N/A` | required fields は semantic contract として存在するが、固定 JSON / Markdown serialization がない | grader を作らず理由のみ記録 |
-| `repair-loop` | `N/A` | iteration field / relation は定義されているが、Repository evaluation は schema 実装ではなく contract example | grader を作らず理由のみ記録 |
-| `harness-improvement` | `N/A` | candidate model は意味契約として存在するが、stable machine-readable candidate serialization / validator がない | grader を作らず理由のみ記録 |
-| `exploratory-qa` | `existing-validator reuse` | `qaFindingsSchema` と `assertCoverageIntegrity` が実Outputのshape / Coverage relationを既に検証する | contract test から直接 import / call |
-| `android-native-local-validation` | `N/A` | workflow / PowerShell helper は gate と実行 semantics を持つが、Skill Output を表す stable result schema がない | grader を作らず理由のみ記録 |
-
-この分類を減らす・増やすためのRepository archaeologyは行わない。
-
-実装開始時のPhase 0は、この分類を再調査する工程ではなく、**main の後続変更で前提Contractが変わっていないことを確認する短い drift preflight** とする。
-
 ### `feature-plan`
 
 Canonical source:
 
-- `.agents/skills/feature-plan/SKILL.md`
-- `.agents/skills/feature-plan/assets/plan-template.md`
-- `.agents/skills/feature-plan/references/planning-workflow.md`
+```text
+.agents/skills/feature-plan/SKILL.md
+.agents/skills/feature-plan/assets/plan-template.md
+.agents/skills/feature-plan/references/planning-workflow.md
+```
 
-`SKILL.md` は package-local template を reusable output skeleton として使用し、Repository plan artifact として保存する契約を持つ。
+`SKILL.md` は package-local `assets/plan-template.md` を reusable output skeleton として使うことを明示している。
 
-現在の template は各section内に `- ゴール:` 等の placeholder 自体を持つため、「section body が non-empty」という判定では未記入templateもPASSし得る。
+そのため、canonical template の top-level section H2 は deterministic に評価できる。
 
-そのためPR4では body の充実度や placeholder completion を判定しない。
+一方、template本文にはplaceholder自体が存在するため、次はPR4で評価しない。
 
-また、template上でheadingが1回ずつ現れることは事実だが、「同じtop-level headingを複数回書いてはならない」という明示Output Contractは存在しないため、PR4でheading uniquenessを新しいInvariantとして追加しない。
+- body non-empty
+- placeholder completion
+- semantic completeness
+- validation planの質
+- riskの質
+- technical correctness
 
-最小 grader が評価するのは次だけとする。
+また、templateにheadingが1回ずつ存在していても、heading uniquenessを要求する明示Contractはないため重複禁止ruleを作らない。
 
-- canonical template の level-2 heading (`## ...`) を required heading として導出する。
-- Output の fenced code block 外に、各 required heading が少なくとも1回存在することを確認する。
-- canonical template から required heading が0件しか取得できない場合は grader configuration error とし、Outputを評価しない。
-
-内容の十分性、placeholderが埋まっているか、heading重複、技術的正しさ、risk / validation の質はPR4では評価しない。
+PR4で評価するのは**canonical template由来required H2がfence外に存在することだけ**とする。
 
 ### `code-review`
 
-Canonical semantic source:
+FindingにはSeverity / Location / Evidence等のsemantic requirementsがある。
 
-- `.agents/skills/code-review/SKILL.md`
-- `.agents/skills/code-review/references/review-workflow.md`
+しかし通常Outputについて固定JSON schema、固定Markdown label、canonical serializationがない。
 
-Finding には Severity、Title、Location、Why it matters、Evidence、Suggested fix 等の意味上のrequired fieldsがある。
-
-ただし normal output は findings であり、固定JSON field、固定Markdown label、canonical serialized artifactは定義されていない。
-
-PR4で `Severity:` 等のlabelを必須化すると新しいOutput formatになるため N/A とする。
-
-No-findings の判定も自然言語regexで推測しない。
+`Severity:` 等をgrader都合で必須化すると新しいOutput formatになるためN/Aとする。
 
 ### `repair-loop`
 
-Canonical semantic source:
+Iteration field / stop relationは意味上定義されているが、current Repository evaluation contractはimplemented Output schemaではなくcontract exampleである。
 
-- `.agents/skills/repair-loop/SKILL.md`
-- `.agents/skills/repair-loop/references/repair-workflow.md`
-- `docs/reference/repair-loop.md`
-- `docs/reference/evaluation.md`
-
-Iterationには `iteration_number`、`allowed_files`、`changed_files`、`validation_result`、`decision` 等と、`needs_human -> stop_needs_human` のdeterministic relationがある。
-
-ただし Repository evaluation contract は current implementation では schema ではなく contract example と明示されている。
-
-したがって、PR4で iteration JSON / Markdown parser を新設せず N/A とする。
+PR4でiteration serializationを作らない。
 
 ### `harness-improvement`
 
-Canonical semantic source:
+Candidate modelは意味上定義されているが、stable machine-readable candidate artifact / validatorがない。
 
-- `.agents/skills/harness-improvement/SKILL.md`
-- `.agents/skills/harness-improvement/references/improvement-workflow.md`
-- `docs/reference/evaluation.md`
-
-Candidate modelには `candidate_id`、`target`、`failure_category`、`evidence`、`expected_impact`、`risk`、`recommended_change`、`strictness`、`status`、`owner_decision` が定義されている。
-
-ただしこれは意味契約であり、current Repository evaluation contractもschema実装ではない。
-
-PR4でcandidate serializationやtaxonomy validatorを新設せず N/A とする。
+PR4でcandidate serializationやtaxonomy validatorを作らない。
 
 ### `exploratory-qa`
 
 Canonical portable source:
 
-- `.agents/skills/exploratory-qa/references/workflow.md`
-- `.agents/skills/exploratory-qa/references/scored-mode.md`
+```text
+.agents/skills/exploratory-qa/SKILL.md
+.agents/skills/exploratory-qa/references/workflow.md
+.agents/skills/exploratory-qa/references/scored-mode.md
+```
 
 Repository-side Machine Contract:
 
-- `scripts/agentic-qa/contracts.ts`
-- `scripts/agentic-qa/coverage.ts`
+```text
+scripts/agentic-qa/contracts.ts
+scripts/agentic-qa/coverage.ts
+```
 
-Workflowは最終的に Repository-defined candidate findings artifact を生成し、既存 `contracts.ts` には実Outputに対応する `qaFindingsSchema` が存在する。`qaFindingsSchema` 内の `coverage.items` は既存 `coverageResultSchema` を利用しているため、PR4から `coverageResultSchema` を別途直接テストすることを必須にしない。
+WorkflowはRepository-defined candidate findings artifactをfinal Outputとして扱う。
 
-Coverage SSOTとのrelationは `assertCoverageIntegrity` が既に検証する。
+既存実装には以下が存在する。
 
-PR4では **Exploratory QAの実Skill Outputである Findings / Coverage 周辺だけ** を対象にする。
+```text
+qaFindingsSchema
+coverageResultSchema
+assertCoverageIntegrity
+```
 
-次のMachine Contract全体をPR4で再テストしない。
+`qaFindingsSchema` は Findings artifact のshape、required fields、内包されるCoverage Result shapeを検証する。
 
-- Host capability receipt。
-- Runner session / runner profile。
-- Tool isolation / resource boundary probe。
-- Prepared target / runtime handoff。
-- Bootstrap operation。
-- Benchmark / evaluator全体。
-- その他 `tests/contracts/spec-agentic-qa.test.ts` ですでに検証されている supporting harness contract。
+`assertCoverageIntegrity` はCharter / Challenge由来Coverage SSOTとOutput Coverageのrelationを検証する。
 
-Artifact manifest等のsupporting contractは既存Agentic QA contract testの責務を維持し、PR4で同じfixture matrixを複製しない。
+PR4では `qaFindingsSchema` と `assertCoverageIntegrity` だけを直接扱う。
+
+`coverageResultSchema` は `qaFindingsSchema` に内包されているため、個別testを必須にしない。
+
+#### PR4で追加しないfinding relation
+
+Current `findingSchema` は次の形式Contractを持つ。
+
+```text
+finding_id   -> FIND-[0-9]{3}
+duplicate_of -> FIND-[0-9]{3} | null
+```
+
+しかしcurrent `qaFindingsSchema` には、少なくともPR4で直接再利用できる形では次のcross-reference ruleが存在しない。
+
+- findings配列全体の `finding_id` uniqueness
+- `duplicate_of` が実在Findingを指すこと
+
+Issue #117でID uniqueness / reference integrityが候補に含まれていても、PR4都合でこれらを新設しない。
+
+既存authoritative Machine Contractがないruleを新設すると、Output EvalではなくOutput Contract変更になるためである。
 
 ### `android-native-local-validation`
 
-Canonical portable source:
+Workflow / PowerShell helperにはDoctor / Build / Install / Smoke / Test等のdeterministic gateがある。
 
-- `.agents/skills/android-native-local-validation/SKILL.md`
-- `.agents/skills/android-native-local-validation/references/windows-android-workflow.md`
+一方、Skill Output全体を表すstable stage-result schemaはない。
 
-Repository helper:
-
-- `scripts/native/windows/android-local.ps1`
-
-WorkflowとhelperにはDoctor / Build / Install / Smoke / Test等のgate、失敗時stop、evidence保存などのdeterministic semanticsがある。
-
-一方、helperはcommand実行、log / JUnit / text / screenshot生成、throwによる失敗通知を行う実行helperであり、Skill Output全体を表すstable stage-result JSON schemaは提供していない。
-
-PR4で新しいNative Output schemaを作るとOutput Contract変更になるため N/A とする。
+新しいNative result schemaをgrader都合で作らない。
 
 ### Assumptions
 
-- 新規 dependency は不要で、既存 TypeScript / Node.js / Zod / Vitest で実装できる。
-- Machine-readable result は全Skillで同一shapeに正規化しない。
-- `feature-plan` はSkill-local graderのstructured resultをmachine-readable経路とする。
-- `exploratory-qa` は `qaFindingsSchema.safeParse` のZod result / issuesをmachine-readable経路とする。
-- `assertCoverageIntegrity` は追加のcross-reference / Coverage relation checkとして既存throwing APIのまま利用し、normalization wrapperは作らない。
-- PR4専用CLI、adapter、runtime registry、package scriptは不要。
-- PR4専用CI workflowは不要。`test:contracts -> test -> verify` の既存経路を正本とする。
-- 「fixture」はdeterministicなvalid / invalid test inputを意味し、専用fileを必須としない。
-
-### Non-goals
-
-- Trigger Eval dataset / runner。
-- Skill frontmatter description の変更・最適化。
-- Semantic Output Eval。
-- LLM Judge / rubric grader。
-- Workflow E2E Eval。
-- Agent Runtime / Workflow Engine。
-- 自動 repair / retry。
-- Golden Output全文一致。
-- 全Skill共通Output schema / result schemaへの移行。
-- PR4専用adapter layer。
-- PR4専用CLI / runtime registry / package script。
-- generic Markdown AST framework。
-- generic rule DSL / plugin system。
-- Product Code / Product behavior の変更。
-- `.codex/agents/**` の変更。
-- missing Output serialization / taxonomy をPR4都合で新設すること。
-- 既存Agentic QA Machine Contract全体の再テスト。
+- 新規dependencyは不要。
+- TypeScript / Node.js / Zod / Vitestの既存構成で実装できる。
+- `feature-plan` はlocal structured resultをmachine-readable経路とする。
+- `exploratory-qa` は `qaFindingsSchema.safeParse` のresult / issuesをmachine-readable経路とする。
+- `assertCoverageIntegrity` はthrowing relation validatorのまま追加チェックとして使う。
+- fixtureはtest inputを意味し、専用fixture fileを必須にしない。
 
 ---
 
-## 3. 質問 / 曖昧性
+## 3. 実装前preflight
 
-### ユーザー判断が必要な blocker
+### 目的
 
-なし。
+Phase 0は再調査ではなく**contract drift確認だけ**とする。
 
-### 実装前に確認するtechnical preflight
+実装開始時に次だけ確認する。
 
-分類判断はPlan時点で完了している。
+- `feature-plan/SKILL.md` が引き続き package-local template を reusable output skeleton として参照している。
+- `plan-template.md` のH2が引き続きcanonical section skeletonである。
+- `exploratory-qa` workflowが引き続きRepository-defined findings artifactをOutputとして扱っている。
+- `qaFindingsSchema` / `assertCoverageIntegrity` が引き続き存在する。
+- N/A 4 Skillの直接Contractにstable machine-readable Output schemaが追加されていない。
 
-実装開始時には current branch / main の後続変更で前提がdriftしていないかだけ確認する。
+前提が変わっていなければ固定分類をそのまま実装する。
 
-確認対象:
+前提が変わっていた場合だけ、そのSkillの直接Contractを確認する。
 
-- `feature-plan` の `SKILL.md` が引き続き package-local `assets/plan-template.md` を reusable output skeleton として参照していること。
-- `plan-template.md` のlevel-2 headingが引き続きcanonical section skeletonであること。
-- `exploratory-qa` のworkflowが引き続き Repository-defined candidate findings artifact をOutputとして扱っていること。
-- `qaFindingsSchema` / `assertCoverageIntegrity` が引き続き存在し、Outputに直接利用できること。
-- N/A 4 Skillに新しいstable machine-readable Output schemaが main 側で追加されていないこと。ただし確認は各Skillの直接参照先に限定し、Repository-wide archaeologyは行わない。
+禁止:
 
-前提が変わっていなければPlanの分類をそのまま実装する。
-
-前提が変わっていた場合のみ、そのSkillの分類を再評価し、PR4の基本原則を崩してgraderを増やさない。
+- N/Aを減らすためのRepository-wide探索。
+- 別用途artifactをSkill Output Contractへ昇格すること。
+- serializationを推測してgraderを作ること。
 
 ---
 
-## 4. 影響範囲
+## 4. 実装時の変更ファイル
 
-### 実装時の想定変更ファイル
-
-次の2ファイルだけを基本構成とする。
+基本構成は次の2ファイルだけとする。
 
 ```text
 .agents/skills/feature-plan/scripts/validate-plan-output.ts
 tests/contracts/skill-output-eval.test.ts
 ```
-
-新規 static fixture file は原則作らない。
-
-`feature-plan` のvalid inputは既存 canonical templateを使い、invalid inputはcontract test内でtemplateから最小mutationして生成する。
-
-`exploratory-qa` は既存 schema / validator を直接再利用し、新しいpackage-local script / adapterを作らない。
 
 ### 原則変更しない領域
 
@@ -322,67 +241,20 @@ tests/contracts/skill-output-eval.test.ts
 .agents/skills/*/evals/output/**
 scripts/skill-output-eval/**
 package.json
-.github/workflows/**
 pnpm-lock.yaml
+.github/workflows/**
+.codex/agents/**
 ```
 
-### 配置責務
-
-#### Skill package内へ置くもの
-
-`feature-plan` のportableなcanonical structure grader `scripts/validate-plan-output.ts` だけ。
-
-このgraderはRepository固定path、filesystem path、Agentic QA contractへ依存しないpure functionとして実装する。
-
-#### Repository-levelで新設しないもの
-
-- PR4専用adapter。
-- PR4専用common result normalizer。
-- PR4専用runtime registry。
-- PR4専用CLI。
-- PR4専用fixture catalog。
-
-既存Repository Machine Contractを使う `exploratory-qa` は、contract testから既存exportを直接import / callする。
-
-### Expected no-change areas
-
-- Product source / runtime behavior。
-- Skill frontmatter `description`。
-- PR2 / PR3 / PR5 / PR6 scope。
-- `.codex/agents/**`。
-- dependency / lockfile。
-- `package.json`。
-- `.github/workflows/**`。
+Product source / Runtime behaviorも変更しない。
 
 ---
 
-## 5. 変更方針
+## 5. 実装方針
 
-### Phase 0: Contract drift preflightのみ行う
+### Phase 1: 6 Skill classification table
 
-Phase 0は分類のためのRepository調査ではない。
-
-Section 3に記載した直接Contractだけを確認し、Plan作成時点からdriftしていなければ次の分類をそのまま採用する。
-
-```text
-feature-plan                    -> minimal grader
-code-review                     -> N/A
-repair-loop                     -> N/A
-harness-improvement             -> N/A
-exploratory-qa                  -> existing-validator reuse
-android-native-local-validation -> N/A
-```
-
-禁止:
-
-- N/Aを減らすための追加探索。
-- 関連しそうな旧artifactのRepository-wide検索。
-- 別用途artifactをOutput Contractへ昇格すること。
-- graderを作るためのserialization推測・新設。
-
-### Phase 1: 6 Skill coverageはcontract test tableをSSOTにする
-
-6 Skill coverageのSSOTは `tests/contracts/skill-output-eval.test.ts` 内の小さなstatic tableに固定する。
+`tests/contracts/skill-output-eval.test.ts` 内に小さなstatic tableを置く。
 
 概念例:
 
@@ -394,29 +266,38 @@ const outputEvalCoverage = [
     mode: "n/a",
     reason: "semantic output fields exist, but no stable serialized output contract exists",
   },
-  { skill: "exploratory-qa", mode: "existing-validator-reuse" },
+  // ... total 6 Skills
 ] as const;
 ```
 
-実装時には6 Skillすべてを1回ずつ列挙する。
+確認すること:
 
-同じ分類情報をinventory JSON / Markdown / runtime registryへ複製しない。
+- 対象6 Skillが1回ずつ存在する。
+- duplicateがない。
+- N/A reasonが空でない。
 
-Contract testでは対象6 Skillが重複なく全て分類され、N/A reasonが空でないことを確認する。
+作らないもの:
+
+- inventory JSON
+- inventory module
+- runtime registry
+- Markdown inventory
+
+classification情報を複製しない。
+
+---
 
 ### Phase 2: `feature-plan` minimal grader
 
-#### 2-A. 実装ファイルとpublic I/F
-
-実装ファイルは次に固定する。
+#### 実装ファイル
 
 ```text
 .agents/skills/feature-plan/scripts/validate-plan-output.ts
 ```
 
-Filesystem読み込みをgraderへ持ち込まず、Markdown文字列を受け取るpure functionとする。
+#### Public API
 
-public I/Fは次の責務に固定する。
+filesystem I/Oを持たないpure functionに固定する。
 
 ```ts
 validatePlanOutput(
@@ -431,78 +312,115 @@ validatePlanOutput(
 }
 ```
 
-- `templateMarkdown`: canonical `assets/plan-template.md` の内容。
-- `outputMarkdown`: 評価するPlan Markdownの内容。
-- filesystemからtemplateを読む責務はcontract test / caller側に置く。
-- graderはRepository path解決、CLI、I/O、ログ出力を持たない。
+責務:
 
-#### 2-B. Required headingの正本
+- `templateMarkdown` からrequired H2を抽出する。
+- `outputMarkdown` からfence外H2を抽出する。
+- missing required H2だけをstructured resultで返す。
 
-required heading配列をgrader内へhard-codeしない。
+持たせない責務:
 
-正本は既存:
+- filesystem read
+- Repository path解決
+- CLI
+- log出力
+- template location hard-code
+
+#### Required H2
+
+required heading listはhard-codeしない。
+
+canonical sourceは既存:
 
 ```text
 .agents/skills/feature-plan/assets/plan-template.md
 ```
 
-とする。
+fence外のlevel-2 ATX headingだけをrequired H2として抽出する。
 
-Validator はcanonical template Markdownから、fenced code block外の **level-2 ATX heading (`## `)** を抽出し、それをrequired heading setとして利用する。
+H1は対象外。
 
-これにより template と grader rule の二重管理を避ける。
+headingは文字列完全一致で扱う。
 
-H1 `# 計画書テンプレート` はplan titleそのものではなくtemplate titleなのでrequired対象にしない。
+alias / fuzzy matching / normalizationは行わない。
 
-#### 2-C. Empty required-heading guard
+#### Empty-required guard
 
-canonical templateからrequired H2を1件も抽出できない場合、required setが空のままOutputをPASSさせてはいけない。
+canonical templateからrequired H2を0件しか抽出できない場合、Output validationを実行しない。
 
-この場合はOutput不正ではなくgrader configuration / canonical template前提の破損なので、`validatePlanOutput` は評価を継続せず明示的な `Error` をthrowして停止する。
+```ts
+throw new Error("canonical plan template has no required level-2 headings");
+```
 
-このguardのためにrequired heading件数や具体的heading文字列をhard-codeしない。
+message全文をRepository-wide contractにはしないが、testではconfiguration errorとしてthrowすることを確認する。
 
-Contract testではH2を持たないtemplate inputを1件与え、vacuous PASSにならずthrowすることを確認する。
+required heading件数や具体的heading名はhard-codeしない。
 
-#### 2-D. Output側の評価
+#### Fence parserの最小仕様
 
-Output Markdownからfenced code block外のlevel-2 headingを抽出し、canonical template由来のrequired headingが全て存在するかだけ確認する。
+full Markdown parserを作らず、line-by-line stateだけを持つ。
 
-評価対象:
+##### Opener
 
-- required heading omission。
+fence openerとして認識する条件:
 
-評価しないもの:
+1. 行頭0〜3個のspaceを許容する。
+2. その後に同じmarkerの連続が3文字以上ある。
+3. markerはbacktick `` ` `` またはtilde `~`。
+4. marker列の後ろにはinfo stringを許容する。
 
-- heading uniqueness / duplicate。
-- section bodyがnon-emptyか。
-- template placeholderが埋まっているか。
-- content completeness。
-- heading順序。
-- wording / paragraph count。
-- technical correctness。
-- risk / validation planの質。
+例:
 
-#### 2-E. Fence handling
+```text
+```text
+~~~json
+   ```ts
+```
 
-false-pass防止のため、fenced code block内のheadingは実sectionとして数えない。
+上記はすべてopenerとして認識する。
 
-実装はline-by-lineの小さいstate machineに留める。
+##### Closer
 
-- fence openerは先頭0〜3個のspaceを許容し、その後に3文字以上の連続 backtick (`) または tilde (~) が続く場合だけ認識する。
-- fence中はheadingを収集しない。
-- closing fenceも先頭0〜3個のspaceを許容し、openerと同じ文字で、opener以上の長さを持つ場合にfence状態を閉じる。
-- 4個以上のspaceでindentされた行をfenced code blockとして解釈するための追加ロジックは作らない。
-- nested fenceや完全なCommonMark互換を目指さない。
-- Output headingはfence外のlevel-2 ATX headingだけを対象にし、alias / fuzzy normalizationを行わない。
-- full Markdown AST parserは導入しない。
-- 新dependencyは追加しない。
+fence closerとして認識する条件:
 
-#### 2-F. Minimal machine-readable result
+1. 行頭0〜3個のspaceを許容する。
+2. openerと同じmarker characterを使う。
+3. marker数はopener以上。
+4. marker列の後ろはspace / tabのみ許容する。
+5. marker列の後ろにinfo string相当の非空文字列がある行はcloser扱いしない。
 
-通常のOutput評価結果はSkill-localのstructured resultで返す。
+##### 意図的に対応しないもの
 
-概念例:
+- 4個以上space indentされたfence解釈。
+- nested fence完全互換。
+- CommonMark完全実装。
+- indented code block parsing。
+- Markdown AST。
+- new parser dependency。
+
+PR4の目的はrequired heading false-pass防止であり、Markdown parser開発ではない。
+
+#### Output validation rule
+
+Output側で評価するのは次だけ。
+
+```text
+canonical required H2がfence外に少なくとも1回存在すること
+```
+
+評価しない:
+
+- duplicate heading
+- heading order
+- body presence
+- placeholder completion
+- paragraph count
+- semantic completeness
+- technical correctness
+
+#### Result
+
+例:
 
 ```json
 {
@@ -516,182 +434,266 @@ false-pass防止のため、fenced code block内のheadingは実sectionとして
 }
 ```
 
-原則:
+追加しないfield:
 
-- `valid` / `issues` に留める。
-- `schema_version`、timestamp、grader version、metrics等を追加しない。
-- human向けmessage全文をtest contractにしない。
-- global check-ID taxonomyを作らない。
-- canonical templateからH2を取得できないconfiguration errorは通常のOutput validation resultへ押し込まずthrowする。
+- schema_version
+- timestamp
+- grader_version
+- metrics
+- global check id
 
-### Phase 3: `feature-plan` fixture testは既存template + test内mutationで作る
+---
 
-新しい `.agents/skills/feature-plan/evals/output/**` は作らない。
+### Phase 3: `feature-plan` contract tests
 
-Valid input:
+static fixture fileは作らない。
 
-- test側で `assets/plan-template.md` を読み込み、その文字列を `templateMarkdown` と `outputMarkdown` の両方へ渡し、required heading structureがvalidであることを確認する。
+canonical `plan-template.md` をtest側でreadする。
 
-Invalid input 1 — required omission:
+#### Test A: valid canonical template
 
-- canonical templateからrequired headingを1つだけ除去したstringをtest内で生成する。
-- graderが `valid: false` と `required-section` / 対象headingを返すことを確認する。
+```text
+templateMarkdown = canonical template
+outputMarkdown   = canonical template
+```
 
-Invalid input 2 — fenced-heading false-pass:
+期待:
 
-- canonical templateからrequired headingを1つ通常位置から除去する。
-- 同じheadingを先頭0〜3個のspaceを持つfenced code block内へだけ追加する。
-- graderがそのheadingを存在扱いせず `valid: false` を返すことを確認する。
-- この1ケースで通常fenceとindent許容境界をまとめて確認し、indent専用fixtureを追加しない。
+```text
+valid = true
+issues = []
+```
 
-Configuration guard:
+#### Test B: required H2 omission
 
-- required H2を持たないtemplate文字列を渡す。
-- graderが空required setでPASSせずthrowすることを確認する。
+canonical templateからrequired H2を1つだけ除去する。
 
-専用fixture fileを作らないことで、canonical templateとfixtureの二重保守を避ける。
+期待:
 
-### Phase 4: `exploratory-qa` は実Skill Outputだけexisting validatorを直接再利用する
+- `valid: false`
+- `rule: "required-section"`
+- `path` が除去したheading
 
-新しいschema graderもadapterも作らない。
+#### Test C: fenced-heading false-pass prevention
 
-#### 4-A. 直接扱うexisting contract
+canonical templateからrequired H2を1つ通常位置から除去し、同じheadingをfenced code block内にだけ置く。
 
-PR4で直接import / callする中心は次の2つとする。
+backtick / tildeの双方をparameterized testで確認する。
+
+代表入力はinfo stringとindentも同時に含める。
+
+例:
+
+```text
+   ```text
+## 6. 検証方法
+   ```
+```
+
+および
+
+```text
+~~~text
+## 6. 検証方法
+~~~
+```
+
+期待:
+
+```text
+valid = false
+```
+
+fence内headingをrequired sectionとして数えない。
+
+backtick用 / tilde用のstatic fixture fileは増やさない。
+
+#### Test D: canonical template configuration guard
+
+H2を持たない `templateMarkdown` を渡す。
+
+期待:
+
+- `validatePlanOutput` がthrowする。
+- empty required setでPASSしない。
+
+---
+
+### Phase 4: `exploratory-qa` existing validator reuse
+
+新しいgrader / adapter / wrapperは作らない。
+
+直接import / callするもの:
 
 ```text
 qaFindingsSchema
 assertCoverageIntegrity
 ```
 
-- `qaFindingsSchema` はFindings artifactのshape、required field、内包されるCoverage Resultのshapeを検証する。
-- `assertCoverageIntegrity` はCharter / Challenge由来のCoverage SSOTとOutput Coverageのrelationを検証する。
-- `coverageResultSchema` は `qaFindingsSchema` に内包されているため、PR4専用の単体testを必須にしない。
-- `findingSchema` 等も、PR4 testの成立に直接必要でなければ個別importしない。
+#### Representative fixtureはNormal modeに固定
 
-#### 4-B. 対象外
+PR4のcontract testではNormal modeだけを代表入力として使う。
 
-次は既存Agentic QA contract testの責務を維持し、PR4 testでfixture matrixを複製しない。
+理由:
 
-- runner / evaluator session contract。
-- host capability / isolation contract。
-- prepared target / runtime handoff contract。
-- artifact manifestの詳細contract。
-- resource boundary / bootstrap / benchmark contract。
-- scored harnessの全schema網羅テスト。
+- Normalはworkflowのdefault mode。
+- Gray-box / Black-box Scoredまでfixture化するとrunner profile / isolation / benchmark等のsupporting harness contractへ範囲が広がる。
+- `qaFindingsSchema` 自体は3 mode unionなので、既存schema全体をPR4で再テストする必要はない。
 
-PR4は「Agentic QA Machine Contract全体の追加テスト」ではなく、「Exploratory QA Skill Outputが既存deterministic contractを持つことの確認」に限定する。
+#### Minimal valid Normal-mode object
 
-#### 4-C. Fixture / input strategy
+以下をtest内の小さいbuilderまたはliteralで作る。
 
-package-local `evals/output/` や巨大なAgentic QA fixture一式は新設しない。
+```text
+schema_version: 1
+run_id: 20260906-000001-JST
+source_head_sha: null
+mode: normal
+charter_id: CHARTER-001
+challenge_id: null
+benchmark_revision: null
+runtime_variant_id: null
+runner_profile: null
+working_tree_snapshot:
+  before: .artifacts/agentic-qa/20260906-000001-JST/before.json
+  after: .artifacts/agentic-qa/20260906-000001-JST/after.json
+  comparison: .artifacts/agentic-qa/20260906-000001-JST/comparison.json
+coverage:
+  required_ids:
+    - COV-001
+  items:
+    - coverage_id: COV-001
+      status: not_completed
+      mission_completed: false
+      evidence_refs: []
+      evidence_types: []
+      blocker_reason: null
+      notes: ""
+findings: []
+```
 
-優先順位:
+この入力を巨大なScored fixtureへ発展させない。
 
-1. 既存contract testの小さいbuilder / fixtureをそのまま再利用できるなら再利用する。
-2. 再利用のために大きなtest helper抽出やrefactorが必要なら、`skill-output-eval.test.ts` 内に最小objectを置く。
-3. scored run一式やHost receipt一式を新規fixtureとして複製しない。
+既存small builderが本当にそのまま再利用できる場合だけ再利用してよい。
 
-最低限のtest input:
+再利用のためのhelper refactorが必要なら、test内literalの方を選ぶ。
 
-- valid Findings / Coverage input -> `qaFindingsSchema.safeParse` がsuccess。
-- required fieldを1つ欠落させたinvalid input -> `qaFindingsSchema.safeParse` がfailureとなり、Zod issueの `code` / `path` を確認できる。
-- Coverage SSOTに存在しない / 一致しないcoverage IDまたはcoverage set -> `assertCoverageIntegrity` が既存deterministic errorをthrowする。
+#### Test E: valid schema path
 
-`coverageResultSchema` のstatus relationだけを別testで再検証することは必須にしない。既存Agentic QA contract testと重複せず、PR4要件を証明する追加理由がある場合だけ追加する。
+上記minimal Normal inputを次で評価する。
 
-ここで新しいOutput ruleを追加せず、既存schema / validatorがすでに持つruleだけを使う。
+```ts
+qaFindingsSchema.safeParse(input)
+```
 
-#### 4-D. Machine-readable resultとthrowing relation checkを分離する
+期待:
 
-Machine-readable評価経路:
+```text
+success = true
+```
 
-- `qaFindingsSchema.safeParse` の `{ success, data | error }` をそのまま利用する。
-- invalid schema inputでは `error.issues[].code` / `path` をassertする。
-- PR4共通resultへ変換しない。
+これを `exploratory-qa` のmachine-readable評価経路とする。
 
-Coverage relation check:
+#### Test F: required field omission
 
-- `assertCoverageIntegrity` は既存のthrowing APIのまま直接呼ぶ。
-- exceptionをPR4独自のmachine-readable resultへ変換するwrapperは作らない。
-- error type / message断片など、現在のAPIで安定して確認できる最小情報だけassertする。
+上記valid inputから `run_id` だけを削除する。
 
-このSkillのmachine-readable result要件は `qaFindingsSchema.safeParse` で満たし、Coverage relation validatorへ同じresult contractを強制しない。
+期待:
 
-### Phase 5: N/A 4 Skillはcoverage tableの理由だけ残す
+```text
+qaFindingsSchema.safeParse(...) -> success = false
+```
+
+Zod issueの `path` に `run_id` が含まれることを確認する。
+
+human-readable message全文はassertしない。
+
+#### Test G: Coverage SSOT mismatch
+
+Coverage source側は次とする。
+
+```text
+required_coverage:
+  - coverage_id: COV-001
+    ...minimum fields required by existing type
+```
+
+actual Coverageはvalid inputを基準に、次だけ変更する。
+
+```text
+coverage.required_ids = ["COV-001"]
+coverage.items[0].coverage_id = "COV-999"
+```
+
+`assertCoverageIntegrity(expectedSource, actualCoverage)` を直接呼ぶ。
+
+期待:
+
+- existing deterministic errorをthrowする。
+- `coverage.items does not match the Coverage SSOT` 相当の現在の安定したerror情報で拒否を確認する。
+
+PR4独自resultへ変換しない。
+
+#### `coverageResultSchema` の個別test
+
+追加しない。
+
+`qaFindingsSchema` に内包されており、既存contract testも存在するため、PR4でstatus relation matrixを再テストしない。
+
+#### Findings ID / reference integrityを新設しない
+
+次のgrader / helperを作らない。
+
+```text
+validateFindingIds
+validateDuplicateReferences
+validateFindingReferences
+```
+
+既存Machine Contractにないcross-reference ruleをPR4で新設しない。
+
+---
+
+### Phase 5: N/A 4 Skill
+
+classification tableへ理由を残すだけとする。
 
 #### `code-review`
 
 ```text
-N/A: required review fields are semantic output requirements, but the normal review output has no stable machine-readable or fixed Markdown serialization. PR4 will not invent one.
+N/A: semantic review fields exist, but there is no stable machine-readable or fixed Markdown serialization. PR4 will not invent one.
 ```
 
 #### `repair-loop`
 
 ```text
-N/A: deterministic iteration relations exist, but the supplied Repository evaluation contract is currently a contract example rather than an implemented output schema. PR4 will not create an iteration serialization solely for grading.
+N/A: deterministic iteration relations exist, but the current Repository evaluation contract is a contract example rather than an implemented output schema. PR4 will not create serialization solely for grading.
 ```
 
 #### `harness-improvement`
 
 ```text
-N/A: the candidate model is semantically defined, but there is no stable machine-readable candidate artifact / validator in the current contract. PR4 will not create one or repair the missing taxonomy authority.
+N/A: candidate semantics exist, but there is no stable machine-readable candidate artifact / validator. PR4 will not create one.
 ```
 
 #### `android-native-local-validation`
 
 ```text
-N/A: workflow and helper have deterministic execution gates, but there is no stable machine-readable Skill Output schema representing stage results. PR4 will not introduce a new Native result contract.
+N/A: deterministic execution gates exist, but there is no stable machine-readable Skill Output schema for stage results. PR4 will not introduce one.
 ```
 
-N/A Skill用のgrader、fixture、空directoryは作らない。
+作らないもの:
 
-### Phase 6: Canonical validation pathを既存quality gateへ一本化
-
-PR4のcontract testの正本は次とする。
-
-```text
-tests/contracts/skill-output-eval.test.ts
-        ↓
-pnpm run test:contracts
-        ↓
-pnpm run test
-        ↓
-pnpm run verify
-```
-
-現在の `package.json` では `verify` が `test` を実行し、`test` が `test:contracts` を実行しているため、この既存経路をそのまま利用する。
-
-最終検証で重複して個別commandを列挙しない。Targeted testでPR4固有失敗を素早く確認し、その後Repository正本gateとして `pnpm run verify` を1回実行する。
-
-PR4では次を追加しない。
-
-- 専用CLI。
-- 専用package script。
-- runtime registry。
-- GitHub Actions workflow / matrix。
-
-### Phase 7: Scope freeze
-
-実装完了時にdiffで次を確認する。
-
-- Skill `description`変更なし。
-- Trigger Eval / Semantic Eval / Workflow E2E実装なし。
-- Product source変更なし。
-- `.codex/agents/**`変更なし。
-- `.github/workflows/**`変更なし。
-- `package.json`変更なし。
-- dependency / lockfile変更なし。
-- `evals/output/**` 新設なし。
-- existing Machine Contractのschema / regex / enum / relationの不要な複製なし。
-- PR4専用adapter / common result normalizer / CLI / runtime registry追加なし。
-- N/A回避目的の新Output schema / template / taxonomy追加なし。
+- N/A Skill grader
+- N/A fixture
+- empty `evals/` directory
+- placeholder parser
 
 ---
 
 ## 6. 検証方法
 
-### Targeted contract test
+### Targeted
 
 ```bash
 pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-parallelism --maxWorkers=1
@@ -699,24 +701,19 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 
 確認内容:
 
-- 6 Skillが重複なく次の固定分類になっている。
-  - `feature-plan`: `minimal-grader`
-  - `exploratory-qa`: `existing-validator-reuse`
-  - その他4 Skill: `N/A`
-- N/A理由が空でない。
-- `feature-plan` canonical templateがvalid inputとしてPASSする。
-- `feature-plan` required top-level heading omissionを検出する。
-- `feature-plan` 先頭0〜3個のspaceを持つfenced code block内headingだけではrequired heading存在扱いにならない。
-- `feature-plan` canonical templateからrequired H2を0件しか取得できない場合にvacuous PASSせずthrowする。
-- `feature-plan` required heading listをvalidator内部へhard-codeしていない。
-- `feature-plan` `validatePlanOutput(templateMarkdown, outputMarkdown)` がfilesystem I/Oなしのstructured resultを返す。
-- `exploratory-qa` valid Findings / Coverage inputが `qaFindingsSchema.safeParse` を通る。
-- `exploratory-qa` required field omissionを `qaFindingsSchema.safeParse` が拒否し、Zod issueの `code` / `path` を確認できる。
-- `exploratory-qa` Coverage SSOTと一致しないreference / setを `assertCoverageIntegrity` が拒否する。
-- `exploratory-qa` が新しいadapterを経由せず既存Machine Contractを直接利用する。
-- supporting Agentic QA Machine Contract全体のfixtureをPR4 testへ複製していない。
+- 6 Skill classification coverage。
+- N/A reason non-empty。
+- canonical template valid。
+- required H2 omission detection。
+- backtick fence + info string + 0〜3 spaceでfalse-passしない。
+- tilde fence + info stringでfalse-passしない。
+- empty required H2 guard。
+- Normal-mode `qaFindingsSchema.safeParse` success。
+- `run_id` omission failure / Zod path。
+- COV-001 SSOTに対するCOV-999 item mismatch rejection。
+- existing validator direct reuse。
 
-### Repository integration validation
+### Repository gate
 
 最終検証は次の3段だけとする。
 
@@ -726,220 +723,151 @@ pnpm run verify
 git diff --check
 ```
 
-`pnpm run verify` が `format:check`、`lint:markdown`、`validate:skills`、`lint`、`typecheck`、`test` 等を既に内包し、`test` から `test:contracts` へ到達するため、同じcommandを完了条件として個別に重複実行しない。
+`pnpm run verify` が `test` を含み、`test` が `test:contracts` を含むため、完了条件として同じcommandを個別に重複実行しない。
 
-個別commandは失敗原因の切り分けには使用してよいが、正本の完了gateとして並列に扱わない。
+失敗原因の切り分けとして個別commandを使うことは許可する。
 
-### Scope validation
+### Scope diff確認
+
+次が0であることを確認する。
 
 ```text
-Skill description diff = 0
-.codex/agents/** diff = 0
-.github/workflows/** diff = 0
-package.json diff = 0
-pnpm-lock.yaml diff = 0
-Product source diff = 0
-Trigger / Semantic / E2E Eval implementation diff = 0
-PR4専用adapter / CLI / runtime registry diff = 0
-new evals/output fixture file diff = 0
+Skill description changes
+.codex/agents/** changes
+.github/workflows/** changes
+package.json changes
+pnpm-lock.yaml changes
+Product source changes
+Trigger / Semantic / E2E Eval implementation
+PR4 adapter / CLI / runtime registry
+new evals/output fixture files
 ```
-
-### 成功判定
-
-- Issue #117 PR4の6 Skill coverageを1対1で説明できる。
-- 新規graderは `feature-plan` の `scripts/validate-plan-output.ts` だけ。
-- `feature-plan` はcanonical template由来H2を正本とし、empty required setによるfalse-passを防止している。
-- `feature-plan` のfence handlingは先頭0〜3個のspaceを許容する最小境界だけを扱い、完全Markdown parserへ拡張していない。
-- `exploratory-qa` は実Skill Outputに限定して `qaFindingsSchema.safeParse` / `assertCoverageIntegrity` を直接再利用する。
-- 評価対象2 Skillそれぞれにmachine-readableな評価経路がある。
-- existing Machine Contract duplicationがない。
-- N/A 4 Skill用のserialization / grader / fixtureを新設していない。
-- `pnpm run verify` の既存 `test -> test:contracts` 経路でgateされる。
-- 新しいCLI / package script / CI workflowなしでgateされる。
 
 ---
 
-## 7. リスクと未解決論点
+## 7. リスクと実装時の判断ルール
 
-### Risk 1: Planで確定したN/Aを実装時に再調査し始める
-
-対策:
-
-- Phase 0はcontract drift preflightだけにする。
-- direct contractに変更がなければ分類を再議論しない。
-- N/Aを減らすためのRepository archaeologyを禁止する。
-
-### Risk 2: `feature-plan` graderが新しいOutput Contractを作る
+### Risk 1: N/Aを減らすためにOutput Contractを発明する
 
 対策:
 
-- required headingはcanonical templateから導出する。
-- hard-codeしたheading registryを持たない。
-- heading存在以外を評価しない。
-- duplicate / order / body / placeholder completionをruleにしない。
+- fixed classificationを維持する。
+- direct contract driftがない限り再調査しない。
 
-### Risk 3: canonical template抽出失敗でvacuous PASSする
+### Risk 2: `feature-plan` graderがMarkdown parser化する
 
 対策:
 
-- required H2が0件ならOutput評価を継続しない。
-- configuration errorとしてthrowする。
-- required heading件数そのものはhard-codeしない。
+- required H2 presenceだけを見る。
+- line-by-line fence stateだけを持つ。
+- opener / closer仕様はSection 5の最小境界に固定する。
+- AST / dependency / CommonMark完全互換へ広げない。
 
-### Risk 4: Markdown parserを作り込みすぎる
-
-対策:
-
-- line-by-lineのfence state + level-2 heading extractionだけにする。
-- 先頭0〜3個のspace + 3文字以上のbacktick / tilde fenceだけ扱う。
-- 4個以上のindent、nested Markdown完全互換、AST、generic parser、new dependencyへ広げない。
-
-### Risk 5: Existing Agentic QA Machine Contractを二重実装する
+### Risk 3: fence内headingでfalse-passする
 
 対策:
 
-- `qaFindingsSchema.safeParse` / `assertCoverageIntegrity` を直接利用する。
-- regex / enum / relationをコピーしない。
-- direct callできるためadapterを作らない。
+- info string付きopenerを認識する。
+- closerはtrailing whitespaceだけを許容する。
+- backtick / tildeを双方testする。
 
-### Risk 6: `exploratory-qa` の範囲がMachine Contract全体へ広がる
-
-対策:
-
-- PR4対象は Findings / Coverage output周辺だけ。
-- `coverageResultSchema` は `qaFindingsSchema` 内包分で足りる限り個別testしない。
-- Host / Runner / Preparation / Benchmark等は既存 `spec-agentic-qa.test.ts` の責務を維持する。
-- artifact manifest等の既存fixture matrixを再作成しない。
-
-### Risk 7: machine-readable resultのためにwrapperを作る
+### Risk 4: canonical template parser failureでvacuous PASSする
 
 対策:
 
-- `feature-plan` はlocal structured resultを返す。
-- `exploratory-qa` はZod `safeParse` result / issuesをmachine-readable経路にする。
-- `assertCoverageIntegrity` はthrowing relation checkのまま利用する。
-- PR4共通result schema / normalizer / exception adapterを作らない。
+- required H2が0件ならthrowする。
 
-### Risk 8: fixture directoryが増える
+### Risk 5: Agentic QA Machine Contract全体を再テストする
 
 対策:
 
-- `feature-plan` はcanonical template + test内mutation。
-- `exploratory-qa` は既存small fixture/builderかtest内minimal object。
-- static fixture fileは、test内生成では表現できない具体的理由がない限り作らない。
+- Normal-mode minimal fixtureだけを使う。
+- `qaFindingsSchema.safeParse` と `assertCoverageIntegrity` だけを直接扱う。
+- Scored runner / host / benchmark / isolation fixtureへ広げない。
 
-### Risk 9: validation commandを二重実行する
-
-対策:
-
-- PR4 targeted testで局所確認する。
-- 最終Repository gateは `pnpm run verify` に一本化する。
-- `verify` が内包する個別commandを完了条件として重複列挙しない。
-
-### Risk 10: invalid input failureとtest command failureを混同する
+### Risk 6: Issue候補を見て新しいFinding relation ruleを足す
 
 対策:
 
-- invalid inputがstructured failure / deterministic exceptionになることをassertする。
-- 期待どおり拒否できればcontract testはPASS。
-- commandのnon-zeroはcontract test自体が壊れた場合だけ。
+- Issueのcandidate categoryよりcurrent authoritative Machine Contractを優先する。
+- finding ID uniqueness / `duplicate_of` target existenceは既存ruleがないため追加しない。
 
-### 実装時の判断ルール
+### Risk 7: machine-readable result統一のためwrapperを作る
 
-迷った場合は次を上から確認する。
+対策:
 
-1. **Planで分類済みの6 Skill mappingから外れようとしていないか。**
-   - はい -> direct contract driftがあるか確認する。driftがなければPlanへ戻す。
-2. **このruleはsemantic判断か。**
-   - はい -> PR5へ残す。
-3. **既存validator / schemaを直接呼べるか。**
-   - はい -> 直接再利用する。adapterを作らない。
-4. **graderのために新しいOutput formatを作ろうとしていないか。**
-   - はい -> N/Aを維持する。
-5. **`feature-plan` required headingをhard-codeしようとしていないか。**
-   - はい -> canonical templateから導出する。
-6. **`feature-plan` graderへfilesystem / CLI / Repository path責務を入れようとしていないか。**
-   - はい -> `validatePlanOutput(templateMarkdown, outputMarkdown)` のpure functionへ戻す。
-7. **required heading抽出が0件でもPASSできる実装になっていないか。**
-   - はい -> configuration errorで停止する。
-8. **fence parserを完全Markdown parserへ広げようとしていないか。**
-   - はい -> 先頭0〜3個のspace + backtick / tilde fenceという今回必要な最小境界へ戻す。
-9. **duplicate / order / body / semantic completenessまで検証しようとしていないか。**
-   - はい -> scopeをrequired heading existenceへ戻す。
-10. **Agentic QA Machine Contract全体を再テストしようとしていないか。**
-   - はい -> `qaFindingsSchema.safeParse` / `assertCoverageIntegrity` へ戻す。
-11. **machine-readable化だけのためにthrowing validator wrapperを作ろうとしていないか。**
-    - はい -> Zod `safeParse` をmachine-readable経路にし、throwing validatorはそのまま使う。
-12. **static fixture file / common result normalizer / CLI / runtime registryが必要になっていないか。**
-    - PR4では原則作らない。contract testで完結させる。
-13. **N/Aを減らすこと自体が目的になっていないか。**
-    - はい -> N/Aを維持する。
+- `feature-plan`: local `{ valid, issues }`。
+- `exploratory-qa`: Zod `safeParse` result / issues。
+- `assertCoverageIntegrity`: existing throwのまま。
+
+### Risk 8: fixture / helperを増やす
+
+対策:
+
+- `feature-plan`: canonical template + test内mutation。
+- `exploratory-qa`: Normal-mode minimal object。
+- helper抽出が必要になるなら、まずtest内literalで済まないか確認する。
+
+### 実装時の判断順序
+
+迷った場合は次の順で判断する。
+
+1. fixed 6 Skill classificationから外れていないか。
+2. semantic qualityを評価しようとしていないか。該当するならPR5へ残す。
+3. 既存validatorを直接呼べないか。呼べるなら直接使う。
+4. grader都合の新Output formatを作ろうとしていないか。該当するなら作らない。
+5. `feature-plan` required headingをhard-codeしていないか。
+6. `validatePlanOutput` にfilesystem / CLI責務を入れていないか。
+7. required H2 0件でPASSできないか。
+8. fence parserをSection 5以上に一般化していないか。
+9. duplicate / order / body / semanticsまで評価していないか。
+10. `exploratory-qa` fixtureをGray-box / Scoredへ広げていないか。
+11. Finding ID / `duplicate_of` cross-reference ruleを新設していないか。
+12. throwing validatorをnormalizeするwrapperを作っていないか。
+13. static fixture / registry / CLI / common normalizerを追加しようとしていないか。
+
+該当した場合はPlanの最小境界へ戻す。
 
 ---
 
 ## 8. 成果物
 
-### 今回のPlan-only branch
+### Plan-only branchでの正本
 
 ```text
 docs/plans/2026-09-06_125426_issue-117-pr4-deterministic-output-eval.md
 ```
 
-今回変更するのはこのPlanのみ。
-
-### 後続実装で必須になる成果物
+### 後続実装で追加するファイル
 
 ```text
 .agents/skills/feature-plan/scripts/validate-plan-output.ts
 tests/contracts/skill-output-eval.test.ts
 ```
 
-役割:
-
-- `feature-plan/scripts/validate-plan-output.ts`:
-  - `validatePlanOutput(templateMarkdown, outputMarkdown)` のpure function。
-  - canonical template由来required H2抽出。
-  - required H2が0件の場合のconfiguration guard。
-  - Outputのfence-aware H2抽出（先頭0〜3個のspaceを許容）。
-  - missing required headingのstructured result。
-- `skill-output-eval.test.ts`:
-  - 6 Skill固定classification table。
-  - `feature-plan` canonical template + test内mutation + empty-template guard test。
-  - `exploratory-qa` `qaFindingsSchema.safeParse` / `assertCoverageIntegrity` direct reuse test。
-  - N/A reason coverage。
+これ以上の実装ファイルは、current contract driftにより明確に必要になった場合を除き追加しない。
 
 ### 作らないもの
 
-- N/A Skillのgrader / fixture / empty directory。
-- `.agents/skills/*/evals/output/**` の新規fixture file。
-- fake grader / placeholder parser。
-- inventory専用module。
-- Repository-level PR4 adapter。
-- common result normalizer / schema。
-- throwing validatorをmachine-readable化するだけのwrapper。
-- CLI / runtime registry / package script。
-- PR4専用GitHub Actions workflow / matrix。
-- global rule taxonomy / plugin framework。
-
-### 最小実装見立て
-
-```text
-.agents/skills/feature-plan/
-└── scripts/
-    └── validate-plan-output.ts
-
-tests/contracts/
-└── skill-output-eval.test.ts
-```
-
-この2ファイルの追加だけでIssue #117 PR4のDoDを満たす。それ以上の共通基盤・fixture file・adapterを追加しない。
+- N/A Skill grader / fixture / empty directory
+- `.agents/skills/*/evals/output/**` static fixtures
+- repository-level PR4 adapter
+- common result normalizer / schema
+- exception adapter
+- CLI
+- runtime registry
+- package script
+- PR4専用GitHub Actions workflow
+- global rule taxonomy
+- generic Markdown parser
+- Finding cross-reference validator
 
 ---
 
 ## 9. 備考
 
 - Refs: Issue #117。
-- 前提PR: PR #123（PR1: Skill package構造整理・Portability対応、merge済み）。
-- PR4はPR2 / PR3を待たずPR1 merge後のmainから実装できる。
+- 前提PR: PR #123（PR1、merge済み）。
+- PR4はPR2 / PR3を待たず実装できる。
 - PR5 Semantic Output EvalはPR4でdeterministic / semantic境界を確定した後に進める。
-- このPlan commitでは実装を行わない。
+- このPlanの目的は、実装者の選択肢を増やすことではなく、**最小実装を迷わず再現できる状態にすること**である。
