@@ -38,6 +38,8 @@
 - cache / state
 - feature flag branches
 
+Review dimensions also include performance and developer experience when they are relevant to the requested change.
+
 ### What needs deep review
 
 - correctness high risk
@@ -101,15 +103,31 @@
 - 好みだけの指摘や根拠の弱い推測は finding にしない。
 - 根拠が弱い論点は `Open questions` に回す。
 - 問題がない場合も残余リスクと未実施検証を明記する。
-- review-only では `docs/reports/` に report file を作らない。
+- review-onlyでは、supplied Repository review persistence policyが要求しない限りdurable report fileを作らない。
+
+## Required review output
+
+Each finding uses the following fields so that the normal output remains reviewable:
+
+- Severity
+- Title
+- Location
+- Why it matters
+- Evidence
+- Suggested fix
+- Open questions
+- Verdict
+- confidence
+
+The normal review output is findings. A no-findings review still states residual risk and unvalidated areas. A durable report is conditional on an explicit request or the Repository review persistence policy; its concrete destination is an external Repository input, not part of this package workflow.
 
 ## Report file generation policy
 
 - Allowed: ユーザーが「レポートとして保存」「調査レポートを作成」など保存を明示した場合、計画 DoD に report file が明記されている場合、複数ソース調査・監査・検証結果を後で参照する durable artifact として残す必要がある場合。
 - Not allowed: review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録、チャットで完結する評価。
-- review-only and plan-only do not create docs/reports files.
-- 保存先: consumer repo 作業は `docs/reports/`、source repo 作業は `maintainers/reports/`。`.codex/runs/<run_id>/REPORT.md` は run-local log として別扱い。
-- 判断に迷う場合は report file を作らず、チャット返答と run-local `REPORT.md` に留める。
+- review-only and plan-only do not create a durable report file unless the supplied Repository policy requires it.
+- 具体的な保存先、命名、retention、active Run reportの扱いはRepository review persistence policyから供給する。
+- 判断に迷う場合は report file を作らず、チャット返答とactive Run reportに留める。
 
 ## Failure modes
 
@@ -118,4 +136,4 @@
 - 好みベースのコメントで findings を埋める
 - `Why it matters` や `Evidence` が弱く、修正の必要性が伝わらない
 - 未確認事項を finding にして confidence を偽装する
-- review-only で `docs/reports/` に report file を作る
+- review-onlyで不要なdurable report fileを作る

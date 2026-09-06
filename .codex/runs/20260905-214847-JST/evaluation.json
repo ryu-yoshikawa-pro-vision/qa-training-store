@@ -1,0 +1,86 @@
+{
+  "schema_version": 1,
+  "run_id": "20260905-214847-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "実装済みPR1差分を追加変更せず、remote先行Plan commitをfast-forwardで取り込み、対象差分をcommit・pushし、PR #123の内容を実装済み状態へ同期する作業を完了する。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": ".codex/runs/20260905-214847-JST/REPORT.md",
+          "selector": "2026-09-05 22:00",
+          "summary": "staged scopeとremote Plan基底化の判断を記録している。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "対象は既存PR1実装差分、必要なRun Artifact、PR本文同期に限定し、実装、Plan再設計、dependency、product code、.codex/agents/**、PR2以降の内容を追加していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260905-214847-JST/REPORT.md",
+          "selector": "Staged scope",
+          "summary": "除外対象を含まないstaged scopeを記録している。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "実装完了Runで`pnpm run verify` PASS、frontmatter freeze、Validator、semantic self-reviewを完了済みであり、反映作業では同じ実装差分に追加変更を行っていない。push後にremote SHAとPR差分を再取得する。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260905-195959-JST/evaluation.json",
+          "summary": "実装Runの最終評価がPASSである。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "指定PR branchを維持し、remote先行分はfast-forwardのみで取り込み、明示refspec・non-force pushを使う。reset、clean、branch切替、force pushは行わない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260905-214847-JST/REPORT.md",
+          "selector": "2026-09-05 21:52",
+          "summary": "branch、PR、upstream、remote ancestryの事前確認を記録している。"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "commit前のstaged path、Plan scope、禁止対象、frontmatter freeze、push後のPR確認をRun Artifactで追跡できる。",
+      "evidence_refs": [
+        {
+          "kind": "run_artifact",
+          "path": ".codex/runs/20260905-214847-JST/REPORT.md",
+          "summary": "反映判断とscope確認をappend-onlyで保持する。"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "実装内容を変更せず、PR1 package構造、Validator、root責務分離、Run記録の既存成果物だけを反映する。",
+      "evidence_refs": []
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "既存の実装完了Run、明示staged diff、commit SHA、remote SHA、PR API再取得、sanitizationで反映結果を再現・確認できる。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260905-214847-JST/REPORT.md",
+          "selector": "Push後検証",
+          "summary": "push後にremoteとPRを再取得する手順を保持する。"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

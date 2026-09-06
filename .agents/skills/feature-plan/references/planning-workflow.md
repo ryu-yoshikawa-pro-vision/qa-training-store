@@ -85,16 +85,16 @@
 - 実装順に沿って書く。
 - 判定条件を曖昧にしない。
 - 事実と推測を混ぜない。
-- 実装へ進む前に `docs/plans/{yyyy-mm-dd}_{HHMMSS}_{plan_name}.md` を保存する。
-- 必要なら `.codex/runs/<run_id>/PLAN.md` と `TASKS.md` にも落とし込む。
-- plan-only では `docs/reports/` に report file を作らない。必要な記録はチャット返答と run-local `REPORT.md` に留める。
+- 実装へ進む前に、Repositoryから供給されたplan storage / filename conventionへ保存する。
+- 必要なら、Repositoryから供給されたactive Runのworking artifactへも落とし込む。
+- plan-onlyではRepositoryのreport persistence policyに従い、不要なdurable report fileを作らない。必要な記録はチャット返答とactive Run reportに留める。
 
 ## Report file generation policy
 
 - Allowed: ユーザーが保存を明示した場合、計画 DoD に report file が明記されている場合、複数ソース調査・監査・検証結果を後で参照する durable artifact として残す必要がある場合。
 - Not allowed: plan-only、review-only、status update、軽い確認、通常の evidence command 結果、run progress 記録、チャットで完結する評価。
-- review-only and plan-only do not create docs/reports files.
-- 判断に迷う場合は report file を作らず、チャット返答と run-local `REPORT.md` に留める。
+- review-only and plan-only do not create a durable report file unless the supplied Repository policy requires it.
+- 判断に迷う場合は report file を作らず、チャット返答とactive Run reportに留める。
 
 ## Failure modes
 
@@ -103,4 +103,4 @@
 - `Non-goals` を書かず、ついでの改善を混ぜる
 - `Validation plan` が曖昧で Done 判定できない
 - `Unknowns` を放置したまま実装に進む
-- plan-only で `docs/reports/` に report file を作る
+- plan-onlyで不要なdurable report fileを作る

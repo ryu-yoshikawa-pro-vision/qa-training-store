@@ -1,33 +1,18 @@
-# Code Review Entry Point
+# Repository Code Review Contract
 
-## 適用条件
+この文書は、Scenario Shop Repositoryに固有のレビュー入力、Coding Standards、外部レビュー承認、review成果物の保存契約を定義します。genericなreview workflow、findingの意味、出力形式、severity順は `code-review` Skill packageを正本とします。
 
-- ユーザーがレビューを依頼した場合
-- `/review` を使う場合
-- 実装完了前の自己レビュー
+## Repository inputs
 
-## 使い方
-
-1. `AGENTS.md` を確認する。
-2. `docs/CODING_STANDARDS.md` を確認する。
-3. `.agents/skills/code-review/SKILL.md` を読む。
-4. 必要に応じて `.agents/skills/code-review/references/review-workflow.md` を読む。
+- Coding policy: [`docs/CODING_STANDARDS.md`](docs/CODING_STANDARDS.md)
+- Review persistence policy: 通常のreview結果はchatまたはcurrent Runの `REPORT.md` に記録し、durable reportが必要な条件・保存先・命名・保持はRepositoryの依頼条件とRun運用へ従います。
+- Skill package: [`code-review`](.agents/skills/code-review/SKILL.md)
 
 ## 外部レビューサービスの実行承認
 
 CodeRabbit など外部レビューサービスの full review / 再レビューは、明示的な実行指示または承認を得てから起動する。レビュー完了後は結果を報告して停止し、指摘の修正、thread操作、再レビューはユーザーの判断を受けるまで実行しない。既存レビューの取得、reviewDecisionの確認、inline thread状態の参照は、レビュー起動とは別のread-only確認として扱う。
 
-## Review objective
-
-1. correctness
-2. security
-3. behavioral regression
-4. missing tests
-5. maintainability
-6. performance
-7. developer experience
-
-## Coding standards review
+## Repository Coding Standards
 
 変更差分について、特に次を確認する。
 
@@ -45,31 +30,8 @@ CodeRabbit など外部レビューサービスの full review / 再レビュー
 
 規約違反であっても、変更と無関係な既存問題や実害のない表現差は、今回の必須Findingとして扱わない。
 
-## What to report
+## Review persistence policy
 
-- 差分に起因する問題だけを報告する。
-- 根拠が弱い論点は finding にせず `Open questions` に回す。
-- 単なる好みや既存問題を差分起因として扱わない。
-- 規約を機械的に適用することで差分が過度に広がる場合は、最小修正または別対応を提案する。
-- レビュー結果は原則チャット返答のみとし、明示的な調査・保存依頼がない限り `docs/reports/` に report file を作らない。
-
-## Required review format
-
-- findings-first
-- severity 順
-- Severity
-- Title
-- Location
-- Why it matters
-- Evidence
-- Suggested fix
-- Open questions
-- Verdict
-- confidence
-
-## Report file 生成ルール
-
-- Allowed: ユーザーが「レポートとして保存」「調査レポートを作成」など保存を明示した場合、計画 DoD に report file が明記されている場合、複数ソース調査・監査・検証結果を後で参照する durable artifact として残す必要がある場合。
-- Not allowed: review-only、plan-only、status update、軽い確認、通常の evidence command 結果、run progress 記録、チャットで完結する評価。
-- 保存先: consumer repo 作業は `docs/reports/`。`.codex/runs/<run_id>/REPORT.md` は run-local log として別扱い。
-- 判断に迷う場合は report file を作らず、チャット返答と run-local `REPORT.md` に留める。
+- Review-only、plan-only、status update、軽い確認、通常のevidence command結果、Run progress記録、chatで完結する評価は `docs/reports/` へ保存しない。
+- ユーザーが保存を明示した場合、計画DoDにreport fileがある場合、または複数ソースの調査・監査・検証結果を後で参照する必要がある場合だけ、Repositoryのdurable report保存先を使う。
+- `.codex/runs/<run_id>/REPORT.md` はRun-localの意味記録であり、durable reportとは別扱いとする。
