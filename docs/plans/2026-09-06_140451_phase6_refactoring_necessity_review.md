@@ -467,14 +467,24 @@ raw log dumpは貼らない。
 
 PR作成直前に、まず`git fetch origin main`でlatest `origin/main`を取得し、latest `main` SHAを確定する。その後、investigation baseline `main` SHAとlatest `main` SHAを比較する。
 
-1. changed filenames / diffを確認する。
-2. candidate自身またはPass 1 / Pass 2で確認済みのconsumer / test / workflowへ接触していない場合はfreshness確認終了。
-3. 接触しているpathだけ内容を確認する。
-4. Repository material changeでなければclassification維持。
-5. Repository material changeならlatest `main`を通常mergeで取り込み、影響candidateだけ再評価する。
-6. freshness確認完了時のlatest `main` SHAを**last confirmed main SHA**としてreportの`Freshness check`へ記録する。
+Pass 1 / Pass 2で確認済みのEvidenceから、candidateごとに次を**freshness relevant set**として扱う。別台帳は作らず、Evidence Card / durable reportに既に記録したpathをそのまま使用する。
 
-全16件のconsumer / dependencyを最初から再確認しない。
+- candidate current path(s)
+- current consumer / dependency / reference path
+- principal composition root
+- protecting test / workflow
+
+freshness確認は次の順序で行う。
+
+1. changed filenames / diffを確認する。
+2. freshness relevant set内のpathへ変更がある場合は、そのchanged pathだけ内容を確認する。
+3. freshness relevant set外のadded / deleted pathでも、**今回比較しているchanged diff自体**にcandidateのpublic / composition surfaceへのdirect import / referenceが現れている場合だけrelevant changeとして扱う。
+4. 上記2〜3のrelevant changeがなければfreshness確認終了とする。
+5. relevant changeがRepository material changeでなければclassificationを維持する。
+6. Repository material changeならlatest `main`を通常mergeで取り込み、影響candidateだけblast radius / test protection / boundary / classificationを再評価する。
+7. freshness確認完了時のlatest `main` SHAを**last confirmed main SHA**としてreportの`Freshness check`へ記録する。
+
+freshnessのために全16件のconsumer / dependency / referenceを最初から再検索しない。known set外の新規関連path確認もchanged diffの範囲に限定し、Repository全体のgeneric dependency scanを追加しない。
 
 review中に新しいdefect / repair / runtime failure Evidenceが明示的に判明している場合だけ、そのcandidateへ反映する。freshness check自体で新規障害を探索しない。
 
@@ -548,10 +558,10 @@ Run lifecycleは§4.8と`AGENTS.md`に従い、会話セッションが変わっ
 
 1. reportの`Freshness check`に記録された**last confirmed main SHA**を比較起点として確定する。
 2. `git fetch origin main`でlatest `origin/main`を取得し、latest `main` SHAを確定する。
-3. last confirmed main SHA → latest `main`の差分をdiff-firstで再確認する。
+3. last confirmed main SHA → latest `main`のchanged filenames / diffに対して、Task 11と**同じfreshness relevant set / 判定ルール**を使用してdiff-first確認する。known set外のadded / deleted pathも、changed diff内でcandidate surfaceへのdirect import / referenceが現れた場合だけrelevant changeとして扱う。
 4. relevant path変更なし → latest `main` SHAを新しいlast confirmed main SHAとしてreportへ記録する。
 5. relevant path変更あり / non-material → 内容確認結果とlatest `main` SHAをreportへ記録しclassification維持する。
-6. relevant path変更あり / Repository material change → latest `main`を通常mergeで取り込み、影響candidateだけ再評価した後、latest `main` SHAをreportへ記録する。
+6. relevant path変更あり / Repository material change → latest `main`を通常mergeで取り込み、影響candidateだけblast radius / test protection / boundary / classificationを再評価した後、latest `main` SHAをreportへ記録する。
 7. reportを必要最小限更新し、Task 12のcommit前Required validationを再実行する。
 8. 必要なcommitを行い、commit後はTask 13の`git diff --check origin/main...HEAD`とPR差分確認を再実行してからnon-force pushする。
 9. **この時点の最新PR head SHAを確定する。**
@@ -645,7 +655,7 @@ Native / Web、Dexie / SQLite、Formal / Training等のintentional boundaryをDR
 
 ### Stale decision
 
-diff-first freshness checkでRepository上のrelevant changeだけを再評価する。PR前に記録したlast confirmed main SHAからmerge直前のlatest `main`までを増分確認し、確認済み範囲を毎回investigation baselineから再走査しない。新規runtime failure等は明示的に判明した場合だけ反映し、能動監視しない。
+diff-first freshness checkでは、Pass 1 / Pass 2で確認済みのcandidate / consumer / dependency / reference / composition root / protecting test・workflowをfreshness relevant setとして再利用する。known set外の新規関連pathは比較対象のchanged diffだけで判定し、Repository全体のconsumer / dependency scanへ戻らない。PR前に記録したlast confirmed main SHAからmerge直前のlatest `main`までを増分確認し、確認済み範囲を毎回investigation baselineから再走査しない。新規runtime failure等は明示的に判明した場合だけ反映し、能動監視しない。
 
 ### Validation timing gap
 
