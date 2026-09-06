@@ -109,13 +109,13 @@ candidateの意味と初期EvidenceはRepository Audit §4.1〜§4.16を正本�
 
 1. candidate current path / current area
 2. Audit baseline以降のcandidate path lineage（split / merge / rename / responsibility変化）
-3. Repository inception〜Currentのcandidate-targeted path historyからrecent churn / defect / repair Evidenceを確認する
-4. current direct consumer / import / composition root
+3. Repository inception〜Currentのcandidate-targeted path historyからrecent churn / change frequency / defect / repair Evidenceを確認する
+4. current direct consumer / dependency / reference / composition root
 5. protecting test / workflow
 6. path historyから直接特定できたrelevant PR / Issue
 7. 上記だけでは判断材料が不足するときだけrelevant Run Artifact
 
-Historyはcandidate path / areaへ限定し、Repository全体の全commitを分析しない。Audit baseline以降のhistoryはCurrent stateとの差分把握に使い、Audit以前を含むtargeted historyはMaster Planが求めるrecent churn / defect / repair Evidenceを補うために使う。
+Historyはcandidate path / areaへ限定し、Repository全体の全commitを分析しない。Audit baseline以降のhistoryはCurrent stateとの差分把握に使い、Audit以前を含むtargeted historyはMaster Planが求めるrecent churn / change frequency / defect / repair Evidenceを補うために使う。
 
 この範囲で該当defect / repair / failure Evidenceが見つからない場合は、`確認した範囲では該当Evidenceなし`と記録して終了する。
 
@@ -237,11 +237,11 @@ Candidate
 Current path(s)
 Current responsibility
 Current public / composition surface
-Current consumers / dependencies
+Current consumers / dependencies / references
 Protecting tests / workflows
 Transaction / state / platform boundary
 Audit baselineからのmaterial change
-Recent churn / repair / failure summary
+Recent churn / material change frequency / repair / failure summary
 Evidence references
 Pass 1 status: classified | deep-dive-needed
 ```
@@ -268,20 +268,21 @@ Task 2〜5は§4.6のとおりcandidate単位で連続実行する。
 1. **Current state差分確認**
    - Audit baseline以降のcandidate path lineageを確認する。
    - split / merge / rename / responsibility変化をCurrent pathへ対応付ける。
-2. **churn / defect / repair Evidence確認**
+2. **churn / change frequency / defect / repair Evidence確認**
    - Repository inception〜Currentのcandidate-targeted path historyを確認する。
    - recentなmaterial change / repair / revert / repeated fixを抽出する。
 
 確認するのは次だけ。
 
 - materialな主要commit
+- material change frequency / repeated-change pattern
 - change reason
 - repeated fix / revert / repairの有無
 - 同じboundaryの反復修正有無
 - historyから直接辿れるrelevant PR / Issue
 - candidate起因と確認できるCI / runtime failure有無
 
-全Repositoryのcommit timelineや全file historyは作らない。単純commit countはrisk scoreにしない。
+全Repositoryのcommit timelineや全file historyは作らない。単純commit countはrisk scoreにしない。change frequencyにも固定閾値やscoreを設けず、material changeの頻度・反復パターンとして記録する。
 
 feature growth、defect repair、operational repair、mechanical changeを区別する。
 
@@ -289,7 +290,7 @@ feature growth、defect repair、operational repair、mechanical changeを区別
 
 classificationに必要な粒度で次を確認する。
 
-- direct consumer
+- direct consumer / dependency / reference path
 - principal composition root
 - shared contract
 - platform-specific ownership
@@ -446,11 +447,11 @@ Candidate
 Current path(s)
 Current responsibility
 Current public / composition surface
-Current consumers / dependencies
+Current consumers / dependencies / references
 Protecting tests / workflows
 Transaction / state / platform boundary
 Audit baselineからのmaterial change
-Recent churn / repair / failure summary
+Recent churn / material change frequency / repair / failure summary
 Evidence references
 Classification
 Why now / why not now
