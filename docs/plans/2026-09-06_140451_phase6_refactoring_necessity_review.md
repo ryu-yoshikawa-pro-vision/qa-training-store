@@ -12,7 +12,7 @@
 
 このPlanは、ユーザーの明示的なPlan作成依頼に応じてPhase 6の**実行順序と停止点だけを具体化するExecution Plan**である。
 
-Phase 6のcandidate inventory、Evidence criteria、classification、completion、global stop condition、output scopeのnormative contractはMaster Plan §19〜§21を正本とする。このPlanではそれらを再定義しない。記載が競合した場合はMaster Planを優先する。
+Phase 6固有のcandidate inventory、Evidence criteria、classification、freshness、output scope、completionはMaster Plan §19を正本とする。global stop conditionはMaster Plan §21を正本とし、Repository remediation全体のDefinition of DoneはMaster Plan §24を正本とする。このPlanではそれらを再定義しない。記載が競合した場合はMaster Planを優先する。
 
 Phase 6は**decision-only**である。`refactor_now`と判定したcandidateが存在しても、このPhase 6 branch / PRではProduct、Harness、Workflow、Test sourceのRefactorを実装しない。実装はPhase 6 merge後に別Plan / 別PRへ切り出す。
 
@@ -41,7 +41,7 @@ Phase 6実施者が追加の設計判断なしで、次を順番に実行でき�
 9. decision-only PRをOPENで作成して停止する。
 10. ユーザーの明示承認後だけmerge finalizationへ進む。
 
-Phase 6そのもののDoDはMaster Plan §19 / §21を正本とする。
+Phase 6そのもののCompletionはMaster Plan §19を正本とし、Phase 6実施中のglobal stop conditionsはMaster Plan §21を正本とする。Issue #72の最終Close可否はMaster Plan §24とIssue #72自身の完了条件で判定する。
 
 ## 2. 現状理解 / 前提 / 非目標
 
@@ -472,6 +472,7 @@ PR作成直前に、まず`git fetch origin main`でlatest `origin/main`を取�
 3. 接触しているpathだけ内容を確認する。
 4. Repository material changeでなければclassification維持。
 5. Repository material changeならlatest `main`を通常mergeで取り込み、影響candidateだけ再評価する。
+6. freshness確認完了時のlatest `main` SHAを**last confirmed main SHA**としてreportの`Freshness check`へ記録する。
 
 全16件のconsumer / dependencyを最初から再確認しない。
 
@@ -545,24 +546,27 @@ Task 11〜12完了後、Phase 6のdecision-only成果物をGitHubへ提出する
 
 Run lifecycleは§4.8と`AGENTS.md`に従い、会話セッションが変わった場合に既存Runを無条件で再利用しない。
 
-1. `git fetch origin main`でlatest `origin/main`を取得し、latest `main` SHAを確定する。
-2. latest `main`との差分をdiff-firstで再確認する。
-3. relevant path変更なし → latest `main` SHAをreportへ記録する。
-4. relevant path変更あり / non-material → 内容確認結果とlatest `main` SHAをreportへ記録しclassification維持する。
-5. relevant path変更あり / Repository material change → latest `main`を通常mergeで取り込み、影響candidateだけ再評価する。
-6. reportを必要最小限更新し、Task 12のcommit前Required validationを再実行する。
-7. 必要なcommitを行い、commit後はTask 13の`git diff --check origin/main...HEAD`とPR差分確認を再実行してからnon-force pushする。
-8. **この時点の最新PR head SHAを確定する。**
-9. 最新head SHAで実際に起動したapplicable repository checks / workflowsを確認し、required指定の有無にかかわらず、Phase 6 PRにrelevantなfailureを残したままmergeしない。古いheadのCI結果を代用しない。
-10. unresolved review threadまたは新しいreview findingが残っていないことを確認する。
-11. PRがmergeable / merge-readyであることを確認する。
-12. Repositoryのmerge設定を再確認する。Planning時点と同じくsquash mergeのみ有効ならsquash mergeを使用する。merge commit / rebase mergeを使用するためにRepository設定を変更しない。
-13. CI failure、新しいreview finding、merge conflict、validation failureがある場合はmergeせず、必要最小限のbounded repairを行った後、最新headでTask 12 / Task 13 / 本Taskの必要箇所をやり直す。
-14. すべて満たした場合だけ、ユーザーの明示承認範囲内で**squash merge**する。
-15. merge後、Issue #72のCurrent status / Phase 6欄を実際のmerge結果へ同期し、Master Plan §21およびIssue #72自身の完了条件を最終確認する。
-16. Master Plan / Issue #72の完了条件をすべて満たす場合はIssue #72をCloseする。未達条件がある場合はIssue #72をOpenのまま維持し、重複説明を避けて不足条件と正本への参照だけを記録する。
+1. reportの`Freshness check`に記録された**last confirmed main SHA**を比較起点として確定する。
+2. `git fetch origin main`でlatest `origin/main`を取得し、latest `main` SHAを確定する。
+3. last confirmed main SHA → latest `main`の差分をdiff-firstで再確認する。
+4. relevant path変更なし → latest `main` SHAを新しいlast confirmed main SHAとしてreportへ記録する。
+5. relevant path変更あり / non-material → 内容確認結果とlatest `main` SHAをreportへ記録しclassification維持する。
+6. relevant path変更あり / Repository material change → latest `main`を通常mergeで取り込み、影響candidateだけ再評価した後、latest `main` SHAをreportへ記録する。
+7. reportを必要最小限更新し、Task 12のcommit前Required validationを再実行する。
+8. 必要なcommitを行い、commit後はTask 13の`git diff --check origin/main...HEAD`とPR差分確認を再実行してからnon-force pushする。
+9. **この時点の最新PR head SHAを確定する。**
+10. 最新head SHAで実際に起動したapplicable repository checks / workflowsを確認し、required指定の有無にかかわらず、Phase 6 PRにrelevantなfailureを残したままmergeしない。古いheadのCI結果を代用しない。
+11. unresolved review threadまたは新しいreview findingが残っていないことを確認する。
+12. PRがmergeable / merge-readyであることを確認する。
+13. Repositoryのmerge設定を再確認する。Planning時点と同じくsquash mergeのみ有効ならsquash mergeを使用する。merge commit / rebase mergeを使用するためにRepository設定を変更しない。
+14. CI failure、新しいreview finding、merge conflict、validation failureがある場合はmergeせず、必要最小限のbounded repairを行った後、最新headでTask 12 / Task 13 / 本Taskの必要箇所をやり直す。
+15. すべて満たした場合だけ、ユーザーの明示承認範囲内で**squash merge**する。
+16. merge後、Issue #72のCurrent status / Phase 6欄を実際のmerge結果へ同期する。
+17. Issue #72のClose可否はMaster Plan §24 Definition of DoneとIssue #72自身の完了条件で確認する。完了済みStageについては、Issue #72のStage状態、merged PR、child Plan / durable report、既存validation結果をEvidenceとして使用する。
+18. §24確認のために完了済みStageのsource再Audit、validation再実行、PR再レビューを行わない。既存durable Evidenceだけでは確認できない条件がある場合はIssue #72をCloseせず、不足Evidenceだけを正本参照付きで最小限記録する。
+19. Master Plan §24 / Issue #72の完了条件をすべて既存Evidenceで確認できる場合だけIssue #72をCloseする。
 
-`refactor_now`が存在しても、それはPhase 6 merge後の別Plan / 別PRへ送るfollow-upであり、それだけを理由にIssue #72をOpen維持しない。Issue #72のClose可否はMaster Plan / Issue #72のcompletion条件で決める。
+`refactor_now`が存在しても、それはPhase 6 merge後の別Plan / 別PRへ送るfollow-upであり、それだけを理由にIssue #72をOpen維持しない。Issue #72のClose可否はMaster Plan §24 / Issue #72のcompletion条件で決める。
 
 CI結果を記録するためだけにRun Artifactを再更新・再commitしない。finalizationでreport等のRepository成果物修正が発生した場合だけ、適用されるRun lifecycleに従って記録する。
 
@@ -570,20 +574,24 @@ CI結果を記録するためだけにRun Artifactを再更新・再commitしな
 
 ## 6. Stop conditions
 
-Phase 6固有の停止条件だけこのExecution Planへ記載する。Master Planのglobal stop conditionはMaster Planを参照する。
+Phase 6固有の停止条件だけこのExecution Planへ記載する。Master Planのglobal stop conditionはMaster Plan §21を参照する。
 
-対象candidateで次が発生したら推測でclassificationを進めない。
+candidate-specific stop conditionは**追加調査の停止点**であり、Master Plan §19の「16 candidate全件にclassificationがある」Completionを解除しない。
+
+対象candidateで次が発生したら、推測で追加調査や`refactor_now`判断を進めない。
 
 1. boundedなPass 2後も判断できない。
    - `needs_more_evidence`として不足Evidenceと再判断条件を記載する。
 2. 判断にProduct behavior / Normative Specification変更の是非を先に決める必要がある。
-   - Phase 6外として報告する。
+   - Product / Specification decisionをPhase 6内で作らず、追加調査を停止する。
 3. 判断に新しいpermanent analysis toolingが必要になる。
-   - toolingを作らず、必要Evidenceを記録して停止する。
+   - toolingを作らず、追加調査を停止する。
 4. candidate identityをCurrent codeへ安全に対応付けできない。
-   - 対象candidateだけ停止し、lineage gapを記録する。
+   - 対象candidateだけ追加調査を停止し、lineage gapを記録する。
 
-1 candidateの停止を理由に、他candidateのbounded reviewまで全面停止しない。
+stop condition 2〜4では、停止時点の既存EvidenceだけでMaster Planの4分類を十分に支持できる場合はそのclassificationを記録する。支持できない場合は`needs_more_evidence`とし、Product / Specification decision、必要だが作成しないanalysis tooling、lineage gap等の不足Evidenceと再判断条件を記録する。
+
+1 candidateの追加調査停止を理由に、他candidateのbounded reviewまで全面停止しない。最終reportでは16 candidateすべてへ必ずMaster Planの4 classificationのいずれかを1つ記録する。
 
 ## 7. リスクと防止策
 
@@ -619,6 +627,10 @@ Pass 1でEvidence不足でも直ちに`needs_more_evidence`へ確定しない。
 
 Pass 1では最初にEvidence充足だけを判定し、Evidenceが十分ならTask 7と同じclassificationロジックで確定する。`keep_as_is`の積極的理由を追加収集するためだけにPass 2へ送らない。
 
+### Stop without classification
+
+candidate-specific stop conditionは追加調査だけを止める。既存Evidenceで分類できなければ`needs_more_evidence`を使用し、16/16 classificationを崩さない。
+
 ### Defect-history bias
 
 過去defectがないことを安全性の証明にしない。Current risk / costも評価する。
@@ -633,7 +645,7 @@ Native / Web、Dexie / SQLite、Formal / Training等のintentional boundaryをDR
 
 ### Stale decision
 
-diff-first freshness checkでRepository上のrelevant changeだけを再評価する。新規runtime failure等は明示的に判明した場合だけ反映し、能動監視しない。
+diff-first freshness checkでRepository上のrelevant changeだけを再評価する。PR前に記録したlast confirmed main SHAからmerge直前のlatest `main`までを増分確認し、確認済み範囲を毎回investigation baselineから再走査しない。新規runtime failure等は明示的に判明した場合だけ反映し、能動監視しない。
 
 ### Validation timing gap
 
@@ -642,6 +654,10 @@ diff-first freshness checkでRepository上のrelevant changeだけを再評価�
 ### Stale CI / review state
 
 merge前は最新PR head SHAで実際に起動したapplicable checks / workflowsとreview状態を確認し、required指定がないことや古いheadのPASSを理由に確認を省略しない。
+
+### Completion re-audit creep
+
+Issue #72 Close判定ではMaster Plan §24を既存durable Evidenceで確認し、完了済みStageのsource再Audit、validation再実行、PR再レビューへ戻らない。既存Evidenceで確認不能ならIssueをOpen維持する。
 
 ### Unsupported merge method
 
@@ -689,4 +705,4 @@ Phase 6 decision-only PR merge後:
 - `needs_more_evidence`
   - reportに記録したEvidence取得条件が成立した場合だけ再評価する。
 
-Phase 6 merge後はIssue #72へ進捗を同期し、Master Plan / Issue #72のcompletion条件を満たす場合だけIssue #72をCloseする。満たさない場合はOpenのまま残し、不足条件を正本参照付きで最小限記録する。Master Planをlive progress trackerへ変更しない。
+Phase 6 merge後はIssue #72へ進捗を同期し、Master Plan §24 / Issue #72のcompletion条件を既存durable Evidenceで満たすことを確認できる場合だけIssue #72をCloseする。満たさない、または既存Evidenceだけでは確認できない場合はOpenのまま残し、不足条件を正本参照付きで最小限記録する。Master Planをlive progress trackerへ変更しない。
