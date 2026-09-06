@@ -35,7 +35,7 @@ repair-loop
 ### 1.3 DoD
 
 - [ ] 6 Skill すべてに `evals/trigger/train.yaml` と `evals/trigger/validation.yaml` がある。
-- [ ] 各 Skill / split に positive case と negative case が最低 1 件ずつある。
+- [ ] 各 Skill / split に positive case と negative case が最低1件ずつある。
 - [ ] scored case は expected routing が「canonical 6 Skill の1つ」または「canonical Skill不要」のどちらかへ一意に決まる single-intent query のみに限定する。
 - [ ] multi-Skill が正当に必要な query は PR2 に入れず PR6 の責務とする。
 - [ ] train / validation は物理ファイルで分離する。
@@ -43,9 +43,11 @@ repair-loop
 - [ ] Issue #117 指定の4 near-miss boundaryを train / validation 双方で両側からカバーする。
 - [ ] canonical eval は6 Skill同時条件で実行する。
 - [ ] Host へ渡すのは dataset の自然な `query` 本文だけであり、expected label / owner / split / boundary / case ID を prompt に混ぜない。
-- [ ] evaluator の active Run Artifact / baseline result を Host の working tree から分離する。
+- [ ] Trigger Eval dataset の `query + expected_skill` を Host working tree から除外し、answer key をHostへ見せない。
+- [ ] evaluator の active Run Artifact / baseline result も Host working tree から分離する。
 - [ ] current Codex Host が実際に使用した Skill を Host-native evidence から観測する。
 - [ ] positive / negative observation control で Skill read を trigger proxy として利用できることを実測確認する。
+- [ ] routing observation と task completion を分離し、Skill readを観測済みなら後続task failureだけを理由にrouting結果を捨てない。
 - [ ] case outcome を `pass` / `false_negative` / `sibling_misroute` / `unexpected_trigger` / `unobservable` に分類できる。
 - [ ] `unobservable` では machine-readable な `unobservable_reason` を保存する。
 - [ ] scoring は observed Skill の集合で判定し、read順序を使わない。
@@ -53,8 +55,10 @@ repair-loop
 - [ ] PR2 canonical baseline は `all` で1回取得する。
 - [ ] baseline と後続 `all` run を case ID 単位に比較できる。
 - [ ] observation loss/recovery を routing failure の改善・悪化と混同しない。
-- [ ] baseline の `source_git_sha` が実際に評価した source/dataset と、実際に起動した runner の source revision に一致する。
-- [ ] live routing failure は runner 自体の failure にしない。
+- [ ] baseline の `source_git_sha` がEvaluator側のdataset/runner source revisionとSanitized TargetのHEADに一致する。
+- [ ] 一部caseの routing failure / observation failure は runner 自体の failure にしない。
+- [ ] selected caseが全件 `unobservable` のrunは成功扱いにしない。
+- [ ] comparison時のCodex version差を条件差として明示できる。
 - [ ] live eval は `pnpm run verify` の hard gate にしない。
 - [ ] deterministic dataset validation と pure scoring/comparison test のみ CI gate にする。
 - [ ] 6 Skill の `description` を変更していない。
@@ -71,7 +75,7 @@ repair-loop
 
 PR2 baseline は「description変更前の current routing」を測るため、実装開始前に latest `main` との差分を必ず確認する。
 
-現在 branch が `main` に behind している場合は、incoming diff を確認する。
+branch が `main` に behind している場合は incoming diff を確認する。
 
 特に以下への変更を確認する。
 
@@ -90,14 +94,14 @@ Skill discovery / validation に関わる共通 infrastructure
 behind = 0
 → 継続
 
-behind > 0 かつ上記 routing / observation 契約へ影響なし
+behind > 0 かつ routing / observation 契約へ影響なし
 → latest main を branch へ取り込んで継続
 
 behind > 0 かつ routing / observation 契約へ影響あり
 → latest main を取り込んだうえで、この Plan の前提と boundary を再確認してから継続
 ```
 
-merge / rebase の方法そのものは PR2 の評価設計ではないため、この Plan では固定しない。
+merge / rebase の方法そのものは PR2 の評価設計ではないため固定しない。
 
 ### 2.2 Routing SSOT
 
@@ -122,38 +126,62 @@ Canonical Eval は以下を意味する。
 - 6 Skillすべてが discover 可能。
 - current `AGENTS.md` / current Skill descriptions を使う。
 - target Skillだけを残す one-vs-rest evaluation はしない。
-- evaluator metadata はHost contextから除外する。
+- Trigger Evalのanswer key / evaluator resultはHost contextへ入れない。
 
 ---
 
-## 3. Evaluator root / Target root
+## 3. Evaluator root / Sanitized Target root
 
-### 3.1 2つの root を分離する
+### 3.1 責務を分離する
 
 ```text
 Evaluator root
-- runner を起動する通常 working tree
-- current implementation Run Artifact がある
-- --output / --compare artifact を置く
+- source_git_sha の通常 working tree
+- runner を起動する
+- 12 Trigger Eval datasetを読む
+- current implementation Run Artifactがある
+- --output / --compare artifactを置く
 
-Target root
-- source_git_sha の clean checkout
+Sanitized Target root
+- 同じ source_git_sha の checkout
 - Codex の -C に渡す
-- dataset / AGENTS.md / 6 Skills は source_git_sha の内容
-- evaluator の active Run Artifact / result は存在しない
+- AGENTS.md / 6 Skills / Repository source はsource_git_shaの内容
+- .agents/skills/*/evals/trigger/** は除外する
+- evaluator active Run Artifact / result は存在しない
 ```
 
-Target root の具体的な作り方として detached Git worktree を推奨する。
+重要:
+
+```text
+dataset source = Evaluator root
+Host working directory = Sanitized Target root
+```
+
+Target rootからdatasetを読まない。
+
+これにより、YAML内の `query` と `expected_skill` が同じHost working treeに存在する構造を避ける。
+
+### 3.2 Target rootの作成
+
+具体的な作り方として detached Git worktree を推奨する。
 
 ```bash
 git worktree add --detach <target-root> <source_git_sha>
 ```
 
-ただし runner contract として必要なのは「別pathの clean Git checkout」であり、Git worktree という実装手段自体は必須条件にしない。
+その後、Target rootからTrigger Eval datasetだけを除外する。
+
+概念上の除外対象:
+
+```text
+.agents/skills/*/evals/trigger/**
+```
 
 runner自身に checkout/worktree の作成・削除機能は実装しない。
 
-### 3.2 Target root preflight
+dataset除外も汎用sanitizer frameworkにはしない。PR2で必要なこの1パターンだけを実行手順として固定する。
+
+### 3.3 Sanitized Target preflight
 
 live run開始前に runner は以下を確認する。
 
@@ -161,17 +189,19 @@ live run開始前に runner は以下を確認する。
 Target root が存在する
 Evaluator root と別path
 Git working tree / checkout である
-tracked working-tree diffなし
+Target HEAD == Evaluator HEAD
 staged diffなし
-12 dataset filesをTarget rootから読める
 6 canonical SkillをTarget rootから発見できる
+Target rootに .agents/skills/*/evals/trigger/** が存在しない
 ```
+
+Target rootのtracked diffは、**Trigger Eval datasetを除外したことによる削除だけ**を許可する。
+
+それ以外のtracked diffが1件でもあればlive runを開始しない。
 
 untracked/ignored hook log は許可する。
 
-### 3.3 Evaluator root source consistency
-
-live runner は Evaluator root の script を実行するため、`source_git_sha` と runner source がずれないようにする。
+### 3.4 Evaluator root source consistency
 
 live run前に以下を必須確認する。
 
@@ -179,7 +209,7 @@ live run前に以下を必須確認する。
 Evaluator root HEAD == Target root HEAD == source_git_sha
 ```
 
-さらに Evaluator root では、current Run Directory以外に source/runtime behaviorへ影響する未commit変更を許可しない。
+Evaluator rootではcurrent Run Directory以外に source/runtime behaviorへ影響する未commit変更を許可しない。
 
 許可:
 
@@ -201,7 +231,13 @@ AGENTS.md
 その他 tracked source
 ```
 
-未commit source差分がある場合は live baseline を開始せず、commitまたはrestoreして `source_git_sha` とrunner sourceを一致させる。
+未commit source差分がある場合は live baseline を開始せず、commitまたはrestoreして `source_git_sha` とrunner/dataset sourceを一致させる。
+
+### 3.5 Fingerprintの正本
+
+`dataset_sha256` はEvaluator rootの12 dataset filesから計算する。
+
+Target rootにはdatasetを置かないため、Target rootからfingerprintを計算してはいけない。
 
 ---
 
@@ -212,6 +248,8 @@ AGENTS.md
 PR2は「canonical `SKILL.md` の actual read/open」を Skill trigger の observation proxy とする。
 
 このproxyが current Codex で成立することを、scored dataset完成前に2件のunscored technical controlで確認する。
+
+probeでもHost working directoryにTrigger Eval answer keyを置かない。
 
 ### 4.2 Positive control
 
@@ -243,6 +281,7 @@ package.json に記載されている package name だけを確認して答え�
 
 - 当該runのhook evidenceを一意に取得できる。
 - canonical Skill readが0件。
+- `turn.completed` まで到達し、空集合をrouting observationとして確定できる。
 
 ### 4.4 Hook log correlation
 
@@ -447,11 +486,42 @@ PR2で保証するのは以下だけ。
 
 「validation queryがAgentから見えない」「blind holdoutである」とは扱わない。
 
+ただしlive Hostにはtrain/validationどちらのanswer keyも見せない。
+
 ---
 
-## 7. Scoring contract
+## 7. Routing observation / Scoring contract
 
-### 7.1 Outcome
+### 7.1 Routing observationとtask completionを分ける
+
+Trigger Evalが測るのはroutingであり、task execution successではない。
+
+そのため、Host lifecycle failureを自動的にrouting `unobservable`へ変換しない。
+
+優先順位を以下で固定する。
+
+```text
+1. hook correlation / parse自体が信頼不能
+   → routing unobservable
+
+2. canonical Skill readを1件以上信頼観測できた
+   → observed_skillsを確定
+   → 後続のtimeout / turn.failed / process non-zeroがあってもroutingはobservable
+
+3. canonical Skill readが0件
+   AND turn.completedまで到達
+   → observed_skills = ∅ を確定
+
+4. canonical Skill readが0件
+   AND turn.completed前にtimeout / process failure / lifecycle failure
+   → empty setを断定せずunobservable
+```
+
+この契約により、例えば `repair-loop` を正しくtriggerしてSkill read後にread-only制約でtaskが完遂できなくても、routing結果は保持する。
+
+task completionの成否はPR2のrouting scoreへ使わない。
+
+### 7.2 Outcome
 
 ```text
 pass
@@ -461,12 +531,11 @@ unexpected_trigger
 unobservable
 ```
 
-### 7.2 Set-based scoring
+### 7.3 Set-based scoring
+
+routing observationが確定した後にのみ以下を適用する。
 
 ```text
-Host evidenceを信頼できない
-→ unobservable
-
 expected = null, observed = ∅
 → pass
 
@@ -488,7 +557,7 @@ expected != null, observed = {expected}
 
 read順序はscoringに使わない。
 
-### 7.3 `unobservable_reason`
+### 7.4 `unobservable_reason`
 
 `outcome = unobservable` のときだけ以下のenumを保存する。
 
@@ -503,49 +572,45 @@ skill_read_observation
 
 observable outcomeでは `unobservable_reason = null`。
 
-対応例:
+分類:
 
 ```text
-120秒timeout
-→ timeout
-
-spawn後non-zero / process abnormal termination
-→ process_failure
-
-thread.started欠落 / turn.failed / top-level error / terminal event欠落
-→ lifecycle_failure
-
 hook file 0件 / 複数 / non-append
 → hook_correlation
 
 append delta JSON parse不能
 → hook_parse
 
-hookは読めるがactual Skill readを信頼判定できない
+hookは読めるがactual Skill read selectorを信頼できない
 → skill_read_observation
+
+Skill read未観測かつturn.completed前に120秒timeout
+→ timeout
+
+Skill read未観測かつturn.completed前にprocess abnormal termination / non-zero
+→ process_failure
+
+Skill read未観測かつthread.started欠落 / turn.failed / top-level error / terminal event欠落
+→ lifecycle_failure
 ```
+
+Skill readをすでに信頼観測できている場合、後続の上記failureだけを理由に `unobservable` へ上書きしない。
 
 自由文error dumpはbaseline JSONへ保存しない。詳細は一時logまたはRun Artifactに必要な要約だけ残す。
 
-### 7.4 JSONL lifecycle
+### 7.5 JSONL lifecycle
 
-success:
-
-```text
-thread.started を1件確認
-AND
-turn.completed を確認
-```
-
-observation failure:
+routing以外のtask lifecycleとして最低限以下をparseする。
 
 ```text
+thread.started
+turn.completed
 turn.failed
 top-level error
-process timeout
-process non-zero exit
-terminal event欠落
+process exit
 ```
+
+`turn.completed` は「Skill read 0件をempty observed setとして確定する」ために使用する。
 
 Host response本文はrouting scoringに使わない。
 
@@ -562,12 +627,12 @@ scripts/evals/skill-trigger-evals.ts
 責務:
 
 - constants/types
-- dataset discovery/YAML parse
+- Evaluator root dataset discovery/YAML parse
 - schema/invariant validation
 - owner/split/polarity derivation
 - boundary integrity
 - normalization/fingerprint
-- scoring
+- routing observation resultからのscoring
 - summary
 - comparison
 
@@ -582,18 +647,21 @@ scripts/evals/run-skill-trigger-evals.ts
 責務:
 
 - CLI parse
-- Evaluator/Target preflight
-- Target dataset load
+- Evaluator/Sanitized Target preflight
+- Evaluator root dataset load
 - `codex --version` 取得
 - `codex exec` spawn/stdin
 - timeout
 - stdout JSONL lifecycle parse
 - hook snapshot/delta
 - actual Skill read extraction
+- routing observability確定
 - pure scorer呼び出し
 - serialization/output write
 
 HostAdapter/provider interfaceは作らない。
+
+Target checkout作成やdataset削除をrunnerへ内包しない。
 
 ### 8.3 Test
 
@@ -637,16 +705,17 @@ Host Runtimeは起動しない。pure logicを中心に検証する。
 #### `--validate-only`
 
 - Host起動なし。
-- current repository rootの全datasetをvalidate。
+- Evaluator/current repository rootの全datasetをvalidate。
 - `--target-root` / `--output` / `--compare` 不要。
 
 #### `--target-root`
 
 - live mode必須。
-- Codex `-C` とlive dataset sourceに使用。
+- Codex `-C` にのみ使用する。
+- dataset sourceには使用しない。
 - Evaluator rootと別path。
-- clean Git checkout。
-- `source_git_sha` はTarget root HEAD。
+- 同じGit HEADのSanitized Target。
+- `.agents/skills/*/evals/trigger/**` が存在してはいけない。
 
 #### `--split`
 
@@ -675,6 +744,7 @@ repeat count
 model sweep
 statistical sampling
 checkout/worktree create/remove
+sanitizer profile
 ```
 
 ---
@@ -687,7 +757,7 @@ checkout/worktree create/remove
 codex exec --json --ephemeral --sandbox read-only -C <target-root> -
 ```
 
-queryはstdinへUTF-8でそのまま渡す。
+queryはEvaluator root datasetから読み、stdinへUTF-8でそのまま渡す。
 
 ### 10.2 Execution rules
 
@@ -697,6 +767,7 @@ queryはstdinへUTF-8でそのまま渡す。
 - expected metadataをpromptへ追加しない。
 - current project config / Skill discoveryを維持。
 - network overrideなし。
+- Target rootにはTrigger Eval datasetを置かない。
 
 ### 10.3 Timeout
 
@@ -704,7 +775,9 @@ queryはstdinへUTF-8でそのまま渡す。
 CASE_TIMEOUT_MS = 120000
 ```
 
-timeoutは`unobservable + timeout`として次caseへ進む。
+routing evidence確定前にtimeoutした場合は `unobservable + timeout`。
+
+Skill readをすでに信頼観測できている場合、後続timeoutでもrouting scoreは保持する。
 
 ### 10.4 Codex version
 
@@ -725,6 +798,8 @@ modelは確実に観測できない場合 `unreported`。
 ## 11. Result contract
 
 ### 11.1 JSON
+
+`split = all` のinitial PR2 baseline例:
 
 ```json
 {
@@ -761,15 +836,32 @@ modelは確実に観測できない場合 `unreported`。
 
 `query`はresultへ複製しない。queryのSSOTはdataset YAML。
 
-### 11.2 Serialization
+### 11.2 `summary.total`
+
+`summary.total` は **当該runでselectedされたcase数から動的に算出**する。
+
+```text
+--split all
+→ initial datasetでは24
+
+--split train
+→ initial datasetでは12
+
+--split validation
+→ initial datasetでは12
+```
+
+`24` をsource constantとしてhardcodeしない。
+
+### 11.3 Serialization
 
 - cases: case ID辞書順。
 - observed_skills: Skill名辞書順。
 - summary keys: 実装内で1つの固定順序へ統一。
 
-### 11.3 Dataset fingerprint
+### 11.4 Dataset fingerprint
 
-12 filesをrepository-relative path辞書順に並べ、各fileについて:
+Evaluator rootの12 filesをrepository-relative path辞書順に並べ、各fileについて:
 
 ```text
 path + NUL + raw bytes
@@ -777,7 +869,9 @@ path + NUL + raw bytes
 
 を連結してSHA-256。
 
-### 11.4 Provenance
+Sanitized Targetにはdatasetが存在しないため、Target rootからfingerprintを作らない。
+
+### 11.5 Provenance
 
 最低限:
 
@@ -806,7 +900,31 @@ absolute Target root pathは保存しない。
 - case ID set mismatch。
 - baseline schema parse failure。
 
-### 12.2 Status
+Codex version mismatchはcomparison errorにはしない。
+
+### 12.2 Codex version条件差
+
+comparison outputへ最低限以下を保存する。
+
+```text
+baseline_codex_version
+codex_version_match
+```
+
+例:
+
+```json
+{
+  "baseline_codex_version": "codex-cli ...",
+  "codex_version_match": false
+}
+```
+
+versionが異なる場合もcase comparisonは実行するが、description変更だけの効果とは断定しない。
+
+`REPORT.md` にもCodex version差を条件差として要約する。
+
+### 12.3 Status
 
 observable failure:
 
@@ -843,12 +961,14 @@ unobservable → unobservable
 
 `recovered_observable` はrouting改善を意味しない。current outcomeも併記する。
 
-### 12.3 Comparison output
+### 12.4 Comparison output
 
 ```json
 {
   "comparison": {
     "baseline_source_git_sha": "...",
+    "baseline_codex_version": "...",
+    "codex_version_match": true,
     "counts": {
       "fixed": 0,
       "regressed": 0,
@@ -874,22 +994,31 @@ unobservable → unobservable
 
 ## 13. Exit code
 
-### exit 0
+### 13.1 exit 0
+
+以下を満たす場合はrunner execution成功。
 
 - selected casesを最後まで処理しoutput保存成功。
+- 少なくとも1件はrouting observable。
+
+以下はexit 0を妨げない。
+
 - routing failureあり。
 - 一部caseが`unobservable`。
 
-routing/observation結果は評価データでありCLI failureではない。
+routing qualityは評価データでありCLI failureではない。
 
-### exit 1
+### 13.2 exit 1
 
 - dataset validation failure。
 - unsupported option combination。
 - live modeで`--target-root` / `--output`欠落。
 - Evaluator root == Target root。
-- Target rootがGit checkoutでない / tracked/staged dirty。
-- Evaluator HEAD != Target HEAD。
+- Target rootがGit checkoutでない。
+- Target HEAD != Evaluator HEAD。
+- Target rootにTrigger Eval datasetが残っている。
+- Target tracked diffにTrigger Eval dataset削除以外がある。
+- Target staged diffあり。
 - Evaluator rootにcurrent Run Directory以外のsource差分がある。
 - outputがTarget root配下。
 - `--compare` と `train|validation`併用。
@@ -897,8 +1026,9 @@ routing/observation結果は評価データでありCLI failureではない。
 - Codex executable自体を起動不能。
 - output write failure。
 - comparison input contract failure。
+- **selected caseが全件 `unobservable`。**
 
-個別caseのtimeout/process/lifecycle/hook failureは`unobservable`として扱う。
+一部caseのtimeout/process/lifecycle/hook failureは`unobservable`として保存し、全件でない限りrun-level exit 1へ直結させない。
 
 ---
 
@@ -942,22 +1072,35 @@ Dataset:
 - required positive/negative/boundary side欠落 FAIL。
 - 25件以上でもcontractを満たせば件数だけでFAILしない。
 
-Scoring:
+Scoring / observability:
 
+- canonical Skill read観測 + 後続turn.failed → Skill read集合でscoreする。
+- canonical Skill read観測 + 後続timeout → Skill read集合でscoreする。
+- Skill read 0 + turn.completed → empty setとしてscoreする。
+- Skill read 0 + timeout → unobservable + timeout。
+- Skill read 0 + process failure → unobservable + process_failure。
+- hook correlation failure → unobservable + hook_correlation。
 - null + empty → pass。
 - null + observed → unexpected_trigger。
 - expected + empty → false_negative。
 - expected absent → sibling_misroute。
 - expected + extra → unexpected_trigger。
 - expected only → pass。
-- observation failure → unobservable + reason。
 - observed order不変性。
+- summary.totalはselected case数から算出。
 
 Comparison:
 
 - 7 transition status全部。
 - fingerprint mismatch error。
 - case ID mismatch error。
+- Codex version一致 / 不一致を `codex_version_match` に反映。
+
+Runner contract smoke / small helper testで確認可能な範囲:
+
+- TargetにTrigger Eval datasetが残っていればpreflight FAIL。
+- Target diffがdataset削除以外を含めばpreflight FAIL。
+- selected cases全件unobservableならrun-level failure判定。
 
 ### 14.3 CI
 
@@ -971,19 +1114,22 @@ live Codex evalはCI gateにしない。
 
 1. latest `main` との差分を解消・確認する。
 2. implementation RunをEvaluator rootで開始する。
-3. Observation Probeをclean Target rootで実施する。
+3. Observation Probeをanswer keyのないTargetで実施する。
 4. 24-case datasetを作成しmanual reviewする。
 5. pure logic / runner / tests / package scriptsを実装する。
 6. deterministic validation / repository validationを通す。
 7. source implementationをcommitする。active Run Artifactはこのcommitへ含めない。
 8. source commit SHAを取得する。
-9. clean Target rootをそのSHAから用意する。
-10. `Evaluator HEAD == Target HEAD == source_git_sha` を確認する。
-11. Evaluator rootにcurrent Run Directory以外のsource差分がないことを確認する。
-12. canonical `--split all` baselineを1回実行する。
-13. baseline JSONをEvaluator rootのRun Directoryへ保存する。
-14. Target rootをcleanupする。
-15. baseline / standard Run Artifactを後続commitで保存する。
+9. 同じSHAからTarget checkoutを用意する。
+10. Targetから `.agents/skills/*/evals/trigger/**` を除外する。
+11. `Evaluator HEAD == Target HEAD == source_git_sha` を確認する。
+12. Target diffがTrigger Eval dataset削除だけであることを確認する。
+13. Evaluator rootにcurrent Run Directory以外のsource差分がないことを確認する。
+14. canonical `--split all` baselineを1回実行する。
+15. baseline JSONをEvaluator rootのRun Directoryへ保存する。
+16. selected 24 casesが全件unobservableでないことを確認する。
+17. Target rootをcleanupする。
+18. baseline / standard Run Artifactを後続commitで保存する。
 
 baseline artifact自身を含むcommit SHAを `source_git_sha` にしない。
 
@@ -996,6 +1142,22 @@ baseline artifact自身を含むcommit SHAを `source_git_sha` にしない。
 ```bash
 pnpm run eval:skills:trigger:validate
 ```
+
+### Target preparation
+
+例:
+
+```bash
+git worktree add --detach <target-root> <source_git_sha>
+```
+
+その後、Target rootから以下だけを除外する。
+
+```text
+.agents/skills/*/evals/trigger/**
+```
+
+runnerはTarget rootの作成/削除/除外処理そのものを自動化しない。
 
 ### Baseline
 
@@ -1044,7 +1206,7 @@ pnpm run eval:skills:trigger -- \
 - [ ] 2. behindならincoming diffを確認し、routing/observation前提への影響を判定してlatest mainを取り込む。
 - [ ] 3. current 6 Skill descriptionsを記録しPR2中の変更禁止を確認する。
 - [ ] 4. Evaluator rootでimplementation Runを開始する。
-- [ ] 5. committed HEADからprobe用clean Target rootを用意する。
+- [ ] 5. committed HEADからprobe用Targetを用意し、Trigger Eval answer keyが見えないことを確認する。
 - [ ] 6. positive / negative controlを実行する。
 - [ ] 7. hook append deltaとactual Skill read selectorを確定する。
 - [ ] 8. probe不成立なら独自classifier/parserへ逃げずblockerとして停止する。
@@ -1054,21 +1216,23 @@ pnpm run eval:skills:trigger -- \
 - [ ] 12. 全24caseを5項目manual dataset reviewで確認する。
 - [ ] 13. pure logicを実装する。
 - [ ] 14. minimal side-effect runnerを実装する。
-- [ ] 15. `unobservable_reason` enumを実装する。
-- [ ] 16. deterministic testsを実装する。
-- [ ] 17. package scripts追加、validateのみverifyへ追加する。
-- [ ] 18. deterministic validation / repository validationを実行する。
-- [ ] 19. source implementationをcommitする。active Run Artifactは除外する。
-- [ ] 20. source SHAからcanonical Target rootを用意する。
-- [ ] 21. Target clean / Evaluator HEAD一致 / Evaluator source cleanをpreflightする。
-- [ ] 22. canonical all baselineを1回実行する。
-- [ ] 23. result/summary/provenance/unobservable reasonsを確認する。
-- [ ] 24. routing failureを見てもdescriptionを変更しない。
-- [ ] 25. Target rootをcleanupする。
-- [ ] 26. Run-level `evaluation.json` / `REPORT.md` からbaseline artifactを参照する。
-- [ ] 27. Run Artifact sanitizationを行う。
-- [ ] 28. final diffでscope逸脱がないことを確認する。
-- [ ] 29. baseline / standard Run Artifactを後続commitで保存する。
+- [ ] 15. routing observationとtask lifecycleを分離する。
+- [ ] 16. `unobservable_reason` enumを実装する。
+- [ ] 17. deterministic testsを実装する。
+- [ ] 18. package scripts追加、validateのみverifyへ追加する。
+- [ ] 19. deterministic validation / repository validationを実行する。
+- [ ] 20. source implementationをcommitする。active Run Artifactは除外する。
+- [ ] 21. source SHAからcanonical Target checkoutを用意しTrigger Eval datasetを除外する。
+- [ ] 22. Target HEAD / Target diff / Evaluator HEAD / Evaluator source cleanをpreflightする。
+- [ ] 23. canonical all baselineを1回実行する。
+- [ ] 24. result/summary/provenance/unobservable reasonsを確認する。
+- [ ] 25. 全件unobservableでないことを確認する。
+- [ ] 26. routing failureを見てもdescriptionを変更しない。
+- [ ] 27. Target rootをcleanupする。
+- [ ] 28. Run-level `evaluation.json` / `REPORT.md` からbaseline artifactを参照する。
+- [ ] 29. Run Artifact sanitizationを行う。
+- [ ] 30. final diffでscope逸脱がないことを確認する。
+- [ ] 31. baseline / standard Run Artifactを後続commitで保存する。
 
 ---
 
@@ -1088,15 +1252,19 @@ Canonical baselineで確認:
 - initial 24 cases全件処理。
 - 1 case = 1 ephemeral process。
 - 6 Skill同時条件。
-- evaluator metadata leakageなし。
+- Target rootにTrigger Eval datasetなし。
+- prompt metadata leakageなし。
 - Evaluator HEAD / Target HEAD / `source_git_sha` 一致。
-- Target dataset fingerprint使用。
+- Target tracked diffはdataset除外だけ。
+- dataset fingerprintはEvaluator root dataset由来。
 - `codex_version`が`codex --version`由来。
-- `thread.started` + `turn.completed` lifecycle。
+- Skill read観測後のtask failureでrouting結果を失っていない。
+- Skill read 0件は`turn.completed`時だけempty setとして確定している。
 - queryはresultへ複製しない。
 - observed Skill sort安定。
 - `unobservable_reason`整合。
-- summary整合。
+- summary.totalがselected case数と一致。
+- 全件unobservableではない。
 
 Comparison self-smoke:
 
@@ -1105,6 +1273,8 @@ pass → unchanged_pass
 observable failure → unchanged_failure
 unobservable → unchanged_unobservable
 ```
+
+Codex version mismatch fixtureでもcomparisonを実行し、`codex_version_match = false`になることを確認する。
 
 ---
 
@@ -1137,6 +1307,7 @@ general Host adapter
 general shell parser
 retry / parallel / statistical framework
 runner内のcheckout/worktree lifecycle manager
+generic evaluator sanitizer framework
 ```
 
 ---
@@ -1173,6 +1344,8 @@ Run Artifact:
 
 raw hook JSONLは一時evidenceでありcommitしない。
 
+Sanitized Target rootも一時実行環境でありcommitしない。
+
 ---
 
 ## 21. 成功判定
@@ -1184,17 +1357,21 @@ PR2成功:
 - repository validation PASS。
 - positive/negative observation control成立。
 - initial 24 casesのmanual dataset review完了。
-- clean Target rootでcanonical baseline取得成功。
-- actual runner sourceと`source_git_sha`が一致。
+- Trigger Eval answer keyを除外したSanitized Targetでcanonical baseline取得成功。
+- actual runner/dataset sourceと`source_git_sha`が一致。
+- Skill read観測とtask completion failureを混同していない。
+- selected casesが全件unobservableではない。
 - machine-readable result/comparison contractが成立。
 - `unobservable`原因をrouting failureと混同しない。
+- Codex version差をcomparison条件差として表現できる。
 - routing failureが残っていても記録できている。
 - description tuning 0件。
--独自Runtime/classifier/judge 0件。
+- 独自Runtime/classifier/judge 0件。
 
 PR2 blocker:
 
 - Host Skill selectionを信頼できる形で観測できない。
+- answer keyをHostから分離した条件でobservation proxyを成立させられない。
 
 blocker時は評価方式を捏造せず停止し、Run Artifactへ理由を記録する。
 
@@ -1205,7 +1382,9 @@ blocker時は評価方式を捏造せず停止し、Run Artifactへ理由を記�
 - PR2の価値はscoreの高さではなく、description変更前のroutingを同じdataset/runner contractで再測定できることにある。
 - initial 24 casesは統計benchmarkではなく回帰baseline。
 - `validation` はoperational validation splitであり、blind/secret holdoutではない。
+- datasetはRepositoryにcommitするが、live Host working treeからは除外する。保存場所と評価時の可視性は別問題として扱う。
 - `evals/` はこのRepository独自のSkill評価拡張。
 - pure logic + side-effect runnerの2file分離はframework化ではなく最小のtestability分離。
-- Target root分離は独自Agent Runtimeではなく、evaluator metadata leakageを避けるための実行境界。
+- Sanitized Targetは独自Agent Runtimeではない。同じsource revisionからEvaluator answer keyだけを外したHost working directoryである。
+- read-only sandboxはcase間のRepository mutationを防ぐため維持する。ただしtask completion failureをrouting failureへ変換しない。
 - ここから新しい評価frameworkを足さない。追加要求が出た場合はPR2へ抱え込まずscopeを再確認する。
