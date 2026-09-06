@@ -74,19 +74,20 @@ PR4で重要なのは、6 Skillすべてへ grader を作ることではない�
 - [ ] backtick / tilde fenceの双方を扱う。
 - [ ] fence openerは0〜3 space + 3文字以上の同一marker + optional info stringを扱う。
 - [ ] fence closerは0〜3 space + openerと同じmarker + opener以上の長さ + trailing space/tabのみを扱う。
+- [ ] openerより短い同一marker行をcloserと誤認しない。
 - [ ] non-whitespace suffixを持つmarker行をcloserと誤認しない。
 - [ ] canonical templateからrequired H2を0件しか取得できない場合はvacuous PASSせずconfiguration errorで停止する。
 - [ ] `feature-plan` graderは `{ valid, missingHeadings }` のmachine-readable structured resultを返す。
 - [ ] `exploratory-qa` valid Normal-mode Findings inputが `qaFindingsSchema.safeParse` を通る。
 - [ ] valid Normal-mode Coverageが `assertCoverageIntegrity` を通る。
 - [ ] `run_id` omissionを `qaFindingsSchema.safeParse` が拒否し、Zod issue pathで確認できる。
-- [ ] Coverage SSOTとOutput Coverageの不一致を `assertCoverageIntegrity` が拒否する。
+- [ ] Coverage SSOTとOutput Coverageの不一致を `assertCoverageIntegrity` が `coverage.items does not match the Coverage SSOT` で拒否する。
 - [ ] `assertCoverageIntegrity` をmachine-readable化するだけのwrapperを作っていない。
 - [ ] Finding ID uniqueness / `duplicate_of` target existence等、既存Machine Contractにないruleを新設していない。
 - [ ] new static `evals/output/**` fixtureを作っていない。
 - [ ] `package.json` / workflow / dependency / lockfileを変更していない。
 - [ ] Product Code / Product Runtime / `.codex/agents/**` を変更していない。
-- [ ] targeted test、`pnpm run verify`、`git diff --check` が通る。
+- [ ] targeted test、`pnpm run verify`、`git diff --check main...HEAD` が通る。
 
 ---
 
@@ -490,18 +491,25 @@ canonical templateからrequired H2を1つ通常位置から除去し、同じhe
 
 backtick / tildeの双方をparameterized testで確認する。
 
-backtickケースでは、info string付きopener、0〜3 space、non-whitespace suffixを持つ「closerではないmarker行」を1ケース内でまとめて確認する。
+backtickケースでは、**4文字backtick opener**を使い、以下を1ケース内でまとめて確認する。
+
+- info string付きopener。
+- 0〜3 spaceのindent。
+- openerより短い3文字backtick行はcloserではない。
+- openerと同じ4文字backtickでも、non-whitespace suffixがあればcloserではない。
+- openerと同じ4文字backtick + trailing whitespaceのみの行で初めてcloseする。
 
 例:
 
-````text
-   ```text
-   ```not-a-closing-fence
-## 6. 検証方法
+`````text
+   ````text
    ```
-````
+   ````not-a-closing-fence
+## 6. 検証方法
+   ````
+`````
 
-` ```not-a-closing-fence` はcloser扱いしてはいけないため、required H2は最後までfence内に留まる。
+上記では、3文字backtick行と ` ````not-a-closing-fence` のどちらもcloser扱いしてはいけないため、required H2は最後の4文字closerまでfence内に留まる。
 
 tildeケース:
 
@@ -673,10 +681,11 @@ coverage.items[0].coverage_id = "COV-999"
 
 期待:
 
-- existing deterministic errorをthrowする。
-- `coverage.items does not match the Coverage SSOT` 相当の現在の安定したerror情報で拒否を確認する。
+- `coverage.items does not match the Coverage SSOT` をthrowする。
+- `toThrow("coverage.items does not match the Coverage SSOT")` 相当で、COV-999 mismatchという狙った理由で拒否されたことを確認する。
+- 単なる `toThrow()` だけにはしない。
 
-PR4独自resultへ変換しない。
+このerror assertionはPR4独自resultへの変換ではなく、既存validatorが**意図したrelation failureで落ちたこと**を確認するために使う。
 
 #### `coverageResultSchema` の個別test
 
@@ -752,8 +761,9 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 
 - canonical template valid -> `missingHeadings = []`。
 - required H2 omission -> `missingHeadings` に対象heading。
-- backtick fence + info string + 0〜3 spaceでfalse-passしない。
-- non-whitespace suffixを持つmarker行をcloserと誤認しない。
+- 4文字backtick opener + info string + 0〜3 spaceでfalse-passしない。
+- openerより短い3文字backtick行をcloserと誤認しない。
+- non-whitespace suffixを持つ4文字backtick行をcloserと誤認しない。
 - tilde fence + info stringでfalse-passしない。
 - empty required H2 guard。
 
@@ -762,7 +772,7 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 - Normal-mode `qaFindingsSchema.safeParse` success。
 - valid COV-001 Coverage relationが `assertCoverageIntegrity` を通る。
 - `run_id` omission failure / Zod path。
-- COV-001 SSOTに対するCOV-999 item mismatch rejection。
+- COV-001 SSOTに対するCOV-999 item mismatchが `coverage.items does not match the Coverage SSOT` で拒否される。
 - existing validator direct reuse。
 
 確認しないもの:
@@ -778,8 +788,10 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 ```bash
 pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-parallelism --maxWorkers=1
 pnpm run verify
-git diff --check
+git diff --check main...HEAD
 ```
+
+`git diff --check main...HEAD` はcommit前後を問わず、branch側の変更全体についてwhitespace errorを確認する正本commandとする。
 
 `pnpm run verify` が `test` を含み、`test` が `test:contracts` を含むため、完了条件として同じcommandを個別に重複実行しない。
 
@@ -841,6 +853,8 @@ new evals/output fixture files
 対策:
 
 - info string付きopenerを認識する。
+- closerはopener以上のmarker長を要求する。
+- openerより短い同一marker行をcloser扱いしないtestを持つ。
 - closerはtrailing whitespaceだけを許容する。
 - non-whitespace suffix付きmarker行をcloser扱いしないtestを持つ。
 - backtick / tildeを双方testする。
@@ -882,6 +896,13 @@ new evals/output fixture files
 - `exploratory-qa`: Normal-mode minimal object + minimal `required_coverage` source object。
 - helper抽出が必要になるなら、まずtest内literalで済まないか確認する。
 
+### Risk 11: validationがcommit後にno-opになる
+
+対策:
+
+- plain `git diff --check` ではなく `git diff --check main...HEAD` を使う。
+- commit前後に関係なくbranch差分全体を検査する。
+
 ### 実装時の判断順序
 
 迷った場合は次の順で判断する。
@@ -902,6 +923,7 @@ new evals/output fixture files
 14. Finding ID / `duplicate_of` cross-reference ruleを新設していないか。
 15. throwing validatorをnormalizeするwrapperを作っていないか。
 16. static fixture / registry / CLI / common normalizerを追加しようとしていないか。
+17. plain `git diff --check` でcommit後の差分確認を済ませようとしていないか。
 
 該当した場合はPlanの最小境界へ戻す。
 
