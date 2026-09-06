@@ -55,6 +55,16 @@
 - Subagents: 使用なし。
 - Progress: 83% (15/18)
 
+## 2026-09-06 21:24 (JST)
+
+- Summary: Run Artifact commitとsource実装を指定branchへnon-force pushし、PR #127の最終状態を確認した。
+- Changes: source implementationとEvaluator defect修正commit群、Run evidence commit `a648dba`を`refactor/117-pr2-trigger-eval-baseline`へpushした。PR #127本文を実態へ更新し、Plan-only記載を除去した。
+- Decision / Rationale: PRはOPEN/base=`main`/head=`refactor/117-pr2-trigger-eval-baseline`を維持し、valid baseline未取得のblockerと次対応条件を本文にも明記した。PRをmergeせず、新規PRも作成していない。
+- Validation: PR headは`a648dbac103216f9d46a9ef5b968d3cfff1e54fa`、local status clean、`git diff origin/main...HEAD --stat`とPR file listが想定scopeのみで一致した。Run Artifactはsanitization Check済み。
+- Blocker / Remaining: Task 15（8 side observableを満たすvalid canonical baseline）とTask 17（valid baselineを含むArtifact commit）は未完了。Host latency安定化後に再Probe・再validation・canonical allを最初から1回実施することが必要。
+- Subagents: 使用なし。
+- Progress: 89% (16/18)
+
 ## 2026-09-06 21:20 (JST)
 
 - Summary: 最終必須validationを再確認し、full `pnpm run verify`はexit 0で完走した。canonical runだけは8 side observable条件未達のためvalid baselineにならない。

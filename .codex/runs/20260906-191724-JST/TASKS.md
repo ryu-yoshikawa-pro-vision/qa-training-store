@@ -19,7 +19,7 @@
 - [ ] 15. canonical `all`を1回実行し、validity/provenance/8-side observabilityを確認する
 - [x] 16. Run Artifactをsanitizationし、final validation/scope diffを確認する
 - [ ] 17. baseline/Run Artifactをsource commitと分離してcommitし、対象branchへpushする
-- [ ] 18. push後のPR #127、branch、head、scopeを確認してRunを完了する
+- [x] 18. push後のPR #127、branch、head、scopeを確認してRunを完了する
 
 ## Discovered
 
