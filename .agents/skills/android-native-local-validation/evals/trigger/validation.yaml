@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: android-native-local-validation-validation-001
+    query: "Windows上のNative validationが失敗したログを分類し、必要なtooling確認からAPKとMaestroの再検証まで行ってください。"
+    expected_skill: android-native-local-validation
+    boundary: exploratory-qa-vs-android-native-local-validation
+  - id: android-native-local-validation-validation-002
+    query: "ブラウザで商品一覧の検索・filter・empty stateを仕様に照らして確認し、気づいた挙動を証拠付きで整理してください。"
+    expected_skill: exploratory-qa
+    boundary: exploratory-qa-vs-android-native-local-validation

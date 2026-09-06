@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: exploratory-qa-train-001
+    query: "仕様書に沿って商品検索から購入完了までを通常操作で確認し、境界条件と異常時の挙動を観察して所見をまとめてください。"
+    expected_skill: exploratory-qa
+    boundary: exploratory-qa-vs-android-native-local-validation
+  - id: exploratory-qa-train-002
+    query: "Windows環境でRelease APKを作成し、接続中の物理Android端末へ導入してMaestroのsmoke flowを実行してください。"
+    expected_skill: android-native-local-validation
+    boundary: exploratory-qa-vs-android-native-local-validation

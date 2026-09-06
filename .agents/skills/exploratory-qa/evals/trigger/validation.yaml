@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: exploratory-qa-validation-001
+    query: "Scenario Shopの注文状態遷移を仕様と照合し、通常経路・拒否経路・再試行時の観測結果を記録してください。"
+    expected_skill: exploratory-qa
+    boundary: exploratory-qa-vs-android-native-local-validation
+  - id: exploratory-qa-validation-002
+    query: "実機検証の前提を確認したうえで、ローカルのAndroid Release buildをinstallし、指定Maestro suiteの結果を保存してください。"
+    expected_skill: android-native-local-validation
+    boundary: exploratory-qa-vs-android-native-local-validation

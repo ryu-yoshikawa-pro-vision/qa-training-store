@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: harness-improvement-validation-001
+    query: "同種のvalidation failureが続いたRun群を調べ、根本原因・対象path・strictness・owner判断を含む改善提案を作成してください。"
+    expected_skill: harness-improvement
+    boundary: repair-loop-vs-harness-improvement
+  - id: harness-improvement-validation-002
+    query: "テスト失敗の再現手順を確認し、変更範囲を越えない修正とfocused validationを実施してください。"
+    expected_skill: repair-loop
+    boundary: repair-loop-vs-harness-improvement

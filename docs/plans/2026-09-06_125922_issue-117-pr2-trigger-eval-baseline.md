@@ -2,7 +2,7 @@
 
 ## 0. 依頼概要
 
-- 対象 Issue: https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/117
+- 対象 Issue: [#117](https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/issues/117)
 - 対象フェーズ: PR2「Trigger Eval baseline」
 - 実装ブランチ: `refactor/117-pr2-trigger-eval-baseline`
 - 目的: PR3でSkill `description`を変更する前に、現状のSkill routingを再測定・比較できるbaselineとして固定する。

@@ -1,0 +1,10 @@
+schema_version: 1
+cases:
+  - id: code-review-validation-001
+    query: "実装差分を自己レビューし、仕様逸脱・回帰リスク・不足テストを根拠付きで列挙してください。"
+    expected_skill: code-review
+    boundary: code-review-vs-repair-loop
+  - id: code-review-validation-002
+    query: "失敗した品質ゲートについて許可された範囲を確認し、最小修正を適用して同じゲートを再実行してください。"
+    expected_skill: repair-loop
+    boundary: code-review-vs-repair-loop
