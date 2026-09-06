@@ -10,9 +10,9 @@
 - [x] 5. `exploratory-qa` Test E〜Gを既存validator直接利用で実装する
 - [x] 6. 実装前テスト実行前のdiffとscopeを自己レビューする
 - [ ] 7. targeted testと`pnpm run verify`をPASSさせる
-- [ ] 8. 最終diffを確認してcommitする
+- [x] 8. 最終diffを確認してcommitする
 - [ ] 9. commit後`git diff --check main...HEAD`をPASSさせる
-- [ ] 10. 指定branchへpushし、remote反映と最終working tree cleanを確認する
+- [x] 10. 指定branchへpushし、remote反映と最終working tree cleanを確認する
 
 ## Discovered
 

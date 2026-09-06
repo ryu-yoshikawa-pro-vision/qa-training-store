@@ -44,6 +44,19 @@
   - Parent decision: 無関係なPlan修正を行わず、実装成果物のGit処理へ進む。ただし最終報告ではverify FAILと未完了を明記する。
 - Progress: 60% (6/10)
 
+## 2026-09-06 20:08 (JST)
+
+- Summary: 実装commitと指定PR branchへのpushを完了した。PR #126はopenのままで、merge / closeは行っていない。
+- Changes: `c3d136f1076ee44bc105d1b57b5342b286d17d36`（`test: add deterministic skill output eval`）を作成し、`.agents/skills/feature-plan/scripts/validate-plan-output.ts`、`tests/contracts/skill-output-eval.test.ts`、標準Run Artifact 4ファイルを含めた。
+- Decision / Rationale: commit直前にbranch、status、branch tracking、PR headを再確認し、指定branchと一致したため`git push origin HEAD:test/117-pr4-deterministic-output-eval`を実行した。local `main`はprotected local branch更新を安全Hookが拒否したため同期せず、current branchへmerge / rebaseは行っていない。
+- Validation: targeted testはPASS（1 file / 8 tests）。`pnpm run verify`はformat check PASS後、正本Plan既存のMD038 / MD010でFAIL。`git diff --check main...HEAD`と`git diff --check origin/main...HEAD`はいずれも正本Plan line 550の既存trailing tabでFAIL。sanitizer Write / Checkは`residual_findings: 0`。push後の`gh pr view`、`git ls-remote`、`git status`はremote head一致 / working tree cleanを確認した。
+- Blocker / Remaining: Task 7（`pnpm run verify`全体PASS）とTask 9（`git diff --check main...HEAD` PASS）は正本Planの今回scope外既存whitespace / markdownlint問題で未完了。Planを改変せず、最終報告でFAILと次対応を明記する。
+- Subagents:
+  - Delegation: なし。
+  - Result: implementation commitとpushを親Agentが直接実施した。
+  - Parent decision: PR merge / close、force push、別branch pushは行わない。
+- Progress: 80% (8/10)
+
 ## 2026-09-06 19:58 (JST)
 
 - Summary: targeted testはPASSしたが、Repository gateの最初のformat checkで停止した。
@@ -56,6 +69,19 @@
   - Result: 最初の異常を特定し、対象testのみ修正した。
   - Parent decision: gateを再実行する。
 - Progress: 60% (6/10)
+
+## 2026-09-06 20:09 (JST)
+
+- Summary: Runの最終handoffを記録する。実装commit / pushは完了したが、独立した正本Planの既存lint / whitespace問題によりDoD全体は未達である。
+- Changes: 追加のProduct / test実装は行わない。Run ArtifactのcheckpointとTASKSだけを更新し、既存Planを変更しない。
+- Decision / Rationale: `pnpm run verify`と`git diff --check main...HEAD`をPASSさせるには正本Planの修正が必要だが、今回の実装scope外であり、Planの仕様例を変更する判断を勝手に行わない。別Run / 明示承認でPlan lint契約を修正し、両gateを再実行するのが次の対応となる。
+- Validation: targeted test PASS、format check PASS、sanitizer PASS、push後remote head / branch / clean status PASS。Repository gate FAILとwhitespace check FAILは既存PlanのMD038 / MD010およびline 550 trailing tabが原因。
+- Blocker / Remaining: Task 7 / Task 9が未完了。PR #126はopenで、merge / closeは未実施。次対応は正本Planの所有者がlint / whitespaceの扱いを決めたうえで再検証すること。
+- Subagents:
+  - Delegation: なし。
+  - Result: 実装・Git処理・証跡保存を完了した。
+  - Parent decision: 今回Runを未達としてhandoffし、検証FAILをPASS扱いしない。
+- Progress: 80% (8/10)
 
 ## Deletion candidates
 
