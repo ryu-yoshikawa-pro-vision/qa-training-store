@@ -23,7 +23,7 @@
 - [x] 19. Task 8 cross-candidate sanity checkとTask 9 RA-C1 / RA-Q1集約を完了する
 - [x] 20. Task 10 durable reportを作成し、Task 11 diff-first freshness checkを完了する
 - [x] 21. Task 12 decision-only scope確認、sanitization、指定validationをPASSさせる
-- [ ] 22. Task 13の最終scope確認、commit、PR差分validation、non-force push、PR #128のOPEN/head/files確認を完了する
+- [x] 22. Task 13の最終scope確認、commit、PR差分validation、non-force push、PR #128のOPEN/head/files確認を完了する
 
 ## Discovered
 

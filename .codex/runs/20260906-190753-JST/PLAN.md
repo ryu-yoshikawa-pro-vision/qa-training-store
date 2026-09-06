@@ -89,3 +89,4 @@
 - 2026-09-06: Cross-candidate sanityでは、同じNative SQLite Evidenceを使う候補でも、repository consolidation（§4.1/§4.2）とintentional Web/Native adapter duplication（§4.15）を別boundaryとして扱い、Native/Web UI、Formal/Training helper、Seed/fixture、Application use-caseの分類も責務と保護境界に基づき区別した。RA-C1は16件の集約のみ、RA-Q1は§4.16 Evidenceの再利用のみとする。
 - 2026-09-06: Durable reportをdocs/reports/2026-09-06_193114_refactoring_necessity_review.mdへ作成した。freshnessではlatest origin/mainがinvestigation baselineと同一で、既存Evidenceから再利用したrelevant setに変更がないため再評価なしとした。
 - 2026-09-06: decision-only scopeを確認し、sanitizer Write / Checkは4 files scanned・residual_findings 0、format check・markdown lint・git diff checkはPASSした。Markdown lintの初回識別子解釈failureはreportの最小表現修正で解消した。
+- 2026-09-06: commit 4c4b6b4を作成し、git diff --check origin/main...HEAD PASS後に指定branchへnon-force pushした。remote headとPR #128 OPEN / changed filesを確認した。Run Artifactの最終remote / PR evidenceを追記して追補commitへ進む。
