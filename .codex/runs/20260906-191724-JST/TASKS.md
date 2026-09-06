@@ -35,8 +35,8 @@
 - [x] 27. measurementから120秒前提とselected timeout/marginを決定し、正本Plan/Runへ記録する
 - [x] 28. 必要な場合だけ正本Planと`CASE_TIMEOUT_MS`を最小修正する
 - [x] 29. 指定validationとmanual Observation Probeを実行する
-- [ ] 30. source implementation commitと新しい`evaluator_git_sha`を確定する
-- [ ] 31. canonical直前にlatest main/routing sourceを再確認する
+- [x] 30. source implementation commitと新しい`evaluator_git_sha`を確定する
+- [x] 31. canonical直前にlatest main/routing sourceを再確認する
 - [ ] 32. canonical `all`を最初から1回実行し、validity/8-side coverageを確認する
 - [ ] 33. baseline/Run Artifactをsanitization、commit、pushしPRを確認する
 

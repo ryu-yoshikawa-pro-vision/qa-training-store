@@ -173,6 +173,25 @@
 - Subagents: 使用なし。
 - Progress: 82% (27/33)
 
+## 2026-09-06 23:39 (JST)
+
+- Summary: source/Plan commit後のcanonical直前確認を完了した。routing/observation関連のincoming changeはなく、同じ独立Routing Targetを最新SHAへ確認した。
+- Provenance: `evaluator_git_sha=272dcd1a5af8f3da0a144dfb8b5b3ed9cb366df3`、`routing_source_git_sha=856a14eb448a6ad6bf9722f623cf0d094b7a7d2a`、`origin/main`も同じ`856a14e...`。Codex versionは`codex-cli 0.153.0`、dataset fingerprintは`283cb4d73f841095f576d82708bc5adc1ee763a6df21756c24078a07c50226f3`。
+- Validation: Evaluator branch clean、target clean、targetはdetached `856a14e...`、Evaluator/Targetの分離を維持。`git diff 856a14e..origin/main`は空で、AGENTS/Skill/.codex/validation infrastructureへのincoming changeなし。
+- Decision / Rationale: routing/observation前提は不変のため、追加ProbeやEvaluator修正は不要。次にcanonical `all`を最初から1回だけ実行する。
+- Blocker / Remaining: canonical runの8-side observability、provenance、artifact sanitization、baseline commit/pushが未完了。
+- Subagents: 使用なし。
+- Progress: 85% (28/33)
+
+## 2026-09-06 23:40 (JST)
+
+- Summary: canonical commandの初回起動はcase開始前のEvaluator preflightで停止した。実行caseは0件で、canonical resultは生成・採用していない。
+- Evidence: `pnpm run eval:skills:trigger -- --target-root <target> --split all --output <run>/trigger-eval-baseline.json`は、未commitのactive Run `REPORT.md`を`Evaluator has source changes outside .codex/runs/**`として報告しexit 1になった。`git status`で確認した未commit変更はRun `REPORT.md`/`TASKS.md`だけで、source/dataset/Plan/Evaluator変更はなかった。
+- Decision / Rationale: case retryやtimeout再調整は行わず、canonical実行前提としてRun記録をcommitしてworking treeをcleanにする。source `evaluator_git_sha=272dcd1...`は変更しない。このpreflight-only停止はcanonical runの結果として扱わない。
+- Blocker / Remaining: active Run記録commit後にpreflightを再確認し、成功した場合のみcanonical `all`を最初から1回実行する。
+- Subagents: 使用なし。
+- Progress: 88% (29/33)
+
 ## 2026-09-06 22:10 (JST)
 
 - Summary: timeout原因調査の最終scope、sanitization、PR状態を確認した。
