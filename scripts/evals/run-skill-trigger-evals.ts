@@ -319,6 +319,7 @@ function getCodexVersion(evaluatorRoot: string): string {
   const result = spawnSync(CODEX_COMMAND, ["--version"], {
     cwd: evaluatorRoot,
     encoding: "utf8",
+    shell: process.platform === "win32",
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
   });
@@ -523,6 +524,7 @@ function executeCodex(
       ["exec", "--json", "--ephemeral", "--sandbox", "read-only", "-C", targetRoot, "-"],
       {
         cwd: evaluatorRoot,
+        shell: process.platform === "win32",
         stdio: ["pipe", "pipe", "pipe"],
         windowsHide: true,
       },
