@@ -194,3 +194,11 @@
 - Cause investigation: 対象test、Native purchase source、`src`、`tests/component`に今回の差分はなく、過去Runにも同一testの5秒timeout記録がある。これはPR1のSkill/package移行差分とは独立した時間依存baseline issueと分類した。
 - Diagnostic: `pnpm exec jest --config jest.config.cjs tests/component/native/native-purchase-screens.test.tsx --runInBand --testNamePattern="uses shared limits on Native account and address inputs" --testTimeout=30000 --detectOpenHandles` は1 test PASS（864ms）。test/sourceを変更せずにtimeout条件だけを診断した。
 - Decision: `continue`。同一条件の無目的な再試行は行わず、既知のtimeout仮説に基づく診断結果を得た。次は同じ差分状態で総合gateを再実行し、PASSまたは独立baseline failureを確定する。
+
+## 2026-09-06 09:02 (JST)
+
+- Audit correction: 最終verify Attemptの論理的実行順は `Attempt 1 -> Attempt 2 -> Attempt 3 -> Attempt 4` である。
+- Attempt summary: Attempt 1はformat failure、Attempt 2はtypecheck failure、Attempt 3はNative test timeout、Attempt 4はfinal `pnpm run verify` PASSである。
+- Timestamp qualification: 既存checkpointのAttempt 3 / Attempt 4とAttempt 1 / Attempt 2のtimestampには記録上の不整合がある。既存証跡からAttemptごとの正確な実時刻を客観的に確定できないため、実時刻は推測しない。
+- Append-only decision: 過去checkpointは削除・並べ替え・置換せず、そのまま保持する。本checkpointを監査上の補正記録とする。
+- Progress: 33% (3/9)

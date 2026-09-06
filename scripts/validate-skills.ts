@@ -1,4 +1,4 @@
-import { readFileSync, readdirSync, statSync } from "node:fs";
+import { readFileSync, readdirSync, realpathSync, statSync } from "node:fs";
 import { dirname, extname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -148,6 +148,19 @@ function validateLinks(
     }
     if (!statFile(targetPath)) {
       throw new Error(`${relativeSourcePath} link target is missing: ${filePart}`);
+    }
+    if (packageRoot !== null) {
+      let realPackageRoot: string;
+      let realTargetPath: string;
+      try {
+        realPackageRoot = realpathSync(packageRoot);
+        realTargetPath = realpathSync(targetPath);
+      } catch {
+        throw new Error(`${relativeSourcePath} link escapes the Skill package: ${filePart}`);
+      }
+      if (!isRepositoryPath(realPackageRoot, realTargetPath)) {
+        throw new Error(`${relativeSourcePath} link escapes the Skill package: ${filePart}`);
+      }
     }
     linkCount += 1;
   }

@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -168,5 +168,50 @@ describe("Skill package validator", () => {
       },
     ]);
     expect(() => validateSkills(escapeRoot)).toThrow("escapes the Skill package");
+  });
+
+  it("checks Skill package boundaries after resolving symlink targets", () => {
+    const escapeRoot = createFixture([
+      {
+        directory: "alpha",
+        body: "[Reference](references/outside-link/outside.md)\n",
+      },
+    ]);
+    const outsideDirectory = join(escapeRoot, "outside");
+    const outsidePath = join(outsideDirectory, "outside.md");
+    const escapeLinkDirectory = join(
+      escapeRoot,
+      ".agents",
+      "skills",
+      "alpha",
+      "references",
+      "outside-link",
+    );
+    mkdirSync(outsideDirectory, { recursive: true });
+    writeFileSync(outsidePath, "# Outside\n", "utf8");
+    symlinkSync(outsideDirectory, escapeLinkDirectory, "junction");
+
+    expect(() => validateSkills(escapeRoot)).toThrow("escapes the Skill package");
+
+    const insideRoot = createFixture([
+      {
+        directory: "alpha",
+        body: "[Reference](references/workflow-link/workflow.md)\n",
+      },
+    ]);
+    const insideDirectory = join(insideRoot, ".agents", "skills", "alpha", "shared");
+    const insideLinkDirectory = join(
+      insideRoot,
+      ".agents",
+      "skills",
+      "alpha",
+      "references",
+      "workflow-link",
+    );
+    mkdirSync(insideDirectory, { recursive: true });
+    writeFileSync(join(insideDirectory, "workflow.md"), "# Workflow\n", "utf8");
+    symlinkSync(insideDirectory, insideLinkDirectory, "junction");
+
+    expect(validateSkills(insideRoot)).toMatchObject({ skillCount: 1, linkCount: 2 });
   });
 });
