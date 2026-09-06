@@ -65,9 +65,11 @@ PR4で重要なのは、6 Skillすべてへ grader を作ることではない�
 - [ ] backtick / tilde fenceの双方を扱う。
 - [ ] fence openerは0〜3 space + 3文字以上の同一marker + optional info stringを扱う。
 - [ ] fence closerは0〜3 space + openerと同じmarker + opener以上の長さ + trailing space/tabのみを扱う。
+- [ ] non-whitespace suffixを持つmarker行をcloserと誤認しない。
 - [ ] canonical templateからrequired H2を0件しか取得できない場合はvacuous PASSせずconfiguration errorで停止する。
 - [ ] `feature-plan` graderはmachine-readable structured resultを返す。
 - [ ] `exploratory-qa` valid Normal-mode Findings inputが `qaFindingsSchema.safeParse` を通る。
+- [ ] valid Normal-mode Coverageが `assertCoverageIntegrity` を通る。
 - [ ] `run_id` omissionを `qaFindingsSchema.safeParse` が拒否し、Zod issue pathで確認できる。
 - [ ] Coverage SSOTとOutput Coverageの不一致を `assertCoverageIntegrity` が拒否する。
 - [ ] `assertCoverageIntegrity` をmachine-readable化するだけのwrapperを作っていない。
@@ -480,17 +482,20 @@ canonical templateからrequired H2を1つ通常位置から除去し、同じhe
 
 backtick / tildeの双方をparameterized testで確認する。
 
-代表入力はinfo stringとindentも同時に含める。
+backtickケースでは、info string付きopener、0〜3 space、non-whitespace suffixを持つ「closerではないmarker行」を1ケース内でまとめて確認する。
 
 例:
 
 ````text
    ```text
+   ```not-a-closing-fence
 ## 6. 検証方法
    ```
 ````
 
-および
+` ```not-a-closing-fence` はcloser扱いしてはいけないため、required H2は最後までfence内に留まる。
+
+tildeケース:
 
 ````text
 ~~~text
@@ -578,30 +583,72 @@ findings: []
 
 再利用のためのhelper refactorが必要なら、test内literalの方を選ぶ。
 
-#### Test E: valid schema path
+#### Coverage SSOT source object
+
+`assertCoverageIntegrity` に渡す `expectedSource` はfull Charter / Challenge fixtureを作らず、`required_coverage` だけを持つ最小objectにする。
+
+具体値は次に固定する。
+
+```text
+required_coverage:
+  - coverage_id: COV-001
+    mission: representative mission
+    role: customer
+    seed: default
+    platform: web
+    viewport_or_device: desktop
+    required_evidence_types:
+      - screenshot
+```
+
+これ以上のCharter fieldを追加しない。
+
+#### Test E: valid schema + valid Coverage relation
 
 上記minimal Normal inputを次で評価する。
 
 ```ts
-qaFindingsSchema.safeParse(input)
+const parsed = qaFindingsSchema.safeParse(input);
 ```
 
 期待:
 
 ```text
-success = true
+parsed.success = true
 ```
 
 これを `exploratory-qa` のmachine-readable評価経路とする。
 
+さらに同じvalid Coverageをそのまま次へ渡す。
+
+```ts
+assertCoverageIntegrity(expectedSource, input.coverage);
+```
+
+期待:
+
+- throwしない。
+
 #### Test F: required field omission
 
-上記valid inputから `run_id` だけを削除する。
+上記valid inputから `run_id` だけを除外したobjectを作る。
+
+TypeScript上の不要なcastや`delete`を避けるため、例えばobject destructuringで作る。
+
+```ts
+const { run_id: _runId, ...withoutRunId } = input;
+```
+
+`withoutRunId` を次で評価する。
+
+```ts
+qaFindingsSchema.safeParse(withoutRunId)
+```
 
 期待:
 
 ```text
-qaFindingsSchema.safeParse(...) -> success = false
+success = false
 ```
 
 Zod issueの `path` に `run_id` が含まれることを確認する。
@@ -610,15 +657,7 @@ human-readable message全文はassertしない。
 
 #### Test G: Coverage SSOT mismatch
 
-Coverage source側は次とする。
-
-```text
-required_coverage:
-  - coverage_id: COV-001
-    ...minimum fields required by existing type
-```
-
-actual Coverageはvalid inputを基準に、次だけ変更する。
+valid inputを基準に、actual Coverageの次だけ変更する。
 
 ```text
 coverage.required_ids = ["COV-001"]
@@ -706,9 +745,11 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 - canonical template valid。
 - required H2 omission detection。
 - backtick fence + info string + 0〜3 spaceでfalse-passしない。
+- non-whitespace suffixを持つmarker行をcloserと誤認しない。
 - tilde fence + info stringでfalse-passしない。
 - empty required H2 guard。
 - Normal-mode `qaFindingsSchema.safeParse` success。
+- valid COV-001 Coverage relationが `assertCoverageIntegrity` を通る。
 - `run_id` omission failure / Zod path。
 - COV-001 SSOTに対するCOV-999 item mismatch rejection。
 - existing validator direct reuse。
@@ -769,6 +810,7 @@ new evals/output fixture files
 
 - info string付きopenerを認識する。
 - closerはtrailing whitespaceだけを許容する。
+- non-whitespace suffix付きmarker行をcloser扱いしないtestを持つ。
 - backtick / tildeを双方testする。
 
 ### Risk 4: canonical template parser failureでvacuous PASSする
@@ -805,7 +847,7 @@ new evals/output fixture files
 対策:
 
 - `feature-plan`: canonical template + test内mutation。
-- `exploratory-qa`: Normal-mode minimal object。
+- `exploratory-qa`: Normal-mode minimal object + minimal `required_coverage` source object。
 - helper抽出が必要になるなら、まずtest内literalで済まないか確認する。
 
 ### 実装時の判断順序
