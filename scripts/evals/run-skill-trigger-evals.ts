@@ -27,6 +27,7 @@ import {
 } from "./skill-trigger-evals.js";
 
 const CASE_TIMEOUT_MS = 120_000;
+const CODEX_COMMAND = process.platform === "win32" ? "codex.cmd" : "codex";
 const HOOK_DIRECTORIES = [
   [".codex", "logs"],
   [".artifacts", "codex-hooks"],
@@ -315,7 +316,7 @@ function assertOutputOutsideTarget(outputPath: string, targetRoot: string): void
 }
 
 function getCodexVersion(evaluatorRoot: string): string {
-  const result = spawnSync("codex", ["--version"], {
+  const result = spawnSync(CODEX_COMMAND, ["--version"], {
     cwd: evaluatorRoot,
     encoding: "utf8",
     stdio: ["ignore", "pipe", "pipe"],
@@ -518,7 +519,7 @@ function executeCodex(
 ): Promise<{ readonly execution: CodexExecution; readonly stdout: string }> {
   return new Promise((resolveExecution) => {
     const child = spawn(
-      "codex",
+      CODEX_COMMAND,
       ["exec", "--json", "--ephemeral", "--sandbox", "read-only", "-C", targetRoot, "-"],
       {
         cwd: evaluatorRoot,
