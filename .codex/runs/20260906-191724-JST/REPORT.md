@@ -113,3 +113,72 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-06 21:56 (JST)
+
+- Summary: PR #127のcanonical `all` timeout原因調査へ切り替えた。既存active Runを継続し、`feature-plan` Skillの計画手順に従った診断計画を`docs/plans/2026-09-06_215551_issue-117-trigger-eval-timeout-root-cause.md`へ保存した。
+- Changes: canonical `all`、dataset、query、Skill description、`AGENTS.md` routing contract、timeout値は変更・再実行しない。診断はPlan指定controlとtemporary timestamp evidenceに限定する。
+- Decision / Rationale: current runnerはterminal eventをclose前に確定せず、`close` callback内でだけstdoutをparseするため、terminal到達とcloseの順序を実測してからHost latency / evaluator lifecycle / process-transport-environment原因を分類する。原因確定前にsource schemaや恒久Probe runnerは追加しない。
+- Validation: branchは`refactor/117-pr2-trigger-eval-baseline`、PR #127はOPEN/base=`main`/headは`7d8207978bf2f7433789b44741d69ad77ae28beb`。既存manual Probeとinvalid canonical artifactを再確認し、runnerの`codex.cmd` + `cmd.exe` launch、120秒timer、`taskkill`、close内parseを確認した。
+- Blocker / Remaining: canonical `all`再実行は原因確定と必要な修正後まで禁止。次はnegative controlのmanual-style / runner-style時刻付きdiagnostic実行、必要な場合だけpositive controlを1回実行する。
+- Subagents: 使用なし。
+- Progress: 71% (17/24)
+
+## 2026-09-06 22:07 (JST)
+
+- Summary: PR #127 canonical `all` timeoutのdiagnosticを完了した。原因はCase B（120秒以内にHostのterminal eventが到達しない実行時間超過）と分類し、runner lifecycle defectの証拠は得られなかった。
+- Changes: canonical `all`、dataset case、unobservable caseは再実行していない。Plan指定のnegative controlをmanual相当direct-nodeで1回、current runner相当で1回、positive controlをcurrent runner相当で必要最小限の1回だけ実行した。時刻付き要約はcommit対象外の`.artifacts/trigger-eval-timeout-diagnostic-summary.md`へ保存した。
+- Manual Probe vs runner: 共通条件はEvaluator cwd、同じ独立Routing Targetを`-C`へ指定、raw stdin、`--json --ephemeral --sandbox read-only`、stdout/stderr/stdin pipe、通常trust/hook stateである。manual ProbeはPowerShellの`codex`解決（`codex.ps1`→Node/codex.js）で`cmd.exe` shellを経由しない。diagnostic direct-nodeはその基底のNode/codex.jsを`spawn(..., shell:false)`で観測した。runnerは`codex.cmd`を`spawn(..., shell: C:\\Windows\\system32\\cmd.exe)`で起動し、`cmd.exe`→`node.exe`→`codex.exe`のprocess chainになった。環境変数はdiagnosticでtrustを変更せず、`CODEX_HOME`を設定していない現行process environmentを継承した。
+- Timing evidence (runner-shim positive): spawn request `2026-09-06T13:03:00.296Z`、spawn return/timer start `13:03:00.304Z`、stdin送信完了 `13:03:00.843Z`、first stdout JSON `13:03:01.236Z`、`turn.started` `13:03:01.273Z`、terminal eventは120秒以内に0件、timeout timer `13:05:00.305Z`（約120.016秒）、process tree snapshot `13:05:01.144Z`、taskkill `13:05:01.587Z`、child exit `13:05:02.307Z`、child close `13:05:02.308Z`。exit codeはtaskkill後の`1`。
+- Timing evidence (controls): direct-node negativeはfirst stdout JSON `2.896s`、`turn.completed` `66.488s`、exit `67.071s`、close `67.071s`。runner-shim negativeはfirst stdout JSON `1.776s`、`turn.completed` `50.876s`、exit `51.706s`、close `51.707s`。いずれも120秒timeoutなし。
+- Process evidence: runner positiveのtimeout直前にはroot `cmd.exe`、配下`node.exe`、`codex.exe`、さらに`codex-code-mode-host.exe`と複数の`cmd.exe`/`node.exe`等が残存した。対象treeはtaskkill後に空になった。Codex本体がterminalを出した後にshell/pipeだけがcloseしないCase Aではなく、Host処理がtimeout時点でも継続していた。
+- Hook evidence: runner positiveは120秒以前にstdout terminalを出さなかったが、Hook deltaは1 file・16 events（`PostToolUse` 15件）として観測された。これは途中のHost activityを示すが、terminal欠落を補ってrouting outcomeを確定する根拠には使わない。
+- Decision / Rationale: `turn.completed`/`turn.failed`自体が120秒以内に届かなかったため、現runnerの「closeまでtimerを解除しない」構造がこの診断のtimeoutを誤分類したとは判定しない。timeout値を緩和せず、retry framework・result schema変更・runner source修正を行わない。canonical `all`は再実行しない。
+- Evaluator defect: なし。source implementation、dataset、Skill description、`AGENTS.md`、timeout値は変更していないため、新しいevaluator commit / pushは不要。
+- Validation: 今回はsource変更がないため4 validation gateとmanual Probeの再実行は行わない。直近のsource implementation validationは`eval:skills:trigger:validate` PASS、`test:repository` PASS、`validate:skills` PASS、`verify` PASS、manual Observation Probe PASSであり、今回のdiagnosticはそれらの状態を変更していない。
+- Canonical run: **再実行していない**。Planの有効baseline条件未達と、ユーザー指定のdiagnostic-only制約を維持する。
+- Blocker / Remaining: valid canonical baselineは未取得のまま。120秒以内にpositive Host executionが安定する環境変更がない限り、canonical `all`を再実行しない。調査結果は`docs/plans/2026-09-06_215551_issue-117-trigger-eval-timeout-root-cause.md`と本checkpointへ保存した。
+- Subagents: 使用なし。
+- Progress: 92% (22/24)
+
+## 2026-09-06 23:15 (JST)
+
+- Summary: ユーザー指示に基づき、120秒を外部要件ではなくEvaluator運用timeoutとして再検証するphaseへ移行した。前回の未push調査記録を保持し、`feature-plan` Skillの計画手順に従う新計画を保存した。
+- Changes: `docs/plans/2026-09-06_231334_issue-117-trigger-eval-rebaseline.md`を追加した。diagnostic outer safety limitは600秒とし、positive controlを1回だけ測定する。最終timeoutはterminal duration測定後に`max(60秒, 25%)` margin規則で固定決定する。
+- Decision / Rationale: canonical `all`はmeasurement、Plan/Evaluator判断、validation、source commit、latest main再確認が完了するまで実行しない。timeoutはrouting性能指標ではなくhang検出値として扱い、routing/scoring/selector/hook/datasetは変更しない。
+- Validation: branch=`refactor/117-pr2-trigger-eval-baseline`、local/remote head=`7d8207978bf2f7433789b44741d69ad77ae28beb`、PR #127 OPEN/base=`main`/head一致を確認した。前回未pushの`REPORT.md`/`TASKS.md`追記とtimeout調査計画を破棄していない。
+- Blocker / Remaining: 次はpositive controlのterminal-duration measurement（外側600秒、Evaluator 120秒timerなし）を1回実施する。
+- Subagents: 使用なし。
+- Progress: 70% (23/33)
+
+## 2026-09-06 23:23 (JST)
+
+- Summary: positive controlのterminal-duration measurementを1回完了し、120秒timeoutが通常Host executionを途中切断することを確認した。outer safety limit 600秒は発火しなかった。
+- Measurement: current runner相当の`codex.cmd` + `cmd.exe`、独立Target、read-only/ephemeral、pipe条件で、first stdout JSONは約1.441秒、first Skill readは約39.933秒、`turn.started`は約1.471秒、`turn.completed`は約261.523秒、exitは約262.101秒、closeは約262.104秒だった。Hook timestamp付きmeasurement summaryはcommit対象外`.artifacts/trigger-eval-duration-measurement-summary.md`へ保存した。
+- Decision / Rationale: 120秒は通常executionを途中切断するため、timeoutはhang検出用の固定327秒へ変更した。marginは`max(60秒, 25%) = 65.381秒`、実測値に加えて秒切り上げしたselected timeoutは327秒（327000ms、実余裕65.477秒）。600秒outer safetyとは別契約である。
+- Changes: 正本Plan `docs/plans/2026-09-06_125922_issue-117-pr2-trigger-eval-baseline.md`へmeasurement、327秒、rationale、timeoutのunobservable/retry禁止契約を追記し、`scripts/evals/run-skill-trigger-evals.ts`の`CASE_TIMEOUT_MS`だけを`327_000`へ変更した。selector、hook correlation、process lifecycle、scoring、datasetは変更していない。
+- Observation note: first Skill commandは`Get-Content -Raw '.agents/skills/feature-plan/SKILL.md'`で、前回Probeのunquoted selector shapeとは異なった。今回の変更範囲ではselectorを変更せず、measurement factとして保存した。
+- Blocker / Remaining: 次は4 validation gateとObservation Probeを再確認し、PASS後にsource commit/evaluator SHAを確定する。canonical `all`はまだ実行しない。
+- Subagents: 使用なし。
+- Progress: 79% (26/33)
+
+## 2026-09-06 23:37 (JST)
+
+- Summary: timeout変更後の指定validationとObservation Probe再確認を完了した。すべてPASSし、source commitへ進める状態になった。
+- Validation: `pnpm run eval:skills:trigger:validate` PASS（12 files/24 cases/fingerprint `283cb4d73f841095f576d82708bc5adc1ee763a6df21756c24078a07c50226f3`）、`pnpm run test:repository` PASS（7 files/57 tests）、`pnpm run validate:skills` PASS（6 Skill/15 Markdown/24 links）、`pnpm run verify` PASS（34 files/495 passed/3 skipped、Native 13 suites/64 tests、web/docs/spec build）。lintは0 errors/65 existing warnings。
+- Observation Probe: direct PowerShell `codex exec` negativeは約24.597秒、exit 0、`turn.completed`、stderr 0。positiveは約232.645秒、exit 0、77 JSONL records、`turn.completed`、stderr 424 bytes。positive Hookは1 delta file/35 eventsでfeature-plan `SKILL.md`の実readを確認した。
+- Observation note: Probe positiveのactual commandは`Get-Content -Raw .agents\\skills\\feature-plan\\SKILL.md`で、前回Probe/runner selectorのforward-slash・unquoted shapeと異なる。今回のtimeout再baseline変更ではselectorを変更せず、routing observation contractの差分として記録した。
+- Decision / Rationale: source変更は正本Planのtimeout前提と`CASE_TIMEOUT_MS`だけで、validation/ProbeがPASSしたためsource implementation commitを作成する。canonical `all`はcommitとlatest main/routing source再確認後まで実行しない。
+- Blocker / Remaining: 次はbranch安全確認後のsource commit、`evaluator_git_sha`確定、canonical直前のmain/routing source再確認。
+- Subagents: 使用なし。
+- Progress: 82% (27/33)
+
+## 2026-09-06 22:10 (JST)
+
+- Summary: timeout原因調査の最終scope、sanitization、PR状態を確認した。
+- Changes: 今回のtracked変更はactive Runの`REPORT.md`/`TASKS.md`追記とdiagnostic計画docのみ。source implementation、dataset、Skill、routing contract、Product code/test、training contentは変更していない。
+- Validation: `sanitize-codex-artifacts.ps1 -Write -Check`は7 files、residual 0。計画docのsanitizer Checkも1 file、residual 0。`git diff --check`はPASS。PR #127はOPEN、base=`main`、head branch一致、remote headは`7d8207978bf2f7433789b44741d69ad77ae28beb`。
+- Decision / Rationale: evaluator defectがないためcommit/pushは行わず、canonical `all`も再実行しない。valid baseline未取得のblockerを維持し、次回はHost実行時間が改善された後にのみ正本Planの再Probe・validation・canonical run条件へ戻る。
+- Blocker / Remaining: tasks 15/17（valid canonical baselineとbaseline Artifact commit）は未完了。diagnostic tasks 19–24は完了。
+- Subagents: 使用なし。
+- Progress: 92% (22/24)

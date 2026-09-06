@@ -24,7 +24,23 @@
 ## Discovered
 
 - 作業中に発見したタスクはここに追記する（セッション内で増える前提）
+- [x] 19. PR #127のtimeout原因調査計画を保存し、既存runner/Probe/artifactの差分を整理する
+- [x] 20. negative controlをmanual-style / runner-styleで時刻付きdiagnostic実行する
+- [x] 21. 必要ならpositive controlをrunner-styleで1回だけdiagnostic実行する
+- [x] 22. terminal/exit/close/timeout/process treeの証拠から原因を分類する
+- [x] 23. evaluator defectの場合だけ最小修正と指定validationを実施する（今回の診断では該当なし、source変更なし）
+- [x] 24. 調査結果をREPORTへappend-onlyで記録し、canonical再実行可否を確定する
+- [x] 25. 未push調査記録を確認し、timeout再検証計画を保存する
+- [x] 26. positive controlのterminal-duration measurementを外側safety limit付きで1回実施する
+- [x] 27. measurementから120秒前提とselected timeout/marginを決定し、正本Plan/Runへ記録する
+- [x] 28. 必要な場合だけ正本Planと`CASE_TIMEOUT_MS`を最小修正する
+- [x] 29. 指定validationとmanual Observation Probeを実行する
+- [ ] 30. source implementation commitと新しい`evaluator_git_sha`を確定する
+- [ ] 31. canonical直前にlatest main/routing sourceを再確認する
+- [ ] 32. canonical `all`を最初から1回実行し、validity/8-side coverageを確認する
+- [ ] 33. baseline/Run Artifactをsanitization、commit、pushしPRを確認する
 
 ## Blocked
 
 - canonical `all`の8 boundary-sideが全件timeoutでobservable 0件となり、有効baseline条件を満たさない。Planの禁止事項によりcase retry・timeout緩和・dataset/description変更は行わない。Host実行時間を120秒以内に安定化した環境で、Target/trust/Probe/validation確認後にcanonical runを最初から再実行する。
+- timeout原因診断ではrunner相当positiveの120秒時点に`turn.completed`/`turn.failed`がなく、process treeに`codex.exe`が残存した。runner lifecycle defectではなくHost execution latency（Case B）と分類し、canonical `all`は再実行しない。
