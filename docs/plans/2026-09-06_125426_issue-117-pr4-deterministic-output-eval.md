@@ -62,6 +62,7 @@ PR4で重要なのは、6 Skillすべてへ grader を作ることではない�
 - static fixture fileは必要な場合だけとし、本PRでは原則作らない。
 - PR4専用CLI、package script、GitHub Actions workflowを作らない。
 - Trigger Eval、description optimization、Semantic Eval、Workflow E2Eを前倒ししない。
+- false-pass防止を優先するが、既存Contractにない厳格化をgrader側で発明しない。
 
 ### Definition of Done
 
@@ -70,7 +71,7 @@ PR4で重要なのは、6 Skillすべてへ grader を作ることではない�
 - [ ] 新規graderは `feature-plan` の1つだけである。
 - [ ] `exploratory-qa` は既存Machine Contractを直接再利用する。
 - [ ] `feature-plan` でrequired H2 omissionを検出できる。
-- [ ] required H2はcolumn 1の `## ` だけを認識し、leading space付きheadingをrequired H2扱いしない。
+- [ ] required H2認識は既存Markdown表現の範囲で0〜3 leading spacesを許容し、grader都合のcolumn-1-only制約を新設しない。
 - [ ] LF / CRLFの双方でline parsingが安定する。
 - [ ] fenced code block内だけにあるrequired H2を存在扱いしない。
 - [ ] backtick / tilde fenceの双方を扱う。
@@ -84,6 +85,7 @@ PR4で重要なのは、6 Skillすべてへ grader を作ることではない�
 - [ ] valid Normal-mode Coverageはsuccessful parse後の `parsed.data.coverage` を使って `assertCoverageIntegrity` を通る。
 - [ ] `run_id` omissionを `qaFindingsSchema.safeParse` が拒否し、Zod issue pathで確認できる。
 - [ ] Coverage SSOTとOutput Coverageの不一致を `assertCoverageIntegrity` が `coverage.items does not match the Coverage SSOT` で拒否する。
+- [ ] Test E / F / Gは互いにmutable stateを共有せず、それぞれfresh valid inputから開始する。
 - [ ] `assertCoverageIntegrity` をmachine-readable化するだけのwrapperを作っていない。
 - [ ] Finding ID uniqueness / `duplicate_of` target existence等、既存Machine Contractにないruleを新設していない。
 - [ ] new static `evals/output/**` fixtureを作っていない。
@@ -109,7 +111,11 @@ Canonical source:
 
 そのため、canonical template の top-level section H2 は deterministic に評価できる。
 
-一方、template本文にはplaceholder自体が存在するため、次はPR4で評価しない。
+一方、既存Contractは「column 1にH2を書かなければならない」等のMarkdown formatting ruleまでは定義していない。
+
+したがってgrader側で、canonical section textの存在確認に必要な範囲を超えて新しいserialization制約を作らない。
+
+PR4で評価しないもの:
 
 - body non-empty
 - placeholder completion
@@ -117,6 +123,10 @@ Canonical source:
 - validation planの質
 - riskの質
 - technical correctness
+- heading uniqueness
+- heading order
+- column 1固定
+- trailing whitespace禁止
 
 また、templateにheadingが1回ずつ存在していても、heading uniquenessを要求する明示Contractはないため重複禁止ruleを作らない。
 
@@ -211,6 +221,7 @@ Workflow / PowerShell helperにはDoctor / Build / Install / Smoke / Test等のd
 - `exploratory-qa` は `qaFindingsSchema.safeParse` のresult / issuesをmachine-readable経路とする。
 - `assertCoverageIntegrity` はthrowing relation validatorのまま追加チェックとして使う。
 - fixtureはtest inputを意味し、専用fixture fileを必須にしない。
+- test-local factoryはproduction abstractionではなく、3 testのfresh input生成と重複削減だけを目的とする。
 
 ---
 
@@ -255,6 +266,7 @@ N/A 4 Skillについては、各Skillの直接Output Contract sourceだけを確
 - 別用途artifactをSkill Output Contractへ昇格すること。
 - serializationを推測してgraderを作ること。
 - unrelatedなlatest `main`変更を理由にscopeを広げること。
+- preflightだけを理由にbranchを広くrebase / mergeして無関係差分を持ち込むこと。
 
 ---
 
@@ -341,7 +353,7 @@ const lines = markdown.split(/\r?\n/);
 
 CR-only改行まで対応するための追加parserは作らない。
 
-#### Required H2
+#### Required H2 extraction
 
 required heading listはhard-codeしない。
 
@@ -351,28 +363,37 @@ canonical sourceは既存:
 .agents/skills/feature-plan/assets/plan-template.md
 ```
 
-required H2候補は、fence外かつ**column 1から `## ` で始まる行だけ**とする。
+required H2候補は、fence外で次を満たす行とする。
 
-つまり次はrequired H2として認識する。
+1. 行頭0〜3個のspaceを許容する。
+2. leading spaceを除いた後、`## ` で始まる。
+3. heading textはcanonical template由来の文字列と完全一致で扱う。
+4. 比較時はtrailing space / tabだけを無視してよい。
+5. leading tab、4個以上のleading spaceはH2候補にしない。
+
+canonical template自体もOutput側も同じ抽出規則を使う。
+
+したがって次はいずれも同じrequired H2として扱う。
 
 ```text
 ## 6. 検証方法
-```
-
-次は認識しない。
-
-```text
  ## 6. 検証方法
    ## 6. 検証方法
 ```
 
-0〜3個のleading space許容はfence delimiterにだけ適用し、headingには適用しない。
+一方、次はrequired H2として扱わない。
+
+```text
+    ## 6. 検証方法
+	## 6. 検証方法
+### 6. 検証方法
+```
 
 H1は対象外。
 
-headingは行全体の文字列完全一致で扱う。
+alias / fuzzy matching /語句normalizationは行わない。
 
-alias / fuzzy matching / normalizationは行わない。
+0〜3 leading spacesの許容は既存Markdown表現を狭めないための最小解釈であり、新しいOutput formatting requirementを追加するものではない。
 
 #### Empty-required guard
 
@@ -389,6 +410,8 @@ required heading件数や具体的heading名はhard-codeしない。
 #### Fence parserの最小仕様
 
 full Markdown parserを作らず、line-by-line stateだけを持つ。
+
+heading判定より先にfence stateを処理し、fence内のH2をrequired headingとして数えない。
 
 ##### Opener
 
@@ -418,6 +441,10 @@ fence closerとして認識する条件:
 3. marker数はopener以上。
 4. marker列の後ろはspace / tabのみ許容する。
 5. marker列の後ろにinfo string相当の非空文字列がある行はcloser扱いしない。
+
+opener後にEOFまでvalid closerがなければ、最後までfence内として扱う。
+
+未閉鎖fenceを別errorへ変換するgraderは作らない。
 
 ##### 意図的に対応しないもの
 
@@ -470,6 +497,8 @@ invalid:
 }
 ```
 
+`missingHeadings` はcanonical templateから正規化して抽出したheading文字列を返す。
+
 追加しないfield:
 
 - issues
@@ -510,6 +539,8 @@ canonical template本文のplaceholderが埋まっていることまでは意味
 #### Test B: required H2 omission
 
 canonical templateからrequired H2を1つだけ除去する。
+
+対象headingはcanonical templateから取得した値を使い、test用にrequired H2一覧を別hard-codeしない。
 
 期待:
 
@@ -573,19 +604,9 @@ H2を持たない `templateMarkdown` を渡す。
 - `validatePlanOutput` がthrowする。
 - empty required setでPASSしない。
 
-#### Test D-2: leading-space H2はrequired headingとして扱わない
+**leading-space H2専用の追加testは作らない。**
 
-新しいstatic fixtureは作らない。
-
-小さいinline inputで、column 1ではない `## ` 行をrequired H2として抽出しないことを確認する。
-
-例えばH2を持たないtemplateへ次だけを置いても、required H2 0件としてconfiguration errorになることを確認する。
-
-```text
- ## 6. 検証方法
-```
-
-このtestはCommonMark互換性を広げるためではなく、Planで固定したcolumn-1-only ruleの回帰防止だけを目的とする。
+0〜3 leading spaces許容は抽出関数の実装規則として固定し、column-1-only等の独自serialization ruleをテストで新設しない。
 
 ---
 
@@ -600,6 +621,8 @@ qaFindingsSchema
 assertCoverageIntegrity
 ```
 
+型として必要な場合だけ、既存 `Charter` typeをimportする。
+
 #### Representative fixtureはNormal modeに固定
 
 PR4のcontract testではNormal modeだけを代表入力として使う。
@@ -610,9 +633,28 @@ PR4のcontract testではNormal modeだけを代表入力として使う。
 - Gray-box / Black-box Scoredまでfixture化するとrunner profile / isolation / benchmark等のsupporting harness contractへ範囲が広がる。
 - `qaFindingsSchema` 自体は3 mode unionなので、既存schema全体をPR4で再テストする必要はない。
 
+#### Test-local valid input factory
+
+Normal-mode valid inputは `tests/contracts/skill-output-eval.test.ts` 内だけに、小さいtest-local factoryとして置く。
+
+推奨名:
+
+```ts
+createValidNormalInput()
+```
+
+目的は次の2つだけ。
+
+- Test E / F / Gが互いにmutable stateを共有しない。
+- 同じ長いliteralを3回複製しない。
+
+Production helper、shared fixture module、new fileへ昇格しない。
+
+factoryは呼び出しごとにfresh objectを返す。
+
 #### Minimal valid Normal-mode object
 
-以下をtest内の小さいbuilderまたはliteralで作る。
+factoryは以下の内容を返す。
 
 ```text
 schema_version: 1
@@ -644,37 +686,40 @@ findings: []
 
 この入力を巨大なScored fixtureへ発展させない。
 
-既存small builderが本当にそのまま再利用できる場合だけ再利用してよい。
-
-再利用のためのhelper refactorが必要なら、test内literalの方を選ぶ。
+既存small builderが完全にそのまま使える場合でも、再利用のためにproduction/helper refactorが必要ならtest-local factoryを選ぶ。
 
 #### Coverage SSOT source object
 
 `assertCoverageIntegrity` に渡す `expectedSource` はfull Charter / Challenge fixtureを作らず、`required_coverage` だけを持つ最小objectにする。
 
-具体値は次に固定する。
+型は既存typeをそのまま利用し、次程度に固定する。
 
-```text
-required_coverage:
-  - coverage_id: COV-001
-    mission: representative mission
-    role: customer
-    seed: default
-    platform: web
-    viewport_or_device: desktop
-    required_evidence_types:
-      - screenshot
+```ts
+const expectedSource: Pick<Charter, "required_coverage"> = {
+  required_coverage: [
+    {
+      coverage_id: "COV-001",
+      mission: "representative mission",
+      role: "customer",
+      seed: "default",
+      platform: "web",
+      viewport_or_device: "desktop",
+      required_evidence_types: ["screenshot"],
+    },
+  ],
+};
 ```
 
-これ以上のCharter fieldを追加しない。
+新しいtype alias / schema / cast adapterは作らない。
 
-`expectedSource` は `assertCoverageIntegrity` の既存parameter typeを満たす範囲で型付けし、広いcast、新helper、新schemaは作らない。
+`as unknown as ...` のような広いcastを避ける。
 
 #### Test E: valid schema + valid Coverage relation
 
-上記minimal Normal inputを次で評価する。
+Test Eの冒頭でfresh inputを作る。
 
 ```ts
+const input = createValidNormalInput();
 const parsed = qaFindingsSchema.safeParse(input);
 ```
 
@@ -691,9 +736,8 @@ successful parse後はraw `input.coverage` ではなく、**Zodで型が確定�
 概念例:
 
 ```ts
-const parsed = qaFindingsSchema.safeParse(input);
 expect(parsed.success).toBe(true);
-if (!parsed.success) return;
+if (!parsed.success) throw parsed.error;
 
 assertCoverageIntegrity(expectedSource, parsed.data.coverage);
 ```
@@ -702,13 +746,21 @@ assertCoverageIntegrity(expectedSource, parsed.data.coverage);
 
 - throwしない。
 
-raw inputを直接渡すためのcastや追加type annotationを作らない。
+explicit guardはTypeScript narrowingのためだけに使い、wrapperへ抽出しない。
 
 #### Test F: required field omission
 
-上記valid inputから `run_id` だけを除外したobjectを作る。
+Test Fもfresh inputから開始する。
 
-作り方はtest実装上もっとも単純な方法を選んでよい。cast回避やhelper抽出自体を目的にしない。
+```ts
+const input = createValidNormalInput();
+```
+
+このinputから `run_id` だけを除外したobjectを作る。
+
+作り方はtest実装上もっとも単純な方法を選んでよい。
+
+cast回避やhelper抽出自体を目的にしない。
 
 評価:
 
@@ -728,14 +780,25 @@ human-readable message全文はassertしない。
 
 #### Test G: Coverage SSOT mismatch
 
-Test Eでsuccessful parseした `parsed.data.coverage` を基準に、actual Coverageの次だけ変更する。
+Test GもTest Eのobjectを再利用せず、fresh inputから開始する。
+
+```ts
+const input = createValidNormalInput();
+const parsed = qaFindingsSchema.safeParse(input);
+```
+
+まずschema-validであることを確認する。
+
+successful parse後、そのtest内だけで `parsed.data.coverage` を基準に新しい `actualCoverage` を作り、次だけ壊す。
 
 ```text
 coverage.required_ids = ["COV-001"]
 coverage.items[0].coverage_id = "COV-999"
 ```
 
-つまり、valid schemaを通過したCoverageからitem IDだけを意図的に壊す。
+`parsed.data.coverage` 自体を他testと共有しない。
+
+可能ならobject spread等で新しいCoverage objectを作り、元objectを不要にmutationしない。
 
 `assertCoverageIntegrity(expectedSource, actualCoverage)` を直接呼ぶ。
 
@@ -821,7 +884,7 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 
 - canonical template valid -> `missingHeadings = []`。
 - required H2 omission -> `missingHeadings` に対象heading。
-- column 1の `## ` だけをrequired H2として扱う。
+- required H2抽出は0〜3 leading spacesを許容し、grader都合のcolumn-1-only制約を持たない。
 - LF / CRLFの双方でline parsingが安定する。
 - 4文字backtick opener + info string + 0〜3 spaceでfalse-passしない。
 - openerより短い3文字backtick行をcloserと誤認しない。
@@ -831,10 +894,11 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 
 `exploratory-qa`:
 
+- E / F / Gは各testでfresh `createValidNormalInput()` を使う。
 - Normal-mode `qaFindingsSchema.safeParse` success。
 - successful parse後の `parsed.data.coverage` が `assertCoverageIntegrity` を通る。
 - `run_id` omission failure / Zod path。
-- parsed valid Coverageを基準にしたCOV-999 item mismatchが `coverage.items does not match the Coverage SSOT` で拒否される。
+- fresh parsed valid Coverageを基準にしたCOV-999 item mismatchが `coverage.items does not match the Coverage SSOT` で拒否される。
 - existing validator direct reuse。
 
 確認しないもの:
@@ -842,6 +906,7 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 - 6 Skill classification inventoryのruntime test。
 - N/A reasonのruntime test。
 - supporting Agentic QA Machine Contract全体。
+- feature-plan heading formatting全体のMarkdown互換性。
 
 ### Repository gate
 
@@ -874,6 +939,7 @@ Trigger / Semantic / E2E Eval implementation
 PR4 classification inventory implementation
 PR4 adapter / CLI / runtime registry
 new evals/output fixture files
+shared test fixture/helper files
 ```
 
 ---
@@ -907,12 +973,21 @@ new evals/output fixture files
 
 - required H2 presenceだけを見る。
 - LF / CRLFだけをline splitで吸収する。
-- required H2はcolumn 1の `## ` だけを見る。
+- H2は0〜3 leading spaces + `## ` の最小認識に留める。
 - line-by-line fence stateだけを持つ。
 - opener / closer仕様はSection 5の最小境界に固定する。
 - AST / dependency / CommonMark完全互換へ広げない。
 
-### Risk 5: fence内headingでfalse-passする
+### Risk 5: graderが既存Contractより厳しいMarkdown formattingを発明する
+
+対策:
+
+- column-1-only制約を作らない。
+- trailing whitespace禁止ruleを作らない。
+- alias / fuzzy matchingはしないが、0〜3 leading spacesは許容する。
+- canonical section textのpresence以上へ広げない。
+
+### Risk 6: fence内headingでfalse-passする
 
 対策:
 
@@ -924,14 +999,13 @@ new evals/output fixture files
 - backtick / tildeを双方testする。
 - backtick代表caseをCRLFで実行し、行末 `\r` が判定へ混入しないことも同時に確認する。
 
-### Risk 6: canonical template parser failureでvacuous PASSする
+### Risk 7: canonical template parser failureでvacuous PASSする
 
 対策:
 
 - required H2が0件ならthrowする。
-- leading-space付き `## ` だけではrequired H2ありと判定しない。
 
-### Risk 7: Agentic QA Machine Contract全体を再テストする
+### Risk 8: Agentic QA Machine Contract全体を再テストする
 
 対策:
 
@@ -939,14 +1013,14 @@ new evals/output fixture files
 - `qaFindingsSchema.safeParse` と `assertCoverageIntegrity` だけを直接扱う。
 - Scored runner / host / benchmark / isolation fixtureへ広げない。
 
-### Risk 8: Issue候補を見て新しいFinding relation ruleを足す
+### Risk 9: Issue候補を見て新しいFinding relation ruleを足す
 
 対策:
 
 - Issueのcandidate categoryよりcurrent authoritative Machine Contractを優先する。
 - finding ID uniqueness / `duplicate_of` target existenceは既存ruleがないため追加しない。
 
-### Risk 9: machine-readable result統一のためwrapperを作る
+### Risk 10: machine-readable result統一のためwrapperを作る
 
 対策:
 
@@ -954,16 +1028,33 @@ new evals/output fixture files
 - `exploratory-qa`: Zod `safeParse` result / issues。
 - `assertCoverageIntegrity`: existing throwのまま。
 
-### Risk 10: fixture / helperを増やす
+### Risk 11: test間でmutable fixtureを共有する
+
+対策:
+
+- `createValidNormalInput()` は呼び出しごとにfresh objectを返す。
+- Test E / F / Gは各test冒頭でfactoryを呼ぶ。
+- Test Gはそのtest内でparse後のCoverageからinvalid copyを作る。
+- beforeEachのshared mutable objectやmodule-level mutable fixtureを作らない。
+
+### Risk 12: fixture / helperを増やす
 
 対策:
 
 - `feature-plan`: canonical template + test内mutation。
-- `exploratory-qa`: Normal-mode minimal object + minimal `required_coverage` source object。
-- valid relation確認には `parsed.data.coverage` を使い、raw input型を合わせるためのcast/helperを追加しない。
-- helper抽出が必要になるなら、まずtest内literalで済まないか確認する。
+- `exploratory-qa`: test-local `createValidNormalInput()` + minimal `expectedSource`。
+- factoryをshared helper fileへ移さない。
+- production helperへ昇格しない。
 
-### Risk 11: validationがcommit後にno-opになる
+### Risk 13: 型合わせのためcast / schemaを増やす
+
+対策:
+
+- `expectedSource` は `Pick<Charter, "required_coverage">` を使う。
+- valid Coverageは `parsed.data.coverage` を使う。
+- `as unknown as`、new schema、adapter typeを作らない。
+
+### Risk 14: validationがcommit後にno-opになる
 
 対策:
 
@@ -979,9 +1070,9 @@ new evals/output fixture files
 3. semantic qualityを評価しようとしていないか。該当するならPR5へ残す。
 4. classification / N/A情報をimplementationへ複製しようとしていないか。
 5. 既存validatorを直接呼べないか。呼べるなら直接使う。
-6. grader都合の新Output formatを作ろうとしていないか。該当するなら作らない。
+6. grader都合の新Output formatやMarkdown formatting ruleを作ろうとしていないか。
 7. `feature-plan` required headingをhard-codeしていないか。
-8. required H2をcolumn 1以外からも拾おうとしていないか。
+8. H2認識を0〜3 leading spaces + canonical text比較以上に一般化または厳格化していないか。
 9. LF / CRLF以外の改行対応まで一般化しようとしていないか。
 10. `validatePlanOutput` にfilesystem / CLI責務を入れていないか。
 11. `{ valid, missingHeadings }` よりresultを一般化しようとしていないか。
@@ -989,11 +1080,12 @@ new evals/output fixture files
 13. fence parserをSection 5以上に一般化していないか。
 14. duplicate / order / body / semanticsまで評価していないか。
 15. `exploratory-qa` fixtureをGray-box / Scoredへ広げていないか。
-16. safeParse成功後もraw `input.coverage` をrelation validatorへ渡すためのcast/helperを作ろうとしていないか。
-17. Finding ID / `duplicate_of` cross-reference ruleを新設していないか。
-18. throwing validatorをnormalizeするwrapperを作っていないか。
-19. static fixture / registry / CLI / common normalizerを追加しようとしていないか。
-20. plain `git diff --check` でcommit後の差分確認を済ませようとしていないか。
+16. Test E / F / Gで同じmutable objectを共有していないか。
+17. safeParse成功後もraw `input.coverage` をrelation validatorへ渡すためのcast/helperを作ろうとしていないか。
+18. Finding ID / `duplicate_of` cross-reference ruleを新設していないか。
+19. throwing validatorをnormalizeするwrapperを作っていないか。
+20. static fixture / registry / CLI / common normalizerを追加しようとしていないか。
+21. plain `git diff --check` でcommit後の差分確認を済ませようとしていないか。
 
 該当した場合はPlanの最小境界へ戻す。
 
@@ -1016,8 +1108,8 @@ tests/contracts/skill-output-eval.test.ts
 
 役割:
 
-- `validate-plan-output.ts`: LF / CRLF line split + column-1 required H2 extraction + fence handling + `missingHeadings` calculationだけ。
-- `skill-output-eval.test.ts`: `feature-plan` と `exploratory-qa` のdeterministic behavior testだけ。
+- `validate-plan-output.ts`: LF/CRLF split + required H2 extraction + fence handling + `missingHeadings` calculationだけ。
+- `skill-output-eval.test.ts`: `feature-plan` と `exploratory-qa` のdeterministic behavior testだけ。Normal fixture factoryもこのfile内だけに置く。
 
 これ以上の実装ファイルは、latest `main`のdirect contract driftにより明確に必要になった場合を除き追加しない。
 
@@ -1026,6 +1118,7 @@ tests/contracts/skill-output-eval.test.ts
 - classification table / inventory implementation
 - N/A Skill grader / fixture / test / empty directory
 - `.agents/skills/*/evals/output/**` static fixtures
+- shared fixture file
 - repository-level PR4 adapter
 - common result normalizer / schema
 - exception adapter
@@ -1046,3 +1139,4 @@ tests/contracts/skill-output-eval.test.ts
 - PR4はPR2 / PR3を待たず実装できる。
 - PR5 Semantic Output EvalはPR4でdeterministic / semantic境界を確定した後に進める。
 - このPlanの目的は、実装者の選択肢を増やすことではなく、**最小実装を迷わず再現できる状態にすること**である。
+- このPlan以降、direct Contract driftがない限り新しい評価ruleを探し続けず、実装へ進む。
