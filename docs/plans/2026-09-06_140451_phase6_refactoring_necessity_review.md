@@ -480,10 +480,10 @@ commit前Required validation:
 ```bash
 pnpm run format:check
 pnpm run lint:markdown
-git diff --check
+git diff --check HEAD
 ```
 
-`git diff --check`はworking tree / indexに存在する未commitの最終Plan / report / Run Artifactを対象にし、commit前のwhitespace errorを検出するため必須とする。
+`git diff --check HEAD`はHEADに対するstaged + unstagedの未commit差分を対象にし、最終Plan / report / Run Artifactのwhitespace errorをcommit前に検出するため必須とする。
 
 Repository標準Run Artifactを作成した場合は、Repository標準のsanitization / collector contractに従う。
 
@@ -539,12 +539,16 @@ Run lifecycleは§4.8と`AGENTS.md`に従い、会話セッションが変わっ
 5. reportを必要最小限更新し、Task 12のcommit前Required validationを再実行する。
 6. 必要なcommitを行い、commit後はTask 13の`git diff --check origin/main...HEAD`とPR差分確認を再実行してからnon-force pushする。
 7. **この時点の最新PR head SHAを確定する。**
-8. 最新head SHAに対するrequired GitHub checks / workflowsが完了し、PASSしていることを確認する。古いheadのCI結果を代用しない。
+8. 最新head SHAで実際に起動したapplicable repository checks / workflowsを確認し、required指定の有無にかかわらず、Phase 6 PRにrelevantなfailureを残したままmergeしない。古いheadのCI結果を代用しない。
 9. unresolved review threadまたは新しいreview findingが残っていないことを確認する。
 10. PRがmergeable / merge-readyであることを確認する。
 11. Repositoryのmerge設定を再確認する。Planning時点と同じくsquash mergeのみ有効ならsquash mergeを使用する。merge commit / rebase mergeを使用するためにRepository設定を変更しない。
 12. CI failure、新しいreview finding、merge conflict、validation failureがある場合はmergeせず、必要最小限のbounded repairを行った後、最新headでTask 12 / Task 13 / 本Taskの必要箇所をやり直す。
 13. すべて満たした場合だけ、ユーザーの明示承認範囲内で**squash merge**する。
+14. merge後、Issue #72のCurrent status / Phase 6欄を実際のmerge結果へ同期し、Master Plan §21およびIssue #72自身の完了条件を最終確認する。
+15. Master Plan / Issue #72の完了条件をすべて満たす場合はIssue #72をCloseする。未達条件がある場合はIssue #72をOpenのまま維持し、重複説明を避けて不足条件と正本への参照だけを記録する。
+
+`refactor_now`が存在しても、それはPhase 6 merge後の別Plan / 別PRへ送るfollow-upであり、それだけを理由にIssue #72をOpen維持しない。Issue #72のClose可否はMaster Plan / Issue #72のcompletion条件で決める。
 
 CI結果を記録するためだけにRun Artifactを再更新・再commitしない。finalizationでreport等のRepository成果物修正が発生した場合だけ、適用されるRun lifecycleに従って記録する。
 
@@ -619,11 +623,11 @@ diff-first freshness checkでRepository上のrelevant changeだけを再評価�
 
 ### Validation timing gap
 
-未commit差分はTask 12の`git diff --check`、commit済みPR差分はTask 13の`git diff --check origin/main...HEAD`で分けて検証し、どちらか一方だけで代用しない。
+未commit差分はTask 12の`git diff --check HEAD`、commit済みPR差分はTask 13の`git diff --check origin/main...HEAD`で分けて検証し、どちらか一方だけで代用しない。
 
 ### Stale CI / review state
 
-merge前は最新PR head SHAのchecks / review状態を確認し、古いheadのPASSや解消済み前提を流用しない。
+merge前は最新PR head SHAで実際に起動したapplicable checks / workflowsとreview状態を確認し、required指定がないことや古いheadのPASSを理由に確認を省略しない。
 
 ### Unsupported merge method
 
@@ -671,4 +675,4 @@ Phase 6 decision-only PR merge後:
 - `needs_more_evidence`
   - reportに記録したEvidence取得条件が成立した場合だけ再評価する。
 
-Phase 6完了後はIssue #72へ進捗のみ同期する。Master Planをlive progress trackerへ変更しない。
+Phase 6 merge後はIssue #72へ進捗を同期し、Master Plan / Issue #72のcompletion条件を満たす場合だけIssue #72をCloseする。満たさない場合はOpenのまま残し、不足条件を正本参照付きで最小限記録する。Master Planをlive progress trackerへ変更しない。
