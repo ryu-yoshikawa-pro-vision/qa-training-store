@@ -70,6 +70,8 @@ PR4で重要なのは、6 Skillすべてへ grader を作ることではない�
 - [ ] 新規graderは `feature-plan` の1つだけである。
 - [ ] `exploratory-qa` は既存Machine Contractを直接再利用する。
 - [ ] `feature-plan` でrequired H2 omissionを検出できる。
+- [ ] required H2はcolumn 1の `## ` だけを認識し、leading space付きheadingをrequired H2扱いしない。
+- [ ] LF / CRLFの双方でline parsingが安定する。
 - [ ] fenced code block内だけにあるrequired H2を存在扱いしない。
 - [ ] backtick / tilde fenceの双方を扱う。
 - [ ] fence openerは0〜3 space + 3文字以上の同一marker + optional info stringを扱う。
@@ -79,7 +81,7 @@ PR4で重要なのは、6 Skillすべてへ grader を作ることではない�
 - [ ] canonical templateからrequired H2を0件しか取得できない場合はvacuous PASSせずconfiguration errorで停止する。
 - [ ] `feature-plan` graderは `{ valid, missingHeadings }` のmachine-readable structured resultを返す。
 - [ ] `exploratory-qa` valid Normal-mode Findings inputが `qaFindingsSchema.safeParse` を通る。
-- [ ] valid Normal-mode Coverageが `assertCoverageIntegrity` を通る。
+- [ ] valid Normal-mode Coverageはsuccessful parse後の `parsed.data.coverage` を使って `assertCoverageIntegrity` を通る。
 - [ ] `run_id` omissionを `qaFindingsSchema.safeParse` が拒否し、Zod issue pathで確認できる。
 - [ ] Coverage SSOTとOutput Coverageの不一致を `assertCoverageIntegrity` が `coverage.items does not match the Coverage SSOT` で拒否する。
 - [ ] `assertCoverageIntegrity` をmachine-readable化するだけのwrapperを作っていない。
@@ -325,6 +327,20 @@ validatePlanOutput(
 
 このgraderはrequired heading omissionしか扱わないため、`issues: [{ rule, path }]` のような将来拡張前提のresult shapeは作らない。
 
+#### Line splitting
+
+LF / CRLFの双方を同じline列として扱う。
+
+実装は次相当に固定する。
+
+```ts
+const lines = markdown.split(/\r?\n/);
+```
+
+行末の `\r` がfence closer判定やheading比較へ残る実装にしない。
+
+CR-only改行まで対応するための追加parserは作らない。
+
 #### Required H2
 
 required heading listはhard-codeしない。
@@ -335,11 +351,26 @@ canonical sourceは既存:
 .agents/skills/feature-plan/assets/plan-template.md
 ```
 
-fence外のlevel-2 ATX headingだけをrequired H2として抽出する。
+required H2候補は、fence外かつ**column 1から `## ` で始まる行だけ**とする。
+
+つまり次はrequired H2として認識する。
+
+```text
+## 6. 検証方法
+```
+
+次は認識しない。
+
+```text
+ ## 6. 検証方法
+   ## 6. 検証方法
+```
+
+0〜3個のleading space許容はfence delimiterにだけ適用し、headingには適用しない。
 
 H1は対象外。
 
-headingは文字列完全一致で扱う。
+headingは行全体の文字列完全一致で扱う。
 
 alias / fuzzy matching / normalizationは行わない。
 
@@ -493,13 +524,14 @@ backtick / tildeの双方をparameterized testで確認する。
 
 backtickケースでは、**4文字backtick opener**を使い、以下を1ケース内でまとめて確認する。
 
+- test inputの行区切りは `\r\n` とし、CRLFでも同じ判定になることを確認する。
 - info string付きopener。
 - 0〜3 spaceのindent。
 - openerより短い3文字backtick行はcloserではない。
 - openerと同じ4文字backtickでも、non-whitespace suffixがあればcloserではない。
 - openerと同じ4文字backtick + trailing whitespaceのみの行で初めてcloseする。
 
-例:
+概念例:
 
 `````text
    ````text
@@ -508,6 +540,8 @@ backtickケースでは、**4文字backtick opener**を使い、以下を1ケー
 ## 6. 検証方法
    ````
 `````
+
+実testでは上記各行を `\r\n` で連結する。
 
 上記では、3文字backtick行と ` ````not-a-closing-fence` のどちらもcloser扱いしてはいけないため、required H2は最後の4文字closerまでfence内に留まる。
 
@@ -538,6 +572,20 @@ H2を持たない `templateMarkdown` を渡す。
 
 - `validatePlanOutput` がthrowする。
 - empty required setでPASSしない。
+
+#### Test D-2: leading-space H2はrequired headingとして扱わない
+
+新しいstatic fixtureは作らない。
+
+小さいinline inputで、column 1ではない `## ` 行をrequired H2として抽出しないことを確認する。
+
+例えばH2を持たないtemplateへ次だけを置いても、required H2 0件としてconfiguration errorになることを確認する。
+
+```text
+ ## 6. 検証方法
+```
+
+このtestはCommonMark互換性を広げるためではなく、Planで固定したcolumn-1-only ruleの回帰防止だけを目的とする。
 
 ---
 
@@ -620,6 +668,8 @@ required_coverage:
 
 これ以上のCharter fieldを追加しない。
 
+`expectedSource` は `assertCoverageIntegrity` の既存parameter typeを満たす範囲で型付けし、広いcast、新helper、新schemaは作らない。
+
 #### Test E: valid schema + valid Coverage relation
 
 上記minimal Normal inputを次で評価する。
@@ -636,15 +686,23 @@ parsed.success = true
 
 これを `exploratory-qa` のmachine-readable評価経路とする。
 
-さらに同じvalid Coverageをそのまま次へ渡す。
+successful parse後はraw `input.coverage` ではなく、**Zodで型が確定した `parsed.data.coverage`** をrelation validatorへ渡す。
+
+概念例:
 
 ```ts
-assertCoverageIntegrity(expectedSource, input.coverage);
+const parsed = qaFindingsSchema.safeParse(input);
+expect(parsed.success).toBe(true);
+if (!parsed.success) return;
+
+assertCoverageIntegrity(expectedSource, parsed.data.coverage);
 ```
 
 期待:
 
 - throwしない。
+
+raw inputを直接渡すためのcastや追加type annotationを作らない。
 
 #### Test F: required field omission
 
@@ -670,12 +728,14 @@ human-readable message全文はassertしない。
 
 #### Test G: Coverage SSOT mismatch
 
-valid inputを基準に、actual Coverageの次だけ変更する。
+Test Eでsuccessful parseした `parsed.data.coverage` を基準に、actual Coverageの次だけ変更する。
 
 ```text
 coverage.required_ids = ["COV-001"]
 coverage.items[0].coverage_id = "COV-999"
 ```
+
+つまり、valid schemaを通過したCoverageからitem IDだけを意図的に壊す。
 
 `assertCoverageIntegrity(expectedSource, actualCoverage)` を直接呼ぶ。
 
@@ -761,6 +821,8 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 
 - canonical template valid -> `missingHeadings = []`。
 - required H2 omission -> `missingHeadings` に対象heading。
+- column 1の `## ` だけをrequired H2として扱う。
+- LF / CRLFの双方でline parsingが安定する。
 - 4文字backtick opener + info string + 0〜3 spaceでfalse-passしない。
 - openerより短い3文字backtick行をcloserと誤認しない。
 - non-whitespace suffixを持つ4文字backtick行をcloserと誤認しない。
@@ -770,9 +832,9 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 `exploratory-qa`:
 
 - Normal-mode `qaFindingsSchema.safeParse` success。
-- valid COV-001 Coverage relationが `assertCoverageIntegrity` を通る。
+- successful parse後の `parsed.data.coverage` が `assertCoverageIntegrity` を通る。
 - `run_id` omission failure / Zod path。
-- COV-001 SSOTに対するCOV-999 item mismatchが `coverage.items does not match the Coverage SSOT` で拒否される。
+- parsed valid Coverageを基準にしたCOV-999 item mismatchが `coverage.items does not match the Coverage SSOT` で拒否される。
 - existing validator direct reuse。
 
 確認しないもの:
@@ -844,6 +906,8 @@ new evals/output fixture files
 対策:
 
 - required H2 presenceだけを見る。
+- LF / CRLFだけをline splitで吸収する。
+- required H2はcolumn 1の `## ` だけを見る。
 - line-by-line fence stateだけを持つ。
 - opener / closer仕様はSection 5の最小境界に固定する。
 - AST / dependency / CommonMark完全互換へ広げない。
@@ -858,12 +922,14 @@ new evals/output fixture files
 - closerはtrailing whitespaceだけを許容する。
 - non-whitespace suffix付きmarker行をcloser扱いしないtestを持つ。
 - backtick / tildeを双方testする。
+- backtick代表caseをCRLFで実行し、行末 `\r` が判定へ混入しないことも同時に確認する。
 
 ### Risk 6: canonical template parser failureでvacuous PASSする
 
 対策:
 
 - required H2が0件ならthrowする。
+- leading-space付き `## ` だけではrequired H2ありと判定しない。
 
 ### Risk 7: Agentic QA Machine Contract全体を再テストする
 
@@ -894,6 +960,7 @@ new evals/output fixture files
 
 - `feature-plan`: canonical template + test内mutation。
 - `exploratory-qa`: Normal-mode minimal object + minimal `required_coverage` source object。
+- valid relation確認には `parsed.data.coverage` を使い、raw input型を合わせるためのcast/helperを追加しない。
 - helper抽出が必要になるなら、まずtest内literalで済まないか確認する。
 
 ### Risk 11: validationがcommit後にno-opになる
@@ -914,16 +981,19 @@ new evals/output fixture files
 5. 既存validatorを直接呼べないか。呼べるなら直接使う。
 6. grader都合の新Output formatを作ろうとしていないか。該当するなら作らない。
 7. `feature-plan` required headingをhard-codeしていないか。
-8. `validatePlanOutput` にfilesystem / CLI責務を入れていないか。
-9. `{ valid, missingHeadings }` よりresultを一般化しようとしていないか。
-10. required H2 0件でPASSできないか。
-11. fence parserをSection 5以上に一般化していないか。
-12. duplicate / order / body / semanticsまで評価していないか。
-13. `exploratory-qa` fixtureをGray-box / Scoredへ広げていないか。
-14. Finding ID / `duplicate_of` cross-reference ruleを新設していないか。
-15. throwing validatorをnormalizeするwrapperを作っていないか。
-16. static fixture / registry / CLI / common normalizerを追加しようとしていないか。
-17. plain `git diff --check` でcommit後の差分確認を済ませようとしていないか。
+8. required H2をcolumn 1以外からも拾おうとしていないか。
+9. LF / CRLF以外の改行対応まで一般化しようとしていないか。
+10. `validatePlanOutput` にfilesystem / CLI責務を入れていないか。
+11. `{ valid, missingHeadings }` よりresultを一般化しようとしていないか。
+12. required H2 0件でPASSできないか。
+13. fence parserをSection 5以上に一般化していないか。
+14. duplicate / order / body / semanticsまで評価していないか。
+15. `exploratory-qa` fixtureをGray-box / Scoredへ広げていないか。
+16. safeParse成功後もraw `input.coverage` をrelation validatorへ渡すためのcast/helperを作ろうとしていないか。
+17. Finding ID / `duplicate_of` cross-reference ruleを新設していないか。
+18. throwing validatorをnormalizeするwrapperを作っていないか。
+19. static fixture / registry / CLI / common normalizerを追加しようとしていないか。
+20. plain `git diff --check` でcommit後の差分確認を済ませようとしていないか。
 
 該当した場合はPlanの最小境界へ戻す。
 
@@ -946,7 +1016,7 @@ tests/contracts/skill-output-eval.test.ts
 
 役割:
 
-- `validate-plan-output.ts`: required H2 extraction + fence handling + `missingHeadings` calculationだけ。
+- `validate-plan-output.ts`: LF / CRLF line split + column-1 required H2 extraction + fence handling + `missingHeadings` calculationだけ。
 - `skill-output-eval.test.ts`: `feature-plan` と `exploratory-qa` のdeterministic behavior testだけ。
 
 これ以上の実装ファイルは、latest `main`のdirect contract driftにより明確に必要になった場合を除き追加しない。
