@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "run_id": "20260906-082419-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [
+    "flaky_or_env_issue"
+  ],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "正本PlanのTask 1〜5、Required local/static validation、最終DoD確認を完了した。Native runtimeは条件不成立のためPlan指定Environment blockを記録した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260906-082419-JST/REPORT.md",
+          "selector": "Definition of Done checkpoint",
+          "summary": "DoD 1〜45の逐項目判定とEnvironment blockを記録する。"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "Expected implementation file setと正本Planのlint-only表記修正に限定し、Product code、Product Formal workflow、explicit no-change Native exercise YAML、dependencyを変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260906-082419-JST/REPORT.md",
+          "selector": "Static / Training Copy / Native environment checkpoint",
+          "summary": "Expected source fileのscope checkがunexpected 0 / missing 0である。"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "warn",
+      "evidence": "Required local/static validationは全件PASSした。Native local runtimeはauthorized device不在でDoctor段階停止し、PR5-specific Training Native runtime execution自体は未確認である。Push後の既存Mobile App CIはNative Staticのbase dependency driftで失敗したが、PR5 diffに依存変更はない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": ".codex/runs/20260906-082419-JST/REPORT.md",
+          "selector": "Web validation checkpoint / Static checkpoint",
+          "summary": "TypeScript、Web 4 command、curriculum、contract、format、markdown、diffの結果を記録する。"
+        },
+        {
+          "kind": "log_event",
+          "path": ".artifacts/native-local/20260906-0915-native-doctor/doctor.log",
+          "selector": "first failure",
+          "summary": "Native Doctorのauthorized device不在を記録する。"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "削除、rename、force push、mainへのGit mutation、credential操作、Native後続工程の無理な実行を行っていない。"
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "正本Plan全文、RunのJST checkpoint、repair iteration、validation結果、Environment block、最終diff、DoD逐項目判定を保存する。"
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "Nativeの既存実行処理だけを3値設定のbounded shared runnerへ移し、mode、generic CLI、plugin、class hierarchy、state machine、screenshot taxonomyを追加していない。"
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "exact package command、既存Training config、workflow path/output、same runId運用、validator / contract ownership、再開条件を固定し、lockfileや依存を変更していない。"
+    }
+  },
+  "findings": [
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "Native Doctorが`No authorized device`で終了し、`adb devices -l`が空だった。Node / pnpm / Java / SDK / Maestroの固定Versionは確認できた。",
+      "evidence_refs": [
+        {
+          "kind": "log_event",
+          "path": ".artifacts/native-local/20260906-0915-native-doctor/environment-preflight.log",
+          "selector": "ADB / Emulator/KVM",
+          "summary": "device不在、emulator command unavailable、local physical routeのKVM非該当を記録する。"
+        }
+      ],
+      "detail": "Planが許容するEnvironment blockであり、source defectとは分類しない。authorized physical deviceまたはPR5のactive GitHub Training Native workflowが利用可能になった場合にDoctor / workflowから再開する。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "Push後のMobile App CI run 34001216613でNative StaticのExpo Doctorがexpected `57.0.20` / `57.0.17` / `57.0.19`に対しfound `57.0.19` / `57.0.16` / `57.0.18`でFAILした。`native-ci / verify`はSTATIC_RESULT=failureを受けた派生FAILである。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/34001216613/job/101400323937",
+          "selector": "Native Static / Run Expo Doctor",
+          "summary": "既存Native StaticのExpo Doctor依存version mismatchを確認する。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/34001216613/job/101403669051",
+          "selector": "native-ci / verify",
+          "summary": "Native Static failureを受けた派生gate failureを確認する。"
+        }
+      ],
+      "detail": "`origin/main`にはExpo SDK推奨依存同期（#125）がある一方、PR5のpackage.json変更はTraining script追加だけでpnpm-lock.yamlも変更していない。Planのdependency変更禁止とProduct Formal workflow分離に従い、PR5では修正せず別Follow-upへ分離する。"
+    }
+  ],
+  "improvement_candidates": []
+}
