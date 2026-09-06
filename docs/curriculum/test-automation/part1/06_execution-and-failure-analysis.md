@@ -37,7 +37,9 @@ pnpm run test:e2e:cross-role
 
 これらは**既存Suiteの構成を理解するためのFormal比較教材**です。
 
-Part 1で受講者自身が作成したTraining用specは、`PLAYWRIGHT_BASE_URL`をTraining Runtimeへ向け、`pnpm run training:web:baseline`または対象specをTraining Configで実行します。Formal ScriptがTraining specを自動的に実行することはありません。
+Part 1で受講者自身が作成したTraining用specは、`PLAYWRIGHT_BASE_URL`をTraining Runtimeへ向け、Desktopでは `pnpm run training:web:exercise`で実行します。Formal ScriptがTraining specを自動的に実行することはありません。
+
+意図的なexpected-failureの確認は `pnpm run training:web:check-expected-failure`を使います。
 
 ## Lesson 1: テストを目的別に実行する
 

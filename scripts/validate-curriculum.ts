@@ -367,12 +367,16 @@ function validateTrainingAssets(rootDir: string): string[] {
     "training/playwright/failure-exercises",
     "training/maestro/baseline",
     "training/maestro/exercises",
+    "training/maestro/exercises/native-training-exercise.yaml",
     "training/maestro/failure-exercises",
     "training/github-actions/training-ci.yml",
     "training/github-actions/training-native-ci.yml",
     "scripts/training/prepare-training-copy.ts",
     "scripts/training/validate-training-copy.ts",
     "scripts/training/workflow-contract.ts",
+    "scripts/training/maestro-runner.ts",
+    "scripts/training/run-maestro-baseline.ts",
+    "scripts/training/run-maestro-exercise.ts",
     "scripts/training/maestro-invocation.ts",
     "scripts/training/serial-resolution.ts",
     "scripts/native/windows/android-local.ps1",
@@ -401,15 +405,48 @@ function validateTrainingAssets(rootDir: string): string[] {
   ])
     assertContains(windowsAndroidHelper, required, "Windows Android physical helper");
 
-  const maestroRunner = read(rootDir, "scripts/training/run-maestro-baseline.ts");
+  const maestroRunner = read(rootDir, "scripts/training/maestro-runner.ts");
   for (const required of [
     "TRAINING_MAESTRO_OUTPUT_DIR",
-    "native-training-baseline.yaml",
-    "300_000",
-    "import { buildMaestroInvocation }",
-    "main();",
+    "resolveTrainingAndroidSerial",
+    "buildMaestroInvocation",
+    "spawnSync",
+    "timeout: 300_000",
+    "result.error",
+    "result.status",
+    "throw new Error",
+    "export async function runMaestro",
   ])
-    assertContains(maestroRunner, required, "Training Maestro runner");
+    assertContains(maestroRunner, required, "Training Maestro shared runner");
+
+  const nativeEntries = [
+    [
+      "scripts/training/run-maestro-baseline.ts",
+      [
+        'flowPath: "training/maestro/baseline/native-training-baseline.yaml"',
+        'junitFileName: "training-native-baseline.xml"',
+        'defaultOutputDirectory: "output/training/maestro"',
+        "runMaestro({",
+        "process.exitCode = 1",
+      ],
+    ],
+    [
+      "scripts/training/run-maestro-exercise.ts",
+      [
+        'flowPath: "training/maestro/exercises/native-training-exercise.yaml"',
+        'junitFileName: "training-native-exercise.xml"',
+        'defaultOutputDirectory: "output/training/maestro/exercise"',
+        "runMaestro({",
+        "process.exitCode = 1",
+      ],
+    ],
+  ] as const;
+  for (const [entryPath, required] of nativeEntries) {
+    const entry = read(rootDir, entryPath);
+    for (const token of required)
+      assertContains(entry, token, `Training Maestro entry ${entryPath}`);
+  }
+
   const maestroInvocation = read(rootDir, "scripts/training/maestro-invocation.ts");
   for (const required of ['"--device"', "--test-output-dir="])
     assertContains(maestroInvocation, required, "Training Maestro invocation");
@@ -517,15 +554,34 @@ export function validateCurriculum(rootDir = process.cwd()): CurriculumSummary {
       "training:web:mobile:exercise must run training/playwright/exercises with training-mobile-chromium",
     );
   }
+  const desktopExerciseScript = scripts["training:web:exercise"];
+  if (
+    desktopExerciseScript !==
+    "playwright test training/playwright/exercises --config=playwright.training.config.ts --project=training-chromium"
+  ) {
+    fail(
+      "training:web:exercise must run training/playwright/exercises with training-chromium and playwright.training.config.ts",
+    );
+  }
+  const nativeBaselineScript = scripts["training:native:baseline"];
+  if (nativeBaselineScript !== "tsx scripts/training/run-maestro-baseline.ts") {
+    fail("training:native:baseline must use run-maestro-baseline.ts");
+  }
+  const nativeExerciseScript = scripts["training:native:exercise"];
+  if (nativeExerciseScript !== "tsx scripts/training/run-maestro-exercise.ts") {
+    fail("training:native:exercise must use run-maestro-exercise.ts");
+  }
   for (const scriptName of [
     "validate:curriculum",
     "typecheck:training",
     "training:web:baseline",
+    "training:web:exercise",
     "training:web:mobile",
     "training:web:mobile:exercise",
     "training:web:expected-failure",
     "training:web:check-expected-failure",
     "training:native:baseline",
+    "training:native:exercise",
     "training:copy:prepare",
     "training:copy:validate",
   ]) {
