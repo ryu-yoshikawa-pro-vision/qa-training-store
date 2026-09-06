@@ -26,7 +26,7 @@ import {
   type SkillName,
 } from "./skill-trigger-evals.js";
 
-const CASE_TIMEOUT_MS = 120_000;
+const CASE_TIMEOUT_MS = 327_000;
 const CODEX_COMMAND = process.platform === "win32" ? "codex.cmd" : "codex";
 const CODEX_SHELL = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : false;
 const HOOK_DIRECTORIES = [

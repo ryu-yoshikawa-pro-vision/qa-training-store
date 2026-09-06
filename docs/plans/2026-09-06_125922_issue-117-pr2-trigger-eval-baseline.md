@@ -875,7 +875,11 @@ codex exec --json --ephemeral --sandbox read-only -C <target-root> -
 - network overrideなし。
 - case間でTargetを変更しない。
 - live eval中は同じTargetを他Codex process/sessionと共有しない。
-- timeoutは120000ms。
+- timeoutは327000ms（327秒）に固定する。
+- timeout前提の再検証では、同じrunner launch shape（Windows `codex.cmd` + `cmd.exe`、read-only、ephemeral、独立Target）で指定positive controlを1回実測した。spawnからfirst stdout JSONまでは約1.441秒、first Skill-related readは約39.933秒、`turn.started`は約1.471秒、`turn.completed`は約261.523秒、process exitは約262.101秒、closeは約262.104秒だった。前回の120000msではこの通常executionを途中切断するため、120秒を変更する。
+- selected timeoutは、このterminal duration 261.523秒に対して`max(60秒, 25%) = 65.381秒`のmarginを加え、秒単位へ切り上げた327秒（327000ms）とする。327秒はこの実測値より65.477秒（約25.0%）後ろにあり、outer diagnostic safety limitとは別の固定Evaluator timeoutである。
+- timeoutはrouting性能指標ではなく、finite hangを検出するためのEvaluator運用値である。timeout、abnormal termination、trusted terminal欠落時は引き続き`unobservable`、`observed_skills = null`とする。
+- timeout発生時のcase retry、unobservable-only retry、結果が良くなるまでの再実行は禁止する。run全体のEvaluator/environment defectが判明した場合だけ、Planの無効化手順に従う。
 - `codex --version`はlive run開始時に1回。失敗ならrun開始せずexit 1。
 - modelを確実に観測できなければ `unreported`。
 
