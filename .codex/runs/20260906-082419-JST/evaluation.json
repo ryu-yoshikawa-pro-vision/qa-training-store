@@ -33,7 +33,7 @@
     },
     "validation_confidence": {
       "rating": "warn",
-      "evidence": "Required local/static validationは全件PASSした。一方、Native local runtimeはauthorized device不在でDoctor段階停止し、runtime execution自体は未確認である。",
+      "evidence": "Required local/static validationは全件PASSした。Native local runtimeはauthorized device不在でDoctor段階停止し、PR5-specific Training Native runtime execution自体は未確認である。Push後の既存Mobile App CIはNative Staticのbase dependency driftで失敗したが、PR5 diffに依存変更はない。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -79,7 +79,27 @@
           "summary": "device不在、emulator command unavailable、local physical routeのKVM非該当を記録する。"
         }
       ],
-      "detail": "Planが許容するEnvironment blockであり、source defectとは分類しない。authorized physical deviceまたはGitHub-hosted emulatorが利用可能になった場合にDoctorから再開する。"
+      "detail": "Planが許容するEnvironment blockであり、source defectとは分類しない。authorized physical deviceまたはPR5のactive GitHub Training Native workflowが利用可能になった場合にDoctor / workflowから再開する。"
+    },
+    {
+      "category": "flaky_or_env_issue",
+      "severity": "low",
+      "evidence": "Push後のMobile App CI run 34001216613でNative StaticのExpo Doctorがexpected `57.0.20` / `57.0.17` / `57.0.19`に対しfound `57.0.19` / `57.0.16` / `57.0.18`でFAILした。`native-ci / verify`はSTATIC_RESULT=failureを受けた派生FAILである。",
+      "evidence_refs": [
+        {
+          "kind": "evaluation_note",
+          "path": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/34001216613/job/101400323937",
+          "selector": "Native Static / Run Expo Doctor",
+          "summary": "既存Native StaticのExpo Doctor依存version mismatchを確認する。"
+        },
+        {
+          "kind": "evaluation_note",
+          "path": "https://github.com/ryu-yoshikawa-pro-vision/qa-training-store/actions/runs/34001216613/job/101403669051",
+          "selector": "native-ci / verify",
+          "summary": "Native Static failureを受けた派生gate failureを確認する。"
+        }
+      ],
+      "detail": "`origin/main`にはExpo SDK推奨依存同期（#125）がある一方、PR5のpackage.json変更はTraining script追加だけでpnpm-lock.yamlも変更していない。Planのdependency変更禁止とProduct Formal workflow分離に従い、PR5では修正せず別Follow-upへ分離する。"
     }
   ],
   "improvement_candidates": []

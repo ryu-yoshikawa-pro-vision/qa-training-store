@@ -15,13 +15,13 @@
 - [x] 11. Workflow static / Training Copy validationとmanual learner criteriaを確認する
 - [x] 12. Native runtime preflightを行い、条件を満たせばruntime validation、不可ならEnvironment blockを記録する
 - [x] 13. Final diff / DoD 1〜45 / scope / dependency / no-change assetを確認する
-- [ ] 14. Run ArtifactをSanitizeし、commit前branch safetyを確認する
-- [ ] 15. PR5実装をcommitし、対象branchへnon-force pushする
-- [ ] 16. push後head、PR #124本文、CI / checksを確認してRunを完了する
+- [x] 14. Run ArtifactをSanitizeし、commit前branch safetyを確認する
+- [x] 15. PR5実装をcommitし、対象branchへnon-force pushする
+- [x] 16. push後head、PR #124本文、CI / checksを確認してRunを完了する
 
 ## Discovered
 
-- なし
+- Mobile App CIのNative Staticは、PR5差分に含まれないExpo SDK依存同期のbase driftで失敗した。`native-ci / verify`はその派生FAILであり、Planの依存変更禁止に従い別Follow-upへ分離した。
 
 ## Blocked
 

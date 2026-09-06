@@ -167,3 +167,23 @@
   45. DONE — Native runtime未実施理由と再開条件をEnvironment blockへ明示。
 - Blocker / Remaining: source blockerなし。commit前Sanitize、branch safety、commit / push、push後PR / CI確認が残る。
 - Progress: 81% (13/16)
+
+## 2026-09-06 09:56 (JST) — Post-push CI / PR checkpoint
+
+- Summary: commit / push後のPR head、PR本文、GitHub Actionsを確認した。Web CIは全ジョブPASSし、Mobile App CIはNative Staticの既存依存同期差分でworkflow全体FAILとなった。
+- Git / PR: current branchは`docs/pr5-training-evidence-plan`、headは`056bfbc5e43d949088f45bd2c177c995cf605dc5`、PR #124はOPEN、本文は実装状態へ更新済み、mergeは未実施。`git status --short`はclean。
+- GitHub validation: Web CI run `34001216536`はPASS。Mobile App CI run `34001216613`は、Android Automation Build、Android Production-validation Build、Android Runtime / Maestro、iOS Automation Build、iOS Production-validation Build、iOS Native CI Verify、Production Bundle GuardはPASSした。一方、Native StaticはExpo Doctorで`expo` / `expo-build-properties` / `expo-router`のexpected `57.0.20` / `57.0.17` / `57.0.19`に対しfound `57.0.19` / `57.0.16` / `57.0.18`となりFAILし、`native-ci / verify`はその`STATIC_RESULT=failure`を受けた派生FAILとなった。
+- Causality / scope: current PR5 diffの`package.json`変更はTraining script 2件のみで、`pnpm-lock.yaml`と依存versionを変更していない。`origin/main`にはExpo SDK推奨依存同期（#125）が存在するため、上記Static failureはPR5実装のsource defectではなくbase drift / existing dependency contractとして分類する。Planのdependency変更禁止、Product Formal workflow変更禁止に従い修正しない。
+- Native runtime boundary: GitHub-hosted emulatorは既存Product Native CIで利用され、既存のAndroid Runtime / MaestroはPASSした。ただしこれはProduct Native CIの既存baseline / Formal経路であり、PR5のTraining Native workflow（Source template `training/github-actions/training-native-ci.yml`、active Training Copy `.github/workflows/training-native-ci.yml`）によるstandalone baseline→exerciseの実行ではない。PR5-specific Native runtimeはlocal Doctorのauthorized device不在Environment blockとして扱い、Training exercise JUnitのruntime確認は未実施のままとする。
+- Blocker / Remaining: PR5 source / local-static blockerなし。別Follow-upとして、main側のExpo SDK依存同期後にNative Staticを再確認する必要がある。Native Training runtimeはauthorized physical Androidまたはactive GitHub Training Native workflowが利用可能になった場合にRunbook順で再開する。
+- Progress: 81% (13/16)
+
+## 2026-09-06 09:59 (JST) — Run completion checkpoint
+
+- Summary: Run ArtifactをSanitize / schema validateし、TASKSを全完了へ更新した。PR5 implementation、Required local/static validation、DoD 1〜45、PR #124 update、non-force push、push後CI確認を完了扱いとする。
+- Validation evidence: `pnpm run typecheck:training`、Web 4 command、`pnpm run validate:curriculum`、`pnpm run test:contracts`、`pnpm run format:check`、`pnpm run lint:markdown`、`git diff --check`は全件PASS。`sanitize-codex-artifacts.ps1 -Write / -Check`はresidual findings 0、evaluation schema validationもPASS。
+- Scope / DoD: Expected implementation file setとPlanのlint-only修正以外の差分なし。Product code / Product Formal workflow / dependency / lockfile / `native-training-exercise.yaml`は無変更。DoD 1〜45は全項目`DONE`、Native runtime未確認は具体的Environment blockでDoD 45を満たす。
+- Git / PR completion: `docs/pr5-training-evidence-plan`へ`056bfbc5e43d949088f45bd2c177c995cf605dc5`をnon-force push済み。PR #124はOPEN、本文は実装状態へ更新済み、mergeは未実施。後続のRun Artifact更新は別の通常commitとして同branchへ反映する。
+- CI completion: Web CI run `34001216536`は全ジョブPASS。Mobile App CI run `34001216613`はAndroid / iOS build、Android Runtime / Maestro、各verifyがPASSし、Native Staticと派生`native-ci / verify`のみ、origin/mainのExpo SDK依存同期との差分でFAILした。これはPR5のsource defectではなくPlan外のbase driftとして別Follow-upへ分離した。
+- Remaining: Native local / PR5-specific Training Native runtimeはEnvironment block。Mobile App CI Native Staticの依存同期差分は別Follow-up。PR5実装上の未完了項目なし。
+- Progress: 100% (16/16)
