@@ -9,7 +9,7 @@ import {
   statSync,
   writeFileSync,
 } from "node:fs";
-import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { execFileSync, spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import {
@@ -28,6 +28,7 @@ import {
 
 const CASE_TIMEOUT_MS = 120_000;
 const CODEX_COMMAND = process.platform === "win32" ? "codex.cmd" : "codex";
+const CODEX_SHELL = process.platform === "win32" ? (process.env.ComSpec ?? "cmd.exe") : false;
 const HOOK_DIRECTORIES = [
   [".codex", "logs"],
   [".artifacts", "codex-hooks"],
@@ -319,7 +320,7 @@ function getCodexVersion(evaluatorRoot: string): string {
   const result = spawnSync(CODEX_COMMAND, ["--version"], {
     cwd: evaluatorRoot,
     encoding: "utf8",
-    shell: process.platform === "win32",
+    shell: CODEX_SHELL,
     stdio: ["ignore", "pipe", "pipe"],
     windowsHide: true,
   });
@@ -513,6 +514,19 @@ function parseCodexStdout(stdout: string): {
   return terminal ? { trusted_terminal: terminal } : { trusted_terminal: null };
 }
 
+function terminateCodexProcessTree(child: ChildProcess): void {
+  if (process.platform === "win32" && child.pid !== undefined) {
+    const result = spawnSync("taskkill", ["/pid", String(child.pid), "/t", "/f"], {
+      stdio: "ignore",
+      windowsHide: true,
+    });
+    if (!result.error && result.status === 0) {
+      return;
+    }
+  }
+  child.kill();
+}
+
 function executeCodex(
   evaluatorRoot: string,
   targetRoot: string,
@@ -524,7 +538,7 @@ function executeCodex(
       ["exec", "--json", "--ephemeral", "--sandbox", "read-only", "-C", targetRoot, "-"],
       {
         cwd: evaluatorRoot,
-        shell: process.platform === "win32",
+        shell: CODEX_SHELL,
         stdio: ["pipe", "pipe", "pipe"],
         windowsHide: true,
       },
@@ -545,7 +559,7 @@ function executeCodex(
     });
     const timer = setTimeout(() => {
       timedOut = true;
-      child.kill();
+      terminateCodexProcessTree(child);
     }, CASE_TIMEOUT_MS);
     child.on("close", (code, signal) => {
       if (settled) {
