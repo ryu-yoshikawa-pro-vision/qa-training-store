@@ -73,6 +73,7 @@ Phase 6そのもののDoDはMaster Plan §19 / §21を正本とする。
 - intentional platform duplicationをDRY目的だけで統合する。
 - Issue #72をEvidenceの第三SSOTにする。
 - Phase 6中に新規runtime failure / production incidentを能動監視する仕組みを追加する。
+- candidateごとのEvidence file、candidateごとのRun、別のRefactoring台帳を追加する。
 
 ## 3. Candidate inventory
 
@@ -173,6 +174,30 @@ Master Planで求めるEvidence categoryは各candidateで確認するが、cand
 
 `N/A`は「未確認」の代替ではない。該当しない理由を1行で示す。
 
+### 4.6 Pass 1はcandidate単位の1ループで実施する
+
+Task 2〜5は全candidateを工程別に4周しない。
+
+1 candidateごとに、Task 2のEvidence Card作成 → Task 3のhistory確認 → Task 4のconsumer / protection / boundary確認 → Task 5の状態判定までを連続して完了してから、次candidateへ進む。
+
+```text
+§4.1 → Card / history / boundary / status
+§4.2 → Card / history / boundary / status
+...
+§4.16 → Card / history / boundary / status
+```
+
+これによりcandidateごとの文脈を保持し、同じsourceやEvidenceの再読を減らす。
+
+### 4.7 Evidence Cardは論理的な調査単位であり、別成果物にしない
+
+Evidence Cardはcandidateごとの調査項目を揃えるための作業形式であり、`evidence/4.1.md`のようなcandidate別fileを追加しない。
+
+- Phase 6全体で1つのactive Runを使用する。
+- working noteが必要ならそのRun内で扱う。
+- durableな結論は最終reportの各§4.x sectionへ直接集約する。
+- candidate別Run、candidate別Evidence file、別台帳は作らない。
+
 ## 5. 実行タスク
 
 ### Task 1 — latest main同期 / investigation baseline固定
@@ -217,6 +242,8 @@ Pass 1 status: classified | deep-dive-needed
 Evidence categoryが非該当なら`N/A — <理由>`を記載する。
 
 Pass 1では「最終classificationを判断できるだけの最低限」を集める。詳細設計や完全dependency mappingへ進まない。
+
+Task 2〜5は§4.6のとおりcandidate単位で連続実行する。
 
 ### Task 3 — Pass 1: targeted history確認
 
@@ -276,13 +303,16 @@ Pass 1でclassificationできるcandidateは、次の判断順序を使用する
    関連変更と同時に直す方が合理的か？
    Yes → refactor_when_touched
 
-3. Current構造を維持する合理的理由があるか、
-   またはCurrent Evidenceで改善benefitを説明できないか？
+3. Current構造を維持する積極的な合理性があり、
+   十分なEvidenceに基づきRefactor benefitより
+   abstraction / migration / coordination costが大きいか、または同等以下か？
    Yes → keep_as_is
 
 4. 上記を十分なEvidenceで確定できない
    → deep-dive-needed
 ```
+
+単に「Refactor benefitをまだ説明できない」だけでは`keep_as_is`にしない。その理由がEvidence不足なら`deep-dive-needed`へ進む。
 
 補足:
 
@@ -476,7 +506,7 @@ Task 11〜12完了後、Phase 6のdecision-only成果物をGitHubへ提出する
 
 このTaskではPRをmergeしない。
 
-### Task 14 — ユーザー承認後のmerge finalization / freshness check
+### Task 14 — ユーザー承認後のmerge finalization / freshness / latest-head確認
 
 ユーザーからPhase 6 PRのmergeを明示承認された場合だけ実行する。
 
@@ -486,7 +516,14 @@ Task 11〜12完了後、Phase 6のdecision-only成果物をGitHubへ提出する
 4. relevant path変更あり / Repository material change → latest `main`を通常mergeで取り込み、影響candidateだけ再評価する。
 5. reportを必要最小限更新し、Task 12のRequired validationを再実行する。
 6. 必要なcommit / non-force pushを行う。
-7. PRがmerge-readyであることを確認し、ユーザーの明示承認範囲内でmergeする。
+7. **この時点の最新PR head SHAを確定する。**
+8. 最新head SHAに対するrequired GitHub checks / workflowsが完了し、PASSしていることを確認する。古いheadのCI結果を代用しない。
+9. unresolved review threadまたは新しいreview findingが残っていないことを確認する。
+10. PRがmergeable / merge-readyであることを確認する。
+11. CI failure、新しいreview finding、merge conflictがある場合はmergeせず、必要最小限のbounded repairを行った後、最新headでTask 12および本Taskの確認をやり直す。
+12. すべて満たした場合だけ、ユーザーの明示承認範囲内でmergeする。
+
+CI結果を記録するためだけにRun Artifactを再更新・再commitしない。finalizationでsource / report修正が発生した場合だけ通常のRun更新ルールに従う。
 
 全16件の全面再Auditは行わない。
 
@@ -521,9 +558,21 @@ Phase 6固有の停止条件だけこのExecution Planへ記載する。Master P
 
 16件すべてを同じ深さで調べない。Pass 1で判断できたcandidateはそこで終了する。
 
+### Candidate context switching
+
+Task 2〜5をcandidate単位の1ループで完了し、同じcandidateを工程ごとに何度も読み直さない。
+
+### Evidence artifact proliferation
+
+Evidence Cardは別file / 別Runにせず、1 Runのworking noteと1 durable reportへ集約する。
+
 ### Premature `needs_more_evidence`
 
 Pass 1でEvidence不足でも直ちに`needs_more_evidence`へ確定しない。`deep-dive-needed`としてboundedなPass 2を一度だけ実施する。
+
+### Weak `keep_as_is`
+
+単にRefactor benefitを説明できないだけで`keep_as_is`にしない。十分なEvidenceによる維持理由またはcost比較が必要で、Evidence不足ならPass 2へ送る。
 
 ### Defect-history bias
 
@@ -541,6 +590,10 @@ Native / Web、Dexie / SQLite、Formal / Training等のintentional boundaryをDR
 
 diff-first freshness checkでRepository上のrelevant changeだけを再評価する。新規runtime failure等は明示的に判明した場合だけ反映し、能動監視しない。
 
+### Stale CI / review state
+
+merge前は最新PR head SHAのchecks / review状態を確認し、古いheadのPASSや解消済み前提を流用しない。
+
 ### Git history rewrite
 
 latest `main`同期やfinalizationでrebase / force pushを使わない。通常merge + non-force pushで履歴を保つ。
@@ -554,7 +607,7 @@ latest `main`同期やfinalizationでrebase / force pushを使わない。通常
 ### Phase 6実施時
 
 - `docs/reports/{yyyy-mm-dd}_{HHMMSS}_refactoring_necessity_review.md`
-- Repository標準Run Artifact
+- Repository標準Run Artifact（Phase 6全体で1 active Run）
 - Phase 6 decision-only PR
 
 ### 変更しないもの
