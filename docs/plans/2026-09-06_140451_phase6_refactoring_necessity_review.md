@@ -8,6 +8,7 @@
 - Initial Evidence inventory: `docs/reports/2026-08-24_074656_curriculum-test-strategy-refactor-repository-audit.md`
 - Tracking Issue: #72 `track: curriculum / test strategy remediation progress`
 - Planning baseline `main`: `856a14eb448a6ad6bf9722f623cf0d094b7a7d2a`（PR #124 merge commit）
+- Working branch: `docs/phase6-refactoring-necessity-review`
 
 このPlanは、ユーザーの明示的なPlan作成依頼に応じてPhase 6の**実行順序と停止点だけを具体化するExecution Plan**である。
 
@@ -23,7 +24,7 @@ Repository Audit §4.1〜§4.16の16 candidateをCurrent RepositoryのEvidence�
 
 目的は「大きなfileを分割すること」ではなく、**今Refactorする合理性があるcandidateだけを後続実装へ送ること**である。
 
-調査自体を大規模化しない。全16件へminimum Evidence passを行い、その時点でclassificationを合理的に確定できないcandidateだけ追加調査する。
+調査自体を大規模化しない。全16件へminimum Evidence passを行い、Pass 1時点で最終classificationを確定できないcandidateだけ追加調査する。
 
 ### このExecution Planの完了条件
 
@@ -31,11 +32,13 @@ Phase 6実施者が追加の設計判断なしで、次を順番に実行でき�
 
 1. latest `main`へbranchを同期する。
 2. 16 candidateすべてへminimum Evidence passを行う。
-3. 必要なcandidateだけtargeted deep diveする。
-4. Master Planの4分類へ判定する。
+3. Pass 1で判断できないcandidateだけtargeted deep diveする。
+4. Master Planの4分類へ最終判定する。
 5. durable reportを作成する。
-6. PR作成前 / merge直前にdiff-first freshness checkを行う。
+6. PR作成前にdiff-first freshness checkを行う。
 7. decision-only scopeと必要なMarkdown validationを確認する。
+8. Plan / report / Run Artifactをcommit・pushし、decision-only PRをOPENで作成して停止する。
+9. ユーザーの明示承認後だけmerge finalizationへ進む。
 
 Phase 6そのもののDoDはMaster Plan §19 / §21を正本とする。
 
@@ -56,6 +59,7 @@ Phase 6そのもののDoDはMaster Plan §19 / §21を正本とする。
 - Run Artifactは、path history / PR / Issueから関連性が特定できた場合のみ参照すればよい。
 - permanent call graph、graph DB、generic dependency scannerなどの新規基盤は不要である。
 - 同じEvidenceが複数candidateを説明する場合は再利用してよい。ただしclassificationはcandidate単位で行う。
+- Evidence categoryがcandidateに意味を持たない場合は、無理に調査せず`N/A — <理由>`を記録してよい。
 
 ### Non-goals
 
@@ -68,6 +72,7 @@ Phase 6そのもののDoDはMaster Plan §19 / §21を正本とする。
 - Product behavior、Normative Specification、Curriculum、Formal Regression Gateを変更する。
 - intentional platform duplicationをDRY目的だけで統合する。
 - Issue #72をEvidenceの第三SSOTにする。
+- Phase 6中に新規runtime failure / production incidentを能動監視する仕組みを追加する。
 
 ## 3. Candidate inventory
 
@@ -114,7 +119,7 @@ Evidenceがないことを証明するためにRepository全体へ探索を広�
 `§4.12 Agentic QA Harness`、`§4.15 Dexie / SQLite adapters`等のarea candidateでは、minimum passとして次だけ確認する。
 
 - public / composition entry point
-- factory / runner /主要 state owner
+- factory / runner / 主要state owner
 - major capability group
 - materialに変更された主要file
 - protecting tests / workflow
@@ -136,9 +141,9 @@ Evidenceがないことを証明するためにRepository全体へ探索を広�
 
 同じGit history、test、workflow、composition rootをcandidateごとに再調査しない。
 
-### 4.4 Material change
+### 4.4 Repository material change
 
-freshnessでcandidate再評価を必要とする`material change`は次のいずれかとする。
+freshnessでcandidate再評価を必要とするRepository上の`material change`は次のいずれかとする。
 
 - responsibilityが変わった
 - public / composition surfaceが変わった
@@ -146,7 +151,6 @@ freshnessでcandidate再評価を必要とする`material change`は次のいず
 - transaction / state / platform boundaryが変わった
 - protecting test / workflowが変わった
 - path / areaがsplit / merge / renameされた
-- new defect / repair / runtime failure Evidenceが発生した
 
 次は原則non-materialとする。
 
@@ -156,16 +160,30 @@ freshnessでcandidate再評価を必要とする`material change`は次のいず
 - Run Artifactだけの追加
 - candidate contract / boundaryに影響しないmechanical change
 
+review中に新しいdefect / repair / runtime failure Evidenceが**明示的に判明した場合**は、そのcandidateのclassification Evidenceとして扱う。ただしPhase 6が能動的に新規障害を監視・探索することはしない。
+
+### 4.5 Evidence categoryの`N/A`
+
+Master Planで求めるEvidence categoryは各candidateで確認するが、candidateの性質上該当しないものは、無理に対応物を探さない。
+
+例:
+
+- CSS candidateにtransaction boundaryが存在しない → `N/A — UI styling candidateでtransaction ownershipなし`
+- CI workflow candidateにapplication state ownershipが存在しない → `N/A — workflow orchestration boundaryを評価`
+
+`N/A`は「未確認」の代替ではない。該当しない理由を1行で示す。
+
 ## 5. 実行タスク
 
 ### Task 1 — latest main同期 / investigation baseline固定
 
 実調査開始時にbranchをlatest `main`相当へする。
 
-1. latest `main` SHAを取得する。
-2. Phase 6 branchがその`main`を含むか確認する。
-3. 含まない場合はlatest `main`をnon-forceで取り込む。
-4. 取り込んだ`main` SHAをinvestigation baselineとしてRun / reportへ記録する。
+1. `git fetch origin main`でlatest `origin/main`を取得する。
+2. `git merge-base --is-ancestor origin/main HEAD`相当でPhase 6 branchがlatest `main`を含むか確認する。
+3. 含まない場合は`origin/main`を通常mergeで取り込む。
+4. rebase / force push / history rewriteは行わない。
+5. 取り込んだ`main` SHAをinvestigation baselineとしてRun / reportへ記録する。
 
 ここではcandidate historyを全面調査しない。rename / split / mergeの確認は各candidateのPass 1で行う。
 
@@ -184,7 +202,7 @@ Transaction / state / platform boundary
 Audit baselineからのmaterial change
 Recent churn / repair / failure summary
 Evidence references
-Classification status
+Pass 1 status: classified | deep-dive-needed
 ```
 
 `Evidence references`には必要に応じて次を記載する。
@@ -196,7 +214,9 @@ Classification status
 - PR / Issue番号
 - relevant Run ID
 
-Pass 1では「classificationできるだけの最低限」を集める。詳細設計や完全dependency mappingへ進まない。
+Evidence categoryが非該当なら`N/A — <理由>`を記載する。
+
+Pass 1では「最終classificationを判断できるだけの最低限」を集める。詳細設計や完全dependency mappingへ進まない。
 
 ### Task 3 — Pass 1: targeted history確認
 
@@ -207,7 +227,7 @@ Pass 1では「classificationできるだけの最低限」を集める。詳細
 - materialな主要commit
 - change reason
 - repeated fix / revert / repairの有無
--同じboundaryの反復修正有無
+- 同じboundaryの反復修正有無
 - historyから直接辿れるrelevant PR / Issue
 - candidate起因と確認できるCI / runtime failure有無
 
@@ -227,28 +247,41 @@ classificationに必要な粒度で次を確認する。
 - protecting test / workflow
 - protectionがbehavior / interface / indirect E2Eのどれか
 
+該当しないcategoryは`N/A — <理由>`としてよい。
+
 actual blast radiusを説明できれば終了する。完全call graphは作らない。
 
-### Task 5 — Pass 1終了時classification判定
+### Task 5 — Pass 1終了時の状態判定
 
-各candidateについてMaster Planの4分類へ判定する。
-
-判定順序は次に固定する。
+Pass 1終了時は、各candidateを次のどちらかにする。
 
 ```text
-1. 判断に必要なEvidenceが不足しているか？
-   Yes → needs_more_evidence
+A. Master Planの4分類のいずれかを、十分なEvidenceとrationaleで確定できる
+   → final classificationを記録し、Pass 2へ進まない
 
-2. Currentな具体的risk / costがあり、
+B. classificationまたはrationaleを十分なEvidenceで確定できない
+   → deep-dive-needed とし、Pass 2へ進む
+```
+
+この時点でEvidence不足を理由に直ちに`needs_more_evidence`へ確定しない。boundedな追加確認で解消可能かをTask 6で一度だけ確認する。
+
+Pass 1でclassificationできるcandidateは、次の判断順序を使用する。
+
+```text
+1. Currentな具体的risk / costがあり、
    今対応するbenefitが延期より明確に大きいか？
    Yes → refactor_now
 
-3. maintainability costはあるが、
+2. maintainability costはあるが、
    関連変更と同時に直す方が合理的か？
    Yes → refactor_when_touched
 
-4. それ以外
-   → keep_as_is
+3. Current構造を維持する合理的理由があるか、
+   またはCurrent Evidenceで改善benefitを説明できないか？
+   Yes → keep_as_is
+
+4. 上記を十分なEvidenceで確定できない
+   → deep-dive-needed
 ```
 
 補足:
@@ -257,14 +290,12 @@ actual blast radiusを説明できれば終了する。完全call graphは作ら
 - 「大きい」「複雑」「きれいになる」は`refactor_now`の理由にならない。
 - `keep_as_is`は単に「問題なし」ではなく、cohesion / transaction / platform / abstraction cost等の維持理由を記載する。
 - `refactor_when_touched`は具体的な再評価triggerを記載する。
-- `needs_more_evidence`は不足EvidenceとEvidence取得条件を記載する。
 
-### Task 6 — Pass 2: 判断不能candidateだけtargeted deep dive
+### Task 6 — Pass 2: `deep-dive-needed`だけtargeted deep dive
 
-Pass 2へ進む条件は次の2つだけとする。
+Pass 2へ進む条件は1つだけとする。
 
-1. Pass 1終了時点でclassificationまたはrationaleを十分なEvidenceで確定できない。
-2. `refactor_now`候補だが「今やる合理性」を裏付けるEvidenceが不足している。
+- Pass 1終了時点でclassificationまたはrationaleを十分なEvidenceで確定できず、`deep-dive-needed`になった。
 
 material changeがある、defectがある、fileが大きい、という事実だけではPass 2へ進まない。
 
@@ -282,17 +313,41 @@ Deep diveは不足論点だけを確認する。
 
 Refactor source design、file split、API migration案はPhase 6では作り込まない。
 
-### Task 7 — Cross-candidate sanity check
+### Task 7 — Pass 2後の最終classification
+
+Pass 2対象candidateをMaster Planの4分類へ最終判定する。
+
+判定順序は次に固定する。
+
+```text
+1. boundedなPass 2後も判断に必要なEvidenceが不足しているか？
+   Yes → needs_more_evidence
+
+2. Currentな具体的risk / costがあり、
+   今対応するbenefitが延期より明確に大きいか？
+   Yes → refactor_now
+
+3. maintainability costはあるが、
+   関連変更と同時に直す方が合理的か？
+   Yes → refactor_when_touched
+
+4. それ以外
+   → keep_as_is
+```
+
+`needs_more_evidence`には、不足EvidenceとEvidence取得条件 / 再判断triggerを必ず記載する。
+
+### Task 8 — Cross-candidate sanity check
 
 16 candidateのclassificationを横断し、次だけ確認する。
 
 - 同じEvidenceに対して不整合な判定になっていないか
--同一platform / transaction / capabilityのintentional boundaryをcandidateごとに矛盾して扱っていないか
+- 同一platform / transaction / capabilityのintentional boundaryをcandidateごとに矛盾して扱っていないか
 - 同じroot causeに見えるという理由だけで一括Refactorにしていないか
 
 classificationを統一するために再調査を全面実施しない。
 
-### Task 8 — RA-C1 / RA-Q1をreportへ集約
+### Task 9 — RA-C1 / RA-Q1をreportへ集約
 
 RA-C1は16 candidateの集約結果として記載する。追加調査は行わない。
 
@@ -300,7 +355,7 @@ RA-Q1は§4.16と同一Evidenceを使用する。§4.16のEvidence Cardに`Relat
 
 RA-Q1用にimport / history / test protectionを二重調査しない。
 
-### Task 9 — Durable report作成
+### Task 10 — Durable report作成
 
 保存先:
 
@@ -353,19 +408,21 @@ raw log dumpは貼らない。
 
 `refactor_now`がある場合、後続候補名と対象boundaryまで記載してよいが、file split / API / migration designまでは決めない。
 
-### Task 10 — Pre-PR freshness check: diff-first
+### Task 11 — Pre-PR freshness check: diff-first
 
 PR作成直前に、investigation baseline `main` SHAとlatest `main` SHAを比較する。
 
 1. changed filenames / diffを確認する。
-2. candidate自身または既知consumer / test / workflowへ接触していない場合はfreshness確認終了。
+2. candidate自身またはPass 1 / Pass 2で確認済みのconsumer / test / workflowへ接触していない場合はfreshness確認終了。
 3. 接触しているpathだけ内容を確認する。
-4. material changeでなければclassification維持。
-5. material changeならlatest `main`をbranchへnon-forceで取り込み、影響candidateだけ再評価する。
+4. Repository material changeでなければclassification維持。
+5. Repository material changeならlatest `main`を通常mergeで取り込み、影響candidateだけ再評価する。
 
 全16件のconsumer / dependencyを最初から再確認しない。
 
-### Task 11 — Decision-only scope / validation確認
+review中に新しいdefect / repair / runtime failure Evidenceが明示的に判明している場合だけ、そのcandidateへ反映する。freshness check自体で新規障害を探索しない。
+
+### Task 12 — Decision-only scope / validation確認
 
 PR差分に次が含まれていないことを確認する。
 
@@ -381,10 +438,18 @@ Required validation:
 ```bash
 pnpm run format:check
 pnpm run lint:markdown
-git diff --check
+git diff --check origin/main...HEAD
 ```
 
+commit前にもworking tree差分へ`git diff --check`を実行してよい。最終的なPR差分確認は`origin/main...HEAD`相当で行う。
+
 Repository標準Run Artifactを作成した場合は、Repository標準のsanitization / collector contractに従う。
+
+Dependency運用:
+
+- dependency updateは禁止する。
+- Validationに必要で`node_modules`がない場合だけ、既存lockfile準拠のinstallを許可する。
+- `package.json` / lockfileを変更しない。
 
 原則実行しない:
 
@@ -393,17 +458,35 @@ Repository標準Run Artifactを作成した場合は、Repository標準のsaniti
 - Product E2E
 - Native runtime
 - build
-- dependency install / update
+- dependency update
 
 Phase 6はdecision-only document changeなので、これらはreportの正しさを直接証明しない。
 
-### Task 12 — Merge直前 freshness check: diff-first
+### Task 13 — Commit / push / decision-only PR作成
 
-review完了後、merge直前に再度latest `main`との差分を見る。
+Task 11〜12完了後、Phase 6のdecision-only成果物をGitHubへ提出する。
 
-- relevant path変更なし → latest `main` SHAをreportへ記録し終了。
-- relevant path変更あり / non-material → 内容確認結果とlatest `main` SHAを記録しclassification維持。
-- relevant path変更あり / material → latest `main`をbranchへ取り込み、影響candidateだけ再評価し、report / validationを必要最小限更新する。
+1. Plan、durable report、Repository標準Run Artifactだけが意図した差分であることを最終確認する。
+2. 必要なRun Artifact sanitizationを完了する。
+3. 意図した差分をcommitする。
+4. current branch `docs/phase6-refactoring-necessity-review`へnon-force pushする。
+5. base `main`、head `docs/phase6-refactoring-necessity-review`でdecision-only PRをOPENで作成する。
+6. PR本文に最低限、調査baseline、16/16 classification完了、classification summary、RA-C1 / RA-Q1、`refactor_now` follow-up有無、validation、decision-only scopeを記載する。
+7. PR作成後はユーザーへ結果を報告して停止する。
+
+このTaskではPRをmergeしない。
+
+### Task 14 — ユーザー承認後のmerge finalization / freshness check
+
+ユーザーからPhase 6 PRのmergeを明示承認された場合だけ実行する。
+
+1. latest `main`との差分をdiff-firstで再確認する。
+2. relevant path変更なし → latest `main` SHAをreportへ記録する。
+3. relevant path変更あり / non-material → 内容確認結果とlatest `main` SHAをreportへ記録しclassification維持する。
+4. relevant path変更あり / Repository material change → latest `main`を通常mergeで取り込み、影響candidateだけ再評価する。
+5. reportを必要最小限更新し、Task 12のRequired validationを再実行する。
+6. 必要なcommit / non-force pushを行う。
+7. PRがmerge-readyであることを確認し、ユーザーの明示承認範囲内でmergeする。
 
 全16件の全面再Auditは行わない。
 
@@ -413,7 +496,7 @@ Phase 6固有の停止条件だけこのExecution Planへ記載する。Master P
 
 対象candidateで次が発生したら推測でclassificationを進めない。
 
-1. bounded Evidenceを確認しても判断できない。
+1. boundedなPass 2後も判断できない。
    - `needs_more_evidence`として不足Evidenceと再判断条件を記載する。
 2. 判断にProduct behavior / Normative Specification変更の是非を先に決める必要がある。
    - Phase 6外として報告する。
@@ -438,6 +521,10 @@ Phase 6固有の停止条件だけこのExecution Planへ記載する。Master P
 
 16件すべてを同じ深さで調べない。Pass 1で判断できたcandidateはそこで終了する。
 
+### Premature `needs_more_evidence`
+
+Pass 1でEvidence不足でも直ちに`needs_more_evidence`へ確定しない。`deep-dive-needed`としてboundedなPass 2を一度だけ実施する。
+
 ### Defect-history bias
 
 過去defectがないことを安全性の証明にしない。Current risk / costも評価する。
@@ -452,7 +539,11 @@ Native / Web、Dexie / SQLite、Formal / Training等のintentional boundaryをDR
 
 ### Stale decision
 
-diff-first freshness checkでRelevant changeだけを再評価する。
+diff-first freshness checkでRepository上のrelevant changeだけを再評価する。新規runtime failure等は明示的に判明した場合だけ反映し、能動監視しない。
+
+### Git history rewrite
+
+latest `main`同期やfinalizationでrebase / force pushを使わない。通常merge + non-force pushで履歴を保つ。
 
 ## 8. 成果物
 
@@ -464,6 +555,7 @@ diff-first freshness checkでRelevant changeだけを再評価する。
 
 - `docs/reports/{yyyy-mm-dd}_{HHMMSS}_refactoring_necessity_review.md`
 - Repository標準Run Artifact
+- Phase 6 decision-only PR
 
 ### 変更しないもの
 
