@@ -71,7 +71,7 @@ PR4で重要なのは、6 Skillすべてへ grader を作ることではない�
 - [ ] 新規graderは `feature-plan` の1つだけである。
 - [ ] `exploratory-qa` は既存Machine Contractを直接再利用する。
 - [ ] `feature-plan` でrequired H2 omissionを検出できる。
-- [ ] required H2認識は既存Markdown表現の範囲で0〜3 leading spacesを許容し、grader都合のcolumn-1-only制約を新設しない。
+- [ ] required H2認識は既存Markdown表現の範囲で0〜3 leading spacesとtrailing space / tabを許容し、grader都合のcolumn-1-only制約やtrailing-whitespace禁止を新設しない。
 - [ ] LF / CRLFの双方でline parsingが安定する。
 - [ ] fenced code block内だけにあるrequired H2を存在扱いしない。
 - [ ] backtick / tilde fenceの双方を扱う。
@@ -79,6 +79,7 @@ PR4で重要なのは、6 Skillすべてへ grader を作ることではない�
 - [ ] fence closerは0〜3 space + openerと同じmarker + opener以上の長さ + trailing space/tabのみを扱う。
 - [ ] openerより短い同一marker行をcloserと誤認しない。
 - [ ] non-whitespace suffixを持つmarker行をcloserと誤認しない。
+- [ ] valid closer後のrequired H2を再びfence外として認識できる。
 - [ ] canonical templateからrequired H2を0件しか取得できない場合はvacuous PASSせずconfiguration errorで停止する。
 - [ ] `feature-plan` graderは `{ valid, missingHeadings }` のmachine-readable structured resultを返す。
 - [ ] `exploratory-qa` valid Normal-mode Findings inputが `qaFindingsSchema.safeParse` を通る。
@@ -91,7 +92,8 @@ PR4で重要なのは、6 Skillすべてへ grader を作ることではない�
 - [ ] new static `evals/output/**` fixtureを作っていない。
 - [ ] `package.json` / workflow / dependency / lockfileを変更していない。
 - [ ] Product Code / Product Runtime / `.codex/agents/**` を変更していない。
-- [ ] targeted test、`pnpm run verify`、`git diff --check main...HEAD` が通る。
+- [ ] targeted test、`pnpm run verify` が通る。
+- [ ] 実装commit後に `git diff --check main...HEAD` が通る。
 
 ---
 
@@ -518,7 +520,9 @@ static fixture fileは作らない。
 
 canonical `plan-template.md` をtest側でreadする。
 
-#### Test A: valid canonical template
+#### Test A: valid canonical template + allowed heading whitespace
+
+まずcanonical templateそのものを評価する。
 
 ```text
 templateMarkdown = canonical template
@@ -531,6 +535,31 @@ outputMarkdown   = canonical template
 valid = true
 missingHeadings = []
 ```
+
+同じTest Aの中で、canonical templateから最初のrequired H2を取得し、Output側のその1行だけを次相当に置換して再評価する。
+
+```text
+<targetHeading>
+↓
+   <targetHeading><TAB>
+```
+
+例えばcanonical先頭H2が `## 0. 依頼概要` なら、Output側だけ次にする。
+
+```text
+   ## 0. 依頼概要	
+```
+
+対象heading文字列自体はcanonical templateから取得し、test用required H2一覧を別hard-codeしない。
+
+期待:
+
+```text
+valid = true
+missingHeadings = []
+```
+
+これにより専用testを増やさず、3 leading spacesとtrailing tabを許容する抽出規則を実証する。
 
 このtestはstructure validityだけを検証する。
 
@@ -547,9 +576,11 @@ canonical templateからrequired H2を1つだけ除去する。
 - `valid: false`
 - `missingHeadings` が除去したheadingだけを含む
 
-#### Test C: fenced-heading false-pass prevention
+#### Test C: fenced-heading false-pass prevention + valid closer recovery
 
-canonical templateからrequired H2を1つ通常位置から除去し、同じheadingをfenced code block内にだけ置く。
+canonical templateの**最初のrequired H2をtarget heading**として取得し、そのH2行を削除して別位置へfenceを追加するのではなく、**元のH2位置をfence blockへin-place置換**する。
+
+最初のrequired H2を使う理由は、valid closerの後ろにcanonicalなrequired H2が複数残るため、正しいcloserでfenceを抜けられていることまで同じtestで観測できるからである。
 
 backtick / tildeの双方をparameterized testで確認する。
 
@@ -560,38 +591,53 @@ backtickケースでは、**4文字backtick opener**を使い、以下を1ケー
 - 0〜3 spaceのindent。
 - openerより短い3文字backtick行はcloserではない。
 - openerと同じ4文字backtickでも、non-whitespace suffixがあればcloserではない。
-- openerと同じ4文字backtick + trailing whitespaceのみの行で初めてcloseする。
+- target headingはvalid closerまでfence内に留まる。
+- openerと同じ4文字backtick + trailing whitespaceのみの行でcloseする。
+- valid closer後に残る後続required H2はfence外として認識される。
 
 概念例:
 
 `````text
+# 計画書テンプレート
+
    ````text
    ```
    ````not-a-closing-fence
-## 6. 検証方法
+## 0. 依頼概要
    ````
+
+## 1. ゴール / 完了条件
+## 2. 現状理解と前提
+...
 `````
 
-実testでは上記各行を `\r\n` で連結する。
+実testではcanonical templateのtarget H2行を上記fence blockへ置換し、全体の行区切りを `\r\n` にする。
 
-上記では、3文字backtick行と ` ````not-a-closing-fence` のどちらもcloser扱いしてはいけないため、required H2は最後の4文字closerまでfence内に留まる。
+この構造では次の誤実装を同じ期待値で検出できる。
 
-tildeケース:
+- 3文字backtick行を誤ってcloser扱いする -> target headingをfence外として数えてfalse-passする。
+- non-whitespace suffix付き4文字markerを誤ってcloser扱いする -> target headingをfence外として数えてfalse-passする。
+- valid closerでもfenceをcloseしない -> 後続required H2までfence内扱いとなり、target以外もmissingになる。
+
+tildeケースも同じくtarget H2位置をin-place置換する。
 
 ````text
 ~~~text
-## 6. 検証方法
+## 0. 依頼概要
 ~~~
+
+## 1. ゴール / 完了条件
+...
 ````
 
-期待:
+期待はbacktick / tildeの双方で**完全に同じ**とする。
 
 ```text
 valid = false
-missingHeadings = [対象heading]
+missingHeadings = [targetHeading]
 ```
 
-fence内headingをrequired sectionとして数えない。
+`missingHeadings` にtarget以外が含まれないことまでassertし、valid closer後の後続H2を認識できていることを保証する。
 
 backtick用 / tilde用のstatic fixture fileは増やさない。
 
@@ -604,9 +650,9 @@ H2を持たない `templateMarkdown` を渡す。
 - `validatePlanOutput` がthrowする。
 - empty required setでPASSしない。
 
-**leading-space H2専用の追加testは作らない。**
+leading / trailing whitespace専用の別testは作らない。
 
-0〜3 leading spaces許容は抽出関数の実装規則として固定し、column-1-only等の独自serialization ruleをテストで新設しない。
+0〜3 leading spaces + trailing space / tab許容はTest Aの既存valid case内へ折り込み、test数を増やさない。
 
 ---
 
@@ -883,13 +929,16 @@ pnpm exec vitest run tests/contracts/skill-output-eval.test.ts --no-file-paralle
 `feature-plan`:
 
 - canonical template valid -> `missingHeadings = []`。
+- Test A内で3 leading spaces + trailing tabのrequired H2もvalid -> `missingHeadings = []`。
 - required H2 omission -> `missingHeadings` に対象heading。
-- required H2抽出は0〜3 leading spacesを許容し、grader都合のcolumn-1-only制約を持たない。
+- required H2抽出は0〜3 leading spacesとtrailing space / tabを許容し、grader都合のcolumn-1-only / trailing-whitespace禁止制約を持たない。
 - LF / CRLFの双方でline parsingが安定する。
+- Test Cはtarget H2位置をfenceへin-place置換する。
 - 4文字backtick opener + info string + 0〜3 spaceでfalse-passしない。
 - openerより短い3文字backtick行をcloserと誤認しない。
 - non-whitespace suffixを持つ4文字backtick行をcloserと誤認しない。
-- tilde fence + info stringでfalse-passしない。
+- valid closer後の後続required H2をfence外として再認識する。
+- tilde fenceでもtarget H2だけがmissingになる。
 - empty required H2 guard。
 
 `exploratory-qa`:
@@ -918,7 +967,16 @@ pnpm run verify
 git diff --check main...HEAD
 ```
 
-`git diff --check main...HEAD` はcommit前後を問わず、branch側の変更全体についてwhitespace errorを確認する正本commandとする。
+実行順序:
+
+1. targeted testを実行する。
+2. `pnpm run verify` を実行する。
+3. source / test変更を実装commitへ含める。
+4. **実装commit後**に `git diff --check main...HEAD` を実行する。
+
+`git diff --check main...HEAD` はmerge baseからcurrent `HEAD`までの**commit済みbranch差分**に対するwhitespace error確認として使う。
+
+commit前のworking-tree変更やuntracked fileまでこのcommandだけで検査できる、とは扱わない。
 
 `pnpm run verify` が `test` を含み、`test` が `test:contracts` を含むため、完了条件として同じcommandを個別に重複実行しない。
 
@@ -984,10 +1042,10 @@ shared test fixture/helper files
 
 - column-1-only制約を作らない。
 - trailing whitespace禁止ruleを作らない。
-- alias / fuzzy matchingはしないが、0〜3 leading spacesは許容する。
+- alias / fuzzy matchingはしないが、0〜3 leading spacesとtrailing space / tabは許容する。
 - canonical section textのpresence以上へ広げない。
 
-### Risk 6: fence内headingでfalse-passする
+### Risk 6: fence内headingでfalse-passする / valid closer後もfence内扱いし続ける
 
 対策:
 
@@ -997,6 +1055,8 @@ shared test fixture/helper files
 - closerはtrailing whitespaceだけを許容する。
 - non-whitespace suffix付きmarker行をcloser扱いしないtestを持つ。
 - backtick / tildeを双方testする。
+- Test Cは最初のrequired H2をfenceへin-place置換し、期待を `missingHeadings = [targetHeading]` に固定する。
+- targetだけがmissingで後続H2がmissingにならないことにより、valid closerでfenceを抜けることも同時に確認する。
 - backtick代表caseをCRLFで実行し、行末 `\r` が判定へ混入しないことも同時に確認する。
 
 ### Risk 7: canonical template parser failureでvacuous PASSする
@@ -1054,12 +1114,14 @@ shared test fixture/helper files
 - valid Coverageは `parsed.data.coverage` を使う。
 - `as unknown as`、new schema、adapter typeを作らない。
 
-### Risk 14: validationがcommit後にno-opになる
+### Risk 14: `git diff --check main...HEAD` の適用範囲を誤解する
 
 対策:
 
-- plain `git diff --check` ではなく `git diff --check main...HEAD` を使う。
-- commit前後に関係なくbranch差分全体を検査する。
+- `git diff --check main...HEAD` は**実装commit後**に使う。
+- merge baseから`HEAD`までのcommit済みbranch差分を検査するcommandとして扱う。
+- commit前working tree / untracked fileの検査まで担うとはみなさない。
+- このためだけに複雑なGit wrapperや追加validatorは作らない。
 
 ### 実装時の判断順序
 
@@ -1072,20 +1134,21 @@ shared test fixture/helper files
 5. 既存validatorを直接呼べないか。呼べるなら直接使う。
 6. grader都合の新Output formatやMarkdown formatting ruleを作ろうとしていないか。
 7. `feature-plan` required headingをhard-codeしていないか。
-8. H2認識を0〜3 leading spaces + canonical text比較以上に一般化または厳格化していないか。
+8. H2認識を0〜3 leading spaces + canonical text比較 + trailing space / tab無視以上に一般化または厳格化していないか。
 9. LF / CRLF以外の改行対応まで一般化しようとしていないか。
 10. `validatePlanOutput` にfilesystem / CLI責務を入れていないか。
 11. `{ valid, missingHeadings }` よりresultを一般化しようとしていないか。
 12. required H2 0件でPASSできないか。
 13. fence parserをSection 5以上に一般化していないか。
-14. duplicate / order / body / semanticsまで評価していないか。
-15. `exploratory-qa` fixtureをGray-box / Scoredへ広げていないか。
-16. Test E / F / Gで同じmutable objectを共有していないか。
-17. safeParse成功後もraw `input.coverage` をrelation validatorへ渡すためのcast/helperを作ろうとしていないか。
-18. Finding ID / `duplicate_of` cross-reference ruleを新設していないか。
-19. throwing validatorをnormalizeするwrapperを作っていないか。
-20. static fixture / registry / CLI / common normalizerを追加しようとしていないか。
-21. plain `git diff --check` でcommit後の差分確認を済ませようとしていないか。
+14. Test Cでinvalid closerだけでなくvalid closer後の後続H2認識まで確認しているか。
+15. duplicate / order / body / semanticsまで評価していないか。
+16. `exploratory-qa` fixtureをGray-box / Scoredへ広げていないか。
+17. Test E / F / Gで同じmutable objectを共有していないか。
+18. safeParse成功後もraw `input.coverage` をrelation validatorへ渡すためのcast/helperを作ろうとしていないか。
+19. Finding ID / `duplicate_of` cross-reference ruleを新設していないか。
+20. throwing validatorをnormalizeするwrapperを作っていないか。
+21. static fixture / registry / CLI / common normalizerを追加しようとしていないか。
+22. `git diff --check main...HEAD` を実装commit前working treeまで検査するcommandとして扱っていないか。
 
 該当した場合はPlanの最小境界へ戻す。
 
