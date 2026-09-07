@@ -548,3 +548,9 @@
 - `03_instructor-reference.md`はenvironment、account / permission、device、Training Copy、Infrastructure / Toolchainのsupport-only assetとし、学習内容・評価・Answer Key・個別判定の正本にしない。再利用可能なcriteria-only review checklistは`docs/reference/curriculum-self-study-review.md`に置く。
 - Native specializationのCommon外Evidenceはlearner-authored Native exercise / CI Diff、対応するExecution / Failure / Artifact / Cost判断へ分離する。AndroidはBuild + Runtime、iOSはBuild-onlyというCurrent保証を維持し、値・Protocol・Workflow topologyは既存SSOT / Referenceへ戻す。
 - `docs/spec/**`、Product behavior、Formal Test Strategy、Training runner / workflow / Artifact contract、PR #115は変更対象外である。
+
+## PR #127 Trigger Eval blocker remediation（2026-09-07）
+
+- Trigger EvalのSkill read selectorは、current Hostで実測したcanonical repository pathの完全形だけを受理する。現在の許可形は、forward slash/unquoted、forward slash/single-quoted、backslash/unquoted、`-LiteralPath` + forward slash/single-quotedの4形である。外部絶対path、別file、path mention、search結果、複合commandはactual Skill readとしない。
+- Trigger Eval queryはrouting boundaryだけでなくexecution contractを満たす必要がある。24 caseは対象・入力・完了条件を明示し、full APK build/install/Maestro、購入フロー全体、repository全体レビュー、未提供のPR／error／Run文脈を要求しないboundedな依頼として監査する。query修正時も`expected_skill`と`boundary`は変更しない。
+- PR #127の旧canonical artifactは、Codex `0.153.4`で`pass=1`、`false_negative=1`、`unobservable=22`、8-side `2/8`のinvalid evidenceであり、新datasetとのcomparison sourceへ昇格しない。dataset fingerprint変更後は旧fingerprintと新fingerprintをprovenanceで分離する。

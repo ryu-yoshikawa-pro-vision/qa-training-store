@@ -425,6 +425,21 @@ function parseHookEvents(raw: string): {
   return { parse_ok: true, events };
 }
 
+export function canonicalSkillForCommand(command: string): SkillName | null {
+  for (const skill of CANONICAL_SKILLS) {
+    const acceptedCommands = [
+      `Get-Content -Raw .agents/skills/${skill}/SKILL.md`,
+      `Get-Content -Raw '.agents/skills/${skill}/SKILL.md'`,
+      `Get-Content -Raw .agents\\skills\\${skill}\\SKILL.md`,
+      `Get-Content -Raw -LiteralPath '.agents/skills/${skill}/SKILL.md'`,
+    ];
+    if (acceptedCommands.includes(command)) {
+      return skill;
+    }
+  }
+  return null;
+}
+
 function canonicalSkillForHookEvent(event: HookEvent): SkillName | null {
   if (event.event !== "PostToolUse" || event.tool_name !== "Bash") {
     return null;
@@ -445,12 +460,7 @@ function canonicalSkillForHookEvent(event: HookEvent): SkillName | null {
   if (typeof command !== "string") {
     return null;
   }
-  for (const skill of CANONICAL_SKILLS) {
-    if (command === `Get-Content -Raw .agents/skills/${skill}/SKILL.md`) {
-      return skill;
-    }
-  }
-  return null;
+  return canonicalSkillForCommand(command);
 }
 
 function selectObservedSkills(events: readonly HookEvent[]): {

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 
+import { canonicalSkillForCommand } from "../../scripts/evals/run-skill-trigger-evals";
 import {
   BOUNDARIES,
   CANONICAL_SKILLS,
@@ -67,6 +68,55 @@ function comparableRun(
 }
 
 describe("Skill Trigger Eval deterministic contract", () => {
+  it("recognizes the current Host forward-slash unquoted Skill read shape", () => {
+    expect(canonicalSkillForCommand("Get-Content -Raw .agents/skills/feature-plan/SKILL.md")).toBe(
+      "feature-plan",
+    );
+  });
+
+  it("recognizes the current Host forward-slash single-quoted Skill read shape", () => {
+    expect(
+      canonicalSkillForCommand("Get-Content -Raw '.agents/skills/feature-plan/SKILL.md'"),
+    ).toBe("feature-plan");
+  });
+
+  it("recognizes the current Host backslash unquoted Skill read shape", () => {
+    expect(
+      canonicalSkillForCommand("Get-Content -Raw .agents\\skills\\feature-plan\\SKILL.md"),
+    ).toBe("feature-plan");
+  });
+
+  it("recognizes the current Host LiteralPath Skill read shape", () => {
+    expect(
+      canonicalSkillForCommand(
+        "Get-Content -Raw -LiteralPath '.agents/skills/feature-plan/SKILL.md'",
+      ),
+    ).toBe("feature-plan");
+  });
+
+  it("does not classify a different Get-Content file as a Skill read", () => {
+    expect(canonicalSkillForCommand("Get-Content -Raw docs/PROJECT_CONTEXT.md")).toBeNull();
+  });
+
+  it("does not classify a path mention as an actual Skill read", () => {
+    expect(
+      canonicalSkillForCommand('Write-Output ".agents/skills/feature-plan/SKILL.md"'),
+    ).toBeNull();
+  });
+
+  it("does not classify a search command as an actual Skill read", () => {
+    expect(canonicalSkillForCommand("rg --files .agents/skills/feature-plan/SKILL.md")).toBeNull();
+  });
+
+  it("keeps a canonical read for another Skill distinct from the expected Skill", () => {
+    expect(canonicalSkillForCommand("Get-Content -Raw .agents/skills/code-review/SKILL.md")).toBe(
+      "code-review",
+    );
+    expect(
+      canonicalSkillForCommand("Get-Content -Raw .agents/skills/code-review/SKILL.md"),
+    ).not.toBe("feature-plan");
+  });
+
   it("loads six Skills and twelve datasets without a fixed 24-case invariant", () => {
     const dataset = loadTriggerDatasets(repositoryRoot);
 
@@ -103,11 +153,7 @@ describe("Skill Trigger Eval deterministic contract", () => {
     const duplicate = modifySource(
       dataset.sources,
       sourcePath("code-review", "validation"),
-      (raw) =>
-        raw.replace(
-          /query: "[^"]+"/u,
-          'query: "  このPull Requestの変更範囲を読み、重大度・根拠・位置を示したレビュー指摘と最終verdictを返してください。  "',
-        ),
+      (raw) => raw.replace(/query: "[^"]+"/u, `query: ${JSON.stringify(positive?.query ?? "")}`),
     );
     expect(() => validateTriggerDatasetSources(duplicate)).toThrow("normalized duplicate");
   });

@@ -1,10 +1,10 @@
 schema_version: 1
 cases:
   - id: feature-plan-train-001
-    query: "複数ファイルにまたがる新機能について、現状理解・非目標・リスク・検証方法を整理した実装計画を作成してください。"
+    query: "このRepositoryのscripts/evals/run-skill-trigger-evals.tsとtests/repository-contract/skill-trigger-evals.test.tsにまたがるHook read shape対応について、現状理解・非目標・リスク・検証方法を含む実装計画を作成してください。"
     expected_skill: feature-plan
     boundary: feature-plan-vs-direct-implementation
   - id: feature-plan-train-002
-    query: "承認済みの実装手順に従って、指定されたファイルだけを編集し、テストを実行して変更を完了してください。"
+    query: "このRepositoryのdocs/spec/features/orders.mdの見出し「## Purpose / Scope」を「## Purpose and Scope」に変更する小さな修正を適用し、pnpm run lint:markdownの結果だけを報告してください。"
     expected_skill: null
     boundary: feature-plan-vs-direct-implementation

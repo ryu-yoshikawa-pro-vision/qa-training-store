@@ -1,10 +1,10 @@
 schema_version: 1
 cases:
   - id: code-review-train-001
-    query: "このPull Requestの変更範囲を読み、重大度・根拠・位置を示したレビュー指摘と最終verdictを返してください。"
+    query: "このRepositoryのscripts/verifyを読み、検証順序・失敗時の終了条件・入力検証について重大度と行位置を示すレビュー指摘と最終verdictを返してください。"
     expected_skill: code-review
     boundary: code-review-vs-repair-loop
   - id: code-review-train-002
-    query: "検証で報告されたTypeScriptエラーの最初の異常を特定し、原因を切り分けて修正と再検証まで進めてください。"
+    query: "このRepositoryのpnpm run lint:markdownがdocs/PROJECT_CONTEXT.mdのリンク切れで失敗した場合、最初の異常を特定し、許可された範囲の最小修正と同じgateの再実行まで進めてください。"
     expected_skill: repair-loop
     boundary: code-review-vs-repair-loop
