@@ -28,7 +28,7 @@
         {
           "kind": "validation_command",
           "path": null,
-          "summary": "git diff --name-only origin/main...HEADで許容6 pathのみを確認"
+          "summary": "git diff --name-only origin/main...HEADで、Execution Plan、durable report、Repository標準Run Artifact以外の差分がないことを確認"
         }
       ]
     },
@@ -78,7 +78,7 @@
     },
     "reproducibility": {
       "rating": "pass",
-      "evidence": "investigation baseline SHA、last confirmed main SHA、targeted Evidence references、validation commands、final PR headを記録した。",
+      "evidence": "investigation baseline、last confirmed main SHA、Evidence references、validation commands、artifact pathsが記録されており、調査判断を追跡可能である。",
       "evidence_refs": [
         {
           "kind": "changed_file",

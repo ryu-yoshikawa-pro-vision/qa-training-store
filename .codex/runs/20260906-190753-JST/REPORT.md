@@ -303,3 +303,15 @@
 - Blocker / Remaining: なし。PR merge、auto-merge、Issue #72 closeは実施しない。
 - Subagents: Delegationなし。Resultなし。Parent decision: Strict evaluation artifactを追加し、Run完了状態を再確認した。
 - Progress: 100% (22/22)
+
+## 2026-09-08 00:32 (JST) — Correction / bounded repair
+
+- Summary: Run Artifact bookkeepingのbounded repairを完了した。Phase 6 classification、durable report、Product / Test / Training / Workflow / dependency / Specification / Curriculumの判断内容は変更していない。
+- Repair loop: Iteration 1。Input findingsは`must_fix`（後発Strict completion workが`Discovered`とProgress denominatorへ未反映、evaluation.jsonのstale Evidenceおよび自己参照的なfinal head記録）。Allowed filesは`.codex/runs/20260906-190753-JST/TASKS.md`、`REPORT.md`、`evaluation.json`の3件とし、`run.json`は直接編集しない。
+- Progress correction: 19:49時点ではTask 1〜22が完了していた。しかしStrict workflowの完了処理としてevaluation作成・schema validation、Run manifest collector、sanitization、PR finalizationが後から必要になった。当時の`100% (22/22)`はその時点で既知だったtaskだけを分母にした値であり、later-discovered strict completion workがdenominatorへ反映されていなかった。今回、`TASKS.md`の`## Discovered`へ23〜25を完了済みtaskとして追加し、最終Progressを`100% (25/25)`へ訂正した。
+- Timestamp correction: 既存candidate checkpointの一部JST timestamp labelはappend orderと非単調であり、記録時刻ラベルに誤りがある。candidateの実行順序はREPORTのappend orderおよびTASKSの順序を正として扱う。既存checkpointはappend-only契約のため変更せず、全checkpointのtimestamp再構築も行わない。
+- Evaluation correction: `scope_control`の固定`6 path` Evidenceを、Execution Plan・durable report・Repository標準Run Artifact以外の差分がないことを確認したというカテゴリ表現へ修正した。`reproducibility`からRepository artifactへfinal PR headを記録する前提を除き、artifact pathsとvalidation等を記録し、PR headはGitHub PR metadataから追跡可能であるという表現へ修正した。他のdimension、`result: pass`、findings、Phase 6判断は維持した。
+- Changes: `TASKS.md`へDiscovered task 23〜25と`Progress: 100% (25/25)`を追加した。`REPORT.md`はこのcorrection checkpoint 1件のみを末尾へ追加した。`evaluation.json`はstale Evidence 2箇所のみを修正した。`run.json`はAgentが編集せず、今回のrepairでcollectorによる更新は発生していない。
+- Validation / remaining delta: schema validation、format check、Markdown lint、git diff check、sanitizationを実行し、PASSおよび`residual_findings: 0`、許可範囲外の差分なしを確認した。残存deltaなしのため`stop_success`とし、追加のrepair iteration、classification再監査、durable report変更は行わない。
+- Subagents: Delegationなし。Resultなし。Parent decision: 3ファイル限定のbookkeeping repairとして完了扱いにする。
+- Progress: 100% (25/25)
