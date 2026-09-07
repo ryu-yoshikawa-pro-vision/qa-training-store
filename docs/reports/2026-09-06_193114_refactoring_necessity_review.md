@@ -340,13 +340,15 @@ RA-Q1用にimport、history、test protectionを二重調査していない。
 
 ## Freshness check
 
-- Freshness procedure: 2026-09-06 JSTにgit fetch origin mainを実行し、investigation baseline SHAとlatest origin/mainをdiff-firstで比較した。
-- Investigation baseline SHA: 856a14eb448a6ad6bf9722f623cf0d094b7a7d2a
-- Latest origin/main SHA: 856a14eb448a6ad6bf9722f623cf0d094b7a7d2a
-- Changed filenames / diff: baselineからlatest origin/mainへの変更なし。
-- Freshness relevant set: 各candidate current path、既知consumer / dependency / reference、principal composition root、protecting test / workflowをEvidence Cardから再利用した。set内の変更はなし。known set外のadded / deleted pathにcandidate public / composition surfaceへのdirect import / referenceが現れる変更もなかった。
-- Re-evaluation: material changeがないため16 classificationを維持した。
-- Last confirmed main SHA: 856a14eb448a6ad6bf9722f623cf0d094b7a7d2a
+- Freshness procedure: 2026-09-08 JSTにgit fetch origin mainを実行し、previous last confirmed mainからlatest origin/mainまでをdiff-firstで比較した。Repository全体の再Audit、全import scan、generic dependency scanは行っていない。
+- Previous last confirmed main SHA: 856a14eb448a6ad6bf9722f623cf0d094b7a7d2a
+- Latest origin/main SHA: d24b23b6a8de95ab281c75cff400081bf3b3d9b2
+- Incremental comparison: `856a14eb448a6ad6bf9722f623cf0d094b7a7d2a...d24b23b6a8de95ab281c75cff400081bf3b3d9b2`。changed surfaceはfeature-plan validator、Issue #117 deterministic output-eval Plan、`tests/contracts/skill-output-eval.test.ts`、および別RunのRun Artifactである。
+- Freshness relevant set: 各candidate current path、既知consumer / dependency / reference、principal composition root、protecting test / workflowを既存Evidenceから再利用した。
+- Known-set外direct reference: `tests/contracts/skill-output-eval.test.ts`は既存の`scripts/agentic-qa/contracts.ts`と`scripts/agentic-qa/coverage.ts`の`qaFindingsSchema` / `assertCoverageIntegrity`を直接importしており、§4.12のprotecting testとしてrelevant。Issue #117 Planにも同じ既存validatorへの文書referenceがある。feature-plan validator自身、別RunのRun Artifact、その他のdocsは§4.12以外のsurfaceでありnon-relevantとした。
+- Materiality: §4.12については既存Agentic QA Harnessのvalidatorを保護するtest追加をprotecting testのmaterial changeとして扱った。ただしcandidate source path、responsibility、public / composition surface、consumer contract、transaction / state / platform boundary、split / merge / renameには変更がない。Planの文書referenceとRun Artifactはnon-material / non-relevantである。
+- Re-evaluation: §4.12だけを既存Evidenceと今回追加されたtest protectionに限定して再評価した。既存のdeterministic supporting harness責務、ADR / contract protection、Current failureなしという根拠は変わらず、classificationは`refactor_when_touched`を維持する。他の15 candidate、RA-C1、RA-Q1のclassificationは変更しない。
+- Last confirmed main SHA: d24b23b6a8de95ab281c75cff400081bf3b3d9b2
 
 ## Scope / non-goals confirmation
 

@@ -30,8 +30,9 @@
 - [x] 23. Strict workflow必須の`evaluation.json`を作成し、evaluation schema validationを完了する
 - [x] 24. Run manifest collectorとRun Artifact sanitizationを再実行し、machine-managed manifestを同期する
 - [x] 25. PR #128本文を実施済み状態へ更新し、最終push後のPR OPEN / head / changed filesを再確認する
+- [x] 26. Task 14のmerge-final incremental freshnessを実施し、latest mainに対するclassification validityを再確認する
 
-Progress: 100% (25/25)
+Progress: 100% (26/26)
 
 ## Blocked
 

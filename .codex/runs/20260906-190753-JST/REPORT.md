@@ -315,3 +315,14 @@
 - Validation / remaining delta: schema validation、format check、Markdown lint、git diff check、sanitizationを実行し、PASSおよび`residual_findings: 0`、許可範囲外の差分なしを確認した。残存deltaなしのため`stop_success`とし、追加のrepair iteration、classification再監査、durable report変更は行わない。
 - Subagents: Delegationなし。Resultなし。Parent decision: 3ファイル限定のbookkeeping repairとして完了扱いにする。
 - Progress: 100% (25/25)
+
+## 2026-09-08 01:16 (JST) — Merge-final incremental freshness
+
+- Summary: Execution Plan Task 14のmerge-final freshnessを、previous last confirmed mainからlatest `origin/main`までのincremental diffに限定して完了した。16 candidateの全面再調査、Repository全体scan、classificationの無理由変更は行っていない。
+- Previous / latest main: previous last confirmed mainは`856a14eb448a6ad6bf9722f623cf0d094b7a7d2a`、latest `origin/main`は`d24b23b6a8de95ab281c75cff400081bf3b3d9b2`。`856a14e...d24b23b`のdiff-first比較後、branchへ`origin/main`を通常mergeし、merge commit `5e1906908487caa9746f6b4fc890406296d63b70`を作成した。
+- Changed files / relevant set: changed surfaceはfeature-plan validator、Issue #117 deterministic output-eval Plan、`tests/contracts/skill-output-eval.test.ts`、および別RunのRun Artifactだった。既存Evidenceからcandidate current path、consumer / dependency / reference、composition root、protecting test / workflowを再利用した。
+- Candidate relevance: `tests/contracts/skill-output-eval.test.ts`が既存の`scripts/agentic-qa/contracts.ts`と`scripts/agentic-qa/coverage.ts`を直接importし、`qaFindingsSchema` / `assertCoverageIntegrity`を保護するため§4.12に限定してrelevantとした。Issue #117 Planの同validatorへの文書referenceも§4.12の補助Evidenceとして確認した。feature-plan validator自身、別RunのRun Artifact、その他の変更はPhase 6 candidate surfaceに対してnon-relevantとした。
+- Materiality / re-evaluation: §4.12のprotecting test追加をfreshness rule上のmaterial changeとして扱ったが、candidate source path、responsibility、public / composition surface、consumer contract、transaction / state / platform boundary、split / merge / renameは不変だった。既存Evidenceと追加されたtest protectionに限定して§4.12を再評価し、deterministic supporting harnessの既存責務・contract protection・Current failureなしという根拠から`refactor_when_touched`を維持した。他の15 candidate、RA-C1、RA-Q1も変更しない。
+- Changes: durable reportの`## Freshness check`をprevious/latest main、changed surface、relevant set、materiality、affected candidate、last confirmed main SHAへ更新した。`TASKS.md`へTask 26を追加し、Progressを`100% (26/26)`へ更新した。REPORTはこのfreshness checkpoint 1件を末尾へ追加した。`run.json`は直接編集していない。
+- Validation / decision: merge後のRequired validation、Run Artifact sanitization、PR差分・latest-head CI・review / mergeability確認を完了し、残存deltaがなければ`stop_success`とする。PR #128はmergeせず、Issue #72もCloseしない。
+- Progress: 100% (26/26)
