@@ -48,3 +48,14 @@
 - Remaining delta: source / testのcommit、commit後`git diff --check main...HEAD`、sanitizer、non-force push、PR本文の最小追記と最終確認が未完了。
 - Decision: continue
 - Progress: 86% (6/7)
+
+## 2026-09-07 21:31 (JST)
+
+- Repair-loop iteration: 1（bounded repair）
+- Summary: fence openerのinfo string境界に関するレビュー指摘への実装修正とValidationを完了した。
+- Changes: `3cc756e`（`fix: handle fence marker prefixes in plan output eval`）に、graderのregex最小修正、既存parameterized Test Cへのbacktick / tilde境界ケース統合、Run Artifactを含める準備をした。正本Planのsemantic内容は変更していない。
+- Validation: 修正前Test Cは8 tests中7 PASS / 1 FAILでfalse-pass経路を検出。修正後targeted testは8 tests PASS、`pnpm run typecheck` PASS、`pnpm run verify` PASS（35 files / 503 tests passed / 3 skipped、build:web / build:spec含む）。commit後`git diff --check main...HEAD`とsanitizerもPASS。
+- Scope: changed source filesは`.agents/skills/feature-plan/scripts/validate-plan-output.ts`と`tests/contracts/skill-output-eval.test.ts`のみ。Product Code、dependency / lockfile、workflow、`.codex/agents/**`、N/A Skill、正本Planは変更していない。
+- Remaining delta: Run Artifactの最終commit、non-force push、remote / PR head、PR本文更新後の最終working tree確認が残っている。
+- Decision: continue
+- Progress: 86% (6/7)
