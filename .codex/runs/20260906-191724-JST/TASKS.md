@@ -16,9 +16,9 @@
 - [x] 12. source scopeを確認し、active baseline Artifactを含めずsource implementationをcommitする
 - [x] 13. `evaluator_git_sha`確定後、latest mainとrouting sourceをbaseline直前に再確認する
 - [x] 14. 同じRouting Targetを確定SHAへcheckoutし、必要ならProbe/validationを再確認する
-- [ ] 15. canonical `all`を1回実行し、validity/provenance/8-side observabilityを確認する
+- [x] 15. canonical `all`を1回実行し、validity/provenance/8-side observabilityを確認する（fresh resultはinvalid）
 - [x] 16. Run Artifactをsanitizationし、final validation/scope diffを確認する
-- [ ] 17. baseline/Run Artifactをsource commitと分離してcommitし、対象branchへpushする
+- [x] 17. baseline/Run Artifactをsource commitと分離してcommitし、対象branchへpushする（invalid evidenceを保存）
 - [x] 18. push後のPR #127、branch、head、scopeを確認してRunを完了する
 
 ## Discovered
@@ -37,8 +37,8 @@
 - [x] 29. 指定validationとmanual Observation Probeを実行する
 - [x] 30. source implementation commitと新しい`evaluator_git_sha`を確定する
 - [x] 31. canonical直前にlatest main/routing sourceを再確認する
-- [ ] 32. canonical `all`を最初から1回実行し、validity/8-side coverageを確認する
-- [ ] 33. baseline/Run Artifactをsanitization、commit、pushしPRを確認する
+- [x] 32. canonical `all`を最初から1回実行し、validity/8-side coverageを確認する（fresh resultはinvalid）
+- [x] 33. baseline/Run Artifactをsanitization、commit、pushしPRを確認する（invalid evidenceを保存）
 - [x] 34. 全case完了前に終了したcanonical sessionをinvalid runとして記録し、部分結果を採用しない
 - [x] 35. canonical attempt4を全24 case完了まで実行し、invalidity/provenance/8-side coverage不足を記録する
 - [x] 36. invalid canonical evidenceとRun Artifactをcommitし、対象branchへpushしてPR状態を確認する
@@ -46,9 +46,9 @@
 - [x] 38. current Hostのselector shape、Codex version、旧invalid artifact provenanceを再確認する
 - [x] 39. selector最小正規化とrepository-contract regression test 7種を実装する
 - [x] 40. 24 queryをself-contained / execution-bounded / single-intent / natural観点で再manual reviewし、欠陥queryだけ修正する
-- [ ] 41. dataset fingerprintを更新し、4 validation・scope・sanitizationを完了する
+- [x] 41. dataset fingerprintを更新し、4 validation・scope・sanitizationを完了する
 - [x] 42. `codex-cli 0.153.4` 固定のmeasurement / positive-negative Observation Probeを完了する
-- [ ] 43. canonical直前条件を再確認し、fresh `all`を24 case sequential/retryなしで1回実行する
+- [x] 43. canonical直前条件を再確認し、fresh `all`を24 case sequential/retryなしで1回実行する
 - [ ] 44. canonical結果判定、Run Artifact、source/evaluator SHA、commit/push、PR本文を確定する
 
 ## Blocked

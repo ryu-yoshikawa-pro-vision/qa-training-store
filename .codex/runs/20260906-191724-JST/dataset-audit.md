@@ -1,7 +1,7 @@
 # Trigger Eval dataset execution audit
 
-監査日: 2026-09-07 JST  
-対象: 12 YAML / 24 case  
+監査日: 2026-09-07 JST
+対象: 12 YAML / 24 case
 目的: routing labelを変えず、query単体で依頼を理解でき、routing以外の長時間実作業を要求せず、single-intentで自然な依頼になっているかを確認する。
 
 ## 判定基準

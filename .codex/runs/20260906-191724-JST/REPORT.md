@@ -270,6 +270,17 @@
 - Subagents: 使用なし。
 - Progress: 82% (36/44)
 
+## 2026-09-08 00:20 (JST)
+
+- Summary: Run manifest collectorをmachine-managed経路で実行し、自己レビューを完了した。fresh canonicalの実行・判定・保存は完了しているが、valid baseline条件は未達のまま保持する。
+- Collection: `powershell -ExecutionPolicy Bypass -File scripts/collect-run-artifacts.ps1 -RunId 20260906-191724-JST -RefreshGitChangedFiles -Strict`を実行し、`run.json`へevaluationの存在と`flaky_or_env_issue`を反映した。`run.json`を直接編集していない。
+- Review: code-review workflowのdiff triage/deep reviewを実施した。selectorは4つの実測command shapeに限定され、path mention/search/別Skillの誤認回帰テストがあり、今回のsource scopeにmust-fix findingはない。残余リスクはHost latencyにより8-side coverageが不足すること、未検証事項はvalid baseline取得である。外部review serviceは起動していない。
+- Sanitization / Validation: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260906-191724-JST -Write -Check` PASS（9 files、0 replacements、residual 0）。`git diff --check` PASS。既存source gatesとevaluation schemaのPASSは前checkpointに記録済み。
+- Decision / Rationale: task 15/17/32/33はcanonicalの実行・判定・invalid evidenceのsanitization/保存・PR確認まで完了したため閉じた。8-side DoD未達は`## Blocked`とevaluationへ残し、valid baseline完了とは扱わない。
+- Remaining: task 44（Run Artifact commit/push、PR本文更新・確認）が未完了。
+- Subagents: 使用なし。
+- Progress: 98% (43/44)
+
 ## 2026-09-07 22:00 (JST)
 
 - Summary: `codex-cli 0.153.4`を固定条件として、canonical前のpositive measurementと同一selectorによるpositive/negative Observation Probeを完了した。canonical `all`はまだ開始していない。
@@ -279,6 +290,28 @@
 - Remaining: active Run Artifactの最終sanitization、canonical直前条件、fresh `all` 1回、結果判定、Artifact commit/push、PR本文更新が未完了。
 - Subagents: 使用なし。
 - Progress: 84% (37/44)
+
+## 2026-09-08 00:12 (JST)
+
+- Summary: clean preflightからfresh canonical `all`を24 caseすべて完了させた。新artifactは生成されたが、8 boundary-side coverage不足のためvalid baselineには採用しない。旧invalid artifactは上書きしていない。
+- Execution: `2026-09-07 22:05:48 JST`に開始し、artifact provenanceの`executed_at=2026-09-08T00:09:17.507+09:00`相当まで、同一Evaluator、Target、`codex-cli 0.153.4`、`CASE_TIMEOUT_MS=327_000`、`split=all`、sequential、retryなしで実行した。background runnerは全24 case終了後にartifactを書き出し、Evaluatorのmissing sides判定でexit 1となった。
+- Result: `pass=2`、`false_negative=2`、`unobservable=20`、observableは`4/24`。unobservable 20件はすべて`unobservable_reason=timeout`。observable caseは`code-review-train-002`（repair-loop期待、observed `[]`、false_negative）、`exploratory-qa-train-002`（android-native-local-validation期待、observed `[]`、false_negative）、`feature-plan-train-002`／`feature-plan-validation-002`（expected `null`、observed `[]`、pass）。
+- Coverage: observable sideは`3/8`。`code-review-vs-repair-loop/repair-loop`、`exploratory-qa-vs-android-native-local-validation/android-native-local-validation`、`feature-plan-vs-direct-implementation/null`だけが観測され、`code-review-vs-repair-loop/code-review`、`exploratory-qa-vs-android-native-local-validation/exploratory-qa`、`feature-plan-vs-direct-implementation/feature-plan`、`repair-loop-vs-harness-improvement/repair-loop`、`repair-loop-vs-harness-improvement/harness-improvement`が欠落した。
+- Provenance: fresh artifact `.codex/runs/20260906-191724-JST/trigger-eval-baseline-remediation.json`は`evaluator_git_sha=918b23f4db1e89d2b0702efa9532a66a6434fdba`、`routing_source_git_sha=856a14eb448a6ad6bf9722f623cf0d094b7a7d2a`、dataset fingerprint=`84456cef0270fe58a41a9df3bcb3a00a33c52566189072c16050ed02d3f66161`、Codex=`codex-cli 0.153.4`、artifact SHA256=`DE39B26E449705A7121CC3D99A18BD9ACF6BE7A7EE8842E20FB3A2703AF8DF60`を記録した。旧artifactは旧evaluator/fingerprintと`pass=1`/`false_negative=1`/`unobservable=22`のまま保持する。
+- Decision / Rationale: selector driftとdataset execution confounderの修正後も、同一version条件で全24 caseを完了できることは確認したが、8-side DoDは未達である。新artifactはinvalid evidenceとして保存し、timeout変更、case retry、query再修正、Skill description変更、部分結果のvalid baseline昇格は行わない。
+- Remaining: 最終Run Artifact sanitization、evaluation更新、self-review、Run Artifact commit/push、PR本文をfresh factsへ更新することが未完了。
+- Subagents: 使用なし。
+- Progress: 86% (38/44)
+
+## 2026-09-08 00:14 (JST)
+
+- Summary: fresh canonical結果のevaluationをschema準拠へ更新し、最終sanitizationを完了した。旧invalid artifactは保持し、fresh invalid artifactとevaluationを分離して追跡できる状態にした。
+- Evaluation: `.codex/runs/20260906-191724-JST/evaluation.json`を現行fresh resultに合わせ、`result=partial`、`primary_failure_category=flaky_or_env_issue`、20 timeout・observable 4/24・8 side中3 sideの解釈を記録した。旧artifactの`pass=1`/`false_negative=1`/`unobservable=22`はREPORTと旧JSONに保持している。
+- Validation: `python -X utf8 scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260906-191724-JST/evaluation.json` PASS、`git diff --check` PASS、`scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260906-191724-JST -Write -Check` PASS（9 files、0 replacements、residual 0）。
+- Decision / Rationale: source validation、same-version Probe、fresh 24-case completion、evaluation schema、sanitizationが揃った。ただし8-side DoDは未達のためRunはvalid baseline完了ではなく、invalid evidenceを保存したpartial状態とする。
+- Remaining: self-review、Run Artifact/evaluation commit、explicit push、PR #127本文更新・確認が未完了。
+- Subagents: 使用なし。
+- Progress: 88% (39/44)
 
 ## 2026-09-07 22:05 (JST)
 
