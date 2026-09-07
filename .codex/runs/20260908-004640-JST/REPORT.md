@@ -68,3 +68,13 @@
 - Blocker / Remaining: valid baseline取得には別途承認した低遅延HostまたはPR2 observation/evaluation contractの再設計が必要。残作業はRun/計画書の明示commit・pushとPR head/bodyの最終確認である。
 - Subagents: 使用なし。
 - Progress: 86% (6/7)
+
+## 2026-09-08 07:43 (JST)
+
+- Summary: Environment Qualification Runを完了した。Gate FAILのためcanonical valid baselineは取得していない。
+- Changes: Run/計画書をcommit `2758a204063f46bd886847aab14dab09904db041`として対象branchへpushし、PR #127本文を現行のGate FAIL・canonical未実行・blocker・artifact情報へ更新した。
+- Validation: PR #127はOPEN、base=`main`、head branch一致、remote headは上記commitであることを確認した。source変更はなく、評価schema、sanitizer、`git diff --check`はPASS済みである。
+- Decision / Rationale: positive terminal `367.7009秒`超過とselector observation不成立を正式blockerとして確定する。今回のRun完了後も追加Probe、retry、canonical、timeout/query/selector変更は行わない。
+- Blocker / Remaining: valid baseline取得には別途承認した低遅延HostまたはPR2 observation/evaluation contractの再設計が必要である。今回のRunに残る未完了taskはGate FAILで条件付き実行不能だったtask 6のみである。
+- Subagents: 使用なし。
+- Progress: 86% (6/7)
