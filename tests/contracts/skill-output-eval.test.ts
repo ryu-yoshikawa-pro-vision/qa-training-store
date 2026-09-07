@@ -87,24 +87,36 @@ describe("feature-plan deterministic output evaluation", () => {
   });
 
   it.each([
-    { name: "backtick", marker: "`", openerLength: 4, lineSeparator: "\r\n" },
-    { name: "tilde", marker: "~", openerLength: 3, lineSeparator: "\n" },
+    {
+      name: "backtick",
+      marker: "`",
+      infoStringMarker: "~",
+      openerLength: 4,
+      lineSeparator: "\r\n",
+    },
+    {
+      name: "tilde",
+      marker: "~",
+      infoStringMarker: "`",
+      openerLength: 3,
+      lineSeparator: "\n",
+    },
   ] as const)(
     "does not count a fenced required H2 for the $name fence and recovers after a valid closer",
-    ({ marker, openerLength, lineSeparator }) => {
+    ({ marker, infoStringMarker, openerLength, lineSeparator }) => {
       const target = firstRequiredHeading(canonicalTemplate);
       const outputLines = canonicalTemplate.split(/\r?\n/);
       const invalidCloserLines =
         marker === "`"
           ? [
-              `   ${marker.repeat(openerLength)}text`,
+              `   ${marker.repeat(openerLength)}${infoStringMarker}text`,
               `   ${marker.repeat(openerLength - 1)}`,
               `   ${marker.repeat(openerLength)}not-a-closing-fence`,
               target.heading,
               `   ${marker.repeat(openerLength)}  \t`,
             ]
           : [
-              `   ${marker.repeat(openerLength)}text`,
+              `   ${marker.repeat(openerLength)}${infoStringMarker}text`,
               target.heading,
               `   ${marker.repeat(openerLength)} \t`,
             ];

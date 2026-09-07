@@ -8,14 +8,13 @@ type FenceMarker = FenceState & {
 };
 
 function parseFenceMarker(line: string): FenceMarker | null {
-  const match = /^ {0,3}([`~]{3,})(.*)$/.exec(line);
+  const match = /^ {0,3}(`{3,}|~{3,})(.*)$/.exec(line);
   if (match === null) return null;
 
   const markerSequence = match[1];
   if (markerSequence === undefined) return null;
   const marker = markerSequence[0];
   if (marker !== "`" && marker !== "~") return null;
-  if (![...markerSequence].every((character) => character === marker)) return null;
 
   return {
     marker,
