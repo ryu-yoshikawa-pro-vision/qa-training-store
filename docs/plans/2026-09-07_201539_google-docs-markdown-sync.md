@@ -8,7 +8,7 @@
 
 Google Docs は人間が編集しやすい編集面として使い、Git 側では既存のレビュー、履歴管理、Markdown lint、仕様 Validator、カリキュラム Validator を維持する。
 
-同期は Last Writer Wins にせず、前回同期 baseline と現在の Git / Google canonical content を比較して安全に判定する。同期先を一意に決定できない場合や双方変更が競合する場合は、自動上書きせず停止する。
+同期は Last Writer Wins にせず、前回同期 baseline と現在の Git / Google canonical content を比較して安全に判定する。同期先を一意に決定できない場合、双方変更が競合する場合、Preflight 後に Google 側が変化した場合は、自動上書きせず停止する。
 
 ### 期待成果
 
@@ -16,18 +16,18 @@ Google Docs は人間が編集しやすい編集面として使い、Git 側で�
   - `main` の対象 Markdown 変更を Google Docs へ反映する。
   - 対応 Google Doc がなければ作成する。
   - 対応 Google Doc があれば同じ file ID を維持して内容を全面更新する。
+  - 全件 read-only Preflight の後、各 write 直前にも snapshot freshness を確認する。
 - Google → Git:
   - Google Docs を `text/markdown` で export する。
-  - 対象 Markdown を新規作成または更新する。
-  - targeted validation 後、automation branch / commit / push / Pull Request を作る。
+  - Git content 変更が必要なら targeted validation 後に automation branch / commit / push / Pull Request を作る。
   - `main` へ直接 push しない。
+  - Git `main` と Google が既に canonical equal で PR 不要なら、safe adoption / converged state-only finalize を許可する。
 - 初回:
   - 対象全ファイルを Git → Google で bootstrap する。
-  - 全対象で Markdown → Google Docs → Markdown の round-trip を行い、canonical equality を確認する。
+  - 全対象で Markdown → Google Docs → Markdown の round-trip を行い、strict canonical equality を確認する。
 - 安全性:
-  - Git → Google は全対象の read-only Preflight が成功した場合だけ Apply する。
-  - conflict / duplicate / ambiguous mapping / unsupported rename・move を write 前に検出する。
-  - create の不確定失敗は blind retry せず reconciliation する。
+  - conflict / duplicate / ambiguous mapping / unsupported rename・move / stale Preflight を write 前に検出する。
+  - create / update の不確定失敗は blind retry せず reconciliation する。
   - 自動 delete / rename / move / conflict 解決は実装しない。
 
 ---
@@ -41,13 +41,11 @@ docs/spec/**/*.md
 docs/curriculum/**/*.md
 ```
 
-path 判定は Repository 相対 path を `/` 区切りへ正規化したうえで行う。
+Repository 相対 path を `/` 区切りへ正規化したうえで対象判定する。
 
 ### Google Drive 側の対応範囲
 
 Git の `docs/` より下の階層を、指定した同期 root folder 配下へ mirror する。
-
-例:
 
 ```text
 Git:
@@ -57,7 +55,14 @@ Google Drive:
 <sync-root>/spec/features/cart.md
 ```
 
-`cart.md` は通常ファイルではなく Google Docs MIME type の Google Doc とし、Google Doc の表示名に `.md` を含める。
+`cart.md` は通常ファイルではなく Google Docs MIME type の Google Doc とし、表示名に `.md` を含める。
+
+### 初期版の Drive 対応範囲
+
+- 同期 root は **My Drive 配下の folder のみ**正式対応する。
+- Shared Drive は初期版では非対応。
+- root が Shared Drive 配下と判定された場合は `unsupported Shared Drive root` として fail する。
+- Shared Drive 対応のための `supportsAllDrives`、`includeItemsFromAllDrives`、`driveId` 指定、`corpora=drive` 等は初期版へ追加しない。
 
 ---
 
@@ -67,7 +72,7 @@ Google Drive:
 
 - `docs/spec/**/*.md` / `docs/curriculum/**/*.md` 以外の同期
 - Google Docs Document Tabs を使った複数 Markdown の集約
-- 自動 delete / Trash
+- 自動 delete / Trash / Trash 復元
 - 自動 rename / move
 - Git rename の推測
 - Last Writer Wins
@@ -83,24 +88,26 @@ Google Drive:
 - 独自 Markdown parser / AST 変換基盤
 - HTML 中間表現
 - Google Docs API の paragraph 単位編集
+- Google 側編集 lock / cross-system transaction
 - 観測されていない Markdown 差分への先回り adapter
 - Service Account
 - Workload Identity Federation
 - PAT
 - GitHub App
 - Workflow の方向別ファイル分割
+- Shared Drive
 - 将来用途だけを目的とした過度な class / interface 分割
 - Git 側画像 asset 自体の Google Drive 同期
 
 ---
 
-## 3. 現状理解 / Repository 整合性
+## 3. 現状理解 / Repository・Google API 整合性
 
 ### 3.1 Repository
 
 現在の Repository では次を確認済み。
 
-- `package.json` に次の command が存在する。
+- `package.json` に以下が存在する。
   - `format:check`
   - `lint:markdown`
   - `validate:spec`
@@ -108,73 +115,71 @@ Google Drive:
   - `validate:curriculum`
   - `build:spec`
   - `verify`
-- `verify` は format / Markdown lint / spec / visual / curriculum に加えて lint、typecheck、test、web build 等も含む重い総合検証である。
-- `.github/workflows/ci.yml` は GitHub Actions を commit SHA で pin し、`persist-credentials: false`、job timeout、最小権限を利用している。
-- `.github/workflows/expo-dependency-maintenance.yml` に以下の automation convention がある。
-  - automation branch
-  - `github.token` / `GITHUB_TOKEN`
-  - `gh auth setup-git`
-  - non-force branch push
-  - `gh pr create`
-  - `cancel-in-progress: false`
-- `scripts/spec/validate-all.ts` は仕様 Markdown、Agentic QA contract、visual contract を検証する。
-- `scripts/validate-curriculum.ts` はカリキュラム必須ファイル、リンク、spec reference 等を検証する。
-- `scripts/spec/build-spec.ts` は `docs/spec/**/*.md` を列挙し、仕様サイトを build する。
-- 対象 Markdown には table、fenced code block、inline code、relative link、anchor、relative image、`.webp`、BR / AC / SCREEN 等の識別子、list 等が含まれるため、Google Docs round-trip の fidelity は Validator pass だけでは保証できない。
+- `verify` は Markdown / spec / curriculum だけでなく lint、typecheck、test、web build 等も含む重い総合検証である。
+- `.github/workflows/ci.yml` は GitHub Actions を commit SHA で pin し、`persist-credentials: false`、job timeout、最小権限を利用する。
+- `.github/workflows/expo-dependency-maintenance.yml` には、重い処理より前の open PR guard、automation branch、`GITHUB_TOKEN`、`gh auth setup-git`、non-force push、`gh pr create`、`cancel-in-progress: false` の既存 convention がある。
+- `scripts/spec/validate-all.ts`、`scripts/validate-curriculum.ts`、`scripts/spec/build-spec.ts` が対象 Markdown の既存契約を検証 / build する。
+- 対象 Markdown には table、fenced code block、inline code、relative link、anchor、relative image、`.webp`、BR / AC / SCREEN 等の識別子、ordered / unordered list 等が含まれ、Validator pass だけでは Google round-trip の意味同一性を保証できない。
 
 ### 3.2 Google Drive / OAuth 公式仕様
 
-実装時は Google 公式仕様を正本とする。2026-09-07 時点で確認する主要資料:
+実装時は Google 公式仕様を正本とする。主要参照:
 
 - Google Docs の Markdown export:
-  - https://developers.google.com/workspace/drive/api/guides/ref-export-formats
+  - <https://developers.google.com/workspace/drive/api/guides/ref-export-formats>
 - upload / Markdown import / Google Workspace conversion / update:
-  - https://developers.google.com/workspace/drive/api/guides/manage-uploads
-- `files.list` / pagination:
-  - https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list
+  - <https://developers.google.com/workspace/drive/api/guides/manage-uploads>
+- `File` resource:
+  - <https://developers.google.com/workspace/drive/api/reference/rest/v3/files>
+- `files.list`:
+  - <https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list>
+- `about.importFormats` / `about.exportFormats`:
+  - <https://developers.google.com/workspace/drive/api/reference/rest/v3/about>
 - custom file properties / `appProperties`:
-  - https://developers.google.com/workspace/drive/api/guides/properties
+  - <https://developers.google.com/workspace/drive/api/guides/properties>
 - Drive OAuth scopes:
-  - https://developers.google.com/workspace/drive/api/guides/api-specific-auth
-- OAuth offline access / refresh token:
-  - https://developers.google.com/identity/protocols/oauth2
-  - https://developers.google.com/identity/protocols/oauth2/web-server
+  - <https://developers.google.com/workspace/drive/api/guides/api-specific-auth>
+- OAuth offline access / Refresh Token:
+  - <https://developers.google.com/identity/protocols/oauth2/web-server>
 
 確認済みの前提:
 
 - Google Docs は Drive API `files.export` で `text/markdown` へ export できる。
 - Markdown は Google Docs への import format としてサポートされる。
 - Google Docs へ media を伴う `files.update` を行うと document full contents が置換される。
-- `files.list` は `nextPageToken` がある限り追加ページを取得する必要がある。
-- Drive では同一 parent に同名 file / folder が存在できるため、name を一意キーとして扱えない。
+- `about.importFormats` / `about.exportFormats` は現在利用可能な conversion format を返すため、runtime capability check に利用できる。
+- `files.list` は `nextPageToken` がある限り全ページ取得する。
+- Drive では同一 parent に同名 item が存在できるため、name を一意キーとして扱わない。
+- `File.version` は server 上の変更ごとに増える単調増加値である。winner 判定には使わず、Preflight snapshot の freshness 判定にだけ使う。
+- `File.capabilities` は current user が item に対して実行可能な action を表す。Preflight で予定 action の権限確認に使う。
+- `File.trashed` を使い、active candidate は `trashed = false` に限定する。
+- Shared Drive item の判定に必要な metadata（`driveId` 等）は取得できる。初期版では Shared Drive と判定した root を fail するだけで、Shared Drive 処理を実装しない。
 - `appProperties` は private custom property として利用できるが、1 property の UTF-8 `key + value` は最大 124 bytes、1 application あたり private property は最大 30 個である。
-- OAuth offline access を要求すれば、user が不在でも Refresh Token から Access Token を取得できる。
+- OAuth offline access により unattended execution で Refresh Token から Access Token を取得できる。
 - External + Testing の OAuth consent screen で Drive scope を利用する場合、Refresh Token が 7 日で失効する制約がある。
-- `drive.file` は narrower scope だが、アプリが作成・選択・明示共有された per-file access が中心であり、Drive folder に人間が直接作った新規 Google Doc を Actions が探索する今回の要件とは相性が悪い。
-- 今回は `https://www.googleapis.com/auth/drive` を使用する。これは restricted scope であるため、OAuth app の利用形態に応じた verification / organization policy も運用時に確認する。
-- Google は Markdown source の byte-for-byte round-trip を保証していないため、実 Repository 全件で canonical round-trip を実証する必要がある。
-- Google Workspace format への conversion create では pre-generated file ID を使った idempotent create が使えないため、create の不確定失敗は Drive 再検索による reconciliation を行う。
+- `drive.file` は narrower scope だが、Drive UI から人間が直接作成した未登録 Doc の自動探索要件とは相性が悪いため、初期版は full Drive scope を使う。
+- Google は Markdown source の byte-for-byte round-trip を保証していないため、実 Repository 全件で canonical round-trip を実証する。
+- Google Workspace format への conversion create では pre-generated ID による idempotent create を前提にできないため、create の不確定失敗は Drive 再検索で reconcile する。
+- Drive API の media update に cross-system transaction / atomic compare-and-swap があるとは仮定しない。
 
 ---
 
-## 4. 前提条件 / 認証・Secrets
+## 4. 前提条件 / OAuth・Secrets
 
 ### 4.1 OAuth
 
-初期版は OAuth Client ID / Client Secret / Refresh Token を維持する。
+初期版は OAuth Client ID / Client Secret / Refresh Token を維持し、Refresh Token 取得時は `access_type=offline` を使用する。
 
-Refresh Token 取得時は `access_type=offline` を使用する。
-
-継続運用では次のいずれか等、External + Testing の 7-day Refresh Token 制約を受けない適切な OAuth 設定を使う。
+継続運用では External + Testing の 7-day Refresh Token 制約を受けない適切な OAuth 設定を使う。
 
 - Google Workspace 組織内だけで使う Internal app
 - External app を継続運用可能な In production / Published 状態へ移行した構成
 
-Refresh Token は恒久的に必ず有効とはみなさない。token endpoint が `invalid_grant` 等を返した場合:
+token endpoint が `invalid_grant` 等を返した場合:
 
 1. 明確な認証エラーとして扱う。
-2. Google API の write を開始しない。
-3. workflow を fail する。
+2. Google write を開始しない。
+3. Workflow を fail する。
 4. token endpoint response body の生データを log しない。
 5. 管理者が再認証して Refresh Token を更新する。
 6. 自動再認証は実装しない。
@@ -191,15 +196,13 @@ https://www.googleapis.com/auth/drive
 
 理由:
 
-- Google Drive 上で人間が同期 root 配下へ直接作成した Google Doc を自動探索する必要がある。
-- `drive.file` はより狭く推奨される scope だが、今回の「人間が Drive UI から直接追加した未登録 file の探索」とは access model が合わない。
-- scope 縮小のためだけに Picker / 独自登録 UI を追加するのは今回の要件から外れる。
+- 同期 root 配下へ人間が Drive UI から直接作成した新規 Google Doc を自動探索する必要がある。
+- `drive.file` は今回の discovery model に合わない。
+- scope 縮小のためだけに Picker / 独自登録 UI を追加しない。
 
-full Drive scope は強い権限のため、コード上の操作範囲は同期 root 配下へ hard-bound し、credential と log の取り扱いを厳格にする。
+full Drive scope は強い権限なので、操作範囲を検証済み My Drive sync root 配下へ hard-bound する。
 
 ### 4.3 GitHub Secrets
-
-初期版で使用する Secrets:
 
 ```text
 GOOGLE_CLIENT_ID
@@ -216,15 +219,39 @@ GOOGLE_DRIVE_ROOT_FOLDER_ID
 - Authorization header
 - token endpoint response body
 - Secret が埋め込まれた URL / curl command
-- Secret として管理している root folder ID の生値
-
-Client ID も workflow では Secret 経由で注入し、不必要に log しない。
+- Secret として管理する root folder ID の生値
 
 ---
 
-## 5. Google Drive 構造 / 命名 / identity
+## 5. Drive root / path / identity contract
 
-### 5.1 Drive hierarchy
+### 5.1 root validation
+
+Google API を使った target discovery の前に `GOOGLE_DRIVE_ROOT_FOLDER_ID` 自体を `files.get` で検証する。
+
+最低条件:
+
+- item が存在する。
+- `trashed == false`。
+- `mimeType == application/vnd.google-apps.folder`。
+- My Drive 配下である。Shared Drive item と判定された場合は `unsupported Shared Drive root` で fail。
+- children を list できる。
+- direction と予定 action に必要な capability を持つ。
+
+root 不正時は target 探索へ進まない。
+
+初期版では Shared Drive 対応 parameter を追加しない。
+
+### 5.2 import / export runtime capability check
+
+OAuth / root validation の初期段階で1回だけ `about.get` を実行し、少なくとも以下を確認する。
+
+- `importFormats` で `text/markdown` → Google Docs (`application/vnd.google-apps.document`) の conversion が利用可能。
+- `exportFormats` で Google Docs → `text/markdown` が利用可能。
+
+満たさなければ Google write 前に fail する。file ごとには確認しない。
+
+### 5.3 Drive hierarchy
 
 ```text
 <GOOGLE_DRIVE_ROOT_FOLDER_ID>
@@ -243,123 +270,117 @@ Client ID も workflow では Secret 経由で注入し、不必要に log し�
          └─ ...
 ```
 
-Git path:
+`docs/spec/features/cart.md` は `<sync-root>/spec/features/cart.md` に対応する。
+
+### 5.4 active item discovery / fields
+
+子 item の探索 query は `trashed = false` を必須とし、Trash item を candidate / duplicate 数へ含めない。
+
+`files.list` は `nextPageToken` がなくなるまで処理し、必要 field のみ取得する。少なくとも次の情報を取得する。
 
 ```text
-docs/spec/features/cart.md
+nextPageToken
+files.id
+files.name
+files.mimeType
+files.parents
+files.trashed
+files.appProperties
+files.version
+files.capabilities
+files.modifiedTime
+files.driveId   # My Drive / Shared Drive判定に必要な場合
 ```
 
-は:
+`files.get` でも予定 action / stale check に必要な同種 field を明示する。
 
-```text
-<sync-root>/spec/features/cart.md
-```
+`modifiedTime` は diagnostics のみで、winner 判定には使わない。
 
-へ決定的に対応する。
-
-### 5.2 name は一意キーではない
-
-各 parent で候補を全件確認する。
-
-#### Folder
+### 5.5 name / duplicate
 
 同一 parent / 同一 folder name:
 
 | 件数 | 判定 |
 | --- | --- |
-| 0 | Apply で必要なら作成 |
+| 0 | direction / plan に応じて create 候補 |
 | 1 | 利用 |
-| 2 以上 | ambiguous。Preflight fail |
-
-#### Google Doc
+| 2 以上 | ambiguous。fail |
 
 同一 parent / 同一 `.md` name / Google Docs MIME type:
 
 | 件数 | 判定 |
 | --- | --- |
-| 0 | direction と state に応じて create 候補 |
+| 0 | direction / state に応じて create 候補 |
 | 1 | 利用 |
-| 2 以上 | ambiguous。Preflight fail |
+| 2 以上 | ambiguous。fail |
 
-別 parent にある同名 Doc は別 Git path なので問題としない。
+別 parent の同名 item は問題にしない。
 
-`files.list` は必ず `nextPageToken` がなくなるまで pagination する。1ページ目だけで candidate 数を判定しない。
+### 5.6 Drive item name → Git path segment
 
-### 5.3 sync metadata
+Drive の folder / Doc name 1件を **必ず1 Git path segment** として扱う。name 内の文字を新しい directory separator として解釈しない。
 
-Repository 内 mapping file は作らず、managed Google Doc の `appProperties` に最小 state を持つ。
-
-初期版の必須 property:
+最低限拒否する name:
 
 ```text
-githubPath = "docs/spec/features/cart.md"
-lastSyncedSha256 = "<canonical SHA-256>"
+/
+\\
+.
+..
+NUL
+control characters
 ```
 
-意味:
+さらに Repository path として安全でない path escape、正規化後の segment 消失、異なる Drive path が同一 Git path へ衝突する normalization collision を fail する。
 
-- `githubPath`
-  - managed Doc の identity / rename・move 検出用。
-- `lastSyncedSha256`
-  - Git と Google が最後に同じ canonical content へ収束した時点の単一 baseline。
+`foo/bar.md` という1つの Google Doc name を `foo/` + `bar.md` に分解してはいけない。
 
-以下は初期版では持たない。
+日本語 / Unicode 一般は禁止しない。
 
-```text
-qaTrainingStoreSync
-lastGitSha256
-lastGoogleSha256
-```
+### 5.7 capabilities
 
-Git / Google 双方の hash を別 baseline として保持するのは、全件 round-trip 後に「正常同期状態でも canonical hash が一致しない」ことが実証された場合だけ再検討する。初期版ではその状態自体を bootstrap failure とする。
+full Drive scope を持っていても item ごとの実権限は保証されないため、Preflight で **予定 action に必要な capability** を確認する。
 
-`githubPath` / `lastSyncedSha256` を書く前に `appProperties` の 124-byte `key + value` 制約を UTF-8 bytes で検証する。超える場合は安全に fail し、path hash 等へ自動フォールバックしない。
+例:
 
-### 5.4 rename / move
+- folder discovery: children を list 可能。
+- folder / Doc create: parent へ child を追加可能。
+- existing Doc content update: content を変更可能。
+- metadata state-only update: metadata update に必要な edit capability。
 
-managed Doc の:
+具体的な `File.capabilities` field 名は実装時点の公式仕様を正本とし、Planの例だけを盲目的に固定しない。permission failure を write 開始後まで持ち越さないことが目的である。
 
-```text
-appProperties.githubPath
-```
+### 5.8 rename / move
 
-と、現在の:
-
-```text
-Drive folder hierarchy + Google Doc name
-```
-
-から導出した Git path が異なる場合:
+managed Doc の `appProperties.githubPath` と、現在の Drive folder hierarchy + Google Doc name から導出した Git path が異なる場合:
 
 ```text
 unsupported rename/move
 ```
 
-として fail する。自動修正しない。
+として fail する。
 
-Git 側でも「旧 path 削除 + 新 path 追加」を rename と推測しない。削除・rename はサポート外であり、人間が必要に応じて Drive / Git を整理する。
+Git 側でも旧 path 削除 + 新 path 追加を rename と推測しない。
 
 ---
 
-## 6. Canonicalization / hash
+## 6. Canonicalization / sync metadata
 
 ### 6.1 canonical representation
 
-Git / Google の同期判定は raw bytes / `modifiedTime` / commit time ではなく、同じ canonicalization を適用した Markdown の SHA-256 で行う。
+Git / Google の同期判定は raw bytes / `modifiedTime` / commit time ではなく、同一 canonicalization 後の SHA-256 で行う。
 
-初期 canonicalization は次だけとする。
+初期 canonicalization:
 
 1. CRLF / CR → LF
 2. EOF newline を Repository 契約へ統一
-3. Repository で既に使用している Prettier による Markdown formatting
+3. Repository 既存 Prettier による Markdown formatting
 
-Google Docs 固有挙動を推測した追加変換は初期版に入れない。
+Google Docs 固有挙動を推測した変換は追加しない。
 
-`modifiedTime` は diagnostics に表示してよいが、newer-wins や conflict decision に使用しない。
+### 6.2 strict round-trip
 
-### 6.2 round-trip 差分
-
-初回 bootstrap では:
+初回 bootstrap:
 
 ```text
 Git Markdown
@@ -370,445 +391,511 @@ Git Markdown
 → equality check
 ```
 
-を全対象で行う。
-
-成功条件は原則:
+原則成功条件:
 
 ```text
 Git canonical SHA-256 == Google export canonical SHA-256
 ```
 
-である。
-
-Validator pass だけでは許容しない。
+Validator pass だけで差分を許容しない。
 
 差分が残る場合:
 
-1. bootstrap を失敗扱いにする。
-2. raw / canonical diff を確認する。
-3. Google Docs 由来の非意味的変換であることを実データで確認する。
-4. 必要な場合のみ最小 adapter / normalization を追加する。
-5. 観測された construct を fixture / regression test として固定する。
-6. 全対象 round-trip を再実行する。
+1. bootstrap fail。
+2. raw / canonical diff を確認。
+3. Google Docs 由来の非意味的変換であることを実測確認。
+4. 必要な場合だけ最小 adapter / normalization を追加。
+5. 観測 construct を fixture / regression test 化。
+6. 全対象 round-trip を再実行。
 
-「将来ありそう」という理由だけで adapter を追加しない。
+### 6.3 sync metadata
+
+managed Google Doc の `appProperties` に次だけを必須 state として保持する。
+
+```text
+githubPath = "docs/spec/features/cart.md"
+lastSyncedSha256 = "<canonical SHA-256>"
+```
+
+- `githubPath`: identity / rename・move 検出。
+- `lastSyncedSha256`: Git と Google が最後に同じ canonical content へ収束した単一 baseline。
+
+以下は初期版では持たない。
+
+```text
+qaTrainingStoreSync
+lastGitSha256
+lastGoogleSha256
+```
+
+`appProperties` write 前に 124-byte `key + value` 制約を UTF-8 bytes で検証し、超過時は fail する。path hash 等へ自動フォールバックしない。
 
 ---
 
-## 7. Sync state / conflict decision
+## 7. Sync state / Decision Table（同期判定の唯一の正本）
 
-### 7.1 hash
+以降の flow / Risk / DoD は **この Section 7 の判定を正本**とし、同じ状態遷移を別定義しない。
 
 記号:
 
 ```text
 B = appProperties.lastSyncedSha256
-G = current Git canonical SHA-256
-D = current Google export canonical SHA-256
+G = current Git main canonical SHA-256
+D = current active Google Doc export canonical SHA-256
 ```
 
-Baseline が存在する場合、変更判定は `B / G / D` だけで行う。
+`changed / unchanged` は `B` との比較を意味する。
 
-### 7.2 基本 decision table
+### 7.1 existence / baseline / content decision
 
-| Git | Google | Baseline | 判定 |
-| --- | --- | --- | --- |
-| なし | なし | なし | 対象なし |
-| あり | なし | なし | Git → Google create |
-| なし | あり | なし | Google → Git create 候補 |
-| あり | あり | なし | `G == D` なら safe adoption、不一致なら ambiguous |
-| unchanged | unchanged | あり | no-op |
-| changed | unchanged | あり | Git changed |
-| unchanged | changed | あり | Google changed |
-| changed | changed | あり | `G == D` なら converged / state-only update、それ以外 conflict |
+| Git | active Google | Baseline | 現在状態 | Git → Google | Google → Git |
+| --- | --- | --- | --- | --- | --- |
+| なし | なし | なし | 対象なし | no-op | no-op |
+| あり | なし | baseline取得不能 | remaining Git のみ | Google Doc create / recreate | pending opposite-direction restoration。Gitを削除しない |
+| なし | あり | なし | Google-only new | pending opposite-direction restoration。Docを削除しない | Git create PR |
+| なし | あり | あり | Git missing / managed Google remains | pending opposite-direction restoration。Docを削除しない | Git recreate PR。PR mergeまでBは進めない |
+| あり | あり | なし | `G == D` | safe adoption / state-only finalize | safe adoption / state-only finalize。ただしSection 10のfreshness条件を満たし、runがPR不要の場合のみ |
+| あり | あり | なし | `G != D` | ambiguous fail | ambiguous fail |
+| あり | あり | あり | `G == B && D == B` | no-op | no-op |
+| あり | あり | あり | `G != B && D == B` | Git changed → update候補 | direction mismatch fail |
+| あり | あり | あり | `G == B && D != B` | direction mismatch fail | Google changed → Git update PR候補 |
+| あり | あり | あり | `G != B && D != B && G == D` | converged → state-only finalize | converged → state-only finalize。ただしSection 10のfreshness条件を満たし、runがPR不要の場合のみ |
+| あり | あり | あり | `G != B && D != B && G != D` | conflict fail | conflict fail |
 
-`changed / unchanged` は baseline `B` との比較を意味する。
+重要:
 
-### 7.3 direction rule
+- active Google Doc が missing の場合、baseline state はその Doc の `appProperties` とともに読めない。実装は「過去にbaselineがあったか」を推測せず、remaining Git を source とする recreate contract を適用する。
+- trashed Doc は active Google Doc なしとして扱う。Trash から復元しない。
+- wrong direction では remaining side を削除 / 上書きしない。
+- `version` / `modifiedTime` / commit time で newer side を勝たせない。
 
-#### Git → Google
+### 7.2 safe adoption / converged finalize
 
-- Git changed / Google unchanged:
-  - update 候補。
-- Google changed / Git unchanged:
-  - **停止**。Git で Google を上書きしない。
-- Git changed / Google changed:
-  - `G == D` なら state-only update。
-  - `G != D` なら conflict。
-- baseline なし・双方存在:
-  - `G == D` なら safe adoption。
-  - `G != D` なら ambiguous。
-- Git のみ・baseline なし:
-  - create 候補。
-- Google のみ・baseline なし:
-  - Google → Git の新規候補として認識するだけで、Git → Google では削除・上書きしない。
+Google → Git でも、**Git content変更・PRが不要な run** では state-only finalize を許可する。
 
-#### Google → Git
-
-- Google changed / Git unchanged:
-  - Git update 候補。
-- Git changed / Google unchanged:
-  - **停止**。Google で Git を上書きしない。
-- Git changed / Google changed:
-  - `G == D` なら content change 不要。baseline は Google → Git では進めない。
-  - `G != D` なら conflict。
-- baseline なし・双方存在:
-  - `G == D` なら safe adoption 候補だが、Google → Git 実行では baseline を Google 側へ書かない。
-  - `G != D` なら ambiguous。
-- Google のみ・baseline なし:
-  - Git create 候補。
-- Git のみ・baseline なし:
-  - Git → Google の新規候補として認識するだけで、Google → Git では削除・上書きしない。
-
-### 7.4 safe adoption
-
-Git / Google 双方に対象があり sync baseline がない場合でも:
+#### baselineなし + `G == D`
 
 ```text
-G == D
+safe adoption
 ```
 
-なら dead-end にしない。
+- content write なし。
+- `githubPath` を確定 / 検証。
+- `lastSyncedSha256 = G` を保存可能。
+- PRなし。
 
-Git → Google 実行で:
+#### baselineあり + `G == D` + `B != G`
 
-1. content write は行わない。
-2. `githubPath` を確定 / 検証する。
-3. `lastSyncedSha256 = G` を保存する。
-4. synchronized state へ遷移する。
+```text
+converged
+```
 
-`G != D` の場合は、どちらを正とするか自動判断せず ambiguous fail。
+- content write なし。
+- `lastSyncedSha256 = G` へ更新可能。
+- PRなし。
 
-### 7.5 Google → Git PR と baseline
+ただし Google → Git の state-only finalize は Section 10 の以下をすべて満たす場合だけ行う。
 
-Google → Git では次を行っても baseline を確定しない。
+- `origin/main` が開始時 `initialMainSha` から進んでいない。
+- Google snapshot が write 直前まで変わっていない。
+- 現在も `G == D`。
+- run 内に Git content変更を必要とする target がなく、PRを作らない。
+
+### 7.3 content PR と baseline
+
+Google → Git で Git content変更が必要な場合:
 
 ```text
 Google export
 → Git working tree
 → validation
-→ automation branch
+→ branch
 → commit
 → push
 → PR
 ```
 
-PR が close / reject される可能性があり、PR 作成時点では `main` が更新されていないためである。
+この run では Google baseline / `githubPath` を進める state write を行わない。
 
-PR merge 後:
+PR close / reject:
+
+```text
+baseline unchanged
+```
+
+PR merge:
 
 ```text
 main push
 → Git → Google
+→ Section 7 decision
 → G == D を確認
-→ safe adoption / state-only update
-→ baseline 確定
+→ state-only finalize
 ```
 
-とする。
+で baseline を確定する。
 
-Google → Git の処理は原則 Google Drive を read-only とし、PR 作成のために `githubPath` / baseline を先行更新しない。
+### 7.4 deletion / missing contract
+
+削除は同期イベントとして伝播しない。
+
+- Git exists / Google missing:
+  - Git → Google で recreate。
+  - create後に strict round-trip equality、`githubPath`、`lastSyncedSha256` を再確定。
+  - Google → Git では Gitを削除せず pending opposite-direction restoration。
+- Git missing / Google exists:
+  - Google → Git で Git recreate PR。
+  - PR mergeまでは baseline を進めない。
+  - Git → Google では Docを削除せず pending opposite-direction restoration。
+
+詳細判定はこの Section 7 を正本とする。
 
 ---
 
 ## 8. Git → Google: Phase 1 Read-only Preflight
 
-Git → Google は対象 file を1件ずつ判定して即 write してはいけない。
-
 **全対象の Preflight が完了するまで Google Drive / Google Docs を変更しない。**
 
-### 8.1 Git 側 validation
+### 8.1 Git validation
 
-Google を外部 write する前に、同期対象 Markdown が明らかに壊れていないことを確認する。
-
-共通:
+Google write 前:
 
 ```bash
 pnpm run lint:markdown
 ```
 
-対象変更に `docs/spec/**/*.md` が含まれる場合:
+spec が対象なら:
 
 ```bash
 pnpm run validate:spec
 ```
 
-対象変更に `docs/curriculum/**/*.md` が含まれる場合:
+curriculum が対象なら:
 
 ```bash
 pnpm run validate:curriculum
 ```
 
-`main` push は既存 CI を通過していることを基本前提とし、Google sync workflow では web build / 全 test suite を重複実行しない。
+manual 全件同期では spec / curriculum の両 targeted validator を実行する。web build / 全 test suite / `pnpm run verify` は runtime で重複実行しない。
 
-manual Git → Google で全件同期する場合は spec / curriculum の両 targeted validator を実行する。
+### 8.2 global preflight
 
-### 8.2 Preflight steps
+1. OAuth token取得。
+2. `about.importFormats` / `about.exportFormats` を1回確認。
+3. sync root を Section 5.1 どおり検証。
+4. Git対象Markdownを全件列挙。
+5. root配下を `trashed = false` + pagination で探索。
+6. Drive item name / path segmentを検証。
+7. duplicate folder / Doc / normalization collisionを検出。
+8. 予定actionに必要な capabilities を検証。
+9. managed Doc metadata / `appProperties` を検証。
+10. Google Docs を export。
+11. Git / Google を canonicalizeし `G / D / B` を計算。
+12. Section 7 の Decision Table だけで判定。
+13. `githubPath` mismatch を unsupported rename/move として検出。
+14. create / update / no-op / state-only / pending の Apply plan をメモリ上に構築。
 
-write なしで最低限次を全件実行する。
+1件でも以下があれば Google write **0件**のまま fail:
 
-1. Git の同期対象 Markdown を全件列挙。
-2. Google Drive 同期 root 配下の対象 folder / Google Doc を取得。
-3. `files.list` を `nextPageToken` がなくなるまで全ページ取得。
-4. Drive folder hierarchy を解決。
-5. 同一 parent 内の duplicate folder を検出。
-6. 同一 parent 内の duplicate Google Doc を検出。
-7. managed Doc の `appProperties` を取得・検証。
-8. Google Docs を `text/markdown` export。
-9. Git / Google 双方を canonicalize。
-10. `G` / `D` / baseline `B` を計算。
-11. safe adoption / no-op / create / update / state-only update / direction mismatch / conflict を判定。
-12. `githubPath` と folder-derived path の不一致を unsupported rename/move として検出。
-13. `appProperties` の型・hash format・byte-size constraint を検証。
-14. Google 側新規 Doc の path mapping を検証。
-15. 全対象の Apply plan をメモリ上に構築。
-
-### 8.3 Preflight failure
-
-1件でも次がある場合、Google 側 write は **0 件** のまま fail する。
-
-- conflict
-- direction mismatch で source side を上書きする危険がある状態
-- path ambiguity
-- duplicate folder
-- duplicate Google Doc
+- conflict / direction mismatch
+- path ambiguity / unsafe path / normalization collision
+- duplicate folder / Doc
 - unsupported rename / move
-- invalid sync metadata
-- invalid / unsafe Git path
-- appProperties size overflow
-- Google export failure after bounded retry
+- invalid sync metadata / appProperties size overflow
+- unsupported Shared Drive root
+- root / item capability不足
+- import/export capability不足
+- export failure after bounded retry
 - OAuth failure
 - その他、同期先 / state を一意に決定できない状態
 
-### 8.4 Preflight output
+### 8.3 Preflight snapshot
 
-全件を次のいずれかへ分類してから Apply へ進む。
+既存 managed Doc ごとに Apply の staleness 判定用 snapshot を保持する。
+
+最低限:
 
 ```text
-create
-update
-no-op
-state-only update
-safe adoption
-skip / pending opposite direction
+fileId
+version
+D  # preflight Google canonical SHA-256
+githubPath
+parentId
+name
+relevant appProperties
 ```
 
-`safe adoption` は content write を伴わないため Apply では state-only update として実行してよい。
+`modifiedTime` は diagnostics として保持してよいが、winner判定には使わない。
 
 ---
 
-## 9. Git → Google: Phase 2 Apply
+## 9. Git → Google: Phase 2 Apply / stale snapshot check
 
-Preflight が全件成功した場合だけ Apply を開始する。
+Preflight全件成功後だけ Apply を開始する。
 
-### 9.1 Apply order
+### 9.1 existing Doc content update
 
-Preflight で確定した plan 以外の対象を Apply 中に新規推測しない。
+`files.update` の **直前** に同じ Doc を再取得 / 再exportする。
 
-各 item:
+最低確認:
 
-- `no-op`
-  - write なし。
-- `state-only update` / `safe adoption`
-  - content write なし。
-  - `githubPath` / `lastSyncedSha256` の必要な metadata だけ更新。
-- `update`
-  1. 同じ file ID へ Markdown media update。
-  2. re-export。
-  3. strict canonical equality を確認。
-  4. equality 成功後だけ `lastSyncedSha256` を更新。
-- `create`
-  1. 必要 folder を一意性確認後に作成。
-  2. Google Doc を Markdown import で作成。
-  3. create metadata に `githubPath` を付与して reconciliation identity に使う。
-  4. re-export。
-  5. strict canonical equality を確認。
-  6. equality 成功後だけ `lastSyncedSha256` を保存。
+1. current `fileId`
+2. current `version`
+3. current canonical hash
+4. current `githubPath`
+5. current parent
+6. current name
+7. relevant `appProperties`
+8. 予定actionに必要な capability
 
-### 9.2 Apply 中の部分成功
-
-Google API の通信障害等により、Apply 全体の atomicity は保証できない。
-
-例えば:
+以下をすべて満たす場合だけ content update 可能:
 
 ```text
-10 files
-→ 1-8 success
-→ 9th network failure
+current fileId == preflight fileId
+current version == preflight version
+current canonical hash == preflight D
+current githubPath == preflight githubPath
+current parent/name == preflight identity
+relevant metadata/capability is still valid
 ```
 
-は起こり得る。
+1つでも違えば:
 
-方針:
+```text
+stale preflight / concurrent Google edit
+```
 
-- 自動 rollback として成功済み Doc / folder を delete しない。
-- 成功済み Doc と baseline は残す。
-- fail した run は bootstrap / sync successful と扱わない。
-- 次回は最初から read-only Preflight を再実行する。
-- canonical-equal な成功済み Doc は no-op / safe adoption。
-- create の結果不明は reconciliation。
-- duplicate / conflict がなければ残りを安全に再実行できるようにする。
+として **そのDocをwriteせず run fail**。
+
+`version` は snapshot freshness detection 専用で、winner 判定に使わない。
+
+update後は必ず re-exportし、desired Git canonical と strict equality を確認してから baseline を更新する。
+
+### 9.2 state-only update / safe adoption
+
+content write を伴わない metadata update でも、古い snapshot に baseline を付けてはいけない。
+
+metadata write 直前に Section 9.1 と同等の freshness check を行い、最低でも:
+
+```text
+current canonical == expected canonical
+identity unchanged
+version unchanged
+```
+
+を確認する。
+
+staleなら baselineを書かず fail。
+
+### 9.3 create
+
+既存Doc snapshotはないため、create直前に:
+
+- parent identity / `trashed == false`
+- parent capability
+- same parent / same name の duplicate再検索
+- target path / metadata identity
+
+を再確認する。
+
+createの結果不明は Section 11 の reconciliation に従う。
+
+### 9.4 partial failure / safe rerun
+
+Apply全体は atomic ではない。
+
+- 成功済み Doc / folder を rollback delete しない。
+- fail run を successful と扱わない。
+- 次回は全件 Preflight から再実行。
+- canonical-equal success item は no-op / state-only finalize。
+- create / update の結果不明は reconciliation。
+
+### 9.5 Residual TOCTOU Risk
+
+初期版では:
+
+```text
+full Preflight
++
+write直前 stale snapshot check
++
+post-write strict re-export
+```
+
+まで行う。
+
+ただし最終 freshness check と実際の Google API update のごく短い間に人間が編集する TOCTOU を完全には排除できない。
+
+Google側編集 lock、paragraph単位編集、cross-system transaction / atomic CAS は初期版では導入しない。
 
 ---
 
 ## 10. Google → Git flow
 
-Google → Git は `workflow_dispatch` の manual direction で実行する。初期版で schedule は作らない。
+Google → Git は `workflow_dispatch` の manual direction のみ。scheduleは作らない。
 
-### 10.1 Discovery
+### 10.1 early guard / initial main snapshot
 
-同期 root 配下を再帰探索し、`files.list` の pagination を最後まで処理する。
+重い処理より先に:
 
-Google side item:
+1. manual ref が `main` であることを確認。
+2. `main` を checkout。
+3. checkout SHA を `initialMainSha` として保存。
+4. open Google Docs sync PR guard を実行。
+5. open sync PR があれば `blocked` として終了し、dependency install / Google OAuth / discovery へ進まない。
+6. dependency install。
+7. OAuth / about capability / root validation。
+8. Google discovery / export。
 
-| 状態 | 扱い |
+既存Expo automation Workflowと同様、duplicate/open PR guardを重い処理より前へ置く。
+
+### 10.2 discovery
+
+Section 5 の root / Trash / path / duplicate / capability contractに従う。
+
+| Google item | 扱い |
 | --- | --- |
-| 同期 root 外 | 無視 |
-| root 配下だが `spec/` / `curriculum/` 外 | 無視 |
-| Google Docs MIME type 以外 | 無視 |
-| target subtree 内の Google Doc だが name が `.md` で終わらない | warning + 無視。全体 fail にはしない |
-| `.md` かつ安全な Git path へ一意に変換可能 | candidate |
-| 同一 Git path へ複数 Google Docs が mapping | ambiguous fail |
-| managed Doc の `githubPath` と folder-derived path が不一致 | unsupported rename/move fail |
+| sync root 外 | 無視 |
+| root配下だが `spec/` / `curriculum/` 外 | 無視 |
+| Google Docs MIME type以外 | 無視 |
+| target subtree内のDocだが `.md` で終わらない | warning + 無視 |
+| `.md` かつ安全なGit pathへ一意変換可能 | candidate |
+| 同一Git pathへ複数Docs mapping | ambiguous fail |
+| managed Doc の `githubPath` と derived path 不一致 | unsupported rename/move fail |
 
-`.md` suffix を、人間が Google 側から新規 Markdown を作成する明示的契約とする。
+candidate の状態判定は Section 7 だけを使用する。
 
-### 10.2 Google 新規 Doc
+### 10.3 PR不要の state-only finalize
 
-新規 Google Doc が既存 Git Markdown と同じ path へ mapping する場合:
+run 内に Git content変更 candidate がなく、Section 7 で safe adoption / converged のみが必要な場合:
 
-- canonical content 同一:
-  - safe adoption candidate。
-  - Google → Git では content diff / baseline write は不要。
-  - merge 後または次回 Git → Google で baseline を確定する。
-- canonical content 不一致:
-  - ambiguous fail。
-  - Google 優先 / Git 優先を自動判断しない。
+1. `git fetch origin main`。
+2. `current origin/main SHA == initialMainSha` を確認。
+3. 異なれば `main advanced during sync` で fail。
+4. metadata write直前に Google Doc metadata + version + export を再取得。
+5. snapshot identity / version / canonical が unchanged であることを確認。
+6. 現在も checkout `G == D` であることを確認。
+7. `githubPath` / `lastSyncedSha256` を state-only update。
+8. PRは作らない。
 
-Git file が存在しない場合:
+Google snapshotまたはmainが変わっていれば baseline を書かない。
 
-1. export / canonicalize。
-2. safe target path を確認。
-3. Git working tree に新規 Markdown を作成。
+### 10.4 Git content変更が必要な場合
+
+Google changed / Git unchanged、または Google-only target の restore は Section 7 に従い working tree update / create candidate とする。
+
+1. Google export結果をworking treeへ反映。
+2. changed MarkdownのみPrettier。
+3. target-only changed-file allowlist。
 4. targeted validation。
-5. PR 化。
-6. Google metadata baseline はまだ進めない。
+5. validation後も allowlist を再確認。
+6. `git fetch origin main`。
+7. `current origin/main SHA == initialMainSha` を確認。
+8. 異なれば `main advanced during sync` として fail。自動rebase / merge /再判定しない。
+9. automation branch作成。
+10. target Markdownのみcommit。
+11. `gh auth setup-git`。
+12. explicit branchをnon-force push。
+13. `gh pr create --base main`。
+14. auto-mergeしない。
 
-### 10.3 Existing Doc update
+この run では Google baseline / `githubPath` を進める write を行わない。
 
-baseline がある場合は decision table を使う。
+### 10.5 main race
 
-Google changed / Git unchanged の場合だけ Git update candidate とする。
-
-Git changed / Google unchanged、または divergent both-changed は fail し、Google content で Git を上書きしない。
-
-### 10.4 PR creation
-
-全 candidate を working tree へ反映した後:
-
-1. changed Markdown だけ Prettier。
-2. target-only changed-file allowlist。
-3. targeted validation。
-4. diff なしなら no-op 終了。
-5. open sync PR guard。
-6. automation branch 作成。
-7. bot identity で target Markdown のみ commit。
-8. `gh auth setup-git`。
-9. explicit branch を non-force push。
-10. `gh pr create --base main`。
-11. auto-merge しない。
-
-既存 open Google Docs sync PR が存在する場合:
+Google → Git開始後に別PR merge等で `origin/main` が進んだ場合、古いbaseのPRを作らない。
 
 ```text
-blocked
+main advanced during sync
+→ fail
+→ workflow再実行
 ```
 
-として新規同期を開始 / PR 作成しない。
-
-通常の no-op と区別して明確な message と non-success / blocked 扱いにする。既存 PR への自動追記・force push は初期版では実装しない。
+初期版では自動rebase / merge / incremental re-evaluationを実装しない。
 
 ---
 
 ## 11. Retry / reconciliation
 
-### 11.1 Retry policy
+### 11.1 bounded retry
 
-小さい bounded retry と exponential backoff + jitter を許可する対象:
+小さい bounded retry + backoff / jitter を許可:
 
 - `files.list`
-- metadata `get`
+- `files.get`
 - `files.export`
-- token refresh の一時的 transport failure。ただし OAuth semantic error は retry しない。
-- 同じ file ID / 同じ desired body の update で idempotent に扱える一時失敗
-- 429 / rate limit
-- 一時的な 500 / 502 / 503 / 504
+- `about.get`
+- token refresh の一時的 transport failure
+- 429
+- 一時的 500 / 502 / 503 / 504
+- same file ID / same desired body の update で、reconciliation後に安全と確認できる場合
 
-retry 回数 / backoff は小さく bounded にし、Workflow timeout 内へ収める。無制限 retry は禁止する。
+### 11.2 原則retryしない
 
-### 11.2 原則 retry しない
-
-- 400 系入力エラー
-- `invalid_grant` 等の OAuth semantic error
-- permission / policy error
-- conflict
+- 400系入力エラー
+- `invalid_grant` 等 OAuth semantic error
+- permission / capability failure
+- conflict / stale preflight
 - invalid metadata
-- ambiguous mapping
-- duplicate
-- unsupported rename / move
+- ambiguous mapping / duplicate
+- unsupported rename / move / Shared Drive
 - canonical round-trip mismatch
 
-### 11.3 `files.create` は blind retry しない
+### 11.3 `files.create`
 
-Google Doc create が timeout / connection reset / 5xx 等で「Google 側で成功したか不明」になった場合、同じ POST を即 retry しない。
+timeout / connection reset / 5xx 等で成功不明なら blind retryしない。
 
-同じ:
+same:
 
 1. parent
-2. Google Doc name
+2. name
 3. Google Docs MIME type
 4. `appProperties.githubPath`
 
-で Drive を pagination 付きで再検索する。
+で `trashed = false` + pagination付き再検索。
 
-| 再検索結果 | 処理 |
+| 結果 | 処理 |
 | --- | --- |
-| 0 件 | create retry 可能 |
-| 1 件 | 作成済みとしてその file ID を再利用 |
-| 2 件以上 | ambiguous fail |
+| 0件 | create retry可能 |
+| 1件 | 作成済みとしてfile ID再利用 |
+| 2件以上 | ambiguous fail |
 
-Google Workspace conversion create では pre-generated ID による idempotent create を前提にしない。
+folder createも same parent / name / folder MIME type で reconcile。
 
-folder `files.create` も同じ考え方を適用し、結果不明時は same parent / name / folder MIME type で reconcile して duplicate folder を防ぐ。
+### 11.4 `files.update`
 
-### 11.4 update の不確定失敗
+update成功不明時は同じ file ID を metadata get + re-export。
 
-update が成功したか不明な場合、blind write retry の前に同じ file ID を re-export する。
-
-- current Google canonical == desired Git canonical:
-  - update 成功済みとして扱い、strict round-trip / metadata finalize へ進む。
-- current Google canonical == Preflight 時 Google canonical:
-  - bounded retry 可能。
+- current canonical == desired canonical:
+  - update成功済みとして post-write equality / metadata finalizeへ。
+- current canonical == pre-write snapshot canonical かつ identity/version関係が安全:
+  - fresh stale check をやり直したうえで bounded retry可能。
 - それ以外:
-  - human edit / unexpected mutation の可能性があるため fail し、上書きしない。
+  - concurrent edit / unexpected mutation として failし、上書きしない。
+
+### 11.5 state metadata update
+
+metadata update成功不明時は `files.get` で desired `appProperties` と current version / identity をreconcileする。
+
+- desired stateが反映済み: success。
+- old stateのまま、Google content / identityもfresh: bounded retry可能。
+- unexpected state / content: fail。
 
 ---
 
 ## 12. GitHub Actions Workflow
 
-### 12.1 1 Workflow を維持
-
-実装対象:
+### 12.1 1 Workflow
 
 ```text
 .github/workflows/google-docs-sync.yml
 ```
 
-1ファイルだけとし、direction ごとに Workflow を分けない。
+1ファイルのみ。
 
 ### 12.2 Trigger
 
-概念上:
+概念:
 
 ```yaml
 on:
@@ -827,78 +914,52 @@ on:
           - google-to-git
 ```
 
-- `push` to `main`:
-  - Git → Google のみ。
-- `workflow_dispatch`:
-  - direction 明示。
-  - manual 実行対象 ref は `main` に限定する。
-- Google → Git の schedule は初期版では作らない。
+- `push` to `main`: Git → Google。
+- `workflow_dispatch`: direction明示、refは`main`限定。
+- Google → Git scheduleなし。
 
-### 12.3 Jobs / permissions
+### 12.3 permissions
 
-1 Workflow 内で direction ごとに job を分け、job-level permissions を最小化する。
-
-#### Git → Google job
+Git → Google job:
 
 ```text
 contents: read
 ```
 
-Repository write / PR permission は持たせない。
-
-#### Google → Git job
+Google → Git job:
 
 ```text
 contents: write
 pull-requests: write
 ```
 
-既存 automation convention に合わせ:
+既存 convention:
 
-- `actions/checkout` 等は既存 pin を利用。
-- `persist-credentials: false`。
-- `github.token` / `GITHUB_TOKEN` を利用。
-- `gh auth setup-git`。
-- explicit automation branch push。
-- force push 禁止。
+- pinned Actions
+- `persist-credentials: false`
+- `GITHUB_TOKEN`
+- `gh auth setup-git`
+- explicit non-force branch push
+- `gh pr create`
 
-### 12.4 concurrency
+PAT / GitHub App は追加しない。
 
-Git → Google / Google → Git で共通の固定 concurrency group を使う。
+### 12.4 concurrency / timeout
+
+direction共通:
 
 ```text
 group: google-docs-markdown-sync
 cancel-in-progress: false
 ```
 
-同じ Drive root を操作するため、direction 別 group に分けない。
+各主要jobへ `timeout-minutes` を設定する。初期値は30分程度とし、実測なしに過度に延長しない。
 
-### 12.5 timeout
+### 12.5 automation PR CI
 
-各主要 sync job に `timeout-minutes` を設定する。
+`GITHUB_TOKEN` 由来PRでは GitHub Actions の挙動により approval-required となる場合があるため、Google → Git targeted validation は **PR作成前** に必須。
 
-初期値:
-
-```text
-30 minutes
-```
-
-実測で不足が確認されるまで過度に延長しない。
-
-### 12.6 `GITHUB_TOKEN` と PR CI
-
-初期版では PAT / GitHub App を追加しない。
-
-GitHub の現行仕様では、Workflow が `GITHUB_TOKEN` で Pull Request を作成 / 更新した場合、`pull_request` の opened / synchronize / reopened による Workflow run は approval-required state になる場合がある。
-
-そのため:
-
-- Google → Git sync Workflow 内の targeted validation を PR 作成 **前** に必ず成功させる。
-- PR 上の通常 repository CI は補助的な review gate とする。
-- 完全無人 CI が必須になった場合だけ認証方式を別途再検討する。
-- 初期版では PAT / GitHub App を追加しない。
-
-PR merge 自体は人間の review / merge を前提とし、merge 後の `main` push で Git → Google が起動して baseline を finalize する。
+PR自動mergeはしない。
 
 ---
 
@@ -906,9 +967,7 @@ PR merge 自体は人間の review / merge を前提とし、merge 後の `main`
 
 ### 13.1 Google → Git runtime
 
-変更 Markdown にのみ Prettier を適用する。
-
-全 Markdown 共通:
+全変更Markdown:
 
 ```bash
 pnpm exec prettier --write <changed markdown files only>
@@ -916,7 +975,7 @@ pnpm run lint:markdown
 git diff --check
 ```
 
-`docs/spec/**/*.md` が1件でも変更された場合は必須:
+spec変更あり:
 
 ```bash
 pnpm run validate:spec
@@ -924,260 +983,232 @@ pnpm run validate:spec-visuals:final
 pnpm run build:spec
 ```
 
-`docs/curriculum/**/*.md` が1件でも変更された場合は必須:
+curriculum変更あり:
 
 ```bash
 pnpm run validate:curriculum
 ```
 
-spec / curriculum の両方が変わった場合は両方の targeted validation を実行する。
-
-`build:spec` 等が生成する ignored output を commit 対象にしない。validation 後も changed-file allowlist を再確認する。
-
 ### 13.2 Git → Google runtime
 
-外部 write 前の最低限 gate:
-
-共通:
+Google write前:
 
 ```bash
 pnpm run lint:markdown
 ```
 
-spec が対象の場合:
+spec対象:
 
 ```bash
 pnpm run validate:spec
 ```
 
-curriculum が対象の場合:
+curriculum対象:
 
 ```bash
 pnpm run validate:curriculum
 ```
 
-既存 CI と重複する `pnpm run verify` / web build / 全 test suite は毎回実行しない。
-
 ### 13.3 `pnpm run verify`
 
-責務を分ける。
+- runtime: targeted validationのみ。
+- implementation完了時: `pnpm run verify` を実行。
+- 通常PR: repository CI。
 
-- Google → Git runtime:
-  - targeted validation のみ。
-- Git → Google runtime:
-  - external write 前に必要な targeted validation のみ。
-- 実装完了時:
-  - `pnpm run verify` を1回実行。
-- 通常 PR:
-  - repository CI。
-
-同期 Workflow 内で targeted validation の直後に `pnpm run verify` を重複実行しない。
+同期Workflow内で targeted validation + `verify` を重複実行しない。
 
 ---
 
 ## 14. Initial bootstrap
 
-### 14.1 対象
+current `main` の対象全件を使用し、3ファイルPoCは行わない。
 
-current `main` に存在する:
+### Flow
 
-```text
-docs/spec/**/*.md
-docs/curriculum/**/*.md
-```
+1. targeted validator。
+2. about/root validation。
+3. full read-only Preflight。
+4. duplicate / conflict / ambiguity 0。
+5. Apply。
+6. 各write直前 stale check。
+7. import / update。
+8. re-export。
+9. canonical equality。
+10. identity / baseline finalize。
+11. targeted validator再確認。
+12. 全件summary。
 
-全件。
+### Completion
 
-3ファイル等の部分 PoC は行わない。
+全対象について以下すべて成功時だけ `bootstrap successful`。
 
-### 14.2 Bootstrap flow
+- 列挙
+- root / path mapping
+- duplicateなし
+- import / update
+- pre-write stale check
+- re-export
+- canonical equality
+- validator
+- identity
+- baseline
+- conflict / ambiguityなし
 
-1. Repository targeted validator を実行。
-2. Git → Google Read-only Preflight を全件実行。
-3. duplicate / conflict / ambiguity 0 件を確認。
-4. Apply を開始。
-5. 各 Git Markdown を Google Docs へ create / update。
-6. 各 Doc を `text/markdown` re-export。
-7. Git / Google 双方を最小 canonicalization。
-8. **canonical equality** を確認。
-9. equality 成功後だけ baseline を保存。
-10. 全対象完了後、repository targeted validator を再確認。
-11. 全件 summary を出す。
-
-### 14.3 Bootstrap completion
-
-全対象 Markdown について次がすべて成功した場合だけ bootstrap successful とする。
-
-1. 全対象 file 列挙
-2. path mapping 成功
-3. duplicate folder / Doc なし
-4. Google Docs import / update 成功
-5. re-export 成功
-6. canonical round-trip equality
-7. repository validator 成功
-8. Google Doc identity 確定
-9. baseline 保存成功
-10. conflict / ambiguity なし
-
-1件でも失敗すれば bootstrap successful と表示しない。
-
-summary では各 target の状態を最低限次で識別可能にする。
+summary:
 
 ```text
 created
 updated
 adopted
+state-only
 no-op
+pending
 failed
 ```
 
-必要に応じて `state-only` / `skipped` も区別してよい。
+1件でもfailなら成功表示しない。
 
-### 14.4 Bootstrap partial failure
-
-Apply 中に失敗した場合:
-
-- 成功済み Doc は残す。
-- 自動 rollback / delete をしない。
-- 次回は全件 Preflight から再実行。
-- canonical-equal success item は no-op / safe adoption。
-- create 不確定 item は reconciliation。
-- mismatch / duplicate / conflict が残る場合は write 前に停止。
+partial failureでは成功済みDocをdeleteせず、次回full Preflightからsafe rerunする。
 
 ---
 
 ## 15. Error handling / Security
 
-### 15.1 Fail-safe
+### Fail-safe
 
-次は fail-safe に停止する。
-
-- OAuth / permission failure
-- path traversal / unsafe path
-- duplicate
-- ambiguous mapping
+- OAuth / root / capability failure
+- unsupported Shared Drive root
+- path traversal / unsafe segment / normalization collision
+- duplicate / ambiguous mapping
 - invalid `appProperties`
 - `githubPath` mismatch
 - unsupported rename/move
-- conflict
+- conflict / direction mismatch
+- stale Preflight / concurrent edit
 - canonical round-trip mismatch
 - target allowlist violation
-- unexpected Google MIME type on a managed target
-- create reconciliation が 2 件以上
-- update reconciliation で unexpected content を観測
+- unexpected managed MIME type
+- create reconciliation 2件以上
+- update reconciliation unexpected content
+- `main advanced during sync`
 
-### 15.2 Warning / ignore
+### Warning / ignore
 
-次は全体 fail にしない。
+- sync root外
+- target subtree外
+- Google Docs以外
+- target subtree内だが `.md` で終わらない unmanaged Doc
 
-- sync root 外 item
-- target subtree 外 item
-- Google Docs 以外
-- target subtree 内だが `.md` で終わらない unmanaged Google Doc
-  - warning + ignore
+### Logs
 
-### 15.3 Logs
+file path、action、HTTP status、bounded retry count、diagnostic `version` / `modifiedTime` は出してよい。
 
-log は file path、action、HTTP status、bounded retry count、diagnostic `modifiedTime` 等を含めてよい。
-
-credential / token / raw auth response は含めない。
-
-Google API error は status / sanitized error code / sanitized message だけに絞る。
+credential / token / Authorization header / raw auth response は出さない。
 
 ---
 
 ## 16. Tests
 
-ネットワーク API 自体を unit test で再実装するような過剰 mock は避け、pure decision / request contract / orchestration boundary を固定する。
+API自体を再実装する過剰mockは避け、decision / path / request contract / orchestration boundaryを固定する。
 
-最低限:
-
-### Path / Drive mapping
+### 16.1 Path / Drive
 
 - target path allow / deny
 - Windows separator normalization
-- `..` / root escape rejection
-- Git path → Drive path
-- Drive path → Git path
-- duplicate folder
-- duplicate Doc
-- same name in different parent は許可
-- `githubPath` mismatch → rename/move fail
+- `/` / `\\` / `.` / `..` / NUL / control char をDrive item nameとして拒否
+- 1 Drive item nameが複数Git segmentにならない
+- root escape
+- normalization collision
+- duplicate folder / Doc
+- same name different parent許可
+- `githubPath` mismatch
 - appProperties byte-size overflow
-- `.md` でない Google Doc → warning / ignore
-- multiple Docs → same Git path → ambiguous
+- `.md`でないDoc warning / ignore
+- `trashed=true`はactive candidateにしない
+- invalid root ID
+- root non-folder
+- root trashed
+- Shared Drive root → unsupported fail
+- insufficient capability
+- `files.list` pagination
+- about import/export capability不足 → write前fail
 
-### State / conflict
+### 16.2 State / baseline
 
-- baselineなし・Gitのみ → create
-- baselineなし・Googleのみ → Google→Git create candidate
-- baselineなし・双方同一 → safe adoption
-- baselineなし・双方相違 → ambiguous
-- unchanged / unchanged → no-op
+- Bなし / G==D → safe adoption
+- Bあり / G==D / B!=G → converged state finalize
+- Bなし / G!=D → ambiguous
+- unchanged / unchanged
 - Git-only changed
 - Google-only changed
-- both changed + canonical equal → converged / state-only
-- both changed + divergent → conflict
-- wrong direction overwrite prevention
-- `modifiedTime` が判定へ影響しない
+- both changed + G==D
+- both changed + divergent
+- wrong-direction overwrite prevention
+- Git exists / Google missing → Git→Google recreate
+- Git missing / Google exists → Google→Git recreate PR
+- wrong directionではdeleteしない
+- Google→Git PR必要run → baseline不変
+- PR close → baseline不変
+- PR merge → Git→Googleでbaseline finalize
+- `modifiedTime` / `version`をwinner判定に使わない
 
-### Retry / reconciliation
+### 16.3 Concurrent edit / stale snapshot
 
-- list pagination
-- GET / export bounded retry
-- create timeout → search 0 → retry
-- create timeout → search 1 → reuse
-- create timeout → search 2+ → fail
+- Preflight後、Apply前にGoogle `version`変化 → updateせずfail
+- Preflight後、Google canonical変化 → updateせずfail
+- identity / relevant metadata unexpected change → updateせずfail
+- state-only update直前にGoogle content変化 → baselineを書かない
+- post-write equalityが成功しても pre-write stale checkを省略しない
+- state-only Google→Git finalize時、Google snapshot変化 → baselineを書かない
+
+### 16.4 Retry / reconciliation
+
+- create timeout → search 0 / 1 / 2+
 - folder create reconciliation
-- update timeout → desired content observed → success
-- update timeout → old content observed → bounded retry
-- update timeout → third content observed → fail
-- 400 / auth / conflict は retry しない
+- update timeout → desired / old / third content
+- metadata update reconciliation
+- 400 / auth / conflict / staleはretryしない
 
-### Workflow / orchestration
+### 16.5 Main race / Workflow
 
+- Google→Git開始後 origin/main SHA変化 → PR作成せずfail
+- state-only finalize前 origin/main SHA変化 → baselineを書かない
+- open sync PR → dependency install / Google sync開始前にblocked
 - full Preflight failure → Google write 0
-- Preflight success → planned Apply のみ実行
-- Apply partial failure → rollback delete なし
-- Google→Git PR 前 validation failure → branch / PR 作成なし
-- open sync PR → blocked、新規 PR なし
-- no-op → PR なし
-- changed-file allowlist violation → PR なし
-- baseline は Google→Git PR 作成時に進まない
-- PR merge 後の Git→Google safe adoption で baseline が確定可能
+- Apply partial failure → rollback deleteなし
+- targeted validation failure → PRなし
+- changed-file allowlist violation → PRなし
 
-### Round-trip fixtures
+### 16.6 Round-trip fixtures
 
-実際の全件 bootstrap で差分が観測された construct だけ fixture 化する。
-
-候補として事前に独自 adapter を作らない。
+全件bootstrapで**実際に観測された** constructだけ fixture化する。先回りadapterは作らない。
 
 ---
 
 ## 17. 実装責務 / ファイル構成方針
 
-実装前 Plan で file 数 / class 構成を固定しすぎない。
-
 必要責務:
 
 - OAuth token refresh
 - Drive REST client
-- target file discovery
-- Drive pagination
-- path mapping / duplicate detection
+- about capability check
+- My Drive root validation
+- target discovery / pagination / Trash filtering
+- path segment / mapping / duplicate detection
 - canonicalization / SHA-256
 - sync metadata
-- Preflight
-- conflict decision
+- Section 7 decision logic
+- Preflight snapshot model
+- stale snapshot check
 - Git → Google Apply
-- Google → Git export / working tree update
+- Google → Git initialMainSha / state-only finalize / working tree update
 - retry / reconciliation
 - targeted validation
 - GitHub PR orchestration
 
-実装先は `scripts/docs/` 配下を基本とし、数百行の単一巨大 file と「1 function = 1 file」の両極端を避ける。
+実装先は `scripts/docs/` 配下を基本とし、数百行の単一巨大fileと1 function = 1 fileの両極端を避ける。
 
-初期案としては次程度を検討してよいが、責務が自然にまとまるなら統合 / 分割してよい。
+初期案:
 
 ```text
 scripts/docs/google-docs-sync/
@@ -1188,9 +1219,9 @@ scripts/docs/google-docs-sync/
   path-mapping.ts
 ```
 
-unit test は `tests/unit/` の既存 convention に合わせる。
+責務が自然にまとまるなら統合 / 分割してよい。
 
-大きな Google SDK dependency は追加せず、Node 標準 `fetch` を使った必要 endpoint だけの小さな REST boundary を基本とする。
+Node標準 `fetch` を使い、大型Google SDK dependencyは追加しない。
 
 ---
 
@@ -1198,60 +1229,47 @@ unit test は `tests/unit/` の既存 convention に合わせる。
 
 ### Git → Google
 
-#### main push
-
-対象 path の merge / push:
-
 ```text
-main
-→ Google sync Workflow
+main push / manual
 → targeted validation
-→ read-only Preflight
+→ about + root validation
+→ full read-only Preflight
+→ per-item stale check
 → Apply
+→ post-write strict re-export
 ```
 
-Google 側だけに変更がある managed Doc を検出した場合は conflict / direction mismatch として停止し、Git で上書きしない。
-
-#### manual
-
-`workflow_dispatch(direction=git-to-google)` で `main` 全対象の整合 / bootstrap / repair run を実行可能にする。
+Googleだけ変更されたmanaged DocをGitで上書きしない。
 
 ### Google → Git
 
-`workflow_dispatch(direction=google-to-git)` のみ。
-
 ```text
-Google
-→ read/export
-→ conflict decision
-→ Git working tree
-→ targeted validation
-→ automation branch
-→ commit
-→ non-force push
-→ PR
+manual main
+→ checkout + initialMainSha
+→ open PR guard
+→ install
+→ OAuth / about / root validation
+→ discovery/export
+→ Section 7 decision
 ```
 
-PR が merge されるまで Google baseline は進めない。
-
-open sync PR がある間は新規 pull を blocked とする。
+- PR不要: main freshness + Google snapshot freshness後にstate-only finalize。
+- PR必要: working tree → validation → main freshness → branch / commit / push / PR。baseline writeなし。
 
 ---
 
-## 19. 削除の扱い
+## 19. 削除 / Trash
 
-自動 delete は一切行わない。
+削除は同期イベントとして伝播しない。
 
-そのため、片側で同期済み対象を手動削除すると、逆方向同期で再生成される可能性がある。初期版では deletion 自体をサポート外とする。
+- active Google探索は `trashed = false`。
+- trashed managed Doc は active missing と扱う。
+- Trashから自動復元しない。
+- Trash itemをduplicate candidateへ数えない。
+- Trash itemを自動deleteしない。
+- remaining sideから**正しい方向**で同期した場合に再生成される。
 
-- Git に file があり Google Doc がない:
-  - baseline state が Doc とともに失われているため、新規 Git-only item と同様に Google create され得る。
-- Google Doc があり Git file がない:
-  - Google→Git を実行すれば Git file が再作成され得る。
-
-これを自動 delete へ変換しない。
-
-明示的 delete / rename workflow は今回作らない。
+詳細な missing-side decision は Section 7 を正本とする。
 
 ---
 
@@ -1259,204 +1277,183 @@ open sync PR がある間は新規 pull を blocked とする。
 
 ### R1. Markdown round-trip incompatibility
 
-最重要。
-
-対策:
-
-- 全件 bootstrap。
-- canonical equality を原則成功条件。
-- Validator pass だけで許容しない。
-- 実際に観測された非意味的差分だけ最小 adapter + regression fixture。
+- 全件bootstrap。
+- canonical equality。
+- Validator passだけで許容しない。
+- 観測差分だけ最小adapter + regression fixture。
 
 ### R2. Apply partial success
 
-Google API は複数 Doc の transaction を提供しない。
+- full Preflight。
+- per-item stale check。
+- post-write re-export。
+- rollback deleteなし。
+- safe rerun。
+
+### R3. create / update ambiguity
+
+- blind retry禁止。
+- create / folder / update / metadata reconciliation。
+- ambiguousならfail。
+
+### R4. full Drive scope
+
+- Secrets。
+- log redaction。
+- validated My Drive root hard-bound。
+- Shared Drive unsupported。
+
+### R5. Human edit during Apply
 
 対策:
 
 - full read-only Preflight。
-- Apply plan 固定。
-- item ごとの post-write re-export。
-- baseline finalize は equality 後。
-- rollback delete なし。
-- safe rerun。
+- snapshotに `fileId` / `version` / canonical hash / identity / relevant metadataを保持。
+- content write直前に snapshot freshness を再確認。
+- staleならwriteせずfail。
+- state-only metadata updateでも同様にfreshness確認。
+- update後はstrict re-export。
 
-### R3. create duplicate
+Residual Risk:
 
-create response lost 後の blind retry。
+- final freshness check と Google API update の間の TOCTOU は完全には排除できない。
+- Google側編集lock、paragraph単位編集、cross-system transaction / atomic CASは初期版では導入しない。
 
-対策:
+### R6. Google → Git main race
 
-- parent / name / MIME / `githubPath` reconciliation。
-- 0 / 1 / 2+ の決定的処理。
-- folder create も同様。
+- `initialMainSha`を固定。
+- state-only finalize / PR作成前に `origin/main` freshness確認。
+- advancedならfailして再実行。
+- 自動rebase / mergeなし。
 
-### R4. full Drive scope
+### R7. Automation PR CI approval
 
-credential compromise 時の blast radius が大きい。
-
-対策:
-
-- Secrets。
-- log redaction。
-- sync root hard-bound。
-- Internal / appropriate production OAuth operation。
-- 不要な scope / Picker UI は追加しない。
-
-### R5. Human edit during Apply
-
-Workflow concurrency は Actions 同士だけを防ぎ、人間の Google Docs 編集は停止できない。
-
-対策:
-
-- Preflight baseline。
-- update の不確定 retry 前の re-export reconciliation。
-- post-write strict re-export。
-- unexpected content は fail。
-- 完全な cross-system transaction / lock は初期版の対象外。
-
-### R6. Automation PR CI approval
-
-`GITHUB_TOKEN` 由来 PR の CI が approval-required になる可能性。
-
-対策:
-
-- PR 作成前 targeted validation 必須。
-- auto-merge なし。
-- PAT / GitHub App は初期版へ追加しない。
+- PR作成前 targeted validation。
+- auto-mergeなし。
+- PAT / GitHub Appなし。
 
 ---
 
 ## 21. Open questions
 
-Blocking な未確定事項はなし。
+Blockingな未確定事項はなし。
 
-実装時に実データでのみ確定する事項:
+Shared Driveは未確定事項ではなく **初期版 unsupported** と確定する。
 
-- Google Docs Markdown import / export で current Repository のどの construct に canonical diff が発生するか。
+実データでのみ確認する事項:
 
-これは設計上の未回答質問ではなく、initial all-file bootstrap validation の結果として扱う。
+- Google Docs Markdown import / exportで、current Repositoryのどのconstructにcanonical diffが発生するか。
 
-差分が1件でも残る場合は bootstrap successful とせず、観測された差分だけを分析して最小修正する。
+これはinitial all-file bootstrapの実測事項であり、差分が残ればbootstrap successfulとしない。
 
 ---
 
 ## 22. Definition of Done
 
-### Scope / mapping
+### Scope / Drive boundary
 
-- [ ] 対象が `docs/spec/**/*.md` / `docs/curriculum/**/*.md` のみに hard-bound されている。
+- [ ] 対象が2 globのみにhard-bound。
 - [ ] 1 Markdown = 1 Google Doc。
-- [ ] folder hierarchy mapping が決定されている。
-- [ ] Google Doc name に `.md` を含める。
-- [ ] duplicate folder / duplicate Google Doc を検出できる。
-- [ ] `files.list` の pagination を全ページ処理する。
-- [ ] Drive name を一意キーとして1件目採用しない。
+- [ ] Drive hierarchy / `.md` naming contract確定。
+- [ ] initial versionはMy Driveのみ。
+- [ ] Shared Drive rootをunsupported failできる。
+- [ ] root存在 / folder / `trashed=false` / My Drive / list capabilityを検証。
+- [ ] active探索は`trashed=false`。
+- [ ] about import/export capabilityをruntime確認。
+- [ ] `files.list` pagination全ページ対応。
+- [ ] 必要なDrive response fieldsを明示。
+- [ ] planned actionに必要なcapabilityをPreflight確認。
+- [ ] Drive item nameを安全な1 Git path segmentとして検証。
+- [ ] duplicate / normalization collisionをfail。
 
-### State / conflict
+### State / decision
 
-- [ ] `githubPath` + `lastSyncedSha256` の最小 metadata で baseline を表現する。
-- [ ] `appProperties` 124-byte `key + value` 制約を検証する。
-- [ ] state missing + canonical equal を safe adoption できる。
-- [ ] state missing + canonical unequal は ambiguous fail。
-- [ ] Last Writer Wins を行わない。
-- [ ] `modifiedTime` / commit time を winner 判定に使わない。
-- [ ] opposite side only changed を wrong direction で上書きしない。
-- [ ] both changed + divergent は conflict。
-- [ ] Google→Git PR 作成時点で baseline を確定しない。
-- [ ] PR merge 後、main push の Git→Google で canonical equality を確認して baseline を確定できる。
+- [ ] Section 7を同期判定の唯一の正本とする。
+- [ ] `githubPath` + `lastSyncedSha256`でbaseline表現。
+- [ ] state missing + `G==D` safe adoption。
+- [ ] Google→GitでもPR不要ならsafe adoption / converged finalize可能。
+- [ ] Google→Git content PR runではmerge前にbaselineを進めない。
+- [ ] PR merge後 Git→Googleでbaseline finalize。
+- [ ] baselineあり / なしを含む片側missing decisionが明確。
+- [ ] deleteを逆側へ伝播しない。
+- [ ] Last Writer Winsなし。
+- [ ] `version` / `modifiedTime` / commit timeをwinner判定に使わない。
 
 ### Git → Google safety
 
-- [ ] 全対象 read-only Preflight 後にだけ Apply する。
-- [ ] conflict 発見前に Google を変更しない。
-- [ ] Preflight で create / update / no-op / state-only / adoption を確定する。
-- [ ] Apply 中の partial failure で rollback delete しない。
-- [ ] 次回 full Preflight から安全に再実行可能。
-- [ ] create ambiguous timeout を reconciliation できる。
-- [ ] update indeterminate failure を re-export で reconcile する。
+- [ ] 全件read-only Preflight後だけApply。
+- [ ] Preflight snapshotにfileId/version/D/identity/metadataを保持。
+- [ ] content write直前にsnapshot staleness再確認。
+- [ ] Preflight後のGoogle human edit検出時、content writeしない。
+- [ ] state-only metadata update前にもGoogle snapshot再確認。
+- [ ] create直前にparent / duplicate / capability再確認。
+- [ ] post-write strict re-export。
+- [ ] create / update ambiguous failureをreconcile。
+- [ ] partial failureでrollback deleteしない。
+- [ ] safe rerun可能。
+- [ ] final check→update間TOCTOUをResidual Riskとして明記。
 
 ### Google → Git
 
-- [ ] Google 新規 `.md` Doc から Git file を新規作成できる。
-- [ ] `.md` でない unmanaged Doc は warning + ignore。
-- [ ] 同一 Git path へ複数 Docs が mapping したら fail。
-- [ ] managed Doc の current path と `githubPath` mismatch は unsupported rename/move fail。
-- [ ] main へ直接 push しない。
-- [ ] automation branch / commit / non-force push / PR。
-- [ ] auto-merge しない。
-- [ ] existing open sync PR は blocked とし、新規 PR を作らない。
+- [ ] 開始時`initialMainSha`を保持。
+- [ ] open sync PR guardを重い処理より前へ置く。
+- [ ] state-only finalize前にmain freshness確認。
+- [ ] state-only finalize前にGoogle snapshot freshness確認。
+- [ ] PR前に`origin/main == initialMainSha`確認。
+- [ ] main advancedなら自動rebaseせずfail。
+- [ ] Google新規Doc / Git missingをPRでrecreate可能。
+- [ ] main直接pushなし。
+- [ ] automation branch / non-force push / PR。
+- [ ] auto-mergeなし。
 
-### Round-trip / validation
+### Round-trip / Validation / Security
 
-- [ ] 初回は全対象 file を round-trip する。
-- [ ] canonical equality を成功条件にする。
-- [ ] Validator pass だけで canonical diff を許容しない。
-- [ ] 観測されていない adapter を追加しない。
-- [ ] spec change 時に `validate:spec` / `validate:spec-visuals:final` / `build:spec` を実行する。
-- [ ] curriculum change 時に `validate:curriculum` を実行する。
-- [ ] runtime で targeted validation + `pnpm run verify` を二重実行しない。
-- [ ] implementation 完了時に `pnpm run verify` を実行する。
-
-### Workflow / OAuth / Security
-
-- [ ] `push main` + target paths で Git→Google が自動実行される。
-- [ ] `workflow_dispatch` で Git→Google / Google→Git を選べる。
-- [ ] Google→Git schedule を作らない。
-- [ ] Workflow は1ファイル。
-- [ ] Git→Google job は `contents: read`。
-- [ ] Google→Git job は `contents: write` / `pull-requests: write`。
-- [ ] direction 共通 concurrency group + `cancel-in-progress: false`。
-- [ ] major job に `timeout-minutes` を設定する。
-- [ ] OAuth offline access / Refresh Token で unattended execution できる。
-- [ ] External + Testing の 7-day Refresh Token 制約を運用条件に反映する。
-- [ ] Refresh Token `invalid_grant` 等で Google write 前に安全に停止する。
-- [ ] full Drive scope を採用する理由を明記する。
-- [ ] Secrets / token / Authorization header を log に出さない。
-- [ ] `GITHUB_TOKEN` を維持し、automation PR CI の approval-required behavior を運用注意として扱う。
-
-### Bootstrap completion
-
-- [ ] 全対象列挙、mapping、duplicate check、import/update、re-export、canonical equality、validator、identity、baseline、conflict check が全件成功した時だけ bootstrap successful。
-- [ ] summary で created / updated / adopted / no-op / failed を確認できる。
-- [ ] 1件失敗時に bootstrap successful と誤表示しない。
+- [ ] initial all-file round-trip。
+- [ ] canonical equalityを成功条件。
+- [ ] spec change時 `validate:spec` / `validate:spec-visuals:final` / `build:spec`。
+- [ ] curriculum change時 `validate:curriculum`。
+- [ ] runtimeで`verify`重複実行なし。
+- [ ] implementation完了時`pnpm run verify`。
+- [ ] OAuth offline access / External Testing制約反映。
+- [ ] full Drive scope理由明記。
+- [ ] Secret / tokenをlogしない。
+- [ ] shared concurrency / timeout設定。
+- [ ] `GITHUB_TOKEN`維持。
 
 ---
 
 ## 23. 実装手順
 
-実装時は次の順序を基本とする。
-
-- [ ] 1. 実装時点の `main` と Repository conventions を再確認する。
-- [ ] 2. target path policy / Drive path mapping / duplicate rule を pure logic として実装する。
-- [ ] 3. minimal canonicalization / SHA-256 / `appProperties` validation を実装する。
-- [ ] 4. `B / G / D` decision table と safe adoption を pure logic として実装・test する。
-- [ ] 5. OAuth Refresh Token → Access Token の小さな REST boundary を実装する。
-- [ ] 6. Drive REST client に list pagination / export / update / create / metadata update を実装する。
-- [ ] 7. retry policy と create / folder / update reconciliation を実装・test する。
-- [ ] 8. Git→Google read-only Preflight を実装し、failure 時 write 0 を test する。
-- [ ] 9. Git→Google Apply を実装し、post-write re-export / baseline finalize / safe rerun を test する。
-- [ ] 10. Google→Git discovery / new Doc / conflict / working-tree update を実装する。
-- [ ] 11. targeted validation / changed-file allowlist / open PR blocked guard を実装する。
-- [ ] 12. automation branch / commit / `gh auth setup-git` / non-force push / PR 作成を既存 convention に合わせる。
-- [ ] 13. `package.json` に同期 CLI command を追加する。
-- [ ] 14. `.github/workflows/google-docs-sync.yml` を1ファイルで追加し、push / workflow_dispatch / job permissions / shared concurrency / timeout を実装する。
-- [ ] 15. unit / fake boundary test を完了する。
-- [ ] 16. GitHub Secrets を設定し、current `main` の全対象で initial bootstrap を実行する。
-- [ ] 17. 全対象 strict canonical round-trip を確認する。
-- [ ] 18. canonical diff があれば bootstrap を止め、実際に観測した construct だけ regression fixture + 最小 adapter で対応する。
-- [ ] 19. Google existing Doc edit → Google→Git PR を live 検証する。
-- [ ] 20. Google new `.md` Doc → Git new Markdown PR を live 検証する。
-- [ ] 21. Git new Markdown → Google new Doc を live 検証する。
-- [ ] 22. both-side conflict / opposite-side-only change / rename-move / duplicate / create timeout 相当を検証する。
-- [ ] 23. Google→Git PR merge 後の `main` push → Git→Google safe adoption / baseline finalize を確認する。
-- [ ] 24. implementation 最終差分で `pnpm run verify` を実行する。
+- [ ] 1. 実装時点の `main` / Repository conventions / Google API仕様を再確認。
+- [ ] 2. target path / Drive segment / mapping / duplicate / Trash ruleをpure logic化。
+- [ ] 3. canonicalization / SHA-256 / `appProperties` validationを実装。
+- [ ] 4. Section 7 Decision Tableをpure logicとして実装・test。
+- [ ] 5. Preflight snapshot model / stale snapshot checkを実装・test。
+- [ ] 6. OAuth Refresh Token → Access Token REST boundary。
+- [ ] 7. Drive REST clientへabout check / My Drive root validation / list pagination / get / export / create / update / metadata update / capabilities取得を実装。
+- [ ] 8. retry / create・folder・update・metadata reconciliationを実装・test。
+- [ ] 9. Git→Google full read-only Preflightを実装。
+- [ ] 10. Git→Google Applyへper-item stale check / post-write re-export / baseline finalizeを実装。
+- [ ] 11. Google→Git early open PR guard / `initialMainSha` captureを実装。
+- [ ] 12. Google→Git discovery / state-only safe adoption・converged finalizeを実装。
+- [ ] 13. Google→Git working-tree update / targeted validation / final main freshness checkを実装。
+- [ ] 14. automation branch / commit / `gh auth setup-git` / non-force push / PRを既存 conventionに合わせる。
+- [ ] 15. `package.json`に同期CLI command追加。
+- [ ] 16. `.github/workflows/google-docs-sync.yml`を1ファイルで追加し、push / workflow_dispatch / job permissions / shared concurrency / timeoutを実装。
+- [ ] 17. Section 16のunit / fake boundary testsを完了。
+- [ ] 18. GitHub Secrets設定後、current `main` 全対象でinitial bootstrap。
+- [ ] 19. 全対象 strict canonical round-trip。
+- [ ] 20. 観測diffだけ regression fixture + 最小adapterで対応。
+- [ ] 21. liveでGoogle edit→PR、Google new Doc→Git recreate、Git new→Google createを確認。
+- [ ] 22. concurrent edit / stale version / state-only stale / main race / missing-side / Trash / Shared Drive root failを確認。
+- [ ] 23. PR merge後 main push→Git→Google baseline finalize確認。
+- [ ] 24. implementation最終差分で`pnpm run verify`。
 
 ---
 
-## 24. Plan 修正時点の Validation / 参照
+## 24. Plan修正時点のValidation
 
-Plan 実装時には以下の command 名が `package.json` に存在することを再確認済み。
+Plan内 command 名が現在の `package.json` に存在することを確認する。
 
 ```text
 lint:markdown
@@ -1467,7 +1464,7 @@ build:spec
 verify
 ```
 
-Plan-only 修正の validation は次を使用する。
+Plan-only修正:
 
 ```bash
 pnpm exec prettier --check docs/plans/2026-09-07_201539_google-docs-markdown-sync.md
@@ -1476,37 +1473,33 @@ git diff --check
 git diff --name-only
 ```
 
-Plan-only のため `pnpm run verify` はこの修正では必須にしない。
+Plan-onlyのため`pnpm run verify`は必須にしない。
 
 ---
 
 ## 25. 成果物 / 変更境界
 
-この Plan 修正で変更する file:
+今回変更するfile:
 
 ```text
 docs/plans/2026-09-07_201539_google-docs-markdown-sync.md
 ```
 
-実装時の変更候補:
+今回変更禁止:
 
 ```text
-.github/workflows/google-docs-sync.yml
-scripts/docs/google-docs-sync/**
-tests/unit/google-docs-sync*.test.ts
+.github/workflows/**
+scripts/**
+tests/**
+src/**
+apps/**
 package.json
+pnpm-lock.yaml
+docs/spec/**
+docs/curriculum/**
 ```
 
-依存追加は初期方針では不要のため `pnpm-lock.yaml` 変更は想定しない。
-
-runtime の Google → Git が content として変更してよいのは:
-
-```text
-docs/spec/**/*.md
-docs/curriculum/**/*.md
-```
-
-のみ。
+実装時の変更候補は別途Planに従う。今回は実装しない。
 
 ---
 
@@ -1518,26 +1511,23 @@ Branch:
 feat/google-docs-markdown-sync
 ```
 
-Plan 作成時 base:
+現在のPlanは既存branch上で更新する。
 
-```text
-856a14eb448a6ad6bf9722f623cf0d094b7a7d2a
-```
-
-実装開始時には base の固定 SHA を信頼せず、その時点の `main` を再取得して Repository conventions / package scripts / Google API 仕様に drift がないか確認する。
+実装開始時には固定base SHAを信頼せず、その時点の`main` / Repository conventions / package scripts / Google API仕様を再確認する。
 
 ---
 
 ## 27. 実装時の優先順位
 
-1. **対象 glob の hard boundary**
-2. **全件 read-only Preflight before Apply**
-3. **canonical hash による data-loss prevention**
-4. **strict all-file round-trip equality**
-5. **safe adoption / baseline lifecycle**
-6. **create / update reconciliation と safe rerun**
-7. **新規追加の双方向対応**
-8. **targeted validation + PR automation**
-9. **運用上の利便性**
+1. **対象glob / My Drive rootのhard boundary**
+2. **Section 7 Decision Tableの一意性**
+3. **full read-only Preflight**
+4. **write直前 stale snapshot check**
+5. **canonical hashによるdata-loss prevention**
+6. **strict all-file round-trip equality**
+7. **safe adoption / baseline lifecycle**
+8. **create / update reconciliationとsafe rerun**
+9. **Google→Git main freshness**
+10. **targeted validation + PR automation**
 
 安全性を上げない抽象化や将来用途の機能は追加しない。
