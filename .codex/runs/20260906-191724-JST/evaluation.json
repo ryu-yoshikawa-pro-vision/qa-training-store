@@ -9,7 +9,7 @@
       "rating": "blocked",
       "evidence": "実装、dataset、deterministic validation、repository validation、Observation Probe、canonical all実行まで完了したが、8 boundary-sideのobservable coverageを満たすvalid baselineを取得できなかった。",
       "evidence_refs": [
-        {"kind": "evaluation_note", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-06 21:09", "summary": "canonical all 24件がtimeoutでunobservableとなり、baselineを採用しない根拠を記録した。"}
+        {"kind": "evaluation_note", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-07 11:17", "summary": "canonical attempt4は全24 caseを完了したが、22件timeout・8 side中6 side欠落のためvalid baselineを採用しない根拠を記録した。"}
       ]
     },
     "scope_control": {
@@ -23,7 +23,7 @@
       "rating": "blocked",
       "evidence": "eval dataset validate、repository test、Skill validation、full verifyはPASSしたが、canonical baseline validityはHost execution timeoutにより未達である。",
       "evidence_refs": [
-        {"kind": "validation_command", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-06 21:20", "summary": "最終validationとcanonical observabilityの差分を記録する。"}
+        {"kind": "validation_command", "path": ".codex/runs/20260906-191724-JST/REPORT.md", "selector": "2026-09-07 11:17", "summary": "指定validationはPASSだが、canonical attempt4の8-side observabilityは未達である。"}
       ]
     },
     "safety_compliance": {
@@ -52,12 +52,13 @@
       "rating": "blocked",
       "evidence": "dataset fingerprint、Evaluator SHA、Routing source SHA、Codex versionをresultへ保存できたが、canonical allの8 side observable条件を満たさないためvalid baselineとして再利用できない。",
       "evidence_refs": [
-        {"kind": "changed_file", "path": ".codex/runs/20260906-191724-JST/trigger-eval-baseline.json", "summary": "invalid canonical resultのprovenanceと24件のtimeoutを保存する。"}
+        {"kind": "changed_file", "path": ".codex/runs/20260906-191724-JST/trigger-eval-baseline.json", "summary": "canonical attempt4のprovenance、24件のoutcome、22件のtimeout、2件のobservable結果を保存する。"}
       ]
     }
   },
   "findings": [
-    {"severity": "blocker", "summary": "Host execution latencyがPlanの120秒case timeoutを超え、全24件がunobservableとなった。"}
+    {"severity": "blocker", "summary": "canonical attempt4はCodex 0.153.4で22件が327秒timeoutとなり、8 boundary-side中6 sideがunobservableのためvalid baseline条件を満たさない。"},
+    {"severity": "observation", "summary": "timeout measurement／Observation Probe時点のCodex 0.153.0からcanonical時点の0.153.4へHost versionが変化しており、同一timeout前提の再現性を確定できない。"}
   ],
   "improvement_candidates": []
 }

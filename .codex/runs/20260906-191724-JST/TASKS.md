@@ -40,6 +40,8 @@
 - [ ] 32. canonical `all`を最初から1回実行し、validity/8-side coverageを確認する
 - [ ] 33. baseline/Run Artifactをsanitization、commit、pushしPRを確認する
 - [x] 34. 全case完了前に終了したcanonical sessionをinvalid runとして記録し、部分結果を採用しない
+- [x] 35. canonical attempt4を全24 case完了まで実行し、invalidity/provenance/8-side coverage不足を記録する
+- [ ] 36. invalid canonical evidenceとRun Artifactをcommitし、対象branchへpushしてPR状態を確認する
 
 ## Blocked
 

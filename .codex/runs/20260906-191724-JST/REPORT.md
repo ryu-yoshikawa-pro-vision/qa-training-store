@@ -211,3 +211,29 @@
 - Blocker / Remaining: valid canonical baseline未取得。次はclean evaluatorからcanonical `all`を最初から1回完了させ、8-side coverageとprovenanceを確認する。
 - Subagents: 使用なし。
 - Progress: 88% (29/33)
+
+## 2026-09-07 11:17 (JST)
+
+- Summary: 中断runを無効化した後、attempt4としてcanonical `all`を最初から最後まで1回完了させた。全24 caseの結果artifactは生成されたが、8 boundary-side observability条件を満たさず、valid baselineとしては採用しない。
+- Execution: 2026-09-07 09:05:30 JSTに、同じEvaluator CLI/script、同じ独立Routing Target、`split=all`、327000ms timeout、同じoutput pathで開始し、11:14:59 JSTにrunnerが終了した。長時間PTYを避けるため、package scriptの実体を`node <pnpm.cjs> run eval:skills:trigger --target-root ... --split all --output ...`としてbackground起動した。runner内部のCodex launch shapeは変更していない。
+- Result: `pass=1`、`false_negative=1`、`unobservable=22`。unobservable 22件はすべて`unobservable_reason=timeout`で、途中Hook activityからrouting outcomeを補完していない。`--compare`なしのため`comparison` fieldは出力されていない。
+- Observed coverage: observable caseは`android-native-local-validation-train-001`（expected android-native-local-validation、observed `[]`、false_negative）と`feature-plan-train-001`（observed feature-plan、pass）の2件のみ。8 side中、`exploratory-qa-vs-android-native-local-validation/android-native-local-validation`と`feature-plan-vs-direct-implementation/feature-plan`だけが観測され、以下6 sideが欠落した: `code-review-vs-repair-loop/code-review`、`code-review-vs-repair-loop/repair-loop`、`exploratory-qa-vs-android-native-local-validation/exploratory-qa`、`feature-plan-vs-direct-implementation/null`、`repair-loop-vs-harness-improvement/harness-improvement`、`repair-loop-vs-harness-improvement/repair-loop`。
+- Provenance: artifactは`evaluator_git_sha=0820c355888b03bd9ffb437a00435bde11bfff4c`、`routing_source_git_sha=856a14eb448a6ad6bf9722f623cf0d094b7a7d2a`、dataset fingerprint `283cb4d73f841095f576d82708bc5adc1ee763a6df21756c24078a07c50226f3`、Codex `codex-cli 0.153.4`、`executed_at=2026-09-07T02:14:59.047Z`を記録した。`0820c35`はsource変更を含まないRun記録commitであり、source/Plan実装commitは`272dcd1a5af8f3da0a144dfb8b5b3ed9cb366df3`である。
+- Environment classification: timeout measurementとObservation Probe時点のCodexは`0.153.0`だったが、canonical時点の実Hostは`0.153.4`へ変化していた。current `codex --version`も`0.153.4`であり、327秒timeout下で22件がterminalへ到達しなかった。このversion driftとHost latencyにより、今回のartifactは現行Hostの観測データではあるがvalid baseline条件を満たさない。新たなtimeout変更、case retry、query/dataset/description/selector変更は行わない。
+- Decision / Rationale: このrunをinvalid canonical evidenceとして保存し、旧runや今回の途中結果を混在させない。Planの8-side DoD未達を隠さず、Codex versionを固定・再確認した環境で、必要なmeasurement/Plan判断を再承認してから次のcanonical実行を行うべきblockerとして扱う。今回の作業では、追加のcanonical retryや都合のよい結果の採用はしない。
+- Validation: source変更後に実行済みの`eval:skills:trigger:validate`、`test:repository`、`validate:skills`、`verify`、Observation ProbeはすべてPASS。canonical attempt4自体はcoverage不足のためexit 1（Evaluatorが`missing sides`を報告）。
+- Scope: Skill description、`AGENTS.md` routing意味契約、Product code/test、training content、dataset/query、selector/scoringは変更していない。追加したのはtimeout前提の正本Plan変更、`CASE_TIMEOUT_MS=327000`、Run/調査記録のみ。
+- Blocker / Remaining: valid canonical baseline未取得。8 side coverage不足とCodex version driftを解消する正式な環境/Plan判断なしに、追加runは開始しない。
+- Subagents: 使用なし。
+- Progress: 89% (31/35)
+
+## 2026-09-07 11:27 (JST)
+
+- Summary: canonical invalid evidence保存前の最終validation、scope確認、sanitizationを完了した。
+- Validation: `pnpm run eval:skills:trigger:validate` PASS（12 files/24 cases/fingerprint `283cb4d73f841095f576d82708bc5adc1ee763a6df21756c24078a07c50226f3`）、`pnpm run test:repository` PASS（7 files/57 tests）、`pnpm run validate:skills` PASS（6 Skill/15 Markdown/24 links）、`pnpm run verify` PASS（34 files/495 passed/3 skipped、Native 13 suites/64 tests、lint 0 errors/65 warnings）。Observation Probeはtimeout変更後にnegative約24.597秒、positive約232.645秒、双方`turn.completed`でPASS済み。
+- Sanitization: `scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260906-191724-JST -Write -Check` PASS（7 files、0 replacements、residual 0）。
+- Scope: `git diff --check` PASS。変更対象はtimeout正本Plan/Evaluator、timeout調査・Run Artifact、既存PR2実装/dataset/test/package scriptで、6 Skill description、`AGENTS.md` routing意味契約、Product code/test、training content、dependencyは変更なし。
+- Decision / Rationale: attempt4のJSONは全24 caseを保存した観測証跡としてcommit対象にするが、valid canonical baselineとは表示・採用しない。missing 6 boundary side、Codex 0.153.0→0.153.4 drift、22 timeoutをblockerとしてPRへ追跡可能に残す。
+- Remaining: invalid evidenceのbaseline/Run Artifact commit、non-force push、PR #127 state/head確認。valid baseline取得はCodex version固定とtimeout前提の再判断が必要なため、今回のrun後に追加実行しない。
+- Subagents: 使用なし。
+- Progress: 89% (31/35)
