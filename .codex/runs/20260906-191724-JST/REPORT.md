@@ -360,3 +360,14 @@
 - Decision / Rationale: validation failureはなく、repair-loop iteration 1のsource修正を完了と判定する。次はactive Run Artifactをsanitizeし、source commitでevaluator SHAを固定してから、同じ`codex-cli 0.153.4`のmeasurement/Probeへ進む。canonical `all`はその後の直前条件成立時だけ開始する。
 - Subagents: 使用なし。
 - Progress: 82% (36/44)
+
+## 2026-09-08 00:23 (JST)
+
+- Summary: fresh canonical結果の判定、Run Artifact、source/evaluator SHA、commit/push、PR #127本文更新・確認まで完了した。Runの作業項目は完了扱いとするが、valid baselineは未取得である。
+- Result: fresh artifactは24/24 case完了、`pass=2`、`false_negative=2`、`unobservable=20`（全件timeout）、observable `4/24`、8 boundary-side `3/8`。8-side DoD未達のためinvalid evidenceとして保存し、有効baseline/comparison sourceには昇格しない。
+- Provenance: evaluator=`918b23f4db1e89d2b0702efa9532a66a6434fdba`、routing source=`856a14eb448a6ad6bf9722f623cf0d094b7a7d2a`、dataset fingerprint=`84456cef0270fe58a41a9df3bcb3a00a33c52566189072c16050ed02d3f66161`、Codex=`codex-cli 0.153.4`、case timeout=`327秒`。旧artifactは保持した。
+- Git / PR: Run Artifact commit `7c128244e0bbbf258423efe1258b2e3f244d368a`をsource commitと分離して作成し、`git push origin HEAD:refactor/117-pr2-trigger-eval-baseline`でpushした。PR #127はOPEN、base=`main`、head branch一致、remote headも同SHA。本文を日本語のfresh factsへ更新し、timeout、invalid判定、observable coverage、次の低遅延環境要件を記載した。
+- Final checks: `gh pr view 127 --json title,body,headRefName,headRefOid,baseRefName,state`、remote ref照合、`git diff --check`、Run Artifact sanitizationを実行した。source/evaluation/Runの内容にmust-fix findingはない。
+- Decision / Rationale: selector drift、dataset execution confounder、Codex version driftを是正した検証結果を保存した。追加retry、timeout変更、query/description変更、外部review service起動は行わない。valid baseline取得はHost execution latencyを解消した別環境で、承認後に最初から再実行する。
+- Subagents: 使用なし。
+- Progress: 100% (44/44)

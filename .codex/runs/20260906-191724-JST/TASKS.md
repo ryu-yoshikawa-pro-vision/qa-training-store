@@ -49,7 +49,7 @@
 - [x] 41. dataset fingerprintを更新し、4 validation・scope・sanitizationを完了する
 - [x] 42. `codex-cli 0.153.4` 固定のmeasurement / positive-negative Observation Probeを完了する
 - [x] 43. canonical直前条件を再確認し、fresh `all`を24 case sequential/retryなしで1回実行する
-- [ ] 44. canonical結果判定、Run Artifact、source/evaluator SHA、commit/push、PR本文を確定する
+- [x] 44. canonical結果判定、Run Artifact、source/evaluator SHA、commit/push、PR本文を確定する（valid baselineは未達）
 
 ## Blocked
 
@@ -57,3 +57,4 @@
 - timeout原因診断ではrunner相当positiveの120秒時点に`turn.completed`/`turn.failed`がなく、process treeに`codex.exe`が残存した。runner lifecycle defectではなくHost execution latency（Case B）と分類し、canonical `all`は再実行しない。
 - timeout変更後のcanonical `all`はHook activityの途中で外部実行sessionが終了し、runner最終artifactが生成されなかったため、Plan §13.3に基づき全体を無効化した。次回は同じdataset/query/timeoutで最初から1回実行し、部分結果を混在させない。
 - canonical attempt4は全24 caseを完了したが、Codex 0.153.4で22件が327秒timeout、8 side中6 side欠落となった。valid baselineは採用せず、Codex version固定とtimeout前提の再判断をblockerとする。
+- fresh remediation runはCodex 0.153.4で24/24 caseを完了したが、20件timeout・observable 4/24・8 side中3 sideのためvalid baseline未達。低遅延環境での再実行は別途承認が必要である。
