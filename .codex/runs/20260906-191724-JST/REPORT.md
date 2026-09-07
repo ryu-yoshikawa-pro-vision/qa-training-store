@@ -247,3 +247,83 @@
 - Blocker: valid canonical baseline未取得。Codex `0.153.0`で測定した327秒前提に対し、canonical時点のCodex `0.153.4`では22件がtimeout、8 side中6 side欠落。Codex versionを固定してtimeout前提を再判断するまで、追加canonical runは行わない。
 - Subagents: 使用なし。
 - Progress: 89% (32/36)
+
+## 2026-09-07 21:15 (JST)
+
+- Summary: ユーザー指示のPR #127 blocker remediationへ切り替えた。既存active Run `20260906-191724-JST`を継続し、canonical `all`はselector drift、dataset audit、Codex version固定、4 validation、Probe、canonical直前条件が成立するまで禁止する。
+- Evidence: current branchは`refactor/117-pr2-trigger-eval-baseline`、PR #127はOPEN/base=`main`/head branch一致、HEAD=`91dea5e`。current `codex --version`は`codex-cli 0.153.4`。旧artifactは`pass=1`、`false_negative=1`、`unobservable=22`、observable `2/24`、8 sides `2/8`、旧fingerprint `283cb4d...`を保持している。
+- Plan: `docs/plans/2026-09-07_211249_issue-117-pr2-trigger-eval-blocker-remediation.md`を保存した。allowed scopeはselector、repository contract test 7種、欠陥query、Plan/Run Artifact、PR本文に限定し、scoring/timeout/Skill description/AGENTS.md/旧invalid artifactは変更しない。
+- Decision / Rationale: `scripts/evals/run-skill-trigger-evals.ts`の現在の完全一致selectorは、Hookで実測された`Get-Content -Raw .agents/skills/<skill>/SKILL.md`、single-quoted path、backslash pathのうち1形状だけを受理しており、selector defectの修正が必要。24 queryはrouting以外の長時間実作業・不足文脈を全件監査し、gamingにならない根拠と変更差分を保存する。
+- Repair loop: iteration 1、findingsはselector false negativeとdataset execution/self-contained defectを`must_fix`、allowed filesは計画書記載のselector/test/dataset/Run/PR scope。validationは指定4 gate、selector 7種、同一version Probe。canonical retryは前提成立後の1回に限定する。
+- Subagents: 使用なし。
+- Progress: 75% (33/44)
+
+## 2026-09-07 21:27 (JST)
+
+- Summary: selectorとdatasetのbounded repairを完了した。current Host shape再確認、selector pure logic、regression test、24 case manual audit、dataset fingerprint更新まで完了し、canonical `all`は引き続き未実行である。
+- Selector: Target Hook JSONLで、forward slash/unquoted、forward slash/single quote、backslash/unquoted、`-LiteralPath` single-quotedの4実測形を確認した。`canonicalSkillForCommand`はこの4つのcanonical `.agents/skills/<skill>/SKILL.md`完全形だけを受理し、別file、path mention、search command、別canonical Skillの混同を受け入れない。
+- Test evidence: `pnpm exec vitest run tests/repository-contract/skill-trigger-evals.test.ts --no-file-parallelism --maxWorkers=1` は18 tests PASS。初回はdataset query変更により旧重複検知fixtureが不成立となったため、train queryを参照するfixtureへ最小修正し、同じfocused testを再実行してPASSした。
+- Dataset audit: `dataset-audit.md`へ24/24 caseのA Self-contained、B Execution-bounded、C Single-intent、D Natural判定を保存した。24/24は不足文脈または過剰workflowを含んでいたため変更し、`expected_skill`、`boundary`、case ID、12 file構成は維持した。変更はrouting resultのgamingではなく、対象・入力・bounded completionを明示するdataset defect修正である。
+- Fingerprint: `pnpm run eval:skills:trigger:validate` PASS、12 files/24 cases、新fingerprint=`84456cef0270fe58a41a9df3bcb3a00a33c52566189072c16050ed02d3f66161`。旧fingerprint=`283cb4d...`と旧invalid artifactは変更・上書きしていない。
+- Environment: current `codex --version`は`codex-cli 0.153.4`。新しいmeasurement/Probe/canonicalはこのversionを固定条件とし、timeout `327_000ms`は変更しない。
+- Decision / Rationale: dataset queryはTarget上で会話文脈を要求しないよう、具体的なRepository pathまたはprompt内の観測事実を含めた。full APK build/install/Maestro、購入フロー全体、repository全体レビュー、未特定PR/error/Run参照はboundedな対象へ置換した。
+- Subagents: 使用なし。
+- Progress: 82% (36/44)
+
+## 2026-09-07 22:00 (JST)
+
+- Summary: `codex-cli 0.153.4`を固定条件として、canonical前のpositive measurementと同一selectorによるpositive/negative Observation Probeを完了した。canonical `all`はまだ開始していない。
+- Measurement: `node .artifacts/trigger-eval-duration-measurement.mjs <target>`を1回実行し、`turn.completed`まで`172.9062秒`、child exit/closeはcode 0、外側600秒safetyは未発火だった。timeout `327_000ms`に対して`154.0938秒`の余裕があり、timeout変更理由は発生していない。measurement詳細はGit管理外の`.artifacts/trigger-eval-duration-measurement-20260907.json`に保存した。
+- Observation Probe: positive queryはexit 0、Hook差分1件、同一selectorが`feature-plan`の実Skill読込を検出した（`Get-Content -Raw .agents/skills/feature-plan/...`等）。negative queryはexit 0、Hook差分1件、selector選択0件だった。summaryは`.artifacts/trigger-eval-selector-probe-20260907/summary.json`に保存した。両方のCodex versionは`codex-cli 0.153.4`。
+- Decision / Rationale: selector drift修正後も、実測positiveとnegativeを同じcanonical selectorで区別できることを確認した。dataset fingerprint、source/evaluator SHA、timeout、scoringは変更しない。次はcanonical直前preflightへ進む。
+- Remaining: active Run Artifactの最終sanitization、canonical直前条件、fresh `all` 1回、結果判定、Artifact commit/push、PR本文更新が未完了。
+- Subagents: 使用なし。
+- Progress: 84% (37/44)
+
+## 2026-09-07 22:05 (JST)
+
+- Summary: canonical起動の最初の試行はcase開始前のEvaluator preflightで停止した。fresh artifactは生成されず、canonical結果・partial resultは存在しない。
+- Evidence: background runnerはexit code 1で、`Evaluator has source changes outside .codex/runs/**: M .codex/runs/20260906-191724-JST/PLAN.md`を出力した。Evaluatorの`sourceStatusOutsideRunArtifacts`が`git status`出力全体をtrimするため、先頭のRun内変更のstatus列を欠落させて誤認したもの。source変更やTarget変更ではない。
+- Decision / Rationale: case 0件のpreflight-only失敗であり、canonical retryやcase retryには数えない。Evaluatorのclean-source前提を満たすため、active Run Artifactをsanitization後にcheckpoint commitし、同じ条件でcanonical `all`を最初から1回だけ再起動する。旧invalid artifactは変更しない。
+- Remaining: Run checkpoint commit、clean preflight、canonical実行、結果判定、最終sanitization/commit/push、PR本文更新。
+- Subagents: 使用なし。
+- Progress: 84% (37/44)
+
+## 2026-09-07 22:03 (JST)
+
+- Summary: preflight成立後、fresh canonical `all`を指定条件で開始した。実行完了前の部分結果は採用しない。
+- Execution: `node <pnpm.cjs> run eval:skills:trigger --target-root <target> --split all --output .codex/runs/20260906-191724-JST/trigger-eval-baseline-remediation.json`をbackgroundで起動した。Evaluator内部のCodex launch shape、`CASE_TIMEOUT_MS=327_000`、sequential順序、retryなしは変更していない。生stdout/stderrは`.artifacts/trigger-eval-canonical-remediation-20260907/`へ保存する。
+- Artifact contract: 旧`trigger-eval-baseline.json`は保持し、新artifactが全24 case終了後に生成されるまで結果判定を行わない。
+- Remaining: canonical process完了、8-side coverage/provenance/result判定、最終sanitization、Run Artifact commit/push、PR本文更新。
+- Subagents: 使用なし。
+- Progress: 84% (37/44)
+
+## 2026-09-07 22:03 (JST)
+
+- Summary: fresh canonical `all`開始直前のpreflightを完了した。selector修正後のsource SHA、Target、dataset、version、PR、Run外scopeがすべて条件を満たすため、canonicalを1回だけ開始できる状態と判定した。
+- Git / PR: evaluator HEADおよびPR #127 headは`4724df6a4768169acbd77126d604f2b386ce5942`、current branchは`refactor/117-pr2-trigger-eval-baseline`、`origin/main`は`856a14eb448a6ad6bf9722f623cf0d094b7a7d2a`、PRはOPEN/base=`main`/head branch一致。未コミット差分は`.codex/runs/20260906-191724-JST/`配下のみで、Evaluator preflightのRun外変更は0件。
+- Target / provenance: Routing Targetはdetached `856a14eb448a6ad6bf9722f623cf0d094b7a7d2a`、`origin/main`と一致し、working tree clean。TargetはEvaluator外の独立cloneでanswer keyを含まない。project/hook trustは既存Probeと同じ通常条件で成立している。
+- Dataset / environment: `pnpm run eval:skills:trigger:validate` PASS（12 files / 24 cases / fingerprint `84456cef0270fe58a41a9df3bcb3a00a33c52566189072c16050ed02d3f66161`）。`codex --version`は`codex-cli 0.153.4`。timeoutは`327_000ms`、splitは`all`、caseはsequential、retryなしとする。
+- Artifact protection: 旧`.codex/runs/20260906-191724-JST/trigger-eval-baseline.json`はSHA256 `24202C7A06F778D29F248C6CC6FE27C08B56A308B3002C9F80A4E3B22DF85434`、旧fingerprint/provenanceのinvalid evidenceとして保持する。fresh resultは同ファイルを上書きせず、`trigger-eval-baseline-remediation.json`へ出力する。
+- Decision / Rationale: canonical条件は成立したため、同じ`codex-cli 0.153.4`、Target、dataset fingerprint、timeout、selectorでfresh `all`を最初から1回だけ実行する。canonical終了・artifact生成まで追加のrunは開始しない。
+- Remaining: canonical結果判定、最終sanitization、Run Artifact/source SHAのcommit・push、PR本文更新が未完了。
+- Subagents: 使用なし。
+- Progress: 84% (37/44)
+
+## 2026-09-07 21:47 (JST)
+
+- Summary: selector、24 query、repository contract、Plan/ADR/PROJECT_CONTEXT/historyをsource scopeとして`4724df6a4768169acbd77126d604f2b386ce5942`へcommitした。
+- Provenance: `evaluator_git_sha=4724df6a4768169acbd77126d604f2b386ce5942`、dataset fingerprint=`84456cef0270fe58a41a9df3bcb3a00a33c52566189072c16050ed02d3f66161`、current Codex=`codex-cli 0.153.4`。Run Artifactはsource commitへ混在させず、旧invalid artifactのprovenanceは変更しない。
+- Git safety: commit直前にcurrent branch=`refactor/117-pr2-trigger-eval-baseline`を確認した。PR #127のhead branchも同一で、protected `main`へcommitしていない。
+- Remaining: source commitのnon-force push、same-version measurement/Observation Probe、canonical直前条件、fresh canonical `all`、Run Artifact sanitization/commitが未完了。canonical `all`はまだ開始しない。
+- Subagents: 使用なし。
+- Progress: 82% (36/44)
+
+## 2026-09-07 21:46 (JST)
+
+- Summary: selector/dataset/ADR/PROJECT_CONTEXTを含む最終source差分へ指定validationを再実行し、全gate PASSを確認した。
+- Validation: `pnpm run eval:skills:trigger:validate` PASS（12 files / 24 cases / fingerprint `84456cef0270fe58a41a9df3bcb3a00a33c52566189072c16050ed02d3f66161`）。`pnpm run test:repository` PASS（7 files / 65 tests）。`pnpm run validate:skills` PASS（6 Skill / 15 Markdown / 24 links）。`pnpm run verify` PASS（exit 0、34 files / 495 passed / 3 skipped、web/spec build完了、lint 0 errors / 65 existing warnings）。
+- Scope: `git diff --check` PASS。source scopeは12 query YAML、selector、repository-contract test、new plan/ADR/PROJECT_CONTEXT/historyに限定される。Run Artifactは別管理し、旧invalid artifactは変更していない。
+- Decision / Rationale: validation failureはなく、repair-loop iteration 1のsource修正を完了と判定する。次はactive Run Artifactをsanitizeし、source commitでevaluator SHAを固定してから、同じ`codex-cli 0.153.4`のmeasurement/Probeへ進む。canonical `all`はその後の直前条件成立時だけ開始する。
+- Subagents: 使用なし。
+- Progress: 82% (36/44)

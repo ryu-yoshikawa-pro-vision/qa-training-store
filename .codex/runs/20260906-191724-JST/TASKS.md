@@ -42,6 +42,14 @@
 - [x] 34. 全case完了前に終了したcanonical sessionをinvalid runとして記録し、部分結果を採用しない
 - [x] 35. canonical attempt4を全24 case完了まで実行し、invalidity/provenance/8-side coverage不足を記録する
 - [x] 36. invalid canonical evidenceとRun Artifactをcommitし、対象branchへpushしてPR状態を確認する
+- [x] 37. blocker remediationのfeature plan、allowed scope、canonical停止条件を保存する
+- [x] 38. current Hostのselector shape、Codex version、旧invalid artifact provenanceを再確認する
+- [x] 39. selector最小正規化とrepository-contract regression test 7種を実装する
+- [x] 40. 24 queryをself-contained / execution-bounded / single-intent / natural観点で再manual reviewし、欠陥queryだけ修正する
+- [ ] 41. dataset fingerprintを更新し、4 validation・scope・sanitizationを完了する
+- [x] 42. `codex-cli 0.153.4` 固定のmeasurement / positive-negative Observation Probeを完了する
+- [ ] 43. canonical直前条件を再確認し、fresh `all`を24 case sequential/retryなしで1回実行する
+- [ ] 44. canonical結果判定、Run Artifact、source/evaluator SHA、commit/push、PR本文を確定する
 
 ## Blocked
 

@@ -55,3 +55,12 @@
 
 - 2026-09-06 19:17 JST: 既存の正本Planを全文確認し、同Planを実装判断のSSOTとした。新規Planの作成や正本Planの変更は行わない。
 - 2026-09-06 19:17 JST: `origin/main`は実装branchに対してbehind 0。protected routing/observation filesへのincoming diffは0件。
+
+## 2026-09-07 blocker remediation phase
+
+- 目的: valid baseline取得前に、current HostのSkill read shape drift、datasetのself-containedness / execution boundedness、Codex version driftを是正する。
+- 許可変更: `scripts/evals/run-skill-trigger-evals.ts`のselector最小正規化、repository-contract test 7種、欠陥と判定したTrigger Eval query、関連Plan/Run Artifact/PR本文。
+- 禁止変更: scoring、coverage、Hook correlation、process lifecycle、Skill description、AGENTS.md routing意味、timeout `327_000ms`、旧invalid artifact、Product code/test、dependency。
+- 仮説 H4: current Hostの4実測shape（forward slash/unquoted、forward slash/single quote、backslash/unquoted、`-LiteralPath` single-quoted）だけを明示的に受理すれば、selector driftを解消しつつpath mention/search/別fileのfalse positiveを防げる。
+- 仮説 H5: queryの対象・入力・完了条件を具体化し、build/install全体やrepository全体探索をboundedな確認へ狭めれば、routing以外の長時間実作業・不足文脈というdataset confounderを除去できる。
+- canonical条件: selector変更、24 case再review/fingerprint、4 validation、同一 `codex-cli 0.153.4` のmeasurement/Probe、Target/Trust/SHA/clean preflightが完了するまで `all`を開始しない。成立後のfresh `all`は1回だけとする。
