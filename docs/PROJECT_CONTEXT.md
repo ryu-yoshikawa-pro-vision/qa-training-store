@@ -548,3 +548,9 @@
 - `03_instructor-reference.md`はenvironment、account / permission、device、Training Copy、Infrastructure / Toolchainのsupport-only assetとし、学習内容・評価・Answer Key・個別判定の正本にしない。再利用可能なcriteria-only review checklistは`docs/reference/curriculum-self-study-review.md`に置く。
 - Native specializationのCommon外Evidenceはlearner-authored Native exercise / CI Diff、対応するExecution / Failure / Artifact / Cost判断へ分離する。AndroidはBuild + Runtime、iOSはBuild-onlyというCurrent保証を維持し、値・Protocol・Workflow topologyは既存SSOT / Referenceへ戻す。
 - `docs/spec/**`、Product behavior、Formal Test Strategy、Training runner / workflow / Artifact contract、PR #115は変更対象外である。
+
+## 教材品質監査（2026-09-08）
+
+- Product / Curriculum基準 `856a14e` の[教材品質監査](reports/2026-09-07_015504_repository-teaching-quality-audit.md#final-assessment)では、16領域を教材として評価した。最優先候補はTraining CopyとCI検証の参照整合、Training Scenario Resetの利用口、原因別Failure課題、価格計算の独立した仕様Oracleである。いずれも改善提案であり、実装修正・仕様決定は未実施。
+- 既存Training baseline / starterはDesktop / Mobile計4件、価格・権限Unitは5件PASS。意図的Failureは狙ったAssertionとArtifactを確認した。これをlearner competency、全回帰、Native Runtimeの保証へ昇格させない。
+- Native Restart、Mobile演習、8 conceptual views→4 CSV対応は既に存在する。重複新設せず、既存課題からEvidence・評価への接続を検討する。Native実機、全Scenario実行、学習者pilotは未実施。

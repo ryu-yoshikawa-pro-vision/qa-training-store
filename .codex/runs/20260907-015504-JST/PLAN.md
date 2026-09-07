@@ -66,3 +66,15 @@
 - ユーザーの「現時点での調査結果をレポートにまとめて終了」を優先し、追加のRepository調査・Runtime診断を停止する。
 - 現在の完了条件は、回収済みEvidenceに基づく中間Report、16領域の監査状況、18問への暫定回答、未検証事項、具体的な改善Roadmapを保存し、文書検証とSanitizerを完了すること。
 - 当初の全面監査DoDは未達。TASKSに当初計画を保存し、終了作業4項目を現在の進捗分母とする。Product / Curriculum / Harnessの変更は行わない。
+
+## 2026-09-08・監査再開
+
+- ユーザーの継続指示により当初8項目を再開する。前回の中間終了記録は保持する。
+- HEAD `a6eded198cc3307f7c07f3b740daaae8ad9e67e8` と前回対象SHAの差分は監査成果物6ファイルのみ。Product / Curriculumの基準は同じで、既存の静的所見と検証を再利用する。
+- Product / Spec代表境界、未読Lesson / Workbook、Native / AIの根拠を補完し、8件の既存Findingを反証する。検証は実行契約の安全な診断を優先し、既存Evidence削除やTraining CopyのGit mutationを含む経路を起動しない。
+- 中間レポートを履歴として保持し、同じファイルへ再開後の確認・訂正・統合判断を追記する。候補は提案のままとし、実装修正・外部レビュー・Git mutation・Native端末操作へ進まない。
+- Native / iOS実機・学習者pilotは当初の非目標を維持する。すべての業務仕様をRuntime検証済みとすることは完了条件ではなく、確認範囲と限界を明記した16領域・18問の監査報告を完成させる。
+
+- Living Documentation: AGENTS.mdの引継ぎ契約に従い、PROJECT_CONTEXTへ監査結果への短い参照を追記し、`docs/history/2026-09-08_080155_teaching-quality-audit.md` に更新履歴を残す。設計の採用判断はしていないためADRは追加しない。
+
+- 2026-09-08の追加指示「いったん中断してプッシュして」により、追加調査を停止する。Git mutationの非目標は今回の文書のcommit・pushに限って解除し、OPEN PR #129のhead `report/2026-09-07` へ明示refspecで保存する。mainへの反映・merge・外部レビュー起動は行わない。

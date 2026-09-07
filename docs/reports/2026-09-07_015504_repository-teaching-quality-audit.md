@@ -1,4 +1,6 @@
-# Scenario Shop 教材品質・Repository-wide Audit 中間レポート
+# Scenario Shop 教材品質・Repository-wide Audit
+
+2026-09-07の中間レポートを履歴として保持し、2026-09-08の再開結果を追記しています。**最新の評価・訂正は末尾の[再開監査・統合結論](#final-assessment)を参照してください。** 以下の中間部分にある「未実行」「終了」は、その時点の状態です。
 
 ## 結論
 
@@ -263,3 +265,140 @@ source_runsはいずれも `20260907-015504-JST`。この監査では採用・�
 ユーザー指示に従い、この中間レポートを保存して監査を終了する。Product、Curriculum、Training source、workflow、権限、依存、Git履歴の変更は行っていない。今回の成果物は監査Plan、当レポート、標準Run Artifactである。
 
 当初のRepository-wide Auditを再開する場合に残るのは、Product / Spec全体の意味監査、未読LessonとWorkbookの通し確認、F01の配布Copy再現、Training runtime、Native / AI候補の反証、実学習者による評価である。これらを完了済みとして扱わない。
+
+<a id="final-assessment"></a>
+
+## 再開監査・統合結論
+
+### 評価の基準と結論
+
+2026-09-08の継続指示により、同じRunで未確認の教材・代表的な仕様境界と既存テストの実行を補完した。再開時HEADは `a6eded198cc3307f7c07f3b740daaae8ad9e67e8`。前回の `856a14e` との差分は監査成果物6ファイルのみであり、Product / Curriculumの評価対象は変わっていない。
+
+**教材の土台は強い。最優先の課題は、機能不足ではなく、説明・演習用asset・CI・能力評価を最後までつなぐことである。** Analysisから始める順序、Riskによる層選択、POM非強制、Common / Nativeの分岐、自己確認は既に成立している。「Playwright APIの写経しか学べない」「Nativeを全員へ強制している」という評価は適切ではない。
+
+一方、配布Copyの検証不整合とTraining Resetの入口不足は、教えたい概念と無関係な環境・実装調査を受講者へ要求する。これらを先に解消し、原因別Failure、変更後の保守、別Featureへの転用、AI草案の批評を小さな後段課題として接続することが、学習効果に対する改善効率が高い。
+
+Commonのentry-level bounded Level 2と、独力で実案件の自動化基盤を設計・改善する能力は同一ではない。Commonへ高度な要求を一括追加せず、Core修了後に選べる実践課題で差を埋める。学習者pilot未実施のため、到達率・習得時間・実務能力を点数化した評価は行わない。
+
+### 追加診断と中間所見の更新
+
+| 対象 | 再開後の確認 | 現在の判断 |
+| --- | --- | --- |
+| F01・Copyの参照先 | 実 `validateCurriculum()` はSource viewでPASS。元Workflowの存在だけをメモリ上で不可視にすると `missing required file: .github/workflows/ci.yml` | 所見を補強。ディスク上のCopy生成・実CI再現ではないという限界は維持 |
+| Web baseline / starter | 取得済みの対象SHAのAutomation CI Artifactでdesktop / mobile各2件、計4 passed。workers 1、retries 0、skip / flaky 0 | 前回の起動前CLIエラーは解消。既存の疎通用Testは動くが、learner-authored能力の証明ではない |
+| expected-failure | 対象spec 5行目の意図したAssertionで1 failed。Expected false / Received true。Trace ZIP、PNG、WebM、HTMLを生成 | Artifactの取得経路は成立。F04の原因診断量とF05の失敗原因識別の課題は残る |
+| F02 | Source templateの許可集合、P2-4 / 5の演習、active-only編集の違いを再確認 | 条件付きの接続不整合として維持。あらゆるWorkflow編集で必ずCIが落ちるとは主張しない |
+| F03、F06〜F08 | Training asset、主要Lesson、Workbook、Rubric、Formal比較教材を追加照合 | F03は具体的な入口不足。F06〜F08は後段の実践・評価改善であり、説明や制度が存在しないという指摘ではない |
+
+診断の再現条件は、`playwright.training.config.ts`、`PLAYWRIGHT_BASE_URL=http://127.0.0.1:8082`、`PLAYWRIGHT_USE_PREBUILT_DIST=true`、`WEB_SERVER_DIST_ROOT`に取得済みCI Artifact、`--reporter='list,json,html' --workers=1 --retries=0`。対象は既存のbaseline / exercisesと、別attemptのfailure-exercisesである。出力はRun配下ではなくGit管理外の `.artifacts/repository-audit/20260907-015504-JST/{runtime-resume-20260908,failure-resume-20260908}/` に分離した。
+
+### 訂正・採用しなかった指摘
+
+- **Native Restartの新設案は撤回する。** [P1-7](../curriculum/test-automation/part1/07_maestro-native-automation.md) のLesson 8とハンズオン3に、Cart追加後の再起動・状態復元が既にある。改善対象は新しい同種課題ではなく、既存の操作・観測・同一attemptのEvidenceをC08へつなぐ説明である。
+- **Native CIのYAML authoring非必須は欠陥としない。** [P2-6](../curriculum/test-automation/part2/06_native-ci-maestro.md) は既存経路の実行、Failure stage、Artifact / Cost判断をRequiredとし、Workflow作成・変更は意図的にRequiredへ含めていない。CommonへのNative強制も推奨しない。
+- **Mobile / Accessibilityの説明欠落とはしない。** P1-5にはMobile exercise実行とDesktop差分記録、AccessibilityのExtensionがある。Formalにも [axe / Keyboard / Focusの比較素材](../../e2e/web/accessibility.spec.ts) がある。自動Scanが完全なAccessibility保証にならないという境界も説明済みである。
+- **8つの必須Sheetがある、4 CSVとの対応がない、という指摘は棄却する。** [Workbook教材](../curriculum/test-automation/01_spreadsheet-test-design.md) の49〜56行で8 conceptual views→4 canonical CSVが明記される。P1-8のRegression棚卸しも任意である。
+- **Legacyの旧件数要件をCommonの現行要件とはしない。** `10_part1-capstone.md`には冒頭のLegacyバナーがある。短いredirectへ縮約する価値はあるが、互換性を確認せず削除しない。
+- **新しい評価Schema / checkerは必須改善としない。** Rubricと自己確認は既にある。まず匿名化した提出例と短い根拠付き評価記録で校正し、必要性が実証されるまで採点基盤を増やさない。
+
+### F09・中 — 非プログラマが小さく変更して学ぶ構文課題を補う
+
+- Location / Evidence: [Learning Design](../curriculum/test-automation/00_learning-design.md) の対象者はプログラミング未経験を許容する。[P1-4](../curriculum/test-automation/part1/04_playwright-foundations.md) のLesson 0は変数、Object、関数、非同期、import、Destructuring等を説明するが、ハンズオン1は役割を指し示す課題で、その次は商品詳細・CartのTest作成になる。
+- Why it matters: 「構文の説明を読める」から「複数の構文を組み合わせてTestを作れる」への移行が大きい。Syntax / Type ErrorとProduct Failureの区別が付く前に、商品ID・Locator・Resetも同時に調べる負荷がある。
+- Suggested fix: P1-4のハンズオン1と2の間に、動く短いTraining Testを使う3問を置く。①商品名と期待結果を変え、何が変わるか予測する、②引数の型を誤って渡し、`typecheck:training`のFile / Line / Errorを読む、③元の型へ戻し、ActionとAssertionを1つずつ説明して実行する。Promise内部や高度なGenericsを追加しない。
+- 達成判定: 変更前の予測、意図した変更、型エラーの分類、修正後の実行を自分で説明できる。答えの丸写しや全コードの暗記を判定条件にしない。
+- Open questions / Verdict / confidence: **教材構造に基づく改善候補・中確信度**。P1-4には自作TestとRecoveryが既にあり、「実装演習がない」とは言わない。実際の滞留の大きさは初心者pilotで確認する。
+
+### F10・低 — C05の参照先と既存Workbookの記録例をそろえる
+
+- Location / Evidence: [Rubric C05](../curriculum/test-automation/02_competency-rubric.md) の21行はPrimary SourceをP1-6＋Formal Strategyとする。一方、層選択を導入する本文は [P1-3](../curriculum/test-automation/part1/03_test-design-and-automation-selection.md) のLesson 7 / 8である。P1-6は実行入口とFailure分析が中心。Formal StrategyはLevel / Perspective / Execution・Platform・Gateを別軸にしている。
+- Why it matters: C05を振り返る受講者が、判断を学ぶ節ではなく実行Script一覧へ戻る。conceptual viewのPlatform / Statusとcanonical CSVの既存列へ何を記録するかも、例があれば判断を説明しやすい。
+- Suggested fix: C05からP1-3へ直接戻れるようにし、P1-6は実行Evidenceの補助とする。購入上限の1Caseで、`test_layer=Unit`、`tool=Vitest`、実行候補、選択理由を既存列で説明するWorked Mappingを追加する。P1-8の任意棚卸しでは同一 `test_case_id` の03 / 04 CSVを引き継ぎ、分類をどの既存Fieldへ記すか示す。新Headerは要求しない。
+- 達成判定: Risk、層、Tool、実行条件、選択理由を1行で説明し、参照先から元の判断過程へ戻れる。最初からFormal分類名をすべて暗記する必要はない。
+- Open questions / Verdict / confidence: **局所的な導線改善・高確信度**。層選択の理論や例自体は既に充実しているため、高優先の能力欠落とはしない。
+
+### F11・中 — Agentの採点と、人がAI出力を検証する練習を分ける
+
+- Location / Evidence: [Optional Agentic QA教材](../curriculum/test-automation/part1/09_specification-agentic-qa.md) はOracle / Observed、Atomic Finding、False Positive、Runner / Evaluator分離、Coverage、Host能力の境界を説明する。演習はCharter、Challenge準備、指標の再計算等であり、AI草案に対する学習者の批評→修正→実行を成果物として要求していない。
+- Why it matters: Agentの結果をHarnessで採点できることと、学習者自身がAIの誤った期待値・弱いAssertion・Coverage漏れを見抜けることは別の能力である。通常のAI支援を学ぶためにScored Hostの準備を要求すると、目的から外れた環境負荷が増える。
+- Suggested fix: Optional入口の最初に同じCart仕様を使う批評課題を置く。学習者がRiskを先に書き、AI草案または配布済みのAI風サンプルから「仕様外の期待」「対象が曖昧な可視性Assertion」「Retry増加での隠蔽」を探す。採用 / 不採用理由、修正版、実行Evidence、残るCoverage gapを記録する。その後に、必要な受講者だけCharter / Scored比較へ進む。
+- 達成判定: AI出力をOracleや実行証拠にせず、BR / ACと観測結果で採否を説明できる。AI提案のすべてを拒否することや、特定Promptの一致を正解にはしない。静的サンプルを使えばAIアカウントや有料サービスは前提にならない。
+- Open questions / Verdict / confidence: **Optional教材の改善候補・高確信度**。AI品質規律が全くないという指摘ではない。学習者の実際の批評能力は未測定である。
+
+### Playwright教育の到達点と後段の補完
+
+| 能力群 | 現在学べること | 残る課題・適切な扱い |
+| --- | --- | --- |
+| Locator / Assertion / Auto waiting | P1-4にRole / Label、Actionとの区別、状態待機、固定waitの悪例 | 動くbaselineのCSS / firstの形を万能な模範とせず、選んだ対象と保証を説明させる |
+| Data / Isolation / Fixture | ScenarioとFixtureの違い、P1-8の責務・最小共通化、Formal fixtureの比較素材 | F03のTraining利用口を先に提供。共有状態の失敗を観測してからFixture内部へ進む |
+| Authentication / State reuse | LoginとCart統合のProduct・Formal例 | UI Login、Seed Session、保存状態の違いをF06の後段課題で比較。認証以外の業務データまで再利用しない |
+| Network / 非同期 | Payment Processing / Retry、local DB・Mockという制約 | 実HTTP通信制御は同じ経験ではない。必要なら1つのlocal adapterで遅延・失敗を扱う選択課題 |
+| Parallel / Retry / Project | config・Project・Retryの意味、Desktop / Mobileの実行入口 | worker数や実行順を変えたときの状態所有を説明する課題。緑になった回数だけで安定性を認定しない |
+| Trace / Screenshot / Video / Debug | P1-6の分類とEvidence、今回の実Artifact生成 | F04の未知原因を分ける3課題。Artifactの存在と診断の正しさを区別する |
+| POM / Helper / Test architecture | P1-8で複数案・現状維持・副作用を比較 | 抽象化数ではなく、既存の保証を保った最小改善と再実行で評価する |
+| Browser差 / Responsive | P1-5にMobile差分演習、FormalにCross-browser Smoke | 全Browser matrixをCoreへ強制せず、同じRiskに対して必要な環境を選ぶ |
+| Accessibility | P1-5 ExtensionとFormalのaxe / Keyboard / Focus | 自動Scanと手動観察の役割を分け、1つのFormで両方の限界を説明する選択課題 |
+| CI / Quality gate | P2でTrigger、Job、Artifact、Failure工程、費用を判断 | F01 / F02を修復し、自作TestでPRを赤→緑にする実行経路を完成させる |
+
+この表は機能紹介の網羅性を点数化するものではない。C01〜C12を満たすCoreと、認証・Network・並列・Accessibility等の発展範囲を分け、すべてを必須にしない。
+
+### F12・高 — 価格計算の業務Oracleとコード参照例外を明確にする
+
+- Location / Evidence: [Specification README](../spec/README.md) はNormativeファイルを限定し、コードを正本とする例外をRoute / Seed ID等の低レベル値に限定する。一方、[Roles and Permissions](../spec/roles-and-permissions.md) の15行は具体的Rank値をPolicyと価格計算Use Caseへ委ねる。[Storefront](../spec/features/storefront.md) のBR-STOREFRONT-003 / AC-STOREFRONT-003はSale期間・Rank別価格を要求するが、期間の端点、割引の丸め順序、送料閾値の計算基準を明記しない。
+- 具体例: 現実装の [pricing.ts](../../src/domain/services/pricing.ts) はSaleを開始時刻以上・終了時刻未満とし、単価ごとの割引額を切り捨ててから数量を掛け、送料を割引前小計で判定する。[旧Business Rules](../03_domain/business_rules.md) の107〜124行と [価格Unit Test](../../tests/unit/pricing.test.ts) には詳細があり、旧Business Rulesの冒頭自身にも「Phase 1の正本」と記載される。Normative側の限定と、参照先の正本表記・業務計算の委譲範囲が一意ではない。
+- Why it matters: goldの999円×2について、単価ごとなら割引98円、合算後に切り捨てれば99円となる。どちらを期待すべきかを、テスト対象の実装を読んで決めるだけでは独立したTest Analysisにならない。これは「全ACに完成済みTest Caseを載せるべき」という問題ではなく、期待値を導出するためのRuleの正本の問題である。
+- Suggested fix: Ownerが現行の計算意図を確認したうえで、短い価格Ruleとして、割引率、期間端点、丸めの単位・順序、送料の基準小計とRank例外をNormativeへ明記する。旧資料の正本表記はその位置付けと整合させる。金額ごとの全解答や全ケース一覧は追加せず、学習者が境界と組合せを導出する余地を残す。
+- 達成判定: 実装を開かずに、期間端点、999円×2、送料閾値の直前 / 一致で期待結果と根拠を説明できる。コードを価格ルールの正本にする意図なら、その例外と、何を独立に検証できなくなるかを明示する。現実装の期待値を無承認で新たな仕様へ昇格させない。
+- Open questions / Verdict / confidence: **仕様の正本・独立Oracleの曖昧さ・高確信度**。計算実装の不具合は確定していない。今回の価格3件・権限2件の既存Unit Testは5 passedだが、そのPASSはOracleの曖昧さを解消しない。
+
+### Productを増やさずに使える設計技法と演習
+
+11 Feature、Role / State / UI契約と、関連Domain / Use Case / Repository / Testの代表経路を確認した。次の表は新しいProduct要件ではなく、既存の題材を学習へ使う案である。金額や境界の期待値はF12の正本整理を先に行い、実装から無条件に転記しない。
+
+| 既存Behavior | 適した技法 | 具体的な課題と残す成果 | 主要な根拠 |
+| --- | --- | --- | --- |
+| 公開状態・Rank・Viewer、Filter / Facet / Sort | 同値分割、Decision Table、組合せ | Guest / regular / goldと公開可否を比較し、表示される商品集合・Facet件数・安定順序を記録する。全直積をE2Eへ持ち込まない | [Storefront](../spec/features/storefront.md)、[Catalog contract](../../tests/repository-contract/storefront-catalog.test.ts) |
+| Sale、単価割引、送料 | 時間・金額の境界値、同値分割 | 期間端点、端数が出る単価×数量、送料閾値を手計算し、Unitと代表UI確認へ振り分ける | [Pricing](../../src/domain/services/pricing.ts)、F12 |
+| Cart数量・在庫・購入上限・0削除 | 境界値、拒否時の不変条件 | `min(stock, purchaseLimit, 99)`のどの制約が効くかを変える。超過操作後の数量不変と0削除を区別する | [Cart BR-CART-001](../spec/features/cart.md)、[Cart mutation contract](../../tests/repository-contract/cart-mutations.test.ts) |
+| Login時のGuest Cart統合 | Decision Table、Journey | 同SKU、上限超過、非公開、Rank不足、在庫0を分類し、統合結果と除外理由を確認する | [Cart BR-CART-002](../spec/features/cart.md)、[Auth integration](../../tests/integration/auth-account.test.ts) |
+| Account状態・Role・所有権 | Authorization Matrix、負のテスト | active / suspended / withdrawn、customer / operator / adminで、表示と操作許可を分ける。他人のResourceを操作できないことも観点にする | [Roles](../spec/roles-and-permissions.md)、[Policy tests](../../tests/unit/policies.test.ts) |
+| Checkout再開・置換・期限・Version | 状態遷移、時間境界、競合 | 同じCart / Versionで再開、変更後は旧Sessionを置換、期限切れ、直接URL時の不足Step復帰を分ける | [Checkout](../spec/features/checkout-and-payment.md)、[Checkout integration](../../tests/integration/checkout-order-use-cases.test.ts) |
+| Payment Processing・拒否・Retry・最終在庫不足 | 状態遷移、冪等性、Transaction不変条件 | Processing再読込、拒否後Retry、最終在庫不足を比較し、注文・決済・在庫が重複／不整合にならないことを確認する | [Checkout / Payment](../spec/features/checkout-and-payment.md)、[Mock Payment](../../src/infrastructure/payment/mock-payment-gateway.ts) |
+| Order Snapshotと配送順序 | Snapshot不変条件、状態遷移 | 購入後の元商品・住所・Rank変更と購入時記録を区別し、配送状態の飛越しを拒否する理由を説明する | [Orders](../spec/features/orders.md)、[Transaction tests](../../tests/contracts/transactions.test.ts) |
+| Reviewの投稿資格・公開集計・削除 | Decision Table、集計の不変条件 | 本人 / 配送済み / 投稿済み / deletedを分け、公開・非公開・削除の表示と集計への影響を確認する | [Reviews](../spec/features/reviews.md)、[Review integration](../../tests/integration/review-user-use-cases.test.ts) |
+| Adminの商品・在庫・User管理 | Role、Version競合、更新失敗 | 同じ管理操作をoperator / adminで比較し、許可範囲と更新を拒否すべき条件を選ぶ。全管理画面をCoreへ追加しない | [Admin Catalog](../spec/features/admin-catalog.md)、[Inventory](../spec/features/admin-inventory.md)、[Users](../spec/features/admin-users.md) |
+| Web / Nativeの共有業務と永続化 | Contract、Platform差、lifecycle | 同じCart条件をWebとNativeで比較し、Web reloadとApp restartの状態復元、Test ControlのBuild境界を区別する | [Native Customer](../spec/features/native-customer.md)、[Native shared contract](../../tests/repository-contract/native-customer-shared.test.ts) |
+
+local DB / Mock Paymentであり、実サーバー・外部決済・別端末の共有在庫ではない。Cross-roleの同一Context内のActor切替を、別Context／別端末の同時実行の保証へ拡張しない。これは既に [Product Scope](../spec/product-scope.md) と関連Testability文書に示される意図的境界であり、分散backendを足さないと教材失格という意味ではない。
+
+Spec構造はBR / AC、UI State、Executable Sourceを分けており、全文を完成済みTest Case集へ変える必要はない。全ACにScenario / Test Layerを強制する新validator、Metadataへの期待動作の複製、新しいCoverage registryは今回の推奨から外す。必要なら、演習で選ぶ数件だけに「どのBR / AC、どのSetup、何を観測するか」の短い参照カードを置き、期待結果は学習者が仕様から導出する。
+
+### 改善Roadmapの最終優先順
+
+| 段階 | 最小の成果 | 関連所見 | 終了判定 |
+| --- | --- | --- | --- |
+| 1. 学習が止まる接続を修復 | Copy検証とlearner CI経路、Training Scenario API、価格Oracleを明確化。C05の参照先も小さく整合 | F01〜F03、F10、F12 | fresh Copyで演習開始→Scenario別Test→自作TestのCI赤／緑へ進める。価格期待値を実装から逆算しない |
+| 2. Failureを材料にする | 構文の変更3問、原因別3課題、意図したFailureだけの受理 | F04〜F05、F09 | Syntax / Environment / Product / TestのFailureを区別し、仮説・反証・最小修正・再実行を示せる |
+| 3. 設計と保守を評価する | 異なる妥当解と弱い緑Testの校正例、変更仕様と対応Productの対、未実施Featureへの転用 | F07〜F08 | 見逃す旧Testを説明でき、既存の保証を残して新しい境界を検出できる。正解コード一致で採点しない |
+| 4. 必要な応用だけ選ぶ | F06の状態・認証・Network・worker比較、既存Native課題のEvidence接続、AI批評lab | F06、F11、Native補足 | 同じ仕様を異なる条件へ適用し、保証しない範囲と採用しなかった案を説明できる |
+| 5. 学習者で確かめる | 初心者とテスト経験者のpilot、評価者間の校正、手順の削減 | 全体 | 環境停止、構文停止、設計判断の停止を分け、Time-to-first-authored-test、誤診、Evidence不足、別Featureへの転用を観測する |
+
+期間・工数・到達率は未見積もり。段階1のCI / 実行契約や価格仕様の採用はOwner判断を必要とし、この監査では変更しない。削減候補は重複する経路説明、Legacy本文、不要な転記であり、Formal回帰や正式Run履歴ではない。
+
+### 16領域・18問の完了範囲と残余リスク
+
+重点16領域すべてについて、現状、教材上の影響、改善方向、根拠の限界を評価した。前掲18問への回答は維持し、特に次を更新する。
+
+- 問い4・5: Product機能追加より上表の既存Behavior活用を優先し、SpecはF12の業務Oracleを明確化する。全ケースの答えは載せない。
+- 問い6〜9: Analysis先行を維持し、F03のReset、F09の小さな構文変更、F10の参照導線を補う。Mobile、Native Restart、層選択の既存課題を重複新設しない。
+- 問い10・11: baseline／Artifact経路の実行は成立する。未知原因の診断と自作TestのCI接続は別に改善する。
+- 問い12・13: Nativeは既存lifecycle課題を活かす。AIはScored Hostの準備からではなく、仕様に照らした人の批評から始められる選択課題を用意する。
+- 問い14〜18: 新しい採点基盤や大規模backendより、提出例の校正、変更・転用課題、少人数pilotを優先する。上の最終優先順を改善計画の入力とする。
+
+確認範囲は、Normativeの11 FeatureとRole / State / UI / Scope、CommonのP1-1〜9とP2-1〜8、Native / AIの選択経路、Workbook / Rubric、Training assets / runner / workflow、関連Formal Testと代表Product実装である。全ソース行の精査、全RouteのRuntime、30 Scenario全件のReset後データ、学習者の全演習解答可能性を実証したものではない。
+
+今回実行した追加検証は、Copy相当の参照先診断、既存Web baseline / starter 4件、意図的Failure 1件、価格・権限Unit 5件である。Native Build / Device / Maestro、iOS Runtime、Agentic QAの実行、新規GitHub Actions実行、全回帰・`verify`・Generated Spec HTMLの全件確認、学習者pilotは未実施。Web / Nativeのpixel parityは [Unresolved Specifications](../spec/unresolved-specifications.md) でも未確定であり、Visual差だけを欠陥にしない。
+
+**監査報告としての16領域・18問への回答を完了する。教材改善の実装、全Product品質保証、学習効果の実証は完了していない。** Product / Curriculum / Training / workflow / 依存は変更せず、監査・引継ぎ文書と同一Runの記録だけを更新した。
+
+ユーザーの追加指示により、ここで追加調査を中断し、文書成果物を作業branch `report/2026-09-07` へcommit・pushして保存する。最終文書のMarkdownlint（384文書）、Prettier（変更4文書）、相対リンク70件、diff check、Run sanitizer Write / CheckはPASS。push後のCI結果の待機や改善実装には進まない。
