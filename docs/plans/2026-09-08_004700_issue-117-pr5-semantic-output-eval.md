@@ -10,105 +10,65 @@
 
 ---
 
-## 1. ゴール / 完了条件
+## 1. ゴール
 
-### ゴール
+PR5の目的は「全SkillにLLM Judgeを付けること」ではない。
 
-6 Skillそれぞれについて、現在のSkill Contractに**人間またはLLMでなければ安全に判定できない意味要件があるか**を明示し、必要なSkillだけにSemantic Output Evalを実装する。
+各Skillについて、次の4条件を満たす場合だけSemantic Output Evalを実装する。
 
-PR5の目的は「LLM Judgeを置くこと」ではない。
+1. Skillに評価対象として明確なOutputがある。
+2. Outputとself-containedなcontextだけで意味品質を判断できる。
+3. PR4や既存validatorでは扱えない重要な品質が残る。
+4. actual Workflow executionを再現しなくても、その評価結果に実用的な意味がある。
 
-重要なのは次の5点である。
+この条件を満たさないSkillは、意味判断そのものが存在していてもPR5ではN/Aとする。
+
+PR5で作るものは、**既知の良いcandidate outputと既知の悪いcandidate outputを、Skill Contractに基づいて安定して識別できるSemantic graderの定義・calibration基盤**である。
+
+実Skillを実行して生成物を取得し、Skill間handoff・repair execution・runtime validationまで含めて評価することはPR6の責務とする。
+
+### 重要原則
 
 1. PR4のdeterministic評価とsemantic評価を混ぜない。
-2. Skillごとの意味契約から必要なdimensionだけを選ぶ。
+2. Skillごとの意味契約から必要最小限のcriterionだけを選ぶ。
 3. Output全文や唯一の模範回答との一致ではなく、rubric assertionで評価する。
-4. LLM Judgeの揺らぎを複数trialで可視化し、mixed resultをPASSへ丸めない。
+4. LLM Judgeの揺らぎを3 trialで可視化し、mixed resultをPASSへ丸めない。
 5. Skillを実行する独自Agent RuntimeをPR5で作らない。
-
-### 6 SkillのSemantic Eval分類
-
-現行`main`のSkill Contractを確認した結果、PR5では6 Skillすべてにdeterministicだけでは扱えない意味判断が存在する。
-
-ただし、**共通rubricを全Skillへ強制しない**。評価するdimensionは下表の範囲に限定する。
-
-| Skill | PR5分類 | Semantic Eval対象 | PR4との境界 |
-| --- | --- | --- | --- |
-| `feature-plan` | `semantic required` | correctness / relevance / coverage / risk-awareness / scope-discipline | required H2 presenceはPR4 validatorへ残し、Semantic graderでは再判定しない |
-| `code-review` | `semantic required` | correctness / relevance / traceability / risk-awareness / scope-discipline | fixed serializationを新設せず、findingの妥当性・重要度・根拠を意味評価する |
-| `repair-loop` | `semantic required` | correctness / traceability / scope-discipline / stop-decision | iteration schemaを新設せず、triage・最小修正・停止判断の妥当性だけを意味評価する |
-| `harness-improvement` | `semantic required` | correctness / relevance / traceability / risk-awareness / scope-discipline | candidate schemaを新設せず、繰り返しEvidenceに基づく改善か・過剰抽象化でないかを意味評価する |
-| `exploratory-qa` | `semantic required` | correctness / coverage / traceability / risk-awareness / scope-discipline | `qaFindingsSchema` / Coverage relationはPR4へ残し、Finding内容・仮説・Evidenceの意味品質だけを評価する |
-| `android-native-local-validation` | `semantic required (narrow)` | correctness / traceability / risk-awareness / scope-discipline / stop-decision | Build/Install/Flow等のstage結果そのものは既存deterministic gateへ残し、first anomaly分類・retry/stop判断だけを意味評価する |
-
-この分類は「6 Skillすべてに同じrubricを付ける」という意味ではない。
-
-特に`android-native-local-validation`では、コマンド成功/失敗やstage gateをLLM Judgeへ移さない。Semantic対象は、同じログからfirst anomalyを正しく分離できるか、根拠なく`TRANSIENT_FAILURE`扱いしていないか、上流失敗後に停止すべきか等の判断に限定する。
-
-### 必須原則
-
-- Golden全文一致を使わない。
-- sentence / keyword / Markdown wordingの一致率を品質判定に使わない。
-- 100点満点等の独自総合スコアを作らない。
-- Skill間で共通rubric dimensionを強制しない。
-- deterministicで既に判定できる項目をLLM Judgeへ移さない。
-- grader都合でSkill OutputのJSON schema / Markdown label / serializationを新設しない。
-- Semantic Eval dataは評価専用Contractであり、Production Skill Output Contractへ昇格させない。
-- LLM Judgeの`overall`自己申告をそのまま信頼せず、criterion verdictからHarness側で結果を導出する。
-- invalid JSON、timeout、process failure、protocol不明はFAIL/PASSへ推測変換せず`unobservable`扱いにする。
-- mixed trialをmajority voteでPASSへ丸めない。
-- live Semantic Evalを通常の`pnpm run verify`やRequired CIへ直接入れない。
-- deterministicなdataset/rubric integrity checkだけは通常検証へ接続可能とする。
-- Repository独自Agent Runtime / Workflow Engine / Skill Registry / Rule DSLを作らない。
-- PR6のWorkflow E2Eを前倒ししない。
-
-### Definition of Done
-
-- [ ] 6 SkillのSemantic Eval要否が現行Contractに基づいて確定している。
-- [ ] 各Skillに、そのSkill責務だけを扱うsemantic rubric / calibration caseがある。
-- [ ] rubricはIssue #117の候補dimensionから必要なものだけを使用している。
-- [ ] 各criterionがSkillのcanonical contract sourceへtraceできる。
-- [ ] deterministic項目をSemantic rubricへ重複実装していない。
-- [ ] 各Skillに少なくとも1つのsemantic-pass anchorと1つのsemantic-fail anchorがある。
-- [ ] fail anchorは単なる空文・破損文ではなく、構造上はもっともらしいが意味契約を破るcaseである。
-- [ ] expected verdict / expected failed assertionはJudge promptへ渡さない。
-- [ ] Judge responseはstrict machine-readable schemaでparseし、parse不能をfail-closedに扱う。
-- [ ] criterion単位の`pass` / `fail`と短いreason / evidenceを取得できる。
-- [ ] Harness側が全required criterionからtrial結果を導出する。
-- [ ] canonical runは同一caseを3 trial実行できる。
-- [ ] 3/3 PASSを`stable_pass`、3/3 FAILを`stable_fail`、mixedを`unstable`として区別できる。
-- [ ] runtime/protocol不成立を`unobservable`として区別できる。
-- [ ] canonical calibrationでpass anchorが`stable_pass`、fail anchorが`stable_fail`になることを確認できる。
-- [ ] fail anchorで、意図したfailed assertionを各trialで検出できる。
-- [ ] evaluator SHA、dataset fingerprint、Codex CLI version、指定model、trial countをresultへ記録できる。
-- [ ] source/eval definition validationはLLMなしで再現できる。
-- [ ] live judge実行は通常CI必須Gateにしていない。
-- [ ] Product Code / Product Runtime / `.codex/agents/**` / Skill routing / Skill descriptionを変更していない。
-- [ ] 新規npm dependency / lockfile変更を追加していない。
-- [ ] targeted test、deterministic eval validation、`pnpm run verify`が通る。
-- [ ] 実装commit後に`git diff --check main...HEAD`が通る。
+6. Semantic Eval基盤そのものを過度に汎用化しない。
 
 ---
 
-## 2. 現状理解とPR4からの引継ぎ
+## 2. Semantic Eval要否の固定分類
 
-PR4では、Output Contractをgrader都合で発明しないことを優先し、以下だけをdeterministicに評価した。
+### 2.1 PR5で実装するSkill
 
-- `feature-plan`: canonical template由来required H2 presence
-- `exploratory-qa`: 既存`qaFindingsSchema` / `assertCoverageIntegrity`
+現行Contractを、前節の4条件で再評価した結果、PR5では次の4 SkillだけをSemantic Eval対象とする。
 
-以下4 Skillはstable machine-readable Output ContractがないためPR4ではN/Aとした。
+| Skill | PR5分類 | Semantic Eval対象 | PR4との境界 |
+| --- | --- | --- | --- |
+| `feature-plan` | `semantic required` | 事実整合、scope discipline、主要riskとvalidationの対応 | required H2 presenceはPR4 validatorへ残す |
+| `code-review` | `semantic required` | finding妥当性、impact/evidence整合、review-only境界 | fixed serializationを新設せずFinding内容だけ意味評価する |
+| `harness-improvement` | `semantic required` | evidenceに基づく改善か、Product bugとの分離、過剰抽象化防止 | candidateの固定Machine schemaは新設しない |
+| `exploratory-qa` | `semantic required` | FindingとEvidence/Oracleの整合、断定の妥当性、重要riskへの対応 | `qaFindingsSchema` / Coverage relationはPR4へ残す |
 
-- `code-review`
-- `repair-loop`
-- `harness-improvement`
-- `android-native-local-validation`
+### 2.2 PR5ではN/AとするSkill
 
-このN/Aは「品質要求がない」という意味ではない。
+| Skill | PR5分類 | N/A理由 | 後続 |
+| --- | --- | --- | --- |
+| `repair-loop` | `N/A for PR5` | Output品質の本質が、実際に何を変更したか、validation結果、remaining delta、stop decisionとactual executionの整合にある。静的candidateだけでは本質を十分評価できない | PR6 Workflow E2Eで実repair executionと合わせて評価 |
+| `android-native-local-validation` | `N/A for PR5` | first anomaly、stage gate、retry/stop判断は実log・command result・実行順序との整合が本質。固定packetだけのJudgeを先に作るよりactual executionと一体で見る方が目的に合う | PR6 Workflow E2EでNative execution evidenceと合わせて評価 |
 
-むしろ、現在の各Skillには次のような**semantic requirement**があり、これがPR5の対象になる。
+このN/Aは「意味判断がない」という意味ではない。
 
-### `feature-plan`
+**Output単体のSemantic graderとして今作る価値が低い**ためPR5から外す。
+
+N/Aを減らすために、repair-loopやNative用の人工的なcandidate format、log packet schema、iteration serializationを新設してはならない。
+
+---
+
+## 3. Skillごとの評価対象
+
+### 3.1 `feature-plan`
 
 Canonical source:
 
@@ -118,19 +78,22 @@ Canonical source:
 .agents/skills/feature-plan/assets/plan-template.md
 ```
 
-PR4ではrequired H2の存在しか評価していない。
+PR5ではPlanの文面全体を採点しない。
 
-PR5では、例えば以下を意味評価する。
+最小の重要criterionだけを見る。
 
-- Repository / Issueの事実と矛盾しないstrategyか。
-- requestに対して不要な実装や再設計をscopeへ持ち込んでいないか。
-- acceptance criteriaが目的と検証可能な形でつながっているか。
-- test strategyが主要riskへ対応しているか。
-- unknownとimplementation-owned detailを混同していないか。
+候補:
 
-Heading presence、Markdown whitespace、fence parsingはPR5で再評価しない。
+1. **Fact / strategy consistency**
+   - contextで確定しているRepository / Issue事実とPlanの変更戦略が矛盾していない。
+2. **Scope discipline**
+   - user request / non-goalを越える再設計・実装をPlanへ持ち込んでいない。
+3. **Risk / validation alignment**
+   - 主要riskに対して、実装完了を判断できるvalidationが対応している。
 
-### `code-review`
+PR4で扱うheading存在、Markdown whitespace、fence parsingは評価しない。
+
+### 3.2 `code-review`
 
 Canonical source:
 
@@ -139,36 +102,18 @@ Canonical source:
 .agents/skills/code-review/references/review-workflow.md
 ```
 
-Meaningful findingは、単にSeverity / Locationという文字列を持つことではなく、変更に起因する具体的risk、evidence、impact、actionabilityが必要になる。
+候補:
 
-PR5では、代表patchに対して次を評価する。
+1. **Finding validity**
+   - Findingが実際のdiff / supplied factsに支えられている。
+2. **Impact and evidence alignment**
+   - 指摘する影響・重要度がEvidenceと釣り合い、根拠の弱いstyle nitやspeculationを重大Findingへ昇格していない。
+3. **Review boundary**
+   - review-onlyの依頼で修正実装へ進んでいない。
 
-- 実害のあるregressionを正しく指摘しているか。
-- 根拠のないstyle nitやspeculationをfindingへ昇格していないか。
-- Evidenceがfindingの主張を支えているか。
-- Severity / risk説明が影響と釣り合っているか。
-- review-only scopeを越えて修正実装へ進んでいないか。
+Severity文字列、Location文字列など、grader都合の固定Output serializationを作らない。
 
-### `repair-loop`
-
-Canonical source:
-
-```text
-.agents/skills/repair-loop/SKILL.md
-.agents/skills/repair-loop/references/repair-workflow.md
-```
-
-PR5では、Finding setとEvidenceを与えたときの次を評価する。
-
-- highest-impact findingを適切にtriageしているか。
-- Evidence未確認の仮定で修正範囲を広げていないか。
-- smallest safe fixという境界を守っているか。
-- validationが修正したunit / riskへ対応しているか。
-- no-progress / unresolved conditionで停止・明示すべきところを無限継続していないか。
-
-実patch適用やiteration executionはPR6のWorkflow E2E責務であり、PR5では実行Engineを作らない。
-
-### `harness-improvement`
+### 3.3 `harness-improvement`
 
 Canonical source:
 
@@ -177,15 +122,16 @@ Canonical source:
 .agents/skills/harness-improvement/references/improvement-workflow.md
 ```
 
-PR5では、複数runのfriction evidenceとcandidate responseを使い、次を評価する。
+候補:
 
-- 単発Product bugをHarness問題へ誤分類していないか。
-- repeated frictionという根拠があるか。
-- proposed changeが再利用可能な摩擦削減につながるか。
-- defectを隠す緩和、blanket retry、無根拠timeout延長等になっていないか。
-- abstractionのためのabstractionへ拡大していないか。
+1. **Evidence-grounded candidate**
+   - 改善提案がsupplied run / evaluation / repeated failure evidenceに支えられている。
+2. **Product / Harness separation**
+   - 単発Product bugをHarness問題へすり替えていない。
+3. **Minimal reusable improvement**
+   - blanket retry、無根拠timeout延長、defect隠し、abstractionのためのabstractionへ拡大していない。
 
-### `exploratory-qa`
+### 3.4 `exploratory-qa`
 
 Canonical source:
 
@@ -201,305 +147,426 @@ scripts/agentic-qa/contracts.ts
 scripts/agentic-qa/coverage.ts
 ```
 
-PR5ではschemaやCoverage SSOT relationを再実装せず、schema-validであることを前提に次を評価する。
+Semantic caseはschema-validであることを前提とする。
 
-- risk map / charterがmissionと事実に関連しているか。
-- observationとhypothesisを分離しているか。
-- FindingがEvidence以上の断定をしていないか。
-- Product defect / environment / test issueを根拠なく混同していないか。
-- 重要riskに対して探索の抜けがないか。
+候補:
 
-### `android-native-local-validation`
+1. **Oracle / evidence consistency**
+   - FindingがNormative Specification / supplied OracleとEvidenceに支えられている。
+2. **Claim discipline**
+   - observationからEvidence以上の断定をせず、Product defect / environment / test issueを根拠なく混同していない。
+3. **Risk relevance**
+   - candidate outputがmissionで重要なriskを扱い、無関係な探索結果へ偏っていない。
 
-Canonical source:
-
-```text
-.agents/skills/android-native-local-validation/SKILL.md
-.agents/skills/android-native-local-validation/references/windows-android-workflow.md
-```
-
-既存Repository command helperのstage resultはdeterministic側に残す。
-
-PR5では、固定したlog/evidence packetとcandidate summaryを使い、次だけを意味評価する。
-
-- first anomalyと派生errorを分離しているか。
-- classificationがEvidenceに整合しているか。
-- `TRANSIENT_FAILURE`を根拠なく選んでいないか。
-- upstream failure後にdownstreamへ進めていないか。
-- retry目的・変更条件・stop conditionが妥当か。
-- blocked / not-executedをPASS扱いしていないか。
+Coverage item存在やschema relationはPR4のdeterministic評価へ残す。
 
 ---
 
-## 3. 実装前preflight
+## 4. Rubric設計原則
 
-実装開始時にlatest `main`で以下を再確認する。
+### 4.1 Criterion数
 
-### 3.1 Dependency確認
+各Skillは**2〜3 criterion**を基本とする。
 
-- PR #126が引き続きmerge済みである。
-- `.agents/skills/feature-plan/scripts/validate-plan-output.ts` が存在する。
-- `tests/contracts/skill-output-eval.test.ts` がPR4のdeterministic boundaryを維持している。
-- 6 Skillの`SKILL.md` / canonical referenceにmaterial driftがない。
+3 criterionでSkillの本質的意味品質を表せるなら増やさない。
 
-PR2 / PR3はPR5のrequired dependencyではない。
+`correctness / relevance / coverage / traceability / risk-awareness / scope-discipline / stop-decision`はIssue #117上の設計観点であり、評価データへそのまま全列挙する必要はない。
 
-PR2が先にmergeされた場合でも、Trigger selector / Hook判定 / routing scoringをPR5へ流用しない。
-低レベルのCodex process executionが安全に共通化済みで、かつsemantic contractを混ぜずに再利用できる場合だけ利用を検討する。共通化自体をPR5の目的にしない。
+### 4.2 `dimension` metadataは作らない
 
-### 3.2 Judge runtime capability probe
+runnerがscore、weight、cross-Skill比較、thresholdに使わないため、`dimension` fieldはevaluation data schemaへ持ち込まない。
 
-現在`main`の`package.json`にはOpenAI SDK等のLLM provider dependencyがないため、PR5だけのためにprovider SDKを追加しない。
+criterionは以下だけでよい。
 
-既存Host RuntimeであるCodex CLIをJudge実行に利用する前提とする。
+```yaml
+criteria:
+  - id: FP-SCOPE
+    assertion: >-
+      The candidate plan stays within the requested planning scope and does not
+      introduce unrelated implementation or redesign work.
+    source: references/planning-workflow.md
+```
 
-実装前に、source変更を始める前の短いprobeで以下を確認する。
+`source`はpackage-local canonical contract fileへの相対pathとする。
 
-1. `codex --version` が取得できる。
-2. `codex exec --json --ephemeral --sandbox read-only` 相当のread-only ephemeral実行が成立する。
-3. explicit model指定が可能である。
-4. JSON event streamから、terminal stateと最終assistant textを曖昧なconsole regexなしで抽出できる。
-5. JSON-only instructionに対してmachine-readable grader responseを取得できる。
+Markdown anchorの存在検証までは行わない。File existenceだけをdeterministicに確認する。
 
-このprobeでstable protocolが確認できない場合、stderrや自然文ログをheuristic parseして先へ進まない。
+### 4.3 全Skill共通Rubricを作らない
 
-新しいLLM SDK / HTTP client / Repository独自Agent Runtimeへ即座に切り替えるのではなく、PR5 runtimeを`BLOCKED`として記録し、設計判断を分離する。
+共通化するのはevaluation fileの最小shapeとJudge response shapeだけとする。
 
-### 3.3 Direct Contract drift時の扱い
+次は作らない。
 
-Contract driftがある場合だけ、そのSkillのsemantic classification / rubric dimensionを再評価する。
-
-禁止:
-
-- N/Aを作る/減らすためのRepository-wide再設計。
-- Semantic EvalのためのSkill workflow変更。
-- rubricに合わせてSkill Contractを変更すること。
-- PR4 graderの責務拡張。
+- global semantic score
+- 100点満点
+- weight
+- cross-Skill threshold
+- global dimension registry
+- Rule Engine
+- DSL
+- plugin registry
 
 ---
 
-## 4. Semantic Eval data設計
+## 5. Calibration data設計
 
-### 4.1 配置
+### 5.1 配置
 
-各Skillの評価データはpackage-localへ置く。
+PR5対象4 Skillだけに次を追加する。
 
 ```text
-.agents/skills/<skill>/evals/output/semantic.yaml
+.agents/skills/feature-plan/evals/output/semantic.yaml
+.agents/skills/code-review/evals/output/semantic.yaml
+.agents/skills/harness-improvement/evals/output/semantic.yaml
+.agents/skills/exploratory-qa/evals/output/semantic.yaml
 ```
 
-空directoryや共通rubric directoryは作らない。
+`repair-loop` / `android-native-local-validation`には空directory、N/A marker、placeholder datasetを作らない。
 
-6 Skill共通で必要なのは、loaderが認識する最小限のevaluation metadataだけとする。
+N/A理由の正本はこのPlanとIssue / PR discussionとする。
 
-概念上の最小shape:
+### 5.2 最小schema
+
+概念shape:
 
 ```yaml
 schema_version: 1
 skill: feature-plan
-rubric:
-  - id: FP-CORRECTNESS
-    dimension: correctness
-    assertion: "..."
-    source: "references/planning-workflow.md#..."
+criteria:
+  - id: FP-SCOPE
+    assertion: >-
+      ...
+    source: references/planning-workflow.md
 cases:
   - id: FP-SEM-001-PASS
     context: |
       ...
     candidate_output: |
       ...
-    expected: pass
-    expected_failed_assertions: []
+    expected:
+      outcome: pass
+
+  - id: FP-SEM-002-FAIL
+    context: |
+      ...
+    candidate_output: |
+      ...
+    expected:
+      outcome: fail
+      failed_criteria:
+        - FP-SCOPE
 ```
 
-これは**evaluation data schema**であり、Skill Output schemaではない。
+`expected`を1 objectへまとめ、`expected: pass`と`expected_failed_assertions`の二重管理はしない。
 
-### 4.2 Rubric規則
+Deterministic validationで次を固定する。
 
-各rubricは原則3〜5 criterion程度に抑える。
+- `outcome: pass`では`failed_criteria`を持たない。
+- `outcome: fail`では`failed_criteria`が1件以上必要。
+- `failed_criteria`はそのSkillのcriterion IDだけを参照する。
 
-各criterionは以下を満たす。
+### 5.3 Anchor数
 
-- 一つの意味判断を表す。
-- `dimension`はIssue #117で許可された候補から、そのSkillに必要なものだけ選ぶ。
-- `assertion`はpass/fail境界が第三者に分かる具体性を持つ。
-- `source`でpackage-local canonical contractへtraceできる。
-- formatting preference、文体、語彙の好みを評価しない。
-- deterministic validatorで既に強制している項目を含めない。
+各Skillに最低2 caseだけ置く。
 
-全Skill共通100点score、weight、global thresholdは作らない。
+- 1つのsemantic-pass anchor
+- 1つのsemantic-fail anchor
 
-### 4.3 Calibration case規則
+初回PRでcase数を増やすこと自体を品質向上とみなさない。
 
-各Skillに最低2 caseを置く。
+### 5.4 Fail anchorの作り方
 
-- 1つの`pass` anchor
-- 1つの`fail` anchor
+fail anchorは単なる空文字・壊れた文書にしない。
 
-`fail` anchorは「空文字」「意味不明な文章」のような容易すぎるnegativeにしない。
+**一見もっともらしいが、1つの中心契約を明確に破る**caseとする。
 
 例:
 
-- `code-review`: 実regressionを見落とし、無害なstyle変更だけをHigh findingにする。
-- `repair-loop`: 指摘された不具合より広いrefactorを提案し、validation対象もずれる。
+- `feature-plan`: Plan-only依頼なのに実装作業までscopeへ含める。
+- `code-review`: 実害のないstyle差分をHigh-risk regressionとして断定する。
 - `harness-improvement`: 単発Product bugをHarness timeout延長で隠す。
-- `exploratory-qa`: observationから証拠なしにProduct defectを断定する。
-- `android-native-local-validation`: first anomalyがdevice disconnectなのに`TRANSIENT_FAILURE`としてblind retryし、後続Suiteへ進む。
-- `feature-plan`: Plan-only依頼なのに実装をscopeへ含め、主要riskに対するvalidationがない。
+- `exploratory-qa`: observationからEvidenceなしにProduct defectを断定する。
 
-`expected`と`expected_failed_assertions`はHarness-side calibration truthであり、Judge promptへ含めない。
+fail caseが副次的に別criterionもFAILすること自体は禁止しない。
 
-### 4.4 Case self-containment
+ただしcalibration truthの`failed_criteria`には、case設計で明確に狙ったcriterionだけを記載し、曖昧な複合negativeを避ける。
 
-caseはsemantic判断に必要な事実を`context`へ閉じる。
+### 5.5 Case self-containment
 
-Product全体や現在のRepository実装をJudgeが追加探索しないと判定できないcaseは避ける。
+caseはJudgeがRepositoryを追加探索しなくても判断できるよう、必要な事実を`context`へ閉じる。
 
-これにより、Judgeの役割を「与えられたcontract + facts + candidate outputの評価」に限定する。
+Judgeの役割は次に限定する。
+
+```text
+rubric assertion
++ supplied context
++ candidate output
+→ criterionごとの意味判定
+```
+
+Product全体、current branch、Issue全文、hidden answer keyをJudgeへ調査させない。
 
 ---
 
-## 5. Evaluator / Runner設計
+## 6. Judge response contract
 
-### 5.1 Pure evaluation module
+### 6.1 ZodをSingle Source of Truthにする
 
-追加候補:
+Repositoryには既存Zod 4があるため、新規dependencyを追加しない。
+
+Judge response contractは1つのZod schemaだけを正本とする。
+
+概念shape:
+
+```ts
+const judgeResponseSchema = z.object({
+  schema_version: z.literal(1),
+  case_id: z.string().min(1),
+  criteria: z.array(
+    z.object({
+      id: z.string().min(1),
+      verdict: z.enum(["pass", "fail"]),
+      reason: z.string().min(1),
+    }),
+  ),
+});
+```
+
+同じschemaを次の両方へ使う。
+
+```text
+judgeResponseSchema
+├─ Zod 4 JSON Schema変換
+│  └─ codex exec --output-schema
+└─ Zod parse
+   └─ returned final JSONの検証
+```
+
+Judge用JSON SchemaとHarness parserを別々に手書きしない。
+
+### 6.2 `evidence` fieldは作らない
+
+初回PRではcriterionごとの`reason`だけを取得する。
+
+`evidence`と`reason`を分離すると意味が重なり、schemaとpromptが増えるため追加しない。
+
+必要性が実運用で確認された場合のみ後続で検討する。
+
+### 6.3 Harness側の追加検証
+
+Zod parse成功後、Harnessは次を確認する。
+
+- `case_id`が実行caseと一致する。
+- criterion IDがmissingでない。
+- duplicate criterionがない。
+- unknown criterionがない。
+- rubricの全criterionがちょうど1回ずつ返る。
+
+Judgeに`overall`やscoreを返させない。
+
+Harness側で、全criterion PASSならtrial PASS、1つでもFAILならtrial FAILとする。
+
+---
+
+## 7. Codex Judge runnerの最小設計
+
+### 7.1 Current Codex CLI capability
+
+実装時点のOpenAI Codex CLI sourceで、通常の`codex exec`に少なくとも次のoptionが存在することを確認済みの前提とする。
+
+```text
+--model
+--sandbox
+--skip-git-repo-check
+--output-schema
+--output-last-message / -o
+--ephemeral
+```
+
+ただし、Repositoryの実行環境にインストールされているCodex CLI versionで同じ組み合わせが成立するかはPhase 0でfunctional probeする。
+
+### 7.2 JSON event streamを解析しない
+
+PR5では`codex exec --json` / JSONL lifecycle event parserを実装しない。
+
+理由:
+
+- Semantic Judgeで必要なのはfinal structured resultだけである。
+- `--output-schema`でfinal response shapeを制約できる。
+- `--output-last-message`でfinal messageを専用fileへ出せる。
+- `turn.started` / `turn.completed`等のevent protocolへ不要に依存すると実装量と将来driftが増える。
+
+### 7.3 Judge invocation
+
+概念上は次の形とする。
+
+```text
+codex exec
+  --ephemeral
+  --skip-git-repo-check
+  --sandbox read-only
+  --model <explicit-model>
+  --output-schema <temporary-json-schema-file>
+  --output-last-message <temporary-result-file>
+  -
+```
+
+promptはstdinから渡す。
+
+Judge executionは一時directoryをworking directoryとして実行し、Evaluator Repositoryをworking directoryにしない。
+
+`--skip-git-repo-check`を利用するため、一時Git Repositoryを初期化しない。
+
+### 7.4 Functional probe
+
+source実装を始める前に、短い1 case probeで以下を確認する。
+
+1. `codex --version` が取得できる。
+2. `codex exec --help`で必要optionが存在する。
+3. read-only + ephemeral + skip-git-repo-checkの実行が成立する。
+4. explicit model指定が成立する。
+5. `--output-schema` + `--output-last-message`の組み合わせでfinal result fileが生成される。
+6. result fileを`judgeResponseSchema`でparseできる。
+
+これが成立しない場合:
+
+- JSONL event parserを代替実装しない。
+- OpenAI SDK / provider SDKを追加しない。
+- temp Git repo等の複雑なfallbackを自動追加しない。
+- PR5 runtimeを`BLOCKED`として設計判断を分離する。
+
+### 7.5 Judge isolation
+
+Judge promptに渡すもの:
+
+1. evaluation instruction
+2. Skill名
+3. rubric criteria
+4. case context
+5. candidate output
+6. required structured responseの説明
+
+渡さないもの:
+
+- `expected.outcome`
+- `expected.failed_criteria`
+- full semantic.yaml
+- Evaluator Repository path
+- Planのcalibration truth
+
+一時directoryへEvaluator sourceやeval fileをcopyしない。
+
+---
+
+## 8. Pure evaluator
+
+追加:
 
 ```text
 scripts/evals/skill-semantic-output-evals.ts
 ```
 
-責務:
+責務は次だけに限定する。
 
-- 6 Skillの`semantic.yaml` discovery
-- YAML parse / schema validation
-- unique skill / case / assertion ID validation
-- allowed dimension validation
-- rubric source path existence確認
-- caseのexpected assertion reference integrity
-- canonical serializationによるdataset fingerprint生成
-- Judge promptの構築
-- Judge JSON responseのstrict parse
-- criterion verdictからtrial outcomeを導出
-- 複数trialのaggregate outcomeを導出
+### Dataset
 
-非責務:
+- 対象4 Skillの`semantic.yaml` discovery
+- YAML parse
+- Zod schema validation
+- Skill名 / case ID / criterion ID uniqueness
+- `expected.failed_criteria` reference integrity
+- `source` file existence
+- dataset fingerprint生成
+
+### Judge
+
+- `judgeResponseSchema`定義
+- 同schemaからJSON Schema生成
+- Judge prompt構築
+- Judge final JSON parse
+- criterion completeness確認
+- trial outcome導出
+- 3 trial aggregate導出
+
+### 非責務
 
 - Codex process起動
 - Skill実行
 - Repository routing
-- Tool hook監視
+- Git hook監視
 - Product validation
 - Workflow E2E
+- PR4 deterministic validationの再実装
 
-### 5.2 Judge runner
+---
 
-追加候補:
+## 9. Dataset fingerprint
 
-```text
-scripts/evals/run-skill-semantic-output-evals.ts
-```
+canonical YAML serializationは作らない。
 
-責務:
-
-- CLI引数parse
-- `--validate-only`
-- `--skill <name>` / `--case <id>`による絞り込み
-- live run時の`--model <explicit-model>`必須化
-- live run時の`--output <path>`必須化
-- canonical `--trials 3`
-- `codex --version`取得
-- Codex CLI Judge processのsequential実行
-- timeout / process / protocol状態の記録
-- normalized result JSON出力
-
-### 5.3 Judge isolation
-
-JudgeはRepositoryを調査するAgentとして動かさない。
-
-Judge promptには次だけを渡す。
-
-1. evaluation instruction
-2. 対象Skill名
-3. rubric assertions
-4. case context
-5. candidate output
-6. required JSON result schema
-
-`expected` / `expected_failed_assertions`は絶対に渡さない。
-
-可能ならCodex CLIは一時的な空のworking directoryでread-only / ephemeral実行し、JudgeがEvaluator Repository内のanswer metadataへアクセスできないようにする。
-
-CLIがGit working treeを必須とする場合は、一時directoryへ最小の空Git working treeを作る。Repository sourceやeval filesをcopyしない。
-
-Judge isolationを成立させるために独自Agent Runtimeを作らない。
-
-### 5.4 Judge response contract
-
-Judgeにはraw JSONだけを要求する。
-
-概念shape:
-
-```json
-{
-  "schema_version": 1,
-  "case_id": "FP-SEM-001-PASS",
-  "criteria": [
-    {
-      "id": "FP-CORRECTNESS",
-      "verdict": "pass",
-      "reason": "...",
-      "evidence": "..."
-    }
-  ]
-}
-```
-
-Harnessが検証するもの:
-
-- top-level object / schema version
-- case ID一致
-- rubric criterionがmissing / duplicate / unknownでない
-- verdictが`pass | fail`のみ
-- reason / evidenceが空でない
-
-Judgeにoverall scoreを返させない。
-
-Harness側で、**全criterionがPASSならtrial PASS、1つでもFAILならtrial FAIL**とする。
-
-### 5.5 Trial aggregation
-
-canonical runは3 trialとする。
-
-case outcome:
+fingerprintは対象4ファイルをrelative path順に並べ、次をSHA-256するだけとする。
 
 ```text
-3 PASS                -> stable_pass
-3 FAIL                -> stable_fail
-PASS/FAIL mixed       -> unstable
-runtime/protocol欠落  -> unobservable
+relative path
++ separator
++ raw file bytes
+```
+
+目的は「同じevaluation dataだったか」のprovenanceであり、意味的に同じYAMLをformatting差分まで同一fingerprintにすることではない。
+
+Formatting変更でfingerprintが変わって構わない。
+
+---
+
+## 10. Trial / aggregation semantics
+
+canonical runは固定で**3 trial**とする。
+
+初回PRでは`--trials` CLI optionを公開しない。
+
+不要な可変parameterを増やさず、canonical behaviorを1つに固定する。
+
+### Trial outcome
+
+```text
+all criteria PASS -> pass
+1つ以上criteria FAIL -> fail
+runtime / timeout / process / output file missing / schema parse failure -> unobservable
+```
+
+### Case aggregate
+
+```text
+3 pass                         -> stable_pass
+3 fail                         -> stable_fail
+3 trialすべてobservableでmixed -> unstable
+1 trialでもunobservable       -> unobservable
 ```
 
 `unstable`を2/3 majorityでPASSへ変換しない。
 
-calibration expected:
+`unobservable`はJudge品質のFAILと混同しない。
+
+### Calibration expected
 
 - pass anchor -> `stable_pass`
 - fail anchor -> `stable_fail`
-- fail anchorの`expected_failed_assertions` -> 全3 trialでFAIL検出
+- fail anchorの`expected.failed_criteria` -> 全3 trialでFAIL検出
 
-これを満たさないcaseはSemantic Eval calibration failureとして扱う。
+これを満たさないcaseはcalibration failureとする。
 
-### 5.6 Provenance
+---
 
-live resultには最低限以下を記録する。
+## 11. Provenance
+
+live resultには最低限次だけを残す。
 
 ```text
 schema_version
 evaluator_git_sha
 dataset_sha256
 codex_version
-model
+requested_model
 trial_count
 executed_at
 case_id
@@ -509,23 +576,152 @@ aggregate outcome
 calibration match
 ```
 
-modelを`unreported`のままcanonical evidenceへ昇格しない。
+`model`という名前は使わない。
 
-model名はhard-codeせず、canonical run時に明示指定して記録する。
+CLIへ要求したmodelを記録するため、`requested_model`とする。
+
+providerが実際に返したmodel identityをCLIから確認できない場合、それを推測して記録しない。
+
+`trial_count`はPR5では常に3である。
 
 ---
 
-## 6. 実装時の変更ファイル
+## 12. Runner
+
+追加:
+
+```text
+scripts/evals/run-skill-semantic-output-evals.ts
+```
+
+責務:
+
+- CLI引数parse
+- `--model <name>`必須
+- `--output <path>`必須
+- optional `--skill <name>`
+- optional `--case <id>`
+- `codex --version`取得
+- temporary directory / schema file / result file作成
+- Codex Judgeを3回sequential実行
+- timeout / exit status / output readを管理
+- normalized result JSON出力
+
+初回PRでは次を作らない。
+
+- `--trials`
+- `--compare`
+- baseline registry
+- retry option
+- concurrency option
+- provider option
+- judge profile registry
+- JSONL event parser
+- Hook observer
+- automatic fallback runtime
+
+### Retry
+
+自動retryは実装しない。
+
+1 trialのruntime/protocol不成立はそのtrialを`unobservable`にする。
+
+canonical runで1件でも`unobservable`ならcalibration PASSにしない。
+
+---
+
+## 13. Package script / CI境界
+
+### 13.1 Package script
+
+追加するlive scriptは1つだけとする。
+
+```json
+{
+  "eval:skills:semantic": "tsx scripts/evals/run-skill-semantic-output-evals.ts"
+}
+```
+
+`eval:skills:semantic:validate`は初回PRでは追加しない。
+
+理由:
+
+- deterministic integrityはRepository Contract Testで評価できる。
+- `pnpm run verify`は既にRepository Contract Testを通す。
+- 同じvalidation経路をCLIとtestで二重管理しない。
+
+将来、LLMなしの手動高速validation commandが実際に必要になった場合だけ追加を検討する。
+
+### 13.2 Required CI
+
+live LLM Judgeは通常`pnpm run verify`やRequired CIへ入れない。
+
+理由:
+
+- external runtime / model可用性に依存する。
+- latency / quota / model更新で通常PR gateが不安定になる。
+- PR5のlive runは評価・calibrationであり、Product build gateではない。
+
+通常CIで固定するのは、dataset / parser / aggregation等のdeterministic contractだけとする。
+
+---
+
+## 14. Repository Contract Test
+
+追加:
+
+```text
+tests/repository-contract/skill-semantic-output-evals.test.ts
+```
+
+LLMなしで次を検証する。
+
+### Dataset
+
+- 対象4 datasetが存在する。
+- `repair-loop` / `android-native-local-validation`へplaceholder semantic datasetがない。
+- duplicate case / criterion IDを拒否する。
+- unknown expected criterionを拒否する。
+- pass expectedにfailed criteriaを持たせない。
+- fail expectedは1件以上のfailed criterionを要求する。
+- rubric source file missingを拒否する。
+
+### Prompt leakage
+
+- Judge promptに`expected.outcome`を含めない。
+- Judge promptに`expected.failed_criteria`を含めない。
+
+### Response
+
+- valid responseをparseできる。
+- missing criterionを拒否する。
+- duplicate criterionを拒否する。
+- unknown criterionを拒否する。
+- malformed JSONをobservable PASS/FAILへ推測変換しない。
+
+### Aggregation
+
+- 3 pass -> stable_pass
+- 3 fail -> stable_fail
+- observable mixed -> unstable
+- 1 unobservableを含む -> unobservable
+
+### Fingerprint
+
+- 同じraw datasetでfingerprintが安定する。
+- dataset bytesが変わればfingerprintも変わる。
+
+---
+
+## 15. 実装時の変更ファイル
 
 基本構成:
 
 ```text
-.agents/skills/android-native-local-validation/evals/output/semantic.yaml
-.agents/skills/code-review/evals/output/semantic.yaml
-.agents/skills/exploratory-qa/evals/output/semantic.yaml
 .agents/skills/feature-plan/evals/output/semantic.yaml
+.agents/skills/code-review/evals/output/semantic.yaml
 .agents/skills/harness-improvement/evals/output/semantic.yaml
-.agents/skills/repair-loop/evals/output/semantic.yaml
+.agents/skills/exploratory-qa/evals/output/semantic.yaml
 scripts/evals/skill-semantic-output-evals.ts
 scripts/evals/run-skill-semantic-output-evals.ts
 tests/repository-contract/skill-semantic-output-evals.test.ts
@@ -543,175 +739,155 @@ docs/plans/2026-09-08_004700_issue-117-pr5-semantic-output-eval.md
 ```text
 .agents/skills/*/SKILL.md
 .agents/skills/*/references/**
+.agents/skills/repair-loop/evals/**
+.agents/skills/android-native-local-validation/evals/**
 .agents/skills/feature-plan/scripts/validate-plan-output.ts
 tests/contracts/skill-output-eval.test.ts
 .github/workflows/**
 pnpm-lock.yaml
 .codex/agents/**
 Product Code
+Product Test
 ```
-
-### package scripts
-
-候補:
-
-```json
-{
-  "eval:skills:semantic:validate": "tsx scripts/evals/run-skill-semantic-output-evals.ts --validate-only",
-  "eval:skills:semantic": "tsx scripts/evals/run-skill-semantic-output-evals.ts"
-}
-```
-
-`eval:skills:semantic:validate`はLLMを呼ばず、通常の`verify`へ接続する。
-
-`eval:skills:semantic`はLLMを呼ぶため通常CIへ接続しない。
 
 ---
 
-## 7. 実装手順
+## 16. 実装前preflight
 
-### Phase 0 — preflight / protocol probe
+### 16.1 Repository dependency
 
-1. latest `main`とPR4 merge状態を確認する。
-2. 6 Skillのcanonical semantic contractを再確認する。
-3. PR4 deterministic boundaryにdriftがないことを確認する。
-4. Codex CLI version / explicit model / read-only ephemeral / JSON terminal responseをprobeする。
-5. stable final assistant payloadがmachine-readableに取得できることを確認する。
-6. probe結果が不成立ならheuristic parserを足さずBLOCKEDにする。
+latest `main`で次を確認する。
 
-### Phase 1 — Eval data
+- PR #126がmerge済み。
+- `.agents/skills/feature-plan/scripts/validate-plan-output.ts` が存在する。
+- `tests/contracts/skill-output-eval.test.ts` がPR4 boundaryを維持している。
+- 対象4 Skillのcanonical contractにmaterial driftがない。
+- N/A 2 SkillのOutput / Workflow Contractに、PR5分類を変えるmaterial driftがない。
 
-1. 6 Skillに`evals/output/semantic.yaml`を追加する。
-2. Skillごとのrubricを3〜5 assertion程度で定義する。
-3. 各assertionをcanonical referenceへtraceさせる。
-4. pass / fail anchorを1件ずつ定義する。
-5. fail anchorの期待failed assertionを明示する。
-6. deterministic項目がrubricへ混入していないことをreviewする。
+PR2 / PR3はPR5のrequired dependencyではない。
+
+Trigger Eval selector / Hook observer / routing scoringをPR5へ流用しない。
+
+### 16.2 Existing dependency
+
+- current `zod` / `yaml`で実装可能であることを確認する。
+- Zod 4の既存JSON Schema変換を利用し、追加schema-conversion dependencyを入れない。
+
+### 16.3 Codex capability probe
+
+Phase 0で前述のfunctional probeを1回だけ実施する。
+
+probe不成立時に、実装者判断で別runtimeへ拡張しない。
+
+---
+
+## 17. 実装手順
+
+### Phase 0 — preflight / Codex probe
+
+1. latest `main` / PR4 boundaryを確認する。
+2. 4 Skillのsemantic required、2 SkillのN/A判断にdriftがないことを確認する。
+3. Zod JSON Schema conversionがcurrent dependencyで利用できることを確認する。
+4. Codex CLI option存在を確認する。
+5. 1 caseだけで`--output-schema` + `--output-last-message` functional probeを行う。
+6. probe不成立ならfallbackを作らずBLOCKEDとして止める。
+
+### Phase 1 — 4 SkillのEval data
+
+1. 4 Skillに`semantic.yaml`を追加する。
+2. 各Skill2〜3 criterionに絞る。
+3. 各criterionをpackage-local canonical sourceへtraceさせる。
+4. pass anchor / targeted fail anchorを1件ずつ作る。
+5. case contextをself-containedにする。
+6. deterministic項目がrubricへ混入していないことを確認する。
 
 ### Phase 2 — Pure evaluator
 
-1. YAML loader / schema validationを実装する。
-2. duplicate / unknown / dangling referenceをfail-closedにする。
-3. dataset fingerprintをdeterministicに生成する。
-4. expected metadataを除外したJudge prompt builderを実装する。
-5. Judge response parserをstrictに実装する。
-6. trial / aggregate outcomeをpure functionとして実装する。
+1. dataset Zod schemaを実装する。
+2. 4 dataset discoveryを実装する。
+3. ID / expected reference / source file integrityを実装する。
+4. raw-file fingerprintを実装する。
+5. `judgeResponseSchema`を実装する。
+6. 同schemaからCodex用JSON Schemaを生成する。
+7. expected metadataを除外したprompt builderを実装する。
+8. response completeness checkを実装する。
+9. trial / aggregate pure functionを実装する。
 
-### Phase 3 — Judge runner
+### Phase 3 — Minimal Judge runner
 
-1. `--validate-only`を実装する。
-2. `--model` / `--trials` / `--skill` / `--case` / `--output`を実装する。
-3. Judge用一時workspaceを作り、Evaluator sourceを見せない。
-4. Codexをread-only / ephemeralでsequential実行する。
-5. stdout event protocolからtrusted final textだけを抽出する。
-6. timeout / spawn / terminal / parse failureを`unobservable`として保持する。
-7. resultへprovenanceを付ける。
-8. 自動retryを実装しない。
+1. `--model` / `--output` / optional `--skill` / `--case`だけを実装する。
+2. temporary directoryを作る。
+3. JSON Schemaをtemporary fileへ書く。
+4. Codexをread-only / ephemeral / skip-git-repo-checkで実行する。
+5. `--output-last-message`のresult fileを読む。
+6. same Zod schemaでparseする。
+7. process / timeout / output failureを`unobservable`にする。
+8. 各case3 trialをsequential実行する。
+9. provenance付きresult JSONを書く。
+10. retry、JSONL parser、temp Git repoは作らない。
 
-### Phase 4 — Deterministic contract tests
+### Phase 4 — Repository Contract Test
 
-1. 6 dataset discoveryを確認する。
-2. duplicate case / assertion ID rejectionを確認する。
-3. unsupported dimension rejectionを確認する。
-4. missing rubric source rejectionを確認する。
-5. unknown expected assertion rejectionを確認する。
-6. expected metadataがJudge promptへ含まれないことを確認する。
-7. valid Judge response parseを確認する。
-8. missing / duplicate / unknown criterion response rejectionを確認する。
-9. malformed JSONを`unobservable`へ落とす境界を確認する。
-10. `stable_pass` / `stable_fail` / `unstable` / `unobservable` aggregationを確認する。
-11. dataset fingerprintが同じinputで安定することを確認する。
+前節14のdeterministic contractをテストする。
 
-### Phase 5 — Canonical semantic calibration
+### Phase 5 — Canonical calibration
 
 source実装をcommitした後、そのcommitをEvaluator SHAとして固定する。
 
-1. deterministic validationをPASSさせる。
+1. targeted testsをPASSさせる。
 2. explicit modelを指定する。
-3. 全12 anchorを3 trialずつsequential実行する。
-4. pass anchorsが`stable_pass`になることを確認する。
-5. fail anchorsが`stable_fail`になることを確認する。
-6. fail anchorの期待failed assertionが全trialで検出されることを確認する。
+3. 全8 anchor（4 Skill × pass/fail）を3 trialずつsequential実行する。
+4. 4 pass anchorすべてが`stable_pass`になることを確認する。
+5. 4 fail anchorすべてが`stable_fail`になることを確認する。
+6. fail anchorのtarget failed criterionが全3 trialで検出されることを確認する。
 7. `unstable` / `unobservable`が1件でもあればcanonical calibrationをPASS扱いしない。
-8. rubricをmodel出力へ都合よく合わせるのではなく、まずcase ambiguity / prompt protocol / contract traceabilityを確認する。
-9. official resultをRun Artifactとして保存する場合はRepository sanitizerを通す。
+8. failure時はまずcase ambiguity / rubric wording / protocolを確認し、model結果へ都合よくtruthを変更しない。
+9. official resultをRun Artifactへ保存する場合はRepository sanitizerを通す。
 
 ### Phase 6 — Full validation / scope audit
 
 1. targeted repository-contract test
-2. semantic dataset validate-only
-3. `validate:skills`
-4. `pnpm run verify`
-5. `git diff --check main...HEAD`
-6. changed file inventory
-7. Product / dependency / workflow / `.codex/agents/**` driftなし確認
+2. `pnpm run validate:skills`
+3. `pnpm run verify`
+4. `git diff --check main...HEAD`
+5. changed file inventory
+6. Product / Skill Contract / workflow / dependency driftなし確認
 
 ---
 
-## 8. Test strategy
+## 18. Canonical live run
 
-### Deterministic tests
-
-LLMなしで必ず再現可能な部分をRepository Contract Testで固定する。
-
-重点:
-
-- Dataset schema
-- Skill / case / assertion ID integrity
-- dimension allowlist
-- canonical source link
-- Judge prompt leakage防止
-- Judge result schema
-- aggregation semantics
-- fingerprint
-- malformed result fail-closed
-
-### Live semantic calibration
-
-LLM trialはunit testではなくexplicit eval runとして扱う。
-
-必須条件:
-
-- exact model記録
-- same dataset fingerprint
-- same evaluator SHA
-- 3 trials
-- sequential
-- retryなし
-- raw expected label非提示
-- all anchor calibration stable
-
-### なぜlive evalを通常CIへ入れないか
-
-- external model/runtime可用性へ依存する。
-- latency / quota / model更新で通常PR gateが不安定になる。
-- Semantic Evalは「強制」ではなく「評価・回帰検知」の責務である。
-
-その代わり、dataset / rubric / parser / aggregationのdeterministic integrityは通常`verify`で壊れないようにする。
-
----
-
-## 9. Validation commands
-
-実装後の最低限:
-
-```bash
-pnpm exec vitest run tests/repository-contract/skill-semantic-output-evals.test.ts --no-file-parallelism --maxWorkers=1
-pnpm run eval:skills:semantic:validate
-pnpm run validate:skills
-pnpm run verify
-```
-
-canonical semantic runの形:
+形:
 
 ```bash
 pnpm run eval:skills:semantic -- \
   --model <explicit-model> \
-  --trials 3 \
   --output <repo-relative-run-artifact-path>
 ```
 
-Windows PowerShellではshell syntaxに合わせて同じ引数を渡す。
+特定Skill / caseだけの診断時:
+
+```bash
+pnpm run eval:skills:semantic -- \
+  --model <explicit-model> \
+  --skill code-review \
+  --case CR-SEM-002-FAIL \
+  --output <repo-relative-run-artifact-path>
+```
+
+Windows PowerShellではshell syntaxだけ合わせ、引数意味は変えない。
+
+---
+
+## 19. Validation commands
+
+最低限:
+
+```bash
+pnpm exec vitest run tests/repository-contract/skill-semantic-output-evals.test.ts --no-file-parallelism --maxWorkers=1
+pnpm run validate:skills
+pnpm run verify
+```
 
 実装commit後:
 
@@ -719,169 +895,204 @@ Windows PowerShellではshell syntaxに合わせて同じ引数を渡す。
 git diff --check main...HEAD
 ```
 
-changed filesについて、以下がないことを確認する。
+changed filesについて次がないことを確認する。
 
 ```text
 Product Code変更
-Product Runtime変更
-Skill description / routing変更
+Product Test変更
+Skill description変更
+Skill workflow変更
+routing変更
 PR4 deterministic contract変更
 .github/workflows/**変更
 .codex/agents/**変更
-新規dependency / pnpm-lock.yaml変更
+新規dependency変更
+pnpm-lock.yaml変更
+repair-loop / Native用placeholder eval追加
 ```
 
 ---
 
-## 10. Scope
+## 20. Definition of Done
+
+- [ ] 6 SkillすべてについてSemantic Eval要否が判断されている。
+- [ ] 4 Skillが`semantic required`、2 SkillがPR5 N/Aとして理由まで明示されている。
+- [ ] N/A Skillのための人工的Output schema / placeholder evalを作っていない。
+- [ ] 対象4 Skillに2〜3個のSkill-specific criterionがある。
+- [ ] 全criterionがpackage-local canonical sourceへtraceできる。
+- [ ] deterministic項目をSemantic rubricへ重複実装していない。
+- [ ] 各対象Skillに1 pass anchor / 1 plausible targeted fail anchorがある。
+- [ ] expected truthをJudge promptへ渡していない。
+- [ ] Judge response contractは1つのZod schemaを正本としている。
+- [ ] 同じZod schemaからCodex `--output-schema`用JSON Schemaを生成している。
+- [ ] JSONL event parserを追加していない。
+- [ ] Judge用temp Git Repositoryを作っていない。
+- [ ] criterionの`pass` / `fail`と短いreasonを取得できる。
+- [ ] Harness側がcriterion verdictからtrial resultを導出する。
+- [ ] canonical trial countは3に固定されている。
+- [ ] 3/3 PASS=`stable_pass`、3/3 FAIL=`stable_fail`、observable mixed=`unstable`、runtime/protocol failure含有=`unobservable`として区別できる。
+- [ ] pass anchorが`stable_pass`、fail anchorが`stable_fail`になるcanonical calibrationを確認できる。
+- [ ] fail anchorのtarget failed criterionを全3 trialで検出できる。
+- [ ] resultへevaluator SHA、raw dataset fingerprint、Codex CLI version、`requested_model`、trial countを記録できる。
+- [ ] live Judgeを通常Required CIへ入れていない。
+- [ ] repository-contract testでdataset / prompt leakage / response / aggregationをdeterministicに検証できる。
+- [ ] `eval:skills:semantic:validate`等の重複validation scriptを初回PRで追加していない。
+- [ ] Product Code / Product Test / `.codex/agents/**` / routing / Skill description / Skill workflowを変更していない。
+- [ ] 新規npm dependency / lockfile変更を追加していない。
+- [ ] targeted test、`pnpm run validate:skills`、`pnpm run verify`が通る。
+- [ ] `git diff --check main...HEAD`が通る。
+
+---
+
+## 21. Scope
 
 ### Included
 
 - 6 SkillのSemantic Eval要否棚卸し
-- Skill-specific semantic rubric
-- pass / fail calibration anchor
+- 4 SkillのSkill-specific semantic rubric
+- 4 Skillのpass / fail calibration anchor
 - deterministic eval data validation
-- LLM Judge prompt / response contract
-- Codex CLIを使ったexplicit semantic judge runner
+- Zod-based Judge response contract
+- Codex `--output-schema`を利用するminimal Judge runner
 - 3-trial stability classification
 - provenance / result JSON
 - deterministic repository contract test
-- validate-only command
-- live semantic calibration
+- explicit live semantic calibration
 
 ### Excluded
 
+- `repair-loop`のstatic Semantic Eval
+- `android-native-local-validation`のstatic Semantic Eval
 - Skill description最適化
 - Trigger Eval変更
-- PR2 dataset / selector / hook logic変更
+- PR2 dataset / selector / hook logic流用
 - PR4 deterministic grader拡張
 - Skill Workflow semantic redesign
 - Product Code / Product Test変更
-- actual repair / harness modificationの実行評価
-- Native Build / Install / Maestroの実実行
+- actual repair execution評価
+- Native Build / Install / Maestro実行評価
 - multi-Skill handoff
 - Workflow E2E
 - provider SDK追加
+- JSONL lifecycle parser
+- temp Git repo bootstrap
 - Embedding / vector similarity
 - Golden全文一致
 - 100点score
 - cross-Skill common rubric
+- dimension registry
 - Repository独自Agent Runtime / Workflow Engine
 - live Semantic EvalのRequired CI化
 
-実Skill実行・複数Skill handoff・Artifact再利用はPR6で扱う。
-
 ---
 
-## 11. Risks and rollback
+## 22. Risks
 
-### Risk 1 — LLM Judge自体が不安定
+### Risk 1 — LLM Judgeが不安定
 
 対策:
 
-- canonical 3 trial
+- 3 trial固定
 - mixedを`unstable`
 - majority voteでPASSへ丸めない
-- strong pass / plausible fail anchorでcalibration
-- model / Codex version / dataset fingerprintを記録
+- strong pass / plausible targeted fail anchor
+- `requested_model` / Codex version / dataset fingerprint記録
 
-### Risk 2 — Rubricがdeterministic contractを重複する
-
-対策:
-
-- 各criterionにcanonical sourceを持たせる。
-- PR4 test / validatorと照合する。
-- formatting / field existence / schema ruleはSemantic rubricから除外する。
-
-### Risk 3 — Judgeがexpected answerを読む
+### Risk 2 — Rubricが広すぎる
 
 対策:
 
-- expected metadataをprompt builderから構造的に除外する。
-- JudgeはEvaluator Repositoryを見せない一時workspaceで実行する。
-- case facts / rubric / candidate outputだけをstdinで渡す。
+- Skillあたり2〜3 criterion
+- 重要な意味契約だけに限定
+- criterion追加は「既存2〜3個では重大なfalse-passを防げない」場合だけ
 
-### Risk 4 — 評価基盤が独自Agent Runtime化する
-
-対策:
-
-- PR5 runnerはJudge invocationだけ。
-- Skill routing、tool orchestration、workflow executionを持たない。
-- actual Skill executionはPR6へ送る。
-
-### Risk 5 — Rubricが過度に抽象的で何でもPASSする
+### Risk 3 — Rubricがdeterministic contractを重複する
 
 対策:
 
-- assertionごとにpass/fail境界を具体化する。
-- plausible negative anchorを置く。
-- expected failed assertionまでcalibrationする。
+- PR4 validator / schemaと照合
+- field existence / formatting / ID rule / Coverage relationをSemantic rubricから除外
 
-### Rollback
+### Risk 4 — Judgeがanswer metadataを読む
 
-PR5はProduct behaviorへ接続しない。
+対策:
 
-問題があれば以下を削除/戻すことで独立してrollbackできる。
+- prompt builderでexpected metadataを構造的に除外
+- temp directoryで実行
+- Evaluator RepositoryをJudge working directoryにしない
+- semantic.yaml自体をJudgeへ渡さない
 
-```text
-.agents/skills/*/evals/output/semantic.yaml
-scripts/evals/skill-semantic-output-evals.ts
-scripts/evals/run-skill-semantic-output-evals.ts
-tests/repository-contract/skill-semantic-output-evals.test.ts
-package.jsonのsemantic eval scripts / verify接続
-```
+### Risk 5 — Runtime wrapperが過剰になる
 
-PR4 deterministic graderやProduct Runtimeへrollback影響を与えない。
+対策:
+
+- `--output-schema` / `--output-last-message`を使う
+- JSONL parserを作らない
+- temp Git repoを作らない
+- retry / compare / concurrency / provider abstractionを作らない
+
+### Risk 6 — PR5とPR6の境界が崩れる
+
+対策:
+
+- PR5はhand-authored calibration candidateだけをJudgeする
+- actual Skill executionは行わない
+- repair-loop / Nativeはexecution依存が強いためPR6へ残す
 
 ---
 
-## 12. Shippability
+## 23. Shippability
 
 PR5単体でレビュー可能な完成状態は次とする。
 
-1. Semantic rubric / calibration dataが6 Skill分存在する。
-2. deterministic validator / testsがPASSする。
-3. live Judgeで3-trial calibrationが成立する。
-4. resultに再現性判断に必要なprovenanceが残る。
-5. PR4 deterministic boundaryを壊していない。
-6. PR6なしでも「candidate outputを意味評価するgrader」として独立して利用できる。
-7. actual Workflow executionをPR5へ持ち込んでいない。
+1. 4 Skill分のSemantic rubric / calibration dataが存在する。
+2. 2 SkillのN/A理由が明確で、placeholder実装がない。
+3. deterministic validator / repository testsがPASSする。
+4. live Judgeで全8 anchorの3-trial calibrationが成立する。
+5. resultに再現性判断に必要なprovenanceが残る。
+6. PR4 deterministic boundaryを壊していない。
+7. PR6なしでも「supplied candidate outputを意味評価するgrader」として独立して利用できる。
+8. actual Skill execution / Workflow executionをPR5へ持ち込んでいない。
 
-PR6はこのSemantic graderを必要なSkill Outputの評価componentとして再利用できるが、PR5側からPR6の実行Engineを先取りしない。
+PR5が証明するのは、**Semantic graderが既知の良いcandidateと既知の悪いcandidateを安定して区別できること**である。
+
+PR5単体で「現在のSkill実行品質が良い」ことまで証明したとは扱わない。
+
+actual Skill executionの評価はPR6で行う。
 
 ---
 
-## 13. Open questions and assumptions
+## 24. Fixed assumptions / implementation-time probe
 
 ### 固定Assumptions
 
 - PR4はPR5の直接dependencyであり、merge済み`main`を基点とする。
 - PR2 / PR3はPR5のrequired dependencyではない。
-- 現行6 Skillにはすべてsemantic judgment対象が存在する。
+- PR5対象は4 Skill、N/Aは2 Skillとする。
 - LLM provider SDKは追加しない。
 - Codex CLIを既存Host Runtimeとして利用する。
+- Judge responseはZod schemaをSSOTとする。
 - canonical semantic calibrationではmodelを明示指定する。
+- canonical trial countは3固定とする。
 - live semantic evalは通常CI必須Gateにしない。
 - PR6がactual Skill execution / Workflow E2Eを担当する。
 
-### 実装時にprobeで確定する項目
+### 実装時probeで確定する項目
 
-- 現行Codex CLIでtrusted final assistant textを取得する正確なJSON event shape。
-- explicit model指定の正確なCLI引数。
-- Judge用空workspaceで必要な最小Git/preflight条件。
-- canonical runに採用する具体的model名。
+- Repository環境のCodex CLI version。
+- current CLIで`--output-schema` + `--output-last-message`が同時利用できること。
+- exact model指定が成立すること。
+- canonical runに採用する具体的`requested_model`名。
 
-これらは現在のCLI capabilityに依存するため、Planで推測してhard-codeしない。
-
-probeで確認後、確認した現行仕様だけを実装へ反映する。
+probe結果によりこの最小経路が成立しない場合、実装者判断で代替runtimeを増設せずBLOCKEDとして記録する。
 
 ---
 
-## 14. 今回Plan-onlyで行わないこと
+## 25. 今回Plan-onlyで行わないこと
 
-このcommitでは本Planファイルだけを追加する。
+この修正commitでもPlanファイルだけを変更する。
 
-以下はまだ行わない。
+まだ行わないもの:
 
 - `evals/output/**`作成
 - semantic rubric実装
