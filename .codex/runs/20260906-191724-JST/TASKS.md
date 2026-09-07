@@ -41,10 +41,11 @@
 - [ ] 33. baseline/Run Artifactをsanitization、commit、pushしPRを確認する
 - [x] 34. 全case完了前に終了したcanonical sessionをinvalid runとして記録し、部分結果を採用しない
 - [x] 35. canonical attempt4を全24 case完了まで実行し、invalidity/provenance/8-side coverage不足を記録する
-- [ ] 36. invalid canonical evidenceとRun Artifactをcommitし、対象branchへpushしてPR状態を確認する
+- [x] 36. invalid canonical evidenceとRun Artifactをcommitし、対象branchへpushしてPR状態を確認する
 
 ## Blocked
 
 - canonical `all`の8 boundary-sideが全件timeoutでobservable 0件となり、有効baseline条件を満たさない。Planの禁止事項によりcase retry・timeout緩和・dataset/description変更は行わない。Host実行時間を120秒以内に安定化した環境で、Target/trust/Probe/validation確認後にcanonical runを最初から再実行する。
 - timeout原因診断ではrunner相当positiveの120秒時点に`turn.completed`/`turn.failed`がなく、process treeに`codex.exe`が残存した。runner lifecycle defectではなくHost execution latency（Case B）と分類し、canonical `all`は再実行しない。
 - timeout変更後のcanonical `all`はHook activityの途中で外部実行sessionが終了し、runner最終artifactが生成されなかったため、Plan §13.3に基づき全体を無効化した。次回は同じdataset/query/timeoutで最初から1回実行し、部分結果を混在させない。
+- canonical attempt4は全24 caseを完了したが、Codex 0.153.4で22件が327秒timeout、8 side中6 side欠落となった。valid baselineは採用せず、Codex version固定とtimeout前提の再判断をblockerとする。

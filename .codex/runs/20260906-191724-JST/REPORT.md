@@ -237,3 +237,13 @@
 - Remaining: invalid evidenceのbaseline/Run Artifact commit、non-force push、PR #127 state/head確認。valid baseline取得はCodex version固定とtimeout前提の再判断が必要なため、今回のrun後に追加実行しない。
 - Subagents: 使用なし。
 - Progress: 89% (31/35)
+
+## 2026-09-07 11:29 (JST)
+
+- Summary: invalid canonical evidenceとRun Artifactを`72dc98c`（`test: record canonical trigger eval run`）へcommitし、指定branchへnon-force pushした。
+- Git / PR: current branchは`refactor/117-pr2-trigger-eval-baseline`、remote headは`72dc98c4e2deafc71691040b17a3b2e6500c6562`、PR #127はOPEN、base=`main`、head branch一致。新規PR作成・merge・force pushは行っていない。
+- Artifact: `.codex/runs/20260906-191724-JST/trigger-eval-baseline.json`はattempt4の全24 case観測証跡として保存したが、valid baselineとしては不採用。`evaluation.json`はblocked / environment_observabilityを維持する。
+- Scope: push対象commitまでのdiffはPR2のPlan変更、Evaluator timeout変更、調査/Run Artifactに限定される。Skill description、`AGENTS.md` routing意味、Product code/test、training content、新規dependencyの変更はない。
+- Blocker: valid canonical baseline未取得。Codex `0.153.0`で測定した327秒前提に対し、canonical時点のCodex `0.153.4`では22件がtimeout、8 side中6 side欠落。Codex versionを固定してtimeout前提を再判断するまで、追加canonical runは行わない。
+- Subagents: 使用なし。
+- Progress: 89% (32/36)
