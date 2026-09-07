@@ -9,7 +9,7 @@
 - [x] 4. `parseFenceMarker()`と既存parameterized Test Cを最小修正する
 - [x] 5. diff / statusを自己レビューし、scope違反がないことを確認する
 - [x] 6. targeted test、typecheck、`pnpm run verify`をPASSさせる
-- [ ] 7. commit後whitespace / sanitizer / push / PR本文更新を完了する
+- [x] 7. commit後whitespace / sanitizer / push / PR本文更新を完了する
 
 ## Discovered
 
