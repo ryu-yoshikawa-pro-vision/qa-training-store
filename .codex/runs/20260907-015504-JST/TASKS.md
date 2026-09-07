@@ -22,7 +22,7 @@
 
 ## Discovered
 
-- [ ] 9. ユーザーの中断・push指示に従い、成果物を作業branchへcommit・pushする。
+- [x] 9. ユーザーの中断・push指示に従い、成果物を作業branchへcommit・pushする。
 
 ## Blocked
 
