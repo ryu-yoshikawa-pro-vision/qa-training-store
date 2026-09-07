@@ -201,3 +201,13 @@
 - Blocker / Remaining: tasks 15/17（valid canonical baselineとbaseline Artifact commit）は未完了。diagnostic tasks 19–24は完了。
 - Subagents: 使用なし。
 - Progress: 92% (22/24)
+
+## 2026-09-07 09:02 (JST)
+
+- Summary: timeout変更後のcanonical `all`を、preflight-only停止を解消したclean stateから1回開始したが、全case完了前に実行PTY/外部tool sessionが終了し、runnerの最終結果artifactが生成されなかった。
+- Evidence: canonical commandは`2026-09-06 23:41:38`頃に開始し、TargetのHook JSONLは開始前の33件から53件まで増加した。最後に確認したHook fileの更新は`2026-09-07 01:26:36 JST`。その後runner processは存在せず、PTYへのpollは`Unknown process id`となった。`trigger-eval-baseline.json`は旧runの`executed_at=2026-09-06T12:08:46.608Z`・24件timeoutの内容のままで、今回runのterminal event、case結果、exit/close時刻は保存されていない。
+- Decision / Rationale: 今回は全caseを完了していないためcanonical baselineとして採用しない。これはrouting結果ではなく、長時間canonical commandを保持する外部実行sessionの中断であり、Evaluatorのcase結果として扱わない。Plan §13.3のrun全体無効化条件に従い、同じ条件でのcase retryや部分結果の混在は行わず、実行session寿命に依存しない方式で`all`を最初から実行する。
+- Scope: dataset、query、Skill description、`AGENTS.md` routing contract、timeout、selector、scoringは変更しない。既存artifactは上書きせず、今回run未完了の事実だけをappend-onlyで記録する。
+- Blocker / Remaining: valid canonical baseline未取得。次はclean evaluatorからcanonical `all`を最初から1回完了させ、8-side coverageとprovenanceを確認する。
+- Subagents: 使用なし。
+- Progress: 88% (29/33)
