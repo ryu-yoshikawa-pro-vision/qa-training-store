@@ -285,16 +285,16 @@ P1-5では、Playwrightのテスト分離とScenario Shop固有の初期状態�
 
 代表ケースは、1つの決定的な初期状態で実行できるテスト条件へ揃える。上流リスクまで混在を残さず、この計画で次へ固定する。
 
-- `RISK-CART-001`: `BR-CART-001` / `AC-CART-001`に対応し、購入数量上限を超える操作でCart数量や在庫整合性が壊れるリスクとする。
-- `TC-CART-001`: `RISK-CART-001`に対応する購入数量上限ケース。`default`シナリオから数量を上限超過へ変更しようとし、操作が拒否され現在数量が維持されることを確認する。
-- `RISK-CART-002`: `BR-CART-003` / `AC-CART-003`に対応し、購入不可明細を残したままCheckoutへ進めるリスクとする。
-- `TC-CART-002`: `RISK-CART-002`に対応する状態再検証ケース。`cart-with-invalid-items`シナリオからCheckoutへ進めないことを確認する。
+- `TARGET-CART-001` / `RISK-CART-001`: `BR-CART-001` / `AC-CART-001`に対応し、購入上限を超える数量がCartに成立するリスクとする。
+- `TC-CART-001`: `RISK-CART-001`に対応する購入数量上限ケース。`default`シナリオで、購入上限が在庫等の別制約より先に効くSKUを選び、同一SKUへの追加数量との合算で購入上限超過を発生させる。UIに表示されない上限外の選択肢を直接選ぶケースにはせず、追加操作が拒否され既存数量が維持されることを確認する。
+- `TARGET-CART-002` / `RISK-CART-002`: `BR-CART-003` / `AC-CART-003`に対応し、購入不可明細を残したままCheckoutへ進めるリスクとする。
+- `TC-CART-002`: `RISK-CART-002`に対応する状態再検証ケース。`cart-with-invalid-items`シナリオへリセットした後、認証境界ではなく`BR-CART-003`を確認するためCheckoutを利用できるcustomerのログイン状態を確立し、初期データとして用意された購入不可CartでCheckoutへ進めないことを確認する。現行の代表アカウントは`regular@example.com`を使えるが、初期状態シナリオ自体の初期セッション定義は変更しない。
 - P1-4の単純なCart追加はPlaywright構文を学ぶ導入演習として扱い、上記ワークブックのケースと同じテストケースIDを付けない。
 - P1-5で`TC-CART-002`を使う場合は`out-of-stock`の商品追加拒否ではなく、`cart-with-invalid-items`からのCheckout阻止として扱う。`out-of-stock`を別練習として残す場合は上記IDを流用しない。
 
-既存`RISK-CART-001` / `TC-CART-001`に混在する`BR-CART-001` / `BR-CART-003`と`AC-CART-001` / `AC-CART-003`は上記2系統へ分ける。`risk_id` / `br_ids` / `ac_ids` / テスト条件 / 前提条件 / 期待結果 / シナリオを一致させる。既存スキーマの行追加だけで表現し、列は増やさない。
+既存`RISK-CART-001` / `TC-CART-001`に混在する`BR-CART-001` / `BR-CART-003`と`AC-CART-001` / `AC-CART-003`は上記2系統へ分ける。`target_id` / `risk_id` / `br_ids` / `ac_ids` / テスト条件 / 前提条件 / 期待結果 / シナリオを一致させる。`TARGET-CART-001`と`TARGET-CART-002`も別行で一意にし、今回の教材改善を理由に既存検証スクリプトの`target_id`一意制約を緩めない。既存スキーマの行追加だけで表現し、列は増やさない。
 
-また、ワークブックの`evidence`は実行時に生成されるTrace、スクリーンショット、GitHub Actionsのアーティファクト等を人が追える形で参照する既存の文字列項目として扱う。`implementation_path`と異なり、静的検証スクリプトで実行時アーティファクトの実在ファイルを要求しない。新しいURI形式、アーティファクトのマニフェスト、アーティファクト用データベース等の参照方式は作らない。静的検証スクリプトは`Not run`なら`evidence` / `failure` / `cause` / `action` / `improvement`が空であることなど、実行前後の状態として決定的に検証できる条件へ限定する。
+また、ワークブックの`evidence`は実行時に生成されるTrace、スクリーンショット、GitHub Actionsのアーティファクト等を人が追える形で参照する既存の文字列項目として扱う。`implementation_path`と異なり、静的検証スクリプトで実行時アーティファクトの実在ファイルを要求しない。新しいURI形式、アーティファクトのマニフェスト、アーティファクト用データベース等の参照方式は作らない。静的検証スクリプトは`Not run`なら`evidence` / `failure_category` / `cause` / `action` / `improvement`が空であることなど、実行前後の状態として決定的に検証できる条件へ限定する。現在のパス検証が実在確認と安全性確認を同じ処理で行っている場合も、`evidence`から外すのは実行時ファイルの実在確認だけとし、明らかなローカル絶対パスやパスによるリポジトリ外参照を保存しない静的な安全性確認は維持する。GitHub Actionsの実行結果 / アーティファクト等、ファイルパスではない参照をローカルファイルとして解決しない。
 
 ### 1.22 P2-4 / P2-5と演習用コピーのワークフロー契約がまだつながっていない
 
@@ -391,6 +391,7 @@ P1-6では通常のテストの成功 / 失敗と`expected-failure`確認コマ�
 
 ### 3.2 パート1
 
+- `docs/curriculum/test-automation/part1/01_test-automation-foundations.md`（学習内容の再設計ではなく、一般説明の不要な英語・内部管理表現の整理に限定）
 - `docs/curriculum/test-automation/part1/02_scenario-shop-analysis.md`
 - `docs/curriculum/test-automation/part1/03_test-design-and-automation-selection.md`
 - `docs/curriculum/test-automation/part1/04_playwright-foundations.md`
@@ -559,7 +560,7 @@ Web / ネイティブとも、未編集初期演習ファイルについて固�
 - `implementation_path`: リポジトリ内にある受講者の実装
 - `evidence`: Trace / スクリーンショット / 動画 / GitHub Actionsのアーティファクト / 実行結果等の実行証跡への参照
 
-`evidence`は新しくチェックアウトした時に必ず存在するGit管理対象ファイルとは限らない。新しいURI形式やアーティファクトのマニフェスト等の正本形式は定義せず、人が後から追える実行時証跡への参照を既存の文字列項目へ記録する。検証スクリプトは実行時アーティファクトのファイルの存在やGitHub上到達性を要求せず、`Not run`時の空欄等、状態遷移として静的に決定できる契約だけを扱う。新しいアーティファクト管理基盤は作らない。
+`evidence`は新しくチェックアウトした時に必ず存在するGit管理対象ファイルとは限らない。新しいURI形式やアーティファクトのマニフェスト等の正本形式は定義せず、人が後から追える実行時証跡への参照を既存の文字列項目へ記録する。検証スクリプトは実行時アーティファクトのファイルの存在やGitHub上到達性を要求せず、`Not run`時の空欄等、状態遷移として静的に決定できる契約だけを扱う。一方、ローカル絶対パスやパスによるリポジトリ外参照を保存しない既存の静的な安全性確認は維持する。GitHub Actionsの実行結果 / アーティファクト等の文字列参照はローカルファイルパスとして解決しない。現在の検証処理が安全性確認と`existsSync`による実在確認をまとめている場合は、必要な責務だけを最小限分離する。新しいアーティファクト管理基盤は作らない。
 
 ---
 
@@ -758,27 +759,28 @@ P2-7の共通学習範囲ではこの教材で扱うWeb CI範囲の判定条件 
 
 代表ケースは次へ固定する。
 
-- `RISK-CART-001`: `BR-CART-001` / `AC-CART-001`、購入数量上限超過によるCart数量・在庫整合性のリスク
-- `TC-CART-001`: `RISK-CART-001`、`default`シナリオ、購入数量上限を超える変更が拒否され現在数量が維持される境界値ケース
-- `RISK-CART-002`: `BR-CART-003` / `AC-CART-003`、購入不可明細を残したままCheckoutへ進めるリスク
-- `TC-CART-002`: `RISK-CART-002`、`cart-with-invalid-items`シナリオ、購入不可明細がある状態ではCheckoutへ進めない再検証ケース
+- `TARGET-CART-001` / `RISK-CART-001`: `BR-CART-001` / `AC-CART-001`、購入上限を超える数量がCartに成立するリスク
+- `TC-CART-001`: `RISK-CART-001`、`default`シナリオ、購入上限が在庫等の別制約より先に効くSKUを使い、同一SKUへの追加数量との合算で購入上限を超える操作が拒否され既存数量が維持される境界値ケース。UIに存在しない上限外の選択肢を直接指定するケースにはしない
+- `TARGET-CART-002` / `RISK-CART-002`: `BR-CART-003` / `AC-CART-003`、購入不可明細を残したままCheckoutへ進めるリスク
+- `TC-CART-002`: `RISK-CART-002`、`cart-with-invalid-items`シナリオへリセットした後にCheckoutを利用できるcustomerのログイン状態を確立し、購入不可明細によってCheckoutへ進めないことを確認する再検証ケース。現行の代表アカウントは`regular@example.com`を使えるが、初期状態シナリオ自体の初期セッション定義は変更しない
 - P1-4の単純なCart追加は導入用Playwright演習とし、上記ケースと同じIDを付けない。P1-5の既存`TC-CART-002`例も`cart-with-invalid-items`のケースへ合わせる
 
 サンプル全体は次を確認する。
 
-- `risk_id` / `br_ids` / `ac_ids` / テスト条件 / 前提条件 / 期待結果 / シナリオを一致させる
+- `target_id` / `risk_id` / `br_ids` / `ac_ids` / テスト条件 / 前提条件 / 期待結果 / シナリオを一致させる
+- `TARGET-CART-001` / `TARGET-CART-002`を別行で一意にし、既存の`target_id`一意制約を緩めない
 - 同じリスクID / テストケースIDを別レッスンで別の意味に使わない
 - 複数の独立した業務ルールは既存スキーマ内で別行 / 別IDへ分ける
 - `Later`なら未実装の`implementation_path`を埋めない
 - `Automate`でも受講者がまだ実装していない配布元テンプレートでは`implementation_path`を完成済みとして先に埋めない
 - 実装するケースでは自動化判断と受講者が後から記録する実装先を一致させる
 - 受講者が作成したテストの実行条件を`Training Web baseline`にしない
-- `Not run`では`evidence` / `failure` / `cause` / `action` / `improvement`を先に埋めない
+- `Not run`では`evidence` / `failure_category` / `cause` / `action` / `improvement`を先に埋めない
 - パート1のケースへパート2のPR実行時期を必須前提として先取りしない
 
 `01_spreadsheet-test-design.md`は4つの正本CSVを実際に作成・更新する成果物として中心に置く。複数の概念上のシート構成は、4 CSVと別の成果物を作るように見える場合は削除または大幅に圧縮し、残す場合も各観点を既存列のどこへ記録するかだけを説明する。
 
-`04_execution-improvement.csv`の`evidence`は実行時証跡への人間可読な参照として扱う。Trace / スクリーンショット / GitHub Actionsのアーティファクト等は`.gitignore`対象またはGitHub上の生成物になり得るため、検証スクリプトで実在するGit管理対象ファイルのパスを要求しない。独自URIやマニフェストは作らず、`Not run`時の空欄等の状態契約だけを静的に検証する。
+`04_execution-improvement.csv`の`evidence`は実行時証跡への人間可読な参照として扱う。Trace / スクリーンショット / GitHub Actionsのアーティファクト等は`.gitignore`対象またはGitHub上の生成物になり得るため、検証スクリプトで実在するGit管理対象ファイルのパスを要求しない。独自URIやマニフェストは作らず、`Not run`時の空欄等の状態契約だけを静的に検証する。ただし、ローカル絶対パスやパスによるリポジトリ外参照を保存しない安全性確認は維持し、GitHub Actionsの実行結果 / アーティファクト等はローカルファイルとして実在確認しない。
 
 ---
 
@@ -1180,8 +1182,8 @@ POMを扱う場合は`class` / `constructor` / `this`だけ必要な場所で短
 - 必須カリキュラムファイル
 - 相対リンク
 - ワークブックのスキーマ / ID / 仕様書参照
-- ワークブックの`Not run`時に`evidence` / `failure` / `cause` / `action` / `improvement`が空である等、実行時アーティファクトの存在確認を必要としない状態契約
-- `.gitignore`対象のローカル出力パスやGitHub Actionsの実行結果 / アーティファクト等を`evidence`へ記録してもリポジトリ内パスの存在検証で拒否しないことを、既存`training-curriculum.test.ts`の狭い回帰テストで保護する
+- ワークブックの`Not run`時に`evidence` / `failure_category` / `cause` / `action` / `improvement`が空である等、実行時アーティファクトの存在確認を必要としない状態契約
+- `.gitignore`対象のローカル出力パスやGitHub Actionsの実行結果 / アーティファクト等を`evidence`へ記録しても実行時ファイルの存在検証で拒否しない一方、ローカル絶対パスやパスによるリポジトリ外参照を不用意に許可しないことを、既存`training-curriculum.test.ts`の狭い回帰テストで保護する
 - `package.json`に定義されたスクリプト
 - 演習資産のパス
 - Playwright / Maestroの正式な実行入口
@@ -1403,10 +1405,12 @@ pnpm run verify
 
 - P1-4の初回JS/TSが最初のPlaywright演習に必要な範囲へ絞られ、アロー関数 / コールバック等の実際に使う構文に説明漏れがない。
 - Locatorの方針が学習目標、本文、演習、自己確認、修了条件で一致する。
-- ワークブックの`RISK-CART-001` / `TC-CART-001`が`BR-CART-001` / `AC-CART-001`の購入数量上限、`RISK-CART-002` / `TC-CART-002`が`BR-CART-003` / `AC-CART-003`の購入不可明細として分離され、リスク / シナリオ / 前提条件 / 期待結果が一致する。
+- ワークブックの`TARGET-CART-001` / `RISK-CART-001` / `TC-CART-001`が`BR-CART-001` / `AC-CART-001`の購入数量上限、`TARGET-CART-002` / `RISK-CART-002` / `TC-CART-002`が`BR-CART-003` / `AC-CART-003`の購入不可明細として分離され、`target_id`の一意性、リスク / シナリオ / 前提条件 / 期待結果が一致する。
+- `TC-CART-001`は現在UIから実行可能な同一SKUへの追加合算で購入上限超過を発生させ、在庫等の別制約を失敗原因にしていない。
+- `TC-CART-002`は`cart-with-invalid-items`へのリセット後にCheckoutを利用できるcustomerのログイン状態を確立し、認証境界ではなく購入不可明細を理由にCheckoutが阻止されることを確認する。初期状態シナリオの初期セッション定義は変更していない。
 - P1-4の単純なCart追加や`out-of-stock`の商品追加拒否に上記ワークブックのケースIDを誤用していない。
 - ワークブックのサンプルの自動化判断、実装先、実行条件、実行前後の状態遷移が新しい学習経路と一致する。
-- `evidence`が実行時証跡への人間可読な参照として扱われ、新しいURI形式 / マニフェストを導入せず、`.gitignore`対象 / GitHub上のアーティファクトのファイルの存在を静的検証スクリプトで要求していない。
+- `evidence`が実行時証跡への人間可読な参照として扱われ、新しいURI形式 / マニフェストを導入せず、`.gitignore`対象 / GitHub上のアーティファクトのファイルの存在を静的検証スクリプトで要求していない。一方でローカル絶対パスやパスによるリポジトリ外参照を保存しない静的な安全性確認は維持している。
 - Playwrightの基準確認は環境確認であり、C07の証跡として扱われない。
 - 未編集初期演習ファイルだけではC07修了証跡にならない。
 - 一時的な受講者完成状態で、演習用の初期状態のリセット入口を使って`training:web:exercise`成功を確認できる。
