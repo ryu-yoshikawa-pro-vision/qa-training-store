@@ -27,7 +27,7 @@ plan branch: refactor/test-automation-curriculum-learning-experience
 
 カリキュラムはPlaywright等のコードベース自動化未経験、プログラミング経験を必須としない受講者を対象としている。
 
-一方、`00_learning_design.md`のWeb / Playwright開始判定条件ではNode.js、pnpm、依存関係のインストール、環境変数、演習環境の基準確認を要求しており、ターミナルや`pnpm run`をまだ説明していない受講者がCLI操作を先に求められる。
+一方、`00_learning-design.md`のWeb / Playwright開始判定条件ではNode.js、pnpm、依存関係のインストール、環境変数、演習環境の基準確認を要求しており、ターミナルや`pnpm run`をまだ説明していない受講者がCLI操作を先に求められる。
 
 Playwright開始前に必要な最低限のCLI / Node.jsの知識をP1-4で説明するだけでなく、開始判定条件の順序も合わせる必要がある。
 
@@ -163,7 +163,7 @@ Maestro / YAML / Flowの概念
 
 POM例を残す場合、`class` / `constructor` / `this`等、その例を読むために必要な構文だけをその場で短く説明する。
 
-複数画面にまたがる共通操作を表す既存の独自用語は、受講者向けの独立実装資産としての必要性を確認できず、Maestro Flowとも紛らわしいため、独立した必須用語から外す。必要な内容は「共通操作」「ヘルパー」等の一般的な説明へ置き換え、`00_learning_design.md`等の用語も同期する。
+複数画面にまたがる共通操作を表す既存の独自用語は、受講者向けの独立実装資産としての必要性を確認できず、Maestro Flowとも紛らわしいため、独立した必須用語から外す。必要な内容は「共通操作」「ヘルパー」等の一般的な説明へ置き換え、`00_learning-design.md`等の用語も同期する。
 
 ### 1.12 パート2の共通 / ネイティブ経路に具体的不整合がある
 
@@ -253,7 +253,7 @@ URL互換を考慮し、基本は正本である`09_part1-capstone.md`へ案内�
 
 `scripts/validate-curriculum.ts`は必須ファイル、ワークブック、スクリプト、演習用ワークフロー等の構造契約だけでなく、P1-7や講師向け参考資料の自然文に近い文字列も固定している。
 
-今回の教材順序変更・日本語整理と衝突する既存文字列検証を棚卸しする。
+今回の教材順序変更・日本語整理と衝突する既存文字列検証を棚卸しする。また、`REQUIRED_CURRICULUM_FILES`に残る旧`docs/curriculum/test-automation/00_learning_design.md`参照を、実在する`docs/curriculum/test-automation/00_learning-design.md`へ同期する。ファイルrenameや互換用aliasは追加しない。
 
 残す・追加する検証は次のような安定した機械契約へ限定する。
 
@@ -384,7 +384,7 @@ P1-6では通常のテストの成功 / 失敗と`expected-failure`確認コマ�
 ### 3.1 カリキュラム共通
 
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning_design.md`
+- `docs/curriculum/test-automation/00_learning-design.md`
 - `docs/curriculum/test-automation/01_spreadsheet-test-design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
 - 必要最小限の`docs/curriculum/test-automation/03_instructor-reference.md`
@@ -570,7 +570,7 @@ Web / ネイティブとも、未編集初期演習ファイルについて固�
 
 ### 6.1 受講者 / 講師 / 保守者の境界
 
-`README.md`と`00_learning_design.md`を中心に、受講者の標準学習経路と、環境準備・運営・リポジトリ管理の資料を分ける。
+`README.md`と`00_learning-design.md`を中心に、受講者の標準学習経路と、環境準備・運営・リポジトリ管理の資料を分ける。
 
 - 受講者: 学習内容、演習、自己確認、修了条件、評価観点、実行に必要な最低限の手順
 - 講師: ツールチェーン準備、アカウント、端末、演習用コピー、トラブル対応、採点支援
@@ -582,7 +582,7 @@ READMEの受講者向け標準導線はP1-1から開始する。`01_spreadsheet-
 
 ### 6.2 開始条件とCLI学習順序を整合させる
 
-`00_learning_design.md`のWeb / Playwright開始判定条件を、P1-4でCLI基礎を説明した後に受講者が自分で確認する実行判定条件として再定義する。
+`00_learning-design.md`のWeb / Playwright開始判定条件を、P1-4でCLI基礎を説明した後に受講者が自分で確認する実行判定条件として再定義する。
 
 P1-1〜P1-3はWeb演習の基準確認を自分で起動できなくても、仕様・画面・ワークブックを使って学習できる構成にする。
 
@@ -860,7 +860,7 @@ C09の証跡:
 → 再実行結果
 ```
 
-`04_execution-improvement.csv`へ接続する。
+`04_execution-improvement.csv`では同じ`test_case_id`について実行ごとに別行を使い、`run_context`で失敗時と修正後の再実行を区別する。失敗行は`result=Fail`として`failure_category` / `cause` / `action` / 失敗時の`evidence`を残し、修正後の行は`result=Pass`として再実行成功の`evidence`を残す。失敗行をPassへ上書きしない。新しい列やrun ID体系は追加しない。
 
 ### 6.13 P1-6のセキュリティ詳細を共通必須から分離する
 
@@ -1016,7 +1016,8 @@ P1-5で受講者が、ワークブックで決めたテストケースから実�
 - 原因確認・修正・再実行まで行う診断
 - 原因 / 対応
 - 修正
-- 再実行 結果
+- 再実行結果
+- `04_execution-improvement.csv`では、同じ`test_case_id`の失敗行と修正後Pass行を分け、`run_context`で各実行を区別する
 
 アーティファクトを開いただけでは完了としない。
 
@@ -1048,7 +1049,7 @@ P2-5で受講者が作成したPlaywrightテストを演習用CIへ接続する�
 
 POMを扱う場合は`class` / `constructor` / `this`だけ必要な場所で短く説明する。
 
-複数画面にまたがる共通操作を表す独自用語は独立した必須用語から外す。必要な内容は「共通操作」「ヘルパー」等の一般的な表現へ置き換え、`00_learning_design.md`等の関連文書も同期する。
+複数画面にまたがる共通操作を表す独自用語は独立した必須用語から外す。必要な内容は「共通操作」「ヘルパー」等の一般的な表現へ置き換え、`00_learning-design.md`等の関連文書も同期する。
 
 ### 6.20 P1-9の総合演習を証跡統合の場にする
 
@@ -1166,6 +1167,8 @@ POMを扱う場合は`class` / `constructor` / `this`だけ必要な場所で短
 
 例えばP1-7のツールチェーン説明、講師向け参考資料の英語見出し、READMEの説明フレーズ等、**表現を固定すること自体に意味がない検証**は削除または構造的な検証へ置き換える。演習用CIについては旧「`training:web:exercise`を含めない」契約も新しいPull Request経路へ更新する。
 
+`validate-curriculum.ts`の必須ファイル一覧に残る旧`00_learning_design.md`参照も、実在する`00_learning-design.md`へ修正する。
+
 新しい日本語文言を同じ方法で再固定しない。
 
 ### 6.30 維持・追加する検証スクリプトの基準
@@ -1218,6 +1221,7 @@ POMを扱う場合は`class` / `constructor` / `this`だけ必要な場所で短
 
 - 認証の`validation-error`のシナリオ / 条件整合
 - `state-and-scenarios.md`の古いFixtureパス
+- `validate-curriculum.ts`の旧Learning Designパス参照
 
 ### 7.2 別対応にする
 
@@ -1270,7 +1274,11 @@ pnpm run validate:curriculum
 pnpm run typecheck:training
 ```
 
-`tests/contracts/training-curriculum.test.ts`を変更した場合は、リポジトリの既存`package.json`に定義されたスクリプトからこの契約テストを対象実行する。正確なコマンドは実装時の`package.json`を確認し、存在しないスクリプト名を計画で作らない。
+`scripts/training/workflow-contract.ts`または`tests/contracts/training-curriculum.test.ts`を変更した場合は、現在の`package.json`に定義されている契約テストを直接実行する。
+
+```bash
+pnpm run test:contracts
+```
 
 ### 9.3 Web演習の基準確認
 
@@ -1321,7 +1329,8 @@ pnpm run training:web:check-expected-failure
 - 代表失敗を1ケースずつ再現できる
 - 証跡から原因を説明できる
 - 修正後に対象テストが成功する
-- `04_execution-improvement.csv`へ原因 / 対応 / 再実行を記録できる
+- `04_execution-improvement.csv`へ同じ`test_case_id`の失敗行と修正後Pass行を別行で残し、`run_context`で各実行を区別できる
+- 失敗行に`failure_category` / `cause` / `action` / 失敗時の`evidence`、Pass行に再実行成功の`evidence`を残せる
 
 ### 9.6 演習用コピー / 受講者向けCI
 
@@ -1421,6 +1430,7 @@ pnpm run verify
 - アーティファクト確認用の恒久失敗と、原因確認・修正・再実行まで行う診断演習が別契約になっている。
 - `training:web:check-expected-failure`で内側のPlaywrightテストが失敗し、必要アーティファクト生成を確認できた場合に外側コマンドが成功になる意味を説明できる。
 - 診断では証跡 → 原因 → 修正 → 再実行まで一巡できる。
+- `04_execution-improvement.csv`に同一`test_case_id`の失敗行と修正後Pass行を別行で残し、`run_context`で実行を区別できる。失敗行の診断情報をPassで上書きしていない。
 - C09の共通必須成果物へセキュリティ専門確認を混在させていない。
 - 失敗再現用Fixtureを必要以上に増やしていない。
 
@@ -1468,6 +1478,7 @@ pnpm run verify
 - 任意のAIエージェントを使ったQAが標準パート1の必須経路と混同されない。
 - AIエージェントを使ったQA本文そのものを不要に再設計していない。
 - `validate-curriculum.ts`と`training-curriculum.test.ts`が今回整理した受講者向け本文の表現を不必要に固定していない。
+- `validate-curriculum.ts`の必須ファイル一覧が実在する`00_learning-design.md`を参照し、旧`00_learning_design.md`を残していない。
 - 演習用CIの旧「演習を含めない」契約が残っていない。
 - ワークブック / パス / スクリプト / 正式な実行入口等の必要な構造契約は維持されている。
 - 複数画面にまたがる共通操作を表す独自用語が、独立した必須用語として残っていない。
@@ -1475,6 +1486,7 @@ pnpm run verify
 ### 検証
 
 - 変更箇所に応じた検証を変更領域ごとに実施している。
+- `workflow-contract.ts`または`training-curriculum.test.ts`を変更した場合に`pnpm run test:contracts`が通る。
 - 演習用コピー検証では対象変更を含むコミットSHAを`--source-sha`へ使用し、未コミット変更を含むと誤認していない。
 - `pnpm run validate:curriculum`が通る。
 - 仕様書変更に応じた検証 / ビルドが通る。
