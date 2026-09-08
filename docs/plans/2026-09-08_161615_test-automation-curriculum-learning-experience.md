@@ -2,186 +2,317 @@
 
 ## 0. 目的
 
-`docs/curriculum/test-automation/**`、`training/**`、関連する`docs/spec/**`を対象に、Scenario Shopを使ったテスト自動化学習を、コードベース自動化の初学者が途中で前提知識不足に詰まらず、仕様分析からPlaywright / Maestroの実装、失敗分析、保守、CIまで一貫して学べる構成へ改善する。
+`docs/curriculum/test-automation/**`、`training/**`、関連する`docs/spec/**`を対象に、Scenario Shopを使ったテスト自動化学習を、コードベース自動化の初学者が途中で前提知識不足に詰まらず、仕様分析からPlaywright / Maestroの実装、失敗分析、保守、Git / GitHub、CIまで一貫して学べる構成へ改善する。
 
-今回の改善は、学習順序、演習、評価、仕様書への導線、用語、Legacy文書を同じ目的の変更として**1 PRにまとめる**。
+今回の改善は、学習順序、演習、Workbook、評価、仕様書への導線、用語、Legacy / Optional文書、Training CI、validatorを同じ目的の変更として**1 PRにまとめる**。
 
-ただし、Scenario ShopのExpected Product Behaviorそのものを決め直す変更はこのPRへ混在させない。実装・Seed・仕様を確認した結果、Product Decisionやアプリ挙動変更が必要と判明した事項は別対応とする。
+ただし、Scenario ShopのExpected Product Behaviorそのものを決め直す変更はこのPRへ混在させない。Product behavior、Seedの意味、Application code、Formal Regressionの期待値を変える必要がある問題が見つかった場合は別対応とする。
 
 このPlanでは実装しない。実装時は本Planを正本として、必要な変更だけを行う。
 
 ---
 
-## 1. 現状確認
+## 1. 基準と今回確認できている問題
 
-`main` `f7cc237d8ca719646d9654fba2129732b6eab457`を基準に確認した。
+基準:
 
-### 1.1 カリキュラム全体
-
-`docs/curriculum/test-automation/README.md`では、対象者をPlaywrightなどのコードベース自動化未経験、プログラミング経験を必須としない受講者としている。一方で、本文には次のような管理・評価用の英語表現が多く残っている。
-
-- `Common`
-- `Common route`
-- `Common completion`
-- `Learner Required`
-- `Repository-required asset`
-- `Native specialization`
-- `bounded Level 2`
-- `Current Guarantee`
-- `Normative Specification`
-- `Oracle`
-- `Evidence`
-- `completion contract`
-
-Playwright、Maestro、Locator、Fixture、Trace、GitHub Actionsなどの技術的な正式名称とは性質が異なり、学習者が最初に理解する必要のない管理用語が本文へ露出している。
-
-### 1.2 Part 1-2
-
-`docs/curriculum/test-automation/part1/02_scenario-shop-analysis.md`は、分析段階の教材として`src/seeds/metadata.ts`を挙げ、Lesson 6でも直接読む構成になっている。
-
-同じ情報へ人間向けに到達できる`docs/07_testability/seed_catalog.md`が存在するため、TypeScriptをまだ学んでいない段階では、まず人間向け資料を利用し、実装ファイルの確認はPlaywright実装以降へ遅らせられる。
-
-### 1.3 Part 1-4
-
-`docs/curriculum/test-automation/part1/04_playwright-foundations.md`にはJavaScript / TypeScriptの最小説明があるが、Playwright実行前に必要な次の基礎操作がまとまっていない。
-
-- terminalを開く
-- current directoryを確認・移動する
-- file / directory / pathを読む
-- Node.jsとpackage managerの役割を理解する
-- `package.json`と`scripts`の関係を理解する
-- `pnpm install`、`pnpm run <script>`を実行する
-- commandの成功・失敗を終了状態とError Messageから判別する
-- 必要な環境変数を設定する
-
-また、Playwrightの最初のLessonで学ぶ内容と、config / reporter / retries / trace / screenshot / videoなど後続のFailure Analysisで学ぶ内容の境界をさらに整理できる。
-
-Locatorについては、教材本文ではRole / Label / Text / UI Test ID / CSSの順で候補を並べているが、Playwright公式は固定順位ではなく、user-facing attributeやexplicit contractを優先し、CSS / XPathへの強い依存を避ける方針を示している。実装時はこの原則に合わせて説明する。
-
-### 1.4 Playwright learner exercise
-
-`training/playwright/exercises/training-exercise-starter.spec.ts`は未編集でもPASSする。
-
-現在の内容は次の状態である。
-
-- `page.goto("/products")`
-- CSS selector `a[href^="/products/"]:visible`
-- `first()`
-- `toBeVisible()`
-
-コメントでは受講者がRisk-based assertionを追加することを求めているが、実行結果だけを見ると変更しなくても成功する。
-
-また、初学者向け教材でsemantic locatorを教えている一方、starterがCSS selectorを完成済みの形で提示しているため、教材本文との整合を改善する必要がある。
-
-### 1.5 Failure Analysis
-
-`training/playwright/failure-exercises/expected-failure.spec.ts`は、`expect(true).toBe(false)`で必ず失敗する構成である。
-
-Artifactを生成してTrace / Screenshot / Videoの開き方を学ぶ用途としては成立するが、Locator、期待値、初期状態、同期などをEvidenceから切り分ける実践にはならない。
-
-一方、`docs/curriculum/test-automation/part1/06_execution-and-failure-analysis.md`の完了条件はmeaningful diagnosisを要求しているため、教材と演習の強さを合わせる必要がある。
-
-### 1.6 Maestro learner exercise
-
-`training/maestro/exercises/native-training-exercise.yaml`は次だけで構成されている。
-
-```yaml
-- runFlow: ../baseline/native-training-baseline.yaml
-- assertVisible: "Scenario Shop"
+```text
+main: f7cc237d8ca719646d9654fba2129732b6eab457
+plan branch: refactor/test-automation-curriculum-learning-experience
 ```
 
-未編集でもbaselineを再実行してPASSできるため、C08で要求しているlearner-authored Native exercise diffと実際の演習体験が一致していない。
+対象ブランチは上記`main`からPlan追加だけが入った状態を基準とする。
 
-`docs/curriculum/test-automation/part1/07_maestro-native-automation.md`は、Maestroの基本概念より前にPhysical Android Device、JDK、SDK、ADB、serial、PowerShell helper、runId、Artifactなどの詳細な実行契約が長く続く。Native specializationを選択した初学者に対しては、まずMaestro Flowの読み方・書き方を学び、その後にScenario Shop固有の実行手順へ進む方が学習順序として自然である。
+### 1.1 学習者の前提と実際の開始条件がずれている
 
-### 1.7 Competency Rubric
+カリキュラムはPlaywright等のコードベース自動化未経験、プログラミング経験を必須としない受講者を対象としている。
 
-`docs/curriculum/test-automation/02_competency-rubric.md`のC05 `Test Layer Selection`は、Primary learner-facing sourceをPart 1-6と`docs/08_testing/test_strategy.md`としている。
+一方、`00_learning_design.md`のWeb / Playwright開始GateではNode.js、pnpm、Dependency Install、環境変数、Training baseline等の確認を要求しており、terminalや`pnpm run`をまだ説明していない受講者がCLI操作を先に求められる。
 
-一方、テスト設計・自動化対象選定はPart 1-3で学ぶため、少なくとも「教える場所」「練習する場所」「評価する場所」の対応を再確認する必要がある。
+Playwright開始前に必要な最低限のCLI / Node知識をP1-4で説明するだけでなく、開始Gateの順序も合わせる必要がある。
 
-C07 / C08 / C09はlearner-authored changeやmeaningful diagnosisをMinimum Evidenceとしているため、starter / failure exerciseもその評価契約に合わせる。
+### 1.2 P1-4より前にTypeScript実装へ到達する経路が複数ある
 
-### 1.8 Specification入口
+`02_scenario-shop-analysis.md`だけでなく、`01_spreadsheet-test-design.md`やP1-3にも`src/seeds/metadata.ts`等のExecutable Sourceへ到達する経路がある。
 
-`docs/spec/README.md`は、冒頭から次の管理概念を説明している。
+TypeScriptをまだ学んでいない段階では、Product Behavior、Role、State、Scenarioを人間向け資料から理解し、低レベル値が必要になる実装段階でExecutable Sourceを確認する順序へ揃える。
 
-- Normative Product Behavior
-- Supporting / Operational
-- Executable Canonical Sources
-- Oracle Priority
-- Known Deviation
-- ADR
+`docs/07_testability/seed_catalog.md`は人間向け資料として利用できるが、全内容を初学者の必須読解にしない。対象Scenario、Account、Dataなど、その演習で必要な節だけ参照する。
 
-仕様管理上は必要だが、学習者がCartやAuthenticationなどのProduct Behaviorを理解する入口としては情報量が多い。
+### 1.3 仕様を読む順序が教材内で揃っていない
 
-学習者向けには、まず次の順で読める導線を用意する。
+`/guide`、Spec、State / Scenario、Seed、Executable Sourceの役割がLessonごとに異なる順序で提示されている。
+
+Expected Behaviorを現在UIや実装から逆算しない原則を維持するため、学習者向けの基本順序を一本化する。
+
+基本順序:
 
 1. Product Scope
-2. Roles and Permissions
+2. Roles / Permissions
 3. 対象FeatureのPurpose
 4. Business Rules
 5. Acceptance Criteria
-6. State / Scenario
-7. 必要なScreen / UI state
-8. 実装時だけRoute / Test ID / Seed ID等の低レベル値
+6. 必要なState / Scenario
+7. 必要なSeed Catalogの節
+8. `/guide`や現在UIで対象・入口・観測状態を確認
+9. 実装時だけRoute / Test ID / Seed ID等のExecutable Sourceを確認
 
-仕様管理ルールは削除せず、学習者向け導線より後へ分離する。
+`/guide`はorientation / observationの入口として使う。Expected Product Behaviorの正本として扱わない。
 
-### 1.9 Legacy / Optional文書
+### 1.4 P1-4のJavaScript / TypeScript導入が初回演習に対して広い一方、不足もある
 
-`docs/curriculum/test-automation/part1/10_part1-capstone.md`はLegacy Aliasと明記されているが、本文にはPlaywrightとMaestroの両方を必須とする旧完了条件が残っている。現在のcanonical `09_part1-capstone.md`ではNative specializationは選択式であり、内容が一致していない。
+現在のP1-4はObject、Array、function、`if`、型注釈等までまとめて説明するが、最初のPlaywright Testで使用するarrow function / callbackの説明が不足している。
 
-`docs/curriculum/test-automation/part1/09_specification-agentic-qa.md`はOptional Referenceと明記されているが、Required Part 1と同じ`part1/`配下で`09_`番号を持つため、学習順序の把握を難しくしている。
+初回Playwright Testを読んで小さく変更できる範囲を先に教え、後続Lessonで初めて必要になる構文はその段階で短く説明する。
 
-### 1.10 Validator / CI
+P1-4で先に扱う範囲:
 
-`scripts/validate-curriculum.ts`はcanonicalなPart 1の9 Lesson、Part 2の8 Lesson、Training資産、Workbook、各scriptを検証している。
+- `import`
+- string
+- `const`
+- `test(...)`
+- arrow function / callbackの最低限
+- `async` / `await`
+- `{ page }`
+- method call
+- Locator / Action / Assertionを読むために必要なObject literalの最低限
 
-`10_part1-capstone.md`と`09_specification-agentic-qa.md`はRequired Curriculumの一覧には含まれない。
+Array操作、汎用function、条件分岐、型注釈等は、その場で使う必要がなければ後段へ遅らせる。独立したJavaScript / TypeScript講座は作らない。
 
-`.github/workflows/ci.yml`で自動実行しているTraining Webは`pnpm run training:web:baseline`であり、learner exerciseはCIのrequired baselineとして実行していない。このため、learner exerciseを「未編集のまま学習完了に見えないstarter」へ変更しても、baseline CIとの責務分離は維持できる。
+### 1.5 Playwright learner exerciseは未編集で能力Evidenceになっているように見える
+
+`training/playwright/exercises/training-exercise-starter.spec.ts`は未編集でも実行でき、CSS selector + `.first()` + `toBeVisible()`の完成済みAssertionを持つ。
+
+P1-4 / P1-5ではsemanticなLocatorや自分でTest Conditionをコードへ落とすことを教えているため、starterとの整合を直す必要がある。
+
+重要なのはRepository既定資産を機械的に赤くすることではなく、**未編集starterだけではC07の修了Evidenceが成立しないこと**である。
+
+### 1.6 Workbook sampleが新しいbaseline / exercise境界と矛盾する
+
+既存Workbook schemaは次を表現できるため、schema自体は維持できる。
+
+```text
+Spec
+→ Risk
+→ Test Case
+→ Automation Decision
+→ Implementation
+→ Execution / Improvement
+```
+
+一方、既存sampleには次の意味上のずれがある。
+
+- `Later`なのに`implementation_path`が入っているCaseがある
+- learner Test Caseの`run_context`が`Training Web baseline`になっている
+- Part 1のCaseにPart 2のPR実行タイミングを先取りする表現がある
+
+baselineを環境確認、exerciseをlearner-authored成果物と明確に分けるため、sample rowは今回の変更対象とする。新しいcolumnは追加しない。
+
+### 1.7 Failure Analysisの教材目標と実資産が一致していない
+
+`training/playwright/failure-exercises/expected-failure.spec.ts`は`expect(true).toBe(false)`による恒久的な単純Failureである。
+
+Trace / Screenshot / Video / Reportを開く練習には使えるが、C09が要求するmeaningful diagnosisにはならない。
+
+また、既存`run-expected-failure.ts`は`failure-exercises`配下をまとめて恒久Failureとして扱うため、修正してPASSさせる診断exerciseを同じ実行契約へ混在させない。
+
+### 1.8 P1-6にFailure Analysisとは別責務のSecurity必須項目がある
+
+P1-6には`<script>`入力、保存、escape、HTML解釈、JavaScript実行 / executable sinkまでの確認がCommonの自己確認へ含まれる。
+
+内容自体を否定しないが、C09の必修能力はFailureのEvidence確認、原因分類、修正、再実行である。Security確認はCommon RequiredのC09から外し、必要ならExtension / Referenceとして残す。
+
+新しいSecurity Lessonは作らない。
+
+### 1.9 Maestro learner exerciseとLesson順序が学習目標に合っていない
+
+`training/maestro/exercises/native-training-exercise.yaml`はbaselineを`runFlow`した後に`Scenario Shop`を確認するだけで、未編集でもC08のlearner-authored Business Conditionに見えやすい。
+
+P1-7はMaestroの基本概念より前にPhysical Android Device、JDK、SDK、ADB、serial、PowerShell helper、runId、Artifact等の詳細を長く説明している。
+
+概念は先に教えるが、actual exercise実行はDevice準備なしでは成立しないため、次の順序へする。
+
+```text
+Maestro / YAML / Flowの概念
+→ Scenario Shop向けFlowを読む・下書きする
+→ Physical Device / Doctor / Build / Install
+→ baselineで環境確認
+→ learner exerciseを実行
+→ Evidence
+```
+
+過去PR固有の「PR5では...変更しません」等の履歴文言はlearner-facing本文から削除する。
+
+### 1.10 C05の能力定義がFormal Test Strategyへ寄りすぎている
+
+Rubric C05はPrimary learner-facing sourceをP1-6とFormal Test Strategyへ寄せ、bounded Level 2もFormal SSOTの複数軸を前提とする。
+
+一方、初学者がTest Layer Selectionを学ぶのはP1-3である。
+
+参照先だけでなく、C05のbounded Level 2とMinimum EvidenceをP1-3の学習目標へ合わせる。
+
+初学者のC05では、Risk / Test Conditionに応じてUnit / Integration / Component / Web E2E / Native E2E等から適切な層を選び、理由を説明できることを中心にする。Formal Test Strategyは比較・Referenceとして扱う。
+
+### 1.11 P1-8はproblem-firstだが、抽象化とTypeScript構文を整理できる
+
+現在のP1-8にも「問題を見てから抽象化する」意図はあるため、全面再構成はしない。
+
+ただしHelper、POM、Component Object、Fixture、Automation Flow、Seed Scenarioを一度に分類暗記させない。
+
+POM例を残す場合、`class` / `constructor` / `this`等、その例を読むために必要な構文だけをその場で短く説明する。
+
+`Automation Flow`は一般用語として必要性が薄く、Maestro Flowとも紛らわしいため、具体的な学習価値がなければ削除し、「共通操作」「Helper」等の一般的な説明へ置き換える。`00_learning_design.md`等の用語も同期する。
+
+### 1.12 Part 2のCommon / Native経路に具体的不整合がある
+
+少なくとも次を修正対象とする。
+
+- P2-3に残るCommon完了条件と直接関係しないDelivery Readiness系の記述
+- P2-5の次の行動がNative選択者でもP2-6を飛ばしてP2-7へ進むように読める箇所
+- P2-8のCommon boundaryと、Maestro / Nativeが必須に見える学習目標・演習条件
+
+P2-6はNative UI自動化を選択した場合だけ進む経路を維持する。
+
+### 1.13 P2-5でlearner-authored Playwright TestがCIへ接続されていない
+
+P2-5はLocalで動くPlaywright TestをGitHub Actions上で実行することを学習目標にする一方、現在のTraining Web workflowはbaselineを中心に実行し、learner-authoredな`training:web:exercise`をCIで実行する経路がない。
+
+このままでは、Part 1で自分で作ったTestをPart 2でCIへ接続する学習が途切れる。
+
+`training/github-actions/training-ci.yml`と`scripts/training/workflow-contract.ts`を対象へ含め、**Training Copy上でlearner-authored exerciseを実行できる経路**を用意する。
+
+Repository本体のRequired Web CIではbaselineの責務を維持し、Production / Preview workflowは変更しない。
+
+### 1.14 P2-4のYAML導入はTraining workflowを読めるところまで必要
+
+最小YAMLとして`key: value`、list、indentation / nestingを説明するだけでは、すぐに読むTraining workflowの構造へつながらない。
+
+YAML自体の講座にはせず、実際のTraining workflowに出る次のGitHub Actions keyを対応付ける。
+
+- `on`
+- `jobs`
+- `runs-on`
+- `steps`
+- `uses`
+- `with`
+- `run`
+- `env`
+- `if`
+- `${{ ... }}`
+- `github` / `env` / `inputs`等、教材で実際に読む主要context
+
+`${{ ... }}`はYAML自体の構文ではなくGitHub Actions expressionであることを分けて説明する。
+
+### 1.15 Competency EvidenceをCapstoneで重複実施させる必要はない
+
+C01〜C12は「教える → 練習する → 評価する → Evidenceを残す」を揃える。
+
+Capstoneでは既存Lessonで作った成果物を統合して説明できればよいものを、同じ課題として再実装させない。
+
+特に:
+
+- C10はP1-8で作成したmaintainability EvidenceをP1-9で参照・統合する
+- C11はP2-3で作成したPR / review recordをP2-8で再利用できるようにする
+- C12はP2-5のlearner-authored TestをCIへ接続する体験と整合させる
+
+### 1.16 Specification入口は管理概念よりProduct Behaviorを先に読めるようにする
+
+`docs/spec/README.md`はNormative Product Behavior、Supporting / Operational、Executable Canonical Sources、Oracle Priority等の管理概念から始まる。
+
+仕様管理上は必要だが、学習者がFeatureを読む入口では先にProduct Behaviorへ進めるようにする。
+
+管理概念は削除せず、「仕様を管理・変更するときのルール」として後段へ置く。
+
+### 1.17 AuthenticationとState / Scenarioに文書整合性修正が必要
+
+#### Authentication
+
+現状確認では、`storage-write-failure`はStorage write failure用Scenarioであり、Loginの必須入力validationとは別経路である。
+
+`authentication.md`のLogin `validation-error`に`storage-write-failure`を紐付け、Expected UIを必須入力不足Summaryとしている組み合わせは、Product behavior変更ではなくCondition / Scenario metadataの文書不整合として扱う。
+
+実装時にVisual Registry / 関連実装 / Testを再確認し、Expected Product Behaviorを変更しない範囲で正しいScenario / Conditionへ修正する。Visual Reference画像そのものの再生成は、現在の画像が修正後Conditionと一致しないことを確認した場合だけ行う。
+
+#### State / Scenario
+
+`docs/spec/state-and-scenarios.md`の`e2e/fixtures/`参照は現在の`e2e/web/fixtures.ts`と一致しないstale pathとして修正対象にする。
+
+どちらもProduct behaviorやApplication codeの変更には広げない。
+
+### 1.18 Legacy / Optional文書は内容ではなく標準経路との境界を整理する
+
+`10_part1-capstone.md`はLegacy Aliasでありながら旧Capstone全文を保持し、現在のWeb Common修了条件と矛盾する。
+
+URL互換を考慮し、基本はcanonical `09_part1-capstone.md`へ案内する短いstubにする。Repository内外の参照を理由なく断ち切らない。
+
+`09_specification-agentic-qa.md`はOptional Referenceと明記されており、Agentic QA本文自体を再設計する必要はない。Navigation上の明確化だけで標準Part 1と区別できるなら物理移動を行わない。移動が必要な具体的理由がある場合だけreference位置への移動を行う。
+
+### 1.19 validatorは新規追加より既存prose assertionの整理が必要
+
+`scripts/validate-curriculum.ts`はRequired file、Workbook、script、Training workflow等の構造契約だけでなく、P1-7やInstructor Referenceの自然文に近いtokenも固定している。
+
+今回の教材順序変更・日本語整理と衝突する既存token assertionを棚卸しする。
+
+残す・追加する検証は次のような安定した機械契約へ限定する。
+
+- Required file / canonical file
+- path / link
+- package script
+- Training workflow command
+- canonical Playwright / Maestro entry
+- Workbook schema / ID / reference
+- Common / Nativeの構造的なNavigation契約を安定して判定できるもの
+
+特定の日本語文言、旧文言が存在しないこと、教材の説明品質等をvalidatorへ固定しない。
 
 ---
 
 ## 2. 完了時に目指す状態
 
-### 学習者
+### 2.1 学習者
 
-- プログラミング未経験でも、Playwright実行前に必要なterminal / Node.js / pnpmの最低限を理解できる。
-- Product Behaviorを先に読み、管理用の仕様概念に阻まれずテスト分析へ進める。
-- Playwright / Maestroのbaselineと自分が実装するexerciseを区別できる。
-- starterを実行しただけでは演習完了にならず、自分でテスト条件をコードまたはFlowへ落とす必要がある。
-- Failure Artifactを開くだけでなく、複数種類のFailureから原因を切り分けられる。
-- Part 1 CommonはWeb中心で完了でき、Nativeは選択式のまま維持される。
+- P1-1〜P1-3はPlaywright runtimeを自分で起動できなくても仕様分析・テスト設計を進められる。
+- P1-4で初めて自分でCLI / Node / pnpmを操作する前に、必要最低限の説明を読める。
+- Product BehaviorをSpecから判断し、`/guide`や現在UIをExpected Behaviorの正本と混同しない。
+- Playwright / Maestroのbaselineを環境確認、exerciseを自分の成果物として区別できる。
+- 未編集starterだけではC07 / C08の修了Evidenceにならない。
+- Spec / Risk / Test Case / Automation Decision / Implementation / Execution / EvidenceをWorkbookと実装で一巡できる。
+- Failure Artifactを開くだけでなく、Evidenceから原因を判断し、修正して再実行できる。
+- Part 1 CommonはWeb中心で完了でき、Native UI自動化は選択式のまま維持される。
+- Part 2でPart 1のlearner-authored Playwright TestをTraining CopyのGitHub Actionsへ接続できる。
 
-### 教材
+### 2.2 教材
 
-- 「教える → 練習する → 評価する」の対応がRubricまでつながっている。
+- 「教える → 練習する → 評価する → Evidenceを確認する」がC01〜C12までつながっている。
+- 学習者向け、Instructor向け、Repository Maintainer向け情報の境界が分かる。
 - 同じ概念を複数の管理用語で表現しない。
 - 技術的な正式名称は維持し、一般的な説明は自然な日本語にする。
-- Learner / Instructor / Maintainer向け情報の境界が分かる。
-- Legacy文書がcanonical教材と矛盾しない。
+- Common / Native選択経路がREADME、各Lesson、Rubric、Capstoneで一致する。
+- Legacy / Optional文書が標準学習経路と矛盾しない。
 
-### Repository
+### 2.3 Repository
 
-- Formal Regression、Production CI/CD、Product Behaviorを教材改善の都合で変更しない。
-- Training baselineは未編集で環境確認としてPASSする。
-- learner exerciseはlearner-authoredな変更を要求する。
-- 既存validatorは必要な契約だけを検証し、教材の新構造と矛盾しない。
+- Formal Regression、Product code、Production / Preview workflow、Product Behaviorを教材改善の都合で変更しない。
+- Training baselineはRepositoryの環境確認として安定して実行できる。
+- learner exerciseはlearner-authoredな成果物を要求する。
+- Training Copyにはlearner exerciseをCI実行できる既存思想に沿った経路がある。
+- Workbook schemaは維持し、sampleだけが現在の学習契約へ揃っている。
+- validatorは構造的な回帰を検出し、learner-facing proseの表現を不必要に固定しない。
 
 ---
 
-## 3. 対象範囲
+## 3. 変更対象
 
-主な変更候補は次のとおり。
-
-### Curriculum
+### 3.1 Curriculum共通
 
 - `docs/curriculum/test-automation/README.md`
-- `docs/curriculum/test-automation/00_learning-design.md`
+- `docs/curriculum/test-automation/00_learning_design.md`
+- `docs/curriculum/test-automation/01_spreadsheet-test-design.md`
 - `docs/curriculum/test-automation/02_competency-rubric.md`
-- `docs/curriculum/test-automation/03_instructor-reference.md`
+- 必要最小限の`docs/curriculum/test-automation/03_instructor-reference.md`
+
+### 3.2 Part 1
+
 - `docs/curriculum/test-automation/part1/02_scenario-shop-analysis.md`
 - `docs/curriculum/test-automation/part1/03_test-design-and-automation-selection.md`
 - `docs/curriculum/test-automation/part1/04_playwright-foundations.md`
@@ -192,28 +323,43 @@ C07 / C08 / C09はlearner-authored changeやmeaningful diagnosisをMinimum Evide
 - `docs/curriculum/test-automation/part1/09_part1-capstone.md`
 - `docs/curriculum/test-automation/part1/09_specification-agentic-qa.md`
 - `docs/curriculum/test-automation/part1/10_part1-capstone.md`
-- `docs/curriculum/test-automation/part2/04_ci-github-actions.md`
-- 必要に応じてPart 2の関連Lesson
 
-### Training
+### 3.3 Part 2
+
+最低限、次を明示対象とする。
+
+- `docs/curriculum/test-automation/part2/03_github-pull-request-review.md`
+- `docs/curriculum/test-automation/part2/04_ci-github-actions.md`
+- `docs/curriculum/test-automation/part2/05_playwright-ci.md`
+- `docs/curriculum/test-automation/part2/08_integration-design-capstone.md`
+
+用語・リンク・Evidence契約の変更に直接影響する他のPart 2文書も確認するが、理由なく全面改稿しない。
+
+### 3.4 Training / Workbook
 
 - `training/playwright/exercises/**`
 - `training/playwright/failure-exercises/**`
 - `training/maestro/exercises/**`
-- 必要に応じて`training/workbook/**`
-- learner exerciseの実行契約変更に必要な範囲だけ`scripts/training/**`
+- `training/workbook/**`
+- `training/github-actions/training-ci.yml`
+- learner exercise / Failure / Training Copy契約の変更に必要な範囲だけ`scripts/training/**`
+- `scripts/training/workflow-contract.ts`
 
-### Specification / reference
+Playwright Training config、Maestro shared runner、Training Copy基盤は、必要な契約変更がない限り作り直さない。
+
+### 3.5 Specification / reference
 
 - `docs/spec/README.md`
 - `docs/spec/glossary.md`
 - `docs/spec/change-process.md`
-- 必要に応じて学習者向けNavigationに関係する`docs/spec/**`
+- `docs/spec/features/authentication.md`
+- `docs/spec/state-and-scenarios.md`
+- 学習者向けNavigation変更に直接影響する`docs/spec/**`
 
-### Validation
+### 3.6 Validation
 
 - `scripts/validate-curriculum.ts`
-- 必要な場合だけ関連validator test
+- 既存validator testがある場合は、変更した構造契約に必要な範囲
 
 ---
 
@@ -221,37 +367,58 @@ C07 / C08 / C09はlearner-authored changeやmeaningful diagnosisをMinimum Evide
 
 今回のPRでは次を行わない。
 
-- Scenario ShopのProduct Behavior変更
-- `src/**`のアプリ機能変更
-- Formal Regressionのテストケース再設計
+- Scenario ShopのBR / AC / Expected UIの意味変更
+- Seed Scenarioの意味変更
+- `src/**`のApplication / Product code変更
+- Formal RegressionのテストケースやLocatorの一括リファクタリング
+- `playwright.config.ts`のFormal Regression再設計
+- Formal `maestro/**`の再設計
 - Production / Preview / Deploy workflowの再設計
-- Maestro / Playwrightの新しい実行基盤作成
+- `.github/workflows/ci.yml`、`native-ci.yml`、`native-ios-ci.yml`のarchitecture変更
+- Android Physical Device保証やiOS Build-only保証の変更
+- Maestro / Playwrightの新しい汎用実行基盤作成
 - 新規package導入
-- JavaScript / TypeScript全般を教える独立プログラミング講座の追加
-- Git / GitHub / CIの教材をゼロから作り直すこと
-- 仕様ファイル全体の分割・再構築
-- 将来用途だけを理由にした教材frameworkや汎用validator基盤の追加
-- Agentic QA自体の仕様・Harness・評価方式の変更
+- JavaScript / TypeScriptの独立入門コース追加
+- YAMLの独立講座追加
+- Git / GitHub教材の全面書き直し
+- Specification System全体の再設計・大規模分割
+- Workbook schema / column追加（不足が実証された場合を除く）
+- 汎用Failure fixture framework
+- learner completion専用の新しいgrader / AST checker / content hash判定
+- generic document validator framework
+- Agentic QAの仕様・Harness・scoring / benchmark変更
 - `docs/reports/**`をCurrent Specificationとして扱うこと
 
 ---
 
-## 5. 実装方針
+## 5. 実装原則
 
-### 5.1 1 PR内で段階的に進める
+### 5.1 1 PRで整合状態まで持っていく
 
-PRは1つにまとめるが、変更は次の順で行う。
+学習経路、exercise、Workbook、Rubric、Capstone、Training CIを別々のPRへ分けて一時的な矛盾を残さない。
 
-1. 学習経路と前提知識
-2. Playwright / Failure / Maestro演習
-3. Competency RubricとCapstone
-4. Specificationの学習者向け導線
-5. 日本語・用語・Legacy整理
-6. Validator調整
+ただしProduct behaviorやApplication変更が必要になった場合だけ別対応へ分離する。
 
-前段で確定した構造を後段が参照する。先に全文の用語置換を行い、その後に教材構造を変更する進め方は避ける。
+### 5.2 Workbookをexerciseより先に確定する
 
-### 5.2 技術用語と管理用語を分ける
+今回の教材はWorkbook上のCaseをPlaywright / Maestro exerciseへ接続するため、先にsampleの意味を揃える。
+
+実装順は次を基本とする。
+
+```text
+学習経路・前提知識・Common/Native境界
+→ Workbook sample
+→ Web / Failure / Native exerciseとTraining CI
+→ Lesson本文
+→ Rubric / Capstone
+→ Specification learner navigation
+→ 日本語・内部管理用語
+→ Legacy / Optional
+→ validator
+→ 全体検証
+```
+
+### 5.3 技術用語と管理用語を分ける
 
 維持する例:
 
@@ -260,11 +427,16 @@ PRは1つにまとめるが、変更は次の順で行う。
 - Locator
 - Fixture
 - Trace
+- Git
+- GitHub
+- Pull Request
 - GitHub Actions
+- YAML
+- CI/CD
 - Page Object Model
 - Deep Link
 
-日本語化または学習者向け本文から除く候補:
+日本語化またはlearner-facing本文から除く候補:
 
 - Common route → 共通学習経路
 - Common completion → 共通修了条件
@@ -272,68 +444,119 @@ PRは1つにまとめるが、変更は次の順で行う。
 - Native specialization → Native UI自動化（選択）
 - Current Guarantee → 現在保証している範囲
 - completion contract → 修了条件
-- Repository-required asset → Repository運用上必要な資料、またはInstructor / Maintainer側へ移動
+- Repository-required asset → Repository運用上必要な資料、またはInstructor / Maintainer側へ分離
 
-`Normative`、`Oracle`、`Executable Canonical Sources`などは仕様管理上必要な箇所に限定し、学習者がProduct Behaviorを理解するための最初の説明には使わない。
+`Normative`、`Oracle`、`Executable Canonical Sources`等は仕様管理上必要な箇所に限定し、Product Behaviorを理解する最初の説明へ置かない。
 
-### 5.3 既存の仕組みを再利用する
+### 5.4 既存経路を再利用する
 
-- Seed情報の初学者向け入口には既存`docs/07_testability/seed_catalog.md`を使う。
-- Training baseline / exercise / failure-exerciseの既存ディレクトリ境界を維持する。
-- Playwright Training config、Maestro runner、Training Copyを新しく作り直さない。
+- Seedの人間向け入口は既存`docs/07_testability/seed_catalog.md`を必要な節だけ使う。
+- Training baseline / exercise / failure-exerciseの既存責務分離を維持する。
+- Playwright Training config、Maestro shared runner、Training Copyを作り直さない。
 - Workbookの既存4 CSVを維持する。
 - Formal Regressionは比較教材として維持する。
+- Training CIは既存`training/github-actions/training-ci.yml`とworkflow contractを拡張して使う。
+
+### 5.5 exerciseのprocess exitとCompetency成立を混同しない
+
+Web / Nativeとも、未編集starterについて固定する契約は次である。
+
+- baselineはRepository環境確認として成功できる。
+- starterはTypeScript / YAMLとして壊れたファイルを配布しない。
+- 未編集starterだけではC07 / C08の修了Evidenceにならない。
+- C07 / C08にはlearner-authored diffが必要。
+- learner-authoredなBusiness Condition、Action / Locator / AssertionまたはFlow / Assertionが実際に実行される必要がある。
+- 完成状態では既存`training:*:exercise` commandで成功できる。
+- skip、0 test、TODOコメント、completion markerだけを成功Evidenceにしない。
+- `expect(false)`等の人工Failureをstarter completion判定のためだけに置かない。
+- 完成解答をstarterへ含めない。
+
+未編集starterのprocess exit code自体を学習能力の判定基準にはしない。実装方法は上記契約を満たす最小構成を選ぶ。
 
 ---
 
 ## 6. 実装手順
 
-## Phase 1: 学習経路と前提知識を修正する
+## Phase 1: 学習経路・前提知識・Common / Native境界を整える
 
-### 6.1 Learner / Instructor / Maintainerの境界を明確にする
+### 6.1 Learner / Instructor / Maintainerの境界
 
-`README.md`と`00_learning-design.md`を中心に、受講者が読む標準経路と、運営・Repository管理のための資料を分ける。
+`README.md`と`00_learning_design.md`を中心に、受講者の標準学習経路と、環境準備・運営・Repository管理の資料を分ける。
 
-学習者向け標準経路では、Repository運用上の分類名を必要最小限にする。
+- Learner: 学習内容、演習、自己確認、修了条件、評価観点、実行に必要な最低限の手順
+- Instructor: Toolchain準備、アカウント、端末、Training Copy、トラブル対応、採点支援
+- Maintainer: validator、Formal Regressionとの境界、Production / Training infrastructure、仕様管理契約
 
-`03_instructor-reference.md`へ移した方が自然な環境準備、保証範囲、運用契約は、learner-facing Lessonへ重複して残さない。
+学習者がLessonを進めるためにRepository管理用の分類を理解する必要がない状態にする。
 
-### 6.2 Part 1-2のSeed参照順を修正する
+### 6.2 Start GateとCLI学習順序を整合させる
 
-`02_scenario-shop-analysis.md`では、最初の分析時に`src/seeds/metadata.ts`を必須読解させない。
+`00_learning_design.md`のWeb / Playwright開始Gateを、P1-4でCLI基礎を説明した後に受講者が自分で確認する実行Gateとして再定義する。
 
-基本順序を次にする。
+P1-1〜P1-3はTraining Web baselineを自分で起動できなくても、仕様・画面・Workbookを使って学習できる構成にする。
 
-1. Scenario Shop `/guide`
-2. `docs/spec/state-and-scenarios.md`
-3. `docs/07_testability/seed_catalog.md`
-4. 実装段階で必要になったときだけ`src/seeds/metadata.ts`
+Instructor側のEnvironment readiness確認と、受講者が自分で実行するStart Gateを混同しない。
 
-Executable Sourceを確認する考え方自体は残すが、TypeScriptの読解を分析Lessonの前提にしない。
-
-### 6.3 Playwright開始前の最低限のPC / Node操作を追加する
-
-Lesson番号を増やして全体をずらすことは避け、`04_playwright-foundations.md`の冒頭で、コードを書く前に必要な最低限の操作を短く追加する。
+### 6.3 P1-4以前のExecutable Source参照を横断修正する
 
 対象:
+
+- `01_spreadsheet-test-design.md`
+- P1-2
+- P1-3
+- これらから直接参照されるlearner-facing navigation
+
+学習者向けの基本読書順を次へ統一する。
+
+1. Product Scope
+2. Roles / Permissions
+3. 対象FeatureのPurpose / BR / AC
+4. 必要なState / Scenario
+5. 必要な`seed_catalog.md`の節
+6. `/guide` / Current UIで対象を観察
+7. 実装時だけExecutable Source
+
+`src/seeds/metadata.ts`を削除することが目的ではない。低レベル値や実装契約を確認するときの後段参照として残す。
+
+### 6.4 P1-4へ最低限のCLI / Node知識を追加する
+
+Lesson番号を増やさず、`04_playwright-foundations.md`冒頭へScenario ShopのTraining commandを実行するために必要な範囲だけ追加する。
 
 - terminal
 - current directory
 - relative path
+- file / directory
 - Node.js
-- pnpm
+- package manager / pnpm
 - `package.json`
 - `scripts`
 - `pnpm install`
-- `pnpm run ...`
+- `pnpm run <script>`
 - command success / failure
+- Error MessageのFile / Line / Error Typeを見る
 - 必要な環境変数
 
-Windows / macOS / Linuxの詳細なOS入門にはしない。Scenario Shopを起動・Training commandを実行するために必要な範囲に限定する。
+Windows / macOS / Linuxの一般的なCLI講座には広げない。
 
-### 6.4 Part 1-4の初回Playwright内容を絞る
+### 6.5 P1-4のJavaScript / TypeScriptを初回Testに必要な範囲へ絞る
 
-最初の到達点を次に絞る。
+P1-4の先行Required:
+
+- `import`
+- string
+- `const`
+- `test(...)`
+- arrow function / callbackの最低限
+- `async` / `await`
+- `{ page }`
+- method call
+- Playwright optionを読むためのObject literalの最低限
+
+後続で必要になるArray、汎用function、`if`、型注釈等は、初めて使うLessonで短く説明するかReferenceへ下げる。
+
+### 6.6 P1-4のPlaywright初回内容を絞る
+
+初回の到達点:
 
 - `test`
 - `page`
@@ -341,440 +564,766 @@ Windows / macOS / Linuxの詳細なOS入門にはしない。Scenario Shopを起
 - Locator
 - Action
 - Assertion
-- `async` / `await`の最低限
-- Auto-wait
+- Auto-wait / retrying assertionの基本
 - `pnpm run training:web:exercise`
 
-Reporter、Retry、Trace、Screenshot、Video、詳細configはP1-6との重複を確認し、最初のLessonで必須にしない。
+Reporter、Retry設定、Trace、Screenshot、Video、詳細configはP1-6やPart 2で必要になる段階へ移す。
 
-### 6.5 Locator説明をPlaywright公式方針へ合わせる
+Locatorは固定順位を暗記させない。
 
-固定順位を暗記させず、次の原則へ整理する。
+原則:
 
 - user-facing attributeを優先する
-- UIの意味を表すexplicit contractも利用する
-- Test IDは用途に応じて有効
-- CSS / XPathはDOM実装へ強く依存する場合があるため最後の手段とする
+- explicit testing contractも利用する
+- Role / Label / Text / Test ID等を対象の意味から選ぶ
+- CSS / XPathはDOM実装へ強く依存する場合があるため、より意味のあるLocatorがない場合に使う
 
-実装時はPlaywright公式の現行ドキュメントを確認する。
+Locator方針は本文だけでなく、学習目標、例、ハンズオン、自己確認、修了条件まで同期する。
+
+実装時参照:
 
 - https://playwright.dev/docs/locators
 - https://playwright.dev/docs/actionability
+- https://playwright.dev/docs/test-assertions
 
-### 6.6 Part 2-4へ最小YAML説明を追加する
+### 6.7 P2-4へ実Training workflowを読める最低限を追加する
 
-Maestroを選択しない受講者でもGitHub ActionsでYAMLを読むため、`04_ci-github-actions.md`の冒頭に次だけを追加する。
+YAML:
 
 - `key: value`
 - list
 - indentation / nesting
 - string
-- GitHub Actionsの`${{ ... }}`がYAML自体の構文ではないこと
 
-YAML仕様全体の解説には広げない。
+GitHub Actions:
+
+- `on`
+- `jobs`
+- `runs-on`
+- `steps`
+- `uses`
+- `with`
+- `run`
+- `env`
+- `if`
+- `${{ ... }}`
+- 教材で使う`github` / `env` / `inputs` context
+
+Workflow syntax全体や高度なexpression講座にはしない。
+
+実装時参照:
+
+- https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
+- https://docs.github.com/en/actions/concepts/workflows-and-actions/expressions
+
+### 6.8 Part 2のCommon / Native navigationを同期する
+
+P2-3 / P2-5 / P2-8を確認し、次を揃える。
+
+- Common: P2-5 → P2-7 → P2-8
+- Native選択時: P2-5 → P2-6 → P2-7 → P2-8
+
+P2-8のCommon学習目標・演習ではWeb CIだけで成立することを明示し、Maestro / Native CIは選択時だけ追加する。
+
+P2-3のCommon完了条件から外れたDelivery Readiness等の運用説明は、学習上必要でなければ削除またはReferenceへ移す。
 
 ---
 
-## Phase 2: learner exerciseを実際の演習へ変更する
+## Phase 2: Workbook sampleの意味を揃える
 
-### 6.7 Playwright baselineとexerciseの責務を明示する
+### 6.9 既存schemaを維持する
 
-定義を統一する。
+新しいCSVやcolumnは追加しない。
 
-- baseline: 環境・Training harness・対象アプリが動くことを確認する。未編集でPASSしてよい。
-- exercise: 受講者がSpec / Risk / Test Caseを基に実装しなければ完了しない。
+対象:
 
-`training/playwright/exercises/training-exercise-starter.spec.ts`は、未編集の状態を完成済みテストとして扱えない形へ変更する。
+- `01_target-risk.csv`
+- `02_test-cases.csv`
+- `03_automation-mapping.csv`
+- `04_execution-improvement.csv`
+- `training/workbook/README.md`の説明
 
-具体的な方式は実装時に、次を満たす最小構成から選ぶ。
+### 6.10 一貫したCaseをP1-3 → P1-5へ接続する
 
-- learner-authoredなLocator / Action / Assertionが必要
-- TypeScriptとしては理解しやすい
-- 完成形を先に見せない
-- CIのTraining baselineを壊さない
-- `pnpm run training:web:exercise`で受講者が自分の完成結果を確認できる
-
-現在のCSS selector完成例は削除するか、「改善前の例」として明示的な課題へ変える。
-
-### 6.8 Playwright exerciseをWorkbookへ接続する
-
-少なくとも1つのexerciseについて、次を一巡させる。
+少なくとも代表Caseについて次を一巡させる。
 
 ```text
 Spec BR / AC
 → Risk
 → Test Case
-→ Automation decision
-→ Playwright実装
-→ 実行
-→ Evidence
+→ Automation Decision
+→ Implementation Path
+→ Playwright exercise
+→ Execution
+→ Evidence / Improvement
 ```
 
-新しいWorkbook形式は作らず、既存CSVを使う。
+sampleの意味を確認する。
 
-### 6.9 Failure exerciseを2種類へ分ける
+- `Later`なら未実装の`implementation_path`を埋めない
+- 実装するCaseならAutomation DecisionとPathを一致させる
+- learner-authored Testの実行Contextを`Training Web baseline`にしない
+- Part 1のCaseへPart 2のPR timingを必須前提として先取りしない
 
-1. Artifactを開く練習
-   - 意図的に単純失敗させる
-   - Trace / Screenshot / Video / Reportを確認する
+---
 
-2. 原因分析の練習
-   - Evidenceを見ないと原因を特定しづらいFailureを用意する
+## Phase 3: Web / Failure / Native exerciseとTraining CIを修正する
 
-原因分析用は代表的な複数原因にする。
+### 6.11 Playwright baselineとexerciseの責務を明示する
+
+baseline:
+
+- Environment / Runtime / Training harness確認
+- clean repositoryで実行できる
+- C07の能力Evidenceではない
+
+exercise:
+
+- WorkbookのTest Caseから受講者が実装する
+- learner-authored diffが必要
+- 意味のあるLocator / Action / Assertionが必要
+- 完成状態で`pnpm run training:web:exercise`が成功する
+
+starterから完成済みCSS selector + `.first()`の答えを取り除く。
+
+P1-5のnormal / boundary等の既存練習量を、代表1本のtraceability exerciseへ縮小しない。代表CaseでSpecからEvidenceまで一本につなぎつつ、現在必要な複数の練習は維持する。
+
+### 6.12 Failure AnalysisをArtifact確認とdiagnosisへ分ける
+
+#### Artifact確認用
+
+既存の単純Failureを利用し、次を学ぶ。
+
+- Error Message
+- Trace
+- Screenshot
+- Video
+- HTML Report
+
+これは恒久Failureの実行契約として残してよい。
+
+#### diagnosis用
+
+C09のために、決定的に再現できるmeaningful Failureを**最低1件**用意する。
 
 候補:
 
-- Locator誤り
-- Expected value誤り
-- Seed / initial state誤り
-- Timing / synchronizationの誤解
+- 誤ったExpected value
+- 誤ったLocator
+- 誤ったInitial State / Seed
 
-すべてを網羅するfixture集にはしない。P1-6のC09を満たすのに必要な代表例へ絞る。
+TimingをRequired fixtureにしない。実際にflakyな教材fixtureも作らない。
 
-`expect(true).toBe(false)`はArtifactの開き方教材として残してよいが、それだけでC09 completionにはしない。
+最低1件ではC09の学習が成立しない具体的理由が確認された場合だけ追加する。
 
-### 6.10 Maestro LessonをFlow-firstへ並べ替える
+診断exerciseは恒久Failure runnerの対象へ無造作に混在させない。1ケースずつ再現、Evidence確認、原因判断、修正、再実行できる実行経路にする。
 
-P1-7の本文順を次へ変更する。
+C09 Evidence:
+
+```text
+Failure
+→ Evidence
+→ 原因仮説
+→ 確認結果
+→ cause
+→ action / fix
+→ re-run result
+```
+
+`04_execution-improvement.csv`へ接続する。
+
+### 6.13 P1-6のSecurity詳細をCommon Requiredから分離する
+
+C09の自己確認・修了条件からSecurity pipelineを外す。
+
+有用な説明として残す場合はExtension / Referenceとし、Failure Analysisの必修成果物へ含めない。
+
+### 6.14 Maestroを概念-first、実行はDevice準備後にする
+
+P1-7の順序:
 
 1. Maestroとは
-2. YAMLの最小構造
+2. YAMLの最低限
 3. Flow
 4. `launchApp`
 5. `tapOn`
 6. `inputText`
 7. selector / Stable UI Test ID
-8. `assertVisible`等のAssertion
-9. 自動待機の考え方
-10. 必要な場合だけ`extendedWaitUntil`
+8. Assertion
+9. automatic retry / waitの基本
+10. 長時間処理で必要な場合だけ`extendedWaitUntil`
 11. scroll
 12. `runFlow` / subflow
 13. Deep Link / Test Control / parameter
-14. Scenario Shop learner exercise
-15. Physical Android Deviceの詳細な準備・実行
-16. Artifact / Evidence
+14. Scenario Shop向けFlowを読む・下書きする
+15. Physical Android Device / Toolchain Doctor / Build / Install
+16. Training Native baseline
+17. learner exercise実行
+18. Artifact / Evidence
 
-既存Physical Device契約は削除しない。概念学習より前に長く出ている順序を修正する。
+既存Physical Deviceの安全条件や実行契約は維持する。
 
-実装時はMaestro公式の現行Documentationでcommand名と推奨動作を確認する。
+過去PR番号や「このPRでは変更しない」等の履歴文言は削除する。
 
-### 6.11 Maestro exerciseも未編集完了を防ぐ
+実装時参照:
 
-`native-training-exercise.yaml`はbaseline再実行だけで完了しない形へ変更する。
+- https://docs.maestro.dev/maestro-flows
+- https://docs.maestro.dev/api-reference/selectors
+- https://docs.maestro.dev/reference/commands-available/assertvisible
+- https://docs.maestro.dev/maestro-flows/flow-control-and-logic/wait-commands
+- https://docs.maestro.dev/api-reference/commands/runflow
 
-必要条件:
+### 6.15 Maestro exerciseのlearner contractを揃える
 
-- learner-authoredなFlow変更が必要
-- baselineは別commandで確認済みという前提を維持
-- Stable UI Test IDを1つ以上使う
+`native-training-exercise.yaml`について次を満たす。
+
+- learner-authored diffが必要
+- canonical entryから受講者のBusiness Conditionへ到達できる
+- Stable UI Test ID等、安定したselectorを使う
 - Business Conditionに対応するAssertionを持つ
-- canonical entryから到達できる
-- `training:native:exercise`で実行できる
+- 完成状態では`training:native:exercise`で成功できる
+- baselineのstock PASSだけをC08 Evidenceにしない
 
-Android環境を利用できない受講者の扱いは現在どおりNative選択時のEnvironment blockとし、Common修了条件へ昇格させない。
+Source Repository / Fresh Training Copy / learner編集後の状態を区別する。
 
----
+- Source Repository: Required CIを壊さない
+- Fresh Training Copy: 未編集starterだけでC08修了とみなさない
+- learner編集後: learner-authored Flow + successful execution artifactでC08を確認する
 
-## Phase 3: 評価とCapstoneを合わせる
+Native環境が利用できない場合はEnvironment blockとして扱い、Common修了条件へ昇格させない。
 
-### 6.12 Competencyごとに「教える・練習する・評価する」を確認する
+### 6.16 P2-5でlearner exerciseをTraining CIへ接続する
 
-C01〜C12について、Primary learner-facing sourceとMinimum Evidenceを実際の教材へ合わせる。
+対象:
 
-特に確認する。
+- `training/github-actions/training-ci.yml`
+- `scripts/training/workflow-contract.ts`
+- 必要なTraining Copy validation
 
-- C05 Test Layer Selection
-- C07 Web Automation
-- C08 Native Automation
-- C09 Failure Analysis
-- C10 Maintainability
+目的:
 
-C05はPart 1-3で学習している内容との関係を明示し、Formal Test Strategyだけを初学者のPrimary sourceにしない。
+```text
+Part 1で作ったlearner-authored Playwright Test
+→ Localでtraining:web:exercise
+→ Git / PR
+→ Training CopyのGitHub Actions
+→ 同じlearner exerciseを継続実行
+→ Artifact / Failure Evidence
+```
 
-### 6.13 Part 1-8の抽象化を減らす
+要件:
 
-Helper、POM、Component Object、Fixture、Automation Flow、Seed Scenarioを同時に分類暗記させない。
-
-次の順にする。
-
-1. 実際の重複・不安定・準備コストを観察する
-2. 問題を特定する
-3. 最小の改善手段を選ぶ
-4. 再実行して改善を確認する
-
-`Automation Flow`が一般的な用語として不要で、Maestro Flowとも紛らわしい場合は削除または通常の「共通操作」「Helper」等へ置き換える。
-
-### 6.14 CapstoneをRubricと一致させる
-
-canonical `09_part1-capstone.md`について次を確認する。
-
-- CommonはPlaywright中心で完了できる
-- Nativeは選択時だけ要求する
-- baseline PASSだけではC07 / C08のEvidenceにならない
-- C09はmeaningful diagnosisを含む
-- Spec → Risk → Test Case → Layer → Tool → Evidenceが追跡できる
+- Repository本体のRequired Web CIはTraining baselineを維持する
+- Training Copy側にlearner exerciseを実行できる経路を追加する
+- Production / Preview workflowを変更しない
+- 既存Training workflow contractを必要なcommandへ拡張する
+- source templateを配布する既存Training Copy経路を再利用する
+- 新しいworkflow frameworkを作らない
 
 ---
 
-## Phase 4: Specificationの学習者向け入口を整理する
+## Phase 4: Lesson本文・Rubric・Capstoneを実資産へ合わせる
 
-### 6.15 `docs/spec/README.md`の最初に学習者向け読書順を置く
+### 6.17 P1-5をWorkbook / exerciseへ合わせる
 
-仕様管理ルールを削除せず、Product Behaviorを読む入口を先にする。
+P1-5で受講者が、Workbookで決めたTest Caseから実際のPlaywright codeへ進むことを明示する。
 
-推奨順:
+baselineの既存PASSを自分のTest CaseのEvidenceとして扱わない。
+
+### 6.18 C01〜C12を横断確認する
+
+各Competencyについて次を対応付ける。
+
+```text
+どこで教えるか
+→ どこで練習するか
+→ 何をEvidenceとして残すか
+→ どこで修了確認するか
+```
+
+特に:
+
+#### C05 Test Layer Selection
+
+Primary learner-facing sourceをP1-3へ合わせる。
+
+bounded Level 2 / Minimum Evidenceも、初学者がP1-3で学ぶLayer Selectionへ合わせる。
+
+Formal Test Strategyは後段の比較 / Referenceとして残す。
+
+#### C07 Web Automation
+
+- learner-authored diff
+- Workbook Caseとの対応
+- meaningful Locator / Action / Assertion
+- successful `training:web:exercise` evidence
+
+#### C08 Native Automation
+
+- learner-authored Flow
+- canonical entryから到達
+- Business Condition / Assertion
+- successful Native exercise artifact
+
+#### C09 Failure Analysis
+
+- meaningful diagnosis
+- cause / action
+- fix
+- re-run result
+
+Artifactを開いただけでは完了としない。
+
+#### C10 Maintainability
+
+P1-8で実際の保守問題を診断し、最小改善と再実行Evidenceを作る。
+
+P1-9では同じrefactorをやり直させず、P1-8のEvidenceを統合して説明できるようにする。
+
+#### C11 Change Management
+
+P2-3で作成したPR / review recordをP2-8で再利用できるようにする。同じPR課題を二重に要求しない。
+
+#### C12 Continuous Execution Design
+
+P2-5でlearner-authored Playwright TestをTraining CIへ接続する実体験と整合させる。
+
+### 6.19 P1-8をproblem-firstへ整理する
+
+順序:
+
+1. 重複 / 不安定 / setup cost / 可読性の問題を観察
+2. 何が問題か説明
+3. Helper等の最小手段を選ぶ
+4. 必要ならPOM / Fixture等を選ぶ
+5. 再実行して改善を確認
+
+POMを扱う場合は`class` / `constructor` / `this`だけ必要な場所で短く説明する。
+
+`Automation Flow`は現在の学習目的から必要性を説明できなければ削除し、関連文書の用語も揃える。
+
+### 6.20 P1-9 CapstoneをEvidence統合の場にする
+
+Common:
+
+- Web中心で完了できる
+- Nativeは選択時だけ追加
+- baselineだけをC07 / C08 Evidenceにしない
+- Spec → Risk → Case → Layer → Tool → Implementation → Evidenceを説明できる
+- C09はdiagnosis → fix → re-runまで含む
+- C10はP1-8で作成したEvidenceを再利用できる
+
+### 6.21 P2-8をCommon Web + 選択Nativeへ揃える
+
+- Common学習目標からMaestro必須に見える表現を除く
+- Native / MaestroはP2-6を選択した場合だけ統合対象にする
+- P2-3のC11 Evidenceを再利用できる
+- P2-5のlearner-authored CI EvidenceをC12へ接続する
+
+---
+
+## Phase 5: Specification learner navigationと文書不整合を修正する
+
+### 6.22 `docs/spec/README.md`でProduct Behaviorへの入口を先にする
+
+学習者向け順序:
 
 1. `product-scope.md`
 2. `roles-and-permissions.md`
-3. 対象`features/*.md`
-4. 必要な`state-and-scenarios.md`
-5. 必要な`ui-ux-contract.md`
-6. 実装段階でExecutable Canonical Sources
+3. 対象`features/*.md`のPurpose
+4. Business Rules
+5. Acceptance Criteria
+6. 必要な`state-and-scenarios.md`
+7. 必要な`ui-ux-contract.md` / Screen state
+8. 実装時だけExecutable Canonical Sources
 
-`Normative Product Behavior`、`Oracle Priority`、Known Deviation等の管理ルールは、その後に「仕様を管理・変更するときのルール」としてまとめる。
+`Normative Product Behavior`、`Oracle Priority`、Known Deviation、ADR等は「仕様を管理・変更するときのルール」として後段へ置く。
 
-### 6.16 glossaryをProduct用語と管理用語に分ける
+仕様管理上の意味や優先順位自体は変えない。
 
-`docs/spec/glossary.md`を確認し、通常のテスト自動化学習で必要なProduct / QA用語と、Agentic QA / Repository管理用語が混在している場合は、学習者の標準経路から後者を分離する。
+### 6.23 glossary / change-processの読者境界を整理する
 
-新しい大規模な用語体系は作らない。
+`glossary.md`:
 
-### 6.17 `change-process.md`を標準学習経路から外す
+- Product / QA学習に必要な用語を先にする
+- Atomic Finding、Learner-safe、Instructor-only等のAgentic QA / Repository管理用語を標準学習経路の前提にしない
+- 新しい用語体系を作らない
 
-仕様変更を行うMaintainerには必要だが、Featureを読む受講者の前提にはしない。
+`change-process.md`:
 
-リンクは残し、対象読者を明記する。
+- Maintainer向け仕様変更手順として維持
+- Featureを読む学習者の前提から外す
+- リンクと対象読者を明示する
 
-### 6.18 具体的な仕様不整合を再確認する
+### 6.24 Authenticationのdocumentation metadataを修正する
 
-実装時に少なくとも次を再確認する。
+`authentication.md` Login `validation-error`のCondition / Scenarioを、現行Visual Registry、Seed、Login実装、関連Testと照合する。
 
-#### Authentication
+確認済みの境界:
 
-`docs/spec/features/authentication.md`のLogin `validation-error`は、Condition / Scenarioが`storage-write-failure`なのに、Expected UIは必須入力不足のSummaryになっている。
+- `storage-write-failure`はStorage write failure用Scenario
+- 必須入力validationとは別経路
+- Expected Product Behavior自体を変える必要はない
 
-次を照合する。
+Product behaviorを変更せず、現在の`validation-error`に合うScenario / Condition参照へ直す。
 
-- `src/seeds/metadata.ts`
-- `src/application/use-cases/auth-use-cases.ts`
-- Login UI実装
-- 必要なら関連Test
+画像再生成は、既存Visual Referenceが修正後Conditionと一致しないことを確認した場合だけ行う。
 
-単純な文書上のScenario参照誤りで、Expected Product Behaviorを変更しないことが確認できる場合だけ本PRで修正する。
+### 6.25 `state-and-scenarios.md`のstale pathを修正する
 
-Product Decisionまたはアプリ挙動変更が必要なら、本PRでは変更せず別対応へ分離する。
+`e2e/fixtures/`への参照を現行`e2e/web/fixtures.ts`等の実際のpathへ修正する。
 
-#### State / Scenario reference
-
-`docs/spec/state-and-scenarios.md`からfixture等への参照が現在のRepository pathと一致するか再確認する。
-
-単純なstale pathなら本PRで修正する。責務変更を伴う場合は別途判断する。
+責務・Product behavior・fixture実装自体は変えない。
 
 ---
 
-## Phase 5: 日本語・用語・Legacyを整理する
+## Phase 6: 日本語・内部管理用語・Legacy / Optionalを整理する
 
-### 6.19 全文一括置換はしない
+### 6.26 全文一括置換はしない
 
-各Lessonの意味を確認しながら、次の優先順位で直す。
+各Lessonの意味を確認しながら次の順で行う。
 
-1. 学習者が理解する必要のないRepository内部分類を本文から外す
+1. 学習者が不要なRepository内部分類をlearner-facing本文から外す
 2. 一般的な日本語で十分な英語を日本語にする
-3. 技術的な正式名称は維持し、初出で必要なら短く説明する
+3. 技術的な正式名称・定着した用語は維持する
 4. identifier、command、path、script名は変更しない
 
-### 6.20 Legacy Capstoneを最小stubへ縮小する
+### 6.27 Legacy Capstoneを短いstubへする
 
-`10_part1-capstone.md`はcanonical `09_part1-capstone.md`と矛盾する旧教材本文を持たせない。
+`10_part1-capstone.md`は旧Capstone本文を保持しない。
 
-Repository内参照を確認したうえで、既存リンク互換性が必要なら次だけを持つLegacy Aliasへ縮小する。
+基本内容:
 
-- canonical documentへのリンク
+- canonical `09_part1-capstone.md`への案内
 - 現在の標準Lessonではないこと
 
-外部参照を完全には把握できないため、理由なく削除しない。
+Repository内参照を確認する。外部参照を完全には把握できないため、理由なく削除しない。
 
-### 6.21 Optional Agentic QAをPart 1標準Lessonと混同しない配置へ整理する
+### 6.28 Optional Agentic QAはNavigationで分離できるなら移動しない
 
-`09_specification-agentic-qa.md`へのRepository内参照を確認する。
+`09_specification-agentic-qa.md`の内容は今回変更しない。
 
-第一候補は、Required Part 1とは別のreference位置へ移し、Repository内リンクを更新することとする。
+標準Part 1のNavigationから明確にOptionalと分かる状態を優先する。
 
-旧pathの互換性が必要なら短い案内stubを残す。Agentic QA本文の内容変更は今回の目的ではない。
-
-移動による差分の方が大きく、Navigation上の明確化だけで十分な場合は、無理にfile moveを行わない。実装時に最小変更を選ぶ。
+物理移動は、現在配置のままではRequired Part 1と誤認する具体的な問題が残る場合だけ行う。移動する場合はRepository内リンクと必要なcompatibility stubを最小範囲で更新する。
 
 ---
 
-## Phase 6: Validatorを必要な範囲だけ更新する
+## Phase 7: validatorを新しい安定契約へ合わせる
 
-### 6.22 canonical Lessonの検証を維持する
+### 6.29 既存prose assertionを棚卸しする
 
-現在の`REQUIRED_CURRICULUM_FILES`でPart 1 1〜9、Part 2 1〜8を正本とする考え方は維持する。
+`scripts/validate-curriculum.ts`で、今回の教材整理と衝突する自然文token checkを確認する。
 
-Legacy / OptionalファイルをRequiredへ戻さない。
+例えばP1-7のToolchain説明やInstructor Referenceの英語見出し等、**表現を固定すること自体に意味がないcheck**は削除または構造的なcheckへ置き換える。
 
-### 6.23 learner exerciseの契約を必要なら検証する
+新しい日本語文言を同じ方法で再固定しない。
 
-教材変更後、同じ問題が戻る可能性が高く、簡単に決定的に検証できるものだけ追加する。
+### 6.30 維持・追加するvalidatorの基準
 
-候補:
+次をすべて満たす場合だけ追加・維持する。
 
-- baselineとexerciseのpath境界
-- canonical Maestro exercise entry
-- Legacy Capstoneが旧完了条件本文を持たないこと
-- Optional ReferenceがRequired navigationへ混入していないこと
+- 今回の変更で実際に回帰しやすい
+- 機械的に決定的に検証できる
+- `validate-curriculum.ts`の責務に合う
+- 自然言語表現を固定しなくてよい
 
-自然言語の品質や学習効果をvalidatorで無理に判定しない。
+対象候補:
 
-### 6.24 汎用validator frameworkは作らない
+- Required curriculum file
+- relative link
+- Workbook schema / ID / Spec reference
+- package script
+- Training asset path
+- canonical Playwright / Maestro entry
+- Training workflow command allowlist / contract
+- Common / Native navigationを構造的に安定して判定できる既存契約
 
-今回必要なチェックは`scripts/validate-curriculum.ts`の既存構造へ追加する。
+### 6.31 追加しないもの
 
-新しいDSL、schema framework、generic document linterは導入しない。
+- 旧日本語 / 英語文言が存在しないことの全文検索validator
+- 教材が「分かりやすい」ことの判定
+- generic orphan detector
+- Repository全体向けの新しいMarkdown anchor validator
+- learner completion用grader
+- 新しいDSL / schema framework
+
+具体的な回帰を現在の既存validatorで防げない場合にだけ、狭いcheckを追加する。
 
 ---
 
 ## 7. Product Behavior不整合の扱い
 
-今回のPRの境界を次で固定する。
+### 7.1 同じPRで修正してよい
 
-### 同じPRで修正してよい
-
-- stale link
-- stale path
-- 明らかな文書内のScenario参照ミス
+- stale link / path
+- 明らかなCondition / Scenario metadataの参照ミス
 - learner navigation
 - 説明順序
 - 用語
-- Product Behaviorを変えないmetadata / documentation correction
+- Product behaviorを変えないdocumentation correction
 
-### 別対応にする
+今回確認済みの対象:
 
-- BR / ACの意味を変更する
-- Expected UIを変更する
-- Seedの意味を変更する
-- Application codeを変更する
-- Regressionの期待値を変更する
-- Product Decisionが必要な曖昧仕様を確定する
+- Authentication `validation-error`のScenario / Condition整合
+- `state-and-scenarios.md`のstale fixture path
 
-判断できない場合は、このPRで都合よく解釈して修正しない。
+### 7.2 別対応にする
+
+- BR / ACの意味変更
+- Expected UIの変更
+- Seedの意味変更
+- Application code変更
+- Formal Regressionの期待値変更
+- Product Decisionが必要な曖昧仕様の確定
+
+実装中にこの境界へ到達した場合、このPRで都合よく判断して変更しない。
 
 ---
 
-## 8. 実装時の変更単位
+## 8. commitの分け方
 
-PRは1つだが、commitは次の責務ごとに分ける。
+PRは1つにする。commitはレビューしやすい責務へ分ける。
 
-1. 学習前提と学習順序
-2. Playwright learner exercise
-3. Failure Analysis exercise
-4. Maestro learner exerciseとLesson順序
-5. Rubric / Capstone / Maintainability
-6. Specification learner navigation
-7. 日本語・用語・Legacy整理
-8. Validator / link整合
+推奨:
 
-実際の差分量に応じて隣接commitを統合してよいが、無関係な変更を1 commitへ混在させない。
+1. 学習経路・前提知識・Common / Native境界
+2. Workbook sample整合
+3. Playwright / Failure / Maestro exercise + Training CI
+4. Lesson本文 + Rubric / Capstone
+5. Specification learner navigation + documentation correction
+6. 日本語・Legacy / Optional整理
+7. validator / link / workflow contract整合
+
+実際の差分量に応じて隣接commitを統合してよい。無関係な変更を1 commitへ混在させない。
 
 ---
 
 ## 9. 検証
 
-### 9.1 文書・契約
+作業途中は変更領域に応じたtargeted checkを使い、すべての重いcommandを毎回実行しない。実装完了時にRepository標準の`verify`を実行する。
 
-最低限、次を実行する。
+### 9.1 文書 / Curriculum
 
 ```bash
 pnpm run format:check
 pnpm run lint:markdown
 pnpm run validate:curriculum
-pnpm run validate:spec
-pnpm run validate:spec-visuals:final
+```
+
+### 9.2 Training TypeScript
+
+Training script / Playwright spec / workflow contractを変更した場合:
+
+```bash
 pnpm run typecheck:training
 ```
 
-Specification生成物への影響を確認する。
+### 9.3 Training Web baseline
 
-```bash
-pnpm run build:spec
-```
-
-### 9.2 Training Web
-
-baselineは未編集状態でPASSすることを確認する。
+clean repositoryで環境確認として成功することを確認する。
 
 ```bash
 pnpm run training:web:baseline
 ```
 
-learner exerciseは、starterの意図した未完成状態と、完成例を一時的に作った場合のPASSを分けて確認する。
+### 9.4 Playwright learner exerciseの2状態確認
 
-実装上、starterを意図的Failureにする場合は、それを`pnpm run verify`やCI required jobへ誤って含めない。
+#### tracked starter
 
-Expected Failure runnerを変更した場合は次を確認する。
+- TypeScriptとして壊れていない
+- learner-authored成果物ではない
+- C07 Evidenceとして成立しない
+- baseline CIの成功を壊さない
+
+#### learner完成状態
+
+実装作業中に一時的なlearner-authored Testを作成し、次を確認する。
+
+```bash
+pnpm run training:web:exercise
+```
+
+確認後、その完成答案をtracked starterへ残さない。
+
+skip、0 test、markerだけで成功扱いにしない。
+
+### 9.5 Failure Analysis
+
+Artifact確認用:
 
 ```bash
 pnpm run training:web:check-expected-failure
 ```
 
-### 9.3 Training Native
+確認:
 
-YAML / runnerを変更した場合は、可能な環境で次を確認する。
+- expected non-zero Playwright runをrunnerが正しく扱う
+- Trace / Screenshot / Video / Reportが確認できる
+
+診断用:
+
+- 代表Failureを1ケースずつ再現できる
+- Evidenceから原因を説明できる
+- 修正後に対象Testが成功する
+- `04_execution-improvement.csv`へcause / action / re-runを記録できる
+
+### 9.6 Training Copy / learner CI
+
+`training-ci.yml`またはworkflow contractを変更した場合、disposableなTraining Copyで既存prepare / validate経路を使用する。
+
+既存scriptの正確な引数は実装時のcurrent usage / help / codeを確認して使用し、Plan内の例を新しい契約として固定しない。
+
+確認事項:
+
+- source templateからactive Training workflowが生成される
+- baseline用経路が維持される
+- learner-authored exerciseをCIで実行できる
+- Production workflowへ依存しない
+- Training workflow contract validationが通る
+
+### 9.7 Specification
+
+Spec文書を変更した場合:
+
+```bash
+pnpm run validate:spec
+pnpm run validate:spec-visuals:final
+pnpm run build:spec
+```
+
+AuthenticationでVisual Referenceの再生成が不要な文書metadata修正だけなら、不要な画像再生成を行わない。
+
+### 9.8 Training Native
+
+YAML / Native learner exerciseを変更した場合、利用可能なNative環境で既存経路を確認する。
 
 ```bash
 pnpm run training:native:baseline
 pnpm run training:native:exercise
 ```
 
-Physical Android Deviceを利用できない環境では、実行できなかったことを明示し、TypeScript / YAML / validatorの静的確認結果と混同しない。
+確認する状態:
 
-### 9.4 最終確認
+- baselineは環境 / Runtime確認として成功
+- stock starterだけをC08 Evidenceにしない
+- temporaryなlearner-authored Flowからcanonical entry経由でsuccessful executionを確認できる
 
-実装完了後はRepository標準の最終検証を行う。
+Physical Android Deviceを利用できない場合は未実行と明示する。静的確認や別CIのPASSを実機実行成功として扱わない。
+
+`training/maestro/**`変更によって既存Native CIのchange detection対象になる場合は、そのCI結果も確認する。
+
+### 9.9 Repository全体
+
+実装完了時:
 
 ```bash
 pnpm run verify
 ```
 
-`verify`失敗を教材変更だからと無視しない。失敗原因が今回の変更か、既存状態かを切り分ける。
+`verify`失敗を教材変更だからと無視しない。今回変更による失敗か既存状態かを切り分ける。
 
 ---
 
 ## 10. 完了条件
 
-次をすべて満たしたら完了とする。
+次をすべて満たす。
 
-- コードベース自動化未経験者向けのterminal / Node.js / pnpm前提がPlaywright実行前に説明されている。
-- P1-2でTypeScript実装ファイルを最初の分析入口にしていない。
-- P1-4の最初のPlaywright学習内容がLocator / Action / Assertion / Auto-wait中心に整理されている。
-- Playwright starterを未編集で実行しただけではC07 completionにならない。
-- Maestro starterを未編集で実行しただけではC08 completionにならない。
-- Artifactを開くための単純Failureと、C09向けの原因分析exerciseが区別されている。
-- P1-7でMaestro概念をAndroid toolchain詳細より先に学べる。
-- P2-4にGitHub Actionsを読むための最小YAML説明がある。
-- C01〜C12のPrimary source / exercise / Minimum Evidenceに明確な矛盾がない。
-- Common修了条件とNative選択経路が全教材で一致している。
-- `docs/spec/README.md`から学習者がProduct Behaviorへ直接進める。
-- Maintainer向け仕様管理概念が学習者の最初の前提になっていない。
+### 学習順序
+
+- P1-1〜P1-3で、まだ説明していないCLI操作を受講者の必須前提にしていない。
+- P1-4でCLI / Node / pnpmの最低限を説明した後にWeb / Playwright実行Gateへ進む。
+- P1-4より前のlearner-facing資料で`src/seeds/metadata.ts`を必須の第一参照にしていない。
+- Product Scope / Roles / Feature BR/AC / State / Scenarioの読書順が教材間で一致している。
+- `/guide` / Current UIがExpected Product Behaviorの正本として扱われていない。
+
+### Playwright / Workbook
+
+- P1-4の初回JS/TSがfirst Playwright exerciseに必要な範囲へ絞られ、arrow function / callback等の実際に使う構文に説明漏れがない。
+- Locatorの方針が学習目標、本文、演習、自己確認、修了条件で一致する。
+- Workbook sampleのAutomation Decision、implementation path、run contextが新しい学習経路と一致する。
+- Playwright baselineは環境確認であり、C07 Evidenceとして扱われない。
+- 未編集starterだけではC07修了Evidenceにならない。
+- temporaryなlearner-authored完成状態で`training:web:exercise`成功を確認できる。
+
+### Failure Analysis
+
+- Artifact確認用の恒久Failureと、meaningful diagnosis用exerciseが別契約になっている。
+- diagnosisではEvidence → cause → fix → re-runまで一巡できる。
+- C09のCommon必須成果物へSecurity専門確認を混在させていない。
+- Failure fixtureを必要以上に増やしていない。
+
+### Maestro / Native
+
+- Maestro概念とFlow下書きをToolchain詳細より先に学べる。
+- actual exercise実行はDevice準備 / baseline後に行う順序になっている。
+- automatic retryと`extendedWaitUntil`の役割を区別できる。
+- 過去PR固有の履歴文言がlearner-facing本文に残っていない。
+- 未編集starterだけではC08修了Evidenceにならない。
+- Native UI自動化はCommon必須へ戻っていない。
+
+### Rubric / Capstone
+
+- C01〜C12で「教える・練習する・Evidence・修了確認」に明確な矛盾がない。
+- C05の能力定義とMinimum EvidenceがP1-3のLayer Selectionへ合っている。
+- C10 / C11は前LessonのEvidenceを不要に作り直さずCapstoneへ統合できる。
+- C12がP2-5のlearner exercise CI体験へ接続している。
+- P1-9はWeb Commonだけで完了できる。
+- P2-8もWeb Commonだけで完了でき、Nativeは選択時だけ追加される。
+
+### GitHub Actions
+
+- P2-4のYAML / GitHub Actions説明だけでTraining workflowの基本構造を読める。
+- P2-5でPart 1のlearner-authored Playwright TestをTraining CopyのCIへ接続できる。
+- Repository本体のRequired Web CIでbaselineの責務を壊していない。
+- Production / Preview workflowを教材都合で再設計していない。
+
+### Specification / 文書
+
+- `docs/spec/README.md`から学習者がProduct Behaviorへ先に進める。
+- `Normative` / `Oracle` / Executable Source等が初学者の最初の読解前提になっていない。
+- Authenticationの`validation-error` Scenario / Condition metadataが現在の挙動と整合している。
+- `state-and-scenarios.md`に存在しないfixture path参照が残っていない。
+- Product behavior変更が教材改善へ混入していない。
+
+### Legacy / validator
+
 - `10_part1-capstone.md`がcanonical Capstoneと矛盾する旧本文を持たない。
-- Optional Agentic QAがRequired Part 1の学習順序と混同されない。
-- 技術名称を除き、不必要な英語・内部管理用語がlearner-facing本文から減っている。
-- Product Behavior変更が教材改善に紛れ込んでいない。
-- `pnpm run validate:curriculum`、関連spec validation、`pnpm run verify`が通る。
+- Optional Agentic QAがRequired Part 1の標準経路と混同されない。
+- Agentic QA本文そのものを不要に再設計していない。
+- validatorが今回整理したlearner proseの表現を不必要に固定していない。
+- Workbook / path / script / canonical entry等の必要な構造契約は維持されている。
+
+### 検証
+
+- targeted validationを変更領域ごとに実施している。
+- `pnpm run validate:curriculum`が通る。
+- Spec変更に応じたvalidation / buildが通る。
+- `pnpm run verify`が通る。
+- Native実機を利用できなかった場合は未実行として記録し、成功したように扱っていない。
 
 ---
 
 ## 11. 実装時に避けること
 
-- 文言を変えるためだけの全Repository一括置換
+- 文言を変えるためだけのRepository全体一括置換
 - Lesson番号の大規模な振り直し
+- 新しいCLI / JavaScript / YAML入門コースの追加
 - 既存Training runnerの作り直し
 - starterを完成済みサンプルへ戻すこと
-- exerciseのPASS数を増やすこと自体を目的にすること
+- learner completion判定のためだけにtracked starterを人工Failureへすること
+- skip / markerだけをlearner Evidenceとして扱うこと
+- Failure fixtureの全分類網羅
+- 本当にflakyなTiming fixtureを教材として作ること
+- Workbook schemaの不要な拡張
+- Capstoneで既存LessonのEvidenceを同じ課題として作り直させること
+- POM / Fixture等を使うこと自体を修了条件にすること
 - Product Behaviorの曖昧さを教材側で勝手に確定すること
+- Formal Regressionを教材のLocator例へ合わせて一括変更すること
 - NativeをCommon必須へ戻すこと
+- Production / Preview / Native CI基盤を教材都合で再設計すること
 - Agentic QAを通常のテスト自動化初学者向けLessonへ混在させること
-- Validatorで自然言語の良し悪しまで機械判定しようとすること
-- 将来の教材追加を理由にした抽象化や新規dependency
+- Optional Agentic QAの物理移動を目的化すること
+- validatorで自然言語の良し悪しを判定すること
+- 新しい日本語文言をliteral assertionとして固定し直すこと
+- 将来の教材追加だけを理由にした抽象化、framework、dependencyの追加
