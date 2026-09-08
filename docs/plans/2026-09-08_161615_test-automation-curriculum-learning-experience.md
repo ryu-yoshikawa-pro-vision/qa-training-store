@@ -253,7 +253,7 @@ URL互換を考慮し、基本は正本である`09_part1-capstone.md`へ案内�
 
 `scripts/validate-curriculum.ts`は必須ファイル、ワークブック、スクリプト、演習用ワークフロー等の構造契約だけでなく、P1-7や講師向け参考資料の自然文に近い文字列も固定している。
 
-今回の教材順序変更・日本語整理と衝突する既存文字列検証を棚卸しする。また、`REQUIRED_CURRICULUM_FILES`に残る旧`docs/curriculum/test-automation/00_learning_design.md`参照を、実在する`docs/curriculum/test-automation/00_learning-design.md`へ同期する。ファイルrenameや互換用aliasは追加しない。
+今回の教材順序変更・日本語整理と衝突する既存文字列検証を棚卸しする。また、実在する`docs/curriculum/test-automation/00_learning-design.md`を正とし、旧`00_learning_design.md`を参照する箇所をリポジトリ内で確認して同期する。少なくとも`docs/curriculum/test-automation/README.md`のリンクと`scripts/validate-curriculum.ts`の`REQUIRED_CURRICULUM_FILES`を修正する。ファイルrenameや互換用aliasは追加しない。
 
 残す・追加する検証は次のような安定した機械契約へ限定する。
 
@@ -502,6 +502,8 @@ Playwrightの演習用設定、Maestro共通の実行処理、演習用コピー
 → 全体検証
 ```
 
+ただし、現行`validate-curriculum.ts`とREADMEに残るLearning Designの旧`00_learning_design.md`参照は、最初の`pnpm run validate:curriculum`より前に`00_learning-design.md`へ同期する。この既知のパス不整合だけを先に直し、自然文検証やその他の検証スクリプト整理はフェーズ7で行う。
+
 ### 5.3 技術用語と説明用語を分ける
 
 技術上の正式名称、API名、識別子、コマンド、パス、スクリプト名は原表記を維持する。例:
@@ -579,6 +581,8 @@ Web / ネイティブとも、未編集初期演習ファイルについて固�
 学習者がレッスンを進めるためにリポジトリ管理用の分類を理解する必要がない状態にする。
 
 READMEの受講者向け標準導線はP1-1から開始する。`01_spreadsheet-test-design.md`はP1-2 / P1-3でワークブックを使う段階、`02_competency-rubric.md`は評価基準を確認する段階で参照する。ファイル番号やパスは変更しない。
+
+実装開始時に`00_learning_design.md`のリポジトリ内参照を確認し、少なくともこのREADMEのリンクと`validate-curriculum.ts`の必須ファイル一覧を実在する`00_learning-design.md`へ同期する。このパス同期は最初の`pnpm run validate:curriculum`より前に行う。実ファイルのrename、alias、互換用コピーは作らない。
 
 ### 6.2 開始条件とCLI学習順序を整合させる
 
@@ -776,6 +780,9 @@ P2-7の共通学習範囲ではこの教材で扱うWeb CI範囲の判定条件 
 - 実装するケースでは自動化判断と受講者が後から記録する実装先を一致させる
 - 受講者が作成したテストの実行条件を`Training Web baseline`にしない
 - `Not run`では`evidence` / `failure_category` / `cause` / `action` / `improvement`を先に埋めない
+- `04_execution-improvement.csv`の各実行行で`run_context`を空欄にしない
+- 同じ`test_case_id`を異なる`run_context`で複数行記録することは許可するが、`test_case_id`と`run_context`の組み合わせは重複させない
+- `run_context`の具体的な自然文は検証スクリプトで固定しない
 - パート1のケースへパート2のPR実行時期を必須前提として先取りしない
 
 `01_spreadsheet-test-design.md`は4つの正本CSVを実際に作成・更新する成果物として中心に置く。複数の概念上のシート構成は、4 CSVと別の成果物を作るように見える場合は削除または大幅に圧縮し、残す場合も各観点を既存列のどこへ記録するかだけを説明する。
@@ -860,7 +867,7 @@ C09の証跡:
 → 再実行結果
 ```
 
-`04_execution-improvement.csv`では同じ`test_case_id`について実行ごとに別行を使い、`run_context`で失敗時と修正後の再実行を区別する。失敗行は`result=Fail`として`failure_category` / `cause` / `action` / 失敗時の`evidence`を残し、修正後の行は`result=Pass`として再実行成功の`evidence`を残す。失敗行をPassへ上書きしない。新しい列やrun ID体系は追加しない。
+`04_execution-improvement.csv`では同じ`test_case_id`について実行ごとに別行を使い、`run_context`で失敗時と修正後の再実行を区別する。`run_context`は各行で必須とし、同じ`test_case_id`で同じ`run_context`を重複させない。失敗行は`result=Fail`として`failure_category` / `cause` / `action` / 失敗時の`evidence`を残し、修正後の行は`result=Pass`として再実行成功の`evidence`を残す。失敗行をPassへ上書きしない。`run_context`の具体的な文言は検証スクリプトへ固定せず、新しい列やrun ID体系も追加しない。
 
 ### 6.13 P1-6のセキュリティ詳細を共通必須から分離する
 
@@ -1017,7 +1024,8 @@ P1-5で受講者が、ワークブックで決めたテストケースから実�
 - 原因 / 対応
 - 修正
 - 再実行結果
-- `04_execution-improvement.csv`では、同じ`test_case_id`の失敗行と修正後Pass行を分け、`run_context`で各実行を区別する
+- `04_execution-improvement.csv`では、同じ`test_case_id`の失敗行と修正後Pass行を分け、空欄でない異なる`run_context`で各実行を区別する
+- 同じ`test_case_id`と`run_context`の組み合わせを重複させず、具体的な`run_context`文言自体は固定しない
 
 アーティファクトを開いただけでは完了としない。
 
@@ -1167,7 +1175,7 @@ POMを扱う場合は`class` / `constructor` / `this`だけ必要な場所で短
 
 例えばP1-7のツールチェーン説明、講師向け参考資料の英語見出し、READMEの説明フレーズ等、**表現を固定すること自体に意味がない検証**は削除または構造的な検証へ置き換える。演習用CIについては旧「`training:web:exercise`を含めない」契約も新しいPull Request経路へ更新する。
 
-`validate-curriculum.ts`の必須ファイル一覧に残る旧`00_learning_design.md`参照も、実在する`00_learning-design.md`へ修正する。
+Learning Designの旧`00_learning_design.md`参照は、フェーズ1でREADMEと`validate-curriculum.ts`を含むリポジトリ内参照を実在する`00_learning-design.md`へ同期済みであることを前提とする。ここではそのパス修正を遅らせず、残りの検証スクリプト整理だけを行う。
 
 新しい日本語文言を同じ方法で再固定しない。
 
@@ -1186,6 +1194,9 @@ POMを扱う場合は`class` / `constructor` / `this`だけ必要な場所で短
 - 相対リンク
 - ワークブックのスキーマ / ID / 仕様書参照
 - ワークブックの`Not run`時に`evidence` / `failure_category` / `cause` / `action` / `improvement`が空である等、実行時アーティファクトの存在確認を必要としない状態契約
+- `04_execution-improvement.csv`の各行で`run_context`が空でないこと
+- 同じ`test_case_id`を異なる`run_context`で複数行記録できる一方、`test_case_id`と`run_context`の組み合わせを重複させないこと
+- 上記`run_context`契約について、具体的な自然文は固定せず、「異なる`run_context`なら同一`test_case_id`を許可」「空欄を拒否」「同一組み合わせの重複を拒否」を既存契約テストの狭い回帰確認で保護すること
 - `.gitignore`対象のローカル出力パスやGitHub Actionsの実行結果 / アーティファクト等を`evidence`へ記録しても実行時ファイルの存在検証で拒否しない一方、ローカル絶対パスやパスによるリポジトリ外参照を不用意に許可しないことを、既存`training-curriculum.test.ts`の狭い回帰テストで保護する
 - `package.json`に定義されたスクリプト
 - 演習資産のパス
@@ -1221,7 +1232,7 @@ POMを扱う場合は`class` / `constructor` / `this`だけ必要な場所で短
 
 - 認証の`validation-error`のシナリオ / 条件整合
 - `state-and-scenarios.md`の古いFixtureパス
-- `validate-curriculum.ts`の旧Learning Designパス参照
+- Learning Designの旧`00_learning_design.md`参照（少なくともREADMEと`validate-curriculum.ts`）
 
 ### 7.2 別対応にする
 
@@ -1259,6 +1270,8 @@ PRは1つにする。コミットはレビューしやすい責務へ分ける�
 作業途中は変更領域に応じた確認を使い、すべての重いコマンドを毎回実行しない。実装完了時にリポジトリ標準の`verify`を実行する。
 
 ### 9.1 文書 / カリキュラム
+
+最初の`pnpm run validate:curriculum`を実行する前に、READMEと`validate-curriculum.ts`を含むLearning Designの旧`00_learning_design.md`参照を実在する`00_learning-design.md`へ同期する。既知のパス不整合を残した状態の検証結果を、今回の文書変更による失敗として扱わない。
 
 ```bash
 pnpm run format:check
@@ -1329,8 +1342,10 @@ pnpm run training:web:check-expected-failure
 - 代表失敗を1ケースずつ再現できる
 - 証跡から原因を説明できる
 - 修正後に対象テストが成功する
-- `04_execution-improvement.csv`へ同じ`test_case_id`の失敗行と修正後Pass行を別行で残し、`run_context`で各実行を区別できる
+- `04_execution-improvement.csv`へ同じ`test_case_id`の失敗行と修正後Pass行を別行で残し、空欄でない異なる`run_context`で各実行を区別できる
+- 同じ`test_case_id`と`run_context`の組み合わせを重複させない
 - 失敗行に`failure_category` / `cause` / `action` / 失敗時の`evidence`、Pass行に再実行成功の`evidence`を残せる
+- 検証スクリプト / 契約テストで「異なる`run_context`なら同一`test_case_id`を許可」「空欄を拒否」「同一組み合わせの重複を拒否」を確認できる
 
 ### 9.6 演習用コピー / 受講者向けCI
 
@@ -1419,6 +1434,7 @@ pnpm run verify
 - `TC-CART-002`は`cart-with-invalid-items`へのリセット後にCheckoutを利用できるcustomerのログイン状態を確立し、認証境界ではなく購入不可明細を理由にCheckoutが阻止されることを確認する。初期状態シナリオの初期セッション定義は変更していない。
 - P1-4の単純なCart追加や`out-of-stock`の商品追加拒否に上記ワークブックのケースIDを誤用していない。
 - ワークブックのサンプルの自動化判断、実装先、実行条件、実行前後の状態遷移が新しい学習経路と一致する。
+- `04_execution-improvement.csv`の各実行行で`run_context`が空欄ではなく、同じ`test_case_id`と`run_context`の組み合わせが重複していない。異なる`run_context`で同じ`test_case_id`を複数行記録できる。
 - `evidence`が実行時証跡への人間可読な参照として扱われ、新しいURI形式 / マニフェストを導入せず、`.gitignore`対象 / GitHub上のアーティファクトのファイルの存在を静的検証スクリプトで要求していない。一方でローカル絶対パスやパスによるリポジトリ外参照を保存しない静的な安全性確認は維持している。
 - Playwrightの基準確認は環境確認であり、C07の証跡として扱われない。
 - 未編集初期演習ファイルだけではC07修了証跡にならない。
@@ -1430,7 +1446,7 @@ pnpm run verify
 - アーティファクト確認用の恒久失敗と、原因確認・修正・再実行まで行う診断演習が別契約になっている。
 - `training:web:check-expected-failure`で内側のPlaywrightテストが失敗し、必要アーティファクト生成を確認できた場合に外側コマンドが成功になる意味を説明できる。
 - 診断では証跡 → 原因 → 修正 → 再実行まで一巡できる。
-- `04_execution-improvement.csv`に同一`test_case_id`の失敗行と修正後Pass行を別行で残し、`run_context`で実行を区別できる。失敗行の診断情報をPassで上書きしていない。
+- `04_execution-improvement.csv`に同一`test_case_id`の失敗行と修正後Pass行を別行で残し、空欄でない異なる`run_context`で実行を区別できる。同じ`test_case_id`と`run_context`の組み合わせを重複させず、失敗行の診断情報をPassで上書きしていない。
 - C09の共通必須成果物へセキュリティ専門確認を混在させていない。
 - 失敗再現用Fixtureを必要以上に増やしていない。
 
@@ -1478,7 +1494,7 @@ pnpm run verify
 - 任意のAIエージェントを使ったQAが標準パート1の必須経路と混同されない。
 - AIエージェントを使ったQA本文そのものを不要に再設計していない。
 - `validate-curriculum.ts`と`training-curriculum.test.ts`が今回整理した受講者向け本文の表現を不必要に固定していない。
-- `validate-curriculum.ts`の必須ファイル一覧が実在する`00_learning-design.md`を参照し、旧`00_learning_design.md`を残していない。
+- リポジトリ内でLearning Designの実ファイルを指す参照が`00_learning-design.md`へ同期され、少なくともREADMEと`validate-curriculum.ts`に旧`00_learning_design.md`参照を残していない。実ファイルのrenameやaliasを追加していない。
 - 演習用CIの旧「演習を含めない」契約が残っていない。
 - ワークブック / パス / スクリプト / 正式な実行入口等の必要な構造契約は維持されている。
 - 複数画面にまたがる共通操作を表す独自用語が、独立した必須用語として残っていない。
@@ -1486,7 +1502,9 @@ pnpm run verify
 ### 検証
 
 - 変更箇所に応じた検証を変更領域ごとに実施している。
+- Learning Designの旧path参照を同期した後に`pnpm run validate:curriculum`を実行している。
 - `workflow-contract.ts`または`training-curriculum.test.ts`を変更した場合に`pnpm run test:contracts`が通る。
+- C09の`run_context`契約について、空欄拒否、同一`test_case_id` + 異なる`run_context`の許可、同一組み合わせの重複拒否を検証できる。
 - 演習用コピー検証では対象変更を含むコミットSHAを`--source-sha`へ使用し、未コミット変更を含むと誤認していない。
 - `pnpm run validate:curriculum`が通る。
 - 仕様書変更に応じた検証 / ビルドが通る。
