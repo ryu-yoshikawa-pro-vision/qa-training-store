@@ -70,6 +70,8 @@ Google Doc の表示名には `.md` を含める。Google Docs Document Tabs を
 - full Drive全域のmanaged Doc探索
 - Shared Drive support
 - Unicode専用dependency
+- generic shell escaping framework / command DSL
+- Drive query AST / ORM / third-party query builder
 - 独自credential broker
 - 将来用途だけの過度な抽象化
 
@@ -94,6 +96,7 @@ Google Doc の表示名には `.md` を含める。Google Docs Document Tabs を
 
 - 重い処理より前の open PR guard
 - automation branch
+- `github-actions[bot]` commit identity
 - `GITHUB_TOKEN`
 - `gh auth setup-git`
 - explicit non-force push
@@ -111,6 +114,7 @@ Google Doc の表示名には `.md` を含める。Google Docs Document Tabs を
 - <https://developers.google.com/workspace/drive/api/guides/manage-downloads>
 - <https://developers.google.com/workspace/drive/api/reference/rest/v3/files>
 - <https://developers.google.com/workspace/drive/api/reference/rest/v3/files/list>
+- <https://developers.google.com/workspace/drive/api/guides/search-files>
 - <https://developers.google.com/workspace/drive/api/reference/rest/v3/about>
 - <https://developers.google.com/workspace/drive/api/guides/properties>
 - <https://developers.google.com/workspace/drive/api/guides/api-specific-auth>
@@ -127,6 +131,7 @@ Google Doc の表示名には `.md` を含める。Google Docs Document Tabs を
 - `File.driveId`はShared Drive itemの識別に利用できる。
 - active探索は`trashed = false`のみ。
 - `files.list`は`nextPageToken`がなくなるまで全ページ処理する。
+- Drive search queryのstring literalでは、apostrophe / backslash等をquery syntaxに従ってescapeする必要がある。可能な箇所では動的nameを`q`へ含めず、parent childrenを列挙してNode側でexact matchする。
 - `files.export`のexported contentは10MB上限がある。上限超過時はfailし、自動分割・partial export・Docs API fallbackは行わない。
 - Google APIにcross-system transaction / atomic compare-and-swapがあるとは仮定しない。
 
@@ -228,7 +233,7 @@ Access Tokenは可能な限りsync process内memoryだけに保持し、以下�
 
 logへ出してよいのは、必要なfile path、action、HTTP status、retry count、`version`等の非credential diagnosticsに限定する。Google file IDも必要性がある場合だけ出す。
 
-`GH_TOKEN: ${{ github.token }}`もjob全体へ置かず、open PR guard、Git認証、push、`gh pr create`等の必要stepだけへ渡す。
+`GH_TOKEN: ${{ github.token }}`もjob全体へ置かず、open PR guard、automation branch push、`gh pr create`等の必要stepだけへ渡す。
 
 ---
 
@@ -391,6 +396,69 @@ managed Docの`appProperties.githubPath`と、sync root探索内で現在のfold
 ただしmanaged Docがsync root**外**へmoveされた場合、そのDocはroot探索で発見できずactive missingと区別できない。
 
 その場合はSection 7のmissing contractに従い、remaining Gitからsync root配下へ新しいGoogle Docがrecreateされる可能性がある。root外へ移動した旧Docを自動探索・delete・復元しない。
+
+### 5.9 Drive-derived path / process argument safety
+
+Section 5.6のpath safetyと、process invocation時のcommand safetyは別契約とする。
+
+Google Drive由来のfile / directory pathは **untrusted external data** として扱う。Drive由来pathをshell command文字列へ直接連結・展開しない。
+
+特に以下のprocessへ動的pathを渡す場合に適用する。
+
+- Prettier
+- `git add`
+- `git diff`等のGit command
+- その他Drive-derived pathをargumentとして受け取る外部process
+
+Nodeから動的filenameを含むprocessを起動する場合は、原則として`child_process.spawn` / `execFile`等の**argument arrayを渡せるAPI**を使い、`shell: false`で実行する。
+
+概念:
+
+```text
+spawn("pnpm", ["exec", "prettier", "--write", ...paths], { shell: false })
+spawn("git", ["add", "--", ...paths], { shell: false })
+```
+
+禁止:
+
+```text
+exec(`pnpm exec prettier --write ${paths.join(" ")}`)
+exec(`git add ${paths.join(" ")}`)
+```
+
+Git pathspecへDrive-derived pathを渡す箇所では、commandの対応範囲で`--`を使用し、`-leading-name.md`等がoptionとして解釈されないようにする。
+
+GitHub Actionsの固定shell処理を使う場合もcommand構造は固定し、外部由来pathからshell codeを組み立てない。必要ならNUL-delimited / argument-array相当の境界を用いる。
+
+`$`、backtick、`&`、`;`、apostrophe、space、先頭`-`等は、Section 5.6のpath契約上安全である限り**shell都合だけを理由にfilenameとして禁止しない**。独自shell escaping libraryは追加しない。
+
+### 5.10 Drive query literal safety
+
+Drive API `files.list(q=...)`へ、Google Doc nameや`githubPath`等の外部由来stringをraw interpolationしない。
+
+初期版は、可能な箇所では次を優先する。
+
+```text
+parent childrenをpagination付きで列挙
+→ Node側で exact match:
+   name === expectedName
+   mimeType === expectedMimeType
+   appProperties.githubPath === expectedGithubPath
+```
+
+これにより、動的name / `githubPath`をDrive query syntaxへ埋め込む箇所を最小化する。
+
+`q`へ動的literalを含める必要がある場合は、Drive query syntax上必要なescapingを**1つのhelper**へ集約する。
+
+概念責務:
+
+```text
+escapeDriveQueryLiteral(value)
+```
+
+少なくともapostrophe / backslashをGoogle公式query syntaxに従ってescapeする。各call siteで個別escaping / raw interpolationを行わない。generic query builder / AST / ORMは作らない。
+
+create response不明時のreconciliationでも同じ契約を使う。可能ならparent children listing後にNode側で`name` / MIME / `appProperties.githubPath`をexact matchし、queryへ`githubPath`を直接埋め込まない。Drive queryを使う場合は必ず共通escape helperを通す。
 
 ---
 
@@ -595,6 +663,8 @@ baseline直前duplicate再検索結果:
 
 create直後の別duplicate checkは必須にせず、**baseline finalize直前の一意性確認を安全境界の正本**とする。
 
+duplicate再検索はSection 5.10のquery safety契約に従い、可能ならparent children列挙 + Node exact matchで行う。
+
 ### 9.3 folder create / reuse
 
 folder createはresponse不明時のreconciliationを維持する。
@@ -610,7 +680,7 @@ trashed=false
 
 候補が1件だけで、そのIDが予定folder IDと一致する場合のみ子item createへ進む。0件または2件以上ならfailし、自動deleteしない。
 
-folder lockは追加しない。
+folder一意性確認もSection 5.10のquery safety契約に従う。folder lockは追加しない。
 
 ### 9.4 partial failure / residual TOCTOU
 
@@ -718,11 +788,13 @@ allowlist再確認
 ↓
 automation branch作成
 ↓
-対象Markdownだけstage
+対象Markdownだけ安全なargument境界でstage
 ↓
 staged allowlist
 ↓
 git diff --cached --check
+↓
+github-actions[bot] identity設定
 ↓
 local commit
 ↓
@@ -732,7 +804,7 @@ origin/main == initialMainSha確認
 ↓
 Google source snapshot freshness再確認
 ↓
-non-force push
+GH_TOKEN step-localでgh auth setup-git + non-force push
 ↓
 PR
 ```
@@ -808,9 +880,19 @@ docs/curriculum/**/*.md
 
 validation後にも再確認する。
 
+Drive-derived pathを個別processへ渡す際はSection 5.9のargument safety契約に従う。
+
 ### 10.7 staged boundary
 
 commit前は確定済みtarget Markdownだけを明示的にstageする。`git add .`は禁止。
+
+Drive-derived target pathはjoined shell stringではなく1 path = 1 argumentとして渡す。Git pathspecとしてstageする場合は概念上:
+
+```text
+git add -- <path1> <path2> ...
+```
+
+とし、Node実装では`spawn` / `execFile`等のargument arrayを使う。先頭`-`を含むfilenameをoptionとして解釈させない。
 
 stage後:
 
@@ -846,6 +928,29 @@ PR作成後に対象Google Docが変更された場合は:
 
 PR自動更新、Google lock、merge前Google API hook、polling、GitHub Appは追加しない。
 
+### 10.9 automation commit identity / push authentication boundary
+
+local commit前に既存Repository automationと同じidentityを設定する。
+
+```bash
+git config user.name "github-actions[bot]"
+git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+```
+
+独自bot名や個人identityは使用しない。
+
+remote pushは`GH_TOKEN`をstep-localに保つため、既存automation conventionと同じく**`gh auth setup-git`と`git push`を同じGitHub Actions stepの責務**として扱う。
+
+概念:
+
+```text
+GH_TOKENを当該stepだけへinject
+→ gh auth setup-git
+→ git push --set-upstream origin <run-specific branch>
+```
+
+PR作成はその後の`gh pr create` stepで行う。push成功後にPR作成が失敗した場合の扱いはSection 20のResidual Riskに従う。
+
 ---
 
 ## 11. Retry / reconciliation
@@ -877,14 +982,17 @@ PR自動更新、Google lock、merge前Google API hook、polling、GitHub Appは
 
 ### 11.3 create reconciliation
 
-Doc create responseがtimeout等で成功不明なら、blind retry前に以下で`trashed=false`再検索する。
+Doc create responseがtimeout等で成功不明なら、blind retry前に以下でactive candidateを再検索する。
 
 ```text
 same parent
 same name
 Google Docs MIME type
 appProperties.githubPath
+trashed=false
 ```
+
+検索方法はSection 5.10を正本とする。**parent children listing + Node exact matchを優先**し、`name` / `githubPath`をDrive `q`へraw interpolationしない。Drive queryに動的literalが必要な場合は共通`escapeDriveQueryLiteral`を必ず通す。
 
 | 件数 | 処理 |
 | --- | --- |
@@ -892,7 +1000,7 @@ appProperties.githubPath
 | 1 | created済みとしてfileId再利用 |
 | 2以上 | ambiguous fail |
 
-folderもsame parent / name / folder MIME typeでreconcileする。
+folderもsame parent / name / folder MIME typeで同じquery safety contractを使ってreconcileする。
 
 response正常成功 / reconciliation成功のどちらでも、Section 9.2の**baseline finalize直前duplicate check**を必ず通す。
 
@@ -942,7 +1050,16 @@ pull-requests: write
 
 Google SecretsはGoogle sync stepだけへinjectする。`GH_TOKEN`も必要stepだけへinjectする。job-global credential envは禁止。
 
-checkoutは`persist-credentials: false`、pushは`gh auth setup-git`後にexplicit branchをnon-force pushする。
+checkoutは`persist-credentials: false`。
+
+Google → Gitのautomation branch pushでは既存Repository conventionに合わせ、`GH_TOKEN`をそのpush stepだけへ渡し、**同一step内で**:
+
+```text
+gh auth setup-git
+→ explicit automation branchをnon-force push
+```
+
+まで行う。validation / build stepへ`GH_TOKEN`を渡さない。
 
 ### 12.4 concurrency / timeout
 
@@ -960,6 +1077,8 @@ cancel-in-progress: false
 `GITHUB_TOKEN`由来PRでは通常CIが自動実行されない/approvalを要する場合があるため、Google → Git targeted validationはPR作成前に必須。
 
 PAT / GitHub Appは追加しない。auto-mergeしない。
+
+open PR guardはopen PRだけを対象とし、PRを伴わないorphan automation branchの探索 / cleanup / reuseは行わない。
 
 ---
 
@@ -991,6 +1110,8 @@ pnpm run validate:curriculum
 ```
 
 changed-file allowlistはtracked + untracked unionでvalidation前後に確認し、commit前はstaged allowlist + `git diff --cached --check`を確認する。
+
+Prettier等へDrive-derived pathを渡すprocess invocationはSection 5.9に従い、shell command stringへpathを埋め込まない。
 
 ### 13.2 Git → Google runtime
 
@@ -1079,6 +1200,12 @@ warning / ignore:
 - target subtree外item
 - Google Docs以外
 - target subtree内だが`.md`で終わらないunmanaged Doc
+
+Security / external input contract:
+
+- Drive-derived pathはuntrusted dataとして扱い、shell command stringへinterpolateしない。詳細はSection 5.9。
+- Drive queryへ外部由来literalをraw interpolateしない。詳細はSection 5.10。
+- query / process境界の問題を理由に、Section 5.6で許可されるfilename文字を不必要に禁止しない。
 
 ---
 
@@ -1173,12 +1300,48 @@ repository-contractへ自然に載る場合のみ固定する。
 - `GOOGLE_*`値をlogしない
 - Access Tokenを`GITHUB_ENV` / `GITHUB_OUTPUT`へ保存しない
 - `GH_TOKEN`が必要stepだけ
+- push step内で`gh auth setup-git`後にnon-force pushする
 - full Preflight failure → Google write 0
 - source freshness failure → remote push 0
 
 ### 16.8 Round-trip fixtures
 
 全件bootstrapで**実際に観測されたconstructだけ**fixture化する。
+
+### 16.9 Process argument / Drive query / Git identity boundary
+
+process argument safetyは、少なくとも次のfilenameで固定する。
+
+```text
+foo$(echo x).md
+foo`echo x`.md
+foo;bar.md
+foo&bar.md
+foo's-guide.md
+foo with space.md
+-leading-name.md
+```
+
+Section 5.6のpath契約上許可されるものはfilenameとして扱い、shell codeとして評価しない。1 path = 1 subprocess argumentのまま渡し、先頭`-`はGit optionとして扱わせない。実際の悪性commandをshell上で実行するtestは不要で、process invocation wrapperのcontract testで十分とする。
+
+Drive query / reconciliationは少なくとも次を扱う。
+
+```text
+user's-guide.md
+folder\name
+docs/spec/user's-guide.md
+```
+
+- parent children listing + Node exact matchで安全に処理できること、または共通literal escape helperでqueryが壊れないこと。
+- reconciliationでも同じquery safety contractを通ること。
+- raw query interpolationがないこと。
+
+Git automation identityは、orchestration contractへ自然に載る場合に次をcommit前設定として固定する。
+
+```text
+user.name = github-actions[bot]
+user.email = 41898282+github-actions[bot]@users.noreply.github.com
+```
 
 ---
 
@@ -1191,7 +1354,9 @@ repository-contractへ自然に載る場合のみ固定する。
 - about capability check
 - sync root validation
 - discovery / pagination / Trash filtering
+- Drive query literal safety / parent-side listing + Node exact match
 - NFC + cross-platform path mapping / duplicate detection
+- safe process invocation for Drive-derived paths
 - canonicalization / SHA-256
 - `appProperties` validation
 - Section 7 decision logic
@@ -1200,10 +1365,13 @@ repository-contractへ自然に載る場合のみ固定する。
 - retry / reconciliation
 - Google→Git initialMainSha / source snapshot / push直前source freshness
 - tracked + untracked / staged Git boundary
+- Git automation identity
 - targeted validation
 - GitHub PR orchestration
 
 実装先は`scripts/docs/`配下を基本とし、大型Google SDKを追加せずNode標準`fetch`を用いる。ファイル数 / class構成は責務が分かる最小限とし、過剰分割しない。
+
+safe process invocationは小さなprocess helper等へ自然にまとめてよい。Drive query safetyはDrive client/helper内へ置き、generic command/query frameworkへ拡張しない。
 
 ---
 
@@ -1283,6 +1451,14 @@ Secret step-local化、log禁止、validated sync root hard boundaryでblast rad
 
 PR作成前targeted validationを必須とし、PAT / GitHub App / auto-mergeは追加しない。
 
+### R8. push成功 / PR作成失敗によるorphan automation branch
+
+freshness成功後にremote pushが成功し、その後の`gh pr create`だけが失敗した場合、open PRを伴わないrun-specific automation branchがremoteに残る可能性がある。
+
+初期版では自動branch削除 / rollback / remote branch scan / age判定 / branch reuseを実装しない。次回runは`GITHUB_RUN_ID` / `GITHUB_RUN_ATTEMPT`を含む新しいautomation branchを使用する。
+
+open PR guardの目的は複数のGoogle→Git **open PR**を同時生成しないことであり、orphan branchのgarbage collectionではない。
+
 ---
 
 ## 21. Open Questions
@@ -1293,7 +1469,7 @@ PR作成前targeted validationを必須とし、PAT / GitHub App / auto-mergeは
 
 - Google Docs Markdown import / exportでRepository内のどのconstructにcanonical diffが発生するか。
 
-TOCTOU、PR snapshot、root外move、Shared Drive非対応はOpen Questionではなく既知のResidual Risk / Limitationとして扱う。
+TOCTOU、PR snapshot、root外move、Shared Drive非対応、orphan automation branchはOpen Questionではなく既知のResidual Risk / Limitationとして扱う。
 
 ---
 
@@ -1313,6 +1489,12 @@ TOCTOU、PR snapshot、root外move、Shared Drive非対応はOpen Questionでは
 - [ ] cross-platform safe pathを検証。
 - [ ] Unicode collision keyをNFCに固定。
 - [ ] NFC + Node標準lowercase相当でcase-insensitive collisionを拒否。
+- [ ] Drive-derived pathをshell command stringへ直接連結しない。
+- [ ] subprocessへ動的pathをargument arrayとして渡す。
+- [ ] Git pathspecで必要な箇所は`--`を使いoption解釈を防ぐ。
+- [ ] Drive queryへ外部由来literalをraw interpolationしない。
+- [ ] Drive query dynamic literalは共通escapingを通す、またはparent listing + Node exact matchを使う。
+- [ ] create / folder reconciliationでも同じDrive query safety contractを守る。
 
 ### State / metadata
 
@@ -1347,6 +1529,8 @@ TOCTOU、PR snapshot、root外move、Shared Drive非対応はOpen Questionでは
 - [ ] open PR guardを重い処理より前へ置く。
 - [ ] source Doc snapshotで`version: string`を保持。
 - [ ] target-only stage / cached diff check後にlocal commitを作成可能。
+- [ ] local commit前に既存automationと同じ`github-actions[bot]` identityを設定。
+- [ ] `user.name = github-actions[bot]` / `user.email = 41898282+github-actions[bot]@users.noreply.github.com`を使う。
 - [ ] local commit後・remote push直前にmain freshnessを確認。
 - [ ] local commit後・remote push直前にGoogle source freshnessを確認。
 - [ ] main freshness failure時はpush / PRしない。
@@ -1357,8 +1541,12 @@ TOCTOU、PR snapshot、root外move、Shared Drive非対応はOpen Questionでは
 - [ ] tracked + untracked unionでallowlist確認。
 - [ ] validation後にallowlist再確認。
 - [ ] target Markdownだけ明示stageし`git add .`を使わない。
+- [ ] stage時もDrive-derived pathをargument array + `--`で扱う。
 - [ ] staged target-only allowlist / `git diff --cached --check`を確認。
 - [ ] automation branch prefix固定・open PR guardへ利用。
+- [ ] `gh auth setup-git`とpushを`GH_TOKEN`付き同一stepの責務として扱う。
+- [ ] push成功・PR失敗でorphan branchが残り得ることをResidual Riskとして扱う。
+- [ ] orphan branchの自動cleanup / branch reuseを追加しない。
 - [ ] main直接push / auto-merge / force pushなし。
 
 ### Security / OAuth / Workflow
@@ -1423,25 +1611,27 @@ verify
 ### 23.2 実装順序
 
 1. target path / NFC / cross-platform collision / duplicate / Trash ruleをpure logic化。
-2. canonicalization / SHA-256 / concrete `appProperties` limits validationを実装。
-3. Section 7 Decision Tableをpure logicとして実装・test。
-4. OAuth / about check / root validation / Drive REST boundaryを実装。
-5. `File.version: string`を含むsnapshot modelとpagination / get / export / multipart create / update / capability取得を実装。
-6. Git→Google Preflight snapshot / write直前stale checkを実装。
-7. multipart create + response reconciliation + baseline直前duplicate checkを実装。
-8. folder子item create直前の一意性checkを実装。
-9. Git→Google post-write re-export / baseline finalize / safe rerunを実装。
-10. Google→Git early open PR guard / `initialMainSha` / source snapshotを実装。
-11. Google→Git tracked+untracked allowlist / targeted validation / staged boundaryを実装。
-12. automation branch / local commitを実装。
-13. local commit後・push直前のmain freshness + Google source freshness checkを実装。
-14. freshness成功後だけnon-force push / PR作成を既存conventionへ合わせる。
-15. Secret / `GH_TOKEN`をstep-localにした1 Workflowを追加。
-16. Section 16のtestを完了。
-17. current `main`全対象でinitial bootstrap / strict canonical round-trip。
-18. 観測diffだけfixture + 最小adapterで対応。
-19. liveで既存edit / new Doc / new Git / concurrent edit / source race / duplicate race / missing-sideを確認。
-20. implementation完了時の差分で`pnpm run verify`。
+2. Drive-derived pathをargument arrayでprocessへ渡すsafe invocation boundaryを実装・test。
+3. canonicalization / SHA-256 / concrete `appProperties` limits validationを実装。
+4. Section 7 Decision Tableをpure logicとして実装・test。
+5. OAuth / about check / root validation / Drive REST boundaryを実装。
+6. Drive discovery / reconciliationへparent listing + Node exact matchを優先したquery safetyを実装し、必要な場合だけ共通literal escape helperを追加。
+7. `File.version: string`を含むsnapshot modelとpagination / get / export / multipart create / update / capability取得を実装。
+8. Git→Google Preflight snapshot / write直前stale checkを実装。
+9. multipart create + response reconciliation + baseline直前duplicate checkを実装。
+10. folder子item create直前の一意性checkを実装。
+11. Git→Google post-write re-export / baseline finalize / safe rerunを実装。
+12. Google→Git early open PR guard / `initialMainSha` / source snapshotを実装。
+13. Google→Git tracked+untracked allowlist / targeted validation / safe target-only stageを実装。
+14. automation branch作成後、既存automationと同じ`github-actions[bot]` identityを設定してlocal commitを実装。
+15. local commit後・push直前のmain freshness + Google source freshness checkを実装。
+16. freshness成功後だけ、step-local `GH_TOKEN`で`gh auth setup-git` + non-force pushを行い、その後PR作成を既存conventionへ合わせる。
+17. Secret / `GH_TOKEN`をstep-localにした1 Workflowを追加。
+18. Section 16のtestを完了。
+19. current `main`全対象でinitial bootstrap / strict canonical round-trip。
+20. 観測diffだけfixture + 最小adapterで対応。
+21. liveで既存edit / new Doc / new Git / concurrent edit / source race / duplicate race / missing-sideを確認。
+22. implementation完了時の差分で`pnpm run verify`。
 
 ---
 
@@ -1509,8 +1699,9 @@ feat/google-docs-markdown-sync
 6. strict canonical equality
 7. create / update reconciliation + baseline直前duplicate check
 8. safe adoption / baseline lifecycle
-9. NFC / cross-platform path / Git staged boundary
-10. Secret least exposure / OAuth operation
-11. targeted validation + PR automation
+9. NFC / cross-platform path / process argument / Git staged boundary
+10. Drive query literal safety
+11. Secret least exposure / OAuth operation
+12. Git automation identity / targeted validation + PR automation
 
 このPlanを現時点の実装正本とする。Critical / Majorな既知課題がない状態で実装へ進み、安全性に直接寄与しない将来拡張は追加しない。
