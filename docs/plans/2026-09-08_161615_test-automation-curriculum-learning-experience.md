@@ -21,7 +21,7 @@ main: f7cc237d8ca719646d9654fba2129732b6eab457
 plan branch: refactor/test-automation-curriculum-learning-experience
 ```
 
-対象ブランチは上記`main`からPlan追加だけが入った状態を基準とする。
+対象ブランチでは教材・Training資産・Application・CIの実装変更はまだ行っておらず、Planファイルだけを更新した状態を基準とする。
 
 ### 1.1 学習者の前提と実際の開始条件がずれている
 
@@ -161,7 +161,7 @@ Rubric C05はPrimary learner-facing sourceをP1-6とFormal Test Strategyへ寄�
 
 POM例を残す場合、`class` / `constructor` / `this`等、その例を読むために必要な構文だけをその場で短く説明する。
 
-`Automation Flow`は一般用語として必要性が薄く、Maestro Flowとも紛らわしいため、具体的な学習価値がなければ削除し、「共通操作」「Helper」等の一般的な説明へ置き換える。`00_learning_design.md`等の用語も同期する。
+`Automation Flow`はlearner-facingな独立実装資産としての必要性を確認できず、Maestro Flowとも紛らわしいため、独立した必須用語から外す。必要な内容は「共通操作」「Helper」等の一般的な説明へ置き換え、`00_learning_design.md`等の用語も同期する。
 
 ### 1.12 Part 2のCommon / Native経路に具体的不整合がある
 
@@ -231,7 +231,7 @@ Capstoneでは既存Lessonで作った成果物を統合して説明できれば
 
 `authentication.md`のLogin `validation-error`に`storage-write-failure`を紐付け、Expected UIを必須入力不足Summaryとしている組み合わせは、Product behavior変更ではなくCondition / Scenario metadataの文書不整合として扱う。
 
-実装時にVisual Registry / 関連実装 / Testを再確認し、Expected Product Behaviorを変更しない範囲で正しいScenario / Conditionへ修正する。Visual Reference画像そのものの再生成は、現在の画像が修正後Conditionと一致しないことを確認した場合だけ行う。
+`validation-error`は`default` Scenarioで空のLogin Formをsubmitするvalidation経路へCondition / Scenario metadataを合わせる。Seed / Application / BR / ACは変更しない。Visual Reference画像そのものの再生成は、現在の画像が修正後Conditionと一致しないことを確認した場合だけ行う。
 
 #### State / Scenario
 
@@ -265,6 +265,52 @@ URL互換を考慮し、基本はcanonical `09_part1-capstone.md`へ案内する
 
 特定の日本語文言、旧文言が存在しないこと、教材の説明品質等をvalidatorへ固定しない。
 
+### 1.20 Web learner exerciseから使えるScenario Reset入口が不足している
+
+P1-5とC07は、決定的な初期状態からPlaywright Testを実行することを前提としている。
+
+一方、現在のTraining WebではScenario Reset処理がbaseline内部のprivateな処理に閉じており、learner exerciseから簡単に再利用できる入口がない。受講者へ`page.evaluate()`、`window.__TEST_API__`、Test APIの内部契約等を自力実装させると、P1-4でJavaScript / TypeScriptを最小化する方針と矛盾する。
+
+Formal Regressionのfixtureを早期に読ませたりコピーさせたりせず、既存Test API / baseline Reset処理を最小限共有し、受講者がScenario名を指定してResetできるTraining向け入口を用意する。新しいHarness frameworkは作らない。
+
+### 1.21 Workbookの代表Case自体とEvidence契約に不整合がある
+
+既存sampleはAutomation Decision / implementation path / run contextだけでなく、代表Caseの上流にも意味上のずれがある。
+
+少なくとも`TC-CART-001`周辺では、購入上限と購入不可明細によるCheckout阻止という別のBusiness Rule / Acceptance Criteriaが同じCaseへ混在し、precondition / Scenarioとも一意に対応していない。また、同じTest Case IDが教材中で異なる条件の例として使われている箇所がある。
+
+代表Caseは、1つの決定的な初期状態で実行できるBusiness Conditionへ揃える。`br_ids` / `ac_ids` / test condition / precondition / expected result / Scenarioを一致させ、同じTest Case IDを別の意味で使わない。必要なら既存schemaの行を分けるが、columnは増やさない。
+
+また、Workbookの`evidence`はruntimeで生成されるTrace、Screenshot、GitHub Actions Artifact等への参照を記録する項目として扱う。`implementation_path`と異なり、静的validatorでruntime Artifactの実在fileを要求しない。`Not run`ではEvidence / failure / cause / action / improvementを先に埋めない。
+
+### 1.22 P2-4 / P2-5とTraining Copyのworkflow契約がまだつながっていない
+
+現在のP2-4はTraining workflowへQuality commandや`workflow_dispatch`を追加する演習を含むが、prepared Training Copyではrepository-owned templateをactive `.github/workflows/**`へ展開し、その境界をvalidationで守っている。`workflow_dispatch`も既存templateに存在する。
+
+P2-4はprepared Training workflowを読み、Trigger / Job / Step / `uses` / `run` / `with` / `env` / `if` / contextを理解することを中心にする。learner-authored Playwright Testを実際のCIへ接続する変更はP2-5へ集約する。
+
+P2-5ではmanual実行だけでなく、Training Copyの`pull_request`からbaseline確認後に`training:web:exercise`へ到達することを外部契約とする。repository-owned templateとTraining Copy上のactive workflow、provisioning時の`training:copy:validate`、learner編集後のruntime検証を区別する。
+
+### 1.23 Training CI変更と衝突する既存contract testがある
+
+`tests/contracts/training-curriculum.test.ts`は現在、Training Web workflowに`training:web:exercise`を含めないことを明示的に検証している。また、learner-facing本文の表現へ依存するliteral assertionも持つ。
+
+P2-5のTraining CI変更と同時にこのcontract testを更新し、旧契約を残さない。prose assertionの棚卸しも`validate-curriculum.ts`だけでなくこのtestへ適用する。
+
+### 1.24 README / P2-7 / Rubricに学習経路の残存不整合がある
+
+Curriculum READMEは共通資料をP1-1より前に並べており、初学者がWorkbookやRubricから読み始めるように見える。受講者向けの標準NavigationはP1-1から開始し、WorkbookはP1-2 / P1-3で必要になった段階、Rubricは評価基準を確認するときに参照する構成へ揃える。
+
+CommonのPart 2経路ではP2-5とP2-8の間にP2-7があるため、P2-7もbounded Web CIへ同期する。Preview / Productionを含むfull deliveryの内容はCommon必須から外し、必要ならAdvanced / Referenceとして残す。
+
+RubricではC01〜C04の`rationale` / `reason`等を、存在しないWorkbook columnへ暗黙に要求しない。既存fieldで評価できる内容へ揃え、文章説明が必要な場合は自己確認 / Capstone等のEvidence surfaceを明示する。C12はP2-5で実際に動いたlearner-authored exerciseのCI Run / Artifactを再利用し、その実行を根拠にTrigger / Gate / Artifact / Failure reasoningを説明する。
+
+### 1.25 Spreadsheet教材と`Automation Flow`は簡略化できる
+
+`01_spreadsheet-test-design.md`は4つのCanonical CSVと複数のSheet風conceptual viewを併記しているため、初学者が実際にどの成果物を作るのか分かりにくい。4 CSVを実体として中心に据え、conceptual viewは削除または既存columnへの対応説明へ圧縮する。
+
+`Automation Flow`はlearner-facingな独立実装資産としての必要性を確認できず、Maestro Flowとも紛らわしい。独立した必須用語から外し、必要な説明は「共通操作」「Helper」等の一般的な表現へ置き換える。
+
 ---
 
 ## 2. 完了時に目指す状態
@@ -279,7 +325,8 @@ URL互換を考慮し、基本はcanonical `09_part1-capstone.md`へ案内する
 - Spec / Risk / Test Case / Automation Decision / Implementation / Execution / EvidenceをWorkbookと実装で一巡できる。
 - Failure Artifactを開くだけでなく、Evidenceから原因を判断し、修正して再実行できる。
 - Part 1 CommonはWeb中心で完了でき、Native UI自動化は選択式のまま維持される。
-- Part 2でPart 1のlearner-authored Playwright TestをTraining CopyのGitHub Actionsへ接続できる。
+- Part 2でPart 1のlearner-authored Playwright TestをTraining CopyのPull RequestからGitHub Actionsへ接続できる。
+- P1-5でFormal fixtureやTest API内部を読まずに、決定的なScenario Resetを利用できる。
 
 ### 2.2 教材
 
@@ -289,6 +336,7 @@ URL互換を考慮し、基本はcanonical `09_part1-capstone.md`へ案内する
 - 技術的な正式名称は維持し、一般的な説明は自然な日本語にする。
 - Common / Native選択経路がREADME、各Lesson、Rubric、Capstoneで一致する。
 - Legacy / Optional文書が標準学習経路と矛盾しない。
+- READMEの受講者向け標準NavigationはP1-1から始まり、Workbook / Rubricは必要な段階で参照できる。
 
 ### 2.3 Repository
 
@@ -296,7 +344,8 @@ URL互換を考慮し、基本はcanonical `09_part1-capstone.md`へ案内する
 - Training baselineはRepositoryの環境確認として安定して実行できる。
 - learner exerciseはlearner-authoredな成果物を要求する。
 - Training Copyにはlearner exerciseをCI実行できる既存思想に沿った経路がある。
-- Workbook schemaは維持し、sampleだけが現在の学習契約へ揃っている。
+- Workbook schemaは維持し、sampleのBusiness Condition、実装状態、実行状態が現在の学習契約へ揃っている。
+- Workbookの`evidence`はruntime Evidenceへの参照として扱われ、runtime Artifactの静的なfile存在を要求しない。
 - validatorは構造的な回帰を検出し、learner-facing proseの表現を不必要に固定しない。
 
 ---
@@ -331,12 +380,14 @@ URL互換を考慮し、基本はcanonical `09_part1-capstone.md`へ案内する
 - `docs/curriculum/test-automation/part2/03_github-pull-request-review.md`
 - `docs/curriculum/test-automation/part2/04_ci-github-actions.md`
 - `docs/curriculum/test-automation/part2/05_playwright-ci.md`
+- `docs/curriculum/test-automation/part2/07_ci-cd-quality-gates.md`
 - `docs/curriculum/test-automation/part2/08_integration-design-capstone.md`
 
 用語・リンク・Evidence契約の変更に直接影響する他のPart 2文書も確認するが、理由なく全面改稿しない。
 
 ### 3.4 Training / Workbook
 
+- `training/playwright/baseline/**`（Scenario Reset処理を共有する場合の最小範囲）
 - `training/playwright/exercises/**`
 - `training/playwright/failure-exercises/**`
 - `training/maestro/exercises/**`
@@ -359,7 +410,8 @@ Playwright Training config、Maestro shared runner、Training Copy基盤は、�
 ### 3.6 Validation
 
 - `scripts/validate-curriculum.ts`
-- 既存validator testがある場合は、変更した構造契約に必要な範囲
+- `tests/contracts/training-curriculum.test.ts`
+- 既存validator / contract testの関連箇所
 
 ---
 
@@ -385,6 +437,8 @@ Playwright Training config、Maestro shared runner、Training Copy基盤は、�
 - Workbook schema / column追加（不足が実証された場合を除く）
 - 汎用Failure fixture framework
 - learner completion専用の新しいgrader / AST checker / content hash判定
+- Scenario Resetのための新しいTraining Harness framework
+- Training Copyのrepository-owned workflow trust boundaryを教材都合で緩和すること
 - generic document validator framework
 - Agentic QAの仕様・Harness・scoring / benchmark変更
 - `docs/reports/**`をCurrent Specificationとして扱うこと
@@ -456,6 +510,8 @@ Playwright Training config、Maestro shared runner、Training Copy基盤は、�
 - Workbookの既存4 CSVを維持する。
 - Formal Regressionは比較教材として維持する。
 - Training CIは既存`training/github-actions/training-ci.yml`とworkflow contractを拡張して使う。
+- Scenario Resetはbaselineで既に使っているTest API / Reset処理を小さく共有する。
+- Training Copyではrepository-owned template、active `.github/workflows/**`、provisioning validationの既存境界を維持する。
 
 ### 5.5 exerciseのprocess exitとCompetency成立を混同しない
 
@@ -473,6 +529,15 @@ Web / Nativeとも、未編集starterについて固定する契約は次であ�
 
 未編集starterのprocess exit code自体を学習能力の判定基準にはしない。実装方法は上記契約を満たす最小構成を選ぶ。
 
+### 5.6 実装Pathとruntime Evidenceを分ける
+
+Workbookでは、Repository内の実装を指す`implementation_path`と、実行時に生成されるEvidenceへの参照を混同しない。
+
+- `implementation_path`: Repository内の実在するlearner implementation
+- `evidence`: Trace / Screenshot / Video / GitHub Actions Artifact / Run等の実行Evidenceへの参照
+
+`evidence`はclean checkout時に必ず存在するtracked fileとは限らない。validatorはruntime Artifactのfile存在を要求せず、形式や状態遷移など静的に安定して検証できる契約だけを扱う。新しいArtifact管理基盤は作らない。
+
 ---
 
 ## 6. 実装手順
@@ -488,6 +553,8 @@ Web / Nativeとも、未編集starterについて固定する契約は次であ�
 - Maintainer: validator、Formal Regressionとの境界、Production / Training infrastructure、仕様管理契約
 
 学習者がLessonを進めるためにRepository管理用の分類を理解する必要がない状態にする。
+
+READMEの受講者向け標準NavigationはP1-1から開始する。`01_spreadsheet-test-design.md`はP1-2 / P1-3でWorkbookを使う段階、`02_competency-rubric.md`は評価基準を確認する段階で参照する。ファイル番号やpathは変更しない。
 
 ### 6.2 Start GateとCLI学習順序を整合させる
 
@@ -611,6 +678,10 @@ GitHub Actions:
 
 Workflow syntax全体や高度なexpression講座にはしない。
 
+P2-4はprepared Training workflowを題材に、既存のTrigger / Job / Step / commandを読むことを中心にする。既に存在する`workflow_dispatch`を追加させたり、YAML学習のためだけに`test:unit`、lint、format、typecheck等をworkflow contractのallowlistへ大量追加したりしない。
+
+受講者がworkflow変更を体験する必要がある場合も、P2-5で自分のPlaywright TestをCIへ接続する変更と重複させない。P2-4ではTrust Boundaryを緩めずに学べる最小演習へ修正する。
+
 実装時参照:
 
 - https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
@@ -618,7 +689,7 @@ Workflow syntax全体や高度なexpression講座にはしない。
 
 ### 6.8 Part 2のCommon / Native navigationを同期する
 
-P2-3 / P2-5 / P2-8を確認し、次を揃える。
+P2-3 / P2-5 / P2-7 / P2-8を確認し、次を揃える。
 
 - Common: P2-5 → P2-7 → P2-8
 - Native選択時: P2-5 → P2-6 → P2-7 → P2-8
@@ -626,6 +697,8 @@ P2-3 / P2-5 / P2-8を確認し、次を揃える。
 P2-8のCommon学習目標・演習ではWeb CIだけで成立することを明示し、Maestro / Native CIは選択時だけ追加する。
 
 P2-3のCommon完了条件から外れたDelivery Readiness等の運用説明は、学習上必要でなければ削除またはReferenceへ移す。
+
+P2-7はCommonではbounded Web CIのGate / Artifact / Failure reasoningへ集中する。Preview / Production / Smoke等を含むfull deliveryの図示・改善課題は、Common必須である具体的理由がなければAdvanced / Referenceへ下げる。P2-5で得たlearner exercise CI EvidenceからP2-8へ連続する説明にする。
 
 ---
 
@@ -660,10 +733,20 @@ Spec BR / AC
 
 sampleの意味を確認する。
 
+- 代表Caseは1つの決定的な初期状態で実行できるBusiness Conditionへ絞る
+- `br_ids` / `ac_ids` / test condition / precondition / expected result / Scenarioを一致させる
+- 同じTest Case IDを別Lessonで別の意味に使わない
+- 複数の独立したBusiness Ruleを1 Caseへ束ねる必要がなければ既存schemaの行を分ける
 - `Later`なら未実装の`implementation_path`を埋めない
-- 実装するCaseならAutomation DecisionとPathを一致させる
+- `Automate`でも受講者がまだ実装していないsource templateでは`implementation_path`を完成済みとして先に埋めない
+- 実装するCaseではAutomation Decisionとlearnerが後から記録するPathを一致させる
 - learner-authored Testの実行Contextを`Training Web baseline`にしない
+- `Not run`ではEvidence / failure / cause / action / improvementを先に埋めない
 - Part 1のCaseへPart 2のPR timingを必須前提として先取りしない
+
+`01_spreadsheet-test-design.md`は4つのCanonical CSVを実際に作成・更新する成果物として中心に置く。複数のSheet風conceptual viewは、4 CSVと別の成果物を作るように見える場合は削除または大幅に圧縮し、残す場合も各観点を既存columnのどこへ記録するかだけを説明する。
+
+`04_execution-improvement.csv`の`evidence`はruntime Evidenceへの参照として扱う。Trace / Screenshot / GitHub Actions Artifact等はgitignoredまたはremote上の生成物になり得るため、validatorで実在するtracked file pathを要求しない。
 
 ---
 
@@ -687,6 +770,17 @@ exercise:
 starterから完成済みCSS selector + `.first()`の答えを取り除く。
 
 P1-5のnormal / boundary等の既存練習量を、代表1本のtraceability exerciseへ縮小しない。代表CaseでSpecからEvidenceまで一本につなぎつつ、現在必要な複数の練習は維持する。
+
+P1-5で決定的なScenarioから始められるよう、learner-facingな最小Reset入口を用意する。
+
+要件:
+
+- 既存Test API / baseline Reset処理を再利用する
+- 受講者がScenario名等の学習上必要な値だけ指定できる
+- `page.evaluate()`や`window.__TEST_API__`の内部plumbingをP1-5の必須知識にしない
+- Formal `e2e/web/fixtures.ts`をコピーさせない
+- 新しいFixture / Harness frameworkは作らない
+- C07では、明示したScenario Resetを含む再現可能なTestであることを確認する
 
 ### 6.12 Failure AnalysisをArtifact確認とdiagnosisへ分ける
 
@@ -814,11 +908,16 @@ Part 1で作ったlearner-authored Playwright Test
 要件:
 
 - Repository本体のRequired Web CIはTraining baselineを維持する
-- Training Copy側にlearner exerciseを実行できる経路を追加する
+- Prepared Training Copyの`pull_request`経路でbaseline確認後に`pnpm run training:web:exercise`へ到達する
+- manual `workflow_dispatch`だけでexerciseを実行できる状態をCommonの継続実行体験として完了扱いしない
+- `expected-failure`はmanual経路のまま分離してよい
 - Production / Preview workflowを変更しない
-- 既存Training workflow contractを必要なcommandへ拡張する
+- 既存Training workflow contractを`training:web:exercise`に必要な範囲だけ拡張する
+- `training/github-actions/training-ci.yml`はRepository-owned templateであり、prepared Training Copyで実際に動くのは`.github/workflows/training-ci.yml`であることをP2-4 / P2-5で説明する
+- `training:copy:validate`はprovisioning時のtemplate / active workflow境界確認として扱い、learner編集後のruntime成功判定と混同しない
 - source templateを配布する既存Training Copy経路を再利用する
 - 新しいworkflow frameworkを作らない
+- `tests/contracts/training-curriculum.test.ts`の旧「exerciseを含めない」契約を同じPhaseで更新する
 
 ---
 
@@ -842,6 +941,15 @@ baselineの既存PASSを自分のTest CaseのEvidenceとして扱わない。
 ```
 
 特に:
+
+#### C01〜C04
+
+RubricのMinimum Evidenceを既存Workbookで実際に確認できる内容へ揃える。
+
+- 存在しない`rationale` / `reason`専用columnを暗黙に要求しない
+- C03は`impact` / `likelihood` / `priority`等、既存fieldの一貫性から判断できる内容を中心にする
+- C04は`risk_id` / `spec_ref` / test condition / precondition / expected result / design technique等の対応で確認する
+- 文章による理由説明が必要な場合は、Workbook column追加ではなく自己確認 / Capstone等のEvidence surfaceを明記する
 
 #### C05 Test Layer Selection
 
@@ -888,6 +996,8 @@ P2-3で作成したPR / review recordをP2-8で再利用できるようにする
 
 P2-5でlearner-authored Playwright TestをTraining CIへ接続する実体験と整合させる。
 
+Minimum Evidenceには、Training CopyのPull Requestでlearner-authored exerciseが実際に実行されたRun / Artifactを含める。その同じEvidenceを根拠にTrigger / Gate / Artifact / Failure reasoningを説明し、P2-8でも再利用する。
+
 ### 6.19 P1-8をproblem-firstへ整理する
 
 順序:
@@ -900,7 +1010,7 @@ P2-5でlearner-authored Playwright TestをTraining CIへ接続する実体験と
 
 POMを扱う場合は`class` / `constructor` / `this`だけ必要な場所で短く説明する。
 
-`Automation Flow`は現在の学習目的から必要性を説明できなければ削除し、関連文書の用語も揃える。
+`Automation Flow`は独立した必須用語から外す。必要な内容は「共通操作」「Helper」等の一般的な表現へ置き換え、`00_learning_design.md`等の関連文書も同期する。
 
 ### 6.20 P1-9 CapstoneをEvidence統合の場にする
 
@@ -918,7 +1028,7 @@ Common:
 - Common学習目標からMaestro必須に見える表現を除く
 - Native / MaestroはP2-6を選択した場合だけ統合対象にする
 - P2-3のC11 Evidenceを再利用できる
-- P2-5のlearner-authored CI EvidenceをC12へ接続する
+- P2-5のlearner-authored CI EvidenceをP2-7のbounded Web CI理解とC12へ接続する
 
 ---
 
@@ -965,7 +1075,7 @@ Common:
 - 必須入力validationとは別経路
 - Expected Product Behavior自体を変える必要はない
 
-Product behaviorを変更せず、現在の`validation-error`に合うScenario / Condition参照へ直す。
+Product behaviorを変更せず、`default` Scenarioで空のLogin Formをsubmitするvalidation経路へCondition / Scenario metadataを合わせる。Seed / Application / BR / ACは変更しない。
 
 画像再生成は、既存Visual Referenceが修正後Conditionと一致しないことを確認した場合だけ行う。
 
@@ -1013,9 +1123,9 @@ Repository内参照を確認する。外部参照を完全には把握できな�
 
 ### 6.29 既存prose assertionを棚卸しする
 
-`scripts/validate-curriculum.ts`で、今回の教材整理と衝突する自然文token checkを確認する。
+`scripts/validate-curriculum.ts`と`tests/contracts/training-curriculum.test.ts`で、今回の教材整理と衝突する自然文token checkを確認する。
 
-例えばP1-7のToolchain説明やInstructor Referenceの英語見出し等、**表現を固定すること自体に意味がないcheck**は削除または構造的なcheckへ置き換える。
+例えばP1-7のToolchain説明、Instructor Referenceの英語見出し、READMEの説明フレーズ等、**表現を固定すること自体に意味がないcheck**は削除または構造的なcheckへ置き換える。Training CIについては旧「`training:web:exercise`を含めない」契約も新しいPull Request経路へ更新する。
 
 新しい日本語文言を同じ方法で再固定しない。
 
@@ -1089,7 +1199,7 @@ PRは1つにする。commitはレビューしやすい責務へ分ける。
 
 1. 学習経路・前提知識・Common / Native境界
 2. Workbook sample整合
-3. Playwright / Failure / Maestro exercise + Training CI
+3. Playwright / Failure / Maestro exercise + Training CI + CI contract test
 4. Lesson本文 + Rubric / Capstone
 5. Specification learner navigation + documentation correction
 6. 日本語・Legacy / Optional整理
@@ -1111,13 +1221,15 @@ pnpm run lint:markdown
 pnpm run validate:curriculum
 ```
 
-### 9.2 Training TypeScript
+### 9.2 Training TypeScript / contract test
 
 Training script / Playwright spec / workflow contractを変更した場合:
 
 ```bash
 pnpm run typecheck:training
 ```
+
+`tests/contracts/training-curriculum.test.ts`を変更した場合は、Repositoryの既存package scriptからこのcontract testを対象実行する。正確なcommandは実装時の`package.json`を確認し、存在しないscript名をPlanで作らない。
 
 ### 9.3 Training Web baseline
 
@@ -1138,7 +1250,7 @@ pnpm run training:web:baseline
 
 #### learner完成状態
 
-実装作業中に一時的なlearner-authored Testを作成し、次を確認する。
+実装作業中に一時的なlearner-authored Testを作成し、既存のTraining用Scenario Reset入口を利用して決定的な初期状態から次を確認する。
 
 ```bash
 pnpm run training:web:exercise
@@ -1178,9 +1290,14 @@ pnpm run training:web:check-expected-failure
 
 - source templateからactive Training workflowが生成される
 - baseline用経路が維持される
-- learner-authored exerciseをCIで実行できる
+- `pull_request`でbaseline後にlearner-authored exerciseへ到達する
+- repository-owned templateとactive `.github/workflows/**`の役割が一致する
+- `training:copy:validate`はprovisioning確認として通る
+- learner編集後のremote GitHub Actions runtimeはprovisioning validationと分けて確認する
 - Production workflowへ依存しない
-- Training workflow contract validationが通る
+- Training workflow contract / contract testが通る
+
+可能ならdisposableなremote Training CopyでPull Requestを作成し、learner exercise RunとArtifactを確認する。remote実行環境を利用できない場合は未確認と記録し、prepare / validate成功をremote runtime成功として扱わない。
 
 ### 9.7 Specification
 
@@ -1235,16 +1352,19 @@ pnpm run verify
 - P1-4でCLI / Node / pnpmの最低限を説明した後にWeb / Playwright実行Gateへ進む。
 - P1-4より前のlearner-facing資料で`src/seeds/metadata.ts`を必須の第一参照にしていない。
 - Product Scope / Roles / Feature BR/AC / State / Scenarioの読書順が教材間で一致している。
+- READMEの受講者向け標準NavigationがP1-1から開始し、Workbook / Rubricを必要な段階で参照できる。
 - `/guide` / Current UIがExpected Product Behaviorの正本として扱われていない。
 
 ### Playwright / Workbook
 
 - P1-4の初回JS/TSがfirst Playwright exerciseに必要な範囲へ絞られ、arrow function / callback等の実際に使う構文に説明漏れがない。
 - Locatorの方針が学習目標、本文、演習、自己確認、修了条件で一致する。
-- Workbook sampleのAutomation Decision、implementation path、run contextが新しい学習経路と一致する。
+- Workbook sampleの代表Caseが1つのBusiness Conditionへ揃い、BR / AC / Scenario / precondition / expected resultが一致する。
+- Workbook sampleのAutomation Decision、implementation path、run context、実行前後の状態遷移が新しい学習経路と一致する。
+- `evidence`がruntime Evidenceへの参照として扱われ、gitignored / remote Artifactのfile存在を静的validatorで要求していない。
 - Playwright baselineは環境確認であり、C07 Evidenceとして扱われない。
 - 未編集starterだけではC07修了Evidenceにならない。
-- temporaryなlearner-authored完成状態で`training:web:exercise`成功を確認できる。
+- temporaryなlearner-authored完成状態で、Training用Scenario Reset入口を使って`training:web:exercise`成功を確認できる。
 
 ### Failure Analysis
 
@@ -1265,16 +1385,19 @@ pnpm run verify
 ### Rubric / Capstone
 
 - C01〜C12で「教える・練習する・Evidence・修了確認」に明確な矛盾がない。
+- C01〜C04のMinimum Evidenceが既存Workbookまたは明示された自己確認 / Capstoneで確認でき、存在しないcolumnを要求していない。
 - C05の能力定義とMinimum EvidenceがP1-3のLayer Selectionへ合っている。
 - C10 / C11は前LessonのEvidenceを不要に作り直さずCapstoneへ統合できる。
-- C12がP2-5のlearner exercise CI体験へ接続している。
+- C12がP2-5のlearner exercise CI体験へ接続し、Pull Request上のactual Run / ArtifactをMinimum Evidenceとして再利用できる。
 - P1-9はWeb Commonだけで完了できる。
 - P2-8もWeb Commonだけで完了でき、Nativeは選択時だけ追加される。
 
 ### GitHub Actions
 
 - P2-4のYAML / GitHub Actions説明だけでTraining workflowの基本構造を読める。
-- P2-5でPart 1のlearner-authored Playwright TestをTraining CopyのCIへ接続できる。
+- P2-5でPart 1のlearner-authored Playwright TestをTraining Copyの`pull_request` CIへ接続できる。
+- P2-4でTraining CopyのTrust Boundaryを壊す自由編集を必須化していない。
+- P2-7のCommon内容がbounded Web CIへ揃い、full deliveryをCommon必須にしていない。
 - Repository本体のRequired Web CIでbaselineの責務を壊していない。
 - Production / Preview workflowを教材都合で再設計していない。
 
@@ -1282,7 +1405,7 @@ pnpm run verify
 
 - `docs/spec/README.md`から学習者がProduct Behaviorへ先に進める。
 - `Normative` / `Oracle` / Executable Source等が初学者の最初の読解前提になっていない。
-- Authenticationの`validation-error` Scenario / Condition metadataが現在の挙動と整合している。
+- Authenticationの`validation-error` Scenario / Condition metadataが`default` Scenario + empty login submitのvalidation経路と整合している。
 - `state-and-scenarios.md`に存在しないfixture path参照が残っていない。
 - Product behavior変更が教材改善へ混入していない。
 
@@ -1291,8 +1414,10 @@ pnpm run verify
 - `10_part1-capstone.md`がcanonical Capstoneと矛盾する旧本文を持たない。
 - Optional Agentic QAがRequired Part 1の標準経路と混同されない。
 - Agentic QA本文そのものを不要に再設計していない。
-- validatorが今回整理したlearner proseの表現を不必要に固定していない。
+- `validate-curriculum.ts`と`training-curriculum.test.ts`が今回整理したlearner proseの表現を不必要に固定していない。
+- Training CIの旧「exerciseを含めない」contractが残っていない。
 - Workbook / path / script / canonical entry等の必要な構造契約は維持されている。
+- `Automation Flow`が独立した必須用語として残っていない。
 
 ### 検証
 
@@ -1316,12 +1441,17 @@ pnpm run verify
 - Failure fixtureの全分類網羅
 - 本当にflakyなTiming fixtureを教材として作ること
 - Workbook schemaの不要な拡張
+- runtime Artifactをtracked Repository fileとして扱うこと
+- 4 Canonical CSVとは別に8つのSheet成果物を必須化すること
 - Capstoneで既存LessonのEvidenceを同じ課題として作り直させること
 - POM / Fixture等を使うこと自体を修了条件にすること
+- `Automation Flow`を独立した必須概念として残すこと
 - Product Behaviorの曖昧さを教材側で勝手に確定すること
 - Formal Regressionを教材のLocator例へ合わせて一括変更すること
 - NativeをCommon必須へ戻すこと
 - Production / Preview / Native CI基盤を教材都合で再設計すること
+- P2-4のためだけにworkflow command allowlistを大量に広げること
+- `training:copy:validate`成功をlearner編集後のremote Actions成功とみなすこと
 - Agentic QAを通常のテスト自動化初学者向けLessonへ混在させること
 - Optional Agentic QAの物理移動を目的化すること
 - validatorで自然言語の良し悪しを判定すること
