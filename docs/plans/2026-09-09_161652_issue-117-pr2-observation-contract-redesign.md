@@ -1,656 +1,829 @@
 # Issue #117 PR2 Trigger Eval observation / evaluation contract 再設計計画
 
-> Status: 実装前の設計Plan（今回の作業では実装・canonical `all`を行わない）
+> Status: レビュー指示反映済みの実装前Plan（今回の作業では実装・Probe・canonical `all`を行わない）
 >
 > 対象: PR #127 / branch `refactor/117-pr2-trigger-eval-baseline`
+>
+> 本Planを、実装時のobservation / evaluation contractの正本とする。過去Planへ最新仕様を逆流させない。
 
 ## 0. 依頼概要
 
 ### 0.1 目的
 
-Issue #117 PR2「Trigger Eval baseline」について、Skill description変更前後のrouting性能を比較できる観測・評価契約を再設計する。現在の契約は、Skill readの観測とtask全体のterminal completionを一つの判定へ結合している。そのため、routing evidenceが得られた後にHost taskが長時間実行されるだけで、routing結果まで`unobservable`として失われる。
+Issue #117 PR2「Trigger Eval baseline」について、Skill description変更前後のrouting性能を比較できる観測・評価契約を再設計する。PR2が測定する対象をsingle-intent queryの**initial Skill routing**に限定し、Skill read evidence、routing outcome、process lifecycle、task completionを混同しない。
 
-今回のPlanでは、PR2が本当に測る対象を明確にし、positive presence、absence、process lifecycleを別々に扱う最小設計を決める。実装はこのPlanの承認後の別作業とする。
+今回の作業は、既存Planの契約上の曖昧さをなくすことだけを目的とする。実装はこのPlanの承認後の別Runで行う。
 
 ### 0.2 背景
 
-最新のEnvironment Qualificationでは、negative controlは`59.1266秒`で`turn.completed`に到達し、Skill readなしを確定できた。一方、positive controlではprocess開始から約133秒後に実際の`feature-plan/SKILL.md` readが発生したにもかかわらず、terminalは`367.7009秒`後だった。現在のrunner固定timeoutは`327_000ms`であり、現行`deriveRoutingObservation`はtimeoutを最初に判定するため、途中のread evidenceを`observed_skills: null`へ落とす。
+最新のEnvironment Qualificationでは、negative controlは`turn.completed`に到達しcanonical Skill readなしを確認できた。一方、positive controlでは`feature-plan/SKILL.md`の実readがterminalより前に発生したが、現行runnerはtimeout / process状態を先に判定し、selectorも実際のcommand shapeを受理しなかった。
 
-さらに、実際のcommandは次の形で、現行の4つの完全一致selectorに含まれなかった。
+保存済みProbeの実際のpositive commandは次の形である。
+
+```text
+Get-Content -Raw .agents/skills/feature-plan/SKILL.md
+```
+
+直近Qualificationで確認された別の形は次のとおりである。
 
 ```text
 Get-Content -LiteralPath '.agents\skills\feature-plan\SKILL.md' -Raw
 ```
 
-従って、単なるHost latencyの問題ではなく、routing observationの終了条件とcommand evidenceの表現契約にも問題がある。
+保存済みTrigger Eval Probeには、canonical read commandに`;` suffixが付いた実測はない。Repository内の他の`;`は文書調査・一般commandの記録であり、Trigger Eval selectorの根拠にはしない。
 
 ### 0.3 今回の成果物
 
-- 新しい設計Plan
-- 必要な調査事実と設計判断を記録したactive Run Artifact
-- PR #127本文の既存Gate FAILを保持した次対応Plan path
+- 本Planの修正版
+- 修正理由・調査事実・検証結果を記録するactive Run Artifact
+- PR #127本文のEnvironment Qualification FAIL、canonical未実行、valid baseline未取得を維持したPlan状況
 
 以下は今回実施しない。
 
-- `scripts/evals/**`、runner、selector、scoringの実装変更
-- dataset query、`expected_skill`、boundary、case IDの変更
-- Skill description、`AGENTS.md` routing意味契約、Hook実装、timeout値の変更
-- canonical `all`、case retry、unobservable retry、PR merge
+- `scripts/evals/skill-trigger-evals.ts`、`scripts/evals/run-skill-trigger-evals.ts`、selector、scoringの実装変更
+- tests、dataset YAML、query、`expected_skill`、boundary、case ID、Skill descriptionの変更
+- `.codex/hooks/**`、`AGENTS.md`、`CASE_TIMEOUT_MS`、Product code / testsの変更
+- Observation Probe、canonical `all`、case retry、dataset変更、PR merge
 
 ## 1. ゴール / 完了条件
 
-### 1.1 PR2の測定対象
+### 1.1 PR2 / PR6の責務
 
-PR2の主測定対象は、single-intent queryに対する**initial Skill routing**である。現在のHostからrouting decisionそのものを表すnative eventは得られないため、実装時は次の観測可能なproxyを使う。
+PR2はsingle-intent queryに対するinitial Skill routingだけを測定する。first trusted canonical readは、Hostにrouting decision eventがない現状での**initial routing evidence proxy**であり、model internal selectionの直接証明とは呼ばない。
 
-> `first trusted canonical SKILL.md direct read` = `initial routing evidence proxy`
-
-これは「モデル内部の選択」や「後続workflowでのSkill利用」を直接証明する定義ではない。後続readを含む実行全体をPR2のrouting結果とみなさず、proxyの限界をartifactとcomparison provenanceへ残す。
+PR6はmulti-Skill workflow、Skill chain、後続Skill invocation、workflow全体の成功・失敗を扱う。これらをPR2 Resultへ追加しない。
 
 ### 1.2 設計Planの完了条件
 
-- 現行契約の問題を、実測timing、Hook evidence、selector実装、既存Runから説明できる。
-- Candidate A〜Dを比較し、Issue #117 PR2の目的に対する推奨案を一つ選んでいる。
-- `expected_skill != null`、`expected_skill = null`、positive read、absence、timeout、process failure、複数readを含むdecision tableがある。
-- routing resultとprocess lifecycleの保存方法、`observed_skills`/`outcome`/`unobservable_reason`の互換方針が明確である。
-- structured evidence優先、fallback selectorのbounded grammar、general shell parserを作らない境界が明確である。
-- 8 boundary-side validity、PR2/PR6境界、comparison provenance、旧invalid artifactの扱い、canonical rerun条件が明確である。
-- 実装対象file、tests、validation、rollback/invalidation、scope guardが実装者の追加判断なしに着手できる粒度である。
+- Candidate C（Hybrid observation contract）を維持し、positive presenceとabsenceの終了条件を分離する。
+- 各対象Hook eventを`canonical Skill read`、`safe no-read`、`unreliable`の3状態へ分類する契約を定義する。
+- `selector_reliable=true`を「canonical Skill direct readか、そうでないと安全に判定できた」の意味へ固定する。
+- `initial_skill`と`observed_skills`をinitial routingだけの情報へ簡素化し、後続Skillを保存・評価しない。
+- dataset schema 1とResult schema 2を分離し、旧Result schema 1をcomparisonで拒否する。
+- `summary.by_process_lifecycle`を確定し、routing outcomeとprocess lifecycleを別集計する。
+- 旧terminal Gateを新contractから削除し、`CASE_TIMEOUT_MS = 327_000`をprocess safety capとして維持する。
+- Qualificationとcanonical `all`で同一のfresh independent Routing Targetを再利用する条件を固定する。
+- selector grammar、comparison、tests、実装対象file、canonical preconditions、rollback、scope guard、16項目の自己レビューを確定する。
 
 ### 1.3 将来実装後のDoD
 
-これは今回達成しない実装フェーズのDoDである。
+これは今回達成しない別実装Runの完了条件である。
 
-- 新contract marker付きのresultが24 caseの固定dataset fingerprintを記録する。
-- `outcome`はrouting result、`process_lifecycle`はprocess状態として別々に出力される。
-- positive readがtrustedならterminal completionの遅延やtimeoutでrouting resultを消さない。
-- readなしの`false_negative`/null `pass`はtrusted absence completion後だけ確定する。
-- canonical `all`は従来どおり4 boundary × 2 expected side = 8 sideを最低1 observable caseで満たす。
-- 旧contractのartifactと比較せず、新contractで取得した最初のvalid canonical resultをPR3 baselineにする。
+- Resultの`schema_version`が2であり、datasetの`schema_version`は1のまま維持される。
+- trusted initial Skill readは`initial_skill=<first Skill>`、`observed_skills=[<first Skill>]`として保存される。
+- trusted absenceは`initial_skill=null`、`observed_skills=[]`として保存される。
+- routing observation不成立は`initial_skill=null`、`observed_skills=null`、`outcome=unobservable`となる。
+- trusted positive後のtimeout / process failureでrouting outcomeを消さない。
+- absenceはtrusted `turn.completed`、Hook correlation / parse、全対象eventのreliable判定、canonical read 0件がそろった場合だけ確定する。
+- `summary.by_outcome`と`summary.by_process_lifecycle`が別々に存在する。
+- `split=all`、dataset fingerprint一致、case ID set一致、Result schema 2、Codex version一致のcomparisonだけを受理する。
+- canonical `all`は4 boundary × 2 expected side = 8 sideを各1 observable case以上で満たす。
 
 ## 2. 現状理解と証拠
 
 ### 2.1 Repository / PR状態
 
-調査時点のRepository状態は次のとおりである。
-
-- current branch: `refactor/117-pr2-trigger-eval-baseline`
-- PR #127: `OPEN`、base `main`、head branch一致
-- current HEAD: `11c90377dedb04b0c7a422719dd30d7e6c4439a6`
-- `origin/main`: `f7cc237d8ca719646d9654fba2129732b6eab457`
-- sourceの未コミット差分: 今回のactive Runと新Planを除きなし
-- 最新Environment Qualification Run: `.codex/runs/20260908-004640-JST/`
-- 今回のactive Run: `.codex/runs/20260909-160634-JST/`
-
-`origin/main`のrouting / observation関連差分を確認したが、今回の設計判断を変えるincoming source差分はなかった。現行PR本文のGate FAIL、canonical未実行、valid baseline未取得は維持する。
-
-### 2.2 PR2が区別すべき五つの事象
-
-| 記号 | 事象 | PR2での扱い |
-|---|---|---|
-| A | Skill routing / initial Skill selection | 主測定対象。ただしnative decision eventがないためfirst canonical readをproxyにする |
-| B | Skillが実際に`SKILL.md`をreadした事実 | Aを推定するtrusted observable evidence。Aそのものとは表現しない |
-| C | Skill read後のtask execution | PR2のrouting scoreから分離。必要なprocess lifecycleだけ記録する |
-| D | task全体の成功 / 失敗 | PR2 routing outcomeとは別のhealth / execution情報 |
-| E | `turn.completed` / `turn.failed`までのprocess lifecycle | routing resultを上書きしない別dimension |
-
-### 2.3 現行の主経路
-
-現行実装の論理は次のようにterminal-boundである。
+作業開始時に次を実行した。
 
 ```text
-Codex child実行
-  -> Hook deltaをchild close後に取得
-  -> stdoutからtrusted terminalを確定
-  -> timed_out / process failureを先に判定
-  -> Hook parse / selectorを確認
-  -> canonical Skillの全distinct setを作る
-  -> set-based scoring
+git status --short
+git branch --show-current
+git fetch origin
+git rev-parse HEAD
+git rev-parse origin/main
 ```
 
-`run-skill-trigger-evals.ts`では`CASE_TIMEOUT_MS = 327_000`のtimerがchildを停止し、`close` callback内でstdoutのterminalをparseする。`skill-trigger-evals.ts`の`deriveRoutingObservation`はtimeout、process failure、terminal欠落、Hook failure、selector failureの順に`observed_skills: null`を返し、terminalが`turn.failed`かつSkill read 0件の場合も`lifecycle_failure`としている。observableになった場合だけ`observed_skills`のsetを`scoreRouting`へ渡す。
+確認結果:
 
-### 2.4 Environment Qualificationの実測
+- branch: `refactor/117-pr2-trigger-eval-baseline`
+- working tree: clean
+- HEAD: `c458cc6610344d580676a0813f178e9c6993dad2`
+- `origin/main`: `f7cc237d8ca719646d9654fba2129732b6eab457`
+- PR #127: `OPEN`、base `main`、head branch一致、head SHAはHEADと一致
+- PR本文: Environment Qualification `FAIL`、canonical `all`未実行、valid baseline未取得、Plan pathを保持
 
-`.codex/runs/20260908-004640-JST/observation-probe.md`と`evaluation.json`に保存された事実は次のとおりである。
+今回の修正Runは`.codex/runs/20260909-192202-JST/`で管理する。
 
-| Control | terminal | timing | Skill read | 現行selector | 判定 |
-|---|---|---:|---|---|---|
-| negative | `turn.completed` | `59.1266秒` | なし | `[]` | PASS |
-| positive | `turn.completed` | `367.7009秒` | `feature-plan/SKILL.md`を約133秒後にread | `[]` | FAIL |
+### 2.2 実測Environment Qualification
 
-- positive actual command: `Get-Content -LiteralPath '.agents\\skills\\feature-plan\\SKILL.md' -Raw`
-- positiveのHook correlation / parseはPASSした。
-- positive terminalはEnvironment Qualificationの`<=240秒` Gateと固定timeout `327秒`の両方を超えた。
-- canonical `all`はGate FAIL条件により未実行である。
+既存Run `.codex/runs/20260908-004640-JST/`の事実を履歴として保持する。
 
-この事実は「Skill routingが遅い」とは限らない。少なくともSkill read evidenceがtask terminalより前に存在し、現在のcontractが後続task completionを理由にそのevidenceを捨てていることを示す。
+| Control | terminal | Skill read | 現行selector | 旧Qualification判定 |
+|---|---|---|---|---|
+| negative | `turn.completed`、59.1266秒 | なし | `[]` | PASS |
+| positive | `turn.completed`、367.7009秒 | `feature-plan/SKILL.md`をterminal前にread | `[]` | FAIL |
 
-### 2.5 過去canonical / invalid artifact
+positiveのactual commandは`Get-Content -LiteralPath '.agents\\\\skills\\\\feature-plan\\\\SKILL.md' -Raw`であり、現行selectorのaccepted shape外だった。Hook correlation / parseはPASSしたが、旧Qualificationのpositive terminal GateはFAILし、canonical `all`は実行されていない。
 
-`.codex/runs/20260906-191724-JST/`には、旧contractおよび現行contractで得たinvalid evidenceが保持されている。
+旧Qualificationのterminal duration gateは過去RunがFAILした事実としてのみ保持し、新contractのthreshold、comparison条件、Qualification PASS条件へ継承しない。
 
-- 旧artifact: `pass=1`、`false_negative=1`、`unobservable=22`、旧dataset fingerprint
-- fresh remediation artifact: 24/24 case完了、`pass=2`、`false_negative=2`、`unobservable=20`、observable `4/24`、8 side中`3/8`
-- fresh artifactの`unobservable`は全件timeoutで、8-side validityを満たさない。
-- これらは旧contractが成立しなかった経緯を示す証拠であり、新contractのbaseline sourceへ昇格させない。
+### 2.3 現行evaluatorの主経路
 
-validationがPASSしたことと、routing baselineがvalidであることは別である。旧Runではdataset validation、repository tests、Skill validation、full verifyがPASSしているが、canonical observability条件はFAILしている。
+現行コードを確認した結果、主経路は次のとおりである。
 
-### 2.6 既存Hookから確認できるstructured evidence
+```text
+Codex childを1 caseずつsequential実行
+  -> before / afterでTargetのHook fileをsnapshot
+  -> exactly one append deltaをcollect
+  -> JSONLをparse
+  -> canonicalSkillForCommandでSkill readを判定
+  -> observed_skillsのdistinct setを作る
+  -> deriveRoutingObservation
+  -> set-based scoreRouting
+  -> resultを書き出す
+```
 
-`.codex/hooks/log_event.mjs`と`.codex/config.toml`を確認した結果、現行のPostToolUse recordは概ね次のenvelopeである。
+現行の具体的な利用箇所:
 
-- `event`、`timestamp`、`session_id`、`turn_id`
-- `tool_name`（現行selectorは`Bash`を対象）
-- `tool_use_id`
-- `tool_input_preview`（JSON文字列、最大preview、`truncated` flag）
-- `truncated`
+- `scripts/evals/skill-trigger-evals.ts`
+  - `DATASET_SCHEMA_VERSION = 1`
+  - `TriggerDatasetBundle`、`ObservationSignals`、`CaseResult`、`RunSummary`
+  - `deriveRoutingObservation`、`scoreRouting`、`evaluateCase`、`summarizeCaseResults`、`evaluateRunCoverage`
+  - `ComparableRun`、`compareRuns`
+- `scripts/evals/run-skill-trigger-evals.ts`
+  - `CASE_TIMEOUT_MS = 327_000`
+  - `assertTargetPreflight`
+  - `snapshotHookFiles`、`collectHookDelta`、`parseHookEvents`
+  - `canonicalSkillForCommand`、`canonicalSkillForHookEvent`、`selectObservedSkills`
+  - `parseComparableRun`、`EvaluationResult`、live result生成
+- `tests/repository-contract/skill-trigger-evals.test.ts`
+  - selector、dataset、observation、coverage、comparisonの現行contract test
 
-canonical file pathをtyped fieldで直接表すnative structured evidenceは現行Hook recordにない。したがって実装時は、将来structured `path` / `file` / tool input fieldが利用できる場合を最優先し、現時点では`tool_input_preview.command`のbounded fallbackを使う。response本文、stdoutの説明、query文字列、path mentionだけはevidenceにしない。
+現行`deriveRoutingObservation`はtimeout、process failure、terminal欠落、Hook failure、selector failureを先に処理する。現行`selectObservedSkills`は、対象のpreviewが正常でも「canonical Skillでないcommand」を明示的なsafe no-readとして返さず、全canonical readのsetを収集する。これが今回修正する直接の原因である。
 
-### 2.7 過去24 caseのread順序調査
+### 2.4 Hook envelopeとcorrelation
 
-Repositoryへraw target logを保存することはせず、既存Targetに残るcanonical実行時のHook JSONLをread-onlyで調査した。調査対象はcanonical実行の24 promptに対応する24 Hook logである。結果は次のとおりである。
+`.codex/hooks/log_event.mjs`と`.codex/config.toml`を確認した。現行PostToolUse recordは、`event`、`timestamp`、`session_id`、optional `turn_id`、`tool_name`、`tool_use_id`、`tool_input_preview`（JSON文字列）、`truncated`を持つ。canonical pathをtyped fieldで持つrecordはない。
 
-- canonical Skill readなし: 2 case
-- canonical Skill read 1回: 20 case
-- 同一Skillのcanonical read 2回: 2 case
-- 異なるSkillへのcanonical read chain: 0 case
-- wrong Skillを先にreadしてexpected Skillへ遷移した例: 0 case
-- expected Skillを先にreadして別Skillへ遷移した例: 0 case
-- first canonical read: PostToolUse index 1〜8、promptから約10.274〜47.632秒後
-- task execution後半で初めてcanonical readが出た例: 今回の保存範囲では確認されなかった
+現行runnerは、次の既存経路でcaseのHook deltaを一意にする。
 
-この結果は、現行dataset / Hostでfirst canonical readが初期routingのproxyとして扱える可能性を支持する。ただしraw logはRepositoryの長期Artifactとして保存されておらず、Hookにrouting decision fieldもないため、`first read = internal selection`を証明するものではない。今後の契約文言は必ず`proxy`とする。
+- 1 case = 1 Codex child process
+- case間はsequential
+- dedicated Targetを使用
+- 実行前後に`.codex/logs`と`.artifacts/codex-hooks`をsnapshot
+- exactly one append delta、before-size以降のみをparse
+- 0 / 複数 / size縮小 / non-appendはcorrelation failure
+
+この既存経路で現在の1 case単位の一意性を確保できるため、新しい`correlation framework`、session manager、turn manager、generic event busは追加しない。既存のappend delta / process境界を再利用する。
+
+### 2.5 schema / validator / fixtureの調査結果
+
+Repository内を`schema_version`、`DATASET_SCHEMA_VERSION`、`ComparableRun`、`compareRuns`、result validator、fixture、Run Artifact validatorで検索した結果は次のとおりである。
+
+| 対象 | 現在の実体 | 今回の扱い |
+|---|---|---|
+| Trigger Eval dataset | `scripts/evals/skill-trigger-evals.ts`の`DATASET_SCHEMA_VERSION=1`、12 YAMLの`schema_version: 1` | 1を維持。YAMLは変更しない |
+| Trigger Eval Result | `scripts/evals/run-skill-trigger-evals.ts`の`EvaluationResult`が現在dataset定数を使用 | `RESULT_SCHEMA_VERSION=2`へ分離 |
+| comparison input | `scripts/evals/run-skill-trigger-evals.ts`の`parseComparableRun` | Result schema 2だけを受理し、schema 1 / unknownを拒否 |
+| comparison core | `scripts/evals/skill-trigger-evals.ts`の`ComparableRun` / `compareRuns` | schema 2、split、fingerprint、case ID、Codex versionをfail-close検証 |
+| Trigger Result専用JSON schema | 独立したschema fileは存在しない | 新規schema fileは作らず、既存TypeScript result/parserとcontract testを更新 |
+| Generic Run evaluation | `.codex/templates/evaluation.schema.json`（schema 1）、`scripts/validate-output-schema.py` | Codex `evaluation.json`用。Trigger Result schemaとは分離し、変更しない |
+| Run manifest | `.codex/templates/RUN_MANIFEST.json`（schema 2）、`scripts/collect-run-artifacts.py` / `.ps1` | Run manifest用。変更しない |
+| Run manifest tests | `tests/contracts/codex-run-manifest-contract.test.ts`、`tests/contracts/codex-safe-run-manifest-sync.test.ts` | 変更しない |
+| Trigger Result fixture | 専用fixture fileは存在せず、既存testの`comparableRun` helperがinline生成 | 既存`tests/repository-contract/skill-trigger-evals.test.ts`のinline fixtureをschema 2へ更新。旧artifactは変更しない |
+
+過去のTrigger Result artifact（`.codex/runs/20260906-191724-JST/trigger-eval-baseline*.json`等）は履歴証拠であり、generic `evaluation.json`とは別物である。変換、移行、後付けmarkerは行わない。
+
+### 2.6 過去canonical evidence
+
+`.codex/runs/20260906-191724-JST/`には旧contractおよびfresh remediationのinvalid evidenceがある。旧artifactは`pass=1`、`false_negative=1`、`unobservable=22`、fresh remediationは24/24完了、`pass=2`、`false_negative=2`、`unobservable=20`、observable `4/24`、8 side `3/8`だった。これらは履歴として保持し、新Result schema 2のbaselineへ昇格させない。
+
+保存済みTarget Hook evidenceでは、canonical readなし2 case、1回20 case、同一Skillの重複2 case、異なるSkill chain 0 caseだった。これはfirst read proxyの設計根拠にはなるが、internal selectionの証明ではない。
 
 ## 3. Current contractの問題
 
-### 3.1 Routing observationとtask completionの過剰結合
+### 3.1 selector non-matchと判定不能を区別していない
 
-現在は、Skill read、task execution、terminal、最終Skill set、scoreを一つのordered pipelineへ結合している。positive readが先に起きても、childがtimeoutするとstep 1で`observed_skills: null`になり、routing resultが復元不能になる。
+`git status`、`Get-Content package.json`、`pnpm run test`のようにcanonical Skill direct readではないことを安全に判定できるcommandは、selector failureではない。現行実装はcanonical positive grammarに一致しないものを一括で処理し、absenceの信頼性を曖昧にする。
 
-これはPR2の目的と合わない。description変更前後で初期routingの差を見たいのに、後続taskの時間・外部tool・長い回答生成がroutingのobservable判定を決めているためである。
+一方、truncated preview、malformed JSON、ambiguous multiple command、unbalanced quote、対象commandを一意に取得できない複雑なPowerShellは安全に分類できない。これだけを`unreliable`としてabsence判定を禁止する。
 
-### 3.2 Positive evidenceとabsence evidenceを同一視している
+### 3.2 positive evidenceとabsence evidenceを混同している
 
-「canonical readを見た」はその時点でpositive evidenceになり得る。一方、「まだcanonical readがない」は、query実行途中では「今後もreadされない」を意味しない。現行のterminal-boundは後者を安全側に扱うが、前者までtimeoutで捨てている。
+trusted canonical readは、そのreadとprefixが信頼できればterminal完了を待たずにinitial routing proxyを確定できる。「まだreadがない」は実行途中ではabsenceではないため、trusted `turn.completed`と全対象eventのreliable分類まで待たなければならない。
 
-必要なのは、presenceとabsenceで観測終了条件を分けることである。
+### 3.3 final Skill setをPR2へ持ち込んでいる
 
-### 3.3 selectorがcommand文字列の列挙に依存している
+現行の`observed_skills`は全canonical readのdistinct setだが、PR2の対象はinitial routingである。後続Hookが壊れた場合に全setを得たとは言えず、first candidate後のrouting保持と両立しない。PR2ではinitial Skill一件だけをResultへ残す。
 
-現行selectorは4つの完全文字列だけを受理する。今回のpositiveは同じ`Get-Content` direct readでも、backslash、`-LiteralPath`、single quote、`-Raw`の順序が違うため空集合になった。これはrouting failureではなくobservation selector driftである。
+### 3.4 dataset schemaとResult schemaを同じversionで表している
 
-ただし、緩いsubstringやpath regexへ変えると、検索結果、echo、path mention、別fileの内容をSkill readと誤認する。structured evidenceを優先し、fallbackをcanonical direct readの小さなgrammarへ限定する必要がある。
+現行のdataset定数がlive Resultと`ComparableRun` comparisonにも使われている。`initial_skill`、`process_lifecycle`、`observed_skills`の意味、routing outcome判定が変わるため、dataset schema 1を維持したままResult schema 2を導入する必要がある。
 
-### 3.4 process failureの意味がrouting resultを上書きする
+### 3.5 lifecycleとrouting outcomeを混ぜている
 
-現行はtimeout、spawn failure、signal、terminal欠落を`unobservable`へまとめる。これは「routing evidenceがまだない」ケースでは妥当だが、既にtrusted positive readがあるケースでは情報を失う。routing resultとprocess lifecycleの二つの問いを一つの`outcome`で表していることが問題である。
-
-### 3.5 240秒Gateが旧terminal-bound前提に依存している
-
-`positive terminal <=240秒`はtask terminalを観測終了とする契約には意味があるが、first readをrouting proxyとする契約の必要条件ではない。terminalが240秒を超えたことだけでrouting evidenceを無効にするのは、今回のpositive実測と逆になる。
-
-240秒を単に600秒へ延長するのではなく、routing validityとprocess healthを分離する。`CASE_TIMEOUT_MS=327_000`は今回も実装時も安全上の固定値として扱い、別の根拠なしに変更しない。
+timeout、`turn.failed`、spawn failureはprocessの状態であり、trusted initial Skill readのrouting classificationではない。`outcome=pass`かつ`process_lifecycle=timed_out`は矛盾ではなく、「initial routing proxyはexpectedだったがprocessはtimeoutした」を表す。
 
 ## 4. 評価候補の比較
 
-### Candidate A: 現行terminal-bound contract
+### Candidate A: terminal-bound contract
 
-- 概要: `turn.completed` / `turn.failed`またはtimeoutまで待ち、最後のcanonical Skill setを確定してset-based scoringする。
-- 長所:
-  - 最終的なSkill集合を保存できる。
-  - trusted terminalまで待つためabsenceを比較的強く判定できる。
-  - 現行schemaとtestsへの変更が少ない。
-- 短所:
-  - task execution latency、外部tool、回答生成へ強く依存する。
-  - `Skill read済み + timeout`を`unobservable`へ変換し、PR2のrouting evidenceを失う。
-  - positive controlが`367.7009秒`、現行timeoutが327秒であり、canonical 24 caseの壁になる。
-  - `turn.failed`、timeout、routing failureの意味が混ざる。
-- 判定: PR2の主目的には不採用。process healthの情報として一部は残す。
+- 概要: terminalまたはtimeoutまで待って最後のSkill setをscoreする。
+- 長所: terminal後のabsenceを扱いやすく、現行schemaとの差分が小さい。
+- 短所: task execution latencyをrouting validityへ混ぜ、trusted positive read後のtimeoutを失敗させる。
+- 判定: PR2の主目的には不採用。process lifecycleの事実だけを別fieldへ残す。
 
-### Candidate B: First canonical Skill read contract
+### Candidate B: first canonical read contract
 
-- 概要: 最初のtrusted canonical `SKILL.md` readをinitial routing resultとし、task completionを待たずにscoreする。first expectedは`pass`、siblingは`sibling_misroute`、non-siblingは`unexpected_trigger`とする。
-- 長所:
-  - routing observationをtask completionから分離できる。
-  - 実測でfirst readがprompt直後の初期tool列に現れている。
-  - wrong first -> expected laterのようなchainをPR2のinitial resultとして明示できる。
-- 短所:
-  - Hookにnative selection eventがなく、first readが内部選択そのものとは証明できない。
-  - readなしのexpected Skillや`expected_skill=null`を途中で判定できない。
-  - Hostが複数候補を調査してから選択する場合、first readをselectionと誤解する危険がある。
-  - absenceの終了条件を別途設計しないとfalse negative / false passを作る。
-- 判定: presence側の基本原理として採用可能だが、absenceを同じ契約で処理できないため単独案では不採用。
+- 概要: first trusted canonical `SKILL.md` readをinitial routing resultとしてscoreする。
+- 長所: positive presenceをterminalから分離でき、first expected / sibling / otherを区別できる。
+- 短所: readなしのabsenceを途中で判定できず、単独ではfalse pass / false negativeを作る。
+- 判定: presence側の原理として採用するが、単独案にはしない。
 
-### Candidate C: Hybrid observation contract（推奨）
+### Candidate C: Hybrid observation contract（維持・採用）
 
-- 概要:
-  - trusted canonical readが先に得られた場合は、first readをinitial routing evidence proxyとしてrouting resultを確定する。
-  - canonical readがまだない場合は、trusted `turn.completed`とHook整合まで待ってabsenceを確定する。
-  - timeout / process failureはprocess lifecycleへ保存し、既に確定したrouting resultを上書きしない。
-- 長所:
-  - positive evidenceをtask completion latencyから切り離す。
-  - absenceはterminalとHook整合を要求するため、途中時点の空集合をfalse passにしない。
-  - `expected_skill=null`、false negative、positive timeoutを論理的に区別できる。
-  - 既存の`outcome`/`unobservable_reason`/8-side coverageを最小限の追加fieldで拡張できる。
-  - PR2をinitial routing、PR6をmulti-Skill chainへ分けられる。
-- 短所:
-  - first readはあくまでproxyで、routing decisionの直接計測ではない。
-  - terminalなしでpresenceを確定するため、Hook correlation・prefix parse・selector trustが厳密でなければならない。
-  - process healthとrouting validityを別々に表示・レビューする必要がある。
-- 判定: Issue #117 PR2の目的、現行evidence、最小変更、false evidence回避のバランスが最もよい。推奨する。
+- trusted canonical Skill readあり: first trusted readをinitial routing evidence proxyとして採用し、task completion / timeoutとは独立してrouting outcomeを確定する。
+- canonical Skill readなし: trusted `turn.completed`、Hook correlation / parse、全対象eventのreliable判定が成立した場合だけabsenceを確定する。
+- timeout / process failure: process lifecycleへ保存し、既に確定したrouting outcomeを上書きしない。
+- 判定: Issue #117 PR2の目的、現行Hookの限界、false evidence回避、最小変更のバランスが最もよい。今回もこの方針を維持する。
 
-### Candidate D: Routing-phase / window contract
+### Candidate D: routing phase / window contract
 
-- 概要: routing開始event、Skill read群、routing phase終了eventを定義し、そのphase内のread setをscoreする。
-- 長所:
-  - first readより豊かなphase semanticsを表せる可能性がある。
-  - 将来Hostがrouting phase boundaryを提供すれば、PR6との連携にも使える。
-- 短所:
-  - 現行Hookにrouting開始・終了の信頼できるphase boundaryがない。
-  - `5秒待つ`、`10秒quietなら終了`のようなmagic timingはabsenceを証明しない。
-  - phase state machine、event bus、generic lifecycle frameworkを導入する過剰設計になる。
-- 判定: 現在は不採用。native phase eventが追加された場合の将来拡張候補としてのみ記録する。
+- 概要: routing phaseの開始・終了eventを追加し、そのphase内のreadをscoreする。
+- 長所: first readより豊かなphase semanticsを表せる可能性がある。
+- 短所: current Hookにphase boundaryがなく、quiet-window、state machine、event busを要求する。
+- 判定: 不採用。native phase eventが将来提供されても、PR2 Resultへ導入するかは別設計とする。今回の実装scopeへ含めない。
 
 ## 5. Chosen Design: Candidate C
 
-### 5.1 契約名
-
-実装時のprovenanceへ次の固定markerを入れる。
+### 5.1 最小契約
 
 ```text
-observation_contract_version = "pr2-hybrid-initial-canonical-read-v1"
+Input:
+  Hook evidence + process lifecycle
+
+Routing observation:
+  first trusted canonical Skill direct read -> initial Skill
+  trusted terminal completion + reliable no-read -> absence
+  それ以外 -> unobservable
+
+Routing score:
+  initial Skillだけで判定
+
+Process:
+  routing scoreとは別にlifecycleを保存
+
+Later Skill reads:
+  PR2では評価・保存しない
 ```
 
-`schema_version`は現行のdataset schema versionと結び付いているため、datasetを変更せずに意味の世代を区別する専用markerを追加する。markerのない旧artifact、または値が異なるartifactはcomparison対象にしない。
+`first trusted canonical SKILL.md direct read`は`initial routing evidence proxy`とだけ呼ぶ。`model internal selection`、`final Skill set`、`workflow phase`という意味をPR2 Resultへ与えない。
 
-### 5.2 Routing observationの意味
+### 5.2 selectorの3状態
 
-1. caseごとのUserPromptSubmit以降のHook deltaを、session/turnとappend fileのcorrelationで確定する。
-2. Hook recordにtrusted structured path/file fieldがある場合は、それを最優先でcanonical direct readへ解決する。
-3. structured fieldがない現行Hostでは、bounded fallback selectorでcanonical `SKILL.md` direct readだけを認識する。
-4. chronologicalなcanonical readのうち最初のtrusted Skillを`initial_skill`として固定する。
-5. `initial_skill`が存在した時点で、routing resultはterminalの成功・失敗・timeoutとは独立に確定可能とする。
-6. 同じSkillの後続readや別Skillの後続readは`observed_skills`へdiagnostic setとして保存するが、PR2のscoreは`initial_skill`だけで決める。
-7. `initial_skill`がない場合だけ、trusted `turn.completed`、Hook全体のparse/correlation、selector reliabilityを確認してabsenceを確定する。
+相関したHook deltaは全JSONL行を保持し、`event` / `tool_name`の境界を明示する。selectorの対象列は`PostToolUse` recordであり、そのうち`tool_name === "Bash"`をcurrent bounded command inputとして扱う。`UserPromptSubmit`、`SubagentStart`、`SubagentStop`、`Stop`はSkill read evidenceへ数えない。`PostToolUse`の`tool_name`がBash以外、欠落、または対象command fieldsが壊れている場合は、現在のbounded selectorではno-readを証明できないため`unreliable`とし、absenceを許可しない。
 
-`first read`は「initial routing evidence proxy」であり、`internal selection`という名前や断定はresult、Plan、PR本文で使用しない。
+対象となる`PostToolUse / Bash` eventごとに、最低限次のいずれかへ分類する。
 
-### 5.3 Process lifecycleの意味
+| 分類 | `selector_reliable` | Skill値 | 意味 |
+|---|---:|---|---|
+| `canonical_skill` | `true` | 一意なcanonical Skill | canonical Skill direct readと安全に確定 |
+| `safe_no_read` | `true` | `null` | canonical Skill direct readではないと安全に確定。selector failureではない |
+| `unreliable` | `false` | 判定しない | canonical Skill readの有無を安全に判定できない |
 
-既存`outcome`はrouting resultとして維持し、次の最小fieldをCaseResultへ追加する。
+例:
 
-```text
-process_lifecycle:
-  "completed" | "turn_failed" | "timed_out" |
-  "spawn_failed" | "signaled" | "unknown"
-```
+- `Get-Content -Raw .agents/skills/feature-plan/SKILL.md` → `canonical_skill / true / feature-plan`
+- `Get-Content package.json`、`git status`、`pnpm run test`、`Get-ChildItem src` → `safe_no_read / true / null`
+- truncated `tool_input_preview`、malformed preview JSON、ambiguous multiple command、unbalanced quote、対象commandを一意に取れない複雑なPowerShell → `unreliable / false`
 
-状態の決定順は次のとおりとする。
+`selector_reliable=true`とは、対象Hook eventについて、canonical Skill direct readであるか、そうでないかを安全に判定できたことを意味する。recognizerのpositive grammarへ一致しなかっただけで`unobservable`にはしない。`safe_no_read`は正常な観測結果である。
 
-- timerが発火した場合: `timed_out`
-- spawn errorがある場合: `spawn_failed`
-- childがsignalで終了した場合: `signaled`
-- trusted terminalが`turn.failed`の場合: `turn_failed`
-- `turn.completed`かつ正常終了の場合: `completed`
-- 上記以外で終了根拠が一意でない場合: `unknown`
+### 5.3 initial Skillの決定
 
-`process_lifecycle`はrouting scoreの入力にしない。例えば、trusted positive read後にtimerが発火したcaseは、`outcome=pass`等を保持し、`process_lifecycle=timed_out`として別途警告する。
+相関したeventを時系列順に見る。
 
-### 5.4 Result schemaの最小変更
+1. 現行Hookの`tool_input_preview`をJSON parseし、commandを取得する。
+2. 各対象eventを3状態へ分類する。非対象Hook eventはSkill read evidenceへ数えず、対象列に入れない。未知の不完全な対象eventは`unreliable`とする。
+3. 最初の`canonical_skill`を見つけた場合、そのeventとprefixの全eventがreliableなら`initial_skill`を固定する。
+4. first candidate後のeventはPR2のlater Skill setへ収集しない。後続eventのmalformed / truncatedで、既にtrustedなinitial routing outcomeを消さない。
+5. candidateがない場合は、5.4のtrusted absence条件へ進む。
 
-既存fieldは次の理由で維持する。
+positive candidateより前のeventが`unreliable`ならpresenceは確定しない。candidate自体が`unreliable`ならSkill値を補完しない。
 
-- `outcome`: routing resultを既に表すため、`routing_result`という重複nested objectは追加しない。
-- `unobservable_reason`: 既存のfailure taxonomyを維持し、absence未確定とHook/process failureを説明する。
-- `observed_skills`: 全canonical readのdistinct setをdiagnosticとして維持する。`[]`はtrusted absence、`null`はrouting observation不成立に限定する。
+### 5.4 Absenceの確定
 
-追加するfieldは二つである。
+次の全条件を満たす場合だけtrusted absenceとする。
 
-- `initial_skill: SkillName | null`: first trusted canonical read。absenceまたはunobservableでは`null`。
-- `process_lifecycle`: 上記enum。
+- canonical Skill readが0件
+- trusted terminalが`turn.completed`
+- 既存`collectHookDelta`によるHook correlationが成立
+- Hook JSONLの対象eventがparseできる
+- 全対象eventが`canonical_skill`または`safe_no_read`のいずれかで、`unreliable`が0件
+- `observed_skills=[]`を構成できる
 
-想定JSONの最小例は次のとおりである。
+一件でも`unreliable`があればabsenceを確定しない。`turn.failed`、timeout、spawn failure、signal、terminal欠落はabsenceの証明にならない。したがってreadなしでもこれらは`false_negative`やexpected nullの`pass`ではなく`unobservable`となる。
+
+### 5.5 Result fields
+
+trusted initial Skillあり:
 
 ```json
 {
-  "schema_version": 1,
+  "initial_skill": "feature-plan",
+  "observed_skills": ["feature-plan"]
+}
+```
+
+trusted absence:
+
+```json
+{
+  "initial_skill": null,
+  "observed_skills": []
+}
+```
+
+routing observation不成立:
+
+```json
+{
+  "initial_skill": null,
+  "observed_skills": null
+}
+```
+
+`observed_skills`はPR2のfirst Skillまたはabsenceを表す。全canonical readのdistinct set、later Skill diagnostic set、Skill chainは保存しない。
+
+### 5.6 Process lifecycle
+
+`process_lifecycle`は次のenumだけを使用する。
+
+```text
+completed | turn_failed | timed_out | spawn_failed | signaled | unknown
+```
+
+現行child処理で複数の事象が同時に見える場合も、一意にするため判定優先順位を固定する。
+
+1. timer発火 → `timed_out`
+2. child spawn error → `spawn_failed`
+3. childがsignal終了 → `signaled`
+4. trusted terminalが`turn.failed` → `turn_failed`
+5. trusted `turn.completed`かつ正常close → `completed`
+6. 根拠が不足、terminal複数、または他の終了状態 → `unknown`
+
+現行`executeCodex`が返す`timed_out`、`spawn_failed`、`signaled`、`exit_code`と、stdoutから一意に抽出した`trusted_terminal`をこの順序へ写像する。`timed_out=true`なら`timed_out`、`spawn_failed=true`なら`spawn_failed`、`signaled=true`なら`signaled`、`trusted_terminal=turn.failed`なら`turn_failed`とする。`trusted_terminal=turn.completed`、`exit_code=0`、かつ先行flagが全てfalseなら`completed`とする。terminal欠落、非zero exitだけ、`exit_code=null`、terminal複数、またはterminalとclose状態の不一致は`unknown`とする。`unknown`を将来状態の予約として増やさない。
+
+`process_lifecycle`はscoreへ渡さない。trusted positive後にtimeout、process failure、または`unknown`が発生してもrouting outcomeを保持し、lifecycleだけを保存する。absence確定前のtimeoutは`unobservable`のままである。
+
+### 5.7 Result schema 2
+
+datasetとResultのversionを分離する。
+
+- dataset: `scripts/evals/skill-trigger-evals.ts`の`DATASET_SCHEMA_VERSION = 1`を維持。12 YAMLも`schema_version: 1`のまま。
+- Result: 同ファイルへ`RESULT_SCHEMA_VERSION = 2`を追加し、live `EvaluationResult`、`CaseResult`、comparison inputのResult versionとして使用する。
+- 独自の`observation_contract_version`文字列は追加しない。Result schema 2が意味世代の区別を担う。
+
+Resultの概念形:
+
+```json
+{
+  "schema_version": 2,
   "provenance": {
     "evaluator_git_sha": "<EVALUATOR_SHA>",
     "routing_source_git_sha": "<ROUTING_SHA>",
     "dataset_sha256": "<DATASET_SHA256>",
     "codex_version": "codex-cli <VERSION>",
-    "observation_contract_version": "pr2-hybrid-initial-canonical-read-v1",
+    "model": "unreported",
     "split": "all"
   },
   "cases": [
     {
       "id": "case-id",
-      "observed_skills": ["feature-plan"],
       "initial_skill": "feature-plan",
+      "observed_skills": ["feature-plan"],
       "outcome": "pass",
       "unobservable_reason": null,
       "process_lifecycle": "timed_out"
     }
-  ]
+  ],
+  "summary": {
+    "total": 1,
+    "by_outcome": {
+      "pass": 1,
+      "false_negative": 0,
+      "sibling_misroute": 0,
+      "unexpected_trigger": 0,
+      "unobservable": 0
+    },
+    "by_process_lifecycle": {
+      "completed": 0,
+      "turn_failed": 0,
+      "timed_out": 1,
+      "spawn_failed": 0,
+      "signaled": 0,
+      "unknown": 0
+    }
+  }
 }
 ```
 
-この例の`pass`はrouting proxyの結果であり、task全体が成功したことを意味しない。`summary`へprocess lifecycle countを追加するかは実装時に既存output shapeを確認して決めるが、routing outcomeと混ぜない。
+既存summaryの`by_owner_skill`、`by_split`、`by_boundary`は維持し、同じsummaryへ`by_process_lifecycle`を最小追加する。各caseをrouting outcomeとprocess lifecycleへ独立して一度ずつ集計し、別のnested schemaやlifecycle専用resultは作らない。`outcome=pass`かつ`process_lifecycle=timed_out`を許可する。
 
-### 5.5 Absenceの終了条件
+### 5.8 Routing score
 
-absenceは次の全条件が揃ったときだけ確定する。
+score入力は`initial_skill`だけとする。
 
-- trusted terminalが`turn.completed`である。
-- child processの終了とHook deltaのcorrelationが一意である。
-- Hook JSONLの全対象行がparseでき、対象PostToolUseの`tool_input_preview`がtruncatedでない。
-- structured selectorまたはbounded fallback selectorがreliableである。
-- canonical Skill readが0件である。
+- expected Skillを最初にtrusted read → `pass`
+- boundary siblingを最初にtrusted read → `sibling_misroute`
+- boundary外Skillを最初にtrusted read → `unexpected_trigger`
+- expected Skillあり、trusted absence → `false_negative`
+- expected Skillがnull、trusted absence → `pass`
+- expected Skillがnull、trusted Skill readあり → `unexpected_trigger`
+- absence未確定またはinitial evidence未信頼 → `unobservable`
 
-`turn.failed`はroutingが最後まで試行されたことを保証しないため、read 0件のabsence完了には使わない。timeout、spawn failure、signal、terminal欠落もabsenceを証明しない。従って、それらは`false_negative`やnull `pass`ではなく`unobservable`とする。
-
-### 5.6 Positiveの終了条件
-
-positiveは次の全条件が揃ったcandidate eventを一件以上得た時点でrouting observationを確定できる。
-
-- caseのHook correlationが成立している。
-- candidate event自体と、それより前のHook recordが完全なJSONとしてparseできる。
-- eventがtrusted structured path evidence、またはbounded fallback direct-read evidenceである。
-- pathがcanonical `.agents/skills/<skill>/SKILL.md`へ一意に解決する。
-
-candidate後にprocessが長く続く必要はない。現行runnerの最初の実装ではchildの安全な終了監視を継続してもよいが、後続terminalの失敗で既に確定したrouting resultを`null`へ戻してはならない。candidate後の後続recordがmalformedでも、candidateとprefixのtrustが成立していればfirst routing resultは保持し、後続Hook integrityは別のdiagnostic warningとして扱う。
-
-### 5.7 `expected_skill`ごとのscore
-
-scoreは`observed_skills`全体ではなく`initial_skill`だけを入力にする。
-
-- expected Skillがfirst: `pass`
-- boundary siblingがfirst: `sibling_misroute`
-- boundary外のnon-sibling Skillがfirst: `unexpected_trigger`
-- expected Skillあり、absence確定: `false_negative`
-- expected Skillがnull、absence確定: `pass`
-- expected Skillがnull、Skillがfirst: `unexpected_trigger`
-- routing observation不成立: `unobservable`
-
-`observed_skills`に後続Skillが含まれていても、PR2のinitial scoreは変えない。first wrong -> expected laterはwrong firstのclassificationを維持する。multi-Skill chainの意味づけはPR6で行う。
+後続Skill readの有無、順序、chain、workflow successはPR2 scoreを変更しない。`feature-plan → repair-loop`のようなcaseでもPR2 Resultは`initial_skill=feature-plan`、`observed_skills=[feature-plan]`までとする。
 
 ## 6. Observation decision table
 
-| 条件 | `initial_skill` / `observed_skills` | `outcome` | `process_lifecycle` | `unobservable_reason` |
-|---|---|---|---|---|
-| expected Skillを最初にtrusted read、terminal完了 | expected / `[expected]` | `pass` | `completed` | `null` |
-| expected Skillを最初にtrusted read、後でtimeout | expected / `[expected]`以上 | `pass` | `timed_out` | `null` |
-| expected Skillを最初にtrusted read、後で`turn.failed` | expected / `[expected]`以上 | `pass` | `turn_failed` | `null` |
-| siblingを最初にtrusted read | sibling / `[sibling]` | `sibling_misroute` | lifecycleに従う | `null` |
-| boundary外Skillを最初にtrusted read | other / `[other]` | `unexpected_trigger` | lifecycleに従う | `null` |
-| 同じSkillを複数回trusted read | same first / setは一意化 | firstに応じる | lifecycleに従う | `null` |
-| wrongを先にreadしexpectedを後でread | wrong first / `[wrong, expected]` | wrongに応じる | lifecycleに従う | `null` |
-| expected Skillなし、`turn.completed`、Hook全体trusted | `null` / `[]` | `false_negative` | `completed` | `null` |
-| expected null、`turn.completed`、Hook全体trusted、readなし | `null` / `[]` | `pass` | `completed` | `null` |
-| expected null、trusted Skill readあり | Skill / non-empty | `unexpected_trigger` | lifecycleに従う | `null` |
-| readなし、timeout | `null` / `null` | `unobservable` | `timed_out` | `timeout` |
-| readなし、spawn failure | `null` / `null` | `unobservable` | `spawn_failed` | `process_failure` |
-| readなし、signal終了 | `null` / `null` | `unobservable` | `signaled` | `process_failure` |
-| readなし、`turn.failed` | `null` / `null` | `unobservable` | `turn_failed` | `lifecycle_failure` |
-| terminal欠落または複数terminal | `null` / `null` | `unobservable` | `unknown` | `lifecycle_failure` |
-| candidate前のHook correlation失敗 | 不確定 / `null` | `unobservable` | lifecycleに従う | `hook_correlation` |
-| candidate前のHook parse/truncated失敗 | 不確定 / `null` | `unobservable` | lifecycleに従う | `hook_parse`または`skill_read_observation` |
-| candidate自体がstructured/fallbackで解決不能 | 不確定 / `null` | `unobservable` | lifecycleに従う | `skill_read_observation` |
+### 6.1 Routing decision
 
-ここで「lifecycleに従う」は、routing evidenceが既にtrustedならprocess lifecycleだけを保存し、routing outcomeを保持することを意味する。candidateがない場合には、同じprocess状態を`unobservable`へ分類する。
+| 条件 | `initial_skill` | `observed_skills` | `outcome` |
+|---|---|---|---|
+| expected Skillを最初にtrusted read | expected | `[expected]` | `pass` |
+| siblingを最初にtrusted read | sibling | `[sibling]` | `sibling_misroute` |
+| boundary外Skillを最初にtrusted read | other | `[other]` | `unexpected_trigger` |
+| expected nullでSkill read | Skill | `[Skill]` | `unexpected_trigger` |
+| trusted absence + expected Skillあり | `null` | `[]` | `false_negative` |
+| trusted absence + expected null | `null` | `[]` | `pass` |
+| absence未確定 | `null` | `null` | `unobservable` |
+
+後続Skillの有無はこの表へ入れない。
+
+### 6.2 Lifecycle overlay
+
+| routing evidence | process lifecycle | routing outcome | Resultの扱い |
+|---|---|---|---|
+| trusted initial Skillあり | `completed` | initial Skillに応じる | observable |
+| trusted initial Skillあり | `timed_out` / `turn_failed` / `spawn_failed` / `signaled` / `unknown` | initial Skillに応じる | outcomeを保持しlifecycleだけ保存 |
+| trusted absence成立前 | `timed_out` / `turn_failed` / `spawn_failed` / `signaled` / `unknown` | `unobservable` | `observed_skills=null` |
+| trusted absence成立 | `completed` | expectedに応じて`false_negative`または`pass` | `observed_skills=[]` |
+
+### 6.3 Hook evidence boundary
+
+- candidate前のouter JSONL parse failure → `unobservable` / `hook_parse`
+- candidate前のpreview JSON malformed、truncated、ambiguous command → `unobservable` / `skill_read_observation`
+- candidate後のmalformed / truncated later Hook → initial routing outcome保持。later Skill情報はResultへ保存しない
+- Hook correlation failure → `unobservable` / `hook_correlation`
 
 ## 7. Selector contract
 
-### 7.1 優先順位
+### 7.1 現行実装対象
 
-selectorは次の順に評価する。
-
-1. Hostが提供するtyped structured path/file/tool-input field
-2. 現行Hookの`tool_input_preview` JSON内`command`に対するbounded direct-read recognizer
-3. 上記以外は未観測。response本文、stdout、query、filename mentionから補完しない
-
-structured fieldがある場合でも、pathがcanonical Skillの相対pathへ一意に正規化できなければrejectする。absolute path、別repository、unknown Skill、directoryだけの指定は受理しない。
-
-### 7.2 現行Host fallbackの意味
-
-fallbackは一般PowerShell parserではなく、次の意味だけを認識する。
-
-- commandの最初のsimple invocationが`Get-Content`
-- canonical `.agents/skills/<skill>/SKILL.md`を一つのpath tokenとして指定
-- `/`と`\`を区別せずcanonical relative pathへ正規化
-- single quote / double quote / quoteなしの単純tokenを許可する
-- `-Path` / `-LiteralPath`を許可する
-- `-Raw`の位置とparameter順序を許可する
-- current actual shape `Get-Content -LiteralPath '.agents\skills\feature-plan\SKILL.md' -Raw`を受理する
-- `;`で後続のdiagnostic commandが続くHost shapeは、先頭segmentそのものが上記simple invocationに一致する場合だけ先頭readを認識する
-
-先頭segment以外のscript、variable interpolation、command substitution、pipeline、redirection、loop、script block、複数の曖昧なpath tokenは解析しない。`Get-Content`のdirect readが実際に行われたことを狭く確認するため、許容範囲外はfalseへ寄せず`unobservable`へ寄せる。
-
-### 7.3 rejectする入力
-
-- `grep`、`rg`、`Select-String`、`Get-ChildItem`
-- `echo`、`Write-Output`、response本文、検索結果
-- path文字列を含むだけのcommand
-- 別fileの内容内にcanonical pathが記載されているだけのread
-- canonicalではないSkill、`SKILL.md`ではないfile、directory read
-- arbitrary shell / PowerShell script内に偶然pathが現れる形
-- truncated preview、malformed JSON、unbalanced quote
-
-selectorテストは個別command列挙の追加ではなく、上記の意味境界とnormalization invariantをテストする。将来Hostが別のstructured fieldを提供した場合は、fallbackの正規表現を増やす前にstructured adapterを追加する。
-
-## 8. Lifecycle / timeout / Environment Qualification
-
-### 8.1 timeoutの役割
-
-`CASE_TIMEOUT_MS = 327000`はprocess safety capであり、routing性能指標ではない。今回のPlanでは値を変更しない。
-
-- positive evidence前のtimeout: routing `unobservable`、`process_lifecycle=timed_out`
-- positive evidence後のtimeout: routing outcome保持、`process_lifecycle=timed_out`
-- absence確定前のtimeout: `[]`やfalse negativeへ変換しない
-- timeout後にlate Hookを偶然拾っても、candidateとprefix trustを確認できなければ採用しない
-
-新たな`routing observation timeout`をmagic numberで追加しない。absenceはevent-based terminal、presenceはtrusted eventで終了する。
-
-### 8.2 240秒Gateの再評価
-
-旧terminal-bound契約に基づく`positive terminal <=240秒`は、new routing validityの必要条件から外す候補とする。代わりに実装後のqualificationは次を確認する。
-
-- positive controlでtrusted initial readがselectorにより観測できる。
-- negative controlで`turn.completed`、Hook整合、read 0件が成立する。
-- positive read後にterminal遅延やtimeoutが発生しても、routing resultが保持される。
-- terminal durationはprocess-health evidenceとして保存・表示する。
-
-240秒はperformance warningとして過去との比較に残してよいが、routing evidenceを無効にする判定には使用しない。process healthを別途pass/failする運用判断が必要なら、PR2 routing validityとは別のgateとして明示し、今回のPlanで勝手に数値を決めない。
-
-## 9. Scoring / coverage / PR2とPR6
-
-### 9.1 Scoring
-
-current set-based scoringは後続Skillもinitial routing failureへ含めるため、PR2の測定対象に対して不適切になる。新contractでは純粋関数を次の責務へ分ける。
-
-- `deriveRoutingObservation`: trusted positive / trusted absence / unobservableを決め、`initial_skill`とdiagnostic setを返す。
-- `scoreInitialRouting`: `initial_skill`とcaseのexpected/boundaryから既存4種類のobservable outcomeを返す。
-- `evaluateCase`: routing outcomeとprocess lifecycleを組み合わせるが、lifecycleで既存routing outcomeを上書きしない。
-
-既存の`outcome` enum（`pass`、`false_negative`、`sibling_misroute`、`unexpected_trigger`、`unobservable`）は維持する。`unobservable`は「routingを判断できない」意味に限定し、task failure全般の別名にはしない。
-
-### 9.2 8-side validity
-
-8-side条件は緩和しない。
-
-- `exploratory-qa-vs-android-native-local-validation`の2 side
-- `code-review-vs-repair-loop`の2 side
-- `repair-loop-vs-harness-improvement`の2 side
-- `feature-plan-vs-direct-implementation`のfeature-plan sideとnull side
-
-`pass`だけでなく、`false_negative`、`sibling_misroute`、`unexpected_trigger`もroutingがobservableならcoverageへ数える。`process_lifecycle=timed_out`でもtrusted positive routing outcomeがあればobservableである。逆にabsence確定前のtimeoutはunobservableである。
-
-既存`evaluateRunCoverage`の「allでは8 sideすべてに最低1 observable」を維持し、routing resultを良く見せるためにside条件を減らさない。24 caseの個別unobservableはsummaryへ残し、side coverageとprocess-health warningを別々に読む。
-
-### 9.3 PR2 / PR6の境界
-
-PR2は次を責務とする。
-
-- single-intent query
-- initial Skill routing
-- first canonical read proxy
-- description変更前後のrouting baseline
-
-PR6は次を責務とする。
-
-- multi-Skill workflow
-- Skill chainの順序とphase
-- 後続Skill invocationの妥当性
-- Workflow全体の成功 / 失敗
-
-PR2で後続Skillをrouting scoreへ加算せず、diagnosticとして残すだけにする。distinct later readが多い場合はPR6の入力候補として記録する。
-
-## 10. Comparison contract / invalid artifact
-
-### 10.1 Provenance
-
-新resultの`provenance`へ次を追加する。
+現在のHook recordにtyped path/file fieldはない。今回の実装対象は次の経路だけである。
 
 ```text
-observation_contract_version: "pr2-hybrid-initial-canonical-read-v1"
+tool_input_preview
+  -> JSON parse
+  -> command取得
+  -> bounded Get-Content direct-read判定
 ```
 
-comparison parserは次を必須条件にする。
+structured path/file fieldのadapter interface、provider abstraction、strategy、factoryは今回作らない。Hostが将来typed path/file fieldを提供した場合、その時点でfallbackより優先する設計を再検討するが、これは今回のscope外の注記である。
 
-- current / baseline双方が同じcontract markerを持つ。
-- markerがない場合は旧contract artifactとして拒否する。
-- dataset fingerprintが一致する。
-- splitが双方`all`である。
-- case ID setが一致する。
-- Codex version、evaluator SHA、routing source SHAはprovenanceとして表示し、version差は条件差として扱う。
+### 7.2 bounded direct-read grammar
 
-旧artifactへmarkerを後付けして比較可能にしない。`schema_version=1`だけではold terminal-boundとnew hybridを区別できないため、markerなしのcomparisonはfail closedする。
+canonical Skill direct readとして認識するのは、simpleな単一`Get-Content` invocationだけである。次の差異を許可する。
 
-### 10.2 PR3 baseline
+- `/`と`\`
+- single quote、double quote、quoteなしの単一path token
+- `-Path` / `-LiteralPath`
+- `-Raw`がpathの前後にあるparameter order
+- 上記の許可parameterの順序差
+- 現行実測shape `Get-Content -Raw .agents/skills/<skill>/SKILL.md`
+- 現行実測shape `Get-Content -LiteralPath '.agents\skills\<skill>\SKILL.md' -Raw`
 
-新contract実装後に、次の順でfresh baselineを作る。
+pathはcanonical relative pathへ正規化し、6つのcanonical Skillと`SKILL.md`へ一意に解決できる場合だけ`canonical_skill`とする。単純な相対`Get-Content`が既知の非canonical file（`package.json`、docs、non-`SKILL.md`、directory）または6つに含まれない明示的なunknown Skillを指す場合は`safe_no_read`とする。外部absolute path、別repository path、canonical pathとの対応を安全に解決できないpathは`unreliable`とする。
 
-1. new evaluator / new contractのcommit SHAとmarkerを固定する。
-2. dataset query、expected、boundary、Skill descriptionの変更がないことを確認する。
-3. new contractのpositive/negative qualificationを一回ずつ実施する。
-4. canonical `all`を24 case sequential、retryなしで最初から一回だけ実行する。
-5. 8/8 side、provenance、result schema、process lifecycle summaryを確認する。
-6. 条件を満たす最初のnew-contract resultだけをPR3 comparison baselineとする。
+`;` suffixを含むcompound commandは実測根拠がないため許可しない。pipe、redirection、variable interpolation、command substitution、loop、script block、複数command、複数path、任意のPowerShell scriptはbounded grammar外であり、read有無が安全に除外できない場合は`unreliable`とする。
 
-`.codex/runs/20260906-191724-JST/`の旧invalid artifact、`.codex/runs/20260908-004640-JST/`のEnvironment Qualification、途中結果はhistory/evidenceとして保持し、new baselineへ混ぜない。
+### 7.3 safe no-read
 
-## 11. 実装対象file / change strategy
+次はcanonical Skill direct readではないことを安全に確定できるため、`safe_no_read / reliable`とする。
 
-### 11.1 実装phaseの変更file
+- `Get-Content package.json`
+- `Get-Content docs/PROJECT_CONTEXT.md`
+- `git status`
+- `pnpm run test`
+- `Get-ChildItem`
+- `Select-String ...`
+- `rg ...`
+- `grep ...`
+- `echo ...`
+- `Write-Output ...`
+- unknown Skill path
+- non-`SKILL.md`
+- directory read
 
-必要最小限の候補は次のとおりである。
+これらをselector failure、`unobservable`、absence禁止の理由にしない。
+
+### 7.4 unreliable
+
+次は`unreliable / selector_reliable=false`とし、canonical read 0件をabsenceの根拠にしない。
+
+- truncated `tool_input_preview`
+- outer Hook JSONLのmalformed line（`hook_parse`）
+- `tool_input_preview`のmalformed JSON
+- command field欠落または非文字列
+- ambiguous multiple command / multiple path
+- unbalanced quote
+- canonical pathを含むが意味解析できないcomplex PowerShell
+- command自体を一意に取得できない入力
+
+`safe no-read`と`unreliable`を、単なるpositive grammarのmatch / non-matchで決めない。commandの意味境界を安全に確認できるかで決める。
+
+## 8. Comparison contract
+
+### 8.1 必須条件
+
+PR3のbaseline/current比較は次の全条件を満たす場合だけ実行する。
+
+```text
+current.schema_version === RESULT_SCHEMA_VERSION (2)
+baseline.schema_version === RESULT_SCHEMA_VERSION (2)
+current.provenance.split === "all"
+baseline.provenance.split === "all"
+dataset fingerprint一致
+case ID set一致
+Codex version完全一致
+```
+
+Result schema 1の旧artifact、unknown future schema、schema field欠落はcomparison境界でfail closedする。schema 1をResult schema 2へ変換したり、後付けmarkerを付けたり、old artifactを移行して比較可能にしたりしない。
+
+dataset fingerprintはdataset schema 1の現在YAMLから計算する。dataset YAML、query、`expected_skill`、boundary、case IDの変更は今回も行わない。
+
+### 8.2 Codex version
+
+Codex versionは表示だけではなく、PR3 baseline/current comparisonのpreconditionとする。description変更とHost / model runtime変更を分離するため、comparison対象Runの`provenance.codex_version`は完全一致しなければ拒否する。不一致時は`ComparisonResult`を生成せず、comparison parser / runnerがエラー終了する。既存の`codex_version_match`を残す場合も、受理されたcomparisonでは`true`だけを返し、不一致を結果として返さない。
+
+現行Resultの`model`は既存どおり`unreported`であり、信頼できるmodel identityとして比較キーに追加しない。これは現在Hostが提供するprovenanceの限界として記録する。Codex version一致を必須にする判断は実装時へ残さない。
+
+### 8.3 Provenance
+
+Resultには次を保存する。
+
+- evaluator source SHA
+- routing source SHA
+- dataset fingerprint
+- Codex version
+- executed timestamp
+- split
+
+独自の`observation_contract_version`は保存しない。Result schema 2と上記comparison条件が旧Resultとの意味差を表す。
+
+## 9. 8-side validity / PR2とPR6
+
+### 9.1 8-side validity
+
+8 boundary-side validityは維持する。
+
+- `exploratory-qa-vs-android-native-local-validation`: 2 side
+- `code-review-vs-repair-loop`: 2 side
+- `repair-loop-vs-harness-improvement`: 2 side
+- `feature-plan-vs-direct-implementation`: `feature-plan` sideとnull side
+
+`pass`だけでなく、`false_negative`、`sibling_misroute`、`unexpected_trigger`もrouting observationが成立していればobservableとして数える。trusted positive + `process_lifecycle=timed_out`もobservableである。absence確定前のtimeout、unreliable selector、Hook failureはobservableではない。
+
+現行`evaluateRunCoverage`の`all`で8 sideすべてに最低1 observable caseを要求する契約を維持する。routing精度を良く見せるためside条件を減らさない。
+
+### 9.2 PR2で保存する情報
+
+保存・判定するSkill情報は次だけである。
+
+- `initial_skill`
+
+保存・判定しないもの:
+
+- later Skill chain
+- Skill transition
+- multi-Skill workflow
+- 後続Skill順序
+- workflow success / failure
+- final distinct Skill set
+
+### 9.3 PR6へ渡す情報
+
+multi-Skill workflow、later invocation、chain、phase、workflow outcomeの正式な保存・評価はPR6のscopeで行う。PR2はこれらを診断setとしても保存しない。
+
+## 10. Environment Qualification / timeout
+
+### 10.1 timeout
+
+`CASE_TIMEOUT_MS = 327_000`はprocess safety capとして維持する。routing性能の合否閾値には使用しない。
+
+- positive evidence前にtimeout → `outcome=unobservable`、`process_lifecycle=timed_out`
+- trusted positive evidence後にtimeout → routing outcome保持、`process_lifecycle=timed_out`
+- absence確定前にtimeout → `false_negative` / expected nullの`pass`へ変換しない
+- timeout後にlate Hookを偶然取得しても、candidate prefix trustまたはfull absence条件がなければ採用しない
+
+新しいrouting observation timeout、quiet-window、adaptive timeoutは導入しない。
+
+### 10.2 新contractのQualification PASS条件
+
+旧terminal thresholdは使用しない。terminal durationは測定Evidenceとして保存するが、固定数値によるrouting判定は行わない。
+
+Positive:
+
+- actual canonical Skill direct readがある
+- bounded selectorで一意に`canonical_skill`と分類できる
+- first trusted readがexpected Skillである
+- Hook correlationとcandidate prefix trustが成立する
+- terminalが後から`turn.failed`またはtimeoutになってもrouting observationはPASS可能である
+- lifecycleは別途`turn_failed`または`timed_out`として保存する
+
+Negative:
+
+- trusted `turn.completed`
+- Hook correlation / parseが成立
+- 全対象Hook eventがreliable
+- canonical Skill readが0件
+- `initial_skill=null`、`observed_skills=[]`
+
+negativeはabsenceなので、terminal completion前のread 0件だけではPASSにしない。
+
+## 11. Routing Target / correlationの再利用
+
+### 11.1 Target lifecycle
+
+新しい実装Runでは、Qualificationとcanonical `all`に同じfresh independent Routing Target cloneを1つだけ使用する。
+
+```text
+fresh independent Routing Target
+  -> preflight
+  -> Qualification
+  -> 同じTarget状態を維持
+  -> canonical all
+```
+
+Qualification PASS後にre-clone、checkout変更、reset、別Targetへの交換を行わない。Target状態が変化した場合はQualificationを無効とし、新しいRunとしてpreflightからやり直す。
+
+### 11.2 Target条件
+
+少なくとも次をpreflightで確認する。
+
+- Evaluator rootとは別directory
+- realpath上の相互containmentなし
+- Git common-dirを共有しない
+- Git objects alternatesがない、または空
+- detached HEAD
+- clean working tree
+- 指定されたlatest routing source SHA
+- Trigger dataset YAMLなし
+- answer keyなし
+- Evaluator Run Artifactなし
+- 6 canonical `SKILL.md`がreadable
+- 他のCodex processが同じTargetを使用していない
+
+既存`assertTargetPreflight`のEvaluator / Target分離、clean、6 Skill readability、Trigger dataset不存在、common-dir、alternates、source変更検査を再利用する。Targetの準備・cleanupをrunnerへ一般化しない。
+
+### 11.3 Case correlation
+
+既存の`1 case = 1 process`、sequential実行、dedicated Target、before / after append delta、session別Hook JSONLを正本とする。既存の`collectHookDelta`がexactly one append deltaを要求する。新しいsession manager、turn manager、correlation frameworkは作らない。
+
+## 12. 実装対象file / change strategy
+
+### 12.1 実装phaseの変更対象
+
+実装phaseの変更対象は、現在のコードで確認できた次のfileに限定する。
 
 1. `scripts/evals/skill-trigger-evals.ts`
-   - `initial_skill`、`process_lifecycle`、trusted positive/absenceのpure type/function
-   - `scoreInitialRouting`または同等のfirst-only scoring
-   - 既存`outcome`/`unobservable_reason`/coverage/comparisonへの契約適用
+   - `RESULT_SCHEMA_VERSION = 2`の追加
+   - dataset `DATASET_SCHEMA_VERSION = 1`との型分離
+   - `initial_skill`、`observed_skills` 3状態、`process_lifecycle`の型
+   - trusted positive / absence / unobservableを扱うpure function
+   - `scoreInitialRouting`または同等のinitial-only scoring
+   - `RunSummary.by_process_lifecycle`
+   - Result schema 2、split、fingerprint、case ID、Codex versionを検査するcomparison
 2. `scripts/evals/run-skill-trigger-evals.ts`
-   - Hook deltaからfirst trusted evidenceを取り出す処理
-   - structured evidence優先とbounded fallback selector
-   - timeout後もpositive routing resultを保持するlifecycle連携
-   - `observation_contract_version`のprovenance出力と、現在のprocess状態のmapping
+   - `EvaluationResult.schema_version`をResult schema 2へ変更
+   - `parseComparableRun`をschema 2専用へ変更し、schema 1 / unknownを拒否
+   - current `tool_input_preview` JSONからcommandを取得するbounded selector
+   - selectorの`canonical_skill` / `safe_no_read` / `unreliable`分類
+   - candidate prefixとabsence全eventのreliabilityを分けたHook処理
+   - process状態の一意なlifecycle mapping
+   - later Skillを収集しないResult生成
+   - summaryへlifecycle countを追加
 3. `tests/repository-contract/skill-trigger-evals.test.ts`
-   - pure observation、selector、lifecycle、coverage、comparisonのregression contract
-4. `docs/plans/2026-09-06_125922_issue-117-pr2-trigger-eval-baseline.md`
-   - 実装承認後、旧terminal-bound sectionsをnew contractへの参照へ更新する。過去Planの履歴意味を消す編集はしない。
-5. `docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md`
-   - 実装承認後、current selector decisionをstructured-first / bounded fallbackとhybrid observationのaccepted decisionへ追記または明示的にsupersedeする。
+   - selector 3状態、observation、lifecycle、summary、coverage、comparisonのregression contract
+   - inline `comparableRun` fixtureをResult schema 2へ更新
+4. `docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md`
+   - 実装完了時に、今回確定したselector / observation / Result schema / comparison判断を恒久記録へ反映する。今回のPlan修正ではADRを変更しない。
 
-### 11.2 変更しないfile / data
+### 12.2 明示的に変更しないschema / fixture / docs
 
-- 12 dataset YAML: query、`expected_skill`、boundary、case ID、split、fingerprintを維持
-- `.agents/skills/*/SKILL.md`: descriptionとrouting意味を維持
-- `AGENTS.md`: routing instructionを維持
-- `.codex/hooks/log_event.mjs`: 今回はnative structured fieldを新設しない
-- `CASE_TIMEOUT_MS`: `327_000`を維持
-- Product code、Product test、training content、依存package:変更しない
+- 12 dataset YAMLとdataset schema 1
+- `.codex/templates/evaluation.schema.json`、`scripts/validate-output-schema.py`（generic `evaluation.json`用）
+- `.codex/templates/RUN_MANIFEST.json`、`scripts/collect-run-artifacts.py` / `.ps1`、manifest contract tests
+- 過去の`trigger-eval-baseline*.json`、`evaluation.json`、Run Artifact
+- `docs/plans/2026-09-06_125922_issue-117-pr2-trigger-eval-baseline.md`のdecision table / timeout contract / 当時の判断
+- `AGENTS.md`、`.codex/hooks/**`、Skill description、Product code / tests
 
-Hostがstructured path evidenceを新設する案は、今回の実装scopeに含めない。fallbackが現行Hookで機能し、将来fieldを優先できるadapter境界を作るだけにする。
+旧Planへ短いsuperseded noteを冒頭へ加える必要が生じた場合だけ、別途明示した最小差分として扱う。旧Planの本文を新contractへ書き換えない。今回の実装対象fileには含めない。
 
-### 11.3 実装順
+### 12.3 実装順
 
-1. pure moduleでnew contractのtypes、`derive`、first-only scoring、lifecycle mappingを定義する。
-2. repository contract testsを先に追加し、decision tableの各行を固定する。
-3. runnerへstructured-first / bounded fallback selectorを実装し、Hook candidate後のtimeoutでrouting結果を消さない。
-4. result provenanceへcontract markerを追加し、comparison parserをmarker不一致でfail closedにする。
-5. baseline PlanとADRをnew contractへ整合させる。datasetとSkill/AGENTSは変更しない。
-6. focused validation、dataset/Skill/full validation、positive/negative qualificationを順に実施する。
-7. canonical `all`はこのPlanのpreconditionsが全てPASSした場合だけ、fresh targetで一回実施する。
+1. `skill-trigger-evals.ts`でResult schema 2、3状態、initial-only scoring、lifecycle、summaryを定義する。
+2. `tests/repository-contract/skill-trigger-evals.test.ts`でdecision tableとschema/comparison拒否条件を先に固定する。
+3. `run-skill-trigger-evals.ts`へ現在のHook previewだけを対象とするbounded selector、candidate prefix / absence処理、lifecycle mappingを実装する。
+4. outputとcomparison parserをschema 2へ接続し、Codex version不一致を拒否する。
+5. focused validation、dataset validation、Skill validation、full repository validationを指定順で実行する。
+6. fresh Targetをpreflightし、Qualificationとcanonical `all`へ同じTargetを渡す。
 
-## 12. Tests
+## 13. Tests
 
-### 12.1 Selector tests
+### 13.1 Selector: canonical Skill read
 
-次のpositiveを同じcanonical Skillへ解決する。
+同じSkillを`canonical_skill / reliable`として認識する。
 
-- `Get-Content -Raw .agents/skills/feature-plan/SKILL.md`
-- single-quoted path / double-quoted path / quoteなしのsimple token
-- `/`と`\`の差
-- `-Path`と`-LiteralPath`
-- `-Raw`が前後にあるparameter順序
-- parameter順序を入れ替えたsimple invocation
-- 実測形 `Get-Content -LiteralPath '.agents\skills\feature-plan\SKILL.md' -Raw`
-- 先頭direct-readの後ろにboundedな`;` suffixがあるHook command
+- forward slash
+- backslash
+- single quote
+- double quote
+- quoteなし
+- `-Path`
+- `-LiteralPath`
+- `-Raw` before / after
+- 許可parameterの順序差
+- 実測`Get-Content -Raw .agents/skills/feature-plan/SKILL.md`
+- 実測`Get-Content -LiteralPath '.agents\skills\feature-plan\SKILL.md' -Raw`
 
-次はnullまたはunobservableとしてrejectする。
+### 13.2 Selector: reliable no-read
 
-- non-Skill file、unknown Skill、directory
-- `Select-String`、`rg`、`grep`、`Get-ChildItem`
-- `echo`、`Write-Output`、検索結果、path mention
-- 別fileをreadしてその本文にcanonical pathがある形
-- pipe、redirection、variable interpolation、command substitution、loop、script block
-- malformed JSON、truncated preview、unbalanced quote、曖昧な複数path
+次を`safe_no_read / selector_reliable=true / Skill=null`として検証する。
 
-### 12.2 Observation / lifecycle tests
+- `Get-Content package.json`
+- `Get-Content docs/PROJECT_CONTEXT.md`
+- `git status`
+- `pnpm run test`
+- `Get-ChildItem`
+- `Select-String`
+- `rg`
+- `grep`
+- `echo` / `Write-Output`
+- unknown Skill path
+- non-`SKILL.md`
+- directory
+- canonical pathのpath mention、search結果、response text
 
-- expected first + `turn.completed` -> `pass` / `completed`
-- expected first + timeout -> `pass` / `timed_out`
-- expected first + `turn.failed` -> routing outcome保持 / `turn_failed`
-- sibling first -> `sibling_misroute`
-- non-sibling first -> `unexpected_trigger`
-- same Skill multiple read -> first classification保持
-- wrong first -> expected later -> wrong first classification保持
-- no read + trusted `turn.completed` -> expectedは`false_negative`、nullは`pass`
-- no read + timeout -> `unobservable/timeout`
-- no read + spawn failure -> `unobservable/process_failure`
-- no read + signal -> `unobservable/process_failure`
-- no read + `turn.failed` -> `unobservable/lifecycle_failure`
-- candidate前のcorrelation/parse failure -> `unobservable`
-- candidate後のprocess timeout/failure -> candidateのrouting outcome保持
-- candidate自体のtruncated/parse failure -> `unobservable/skill_read_observation`または`hook_parse`
+### 13.3 Selector: unreliable
 
-### 12.3 Null tests
+次を`unreliable`として検証し、absenceを禁止する。
 
-- `expected_skill=null` + trusted no-read + `turn.completed` -> `pass`
-- `expected_skill=null` + any trusted Skill first -> `unexpected_trigger`
-- `expected_skill=null` + timeout前にreadなし -> `unobservable`
-- `expected_skill=null` + process failure前にreadなし -> `unobservable`
+- truncated preview
+- outer JSONL malformed
+- `tool_input_preview` malformed JSON
+- command field欠落 / 非文字列
+- ambiguous multiple path
+- ambiguous multiple command
+- unbalanced quote
+- canonical pathを含むcomplex PowerShell
+- command自体を一意に取得できない入力
 
-### 12.4 Coverage / comparison tests
+### 13.4 Observation / lifecycle
 
-- 8/8 observable side -> success
-- 7/8 observable side -> failure、missing sideを列挙
-- routing failure (`false_negative` / `sibling_misroute` / `unexpected_trigger`)でもobservableならcoverageへ数える
-- lifecycle timeout付きtrusted positiveでもside coverageへ数える
+最低限次を検証する。
+
+- expected first + completed → expected / `[expected]` / `pass` / `completed`
+- expected first + timeout → expected / `[expected]` / `pass` / `timed_out`
+- expected first + `turn.failed` → expected / `[expected]` / routing outcome保持 / `turn_failed`
+- sibling first → sibling / `[sibling]` / `sibling_misroute`
+- non-sibling first → other / `[other]` / `unexpected_trigger`
+- expected null + Skill read → Skill / `[Skill]` / `unexpected_trigger`
+- reliable no-read + `turn.completed` + expected → null / `[]` / `false_negative`
+- reliable no-read + `turn.completed` + expected null → null / `[]` / `pass`
+- no-read + timeout → null / `null` / `unobservable` / `timed_out`
+- no-read + `turn.failed` → null / `null` / `unobservable` / `turn_failed`
+- no-read + process failure → null / `null` / `unobservable` / `spawn_failed`等
+- unreliable selector + `turn.completed` → null / `null` / `unobservable`
+- unreliable selector + timeout → null / `null` / `unobservable`
+- positive candidate後のmalformed later Hook → initial routing outcome保持、`observed_skills`はfirst Skill一件だけ
+- later Skill chain → PR2 Resultへlater Skillを保存しない
+
+### 13.5 Result schema / comparison
+
+- dataset `schema_version=1`を受理し、dataset fingerprintを従来どおり計算する
+- Result `schema_version=2`を受理する
+- Result `schema_version=1`のold artifactをnew comparisonで拒否する
+- unknown future Result schemaを拒否する
+- Result schema欠落を拒否する
+- `split != all`を拒否する
+- dataset fingerprint不一致を拒否する
+- case ID set不一致を拒否する
+- Codex version不一致を拒否する
+- old artifactの変換・後付けmarker・migrationを行わない
+
+### 13.6 Summary / coverage
+
+- `by_outcome`の各routing outcome countを検証する
+- `by_process_lifecycle`の各lifecycle countを検証する
+- `outcome=pass` + `process_lifecycle=timed_out`で両方のcountが1増えることを検証する
+- routing failureでもobservableなら8-side coverageへ数える
 - absence未確定timeoutはcoverageへ数えない
-- contract marker一致 + dataset/case ID一致 -> comparison可能
-- markerなし -> comparison拒否
-- marker不一致 -> comparison拒否
-- dataset fingerprint不一致、case ID set不一致、split非`all` -> comparison拒否
-- old invalid artifactをnew hybrid baselineへ誤って使えない
-- lifecycle差だけではrouting outcomeのcomparison statusを変えない
+- 8/8 sideは成功、7/8 sideはmissing sideを返して失敗する
 
-## 13. Validation plan
+## 14. Validation plan
 
-### 13.1 実装後の順序
+### 14.1 実装後の順序
 
 上流失敗時は後続gateを開始しない。
 
@@ -660,148 +833,198 @@ Hostがstructured path evidenceを新設する案は、今回の実装scopeに�
 pnpm exec vitest run tests/repository-contract/skill-trigger-evals.test.ts --no-file-parallelism --maxWorkers=1
 ```
 
-2. dataset fingerprint / shape
+1. dataset schema 1 / fingerprint
 
 ```bash
 pnpm run eval:skills:trigger:validate
 ```
 
-3. Skill and Markdown links
+1. Skill / Markdown validation
 
 ```bash
 pnpm run validate:skills
 pnpm run lint:markdown
 ```
 
-4. full existing gate
+1. full existing gate
 
 ```bash
 pnpm run verify
 ```
 
-5. result schema / comparison fixture validation
+1. Result schema / comparison fixture validation
 
-既存のevaluation schema validatorと新たに追加するcontract fixtureを実行する。Plan-onlyの今回にはsource validationを再実行せず、`git diff --check`とPlan/Artifact sanitizerを実行する。
+Trigger Result専用のJSON schema file / validatorは現状存在しない。Trigger Result schema 2は`parseComparableRun`、`compareRuns`、repository contract testで検証し、`scripts/validate-output-schema.py`は`.codex/runs/<id>/evaluation.json`向けgeneric validatorとして別責務のまま変更しない。Result schema 2の実artifactが得られた場合も、このgeneric validatorへTrigger Resultを渡さず、必要なgeneric evaluation artifactだけを検証する。
 
-### 13.2 Plan-onlyの今回のvalidation
+### 14.2 今回のPlan-only validation
 
 - `git diff --check`
-- existing Markdown / Plan validatorがcurrent branchに存在する場合は該当Planを対象に実行
-- `scripts/sanitize-codex-artifacts.ps1`のWrite / Check
+- `pnpm run lint:markdown`
+- 対象PlanのPrettier check
+- `scripts/sanitize-codex-artifacts.ps1`のWrite / Check（Planとactive Run）
+- `git diff --name-only <開始時HEAD>...HEAD`またはcommit前後のscope確認
 - source implementation diffがないこと
-- canonical `all`が未実行であること
+- canonical `all`、Probe、dataset変更がないこと
 
-current branchには`.agents/skills/feature-plan/scripts/validate-plan-output.ts`が存在しないため、使用可能なMarkdown validatorを確認し、見つからない場合は未実行理由をRun/最終報告へ残す。`origin/main`の未マージscriptを今回のsourceへ持ち込まない。
+Plan専用validatorはcurrent branchに存在しないため、`origin/main`の未マージvalidatorを持ち込まない。使用可能な既存Markdown検証とartifact sanitizerを使う。
 
-## 14. Canonical rerun preconditions
+## 15. Canonical rerun preconditions
 
 以下をすべて満たすまでcanonical `all`を実行しない。
 
-1. このPlanが承認され、実装phaseの変更範囲が確定している。
-2. `scripts/evals/skill-trigger-evals.ts` / `run-skill-trigger-evals.ts` / contract testsの実装が完了し、新evaluator SHAが固定されている。
-3. `observation_contract_version=pr2-hybrid-initial-canonical-read-v1`がresultとcomparison parserで一致している。
-4. dataset query、`expected_skill`、boundary、case ID、Skill description、`AGENTS.md` routing、timeoutが変更されていない。
-5. dataset validation PASS、repository contract test PASS、Skill validation PASS、full verify PASSである。
-6. dedicated / clean / detached Routing Targetを用意し、Evaluatorとcommon-dir/alternatesを分離する。
-7. TargetにTrigger dataset、answer key、Evaluator Run Artifactがない。
-8. project trust / hook trust、Hook append delta、session/turn correlation、JSON parseが成立する。
-9. fixed Codex version、Evaluator SHA、Routing source SHA、dataset fingerprintをRunへ記録する。
-10. positive controlでactual canonical readをstructured evidenceまたはbounded fallbackが認識する。
-11. negative controlで`turn.completed`、read 0件、Hook correlation/parse/selector reliabilityが成立する。
-12. positive terminalが240秒を超えても、trusted positive routing resultが保持されることをfixture/testで確認する。terminal durationはwarningとして記録する。
-13. canonical `all`は24 case sequential、retryなし、同じTarget、同じEvaluator、同じcontract markerで最初から一回だけ実行する。
-14. 結果に24 case、provenance、routing outcome、process lifecycleが保存され、8/8 sideがobservableである。
-15. old invalid artifactを`--compare`へ渡さず、新contractでの最初のvalid resultだけをPR3 baseline候補にする。
+1. この修正版Planが再レビュー・承認済みである。
+2. Result schema 2が実装済みである。
+3. dataset schema 1、dataset fingerprint、query、`expected_skill`、boundary、case IDが不変である。
+4. bounded selectorのcanonical read testsがPASSしている。
+5. reliable no-read / unreliable testsがPASSしている。
+6. positive timeout後のrouting保持testがPASSしている。
+7. comparisonでschema 1 old artifact拒否testがPASSしている。
+8. full repository validationがPASSしている。
+9. fresh independent Routing Targetを作成し、Target条件を全て満たす。
+10. Qualificationとcanonicalで同じTargetを使用する。
+11. Qualification、canonical、baselineでCodex versionを固定する。
+12. positive controlでinitial Skill direct readを観測し、expected Skillと一致する。
+13. negative controlでtrusted absenceを成立させる。
+14. canonical `all`を最初から一回だけ実行する。
 
-次のいずれかが起きた場合は、そのrunをvalid baselineへ昇格せず停止する。
+canonical `all`の実行条件:
 
-- positive/negativeのtrusted observationが成立しない
-- Hook evidenceがstructured/fallbackで一意に解決できない
-- absenceをterminalなしで確定しようとする必要が生じる
+- Qualification PASS後のみ
+- 24 cases、`split=all`
+- sequential
+- retryなし、途中caseだけの再実行なし
+- 同じTarget、同じEvaluator SHA、同じRouting source SHA、同じdataset fingerprint
+- 同じCodex version
+- 8/8 sideで最低1 observable case
+
+Qualification後にTargetをre-clone、checkout変更、reset、交換した場合は、同一Runのcanonicalへ進まずQualificationを無効化する。
+
+次の場合はrunをvalid baselineへ昇格しない。
+
+- positive candidate prefix trustが成立しない
+- negativeの全対象eventがreliableでない
+- absenceをterminal completionなしで確定する必要がある
 - 8 sideのいずれかが全件unobservable
-- contract marker、dataset fingerprint、case ID、source provenanceが不一致
-- canonical processが全case完了前に失われ、結果の完全性を確認できない
+- Result schema、dataset fingerprint、case ID、Codex version、source provenanceが不一致
+- canonical processが全case完了前に失われ、Result完全性を確認できない
 
-case retry、unobservable-only retry、query tuning、timeout延長、Skill description変更で穴埋めしない。原因がevaluator defectである場合はrunを無効化し、修正後に新Runとして再評価する。
+case retry、unobservable-only retry、query tuning、timeout変更、Skill description変更、別Target交換で穴埋めしない。
 
-## 15. Rollback / invalidation
+## 16. Rollback / invalidation
 
-### 15.1 実装rollback
+### 16.1 実装rollback
 
-- new contract導入前のsource commitをrollback基点として保持する。
+- Result schema 2導入前のsource commitをrollback基点として保持する。
 - dataset、Skill description、AGENTS、Product codeはrollback対象へ含めない。
-- structured adapterまたはfallbackがfalse positiveを作る場合は、fallbackを広げずにそのcontract revisionをinvalidとする。
-- `observation_contract_version`を変更した場合、同じbaselineとの比較を続けず、新markerで新baselineを作り直す。
+- bounded recognizerがfalse positiveを作った場合、grammarを無制限に広げず、そのimplementation Runをinvalidとする。
+- Result schemaを変更した場合、異なるschemaのbaselineと比較せず、新schemaでbaselineを作り直す。
 
-### 15.2 Evidence invalidation
+### 16.2 Evidence invalidation
 
-次の場合はrouting resultを`unobservable`またはrun invalidとして保存し、都合のよいcaseだけ採用しない。
+次の場合はrouting resultを`unobservable`またはRun invalidとして扱う。
 
-- candidate eventより前のHook recordのparse/correlationが不確実
+- candidate prefixより前のHook correlation / parseが不確実
 - candidateがpath mention、search result、truncated preview、arbitrary shell由来
-- no-readをterminal完了なしで`pass` / `false_negative`へ分類
-- old contract artifactにmarkerを後付けしてcomparison
-- 8-side条件未達、partial canonical、外部session中断
+- safe no-readとunreliableを区別できない
+- no-readをterminal completionなしで`pass` / `false_negative`へ分類
+- Result schema 1 old artifactへmarkerを後付けしてcomparison
+- Codex version不一致のRunをPR3 comparison
+- 8-side未達、partial canonical、外部session中断、Target状態変化
 
-既存invalid artifactとRunは削除・上書きしない。新contractが成立しない場合は、PR2の測定可能性に関するblockerとしてRun/PRへ記録し、PR6のworkflow semanticsをPR2へ取り込まない。
+既存invalid artifact、旧Plan、過去Runは削除・上書きしない。
 
-## 16. Scope guard
+## 17. Scope guard
 
-### 16.1 実装時に変更可能
+### 17.1 今回のPlan修正で変更可能
 
-- 上記3 source/testと、contractを記録する既存Plan/ADRの最小差分
-- 新contract result fixture、Run Artifact、PR本文の次対応記載
-- structured-first adapterとbounded direct-read recognizer
-- routing resultとprocess lifecycleを分離するpure function / output field
+- `docs/plans/2026-09-09_161652_issue-117-pr2-observation-contract-redesign.md`
+- `.codex/runs/20260909-192202-JST/**`
+- PR #127本文のPlan状況記載
 
-### 16.2 実装時も変更禁止
+### 17.2 実装phaseで変更可能
 
-- 12 dataset YAMLのquery、expected、boundary、case ID、fingerprint
-- Skill description、`AGENTS.md` routing meaning、Product behavior
-- `CASE_TIMEOUT_MS=327_000`の値
-- general PowerShell / shell parser、LLM judge、keyword classifier、routing engine、event bus、generic lifecycle framework
-- retry framework、parallel runner、adaptive timeout、quiet-window判定
-- canonical resultを良く見せるためのcase retry、partial merge、old artifactの再利用
-- 今回のPlan作成中のsource implementation、canonical `all`、PR merge
+- `scripts/evals/skill-trigger-evals.ts`
+- `scripts/evals/run-skill-trigger-evals.ts`
+- `tests/repository-contract/skill-trigger-evals.test.ts`
+- `docs/adr/0023-trigger-eval-selector-and-query-execution-contract.md`の恒久記録追補
+- 実装Run Artifact
 
-## 17. PlanレビューYES / NOチェックリスト
+### 17.3 今回および実装phaseで変更禁止
+
+- dataset YAML、dataset schema 1、query、`expected_skill`、boundary、case ID、fingerprint
+- `.agents/skills/**/SKILL.md`、Skill description、`AGENTS.md` routing
+- `.codex/hooks/**`
+- `.codex/templates/evaluation.schema.json`、Run manifest schema、generic artifact validator
+- Product code、Product tests、training content
+- `CASE_TIMEOUT_MS = 327_000`
+- general PowerShell / shell parser、shell AST parser、LLM judge、keyword classifier
+- routing state machine、generic event bus、generic lifecycle framework
+- structured evidence adapter / provider / strategy / factory abstraction
+- retry framework、parallel runner、adaptive timeout、quiet-window、Host runtime wrapper
+- old artifactの変換、migration、後付けmarker、partial merge
+- Probe、canonical `all`、PR merge
+
+## 18. Plan自己レビュー（16項目）
 
 | # | 確認事項 | 回答 | 根拠 |
 |---:|---|---|---|
-| 1 | PR2が測定するroutingの意味は明確か | YES | single-intentのinitial routing、first readはproxyと定義した |
-| 2 | routingとtask completionは必要以上に結合していないか | YES | positiveはterminal非依存、absenceのみcompletion依存とした |
-| 3 | positive evidenceとabsence evidenceを区別しているか | YES | trusted candidateと`turn.completed` absenceを分離した |
-| 4 | `expected_skill=null`のpass確定条件は明確か | YES | trusted `turn.completed` + Hook整合 + read 0件に限定した |
-| 5 | false negative確定条件は明確か | YES | expectedあり + 同じabsence条件に限定した |
-| 6 | timeout後も成立したrouting evidenceをどう扱うか明確か | YES | outcome保持、`process_lifecycle=timed_out`を別保存する |
-| 7 | first Skill readの妥当性Evidenceがあるか | YES（proxy限定） | 24 case read順序調査でfirst readはterminal前、ただし内部選択の証明ではない |
-| 8 | selectorはcommand列挙より安定しているか | YES | structured-first + bounded normalizationへ移行する |
-| 9 | general shell parserになっていないか | YES | simple direct-read grammar以外をrejectする |
-| 10 | PR2とPR6の責務境界は明確か | YES | PR2はinitial、PR6はmulti-Skill chainとした |
-| 11 | 8-side validityを維持しているか | YES | 4 boundary × 2 sideを維持した |
-| 12 | 過去invalid resultと新baselineを混同しないか | YES | contract marker一致をcomparison必須にした |
-| 13 | 実装範囲は最小か | YES | 2 source、1 test、既存Plan/ADRの最小差分に限定した |
-| 14 | canonical再実行前の停止条件は明確か | YES | 15 preconditionsとinvalidation条件を定義した |
+| 1 | Selector non-matchとunreliableを区別できているか | YES | canonical / safe no-read / unreliableの3状態とabsence条件を定義した |
+| 2 | normal non-Skill commandがunobservableにならないか | YES | `git status`等をsafe no-read / reliableと明記した |
+| 3 | `observed_skills`の定義に矛盾がないか | YES | initial Skillは一件、absenceは`[]`、不成立は`null`に固定した |
+| 4 | later Skill readをPR2から除外したか | YES | Resultへ保存・score・diagnostic setを持ち込まないと明記した |
+| 5 | dataset schemaとResult schemaを分離したか | YES | dataset 1、Result 2を別定数・別責務にした |
+| 6 | old artifactを自然にcomparison拒否できるか | YES | schema 1、unknown、version不一致をfail closedしmigrationを禁止した |
+| 7 | 将来用structured adapterを追加していないか | YES | current preview経路だけを実装対象とし、将来Host機能はscope外注記にした |
+| 8 | 過去Planの履歴を破壊しないか | YES | 旧Planのdecision table / timeout / 判断を書き換えないと固定した |
+| 9 | process lifecycle summaryを確定したか | YES | `by_process_lifecycle`と6 enum、判定優先順位を固定した |
+| 10 | 旧terminal Gateを削除したか | YES | 新contractのthreshold / PASS条件に使用せず、歴史的事実だけ保持した |
+| 11 | Qualification / canonicalで同じTargetを使うか | YES | fresh independent Target一つをPASS後も交換せず再利用すると固定した |
+| 12 | expected nullのabsence条件が安全か | YES | `turn.completed`、correlation / parse、全event reliable、read 0件を要求した |
+| 13 | false_negativeのabsence条件が安全か | YES | trusted absenceでexpected Skillありの場合だけ許可した |
+| 14 | 実装時の主要判断が残っていないか | YES | schema、selector、summary、Codex version、Target、tests、preconditionsを確定した |
+| 15 | PR2 / PR6責務が混ざっていないか | YES | PR2はinitialのみ、later chain / workflowはPR6と固定した |
+| 16 | 過剰設計が増えていないか | YES | small pure functions、bounded recognizer、既存runner拡張、Result schema、testsに限定した |
 
-## 18. 成果物
+## 19. 成果物
 
-### 18.1 今回作成するもの
+### 19.1 今回の修正Runで保存するもの
 
 - `docs/plans/2026-09-09_161652_issue-117-pr2-observation-contract-redesign.md`
-- `.codex/runs/20260909-160634-JST/PLAN.md`
-- `.codex/runs/20260909-160634-JST/TASKS.md`
-- `.codex/runs/20260909-160634-JST/REPORT.md`
-- PR #127本文の「次の再検討」へのこのPlan path追記
+- `.codex/runs/20260909-192202-JST/PLAN.md`
+- `.codex/runs/20260909-192202-JST/TASKS.md`
+- `.codex/runs/20260909-192202-JST/REPORT.md`
+- machine-managed `.codex/runs/20260909-192202-JST/run.json`
+- PR #127本文のPlan状況記載（既存FAIL / 未実行 / 未取得を維持）
 
-### 18.2 実装phaseで作成するもの
+### 19.2 将来の実装Runで保存するもの
 
-- new contract result fixture / repository test
-- implementation Run Artifact
-- new contract marker付きの最初のvalid canonical result（8/8成立時のみbaseline候補）
+- Result schema 2のimplementation evidence
+- repository contract test結果
+- Qualification evidence
+- 8/8 side成立を確認した最初のvalid canonical result
+- PR3 comparisonへ使えるCodex version一致のbaseline/current provenance
 
-## 19. 備考
+## 20. リスク / 未解決論点
 
-- このPlanは、Host latencyを解消するためだけのtimeout変更Planではない。routing observationの意味、absenceの証明、lifecycleの分離を先に固定する。
-- current Environment Qualificationの240秒FAIL、positive selector drift、過去invalid canonical resultは失敗事実として保持する。新contractの成立を先取りしてPR本文へ「blocker解消済み」「valid baseline取得済み」とは書かない。
-- raw target Hook logは再利用可能な長期ArtifactとしてRepositoryへコピーしない。保存済みRunのsummaryと、今回調査で確認できた分布の範囲を超えて断定しない。
-- 実装承認後に、まずpure logicとrepository contract testを固定し、そこからrunner、provenance、qualification、canonicalの順に進める。
+### 20.1 リスク
+
+- first canonical readはinternal routing decisionの直接eventではない。Result、Plan、PR本文ではproxyの範囲を越えて主張しない。
+- safe no-readをunreliableへ寄せるとabsence coverageが減り、unreliableをsafe no-readへ寄せるとfalse pass / false negativeを作る。意味境界のtestを先に固定する。
+- candidate後のlater HookをResultへ保持しないため、PR2だけではSkill chainを説明できない。これは意図したPR6境界である。
+- Result schema 2を導入しても、Codex versionが違えばdescription差分とruntime差分を分離できないためcomparisonを拒否する。
+- TargetをQualification後に交換すると8-side validityとprovenanceが壊れるため、状態変化をRun invalidとして扱う。
+
+### 20.2 未解決ではなくscope外とする事項
+
+- Hostが将来typed path/file fieldやnative routing eventを提供する時期とfield形状
+- PR6のSkill chain / phase / workflow result schema
+- model identityを確実に返すHost provenance
+
+これらは今回の実装判断を保留する問いではなく、現行contractの範囲外である。現行実装は既存`tool_input_preview`だけを対象とする。
+
+## 21. 備考
+
+- 現行Qualificationのold terminal Gate FAIL、positive selector drift、過去invalid canonical resultは履歴として保持する。新contractの成立、blocker解消、valid baseline取得を先取りして記録しない。
+- `CASE_TIMEOUT_MS = 327_000`はprocess safety capであり、routing性能の合否閾値ではない。
+- raw Target Hook logは長期Repository Artifactへコピーしない。Runにはsanitizedな要約とrepo-relative referenceだけを残す。
+- implementation、Probe、canonical `all`は、修正版Planの再レビュー後に別Runで順序どおり実施する。
