@@ -542,9 +542,15 @@ describe("Native CI workflow contracts", () => {
 
   it("uses a fail-closed Android cleanup helper before every Maestro launch", () => {
     expect(androidStartupHelper).toContain('am force-stop "$PACKAGE_ID"');
+    expect(androidStartupHelper).toContain("uiautomator dump /dev/tty");
+    expect(androidStartupHelper).toContain("Pixel Launcher isn't responding");
+    expect(androidStartupHelper).toContain('text="Close app"');
     expect(androidStartupHelper).toContain('shell pm clear "$PACKAGE_ID"');
     expect(androidStartupHelper).toContain('shell pidof "$PACKAGE_ID"');
     expect(androidStartupHelper).toContain('"$MAESTRO_BIN" "${maestro_args[@]}"');
+    expect(androidStartupHelper.indexOf("dismiss_launcher_anr_dialog")).toBeLessThan(
+      androidStartupHelper.indexOf('am force-stop "$PACKAGE_ID"'),
+    );
     expect(androidStartupHelper.indexOf("shell pm clear")).toBeGreaterThan(
       androidStartupHelper.indexOf("am force-stop"),
     );
