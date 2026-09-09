@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "run_id": "20260910-072323-JST",
+  "result": "pass",
+  "primary_failure_category": null,
+  "failure_categories": [],
+  "dimensions": {
+    "task_completion": {
+      "rating": "pass",
+      "evidence": "4対象Skillのsemantic dataset、pure evaluator、minimal Codex Judge runner、repository-contract test、canonical 8 anchor calibration、全体verifyを完了した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/skill-semantic-output-evals.ts",
+          "summary": "dataset検証、prompt投影、trial集約を含むpure evaluator"
+        },
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/run-skill-semantic-output-evals.ts",
+          "summary": "固定3 trialとCodex subprocessを実行するrunner"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-final.json",
+          "summary": "8 anchorのcanonical calibration結果"
+        }
+      ]
+    },
+    "scope_control": {
+      "rating": "pass",
+      "evidence": "変更は正本Planで指定された4 dataset、eval source、runner、repository-contract test、package script、Run Artifactに限定され、Product Code/Test、CI、依存追加、N/A Skill、PR2固有処理は変更していない。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "summary": "git diff --name-status origin/main...HEADによる変更inventoryとscope監査"
+        },
+        {
+          "kind": "changed_file",
+          "path": "docs/plans/2026-09-08_004700_issue-117-pr5-semantic-output-eval.md",
+          "summary": "実装範囲とnon-goalsを定義する正本Plan"
+        }
+      ]
+    },
+    "validation_confidence": {
+      "rating": "pass",
+      "evidence": "repository-contract 17/17、TypeScript、対象lint、validate:skills、pnpm run verify、git diff --checkがPASSし、canonical calibrationは8 anchor×3 trialでRunner exit 0となった。",
+      "evidence_refs": [
+        {
+          "kind": "validation_command",
+          "path": null,
+          "summary": "targeted test、tsc、eslint、validate:skills、verify、diff checkの最終結果"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-final.json",
+          "summary": "全8 anchorのaggregate、calibration_match、provenance"
+        }
+      ]
+    },
+    "safety_compliance": {
+      "rating": "pass",
+      "evidence": "PR head branchを維持し、mainへのcommit、push、rebase、merge、force操作、削除を行わなかった。Run Artifactはsanitizer Write/Check対象として扱った。",
+      "evidence_refs": [
+        {
+          "kind": "run_manifest",
+          "path": ".codex/runs/20260910-072323-JST/run.json",
+          "summary": "machine-managed Run manifest"
+        },
+        {
+          "kind": "validation_command",
+          "path": null,
+          "summary": "git status、branch、PR headの安全確認"
+        }
+      ]
+    },
+    "reviewability": {
+      "rating": "pass",
+      "evidence": "正本Plan、TASKS、append-only REPORT、evaluation.json、成功・初回失敗のcalibration artifact、provenance、変更inventoryがRun ID単位で追跡できる。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/REPORT.md",
+          "summary": "判断、fixture mismatch、最終calibration、検証のcheckpoint"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/TASKS.md",
+          "summary": "task完了状態とProgress"
+        }
+      ]
+    },
+    "maintainability": {
+      "rating": "pass",
+      "evidence": "dataset schemaとjudge schemaをZodで一元化し、評価データ投影、固定trial protocol、aggregate、provenance、Windows process-tree終了を分離して実装した。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": "scripts/evals/skill-semantic-output-evals.ts",
+          "summary": "pureな契約・検証・集約ロジック"
+        },
+        {
+          "kind": "changed_file",
+          "path": "tests/repository-contract/skill-semantic-output-evals.test.ts",
+          "summary": "17件のrepository contract回帰テスト"
+        }
+      ]
+    },
+    "reproducibility": {
+      "rating": "pass",
+      "evidence": "Evaluator SHA、dataset SHA-256、Codex version、requested model、trial count、timeout、case-level結果を保存し、clean treeから同一runner protocolでcanonical calibrationを再現可能にした。",
+      "evidence_refs": [
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-final.json",
+          "summary": "再現に必要なprovenanceと全trial結果"
+        },
+        {
+          "kind": "changed_file",
+          "path": ".codex/runs/20260910-072323-JST/REPORT.md",
+          "summary": "実行条件、初回差分、最終結果"
+        }
+      ]
+    }
+  },
+  "findings": [],
+  "improvement_candidates": []
+}

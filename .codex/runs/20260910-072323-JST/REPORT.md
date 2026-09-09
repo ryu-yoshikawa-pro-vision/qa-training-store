@@ -25,7 +25,7 @@
 
 | Path | Reason | Suggested action |
 |---|---|---|
-|  |  |  |
+| `.codex/reports/codex-task-20260910-083828.report.json` | `-Help`未対応オプション確認時に生成されたactive Run外のad-hoc report。実装成果物ではない。 | ユーザーが内容を確認後、手動で削除する。 |
 
 ## 2026-09-10 07:27 (JST)
 
@@ -53,3 +53,29 @@
 - Validation: canonical attempt 1はRunner exit 1（calibration mismatch 1件）。修正後のdiagnostic `CR-SEM-001`は3/3 `pass`、`stable_pass`、`calibration_match=true`。targeted test 17/17、`validate:skills`はPASS。
 - Blocker / Remaining: blockerなし。fixture修正を新しいsource commitへ反映し、clean treeから全8 anchorのcanonical calibrationを再実行する。
 - Progress: 71% (5/7)
+
+## 2026-09-10 08:39 (JST)
+
+- Summary: fixture修正をcommitへ反映し、clean treeからcanonical calibrationを完了した。
+- Changes: Evaluator SHA `45ff77db9ebd0bfd1e27db74eecd2cae1100d612`、dataset SHA-256 `9d7d251a0e46f97b0548e8f9a3efa751e2c8d0e8f21f2b847336e651196f1bdb`、明示model `gpt-5.6-luna`、3 trial、timeout `600000ms`を`semantic-result-final.json`へ保存した。8 anchorは期待どおり4件の`stable_pass`と4件の`stable_fail`となり、全件`calibration_match=true`、target criterion検出、unstable/unobservableなしだった。
+- Decision / Rationale: 初回の`CR-SEM-001` mismatchは、修正済みdiffと矛盾するpass candidateのfixture不備だったため、truth・rubric・protocolを変更せずcandidateだけを修正した。初回artifact `semantic-result.json`は履歴として保持し、成功artifactと分離した。
+- Validation: 成功canonical calibrationはRunner exit 0。最終`pnpm run verify`もexit 0で、全品質ゲートをPASSした。task 6を完了とする。
+- Blocker / Remaining: blockerなし。task 7としてevaluation.json、machine-managed run.json、sanitization、最終scope/diff確認、最終commitが残る。
+- Subagents:
+  - Delegation: なし。
+  - Result: 親Agentが実装・検証・calibrationを実施した。
+  - Parent decision: 追加delegationは不要と判断した。
+- Progress: 86% (6/7)
+
+## 2026-09-10 08:44 (JST)
+
+- Summary: Strict Run Artifact、最終検証、scope監査、最終commitを完了した。
+- Changes: `evaluation.json`をcurrent schemaで作成し、`run.json`は`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`でmachine-managed更新した。Run Artifactへsanitizer Write/Checkを実行し、absolute path residualは0件だった。正本Planの末尾改行追加は既存`MD047`解消のみで、意味変更はない。
+- Decision / Rationale: 実装commit `45ff77db9ebd0bfd1e27db74eecd2cae1100d612`をEvaluator SHAとして固定したまま、calibration結果・evaluation・Run metadataを後続commitへ保存する。active Run外のad-hoc reportは削除せずDeletion candidatesへ記録した。
+- Validation: `python scripts/validate-output-schema.py .codex/templates/evaluation.schema.json .codex/runs/20260910-072323-JST/evaluation.json`、targeted Vitest `17/17`、`pnpm run validate:skills`、`git diff --check HEAD`、`git diff --check origin/main...HEAD`、sanitizer Write/CheckがPASS。直近の`pnpm run verify`もexit 0で、full quality gateをPASSした。canonical calibrationは8 anchor×3 trial、4 `stable_pass`／4 `stable_fail`、Runner exit 0、全件`calibration_match=true`だった。
+- Blocker / Remaining: 実装・検証上のblockerなし。pushはユーザー指示どおり行っていない。active Run外のad-hoc reportは削除候補として残る。
+- Subagents:
+  - Delegation: なし。
+  - Result: 親Agentが全作業を実施した。
+  - Parent decision: 追加delegationは不要と判断した。
+- Progress: 100% (7/7)
