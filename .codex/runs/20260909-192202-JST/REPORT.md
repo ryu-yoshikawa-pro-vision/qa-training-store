@@ -77,6 +77,17 @@
 - Subagents: Delegationなし。Result / Parent decision: task 11を完了し、実装へ進まず最終push前確認へ進む。
 - Progress: 92% (11/12)
 
+## 2026-09-09 20:54 (JST)
+
+- Summary: 最終selector reliability revisionを含むPlanをcommit `372d61ac52d6d7aa549703b4eb0a278202bc6feb`へ保存し、対象branchへexplicit non-force pushした。
+- Git: push前にcurrent branch、working tree、upstream、PR head/base/stateを再確認し、branchは`refactor/117-pr2-trigger-eval-baseline`、PR #127はOPEN / base `main`だった。remote branch headはPlan commitへ更新された。
+- Validation: 最終Plan / RunのMarkdown lint、Prettier、`git diff --check`、sanitizer Write / Check（Plan 1 file、Run 4 files、residual 0）、Run collector strictをPASSした。
+- Scope: 変更は修正版Planとactive Run Artifactだけで、source implementation、tests、dataset、Hook、Skill、AGENTS、Product code、timeout値、Probe、Qualification再実行、canonical `all`には変更・実行がない。
+- PR: 本文へselector reliability reviewを追記し、Environment Qualification FAIL、canonical `all`未実行、valid baseline未取得、実装未着手を維持した。
+- Remaining: 修正版Planの再レビュー・承認後に別RunでResult schema 2実装、contract tests、Qualification、Observation Probe、canonical `all`、8/8 valid baseline取得を行う。今回のRunでは blockerなし。
+- Subagents: Delegationなし。Result / Parent decision: task 12を完了し、Plan-onlyの境界を維持したままRunを完了する。
+- Progress: 100% (12/12)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。

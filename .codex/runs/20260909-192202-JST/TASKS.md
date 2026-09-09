@@ -13,7 +13,7 @@
 - [x] 9. 保存済みHook evidenceをread-onlyで再調査し、実測non-Bash / input shapeを記録する
 - [x] 10. selectorの観測境界、3状態、search guard、direct implementation null side、self-reviewをPlanへ反映する
 - [x] 11. Plan-only validation、sanitizer、collector、scope、PR本文を再確認する
-- [ ] 12. branch safetyを再確認し、Plan / Runだけをnon-force pushしてremote / PRを最終確認する
+- [x] 12. branch safetyを再確認し、Plan / Runだけをnon-force pushしてremote / PRを最終確認する
 
 ## Discovered
 
