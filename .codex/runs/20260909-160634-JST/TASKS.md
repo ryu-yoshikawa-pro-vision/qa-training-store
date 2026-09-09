@@ -8,8 +8,8 @@
 - [x] 4. Candidate A〜D、推奨案、schema/lifecycle/selector/comparison方針を設計する
 - [x] 5. 新Planを保存し、自己レビューで弱点を修正する
 - [x] 6. Plan/Run Artifactをvalidation・sanitizationし、scopeを確認する
-- [ ] 7. Plan/Run Artifactをcommit/pushし、PR本文へ次対応Planを追記する
-- [ ] 8. remote/PR/working treeを最終確認し、Run完了を記録する
+- [x] 7. Plan/Run Artifactをcommit/pushし、PR本文へ次対応Planを追記する
+- [x] 8. remote/PR/working treeを最終確認し、Run完了を記録する
 
 ## Discovered
 
