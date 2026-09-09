@@ -81,6 +81,15 @@
 - Blocker / Remaining: 対象変更を含むcommit SHAでのTraining Copy検証、最終scope / sanitization、責務単位commit、push、PR本文更新が残る。GitHub Actions上の受講者変更後runtimeは未確認である。
 - Progress: 75% (12/16)
 
+## 2026-09-09 19:05 (JST)
+
+- Summary: Run manifestのcollector経由同期とRun ArtifactのSanitizer Write / Checkを完了した。
+- Changes: `scripts/collect-run-artifacts.ps1 -RunId 20260909-161425-JST -RefreshGitChangedFiles -Strict`を実行し、machine-managed manifestの整合を確認した。既存Runの変更はなく、raw logは`.artifacts/`へ置いた。
+- Decision / Rationale: `run.json`は直接編集せず、collectorが管理する項目だけを正規経路で再走査した。SanitizerはRun全4ファイルを走査し、ローカル絶対Pathの残存がないことを確認した。
+- Validation: collectorはexit 0。`pwsh -NoProfile -File scripts/sanitize-codex-artifacts.ps1 -Path .codex/runs/20260909-161425-JST -Write -Check`はPASS（4 files scanned、0 files changed、0 replacements、0 residual findings）。Training CopyはSource SHA `1ea88fe555fcf263c1ed9849e15a33c695ae0829`でprepare / validate PASS済み。
+- Blocker / Remaining: GitHub Actions上の受講者変更後runtimeはpush後に確認する。Runの最終Task更新、最終scope確認、責務単位commit、push、PR本文更新が残る。
+- Progress: 75% (12/16)
+
 ## 2026-09-09 18:50 (JST)
 
 - Summary: 更新後の診断経路を、意図的な初期Failure、修正後Pass、初期状態への復元まで完了した。
