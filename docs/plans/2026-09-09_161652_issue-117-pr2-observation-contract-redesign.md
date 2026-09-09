@@ -1,6 +1,6 @@
 # Issue #117 PR2 Trigger Eval observation / evaluation contract 再設計計画
 
-> Status: レビュー指示反映済みの実装前Plan（今回の作業では実装・Probe・canonical `all`を行わない）
+> Status: 検索scope境界レビュー反映済みの実装前Plan（今回の作業では実装・Probe・canonical `all`を行わない）
 >
 > 対象: PR #127 / branch `refactor/117-pr2-trigger-eval-baseline`
 >
@@ -31,6 +31,8 @@ Get-Content -LiteralPath '.agents\skills\feature-plan\SKILL.md' -Raw
 ```
 
 保存済みTrigger Eval Probeには、canonical read commandに`;` suffixが付いた実測はない。Repository内の他の`;`は文書調査・一般commandの記録であり、Trigger Eval selectorの根拠にはしない。
+
+検索系commandは、command内にcanonical Skill fileの完全一致文字列があるかではなく、そのcommandの検索対象scopeから6つのcanonical `SKILL.md`へのdirect content read可能性を安全に排除できるかで分類する。検索系commandをcanonical readerへ昇格させず、安全を証明できるboundedな単純shapeだけを`safe_no_read`とし、それ以外は`unreliable`へ倒す。
 
 ### 0.3 今回の成果物
 
@@ -64,7 +66,7 @@ PR6はmulti-Skill workflow、Skill chain、後続Skill invocation、workflow全�
 - 旧terminal Gateを新contractから削除し、`CASE_TIMEOUT_MS = 327_000`をprocess safety capとして維持する。
 - `240秒Gate`は新contractへ設けない。terminal durationをrouting validity、comparison、Qualification PASS条件へ持ち込まない。
 - Qualificationとcanonical `all`で同一のfresh independent Routing Targetを再利用する条件を固定する。
-- selector grammar、comparison、tests、実装対象file、canonical preconditions、rollback、scope guard、24項目の自己レビューを確定する。
+- selector grammar、comparison、tests、実装対象file、canonical preconditions、rollback、scope guard、32項目の自己レビューを確定する。
 
 ### 1.3 将来実装後のDoD
 
@@ -98,13 +100,14 @@ git rev-parse origin/main
 
 - branch: `refactor/117-pr2-trigger-eval-baseline`
 - working tree: clean
-- HEAD: `c458cc6610344d580676a0813f178e9c6993dad2`
+- HEAD: `98987f666d9d2ba42a56e77ab4c6e764fd4b8825`
 - `origin/main`: `f7cc237d8ca719646d9654fba2129732b6eab457`
-- 最終修正指示開始時のHEAD: `99120f684c5e2cdac630c662fd752767c3908e49`（上記HEADは前回Plan修正Runの開始時点）
+- 前回Plan修正Run開始時のHEAD: `99120f684c5e2cdac630c662fd752767c3908e49`（履歴上の開始点）
+- 今回の検索scope境界修正開始時のHEAD: `98987f666d9d2ba42a56e77ab4c6e764fd4b8825`
 - PR #127: `OPEN`、base `main`、head branch一致、head SHAはHEADと一致
 - PR本文: Environment Qualification `FAIL`、canonical `all`未実行、valid baseline未取得、Plan pathを保持
 
-今回の修正Runは`.codex/runs/20260909-192202-JST/`で管理する。
+今回の修正Runは`.codex/runs/20260909-211156-JST/`で管理する。
 
 ### 2.2 実測Environment Qualification
 
@@ -306,8 +309,9 @@ Later Skill reads:
 
 - `Get-Content -Raw .agents/skills/feature-plan/SKILL.md` → `canonical_skill / true / feature-plan`
 - `Get-Content package.json`、`Get-Content docs/PROJECT_CONTEXT.md`、`git status`、`pnpm run test`、`Get-ChildItem src` → inputからcanonical Skill direct readではないと確定できるため`safe_no_read / true / null`
-- `rg "foo" src/`、`grep "foo" package.json`、`Select-String -Path docs/PROJECT_CONTEXT.md -Pattern "foo"` → canonical Skill pathを含まないこの単純shapeでは`safe_no_read / true / null`
-- `rg "foo" .agents/skills/feature-plan/SKILL.md`、`grep "foo" .agents/skills/code-review/SKILL.md`、`Select-String -Path .agents/skills/repair-loop/SKILL.md ...` → positive readerとして未対応で、canonical read可能性を除外できないため`unreliable / false`
+- `rg "foo" src/`、`rg "foo" docs/`、`grep "foo" package.json`、`grep "foo" docs/PROJECT_CONTEXT.md`、`Select-String -Path docs/PROJECT_CONTEXT.md -Pattern "foo"` → 明示された検索対象scopeがcanonical Skill treeと交差せず、recursive / glob / implicit rootへ広がらないことをboundedに確認できるため`safe_no_read / true / null`
+- `rg "foo" .agents/skills/feature-plan/SKILL.md`、`rg "foo" .agents/skills/feature-plan`、`grep -R "foo" .agents/skills`、`rg --hidden "foo" .`、`rg "foo"`、`Select-String -Path '.agents/skills/*/SKILL.md' -Pattern 'foo'` → 対象scopeがcanonical Skill treeと交差するか、交差しないことを安全に証明できないため`unreliable / false`
+- `rg ".agents/skills/feature-plan" docs/`のようにcanonical pathがpatternだけにあり、検索targetが明示された非交差scopeだとboundedに分離できる場合は`safe_no_read / true / null`とする。patternとtargetを安全に分離できない場合は`unreliable / false`とする。これは検索commandをpositive readerへ昇格させるものではない。
 - 保存済み`historylist_items`のquery shape → canonical path / content-read targetがなく、当該shapeに限り`safe_no_read / true / null`
 - 保存済み`noteswrite_file`の`truncated: true` event → preview全体を検査できないため`unreliable / false`
 - truncated `tool_input_preview`、malformed preview JSON、ambiguous multiple command、unbalanced quote、対象commandを一意に取れない複雑なPowerShell → `unreliable / false`
@@ -316,12 +320,16 @@ Later Skill reads:
 
 ### 5.2.1 event classifier decision table
 
-| event | canonical Skillとの関係 | 判定 |
+| command/input | canonical Skillとの関係 | 判定 |
 |---|---|---|
 | supported direct readerでcanonical Skillを一意にread | canonical Skill read | `canonical_skill` |
 | supported command / toolでcanonical Skill readではないと一意に確定 | none | `safe_no_read` |
-| `rg` / `grep` / `Select-String`のinputにcanonical Skill pathが現れる | unsupported direct-read possibility | `unreliable` |
-| `rg` / `grep` / `Select-String`のinputにcanonical Skill pathが現れない単純shape | noneを安全に確認 | `safe_no_read` |
+| `rg` / `grep` / `Select-String`の明示targetがcanonical Skill treeと非交差で、recursive / glob / implicit rootへ広がらない単純shape | noneを安全に確認 | `safe_no_read` |
+| `rg` / `grep` / `Select-String`のtargetがcanonical fileを直接指定 | canonical Skill file対象だがpositive reader未対応 | `unreliable` |
+| 同commandのtargetがcanonical Skill parent directory / `.agents/skills/` / repository root | canonical Skill fileを内包し得る | `unreliable` |
+| 検索root省略、wildcard / glob、`-r` / `-R` / `--recursive`でscopeが不確定 | 非交差を安全に証明できない | `unreliable` |
+| canonical pathがpatternだけに現れ、targetが明示された非交差scopeへboundedに分離可能 | targetはSkill treeと非交差 | `safe_no_read` |
+| patternとsearch targetを安全に分離できない | canonical read可能性が不明 | `unreliable` |
 | 非Bash toolだがsemantics / inputからcanonical Skill content readと無関係と確定 | none | `safe_no_read` |
 | 非Bash toolでcanonical Skill content read可能性を排除できない | 不明 | `unreliable` |
 | unknown toolでsemanticsから安全に判断できない | 不明 | `unreliable` |
@@ -338,6 +346,8 @@ Later Skill reads:
 5. candidateがない場合は、5.4のtrusted absence条件へ進む。
 
 positive candidateより前のeventが`unreliable`ならpresenceは確定しない。candidate自体が`unreliable`ならSkill値を補完しない。
+
+したがって、candidate前の`unreliable`な検索eventも、canonical path文字列が完全一致するかどうかにかかわらずpresenceを不成立にする。candidate後の`unreliable`な検索eventは、既にtrustedなinitial routing outcomeを上書きせず、later Skill情報も保存しない。
 
 ### 5.4 Absenceの確定
 
@@ -536,6 +546,34 @@ pathはcanonical relative pathへ正規化し、6つのcanonical Skillと`SKILL.
 
 `;` suffixを含むcompound commandは実測根拠がないため許可しない。pipe、redirection、variable interpolation、command substitution、loop、script block、複数command、複数path、任意のPowerShell scriptはbounded grammar外であり、read有無が安全に除外できない場合は`unreliable`とする。
 
+### 7.2.1 canonical Skill treeと検索scope guard
+
+検索系commandのcanonical対象は、次の6つのfileと、それらを内包するtreeである。slashは`/`と`\`を同一視する最小正規化だけをbounded selector内で行う。
+
+```text
+.agents/skills/android-native-local-validation/SKILL.md
+.agents/skills/code-review/SKILL.md
+.agents/skills/exploratory-qa/SKILL.md
+.agents/skills/feature-plan/SKILL.md
+.agents/skills/harness-improvement/SKILL.md
+.agents/skills/repair-loop/SKILL.md
+```
+
+`.agents/skills/feature-plan/`と`.agents\skills\feature-plan\`は同じsearch targetとして扱う。ただし、これはbounded selector内のslash差吸収だけであり、一般的なpath normalization frameworkやfilesystem resolverを追加する意味ではない。
+
+検索targetが次のいずれかに該当する場合、canonical fileを内包し得るため`unreliable`とする。
+
+- 6つのcanonical `SKILL.md`そのもの
+- `.agents/skills/<canonical-skill>/`のparent directory
+- `.agents/skills/`全体
+- repository rootまたはそれより上位のscope
+- current directoryを暗黙のrootとするscope
+- `*`、`**`などのwildcard / glob、`-R`、`-r`、`--recursive`などでcanonical treeへ広がり得るscope
+
+ただし、canonical pathがpattern文字列に現れることと、そのpathがsearch targetであることは同じではない。bounded selectorがpatternとtargetを安全に分離でき、targetが明示されたcanonical非交差scopeで、recursive / glob / implicit rootへ広がらない単純shapeだけは`safe_no_read`とする。分離できない場合は`unreliable`とする。
+
+ここでgeneral path resolver、filesystem graph、glob engine、shell / PowerShell / `rg` / `grep` / `Select-String` parserを作らない。安全を証明できる少数の単純shapeを認識し、それ以外を`unreliable`へ倒す。
+
 ### 7.3 safe no-read
 
 次は、eventのinput shapeからcanonical Skill direct readではないことを安全に確定できる場合に`safe_no_read / reliable`とする。これはfilesystemを一切読まないという意味ではない。canonical Skill direct read evidenceに該当しないことだけを表す。
@@ -547,13 +585,14 @@ pathはcanonical relative pathへ正規化し、6つのcanonical Skillと`SKILL.
 - `Get-ChildItem`
 - `echo ...`
 - `Write-Output ...`
-- `rg` / `grep` / `Select-String`でcanonical Skill pathを含まない、inputが完全な単純shape
+- `rg` / `grep` / `Select-String`で、検索targetが明示され、6つのcanonical Skill treeと非交差であることを安全に確認でき、recursive / glob / implicit rootへ広がらない完全な単純shape
+- `rg ".agents/skills/feature-plan" docs/`のように、canonical pathがpatternだけに現れ、非交差targetへboundedに分離できる単純shape
 - 保存済み`historylist_items`のquery shape（当該input shapeに限定）
 - 明示されたunknown Skill pathを`Get-Content`で読むcommand（6 canonical Skillへ一意に対応しないことが確認できる場合）
 - non-`SKILL.md`
 - directory read
 
-検索commandはcommand名だけで分類しない。canonical Skill pathがcommand / inputに現れないことを確認でき、かつtruncated / malformed / ambiguousでない場合だけ上記safe no-read候補とする。canonical pathそのもの、canonical pathへ展開し得る曖昧なpath / glob / variableがある場合は7.4へ送る。
+検索commandはcommand名やcanonical path文字列の有無だけで分類しない。明示された検索targetのscopeが6つのcanonical Skill treeと交差しないこと、recursive / glob / implicit rootへ広がらないこと、patternとtargetをboundedに分離できることを全て確認でき、かつtruncated / malformed / ambiguousでない場合だけ`safe_no_read`とする。canonical file、parent directory、`.agents/skills/`、repository root、暗黙root、glob / recursive scope、または非交差を安全に証明できないtargetは7.4へ送る。
 
 ### 7.4 unreliable
 
@@ -568,7 +607,10 @@ pathはcanonical relative pathへ正規化し、6つのcanonical Skillと`SKILL.
 - canonical pathを含むが意味解析できないcomplex PowerShell
 - command自体を一意に取得できない入力
 - 保存済み`noteswrite_file`のように`truncated: true`でpreview全体を確認できないevent
-- `rg` / `grep` / `Select-String`のinputに6 canonical Skill pathのいずれかが現れるevent（検索patternであってもpositive readerとして未対応なら`unreliable`）
+- `rg` / `grep` / `Select-String`のsearch targetが6つのcanonical `SKILL.md`、canonical parent directory、`.agents/skills/`、repository root、上位scopeのいずれかに交差するevent
+- 検索root省略、wildcard / glob、`-R` / `-r` / `--recursive`、variableなどによりcanonical Skill treeとの非交差を安全に証明できないevent
+- canonical pathがpatternとtargetのどちらかを安全に分離できないevent（patternだけが非交差scopeにあるとboundedに確定できる場合を除く）
+- 検索targetとしてcanonical Skillを指定したevent（検索commandをpositive readerとしては扱わないため`unreliable`）
 - non-Bash eventで、semanticsとinputからcanonical Skill direct read可能性を安全に排除できないevent
 - unknown toolで、semanticsとinputからcanonical Skill direct read可能性を安全に排除できないevent
 
@@ -800,8 +842,11 @@ Qualification PASS後にre-clone、checkout変更、reset、別Targetへの交�
 - `Get-ChildItem src`
 - `echo` / `Write-Output`
 - `rg "foo" src/`
+- `rg "foo" docs/`
 - `grep "foo" package.json`
+- `grep "foo" docs/PROJECT_CONTEXT.md`
 - `Select-String -Path docs/PROJECT_CONTEXT.md -Pattern "foo"`
+- `rg ".agents/skills/feature-plan" docs/`（canonical pathはpatternだけで、targetが非交差scopeだとboundedに確認できるshape）
 - 保存済み`historylist_items`のquery shape
 - `Get-Content .agents/skills/not-a-canonical-skill/SKILL.md`のように、6 canonical Skillへ一意に対応しないことが確認できるexplicit path
 - non-`SKILL.md`
@@ -822,8 +867,14 @@ Qualification PASS後にre-clone、checkout変更、reset、別Targetへの交�
 - canonical pathを含むcomplex PowerShell
 - command自体を一意に取得できない入力
 - 保存済み`noteswrite_file`の`truncated: true` shape
-- `rg` / `grep` / `Select-String`のinputへcanonical Skill pathを含むcommand
-- canonical Skill pathへ展開し得るambiguous path / glob / variable
+- exact canonical Skill fileをsearch targetにするcommand
+- canonical Skill parent directoryをsearch targetにするcommand
+- `.agents/skills/`全体をrecursive searchするcommand
+- repository rootまたは上位scopeをsearchするcommand
+- search rootを省略したcommand
+- `*` / `**`のglob、wildcard、`-R` / `-r` / `--recursive`を含むcommand
+- canonical pathがpatternとtargetのどちらかを安全に分離できないcommand
+- canonical Skill pathへ展開し得るambiguous path / variable
 - semanticsとinputからcanonical Skill direct read可能性を排除できないnon-Bash event
 
 ### 13.4 Observation / lifecycle
@@ -990,7 +1041,7 @@ case retry、unobservable-only retry、query tuning、timeout変更、Skill desc
 ### 17.1 今回のPlan修正で変更可能
 
 - `docs/plans/2026-09-09_161652_issue-117-pr2-observation-contract-redesign.md`
-- `.codex/runs/20260909-192202-JST/**`
+- `.codex/runs/20260909-211156-JST/**`
 - PR #127本文のPlan状況記載
 
 ### 17.2 実装phaseで変更可能
@@ -1016,7 +1067,7 @@ case retry、unobservable-only retry、query tuning、timeout変更、Skill desc
 - old artifactの変換、migration、後付けmarker、partial merge
 - Probe、canonical `all`、PR merge
 
-## 18. Plan自己レビュー（24項目）
+## 18. Plan自己レビュー（32項目）
 
 | # | 確認事項 | 回答 | 根拠 |
 |---:|---|---|---|
@@ -1037,23 +1088,31 @@ case retry、unobservable-only retry、query tuning、timeout変更、Skill desc
 | 15 | PR2 / PR6責務が混ざっていないか | YES | PR2はinitialのみ、later chain / workflowはPR6と固定した |
 | 16 | 過剰設計が増えていないか | YES | small pure functions、bounded recognizer、既存runner拡張、Result schema、testsに限定した |
 | 17 | 非Bash `PostToolUse`をtool名だけで`unreliable`にしていないか | YES | 全`PostToolUse`をevent / inputで分類し、実測`historylist_items`はshape限定でsafe、truncatedな`noteswrite_file`だけをunreliableとした |
-| 18 | `rg` / `grep` / `Select-String`をcommand名だけで`safe_no_read`にしていないか | YES | canonical Skill pathなしの単純inputだけをsafe候補とし、pathありはunreliableとした |
-| 19 | canonical Skill pathを検索対象にするunsupported readerをfalse absenceへ落とさないか | YES | pathあり検索をpositive扱いせず`unreliable`とし、absenceを禁止した |
+| 18 | `rg` / `grep` / `Select-String`をcommand名だけで`safe_no_read`にしていないか | YES | 明示targetのscope intersection、recursive / glob / implicit root、pattern/target分離を確認し、command名やpath文字列の有無だけで決めない |
+| 19 | canonical Skill pathを検索対象にするunsupported readerをfalse absenceへ落とさないか | YES | canonical file、parent directory、`.agents/skills/`、repository root等をtargetにする検索は`unreliable`とし、検索をpositive readerへ昇格しない |
 | 20 | direct implementation側の正常eventが不要にunobservableにならないか | YES | explicit non-Skill inputをsafe no-readとし、expected null + trusted completionのabsenceを許可するtestを計画した |
 | 21 | `safe_no_read`が「filesystem readなし」という誤った意味になっていないか | YES | canonical Skill direct read evidenceに該当しないという意味へ限定した |
 | 22 | `unreliable`の意味がcanonical Skill read判定不能に限定されているか | YES | non-Bashや一般的なevent失敗を理由に広げず、可能性を安全に排除できない場合だけにした |
 | 23 | 実測されていないtool対応を将来用に実装しようとしていないか | YES | 実測は`historylist_items` / `noteswrite_file`のshapeだけ記録し、positive non-Bash readerやregistryを追加しない |
 | 24 | general command / tool parserを作るPlanになっていないか | YES | bounded `Get-Content`、canonical path guard、小さなevent classifierに限定した |
+| 25 | canonical file path完全一致だけでsearch判定していないか | YES | path文字列の有無ではなく、検索target scopeと6 canonical `SKILL.md`のintersectionを判定基準にした |
+| 26 | canonical Skill parent directoryを検索するcommandを`safe_no_read`にしていないか | YES | parent directoryはcanonical `SKILL.md`を内包するため`unreliable`と固定した |
+| 27 | `.agents/skills`全体のrecursive searchを`safe_no_read`にしていないか | YES | canonical treeを含むrootおよびrecursive scopeを`unreliable`と固定した |
+| 28 | repository-wide searchを`safe_no_read`にしていないか | YES | repository rootまたは上位scopeはcanonical treeを含み得るため`unreliable`と固定した |
+| 29 | search root省略時を`safe_no_read`にしていないか | YES | current directory scopeを安全に非交差と証明できないため`unreliable`と固定した |
+| 30 | globでcanonical `SKILL.md`へ到達できるcaseを`safe_no_read`にしていないか | YES | wildcard / glob / recursive expansionで非交差を証明できない場合は`unreliable`と固定した |
+| 31 | safeと証明できる単純searchだけを`safe_no_read`にしているか | YES | 明示された非交差target、拡張なし、pattern/target分離可能のbounded shapeだけを許可した |
+| 32 | search parser / path resolverを過剰実装するPlanになっていないか | YES | general parser / resolverを作らず、最小正規化と保守的なbounded classifierだけに限定した |
 
 ## 19. 成果物
 
 ### 19.1 今回の修正Runで保存するもの
 
 - `docs/plans/2026-09-09_161652_issue-117-pr2-observation-contract-redesign.md`
-- `.codex/runs/20260909-192202-JST/PLAN.md`
-- `.codex/runs/20260909-192202-JST/TASKS.md`
-- `.codex/runs/20260909-192202-JST/REPORT.md`
-- machine-managed `.codex/runs/20260909-192202-JST/run.json`
+- `.codex/runs/20260909-211156-JST/PLAN.md`
+- `.codex/runs/20260909-211156-JST/TASKS.md`
+- `.codex/runs/20260909-211156-JST/REPORT.md`
+- machine-managed `.codex/runs/20260909-211156-JST/run.json`
 - PR #127本文のPlan状況記載（既存FAIL / 未実行 / 未取得を維持）
 
 ### 19.2 将来の実装Runで保存するもの
