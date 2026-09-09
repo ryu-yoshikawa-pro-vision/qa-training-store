@@ -44,3 +44,12 @@
 - Validation: targeted repository-contract testは17/17 PASS、`pnpm exec tsc --noEmit --project tsconfig.json` PASS、`pnpm run validate:skills` PASS（6 Skill、15 Markdown、24 local links）。単一anchorのprecommit smoke runはexplicit model `gpt-5.6-luna`、3 trial、`stable_pass`、exit 0、result artifact `.artifacts/semantic-output/precommit-smoke.json`を確認した。Windows Nodeのshell deprecation warningは既存Plan指定の`codex.cmd`/ComSpec方式に伴う警告で、Judge結果は成功した。
 - Blocker / Remaining: blockerなし。source commit後のcanonical 8 anchor calibration、全体verify、scope監査、sanitization、最終commitが残る。
 - Progress: 71% (5/7)
+
+## 2026-09-10 08:22 (JST)
+
+- Summary: Canonical calibration attempt 1を完了し、1件のfixture mismatchを特定した。
+- Changes: `semantic-result.json`にはEvaluator SHA `4ae04de7901386525a093bb3ef195eec567285ce`、explicit model `gpt-5.6-luna`、8 anchor×3 trialの結果が記録された。
+- Decision / Rationale: `CR-SEM-001`だけが`stable_fail`（3/3で`CR-FINDING` fail）となった。pass anchorのcandidateが修正済みdiffではなく未修正時の不具合を断定しており、contextと矛盾するfixture設計不備だった。expected truth、rubric、runner protocolは変更せず、candidateを「修正済みdiffにactionable findingなし」とする文面へ修正した。残り7 anchorは期待aggregateを満たし、fail anchorのtarget criterionを全3 trialで検出した。
+- Validation: canonical attempt 1はRunner exit 1（calibration mismatch 1件）。修正後のdiagnostic `CR-SEM-001`は3/3 `pass`、`stable_pass`、`calibration_match=true`。targeted test 17/17、`validate:skills`はPASS。
+- Blocker / Remaining: blockerなし。fixture修正を新しいsource commitへ反映し、clean treeから全8 anchorのcanonical calibrationを再実行する。
+- Progress: 71% (5/7)

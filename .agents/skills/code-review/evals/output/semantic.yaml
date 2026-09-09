@@ -25,18 +25,18 @@ cases:
       changes. The review contract asks for findings grounded in the diff, impact proportional to
       evidence, and a review-only response that does not claim to have applied a fix.
     candidate_output: |
-      Finding: The fence parser accepts a closing marker made from the other fence character.
+      Finding: No actionable correctness finding was identified in the supplied diff.
 
-      Why it matters: In the supplied diff, the parser compares the closing marker with the
-      opening marker and the new test covers the mismatch. Accepting the other marker would make
-      a heading inside an unclosed fenced block visible to the plan-output validator, so this is a
-      correctness risk for documents using mixed fence characters.
+      Why it matters: The diff changes the fence-state comparison so a closing marker must use
+      the opening marker type and at least its length, and the added test covers the mixed-marker
+      boundary. Those facts support the documented parser behavior rather than an unobserved
+      regression.
 
-      Evidence: The diff changes the parser's fence-state comparison and adds the mixed-marker
-      regression test. No unrelated product or persistence behavior is implicated.
+      Evidence: The supplied diff contains the fence comparison and its focused regression test.
+      It contains no unrelated product, data, permission, or persistence change.
 
-      Suggested fix: Keep the marker-type and minimum-length comparison together, and retain the
-      focused regression test. This response only records the review finding; no repair has been
+      Suggested fix: Keep the marker-type and minimum-length comparison together and retain the
+      focused regression test. This response only records the review result; no repair has been
       executed.
     expected:
       outcome: pass
