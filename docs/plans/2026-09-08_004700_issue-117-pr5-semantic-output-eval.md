@@ -545,13 +545,20 @@ scripts/evals/skill-semantic-output-evals.ts
 
 canonical YAML serializationは作らない。
 
-対象4ファイルをrelative path順に並べ、次をSHA-256する。
+対象4ファイルについて、Repository-relative pathを`/`区切りへ正規化し、その文字列の昇順で並べる。
+
+各fileについて、次のbyte列を順番にSHA-256へ投入する。
 
 ```text
-relative path
-+ separator
-+ raw file bytes
+UTF-8(normalized relative path)
+0x00
+raw file bytes
+0x00
 ```
+
+`path.relative()`等で得たOS固有separatorをそのままhashへ入れない。Windowsの`\`も`/`へ正規化してからhashへ投入する。
+
+YAML本文はparse後に再serializeせず、fileのraw bytesをそのまま使う。
 
 `--case`指定の有無にかかわらず、`dataset_sha256`は常に対象4 Skillのcanonical `semantic.yaml`全体から計算する。
 
@@ -582,6 +589,17 @@ scripts/evals/run-skill-semantic-output-evals.ts
 ```
 
 `--case`はglobal unique IDを1件指定する診断用途である。
+
+`--case`指定時は4 datasetのdeterministic validation後、global case IDと完全一致するcaseが1件存在することをCodex起動前に確認する。
+
+一致するcaseが0件の場合:
+
+- Codexを起動しない。
+- stderrへunknown case IDであることを出す。
+- `--output`先へcanonical result artifactを生成しない。
+- exit 1とする。
+
+case IDのduplicateはdataset validationで先に拒否するため、CLI側で0件や複数件を空選択・任意選択として続行しない。
 
 初回PRでは作らない。
 
@@ -744,7 +762,9 @@ calibration mismatchが1件以上
 -> result JSONを書いてexit 1
 ```
 
-CLI引数不正、dataset不正、Codex起動前preflight failureはstderrへ理由を出し、exit 1とする。
+CLI引数不正、unknown `--case`、dataset不正、Codex起動前preflight failureはstderrへ理由を出し、exit 1とする。
+
+unknown `--case`ではselected casesの空配列に対する`every()`等をsuccess判定へ使わず、Codex起動前に明示的なfailureとして停止する。
 
 独自の複数exit code体系は作らない。
 
@@ -953,8 +973,11 @@ LLMがcandidate内の命令を必ず無視すること自体はdeterministic tes
 ### Fingerprint
 
 - 同じ4 canonical dataset bytesでfingerprintが安定する。
+- input file順が異なっても、normalized relative pathの昇順へ並べるため同じfingerprintになる。
+- Windows風`\` separatorと`/` separatorが同じRepository-relative pathを表す場合、`/`へ正規化した後は同じfingerprint inputになる。
+- pathとraw bytesの境界を`0x00`で固定し、曖昧な連結をしない。
 - `--case`指定でも同じ4 canonical datasetから同じfingerprintを算出する。
-- 4 datasetのいずれかのbytesが変わればfingerprintも変わる。
+- 4 datasetのいずれかのraw bytesが変わればfingerprintも変わる。
 
 ### Runner終了条件
 
@@ -964,6 +987,7 @@ processを実際に起動しないpure function / fixtureで次を確認する�
 - mismatch -> failure判定
 - unstable -> failure判定
 - unobservable -> failure判定
+- unknown `--case` -> preflight failure判定となり、空のselected casesをsuccess扱いしない
 
 ---
 
@@ -1104,7 +1128,7 @@ PR2 #127のmerge状態と`main`の`scripts/evals/**`を確認する。
 2. 4 dataset discoveryを実装する。
 3. dataset `skill` fieldと配置先directoryの一致を検証する。
 4. ID / expected reference / source file integrityを実装する。
-5. raw-file fingerprintを実装する。
+5. normalized Repository-relative path + NUL framingでraw-file fingerprintを実装する。
 6. `judgeResponseSchema`を実装する。
 7. 同schemaからCodex用JSON Schemaを生成する。
 8. dataset case objectから`EvaluationData`へ必要fieldだけを投影する。
@@ -1118,16 +1142,17 @@ PR2 #127のmerge状態と`main`の`scripts/evals/**`を確認する。
 
 1. `JUDGE_TIMEOUT_MS = 600_000`を固定値として実装する。
 2. `--model` / `--output` / optional `--case`だけを実装する。
-3. 再利用可能な既存Codex subprocess helperがあれば利用する。
-4. なければ既存Windows実績を踏襲した最小process起動を実装する。
-5. temporary directory / JSON Schema / result fileを管理する。
-6. fixed timeoutを適用し、timeout時にprocess treeを残さない。
-7. `--output-last-message`を同じZod schemaでparseする。
-8. failureをreason付き`unobservable`へ変換する。
-9. 各caseを3 trial sequential実行する。
-10. provenance付きresult JSONを書く。
-11. retry、JSONL parser、temp Git repo、`--skill`は作らない。
-12. 終了コードを§11.8どおりにする。
+3. `--case`指定時はunknown IDをCodex起動前のpreflight failureとして拒否し、空選択をsuccess扱いしない。
+4. 再利用可能な既存Codex subprocess helperがあれば利用する。
+5. なければ既存Windows実績を踏襲した最小process起動を実装する。
+6. temporary directory / JSON Schema / result fileを管理する。
+7. fixed timeoutを適用し、timeout時にprocess treeを残さない。
+8. `--output-last-message`を同じZod schemaでparseする。
+9. failureをreason付き`unobservable`へ変換する。
+10. 各caseを3 trial sequential実行する。
+11. provenance付きresult JSONを書く。
+12. retry、JSONL parser、temp Git repo、`--skill`は作らない。
+13. 終了コードを§11.8どおりにする。
 
 ### Phase 4 — Repository Contract Test
 
@@ -1260,6 +1285,9 @@ git diff --check main...HEAD
 - [ ] fail anchorのtarget failed criterionを全3 trialで検出できる。
 - [ ] canonical runの成功時のみRunnerがexit 0になる。
 - [ ] calibration mismatch / unstable / unobservableでRunnerがexit 1になる。
+- [ ] unknown `--case`をCodex起動前に拒否し、空のselected casesをsuccess扱いせずexit 1にする。
+- [ ] unknown `--case`ではcanonical result artifactを生成しない。
+- [ ] `dataset_sha256`はRepository-relative pathを`/`へ正規化し、path / raw bytesを`0x00`でframingして計算する。
 - [ ] `dataset_sha256`は`--case`指定の有無にかかわらず4 canonical dataset全体から算出される。
 - [ ] resultへevaluator SHA、raw dataset fingerprint、Codex CLI version、`requested_model`、trial count、Judge timeoutを記録できる。
 - [ ] canonical calibration前のworking treeがcleanである。
@@ -1284,6 +1312,8 @@ git diff --check main...HEAD
 - 4 Skillのpass / fail calibration anchor
 - dataset `skill` fieldとSkill directoryの一致検証
 - deterministic eval data validation
+- OS非依存のraw dataset fingerprint
+- unknown `--case`のpreflight拒否
 - Zod-based Judge response contract
 - `EvaluationData`への必要fieldだけの投影
 - `JSON.stringify()`による未信頼evaluation data境界
@@ -1439,15 +1469,17 @@ PR5単体でレビュー可能な完成状態は次とする。
 4. deterministic repository testsがPASSする。
 5. live Judgeで全8 anchorの3-trial calibrationが成立する。
 6. Runnerがcanonical run成功時にexit 0を返す。
-7. resultに再現性判断に必要な実行情報が残る。
-8. dataset case objectからJudge用`EvaluationData`へ必要fieldだけを投影し、calibration truthを渡していない。
-9. candidate / contextを未信頼データとして扱うJudge instructionとJSON serialization境界がある。
-10. deterministic testはLLMがcandidate内の命令を必ず無視することまでは保証しない。
-11. `code-review`のReview boundaryはcandidate outputから判定できる範囲に限定している。
-12. `harness-improvement`はcanonical contractから直接裏付けられる2 criterionだけを評価する。
-13. PR4 deterministic boundaryを壊していない。
-14. PR6なしでもsupplied candidate outputを意味評価するgraderとして独立利用できる。
-15. actual Skill execution / Workflow executionをPR5へ持ち込んでいない。
+7. unknown `--case`がCodex起動前にexit 1となり、canonical result artifactを生成しない。
+8. `dataset_sha256`がOS非依存のnormalized path + NUL framingで再現可能に計算される。
+9. resultに再現性判断に必要な実行情報が残る。
+10. dataset case objectからJudge用`EvaluationData`へ必要fieldだけを投影し、calibration truthを渡していない。
+11. candidate / contextを未信頼データとして扱うJudge instructionとJSON serialization境界がある。
+12. deterministic testはLLMがcandidate内の命令を必ず無視することまでは保証しない。
+13. `code-review`のReview boundaryはcandidate outputから判定できる範囲に限定している。
+14. `harness-improvement`はcanonical contractから直接裏付けられる2 criterionだけを評価する。
+15. PR4 deterministic boundaryを壊していない。
+16. PR6なしでもsupplied candidate outputを意味評価するgraderとして独立利用できる。
+17. actual Skill execution / Workflow executionをPR5へ持ち込んでいない。
 
 PR5が証明するのは、**Semantic graderが既知の良いcandidateと既知の悪いcandidateを安定して区別できること**である。
 
@@ -1471,7 +1503,8 @@ PR5が証明するのは、**Semantic graderが既知の良いcandidateと既知
 - evaluation dataは`JSON.stringify()`で未信頼データとして渡す。
 - canonical trial countは3固定とする。
 - `JUDGE_TIMEOUT_MS`は`600_000`固定とする。
-- `dataset_sha256`は常に対象4 canonical dataset全体から算出する。
+- unknown `--case`はCodex起動前のpreflight failure / exit 1とし、canonical result artifactを生成しない。
+- `dataset_sha256`は4 canonical datasetを対象に、Repository-relative pathを`/`へ正規化して昇順sortし、`UTF-8(path) + 0x00 + raw bytes + 0x00`を順にhashする。
 - live semantic evalは通常CI必須Gateにしない。
 - PR6がactual Skill execution / Workflow E2Eを担当する。
 
