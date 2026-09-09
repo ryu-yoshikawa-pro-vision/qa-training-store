@@ -23,6 +23,8 @@ plan branch: refactor/test-automation-curriculum-learning-experience
 
 対象ブランチでは教材・演習用資産・アプリケーション・CIの実装変更はまだ行っておらず、計画ファイルだけを更新した状態を基準とする。
 
+上記`main` SHAは調査時点の記録として残す。実装開始直前に対象ブランチのHEAD、現在の`main` HEAD、merge base、`main...branch`差分、Plan作成後に`main`へ入った関連変更を再確認する。`main`が進んでいる場合は、教材、ワークブック、検証スクリプト、ワークフロー、仕様書への影響を再評価してから最初の編集へ進む。`main`が進んだことだけを理由にrebaseを必須にはしない。
+
 ### 1.1 学習者の前提と実際の開始条件がずれている
 
 カリキュラムはPlaywright等のコードベース自動化未経験、プログラミング経験を必須としない受講者を対象としている。
@@ -780,9 +782,10 @@ P2-7の共通学習範囲ではこの教材で扱うWeb CI範囲の判定条件 
 - 実装するケースでは自動化判断と受講者が後から記録する実装先を一致させる
 - 受講者が作成したテストの実行条件を`Training Web baseline`にしない
 - `Not run`では`evidence` / `failure_category` / `cause` / `action` / `improvement`を先に埋めない
-- `04_execution-improvement.csv`の各実行行で`run_context`を空欄にしない
-- 同じ`test_case_id`を異なる`run_context`で複数行記録することは許可するが、`test_case_id`と`run_context`の組み合わせは重複させない
-- `run_context`の具体的な自然文は検証スクリプトで固定しない
+- `04_execution-improvement.csv`の各実行行で、`run_context`は`trim()`相当で前後空白を除いた値が空にならないようにする
+- 同じ`test_case_id`を異なる`run_context`で複数行記録することは許可するが、`test_case_id`と前後空白を除いた`run_context`の組み合わせは重複させない
+- `run_context`の大文字小文字や自然文の語彙は正規化・固定しない
+- `result`は`Pass` / `Fail` / `Not run`の3値だけを許可し、別表記を許可しない
 - パート1のケースへパート2のPR実行時期を必須前提として先取りしない
 
 `01_spreadsheet-test-design.md`は4つの正本CSVを実際に作成・更新する成果物として中心に置く。複数の概念上のシート構成は、4 CSVと別の成果物を作るように見える場合は削除または大幅に圧縮し、残す場合も各観点を既存列のどこへ記録するかだけを説明する。
@@ -867,7 +870,7 @@ C09の証跡:
 → 再実行結果
 ```
 
-`04_execution-improvement.csv`では同じ`test_case_id`について実行ごとに別行を使い、`run_context`で失敗時と修正後の再実行を区別する。`run_context`は各行で必須とし、同じ`test_case_id`で同じ`run_context`を重複させない。失敗行は`result=Fail`として`failure_category` / `cause` / `action` / 失敗時の`evidence`を残し、修正後の行は`result=Pass`として再実行成功の`evidence`を残す。失敗行をPassへ上書きしない。`run_context`の具体的な文言は検証スクリプトへ固定せず、新しい列やrun ID体系も追加しない。
+`04_execution-improvement.csv`では同じ`test_case_id`について実行ごとに別行を使い、`run_context`で失敗時と修正後の再実行を区別する。`run_context`は前後空白を除いた値を各行で必須とし、同じ`test_case_id`で前後空白を除いた同じ`run_context`を重複させない。大文字小文字や自然文の語彙は正規化しない。失敗行は`result=Fail`として`failure_category` / `cause` / `action` / 失敗時の`evidence`を残し、修正後の行は`result=Pass`として再実行成功の`evidence`を残す。失敗行をPassへ上書きしない。`result`は`Pass` / `Fail` / `Not run`の3値だけを使い、新しい列やrun ID体系も追加しない。
 
 ### 6.13 P1-6のセキュリティ詳細を共通必須から分離する
 
@@ -1024,8 +1027,9 @@ P1-5で受講者が、ワークブックで決めたテストケースから実�
 - 原因 / 対応
 - 修正
 - 再実行結果
-- `04_execution-improvement.csv`では、同じ`test_case_id`の失敗行と修正後Pass行を分け、空欄でない異なる`run_context`で各実行を区別する
-- 同じ`test_case_id`と`run_context`の組み合わせを重複させず、具体的な`run_context`文言自体は固定しない
+- `04_execution-improvement.csv`では、同じ`test_case_id`の失敗行と修正後Pass行を分け、前後空白を除いて空でない異なる`run_context`で各実行を区別する
+- 同じ`test_case_id`と前後空白を除いた`run_context`の組み合わせを重複させず、具体的な`run_context`文言自体は固定しない
+- `result`は`Pass` / `Fail` / `Not run`の3値だけを使う
 
 アーティファクトを開いただけでは完了としない。
 
@@ -1194,9 +1198,11 @@ Learning Designの旧`00_learning_design.md`参照は、フェーズ1でREADME�
 - 相対リンク
 - ワークブックのスキーマ / ID / 仕様書参照
 - ワークブックの`Not run`時に`evidence` / `failure_category` / `cause` / `action` / `improvement`が空である等、実行時アーティファクトの存在確認を必要としない状態契約
-- `04_execution-improvement.csv`の各行で`run_context`が空でないこと
-- 同じ`test_case_id`を異なる`run_context`で複数行記録できる一方、`test_case_id`と`run_context`の組み合わせを重複させないこと
-- 上記`run_context`契約について、具体的な自然文は固定せず、「異なる`run_context`なら同一`test_case_id`を許可」「空欄を拒否」「同一組み合わせの重複を拒否」を既存契約テストの狭い回帰確認で保護すること
+- `04_execution-improvement.csv`の各行で、`run_context`の前後空白を除いた値が空でないこと
+- 同じ`test_case_id`を異なる`run_context`で複数行記録できる一方、`test_case_id`と前後空白を除いた`run_context`の組み合わせを重複させないこと
+- `result`が`Pass` / `Fail` / `Not run`の3値だけであること
+- 上記`run_context`契約について、具体的な自然文は固定せず、「異なる`run_context`なら同一`test_case_id`を許可」「空欄または空白だけを拒否」「前後空白を除いた同一組み合わせの重複を拒否」を既存契約テストの狭い回帰確認で保護すること。大文字小文字や語彙は正規化しない
+- `result`について、上記3値以外を拒否することを既存契約テストの狭い回帰確認で保護すること
 - `.gitignore`対象のローカル出力パスやGitHub Actionsの実行結果 / アーティファクト等を`evidence`へ記録しても実行時ファイルの存在検証で拒否しない一方、ローカル絶対パスやパスによるリポジトリ外参照を不用意に許可しないことを、既存`training-curriculum.test.ts`の狭い回帰テストで保護する
 - `package.json`に定義されたスクリプト
 - 演習資産のパス
@@ -1342,10 +1348,12 @@ pnpm run training:web:check-expected-failure
 - 代表失敗を1ケースずつ再現できる
 - 証跡から原因を説明できる
 - 修正後に対象テストが成功する
-- `04_execution-improvement.csv`へ同じ`test_case_id`の失敗行と修正後Pass行を別行で残し、空欄でない異なる`run_context`で各実行を区別できる
-- 同じ`test_case_id`と`run_context`の組み合わせを重複させない
+- `04_execution-improvement.csv`へ同じ`test_case_id`の失敗行と修正後Pass行を別行で残し、前後空白を除いて空でない異なる`run_context`で各実行を区別できる
+- 同じ`test_case_id`と前後空白を除いた`run_context`の組み合わせを重複させない
+- `run_context`の大文字小文字や自然文の語彙を検証スクリプトで固定しない
 - 失敗行に`failure_category` / `cause` / `action` / 失敗時の`evidence`、Pass行に再実行成功の`evidence`を残せる
-- 検証スクリプト / 契約テストで「異なる`run_context`なら同一`test_case_id`を許可」「空欄を拒否」「同一組み合わせの重複を拒否」を確認できる
+- 検証スクリプト / 契約テストで「異なる`run_context`なら同一`test_case_id`を許可」「空欄または空白だけを拒否」「前後空白を除いた同一組み合わせの重複を拒否」を確認できる
+- `result`が`Pass` / `Fail` / `Not run`以外なら検証スクリプト / 契約テストで拒否できる
 
 ### 9.6 演習用コピー / 受講者向けCI
 
@@ -1434,7 +1442,8 @@ pnpm run verify
 - `TC-CART-002`は`cart-with-invalid-items`へのリセット後にCheckoutを利用できるcustomerのログイン状態を確立し、認証境界ではなく購入不可明細を理由にCheckoutが阻止されることを確認する。初期状態シナリオの初期セッション定義は変更していない。
 - P1-4の単純なCart追加や`out-of-stock`の商品追加拒否に上記ワークブックのケースIDを誤用していない。
 - ワークブックのサンプルの自動化判断、実装先、実行条件、実行前後の状態遷移が新しい学習経路と一致する。
-- `04_execution-improvement.csv`の各実行行で`run_context`が空欄ではなく、同じ`test_case_id`と`run_context`の組み合わせが重複していない。異なる`run_context`で同じ`test_case_id`を複数行記録できる。
+- `04_execution-improvement.csv`の各実行行で、`run_context`は前後空白を除いた値が空欄ではなく、同じ`test_case_id`と前後空白を除いた`run_context`の組み合わせが重複していない。異なる`run_context`で同じ`test_case_id`を複数行記録でき、大文字小文字や自然文の語彙は固定していない。
+- `04_execution-improvement.csv`の`result`が`Pass` / `Fail` / `Not run`の3値だけに限定されている。
 - `evidence`が実行時証跡への人間可読な参照として扱われ、新しいURI形式 / マニフェストを導入せず、`.gitignore`対象 / GitHub上のアーティファクトのファイルの存在を静的検証スクリプトで要求していない。一方でローカル絶対パスやパスによるリポジトリ外参照を保存しない静的な安全性確認は維持している。
 - Playwrightの基準確認は環境確認であり、C07の証跡として扱われない。
 - 未編集初期演習ファイルだけではC07修了証跡にならない。
@@ -1446,7 +1455,7 @@ pnpm run verify
 - アーティファクト確認用の恒久失敗と、原因確認・修正・再実行まで行う診断演習が別契約になっている。
 - `training:web:check-expected-failure`で内側のPlaywrightテストが失敗し、必要アーティファクト生成を確認できた場合に外側コマンドが成功になる意味を説明できる。
 - 診断では証跡 → 原因 → 修正 → 再実行まで一巡できる。
-- `04_execution-improvement.csv`に同一`test_case_id`の失敗行と修正後Pass行を別行で残し、空欄でない異なる`run_context`で実行を区別できる。同じ`test_case_id`と`run_context`の組み合わせを重複させず、失敗行の診断情報をPassで上書きしていない。
+- `04_execution-improvement.csv`に同一`test_case_id`の失敗行と修正後Pass行を別行で残し、前後空白を除いて空でない異なる`run_context`で実行を区別できる。同じ`test_case_id`と前後空白を除いた`run_context`の組み合わせを重複させず、失敗行の診断情報をPassで上書きしていない。
 - C09の共通必須成果物へセキュリティ専門確認を混在させていない。
 - 失敗再現用Fixtureを必要以上に増やしていない。
 
@@ -1501,10 +1510,12 @@ pnpm run verify
 
 ### 検証
 
+- 実装開始直前に対象ブランチHEAD、現在の`main` HEAD、merge base、`main...branch`差分、Plan作成後の`main`関連変更を確認し、必要な場合は前提を再評価している。
 - 変更箇所に応じた検証を変更領域ごとに実施している。
 - Learning Designの旧path参照を同期した後に`pnpm run validate:curriculum`を実行している。
 - `workflow-contract.ts`または`training-curriculum.test.ts`を変更した場合に`pnpm run test:contracts`が通る。
-- C09の`run_context`契約について、空欄拒否、同一`test_case_id` + 異なる`run_context`の許可、同一組み合わせの重複拒否を検証できる。
+- C09の`run_context`契約について、空欄・空白だけの拒否、同一`test_case_id` + 異なる`run_context`の許可、前後空白を除いた同一組み合わせの重複拒否を検証できる。
+- `result`について`Pass` / `Fail` / `Not run`以外を拒否できる。
 - 演習用コピー検証では対象変更を含むコミットSHAを`--source-sha`へ使用し、未コミット変更を含むと誤認していない。
 - `pnpm run validate:curriculum`が通る。
 - 仕様書変更に応じた検証 / ビルドが通る。
