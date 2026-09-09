@@ -70,6 +70,17 @@ export const BOUNDARY_SPECS: Readonly<
 };
 
 export const DATASET_SCHEMA_VERSION = 1 as const;
+export const RESULT_SCHEMA_VERSION = 2 as const;
+
+export const PROCESS_LIFECYCLES = [
+  "completed",
+  "turn_failed",
+  "timed_out",
+  "spawn_failed",
+  "signaled",
+  "unknown",
+] as const;
+export type ProcessLifecycle = (typeof PROCESS_LIFECYCLES)[number];
 
 function compareStrings(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0;
@@ -444,10 +455,14 @@ export interface ObservationSignals {
   readonly hook_correlation_ok: boolean;
   readonly hook_parse_ok: boolean;
   readonly selector_reliable: boolean;
-  readonly observed_skills: readonly string[];
+  /** First trusted Skill candidate, or null when no candidate was observed. */
+  readonly initial_skill?: SkillName | null;
+  /** [initial_skill], [] for trusted absence, or null when observation is untrusted. */
+  readonly observed_skills: readonly string[] | null;
 }
 
 export interface RoutingObservation {
+  readonly initial_skill: SkillName | null;
   readonly observed_skills: string[] | null;
   readonly unobservable_reason: UnobservableReason | null;
 }
@@ -458,103 +473,158 @@ export interface CaseResult {
   readonly split: Split;
   readonly boundary: BoundaryName;
   readonly expected_skill: ExpectedSkill;
+  readonly initial_skill: SkillName | null;
   readonly observed_skills: string[] | null;
   readonly outcome: Outcome;
   readonly unobservable_reason: UnobservableReason | null;
+  readonly process_lifecycle: ProcessLifecycle;
 }
 
-function stableSkillSet(skills: readonly string[]): string[] {
-  return [...new Set(skills)].sort(compareStrings);
+function firstSkill(signals: ObservationSignals): SkillName | null {
+  if (signals.initial_skill !== undefined) {
+    return signals.initial_skill;
+  }
+  const firstObserved = signals.observed_skills?.[0];
+  return isSkillName(firstObserved) ? firstObserved : null;
+}
+
+export function deriveProcessLifecycle(
+  signals: Pick<
+    ObservationSignals,
+    "timed_out" | "spawn_failed" | "signaled" | "exit_code" | "trusted_terminal"
+  >,
+): ProcessLifecycle {
+  if (signals.timed_out) {
+    return "timed_out";
+  }
+  if (signals.spawn_failed) {
+    return "spawn_failed";
+  }
+  if (signals.signaled) {
+    return "signaled";
+  }
+  if (signals.trusted_terminal === "turn.failed") {
+    return "turn_failed";
+  }
+  if (signals.trusted_terminal === "turn.completed" && signals.exit_code === 0) {
+    return "completed";
+  }
+  return "unknown";
+}
+
+function processFailureReason(signals: ObservationSignals): UnobservableReason {
+  if (signals.timed_out) {
+    return "timeout";
+  }
+  if (
+    signals.spawn_failed ||
+    signals.signaled ||
+    (signals.trusted_terminal === null && signals.exit_code !== null && signals.exit_code !== 0)
+  ) {
+    return "process_failure";
+  }
+  return "lifecycle_failure";
 }
 
 export function deriveRoutingObservation(signals: ObservationSignals): RoutingObservation {
-  if (signals.timed_out) {
-    return {
-      observed_skills: null,
-      unobservable_reason: "timeout",
-    };
-  }
-
-  const processFailure =
-    signals.spawn_failed ||
-    signals.signaled ||
-    (signals.trusted_terminal === null && signals.exit_code !== null && signals.exit_code !== 0);
-  if (processFailure) {
-    return {
-      observed_skills: null,
-      unobservable_reason: "process_failure",
-    };
-  }
-
-  if (signals.trusted_terminal === null) {
-    return {
-      observed_skills: null,
-      unobservable_reason: "lifecycle_failure",
-    };
-  }
+  const initialSkill = firstSkill(signals);
 
   if (!signals.hook_correlation_ok) {
     return {
+      initial_skill: null,
       observed_skills: null,
       unobservable_reason: "hook_correlation",
     };
   }
-
   if (!signals.hook_parse_ok) {
     return {
+      initial_skill: null,
       observed_skills: null,
       unobservable_reason: "hook_parse",
     };
   }
-
   if (!signals.selector_reliable) {
     return {
+      initial_skill: null,
       observed_skills: null,
       unobservable_reason: "skill_read_observation",
     };
   }
 
-  const observedSkills = stableSkillSet(signals.observed_skills);
-  if (signals.trusted_terminal === "turn.failed" && observedSkills.length === 0) {
+  if (initialSkill !== null) {
     return {
+      initial_skill: initialSkill,
+      observed_skills: [initialSkill],
+      unobservable_reason: null,
+    };
+  }
+
+  if (signals.observed_skills === null || signals.observed_skills.length !== 0) {
+    return {
+      initial_skill: null,
       observed_skills: null,
-      unobservable_reason: "lifecycle_failure",
+      unobservable_reason: "skill_read_observation",
+    };
+  }
+
+  if (deriveProcessLifecycle(signals) !== "completed") {
+    return {
+      initial_skill: null,
+      observed_skills: null,
+      unobservable_reason: processFailureReason(signals),
     };
   }
 
   return {
-    observed_skills: observedSkills,
+    initial_skill: null,
+    observed_skills: [],
     unobservable_reason: null,
   };
 }
 
+export function scoreInitialRouting(
+  expectedSkill: ExpectedSkill,
+  boundary: BoundaryName,
+  initialSkill: SkillName | null,
+): ObservableOutcome {
+  if (expectedSkill === null) {
+    return initialSkill === null ? "pass" : "unexpected_trigger";
+  }
+  if (initialSkill === null) {
+    return "false_negative";
+  }
+  if (initialSkill === expectedSkill) {
+    return "pass";
+  }
+  const sibling = BOUNDARY_SPECS[boundary].sibling_by_expected[expectedSkill];
+  if (sibling && initialSkill === sibling) {
+    return "sibling_misroute";
+  }
+  return "unexpected_trigger";
+}
+
+/**
+ * Compatibility wrapper for callers that still pass the former set-shaped
+ * selector result. Only the first value is meaningful under the PR2 contract.
+ */
 export function scoreRouting(
   expectedSkill: ExpectedSkill,
   boundary: BoundaryName,
   observedSkills: readonly string[],
 ): ObservableOutcome {
-  const observed = new Set(observedSkills);
-  if (expectedSkill === null) {
-    return observed.size === 0 ? "pass" : "unexpected_trigger";
-  }
-  if (observed.size === 0) {
-    return "false_negative";
-  }
-  if (observed.size === 1 && observed.has(expectedSkill)) {
-    return "pass";
-  }
-  const sibling = BOUNDARY_SPECS[boundary].sibling_by_expected[expectedSkill];
-  if (sibling && observed.size === 1 && observed.has(sibling)) {
-    return "sibling_misroute";
-  }
-  return "unexpected_trigger";
+  const initialSkill = isSkillName(observedSkills[0]) ? observedSkills[0] : null;
+  return scoreInitialRouting(expectedSkill, boundary, initialSkill);
 }
 
 export function evaluateCase(triggerCase: TriggerCase, signals: ObservationSignals): CaseResult {
   const observation = deriveRoutingObservation(signals);
   const outcome =
     observation.observed_skills !== null
-      ? scoreRouting(triggerCase.expected_skill, triggerCase.boundary, observation.observed_skills)
+      ? scoreInitialRouting(
+          triggerCase.expected_skill,
+          triggerCase.boundary,
+          observation.initial_skill,
+        )
       : "unobservable";
   return {
     id: triggerCase.id,
@@ -562,9 +632,11 @@ export function evaluateCase(triggerCase: TriggerCase, signals: ObservationSigna
     split: triggerCase.split,
     boundary: triggerCase.boundary,
     expected_skill: triggerCase.expected_skill,
+    initial_skill: observation.initial_skill,
     observed_skills: observation.observed_skills,
     outcome,
     unobservable_reason: observation.unobservable_reason,
+    process_lifecycle: deriveProcessLifecycle(signals),
   };
 }
 
@@ -575,25 +647,42 @@ function incrementCount(counts: Record<string, number>, key: string): void {
 export interface RunSummary {
   readonly total: number;
   readonly by_outcome: Readonly<Record<Outcome, number>>;
+  readonly by_process_lifecycle: Readonly<Record<ProcessLifecycle, number>>;
   readonly by_owner_skill: Readonly<Record<string, number>>;
   readonly by_split: Readonly<Record<Split, number>>;
   readonly by_boundary: Readonly<Record<BoundaryName, number>>;
 }
 
 export function summarizeCaseResults(results: readonly CaseResult[]): RunSummary {
-  const byOutcome: Record<string, number> = {};
+  const byOutcome: Record<Outcome, number> = {
+    pass: 0,
+    false_negative: 0,
+    sibling_misroute: 0,
+    unexpected_trigger: 0,
+    unobservable: 0,
+  };
+  const byProcessLifecycle: Record<ProcessLifecycle, number> = {
+    completed: 0,
+    turn_failed: 0,
+    timed_out: 0,
+    spawn_failed: 0,
+    signaled: 0,
+    unknown: 0,
+  };
   const byOwnerSkill: Record<string, number> = {};
   const bySplit: Record<string, number> = {};
   const byBoundary: Record<string, number> = {};
   for (const result of results) {
     incrementCount(byOutcome, result.outcome);
+    incrementCount(byProcessLifecycle, result.process_lifecycle);
     incrementCount(byOwnerSkill, result.owner_skill);
     incrementCount(bySplit, result.split);
     incrementCount(byBoundary, result.boundary);
   }
   return {
     total: results.length,
-    by_outcome: byOutcome as Record<Outcome, number>,
+    by_outcome: byOutcome,
+    by_process_lifecycle: byProcessLifecycle,
     by_owner_skill: byOwnerSkill,
     by_split: bySplit as Record<Split, number>,
     by_boundary: byBoundary as Record<BoundaryName, number>,
@@ -681,7 +770,7 @@ export interface ComparisonResult {
 }
 
 export interface ComparableRun {
-  readonly schema_version: number;
+  readonly schema_version: typeof RESULT_SCHEMA_VERSION;
   readonly provenance: {
     readonly evaluator_git_sha: string;
     readonly routing_source_git_sha: string;
@@ -726,6 +815,12 @@ function compareCaseIds(
   currentCases: readonly Pick<CaseResult, "id" | "outcome">[],
   baselineCases: readonly Pick<CaseResult, "id" | "outcome">[],
 ): string[] {
+  if (
+    new Set(currentCases.map((entry) => entry.id)).size !== currentCases.length ||
+    new Set(baselineCases.map((entry) => entry.id)).size !== baselineCases.length
+  ) {
+    throw new Error("comparison requires unique case IDs");
+  }
   const currentIds = currentCases.map((entry) => entry.id).sort(compareStrings);
   const baselineIds = baselineCases.map((entry) => entry.id).sort(compareStrings);
   if (
@@ -739,16 +834,19 @@ function compareCaseIds(
 
 export function compareRuns(current: ComparableRun, baseline: ComparableRun): ComparisonResult {
   if (
-    current.schema_version !== DATASET_SCHEMA_VERSION ||
-    baseline.schema_version !== DATASET_SCHEMA_VERSION
+    current.schema_version !== RESULT_SCHEMA_VERSION ||
+    baseline.schema_version !== RESULT_SCHEMA_VERSION
   ) {
-    throw new Error("comparison requires schema_version 1 for both runs");
+    throw new Error("comparison requires Result schema_version 2 for both runs");
   }
   if (current.provenance.split !== "all" || baseline.provenance.split !== "all") {
     throw new Error("comparison is supported only for all runs");
   }
   if (current.provenance.dataset_sha256 !== baseline.provenance.dataset_sha256) {
     throw new Error("comparison requires an identical dataset_sha256");
+  }
+  if (current.provenance.codex_version !== baseline.provenance.codex_version) {
+    throw new Error("comparison requires an identical codex_version");
   }
   const ids = compareCaseIds(current.cases, baseline.cases);
   const currentById = new Map(current.cases.map((entry) => [entry.id, entry]));
@@ -781,7 +879,7 @@ export function compareRuns(current: ComparableRun, baseline: ComparableRun): Co
     baseline_evaluator_git_sha: baseline.provenance.evaluator_git_sha,
     baseline_routing_source_git_sha: baseline.provenance.routing_source_git_sha,
     baseline_codex_version: baseline.provenance.codex_version,
-    codex_version_match: current.provenance.codex_version === baseline.provenance.codex_version,
+    codex_version_match: true,
     counts,
     cases,
   };

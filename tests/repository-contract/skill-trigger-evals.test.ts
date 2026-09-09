@@ -1,18 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import { canonicalSkillForCommand } from "../../scripts/evals/run-skill-trigger-evals";
+import {
+  canonicalSkillForCommand,
+  classifyCommand,
+  classifyHookEvent,
+  parseComparableRun,
+  prepareSignals,
+  selectInitialSkill,
+  type HookEvent,
+} from "../../scripts/evals/run-skill-trigger-evals";
 import {
   BOUNDARIES,
   CANONICAL_SKILLS,
+  PROCESS_LIFECYCLES,
+  RESULT_SCHEMA_VERSION,
   type ComparableRun,
   type ObservationSignals,
   type TriggerDatasetSource,
   compareRuns,
+  deriveProcessLifecycle,
   evaluateCase,
   evaluateRunCoverage,
   loadTriggerDatasets,
   normalizeQuery,
   scoreRouting,
+  summarizeCaseResults,
   validateTriggerDatasetSources,
 } from "../../scripts/evals/skill-trigger-evals";
 
@@ -42,8 +54,33 @@ function baseSignals(overrides: Partial<ObservationSignals> = {}): ObservationSi
     hook_correlation_ok: true,
     hook_parse_ok: true,
     selector_reliable: true,
+    initial_skill: null,
     observed_skills: [],
     ...overrides,
+  };
+}
+
+function bashEvent(command: string, overrides: Partial<HookEvent> = {}): HookEvent {
+  return {
+    event: "PostToolUse",
+    tool_name: "Bash",
+    tool_input_preview: JSON.stringify({ command }),
+    truncated: false,
+    ...overrides,
+  };
+}
+
+function historyEvent(): HookEvent {
+  return {
+    event: "PostToolUse",
+    tool_name: "historylist_items",
+    tool_input_preview: JSON.stringify({
+      limit: 10,
+      recent_first: true,
+      role: "user",
+      max_chars_per_item: 1000,
+    }),
+    truncated: false,
   };
 }
 
@@ -55,7 +92,7 @@ function comparableRun(
   codexVersion = "codex-cli 0.153.0",
 ): ComparableRun {
   return {
-    schema_version: 1,
+    schema_version: RESULT_SCHEMA_VERSION,
     provenance: {
       evaluator_git_sha: "evaluator-sha",
       routing_source_git_sha: "routing-sha",
@@ -94,6 +131,22 @@ describe("Skill Trigger Eval deterministic contract", () => {
     ).toBe("feature-plan");
   });
 
+  it("recognizes bounded direct-read parameter and quote variants", () => {
+    const commands = [
+      "Get-Content -Path .agents/skills/feature-plan/SKILL.md -Raw",
+      'Get-Content -LiteralPath ".agents\\skills\\feature-plan\\SKILL.md" -Raw',
+      "Get-Content .agents/skills/feature-plan/SKILL.md -Raw",
+      "Get-Content -Raw -Path '.agents/skills/feature-plan/SKILL.md'",
+    ];
+    for (const command of commands) {
+      expect(classifyCommand(command)).toEqual({
+        classification: "canonical_skill",
+        selector_reliable: true,
+        skill: "feature-plan",
+      });
+    }
+  });
+
   it("does not classify a different Get-Content file as a Skill read", () => {
     expect(canonicalSkillForCommand("Get-Content -Raw docs/PROJECT_CONTEXT.md")).toBeNull();
   });
@@ -106,6 +159,111 @@ describe("Skill Trigger Eval deterministic contract", () => {
 
   it("does not classify a search command as an actual Skill read", () => {
     expect(canonicalSkillForCommand("rg --files .agents/skills/feature-plan/SKILL.md")).toBeNull();
+  });
+
+  it("classifies bounded non-Skill commands as reliable no-read", () => {
+    const commands = [
+      "Get-Content package.json",
+      "Get-Content docs/PROJECT_CONTEXT.md",
+      "git status",
+      "pnpm run test",
+      "Get-ChildItem src",
+      "echo hello",
+      "Write-Output hello",
+      'rg "foo" src/',
+      'rg "foo" docs/',
+      'grep "foo" package.json',
+      'grep "foo" docs/PROJECT_CONTEXT.md',
+      'Select-String -Path docs/PROJECT_CONTEXT.md -Pattern "foo"',
+      'rg ".agents/skills/feature-plan" docs/',
+      "Get-Content .agents/skills/not-a-canonical-skill/SKILL.md",
+    ];
+    for (const command of commands) {
+      expect(classifyCommand(command), command).toEqual({
+        classification: "safe_no_read",
+        selector_reliable: true,
+        skill: null,
+      });
+    }
+  });
+
+  it("classifies ambiguous and canonical-tree searches as unreliable", () => {
+    const commands = [
+      'rg "foo" .agents/skills/feature-plan/SKILL.md',
+      'rg "foo" .agents/skills/feature-plan',
+      'grep -R "foo" .agents/skills',
+      'rg --hidden "foo" .',
+      'rg "foo"',
+      "Select-String -Path '.agents/skills/*/SKILL.md' -Pattern 'foo'",
+      "rg \"foo\" src/ --glob '*.md'",
+      "Get-Content .agents/skills/feature-plan/SKILL.md; echo later",
+      "Get-Content $skillPath",
+      'Get-Content ".agents/skills/feature-plan/$name"',
+      "Get-Content -Path one.txt -Path two.txt",
+    ];
+    for (const command of commands) {
+      expect(classifyCommand(command), command).toEqual({
+        classification: "unreliable",
+        selector_reliable: false,
+        skill: null,
+      });
+    }
+  });
+
+  it("classifies all PostToolUse tool families and ignores non-PostToolUse events", () => {
+    expect(classifyHookEvent(historyEvent())).toEqual({
+      classification: "safe_no_read",
+      selector_reliable: true,
+      skill: null,
+    });
+    expect(
+      classifyHookEvent({
+        ...historyEvent(),
+        tool_name: "noteswrite_file",
+        truncated: true,
+      }),
+    ).toEqual({
+      classification: "unreliable",
+      selector_reliable: false,
+      skill: null,
+    });
+    expect(
+      classifyHookEvent({
+        event: "UserPromptSubmit",
+        tool_name: "Bash",
+        tool_input_preview: "not-json",
+        truncated: true,
+      }),
+    ).toEqual({
+      classification: "safe_no_read",
+      selector_reliable: true,
+      skill: null,
+    });
+  });
+
+  it("uses only the first trusted canonical Skill and fail-closes before-candidate uncertainty", () => {
+    const selection = selectInitialSkill([
+      historyEvent(),
+      bashEvent("Get-Content -Raw .agents/skills/feature-plan/SKILL.md"),
+      bashEvent("Get-Content -Raw .agents/skills/code-review/SKILL.md", { truncated: true }),
+    ]);
+    expect(selection).toEqual({
+      selector_reliable: true,
+      initial_skill: "feature-plan",
+      observed_skills: ["feature-plan"],
+      candidate_index: 1,
+    });
+
+    const uncertain = selectInitialSkill([
+      bashEvent('rg "foo" .agents/skills/feature-plan'),
+      bashEvent("Get-Content -Raw .agents/skills/feature-plan/SKILL.md"),
+    ]);
+    expect(uncertain).toEqual({
+      selector_reliable: false,
+      initial_skill: null,
+      observed_skills: null,
+      candidate_index: null,
+    });
   });
 
   it("keeps a canonical read for another Skill distinct from the expected Skill", () => {
@@ -208,7 +366,7 @@ describe("Skill Trigger Eval deterministic contract", () => {
     expect(() => validateTriggerDatasetSources(missingSide)).toThrow("expected side null coverage");
   });
 
-  it("uses the ordered observation pipeline and preserves [] versus null", () => {
+  it("uses initial-only observation and preserves [] versus null", () => {
     const dataset = loadTriggerDatasets(repositoryRoot);
     const expectedCase = dataset.cases.find((entry) => entry.id === "code-review-train-001");
     const directImplementation = dataset.cases.find(
@@ -251,21 +409,186 @@ describe("Skill Trigger Eval deterministic contract", () => {
 
     const failedWithSkill = evaluateCase(
       expectedCase,
-      baseSignals({ trusted_terminal: "turn.failed", observed_skills: ["code-review"] }),
+      baseSignals({
+        trusted_terminal: "turn.failed",
+        initial_skill: "code-review",
+        observed_skills: ["code-review"],
+      }),
     );
     expect(failedWithSkill.outcome).toBe("pass");
+    expect(failedWithSkill.initial_skill).toBe("code-review");
     expect(failedWithSkill.observed_skills).toEqual(["code-review"]);
+    expect(failedWithSkill.process_lifecycle).toBe("turn_failed");
 
     const nullExpected = evaluateCase(directImplementation, baseSignals());
     expect(nullExpected.outcome).toBe("pass");
+    expect(nullExpected.initial_skill).toBeNull();
     expect(nullExpected.observed_skills).toEqual([]);
+    expect(nullExpected.process_lifecycle).toBe("completed");
     expect(evaluateCase(expectedCase, baseSignals()).observed_skills).toEqual([]);
     expect(
-      evaluateCase(expectedCase, baseSignals({ observed_skills: ["code-review"] })).observed_skills,
-    ).not.toBeNull();
+      evaluateCase(
+        expectedCase,
+        baseSignals({
+          initial_skill: "code-review",
+          observed_skills: ["code-review", "repair-loop"],
+        }),
+      ),
+    ).toMatchObject({
+      initial_skill: "code-review",
+      observed_skills: ["code-review"],
+      outcome: "pass",
+    });
   });
 
-  it("scores routing as a set using only fixed sibling mappings", () => {
+  it("maps process lifecycle with deterministic priority", () => {
+    expect(PROCESS_LIFECYCLES).toEqual([
+      "completed",
+      "turn_failed",
+      "timed_out",
+      "spawn_failed",
+      "signaled",
+      "unknown",
+    ]);
+    expect(deriveProcessLifecycle(baseSignals())).toBe("completed");
+    expect(deriveProcessLifecycle(baseSignals({ timed_out: true, spawn_failed: true }))).toBe(
+      "timed_out",
+    );
+    expect(deriveProcessLifecycle(baseSignals({ spawn_failed: true, signaled: true }))).toBe(
+      "spawn_failed",
+    );
+    expect(deriveProcessLifecycle(baseSignals({ signaled: true }))).toBe("signaled");
+    expect(deriveProcessLifecycle(baseSignals({ trusted_terminal: "turn.failed" }))).toBe(
+      "turn_failed",
+    );
+    expect(deriveProcessLifecycle(baseSignals({ trusted_terminal: null, exit_code: 1 }))).toBe(
+      "unknown",
+    );
+    expect(
+      deriveProcessLifecycle(baseSignals({ trusted_terminal: "turn.completed", exit_code: 1 })),
+    ).toBe("unknown");
+  });
+
+  it("trusts a positive candidate prefix but requires full reliable evidence for absence", () => {
+    const execution = {
+      timed_out: true,
+      spawn_failed: false,
+      signaled: false,
+      exit_code: null,
+      trusted_terminal: null,
+    } as const;
+    const positive = prepareSignals(execution, {
+      correlation_ok: true,
+      raw: `${JSON.stringify(bashEvent("Get-Content -Raw .agents/skills/feature-plan/SKILL.md"))}\nnot-json\n`,
+    });
+    expect(positive).toMatchObject({
+      hook_parse_ok: true,
+      selector_reliable: true,
+      initial_skill: "feature-plan",
+      observed_skills: ["feature-plan"],
+    });
+    const positiveCase = evaluateCase(
+      loadTriggerDatasets(repositoryRoot).cases.find(
+        (entry) => entry.id === "feature-plan-train-001",
+      )!,
+      positive,
+    );
+    expect(positiveCase.outcome).toBe("pass");
+    expect(positiveCase.process_lifecycle).toBe("timed_out");
+
+    const absence = prepareSignals(
+      {
+        timed_out: false,
+        spawn_failed: false,
+        signaled: false,
+        exit_code: 0,
+        trusted_terminal: "turn.completed",
+      },
+      {
+        correlation_ok: true,
+        raw: `${JSON.stringify(bashEvent("git status"))}\n${JSON.stringify(historyEvent())}\n`,
+      },
+    );
+    expect(absence).toMatchObject({
+      hook_parse_ok: true,
+      selector_reliable: true,
+      initial_skill: null,
+      observed_skills: [],
+    });
+    const absenceCase = evaluateCase(
+      loadTriggerDatasets(repositoryRoot).cases.find(
+        (entry) => entry.id === "feature-plan-train-002",
+      )!,
+      absence,
+    );
+    expect(absenceCase.outcome).toBe("pass");
+    expect(absenceCase.observed_skills).toEqual([]);
+
+    const unreliable = prepareSignals(
+      {
+        timed_out: false,
+        spawn_failed: false,
+        signaled: false,
+        exit_code: 0,
+        trusted_terminal: "turn.completed",
+      },
+      {
+        correlation_ok: true,
+        raw: JSON.stringify(bashEvent('rg "foo" .agents/skills/feature-plan')),
+      },
+    );
+    expect(unreliable).toMatchObject({
+      selector_reliable: false,
+      initial_skill: null,
+      observed_skills: null,
+    });
+    expect(
+      evaluateCase(
+        loadTriggerDatasets(repositoryRoot).cases.find(
+          (entry) => entry.id === "feature-plan-train-002",
+        )!,
+        unreliable,
+      ).outcome,
+    ).toBe("unobservable");
+  });
+
+  it("counts routing and process lifecycle independently", () => {
+    const dataset = loadTriggerDatasets(repositoryRoot);
+    const expected = dataset.cases.find((entry) => entry.id === "code-review-train-001")!;
+    const results = [
+      evaluateCase(expected, baseSignals()),
+      evaluateCase(
+        expected,
+        baseSignals({
+          initial_skill: "code-review",
+          observed_skills: ["code-review"],
+          timed_out: true,
+          exit_code: null,
+        }),
+      ),
+      evaluateCase(expected, baseSignals({ spawn_failed: true })),
+    ];
+    expect(summarizeCaseResults(results)).toMatchObject({
+      total: 3,
+      by_outcome: {
+        pass: 1,
+        false_negative: 1,
+        sibling_misroute: 0,
+        unexpected_trigger: 0,
+        unobservable: 1,
+      },
+      by_process_lifecycle: {
+        completed: 1,
+        timed_out: 1,
+        spawn_failed: 1,
+        turn_failed: 0,
+        signaled: 0,
+        unknown: 0,
+      },
+    });
+  });
+
+  it("scores routing from only the initial Skill using fixed sibling mappings", () => {
     expect(scoreRouting(null, "feature-plan-vs-direct-implementation", [])).toBe("pass");
     expect(scoreRouting(null, "feature-plan-vs-direct-implementation", ["feature-plan"])).toBe(
       "unexpected_trigger",
@@ -283,10 +606,10 @@ describe("Skill Trigger Eval deterministic contract", () => {
         "repair-loop",
         "harness-improvement",
       ]),
-    ).toBe("unexpected_trigger");
+    ).toBe("sibling_misroute");
     expect(
       scoreRouting("code-review", "code-review-vs-repair-loop", ["code-review", "repair-loop"]),
-    ).toBe("unexpected_trigger");
+    ).toBe("pass");
     expect(
       scoreRouting("feature-plan", "feature-plan-vs-direct-implementation", ["feature-plan"]),
     ).toBe("pass");
@@ -298,10 +621,10 @@ describe("Skill Trigger Eval deterministic contract", () => {
         "feature-plan",
         "code-review",
       ]),
-    ).toBe("unexpected_trigger");
+    ).toBe("pass");
     expect(
       scoreRouting("code-review", "code-review-vs-repair-loop", ["repair-loop", "code-review"]),
-    ).toBe("unexpected_trigger");
+    ).toBe("sibling_misroute");
   });
 
   it("requires one observable case for train/validation and all eight sides for all", () => {
@@ -336,21 +659,18 @@ describe("Skill Trigger Eval deterministic contract", () => {
       { id: "06", outcome: "unobservable" },
       { id: "07", outcome: "unobservable" },
     ]);
-    const current = comparableRun(
-      [
-        { id: "01", outcome: "pass" },
-        { id: "02", outcome: "pass" },
-        { id: "03", outcome: "unexpected_trigger" },
-        { id: "04", outcome: "false_negative" },
-        { id: "05", outcome: "unobservable" },
-        { id: "06", outcome: "pass" },
-        { id: "07", outcome: "unobservable" },
-      ],
-      "codex-cli 0.154.0",
-    );
+    const current = comparableRun([
+      { id: "01", outcome: "pass" },
+      { id: "02", outcome: "pass" },
+      { id: "03", outcome: "unexpected_trigger" },
+      { id: "04", outcome: "false_negative" },
+      { id: "05", outcome: "unobservable" },
+      { id: "06", outcome: "pass" },
+      { id: "07", outcome: "unobservable" },
+    ]);
 
     const comparison = compareRuns(current, baseline);
-    expect(comparison.codex_version_match).toBe(false);
+    expect(comparison.codex_version_match).toBe(true);
     expect(comparison.cases.map((entry) => entry.id)).toEqual([
       "01",
       "02",
@@ -378,10 +698,29 @@ describe("Skill Trigger Eval deterministic contract", () => {
       "recovered_observable",
       "unchanged_unobservable",
     ]);
+
+    expect(() =>
+      compareRuns(
+        { ...current, provenance: { ...current.provenance, codex_version: "codex-cli 0.154.0" } },
+        baseline,
+      ),
+    ).toThrow("codex_version");
   });
 
-  it("rejects comparison fingerprint, case-set, and split mismatches", () => {
+  it("rejects Result schema, fingerprint, case-set, split, and version mismatches", () => {
     const baseline = comparableRun([{ id: "01", outcome: "pass" }]);
+    expect(() =>
+      compareRuns({ ...baseline, schema_version: 1 } as unknown as ComparableRun, baseline),
+    ).toThrow("schema_version 2");
+    expect(() => parseComparableRun({ ...baseline, schema_version: 1 })).toThrow(
+      "schema_version must be 2",
+    );
+    expect(() => parseComparableRun({ ...baseline, schema_version: 99 })).toThrow(
+      "schema_version must be 2",
+    );
+    expect(() => parseComparableRun({ ...baseline, schema_version: undefined })).toThrow(
+      "schema_version must be 2",
+    );
     expect(() =>
       compareRuns(
         { ...baseline, provenance: { ...baseline.provenance, dataset_sha256: "other" } },
@@ -397,6 +736,15 @@ describe("Skill Trigger Eval deterministic contract", () => {
         baseline,
       ),
     ).toThrow("only for all");
+    expect(() =>
+      compareRuns(
+        {
+          ...baseline,
+          provenance: { ...baseline.provenance, codex_version: "codex-cli 0.154.0" },
+        },
+        baseline,
+      ),
+    ).toThrow("codex_version");
   });
 
   it("keeps the fixed boundary catalog explicit", () => {

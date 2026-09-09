@@ -14,7 +14,7 @@ import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
 import {
   CANONICAL_SKILLS,
-  DATASET_SCHEMA_VERSION,
+  RESULT_SCHEMA_VERSION,
   type CaseResult,
   compareRuns,
   evaluateCase,
@@ -55,19 +55,19 @@ interface HookSnapshotEntry {
   readonly size: number;
 }
 
-interface HookDelta {
+export interface HookDelta {
   readonly correlation_ok: boolean;
   readonly raw: string;
 }
 
-interface HookEvent {
+export interface HookEvent {
   readonly event?: unknown;
   readonly tool_name?: unknown;
   readonly tool_input_preview?: unknown;
   readonly truncated?: unknown;
 }
 
-interface CodexExecution {
+export interface CodexExecution {
   readonly timed_out: boolean;
   readonly spawn_failed: boolean;
   readonly signaled: boolean;
@@ -76,7 +76,7 @@ interface CodexExecution {
 }
 
 interface EvaluationResult {
-  readonly schema_version: typeof DATASET_SCHEMA_VERSION;
+  readonly schema_version: typeof RESULT_SCHEMA_VERSION;
   readonly provenance: {
     readonly evaluator_git_sha: string;
     readonly routing_source_git_sha: string;
@@ -402,98 +402,425 @@ function collectHookDelta(
   return { correlation_ok: true, raw };
 }
 
-function parseHookEvents(raw: string): {
-  readonly parse_ok: boolean;
-  readonly events: readonly HookEvent[];
-} {
-  const lines = raw.split(/\r?\n/u).filter((line) => line.trim().length > 0);
-  if (lines.length === 0) {
-    return { parse_ok: false, events: [] };
-  }
-  const events: HookEvent[] = [];
-  for (const line of lines) {
-    try {
-      const parsed: unknown = JSON.parse(line);
-      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-        return { parse_ok: false, events: [] };
-      }
-      events.push(parsed as HookEvent);
-    } catch {
-      return { parse_ok: false, events: [] };
-    }
-  }
-  return { parse_ok: true, events };
+interface CommandToken {
+  readonly value: string;
+  readonly quoted: boolean;
 }
 
-export function canonicalSkillForCommand(command: string): SkillName | null {
+export type SelectorClassification = "canonical_skill" | "safe_no_read" | "unreliable";
+
+export interface SelectorDecision {
+  readonly classification: SelectorClassification;
+  readonly selector_reliable: boolean;
+  readonly skill: SkillName | null;
+}
+
+interface ParsedCommand {
+  readonly tokens: readonly CommandToken[];
+}
+
+function selectorDecision(
+  classification: SelectorClassification,
+  skill: SkillName | null = null,
+): SelectorDecision {
+  return {
+    classification,
+    selector_reliable: classification !== "unreliable",
+    skill,
+  };
+}
+
+function tokenizeBoundedCommand(command: string): ParsedCommand | null {
+  const tokens: CommandToken[] = [];
+  let index = 0;
+  while (index < command.length) {
+    while (index < command.length && /\s/u.test(command[index] ?? "")) {
+      index += 1;
+    }
+    if (index >= command.length) {
+      break;
+    }
+
+    const first = command[index];
+    if (first === "'" || first === '"') {
+      const quote = first;
+      index += 1;
+      const start = index;
+      while (index < command.length && command[index] !== quote) {
+        const character = command[index];
+        if (quote === '"' && (character === "$" || character === "`")) {
+          return null;
+        }
+        index += 1;
+      }
+      if (index >= command.length) {
+        return null;
+      }
+      const value = command.slice(start, index);
+      index += 1;
+      if (index < command.length && !/\s/u.test(command[index] ?? "")) {
+        return null;
+      }
+      tokens.push({ value, quoted: true });
+      continue;
+    }
+
+    const start = index;
+    while (index < command.length && !/\s/u.test(command[index] ?? "")) {
+      const character = command[index];
+      if (
+        character === "'" ||
+        character === '"' ||
+        character === "|" ||
+        character === ";" ||
+        character === "&" ||
+        character === "<" ||
+        character === ">" ||
+        character === "`" ||
+        character === "$" ||
+        character === "(" ||
+        character === ")"
+      ) {
+        return null;
+      }
+      index += 1;
+    }
+    const value = command.slice(start, index);
+    if (value.length === 0) {
+      return null;
+    }
+    tokens.push({ value, quoted: false });
+  }
+
+  return tokens.length > 0 ? { tokens } : null;
+}
+
+function normalizeBoundedRelativePath(value: string): string | null {
+  const normalized = value.replaceAll("\\", "/");
+  if (
+    normalized.length === 0 ||
+    normalized.startsWith("/") ||
+    normalized.startsWith("~") ||
+    /^[A-Za-z]:($|\/)/u.test(normalized) ||
+    normalized.includes("*") ||
+    normalized.includes("?") ||
+    normalized.includes("[") ||
+    normalized.includes("]")
+  ) {
+    return null;
+  }
+  const parts = normalized.split("/");
+  const result: string[] = [];
+  for (const part of parts) {
+    if (part.length === 0 || part === ".") {
+      continue;
+    }
+    if (part === "..") {
+      return null;
+    }
+    result.push(part);
+  }
+  return result.length > 0 ? result.join("/") : ".";
+}
+
+function canonicalSkillForRelativePath(path: string): SkillName | null {
+  const normalized = path.toLowerCase();
   for (const skill of CANONICAL_SKILLS) {
-    const acceptedCommands = [
-      `Get-Content -Raw .agents/skills/${skill}/SKILL.md`,
-      `Get-Content -Raw '.agents/skills/${skill}/SKILL.md'`,
-      `Get-Content -Raw .agents\\skills\\${skill}\\SKILL.md`,
-      `Get-Content -Raw -LiteralPath '.agents/skills/${skill}/SKILL.md'`,
-    ];
-    if (acceptedCommands.includes(command)) {
+    if (normalized === `.agents/skills/${skill}/skill.md`) {
       return skill;
     }
   }
   return null;
 }
 
-function canonicalSkillForHookEvent(event: HookEvent): SkillName | null {
-  if (event.event !== "PostToolUse" || event.tool_name !== "Bash") {
-    return null;
+function isCanonicalSkillTree(path: string): boolean {
+  const normalized = path.toLowerCase();
+  return (
+    normalized === ".agents/skills" ||
+    normalized.startsWith(".agents/skills/") ||
+    CANONICAL_SKILLS.some((skill) => {
+      const root = `.agents/skills/${skill}`;
+      return normalized === root || normalized.startsWith(`${root}/`);
+    })
+  );
+}
+
+function classifyDirectPath(pathValue: string): SelectorDecision {
+  const path = normalizeBoundedRelativePath(pathValue);
+  if (path === null) {
+    return selectorDecision("unreliable");
   }
+  const skill = canonicalSkillForRelativePath(path);
+  return skill === null
+    ? selectorDecision("safe_no_read")
+    : selectorDecision("canonical_skill", skill);
+}
+
+function classifyGetContent(tokens: readonly CommandToken[]): SelectorDecision {
+  let pathValue: string | null = null;
+  let positionalPath: string | null = null;
+  let rawSeen = false;
+
+  for (let index = 1; index < tokens.length; index += 1) {
+    const value = tokens[index]?.value;
+    if (value === undefined) {
+      return selectorDecision("unreliable");
+    }
+    const option = value.toLowerCase();
+    if (option === "-raw") {
+      if (rawSeen) {
+        return selectorDecision("unreliable");
+      }
+      rawSeen = true;
+      continue;
+    }
+    if (option === "-path" || option === "-literalpath") {
+      if (pathValue !== null || index + 1 >= tokens.length) {
+        return selectorDecision("unreliable");
+      }
+      const next = tokens[index + 1]?.value;
+      if (!next || next.startsWith("-")) {
+        return selectorDecision("unreliable");
+      }
+      pathValue = next;
+      index += 1;
+      continue;
+    }
+    if (value.startsWith("-")) {
+      return selectorDecision("unreliable");
+    }
+    if (positionalPath !== null) {
+      return selectorDecision("unreliable");
+    }
+    positionalPath = value;
+  }
+
+  if (pathValue !== null && positionalPath !== null) {
+    return selectorDecision("unreliable");
+  }
+  const path = pathValue ?? positionalPath;
+  return path === null ? selectorDecision("unreliable") : classifyDirectPath(path);
+}
+
+function classifySearchScope(scope: string): SelectorDecision {
+  const normalized = normalizeBoundedRelativePath(scope);
+  if (normalized === null || normalized === "." || isCanonicalSkillTree(normalized)) {
+    return selectorDecision("unreliable");
+  }
+  return selectorDecision("safe_no_read");
+}
+
+function classifySimpleSearch(tokens: readonly CommandToken[]): SelectorDecision {
+  const command = tokens[0]?.value.toLowerCase();
+  if (command === "rg" || command === "grep") {
+    if (tokens.length !== 3 || tokens[1]?.value.startsWith("-")) {
+      return selectorDecision("unreliable");
+    }
+    const pattern = tokens[1]?.value;
+    const scope = tokens[2]?.value;
+    if (!pattern || !scope) {
+      return selectorDecision("unreliable");
+    }
+    return classifySearchScope(scope);
+  }
+
+  if (command !== "select-string") {
+    return selectorDecision("unreliable");
+  }
+
+  let path: string | null = null;
+  let pattern: string | null = null;
+  for (let index = 1; index < tokens.length; index += 1) {
+    const option = tokens[index]?.value.toLowerCase();
+    if (option !== "-path" && option !== "-pattern") {
+      return selectorDecision("unreliable");
+    }
+    const value = tokens[index + 1]?.value;
+    if (!value || value.startsWith("-")) {
+      return selectorDecision("unreliable");
+    }
+    if (option === "-path") {
+      if (path !== null) {
+        return selectorDecision("unreliable");
+      }
+      path = value;
+    } else {
+      if (pattern !== null) {
+        return selectorDecision("unreliable");
+      }
+      pattern = value;
+    }
+    index += 1;
+  }
+  return path !== null && pattern !== null
+    ? classifySearchScope(path)
+    : selectorDecision("unreliable");
+}
+
+function isKnownSafeCommand(tokens: readonly CommandToken[]): boolean {
+  const command = tokens[0]?.value.toLowerCase();
+  if (command === "git") {
+    return (
+      tokens[1]?.value.toLowerCase() === "status" &&
+      tokens.slice(2).every((token) => token.value.startsWith("-"))
+    );
+  }
+  if (command === "pnpm") {
+    return tokens.length === 3 && tokens[1]?.value === "run" && tokens[2]?.value === "test";
+  }
+  if (command === "echo" || command === "write-output") {
+    return true;
+  }
+  if (command === "get-childitem") {
+    if (tokens.length > 2) {
+      return false;
+    }
+    if (tokens.length === 1) {
+      return true;
+    }
+    return normalizeBoundedRelativePath(tokens[1]?.value ?? "") !== null;
+  }
+  return false;
+}
+
+export function classifyCommand(command: string): SelectorDecision {
+  const parsed = tokenizeBoundedCommand(command);
+  if (!parsed) {
+    return selectorDecision("unreliable");
+  }
+  const name = parsed.tokens[0]?.value.toLowerCase();
+  if (name === "get-content") {
+    return classifyGetContent(parsed.tokens);
+  }
+  if (name === "rg" || name === "grep" || name === "select-string") {
+    return classifySimpleSearch(parsed.tokens);
+  }
+  return isKnownSafeCommand(parsed.tokens)
+    ? selectorDecision("safe_no_read")
+    : selectorDecision("unreliable");
+}
+
+export function canonicalSkillForCommand(command: string): SkillName | null {
+  const decision = classifyCommand(command);
+  return decision.classification === "canonical_skill" ? decision.skill : null;
+}
+
+function parseToolInputPreview(event: HookEvent): Record<string, unknown> | null {
   if (typeof event.tool_input_preview !== "string" || event.truncated !== false) {
     return null;
   }
-  let toolInput: unknown;
   try {
-    toolInput = JSON.parse(event.tool_input_preview) as unknown;
+    const parsed: unknown = JSON.parse(event.tool_input_preview);
+    return typeof parsed === "object" && parsed !== null && !Array.isArray(parsed)
+      ? (parsed as Record<string, unknown>)
+      : null;
   } catch {
     return null;
   }
-  if (typeof toolInput !== "object" || toolInput === null || Array.isArray(toolInput)) {
-    return null;
-  }
-  const command = (toolInput as { readonly command?: unknown }).command;
-  if (typeof command !== "string") {
-    return null;
-  }
-  return canonicalSkillForCommand(command);
 }
 
-function selectObservedSkills(events: readonly HookEvent[]): {
+function isKnownHistoryQuery(value: Record<string, unknown>): boolean {
+  const keys = Object.keys(value).sort();
+  if (
+    keys.join(",") !== "limit,max_chars_per_item,recent_first,role" ||
+    typeof value.limit !== "number" ||
+    typeof value.max_chars_per_item !== "number" ||
+    typeof value.recent_first !== "boolean" ||
+    typeof value.role !== "string"
+  ) {
+    return false;
+  }
+  return true;
+}
+
+export function classifyHookEvent(event: HookEvent): SelectorDecision {
+  if (event.event !== "PostToolUse") {
+    return selectorDecision("safe_no_read");
+  }
+  const toolInput = parseToolInputPreview(event);
+  if (!toolInput || typeof event.tool_name !== "string") {
+    return selectorDecision("unreliable");
+  }
+  if (event.tool_name === "Bash") {
+    return typeof toolInput.command === "string"
+      ? classifyCommand(toolInput.command)
+      : selectorDecision("unreliable");
+  }
+  if (event.tool_name === "historylist_items" && isKnownHistoryQuery(toolInput)) {
+    return selectorDecision("safe_no_read");
+  }
+  return selectorDecision("unreliable");
+}
+
+export interface InitialSkillSelection {
   readonly selector_reliable: boolean;
-  readonly observed_skills: readonly string[];
-} {
-  const observed = new Set<string>();
-  for (const event of events) {
-    if (event.event !== "PostToolUse" || event.tool_name !== "Bash") {
+  readonly initial_skill: SkillName | null;
+  readonly observed_skills: readonly string[] | null;
+  readonly candidate_index: number | null;
+}
+
+export function selectInitialSkill(events: readonly HookEvent[]): InitialSkillSelection {
+  for (let index = 0; index < events.length; index += 1) {
+    const event = events[index];
+    if (event?.event !== "PostToolUse") {
       continue;
     }
-    if (typeof event.tool_input_preview !== "string" || event.truncated !== false) {
-      return { selector_reliable: false, observed_skills: [] };
+    const decision = classifyHookEvent(event);
+    if (decision.classification === "unreliable") {
+      return {
+        selector_reliable: false,
+        initial_skill: null,
+        observed_skills: null,
+        candidate_index: null,
+      };
     }
-    let toolInput: unknown;
-    try {
-      toolInput = JSON.parse(event.tool_input_preview) as unknown;
-    } catch {
-      return { selector_reliable: false, observed_skills: [] };
-    }
-    if (typeof toolInput !== "object" || toolInput === null || Array.isArray(toolInput)) {
-      return { selector_reliable: false, observed_skills: [] };
-    }
-    const command = (toolInput as { readonly command?: unknown }).command;
-    if (typeof command !== "string") {
-      return { selector_reliable: false, observed_skills: [] };
-    }
-    const skill = canonicalSkillForHookEvent(event);
-    if (skill !== null) {
-      observed.add(skill);
+    if (decision.classification === "canonical_skill") {
+      if (decision.skill === null) {
+        return {
+          selector_reliable: false,
+          initial_skill: null,
+          observed_skills: null,
+          candidate_index: null,
+        };
+      }
+      return {
+        selector_reliable: true,
+        initial_skill: decision.skill,
+        observed_skills: [decision.skill],
+        candidate_index: index,
+      };
     }
   }
-  return { selector_reliable: true, observed_skills: [...observed] };
+  return {
+    selector_reliable: true,
+    initial_skill: null,
+    observed_skills: [],
+    candidate_index: null,
+  };
+}
+
+function parseHookEvents(raw: string): {
+  readonly parse_ok: boolean;
+  readonly events: readonly HookEvent[];
+  readonly invalid_index: number | null;
+} {
+  const lines = raw.split(/\r?\n/u).filter((line) => line.trim().length > 0);
+  if (lines.length === 0) {
+    return { parse_ok: false, events: [], invalid_index: 0 };
+  }
+  const events: HookEvent[] = [];
+  for (const line of lines) {
+    try {
+      const parsed: unknown = JSON.parse(line);
+      if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+        return { parse_ok: false, events, invalid_index: events.length };
+      }
+      events.push(parsed as HookEvent);
+    } catch {
+      return { parse_ok: false, events, invalid_index: events.length };
+    }
+  }
+  return { parse_ok: true, events, invalid_index: null };
 }
 
 function parseCodexStdout(stdout: string): {
@@ -604,13 +931,13 @@ function readOutcome(value: unknown): value is Outcome {
   );
 }
 
-function parseComparableRun(value: unknown): Parameters<typeof compareRuns>[1] {
+export function parseComparableRun(value: unknown): Parameters<typeof compareRuns>[1] {
   if (typeof value !== "object" || value === null || Array.isArray(value)) {
     fail("baseline schema parse failure: top-level result must be an object");
   }
   const record = value as Record<string, unknown>;
-  if (record.schema_version !== DATASET_SCHEMA_VERSION) {
-    fail("baseline schema parse failure: schema_version must be 1");
+  if (record.schema_version !== RESULT_SCHEMA_VERSION) {
+    fail("baseline schema parse failure: Result schema_version must be 2");
   }
   const provenance = record.provenance;
   if (typeof provenance !== "object" || provenance === null || Array.isArray(provenance)) {
@@ -658,7 +985,7 @@ function parseComparableRun(value: unknown): Parameters<typeof compareRuns>[1] {
     cases.push({ id: caseRecord.id, outcome: caseRecord.outcome });
   }
   return {
-    schema_version: DATASET_SCHEMA_VERSION,
+    schema_version: RESULT_SCHEMA_VERSION,
     provenance: {
       evaluator_git_sha: provenanceString("evaluator_git_sha"),
       routing_source_git_sha: provenanceString("routing_source_git_sha"),
@@ -670,7 +997,10 @@ function parseComparableRun(value: unknown): Parameters<typeof compareRuns>[1] {
   };
 }
 
-function prepareSignals(execution: CodexExecution, hookDelta: HookDelta): ObservationSignals {
+export function prepareSignals(
+  execution: CodexExecution,
+  hookDelta: HookDelta,
+): ObservationSignals {
   if (!hookDelta.correlation_ok) {
     return {
       timed_out: execution.timed_out,
@@ -681,24 +1011,17 @@ function prepareSignals(execution: CodexExecution, hookDelta: HookDelta): Observ
       hook_correlation_ok: false,
       hook_parse_ok: false,
       selector_reliable: false,
-      observed_skills: [],
+      initial_skill: null,
+      observed_skills: null,
     };
   }
   const parsed = parseHookEvents(hookDelta.raw);
-  if (!parsed.parse_ok) {
-    return {
-      timed_out: execution.timed_out,
-      spawn_failed: execution.spawn_failed,
-      signaled: execution.signaled,
-      exit_code: execution.exit_code,
-      trusted_terminal: execution.trusted_terminal,
-      hook_correlation_ok: true,
-      hook_parse_ok: false,
-      selector_reliable: false,
-      observed_skills: [],
-    };
-  }
-  const selected = selectObservedSkills(parsed.events);
+  const selected = selectInitialSkill(parsed.events);
+  const candidatePrefixParseOk =
+    selected.initial_skill !== null &&
+    (parsed.invalid_index === null ||
+      (selected.candidate_index !== null && parsed.invalid_index > selected.candidate_index));
+  const hookParseOk = selected.initial_skill !== null ? candidatePrefixParseOk : parsed.parse_ok;
   return {
     timed_out: execution.timed_out,
     spawn_failed: execution.spawn_failed,
@@ -706,8 +1029,9 @@ function prepareSignals(execution: CodexExecution, hookDelta: HookDelta): Observ
     exit_code: execution.exit_code,
     trusted_terminal: execution.trusted_terminal,
     hook_correlation_ok: true,
-    hook_parse_ok: true,
+    hook_parse_ok: hookParseOk,
     selector_reliable: selected.selector_reliable,
+    initial_skill: selected.initial_skill,
     observed_skills: selected.observed_skills,
   };
 }
@@ -752,7 +1076,7 @@ async function runLive(options: CliOptions, evaluatorRoot: string): Promise<void
   const caseResults = await evaluateCases(evaluatorRoot, preflight.target_root, selectedCases);
   const summary = (await import("./skill-trigger-evals.js")).summarizeCaseResults(caseResults);
   const result: EvaluationResult = {
-    schema_version: DATASET_SCHEMA_VERSION,
+    schema_version: RESULT_SCHEMA_VERSION,
     provenance: {
       evaluator_git_sha: preflight.evaluator_git_sha,
       routing_source_git_sha: preflight.routing_source_git_sha,
