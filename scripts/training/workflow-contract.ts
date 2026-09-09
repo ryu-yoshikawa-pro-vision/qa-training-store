@@ -17,6 +17,7 @@ const REPOSITORY_TRAINING_COMMANDS = new Set([
   "pnpm run validate:curriculum",
   "pnpm run build:web",
   "pnpm run training:web:baseline",
+  "pnpm run training:web:exercise",
   "pnpm run training:web:check-expected-failure",
   "pnpm run training:native:baseline",
   "pnpm run training:native:exercise",

@@ -232,14 +232,21 @@ function assertWorkbookId(name: string, rowLabel: string, field: string, value: 
   if (!pattern.test(value)) fail(`${name} has an invalid ${field}: ${value}`);
 }
 
-function assertRepositoryPath(rootDir: string, name: string, column: string, value: string): void {
+function assertRepositoryPath(
+  rootDir: string,
+  name: string,
+  column: string,
+  value: string,
+  requireExists = true,
+): void {
   if (value === "") return;
   if (/^(?:[A-Za-z]:[\\/]|[\\/])/.test(value)) fail(`${name} has an absolute ${column}: ${value}`);
   const absolute = path.resolve(rootDir, value);
   const relative = path.relative(rootDir, absolute);
   if (relative.startsWith(`..${path.sep}`) || relative === "..")
     fail(`${name} has a path outside the repository: ${value}`);
-  if (!fs.existsSync(absolute)) fail(`${name} has a non-existent ${column}: ${value}`);
+  if (requireExists && !fs.existsSync(absolute))
+    fail(`${name} has a non-existent ${column}: ${value}`);
 }
 
 export function validateWorkbook(rootDir: string): number {
@@ -264,6 +271,7 @@ export function validateWorkbook(rootDir: string): number {
   const riskIds = new Set<string>();
   const testCaseIds = new Set<string>();
   const targetIds = new Set<string>();
+  const executionContexts = new Set<string>();
   const unique = (set: Set<string>, value: string, name: string, field: string): void => {
     if (set.has(value)) fail(`${name} repeats ${field}: ${value}`);
     set.add(value);
@@ -323,32 +331,53 @@ export function validateWorkbook(rootDir: string): number {
       }
       if (table.name === "03_automation-mapping.csv") {
         const testCaseId = cell(table, row, "test_case_id");
+        const decision = cell(table, row, "automation_decision");
+        const implementationPath = cell(table, row, "implementation_path");
         assertWorkbookId(table.name, rowLabel, "test_case_id", testCaseId);
         if (!testCaseIds.has(testCaseId))
           fail(`${rowLabel} references unknown test_case_id: ${testCaseId}`);
-        assertRepositoryPath(
-          rootDir,
-          rowLabel,
-          "implementation_path",
-          cell(table, row, "implementation_path"),
-        );
+        if (!new Set(["Automate", "Later", "Do not automate"]).has(decision))
+          fail(`${rowLabel} has an invalid automation_decision: ${decision}`);
+        if ((decision === "Later" || decision === "Do not automate") && implementationPath !== "")
+          fail(`${rowLabel} must leave implementation_path blank for ${decision}`);
+        assertRepositoryPath(rootDir, rowLabel, "implementation_path", implementationPath);
       }
       if (table.name === "04_execution-improvement.csv") {
         const testCaseId = cell(table, row, "test_case_id");
-        const result = cell(table, row, "result").trim().toLowerCase();
+        const runContext = cell(table, row, "run_context");
+        const result = cell(table, row, "result");
         assertWorkbookId(table.name, rowLabel, "test_case_id", testCaseId);
-        if (result === "") fail(`${rowLabel} requires result`);
+        if (runContext.trim() === "") fail(`${rowLabel} requires a non-empty run_context`);
+        const contextKey = `${testCaseId}\u0000${runContext.trim()}`;
+        if (executionContexts.has(contextKey))
+          fail(
+            `${rowLabel} repeats test_case_id and run_context: ${testCaseId} / ${runContext.trim()}`,
+          );
+        executionContexts.add(contextKey);
+        if (!new Set(["Pass", "Fail", "Not run"]).has(result))
+          fail(`${rowLabel} has an invalid result: ${result}`);
         if (!testCaseIds.has(testCaseId))
           fail(`${rowLabel} references unknown test_case_id: ${testCaseId}`);
         const evidence = cell(table, row, "evidence");
-        if (result === "not run" && evidence !== "")
-          fail(`${rowLabel} must leave evidence blank when result is Not run`);
-        if (
-          (result === "pass" || result === "not run") &&
-          cell(table, row, "failure_category") !== ""
-        )
-          fail(`${rowLabel} must leave failure_category blank for ${result}`);
-        assertRepositoryPath(rootDir, rowLabel, "evidence", evidence);
+        const diagnosticFields = ["evidence", "failure_category", "cause", "action", "improvement"];
+        if (result === "Not run") {
+          for (const field of diagnosticFields) {
+            if (cell(table, row, field).trim() !== "")
+              fail(`${rowLabel} must leave ${field} blank when result is Not run`);
+          }
+        }
+        if (result === "Pass") {
+          if (cell(table, row, "failure_category").trim() !== "")
+            fail(`${rowLabel} must leave failure_category blank for Pass`);
+          if (evidence.trim() === "") fail(`${rowLabel} requires evidence when result is Pass`);
+        }
+        if (result === "Fail") {
+          for (const field of ["evidence", "failure_category", "cause", "action"]) {
+            if (cell(table, row, field).trim() === "")
+              fail(`${rowLabel} requires ${field} when result is Fail`);
+          }
+        }
+        assertRepositoryPath(rootDir, rowLabel, "evidence", evidence, false);
       }
     }
   }
@@ -364,6 +393,8 @@ function validateTrainingAssets(rootDir: string): string[] {
   for (const requiredPath of [
     "training/playwright/baseline",
     "training/playwright/exercises",
+    "training/playwright/diagnostic-exercises",
+    "training/playwright/support/reset-scenario.ts",
     "training/playwright/failure-exercises",
     "training/maestro/baseline",
     "training/maestro/exercises",
@@ -388,6 +419,13 @@ function validateTrainingAssets(rootDir: string): string[] {
   const nativeFlow = read(rootDir, "training/maestro/baseline/native-training-baseline.yaml");
   assertContains(nativeFlow, "com.ryuyoshikawa.scenarioshop", "Training Maestro baseline");
   assertContains(nativeFlow, "scenario-shop://test-control/reset", "Training Maestro baseline");
+  const starterExercise = read(
+    rootDir,
+    "training/playwright/exercises/training-exercise-starter.spec.ts",
+  );
+  if (/\.first\s*\(/.test(starterExercise) || /toBeVisible\s*\(/.test(starterExercise))
+    fail("Training Playwright starter must not contain a completed catalog assertion");
+  assertContains(starterExercise, "resetScenario", "Training Playwright starter");
   const windowsAndroidHelper = read(rootDir, "scripts/native/windows/android-local.ps1");
   for (const required of [
     "RequirePhysicalDevice",
@@ -460,16 +498,15 @@ function validateTrainingAssets(rootDir: string): string[] {
     "docs/curriculum/test-automation/part1/07_maestro-native-automation.md",
   );
   for (const required of [
-    "Toolchain Doctor",
+    "scripts/native/windows/android-local.ps1",
     "-Action Doctor",
-    "Android physical device",
-    "USB debugging",
     "adb devices -l",
     "RequirePhysicalDevice",
     "-DeviceSerial",
-    "unlocked",
-    "Training Maestro baseline",
-    "Evidence",
+    "pnpm run training:native:baseline",
+    "pnpm run training:native:exercise",
+    "TRAINING_MAESTRO_OUTPUT_DIR",
+    ".artifacts/native-local",
   ])
     assertContains(nativeLesson, required, "Native automation lesson");
 
@@ -481,6 +518,8 @@ function validateTrainingAssets(rootDir: string): string[] {
     "Training Web Workflow",
   );
   assertContains(webWorkflow, 'PLAYWRIGHT_USE_PREBUILT_DIST: "true"', "Training Web Workflow");
+  assertContains(webWorkflow, "run: pnpm run training:web:exercise", "Training Web Workflow");
+  assertContains(webWorkflow, "if: github.event_name == 'pull_request'", "Training Web Workflow");
   for (const [name, workflow] of [
     ["training-ci.yml", webWorkflow],
     ["training-native-ci.yml", nativeWorkflow],
@@ -576,6 +615,7 @@ export function validateCurriculum(rootDir = process.cwd()): CurriculumSummary {
     "typecheck:training",
     "training:web:baseline",
     "training:web:exercise",
+    "training:web:diagnostic",
     "training:web:mobile",
     "training:web:mobile:exercise",
     "training:web:expected-failure",

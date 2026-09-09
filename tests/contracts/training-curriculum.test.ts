@@ -73,10 +73,14 @@ describe("Training curriculum contracts", () => {
     expect(trainingWorkflow).toContain("PLAYWRIGHT_BASE_URL: http://127.0.0.1:8082");
     expect(trainingWorkflow).toContain('PLAYWRIGHT_USE_PREBUILT_DIST: "true"');
     expect(trainingWorkflow).toContain("pnpm run training:web:baseline");
+    expect(trainingWorkflow).toContain("pnpm run training:web:exercise");
     expect(trainingWorkflow).toContain("pnpm run training:web:check-expected-failure");
     expect(trainingWorkflow).not.toContain("pnpm run training:web:expected-failure");
-    expect(trainingWorkflow).not.toContain("pnpm run training:web:exercise");
     expect(trainingWorkflow).not.toContain("e2e/web/");
+    const baselineStep = trainingWorkflow.indexOf("run: pnpm run training:web:baseline");
+    const exerciseStep = trainingWorkflow.indexOf("run: pnpm run training:web:exercise");
+    expect(exerciseStep).toBeGreaterThan(baselineStep);
+    expect(trainingWorkflow).toContain("if: github.event_name == 'pull_request'");
     expect(phaseOneWorkflow).toContain(
       "PLAYWRIGHT_BASE_URL: ${{ matrix.name == 'training-web-baseline' && 'http://127.0.0.1:8082'",
     );
@@ -126,16 +130,14 @@ describe("Training curriculum contracts", () => {
     const nativeCiWorkflow = readFileSync(resolve(root, ".github/workflows/native-ci.yml"), "utf8");
 
     for (const token of [
-      "Android physical device",
-      "adb devices -l",
       "-RequirePhysicalDevice",
       "-DeviceSerial",
       "$runId",
       "TARGET_SERIAL",
       "TRAINING_MAESTRO_OUTPUT_DIR",
       ".artifacts/native-local",
-      "Training Maestro baseline",
-      "Evidence",
+      "pnpm run training:native:baseline",
+      "pnpm run training:native:exercise",
     ]) {
       expect(nativeLesson).toContain(token);
     }
@@ -588,6 +590,90 @@ jobs:
         "utf8",
       );
       expect(() => validateWorkbook(root)).toThrow(/unknown test_case_id: TC-CART-999/);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("enforces execution context and result state contracts without requiring runtime evidence files", () => {
+    const root = mkdtempSync(join(tmpdir(), "training-execution-contract-"));
+    const repositoryRoot = process.cwd();
+    try {
+      mkdirSync(join(root, "training", "workbook"), { recursive: true });
+      mkdirSync(join(root, "docs", "spec", "features"), { recursive: true });
+      writeFileSync(join(root, "training", "workbook", "README.md"), "# Workbook\n", "utf8");
+      writeFileSync(
+        join(root, "docs", "spec", "features", "cart.md"),
+        readFileSync(resolve(repositoryRoot, "docs/spec/features/cart.md"), "utf8"),
+        "utf8",
+      );
+      for (const name of [
+        "01_target-risk.csv",
+        "02_test-cases.csv",
+        "03_automation-mapping.csv",
+        "04_execution-improvement.csv",
+      ]) {
+        writeFileSync(
+          join(root, "training", "workbook", name),
+          readFileSync(resolve(repositoryRoot, `training/workbook/${name}`), "utf8"),
+          "utf8",
+        );
+      }
+
+      const executionPath = join(root, "training", "workbook", "04_execution-improvement.csv");
+      const source = readFileSync(executionPath, "utf8");
+      expect(() => validateWorkbook(root)).not.toThrow();
+
+      writeFileSync(
+        executionPath,
+        source.replace("TC-CART-002,Training Web exercise", "TC-CART-001,Training Web rerun"),
+        "utf8",
+      );
+      expect(() => validateWorkbook(root)).not.toThrow();
+
+      writeFileSync(
+        executionPath,
+        source.replace("TC-CART-001,Training Web exercise,Not run", "TC-CART-001,,Not run"),
+        "utf8",
+      );
+      expect(() => validateWorkbook(root)).toThrow(/non-empty run_context/);
+
+      writeFileSync(
+        executionPath,
+        source.replace("TC-CART-002,Training Web exercise", "TC-CART-001, Training Web exercise "),
+        "utf8",
+      );
+      expect(() => validateWorkbook(root)).toThrow(/repeats test_case_id and run_context/);
+
+      writeFileSync(
+        executionPath,
+        source.replace(
+          "TC-CART-001,Training Web exercise,Not run",
+          "TC-CART-001,Training Web exercise,Pending",
+        ),
+        "utf8",
+      );
+      expect(() => validateWorkbook(root)).toThrow(/invalid result: Pending/);
+
+      writeFileSync(
+        executionPath,
+        source.replace(
+          "TC-CART-001,Training Web exercise,Not run,,,,,",
+          "TC-CART-001,Training Web exercise,Not run,planned evidence,,,,",
+        ),
+        "utf8",
+      );
+      expect(() => validateWorkbook(root)).toThrow(/evidence blank when result is Not run/);
+
+      writeFileSync(
+        executionPath,
+        source.replace(
+          "TC-CART-001,Training Web exercise,Not run,,,,,",
+          "TC-CART-001,Training Web exercise,Pass,github-actions-artifact/training-web,,,,",
+        ),
+        "utf8",
+      );
+      expect(() => validateWorkbook(root)).not.toThrow();
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
