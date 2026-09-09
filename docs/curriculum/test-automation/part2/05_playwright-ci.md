@@ -3,6 +3,7 @@
 ## 学習目標
 
 - Localで動くPlaywright TestをGitHub Actions上で実行できる。
+- Part 1で作成した受講者向けPlaywright Testを、演習用CopyのPull Requestから継続実行へ接続できる。
 - Browser Install、Application Build / Serve、Base URL、Environmentの関係を理解できる。
 - HTML Report、Trace、Screenshot、VideoをCI Artifactとして残せる。
 - Smoke、Required Regression、Extended RegressionなどのTest Suiteを実行タイミングに応じて分けられる。
@@ -28,6 +29,8 @@
 受講者は本体Repositoryの `.github/workflows/ci.yml` を直接変更してPlaywright演習を行いません。
 
 Part 1で作成したTraining用Playwright Testは `playwright.training.config.ts` と `training-ci.yml`から明示的に実行します。現行 `playwright.config.ts` / `package.json` のFormal Suiteへ演習specを混在させません。
+
+リポジトリ管理のTraining Workflowには、`pull_request`で基準確認を行った後に`pnpm run training:web:exercise`を実行するStepがあらかじめ接続されています。受講者は実行用`.github/workflows/**`へStepを追加するのではなく、Part 1で作成した`training/playwright/exercises/`の変更を演習用CopyのPull Requestへ送り、同じTestがCIで実行されることを確認します。`training:copy:validate`はWorkflowの配布元とactive allowlistを確認する生成時検証であり、受講者TestのCI成功とは別です。
 
 現在の `.github/workflows/ci.yml` は、自分の最小Playwright CIを動かした後に比較教材として読みます。
 
@@ -195,13 +198,16 @@ Test APIなどAutomation専用機能がProductionへ混入していないこと�
 
 Training Workflowでは本番Deployや本番Secretを扱わず、Production Artifact Smokeの設計思想を既存CIから学びます。
 
-## ハンズオン1: Chromium E2EをTraining CIへ追加する
+## ハンズオン1: 受講者TestをTraining CIへ接続する
 
-Training Workflowに次を追加します。
+準備済みのTraining Workflowで、次の順序を確認します。
 
 1. Build
 2. Chromium Install
-3. `training:web:baseline`によるTraining用Playwright E2E
+3. `training:web:baseline`による基準確認
+4. `training:web:exercise`による受講者向けPlaywright E2E
+
+ローカルで`pnpm run training:web:exercise`を成功させた自分の変更を、演習用CopyのPull Requestへ送ります。Pull Requestでは基準確認後に同じExerciseが実行され、成功した実行結果 / ArtifactをP2-8のCI設計Evidenceへ再利用します。
 
 ## ハンズオン2: Failure Artifact
 
@@ -249,6 +255,7 @@ Part 1で作成したTestを次へ仮分類します。
 - Browser Install、Application Build / Serve、Base URL、Playwright Testの関係を説明できる。
 - BuildしたArtifactを再利用する理由と、Failure工程に応じて必要なTrace / Screenshot / Reportを選べる。
 - Training Web CIとProduction Deploy / Smokeの責務を分け、Production SecretをTrainingへ持ち込まない理由を説明できる。
+- `pull_request`の基準確認後に`training:web:exercise`が実行されることと、生成時の`training:copy:validate`を受講者TestのCI成功と区別できる。
 - Expected Failureを通常のbaseline PASSへ混ぜず、Failure Evidenceから原因の範囲を説明できる。
 - PR / main / Nightlyの配置やCurrent CI topologyはP2-7またはReference comparisonであり、P2-5 Common completionの隠れた前提ではない。
 

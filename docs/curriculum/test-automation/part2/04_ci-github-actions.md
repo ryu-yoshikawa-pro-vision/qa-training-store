@@ -4,6 +4,7 @@
 
 - CIの目的を説明できる。
 - GitHub Actions Workflowの基本構造を読める。
+- YAMLのインデントと、演習用Workflowに現れるGitHub Actionsの主要なKeyを対応付けられる。
 - Trigger、Job、Step、Runnerの関係を理解できる。
 - Localで実行していたTest CommandをCIへ載せられる。
 - PR、main、schedule、manual実行の違いを理解できる。
@@ -16,7 +17,7 @@
 
 ただし、現在の `.github/workflows/ci.yml` はCloudflare Preview / Productionなど実運用向け経路を含む完成済みWorkflowです。
 
-受講者が最初からこれを直接編集・複製して実行することは前提にしません。
+受講者が最初からこれを直接編集・複製して実行することは前提にしません。共通範囲では、準備済みのTraining Workflowを読み、実行対象の`.github/workflows/**`を編集しません。
 
 ## Common Required
 
@@ -70,6 +71,22 @@ Training用の最小例は [`training-ci.yml`](../../../../training/github-actio
 - Step
 - Action
 - Command
+
+YAMLの`key: value`、リスト、インデントによる入れ子を確認したうえで、準備済みのTraining Workflowを次の対応で読みます。
+
+| WorkflowのKey | 読み取る内容 |
+| --- | --- |
+| `on` | どのEventでWorkflowを起動するか |
+| `jobs` | どの単位の処理を実行するか |
+| `runs-on` | Jobを動かすRunner |
+| `steps` | Job内の処理順序 |
+| `uses` | 再利用するAction |
+| `with` | Actionへ渡す設定 |
+| `run` | Runner上で実行するCommand |
+| `env` | Workflow / Job / Stepへ渡すEnvironment Variable |
+| `if` | StepやJobを実行する条件 |
+
+`${{ ... }}`はYAMLの値そのものではなく、GitHub ActionsのExpressionです。`github`はEventやRepository、`env`はEnvironment Variable、`inputs`は`workflow_dispatch`の入力値を参照するContextです。すべてのExpressionを暗記せず、実際のWorkflowで読める範囲を扱います。
 
 ## Lesson 3: Trigger
 
@@ -178,30 +195,23 @@ Training Workflowを書く前に、演習Repositoryで次を確認します。
 
 Forkを利用する場合は、教材で指定された方法で既存Production Workflowを無効化したことも確認します。
 
-このGateを満たしていない状態ではCIハンズオンへ進みません。
+このGateを満たしていない状態ではCIハンズオンへ進みません。共通範囲では、Workflowを新規作成・編集するのではなく、準備済みのWorkflowを読むことから始めます。
 
-## ハンズオン1: Unit TestをCIへ載せる
+## ハンズオン1: 準備済みTraining Workflowを読む
 
-安全なTraining環境で `pnpm run test:unit` をPR時に実行します。
+リポジトリ管理の[`training-ci.yml`](../../../../training/github-actions/training-ci.yml)を開き、`on`、`permissions`、`jobs`、`runs-on`、`steps`、`uses`、`with`、`run`、`env`、`if`を1つずつ指し示します。基準確認のStepと失敗確認のStepが、どの条件で実行されるかを書きます。
 
-PRのChecksでは、意図したTraining Workflowだけが学習対象として動いていることも確認します。
+## ハンズオン2: Local CommandとCI Stepを対応付ける
 
-## ハンズオン2: Quality Checkを追加する
+Training Workflowに書かれた`pnpm run validate:curriculum`、`pnpm run build:web`、`pnpm run training:web:baseline`などを、Part 1で使ったLocal Commandと対応付けます。共通範囲ではWorkflowへ新しいCommandを追加せず、既存の許可されたStepを読んで説明します。
 
-次から2つ以上を追加します。
+## ハンズオン3: TriggerとContextを比較する
 
-- Format
-- Markdownlint
-- ESLint
-- Typecheck
-
-## ハンズオン3: Trigger比較
-
-同じTraining Workflowを `workflow_dispatch` でも起動できるようにし、PR実行との違いを確認します。
+準備済みWorkflowの`pull_request`と`workflow_dispatch`を比較し、PR時の`github.event_name`、手動実行時の`inputs.mode`が`if`へどう影響するかを記録します。`workflow_dispatch`をYAMLへ追加することは修了条件にしません。
 
 ## ハンズオン4: 現在の`ci.yml`を読む
 
-自分の最小Workflow完成後に、教材元の `.github/workflows/ci.yml` を読みます。
+準備済みのTraining Workflowを読んだ後に、教材元の `.github/workflows/ci.yml` を比較教材として読みます。
 
 確認すること:
 
@@ -242,7 +252,7 @@ Workflowが動かない場合は、最初に起動WorkflowとEvent、次にRunne
 ## 完了条件
 
 - GitHub Actionsの基本構造、Trigger、Job、Failure工程、least privilegeを説明できる。
-- 準備済みのTraining環境でScenario ShopのUnit TestまたはQuality CheckをCI実行できる。
+- 準備済みのTraining Workflowを読み、Trigger、Job、Step、Command、Contextの関係を説明できる。
 - PR / Push / Manual / Scheduleの違いを説明できる。
 - CI Failure時に、意図したWorkflowかどうかを含めて発生工程をLogから特定できる。
 - Training Workflowと本体の実運用Workflowを分ける理由を説明できる。

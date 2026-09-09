@@ -32,7 +32,7 @@ Screen Catalog: [Screen Catalog](../screen-catalog.md)
 | State slug | Type | Audience / Role | Condition / Scenario | Expected UI | Visual requirement | Required platforms | Visual detail | Related Oracle |
 |---|---|---|---|---|---|---|---|---|
 | `default` | baseline | `guest` | `default` | Login formとSignup導線を表示する。 | `required` | `web-desktop, android` | `-` | `BR-AUTH-001`, `AC-AUTH-001` |
-| `validation-error` | error | `guest` | `storage-write-failure` | 必須入力の不足をSummaryで説明する。 | `required` | `web-desktop` | `-` | `BR-AUTH-001`, `AC-AUTH-001` |
+| `validation-error` | error | `guest` | `default` | 必須入力の不足をSummaryで説明する。 | `required` | `web-desktop` | `-` | `BR-AUTH-001`, `AC-AUTH-001` |
 
 #### Visual References
 

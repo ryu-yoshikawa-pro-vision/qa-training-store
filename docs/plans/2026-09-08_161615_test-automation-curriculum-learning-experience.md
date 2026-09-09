@@ -681,9 +681,9 @@ Locator方針は本文だけでなく、学習目標、例、ハンズオン、�
 
 実装時参照:
 
-- https://playwright.dev/docs/locators
-- https://playwright.dev/docs/actionability
-- https://playwright.dev/docs/test-assertions
+- <https://playwright.dev/docs/locators>
+- <https://playwright.dev/docs/actionability>
+- <https://playwright.dev/docs/test-assertions>
 
 ### 6.7 P2-4へ実演習用ワークフローを読める最低限を追加する
 
@@ -716,8 +716,8 @@ P2-4は準備済み演習用ワークフローを題材に、既存の起動条�
 
 実装時参照:
 
-- https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax
-- https://docs.github.com/en/actions/concepts/workflows-and-actions/expressions
+- <https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax>
+- <https://docs.github.com/en/actions/concepts/workflows-and-actions/expressions>
 
 ### 6.8 パート2の共通 / ネイティブ導線を同期する
 
@@ -907,11 +907,11 @@ P1-7の順序:
 
 実装時参照:
 
-- https://docs.maestro.dev/maestro-flows
-- https://docs.maestro.dev/api-reference/selectors
-- https://docs.maestro.dev/reference/commands-available/assertvisible
-- https://docs.maestro.dev/maestro-flows/flow-control-and-logic/wait-commands
-- https://docs.maestro.dev/api-reference/commands/runflow
+- <https://docs.maestro.dev/maestro-flows>
+- <https://docs.maestro.dev/api-reference/selectors>
+- <https://docs.maestro.dev/reference/commands-available/assertvisible>
+- <https://docs.maestro.dev/maestro-flows/flow-control-and-logic/wait-commands>
+- <https://docs.maestro.dev/api-reference/commands/runflow>
 
 ### 6.15 Maestro演習の受講者向け契約を揃える
 

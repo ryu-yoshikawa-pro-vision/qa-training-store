@@ -548,3 +548,11 @@
 - `03_instructor-reference.md`はenvironment、account / permission、device、Training Copy、Infrastructure / Toolchainのsupport-only assetとし、学習内容・評価・Answer Key・個別判定の正本にしない。再利用可能なcriteria-only review checklistは`docs/reference/curriculum-self-study-review.md`に置く。
 - Native specializationのCommon外Evidenceはlearner-authored Native exercise / CI Diff、対応するExecution / Failure / Artifact / Cost判断へ分離する。AndroidはBuild + Runtime、iOSはBuild-onlyというCurrent保証を維持し、値・Protocol・Workflow topologyは既存SSOT / Referenceへ戻す。
 - `docs/spec/**`、Product behavior、Formal Test Strategy、Training runner / workflow / Artifact contract、PR #115は変更対象外である。
+
+## PR #133 Test Automation Curriculum 学習体験改善（2026-09-09）
+
+- `docs/curriculum/test-automation/**`は、P1-1から始まる受講者向け標準導線と、Common Web route / Native specializationの分岐・再joinを正本とする。P1-4でCLI / Node.js / pnpmの最低限を説明し、P1-5でDesktop / Mobile WebとScenario Resetを扱い、P1-7のMaestro詳細実行は概念とFlow下書きの後に置く。
+- Training WebはFormal Regressionから分離する。`training/playwright/support/reset-scenario.ts`は受講者向けテストから決定的なScenario Resetを再利用する入口であり、PlaywrightのBrowserContext分離とは別責務である。未編集のstarter / baselineはC07 / C08のlearner-authored evidenceの代替ではない。
+- `training/workbook/`は既存4 CSVの列を維持し、Cartの代表2ケースをBR / ACと分離して追跡する。`04_execution-improvement.csv`は非空の`run_context`、`Pass` / `Fail` / `Not run`、実行時Evidence参照、診断のFail行と再実行Pass行を契約とする。実行時Artifactの静的ファイル存在は要求しない。
+- Training Workflow Templateは`pull_request`でbaseline後に`training:web:exercise`を実行する。`training:copy:validate`は生成時のTemplate / allowlist検証であり、受講者Testを変更した後のGitHub Actions成功とは別に扱う。本番 / Preview Workflow、Product code、Formal Regressionはこの変更の対象外である。
+- `docs/spec/README.md`は機能の期待動作を読む順序を先に示し、仕様管理・変更手順を後段へ置く。認証の`validation-error`は`default` Scenario、状態文書のWeb Fixture参照は`e2e/web/fixtures.ts`へ揃える。`part1/10_part1-capstone.md`は`09_part1-capstone.md`へのLegacy Aliasとする。

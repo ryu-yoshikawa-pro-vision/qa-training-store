@@ -4,7 +4,7 @@
 
 - 自動化コードを書く前にテスト対象を調査できる。
 - 画面、Role、状態、データ、業務ルール、境界条件を整理できる。
-- `/guide` やSeed Scenarioを、単なる操作補助ではなくテスト分析の情報源として利用できる。
+- `/guide` やSeed Scenarioを、仕様と観察結果を結び付ける補助情報として利用できる。
 - 画面単位だけでなくUser Journeyと状態遷移からテスト対象を捉えられる。
 
 ## 教材
@@ -15,10 +15,13 @@
 
 主に次を使います。
 
+- [`docs/spec/product-scope.md`](../../../spec/product-scope.md)
+- [`docs/spec/roles-and-permissions.md`](../../../spec/roles-and-permissions.md)
+- 対象FeatureのBR / AC
+- [`docs/spec/state-and-scenarios.md`](../../../spec/state-and-scenarios.md)
+- 必要な節だけの[`docs/07_testability/seed_catalog.md`](../../../07_testability/seed_catalog.md)
 - Scenario ShopのWeb画面
 - `/guide`
-- `src/seeds/metadata.ts`
-- READMEの機能説明
 - Storefront / Customer / AdminのRole差分
 
 この段階では、既存E2Eを先に読んで分析結果をコピーしないようにします。
@@ -101,7 +104,7 @@ UIテストは画面だけ見ても十分に設計できません。
 - Payment拒否
 - Payment処理中
 
-`src/seeds/metadata.ts` のScenarioは、これらの状態を決定的に作るための仕組みとして後から確認します。
+状態と期待結果を仕様から整理した後、`src/seeds/metadata.ts` のScenarioを、必要な初期状態を決定的に作る実装上のReferenceとして確認します。
 
 ## Lesson 4: User Journeyで見る
 
@@ -151,11 +154,11 @@ Scenario ShopではUI操作によって内部状態が変化します。
 
 「ボタンを押せるか」ではなく、「操作後に何が変わるべきか」を分析します。
 
-## Lesson 6: `/guide` とScenario Metadata
+## Lesson 6: `/guide` とScenarioの照合
 
 `/guide` では固定Account、Role、Scenario、確認画面、安全なReset先などを確認できます。
 
-分析後に `src/seeds/metadata.ts` を読み、次を照合します。
+仕様、状態、画面を分析した後に`/guide`と`src/seeds/metadata.ts`を照合し、次を確認します。
 
 - どんなScenarioが用意されているか。
 - 何を確認するためのScenarioか。

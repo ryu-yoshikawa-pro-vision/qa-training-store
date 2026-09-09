@@ -15,7 +15,7 @@
 
 まず [`docs/spec/README.md`](../../../spec/README.md) から対象FeatureのBR / ACを読み、Workbookへ `spec_ref`、`br_ids`、`ac_ids`を記録します。既存TestのAssertionを期待結果のOracleへ逆変換しません。
 
-主にCart、Checkout、Payment、Role制御を題材にし、`src/seeds/metadata.ts` のSeed Scenarioと対応させます。
+主にCart、Checkout、Payment、Role制御を題材にします。初期状態の識別子が必要になった段階で、P1-2で確認したState / Scenarioの説明と`src/seeds/metadata.ts`を照合します。
 
 Workbookの列定義と各設計技法の詳細は `../01_spreadsheet-test-design.md` をReferenceとして使用します。このモジュールでは、技法を知ることではなく、Scenario Shopの仕様・状態へ適用してテストケースへ変換することを中心にします。
 

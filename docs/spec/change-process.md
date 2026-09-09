@@ -1,5 +1,7 @@
 # Specification Change Process
 
+この文書は、仕様を保守・変更する担当者向けの手順です。機能を学ぶ受講者は、まず [`README.md`](./README.md) の学習者向けの読み始めから対象Featureを確認し、この変更手順を前提にしません。
+
 ## Normal Feature Change
 
 ```text

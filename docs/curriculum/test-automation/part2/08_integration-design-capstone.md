@@ -4,7 +4,7 @@ Part 2 / Final Commonのcompletionはbounded Web CIを中心とするCommon rout
 
 ## 学習目標
 
-Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Maestro、Quality Gate、CI/CDを使い、Scenario Shopへテスト自動化を導入する設計を自分で作成します。
+Part 2で学んだ開発プロセス、Git、GitHub、CI、Playwright、Quality Gateを使い、Scenario Shopへbounded Web CIを導入する設計を自分で作成します。Maestro / Native CIとPreview / Production deliveryは、選択時またはAdvanced / Referenceとして追加します。
 
 この演習では提案資料の作成を目的にしません。
 
@@ -50,7 +50,7 @@ standaloneの手動入口、Native変更時のRequired Build-only経路、iOS Ru
 
 Repositoryを確認し、次を一覧化します。
 
-### Test
+### Test（Commonの設計対象はWeb範囲を選ぶ）
 
 - Unit
 - Integration
@@ -62,16 +62,16 @@ Repositoryを確認し、次を一覧化します。
 - Mobile Boundary
 - Cross-role
 - UI Review
-- Maestro
+- Maestro（Native specialization / Reference）
 
 ### Build
 
 - Web Automation Build
 - Web Production Build
-- Android Build
-- iOS `iphonesimulator` Build Artifact
+- Android Build（Native specialization）
+- iOS `iphonesimulator` Build Artifact（Native specialization）
 
-### Deploy
+### Deploy（Advanced / Reference）
 
 - Preview
 - Production
@@ -83,8 +83,8 @@ Repositoryを確認し、次を一覧化します。
 - Video
 - HTML Report
 - JUnit
-- Maestro Artifact
-- Native Log
+- Maestro Artifact（Native specialization）
+- Native Log（Native specialization）
 
 この段階では現在のWorkflow Job構成をコピーしません。
 
