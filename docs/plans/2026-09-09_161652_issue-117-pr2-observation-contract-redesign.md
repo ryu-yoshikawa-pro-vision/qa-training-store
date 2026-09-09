@@ -62,8 +62,9 @@ PR6はmulti-Skill workflow、Skill chain、後続Skill invocation、workflow全�
 - dataset schema 1とResult schema 2を分離し、旧Result schema 1をcomparisonで拒否する。
 - `summary.by_process_lifecycle`を確定し、routing outcomeとprocess lifecycleを別集計する。
 - 旧terminal Gateを新contractから削除し、`CASE_TIMEOUT_MS = 327_000`をprocess safety capとして維持する。
+- `240秒Gate`は新contractへ設けない。terminal durationをrouting validity、comparison、Qualification PASS条件へ持ち込まない。
 - Qualificationとcanonical `all`で同一のfresh independent Routing Targetを再利用する条件を固定する。
-- selector grammar、comparison、tests、実装対象file、canonical preconditions、rollback、scope guard、16項目の自己レビューを確定する。
+- selector grammar、comparison、tests、実装対象file、canonical preconditions、rollback、scope guard、24項目の自己レビューを確定する。
 
 ### 1.3 将来実装後のDoD
 
@@ -99,6 +100,7 @@ git rev-parse origin/main
 - working tree: clean
 - HEAD: `c458cc6610344d580676a0813f178e9c6993dad2`
 - `origin/main`: `f7cc237d8ca719646d9654fba2129732b6eab457`
+- 最終修正指示開始時のHEAD: `99120f684c5e2cdac630c662fd752767c3908e49`（上記HEADは前回Plan修正Runの開始時点）
 - PR #127: `OPEN`、base `main`、head branch一致、head SHAはHEADと一致
 - PR本文: Environment Qualification `FAIL`、canonical `all`未実行、valid baseline未取得、Plan pathを保持
 
@@ -190,7 +192,26 @@ Repository内を`schema_version`、`DATASET_SCHEMA_VERSION`、`ComparableRun`、
 
 保存済みTarget Hook evidenceでは、canonical readなし2 case、1回20 case、同一Skillの重複2 case、異なるSkill chain 0 caseだった。これはfirst read proxyの設計根拠にはなるが、internal selectionの証明ではない。
 
+### 2.7 保存済みPostToolUse evidence
+
+新しいProbeは実行せず、既存のHook deltaだけをread-onlyで確認した。
+
+- `.artifacts/qualification-20260908/positive/hook-delta.jsonl`: `PostToolUse` 19件。`tool_name`は`Bash` 19件で、`tool_input_preview`は`command: string`のJSON object、`truncated: false`だった。
+- `.artifacts/trigger-eval-selector-probe-20260907/negative.hook-delta.jsonl`: `PostToolUse` 1件。`Bash` 1件で、`command: string`、`truncated: false`だった。
+- `.artifacts/trigger-eval-selector-probe-20260907/positive.hook-delta.jsonl`: `PostToolUse` 61件。`Bash` 59件、`historylist_items` 1件、`noteswrite_file` 1件だった。
+  - `historylist_items`のinputは`{"limit":10,"recent_first":true,"role":"user","max_chars_per_item":1000}`のquery shapeで、canonical Skill pathやcontent-read targetを持たない。このevent shapeに限り`safe_no_read`とする。
+  - `noteswrite_file`のinputは`path` / `text` shapeだったが`truncated: true`だった。previewの欠落部分に依存せず、このeventは`unreliable`とする。これはnon-Bashであることを理由にした判定ではない。
+- `.artifacts/qualification-20260908/negative/hook-delta.jsonl`は保存内容の先頭付近が完全なJSONL eventとして復元できず、parseableな`PostToolUse`件数をこの分類の根拠に採用しない。旧RunのQualification判定は2.2の履歴値として保持する。
+
+確認できた非Bash eventにcanonical Skill direct readerのpositive evidenceはない。将来のunknown toolについては、tool semanticsとinputからcanonical Skill readの可能性を安全に排除できない限り`unreliable`とする。全Codex toolの分類表や将来用registryは作らない。
+
 ## 3. Current contractの問題
+
+### 3.0 Selectorが測定する対象と判定対象event
+
+selectorが測定するのはOS / filesystem levelの全readではない。測定対象は、Host eventから一意に観測できる、agentが6つのcanonical `SKILL.md`のいずれかをdirect content readしたevidenceだけである。`pnpm run test`などの内部processが何らかのfileを読む可能性は追跡しない。一方、agent command自体がcanonical `SKILL.md`の内容を直接取得する`Get-Content` eventは対象とする。
+
+判定対象eventは、caseと相関したHook deltaのうち`event === "PostToolUse"`である全recordとする。`tool_name`がBashかnon-Bashかだけで対象外にしない。各eventのsemanticsと`tool_input_preview`のinputから、canonical Skill direct readを安全に肯定・否定できるかを分類する。`UserPromptSubmit`、`SubagentStart`、`SubagentStop`、`Stop`などのnon-`PostToolUse` eventはselectorへ含めない。outer JSONLをparseできないlineは`safe_no_read`ではなくHook parse failureとして扱う。
 
 ### 3.1 selector non-matchと判定不能を区別していない
 
@@ -271,9 +292,9 @@ Later Skill reads:
 
 ### 5.2 selectorの3状態
 
-相関したHook deltaは全JSONL行を保持し、`event` / `tool_name`の境界を明示する。selectorの対象列は`PostToolUse` recordであり、そのうち`tool_name === "Bash"`をcurrent bounded command inputとして扱う。`UserPromptSubmit`、`SubagentStart`、`SubagentStop`、`Stop`はSkill read evidenceへ数えない。`PostToolUse`の`tool_name`がBash以外、欠落、または対象command fieldsが壊れている場合は、現在のbounded selectorではno-readを証明できないため`unreliable`とし、absenceを許可しない。
+相関したHook deltaは全JSONL行を保持し、`event` / `tool_name`の境界を明示する。selectorの判定対象は、`event === "PostToolUse"`である全recordであり、Bashだけに限定しない。`tool_name`は分類の入力の一つにすぎず、tool名だけで`canonical_skill`、`safe_no_read`、`unreliable`を決めない。`UserPromptSubmit`、`SubagentStart`、`SubagentStop`、`Stop`などのnon-`PostToolUse` eventはSkill read selectorへ含めない。
 
-対象となる`PostToolUse / Bash` eventごとに、最低限次のいずれかへ分類する。
+各判定対象`PostToolUse` eventを、canonical `SKILL.md` direct content readをそのeventから安全に肯定または否定できるかで、最低限次のいずれかへ分類する。
 
 | 分類 | `selector_reliable` | Skill値 | 意味 |
 |---|---:|---|---|
@@ -284,17 +305,34 @@ Later Skill reads:
 例:
 
 - `Get-Content -Raw .agents/skills/feature-plan/SKILL.md` → `canonical_skill / true / feature-plan`
-- `Get-Content package.json`、`git status`、`pnpm run test`、`Get-ChildItem src` → `safe_no_read / true / null`
+- `Get-Content package.json`、`Get-Content docs/PROJECT_CONTEXT.md`、`git status`、`pnpm run test`、`Get-ChildItem src` → inputからcanonical Skill direct readではないと確定できるため`safe_no_read / true / null`
+- `rg "foo" src/`、`grep "foo" package.json`、`Select-String -Path docs/PROJECT_CONTEXT.md -Pattern "foo"` → canonical Skill pathを含まないこの単純shapeでは`safe_no_read / true / null`
+- `rg "foo" .agents/skills/feature-plan/SKILL.md`、`grep "foo" .agents/skills/code-review/SKILL.md`、`Select-String -Path .agents/skills/repair-loop/SKILL.md ...` → positive readerとして未対応で、canonical read可能性を除外できないため`unreliable / false`
+- 保存済み`historylist_items`のquery shape → canonical path / content-read targetがなく、当該shapeに限り`safe_no_read / true / null`
+- 保存済み`noteswrite_file`の`truncated: true` event → preview全体を検査できないため`unreliable / false`
 - truncated `tool_input_preview`、malformed preview JSON、ambiguous multiple command、unbalanced quote、対象commandを一意に取れない複雑なPowerShell → `unreliable / false`
 
-`selector_reliable=true`とは、対象Hook eventについて、canonical Skill direct readであるか、そうでないかを安全に判定できたことを意味する。recognizerのpositive grammarへ一致しなかっただけで`unobservable`にはしない。`safe_no_read`は正常な観測結果である。
+`selector_reliable=true`とは、対象Hook eventについて、canonical Skill direct readであるか、そうでないかを安全に判定できたことを意味する。recognizerのpositive grammarへ一致しなかっただけで`unobservable`にはしない。`safe_no_read`は正常な観測結果である。`unreliable`は、eventがnon-Bashであること、または一般に怪しいことを意味せず、canonical Skill direct readの可能性をそのeventから安全に排除できない場合だけに使う。
+
+### 5.2.1 event classifier decision table
+
+| event | canonical Skillとの関係 | 判定 |
+|---|---|---|
+| supported direct readerでcanonical Skillを一意にread | canonical Skill read | `canonical_skill` |
+| supported command / toolでcanonical Skill readではないと一意に確定 | none | `safe_no_read` |
+| `rg` / `grep` / `Select-String`のinputにcanonical Skill pathが現れる | unsupported direct-read possibility | `unreliable` |
+| `rg` / `grep` / `Select-String`のinputにcanonical Skill pathが現れない単純shape | noneを安全に確認 | `safe_no_read` |
+| 非Bash toolだがsemantics / inputからcanonical Skill content readと無関係と確定 | none | `safe_no_read` |
+| 非Bash toolでcanonical Skill content read可能性を排除できない | 不明 | `unreliable` |
+| unknown toolでsemanticsから安全に判断できない | 不明 | `unreliable` |
+| malformed / truncated input | 不明 | `unreliable` |
 
 ### 5.3 initial Skillの決定
 
 相関したeventを時系列順に見る。
 
-1. 現行Hookの`tool_input_preview`をJSON parseし、commandを取得する。
-2. 各対象eventを3状態へ分類する。非対象Hook eventはSkill read evidenceへ数えず、対象列に入れない。未知の不完全な対象eventは`unreliable`とする。
+1. 現行Hookの`tool_input_preview`をJSON parseする。command-bearing inputではcommandを取得し、non-Bashのknown non-command shapeではtool_nameとinput objectを分類へ渡す。non-Bashにcommand fieldがないことだけでは`unreliable`としない。
+2. 各`PostToolUse` event（Bash / non-Bashを問わない）を、tool semanticsとinput shapeに基づき3状態へ分類する。非`PostToolUse` Hook eventはSkill read evidenceへ数えず、対象列に入れない。未知の不完全な対象eventは`unreliable`とする。
 3. 最初の`canonical_skill`を見つけた場合、そのeventとprefixの全eventがreliableなら`initial_skill`を固定する。
 4. first candidate後のeventはPR2のlater Skill setへ収集しない。後続eventのmalformed / truncatedで、既にtrustedなinitial routing outcomeを消さない。
 5. candidateがない場合は、5.4のtrusted absence条件へ進む。
@@ -309,7 +347,7 @@ positive candidateより前のeventが`unreliable`ならpresenceは確定しな�
 - trusted terminalが`turn.completed`
 - 既存`collectHookDelta`によるHook correlationが成立
 - Hook JSONLの対象eventがparseできる
-- 全対象eventが`canonical_skill`または`safe_no_read`のいずれかで、`unreliable`が0件
+- 全ての判定対象`PostToolUse` eventが`canonical_skill`または`safe_no_read`のいずれかで、`unreliable`が0件
 - `observed_skills=[]`を構成できる
 
 一件でも`unreliable`があればabsenceを確定しない。`turn.failed`、timeout、spawn failure、signal、terminal欠落はabsenceの証明にならない。したがってreadなしでもこれらは`false_negative`やexpected nullの`pass`ではなく`unobservable`となる。
@@ -475,8 +513,9 @@ score入力は`initial_skill`だけとする。
 ```text
 tool_input_preview
   -> JSON parse
-  -> command取得
-  -> bounded Get-Content direct-read判定
+  -> event / tool_name / input shape確認
+  -> 小さなevent classifier
+  -> bounded Get-Content direct-read判定またはsafe no-read / unreliable判定
 ```
 
 structured path/file fieldのadapter interface、provider abstraction、strategy、factoryは今回作らない。Hostが将来typed path/file fieldを提供した場合、その時点でfallbackより優先する設計を再検討するが、これは今回のscope外の注記である。
@@ -499,23 +538,22 @@ pathはcanonical relative pathへ正規化し、6つのcanonical Skillと`SKILL.
 
 ### 7.3 safe no-read
 
-次はcanonical Skill direct readではないことを安全に確定できるため、`safe_no_read / reliable`とする。
+次は、eventのinput shapeからcanonical Skill direct readではないことを安全に確定できる場合に`safe_no_read / reliable`とする。これはfilesystemを一切読まないという意味ではない。canonical Skill direct read evidenceに該当しないことだけを表す。
 
 - `Get-Content package.json`
 - `Get-Content docs/PROJECT_CONTEXT.md`
 - `git status`
 - `pnpm run test`
 - `Get-ChildItem`
-- `Select-String ...`
-- `rg ...`
-- `grep ...`
 - `echo ...`
 - `Write-Output ...`
-- unknown Skill path
+- `rg` / `grep` / `Select-String`でcanonical Skill pathを含まない、inputが完全な単純shape
+- 保存済み`historylist_items`のquery shape（当該input shapeに限定）
+- 明示されたunknown Skill pathを`Get-Content`で読むcommand（6 canonical Skillへ一意に対応しないことが確認できる場合）
 - non-`SKILL.md`
 - directory read
 
-これらをselector failure、`unobservable`、absence禁止の理由にしない。
+検索commandはcommand名だけで分類しない。canonical Skill pathがcommand / inputに現れないことを確認でき、かつtruncated / malformed / ambiguousでない場合だけ上記safe no-read候補とする。canonical pathそのもの、canonical pathへ展開し得る曖昧なpath / glob / variableがある場合は7.4へ送る。
 
 ### 7.4 unreliable
 
@@ -524,11 +562,15 @@ pathはcanonical relative pathへ正規化し、6つのcanonical Skillと`SKILL.
 - truncated `tool_input_preview`
 - outer Hook JSONLのmalformed line（`hook_parse`）
 - `tool_input_preview`のmalformed JSON
-- command field欠落または非文字列
+- command-bearing / direct-reader-capable inputのcommand field欠落または非文字列（known non-commandのsafe shapeは除く）
 - ambiguous multiple command / multiple path
 - unbalanced quote
 - canonical pathを含むが意味解析できないcomplex PowerShell
 - command自体を一意に取得できない入力
+- 保存済み`noteswrite_file`のように`truncated: true`でpreview全体を確認できないevent
+- `rg` / `grep` / `Select-String`のinputに6 canonical Skill pathのいずれかが現れるevent（検索patternであってもpositive readerとして未対応なら`unreliable`）
+- non-Bash eventで、semanticsとinputからcanonical Skill direct read可能性を安全に排除できないevent
+- unknown toolで、semanticsとinputからcanonical Skill direct read可能性を安全に排除できないevent
 
 `safe no-read`と`unreliable`を、単なるpositive grammarのmatch / non-matchで決めない。commandの意味境界を安全に確認できるかで決める。
 
@@ -755,15 +797,16 @@ Qualification PASS後にre-clone、checkout変更、reset、別Targetへの交�
 - `Get-Content docs/PROJECT_CONTEXT.md`
 - `git status`
 - `pnpm run test`
-- `Get-ChildItem`
-- `Select-String`
-- `rg`
-- `grep`
+- `Get-ChildItem src`
 - `echo` / `Write-Output`
-- unknown Skill path
+- `rg "foo" src/`
+- `grep "foo" package.json`
+- `Select-String -Path docs/PROJECT_CONTEXT.md -Pattern "foo"`
+- 保存済み`historylist_items`のquery shape
+- `Get-Content .agents/skills/not-a-canonical-skill/SKILL.md`のように、6 canonical Skillへ一意に対応しないことが確認できるexplicit path
 - non-`SKILL.md`
 - directory
-- canonical pathのpath mention、search結果、response text
+- canonical pathを含まないnormal non-Skill event
 
 ### 13.3 Selector: unreliable
 
@@ -778,6 +821,10 @@ Qualification PASS後にre-clone、checkout変更、reset、別Targetへの交�
 - unbalanced quote
 - canonical pathを含むcomplex PowerShell
 - command自体を一意に取得できない入力
+- 保存済み`noteswrite_file`の`truncated: true` shape
+- `rg` / `grep` / `Select-String`のinputへcanonical Skill pathを含むcommand
+- canonical Skill pathへ展開し得るambiguous path / glob / variable
+- semanticsとinputからcanonical Skill direct read可能性を排除できないnon-Bash event
 
 ### 13.4 Observation / lifecycle
 
@@ -791,12 +838,17 @@ Qualification PASS後にre-clone、checkout変更、reset、別Targetへの交�
 - expected null + Skill read → Skill / `[Skill]` / `unexpected_trigger`
 - reliable no-read + `turn.completed` + expected → null / `[]` / `false_negative`
 - reliable no-read + `turn.completed` + expected null → null / `[]` / `pass`
+- `feature-plan-train-002` / `feature-plan-validation-002`のようなexpected Skill nullのdirect implementation caseで、normal non-Skill eventとtrusted `turn.completed` → null / `[]` / `pass`
 - no-read + timeout → null / `null` / `unobservable` / `timed_out`
 - no-read + `turn.failed` → null / `null` / `unobservable` / `turn_failed`
 - no-read + process failure → null / `null` / `unobservable` / `spawn_failed`等
 - unreliable selector + `turn.completed` → null / `null` / `unobservable`
 - unreliable selector + timeout → null / `null` / `unobservable`
+- safe no-readのnon-Bash event + `turn.completed` + expected null → null / `[]` / `pass`
+- 保存済み`historylist_items`のsafe query shapeをcandidate前へ置いても、後続のtrusted canonical readをinitial Skillとして確定する
+- 保存済み`noteswrite_file`のtruncated eventをcandidate前へ置いた場合はinitial Skillを確定せず`unobservable`とする
 - positive candidate後のmalformed later Hook → initial routing outcome保持、`observed_skills`はfirst Skill一件だけ
+- positive candidate後の保存済みnon-Bash / truncated event → initial routing outcome保持、later Skill setを作らない
 - later Skill chain → PR2 Resultへlater Skillを保存しない
 
 ### 13.5 Result schema / comparison
@@ -964,7 +1016,7 @@ case retry、unobservable-only retry、query tuning、timeout変更、Skill desc
 - old artifactの変換、migration、後付けmarker、partial merge
 - Probe、canonical `all`、PR merge
 
-## 18. Plan自己レビュー（16項目）
+## 18. Plan自己レビュー（24項目）
 
 | # | 確認事項 | 回答 | 根拠 |
 |---:|---|---|---|
@@ -984,6 +1036,14 @@ case retry、unobservable-only retry、query tuning、timeout変更、Skill desc
 | 14 | 実装時の主要判断が残っていないか | YES | schema、selector、summary、Codex version、Target、tests、preconditionsを確定した |
 | 15 | PR2 / PR6責務が混ざっていないか | YES | PR2はinitialのみ、later chain / workflowはPR6と固定した |
 | 16 | 過剰設計が増えていないか | YES | small pure functions、bounded recognizer、既存runner拡張、Result schema、testsに限定した |
+| 17 | 非Bash `PostToolUse`をtool名だけで`unreliable`にしていないか | YES | 全`PostToolUse`をevent / inputで分類し、実測`historylist_items`はshape限定でsafe、truncatedな`noteswrite_file`だけをunreliableとした |
+| 18 | `rg` / `grep` / `Select-String`をcommand名だけで`safe_no_read`にしていないか | YES | canonical Skill pathなしの単純inputだけをsafe候補とし、pathありはunreliableとした |
+| 19 | canonical Skill pathを検索対象にするunsupported readerをfalse absenceへ落とさないか | YES | pathあり検索をpositive扱いせず`unreliable`とし、absenceを禁止した |
+| 20 | direct implementation側の正常eventが不要にunobservableにならないか | YES | explicit non-Skill inputをsafe no-readとし、expected null + trusted completionのabsenceを許可するtestを計画した |
+| 21 | `safe_no_read`が「filesystem readなし」という誤った意味になっていないか | YES | canonical Skill direct read evidenceに該当しないという意味へ限定した |
+| 22 | `unreliable`の意味がcanonical Skill read判定不能に限定されているか | YES | non-Bashや一般的なevent失敗を理由に広げず、可能性を安全に排除できない場合だけにした |
+| 23 | 実測されていないtool対応を将来用に実装しようとしていないか | YES | 実測は`historylist_items` / `noteswrite_file`のshapeだけ記録し、positive non-Bash readerやregistryを追加しない |
+| 24 | general command / tool parserを作るPlanになっていないか | YES | bounded `Get-Content`、canonical path guard、小さなevent classifierに限定した |
 
 ## 19. 成果物
 

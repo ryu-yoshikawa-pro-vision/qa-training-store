@@ -69,3 +69,5 @@
 
 - 2026-09-09 19:55 JST: 前回のPlan修正を再読し、escaped code fence、非Bash Hook event、lifecycleのexit状態、旧terminal数値の混入を追加確認対象とした。
 - 2026-09-09 19:56 JST: Candidate Cを維持したまま、positive candidate prefixとtrusted absenceの全対象event reliabilityを分離する方針を確定した。Result schema 2では独自contract markerを追加しない。
+- 2026-09-09 20:43 JST: 保存済みHook deltaをread-onlyで再確認し、`historylist_items` 1件と`noteswrite_file` 1件のnon-Bash `PostToolUse`を実測した。tool名で一律分類せず、前者の完全なquery shapeはsafe no-read、後者の`truncated: true`はunreliableとする。
+- 2026-09-09 20:43 JST: `rg` / `grep` / `Select-String`はcanonical Skill pathのinput有無で分け、pathありのunsupported searchはunreliable、pathなしの完全な単純shapeはsafe no-readとする。Result schema 2、lifecycle、Target、timeout、PR2 / PR6境界は変更しない。

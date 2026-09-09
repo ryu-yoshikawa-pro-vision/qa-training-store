@@ -55,6 +55,28 @@
 - Subagents: Delegationなし。Result / Parent decision: task 8を完了し、Plan-onlyの境界を維持したままRunを完了する。
 - Progress: 100% (8/8)
 
+## 2026-09-09 20:44 (JST)
+
+- Summary: 保存済みHook evidenceをread-onlyで再調査し、non-Bash `PostToolUse`の実測形状をPlanへ反映した。新しいProbe、Qualification再実行、canonical `all`は行っていない。
+- Evidence: 既存selector probe positiveでは`PostToolUse` 61件中、`Bash` 59件、`historylist_items` 1件、`noteswrite_file` 1件を確認した。`historylist_items`はcanonical pathを持たない完全なquery shape、`noteswrite_file`は`truncated: true`だった。Qualification positiveはBash 19件、negative selector probeはBash 1件だった。
+- Decision / Rationale: non-Bashをtool名だけでunreliableにせず、実測`historylist_items`のshape限定safe no-readと、truncated `noteswrite_file`のunreliableを分けた。`rg` / `grep` / `Select-String`もcanonical Skill pathのinput有無で分類し、unsupported path searchはunreliableとする。
+- Changes: selector対象を相関Hook deltaの全`PostToolUse` recordとして再定義し、OS/filesystem全readの追跡ではなくHost eventから一意に確認できるcanonical `SKILL.md` direct content readだけを測る境界を追加した。direct implementationの`feature-plan-train-002` / `feature-plan-validation-002` null sideと24項目self-reviewをPlanへ追加した。
+- Validation: 変更直後のPlan-only validationは未実行。source、tests、dataset、Hook、Skill、AGENTS、timeout値は変更していない。
+- Blocker / Remaining: blockerなし。Plan-only lint / Prettier / diff / sanitizer / collector、PR本文確認、branch safety、non-force pushが残っている。
+- Subagents: Delegationなし。Result / Parent decision: task 9-10を完了し、Planのselector reliability境界を確定した。
+- Progress: 83% (10/12)
+
+## 2026-09-09 20:48 (JST)
+
+- Summary: selector reliability revision後のPlan-only品質ゲートとPR本文を再確認した。全てPASSで、source/runtimeの実行はしていない。
+- Validation: `pnpm run lint:markdown` PASS（389 files、0 issues）。対象Plan / RunのPrettier check PASS。`git diff --check` PASS。Plan 1 file / Run 4 filesのsanitizer Write / Checkはresidual 0。Run collector strict PASS。
+- Scope: 開始HEAD `99120f684c5e2cdac630c662fd752767c3908e49`からの変更は修正版Planとactive Runの4 filesだけで、scripts/evals、tests、dataset、Hook、Skill、AGENTS、package、timeout値の差分はない。
+- PR: PR #127はOPEN、base `main`、head branch一致。本文に最新のselector reliability reviewを追記し、Environment Qualification FAIL、canonical `all`未実行、valid baseline未取得、実装未着手を維持した。
+- Decision / Rationale: Plan-onlyのためrepository contract test、full verify、Probe、Qualification再実行、canonical `all`は実行しない。PR本文の既存historical evidenceは書き換えず、今回のPlan review statusだけを最小追記した。
+- Blocker / Remaining: blockerなし。task 12としてbranch safety、commit、explicit non-force push、remote / PR / working tree最終確認を残す。
+- Subagents: Delegationなし。Result / Parent decision: task 11を完了し、実装へ進まず最終push前確認へ進む。
+- Progress: 92% (11/12)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
