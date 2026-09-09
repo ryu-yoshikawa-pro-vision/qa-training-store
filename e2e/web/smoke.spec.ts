@@ -95,9 +95,10 @@ test("published docs smoke", async ({ page }) => {
   await expect(
     curriculumNavigation.locator(":scope > ul > li.primary-navigation-group > strong"),
   ).toHaveText([
-    "共通",
+    "受講者向け標準導線",
     "Part 1: テスト自動化の基礎と実践",
     "Part 2: 開発プロセスへの組み込みと実務導入",
+    "共通Referenceと運営支援",
   ]);
   const curriculumLink = curriculumNavigation.locator(
     'a[href="/docs/curriculum/part1/04_playwright-foundations.html"]',
