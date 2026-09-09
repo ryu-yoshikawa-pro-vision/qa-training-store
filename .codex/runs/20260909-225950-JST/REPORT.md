@@ -71,3 +71,12 @@
 - Validation: `pnpm run verify`はcontracts 35 files中33 passed、9 failed、494 passed／3 skippedで終了コード1。隔離した`executes every common-policy representative from the Hook matrix`は1 passed／128 skipped。今回差分の`git diff --name-only`はADR、Trigger Eval source 2、repository contract testのみ。
 - Blocker / Remaining: full verifyのcontracts gate PASS、fresh Target、Qualification、canonical `all`、valid baseline判定が未完了。今回差分に起因するFAILとは未分類だが、再実行結果を確認するまで品質ゲートを完了扱いにしない。
 - Progress: 54% (7/13)
+
+## 2026-09-10 00:25（JST）
+
+- Summary: remote PR branchとlocal HEADが`8b9d5a3afc17e864a7d4f3b019a726e78ae0be02`で一致し、working tree cleanを確認した。RunはQualification FAILを根拠に安全に停止して完了扱いとする。
+- Changes: 追加のsource／dataset／Skill／Hook変更はなく、既存の実装commitとRun artifactだけをPR branchへ反映した。
+- Decision / Rationale: GitHub ActionsのAnalyze 3 jobはpush直後の`pending`で、CodeRabbitは`pass`（manual review required）だった。CI pendingをPASSへ推測せず、静的／ローカル品質ゲートのPASSとruntime Qualification FAILを分離して報告する。
+- Validation: `gh pr view 127`でPR head branch／SHA一致、Target SHA `55cb43abb06fa96dd3f283d7ae4a20b6076af5f5`でclean、Run `evaluation.json`は`partial`／`flaky_or_env_issue`、evaluation schema／sanitizer／strict collectorはPASS。
+- Blocker / Remaining: K（canonical `all`）とL（8/8 side／valid baseline）はQualification FAILのため未実行・未取得。再開には新しいRunと、観測契約を弱めない形での明示的な環境／Qualification計画が必要。
+- Progress: 85% (11/13)
