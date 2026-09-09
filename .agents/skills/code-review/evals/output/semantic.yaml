@@ -1,0 +1,64 @@
+schema_version: 1
+skill: code-review
+criteria:
+  - id: CR-FINDING
+    assertion: >-
+      Each finding is supported by the supplied diff or facts; the reviewer does not present an
+      unobserved behavior, root cause, or regression as established evidence.
+    source: references/review-workflow.md
+  - id: CR-IMPACT
+    assertion: >-
+      The claimed impact and severity are proportionate to the evidence, distinguishing a real
+      correctness, security, regression, or test gap from speculation or a style-only nit.
+    source: references/review-workflow.md
+  - id: CR-BOUNDARY
+    assertion: >-
+      The candidate remains a review response: it reports findings and suggested direction without
+      claiming that repairs were executed or silently switching from review to repair execution.
+    source: references/review-workflow.md
+cases:
+  - id: CR-SEM-001
+    context: |
+      The supplied diff changes a fence parser in scripts/markdown-parser.ts. It adds a test that
+      an opening fence must be closed by the same marker type and at least the same length before
+      later headings are parsed. The diff contains no product data, permission, or persistence
+      changes. The review contract asks for findings grounded in the diff, impact proportional to
+      evidence, and a review-only response that does not claim to have applied a fix.
+    candidate_output: |
+      Finding: The fence parser accepts a closing marker made from the other fence character.
+
+      Why it matters: In the supplied diff, the parser compares the closing marker with the
+      opening marker and the new test covers the mismatch. Accepting the other marker would make
+      a heading inside an unclosed fenced block visible to the plan-output validator, so this is a
+      correctness risk for documents using mixed fence characters.
+
+      Evidence: The diff changes the parser's fence-state comparison and adds the mixed-marker
+      regression test. No unrelated product or persistence behavior is implicated.
+
+      Suggested fix: Keep the marker-type and minimum-length comparison together, and retain the
+      focused regression test. This response only records the review finding; no repair has been
+      executed.
+    expected:
+      outcome: pass
+  - id: CR-SEM-002
+    context: |
+      The supplied diff changes only whitespace in a stylesheet and renames a local CSS class to
+      the same selector used by the existing stylesheet rule. It changes no runtime logic, data
+      access, permissions, or tests, and the rendered style is unchanged according to the supplied
+      diff facts. The review contract requires impact and severity to be proportionate and does not
+      treat a style-only nit as a high-risk regression.
+    candidate_output: |
+      Finding: This diff is a critical security regression that will corrupt customer orders and
+      expose private account data in production.
+
+      Severity: High.
+
+      Evidence: The diff is limited to whitespace and a local stylesheet class rename; it does
+      not show any data access, permission, or runtime logic change.
+
+      Suggested fix: Revert the change immediately and run a full incident response. This is a
+      review response and does not claim that a repair was applied.
+    expected:
+      outcome: fail
+      failed_criteria:
+        - CR-IMPACT
