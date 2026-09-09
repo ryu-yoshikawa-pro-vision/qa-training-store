@@ -12,8 +12,8 @@
 - [x] 8. Plan / RunのPrettier、Markdown lint、`git diff --check`、scope確認を実行する
 - [x] 9. sanitizer Write / Check、strict collector、Plan Run evaluationを完了する
 - [x] 10. PR本文へPlan pathと実装未着手を最小追記する
-- [ ] 11. branch safetyを再確認し、Plan / Run Artifactだけをcommit・explicit non-force pushする
-- [ ] 12. push後のlocal / remote / PR SHA、PR本文、CI、sanitizer、working treeを確認してRunを完了する
+- [x] 11. branch safetyを再確認し、Plan / Run Artifactだけをcommit・explicit non-force pushする
+- [x] 12. push後のlocal / remote / PR SHA、PR本文、CI、sanitizer、working treeを確認してRunを完了する
 
 ## Discovered
 

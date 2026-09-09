@@ -50,6 +50,15 @@
 - Blocker / Remaining: branch safety、Plan / Run Artifactのcommit・push、push後のSHA / PR / sanitizer確認が未完了。実装・Qualification・canonicalは次Run。
 - Progress: 83% (10/12)
 
+## 2026-09-10 07:58（JST）
+
+- Summary: Plan-only Runを完了した。正本Plan、strict Run Artifact、evaluation、PR本文の最小更新をbranchへ反映した。
+- Changes: commit `9eae0de`（`docs: Qualification blocker remediation Planを追加`）を作成し、`git push origin HEAD:refactor/117-pr2-trigger-eval-baseline`でnon-force pushした。
+- Decision / Rationale: current branchがPR head branchと一致し、PR #127はOPEN / base `main`だったため、protected branchやmainへ触れず明示refspecだけを使用した。実装・Probe・Qualification・canonical `all`は計画どおり未実行である。
+- Validation: commit前のbranch safety、push成功、Plan / Run Prettier、Markdown lint、`git diff --check`、evaluation schema、sanitizer Write/Check、strict collector、`gh pr checks 127`を確認した。
+- Blocker / Remaining: Qualification FAILのremediation実装、Qualification再実行、canonical `all`、8/8 side validity、valid baseline取得は次の実装Runへ引き継ぐ。
+- Progress: 100% (12/12)
+
 - Summary:
 - Changes:
 - Decision / Rationale:
