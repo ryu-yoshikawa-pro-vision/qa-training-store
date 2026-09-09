@@ -59,6 +59,15 @@
 - Blocker / Remaining: Qualification FAILのremediation実装、Qualification再実行、canonical `all`、8/8 side validity、valid baseline取得は次の実装Runへ引き継ぐ。
 - Progress: 100% (12/12)
 
+## 2026-09-10 08:00（JST）
+
+- Summary: push後のlocal / remote / PR head、PR本文、Run Artifact、working treeを再確認した。
+- Changes: local HEAD、`origin/refactor/117-pr2-trigger-eval-baseline`、PR #127 headは`3fb081087053752e84f0af139153d3fd78b12b3a`で一致した。
+- Decision / Rationale: PRはOPEN、base `main`、head branch一致を確認した。最新pushに紐づくGitHub checksは再起動直後の`pending`であり、PASSとは扱わない。CodeRabbitはmanual review requiredのPASS表示を維持している。
+- Validation: `gh pr view 127`でbodyの新Plan pathと既存FAIL判定を確認し、`gh pr checks 127`で最新checksのpending状態を確認した。最終sanitizer Write/Checkは5 files / residual 0、evaluation schema、Prettier、git diff checkもPASSした。
+- Blocker / Remaining: GitHub checksの完了待ちと、次の別Runでのselector / detached preflight実装、focused test、Qualification、canonical `all`、valid baseline取得が残る。
+- Progress: 100% (12/12)
+
 - Summary:
 - Changes:
 - Decision / Rationale:
