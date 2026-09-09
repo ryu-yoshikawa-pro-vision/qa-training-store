@@ -10,11 +10,11 @@
 - [x] F. ADR-0023へ実装済み契約を追補し、scopeと差分を確認する
 - [x] G. focused test、dataset validation、Skill／Markdown validationを指定順で実行する
 - [x] H. `pnpm run verify`を実行し、FAIL時はfirst anomalyを修正して関連gateを再実行する
-- [ ] I. fresh independent Targetをpreflightし、Codex／evaluator／routing／dataset provenanceを記録する
-- [ ] J. 同一TargetでEnvironment Qualification positive／negativeを実行する
+- [x] I. fresh independent Targetをpreflightし、Codex／evaluator／routing／dataset provenanceを記録する
+- [x] J. 同一TargetでEnvironment Qualification positive／negativeを実行する（negativeのselector不確実性によりQualification FAIL）
 - [ ] K. Qualification PASS時だけcanonical `all`を24 case sequential・retryなしで一回実行する
 - [ ] L. 8/8 side、Result完全性、comparison前提を確認しvalid baseline可否を判定する
-- [ ] M. sanitizer／collector、Run／PR／Git evidenceを最終化して完了判定する
+- [x] M. sanitizer／collector、Run／PR／Git evidenceを最終化して完了判定する（Qualification FAILを記録し、canonical／baselineは停止）
 
 ## Discovered
 
@@ -22,4 +22,4 @@
 
 ## Blocked
 
-- （停止条件に到達した場合のみ記載する）
+- Qualification FAIL: negative controlの唯一のPostToolUseが複合PowerShell `Get-Content -Raw -LiteralPath .\\package.json | ConvertFrom-Json` であり、bounded selectorが`unreliable`と判定したため、trusted absence（`observed_skills=[]`）を確定できない。Plan §15.4に従いcanonical `all`、query tuning、retryは実施しない。

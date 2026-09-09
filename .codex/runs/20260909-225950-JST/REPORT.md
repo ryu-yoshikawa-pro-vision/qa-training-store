@@ -36,6 +36,15 @@
 - Blocker / Remaining: fresh independent Targetの準備・preflight、Qualification、canonical `all`、valid baseline判定、Run sanitizer／collectorが未完了。
 - Progress: 62% (8/13)
 
+## 2026-09-10 00:17（JST）
+
+- Summary: fresh independent Routing Targetのpreflightと同一TargetでのEnvironment Qualification positive／negativeを完了した。negativeのtrusted absenceが成立せず、canonical `all`を停止条件どおり開始しない。
+- Changes: Target／Evaluatorのsource、dataset、Skill、Hookは変更していない。Qualificationのraw stdout／stderr／Hook deltaはGit管理外`.artifacts/trigger-eval-qualification-20260910/{negative-trusted,positive}/`へ保存し、Runには要約だけを記録した。
+- Decision / Rationale: negativeは`turn.completed`、exit 0、Hook correlation／parse PASSだったが、唯一の`PostToolUse`が`Get-Content -Raw -LiteralPath .\\package.json | ConvertFrom-Json`というcompound PowerShellで、bounded selectorは`unreliable`を返した。契約上、これをsafe no-readへ推測変換せず、`initial_skill=null`／`observed_skills=null`のunobservableとして扱う。positiveは`Get-Content -Raw .agents/skills/feature-plan/SKILL.md`をcandidate prefixで信頼でき、`initial_skill=feature-plan`／`observed_skills=[feature-plan]`を得たが、Codexが長時間継続したため対象processを安全境界で停止し`signaled` lifecycleとして保存した。
+- Validation: Targetはdetached／clean、指定routing source SHA `55cb43abb06fa96dd3f283d7ae4a20b6076af5f5`、Evaluator／Target common-dir分離、alternatesなし、6 canonical Skill readable、Trigger datasetなしを確認。`codex-cli 0.153.4`。negative analysisは`hook_correlation_ok=true`、`hook_parse_ok=true`、`selector_reliable=false`、`trusted_terminal=turn.completed`。positive analysisは`hook_correlation_ok=true`、`hook_parse_ok=true`、`selector_reliable=true`、`initial_skill=feature-plan`、`observed_skills=[feature-plan]`、`signaled=true`。初回trust未成立negativeはevidenceへ採用していない。
+- Blocker / Remaining: Qualification全体はFAIL（negative trusted absence不成立）。同一Runでcanonical `all`、8/8 side、valid baseline判定は未実行。次はこのFAILを最終化し、Run sanitizer／strict collectorとbranch／PR evidenceだけを実施する。query tuning、case retry、別Target交換は行わない。
+- Progress: 77% (10/13)
+
 ## 2026-09-10 00:42（JST）
 
 - Summary: contracts gateの再実行はPASSした。前回の9件timeoutは全suite実行時の一時的なWindows launcher／resource contentionとして再現せず、今回差分に起因するFAILではないことを追加確認した。
