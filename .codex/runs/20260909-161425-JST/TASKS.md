@@ -22,6 +22,7 @@
 
 - [x] D1. C09の完了条件に合わせ、Workbookへ同一Test Caseの診断Failure / 修正後Pass行を追加し、実行経路の初期Failureを再確認する
 - [ ] D2. Push後CIで検出した公開カリキュラムSmoke期待値とExpo SDK patch依存のFAILを最小修正し、修復後のremote gate結果を確認する
+  - 追加の一次FAIL（Android Runtime / Maestro）は、API 34 AVDのPixel Launcher ANRダイアログによる画面遮蔽と分類した。修復Iteration 2の許可ファイルは`.github/workflows/native-ci.yml`と`tests/contracts/native-ci-workflow.test.ts`に限定し、APK起動前に`com.google.android.apps.nexuslauncher`を停止する。
 
 ## Blocked
 

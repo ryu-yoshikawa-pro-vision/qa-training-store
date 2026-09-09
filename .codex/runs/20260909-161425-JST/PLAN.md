@@ -27,6 +27,7 @@
 - H1: 現行の教材・演習・validator・Training workflowの不整合は、既存の入口と契約を局所的に同期することで解消できる。
 - H2: `training:web:exercise`接続とC09の診断状態は、既存runner / copy経路とWorkbookスキーマを拡張せずに表現できる。
 - H3: Plan記載の認証メタデータとFixture pathは、Product Codeや正式回帰テストを変更せず文書だけで修正できる。
+- H4: Android API 34のfresh `google_apis` AVDで発生したPixel Launcherの一時的なANRダイアログは、Product CodeやMaestro Flowを変更せず、APK起動前に既知のlauncher packageを停止するCI環境安定化で解消できる。
 
 ## Research Plan
 
@@ -61,3 +62,4 @@
 
 - 2026-09-09: Plan全文を確認した。mainはPlan記録値と一致し、branch差分はPlan 1ファイルだけのため、rebase不要と判断した。
 - 2026-09-09: 既存経路の再利用、Product / Formal / Production非変更、Workbook列非追加、C09のFail / Pass行分離、`evidence`実在確認の緩和とpath安全性維持を実装判断の固定条件とする。
+- 2026-09-09: Push後Native Runtimeの一次FAILは、アプリの起動失敗ではなくPixel Launcher ANRダイアログによるMaestro画面遮蔽と分類した。D2の修復範囲を`.github/workflows/native-ci.yml`と`tests/contracts/native-ci-workflow.test.ts`へ限定し、APK起動前のlauncher停止を追加する。

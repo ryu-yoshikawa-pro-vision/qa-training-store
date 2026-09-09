@@ -904,6 +904,18 @@ jobs:
           "$ADB" shell settings put global transition_animation_scale 0
           "$ADB" shell settings put global animator_duration_scale 0
           "$ADB" shell input keyevent 82
+      - name: Stabilize Android launcher before APK launch
+        if: ${{ !cancelled() && steps.android_emulator_ready.outcome == 'success' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          LAUNCHER_PACKAGE="com.google.android.apps.nexuslauncher"
+          if "$ADB" shell pm list packages | tr -d '\r' | grep -Fqx "package:$LAUNCHER_PACKAGE"; then
+            echo "Stopping Pixel Launcher before launching the test APK."
+            timeout 30 "$ADB" shell am force-stop "$LAUNCHER_PACKAGE"
+          else
+            echo "Pixel Launcher package is absent; continuing without launcher stabilization."
+          fi
       - name: Cache pinned Maestro CLI
         uses: actions/cache@a7833574556fa59680c1b7cb190c1735db73ebf0 # v5.0.0
         with:

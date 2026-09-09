@@ -116,3 +116,12 @@
 - Validation: `pnpm run verify` Attempt `20260909-185054`はformat、Markdown / Skill / Spec、Curriculum、Lint、全Typecheck、Image / Security、Unit 66、Integration 111、Repository 47、Component Web 102、Component Native 64、Contract 504 passed / 3 skipped、Web build、Spec buildを含めてexit 0。`training:copy:prepare -- --source-sha 1ea88fe555fcf263c1ed9849e15a33c695ae0829`と対応する`training:copy:validate`はexit 0、`sourceSha` / `resolvedSourceSha`一致を確認した。
 - Blocker / Remaining: Native local runtimeはPASS済み。GitHub Actions上の受講者変更後runtimeはpush後に確認する。最終scope / sanitization、Run状態同期、責務単位commitの残り、push、PR本文更新が残る。
 - Progress: 75% (12/16)
+
+## 2026-09-09 20:35 (JST)
+
+- Summary: 修復ループの次の一次FAILを原因分類し、Android Runtimeの再実行へ向けた最小修正を実装した。
+- Changes: API 34 `google_apis` AVDでPixel Launcherが表示したANRダイアログがMaestroの最初のassertionを覆っていたため、`.github/workflows/native-ci.yml`へAPK起動前の`com.google.android.apps.nexuslauncher`停止ステップを追加し、`.github/workflows/native-ci.yml`の順序を`tests/contracts/native-ci-workflow.test.ts`で固定した。
+- Decision / Rationale: `app-launch-logcat`ではMainActivityとReact Native JSの起動・プロセス存続を確認し、Maestro screenshotではアプリ画面上の「Pixel Launcher isn't responding」を確認した。Product Code、Maestro Flow、テスト対象の意味を変更せず、既知のlauncher packageが存在するCI AVDだけを対象に停止する。ローカル実機には同packageがなく、処理がskipされることを確認した。
+- Validation: `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`（23 passed）、native-ci.yml YAML parse、`bash -n scripts/native/android-maestro-run.sh`、`prettier --check`、`git diff --check`がPASS。Android実機のpackage確認は`com.google.android.apps.nexuslauncher` absentでskipとなった。
+- Blocker / Remaining: 修復commitのbranch safety確認、push後のGitHub Actions Android Runtime / `native-ci / verify`再確認、最終Training Copy / scope / Run更新 / PR本文更新が残る。
+- Progress: 75% (12/17)

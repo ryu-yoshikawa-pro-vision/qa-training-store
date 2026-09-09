@@ -242,6 +242,7 @@ describe("Native CI workflow contracts", () => {
     expect(runtime).not.toContain("continue-on-error: true");
     expectInOrder(runtime, [
       "Start Android Emulator with KVM",
+      "Stabilize Android launcher before APK launch",
       "Install pinned Maestro CLI",
       "Download Automation Release APK",
       "Install and launch Automation APK",
@@ -250,6 +251,22 @@ describe("Native CI workflow contracts", () => {
       "Download Production-validation Release APK",
       "Install and launch Production-validation APK",
       "Run Maestro Native Production-validation flow",
+    ]);
+  });
+
+  it("stops the Pixel Launcher before the Android runtime APK is launched", () => {
+    const runtime = jobBlock(nativeWorkflow, "android-runtime", "native-ios");
+
+    expect(runtime).toContain('LAUNCHER_PACKAGE="com.google.android.apps.nexuslauncher"');
+    expect(runtime).toContain('shell am force-stop "$LAUNCHER_PACKAGE"');
+    expect(runtime).toContain(
+      "Pixel Launcher package is absent; continuing without launcher stabilization.",
+    );
+    expectInOrder(runtime, [
+      "Start Android Emulator with KVM",
+      "Stabilize Android launcher before APK launch",
+      "Install pinned Maestro CLI",
+      "Install and launch Automation APK",
     ]);
   });
 
