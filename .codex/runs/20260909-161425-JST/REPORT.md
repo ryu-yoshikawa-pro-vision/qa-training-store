@@ -143,3 +143,21 @@
 - Validation: 最終Local `pnpm run verify`はPASS（Unit 66、Integration 111、Repository 47、Component Web 102、Component Native 64、Contract 505 passed / 3 skipped、Web / Spec build）。Native localはDoctor、Release APK、Install、Smoke、Control / Runtime / Boundary、Training baseline / exercise、Final EvidenceがPASS。Training CopyはSource SHA `f36be7f9eb3decb7422d5d0b963e00104bc46c16`とresolved SHA一致でPASS。Sanitizer Write / CheckはRun 4 files、0 replacements、0 residual findingsでPASS。`git status --short`はclean。
 - Blocker / Remaining: なし。
 - Progress: 100% (17/17)
+
+## 2026-09-09 23:54 (JST)
+
+- Summary: 前回の最終記録後に`origin/main`のExpo依存同期を取り込んだ新head `9e852ba203e565cd0a068e15e7334eef7c7c0129`で、Android Runtime / Maestroの新しい一次FAILを確認し、原因を切り分けた。
+- Changes: `gh run view 34358897349`の失敗ログとartifactを`.artifacts/pr133-ci/20260909-230000-native-runtime/`へ保存した。API 34 AVDではアプリの`MainActivity` / React Native JSは起動していたが、`Pixel Launcher isn't responding`ダイアログがMaestroの初期assertionを遮蔽していた。事前launcher停止だけではダイアログが残るため、`scripts/native/android-maestro-run.sh`へUI階層のbounded検出、`Close app` bounds算出、タップ、fail-closed処理を追加し、`tests/contracts/native-ci-workflow.test.ts`へ契約を追加した。
+- Decision / Rationale: Product Code、Maestro Flow、BR / ACの意味を変更せず、各flowの既存cleanup前に一時的なsystem dialogだけを閉じる。UI階層取得失敗、対象bounds欠落、3回以内に消えない状態は成功扱いにしない。先行iOS / Android build、Native Static、Production Bundle GuardのFAILではないため、`native-ci / verify`はAndroid Runtimeの派生FAILとして扱う。
+- Validation: 最初のFAILは`Run Maestro Test Control flow`で、`MainActivity`表示と`ReactNativeJS: Running "main"`、ANR windowの存在をartifactで確認した。修正後のNative workflow契約は23 passed、`bash -n`、Prettier、`git diff --check`はPASS。最初の全`pnpm run verify`はHook matrix代表テストが一時的に15秒timeoutしたが、対象単独（`--testTimeout=60000`）と全contracts（35 files、505 passed / 3 skipped）を再実行してPASSし、全`pnpm run verify`もexit 0（Unit 66、Integration 111、Repository 47、Component Web 102、Component Native 64、Contract 505 passed / 3 skipped、Web / Spec build）となった。
+- Blocker / Remaining: D3の修正commit、branch safety確認、対象branchへのnon-force push、最終headのMobile App CI Android Runtime / `native-ci / verify`確認、PR #133本文とRunの最終更新が残る。
+- Progress: 94% (17/18)
+
+## 2026-09-10 00:47 (JST)
+
+- Summary: `f6c3ae4`のMobile App CI `34367492136`を完了まで確認した。Android Runtime / Maestroは修復後にPASSしたが、iOS Production-validation buildは40分35秒でcancelledとなった。
+- Changes: 新しいProduct / Test変更は行わず、キャンセルrunの一次ログを`.artifacts/pr133-ci/20260909-234500-ios-production-timeout/job.log`へ保存した。iOS build stepは`SwiftExplicitDependencyGeneratePcm`の実行中にworkflowの`timeout-minutes: 40`へ到達し、後続のiOS Verifyと`native-ci / verify`は派生FAILになった。
+- Decision / Rationale: 直近の同じiOS Production-validation buildは約25分で成功しており、今回の40分到達は現行差分のコンパイルエラーではなくrunner固有の一時遅延と分類した。最終docs / Run commit後の新しいRemote runを、同一条件を検証する目的の一回として確認する。同じtimeoutが再発する場合は、先にbuildログとworkflow timeout契約を再評価する。
+- Validation: 同runのNative Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation BuildはPASS。iOS Production buildの最初の異常は`The operation was canceled.`で、先行工程のFAILはない。`gh pr checks 133`ではこのiOS timeout由来の2件以外をPASSとして確認した。
+- Blocker / Remaining: 最終headのRun Artifact更新、最終docs commit / push、iOS Production-validationを含むRemote gate再確認、PR #133本文の最終SHA同期が残る。
+- Progress: 94% (17/18)

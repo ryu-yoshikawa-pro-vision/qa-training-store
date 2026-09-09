@@ -559,3 +559,8 @@
 - Push後のWeb CIでは、上記導線変更に対して`e2e/web/smoke.spec.ts`の公開カリキュラムナビゲーション期待値だけを同期した。Scenario Shopの製品挙動、BR / AC、正式なテスト対象の意味は変更していない。
 - 同じWeb CIでNative変更検出が`package.json`のTraining script追加に反応し、既存のExpo SDK 57 patch差分（`expo` 57.0.20、`expo-router` 57.0.19）がNative Static / Expo Doctorで検出されたため、既存依存を57.0.21 / 57.0.20へ同期した。新規パッケージは追加していない。
 - 修復後のMobile App CI run `34347593657`では、APK起動前に`com.google.android.apps.nexuslauncher`を停止するNative Runtime安定化を通過し、Android Automation / Production Build、Android Runtime / Maestro、iOS Automation / Production Build、Production Bundle Guard、`native-ci / verify`が全てPASSした。Web CI run `34347593379`も全てPASSしている。これはAPI 34 fresh AVD上のPixel Launcher ANRダイアログがMaestro画面を覆うFailureに対するCI環境修復であり、Product CodeとMaestro Flowは変更していない。
+
+### PR #133 最終head前のiOS timeout再確認（2026-09-10）
+
+- 修復commit `f6c3ae4`のMobile App CI run `34367492136`では、Native Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation BuildがPASSした。一方、iOS Production-validation Buildは`SwiftExplicitDependencyGeneratePcm`実行中にjobの`timeout-minutes: 40`へ到達し、40分35秒でcancelledとなった。後続のiOS Native CI Verifyと`native-ci / verify`はこの結果をfail-closeで反映した。
+- 直近3 runの同じiOS Production-validation Buildは約25分で成功している。今回のcancelはコンパイルエラーではなくrunner固有の一時遅延と仮説を置き、最終headのRemote runで再確認する。Product Code、BR / AC、Maestro Flowの意味は変更しない。

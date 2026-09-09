@@ -27,3 +27,9 @@
 ## 対象外
 
 Product Behavior、BR / ACの意味、Seed Scenario、`src/**`、Formal Regression、本番 / Preview CI、Native保証範囲、既存のAgentic QA基盤は変更しない。
+
+## iOS Production-validation timeoutの再確認（2026-09-10 00:47 JST）
+
+- `f6c3ae4`のMobile App CI run `34367492136`を完了まで確認した。Native Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation BuildはPASSしたが、iOS Production-validation Buildは40分35秒でcancelledとなり、iOS Native CI Verifyと`native-ci / verify`は派生FAILになった。
+- 一次ログは`.artifacts/pr133-ci/20260909-234500-ios-production-timeout/job.log`へ保存した。iOS build stepは`SwiftExplicitDependencyGeneratePcm`の実行中にworkflowの`timeout-minutes: 40`へ到達し、`The operation was canceled.`で停止した。直近の同build成功は約25分であり、現行差分のcompile errorではなくrunner固有の一時遅延と分類する。
+- 最終docs / Run commit後の新しいRemote runでiOS Production-validationを再確認する。同じtimeoutが再発した場合はbuildログとworkflow timeout契約を再評価する。Product Code、Maestro Flow、BR / ACの意味は変更しない。
