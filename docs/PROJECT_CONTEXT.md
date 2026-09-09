@@ -558,3 +558,4 @@
 - `docs/spec/README.md`は機能の期待動作を読む順序を先に示し、仕様管理・変更手順を後段へ置く。認証の`validation-error`は`default` Scenario、状態文書のWeb Fixture参照は`e2e/web/fixtures.ts`へ揃える。`part1/10_part1-capstone.md`は`09_part1-capstone.md`へのLegacy Aliasとする。
 - Push後のWeb CIでは、上記導線変更に対して`e2e/web/smoke.spec.ts`の公開カリキュラムナビゲーション期待値だけを同期した。Scenario Shopの製品挙動、BR / AC、正式なテスト対象の意味は変更していない。
 - 同じWeb CIでNative変更検出が`package.json`のTraining script追加に反応し、既存のExpo SDK 57 patch差分（`expo` 57.0.20、`expo-router` 57.0.19）がNative Static / Expo Doctorで検出されたため、既存依存を57.0.21 / 57.0.20へ同期した。新規パッケージは追加していない。
+- 修復後のMobile App CI run `34347593657`では、APK起動前に`com.google.android.apps.nexuslauncher`を停止するNative Runtime安定化を通過し、Android Automation / Production Build、Android Runtime / Maestro、iOS Automation / Production Build、Production Bundle Guard、`native-ci / verify`が全てPASSした。Web CI run `34347593379`も全てPASSしている。これはAPI 34 fresh AVD上のPixel Launcher ANRダイアログがMaestro画面を覆うFailureに対するCI環境修復であり、Product CodeとMaestro Flowは変更していない。

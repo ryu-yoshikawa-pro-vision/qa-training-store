@@ -18,6 +18,12 @@
 - Native StaticのExpo Doctorは、Training script追加によりNative変更検出が起動した結果、既存の`expo` 57.0.20 / `expo-router` 57.0.19をSDK 57の推奨57.0.21 / 57.0.20へ揃えるFAILを検出した。`package.json`と`pnpm-lock.yaml`を更新し、新規パッケージは追加していない。
 - 変更後は`pnpm run verify`、`npx expo install --check --json`、`pnpm dlx expo-doctor@1.17.6 --verbose`（`npm_config_loglevel=error`でローカルnpm警告を抑制）、公開Smoke 4件を再確認した。Remote GitHub Actionsの再実行結果は修復commitのpush後に確認する。
 
+## Native Runtime修復結果（2026-09-09 21:20 JST）
+
+- 先行Remote run `34342343793`のAndroid Runtime / Maestroは、アプリのMainActivityとReact Native JSが起動・存続している一方、API 34 fresh AVDのPixel Launcher ANRダイアログが最初のMaestro assertionを覆ったためFAILした。
+- 修復Iteration 2では`.github/workflows/native-ci.yml`にAPK起動前の`com.google.android.apps.nexuslauncher`停止を追加し、`tests/contracts/native-ci-workflow.test.ts`で配置と順序を固定した。Product Code、Maestro Flow、BR / ACの意味は変更していない。
+- 修復後Mobile App CI run `34347593657`は、Native Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro、iOS Automation / Production Build、iOS Native CI Verify、`native-ci / verify`を全てPASSした。Android Runtimeでは追加ステップと全Maestro FlowがPASSした。対応するWeb CI run `34347593379`も全チェックPASSした。
+
 ## 対象外
 
 Product Behavior、BR / ACの意味、Seed Scenario、`src/**`、Formal Regression、本番 / Preview CI、Native保証範囲、既存のAgentic QA基盤は変更しない。

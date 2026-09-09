@@ -90,6 +90,15 @@
 - Blocker / Remaining: D2のremote CI gate確認、最終commit SHAでのTraining Copy、scope / sanitization、non-force push、PR #133本文とRun最終更新が残る。
 - Progress: 75% (12/17)
 
+## 2026-09-09 21:20 (JST)
+
+- Summary: 修復Iteration 2をRemote Native CIで検証し、前回のAndroid Runtime / Maestro Failureを解消した。
+- Changes: `f36be7f9eb3decb7422d5d0b963e00104bc46c16`をpushし、APK起動前のPixel Launcher安定化を含むNative CIを実行した。Web CI run `34347593379`とMobile App CI run `34347593657`を確認した。
+- Decision / Rationale: 修復後Mobile App CIでは、`Stabilize Android launcher before APK launch`、4つのBuild、Production Bundle Guard、Android Runtime / Maestro、iOS Build、`native-ci / verify`がPASSした。Android RuntimeのTest Control、Contract Harness、Not Found、Storefront、Cart、Search、Persistence、Boundary、Purchase、Review、Payment Retry、Session Checkout、Training baseline、Production validationを成功として確認できたため、D2を完了とする。
+- Validation: Remote Web CI `34347593379`は全チェックPASS。Remote Mobile App CI `34347593657`はNative Static、Android Automation / Production Build、Production Bundle Guard、Android Runtime / Maestro（12m18s）、Native iOSのAutomation / Production Build、iOS Native CI Verify、`native-ci / verify`を全てPASSした。Local `pnpm run verify`（Contract 505 passed / 3 skipped）と、Source SHA `f36be7f9eb3decb7422d5d0b963e00104bc46c16`のTraining Copy prepare / validateもPASS済み。
+- Blocker / Remaining: 最終scope確認、Run ArtifactのSanitizer Write / Check、最終Run記録、PR #133本文更新が残る。
+- Progress: 82% (14/17)
+
 ## 2026-09-09 19:05 (JST)
 
 - Summary: Run manifestのcollector経由同期とRun ArtifactのSanitizer Write / Checkを完了した。
@@ -125,3 +134,12 @@
 - Validation: `pnpm exec vitest run tests/contracts/native-ci-workflow.test.ts --no-file-parallelism --maxWorkers=1`（23 passed）、native-ci.yml YAML parse、`bash -n scripts/native/android-maestro-run.sh`、`prettier --check`、`git diff --check`がPASS。Android実機のpackage確認は`com.google.android.apps.nexuslauncher` absentでskipとなった。
 - Blocker / Remaining: 修復commitのbranch safety確認、push後のGitHub Actions Android Runtime / `native-ci / verify`再確認、最終Training Copy / scope / Run更新 / PR本文更新が残る。
 - Progress: 75% (12/17)
+
+## 2026-09-09 21:22 (JST)
+
+- Summary: PR #133の実装、修復後のローカル / Remote検証、commit / push、Run Artifactの最終確認を完了した。
+- Changes: `docs/PROJECT_CONTEXT.md`と履歴へ修復後のNative CI結果を追記し、Run TASKSを完了状態へ更新した。対象branch `refactor/test-automation-curriculum-learning-experience`へ責務単位commitをnon-force pushし、PR #133本文を日本語の実装後状態へ更新した。
+- Decision / Rationale: Remote Mobile App CI `34347593657`の全Native gateと`native-ci / verify`がPASSしたため、Pixel Launcher ANRはAPK起動前停止で解消できたと判断した。既存のTraining Copy / Native local PASS、Remote Web CI `34347593379` PASS、Remote Native PASSを別の証跡として保持し、CodeRabbitのmanual review requiredは外部レビュー未起動のまま扱った。
+- Validation: 最終Local `pnpm run verify`はPASS（Unit 66、Integration 111、Repository 47、Component Web 102、Component Native 64、Contract 505 passed / 3 skipped、Web / Spec build）。Native localはDoctor、Release APK、Install、Smoke、Control / Runtime / Boundary、Training baseline / exercise、Final EvidenceがPASS。Training CopyはSource SHA `f36be7f9eb3decb7422d5d0b963e00104bc46c16`とresolved SHA一致でPASS。Sanitizer Write / CheckはRun 4 files、0 replacements、0 residual findingsでPASS。`git status --short`はclean。
+- Blocker / Remaining: なし。
+- Progress: 100% (17/17)
