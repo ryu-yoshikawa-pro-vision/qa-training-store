@@ -9,7 +9,7 @@
 - [x] 5. Run Artifactを日本語で更新し、Plan-onlyの判断・残作業・Progressを記録する
 - [x] 6. Plan / RunのMarkdown、Prettier、diff、scopeを検証する
 - [x] 7. Plan / Runをsanitizerとcollectorで確認し、PR本文の状態を再確認する
-- [ ] 8. branch safety確認、対象branchへnon-force push、remote / PR / working treeを最終確認する
+- [x] 8. branch safety確認、対象branchへnon-force push、remote / PR / working treeを最終確認する
 
 ## Discovered
 

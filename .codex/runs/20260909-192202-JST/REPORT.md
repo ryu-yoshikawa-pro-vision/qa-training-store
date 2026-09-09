@@ -45,6 +45,16 @@
 - Subagents: Delegationなし。Result / Parent decision: task 7のPR本文確認を完了し、canonicalやruntime再試行へ進まない。
 - Progress: 88% (7/8)
 
+## 2026-09-09 20:05 (JST)
+
+- Summary: 修正版Planとactive Run Artifactをcommit `4377c9435a537d08299263bdeadec53f6f4d5cd8`へ保存し、対象branchへexplicit non-force pushした。今回のPlan修正Runを完了とする。
+- Changes: commit対象はPlanとactive Run Artifactの5 filesだけである。source implementation、tests、dataset、Hook、Skill、AGENTS、Product code、timeout値、Probe、canonical `all`には変更・実行がない。
+- Decision / Rationale: PR #127はOPEN、base `main`、head branch一致を維持した。PR本文のPlan review反映済み、Environment Qualification FAIL、canonical未実行、valid baseline未取得を保持し、implementationへ自動継続しない。
+- Validation: local HEAD、remote branch head、PR headは同じSHAで一致し、working tree clean、`git diff --check` PASSを確認した。push前のMarkdown lint、Prettier、sanitizer Plan 1 file / Run 4 files residual 0、collector strictもPASSした。PR本文のrequired flagsを機械確認した。
+- Blocker / Remaining: blockerなし。Plan再レビュー・承認後に別RunでResult schema 2実装、repository contract tests、new Qualification、Observation Probe、canonical `all`、8/8 valid baseline取得を行う。旧invalid artifactは変換・昇格しない。
+- Subagents: Delegationなし。Result / Parent decision: task 8を完了し、Plan-onlyの境界を維持したままRunを完了する。
+- Progress: 100% (8/8)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
