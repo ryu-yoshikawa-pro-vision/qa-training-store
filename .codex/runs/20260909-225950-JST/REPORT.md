@@ -45,6 +45,15 @@
 - Blocker / Remaining: Qualification全体はFAIL（negative trusted absence不成立）。同一Runでcanonical `all`、8/8 side、valid baseline判定は未実行。次はこのFAILを最終化し、Run sanitizer／strict collectorとbranch／PR evidenceだけを実施する。query tuning、case retry、別Target交換は行わない。
 - Progress: 77% (10/13)
 
+## 2026-09-10 00:23（JST）
+
+- Summary: Qualification FAILの停止条件、strict Run artifact、PR本文、branch pushを最終化した。Issue #117 PR2の実装と静的品質ゲートは完了し、canonical baseline取得は安全契約どおり見送った。
+- Changes: `evaluation.json`（`result=partial`、`primary_failure_category=flaky_or_env_issue`）を保存し、collectorで`run.json`のevaluation path／primary failureを同期した。PR #127本文を現行のResult schema 2実装とQualification FAILへ更新した。
+- Decision / Rationale: negativeのcompound PowerShell eventをsafe no-readへ緩和せず、K（canonical all）とL（8/8／valid baseline）を未完了のままBlockedへ保持した。M（sanitizer／collector／Run／PR／Git evidence）は完了とする。
+- Validation: evaluation schema validation PASS、sanitizer Write/Check PASS（5 files／residual 0）、strict collector PASS、`git diff --check` PASS。branch safety確認後、`git push origin HEAD:refactor/117-pr2-trigger-eval-baseline`が成功し、commit `05e4cfb5bfb44d673e4422fefb39721b660282df`をPR branchへ反映した。
+- Blocker / Remaining: Environment QualificationはFAIL（negative trusted absence不成立）。canonical `all`、8/8 side validity、valid baselineは未実行・未取得。同一条件のquery tuning、retry、別Target交換は次Runの明示承認なしに行わない。
+- Progress: 85% (11/13)
+
 ## 2026-09-10 00:42（JST）
 
 - Summary: contracts gateの再実行はPASSした。前回の9件timeoutは全suite実行時の一時的なWindows launcher／resource contentionとして再現せず、今回差分に起因するFAILではないことを追加確認した。
