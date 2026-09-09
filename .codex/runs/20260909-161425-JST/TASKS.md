@@ -21,6 +21,7 @@
 ## Discovered
 
 - [x] D1. C09の完了条件に合わせ、Workbookへ同一Test Caseの診断Failure / 修正後Pass行を追加し、実行経路の初期Failureを再確認する
+- [ ] D2. Push後CIで検出した公開カリキュラムSmoke期待値とExpo SDK patch依存のFAILを最小修正し、修復後のremote gate結果を確認する
 
 ## Blocked
 

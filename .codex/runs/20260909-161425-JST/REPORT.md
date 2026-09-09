@@ -81,6 +81,15 @@
 - Blocker / Remaining: 対象変更を含むcommit SHAでのTraining Copy検証、最終scope / sanitization、責務単位commit、push、PR本文更新が残る。GitHub Actions上の受講者変更後runtimeは未確認である。
 - Progress: 75% (12/16)
 
+## 2026-09-09 19:47 (JST)
+
+- Summary: Push後のGitHub Actionsで発生した2つの一次FAILを分離し、ローカルで最小修正と再検証を完了した。
+- Changes: 公開カリキュラムの導線変更に合わせて`e2e/web/smoke.spec.ts`のナビゲーション4グループ期待値を更新した。Native Static / Expo Doctorで検出された既存の`expo` 57.0.20 / `expo-router` 57.0.19を、SDK 57の推奨57.0.21 / 57.0.20へ同期し、`pnpm-lock.yaml`を更新した。新規パッケージ、Product code、BR / ACの意味は追加変更していない。
+- Decision / Rationale: Web SmokeのFAILは意図したREADME導線変更との期待値不一致、Native StaticのFAILはTraining script追加で検出対象になった既存依存のpatch不一致と分類した。どちらも安全に最小修正できる品質ゲートFAILのため、保留せず修復した。ローカル`expo-doctor`の初回FAILは`.npmrc`のnpm非対応設定警告をDoctorがstderr issueとして拾った環境差であり、`npm_config_loglevel=error`で17/17を確認した。
+- Validation: 修復後の`pnpm run verify`は全Gate PASS（Contract 504 passed / 3 skipped、Web / Spec buildを含む）。`npx expo install --check --json`は`dependencies: []` / `upToDate: true`、`pnpm dlx expo-doctor@1.17.6 --verbose`は`npm_config_loglevel=error`付きで17/17 PASS、`pnpm run validate:eas:config`、Native route、image manifest、PrettierもPASS。公開Smoke `pnpm run test:smoke`は4 passed。Remoteの修復commit結果は次のpush後に確認する。
+- Blocker / Remaining: D2のremote CI gate確認、最終commit SHAでのTraining Copy、scope / sanitization、non-force push、PR #133本文とRun最終更新が残る。
+- Progress: 75% (12/17)
+
 ## 2026-09-09 19:05 (JST)
 
 - Summary: Run manifestのcollector経由同期とRun ArtifactのSanitizer Write / Checkを完了した。

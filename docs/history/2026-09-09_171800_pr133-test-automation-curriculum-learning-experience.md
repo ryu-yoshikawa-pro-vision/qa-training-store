@@ -12,6 +12,12 @@
 - Playwrightの基準確認、受講者Exercise、恒久Failure、診断Failure、Maestro Exerciseを別の責務として扱う。Training WorkflowのPull Requestではbaseline後に受講者Exerciseを実行する。
 - `docs/spec/README.md`では期待動作の読み始めを先に示し、仕様管理用語を後段へ置く。認証ScenarioとFixture pathの文書不整合はProduct codeを変更せず修正し、旧Capstoneは案内Aliasへ短縮する。
 
+## CI品質ゲート修復（2026-09-09 19:45 JST）
+
+- Push後のWeb CIで、公開済みカリキュラムのナビゲーションがP1-1開始・共通Reference後段の4グループになったことに対し、`e2e/web/smoke.spec.ts`のグループ期待値を同期した。これは公開ドキュメントの変更を検証する期待値の修復であり、製品挙動やBR / ACの意味は変更していない。
+- Native StaticのExpo Doctorは、Training script追加によりNative変更検出が起動した結果、既存の`expo` 57.0.20 / `expo-router` 57.0.19をSDK 57の推奨57.0.21 / 57.0.20へ揃えるFAILを検出した。`package.json`と`pnpm-lock.yaml`を更新し、新規パッケージは追加していない。
+- 変更後は`pnpm run verify`、`npx expo install --check --json`、`pnpm dlx expo-doctor@1.17.6 --verbose`（`npm_config_loglevel=error`でローカルnpm警告を抑制）、公開Smoke 4件を再確認した。Remote GitHub Actionsの再実行結果は修復commitのpush後に確認する。
+
 ## 対象外
 
 Product Behavior、BR / ACの意味、Seed Scenario、`src/**`、Formal Regression、本番 / Preview CI、Native保証範囲、既存のAgentic QA基盤は変更しない。

@@ -556,3 +556,5 @@
 - `training/workbook/`は既存4 CSVの列を維持し、Cartの代表2ケースをBR / ACと分離して追跡する。`04_execution-improvement.csv`は非空の`run_context`、`Pass` / `Fail` / `Not run`、実行時Evidence参照、診断のFail行と再実行Pass行を契約とする。実行時Artifactの静的ファイル存在は要求しない。
 - Training Workflow Templateは`pull_request`でbaseline後に`training:web:exercise`を実行する。`training:copy:validate`は生成時のTemplate / allowlist検証であり、受講者Testを変更した後のGitHub Actions成功とは別に扱う。本番 / Preview Workflow、Product code、Formal Regressionはこの変更の対象外である。
 - `docs/spec/README.md`は機能の期待動作を読む順序を先に示し、仕様管理・変更手順を後段へ置く。認証の`validation-error`は`default` Scenario、状態文書のWeb Fixture参照は`e2e/web/fixtures.ts`へ揃える。`part1/10_part1-capstone.md`は`09_part1-capstone.md`へのLegacy Aliasとする。
+- Push後のWeb CIでは、上記導線変更に対して`e2e/web/smoke.spec.ts`の公開カリキュラムナビゲーション期待値だけを同期した。Scenario Shopの製品挙動、BR / AC、正式なテスト対象の意味は変更していない。
+- 同じWeb CIでNative変更検出が`package.json`のTraining script追加に反応し、既存のExpo SDK 57 patch差分（`expo` 57.0.20、`expo-router` 57.0.19）がNative Static / Expo Doctorで検出されたため、既存依存を57.0.21 / 57.0.20へ同期した。新規パッケージは追加していない。
