@@ -13,8 +13,8 @@
 - [x] 8. PR #127本文へ検索scopeレビューの最小追記を行う
 - [x] 9. Plan-onlyのMarkdown、Prettier、diff、scope検証を実行する
 - [x] 10. sanitizer Write/CheckとRun collector strictを実行する
-- [ ] 11. branch安全確認後にcommitし、明示refspecでnon-force pushする
-- [ ] 12. push後のlocal/remote/PR状態、scope、sanitizer、Run完了を確認しREPORTへ記録する
+- [x] 11. branch安全確認後にcommitし、明示refspecでnon-force pushする
+- [x] 12. push後のlocal/remote/PR状態、scope、sanitizer、Run完了を確認しREPORTへ記録する
 
 ## Discovered
 

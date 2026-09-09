@@ -57,6 +57,19 @@
   - Parent decision: scope内成果物をcommit対象として確定
 - Progress: 83% (10/12)
 
+## 2026-09-09 22:05 (JST)
+
+- Summary: branch安全確認後、Planとactive Run Artifactの5ファイルだけを`47becb2766540d4e6c1967d4a13447bb2ed6ae7e`へcommitし、指定branchへnon-force pushした。
+- Changes: push後のlocal/remote/PR headは同一SHAとなり、PR #127はOPEN/base `main`を維持した。PR本文の検索scopeレビュー、Environment Qualification FAIL、canonical `all`未実行、valid baseline未取得、implementation未着手も維持した。
+- Decision / Rationale: 今回のPlan-only Runは、検索target scopeのcanonical Skill treeとのintersectionを安全側に分類する契約を保存した時点で完了とした。source implementation、dataset、Probe、Qualification、canonical `all`、valid baselineは行わない。
+- Validation: `git diff --check`、scope guard、Plan/Run Sanitizer Check、Run collector strict、PR state/body checksはPASS。対象Plan/RunのPrettierと`pnpm run lint:markdown`（389 files / 0 issues）もPASSした。
+- Blocker / Remaining: 今回のRunに残作業なし。実装phaseではPlan再レビュー・承認後にResult schema 2、bounded selector、contract tests、Qualification、canonical `all`、8/8 valid baselineを別Runで実施する。
+- Subagents:
+  - Delegation: なし
+  - Result: Plan-only成果物をnon-force pushし、post-push検証を完了
+  - Parent decision: Runを完了として記録する
+- Progress: 100% (12/12)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
