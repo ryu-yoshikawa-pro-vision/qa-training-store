@@ -60,7 +60,7 @@ query変更、retry、Target交換、Qualification途中のselector変更はな�
 
 | ordinal | tool | truncated | command概要 | 現行分類 | 判定理由 |
 | ---: | --- | ---: | --- | --- | --- |
-| 0 | Bash | false | `((Get-Content -Raw -LiteralPath 'package.json') \| ConvertFrom-Json).name` | `unreliable` | 既存exact compound不一致。tokenizerが`(`、`|`、`)`を拒否 |
+| 0 | Bash | false | `((Get-Content -Raw -LiteralPath 'package.json') \| ConvertFrom-Json).name` | `unreliable` | 既存exact compound不一致。tokenizerが`(`、`\|`、`)`を拒否 |
 
 位置関係は以下で確定する。
 
@@ -88,7 +88,7 @@ shape分解:
 | reader | `Get-Content` 1回 |
 | options | `-Raw`、`-LiteralPath` |
 | path | single-quoted固定相対literal `package.json` |
-| grouping | `(( ... ) | ConvertFrom-Json).name` |
+| grouping | `(( ... ) \| ConvertFrom-Json).name` |
 | pipe | 1本 |
 | assignment / variable | なし |
 | semicolon / if / foreach / redirection / subexpression | なし |
@@ -108,7 +108,7 @@ Trigger Eval dataset、answer key、canonical Skill treeをcommand pathとして
 | 観点 | 既存許可shape | 今回の実測shape |
 | --- | --- | --- |
 | variable / expression | `$pkg = ...; $pkg.name` | variableなし、末尾`.name` |
-| grouping | なし | `(( ... ) | ConvertFrom-Json).name` |
+| grouping | なし | `(( ... ) \| ConvertFrom-Json).name` |
 | path | `.\package.json`の固定literal | `'package.json'`の固定literal |
 | reader / option | `Get-Content -Raw -LiteralPath` | 同じ |
 | converter | `ConvertFrom-Json` | 同じ |

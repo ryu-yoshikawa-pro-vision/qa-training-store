@@ -31,6 +31,33 @@
   - Parent decision: Plan-only validationを採用し、runtime停止状態は変更しない。
 - Progress: 88% (7/8)
 
+## 2026-09-11 01:27 (JST)
+
+- Summary: 新Planと調査Run Artifactを対象branchへnon-force pushし、PR本文、head、base、state、取得時点のCIを最終確認した。
+- Changes: commit `0acf47b5f498bedddb548c30cb4ad24dd65e48d4`（`docs: Negative Qualification blockerの調査Planを追加`）をpushした。PR #127へraw調査結果、新Plan、Plan-only／実装未着手、既存runtime判定維持を日本語で追記した。
+- Decision / Rationale: branchは`refactor/117-pr2-trigger-eval-baseline`でPR head branchと一致し、PRはOPEN・base `main`のまま維持した。新しいHost shapeを今回のRunで実装・再実行せず、`artifact_contract_gap`とNegative FAILを維持する。
+- Validation: Plan-only static validation、evaluation schema、sanitizer Write/Check（5 files、0 replacements、residual 0）、strict collector、staged diff checkをPASSした。focused test、`pnpm run verify`、Qualification、Positive、canonicalはscope外として未実行である。
+- Blocker / Remaining: 次回実装Runでbounded ruleを実装・検証し、fresh TargetでNegativeを1回実行する必要がある。Negative FAIL後のPositive、canonical、8/8、valid baselineは未実行のままとする。
+- Git / PR / CI: local HEAD、remote branch、PR headは`0acf47b5f498bedddb548c30cb4ad24dd65e48d4`で一致した。`gh pr checks 127`取得時点はAnalyze 3件、CodeQL、CodeRabbitの5件PASSであり、これを全CI PASSとは扱わない。
+- Subagents:
+  - Delegation: なし。
+  - Result: —
+  - Parent decision: 調査・Plan作成の完了条件を満たし、次回実装へ引き継ぐ。
+- Progress: 100% (8/8)
+
+## 2026-09-11 01:33 (JST)
+
+- Summary: 最終Markdown lintで検出したPlan内表のMD056を、1回のbounded repairで解消した。
+- Changes: `docs/plans/2026-09-11_010903_trigger-eval-negative-qualification-blocker-remediation.md`の表セル内にあるcommand記号のpipe 3箇所だけをMarkdown escapeした。source、test、ADR、Runの意味情報は変更していない。
+- Decision / Rationale: findingはPlan表示上のtable-column-countであり、要件判断やruntime契約の変更を含まないため`must_fix`とした。`repair-loop` Skillの許可範囲をPlan 1ファイルに限定し、general parserやselector変更へ拡張しなかった。
+- Validation: repair後の`pnpm run lint:markdown`は397 files／0 issues。Prettier、diff、evaluation schema、sanitizer、strict collectorの最終再実行と、修正後のcommit／pushが残る。
+- Blocker / Remaining: runtimeのNegative FAIL、Positive未実行、canonical未実行、8/8未判定、valid baseline未取得は維持する。
+- Subagents:
+  - Delegation: なし。
+  - Result: —
+  - Parent decision: 1 iterationで`stop_success`とし、最終static gateへ進む。
+- Progress: 88% (7/8)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
