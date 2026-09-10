@@ -562,6 +562,24 @@ describe("Native CI workflow contracts", () => {
     );
     expect(androidStartupHelper).not.toContain("clearState");
     expect(androidStartupHelper).not.toContain("retry");
+
+    const tapIndex = androidStartupHelper.lastIndexOf(
+      'timeout 15 "$ADB_BIN" shell input tap "$tap_x" "$tap_y"',
+    );
+    const finalAttemptIndex = androidStartupHelper.indexOf(
+      'if [[ "$attempt" -eq 3 ]]; then',
+      tapIndex,
+    );
+    const loopEndIndex = androidStartupHelper.indexOf("\n  done", finalAttemptIndex);
+    expect(tapIndex).toBeGreaterThanOrEqual(0);
+    expect(finalAttemptIndex).toBeGreaterThan(tapIndex);
+    expect(loopEndIndex).toBeGreaterThan(finalAttemptIndex);
+    const finalAttempt = androidStartupHelper.slice(finalAttemptIndex, loopEndIndex);
+    expect(finalAttempt).toContain(
+      'ui_dump="$(timeout 15 "$ADB_BIN" exec-out uiautomator dump /dev/tty 2>/dev/null)"',
+    );
+    expect(finalAttempt).toContain('if [[ "$ui_dump" != *"$launcher_anr_text"* ]]; then');
+    expect(finalAttempt).toContain("return 0");
   });
 
   it("detects Training Maestro changes and runs the baseline in the shared Android runtime", () => {

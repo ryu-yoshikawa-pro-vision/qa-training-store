@@ -96,6 +96,20 @@ dismiss_launcher_anr_dialog() {
     echo "Dismissing Pixel Launcher ANR dialog at ($tap_x,$tap_y), inspection $attempt/3."
     timeout 15 "$ADB_BIN" shell input tap "$tap_x" "$tap_y"
     sleep 1
+    if [[ "$attempt" -eq 3 ]]; then
+      set +e
+      ui_dump="$(timeout 15 "$ADB_BIN" exec-out uiautomator dump /dev/tty 2>/dev/null)"
+      dump_status=$?
+      set -e
+      if [[ "$dump_status" -ne 0 ]]; then
+        echo "Unable to verify Android UI hierarchy after final launcher dialog dismissal (status=$dump_status)." >&2
+        return "$dump_status"
+      fi
+      if [[ "$ui_dump" != *"$launcher_anr_text"* ]]; then
+        echo "Pixel Launcher ANR dialog dismissed after the final bounded attempt."
+        return 0
+      fi
+    fi
   done
 
   echo "Pixel Launcher ANR dialog remained after bounded dismissal attempts." >&2
