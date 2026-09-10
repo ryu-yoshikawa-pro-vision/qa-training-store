@@ -130,3 +130,16 @@
 | Path | Reason | Suggested action |
 |---|---|---|
 |  |  |  |
+
+## 2026-09-10 22:22 (JST)
+
+- Summary: PR本文、Run Artifact commit、non-force push、working tree、PR head/base/state、push後CI状態を実結果どおりに最終確認した。
+- Changes: PR #127本文を現行のTarget-aware absolute recognition実装、Negative Qualification FAIL、`artifact_contract_gap`、Positive/canonical/valid baseline未実行へ更新した。Run Artifact commit `700fa83bb057a0fcd83b2f437ae667922f62ab1c`を`origin HEAD:refactor/117-pr2-trigger-eval-baseline`でpushした。
+- Decision / Rationale: branch `refactor/117-pr2-trigger-eval-baseline`とPR #127 head branchは一致し、PRは`main`向けOPEN、push後headはRun Artifact commitと一致した。CIのpending状態をPASSへ補完せず、Native buildの未完了を未完了として保持する。
+- Validation: push直前の`git status --short`はclean、`git branch --show-current`／`git branch -vv`／PR head・base・stateを確認した。`gh pr checks 127`のpush後スナップショットは`32 successful / 2 skipped / 4 pending / 0 failing`で、Web CI、static、Vitest、build、artifact sanitization、CodeQL等の完了結果はPASS、Android 2件・iOS 2件はpendingだった。`gh run view`でNative workflowが`in_progress`であることも確認した。
+- Blocker / Remaining: Negative QualificationでHostのPostToolUse commandが承認済みexact compound外だったため、Environment QualificationはFAIL。Planの停止条件によりPositive、canonical `all`、24/24、8/8 side validity、valid baselineは未実行／未取得。PR CIはNative 4 buildがpendingであり、pendingをPASSとは扱わない。
+- Subagents:
+  - Delegation: なし。
+  - Result: —
+  - Parent decision: 実測のNegative FAILとCI pendingを保持したまま、追加retry、selector変更、query tuning、別Target交換、canonical実行は行わず、Runを`Progress: 100% (16/16)`として完了記録する。
+- Progress: 100% (16/16)
