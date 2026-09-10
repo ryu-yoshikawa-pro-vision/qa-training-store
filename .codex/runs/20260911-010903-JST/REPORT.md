@@ -31,20 +31,6 @@
   - Parent decision: Plan-only validationを採用し、runtime停止状態は変更しない。
 - Progress: 88% (7/8)
 
-## 2026-09-11 01:40 (JST)
-
-- Summary: repair後のPlan-only validation、Run Artifact、PR本文、Git head、PR stateを最終確定した。
-- Changes: 最終Run Artifact commit `e5d8d44a063d096b9a5764e7cd8419dd269a3bb2`を`origin HEAD:refactor/117-pr2-trigger-eval-baseline`でnon-force pushした。PlanのMD056修正、調査結果、次回実装Plan、evaluation、停止条件を保存した。
-- Decision / Rationale: local HEAD、remote branch head、PR #127 headは一致し、PRはOPEN・base `main`のままである。Negative FAIL、`artifact_contract_gap`、Positive未実行、canonical未実行、8/8未判定、valid baseline未取得を維持し、runtimeを再実行しない。
-- Validation: repair後の`pnpm run lint:markdown`（397 files／0 issues）、Prettier、`git diff --check`、evaluation schema、sanitizer Write/Check（5 files、0 replacements、residual 0）、strict collectorをPASSした。focused test、`pnpm run verify`、Qualification、Positive、canonicalは今回scope外である。
-- Git / PR / CI: branchは`refactor/117-pr2-trigger-eval-baseline`、local／remote／PR headは`e5d8d44a063d096b9a5764e7cd8419dd269a3bb2`で一致した。最新`gh pr checks 127`はAnalyze 3件pending、CodeRabbit 1件PASSで、pendingをPASSとは扱わない。
-- Blocker / Remaining: 次回実装Planの承認後、bounded ruleを実装し、static gateとfresh Target preflightを通過した場合だけNegativeを1回実行する。Negative FAIL後のPositive、canonical、8/8、valid baselineは未実行のままとする。
-- Subagents:
-  - Delegation: なし。
-  - Result: —
-  - Parent decision: 調査・Plan作成・Plan-only検証・Git/PR反映の完了条件を満たした。
-- Progress: 100% (8/8)
-
 ## 2026-09-11 01:27 (JST)
 
 - Summary: 新Planと調査Run Artifactを対象branchへnon-force pushし、PR本文、head、base、state、取得時点のCIを最終確認した。
@@ -71,6 +57,20 @@
   - Result: —
   - Parent decision: 1 iterationで`stop_success`とし、最終static gateへ進む。
 - Progress: 88% (7/8)
+
+## 2026-09-11 01:40 (JST)
+
+- Summary: repair後のPlan-only validation、Run Artifact、PR本文、Git head、PR stateを最終確定した。
+- Changes: 最終Run Artifact commit `e5d8d44a063d096b9a5764e7cd8419dd269a3bb2`を`origin HEAD:refactor/117-pr2-trigger-eval-baseline`でnon-force pushした。PlanのMD056修正、調査結果、次回実装Plan、evaluation、停止条件を保存した。
+- Decision / Rationale: local HEAD、remote branch head、PR #127 headは一致し、PRはOPEN・base `main`のままである。Negative FAIL、`artifact_contract_gap`、Positive未実行、canonical未実行、8/8未判定、valid baseline未取得を維持し、runtimeを再実行しない。
+- Validation: repair後の`pnpm run lint:markdown`（397 files／0 issues）、Prettier、`git diff --check`、evaluation schema、sanitizer Write/Check（5 files、0 replacements、residual 0）、strict collectorをPASSした。focused test、`pnpm run verify`、Qualification、Positive、canonicalは今回scope外である。
+- Git / PR / CI: branchは`refactor/117-pr2-trigger-eval-baseline`、local／remote／PR headは`e5d8d44a063d096b9a5764e7cd8419dd269a3bb2`で一致した。最新`gh pr checks 127`はAnalyze 3件pending、CodeRabbit 1件PASSで、pendingをPASSとは扱わない。
+- Blocker / Remaining: 次回実装Planの承認後、bounded ruleを実装し、static gateとfresh Target preflightを通過した場合だけNegativeを1回実行する。Negative FAIL後のPositive、canonical、8/8、valid baselineは未実行のままとする。
+- Subagents:
+  - Delegation: なし。
+  - Result: —
+  - Parent decision: 調査・Plan作成・Plan-only検証・Git/PR反映の完了条件を満たした。
+- Progress: 100% (8/8)
 
 ## Deletion candidates
 
