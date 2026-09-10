@@ -57,6 +57,19 @@
   - Parent decision: 最終validation結果を採用し、Run Artifact最終化へ進む。
 - Progress: 88% (7/8)
 
+## 2026-09-10 19:49 (JST)
+
+- Summary: 新PlanとRun Artifactをbranchへnon-force pushし、PR #127本文へPlan pathと実装未着手を追記した。Plan-only Runを完了判定とする。
+- Changes: `609ff93`（Plan/Run Artifact初回commit）と`87bb36b`（検証結果・evaluation更新）をpush済み。今回の最終Run checkpointもRun Artifactとして保存する。
+- Decision / Rationale: PR本文のNegative PASS、Positive FAIL、Environment Qualification FAIL、canonical未実行、8/8未判定、valid baseline未取得を維持した。新PlanはA判定に基づき、compound対応ではなくTarget root-aware bounded absolute recognitionだけを次の実装方針とした。
+- Validation: 指定されたMarkdown lint、Prettier、`git diff --check`、evaluation schema、sanitizer Write/Check、strict collectorはPASS。source/tests/ADRの差分はない。
+- Blocker / Remaining: 今回のPlan-only scopeに残作業はない。Qualification、canonical、8/8 validity、valid baselineは意図的に未実行・未判定・未取得であり、次の実装Runの開始条件として引き継ぐ。
+- Subagents:
+  - Delegation: なし。
+  - Result: —
+  - Parent decision: A判定、`artifact_contract_gap`候補、bounded absolute recognition Plan、既存Qualification判定維持を最終採用する。
+- Progress: 100% (8/8)
+
 ## Deletion candidates
 
 - Codex はファイルやディレクトリを削除しない。
