@@ -554,3 +554,10 @@
 - Trigger EvalのSkill read selectorは、current Hostで実測したcanonical repository pathの完全形だけを受理する。現在の許可形は、forward slash/unquoted、forward slash/single-quoted、backslash/unquoted、`-LiteralPath` + forward slash/single-quotedの4形である。外部絶対path、別file、path mention、search結果、複合commandはactual Skill readとしない。
 - Trigger Eval queryはrouting boundaryだけでなくexecution contractを満たす必要がある。24 caseは対象・入力・完了条件を明示し、full APK build/install/Maestro、購入フロー全体、repository全体レビュー、未提供のPR／error／Run文脈を要求しないboundedな依頼として監査する。query修正時も`expected_skill`と`boundary`は変更しない。
 - PR #127の旧canonical artifactは、Codex `0.153.4`で`pass=1`、`false_negative=1`、`unobservable=22`、8-side `2/8`のinvalid evidenceであり、新datasetとのcomparison sourceへ昇格しない。dataset fingerprint変更後は旧fingerprintと新fingerprintをprovenanceで分離する。
+
+## PR #127 Qualification blocker remediation（2026-09-10）
+
+- 現Hostで実測されたnegative command `$pkg = Get-Content -Raw -LiteralPath .\package.json | ConvertFrom-Json; $pkg.name`は、固定variable、固定reader/options、固定相対path、固定pipeline、固定property suffixのanchored exact-shapeだけを`safe_no_read`として扱う。pipe、semicolon、variable、pathの一般parserへは拡張しない。
+- compound内のcanonical Skill read、任意suffix、別path、variable path、別variable、追加reader、別operator、truncated、malformed inputは`unreliable`のまま維持する。`safe_no_read`はcanonical Skill direct readがないことの証明であり、全filesystem read不存在の意味ではない。
+- Trigger Eval runnerのRouting Target preflightは、既存のclean・Skill readable・dataset不存在・Evaluator分離・alternates・source status・output分離に加え、`git rev-parse --abbrev-ref HEAD`が`HEAD`となるdetached状態を必須にする。期待routing source SHAはTarget作成時のRun preflightとResult provenanceで確認し、新CLI optionは追加しない。
+- この補修後も、Qualificationは同一fresh Targetでnegative / positiveが両方PASSした場合だけcanonical `all`へ進み、FAILまたはunreliableならcanonicalとvalid baselineを実行しない。

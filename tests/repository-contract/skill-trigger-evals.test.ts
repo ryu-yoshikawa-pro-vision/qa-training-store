@@ -1,12 +1,19 @@
-import { describe, expect, it } from "vitest";
+import { execFileSync } from "node:child_process";
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+
+import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  assertTargetPreflight,
   canonicalSkillForCommand,
   classifyCommand,
   classifyHookEvent,
   parseComparableRun,
   prepareSignals,
   selectInitialSkill,
+  sourceStatusOutsideRunArtifacts,
   type HookEvent,
 } from "../../scripts/evals/run-skill-trigger-evals";
 import {
@@ -29,6 +36,42 @@ import {
 } from "../../scripts/evals/skill-trigger-evals";
 
 const repositoryRoot = process.cwd();
+const temporaryRoots: string[] = [];
+const packageNameCompound =
+  "$pkg = Get-Content -Raw -LiteralPath .\\package.json | ConvertFrom-Json; $pkg.name";
+
+function runFixtureGit(cwd: string, args: readonly string[]): string {
+  return execFileSync("git", ["-C", cwd, ...args], {
+    cwd,
+    encoding: "utf8",
+    stdio: ["ignore", "pipe", "pipe"],
+  }).trim();
+}
+
+function createGitFixture(includeSkills = false): string {
+  const root = mkdtempSync(join(tmpdir(), "trigger-eval-contract-"));
+  temporaryRoots.push(root);
+  writeFileSync(join(root, "fixture.txt"), "fixture\n", "utf8");
+  if (includeSkills) {
+    for (const skill of CANONICAL_SKILLS) {
+      const directory = join(root, ".agents", "skills", skill);
+      mkdirSync(directory, { recursive: true });
+      writeFileSync(join(directory, "SKILL.md"), "# " + skill + "\n", "utf8");
+    }
+  }
+  runFixtureGit(root, ["init", "-q"]);
+  runFixtureGit(root, ["config", "user.email", "codex-test@example.invalid"]);
+  runFixtureGit(root, ["config", "user.name", "Codex Contract Test"]);
+  runFixtureGit(root, ["add", "."]);
+  runFixtureGit(root, ["commit", "-qm", "fixture"]);
+  return root;
+}
+
+afterEach(() => {
+  for (const root of temporaryRoots.splice(0)) {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 function sourcePath(skill: string, split: string): string {
   return `.agents/skills/${skill}/evals/trigger/${split}.yaml`;
@@ -131,6 +174,83 @@ describe("Skill Trigger Eval deterministic contract", () => {
     ).toBe("feature-plan");
   });
 
+  it("recognizes only the measured package-name compound as reliable no-read", () => {
+    expect(classifyCommand(packageNameCompound)).toEqual({
+      classification: "safe_no_read",
+      selector_reliable: true,
+      skill: null,
+    });
+
+    const rejectedCompounds = [
+      packageNameCompound + "; Get-Content -Raw .agents/skills/feature-plan/SKILL.md",
+      packageNameCompound + "; Write-Output later",
+      "$data = Get-Content -Raw -LiteralPath .\\package.json | ConvertFrom-Json; $data.name",
+      "$pkg = Get-Content -Raw -LiteralPath $path | ConvertFrom-Json; $pkg.name",
+      "$pkg = Get-Content -Raw -LiteralPath .\\other.json | ConvertFrom-Json; $pkg.name",
+      "$pkg = Get-Content -Raw -LiteralPath .\\package.json | ConvertTo-Json; $pkg.name",
+      "$pkg = Get-Content -Raw -LiteralPath .\\package.json; $pkg.name",
+      "$pkg = Get-Content -Raw -LiteralPath .\\package.json | ConvertFrom-Json && $pkg.name",
+    ];
+    for (const command of rejectedCompounds) {
+      expect(classifyCommand(command), command).toEqual({
+        classification: "unreliable",
+        selector_reliable: false,
+        skill: null,
+      });
+    }
+  });
+
+  it("keeps truncated and malformed measured compound events unreliable", () => {
+    expect(classifyHookEvent(bashEvent(packageNameCompound, { truncated: true }))).toMatchObject({
+      classification: "unreliable",
+      selector_reliable: false,
+      skill: null,
+    });
+    expect(
+      classifyHookEvent({
+        ...bashEvent(packageNameCompound),
+        tool_input_preview: "not-json",
+      }),
+    ).toMatchObject({
+      classification: "unreliable",
+      selector_reliable: false,
+      skill: null,
+    });
+  });
+
+  it("uses the measured compound to establish trusted absence", () => {
+    const signals = prepareSignals(
+      {
+        timed_out: false,
+        spawn_failed: false,
+        signaled: false,
+        exit_code: 0,
+        trusted_terminal: "turn.completed",
+      },
+      {
+        correlation_ok: true,
+        raw:
+          JSON.stringify(bashEvent(packageNameCompound)) +
+          "\n" +
+          JSON.stringify(historyEvent()) +
+          "\n",
+      },
+    );
+    expect(signals).toMatchObject({
+      hook_parse_ok: true,
+      selector_reliable: true,
+      initial_skill: null,
+      observed_skills: [],
+    });
+    const absenceCase = loadTriggerDatasets(repositoryRoot).cases.find(
+      (entry) => entry.id === "feature-plan-train-002",
+    );
+    if (!absenceCase) {
+      throw new Error("trusted absence fixture case is missing");
+    }
+    expect(evaluateCase(absenceCase, signals).outcome).toBe("pass");
+  });
+
   it("recognizes bounded direct-read parameter and quote variants", () => {
     const commands = [
       "Get-Content -Path .agents/skills/feature-plan/SKILL.md -Raw",
@@ -149,6 +269,28 @@ describe("Skill Trigger Eval deterministic contract", () => {
 
   it("does not classify a different Get-Content file as a Skill read", () => {
     expect(canonicalSkillForCommand("Get-Content -Raw docs/PROJECT_CONTEXT.md")).toBeNull();
+  });
+
+  it("requires a detached, clean, isolated Routing Target", () => {
+    const evaluatorRoot = createGitFixture();
+    const targetRoot = createGitFixture(true);
+
+    expect(() => assertTargetPreflight(evaluatorRoot, targetRoot)).toThrow("detached HEAD");
+
+    runFixtureGit(targetRoot, ["checkout", "--detach", "HEAD"]);
+    const preflight = assertTargetPreflight(evaluatorRoot, targetRoot);
+    expect(preflight.target_root).toBe(targetRoot.replaceAll("\\", "/"));
+    expect(preflight.routing_source_git_sha).toMatch(/^[a-f0-9]{40}$/u);
+  });
+
+  it("allows only Run artifacts in evaluator status and rejects source changes", () => {
+    const evaluatorFixture = createGitFixture();
+    mkdirSync(join(evaluatorFixture, ".codex", "runs"), { recursive: true });
+    writeFileSync(join(evaluatorFixture, ".codex", "runs", "checkpoint.md"), "run\n", "utf8");
+    expect(sourceStatusOutsideRunArtifacts(evaluatorFixture)).toEqual([]);
+
+    writeFileSync(join(evaluatorFixture, "source.ts"), "const source = true;\n", "utf8");
+    expect(sourceStatusOutsideRunArtifacts(evaluatorFixture)).toEqual(["?? source.ts"]);
   });
 
   it("does not classify a path mention as an actual Skill read", () => {

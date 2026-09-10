@@ -39,3 +39,15 @@ Resultはdataset schema 1と分離した`schema_version=2`を使用し、caseへ
 ### Comparison
 
 baseline／current comparisonはResult schema 2、`split=all`、dataset fingerprint一致、case ID set一致、Codex version完全一致を必須とする。schema 1、unknown／欠落schema、不一致Codex versionはfail closedし、変換やmarker後付けによる旧artifact移行は行わない。受理されたcomparisonの`codex_version_match`は常にtrueとなる。
+
+## Qualification blocker remediation
+
+実測されたnegative Host commandのうち、次の一形状だけをboundedなsafe no-readとして認識する。
+
+    $pkg = Get-Content -Raw -LiteralPath .\package.json | ConvertFrom-Json; $pkg.name
+
+認識はcommand全体を固定token・固定相対path・固定pipeline・固定semicolon suffixで照合するanchored exact-shapeとし、限定された空白以外の変形は受理しない。compound内のcanonical Skill read、任意suffix、別path、variable path、別variable、追加reader、別operator、truncatedまたはmalformed inputはunreliableへ倒す。これにより、package.jsonを読むこととcanonical Skill direct readが存在しないことを混同せず、trusted absenceのreliable no-read条件だけを成立させる。
+
+Routing Targetのpreflightは、Git work tree、clean、Evaluatorとのrealpath / common-dir分離、alternates、canonical Skill readable、Trigger dataset不存在、Evaluator source status、output分離に加えて、git rev-parse --abbrev-ref HEADの値がHEADであることを必須とする。Targetはdetached checkoutで作成する。期待routing source SHAは新しいCLI optionへ移さず、Target作成時のRun preflightで明示比較し、実Resultのprovenanceでも再確認する。
+
+この補修はPR2のinitial routing observation、Result schema 2、process lifecycle、comparison、dataset schema 1、query、Skill、Hook、timeoutの契約を変更しない。Hostが未承認compound shapeを返した場合は、selectorを一般parserへ拡張せずunreliableとしてQualificationを停止する。

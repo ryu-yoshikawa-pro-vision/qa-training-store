@@ -43,7 +43,7 @@ interface CliOptions {
   readonly compare: string | null;
 }
 
-interface GitPreflight {
+export interface GitPreflight {
   readonly evaluator_root: string;
   readonly target_root: string;
   readonly evaluator_git_sha: string;
@@ -212,7 +212,7 @@ function resolveGitPath(cwd: string, gitPath: string): string {
   return normalizeRealPath(existsSync(absolutePath) ? realpathSync(absolutePath) : absolutePath);
 }
 
-function sourceStatusOutsideRunArtifacts(evaluatorRoot: string): readonly string[] {
+export function sourceStatusOutsideRunArtifacts(evaluatorRoot: string): readonly string[] {
   const output = runGit(evaluatorRoot, ["status", "--porcelain", "--untracked-files=all"]);
   if (output.length === 0) {
     return [];
@@ -249,7 +249,10 @@ function assertKnownSkillsReadable(targetRoot: string): void {
   }
 }
 
-function assertTargetPreflight(evaluatorRoot: string, targetRootArgument: string): GitPreflight {
+export function assertTargetPreflight(
+  evaluatorRoot: string,
+  targetRootArgument: string,
+): GitPreflight {
   const evaluatorReal = realpathOrFail(evaluatorRoot, "Evaluator root");
   const targetReal = realpathOrFail(
     resolve(evaluatorRoot, targetRootArgument),
@@ -267,6 +270,9 @@ function assertTargetPreflight(evaluatorRoot: string, targetRootArgument: string
 
   if (runGit(targetReal, ["rev-parse", "--is-inside-work-tree"]) !== "true") {
     fail("Routing Target is not a Git working tree");
+  }
+  if (runGit(targetReal, ["rev-parse", "--abbrev-ref", "HEAD"]) !== "HEAD") {
+    fail("Routing Target must use a detached HEAD");
   }
   const targetStatus = runGit(targetReal, ["status", "--porcelain", "--untracked-files=all"]);
   if (targetStatus.length > 0) {
@@ -418,6 +424,9 @@ export interface SelectorDecision {
 interface ParsedCommand {
   readonly tokens: readonly CommandToken[];
 }
+
+const APPROVED_PACKAGE_NAME_COMPOUND =
+  /^\$pkg[ \t]*=[ \t]*Get-Content[ \t]+-Raw[ \t]+-LiteralPath[ \t]+\.\\package\.json[ \t]+\|[ \t]+ConvertFrom-Json[ \t]*;[ \t]*\$pkg\.name$/u;
 
 function selectorDecision(
   classification: SelectorClassification,
@@ -684,6 +693,9 @@ function isKnownSafeCommand(tokens: readonly CommandToken[]): boolean {
 }
 
 export function classifyCommand(command: string): SelectorDecision {
+  if (APPROVED_PACKAGE_NAME_COMPOUND.test(command)) {
+    return selectorDecision("safe_no_read");
+  }
   const parsed = tokenizeBoundedCommand(command);
   if (!parsed) {
     return selectorDecision("unreliable");
