@@ -210,3 +210,11 @@
 - Artifact gate: `evaluation.json` schema validation、`collect-run-artifacts.ps1 -RefreshGitChangedFiles -Strict`、`sanitize-codex-artifacts.ps1 -Write -Check`はすべてexit 0。sanitizerは9 files、0 replacements、0 residualだった。collectorは既存契約どおり`run.json`を`status=pending`／`validation.status=not_run`として保持した。
 - Decision: continue（post-commit calibration result、evaluation、REPORTを最終artifact commitへ含め、push直前のPR branch safety check後にpushする）。
 - Progress: 90% (9/10)
+
+## 2026-09-10 19:39 (JST)
+
+- Push: push直前にbranch `test/117-pr5-semantic-output-eval`、PR #137の`headRefName`、base `main`、state `OPEN`を再確認し、`git push origin HEAD:test/117-pr5-semantic-output-eval`を実行した。remote headは`cf9a7d95d5aba21fc4a901945e8fde2f3b1d3c87`へ更新された。
+- Final state: 修正実装commit `a070657630bccfb2e577ef5198c91a2b43f9b3cf`、Run Artifact／evaluation commit `cf9a7d95d5aba21fc4a901945e8fde2f3b1d3c87`をPR branchへ反映した。post-commit calibrationのevaluator SHAは修正実装commitと一致している。
+- Residual: machine-managed collectorの既存仕様により`run.json`は`status=pending`／`validation.status=not_run`／`codex_task_reports=[]`のままである。これはSemantic Eval修正の失敗ではなく、別途承認・設計するHarness改善候補としてevaluationへ記録した。
+- Decision: complete（ユーザー許可済みのcommit／push、修正後calibration、検証、Run Artifact保存を完了した。active Run外のad-hoc reportは削除せず、既知の削除候補として未追跡のまま保持する）。
+- Progress: 100% (10/10)
