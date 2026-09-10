@@ -218,3 +218,23 @@
 - Residual: machine-managed collectorの既存仕様により`run.json`は`status=pending`／`validation.status=not_run`／`codex_task_reports=[]`のままである。これはSemantic Eval修正の失敗ではなく、別途承認・設計するHarness改善候補としてevaluationへ記録した。
 - Decision: complete（ユーザー許可済みのcommit／push、修正後calibration、検証、Run Artifact保存を完了した。active Run外のad-hoc reportは削除せず、既知の削除候補として未追跡のまま保持する）。
 - Progress: 100% (10/10)
+
+## 2026-09-10 21:12 (JST)
+
+- Repair iteration: 再レビュー指摘2件（`child.stdin`のerror未処理、canonical calibration直前のclean-tree証跡不足）を`must_fix`として扱い、許可範囲をrunner、repository-contract test、既存Run Artifactに限定した。
+- Change: `executeCodexJudgeProcess`へstdin `error` listenerと同期的な`end`例外処理を追加し、既存`spawn_failed`へ反映した。stdin failure時は既存process-tree terminationを一度だけ要求し、先にsettleして`close`／timeoutとの二重resolve・二重killを防止する。`deriveTrialResult`の既存`unobservable / process_failure`分類、Judge isolation、Windows `shell: false`、timeoutは維持した。
+- Source commit: `c61e40f8cb5ea5106b163288456414745b94223a`（runnerとrepository-contract testの2ファイルのみ。dataset、4 semantic.yaml、既存Run Artifact、ad-hoc reportは含めていない）。
+- Clean tree evidence: source commit後、canonical calibration開始直前に`git status --porcelain`を実行し、`stdout = empty`を確認した。calibration outputは`<TEMP_ROOT>/qa-training-store-pr137-clean-tree-20260910/`配下のRepository外へ出力し、working treeを汚さない条件を維持した。
+- ad-hoc report: `.codex/reports/codex-task-20260910-083828.report.json`だけを一時退避し、退避前SHA-256 `3C341AF1C9188920AD409923EF3C5A89A3ECAA875C2CDFA04BCCF69C50A1B98B`、復元後SHA-256も同値だった。削除・commit・`.gitignore`追加は行っていない。
+- Calibration: `gpt-5.6-luna`、Codex `codex-cli 0.153.4`、8 anchor × 3 trial、timeout `600000ms`、Runner exit 0。`stable_pass=4`、`stable_fail=4`、`calibration_match=8/8`、`unstable=0`、`unobservable=0`。`CR-IMPACT`、`EQ-CLAIM`、`FP-SCOPE`、`HI-SEPARATION`は各3/3 trialでFAILを検出した。
+- Provenance: Evaluator SHA `c61e40f8cb5ea5106b163288456414745b94223a`、Dataset SHA-256 `129f3fd85f211eae794b959087e48866e2490ed9a7f26ba07630bef643b395f1`。runner生成resultは`semantic-result-repair-post-stdin-fix.json`として既存Runへ保存した。
+- Decision: continue（calibrationとclean-tree証跡は成立。evaluation、sanitizer、全体検証、Run Artifact commit／push、PR本文と最新head CI確認を継続する）。
+- Progress: 86% (12/14)
+
+## 2026-09-10 21:21 (JST)
+
+- Artifact validation: `evaluation.json` schema validation、machine-managed collector、sanitizer Write/Checkはすべてexit 0。sanitizerは10 files、0 replacements、0 residualだった。`run.json`は手編集せず、collector後も`status=pending`／`validation.status=not_run`／`codex_task_reports=[]`を維持している。
+- Local validation: source回帰19/19、TypeScript、対象ESLint、`validate:skills`、`git diff --check origin/main...HEAD`、`pnpm run verify`がPASSした。全体verifyはformat、Markdown、Skill/spec/curriculum、lint（error 0、既存warning 65）、3種typecheck、security、unit 66、integration 111、repository 66、component web 102/native 64、contracts 503（3 skipped）、build:web、build:specを含む。
+- Scope: datasetと4 semantic.yamlは未変更。collector、Run Manifest schema、CI workflow、Product Code／Test、依存は変更していない。追加source差分はrunnerとrepository-contract testの2ファイルだけである。
+- Decision: continue（source commit、canonical calibration、clean-tree／hash証跡、Run Artifact検証、全体品質ゲートが成立。残りはRun Artifact commit、push、PR本文更新、最新head CI確認）。
+- Progress: 93% (13/14)

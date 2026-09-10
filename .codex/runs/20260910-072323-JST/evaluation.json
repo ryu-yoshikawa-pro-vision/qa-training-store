@@ -7,7 +7,7 @@
   "dimensions": {
     "task_completion": {
       "rating": "warn",
-      "evidence": "4対象Skillのsemantic dataset、pure evaluator、minimal Codex Judge runner、repository-contract test、修正後canonical 8 anchor calibration、全体verify、修正実装commitは完了した。残る差分は既存collectorが手動Runの完了状態を表現できないmanifest lifecycle gapである。",
+      "evidence": "4対象Skillのsemantic dataset、pure evaluator、minimal Codex Judge runner、stdin failure回帰を含むrepository-contract test、修正後canonical 8 anchor calibration、全体verify、修正実装commitは完了した。今回のstdin failure handlingとcanonical calibration直前のclean-tree証跡は成立している。残る差分は既存collectorが手動Runの完了状態を表現できないmanifest lifecycle gapである。",
       "evidence_refs": [
         {
           "kind": "changed_file",
@@ -21,14 +21,14 @@
         },
         {
           "kind": "changed_file",
-          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-commit.json",
-          "summary": "修正実装commit後の8 anchor canonical calibration結果"
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-stdin-fix.json",
+          "summary": "stdin修正commit後の8 anchor canonical calibration結果"
         }
       ]
     },
     "scope_control": {
       "rating": "pass",
-      "evidence": "変更は正本Planで指定された4 dataset、eval source、runner、repository-contract test、package script、Run Artifactに限定され、Product Code/Test、CI、依存追加、N/A Skill、PR2固有処理は変更していない。",
+      "evidence": "変更は正本Planで指定された4 dataset、eval source、runner、repository-contract test、package script、Run Artifactに限定され、今回の追加修正もrunnerとrepository-contract testの2ファイルに限定された。Product Code/Test、CI、依存追加、N/A Skill、PR2固有処理は変更していない。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -44,7 +44,7 @@
     },
     "validation_confidence": {
       "rating": "pass",
-      "evidence": "修正後repository-contract 18/18、TypeScript、対象lint、validate:skills、pnpm run verify、git diff --checkがPASSした。修正後canonical calibrationは8 anchor×3 trialでRunner exit 0、4 stable_pass／4 stable_fail、全件calibration_match=true、unstable／unobservable 0だった。",
+      "evidence": "修正後repository-contract 19/19、TypeScript、対象lint、validate:skills、pnpm run verify、git diff --checkがPASSした。修正後canonical calibrationは8 anchor×3 trialでRunner exit 0、4 stable_pass／4 stable_fail、全件calibration_match=true、unstable／unobservable 0だった。stdin errorと同期的end例外はいずれも既存process_failureからunobservableへ分類されることを回帰テストで確認した。",
       "evidence_refs": [
         {
           "kind": "validation_command",
@@ -53,8 +53,8 @@
         },
         {
           "kind": "changed_file",
-          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-commit.json",
-          "summary": "修正実装commit後8 anchorのaggregate、calibration_match、provenance"
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-stdin-fix.json",
+          "summary": "stdin修正commit後8 anchorのaggregate、calibration_match、provenance"
         }
       ]
     },
@@ -102,23 +102,23 @@
         {
           "kind": "changed_file",
           "path": "tests/repository-contract/skill-semantic-output-evals.test.ts",
-          "summary": "18件のrepository contract回帰テスト"
+          "summary": "19件のrepository contract回帰テスト"
         }
       ]
     },
     "reproducibility": {
       "rating": "warn",
-      "evidence": "dataset SHA-256、Codex version、requested model、trial count、timeout、case-level結果は修正実装commit後のresultへ保存した。evaluator SHA `a070657630bccfb2e577ef5198c91a2b43f9b3cf`は修正実装commit `a070657`と一致する。",
+      "evidence": "dataset SHA-256、Codex version、requested model、trial count、timeout、case-level結果はstdin修正commit後のresultへ保存した。evaluator SHA `c61e40f8cb5ea5106b163288456414745b94223a`はsource commitと一致し、canonical calibration直前の`git status --porcelain`はstdout emptyだった。",
       "evidence_refs": [
         {
           "kind": "changed_file",
-          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-commit.json",
-          "summary": "修正実装commit後8 anchorのprovenanceと全trial結果"
+          "path": ".codex/runs/20260910-072323-JST/semantic-result-repair-post-stdin-fix.json",
+          "summary": "stdin修正commit後8 anchorのprovenanceと全trial結果"
         },
         {
           "kind": "changed_file",
           "path": ".codex/runs/20260910-072323-JST/REPORT.md",
-          "summary": "実行条件、初回差分、最終結果"
+          "summary": "実行条件、clean-tree証跡、stdin修正、最終結果"
         }
       ]
     }

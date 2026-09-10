@@ -15,6 +15,10 @@
 - [x] 8. 4件のレビュー指摘をtriageし、bounded repair scopeを確定する
 - [x] 9. runner、repository-contract test、4 fixtureを最小修正し、初回検証を完了する
 - [x] 10. 再calibration、全体検証、Run Artifact更新、最終修正報告を完了する
+- [x] 11. child.stdinのerror／同期書込失敗を既存process_failureへ接続し、回帰テストを追加する
+- [x] 12. source commit後にclean-treeを確認し、canonical calibrationとad-hoc report復元hashを検証する
+- [x] 13. calibration artifact、evaluation、REPORT、sanitizer、全体検証を確定する
+- [ ] 14. Run Artifactをcommit・pushし、最新PR headの本文とCIを確認する
 
 ## Blocked
 
